@@ -358,12 +358,12 @@ const (
 	// prior Kind's own append-only precedent, so no earlier ordinal, hash
 	// chain or golden replay is affected.
 	ManaActivate
-	// TokenAttacks marks one token that entered the battlefield TAPPED AND
-	// ATTACKING (Mobilize, Kari Zev's "tapped and attacking" monkey -- the
-	// TokenAttacking$ True rider). It is NOT a mint: events.Apply's
-	// TokenCreate case already made the object, and Obj here is that
-	// already-existing battlefield token, Player its controller and IDs[0]
-	// the defender it attacks. MyriadCopy must not be reused for this: it
+	// TokenAttacks marks an already-existing permanent that entered the
+	// battlefield TAPPED AND ATTACKING (TokenAttacking$ or a move body's
+	// Attacking$ True rider). It is NOT a mint: events.Apply's TokenCreate or
+	// MoveZone case already made the object, and Obj here is that battlefield
+	// object, Player its controller and IDs[0] the defender it attacks.
+	// MyriadCopy must not be reused for this: it
 	// mints a copy of the SOURCE card and flags IsMyriad, which
 	// MyriadCleanup exiles at end of combat -- wrong semantics for a script
 	// token a Sacrifice at the next end step owns. Appended here, after

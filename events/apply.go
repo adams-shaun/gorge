@@ -290,12 +290,12 @@ func Apply(g *state.Game, e Event) {
 		}
 
 	case TokenAttacks:
-		// A token that entered tapped and attacking (Mobilize, Kari Zev's
-		// monkey: the TokenAttacking$ True rider). Unlike MyriadCopy -- which
-		// MINTS a copy of the source card and flags IsMyriad, which
-		// MyriadCleanup exiles at end of combat -- this marks an
-		// ALREADY-MINTED battlefield token: Obj is the token, Player its
-		// controller and IDs[0] the defender it attacks. The object must
+		// A permanent that entered tapped and attacking (TokenAttacking$ or a
+		// move body's Attacking$ True rider). Unlike MyriadCopy -- which MINTS
+		// a copy of the source card and flags IsMyriad, which MyriadCleanup
+		// exiles at end of combat -- this marks an ALREADY-EXISTING battlefield
+		// object: Obj is the permanent, Player its controller and IDs[0] the
+		// defender it attacks. The object must
 		// still be on the battlefield and both players valid; anything else
 		// (a gone token, a fuzz event) is a no-op.
 		if o := g.Obj(e.Obj); o != nil && o.Zone == state.ZBattlefield &&

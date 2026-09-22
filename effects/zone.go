@@ -716,6 +716,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		if to == state.ZBattlefield && strings.EqualFold(sa.Params["Tapped"], "True") {
 			h.Emit(events.Event{Kind: events.Tap, Obj: o.ID, Player: c.Controller, Text: "entered tapped"})
 		}
+		applyAttackingEntry(h, c, sa, o.ID, c.Controller, to)
 		// StaticEffect$ on the inlined object path: the same rider the shared
 		// settle path applies for every other mover (the main loop deliberately
 		// predates settleChangeZoneMoveAs and is not routed through it).
@@ -965,15 +966,30 @@ func applyTransformed(h Host, c *Ctx, sa *cards.SA, id state.ObjID) {
 	h.Emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: int32(next), Text: "Transformed"})
 }
 
-func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, to state.Zone, withKind string, withAmt int32, player state.PlayerID, hasPlayer bool) {
-	if from == state.ZHand && to == state.ZBattlefield && strings.EqualFold(sa.Params["Tapped"], "True") {
-		notePlayer := c.Controller
-		if hasPlayer {
-			notePlayer = player
-		}
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: notePlayer,
-			Text: "Tapped$ True on a hand ChangeZone is not implemented; the card enters untapped"})
+// applyAttackingEntry implements the literal-True Attacking$ entry rider for
+// move effects. A missing trigger defender is a loud, deterministic degrade;
+// other selector forms remain intentionally unsupported.
+func applyAttackingEntry(h Host, c *Ctx, sa *cards.SA, id state.ObjID, player state.PlayerID, to state.Zone) {
+	if to != state.ZBattlefield {
+		return
 	}
+	attack := strings.TrimSpace(sa.Params["Attacking"])
+	if attack == "" {
+		return
+	}
+	if strings.EqualFold(attack, "True") && c.DefendingPlayer.IsPlayer {
+		h.Emit(events.Event{Kind: events.TokenAttacks, Obj: id, Player: player,
+			IDs: []state.ObjID{state.ObjID(c.DefendingPlayer.Player)}, Text: "entered attacking"})
+		return
+	}
+	text := "Attacking$ " + attack + " is not implemented; the permanent enters but does not attack"
+	if strings.EqualFold(attack, "True") {
+		text = "Attacking$ with no defending player in context; the permanent enters but does not attack"
+	}
+	h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller, Text: text})
+}
+
+func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, to state.Zone, withKind string, withAmt int32, player state.PlayerID, hasPlayer bool) {
 	ev := moveZoneEvent(c, id, from, to)
 	if strings.EqualFold(sa.Params["RememberLKI"], "True") {
 		if o := h.Game().Obj(id); o != nil {
@@ -1024,6 +1040,7 @@ func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, 
 	if to == state.ZBattlefield {
 		applyGainControl(h, c, sa, id)
 		applyTransformed(h, c, sa, id)
+		applyAttackingEntry(h, c, sa, id, player, to)
 		// StaticEffect$ <name> (the "return it ... It's a Spirit Detective"
 		// rider): the named Continuous static registers onto the moved card
 		// once its move and entry riders are settled. A no-op on every SA
@@ -3276,6 +3293,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 			// while replay folds the same tapped state.
 			h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: owner, Text: "entered tapped"})
 		}
+		applyAttackingEntry(h, c, sa, id, owner, to)
 		// StaticEffect$ on the library-origin branch: the same rider the
 		// shared settle path applied for the alternative-origin branch above.
 		if to == state.ZBattlefield {

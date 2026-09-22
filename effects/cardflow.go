@@ -1081,6 +1081,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			if tapped && dest == state.ZBattlefield {
 				h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: p, Text: "entered tapped"})
 			}
+			applyAttackingEntry(h, c, sa, id, p, dest)
 			// StaticEffect$ on a battlefield take (Arbiter of the Ideal's
 			// "put it onto the battlefield ... it's an enchantment"): the same
 			// rider registration every ChangeZone mover applies.
@@ -1693,6 +1694,7 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 					if tapped {
 						h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: p, Text: "entered tapped"})
 					}
+					applyAttackingEntry(h, c, sa, id, p, dest)
 					if gainControl {
 						h.Emit(events.Event{Kind: events.ControlChange, Obj: id, Player: c.Controller})
 					}
