@@ -614,9 +614,12 @@ type Ctx struct {
 	// player") cannot re-offer one of them. Ctx.Targets holds the
 	// placement/announcement targets only and is never appended to, so the
 	// two are read together by TargetsAlreadyChosen. A fresh Ctx rebuilt by a
-	// resume starts empty: a chain that suspended on an ask loses the
-	// earlier TargetUnique picks, which is the conservative direction (an
-	// ask that over-offers) and is documented in the approximation ledger.
+	// resume re-binds this field from the pending ask's ride (Decision
+	// .ResumeTargetsUnique -> the resume point's targetsUnique), so an
+	// intervening suspension between two riders keeps the earlier picks; ask
+	// kinds that do not go through poseTargetsAsk or poseUnlessAsk (a Charm's
+	// mode election, a ward's pay window) still lose it -- the documented
+	// conservative edge (an ask that over-offers).
 	TargetsUnique []state.Target
 	// Captured is the part of Remembered the resolution started with because
 	// its trigger, delayed trigger or replacement put the event's object there
@@ -1682,6 +1685,14 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 				// pass consumes the answer and dispatches with it visible to
 				// Defined for this SA.
 				h.SuspendContinuation(sa)
+				// The same asking-body-under-UnlessCost$ class as the body
+				// path below: when the gate already resolved on THIS pass,
+				// record its outcome on the ask's own resume point so the
+				// answered re-entry consumes it instead of re-posing the pay
+				// ask.
+				if strings.TrimSpace(sa.Params["UnlessCost"]) != "" {
+					h.SuspendUnless(sa, paid)
+				}
 				return
 			}
 			c.PickedTargets = ts

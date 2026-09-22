@@ -408,6 +408,13 @@ type Decision struct {
 	ResumeChoices     []state.Target `json:"-"`
 	ResumeChosenValid bool           `json:"-"`
 	ResumeRemembered  []state.Target `json:"-"`
+	// ResumeTargetsUnique carries the TargetUnique$ accumulator of the
+	// resolution that posed this ask (Ctx.TargetsUnique at suspension time):
+	// the resume rebuilds a fresh Ctx, which without the ride loses every
+	// earlier TargetUnique pick and a later rider in the same chain re-offers
+	// them. Runtime continuation state, never client input, the same class
+	// as ResumeRemembered.
+	ResumeTargetsUnique []state.Target `json:"-"`
 	// ResumeMoved carries the objects a ShuffleNonMandatory$ search's first
 	// pass already moved (Path to Exile, Stoneforge Mystic): the may-shuffle
 	// confirm suspends after the moves, and the re-entry's LibraryPosition$
