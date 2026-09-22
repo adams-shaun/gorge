@@ -69,7 +69,7 @@ func (e *Engine) checkGrantedConspireTriggers(observer *Engine, id state.ObjID, 
 			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
 				Source:     id,
 				Controller: o.Controller,
-				// The Ward shape: the body rides the push's __kwConspire
+				// The Ward shape: the body rides the push's __kwConspire:
 				// payload for events.Apply to rebuild structurally -- a raw
 				// SA cannot cross the log, and the TriggerPush -1 index
 				// sentinel is Dethrone's own. The cast spell rides
@@ -86,6 +86,66 @@ func (e *Engine) checkGrantedConspireTriggers(observer *Engine, id state.ObjID, 
 			})
 		}
 	}
+}
+
+// checkGrantedExploitTriggers synthesizes Exploit's ETB election (CR 702.58a)
+// for a creature that currently HAS the keyword but does not print it: a
+// layer-6 AddKeyword$ Exploit grant (Colonel Autumn's "Other legendary
+// creatures you control have exploit") has the same rules text as a printed
+// keyword, and the printed K:Exploit expansion (cards/kw_exploit.go) only
+// covers printed lines. Without this walk a granted creature's exploit never
+// offers its sacrifice and never fires a trig:Exploited -- the static is
+// visible to the layer system but has no trigger to carry it.
+//
+// The synthesized trigger reuses the ordinary ChangesZone machinery
+// (triggerModeEvents' MoveZone entry, zoneGate/phaseGate, the
+// changesZoneMatches Origin/Destination/ValidCard$ reads) with ValidCard$
+// Card.Self, so its behaviour is byte-identical to the printed path's for the
+// granted creature itself. The queue carries the __kwExploitGranted payload
+// events.Apply rebuilds the same two-step Sacrifice -> Exploit chain from
+// (the Ward/Afflict/Conspire shape; a granted creature has no __kwExploitGranted
+// SVar for a TriggerPush face-index to resolve).
+//
+// The face that PRINTS Exploit is skipped: the printed expansion already owns
+// the line for that creature, and firing both would sacrifice twice. The walk
+// is reached from both the faceMayTrigger early-return path and the full
+// path, the Dethrone/Afflict precedent, so a granted creature whose own
+// printed triggers are live for this event still gets its exploit.
+func (e *Engine) checkGrantedExploitTriggers(observer *Engine, id state.ObjID, o *state.Object, f *cards.Face, ev events.Event, objLKI *state.Object) {
+	// Cheap gates first: this walk is invoked for every object the event
+	// visits, so reject everything but the entering object before any
+	// derived-characteristics read.
+	if ev.Kind != events.MoveZone || ev.To != state.ZBattlefield || id != ev.Obj || o.Zone != state.ZBattlefield {
+		return
+	}
+	if f.HasKeyword("Exploit") || !e.HasKeyword(id, "Exploit") {
+		return
+	}
+	t := cards.Trigger{Mode: "ChangesZone", Params: map[string]string{
+		"Mode": "ChangesZone", "ValidCard": "Card.Self", "Origin": "Any",
+		"Destination": "Battlefield", "TriggerZones": "Battlefield",
+	}}
+	if !observer.triggerMatches(t, id, ev, objLKI) {
+		return
+	}
+	key := triggerKey{Source: id, Idx: -1}
+	if e.triggerFireCount == nil {
+		e.triggerFireCount = map[triggerKey]int32{}
+	}
+	if e.triggerFireCount[key] >= maxTriggerFires {
+		return // cascade bound: see maxTriggerFires.
+	}
+	e.triggerFireCount[key]++
+	e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+		Source:     id,
+		Controller: o.Controller,
+		Exploit:    true,
+		Ctx: effects.Ctx{
+			Source:         id,
+			Controller:     o.Controller,
+			TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
+		},
+	})
 }
 
 // checkGrantedDethroneTriggers synthesizes Dethrone's ordinary attack trigger

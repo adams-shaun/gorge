@@ -57,6 +57,12 @@ var addedAfterTheSplit = []string{
 	// events.Enlist marker Kind, appended for it (the Exerted shape), so it
 	// could not have been in the pre-split switch.
 	"Enlisted",
+	// exploit1: "Whenever a creature exploits a creature ..." (CR 702.58c;
+	// Graf Reaver, Colonel Autumn, Silumgar Scavenger and the rest of the
+	// keyword's 24 trigger lines). It matches the events.Exploit marker Kind
+	// the K:Exploit expansion emits, which was appended for it, so the mode
+	// could not have been in the pre-split switch.
+	"Exploited",
 }
 
 func allRegisteredModeNames() []string {
