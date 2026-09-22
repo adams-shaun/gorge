@@ -1353,6 +1353,22 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			return 0, true
 		}
 		return h.LifeGainedThisTurn(c.Controller), true
+	case "YouDrewThisTurn":
+		// The number of cards the controller DREW this turn — Elenda and
+		// Azor's `SVar:Y:Count$YouDrewThisTurn` feeding `TokenAmount$ Y`
+		// ("create a number of 1/1 black Vampire Knight creature tokens with
+		// lifelink equal to the number of cards you've drawn this turn") and
+		// the 29-carrier raw corpus family behind it. The same log fold the
+		// PlayerCount$CardsDrawn property reads (Host.CardsDrawnThisTurn,
+		// rules' bridge for the Smuggler's Share family), so the head and
+		// the property can never drift apart; derived from the event log —
+		// every events.Draw since the last TurnChange, the opening deal
+		// naturally invisible behind turn one's own TurnChange — so a replay
+		// derives the same count.
+		if c.Controller < 0 {
+			return 0, true
+		}
+		return h.CardsDrawnThisTurn(c.Controller), true
 	case "CountersRemovedThisTurn":
 		// Count$CountersRemovedThisTurn <KIND> <Player> — the number of counters
 		// of KIND the named players have PAID or LOST this turn (Creative
