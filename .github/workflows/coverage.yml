@@ -1,0 +1,66 @@
+# Refresh the published card-coverage tables after main moves.
+#
+# The measurement needs the Forge corpus, which is GPL-3.0 and is never
+# committed here: the job fetches it at the FORGE_REF pin into the gitignored
+# .cards/ and throws it away with the runner. Only the generated Markdown --
+# counts and percentages, no card text -- is committed back.
+#
+# `make coverage` is deterministic, so an unchanged corpus and an unchanged
+# primitive set produce byte-identical files and this job commits nothing. It
+# commits only when the numbers actually moved, and marks that commit
+# [skip ci] so it does not trigger itself.
+name: card coverage
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# One refresh at a time, and never cancel one mid-push: two jobs committing to
+# main concurrently is the only way this workflow can lose work.
+concurrency:
+  group: card-coverage
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history: the commit-back step rebases onto main when another
+          # push landed while the corpus was being fetched, and a depth-1
+          # checkout has nothing to rebase onto.
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      # ~25 MB sparse checkout of Card-Forge/forge at the Makefile's FORGE_REF.
+      - name: Fetch the Forge corpus
+        run: make fetch-cards
+
+      - name: Regenerate the coverage tables
+        run: make coverage
+
+      - name: Commit the refreshed tables
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- README.md docs/coverage.md; then
+            echo "coverage tables unchanged; nothing to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md docs/coverage.md
+          git commit -m "docs: refresh card coverage table [skip ci]"
+          # main is pushed to often; rebase once onto whatever landed while
+          # this job ran rather than failing the whole refresh.
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
