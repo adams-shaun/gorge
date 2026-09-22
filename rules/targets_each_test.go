@@ -236,3 +236,102 @@ func targetCounterN(o *state.Object, kind string) int {
 	}
 	return 0
 }
+
+// TestTolarianContemptBareInlineBoundAsksOnePerOpponent pins the bare inline
+// spelling of the TargetsForEachPlayer$ dynamic bound (pfpe1 follow-up):
+// Tolarian Contempt writes its end-step bound INLINE --
+// TargetMax$ PlayerCountOpponents$Amount, no SVar name and no Count$ prefix
+// -- where Havoc Eater reaches the same body through
+// SVar:X:PlayerCountOpponents$Amount behind TargetMax$ X. Before the fix
+// NumResolved answered the bare inline form (0, false), the bound degraded
+// to the default 1, and "for each opponent, choose up to one target creature
+// they control" collapsed to a single target -- the exact symptom the ticket
+// was filed for, surviving on one of the three dynamic-bound carriers.
+func TestTolarianContemptBareInlineBoundAsksOnePerOpponent(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	contempt, ok := reg.Lookup("Tolarian Contempt")
+	if !ok {
+		t.Fatal("Tolarian Contempt missing from corpus")
+	}
+	bear, ok := reg.Lookup("Runeclaw Bear")
+	if !ok {
+		t.Fatal("Runeclaw Bear missing from corpus")
+	}
+	// Seat 1 carries TWO bears so the one-per-controller discipline is
+	// exercised on the wire, not just the offer.
+	deck0 := append(mountainDeck(t, 40), contempt)
+	deck1 := append(mountainDeck(t, 40), bear, bear)
+	deck2 := append(mountainDeck(t, 40), bear)
+	e := New(seatZeroStart(Config{Seed: 42, Names: []string{"a", "b", "c"}, Decks: [][]*cards.Card{deck0, deck1, deck2}}))
+	e.Advance()
+	toMain1(t, e)
+	bearA := crAbortMove(t, e, 1, "Runeclaw Bear", state.ZBattlefield)
+	bearB := crAbortMove(t, e, 1, "Runeclaw Bear", state.ZBattlefield)
+	bearC := crAbortMove(t, e, 2, "Runeclaw Bear", state.ZBattlefield)
+	_ = crAbortMove(t, e, 0, "Tolarian Contempt", state.ZBattlefield)
+	e.pending = nil
+	e.priorityRound()
+	// The ETB trigger places a rejection counter on each opposing creature
+	// (TrigPutCounterAll); the end-step Phase trigger then poses the ask.
+	driveToStep(t, e, e.G.Turn, e.G.Active, state.StepEnd)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("pending = %+v, want the end-step trigger's target decision", d)
+	}
+	if d.Min != 0 || d.Max != 2 {
+		t.Fatalf("target bounds = (%d, %d), want (0, 2): the bare inline TargetMax$ PlayerCountOpponents$Amount is the opponent count", d.Min, d.Max)
+	}
+	if len(d.Options) != 3 {
+		t.Fatalf("options = %+v, want one per opposing creature", d.Options)
+	}
+	groupOf := map[state.ObjID]string{}
+	for _, o := range d.Options {
+		if o.Obj != bearA && o.Obj != bearB && o.Obj != bearC {
+			t.Fatalf("offered %d — only the opponents' creatures are targets", o.Obj)
+		}
+		if n := targetCounterN(e.G.Obj(o.Obj), "REJECTION"); n != 1 {
+			t.Fatalf("offered creature %d carries %d rejection counters, want 1", o.Obj, n)
+		}
+		groupOf[o.Obj] = o.Group
+	}
+	if groupOf[bearA] == "" || groupOf[bearA] != groupOf[bearB] || groupOf[bearA] == groupOf[bearC] {
+		t.Fatalf("groups = %v, want one per controller", groupOf)
+	}
+	indexOf := func(id state.ObjID) int {
+		for _, o := range d.Options {
+			if o.Obj == id {
+				return o.Index
+			}
+		}
+		return -1
+	}
+	if err := d.Validate(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{indexOf(bearA), indexOf(bearB)}}); err == nil {
+		t.Fatal("two creatures controlled by one opponent were accepted")
+	}
+	// One creature per opponent, answered; the sub-ability chain (DBRepeat's
+	// RepeatEach over the targeted) then moves each chosen creature to its
+	// OWNER's library at the alternate position -1 (bottom) -- the chain's
+	// deterministic no-host default for the owner's top-or-bottom election.
+	pick := []int{indexOf(bearA), indexOf(bearC)}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: pick}); err != nil {
+		t.Fatalf("submit one-per-opponent answer: %v", err)
+	}
+	passUntilStackEmpty(t, e, 40)
+	if z := e.G.Obj(bearA).Zone; z != state.ZLibrary {
+		t.Fatalf("chosen bear %d zone = %v, want its owner's library", bearA, z)
+	}
+	if z := e.G.Obj(bearC).Zone; z != state.ZLibrary {
+		t.Fatalf("chosen bear %d zone = %v, want its owner's library", bearC, z)
+	}
+	if z := e.G.Obj(bearB).Zone; z != state.ZBattlefield {
+		t.Fatalf("unchosen bear %d zone = %v, want battlefield", bearB, z)
+	}
+	lib1 := e.G.Zone(state.ZLibrary, 1)
+	lib2 := e.G.Zone(state.ZLibrary, 2)
+	if lib1[len(lib1)-1] != bearA {
+		t.Fatalf("bear %d not at the bottom of its owner's library (tail %d)", bearA, lib1[len(lib1)-1])
+	}
+	if lib2[len(lib2)-1] != bearC {
+		t.Fatalf("bear %d not at the bottom of its owner's library (tail %d)", bearC, lib2[len(lib2)-1])
+	}
+}

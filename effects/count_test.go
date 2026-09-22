@@ -489,6 +489,44 @@ func TestPlayerCountGroupAmountHeadCountsTheGroup(t *testing.T) {
 	}
 }
 
+// TestNumResolvedReadsBareInlineCountBody pins the direct-parameter spelling
+// of a bare count body (pfpe1 follow-up): Tolarian Contempt writes its
+// TargetsForEachPlayer$ bound INLINE -- TargetMax$ PlayerCountOpponents$
+// Amount, no SVar name and no Count$ prefix -- and the Num grammar must
+// resolve it exactly as it resolves the SVar-mediated spelling of the same
+// body (Havoc Eater's SVar:X:PlayerCountOpponents$Amount behind
+// TargetMax$ X). Before the fix the bare inline form fell through every
+// recognised shape in NumResolved and returned (0, false), so the bound
+// degraded to the default 1 and the "for each opponent" ask collapsed to a
+// single target. A token naming no modelled head keeps the unresolvable
+// verdict so Num's degrade-to-zero contract is unchanged.
+func TestNumResolvedReadsBareInlineCountBody(t *testing.T) {
+	g, _ := board(t)
+	h := &fakeHost{g: g}
+	c := &Ctx{Controller: 0}
+	sa := &cards.SA{Params: map[string]string{"TargetMax": "PlayerCountOpponents$Amount"}}
+	if n, ok := NumResolved(h, c, sa, "TargetMax", 1); !ok || n != 1 {
+		t.Fatalf("bare inline PlayerCountOpponents$Amount = (%d, %v), want (1, true)", n, ok)
+	}
+	sa2 := &cards.SA{Params: map[string]string{"TargetMax": "PlayerCountPlayers$Amount"}}
+	if n, ok := NumResolved(h, c, sa2, "TargetMax", 1); !ok || n != 2 {
+		t.Fatalf("bare inline PlayerCountPlayers$Amount = (%d, %v), want (2, true)", n, ok)
+	}
+	// The SVar-mediated spelling of the same body keeps resolving (the
+	// Havoc Eater shape -- this is the before/after control).
+	c3 := &Ctx{Controller: 0, SVars: map[string]string{"X": "PlayerCountOpponents$Amount"}}
+	sa3 := &cards.SA{Params: map[string]string{"TargetMax": "X"}}
+	if n, ok := NumResolved(h, c3, sa3, "TargetMax", 1); !ok || n != 1 {
+		t.Fatalf("SVar-mediated PlayerCountOpponents$Amount = (%d, %v), want (1, true)", n, ok)
+	}
+	// An unmodelled bare token stays unresolvable -- the verdict, not a
+	// silent zero, is what resolvedTargetBounds keys on.
+	sa4 := &cards.SA{Params: map[string]string{"TargetMax": "MaxTgts$Foo"}}
+	if _, ok := NumResolved(h, c, sa4, "TargetMax", 1); ok {
+		t.Fatal("MaxTgts$Foo reported evaluated -- an unmodelled head must stay unresolvable")
+	}
+}
+
 // TestChosenNumberHeadReadsTheFrozenBinding locks the Count$ChosenNumber
 // head (task wildgrowth1): the head reads Ctx.ChosenNumber -- the
 // Effect-created replacement's SetChosenNumber$ binding rules' replCtx

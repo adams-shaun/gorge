@@ -30,8 +30,11 @@ func Num(h Host, c *Ctx, sa *cards.SA, key string, def int32) int32 {
 // NumResolved is Num plus a resolvability verdict: it answers whether the
 // parameter RESOLVED under the same grammar Num reads -- a signed literal, an
 // SVar name present in the context's table, a recognised inline expression
-// prefix (Count$/Sacrificed$/Remembered$/TriggerCount$/ReplaceCount$), or the
-// bare X. Num itself degrades an unresolvable value to zero ("the card did
+// prefix (Count$/Sacrificed$/Remembered$/TriggerCount$/ReplaceCount$), a bare
+// count body the head dispatch resolves (the PlayerCount<group>$<property>
+// family -- Forge writes these as SVar bodies WITHOUT the Count$ prefix, so a
+// direct parameter value is the same bare body, Tolarian Contempt's
+// TargetMax$ PlayerCountOpponents$Amount), or the bare X. Num itself degrades an unresolvable value to zero ("the card did
 // nothing"); NumResolved exists for a caller that must not confuse that
 // degrade-to-zero with a LEGITIMATE zero -- rules' replacement matcher gates
 // a DB$ ReplaceDamage prevention body on its Amount$ and fails closed on a
@@ -114,6 +117,21 @@ func NumResolved(h Host, c *Ctx, sa *cards.SA, key string, def int32) (int32, bo
 	}
 	if raw == "X" {
 		return sign * c.X, true
+	}
+	// A bare inline count body with no SVar name and no Count$ prefix is a
+	// body in its own right: Forge writes the PlayerCount<group>$<property>
+	// family as SVar bodies WITHOUT the Count$ prefix (Vampire Lacerator's
+	// SVar:OpponentSmallest:PlayerCountOpponents$LowestLifeTotal), so a direct
+	// parameter value of the same shape -- Tolarian Contempt's
+	// TargetMax$ PlayerCountOpponents$Amount -- must resolve the way the
+	// SVar-mediated form (Havoc Eater's SVar:X:PlayerCountOpponents$Amount
+	// behind TargetMax$ X) resolves through the lookup above. Otherwise the
+	// pfpe1 per-player bound collapses to the default 1 on one spelling and
+	// not the other. A token that names no modelled head keeps the
+	// degrade-to-zero path -- evalCountExprOK's verdict is exactly
+	// "the head matched nothing".
+	if n, ok := evalCountExprOK(h, c, raw, 0); ok {
+		return sign * n, true
 	}
 	return 0, false
 }

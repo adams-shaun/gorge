@@ -218,10 +218,10 @@ func poseTargetsAsk(h Host, c *Ctx, sa *cards.SA, chooser state.PlayerID,
 			owner = t.Player
 		} else {
 			o.Kind, o.Obj = "card", t.Obj
-			if g := h.Game().Obj(t.Obj); g != nil && g.Face() != nil {
-				label = g.Face().Name
-			}
 			if g := h.Game().Obj(t.Obj); g != nil {
+				if g.Face() != nil {
+					label = g.Face().Name
+				}
 				owner = g.Controller
 			}
 		}
