@@ -384,7 +384,7 @@ func effPumpAll(h Host, c *Ctx, sa *cards.SA) {
 	zone := strings.TrimSpace(sa.Params["PumpZone"])
 	g := h.Game()
 	var ateotIDs []state.ObjID
-	for _, p := range g.AliveFrom(0) {
+	for si, p := range g.AliveFrom(0) {
 		if zone != "" {
 			zones, all, ok := ParseZones(zone)
 			if !ok {
@@ -402,6 +402,16 @@ func effPumpAll(h Host, c *Ctx, sa *cards.SA) {
 					state.ZGraveyard, state.ZExile, state.ZStack, state.ZCommand}
 			}
 			for _, z := range zones {
+				// g.Zone(ZStack, p) is the SHARED stack, identical for
+				// every seat (state/game.go Zone), so only the first alive
+				// seat scans it -- otherwise an N-seat table registers the
+				// same pump grant N times and schedules N end-of-turn
+				// expiries. The convention is rules/statics.go and
+				// effects/count.go's Count$ValidStack guard. Every other
+				// zone is per-player and keeps its ordered per-seat walk.
+				if z == state.ZStack && si > 0 {
+					continue
+				}
 				for _, id := range g.Zone(z, p) {
 					if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 						registerPumpEffects(h, c, id, att, def, sa, zone, nil)
@@ -580,6 +590,9 @@ type animateGrant struct {
 	// animation's own lifetime (WhipMustAttack, KheruMustAttack,
 	// MustBeBlocked, ...), resolved from THIS face's table at grant time.
 	svars []string
+	// staticAbilities names SVar Mode$ bodies the animated object gains for
+	// the animation's own lifetime (for example Stilt-Man's CantSacrifice).
+	staticAbilities []string
 }
 
 // parseAnimateGrant reads the shared Animate/AnimateAll parameter set. See
@@ -675,6 +688,17 @@ func parseAnimateGrant(h Host, c *Ctx, sa *cards.SA) animateGrant {
 	for _, nm := range strings.Split(sa.Params["sVars"], ",") {
 		if nm = strings.TrimSpace(nm); nm != "" {
 			ag.svars = append(ag.svars, nm)
+		}
+	}
+	// Forge uses the lower-case spelling on Animate bodies. Accept the
+	// canonical spelling too so parser-produced and hand-authored SAs agree.
+	for _, raw := range []string{sa.Params["staticAbilities"], sa.Params["StaticAbilities"]} {
+		for _, nm := range strings.FieldsFunc(raw, func(r rune) bool {
+			return r == ',' || r == ' ' || r == '\t' || r == '\n'
+		}) {
+			if nm != "" {
+				ag.staticAbilities = append(ag.staticAbilities, nm)
+			}
 		}
 	}
 	return ag
@@ -779,6 +803,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LAbilities, AddAbilities: ag.abilities,
+			SVars: c.SVars, AbilityGrantor: c.Source,
 			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent,
 			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: ag.zone,
@@ -811,6 +836,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 	// effects/leavebattlefield.go for the shape each takes.
 	registerLeaveExile(h, c, id, ag.leaveExile, ag.duration, ag.permanent)
 	registerSVarGrants(h, c, id, ag.svars, ag.leaveExile, ag.duration, ag.permanent)
+	registerAnimateStaticAbilities(h, c, id, ag.staticAbilities, ag.duration, ag.permanent, exileOn, remembered)
 }
 
 // animateAllUnreadNote names, in ONE loud note, every parameter the SA carries
@@ -823,7 +849,6 @@ func animateAllUnreadNote(h Host, c *Ctx, sa *cards.SA) {
 	for _, key := range []struct{ name, val string }{
 		{"RemoveKeywords$", sa.Params["RemoveKeywords"]},
 		{"RemoveAllAbilities$", sa.Params["RemoveAllAbilities"]},
-		{"staticAbilities$", sa.Params["staticAbilities"]},
 		{"Replacements$", sa.Params["Replacements"]},
 		{"CantHaveKeyword$", sa.Params["CantHaveKeyword"]},
 		{"RemoveLandTypes$", sa.Params["RemoveLandTypes"]},
@@ -859,7 +884,7 @@ func effAnimateAll(h Host, c *Ctx, sa *cards.SA) {
 		spec = "Creature"
 	}
 	g := h.Game()
-	for _, p := range g.AliveFrom(0) {
+	for si, p := range g.AliveFrom(0) {
 		if ag.zone != "" {
 			zones, all, ok := ParseZones(ag.zone)
 			if !ok {
@@ -876,6 +901,14 @@ func effAnimateAll(h Host, c *Ctx, sa *cards.SA) {
 					state.ZGraveyard, state.ZExile, state.ZStack, state.ZCommand}
 			}
 			for _, z := range zones {
+				// The shared stack is scanned once, under the first alive
+				// seat (state/game.go Zone; the effects/count.go and
+				// rules/statics.go convention). Without the guard an N-seat
+				// table registers one Animate grant per seat for the same
+				// stack object.
+				if z == state.ZStack && si > 0 {
+					continue
+				}
 				for _, id := range g.Zone(z, p) {
 					if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 						registerAnimateEffects(h, c, id, ag)

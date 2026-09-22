@@ -28,6 +28,8 @@ thinking = "medium"
 provider = "deepinfra"
 model = "deepseek-ai/DeepSeek-V4.1-Flash"
 thinking = "high"
+# 2026-09-22 (operator): spill to luna when DeepSeek has no free slot.
+fallback = ["openai-codex/gpt-5.6-luna"]
 
 [seats.escalated]
 # provider = "openai-codex"
@@ -74,7 +76,11 @@ local_endpoint_probe = true
 # until needs-human or blocked jobs are resolved". While any ticket sits in
 # human_needed, no `new` or `briefed` ticket starts; in-flight work still
 # advances, so the fleet drains instead of growing.
-hold_new_while_parked = true
+# 2026-09-22 (operator): measured 686 of the last 1440 minutes on hold (11
+# human_needed tickets in 24h, each freezing every new dispatch until a hand
+# landing finished); the 20-min health check now lands parked tickets with an
+# Opus agent, so the drain-while-parked policy costs more than it saves.
+hold_new_while_parked = false
 # 2026-09-22 (operator): triage writes at most this many briefs ahead of the
 # implementers; no new triage launches while this many sit in `briefed`.
 triage_ahead = 100
@@ -88,7 +94,8 @@ max_local_rounds = 2
 max_escalated_rounds = 0
 max_merge_rounds = 2
 seat_start_grace_s = 180
-poll_seconds = 60
+# 2026-09-22 (operator): tick every 10s.
+poll_seconds = 10
 
 # config.py:75, 90-91.
 # 2026-09-21 (operator): "2 local, 5 paid".

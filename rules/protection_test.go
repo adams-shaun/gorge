@@ -326,3 +326,43 @@ func TestGrantedProtectionCountsAndDevoidIsColourless(t *testing.T) {
 		t.Fatal("granted protection from red must apply to a red source and not to a devoid one")
 	}
 }
+
+// TestGrantedProtectionFromEachColor protects against every coloured source,
+// but not a colourless artifact source (CR 702.16c). The grant path is used
+// deliberately: this catches a quality matcher that only handles printed K:
+// keywords while still proving the bearer is on the battlefield.
+func TestGrantedProtectionFromEachColor(t *testing.T) {
+	e, _, bear := newFixtureDeck(t, 73, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	e.emit(events.Event{Kind: events.MoveZone, Obj: bear, From: state.ZHand, To: state.ZBattlefield})
+	effects.Resolve(e, &effects.Ctx{Source: bear, Controller: 0, Targets: []state.Target{{Obj: bear}}},
+		&cards.SA{Kind: "DB", API: "Pump", Params: map[string]string{"KW": "Protection from each color"}})
+	bo := e.G.Obj(bear)
+	if bo == nil || bo.Zone != state.ZBattlefield {
+		t.Fatalf("bearer is not on the battlefield after grant: %+v", bo)
+	}
+	if !e.protectedFrom(bear, bear) {
+		t.Fatal("bearer did not receive the each-color protection keyword")
+	}
+
+	red := putToken(t, e, 1, "Name:RedSource\nManaCost:R\nTypes:Creature Goblin\nPT:1/1\nOracle:x\n", state.ZBattlefield)
+	if !e.protectedFrom(bear, red) {
+		t.Fatal("each-color protection did not match the red source")
+	}
+	e.damaging = red
+	e.emit(events.Event{Kind: events.Damage, Obj: bear, Amount: 1})
+	e.damaging = 0
+	if got := e.G.Obj(bear).Damage; got != 0 {
+		t.Fatalf("red damage was not prevented: Damage=%d, want 0", got)
+	}
+
+	artifact := putToken(t, e, 1, "Name:ArtifactSource\nTypes:Artifact\nPT:1/1\nOracle:x\n", state.ZBattlefield)
+	if e.protectedFrom(bear, artifact) {
+		t.Fatal("each-color protection incorrectly matched a colourless artifact source")
+	}
+	e.damaging = artifact
+	e.emit(events.Event{Kind: events.Damage, Obj: bear, Amount: 1})
+	e.damaging = 0
+	if got := e.G.Obj(bear).Damage; got != 1 {
+		t.Fatalf("artifact damage was prevented: Damage=%d, want 1", got)
+	}
+}

@@ -3451,12 +3451,16 @@ type replChoice struct {
 	// ordinary combat damage does, and finishChosenDamage resumes
 	// runCombatAssignments once this batch's parked choices all settle.
 	// lifelink/deadly cache the damage source's keywords at park time (Task
-	// 15's provenance-freezing discipline), and cause is the Counter
-	// replacement's cause object (counterReplacementMatches' third argument),
-	// set only when kind == replChoiceCounter.
+	// 15's provenance-freezing discipline), toxic caches the source's total
+	// CR 702.164 toxic N the same way (runCombatAssignments' synchronous emit
+	// site reads it at the moment of the hit; a parked hit must poison the
+	// same amount when it lands in finishChosenDamage), and cause is the
+	// Counter replacement's cause object (counterReplacementMatches' third
+	// argument), set only when kind == replChoiceCounter.
 	combat   bool
 	lifelink bool
 	deadly   bool
+	toxic    int
 	cause    state.ObjID
 }
 
@@ -3618,6 +3622,7 @@ func (e *Engine) poseDamageReplacementChoice(ev events.Event, matches []replMatc
 		kind: replChoiceDamage, ev: ev, cands: matches, before: e.triggerBefore, player: p,
 		damaging: source, combat: e.combatDamaging,
 		lifelink: e.HasKeyword(source, "Lifelink"), deadly: e.HasKeyword(source, "Deathtouch"),
+		toxic: e.ToxicValue(source),
 	})
 	if e.pending == nil {
 		e.askReplacementChoice(p)
@@ -4166,6 +4171,21 @@ func (e *Engine) finishChosenDamage(rc replChoice) {
 		// Amount <= 0), and a redirect ONTO a permanent zeroes nothing but
 		// fails the Obj == 0 guard exactly as the capture site's guard does.
 		e.combatHitsThisTurn = append(e.combatHitsThisTurn, e.combatHit(applied.Player, rc.damaging, applied.Amount))
+		// CR 702.164's SECOND poison site, mirroring the ledger append's twin
+		// path: a parked player-targeted combat hit never reaches
+		// runCombatAssignments' synchronous toxic emit, so the landed event
+		// must place the cached toxic poison here or a dealt player keeps 0
+		// poison (Battletide Alchemist's optional prevention, declined or
+		// applying a 0-amount prevent, both land here). The rc.combat flag and
+		// the Obj == 0 guard are the same ones the capture site guards with: a
+		// non-combat Damage event or a redirect ONTO a permanent means no
+		// player was dealt combat damage, so no poison is placed. Toxic rides
+		// the LANDED amount (the early return above already skipped a fully
+		// prevented/replaced event, where CR 702.164b's trigger never met).
+		if rc.toxic > 0 {
+			e.emit(events.Event{Kind: events.PlayerCounterChange,
+				Player: applied.Player, Counter: "POISON", Amount: int32(rc.toxic)})
+		}
 	}
 }
 

@@ -1144,6 +1144,10 @@ func (e *Engine) grantedAbilities(p state.PlayerID, id state.ObjID) []grantedAbi
 		}
 		for _, nm := range ce.AddAbilities {
 			svars := ce.SVars
+			grantor := ce.AbilityGrantor
+			if grantor == 0 {
+				grantor = ce.Source
+			}
 			if svars == nil {
 				svars = src.Face().SVars
 			}
@@ -1151,7 +1155,7 @@ func (e *Engine) grantedAbilities(p state.PlayerID, id state.ObjID) []grantedAbi
 			if ab == nil || ab.Kind != "AB" {
 				continue
 			}
-			out = append(out, grantedAbility{sa: ab, source: ce.Source, svar: nm})
+			out = append(out, grantedAbility{sa: ab, source: grantor, svar: nm})
 		}
 	}
 	return out
