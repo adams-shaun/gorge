@@ -285,6 +285,20 @@ type Host interface {
 	// Accord, Resplendent Angel, Valkyrie Harbinger — whose CheckSVar$ gate
 	// reads the count), the mirror of LifeLostThisTurn.
 	LifeGainedThisTurn(p state.PlayerID) int32
+	// CountersRemovedThisTurn reports how many counters of kind player p PAID
+	// OR LOST this turn — the sum of every negative-Amount PlayerCounterChange
+	// naming the kind since the last TurnChange, derived from the event log so
+	// a replay derives the same number. This is the Count$CountersRemovedThisTurn
+	// backing (Blaster Hulk's per-{E} cast discount, Izzet Generatorium's
+	// "activate only if you've paid or lost four or more {E} this turn" gate):
+	// a payment and a loss both leave the player's pool through the ONE event
+	// shape a grant uses — a negative PlayerCounterChange (rules/mana.go's
+	// PayEnergy settle) — so the removals are log-visible exactly like the
+	// life totals LifeLostThisTurn folds. Kind matching is case-insensitive
+	// (the same read the YourCounters heads take). Object-counter removals (a
+	// permanent losing counters) are NOT folded here — the head's object-spec
+	// form is a separate, unimplemented shape.
+	CountersRemovedThisTurn(p state.PlayerID, kind string) int32
 	// CombatDamageToPlayersThisTurn reports every instance of combat damage
 	// dealt to a PLAYER so far this turn, in assignment order. It is the
 	// PlayerCountDefinedRegistered$HasPropertywasDealtCombatDamageThisTurnBy
@@ -510,6 +524,17 @@ type Host interface {
 	// never ends anything. rules.Engine implements it as an in-place drop of
 	// its registry; the effects test double drops from its recorded slice.
 	EndEffect(source state.ObjID, stamp uint32)
+	// EndImprintedEffects ends every live continuous-effect registration
+	// that an ImprintOnHost$ True Effect imprinted on the named host card
+	// (state.ContinuousEffect.ImprintOnHost): the analogue of Forge's
+	// `DB$ ChangeZone | Defined$ Imprinted | Origin$ Command | Destination$
+	// Exile` exiling the imprinted effect token from the Command zone
+	// (Superior Foes of Spider-Man's "until you exile another card with
+	// this creature" -- the second dig's trigger exiles the FIRST effect's
+	// token before the new dig's Effect registers). rules.Engine implements
+	// it as an in-place drop of its registry, rebuilt by re-execution on
+	// replay; the effects test double mirrors it.
+	EndImprintedEffects(source state.ObjID)
 }
 
 // RepeatCursor is a RepeatEach loop re-entered after an iteration suspended:
@@ -617,6 +642,16 @@ type Ctx struct {
 	// directly so a SubAbility$ chained after it can read it. The
 	// Sacrificed$<Property> heads in count.go read it.
 	Sacrificed []state.SacrificedInfo
+	// ChangeZoneLKI is the resolution's last-known-information table for
+	// ChangeZoneRememberLKI$ moves: one entry per object the move captured,
+	// holding the controller/owner it had at that instant. events.Apply's Move
+	// resets a battlefield departure's controller to its owner (CR 400.7), so
+	// the live object can no longer answer "the exiled creature's controller"
+	// -- exactly Forge's reason for storing a Card LKI copy in Remembered
+	// (ChangeZoneEffect's CardCopyService.getLKICopy). A RepeatEach body's
+	// TokenOwner$ ImprintedController / Defined$ ImprintedController reads it
+	// for the current iteration subject (Curse of the Swine's Boars).
+	ChangeZoneLKI []state.LKIObject
 	// ResolvingObj is the stack-object WRAPPER of the spell/ability currently
 	// resolving -- rules' e.resolvingObj (resolveTop's ability and spell
 	// branches) and rp.obj (resumeResolution) -- set at those two ctx
@@ -1312,6 +1347,19 @@ type Ctx struct {
 	VoteAnswer []state.Target
 	VoteDone   bool
 	VoteTarget int
+	// Demonstrate carries the demonstrate trigger's answered asks (CR
+	// 702.152) across a mid-resolution ask. DemonstrateStage is which ask
+	// was answered -- 0 the may-copy election, 1 the opponent choice --
+	// DemonstrateYes the election's answer, DemonstrateOpp the answered
+	// opponent (player targets). rules' "demonstrate" resume arm rebuilds
+	// all four from the decision's ResumeTarget and answer, and
+	// effDemonstrate consumes and clears all four at the top of its walk
+	// (the fx42 scoping discipline), so a nested Demonstrate below this
+	// walk poses its own asks.
+	DemonstrateDone  bool
+	DemonstrateStage int
+	DemonstrateYes   bool
+	DemonstrateOpp   []state.Target
 	// VoteCounts is the per-subject tally the most recent api:Vote left for
 	// this resolution's AmountFromVotes$ readers (effects/choose_control.go's
 	// effRepeatEach): one entry per ballot subject -- every player the
