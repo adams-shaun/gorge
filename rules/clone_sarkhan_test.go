@@ -9,6 +9,7 @@ package rules
 // keeps the copied characteristics, and expires at end-of-turn cleanup.
 
 import (
+	"fmt"
 	"slices"
 	"testing"
 
@@ -88,6 +89,131 @@ func TestSarkhanDragonEntryPosesTheMayCopyElectionAndDeclineKeepsSarkhan(t *test
 	}
 	if slices.Contains(e.Derived(sark).Types, "Dragon") {
 		t.Fatal("declined Sarkhan reads as a Dragon")
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestSarkhanLeavesBeforeTheOptionalChoiceNeverAsks pins the findings-sol1
+// MAJOR: Sarkhan leaves the battlefield (two Shocks, while its Dragon-entry
+// trigger waits on the stack) before that trigger resolves. Resolving the
+// trigger must NOT pose the may-copy election -- every become pair is dead
+// (the copy loop would skip Sarkhan either way), so a decision whose every
+// answer does nothing is never asked; the resolution completes silently and
+// nothing is cloned.
+func TestSarkhanLeavesBeforeTheOptionalChoiceNeverAsks(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e, cfg := searchEngine(t, reg, "Sarkhan, Soul Aflame", "Dragon Hatchling", "Shock", "Shock")
+	sark := searchMoveByName(t, e, "Sarkhan, Soul Aflame", state.ZBattlefield)
+	drag := searchMoveByName(t, e, "Dragon Hatchling", state.ZBattlefield)
+
+	// Preconditions the assertions stand on: Sarkhan on the battlefield as
+	// its printed 2/4 self (two Shocks are exactly lethal), the Dragon on
+	// the battlefield, and Sarkhan's copy trigger ON THE STACK with seat 0
+	// holding priority -- the state the regression runs against.
+	if o := e.G.Obj(sark); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("Sarkhan fixture missing off the battlefield: %+v", o)
+	}
+	if d := e.Derived(sark); d.Power != 2 || d.Toughness != 4 {
+		t.Fatalf("pre-shock Sarkhan P/T %d/%d, want the printed 2/4", d.Power, d.Toughness)
+	}
+	if o := e.G.Obj(drag); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("Dragon fixture missing off the battlefield: %+v", o)
+	}
+	if len(e.G.Stack) == 0 {
+		t.Fatal("the Dragon entry did not leave Sarkhan's copy trigger on the stack")
+	}
+
+	// passPriority passes whoever currently holds priority.
+	passPriority := func(stage string) {
+		t.Helper()
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KPriority {
+			t.Fatalf("%s: expected a priority decision, got %+v", stage, d)
+		}
+		idx := -1
+		for _, o := range d.Options {
+			if o.Kind == "pass" {
+				idx = o.Index
+			}
+		}
+		if idx < 0 {
+			t.Fatalf("%s: priority decision with no pass option: %+v", stage, d)
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
+			t.Fatalf("%s: submit pass: %v", stage, err)
+		}
+	}
+
+	// Kill Sarkhan with two Shocks while the trigger waits on the stack.
+	// A sorcery could not be cast here (the stack is not empty), so the
+	// instant is the shape the real game reaches.
+	for i := 0; i < 2; i++ {
+		stage := fmt.Sprintf("shock %d", i+1)
+		addMana(t, e, 0, "R")
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KPriority {
+			t.Fatalf("%s: expected a priority decision, got %+v", stage, d)
+		}
+		shockID := state.ObjID(0)
+		for _, id := range e.G.Zone(state.ZHand, 0) {
+			if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Shock" {
+				shockID = id
+				break
+			}
+		}
+		if shockID == 0 {
+			t.Fatalf("%s: no Shock left in seat 0's hand", stage)
+		}
+		cIdx := -1
+		for _, o := range d.Options {
+			if o.Kind == "cast" && o.Obj == shockID {
+				cIdx = o.Index
+			}
+		}
+		if cIdx < 0 {
+			t.Fatalf("%s: no cast option for Shock: %+v", stage, d.Options)
+		}
+		submitChoices(t, e, cIdx)
+		d = e.Pending()
+		if d == nil || d.Kind != decision.KTarget {
+			t.Fatalf("%s: expected a target decision, got %+v", stage, d)
+		}
+		tIdx := -1
+		for _, o := range d.Options {
+			if o.Obj == sark {
+				tIdx = o.Index
+			}
+		}
+		if tIdx < 0 {
+			t.Fatalf("%s: Sarkhan not offered as a target: %+v", stage, d.Options)
+		}
+		submitChoices(t, e, tIdx)
+		passPriority(stage + " pass 1")
+		passPriority(stage + " pass 2")
+	}
+
+	// Sarkhan is dead (the SBA swept the 2/4 with 4 marked damage) and the
+	// trigger is STILL on the stack -- the board the regression is about.
+	if o := e.G.Obj(sark); o == nil || o.Zone != state.ZGraveyard {
+		t.Fatalf("two Shocks did not kill Sarkhan: %+v", o)
+	}
+	if len(e.G.Stack) == 0 {
+		t.Fatal("the Dragon-entry trigger left the stack before resolution")
+	}
+
+	// Drain the stack: with the fix the trigger resolves without posing any
+	// ask (passUntilStackEmpty fatals on a non-priority decision, so a
+	// returned election fails the test here); with the pre-fix engine the
+	// election appears exactly at this point.
+	passUntilStackEmpty(t, e, 40)
+	if hasEventKind(e, events.ClonePermanent) {
+		t.Fatal("the trigger cloned despite Sarkhan being gone")
+	}
+	if o := e.G.Obj(sark); o == nil || o.Zone != state.ZGraveyard {
+		t.Fatalf("Sarkhan moved after the trigger resolved: %+v", o)
+	}
+	if o := e.G.Obj(drag); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("the Dragon left the battlefield: %+v", o)
 	}
 	replayCheck(t, e, cfg)
 }
