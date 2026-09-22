@@ -281,7 +281,25 @@ func (e *Engine) castRestrictedUsing(statics []staticView, p state.PlayerID, id 
 		if !e.restrictionGateHolds(sv, id) || !e.checkSVarHolds(sv) {
 			continue
 		}
-		if effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.staticSpecCtx(sv)) {
+		spec := sv.Params["ValidCard"]
+		// The origin-zone cast-provenance split (task wascastfrom): a
+		// CantBeCast restriction's ValidCard$ carrying a wasCastFromExile /
+		// wasCastFromTheirHand-shaped token gates the cast IN PROGRESS -
+		// which has no PutOnStack yet - so the origin is the restricted
+		// object's CURRENT zone (every cast evaluation site's pending origin;
+		// see castOriginAdmitsAtZone). Without the split the token is unknown
+		// to the effects-side filter and the restriction silently never
+		// applies (the permissive-wrong direction for a prohibition).
+		if specCarriesCastOrigin(spec) {
+			if o := e.G.Obj(id); o != nil {
+				s, ok := e.castOriginAdmitsAtZone(spec, id, o.Zone)
+				if !ok {
+					continue
+				}
+				spec = s
+			}
+		}
+		if effects.MatchesSpecCtx(e.G, spec, id, e.staticSpecCtx(sv)) {
 			return true
 		}
 	}

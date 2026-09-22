@@ -229,6 +229,18 @@ type Host interface {
 	// ByYou read takes); a card never put on the stack (cheated into play)
 	// reads false; latest-cast-wins.
 	WasCastFromHand(obj state.ObjID) bool
+	// WasCastFromExile reports whether card obj's LATEST cast came from
+	// EXILE — the Count$wasCastFromExile branch head's backing (task
+	// wascastfrom: the "if this spell was cast from exile" carriers —
+	// Delayed Blast Fireball's 5-instead-of-2, Ultimate Magic's
+	// prevent-effect gate, Lifestream's Blessing's doubled life gain).
+	// Foretell, warp and may-play-from-exile casts carry no origin CastFlags
+	// bit, so the provenance is the event log: the object's latest
+	// PutOnStack event names the cast, whose From is the zone it was cast
+	// FROM; a copy was never cast; a card never put on the stack reads
+	// false; latest-cast-wins — the same discipline the hand reads take.
+	// Derived from the log, so a replay derives the same answer.
+	WasCastFromExile(obj state.ObjID) bool
 	// WasCast reports whether card obj is a CAST SPELL in the Forge
 	// Card.wasCast() sense (castFrom != null) -- the third conjunct of the
 	// Count$IfCastInOwnMainPhase branch head (task ifcastmain1). A card

@@ -293,6 +293,12 @@ func (h *fakeHost) DiscardedInWindow(_ state.ObjID) []state.ObjID { return nil }
 // provenance is pinned end to end on the real engine in rules.
 func (h *fakeHost) WasCastFromHand(_ state.ObjID) bool { return h.castFromHand }
 
+// WasCastFromExile (task wascastfrom): the fake has no cast log, so the
+// Count$wasCastFromExile branch head's fakeHost evals take the ifFalse
+// branch; the provenance is pinned end to end on the real engine in rules
+// (Delayed Blast Fireball's foretell-cast corpus test).
+func (h *fakeHost) WasCastFromExile(_ state.ObjID) bool { return false }
+
 // WasCast is the Count$IfCastInOwnMainPhase third conjunct's read (task
 // ifcastmain1): the fake reports the flag, so the eval-level head tests pin
 // both branches by flipping it (the real engine read is pinned in rules).
