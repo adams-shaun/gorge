@@ -3525,11 +3525,11 @@ func (e *Engine) xAsk() bool {
 	}
 	// An announced SubCounter<X/Kind> part's bound is the number of counters
 	// of that kind the SOURCE actually has (Chandra, Awakened Inferno's
-	// SubCounter<X/LOYALTY>: the loyalty the walker has to remove); a part
-	// whose removal-target field names a filter (Moxite Refinery's Any-kind
-	// form) is bounded instead by the LARGEST matching candidate -- announcing
-	// an X no candidate could settle would strand the ask. An announced
-	// PayLife<X> part's bound is the payer's life total divided
+	// SubCounter<X/LOYALTY>: the loyalty the walker has to remove). A filtered
+	// fixed-kind part is likewise capped by its largest candidate, but a
+	// filtered Any-kind part may remove individual units across candidates, so
+	// its cap is their aggregate available counters (Moxite Refinery). An
+	// announced PayLife<X> part's bound is the payer's life total divided
 	// across the parts (the payer cannot pay more life than they have;
 	// paying exactly all of it is legal -- the SBA owns the zero-life
 	// consequence). When an announced part is the ONLY X the cost carries it
@@ -3558,7 +3558,10 @@ func (e *Engine) xAsk() bool {
 		} else {
 			for _, oid := range e.subCounterRemovalCandidates(pc.player, pc.card, part, 1, nil) {
 				if o := e.G.Obj(oid); o != nil {
-					if n := subCounterAvailable(o, part.Spec); n > have {
+					n := subCounterAvailable(o, part.Spec)
+					if strings.EqualFold(part.Spec, "Any") {
+						have += n
+					} else if n > have {
 						have = n
 					}
 				}
@@ -3774,19 +3777,7 @@ func (e *Engine) subCounterAsk() bool {
 			pc.subCounterPart++
 			continue
 		}
-		reserved := map[state.ObjID]bool{}
-		for _, s := range pc.sacs {
-			reserved[s] = true
-		}
-		// A fixed-kind part reserves whole objects across parts (the
-		// pre-existing behaviour); a wildcard part reserves only the counter
-		// UNITS it has already recorded (tracked in wildcardCounterAsk), so
-		// its multi-unit payment may span kinds and objects.
-		for _, p := range pc.subCounterPays {
-			if p.part != pc.subCounterPart {
-				reserved[p.obj] = true
-			}
-		}
+		reserved := pc.subCounterReservations()
 		if strings.EqualFold(part.Spec, "Any") {
 			if e.wildcardCounterAsk(pc, part, amt) {
 				return true
@@ -3818,6 +3809,23 @@ func (e *Engine) subCounterAsk() bool {
 	return false
 }
 
+// subCounterReservations keeps an earlier counter-cost part from spending
+// the same permanent as the current part. Wildcard units from the current
+// part are deliberately absent: wildcardCounterAsk accounts for them by
+// (object, kind), allowing the part itself to span objects and kinds.
+func (pc *pendingCast) subCounterReservations() map[state.ObjID]bool {
+	reserved := map[state.ObjID]bool{}
+	for _, s := range pc.sacs {
+		reserved[s] = true
+	}
+	for _, p := range pc.subCounterPays {
+		if p.part != pc.subCounterPart {
+			reserved[p.obj] = true
+		}
+	}
+	return reserved
+}
+
 // wildcardCounterAsk advances a wildcard "Any" SubCounter part by one
 // counter unit: it offers the remaining (permanent, counter-kind) units the
 // payer may remove, asks when more than one is legal, and records the pick.
@@ -3844,11 +3852,7 @@ func (e *Engine) wildcardCounterAsk(pc *pendingCast, part CostPart, amt int32) b
 		pc.subCounterPart++
 		return false
 	}
-	reserved := map[state.ObjID]bool{}
-	for _, s := range pc.sacs {
-		reserved[s] = true
-	}
-	candidates := e.subCounterRemovalCandidates(pc.player, pc.card, part, 1, reserved)
+	candidates := e.subCounterRemovalCandidates(pc.player, pc.card, part, 1, pc.subCounterReservations())
 	if len(candidates) == 0 {
 		e.abortCast(pc, "counter-removal cost no longer payable; cast/activation aborted", true)
 		return true

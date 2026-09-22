@@ -291,6 +291,11 @@ func TestRemoveAnyCounterMixedFixedAndWildcardParts(t *testing.T) {
 	if d == nil || d.Kind != decision.KChoose {
 		t.Fatalf("wildcard unit decision = %+v, want a KChoose over (permanent, kind)", d)
 	}
+	for _, o := range d.Options {
+		if o.Obj == bearBID && o.Counter == "P1P1" {
+			t.Fatalf("wildcard re-offered Bear B's fixed-cost counter: %+v", d.Options)
+		}
+	}
 	picked := -1
 	for _, o := range d.Options {
 		if o.Obj == bearAID && o.Counter == "CHARGE" {
