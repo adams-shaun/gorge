@@ -20,13 +20,14 @@ import (
 //
 // Scoping is the registration's own, not the body's Affected$ evaluated
 // against a remembered set: Forge's Animate bodies scope with Affected$
-// Card.IsRemembered -- the cards the move remembered -- and the move path
+// <Base>.IsRemembered -- the cards the move remembered -- and the move path
 // already KNOWS that set exactly (the ids it moved), so each moved card gets
-// its own registration with Source = the card and Affects = Card.Self, the
-// same one-shot shape registerAnimateEffects uses. A body whose Affected$
-// names anything else is registered verbatim (Source = the moved card, You =
-// the resolving controller): a spec this build cannot evaluate fails closed
-// in the ordinary filter grammar and applies to nobody.
+// its own registration with Source = the card and the predicate rewritten to
+// <Base>.Self (the same one-shot shape registerAnimateEffects uses, keeping
+// the base's restriction). A body whose Affected$ names anything else is
+// registered verbatim (Source = the moved card, You = the resolving
+// controller): a spec this build cannot evaluate fails closed in the ordinary
+// filter grammar and applies to nobody.
 //
 // Lifetime is the ordinary source-leaves rule (CR 611.2c): with no Duration$
 // the grant is active while the moved permanent stays on the battlefield and
@@ -158,13 +159,25 @@ func parseStaticEffectGrant(params map[string]string) (staticGrant, string, bool
 		}
 	}
 	affects := strings.TrimSpace(params["Affected"])
-	// Forge's Affected$ Card.IsRemembered (the one corpus spelling, 55/55)
-	// means "the cards this move moved" -- the set the caller already holds
-	// exactly -- so the registration pins each moved card (Source = the card,
-	// Affects = Card.Self, the registerAnimateEffects shape). Any other spec
-	// rides verbatim with Source = the moved card.
-	if affects == "" || strings.EqualFold(affects, "Card.IsRemembered") {
+	// Forge's Affected$ <Base>.IsRemembered means "the <Base> cards this move
+	// moved" -- the set the caller already holds exactly -- so the
+	// registration pins each moved card (Source = the card). The rewrite is
+	// SUFFIX-based, not a single exact spelling: measured over the 55
+	// StaticEffect$ carrier files the named bodies split 54
+	// "Card.IsRemembered" + 1 "Creature.IsRemembered" (Lim-Dûl, the
+	// Necromancer), and the corpus writes the predicate over every base word
+	// (492 Card, 6 Creature, 2 Instant, 2 Permanent, 1 Equipment, 1 Land).
+	// The base is kept and only the predicate is swapped for Self ("Card.Self"
+	// / "Creature.Self"), which every matchesBase+matching-predicate path
+	// already evaluates, so a "Creature.IsRemembered" body still restricts
+	// the grant to the moved card when that card is a creature -- dropping
+	// the base would over-apply the grant. A body with an empty Affected$ is
+	// the Self default; any other spec rides verbatim (Source = the moved
+	// card) and fails closed in the ordinary filter grammar if unreadable.
+	if affects == "" {
 		affects = "Card.Self"
+	} else if base, ok := strings.CutSuffix(strings.ToLower(affects), ".isremembered"); ok && base != "" && !strings.HasSuffix(base, "!") {
+		affects = affects[:len(base)] + ".Self"
 	}
 	return g, affects, true
 }
@@ -308,29 +321,26 @@ func registerStaticEffectGrant(h Host, c *Ctx, id state.ObjID, affects string, g
 			Duration:     g.duration, Permanent: g.permanent, UntilEOT: g.untilEOT,
 		})
 	}
-	if len(g.addKeywords) > 0 {
-		h.AddContinuous(state.ContinuousEffect{
-			Source: id, Affects: affects, Controller: c.Controller,
-			Layer:       state.LAbilities,
-			AddKeywords: g.addKeywords,
-			Duration:    g.duration, Permanent: g.permanent, UntilEOT: g.untilEOT,
-			SVars: c.SVars,
-		})
-	}
-	if g.removeAbilities {
+	// CR 613.1f: the ability removal, the keyword grants and the ability
+	// grants of ONE static body are a single simultaneous modification, so
+	// they register as ONE LAbilities effect. The layer walk's in-effect
+	// order (clear on RemoveAbilities, then append AddKeywords) is then the
+	// card text's own, and the walk's removal-before-grant tie-break applies.
+	// Splitting them into separate AddContinuous calls was a real defect:
+	// each call stamps its own ClockTick, so a body carrying BOTH
+	// RemoveAllAbilities$ True AND AddKeyword$ (bronzehide_lion,
+	// hellcat_undying_vigilante, harold_and_bob_first_numens -- 3 of the 55
+	// carriers) had the keyword wiped by its own removal (the removal ran at
+	// a LATER timestamp). This mirrors copypermanent.go's single-effect shape.
+	if g.removeAbilities || len(g.addKeywords) > 0 || len(g.abilities) > 0 {
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: affects, Controller: c.Controller,
 			Layer:           state.LAbilities,
-			RemoveAbilities: true,
+			RemoveAbilities: g.removeAbilities,
+			AddKeywords:     g.addKeywords,
+			AddAbilities:    g.abilities,
+			AffectedZone:    g.affectedZone,
 			Duration:        g.duration, Permanent: g.permanent, UntilEOT: g.untilEOT,
-		})
-	}
-	if len(g.abilities) > 0 {
-		h.AddContinuous(state.ContinuousEffect{
-			Source: id, Affects: affects, Controller: c.Controller,
-			Layer:        state.LAbilities,
-			AddAbilities: g.abilities,
-			Duration:     g.duration, Permanent: g.permanent, UntilEOT: g.untilEOT,
 			SVars: c.SVars,
 		})
 	}
@@ -344,6 +354,7 @@ func registerStaticEffectGrant(h Host, c *Ctx, id state.ObjID, affects string, g
 			SetToughnessPresent: g.hasTough,
 			StaticSet:           true,
 			HasSet:              true,
+			AffectedZone:        g.affectedZone,
 			Duration:            g.duration, Permanent: g.permanent, UntilEOT: g.untilEOT,
 			SVars: c.SVars,
 		})

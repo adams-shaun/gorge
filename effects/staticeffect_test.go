@@ -170,7 +170,7 @@ func TestStaticEffectLayers(t *testing.T) {
 			t.Fatalf("P/T effect = %+v, want the expr plus the resolution's SVar table", h.continuous)
 		}
 	})
-	t.Run("keyword and ability grants", func(t *testing.T) {
+	t.Run("keyword, removal and ability grants share ONE layer-6 effect", func(t *testing.T) {
 		h, _, id := staticEffectBoard(t)
 		sa, ctx := staticEffectSA(t, "Defined$ Self | StaticEffect$ Animate", map[string]string{
 			"Animate":     "Mode$ Continuous | Affected$ Card.IsRemembered | AddType$ Enchantment & Aura | RemoveCardTypes$ True | RemoveAllAbilities$ True | AddKeyword$ Enchant:Forest.YouCtrl | AddAbility$ TreasureSac",
@@ -178,35 +178,76 @@ func TestStaticEffectLayers(t *testing.T) {
 		})
 		ctx.Source = id
 		applyStaticEffect(h, ctx, sa, state.ZBattlefield, []state.ObjID{id})
-		var kw, ab *state.ContinuousEffect
+		var abilities []*state.ContinuousEffect
 		for i := range h.continuous {
-			ce := &h.continuous[i]
-			if ce.Layer != state.LAbilities {
-				continue
-			}
-			if len(ce.AddKeywords) > 0 {
-				kw = ce
-			}
-			if len(ce.AddAbilities) > 0 {
-				ab = ce
+			if h.continuous[i].Layer == state.LAbilities {
+				abilities = append(abilities, &h.continuous[i])
 			}
 		}
-		if kw == nil || len(kw.AddKeywords) != 1 || !strings.HasPrefix(kw.AddKeywords[0], "Enchant:Forest") {
-			t.Fatalf("keyword effect missing: %+v", h.continuous)
+		// ONE effect carrying the removal and the grants together is what
+		// makes the walk's clear-then-append order the card text's order. More
+		// than one (the pre-fix split) stamps distinct ClockTicks, so the
+		// removal runs AFTER the keyword grant and wipes it
+		// (hellcat/bronzehide/harold -- 3 of the 55 carriers).
+		if len(abilities) != 1 {
+			t.Fatalf("got %d layer-6 effects, want 1 combined: %+v", len(abilities), h.continuous)
 		}
-		foundRemoval := false
-		for i := range h.continuous {
-			if h.continuous[i].RemoveAbilities {
-				foundRemoval = true
-			}
+		ce := abilities[0]
+		if !ce.RemoveAbilities {
+			t.Fatalf("RemoveAllAbilities not on the combined effect: %+v", ce)
 		}
-		if !foundRemoval {
-			t.Fatalf("RemoveAllAbilities not registered: %+v", h.continuous)
+		if len(ce.AddKeywords) != 1 || !strings.HasPrefix(ce.AddKeywords[0], "Enchant:Forest") {
+			t.Fatalf("keyword grant missing: %+v", ce)
 		}
-		if ab == nil || len(ab.AddAbilities) != 1 || ab.AddAbilities[0] != "TreasureSac" {
-			t.Fatalf("ability grant missing: %+v", h.continuous)
+		if len(ce.AddAbilities) != 1 || ce.AddAbilities[0] != "TreasureSac" {
+			t.Fatalf("ability grant missing: %+v", ce)
 		}
 	})
+}
+
+// The Affected$ <Base>.IsRemembered rewrite is suffix-based, not one exact
+// spelling: the corpus writes the predicate over every base word, and the 55
+// StaticEffect$ carriers split 54 Card + 1 Creature (Lim-Dûl, the
+// Necromancer). The base is kept, so a Creature.IsRemembered body still
+// restricts the grant to the moved card as a creature.
+func TestStaticEffectAffectedIsRememberedSuffix(t *testing.T) {
+	for _, tc := range []struct {
+		spec, want string
+		matches    bool
+	}{
+		{"Card.IsRemembered", "Card.Self", true},
+		{"Creature.IsRemembered", "Creature.Self", true},
+		{"Permanent.IsRemembered", "Permanent.Self", true},
+		{"Instant.IsRemembered", "Instant.Self", false}, // base kept: a creature is not an Instant
+		{"", "Card.Self", true},
+		{"Card.Self", "Card.Self", true},
+	} {
+		t.Run(tc.spec, func(t *testing.T) {
+			h, _, id := staticEffectBoard(t)
+			body := "Mode$ Continuous"
+			if tc.spec != "" {
+				body += " | Affected$ " + tc.spec
+			}
+			body += " | AddType$ Zombie"
+			sa, ctx := staticEffectSA(t, "Defined$ Self | StaticEffect$ Animate", map[string]string{"Animate": body})
+			ctx.Source = id
+			applyStaticEffect(h, ctx, sa, state.ZBattlefield, []state.ObjID{id})
+			if len(h.continuous) != 1 || h.continuous[0].Affects != tc.want {
+				t.Fatalf("Affects = %+v, want %q", h.continuous, tc.want)
+			}
+			// The layer walk evaluates this spec through the same
+			// MatchesSpecFrom the probe uses, with Source = the moved card and
+			// no Remembered set. Card.Self / Creature.Self must therefore reach
+			// the moved creature; the un-rewritten <Base>.IsRemembered applied
+			// to nobody here (SpecContext carries no Remembered set).
+			if got := MatchesSpecFrom(h.g, h.continuous[0].Affects, id, 0, id); got != tc.matches {
+				t.Fatalf("rewritten spec %q match = %v, want %v (base restriction must be kept)", h.continuous[0].Affects, got, tc.matches)
+			}
+			if strings.Contains(tc.spec, "IsRemembered") && MatchesSpecFrom(h.g, tc.spec, id, 0, id) {
+				t.Fatalf("the raw %q spec must not match without a Remembered set", tc.spec)
+			}
+		})
+	}
 }
 
 func TestStaticEffectCheckSVarGate(t *testing.T) {
