@@ -4150,11 +4150,14 @@ func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCar
 		return out
 	case "name":
 		// NameCard ranges over the compiled card-name universe, not public
-		// objects currently visible to the chooser. An omitted ValidCards$ is
-		// intentionally unrestricted (Pithing Needle); callers with a filter
-		// retain the SA's own nonland semantics.
-		names := cards.NameChoices(e.G.NameUniverse, validCards)
-		if len(names) == 0 && len(e.G.NameUniverse) == 0 {
+		// objects currently visible to the chooser: Pithing Needle names any
+		// card (a land included) and Revoker/Cabal Therapy name a nonland,
+		// both through the SA's own ValidCards$ filter. An omitted
+		// ValidCards$ is intentionally unrestricted. effects.NameChoices is
+		// the ONE builder the mid-resolution NameCard ask shares, so the two
+		// paths offer the same names.
+		names := effects.NameChoices(e.G, validCards)
+		if len(names) == 0 {
 			// Legacy embedders that do not provide a corpus retain the
 			// deterministic visible-object fallback; corpus-backed games use
 			// the full universe above.

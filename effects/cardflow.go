@@ -2669,10 +2669,7 @@ func effNameCard(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 	valid := sa.Params["ValidCards"]
-	if valid == "" {
-		valid = sa.Params["ValidDescription"]
-	}
-	names := cards.NameChoices(h.Game().NameUniverse, valid)
+	names := NameChoices(h.Game(), valid)
 	if len(names) == 0 {
 		// R-9: a host without a supplied corpus still completes deterministically.
 		if o := h.Game().Obj(c.Source); o != nil && o.Face() != nil {

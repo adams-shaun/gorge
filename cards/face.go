@@ -1,7 +1,6 @@
 package cards
 
 import (
-	"sort"
 	"strconv"
 	"strings"
 )
@@ -21,30 +20,6 @@ func (f *Face) hasType(t string) bool {
 		}
 	}
 	return false
-}
-
-// NameChoices returns the deterministic card-name universe accepted by a
-// NameCard effect. The universe is supplied by the embedder (the compiled
-// corpus), while the filter is the small Forge name grammar used by the
-// corpus's naming cards.
-func NameChoices(universe []*Card, valid string) []string {
-	seen := make(map[string]bool)
-	var out []string
-	for _, c := range universe {
-		if c == nil || len(c.Faces) == 0 || c.Faces[0] == nil {
-			continue
-		}
-		f := c.Faces[0]
-		if strings.TrimSpace(valid) == "Card.nonLand" && f.IsLand() {
-			continue
-		}
-		if f.Name != "" && !seen[f.Name] {
-			seen[f.Name] = true
-			out = append(out, f.Name)
-		}
-	}
-	sort.Strings(out)
-	return out
 }
 
 func (f *Face) IsLand() bool         { return f.hasType("Land") }
