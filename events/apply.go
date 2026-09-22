@@ -744,12 +744,17 @@ func Apply(g *state.Game, e Event) {
 		if o := g.Obj(e.Obj); o != nil {
 			if e.To == state.ZExile {
 				switch e.Counter {
-				case "exiled_with_face_down":
+				case "exiled_with_face_down", "exiled_with_face_down_foretold":
 					// Hideaway's face-down exile (CR 702.75): the exiling source
 					// rides in Amount, and FaceDown is state so a later projection
-					// knows not to reveal the card.
+					// knows not to reveal the card. The foretold variant also
+					// records the designation after Move has reset a battlefield
+					// object's cast flags.
 					o.ExiledWith = state.ObjID(e.Amount)
 					o.FaceDown = true
+					if e.Counter == "exiled_with_face_down_foretold" {
+						o.CastFlags |= state.FlagForetold
+					}
 				case "face_down":
 					// A bare ChangeZone FaceDown$ True exile (Tezzeret's
 					// Reckoning): the card is put into exile face down WITHOUT
@@ -1368,6 +1373,15 @@ func Apply(g *state.Game, e Event) {
 		//   2: append one object target per entry in IDs.
 		//   3: append a single player target, read from Player.
 		if o := g.Obj(e.Obj); o != nil {
+			// CR 707.10c: recording chosen targets on a COPY consumes its
+			// one-shot MayChooseTarget$ election. The only TargetsChosen a copy
+			// can receive is the copy-target ask's own answer (a copy is minted
+			// after its original was cast, so no cast-flow target records onto
+			// it), so this clear cannot swallow an unrelated choice; replay
+			// re-runs the same fold.
+			if o.IsCopy {
+				o.CopyMayChooseTarget = false
+			}
 			switch e.Amount {
 			case 1:
 				if validPlayer(g, e.Player) {
@@ -1515,6 +1529,9 @@ func Apply(g *state.Game, e Event) {
 			if FlagsFrom(e.Counter)&state.FlagOffspringPaid != 0 {
 				o.OffspringPaid = true
 			}
+			if FlagsFrom(e.Counter)&state.FlagOptionalCostPaid != 0 {
+				o.OptionalCostPaid = true
+			}
 			// Convoke (CR 702.66, task connive1) is an ID-LIST fold, not an
 			// amount: the convoked creatures ride the pay-time CastInfo's IDs
 			// whenever the flag is present, whatever other tags ride the same
@@ -1536,6 +1553,8 @@ func Apply(g *state.Game, e Event) {
 			case FlagsFrom(e.Counter)&state.FlagConspired != 0:
 				// bool folded above; the Amount is deliberately unused
 			case FlagsFrom(e.Counter)&state.FlagOffspringPaid != 0:
+				// bool folded above; the Amount is deliberately unused
+			case FlagsFrom(e.Counter)&state.FlagOptionalCostPaid != 0:
 				// bool folded above; the Amount is deliberately unused
 			case FlagsFrom(e.Counter)&state.FlagConvoked != 0:
 				// the convoked id list was folded above; the Amount is
@@ -2038,6 +2057,13 @@ func Apply(g *state.Game, e Event) {
 		o.Targets = targets
 		o.Remembered = remembered
 		o.X, o.CastFlags, o.IsCopy = x, castFlags, true
+		// CR 707.10c: Amount is the creating CopySpellAbility's
+		// MayChooseTarget$ discriminator (1 = true). It rides the event so the
+		// permission travels with the COPY instance -- an external copier
+		// (Mirari, Cloven Casting, Storm, Replicate) whose SA is not part of
+		// the copied spell's own text still grants the election on replay,
+		// and effects/copy.go never has to reach into rules to ask.
+		o.CopyMayChooseTarget = e.Amount == 1
 
 	case Attach:
 		if o := g.Obj(e.Obj); o != nil {
@@ -2939,6 +2965,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.ReplicateTimes = 0
 			o.SquadPaid = 0
 			o.OffspringPaid = false
+			o.OptionalCostPaid = false
 			o.ConvergeColours = 0
 			o.TimesKicked = 0
 			o.Conspired = false
@@ -2983,6 +3010,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.ReplicateTimes = 0
 			o.SquadPaid = 0
 			o.OffspringPaid = false
+			o.OptionalCostPaid = false
 			o.ConvergeColours = 0
 			o.TimesKicked = 0
 			o.Conspired = false

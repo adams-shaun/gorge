@@ -32,10 +32,12 @@ thinking = "high"
 fallback = ["openai-codex/gpt-5.6-luna"]
 
 [seats.escalated]
-# provider = "openai-codex"
-# model = "gpt-5.6-terra"
-provider = "deepinfra"
-model = "deepseek-ai/DeepSeek-V4.1-Flash"
+# 2026-09-22 (operator): "escalate terra". DeepSeek-high was the top rung and
+# no stronger than the terra reviewer: the 15:08Z batch parked at sol2 with a
+# fresh MAJOR every round. terra's [caps.models] ceiling is shared with the
+# reviewer and triage seats.
+provider = "openai-codex"
+model = "gpt-5.6-terra"
 thinking = "high"
 
 # 2026-09-22 (operator): reviewer back on GPT terra (Codex plan verified live
@@ -62,7 +64,7 @@ local = ["bm-llms-glm/glm-5.3-flash"]
 # escalated = ["openai-codex/gpt-5.6-terra", "openai-codex/gpt-5.6-sol"]
 # reviewer = ["openai-codex/gpt-5.6-terra", "openai-codex/gpt-5.6-sol", "bm-llms-glm/glm-5.3-flash"]
 overflow = ["deepinfra/deepseek-ai/DeepSeek-V4.1-Flash", "openai-codex/gpt-5.6-luna"]
-escalated = ["deepinfra/deepseek-ai/DeepSeek-V4.1-Flash"]
+escalated = ["openai-codex/gpt-5.6-terra", "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash"]
 reviewer = ["openai-codex/gpt-5.6-terra", "openai-codex/gpt-5.6-sol", "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash", "bm-llms-glm/glm-5.3-flash"]
 triage = ["openai-codex/gpt-5.6-terra", "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash", "bm-llms-glm/glm-5.3-flash"]
 
@@ -85,6 +87,13 @@ local_endpoint_probe = true
 # landing finished); the 20-min health check now lands parked tickets with an
 # Opus agent, so the drain-while-parked policy costs more than it saves.
 hold_new_while_parked = false
+# 2026-09-22 (operator: "tackle WAITING/REVIEW before any new tickets; set it
+# to 5"): while more than this many tickets sit in `waiting` (a fix round due,
+# queued for a seat) or `review`, no `new`/`briefed` ticket starts; in-flight
+# work keeps advancing and drains the backlog. Measured that day: 22 waiting
+# behind the overflow rounds fresh tickets kept spawning. Needs agentctl pin
+# >= the commit that adds the key.
+hold_new_while_waiting_over = 5
 # 2026-09-22 (operator): triage writes at most this many briefs ahead of the
 # implementers; no new triage launches while this many sit in `briefed`.
 triage_ahead = 100
@@ -218,7 +227,10 @@ applies_diff_touches = "web/"
 strategy = "merge-push"
 remote = "origin"
 push = true
-deploy_cmd = ["make", "deploy-demo"]
+# 2026-09-22 (operator): the demo is no longer redeployed on every merge --
+# a redeploy kills every in-flight vs-bot game (SIGTERM aborts live matches
+# and the persistence dir is wiped). Deploy by hand: `make deploy-demo`.
+deploy_cmd = []
 post_merge = [["make", "ledger"]]
 carry_trailers = ["Test-Budget-Approved:"]
 

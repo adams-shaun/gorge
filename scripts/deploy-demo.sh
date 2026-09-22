@@ -3,8 +3,8 @@
 # 127.0.0.1:8080 (public spectator) and 127.0.0.1:8081 (omniscient).
 #
 # Invoked by `make deploy-demo`, which builds the client and the binary
-# first. The .githooks/post-merge hook runs that target in the background
-# after a merge into main, so the demo is never older than main.
+# first. Run by hand by the operator only: stopping the servers aborts every
+# in-flight vs-bot game, so since 2026-09-22 no hook or daemon runs it.
 set -euo pipefail
 
 BIN=${BIN:-bin/gorged}

@@ -92,8 +92,10 @@ gorged: $(BIN_DIR)/gorged
 # deploy-demo refreshes the local demo: two servers on 127.0.0.1, public
 # spectator on :8080 and omniscient on :8081, each with two Commander and
 # two constructed tables so the overview's per-format sections are both
-# populated. .githooks/post-merge runs it in the background after a merge
-# into main, so what is on :8080 is never older than main.
+# populated. Run BY HAND, by the operator, when the demo should pick up
+# main: it stops the running servers, which aborts every in-flight vs-bot
+# game, so nothing runs it automatically any more (the post-merge hook and
+# the daemon's landing.deploy_cmd were removed on 2026-09-22).
 #
 # The binary is rebuilt unconditionally rather than through
 # $(BIN_DIR)/gorged: that rule depends on the Go sources, but the client

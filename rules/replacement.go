@@ -43,6 +43,19 @@ import (
 // battlefield, so it never left the stack and resolveTop kept re-resolving
 // the same object forever (see Task 26's report and the resolveTop guard
 // below for the other half of this fix).
+func (e *Engine) finalityReplacementApplies(id state.ObjID) bool {
+	o := e.G.Obj(id)
+	if o == nil || o.Zone != state.ZBattlefield || o.Counter("FINALITY") <= 0 {
+		return false
+	}
+	for _, typ := range e.typeCharacteristics(id, 0) {
+		if typ == "Creature" {
+			return true
+		}
+	}
+	return false
+}
+
 func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 	// Positive LifeChange is a gain; it never carries a repl:DamageDone
 	// match (that class names a Damage event only), so it routes straight
@@ -170,9 +183,19 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 			return events.Event{}, true
 		}
 	}
+	// FINALITY (CR 122.1) is a replacement at the common move boundary:
+	// a creature with a finality counter that would go from the battlefield to
+	// a graveyard is exiled instead. This covers destruction, toughness-based
+	// SBAs, legend-rule departures and sacrifices alike. The derived type walk
+	// also handles a permanent animated into a creature, while the battlefield
+	// origin guard prevents unrelated graveyard moves from being widened.
+	if ev.Kind == events.MoveZone && ev.From == state.ZBattlefield &&
+		ev.To == state.ZGraveyard && e.finalityReplacementApplies(ev.Obj) {
+		ev.To = state.ZExile
+	}
 	// Madness is an optional discard replacement and must park before either
 	// destination is logged. The guarded re-emit still permits ordinary card
-	// and format replacements on the chosen destination.
+	// and format replacements to redirect the chosen destination.
 	if ev.Kind == events.MoveZone && !e.applyingMadnessChoice && e.madnessReplacementApplies(ev) {
 		e.parkMadnessDiscard(ev)
 		return ev, true
@@ -2478,6 +2501,27 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 			return false
 		}
 		return e.replacementConditionHolds(r, source, you)
+	case "GainLife":
+		if ev.Kind != events.LifeChange || ev.Amount <= 0 {
+			return false
+		}
+		if vp := strings.TrimSpace(r.Params["ValidPlayer"]); vp != "" {
+			if vp == "Player.IsRemembered" {
+				found := false
+				for _, p := range rememberedPlayers {
+					if p == ev.Player {
+						found = true
+						break
+					}
+				}
+				if !found {
+					return false
+				}
+			} else if !effects.MatchesPlayerSpec(e.G, vp, ev.Player, you) {
+				return false
+			}
+		}
+		return e.replacementConditionHolds(r, source, you)
 	case "DamageDone":
 		if ev.Kind != events.Damage || !e.damageReplacementMatches(r, source, ev, remembered, rememberedPlayers) {
 			return false
@@ -4411,7 +4455,7 @@ func (e *Engine) lifeReplacementCandidates(ev events.Event, applied []replMatch)
 		for i := range o.Face().Repls {
 			r := &o.Face().Repls[i]
 			if r.Event != event || !replacementActive(e, id, r) || !replacementPlayerMatches(e, id, r, p) ||
-				lifeReplacementApplied(applied, id, r) {
+				lifeReplacementApplied(applied, replMatch{id: id, repl: r}) {
 				continue
 			}
 			if e.lifeReplacementApplies(ev, id, r, p, loss) {
@@ -4419,12 +4463,35 @@ func (e *Engine) lifeReplacementCandidates(ev events.Event, applied []replMatch)
 			}
 		}
 	})
+	for _, ce := range e.active() {
+		if ce.ReplacementEvent != event || ce.ReplacementBody != "" ||
+			!strings.EqualFold(strings.TrimSpace(ce.ReplacementParams["Prevent"]), "True") {
+			continue
+		}
+		r := &cards.Repl{Event: ce.ReplacementEvent, Params: ce.ReplacementParams}
+		m := replMatch{id: ce.Source, repl: r, remembered: ce.Remembered,
+			rememberedPlayers: ce.RememberedPlayers,
+			key:               "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))}
+		if lifeReplacementApplied(applied, m) ||
+			!e.replacementMatchesEffectCreated(*r, ce.Source, ev, ce.Remembered, ce.RememberedPlayers) {
+			continue
+		}
+		if e.lifeReplacementApplies(ev, ce.Source, r, p, loss) {
+			out = append(out, m)
+		}
+	}
 	return out
 }
 
-func lifeReplacementApplied(applied []replMatch, id state.ObjID, r *cards.Repl) bool {
+func lifeReplacementApplied(applied []replMatch, candidate replMatch) bool {
 	for _, m := range applied {
-		if m.id == id && m.repl == r {
+		if candidate.key != "" || m.key != "" {
+			if m.key != "" && m.key == candidate.key {
+				return true
+			}
+			continue
+		}
+		if m.id == candidate.id && m.repl == candidate.repl {
 			return true
 		}
 	}

@@ -138,6 +138,21 @@ func drainTargetsValid(t *testing.T, e *Engine) {
 				submitChoices(t, e, 0)
 			case decision.KModes:
 				submitChoices(t, e, 1) // the decline ("Don't pay")
+			case decision.KTarget:
+				// CR 707.10c: keep the copy's inherited targets (the leading
+				// d.Min options, placed first).
+				if d.ResumeKind != "copy_targets" {
+					t.Fatalf("unexpected non-copy target decision during the drain: %+v", d)
+				}
+				ch := []int{}
+				keep := d.Min
+				if keep < 1 {
+					keep = 1
+				}
+				for j := 0; j < len(d.Options) && j < keep; j++ {
+					ch = append(ch, d.Options[j].Index)
+				}
+				submitChoices(t, e, ch...)
 			default:
 				t.Fatalf("unexpected decision %v during the drain: %+v", d.Kind, d)
 			}
