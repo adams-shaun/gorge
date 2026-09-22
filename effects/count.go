@@ -1920,7 +1920,9 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 				default:
 					if diffKind != diffNone {
 						if seenDiffNames != nil {
-							seenDiffNames[o.Face().Name] = true
+							if f := o.Face(); f != nil {
+								seenDiffNames[f.Name] = true
+							}
 						} else if v, ok := differentPropertyValue(h, o, diffKind); ok {
 							seenDiffValues[v] = true
 						}
@@ -2766,7 +2768,13 @@ func differentPropertyKindOf(prop string) differentPropertyKind {
 func differentPropertyValue(h Host, o *state.Object, kind differentPropertyKind) (int32, bool) {
 	switch kind {
 	case diffManaCost:
-		return o.Face().Cmc(), true
+		// Face() is nil for a Card==nil or out-of-range FaceIdx object
+		// (state/object.go); a remembered/targeted shell contributes
+		// nothing rather than panicking the match.
+		if f := o.Face(); f != nil {
+			return f.Cmc(), true
+		}
+		return 0, false
 	case diffPower:
 		// The derived, layer-aware power, matching extremePropertyValue's
 		// GreatestCardPower read: a lord's bonus or a counter counts.

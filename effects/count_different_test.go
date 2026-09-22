@@ -112,6 +112,19 @@ func TestEvalCountDifferentCardNamesDedupsNames(t *testing.T) {
 	}
 }
 
+// TestDifferentPropertyValueNilFaceContributesNothing pins the defensive
+// guard a review round added: a remembered/targeted shell object with no
+// card face (Face() nil -- a Card==nil or out-of-range FaceIdx object,
+// state/object.go) contributes nothing to a distinct-value set instead of
+// panicking the match. Called directly because no public EvalCount path
+// currently routes a matching-but-nil-face object into the fold, so this
+// is the one place the guard is provably reachable.
+func TestDifferentPropertyValueNilFaceContributesNothing(t *testing.T) {
+	if v, ok := differentPropertyValue(nil, &state.Object{}, diffManaCost); ok {
+		t.Fatalf("nil-face object contributed value %d, want ok=false", v)
+	}
+}
+
 // TestEvalCountDifferentCardManaCostRefProperty pins the Remembered$ spelling
 // (Azor's Gateway / Atemsis): the same distinct-value fold over a reference's
 // objects.
