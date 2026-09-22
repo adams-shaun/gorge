@@ -94,6 +94,78 @@ func TestVexyrRealSeekEmitsOneMarkerForMultiCardSeek(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+// TestSignatureSpellsRealSeekImprintsHandForItsExileContinuation is the real
+// corpus ImprintFound$ carrier end to end: Signature Spells' ETB seeks two
+// mana-value-3 instant/sorcery cards into hand and its chained
+// `Defined$ Imprinted | Origin$ Hand | Destination$ Exile` body must exile
+// exactly those two. Before the SeekFound association the continuation
+// resolved to an empty set and both cards stayed in hand.
+func TestSignatureSpellsRealSeekImprintsHandForItsExileContinuation(t *testing.T) {
+	spells := tokenReplCorpusCard(t, "Signature Spells")
+	// Authored cmc-3 instants/sorceries (never a corpus .txt): ManaCost 2R is
+	// mana value 3, so they satisfy Card.Instant/Sorcery+cmcEQ3.
+	bolt := cardByName(t, "Name:Test Bolt\nManaCost:2 R\nTypes:Instant\nOracle:x\n")
+	ritual := cardByName(t, "Name:Test Ritual\nManaCost:2 R\nTypes:Sorcery\nOracle:x\n")
+	seat0 := []*cards.Card{spells, bolt, bolt, bolt, ritual}
+	e, cfg := tokenReplGame(t, 107, seat0...)
+	// Precondition: at least two cmc-3 instants/sorceries sit in the library.
+	eligible := 0
+	for _, id := range e.G.Zone(state.ZLibrary, 0) {
+		o := e.G.Obj(id)
+		if o == nil || o.Face() == nil {
+			continue
+		}
+		if o.Face().ManaValue() == 3 && (seekFaceHasType(o.Face().Types, "Instant") || seekFaceHasType(o.Face().Types, "Sorcery")) {
+			eligible++
+		}
+	}
+	if eligible < 2 {
+		t.Fatalf("precondition: only %d eligible cmc-3 spells in library, need 2", eligible)
+	}
+	// Count the cmc-3 instants/sorceries already in hand (drawn in the opening
+	// hand): the continuation must move exactly two of them to exile, so the
+	// hand count must drop by exactly two. Counting the delta keeps the
+	// assertion honest when the opening hand already held a copy.
+	seekSpellInHand := func() int {
+		n := 0
+		for _, id := range e.G.Zone(state.ZHand, 0) {
+			o := e.G.Obj(id)
+			if o != nil && o.Face() != nil && o.Face().ManaValue() == 3 &&
+				(seekFaceHasType(o.Face().Types, "Instant") || seekFaceHasType(o.Face().Types, "Sorcery")) {
+				n++
+			}
+		}
+		return n
+	}
+	handBefore := seekSpellInHand()
+	moveSeededCard(t, e, 0, spells, state.ZBattlefield)
+	addMana(t, e, 0, "") // re-ask priority so the ETB trigger queues
+	passUntilStackEmpty(t, e, 60)
+
+	var exiled []state.ObjID
+	for _, id := range e.G.Zone(state.ZExile, 0) {
+		if o := e.G.Obj(id); o != nil && o.Face() != nil && (seekFaceHasType(o.Face().Types, "Instant") || seekFaceHasType(o.Face().Types, "Sorcery")) {
+			exiled = append(exiled, id)
+		}
+	}
+	if len(exiled) != 2 {
+		t.Fatalf("Signature Spells exiled %d sought spells, want exactly 2", len(exiled))
+	}
+	if got := seekSpellInHand(); got != handBefore {
+		t.Fatalf("hand cmc-3 spells = %d after the resolution, want %d: the seek adds two and the continuation must remove the same two (without it the hand would hold four)", got, handBefore)
+	}
+	replayCheck(t, e, cfg)
+}
+
+func seekFaceHasType(types []string, want string) bool {
+	for _, ty := range types {
+		if ty == want {
+			return true
+		}
+	}
+	return false
+}
+
 func TestVexyrRealSeekWithNoMatchEmitsNeitherMarkerNorTrigger(t *testing.T) {
 	vexyr := tokenReplCorpusCard(t, "Vexyr, Ich-Tekik's Heir")
 	relic := cardByName(t, seekRelicSrc("Enchantment", 3))
