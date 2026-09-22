@@ -2791,7 +2791,13 @@ func effRestartGame(h Host, c *Ctx, sa *cards.SA) {
 			}
 			var kept []string
 			for _, z := range zones {
-				for _, p := range g.AliveFrom(0) {
+				// The shared stack is named once, under the first alive seat
+				// (state/game.go Zone), so a stack card cannot appear in the
+				// keep-set note multiple times on an N-seat table.
+				for si, p := range g.AliveFrom(0) {
+					if z == state.ZStack && si > 0 {
+						continue
+					}
 					for _, id := range append([]state.ObjID(nil), g.Zone(z, p)...) {
 						// RestrictFromValid$ names what the restart DISCARDS; the
 						// complement inside the named zone is what it keeps.
