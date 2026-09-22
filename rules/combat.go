@@ -122,23 +122,83 @@ func (e *Engine) encoreAttackDefender(id state.ObjID) (state.PlayerID, bool) {
 	return o.EncoreAttackDefender, true
 }
 
-// requiredAttackDefender reports the ONE opponent creature id must attack
-// this combat when a requirement names a specific defender -- the encore
-// designation, or a MustAttack$ player reference on a Mode$ MustAttack
-// static (face S: line or an Effect-registered one: Territorial Hellkite,
-// Knight Rampager, Ursine Monstrosity, Raving Dead, Ruhan of the Fomori).
-// ok=false means no requirement names a defender; an unconditional MustAttack
-// is still handled by mustAttackRequired's broad scan below, and a
-// requirement whose player reference this build cannot resolve also returns
-// ok=false -- a requirement not counted changes nothing in the safe
-// direction, exactly the convention mustAttackRequired's parameter deny
-// documents. This is the one home for "which defender does this creature
-// HAVE to attack": attackOffers filters the pair list with it, and
-// mustAttackRequired reads it, so the option list and the requirement solver
-// can never disagree.
-func (e *Engine) requiredAttackDefender(id state.ObjID) (state.PlayerID, bool) {
+// attackRequirementSet is every requirement binding ONE creature's attack this
+// combat (CR 508.1d's "attacks if able" duties). A requirement is either
+// NAMED (it names a specific defending player) or BROAD (any defender
+// satisfies it), and a goad is a requirement to attack a non-goader when one
+// is available.
+//
+// The set is the ONE home for "what must this creature attack": attackOffers
+// derives its pair list from it (dropping every pair that satisfies fewer
+// named requirements than the best available defender -- CR 508.1d's
+// "satisfy as many requirements as possible"), and mustAttackRequired reads
+// its emptiness as "is this creature required at all". A requirement whose
+// player reference this build cannot resolve contributes nothing (fail
+// closed, the safe direction for a requirement), exactly the convention
+// MustAttackParamsReadable documents.
+type attackRequirementSet struct {
+	// named counts, per defending player, how many named requirements that
+	// defender satisfies. A pair attacking the defender satisfies every one of
+	// them. nil when no named requirement applies.
+	named map[state.PlayerID]int
+	// broad is set by an unconditional MustAttack static (no MustAttack$
+	// player reference): every defender satisfies it.
+	broad bool
+	// goad is set by a live goad (CR 701.38b): the creature must attack a
+	// non-goader when one is available. The goader pairs are already removed
+	// by goadMayAttack, so goad never discriminates among the pairs that DO
+	// survive; it only makes the creature required.
+	goad bool
+}
+
+// any reports whether at least one requirement binds the creature.
+func (s attackRequirementSet) any() bool {
+	return len(s.named) > 0 || s.broad || s.goad
+}
+
+// addNamed records one named requirement for defender.
+func (s *attackRequirementSet) addNamed(defender state.PlayerID) {
+	if s.named == nil {
+		s.named = make(map[state.PlayerID]int, 2)
+	}
+	s.named[defender]++
+}
+
+// satisfiedBy reports how many NAMED requirements the given defender
+// satisfies. The broad and goad requirements contribute uniformly across
+// every surviving pair, so they are not counted here -- they never decide
+// which defender is maximal.
+func (s attackRequirementSet) satisfiedBy(defender state.PlayerID) int {
+	return s.named[defender]
+}
+
+// maxNamed is the greatest number of named requirements any single defender
+// satisfies at once -- the best any offered pair can do against the named
+// half of the requirement set.
+func (s attackRequirementSet) maxNamed() int {
+	best := 0
+	for _, n := range s.named {
+		if n > best {
+			best = n
+		}
+	}
+	return best
+}
+
+// attackRequirements collects every requirement binding creature id this
+// combat: the encore designation, each applicable Effect-registered and face
+// Mode$ MustAttack static, and a live goad. Multiple named requirements are
+// kept SEPARATELY (a map count per defender) rather than collapsed to the
+// first, so two simultaneous "attacks that player" duties are both honoured
+// and neither silently wins.
+func (e *Engine) attackRequirements(id state.ObjID) attackRequirementSet {
+	var s attackRequirementSet
+	o := e.G.Obj(id)
+	if o == nil {
+		return s
+	}
 	if p, ok := e.encoreAttackDefender(id); ok {
-		return p, true
+		s.addNamed(p)
 	}
 	for _, ce := range e.active() {
 		if ce.Restriction != "MustAttack" {
@@ -147,34 +207,43 @@ func (e *Engine) requiredAttackDefender(id state.ObjID) (state.PlayerID, bool) {
 		if !e.mustAttackLineSelects(ce.RestrictParams["ValidCreature"], id, ce.Source, ce.Controller, ce.Remembered) {
 			continue
 		}
-		if p, ok := e.requirementDefender(ce.RestrictParams["MustAttack"], ce.Source); ok {
-			return p, true
+		spec := strings.TrimSpace(ce.RestrictParams["MustAttack"])
+		if spec == "" {
+			s.broad = true
+			continue
+		}
+		if p, ok := e.requirementDefender(spec, ce.Source, ce.RememberedPlayers); ok {
+			s.addNamed(p)
 		}
 	}
 	for _, sv := range e.activeStatics("MustAttack") {
-		spec := strings.TrimSpace(sv.Params["MustAttack"])
-		if spec == "" {
-			continue
-		}
 		if !MustAttackParamsReadableForRules(sv.Params) {
 			continue
 		}
 		if !e.mustAttackLineSelects(sv.Params["ValidCreature"], id, sv.Source, sv.Controller, nil) {
 			continue
 		}
-		if p, ok := e.requirementDefender(spec, sv.Source); ok {
-			return p, true
+		spec := strings.TrimSpace(sv.Params["MustAttack"])
+		if spec == "" {
+			s.broad = true
+			continue
+		}
+		if p, ok := e.requirementDefender(spec, sv.Source, nil); ok {
+			s.addNamed(p)
 		}
 	}
-	return 0, false
+	if e.hasActiveGoad(o) {
+		s.goad = true
+	}
+	return s
 }
 
 // mustAttackLineSelects resolves a MustAttack line's ValidCreature$ against
 // the candidate creature, with the registration's remembered set bound for
 // the Card.IsRemembered family (Knight Rampager, Ursine Monstrosity, Raving
 // Dead, Ruhan of the Fomori all scope the requirement to a remembered self).
-// An absent ValidCreature$ is Forge's Card.Self default, the same default the
-// unconditional scan below applies.
+// An absent ValidCreature$ is Forge's Card.Self default, the same default
+// attackRequirements applies.
 func (e *Engine) mustAttackLineSelects(spec string, id state.ObjID, source state.ObjID, controller state.PlayerID, remembered []state.ObjID) bool {
 	v := strings.TrimSpace(spec)
 	if v == "" {
@@ -187,34 +256,32 @@ func (e *Engine) mustAttackLineSelects(spec string, id state.ObjID, source state
 	return effects.MatchesSpecCtx(e.G, v, id, sc)
 }
 
-// MustAttackParamsReadableForRules is effects.MustAttackParamsReadable for a
-// face S: line (rules cannot import the unexported effects helper, and the two
-// must agree or the face and Effect routes would diverge on what is
-// enforceable). Kept in lockstep by TestMustAttackFaceAndEffectWhitelistsAgree.
+// MustAttackParamsReadableForRules is the face S:-line half of
+// effects.MustAttackParamsReadable, and DELEGATES to it so the face and
+// Effect routes can never diverge on what is enforceable: rules imports
+// effects (the package order is effects -> rules), so there is one whitelist,
+// not a copy kept in step by hand. Kept as a named wrapper because the rules
+// callers read better for it and a future relocation has one call site.
 func MustAttackParamsReadableForRules(params map[string]string) bool {
-	for k := range params {
-		switch k {
-		case "Mode", "ValidCreature", "MustAttack", "Description", "Secondary":
-		default:
-			return false
-		}
-	}
-	return true
+	return effects.MustAttackParamsReadable(params)
 }
 
 // requirementDefender resolves a MustAttack$ player reference to the
 // defending player it names, from the requirement registration's own
-// bindings. Only ChosenPlayer/Player.Chosen resolves today: it reads the
-// source object's event-backed Chosen list (the ChoosePlayer answer, which
-// survives from the begin-combat trigger to the declare-attackers step
-// because choiceRecord emits it on the source). Every other reference
-// (You, RememberedPlayer, Player.IsRemembered, EffectSource, CardOwner,
+// bindings. ChosenPlayer/Player.Chosen reads the source object's event-backed
+// Chosen list (the ChoosePlayer answer, which survives from the begin-combat
+// trigger to the declare-attackers step because choiceRecord emits it on the
+// source). RememberedPlayer/Player.IsRemembered reads the registration's
+// captured PLAYERS (state.ContinuousEffect.RememberedPlayers,
+// For Each of You a Gift / Furygale Flocking / City of the Daleks), and
+// Remembered.NonActive additionally requires that player not be the active
+// one. Every other reference (You, EffectSource, CardOwner,
 // EnchantedController, Opponent.lifeEQX, ...) names a binding or evaluator
-// this change does not carry, so it fails closed -- the requirement is simply
+// this build does not carry, so it fails closed -- the requirement is simply
 // not counted, which is the safe direction for a requirement and is the
 // pre-existing behaviour for every one of them. They are listed in the
 // ticket report's Issues section rather than implemented unproven.
-func (e *Engine) requirementDefender(spec string, source state.ObjID) (state.PlayerID, bool) {
+func (e *Engine) requirementDefender(spec string, source state.ObjID, rememberedPlayers []state.PlayerID) (state.PlayerID, bool) {
 	switch strings.TrimSpace(spec) {
 	case "ChosenPlayer", "Player.Chosen":
 		if o := e.G.Obj(source); o != nil {
@@ -222,6 +289,16 @@ func (e *Engine) requirementDefender(spec string, source state.ObjID) (state.Pla
 				if t.IsPlayer {
 					return t.Player, true
 				}
+			}
+		}
+	case "RememberedPlayer", "Player.IsRemembered":
+		if len(rememberedPlayers) > 0 {
+			return rememberedPlayers[0], true
+		}
+	case "Remembered.NonActive":
+		for _, p := range rememberedPlayers {
+			if p != e.G.Active {
+				return p, true
 			}
 		}
 	}
@@ -378,12 +455,16 @@ func (e *Engine) askAttackers() {
 	// fact (life, clock, board) rather than on seat index. attackOffers
 	// (rules/attack_cost.go) preserves exactly this enumeration.
 	// The CR 508.1d requirements are told to the seat on the options: an
-	// attacker the declaration MUST include (a goaded creature, CR 701.38,
-	// or one under an unconditional MustAttack static) carries
-	// Option.Required, so a rules-ignorant client can build a legal
-	// declaration without re-deriving goad state from the log. The engine
-	// rejects an omission (validateAttackDeclaration), so an unmarked list
-	// is a trap the seat cannot reason its way out of.
+	// attacker the declaration MUST include (a goaded creature, CR 701.38, an
+	// encore token, or one under an unconditional or named MustAttack static)
+	// carries Option.Required, so a rules-ignorant client can build a legal
+	// declaration without re-deriving goad state from the log. attackOffers
+	// has already dropped every pair that satisfies fewer named requirements
+	// than the creature's best defender, so marking all of a required
+	// creature's SURVIVING pairs Required cannot mislead: each one is a
+	// maximal-satisfaction pair. The engine rejects an omission
+	// (validateAttackDeclaration), so an unmarked list is a trap the seat
+	// cannot reason its way out of.
 	mustAtt := make(map[state.ObjID]bool, len(attackers))
 	for _, id := range attackers {
 		if e.mustAttackRequired(id) {
@@ -729,12 +810,15 @@ func (e *Engine) validateAttackers(d *decision.Decision, in decision.Intent) err
 		if seen[o.Obj] {
 			return fmt.Errorf("attacker %d declared against more than one defender", o.Obj)
 		}
-		if required, ok := e.requiredAttackDefender(o.Obj); ok && o.Player != required {
-			return fmt.Errorf("attacker %d must attack player %d", o.Obj, required)
-		}
 		if e.attackBlocked(o.Obj, o.Player) {
 			return fmt.Errorf("attacker %d cannot attack player %d", o.Obj, o.Player)
 		}
+		// A required creature's named duty is enforced by the offered-pair set
+		// itself: attackOffers drops every pair that satisfies fewer named
+		// requirements than the creature's best available defender, so a
+		// sub-maximal defender is NOT offered and fails the membership check
+		// below with its own message. The requirement that the creature attack
+		// AT ALL is enforced by validateAttackDeclaration's RequiredQuota.
 		price, ok := offered[attackOffer{id: o.Obj, def: o.Player}]
 		if !ok {
 			return fmt.Errorf("attacker %d cannot attack player %d (attack cost not affordable or pair not offered)", o.Obj, o.Player)
@@ -753,18 +837,21 @@ func (e *Engine) validateAttackers(d *decision.Decision, in decision.Intent) err
 
 // mustAttackRequired reports whether id is a creature that must attack this
 // combat (CR 508.1d), under the active player's control and able to attack.
-// Only the unconditional self-attack and broad-creature MustAttack statics
-// are read: a MustAttack static carrying a condition, an alternative cost or
-// any other parameter the requirement solver cannot evaluate DENIES (it is
-// not counted as required), which is the safe direction for a requirement —
-// erring toward requiring a creature that already attacks changes nothing,
-// while falsely requiring one that cannot legitimately attack would make a
-// legal declaration unanswerable. The walk is the board-wide activeStatics
-// scan (which includes the creature's own face, source-bound through the
-// same specCtx the face walk used), so an AURA-carried requirement — Fealty
-// to the Realm's `S:Mode$ MustAttack | ValidCreature$ Creature.EnchantedBy`,
-// the Vow cycle's shape — reaches the enchanted creature, not just its
-// bearer's own face.
+//
+// A creature is required when its attackRequirementSet is non-empty (an
+// encore designation, any applicable Effect-registered or face Mode$
+// MustAttack static, or a live goad) AND it has at least one offered pair
+// (attackPairAvailable) -- CR 508.1d's "attacks if able". The requirement set
+// is the board-wide collection (which includes the creature's own face,
+// source-bound through the same specCtx the face walk used), so an
+// AURA-carried requirement -- Fealty to the Realm's `S:Mode$ MustAttack |
+// ValidCreature$ Creature.EnchantedBy`, the Vow cycle's shape -- reaches the
+// enchanted creature, not just its bearer's own face. A MustAttack static
+// carrying a condition or any other parameter the requirement collector
+// cannot evaluate contributes nothing (attackRequirements skips it), the safe
+// direction for a requirement: erring toward requiring a creature that
+// already attacks changes nothing, while falsely requiring one that cannot
+// legitimately attack would make a legal declaration unanswerable.
 func (e *Engine) mustAttackRequired(id state.ObjID) bool {
 	o := e.G.Obj(id)
 	if o == nil || o.Zone != state.ZBattlefield || o.Controller != e.G.Active {
@@ -774,72 +861,32 @@ func (e *Engine) mustAttackRequired(id state.ObjID) bool {
 	if f == nil || !e.canAttack(id) {
 		return false
 	}
-	// CR 508.1d counts a requirement only when the creature can actually
-	// satisfy it ("attack ... if able"): a creature whose every (attacker,
-	// defender) pair a CantAttack static/restriction blocks is NOT required,
-	// otherwise validateAttackDeclaration would reject every legal
-	// declaration and the KAttackers decision would have no legal answer.
-	// The MaxAttackers$ ceiling is deliberately not a pair gate: the
-	// requirement solver's maxReq (validateAttackDeclaration) already clamps
-	// to it, and a nonzero ceiling that merely caps the count still leaves
-	// the requirement binding.
-	if !e.attackPairAvailable(id) {
+	if !e.attackRequirements(id).any() {
 		return false
 	}
-	// A requirement that names a specific defender (the encore designation, or
-	// a resolvable MustAttack$ player reference on a face or Effect-registered
-	// static) is required: attackOffers has already filtered the pair list to
-	// that one defender, so the "if able" gate above (attackPairAvailable)
-	// means the named defender is reachable. An unresolvable player reference
-	// returns ok=false and falls through to the unconditional scan below.
-	if _, ok := e.requiredAttackDefender(id); ok {
-		return true
-	}
-	if e.hasActiveGoad(o) {
-		return true
-	}
-	for _, sv := range e.activeStatics("MustAttack") {
-		// A conditional or non-self requirement is out of scope for this
-		// solver: that STATIC is not counted (another static on the same or
-		// another permanent may still require).
-		deny := false
-		for k := range sv.Params {
-			switch k {
-			case "Mode", "ValidCreature", "MustAttack", "Description":
-			default:
-				deny = true
-			}
-		}
-		if deny {
-			continue
-		}
-		// A line naming a MustAttack$ player reference is a per-defender
-		// requirement, not the broad one this scan counts: requiredAttackDefender
-		// above already returned true for a resolvable reference, and an
-		// unresolvable one must not degrade into "attacks ANY defender" (that
-		// would over-require). Skip it either way.
-		if strings.TrimSpace(sv.Params["MustAttack"]) != "" {
-			continue
-		}
-		v := sv.Params["ValidCreature"]
-		if v == "" {
-			v = "Card.Self"
-		}
-		if effects.MatchesSpecCtx(e.G, v, id, e.specCtx(sv.Source, sv.Controller)) {
-			return true
-		}
-	}
-	return false
+	// CR 508.1d counts a requirement only when the creature can actually
+	// satisfy it ("attack ... if able"): a creature whose every (attacker,
+	// defender) pair a CantAttack static/restriction, a goad restriction or
+	// the attack-prop budget removes is NOT required, otherwise
+	// validateAttackDeclaration would reject every legal declaration and the
+	// KAttackers decision would have no legal answer. The MaxAttackers$
+	// ceiling is deliberately not a pair gate: the requirement solver's
+	// maxReq (validateAttackDeclaration) already clamps to it, and a nonzero
+	// ceiling that merely caps the count still leaves the requirement binding.
+	// attackPairAvailable reads the same maximal-satisfaction offer list the
+	// options do, so the two can never disagree.
+	return e.attackPairAvailable(id)
 }
 
 // attackPairAvailable reports whether creature id has at least one legal
 // (attacker, defender) pair this combat. The pairs ARE the attackOffers list
 // (rules/attack_cost.go): the defender enumeration (AliveFrom(0), controller
-// excluded), the encore/goad/CantAttack scoping and the attack-prop budget
-// serialization are all the offer list's own rules, so the requirement solver
-// and the option list can never disagree about which pairs exist (a creature
-// whose every pair the attack budget ran out on is not required, and the
-// declaration that pays for the remaining required creatures stays legal).
+// excluded), the goad/CantAttack scoping, the CR 508.1d maximal-satisfaction
+// filter and the attack-prop budget serialization are all the offer list's
+// own rules, so the requirement solver and the option list can never disagree
+// about which pairs exist (a creature whose every pair the attack budget ran
+// out on is not required, and the declaration that pays for the remaining
+// required creatures stays legal).
 func (e *Engine) attackPairAvailable(id state.ObjID) bool {
 	for _, of := range e.attackOffers() {
 		if of.id == id {

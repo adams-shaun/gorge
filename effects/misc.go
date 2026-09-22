@@ -659,8 +659,8 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// able"): Territory Hellkite's DBPump, and the four plain-
 			// SubAbility siblings Knight Rampager, Ursine Monstrosity, Raving
 			// Dead and Ruhan of the Fomori. It registers like the restriction
-			// modes above (rules' requiredAttackDefender reads it from the
-			// continuous-effect registry beside the face statics), with the
+			// modes above (rules' attackRequirements collector reads it from
+			// the continuous-effect registry beside the face statics), with the
 			// same readable-parameter gate so a conditional line fails closed
 			// instead of over-requiring. The chosen-/remembered-player binding
 			// the MustAttack$ reference resolves against rides the plain

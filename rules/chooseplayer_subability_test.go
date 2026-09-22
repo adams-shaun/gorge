@@ -3,7 +3,9 @@ package rules
 // chooseplayer-subability-riders: ChoosePlayer's chained riders
 // (ChooseSubAbility$/CantChooseSubAbility$) and the per-player MustAttack$
 // ChosenPlayer requirement they bind, pinned on the real corpus carrier
-// Territorial Hellkite (a Temur Roar deck card).
+// Territorial Hellkite (which is NOT in any repo deck -- it is loaded from
+// the corpus registry by name, so "corpus-pinned" means the real compiled
+// Forge script, not a hand-written fixture).
 //
 // The card's begin-combat trigger chooses an opponent at random that the
 // Hellkite did not attack during the last combat
@@ -12,9 +14,9 @@ package rules
 // `Mode$ MustAttack | ValidCreature$ Card.EffectSource | MustAttack$
 // ChosenPlayer` for the combat; a choice with no candidate runs
 // CantChooseSubAbility$ DBTap, tapping the dragon. The requirement is read at
-// the declare-attackers step through the shared requiredAttackDefender seam
-// (rules/combat.go), which filters the offered (attacker, defender) pairs to
-// the named player and marks the creature required.
+// the declare-attackers step through the shared attackRequirements collector
+// (rules/combat.go), which decides which offered (attacker, defender) pairs
+// satisfy the most requirements and marks the creature required.
 //
 // Every fixture mutation goes through e.emit, so every game replays
 // byte-identically.
@@ -24,6 +26,7 @@ import (
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
@@ -111,7 +114,7 @@ func TestTerritorialHellkiteChoosesAndBindsAttackDefender(t *testing.T) {
 		t.Fatalf("after the begin-combat trigger, chosen = %+v, want exactly one opponent seat", o.Chosen)
 	}
 	chosen := o.Chosen[0].Player
-	if !e.requiredAttackDefenderMatches(hk, chosen) {
+	if !e.attackRequiresDefender(hk, chosen) {
 		t.Fatalf("no MustAttack requirement binds the dragon to chosen player %d", chosen)
 	}
 
@@ -185,15 +188,219 @@ func TestTerritorialHellkiteNoCandidateTaps(t *testing.T) {
 		t.Fatalf("no-candidate arm recorded a chosen player: %+v", e.G.Obj(hk).Chosen)
 	}
 	// No per-player requirement may survive the failed choice.
-	if _, ok := e.requiredAttackDefender(hk); ok {
+	if e.attackRequirements(hk).any() {
 		t.Fatal("a failed choice still registered a MustAttack requirement")
 	}
 	replayCheck(t, e, cfg)
 }
 
-// requiredAttackDefenderMatches reports whether id is required to attack
-// exactly defender (a small test-side read of the engine's own resolver).
-func (e *Engine) requiredAttackDefenderMatches(id state.ObjID, defender state.PlayerID) bool {
-	p, ok := e.requiredAttackDefender(id)
-	return ok && p == defender
+// requiredForDefender reports whether id's requirement set names defender as
+// the DEFENDER IT IS MOST BOUND TO -- it satisfies strictly more named
+// requirements than any other named defender (a test-side read of the
+// engine's own attackRequirements collector).
+func (e *Engine) requiredForDefender(id state.ObjID, defender state.PlayerID) bool {
+	rs := e.attackRequirements(id)
+	return rs.named[defender] > 0 && rs.satisfiedBy(defender) == rs.maxNamed()
+}
+
+// attackRequiresDefender reports whether id is required to attack AND the
+// single maximal named defender is defender (the strict one-defender case the
+// Hellkite and the single-named-requirement tests want).
+func (e *Engine) attackRequiresDefender(id state.ObjID, defender state.PlayerID) bool {
+	rs := e.attackRequirements(id)
+	if !rs.any() {
+		return false
+	}
+	if rs.satisfiedBy(defender) != rs.maxNamed() || rs.satisfiedBy(defender) == 0 {
+		return false
+	}
+	// No OTHER defender may be equally maximal (the strict single-destination
+	// case); a tie is legal but not what this helper asserts.
+	n := 0
+	for _, c := range rs.named {
+		if c == rs.maxNamed() {
+			n++
+		}
+	}
+	return n == 1
+}
+
+// TestTerritorialHellkiteNamedRequirementVersusGoad is the t2 review's
+// interaction case: a named MustAttack$ ChosenPlayer duty that CONFLICTS with
+// a goad by the chosen player must not cancel the attack out. The goad
+// restriction removes the (dragon, chosen-goader) pair, and the dragon's
+// remaining legal pair (the other opponent) still satisfies the goad
+// requirement, so the dragon is required and attacks that other opponent.
+// The pre-fix single-defender filter removed the non-chosen pair as well, the
+// offer list emptied, the dragon was reported as not required, and no legal
+// declaration existed that included it.
+func TestTerritorialHellkiteNamedRequirementVersusGoad(t *testing.T) {
+	var cfg Config
+	e, hk := hellkiteEngine(t, &cfg)
+	crossIntoBeginCombat(t, e)
+
+	o := e.G.Obj(hk)
+	if o == nil || len(o.Chosen) != 1 || !o.Chosen[0].IsPlayer {
+		t.Fatalf("precondition: expected exactly one chosen opponent, got %+v", o)
+	}
+	chosen := o.Chosen[0].Player
+	if chosen != 1 && chosen != 2 {
+		t.Fatalf("precondition: chosen player %d is not an opponent", chosen)
+	}
+	other := state.PlayerID(1)
+	if chosen == 1 {
+		other = 2
+	}
+	// The chosen player goads the dragon. The event's Player is the goader;
+	// IDs[0] is the goad's source and Amount carries the goaded object's
+	// controller+1 (the effGoad wire shape).
+	e.emit(events.Event{Kind: events.Goad, Obj: hk, Player: chosen, Text: "Permanent",
+		IDs: []state.ObjID{hk}, Amount: int32(o.Controller) + 1})
+	if !e.goadedBy(e.G.Obj(hk), chosen) {
+		t.Fatalf("precondition: goad from player %d did not register", chosen)
+	}
+
+	passToKind(t, e, decision.KAttackers)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KAttackers {
+		t.Fatalf("expected a KAttackers decision, got %+v", d)
+	}
+	// The dragon has exactly one offered pair, against the non-goader, and it
+	// is Required. It must NOT have disappeared (the pre-fix defect) and must
+	// NOT be offered against the goader.
+	sawOther, sawGoader := false, false
+	for _, opt := range d.Options {
+		if opt.Obj != hk {
+			continue
+		}
+		switch opt.Player {
+		case other:
+			sawOther = true
+			if !opt.Required {
+				t.Fatalf("dragon's only legal pair (player %d) is not marked Required", other)
+			}
+		case chosen:
+			sawGoader = true
+		}
+	}
+	if !sawOther {
+		t.Fatalf("dragon has no legal attack pair despite an available non-goader; options=%+v", d.Options)
+	}
+	if sawGoader {
+		t.Fatalf("goaded dragon was offered its goader's pair (player %d); goad forbids it", chosen)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player}); err == nil {
+		t.Fatal("required dragon was allowed to skip its attack entirely")
+	}
+	// Submit the dragon's one legal pair and confirm it attacked the non-goader.
+	idx := -1
+	for _, opt := range d.Options {
+		if opt.Obj == hk && opt.Player == other {
+			idx = opt.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("no dragon option against player %d: %+v", other, d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
+		t.Fatalf("legal declaration rejected: %v", err)
+	}
+	if !e.G.Obj(hk).IsAttacking || e.G.Obj(hk).Attacking != other {
+		t.Fatalf("dragon did not attack player %d (attacking=%v player=%d)", other, e.G.Obj(hk).IsAttacking, e.G.Obj(hk).Attacking)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestMustAttackTwoNamedRequirementsKeepBothDefenders is the review's second
+// case: two named MustAttack requirements naming DIFFERENT opponents must
+// both stay offered and Required (each satisfies one requirement, neither
+// dominates), instead of the first-registration-wins collapse. The two
+// registrations carry RememberedPlayer bindings, resolved against each
+// effect's own RememberedPlayers capture.
+func TestMustAttackTwoNamedRequirementsKeepBothDefenders(t *testing.T) {
+	// A bare 3-seat board parked directly at seat 0's declare-attackers step:
+	// no real trigger runs, so the only requirements are the two explicit ones
+	// below (the Hellkite fixture would resolve its own begin-combat choice and
+	// add a third named requirement, confounding the assertion).
+	e := New(seatZeroStart(Config{Seed: 1, Names: []string{"a", "b", "c"}, Decks: [][]*cards.Card{
+		mountainDeck(t, 40), mountainDeck(t, 40), mountainDeck(t, 40),
+	}}))
+	e.G.Active = 0
+	e.G.Step = state.StepDeclareAttackers
+	hk := onBoardReady(t, e, 0, "Name:Dragon\nTypes:Creature\nPT:5/5\nOracle:x\n")
+	if o := e.G.Obj(hk); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("precondition: dragon not on the battlefield")
+	}
+	// Two Effect-delivered named requirements, one per opponent, each on the
+	// SAME creature (ValidCreature$ Card.Self) but naming a different player.
+	for _, def := range []state.PlayerID{1, 2} {
+		e.AddContinuous(ContinuousEffect{
+			Source: hk, Controller: 0, UntilEOT: true,
+			Restriction:       "MustAttack",
+			RestrictParams:    map[string]string{"Mode": "MustAttack", "ValidCreature": "Card.Self", "MustAttack": "RememberedPlayer"},
+			RememberedPlayers: []state.PlayerID{def},
+		})
+	}
+	rs := e.attackRequirements(hk)
+	if !rs.any() {
+		t.Fatalf("precondition: the two named requirements did not bind the dragon: %+v", rs)
+	}
+	if rs.satisfiedBy(1) != 1 || rs.satisfiedBy(2) != 1 || rs.maxNamed() != 1 {
+		t.Fatalf("precondition: requirements should name 1 and 2 once each, got %+v", rs.named)
+	}
+	if !e.requiredForDefender(hk, 1) || !e.requiredForDefender(hk, 2) {
+		t.Fatal("precondition: both named defenders must be maximal")
+	}
+
+	e.askAttackers()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KAttackers {
+		t.Fatalf("expected a KAttackers decision, got %+v", d)
+	}
+	seen := map[state.PlayerID]bool{}
+	for _, opt := range d.Options {
+		if opt.Obj != hk {
+			continue
+		}
+		if !opt.Required {
+			t.Fatalf("named-required pair against %d is not Required", opt.Player)
+		}
+		seen[opt.Player] = true
+	}
+	if !seen[1] || !seen[2] {
+		t.Fatalf("both named defenders must stay offered; got %+v", d.Options)
+	}
+	// Either maximal declaration is legal: pick the first dragon option.
+	idx := -1
+	for _, opt := range d.Options {
+		if opt.Obj == hk {
+			idx = opt.Index
+			break
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("no dragon option: %+v", d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
+		t.Fatalf("a maximal named declaration was rejected: %v", err)
+	}
+}
+
+// TestMustAttackFaceAndEffectWhitelistsAgree guards the delegation that makes
+// the face S: line route and the Effect-delivered route share ONE parameter
+// whitelist. The two once diverged silently; the test fails if a future edit
+// re-duplicates the list instead of delegating.
+func TestMustAttackFaceAndEffectWhitelistsAgree(t *testing.T) {
+	cases := []map[string]string{
+		{"Mode": "MustAttack", "ValidCreature": "Card.Self", "MustAttack": "ChosenPlayer", "Description": "x"},
+		{"Mode": "MustAttack", "ValidCreature": "Card.Self", "MustAttack": "ChosenPlayer", "Secondary": "True"},
+		{"Mode": "MustAttack", "IsPresent": "Card.Self", "ValidCreature": "Card.Self"},
+		{"Mode": "MustAttack", "ValidCreature": "Card.Self", "Condition": "Threshold"},
+		{"Mode": "MustAttack", "ValidCreature": "Card.Self", "CheckSVar": "X", "SVarCompare": "GE1"},
+	}
+	for i, p := range cases {
+		if got, want := MustAttackParamsReadableForRules(p), effects.MustAttackParamsReadable(p); got != want {
+			t.Fatalf("case %d: face whitelist = %v, effects whitelist = %v for %v", i, got, want, p)
+		}
+	}
 }
