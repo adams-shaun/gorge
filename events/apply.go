@@ -151,13 +151,15 @@ func Apply(g *state.Game, e Event) {
 		// this one, and the record is what trig:Investigated matches. Player
 		// is the investigating seat, Obj the resolving source permanent.
 
-	case Discover, Seek:
-		// The discover (CR 701.57) and seek records (task trigdisc1) are
-		// pure markers, exactly like Explore/Investigate: the action's own
-		// state changes (the exiles/reveals and the sought card's move) are
-		// their own events that preceded this one, and the record is what
-		// trig:Discover / trig:SeekAll match. Player is the acting seat, Obj
-		// the resolving source permanent. One marker per completed action.
+	case Discover, Seek, Surveil:
+		// The discover (CR 701.57), seek (task trigdisc1) and surveil
+		// (CR 701.42, task trig-surveil) records are pure markers, exactly
+		// like Explore/Investigate: the action's own state changes (the
+		// exiles/reveals, the sought card's move, the KArrange answer's
+		// LibraryOrder) are their own events that surround this one, and the
+		// record is what trig:Discover / trig:SeekAll / trig:Surveil match.
+		// Player is the acting seat, Obj the resolving source permanent. One
+		// marker per completed action.
 
 	case Exploit:
 		// The exploit record (CR 702.58a, task exploit1) is a pure marker,

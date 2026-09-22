@@ -193,6 +193,16 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// fall to the allTriggerEvents default) keeps a Discover/SeekAll-only
 		// face's mask narrow for every other kind.
 		return 0
+	case "Surveil":
+		// The Surveil marker's ordinal (79, task trig-surveil) is past the
+		// 64-bit mask's reach, the Discover/SeekAll shape: a mask bit is not
+		// encodable and allows() fails open for every kind at or past
+		// triggerMaskKindBits, so the mode is admitted through that fail-open
+		// path and gated by the full matcher (surveilMatches). Naming the
+		// mode here rather than letting it fall to the allTriggerEvents
+		// default keeps a Surveil-only face's mask narrow for every other
+		// kind.
+		return 0
 	case "Exploited":
 		// The Exploit marker's ordinal is past the 64-bit mask's reach, the
 		// Investigated/Discover shape: a mask bit is not encodable and

@@ -81,6 +81,12 @@ var addedAfterTheSplit = []string{
 	// already but the MODE did not -- no pre-split switch arm could have
 	// dispatched it.
 	"ClassLevelGained",
+	// trig-surveil: "Whenever you surveil ..." (CR 701.42; Mirko, Obsessive
+	// Theorist; Dimir Spybug; Thoughtbound Phantasm; Whispering Snitch and 8
+	// more corpus carriers). It matches the events.Surveil marker Kind,
+	// which was appended for it, so it could not have been in the pre-split
+	// switch.
+	"Surveil",
 }
 
 func allRegisteredModeNames() []string {

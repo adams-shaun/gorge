@@ -2197,6 +2197,22 @@ func effScry(h Host, c *Ctx, sa *cards.SA) {
 // than the card text but deterministic.
 func effSurveil(h Host, c *Ctx, sa *cards.SA) {
 	n := Num(h, c, sa, "Amount", 1)
+	// One events.Surveil marker per acting player, emitted BEFORE the
+	// arrangement (the shared look/arrange body): the marker is the canonical
+	// record trig:Surveil matches ("whenever you surveil" -- Mirko, Obsessive
+	// Theorist; Dimir Spybug; Thoughtbound Phantasm; Whispering Snitch), one
+	// per surveil instruction per acting player. It precedes the KArrange
+	// ask's LibraryOrder and graveyard moves the way the Look event does;
+	// the matched trigger bodies are queued and resolve after the surveil
+	// spell or ability finishes either way, and none of the corpus carriers
+	// reads the arranged cards. The c.Arrange guard keeps the re-entry pass
+	// (rules' handleArrange re-drives the SA with Ctx.Arrange set; that pass
+	// must only let the resolution continue) from re-emitting the marker.
+	if !c.Arrange {
+		for _, t := range actingPlayers(h, c, sa) {
+			h.Emit(events.Event{Kind: events.Surveil, Player: PlayerOf(h, c, t), Obj: c.Source})
+		}
+	}
 	effLookAndArrange(h, c, sa, n, "graveyard", "Surveil")
 }
 

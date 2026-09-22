@@ -295,6 +295,16 @@ var actionTriggerModes = map[string]bool{
 	// and Lurker in the Deep's PlayerTurn$ True on its SeekAll line -- so
 	// both gates must apply from day one.
 	"Discover": true, "SeekAll": true,
+	// Surveil joins them for the same reason: it is an event mode registered
+	// from the start (surveilMatches over events.Surveil, the marker Kind
+	// api:Surveil emits, task trig-surveil), so the trigger-level parameters
+	// Forge scopes to every event mode -- PlayerTurn$, ActivationLimit$
+	// (Prudent Fateseer's "This ability triggers only once each turn" on its
+	// scry-or-surveil line) and an unevaluable CheckDefinedPlayer$ predicate
+	// failing closed -- apply from day one. surveilMatches itself reads
+	// FirstTime$ (Whispering Snitch's "for the first time each turn")
+	// through the shared firstMarkerThisTurn log scan.
+	"Surveil": true,
 }
 
 // triggerActivationLimitAllows enforces ActivationLimit$ N ("this ability
@@ -1489,6 +1499,7 @@ func init() {
 		"trig:ManaExpend",
 		"trig:Connives",
 		"trig:Discover", "trig:SeekAll",
+		"trig:Surveil",
 		"trig:AbilityCast", "trig:SpellAbilityCast", "trig:Always",
 		// The cast-or-copy pair: SpellCopy matches a copy put on the stack and
 		// SpellCastOrCopy matches either half (magecraft). Both are matched
