@@ -1258,6 +1258,35 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		return int32(h.CommanderIdentityColourCount(c.Controller)), true
 	}
 
+	// Count$YourCounters<KIND> — the resolving controller's own player
+	// counters of KIND (Forge's Count$YourCounters* family, measured 31
+	// corpus files at the current pin: YourCountersExperience 15 lines,
+	// YourCountersEnergy 15, YourCountersRAD 1). The suffix upper-cased is
+	// Forge's counter-kind name; the stored kinds are the CounterType$ text
+	// the granting script wrote ("ENERGY" from Razorfield Ripper,
+	// "Experience" from Otharri, "RAD" from Radaway), so the read matches
+	// case-insensitively and sums any same-kind entries — deterministic
+	// either way, since the slice is insertion order and a kind is written
+	// one way per card. The read is a plain read of Player.Counters, which
+	// events.PlayerCounterChange folds, so it is event-backed and
+	// replay-derivable; no new event or provenance is needed. Razorfield
+	// Ripper's SVar:X:Count$YourCountersEnergy drives its attack pump,
+	// Localized Destruction's and Aether Refinery's DB$ ChooseNumber
+	// Max$ Count$YourCountersEnergy bounds their may-pay-{E} ask. A
+	// controller out of range (no resolution in flight) reads 0.
+	if rest, ok := strings.CutPrefix(head, "YourCounters"); ok {
+		if c.Controller < 0 || int(c.Controller) >= len(g.Players) {
+			return 0, true
+		}
+		n := int32(0)
+		for _, pc := range g.Players[c.Controller].Counters {
+			if strings.EqualFold(pc.Kind, rest) {
+				n += pc.N
+			}
+		}
+		return n, true
+	}
+
 	// PlayerCount<Players|Opponents|RegisteredOpponents>$<Property> — per-
 	// group extreme properties. "Players" spans every living player,
 	// "Opponents" every living player but the resolving controller, the same
