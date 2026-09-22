@@ -2274,18 +2274,6 @@ func (e *Engine) Submit(in decision.Intent) error {
 			return err
 		}
 	}
-	if d.Kind == decision.KTarget {
-		// TargetsWithSameController$ True (Lodestone Bauble): a target
-		// announcement's answer must name objects that all share one owner —
-		// in a graveyard, the "controller" a card in a graveyard has. The
-		// offered option list spans every player's graveyard, a pairwise
-		// constraint the option shape cannot express, so the answer is
-		// rejected here (the validateSearch preserve-and-reject shape) and
-		// the pending decision survives for a legal (or smaller) answer.
-		if err := e.validateSameControllerTargets(d, in); err != nil {
-			return err
-		}
-	}
 	e.L.Intents = append(e.L.Intents, in)
 	e.emit(events.Event{Kind: events.DecisionMade, Player: in.Player,
 		Text: fmt.Sprintf("%s:%v", d.Kind, in.Choices)})

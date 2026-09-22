@@ -128,13 +128,6 @@ type pendingCast struct {
 	// announced value into that filter). Empty on every ordinary cast.
 	announceX string
 
-	// sameCtrlTargets is the TargetsWithSameController$ True rider (Lodestone
-	// Bauble): every target this cast's announcement chooses must share one
-	// controller — in a graveyard, its owner. The offered option list spans
-	// every player's graveyard, so the pairwise constraint is enforced at
-	// Submit (validateCastContributions' preserve-and-reject shape), not by
-	// an option-list shape the wire cannot express.
-	sameCtrlTargets bool
 	// suspendTimeX makes the chosen cast X also set the number of TIME
 	// counters; suspendMinX is Forge's XMin<N> lower bound.
 	suspendTimeX bool
@@ -2031,15 +2024,11 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// spell's own push. An ability proposal (pc.ability >= 0) never reads it:
 	// payCast's flag arm is gated on !pc.isAbility().
 	e.cast.offSorcery = e.offSorceryAtCast(p)
-	// The announce-bearing alternative (the Shoal cycle) and the
-	// TargetsWithSameController rider (Lodestone Bauble) ride the selected
+	// The announce-bearing alternative (the Shoal cycle) rides the selected
 	// cast SA into the transaction: xAsk's announce arm and exAsk's binding
-	// read the first, handleTarget's Submit-time validator the second.
+	// read the captured value.
 	if announceAlt != nil && announceAlt.announce != "" {
 		e.cast.announceX = announceAlt.announce
-	}
-	if sa := f.SpellAbility(); sa != nil && strings.EqualFold(strings.TrimSpace(sa.Params["TargetsWithSameController"]), "True") {
-		e.cast.sameCtrlTargets = true
 	}
 	// CR 903.8: the commander tax, applied to whatever cost this cast pays
 	// (the base/alternative/kicked/flashback/surged/miracle cost resolved
@@ -5015,42 +5004,6 @@ func (e *Engine) validateSearch(d *decision.Decision, in decision.Intent) error 
 	return nil
 }
 
-// validateSameControllerTargets is the Submit-time gate for a cast-flow
-// target announcement whose SA carries TargetsWithSameController$ True
-// (Lodestone Bauble): every chosen object must share one owner — in a
-// graveyard, the owner the card there has. Any other KTarget decision, a
-// single-object answer, and an out-of-range choice (Validate's own error)
-// pass through untouched.
-func (e *Engine) validateSameControllerTargets(d *decision.Decision, in decision.Intent) error {
-	pc := e.cast
-	if pc == nil || !pc.sameCtrlTargets || d.Kind != decision.KTarget || len(in.Choices) <= 1 {
-		return nil
-	}
-	var owner state.PlayerID
-	haveOwner := false
-	for _, c := range in.Choices {
-		if c < 0 || c >= len(d.Options) {
-			continue // Validate's own out-of-range error already fired
-		}
-		o := d.Options[c]
-		if o.Obj == 0 {
-			continue
-		}
-		obj := e.G.Obj(o.Obj)
-		if obj == nil {
-			return nil // the resolution-time recheck owns a vanished object
-		}
-		if !haveOwner {
-			owner, haveOwner = obj.Owner, true
-			continue
-		}
-		if obj.Owner != owner {
-			return fmt.Errorf("chosen targets do not share one controller")
-		}
-	}
-	return nil
-}
-
 // validateCastContributions is the Submit-time gate for the cast flow's
 // Convoke/Harmonize announcement decision (convokeAsk). The decision's
 // static Validate sees only the offered option list -- two white creatures
@@ -5931,7 +5884,8 @@ func (e *Engine) targetAsk() bool {
 	// real selectable capacity: an unaffordable or over-cap candidate cannot
 	// contribute a controller to it.
 	min, max, exclusive, distinct := e.oneEachTargetBounds(sa, candidates, min, max)
-	if min > 0 && (len(candidates) < min || (exclusive && min > distinct)) {
+	min, max, sameCapacity, sameController := e.sameControllerTargetBounds(sa, candidates, min, max)
+	if min > 0 && (len(candidates) < min || (exclusive && min > distinct) || (sameController && min > sameCapacity)) {
 		// CR 601.2c: a proposal with fewer legal targets than its mandatory
 		// minimum -- or one whose per-controller constraint admits fewer
 		// distinct controllers than its mandatory minimum -- cannot be
@@ -5974,7 +5928,8 @@ func (e *Engine) targetAsk() bool {
 	}
 	d := &decision.Decision{Player: pc.player, Kind: decision.KTarget, Min: min, Max: max,
 		Prompt: "Choose a target for " + e.targetName(pc.card),
-		Source: src, TargetEffect: describeTargetEffect(sa)}
+		Source: src, TargetEffect: describeTargetEffect(sa),
+		TargetsWithSameController: sameController}
 	for _, candidate := range candidates {
 		// Shared with stack.go's askTarget so a Face-less ability object (a
 		// TargetType$ Activated/Triggered census) can never nil-deref here.
@@ -5982,6 +5937,7 @@ func (e *Engine) targetAsk() bool {
 		o := decision.Option{Index: len(d.Options), Kind: candidate.kind,
 			Label: label, Obj: candidate.obj, Player: candidate.player}
 		o.Group = e.targetControllerGroup(sa, candidate)
+		o.Controller = e.candidateControllerSeat(candidate)
 		// Option.Value is omitempty and read only under a budget
 		// (Decision.HasBudget), so a budget-less target ask keeps its wire
 		// payload byte-identical. Every present cap -- zero and negative

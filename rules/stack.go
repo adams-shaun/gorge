@@ -1464,6 +1464,32 @@ func (e *Engine) candidateControllerSeat(candidate targetCandidate) state.Player
 // intent could answer (Run Away Together, Kitsune, Dragon's Daughter).
 // Callers compare min against distinct (not the raw option count) to detect
 // that no legal set exists.
+// sameControllerTargetBounds applies the TargetsWithSameController$ set
+// constraint. Unlike the one-per-controller family, this permits multiple
+// picks from one group; its capacity is therefore the largest controller
+// group, not the number of groups. The capacity is returned separately so
+// callers can reject a mandatory ask without exposing an unsatisfiable
+// decision.
+func (e *Engine) sameControllerTargetBounds(sa *cards.SA, candidates []targetCandidate, min, max int) (int, int, int, bool) {
+	if !strings.EqualFold(sa.Params["TargetsWithSameController"], "True") {
+		return min, max, 0, false
+	}
+	counts := map[state.PlayerID]int{}
+	for _, candidate := range candidates {
+		counts[e.candidateControllerSeat(candidate)]++
+	}
+	capacity := 0
+	for _, count := range counts {
+		if count > capacity {
+			capacity = count
+		}
+	}
+	if capacity > 0 && max > capacity {
+		max = capacity
+	}
+	return min, max, capacity, true
+}
+
 func (e *Engine) oneEachTargetBounds(sa *cards.SA, candidates []targetCandidate, min, max int) (int, int, bool, int) {
 	if !targetControllerExclusive(sa) {
 		return min, max, false, 0
@@ -1511,6 +1537,24 @@ func (e *Engine) oneEachTargetBounds(sa *cards.SA, candidates []targetCandidate,
 // SAME set constraint -- no two chosen targets may share a controller -- and
 // both are expressed on the wire by Option.Group, so one predicate backs both
 // and the resolution recheck reads it through the same helper.
+func (e *Engine) narrowSameController(targets []state.Target) []state.Target {
+	if len(targets) < 2 {
+		return targets
+	}
+	controller := targets[0]
+	seat, ok := e.targetControllerSeat(controller)
+	if !ok {
+		return targets
+	}
+	out := targets[:0]
+	for _, target := range targets {
+		if got, valid := e.targetControllerSeat(target); valid && got == seat {
+			out = append(out, target)
+		}
+	}
+	return out
+}
+
 func targetControllerExclusive(sa *cards.SA) bool {
 	return strings.EqualFold(sa.Params["TargetsForEachPlayer"], "True") ||
 		strings.EqualFold(sa.Params["TargetsWithDifferentControllers"], "True")
@@ -1838,9 +1882,11 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 	// still take.
 	candidates, powerCap, powerCapped := e.totalPowerCappedCandidates(candidates, p, source, sa, 0)
 	min, max, exclusive, distinct := e.oneEachTargetBounds(sa, candidates, min, max)
+	min, max, sameCapacity, sameController := e.sameControllerTargetBounds(sa, candidates, min, max)
 	d := &decision.Decision{Player: p, Kind: decision.KTarget, Min: min, Max: max,
 		Prompt: "Choose a target for " + e.targetName(source),
-		Source: source, TargetEffect: describeTargetEffect(sa)}
+		Source: source, TargetEffect: describeTargetEffect(sa),
+		TargetsWithSameController: sameController, ResumeSA: sa}
 	for _, candidate := range candidates {
 		// targetOptionLabel tolerates the Face-less ability object a
 		// TargetType$ Activated/Triggered spec now offers: targetName falls
@@ -1849,6 +1895,7 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 		o := decision.Option{Index: len(d.Options), Kind: candidate.kind,
 			Label: label, Obj: candidate.obj, Player: candidate.player}
 		o.Group = e.targetControllerGroup(sa, candidate)
+		o.Controller = e.candidateControllerSeat(candidate)
 		// Option.Value is omitempty and read only under a budget
 		// (Decision.HasBudget), so a budget-less target ask keeps its wire
 		// payload byte-identical. Every present cap -- zero and negative
@@ -1872,7 +1919,7 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 		if len(d.Options) == 0 {
 			return
 		}
-	} else if len(d.Options) < min || (exclusive && min > distinct) {
+	} else if len(d.Options) < min || (exclusive && min > distinct) || (sameController && min > sameCapacity) {
 		// A target-hungry subject with fewer legal targets than Min -- or one
 		// whose per-controller constraint admits fewer distinct controllers
 		// than Min (exclusive && min > distinct: two mandatory targets, both
@@ -2812,6 +2859,9 @@ func (e *Engine) legalTargets(targets []state.Target, sa *cards.SA, zones []stat
 	// rechecked on the surviving set too -- see narrowDifferentControllers.
 	if sa != nil && strings.EqualFold(sa.Params["TargetsWithDifferentControllers"], "True") {
 		legal = e.narrowDifferentControllers(legal)
+	}
+	if sa != nil && strings.EqualFold(sa.Params["TargetsWithSameController"], "True") {
+		legal = e.narrowSameController(legal)
 	}
 	return legal
 }
