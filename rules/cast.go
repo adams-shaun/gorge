@@ -4208,6 +4208,35 @@ func faceWantsTimesKicked(f *cards.Face) bool {
 	return f.Mentions("Count$TimesKicked")
 }
 
+// manaExpendReaderOut is the ManaExpend emission gate (the
+// triggeredConvergeReaderOut pattern): true when the CASTING player's own
+// battlefield holds a permanent whose printed face carries a Mode$ ManaExpend
+// trigger. A ManaExpend trigger can only fire for its controller's own cast
+// expenditure (every corpus line carries Player$ You), so scoping the scan to
+// the caster's zone stamps exactly when the value can be needed and no game
+// without a carrier out changes an event (heads stay put: no ManaExpend
+// carrier is in any repo deck). Pure read -- the deterministic zone walk
+// cannot reach an event; replay re-runs payCast and derives the same scan.
+func (e *Engine) manaExpendReaderOut(player state.PlayerID) bool {
+	g := e.G
+	for _, id := range g.Zone(state.ZBattlefield, player) {
+		o := g.Obj(id)
+		if o == nil {
+			continue
+		}
+		f := o.Face()
+		if f == nil {
+			continue
+		}
+		for _, t := range f.Triggers {
+			if t.Mode == "ManaExpend" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // triggeredConvergeReaderOut is the capture gate's second arm: it reports
 // whether any alive player's battlefield holds a permanent whose face SVars
 // name TriggeredCard$Converge -- a trigger that reads ANOTHER spell's cast
@@ -6219,6 +6248,22 @@ func (e *Engine) payCast() {
 			e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: typedAmounts[t],
 				Counter: events.FlagsString(acc)})
 		}
+	}
+	// ManaExpend (trig:ManaExpend): the per-turn "total mana spent casting
+	// spells" tally increment rides its own TRAILING pay-time CastInfo -- the
+	// flag routes the Amount into the CASTING player's Player.ManaExpended
+	// (events.Apply's CastInfo case), and the trigger's own matcher reads the
+	// tally for CR-expend's CROSSING semantics (a cast that moves the tally
+	// from below Amount$ N to at-or-above it fires once; a cast that starts
+	// at-or-above fires nothing). Pool mana only, the same delta
+	// manaSpentTotal(spentMana) the faceWantsCastSpend capture prices:
+	// convoke contributions and free casts are not mana spent, and ability
+	// activations never reach this block. The emission gate keeps unrelated
+	// casts byte-identical: only when the casting player's battlefield holds
+	// a permanent carrying a Mode$ ManaExpend trigger does the event exist.
+	if spend := manaSpentTotal(spentMana); spend > 0 && e.manaExpendReaderOut(pc.player) {
+		meFlags := events.FlagsString(events.FlagsFrom(flags) | state.FlagManaExpendCast)
+		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Player: pc.player, Amount: spend, Counter: meFlags})
 	}
 	// CR 601.2i: the "when you cast" trigger, held back from the up-front
 	// push, fires now -- only after the spell is paid for. Capture the deferred

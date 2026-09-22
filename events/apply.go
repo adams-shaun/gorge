@@ -870,6 +870,13 @@ func Apply(g *state.Game, e Event) {
 			g.Turn = e.Amount
 			g.Active = e.Player
 			g.Players[e.Player].LandsPlayed = 0
+			// The per-turn ManaExpend tally (trig:ManaExpend) is a fact of the
+			// TURN, not of the incoming player, so every seat's tally resets
+			// here ("as you spend your Nth total mana to cast spells during a
+			// turn" -- any turn, CR 702's expend definition).
+			for i := range g.Players {
+				g.Players[i].ManaExpended = 0
+			}
 			// g.Zone(ZBattlefield, e.Player) can only ever hold IDs that Move
 			// already confirmed are real objects, so this nil check is
 			// currently unreachable in practice -- but it is one line, it
@@ -1309,6 +1316,16 @@ func Apply(g *state.Game, e Event) {
 				o.Convoked = append([]state.ObjID(nil), e.IDs...)
 			}
 			switch {
+			// The per-turn ManaExpend tally increment (trig:ManaExpend): the
+			// Amount is the mana the cast's payment spent, added to the CASTING
+			// player's tally (e.Player). Checked FIRST because every later
+			// CastInfo carries all earlier flags and this emission is the
+			// newest one payCast makes (the Desert/Cave/Treasure newest-first
+			// ordering, applied one step further).
+			case FlagsFrom(e.Counter)&state.FlagManaExpendCast != 0:
+				if validPlayer(g, e.Player) {
+					g.Players[e.Player].ManaExpended += e.Amount
+				}
 			// Conspire's Amount is a marker, never data: the bool was folded
 			// above, and the flag rides a LOCAL counter at the emission site
 			// (rules/cast.go's payCast never ORs FlagConspired into the

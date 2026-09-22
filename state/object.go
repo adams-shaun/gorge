@@ -239,6 +239,15 @@ const (
 	// rather than the single Face().SpellAbility(). Appended per the enum's
 	// own append-only precedent.
 	FlagFused
+	// FlagManaExpendCast marks a cast whose pay-time CastInfo carries the
+	// per-turn ManaExpend tally increment (trig:ManaExpend, the
+	// FlagManaSpent pattern): the Amount is the mana the cast's payment
+	// spent (state.Mana pips summed) and events.Apply's CastInfo case adds
+	// it to the CASTING player's Player.ManaExpended. Emitted only when a
+	// ManaExpend trigger face is on the casting player's battlefield (rules/
+	// cast.go's manaExpendReaderOut), so every game without a carrier stays
+	// byte-identical. Appended per the enum's own append-only precedent.
+	FlagManaExpendCast
 )
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the

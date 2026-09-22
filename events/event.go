@@ -1065,6 +1065,12 @@ var flagNames = [...]struct {
 	// resolving both halves. Appended at the end per the table's own
 	// ordering rule.
 	{"fused", state.FlagFused},
+	// The per-turn ManaExpend tally increment (trig:ManaExpend): a cast made
+	// while a ManaExpend trigger face is on the caster's battlefield stamps
+	// its pay-time CastInfo with this flag, so the Amount folds into the
+	// caster's Player.ManaExpended instead of overwriting X. Appended at the
+	// end per the table's own ordering rule.
+	{"manaexpend", state.FlagManaExpendCast},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

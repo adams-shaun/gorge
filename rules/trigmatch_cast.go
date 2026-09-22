@@ -10,6 +10,7 @@
 package rules
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -17,6 +18,8 @@ import (
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
+
+var debugManaExpend = true
 
 // spellCastMatches implements Mode$ SpellCast: ValidCard$ and
 // ValidActivatingPlayer$ against a PutOnStack event, plus the two cast-
@@ -768,4 +771,41 @@ func init() {
 		return e.abilityCastMatches(t, source, ev)
 	}, "AbilityCast")
 	registerTrigMatcher((*Engine).spellAbilityCastMatches, "SpellAbilityCast")
+	// ManaExpend (CR-expend, Bloomburrow Commander): "Whenever you expend N
+	// ..." fires when its controller's per-turn cast-spend tally CROSSES the
+	// trigger's Amount$ N -- the pay-time FlagManaExpendCast CastInfo
+	// emission (rules/cast.go's payCast) folded the cast's spend into
+	// Player.ManaExpended before this matcher runs, so prev = total - Amount
+	// is the pre-payment tally and the crossing test is prev < N <= total.
+	// A cast that starts at-or-above N fires nothing (no second crossing),
+	// and a later threshold (Muerra's expend 8 beside its expend 4) crosses
+	// independently in the same payment. Player$ You is the only selector the
+	// corpus writes (13 lines): any other Player$ value and an absent tally
+	// increment fail closed.
+	registerTrigMatcher((*Engine).manaExpendMatches, "ManaExpend")
+}
+
+// manaExpendMatches implements Mode$ ManaExpend. See the registration above
+// for the crossing contract; manaExpendReaderOut (rules/cast.go) is the
+// heads-safety gate that makes the matched event exist at all.
+func (e *Engine) manaExpendMatches(t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+	if ev.Kind != events.CastInfo || events.FlagsFrom(ev.Counter)&state.FlagManaExpendCast == 0 {
+		return false
+	}
+	// Player$ You: the expending player must be the trigger's controller.
+	if p := strings.TrimSpace(t.Params["Player"]); p != "" && !strings.EqualFold(p, "You") {
+		return false
+	}
+	if e.controllerOf(source) != ev.Player || int(ev.Player) >= len(e.G.Players) {
+		return false
+	}
+	n, err := strconv.Atoi(strings.TrimSpace(t.Params["Amount"]))
+	if err != nil || n <= 0 {
+		// An unreadable or non-positive Amount$ is a threshold this engine
+		// cannot evaluate: fail closed, never fire wide.
+		return false
+	}
+	total := e.G.Players[ev.Player].ManaExpended
+	prev := total - ev.Amount
+	return prev < int32(n) && total >= int32(n)
 }

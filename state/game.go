@@ -10,6 +10,15 @@ type Player struct {
 	Lost        bool
 	LandsPlayed int32
 	Pool        Mana
+
+	// ManaExpended is the per-turn tally of mana this seat has spent CASTING
+	// spells (trig:ManaExpend's "as you spend your Nth total mana to cast
+	// spells during a turn"): events.Apply adds each pay-time
+	// FlagManaExpendCast CastInfo's Amount here and clears every seat's tally
+	// at TurnChange. Ability activations, convoke contributions and free
+	// casts never reach it. Written ONLY inside events.Apply so a live game
+	// and a replay derive it identically; Clone copies it with the struct.
+	ManaExpended int32
 	// RestrictedMana retains the spend restriction on mana produced by a
 	// RestrictValid$ mana ability. It is cleared with the pool at step/phase
 	// cleanup and is reconstructed from ManaAdd events.

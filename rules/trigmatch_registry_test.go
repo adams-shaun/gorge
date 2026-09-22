@@ -68,6 +68,13 @@ var addedAfterTheSplit = []string{
 	// the K:Exploit expansion emits, which was appended for it, so the mode
 	// could not have been in the pre-split switch.
 	"Exploited",
+	// manaexpend1: "Whenever you expend N ..." (the Bloomburrow Commander
+	// expend keyword: Teapot Slinger, Trailtracker Scout, Wandertale Mentor,
+	// Pyreswipe Hawk and 8 more corpus carriers). It matches rules/cast.go's
+	// pay-time FlagManaExpendCast CastInfo emission, gated on a carrier being
+	// on the caster's battlefield, so no new event Kind was needed -- but the
+	// mode is new to the table, so it lands here.
+	"ManaExpend",
 }
 
 func allRegisteredModeNames() []string {

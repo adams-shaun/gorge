@@ -1429,6 +1429,7 @@ func init() {
 		"trig:Vote", "trig:RolledDie", "trig:RolledDieOnce",
 		"trig:Explores", "trig:Exerted", "trig:Investigated",
 		"trig:Exploited",
+		"trig:ManaExpend",
 		"trig:Connives",
 		"trig:Discover", "trig:SeekAll",
 		"trig:AbilityCast", "trig:SpellAbilityCast", "trig:Always",
