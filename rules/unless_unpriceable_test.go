@@ -7,6 +7,7 @@ import (
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -231,15 +232,9 @@ func inDeck(deck []*cards.Card, name string) bool {
 	return false
 }
 
-// TestMausoleumWandererUnlessCostX pin the repo-deck case that makes I-5
-// more than a corpus corner: Mausoleum Wanderer's activated Counter ability
-// carries UnlessCost$ X (X is the Wanderer's power, from an SVar -- the
-// engine never reads it), and the card ships in two of the 12 replay-golden
-// repo decks (mono-blue-tempo, uw-tempo). Its compiled UnlessCost parses to
-// an unpriceable {X}, which the payment API must decline. The ability's own
-// Sac<1/CARDNAME> now matches the source object (cardname_cost_test.go covers
-// that offer/payment path); this test pins the compiled Counter SA and its
-// presence in the repo decks, not its activation.
+// TestMausoleumWandererUnlessCostX pins the real corpus Counter ability and
+// verifies its X unless cost resolves from the captured sacrificed-card LKI.
+// The card ships in the mono-blue-tempo and uw-tempo replay decks.
 func TestMausoleumWandererUnlessCostX(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	wanderer := mustCorpusCard(t, reg, "Mausoleum Wanderer")
@@ -249,7 +244,19 @@ func TestMausoleumWandererUnlessCostX(t *testing.T) {
 		t.Fatalf("Mausoleum Wanderer unless cost = %q, want X", uc)
 	}
 	if ParseCost(uc).Priceable() {
-		t.Fatalf("Mausoleum Wanderer's UnlessCost %q must be unpriceable", uc)
+		t.Fatalf("raw Mausoleum Wanderer UnlessCost %q unexpectedly priceable", uc)
+	}
+	if len(wanderer.Faces) == 0 || wanderer.Faces[0].SVars["X"] != "Sacrificed$CardPower" {
+		t.Fatalf("Mausoleum Wanderer X SVar is not Sacrificed$CardPower: %+v", wanderer.Faces[0].SVars)
+	}
+	e := handEngine(t, wanderer)
+	resolved := effects.UnlessCostResolved(e, &effects.Ctx{SVars: wanderer.Faces[0].SVars,
+		Sacrificed: []state.SacrificedInfo{{Power: 3}}}, counterSA(t, wanderer))
+	if resolved != "{3}" {
+		t.Fatalf("Mausoleum Wanderer resolved unless cost = %q, want {3}", resolved)
+	}
+	if _, ok := ParseUnlessCost(resolved); !ok {
+		t.Fatalf("resolved unless cost %q is not payable", resolved)
 	}
 	for _, deck := range []string{"mono-blue-tempo", "uw-tempo"} {
 		if !inDeck(testutil.RepoDeck(t, reg, deck), "Mausoleum Wanderer") {
