@@ -592,6 +592,26 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			return []state.Target{{Player: p, IsPlayer: true}}, true
 		}
 		return nil, true
+	case "TriggeredCardOwner", "NonTriggeredCardOwner":
+		// These selectors use the triggering card's immutable owner (CR
+		// 108.3), never a remembered-object fallback. A stolen creature that
+		// dies is still its owner's (Oft-Nabbed Goat's "its owner draws").
+		// If TriggerCard is absent or no longer resolves, both forms fail
+		// closed to the empty set rather than guessing from the source.
+		triggered := g.Obj(c.TriggerCard)
+		if triggered == nil {
+			return nil, true
+		}
+		if spec == "TriggeredCardOwner" {
+			return []state.Target{{Player: triggered.Owner, IsPlayer: true}}, true
+		}
+		var out []state.Target
+		for _, p := range g.AliveFrom(0) {
+			if p != triggered.Owner {
+				out = append(out, state.Target{Player: p, IsPlayer: true})
+			}
+		}
+		return out, true
 	case "TriggeredAttackerController", "TriggeredBlockerController":
 		// The controller of the triggering event's attacker or blocker. The
 		// Blocks mode captures both roles per pair (rules/trigger_match.go's
