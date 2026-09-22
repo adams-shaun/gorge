@@ -159,6 +159,14 @@ func Apply(g *state.Game, e Event) {
 		// trig:Discover / trig:SeekAll match. Player is the acting seat, Obj
 		// the resolving source permanent. One marker per completed action.
 
+	case Exploit:
+		// The exploit record (CR 702.58a, task exploit1) is a pure marker,
+		// exactly like Explore/Investigate: the sacrifice's own state change
+		// (the battlefield-to-graveyard MoveZone) is its own event that
+		// preceded this one, and the record is what trig:Exploited matches.
+		// Obj the exploiting creature, Player its controller, IDs[0] the
+		// exploited creature. A declined optional sacrifice records nothing.
+
 	case Enlist:
 		// CR 702.160's enlist action (the `K:Enlist` keyword, task enlist1):
 		// Obj is the ATTACKING creature that enlisted (the Mode$ Enlisted
@@ -1600,30 +1608,57 @@ func Apply(g *state.Game, e Event) {
 					Params: map[string]string{"Defined": "TriggeredDefendingPlayer", "LifeAmount": rest,
 						"TriggerDescription": "Afflict"}}
 			}
-			// A granted Conspire (rules.pushTrigger's __kwConspire payload)
+			// A granted Conspire (rules.pushTrigger's __kwConspire: payload)
 			// has no SVar either: rebuilt structurally into the same
 			// DB$ CopySpellAbility body the printed K:Conspire expansion
 			// carries, so the live game and the replay mint identical
 			// objects from the event text alone. The triggering spell rides
 			// Remembered (IDs) -- Defined$ TriggeredSpellAbility reads it
 			// there, exactly as the printed expansion's own TriggerPush
-			// entries carry it.
-			if _, ok := strings.CutPrefix(e.Counter, "__kwConspire"); ok {
+			// entries carry it. The trailing colon (the Ward/Afflict shape)
+			// keeps the payload distinct from the "__kwConspire" SVar a
+			// printed bare K:Conspire line mints.
+			if _, ok := strings.CutPrefix(e.Counter, "__kwConspire:"); ok {
 				sa = &cards.SA{Kind: "DB", API: "CopySpellAbility",
 					Params: map[string]string{"Defined": "TriggeredSpellAbility", "Amount": "Count$Conspired",
 						"MayChooseTarget": "True"}}
 				conspire = ok
 			}
-			// A cascade trigger (rules.pushTrigger's __kwCascade payload) has
+			// A cascade trigger (rules.pushTrigger's __kwCascade: payload) has
 			// no SVar either: rebuilt structurally into the DB$ Cascade body
 			// both a printed K:Cascade line and every layer-6 AddKeyword$
 			// Cascade grant share, so the live game and the replay mint
 			// identical objects from the event text alone. The trigger's
 			// Source (the cast spell) is what the effect reads its mana value
-			// off at resolution (CR 702.85a's "costs less" comparison).
-			if _, ok := strings.CutPrefix(e.Counter, "__kwCascade"); ok {
+			// off at resolution (CR 702.85a's "costs less" comparison). The
+			// trailing colon keeps the payload from aliasing a printed bare
+			// K:Cascade line's "__kwCascade" SVar.
+			if _, ok := strings.CutPrefix(e.Counter, "__kwCascade:"); ok {
 				sa = &cards.SA{Kind: "DB", API: "Cascade",
 					Params: map[string]string{"TriggerDescription": "Cascade"}}
+			}
+			// A granted Exploit (rules.pushTrigger's __kwExploitGranted
+			// payload) has no SVar either: rebuilt structurally into the same
+			// DB$ Sacrifice | Optional$ True | SacValid$ Creature |
+			// RememberSacrificed$ True -> DB$ Exploit chain the printed
+			// K:Exploit expansion carries (cards/kw_exploit.go), so the live
+			// game and the replay mint identical objects from the event text
+			// alone. The Exploit body reads the sacrificed creature off
+			// Ctx.Sacrificed, exactly as the printed chain does. The payload
+			// is deliberately NOT the bare "__kwExploit": addKeywordTrigger
+			// mints a printed bare K:Exploit line's SVar as "__kw"+line =
+			// "__kwExploit", so the old spelling aliased a real printed-face
+			// SVar. The SVar lookup above wins today, but a future caller
+			// that pushed the bare payload for a face defining that SVar
+			// would silently take the SVar path; "Granted" cannot collide
+			// with any "__kw"+<keyword-line> mint.
+			if _, ok := strings.CutPrefix(e.Counter, "__kwExploitGranted"); ok {
+				sac := &cards.SA{Kind: "DB", API: "Sacrifice",
+					Params: map[string]string{"Defined": "You", "Optional": "True", "SacValid": "Creature",
+						"RememberSacrificed": "True"}}
+				sac.Sub = &cards.SA{Kind: "DB", API: "Exploit",
+					Params: map[string]string{"TriggerDescription": "Exploit"}}
+				sa = sac
 			}
 		}
 		if sa == nil {

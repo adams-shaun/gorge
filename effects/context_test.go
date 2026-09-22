@@ -32,6 +32,10 @@ type fakeHost struct {
 	dmgSrc       state.ObjID
 	counterAdder state.PlayerID
 	batch        []state.ObjID
+	// exploitedLKI records the snapshots effExploit publishes through
+	// RememberExploitedLKI, keyed by exploited object id, so an effects-level
+	// test can assert the marker publication without an engine.
+	exploitedLKI map[state.ObjID]state.SacrificedInfo
 	// castFromHand is the WasCastFromHandByYou answer the double reports;
 	// the eval-level Count$wasCastFromYourHandByYou tests flip it to pin the
 	// true branch (the real log-scan read is pinned in rules).
@@ -145,6 +149,16 @@ func (h *fakeHost) SacrificeBlocked(id state.ObjID, forCost bool) bool { return 
 // SacrificeBlocked above: the double reports false rather than inventing a
 // registry it cannot answer for.
 func (h *fakeHost) ExploreReplaced(explorer state.ObjID) bool { return false }
+
+// RememberExploitedLKI records the snapshot so an effects-level test can see
+// what effExploit published (the real engine attaches it to the trig:Exploited
+// pending trigger's LKI; that half is pinned in rules).
+func (h *fakeHost) RememberExploitedLKI(s state.SacrificedInfo) {
+	if h.exploitedLKI == nil {
+		h.exploitedLKI = make(map[state.ObjID]state.SacrificedInfo)
+	}
+	h.exploitedLKI[s.Obj] = s
+}
 
 // The damage-batch bracket has nothing to latch here (no trigger machinery),
 // so the double reports no-ops; the dealDamage loops' bracketing still runs.

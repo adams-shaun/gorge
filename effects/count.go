@@ -505,6 +505,22 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 		"TriggeredTargetLKICopy", "DelayTriggerRemembered",
 		"DelayTriggerRememberedLKI", "RememberedLKI":
 		return c.Remembered, true
+	case "TriggeredExploited":
+		// The exploited creature (CR 702.58c's "that creature"): the Exploit
+		// marker's triggerReferents case binds ev.IDs[0] to TriggerCard at
+		// fire time, so Henry Wu's TriggeredExploited$CardPower and Profaner
+		// of the Dead's TriggeredExploited$CardToughness read exactly the
+		// sacrificed creature. evalRefProperty then reads its LKI P/T from
+		// Ctx.LKIPower/LKIToughness, which rules' attachExploitedLKI sets from
+		// the as-sacrificed snapshot effects/exploit.go publishes (CR 608.2g):
+		// the bare graveyard card would carry only its printed face, losing a
+		// +1/+1 counter or a pump the creature had when it was sacrificed. The
+		// role-absent fallback keeps the old Remembered read for a hand-built
+		// context (the TriggeredBlocker precedent).
+		if c.TriggerCard != 0 {
+			return []state.Target{{Obj: c.TriggerCard}}, true
+		}
+		return c.Remembered, true
 	case "TriggeredBlocker", "TriggeredBlockerLKICopy":
 		// The pair's BLOCKER (trig:Blocks): prefer the fire-time TriggerBlocker
 		// role when the Blocks capture set it (Remembered names the attacker

@@ -30,6 +30,9 @@ var expandedHeads = []string{
 	// (not a head the old switch covered), so it is listed here to keep the
 	// table equal to the registered set.
 	"Training",
+	// Appended after the split (each is a keyword whose expansion the
+	// pre-split switch never had): Exploit (CR 702.58, task exploit1).
+	"Exploit",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {
