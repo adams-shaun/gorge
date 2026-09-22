@@ -95,6 +95,12 @@ type fakeHost struct {
 	// map keeps the pre-existing constant zero. The effects-level
 	// PlayerCount$Condition SpellsCastThisTurn tests set it.
 	castsBy map[state.PlayerID]int
+	// suspendAfterAsk is the opt-in suspension the double reports after its
+	// Ask was called (the real engine's Suspended() reads its pending resume
+	// point; the double fakes the same shape for the Repeat loop's
+	// between-iteration suspension break). Zero value keeps the historical
+	// constant-false read every other effects test relies on.
+	suspendAfterAsk bool
 	// startingLife is the StartingLife answer the double reports (0 when
 	// unset); the effects-level relative half-starting-life tests set it.
 	startingLife int32
@@ -403,7 +409,7 @@ func (h *fakeHost) TypeChoices(_ state.PlayerID, _ string) []decision.Option {
 // suspended-check from breaking the chain on a host that never asked; the
 // real suspension behaviour is exercised through the rules engine, where
 // Engine.Suspended reports e.resume != nil.
-func (h *fakeHost) Suspended() bool { return false }
+func (h *fakeHost) Suspended() bool { return h.suspendAfterAsk }
 
 // SuspendContinuation is a no-op: an effects-package test double never
 // suspends (its Ask returns false), so effects.Resolve never reaches the
