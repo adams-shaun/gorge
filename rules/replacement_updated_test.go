@@ -247,6 +247,19 @@ func passUntilStackEmpty(t *testing.T, e *Engine, limit int) int {
 			continue
 		}
 		if d.Kind != decision.KPriority {
+			if d.Kind == decision.KTarget && d.ResumeKind == "copy_targets" {
+				// CR 707.10c: a copy with MayChooseTarget$ asks its
+				// controller for a new target. AskCopyTargets places the
+				// inherited target first, so option 0 is the deterministic
+				// keep-current answer. Every drain that was written around
+				// the pre-election engine keeps exactly the board its
+				// assertions expect by taking it; a test that wants a
+				// different target answers the ask itself first.
+				if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{d.Options[0].Index}}); err != nil {
+					t.Fatalf("submit copy target: %v", err)
+				}
+				continue
+			}
 			t.Fatalf("non-priority decision %+v while draining the stack", d)
 		}
 		idx := -1
