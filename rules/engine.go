@@ -1741,8 +1741,14 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	stackLen := len(e.G.Stack)
 	// Record only the final event after replacement selection. The object
 	// snapshot must precede Apply, and unknown adder provenance is not a
-	// match for either You or Player.
-	if ev.Kind == events.CounterChange && ev.Amount > 0 {
+	// match for either You or Player. The engine's own status markers (the
+	// regeneration Shield, the Deathtouched lethal mark) ride a positive
+	// CounterChange but are not counters a player PUT -- and a resolving
+	// deathtouch damage ability has an actionCause, so without the marker
+	// exclusion its emitted mark would be attributed to that controller and
+	// make Count$CountersAddedThisTurn <Any> You Creature spuriously true.
+	// The same exclusion rules/replacement.go's doubler gate keeps.
+	if ev.Kind == events.CounterChange && ev.Amount > 0 && !state.InternalCounterMarker(ev.Counter) {
 		if actor, ok := e.inFlightCounterAdder(); ok {
 			if o := e.G.Obj(ev.Obj); o != nil {
 				e.counterAddsThisTurn = append(e.counterAddsThisTurn, counterAddedThisTurn{
