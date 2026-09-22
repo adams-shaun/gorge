@@ -2210,11 +2210,17 @@ func effScry(h Host, c *Ctx, sa *cards.SA) {
 // stat:SurveilNum raises the count ("You may look at an additional two
 // cards each time you surveil"): the battlefield statics are read per
 // surveilling player by rules (Host.SurveilLookExtra, the canonical
-// activeStatics collector), and an Optional$ static's "may" is a real
-// election. The answered marker rides Ctx.SurveilLookOpt and is consumed and
-// cleared here (fx42 scoping), so a nested Surveil poses its own ask; "yes"
-// adds the static's Num$, anything else -- the no-host R-9 decline included
-// -- keeps the base count.
+// activeStatics collector), and each Optional$ static's "may" is an
+// independent election (surveilnum-r2): the ask offers ONE option per
+// optional static and the player accepts any subset, never one
+// all-or-nothing yes/no over the summed entries. The answered accepted
+// ordinals ride Ctx.SurveilLookOpt (a CSV done-marker) and are consumed and
+// cleared here (fx42 scoping), so a nested Surveil poses its own ask; the
+// answer applies to the ASKING player only -- the first acting player
+// carrying optionals, even when the Surveil resolves for several players
+// (the multi-library narrowing means only the first library is ever
+// arranged, so only the first player's count is priced) -- and anything
+// else (the no-host R-9 decline included) keeps the base count.
 func effSurveil(h Host, c *Ctx, sa *cards.SA) {
 	n := Num(h, c, sa, "Amount", 1)
 	// The arrange re-entry pass (ctx.Arrange set by rules' handleArrange) must
@@ -2227,41 +2233,76 @@ func effSurveil(h Host, c *Ctx, sa *cards.SA) {
 	ans := c.SurveilLookOpt
 	c.SurveilLookOpt = ""
 	if ans == "" && !arranging {
-		// First pass: pose the election once, for the single surveilling
-		// player carrying an optional static. Several surveilling players
-		// with different optional extras are the same narrowing the arrange
-		// walk already takes (it asks only the first library): the answer
-		// here is one player's.
-		players := actingPlayers(h, c, sa)
-		if len(players) == 1 {
+		// First pass: pose the election once, for the FIRST acting player
+		// carrying optionals -- the only library the arrange walk processes
+		// when the ask suspends. Several surveilling players with different
+		// extras are the same narrowing the arrange walk already takes (it
+		// asks only the first library): the answer here is that one player's,
+		// carried through extraOf below and applied to nobody else.
+		if players := actingPlayers(h, c, sa); len(players) > 0 {
 			p := PlayerOf(h, c, players[0])
-			if _, optional := h.SurveilLookExtra(p); optional > 0 {
-				d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
+			if _, opts := h.SurveilLookExtra(p); len(opts) > 0 {
+				d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 0, Max: len(opts),
 					Source: c.Source, ResumeKind: "surveil_look_optional", ResumeSA: sa,
-					Prompt: "Look at " + strconv.Itoa(int(optional)) + " additional card(s) each time you surveil?",
-					Options: []decision.Option{
-						{Index: 0, Kind: "yes", Label: "Yes — look", Player: p},
-						{Index: 1, Kind: "no", Label: "No", Player: p},
-					}}
+					Prompt: "You may look at additional card(s) each time you surveil"}
+				for i, v := range opts {
+					d.Options = append(d.Options, decision.Option{Index: i, Kind: "static",
+						Label:  "Look at " + strconv.Itoa(int(v)) + " additional card(s) each time you surveil",
+						Player: p})
+				}
 				// AskAsked suspends; the answer re-enters with Ctx.SurveilLookOpt
-				// set. A no-host (fuzz/effects-test double) falls through to the
-				// mandatory-only surveil below: declining the ELECTION must not
-				// drop the base Surveil, whose own no-host path inside
-				// effLookAndArrange applies the standing LibraryOrder stand-in
-				// (R-9). A real host's decline re-enters with the "no" marker and
-				// reaches the same fall-through through the ans != "" gate.
+				// carrying the accepted ordinals. A no-host (fuzz/effects-test
+				// double) falls through to the mandatory-only surveil below:
+				// declining the ELECTION must not drop the base Surveil, whose
+				// own no-host path inside effLookAndArrange applies the standing
+				// LibraryOrder stand-in (R-9). A real host's decline re-enters
+				// with the "no" marker and reaches the same fall-through through
+				// the ans != "" gate.
 				if Ask(h, d) == AskAsked {
 					return
 				}
 			}
 		}
 	}
-	extraOf := func(p state.PlayerID) int32 {
-		mand, optional := h.SurveilLookExtra(p)
-		if ans == "yes" {
-			return mand + optional
+	// accepted holds the election's answered ordinals, indexed into the
+	// deterministic optionals list the asking player's read returns. It is
+	// derived on every pass (the answer re-enters with a fresh Ctx carrying
+	// only the CSV marker); the read is deterministic, so the ordinals land
+	// on the same statics that were offered.
+	accepted := map[int]bool{}
+	if ans != "" && ans != "no" {
+		for _, tok := range strings.Split(ans, ",") {
+			if i, err := strconv.Atoi(strings.TrimSpace(tok)); err == nil && i >= 0 {
+				accepted[i] = true
+			}
 		}
-		return mand
+	}
+	// surveilAsker is the player the election belongs to: the first acting
+	// player carrying optionals, re-derived the same way on every pass. The
+	// accepted extras are applied to that player ONLY -- a multi-player
+	// Surveil's other libraries keep their base count.
+	surveilAsker := func() (state.PlayerID, bool) {
+		players := actingPlayers(h, c, sa)
+		if len(players) == 0 {
+			return 0, false
+		}
+		p := PlayerOf(h, c, players[0])
+		if _, opts := h.SurveilLookExtra(p); len(opts) > 0 {
+			return p, true
+		}
+		return 0, false
+	}
+	extraOf := func(p state.PlayerID) int32 {
+		mand, opts := h.SurveilLookExtra(p)
+		total := mand
+		if asker, ok := surveilAsker(); ok && p == asker {
+			for i := range opts {
+				if accepted[i] {
+					total += opts[i]
+				}
+			}
+		}
+		return total
 	}
 	effLookAndArrange(h, c, sa, n, "graveyard", "Surveil", extraOf)
 }

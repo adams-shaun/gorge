@@ -122,13 +122,17 @@ type Host interface {
 	// player p looks at, from the battlefield statics with Mode$ SurveilNum
 	// whose ValidPlayer$ admits p ("You may look at an additional two cards
 	// each time you surveil"). mandatory is added to the count
-	// unconditionally; optional is the may-look election the surveilling
-	// player answers before the arrange ask. The read reuses rules' canonical
-	// activeStatics collector, so a face-down, merged-pile or
-	// EffectZone-scoped static is read exactly as every other static mode is.
-	// Implemented by rules.Engine (rules/statics.go); the effects test double
-	// reports zero (no engine static registry to consult).
-	SurveilLookExtra(p state.PlayerID) (mandatory, optional int32)
+	// unconditionally. optional holds ONE entry per OPTIONAL static -- each
+	// entry is that static's own Num$ -- in deterministic activeStatics
+	// order: each Optional$ True static is an independent may effect the
+	// surveilling player accepts or declines on its own (effSurveil poses one
+	// multi-select election over the entries), never an all-or-nothing sum.
+	// The read reuses rules' canonical activeStatics collector, so a
+	// face-down, merged-pile or EffectZone-scoped static is read exactly as
+	// every other static mode is. Implemented by rules.Engine
+	// (rules/statics.go); the effects test double reports zero/nil (no engine
+	// static registry to consult).
+	SurveilLookExtra(p state.PlayerID) (mandatory int32, optional []int32)
 	// ExploreReplaced reports whether a replacement effect replaces the
 	// named explorer's explore (R:Event$ Explore — Topography Tracker's
 	// "instead it explores, then it explores again", Twists and Turns'
@@ -1167,11 +1171,16 @@ type Ctx struct {
 	// SurveilLookOpt is the answered may-look election a surveil poses when a
 	// battlefield stat:SurveilNum static with Optional$ True applies to the
 	// surveilling player (Enhanced Surveillance's "You may look at an
-	// additional two cards each time you surveil"): "yes" adds the static's
-	// Num$ to the surveil count, anything else (including the no-host R-9
-	// decline and an unanswered first pass) keeps the base count. Both values
-	// are done-markers -- the re-entered pass must not pose the ask again --
-	// and the field is consumed and cleared by effSurveil (fx42 scoping).
+	// additional two cards each time you surveil"). Each Optional$ static is
+	// an independent may effect, so the election offers one option per
+	// optional static and the field carries the ACCEPTED static ordinals as a
+	// CSV done-marker ("0" or "0,2"; "no" is the answered decline of every
+	// static). Anything else -- including the no-host R-9 decline and an
+	// unanswered first pass -- keeps the base count. All values are
+	// done-markers -- the re-entered pass must not pose the ask again -- and
+	// the field is consumed and cleared by effSurveil (fx42 scoping). The
+	// answer applies to the asking player only: a multi-player Surveil's
+	// other libraries keep their own base count.
 	SurveilLookOpt string
 	// Hideaway holds the selected top-library card while the Hideaway
 	// replacement resumes to exile it; HideawayPicked distinguishes that

@@ -9,6 +9,7 @@ package rules
 // yes/no ask, and the no-host path declines deterministically (R-9).
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -109,11 +110,12 @@ func TestEnhancedSurveillanceRaisesSurveilCountByTwo(t *testing.T) {
 	if d == nil || d.Kind != decision.KChoose {
 		t.Fatalf("expected the stat:SurveilNum may-look election first, got %+v", d)
 	}
-	if d.Min != 1 || d.Max != 1 || len(d.Options) != 2 ||
-		d.Options[0].Kind != "yes" || d.Options[1].Kind != "no" {
-		t.Fatalf("election = %+v, want Min/Max 1/1 with yes/no options", d)
+	// One optional static -> one independent option, Min 0 (declining every
+	// static is a legal answer), Max 1.
+	if d.Min != 0 || d.Max != 1 || len(d.Options) != 1 || d.Options[0].Kind != "static" {
+		t.Fatalf("election = %+v, want Min/Max 0/1 with one static option", d)
 	}
-	submitChoices(t, e, 0) // yes: look at the additional cards
+	submitChoices(t, e, 0) // accept: look at the additional cards
 
 	d = e.Pending()
 	if d == nil || d.Kind != decision.KArrange {
@@ -145,7 +147,7 @@ func TestEnhancedSurveillanceDeclinedKeepsTheBaseCount(t *testing.T) {
 	if d == nil || d.Kind != decision.KChoose {
 		t.Fatalf("expected the may-look election, got %+v", d)
 	}
-	submitChoices(t, e, 1) // no: keep the base count
+	submitChoices(t, e) // empty answer: decline every optional static
 	d = e.Pending()
 	if d == nil || d.Kind != decision.KArrange {
 		t.Fatalf("expected the KArrange after declining, got %+v", d)
@@ -240,7 +242,7 @@ func TestEnhancedSurveillanceAcceptedArrangeCompletesOnce(t *testing.T) {
 	if d == nil || d.Kind != decision.KChoose {
 		t.Fatalf("expected the may-look election first, got %+v", d)
 	}
-	submitChoices(t, e, 0) // yes: look at the additional cards
+	submitChoices(t, e, 0) // accept: look at the additional cards
 	d = e.Pending()
 	if d == nil || d.Kind != decision.KArrange {
 		t.Fatalf("expected the KArrange after accepting, got %+v", d)
@@ -293,7 +295,7 @@ func TestEnhancedSurveillanceDeclinedArrangeCompletes(t *testing.T) {
 	if d == nil || d.Kind != decision.KChoose {
 		t.Fatalf("expected the may-look election first, got %+v", d)
 	}
-	submitChoices(t, e, 1) // no: keep the base count
+	submitChoices(t, e) // empty answer: decline every optional static
 	d = e.Pending()
 	if d == nil || d.Kind != decision.KArrange {
 		t.Fatalf("expected the KArrange after declining, got %+v", d)
@@ -344,6 +346,165 @@ func TestSurveilNumMandatoryStaticAddsCountWithoutAsking(t *testing.T) {
 	}
 	if n := countArrangeAsks(e, mark, decision.KArrange); n != 1 {
 		t.Fatalf("arrange asks since the cast = %d, want exactly 1", n)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// surveilNumOptionalA/B are freely-authored SECOND and THIRD optional
+// stat:SurveilNum statics: the corpus carries exactly one Optional$ carrier,
+// so the independence property (each Optional$ static is its own may effect,
+// never a summed all-or-nothing election) is pinned on authored fixtures.
+const surveilNumOptionalTwoSrc = "Name:Look Twice\nManaCost:U\nTypes:Enchantment\n" +
+	"S:Mode$ SurveilNum | ValidPlayer$ You | Num$ 2 | Optional$ True\nOracle:x\n"
+const surveilNumOptionalThreeSrc = "Name:Look Thrice\nManaCost:U\nTypes:Enchantment\n" +
+	"S:Mode$ SurveilNum | ValidPlayer$ You | Num$ 3 | Optional$ True\nOracle:x\n"
+
+// surveilMultiPlayerSrc is a Surveil 1 whose Defined$ names every living
+// player (effects' "Player" selector resolves AliveFrom(controller)): the
+// multi-player shape the first round silently dropped the first player's
+// election for.
+const surveilMultiPlayerSrc = "Name:Surveil All\nManaCost:U\nTypes:Sorcery\n" +
+	"A:SP$ Surveil | Defined$ Player | Amount$ 1\nOracle:x\n"
+
+// twoOptionalFixture seats the two authored optional statics (Num$ 2 and
+// Num$ 3) on seat 0's battlefield with the authored Surveil 1 in hand.
+func twoOptionalFixture(t *testing.T, seed uint64, surveilSrc string) (*Engine, Config, state.ObjID) {
+	t.Helper()
+	a := card(t, surveilNumOptionalTwoSrc)
+	b := card(t, surveilNumOptionalThreeSrc)
+	src := card(t, surveilSrc)
+	cfg := seatZeroStart(Config{Seed: seed, Names: []string{"a", "b"},
+		Tokens: map[string]*cards.Card{},
+		Decks: [][]*cards.Card{
+			append([]*cards.Card{a, b, src}, mountainDeck(t, 37)...),
+			mountainDeck(t, 40),
+		}})
+	e := New(cfg)
+	e.Advance()
+	moveByName(t, e, 0, "Look Twice", state.ZBattlefield)
+	moveByName(t, e, 0, "Look Thrice", state.ZBattlefield)
+	name := "Surveil One"
+	if surveilSrc == surveilMultiPlayerSrc {
+		name = "Surveil All"
+	}
+	id := moveSurveilToHand(t, e, 0, name)
+	addMana(t, e, 0, "U")
+	return e, cfg, id
+}
+
+// TestSurveilNumOptionalStaticsAreIndependentElections pins the
+// surveilnum-r2 fix: two optional statics offer TWO election options and the
+// controller can accept either subset. Accepting only the Num$-2 static must
+// raise the Surveil 1 to 3 (not the summed 6), and a second engine that
+// accepts both must look at 6 -- so neither election collapses into the
+// other's answer and no all-or-nothing yes/no decides the whole sum.
+func TestSurveilNumOptionalStaticsAreIndependentElections(t *testing.T) {
+	accept := func(t *testing.T, seed uint64, acceptBoth bool) (*Engine, *decision.Decision) {
+		t.Helper()
+		e, _, id := twoOptionalFixture(t, seed, surveilOneSrc)
+		// Precondition: both statics really on the battlefield.
+		for _, name := range []string{"Look Twice", "Look Thrice"} {
+			found := false
+			for _, cid := range e.G.Zone(state.ZBattlefield, 0) {
+				if o := e.G.Obj(cid); o != nil && o.Face() != nil && o.Face().Name == name {
+					found = true
+				}
+			}
+			if !found {
+				t.Fatalf("precondition: %q not on seat 0's battlefield", name)
+			}
+		}
+		// Precondition: enough library cards that no +N is clipped.
+		if n := len(e.G.Zone(state.ZLibrary, 0)); n < 6 {
+			t.Fatalf("precondition: seat 0 library has %d cards, need >= 6", n)
+		}
+		d := castFixture(t, e, id, -1)
+		if d == nil || d.Kind != decision.KChoose {
+			t.Fatalf("expected the may-look election first, got %+v", d)
+		}
+		if d.Min != 0 || d.Max != 2 || len(d.Options) != 2 {
+			t.Fatalf("election = %+v, want Min/Max 0/2 with one option per optional static", d)
+		}
+		for i, o := range d.Options {
+			if o.Kind != "static" {
+				t.Fatalf("option %d Kind = %q, want \"static\"", i, o.Kind)
+			}
+		}
+		// Identify the Num$-2 option by its label; the statics' offer order is
+		// deterministic but which of the two comes first is an implementation
+		// detail the test must not hard-code.
+		twoIdx, threeIdx := -1, -1
+		for i, o := range d.Options {
+			switch {
+			case strings.Contains(o.Label, " 2 additional"):
+				twoIdx = i
+			case strings.Contains(o.Label, " 3 additional"):
+				threeIdx = i
+			}
+		}
+		if twoIdx < 0 || threeIdx < 0 {
+			t.Fatalf("election labels %q / %q do not name the 2 and 3 statics", d.Options[0].Label, d.Options[1].Label)
+		}
+		if acceptBoth {
+			submitChoices(t, e, twoIdx, threeIdx)
+		} else {
+			submitChoices(t, e, twoIdx)
+		}
+		return e, e.Pending()
+	}
+	e, d := accept(t, 607, false)
+	if d == nil || d.Kind != decision.KArrange {
+		t.Fatalf("expected the KArrange after partial acceptance, got %+v", d)
+	}
+	if d.Max != 3 || len(d.Options) != 3 {
+		t.Fatalf("KArrange Max/options = %d/%d, want 3/3 (Surveil 1 + ONLY the accepted 2): the declined 3 must contribute nothing and the accepted 2 must not be lost", d.Max, len(d.Options))
+	}
+	submitChoices(t, e, 0)
+	if d = e.Pending(); d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("after answering the arrange, pending = %+v: the resolution must complete", d)
+	}
+
+	e, d = accept(t, 608, true)
+	if d == nil || d.Kind != decision.KArrange {
+		t.Fatalf("expected the KArrange after accepting both, got %+v", d)
+	}
+	if d.Max != 6 || len(d.Options) != 6 {
+		t.Fatalf("KArrange Max/options = %d/%d, want 6/6 (Surveil 1 + 2 + 3)", d.Max, len(d.Options))
+	}
+}
+
+// TestMultiPlayerSurveilAsksTheFirstOptionalCarrier pins finding 1 end to end
+// on the multi-player Surveil source: a `Defined$ Player` Surveil resolves
+// for BOTH seats, and the first surveilling player's optional election must
+// still be posed (the first round refused to ask whenever len(players) != 1,
+// silently dropping that player's optional extra) with the answer applied to
+// that player's own count.
+func TestMultiPlayerSurveilAsksTheFirstOptionalCarrier(t *testing.T) {
+	e, cfg, id := twoOptionalFixture(t, 610, surveilMultiPlayerSrc)
+	// Precondition: at least three cards in seat 0's library.
+	if n := len(e.G.Zone(state.ZLibrary, 0)); n < 3 {
+		t.Fatalf("precondition: seat 0 library has %d cards, need >= 3", n)
+	}
+	d := castFixture(t, e, id, -1)
+	if d == nil || d.Kind != decision.KChoose {
+		t.Fatalf("expected the may-look election for the first surveilling player even though the Surveil resolves for several players, got %+v", d)
+	}
+	if d.Player != 0 {
+		t.Fatalf("election player = %d, want 0 (the first acting player)", d.Player)
+	}
+	if d.Min != 0 || d.Max != 2 || len(d.Options) != 2 {
+		t.Fatalf("election = %+v, want Min/Max 0/2 with one option per optional static", d)
+	}
+	submitChoices(t, e, 0, 1) // accept both
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KArrange {
+		t.Fatalf("expected the KArrange after accepting, got %+v", d)
+	}
+	if d.Player != 0 {
+		t.Fatalf("KArrange player = %d, want 0: the answer must price the ASKING player's count", d.Player)
+	}
+	if d.Max != 6 || len(d.Options) != 6 {
+		t.Fatalf("KArrange Max/options = %d/%d, want 6/6 (Surveil 1 + 2 + 3, applied to the asking player)", d.Max, len(d.Options))
 	}
 	replayCheck(t, e, cfg)
 }

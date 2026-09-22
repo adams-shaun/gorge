@@ -210,15 +210,17 @@ func (e *Engine) activeStatics(mode string) []staticView {
 // p looks at, from the battlefield statics with Mode$ SurveilNum whose
 // ValidPlayer$ admits p (Enhanced Surveillance's "You may look at an
 // additional two cards each time you surveil"). mandatory is added to the
-// count unconditionally; optional is the may-look election the surveilling
-// player answers before the arrange ask (effects' effSurveil poses it through
-// its "surveil_look_optional" resume arm). The walk is the canonical
-// activeStatics collector, so a face-down, merged-pile or EffectZone-scoped
-// static is read exactly as every other static mode is, and the order is
-// deterministic. Num$ must be a literal or an SVar name the static's own face
-// defines; anything else fails closed to no contribution, the same direction
-// HandSizeValueOK takes.
-func (e *Engine) SurveilLookExtra(p state.PlayerID) (mandatory, optional int32) {
+// count unconditionally. optional holds ONE entry per OPTIONAL static -- that
+// static's own Num$ -- in deterministic activeStatics order: each Optional$
+// True static is an independent may effect (surveilnum-r2), so effSurveil
+// poses one multi-select election over the entries and the controller can
+// accept any subset, never an all-or-nothing sum of two "may"s. The walk is
+// the canonical activeStatics collector, so a face-down, merged-pile or
+// EffectZone-scoped static is read exactly as every other static mode is, and
+// the order is deterministic. Num$ must be a literal or an SVar name the
+// static's own face defines; anything else fails closed to no contribution,
+// the same direction HandSizeValueOK takes.
+func (e *Engine) SurveilLookExtra(p state.PlayerID) (mandatory int32, optional []int32) {
 	for _, sv := range e.activeStatics("SurveilNum") {
 		spec := strings.TrimSpace(sv.Params["ValidPlayer"])
 		if spec == "" {
@@ -232,7 +234,7 @@ func (e *Engine) SurveilLookExtra(p state.PlayerID) (mandatory, optional int32) 
 			continue
 		}
 		if strings.EqualFold(strings.TrimSpace(sv.Params["Optional"]), "True") {
-			optional += n
+			optional = append(optional, n)
 		} else {
 			mandatory += n
 		}

@@ -208,7 +208,7 @@ func (h *fakeHost) SacrificeBlocked(id state.ObjID, forCost bool) bool {
 // walk lives in rules.Engine), the same discipline as SacrificeBlocked above:
 // the double reports zero rather than inventing a registry it cannot answer
 // for, so an effects-level surveil keeps its base count.
-func (h *fakeHost) SurveilLookExtra(p state.PlayerID) (int32, int32) { return 0, 0 }
+func (h *fakeHost) SurveilLookExtra(p state.PlayerID) (int32, []int32) { return 0, nil }
 
 // ExploreReplaced has no replacement registry to consult here (the
 // replacement matching lives in rules.Engine), the same discipline as
