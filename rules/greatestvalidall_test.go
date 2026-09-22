@@ -14,7 +14,11 @@ package rules
 // (TestCactusPreserveAnimatesAtGreatestCommanderManaValue -- the ValidAll
 // all-zones scan, unknown before r1) and the effects-level
 // TestEvalCountValidAllScansEveryCardZone / TestEvalCountValidZoneScanIsAllocationFree
-// pins; both FAIL on the r1-base diff (verified by scratch-revert).
+// pins: the Cactus Preserve leaf and the alloc pin FAIL on the r1-base
+// diff (verified by scratch-revert); TestEvalCountValidAllScansEveryCardZone
+// passes on r1's count.go too (r1 already had the ValidAll branch -- only
+// the pre-r1 base kills it), so it pins the head's zone semantics, not the
+// round boundary.
 //
 // 1. Return of the Wildspeaker's draw mode sizes from
 //    `Count$Valid Creature.YouCtrl+nonHuman$GreatestCardPower`: with two

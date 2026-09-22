@@ -1797,24 +1797,33 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		// those two paths are still unhandled: a `Defined$ ValidAll` spec
 		// fails closed in effects/context.go, an `ImprintCards$ ValidAll`
 		// imprint remembers nothing. Recorded in the report.)
-		f := zoneCountFold{h: h, g: g, spec: spec, specCtx: c.SpecContext(c.Controller),
+		// specCtx is a LOCAL, never a struct field: storing the
+		// SpecContext(...)-built value in the fold struct made escape
+		// analysis summarise evalCountBody's *Ctx param as leaking (the
+		// struct escapes through the pointer receiver), which heap-
+		// allocated EVERY caller-built Ctx on the hot layer-walk path
+		// (rules/layers.go's cdaSetPT Ctx) -- exactly the allocation class
+		// the alloc-gate budget and rules' Derived pin hold the line on.
+		// Built once here and passed to visit as a parameter instead.
+		specCtx := c.SpecContext(c.Controller)
+		f := zoneCountFold{h: h, g: g, spec: spec,
 			prop: prop, extreme: extreme, isLeast: isLeastProperty(prop),
 			hasBareHand: hasBareHand, seenTokenNames: seenTokenNames, seenCardTypes: seenCardTypes}
 		if isAll {
 			for _, p := range g.AliveFrom(0) {
 				for _, z := range countAllZones {
 					for _, id := range g.Zone(z, p) {
-						f.visit(id, z)
+						f.visit(id, z, specCtx)
 					}
 				}
 			}
 			for _, id := range g.Stack {
-				f.visit(id, state.ZStack)
+				f.visit(id, state.ZStack, specCtx)
 			}
 		} else {
 			for _, p := range g.AliveFrom(0) {
 				for _, id := range g.Zone(zone, p) {
-					f.visit(id, zone)
+					f.visit(id, zone, specCtx)
 				}
 			}
 		}
@@ -2587,12 +2596,13 @@ func countZone(head string) (state.Zone, bool) {
 // its allocation-free iteration (the maps are created only by the CardTypes
 // and token$DifferentCardNames heads, which need a heap map anyway; the
 // struct itself stays on the caller's stack because visit never leaks its
-// receiver).
+// receiver). The spec's SpecContext is NOT a field: it is built once by the
+// caller and passed to visit as a parameter, so the *Ctx the caller built
+// (the hot layer-walk Ctx) never escapes through this type.
 type zoneCountFold struct {
 	h              Host
 	g              *state.Game
 	spec           string
-	specCtx        SpecContext
 	prop           string
 	extreme        bool
 	isLeast        bool
@@ -2608,7 +2618,7 @@ type zoneCountFold struct {
 // zone-count scan (the bare-hand provenance split, the match against the
 // candidate's OWN zone, then the plain-count / extreme / sum /
 // distinct-set accumulation).
-func (f *zoneCountFold) visit(id state.ObjID, zone state.Zone) {
+func (f *zoneCountFold) visit(id state.ObjID, zone state.Zone, specCtx SpecContext) {
 	matchSpec := f.spec
 	if f.hasBareHand {
 		s, ok := castFromHandAnyAdmitsFilter(f.h, f.spec, id)
@@ -2617,7 +2627,7 @@ func (f *zoneCountFold) visit(id state.ObjID, zone state.Zone) {
 		}
 		matchSpec = s
 	}
-	if !matchesZoneSpecCtx(f.g, matchSpec, id, f.specCtx, zone) {
+	if !matchesZoneSpecCtx(f.g, matchSpec, id, specCtx, zone) {
 		return
 	}
 	if f.prop == "" {

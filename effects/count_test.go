@@ -864,4 +864,27 @@ func TestEvalCountValidZoneScanIsAllocationFree(t *testing.T) {
 	if allocs != 0 {
 		t.Fatalf("Count$Valid Creature allocated %.0f objects per eval; want zero (the zone-count scan must iterate in place)", allocs)
 	}
+	// The warm-Ctx shape the r3 review added: the layer walk (rules/
+	// layers.go's cdaSetPT) builds a FRESH &effects.Ctx{...} per call and
+	// hands it to EvalCount, so a warm caller-built Ctx must not be forced
+	// to the heap by anything evalCountBody does with it. The r2 fold
+	// stored c.SpecContext(...) in the zoneCountFold struct, which made
+	// escape analysis summarise the *Ctx param as leaking -- the rules
+	// Derived pin went 0 -> 1 alloc/call while this test still passed
+	// (its Ctx was built outside the region). Building the Ctx INSIDE the
+	// region here pins the caller-side contract in this package, where the
+	// break happens.
+	warm := testing.Benchmark(func(b *testing.B) {
+		b.ReportAllocs()
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			cWarm := &Ctx{Controller: 0}
+			if got := EvalCount(h, cWarm, "Count$Valid Creature"); got != 3 {
+				b.Fatalf("Count$Valid Creature = %d, want 3", got)
+			}
+		}
+	})
+	if warm.AllocsPerOp() != 0 {
+		t.Fatalf("warm Ctx built inside the region allocated %d objects/op; want zero (a caller-built Ctx must not escape through the count scan -- the layer walk builds one per object)", warm.AllocsPerOp())
+	}
 }
