@@ -1274,6 +1274,19 @@ type Ctx struct {
 	// RevealOptional$ peek in the same walk poses its own ask (fx42
 	// scoping).
 	RevealOpt string
+	// RevealPick is the answered mid-resolution hand-reveal pick (task
+	// infernaltutor1): the ids of the hand cards the revealing player chose
+	// to reveal. A hand reveal whose eligible pool is strictly larger than
+	// the count it must show (Infernal Tutor's "Reveal a card from your
+	// hand", or an AnyNumber$/Optional$ miss) is a CHOICE Forge poses to the
+	// pool's owner; effReveal poses it as a KChoose with ResumeKind
+	// "reveal_pick" and this field carries the answer back. Non-nil means
+	// answered (a legitimate empty answer is a non-nil zero-length slice,
+	// exactly the Ctx.Discard convention), so an empty answer ("reveal
+	// none") is distinguishable from a first pass. effReveal consumes and
+	// clears it at the top of its own walk so a nested reveal poses its own
+	// ask (fx42 scoping).
+	RevealPick []state.ObjID
 	// ChosenType is the answered mid-resolution ChooseType pick (task ct1):
 	// the creature type the chooser picked out of the TypeChoices list, set
 	// by rules' "choosetype" resume arm before the suspended sub-ability is

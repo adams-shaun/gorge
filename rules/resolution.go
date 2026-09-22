@@ -1974,6 +1974,25 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			} else {
 				ctx.RevealOpt = "no"
 			}
+		case "reveal_pick":
+			// Task infernaltutor1: a mid-resolution hand-reveal pick (Infernal
+			// Tutor's "Reveal a card from your hand", an AnyNumber$/Optional$
+			// reveal) was answered. Every chosen option carries the revealed
+			// card in Obj (the same shape the "discard" arm reads), so the id
+			// list is read straight off them; the re-entered effReveal filters
+			// it against the rebuilt pool and emits the reveal plus the
+			// RememberRevealed$ capture for exactly those cards, which is what
+			// the chained ChangeType$ Remembered.sameName sub then reads. The
+			// slice is built non-nil (make, not nil) so a legitimate
+			// "reveal none" answer is distinguishable from a first pass -- the
+			// Ctx.Discard convention. effReveal consumes and clears it at the
+			// top of its walk (fx42 scoping).
+			ctx.RevealPick = make([]state.ObjID, 0, len(chosen))
+			for _, o := range chosen {
+				if o.Obj != 0 {
+					ctx.RevealPick = append(ctx.RevealPick, o.Obj)
+				}
+			}
 		case "look_ack":
 			// The bare private look's pacing ack (lookack, task
 			// fb-20260917T232325Z-35cfca4b, Mishra's Bauble / Gitaxian Probe):

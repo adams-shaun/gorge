@@ -651,7 +651,15 @@ func TestVizkopaConfessorETBChoosesLifeAndExilesRevealed(t *testing.T) {
 	}
 	submitChoices(t, e, pay)
 
-	// The body: the opponent reveals 2 cards, then the pick asks over them.
+	// The body: the opponent CHOOSES which 2 of their hand to reveal (the
+	// infernaltutor1 fix -- a hand reveal with NumCards$ < hand size is a
+	// choice for the hand's owner), then the caster picks one of the 2
+	// revealed to exile.
+	d = passUntilNonPriority(t, e, 40)
+	if d.Kind != decision.KChoose || d.ResumeKind != "reveal_pick" || d.Player != 1 || d.Min != 2 || d.Max != 2 || len(d.Options) != oppHand {
+		t.Fatalf("expected the opponent's reveal-2-of-%d pick, got %+v", oppHand, d)
+	}
+	submitChoices(t, e, d.Options[0].Index, d.Options[1].Index)
 	d = passUntilNonPriority(t, e, 40)
 	if d.Kind != decision.KChoose || len(d.Options) != 2 {
 		t.Fatalf("expected the pick-one ask over exactly the 2 revealed cards, got %+v", d)

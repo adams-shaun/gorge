@@ -486,14 +486,15 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			} else {
 				in.Choices = []int{d.Options[0].Index}
 			}
-		case "dig", "hand_move", "hidden_pick", "counter_dist", "counter_pick", "blight", "proliferate", "move_counter_kind":
+		case "dig", "hand_move", "hidden_pick", "counter_dist", "counter_pick", "blight", "proliferate", "move_counter_kind", "reveal":
 			// A Dig look-and-take, a "choose N matching cards from hand"
 			// ChangeZone (handmove1), a Hidden$ True public-origin pick
 			// (hiddenpick1), a DividedAsYouChoose$ PutCounter distribution
 			// pick (Vastwood Hydra), a bare-Choices$ PutCounter pick
-			// (Promise of Loyalty's vow), or a Blight's per-player creature
-			// pick (CR 701.60): take the first Max options in offered
-			// (zone) order
+			// (Promise of Loyalty's vow), a Blight's per-player creature
+			// pick (CR 701.60), or a hand-reveal pick (infernaltutor1:
+			// Infernal Tutor's "Reveal a card from your hand"): take the
+			// first Max options in offered (zone) order
 			// -- the exact mirror of effDig's / effChangeZoneHand's /
 			// effHiddenPick's / putCounterPickDistribute's no-ask stand-in (R-9),
 			// so a bot-answered ask emits

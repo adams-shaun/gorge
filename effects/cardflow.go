@@ -1770,6 +1770,13 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 	// subset for every API in this row).
 	answer := c.RevealOpt
 	c.RevealOpt = "" // fx42 scoping: consumed once; a nested peek poses its own ask
+	// The answered hand-reveal pick (task infernaltutor1), consumed once per
+	// walk exactly as RevealOpt is: a nested Reveal-family effect below this
+	// one must pose its own ask instead of inheriting this walk's answer.
+	// Non-nil means answered (the resume arm always builds the slice, so an
+	// empty "reveal none" answer is non-nil), mirroring Ctx.Discard.
+	picks := c.RevealPick
+	c.RevealPick = nil
 	// The bare-look ack (lookack): consumed once per WALK, together with its
 	// per-target cursor — the answer attaches to the exact Defined$ target
 	// that asked (the decision's ResumeTarget). Targets before the cursor
@@ -1861,6 +1868,98 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 		if wholeHand || int32(len(pool)) < n {
 			n = int32(len(pool))
 		}
+		// A hand reveal is a CHOICE when the eligible pool holds strictly more
+		// cards than the answer must show. Forge asks the pool's owner which
+		// cards to reveal -- Infernal Tutor's "Reveal a card from your hand"
+		// (NumCards default 1 over a seven-card hand), an AnyNumber$ miss
+		// ("Reveal any number of green cards in your hand": zero through all
+		// of them) and an Optional$ miss ("You may reveal a Dinosaur card from
+		// your hand": none or the one). Pre-fix the walk silently took
+		// pool[:n], the FRONT cards of the hand, so the chained sub read the
+		// wrong card entirely. The pick is posed as a KChoose to the pool's
+		// owner and carried back on Ctx.RevealPick, the same answer-shape the
+		// discard ask uses.
+		//
+		// Not pickable, deliberately: RevealHand (the whole hand is public, no
+		// choice), Random$ (the engine picks, deterministically), a Look$
+		// (the looker sees the whole filtered set; Slayer's Bounty), and the
+		// RevealAllValid$ family (a filter that reveals EVERY match -- the
+		// revealer chooses nothing; the caster's later pick is a separate
+		// sub-ability). RevealValid$/RevealType$ narrow the pool BEFORE the
+		// pick, exactly as Forge's own filter does, so the options are the
+		// matching cards alone.
+		revealAllValid := strings.TrimSpace(sa.Params["RevealAllValid"])
+		pickable := zone == state.ZHand && !wholeHand && !random && !look && revealAllValid == ""
+		if pickable {
+			minPick, maxPick := n, n
+			if anyNumber := strings.EqualFold(strings.TrimSpace(sa.Params["AnyNumber"]), "True"); anyNumber {
+				minPick, maxPick = 0, int32(len(pool))
+			}
+			if maxPick > int32(len(pool)) {
+				maxPick = int32(len(pool))
+			}
+			if minPick > maxPick {
+				minPick = maxPick
+			}
+			// A real choice exists only when strictly more eligible cards than
+			// the answer's minimum. A hand of exactly the mandatory count (or
+			// fewer) must show all of them with no question, the same
+			// strict-supersets discipline effDiscard applies. An Optional$
+			// reveal answers its own yes/no ask FIRST (the block below); the pick
+			// then poses on that accepted resume, and the `picks == nil` guard
+			// keeps the optional question from being re-posed on the pick's
+			// resume (fx42).
+			deferToOptionalAsk := optional && answer == "" && picks == nil
+			if int32(len(pool)) > minPick && !deferToOptionalAsk {
+				if picks == nil {
+					opts := make([]decision.Option, 0, len(pool))
+					for _, id := range pool {
+						name := "a card"
+						if o := g.Obj(id); o != nil && o.Face() != nil {
+							name = o.Face().Name
+						}
+						opts = append(opts, decision.Option{Index: len(opts), Kind: "reveal",
+							Label: "Reveal " + name, Obj: id, Player: p})
+					}
+					prompt := "Choose " + strconv.Itoa(int(minPick)) + ".." + strconv.Itoa(int(maxPick)) + " card(s) to reveal"
+					if minPick == 0 {
+						prompt = "You may reveal 0.." + strconv.Itoa(int(maxPick)) + " card(s)"
+					}
+					d := &decision.Decision{Player: p, Kind: decision.KChoose,
+						Min: int(minPick), Max: int(maxPick), Source: c.Source,
+						ResumeKind: "reveal_pick", ResumeSA: sa,
+						Prompt:  prompt,
+						Options: opts}
+					if Ask(h, d) == AskAsked {
+						return // resolution suspended; the answer re-enters with Ctx.RevealPick set.
+					}
+					// No host to ask (R-9): fall through with n unchanged, so
+					// the reveal takes the same first maxPick cards the pre-pick
+					// build did -- the reveal family's existing no-host
+					// convention (the Optional$ ask falls through the same way),
+					// deterministic run to run and byte-identical for fuzz.
+				} else {
+					// The answer: reveal exactly the chosen cards, in answer order,
+					// filtered against the pool the re-entry rebuilt (a card that left
+					// the hand meanwhile cannot be revealed). Replacing the pool --
+					// rather than the emit below -- keeps the Note/RememberRevealed$
+					// payload in one place. minPick/maxPick are deliberately not
+					// re-enforced here: the resume rebuilt the pool from live state,
+					// and a client's validated answer is trusted.
+					selected := make([]state.ObjID, 0, len(picks))
+					for _, id := range picks {
+						for _, cand := range pool {
+							if cand == id {
+								selected = append(selected, id)
+								break
+							}
+						}
+					}
+					pool = selected
+					n = int32(len(pool))
+				}
+			}
+		}
 		if random && len(pool) > 0 {
 			// Random$ True (Urza's Bauble: "Look at a card at random in target
 			// player's hand"): the pool narrows to n DISTINCT random cards,
@@ -1931,7 +2030,7 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 		if look {
 			asker = c.Controller
 		}
-		if optional && answer == "" {
+		if optional && answer == "" && picks == nil {
 			// The peek ask's wording and payload are byte-stable: a golden
 			// game (Delver of Secrets) poses exactly this ask.
 			var prompt, yesLabel string
