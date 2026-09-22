@@ -17,6 +17,9 @@ func TestCountersAddedThisTurn(t *testing.T) {
 	tarfire := onBoardCard(t, e, 0, yourCountersCard(t, "Lasting Tarfire"))
 	creature := onBoardCard(t, e, 0, yourCountersCard(t, "Wakka, Devoted Guardian"))
 	other := onBoardCard(t, e, 1, yourCountersCard(t, "Wakka, Devoted Guardian"))
+	// This creature belongs to seat 0 but receives a seat-1-caused counter.
+	// It distinguishes the actor's Player spelling (any player) from You.
+	crossActor := onBoardCard(t, e, 0, yourCountersCard(t, "Wakka, Devoted Guardian"))
 	if e.G.Obj(tarfire).Zone != state.ZBattlefield || e.G.Obj(creature).Zone != state.ZBattlefield {
 		t.Fatal("test precondition: sources are not on the battlefield")
 	}
@@ -39,6 +42,7 @@ func TestCountersAddedThisTurn(t *testing.T) {
 	// A placement by seat 1 and a non-creature placement are isolated.
 	prev = e.SetCounterAdder(1)
 	e.emit(events.Event{Kind: events.CounterChange, Obj: other, Counter: "P1P1", Amount: 7})
+	e.emit(events.Event{Kind: events.CounterChange, Obj: crossActor, Counter: "P1P1", Amount: 5})
 	e.SetCounterAdder(prev)
 	prev = e.SetCounterAdder(0)
 	e.emit(events.Event{Kind: events.CounterChange, Obj: tarfire, Counter: "LORE", Amount: 3})
@@ -49,8 +53,16 @@ func TestCountersAddedThisTurn(t *testing.T) {
 	if n, ok := effects.EvalCountOK(e, ctx, "Count$CountersAddedThisTurn LORE You Card.Self"); !ok || n != 3 {
 		t.Fatalf("Card.Self LORE count = %d (ok %v), want 3", n, ok)
 	}
-	if n, ok := effects.EvalCountOK(e, ctx, "Count$CountersAddedThisTurn P1P1 Player Permanent.YouCtrl"); !ok || n != 2 {
-		t.Fatalf("Player Permanent.YouCtrl count = %d (ok %v), want 2", n, ok)
+	// Player includes the seat-1 adder while You does not; both placements
+	// landed on seat-0 creatures, so this is also the Creature.YouCtrl form.
+	if n, ok := effects.EvalCountOK(e, ctx, "Count$CountersAddedThisTurn P1P1 Player Permanent.YouCtrl"); !ok || n != 7 {
+		t.Fatalf("Player Permanent.YouCtrl count = %d (ok %v), want 7", n, ok)
+	}
+	if n, ok := effects.EvalCountOK(e, ctx, "Count$CountersAddedThisTurn P1P1 Player Creature.YouCtrl"); !ok || n != 7 {
+		t.Fatalf("Player Creature.YouCtrl count = %d (ok %v), want 7", n, ok)
+	}
+	if n, ok := effects.EvalCountOK(e, ctx, "Count$CountersAddedThisTurn P1P1 You Creature.YouCtrl"); !ok || n != 2 {
+		t.Fatalf("You Creature.YouCtrl count = %d (ok %v), want 2", n, ok)
 	}
 	if n, ok := effects.EvalCountOK(e, ctx, "Count$CountersAddedThisTurn Any You Creature"); !ok || n != 2 {
 		t.Fatalf("Any count = %d (ok %v), want 2", n, ok)
@@ -91,8 +103,8 @@ func TestCountersAddedThisTurn(t *testing.T) {
 	if live := e.G.Obj(creature); live == nil || live.Controller != 1 || live.Zone != state.ZBattlefield {
 		t.Fatalf("test precondition: creature not transferred to seat 1 on the battlefield (controller %v zone %v)", live.Controller, live.Zone)
 	}
-	if n, ok := effects.EvalCountOK(e, ctx, "Count$CountersAddedThisTurn P1P1 Player Permanent.YouCtrl"); !ok || n != 2 {
-		t.Fatalf("post-control-transfer YouCtrl count = %d (ok %v), want 2 from the placement-time snapshot", n, ok)
+	if n, ok := effects.EvalCountOK(e, ctx, "Count$CountersAddedThisTurn P1P1 Player Permanent.YouCtrl"); !ok || n != 7 {
+		t.Fatalf("post-control-transfer Player YouCtrl count = %d (ok %v), want 7 from the placement-time snapshot", n, ok)
 	}
 	e.emit(events.Event{Kind: events.MoveZone, Obj: creature, From: state.ZBattlefield, To: state.ZGraveyard})
 	if live := e.G.Obj(creature); live == nil || live.Zone != state.ZGraveyard {
