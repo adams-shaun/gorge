@@ -602,7 +602,7 @@ func (e *Engine) manaSacrifices(p state.PlayerID, source state.ObjID, cost Cost)
 	for _, part := range cost.Sac {
 		var candidates []state.ObjID
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
-			if e.SacrificeBlocked(id) {
+			if e.SacrificeBlocked(id, true) {
 				continue
 			}
 			if !reserved[id] && effects.MatchesSpecFrom(e.G, part.Spec, id, p, source) {

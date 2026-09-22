@@ -732,6 +732,35 @@ func CantRestrictionParamsReadable(params map[string]string) bool {
 	return true
 }
 
+// CantSacrificeRestrictionParamsReadable is the parameter whitelist a face
+// CantSacrifice static must pass before rules' SacrificeBlocked enforces it
+// (task vc-static1). It is the CantAttack list above PLUS the two
+// cause-scoping parameters SacrificeBlocked itself evaluates -- ValidCause$
+// against actionCause() through the shared stack-kind classifier
+// (rules/layers.go causeSpecAdmits) and ForCost$ against the
+// cost-driven/effect-driven split of the Host method's callers -- so a line
+// carrying them is enforced, not skipped. The Master, Multiplied's
+// `ValidCard$ Creature.YouCtrl+token | ValidCause$ Triggered.YouCtrl |
+// ForCost$ False` is the filing carrier.
+//
+// It DELIBERATELY diverges from CantRestrictionParamsReadable: effEffect's
+// registration gate keeps the narrower list for BOTH modes, because the
+// continuous-effect path (rules' restrictionApplies) reads neither
+// parameter and registering such a body would over-restrict blanket -- a
+// Cause-scoped CantSacrifice delivered by a DB$ Effect stays an
+// unimplemented Note. The asymmetry is the permissive direction for a
+// restriction on the path that cannot evaluate the cause.
+func CantSacrificeRestrictionParamsReadable(params map[string]string) bool {
+	for k := range params {
+		switch k {
+		case "Mode", "ValidCard", "Target", "Description", "Secondary", "ValidCause", "ForCost":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
 // CantPutCounterParamsReadable is the parameter whitelist a CantPutCounter
 // static must pass before this build enforces it -- used BOTH by the
 // face-static reader (rules/layers.go's PutCounterBlocked activeStatics walk)

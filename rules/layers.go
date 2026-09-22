@@ -2235,7 +2235,14 @@ func (e *Engine) restrictionActorMatches(ce ContinuousEffect, actor state.Player
 // object-target paths, effSacrificeAll, and the cast/activation/mana/ward/
 // unless Sac-cost candidate walks), so a blocked permanent is never offered,
 // never asked, and never taken.
-func (e *Engine) SacrificeBlocked(id state.ObjID) bool {
+//
+// forCost (vc-static1) names the call site's provenance: the cost-driven
+// callers (the cast/activation/mana/ward/unless Sac-cost candidate walks)
+// pass true, the effect-driven ones (effSacrifice, effSacrificeAll) false. A
+// face static's ForCost$/ValidCause$ scoping reads the split: ForCost$ False
+// lines never restrict a cost sacrifice, and ValidCause$ lines are evaluated
+// only on the effect path, where actionCause() names the resolving wrapper.
+func (e *Engine) SacrificeBlocked(id state.ObjID, forCost bool) bool {
 	for _, ce := range e.active() {
 		if ce.Restriction != "CantSacrifice" {
 			continue
@@ -2245,8 +2252,35 @@ func (e *Engine) SacrificeBlocked(id state.ObjID) bool {
 		}
 	}
 	for _, sv := range e.activeStatics("CantSacrifice") {
-		if !effects.CantRestrictionParamsReadable(sv.Params) {
+		if !effects.CantSacrificeRestrictionParamsReadable(sv.Params) {
 			continue
+		}
+		// vc-static1: the cause-scoping parameters, evaluated before the
+		// ValidCard match so an unevaluable shape stays skipped (the
+		// permissive direction) instead of blanket-blocking. ForCost$ True
+		// restricts only COST sacrifices, and the cost call sites' provenance
+		// (the pending cast/activation identity, not actionCause) is not
+		// modelled, so those lines stay skipped whole -- recorded in the
+		// combatrestriction1 row of AGENTS.md with its two carriers
+		// (angel_of_jubilation, yasharn_implacable_earth).
+		switch sv.Params["ForCost"] {
+		case "True":
+			continue
+		case "False":
+			if forCost {
+				continue
+			}
+		}
+		// ValidCause$ names the kind of spell/ability that must be causing
+		// the sacrifice. Only the effect-driven call sites (forCost false)
+		// have a meaningful actionCause; a cost sacrifice has none, and a
+		// ValidCause spec (a Spell/Activated/Triggered kind) can never name a
+		// cost anyway, so a cost site skips these lines the same way -- the
+		// permissive, oracle-correct direction either way.
+		if spec := sv.Params["ValidCause"]; spec != "" {
+			if forCost || !e.causeSpecAdmits(spec, sv.Source) {
+				continue
+			}
 		}
 		if spec := sv.Params["ValidCard"]; spec != "" &&
 			effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(sv.Source, sv.Controller)) {

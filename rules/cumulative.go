@@ -1222,7 +1222,7 @@ func (e *Engine) triggeredMandatoryCandidatesWith(tc *triggeredEffectCost, idx i
 		if used[id] {
 			continue
 		}
-		if isSac && e.SacrificeBlocked(id) {
+		if isSac && e.SacrificeBlocked(id, true) {
 			continue
 		}
 		if effects.MatchesSpecCtx(e.G, spec, id, sc) {

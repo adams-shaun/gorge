@@ -112,9 +112,12 @@ type Host interface {
 	// sacrifice candidate choke point (effSacrifice's eligible pool and
 	// object-target paths, effSacrificeAll, the cast/activation/mana/ward/unless
 	// Sac-cost candidate walks) so a blocked permanent is never offered and
-	// never taken. Implemented by rules.Engine (rules/layers.go); the effects
-	// test double reports false (no engine to consult).
-	SacrificeBlocked(id state.ObjID) bool
+	// never taken. forCost (vc-static1) is the call site's provenance: the
+	// cost-driven Sac-cost walks pass true, the effect-driven paths (this
+	// package's callers) false, so a static's ForCost$/ValidCause$ scoping can
+	// read the split. Implemented by rules.Engine (rules/layers.go); the
+	// effects test double reports false (no engine to consult).
+	SacrificeBlocked(id state.ObjID, forCost bool) bool
 	// ExploreReplaced reports whether a replacement effect replaces the
 	// named explorer's explore (R:Event$ Explore — Topography Tracker's
 	// "instead it explores, then it explores again", Twists and Turns'
