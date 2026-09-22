@@ -73,11 +73,16 @@ func unpriceableCounterCards(reg *cards.Registry) []string {
 
 // TestUnlessCostUnpriceablePopulation pins the corpus population of Counter
 // SAs whose UnlessCost$ ParseCost cannot price. It is the executable version
-// of the I-5 scope: every one of them must satisfy the same !Priceable()
-// predicate (so no SVar-sourced X, cast-time X or Sac component escapes as a
-// special case), and the set itself is a golden -- a corpus or grammar change
-// that adds or removes an unpriceable unless-cost here is a real scope change
-// that must be understood, not silently absorbed. Measured on the compiled
+// of the I-5 scope, and it reads the RAW parameter: every one of them must
+// satisfy the same !Priceable() predicate (so no SVar-sourced X, cast-time X
+// or Sac component escapes as a special case at the strict-parser level), and
+// the set itself is a golden -- a corpus or grammar change that adds or
+// removes an unpriceable unless-cost here is a real scope change that must be
+// understood, not silently absorbed. NOTE: the resolved-cost fold
+// (effects.UnlessCostResolved) is a separate layer ABOVE this parser, so a
+// card here (Mausoleum Wanderer, Power Sink, Condescend, ...) may still reach
+// the unless-pay ask with a concrete generic amount even though its raw
+// UnlessCost$ stays in this population. Measured on the compiled
 // .cards/ir.gob.gz corpus at FORGE_REF: 29 distinct cards, of which 21 carry
 // UnlessCost$ X (the I-5 population the issue names), 3 a Sac<...> part
 // (Blood Funnel, Brain Gorgers, Mana Vortex), 3 a Discard<...> part
@@ -180,14 +185,14 @@ func xCounterFixture(t *testing.T, reg *cards.Registry, counter, creature string
 	return e, casterID, creatureID
 }
 
-// TestPowerSinkCastTimeXUnlessPayCannotSucceedFromEmptyPool is the case the
-// old reading of I-5 got wrong: Power Sink's {X} comes from a real cast-time
-// choice (Count$xPaid), so an earlier analysis claimed it was protected. It is
-// not. We choose X = 2 at cast time, drain the payer, then answer the
-// unless_pay ask "pay" -- and because the UnlessCost the payment API must
-// price is still the unpriceable {X} (ParseCost reads "X", it never reads
-// Count$xPaid), the pay cannot succeed and Power Sink must counter the
-// targeted spell rather than resolving inertly.
+// TestPowerSinkCastTimeXUnlessPayCannotSucceedFromEmptyPool pins the
+// empty-pool half: Power Sink's {X} is a real cast-time choice
+// (Count$xPaid), and an EMPTY pool cannot cover whatever the unless-pay arm
+// prices. The resolved-cost fold (effects.UnlessCostResolved) now folds that
+// Count$xPaid into a concrete "{2}" for X=2, so the ask label shows the
+// amount and the charge agrees; with nothing in the pool the payment still
+// fails, so Power Sink counters the targeted spell rather than resolving
+// inertly. It is the case the old reading of I-5 got wrong.
 func TestPowerSinkCastTimeXUnlessPayCannotSucceedFromEmptyPool(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e, _, creatureID := xCounterFixture(t, reg, "Power Sink", "Grizzly Bears", "2")
