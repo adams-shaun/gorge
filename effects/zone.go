@@ -1883,7 +1883,9 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 		}
 		if searchDone && targetIndex == searchTarget {
 			c.LibraryTarget = targetIndex
-			applyLibrarySearch(h, c, sa, owner, to, chosen, zones)
+			if applyLibrarySearch(h, c, sa, owner, to, chosen, zones) {
+				return
+			}
 			searchDone = false
 			continue
 		}
@@ -1974,7 +1976,9 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 			// continuation contract while omitting the otherwise meaningless ask.
 			c.Remembered = nil
 			c.LibraryTarget = targetIndex
-			applyLibrarySearch(h, c, sa, owner, to, nil, zones)
+			if applyLibrarySearch(h, c, sa, owner, to, nil, zones) {
+				return
+			}
 			continue
 		}
 		// greedy is the deterministic stand-in take under the cumulative budget
@@ -2191,7 +2195,9 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 				Text: "finds no card (no engine host to ask)"})
 		}
 		c.LibraryTarget = targetIndex
-		applyLibrarySearch(h, c, sa, owner, to, picked, zones)
+		if applyLibrarySearch(h, c, sa, owner, to, picked, zones) {
+			return
+		}
 	}
 }
 
@@ -3123,7 +3129,11 @@ func totalCardTypesSatisfied(g *state.Game, ids []state.ObjID, need int) bool {
 	return len(seen) >= need
 }
 
-func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to state.Zone, chosen []state.ObjID, zones []state.Zone) {
+// applyLibrarySearch returns true when the search's tail suspended on a
+// may-shuffle decision. The caller must stop its per-player walk in that case;
+// the resume path owns the pending decision and continues with the next
+// library only after its answer has been consumed.
+func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to state.Zone, chosen []state.ObjID, zones []state.Zone) bool {
 	// The search-control/replacement boundary (Opposition Agent's class):
 	// the moves this function emits are the moves OF A SEARCH, and the host
 	// that models that fact scopes its FoundSearchingLibrary$ replacements
@@ -3329,8 +3339,9 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 	// registrations are already game state by then.
 	scheduleAtEOT(h, c, sa, moved)
 	if searchShuffleTail(h, c, sa, owner, moved, to) {
-		return // the may-shuffle confirm suspended the resolution
+		return true // the may-shuffle confirm suspended the resolution
 	}
+	return false
 }
 
 // shuffleLibrary applies the default hidden-library shuffle used by searches
