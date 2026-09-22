@@ -432,6 +432,18 @@ type Host interface {
 	// Dig's search). paid is the outcome the suspended pass resolved; the
 	// re-entry pass consumes the recorded marker instead of asking again.
 	SuspendUnless(sa *cards.SA, paid bool)
+	// SetResolutionTargetControllerLKI publishes the target-controller LKI
+	// captured at the start of a Resolve chain to the host, and returns the
+	// value it replaced so the caller can restore it (rules' Ask copies the
+	// published map onto the pending resumePoint). A target may leave the
+	// battlefield before a chained TokenOwner$ TargetedController runs;
+	// events.Apply resets a departed object's live Controller to Owner, so a
+	// resumed continuation -- which rebuilds its Ctx from the stack object's
+	// targets -- needs the controller snapshot, not the live object. The
+	// publish/restore bracket is what scopes it to the innermost running
+	// chain: a nested Resolve with a different Ctx restores the outer map on
+	// return. An effects-package test double may keep the no-op form.
+	SetResolutionTargetControllerLKI(map[state.ObjID]state.PlayerID) map[state.ObjID]state.PlayerID
 	// Suspended reports whether the resolution is currently suspended on a
 	// mid-resolution ask — Ask returned true and set the host's resume state,
 	// which has not yet been cleared by the answer arriving. effects.Resolve
@@ -498,6 +510,18 @@ type Host interface {
 	// (the charm frame re-enters the Charm itself), which is why the reporter
 	// marks it the way SuspendRepeat marks a RepeatEach.
 	SuspendCharmRest(sa *cards.SA, rest []string)
+	// SuspendVillainousRest reports that a VillainousChoice's chosen body
+	// suspended on a nested mid-resolution ask (for example Damocles Base's
+	// DBSac sacrifice picker) with victims still to process. sa is the
+	// VillainousChoice's own SA and rest carries the ordered Defined$ victim
+	// list plus the index of the NEXT victim to ask. The host records a
+	// continuation that re-enters the VillainousChoice with that cursor once
+	// the answered ask's own chain completes, so the remaining victims are
+	// still asked rather than dropped. The Resolve loop enclosing the
+	// VillainousChoice reports the same SA through SuspendContinuation next;
+	// the host drops that report (the villainous frame re-enters the
+	// primitive itself), the SuspendCharmRest convention.
+	SuspendVillainousRest(sa *cards.SA, rest VillainousRest)
 	// SetDamageSource overrides the in-flight damage source for the Damage
 	// events the caller is about to emit: the provenance rules' emit-side
 	// protection check (CR 702.16d) and DamageDone trigger matching read
@@ -582,6 +606,18 @@ type RepeatSuspension struct {
 	ChosenValid bool
 }
 
+// VillainousRest is a VillainousChoice's continuation once its chosen body
+// has completed: Victims is the ordered Defined$ player set and Next is the
+// index of the victim still to ask (the completed victim's index + 1). The
+// host re-enters the VillainousChoice primitive with that cursor, so a body
+// that suspended on its own nested ask does not strand the remaining
+// victims. Plain data, so the host can carry it on its own continuation
+// frame and replay re-derives it identically.
+type VillainousRest struct {
+	Victims []state.Target
+	Next    int
+}
+
 // DamageSourceLKI is the pre-departure damage provenance of one object.
 // It remains separate from Ctx's own-source fields because DamageSource$ may
 // name an object distinct from the resolving spell or ability's source.
@@ -634,7 +670,13 @@ type Ctx struct {
 	Source     state.ObjID
 	Controller state.PlayerID
 	Targets    []state.Target
-	Remembered []state.Target
+	// TargetControllerLKI captures each object target's controller at the
+	// start of resolution. A target may leave the battlefield before a
+	// chained TokenOwner$ TargetedController is evaluated; events.Apply then
+	// resets its live Controller to Owner, so the live object is no longer the
+	// CR 608.2h last-known controller.
+	TargetControllerLKI map[state.ObjID]state.PlayerID
+	Remembered          []state.Target
 	// RepeatOptional is set only when a RepeatOptional$ answer is being
 	// resumed. A nil value means this is the first pass through the Repeat.
 	RepeatOptional *RepeatOptionalContinuation
@@ -921,6 +963,11 @@ type Ctx struct {
 	// carries the iteration's Remembered. Zero outside a loop iteration, and
 	// the Imprinted/ImprintedController selectors fail closed on zero.
 	RepeatSubject state.Target
+	// VillainousVictims is the ordered Defined$ player set for a
+	// VillainousChoice. The index advances only after the current victim's
+	// chosen body has completed.
+	VillainousVictims []state.Target
+	VillainousIndex   int
 	// Sacrifice is an Annihilator sacrifice answer on re-entry.
 	Sacrifice []state.ObjID
 	// Search is the answered hidden-library KChoose selection on a re-entered
@@ -973,6 +1020,10 @@ type Ctx struct {
 	// is consumed and cleared at the re-entry's top (fx42 scoping), so a
 	// nested PutCounter poses its own ask.
 	PutOpt string
+	// PlaneswalkOpt is the answered Optional$ True "you may planeswalk"
+	// election. It is resolution-local so a nested Planeswalk cannot inherit
+	// an outer answer.
+	PlaneswalkOpt string
 	// Extort is the answered optional {W/B} payment on a re-entered Extort
 	// resolution (M2d-2): "pay" means the caster agreed to pay and the drain
 	// runs; anything else ("decline", first pass with a host that cannot ask)
@@ -1670,11 +1721,73 @@ func RegisterNonAPI(prefixed ...string) {
 
 const maxChain = 32
 
+// CloneTargetControllerLKI returns an independent copy of a target-controller
+// LKI map threaded across a suspension (rules' resumePoint). The map is treated
+// as immutable once captured -- Resolve never mutates a non-nil one -- so a
+// shared reference would be safe, but an explicit copy keeps a cloned engine's
+// pending frame from ever aliasing another's.
+func CloneTargetControllerLKI(m map[state.ObjID]state.PlayerID) map[state.ObjID]state.PlayerID {
+	if m == nil {
+		return nil
+	}
+	out := make(map[state.ObjID]state.PlayerID, len(m))
+	for id, controller := range m {
+		out[id] = controller
+	}
+	return out
+}
+
 // Resolve runs an ability and every sub-ability chained beneath it.
+// effectFrameHost is implemented by the rules engine to publish the Effect
+// registration identity a resolution is currently running under, so an ask
+// posed from anywhere inside that body (Host.Ask) captures it onto the
+// decision's resume state and the resumed walk keeps the same registration
+// bound. It is optional so the effects test doubles stay small.
+type effectFrameHost interface {
+	GetCurrentEffectFrame() EffectFrame
+	SetCurrentEffectFrame(EffectFrame)
+}
+
 func Resolve(h Host, c *Ctx, sa *cards.SA) {
+	// Publish this walk's Effect-created registration frame (set by rules'
+	// seedEffectReplCtx on an api:Effect replacement's body Ctx) for the whole
+	// of the walk, restoring the enclosing value on exit so nested walks and
+	// sub-ability chains keep the outer binding. Only a non-zero frame is
+	// published: an inner body resolved with its own zero-valued Ctx (a
+	// `` &cc `` copy that did not carry the frame) must inherit the enclosing
+	// Effect rather than erase it, which is what a body reached through the
+	// Effect's own chain needs.
+	if fh, ok := h.(effectFrameHost); ok {
+		previous := fh.GetCurrentEffectFrame()
+		if c != nil && c.EffectFrame.Source != 0 {
+			fh.SetCurrentEffectFrame(c.EffectFrame)
+		}
+		defer fh.SetCurrentEffectFrame(previous)
+	}
 	if c != nil {
 		c.Host = h
 		c.numericRHS = c.X != 0 || len(c.SVars) > 0
+		// Capture target controllers before the first effect can move a target.
+		// Keep an existing map on re-entry: it is the earlier battlefield state,
+		// not the current (possibly reset) object, that TokenOwner needs.
+		if c.TargetControllerLKI == nil {
+			c.TargetControllerLKI = make(map[state.ObjID]state.PlayerID)
+			for _, target := range c.Targets {
+				if target.IsPlayer {
+					continue
+				}
+				if object := h.Game().Obj(target.Obj); object != nil {
+					c.TargetControllerLKI[target.Obj] = object.Controller
+				}
+			}
+		}
+		// Publish the snapshot to the host for the whole of this chain, so an
+		// ask posed by any of its effects (or a nested Resolve that inherits
+		// the same Ctx) carries it onto the resumePoint. Restored on return:
+		// the map belongs to THIS chain, and an enclosing chain must not see
+		// it after a nested one has finished.
+		prev := h.SetResolutionTargetControllerLKI(c.TargetControllerLKI)
+		defer h.SetResolutionTargetControllerLKI(prev)
 	}
 	reg := registry.load()
 	for d := 0; sa != nil && d < maxChain; d, sa = d+1, sa.Sub {

@@ -296,6 +296,14 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 								out = append(out, gg)
 							}
 						}
+						if rawName, ok := st.Params["SetName"]; ok {
+							if name, ok := resolveChosenName(rawName, o); ok {
+								n := base
+								n.Layer = LText
+								n.SetName = name
+								out = append(out, n)
+							}
+						}
 						if hasStat(st, "AddType") || hasStat(st, "AddTypes") || hasStat(st, "AddAllCreatureTypes") {
 							ty := base
 							ty.Layer = LType
@@ -1168,6 +1176,20 @@ func statList(st cards.Static, key string) []string {
 // Choose event the cast/play-time ask emitted). Everything else passes
 // through unchanged. ok is false when a ChosenType entry names a host with no
 // recorded choice — the caller withholds the grant whole.
+func resolveChosenName(raw string, o *state.Object) (string, bool) {
+	if strings.EqualFold(strings.TrimSpace(raw), "ChosenName") {
+		if o == nil || o.ChosenName == "" {
+			return "", false
+		}
+		return o.ChosenName, true
+	}
+	name := strings.TrimSpace(raw)
+	if name == "" {
+		return "", false
+	}
+	return name, true
+}
+
 func resolveChosenTypes(list []string, o *state.Object) ([]string, bool) {
 	out := make([]string, 0, len(list))
 	for _, t := range list {
@@ -1254,6 +1276,8 @@ type Derived struct {
 	Power, Toughness int32
 	Keywords         []string
 	Types            []string
+	// Name is the current layer-3 name. SetName$ overwrites the printed name.
+	Name string
 	// Colors is the object's current colour set as WUBRG letters (CR 613.1e):
 	// its face's colours (effects.ColorsOf, which already applies Devoid)
 	// then every applicable layer-5 effect in timestamp order -- an
@@ -1293,12 +1317,18 @@ func (e *Engine) AddContinuous(ce ContinuousEffect) {
 		ce.UntilTurn = e.nextTurnFor(ce.Controller)
 	}
 	e.continuous = append(e.continuous, ce)
+	// A REGISTERED layer-3 rename (an Effect-delivered SetName$, which has no
+	// printed static for the genesis pool probe to find) arms the rename
+	// table for the rest of the match; see rules/setname.go.
+	if ce.SetName != "" {
+		e.setNameInPool = true
+	}
 	// Bump the cache version: active() (below) caches its sorted effect list
 	// on (log head, continuousVersion), and this is the write that changes
 	// e.continuous. The ClockTick above moved the log head too, but naming
 	// the dependency explicitly here keeps active()'s invalidation correct
 	// even if a future caller adds a continuous effect without an event.
-	e.continuousVersion++
+	e.continuousChanged()
 }
 
 // EndEffect ends the one continuous-effect registration identified by
@@ -1327,7 +1357,7 @@ func (e *Engine) EndEffect(source state.ObjID, stamp uint32) {
 		return
 	}
 	e.continuous = kept
-	e.continuousVersion++
+	e.continuousChanged()
 }
 
 // EndImprintedEffects ends every live DB$ Effect registration that an
@@ -1359,7 +1389,7 @@ func (e *Engine) EndImprintedEffects(source state.ObjID) {
 		return
 	}
 	e.continuous = kept
-	e.continuousVersion++
+	e.continuousChanged()
 }
 
 // nextTurnFor returns the turn number of the next turn (strictly after the
@@ -1492,7 +1522,7 @@ func (e *Engine) EndOfTurnCleanup() {
 	// event and moves no log head) drops every UntilEOT pump and every
 	// expired UntilTurn effect. Without the bump, a stale active() cache
 	// would keep reporting a dead pump's P/T.
-	e.continuousVersion++
+	e.continuousChanged()
 }
 
 // cloneExpiry identifies ONE clone unit (task api-clone): the permanent that
@@ -1644,7 +1674,7 @@ func (e *Engine) effectMoveSweep(ev events.Event) {
 		return
 	}
 	e.continuous = kept
-	e.continuousVersion++
+	e.continuousChanged()
 }
 
 // effectCastSweep is the cast-driven lifetime of Effect-created continuous
@@ -1697,7 +1727,7 @@ func (e *Engine) effectCastSweep(ev events.Event) {
 		return
 	}
 	e.continuous = kept
-	e.continuousVersion++
+	e.continuousChanged()
 }
 
 // effectCounterSweep is the counter-driven lifetime of Effect-created
@@ -1732,7 +1762,7 @@ func (e *Engine) effectCounterSweep(ev events.Event) {
 		return
 	}
 	e.continuous = kept
-	e.continuousVersion++
+	e.continuousChanged()
 }
 
 // objIDIn reports whether ids holds id.
@@ -2352,6 +2382,13 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 	if o.Suspected {
 		kw = append(kw, "Menace")
 	}
+	// A Pump/PumpAll "it gains suspend" grant is event-backed because the
+	// target may be in exile (where ordinary continuous effects still apply),
+	// and because cast legality and filters must agree after replay. Keep it in
+	// the same derived keyword stream as printed and layer-6 keywords.
+	if o.SuspendGranted {
+		kw = append(kw, "Suspend")
+	}
 	// Layer 4 runs first through typeCharacteristics (see above), so every
 	// later effect's Affected$ filter — and every layer-4 effect's own —
 	// sees the derived type list, not the printed face.
@@ -2362,6 +2399,7 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 	// ColorMaskOf is ColorsOf's compact bitmask (230574a2); the match keeps
 	// 837910f4's type-aware wrapper — a bare SpecContext carries no
 	// ExtraTypes, so MatchesSpecCtx here would regress to printed types only.
+	name := f.Name
 	col := effects.ColorMaskOf(o)
 	if faceDown {
 		col = 0 // CR 708.5: a face-down permanent has no colours
@@ -2388,6 +2426,10 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 			}
 		}
 		switch ce.Layer {
+		case LText:
+			if ce.SetName != "" {
+				name = ce.SetName
+			}
 		case LAbilities:
 			// CR 613.1f / 613.4b: an ability-removing effect (Humility)
 			// clears the object's printed and earlier-granted keywords before
@@ -2446,8 +2488,12 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 		e.derivedTypes = ty
 	}
 	e.derivedDepth--
-	return Derived{Power: power, Toughness: toughness, Keywords: kw, Types: ty, Colors: colors}
+	return Derived{Power: power, Toughness: toughness, Keywords: kw, Types: ty, Name: name, Colors: colors}
 }
+
+// Name returns the current layer-3 name of an object. Callers that render or
+// compare characteristics must use this rather than the printed face name.
+func (e *Engine) Name(id state.ObjID) string { return e.Derived(id).Name }
 
 func (e *Engine) Power(id state.ObjID) int32 {
 	p, _ := e.derivedScalar(id)

@@ -56,6 +56,8 @@ func parseZone(s string) (state.Zone, bool) {
 		return state.ZStack, true
 	case "Command":
 		return state.ZCommand, true
+	case "Sideboard":
+		return state.ZSideboard, true
 	case "Ceased":
 		return state.ZCeased, true
 	}
@@ -171,13 +173,17 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// hand, and/or library"). Every one of the corpus's 62 carriers pairs
 		// it with Origin$ Library; without this merge the exact-Library branch
 		// below sees a library-only origin and silently searches just that.
+		// (A compound Origin$ WITHOUT OriginAlternative$ is merged here too
+		// when its chooser must pick from the zones and it names Sideboard --
+		// the search-branch gate below -- but the note above about selector
+		// carriers keeping their object path still governs the rest.)
 		// The merge is deliberately SCOPED to this parameter (altPresent below
 		// gates the widened search branch): a compound Origin$ WITHOUT an
 		// OriginAlternative$ keeps its pre-existing object path -- Eladamri,
 		// Korvecdal's `Defined$ ChosenCard | Origin$ Library,Hand` must move
 		// the already-chosen card, never pose a fresh whole-library pick.
 		// Parse with the same vocabulary as Origin$. A zone word ParseZones
-		// does not model (Sideboard) is noted loudly and dropped from the
+		// does not model an origin is noted loudly and dropped from the
 		// merged set while every KNOWN zone keeps searching -- bailing the
 		// whole effect (folding altValid into `valid`) would lose the library
 		// half of invasion_of_arcavios's "library, graveyard, and/or outside
@@ -202,8 +208,8 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// ... and the branch excludes every origin the dedicated walkers own:
 		// exactly-Library is the search below, exactly-Hand the hand movers,
 		// a mixed-Hand origin the loud note -- and this branch must sit BEFORE
-		// the unrecognised-Origin bail, because Origin$ Sideboard parses to no
-		// modelled zone at all yet still resolves (Burning Wish's wish, whose
+		// the unrecognised-Origin bail, because some hidden origins may still
+		// resolve (Burning Wish's wish, whose
 		// SubAbility$ self-exile must run). Origin$ All stays on the object
 		// path too -- every no-Defined$ corpus line naming it carries Defined$
 		// (all eight are Dauthi-shaped replacements), and a game-wide all-zones
@@ -213,11 +219,15 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// reveal and the shuffle conditions) -- exactly what the object path
 		// below already performs, which is why Dauthi Voidwalker's Hidden$
 		// "exile it instead" replacement carries no behaviour of its own
-		// beyond this read.
+		// beyond this read. A Hidden$ compound origin naming Sideboard skips
+		// this branch too: the search below is its chooser (Karn, the Great
+		// Creator's -2), and effHiddenPick's game-wide or owner-public fetch
+		// list is the wrong shape for an owner-private sideboard union.
 		if hidden && sa.Params["Defined"] == "" &&
 			!strings.EqualFold(strings.TrimSpace(sa.Params["Imprint"]), "True") &&
 			!originAll && !mixedOriginIncludesHand(originZones, originAll) &&
 			!zoneIn(originZones, state.ZLibrary) &&
+			!zoneIn(originZones, state.ZSideboard) &&
 			!(len(originZones) == 1 && originZones[0] == state.ZHand) {
 			effHiddenPick(h, c, sa, to, originZones, originAll, valid, from)
 			return
@@ -234,8 +244,8 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// and the resolver asks the chooser to pick ChangeNum$ of them. The
 		// object path below would instead move the Defined() source default
 		// silently (a self-bounce) or skip the player fetchers entirely (a
-		// silent no-op). Origin$ Sideboard must resolve despite parsing to no
-		// modelled zone (Burning Wish's wish, whose SubAbility$ self-exile
+		// silent no-op). Hidden sideboard searches resolve here (Burning Wish's
+		// wish, whose SubAbility$ self-exile
 		// must run), which is why the branch sits before the
 		// unrecognised-Origin bail. Origin$ All stays on the object path too
 		// -- every no-Defined$ corpus line naming it carries Defined$ (all
@@ -255,10 +265,16 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// A ChangeZone whose origin set includes Library and no other hidden
 		// walker's zone is the hidden-origin search, now spanning every zone
 		// Origin$ plus OriginAlternative$ named (the and/or shapes). The
-		// widened cross-zone shape fires ONLY when OriginAlternative$ is
-		// present: a compound Origin$ alone keeps its existing dispatcher, so
-		// a Defined$-bearing carrier (Eladamri, Korvecdal) still takes its
-		// already-chosen objects. The
+		// widened cross-zone shape fires when OriginAlternative$ is present,
+		// and ALSO for a compound DIRECT Origin$ whose chooser must pick FROM
+		// the zones -- no Defined$/DefinedPlayer$/ValidTgts$ naming the
+		// objects or the fetch player -- whenever it names Sideboard (the
+		// "outside the game" zone; the corpus's three such lines are Karn, the
+		// Great Creator's Origin$ Sideboard,Exile, one Eldrazi wish of the
+		// same shape, and one Library,Sideboard wish). A compound Origin$ WITH
+		// a selector keeps its existing dispatcher, so a Defined$-bearing
+		// carrier (Eladamri, Korvecdal) still takes its already-chosen
+		// objects. The
 		// searching player may fail to find a card with the stated quality (Min
 		// is always zero), and the answer resumes this same effect before its
 		// SubAbility runs. The exact-Library spelling is the single-zone case of
@@ -269,9 +285,12 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// because the search IS the origin-aware chooser that note says does not
 		// exist: the fetch player sees their own hand, so no hidden information
 		// is exposed by offering it by name.
-		if zoneIn(originZones, state.ZLibrary) && !originAll &&
+		noObjectSelector := sa.Params["Defined"] == "" && sa.Params["DefinedPlayer"] == "" &&
+			sa.Params["ValidTgts"] == ""
+		if (zoneIn(originZones, state.ZLibrary) || zoneIn(originZones, state.ZSideboard)) && !originAll &&
 			!zoneIn(originZones, state.ZBattlefield) &&
-			(altPresent || len(originZones) == 1) {
+			(altPresent || len(originZones) == 1 ||
+				(noObjectSelector && zoneIn(originZones, state.ZSideboard))) {
 			// Forge treats a Defined$ that resolves to objects in a hidden
 			// library as the already-selected fetch list, not as the owner of a
 			// fresh whole-library search. This is structural rather than keyed to
@@ -358,19 +377,18 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	// WithCountersType$/WithCountersAmount$ make the move put counters on the
-	// permanent it lands on the battlefield with -- the Undying expansion's
-	// "return to the battlefield with a +1/+1 counter" (cards/keywords.go). The
-	// CounterChange is emitted AFTER the MoveZone, so it lands on the moved
-	// (new) object's back at its destination, exactly as Move waiting to run
-	// first would want, and the counter survives onto the permanent because it
-	// is added post-move. Counter (not the Move carrying it along) is what
-	// keeps events/apply.go's Move from knowing anything about counters.
+	// object it lands with -- the Undying expansion's "return to the battlefield
+	// with a +1/+1 counter" (cards/keywords.go) and a card exiled with TIME
+	// counters (suspend). The CounterChange is emitted AFTER the MoveZone, so it
+	// lands on the moved (new) object's back at its destination, exactly as Move
+	// waiting to run first would want, and the counter survives onto the object
+	// because it is added post-move. Counter (not the Move carrying it along) is
+	// what keeps events/apply.go's Move from knowing anything about counters.
+	// counterDestination is the one gate every mover shares: a destination that
+	// cannot carry the counters neither parses the amount nor emits anything.
 	withKind := sa.Params["WithCountersType"]
 	var withAmt int32
-	// WithCounters* only takes effect when the object enters the battlefield.
-	// Parsing a dynamic/malformed amount emits a Note, so do not parse it for
-	// another destination where no CounterChange can ever be emitted.
-	if to == state.ZBattlefield && withKind != "" {
+	if withKind != "" && counterDestination(to) {
 		withAmt = withCounterAmount(h, c, sa)
 	}
 	targets := Defined(h, c, sa)
@@ -586,7 +604,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 			eventRemember(h, c, o.ID)
 		}
 		eventForgetChanged(h, c, sa, o.ID)
-		if withKind != "" && to == state.ZBattlefield {
+		if withKind != "" && counterDestination(to) {
 			h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: withKind, Amount: withAmt})
 		}
 		// GainControl$ hands the moved object to the named player (Reanimate:
@@ -745,8 +763,9 @@ func applyFaceDownMarker(h Host, sa *cards.SA, c *Ctx, ev *events.Event, to stat
 // the same chain captures it, and the value is a parameter of the ongoing
 // resolution (Ctx), not game state, so mutating it here is fine), then the
 // WithCountersType$/WithCountersAmount$ entry counters when the move lands on
-// the battlefield. Keeping the object path and the hand-choice path on this
-// one helper means the two cannot drift apart on any of the three.
+// a counter-bearing destination (battlefield or exile -- counterDestination).
+// Keeping the object path and the hand-choice path on this one helper means
+// the two cannot drift apart on any of the three.
 func settleChangeZoneMove(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, to state.Zone, withKind string, withAmt int32) {
 	settleChangeZoneMoveAs(h, c, sa, id, from, to, withKind, withAmt, 0, false)
 }
@@ -761,9 +780,10 @@ func settleChangeZoneMove(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, to
 // later SubAbility of the same chain captures it, and the value is a
 // parameter of the ongoing resolution (Ctx), not game state, so mutating it
 // here is fine), then the WithCountersType$/WithCountersAmount$ entry
-// counters when the move lands on the battlefield. Keeping the object path
-// and the hand-choice path on this one helper means the two cannot drift
-// apart on any of the three. Tapped$ True is event-backed for the hidden
+// counters when the move lands on a counter-bearing destination (battlefield
+// or exile -- counterDestination). Keeping the object path and the hand-choice
+// path on this one helper means the two cannot drift apart on any of the
+// three. Tapped$ True is event-backed for the hidden
 // library paths, but not for a card entering from hand; before every such
 // move this common path makes the narrowing replay-visible rather than
 // silently entering the card untapped.
@@ -903,7 +923,7 @@ func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, 
 	if strings.EqualFold(sa.Params["RememberChanged"], "True") {
 		c.Remembered = append(c.Remembered, state.Target{Obj: id})
 	}
-	if withKind != "" && to == state.ZBattlefield {
+	if withKind != "" && counterDestination(to) {
 		h.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: withKind, Amount: withAmt})
 	}
 	// GainControl$ hands the moved object to the named player. Only a
@@ -1256,9 +1276,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 	c.HandMove, c.HandMoveDone, c.HandMoveTarget = nil, false, 0
 	withKind := sa.Params["WithCountersType"]
 	var withAmt int32
-	// Match the object path: WithCounters* has no effect away from the
-	// battlefield, and parsing a dynamic amount there must not emit a Note.
-	if to == state.ZBattlefield && withKind != "" {
+	if withKind != "" && counterDestination(to) {
 		withAmt = withCounterAmount(h, c, sa)
 	}
 	// settleHandMove settles one chosen card: exactly the shared ChangeZone
@@ -1680,6 +1698,22 @@ func handDestPhrase(to state.Zone) string {
 	}
 }
 
+// counterDestination reports whether a ChangeZone destination can carry the
+// WithCountersType$/WithCountersAmount$ entry counters. They land on a
+// permanent entering the battlefield (the Undying expansion) or on a card
+// exiled with them (suspend's TIME counters); a counter on a moved card in any
+// other zone is never read by anything, so such a destination must not parse
+// the amount (which would emit a malformed-amount Note for a dynamic value)
+// and must not emit a CounterChange. Measured at the corpus pin: every
+// ChangeZone-family `WithCountersType$` line names exactly these two
+// destinations -- Battlefield 99, Exile 38 (137 total) -- so the gate admits
+// the whole measured population and nothing else. This is the one gate every
+// ChangeZone mover shares (the other APIs that carry the parameter,
+// CopyPermanent and Token, read it in their own primitives).
+func counterDestination(to state.Zone) bool {
+	return to == state.ZBattlefield || to == state.ZExile
+}
+
 // withCounterAmount parses WithCountersAmount$ (default 1). Malformed values
 // must be loud, not silently default to 1 (the reviewer's item): a wrong
 // counter count on a Returning permanent is a hard-to-spot board-shape bug. A
@@ -1726,6 +1760,9 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 	owner := players[0]
 	g := h.Game()
 	lib := zoneOf(g, state.ZLibrary, owner)
+	if !zoneIn(zones, state.ZLibrary) {
+		lib = nil
+	}
 
 	// A ShuffleNonMandatory$ search's may-shuffle confirm was answered: the
 	// moves already happened in the first pass, so this pass is tail-only --
@@ -1746,10 +1783,14 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 		return
 	}
 
-	spec := sa.Params["ChangeType"]
-	if spec == "" {
-		spec = "Card"
+	rawSpec := sa.Params["ChangeType"]
+	if rawSpec == "" {
+		rawSpec = "Card"
 	}
+	// A hidden-library Permanent is a permanent card, not a battlefield
+	// permanent. Keep the raw Forge spelling for the CR 701.23 quality
+	// classification below; only candidate matching uses the contextual base.
+	spec := permanentCardSpec(rawSpec)
 	// Candidate order: the library first (in library order), then each public
 	// origin zone in the order given by the parsed origin set. Dedupe across
 	// zones so a card can never be offered twice. `eligible` is the ordered
@@ -1816,7 +1857,7 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 	// holds (701.23d's "as many as possible"). This is a property of the
 	// filter, not of Forge's Mandatory$ parameter.
 	min := int32(0)
-	if !SearchStatesQuality(spec) {
+	if !SearchStatesQuality(rawSpec) {
 		min = max
 	}
 	// An empty choice is not a choice: asking it suspends a real engine host
@@ -1899,7 +1940,7 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 	// eligible card simply contributes no options and no Group, and its
 	// pick is the one the player cannot make.
 	eachSubs, isEach := eachAlternatives(spec)
-	eachStructured := isEach && max <= 1 && SearchStatesQuality(spec)
+	eachStructured := isEach && max <= 1 && SearchStatesQuality(rawSpec)
 	d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
 		Min: int(min), Max: int(max), MaxSum: int(budget), Source: c.Source,
 		ResumeKind: "search", ResumeSA: sa,
@@ -2003,7 +2044,7 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 	// the same stand-in silently (no Note): skipping the ask is the correct
 	// resolution, not a degradation.
 	var picked []state.ObjID
-	if !SearchStatesQuality(spec) {
+	if !SearchStatesQuality(rawSpec) {
 		n := int(min)
 		if n > len(greedy) {
 			n = len(greedy)
@@ -2163,7 +2204,7 @@ func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, to state.Zone) bool
 
 	withKind := sa.Params["WithCountersType"]
 	var withAmt int32
-	if to == state.ZBattlefield && withKind != "" {
+	if withKind != "" && counterDestination(to) {
 		withAmt = withCounterAmount(h, c, sa)
 	}
 	// The AtEOT$ rider's affected set, collected across every fetch and
@@ -2570,10 +2611,8 @@ func hiddenPickChooser(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID) state
 
 // effHiddenPick is Forge's changeHiddenOriginResolve for a Hidden$ True
 // ChangeZone whose origin zones are PUBLIC (Battlefield, Graveyard, Exile,
-// Command, Stack) or name no modelled zone at all (Origin$ Sideboard: this
-// engine holds no outside-the-game cards, so the wish finds nothing -- one
-// loud note says so, and the SubAbility$ chain still runs, Burning Wish's
-// self-exile included). With no Defined$ the fetch list is the origin zones'
+// Command, Stack). Sideboard is handled by the owner-scoped hidden search
+// path before this dispatcher. With no Defined$ the fetch list is the origin zones'
 // cards matching ChangeType$ -- game-wide for a public origin when no fetch
 // player is named, the named fetch player's own zones otherwise -- and the
 // chooser picks ChangeNum$ of them (Mandatory$ True makes the pick
@@ -2611,7 +2650,7 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 	noLooking := strings.EqualFold(strings.TrimSpace(sa.Params["NoLooking"]), "True")
 	withKind := sa.Params["WithCountersType"]
 	var withAmt int32
-	if to == state.ZBattlefield && withKind != "" {
+	if withKind != "" && counterDestination(to) {
 		withAmt = withCounterAmount(h, c, sa)
 	}
 	// WithTotalCMC$ is the cumulative mana-value budget over the picked cards
@@ -2940,6 +2979,9 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 	if spec == "" {
 		spec = "Card"
 	}
+	// Recheck the answer with the same hidden-zone meaning used to build the
+	// option list: a library Permanent is a permanent card.
+	spec = permanentCardSpec(spec)
 	// DifferentNames$ True (Realms Uncharted): the options carried one Group
 	// per card name, so a validated wire answer cannot repeat a name. A host
 	// that bypassed the wire (bot clamp top-up, a direct resume) is deduped
@@ -2990,7 +3032,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 		if o.Zone != state.ZLibrary {
 			withKind := ""
 			var withAmt int32
-			if to == state.ZBattlefield && sa.Params["WithCountersType"] != "" {
+			if sa.Params["WithCountersType"] != "" && counterDestination(to) {
 				withKind = sa.Params["WithCountersType"]
 				withAmt = withCounterAmount(h, c, sa)
 			}
@@ -3032,7 +3074,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 			}
 		}
 		moved = append(moved, id)
-		if to == state.ZBattlefield && sa.Params["WithCountersType"] != "" {
+		if sa.Params["WithCountersType"] != "" && counterDestination(to) {
 			h.Emit(events.Event{Kind: events.CounterChange, Obj: id,
 				Counter: sa.Params["WithCountersType"], Amount: withCounterAmount(h, c, sa)})
 		}
@@ -3534,6 +3576,16 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 // Indestructible in response, or protection from the source) between
 // targeting and resolution is not rechecked. See the Task 18 report.
 func effDestroy(h Host, c *Ctx, sa *cards.SA) {
+	// Forge's ForgetOtherTargets$ replaces the prior remembered set before
+	// this Destroy, while RememberTargets$ records only objects that actually
+	// leave the battlefield (not targets spared by regeneration or
+	// indestructibility).  Keep both the resolution-local and event-backed
+	// halves in sync, as the chained sub-ability may read either one.
+	if strings.EqualFold(strings.TrimSpace(sa.Params["ForgetOtherTargets"]), "True") {
+		c.Remembered = nil
+		clearEventRemembered(h, c)
+	}
+	remember := strings.EqualFold(strings.TrimSpace(sa.Params["RememberTargets"]), "True")
 	// Same pre-batch discipline as effDestroyAll: the targets Defined
 	// resolves are destroyed as one simultaneous batch (a multi-target
 	// Destroy over a lifelink Equipment and its bearer must not make the
@@ -3578,6 +3630,15 @@ func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
 			From: state.ZBattlefield, To: state.ZGraveyard, Text: "destroyed"})
+		// Host.Emit applies move replacements before folding the move. Only
+		// remember a permanent that actually ended up in the graveyard; a
+		// replacement such as exile must not feed a later IsRemembered search.
+		if remember {
+			if moved := h.Game().Obj(id); moved != nil && moved.Zone == state.ZGraveyard {
+				c.Remembered = append(c.Remembered, state.Target{Obj: id})
+				eventRemember(h, c, id)
+			}
+		}
 	}
 }
 
@@ -3626,10 +3687,12 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
 			From: state.ZBattlefield, To: state.ZGraveyard, Text: "destroyed"})
 		if remember {
-			// Forge's RememberDestroyed$ adds each destroyed card to
-			// the host's remembered list (Stench of Evil's RepeatEach
-			// over DirectRemembered iterates exactly these).
-			c.Remembered = append(c.Remembered, state.Target{Obj: id})
+			// Forge's RememberDestroyed$ adds only cards that actually
+			// reached the graveyard; a move replacement may redirect it.
+			if moved := h.Game().Obj(id); moved != nil && moved.Zone == state.ZGraveyard {
+				c.Remembered = append(c.Remembered, state.Target{Obj: id})
+				eventRemember(h, c, id)
+			}
 		}
 	}
 }

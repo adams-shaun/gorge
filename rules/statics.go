@@ -306,6 +306,12 @@ func (e *Engine) specCtxSVars(source state.ObjID, you state.PlayerID, svars map[
 		You:               you,
 		Source:            source,
 		PredicatePrograms: predicates,
+		// setname.go: the layer-3 rename set, so a name filter rules
+		// evaluates agrees with the layer walk instead of the printed face.
+		// setname.go's layer-3 rename table. A FIELD READ, never a call: a
+		// call here breaks this constructor's inlining and heap-allocates the
+		// Resolve closure on every hot-path construction.
+		EffectiveNames: e.renames,
 		Resolve: func(name string) (int32, bool) {
 			o := e.G.Obj(source)
 			if o == nil {
@@ -910,12 +916,12 @@ func (e *Engine) altCostXCandidates(p state.PlayerID, id state.ObjID, alt altCos
 			if seen[v] {
 				continue
 			}
-			sc := effects.SpecContext{You: p, Source: alt.src, Resolve: func(name string) (int32, bool) {
+			sc := e.withNames(effects.SpecContext{You: p, Source: alt.src, Resolve: func(name string) (int32, bool) {
 				if name == alt.announce {
 					return v, true
 				}
 				return 0, false
-			}}
+			}})
 			if effects.MatchesSpecCtx(e.G, part.Spec, oid, sc) {
 				seen[v] = true
 				vals = append(vals, v)

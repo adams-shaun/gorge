@@ -11,7 +11,7 @@ package rules
 //     list is the origin zones' cards matching ChangeType$, the chooser picks
 //     ChangeNum$ of them. Kor Skyfisher, Temur Sabertooth, Relic of
 //     Progenitus (DefinedPlayer$/Chooser$ Targeted) and Burning Wish
-//     (Origin$ Sideboard, which holds nothing in this engine).
+//     (Origin$ Sideboard) all use this path.
 //   - Reveal$ True (and the quality-search default) publicly reveal the found
 //     cards: one Note carrying the moved ids, the Reveal primitive's payload.
 //   - NoLooking$ True makes the search's options blind ("a card") -- the
@@ -26,6 +26,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
@@ -276,16 +277,24 @@ func TestChangeZoneHiddenPickTargetsThePlayerGraveyard(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestChangeZoneWishFindsNothingOutsideTheGame pins the Origin$ Sideboard
-// shape: this engine models no outside-the-game cards, so Burning Wish's
-// search offers nothing -- one loud Note says so, no ask is posed, and the
-// wish's own SubAbility$ (exile CARDNAME) still runs.
-func TestChangeZoneWishFindsNothingOutsideTheGame(t *testing.T) {
+// TestChangeZoneWishFindsSideboard pins Burning Wish's real Origin$ Sideboard
+// search against a compiled-corpus sideboard card. The sideboard is private
+// to its owner and the wish's own SubAbility$ still runs after the pick.
+func TestChangeZoneWishFindsSideboard(t *testing.T) {
 	reg := searchTestRegistry(t)
 	e, cfg := searchEngine(t, reg, "Burning Wish")
+	cfg.Sideboards = [][]*cards.Card{{searchCorpusCard(t, reg, "Empty the Warrens")}, nil}
+	e = New(cfg)
+	e.Advance()
+	toMain1(t, e)
 	start := len(e.L.Events)
 	addMana(t, e, 0, "CR")
-	id := castFixtureNamed(t, e, "Burning Wish")
+	id := searchMoveByName(t, e, "Burning Wish", state.ZHand)
+	d := castFixture(t, e, id, -1)
+	if d == nil || len(d.Options) != 1 || d.Options[0].Label != "Empty the Warrens" {
+		t.Fatalf("Burning Wish sideboard options = %+v, want the owner's Empty the Warrens", d)
+	}
+	submitChoices(t, e, d.Options[0].Index)
 	passUntilStackEmpty(t, e, 20)
 	// The wish's own SubAbility$ (DBChange: Origin$ Stack → Destination$
 	// Exile) runs, so the self-exile happens as its own logged move. The
@@ -302,17 +311,13 @@ func TestChangeZoneWishFindsNothingOutsideTheGame(t *testing.T) {
 	if !exiled {
 		t.Fatal("the wish's SubAbility$ self-exile did not run")
 	}
-	noted := false
 	for _, ev := range e.L.Events[start:] {
-		if ev.Kind == events.Note && strings.Contains(ev.Text, "Origin$ Sideboard") {
-			noted = true
-		}
-		if ev.Kind == events.Note && ev.Player == 0 && len(ev.IDs) > 0 {
-			t.Fatalf("an empty sideboard must not reveal anything: %+v", ev)
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "unrecognised ChangeZone Origin") {
+			t.Fatalf("sideboard origin was treated as unknown: %+v", ev)
 		}
 	}
-	if !noted {
-		t.Fatal("no note naming the unmodelled outside-the-game origin")
+	if got := e.G.Obj(d.Options[0].Obj); got == nil || got.Zone != state.ZHand || got.EnteredFrom != state.ZSideboard {
+		t.Fatalf("wished card = %+v, want owner's sideboard card in hand", got)
 	}
 	replayCheck(t, e, cfg)
 }

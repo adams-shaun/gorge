@@ -25,10 +25,12 @@ func kwDevour(f *Face, i int, k, head, param string, has func(kind, line string)
 	// remembered onto the source object), then the counter put reading
 	// RememberedSize/Times.<amount>, then a cleanup clearing the memory.
 	// Count$RememberedSize reads the event-backed Remembered list the
-	// sacrifice primitive fills; /Times.N is the shared applyCountOp.
-	// A Devour X (Thromok the Insatiable) carries only the bare count --
-	// Times.X fails the op parser and leaves the count at one per
-	// devoured permanent, which is exactly the CR 702.83 X read.
+	// sacrifice primitive fills; /Times.N is the shared applyCountOp. A
+	// Devour X (Thromok the Insatiable) carries the SVar-named operand
+	// Times.X -- resolved against the face's own SVar:X (Count$RememberedSize)
+	// by the count-op operand resolver (count-plus-svar-operand), which is
+	// the oracle read: "enters with X +1/+1 counters on it for each of those
+	// creatures" = n per devoured creature = n².
 	amount, rest, _ := strings.Cut(param, ":")
 	valid, _, _ := strings.Cut(rest, ":")
 	amount, valid = strings.TrimSpace(amount), strings.TrimSpace(valid)

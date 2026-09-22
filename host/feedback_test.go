@@ -49,7 +49,7 @@ func TestFeedbackMatchMarshalsTheSidecarsKeys(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fm := feedbackMatch(sc, [][]string{{"x"}, {"y"}}, nil, nil)
+	fm := feedbackMatch(sc, [][]string{{"x"}, {"y"}}, nil, nil, nil)
 	fmRaw, err := json.Marshal(fm)
 	if err != nil {
 		t.Fatal(err)
@@ -72,9 +72,10 @@ func TestFeedbackMatchMarshalsTheSidecarsKeys(t *testing.T) {
 		t.Error("FeedbackMatch's JSON is missing deck_cards")
 	}
 	// With tokens captured, both new keys appear: the scripts themselves
-	// and, when any could not be read back, the reason list. These are the
-	// only fields beyond the sidecar plus deck_cards by design — anything
-	// else must be added here, so the snapshot shape cannot drift silently.
+	// and, when any could not be read back, the reason list. These and
+	// sideboards are the only fields beyond the sidecar plus deck_cards by
+	// design — anything else must be added here, so the snapshot shape
+	// cannot drift silently.
 	fm.Tokens = map[string]string{"r_1_1_goblin": "Name:Goblin Token\n"}
 	fm.TokensUnread = []string{"c_3_3_wurm: no source path"}
 	fmRaw, err = json.Marshal(fm)
@@ -86,6 +87,19 @@ func TestFeedbackMatchMarshalsTheSidecarsKeys(t *testing.T) {
 	if extra != 3 || !got["tokens"] || !got["tokens_unread"] {
 		t.Errorf("FeedbackMatch with tokens carries %d keys beyond the sidecar (want 3: deck_cards, tokens, tokens_unread); keys deck_cards=%v tokens=%v tokens_unread=%v",
 			extra, got["deck_cards"], got["tokens"], got["tokens_unread"])
+	}
+	// A match with sideboards records their card-name contents beside
+	// deck_cards (the same replay-configuration shape: sideboards are
+	// genesis configuration, so a replay needs them recorded).
+	fm.Sideboards = [][]string{{"x"}, nil}
+	fmRaw, err = json.Marshal(fm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got = sidecarKeys(t, fmRaw)
+	extra = len(got) - len(want)
+	if extra != 4 || !got["sideboards"] {
+		t.Errorf("FeedbackMatch with sideboards carries %d keys beyond the sidecar (want 4: deck_cards, tokens, tokens_unread, sideboards)", extra)
 	}
 	// And the shared values must agree, not just the key names.
 	var scBack, fmBack map[string]any

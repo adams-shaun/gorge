@@ -169,6 +169,11 @@ var baseBuckets = map[string]bucket{
 	// replacement dispatcher (continueCreateTokenReplacements /
 	// applyTokenReplacementToPlan read its Type$/Amount$/TokenScript$).
 	"r.With": bSA, "m.repl.With": bSA, "with": bSA, "rp.sa": bSA, "o.Ability": bSA, "d.ResumeSA": bSA, "body": bSA,
+	// repl.With is the attached-replacement dispatcher's local *cards.Repl
+	// (the `r` it captured from replacementFace's scan), whose resolved With
+	// *cards.SA it reads for ChooseName's ValidCards$ pool -- the same
+	// cards.SA parameter map r.With covers.
+	"repl.With": bSA,
 	// offeredSA is resolveTop's ability-branch marker derivation: the SA
 	// whose ValidTgts$ the placement ask actually covered -- o.Ability for a
 	// non-modal trigger, the first target-bearing chosen mode's sub for a

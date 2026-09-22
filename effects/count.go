@@ -365,10 +365,35 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 		if clamped, isLimit := countDistinctLimitMax(strings.TrimSpace(body), op, n); isLimit {
 			n = clamped
 		} else {
-			n = applyCountOp(n, op)
+			n = applyCountOpOperand(h, c, n, op, depth)
 		}
 	}
 	return n, ok2
+}
+
+// applyCountOpOperand applies a Count$ arithmetic suffix. Besides numeric
+// operands such as Plus.1, Forge uses SVar names (for example
+// Plus.DragonControlled). Resolve those names in the current face's SVar
+// table before applying the existing saturating arithmetic.
+func applyCountOpOperand(h Host, c *Ctx, n int32, op string, depth int) int32 {
+	for _, prefix := range []string{"Plus.", "Minus.", "Times."} {
+		operand, ok := strings.CutPrefix(op, prefix)
+		if !ok {
+			continue
+		}
+		operand = strings.TrimSpace(operand)
+		if _, err := strconv.Atoi(operand); err == nil {
+			return applyCountOp(n, op)
+		}
+		if c != nil && c.SVars != nil {
+			if body, exists := c.SVars[operand]; exists {
+				value, _ := evalCountExprOK(h, c, body, depth+1)
+				return applyCountOp(n, prefix+strconv.FormatInt(int64(value), 10))
+			}
+		}
+		return applyCountOp(n, op)
+	}
+	return applyCountOp(n, op)
 }
 
 // countDistinctLimitMax answers whether op is a LimitMax.<n> clamp on a
@@ -823,8 +848,9 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 // applyCountOp like every other head. A property this build does not
 // model (StartingLife, DomainPlayer, CardsDrawn, ...) or a ref
 // outside the two names plus the vote-carrier ref
-// TriggeredPlayersOpponentVotedDiff (trig:Vote; its only property is
-// Amount) returns false, and the caller degrades to zero
+// TriggeredPlayersOpponentVotedDiff (trig:Vote) and the DamageAll batch
+// ref TriggeredPlayersTargets (trig:DamageAll; both refs' only property
+// is Amount) returns false, and the caller degrades to zero
 // exactly as evalRefProperty's default always did. CardsDiscardedThisTurn
 // is the one optional head the brief allowed in: the shared Host predicate
 // already existed.
@@ -853,6 +879,19 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 		}
 	default:
 		return 0, false
+	case "TriggeredPlayersTargets":
+		// The batch's matching TARGET PLAYERS (trig:DamageAll): Malcolm
+		// Keen-Eyed Navigator's and Hordewing Skaab's SVar:X reads the count
+		// of opponents the damage batch dealt damage to ("create a Treasure
+		// token for each opponent dealt damage" / "draw cards equal to the
+		// number of opponents dealt damage this way"). The capture is the
+		// fire-time batch target set, filtered to its player entries in
+		// first-seen order; Amount is the count of those players.
+		for _, t := range c.TriggerDamageTargets {
+			if t.IsPlayer {
+				ts = append(ts, state.Target{Player: t.Player, IsPlayer: true})
+			}
+		}
 	}
 	prop, op, hasOp := strings.Cut(prop, "/")
 	prop = strings.TrimSpace(prop)
@@ -861,8 +900,14 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 	// (Erestor's SVar:X, the scry size). Confine the head to it here, so the
 	// ref cannot silently inherit LifeTotal/CardsInHand/Valid... sums that
 	// belong to TargetedPlayer/ThisTargetedPlayer -- the contract the
-	// evalPlayerRefProperty doc states.
+	// evalPlayerRefProperty doc states. TriggeredPlayersTargets (the
+	// DamageAll batch ref) takes the same confinement: its only modelled
+	// property is Amount, so a future property on it fails closed to zero
+	// instead of silently reading the batch players' current zone sizes.
 	if ref == "TriggeredPlayersOpponentVotedDiff" && prop != "Amount" {
+		return 0, false
+	}
+	if ref == "TriggeredPlayersTargets" && prop != "Amount" {
 		return 0, false
 	}
 	g := h.Game()
@@ -901,7 +946,7 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 					n++
 				}
 			}
-		case prop == "Amount" && ref == "TriggeredPlayersOpponentVotedDiff":
+		case prop == "Amount" && (ref == "TriggeredPlayersOpponentVotedDiff" || ref == "TriggeredPlayersTargets"):
 			n++
 		default:
 			// The Valid head and its countZone family: "Valid <spec>",
@@ -1252,6 +1297,11 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		// carries a trigger's captured event object, which is NOT part of
 		// Forge's host list (the same exclusion iterationBase applies). A
 		// resolution with no source object falls back to the ctx list.
+		// RememberRevealed$ is one of the riders that fills this list: effReveal
+		// writes BOTH halves (the rememberMilled discipline), so the source
+		// read serves it too -- a ctx-first preference here would double-count
+		// on every trigger resolution (Mind Maggots: ctx = the trigger's event
+		// capture + its own RememberDiscarded$ entries).
 		if o := g.Obj(c.Source); o != nil {
 			return int32(len(o.Remembered)), true
 		}

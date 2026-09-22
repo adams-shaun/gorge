@@ -280,7 +280,7 @@ func triggerModeEvents(mode string) triggerEventMask {
 		return 0
 	case "Taps", "TapsForMana":
 		return 1 << events.Tap
-	case "DamageDone", "DamageDealtOnce", "DamageDoneOnce":
+	case "DamageDone", "DamageDealtOnce", "DamageDoneOnce", "DamageAll":
 		return 1 << events.Damage
 	case "DamagePreventedOnce":
 		// The mode fires on the STORED prevention Note (rules/replacement.go's

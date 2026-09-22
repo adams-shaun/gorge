@@ -817,6 +817,15 @@ func replayFromLog(t *testing.T, cfg Config, log []events.Event) *state.Game {
 			ids = append(ids, g.AddObject(c, p).ID)
 		}
 		g.SetZone(state.ZLibrary, p, ids)
+		if i < len(cfg.Sideboards) {
+			sb := make([]state.ObjID, 0, len(cfg.Sideboards[i]))
+			for _, c := range cfg.Sideboards[i] {
+				o := g.AddObject(c, p)
+				o.Zone = state.ZSideboard
+				sb = append(sb, o.ID)
+			}
+			g.SetZone(state.ZSideboard, p, sb)
+		}
 	}
 	for _, ev := range log {
 		events.Apply(g, ev)

@@ -470,6 +470,23 @@ func durationTiming(dur string) (permanent bool, untilEOT bool) {
 func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, sa *cards.SA, zone string, chosenKW []string) {
 	kws := cards.SplitKeywordList(sa.Params["KW"])
 	kws = append(kws, chosenKW...)
+	// Suspend is unusual among keyword grants: its target is commonly an
+	// exiled card, and the later upkeep/cast/filter machinery needs a replayed
+	// provenance bit rather than only a transient layer effect. The event is
+	// emitted only for the actual Exile scope; ordinary battlefield keyword
+	// pumps must not make a card suspendable.
+	grantSuspend := false
+	for _, kw := range kws {
+		if strings.EqualFold(cards.KeywordHead(kw), "Suspend") {
+			grantSuspend = true
+			break
+		}
+	}
+	if strings.EqualFold(strings.TrimSpace(zone), "Exile") && grantSuspend {
+		if o := h.Game().Obj(id); o != nil && o.Zone == state.ZExile && !o.SuspendGranted {
+			h.Emit(events.Event{Kind: events.AlterAttribute, Obj: id, Text: "Suspend", Amount: 1})
+		}
+	}
 	permanent, untilEOT := durationTiming(sa.Params["Duration"])
 	if att != 0 || def != 0 {
 		h.AddContinuous(state.ContinuousEffect{
