@@ -79,13 +79,21 @@ func TestAggressiveBiomancy(t *testing.T) {
 	}
 	answerKTarget(t, e, bear)
 
-	// Resolve the sorcery; the copy enters and its granted ETB trigger fires.
+	// Resolve the sorcery. Its granted ETB must pose the Fight target ask;
+	// choose the Wall explicitly rather than letting a generic drain accept an
+	// arbitrary option, so the resulting two-way damage proves the rider's
+	// Execute$ body reached end-to-end resolution.
+	sawFightTarget := false
 	for i := 0; i < 40 && !e.G.Over; i++ {
+		if len(e.G.Stack) == 0 && len(e.pendingTriggers) == 0 {
+			break
+		}
 		d := e.Pending()
 		if d == nil {
 			break
 		}
-		if d.Kind == decision.KPriority {
+		switch d.Kind {
+		case decision.KPriority:
 			idx := -1
 			for _, o := range d.Options {
 				if o.Kind == "pass" {
@@ -93,24 +101,63 @@ func TestAggressiveBiomancy(t *testing.T) {
 				}
 			}
 			if idx < 0 {
-				break
+				t.Fatalf("priority decision has no pass option: %+v", d)
 			}
 			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
 				t.Fatalf("submit pass: %v", err)
 			}
-			continue
+		case decision.KTriggerOrder:
+			answerTriggerOrders(t, e)
+		case decision.KTarget:
+			if sawFightTarget {
+				t.Fatalf("the copied creature's ETB posed a second target ask: %+v", d)
+			}
+			if d.Min != 0 || d.Max != 1 {
+				t.Fatalf("Fight target bounds = %d..%d, want 0..1", d.Min, d.Max)
+			}
+			idx := -1
+			for _, o := range d.Options {
+				if o.Obj == giant {
+					idx = o.Index
+				}
+			}
+			if idx < 0 {
+				t.Fatalf("Fight target options = %+v, want Wall of Stone %d", d.Options, giant)
+			}
+			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
+				t.Fatalf("submit Fight target: %v", err)
+			}
+			sawFightTarget = true
+		default:
+			t.Fatalf("unexpected decision while resolving Aggressive Biomancy: %+v", d)
 		}
-		if len(d.Options) == 0 {
-			break
-		}
-		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{d.Options[0].Index}}); err != nil {
-			t.Fatalf("submit %s: %v", d.Kind, err)
-		}
+	}
+	if !sawFightTarget {
+		t.Fatal("the copied creature's granted Fight trigger never posed its target decision")
+	}
+	if len(e.G.Stack) != 0 {
+		t.Fatalf("Aggressive Biomancy did not finish resolving (stack depth %d)", len(e.G.Stack))
 	}
 
 	copyID := findTokenCopyOf(t, e, e.G.Obj(bear).Card, bear)
 	if e.G.Obj(copyID).Zone != state.ZBattlefield {
 		t.Fatalf("precondition failed: the copy is not on the battlefield (zone %s)", e.G.Obj(copyID).Zone)
+	}
+	if cp, gp := e.Power(copyID), e.Power(giant); cp != 2 || gp != 0 {
+		t.Fatalf("fight power precondition copy/Wall = %d/%d, want 2/0", cp, gp)
+	}
+	damage := fightDamageEvents(e)
+	if len(damage) != 2 {
+		t.Fatalf("granted Fight damage events = %+v, want exactly the two fight hits", damage)
+	}
+	if damage[0].Obj != giant || damage[0].Amount != 2 {
+		t.Fatalf("copy→Wall fight hit = %+v, want Wall %d taking 2", damage[0], giant)
+	}
+	if damage[1].Obj != copyID || damage[1].Amount != 0 {
+		t.Fatalf("Wall→copy fight hit = %+v, want copy %d taking 0", damage[1], copyID)
+	}
+	if e.G.Obj(giant).Damage != 2 || e.G.Obj(copyID).Damage != 0 {
+		t.Fatalf("fight damage state Wall/copy = %d/%d, want 2/0", e.G.Obj(giant).Damage, e.G.Obj(copyID).Damage)
 	}
 	// The granted trigger must be on the COPY only, with its Execute body
 	// resolved from the Biomancy table (a Fight whose target filter is the
