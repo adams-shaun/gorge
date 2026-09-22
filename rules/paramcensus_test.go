@@ -1567,6 +1567,10 @@ var handRoots = struct {
 		// ValidAttackingPlayer$ directly, so the scan needs the explicit root to
 		// attribute those reads.
 		"Engine.checkAttackerUnblockedOnceTriggers",
+		// AttackerUnblocked has the same round-complete dedicated hook, but
+		// queues one instance per matching attacker and reads ValidCard$ /
+		// ValidDefender$ against the attacker and its actual defender.
+		"Engine.checkAttackerUnblockedTriggers",
 		// The static-grant's trigger walk (AddTrigger$): mode-SHARED machinery
 		// like the drain above -- a granted trigger of ANY mode matches through
 		// triggerMatches' own dispatch.

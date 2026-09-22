@@ -487,6 +487,7 @@ func (e *Engine) step() {
 			// checkAttackerUnblockedOnceTriggers. Queued here, the trigger
 			// drains onto a stack at the priorityRound below (CR 509.2),
 			// before combat damage.
+			e.checkAttackerUnblockedTriggers()
 			e.checkAttackerUnblockedOnceTriggers()
 			e.priorityRound()
 		} else {

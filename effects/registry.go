@@ -1435,6 +1435,15 @@ type Ctx struct {
 	// consumes and clears it at the top of its walk (the fx42 scoping
 	// discipline), so a nested ChooseType cannot inherit the outer answer.
 	ChosenType string
+	// ManaReflectedColor is the answered mid-resolution AB$ ManaReflected
+	// colour pick: the option Label ("Add W") the chooser picked, set by
+	// rules' "manareflected" resume arm before the suspended sub-ability is
+	// re-run. effManaReflected's re-entry consumes and clears it, accepts the
+	// colour only when the resolution still offers it, and emits the one
+	// ManaAdd the deterministic fallback would have emitted. Empty on the
+	// first pass, where the effect poses the ask (or, on a host that cannot
+	// answer, the R-9 stand-in).
+	ManaReflectedColor string
 	// LookAck is the answered bare-look "Continue" ack (lookack, task
 	// fb-20260917T232325Z-35cfca4b): the looker acknowledged the private
 	// look a NoReveal$ / mandatory-Look$ Reveal-family effect is about to
