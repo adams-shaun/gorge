@@ -3549,6 +3549,16 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 // Indestructible in response, or protection from the source) between
 // targeting and resolution is not rechecked. See the Task 18 report.
 func effDestroy(h Host, c *Ctx, sa *cards.SA) {
+	// Forge's ForgetOtherTargets$ replaces the prior remembered set before
+	// this Destroy, while RememberTargets$ records only objects that actually
+	// leave the battlefield (not targets spared by regeneration or
+	// indestructibility).  Keep both the resolution-local and event-backed
+	// halves in sync, as the chained sub-ability may read either one.
+	if strings.EqualFold(strings.TrimSpace(sa.Params["ForgetOtherTargets"]), "True") {
+		c.Remembered = nil
+		clearEventRemembered(h, c)
+	}
+	remember := strings.EqualFold(strings.TrimSpace(sa.Params["RememberTargets"]), "True")
 	// Same pre-batch discipline as effDestroyAll: the targets Defined
 	// resolves are destroyed as one simultaneous batch (a multi-target
 	// Destroy over a lifelink Equipment and its bearer must not make the
@@ -3593,6 +3603,10 @@ func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
 			From: state.ZBattlefield, To: state.ZGraveyard, Text: "destroyed"})
+		if remember {
+			c.Remembered = append(c.Remembered, state.Target{Obj: id})
+			eventRemember(h, c, id)
+		}
 	}
 }
 
