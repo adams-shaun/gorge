@@ -762,6 +762,23 @@ type Engine struct {
 	// recorded ManaAdd events.
 	manaSpentSources []state.ObjID
 
+	// manaExpended is the per-seat, per-turn tally of mana spent CASTING
+	// spells this turn (trig:ManaExpend's "as you spend your Nth total mana
+	// to cast spells during a turn"). It is engine scratch, NOT event state,
+	// because it must count EVERY cast of the turn -- including casts made
+	// before a ManaExpend carrier entered the battlefield, which emit no
+	// FlagManaExpendCast event (the emission gate keeps games without a
+	// carrier byte-identical, heads safety). payCast updates it
+	// unconditionally on every paid cast; manaExpendMatches reads it for the
+	// crossing test. manaExpendedTurn is the e.G.Turn the slice belongs to:
+	// payCast zeroes the slice and re-stamps when the turn has moved on (the
+	// tally is rebuilt by replay's payCast re-execution in the same order, so
+	// it is deterministic), and Clone copies both so an intent-boundary clone
+	// resumes mid-turn with the original's tally. The window is any turn, not
+	// "your turn": an instant cast on an opponent's turn accumulates too.
+	manaExpended     []int32
+	manaExpendedTurn int32
+
 	// costProvenanceSeen is the transient capture of the last cost-modifier
 	// pass (castprov3): true when that pass evaluated a cost static whose
 	// ValidCard$ carries a cast-provenance token (Bilbo's
@@ -1118,8 +1135,12 @@ func newWithRNG(cfg Config, random *rng) *Engine {
 		compiledText: newCompiledText(cfg),
 		mulligans:    cfg.Mulligans,
 		startingLife: life,
+		// The per-turn ManaExpend tally (rules/cast.go) starts empty; payCast
+		// stamps and resets it lazily on e.G.Turn.
+		manaExpended: make([]int32, len(cfg.Names)),
 	}
 	e.G.Tokens = cfg.Tokens
+	e.manaExpendedTurn = e.G.Turn
 	e.format = cfg.Format
 	for i := range e.G.Players {
 		if i < len(cfg.PlayerNames) && cfg.PlayerNames[i] != "" {

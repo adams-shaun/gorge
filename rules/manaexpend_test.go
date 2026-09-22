@@ -29,6 +29,13 @@ func expendVanilla(t *testing.T, e *Engine, cost string) state.ObjID {
 	return o.ID
 }
 
+// manaExpendedOf reads the engine's per-turn ManaExpend tally for a seat.
+// It is engine scratch (rules/cast.go's manaExpended), deliberately NOT event
+// state: the tally counts every cast of the turn, including casts made before
+// a carrier entered the battlefield (which emit no wake-up CastInfo), so it
+// is the crossing base the matcher reads. Tests assert it directly.
+func manaExpendedOf(e *Engine, p state.PlayerID) int32 { return e.manaExpendTotal(p) }
+
 // castExpendVehicle casts the vehicle through the ordinary beginCast flow and
 // asserts it reached the stack paid (the precondition every later assertion
 // rides on: the tally only moves on a payment that actually happened).
@@ -93,8 +100,8 @@ func TestTeapotSlingerExpendFourDealsDamage(t *testing.T) {
 	first := expendVanilla(t, e, "3")
 	e.G.Players[0].Pool[state.MC] = 10
 	castExpendVehicle(t, e, first)
-	if got := e.G.Players[0].ManaExpended; got != 3 {
-		t.Fatalf("after the 3-mana cast ManaExpended = %d, want 3", got)
+	if got := manaExpendedOf(e, 0); got != 3 {
+		t.Fatalf("after the 3-mana cast tally = %d, want 3", got)
 	}
 	if len(e.pendingTriggers) != 0 {
 		t.Fatalf("3-mana cast queued %d triggers, want 0 (threshold not crossed)", len(e.pendingTriggers))
@@ -104,8 +111,8 @@ func TestTeapotSlingerExpendFourDealsDamage(t *testing.T) {
 	// Cast 2: four mana. Tally 3->7, crossing 4 exactly once.
 	second := expendVanilla(t, e, "4")
 	castExpendVehicle(t, e, second)
-	if got := e.G.Players[0].ManaExpended; got != 7 {
-		t.Fatalf("after the 4-mana cast ManaExpended = %d, want 7", got)
+	if got := manaExpendedOf(e, 0); got != 7 {
+		t.Fatalf("after the 4-mana cast tally = %d, want 7", got)
 	}
 	if len(e.pendingTriggers) != 1 {
 		t.Fatalf("crossing cast queued %d triggers, want 1", len(e.pendingTriggers))
@@ -125,8 +132,8 @@ func TestTeapotSlingerExpendFourDealsDamage(t *testing.T) {
 	// Cast 3: two more mana. Tally 7->9, prev 7 already >= 4: no re-fire.
 	third := expendVanilla(t, e, "2")
 	castExpendVehicle(t, e, third)
-	if got := e.G.Players[0].ManaExpended; got != 9 {
-		t.Fatalf("after the 2-mana cast ManaExpended = %d, want 9", got)
+	if got := manaExpendedOf(e, 0); got != 9 {
+		t.Fatalf("after the 2-mana cast tally = %d, want 9", got)
 	}
 	if len(e.pendingTriggers) != 0 {
 		t.Fatalf("at-or-above-threshold cast queued %d triggers, want 0 (no second crossing)", len(e.pendingTriggers))
@@ -152,20 +159,20 @@ func TestTeapotSlingerExpendResetsEachTurn(t *testing.T) {
 		t.Fatalf("turn-1 crossing cast queued %d triggers, want 1", len(e.pendingTriggers))
 	}
 	settleExpendTrigger(t, e)
-	if got := e.G.Players[0].ManaExpended; got != 4 {
-		t.Fatalf("turn 1 ManaExpended = %d, want 4", got)
+	if got := manaExpendedOf(e, 0); got != 4 {
+		t.Fatalf("turn 1 tally = %d, want 4", got)
 	}
 
 	// Turn 2: the boundary resets the tally for every seat.
 	e.emit(events.Event{Kind: events.TurnChange, Player: 0, Amount: e.G.Turn + 1})
-	if got := e.G.Players[0].ManaExpended; got != 0 {
-		t.Fatalf("after TurnChange ManaExpended = %d, want 0 (per-turn tally)", got)
+	if got := manaExpendedOf(e, 0); got != 0 {
+		t.Fatalf("after TurnChange tally = %d, want 0 (per-turn tally)", got)
 	}
 
 	second := expendVanilla(t, e, "4")
 	castExpendVehicle(t, e, second)
-	if got := e.G.Players[0].ManaExpended; got != 4 {
-		t.Fatalf("turn-2 ManaExpended = %d, want 4 (the tally restarted)", got)
+	if got := manaExpendedOf(e, 0); got != 4 {
+		t.Fatalf("turn-2 tally = %d, want 4 (the tally restarted)", got)
 	}
 	if len(e.pendingTriggers) != 1 {
 		t.Fatalf("turn-2 crossing cast queued %d triggers, want 1 (the threshold resets)", len(e.pendingTriggers))
@@ -192,8 +199,8 @@ func TestTeapotSlingerExpendIgnoresAbilityMana(t *testing.T) {
 	spell := expendVanilla(t, e, "3")
 	castExpendVehicle(t, e, spell)
 	e.resolveTop()
-	if got := e.G.Players[0].ManaExpended; got != 3 {
-		t.Fatalf("after the 3-mana cast ManaExpended = %d, want 3", got)
+	if got := manaExpendedOf(e, 0); got != 3 {
+		t.Fatalf("after the 3-mana cast tally = %d, want 3", got)
 	}
 
 	// Activate the {2} draw ability: pool moves, tally must not.
@@ -201,8 +208,8 @@ func TestTeapotSlingerExpendIgnoresAbilityMana(t *testing.T) {
 	if top := e.G.Obj(e.G.Stack[len(e.G.Stack)-1]); top == nil || top.Zone != state.ZStack {
 		t.Fatalf("test precondition: the {2} ability did not reach the stack")
 	}
-	if got := e.G.Players[0].ManaExpended; got != 3 {
-		t.Fatalf("after the {2} ability activation ManaExpended = %d, want 3 (abilities never expend)", got)
+	if got := manaExpendedOf(e, 0); got != 3 {
+		t.Fatalf("after the {2} ability activation tally = %d, want 3 (abilities never expend)", got)
 	}
 	e.resolveTop()
 
@@ -210,8 +217,8 @@ func TestTeapotSlingerExpendIgnoresAbilityMana(t *testing.T) {
 	// ability's 2 mana stayed out of the tally.
 	small := expendVanilla(t, e, "1")
 	castExpendVehicle(t, e, small)
-	if got := e.G.Players[0].ManaExpended; got != 4 {
-		t.Fatalf("after the 1-mana cast ManaExpended = %d, want 4", got)
+	if got := manaExpendedOf(e, 0); got != 4 {
+		t.Fatalf("after the 1-mana cast tally = %d, want 4", got)
 	}
 	if len(e.pendingTriggers) != 1 {
 		t.Fatalf("the crossing cast queued %d triggers, want 1", len(e.pendingTriggers))
@@ -224,17 +231,28 @@ func TestTeapotSlingerExpendIgnoresAbilityMana(t *testing.T) {
 
 // TestManaExpendSilentWithoutTheCarrierOut pins the emission gate from the
 // other side: with no ManaExpend carrier on the battlefield the pay-time
-// stamp does not exist at all, so the tally never accumulates and no trigger
-// fires — the heads-safety contract (no golden game changes an event).
+// wake-up stamp does not exist at all, so the trigger scan never runs and no
+// trigger fires — the heads-safety contract (no golden game changes an
+// event). The engine tally still accumulates (it is scratch, and a carrier
+// that enters later MUST see the pre-entry spend), but no EVENT records it:
+// the assertion is on the log, not the scratch.
 func TestManaExpendSilentWithoutTheCarrierOut(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t, corpusAlternativeCard(t, "Teapot Slinger"))
 	e.G.Players[0].Pool[state.MC] = 10
 
+	before := len(e.L.Events)
 	spell := expendVanilla(t, e, "4")
 	castExpendVehicle(t, e, spell)
-	if got := e.G.Players[0].ManaExpended; got != 0 {
-		t.Fatalf("with no carrier out ManaExpended = %d, want 0 (no stamp emitted)", got)
+	// Scratch accumulated the unconditional spend (that is what a later-entry
+	// carrier reads), but no FlagManaExpendCast wake-up event was emitted.
+	if got := manaExpendedOf(e, 0); got != 4 {
+		t.Fatalf("with no carrier out the scratch tally = %d, want 4 (unconditional accumulator)", got)
+	}
+	for _, ev := range e.L.Events[before:] {
+		if ev.Kind == events.CastInfo && events.FlagsFrom(ev.Counter)&state.FlagManaExpendCast != 0 {
+			t.Fatalf("no carrier out but a ManaExpend wake-up CastInfo was emitted: %+v", ev)
+		}
 	}
 	if len(e.pendingTriggers) != 0 {
 		t.Fatalf("no carrier out but %d triggers queued", len(e.pendingTriggers))
@@ -258,13 +276,93 @@ func TestManaExpendUnknownAmountFailsClosed(t *testing.T) {
 
 	spell := expendVanilla(t, e, "4")
 	castExpendVehicle(t, e, spell)
-	if got := e.G.Players[0].ManaExpended; got != 4 {
-		t.Fatalf("test precondition: the crossing stamp folded ManaExpended = %d, want 4", got)
+	if got := manaExpendedOf(e, 0); got != 4 {
+		t.Fatalf("test precondition: the crossing stamp left the tally = %d, want 4", got)
 	}
 	if len(e.pendingTriggers) != 0 {
 		t.Fatalf("an unreadable Amount$ queued %d triggers, want 0 (fail closed)", len(e.pendingTriggers))
 	}
 	e.resolveTop()
+}
+
+// TestTeapotSlingerExpendCarrierEntryTurnCrossesOnPreEntrySpend pins the
+// MAJOR defect the round-2 review found: the tally is a fact of the TURN, not
+// of "casts made while the carrier was already out". A carrier that enters
+// mid-turn MUST see the casts made before it entered. Here 3 mana is spent on
+// a cast with no carrier out (emitting no wake-up event), Teapot Slinger then
+// enters, and a 1-mana cast completes the real expend-4 (3 + 1 = 4) with the
+// carrier out -- the crossing that fires the trigger is the engine's
+// pre-entry spend plus this cast, which a gated-only tally would miss
+// (undercount to 1, fire nothing).
+func TestTeapotSlingerExpendCarrierEntryTurnCrossesOnPreEntrySpend(t *testing.T) {
+	t.Parallel()
+	e := handEngine(t, corpusAlternativeCard(t, "Teapot Slinger"))
+	e.G.Players[0].Pool[state.MC] = 20
+
+	// Pre-entry cast: 3 mana with NO carrier out. No wake-up event, but the
+	// engine tally must record it.
+	pre := expendVanilla(t, e, "3")
+	castExpendVehicle(t, e, pre)
+	if got := manaExpendedOf(e, 0); got != 3 {
+		t.Fatalf("test precondition: pre-entry tally = %d, want 3", got)
+	}
+	e.resolveTop()
+
+	// Now the carrier enters mid-turn.
+	expendTeapot(t, e)
+
+	// The 1-mana cast completes the real expend-4 with the carrier out.
+	post := expendVanilla(t, e, "1")
+	castExpendVehicle(t, e, post)
+	if got := manaExpendedOf(e, 0); got != 4 {
+		t.Fatalf("after the 1-mana cast tally = %d, want 4 (3 pre-entry + 1)", got)
+	}
+	if len(e.pendingTriggers) != 1 {
+		t.Fatalf("the crossing cast queued %d triggers, want 1 (pre-entry spend counts)", len(e.pendingTriggers))
+	}
+	settleExpendTrigger(t, e)
+	if life := e.G.Players[1].Life; life != 18 {
+		t.Fatalf("opponent life = %d, want 18 (the expend-4 trigger fired)", life)
+	}
+}
+
+// TestTeapotSlingerExpendNoSpuriousFireOnEntryTurn pins the OTHER direction of
+// the same defect: a crossing that happened during a PRE-entry cast (before
+// the carrier was on the battlefield) must NOT re-fire when a later cast is
+// made with the carrier out. 4 mana is spent pre-entry (the real expend-4
+// happened then, with no carrier to trigger) and 4 more after Teapot enters:
+// the tallied total is 8 and the pre-payment base is 4, so there is no
+// crossing at 4 and the trigger must stay silent. A gated-only tally would
+// undercount the base to 0, compute prev=0 < 4 <= total=4, and fire
+// spuriously.
+func TestTeapotSlingerExpendNoSpuriousFireOnEntryTurn(t *testing.T) {
+	t.Parallel()
+	e := handEngine(t, corpusAlternativeCard(t, "Teapot Slinger"))
+	e.G.Players[0].Pool[state.MC] = 20
+
+	// Pre-entry cast: 4 mana; the real expend-4 happens with no carrier out.
+	pre := expendVanilla(t, e, "4")
+	castExpendVehicle(t, e, pre)
+	if got := manaExpendedOf(e, 0); got != 4 {
+		t.Fatalf("test precondition: pre-entry tally = %d, want 4", got)
+	}
+	e.resolveTop()
+
+	expendTeapot(t, e)
+
+	// A second 4-mana cast: total 8, base 4. No crossing at 4.
+	post := expendVanilla(t, e, "4")
+	castExpendVehicle(t, e, post)
+	if got := manaExpendedOf(e, 0); got != 8 {
+		t.Fatalf("after the post-entry 4-mana cast tally = %d, want 8", got)
+	}
+	if len(e.pendingTriggers) != 0 {
+		t.Fatalf("post-entry cast queued %d triggers, want 0 (the expend-4 happened pre-entry)", len(e.pendingTriggers))
+	}
+	settleExpendTrigger(t, e)
+	if life := e.G.Players[1].Life; life != 20 {
+		t.Fatalf("opponent life = %d, want 20 (no spurious expend trigger)", life)
+	}
 }
 
 // decisionOptionAbility builds the ability-activation option beginActivation

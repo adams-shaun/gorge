@@ -1065,11 +1065,13 @@ var flagNames = [...]struct {
 	// resolving both halves. Appended at the end per the table's own
 	// ordering rule.
 	{"fused", state.FlagFused},
-	// The per-turn ManaExpend tally increment (trig:ManaExpend): a cast made
-	// while a ManaExpend trigger face is on the caster's battlefield stamps
-	// its pay-time CastInfo with this flag, so the Amount folds into the
-	// caster's Player.ManaExpended instead of overwriting X. Appended at the
-	// end per the table's own ordering rule.
+	// The ManaExpend wake-up marker (trig:ManaExpend): a cast made while a
+	// ManaExpend trigger face is on the caster's battlefield stamps its
+	// pay-time CastInfo with this flag, so its Amount names the cast's pool
+	// spend to the crossing matcher. The engine's per-turn tally itself is
+	// scratch (rules' manaExpended), NOT an event fold: it must count casts
+	// made before the carrier entered, which emit no such event. Appended at
+	// the end per the table's own ordering rule.
 	{"manaexpend", state.FlagManaExpendCast},
 }
 
