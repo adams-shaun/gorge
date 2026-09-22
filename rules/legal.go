@@ -2698,6 +2698,21 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 			}
 			// advanceStep's own emit carries the reset pass count; the count
 			// this round reached is never itself a value anything observes.
+			//
+			// CR 514.3b (mayflashsac2, review round 3): an emptied cleanup-step
+			// stack is NOT licence to advance. The rules require the cleanup
+			// procedure to REPEAT, redoing its 514.1/514.2 actions, after a
+			// trigger resolves or a player acts in this window -- an instant
+			// cast here (Giant Growth) must have its 'until end of turn' effect
+			// expire in the repeated cleanup, and a trigger that drew the
+			// active player over the hand limit must face the repeat's
+			// discard. advanceStep would instead begin the next turn outright,
+			// skipping both. repeatCleanup runs the whole procedure once more
+			// and itself reaches advanceStep only when nothing is waiting.
+			if e.G.Step == state.StepCleanup {
+				e.repeatCleanup()
+				return
+			}
 			e.advanceStep()
 			return
 		}

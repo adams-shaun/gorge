@@ -1914,7 +1914,15 @@ func Apply(g *state.Game, e Event) {
 		// provenance (r3): the copy resolves the same compiled SA, so it reads
 		// the same owning face.
 		gainedFace := src.GainedFace
-		x, castFlags := src.X, src.CastFlags
+		// The copy inherits the original's CastFlags -- a copy of a fused,
+		// bestowed or kicked spell resolves as one -- EXCEPT the cast
+		// provenance a later reader turns into an "if you cast it"
+		// obligation. A copy is put on the stack, not cast (CR 707.10), so
+		// state.CastProvenanceFlags is stripped here, at the mint: the copy
+		// resolves, Move turns it into a token and clears IsCopy, and
+		// rules/altcast.go's battlefield-entry hook has no IsCopy left to
+		// tell a never-cast token from the real cast.
+		x, castFlags := src.X, src.CastFlags&^state.CastProvenanceFlags
 		// Deep-copy, never alias: the copy's Targets/Remembered must be
 		// able to change independently of the original's once both sit on
 		// the stack.
@@ -2015,15 +2023,17 @@ func Apply(g *state.Game, e Event) {
 		// Dash and Warp refer to the exact permanent that received their
 		// keyword promise, and so does the AtEOT$ end-of-turn rider family
 		// (effects/atEOTBody reuses the warp body for Exile and mints its
-		// own __kwAtEOTDestroy for Destroy): a copy that left the battlefield
-		// and returned as a new incarnation is NOT acted on by the stale
-		// promise. Encore's grouped delayed trigger does not: CR
-		// 603.7 leaves it independent of the card that created it, and it
-		// must sacrifice its remembered token group even if that card later
-		// changes zones and returns as a new incarnation.
+		// own __kwAtEOTDestroy for Destroy) and the MayFlashSac cleanup
+		// sacrifice (rules/mayflashsac.go's __kwMayFlashSacrifice): a copy
+		// that left the battlefield and returned as a new incarnation is NOT
+		// acted on by the stale promise (CR 400.7). Encore's grouped delayed
+		// trigger does not: CR 603.7 leaves it independent of the card that
+		// created it, and it must sacrifice its remembered token group even
+		// if that card later changes zones and returns as a new incarnation.
 		track := strings.HasPrefix(e.Counter, "__kwDash") ||
 			strings.HasPrefix(e.Counter, "__kwWarp") ||
-			strings.HasPrefix(e.Counter, "__kwAtEOT")
+			strings.HasPrefix(e.Counter, "__kwAtEOT") ||
+			strings.HasPrefix(e.Counter, "__kwMayFlashSac")
 		// Event-matched (non-phase) registrations encode
 		// "<Mode$ value>:<trigger SVar name>" in Text. The DelayedRegister
 		// event gains no field of its own (Ruling T20-a's field-reuse

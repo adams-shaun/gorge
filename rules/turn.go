@@ -495,7 +495,8 @@ func (e *Engine) declarationMadeThisStep(kind events.Kind) bool {
 }
 
 func (e *Engine) priorityRound() {
-	// Nobody receives priority during untap or cleanup.
+	// Nobody receives priority during untap or cleanup -- except on the
+	// CR 514.3 grounds cleanupStep's caller below spells out.
 	if e.G.Step == state.StepUntap || e.G.Step == state.StepCleanup {
 		if e.G.Step == state.StepCleanup {
 			// CR 514.1 (Task D1): the discard-down-to-maximum-hand-size
@@ -507,8 +508,8 @@ func (e *Engine) priorityRound() {
 			// loop would pause on e.pending regardless, but returning here
 			// keeps this round from advancing anyway; the answer resumes via
 			// Submit -> handleChoose -> e.discardCleanup (combat.go), which
-			// emits the discard moves, runs the 514.2 body, and then advances
-			// the step itself.
+			// emits the discard moves and then finishes the step through the
+			// same CR 514.3 tail as the no-discard path (finishCleanupStep).
 			//
 			// CR 514.2: cleanup removes damage and "until end of turn"
 			// effects. Wired in here by Task 21 -- Engine.EndOfTurnCleanup
@@ -529,10 +530,8 @@ func (e *Engine) priorityRound() {
 			// discard owed, the ordinary path with a hand of seven or fewer)
 			// or from discardCleanup after the discard answer is recorded --
 			// never from both, so no 514.2 action is ever done twice.
-			e.cleanupStep()
-			if e.pending != nil {
-				return
-			}
+			e.repeatCleanup()
+			return
 		}
 		e.advanceStep()
 		return
@@ -581,6 +580,66 @@ func (e *Engine) grantPriority() {
 	}
 	e.emit(events.Event{Kind: events.Priority, Player: holder, Amount: e.G.Passes})
 	e.askPriority(holder)
+}
+
+// repeatCleanup runs the cleanup procedure from its top: the CR 514.1
+// discard and the CR 514.2 "until end of turn" body (cleanupStep), then the
+// CR 514.3 tail (finishCleanupStep), which places any trigger waiting and
+// hands out priority while it resolves or advances the turn.
+//
+// It is the ONE home for "do the cleanup step" and every entry into a
+// cleanup procedure goes through it -- the ordinary priority round above,
+// and (CR 514.3b) a cleanup-step priority round whose stack has just emptied.
+// That second caller is the repeat the rules require: when a cleanup trigger
+// resolves or a player casts an instant in the cleanup-step priority window,
+// the 514.1/514.2 actions must run AGAIN before the turn can end, so an
+// until-end-of-turn effect created by that instant expires and a hand pushed
+// over the limit by that trigger is discarded. Routing the pass-case through
+// here rather than straight to advanceStep is what makes that happen;
+// without it the next turn simply begins.
+func (e *Engine) repeatCleanup() {
+	e.cleanupStep()
+	if e.pending != nil {
+		return
+	}
+	e.finishCleanupStep()
+}
+
+// finishCleanupStep is the CR 514.3 tail of the cleanup step, the one
+// continuation shared by repeatCleanup (which also runs the 514.1/514.2
+// actions ahead of it) and the answered-discard path (discardCleanup,
+// combat.go). After the 514.1/514.2 turn-based actions have run, CR 514.3a
+// places every trigger waiting (the state-based-action pass already happened
+// at step()'s head) and gives the players priority while the stack is
+// non-empty; when the stack empties, this function advances the turn.
+//
+// The CR 514.3b repeat that must run BEFORE that advance lives in the two
+// callers, not here. When the step is entered normally, Advance -> step ->
+// priorityRound reaches repeatCleanup again; when priority was granted from
+// inside a cleanup priority round (finishCleanupStep's own grantPriority
+// below, or resumeTriggerDrain's tail), the round is left through
+// handlePriority's empty-stack pass, which routes back into repeatCleanup
+// (legal.go). Both routes run cleanupStep once more and, finding no trigger
+// and no stack, end the step. The loop terminates on the same property every
+// priority round here does: triggers are finite and one-shot registrations
+// are consumed at their DelayedPush.
+//
+// putTriggersOnStack's true return means it asked a decision (an ordering or
+// an optional-trigger ask): e.pending is set and the drain resumes through
+// resumeTriggerDrain, whose tail -- grantPriority, never a priorityRound
+// re-entry -- finishes this interrupted round exactly as it finishes every
+// other one. grantPriority's direct call below is the no-decision case: the
+// drain placed triggers on the stack and it is simply the players' turn to
+// respond (CR 117.1) while the step is still cleanup.
+func (e *Engine) finishCleanupStep() {
+	if e.putTriggersOnStack() {
+		return
+	}
+	if len(e.G.Stack) > 0 {
+		e.grantPriority()
+		return
+	}
+	e.advanceStep()
 }
 
 // resumeTriggerDrain continues a half-drained trigger queue after one of its

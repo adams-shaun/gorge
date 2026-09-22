@@ -608,7 +608,14 @@ func effChoosePlayer(h Host, c *Ctx, sa *cards.SA) {
 				if seen {
 					continue
 				}
-			} else if !MatchesPlayerSpec(g, spec, p, choosers[i]) {
+			} else if !MatchesPlayerSpecFrom(g, spec, p, choosers[i], c.Source) {
+				// The source is passed so a compound Choices$ spec whose clauses
+				// read the choosing object's own choice state resolves:
+				// Territorial Hellkite's `Player.Opponent+!IsRemembered` (an
+				// opponent the dragon did not attack last combat) needs the
+				// source's event-backed Remembered list, which
+				// MatchesPlayerSpec (source 0) cannot see and therefore failed
+				// closed to an EMPTY pool.
 				continue
 			}
 			choices = append(choices, state.Target{Player: p, IsPlayer: true})
@@ -636,6 +643,54 @@ func effChoosePlayer(h Host, c *Ctx, sa *cards.SA) {
 		}
 		choiceRecord(h, c, sa, choices[:min], true)
 	}
+	// Forge's ChoosePlayerEffect then runs one of the two chained riders: a
+	// successful choice runs ChooseSubAbility$ (Territorial Hellkite's DBPump,
+	// which registers the "attacks that player this combat if able"
+	// requirement), and a choice that found no candidate -- or named no
+	// chooser at all -- runs CantChooseSubAbility$ (DBTap). Most ChoosePlayer
+	// carriers carry neither, so an absent param is a no-op. The rider runs
+	// under the same Ctx the choice was recorded on, so it reads the just-made
+	// choice through Ctx.Chosen and the source object's event-backed Chosen.
+	//
+	// The decision is per RESOLUTION, not per chooser: the Choosers loop's
+	// re-entry/suspend discipline means this block is reached exactly once,
+	// after every chooser has answered, so a multi-chooser ChoosePlayer runs
+	// its rider once (the last non-empty answer is what the source holds --
+	// the same last-chooser-wins rule choiceRecord's playerChoice branch
+	// already applies). A multi-chooser rider carrier is corpus-unreachable
+	// (the one ChooseSubAbility carrier, Territorial Hellkite, has a single
+	// Defined$ You chooser), so the once-per-resolution read is exact where it
+	// is reachable and conservative where it is not.
+	picked := false
+	for _, t := range c.Chosen {
+		if t.IsPlayer {
+			picked = true
+			break
+		}
+	}
+	if picked {
+		runChooseRider(h, c, sa, "ChooseSubAbility")
+	} else {
+		runChooseRider(h, c, sa, "CantChooseSubAbility")
+	}
+}
+
+// runChooseRider resolves and runs one of a ChoosePlayer's chained riders
+// (Forge's ChooseSubAbility$/CantChooseSubAbility$): the named SVar body on
+// the SA's own face runs under the same Ctx the choice was recorded on. An
+// absent param, a nil SVar table or an unresolvable name is the fail-closed
+// no-op -- every ChoosePlayer carrier without the rider, and any name this
+// build cannot resolve, simply runs nothing rather than a wrong body.
+func runChooseRider(h Host, c *Ctx, sa *cards.SA, param string) {
+	name := strings.TrimSpace(sa.Params[param])
+	if name == "" || c.SVars == nil {
+		return
+	}
+	sub := cards.ResolveSVar(c.SVars, name)
+	if sub == nil {
+		return
+	}
+	Resolve(h, c, sub)
 }
 
 // playerTargetIn returns the first player entry in ts, the same first-match
