@@ -358,19 +358,18 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	// WithCountersType$/WithCountersAmount$ make the move put counters on the
-	// permanent it lands on the battlefield with -- the Undying expansion's
-	// "return to the battlefield with a +1/+1 counter" (cards/keywords.go). The
-	// CounterChange is emitted AFTER the MoveZone, so it lands on the moved
-	// (new) object's back at its destination, exactly as Move waiting to run
-	// first would want, and the counter survives onto the permanent because it
-	// is added post-move. Counter (not the Move carrying it along) is what
-	// keeps events/apply.go's Move from knowing anything about counters.
+	// object it lands with -- the Undying expansion's "return to the battlefield
+	// with a +1/+1 counter" (cards/keywords.go) and a card exiled with TIME
+	// counters (suspend). The CounterChange is emitted AFTER the MoveZone, so it
+	// lands on the moved (new) object's back at its destination, exactly as Move
+	// waiting to run first would want, and the counter survives onto the object
+	// because it is added post-move. Counter (not the Move carrying it along) is
+	// what keeps events/apply.go's Move from knowing anything about counters.
+	// counterDestination is the one gate every mover shares: a destination that
+	// cannot carry the counters neither parses the amount nor emits anything.
 	withKind := sa.Params["WithCountersType"]
 	var withAmt int32
-	// WithCounters* only takes effect when the object enters the battlefield.
-	// Parsing a dynamic/malformed amount emits a Note, so do not parse it for
-	// another destination where no CounterChange can ever be emitted.
-	if to == state.ZBattlefield && withKind != "" {
+	if withKind != "" && counterDestination(to) {
 		withAmt = withCounterAmount(h, c, sa)
 	}
 	targets := Defined(h, c, sa)
@@ -586,7 +585,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 			eventRemember(h, c, o.ID)
 		}
 		eventForgetChanged(h, c, sa, o.ID)
-		if withKind != "" && to == state.ZBattlefield {
+		if withKind != "" && counterDestination(to) {
 			h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: withKind, Amount: withAmt})
 		}
 		// GainControl$ hands the moved object to the named player (Reanimate:
@@ -745,8 +744,9 @@ func applyFaceDownMarker(h Host, sa *cards.SA, c *Ctx, ev *events.Event, to stat
 // the same chain captures it, and the value is a parameter of the ongoing
 // resolution (Ctx), not game state, so mutating it here is fine), then the
 // WithCountersType$/WithCountersAmount$ entry counters when the move lands on
-// the battlefield. Keeping the object path and the hand-choice path on this
-// one helper means the two cannot drift apart on any of the three.
+// a counter-bearing destination (battlefield or exile -- counterDestination).
+// Keeping the object path and the hand-choice path on this one helper means
+// the two cannot drift apart on any of the three.
 func settleChangeZoneMove(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, to state.Zone, withKind string, withAmt int32) {
 	settleChangeZoneMoveAs(h, c, sa, id, from, to, withKind, withAmt, 0, false)
 }
@@ -761,9 +761,10 @@ func settleChangeZoneMove(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, to
 // later SubAbility of the same chain captures it, and the value is a
 // parameter of the ongoing resolution (Ctx), not game state, so mutating it
 // here is fine), then the WithCountersType$/WithCountersAmount$ entry
-// counters when the move lands on the battlefield. Keeping the object path
-// and the hand-choice path on this one helper means the two cannot drift
-// apart on any of the three. Tapped$ True is event-backed for the hidden
+// counters when the move lands on a counter-bearing destination (battlefield
+// or exile -- counterDestination). Keeping the object path and the hand-choice
+// path on this one helper means the two cannot drift apart on any of the
+// three. Tapped$ True is event-backed for the hidden
 // library paths, but not for a card entering from hand; before every such
 // move this common path makes the narrowing replay-visible rather than
 // silently entering the card untapped.
@@ -903,7 +904,7 @@ func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, 
 	if strings.EqualFold(sa.Params["RememberChanged"], "True") {
 		c.Remembered = append(c.Remembered, state.Target{Obj: id})
 	}
-	if withKind != "" && to == state.ZBattlefield {
+	if withKind != "" && counterDestination(to) {
 		h.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: withKind, Amount: withAmt})
 	}
 	// GainControl$ hands the moved object to the named player. Only a
@@ -1256,9 +1257,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 	c.HandMove, c.HandMoveDone, c.HandMoveTarget = nil, false, 0
 	withKind := sa.Params["WithCountersType"]
 	var withAmt int32
-	// Match the object path: WithCounters* has no effect away from the
-	// battlefield, and parsing a dynamic amount there must not emit a Note.
-	if to == state.ZBattlefield && withKind != "" {
+	if withKind != "" && counterDestination(to) {
 		withAmt = withCounterAmount(h, c, sa)
 	}
 	// settleHandMove settles one chosen card: exactly the shared ChangeZone
@@ -1678,6 +1677,22 @@ func handDestPhrase(to state.Zone) string {
 	default:
 		return "its destination"
 	}
+}
+
+// counterDestination reports whether a ChangeZone destination can carry the
+// WithCountersType$/WithCountersAmount$ entry counters. They land on a
+// permanent entering the battlefield (the Undying expansion) or on a card
+// exiled with them (suspend's TIME counters); a counter on a moved card in any
+// other zone is never read by anything, so such a destination must not parse
+// the amount (which would emit a malformed-amount Note for a dynamic value)
+// and must not emit a CounterChange. Measured at the corpus pin: every
+// ChangeZone-family `WithCountersType$` line names exactly these two
+// destinations -- Battlefield 99, Exile 38 (137 total) -- so the gate admits
+// the whole measured population and nothing else. This is the one gate every
+// ChangeZone mover shares (the other APIs that carry the parameter,
+// CopyPermanent and Token, read it in their own primitives).
+func counterDestination(to state.Zone) bool {
+	return to == state.ZBattlefield || to == state.ZExile
 }
 
 // withCounterAmount parses WithCountersAmount$ (default 1). Malformed values
@@ -2163,7 +2178,7 @@ func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, to state.Zone) bool
 
 	withKind := sa.Params["WithCountersType"]
 	var withAmt int32
-	if to == state.ZBattlefield && withKind != "" {
+	if withKind != "" && counterDestination(to) {
 		withAmt = withCounterAmount(h, c, sa)
 	}
 	// The AtEOT$ rider's affected set, collected across every fetch and
@@ -2611,7 +2626,7 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 	noLooking := strings.EqualFold(strings.TrimSpace(sa.Params["NoLooking"]), "True")
 	withKind := sa.Params["WithCountersType"]
 	var withAmt int32
-	if to == state.ZBattlefield && withKind != "" {
+	if withKind != "" && counterDestination(to) {
 		withAmt = withCounterAmount(h, c, sa)
 	}
 	// WithTotalCMC$ is the cumulative mana-value budget over the picked cards
@@ -2990,7 +3005,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 		if o.Zone != state.ZLibrary {
 			withKind := ""
 			var withAmt int32
-			if to == state.ZBattlefield && sa.Params["WithCountersType"] != "" {
+			if sa.Params["WithCountersType"] != "" && counterDestination(to) {
 				withKind = sa.Params["WithCountersType"]
 				withAmt = withCounterAmount(h, c, sa)
 			}
@@ -3032,7 +3047,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 			}
 		}
 		moved = append(moved, id)
-		if to == state.ZBattlefield && sa.Params["WithCountersType"] != "" {
+		if sa.Params["WithCountersType"] != "" && counterDestination(to) {
 			h.Emit(events.Event{Kind: events.CounterChange, Obj: id,
 				Counter: sa.Params["WithCountersType"], Amount: withCounterAmount(h, c, sa)})
 		}
