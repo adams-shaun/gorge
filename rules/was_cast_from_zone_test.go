@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -336,6 +337,42 @@ func TestRoryWilliamsWasCastFromExilePredicate(t *testing.T) {
 	}
 	if _, ok := e.castProvenanceAdmits("Card.!wasCastFromExile", id, 0); ok {
 		t.Fatal("Rory's negated exile-origin predicate incorrectly held")
+	}
+}
+
+// TestRorySpellCastTriggerReadsBothOrigins drives Rory's REAL compiled trigger
+// (ValidCard$ Card.Self+!wasCastFromExile) through the SpellCast matcher for
+// both origins. The hand-origin cast must MATCH (the negated predicate holds)
+// and the exile-origin cast must NOT (the predicate strips the only
+// alternative). This is the matcher-level half the end-to-end test cannot
+// isolate: with the origin read inert (holds always false) BOTH casts match
+// and a non-exile trigger wrongly fires on an exile cast, so the assertion
+// fails.
+func TestRorySpellCastTriggerReadsBothOrigins(t *testing.T) {
+	reg := searchTestRegistry(t)
+	eval := func(from state.Zone) (bool, *Engine, state.ObjID) {
+		rory := searchCorpusCard(t, reg, "Rory Williams")
+		e := handEngine(t, rory)
+		id := e.G.Zone(state.ZHand, 0)[0]
+		face := e.G.Obj(id).Face()
+		if face == nil || len(face.Triggers) == 0 || face.Triggers[0].Mode != "SpellCast" {
+			t.Fatalf("Rory precondition failed: trigger is %+v, want a SpellCast", face)
+		}
+		if !strings.Contains(face.Triggers[0].Params["ValidCard"], "!wasCastFromExile") {
+			t.Fatalf("Rory's real trigger ValidCard is %q, want it to carry !wasCastFromExile",
+				face.Triggers[0].Params["ValidCard"])
+		}
+		ev := events.Event{Kind: events.PutOnStack, Obj: id, Player: 0, From: from, To: state.ZStack}
+		e.emit(ev)
+		return e.spellCastEval(face.Triggers[0], id, ev), e, id
+	}
+	hand, _, _ := eval(state.ZHand)
+	exile, _, _ := eval(state.ZExile)
+	if !hand {
+		t.Fatal("Rory's trigger did not match an ordinary hand cast")
+	}
+	if exile {
+		t.Fatal("Rory's trigger wrongly matched an exile-origin cast; the !wasCastFromExile gate is inert")
 	}
 }
 
