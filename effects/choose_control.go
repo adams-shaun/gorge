@@ -1174,6 +1174,19 @@ func repeatPlayers(h Host, c *Ctx, spec string) ([]state.PlayerID, bool) {
 		add(c.Chosen)
 		selected[c.Controller] = true
 	default:
+		if strings.HasPrefix(spec, "Player.NotedFor") {
+			label := strings.TrimPrefix(spec, "Player.NotedFor")
+			if c.NotedFor == nil || label == "" {
+				return nil, true
+			}
+			for _, p := range c.NotedFor[label] {
+				if int(p) >= 0 && int(p) < len(h.Game().Players) && !h.Game().Players[p].Lost {
+					selected[p] = true
+				}
+			}
+			break
+		}
+		// The shared player filter covers Player.Chosen and other qualifiers
 		// The shared player filter covers Player.Chosen and other qualifiers
 		// for which the engine has state. Unknown qualifiers fail closed and
 		// are reported rather than silently broadening the loop.
@@ -1327,6 +1340,12 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "RepeatEach selector unimplemented"})
 			return
 		}
+	}
+	// ClearRememberedBeforeLoop$ is applied after selecting subjects: notation
+	// selectors have read the chooser groups, while the first body must not
+	// inherit the temporary chooser remembered set.
+	if strings.EqualFold(sa.Params["ClearRememberedBeforeLoop"], "True") {
+		c.Remembered = nil
 	}
 	if batched && firstPass && batcher != nil {
 		batcher.BeginDamageBatch()

@@ -226,6 +226,29 @@ func effTap(h Host, c *Ctx, sa *cards.SA) {
 // own lord-effect tests already established (layers_test.go), rather than
 // inventing a new filter form.
 func effPump(h Host, c *Ctx, sa *cards.SA) {
+	// NoteCards$ records the players represented by this branch under the
+	// NoteCardsFor$ label. Forge's Self form is the current resolution's
+	// remembered chooser; keeping the notation on Ctx makes it visible to the
+	// subsequent RepeatEach without introducing a second game-state mutation.
+	if note := strings.TrimSpace(sa.Params["NoteCards"]); note != "" {
+		label := strings.TrimSpace(sa.Params["NoteCardsFor"])
+		if label != "" {
+			if c.NotedFor == nil {
+				c.NotedFor = make(map[string][]state.PlayerID)
+			}
+			seen := make(map[state.PlayerID]bool)
+			for _, p := range c.NotedFor[label] {
+				seen[p] = true
+			}
+			for _, t := range c.Remembered {
+				if !t.IsPlayer || seen[t.Player] {
+					continue
+				}
+				c.NotedFor[label] = append(c.NotedFor[label], t.Player)
+				seen[t.Player] = true
+			}
+		}
+	}
 	// NoteNumber$ (Lupine Harbingers' exile trigger: "note the number of
 	// turns you've begun"): the body does not pump at all -- it notes the
 	// evaluated number onto its source CARD through the events.NotedNumber
