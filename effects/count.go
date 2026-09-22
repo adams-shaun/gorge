@@ -1297,10 +1297,17 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		// carries a trigger's captured event object, which is NOT part of
 		// Forge's host list (the same exclusion iterationBase applies). A
 		// resolution with no source object falls back to the ctx list.
+		// During a resolving ability, RememberRevealed$ contributes through the
+		// active context before its Cleanup$ rider persists/clears the host
+		// list. Prefer that live set when present; otherwise read the source's
+		// event-backed list as before.
+		if len(c.Remembered) > 0 {
+			return int32(len(c.Remembered)), true
+		}
 		if o := g.Obj(c.Source); o != nil {
 			return int32(len(o.Remembered)), true
 		}
-		return int32(len(c.Remembered)), true
+		return 0, true
 	case "LifeOppsLostThisTurn":
 		// The total life the controller's OPPONENTS have lost this turn
 		// (Rakdos, Lord of Riots). Each opponent's loss comes from the Host's
