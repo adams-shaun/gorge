@@ -149,8 +149,8 @@ func (e *Engine) counterRemovedMatches(t cards.Trigger, source state.ObjID, ev e
 // counters on ONE object queues one trigger, not N.
 //
 // ValidObject$ names the counter RECIPIENT as comma alternatives, object
-// and player forms mixed (The Great Goblin's
-// "Permanent.inRealZoneBattlefield,Orc...,Player"; the player form is
+// and player forms mixed (All Will Be One's
+// "Permanent.inRealZoneBattlefield,Player"; the player form is
 // matched with MatchesPlayerSpec, the object form with MatchesSpecFrom,
 // each alternative by its own form -- a creature spec never matches a
 // player recipient and vice versa). A line with no ValidObject$ admits both
@@ -166,11 +166,13 @@ func (e *Engine) counterRemovedMatches(t cards.Trigger, source state.ObjID, ev e
 // override wins, else the resolving ability's controller, else the line
 // fails closed rather than matching every placement).
 //
-// ValidObjectToSource$ (Aragorn, Company Leader) is NOT implemented: the
+// ValidObjectToSource$ (Bold Plagiarist) is NOT implemented: the
 // recipient spec whose You anchors to the counter-putter, with no second
 // carrier to pin the reading against -- a trigger carrying it fails closed
 // (never fires) rather than matching with a guessed anchor. Measured, the
-// only corpus carrier is aragorn_company_leader.
+// only corpus carrier is bold_plagiarist (Aragorn, Company Leader, whose
+// earlier census note named it here, in fact uses ValidObject$
+// Card.Self+inRealZoneBattlefield).
 func (e *Engine) counterPlayerAddedAllMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
 	if ev.Amount <= 0 {
 		return false

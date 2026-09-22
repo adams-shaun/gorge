@@ -183,6 +183,11 @@ func TestRikkuCounterPutMakesTheCreatureUnblockable(t *testing.T) {
 		e.Advance()
 	}
 
+	// Rikku's window is "until end of turn", so the counter and the attack
+	// must happen in the SAME turn: drive first until Rikku is past summoning
+	// sickness, cast the counter at Main1, then move to declare-attackers.
+	driveToStepAll(t, e, 3, 0, state.StepMain1)
+
 	// Precondition: the target ask's first candidate is Rikku (seat 0's only
 	// creature) and the board is where the rule looks.
 	addMana(t, e, 0, "R")
@@ -219,9 +224,9 @@ func TestRikkuCounterPutMakesTheCreatureUnblockable(t *testing.T) {
 		t.Fatal("seat 1's bear can still block the countered Rikku")
 	}
 
-	// End to end through the combat decisions: by turn 3 Rikku is past its
-	// summoning sick turn; it attacks; the bear is offered no block; the
-	// 3/4 Rikku (2/3 + the counter) deals 3.
+	// End to end through the combat decisions in the SAME turn: Rikku attacks,
+	// the bear is offered no block, and the 3/4 Rikku (2/3 + the counter)
+	// deals 3.
 	driveToStepAll(t, e, 3, 0, state.StepDeclareAttackers)
 	e.askAttackers()
 	submitAttackers(t, e, rikkuID)
@@ -264,5 +269,185 @@ func TestRikkuWindowUncontrolledWithoutThePut(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("control: the bear had no block option: %+v", d.Options)
+	}
+}
+
+// TestRikkuWindowExpiresAtEndOfTurn is the expiry regression for the MAJOR: Rikku's
+// `DB$ Effect` body carries no `Duration$`, but its trigger text is explicitly
+// "until end of turn". Before the fix `effectUntilEOT` read the absent duration
+// as `Permanent` and installed a restriction that only ended when Rikku left the
+// battlefield, so the countered creature stayed unblockable for the rest of the
+// game. This drives the real turn boundary: the counter goes on, the window holds
+// through that turn, and by the next turn's declare-blockers the bear is a legal
+// blocker again.
+func TestRikkuWindowExpiresAtEndOfTurn(t *testing.T) {
+	counterSpell := "Name:Count Up\nManaCost:R\nTypes:Instant\n" +
+		"A:SP$ PutCounter | Cost$ R | CounterType$ P1P1 | ValidTgts$ Creature | CounterNum$ 1\nOracle:x\n"
+	reg := testutil.CorpusRegistry(t)
+	rikku, ok := reg.Lookup("Rikku, Resourceful Guardian")
+	if !ok {
+		t.Fatal("corpus has no Rikku, Resourceful Guardian")
+	}
+	cfg := seatZeroStart(Config{Seed: 6101, Names: []string{"a", "b"},
+		Decks: [][]*cards.Card{
+			append([]*cards.Card{card(t, counterSpell), rikku}, mountainDeck(t, 38)...),
+			append([]*cards.Card{card(t, "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:5/5\nOracle:x\n")}, mountainDeck(t, 39)...),
+		},
+		Tokens: map[string]*cards.Card{}})
+	e := New(cfg)
+	e.Advance()
+	var spellID, rikkuID, bearID state.ObjID
+	findRikku := func(zone state.Zone, p state.PlayerID) {
+		for _, id := range e.G.Zone(zone, p) {
+			if e.G.Obj(id).Face().Name == "Rikku, Resourceful Guardian" {
+				rikkuID = id
+			}
+		}
+	}
+	findRikku(state.ZHand, 0)
+	if rikkuID == 0 {
+		findRikku(state.ZLibrary, 0)
+	}
+	for _, id := range e.G.Zone(state.ZLibrary, 0) {
+		if e.G.Obj(id).Face().Name == "Count Up" {
+			spellID = id
+		}
+	}
+	for _, id := range e.G.Zone(state.ZLibrary, 1) {
+		if e.G.Obj(id).Face().Name == "Runeclaw Bear" {
+			bearID = id
+		}
+	}
+	if spellID == 0 || rikkuID == 0 || bearID == 0 {
+		t.Fatalf("deck bridge failed: spell %d rikku %d bear %d", spellID, rikkuID, bearID)
+	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: rikkuID, From: state.ZLibrary, To: state.ZBattlefield})
+	e.emit(events.Event{Kind: events.MoveZone, Obj: bearID, From: state.ZLibrary, To: state.ZBattlefield})
+	if o := e.G.Obj(spellID); o.Zone == state.ZLibrary {
+		e.emit(events.Event{Kind: events.MoveZone, Obj: spellID, From: state.ZLibrary, To: state.ZHand})
+		e.pending = nil
+		e.Advance()
+	}
+
+	addMana(t, e, 0, "R")
+	d := e.Pending()
+	idx := -1
+	for _, opt := range d.Options {
+		if opt.Kind == "cast" && opt.Obj == spellID {
+			idx = opt.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("no cast option for the counter spell: %+v", d.Options)
+	}
+	submitChoices(t, e, idx)
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KTarget || len(d.Options) == 0 || d.Options[0].Obj != rikkuID {
+		t.Fatalf("after casting: %+v, want the target ask with Rikku as option 0", d)
+	}
+	submitChoices(t, e, 0)
+	passUntilStackEmpty(t, e, 30)
+
+	// Precondition: the put landed and the restriction is live THIS turn.
+	if got := e.G.Obj(rikkuID).Counter("P1P1"); got != 1 {
+		t.Fatalf("precondition: Rikku +1/+1 counters after the put = %d, want 1", got)
+	}
+	if !e.blockRestricted(bearID, rikkuID) {
+		t.Fatal("precondition: the window is not active in the turn the counter was put")
+	}
+
+	// Drive the real turn boundary: Rikku's window is "until end of turn",
+	// so the restriction must be gone by seat 0's NEXT turn (seat 1's turn
+	// intervenes, so that is putTurn+2).
+	putTurn := e.G.Turn
+	driveToStepAll(t, e, putTurn+2, 0, state.StepDeclareAttackers)
+	if e.blockRestricted(bearID, rikkuID) {
+		t.Fatalf("after the end of turn %d the bear is still forbidden from blocking "+
+			"(the window must expire, not persist until Rikku leaves)", putTurn)
+	}
+	// End to end: the bear is offered as a blocker for Rikku's attack.
+	e.G.Obj(rikkuID).SummonSick = false
+	e.askAttackers()
+	submitAttackers(t, e, rikkuID)
+	e.G.Step = state.StepDeclareBlockers
+	e.askBlockers()
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KBlockers {
+		t.Fatalf("blocker decision after the window expired = %+v, want the bear offered", d)
+	}
+	found := false
+	for _, opt := range d.Options {
+		if opt.Obj == bearID {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("the bear had no block option on the turn after Rikku's window: %+v", d.Options)
+	}
+}
+
+// TestAllWillBeOnePlayerCounterBranchDealsBatchDamage pins the PLAYER half of
+// the matcher end to end on the real corpus card All Will Be One: its
+// `ValidObject$ Permanent.inRealZoneBattlefield,Player` line must fire on a
+// PlayerCounterChange placement (a player gaining counters), and the body's
+// `NumDmg$ X` with `SVar:X:TriggerCount$Amount` must read the batch size --
+// three poison counters deal three damage, not one and not zero.
+func TestAllWillBeOnePlayerCounterBranchDealsBatchDamage(t *testing.T) {
+	awo, ok := testutil.CorpusRegistry(t).Lookup("All Will Be One")
+	if !ok {
+		t.Fatal("corpus has no All Will Be One")
+	}
+	e := combatEngine(t)
+	ench := onBoardCard(t, e, 0, awo)
+	e.G.Active = 0
+	bear := onBoard(t, e, 1, "Name:Big Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:5/5\nOracle:x\n")
+
+	// Precondition: the enchantment is on the battlefield and the trigger line
+	// is the CounterPlayerAddedAll mode carrying the ,Player alternative the
+	// player branch needs (a creature-only line would pass this test against
+	// the object branch by accident).
+	if o := e.G.Obj(ench); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatal("precondition: All Will Be One is not on the battlefield")
+	}
+	trig := e.G.Obj(ench).Face().Triggers[0]
+	if trig.Mode != "CounterPlayerAddedAll" {
+		t.Fatalf("precondition: trigger mode = %q, want CounterPlayerAddedAll", trig.Mode)
+	}
+	if trig.Params["ValidObject"] != "Permanent.inRealZoneBattlefield,Player" {
+		t.Fatalf("precondition: ValidObject = %q, want the permanent-or-player spec", trig.Params["ValidObject"])
+	}
+
+	// A player-counter placement caused by seat 0: publish the adder the way a
+	// cost or turn-based placement does (no stack cause exists for one).
+	e.SetCounterAdder(0)
+	e.emit(events.Event{Kind: events.PlayerCounterChange, Player: 0, Counter: "POISON", Amount: 3})
+	e.SetCounterAdder(counterAdderUnset) // restore "no publication"
+
+	if len(e.pendingTriggers) != 1 {
+		t.Fatalf("pendingTriggers after a 3-counter player batch = %d, want 1", len(e.pendingTriggers))
+	}
+	e.putTriggersOnStack()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("after the trigger was put on the stack: %+v, want the damage target ask", d)
+	}
+	tidx := -1
+	for _, opt := range d.Options {
+		if opt.Obj == bear {
+			tidx = opt.Index
+		}
+	}
+	if tidx < 0 {
+		t.Fatalf("the bear was not offered as a damage target: %+v", d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{tidx}}); err != nil {
+		t.Fatalf("submit damage target: %v", err)
+	}
+	passUntilStackEmpty(t, e, 30)
+
+	// A 5/5 bear survives the damage, so the marked damage (not the resolved
+	// count) is what is read: 3 is the batch, and a hard-coded 1 would fail.
+	if got := e.G.Obj(bear).Damage; got != 3 {
+		t.Fatalf("bear damage after a 3-counter PLAYER batch = %d, want 3 (TriggerCount$Amount)", got)
 	}
 }

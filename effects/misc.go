@@ -476,22 +476,36 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				break
 			}
 			ceUntilEOT := effectUntilEOT(h, c.Source, dur)
-			if mode == "CantPutCounter" && sa.Params["Duration"] == "" {
-				// cantputcounter1-r2: a CantPutCounter lock with NO Duration$
-				// is the THIS-TURN lock the corpus's one Effect-delivered
-				// carrier writes (Melira, the Living Cure's "you can't get
+			if sa.Params["Duration"] == "" {
+				// cantputcounter1-r2 / counterplayeraddedall: a restriction with
+				// NO Duration$ from a permanent source is the THIS-TURN grant the
+				// corpus's Effect-delivered carriers write, not the Permanent
+				// default effEffect sets at the top of this function.
+				//
+				// CantPutCounter: Melira, the Living Cure's "you can't get
 				// additional poison counters this turn", whose Description$
-				// states the lifetime the absent Duration$ leaves unstated).
-				// effEffect's plain absent-Duration default (Permanent, set at
-				// the top of this function) would never expire the lock and
-				// swallow every later turn's fresh poison outright -- the
-				// non-permissive direction for a restriction. An EXPLICIT
-				// Duration$ keeps the ordinary reading (Permanent stays
-				// permanent, this-turn spellings were already UntilEOT through
-				// effectUntilEOT). The DamageDone prevent precedent (this
-				// function) made the same absent-Duration read for the same
-				// reason.
-				ceUntilEOT = true
+				// states the lifetime the absent Duration$ leaves unstated. A
+				// Permanent default would never expire the lock and swallow
+				// every later turn's fresh poison outright -- the non-permissive
+				// direction for a restriction.
+				//
+				// CantBlockBy: the whole absent-Duration family is "... can't
+				// be blocked this turn" (K-9 Mark I, Key to the City, Infiltrate,
+				// Rikku Resourceful Guardian, and the 240-odd `Unblockable`
+				// activated/triggered bodies; measured over the 247
+				// Effect-delivered CantBlockBy carriers, every one whose oracle
+				// names a window names this turn/combat). A Permanent default
+				// left the bearer unblockable for the rest of the game.
+				//
+				// An EXPLICIT Duration$ keeps the ordinary reading (Permanent
+				// stays permanent, this-turn spellings were already UntilEOT
+				// through effectUntilEOT). The DamageDone prevent precedent
+				// (this function) made the same absent-Duration read for the
+				// same reason.
+				switch mode {
+				case "CantPutCounter", "CantBlockBy":
+					ceUntilEOT = true
+				}
 			}
 			ce := state.ContinuousEffect{
 				Source:         c.Source,
