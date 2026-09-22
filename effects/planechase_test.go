@@ -37,8 +37,10 @@ func TestPlaneswalkRecordsTheNoPlanarDeckDegrade(t *testing.T) {
 
 // TestOptionalPlaneswalkNoHostDeclinesAndRunsTheChain proves the optional
 // handler is reached even on the effects test double, whose Ask method has no
-// decision channel. Without the registration this would instead emit the
-// generic unimplemented-API note and the chained probe would not run.
+// decision channel. Without the registration, Resolve would emit the generic
+// unimplemented-API Note for the Planeswalk SA but STILL walk its SubAbility$
+// chain, so the chained probe running is not by itself evidence of the
+// registration -- the election Note and the no-fallback assertion below are.
 func TestOptionalPlaneswalkNoHostDeclinesAndRunsTheChain(t *testing.T) {
 	var ran bool
 	Register("TestPlaneswalkChain", func(_ Host, _ *Ctx, _ *cards.SA) { ran = true })
