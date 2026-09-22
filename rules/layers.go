@@ -254,6 +254,48 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 								out = append(out, ga)
 							}
 						}
+						// A has-all-abilities-of static (CR 613.1f): Forge's
+						// GainsAbilitiesOf$ / GainsTriggerAbsOf$ name a CARD filter, and
+						// every object the static's Affected$ matches gains all
+						// activated and/or triggered abilities of each named card while
+						// it sits in the GainsAbilitiesOfZones$ zones (Idris, Soul of
+						// the TARDIS: "NICKNAME has all activated and triggered
+						// abilities of the exiled card", zones Exile). Unlike
+						// AddAbility$ the bodies are compiled SAs on the FOREIGN card,
+						// not SVar names on this source, so the effect carries the
+						// foreign faces (state.GainedFace) and the offer/trigger walks
+						// read them directly. The spec is evaluated with src = this
+						// static's own source, which is exactly what makes
+						// `Card.ExiledWithSource` resolve (effects' ExiledWith
+						// provenance). A spec that matches nothing emits no effect, the
+						// fail-closed direction every grant takes; the scan re-runs per
+						// event, so a card exiled later is gained on the next rescan
+						// and a card that leaves the scoped zones loses its grant.
+						if gainsAbilitiesOf(st) {
+							// The two parameters are resolved SEPARATELY and carried on
+							// separate face lists: GainsAbilitiesOf$ means ACTIVATED
+							// abilities only and GainsTriggerAbsOf$ TRIGGERED only (a
+							// shared untyped list made a GainsAbilitiesOf-only card fire
+							// the foreign card's phase triggers and a
+							// GainsTriggerAbsOf-only card offer its activated ones -- the
+							// round-2 review's break). A GainsValidAbilities$ filter and a
+							// GainsAbilitiesLimitPerTurn$ cap ride the ACTIVATED half
+							// (both parameters are activated-ability vocabulary).
+							gg := base
+							gg.Layer = LAbilities
+							gg.GainedZones = strings.TrimSpace(st.Params["GainsAbilitiesOfZones"])
+							gg.GainsValidAbilities = strings.TrimSpace(st.Params["GainsValidAbilities"])
+							gg.GainsLimitPerTurn = gainsLimitPerTurn(st)
+							if spec := strings.TrimSpace(st.Params["GainsAbilitiesOf"]); spec != "" {
+								gg.GainedFaces = e.gainedFacesForSpec(st, spec, id, o.Controller)
+							}
+							if spec := strings.TrimSpace(st.Params["GainsTriggerAbsOf"]); spec != "" {
+								gg.GainedTriggerFaces = e.gainedFacesForSpec(st, spec, id, o.Controller)
+							}
+							if len(gg.GainedFaces) > 0 || len(gg.GainedTriggerFaces) > 0 {
+								out = append(out, gg)
+							}
+						}
 						if hasStat(st, "AddType") || hasStat(st, "AddTypes") || hasStat(st, "AddAllCreatureTypes") {
 							ty := base
 							ty.Layer = LType
@@ -633,6 +675,120 @@ var staticSourceZones = []state.Zone{
 type staticWork struct {
 	st    cards.Static
 	depth int
+}
+
+// gainedFacesForSource collects every foreign face a live has-all-abilities-of
+// grant gives `source` right now: the union of the activated half (GainedFaces)
+// and the triggered half (GainedTriggerFaces) of every active grant whose Affects
+// spec matches source, in active()'s deterministic layer/timestamp
+// order and each effect's own face order. It is the ONE recovery point
+// the resolution-time owning-face reads use (findTriggerForAbilityFace for a
+// gained TRIGGER, pileFaceForSA for a gained ACTIVATED ability), so the
+// OptionalDecider$/intervening-if gates and the SVar-table reads all see the
+// foreign card's own face exactly as the offer/queue walk did. The union is
+// safe because each consumer matches its SA/trigger by pointer identity, so a
+// face present only in the other half never binds. A source no
+// live grant matches returns nil.
+func (e *Engine) gainedFacesForSource(source state.ObjID) []state.GainedFace {
+	var out []state.GainedFace
+	for _, ce := range e.active() {
+		if len(ce.GainedFaces) == 0 && len(ce.GainedTriggerFaces) == 0 {
+			continue
+		}
+		if !effects.MatchesSpecFrom(e.G, ce.Affects, source, ce.Controller, ce.Source) {
+			continue
+		}
+		out = append(out, ce.GainedFaces...)
+		out = append(out, ce.GainedTriggerFaces...)
+	}
+	return out
+}
+
+// gainsAbilitiesOf reports whether a Mode$ Continuous static grants abilities
+// off a named card (Forge's GainsAbilitiesOf$ / GainsTriggerAbsOf$). Either
+// parameter alone is enough: a static may grant only activations, only
+// triggers, or both (Idris, Soul of the TARDIS carries both). The two halves
+// are carried on separate face lists (GainedFaces / GainedTriggerFaces)
+// because the parameters mean different ability kinds.
+func gainsAbilitiesOf(st cards.Static) bool {
+	return strings.TrimSpace(st.Params["GainsAbilitiesOf"]) != "" ||
+		strings.TrimSpace(st.Params["GainsTriggerAbsOf"]) != ""
+}
+
+// gainsLimitPerTurn parses a has-all-abilities-of static's
+// GainsAbilitiesLimitPerTurn$ cap (Mairsil the Pretender's "only once each
+// turn"). Only a plain integer is enforced -- the corpus's every carrier is
+// a literal 1 -- and an unparseable value degrades to 0 (no cap), the
+// permissive direction for an unmodelled expression.
+func gainsLimitPerTurn(st cards.Static) int {
+	n, err := strconv.Atoi(strings.TrimSpace(st.Params["GainsAbilitiesLimitPerTurn"]))
+	if err != nil || n < 0 {
+		return 0
+	}
+	return n
+}
+
+// gainedFacesForSpec resolves one has-all-abilities-of parameter's named
+// cards: every object in the GainsAbilitiesOfZones$ zones (default
+// Battlefield, Forge's StaticAbilityContinuous default) whose face matches
+// the given card filter, paired with its object id. The spec is
+// evaluated with src = the static's own source object, so
+// `Card.ExiledWithSource` matches exactly the cards this source exiled.
+//
+// The walk order is fully deterministic -- the staticSourceZones order,
+// then each alive seat in APNAP order, then the zone slice -- so the granted
+// face list, and therefore the option and trigger order it feeds, is
+// reproducible run to run. A spec matching nothing returns nil (no grant);
+// an unparseable zones value returns nil, the fail-closed direction every
+// grant branch takes. Faces are de-duplicated by object id.
+func (e *Engine) gainedFacesForSpec(st cards.Static, spec string, src state.ObjID, controller state.PlayerID) []state.GainedFace {
+	if spec == "" {
+		return nil
+	}
+	zones, all, ok := effects.ParseZones(strings.TrimSpace(st.Params["GainsAbilitiesOfZones"]))
+	if strings.TrimSpace(st.Params["GainsAbilitiesOfZones"]) == "" {
+		// Forge's default zone for the has-all-abilities-of statics is the
+		// battlefield (StaticAbilityContinuous's default), not every zone.
+		zones, all, ok = []state.Zone{state.ZBattlefield}, false, true
+	}
+	if !ok {
+		return nil
+	}
+	inZones := func(z state.Zone) bool {
+		if all {
+			return true
+		}
+		for _, want := range zones {
+			if want == z {
+				return true
+			}
+		}
+		return false
+	}
+	var out []state.GainedFace
+	seen := map[state.ObjID]bool{}
+	for _, p := range e.G.AliveFrom(0) {
+		for _, z := range staticSourceZones {
+			if !inZones(z) {
+				continue
+			}
+			for _, id := range e.G.Zone(z, p) {
+				if seen[id] {
+					continue
+				}
+				o := e.G.Obj(id)
+				if o == nil || o.Face() == nil {
+					continue
+				}
+				if !e.matchesSpecFrom(spec, id, controller, src) {
+					continue
+				}
+				seen[id] = true
+				out = append(out, state.GainedFace{Obj: id, Face: o.Face()})
+			}
+		}
+	}
+	return out
 }
 
 // parseSVarGrant parses Forge's AddSVar$ value shape "SVar:<Name>:<Value>":

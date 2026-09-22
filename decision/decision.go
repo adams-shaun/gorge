@@ -259,6 +259,16 @@ type Option struct {
 	// grantor: the option is a printed ability or a self-grant, and the body
 	// resolves from Obj. A human client never sees it.
 	GrantSource state.ObjID `json:"-"`
+	// GainedSource and GainedIdx are server-side only (json:"-") and anchor a
+	// "has all abilities of" activation (Forge's GainsAbilitiesOf$): the
+	// ability is a compiled SA on a FOREIGN card's face, so the option names
+	// that card's object id and the index of the SA in its face's Abilities.
+	// rules/activation resolves it and mints through events.GainedAbilityPush,
+	// which carries the same pair so a replay re-resolves the identical SA. A
+	// zero GainedSource means the option is not a gained ability (every
+	// printed and SVar-granted ability). A human client never sees them.
+	GainedSource state.ObjID `json:"-"`
+	GainedIdx    int         `json:"-"`
 	// Value is the option's price under a decision carrying a cumulative
 	// budget (Decision.MaxSum): a Dig's WithTotalCMC$ cap sums the mana values
 	// of the picked cards, so each offered card names its own mana value here
