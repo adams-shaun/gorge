@@ -450,15 +450,19 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 						// follows); the inner static's own Affected$ scopes what IT
 						// affects, resolved against the host -- the Broodship's STATION
 						// 3+ grant is an AdjustLandPlays$ 1 to You, and You is the
-						// host's controller. cards.ParseStaticLine gives the body the
+						// host's controller. cards.ParseStaticLines gives the body the
 						// same shape a printed S: line would have, so EVERY grant branch
 						// above applies to the inner static unchanged. A body this
 						// parser refuses, one whose mode is not Continuous, or a host
 						// the outer spec no longer matches, grants nothing.
 						if name := strings.TrimSpace(st.Params["AddStaticAbility"]); name != "" && w.depth == 0 {
-							if inner, ok := cards.ParseStaticLine(fc.SVars[name]); ok && inner.Mode == "Continuous" &&
-								e.matchesSpecFrom(affects, id, o.Controller, id) {
-								grantQueue = append(grantQueue, staticWork{st: inner, depth: w.depth + 1})
+							if inners, ok := cards.ParseStaticLines(fc.SVars[name]); ok {
+								for _, inner := range inners {
+									if inner.Mode == "Continuous" &&
+										e.matchesSpecFrom(affects, id, o.Controller, id) {
+										grantQueue = append(grantQueue, staticWork{st: inner, depth: w.depth + 1})
+									}
+								}
 							}
 						}
 						// A triggered-ability grant (Hearthhull's "STATION 8+ Whenever
