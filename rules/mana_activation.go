@@ -205,18 +205,19 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 		// payment window and the chosen activation share one member set.
 		if abilityZoneOK(ma, o.Zone) && e.activationConditionOK(p, ma) && e.manaActivationGateHolds(p, id, ma) &&
 			!abilityRestricted(ma) && e.manaAbilityPayable(p, id, ma) {
-			// ActivationLimit$ (Vivi Ornitier's "only once each turn"): the
-			// non-mana ability offer loop in legal.go gates on this parameter,
-			// but this walk is a mana ability's ONLY eligibility gate -- offer,
-			// payment window and chosen activation all go through it -- so a
-			// mana ability carrying ActivationLimit$ stayed repeatable without
-			// bound, and a controller whose bot policy prefers activating mana
-			// over passing looped on it forever (a zero-production source whose
-			// use never advances any cast). The limit is scanned exactly like
-			// the non-mana gate's.
-			if raw, ok := ma.Params["ActivationLimit"]; ok {
+			// ActivationLimit$ / GameActivationLimit$ (Vivi Ornitier's "only once
+			// each turn", Stalking Leonin's "Activate only once"): the non-mana
+			// ability offer loops in legal.go gate on these parameters, but this
+			// walk is a mana ability's ONLY eligibility gate -- offer, payment
+			// window and chosen activation all go through it -- so a mana ability
+			// carrying either limit stayed repeatable without bound, and a
+			// controller whose bot policy prefers activating mana over passing
+			// looped on it forever (a zero-production source whose use never
+			// advances any cast). Both limits are checked through the one shared
+			// gate, with the printed identity (flat pile index, no SVar).
+			if _, limited := ma.Params["ActivationLimit"]; limited || ma.Params["GameActivationLimit"] != "" {
 				idx, merged, found := pileAbilityRefOf(o, ma)
-				if found && e.activationLimitReachedAt(id, p, idx, raw, merged) {
+				if found && e.activationLimitBlocked(p, id, ma, idx, "", merged) {
 					continue
 				}
 			}
@@ -1093,11 +1094,11 @@ func (e *Engine) resolveManaAbility(p state.PlayerID, source state.ObjID, ma *ca
 	if !e.manaAbilityPayable(p, source, ma) {
 		return
 	}
-	// The ActivationLimit$ scan marker: ManaAdd events carry no source
-	// attribution, so an ability that carries the parameter records its
-	// activation here (events.ManaActivate's own comment). Emitted only for
-	// ActivationLimit$ abilities so no existing game's log shape changes.
-	if _, limited := ma.Params["ActivationLimit"]; limited {
+	// The activation-limit scan marker: ManaAdd events carry no source
+	// attribution, so an ability that carries EITHER limit records its
+	// activation here (events.ManaActivate's own comment). Emitted only for a
+	// limit-bearing ability so no existing game's log shape changes.
+	if _, limited := ma.Params["ActivationLimit"]; limited || ma.Params["GameActivationLimit"] != "" {
 		// The flat pile index (top face first, then under-cards) is the SAME
 		// identity availableManaAbilitiesUsing's limit gate checks, so an
 		// under-card mana ability's census cannot be counted against a

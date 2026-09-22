@@ -1141,6 +1141,15 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 	// closes it when the loop completes, so the bracket is balanced however
 	// many resumes interleave.
 	batched := strings.EqualFold(strings.TrimSpace(sa.Params["DamageMap"]), "True")
+	// AmountFromVotes$ True (task votepb1: Mob Verdict, Círdan the Shipwright,
+	// Trap the Trespassers): before each body runs, bind the reserved name
+	// "Votes" to the CURRENT loop subject's tally from the most recent
+	// api:Vote (Ctx.VoteCounts). It is Forge's RepeatEachEffect.setVoteAmount
+	// -- `sa.setSVar("Votes", saVote.getSVar("VoteNum" + o))` -- which is why
+	// the loop's own count is untouched: the body's NumCards$ Votes /
+	// CounterNum$ Votes / NumDmg$ SVar$Votes/Times.2 reads size themselves,
+	// and a subject with no tally binds 0 rather than a stale SVar.
+	fromVotes := strings.EqualFold(strings.TrimSpace(sa.Params["AmountFromVotes"]), "True")
 	var batcher interface {
 		BeginDamageBatch()
 		EndDamageBatch()
@@ -1199,6 +1208,18 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 		// ImprintedController). The suspension carries it so a resumed ask
 		// inside the body still binds it.
 		cc.RepeatSubject = t
+		if fromVotes {
+			// The per-iteration binding lives on this iteration's Ctx copy
+			// (scalar fields, so the copy is safe), read back through
+			// runtimePublished's "Votes" arm. An unvoted subject binds 0: Forge
+			// leaves VoteNum<subject> unset for it and the body reads 0, never a
+			// fallback to the source's own SVar table.
+			cc.VotePublished = 0
+			if n, ok := voteCountFor(c, t); ok {
+				cc.VotePublished = int32(n)
+			}
+			cc.VotePublishedSet = true
+		}
 		Resolve(h, &cc, sub)
 		if h.Suspended() {
 			h.SuspendRepeat(RepeatSuspension{

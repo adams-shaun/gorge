@@ -680,37 +680,99 @@ func (e *Engine) loyaltyAbilityLimit(id state.ObjID) int {
 	return base + additional
 }
 
+// activationUsedCount counts this object's activations of one ability over
+// the replayable event log. The identity has two shapes, exactly as
+// boastGateOK reads them: a PRINTED or mana activation mints an AbilityPush /
+// ManaActivate whose Amount is the ability's FLAT pile index (CR 702.140d,
+// top face first then under-cards); a GRANTED activation (AddAbility$ /
+// Animate) mints a DelayedPush or GrantAbilityPush whose Amount is -1 and
+// whose Counter names the granting SVar instead. ability < 0 selects the
+// granted shape, svar == "" the printed shape -- so one scanner serves both
+// ActivationLimit$ (thisTurn) and GameActivationLimit$ (the whole game), and
+// a third caller cannot forget one of them.
+//
+// thisTurn bounds the walk at the latest TurnChange: the per-turn limit's
+// window (CR 606.3's "this turn", and Forge's ActivationLimit$, which
+// ActivationTable resets each turn). The per-game walk deliberately does NOT
+// break there, and deliberately does not reset on a zone change either:
+// Forge keys the count on the host CARD (Card.numberGameActivations, read
+// through SpellAbility.getActivationsThisGame), which survives a battlefield
+// departure, so a permanent that leaves and returns has still spent its
+// once-per-game activation.
+func (e *Engine) activationUsedCount(id state.ObjID, ability int, svar string, thisTurn bool) int {
+	used := 0
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if thisTurn && ev.Kind == events.TurnChange {
+			break
+		}
+		if ev.Obj != id {
+			continue
+		}
+		switch ev.Kind {
+		case events.AbilityPush, events.ManaActivate:
+			if ability >= 0 && ev.Amount == int32(ability) {
+				used++
+			}
+		case events.DelayedPush, events.GrantAbilityPush:
+			if svar != "" && ev.Counter == svar {
+				used++
+			}
+		}
+	}
+	return used
+}
+
 // activationLimitReachedAt reports whether this object has already activated
 // the ability at the FLAT pile index ability as many times as its
-// ActivationLimit permits this turn. AbilityPush records both pieces of
-// identity (Obj and Amount); scanning backward to the latest TurnChange keeps
-// the count derived entirely from the replayable event log. merged selects
-// the face whose SVar table a computed limit resolves against (0 = the top
-// face). The limit itself is resolved by resolveActivationLimitAt: a literal
-// integer is used directly, and a computed expression (an SVar name or an
-// inline Count$...) is evaluated through the effects count path, so a limit
-// such as Withering Wisps' "number of snow Swamps you control" is enforced
-// rather than silently ignored. A limit that resolves to zero or to fewer
-// activations than have already been used withholds the offer. An expression
-// that genuinely cannot be resolved stays unenforced (today's behaviour):
-// resolveActivationLimitAt reports ok=false.
+// ActivationLimit permits this turn. merged selects the face whose SVar table
+// a computed limit resolves against (0 = the top face). The limit itself is
+// resolved by resolveActivationLimitAt: a literal integer is used directly,
+// and a computed expression (an SVar name or an inline Count$...) is
+// evaluated through the effects count path, so a limit such as Withering
+// Wisps' "number of snow Swamps you control" is enforced rather than silently
+// ignored. A limit that resolves to zero or to fewer activations than have
+// already been used withholds the offer. An expression that genuinely cannot
+// be resolved stays unenforced (today's behaviour): resolveActivationLimitAt
+// reports ok=false.
 func (e *Engine) activationLimitReachedAt(id state.ObjID, p state.PlayerID, ability int, raw string, merged int) bool {
 	limit, ok := e.resolveActivationLimitAt(id, p, raw, merged)
 	if !ok || limit < 0 {
 		return false
 	}
-	used := 0
-	for i := len(e.L.Events) - 1; i >= 0; i-- {
-		ev := e.L.Events[i]
-		if ev.Kind == events.TurnChange {
-			break
-		}
-		if (ev.Kind == events.AbilityPush || ev.Kind == events.ManaActivate) &&
-			ev.Obj == id && ev.Amount == int32(ability) {
-			used++
+	return e.activationUsedCount(id, ability, "", true) >= limit
+}
+
+// activationLimitBlocked is the ONE gate every activation offer site calls
+// for the two sibling limits of a non-mana activated ability: ActivationLimit$
+// (this turn) and GameActivationLimit$ (the whole game). Both are read here so
+// a new offer site cannot honour one and miss the other -- the two loops in
+// this file (printed, granted) and the mana walk in mana_activation.go all
+// funnel through it. svar is the granted-ability identity ("" for a printed
+// ability); merged selects the face a computed limit resolves against. The
+// per-GAME count is scanned with the same identity shapes and no turn or
+// stint boundary (see activationUsedCount).
+//
+// A limit that resolves to zero or to fewer activations than already used
+// withholds; an unresolvable expression stays unenforced, exactly as the
+// per-turn gate already documented.
+func (e *Engine) activationLimitBlocked(p state.PlayerID, id state.ObjID, sa *cards.SA, ability int, svar string, merged int) bool {
+	if sa == nil {
+		return false
+	}
+	if raw, ok := sa.Params["ActivationLimit"]; ok {
+		if limit, ok := e.resolveActivationLimitAt(id, p, raw, merged); ok && limit >= 0 &&
+			e.activationUsedCount(id, ability, svar, true) >= limit {
+			return true
 		}
 	}
-	return used >= limit
+	if raw, ok := sa.Params["GameActivationLimit"]; ok {
+		if limit, ok := e.resolveActivationLimitAt(id, p, raw, merged); ok && limit >= 0 &&
+			e.activationUsedCount(id, ability, svar, false) >= limit {
+			return true
+		}
+	}
+	return false
 }
 
 // boastGateOK implements CR 702.142's Boast activation restriction for an
@@ -1942,7 +2004,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				if e.castSuppressed(p, id) {
 					continue
 				}
-				if raw, ok := ab.Params["ActivationLimit"]; ok && e.activationLimitReachedAt(id, p, i, raw, pa.Merged) {
+				if e.activationLimitBlocked(p, id, ab, i, "", pa.Merged) {
 					continue
 				}
 				// kw:Boast (CR 702.142): a Boast ability (Forge's `Boast$ True`
@@ -2001,10 +2063,11 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 	// beginActivation resolves (the same anchor the max-speed "granted"
 	// option carries); mana ones flow through availableManaAbilities below so
 	// the "Tap for mana" priority action and the payment window share one
-	// member set. Gates mirror the printed loop above minus the two index-
-	// anchored gates (loyalty, ActivationLimit$): a grant is never a loyalty
-	// ability, and no corpus granted ability carries a limit -- if one ever
-	// does, the limit is unenforced on it, which this comment is the pin of.
+	// member set. Gates mirror the printed loop above minus the loyalty gate
+	// (a grant is never a loyalty ability). The two activation limits are
+	// checked here too, with the SVar-name identity (see the gate's own
+	// comment below): Touch of Vitae carries GameActivationLimit$ 1 on an
+	// Animate-delivered AddAbility$ body.
 	for _, id := range e.G.Zone(state.ZBattlefield, p) {
 		o := e.G.Obj(id)
 		if o == nil || o.Face() == nil || e.faceDownPrintedHides(o) {
@@ -2055,6 +2118,21 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			// because beginGrantedActivation mints a DelayedPush rather than an
 			// AbilityPush (boastGateOK reads both).
 			if strings.EqualFold(strings.TrimSpace(ab.Params["Boast"]), "True") && !e.boastGateOK(id, -1, ga.svar) {
+				continue
+			}
+			// The two activation limits, for a GRANTED ability: the same shared
+			// gate the printed loop above calls, with the SVar-name identity
+			// because the mint is a DelayedPush/GrantAbilityPush. The printed
+			// loop's old claim -- "no corpus granted ability carries a limit" --
+			// is FALSE: Touch of Vitae carries GameActivationLimit$ 1 on the
+			// AddAbility$ body it animates onto a target. (That specific grant
+			// does not resolve yet for an unrelated reason -- its SVar lives on
+			// the Instant's face, while Animate resolves granted names off the
+			// ANIMATED object's table; see the report's Issues.) The gate is kept
+			// so a granted ability with a limit is never re-offered once used,
+			// and self-animate grants -- where the SVar table IS the recipient's
+			// -- are pinned by TestGameActivationLimitGrantedAbilityWithheldAfterOneUse.
+			if e.activationLimitBlocked(p, id, ab, -1, ga.svar, 0) {
 				continue
 			}
 			out = append(out, decision.Option{Index: len(out), Kind: "ability",

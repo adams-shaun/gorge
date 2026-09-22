@@ -229,3 +229,107 @@ func TestCopySpellAbilityUnswitchedShapePayingStopsTheCopies(t *testing.T) {
 		t.Fatalf("%d copies made on an unswitched decline, want 1", got)
 	}
 }
+
+// The DefinedTarget$ route (Feather, Radiant Arbiter's "for each of those
+// creatures, copy that spell. The copy targets that creature"): one copy per
+// defined entry, each copy's target REPLACED by its own entry (the StackCopy
+// event's IDs), and a chosen-PLAYER entry never becomes a target.
+func TestCopySpellAbilityDefinedTargetChosenCardReplacesEachCopyTarget(t *testing.T) {
+	h := newHost(t, 2)
+	o := spellOnStack(t, h, "A:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 3", 0)
+	bear := h.g.AddObject(mkCard(t, "Name:Grizzly Bears\nManaCost:1G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"), 0)
+	events.Move(h.g, bear.ID, state.ZLibrary, state.ZBattlefield)
+	bear2 := h.g.AddObject(mkCard(t, "Name:Grizzly Bears\nManaCost:1G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"), 0)
+	events.Move(h.g, bear2.ID, state.ZLibrary, state.ZBattlefield)
+
+	Resolve(h, &Ctx{Source: o.ID, Controller: 0, ChosenValid: true,
+		Chosen: []state.Target{{Obj: bear.ID}, {Obj: bear2.ID}}},
+		sa(t, "DB$ CopySpellAbility | Defined$ Parent | DefinedTarget$ ChosenCard"))
+
+	if got := copyEvents(h); got != 2 {
+		t.Fatalf("%d StackCopy events, want one per chosen creature", got)
+	}
+	byTarget := map[state.ObjID][]state.Target{}
+	for _, ev := range h.log {
+		if ev.Kind != events.StackCopy {
+			continue
+		}
+		if len(ev.IDs) != 1 || (ev.IDs[0] != bear.ID && ev.IDs[0] != bear2.ID) {
+			t.Fatalf("StackCopy IDs = %v, want one chosen creature per copy", ev.IDs)
+		}
+		byTarget[ev.IDs[0]] = h.g.Objs[len(h.g.Objs)-1].Targets
+	}
+	// The minted copies (the last two objects) each carry their OWN creature
+	// as their target list, and the two lists differ.
+	if len(byTarget) != 2 {
+		t.Fatalf("copies named %d distinct creatures, want both", len(byTarget))
+	}
+	copies := 0
+	for _, ob := range h.g.Objs {
+		if !ob.IsCopy {
+			continue
+		}
+		copies++
+		if len(ob.Targets) != 1 || (ob.Targets[0].Obj != bear.ID && ob.Targets[0].Obj != bear2.ID) {
+			t.Fatalf("copy targets = %+v, want its own bear", ob.Targets)
+		}
+	}
+	if copies != 2 {
+		t.Fatalf("%d copy objects, want 2", copies)
+	}
+}
+
+// A chosen-PLAYER entry is not "those creatures": with only a player chosen,
+// the DefinedTarget$ ChosenCard route resolves to an empty object set and
+// copies nothing.
+func TestCopySpellAbilityDefinedTargetChosenCardSkipsPlayerEntries(t *testing.T) {
+	h := newHost(t, 2)
+	o := spellOnStack(t, h, "A:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 3", 0)
+	_ = o
+	Resolve(h, &Ctx{Source: o.ID, Controller: 0, ChosenValid: true,
+		Chosen: []state.Target{{Player: 1, IsPlayer: true}}},
+		sa(t, "DB$ CopySpellAbility | Defined$ Parent | DefinedTarget$ ChosenCard"))
+	if got := copyEvents(h); got != 0 {
+		t.Fatalf("%d StackCopy events, want none from a player-only chosen set", got)
+	}
+}
+
+// DefinedTarget$ Self (Ivy, Gleeful Spellthief: "The copy targets NICKNAME")
+// targets the resolving source; an unresolvable value keeps the historical
+// single inherited-target copy under the loud Note.
+func TestCopySpellAbilityDefinedTargetSelfAndUnresolved(t *testing.T) {
+	h := newHost(t, 2)
+	o := spellOnStack(t, h, "A:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 3", 0)
+	_ = o
+	src := h.g.AddObject(mkCard(t, "Name:Ivy\nManaCost:GU\nTypes:Creature Faerie Rogue\nPT:2/1\nOracle:x\n"), 0)
+	events.Move(h.g, src.ID, state.ZLibrary, state.ZBattlefield)
+
+	// Ivy's real shape: the copy SA is the trigger's sub, so the spell comes
+	// from the trigger's Remembered and the SELF target is the trigger's
+	// source (Ivy herself, on the battlefield).
+	Resolve(h, &Ctx{Source: src.ID, Controller: 0, Remembered: []state.Target{{Obj: o.ID}}},
+		sa(t, "DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | DefinedTarget$ Self"))
+	if got := copyEvents(h); got != 1 {
+		t.Fatalf("%d StackCopy events, want the one Self-targeted copy", got)
+	}
+	if co := h.g.Objs[len(h.g.Objs)-1]; len(co.Targets) != 1 || co.Targets[0].Obj != src.ID {
+		t.Fatalf("copy targets = %+v, want Ivy herself", co.Targets)
+	}
+
+	h2 := newHost(t, 2)
+	o2 := spellOnStack(t, h2, "A:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 3", 0)
+	Resolve(h2, &Ctx{Source: o2.ID, Controller: 0, Remembered: []state.Target{{Obj: o2.ID}}},
+		sa(t, "DB$ CopySpellAbility | Defined$ TriggeredSpellAbility | DefinedTarget$ OppNonTriggeredSpellAbilityTargetsOrController"))
+	if got := copyEvents(h2); got != 1 {
+		t.Fatalf("%d StackCopy events, want the one inherited-target copy", got)
+	}
+	notes := 0
+	for _, ev := range h2.log {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "DefinedTarget$") {
+			notes++
+		}
+	}
+	if notes != 1 {
+		t.Fatalf("%d unresolved-DefinedTarget$ Notes, want 1", notes)
+	}
+}

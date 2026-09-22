@@ -367,14 +367,44 @@ func (b Board) chooseTargets(d *decision.Decision) []int {
 	// R1: lead with the opposing options; only top up with our own when a
 	// decision is all-ours or does not offer enough of theirs to meet Min
 	// (totality is preserved either way).
+	//
+	// Group discipline (Decision.Validate's mutual-exclusion rule): two
+	// options sharing one non-empty Group are mutually exclusive -- the
+	// TargetsForEachPlayer$ shape (one target per controller, rules/stack.go
+	// oneEachTargetGroup) and the cross-mode Charm ask (one mode per player,
+	// askCrossModeCharmTargets) both attach it. Choosing two same-group
+	// options would hand back an intent Validate rejects and clamp cannot
+	// repair -- the same wedging shape Clamp's own top-up skips (policy.go),
+	// so the pick loop skips a represented group the way a duplicate index
+	// is. A decision whose Min exceeds its distinct groups cannot be met by
+	// ANY answer; the ask builders never pose one (OneEach Min is the
+	// distinct-controller count, and a dynamic-max Min is 0).
+	chosen := make(map[string]bool)
+	fits := func(o decision.Option) bool {
+		return o.Group == "" || !chosen[o.Group]
+	}
 	choices := make([]int, 0, pick)
 	byScore(foreign)
 	for i := 0; i < len(foreign) && len(choices) < pick; i++ {
+		o := d.Options[foreign[i].idx]
+		if !fits(o) {
+			continue
+		}
+		if o.Group != "" {
+			chosen[o.Group] = true
+		}
 		choices = append(choices, foreign[i].idx)
 	}
 	if len(choices) < pick {
 		byScore(own)
 		for i := 0; i < len(own) && len(choices) < pick; i++ {
+			o := d.Options[own[i].idx]
+			if !fits(o) {
+				continue
+			}
+			if o.Group != "" {
+				chosen[o.Group] = true
+			}
 			choices = append(choices, own[i].idx)
 		}
 	}
