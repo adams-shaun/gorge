@@ -89,15 +89,23 @@ func (e *Engine) finishEnteredStep() {
 	if e.G.Step == state.StepDraw && e.drawStepTurnAction() {
 		return
 	}
-	// CR 724.2a: the monarch draws a card at the beginning of each end step.
-	// This is a turn-based action, before priority, and uses the ordinary draw
-	// path so replacements and replay observe the same event. A replacement
-	// decision suspends entry just like the draw-step action.
+	// CR 724.2a: the monarch's draw is a triggered ability at the beginning
+	// of the end step, not an immediate turn-based action. Queue it here; the
+	// ordinary trigger drain places it on the stack before priority, preserving
+	// responses and APNAP ordering with other beginning-of-end-step triggers.
 	if e.G.Step == state.StepEnd && e.G.HasMonarch &&
 		!e.G.Players[e.G.Monarch].Lost {
-		e.drawCard(e.G.Monarch)
-		if e.G.Over || e.pending != nil {
-			return
+		var source state.ObjID
+		for i := range e.G.Objs {
+			if e.G.Objs[i].Face() != nil {
+				source = e.G.Objs[i].ID
+				break
+			}
+		}
+		if source != 0 {
+			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+				Source: source, Controller: e.G.Monarch, MonarchDraw: true,
+			})
 		}
 	}
 	// Entry resets the pass count along with the active holder. Cumulative

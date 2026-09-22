@@ -204,6 +204,18 @@ func TestPalaceJailerComeBackRegistersAndFiresOnOpponentMonarch(t *testing.T) {
 	if e.G.IsMonarch(1) {
 		t.Fatal("precondition: opponent already held the monarch designation")
 	}
+	// Complete Palace Jailer’s real ETB consequence: the remembered opponent
+	// creature is in exile when the opponent later takes the crown.
+	e.emit(events.Event{Kind: events.MoveZone, Obj: victim,
+		From: state.ZBattlefield, To: state.ZExile})
+	if got := e.G.Obj(victim).Zone; got != state.ZExile {
+		t.Fatalf("precondition: Palace Jailer victim zone = %s, want exile", got)
+	}
+
+	e.emit(events.Event{Kind: events.MonarchChange, Player: 1})
+	if got := e.G.Obj(victim).Zone; got != state.ZBattlefield {
+		t.Fatalf("Palace Jailer victim zone = %s, want battlefield after opponent becomes monarch", got)
+	}
 }
 
 func TestCustodiLichFirstBecomeMonarchFiresSelfTrigger(t *testing.T) {

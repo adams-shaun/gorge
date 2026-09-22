@@ -2212,7 +2212,14 @@ func Apply(g *state.Game, e Event) {
 		if src.Face() == nil {
 			break
 		}
-		sa := resolveSVarAcrossFaces(src, e.Counter)
+		var sa *cards.SA
+		if e.Counter == "__monarch_draw" {
+			sa = &cards.SA{Kind: "DB", API: "Draw", Params: map[string]string{
+				"Defined": "You", "NumCards": "1",
+			}}
+		} else {
+			sa = resolveSVarAcrossFaces(src, e.Counter)
+		}
 		if sa == nil {
 			break
 		}

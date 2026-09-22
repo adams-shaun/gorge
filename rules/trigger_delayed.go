@@ -227,7 +227,7 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 						continue
 					}
 					o := e.G.Obj(remembered.Obj)
-					if o != nil && o.Controller != ev.Player && !e.G.Players[o.Controller].Lost {
+					if o != nil && o.Controller == ev.Player && !e.G.Players[o.Controller].Lost {
 						ok = true
 						break
 					}
@@ -270,12 +270,17 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 			continue
 		}
 		fires = append(fires, delayedSpellCastFire{
-			dt:         *dt,
-			sa:         sa,
-			remembered: triggerRemembered(ev, dt.Source),
-			referents:  e.triggerReferents(t, dt.Source, ev, referentsArg),
-			svars:      src.Face().SVars,
-			static:     strings.TrimSpace(t.Params["Static"]) != "",
+			dt: *dt,
+			sa: sa,
+			remembered: func() []state.Target {
+				if dt.EventMode == "BecomeMonarch" {
+					return append([]state.Target(nil), dt.Remembered...)
+				}
+				return triggerRemembered(ev, dt.Source)
+			}(),
+			referents: e.triggerReferents(t, dt.Source, ev, referentsArg),
+			svars:     src.Face().SVars,
+			static:    strings.TrimSpace(t.Params["Static"]) != "",
 		})
 	}
 	// The firing pass runs over the collected copies, never the live slice:
