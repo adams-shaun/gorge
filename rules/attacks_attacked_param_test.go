@@ -91,6 +91,84 @@ func TestRevengeOfRavensDoesNotFireWhenAThirdSeatIsAttacked(t *testing.T) {
 	}
 }
 
+// kazuulAttackedSeat builds a three-seat table with the real corpus Kazuul,
+// Tyrant of the Cliffs on seat 0 and one ready 0/4 attacker on seat 1, active
+// on seat 1 in the declare-attackers step. Kazuul's trigger is the compound
+// Attacked$ selector the brief names --
+// "You,Planeswalker.YouCtrl,Battle.ProtectedBy You" -- so this pins the real
+// corpus value: the player half must resolve while the permanent-only
+// alternatives fail closed (the engine models players-only defenders).
+func kazuulAttackedSeat(t *testing.T) (*Engine, state.ObjID) {
+	t.Helper()
+	e := threeSeatEngine(t)
+	onBoardCard(t, e, 0, mshCorpusCard(t, "Kazuul, Tyrant of the Cliffs"))
+	// A 0-power attacker: it can attack (no minimum power) and deals no
+	// combat damage, so the only state movement is the trigger's own token.
+	bear := onBoardReady(t, e, 1, "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:0/4\nOracle:x\n")
+	e.G.Active = 1
+	e.G.Step = state.StepDeclareAttackers
+	return e, bear
+}
+
+// kazuulUnlessPayPending reports whether Kazuul's trigger queued and reached
+// its unless-pay ask (the KModes decision the shared gate poses to the
+// attacker's controller). Reaching it is the observable proof the trigger
+// fired; no token is created until the ask is answered.
+func kazuulUnlessPayPending(t *testing.T, e *Engine) bool {
+	t.Helper()
+	for i := 0; i < 64; i++ {
+		d := e.Pending()
+		if d == nil {
+			return false
+		}
+		if d.ResumeKind == "unless_pay" {
+			return true
+		}
+		// Pass the combat-priority windows between the declaration and the
+		// trigger's resolution.
+		idx := -1
+		for _, o := range d.Options {
+			if o.Kind == "pass" {
+				idx = o.Index
+			}
+		}
+		if idx < 0 {
+			return false
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
+			t.Fatalf("pass: %v", err)
+		}
+	}
+	return false
+}
+
+// TestKazuulFiresWhenItsControllerIsAttacked is the brief's positive half: seat
+// 1 attacks seat 0 (Kazuul's controller), whose real
+// "Attacked$ You,Planeswalker.YouCtrl,Battle.ProtectedBy You" must resolve on
+// the player half and queue the ogre-token trigger.
+func TestKazuulFiresWhenItsControllerIsAttacked(t *testing.T) {
+	e, bear := kazuulAttackedSeat(t)
+
+	e.askAttackers()
+	submitAttackerAt(t, e, bear, 0)
+	if !kazuulUnlessPayPending(t, e) {
+		t.Fatal("Kazuul did not fire when its controller was attacked")
+	}
+}
+
+// TestKazuulDoesNotFireWhenAThirdSeatIsAttacked is the brief's negative half:
+// seat 1 attacks seat 2, which is not Kazuul's controller, so the trigger must
+// not queue at all.
+func TestKazuulDoesNotFireWhenAThirdSeatIsAttacked(t *testing.T) {
+	e, bear := kazuulAttackedSeat(t)
+
+	e.askAttackers()
+	submitAttackerAt(t, e, bear, 2)
+	if kazuulUnlessPayPending(t, e) {
+		t.Fatal("Kazuul fired when a third seat was attacked")
+	}
+}
+
 // TestAttacksAttackedOpponentScopesToTheTriggersOpponent pins the opponent
 // half of the shared player filter: Attacked$ Opponent matches a defender that
 // is an opponent of the trigger's controller, and not the controller's own
