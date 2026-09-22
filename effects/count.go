@@ -1210,10 +1210,16 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		if n, ok2 := hasPropertyLostLifeCount(h, g.AliveFrom(0), rest); ok2 {
 			return n, true
 		}
+		if n, ok2 := playerCountCondition(h, g, c, g.AliveFrom(0), rest, arg); ok2 {
+			return n, true
+		}
 		return playerCountExtreme(h, g, c, g.AliveFrom(0), rest, arg)
 	}
 	if rest, ok := strings.CutPrefix(head, "PlayerCountRegisteredOpponents$"); ok {
 		if n, ok2 := playerGroupCount(opponentGroup(g, c), rest); ok2 {
+			return n, true
+		}
+		if n, ok2 := playerCountCondition(h, g, c, opponentGroup(g, c), rest, arg); ok2 {
 			return n, true
 		}
 		// Forge's REGISTERED opponents — the opponents registered at game
@@ -1237,7 +1243,46 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		if n, ok2 := hasPropertyLostLifeCount(h, opponentGroup(g, c), rest); ok2 {
 			return n, true
 		}
+		if n, ok2 := playerCountCondition(h, g, c, opponentGroup(g, c), rest, arg); ok2 {
+			return n, true
+		}
 		return playerCountExtreme(h, g, c, opponentGroup(g, c), rest, arg)
+	}
+	// PlayerCountHasLost$<Property> — Forge's group of players who have LOST
+	// the game (CR 104.2-3; a concession counts). `Amount` counts them, so
+	// Hot Pursuit's `CheckSVar$ PlayerCountHasLost$Amount | SVarCompare$
+	// GE2` is "if two or more players have lost the game". Read off the live
+	// seat set (state.Player.Lost), which events.Apply's PlayerLost fold sets
+	// and Clone copies, so a replay derives the same count. Any other
+	// property fails closed: the head has no other corpus reader (measured:
+	// only hot_pursuit and rampant_frogantua carry it).
+	if rest, ok := strings.CutPrefix(head, "PlayerCountHasLost$"); ok {
+		if strings.TrimSpace(rest) == "Amount" {
+			var n int32
+			for i := range g.Players {
+				if g.Players[i].Lost {
+					n++
+				}
+			}
+			return n, true
+		}
+		return 0, false
+	}
+	// PlayerCountDefinedPlayer.PlayerUID_RelativePlayerUID$<Property> —
+	// Forge's per-player property group whose "defined player" is the player
+	// the property is being evaluated FOR (the relative-player read). The
+	// only corpus property is StartingLife, with the /Op suffix
+	// (Anya, Merciless Angel's SVar:Z and Game Over's SVar:Y both spell
+	// `...StartingLife/HalfDown` — "half THEIR starting life total"). The
+	// engine carries no PER-seat starting total, so the read is the one
+	// game-wide opening total effects.Host.StartingLife reports; every corpus
+	// carrier is a Constructed/Commander game where all seats open equal, so
+	// the game-wide value IS each player's starting life. A caller that
+	// evaluates this head with Controller = the member (playerCountCondition's
+	// per-member SVar resolution, and the ordinary static/effect reads for a
+	// self-targeting carrier) therefore gets the right member's threshold.
+	if rest, ok := strings.CutPrefix(head, "PlayerCountDefinedPlayer.PlayerUID_RelativePlayerUID$"); ok {
+		return relativePlayerProperty(h, rest)
 	}
 	// PlayerCountDefinedRegistered$<Property> — the group of registered
 	// players. The two spellings are matched EXACTLY (never the wider
@@ -1259,10 +1304,16 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		if n, ok2 := playerGroupCount(opponentGroup(g, c), rest); ok2 {
 			return n, true
 		}
+		if n, ok2 := playerCountCondition(h, g, c, opponentGroup(g, c), rest, arg); ok2 {
+			return n, true
+		}
 		return playerCountDefinedRegistered(h, g, c, opponentGroup(g, c), rest, arg)
 	}
 	if rest, ok := strings.CutPrefix(head, "PlayerCountDefinedRegistered$"); ok {
 		if n, ok2 := playerGroupCount(g.AliveFrom(0), rest); ok2 {
+			return n, true
+		}
+		if n, ok2 := playerCountCondition(h, g, c, g.AliveFrom(0), rest, arg); ok2 {
 			return n, true
 		}
 		return playerCountDefinedRegistered(h, g, c, g.AliveFrom(0), rest, arg)
@@ -1809,6 +1860,16 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 // of more than one token is rejoined). An unknown destination zone or an
 // empty valid fails closed to zero rather than counting everything.
 func evalThisTurnEntered(g *state.Game, c *Ctx, rest string) (int32, bool) {
+	return evalThisTurnEnteredAs(g, c, c.Controller, rest)
+}
+
+// evalThisTurnEnteredAs is evalThisTurnEntered with the counted member's own
+// perspective: the spec's You* qualifiers bind to `you`, not the resolving
+// controller. The PlayerCount condition's per-member properties
+// (Smuggler's Share's ThisTurnEntered_Battlefield_Land.YouCtrl, meaning "lands
+// under THAT opponent's control") need exactly this — the counted member IS
+// the filter's You.
+func evalThisTurnEnteredAs(g *state.Game, c *Ctx, you state.PlayerID, rest string) (int32, bool) {
 	parts := strings.Split(strings.TrimSpace(rest), "_")
 	if len(parts) < 2 || len(parts) > 5 {
 		return 0, false
@@ -1828,16 +1889,16 @@ func evalThisTurnEntered(g *state.Game, c *Ctx, rest string) (int32, bool) {
 			return 0, false
 		}
 		valid = strings.Join(parts[3:], "_")
-		return countEntered(g, c, dest, &origin, valid)
+		return countEnteredAs(g, c, you, dest, &origin, valid)
 	}
 	valid = strings.Join(parts[1:], "_")
-	return countEntered(g, c, dest, nil, valid)
+	return countEnteredAs(g, c, you, dest, nil, valid)
 }
 
 // countEntered folds the per-add entry list over one destination zone (and
 // optionally one origin zone), counting the entries whose object matches
 // valid from the resolving controller's perspective.
-func countEntered(g *state.Game, c *Ctx, dest state.Zone, origin *state.Zone, valid string) (int32, bool) {
+func countEnteredAs(g *state.Game, c *Ctx, you state.PlayerID, dest state.Zone, origin *state.Zone, valid string) (int32, bool) {
 	if valid == "" {
 		return 0, false
 	}
@@ -1856,7 +1917,7 @@ func countEntered(g *state.Game, c *Ctx, dest state.Zone, origin *state.Zone, va
 		// reads a non-battlefield `Permanent` base as a permanent CARD
 		// (Forge's Card.isPermanent()), which is what Gravestorm's
 		// Count$ThisTurnEntered_Graveyard_from_Battlefield_Permanent needs.
-		if matchesZoneSpecCtx(g, valid, e.Obj, c.SpecContext(c.Controller), e.To) {
+		if matchesZoneSpecCtx(g, valid, e.Obj, c.SpecContext(you), e.To) {
 			n++
 		}
 	}
@@ -2113,6 +2174,140 @@ func countOpHolds(op string, threshold, got int32) bool {
 		return got == threshold
 	}
 	return false
+}
+
+// playerCountCondition answers Forge's PlayerCount<group>$Condition<OP><RHS>
+// <property> family — the per-member threshold count. For each member of the
+// group the named property is evaluated FROM THAT MEMBER'S OWN PERSPECTIVE
+// (a YouCtrl qualifier in the property's spec names the member), and the
+// member is counted when the property satisfies <OP> against <RHS>.
+//
+// The shared dispatch is what keeps this family from resolving on one group
+// and failing closed on its sibling (the class the fix closes): every group
+// arm that carries a property dispatch — Players$, Opponents$,
+// RegisteredOpponents$ and both DefinedRegistered spellings — routes its
+// `Condition...` head here before falling through to playerCountExtreme, so
+// the property evaluators below are the ONE grammar for all of them.
+//
+// <RHS> is either a literal (ConditionGE2 CardsDrawn) or an SVar NAME
+// resolved PER MEMBER (Anya, Merciless Angel's `ConditionLTZ LifeTotal`, whose
+// Z is `PlayerCountDefinedPlayer.PlayerUID_RelativePlayerUID$StartingLife/
+// HalfDown` = that member's half starting life; Game Over's `ConditionLEY
+// LifeTotal` is the same shape). A property or RHS this build cannot evaluate
+// reports (0, false) — UNRESOLVABLE, never a fake zero — so a gate over it
+// degrades per its caller's documented direction (triggers and statics fail
+// closed, Num reads zero) rather than enforcing a made-up count.
+func playerCountCondition(h Host, g *state.Game, c *Ctx, group []state.PlayerID, rest, arg string) (int32, bool) {
+	cond, ok := strings.CutPrefix(strings.TrimSpace(rest), "Condition")
+	if !ok || len(cond) < 3 {
+		return 0, false
+	}
+	op := strings.ToUpper(cond[:2])
+	switch op {
+	case "GE", "GT", "LE", "LT", "EQ":
+	default:
+		return 0, false
+	}
+	rhs := strings.TrimSpace(cond[2:])
+	prop := strings.TrimSpace(arg)
+	if rhs == "" || prop == "" {
+		return 0, false
+	}
+	// The RHS is a literal when it parses as an integer; else it is an SVar
+	// name resolved PER MEMBER (Anya's Z, Game Over's Y). A name with no body
+	// anywhere is unreadable — (0, false), never a threshold of 0.
+	lit, litErr := strconv.ParseInt(rhs, 10, 32)
+	literalOK := litErr == nil
+	var n int32
+	for _, m := range group {
+		v, okv := playerMemberProperty(h, g, c, m, prop)
+		if !okv {
+			return 0, false
+		}
+		var threshold int32
+		if literalOK {
+			threshold = int32(lit)
+		} else {
+			body, found := "", false
+			if c.SVars != nil {
+				body, found = c.SVars[rhs]
+			}
+			if !found {
+				if o := g.Obj(c.Source); o != nil && o.Face() != nil {
+					body, found = o.Face().SVars[rhs]
+				}
+			}
+			if !found {
+				return 0, false
+			}
+			// Evaluate the body with the MEMBER as the relative player: this
+			// is what makes `...RelativePlayerUID$StartingLife/HalfDown`
+			// answer the member's own threshold (and a per-member count body
+			// its own perspective).
+			sub := *c
+			sub.Controller = m
+			tv, tok := evalCountExprOK(h, &sub, body, 0)
+			if !tok {
+				return 0, false
+			}
+			threshold = tv
+		}
+		if countOpHolds(op, threshold, v) {
+			n++
+		}
+	}
+	return n, true
+}
+
+// playerMemberProperty evaluates one property of Forge's player-count
+// condition family from the counted member's own perspective: their current
+// life total, their per-turn draw / discard / cast census, the count of cards
+// that entered a named zone this turn under their control (or owned by them),
+// and — through relativePlayerProperty — the relative-player group. Each read
+// is shared with the head of the same name elsewhere (the Host per-turn
+// predicates, evalThisTurnEnteredAs), so the count family and the standalone
+// heads can never drift apart. An unmodelled property reports (0, false) —
+// unresolvable, the caller's documented direction, never a fake zero.
+func playerMemberProperty(h Host, g *state.Game, c *Ctx, m state.PlayerID, prop string) (int32, bool) {
+	switch strings.TrimSpace(prop) {
+	case "LifeTotal":
+		if int(m) < 0 || int(m) >= len(g.Players) {
+			return 0, false
+		}
+		return g.Players[m].Life, true
+	case "CardsDrawn":
+		return h.CardsDrawnThisTurn(m), true
+	case "CardsDiscardedThisTurn":
+		return h.CardsDiscardedThisTurn(m), true
+	case "SpellsCastThisTurn":
+		return int32(h.SpellsCastThisTurnBy(m)), true
+	}
+	if rest, ok := strings.CutPrefix(strings.TrimSpace(prop), "ThisTurnEntered_"); ok {
+		return evalThisTurnEnteredAs(g, c, m, rest)
+	}
+	return 0, false
+}
+
+// relativePlayerProperty answers the
+// PlayerCountDefinedPlayer.PlayerUID_RelativePlayerUID$<Property> family: the
+// named property of the player the read is FOR (the resolving context's
+// Controller — playerCountCondition sets it to the counted member). Only
+// StartingLife is modelled (the /Op suffix — Anya's /HalfDown — applies
+// through the shared applyCountOp). An unknown property fails closed to
+// (0, false), the unresolvable verdict.
+func relativePlayerProperty(h Host, prop string) (int32, bool) {
+	name, op, hasOp := strings.Cut(strings.TrimSpace(prop), "/")
+	var v int32
+	switch name {
+	case "StartingLife":
+		v = h.StartingLife()
+	default:
+		return 0, false
+	}
+	if hasOp {
+		v = applyCountOp(v, op)
+	}
+	return v, true
 }
 
 // playerCountExtreme answers the PlayerCount<group>$<Property> properties

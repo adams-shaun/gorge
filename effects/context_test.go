@@ -73,6 +73,17 @@ type fakeHost struct {
 	// discarded is the CardsDiscardedThisTurn answer the double reports;
 	// a nil map keeps the pre-existing constant zero.
 	discarded map[state.PlayerID]int32
+	// drawn is the CardsDrawnThisTurn answer the double reports; a nil map
+	// keeps the pre-existing constant zero. The effects-level
+	// PlayerCount$Condition CardsDrawn tests set it.
+	drawn map[state.PlayerID]int32
+	// castsBy is the SpellsCastThisTurnBy answer the double reports; a nil
+	// map keeps the pre-existing constant zero. The effects-level
+	// PlayerCount$Condition SpellsCastThisTurn tests set it.
+	castsBy map[state.PlayerID]int
+	// startingLife is the StartingLife answer the double reports (0 when
+	// unset); the effects-level relative half-starting-life tests set it.
+	startingLife int32
 }
 
 func (h *fakeHost) Game() *state.Game { return h.g }
@@ -208,6 +219,30 @@ func (h *fakeHost) CardsDiscardedThisTurn(p state.PlayerID) int32 {
 
 // TurnsTaken has no event log here; the double reports zero.
 func (h *fakeHost) TurnsTaken(_ state.PlayerID) int32 { return 0 }
+
+// CardsDrawnThisTurn has no event log here; the double reports the
+// h.drawn map the eval-level PlayerCount condition tests configure (nil reads
+// zero, the same conservative no-op as CardsDiscardedThisTurn).
+func (h *fakeHost) CardsDrawnThisTurn(p state.PlayerID) int32 {
+	if h.drawn == nil {
+		return 0
+	}
+	return h.drawn[p]
+}
+
+// SpellsCastThisTurnBy has no event log here; the double reports the
+// h.castsBy map the eval-level PlayerCount condition tests configure (nil
+// reads zero).
+func (h *fakeHost) SpellsCastThisTurnBy(p state.PlayerID) int {
+	if h.castsBy == nil {
+		return 0
+	}
+	return h.castsBy[p]
+}
+
+// StartingLife reports the h.startingLife field the eval-level relative
+// half-starting-life tests configure; zero when unset.
+func (h *fakeHost) StartingLife() int32 { return h.startingLife }
 
 // RevoltHolds has no event log here; the double reports the h.revolt flag
 // the eval-level tests flip (the real log-scan read is pinned in rules).

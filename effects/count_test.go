@@ -656,3 +656,64 @@ func TestThisTurnEnteredExileSkipsSpellCopies(t *testing.T) {
 		}
 	}
 }
+
+// TestPlayerCountConditionFamily pins the Condition<OP><RHS> <property>
+// dispatch (the PlayerCount<group>$Condition family, condition1): per-member
+// property evaluation (the spec's You* qualifiers bind to the COUNTED
+// member, never the resolving controller), a literal threshold, an SVar
+// threshold resolved per member (the relative StartingLife/HalfDown read),
+// the PlayerCountHasLost$Amount head, and the unresolvable-property verdict
+// (0, false) — a gate over an unmodelled property must fail per its caller's
+// documented direction, never enforce a fake zero.
+func TestPlayerCountConditionFamily(t *testing.T) {
+	g, ids := board(t)
+	h := &fakeHost{g: g,
+		drawn:        map[state.PlayerID]int32{0: 2, 1: 2},
+		castsBy:      map[state.PlayerID]int{1: 2},
+		startingLife: 20}
+	c := &Ctx{Controller: 0}
+	// Both seats drew two cards, but only the OPPONENT is a group member.
+	if got := EvalCount(h, c, "Count$PlayerCountOpponents$ConditionGE2 CardsDrawn"); got != 1 {
+		t.Errorf("opponents with GE2 CardsDrawn = %d, want 1", got)
+	}
+	if got := EvalCount(h, c, "Count$PlayerCountPlayers$ConditionGE2 CardsDrawn"); got != 2 {
+		t.Errorf("players with GE2 CardsDrawn = %d, want 2", got)
+	}
+	// The per-member ThisTurnEntered leg: one creature entered per seat; the
+	// spec's YouCtrl binds to the counted member.
+	g.Entered = append(g.Entered,
+		state.ZoneEntry{Obj: ids["myBear"], To: state.ZBattlefield, From: state.ZHand},
+		state.ZoneEntry{Obj: ids["theirBig"], To: state.ZBattlefield, From: state.ZHand})
+	if got := EvalCount(h, c, "Count$PlayerCountOpponents$ConditionGE1 ThisTurnEntered_Battlefield_Creature.YouCtrl"); got != 1 {
+		t.Errorf("opponents with GE1 creature entry = %d, want 1 (the resolved controller's own entry must not count)", got)
+	}
+	if got := EvalCount(h, c, "Count$PlayerCountPlayers$ConditionGE1 ThisTurnEntered_Battlefield_Creature.YouCtrl"); got != 2 {
+		t.Errorf("players with GE1 creature entry = %d, want 2", got)
+	}
+	// The SVar-RHS read resolved PER MEMBER: Anya's `ConditionLTZ LifeTotal`
+	// with Z = the member's own half starting life (20/2 = 10). Opponent at
+	// 9 counts; back at 10 it does not.
+	sv := &Ctx{Controller: 0, SVars: map[string]string{
+		"Z": "PlayerCountDefinedPlayer.PlayerUID_RelativePlayerUID$StartingLife/HalfDown"}}
+	g.Players[1].Life = 9
+	if got := EvalCount(h, sv, "Count$PlayerCountOpponents$ConditionLTZ LifeTotal"); got != 1 {
+		t.Errorf("opponents below half starting life = %d, want 1", got)
+	}
+	g.Players[1].Life = 10
+	if got := EvalCount(h, sv, "Count$PlayerCountOpponents$ConditionLTZ LifeTotal"); got != 0 {
+		t.Errorf("opponents below half starting life at 10 = %d, want 0", got)
+	}
+	// PlayerCountHasLost$Amount: the lost-seat count (Hot Pursuit's gate).
+	g.Players[1].Lost = true
+	if got := EvalCount(h, c, "Count$PlayerCountHasLost$Amount"); got != 1 {
+		t.Errorf("lost seats = %d, want 1", got)
+	}
+	// An unmodelled property fails UNRESOLVABLE, never a fake zero. (The
+	// HasLost assertion above left the only opponent lost, which empties
+	// the group — a condition count over an EMPTY group is legitimately
+	// evaluated zero — so unlose the seat first.)
+	g.Players[1].Lost = false
+	if got, ok := EvalCountOK(h, c, "Count$PlayerCountOpponents$ConditionGE2 BogusProp"); ok {
+		t.Errorf("BogusProp reported EVALUATED as %d — must fail unresolvable", got)
+	}
+}
