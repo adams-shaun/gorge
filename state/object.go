@@ -606,6 +606,11 @@ type Object struct {
 	// RiotChoice is set by the logged as-enters Riot choice. It survives the
 	// hand/stack path and Move consumes it on battlefield entry.
 	RiotChoice string
+	// UnleashChoice is set by the logged as-enters Unleash choice (CR 702.86:
+	// "counter" = enter with a +1/+1 counter, "plain" = enter without). It
+	// survives the hand/stack path and Move consumes it on battlefield entry,
+	// exactly like RiotChoice.
+	UnleashChoice string
 	// Protector is the CR 310.10 Siege protector: the opponent its
 	// controller chose to protect this Battle as it entered. It is a property
 	// of the battle (not a counter), recorded through a Choose "protector"

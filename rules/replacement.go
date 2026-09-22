@@ -171,6 +171,11 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	if e.applyRiotReplacement(ev) {
 		return ev, true
 	}
+	// kw:Unleash (CR 702.86) asks its take-the-counter-or-not question as the
+	// creature would enter, the Riot parking discipline (rules/unleash.go).
+	if e.applyUnleashReplacement(ev) {
+		return ev, true
+	}
 	// CR 310.10: a Battle Siege's protector is chosen as it enters. Parked
 	// exactly like Riot above so every entry path records it; the parked move
 	// is emitted once the answer is logged.

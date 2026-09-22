@@ -591,6 +591,12 @@ type Engine struct {
 	// the answer, so every entry path reaches events.Move with RiotChoice set.
 	riotMove *events.Event
 	// siegeMove parks a non-cast Battle entry while its controller makes the
+	// unleashMove parks a non-cast battlefield entry while its controller
+	// makes Unleash's as-enters choice (CR 702.86, rules/unleash.go). Same
+	// discipline as riotMove: the MoveZone is emitted only after the Choose
+	// "unleash" event records the answer, so every entry path reaches
+	// events.Move with UnleashChoice set. Clone-copied (clone.go).
+	unleashMove *events.Event
 	// CR 310.10 Siege protector choice. Same discipline as riotMove: the
 	// MoveZone is emitted only after the Choose "protector" event records the
 	// answer, so every entry path records the protector beside the entry and a

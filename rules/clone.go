@@ -115,6 +115,10 @@ func (e *Engine) Clone() *Engine {
 		ev := *e.riotMove
 		c.riotMove = &ev
 	}
+	if e.unleashMove != nil {
+		ev := *e.unleashMove
+		c.unleashMove = &ev
+	}
 	if e.siegeMove != nil {
 		ev := *e.siegeMove
 		c.siegeMove = &ev

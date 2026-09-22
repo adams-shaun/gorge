@@ -3971,6 +3971,12 @@ func (e *Engine) collectETBChoices(you state.PlayerID) {
 			{Index: 1, Kind: "riot", Label: "Gain haste"},
 		}})
 	}
+	// kw:Unleash (CR 702.86): the same as-enters may, two options (take the
+	// +1/+1 counter or enter without). The non-cast entry paths are caught
+	// by applyUnleashReplacement (rules/unleash.go), the Riot precedent.
+	if f.HasKeyword("Unleash") {
+		pc.etbs = append(pc.etbs, etbChoice{kind: "unleash", options: unleashOptions(pc.card, pc.player)})
+	}
 	for i := range f.Repls {
 		r := &f.Repls[i]
 		if r.Params["Keyword"] != "ETBReplacement" || r.With == nil {
@@ -4212,6 +4218,8 @@ func etbChoicePrompt(kind string) string {
 		return " a color"
 	case "riot":
 		return " how this creature enters (counter or haste)"
+	case "unleash":
+		return " how this creature enters (with a +1/+1 counter or without)"
 	}
 	return " a number"
 }
@@ -5323,6 +5331,12 @@ func (e *Engine) etbAnswer(d *decision.Decision, chosen []decision.Option) {
 			choice = "counter"
 		}
 		e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "riot", Text: choice})
+	case "unleash":
+		choice := "plain"
+		if opt.Index == 0 {
+			choice = "counter"
+		}
+		e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "unleash", Text: choice})
 	}
 	pc.etbIdx++
 }
