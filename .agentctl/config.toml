@@ -59,7 +59,7 @@ local = ["bm-llms-glm/glm-5.3-flash"]
 # overflow = ["openai-codex/gpt-5.6-terra"]
 # escalated = ["openai-codex/gpt-5.6-terra", "openai-codex/gpt-5.6-sol"]
 # reviewer = ["openai-codex/gpt-5.6-terra", "openai-codex/gpt-5.6-sol", "bm-llms-glm/glm-5.3-flash"]
-overflow = ["deepinfra/deepseek-ai/DeepSeek-V4.1-Flash"]
+overflow = ["deepinfra/deepseek-ai/DeepSeek-V4.1-Flash", "openai-codex/gpt-5.6-luna"]
 escalated = ["deepinfra/deepseek-ai/DeepSeek-V4.1-Flash"]
 reviewer = ["openai-codex/gpt-5.6-terra", "openai-codex/gpt-5.6-sol", "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash", "bm-llms-glm/glm-5.3-flash"]
 triage = ["openai-codex/gpt-5.6-terra", "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash", "bm-llms-glm/glm-5.3-flash"]
@@ -75,6 +75,9 @@ local_endpoint_probe = true
 # human_needed, no `new` or `briefed` ticket starts; in-flight work still
 # advances, so the fleet drains instead of growing.
 hold_new_while_parked = true
+# 2026-09-22 (operator): triage writes at most this many briefs ahead of the
+# implementers; no new triage launches while this many sit in `briefed`.
+triage_ahead = 100
 
 max_local_rounds = 2
 # 2026-09-19 (operator): the escalated tier is held for Claude. 0 means ONE
