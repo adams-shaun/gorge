@@ -12,12 +12,13 @@ func init() { Register("Token", effToken) }
 
 // effToken creates TokenAmount$ tokens of each TokenScript$ (a comma-
 // separated list of Game.Tokens stems) for TokenOwner$ (the controller by
-// default; only "Opponent" is resolved specially, matching Defined's own
-// "You"/"Opponent" pair in context.go). Every other TokenOwner$ form the
-// corpus uses (a fidelity gap this task does not close) still falls back to
-// the controller rather than doing nothing, but now says so: a Note names
-// the unrecognised value, so the gap is visible rather than silently
-// papered over the way an unqualified fallback would be.
+// default; "Opponent" resolves the next living seat and "Player" resolves
+// EVERY living player in seat order, the "each player creates ..." shape).
+// Every other TokenOwner$ form the corpus uses (a fidelity gap this task
+// does not close) still falls back to the controller rather than doing
+// nothing, but now says so: a Note names the unrecognised value, so the gap
+// is visible rather than silently papered over the way an unqualified
+// fallback would be.
 //
 // Every token is its own TokenCreate event, in the order this loop visits
 // them (outer: TokenScript$ stems left to right; inner: TokenAmount$ copies
@@ -155,6 +156,15 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 				break
 			}
 		}
+	case "Player":
+		// Forge's TokenOwner$ Player: EVERY living player creates the token
+		// (Rendmaw, Creaking Nest's "each player creates a tapped 2/2 black
+		// Bird"; 29 raw corpus lines). Seat order is deterministic -- the
+		// AliveFrom scan from the resolving controller, the same order the
+		// Opponent case above and Defined$ Opponent read -- so the mint
+		// events replay identically. An eliminated seat creates nothing
+		// (the player is not "each player" anymore).
+		owners = append([]state.PlayerID(nil), g.AliveFrom(c.Controller)...)
 	default:
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "unrecognized TokenOwner " + v + ", defaulting to the controller"})

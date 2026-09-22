@@ -907,6 +907,14 @@ const (
 	// two-token form survives the spec splitter) reads the specific part's
 	// CastFlags bit. The bare "kicked" word stays in the predicates map.
 	wordKickedIndex
+	// Forge's numTypesGE<n> card property: the object's printed face carries
+	// at least n distinct real card types (CR 205.1 -- the same vocabulary
+	// count.go's CardTypes count property reads, cardTypeWords). key is the
+	// decimal n, validated at classification time so the matcher's parse
+	// cannot miss. Only the GE spelling is in the corpus (numTypesGE2 x2,
+	// both on Rendmaw, Creaking Nest); the other comparison spellings stay
+	// wordUnknown and fail closed.
+	wordNumTypesGE
 )
 
 // wordPredicate classifies a bare predicate word. key is the WUBRG letter for
@@ -1054,6 +1062,16 @@ func wordPredicate(p string) (wordKind, string) {
 	// else falls through to wordUnknown and fails closed.
 	if arg, ok := enchantedByArg(p); ok {
 		return wordEnchantedBy, arg
+	}
+	// Forge's numTypesGE<n> (CardProperty numTypesGE<n>): at least n
+	// distinct card types on the printed face. A non-integer or
+	// non-positive suffix stays wordUnknown and fails closed -- a bare
+	// "numTypesGE" never matches anything, the same contract the other
+	// argument-carrying classifiers keep.
+	if n, ok := strings.CutPrefix(p, "numTypesGE"); ok && n != "" {
+		if v, err := strconv.Atoi(n); err == nil && v > 0 {
+			return wordNumTypesGE, n
+		}
 	}
 	if predicateTypeWords[p] {
 		return wordType, p
@@ -1217,6 +1235,37 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// Forge's blockedBySource: the object is being blocked by the source
 		// -- the source is one of THIS object's blockers.
 		return containsID(o.BlockedBy, source)
+	case wordNumTypesGE:
+		// Forge's numTypesGE<n>: the object's printed face carries at least
+		// n distinct real card types (CR 205.1). The vocabulary is the one
+		// shared census cardTypeWords (effects/creature_types.go), the same
+		// set count.go's CardTypes count property filters through, so the
+		// predicate and the count head cannot disagree about what a "card
+		// type" is. No allocation on this hot filter path: the nested loop
+		// dedupes against the already-scanned prefix of the same (always
+		// tiny) type list, and a nil face matches nothing.
+		n, err := strconv.Atoi(key)
+		if err != nil || n <= 0 || o.Face() == nil {
+			return false
+		}
+		count := 0
+		types := o.Face().Types
+		for i, t := range types {
+			if !cardTypeWords[t] {
+				continue
+			}
+			dup := false
+			for _, u := range types[:i] {
+				if u == t {
+					dup = true
+					break
+				}
+			}
+			if !dup {
+				count++
+			}
+		}
+		return count >= n
 	case wordTargetedPlayerCtrl:
 		matched, ok := matchTargetedPlayerCtrl(g, o, sc)
 		return ok && matched
