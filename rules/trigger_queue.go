@@ -1439,6 +1439,13 @@ func (e *Engine) abilityLabel(o *state.Object, t cards.Trigger) string {
 // posed, so the drain knows whether to wait for a modes answer
 // (drainAwaitsModes) and whether to fall through to the target ask.
 func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA) bool {
+	// VillainousChoice is not CR 603.3c modal placement: its Defined$
+	// player chooses during resolution. Let the registered effect own the
+	// ask so the victim, rather than the trigger controller, is the chooser
+	// and the victim can be captured in Ctx.Remembered first.
+	if sa.API == "VillainousChoice" {
+		return false
+	}
 	var source state.ObjID
 	var svars map[string]string
 	wr := e.G.Obj(obj)

@@ -22,6 +22,7 @@ func init() {
 	Register("Repeat", effRepeat)
 	Register("Charm", effCharm)
 	Register("GenericChoice", effCharm)
+	Register("VillainousChoice", effVillainousChoice)
 	Register("Vote", effVote)
 	Register("BecomeMonarch", effBecomeMonarch)
 	Register("RingTemptsYou", effRingTemptsYou)
@@ -2242,6 +2243,67 @@ func charmCrossModeRun(h Host, c *Ctx, sa *cards.SA, names []string) bool {
 		}
 	}
 	return true
+}
+
+// effVillainousChoice makes the player named by Defined$ choose one of the
+// supplied ability bodies. Unlike a modal trigger's placement choice, the
+// victim's choice happens during resolution: the victim is remembered before
+// the chosen body runs, so Defined$ Remembered and Player.IsRemembered in the
+// body refer to the victim.
+func effVillainousChoice(h Host, c *Ctx, sa *cards.SA) {
+	choices := strings.Split(sa.Params["Choices"], ",")
+	if len(choices) == 0 || c.SVars == nil {
+		return
+	}
+	for i := range choices {
+		choices[i] = strings.TrimSpace(choices[i])
+	}
+	if c.Modes != nil {
+		names := c.Modes
+		c.Modes = nil
+		for _, name := range names {
+			if sub := cards.ResolveSVar(c.SVars, name); sub != nil {
+				Resolve(h, c, sub)
+			}
+			if h.Suspended() {
+				return
+			}
+		}
+		return
+	}
+	var victim state.Target
+	for _, target := range Defined(h, c, sa) {
+		if target.IsPlayer {
+			victim = target
+			break
+		}
+	}
+	if !victim.IsPlayer {
+		return
+	}
+	c.Remembered = append(c.Remembered, victim)
+	d := &decision.Decision{Player: victim.Player, Kind: decision.KModes,
+		Min: 1, Max: 1, Source: c.Source, ResumeKind: "modes",
+		ResumeSA: sa, ResumeModes: append([]string(nil), choices...),
+		Prompt: "Choose a villainous option"}
+	for i, name := range choices {
+		label := name
+		if sub := cards.ResolveSVar(c.SVars, name); sub != nil {
+			if desc := strings.TrimSpace(sub.Params["SpellDescription"]); desc != "" {
+				label = desc
+			}
+		}
+		d.Options = append(d.Options, decision.Option{Index: i, Kind: "mode",
+			Label: label, Obj: c.Source, Player: victim.Player})
+	}
+	if Ask(h, d) == AskAsked {
+		return
+	}
+	// R-9: an effects-only host has no chooser, so deterministically take the
+	// first option. The normal rules host never reaches this fallback.
+	if sub := cards.ResolveSVar(c.SVars, choices[0]); sub != nil {
+		Resolve(h, c, sub)
+	}
 }
 
 // effCharm runs the selected Choices$ sub-abilities in chosen order.
