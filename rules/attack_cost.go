@@ -235,8 +235,8 @@ type attackOffer struct {
 	price int32
 }
 
-// attackOffers builds the offer list askAttackers, attackPairAvailable and
-// validateAttackers share -- the one source of truth for which pairs exist
+// attackOffers builds the offer list askAttackers, attackDutyDischargeable
+// and validateAttackers share -- the one source of truth for which pairs exist
 // this combat. The enumeration and the ORDER are exactly askAttackers':
 // defender-major -- for each defender in AliveFrom(0) minus the active
 // player, for each canAttack-filtered battlefield creature in zone order,
@@ -252,8 +252,9 @@ type attackOffer struct {
 // declaration outright. Admitting each individually-affordable pair and
 // pricing the whole declaration on submission lets the client assemble any
 // declaration the payer can actually pay; the solver's requirement read
-// (attackPairAvailable) then asks only that a required creature HAS an
-// affordable pair, which is the CR 508.1d "if able" reading.
+// (attackDutyDischargeable) then asks only that a required creature has an
+// affordable pair that DISCHARGES one of its duties, which is the CR 508.1d
+// "if able" reading.
 //
 // CR 508.1d's "satisfy as many requirements as possible": once the legal,
 // affordable pairs are known, every pair of a creature that satisfies FEWER

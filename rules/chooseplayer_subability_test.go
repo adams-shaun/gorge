@@ -498,3 +498,150 @@ func TestMustAttackRememberedPlayerBindsThroughRealEffectRegistration(t *testing
 		t.Fatalf("a creature outside the Effect's remembered set must not be required: %+v", rsDragon)
 	}
 }
+
+// TestMustAttackNamedDefenderBlockedLeavesAlternateOptional is the sol1
+// review's case: a named requirement whose ONE defender no pair can reach
+// makes the creature not required at all, instead of forcing an attack on a
+// player no duty names.
+//
+// Three seats; the dragon carries a single `MustAttack$ RememberedPlayer`
+// duty naming player 1, and a CantAttack restriction scoped to player 1
+// removes exactly that pair. Attacking player 2 obeys zero requirements and
+// so does not attacking, so CR 508.1d permits both: player 2's pair stays
+// OFFERED (it is still a legal attack) but must not be marked Required, and
+// the empty declaration must be accepted. Before the fix mustAttackRequired
+// asked only whether SOME pair survived, so it marked the player-2 pair
+// Required and the empty declaration was rejected.
+func TestMustAttackNamedDefenderBlockedLeavesAlternateOptional(t *testing.T) {
+	e := New(seatZeroStart(Config{Seed: 3, Names: []string{"a", "b", "c"}, Decks: [][]*cards.Card{
+		mountainDeck(t, 40), mountainDeck(t, 40), mountainDeck(t, 40),
+	}}))
+	e.G.Active = 0
+	e.G.Step = state.StepDeclareAttackers
+	hk := onBoardReady(t, e, 0, "Name:Dragon\nTypes:Creature\nPT:5/5\nOracle:x\n")
+	if o := e.G.Obj(hk); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("precondition: dragon not on the battlefield")
+	}
+	// One named duty: attack player 1.
+	e.AddContinuous(ContinuousEffect{
+		Source: hk, Controller: 0, UntilEOT: true,
+		Restriction:       "MustAttack",
+		RestrictParams:    map[string]string{"Mode": "MustAttack", "ValidCreature": "Card.Self", "MustAttack": "RememberedPlayer"},
+		RememberedPlayers: []state.PlayerID{1},
+	})
+	// ... and a restriction that blocks exactly that pair (Call for Aid's
+	// shape: Target$ Player.IsRemembered against the effect's own capture).
+	e.AddContinuous(ContinuousEffect{
+		Source: hk, Controller: 0, UntilEOT: true,
+		Restriction:       "CantAttack",
+		RestrictParams:    map[string]string{"Mode": "CantAttack", "ValidCard": "Card.Self", "Target": "Player.IsRemembered"},
+		RememberedPlayers: []state.PlayerID{1},
+	})
+	if !e.attackBlocked(hk, 1) {
+		t.Fatal("precondition: the named defender's pair is not blocked")
+	}
+	if e.attackBlocked(hk, 2) {
+		t.Fatal("precondition: the alternate defender's pair must stay legal")
+	}
+	if rs := e.attackRequirements(hk); rs.satisfiedBy(1) != 1 || rs.satisfiedBy(2) != 0 || rs.broad || rs.goad {
+		t.Fatalf("precondition: expected exactly one named duty on player 1, got %+v", rs)
+	}
+	if e.mustAttackRequired(hk) {
+		t.Fatal("dragon is required although no offered pair discharges its only duty")
+	}
+
+	e.askAttackers()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KAttackers {
+		t.Fatalf("expected a KAttackers decision, got %+v", d)
+	}
+	sawAlternate := false
+	for _, opt := range d.Options {
+		if opt.Obj != hk {
+			continue
+		}
+		if opt.Player == 1 {
+			t.Fatalf("the blocked named pair (player 1) was still offered: %+v", opt)
+		}
+		if opt.Player == 2 {
+			sawAlternate = true
+			if opt.Required {
+				t.Fatal("the alternate pair (player 2) is marked Required though it discharges no duty")
+			}
+		}
+	}
+	if !sawAlternate {
+		t.Fatalf("the legal alternate pair must stay offered; options=%+v", d.Options)
+	}
+	// Both maximal declarations are legal: the empty one, and the alternate.
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player}); err != nil {
+		t.Fatalf("the empty declaration obeys as many requirements as any other and must be legal: %v", err)
+	}
+	if e.G.Obj(hk).IsAttacking {
+		t.Fatal("the dragon attacked although the declaration was empty")
+	}
+}
+
+// TestMustAttackBlockedNamedDutyStillRequiredWhenBroad is the other half of
+// the same rule: a BROAD duty (an unconditional "attacks each combat if
+// able") is discharged by ANY defender, so a named duty whose defender is
+// blocked does not release the creature -- it must still attack the
+// alternate. This is what keeps the fix from turning every blocked named
+// duty into a blanket exemption.
+func TestMustAttackBlockedNamedDutyStillRequiredWhenBroad(t *testing.T) {
+	e := New(seatZeroStart(Config{Seed: 3, Names: []string{"a", "b", "c"}, Decks: [][]*cards.Card{
+		mountainDeck(t, 40), mountainDeck(t, 40), mountainDeck(t, 40),
+	}}))
+	e.G.Active = 0
+	e.G.Step = state.StepDeclareAttackers
+	hk := onBoardReady(t, e, 0, "Name:Dragon\nTypes:Creature\nPT:5/5\nOracle:x\n")
+	for _, ce := range []ContinuousEffect{
+		{Source: hk, Controller: 0, UntilEOT: true, Restriction: "MustAttack",
+			RestrictParams:    map[string]string{"Mode": "MustAttack", "ValidCreature": "Card.Self", "MustAttack": "RememberedPlayer"},
+			RememberedPlayers: []state.PlayerID{1}},
+		{Source: hk, Controller: 0, UntilEOT: true, Restriction: "CantAttack",
+			RestrictParams:    map[string]string{"Mode": "CantAttack", "ValidCard": "Card.Self", "Target": "Player.IsRemembered"},
+			RememberedPlayers: []state.PlayerID{1}},
+		// The broad duty: no MustAttack$ player reference at all.
+		{Source: hk, Controller: 0, UntilEOT: true, Restriction: "MustAttack",
+			RestrictParams: map[string]string{"Mode": "MustAttack", "ValidCreature": "Card.Self"}},
+	} {
+		e.AddContinuous(ce)
+	}
+	if rs := e.attackRequirements(hk); !rs.broad || rs.satisfiedBy(1) != 1 {
+		t.Fatalf("precondition: expected a broad duty beside the named one, got %+v", rs)
+	}
+	if !e.mustAttackRequired(hk) {
+		t.Fatal("a broad duty with an available defender still requires the attack")
+	}
+	e.askAttackers()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KAttackers {
+		t.Fatalf("expected a KAttackers decision, got %+v", d)
+	}
+	idx := -1
+	for _, opt := range d.Options {
+		if opt.Obj != hk {
+			continue
+		}
+		if opt.Player != 2 {
+			t.Fatalf("only the unblocked defender may be offered, got %+v", opt)
+		}
+		if !opt.Required {
+			t.Fatal("the pair that discharges the broad duty is not marked Required")
+		}
+		idx = opt.Index
+	}
+	if idx < 0 {
+		t.Fatalf("no dragon option at all: %+v", d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player}); err == nil {
+		t.Fatal("a creature under a satisfiable broad duty was allowed to skip its attack")
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
+		t.Fatalf("the one legal declaration was rejected: %v", err)
+	}
+	if o := e.G.Obj(hk); !o.IsAttacking || o.Attacking != 2 {
+		t.Fatalf("dragon did not attack player 2 (attacking=%v at %d)", o.IsAttacking, o.Attacking)
+	}
+}

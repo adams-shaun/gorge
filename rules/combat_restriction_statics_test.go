@@ -12,7 +12,7 @@ package rules
 // AURA-carried requirement — Fealty to the Realm's
 // `ValidCreature$ Creature.EnchantedBy` — reach the enchanted creature; the
 // old solver walked only the considered creature's own face). CR 508.1d's
-// "if able" is honoured by mustAttackRequired's attackPairAvailable gate: a
+// "if able" is honoured by mustAttackRequired's attackDutyDischargeable gate: a
 // required creature whose every pair a CantAttack blocks is NOT required,
 // so the KAttackers decision never wedges.
 //

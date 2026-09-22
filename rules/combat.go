@@ -840,8 +840,9 @@ func (e *Engine) validateAttackers(d *decision.Decision, in decision.Intent) err
 //
 // A creature is required when its attackRequirementSet is non-empty (an
 // encore designation, any applicable Effect-registered or face Mode$
-// MustAttack static, or a live goad) AND it has at least one offered pair
-// (attackPairAvailable) -- CR 508.1d's "attacks if able". The requirement set
+// MustAttack static, or a live goad) AND at least one offered pair actually
+// DISCHARGES one of those duties (attackDutyDischargeable) -- CR 508.1d's
+// "attacks if able". The requirement set
 // is the board-wide collection (which includes the creature's own face,
 // source-bound through the same specCtx the face walk used), so an
 // AURA-carried requirement -- Fealty to the Realm's `S:Mode$ MustAttack |
@@ -861,7 +862,8 @@ func (e *Engine) mustAttackRequired(id state.ObjID) bool {
 	if f == nil || !e.canAttack(id) {
 		return false
 	}
-	if !e.attackRequirements(id).any() {
+	s := e.attackRequirements(id)
+	if !s.any() {
 		return false
 	}
 	// CR 508.1d counts a requirement only when the creature can actually
@@ -873,27 +875,48 @@ func (e *Engine) mustAttackRequired(id state.ObjID) bool {
 	// ceiling is deliberately not a pair gate: the requirement solver's
 	// maxReq (validateAttackDeclaration) already clamps to it, and a nonzero
 	// ceiling that merely caps the count still leaves the requirement binding.
-	// attackPairAvailable reads the same maximal-satisfaction offer list the
-	// options do, so the two can never disagree.
-	return e.attackPairAvailable(id)
+	// attackDutyDischargeable reads the same maximal-satisfaction offer list
+	// the options do, so the two can never disagree.
+	return e.attackDutyDischargeable(id, s)
 }
 
-// attackPairAvailable reports whether creature id has at least one legal
-// (attacker, defender) pair this combat. The pairs ARE the attackOffers list
-// (rules/attack_cost.go): the defender enumeration (AliveFrom(0), controller
-// excluded), the goad/CantAttack scoping, the CR 508.1d maximal-satisfaction
-// filter and the attack-prop budget serialization are all the offer list's
-// own rules, so the requirement solver and the option list can never disagree
-// about which pairs exist (a creature whose every pair the attack budget ran
-// out on is not required, and the declaration that pays for the remaining
-// required creatures stays legal).
-func (e *Engine) attackPairAvailable(id state.ObjID) bool {
+// attackDutyDischargeable reports whether creature id has at least one
+// offered (attacker, defender) pair that actually DISCHARGES a requirement in
+// s. It is the "if able" half of CR 508.1d read as a duty, not merely as the
+// existence of some legal pair.
+//
+// A BROAD requirement (an unconditional Mode$ MustAttack) and a goad are
+// discharged by any surviving pair, so one offered pair is enough. A NAMED
+// requirement names its defender, so only a pair against that player
+// discharges it: when every such pair is gone -- a CantAttack static or
+// restriction scoped to that one defender, a goad restriction, or an
+// individually unaffordable attack-prop price -- attacking a DIFFERENT player
+// and not attacking at all both obey ZERO requirements, so CR 508.1d permits
+// either and the creature is NOT required. attackOffers deliberately keeps
+// every surviving pair in that case (its maximal-satisfaction filter is a
+// no-op when the best satisfaction is zero), so the creature may still attack
+// freely; it simply must not be MARKED Required, which would reject the
+// equally maximal no-attack declaration and, with no other required creature
+// to fall back on, leave the KAttackers decision no legal answer at all.
+//
+// The pairs ARE the attackOffers list (rules/attack_cost.go): the defender
+// enumeration (AliveFrom(0), controller excluded), the goad/CantAttack
+// scoping, the CR 508.1d maximal-satisfaction filter and the attack-prop
+// budget serialization are all the offer list's own rules, so the requirement
+// solver, the option list and validateAttackDeclaration can never disagree
+// about which pairs exist or which of them discharge a duty.
+func (e *Engine) attackDutyDischargeable(id state.ObjID, s attackRequirementSet) bool {
+	anyPair := false
 	for _, of := range e.attackOffers() {
-		if of.id == id {
+		if of.id != id {
+			continue
+		}
+		if s.satisfiedBy(of.def) > 0 {
 			return true
 		}
+		anyPair = true
 	}
-	return false
+	return anyPair && (s.broad || s.goad)
 }
 
 // maxAttackers reports the tightest total-attacker ceiling in force from

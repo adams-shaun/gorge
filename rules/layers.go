@@ -2828,7 +2828,7 @@ func counterKindMatches(restriction, kind string) bool {
 // no Target$ (the "Creatures can't attack." shapes) blocks every defender.
 // Consulted at the two (attacker, defender) enforcement points — askAttackers'
 // option filter and validateAttackers — and by mustAttackRequired's
-// attackPairAvailable gate (CR 508.1d's "if able").
+// attackDutyDischargeable gate (CR 508.1d's "if able").
 func (e *Engine) attackBlocked(id state.ObjID, defender state.PlayerID) bool {
 	for _, ce := range e.active() {
 		if ce.Restriction != "CantAttack" {
