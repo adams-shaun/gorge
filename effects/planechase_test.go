@@ -65,6 +65,10 @@ func TestOptionalPlaneswalkNoHostDeclinesAndRunsTheChain(t *testing.T) {
 		if e.Text == "planeswalk election: no" {
 			found = true
 		}
+		// The decline contract: nothing may claim the planeswalk resolved.
+		if e.Text == "planeswalk (no planar deck)" {
+			t.Fatalf("a declined election recorded the no-planar-deck no-op: %+v", h.log)
+		}
 	}
 	if !found {
 		t.Fatalf("no recorded deterministic decline in %+v", h.log)

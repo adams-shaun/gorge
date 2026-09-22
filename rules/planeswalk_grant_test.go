@@ -155,6 +155,12 @@ func TestTardisPlaneswalkAskResolvesChain(t *testing.T) {
 			if want == "yes" && !noDeck {
 				t.Fatal("a yes election must still record the no-planar-deck no-op")
 			}
+			// The decline contract: a declined "you may planeswalk" records
+			// the election and nothing else. Emitting the no-op Note here
+			// would claim a planeswalk resolved and found no planar deck.
+			if want == "no" && noDeck {
+				t.Fatal("a declined election must not record the no-planar-deck no-op")
+			}
 			replayCheck(t, e, cfg)
 		})
 	}
