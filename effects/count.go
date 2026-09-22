@@ -310,7 +310,14 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 			n, ok3 = v, true
 		}
 		if hasOp {
-			n = applyCountOp(n, op)
+			// The op goes through applyCountOpOperand, not the numeric-only
+			// applyCountOp: Forge names SVar operands here too (Alrund's
+			// SVar$X/Plus.Y chains two count heads -- 86 corpus files carry
+			// the shape), and the numeric-only read silently DROPPED such an
+			// operand (the unknown-op fallthrough keeps the base value). A
+			// non-numeric, non-SVar operand still falls through to
+			// applyCountOp unchanged.
+			n = applyCountOpOperand(h, c, n, op, depth)
 		}
 		return n, ok3
 	}
