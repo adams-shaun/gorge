@@ -1118,6 +1118,7 @@ func (e *Engine) SetCounterAdder(p state.PlayerID) state.PlayerID {
 type damageKeywordLKI struct {
 	lifelink   bool
 	infect     bool
+	wither     bool
 	deathtouch bool
 }
 
@@ -1125,6 +1126,7 @@ func (e *Engine) damageKeywordsOf(id state.ObjID) damageKeywordLKI {
 	return damageKeywordLKI{
 		lifelink:   e.HasKeyword(id, "Lifelink"),
 		infect:     e.HasKeyword(id, "Infect"),
+		wither:     e.HasKeyword(id, "Wither"),
 		deathtouch: e.HasKeyword(id, "Deathtouch"),
 	}
 }
@@ -1727,6 +1729,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		(stored.Counter == "infect" || stored.Counter == "infect+creature") {
 		e.convertInfectDamage(stored)
 	}
+	if stored.Kind == events.Damage && stored.Amount > 0 && stored.Counter == "wither+creature" {
+		e.convertWitherDamage(stored)
+	}
 	if len(e.turnsTaken) == len(e.G.Players) && e.turnsTakenEpoch == len(e.L.Events)-1 {
 		if stored.Kind == events.TurnChange && int(stored.Player) < len(e.turnsTaken) {
 			e.turnsTaken[stored.Player]++
@@ -2041,7 +2046,7 @@ func (e *Engine) finishSourceLifelinkLKI(ev events.Event, departing bool, kw dam
 
 func damageSourceLKIOf(kw damageKeywordLKI, controller state.PlayerID) effects.DamageSourceLKI {
 	return effects.DamageSourceLKI{Lifelink: kw.lifelink, Infect: kw.infect,
-		Deathtouch: kw.deathtouch, Controller: controller}
+		Wither: kw.wither, Deathtouch: kw.deathtouch, Controller: controller}
 }
 
 func (e *Engine) captureNamedDamageSourceLKI(stack, source state.ObjID, kw damageKeywordLKI, controller state.PlayerID) {

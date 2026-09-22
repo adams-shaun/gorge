@@ -856,6 +856,7 @@ func Apply(g *state.Game, e Event) {
 		// placement exactly like any other. This fold only withholds the
 		// form the counters replace.
 		infect := e.Counter == "infect"
+		wither := e.Counter == "wither+creature"
 		if o := g.Obj(e.Obj); o != nil {
 			// CR 306.8 / 120.3c: damage dealt to a planeswalker permanent
 			// removes that many loyalty counters instead of being marked as
@@ -897,8 +898,9 @@ func Apply(g *state.Game, e Event) {
 			// emitter (or a redirect's fresh event) hands here.
 			creature := e.Counter == "creature" || e.Counter == "infect+creature" ||
 				(o.Face() != nil && o.Face().IsCreature())
-			if e.Counter == "infect+creature" {
-				// CR 702.90b: that many -1/-1 counters instead of marked
+			if e.Counter == "infect+creature" || wither {
+				// Infect and Wither replace marked creature damage with a
+				// separate counter placement emitted by rules after this fold.
 				// damage. They arrive as the separate CounterChange event rules
 				// emitted right after this one. The branch also covers a
 				// rewritten negative amount (cleanup's marked-damage clearing),

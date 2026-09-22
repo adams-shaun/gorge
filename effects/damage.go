@@ -269,6 +269,7 @@ type damageRider struct {
 	amount        int32
 	hasLifelink   bool
 	hasInfect     bool
+	hasWither     bool
 	hasDeathtouch bool
 }
 
@@ -313,6 +314,7 @@ func newDamageRider(h Host, c *Ctx, sa *cards.SA, amount int32) damageRider {
 	}
 	hasLifelink := h.HasKeyword(source, "Lifelink")
 	hasInfect := h.HasKeyword(source, "Infect")
+	hasWither := h.HasKeyword(source, "Wither")
 	hasDeathtouch := h.HasKeyword(source, "Deathtouch")
 	// CR 608.2h: a source that left while this resolution waited uses LKI.
 	// The own-source fields cover the independently resolving ability's own
@@ -332,7 +334,7 @@ func newDamageRider(h Host, c *Ctx, sa *cards.SA, amount int32) damageRider {
 			// source as well as a named DamageSource$ object, so it is the one
 			// home for infect and deathtouch. Lifelink and controller keep the
 			// own-source fields' older precedence below.
-			hasInfect, hasDeathtouch = lki.Infect, lki.Deathtouch
+			hasInfect, hasWither, hasDeathtouch = lki.Infect, lki.Wither, lki.Deathtouch
 		}
 		switch {
 		case source == own && c.SourceLifelinkLKIValid:
@@ -357,7 +359,7 @@ func newDamageRider(h Host, c *Ctx, sa *cards.SA, amount int32) damageRider {
 	}
 	return damageRider{h: h, source: source, controller: controller,
 		amount: amount, hasLifelink: hasLifelink, hasInfect: hasInfect,
-		hasDeathtouch: hasDeathtouch}
+		hasWither: hasWither, hasDeathtouch: hasDeathtouch}
 }
 
 // payLifelinkRider is CR 702.15a's life gain for NON-COMBAT damage: when
@@ -413,6 +415,8 @@ func emitObjectDamage(r damageRider, target state.ObjID) int32 {
 		// infect (e.g. a Grafted Exoskeleton bearer) reads the same, because
 		// Host.HasKeyword reads the derived keyword list.
 		ev.Counter = "infect+creature"
+	} else if creature && r.hasWither {
+		ev.Counter = "wither+creature"
 	} else if creature && o.Face() != nil && o.Face().IsPlaneswalker() && !o.Face().IsCreature() {
 		ev.Counter = "creature"
 	}
