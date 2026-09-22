@@ -1676,6 +1676,7 @@ func runMatrixTraced(baseSeed uint64, games, seats int, aName, bName, dir, forma
 		cfg := buildGameConfig(seed, []string{pd.a, pd.b},
 			[][]*cards.Card{deckByName[pd.a], deckByName[pd.b]}, commanders, commander)
 		cfg.Tokens = reg.Tokens
+		cfg.NameUniverse = reg.Cards
 		if traces == nil {
 			return playMatch(cfg, pols, botSeats, maxTurns, maxIntents, collect, cov)
 		}
@@ -1875,6 +1876,7 @@ func run(baseSeed uint64, games, seats, rotate, workers int, aName, bName, dir s
 		}
 		cfg := buildGameConfig(s, seated, decks, commanders, commander)
 		cfg.Tokens = reg.Tokens
+		cfg.NameUniverse = reg.Cards
 		return playMatch(cfg, pols, botSeats, maxTurns, maxIntents, collect, cov)
 	}
 	if workers <= 0 {

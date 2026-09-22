@@ -81,6 +81,14 @@ directory first (exact historical text) and falls back to the live corpus
 (`.cards/` at the current `FORGE_REF`) when it is missing (a fresh clone), so
 a fixture still replays without ever re-embedding the text into committed
 files.
+
+A capture also records the name-card universe MODE (`name_universe`) and the
+exact sorted label list that match offered (`name_universe_names`), because
+a universe-backed match poses `NameCard` asks the legacy path never poses and
+a replay rebuilt without the mode refuses the recorded name intent. The
+committed fixture keeps only the mode bit -- the list is ~24k entries -- and
+`feedback.config` re-derives it from the live corpus, so a `FORGE_REF` move
+can renumber a recorded name choice and shows up as the same `DIVERGED`.
 ```
 
 Exit 0 is a verified replay: the rebuilt event stream matches the recording
@@ -121,7 +129,7 @@ goldens in `rules/heads_test.go`:
 
 | seats | 2 | 4 | 6 | 8 |
 |---|---|---|---|---|
-| chain head | `41aff817d4f931ef` | `eb8651db1973af36` | `7e9f2574e2d31c90` | `275fb23897e22f6e` |
+| chain head | `bc7420d9e4c7d3d2` | `e7cffb892a152493` | `5e79231bd056d0fc` | `b14f1fc52a6835ed` |
 
 `TestEveryRepoDeckParamsAreRead` (`rules/paramcensus_test.go`) is the
 companion ratchet over the same decks' parameters: measured at the same
@@ -198,6 +206,7 @@ treats a row over that size as a MAJOR finding.
 | `K:Cumulative upkeep`: snow {S} costs still degrade to one generic, and dynamically granted cumulative upkeep (`KW$ Cumulative upkeep:...`) remains outside printed-keyword expansion. | `cards/keywords.go`, `rules/cumulative.go`, `rules/mana.go` | M4 (snow costs and dynamically granted keywords) |
 | Target decisions expose only the active SA API and nominal literal damage; missing/dynamic/X/SVar amounts are null, not zero. Not a lethal forecast: prevention, replacement, conditions, divided damage, resolution-time legality and sub-ability effects are unmodelled. `ChangeZone` does not identify hostile removal; unknown APIs must stay uninterpreted. | `decision/decision.go` (`TargetEffect`, `DamageEffect`), `rules/stack.go` (`describeTargetEffect`) | richer outcome modelling |
 | "As this enters, choose ..." is asked at cast/play time, so the choice is recorded and visible a resolution early; the mid-resolution machinery exists (M2d-2) but these asks have not migrated. | `rules/cast.go` (`etbAsk`, `etbAnswer`) | M4 |
+| `NameCard` asks over the embedder-supplied compiled corpus (`state.Game.NameUniverse`), filtered by the SA's own `ValidCards$`; the sidecar saves its sorted name snapshot so replay is corpus-update-stable. A no-universe replay retains the exact pre-feature paths (mid-resolution top-library name; ETB visible-object filter with empty `ValidCards$` defaulting to nonland). `ChooseFromList$`/`AtRandom$` are unread, so those forms offer the whole universe; `ValidDescription$` is prompt text, with a narrow description-only fallback. | `effects/namecard.go`, `effects/cardflow.go` (`effNameCard`), `rules/cast.go` (`legacyETBNameOptions`), `host/persist.go` | M4 (ChooseFromList$/AtRandom$ forms) |
 | `effMana`'s no-host fallback resolves `Produced$ Any`/`Combo Any` to colourless, and raw `Combo <colours>` to its full amount in every listed colour rather than asking. Direct raw `Chosen`/`ComboChosen` fails closed; activation asks for its colour choices, while the bot-side production collector counts `Any` as one colourless unit for its tap gate. The remaining Special selectors stay loud-fail: `EnchantedManaCost`, `DoubleManaInPool`, `EachColoredManaSymbol_Milled`, `EachColorAmong_ExiledWith`. | `effects/misc.go` (`effMana`), `rules/mana_activation.go`, `cards/mana_production.go` (`ProducedCounts`) | M4 (mana-choice decisions) |
 | `RestrictValid$` is carried into the mana pool; only dotted `Spell.<filter>`/`Activated.<filter>` alternatives supported by the matcher are enforced. Unsupported alternatives fail closed, including bare `Spell`/`Activated` (13 raw lines), `CostContainsX`, `CumulativeUpkeep`, `CantCast*`, `Static.*` and `nonSpell`; 41 raw `RestrictValid$` lines across 39 corpus files contain at least one such term, so mixed alternatives can lose only the unsupported branch. | `effects/misc.go` (`effMana`), `rules/stack.go` (`restrictValidMatches`) | M4 (the remaining restriction grammar) |
 | CopySpellAbility's `MayChooseTarget$ True` is a real one-shot election: the flag rides the StackCopy event from the CREATING copy SA (so an external copier grants it too), the ask takes the copied spell's own resolved target bounds and per-controller `Option.Group` through the shared cast readers, every inherited target is offered first (even when no longer legal -- declining lets the copy fizzle per CR 608.2b), and the TargetsChosen fold consumes it. Remaining approximation: the ask is still ONE flat option list over the copy's targets, so a copied spell whose distinct target DECLARATIONS each carry their own legal set loses the per-declaration attribution, and the `MaxTotalTargetPower$` budget and affordability prune the cast ask applies are not re-run here. | `rules/stack.go` (`AskCopyTargets`, `resolveTop`), `effects/copy.go`, `events/apply.go` | M4 (per-declaration copy target groups; the copy reprice/budget prunes) |

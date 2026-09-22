@@ -2664,18 +2664,49 @@ func containsObj(ids []state.ObjID, want state.ObjID) bool {
 	return false
 }
 
+// legacyName is the pre-feature NameCard stand-in: the name of the top card
+// of player p's library, or "a card" when that library is empty. It is the
+// deterministic no-ask path for a host with no corpus universe, and it is
+// kept byte-identical to the behaviour an older binary logged so a persisted
+// match replays (host/persist.go sidecar.NameUniverse).
+func legacyName(g *state.Game, p state.PlayerID) string {
+	if g == nil {
+		return "a card"
+	}
+	if lib := zoneOf(g, state.ZLibrary, p); len(lib) > 0 {
+		if o := g.Obj(lib[0]); o != nil && o.Face() != nil {
+			return o.Face().Name
+		}
+	}
+	return "a card"
+}
+
 func effNameCard(h Host, c *Ctx, sa *cards.SA) {
 	if o := h.Game().Obj(c.Source); o != nil && o.ChosenName != "" {
 		return
 	}
-	g := h.Game()
-	name := "a card"
-	if lib := zoneOf(g, state.ZLibrary, c.Controller); len(lib) > 0 {
-		if o := g.Obj(lib[0]); o != nil && o.Face() != nil {
-			name = o.Face().Name
-		}
+	valid := sa.Params["ValidCards"]
+	names := NameChoices(h.Game(), valid, sa.Params["ValidDescription"])
+	if len(names) == 0 {
+		// R-9: a host without a supplied corpus still completes
+		// deterministically, and reproduces the exact pre-feature NameCard
+		// behaviour (name the top of the caster's own library) so a log an
+		// older binary wrote replays byte for byte (host/persist.go's
+		// sidecar.NameUniverse mode).
+		names = []string{legacyName(h.Game(), c.Controller)}
 	}
-	h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "name", Text: name})
+	if c.NameChoice == "" {
+		d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+			Source: c.Source, ResumeKind: "name", ResumeSA: sa, Prompt: "Choose a card name"}
+		for i, name := range names {
+			d.Options = append(d.Options, decision.Option{Index: i, Kind: "name", Label: name, Player: c.Controller})
+		}
+		if Ask(h, d) == AskAsked {
+			return
+		}
+		c.NameChoice = names[0]
+	}
+	h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "name", Text: c.NameChoice})
 }
 
 // discardDefinedCards resolves a Discard SA's DefinedCards$ parameter to the
