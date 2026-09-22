@@ -290,6 +290,17 @@ type ContinuousEffect struct {
 	// granted-Dethrone precedent); it contributes no CR 613 characteristic
 	// and the layer sorter ignores it. Nil on every effect that grants none.
 	AddTrigger *cards.Trigger
+	// TriggerGrantor is the object whose SVar table resolves an AddTrigger
+	// grant's Execute$ body when that is NOT the effect's own Source: the
+	// Animate route (effects/combatfx.go) registers the grant with Source =
+	// the ANIMATED object (the trigger fires as that object's trigger and
+	// Affects Card.Self must name it), while the T:-shaped body lives on the
+	// ANIMATING face's table (Dragon Cursed Halls animating a target
+	// creature). 0 = the statics route, where Source itself carries the body
+	// (an Aura granting its enchanted creature a trigger). Engine-runtime
+	// only, rebuilt by re-execution on replay like every other
+	// continuous-effect field.
+	TriggerGrantor ObjID
 	// AddSVars is a static-grant's named variables (AddSVar$): the SVar the
 	// affected object GAINS, parsed from Forge's "SVar:<Name>:<Value>" value
 	// shape. The corpus's granted SVars are AI-evaluation hints (AE, AITap,

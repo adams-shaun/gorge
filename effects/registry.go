@@ -351,6 +351,18 @@ type Host interface {
 	// Revolt$ clauses read, so every spelling answers identically and a
 	// replay derives it from the log like the other this-turn helpers.
 	RevoltHolds(p state.PlayerID) bool
+	// DeliriumHolds reports the Delirium ability-word state: the controller's
+	// graveyard holds four or more distinct core card types (Artifact,
+	// Battle, Creature, Enchantment, Instant, Kindred, Land, Planeswalker,
+	// Sorcery -- the same census the "Delirium —" cost prompts count). This
+	// is the bare `Condition$ Delirium` gate (Descend upon the Sinful's
+	// DB$ Token) backing; rules.Engine implements it as the same
+	// graveyardCardTypeCount census its replacement Delirium$ clause, the
+	// Continuous static gate (rules/layers.go) and the ability-offer gate
+	// (rules/legal.go) read, so every Delirium spelling answers identically
+	// and a replay derives it from the folded state like the other
+	// zone-census helpers.
+	DeliriumHolds(p state.PlayerID) bool
 	// Ask poses a decision in the middle of a resolution. It sets the host's
 	// pending decision, sets the mid-resolution resume state, and returns
 	// true. A true return tells the calling effect to stop and wait: the

@@ -68,6 +68,12 @@ var addedAfterTheSplit = []string{
 	// the K:Exploit expansion emits, which was appended for it, so the mode
 	// could not have been in the pre-split switch.
 	"Exploited",
+	// kw-class: "When this Class becomes level N" (CR 702.118c; 13 corpus
+	// TriggerClassLevel SVar bodies). It matches the ordinary CounterChange
+	// event the level-up activator's PutCounter emits, so the event existed
+	// already but the MODE did not -- no pre-split switch arm could have
+	// dispatched it.
+	"ClassLevelGained",
 }
 
 func allRegisteredModeNames() []string {

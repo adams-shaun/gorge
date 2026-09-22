@@ -276,6 +276,31 @@ func TestResolveSkipsAnUnmetConditionGate(t *testing.T) {
 	}
 }
 
+// TestConditionBareDeliriumReportsTheCensus pins the bare-Condition$
+// Delirium arm against the deck card that needed it (Descend upon the
+// Sinful's DB$ Token): the gate is met exactly when the resolving
+// controller's graveyard census holds, and it RESOLVES (so an unmet gate
+// SKIPS the sub) rather than falling through unresolved to the run-anyway
+// default the unresolved bare values take. The census itself (four or more
+// distinct core card types) is pinned end to end in rules against the real
+// engine; this double-backed pin proves the gate's wiring, not the census.
+func TestConditionBareDeliriumReportsTheCensus(t *testing.T) {
+	h, ids := conditionBoard(t)
+	gate := sa(t, "DB$ Draw | Condition$ Delirium")
+	ctx := &Ctx{Controller: 0, Source: ids[3]}
+
+	// Under the census: resolved and unmet, so the sub is skipped.
+	if met, resolved := conditionMet(h, ctx, gate); !resolved || met {
+		t.Fatalf("no delirium: met=%v resolved=%v, want false true", met, resolved)
+	}
+
+	// Over the census: resolved and met.
+	h.delirium = true
+	if met, resolved := conditionMet(h, ctx, gate); !resolved || !met {
+		t.Fatalf("delirium: met=%v resolved=%v, want true true", met, resolved)
+	}
+}
+
 // TestConditionBareBlessingReadsTheLatch pins the bare-Condition$ Blessing
 // arm against the three corpus carriers the brief names (ocelot_pride /
 // a-ocelot_pride's DB$ CopyPermanent, the_golden_city_of_orazca's DB$ Draw):

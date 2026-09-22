@@ -325,6 +325,9 @@ func (e *Engine) castRestrictionSources(statics []staticView, id state.ObjID) []
 // illegal action through, and the static family's whole point is the
 // prohibition.
 func (e *Engine) restrictionGateHolds(sv staticView, target state.ObjID) bool {
+	if !e.classBandGateHolds(sv.Params, sv.Source) {
+		return false
+	}
 	if az, ok := sv.Params["AffectedZone"]; ok {
 		o := e.G.Obj(target)
 		if o == nil || !affectedZoneOK(az, o.Zone) {
@@ -523,6 +526,9 @@ func (e *Engine) presentGate(sv staticView, spec string) bool {
 // gate fails closed: granting instant timing without proving the script's
 // condition would permit an illegal cast.
 func (e *Engine) staticTimingGate(sv staticView) bool {
+	if !e.classBandGateHolds(sv.Params, sv.Source) {
+		return false
+	}
 	if spec, ok := sv.Params["IsPresent"]; ok && !e.presentGate(sv, spec) {
 		return false
 	}
@@ -780,6 +786,9 @@ func (e *Engine) altCostXCandidates(p state.PlayerID, id state.ObjID, alt altCos
 // cast is an illegal game action, a wrongly-withheld one merely an option
 // lost.
 func (e *Engine) alternativeCostScopeOK(params map[string]string, id, srcID state.ObjID, caster, controller state.PlayerID) bool {
+	if !e.classBandGateHolds(params, srcID) {
+		return false
+	}
 	if vp := strings.TrimSpace(params["ValidPlayer"]); vp != "" && !effects.MatchesPlayerSpec(e.G, vp, caster, controller) {
 		return false
 	}
@@ -1747,6 +1756,9 @@ func (e *Engine) costModifiersWithTargetsUsing(statics costStaticViews, p state.
 // closed; a SetCost without RaiseTo$ True is not the shape this build
 // implements.
 func (e *Engine) costStaticApplies(sv staticView, mode string, p state.PlayerID, id state.ObjID, scope costScope, targets []state.Target, xBound bool) bool {
+	if !e.classBandGateHolds(sv.Params, sv.Source) {
+		return false
+	}
 	if ty, ok := sv.Params["Type"]; ok && ty != "" && ty != scope.kind {
 		return false
 	}
@@ -2229,6 +2241,9 @@ func init() {
 func (e *Engine) asUnblockedStaticMatches(id state.ObjID) (matched, mandatory bool) {
 	for _, sv := range e.activeStatics("AssignCombatDamageAsUnblocked") {
 		if !e.restrictionGateHolds(sv, id) || !e.checkSVarHolds(sv) {
+			continue
+		}
+		if !e.classBandGateHolds(sv.Params, sv.Source) {
 			continue
 		}
 		if spec := strings.TrimSpace(sv.Params["IsPresent"]); spec != "" {

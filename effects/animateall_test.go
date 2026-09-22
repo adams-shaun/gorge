@@ -125,20 +125,34 @@ func TestAnimateAllPermanentDurationIsPermanent(t *testing.T) {
 }
 
 // TestAnimateAllUnreadParametersNoteLoudly: the shared pre-existing Animate
-// gaps (RemoveKeywords$/RemoveAllAbilities$/staticAbilities$/Triggers$/
-// Replacements$/CantHaveKeyword$/RemoveLandTypes$) must be LOUD — one note
-// naming every unread parameter present — while the supported parameters
-// still apply.
+// gaps (RemoveKeywords$/RemoveAllAbilities$/staticAbilities$/Replacements$/
+// CantHaveKeyword$/RemoveLandTypes$) must be LOUD — one note naming every
+// unread parameter present — while the supported parameters still apply.
+// Triggers$ is READ since the Animate Triggers$ ticket: a named body the
+// parser refuses (no SVar table here, so TrigSomething resolves to
+// nothing) gets its own loud refuse-note instead of joining the unread
+// list.
 func TestAnimateAllUnreadParametersNoteLoudly(t *testing.T) {
 	g, _ := board(t)
 	h := &fakeHost{g: g}
 	Resolve(h, &Ctx{Controller: 0}, sa(t,
 		"DB$ AnimateAll | ValidCards$ Creature | Power$ 1 | RemoveAllAbilities$ True | staticAbilities$Flying | Triggers$ TrigSomething | Replacements$ ReplSomething"))
 	notes := notesOf(h)
-	if len(notes) != 1 || !strings.Contains(notes[0], "RemoveAllAbilities$") ||
-		!strings.Contains(notes[0], "staticAbilities$") || !strings.Contains(notes[0], "Triggers$") ||
-		!strings.Contains(notes[0], "Replacements$") {
-		t.Fatalf("notes = %v, want one note naming every unread parameter", notes)
+	if len(notes) != 2 {
+		t.Fatalf("notes = %v, want the unread-params note plus the refused Triggers$ body's note", notes)
+	}
+	var unread, refused bool
+	for _, n := range notes {
+		if strings.Contains(n, "RemoveAllAbilities$") && strings.Contains(n, "staticAbilities$") &&
+			strings.Contains(n, "Replacements$") {
+			unread = true
+		}
+		if strings.Contains(n, "Triggers$ TrigSomething") {
+			refused = true
+		}
+	}
+	if !unread || !refused {
+		t.Fatalf("notes = %v, want one note naming every unread parameter and one refusing the Triggers$ body", notes)
 	}
 	var pt int
 	for _, ce := range h.continuous {

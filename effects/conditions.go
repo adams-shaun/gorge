@@ -48,9 +48,13 @@ import (
 //     controlled left the battlefield this turn" (Decommission's DB$
 //     GainLife), read through Host.RevoltHolds; and `Blessing` -- CR
 //     702.131's city's-blessing latch (state.Player.Blessing, granted by
-//     the Ascend machinery), read straight off the folded state. The other
-//     bare-Condition values (Delirium, OptionalCost, Bargain, Threshold,
-//     Metalcraft, Hellbent, Surge — ~25 SAs) stay unresolved.
+//     the Ascend machinery), read straight off the folded state; and
+//     `Delirium` — four or more distinct core card types in the resolving
+//     controller's graveyard (Descend upon the Sinful's DB$ Token), read
+//     through Host.DeliriumHolds — the same census the "Delirium —"
+//     activation/continuous/replacement gates already share. The other
+//     bare-Condition values (OptionalCost, Bargain, Threshold, Metalcraft,
+//     Hellbent, Surge — ~25 SAs) stay unresolved.
 //  5. `ConditionDefined$ Imprinted` (34 corpus lines over 26 files) — the
 //     source card's persistent imprint list (state.Object.Imprinted, the
 //     events.Imprint associations: Chrome Mox's Imprint$ and now api:Play's
@@ -319,9 +323,12 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	// Foretell action's CastInfo recorded -- the same provenance Count$
 	// Foretold reads); Revolt is CR 702.38's leave-the-battlefield state
 	// through Host.RevoltHolds; Blessing is CR 702.131's city's-blessing
-	// latch (state.Player.Blessing); Delirium/OptionalCost/Bargain/Threshold/
-	// Metalcraft/Hellbent/Surge stay unresolved and run
-	// unconditionally. A bare Condition beside a group key or beside
+	// latch (state.Player.Blessing); Delirium is the controller's graveyard
+	// holding four or more distinct core card types, through
+	// Host.DeliriumHolds (the same census the "Delirium —" activation,
+	// continuous and replacement gates read, so the spellings cannot drift);
+	// OptionalCost/Bargain/Threshold/Metalcraft/Hellbent/Surge stay
+	// unresolved and run unconditionally. A bare Condition beside a group key or beside
 	// ConditionSVarCompare$ is a mixed shape no single evaluator covers (~11
 	// corpus SAs).
 	if bare != "" {
@@ -348,6 +355,15 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 			// rules-side Revolt$ clauses and the Count$Revolt branch head
 			// share, so the spellings cannot drift apart.
 			return h.RevoltHolds(c.Controller), true
+		case strings.EqualFold(bare, "Delirium"):
+			// The Delirium ability word: four or more distinct core card types
+			// among cards in the resolving controller's graveyard
+			// (Descend upon the Sinful's DB$ Token is the deck card that
+			// needed it; drag_to_the_roots-style Continuous statics and the
+			// activation gates read the same census rules-side). An
+			// out-of-range controller denies -- a graveyard this build cannot
+			// name cannot hold four types.
+			return h.DeliriumHolds(c.Controller), true
 		case strings.EqualFold(bare, "Blessing"):
 			// CR 702.131: the city's blessing (Ascend), read off the one-way
 			// latch state.Player.Blessing that events.Apply's BlessingChange

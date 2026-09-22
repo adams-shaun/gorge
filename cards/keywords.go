@@ -42,6 +42,16 @@ func (f *Face) expandKeywords() {
 					return true
 				}
 			}
+		case "S":
+			// A keyword that appends a static directly (kw:Class's level
+			// bands) needs the same idempotence check the trigger/
+			// replacement/ability arms give, or a second Link() of a
+			// cached face would double-append the static.
+			for _, s := range f.Statics {
+				if s.Params["KeywordLine"] == k {
+					return true
+				}
+			}
 		}
 		return false
 	}
