@@ -27,6 +27,7 @@ func init() {
 	Register("RingTemptsYou", effRingTemptsYou)
 	Register("RestartGame", effRestartGame)
 	Register("Goad", effGoad)
+	Register("AlterAttribute", effAlterAttribute)
 	Register("Ward", effWard)
 }
 
@@ -63,6 +64,56 @@ func effGoad(h Host, c *Ctx, sa *cards.SA) {
 				Text: duration, IDs: []state.ObjID{c.Source}, Amount: int32(o.Controller) + 1})
 			if remember {
 				c.Remembered = append(c.Remembered, state.Target{Obj: o.ID})
+			}
+		}
+	}
+}
+
+// effAlterAttribute applies Forge's AlterAttribute effect: it flips a
+// designation attribute on each resolved target (task alterattr1). Targets
+// come through the ordinary Defined path, so a body with no Defined$ asks
+// its ValidTgts$ targets the way every other targeting primitive does --
+// Nelly Borca's "whenever it attacks, suspect target creature" gets its ask
+// from the trigger's placement ask, Hot Pursuit's ETB the same way, and a
+// deeper sub (the DBDebuff family) through Resolve's generic pre-ask.
+//
+// The engine models exactly ONE attribute: Suspected (CR 702.157, the
+// Blame Game precon family), whose designation lives on state.Object
+// behind the events.AlterAttribute fold and whose two end conditions
+// (leaves the battlefield, another player gains control) are events.Apply's
+// Move/ControlChange clears. A body naming any other attribute (Prepared,
+// Solved, Plotted, Saddled, Commander, Harnessed -- the corpus's remaining
+// populations) emits the loud unsupported-attribute Note and moves nothing,
+// exactly like the Manifest/Cloak out-of-scope shapes: registration claims
+// the API, the Note claims the gap.
+//
+// Activate$ False is Forge's removal spelling ("becomes unprepared"); for
+// Suspected it removes the designation (the DBDebuff family's
+// "un-suspect an opponent's suspected creature" shape).
+func effAlterAttribute(h Host, c *Ctx, sa *cards.SA) {
+	attr := strings.TrimSpace(sa.Params["Attributes"])
+	if attr == "" {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "AlterAttribute names no Attributes$"})
+		return
+	}
+	activate := !strings.EqualFold(strings.TrimSpace(sa.Params["Activate"]), "False")
+	for _, name := range strings.FieldsFunc(attr, func(r rune) bool { return r == ',' || r == ' ' }) {
+		if !strings.EqualFold(name, "Suspected") {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "AlterAttribute: attribute " + name + " not modelled"})
+			continue
+		}
+		amount := int32(1)
+		if !activate {
+			amount = -1
+		}
+		for _, t := range Defined(h, c, sa) {
+			if t.IsPlayer {
+				continue
+			}
+			if o := h.Game().Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield {
+				h.Emit(events.Event{Kind: events.AlterAttribute, Obj: o.ID,
+					Text: "Suspected", Amount: amount})
 			}
 		}
 	}

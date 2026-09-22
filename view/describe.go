@@ -304,6 +304,14 @@ func Describe(g *state.Game, ev events.Event) string {
 		// already their own lines (Draw/Discard events), so this line names
 		// only the conniving permanent.
 		return obj(g, ev.Obj) + " connives"
+	case events.AlterAttribute:
+		// The suspected designation's flip (task alterattr1). The grant is
+		// narrated; the removal (Amount < 0, Activate$ False / a clear fold)
+		// names the same permanent losing the designation.
+		if ev.Amount >= 1 {
+			return obj(g, ev.Obj) + " becomes suspected"
+		}
+		return obj(g, ev.Obj) + " is no longer suspected"
 	case events.CombatRetarget:
 		// api:ChangeCombatants's reselect: Obj the attacker, Player the new
 		// defender. The old defender needs no line (the re-pointed attack is
