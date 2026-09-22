@@ -86,9 +86,8 @@ func unpriceableCounterCards(reg *cards.Registry) []string {
 // mana "paid" it; now it is a real Exile part, Priceable is false, and the
 // unless-pay ask hard-declines, the conservative correct direction), and 1 a
 // DamageYou<4> part (Molten Influence -- the head was ParseCost-unmodelled
-// one-generic until the cost-token family work; ParseUnlessCost always
-// declined it, so the ask-posed-then-declined runtime behaviour is unchanged,
-// only the report now agrees).
+// one-generic until the cost-token family work; the Sacrifice arm is the
+// distinct DamageYou payment path and still offers it).
 // Raw .cards/cardsfolder lines with UnlessCost$ X number the same 21.
 func TestUnlessCostUnpriceablePopulation(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
@@ -182,11 +181,10 @@ func xCounterFixture(t *testing.T, reg *cards.Registry, counter, creature string
 // TestPowerSinkCastTimeXUnlessPayCannotSucceedFromEmptyPool is the case the
 // old reading of I-5 got wrong: Power Sink's {X} comes from a real cast-time
 // choice (Count$xPaid), so an earlier analysis claimed it was protected. It is
-// not. We choose X = 2 at cast time, drain the payer, then answer the
-// unless_pay ask "pay" -- and because the UnlessCost the payment API must
-// price is still the unpriceable {X} (ParseCost reads "X", it never reads
-// Count$xPaid), the pay cannot succeed and Power Sink must counter the
-// targeted spell rather than resolving inertly.
+// not. We choose X = 2 at cast time, drain the payer, then confirm the
+// unless_pay ask exposes only decline: the payment API still cannot price the
+// unbound {X} (ParseCost reads "X", it never reads Count$xPaid), so a Pay
+// answer must never be offered and Power Sink counters the targeted spell.
 func TestPowerSinkCastTimeXUnlessPayCannotSucceedFromEmptyPool(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e, _, creatureID := xCounterFixture(t, reg, "Power Sink", "Grizzly Bears", "2")
@@ -198,8 +196,12 @@ func TestPowerSinkCastTimeXUnlessPayCannotSucceedFromEmptyPool(t *testing.T) {
 	if pay == nil {
 		t.Fatal("no unless_pay ask posed for Power Sink")
 	}
-	// The payer says "pay", but the cost is the unpriceable {X}: it must be a
-	// hard decline and the targeted spell is countered, not resolved.
+	// The strict-unpriceable {X} must be a decline-only ask. This assertion
+	// fails if the offer gate admits the impossible Pay option, before the
+	// resolution fallback can hide that error by declining it later.
+	if len(pay.Options) != 1 || pay.Options[0].Kind != "mode" || pay.Options[0].Label != "Don't pay" {
+		t.Fatalf("unpriceable {X} exposed a Pay option: %+v", pay.Options)
+	}
 	submitChoices(t, e, pay.Options[0].Index)
 	passUntilStackEmpty(t, e, 30)
 	if z := e.G.Obj(creatureID).Zone; z != state.ZGraveyard {
@@ -338,8 +340,9 @@ func strictUnpriceableCards(reg *cards.Registry) []string {
 // boundary of the payment grammar this task built: mana symbols, fixed
 // PayLife<N>, and Sac/Discard/SubCounter/Draw/Reveal components are
 // chargeable mid-resolution (Sac/Discard/Reveal through the payer-choice
-// continuation); everything else is a hard decline (the ask is still posed
-// and recorded, but "pay" cannot succeed). A corpus or grammar change that
+// continuation); everything else is a hard decline (a decline-only ask is
+// still posed and recorded), except the Sacrifice arm's DamageYou<N> payment.
+// A corpus or grammar change that
 // adds or removes a name here is a real scope change that must be
 // understood, not silently absorbed.
 func TestUnlessCostStrictParsePopulation(t *testing.T) {

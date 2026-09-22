@@ -130,15 +130,17 @@ func (e *Engine) UnlessCostPayableFromCtx(p state.PlayerID, raw string, ctx *eff
 // enough counters on the resolving source, RevealChosen parts their secret
 // designation, Draw parts a resolvable role, and the mana/life component must
 // be reachable from the floating pool plus the window's alternatives. An
-// unpriceable cost is not gated here -- ParseUnlessCost's ok=false is the hard
-// decline the ask path already records. The pre-fix gate skipped the non-mana
-// components and used a single-ability-per-source aggregate, so it offered Pay
-// for a `Sac<1/Creature>` with no creatures and suppressed a {U} tax on an
-// untapped dual land.
+// unpriceable cost is a hard decline: it receives only the decline option, so
+// an answer can never select a Pay that the settlement path must reject. The
+// Sacrifice arm's recognised DamageYou<N> payment is separate and never calls
+// this generic gate. The pre-fix gate skipped the non-mana components and used
+// a single-ability-per-
+// source aggregate, so it offered Pay for a `Sac<1/Creature>` with no
+// creatures and suppressed a {U} tax on an untapped dual land.
 func (e *Engine) unlessCostPayable(p state.PlayerID, raw string, ctx *effects.Ctx, stackObj state.ObjID) bool {
 	cost, ok := ParseUnlessCost(raw)
 	if !ok {
-		return true
+		return false
 	}
 	if ctx == nil {
 		ctx = &effects.Ctx{Controller: p}

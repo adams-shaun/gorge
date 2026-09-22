@@ -274,15 +274,27 @@ func poseUnlessAsk(h Host, c *Ctx, sa *cards.SA, cost string, payers []state.Tar
 	// implements only the two-argument form is still consulted. The effects
 	// test host (and other embedders) keep the two options -- R-9 still
 	// declines when it cannot ask.
+	// DamageYou<N> is the one strict-parser exception: the Sacrifice arm has
+	// its own rules-side payment path (payUnlessDamageCost), so its recognised
+	// damage offer is payable even though generic ParseUnlessCost deliberately
+	// rejects DamageYou. Every other strict-unpriceable cost reaches the shared
+	// gate below and exposes only decline.
+	_, damagePayment := ParseDamageUnlessCost(cost)
+	damagePayment = sa.API == "Sacrifice" && damagePayment
+	// A non-rules host cannot price a cost and keeps the historic two-option
+	// R-9 ask; its no-host fallback deterministically declines. A rules host
+	// supplies the actual fail-closed offer gate for every non-damage cost.
 	payable := true
-	if checker, ok := h.(interface {
-		UnlessCostPayableFromCtx(state.PlayerID, string, *Ctx) bool
-	}); ok {
-		payable = checker.UnlessCostPayableFromCtx(payer, cost, c)
-	} else if checker, ok := h.(interface {
-		UnlessCostPayable(state.PlayerID, string) bool
-	}); ok {
-		payable = checker.UnlessCostPayable(payer, cost)
+	if !damagePayment {
+		if checker, ok := h.(interface {
+			UnlessCostPayableFromCtx(state.PlayerID, string, *Ctx) bool
+		}); ok {
+			payable = checker.UnlessCostPayableFromCtx(payer, cost, c)
+		} else if checker, ok := h.(interface {
+			UnlessCostPayable(state.PlayerID, string) bool
+		}); ok {
+			payable = checker.UnlessCostPayable(payer, cost)
+		}
 	}
 	d := &decision.Decision{Player: payer, Kind: decision.KModes,
 		Min: 1, Max: 1, Source: c.Source, ResumeKind: "unless_pay",
