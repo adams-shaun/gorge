@@ -1041,6 +1041,10 @@ var flagNames = [...]struct {
 	// rides the same CastInfo's Amount. Appended at the end per the table's
 	// own ordering rule.
 	{"squadpaid", state.FlagSquadPaid},
+	// The Fuse cast (CR 702.101b) of a non-Room Split card: one spell
+	// resolving both halves. Appended at the end per the table's own
+	// ordering rule.
+	{"fused", state.FlagFused},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

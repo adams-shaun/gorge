@@ -232,6 +232,13 @@ const (
 	// faceWantsConvoked), so every unrelated convoke cast stays
 	// byte-identical. Appended per the enum's own append-only precedent.
 	FlagConvoked
+	// FlagFused marks a Fuse cast (CR 702.101b) of a non-Room Split card:
+	// one spell paid the combined mana cost of both halves and resolves both
+	// halves' spell abilities in sequence. It is the provenance
+	// rules/stack.go's resolution reader dispatches on to run BOTH faces
+	// rather than the single Face().SpellAbility(). Appended per the enum's
+	// own append-only precedent.
+	FlagFused
 )
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the

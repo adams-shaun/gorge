@@ -190,6 +190,16 @@ func (e *Engine) Clone() *Engine {
 			c.sacrificedLKI[id] = append([]state.SacrificedInfo(nil), info...)
 		}
 	}
+	if e.fuseTargets != nil {
+		c.fuseTargets = make(map[state.ObjID][][]state.Target, len(e.fuseTargets))
+		for id, stages := range e.fuseTargets {
+			cp := make([][]state.Target, len(stages))
+			for i, sl := range stages {
+				cp[i] = append([]state.Target(nil), sl...)
+			}
+			c.fuseTargets[id] = cp
+		}
+	}
 	if e.exploitedLKI != nil {
 		c.exploitedLKI = make(map[state.ObjID]state.SacrificedInfo, len(e.exploitedLKI))
 		for id, info := range e.exploitedLKI {

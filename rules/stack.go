@@ -1427,17 +1427,44 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 	// clears them.
 	if e.cast != nil {
 		pc := e.cast
-		pc.targets = targetOptions(chosen)
+		// A Fuse cast may ask targets twice (front, then alternate). Append
+		// rather than replace so the stack object's flat target list carries
+		// both halves, and stageBase records whether an earlier half's
+		// targets are already recorded (its first target must then APPEND).
+		stageBase := len(pc.targets)
+		pc.targets = append(pc.targets, targetOptions(chosen)...)
+		// A Fuse cast records the stage's own slice (review MAJOR 1): the flat
+		// list on the stack object cannot express which half chose which
+		// target, and re-deriving the split through each half's ValidTgts spec
+		// mis-assigns every target that half's spec merely overlaps (Turn //
+		// Burn's Creature vs Any). Indexed by pc.targetStage, so a targetless
+		// stage the ask loop skipped never misaligns the slices.
+		if pc.mode == "fuse" {
+			for len(pc.stageTargets) <= pc.targetStage {
+				pc.stageTargets = append(pc.stageTargets, nil)
+			}
+			pc.stageTargets[pc.targetStage] = append(pc.stageTargets[pc.targetStage], targetOptions(chosen)...)
+		}
 		e.repriceForTargets(pc)
 		if !pc.isAbility() {
 			if pc.stackObj != 0 {
-				e.recordChosenTargets(pc.stackObj, chosen)
+				e.recordChosenTargets(pc.stackObj, chosen, stageBase > 0)
 			}
-			e.payCast()
+			// CR 702.101b: after the front half's targets, ask the alternate
+			// half's before payment. targetAsk skips a targetless half and the
+			// cast pays once every target stage is settled.
+			if e.castHasNextTargetStage(pc, e.G.Obj(pc.card)) {
+				pc.targetStage++
+				if !e.targetAsk() {
+					e.payCast()
+				}
+			} else {
+				e.payCast()
+			}
 		} else {
 			e.payCast()
 			if pc.stackObj != 0 {
-				e.recordChosenTargets(pc.stackObj, chosen)
+				e.recordChosenTargets(pc.stackObj, chosen, false)
 			}
 		}
 		if e.drainAwaitsTarget {
@@ -1458,7 +1485,7 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 		}
 		return
 	}
-	e.recordChosenTargets(d.Source, chosen)
+	e.recordChosenTargets(d.Source, chosen, false)
 	// A target decision asked by a trigger drain (putTriggersOnStack's
 	// pushTrigger, immediately after the trigger's TriggerPush -- Task 20's
 	// checkTriggers never asked targets, so only a spell's cast-time ask
@@ -1500,19 +1527,23 @@ func targetOptions(chosen []decision.Option) []state.Target {
 // replace-with-player, 2 append-object, 3 append-player. It is the shared
 // recording path for both a cast-flow target decision (onto the stack object,
 // after the push) and a triggered ability's own post-TriggerPush ask.
-func (e *Engine) recordChosenTargets(targetObj state.ObjID, chosen []decision.Option) {
+// appendFirst makes even the first option an APPEND: a Fuse cast records the
+// front half's targets first and must not have the alternate half's first
+// target replace them on the stack object.
+func (e *Engine) recordChosenTargets(targetObj state.ObjID, chosen []decision.Option, appendFirst bool) {
 	for i, opt := range chosen {
 		ev := events.Event{Kind: events.TargetsChosen, Obj: targetObj}
+		appendThis := i > 0 || appendFirst
 		if opt.Kind == "player" {
 			// shape 1 replace / shape 3 append a single player target.
 			ev.Amount = 1
-			if i > 0 {
+			if appendThis {
 				ev.Amount = 3
 			}
 			ev.Player = opt.Player
 		} else {
 			// shape 0 replace / shape 2 append one object target.
-			if i > 0 {
+			if appendThis {
 				ev.Amount = 2
 			}
 			ev.IDs = []state.ObjID{opt.Obj}
@@ -1945,6 +1976,20 @@ func (e *Engine) resolveTop() {
 	// below would resolve nothing anyway.
 	if o.CastFlags&state.FlagMutated != 0 {
 		e.resolveMutate(o, o.Targets)
+		return
+	}
+	// Fuse (CR 702.101b): a fused split spell is one spell whose BOTH halves'
+	// spell abilities resolve in sequence. The card stays at its front face;
+	// resolveFused owns the per-half target recheck, the Resolve event, the
+	// Ascend blessing and the off-stack move.
+	if o.CastFlags&state.FlagFused != 0 {
+		// A half that suspended on a mid-resolution ask hands back the
+		// continuation (the rest of that half plus a fuse-rest frame for any
+		// unrun half); link it onto the ask's fresh resume point here, the
+		// resolution machinery's own write (ruling T21-e).
+		if cont, suspended := e.resolveFused(o); suspended && e.resume != nil {
+			e.resume.outer = cont
+		}
 		return
 	}
 	targets := o.Targets
