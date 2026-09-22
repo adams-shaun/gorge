@@ -845,6 +845,18 @@ type Object struct {
 	IsCopy   bool
 	IsMyriad bool
 
+	// CopyMayChooseTarget is CR 707.10c's new-target permission for ONE copy
+	// on the stack, carried per copy instance rather than re-derived from the
+	// copied spell's text. It is set true by the StackCopy fold when the
+	// CREATING CopySpellAbility SA declared MayChooseTarget$ True (the event's
+	// Amount discriminator) -- so an external copier (Mirari, Cloven Casting,
+	// a Storm or Replicate copy) that is not part of the copied spell's own
+	// text still grants the election. rules/stack.go's resolveTop asks the
+	// copy's controller exactly once while this is true and records the answer
+	// through TargetsChosen, whose fold clears the flag; a log-only replay
+	// rebuilds set-then-cleared identically.
+	CopyMayChooseTarget bool
+
 	// CopyFace is the CR 613.1a copy-effect basis for a permanent that became a
 	// copy of another (DB$ Clone): while non-nil, Face() returns THIS face
 	// instead of the object's own card face, so every read site -- name,

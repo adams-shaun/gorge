@@ -144,9 +144,11 @@ func TestChainLightningAsksForThePayAndMakesTheCopyWhenPaid(t *testing.T) {
 	}
 	submitChoices(t, e, 0) // "Pay R R — make a copy"
 	// The paid copy is itself a Chain Lightning (copies copy all text), so
-	// its own copy clause re-asks mid-resolution; the payer's pool is now
-	// empty, so the engine declines that second ask and no second copy is
-	// made. Drain with a loop that answers both shapes.
+	// CR 707.10c gives its controller a new-target election before it
+	// resolves; drainToEnd takes the deterministic keep-current option for
+	// it. The copy's own copy clause then re-asks mid-resolution, but the
+	// payer's pool is now empty, so the engine declines that second ask and
+	// no second copy is made.
 	drainToEnd(t, e, 30)
 	if e.G.Players[1].Life != life-3-3 {
 		t.Fatalf("life = %d, want %d (original + paid copy each deal 3)", e.G.Players[1].Life, life-6)
