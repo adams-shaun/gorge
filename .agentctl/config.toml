@@ -95,13 +95,14 @@ max_local_rounds = 2
 # escalated round before it checks the cap), then human_needed, which a Claude
 # operator session picks up with ~/projects/agentctl/docs/claude-operator-prompt.md.
 # max_escalated_rounds = 5
-# 2026-09-22 (operator): 2, i.e. THREE escalated rounds. Measured over the
+# 2026-09-22 (operator): 3 escalated rounds (handle_failure checks the cap AFTER
+# the round counter increments, so N means N rounds for N >= 1). Measured over the
 # previous 48h: 26 of 34 human_needed entries were "review/gate failed and
 # escalation ladder exhausted", 20 of the last 25 a REQUEST_CHANGES at the
 # single escalated round, and a batch of 17 tickets queued at 15:08Z hit
 # that wall together between 17:00 and 19:50Z (15 exhaustions in 3h).
 # The Claude hand-landing path is the safety valve, not the pipeline.
-max_escalated_rounds = 2
+max_escalated_rounds = 3
 max_merge_rounds = 2
 seat_start_grace_s = 180
 # 2026-09-22 (operator): tick every 10s.
