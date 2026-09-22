@@ -1711,6 +1711,75 @@ func (e *Engine) totalPowerCappedCandidates(candidates []targetCandidate, p stat
 	return out, capPower, true
 }
 
+// AskCopyTargets offers CR 707.10c's new-target choice for one copy. The
+// inherited target is placed first when it remains legal, making the R-9 and
+// bot default the ordinary "keep current target" choice; the remaining
+// options use the same legal-target census as casting.
+func (e *Engine) AskCopyTargets(c *effects.Ctx, spell state.ObjID, controller state.PlayerID, copySA *cards.SA, index int) bool {
+	targetObj := spell
+	if n := len(e.G.Stack); n > 0 {
+		if top := e.G.Obj(e.G.Stack[n-1]); top != nil && top.IsCopy {
+			targetObj = top.ID
+		}
+	}
+	o := e.G.Obj(targetObj)
+	if o == nil || o.Zone != state.ZStack {
+		return false
+	}
+	sa := o.Ability
+	if o.Face() != nil {
+		sa = o.Face().SpellAbility()
+	}
+	if sa == nil || strings.TrimSpace(sa.Params["ValidTgts"]) == "" {
+		return false
+	}
+	candidates := e.legalTargetCandidates(controller, spell, spell, sa)
+	ordered := make([]targetCandidate, 0, len(candidates))
+	for _, old := range o.Targets {
+		for i, candidate := range candidates {
+			if targetCandidateEqual(old, candidate) {
+				ordered = append(ordered, candidate)
+				candidates = append(candidates[:i], candidates[i+1:]...)
+				break
+			}
+		}
+	}
+	ordered = append(ordered, candidates...)
+	if len(ordered) == 0 {
+		return false
+	}
+	d := &decision.Decision{Player: controller, Kind: decision.KTarget, Min: 1, Max: 1,
+		Prompt: "Choose a new target for the copy", Source: targetObj,
+		ResumeKind: "copy_targets", ResumeSA: copySA, ResumeTarget: index,
+		TargetEffect: describeTargetEffect(sa)}
+	for _, candidate := range ordered {
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: candidate.kind,
+			Label: e.targetOptionLabel(candidate), Obj: candidate.obj, Player: candidate.player})
+	}
+	e.Ask(d)
+	return true
+}
+
+func mayChooseCopySA(sa *cards.SA) *cards.SA {
+	if sa == nil {
+		return nil
+	}
+	if sa.API == "CopySpellAbility" && strings.EqualFold(strings.TrimSpace(sa.Params["MayChooseTarget"]), "True") {
+		return sa
+	}
+	if out := mayChooseCopySA(sa.Sub); out != nil {
+		return out
+	}
+	return nil
+}
+
+func targetCandidateEqual(t state.Target, c targetCandidate) bool {
+	if t.IsPlayer {
+		return c.kind == "player" && c.player == t.Player
+	}
+	return c.kind != "player" && c.obj == t.Obj
+}
+
 // askTarget offers every legal target for a spell or ability. It deliberately
 // retains the post-push insufficient-target backstop: modal and dynamic target
 // counts are not rejected by the earlier cast-offer census.
@@ -1801,6 +1870,12 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 // TargetsChosen case and its test TestTargetsChosenAppendShapes.
 func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 	chosen := d.Chosen(in)
+	if d.ResumeKind == "copy_targets" {
+		if e.resume != nil {
+			e.resumeResolution(e.resume, chosen)
+		}
+		return
+	}
 	// A cast-flow target decision (CR 601.2c, asked by targetAsk after the
 	// object was pushed by pushCast but BEFORE any cost is paid): completing
 	// it means recording the chosen targets onto the stack object and then
@@ -2004,6 +2079,17 @@ func offeredTargetSA(o *state.Object, svars map[string]string) *cards.SA {
 func (e *Engine) resolveTop() {
 	id := e.G.Stack[len(e.G.Stack)-1]
 	o := e.G.Obj(id)
+	if o != nil && o.IsCopy {
+		sa := o.Ability
+		if o.Face() != nil {
+			sa = o.Face().SpellAbility()
+		}
+		if copySA := mayChooseCopySA(sa); copySA != nil {
+			if e.AskCopyTargets(&effects.Ctx{Source: id, Controller: o.Controller}, id, o.Controller, copySA, 0) {
+				return
+			}
+		}
+	}
 	savedResolving := e.resolvingObj
 	e.resolvingObj = id
 	defer func() { e.resolvingObj = savedResolving }()

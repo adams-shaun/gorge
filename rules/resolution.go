@@ -871,6 +871,14 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 // continuation it carries have all completed — the fully-resolved object
 // goes where resolveTop's own tail would have sent it.
 func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
+	if rp.kind == "copy_targets" {
+		e.resume = nil
+		if rp.obj != 0 {
+			e.recordChosenTargets(rp.obj, chosen, false)
+		}
+		e.resolveTop()
+		return
+	}
 	// A GainLife→Draw replacement body parked its remaining draws on this
 	// ask (replacement.go's lifeReplacementDraw). The body is not a stack
 	// resolution: there is no sub-ability to re-enter (rp.sa is nil -- the

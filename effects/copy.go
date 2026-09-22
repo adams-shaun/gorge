@@ -181,11 +181,14 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "copy: DefinedTarget$ " + spec + " not resolved; copy keeps its targets"})
 		}
-		for n := Num(h, c, sa, "Amount", 1); n > 0; n-- {
+		n := int(Num(h, c, sa, "Amount", 1))
+		for i := 0; i < n; i++ {
 			h.Emit(events.Event{Kind: events.StackCopy, Obj: spell, Player: controller})
 			if mayChoose {
-				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-					Text: "copy keeps its targets"})
+				if _, ok := h.(CopyTargetAsker); !ok {
+					h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+						Text: "copy keeps its targets"})
+				}
 			}
 		}
 	}
