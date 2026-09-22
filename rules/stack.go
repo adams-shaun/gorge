@@ -2868,7 +2868,7 @@ func targetsPermanents(spec string) bool {
 // the player(s) the spec names (default the payer), resolved through the
 // same Ctx roles the UnlessPayer$ grammar reads.
 func (e *Engine) payUnlessCost(p state.PlayerID, cost Cost, ctx *effects.Ctx, stackObj state.ObjID) bool {
-	if len(cost.Sac) != 0 || len(cost.Discard) != 0 || len(cost.Reveal) != 0 {
+	if len(cost.Sac) != 0 || len(cost.Discard) != 0 || len(cost.Reveal) != 0 || len(cost.RevealChosen) != 0 {
 		return false
 	}
 	if int(p) < 0 || int(p) >= len(e.G.Players) {

@@ -837,7 +837,7 @@ func (e *Engine) triggeredCostComponentsPayable(tc *triggeredEffectCost) bool {
 	// planeswalker activations; no settle reads it here, so it is rejected
 	// structurally rather than by population -- the corpus carries no trigger
 	// body with one today, and if one lands it must not be silently skipped.
-	if len(amt.SubCounter) > 0 || len(amt.Reveal) > 0 || len(amt.Behold) > 0 ||
+	if len(amt.SubCounter) > 0 || len(amt.Reveal) > 0 || len(amt.RevealChosen) > 0 || len(amt.Behold) > 0 ||
 		len(amt.TapPermanent) > 0 || len(amt.Blight) > 0 || len(amt.Energy) > 0 ||
 		len(amt.AddCounter) > 0 || len(amt.Return) > 0 || len(amt.PutToLib) > 0 ||
 		len(amt.LifeX) > 0 || len(amt.DamageYou) > 0 || amt.Forage {

@@ -406,29 +406,46 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 		return combine(conditionMetBattlefield(h, c, present, compare))
 	}
 	if defined != "Remembered" && defined != "Self" && defined != "TriggeredCard" &&
-		defined != "Imprinted" && defined != "Discarded" {
-		// Only the Remembered, Self, TriggeredCard and Imprinted families are
-		// in scope among DEFINED groups: the objects a walk carries in
-		// Ctx.Remembered, the resolving source object alone (the Addendum
-		// shape: ConditionDefined$ Self | ConditionPresent$ Card.wasCast holds
-		// only when the sub is reached through a cast of the source, which
-		// effects.Resolve's walk evaluates while the spell is still on the
-		// stack), the card the triggering event moved (task castprov2,
-		// Amped Raptor's `ConditionDefined$ TriggeredCard | ConditionPresent$
-		// Card.wasCastFromYourHandByYou`: the exile-until runs only when the
-		// entering permanent was cast from its controller's hand), and the
-		// source card's persistent imprint list (shape 5 above — Rashmi and
-		// Ragavan's `ConditionDefined$ Imprinted | ConditionPresent$ Card |
-		// ConditionCompare$ EQ0`: the MayPlay static registers only when the
-		// Play did NOT cast the card, the "if you don't cast it this way"
-		// branch). Targeted, ChosenCard, the LKI-copy variants and the rest
-		// need Ctx state this gate does not model (and whose fail-closed skip
-		// would change unrelated cards).
+		defined != "Imprinted" && defined != "Discarded" && defined != "Targeted" {
+		// Only the Remembered, Self, TriggeredCard, Imprinted and Targeted
+		// families are in scope among DEFINED groups: the objects a walk
+		// carries in Ctx.Remembered, the resolving source object alone (the
+		// Addendum shape: ConditionDefined$ Self | ConditionPresent$
+		// Card.wasCast holds only when the sub is reached through a cast of
+		// the source, which effects.Resolve's walk evaluates while the spell
+		// is still on the stack), the card the triggering event moved (task
+		// castprov2, Amped Raptor's `ConditionDefined$ TriggeredCard |
+		// ConditionPresent$ Card.wasCastFromYourHandByYou`: the exile-until
+		// runs only when the entering permanent was cast from its
+		// controller's hand), the source card's persistent imprint list
+		// (shape 5 above — Rashmi and Ragavan's `ConditionDefined$ Imprinted
+		// | ConditionPresent$ Card | ConditionCompare$ EQ0`: the MayPlay
+		// static registers only when the Play did NOT cast the card, the "if
+		// you don't cast it this way" branch), and the resolving ability's
+		// own chosen targets (Stalking Leonin's `ConditionDefined$ Targeted |
+		// ConditionPresent$ Card.ChosenCtrl`: the exile runs only when the
+		// targeted attacker is controlled by the secretly chosen player).
+		// ChosenCard, the LKI-copy variants and the rest need Ctx state this
+		// gate does not model (and whose fail-closed skip would change
+		// unrelated cards).
 		return false, false
 	}
 	sc := c.SpecContext(c.Controller)
 	count := 0
 	group := rememberedWithSource(h, c)
+	if defined == "Targeted" {
+		// ConditionDefined$ Targeted is the resolving ability's OWN answered
+		// targets: Forge's `Targeted` defined group. It reads the same two
+		// channels Defined$ Targeted does (effects/context.go — the generic
+		// pre-ask's Ctx.PickedTargets while a pre-asked body dispatches, else
+		// the resolution-level Ctx.Targets), so the gate and the effects' own
+		// Defined$ Targeted can never disagree about which targets the
+		// ability chose. Both empty is a resolved zero (the ability really
+		// chose nothing), not the fail-open an absent binding gets elsewhere:
+		// a Target-bearing ability always has a definite target list, and a
+		// gate over an empty list genuinely denies.
+		group = targetedGroup(c)
+	}
 	if defined == "Discarded" {
 		// ConditionDefined$ Discarded (task mordorparams1: Moria Scavenger's
 		// "If the discarded card was a creature card, amass Orcs 1",
@@ -660,12 +677,38 @@ func conditionNotPresentMet(h Host, c *Ctx, defined, spec string) (met, resolved
 				count++
 			}
 		}
+	case "Targeted":
+		// The resolving ability's own answered targets — the same group
+		// conditionMet's Targeted branch enumerates.
+		for _, t := range targetedGroup(c) {
+			if t.IsPlayer {
+				continue
+			}
+			o := g.Obj(t.Obj)
+			if o == nil {
+				continue
+			}
+			if MatchesObjectCtx(g, spec, o, sc) {
+				count++
+			}
+		}
 	default:
-		// A defined group this build cannot enumerate (Targeted,
-		// TriggeredCardLKICopy): unresolved, the sub runs unconditionally.
+		// A defined group this build cannot enumerate (TriggeredCardLKICopy):
+		// unresolved, the sub runs unconditionally.
 		return false, false
 	}
 	return count == 0, true
+}
+
+// targetedGroup is the ConditionDefined$ Targeted group: the resolving
+// ability's own answered targets, over the same two channels Defined$
+// Targeted reads (effects/context.go) — Ctx.PickedTargets while a pre-asked
+// body dispatches, else the resolution-level Ctx.Targets.
+func targetedGroup(c *Ctx) []state.Target {
+	if c.PickedTargets != nil {
+		return c.PickedTargets
+	}
+	return c.Targets
 }
 
 // evalConditionCount turns a counted group into (met, resolved) from the

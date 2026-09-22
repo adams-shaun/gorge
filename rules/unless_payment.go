@@ -90,7 +90,8 @@ func (e *Engine) advanceUnlessPayment() {
 	}
 	if int(u.payer) < 0 || int(u.payer) >= len(e.G.Players) ||
 		!u.cost.payable(e.G.Players[u.payer].Pool, e.G.Players[u.payer].Snow, e.G.Players[u.payer].TypedMana, e.G.Players[u.payer].Life) ||
-		!e.unlessCountersAffordable(u) {
+		!e.unlessCountersAffordable(u) ||
+		!u.revealChosenDesignated(e) {
 		e.finishUnlessPayment(false)
 		return
 	}
@@ -152,7 +153,10 @@ func (e *Engine) advanceUnlessPayment() {
 	}
 	// The settled reveal picks are announced exactly like the cast flow's
 	// emitChoiceCosts announces them: one public Note carrying the revealed
-	// ids (the cards STAY in hand), emitted only on the paid path.
+	// ids (the cards STAY in hand), emitted only on the paid path. The
+	// RevealChosen parts have no ids -- they make the source's secret
+	// designation public with one Note too, the same call emitChoiceCosts
+	// makes.
 	if len(u.reveals) > 0 {
 		names := make([]string, 0, len(u.reveals))
 		for _, id := range u.reveals {
@@ -161,6 +165,11 @@ func (e *Engine) advanceUnlessPayment() {
 		e.emit(events.Event{Kind: events.Note, Player: u.payer, Obj: u.ctx.Source,
 			IDs:  append([]state.ObjID(nil), u.reveals...),
 			Text: "revealed " + strings.Join(names, ", ") + " as a cost"})
+	}
+	for _, part := range u.cost.RevealChosen {
+		if text, ok := revealChosenText(e.G, e.G.Obj(u.ctx.Source), part.Spec); ok {
+			e.emit(events.Event{Kind: events.Note, Player: u.payer, Obj: u.ctx.Source, Text: text})
+		}
 	}
 	for _, id := range u.sacs {
 		e.emit(events.Sacrifice(id))
@@ -224,6 +233,22 @@ func (e *Engine) recordUnlessPaymentPick(u *unlessPayment, kind string, ids []st
 	default:
 		u.discards = append(u.discards, ids...)
 	}
+}
+
+// revealChosenDesignated reports whether every RevealChosen<Spec> part of the
+// pending payment still has its secret designation on the source. A part with
+// no designation is unpayable, so the whole payment declines.
+func (u *unlessPayment) revealChosenDesignated(e *Engine) bool {
+	if len(u.cost.RevealChosen) == 0 {
+		return true
+	}
+	src := e.G.Obj(u.ctx.Source)
+	for _, part := range u.cost.RevealChosen {
+		if !hasRevealChosenDesignation(src, part.Spec) {
+			return false
+		}
+	}
+	return true
 }
 
 func (e *Engine) unlessCountersAffordable(u *unlessPayment) bool {

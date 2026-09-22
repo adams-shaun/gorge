@@ -1491,6 +1491,9 @@ func withSpellAbilityExtras(f *cards.Face, cost Cost) Cost {
 	if len(extra.Reveal) > 0 {
 		cost.Reveal = append(append([]CostPart(nil), cost.Reveal...), extra.Reveal...)
 	}
+	if len(extra.RevealChosen) > 0 {
+		cost.RevealChosen = append(append([]CostPart(nil), cost.RevealChosen...), extra.RevealChosen...)
+	}
 	if len(extra.Behold) > 0 {
 		cost.Behold = append(append([]CostPart(nil), cost.Behold...), extra.Behold...)
 	}

@@ -98,9 +98,9 @@ func TestConditionGateCompareOperators(t *testing.T) {
 // pre-gate behaviour (see conditions.go's scope comment).
 func TestConditionGateUnresolvedShapesRunUnconditionally(t *testing.T) {
 	h, _ := conditionBoard(t)
-	other := "DB$ Pump | ConditionDefined$ Targeted | ConditionPresent$ Creature | ConditionCompare$ EQ1"
+	other := "DB$ Pump | ConditionDefined$ ChosenCard | ConditionPresent$ Creature | ConditionCompare$ EQ1"
 	if _, resolved := conditionMet(h, &Ctx{Controller: 0}, sa(t, other)); resolved {
-		t.Fatal("ConditionDefined$ Targeted resolved — out of the scoped shape")
+		t.Fatal("ConditionDefined$ ChosenCard resolved — out of the scoped shape")
 	}
 	checkSVar := "DB$ Pump | ConditionDefined$ Remembered | ConditionCheckSVar$ X | ConditionSVarCompare$ EQ1"
 	if _, resolved := conditionMet(h, &Ctx{Controller: 0}, sa(t, checkSVar)); resolved {
@@ -108,11 +108,12 @@ func TestConditionGateUnresolvedShapesRunUnconditionally(t *testing.T) {
 	}
 	// ConditionNotPresent$ over the REMEMBERED group is resolved as of the
 	// Rakdos-params task (the Ajani/Ravenous/Fallaji "the remembered card is
-	// gone" shapes); the still-unresolved NOT-PRESENT shape is a defined
-	// group this build cannot enumerate (Targeted, lodestone_bauble's).
-	notPresent := "DB$ Pump | ConditionDefined$ Targeted | ConditionNotPresent$ Card"
+	// gone" shapes); Targeted is now resolved too (conditionMet's Targeted
+	// group). The still-unresolved NOT-PRESENT shape is a defined group this
+	// build cannot enumerate (ChosenCard, lodestone_bauble's).
+	notPresent := "DB$ Pump | ConditionDefined$ ChosenCard | ConditionNotPresent$ Card"
 	if _, resolved := conditionMet(h, &Ctx{Controller: 0}, sa(t, notPresent)); resolved {
-		t.Fatal("ConditionNotPresent$ over Targeted resolved — out of the scoped shape")
+		t.Fatal("ConditionNotPresent$ over ChosenCard resolved — out of the scoped shape")
 	}
 	unknownPred := "DB$ Pump | ConditionDefined$ Remembered | ConditionPresent$ Card.IsImprinted"
 	if _, resolved := conditionMet(h, &Ctx{Controller: 0}, sa(t, unknownPred)); resolved {
@@ -125,6 +126,54 @@ func TestConditionGateUnresolvedShapesRunUnconditionally(t *testing.T) {
 	// No Condition* key at all: not gated, run.
 	if met, resolved := conditionMet(h, &Ctx{Controller: 0}, sa(t, "DB$ Pump")); resolved || !met {
 		t.Fatalf("ungated sub: met=%v resolved=%v, want true false", met, resolved)
+	}
+}
+
+// TestConditionGateTargetedGroup pins the ConditionDefined$ Targeted group
+// (Stalking Leonin's `ConditionDefined$ Targeted | ConditionPresent$
+// Card.ChosenCtrl`): the group is the resolving ability's own answered
+// targets -- Ctx.PickedTargets while a pre-asked body dispatches, else
+// Ctx.Targets -- exactly the channels Defined$ Targeted reads. A chosen
+// player that controls the target admits; one that does not denies; an empty
+// target list is a resolved zero, never the fail-open an absent binding gets.
+func TestConditionGateTargetedGroup(t *testing.T) {
+	h, ids := conditionBoard(t)
+	// ids[3] is the Fixture, controlled by seat 0. Record seat 0 as the
+	// source's secretly chosen player.
+	h.g.Obj(ids[3]).Chosen = []state.Target{{Player: 0, IsPlayer: true}}
+	gate := sa(t, "DB$ Pump | ConditionDefined$ Targeted | ConditionPresent$ Card.ChosenCtrl")
+
+	// The target is controlled by the chosen player: met, resolved.
+	ctx := &Ctx{Controller: 0, Source: ids[3], Targets: []state.Target{{Obj: ids[3]}}}
+	if met, resolved := conditionMet(h, ctx, gate); !met || !resolved {
+		t.Fatalf("target controlled by the chosen player: met=%v resolved=%v, want true true", met, resolved)
+	}
+
+	// The target is controlled by another seat: resolved false, not fail-open.
+	h.g.Obj(ids[3]).Chosen = []state.Target{{Player: 1, IsPlayer: true}}
+	if met, resolved := conditionMet(h, ctx, gate); met || !resolved {
+		t.Fatalf("target not controlled by the chosen player: met=%v resolved=%v, want false true", met, resolved)
+	}
+
+	// No chosen player at all: the predicate fails closed, resolved false.
+	h.g.Obj(ids[3]).Chosen = nil
+	if met, resolved := conditionMet(h, ctx, gate); met || !resolved {
+		t.Fatalf("no chosen player: met=%v resolved=%v, want false true", met, resolved)
+	}
+
+	// No targets chosen: a resolved zero, never fail-open.
+	h.g.Obj(ids[3]).Chosen = []state.Target{{Player: 0, IsPlayer: true}}
+	if met, resolved := conditionMet(h, &Ctx{Controller: 0, Source: ids[3]}, gate); met || !resolved {
+		t.Fatalf("no targets: met=%v resolved=%v, want false true (resolved zero)", met, resolved)
+	}
+
+	// Ctx.PickedTargets (the pre-asked body channel) outranks Ctx.Targets.
+	// The Mountain (ids[2]) is moved to seat 1 so it is NOT controlled by the
+	// chosen player (seat 0), while the fixture (ids[3]) is.
+	h.g.Obj(ids[2]).Controller = 1
+	picked := &Ctx{Controller: 0, Source: ids[3], Targets: []state.Target{{Obj: ids[3]}}, PickedTargets: []state.Target{{Obj: ids[2]}}}
+	if met, resolved := conditionMet(h, picked, gate); met || !resolved {
+		t.Fatalf("PickedTargets outrank: met=%v resolved=%v, want false true", met, resolved)
 	}
 }
 

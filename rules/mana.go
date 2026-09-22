@@ -2361,6 +2361,17 @@ func ParseUnlessCost(s string) (Cost, bool) {
 				c.Reveal = append(c.Reveal, CostPart{N: int32(n), Spec: strings.ReplaceAll(m[3], ";", ","), Desc: m[4]})
 				continue
 			}
+			// RevealChosen<Player>/<Type> is the no-ask designation reveal
+			// (Stalking Leonin's activation cost). As an UnlessCost$ it is
+			// accepted here too so the shared beginUnlessPayment continuation
+			// settles it (one public Note on the paid path), never a synchronous
+			// payUnlessCost call that would silently omit the reveal. No corpus
+			// UnlessCost$ carries it today; the threading is what a future one
+			// must not mis-route through.
+			if m := revealChosenCost.FindStringSubmatch(sym); m != nil {
+				c.RevealChosen = append(c.RevealChosen, CostPart{Spec: m[1], Desc: m[2]})
+				continue
+			}
 			// Every other token — a dynamic amount, an unmodelled cost verb,
 			// or prose — makes the whole cost unpriceable.
 			return Cost{}, false

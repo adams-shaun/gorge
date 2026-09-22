@@ -111,18 +111,13 @@ var predicates = map[string]predFn{
 	// Leonin's ConditionPresent$ Card.ChosenCtrl, the twin of ChosenType):
 	// the object is controlled by the player the source's Secretly$ True
 	// ChoosePlayer chose. A source with no chosen player never matches --
-	// fail closed, so the condition gate denies instead of widening.
+	// fail closed, so the condition gate denies instead of widening. This map
+	// entry is the census-only classifier (recognisedPredicate/UnknownPredicates
+	// consult predicates[]); the context-aware matcher path runs
+	// typePredicate first, and both call the one chosenCtrlMatches helper so
+	// the two can never diverge.
 	"ChosenCtrl": func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
-		s := g.Obj(src)
-		if s == nil {
-			return false
-		}
-		for _, t := range s.Chosen {
-			if t.IsPlayer && o.Controller == t.Player {
-				return true
-			}
-		}
-		return false
+		return chosenCtrlMatches(g, o, src)
 	},
 	// An object records this association in events.Apply when an effect moves
 	// it to exile with moveZoneEvent. Both spellings use the same tracked
@@ -1858,18 +1853,27 @@ func typePredicate(p string, g *state.Game, o *state.Object, sc SpecContext) (bo
 		s := g.Obj(sc.Source)
 		return s != nil && s.ChosenType != "" && !hasTypeCtx(o, s.ChosenType, sc), true
 	case "ChosenCtrl":
-		s := g.Obj(sc.Source)
-		if s == nil {
-			return false, true
-		}
-		for _, t := range s.Chosen {
-			if t.IsPlayer && o.Controller == t.Player {
-				return true, true
-			}
-		}
-		return false, true
+		return chosenCtrlMatches(g, o, sc.Source), true
 	}
 	return false, false
+}
+
+// chosenCtrlMatches is the ONE implementation of the ChosenCtrl predicate
+// (controlled by the source's secretly chosen player) the context-aware
+// typePredicate path and the census-only predicates-map entry share, so the
+// matcher and UnknownPredicates cannot drift. A source with no chosen player
+// fails closed.
+func chosenCtrlMatches(g *state.Game, o *state.Object, src state.ObjID) bool {
+	s := g.Obj(src)
+	if s == nil {
+		return false
+	}
+	for _, t := range s.Chosen {
+		if t.IsPlayer && o.Controller == t.Player {
+			return true
+		}
+	}
+	return false
 }
 
 func hasTypeCtx(o *state.Object, t string, sc SpecContext) bool {
