@@ -3603,9 +3603,14 @@ func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
 			From: state.ZBattlefield, To: state.ZGraveyard, Text: "destroyed"})
+		// Host.Emit applies move replacements before folding the move. Only
+		// remember a permanent that actually ended up in the graveyard; a
+		// replacement such as exile must not feed a later IsRemembered search.
 		if remember {
-			c.Remembered = append(c.Remembered, state.Target{Obj: id})
-			eventRemember(h, c, id)
+			if moved := h.Game().Obj(id); moved != nil && moved.Zone == state.ZGraveyard {
+				c.Remembered = append(c.Remembered, state.Target{Obj: id})
+				eventRemember(h, c, id)
+			}
 		}
 	}
 }
@@ -3655,10 +3660,12 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
 			From: state.ZBattlefield, To: state.ZGraveyard, Text: "destroyed"})
 		if remember {
-			// Forge's RememberDestroyed$ adds each destroyed card to
-			// the host's remembered list (Stench of Evil's RepeatEach
-			// over DirectRemembered iterates exactly these).
-			c.Remembered = append(c.Remembered, state.Target{Obj: id})
+			// Forge's RememberDestroyed$ adds only cards that actually
+			// reached the graveyard; a move replacement may redirect it.
+			if moved := h.Game().Obj(id); moved != nil && moved.Zone == state.ZGraveyard {
+				c.Remembered = append(c.Remembered, state.Target{Obj: id})
+				eventRemember(h, c, id)
+			}
 		}
 	}
 }
