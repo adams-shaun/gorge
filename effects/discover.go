@@ -67,6 +67,7 @@ func effDiscover(h Host, c *Ctx, sa *cards.SA) {
 			To: state.ZLibrary, Text: "undiscovered card put on the bottom of the library"})
 	}
 	if found == 0 {
+		h.Emit(events.Event{Kind: events.Discover, Player: p, Obj: c.Source})
 		return
 	}
 	c.Remembered = []state.Target{{Obj: found}}
@@ -79,8 +80,11 @@ func effDiscover(h Host, c *Ctx, sa *cards.SA) {
 }
 
 // effDiscoverBottom is the chained tail of the optional cast.  On a decline
-// the found card remains in exile and is bottomed; after a free cast it has
-// left exile and is therefore skipped.
+// the found card moves to its controller's hand; after a free cast it has
+// left exile and is therefore skipped. The preceding cards were already
+// bottomed by effDiscover.
+// The marker is emitted here because a found card's optional cast is part of
+// completing the discover action.
 func effDiscoverBottom(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
 	remembered := c.Remembered
@@ -94,6 +98,7 @@ func effDiscoverBottom(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: t.Obj, From: state.ZExile,
-			To: state.ZLibrary, Text: "the undiscovered card is put on the bottom of the library"})
+			To: state.ZHand, Text: "the undiscovered card is put into its owner's hand"})
 	}
+	h.Emit(events.Event{Kind: events.Discover, Player: c.Controller, Obj: c.Source})
 }
