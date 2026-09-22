@@ -1431,7 +1431,13 @@ func (e *Engine) payDamageCost(payer state.PlayerID, n int32, source state.ObjID
 		return
 	}
 	prev := e.SetDamageSource(source)
-	ev := e.emit(events.Event{Kind: events.Damage, Player: payer, Amount: n})
+	dam := events.Event{Kind: events.Damage, Player: payer, Amount: n}
+	if e.HasKeyword(source, "Infect") {
+		// CR 702.90b: even a cost payment is damage dealt by its source, so
+		// an infect source's DamageYou cost pays in counter/poison form.
+		dam.Counter = "infect"
+	}
+	ev := e.emit(dam)
 	e.SetDamageSource(prev)
 	if ev.Kind != events.Damage || !e.HasKeyword(source, "Lifelink") {
 		return

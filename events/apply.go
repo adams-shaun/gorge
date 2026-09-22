@@ -817,6 +817,16 @@ func Apply(g *state.Game, e Event) {
 		}
 
 	case Damage:
+		// CR 702.90b: damage a source with INFECT dealt is dealt in a
+		// different form -- to a creature, as that many -1/-1 counters, not
+		// marked damage; to a player, as that many poison counters, not life
+		// loss. The Damage event itself still travels the whole replacement
+		// and trigger pipeline (protection, prevention, DamageDone triggers,
+		// lifelink, the combat-damage ledger); only this fold's encoding
+		// changes, exactly as the planeswalker loyalty exchange below already
+		// converts the same event. The infect marker rides Counter, Damage's
+		// existing characteristic carrier.
+		infect := e.Counter == "infect"
 		if o := g.Obj(e.Obj); o != nil {
 			// CR 306.8 / 120.3c: damage dealt to a planeswalker permanent
 			// removes that many loyalty counters instead of being marked as
@@ -846,11 +856,38 @@ func Apply(g *state.Game, e Event) {
 			// effects/rules set it to creature from the current layer result.
 			// The printed-face fallback retains direct-event callers and normal
 			// printed creature behavior.
-			creature := e.Counter == "creature" || (o.Face() != nil && o.Face().IsCreature())
-			if !walker || creature {
-				o.Damage += e.Amount
-				if o.Damage < 0 {
-					o.Damage = 0
+			// An INFECT-tagged event on a creature-derived recipient names a
+			// creature: a printed creature directly, and a printed
+			// planeswalker the layer walk has animated (CR 120.3e -- it takes
+			// the loyalty exchange above AND its damage in counter form). A
+			// printed planeswalker that is not a creature takes infect damage
+			// as ordinary loyalty loss (CR 702.90b rewrites creature and
+			// player damage only).
+			creature := e.Counter == "creature" || e.Counter == "infect" ||
+				(o.Face() != nil && o.Face().IsCreature())
+			switch {
+			case infect && creature:
+				// CR 702.90b: that many -1/-1 counters, never marked damage.
+				// The guard keeps a rewritten negative amount (cleanup's
+				// marked-damage clearing, which an infect object never owes --
+				// it has no marked damage) from removing counters no event put
+				// here. Counters survive end-of-turn cleanup (they are not
+				// marked damage), so cleanup never needs a negative infect
+				// event of its own.
+				if e.Amount > 0 {
+					o.AddCounter("M1M1", e.Amount)
+				}
+			case infect:
+				// A non-creature, non-planeswalker recipient (a Battle, an
+				// artifact a redirect handed the hit to) takes damage
+				// normally; the walker conversion above already covered a
+				// printed planeswalker.
+			default:
+				if !walker || creature {
+					o.Damage += e.Amount
+					if o.Damage < 0 {
+						o.Damage = 0
+					}
 				}
 			}
 			// A positive Damage event records that the object was dealt damage
@@ -861,7 +898,15 @@ func Apply(g *state.Game, e Event) {
 				o.WasDealtDamageThisTurn = true
 			}
 		} else if validPlayer(g, e.Player) {
-			g.Players[e.Player].Life -= e.Amount
+			if infect && e.Amount > 0 {
+				// CR 702.90b: that many poison counters instead of life loss.
+				// The same Player.AddCounter the PlayerCounterChange fold runs,
+				// so rules/sba.go's CR 704.5b ten-poison loss reads the result
+				// exactly as it reads a Ward-poison counter.
+				g.Players[e.Player].AddCounter("POISON", e.Amount)
+			} else {
+				g.Players[e.Player].Life -= e.Amount
+			}
 		}
 
 	case Tap:

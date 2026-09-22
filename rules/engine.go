@@ -1767,7 +1767,8 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	// (a prevented hit is a Note, never a Damage), so a positive player
 	// Damage event here IS the life loss the rule reads.
 	if (ev.Kind == events.LifeChange && ev.Amount < 0) ||
-		(ev.Kind == events.Damage && ev.Obj == 0 && ev.Amount > 0) {
+		(ev.Kind == events.Damage && ev.Obj == 0 && ev.Amount > 0 &&
+			ev.Counter != "infect") {
 		e.checkSpeedGain(ev)
 	}
 	if ev.Kind == events.MoveZone && ev.To == state.ZBattlefield {

@@ -375,7 +375,16 @@ func emitObjectDamage(r damageRider, target state.ObjID) int32 {
 		return 0
 	}
 	ev := events.Event{Kind: events.Damage, Obj: target, Amount: r.amount}
-	if h.IsCreature(target) && o.Face() != nil && o.Face().IsPlaneswalker() && !o.Face().IsCreature() {
+	if h.HasKeyword(r.source, "Infect") {
+		// CR 702.90b: damage from an infect source is dealt to a creature in
+		// the form of -1/-1 counters. The marker rides Damage's Counter
+		// carrier; events.Apply's Damage fold converts it after the whole
+		// prevention/replacement pipeline (so a prevented or rewritten hit
+		// converts nothing / the rewritten amount). A granted infect (e.g. a
+		// Grafted Exoskeleton bearer) reads the same, because Host.HasKeyword
+		// reads the derived keyword list.
+		ev.Counter = "infect"
+	} else if h.IsCreature(target) && o.Face() != nil && o.Face().IsPlaneswalker() && !o.Face().IsCreature() {
 		ev.Counter = "creature"
 	}
 	applied := h.EmitDamage(ev)
@@ -394,7 +403,13 @@ func emitObjectDamage(r damageRider, target state.ObjID) int32 {
 // emitPlayerDamage lands one non-combat Damage event on a player and pays the
 // lifelink rider from the amount that survived replacement effects.
 func emitPlayerDamage(r damageRider, target state.PlayerID) {
-	applied := r.h.EmitDamage(events.Event{Kind: events.Damage, Player: target, Amount: r.amount})
+	ev := events.Event{Kind: events.Damage, Player: target, Amount: r.amount}
+	if r.h.HasKeyword(r.source, "Infect") {
+		// CR 702.90b: damage from an infect source is dealt to a player in
+		// the form of that many poison counters; the fold converts it.
+		ev.Counter = "infect"
+	}
+	applied := r.h.EmitDamage(ev)
 	dealt := int32(0)
 	if applied.Kind == events.Damage {
 		dealt = applied.Amount

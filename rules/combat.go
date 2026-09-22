@@ -1851,6 +1851,13 @@ type assignment struct {
 	lifelink   state.PlayerID
 	hasLink    bool
 	deathtouch bool
+	// infect records that the dealing creature has infect (CR 702.90b): the
+	// damage event carries the infect marker and events.Apply's Damage fold
+	// deals it as -1/-1 counters (a creature recipient) or poison counters
+	// (the defending player) instead of marked damage / life loss. A source
+	// granted infect by a static (Grafted Exoskeleton) reads the same way,
+	// because HasKeyword reads the derived keyword list.
+	infect bool
 	// from is the creature dealing this assignment (the attacker for its own
 	// assignments, each blocker for its hit-back), kept so the damage emit
 	// loop can set e.damaging (engine.go) and let protection prevent damage
@@ -1948,6 +1955,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 				link := e.HasKeyword(aid, "Lifelink")
 				dt := e.HasKeyword(aid, "Deathtouch")
 				trample := e.HasKeyword(aid, "Trample")
+				inf := e.HasKeyword(aid, "Infect")
 				switch {
 				case e.chosenElection(aid):
 					// stat:AssignCombatDamageAsUnblocked (CR 509's optional
@@ -1961,12 +1969,12 @@ func (e *Engine) damageStep(firstStrike bool) {
 					// still hit back below; only the ATTACKER's assignment is
 					// rerouted.
 					as = append(as, assignment{toPlayer: a.Attacking, amount: pw,
-						lifelink: a.Controller, hasLink: link, from: aid})
+						lifelink: a.Controller, hasLink: link, from: aid, infect: inf})
 
 				case len(a.BlockedBy) == 0:
 					// Genuinely unblocked: full damage to the defending player.
 					as = append(as, assignment{toPlayer: a.Attacking, amount: pw,
-						lifelink: a.Controller, hasLink: link, from: aid})
+						lifelink: a.Controller, hasLink: link, from: aid, infect: inf})
 
 				case len(blockers) == 0:
 					// Ruling T21-d (CR 509.1h): a creature that was blocked
@@ -1977,7 +1985,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 					// blocker left to owe any of it to).
 					if trample {
 						as = append(as, assignment{toPlayer: a.Attacking, amount: pw,
-							lifelink: a.Controller, hasLink: link, from: aid})
+							lifelink: a.Controller, hasLink: link, from: aid, infect: inf})
 					}
 
 				default:
@@ -2009,7 +2017,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 						for i, bid := range blockers {
 							if i < len(div) && div[i] > 0 {
 								as = append(as, assignment{toObj: bid, amount: div[i],
-									lifelink: a.Controller, hasLink: link, deathtouch: dt, from: aid})
+									lifelink: a.Controller, hasLink: link, deathtouch: dt, from: aid, infect: inf})
 							}
 						}
 						break
@@ -2025,7 +2033,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 							give = need
 						}
 						as = append(as, assignment{toObj: bid, amount: give,
-							lifelink: a.Controller, hasLink: link, deathtouch: dt, from: aid})
+							lifelink: a.Controller, hasLink: link, deathtouch: dt, from: aid, infect: inf})
 						remaining -= give
 						if remaining <= 0 {
 							break
@@ -2033,7 +2041,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 					}
 					if remaining > 0 && trample {
 						as = append(as, assignment{toPlayer: a.Attacking, amount: remaining,
-							lifelink: a.Controller, hasLink: link, from: aid})
+							lifelink: a.Controller, hasLink: link, from: aid, infect: inf})
 					}
 				}
 			}
@@ -2048,7 +2056,8 @@ func (e *Engine) damageStep(firstStrike bool) {
 			if bp := e.combatDamageAmount(bid); bp > 0 {
 				as = append(as, assignment{toObj: aid, amount: bp,
 					lifelink: e.G.Obj(bid).Controller, hasLink: e.HasKeyword(bid, "Lifelink"),
-					deathtouch: e.HasKeyword(bid, "Deathtouch"), from: bid})
+					deathtouch: e.HasKeyword(bid, "Deathtouch"), from: bid,
+					infect: e.HasKeyword(bid, "Infect")})
 			}
 		}
 	}
@@ -2105,7 +2114,16 @@ func (e *Engine) runCombatAssignments() {
 			// event's Kind -- the recipient-armed bet here is that a Note (or
 			// any replacement-substituted non-Damage kind) means the damage
 			// did NOT land -- skips both riders for a prevented assignment.
-			ev := e.emit(events.Event{Kind: events.Damage, Obj: x.toObj, Amount: x.amount})
+			dam := events.Event{Kind: events.Damage, Obj: x.toObj, Amount: x.amount}
+			if x.infect {
+				// CR 702.90b: infect damage is dealt in counter form; the
+				// marker rides Damage's Counter carrier and events.Apply's
+				// Damage fold converts it. Preceding replacements (protection
+				// is handled before them, in emit) still act on the event, so
+				// a rewritten amount converts as the rewritten amount.
+				dam.Counter = "infect"
+			}
+			ev := e.emit(dam)
 			prevented = ev.Kind != events.Damage
 			if !prevented {
 				dealt = ev.Amount
@@ -2128,7 +2146,11 @@ func (e *Engine) runCombatAssignments() {
 			// player-hit, consistent with the Obj branch. Non-Commander games
 			// take the original single-emit path untouched, so this task
 			// changes nothing about them.
-			ev := e.emit(events.Event{Kind: events.Damage, Player: x.toPlayer, Amount: x.amount})
+			dam := events.Event{Kind: events.Damage, Player: x.toPlayer, Amount: x.amount}
+			if x.infect {
+				dam.Counter = "infect"
+			}
+			ev := e.emit(dam)
 			prevented = ev.Kind != events.Damage
 			if !prevented {
 				dealt = ev.Amount
@@ -2447,6 +2469,11 @@ func (e *Engine) discardCleanup(chosen []decision.Option) {
 func init() {
 	effects.RegisterNonAPI("kw:Flying", "kw:Reach", "kw:Haste", "kw:Vigilance",
 		"kw:Deathtouch", "kw:Trample", "kw:Lifelink", "kw:First Strike", "kw:Double Strike",
+		// kw:Infect (CR 702.90): the conversion lives in events.Apply's Damage
+		// fold, driven by the infect marker rules/combat.go and effects/damage.go
+		// set on the event; rules need no keyword machinery of its own beyond
+		// the HasKeyword read the combat path already makes.
+		"kw:Infect",
 		"kw:Flash", "kw:Indestructible", "kw:Devoid", "kw:Defender", "kw:Menace",
 		"kw:Fear", "kw:Shadow", "kw:Horsemanship", "kw:Skulk",
 		// kw:Toxic (CR 702.164) is a static ability rules reads directly, the
