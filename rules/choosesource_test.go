@@ -92,6 +92,51 @@ func TestDeflectingPalmPreventsChosenSourceAndReflects(t *testing.T) {
 	}
 }
 
+// TestDeflectingPalmPreventsOnlyTheNextDamage pins the CR 615 one-shot the
+// card's own script spells: RPreventNextFromSource is registered by a DB$
+// Effect whose ReplaceWith$ body chains SubAbility$ ExileEffect (`DB$
+// ChangeZone | Defined$ Self | Origin$ Command | Destination$ Exile`),
+// Forge's idiom for the implicit Command-zone effect object ending itself
+// after one use. The first damage event from the chosen source is prevented
+// and reflected; every later one is untouched. Without the effect-ending the
+// promise would persist for the whole turn and prevent (and reflect) EVERY
+// subsequent damage event from the chosen source -- the newly-live defect
+// this pins.
+func TestDeflectingPalmPreventsOnlyTheNextDamage(t *testing.T) {
+	reg := sharedCorpus(t)
+	e := newSeats(t, 2)
+	e.pending = nil
+	chosen := onBoard(t, e, 1, "Name:Aggressor\nManaCost:R\nTypes:Creature Goblin\nPT:2/2\nOracle:x\n")
+	palm := e.G.AddObject(mustCorpusCard(t, reg, "Deflecting Palm"), 0)
+	palm.Zone = state.ZStack
+
+	resolveChooseSource(t, e, palm.ID, chosen)
+
+	life0, life1 := e.G.Players[0].Life, e.G.Players[1].Life
+	// First event: prevented, reflected to the source's controller.
+	e.damaging = chosen
+	e.emit(events.Event{Kind: events.Damage, Player: 0, Amount: 3})
+	e.damaging = 0
+	if got := e.G.Players[0].Life; got != life0 {
+		t.Fatalf("seat 0 life = %d, want %d: the first damage was not prevented", got, life0)
+	}
+	if got := e.G.Players[1].Life; got != life1-3 {
+		t.Fatalf("seat 1 life = %d, want %d: the prevented amount was not reflected", got, life1-3)
+	}
+	// Second event from the SAME source: the one-shot is spent, so it lands
+	// in full and reflects nothing.
+	life0, life1 = e.G.Players[0].Life, e.G.Players[1].Life
+	e.damaging = chosen
+	e.emit(events.Event{Kind: events.Damage, Player: 0, Amount: 4})
+	e.damaging = 0
+	if got := e.G.Players[0].Life; got != life0-4 {
+		t.Fatalf("seat 0 life = %d, want %d: the one-shot must not prevent a second damage event", got, life0-4)
+	}
+	if got := e.G.Players[1].Life; got != life1 {
+		t.Fatalf("seat 1 life = %d, want %d: a spent one-shot must not reflect a second time", got, life1)
+	}
+}
+
 // TestChooseSourceNoCandidateDoesNotWedge pins the zero-candidate shape: a
 // ChooseSource whose Choices$ filter matches nothing poses no decision (the
 // empty-answer-only KChoose is absorbed by effects.Ask), records no chosen

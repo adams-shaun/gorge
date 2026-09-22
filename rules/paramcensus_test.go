@@ -168,7 +168,7 @@ var baseBuckets = map[string]bucket{
 	// resolved ReplaceWith$ body under its local name in the CreateToken
 	// replacement dispatcher (continueCreateTokenReplacements /
 	// applyTokenReplacementToPlan read its Type$/Amount$/TokenScript$).
-	"r.With": bSA, "m.repl.With": bSA, "rp.sa": bSA, "o.Ability": bSA, "d.ResumeSA": bSA, "body": bSA,
+	"r.With": bSA, "m.repl.With": bSA, "with": bSA, "rp.sa": bSA, "o.Ability": bSA, "d.ResumeSA": bSA, "body": bSA,
 	// offeredSA is resolveTop's ability-branch marker derivation: the SA
 	// whose ValidTgts$ the placement ask actually covered -- o.Ability for a
 	// non-modal trigger, the first target-bearing chosen mode's sub for a

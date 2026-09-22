@@ -99,6 +99,19 @@ func (h *fakeHost) AddContinuous(ce state.ContinuousEffect) {
 	h.continuous = append(h.continuous, ce)
 }
 
+// EndEffectSource mirrors rules.Engine's implementation for one-shot Effect
+// self-exile (DB$ ChangeZone | Defined$ Self | Origin$ Command).
+func (h *fakeHost) EndEffectSource(source state.ObjID) {
+	kept := h.continuous[:0]
+	for _, ce := range h.continuous {
+		if ce.Source == source {
+			continue
+		}
+		kept = append(kept, ce)
+	}
+	h.continuous = kept
+}
+
 // ContinuousNamed scans the double's own recorded slice: the effects tests
 // have no engine registry to ask.
 func (h *fakeHost) ContinuousNamed(controller state.PlayerID, name string) bool {

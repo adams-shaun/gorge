@@ -1091,6 +1091,42 @@ func (e *Engine) AddContinuous(ce ContinuousEffect) {
 	e.continuousVersion++
 }
 
+// EndEffectSource ends every continuous effect the named source registered --
+// the one-shot Effect self-exile (`DB$ ChangeZone | Defined$ Self | Origin$
+// Command | Destination$ Exile`) that Forge models by exiling the implicit
+// effect object it keeps in the Command zone. This build has no such object,
+// so the write is an in-place drop of this source's registry entries.
+//
+// It is the analogue of Forge's effect object leaving the Command zone, so it
+// removes exactly that source's effects: printed statics are never stored here
+// (they are re-derived from the face each time), so a permanent whose
+// activated ability created a one-shot replacement loses only the
+// registrations that ability made, not its printed abilities. A source with
+// nothing registered is a no-op, and the shape is only reached when the
+// ChangeZone source is NOT itself in the Command zone (a real command-zone
+// card keeps its ordinary move). Engine-runtime only and rebuilt by
+// re-execution on replay exactly like every other continuous-registry write;
+// emitting no event, it never moves the log head on its own.
+func (e *Engine) EndEffectSource(source state.ObjID) {
+	if source == 0 || len(e.continuous) == 0 {
+		return
+	}
+	kept := e.continuous[:0]
+	changed := false
+	for _, ce := range e.continuous {
+		if ce.Source == source {
+			changed = true
+			continue
+		}
+		kept = append(kept, ce)
+	}
+	if !changed {
+		return
+	}
+	e.continuous = kept
+	e.continuousVersion++
+}
+
 // nextTurnFor returns the turn number of the next turn (strictly after the
 // current one) whose active player is p -- i.e. p's NEXT turn, the
 // controller's-next-turn boundary of an UntilYourNextTurn effect.

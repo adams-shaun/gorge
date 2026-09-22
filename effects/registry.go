@@ -438,6 +438,21 @@ type Host interface {
 	// regeneration kept on the battlefield.
 	BatchDepartures(ids []state.ObjID)
 	EndBatchDepartures()
+	// EndEffectSource ends every continuous effect the named source has
+	// registered (rules.Engine's continuous registry), the analogue of
+	// Forge's effect object leaving the Command zone. It backs the corpus's
+	// universal one-shot idiom `DB$ ChangeZone | Defined$ Self | Origin$
+	// Command | Destination$ Exile` (the ChooseSource prevention family's
+	// RPreventNextFromSource, Words of Wind's bounce, Kor Dirge's OutOfSight):
+	// Forge keeps every DB$ Effect in an implicit Command-zone object, and a
+	// body that exiles that object ends the effect after one use. This build
+	// has no such object, so effChangeZone recognises the shape and ends the
+	// source's registered effects instead of running a card move that can
+	// never legally happen (no real card sits in the Command zone under
+	// Defined$ Self). rules.Engine implements it as an in-place rewrite of
+	// its registry; the effects test double removes the entries from its own
+	// recorded slice.
+	EndEffectSource(source state.ObjID)
 }
 
 // RepeatCursor is a RepeatEach loop re-entered after an iteration suspended:

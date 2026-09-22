@@ -1271,6 +1271,20 @@ func (e *Engine) seedEffectReplCtx(ctx *effects.Ctx, m replMatch) {
 // replacements); passing it derives the action automatically rather than
 // making every caller compute it.
 func (e *Engine) runReplaceWith(ctx *effects.Ctx, replaced state.ObjID, with *cards.SA, ev *events.Event) {
+	// An Effect-created replacement body is a fresh parse (replacementBodySA)
+	// whose SubAbility$ chain was never linked -- only cards.Link links a
+	// printed body. Resolve it from the source's own SVar table so a body
+	// that carries a chain actually runs it: the ChooseSource family's
+	// ReplaceWith$ body chains SubAbility$ ExileEffect
+	// (`DB$ ChangeZone | Defined$ Self | Origin$ Command | Destination$ Exile`),
+	// the idiom that ends the effect after one use. A printed body keeps its
+	// already-linked chain (Sub non-nil), so this only touches the
+	// Effect-created parse.
+	if with.Sub == nil && ctx != nil && ctx.SVars != nil {
+		if name := strings.TrimSpace(with.Params["SubAbility"]); name != "" {
+			with.Sub = cards.ResolveSVar(ctx.SVars, name)
+		}
+	}
 	savedRepl, savedEvent, savedSource, savedAction, savedPlayer :=
 		e.replReplaced, e.replacingEvent, e.replacingSource, e.replAction, e.replReplacedPlayer
 	e.applyingReplacement = true
@@ -2750,7 +2764,7 @@ func (e *Engine) damageReplacementMatches(r cards.Repl, source state.ObjID, ev e
 	}
 	if v := r.Params["ValidTarget"]; v != "" {
 		if ev.Obj != 0 {
-			if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.rememberedSpecContext(ctrl, source, remembered)) {
+			if !effects.MatchesSpecFrom(e.G, v, ev.Obj, ctrl, source) {
 				return false
 			}
 		} else if !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {

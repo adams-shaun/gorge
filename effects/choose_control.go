@@ -411,6 +411,17 @@ func effChooseSource(h Host, c *Ctx, sa *cards.SA) {
 		choiceRecord(h, c, sa, c.Choice, false)
 		c.ChoiceDone, c.Choice = false, nil
 		i++
+	} else if i == 0 && c.Choice == nil {
+		// Fresh entry: mirror effChooseCard's Forge setChosenCards read. The
+		// chosen-source answer is a CARD entry (the Choose "chosen" fold
+		// REPLACES the source object's Chosen list, events/apply.go), so the
+		// ctx card half is reset the same way while a previously chosen PLAYER
+		// (Forge's separate field) survives. Without this the ctx binding and
+		// the event-backed object list diverge whenever a prior ChooseCard or
+		// ChooseSource ran on the same Ctx/source: a later Defined$ ChosenCard
+		// would read the stale card plus the new source, while the replacement
+		// gate's object-backed read sees only the new one.
+		c.Chosen = keepChosenPlayers(c.Chosen)
 	}
 	// cardChoice=false is the mandatory shape: Min defaults to Max. Only an
 	// explicit MinAmount$/Optional$ True lowers it, and no corpus ChooseSource
