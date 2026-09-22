@@ -713,6 +713,8 @@ type Engine struct {
 	// a CantAttackUnless prop. Same plain-data class as wardMana; Clone
 	// copies the pointer.
 	attackPay *attackPayWindow
+	// blockPay holds the declare-blockers CantBlockUnless payment window.
+	blockPay *blockPayWindow
 
 	// cmdZone is the queue of parked commander zone changes (CR 903.9, Task
 	// m32, rules/replacement.go): MoveZone events a commander is about to
@@ -974,6 +976,9 @@ type Engine struct {
 	tapEntering         bool
 	tappedTurn          map[state.ObjID]int32
 	triggerTurnFires    map[triggerKey]turnFires
+	// triggerGameFires is the lifetime queue count for GameActivationLimit$.
+	// Unlike triggerTurnFires it is never reset at TurnChange.
+	triggerGameFires map[triggerKey]int32
 	// triggerTurnResolved is ResolvedLimit$'s per-turn resolution count,
 	// keyed by the trigger's SOURCE object (not its triggerKey): Forge's
 	// TriggeredAbility.resolvedThisTurn caps how many times a T: line may

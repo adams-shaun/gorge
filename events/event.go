@@ -1159,6 +1159,7 @@ var flagNames = [...]struct {
 	// bool, paid at most once. Appended at the end per the table's own
 	// ordering rule.
 	{"offspringpaid", state.FlagOffspringPaid},
+	{"optionalcostpaid", state.FlagOptionalCostPaid},
 	// The Fuse cast (CR 702.101b) of a non-Room Split card: one spell
 	// resolving both halves. Appended at the end per the table's own
 	// ordering rule.

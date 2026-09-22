@@ -738,7 +738,11 @@ func applyFaceDownMarker(h Host, sa *cards.SA, c *Ctx, ev *events.Event, to stat
 	exileFaceDown := strings.EqualFold(strings.TrimSpace(sa.Params["ExileFaceDown"]), "True")
 	switch {
 	case to == state.ZExile && exileFaceDown:
-		ev.Counter = "exiled_with_face_down"
+		if strings.EqualFold(strings.TrimSpace(sa.Params["Foretold"]), "True") {
+			ev.Counter = "exiled_with_face_down_foretold"
+		} else {
+			ev.Counter = "exiled_with_face_down"
+		}
 		ev.Amount = int32(c.Source)
 		ev.IDs = nil
 	case to == state.ZExile && faceDown:
@@ -2536,25 +2540,31 @@ func chooserChosenPlayer(h Host, c *Ctx) (state.PlayerID, bool) {
 	return c.Controller, false
 }
 
-// searchChooser resolves who answers the search prompt. You is the default;
-// Targeted uses the first chosen target, Opponent uses the first living
-// opponent in deterministic turn order, and ChosenPlayer uses the player
-// chosen earlier in the resolution (Burning-Rune Demon's opponent picks which
-// of the two revealed cards goes to hand).
+// chooserPlayer resolves a non-empty Chooser$ selector through the shared
+// Defined$ grammar. It deliberately returns false for an unknown or dead
+// referent so each caller can preserve its own fallback.
+func chooserPlayer(h Host, c *Ctx, spec string) (state.PlayerID, bool) {
+	targets, ok := knownDefinedTargets(h, c, spec)
+	if !ok {
+		return 0, false
+	}
+	for _, t := range targets {
+		if !t.IsPlayer && h.Game().Obj(t.Obj) == nil {
+			continue
+		}
+		p := PlayerOf(h, c, t)
+		if int(p) < len(h.Game().Players) && !h.Game().Players[p].Lost {
+			return p, true
+		}
+	}
+	return 0, false
+}
+
+// searchChooser resolves who answers the search prompt. A known Chooser$
+// selector wins; an unbound or unknown selector falls back to the controller.
 func searchChooser(h Host, c *Ctx, sa *cards.SA) state.PlayerID {
-	switch sa.Params["Chooser"] {
-	case "Targeted":
-		if len(c.Targets) > 0 {
-			return PlayerOf(h, c, c.Targets[0])
-		}
-	case "Opponent":
-		for _, p := range h.Game().AliveFrom(c.Controller) {
-			if p != c.Controller {
-				return p
-			}
-		}
-	case "ChosenPlayer", "Player.Chosen":
-		if p, ok := chooserChosenPlayer(h, c); ok {
+	if spec := strings.TrimSpace(sa.Params["Chooser"]); spec != "" {
+		if p, ok := chooserPlayer(h, c, spec); ok {
 			return p
 		}
 	}
@@ -2591,20 +2601,15 @@ func hiddenPickPlayers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 	return []state.PlayerID{c.Controller}
 }
 
-// hiddenPickChooser resolves who answers the pick. A Chooser$ spelling wins
-// (Targeted/Opponent/ChosenPlayer through searchChooser's grammar, You the
-// controller); with none the decider is the fetch player, exactly Forge's
-// `decider = Objects.requireNonNullElse(chooser, player)`.
+// hiddenPickChooser resolves who answers the pick. A known Chooser$ selector
+// wins; an unbound or unknown selector falls back to the fetch owner. With no
+// selector, the owner remains the decider.
 func hiddenPickChooser(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID) state.PlayerID {
-	switch sa.Params["Chooser"] {
-	case "Targeted", "Opponent", "ChosenPlayer", "Player.Chosen":
-		// ChosenPlayer resolves to the binding or, unbound, to the resolving
-		// controller (searchChooser's default), never to the owner fallback:
-		// a Chooser$ was written, so the fetch player is not this pick's
-		// decider.
-		return searchChooser(h, c, sa)
-	case "You":
-		return c.Controller
+	if spec := strings.TrimSpace(sa.Params["Chooser"]); spec != "" {
+		if p, ok := chooserPlayer(h, c, spec); ok {
+			return p
+		}
+		return owner
 	}
 	return owner
 }

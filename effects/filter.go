@@ -48,7 +48,10 @@ var predicates = map[string]predFn{
 	"OppCtrl": func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool {
 		return o.Controller != you
 	},
-	"YouOwn":    func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool { return o.Owner == you },
+	"YouOwn": func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool { return o.Owner == you },
+	"foretold": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o.CastFlags&state.FlagForetold != 0
+	},
 	"OppOwn":    func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool { return o.Owner != you },
 	"Self":      func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool { return o.ID == src },
 	"Other":     func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool { return o.ID != src },
@@ -492,7 +495,8 @@ func hasAttachmentOfKind(g *state.Game, id state.ObjID, kind string) bool {
 
 // sharesTypeArg splits the space-bearing two-token predicates
 // "sharesCardTypeWith <X>", "sharesCreatureTypeWith <X>" and
-// "sharesAllCardTypesWithOther <X>" and classifies their shared referent. The referent is a resolution-time object list: the
+// "sharesAllCardTypesWithOther <X>", and
+// "sharesCardTypeWithOther <X>" and classifies their shared referent. The referent is a resolution-time object list: the
 // remembered set (RememberedCard — its first card entry, Braids's "a
 // permanent that shares a card type with it" — Remembered, RememberedLKI),
 // the triggering card (TriggeredCard/TriggeredCardLKICopy, Heirloom
@@ -506,7 +510,7 @@ func hasAttachmentOfKind(g *state.Game, id state.ObjID, kind string) bool {
 func sharesTypeArg(p string) (name, arg string, ok bool) {
 	name, arg, ok = strings.Cut(p, " ")
 	if !ok || (name != "sharesCardTypeWith" && name != "sharesCreatureTypeWith" &&
-		name != "sharesAllCardTypesWithOther") {
+		name != "sharesCardTypeWithOther" && name != "sharesAllCardTypesWithOther") {
 		return "", "", false
 	}
 	arg = strings.TrimSpace(arg)
@@ -610,6 +614,39 @@ func sharesCardTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref stri
 		}
 		r := g.Obj(t.Obj)
 		if r == nil {
+			continue
+		}
+		for _, cardType := range oTypes {
+			if hasType(r, cardType) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// sharesCardTypeWithOther reports whether o shares at least one CARD type
+// with an OTHER object the referent names. It is the intersection sibling of
+// sharesAllCardTypesWithOther: only the candidate identity exclusion differs
+// from sharesCardTypeWith.
+func sharesCardTypeWithOther(g *state.Game, o *state.Object, sc SpecContext, ref string) bool {
+	var oTypes []string
+	if f := o.Face(); f != nil {
+		for _, x := range f.Types {
+			if cardTypeWords[x] {
+				oTypes = append(oTypes, x)
+			}
+		}
+	}
+	if len(oTypes) == 0 {
+		return false
+	}
+	for _, t := range sharesTypeReferents(g, sc, ref) {
+		if t.IsPlayer {
+			continue
+		}
+		r := g.Obj(t.Obj)
+		if r == nil || r.ID == o.ID {
 			continue
 		}
 		for _, cardType := range oTypes {
@@ -901,6 +938,9 @@ const (
 	// The creature-subtype twin "sharesCreatureTypeWith <X>": same referent
 	// switch, the intersection is over creature subtypes (Heirloom Blade).
 	wordSharesCreatureType
+	// "sharesCardTypeWithOther <X>": the card-type intersection, excluding
+	// the candidate itself (The Tale of Tamiyo's mill gate).
+	wordSharesCardTypeOther
 	// "sharesAllCardTypesWithOther <X>": same referent switch, but the
 	// candidate must share EVERY one of its card types with some OTHER
 	// object the referent names (Demonic Covenant's "two cards that share
@@ -1097,6 +1137,8 @@ func wordPredicate(p string) (wordKind, string) {
 		switch name {
 		case "sharesCreatureTypeWith":
 			return wordSharesCreatureType, arg
+		case "sharesCardTypeWithOther":
+			return wordSharesCardTypeOther, arg
 		case "sharesAllCardTypesWithOther":
 			return wordSharesAllCardTypes, arg
 		}
@@ -1160,6 +1202,8 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 	switch kind {
 	case wordSharesCardType:
 		return sharesCardTypeWith(g, o, sc, key)
+	case wordSharesCardTypeOther:
+		return sharesCardTypeWithOther(g, o, sc, key)
 	case wordSharesCreatureType:
 		return sharesCreatureTypeWith(g, o, sc, key)
 	case wordSharesAllCardTypes:

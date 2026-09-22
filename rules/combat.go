@@ -1073,6 +1073,8 @@ func (e *Engine) validateAttackDeclaration(d *decision.Decision, in decision.Int
 func (e *Engine) validateBlockers(d *decision.Decision, in decision.Intent) error {
 	seen := make(map[state.ObjID]bool, len(in.Choices))
 	chosen := d.Chosen(in)
+	budget := e.blockManaBudget(d.Player)
+	charged := int32(0)
 	byAttacker := make(map[state.ObjID]int, len(chosen))
 	for _, o := range chosen {
 		if seen[o.Obj] {
@@ -1080,6 +1082,15 @@ func (e *Engine) validateBlockers(d *decision.Decision, in decision.Intent) erro
 		}
 		seen[o.Obj] = true
 		byAttacker[o.Attacker]++
+		price := e.blockPairCharge(o.Obj, o.Attacker)
+		if price > 0 {
+			// The option list and MaxSum normally enforce this; retain the
+			// rules-side belt for hand-built or stale decisions.
+			charged += price
+			if charged > budget {
+				return fmt.Errorf("declaration's block cost {%d} exceeds the affordable {%d}", charged, budget)
+			}
+		}
 	}
 	checked := make(map[state.ObjID]bool, len(byAttacker))
 	for _, o := range chosen {
@@ -1265,6 +1276,10 @@ func (e *Engine) askBlockers() {
 				if minImpossible[aid] || !e.canBlock(bid, aid) {
 					continue
 				}
+				price := e.blockPairCharge(bid, aid)
+				if price > 0 && e.blockManaBudget(defender) < price {
+					continue
+				}
 				// Group is the exclusivity marker on the wire: every option
 				// naming this same blocker shares one Group, so the two
 				// (blocker, attacker) pairs for that blocker are mutually
@@ -1279,6 +1294,10 @@ func (e *Engine) askBlockers() {
 				if b, ok := bounds[aid]; ok {
 					opt.MinBlockers, opt.MaxBlockers = b[0], b[1]
 				}
+				if price > 0 {
+					opt.Label += fmt.Sprintf(" (pay {%d})", price)
+				}
+				opt.Value = int(price)
 				opts = append(opts, opt)
 			}
 		}
@@ -1286,8 +1305,15 @@ func (e *Engine) askBlockers() {
 			br.cursor++
 			continue
 		}
+		maxSum := 0
+		for _, opt := range opts {
+			if opt.Value > 0 {
+				maxSum = int(e.blockManaBudget(defender))
+				break
+			}
+		}
 		e.ask(&decision.Decision{Player: defender, Kind: decision.KBlockers, Min: 0, Max: len(opts),
-			Prompt: fmt.Sprintf("turn %d — declare blockers", e.G.Turn), Options: opts})
+			Prompt: fmt.Sprintf("turn %d — declare blockers", e.G.Turn), Options: opts, MaxSum: maxSum})
 		return
 	}
 	// If every defender was skipped, no answer emitted a declaration. Record
@@ -1337,6 +1363,18 @@ func (e *Engine) blockAttackers(defender state.PlayerID) []state.ObjID {
 // next defender, which is what decides when the step moves to combat damage.
 func (e *Engine) handleBlockers(d *decision.Decision, in decision.Intent) {
 	chosen := d.Chosen(in)
+	charge := int32(0)
+	for _, opt := range chosen {
+		charge += e.blockPairCharge(opt.Obj, opt.Attacker)
+	}
+	if charge > e.G.Players[d.Player].Pool.Total() {
+		if e.startBlockPay(chosen, d.Player, charge) {
+			return
+		}
+	}
+	if charge > 0 {
+		e.payMana(d.Player, Cost{Generic: charge})
+	}
 	pairs := make([][2]state.ObjID, 0, len(chosen))
 	for _, opt := range chosen {
 		pairs = append(pairs, [2]state.ObjID{opt.Attacker, opt.Obj})

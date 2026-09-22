@@ -2478,6 +2478,27 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 			return false
 		}
 		return e.replacementConditionHolds(r, source, you)
+	case "GainLife":
+		if ev.Kind != events.LifeChange || ev.Amount <= 0 {
+			return false
+		}
+		if vp := strings.TrimSpace(r.Params["ValidPlayer"]); vp != "" {
+			if vp == "Player.IsRemembered" {
+				found := false
+				for _, p := range rememberedPlayers {
+					if p == ev.Player {
+						found = true
+						break
+					}
+				}
+				if !found {
+					return false
+				}
+			} else if !effects.MatchesPlayerSpec(e.G, vp, ev.Player, you) {
+				return false
+			}
+		}
+		return e.replacementConditionHolds(r, source, you)
 	case "DamageDone":
 		if ev.Kind != events.Damage || !e.damageReplacementMatches(r, source, ev, remembered, rememberedPlayers) {
 			return false
@@ -4411,7 +4432,7 @@ func (e *Engine) lifeReplacementCandidates(ev events.Event, applied []replMatch)
 		for i := range o.Face().Repls {
 			r := &o.Face().Repls[i]
 			if r.Event != event || !replacementActive(e, id, r) || !replacementPlayerMatches(e, id, r, p) ||
-				lifeReplacementApplied(applied, id, r) {
+				lifeReplacementApplied(applied, replMatch{id: id, repl: r}) {
 				continue
 			}
 			if e.lifeReplacementApplies(ev, id, r, p, loss) {
@@ -4419,12 +4440,35 @@ func (e *Engine) lifeReplacementCandidates(ev events.Event, applied []replMatch)
 			}
 		}
 	})
+	for _, ce := range e.active() {
+		if ce.ReplacementEvent != event || ce.ReplacementBody != "" ||
+			!strings.EqualFold(strings.TrimSpace(ce.ReplacementParams["Prevent"]), "True") {
+			continue
+		}
+		r := &cards.Repl{Event: ce.ReplacementEvent, Params: ce.ReplacementParams}
+		m := replMatch{id: ce.Source, repl: r, remembered: ce.Remembered,
+			rememberedPlayers: ce.RememberedPlayers,
+			key:               "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))}
+		if lifeReplacementApplied(applied, m) ||
+			!e.replacementMatchesEffectCreated(*r, ce.Source, ev, ce.Remembered, ce.RememberedPlayers) {
+			continue
+		}
+		if e.lifeReplacementApplies(ev, ce.Source, r, p, loss) {
+			out = append(out, m)
+		}
+	}
 	return out
 }
 
-func lifeReplacementApplied(applied []replMatch, id state.ObjID, r *cards.Repl) bool {
+func lifeReplacementApplied(applied []replMatch, candidate replMatch) bool {
 	for _, m := range applied {
-		if m.id == id && m.repl == r {
+		if candidate.key != "" || m.key != "" {
+			if m.key != "" && m.key == candidate.key {
+				return true
+			}
+			continue
+		}
+		if m.id == candidate.id && m.repl == candidate.repl {
 			return true
 		}
 	}

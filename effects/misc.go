@@ -342,7 +342,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			})
 			registered = true
 		} else if event != "" && body == "" && (replacementLineCantHappen(params) ||
-			(event == "DamageDone" && replacementLinePrevents(params))) {
+			((event == "DamageDone" || event == "GainLife") && replacementLinePrevents(params))) {
 			// The bodyless CantHappen form (Mistrise Village's AntiMagic: the
 			// Event$ Counter | ValidCard$ Card.IsRemembered | Layer$ CantHappen
 			// R: the delayed Effect registers): stopping the event is the
@@ -369,10 +369,11 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			h.AddContinuous(state.ContinuousEffect{
 				Source: c.Source, Controller: c.Controller,
 				UntilEOT: untilEOT, Duration: dur,
-				Name:             effectName,
-				Remembered:       remembered,
-				ImprintOnHost:    imprintOnHost,
-				ReplacementEvent: event, ReplacementParams: params,
+				Name:              effectName,
+				Remembered:        remembered,
+				RememberedPlayers: effectRememberedPlayers(h, c, sa),
+				ImprintOnHost:     imprintOnHost,
+				ReplacementEvent:  event, ReplacementParams: params,
 			})
 			registered = true
 		} else if name != "" {
@@ -1050,6 +1051,14 @@ func effectRememberedPlayers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 			for _, t := range c.Targets {
 				if t.IsPlayer {
 					add(t.Player)
+				}
+			}
+		case "TargetedOrController":
+			for _, t := range c.Targets {
+				if t.IsPlayer {
+					add(t.Player)
+				} else if o := h.Game().Obj(t.Obj); o != nil {
+					add(o.Controller)
 				}
 			}
 		case "RememberedPlayer", "RememberedPlayers", "Remembered":
@@ -1927,7 +1936,9 @@ func encodeRemembered(remembered []state.Target) []state.ObjID {
 func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 	check := strings.TrimSpace(sa.Params["RepeatCheckSVar"])
 	cmp := strings.TrimSpace(sa.Params["RepeatSVarCompare"])
-	gated := check != ""
+	defined := strings.TrimSpace(sa.Params["RepeatDefined"])
+	present := strings.TrimSpace(sa.Params["RepeatPresent"])
+	gated := check != "" || defined != ""
 	n := Num(h, c, sa, "MaxRepeat", -1)
 	if n < 0 {
 		if gated {
@@ -1979,6 +1990,15 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 		// times, since neither condition can hold before the first body has
 		// remembered anything.
 		holds, evaluated := repeatGateHolds(h, c, check, cmp)
+		if defined != "" {
+			definedCmp := strings.TrimSpace(sa.Params["RepeatCompare"])
+			if definedCmp == "" && check == "" {
+				definedCmp = cmp
+			}
+			definedHolds, definedEvaluated := repeatDefinedGateHolds(h, c, sa, defined, present, definedCmp)
+			holds = holds && definedHolds
+			evaluated = evaluated && definedEvaluated
+		}
 		if !evaluated || !holds {
 			break
 		}
@@ -2016,6 +2036,37 @@ func repeatGateHolds(h Host, c *Ctx, check, cmp string) (holds, evaluated bool) 
 		return false, false
 	}
 	return CheckSVarHolds(h, c, check, cmp)
+}
+
+// repeatDefinedGateHolds evaluates the RepeatDefined$/RepeatPresent$ gate.
+// Only the measured Remembered and Imprinted selectors are admitted: unlike
+// ordinary Defined resolution, an unknown selector must not fall back to the
+// source object and accidentally make an EQ0 gate repeat forever.
+func repeatDefinedGateHolds(h Host, c *Ctx, sa *cards.SA, defined, present, compare string) (holds, evaluated bool) {
+	if defined != "Remembered" && defined != "Imprinted" {
+		return false, false
+	}
+	copySA := *sa
+	copySA.Params = map[string]string{"Defined": defined}
+	objects := Defined(h, c, &copySA)
+	if present != "" && len(UnknownPredicates(present)) != 0 {
+		return false, false
+	}
+	sc := c.SpecContext(c.Controller)
+	count := 0
+	for _, target := range objects {
+		if target.IsPlayer {
+			continue
+		}
+		o := h.Game().Obj(target.Obj)
+		if o == nil {
+			return false, false
+		}
+		if present == "" || MatchesObjectCtx(h.Game(), present, o, sc) {
+			count++
+		}
+	}
+	return evalConditionCount(count, compare)
 }
 
 // CharmRepeatModes reports whether a Charm's CanRepeatModes$ True grants

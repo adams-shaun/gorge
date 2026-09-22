@@ -47,9 +47,10 @@ type staticView struct {
 // collector walks the game's zones only once. It contains no evaluated
 // applicability, amount, target, X, condition, or final cost.
 type costStaticViews struct {
-	raise  []staticView
-	reduce []staticView
-	set    []staticView
+	raise    []staticView
+	reduce   []staticView
+	set      []staticView
+	optional []staticView
 }
 
 // costStaticSource lazily owns one call-scoped membership snapshot. It is
@@ -1039,6 +1040,29 @@ func (e *Engine) alternativeCostScopeOK(params map[string]string, id, srcID stat
 // re-evaluate) is not counted -- the missing-match direction for a USED
 // tracking, which widens the discount by at most one cast on a board this
 // build cannot reconstruct, never withholds it.
+func (e *Engine) firstForetellUsed(p state.PlayerID) bool {
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if ev.Kind != events.MoveZone || ev.To != state.ZExile ||
+			ev.Counter != "exiled_with_face_down" || i == 0 {
+			continue
+		}
+		o := e.G.Obj(ev.Obj)
+		if o == nil || o.Owner != p {
+			continue
+		}
+		prev := e.L.Events[i-1]
+		if prev.Kind == events.CastInfo &&
+			events.FlagsFrom(prev.Counter)&state.FlagForetold != 0 {
+			return true
+		}
+	}
+	return false
+}
+
 func (e *Engine) onlyFirstSpellUsed(sv staticView, p state.PlayerID, id state.ObjID) bool {
 	spec := strings.TrimSpace(sv.Params["ValidCard"])
 	for i := len(e.L.Events) - 1; i >= 0; i-- {
@@ -1292,6 +1316,7 @@ type costScope struct {
 }
 
 func spellScope(mode string) costScope    { return costScope{kind: "Spell", mode: mode} }
+func foretellScope() costScope            { return costScope{kind: "Foretell", mode: "foretell"} }
 func abilityScope(ab *cards.SA) costScope { return costScope{kind: "Ability", ab: ab} }
 
 // costMod is ONE evaluated ReduceCost static's contribution to a total cost.
@@ -1616,6 +1641,8 @@ func (e *Engine) collectCostStatics() costStaticViews {
 				dst = &out.reduce
 			case "SetCost":
 				dst = &out.set
+			case "OptionalCost":
+				dst = &out.optional
 			default:
 				continue
 			}
@@ -2016,6 +2043,26 @@ func (e *Engine) costModifiersWithTargetsUsing(statics costStaticViews, p state.
 	return mods
 }
 
+// optionalCostViews returns self-spell OptionalCost statics in collector order.
+// These are deliberately narrower than the general cost-modifier grammar: the
+// supported corpus shape is an EffectZone$ All self static on the spell face.
+func (e *Engine) optionalCostViews(statics costStaticViews, p state.PlayerID, id state.ObjID) []Cost {
+	var out []Cost
+	for _, sv := range statics.optional {
+		if strings.TrimSpace(sv.Params["ValidSA"]) != "Spell" ||
+			strings.TrimSpace(sv.Params["EffectZone"]) != "All" ||
+			!strings.Contains(sv.Params["ValidCard"], "Card.Self") ||
+			sv.Source != id || !e.costStaticApplies(sv, "OptionalCost", p, id, spellScope(""), nil, false) {
+			continue
+		}
+		c := ParseCost(sv.Params["Cost"])
+		if len(c.Unknown) == 0 {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
 // costStaticApplies runs the gate chain one cost-modifier static must pass
 // before its Amount$ is evaluated and applied. Every unimplementable
 // qualifier denies (never silently over-applies): ValidTarget$ needs the
@@ -2060,6 +2107,10 @@ func (e *Engine) costStaticApplies(sv staticView, mode string, p state.PlayerID,
 		if !ok2 || !effects.MatchesSpecCtx(e.G, spec, id, e.staticSpecCtx(sv)) {
 			return false
 		}
+	}
+	if first, ok := sv.Params["FirstForetell"]; ok && strings.EqualFold(strings.TrimSpace(first), "True") &&
+		scope.kind == "Foretell" && e.firstForetellUsed(p) {
+		return false
 	}
 	if vs, ok := sv.Params["ValidSpell"]; ok && !e.validSpellMatches(scope, p, id, vs) {
 		return false
@@ -2334,8 +2385,11 @@ func (e *Engine) validSpellMatches(scope costScope, p state.PlayerID, id state.O
 			if e.abilityConstraintMatches(scope, p, id, constraint) {
 				return true
 			}
+		case "Static":
+			if scope.kind == "Foretell" && constraint == "Foretelling" {
+				return true
+			}
 		}
-		// Kind "Static" (and anything else): never matches.
 	}
 	return false
 }
@@ -2476,6 +2530,10 @@ func init() {
 		// price (Nils' RememberingAttacker$) stay unregistered
 		// behaviour-wise and are ledgered in AGENTS.md.
 		"stat:CantAttackUnless",
+		// blockprop1: the CR 509.1b block-prop static. Mana-priceable
+		// face statics are charged per (blocker, attacker); non-mana costs
+		// and Effect/Animate-delivered forms remain permissively skipped.
+		"stat:CantBlockUnless",
 		// canattackdefender1: the CR 702.3b permission static (the inverse of
 		// a restriction: it LIFTS the Defender wall per (attacker, defender)
 		// pair). rules/attack_defender.go attackAllowedThroughDefender is the
