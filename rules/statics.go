@@ -33,6 +33,13 @@ type staticView struct {
 	// nil means "read the source object's top face" -- every construction that
 	// predates this field keeps today's behaviour exactly.
 	SVars map[string]string
+	// ChosenNumber is the Effect's SetChosenNumber$ binding an Effect-delivered
+	// registry entry carries (state.ContinuousEffect.ChosenNumber, frozen at
+	// creation): an Amount$ body reading Count$ChosenNumber (Kaza, Roil
+	// Chaser's wizard count, Maelstrom Muse's power) resolves against it
+	// through modAmountX's Ctx instead of the always-zero read an unbound
+	// context gives. Printed statics never carry the head and keep the zero.
+	ChosenNumber int32
 }
 
 // costStaticViews is one ordered snapshot of cost-modifier membership. The
@@ -579,7 +586,7 @@ func (e *Engine) staticTimingGate(sv staticView) bool {
 	case "Ferocious":
 		found := false
 		for _, id := range e.G.Zone(state.ZBattlefield, sv.Controller) {
-			if o := e.G.Obj(id); o != nil && o.Face() != nil && o.EffectiveIsCreature() && !o.BestowedAttached() && e.Derived(id).Power >= 4 {
+			if o := e.G.Obj(id); o != nil && o.Face() != nil && o.EffectiveIsCreature() && !o.BestowedAttached() && !o.ReconfiguredAttached() && e.Derived(id).Power >= 4 {
 				found = true
 				break
 			}
@@ -722,7 +729,43 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []altCostVie
 		if !e.alternativeCostScopeOK(sv.Params, id, sv.Source, p, sv.Controller) {
 			continue
 		}
-		out = append(out, altCostView{cost: e.parseCost(sv.Params["Cost"]),
+		cost, ok := e.altCostParse(id, sv.Params["Cost"])
+		if !ok {
+			continue
+		}
+		out = append(out, altCostView{cost: cost,
+			announce: strings.TrimSpace(sv.Params["Announce"]), src: sv.Source})
+	}
+	// The Effect-delivered AlternativeCost statics (task
+	// param:api:Effect.ForgetOnCast, Marshland Bloodcaster): registry entries
+	// effEffect registered, read through the SAME reader logic as the printed
+	// route above over the same e.active() source collectCostStatics' sibling
+	// walk feeds the Raise/Reduce/Set modes, so the two delivery routes
+	// cannot disagree about what applies or when it expires.
+	for _, ce := range e.active() {
+		if ce.CostStaticMode != "AlternativeCost" {
+			continue
+		}
+		sv := staticView{Source: ce.Source, Controller: ce.Controller,
+			Params: ce.CostStaticParams, ChosenNumber: ce.ChosenNumber}
+		// ValidCard$ is presence-gated here exactly as costStaticApplies gates
+		// it: an absent spec restricts nothing (the printed face-static walk
+		// below never consults one at all -- Marshland's AlternativeCost body
+		// names none). The bare matchesObjectText read of an empty spec
+		// matches NOTHING, so an unconditional check would silently deny
+		// every ValidCard$-less grant.
+		if spec, ok := sv.Params["ValidCard"]; ok && spec != "" &&
+			!effects.MatchesSpecCtx(e.G, spec, id, e.staticSpecCtx(sv)) {
+			continue
+		}
+		if !e.alternativeCostScopeOK(sv.Params, id, sv.Source, p, sv.Controller) {
+			continue
+		}
+		cost, ok := e.altCostParse(id, sv.Params["Cost"])
+		if !ok {
+			continue
+		}
+		out = append(out, altCostView{cost: cost,
 			announce: strings.TrimSpace(sv.Params["Announce"]), src: sv.Source})
 	}
 	if o := e.G.Obj(id); o != nil {
@@ -734,7 +777,11 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []altCostVie
 				if !e.alternativeCostScopeOK(st.Params, id, id, p, o.Controller) {
 					continue
 				}
-				out = append(out, altCostView{cost: e.parseCost(st.Params["Cost"]),
+				cost, ok := e.altCostParse(id, st.Params["Cost"])
+				if !ok {
+					continue
+				}
+				out = append(out, altCostView{cost: cost,
 					announce: strings.TrimSpace(st.Params["Announce"]), src: id})
 			}
 		}
@@ -746,6 +793,33 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []altCostVie
 		out = append(out, altCostView{cost: c})
 	}
 	return out
+}
+
+// altCostParse prices one alternative-cost token (an AlternativeCost
+// static's Cost$, either registration route -- a printed S: static or an
+// Effect-delivered registry entry -- or a MayPlay static's
+// MayPlayAltManaCost$) for the cast of id. The ONE dynamic token the corpus
+// carries, ConvertedManaCost (Marshland Bloodcaster's "pay life equal to
+// that spell's mana value" Cost$ and the 12 may-play statics'
+// MayPlayAltManaCost$), substitutes the cast card's own mana value, the
+// same read the Play route's pricePlayCost makes. ok=false is the fail-
+// closed withholding: a token that cannot be resolved (no card face) or
+// parses into an unmodelled part is never offered -- an unpriceable cost
+// must not exist as an option, because ParseCost's malformed-token fallback
+// would otherwise price it one generic mana (the may-play route's
+// documented direction; the printed AlternativeCost statics all parse
+// today, measured over the corpus's 150 Mode$ AlternativeCost lines).
+func (e *Engine) altCostParse(id state.ObjID, raw string) (Cost, bool) {
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil {
+		return Cost{}, false
+	}
+	c := e.parseCost(convertedManaCostToken.ReplaceAllString(raw,
+		strconv.FormatInt(int64(o.Face().ManaValue()), 10)))
+	if len(c.Unknown) > 0 {
+		return Cost{}, false
+	}
+	return c, true
 }
 
 // altCostXCandidates returns the ASCENDING distinct mana values at which at
@@ -969,6 +1043,55 @@ func (e *Engine) blockRestricted(blocker, attacker state.ObjID) bool {
 		if effects.MatchesSpecCtx(e.G, spec, blocker, e.staticSpecCtx(sv)) {
 			return true
 		}
+	}
+	// The Effect-registered CantBlockBy restrictions (task cbb1): an
+	// `AB$ Effect | StaticAbilities$ Unblockable` whose SVar body is
+	// `Mode$ CantBlockBy | ValidAttacker$ Card.IsRemembered` -- Suspicious
+	// Bookcase's "{3},{T}: Target creature can't be blocked this turn", the
+	// dominant unblockable template (measured 246 corpus files carry the
+	// Effect-delivered shape) -- registers through effEffect's restriction
+	// case and is consulted here beside the face statics, so the remembered
+	// creature really is unblockable for the effect's lifetime. The
+	// registration gate (effects.CantBlockByRestrictionParamsReadable) has
+	// already refused every body whose scoping this loop cannot evaluate
+	// (ValidBlockerRelative$, IsPresent$/PresentCompare$ gates), so the
+	// loop reads ValidAttacker$/ValidBlocker$ unconditionally and the only
+	// fail-closed direction is the ordinary matcher's empty-set read.
+	for _, ce := range e.active() {
+		if ce.Restriction != "CantBlockBy" {
+			continue
+		}
+		attackerSpec := ce.RestrictParams["ValidAttacker"]
+		if attackerSpec == "" {
+			attackerSpec = ce.RestrictParams["ValidCard"]
+		}
+		sc := e.specCtx(ce.Source, ce.Controller)
+		for _, r := range ce.Remembered {
+			sc.Remembered = append(sc.Remembered, state.Target{Obj: r})
+		}
+		if attackerSpec == "" {
+			// A spec-less restriction names exactly its remembered set (the
+			// restrictionApplies convention, evaluated per-pair here because
+			// this read consults one (blocker, attacker) candidate at a
+			// time): an attacker outside the set is not restricted.
+			remembered := false
+			for _, r := range ce.Remembered {
+				if r == attacker {
+					remembered = true
+				}
+			}
+			if !remembered {
+				continue
+			}
+		} else if !effects.MatchesSpecCtx(e.G, attackerSpec, attacker, sc) {
+			continue
+		}
+		if spec, ok := ce.RestrictParams["ValidBlocker"]; ok {
+			if !effects.MatchesSpecCtx(e.G, spec, blocker, sc) {
+				continue
+			}
+		}
+		return true
 	}
 	return false
 }
@@ -1419,6 +1542,30 @@ func (e *Engine) collectCostStatics() costStaticViews {
 			}
 		}
 	}
+	// The Effect-delivered cost-modifier statics (task
+	// param:api:Effect.ForgetOnCast): Mode$ ReduceCost/RaiseCost/SetCost
+	// bodies effEffect registered with the line's own parameter map. The
+	// walk reads e.active() so the entries inherit exactly the lifetimes the
+	// layer walk honours -- Permanent entries survive their (already gone)
+	// spell source, UntilEOT entries are already dropped by cleanup,
+	// non-permanent entries end with the source -- and the printed walk
+	// above never sees these (they are not face statics). The printed walk's
+	// own PileStaticCount discipline stays untouched.
+	for _, ce := range e.active() {
+		var dst *[]staticView
+		switch ce.CostStaticMode {
+		case "RaiseCost":
+			dst = &out.raise
+		case "ReduceCost":
+			dst = &out.reduce
+		case "SetCost":
+			dst = &out.set
+		default:
+			continue
+		}
+		*dst = append(*dst, staticView{Source: ce.Source, Controller: ce.Controller,
+			Params: ce.CostStaticParams, ChosenNumber: ce.ChosenNumber})
+	}
 	return out
 }
 
@@ -1458,7 +1605,8 @@ func (e *Engine) modAmountX(sv staticView, x int32) int32 {
 	if svars == nil {
 		svars = o.Face().SVars
 	}
-	ctx := &effects.Ctx{Source: sv.Source, Controller: sv.Controller, SVars: svars, X: x}
+	ctx := &effects.Ctx{Source: sv.Source, Controller: sv.Controller, SVars: svars, X: x,
+		ChosenNumber: sv.ChosenNumber}
 	// An SVar NAME resolves through its body on the source's face; anything
 	// else is an inline Count$-class expression evaluated as written.
 	if body, ok := svars[raw]; ok {

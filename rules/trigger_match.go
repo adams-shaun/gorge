@@ -112,6 +112,17 @@ type pendingTrigger struct {
 	// expansion carries, with the cast spell riding IDs as Remembered.
 	// Idx and SA are unset for it.
 	Conspire bool
+	// Demonstrate is a GRANTED demonstrate keyword (a layer-6 AddKeyword$
+	// Demonstrate -- Silverquill Lecturer's "Creature spells you cast have
+	// demonstrate", The Twelfth Doctor's non-hand grant, Try-My-Deck
+	// Elemental's commander grant, the Strixhaven plane's instant/sorcery
+	// grant): the same shape as Conspire -- the queue carries no parameter
+	// (the body has none) and the drain pushes a KeywordTriggerPush whose
+	// __kwDemonstrate: payload events.Apply rebuilds into the same
+	// DB$ Demonstrate body the printed K:Demonstrate expansion carries,
+	// with the cast spell riding IDs as Remembered. Idx and SA are unset
+	// for it.
+	Demonstrate bool
 	// Cascade is a printed-or-granted cascade keyword (CR 702.85, task
 	// cascade1): the queue carries no parameter (the trigger body is the
 	// same DB$ Cascade body whichever route granted the keyword) and the
@@ -794,6 +805,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					e.checkGrantedAfflictTriggers(id, o, f, ev)
 				case events.PutOnStack:
 					e.checkGrantedConspireTriggers(observer, id, o, f, ev, objLKI)
+					e.checkGrantedDemonstrateTriggers(observer, id, o, f, ev, objLKI)
 				case events.MoveZone:
 					e.checkGrantedExploitTriggers(observer, id, o, f, ev, objLKI)
 					e.checkGrantedOffspringTriggers(observer, id, o, f, ev, objLKI)
@@ -1077,6 +1089,11 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		// carrying a Conspire grant) -- the early-return path above reaches this
 		// object through checkGrantedConspireTriggers's own call.
 		e.checkGrantedConspireTriggers(observer, id, o, f, ev, objLKI)
+		// A granted Demonstrate must fire even when the object's own printed
+		// triggers are live for this event (a spell with its own cast trigger
+		// carrying a Demonstrate grant) -- the same both-paths rule Conspire
+		// follows.
+		e.checkGrantedDemonstrateTriggers(observer, id, o, f, ev, objLKI)
 		// A granted Exploit must fire when its creature enters even when the
 		// object's own printed triggers are live for this event -- the same
 		// both-paths rule Afflict and Conspire follow.
@@ -1486,6 +1503,7 @@ func init() {
 		"trig:Vote", "trig:RolledDie", "trig:RolledDieOnce",
 		"trig:Explores", "trig:Exerted", "trig:Investigated",
 		"trig:Exploited",
+		"trig:BecomeMonstrous",
 		"trig:ManaExpend",
 		"trig:Connives",
 		"trig:Discover", "trig:SeekAll",

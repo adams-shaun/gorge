@@ -473,10 +473,13 @@ func (e *Engine) mayPlayLimitReached(id state.ObjID, limit int) bool {
 //     withhold the static whole (mayPlayGateRejected).
 //   - Condition$, IsPresent$, Affected$, AffectedZone$ and MayPlayLimit$
 //     are evaluated exactly as mayPlayStatic evaluates them.
-//   - the value is priced through ParseCost; a token this build cannot
-//     model (Valgavoth, Terror Eater's dynamic PayLife<ConvertedManaCost>)
-//     leaves Cost.Unknown non-empty and the alternative is NOT offered --
-//     an unpriceable cost must never exist as an option.
+//   - the value is priced through altCostParse: the dynamic
+//     ConvertedManaCost token (Valgavoth, Terror Eater's
+//     MayPlayAltManaCost$ PayLife<ConvertedManaCost>, Bolass' Citadel and
+//     the 11 sibling may-play statics) substitutes the cast card's mana
+//     value, and a token the substitution leaves unpriceable still has
+//     Cost.Unknown non-empty and the alternative is NOT offered -- an
+//     unpriceable cost must never exist as an option.
 //
 // MayPlayLimit$ is enforced per AFFECTED CARD (mayPlayLimitReached's
 // per-card log walk), the same reading the zone-permission family applies:
@@ -546,11 +549,11 @@ func (e *Engine) mayPlayAltCosts(p state.PlayerID, id state.ObjID) []Cost {
 				continue
 			}
 		}
-		alt := ParseCost(raw)
-		if len(alt.Unknown) > 0 {
-			// An unpriceable alternative (dynamic PayLife<ConvertedManaCost>,
-			// Waterbend<ConvertedManaCost>) is withheld, never offered at a
-			// wrong price.
+		alt, ok := e.altCostParse(id, raw)
+		if !ok {
+			// An unpriceable alternative (a dynamic token the face read cannot
+			// resolve, or a token this build does not model) is withheld,
+			// never offered at a wrong price.
 			continue
 		}
 		out = append(out, alt)

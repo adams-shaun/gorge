@@ -166,6 +166,67 @@ func (e *Engine) castAtAllAdmitsWindow(spec string, objID state.ObjID, you state
 	return admitProvenanceAlternatives(spec, "wasCastByYou", holds)
 }
 
+// specHasBareWasCast reports whether spec carries the bare wasCast
+// predicate — positive or !-negated — as an EXACT token ("wasCastByYou" and
+// the wasCastFrom* family carry it only as a substring). A boundary scan,
+// not the FilterAlternatives iterator: matchesWithTypes calls this on the
+// hot path and the derived-allocation budget is zero (TestDerivedWith
+// ContinuousEffectsDoesNotAllocate).
+func specHasBareWasCast(spec string) bool {
+	for i := 0; ; {
+		j := strings.Index(spec[i:], "wasCast")
+		if j < 0 {
+			return false
+		}
+		i += j
+		end := i + len("wasCast")
+		if end < len(spec) {
+			switch c := spec[end]; {
+			case c == 'B' || c == 'F': // wasCastByYou, wasCastFrom…
+				i = end
+				continue
+			case (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '$' || c == '_':
+				i = end
+				continue
+			}
+		}
+		return true // a token boundary (end, '+', '.', ','…)
+	}
+}
+
+// castAtAllBareAdmits evaluates the bare wasCast / !wasCast qualifier's
+// LOG reading — the caster-agnostic sibling of wasCastByYou (the Host's
+// WasCast read: the object's LATEST PutOnStack exists; a copy was never
+// cast; the live pending cast closes the offer window). The filter's
+// wordWasCast body keeps the on-the-stack zone reading for every site that
+// does not call this chain — the two agree for a spell on the stack — while
+// the entry-provenance sites that do (an ETB "if it was cast", Satoru's
+// batch trigger's !wasCast arm) take the log read; the zone reading at an
+// entry would wrongly answer !wasCast for EVERY cast entry, since the
+// object has already left the stack.
+func (e *Engine) castAtAllBareAdmits(spec string, objID state.ObjID) (string, bool) {
+	return e.castAtAllBareAdmitsWindow(spec, objID, false)
+}
+
+// castAtAllBareAdmitsWindow is castAtAllBareAdmits with the pre-push OFFER
+// window fallback (see castFromHandAdmitsWindow): an AffectedZone$ Stack
+// grant whose Affected$ carries the bare token (Wort, the Raidmother's
+// conspire grant) evaluates against the object BEING CAST, which is still
+// in hand at offer time and so has no PutOnStack in the log. "Was cast"
+// then holds because the offer-time object IS the spell being announced;
+// the log read wins whenever it has an answer, so a real on-stack spell is
+// unchanged.
+func (e *Engine) castAtAllBareAdmitsWindow(spec string, objID state.ObjID, pendingCast bool) (string, bool) {
+	if !specHasBareWasCast(spec) {
+		return spec, true
+	}
+	holds := e.WasCast(objID)
+	if !holds && pendingCast {
+		holds = true
+	}
+	return admitProvenanceAlternatives(spec, "wasCast", holds)
+}
+
 // castFromHandAnyAdmits evaluates the bare wasCastFromYourHand /
 // !wasCastFromYourHand qualifier (castprov3): the object's LATEST PutOnStack
 // event names the cast and that cast came from a hand, any caster — the
@@ -232,11 +293,163 @@ func (e *Engine) castProvenanceAdmitsWindow(spec string, objID state.ObjID, you 
 	if !ok {
 		return "", false
 	}
+	s, ok = e.castAtAllBareAdmitsWindow(s, objID, pendingCast)
+	if !ok {
+		return "", false
+	}
 	s, ok = e.castFromHandAnyAdmitsWindow(s, objID, pendingCast)
 	if !ok {
 		return "", false
 	}
-	return e.castOriginAdmits(s, objID, you)
+	s, ok = e.castOriginAdmits(s, objID, you)
+	if !ok {
+		return "", false
+	}
+	return e.castSaAdmits(s, objID)
+}
+
+// The CastSa family (task castsa-provenance): Forge's "Card.CastSa Spell.<X>"
+// card-level provenance predicate — the card's cast spell ability had
+// property <X>. The corpus's X vocabulary splits by what the engine can
+// answer:
+//
+//   - the mana-spend properties the payment path already encodes: a
+//     Treasure/Cave/Desert unit's spend is a tagged ManaAdd event
+//     (state.TypedManaCounter, the castfilter2 encoding — no new event
+//     needed), and the cast's total spend is the plain negative ManaAdd
+//     delta (manaSpentForCast's read, Roiling Vortex's convention). These
+//     four spellings are implemented here.
+//
+//   - everything else (Spell.MayPlaySource, Spell.Warp, Spell.Mayhem,
+//     Spell.ManaFromArtifact) has no per-cast provenance this build can
+//     read and stays fail closed: the token is left unknown in the spec, so
+//     the alternative matches nothing (the ValidLKI$ row's documented
+//     direction; the Affected$ statics and Count$ heads named there inherit
+//     the same silence for these spellings).
+//
+// Like every provenance family the token is split OUT of the spec text at
+// the rules-side match sites and the remainder matched by the ordinary
+// filter; admitProvenanceAlternatives is the shared strip.
+type castSaToken struct {
+	token string
+	// tag is the state.TypedMana index the property reads; -1 is the plain
+	// total-spend read (ManaSpent EQ0 — "no mana was spent to cast it").
+	tag int
+}
+
+var castSaTokens = []castSaToken{
+	{token: "CastSa Spell.ManaFromTreasure", tag: state.TypedTreasure},
+	{token: "CastSa Spell.ManaFromCave", tag: state.TypedCave},
+	{token: "CastSa Spell.ManaFromDesert", tag: state.TypedDesert},
+	{token: "CastSa Spell.ManaSpent EQ0", tag: -1},
+}
+
+// castSpendFacts is one cast's spend window: the total and per-tag mana the
+// cast's player spent between that cast's PutOnStack and the read point.
+// ok is false when the object has no PutOnStack cast in the log before the
+// turn/seat boundary — a never-cast (cheated into play) or a cast older than
+// this turn's provenance question.
+type castSpendFacts struct {
+	spent  int32
+	tagged [3]int32
+	ok     bool
+}
+
+// castSaTokensIn reports the CastSa tokens a spec carries, in table order.
+func castSaTokensIn(spec string) []castSaToken {
+	if !strings.Contains(spec, "CastSa") {
+		return nil
+	}
+	var out []castSaToken
+	for _, tok := range castSaTokens {
+		if strings.Contains(spec, tok.token) {
+			out = append(out, tok)
+		}
+	}
+	return out
+}
+
+// castSaTokenHolds evaluates one CastSa property against a cast's spend
+// window.
+func castSaTokenHolds(t castSaToken, f castSpendFacts) bool {
+	if !f.ok {
+		return false
+	}
+	if t.tag < 0 {
+		return f.spent == 0
+	}
+	return f.tagged[t.tag] > 0
+}
+
+// castSpendWindow reads the spend window of obj's LATEST PutOnStack cast:
+// walking the log backward from its end, every negative ManaAdd by the
+// cast's player accumulates into that cast's facts (total and, through the
+// "TreasureC"-form Counter, the typed tags) until the object's own push is
+// found. The same window manaSpentForCast reads for the SpellCast-trigger
+// ValidSA$ family, so the card-level CastSa spellings cannot disagree with
+// the SA-level ones. A spell sitting on the stack mid-cast is exact (the
+// payment ManaAdds sit directly above the push); the shared approximation
+// with manaSpentForCast applies: the window also counts the caster's own
+// post-payment floating until the read point. Derived from the event log,
+// so a replay derives the same answer.
+func (e *Engine) castSpendWindow(obj state.ObjID) castSpendFacts {
+	var acc [8]castSpendFacts
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		switch ev.Kind {
+		case events.TurnChange, events.PlayerLost:
+			return castSpendFacts{}
+		case events.PutOnStack:
+			if ev.Obj == obj && int(ev.Player) < len(acc) {
+				f := acc[ev.Player]
+				f.ok = true
+				return f
+			}
+		case events.ManaAdd:
+			if ev.Amount < 0 && int(ev.Player) < len(acc) {
+				acc[ev.Player].spent += -ev.Amount
+				if tag, _, ok := state.TypedManaCounter(ev.Counter); ok {
+					acc[ev.Player].tagged[tag] += -ev.Amount
+				}
+			}
+		}
+	}
+	return castSpendFacts{}
+}
+
+// castSaAdmits evaluates the CastSa family against objID: every alternative
+// carrying a token whose requirement the object's latest cast's spend window
+// does not meet is dropped and the survivors rejoined (the shared
+// admitProvenanceAlternatives split). ok is false when no alternative
+// survives: the spec matches nothing. A spec without any CastSa token is
+// returned unchanged, so every unrelated evaluation is byte-identical.
+//
+// There is no pre-push OFFER-window fallback here (unlike the hand
+// families): the mana spend the properties read does not exist until the
+// payment has run, so an AffectedZone$ Stack grant evaluated against the
+// object being cast fails until CR 601.2f-h's payment is in the log — and
+// the only first-cast gates that need the grant evaluate it AFTER payment
+// (queueCascadeTriggers), where the window is exact.
+func (e *Engine) castSaAdmits(spec string, objID state.ObjID) (string, bool) {
+	if !strings.Contains(spec, "CastSa") {
+		return spec, true
+	}
+	var facts castSpendFacts
+	factsRead := false
+	for _, tok := range castSaTokens {
+		if !strings.Contains(spec, tok.token) {
+			continue
+		}
+		if !factsRead {
+			facts = e.castSpendWindow(objID)
+			factsRead = true
+		}
+		var ok bool
+		if spec, ok = admitProvenanceAlternatives(spec, tok.token, castSaTokenHolds(tok, facts)); !ok {
+			return "", false
+		}
+	}
+	return spec, true
 }
 
 // castOriginTokens is the origin-zone cast-provenance family (task

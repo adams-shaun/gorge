@@ -1536,6 +1536,13 @@ var handRoots = struct {
 	trig: []string{"Engine.pushTrigger", "Engine.triggerLabel", "Engine.abilityLabel",
 		"Engine.resolveTop", "Engine.isTriggeredManaAbility", "Engine.triggerReferents",
 		"Engine.StackOptional", "Engine.optionalDecider",
+		// putTriggersOnStack is the queue drain's root: its
+		// groupOrderDuplicates step reads the OrderDuplicates$ trigger
+		// parameter (through orderDuplicatesGroup / triggerOrdersDuplicates)
+		// to keep duplicate instances of a flagged line adjacent. The drain
+		// has no machine-readable mode root, so it is declared here like the
+		// other queue-drain reads above.
+		"Engine.putTriggersOnStack",
 		// checkAttackerUnblockedOnceTriggers is a dedicated hook queued from
 		// rules/turn.go's declare-blockers round-complete branch, NOT from
 		// checkTriggers (unlike checkAttackerBlockedTriggers / checkBlocksTriggers
@@ -2460,16 +2467,30 @@ var knownUnsupportedParams = map[string][]string{
 	// changeZoneAttachedTo): the attach-the-returned-Aura leg is now real
 	// (pinned in rules/forum_filibuster_test.go). ForgetOtherRemembered stays
 	// unread.
-	"Gift of Immortality":        {"param:api:ChangeZone.ForgetOtherRemembered"},
-	"Hercules, Olympian Hero":    {"param:trig:DamageDoneOnce.FirstTime"},
-	"Heroic Return":              {"param:api:ChangeZone.ValidTgtsDesc"},
-	"Heroic Sacrifice":           {"param:api:DelayedTrigger.Destination", "param:api:Effect.ValidTgtsDesc", "param:api:PutCounter.EachFromSource", "param:api:PutCounter.ValidTgtsDesc", "param:api:ReplaceEffect.VarType"},
+	"Gift of Immortality":     {"param:api:ChangeZone.ForgetOtherRemembered"},
+	"Hercules, Olympian Hero": {"param:trig:DamageDoneOnce.FirstTime"},
+	"Heroic Return":           {"param:api:ChangeZone.ValidTgtsDesc"},
+	// Heroic Sacrifice's param:api:PutCounter.EachFromSource entry was deleted
+	// when the CounterType$ EachFromSource copy-each-kind shape was read
+	// (task eachfromsource, effects/counters.go effPutCounter's dispatch) --
+	// the shape is pinned end to end on real corpus carriers in
+	// rules/eachfromsource_test.go (Resourceful Defense, The Ozolith, Denry
+	// Klin, Ambitious Augmenter, Zack Fair). Heroic Sacrifice's own carrier
+	// path (its delayed trigger, Mode$ ChangesZone) stays unimplemented and
+	// the card's OTHER labels above are untouched.
+	"Heroic Sacrifice":           {"param:api:DelayedTrigger.Destination", "param:api:Effect.ValidTgtsDesc", "param:api:PutCounter.ValidTgtsDesc", "param:api:ReplaceEffect.VarType"},
 	"Iron Man, Armored Avenger":  {"param:api:PutCounter.ValidTgtsDesc"},
 	"Jocasta, Automaton Avenger": {"param:api:ChangeZone.Attacking"},
-	"Love on the Battlefield":    {"param:trig:AttackersDeclared.NoResolvingCheck"},
-	"Methods of the Mighty":      {"param:api:Destroy.ValidTgtsDesc"},
-	"Mogis, God of Slaughter":    {"param:stat:Continuous.RemoveType"},
-	"Patriot, Shield Wielder":    {"param:api:Pump.ValidTgtsDesc"},
+	// (Love on the Battlefield's param:trig:AttackersDeclared.NoResolvingCheck
+	// row retired when the NoResolvingCheck$ read landed: the resolution-time
+	// CR 603.4 recheck skips a trigger carrying the param
+	// (rules/trigger_condition.go noResolvingCheck/triggerResolvingCheckHolds,
+	// consulted by resolveTop) -- pinned end to end on the real corpus
+	// carrier Ugin's Mastery in rules/no_resolving_check_test.go, with a
+	// no-param control proving the recheck stays live for everyone else.)
+	"Methods of the Mighty":   {"param:api:Destroy.ValidTgtsDesc"},
+	"Mogis, God of Slaughter": {"param:stat:Continuous.RemoveType"},
+	"Patriot, Shield Wielder": {"param:api:Pump.ValidTgtsDesc"},
 	// (Photon, Mighty Marvel's param:api:Mana.PersistentMana row retired when
 	// the PersistentMana$ read landed — the pm ManaAdd suffix, ManaClear's
 	// partial clear and the TurnChange expiry — pinned end to end on the real

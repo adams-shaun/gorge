@@ -334,13 +334,17 @@ var coreCardTypes = []string{"Artifact", "Battle", "Creature", "Enchantment",
 //   - Threshold: the activator's graveyard holds 7+ cards;
 //   - Metalcraft: the activator controls 3+ artifacts;
 //   - Delirium: the activator's graveyard holds 4+ distinct core card types
-//     (AbilityUtils.countCardTypesFromList's non-permanent form).
+//     (AbilityUtils.countCardTypesFromList's non-permanent form);
+//   - Blessing: the activator holds CR 702.131's city's blessing (the
+//     one-way state.Player.Blessing latch rules/ascend.go's Ascend scan and
+//     events.Apply's BlessingChange fold maintain). This is the gate half of
+//     the city's-blessing family; Count$Blessing.<yes>.<no> (effects/count.go)
+//     and the Condition$ Blessing gate read the same bit.
 //
-// Solved (the Case permanents' solved flag) and Blessing (the city's
-// blessing) name state this build does not track, so their gate FAILS
-// CLOSED -- the conservative direction for an "only if" condition whose
-// meeting cannot be verified. No repo-deck card carries either (measured at
-// the current corpus pin: 3 raw lines each, none in the decks).
+// Solved (the Case permanents' solved flag) names state this build does not
+// track, so that gate FAILS CLOSED -- the conservative direction for an
+// "only if" condition whose meeting cannot be verified (measured at the
+// current corpus pin: 3 raw lines, none in the decks).
 func (e *Engine) activationConditionOK(p state.PlayerID, ab *cards.SA) bool {
 	raw, ok := ab.Params["Activation"]
 	if !ok || strings.TrimSpace(raw) == "" {
@@ -359,6 +363,12 @@ func (e *Engine) activationConditionOK(p state.PlayerID, ab *cards.SA) bool {
 			}
 		}
 		return n >= 3
+	case "Blessing":
+		// CR 702.131: the city's blessing, read off the same one-way latch
+		// the Condition$ Blessing gate and the Count$Blessing branch head
+		// read. An out-of-range activator denies -- the fail-closed
+		// direction a blessing gate that cannot name its seat must take.
+		return int(p) < len(e.G.Players) && e.G.Players[p].Blessing
 	case "Delirium":
 		seen := map[string]bool{}
 		for _, id := range e.G.Zone(state.ZGraveyard, p) {
@@ -471,6 +481,24 @@ func (e *Engine) adaptGateOK(id state.ObjID, ab *cards.SA) bool {
 	}
 	o := e.G.Obj(id)
 	return o != nil && o.Counter("P1P1") == 0
+}
+
+// monstrosityGateOK evaluates AB$ PutCounter's Monstrosity$ once-only gate
+// (CR 701.31b: "Activate only if this creature isn't already monstrous",
+// Giggling Skitterspike's `{5}: Monstrosity 5`). Monstrosity$ is an ability
+// PARAMETER like Adapt$, so the offer loop reads it directly -- the same
+// shape the Adapt$ gate takes. Offer-time only, exactly like the Adapt$ /
+// IsPresent$ / CheckSVar$ gates it sits beside: no state can move between
+// the offer and the answer inside one priority window. effects/counters.go
+// keeps a resolve-time already-monstrous skip as defense-in-depth (no
+// corpus shape reaches the resolution through any other door -- no granted
+// or copied route for these abilities).
+func (e *Engine) monstrosityGateOK(id state.ObjID, ab *cards.SA) bool {
+	if strings.TrimSpace(ab.Params["Monstrosity"]) == "" {
+		return true
+	}
+	o := e.G.Obj(id)
+	return o != nil && !o.Monstrous
 }
 
 // sVarGateOK evaluates the ability's CheckSVar$/SVarCompare$ intervening-if
@@ -2204,6 +2232,21 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				// +1/+1 counters on it" -- the offer-time twin of the effect's own
 				// if-condition effects/counters.go enforces at resolution.
 				if !e.adaptGateOK(id, ab) {
+					continue
+				}
+				// Monstrosity$ (CR 701.31b): "Activate only if this creature
+				// isn't monstrous" -- the once-only monstrosity gate, the same
+				// offer-time funnel the Adapt$ gate above sits in.
+				if !e.monstrosityGateOK(id, ab) {
+					continue
+				}
+				// kw:Reconfigure (CR 702.150): the expansion's unattach half
+				// carries Unattach$ True and is offered only while the source is
+				// attached -- "unattach from a creature" has no legal action for
+				// an unattached permanent, and a payable no-op the deterministic
+				// bot can answer identically forever is the livelock shape the
+				// offer gates exist to withhold.
+				if strings.EqualFold(strings.TrimSpace(ab.Params["Unattach"]), "True") && o.AttachedTo == 0 {
 					continue
 				}
 				out = append(out, decision.Option{Index: len(out), Kind: "ability",
