@@ -199,6 +199,15 @@ func LoadRegistry(path string) (*Registry, error) {
 			// function of printed fields, so the second derive after link is
 			// a no-op for them; it stays so both routes end with the same
 			// derived values link's added abilities could someday depend on.
+			// The same stale-cache repair discipline as the keyword relink
+			// below, one step earlier: a cache predating the comma-mode split
+			// stores each compound S: line ("Mode$ CantAttack,CantBlock") as
+			// ONE Static; resplitStatics re-applies the parse-time split in
+			// memory (the full Mode$ text survives in Params), so a decoded
+			// shared cache ends with the same static list a fresh compile
+			// builds. Runs before derive for the same derive-before-link
+			// reason the gob route documents above.
+			f.Statics = resplitStatics(f.Statics)
 			f.derive()
 			// Re-link decoded faces so a newly added idempotent keyword expansion
 			// is present even when this worktree intentionally reuses the shared,
@@ -222,6 +231,7 @@ func LoadRegistry(path string) (*Registry, error) {
 				// The same derive-before-link order as the cards loop above:
 				// token scripts share compileScripts' parse/link pipeline, so a
 				// stale token cache relinks its keyword expansions too.
+				f.Statics = resplitStatics(f.Statics)
 				f.derive()
 				f.link(c.Path)
 				f.derive()

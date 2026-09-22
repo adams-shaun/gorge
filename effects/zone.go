@@ -481,6 +481,28 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		h.EndEffect(f.Source, f.Stamp)
 		return
 	}
+	// The ImprintOnHost$ ender (task param:api:Effect.ImprintOnHost): the
+	// same "exile the implicit effect object" idiom as the block above, but
+	// keyed on the HOST's imprint instead of the effect's own self-exile.
+	// Forge's DB$ Effect | ImprintOnHost$ True imprints the created effect
+	// token on the host card and moves the token to the Command zone; the
+	// corpus's `DB$ ChangeZone | Defined$ Imprinted | Origin$ Command |
+	// Destination$ Exile` (Superior Foes of Spider-Man, Furious Rise,
+	// Unstable Amulet, Word of Command, Semester's End -- 5 files) exiles
+	// that token, ending the effect it carries ("you may play that card
+	// until you exile another card with this creature" -- the second dig's
+	// trigger exiles the FIRST effect's token before the new Effect
+	// registers). This build has no effect-token object, so the marker
+	// rides the registrations (state.ContinuousEffect.ImprintOnHost) and
+	// the idiom ends exactly those through Host.EndImprintedEffects. The
+	// ordinary move below still runs: the source's real imprinted cards
+	// (Chrome Mox's) are never in the Command zone in this build, so the
+	// Origin$ precondition skips them exactly as it did before.
+	if to == state.ZExile && !originAll && len(originZones) == 1 &&
+		originZones[0] == state.ZCommand &&
+		strings.TrimSpace(sa.Params["Defined"]) == "Imprinted" {
+		h.EndImprintedEffects(c.Source)
+	}
 	// The objects the move loop actually moved, in move order: ChangeZone's
 	// AtEOT$ affected set is the MOVED objects (some carriers carry
 	// RememberChanged$ and some do not, so the moved set is collected here
@@ -517,6 +539,12 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// Mox's own DefinedCards$ ExiledWith read needs it, not just the
 		// distinct ExiledCards list exiledWithAssociation below maintains.
 		ev := moveZoneEvent(c, o.ID, o.Zone, to)
+		// Capture the LKI before the emit: events.Apply's Move fold resets a
+		// battlefield departure's controller to its owner (CR 400.7), so this
+		// is the last point the pre-move controller is readable.
+		if strings.EqualFold(sa.Params["RememberLKI"], "True") {
+			c.ChangeZoneLKI = append(c.ChangeZoneLKI, state.LKIObject{Obj: o.ID, Controller: o.Controller, Owner: o.Owner})
+		}
 		if to == state.ZExile && len(ev.IDs) == 0 && (faceStaticsNameExiledWithSource(h, c.Source) || strings.EqualFold(strings.TrimSpace(sa.Params["Imprint"]), "True")) {
 			ev.IDs = []state.ObjID{c.Source}
 		}
@@ -836,6 +864,11 @@ func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, 
 			Text: "Tapped$ True on a hand ChangeZone is not implemented; the card enters untapped"})
 	}
 	ev := moveZoneEvent(c, id, from, to)
+	if strings.EqualFold(sa.Params["RememberLKI"], "True") {
+		if o := h.Game().Obj(id); o != nil {
+			c.ChangeZoneLKI = append(c.ChangeZoneLKI, state.LKIObject{Obj: id, Controller: o.Controller, Owner: o.Owner})
+		}
+	}
 	if to == state.ZExile && len(ev.IDs) == 0 && (faceStaticsNameExiledWithSource(h, c.Source) || strings.EqualFold(strings.TrimSpace(sa.Params["Imprint"]), "True")) {
 		// The S: static spelling of the same provenance need: a source whose
 		// own Static lines name ExiledWithSource (Intellect Devourer's
@@ -3405,7 +3438,14 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		var owners []state.PlayerID
 		byOwner := make(map[state.PlayerID][]pendingMove)
 		for _, z := range from {
-			for _, p := range players {
+			for qi, p := range players {
+				// The shared stack (state/game.go Zone) is snapshotted once,
+				// under the first player in the resolved scope. Without this an
+				// N-player sweep enqueues the same stack object N times and
+				// emits N MoveZones for one card. Other origins stay per-player.
+				if z == state.ZStack && qi > 0 {
+					continue
+				}
 				// Snapshot the zone exactly like the emit loop does.
 				ids := append([]state.ObjID(nil), g.Zone(z, p)...)
 				for _, id := range ids {
@@ -3438,7 +3478,12 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		}
 	} else {
 		for _, z := range from {
-			for _, p := range players {
+			for qi, p := range players {
+				// Same shared-stack guard as the RandomOrder$ branch: one
+				// snapshot of the stack, taken under the first scoped player.
+				if z == state.ZStack && qi > 0 {
+					continue
+				}
 				// Snapshot the zone: emitting move events mutates it underneath us.
 				ids := append([]state.ObjID(nil), g.Zone(z, p)...)
 				for _, id := range ids {
@@ -3685,6 +3730,13 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 	sacOptional, sacOptionalTarget := c.SacOptional, c.SacOptionalTarget
 	c.SacOptional, c.SacOptionalTarget = "", 0
 	who := Defined(h, c, sa)
+	// ShowSacrificedCards$ True (Demonic Covenant's own sacrifice line): the
+	// sacrificed cards are REVEALED publicly — one ids-Note naming everything
+	// this call sacrificed, the same payload shape effMill's ShowMilledCards$
+	// arm emits. Collected across every path below (the answered batch, the
+	// re-entry batch and the plain object path) so one Note covers the call.
+	show := strings.EqualFold(strings.TrimSpace(sa.Params["ShowSacrificedCards"]), "True")
+	var sacrificed []state.ObjID
 	// A Sacrifice that names neither Defined$ nor ValidTgts$ but a SacValid$
 	// other than itself is Forge's default Defined$ You: its controller
 	// sacrifices a matching permanent (Braids's "you may sacrifice an
@@ -3730,6 +3782,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 							continue
 						}
 						rememberLKICapture(id)
+						sacrificed = append(sacrificed, id)
 						h.Emit(events.Sacrifice(id))
 					}
 				} else if len(sacAns) > 0 {
@@ -3738,6 +3791,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 					// the first pass, but re-check here in case it moved.
 					if o := g.Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield {
 						rememberLKICapture(o.ID)
+						sacrificed = append(sacrificed, o.ID)
 						h.Emit(events.Sacrifice(o.ID))
 					}
 				}
@@ -3877,6 +3931,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 			}
 			for _, id := range batch {
 				rememberLKICapture(id)
+				sacrificed = append(sacrificed, id)
 				h.Emit(events.Sacrifice(id))
 			}
 			continue
@@ -3928,7 +3983,11 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 				Text: "sacrifices the first matching permanent(s) (no engine host to ask)", Secret: true})
 		}
 		rememberLKICapture(o.ID)
+		sacrificed = append(sacrificed, o.ID)
 		h.Emit(events.Sacrifice(o.ID))
+	}
+	if show && len(sacrificed) > 0 {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller, IDs: sacrificed})
 	}
 }
 
@@ -4035,21 +4094,35 @@ func changeZoneChosenTargets(h Host, c *Ctx, sa *cards.SA) ([]state.Target, bool
 		strings.TrimSpace(sa.Params["Defined"]) != "" {
 		return nil, false
 	}
-	if c.TargetsOffered {
-		// The announcement ask offered THIS SA's targeting (rules sets the
-		// marker on the ability/spell branch exactly for the resolving SA);
-		// the chosen-zero election must not be re-asked here.
+	if c.TargetsOffered && (c.OfferedSA == nil || sa.Line == c.OfferedSA.Line) {
+		// The announcement/placement ask offered THIS SA's targeting (rules
+		// sets the marker exactly for the SA the ask covered, and OfferedSA
+		// names it); the chosen-zero election must not be re-asked here. A
+		// deeper sub's own targeting was never offered -- the same
+		// mvts1 boundary chosenTargetsFor's OfferedSA check draws -- so it
+		// falls through to its own ask below.
 		return nil, false
 	}
 	if c.ChoiceDone {
 		ans := c.Choice
 		c.ChoiceDone, c.Choice = false, nil
+		if TargetUniqueRequested(sa) {
+			c.TargetsUnique = append(c.TargetsUnique, ans...)
+		}
 		return ans, true
 	}
 	if len(c.Targets) > 0 {
-		// The placement ask already offered this targeting; Defined's own
-		// fallthrough reads it.
-		return nil, false
+		// The placement ask already offered THIS SA's targeting (its OfferedSA
+		// marker matches) or the targets are this same SA's; Defined's own
+		// fallthrough reads them. A DIFFERENT SA carrying TargetUnique$ True
+		// must not silently inherit them (a root target followed by a
+		// `DB$ ChangeZone | TargetUnique$ True` sub reusing the parent target
+		// with no filter and no ask): fall through to the shared ask, whose
+		// filter excludes the inherited parent target via
+		// TargetsAlreadyChosen.
+		if !TargetUniqueRequested(sa) || (c.OfferedSA != nil && sa.Line == c.OfferedSA.Line) {
+			return nil, false
+		}
 	}
 	chooser := c.Controller
 	candidates := h.LegalTargets(chooser, c.Source, sa)

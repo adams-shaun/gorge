@@ -26,7 +26,7 @@ type deckReport struct {
 	Name         string        `json:"name"`
 	Format       string        `json:"format"`
 	Commander    string        `json:"commander,omitempty"`          // the first commander (legacy singular display field)
-	Commanders   []string      `json:"commanders,omitempty"`         // every commander, in order (a partner pair lists two)
+	Commanders   []string      `json:"commanders,omitempty"`         // every commander, in order (a legal pair lists two)
 	Cards        int           `json:"cards"`                        // total count, and cards included in the deck
 	Resolved     int           `json:"resolved"`                     // count of cards that resolved to a corpus card
 	Percent      float64       `json:"resolution_percent"`           // resolved / cards * 100

@@ -12,7 +12,7 @@ package rules
 // AURA-carried requirement — Fealty to the Realm's
 // `ValidCreature$ Creature.EnchantedBy` — reach the enchanted creature; the
 // old solver walked only the considered creature's own face). CR 508.1d's
-// "if able" is honoured by mustAttackRequired's attackPairAvailable gate: a
+// "if able" is honoured by mustAttackRequired's attackDutyDischargeable gate: a
 // required creature whose every pair a CantAttack blocks is NOT required,
 // so the KAttackers decision never wedges.
 //
@@ -137,9 +137,13 @@ func drainThrough(t *testing.T, e *Engine, turn int32, active state.PlayerID, st
 			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
 				t.Fatalf("pass priority: %v", err)
 			}
-		case decision.KBlockers:
+		case decision.KBlockers, decision.KAttackers:
 			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{}}); err != nil {
-				t.Fatalf("declared no blockers: %v", err)
+				t.Fatalf("declared no attackers/blockers: %v", err)
+			}
+		case decision.KChoose:
+			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
+				t.Fatalf("answered quiet choose: %v", err)
 			}
 		default:
 			t.Fatalf("unexpected %v decision while draining to turn %d seat %d: %+v", d.Kind, turn, active, d)
@@ -301,6 +305,67 @@ func TestCallForAidStolenCreaturesCantSacrifice(t *testing.T) {
 		if events.IsSacrifice(ev) {
 			t.Fatalf("a Sacrifice event was emitted under the restriction: %+v", ev)
 		}
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestStiltManAnimateCantSacrificeLastsThroughItsNextTurn pins the complete
+// Animate staticAbilities$ path on the real Stilt-Man script. Its trigger
+// gains control of an opponent's noncreature artifact and the nested Animate
+// grants Card.Self CantSacrifice. The artifact is not a legal sacrifice
+// candidate while the grant is live; after Stilt-Man's controller's next turn
+// ends, control and the restriction both expire and it can be sacrificed.
+func TestStiltManAnimateCantSacrificeLastsThroughItsNextTurn(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	stilt, ok := reg.Lookup("Stilt-Man, Towering Terror")
+	if !ok {
+		t.Fatal("corpus missing Stilt-Man, Towering Terror")
+	}
+	star := card(t, "Name:Target Relic\nTypes:Artifact\nPT:0/0\nOracle:x\n")
+	e, cfg := restrictionGame(t, 6114,
+		[][]*cards.Card{{stilt}, nil},
+		[][]*cards.Card{{stilt}, {star}})
+	stiltID := findOnBoard(t, e, 0, "Stilt-Man, Towering Terror")
+	starID := findOnBoard(t, e, 1, "Target Relic")
+	stiltObj := e.G.Obj(stiltID)
+	if stiltObj == nil || stiltObj.Zone != state.ZBattlefield {
+		t.Fatal("precondition: Stilt-Man is not on the battlefield")
+	}
+	trigger := cards.ResolveSVar(stiltObj.Face().SVars, "TrigGainControl")
+	effects.Resolve(e, &effects.Ctx{Source: stiltID, Controller: 0,
+		Targets: []state.Target{{Obj: starID}}, TargetsOffered: true,
+		SVars: stiltObj.Face().SVars}, trigger)
+	if got := e.G.Obj(starID).Controller; got != 0 {
+		t.Fatalf("Stilt-Man did not gain control of Target Relic: got %d", got)
+	}
+	if e.SacrificeBlocked(starID, false) == false {
+		t.Fatal("precondition: Stilt-Man's Animate did not register CantSacrifice")
+	}
+	if e.G.Obj(starID).Zone != state.ZBattlefield {
+		t.Fatal("precondition: the live Animate grant moved the target before the sacrifice attempt")
+	}
+
+	// Turn 4 is seat 0's next turn. The restriction must survive turn 3
+	// cleanup and expire only after turn 4 cleanup.
+	drainThrough(t, e, 4, 0, state.StepMain1)
+	if !e.SacrificeBlocked(starID, false) {
+		t.Fatal("CantSacrifice expired before Stilt-Man controller's next turn ended")
+	}
+	drainThrough(t, e, 5, 1, state.StepMain1)
+	if got := e.G.Obj(starID).Controller; got != 1 {
+		t.Fatalf("control did not expire after the next turn: got %d", got)
+	}
+	starObj := e.G.Obj(starID)
+	if starObj == nil || starObj.Zone != state.ZBattlefield || starObj.Controller != 1 {
+		t.Fatalf("precondition after expiry: star=%+v", starObj)
+	}
+	if e.SacrificeBlocked(starID, false) {
+		t.Fatal("CantSacrifice restriction outlived the controller's next turn")
+	}
+	// With the gate open, perform the same state mutation a sacrifice path emits.
+	e.emit(events.Sacrifice(starID))
+	if got := e.G.Obj(starID).Zone; got != state.ZGraveyard {
+		t.Fatalf("Target Relic was not sacrificed after expiry: zone=%s", got)
 	}
 	replayCheck(t, e, cfg)
 }

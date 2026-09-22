@@ -83,6 +83,16 @@ func chosenTargetsFor(h Host, c *Ctx, sa *cards.SA, atRoot bool) ([]state.Target
 	if c.TargetsPickDone {
 		ans := c.TargetsPick
 		c.TargetsPickDone, c.TargetsPick = false, nil
+		// Record this ask's answer so a LATER TargetUnique$ ask in the SAME
+		// Resolve walk excludes it too (Know Evil's three chained DB$ Effect
+		// "up to one target opponent" riders). A later suspension rides the
+		// accumulator onward (Decision.ResumeTargetsUnique), so an earlier
+		// pick survives a fresh resume Ctx; ask kinds outside this tail (a
+		// Charm's mode election) still lose it, the documented conservative
+		// edge.
+		if TargetUniqueRequested(sa) {
+			c.TargetsUnique = append(c.TargetsUnique, ans...)
+		}
 		return ans, true
 	}
 	if c.OfferedSA != nil && sa.Line == c.OfferedSA.Line {
@@ -195,10 +205,50 @@ func poseTargetsAsk(h Host, c *Ctx, sa *cards.SA, chooser state.PlayerID,
 	if prompt == "" {
 		prompt = "Choose target"
 	}
+	// TargetUnique$ True: no candidate already chosen in this resolution may
+	// be offered again (a root's target to an "another target" sub, or an
+	// earlier TargetUnique pick in the same chain). The bounds clamp AFTER
+	// the filter, so the no-host stand-in's candidates[:max] can never slice
+	// past the filtered length. A decision every candidate of which was
+	// excluded is never posed -- but unlike the empty-eligible-set case it
+	// does NOT keep the caller's Defined fallthrough: that fallthrough reads
+	// Ctx.Targets (the resolution's parent target), so the "other target"
+	// body would act on the excluded target itself (Venom Blast's pumped
+	// creature dealing its damage to ITSELF). A TargetUnique$ filter that
+	// leaves no candidate therefore returns a handled, non-nil EMPTY target
+	// set, which the caller dispatches the body over (Ctx.PickedTargets
+	// non-nil outranks Ctx.Targets in Defined, and effChangeZone assigns the
+	// empty set to its move list -- both a no-op).
+	if TargetUniqueRequested(sa) {
+		filtered := TargetUniqueFilter(sa, candidates, TargetsAlreadyChosen(c))
+		if len(filtered) == 0 {
+			return []state.Target{}, true
+		}
+		candidates = filtered
+	}
+	if max > int32(len(candidates)) {
+		max = int32(len(candidates))
+	}
+	if min > max {
+		min = max
+	}
+	if max <= 0 {
+		return nil, false
+	}
 	d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
 		Min: int(min), Max: int(max), Source: c.Source,
 		ResumeKind: resumeKind, ResumeSA: sa,
 		ResumeRemembered: copyTargets(c.Remembered), Prompt: prompt}
+	// The TargetUnique accumulator rides EVERY ask this tail poses (not only
+	// TargetUnique$ ones): any intervening suspension between two TargetUnique$
+	// riders -- a plain target ask, a ChangeZone's player pick -- would
+	// otherwise drop the earlier picks at the resumed Ctx's rebuild. The ride
+	// is inert on a resumed SA that carries no TargetUnique$ (nothing reads
+	// Ctx.TargetsUnique but the shared filter). Copied as a fresh slice -- the
+	// walk may append to it after this ask is parked.
+	if len(c.TargetsUnique) > 0 {
+		d.ResumeTargetsUnique = copyTargets(c.TargetsUnique)
+	}
 	// pfpe1: the TargetsForEachPlayer$ shape binds each option to its
 	// controller's Group -- the same label rules' ask sites attach (askTarget
 	// / cast.go targetAsk) -- so Decision.Validate's mutual-exclusion rule

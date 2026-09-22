@@ -245,3 +245,41 @@ func TestCloneCopiesTheNewFieldsAndSharesTokens(t *testing.T) {
 		t.Fatal("Ephemeral")
 	}
 }
+
+// TestCounterALLExcludesInternalMarkers pins the ALL branch of Object.Counter:
+// the engine's own status markers ("Shield", the this-turn regeneration
+// shield; "Deathtouched", the CR 702.2b lethal mark) ride an ordinary
+// CounterChange for want of a status field and are cleared only at
+// end-of-turn cleanup, so a mid-turn ALL sum -- exactly when a
+// CardCounters.ALL attack-trigger X is read (Backstreet Bruiser, Maester
+// Seymour, Lux Artillery) -- must exclude them or every marked creature
+// inflates the count. Callers that want a marker keep asking by name.
+func TestCounterALLExcludesInternalMarkers(t *testing.T) {
+	o := &Object{Counters: []Counter{
+		{Kind: "P1P1", N: 2},
+		{Kind: "Shield", N: 1},
+		{Kind: "LORE", N: 3},
+		{Kind: "Deathtouched", N: 1},
+	}}
+	// Precondition: the raw slots sum to 7, so an exclusion-free ALL would
+	// differ from the asserted 5.
+	var raw int32
+	for _, c := range o.Counters {
+		raw += c.N
+	}
+	if raw != 7 {
+		t.Fatalf("precondition: raw slots sum = %d, want 7", raw)
+	}
+	if got := o.Counter("ALL"); got != 5 {
+		t.Fatalf("Counter(ALL) = %d, want 5 (Shield and Deathtouched excluded)", got)
+	}
+	if got := o.Counter("Shield"); got != 1 {
+		t.Fatalf("Counter(Shield) = %d, want 1 (by-name reads still see the marker)", got)
+	}
+	if got := o.Counter("Deathtouched"); got != 1 {
+		t.Fatalf("Counter(Deathtouched) = %d, want 1", got)
+	}
+	if got := o.Counter("P1P1"); got != 2 {
+		t.Fatalf("Counter(P1P1) = %d, want 2", got)
+	}
+}

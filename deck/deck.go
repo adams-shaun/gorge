@@ -23,8 +23,9 @@ import (
 // fields are optional and additive: a deck file written before they existed
 // parses identically (both empty, which means "constructed" — nothing
 // changes for the repo's existing deck files), so adding them never makes an
-// old list invalid. Commanders is the CR 903.13 partner-pair list (one or
-// two names); Commander is the legacy singular field, still read for every
+// old list invalid. Commanders is the two-commander list (one or two
+// names): a CR 903.13 partner pair, or a Doctor Who cycle Doctor's-companion
+// pair. Commander is the legacy singular field, still read for every
 // deck file that carries only it — CommanderNames() is the one accessor
 // every reader should use, so the two spellings can never disagree.
 type File struct {
@@ -53,8 +54,9 @@ type File struct {
 }
 
 // CommanderNames is the deck's commander designation as a list: the plural
-// Commanders field when the file carries one (the CR 903.13 partner-pair
-// shape), else the legacy singular Commander wrapped, else nil for a
+// Commanders field when the file carries one (a two-commander partner pair
+// or Doctor's companion pair), else the legacy singular Commander wrapped,
+// else nil for a
 // constructed deck. Every gate that used to read f.Commander == "" reads
 // len(f.CommanderNames()) == 0 instead, so a plural-only file is a commander
 // deck too.
@@ -357,7 +359,7 @@ func (f File) ValidateCommander(r *cards.Registry) error {
 		return fmt.Errorf("commander deck invalid:\n  the commanders list names %q twice; a Commander deck's commanders are one or two DISTINCT cards (CR 903.3) — a duplicated designation would seat the same object twice", names[0])
 	}
 	if len(cmdrs) == 2 && !IsPartnerPair(cmdrs[0], cmdrs[1]) {
-		return fmt.Errorf("commander pair %q and %q is not a legal partner pair: each must carry Partner, or each must name the other with Partner with (CR 903.13)", names[0], names[1])
+		return fmt.Errorf("commander pair %q and %q is not a legal commander pair: each must carry Partner, each must name the other with Partner with (CR 903.13), or one must carry Doctor's companion and the other must be the Doctor", names[0], names[1])
 	}
 
 	// The label the per-card messages name: the single commander, or the

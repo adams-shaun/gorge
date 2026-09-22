@@ -12,6 +12,17 @@ package state
 
 import "github.com/adams-shaun/gorge/cards"
 
+// GainedFace is one foreign card whose abilities a has-all-abilities-of
+// static grants (state.ContinuousEffect.GainedFaces): Obj is the object
+// carrying Face at scan time (so the activation/trigger events can name it),
+// and Face is the compiled face whose Abilities and Triggers are gained.
+// Both are re-derived live on every static rescan, so a card that leaves the
+// scoped zone drops its grant at the next event.
+type GainedFace struct {
+	Obj  ObjID
+	Face *cards.Face
+}
+
 // Layer is CR 613's application order.
 type Layer uint8
 
@@ -151,6 +162,60 @@ type ContinuousEffect struct {
 	// effect that grants none.
 	AddAbilities []string
 
+	// GainedFaces carries a has-all-abilities-of static's foreign faces for
+	// its ACTIVATED half (Forge's GainsAbilitiesOf$ on a Mode$ Continuous
+	// static, the Idris, Soul of the TARDIS shape): each entry pairs the face
+	// of the named card with the object that face belongs to, so the affected
+	// object gains every ACTIVATED ability of Face the grant's
+	// GainsValidAbilities$ filter admits (the layer-6 grant rules'
+	// grantedAbilities offers). GainsAbilitiesOf$ alone NEVER grants
+	// triggered abilities: Forge's parameter means activated only, so the
+	// triggered half lives on GainedTriggerFaces and the trigger walk reads
+	// only that. Unlike AddAbilities the abilities are compiled SAs on the
+	// FOREIGN card -- not SVar names on this effect's source -- so the
+	// consumers read the face directly and the events they emit carry the
+	// foreign object id and the face-ability index, which a replay
+	// re-resolves identically. The rule 613 layer sorter ignores this field:
+	// like AddAbilities it contributes an activation surface, never a
+	// characteristic. Written only by rules' static scan (rules/layers.go).
+	// Empty on every effect that gains no activated ability.
+	GainedFaces []GainedFace
+
+	// GainedTriggerFaces is the TRIGGERED half of the same grant (Forge's
+	// GainsTriggerAbsOf$, the second parameter of Idris's static): the same
+	// GainedFace pairing, consumed by the granted-trigger walk (which queues
+	// every trigger Face.Triggers carries) and by the owning-face recovery.
+	// GainsTriggerAbsOf$ alone grants triggered abilities and NOTHING
+	// activated. Written only by rules' static scan (rules/layers.go). Empty
+	// on every effect that gains no triggered ability.
+	GainedTriggerFaces []GainedFace
+
+	// GainsValidAbilities is the activated-ability filter a GainsAbilitiesOf$
+	// grant carries (Forge's GainsValidAbilities$, e.g. Sharkey's
+	// `Activated.!ManaAbility`, Nicol Bolas Dragon-God's `Activated.Loyalty`):
+	// comma alternatives, each `Activated` with optional dot qualifiers, read
+	// by grantedAbilities so a foreign ability outside the filter is never
+	// offered, never a mana candidate. An unmodelled qualifier fails closed
+	// (that alternative admits nothing). Engine-runtime only, rebuilt by
+	// re-execution on replay like every other continuous-effect field.
+	GainsValidAbilities string
+
+	// GainsLimitPerTurn is the per-foreign-ability activation cap a
+	// GainsAbilitiesOf$ grant carries (Forge's GainsAbilitiesLimitPerTurn$,
+	// Mairsil the Pretender's "You may activate each of those abilities only
+	// once each turn"): each gained activated ability may be activated at
+	// most this many times per turn, counted per (foreign card, face-ability
+	// index) identity from the replayable log. 0 = no limit (the parameter is
+	// absent or unparseable). Engine-runtime only, rebuilt by re-execution on
+	// replay like every other continuous-effect field.
+	GainsLimitPerTurn int
+
+	// GainedZones is the zone scoping a GainedFaces/GainedTriggerFaces grant
+	// was built under (Forge's GainsAbilitiesOfZones$, default Battlefield):
+	// the zones the named card must sit in for its abilities to be gained.
+	// Engine-runtime only, rebuilt by re-execution on replay like every other
+	// continuous-effect field.
+	GainedZones string
 	// Restriction carries an Effect-created S: mode (CantTarget,
 	// CantRegenerate) rather than a layer change. When non-empty the effect is
 	// a rules-mod, consulted by the decision point the mode names (rules'
@@ -314,6 +379,11 @@ type ContinuousEffect struct {
 	// only, rebuilt by re-execution on replay like every other
 	// continuous-effect field.
 	TriggerGrantor ObjID
+	// AbilityGrantor is the object whose SVar table resolves an AddAbilities
+	// grant's body when that is not the effect's Source. 0 means Source.
+	// Like TriggerGrantor, this is engine-runtime state rebuilt by resolution;
+	// it is not part of the event schema.
+	AbilityGrantor ObjID
 	// AddSVars is a static-grant's named variables (AddSVar$): the SVar the
 	// affected object GAINS, parsed from Forge's "SVar:<Name>:<Value>" value
 	// shape. The corpus's granted SVars are AI-evaluation hints (AE, AITap,
@@ -374,6 +444,22 @@ type ContinuousEffect struct {
 	// means the effect never ends on a move. Engine-runtime only, like
 	// ForgetOnMoved.
 	ExileOnMoved string
+	// ImprintOnHost marks a DB$ Effect registration whose SA carried
+	// ImprintOnHost$ True: Forge's EffectEffect imprints the CREATED EFFECT
+	// TOKEN on the host card and moves the token to the Command zone -- the
+	// imprint is the link "this effect belongs to this card", never the
+	// remembered card itself. The corpus's dig-and-play family (Superior
+	// Foes of Spider-Man, Furious Rise, Unstable Amulet) ends the previous
+	// effect through its trigger's `DB$ ChangeZone | Defined$ Imprinted |
+	// Origin$ Command | Destination$ Exile` -- exiling the imprinted token
+	// from the Command zone is exiling the effect, the "until you exile
+	// another card" lifetime -- and Word of Command / Semester's End use the
+	// same idiom inside one chain. This build has no effect-token object, so
+	// the marker rides every registration the resolving effEffect call
+	// creates and the idiom ends exactly those through rules'
+	// EndImprintedEffect. Engine-runtime only, rebuilt by re-execution on
+	// replay like every other continuous-effect field.
+	ImprintOnHost bool
 	// ForgetCounter carries the Effect's ForgetCounter$ counter kind (task
 	// vow1; Promise of Loyalty's VOW, Quicksilver Fountain's FLOOD,
 	// Obsidian Fireheart's BLAZE -- 18 corpus carriers): a remembered card
@@ -385,6 +471,42 @@ type ContinuousEffect struct {
 	// only, rebuilt by re-execution on replay like every other
 	// continuous-effect field.
 	ForgetCounter string
+
+	// ForgetOnCast carries the Effect's ForgetOnCast$ spec (task
+	// param:api:Effect.ForgetOnCast; Marshland Bloodcaster's "Rather than
+	// pay the mana cost of the NEXT spell you cast this turn", Dark
+	// Apostle's / Bigger on the Inside's one-cast cascade grant): the first
+	// qualifying spell cast ENDS the whole effect. The spec is a card spec
+	// over the cast spell, You-relative to the effect's controller, matched
+	// by rules' effectCastSweep at the deferred re-walk of the cast's
+	// PutOnStack (payCast, after payment) -- so an ABORTED proposal (one
+	// reversed before payment, CR 733.1) never consumes the grant while a
+	// completed cast, even one later countered, does. Empty means the
+	// effect never forgets (Forge's explicit False degrades to this at
+	// registration). Engine-runtime only, rebuilt by re-execution on
+	// replay like every other continuous-effect field.
+	ForgetOnCast string
+
+	// CostStaticMode carries an Effect-delivered cost-modifier static's
+	// mode ("ReduceCost"/"RaiseCost"/"SetCost"/"AlternativeCost" -- the
+	// parseStaticLine Mode$ of the SVar body the Effect SA's
+	// StaticAbilities$ entry named). The cost path reads it through the
+	// SAME readers the printed S: static route feeds -- rules'
+	// collectCostStatics for the Raise/Reduce/Set modes, rules'
+	// alternativeCosts for AlternativeCost -- so the two registration
+	// paths cannot disagree about what applies. Empty on every effect
+	// that delivers no cost static. Engine-runtime only, rebuilt by
+	// re-execution on replay like every other continuous-effect field.
+	CostStaticMode string
+
+	// CostStaticParams carries the static line's own parameter map (the
+	// parseStaticLine output effEffect whitelisted through
+	// effects.CostStaticParamsReadable before registering). The cost
+	// chain's gates (ValidCard$, Activator$/Caster$, ValidSA$, ValidPlayer$,
+	// ...) evaluate it exactly as they evaluate a printed static's map.
+	// Engine-runtime only, rebuilt by re-execution on replay like every
+	// other continuous-effect field.
+	CostStaticParams map[string]string
 
 	// AdjustLandPlays marks an additional-land-drops grant (Azusa, Lost but
 	// Seeking's "You may play two additional lands on each of your turns",

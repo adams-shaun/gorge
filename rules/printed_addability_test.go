@@ -22,6 +22,10 @@ import (
 
 // printedAddabilityEngine builds a two-seat fixture whose protagonist is seat
 // 0 and whose deck holds every argument card. Callers place cards by pointer.
+// The corpus's token scripts are wired in (Config.Tokens) so a test that
+// mints a token (Goldspan Dragon's Treasure) mints the REAL script the
+// acceptance fixtures pass -- the pure superset changes nothing for the
+// tests that never emit TokenCreate.
 func printedAddabilityEngine(t *testing.T, list ...*cards.Card) *Engine {
 	t.Helper()
 	deck := append([]*cards.Card{}, list...)
@@ -30,7 +34,8 @@ func printedAddabilityEngine(t *testing.T, list ...*cards.Card) *Engine {
 	}
 	deck = append(deck, mountainDeck(t, 40-len(deck))...)
 	cfg := seatZeroStart(Config{Seed: 7, Names: []string{"a", "b"},
-		Decks: [][]*cards.Card{deck, mountainDeck(t, 40)}})
+		Decks:  [][]*cards.Card{deck, mountainDeck(t, 40)},
+		Tokens: testutil.CorpusRegistry(t).Tokens})
 	e := New(cfg)
 	e.Advance()
 	return e
@@ -273,5 +278,109 @@ func TestPrintedContinuousAddAbilityCorpusKusariGama(t *testing.T) {
 	}
 	if got := e.Derived(equipID).Power; got != 0 {
 		t.Fatalf("Kusari-Gama's pump landed on the Equipment (power %d), not the creature", got)
+	}
+}
+
+// TestPrintedContinuousAddAbilityCorpusGoldspanDragon is the brief's own
+// done-criterion carrier: the real corpus Goldspan Dragon's
+// `S:Mode$ Continuous | Affected$ Card.Treasure+YouCtrl | AddAbility$ Mana`
+// ("Treasures you control have '{T}, Sacrifice this artifact: Add two mana of
+// any one color'") must give ITS controller's Treasure a SECOND mana ability
+// (the SVar body's Amount$ 2), while an opponent's Treasure -- outside the
+// YouCtrl scope -- keeps only its printed add-one ability. Before the mana
+// scan read the static, the deck's Treasures added one mana at a time with no
+// error anywhere: the divergence this test pins end to end, activation
+// included (the T + sacrifice cost, the "any one color" ask, the two units).
+func TestPrintedContinuousAddAbilityCorpusGoldspanDragon(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	dragon := mustCorpusCard(t, reg, "Goldspan Dragon")
+
+	e := printedAddabilityEngine(t, dragon)
+	dragonID := moveCardToBattlefield(t, e, dragon)
+	e.emit(events.Event{Kind: events.TokenCreate, Player: 0, Text: "c_a_treasure_sac"})
+	e.emit(events.Event{Kind: events.TokenCreate, Player: 1, Text: "c_a_treasure_sac"})
+	var myTok, oppTok state.ObjID
+	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
+		if o := e.G.Obj(id); o != nil && o.IsToken {
+			myTok = id
+		}
+	}
+	for _, id := range e.G.Zone(state.ZBattlefield, 1) {
+		if o := e.G.Obj(id); o != nil && o.IsToken {
+			oppTok = id
+		}
+	}
+	if myTok == 0 || oppTok == 0 {
+		t.Fatalf("the real corpus Treasure tokens were not minted: mine=%d opponent's=%d", myTok, oppTok)
+	}
+	if o := e.G.Obj(dragonID); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatal("Goldspan Dragon is not on the battlefield -- the precondition the grant reads")
+	}
+
+	// Precondition: the two Treasures' mana-ability sets differ exactly the
+	// way the static's Affected$ Card.Treasure+YouCtrl scopes them. Mine
+	// carries the granted Amount-2 body beside the printed add-one; the
+	// opponent's carries ONLY the printed add-one.
+	mine := e.availableManaAbilities(0, myTok)
+	theirs := e.availableManaAbilities(1, oppTok)
+	if len(mine) != 2 || len(theirs) != 1 {
+		t.Fatalf("mana-ability membership wrong: mine %d members, opponent's %d members (want 2 and 1)", len(mine), len(theirs))
+	}
+	granted := -1
+	printed := -1
+	for i, ma := range mine {
+		switch ma.Params["Amount"] {
+		case "2":
+			granted = i
+		case "1":
+			printed = i
+		}
+	}
+	if granted < 0 || printed < 0 {
+		t.Fatalf("my Treasure's members are not the printed add-one plus the granted add-two: %+v", mine)
+	}
+	if theirs[0].Params["Amount"] != "1" {
+		t.Fatalf("opponent's Treasure must keep only its printed add-one ability, got Amount %q", theirs[0].Params["Amount"])
+	}
+
+	addMana(t, e, 0, "")
+	d := e.Pending()
+	act := -1
+	for _, o := range d.Options {
+		if o.Kind == "activate" && o.Obj == myTok {
+			act = o.Index
+		}
+	}
+	if act < 0 {
+		t.Fatalf("my Treasure's activate option is not offered: %+v", d.Options)
+	}
+	submitChoices(t, e, act)
+
+	// Stage 1: two mana abilities share the Treasure, so the engine asks
+	// which -- pick the granted member by its ability index.
+	cd := e.Pending()
+	if cd == nil || cd.Kind != decision.KChoose {
+		t.Fatalf("expected the choose-a-mana-ability ask over both members, got %+v", cd)
+	}
+	pick := -1
+	for _, o := range cd.Options {
+		if o.Ability == granted {
+			pick = o.Index
+		}
+	}
+	if pick < 0 {
+		t.Fatalf("the granted member is not among the stage-1 options: %+v", cd.Options)
+	}
+	submitChoices(t, e, pick)
+
+	// Stage 2: "any one color" -- the colour ask; take the first offered.
+	if cd2 := e.Pending(); cd2 != nil && cd2.Kind == decision.KChoose {
+		submitChoices(t, e, 0)
+	}
+	if got := e.G.Players[0].Pool[state.MW]; got != 2 {
+		t.Fatalf("the granted ability added %d of the chosen colour, want 2 (the SVar body's Amount$ 2)", got)
+	}
+	if o := e.G.Obj(myTok); o != nil && o.Zone == state.ZBattlefield {
+		t.Fatal("the Sac<1/CARDNAME> cost did not sacrifice the Treasure")
 	}
 }

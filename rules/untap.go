@@ -22,6 +22,21 @@ func (e *Engine) untapReplacementSources(each func(id state.ObjID)) {
 	}
 }
 
+// hasUntapStepChoice recognizes Forge's bare keyword line verbatim. It is
+// intentionally a characteristic check, not a card-name list: all 45 corpus
+// carriers, including future cards with the same wording, take this path.
+func hasUntapStepChoice(o *state.Object) bool {
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	for _, k := range o.Face().Keywords {
+		if strings.TrimSpace(k) == "You may choose not to untap CARDNAME during your untap step." {
+			return true
+		}
+	}
+	return false
+}
+
 // untapTurnPermanent is the one turn-step caller of effects.TryUntap. The
 // effect helper also owns ability untaps, so stun counters replace either
 // kind of untap identically (CR 122.1d).

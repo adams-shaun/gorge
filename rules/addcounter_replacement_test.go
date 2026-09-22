@@ -315,7 +315,7 @@ func regenReplSource(t testing.TB) *cards.Card {
 // records a regeneration shield as a positive-amount CounterChange named
 // "Shield" for want of a status field, and a counter replacement whose R:
 // line names no ValidCounterType$ (Doubling Season, Winding Constrictor's
-// object line) matches ANY counter kind. Without internalCounterMarker, one
+// object line) matches ANY counter kind. Without state.InternalCounterMarker, one
 // Regenerate would grant TWO shields -- a real wrong result, since
 // rules/combat.go consumes one shield per destruction. The shield must stay
 // at exactly 1 under either card.
