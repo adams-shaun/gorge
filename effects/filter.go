@@ -40,8 +40,24 @@ var predicates = map[string]predFn{
 	"tapped":    func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return o.Tapped },
 	"untapped":  func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return !o.Tapped },
 	"attacking": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return o.IsAttacking },
-	"blocking":  func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return isBlocking(g, o.ID) },
-	"token":     func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return o.IsToken },
+	// attackingYou is the source-relative attacker predicate (Watchdog's and
+	// Boarded Window's continuous `Affected$ Creature.attackingYou`, Ice
+	// Floe's/Hunting Kavu's/Snow Fortress's `Creature.attackingYou` target
+	// specs, and Stalking Leonin's). It reads the defender the combat engine
+	// records on state.Object.Attacking at DeclareAttackers, so it stays exact
+	// through extra combats. An absent source (a call site that passes 0) or a
+	// source that has left the game fails closed, never "every attacker": the
+	// widening direction would let a removal spell hit a creature attacking
+	// somebody else.
+	"attackingYou": func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
+		if !o.IsAttacking || src == 0 {
+			return false
+		}
+		s := g.Obj(src)
+		return s != nil && o.Attacking == s.Controller
+	},
+	"blocking": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return isBlocking(g, o.ID) },
+	"token":    func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return o.IsToken },
 	"Legendary": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return hasType(o, "Legendary")
 	},
@@ -90,6 +106,23 @@ var predicates = map[string]predFn{
 	"IsNotChosenType": func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
 		s := g.Obj(src)
 		return s != nil && s.ChosenType != "" && !hasType(o, s.ChosenType)
+	},
+	// ChosenCtrl is the secretly-chosen-player control predicate (Stalking
+	// Leonin's ConditionPresent$ Card.ChosenCtrl, the twin of ChosenType):
+	// the object is controlled by the player the source's Secretly$ True
+	// ChoosePlayer chose. A source with no chosen player never matches --
+	// fail closed, so the condition gate denies instead of widening.
+	"ChosenCtrl": func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
+		s := g.Obj(src)
+		if s == nil {
+			return false
+		}
+		for _, t := range s.Chosen {
+			if t.IsPlayer && o.Controller == t.Player {
+				return true
+			}
+		}
+		return false
 	},
 	// An object records this association in events.Apply when an effect moves
 	// it to exile with moveZoneEvent. Both spellings use the same tracked
@@ -1824,6 +1857,17 @@ func typePredicate(p string, g *state.Game, o *state.Object, sc SpecContext) (bo
 	case "IsNotChosenType":
 		s := g.Obj(sc.Source)
 		return s != nil && s.ChosenType != "" && !hasTypeCtx(o, s.ChosenType, sc), true
+	case "ChosenCtrl":
+		s := g.Obj(sc.Source)
+		if s == nil {
+			return false, true
+		}
+		for _, t := range s.Chosen {
+			if t.IsPlayer && o.Controller == t.Player {
+				return true, true
+			}
+		}
+		return false, true
 	}
 	return false, false
 }

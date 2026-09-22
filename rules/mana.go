@@ -117,10 +117,19 @@ type Cost struct {
 	AddCounter      []CostPart
 	Exile           []CostPart
 	Reveal          []CostPart
-	Behold          []CostPart
-	TapPermanent    []CostPart
-	Blight          []CostPart
-	Forage          bool
+	// RevealChosen carries RevealChosen<Player> and RevealChosen<Type/...>
+	// components (Stalking Leonin, Guardian Archon, Emissary of Grudges, A
+	// Killer Among Us): the payer publicly reveals a designation that was
+	// chosen SECRETLY earlier in the game (a player, or a creature type).
+	// Unlike Reveal<N/Spec> there is NO hand choice and no mana -- the whole
+	// part is free -- so the payability gate is the designation's presence on
+	// the ability's source, and the payment is one public Note. Spec is
+	// "Player" or "Type".
+	RevealChosen []CostPart
+	Behold       []CostPart
+	TapPermanent []CostPart
+	Blight       []CostPart
+	Forage       bool
 	// Draw carries Draw<N/Spec> components: paying one draws N cards for the
 	// player(s) the spec names (default the payer). payMana never charges it;
 	// the mid-resolution unless-pay path pays it (payUnlessCost), and the
@@ -254,6 +263,16 @@ var addCounterCost = regexp.MustCompile(`^AddCounter<(\d+)/(LOYALTY)(?:/([^>]*))
 var lifeCost = regexp.MustCompile(`^PayLife<(\d+)>$`)
 
 var choiceCost = regexp.MustCompile(`^(Reveal|Behold|tapXType)<(\d+)/([^/>]+)(?:/([^>]*))?>$`)
+
+// revealChosenCost matches the designation-reveal cost heads. Forge has two
+// spellings: RevealChosen<Player> (reveal the player you secretly chose) and
+// RevealChosen<Type/creature type> (reveal the creature type you secretly
+// chose). Unlike Reveal<N/Spec> there is no count and no card to pick -- the
+// designation was chosen earlier by a Secretly$ True ChoosePlayer/ChooseType
+// -- so the regex carries no N and the trailing field is display text. The
+// share of these heads used to be the unrecognised-symbol fallback, which
+// priced each at one generic mana and dropped the reveal entirely.
+var revealChosenCost = regexp.MustCompile(`^RevealChosen<(Player|Type)(?:/([^>]*))?>$`)
 
 // dynTapCost matches Forge's dynamic tap-any-number tapXType tokens -- the
 // heads the literal choiceCost regex above cannot read:
@@ -430,6 +449,15 @@ func ParseCost(s string) Cost {
 				default:
 					c.TapPermanent = append(c.TapPermanent, part)
 				}
+				continue
+			}
+			if m := revealChosenCost.FindStringSubmatch(sym); m != nil {
+				// A designation reveal is a real, modelled, FREE cost component:
+				// no generic substitution and no Unknown census entry. The
+				// designation's presence is the payability gate
+				// (nonManaCastable) and the payment is one public Note
+				// (emitChoiceCosts).
+				c.RevealChosen = append(c.RevealChosen, CostPart{Spec: m[1], Desc: m[2]})
 				continue
 			}
 			if m := blightCost.FindStringSubmatch(sym); m != nil {
@@ -967,6 +995,9 @@ func (c Cost) Plus(d Cost) Cost {
 	if len(d.Reveal) > 0 {
 		c.Reveal = append(append([]CostPart(nil), c.Reveal...), d.Reveal...)
 	}
+	if len(d.RevealChosen) > 0 {
+		c.RevealChosen = append(append([]CostPart(nil), c.RevealChosen...), d.RevealChosen...)
+	}
 	if len(d.Behold) > 0 {
 		c.Behold = append(append([]CostPart(nil), c.Behold...), d.Behold...)
 	}
@@ -1415,6 +1446,15 @@ func formatCost(c Cost) string {
 		parts = append(parts, head+"<"+strconv.FormatInt(int64(part.N), 10)+"/"+part.Spec+">")
 	}
 	appendCostParts("Reveal", c.Reveal)
+	for _, part := range c.RevealChosen {
+		// RevealChosen<Player> has no trailing field; RevealChosen<Type/...>
+		// prints its description. Both are re-parseable by revealChosenCost.
+		if part.Desc == "" {
+			parts = append(parts, "RevealChosen<"+part.Spec+">")
+		} else {
+			parts = append(parts, "RevealChosen<"+part.Spec+"/"+part.Desc+">")
+		}
+	}
 	appendCostParts("Behold", c.Behold)
 	appendCostParts("ExiledMoveToGrave", c.MoveToGrave)
 	appendCostParts("tapXType", c.TapPermanent)
@@ -1505,6 +1545,13 @@ func costPhrase(c Cost) string {
 	}
 	for _, part := range c.Reveal {
 		clauses = append(clauses, "reveal "+objectPhrase(part, "card"))
+	}
+	for _, part := range c.RevealChosen {
+		if strings.EqualFold(part.Spec, "Player") {
+			clauses = append(clauses, "reveal the chosen player")
+		} else {
+			clauses = append(clauses, "reveal the chosen creature type")
+		}
 	}
 	for _, part := range c.Behold {
 		clauses = append(clauses, "behold "+objectPhrase(part, "card"))
@@ -1797,7 +1844,7 @@ func costAnnouncesCastX(c Cost) bool {
 // even though it takes no payment), so a caller using this to skip the
 // cast-flow stages is told the truth.
 func (c Cost) HasNonMana() bool {
-	return c.Life > 0 || c.Tap || len(c.Sac) > 0 || len(c.Discard) > 0 || len(c.SubCounter) > 0 || len(c.AddCounter) > 0 || len(c.Exile) > 0 || len(c.Reveal) > 0 || len(c.Behold) > 0 || len(c.TapPermanent) > 0 || len(c.Blight) > 0 || c.Forage || len(c.Energy) > 0 || len(c.Return) > 0 || len(c.PutToLib) > 0 || len(c.Draw) > 0 || len(c.LifeX) > 0 || len(c.DamageYou) > 0 || len(c.MoveToGrave) > 0
+	return c.Life > 0 || c.Tap || len(c.Sac) > 0 || len(c.Discard) > 0 || len(c.SubCounter) > 0 || len(c.AddCounter) > 0 || len(c.Exile) > 0 || len(c.Reveal) > 0 || len(c.RevealChosen) > 0 || len(c.Behold) > 0 || len(c.TapPermanent) > 0 || len(c.Blight) > 0 || c.Forage || len(c.Energy) > 0 || len(c.Return) > 0 || len(c.PutToLib) > 0 || len(c.Draw) > 0 || len(c.LifeX) > 0 || len(c.DamageYou) > 0 || len(c.MoveToGrave) > 0
 }
 
 // Priceable reports whether payMana can actually charge every part of this
@@ -1816,7 +1863,7 @@ func (c Cost) HasNonMana() bool {
 // before trusting the pool and life total.
 func (c Cost) Priceable() bool {
 	return c.X == 0 && !c.Tap && len(c.Sac) == 0 && len(c.Discard) == 0 && len(c.SubCounter) == 0 &&
-		len(c.Draw) == 0 && len(c.Exile) == 0 && len(c.Reveal) == 0 && len(c.Behold) == 0 &&
+		len(c.Draw) == 0 && len(c.Exile) == 0 && len(c.Reveal) == 0 && len(c.RevealChosen) == 0 && len(c.Behold) == 0 &&
 		len(c.TapPermanent) == 0 && len(c.Blight) == 0 && !c.Forage &&
 		len(c.Hybrid) == 0 && len(c.Phyrexian) == 0 && len(c.Twobrid) == 0 && len(c.HybridPhyrexian) == 0 &&
 		len(c.Energy) == 0 && len(c.Return) == 0 && len(c.PutToLib) == 0 && len(c.LifeX) == 0 && len(c.DamageYou) == 0 &&

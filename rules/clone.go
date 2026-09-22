@@ -444,6 +444,7 @@ func (e *Engine) Clone() *Engine {
 		pc.cost.Exile = append([]CostPart(nil), e.cast.cost.Exile...)
 		pc.cost.MoveToGrave = append([]CostPart(nil), e.cast.cost.MoveToGrave...)
 		pc.cost.Reveal = append([]CostPart(nil), e.cast.cost.Reveal...)
+		pc.cost.RevealChosen = append([]CostPart(nil), e.cast.cost.RevealChosen...)
 		pc.cost.Behold = append([]CostPart(nil), e.cast.cost.Behold...)
 		pc.cost.TapPermanent = append([]CostPart(nil), e.cast.cost.TapPermanent...)
 		pc.cost.Blight = append([]CostPart(nil), e.cast.cost.Blight...)
