@@ -50,12 +50,18 @@ func takeTheBaitBoard(t *testing.T, reg *cards.Registry) (*Engine, Config, state
 		Tokens: reg.Tokens,
 		Decks:  [][]*cards.Card{deck0, deck1}}
 	e := New(cfg)
-	// Put the spell and the walker into seat 0's hand and the aggressor onto
-	// seat 1's battlefield with logged moves (replayCheck reconstructs them).
+	// Put the spell into seat 0's hand, the walker onto seat 0's battlefield
+	// (Move's CR 306.5b entry grant gives it its printed loyalty 3 -- a walker
+	// in hand has no loyalty, so damage to it could never be observed), and
+	// the aggressor onto seat 1's battlefield, all with logged moves
+	// (replayCheck reconstructs them).
 	for i := range e.G.Objs {
 		o := &e.G.Objs[i]
-		if o.Owner == 0 && (o.Card == spell || o.Card == walkerCard) {
+		if o.Owner == 0 && o.Card == spell {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: o.Zone, To: state.ZHand})
+		}
+		if o.Owner == 0 && o.Card == walkerCard {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: o.Zone, To: state.ZBattlefield})
 		}
 		if o.Owner == 1 && o.Card == aggressorCard {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: o.Zone, To: state.ZBattlefield})
@@ -100,7 +106,17 @@ func takeTheBaitBoard(t *testing.T, reg *cards.Registry) (*Engine, Config, state
 				t.Fatalf("submit target: %v", err)
 			}
 		default:
-			t.Fatalf("unexpected decision %+v while driving", d)
+			// Any other decision kind (one the engine may gain at a step this
+			// drive crosses) is answered with its first Min options rather
+			// than failing the fixture spuriously; the assertions below are
+			// what this test pins, not the drive.
+			ch := make([]int, 0, d.Min)
+			for j := 0; j < int(d.Min) && j < len(d.Options); j++ {
+				ch = append(ch, d.Options[j].Index)
+			}
+			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: ch}); err != nil {
+				t.Fatalf("submit %s: %v", d.Kind, err)
+			}
 		}
 	}
 	t.Fatal("did not reach seat 1's BeginCombat within the drive budget")
@@ -165,7 +181,18 @@ func TestTakeTheBaitPreventsCombatDamageNotNonCombat(t *testing.T) {
 	}
 
 	life0 := e.G.Players[0].Life
-	loyalty := e.G.Obj(walker).Counter("LOYALTY")
+	// Preconditions the planeswalker assertion depends on: the walker is on
+	// the battlefield under seat 0 with its printed loyalty, and the damage
+	// dealt to it (2) is less than that loyalty, so an UNPREVENTED hit would
+	// visibly lower it (3 -> 1) without the zero-loyalty SBA removing it.
+	w := e.G.Obj(walker)
+	if w.Zone != state.ZBattlefield || w.Controller != 0 {
+		t.Fatalf("walker zone=%v controller=%d, want battlefield under seat 0", w.Zone, w.Controller)
+	}
+	loyalty := w.Counter("LOYALTY")
+	if loyalty != 3 {
+		t.Fatalf("walker loyalty = %d, want its printed 3 (Move's entry grant)", loyalty)
+	}
 
 	// Combat damage to the player: prevented.
 	e.damaging, e.combatDamaging = aggressor, true
