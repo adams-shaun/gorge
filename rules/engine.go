@@ -399,6 +399,20 @@ type Engine struct {
 	// alongside fusedResolving, captured by Ask onto the resumePoint. Nil
 	// outside a fused half's resolution.
 	fusedResolvingSVars map[string]string
+	// villainousRemembered is the victim of the VillainousChoice whose chosen
+	// body is CURRENTLY resolving, kept as ambient engine state for the
+	// duration of that body's effects.Resolve — the fusedResolving pattern.
+	// A nested ask the body poses captures it through Ask onto the pending
+	// resumePoint (and buildContinuationChain stamps it onto the body's
+	// continuation frames), so the nested ask's re-entry still resolves
+	// Defined$ Remembered / Player.IsRemembered to the victim rather than
+	// rebuilding the trigger's own capture. villainousRememberedSet is the
+	// presence bit (a victim set is never empty, but the bit keeps the "no
+	// villainous body in flight" case explicit). Transient scratch,
+	// restored with the same defer discipline as fusedResolving; rebuilt
+	// identically by replay.
+	villainousRemembered    []state.Target
+	villainousRememberedSet bool
 	// windowPaidX is the X the triggered-cost window's payment announced
 	// (rules/cumulative.go's X fold, tc.xPaid at the pay arm), kept as AMBIENT
 	// engine state while the paid body resolves — the fusedResolving pattern:

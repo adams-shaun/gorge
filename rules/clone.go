@@ -135,6 +135,8 @@ func (e *Engine) Clone() *Engine {
 		d.ResumeChoices = append([]state.Target(nil), e.pending.ResumeChoices...)
 		d.ResumeChosenValid = e.pending.ResumeChosenValid
 		d.ResumeRemembered = append([]state.Target(nil), e.pending.ResumeRemembered...)
+		d.ResumeVillainousVictims = append([]state.Target(nil), e.pending.ResumeVillainousVictims...)
+		d.ResumeVillainousIndex = e.pending.ResumeVillainousIndex
 		d.ResumeTargetsUnique = append([]state.Target(nil), e.pending.ResumeTargetsUnique...)
 		c.pending = &d
 	}
@@ -677,6 +679,12 @@ func cloneResume(rp *resumePoint) *resumePoint {
 	cp.remembered = append([]state.Target(nil), rp.remembered...)
 	cp.loopRemembered = append([]state.Target(nil), rp.loopRemembered...)
 	cp.targetsUnique = append([]state.Target(nil), rp.targetsUnique...)
+	// The VillainousChoice cursor and victim binding are sliced values the
+	// resumed Ctx re-binds, so the clone owns its own copies instead of
+	// sharing backing arrays with the original (the same discipline every
+	// other slice here follows).
+	cp.villainousVictims = append([]state.Target(nil), rp.villainousVictims...)
+	cp.villainousRemembered = append([]state.Target(nil), rp.villainousRemembered...)
 	if rp.repeat != nil {
 		cur := *rp.repeat
 		cur.subjects = append([]state.Target(nil), rp.repeat.subjects...)

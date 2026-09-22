@@ -140,8 +140,21 @@ type resumePoint struct {
 	// restores Ctx.DrawUptoIdx/Count/Answered from them so effDraw's upto
 	// branch continues the batch. uptoIdx -1 (the default every non-upto
 	// ask leaves) means no upto is in flight.
-	uptoIdx   int
-	uptoCount int32
+	uptoIdx           int
+	uptoCount         int32
+	villainousVictims []state.Target
+	villainousIndex   int
+	villainousChoice  string
+	// villainousRemembered is the VICTIM of the VillainousChoice whose chosen
+	// body is resolving, carried on every ask the body's chain poses (the
+	// ambient binding Engine.villainousRemembered captures into Ask). The
+	// resume binds it as Ctx.Remembered for every frame of the body, so a
+	// nested ask's re-entry (DBSac's sacrifice picker) still resolves
+	// Defined$ Remembered / Player.IsRemembered to the victim rather than
+	// rebuilding the trigger's own (empty) capture. Set only on asks posed
+	// inside a villainous chosen body; nil otherwise.
+	villainousRemembered    []state.Target
+	villainousRememberedSet bool
 	// targetsUnique is the TargetUnique$ accumulator of the resolution that
 	// suspended (the Decision.ResumeTargetsUnique rider, captured at ask
 	// time from the in-flight Ctx): the resumed Ctx re-binds it, so a later
@@ -290,6 +303,13 @@ type contFrame struct {
 	repeatSubject state.Target
 	choices       []state.Target
 	chosenValid   bool
+	// villainousRest marks a frame that re-enters a VillainousChoice's own
+	// SA (not sa.Sub) with the victim cursor below, continuing with the
+	// victims a chosen body's nested ask left unprocessed. The reported sa
+	// IS the VillainousChoice SA, so sa.Sub would be nil.
+	villainousRest    bool
+	villainousVictims []state.Target
+	villainousIndex   int
 }
 
 // Ask implements effects.Host.Ask (rules' side of the interface, and the
@@ -376,13 +396,17 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 		chosenValid: d.ResumeChosenValid, remembered: append([]state.Target(nil), d.ResumeRemembered...),
 		moved:   append([]state.ObjID(nil), d.ResumeMoved...),
 		uptoIdx: d.ResumeUptoIdx, uptoCount: d.ResumeUptoCount,
-		targetsUnique:     append([]state.Target(nil), d.ResumeTargetsUnique...),
-		fusedTargets:      append([]state.Target(nil), e.fusedResolving...),
-		fusedTargetsSet:   e.fusedResolvingSet,
-		fusedSVars:        e.fusedResolvingSVars,
-		winPaidX:          e.windowPaidX,
-		timeTravelObjects: append([]state.ObjID(nil), d.ResumeObjects...),
-		timeTravelRound:   d.ResumeRound}
+		villainousVictims:       append([]state.Target(nil), d.ResumeVillainousVictims...),
+		villainousIndex:         d.ResumeVillainousIndex,
+		villainousRemembered:    append([]state.Target(nil), e.villainousRemembered...),
+		villainousRememberedSet: e.villainousRememberedSet,
+		targetsUnique:           append([]state.Target(nil), d.ResumeTargetsUnique...),
+		fusedTargets:            append([]state.Target(nil), e.fusedResolving...),
+		fusedTargetsSet:         e.fusedResolvingSet,
+		fusedSVars:              e.fusedResolvingSVars,
+		winPaidX:                e.windowPaidX,
+		timeTravelObjects:       append([]state.ObjID(nil), d.ResumeObjects...),
+		timeTravelRound:         d.ResumeRound}
 	return true
 }
 
@@ -488,6 +512,25 @@ func (e *Engine) SuspendCharmRest(sa *cards.SA, rest []string) {
 	e.repeatReported = sa
 }
 
+// SuspendVillainousRest implements effects.Host.SuspendVillainousRest: a
+// VillainousChoice's chosen body suspended on a nested mid-resolution ask
+// with victims still to process. The frame re-enters the VillainousChoice
+// SA itself with the victim cursor restored once the answered ask's chain
+// completes; the reported sa IS the VillainousChoice's own SA, so folding it
+// into sa.Sub (the plain-frame shape) would resume nothing. Setting
+// repeatReported to that SA suppresses the enclosing Resolve loop's own
+// SuspendContinuation report of the same SA, exactly as SuspendCharmRest
+// does for a Charm.
+func (e *Engine) SuspendVillainousRest(sa *cards.SA, rest effects.VillainousRest) {
+	if e.resume == nil || len(rest.Victims) == 0 {
+		return
+	}
+	e.contChain = append(e.contChain, contFrame{sa: sa, villainousRest: true,
+		villainousVictims: append([]state.Target(nil), rest.Victims...),
+		villainousIndex:   rest.Next})
+	e.repeatReported = sa
+}
+
 // moveCounterPending is one MoveCounter resolution's answered asks, stored
 // under the resolving stack object's id (Engine.moveCounterAsk) so a later
 // resume round of the SAME SA can re-seed them into its fresh Ctx. A
@@ -556,6 +599,23 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 	// An activated mana ability resolves outside the stack. Its UnlessCost$
 	// answer is therefore owned by the mana activation flow rather than an
 	// effects resume point, but is still recorded like every KModes answer.
+	if d.ResumeKind == "villainous" {
+		if e.resume == nil {
+			e.emit(events.Event{Kind: events.Note, Player: in.Player,
+				Text: "villainous choice answered with no resolution suspended"})
+			return
+		}
+		rp := e.resume
+		e.resume = nil
+		chosen := d.Chosen(in)
+		if len(chosen) > 0 && chosen[0].Index >= 0 && chosen[0].Index < len(d.ResumeModes) {
+			rp.villainousChoice = d.ResumeModes[chosen[0].Index]
+		}
+		e.emit(events.Event{Kind: events.ModeChosen, Obj: rp.obj, Player: in.Player,
+			Text: strings.Join(chosenModeLabels(chosen), ",")})
+		e.resumeResolution(rp, chosen)
+		return
+	}
 	if d.ResumeKind == "mana_unless" {
 		chosen := d.Chosen(in)
 		labels := chosenModeLabels(chosen)
@@ -866,7 +926,9 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	}
 	ctx := &effects.Ctx{Source: rp.obj, Controller: o.Controller, Targets: o.Targets,
 		Chosen: append([]state.Target(nil), rp.choices...), ChosenValid: rp.chosenValid,
-		ChoiceTarget: rp.target,
+		VillainousVictims: append([]state.Target(nil), rp.villainousVictims...),
+		VillainousIndex:   rp.villainousIndex,
+		ChoiceTarget:      rp.target,
 		// The resolving stack-object wrapper, same anchor resolveTop's
 		// branches set: a SUSPENDED-then-resumed ability (Ulalek's pay ask is
 		// exactly such a suspension) keeps the ValidStack otherAbility
@@ -962,6 +1024,24 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// NESTED answer) only for a nested "modes" resume, which is the
 		// correct scoping -- a nested Charm below this one poses its own ask.
 		ctx.Modes = o.ChosenModes
+		if rp.kind == "villainous" {
+			if rp.villainousChoice != "" {
+				ctx.Modes = []string{rp.villainousChoice}
+			}
+			ctx.Remembered = append([]state.Target(nil), rp.remembered...)
+		}
+		// A frame of the chosen body of a VillainousChoice (or of a nested ask
+		// IT posed): the victim is this body's Remembered, not the ability's
+		// own trigger capture. Without this a nested ask's re-entry (DBSac's
+		// sacrifice picker resolves Defined$ Remembered) rebuilds an empty
+		// set and drops the answered sacrifice, and a multi-victim choice
+		// stops after the first nested choice. It wins over the o.Ability
+		// seed above deliberately -- that is the exact binding the choice
+		// needs.
+		if rp.villainousRememberedSet {
+			ctx.Remembered = append([]state.Target(nil), rp.villainousRemembered...)
+			ctx.Captured = append([]state.Target(nil), rp.villainousRemembered...)
+		}
 		// The same owning-face read resolveTop's ability branch makes: a
 		// mutated pile's under-card ability (CR 702.140d) must resume on the
 		// UNDER-CARD's SVar table, not the pile's top card's. An ordinary
@@ -1027,6 +1107,10 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 			}
 		}
+	}
+	if len(rp.villainousVictims) > 0 {
+		ctx.VillainousVictims = append([]state.Target(nil), rp.villainousVictims...)
+		ctx.VillainousIndex = rp.villainousIndex
 	}
 	if rp.loopBound {
 		ctx.Remembered = append([]state.Target(nil), rp.loopRemembered...)
@@ -2173,6 +2257,18 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				ctx.ModesSeen = append(ctx.ModesSeen,
 					o.ChosenModes[:len(o.ChosenModes)-len(rp.charmRest)]...)
 			}
+		case "villainous_rest":
+			// A VillainousChoice's chosen body suspended on its own nested ask
+			// (DBSac's sacrifice picker) and that ask's chain has completed.
+			// Re-enter the primitive with the victim cursor restored so the
+			// remaining Defined$ victims are still asked. The modes seed the
+			// ability branch applied must be cleared: this frame carries no
+			// answered mode (the first victim's was consumed long ago) and a
+			// stale ChosenModes must not make effVillainousChoice re-run a
+			// previously chosen body.
+			ctx.Modes = nil
+			ctx.VillainousVictims = append([]state.Target(nil), rp.villainousVictims...)
+			ctx.VillainousIndex = rp.villainousIndex
 		case "optional":
 			// CR 603.5: the decider answered yes to applying this optional
 			// triggered ability's effect. The answer is a yes/no, not a mode
@@ -2295,6 +2391,19 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		e.fusedResolving, e.fusedResolvingSet = rp.fusedTargets, rp.fusedTargetsSet
 		e.fusedResolvingSVars = rp.fusedSVars
 		e.windowPaidX = rp.winPaidX
+		// The VillainousChoice victim of the body this frame is resolving,
+		// published as ambient state for the same reason and by the same
+		// discipline as fusedResolving above: a nested ask the body poses (or
+		// one a later frame in its chain poses) captures it through Ask, so
+		// the nested re-entry still reads Defined$ Remembered as the victim.
+		// A villainous frame's own victim is rp.remembered (the modes answer
+		// recorded it); every other frame carries what its ask captured.
+		savedVill, savedVillSet := e.villainousRemembered, e.villainousRememberedSet
+		if rp.kind == "villainous" {
+			e.villainousRemembered, e.villainousRememberedSet = rp.remembered, len(rp.remembered) > 0
+		} else {
+			e.villainousRemembered, e.villainousRememberedSet = rp.villainousRemembered, rp.villainousRememberedSet
+		}
 		// Restore only when this whole re-entry (and every rp.outer
 		// continuation it recurses into) has finished: buildContinuationChain
 		// in the nested-ask branch below stamps frames that must inherit the
@@ -2303,6 +2412,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		defer func() {
 			e.fusedResolving, e.fusedResolvingSet, e.fusedResolvingSVars = savedFused, savedFusedSet, savedSVars
 			e.windowPaidX = savedWinX
+			e.villainousRemembered, e.villainousRememberedSet = savedVill, savedVillSet
 		}()
 		effects.Resolve(e, ctx, rp.sa)
 		e.replReplaced, e.replAction, e.replReplacedPlayer = 0, "", state.Target{}
@@ -2480,7 +2590,14 @@ func (e *Engine) buildContinuationChain(frames []contFrame, obj state.ObjID, tai
 			fusedTargets:    append([]state.Target(nil), e.fusedResolving...),
 			fusedTargetsSet: e.fusedResolvingSet,
 			fusedSVars:      e.fusedResolvingSVars,
-			winPaidX:        e.windowPaidX}
+			winPaidX:        e.windowPaidX,
+			// The VillainousChoice victim ambient (the fusedResolving pattern):
+			// a continuation frame of the chosen body's chain keeps the victim
+			// so an ask posed by a later frame of that chain still reads
+			// Defined$ Remembered as the victim. A frame built outside a
+			// chosen body inherits nil/absent and binds nothing.
+			villainousRemembered:    append([]state.Target(nil), e.villainousRemembered...),
+			villainousRememberedSet: e.villainousRememberedSet}
 		if e.replacingEvent != nil && e.replacingEvent.Kind == events.Damage {
 			f.replacementTarget = state.Target{Obj: e.replacingEvent.Obj}
 			if e.replacingEvent.Obj == 0 {
@@ -2494,6 +2611,13 @@ func (e *Engine) buildContinuationChain(frames []contFrame, obj state.ObjID, tai
 			// Charm body has no SubAbility$ chain of its own to resume) with
 			// Ctx.Modes = the remaining chosen modes.
 			f.kind, f.sa, f.charmRest = "charm_rest", sa, cf.charmRest
+		} else if cf.villainousRest {
+			// The VillainousChoice re-enters ITSELF (rp.sa = the VillainousChoice
+			// SA, not sa.Sub — a VillainousChoice body has no SubAbility$ chain
+			// of its own to resume) with the victim cursor restored.
+			f.kind, f.sa = "villainous_rest", sa
+			f.villainousVictims = append([]state.Target(nil), cf.villainousVictims...)
+			f.villainousIndex = cf.villainousIndex
 		} else if cf.repeat != nil {
 			f.kind, f.sa, f.repeat = "repeat", sa, cf.repeat
 			f.choices, f.chosenValid = cf.choices, cf.chosenValid

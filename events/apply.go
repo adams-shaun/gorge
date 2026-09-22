@@ -190,6 +190,8 @@ func Apply(g *state.Game, e Event) {
 				// the designation no controller-change end -- the only clear is
 				// the Move fold's leaving-battlefield block below.
 				o.Monstrous = e.Amount >= 1
+			case "Suspend":
+				o.SuspendGranted = e.Amount >= 1
 			case "Plotted":
 				// CR 701.34c: the plotted designation on an exiled card. The
 				// grant stamps PlottedTurn with the CURRENT turn so the free
@@ -2633,6 +2635,9 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		// path (MoveZone, Draw and PutOnStack all call Move) runs it.
 		if o := g.Obj(id); o != nil {
 			o.PlottedTurn = 0
+			// A granted suspend keyword is scoped to the exiled object; once it
+			// leaves exile it is a new object for the grant's purposes.
+			o.SuspendGranted = false
 		}
 	}
 	if wasBattlefield && to != state.ZBattlefield {

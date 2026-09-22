@@ -22,6 +22,7 @@ func init() {
 	Register("Repeat", effRepeat)
 	Register("Charm", effCharm)
 	Register("GenericChoice", effCharm)
+	Register("VillainousChoice", effVillainousChoice)
 	Register("Vote", effVote)
 	Register("BecomeMonarch", effBecomeMonarch)
 	Register("RingTemptsYou", effRingTemptsYou)
@@ -2318,6 +2319,99 @@ func charmCrossModeRun(h Host, c *Ctx, sa *cards.SA, names []string) bool {
 		}
 	}
 	return true
+}
+
+// effVillainousChoice makes the player named by Defined$ choose one of the
+// supplied ability bodies. Unlike a modal trigger's placement choice, the
+// victim's choice happens during resolution: the victim is remembered before
+// the chosen body runs, so Defined$ Remembered and Player.IsRemembered in the
+// body refer to the victim.
+func effVillainousChoice(h Host, c *Ctx, sa *cards.SA) {
+	choices := strings.Split(sa.Params["Choices"], ",")
+	if len(choices) == 0 || c.SVars == nil {
+		return
+	}
+	for i := range choices {
+		choices[i] = strings.TrimSpace(choices[i])
+	}
+	// A resumed answer is scoped to the current victim. Once its body has
+	// completed, advance to the next Defined$ player and pose a fresh ask.
+	if c.Modes != nil {
+		names := c.Modes
+		c.Modes = nil
+		for _, name := range names {
+			if sub := cards.ResolveSVar(c.SVars, name); sub != nil {
+				Resolve(h, c, sub)
+			}
+			if h.Suspended() {
+				// The chosen body posed a nested mid-resolution ask (DBSac's
+				// sacrifice picker is the live carrier). Record this
+				// primitive's own continuation so the remaining victims are
+				// still asked once that ask's chain completes, instead of
+				// being stranded: the enclosing Resolve loop would otherwise
+				// resume only sa.Sub (nil for a VillainousChoice) and the
+				// outer levels would degrade to no-sub-ability Notes.
+				h.SuspendVillainousRest(sa, VillainousRest{
+					Victims: append([]state.Target(nil), c.VillainousVictims...),
+					Next:    c.VillainousIndex + 1})
+				return
+			}
+		}
+		c.VillainousIndex++
+	}
+	if c.VillainousVictims == nil {
+		for _, target := range Defined(h, c, sa) {
+			if target.IsPlayer {
+				c.VillainousVictims = append(c.VillainousVictims, target)
+			}
+		}
+		// Nested asks (for example DBSac's permanent picker) carry the
+		// Remembered victim but not this primitive's private cursor. Recover
+		// the cursor from that stable victim so the body is not re-asked and
+		// the following victims are still processed.
+		if c.Modes == nil && len(c.Remembered) > 0 {
+			for i, target := range c.VillainousVictims {
+				if target == c.Remembered[len(c.Remembered)-1] {
+					c.VillainousIndex = i + 1
+					break
+				}
+			}
+		}
+	}
+	for c.VillainousIndex < len(c.VillainousVictims) {
+		victim := c.VillainousVictims[c.VillainousIndex]
+		// The body is evaluated against this victim, not an earlier victim.
+		c.Remembered = []state.Target{victim}
+		d := &decision.Decision{Player: victim.Player, Kind: decision.KModes,
+			Min: 1, Max: 1, Source: c.Source, ResumeKind: "villainous",
+			ResumeSA: sa, ResumeModes: append([]string(nil), choices...),
+			ResumeRemembered:        append([]state.Target(nil), c.Remembered...),
+			ResumeVillainousVictims: append([]state.Target(nil), c.VillainousVictims...),
+			ResumeVillainousIndex:   c.VillainousIndex,
+			Prompt:                  "Choose a villainous option"}
+		for i, name := range choices {
+			label := name
+			if sub := cards.ResolveSVar(c.SVars, name); sub != nil {
+				if desc := strings.TrimSpace(sub.Params["SpellDescription"]); desc != "" {
+					label = desc
+				}
+			}
+			d.Options = append(d.Options, decision.Option{Index: i, Kind: "mode",
+				Label: label, Obj: c.Source, Player: victim.Player})
+		}
+		if Ask(h, d) == AskAsked {
+			return
+		}
+		// R-9: an effects-only host has no chooser, so deterministically take
+		// the first option and continue to the next victim.
+		if sub := cards.ResolveSVar(c.SVars, choices[0]); sub != nil {
+			Resolve(h, c, sub)
+		}
+		if h.Suspended() {
+			return
+		}
+		c.VillainousIndex++
+	}
 }
 
 // effCharm runs the selected Choices$ sub-abilities in chosen order.

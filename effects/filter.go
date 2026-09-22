@@ -183,6 +183,20 @@ var predicates = map[string]predFn{
 	"escaped": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.CastFlags&state.FlagEscaped != 0
 	},
+	// Suspend capability and status are intentionally separate. A card has
+	// suspend when it is printed with K:Suspend or received the event-backed
+	// grant; it is suspended only while that capability card is exiled with a
+	// positive TIME counter.
+	"withSuspend": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o != nil && (o.SuspendGranted || (o.Face() != nil && o.Face().HasKeyword("Suspend")))
+	},
+	"withoutSuspend": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o == nil || !(o.SuspendGranted || (o.Face() != nil && o.Face().HasKeyword("Suspend")))
+	},
+	"suspended": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o != nil && o.Zone == state.ZExile && o.Counter("TIME") > 0 &&
+			(o.SuspendGranted || (o.CastFlags&state.FlagSuspend) != 0 || (o.Face() != nil && o.Face().HasKeyword("Suspend")))
+	},
 	// wasCastFromGraveyard is the CastFlags provenance of a GRAVEYARD-ORIGIN
 	// cast (CR 601.2b): any of FlagFlashback, FlagHarmonize or FlagEscaped.
 	// The same bit test the Count$wasCastFromGraveyard branch head shares
