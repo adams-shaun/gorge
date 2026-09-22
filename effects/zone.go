@@ -2774,6 +2774,14 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 			continue
 		}
 		if done && i == cursor {
+			if raw, ok := totalCardTypesRequirement(sa); ok {
+				need, err := strconv.Atoi(raw)
+				if err != nil || need < 0 || !totalCardTypesSatisfied(h.Game(), ans, need) {
+					h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: owner,
+						Text: "hidden pick fails WithTotalCardTypes$ requirement"})
+					continue
+				}
+			}
 			apply(owner, ans)
 			continue
 		}
@@ -2966,9 +2974,21 @@ func trimSharedLandTypes(g *state.Game, chosen []state.ObjID) []state.ObjID {
 	return out
 }
 
+// totalCardTypesRequirement follows the linked ability chain because a hidden
+// pick can resume at a sub-ability after its answer; the requirement belongs
+// to the ChangeZone node that owns the pick, not to whichever node resumed it.
+func totalCardTypesRequirement(sa *cards.SA) (string, bool) {
+	for cur := sa; cur != nil; cur = cur.Sub {
+		if raw := strings.TrimSpace(cur.Params["WithTotalCardTypes"]); raw != "" {
+			return raw, true
+		}
+	}
+	return "", false
+}
+
 // totalCardTypesSatisfied is the hidden-search constraint used by
-// WithTotalCardTypes$. Card types are the six ordinary spell types plus
-// Battle; supertypes and creature subtypes in Face.Types do not count.
+// WithTotalCardTypes$. Card types are the ordinary spell types, including
+// Kindred and Battle; supertypes and creature subtypes in Face.Types do not count.
 func totalCardTypesSatisfied(g *state.Game, ids []state.ObjID, need int) bool {
 	if need <= 0 {
 		return true
@@ -2981,7 +3001,7 @@ func totalCardTypesSatisfied(g *state.Game, ids []state.ObjID, need int) bool {
 		}
 		for _, typ := range o.Face().Types {
 			switch typ {
-			case "Artifact", "Battle", "Creature", "Enchantment", "Instant", "Land", "Planeswalker", "Sorcery":
+			case "Artifact", "Battle", "Creature", "Enchantment", "Instant", "Kindred", "Land", "Planeswalker", "Sorcery":
 				seen[typ] = true
 			}
 		}
@@ -3050,8 +3070,12 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 	// boundary as a conservative host-bypass guard: an underspecified answer
 	// finds nothing and cannot feed the ChangeZone rider. This check follows
 	// the other set-level trims so those cannot invalidate the guarantee.
-	if raw := strings.TrimSpace(sa.Params["WithTotalCardTypes"]); raw != "" {
-		need, ok := NumResolved(h, c, sa, "WithTotalCardTypes", 0)
+	if raw, hasTotalCardTypes := totalCardTypesRequirement(sa); hasTotalCardTypes {
+		// This parameter is a literal card-type cardinality in the Forge
+		// grammar (Winter uses 4). Parse it directly so the hidden-search
+		// continuation cannot lose the literal when it rebuilds its Ctx.
+		literal, parseErr := strconv.Atoi(raw)
+		need, ok := int32(literal), parseErr == nil
 		if !ok || need < 0 {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: owner,
 				Text: "WithTotalCardTypes$ cannot be resolved; hidden pick fails closed"})
@@ -3674,10 +3698,7 @@ func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 		if ReplaceUmbraArmor(h, id) {
 			continue
 		}
-		to := state.ZGraveyard
-		if o := h.Game().Obj(id); o != nil && o.Counter("FINALITY") > 0 {
-			to = state.ZExile
-		}
+		to := finalityDestination(h, id, state.ZBattlefield, state.ZGraveyard)
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
 			From: state.ZBattlefield, To: to, Text: "destroyed"})
 		// Host.Emit applies move replacements before folding the move. Only
@@ -3734,10 +3755,7 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 		if ReplaceUmbraArmor(h, id) {
 			continue
 		}
-		to := state.ZGraveyard
-		if o := g.Obj(id); o != nil && o.Counter("FINALITY") > 0 {
-			to = state.ZExile
-		}
+		to := finalityDestination(h, id, state.ZBattlefield, state.ZGraveyard)
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
 			From: state.ZBattlefield, To: to, Text: "destroyed"})
 		if remember {

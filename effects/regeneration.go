@@ -5,6 +5,22 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
+// finalityDestination applies the FINALITY replacement for effect paths whose
+// host does not also run the rules engine's common MoveZone replacement pass.
+// The common engine path is authoritative for derived creature types; this
+// small fallback keeps direct effect hosts honest without widening the rule to
+// noncreature permanents.
+func finalityDestination(h Host, id state.ObjID, from, to state.Zone) state.Zone {
+	if from != state.ZBattlefield || to != state.ZGraveyard {
+		return to
+	}
+	o := h.Game().Obj(id)
+	if o != nil && o.Counter("FINALITY") > 0 && o.Face() != nil && o.Face().IsCreature() {
+		return state.ZExile
+	}
+	return to
+}
+
 // ReplaceUmbraArmor applies umbra armor (CR 702.90): if the permanent that
 // would be destroyed wears an Aura with umbra armor, instead remove all
 // damage from it and destroy that Aura. Consulted at every destruction
