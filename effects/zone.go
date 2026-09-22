@@ -1153,6 +1153,15 @@ func handMoveChooserFor(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID) (sta
 			return c.TriggerPlayer.Player, true
 		}
 		return owner, true
+	case "ChosenPlayer", "Player.Chosen":
+		// The chosen player, resolved through the SAME shared read
+		// searchChooser/hiddenPickChooser use. With none bound or the seat
+		// gone, fail closed (never fall to the hand owner: a hidden-hand
+		// move from the wrong seat is worse than moving none).
+		if p, ok := chooserChosenPlayer(h, c); ok {
+			return p, true
+		}
+		return owner, false
 	}
 	return owner, false
 }

@@ -76,6 +76,16 @@ func TestChooserChosenPlayerResolvesTheChosenSeat(t *testing.T) {
 		t.Fatalf("hiddenPickChooser with no Chooser$ = %d, want owner 2", got)
 	}
 
+	// The hidden-HAND mover's chooser (handMoveChooserFor) is the third
+	// player-chooser sibling: it must resolve the chosen seat too, and fail
+	// CLOSED (never to the hand owner) when the seat is unbound or gone.
+	if got, ok := handMoveChooserFor(h, c, chooserSA("ChosenPlayer"), 2); !ok || got != 1 {
+		t.Fatalf("handMoveChooserFor Chooser$ ChosenPlayer = (%d, %v), want chosen seat 1", got, ok)
+	}
+	if got, ok := handMoveChooserFor(h, c, &cards.SA{}, 2); !ok || got != 2 {
+		t.Fatalf("handMoveChooserFor with no Chooser$ = (%d, %v), want owner fallback (2, true)", got, ok)
+	}
+
 	// A chosen seat that has left the game must not receive the ask: each
 	// chooser returns its own deterministic default instead.
 	h.g.Players[1].Lost = true
@@ -84,5 +94,8 @@ func TestChooserChosenPlayerResolvesTheChosenSeat(t *testing.T) {
 	}
 	if got := hiddenPickChooser(h, c, chooserSA("ChosenPlayer"), 2); got != 0 {
 		t.Fatalf("hiddenPickChooser with a dead chosen seat = %d, want controller 0", got)
+	}
+	if got, ok := handMoveChooserFor(h, c, chooserSA("ChosenPlayer"), 2); ok || got != 2 {
+		t.Fatalf("handMoveChooserFor with a dead chosen seat = (%d, %v), want fail-closed (2, false)", got, ok)
 	}
 }
