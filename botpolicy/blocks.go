@@ -391,3 +391,65 @@ func blockSaved(a Creature, picks []int, d *decision.Decision, b Board) int32 {
 	}
 	return absorbed
 }
+
+// legalBlockChoices drops any chosen (blocker, attacker) pair that would leave
+// its attacker's block count outside the CR 509.1a MinMaxBlocker bounds the
+// engine published on the offered options (Option.MinBlockers/MaxBlockers).
+// The per-pair option list cannot express a whole-declaration count
+// constraint, and the engine REJECTS an illegal count -- a rejected bot intent
+// crashes the match -- so every KBlockers policy routes its answer through
+// this one guard rather than each learning the restriction.
+//
+// An attacker whose chosen count falls below Min has ALL its chosen blocks
+// dropped: 0 is always legal for Min$ (the attacker is simply unblocked), and
+// a partial team is not. A count above Max is trimmed to Max, keeping the
+// earliest-declared pairs (the engine reads declaration order for CR 510.1c
+// damage assignment). Output order is the input order, so the guard consumes
+// no randomness and never ranges a map into the result.
+func legalBlockChoices(d *decision.Decision, choices []int) []int {
+	if len(choices) == 0 {
+		return choices
+	}
+	bounds := make(map[state.ObjID][2]int)
+	attacker := make(map[int]state.ObjID, len(choices))
+	for _, ci := range choices {
+		if ci < 0 || ci >= len(d.Options) {
+			continue
+		}
+		o := &d.Options[ci]
+		attacker[ci] = o.Attacker
+		if o.MinBlockers != 0 || o.MaxBlockers != 0 {
+			bounds[o.Attacker] = [2]int{o.MinBlockers, o.MaxBlockers}
+		}
+	}
+	count := make(map[state.ObjID]int)
+	for _, aid := range attacker {
+		count[aid]++
+	}
+	drop := make(map[state.ObjID]bool)
+	for aid, b := range bounds {
+		if b[0] != 0 && count[aid] < b[0] {
+			drop[aid] = true
+		}
+	}
+	out := make([]int, 0, len(choices))
+	trimmed := make(map[state.ObjID]int)
+	for _, ci := range choices {
+		aid, ok := attacker[ci]
+		if !ok {
+			out = append(out, ci)
+			continue
+		}
+		if drop[aid] {
+			continue
+		}
+		if b := bounds[aid]; b[1] != 0 {
+			trimmed[aid]++
+			if trimmed[aid] > b[1] {
+				continue
+			}
+		}
+		out = append(out, ci)
+	}
+	return out
+}

@@ -198,3 +198,45 @@ func TestBlocksTrampleChumpPrefersAdequate(t *testing.T) {
 		t.Errorf("trample chump = %v, want {2,1}", p)
 	}
 }
+
+// TestLegalBlockChoicesDropsIllegalCounts pins the shared KBlockers guard:
+// the CR 509.1a MinMaxBlocker bounds ride the option (MinBlockers/
+// MaxBlockers), and a policy answer outside them is dropped before it can
+// reach the engine, which would reject the whole declaration and crash the
+// match. A sub-Min team drops entirely (0 stays legal); an over-Max team is
+// trimmed to Max, keeping the earliest-declared pairs.
+func TestLegalBlockChoicesDropsIllegalCounts(t *testing.T) {
+	d := &decision.Decision{Kind: decision.KBlockers, Min: 0, Max: 3, Options: []decision.Option{
+		{Index: 0, Kind: "block", Obj: 101, Attacker: 201, MinBlockers: 3},
+		{Index: 1, Kind: "block", Obj: 102, Attacker: 201, MinBlockers: 3},
+		{Index: 2, Kind: "block", Obj: 103, Attacker: 201, MinBlockers: 3},
+	}}
+	if got := legalBlockChoices(d, []int{0, 1}); len(got) != 0 {
+		t.Fatalf("a Min 3 attacker with two chosen blockers kept %v, want none", got)
+	}
+	if got := legalBlockChoices(d, []int{0, 1, 2}); len(got) != 3 {
+		t.Fatalf("a legal Min 3 team was trimmed to %v", got)
+	}
+
+	max := &decision.Decision{Kind: decision.KBlockers, Min: 0, Max: 3, Options: []decision.Option{
+		{Index: 0, Kind: "block", Obj: 101, Attacker: 201, MaxBlockers: 1},
+		{Index: 1, Kind: "block", Obj: 102, Attacker: 201, MaxBlockers: 1},
+		{Index: 2, Kind: "block", Obj: 103, Attacker: 201, MaxBlockers: 1},
+	}}
+	if got := legalBlockChoices(max, []int{0, 1, 2}); len(got) != 1 || got[0] != 0 {
+		t.Fatalf("a Max 1 attacker kept %v, want exactly the first pair [0]", got)
+	}
+	if got := legalBlockChoices(max, []int{2}); len(got) != 1 || got[0] != 2 {
+		t.Fatalf("a legal single Max 1 block was altered: %v", got)
+	}
+
+	// The default policy routes through the guard end to end: three 2/2
+	// blockers against one bumped 6/5 attacker under Min 3 must answer with
+	// no block, never an illegal one-creature chump.
+	b := boardOf(atk(1, 2, 2), atk(2, 2, 2), atk(3, 2, 2), def(1, 6, 5))
+	b.Life[state.PlayerID(0)] = 20
+	in := Decide(b, d, rng(1))
+	if len(in.Choices) != 0 {
+		t.Fatalf("Decide chose %v against a Min 3 attacker, want no block", in.Choices)
+	}
+}
