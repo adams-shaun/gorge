@@ -365,8 +365,8 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 				return 0, false
 			}
 			if hasOp {
-				v := applyCountOpOperand(h, c, int32(n), op, depth)
-				return v, true
+				v, ok := applyCountOpOperandOK(h, c, int32(n), op, depth)
+				return v, ok
 			}
 			return int32(n), true
 		}
@@ -405,6 +405,19 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 // Plus.DragonControlled). Resolve those names in the current face's SVar
 // table before applying the existing saturating arithmetic.
 func applyCountOpOperand(h Host, c *Ctx, n int32, op string, depth int) int32 {
+	v, ok := applyCountOpOperandOK(h, c, n, op, depth)
+	if !ok {
+		return applyCountOp(n, op)
+	}
+	return v
+}
+
+// applyCountOpOperandOK also reports whether op belongs to the SVar-operand
+// subset this helper implements. Count$ keeps its historical no-op result for
+// other suffixes through applyCountOpOperand, while Number$ literals use the
+// verdict to fail closed instead of treating an unknown suffix as their base
+// literal (for example Mathemagics' unsupported Number$2/Pow.X).
+func applyCountOpOperandOK(h Host, c *Ctx, n int32, op string, depth int) (int32, bool) {
 	for _, prefix := range []string{"Plus.", "Minus.", "Times."} {
 		operand, ok := strings.CutPrefix(op, prefix)
 		if !ok {
@@ -412,17 +425,17 @@ func applyCountOpOperand(h Host, c *Ctx, n int32, op string, depth int) int32 {
 		}
 		operand = strings.TrimSpace(operand)
 		if _, err := strconv.Atoi(operand); err == nil {
-			return applyCountOp(n, op)
+			return applyCountOp(n, op), true
 		}
 		if c != nil && c.SVars != nil {
 			if body, exists := c.SVars[operand]; exists {
 				value, _ := evalCountExprOK(h, c, body, depth+1)
-				return applyCountOp(n, prefix+strconv.FormatInt(int64(value), 10))
+				return applyCountOp(n, prefix+strconv.FormatInt(int64(value), 10)), true
 			}
 		}
-		return applyCountOp(n, op)
+		return applyCountOp(n, op), true
 	}
-	return applyCountOp(n, op)
+	return 0, false
 }
 
 // countDistinctLimitMax answers whether op is a LimitMax.<n> clamp on a

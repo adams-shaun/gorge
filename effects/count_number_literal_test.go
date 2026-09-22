@@ -12,7 +12,7 @@ import (
 // "poison equal to the difference" ultimatum placed nothing. The leaves pin
 // the literal, the SVar-named /Op operand through the SAME resolver the
 // Count$ branch uses, and the fail-closed non-integer body.
-func TestNumberLiteralSVarBody(t *testing.T) {
+func TestPoisonCounterNumberLiteralSVarBody(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}
 	g.Players[1].AddCounter("POISON", 3)
@@ -42,6 +42,10 @@ func TestNumberLiteralSVarBody(t *testing.T) {
 		{"Number$abc", 0, false, "", nil},
 		// The empty literal (SVar:RepeatCheck:Number$) stays fail-closed.
 		{"Number$", 0, false, "", nil},
+		// Only the Plus/Minus/Times SVar-operand subset is implemented for
+		// Number$ literals. Mathemagics carries this unsupported Pow suffix;
+		// it must fail closed rather than silently return the base literal 2.
+		{"Number$2/Pow.X", 0, false, "", nil},
 	} {
 		got, ok := EvalCountOK(h, c, tc.expr)
 		if got != tc.want || ok != tc.wantOK {
