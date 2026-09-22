@@ -2795,11 +2795,15 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 		}
 		pc := &pendingCast{player: in.Player, card: opt.Obj, from: from, mode: "land", ability: -1}
 		e.cast = pc
-		e.collectETBChoices(in.Player)
 		if len(pc.etbs) == 0 {
 			e.cast = nil
+			e.etbLandPlay, e.etbLandPlayer = true, in.Player
 			e.emit(events.Event{Kind: events.MoveZone, Obj: opt.Obj,
 				From: from, To: state.ZBattlefield})
+			if e.pending != nil {
+				return
+			}
+			e.etbLandPlay = false
 			e.emit(events.Event{Kind: events.LandPlayed, Player: in.Player})
 			return
 		}

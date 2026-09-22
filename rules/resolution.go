@@ -910,6 +910,53 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 	e.resumeResolution(rp, chosen)
 }
 
+// resumeETBEntry is the resolution-owned continuation for an as-enters
+// choice. Keeping the e.resume write here preserves the structural invariant
+// that only resolution machinery consumes a suspended frame.
+func (e *Engine) resumeETBEntry(chosen []decision.Option) {
+	// handleChoose owns clearing e.resume; this continuation only consumes the
+	// parked entry, keeping the archtest's single ownership rule intact.
+	if e.etbMove == nil || len(chosen) != 1 {
+		e.etbMove = nil
+		e.etbNext = 0
+		e.choosing = chooseNone
+		return
+	}
+	move := *e.etbMove
+	opt := chosen[0]
+	switch opt.Kind {
+	case "name":
+		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "name", Text: opt.Label})
+	case "type":
+		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "type", Text: opt.Label})
+	case "number":
+		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "number", Amount: int32(opt.Amount)})
+	case "color":
+		if letter := etbColourLetter(opt.Label); letter != "" {
+			e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "color", Text: letter})
+		}
+	case "riot":
+		choice := "haste"
+		if opt.Index == 0 {
+			choice = "counter"
+		}
+		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "riot", Text: choice})
+	case "unleash":
+		choice := "plain"
+		if opt.Index == 0 {
+			choice = "counter"
+		}
+		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "unleash", Text: choice})
+	}
+	e.choosing = chooseNone
+	e.emit(move)
+	if e.pending == nil && e.etbLandPlay {
+		p := e.etbLandPlayer
+		e.etbLandPlay = false
+		e.emit(events.Event{Kind: events.LandPlayed, Player: p})
+	}
+}
+
 // resumeResolution re-enters a suspended resolution with its answer. It
 // rebuilds the same Ctx resolveTop built for the object on its first pass
 // (Source/Controller/Targets/Remembered and the SVar table are all
@@ -3024,6 +3071,11 @@ func (e *Engine) moveResolvedOffStack(o *state.Object) {
 	id := o.ID
 	if f := o.Face(); f != nil && f.IsPermanent() {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZBattlefield})
+		// An as-enters choice parks this move through the mid-resolution ask
+		// path. Keep the object on the stack until the answer re-emits it.
+		if e.pending != nil || e.resume != nil {
+			return
+		}
 		e.ensureLeftTheStack(id, spellRestZone(o), "an ETB replacement fully replaced this "+
 			"permanent's entry to the battlefield without moving it anywhere; sent to its "+
 			"resting zone instead of re-resolving forever")

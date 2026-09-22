@@ -32,6 +32,9 @@ const (
 	chooseCast chooseFor = iota + 1
 	chooseETB
 	chooseMiracle
+	// chooseETBEntry is the resolution-time counterpart of chooseETB. It is
+	// distinct because chooseETB remains the legacy cast-flow helper.
+	chooseETBEntry chooseFor = 31
 	// chooseRiot is deliberately outside the independently extended
 	// chooseCleanup/chooseMana ranges in combat.go and mana_activation.go.
 	// It is 20 because the merged package occupies 1 through 18 (cast/etb/
@@ -2105,7 +2108,6 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		e.cast.mayPlayIgnore = e.payerGrantsIgnoreColor(p, id)
 		e.cast.mayPlayIgnoreType = e.payerGrantsIgnoreType(p, id)
 	}
-	e.collectETBChoices(p)
 	e.continueCast()
 }
 
@@ -2172,7 +2174,6 @@ func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost boo
 			return
 		}
 		e.cast = &pendingCast{player: p, card: id, from: o.Zone, mode: "land", ability: -1}
-		e.collectETBChoices(p)
 		e.continueCast()
 		return
 	}
@@ -2221,7 +2222,6 @@ func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost boo
 	mods := e.costModifiers(p, id, spellScope(""))
 	e.cast = &pendingCast{player: p, card: id, from: o.Zone, mode: "play", ability: -1,
 		cost: cost, mods: mods, replaceGraveyard: replaceGraveyard}
-	e.collectETBChoices(p)
 	e.continueCast()
 }
 
@@ -4235,6 +4235,54 @@ func etbChoiceKind(api string) string {
 		return "color"
 	}
 	return ""
+}
+
+// entryETBChoice returns the ordinal-th choice that must be made for ev's
+// battlefield entry. It is deliberately derived from the same prospective
+// MoveZone event the replacement matcher will later consume: an ActiveZones or
+// ValidCard gate therefore cannot make the engine ask about a replacement that
+// will not apply. The ordinal lets several choices on one permanent suspend
+// and resume without adding transient state to the event log.
+func (e *Engine) entryETBChoice(ev events.Event, ordinal int) (etbChoice, bool) {
+	o := e.G.Obj(ev.Obj)
+	if o == nil || o.Face() == nil || ev.To != state.ZBattlefield {
+		return etbChoice{}, false
+	}
+	you := o.Controller
+	seen := 0
+	if o.Face().HasKeyword("Riot") {
+		if seen == ordinal {
+			return etbChoice{kind: "riot", options: []decision.Option{
+				{Index: 0, Kind: "riot", Label: "Enter with a +1/+1 counter", Obj: o.ID, Player: you},
+				{Index: 1, Kind: "riot", Label: "Gain haste", Obj: o.ID, Player: you},
+			}}, true
+		}
+		seen++
+	}
+	if o.Face().HasKeyword("Unleash") {
+		if seen == ordinal {
+			return etbChoice{kind: "unleash", options: unleashOptions(o.ID, you)}, true
+		}
+		seen++
+	}
+	for i := range o.Face().Repls {
+		r := &o.Face().Repls[i]
+		if r.Params["Keyword"] != "ETBReplacement" || r.With == nil ||
+			!e.replacementMatches(*r, o.ID, ev) {
+			continue
+		}
+		kind := etbChoiceKind(r.With.API)
+		if kind == "" {
+			continue
+		}
+		if seen == ordinal {
+			return etbChoice{kind: kind, options: e.etbOptions(you, o.ID, kind,
+				r.With.Params["ValidCards"], r.With.Params["ValidDescription"],
+				r.With.Params["Type"], r.With.Params["Exclude"])}, true
+		}
+		seen++
+	}
+	return etbChoice{}, false
 }
 
 // etbColourLabels pairs the WUBRG letter the Choose event records with the
@@ -6476,15 +6524,16 @@ func (e *Engine) payCast() {
 		return
 	}
 	if pc.mode == "land" {
-		// Task 12: a land played through the one-stage flow (an "as this
-		// enters" choice, e.g. Cavern of Souls). The choice was already
-		// recorded by etbAnswer; now move it onto the battlefield and log the
-		// land play, exactly the two events handlePriority's no-choice
-		// play_land path emits. Its own MoveZone routes through
-		// applyReplacements, so an ETBReplacement on the land itself (or its
-		// choice already recorded) resolves on entry.
+		// A land's as-enters choice is now asked by the MoveZone replacement
+		// boundary, not during this proposal. Keep LandPlayed behind that
+		// boundary so it is logged only after the answered entry completes.
 		e.cast, e.choosing = nil, chooseNone
+		e.etbLandPlay, e.etbLandPlayer = true, pc.player
 		e.emit(events.Event{Kind: events.MoveZone, Obj: pc.card, From: pc.from, To: state.ZBattlefield})
+		if e.pending != nil {
+			return
+		}
+		e.etbLandPlay = false
 		e.emit(events.Event{Kind: events.LandPlayed, Player: pc.player})
 		return
 	}

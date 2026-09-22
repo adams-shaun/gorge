@@ -179,8 +179,8 @@ func TestSanctumPrelateNumberIsChosenAtCastAndRestrictsCasting(t *testing.T) {
 	pr := find("Prelate", 0)
 	addMana(t, e, 0, "WWW")
 	castFirst(t, e, "cast")
-	d := e.Pending()
-	if d == nil || d.Kind != decision.KChoose || d.Options[0].Kind != "number" || len(d.Options) != 13 {
+	d := passUntilNonPriority(t, e, 40)
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "etb" || d.Options[0].Kind != "number" || len(d.Options) != 13 {
 		t.Fatalf("number choice %+v", d)
 	}
 	submitChoices(t, e, 1) // choose 1
@@ -189,6 +189,7 @@ func TestSanctumPrelateNumberIsChosenAtCastAndRestrictsCasting(t *testing.T) {
 	}
 	passUntilStackEmpty(t, e, 20)
 	b := addToHand(t, e, 1, bolt)
+	e.askPriority(0)
 	passToPlayerOne(t, e)
 	addMana(t, e, 1, "R")
 	for _, o := range e.Pending().Options {
@@ -216,8 +217,8 @@ func TestNeedleNamesACardAndCavernChoosesAType(t *testing.T) {
 	e.emit(events.Event{Kind: events.CounterChange, Obj: b, Counter: "P1P1", Amount: 2})
 	addMana(t, e, 0, "G")
 	castFirst(t, e, "cast")
-	d := e.Pending()
-	if d == nil || d.Kind != decision.KChoose || d.Options[0].Kind != "name" {
+	d := passUntilNonPriority(t, e, 40)
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "etb" || d.Options[0].Kind != "name" {
 		t.Fatalf("name choice %+v", d)
 	}
 	idx := -1
@@ -234,6 +235,7 @@ func TestNeedleNamesACardAndCavernChoosesAType(t *testing.T) {
 	if e.G.Obj(n).ChosenName != "Ballista" {
 		t.Fatal("name not recorded")
 	}
+	e.askPriority(0)
 	passToPlayerOne(t, e)
 	if _, ok := findManaAbilityOption(e, b, 0); ok {
 		t.Fatal("the named card's ability was offered")

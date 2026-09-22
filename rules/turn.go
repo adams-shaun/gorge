@@ -1030,6 +1030,11 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		e.handleStation(e.stationing, chosen)
 		return
 	}
+	if e.choosing == chooseETBEntry {
+		e.resume = nil
+		e.resumeETBEntry(chosen)
+		return
+	}
 	// Every KChoose carrying a resume point is a mid-resolution effect ask,
 	// regardless of its ResumeKind (search, dig, imprint, untap selection,
 	// reveal-optional, defined-library-optional, ward windows, hand_move,

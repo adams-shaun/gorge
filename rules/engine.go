@@ -683,6 +683,14 @@ type Engine struct {
 	// cast holds the in-progress cast-flow state while choosing ==
 	// chooseCast (Task 9, rules/cast.go). Nil whenever no cast is mid-flow.
 	cast *pendingCast
+	// etbMove parks a battlefield entry while its as-enters choice is answered
+	// through the mid-resolution decision path. etbNext is the ordinal of the
+	// next choice on that entry; both are plain data so a clone at the decision
+	// boundary preserves the entry exactly.
+	etbMove       *events.Event
+	etbNext       int
+	etbLandPlay   bool
+	etbLandPlayer state.PlayerID
 	// riotMove parks a non-cast battlefield entry while its controller makes
 	// Riot's as-enters choice. The event is emitted only after Choose records
 	// the answer, so every entry path reaches events.Move with RiotChoice set.
