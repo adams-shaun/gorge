@@ -375,14 +375,16 @@ type pendingCast struct {
 	// emits reverse Choose events restoring these captured values -- but ONLY
 	// when a choice was recorded during this proposal (a spell that never
 	// chose anything emits nothing, so no chain head moves for it). Capturing
-	// all three fields at the first answer means a card with several etb
+	// every choice field at the first answer means a card with several etb
 	// choices restores the true pre-proposal state, not the state after the
 	// first answer.
-	etbChosen bool
-	etbName   string
-	etbType   string
-	etbNumber int32
-	etbColor  string
+	etbChosen           bool
+	etbName             string
+	etbType             string
+	etbNumber           int32
+	etbColor            string
+	etbCloneChoice      state.ObjID
+	etbCloneChoiceValid bool
 
 	// altAddParts are the alternative parts of the card's
 	// AlternateAdditionalCost keyword ("As an additional cost to cast this
@@ -5423,6 +5425,7 @@ func (e *Engine) etbAnswer(d *decision.Decision, chosen []decision.Option) {
 	if !pc.etbChosen {
 		if o := e.G.Obj(pc.card); o != nil {
 			pc.etbName, pc.etbType, pc.etbNumber, pc.etbColor = o.ChosenName, o.ChosenType, o.ChosenNumber, o.ChosenColor
+			pc.etbCloneChoice, pc.etbCloneChoiceValid = o.ETBCloneChoice, o.ETBCloneChoiceValid
 		}
 		pc.etbChosen = true
 	}
@@ -7127,6 +7130,17 @@ func (e *Engine) abortCast(pc *pendingCast, text string, suppress bool) {
 			}
 			if o.ChosenColor != pc.etbColor {
 				e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "color", Text: pc.etbColor})
+			}
+			if o.ETBCloneChoiceValid != pc.etbCloneChoiceValid || o.ETBCloneChoice != pc.etbCloneChoice {
+				if pc.etbCloneChoiceValid {
+					ids := []state.ObjID(nil)
+					if pc.etbCloneChoice != 0 {
+						ids = []state.ObjID{pc.etbCloneChoice}
+					}
+					e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "clone", IDs: ids})
+				} else {
+					e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "clone-clear"})
+				}
 			}
 		}
 	}

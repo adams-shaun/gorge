@@ -1633,6 +1633,11 @@ func Apply(g *state.Game, e Event) {
 				if len(e.IDs) > 0 {
 					o.ETBCloneChoice = e.IDs[0]
 				}
+			case "clone-clear":
+				// A CR 733.1 cast abort restores the distinct pre-proposal
+				// no-election state. A clone event with no IDs instead records
+				// a real Optional decline, so it must leave Valid true.
+				o.ETBCloneChoice, o.ETBCloneChoiceValid = 0, false
 			case state.ModeChoiceCounterPrefix + state.ModeScopeThisTurn:
 				// ChoiceRestriction$ (task charm-choice-restriction): one Charm
 				// mode pick, named in Text, keyed ThisTurn. The entry is pruned
