@@ -17,6 +17,87 @@ func init() {
 	Register("RollDice", effRollDice)
 }
 
+// DieRollNotePrefix is the canonical per-die roll Note's text prefix. ONE
+// shared encoding serves every roll: effRollDice below is the only emitter,
+// and the trig:RolledDie matcher (rules/trigmatch_misc.go's rolledDieMatches)
+// reads it -- so a die rolled by any DB$ RollDice fires "whenever you roll a
+// die / roll a 4 or higher" exactly like the roll itself. The Note is a
+// replayable event: the random draw is the engine's seeded Rand, and a replay
+// folds the Note without re-rolling (the same shape api:FlipCoin's
+// FlipCoinNote serves trig:FlippedCoin, and the api:RollDice CAUSE Note
+// effRollDice's own range-table code reads).
+const DieRollNotePrefix = "rolls a d"
+
+// DieRollNote builds the canonical per-die roll event. Player is the
+// roller, Obj the rolling source, Amount the MODIFIED result (die + Modifier$)
+// -- the value every roll reader, ValidResult$ included, means by "the
+// result". Pairs[0] carries [sides, natural] so a trigger can scope on
+// ValidSides$ and Natural$ without parsing Text (Text is the transcript,
+// kept byte-identical to the pre-trigger format). A non-zero Amount is a
+// real roll; the Note is emitted once per die, so a multi-die roll fires a
+// per-die trigger once per die (Forge's own RolledDie cadence, which is what
+// Natural$ True and Number$ 3 assume).
+func DieRollNote(source state.ObjID, roller state.PlayerID, sides, natural, result int32) events.Event {
+	text := DieRollNotePrefix + strconv.FormatInt(int64(sides), 10) + ": " + strconv.FormatInt(int64(natural), 10)
+	if result != natural {
+		text += " + " + strconv.FormatInt(int64(result-natural), 10) + " = " + strconv.FormatInt(int64(result), 10)
+	}
+	return events.Event{Kind: events.Note, Player: roller, Obj: source,
+		Amount: result, Text: text,
+		Pairs: [][2]state.ObjID{{state.ObjID(sides), state.ObjID(natural)}}}
+}
+
+// DieRollResult decodes a canonical die-roll Note: the roller (ev.Player),
+// the modified result (ev.Amount), the die's sides and the unmodified natural
+// roll (ev.Pairs[0]). ok is false for any other Note -- in particular the
+// per-roll transcript Notes of another shape.
+func DieRollResult(ev events.Event) (roller state.PlayerID, sides, natural, result int32, ok bool) {
+	if ev.Kind != events.Note || !strings.HasPrefix(ev.Text, DieRollNotePrefix) || len(ev.Pairs) == 0 {
+		return 0, 0, 0, 0, false
+	}
+	return ev.Player, int32(ev.Pairs[0][0]), int32(ev.Pairs[0][1]), ev.Amount, true
+}
+
+// DieRollBatchNotePrefix is the canonical BATCH roll Note's text prefix,
+// emitted once per DB$ RollDice resolution after every per-die Note. ONE
+// shared encoding serves every roll: effRollDice is the only emitter, and
+// the trig:RolledDieOnce matcher (rules/trigmatch_misc.go's
+// rolledDieOnceMatches) reads it -- so "whenever you roll one or more dice"
+// fires exactly once per roll action regardless of how many dice it rolled,
+// the cadence Forge's RolledDieOnce mode has and the per-die RolledDie mode
+// does not. One Note per resolution is the batch boundary the per-die Notes
+// do not carry, so no engine scratch latch or roll-resolution scope is
+// needed to tell a three-die roll from three one-die rolls.
+const DieRollBatchNotePrefix = "rolls dice: "
+
+// DieRollBatchNote builds the canonical per-resolution roll event: Player is
+// the roller, Obj the rolling source, Amount the batch's reported RESULT (the
+// last die's modified result -- Forge's Result for a roll action; every
+// corpus RolledDieOnce Result reader rolls exactly one die, so the last and
+// the only die coincide), Pairs[0] carries [count, maxResult] so the Once
+// matcher and the TriggerCountMax$Result head can scope on the batch without
+// parsing Text. It is emitted exactly once per effRollDice resolution, after
+// the per-die Notes and before ResultSubAbilities$ resolves.
+func DieRollBatchNote(source state.ObjID, roller state.PlayerID, count, maxResult, result int32) events.Event {
+	text := DieRollBatchNotePrefix + strconv.FormatInt(int64(count), 10) + " -> " + strconv.FormatInt(int64(result), 10)
+	return events.Event{Kind: events.Note, Player: roller, Obj: source,
+		Amount: result, Text: text,
+		Pairs: [][2]state.ObjID{{state.ObjID(count), state.ObjID(maxResult)}}}
+}
+
+// DieRollBatchResult decodes a canonical batch roll Note: the roller
+// (ev.Player), the number of dice rolled, the highest modified result in the
+// batch (Pairs[0][1], the TriggerCountMax$Result head) and the batch result
+// (ev.Amount, the last die's modified result). ok is false for any other Note
+// -- in particular a per-die DieRollNote, which the Once matcher must not fire
+// on.
+func DieRollBatchResult(ev events.Event) (roller state.PlayerID, count, maxResult, result int32, ok bool) {
+	if ev.Kind != events.Note || !strings.HasPrefix(ev.Text, DieRollBatchNotePrefix) || len(ev.Pairs) == 0 {
+		return 0, 0, 0, 0, false
+	}
+	return ev.Player, int32(ev.Pairs[0][0]), int32(ev.Pairs[0][1]), ev.Amount, true
+}
+
 // effAddTurn implements the extra-turn primitive (CR 500.7; 43 corpus files).
 // The grant is one events.ExtraTurn per call: Player is the granted seat,
 // Amount the NumTurns$ value (default 1, through the ordinary Num SVar
@@ -359,12 +440,25 @@ func effRollDice(h Host, c *Ctx, sa *cards.SA) {
 		die := int32(h.Rand(int(sides))) + 1
 		result := die + modifier
 		dice = append(dice, result)
-		text := "rolls a d" + strconv.FormatInt(int64(sides), 10) + ": " + strconv.FormatInt(int64(die), 10)
-		if modifier != 0 {
-			text += " + " + strconv.FormatInt(int64(modifier), 10) + " = " + strconv.FormatInt(int64(result), 10)
-		}
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: text})
+		h.Emit(DieRollNote(c.Source, c.Controller, sides, die, result))
 	}
+	// The batch boundary (trig:RolledDieOnce): ONE canonical Note per
+	// resolution, carrying the batch's reported result (the last die's, Forge's
+	// Result for a roll action) and the highest result in the batch (the
+	// TriggerCountMax$Result head -- Farideh's "if any of those results was 10
+	// or higher"). Emitted after every per-die Note and before
+	// ResultSubAbilities$/the chosen-result ask, so a Once trigger queues at
+	// the roll and resolves after the whole action, exactly as the per-die mode
+	// does. A `done` re-entry (the choose-one-result answer) returns above and
+	// never reaches here, so a suspended roll does not emit a second batch
+	// Note.
+	batchMax := dice[0]
+	for _, r := range dice[1:] {
+		if r > batchMax {
+			batchMax = r
+		}
+	}
+	h.Emit(DieRollBatchNote(c.Source, c.Controller, int32(len(dice)), batchMax, dice[len(dice)-1]))
 
 	// ResultSubAbilities$ is evaluated only after selection: both modifiers
 	// name results, not dice to suppress rolling, so every die is still noted

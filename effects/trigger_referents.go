@@ -45,6 +45,24 @@ type TriggerContext struct {
 	// and survives to resolution through the per-stack-instance
 	// triggerContexts map. Zero when the causing event carried no amount.
 	TriggerAmount int32
+	// TriggerResult is the die result a Mode$ RolledDie trigger fired on (the
+	// canonical die-roll Note's modified result, effects.DieRollResult). It is
+	// what the TriggerCount$Result head answers -- Mr. House's
+	// "BranchConditionSVar$ TriggerCount$Result" reads the roll the trigger
+	// matched, long after the RollDice resolution that produced it has
+	// finished, so like TriggerAmount it is captured at fire time and carried
+	// to resolution through the per-stack-instance triggerContexts map. Zero
+	// outside a RolledDie trigger; a real roll is always >= 1, so zero is
+	// unambiguous absence.
+	TriggerResult int32
+	// TriggerResultMax is the highest die result in the roll batch a Mode$
+	// RolledDieOnce trigger fired on (the canonical batch roll Note's Pairs
+	// max, effects.DieRollBatchResult). It is what the TriggerCountMax$Result
+	// head answers -- Farideh, Devil's Chosen's "if any of those results was
+	// 10 or higher" (ConditionCheckSVar$ DiceResult, SVar:DiceResult:TriggerCountMax$Result),
+	// which must survive the roll resolution like TriggerResult. Zero outside
+	// a RolledDie/RolledDieOnce trigger; a real result is always >= 1.
+	TriggerResultMax int32
 	// TriggerPaidX snapshots the paid X of TriggerCard when this trigger
 	// matched. CR 107.3m binds that value at trigger time: it must survive if
 	// the card later leaves the stack or battlefield before the ability

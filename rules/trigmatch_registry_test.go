@@ -47,6 +47,11 @@ var addedAfterTheSplit = []string{
 	// appended for them, so neither mode could have been in the pre-split
 	// switch.
 	"Discover", "SeekAll",
+	// rolled-die-trigger: "Whenever you roll a die ..." (CR 706; Mr. House,
+	// Celebr-8000, Feywild Trickster). RolledDie fires once per die, each with
+	// its own result, and its sibling RolledDieOnce fires once per roll action
+	// however many dice it rolled. Neither name existed in the pre-split switch.
+	"RolledDie", "RolledDieOnce",
 	// connive1: "Whenever a creature you control connives ..." (CR 702.59;
 	// Iron Monger Sadistic Tycoon, Glorious Purpose, Ultron Unlimited). It
 	// matches the events.Connive marker Kind, which was appended for it, so
