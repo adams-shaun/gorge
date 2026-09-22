@@ -222,7 +222,42 @@ func TestAetherstormRocAttackDeclineKeepsEnergyAndCounter(t *testing.T) {
 	}
 }
 
-// TestEraOfInnovationPaysManaAndGrantsEnergy pins the mana-cost Energy-grant
+// TestVoltaicBrawlerAttackPaysEnergyAndPumps covers a different API sibling
+// (AB$ Pump | Cost$ PayEnergy<1>): the same shared gate must charge the energy
+// and run the +1/+1 body, proving the fix is not special-cased to PutCounter.
+func TestVoltaicBrawlerAttackPaysEnergyAndPumps(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e := combatEngine(t)
+	brawler := onBoardCard(t, e, 0, searchCorpusCard(t, reg, "Voltaic Brawler"))
+	e.G.Obj(brawler).SummonSick = false
+	e.G.Active = 0
+	if d := e.Derived(brawler); d.Power != 3 || d.Toughness != 2 {
+		t.Fatalf("precondition: base P/T = %d/%d, want 3/2", d.Power, d.Toughness)
+	}
+	e.emit(events.Event{Kind: events.PlayerCounterChange, Player: 0, Counter: "ENERGY", Amount: 1})
+	e.emit(events.Event{Kind: events.DeclareAttackers, Player: 0, IDs: []state.ObjID{brawler}})
+	e.putTriggersOnStack()
+	e.resolveTop()
+
+	d := costedEnergyWindow(t, e)
+	pay, _ := costedEnergyPayDecline(d)
+	if pay < 0 {
+		t.Fatalf("the PayEnergy<1> body was not offered as payable: %+v", d.Options)
+	}
+	submitChoices(t, e, pay)
+	drainCostedStack(t, e, 40)
+
+	if got := e.G.Players[0].Counter("ENERGY"); got != 0 {
+		t.Fatalf("energy = %d after paying {E}, want 0", got)
+	}
+	if d := e.Derived(brawler); d.Power != 4 || d.Toughness != 3 {
+		t.Fatalf("P/T = %d/%d after the paid pump, want 4/3", d.Power, d.Toughness)
+	}
+	if !e.HasKeyword(brawler, "Trample") {
+		t.Fatal("the paid pump's Trample grant is missing")
+	}
+}
+
 // carrier end to end: an artifact entering triggers the body, paying {1}
 // spends one generic from the pool and grants {E}{E}.
 func TestEraOfInnovationPaysManaAndGrantsEnergy(t *testing.T) {
