@@ -2388,7 +2388,15 @@ func init() {
 		// S:Mode$ statics are read; the SVar:Static: family that rides the
 		// Effect path is a separate ledgered gap, and Ruxa's NoAbilities
 		// predicate stays an unknown that fails closed.
-		"stat:AssignCombatDamageAsUnblocked")
+		"stat:AssignCombatDamageAsUnblocked",
+		// toughtdmg1: the CR 510.1 combat-damage assignment statics
+		// (rules/statics.go combatDamageToughnessMatches, consumed by the ONE
+		// amount helper combatDamageAmount that every assignment site reads).
+		// Only the printed S:Mode$ statics are read through activeStatics; the
+		// Effect-delivered SVar form (an AB$ Effect | StaticAbilities$
+		// CombatDamageToughness body) is the same Effect-registration gap
+		// AssignCombatDamageAsUnblocked carries and stays ledgered.
+		"stat:CombatDamageToughness")
 }
 
 // asUnblockedStaticMatches reports whether any battlefield
@@ -2426,6 +2434,54 @@ func (e *Engine) asUnblockedStaticMatches(id state.ObjID) (matched, mandatory bo
 		}
 	}
 	return matched, false
+}
+
+// combatDamageToughnessMatches reports whether any battlefield
+// CombatDamageToughness static applies to candidate creature id (CR 510.1:
+// "assigns combat damage equal to its toughness rather than its power"). The
+// match follows asUnblockedStaticMatches' pattern exactly -- the shared
+// restriction/condition gates, the ClassLevel band, IsPresent$ through the
+// shared countPresent walk, and ValidCard$ resolved against the CANDIDATE
+// with the static's host as the spec SOURCE, so an Aura's
+// Creature.EnchantedBy and a lord's Creature.YouCtrl both resolve.
+func (e *Engine) combatDamageToughnessMatches(id state.ObjID) bool {
+	for _, sv := range e.activeStatics("CombatDamageToughness") {
+		if !e.restrictionGateHolds(sv, id) || !e.checkSVarHolds(sv) {
+			continue
+		}
+		if !e.classBandGateHolds(sv.Params, sv.Source) {
+			continue
+		}
+		if spec := strings.TrimSpace(sv.Params["IsPresent"]); spec != "" {
+			if e.countPresent(spec, sv.Source, sv.Controller) <= 0 {
+				continue
+			}
+		}
+		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.staticSpecCtx(sv)) {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
+// combatDamageAmount is the amount creature id assigns as combat damage in a
+// damage step: its TOUGHNESS when a CombatDamageToughness static applies (CR
+// 510.1), else its power. This is the ONE read of the assignment source, so
+// every consumer -- the attacker's own assignment, each blocker's hit-back,
+// the division option count and the as-unblocked election gate -- cannot
+// disagree. It reads through the layer walk (Toughness/Power are
+// derivedScalar), so a static P/T bonus the same turn changes the amount
+// exactly as it changes the characteristic.
+//
+// A creature whose effective amount is at most zero assigns no combat damage
+// (an assignment of zero is not a decision and deals nothing), matching the
+// power gate it replaces; callers that need the amount also read its sign.
+func (e *Engine) combatDamageAmount(id state.ObjID) int32 {
+	if e.combatDamageToughnessMatches(id) {
+		return e.Toughness(id)
+	}
+	return e.Power(id)
 }
 
 // altCostLabel names the nth (0-indexed) alternative-cost option for a
