@@ -136,10 +136,9 @@ func triggerModeEvents(mode string) triggerEventMask {
 	case "AbilityCast":
 		return 1 << events.AbilityPush
 	case "SpellAbilityCast":
-		// Magecraft's widest form: "whenever you cast or activate ..." --
-		// the ACTIVATION half (an AbilityPush) and the CAST half (a
-		// PutOnStack spell) both reach the mode; the matcher dispatches each
-		// kind to its own evaluation.
+		// The spell-or-activate union (targetsvalid1): the activation arm
+		// matches an AbilityPush, the spell arm a PutOnStack. AbilityCast
+		// stays narrow above -- its oracle text is activation-only.
 		return 1<<events.AbilityPush | 1<<events.PutOnStack
 	case "Attacks", "AttackersDeclaredOneTarget", "AttackersDeclared":
 		return 1 << events.DeclareAttackers

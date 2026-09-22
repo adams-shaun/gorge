@@ -826,13 +826,9 @@ func triggerInterestForMode(mode string) TriggerInterest {
 	case "AbilityCast":
 		return TriggerInterestAbilityPush
 	case "SpellAbilityCast":
-		// The spell-OR-ability mode (Feather, Radiant Arbiter, Unbound
-		// Flourishing): the cast half is a PutOnStack event, the activation
-		// half an AbilityPush. Kept in lockstep with rules/trigger_
-		// eligibility.go's triggerModeEvents split -- the compiled prefilter
-		// and the textual mask must admit the same event kinds or a face is
-		// scanned by one and rejected by the other.
-		return TriggerInterestStackPut | TriggerInterestAbilityPush
+		// The spell-or-activate union (targetsvalid1): the activation arm
+		// matches an AbilityPush, the spell arm a PutOnStack.
+		return TriggerInterestAbilityPush | TriggerInterestStackPut
 	case "Attacks", "AttackersDeclaredOneTarget", "AttackersDeclared", "AttackerBlocked",
 		"AttackerBlockedByCreature", "Blocks":
 		return TriggerInterestAttackDeclaration

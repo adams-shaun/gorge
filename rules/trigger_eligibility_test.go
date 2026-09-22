@@ -13,7 +13,9 @@ import (
 var benchmarkObjectTriggerEligibility bool
 
 // The mapping is an over-approximation of the CURRENT matcher, not an
-// expansion of Forge support. SpellAbilityCast currently means AbilityPush.
+// expansion of Forge support. SpellAbilityCast is the spell-or-activate
+// union (targetsvalid1): AbilityPush on the activation arm, PutOnStack on
+// the spell arm.
 func TestTriggerEligibilityEventMatrix(t *testing.T) {
 	for _, tc := range []struct {
 		mode  string
