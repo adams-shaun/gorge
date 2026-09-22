@@ -591,6 +591,26 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 					break
 				}
 			}
+		case "player":
+			// api:Vote's PLAYER ballot (ResumeKind "vote", task votepb1): each
+			// voter picks the player who should receive the vote. Take the first
+			// offered entry that is not the voter themselves -- a vote that
+			// damages or rewards its caster's own seat is the one a real player
+			// avoids whenever the ballot allows it, and Círdan's `VotePlayer$
+			// Player` ballot does allow self-votes, so the clamp fallback's
+			// option 0 could be self. Mob Verdict's `VotePlayer$ Other` never
+			// offers self, so its first entry is already an opponent. Any other
+			// "player" KChoose (ChoosePlayer's "choice" arm) keeps the clamp
+			// fallback: this arm only overrides the vote.
+			if d.ResumeKind == "vote" {
+				in.Choices = []int{d.Options[0].Index}
+				for _, o := range d.Options {
+					if o.Player != d.Player {
+						in.Choices = []int{o.Index}
+						break
+					}
+				}
+			}
 		case "search":
 			// A budgeted search (WithTotalCMC$, so d.MaxSum > 0) mirrors its
 			// R-9 stand-in, which picks greedy[:min]: for a quantity-only

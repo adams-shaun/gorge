@@ -409,7 +409,7 @@ func (c *Ctx) SpecContext(you state.PlayerID) SpecContext {
 // never-matches contract -- and the resolvingRHS guard fails closed the
 // re-entrant SVar-counts-a-spec-with-the-same-RHS case.
 func (c *Ctx) resolveNumericRHS(name string) (int32, bool) {
-	if v, ok := rollPublished(c, name); ok {
+	if v, ok := runtimePublished(c, name); ok {
 		return v, true
 	}
 	if c.resolvingRHS {

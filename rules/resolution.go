@@ -1367,6 +1367,25 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 			}
 			ctx.ChoiceDone = true
+		case "vote":
+			// api:Vote's PLAYER ballot (task votepb1): the answer to one
+			// voter's "vote for a player" KChoose. The accumulated picks ride
+			// the decision's ResumeChoices (rp.choices) and the answered voter
+			// index its ResumeTarget (rp.target); effPlayerVote consumes both,
+			// appends this answer, and asks the next voter -- or completes and
+			// publishes Ctx.VoteCounts for the chained AmountFromVotes$
+			// reader. The transport is decision-scoped (never Ctx.Chosen), so
+			// a nested vote cannot inherit an outer ballot's picks.
+			ctx.VotePicks = append([]state.Target(nil), rp.choices...)
+			ctx.VoteTarget = rp.target
+			ctx.VoteDone = true
+			for _, o := range chosen {
+				if o.Kind == "player" {
+					ctx.VoteAnswer = append(ctx.VoteAnswer, state.Target{Player: o.Player, IsPlayer: true})
+				} else if o.Obj != 0 {
+					ctx.VoteAnswer = append(ctx.VoteAnswer, state.Target{Obj: o.Obj})
+				}
+			}
 		case "tgts":
 			// The generic ValidTgts$ pre-ask (task mvts1) posed inside
 			// effects.Resolve's dispatch loop. Same KChoose answer shape as
