@@ -10,7 +10,10 @@ import (
 
 // TestHofriCopyPermanentGrants pins the real Hofri CopyPermanent mint: its
 // AddSVars$/AddTriggers$ riders are attached to the Spirit copy, rather than
-// being dropped as inert notes.
+// being dropped as inert notes, AND the granted trigger works end to end --
+// the Spirit's real departure (killed through the SBA path, not a raw
+// MoveZone emit) fires the granted TrigLeavesBattlefield trigger and the
+// exiled bearer returns to the graveyard.
 func TestHofriCopyPermanentGrants(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e, cfg, ids := tokenRememberedBoard(t, reg, "Hofri Ghostforge", "Vampire Nighthawk")
@@ -42,7 +45,28 @@ func TestHofriCopyPermanentGrants(t *testing.T) {
 		t.Fatalf("Spirit lacks granted HofriTrigReturn SVar: %q, %v", got, ok)
 	}
 
-	// The grant is the prerequisite for the copy's later leaves-the-battlefield
-	// trigger; the effects-level trigger matcher owns that event path.
+	// The departure is the pin's other half. Kill the Spirit through the REAL
+	// SBA path -- damage + checkStateBased's destroyLethalDamage death batch,
+	// never a raw MoveZone emit, whose live pass cannot match a granted
+	// trigger on an already-departed source (the look-back pass needs the
+	// death batch's snapshot). The granted trigger queues, resolves, and
+	// HofriTrigReturn returns the exiled bearer to its owner's graveyard.
+	if z := e.G.Obj(bearer).Zone; z != state.ZExile {
+		t.Fatalf("precondition: the bearer must sit in exile before the Spirit's departure (zone %v)", z)
+	}
+	e.emit(events.Event{Kind: events.Damage, Obj: spirit, Amount: 99})
+	e.checkStateBased()
+	if z := e.G.Obj(spirit).Zone; z == state.ZBattlefield {
+		t.Fatalf("precondition: the SBA pass did not kill the damaged Spirit (zone %v)", z)
+	}
+	e.putTriggersOnStack()
+	e.resolveTop()
+	passUntilStackEmpty(t, e, 40)
+	if back := e.G.Obj(bearer); back == nil || back.Zone != state.ZGraveyard {
+		t.Fatalf("the exiled bearer did not return to the graveyard when the Spirit left: zone %v, log %+v",
+			e.G.Obj(bearer).Zone, e.L.Events)
+	}
+
+	// The whole round-trip replays byte-identically.
 	replayCheck(t, e, cfg)
 }

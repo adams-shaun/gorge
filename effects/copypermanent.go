@@ -424,10 +424,21 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 	// These grants belong to the copied permanent, but their SVar bodies live
 	// on the resolving ability's face (for example Hofri's return trigger).
 	// Keep the names and the grantor rather than copying parsed bodies: this is
-	// the same replay-safe shape used by Animate's ability grants.
-	grantAbilities := splitCopyGrantNames(sa.Params["AddAbilities"])
-	grantSVars := copyGrantedSVars(c.SVars, sa.Params["AddSVars"])
-	grantTriggers := copyGrantedTriggers(c.SVars, sa.Params["AddTriggers"])
+	// the same replay-safe shape used by Animate's ability grants. A name that
+	// does not resolve is one loud Note per call -- the AddKeywords$ precedent
+	// -- never a silent drop.
+	var faceSVars map[string]string
+	if o := g.Obj(c.Source); o != nil && o.Face() != nil {
+		faceSVars = o.Face().SVars
+	}
+	grantAbilities, unresAbilities := resolveGrantedAbilities(c.SVars, faceSVars, sa.Params["AddAbilities"])
+	grantSVars, unresSVars := copyGrantedSVars(c.SVars, sa.Params["AddSVars"])
+	grantTriggers, unresTriggers := copyGrantedTriggers(c.SVars, sa.Params["AddTriggers"])
+	if lost := append(append(append([]string(nil), unresAbilities...), unresSVars...), unresTriggers...); len(lost) > 0 {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "CopyPermanent grant " + strings.Join(lost, ", ") +
+				" does not resolve; the copy does not gain it"})
+	}
 
 	var minted []state.ObjID
 	for _, t := range targets {
@@ -595,26 +606,53 @@ func splitCopyGrantNames(raw string) []string {
 	return out
 }
 
-func copyGrantedSVars(table map[string]string, raw string) map[string]string {
+func copyGrantedSVars(table map[string]string, raw string) (map[string]string, []string) {
 	out := map[string]string{}
+	var unres []string
 	for _, name := range splitCopyGrantNames(raw) {
 		if body, ok := table[name]; ok {
 			out[name] = body
+		} else {
+			unres = append(unres, name)
 		}
 	}
-	return out
+	return out, unres
 }
 
-func copyGrantedTriggers(table map[string]string, raw string) []cards.Trigger {
+func copyGrantedTriggers(table map[string]string, raw string) ([]cards.Trigger, []string) {
 	var out []cards.Trigger
+	var unres []string
 	for _, name := range splitCopyGrantNames(raw) {
 		if body, ok := table[name]; ok {
 			if tr, ok := cards.ParseTriggerLine(body); ok {
 				out = append(out, tr)
+				continue
 			}
 		}
+		unres = append(unres, name)
 	}
-	return out
+	return out, unres
+}
+
+// resolveGrantedAbilities splits AddAbilities$ and reports every name that
+// does not resolve to an AB body -- the exact resolution rules/legal.go's
+// grantedAbilities consumer applies (chain SVar table first, the source
+// face's table when the chain carries none, AB-kind only), so a name the
+// consumer would drop silently is named here instead.
+func resolveGrantedAbilities(table, fallback map[string]string, raw string) ([]string, []string) {
+	var out, unres []string
+	src := table
+	if src == nil {
+		src = fallback
+	}
+	for _, name := range splitCopyGrantNames(raw) {
+		if ab := cards.ResolveSVar(src, name); ab != nil && ab.Kind == "AB" {
+			out = append(out, name)
+		} else {
+			unres = append(unres, name)
+		}
+	}
+	return out, unres
 }
 
 // copyTypeList parses Forge's multi-type grammar the way rules' statList
