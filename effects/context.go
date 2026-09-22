@@ -36,6 +36,31 @@ var zoneValidPrefixes = []struct {
 // Resolve, so a caller that filters the returned slice in place (the ordinary
 // out := s[:0]; for range append(out, ...) idiom) must not be able to corrupt
 // state a later effect in the same Sub chain still relies on.
+// GainedFacesOfDefined resolves Forge's GainsAbilitiesOfDefined$ dynamic set
+// into the foreign faces consumed by the activated-ability grant path. It is
+// shared by printed statics and Effect-delivered statics so both routes use
+// Defined's object-reference semantics and preserve its deterministic order.
+func GainedFacesOfDefined(h Host, c *Ctx, spec string) []state.GainedFace {
+	if c == nil || strings.TrimSpace(spec) == "" {
+		return nil
+	}
+	sa := &cards.SA{Params: map[string]string{"Defined": strings.TrimSpace(spec)}}
+	var out []state.GainedFace
+	seen := make(map[state.ObjID]bool)
+	for _, t := range Defined(h, c, sa) {
+		if t.IsPlayer || t.Obj == 0 || seen[t.Obj] {
+			continue
+		}
+		o := h.Game().Obj(t.Obj)
+		if o == nil || o.Face() == nil {
+			continue
+		}
+		seen[t.Obj] = true
+		out = append(out, state.GainedFace{Obj: t.Obj, Face: o.Face()})
+	}
+	return out
+}
+
 func Defined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 	if ts, ok := knownDefinedTargets(h, c, sa.Params["Defined"]); ok {
 		return ts

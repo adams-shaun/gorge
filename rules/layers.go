@@ -288,6 +288,10 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 							if spec := strings.TrimSpace(st.Params["GainsAbilitiesOf"]); spec != "" {
 								gg.GainedFaces = e.gainedFacesForSpec(st, spec, id, o.Controller)
 							}
+							if spec := strings.TrimSpace(st.Params["GainsAbilitiesOfDefined"]); spec != "" {
+								ctx := &effects.Ctx{Source: id, Controller: o.Controller}
+								gg.GainedFaces = append(gg.GainedFaces, effects.GainedFacesOfDefined(e, ctx, spec)...)
+							}
 							if spec := strings.TrimSpace(st.Params["GainsTriggerAbsOf"]); spec != "" {
 								gg.GainedTriggerFaces = e.gainedFacesForSpec(st, spec, id, o.Controller)
 							}
@@ -719,6 +723,7 @@ func (e *Engine) gainedFacesForSource(source state.ObjID) []state.GainedFace {
 // because the parameters mean different ability kinds.
 func gainsAbilitiesOf(st cards.Static) bool {
 	return strings.TrimSpace(st.Params["GainsAbilitiesOf"]) != "" ||
+		strings.TrimSpace(st.Params["GainsAbilitiesOfDefined"]) != "" ||
 		strings.TrimSpace(st.Params["GainsTriggerAbsOf"]) != ""
 }
 
