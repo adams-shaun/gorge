@@ -334,13 +334,17 @@ var coreCardTypes = []string{"Artifact", "Battle", "Creature", "Enchantment",
 //   - Threshold: the activator's graveyard holds 7+ cards;
 //   - Metalcraft: the activator controls 3+ artifacts;
 //   - Delirium: the activator's graveyard holds 4+ distinct core card types
-//     (AbilityUtils.countCardTypesFromList's non-permanent form).
+//     (AbilityUtils.countCardTypesFromList's non-permanent form);
+//   - Blessing: the activator holds CR 702.131's city's blessing (the
+//     one-way state.Player.Blessing latch rules/ascend.go's Ascend scan and
+//     events.Apply's BlessingChange fold maintain). This is the gate half of
+//     the city's-blessing family; Count$Blessing.<yes>.<no> (effects/count.go)
+//     and the Condition$ Blessing gate read the same bit.
 //
-// Solved (the Case permanents' solved flag) and Blessing (the city's
-// blessing) name state this build does not track, so their gate FAILS
-// CLOSED -- the conservative direction for an "only if" condition whose
-// meeting cannot be verified. No repo-deck card carries either (measured at
-// the current corpus pin: 3 raw lines each, none in the decks).
+// Solved (the Case permanents' solved flag) names state this build does not
+// track, so that gate FAILS CLOSED -- the conservative direction for an
+// "only if" condition whose meeting cannot be verified (measured at the
+// current corpus pin: 3 raw lines, none in the decks).
 func (e *Engine) activationConditionOK(p state.PlayerID, ab *cards.SA) bool {
 	raw, ok := ab.Params["Activation"]
 	if !ok || strings.TrimSpace(raw) == "" {
@@ -359,6 +363,12 @@ func (e *Engine) activationConditionOK(p state.PlayerID, ab *cards.SA) bool {
 			}
 		}
 		return n >= 3
+	case "Blessing":
+		// CR 702.131: the city's blessing, read off the same one-way latch
+		// the Condition$ Blessing gate and the Count$Blessing branch head
+		// read. An out-of-range activator denies -- the fail-closed
+		// direction a blessing gate that cannot name its seat must take.
+		return int(p) < len(e.G.Players) && e.G.Players[p].Blessing
 	case "Delirium":
 		seen := map[string]bool{}
 		for _, id := range e.G.Zone(state.ZGraveyard, p) {
@@ -471,6 +481,24 @@ func (e *Engine) adaptGateOK(id state.ObjID, ab *cards.SA) bool {
 	}
 	o := e.G.Obj(id)
 	return o != nil && o.Counter("P1P1") == 0
+}
+
+// monstrosityGateOK evaluates AB$ PutCounter's Monstrosity$ once-only gate
+// (CR 701.31b: "Activate only if this creature isn't already monstrous",
+// Giggling Skitterspike's `{5}: Monstrosity 5`). Monstrosity$ is an ability
+// PARAMETER like Adapt$, so the offer loop reads it directly -- the same
+// shape the Adapt$ gate takes. Offer-time only, exactly like the Adapt$ /
+// IsPresent$ / CheckSVar$ gates it sits beside: no state can move between
+// the offer and the answer inside one priority window. effects/counters.go
+// keeps a resolve-time already-monstrous skip as defense-in-depth (no
+// corpus shape reaches the resolution through any other door -- no granted
+// or copied route for these abilities).
+func (e *Engine) monstrosityGateOK(id state.ObjID, ab *cards.SA) bool {
+	if strings.TrimSpace(ab.Params["Monstrosity"]) == "" {
+		return true
+	}
+	o := e.G.Obj(id)
+	return o != nil && !o.Monstrous
 }
 
 // sVarGateOK evaluates the ability's CheckSVar$/SVarCompare$ intervening-if
@@ -657,6 +685,27 @@ func (e *Engine) loyaltyActivationsThisTurn(id state.ObjID) int {
 				used++
 			}
 
+		case events.GainedAbilityPush:
+			// A GAINED loyalty activation (GainsAbilitiesOf$, Nicol Bolas
+			// Dragon-God's class) counts toward the same CR 606.3
+			// once-per-permanent window: the foreign face's ability at index
+			// Amount is the loyalty ability that was activated FROM id, so the
+			// printed and gained activations share one per-permanent tally.
+			if ev.Obj != id || !onBattlefield || len(ev.IDs) == 0 {
+				continue
+			}
+			foreign := e.G.Obj(ev.IDs[0])
+			if foreign == nil || foreign.Face() == nil {
+				continue
+			}
+			abilities := foreign.Face().Abilities
+			if ev.Amount < 0 || int(ev.Amount) >= len(abilities) {
+				continue
+			}
+			if e.isLoyaltyAbility(abilities[int(ev.Amount)]) {
+				used++
+			}
+
 		case events.FlipFace:
 			if ev.Obj == id && ev.Amount >= 0 && int(ev.Amount) < len(o.Card.Faces) {
 				faceIdx = int(ev.Amount)
@@ -733,6 +782,12 @@ func (e *Engine) activationUsedCount(id state.ObjID, ability int, svar string, t
 		}
 		switch ev.Kind {
 		case events.AbilityPush, events.ManaActivate:
+			// A ManaActivate carrying IDs is a GAINED mana activation
+			// (gainedManaRef): its Amount indexes the foreign face, not
+			// this object's pile, so it is never a printed activation.
+			if ev.Kind == events.ManaActivate && len(ev.IDs) > 0 {
+				continue
+			}
 			if ability >= 0 && ev.Amount == int32(ability) {
 				used++
 			}
@@ -1008,6 +1063,22 @@ type grantedAbility struct {
 	// ability's Source stays the recipient.
 	source state.ObjID
 	svar   string
+	// gained marks an ability granted off a FOREIGN card's compiled face
+	// (state.ContinuousEffect.GainedFaces): sa is that card's own ability,
+	// gainedFrom is the foreign object id (in the scoped zone) and
+	// gainedIdx is the index of sa in that face's Abilities. The activation
+	// mints through GainedAbilityPush, which names both so a replay
+	// re-resolves the identical SA; a zero gainedFrom means the ordinary
+	// SVar-anchored grant. The grant's GainsValidAbilities$ filter and
+	// GainsAbilitiesLimitPerTurn$ cap are applied at collection (inside
+	// grantedAbilities), the one home both the offer loop and the mana
+	// collector read, so no consumer can widen the grant.
+	gained     bool
+	gainedFrom state.ObjID
+	gainedIdx  int
+	// gainedFace is the foreign face sa was compiled on (gained only): the
+	// SVar table a gained mana ability resolves against (gainedManaRef).
+	gainedFace *cards.Face
 }
 
 // grantedAbilities collects the activated abilities the battlefield's
@@ -1022,10 +1093,49 @@ type grantedAbility struct {
 func (e *Engine) grantedAbilities(p state.PlayerID, id state.ObjID) []grantedAbility {
 	var out []grantedAbility
 	for _, ce := range e.active() {
-		if len(ce.AddAbilities) == 0 {
+		if len(ce.AddAbilities) == 0 && len(ce.GainedFaces) == 0 {
 			continue
 		}
 		if !effects.MatchesSpecFrom(e.G, ce.Affects, id, ce.Controller, ce.Source) {
+			continue
+		}
+		// A has-all-abilities-of grant (GainsAbilitiesOf$): each named
+		// foreign face's own compiled Abilities are the recipient's to
+		// activate -- ACTIVATED abilities only (the parameter means exactly
+		// that; the triggered half rides GainedTriggerFaces and the
+		// granted-trigger walk reads only that). The face's `Abilities` slice
+		// holds only AB-kind SAs (cards' parser appends A: lines as AB/SP/ST
+		// kinds; a gained activated ability is the AB ones), matched by the
+		// same isManaAbilityAPI split the offer loop applies, so a gained
+		// mana ability flows through the payment path like any other. The
+		// grant's GainsValidAbilities$ filter (Sharkey's
+		// `Activated.!ManaAbility`, Nicol Bolas Dragon-God's
+		// `Activated.Loyalty`) and its GainsAbilitiesLimitPerTurn$ per-turn
+		// cap are applied HERE -- the one home both the offer loop and the
+		// mana collector (rules/mana_activation.go) read, so no consumer can
+		// widen the grant. The index is the face-local position, which
+		// GainedAbilityPush re-resolves against the same face a replay
+		// rebuilds.
+		for _, gf := range ce.GainedFaces {
+			if gf.Face == nil {
+				continue
+			}
+			for i, ab := range gf.Face.Abilities {
+				if ab == nil || ab.Kind != "AB" {
+					continue
+				}
+				if !e.gainsValidAbilitiesAdmits(ce.GainsValidAbilities, ab) {
+					continue
+				}
+				if ce.GainsLimitPerTurn > 0 &&
+					e.gainedActivationsThisTurn(id, gf.Obj, i) >= ce.GainsLimitPerTurn {
+					continue
+				}
+				out = append(out, grantedAbility{sa: ab, source: ce.Source,
+					gained: true, gainedFrom: gf.Obj, gainedIdx: i, gainedFace: gf.Face})
+			}
+		}
+		if len(ce.AddAbilities) == 0 {
 			continue
 		}
 		src := e.G.Obj(ce.Source)
@@ -1045,6 +1155,91 @@ func (e *Engine) grantedAbilities(p state.PlayerID, id state.ObjID) []grantedAbi
 		}
 	}
 	return out
+}
+
+// gainsValidAbilitiesAdmits reports whether the gained activated ability ab is
+// inside the granting static's GainsValidAbilities$ filter. The filter is
+// comma alternatives, each `Activated` plus optional dot qualifiers, and an
+// ABSENT filter admits everything. The corpus vocabulary (measured over the
+// 31 GainsAbilitiesOf files): `Activated` (Drana and Linvala),
+// `Activated.!ManaAbility` (Sharkey), `Activated.!Loyalty` (Scheming Fence),
+// `Activated.Loyalty` (Nicol Bolas Dragon-God, Kasmina). A qualifier this
+// build does not model fails closed -- that alternative admits nothing -- the
+// filter convention every spec reader takes, so an unknown restriction can
+// never widen the grant. The base word itself must be `Activated`
+// (case-insensitive): a differently-named base admits nothing.
+func (e *Engine) gainsValidAbilitiesAdmits(spec string, ab *cards.SA) bool {
+	spec = strings.TrimSpace(spec)
+	if spec == "" {
+		return true
+	}
+	for _, alt := range strings.Split(spec, ",") {
+		alt = strings.TrimSpace(alt)
+		if alt == "" {
+			continue
+		}
+		// The token splits on the FIRST dot: the base kind, then the qualifier
+		// tail (kept whole -- a qualifier this grammar does not name fails
+		// closed below rather than being silently dropped).
+		dot := strings.IndexByte(alt, '.')
+		base, tail := alt, ""
+		if dot >= 0 {
+			base, tail = alt[:dot], alt[dot+1:]
+		}
+		if !strings.EqualFold(base, "Activated") {
+			continue
+		}
+		ok := true
+		for _, q := range strings.Split(tail, ".") {
+			switch strings.TrimSpace(q) {
+			case "":
+				// A trailing dot ("Activated."): no qualifier, vacuous.
+			case "!ManaAbility":
+				ok = ok && !isManaAbilityAPI(ab.API)
+			case "!Loyalty":
+				ok = ok && !e.isLoyaltyAbility(ab)
+			case "Loyalty":
+				ok = ok && e.isLoyaltyAbility(ab)
+			default:
+				// Unmodelled qualifier: fail closed for this alternative.
+				ok = false
+			}
+		}
+		if ok {
+			return true
+		}
+	}
+	return false
+}
+
+// gainedActivationsThisTurn counts how many times the ACTIVATED ability at
+// foreign face-local index idx of the foreign card `foreign` has been
+// activated FROM the affected object id this turn. GainedAbilityPush events
+// name all three (Obj = recipient, IDs[0] = foreign card, Amount = index), so
+// the replayable log is the memory -- the loyaltyActivationsThisTurn fold
+// pattern. TurnChange resets the count (the limit is per turn, not per
+// battlefield stint: Mairsil's caged card sits in exile and never changes
+// zones while the count matters, and the identity is the foreign ability,
+// not the recipient).
+func (e *Engine) gainedActivationsThisTurn(id, foreign state.ObjID, idx int) int {
+	used := 0
+	for _, ev := range e.L.Events {
+		switch ev.Kind {
+		case events.TurnChange:
+			if int(ev.Player) < len(e.G.Players) {
+				used = 0
+			}
+		case events.GainedAbilityPush, events.ManaActivate:
+			// A gained MANA ability never goes on the stack, so its
+			// activation is the ManaActivate marker carrying the same
+			// (recipient, foreign card, index) triple (gainedManaRef); a
+			// printed mana marker carries no IDs and never matches.
+			if ev.Obj == id && len(ev.IDs) > 0 && ev.IDs[0] == foreign && int(ev.Amount) == idx {
+				used++
+			}
+		}
+	}
+	return used
 }
 
 // adjustLandPlays reports how many land drops BEYOND the ordinary one
@@ -2206,6 +2401,21 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				if !e.adaptGateOK(id, ab) {
 					continue
 				}
+				// Monstrosity$ (CR 701.31b): "Activate only if this creature
+				// isn't monstrous" -- the once-only monstrosity gate, the same
+				// offer-time funnel the Adapt$ gate above sits in.
+				if !e.monstrosityGateOK(id, ab) {
+					continue
+				}
+				// kw:Reconfigure (CR 702.150): the expansion's unattach half
+				// carries Unattach$ True and is offered only while the source is
+				// attached -- "unattach from a creature" has no legal action for
+				// an unattached permanent, and a payable no-op the deterministic
+				// bot can answer identically forever is the livelock shape the
+				// offer gates exist to withhold.
+				if strings.EqualFold(strings.TrimSpace(ab.Params["Unattach"]), "True") && o.AttachedTo == 0 {
+					continue
+				}
 				out = append(out, decision.Option{Index: len(out), Kind: "ability",
 					Label: abFace.Name + ": " + ab.Params["SpellDescription"], Obj: id, Ability: i,
 					Grant: e.abilityGrant(id, ab)})
@@ -2221,10 +2431,13 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 	// option carries); mana ones flow through availableManaAbilities below so
 	// the "Tap for mana" priority action and the payment window share one
 	// member set. Gates mirror the printed loop above minus the loyalty gate
-	// (a grant is never a loyalty ability). The two activation limits are
-	// checked here too, with the SVar-name identity (see the gate's own
-	// comment below): Touch of Vitae carries GameActivationLimit$ 1 on an
-	// Animate-delivered AddAbility$ body.
+	// FOR THE SVAR-ANCHORED GRANTS (an AddAbility$ body is never a loyalty
+	// ability); a GAINED ability (GainsAbilitiesOf$) CAN be one -- Nicol
+	// Bolas Dragon-God's `GainsValidAbilities$ Activated.Loyalty` -- so the
+	// CR 606.3 gates below apply to it exactly as to a printed one. The two
+	// activation limits are checked here too, with the SVar-name identity
+	// (see the gate's own comment below): Touch of Vitae carries
+	// GameActivationLimit$ 1 on an Animate-delivered AddAbility$ body.
 	for _, id := range e.G.Zone(state.ZBattlefield, p) {
 		o := e.G.Obj(id)
 		if o == nil || o.Face() == nil || e.faceDownPrintedHides(o) {
@@ -2244,6 +2457,21 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			}
 			if ab.Params["SorcerySpeed"] == "True" && !sorcery {
 				continue
+			}
+			// CR 606.3 for a GAINED loyalty ability (GainsAbilitiesOf$): the
+			// same sorcery-timing and once-per-permanent gates the printed loop
+			// applies -- a gained [+1] is a loyalty ability of THIS permanent
+			// (the recipient), and loyaltyActivationsThisTurn counts its
+			// GainedAbilityPush activations beside the printed AbilityPush ones.
+			// The SVar-anchored AddAbilities grants above are never loyalty
+			// abilities, so gating on ga.gained keeps them untouched.
+			if ga.gained && e.isLoyaltyAbility(ab) {
+				if !sorcery {
+					continue
+				}
+				if e.loyaltyActivationsThisTurn(id) >= e.loyaltyAbilityLimit(id) {
+					continue
+				}
 			}
 			if abilityRestricted(p, id, ab) {
 				continue
@@ -2272,6 +2500,22 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			}
 			// Adapt$ (CR 702.35a): the granted twin of the printed loop's gate.
 			if !e.adaptGateOK(id, ab) {
+				continue
+			}
+			// A has-all-abilities-of gained ability (GainsAbilitiesOf$) is
+			// offered with its foreign-card anchor; every other granted
+			// ability keeps the SVar-name anchor (boastGateOK's and the
+			// activation-limit gate's identity).
+			if ga.gained {
+				if strings.EqualFold(strings.TrimSpace(ab.Params["Boast"]), "True") && !e.boastGateOK(id, -1, "") {
+					continue
+				}
+				if e.activationLimitBlocked(p, id, ab, -1, "", 0) {
+					continue
+				}
+				out = append(out, decision.Option{Index: len(out), Kind: "ability",
+					Label: o.Face().Name + ": " + ab.Params["SpellDescription"], Obj: id,
+					GainedSource: ga.gainedFrom, GainedIdx: ga.gainedIdx})
 				continue
 			}
 			// kw:Boast (CR 702.142): the granted twin of the printed loop's
