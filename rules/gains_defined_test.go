@@ -255,6 +255,85 @@ func gainsDefinedTarget() string {
 		"A:AB$ Draw | Cost$ T | NumCards$ 1 | SpellDescription$ Draw a card.\nOracle:x\n"
 }
 
+// gainsDefinedMixedCarrier deliberately combines both activated-half spellings:
+// the ordinary filter names every controlled artifact, while Defined$ Self
+// adds the carrier itself. The foreign artifact below is reachable only from
+// the ordinary spelling, so replacing instead of appending the Defined faces
+// loses its Draw activation.
+func gainsDefinedMixedCarrier() string {
+	return "Name:Mixed Gains Carrier\nTypes:Artifact\n" +
+		"S:Mode$ Continuous | Affected$ Card.Self | EffectZone$ Battlefield | GainsAbilitiesOf$ Artifact.YouCtrl | GainsAbilitiesOfDefined$ Self\nOracle:x\n"
+}
+
+// gainsDefinedForeignArtifact is selectable only by the card-filter half of
+// the mixed static. Its costless draw is immediately activatable, keeping the
+// regression focused on face collection rather than summoning sickness.
+func gainsDefinedForeignArtifact() string {
+	return "Name:Mixed Foreign Artifact\nTypes:Artifact\n" +
+		"A:AB$ Draw | NumCards$ 1 | SpellDescription$ Draw a card.\nOracle:x\n"
+}
+
+// TestMixedGainsAbilitySpellingsAppendFaces guards a static carrying both
+// GainsAbilitiesOf$ and GainsAbilitiesOfDefined$: both collections remain in
+// deterministic parameter order, and the card-filter-only foreign activation
+// is offered and resolves through the ordinary gained-ability path.
+func TestMixedGainsAbilitySpellingsAppendFaces(t *testing.T) {
+	carrier := card(t, gainsDefinedMixedCarrier())
+	foreign := card(t, gainsDefinedForeignArtifact())
+	e, cfg := tokenReplGame(t, 9111, carrier, foreign)
+	carrierID := moveSeededCard(t, e, 0, carrier, state.ZBattlefield)
+	foreignID := moveSeededCard(t, e, 0, foreign, state.ZBattlefield)
+	e.pending = nil
+	e.priorityRound()
+
+	// The direct filter must have a foreign artifact to select, and the
+	// Defined spelling must resolve Self to the static host.
+	for id, name := range map[state.ObjID]string{carrierID: "carrier", foreignID: "foreign"} {
+		if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield {
+			t.Fatalf("%s = %+v, want on the battlefield", name, o)
+		}
+	}
+	var gained []state.ObjID
+	for _, ce := range e.active() {
+		if ce.Source != carrierID || ce.Layer != LAbilities {
+			continue
+		}
+		for _, gf := range ce.GainedFaces {
+			gained = append(gained, gf.Obj)
+		}
+	}
+	want := []state.ObjID{carrierID, foreignID, carrierID}
+	if len(gained) != len(want) {
+		t.Fatalf("GainedFaces = %v, want %v (both spellings appended)", gained, want)
+	}
+	for i := range want {
+		if gained[i] != want[i] {
+			t.Fatalf("GainedFaces = %v, want %v (deterministic filter then Defined order)", gained, want)
+		}
+	}
+
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("pending = %+v, want priority", d)
+	}
+	opt, found := decision.Option{}, false
+	for _, o := range d.Options {
+		if o.Kind == "ability" && o.Obj == carrierID && o.GainedSource == foreignID && o.GainedIdx == 0 {
+			opt, found = o, true
+		}
+	}
+	if !found {
+		t.Fatalf("carrier offers no card-filter gained ability from foreign artifact: %+v", d.Options)
+	}
+	handBefore := len(e.G.Zone(state.ZHand, 0))
+	submitChoices(t, e, opt.Index)
+	passUntilStackEmpty(t, e, 20)
+	if got := len(e.G.Zone(state.ZHand, 0)); got != handBefore+1 {
+		t.Fatalf("mixed grant draw: hand %d -> %d, want +1", handBefore, got)
+	}
+	replayCheck(t, e, cfg)
+}
+
 // TestQuicksilverGainsRememberedDefinedAbility pins the EFFECT-DELIVERED
 // route: Quicksilver Elemental's {U} ability targets a creature and its
 // STSteal static (DB$ Effect | StaticAbilities$) grants Quicksilver all

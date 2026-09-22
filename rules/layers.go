@@ -290,7 +290,7 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 							}
 							if spec := strings.TrimSpace(st.Params["GainsAbilitiesOfDefined"]); spec != "" {
 								ctx := &effects.Ctx{Source: id, Controller: o.Controller}
-								gg.GainedFaces = effects.GainedFacesOfDefined(e, ctx, spec)
+								gg.GainedFaces = append(gg.GainedFaces, effects.GainedFacesOfDefined(e, ctx, spec)...)
 							}
 							if spec := strings.TrimSpace(st.Params["GainsTriggerAbsOf"]); spec != "" {
 								gg.GainedTriggerFaces = e.gainedFacesForSpec(st, spec, id, o.Controller)
