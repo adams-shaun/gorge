@@ -159,6 +159,24 @@ func Apply(g *state.Game, e Event) {
 		// trig:Discover / trig:SeekAll match. Player is the acting seat, Obj
 		// the resolving source permanent. One marker per completed action.
 
+	case Enlist:
+		// CR 702.160's enlist action (the `K:Enlist` keyword, task enlist1):
+		// Obj is the ATTACKING creature that enlisted (the Mode$ Enlisted
+		// trigger's source) and IDs[0] the nonattacking creature it tapped
+		// (never a state change here -- the tap is its own Tap event). The
+		// fold stamps the attacker's per-combat marker: (Turn,
+		// CombatsThisTurn), so the enlistedThisCombat filter predicate can
+		// answer "enlisted THIS combat" and reset itself when a later combat
+		// begins without an enlist (state.Object.EnlistedTurn/EnlistedCombat,
+		// cleared at TurnChange). Totality: a missing object or an absent
+		// enlisted id is a no-op, never a panic.
+		o := g.Obj(e.Obj)
+		if o == nil || len(e.IDs) == 0 {
+			break
+		}
+		o.EnlistedTurn = g.Turn
+		o.EnlistedCombat = g.CombatsThisTurn
+
 	case Connive:
 		// The connive record (CR 702.59, task connive1) is a pure marker,
 		// exactly like Explore: the connive's own state changes (the draws,
@@ -843,6 +861,12 @@ func Apply(g *state.Game, e Event) {
 				// deliberately NOT reset here -- its window spans the turn
 				// boundary and is consumed at the next untap step instead.
 				g.Objs[i].ExertedThisTurn = false
+				// CR 702.160: enlist is a per-combat fact; the stamp is cleared at
+				// the turn boundary (a same-turn second combat compares its own
+				// CombatsThisTurn against the stamp, so it needs no separate
+				// reset).
+				g.Objs[i].EnlistedTurn = 0
+				g.Objs[i].EnlistedCombat = 0
 				// Only default-duration goads expire at the goader's next turn.
 				g.Objs[i].Goads = expireTurnGoads(g.Objs[i].Goads, e.Player)
 			}
@@ -2389,6 +2413,9 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			// (CR 400.7): a re-entering Combat Celebrant may exert again
 			// this turn and carries no untap-skip window.
 			o.ExertedThisTurn, o.ExertSkipUntap = false, false
+			// CR 702.160: enlist is the old permanent's fact, not the new
+			// object's -- a re-entering creature carries no enlist stamp.
+			o.EnlistedTurn, o.EnlistedCombat = 0, 0
 		}
 		// CR 107.3m: the paid X belongs to the spell on the stack and to the
 		// permanent the spell becomes, and to nothing else. An object leaving

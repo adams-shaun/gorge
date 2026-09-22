@@ -209,6 +209,16 @@ type Engine struct {
 	// re-runs the recorded KAttackers answer through handleAttackers.
 	exertAskState exertAsk
 
+	// enlistAskState is the declare-attackers enlist election's resumable
+	// state (rules/enlist.go, task enlist1): the answered KAttackers
+	// declaration, the declaring player, the deterministic offer list
+	// (attacking creatures with `K:Enlist` that have at least one eligible
+	// creature to tap, in declaration option order) plus the cursor of the
+	// ask currently outstanding. Plain value, so Clone copies it like
+	// exertAskState; a log-driven replay re-derives the same list when it
+	// re-runs the recorded KAttackers answer through handleAttackers.
+	enlistAskState enlistAsk
+
 	// stationing is the spacecraft a pending Station tap pick (rules/
 	// station.go) belongs to: the "station" priority option's object, held
 	// across the KChoose so the answer's charge counters land on the right

@@ -301,6 +301,19 @@ type Object struct {
 	// implemented in the turn scan, never in effects.TryUntap.
 	ExertSkipUntap bool
 
+	// EnlistedTurn and EnlistedCombat stamp the CR 702.160 enlist action (the
+	// `K:Enlist` keyword, task enlist1): the turn and combat phase in which
+	// this attacking creature last enlisted another creature. They are set
+	// together by events.Apply's Enlist case, so the enlistedThisCombat
+	// filter predicate (effects/filter.go) can answer "enlisted THIS combat"
+	// against the live g.Turn/g.CombatsThisTurn -- a same-turn extra combat
+	// begins with a higher CombatsThisTurn and the stamp correctly no longer
+	// matches it. Both are cleared in TurnChange's per-object loop (a
+	// per-combat fact) and when the permanent leaves the battlefield (CR
+	// 400.7: a new object never carries the old object's enlist status).
+	EnlistedTurn   int32
+	EnlistedCombat int32
+
 	// preStackEntry* carries a card's entry history only while it is on the
 	// stack. events.Apply captures it before PutOnStack overwrites the public
 	// fields, then restores and clears it for CR 733.1's logged reverse move.

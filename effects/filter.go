@@ -132,6 +132,21 @@ var predicates = map[string]predFn{
 	"notExertedThisTurn": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return !o.ExertedThisTurn
 	},
+	// enlistedThisCombat is CR 702.160's enlist marker (task enlist1): the
+	// creature enlisted another creature in the CURRENT combat. The stamp
+	// (state.Object.EnlistedTurn/EnlistedCombat, folded by events.Apply's
+	// Enlist case) is compared against the live game clock, so a later combat
+	// in the same turn -- an extra combat phase -- no longer matches, which
+	// is what "this combat" means. Aradesh, the Founder's
+	// `Mode$ Attacks | ValidCard$ Creature.YouCtrl+enlistedThisCombat` is the
+	// corpus's one carrier; the predicate is a recognised-shape entry (the
+	// compiled predicate layer marks an unlisted term `maybe` and falls
+	// through to this textual oracle, so no twin term is owed), and
+	// UnknownPredicates classifies it through the same predicates map, so
+	// the census and the matcher cannot disagree.
+	"enlistedThisCombat": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o.EnlistedTurn == g.Turn && o.EnlistedCombat == g.CombatsThisTurn
+	},
 	// Permanent is Forge's CardProperty.Permanent (card.isPermanent()): the
 	// printed face is a permanent type, in ANY zone (CR 109.2). This is the
 	// PREDICATE half of the pair; the bare `Permanent` BASE keeps the

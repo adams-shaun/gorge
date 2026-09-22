@@ -175,6 +175,16 @@ func Describe(g *state.Game, ev events.Event) string {
 			return obj(g, ev.Obj) + " skips its untap step (exerted)"
 		}
 		return obj(g, ev.Obj) + " is exerted"
+	case events.Enlist:
+		// CR 702.160 (task enlist1): the enlist action record. Obj is the
+		// ATTACKING creature that enlisted; IDs[0] the nonattacking creature
+		// it tapped (its own Tap event is a separate line) and Player the
+		// attacker's controller. The +X/+0 pump is a continuous effect, not
+		// a line of its own.
+		if len(ev.IDs) == 0 {
+			return obj(g, ev.Obj) + " enlists a creature"
+		}
+		return obj(g, ev.Obj) + " enlists " + obj(g, ev.IDs[0])
 	case events.PlanarRoll:
 		// CR 901.3 (task rollplanar1): the roll record. The per-die faces ride
 		// the die-roll Notes rules emits beside this event; Amount > 1 names
