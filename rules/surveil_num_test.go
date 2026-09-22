@@ -508,3 +508,101 @@ func TestMultiPlayerSurveilAsksTheFirstOptionalCarrier(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// TestEnhancedSurveillanceWithRealConsiderLooksAtThree is the brief's corpus
+// leaf end to end on REAL cards only: the corpus Enhanced Surveillance static
+// and the corpus Consider (`SP$ Surveil | Amount$ 1 | SubAbility$ DBDraw`)
+// as the Surveil 1 source. Accepting the election raises the look to three
+// cards (1 + 2), the answered KArrange completes the resolution (Consider's
+// draw runs after it), and the game replays byte-identically.
+func TestEnhancedSurveillanceWithRealConsiderLooksAtThree(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	lookup := func(name string) *cards.Card {
+		c, ok := reg.Lookup(name)
+		if !ok {
+			t.Fatalf("corpus fixture: %s missing", name)
+		}
+		if d := c.Link(); len(d) != 0 {
+			t.Fatalf("link %s: %v", name, d)
+		}
+		return c
+	}
+	es, consider, m := lookup("Enhanced Surveillance"), lookup("Consider"), lookup("Mountain")
+	// Precondition: the Consider under test really is the compiled corpus
+	// Surveil 1 (no authored stand-in).
+	if sa := consider.Faces[0].Abilities; len(sa) == 0 || sa[0].API != "Surveil" || sa[0].Params["Amount"] != "1" {
+		t.Fatalf("precondition: corpus Consider's first ability is not SP$ Surveil | Amount$ 1: %+v", sa)
+	}
+	fill := func(n int) []*cards.Card {
+		out := make([]*cards.Card, n)
+		for i := range out {
+			out[i] = m
+		}
+		return out
+	}
+	cfg := seatZeroStart(Config{Seed: 611, Names: []string{"a", "b"}, Tokens: reg.Tokens,
+		Decks: [][]*cards.Card{
+			append([]*cards.Card{es, consider}, fill(38)...),
+			fill(40),
+		}})
+	e := New(cfg)
+	e.Advance()
+	esID := moveByName(t, e, 0, "Enhanced Surveillance", state.ZBattlefield)
+	id := moveSurveilToHand(t, e, 0, "Consider")
+	addMana(t, e, 0, "U")
+
+	// Preconditions: the real static is on seat 0's battlefield under seat 0,
+	// and the library is deep enough that a 3-card look is not clipped.
+	if o := e.G.Obj(esID); o == nil || o.Zone != state.ZBattlefield || o.Controller != 0 || o.Face().Name != "Enhanced Surveillance" {
+		t.Fatalf("precondition: Enhanced Surveillance %v not on seat 0's battlefield: %+v", esID, e.G.Obj(esID))
+	}
+	if n := len(e.G.Zone(state.ZLibrary, 0)); n < 5 {
+		t.Fatalf("precondition: seat 0 library has %d cards, need >= 5", n)
+	}
+
+	mark := len(e.L.Events)
+	d := castFixture(t, e, id, -1)
+	if d == nil || d.Kind != decision.KChoose || len(d.Options) != 1 || d.Options[0].Kind != "static" {
+		t.Fatalf("expected Enhanced Surveillance's may-look election first, got %+v", d)
+	}
+	submitChoices(t, e, 0) // accept the two additional cards
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KArrange {
+		t.Fatalf("expected the KArrange after accepting, got %+v", d)
+	}
+	if d.Max != 3 || len(d.Options) != 3 {
+		t.Fatalf("KArrange Max/options = %d/%d, want 3/3 (Consider's Surveil 1 + Enhanced Surveillance's 2)", d.Max, len(d.Options))
+	}
+	for i, o := range d.Options {
+		if o.Kind != "graveyard" {
+			t.Fatalf("option %d Kind = %q, want \"graveyard\" (a Surveil)", i, o.Kind)
+		}
+	}
+	toGrave := d.Options[1].Obj
+	handBefore := len(e.G.Zone(state.ZHand, 0))
+	submitChoices(t, e, 0, 2) // keep options 0 and 2 on top; option 1 to the graveyard
+	if d = e.Pending(); d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("after answering the arrange, pending = %+v: the resolution must complete", d)
+	}
+	if n := countArrangeAsks(e, mark, decision.KChoose, decision.KArrange); n != 2 {
+		t.Fatalf("election+arrange asks since the cast = %d, want exactly 2", n)
+	}
+	inGrave := false
+	for _, gid := range e.G.Zone(state.ZGraveyard, 0) {
+		if gid == toGrave {
+			inGrave = true
+		}
+	}
+	if !inGrave {
+		t.Fatalf("unpicked card %v not in seat 0's graveyard", toGrave)
+	}
+	if got := len(e.G.Zone(state.ZHand, 0)); got != handBefore+1 {
+		t.Fatalf("hand size %d, want %d: Consider's draw must run after the surveil", got, handBefore+1)
+	}
+	for _, ev := range e.L.Events[mark:] {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "unimplemented") {
+			t.Fatalf("unexpected unimplemented note during the cast: %q", ev.Text)
+		}
+	}
+	replayCheck(t, e, cfg)
+}
