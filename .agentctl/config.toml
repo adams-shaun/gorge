@@ -220,7 +220,10 @@ applies_diff_touches = "web/"
 strategy = "merge-push"
 remote = "origin"
 push = true
-deploy_cmd = ["make", "deploy-demo"]
+# 2026-09-22 (operator): the demo is no longer redeployed on every merge --
+# a redeploy kills every in-flight vs-bot game (SIGTERM aborts live matches
+# and the persistence dir is wiped). Deploy by hand: `make deploy-demo`.
+deploy_cmd = []
 post_merge = [["make", "ledger"]]
 carry_trailers = ["Test-Budget-Approved:"]
 

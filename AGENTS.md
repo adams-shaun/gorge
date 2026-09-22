@@ -367,7 +367,8 @@ fresh game claim. Stream session ids are random 128-bit values issued only in
 ## Running a gorged server while you work
 
 Two orchestrator sessions share this box, and one of them serves a live demo
-that is redeployed automatically after every merge into `main`. So ports are
+that the operator redeploys by hand (`make deploy-demo`; a redeploy aborts
+every in-flight vs-bot game, so nothing does it automatically). So ports are
 allocated, not first-come:
 
 | range | who |
