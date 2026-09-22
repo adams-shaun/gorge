@@ -13,6 +13,23 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
+// modalLandBack identifies the only Modal DFC face that may be selected by
+// the hand-zone modal-land action. Keeping the shape check here makes offer
+// and consumption use the same validation and prevents non-land modal backs
+// from becoming castable through this path.
+func modalLandBack(o *state.Object) *cards.Face {
+	if o == nil || o.Card == nil || o.FaceIdx != 0 ||
+		o.Card.AlternateMode != "Modal" || len(o.Card.Faces) != 2 ||
+		o.Card.Faces[0] == nil || o.Card.Faces[1] == nil ||
+		o.Zone != state.ZHand {
+		return nil
+	}
+	if !o.Card.Faces[1].IsLand() {
+		return nil
+	}
+	return o.Card.Faces[1]
+}
+
 // sorcerySpeed reports whether p may take a sorcery-speed action right now.
 func (e *Engine) sorcerySpeed(p state.PlayerID) bool {
 	return e.G.Active == p && e.G.Step.IsMain() && len(e.G.Stack) == 0
@@ -1364,8 +1381,23 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		if f.IsLand() {
 			if sorcery && e.G.Players[p].LandsPlayed < int32(1+e.adjustLandPlays(p)) {
 				add("play_land", "Play "+f.Name, id)
+				// A Modal DFC may also be played as its back land, even
+				// when its front face is itself a land (CR 712.8).
+				if back := modalLandBack(o); back != nil {
+					out = append(out, decision.Option{Index: len(out), Kind: "play_land",
+						Label: "Play " + back.Name, Obj: id, Mode: "modal_land"})
+				}
 			}
 			continue
+		}
+		// CR 712.8/712.4d: a Modal DFC in hand may be played as its back
+		// face when that face is a land.  Keep this separate from the ordinary
+		// front-face land path so its existing option remains byte-identical.
+		if sorcery && e.G.Players[p].LandsPlayed < int32(1+e.adjustLandPlays(p)) {
+			if back := modalLandBack(o); back != nil {
+				out = append(out, decision.Option{Index: len(out), Kind: "play_land",
+					Label: "Play " + back.Name, Obj: id, Mode: "modal_land"})
+			}
 		}
 		if castRestricted(p, id) {
 			continue
@@ -2721,6 +2753,15 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.NextAlive(e.G.Priority), Amount: passes})
 
 	case "play_land":
+		// A modal-land option is a face selection, not a generic land play.
+		// Revalidate it against the current object before mutating state: the
+		// priority option may have gone stale while another decision resolved.
+		if opt.Mode == "modal_land" {
+			if modalLandBack(e.G.Obj(opt.Obj)) == nil {
+				return
+			}
+			e.emit(events.Event{Kind: events.FlipFace, Obj: opt.Obj, Amount: 1})
+		}
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})
 		// Task 12: a land with an "as this enters" choice (an
 		// ETBReplacement whose ReplaceWith$ is NameCard/ChooseType/
