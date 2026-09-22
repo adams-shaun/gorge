@@ -382,6 +382,17 @@ func (e *Engine) takeAnsweredTrigger(d *decision.Decision) (pendingTrigger, bool
 // is recorded, and it is the whole of what a log-only replay needs. No event
 // kind and no Event field was added for Task 27.
 func (e *Engine) pushTrigger(pt pendingTrigger) {
+	if pt.MonarchDraw {
+		// Use DelayedPush's event-sourced stack-object creation. Apply has a
+		// dedicated synthetic body for this engine-owned trigger, so no card
+		// SVar or direct state mutation is needed.
+		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
+			return
+		}
+		e.emit(events.Event{Kind: events.DelayedPush, Obj: pt.Source,
+			Player: pt.Controller, Counter: "__monarch_draw"})
+		return
+	}
 	// Evoke and Madness are mandatory keyword-triggered abilities minted as
 	// genuine stack objects. Madness's cast-or-graveyard choice is made when
 	// that object resolves, not here, so either one may be responded to or

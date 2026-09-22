@@ -55,24 +55,27 @@ import (
 // Sac<...>/Discard<...>/... component, or an unpriceable spelling like X or
 // CopyCost with no matching SVar) passes through unchanged -- rules'
 // ParseUnlessCost stays the strict parser and hard-declines what it cannot
-// price. On a CopySpellAbility only -- this ticket's shape -- a value naming
-// an SVar on the resolving face whose body is a RESOLVABLE count expression
-// folds its numeric result into one generic amount "{N}": Feather, Radiant
-// Arbiter's SVar:CopyCost:Count$ChosenSize/Times.2 becomes "{4}" for two
-// chosen creatures. The gate is deliberately API-scoped: the Counter family's
-// UnlessCost$ X/Y spellings (Condescend's SVar:X:Count$xPaid, Oppressive
-// Will's Count$ValidHand) are the documented M4 X-cost-grammar hard declines,
-// and flipping them to payable here would reprice every "counter unless its
-// controller pays {X}" card in one silent sweep -- that grammar belongs to
-// the M4 unless-cost ticket, which owns the xPaid bindings and the bot
-// policy, not to this one. An SVar present but unresolvable also passes
-// through: the ask is still posed and recorded, but it cannot be answered
-// "pay", exactly as before. The same string must reach the ask's label
+// price. A value naming an SVar on the resolving face whose body is a
+// RESOLVABLE count expression folds its numeric result into one generic amount
+// "{N}": Feather, Radiant Arbiter's SVar:CopyCost:Count$ChosenSize/Times.2
+// becomes "{4}" for two chosen creatures. The fold is deliberately gated to
+// Counter and CopySpellAbility: Counter is this ticket's X-payable shape (X
+// resolves from captured context, for example Sacrificed$CardPower), while
+// every other API retains its strict, pre-existing grammar until its own
+// unless-cost semantics are implemented. An SVar present but unresolvable
+// also passes through: the ask is still posed and recorded, but it cannot be
+// answered "pay", exactly as before. The same string must reach the ask's label
 // (unlessProceed) and the payment (rules' unless_pay arm calls this with the
 // resumed ctx), so the offer and the charge can never disagree.
 func UnlessCostResolved(h Host, c *Ctx, sa *cards.SA) string {
 	raw := strings.TrimSpace(sa.Params["UnlessCost"])
-	if raw == "" || c == nil || c.SVars == nil || sa == nil || sa.API != "CopySpellAbility" {
+	if raw == "" || c == nil || c.SVars == nil || sa == nil {
+		return raw
+	}
+	// The Counter X/SVar shape is the targeted extension of the existing
+	// CopySpellAbility fold. Other APIs retain their strict, pre-existing
+	// grammar until their own unless-cost semantics are implemented.
+	if sa.API != "Counter" && sa.API != "CopySpellAbility" {
 		return raw
 	}
 	body, ok := c.SVars[raw]
@@ -265,6 +268,37 @@ func poseUnlessAsk(h Host, c *Ctx, sa *cards.SA, cost string, payers []state.Tar
 			}
 		}
 	}
+	// Rules hosts prove whether the pay branch is reachable (floating mana
+	// plus the sources the payment window can tap, and the choice-bearing
+	// Sac/Discard/Reveal/Draw/RevealChosen/SubCounter components).
+	// UnlessCostPayableFromCtx hands the host this very resolution context,
+	// so a Draw<.../Player.targetedBy> or RevealChosen cost is evaluated
+	// against the same targets/roles the pay path will use. A host that
+	// implements only the two-argument form is still consulted. The effects
+	// test host (and other embedders) keep the two options -- R-9 still
+	// declines when it cannot ask.
+	// DamageYou<N> is the one strict-parser exception: the Sacrifice arm has
+	// its own rules-side payment path (payUnlessDamageCost), so its recognised
+	// damage offer is payable even though generic ParseUnlessCost deliberately
+	// rejects DamageYou. Every other strict-unpriceable cost reaches the shared
+	// gate below and exposes only decline.
+	_, damagePayment := ParseDamageUnlessCost(cost)
+	damagePayment = sa.API == "Sacrifice" && damagePayment
+	// A non-rules host cannot price a cost and keeps the historic two-option
+	// R-9 ask; its no-host fallback deterministically declines. A rules host
+	// supplies the actual fail-closed offer gate for every non-damage cost.
+	payable := true
+	if !damagePayment {
+		if checker, ok := h.(interface {
+			UnlessCostPayableFromCtx(state.PlayerID, string, *Ctx) bool
+		}); ok {
+			payable = checker.UnlessCostPayableFromCtx(payer, cost, c)
+		} else if checker, ok := h.(interface {
+			UnlessCostPayable(state.PlayerID, string) bool
+		}); ok {
+			payable = checker.UnlessCostPayable(payer, cost)
+		}
+	}
 	d := &decision.Decision{Player: payer, Kind: decision.KModes,
 		Min: 1, Max: 1, Source: c.Source, ResumeKind: "unless_pay",
 		ResumeSA: sa, ResumeTarget: i, Prompt: prompt,
@@ -280,9 +314,14 @@ func poseUnlessAsk(h Host, c *Ctx, sa *cards.SA, cost string, payers []state.Tar
 		// earlier riders' picks at the resumed Ctx's rebuild.
 		ResumeTargetsUnique: copyTargets(c.TargetsUnique),
 		Options: []decision.Option{
+			{Index: 0, Kind: "mode", Label: declineLabel, Obj: c.Source, Player: payer},
+		}}
+	if payable {
+		d.Options = []decision.Option{
 			{Index: 0, Kind: "mode", Label: payLabel, Obj: c.Source, Player: payer},
 			{Index: 1, Kind: "mode", Label: declineLabel, Obj: c.Source, Player: payer},
-		}}
+		}
+	}
 	if Ask(h, d) == AskAsked {
 		return true // resolution suspended; the answer re-enters this SA.
 	}
@@ -551,6 +590,13 @@ func unlessCostLabel(cost string) string {
 		if _, err := strconv.Atoi(f); err == nil {
 			mana = append(mana, f) // generic amount
 			continue
+		}
+		if len(f) >= 3 && f[0] == '{' && f[len(f)-1] == '}' {
+			inner := f[1 : len(f)-1]
+			if _, err := strconv.Atoi(inner); err == nil {
+				mana = append(mana, f) // resolved generic amount
+				continue
+			}
 		}
 		if strings.Trim(f, "WUBRGC") == "" {
 			mana = append(mana, f) // colour/colourless symbols

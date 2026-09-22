@@ -61,7 +61,16 @@ type sidecar struct {
 	Format       Format  `json:"format,omitempty"`
 	StartingLife int32   `json:"starting_life,omitempty"`
 	Commanders   [][]int `json:"commanders,omitempty"`
-	BotPolicy    string  `json:"bot_policy"`
+	// NameUniverse records whether the live match was played with a card-name
+	// universe. A missing field is a pre-feature no-universe match, whose ETB
+	// and mid-resolution fallbacks replay unchanged.
+	NameUniverse bool `json:"name_universe,omitempty"`
+	// NameUniverseNames is the immutable, sorted name list actually offered by
+	// a universe-backed match. Keeping it beside the log prevents a later
+	// corpus addition, removal or rename from changing a recorded numeric name
+	// choice's label on replay.
+	NameUniverseNames []string `json:"name_universe_names,omitempty"`
+	BotPolicy         string   `json:"bot_policy"`
 }
 
 func (sc sidecar) info() protocol.MatchInfo {

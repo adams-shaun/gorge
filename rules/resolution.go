@@ -119,6 +119,7 @@ type resumePoint struct {
 	// replacement to the player drawing even when the enclosing effect's
 	// controller is someone else.
 	player state.PlayerID
+	name   string
 	// direct identifies an effect invoked outside stack resolution (currently
 	// an enters-the-battlefield replacement such as Hideaway). It resumes its
 	// source directly rather than requiring a stack object.
@@ -1011,7 +1012,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
 		return
 	}
-	ctx := &effects.Ctx{Source: rp.obj, Controller: o.Controller, Targets: o.Targets,
+	ctx := &effects.Ctx{Source: rp.obj, Controller: o.Controller, NameChoice: rp.name, Targets: o.Targets,
 		Chosen: append([]state.Target(nil), rp.choices...), ChosenValid: rp.chosenValid,
 		VillainousVictims: append([]state.Target(nil), rp.villainousVictims...),
 		VillainousIndex:   rp.villainousIndex,
@@ -1039,6 +1040,11 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			Next:     rp.repeatOptionalNext,
 		}
 	}
+	// Cost-sacrificed objects are engine-only LKI keyed by the stack object.
+	// Re-entry must restore the same snapshot so an SVar such as Mausoleum
+	// Wanderer's Sacrificed$CardPower does not collapse to zero after the
+	// unless-pay answer suspends resolution.
+	ctx.Sacrificed = e.sacrificedLKI[rp.obj]
 	// CR 107.3i: X is the value paid for the object's {X}, preserved on the
 	// stack object by CastInfo -- the same binding resolveTop's spell and
 	// ability branches now carry. A spell whose resolution suspends on a
@@ -1427,7 +1433,8 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// never disagree. An SVar the ctx's table lacks or whose body does
 			// not resolve passes through raw and lands in the same hard
 			// decline as before.
-			paid, ok := ParseUnlessCost(effects.UnlessCostResolved(e, ctx, rp.sa))
+			rawUnlessCost := effects.UnlessCostResolved(e, ctx, rp.sa)
+			paid, ok := ParseUnlessCost(rawUnlessCost)
 			if !ok {
 				// I-5: an unless-cost the payment API cannot price is a hard
 				// DECLINE. ParseCost("X") is {Generic:0, X:1}; payMana never
@@ -1450,7 +1457,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				// cost type) keeps the decision on the wire for hosts to observe
 				// while never letting an empty pool satisfy it.
 				ctx.UnlessPay = "decline"
-			} else if len(chosen) > 0 && chosen[0].Index == 0 {
+			} else if len(chosen) > 0 && chosen[0].Index == 0 && e.unlessCostPayable(chosen[0].Player, rawUnlessCost, ctx, rp.obj) {
 				if len(paid.Sac) > 0 || len(paid.Discard) > 0 || len(paid.Reveal) > 0 || len(paid.RevealChosen) > 0 {
 					// Sacrifice, discard and reveal are choice-bearing costs.
 					// Park this resume before any mutation and let the payer
@@ -1461,6 +1468,14 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 				if e.payUnlessCost(chosen[0].Player, paid, ctx, rp.obj) {
 					ctx.UnlessPay = "pay"
+				} else if paid.hasManaPayment() && len(e.windowManaUnits(chosen[0].Player)) > 0 {
+					// A failed pool-only attempt is not a decline: open the
+					// CR 601.2g mana-ability window and resume this exact frame
+					// after the payer has assembled enough floating mana. The
+					// offer gate proved the budget reachable before Pay was
+					// offered, so sources remain while the charge is unmet.
+					e.beginUnlessPayment(chosen[0].Player, paid, ctx, rp.obj, rp)
+					return
 				} else {
 					ctx.UnlessPay = "decline"
 				}
@@ -1623,6 +1638,13 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				if o.Obj != 0 {
 					ctx.ConniveDiscard = append(ctx.ConniveDiscard, o.Obj)
 				}
+			}
+		case "copypermanent_choice":
+			// CopyPermanent's sole Choices$/Chooser$ shape has its own
+			// transport so a nested ordinary Choice cannot consume the answer.
+			ctx.CopyPermanentChoiceDone = true
+			if len(chosen) > 0 {
+				ctx.CopyPermanentChoice = chosen[0].Obj
 			}
 		case "choice":
 			// ChooseCard, ChoosePlayer and ChangeTargets all use KChoose. Keep

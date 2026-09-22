@@ -272,52 +272,26 @@ type attackManaSource struct {
 // overstate the payer's reach.
 func (e *Engine) attackManaSources(p state.PlayerID) []attackManaSource {
 	var out []attackManaSource
-	for _, id := range e.G.Zone(state.ZBattlefield, p) {
-		o := e.G.Obj(id)
-		if o == nil || o.Tapped || o.Face() == nil {
+	// windowManaUnits is the ONE membership the offer gate (attackBudget) and
+	// this tap list share, so the attack window can never be offered a charge
+	// its sources cannot reach (see the doc comment on windowManaUnits). The
+	// window taps one ability with no sub-ask, so only a source with exactly
+	// one free, priceable ability qualifies -- the same set the pre-
+	// alternatives membership returned (a multi-colour dual's two intrinsics
+	// stay excluded, ledgered under attackprop1).
+	for _, u := range e.windowManaUnits(p) {
+		if u.freeCount != 1 || len(u.alts) != 1 {
 			continue
 		}
-		var free []*cards.SA
-		for _, ma := range e.availableManaAbilitiesForWindow(p, id, false) {
-			if strings.TrimSpace(ma.Params["RestrictValid"]) != "" {
-				continue
-			}
-			if manaFreeCost(e.parseCost(ma.Params["Cost"])) {
-				free = append(free, ma)
-			}
-		}
-		if len(free) != 1 {
-			continue
-		}
-		ma := free[0]
-		amt := availableAmount(ma)
-		if amt <= 0 {
-			continue
-		}
-		counts, any := cards.ProducedCounts(ma.Params["Produced"])
+		a := u.alts[0]
 		units := int32(0)
-		if any {
-			// Only the executor's own deterministic one-colourless default
-			// (blank / "Any" / "Combo Any") counts: exactly one unit. A
-			// choice-shaped production ("Combo B R", "Chosen") names no unit
-			// the pool is guaranteed to receive -- the executor either asks or
-			// fails closed -- so the source is excluded.
-			total := int32(0)
-			for _, n := range counts {
-				total += n
-			}
-			if total == 1 && counts[5] == 1 {
-				units = amt
-			}
-		} else {
-			for _, n := range counts {
-				units += n * amt
-			}
+		for _, n := range a.counts {
+			units += n * a.amt
 		}
 		if units <= 0 {
 			continue
 		}
-		out = append(out, attackManaSource{id: id, ma: ma, units: units})
+		out = append(out, attackManaSource{id: u.id, ma: a.ma, units: units})
 	}
 	return out
 }

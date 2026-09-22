@@ -465,6 +465,26 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		return Clamp(d, in)
 
 	case decision.KChoose:
+		// An UnlessCost$ mana window (ResumeKind "unless_mana") is a payment
+		// continuation, not a generic choose: activate one source at a time
+		// while one is offered, and submit Done once the engine has closed the
+		// source list (its pool covers the charge). The explicit arm keeps the
+		// answer legal as sources disappear after each activation, where the
+		// generic first-option pick would re-submit a tapped source.
+		if d.ResumeKind == "unless_mana" {
+			for _, o := range d.Options {
+				if o.Kind == "activate" {
+					in.Choices = []int{o.Index}
+					return Clamp(d, in)
+				}
+			}
+			for _, o := range d.Options {
+				if o.Kind == "done" {
+					in.Choices = []int{o.Index}
+					return Clamp(d, in)
+				}
+			}
+		}
 		if len(d.Options) == 0 {
 			break
 		}
@@ -512,6 +532,11 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 				}
 			}
 			in.Choices = []int{d.Options[best].Index}
+		case "name":
+			// The full corpus list is deliberately large and hidden cards are
+			// not available in Board. Choose its deterministic first legal name;
+			// this is also the R-9 no-host fallback and always validates.
+			in.Choices = []int{d.Options[0].Index}
 		case "x":
 			in.Choices = []int{d.Options[len(d.Options)-1].Index} // the most it can pay for
 		case "discard":
@@ -756,6 +781,16 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			in.Choices = c
 			return Clamp(d, in)
 		}
+		// A mana UnlessCost$ election (Mana Leak, Daze, Spell Pierce, the
+		// Chain Lightning pay-to-copy) is value-aware too: the first-option arm
+		// would pay every tax, so a payer the opposing board already kills this
+		// turn declines when the tax is a real drain -- spending the pool that
+		// a race depends on does not change the lethal outcome. A safe payer
+		// (and any non-lethal board) keeps the ordinary pay answer.
+		if c := b.unlessManaPayOffer(d); c != nil {
+			in.Choices = c
+			return Clamp(d, in)
+		}
 		// A modal announcement or mid-resolution pick: choose the first Min options
 		// in order — the recorded mirror of the engine-side first-mode
 		// stand-in, so bot-vs-bot behaviour is largely unchanged, and the
@@ -804,6 +839,47 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		}
 	}
 	return Clamp(d, in)
+}
+
+// facingLethal reports whether the opposing board already forces the
+// deciding seat to zero: the total power of untapped opposing creatures that
+// could attack reaches the seat's life. It is deliberately conservative --
+// tapped creatures and an unknown life total are never lethal (the same
+// missing-life convention AR7 uses) -- so a seat that is not clearly dying
+// keeps paying its taxes.
+func (b Board) facingLethal(p state.PlayerID) bool {
+	life, ok := b.Life[p]
+	if !ok {
+		return false
+	}
+	total := int32(0)
+	for _, c := range b.Creatures {
+		if c.Controller == p || c.Tapped || c.Power <= 0 {
+			continue
+		}
+		total += c.Power
+	}
+	return total >= life
+}
+
+// unlessManaPayOffer answers a payable UnlessCost$ election. It returns nil
+// for a single-option ask (leaving the ordinary KModes arm in charge), and
+// otherwise declines only when the payer faces lethal board damage -- the one
+// case where spending the pool cannot win the race. The Sacrifice-damage
+// offer is handled by unlessSacrificeOffer before this arm, so this reads
+// only the plain pay/decline shape.
+func (b Board) unlessManaPayOffer(d *decision.Decision) []int {
+	if d.ResumeKind != "unless_pay" || d.ResumeSA == nil || len(d.Options) < 2 {
+		return nil
+	}
+	if b.facingLethal(d.Player) {
+		for _, o := range d.Options {
+			if o.Index != d.Options[0].Index {
+				return []int{o.Index}
+			}
+		}
+	}
+	return nil
 }
 
 // unlessSacrificeOffer answers the Sacrifice unless-pay damage offer —

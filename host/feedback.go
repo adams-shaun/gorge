@@ -58,6 +58,25 @@ type FeedbackMatch struct {
 	Commanders   [][]int             `json:"commanders,omitempty"`
 	BotPolicy    string              `json:"bot_policy"`
 
+	// NameUniverse and NameUniverseNames mirror the sidecar's fields of the
+	// same names, and for the same reason the deck contents and the token
+	// scripts are here: a name-card universe is a match MODE, not data the
+	// log can recover. A match played with one poses NameCard asks the
+	// legacy no-universe path never poses, so a replay rebuilt from
+	// match.json alone with the mode missing finds no decision pending at
+	// the recorded intent and refuses. NameUniverseNames is the immutable
+	// sorted label list that match actually offered, so a corpus addition
+	// or rename after the report was filed cannot renumber a recorded
+	// numeric name choice. A capture from a pre-feature match carries
+	// neither field, which reads back as the legacy path (R-8.4).
+	NameUniverse bool `json:"name_universe,omitempty"`
+	// NameUniverseNames is stripped from a COMMITTED fixture (it is ~24k
+	// entries, half a megabyte per fixture): the committed shape keeps only
+	// the mode bit and the replay re-derives the list from the live corpus,
+	// diverging on a corpus pin move exactly the way a token-stripped
+	// fixture does, and saying so.
+	NameUniverseNames []string `json:"name_universe_names,omitempty"`
+
 	// Tokens carries the raw token scripts — keyed by file stem, the exact
 	// spelling a card's TokenScript$ parameter uses — behind the match's
 	// rules.Config.Tokens. rules.Config.Tokens is replay input (rules.New
@@ -275,7 +294,9 @@ func feedbackMatch(sc sidecar, deckCards [][]string, sideboards [][]string,
 		State:     sc.State, Result: sc.Result, Winner: sc.Winner, Head: sc.Head, Events: sc.Events,
 		Turns: sc.Turns, Reason: sc.Reason, Mulligans: sc.Mulligans, Format: sc.Format,
 		StartingLife: sc.StartingLife, Commanders: sc.Commanders, BotPolicy: sc.BotPolicy,
-		Tokens: tokens, TokensUnread: tokensUnread,
+		NameUniverse:      sc.NameUniverse,
+		NameUniverseNames: append([]string(nil), sc.NameUniverseNames...),
+		Tokens:            tokens, TokensUnread: tokensUnread,
 	}
 }
 

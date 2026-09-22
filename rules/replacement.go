@@ -2092,7 +2092,10 @@ func (e *Engine) applyAttachedReplacement(ev events.Event) bool {
 	}
 	ch := &attachedChoice{move: ev, source: source}
 	e.attachedChoice = ch
-	opts := e.etbOptions(o.Controller, source, "name", repl.With.Params["ValidCards"], "", "", "")
+	// ValidDescription$ rides along exactly as it does at the cast-time ETB
+	// site (rules/cast.go): it is Forge prompt text, read by
+	// effects.NameChoices only as a safety fallback when ValidCards$ is absent.
+	opts := e.etbOptions(o.Controller, source, "name", repl.With.Params["ValidCards"], repl.With.Params["ValidDescription"], "", "")
 	if len(opts) <= 1 {
 		if len(opts) == 1 {
 			e.emit(events.Event{Kind: events.Choose, Obj: source, Counter: "name", Text: opts[0].Label})
@@ -3139,6 +3142,7 @@ func (e *Engine) ReplaceEvent(name, raw string, resolved int32) {
 	// ordinary marked damage while convertInfectDamage then also emits -1/-1
 	// counters, so a redirected infect hit would land in BOTH forms.
 	e.recomputeInfectMarker(ev)
+	e.recomputeWitherMarker(ev)
 }
 
 // replCountOp applies Forge's ReplaceCount$ arithmetic to a base amount: the

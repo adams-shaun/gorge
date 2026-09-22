@@ -90,6 +90,25 @@ func (e *Engine) finishEnteredStep() {
 	if e.G.Step == state.StepDraw && e.drawStepTurnAction() {
 		return
 	}
+	// CR 724.2a: the monarch's draw is a triggered ability at the beginning
+	// of the end step, not an immediate turn-based action. Queue it here; the
+	// ordinary trigger drain places it on the stack before priority, preserving
+	// responses and APNAP ordering with other beginning-of-end-step triggers.
+	if e.G.Step == state.StepEnd && e.G.HasMonarch &&
+		!e.G.Players[e.G.Monarch].Lost {
+		var source state.ObjID
+		for i := range e.G.Objs {
+			if e.G.Objs[i].Face() != nil {
+				source = e.G.Objs[i].ID
+				break
+			}
+		}
+		if source != 0 {
+			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+				Source: source, Controller: e.G.Monarch, MonarchDraw: true,
+			})
+		}
+	}
 	// Entry resets the pass count along with the active holder. Cumulative
 	// upkeep is a real Phase trigger expanded from its keyword, so the upkeep
 	// StepChange queued it alongside every other upkeep trigger; the ordinary
@@ -1026,6 +1045,9 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 	// the effect).
 	if e.resume != nil {
 		rp := e.resume
+		if rp.kind == "name" && len(chosen) == 1 {
+			rp.name = chosen[0].Label
+		}
 		e.resume = nil
 		e.resumeResolution(rp, chosen)
 		return
@@ -1272,6 +1294,8 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		if e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile && e.choosing != chooseManaSacrifice {
 			if e.wardMana != nil {
 				e.continueWardMana()
+			} else if e.unlessPayment != nil {
+				e.advanceUnlessPayment()
 			} else if cast {
 				e.continueCast()
 			}
@@ -1281,6 +1305,8 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		if e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile && e.choosing != chooseManaSacrifice {
 			if e.wardMana != nil {
 				e.continueWardMana()
+			} else if e.unlessPayment != nil {
+				e.advanceUnlessPayment()
 			} else if cast {
 				e.continueCast()
 			}
@@ -1290,6 +1316,8 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		if e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile && e.choosing != chooseManaSacrifice {
 			if e.wardMana != nil {
 				e.continueWardMana()
+			} else if e.unlessPayment != nil {
+				e.advanceUnlessPayment()
 			} else if cast {
 				e.continueCast()
 			}
@@ -1298,6 +1326,9 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// A Sac/Discard component of an already-accepted UnlessCost$ needs
 		// its payer's real choice before the suspended effect can resume.
 		e.answerUnlessPayment(chosen)
+	case chooseUnlessMana:
+		// The accepted UnlessCost$ is assembling mana one source at a time.
+		e.answerUnlessMana(chosen)
 	case chooseManaColor:
 		// A CR 605.3b triggered mana ability may pose its own colour choice
 		// after this one; the cast (or Ward's payment window) resumes only

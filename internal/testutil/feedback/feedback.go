@@ -71,6 +71,19 @@ type matchJSON struct {
 	Commanders   [][]int           `json:"commanders,omitempty"`
 	Tokens       map[string]string `json:"tokens,omitempty"`
 	TokensUnread []string          `json:"tokens_unread,omitempty"`
+	// NameUniverse is the match MODE bit: true when the live match was
+	// played with a card-name universe, so its NameCard effects posed real
+	// asks. config() must restore it or the rebuilt engine takes the legacy
+	// no-ask path and every recorded name intent misaligns. Absent (a
+	// pre-feature capture) is the legacy path, unchanged.
+	NameUniverse bool `json:"name_universe,omitempty"`
+	// NameUniverseNames pins the exact ordered labels that match offered.
+	// A committed fixture has it stripped for size, the way `tokens` is
+	// stripped for licensing; config() then leaves it nil and the engine
+	// re-derives the list from the live corpus at genesis, which replays a
+	// recorded name choice exactly as long as the corpus pin has not moved
+	// (the documented DIVERGED cause, see AGENTS.md).
+	NameUniverseNames []string `json:"name_universe_names,omitempty"`
 }
 
 // logJSON is log.json's shape, mirroring host.FeedbackLog: the embedded
@@ -261,6 +274,19 @@ func config(m matchJSON, reg *cards.Registry, tokens map[string]*cards.Card) (ru
 		cfg.Format = rules.FormatCommander
 		cfg.StartingLife = m.StartingLife
 		cfg.Commanders = m.Commanders
+	}
+	// The name-card universe is a match MODE, restored the way host's own
+	// matchForLog restores it (host/viewat.go): only a capture that records
+	// the mode replays with one, so a pre-feature snapshot still takes the
+	// legacy no-ask path and reproduces unchanged. With the mode set, the
+	// universe itself is the live corpus (the same registry the decks were
+	// resolved through above) and the pinned label list overrides the
+	// derived one when the capture carried it — a live, uncommitted capture
+	// always does; a size-stripped committed fixture does not, and then the
+	// engine derives the list from this corpus at genesis.
+	if m.NameUniverse {
+		cfg.NameUniverse = reg.Cards
+		cfg.NameUniverseNames = append([]string(nil), m.NameUniverseNames...)
 	}
 	return cfg, nil
 }
