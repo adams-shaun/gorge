@@ -1072,7 +1072,9 @@ func commanderCardLegal(c *cards.Card) bool {
 
 // partnerPairOK reports whether two cards may be a commander PAIR: each
 // carries a Partner-family ability and either both are plain Partners, or
-// each "Partner with" the other by printed name (CR 903.13a/c). The check
+// each "Partner with" the other by printed name (CR 903.13a/c), or exactly
+// one carries K:Doctor's companion and the other is a Doctor (the Doctor Who
+// cycle's companion clause). The check
 // itself lives in deck.IsPartnerPair — the same package that owns
 // IsCommanderEligible (which commanderCardLegal above already delegates to),
 // so the deck-file validator and the engine's seating gate cannot disagree
@@ -1126,7 +1128,7 @@ func (c *Config) legalCommandersFor(i, deckLen int, deck []*cards.Card) []int {
 		if !inRange(a) || !inRange(b) {
 			_, reject = bad("is not a card this deck carries")
 		} else if !commanderCardLegal(deck[a]) || !commanderCardLegal(deck[b]) || !partnerPairOK(deck[a], deck[b]) {
-			_, reject = bad("is not a partner pair")
+			_, reject = bad("is not a legal commander pair")
 		}
 	default:
 		_, reject = bad("is not one or two commanders")

@@ -1178,6 +1178,7 @@ func TestIllegalCommanderConfigurationIsRejected(t *testing.T) {
 		{"legendary cards with no Partner ability", []string{"Lord Windgrace", "Sheoldred, the Apocalypse"}},
 		{"plain Partner paired with a Partner-with card", []string{"Vial Smasher the Fierce", "Krav, the Unredeemed"}},
 		{"Partner-with cards that do not name each other", []string{"Krav, the Unredeemed", "Will Kenrith"}},
+		{"Doctor's companion paired with a non-Doctor", []string{"Rose Tyler", "Lord Windgrace"}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
