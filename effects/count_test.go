@@ -246,6 +246,62 @@ func TestCountOpsDoNotOverflow(t *testing.T) {
 	}
 }
 
+// TestCountOpsDivisionRoundings is the table guard for Forge's AmountOperators
+// division family. Every spelling the corpus carries must divide by its named
+// divisor with the right rounding direction; before the Divide arm landed
+// DivideEvenlyUp (and bare Divide) fell through applyCountOp untouched, so
+// Legate Lanius's "a tenth, rounded up" read as the whole count.
+func TestCountOpsDivisionRoundings(t *testing.T) {
+	cases := []struct {
+		in   int32
+		op   string
+		want int32
+	}{
+		// DivideEvenlyUp = ceil (Legate Lanius's real corpus suffix).
+		{0, "DivideEvenlyUp.10", 0},
+		{1, "DivideEvenlyUp.10", 1},
+		{9, "DivideEvenlyUp.10", 1},
+		{10, "DivideEvenlyUp.10", 1},
+		{11, "DivideEvenlyUp.10", 2},
+		{20, "DivideEvenlyUp.10", 2},
+		{21, "DivideEvenlyUp.10", 3},
+		{7, "DivideEvenlyUp.2", 4},
+		// DivideEvenlyDown = floor (the pre-existing arm's real suffixes).
+		{0, "DivideEvenlyDown.2", 0},
+		{1, "DivideEvenlyDown.2", 0},
+		{2, "DivideEvenlyDown.2", 1},
+		{3, "DivideEvenlyDown.2", 1},
+		{35, "DivideEvenlyDown.5", 7},
+		{34, "DivideEvenlyDown.7", 4},
+		// DivideEvenly / bare Divide = Forge's default, floor.
+		{9, "DivideEvenly.4", 2},
+		{8, "DivideEvenly.4", 2},
+		{9, "Divide.4", 2},
+		{8, "Divide.4", 2},
+		// A negative operand floors toward negative infinity, not toward zero
+		// (the truncation note the old DivideEvenlyDown arm carried).
+		{-3, "DivideEvenlyDown.2", -2},
+		{-3, "DivideEvenlyUp.2", -1},
+		// A missing / non-numeric / non-positive divisor leaves the value
+		// unchanged rather than dividing by zero.
+		{7, "DivideEvenlyUp", 7},
+		{7, "DivideEvenlyDown.0", 7},
+		{7, "DivideEvenlyDown.-2", 7},
+		{7, "DivideEvenlyDown.NumOpps", 7},
+		// The non-division ops are untouched by the new arm.
+		{3, "Plus1", 4},
+		{3, "Minus1", 2},
+		{3, "Twice", 6},
+		{3, "HalfUp", 2},
+		{3, "HalfDown", 1},
+	}
+	for _, tc := range cases {
+		if got := applyCountOp(tc.in, tc.op); got != tc.want {
+			t.Errorf("applyCountOp(%d, %q) = %d, want %d", tc.in, tc.op, got, tc.want)
+		}
+	}
+}
+
 func TestNumGuardsNilCtx(t *testing.T) {
 	h := newHost(t, 2)
 	// Nil Ctx should not panic; it's treated as an empty Ctx.

@@ -83,3 +83,44 @@ func TestRestInPeaceShapedReplacementExilesTheReplacedCard(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// TestReplCountOpSharesTheCountGrammar pins the structural fix that removed
+// replCountOp's hand-duplicated /Op switch: the ReplaceCount$ arithmetic now
+// delegates to effects.ApplyCountOp, so the whole /Op vocabulary (including
+// the Divide family and Negative, which the hand copy silently lacked)
+// reaches a replacement body. ReplaceCount$ adds exactly one thing over the
+// count grammar -- the negative clamp, because a replacement cannot deal,
+// gain or place a negative amount.
+func TestReplCountOpSharesTheCountGrammar(t *testing.T) {
+	cases := []struct {
+		base int32
+		op   string
+		want int32
+	}{
+		// The ops the hand copy already had.
+		{3, "Plus.2", 5},
+		{3, "Minus.1", 2},
+		{3, "Times.4", 12},
+		{3, "Twice", 6},
+		{3, "Thrice", 9},
+		{3, "HalfDown", 1},
+		{3, "HalfUp", 2},
+		// The ops the hand copy lacked, now covered by delegation.
+		{11, "DivideEvenlyUp.10", 2},
+		{10, "DivideEvenlyDown.3", 3},
+		{3, "Negative", 0},
+		// The count grammar's dotless Plus/Minus spellings reach too.
+		{3, "Plus1", 4},
+		{3, "Minus1", 2},
+		// The negative clamp: any arithmetic that drives the base below zero
+		// yields 0, never a negative replacement amount.
+		{1, "Minus.5", 0},
+		// An op the shared applier does not parse leaves the base unchanged.
+		{7, "Bogus.3", 7},
+	}
+	for _, tc := range cases {
+		if got := replCountOp(tc.base, tc.op); got != tc.want {
+			t.Errorf("replCountOp(%d, %q) = %d, want %d", tc.base, tc.op, got, tc.want)
+		}
+	}
+}

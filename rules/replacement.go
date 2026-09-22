@@ -5,7 +5,6 @@
 package rules
 
 import (
-	"math"
 	"strconv"
 	"strings"
 
@@ -2835,40 +2834,24 @@ func (e *Engine) ReplaceEvent(name, raw string, resolved int32) {
 
 // replCountOp applies Forge's ReplaceCount$ arithmetic to a base amount: the
 // corpus carries Twice (Bloodletter of Aclazotz), Thrice (Fiery Emancipation)
-// and Plus.N (Torture Pit), with the rest of applyCountOp's op vocabulary
-// implemented for the class rather than only the seen three. An op this
-// builder does not parse returns the base unchanged.
+// and Plus.N (Torture Pit). The arithmetic is the ONE shared implementation,
+// effects.ApplyCountOp -- so the next op added to the /Op vocabulary (this
+// adapter previously duplicated the switch by hand and silently lacked
+// Negative and the whole Divide family) reaches ReplaceCount$ for free and
+// the count grammar and the replacement grammar cannot drift.
+//
+// The one thing ReplaceCount$ adds over the count grammar is the CLAMP: a
+// replacement cannot deal, gain or place a negative amount, so a body whose
+// arithmetic drives the base below zero yields 0 (the count grammar has no
+// such clamp -- a negative count is meaningful there). An op the shared
+// applier does not parse is returned unchanged by it, the same fail-closed
+// direction this adapter always kept.
 func replCountOp(base int32, op string) int32 {
-	v := int64(base)
-	switch {
-	case strings.HasPrefix(op, "Plus."):
-		if x, err := strconv.Atoi(strings.TrimPrefix(op, "Plus.")); err == nil {
-			v += int64(x)
-		}
-	case strings.HasPrefix(op, "Minus."):
-		if x, err := strconv.Atoi(strings.TrimPrefix(op, "Minus.")); err == nil {
-			v -= int64(x)
-		}
-	case strings.HasPrefix(op, "Times."):
-		if x, err := strconv.Atoi(strings.TrimPrefix(op, "Times.")); err == nil {
-			v *= int64(x)
-		}
-	case op == "Twice":
-		v *= 2
-	case op == "Thrice":
-		v *= 3
-	case op == "HalfDown":
-		v /= 2
-	case op == "HalfUp":
-		v = (v + 1) / 2
-	}
-	if v > math.MaxInt32 {
-		return math.MaxInt32
-	}
+	v := effects.ApplyCountOp(base, op)
 	if v < 0 {
 		return 0
 	}
-	return int32(v)
+	return v
 }
 
 func (e *Engine) replacementCheckValue(source state.ObjID, check string) int32 {
