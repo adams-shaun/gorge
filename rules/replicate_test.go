@@ -372,6 +372,13 @@ func drainStackDecliningPlays(t *testing.T, e *Engine, limit int) {
 			}
 			continue
 		}
+		if d.Kind == decision.KTarget && d.ResumeKind == "copy_targets" {
+			// CR 707.10c: keep the copy's inherited target (option 0).
+			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{d.Options[0].Index}}); err != nil {
+				t.Fatalf("submit copy target: %v", err)
+			}
+			continue
+		}
 		if d.Kind != decision.KPriority {
 			t.Fatalf("non-priority decision %+v while draining the stack", d)
 		}

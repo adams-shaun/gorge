@@ -1711,21 +1711,30 @@ func (e *Engine) totalPowerCappedCandidates(candidates []targetCandidate, p stat
 	return out, capPower, true
 }
 
-// AskCopyTargets offers CR 707.10c's new-target choice for one copy. The
-// inherited target is placed first when it remains legal, making the R-9 and
-// bot default the ordinary "keep current target" choice; the remaining
-// options use the same legal-target census as casting.
-func (e *Engine) AskCopyTargets(c *effects.Ctx, spell state.ObjID, controller state.PlayerID, copySA *cards.SA, index int) bool {
-	targetObj := spell
-	if n := len(e.G.Stack); n > 0 {
-		if top := e.G.Obj(e.G.Stack[n-1]); top != nil && top.IsCopy {
-			targetObj = top.ID
-		}
-	}
-	o := e.G.Obj(targetObj)
-	if o == nil || o.Zone != state.ZStack {
+// AskCopyTargets offers CR 707.10c's new-target choice for the copy on top
+// of the stack. It is driven entirely by the copy's own
+// CopyMayChooseTarget flag -- set by the StackCopy fold from the CREATING
+// CopySpellAbility's MayChooseTarget$ parameter, so an external copier
+// (Mirari, Cloven Casting, a Storm or Replicate copy) grants the election
+// even though its SA is not part of the copied spell's text. The inherited
+// target is placed first as the keep-current default -- ALWAYS, even when it
+// is no longer legal, because choosing new targets is optional and a player
+// who keeps an illegal target simply lets the copy fizzle per CR 608.2b
+// (forcing a new target here would retarget a copy the player declined to
+// change). The remaining options use the same legal-target census as
+// casting. The election is one-shot: the answer records targets through
+// recordChosenTargets, whose TargetsChosen fold clears the flag, so the
+// resolveTop re-entry does not ask again.
+func (e *Engine) AskCopyTargets() bool {
+	n := len(e.G.Stack)
+	if n == 0 {
 		return false
 	}
+	o := e.G.Obj(e.G.Stack[n-1])
+	if o == nil || !o.IsCopy || !o.CopyMayChooseTarget {
+		return false
+	}
+	controller := o.Controller
 	sa := o.Ability
 	if o.Face() != nil {
 		sa = o.Face().SpellAbility()
@@ -1733,15 +1742,24 @@ func (e *Engine) AskCopyTargets(c *effects.Ctx, spell state.ObjID, controller st
 	if sa == nil || strings.TrimSpace(sa.Params["ValidTgts"]) == "" {
 		return false
 	}
-	candidates := e.legalTargetCandidates(controller, spell, spell, sa)
-	ordered := make([]targetCandidate, 0, len(candidates))
+	candidates := e.legalTargetCandidates(controller, o.ID, o.ID, sa)
+	ordered := make([]targetCandidate, 0, len(candidates)+len(o.Targets))
 	for _, old := range o.Targets {
+		matched := -1
 		for i, candidate := range candidates {
 			if targetCandidateEqual(old, candidate) {
-				ordered = append(ordered, candidate)
-				candidates = append(candidates[:i], candidates[i+1:]...)
+				matched = i
 				break
 			}
+		}
+		if matched >= 0 {
+			ordered = append(ordered, candidates[matched])
+			candidates = append(candidates[:matched], candidates[matched+1:]...)
+		} else {
+			// Keep-current even though the target is no longer legal: the
+			// player may decline new targets (CR 707.10c), and the copy
+			// then fizzles at CR 608.2b.
+			ordered = append(ordered, stateTargetCandidate(old))
 		}
 	}
 	ordered = append(ordered, candidates...)
@@ -1749,9 +1767,8 @@ func (e *Engine) AskCopyTargets(c *effects.Ctx, spell state.ObjID, controller st
 		return false
 	}
 	d := &decision.Decision{Player: controller, Kind: decision.KTarget, Min: 1, Max: 1,
-		Prompt: "Choose a new target for the copy", Source: targetObj,
-		ResumeKind: "copy_targets", ResumeSA: copySA, ResumeTarget: index,
-		TargetEffect: describeTargetEffect(sa)}
+		Prompt: "Choose a new target for the copy", Source: o.ID,
+		ResumeKind: "copy_targets", ResumeSA: sa, TargetEffect: describeTargetEffect(sa)}
 	for _, candidate := range ordered {
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: candidate.kind,
 			Label: e.targetOptionLabel(candidate), Obj: candidate.obj, Player: candidate.player})
@@ -1760,17 +1777,16 @@ func (e *Engine) AskCopyTargets(c *effects.Ctx, spell state.ObjID, controller st
 	return true
 }
 
-func mayChooseCopySA(sa *cards.SA) *cards.SA {
-	if sa == nil {
-		return nil
+// stateTargetCandidate converts a recorded state.Target into the option shape
+// the target census uses. The kind is only the wire label; a player target
+// keeps "player" and every object target is offered as "permanent" (the
+// label reads the object's own name, so a target that has left the
+// battlefield still renders correctly).
+func stateTargetCandidate(t state.Target) targetCandidate {
+	if t.IsPlayer {
+		return targetCandidate{kind: "player", player: t.Player}
 	}
-	if sa.API == "CopySpellAbility" && strings.EqualFold(strings.TrimSpace(sa.Params["MayChooseTarget"]), "True") {
-		return sa
-	}
-	if out := mayChooseCopySA(sa.Sub); out != nil {
-		return out
-	}
-	return nil
+	return targetCandidate{kind: "permanent", obj: t.Obj}
 }
 
 func targetCandidateEqual(t state.Target, c targetCandidate) bool {
@@ -2079,15 +2095,9 @@ func offeredTargetSA(o *state.Object, svars map[string]string) *cards.SA {
 func (e *Engine) resolveTop() {
 	id := e.G.Stack[len(e.G.Stack)-1]
 	o := e.G.Obj(id)
-	if o != nil && o.IsCopy {
-		sa := o.Ability
-		if o.Face() != nil {
-			sa = o.Face().SpellAbility()
-		}
-		if copySA := mayChooseCopySA(sa); copySA != nil {
-			if e.AskCopyTargets(&effects.Ctx{Source: id, Controller: o.Controller}, id, o.Controller, copySA, 0) {
-				return
-			}
+	if o != nil && o.IsCopy && o.CopyMayChooseTarget {
+		if e.AskCopyTargets() {
+			return
 		}
 	}
 	savedResolving := e.resolvingObj

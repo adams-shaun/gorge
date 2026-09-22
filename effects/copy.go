@@ -183,13 +183,17 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 		}
 		n := int(Num(h, c, sa, "Amount", 1))
 		for i := 0; i < n; i++ {
-			h.Emit(events.Event{Kind: events.StackCopy, Obj: spell, Player: controller})
+			ev := events.Event{Kind: events.StackCopy, Obj: spell, Player: controller}
 			if mayChoose {
-				if _, ok := h.(CopyTargetAsker); !ok {
-					h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-						Text: "copy keeps its targets"})
-				}
+				// CR 707.10c: the copy's controller may choose new targets. The
+				// permission rides the StackCopy event (Amount 1), so it is
+				// recorded per copy instance and replayed; rules/stack.go's
+				// resolveTop poses the election and the TargetsChosen fold
+				// consumes it. No Note: the election is now real, not a
+				// stand-in.
+				ev.Amount = 1
 			}
+			h.Emit(ev)
 		}
 	}
 }

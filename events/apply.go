@@ -1355,6 +1355,15 @@ func Apply(g *state.Game, e Event) {
 		//   2: append one object target per entry in IDs.
 		//   3: append a single player target, read from Player.
 		if o := g.Obj(e.Obj); o != nil {
+			// CR 707.10c: recording chosen targets on a COPY consumes its
+			// one-shot MayChooseTarget$ election. The only TargetsChosen a copy
+			// can receive is the copy-target ask's own answer (a copy is minted
+			// after its original was cast, so no cast-flow target records onto
+			// it), so this clear cannot swallow an unrelated choice; replay
+			// re-runs the same fold.
+			if o.IsCopy {
+				o.CopyMayChooseTarget = false
+			}
 			switch e.Amount {
 			case 1:
 				if validPlayer(g, e.Player) {
@@ -2023,6 +2032,13 @@ func Apply(g *state.Game, e Event) {
 		o.Targets = targets
 		o.Remembered = remembered
 		o.X, o.CastFlags, o.IsCopy = x, castFlags, true
+		// CR 707.10c: Amount is the creating CopySpellAbility's
+		// MayChooseTarget$ discriminator (1 = true). It rides the event so the
+		// permission travels with the COPY instance -- an external copier
+		// (Mirari, Cloven Casting, Storm, Replicate) whose SA is not part of
+		// the copied spell's own text still grants the election on replay,
+		// and effects/copy.go never has to reach into rules to ask.
+		o.CopyMayChooseTarget = e.Amount == 1
 
 	case Attach:
 		if o := g.Obj(e.Obj); o != nil {

@@ -34,13 +34,6 @@ type CombatDamageHit struct {
 // Host is everything an effect may do to a game: read it, and propose events.
 // Deliberately tiny — an effect that needs more is a sign the primitive is
 // doing rules work that belongs in the rules package.
-// CopyTargetAsker is optionally implemented by the rules engine. It keeps
-// the target legality census in rules while allowing CopySpellAbility to ask
-// for new targets without making effects import rules.
-type CopyTargetAsker interface {
-	AskCopyTargets(*Ctx, state.ObjID, state.PlayerID, *cards.SA, int) bool
-}
-
 type Host interface {
 	// Game returns the live match state for reading. The returned *state.Game
 	// must never be written to directly: every state mutation goes through
