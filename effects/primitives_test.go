@@ -552,6 +552,34 @@ func TestDestroyMovesToGraveyard(t *testing.T) {
 }
 
 // TestDestroySkipsIndestructible is the brief's own worked-example test.
+func TestDestroyRememberTargetsRecordsDestroyedSurvivorsOnly(t *testing.T) {
+	g, ids := board(t)
+	h := &fakeHost{g: g}
+	source := g.Obj(ids["myLand"])
+	if source == nil || source.Zone != state.ZBattlefield {
+		t.Fatal("remembering source must start on the battlefield")
+	}
+	old := ids["theirBig"]
+	source.Remembered = []state.Target{{Obj: old}}
+	ctx := &Ctx{Source: source.ID, Controller: 0,
+		Targets: []state.Target{{Obj: ids["myBear"]}, {Obj: ids["myFlier"]}}, TargetsOffered: true,
+		Remembered: []state.Target{{Obj: old}}}
+	g.Obj(ids["myFlier"]).Card.Faces[0].Keywords = append(g.Obj(ids["myFlier"]).Card.Faces[0].Keywords, "Indestructible")
+	Resolve(h, ctx, sa(t, "SP$ Destroy | ValidTgts$ Creature | RememberTargets$ True | ForgetOtherTargets$ True"))
+	if g.Obj(ids["myBear"]).Zone != state.ZGraveyard {
+		t.Fatal("destroyed target did not leave the battlefield")
+	}
+	if g.Obj(ids["myFlier"]).Zone != state.ZBattlefield {
+		t.Fatal("indestructible target was not spared")
+	}
+	if len(ctx.Remembered) != 1 || ctx.Remembered[0].Obj != ids["myBear"] {
+		t.Fatalf("ctx remembered = %#v, want only destroyed target", ctx.Remembered)
+	}
+	if len(source.Remembered) != 1 || source.Remembered[0].Obj != ids["myBear"] {
+		t.Fatalf("source remembered = %#v, want only destroyed target", source.Remembered)
+	}
+}
+
 func TestDestroySkipsIndestructible(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}
