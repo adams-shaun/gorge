@@ -35,6 +35,40 @@ func TestPlaneswalkRecordsTheNoPlanarDeckDegrade(t *testing.T) {
 	}
 }
 
+// TestOptionalPlaneswalkNoHostDeclinesAndRunsTheChain proves the optional
+// handler is reached even on the effects test double, whose Ask method has no
+// decision channel. Without the registration this would instead emit the
+// generic unimplemented-API note and the chained probe would not run.
+func TestOptionalPlaneswalkNoHostDeclinesAndRunsTheChain(t *testing.T) {
+	var ran bool
+	Register("TestPlaneswalkChain", func(_ Host, _ *Ctx, _ *cards.SA) { ran = true })
+	t.Cleanup(func() { unregister("TestPlaneswalkChain") })
+	c, _ := cards.ParseBytes("planeswalk.txt", []byte(
+		"Name:Planeswalk probe\nTypes:Sorcery\n"+
+			"A:SP$ Planeswalk | Optional$ True | SubAbility$ Next\n"+
+			"SVar:Next:DB$ TestPlaneswalkChain\nOracle:x\n"))
+	c.Link()
+	h := newHost(t, 2)
+	Resolve(h, &Ctx{Source: 0}, c.Faces[0].Abilities[0])
+	if !ran {
+		t.Fatal("optional Planeswalk did not continue into SubAbility")
+	}
+	for _, e := range h.log {
+		if strings.HasPrefix(e.Text, "unimplemented API") {
+			t.Fatalf("Planeswalk reached generic fallback: %q", e.Text)
+		}
+	}
+	found := false
+	for _, e := range h.log {
+		if e.Text == "planeswalk election: no" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("no recorded deterministic decline in %+v", h.log)
+	}
+}
+
 // TestChaosEnsuesRecordsTheNoPlanarDeckDegrade pins CR 901.9's degrade the
 // same way.
 func TestChaosEnsuesRecordsTheNoPlanarDeckDegrade(t *testing.T) {

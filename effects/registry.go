@@ -994,6 +994,10 @@ type Ctx struct {
 	// is consumed and cleared at the re-entry's top (fx42 scoping), so a
 	// nested PutCounter poses its own ask.
 	PutOpt string
+	// PlaneswalkOpt is the answered Optional$ True "you may planeswalk"
+	// election. It is resolution-local so a nested Planeswalk cannot inherit
+	// an outer answer.
+	PlaneswalkOpt string
 	// Extort is the answered optional {W/B} payment on a re-entered Extort
 	// resolution (M2d-2): "pay" means the caster agreed to pay and the drain
 	// runs; anything else ("decline", first pass with a host that cannot ask)

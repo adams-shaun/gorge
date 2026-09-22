@@ -1714,6 +1714,15 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 					ctx.AttachDests = append(ctx.AttachDests, t.Obj)
 				}
 			}
+		case "planeswalk_optional":
+			// An Optional$ True Planeswalk election is a KChoose yes/no. The
+			// effect is a no-op without a planar deck, but its election is still
+			// recorded by the effect and the normal Resolve walk continues into
+			// any SubAbility$.
+			ctx.PlaneswalkOpt = "no"
+			if len(chosen) > 0 && chosen[0].Kind == "yes" {
+				ctx.PlaneswalkOpt = "yes"
+			}
 		case "put_optional":
 			// An Optional$ True PutCounter's yes/no election (Talus Paladin's
 			// "you may put a +1/+1 counter on CARDNAME", Black Widow's "You
