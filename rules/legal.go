@@ -1760,6 +1760,38 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		}
 	}
 
+	// Retrace (CR 702.81a): a card in its owner's graveyard carrying the
+	// Retrace keyword may be cast from there by paying its printed mana cost
+	// PLUS an additional cost of discarding a land card. Unlike Escape this
+	// is not a cost substitution, so the offer prices the ordinary plain-cast
+	// base (castOfferBase credits Convoke/Improvise, withSpellAbilityExtras
+	// adds the spell's own additional parts) with retraceExtra folded on top.
+	// The discard is a real hand cost, so the offer is withheld unless a land
+	// card is actually there to discard -- an option that cannot be paid must
+	// never be offered (the offerCastable/withSpellAbilityExtras ruling).
+	for _, id := range e.G.Zone(state.ZGraveyard, p) {
+		o := e.G.Obj(id)
+		f := o.Face()
+		if f == nil || castRestricted(p, id) || e.castSuppressed(p, id) {
+			continue
+		}
+		if !e.HasKeyword(id, "Retrace") {
+			continue
+		}
+		if !e.spellTimingOK(p, id, f, sorcery) ||
+			!e.castTargetsAvailable(p, id, f.SpellAbility()) {
+			continue
+		}
+		rx := retraceExtra()
+		if !e.discardCostPayable(p, id, rx.Discard, true) {
+			continue
+		}
+		if offerCastable(p, id, withSpellAbilityExtras(f, e.castOfferBase(p, id)).Plus(rx), spellScope("retrace"), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (retrace)", Obj: id, Mode: "retrace"})
+		}
+	}
+
 	// Warp recast from exile (CR 702: "exile this creature at the beginning
 	// of the next end step, then you may cast it from exile on a later
 	// turn"). The exile-zone walk offers the cast only to a warp card that
