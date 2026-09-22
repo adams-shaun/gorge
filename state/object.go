@@ -247,6 +247,17 @@ const (
 	// rather than the single Face().SpellAbility(). Appended per the enum's
 	// own append-only precedent.
 	FlagFused
+	// FlagManaExpendCast marks a cast whose pay-time CastInfo is the
+	// trig:ManaExpend wake-up (the FlagManaSpent pattern): the Amount is the
+	// mana the cast's payment spent (state.Mana pips summed), read by the
+	// crossing matcher (rules/trigmatch_cast.go's manaExpendMatches). Emitted
+	// only when a ManaExpend trigger face is on the casting player's
+	// battlefield (rules/cast.go's manaExpendReaderOut), so every game without
+	// a carrier stays byte-identical. The cumulative per-turn tally the
+	// crossing is measured against is ENGINE SCRATCH, not this event: it must
+	// include casts made before the carrier entered, which emit no event.
+	// Appended per the enum's own append-only precedent.
+	FlagManaExpendCast
 )
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the

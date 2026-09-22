@@ -68,6 +68,13 @@ var addedAfterTheSplit = []string{
 	// the K:Exploit expansion emits, which was appended for it, so the mode
 	// could not have been in the pre-split switch.
 	"Exploited",
+	// manaexpend1: "Whenever you expend N ..." (the Bloomburrow Commander
+	// expend keyword: Teapot Slinger, Trailtracker Scout, Wandertale Mentor,
+	// Pyreswipe Hawk and 8 more corpus carriers). It matches rules/cast.go's
+	// pay-time FlagManaExpendCast CastInfo emission, gated on a carrier being
+	// on the caster's battlefield, so no new event Kind was needed -- but the
+	// mode is new to the table, so it lands here.
+	"ManaExpend",
 	// kw-class: "When this Class becomes level N" (CR 702.118c; 13 corpus
 	// TriggerClassLevel SVar bodies). It matches the ordinary CounterChange
 	// event the level-up activator's PutCounter emits, so the event existed

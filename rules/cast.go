@@ -4243,6 +4243,100 @@ func faceWantsTimesKicked(f *cards.Face) bool {
 	return f.Mentions("Count$TimesKicked")
 }
 
+// manaExpendReaderOut is the ManaExpend emission gate (the
+// triggeredConvergeReaderOut pattern): true when the CASTING player's own
+// battlefield holds a permanent whose live faces carry a Mode$ ManaExpend
+// trigger. A ManaExpend trigger can only fire for its controller's own cast
+// expenditure (every corpus line carries Player$ You), so scoping the scan to
+// the caster's zone stamps exactly when the value can be needed and no game
+// without a carrier out changes an event (heads stay put: no ManaExpend
+// carrier is in any repo deck). Pure read -- the deterministic zone walk
+// cannot reach an event; replay re-runs payCast and derives the same scan.
+//
+// The scan enumerates the SAME faces the ordinary trigger scan walks
+// (roomTriggerFaces plus triggerFacesWithMerged), not just the printed top
+// face: an unlocked Room's alternate face and a mutated pile's under-cards
+// can each carry a ManaExpend trigger (CR 309.6, CR 702.140d), and the
+// trigger scan would fire one if the wake-up event existed. Routing the gate
+// through the shared helpers keeps the gate from silently under-stamping a
+// shape the matcher supports -- the next such face shape is covered without
+// a second list.
+func (e *Engine) manaExpendReaderOut(player state.PlayerID) bool {
+	g := e.G
+	for _, id := range g.Zone(state.ZBattlefield, player) {
+		o := g.Obj(id)
+		if o == nil {
+			continue
+		}
+		if objectHasManaExpendTrigger(o) {
+			return true
+		}
+	}
+	return false
+}
+
+// objectHasManaExpendTrigger reports whether any face the trigger scan walks
+// for o carries a Mode$ ManaExpend trigger: the cast face, an unlocked Room's
+// alternate face (roomTriggerFaces) and every merged under-card face
+// (triggerFacesWithMerged). The shared face enumeration is what makes this
+// the gate's structural twin of the scan rather than a second, driftable
+// list.
+func objectHasManaExpendTrigger(o *state.Object) bool {
+	f := o.Face()
+	if f == nil {
+		return false
+	}
+	faces, n := roomTriggerFaces(o, f)
+	walk := faces[:n]
+	if len(o.MergedCards) > 0 {
+		walk = triggerFacesWithMerged(o, walk)
+	}
+	for _, fc := range walk {
+		if fc.face == nil {
+			continue
+		}
+		for _, t := range fc.face.Triggers {
+			if t.Mode == "ManaExpend" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// manaExpendAdd folds a paid cast's pool spend into the per-turn ManaExpend
+// tally, resetting it first when the turn has moved on. Called
+// UNCONDITIONALLY from payCast (before the gated wake-up emission), so the
+// tally counts casts made while no carrier was out -- the pre-entry base the
+// crossing test needs. Deterministic: e.G.Turn advances only through
+// TurnChange, and replay's payCast re-execution folds the same calls in the
+// same order.
+func (e *Engine) manaExpendAdd(player state.PlayerID, spend int32) {
+	if spend <= 0 {
+		return
+	}
+	if e.manaExpendedTurn != e.G.Turn {
+		e.manaExpendedTurn = e.G.Turn
+		for i := range e.manaExpended {
+			e.manaExpended[i] = 0
+		}
+	}
+	if int(player) < len(e.manaExpended) {
+		e.manaExpended[player] += spend
+	}
+}
+
+// manaExpendTotal is the player's cumulative mana spent casting spells this
+// turn -- the current-turn tally, or zero when the tally belongs to an
+// earlier turn (no cast has stamped the new turn yet). manaExpendMatches
+// reads it for the crossing test.
+func (e *Engine) manaExpendTotal(player state.PlayerID) int32 {
+	if e.manaExpendedTurn != e.G.Turn || int(player) >= len(e.manaExpended) {
+		return 0
+	}
+	return e.manaExpended[player]
+}
+
 // triggeredConvergeReaderOut is the capture gate's second arm: it reports
 // whether any alive player's battlefield holds a permanent whose face SVars
 // name TriggeredCard$Converge -- a trigger that reads ANOTHER spell's cast
@@ -6262,6 +6356,30 @@ func (e *Engine) payCast() {
 			acc |= typedFlags[t]
 			e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: typedAmounts[t],
 				Counter: events.FlagsString(acc)})
+		}
+	}
+	// ManaExpend (trig:ManaExpend): fold this cast's pool spend into the
+	// per-turn engine tally UNCONDITIONALLY -- including casts made before a
+	// carrier entered the battlefield, which emit no FlagManaExpendCast event
+	// under the gate below. The tally is what manaExpendMatches reads for the
+	// crossing test (a cast that moves it from below Amount$ N to at-or-above
+	// it fires once; a cast that starts at-or-above fires nothing); a
+	// gated-only tally would undercount the pre-entry base and misfire BOTH
+	// ways (spurious fire after a carrier entered mid-turn, missed crossing
+	// when the real total crossed with the carrier out).
+	//
+	// The wake-up CastInfo emission stays gated (heads safety: only a cast
+	// made while the caster's battlefield already holds a ManaExpend carrier
+	// can fire one, so no game without a carrier changes an event). Pool mana
+	// only, the same delta manaSpentTotal(spentMana) the faceWantsCastSpend
+	// capture prices: convoke contributions and free casts are not mana spent,
+	// and ability activations never reach this block. The tally update runs
+	// BEFORE the emit, so the matcher reads the post-payment total.
+	if spend := manaSpentTotal(spentMana); spend > 0 {
+		e.manaExpendAdd(pc.player, spend)
+		if e.manaExpendReaderOut(pc.player) {
+			meFlags := events.FlagsString(events.FlagsFrom(flags) | state.FlagManaExpendCast)
+			e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Player: pc.player, Amount: spend, Counter: meFlags})
 		}
 	}
 	// CR 601.2i: the "when you cast" trigger, held back from the up-front

@@ -821,6 +821,7 @@ const (
 	TriggerInterestStepChange
 	TriggerInterestAttach
 	TriggerInterestExplore
+	TriggerInterestCastInfo
 )
 
 func triggerInterestForMode(mode string) TriggerInterest {
@@ -844,6 +845,12 @@ func triggerInterestForMode(mode string) TriggerInterest {
 		return TriggerInterestAttach
 	case "Explores":
 		return TriggerInterestExplore
+	case "ManaExpend":
+		// The crossing trigger fires on its own pay-time FlagManaExpendCast
+		// CastInfo emission (rules' manaExpendMatches); the dedicated bit
+		// keeps a ManaExpend-only face's scan set narrow instead of the
+		// fail-open default.
+		return TriggerInterestCastInfo
 	case "Taps", "TapsForMana":
 		return TriggerInterestTap
 	case "DamageDone", "DamageDealtOnce", "DamageDoneOnce":
