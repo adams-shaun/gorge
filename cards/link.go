@@ -100,6 +100,11 @@ var builtinSVars = map[string]string{
 	// effects.ParseZones at resolution, so the single body serves both the
 	// Graveyard and Exile registrations.
 	"__kwEarthbendReturn": "DB$ ChangeZone | Defined$ Self | Origin$ Graveyard,Exile | Destination$ Battlefield | Tapped$ True",
+	// K:MayFlashSac (CR 702.8): "if you cast it any time a sorcery couldn't
+	// have been cast, the controller of the permanent it becomes sacrifices
+	// it at the beginning of the next cleanup step". The registration's
+	// Source is the permanent the spell became, so Defined$ Self is it.
+	"__kwMayFlashSacrifice": "DB$ Sacrifice | Defined$ Self",
 }
 
 // ResolveSVar compiles the ability an SVar name refers to, recursively

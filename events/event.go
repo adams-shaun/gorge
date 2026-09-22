@@ -1156,6 +1156,12 @@ var flagNames = [...]struct {
 	// and fizzle readers exile it instead of the graveyard. Appended at the
 	// end per the table's own ordering rule.
 	{"jumpstart", state.FlagJumpstart},
+	// The K:MayFlashSac off-sorcery cast (kw:MayFlashSac): the flag is the
+	// provenance the keyword's own ETB hook reads to register the delayed
+	// cleanup-step sacrifice, so a sorcery-timed cast of the same card emits
+	// no flag and no sacrifice. Appended at the end per the table's own
+	// ordering rule.
+	{"mayflashsac", state.FlagMayFlashSac},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

@@ -287,6 +287,14 @@ const (
 	// on resolution and when countered. Appended per the enum's own
 	// append-only precedent.
 	FlagJumpstart
+	// FlagMayFlashSac marks a spell cast off-sorcery through its K:MayFlashSac
+	// permission (CR 702.8's "you may cast this as though it had flash" plus
+	// the keyword's own "sacrifice it at the beginning of the next cleanup
+	// step" rider). It is set by the pay-time CastInfo only when the cast was
+	// NOT at a time a sorcery could have been cast, so the keyword's ETB hook
+	// (rules/altcast.go's altCostEnter) can register the delayed sacrifice.
+	// Appended per the enum's own append-only precedent.
+	FlagMayFlashSac
 )
 
 // ExilesLeavingStack reports whether a cast carrying these flags is a

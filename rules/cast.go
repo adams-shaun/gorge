@@ -86,6 +86,14 @@ type pendingCast struct {
 	gainedFrom state.ObjID
 	gainedIdx  int
 
+	// offSorcery (kw:MayFlashSac) is the CR 702.8 rider's condition captured
+	// at beginCast, before CR 601.2a pushes the spell: true when this cast was
+	// made at a time a sorcery could NOT have been cast. payCast stamps
+	// state.FlagMayFlashSac onto the pay-time CastInfo only when this is true
+	// AND the face carries the keyword, so a sorcery-timed cast of the same
+	// card registers no cleanup sacrifice. Plain data, so Clone carries it.
+	offSorcery bool
+
 	cost Cost
 
 	// mayPlayIgnore is the may-play grant's MayPlayIgnoreColor$ rider,
@@ -1976,6 +1984,13 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	if s, ok := f.KeywordParam("Escalate"); ok && strings.TrimSpace(s) != "" {
 		e.cast.escalateParam, e.cast.escalateSet = s, true
 	}
+
+	// kw:MayFlashSac (CR 702.8): capture the rider's condition now, before
+	// CR 601.2a puts the spell on the stack, so the empty-stack half of
+	// sorcerySpeed is the board the caster announced into rather than this
+	// spell's own push. An ability proposal (pc.ability >= 0) never reads it:
+	// payCast's flag arm is gated on !pc.isAbility().
+	e.cast.offSorcery = e.offSorceryAtCast(p)
 	// The announce-bearing alternative (the Shoal cycle) and the
 	// TargetsWithSameController rider (Lodestone Bauble) ride the selected
 	// cast SA into the transaction: xAsk's announce arm and exAsk's binding
@@ -6695,6 +6710,18 @@ func (e *Engine) payCast() {
 	// the byte-identical no-event shape.
 	if pc.replaceGraveyard {
 		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagReplaceGraveyard)
+	}
+	// kw:MayFlashSac (CR 702.8): a card cast off-sorcery through the keyword's
+	// own flash permission carries the flag the keyword's ETB hook reads to
+	// register the cleanup-step sacrifice. A sorcery-timed cast of the same
+	// card (offSorcery false) or a cast of any other card emits nothing, so
+	// unrelated casts stay byte-identical. The modeFlags switch has no case
+	// for this keyword because the cast is ORDINARY -- there is no cast mode
+	// to read and no extra cost; the permission alone sets no flag.
+	if !pc.isAbility() && pc.offSorcery {
+		if o := e.G.Obj(pc.card); mayFlashSacFace(o.Face()) {
+			flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagMayFlashSac)
+		}
 	}
 	// Replicate (CR 702.55a): the payment count rides the same pay-time
 	// CastInfo. modeFlags deliberately maps "replicated" to "" -- a DECLINED
