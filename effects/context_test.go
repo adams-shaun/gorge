@@ -100,13 +100,22 @@ type fakeHost struct {
 	// point; the double fakes the same shape for the Repeat loop's
 	// between-iteration suspension break). Zero value keeps the historical
 	// constant-false read every other effects test relies on.
-	suspendAfterAsk bool
+	suspendAfterAsk      bool
+	repeatOptionalNext   int32
+	repeatOptionalCalled bool
+	askCount             int
+	askResult            bool
+	// lastAsk is the most recent decision handed to Ask, so an effects-level
+	// test can assert the election's ResumeRepeatNext (the two distinct
+	// RepeatOptional resume states) without an engine.
+	lastAsk *decision.Decision
 	// startingLife is the StartingLife answer the double reports (0 when
 	// unset); the effects-level relative half-starting-life tests set it.
 	startingLife int32
 }
 
-func (h *fakeHost) Game() *state.Game { return h.g }
+func (h *fakeHost) Game() *state.Game                   { return h.g }
+func (h *fakeHost) ObjectColors(o *state.Object) string { return ColorsOf(o) }
 func (h *fakeHost) Emit(e events.Event) {
 	h.log = append(h.log, e)
 	events.Apply(h.g, e)
@@ -399,7 +408,7 @@ func (h *fakeHost) IsCreature(id state.ObjID) bool {
 // stand-in (effCharm's first mode, effCopySpellAbility's decline) -- which
 // is exactly today's no-ask behaviour, now with the engines it is a fallback
 // for clearly named (R-9).
-func (h *fakeHost) Ask(d *decision.Decision) bool { return false }
+func (h *fakeHost) Ask(d *decision.Decision) bool { h.askCount++; h.lastAsk = d; return h.askResult }
 
 // TypeChoices serves the double's configured typeChoices list (nil by
 // default): nil routes ChooseType through AskEmpty — the unchanged
@@ -425,6 +434,13 @@ func (h *fakeHost) SuspendContinuation(*cards.SA) {}
 // SuspendUnless is a no-op for the same reason as SuspendContinuation.
 func (h *fakeHost) SuspendUnless(*cards.SA, bool) {}
 
+// SetResolutionTargetControllerLKI keeps the no-op shape: this double never
+// suspends, so the map it publishes is never consumed. Returns nil as the
+// "previous" value, which the caller restores on return.
+func (h *fakeHost) SetResolutionTargetControllerLKI(map[state.ObjID]state.PlayerID) map[state.ObjID]state.PlayerID {
+	return nil
+}
+
 func (h *fakeHost) ReplaceEvent(string, string, int32) {}
 
 func (h *fakeHost) EmitDamage(e events.Event) events.Event {
@@ -433,11 +449,21 @@ func (h *fakeHost) EmitDamage(e events.Event) events.Event {
 }
 func (h *fakeHost) CounterAllowed(state.ObjID, state.ObjID) bool { return true }
 
+// SuspendRepeatOptional is a no-op for the same reason as SuspendContinuation.
+func (h *fakeHost) SuspendRepeatOptional(_ *cards.SA, next int32) {
+	h.repeatOptionalCalled = true
+	h.repeatOptionalNext = next
+}
+
 // SuspendRepeat is a no-op for the same reason as SuspendContinuation.
 func (h *fakeHost) SuspendRepeat(RepeatSuspension) {}
 
 // SuspendCharmRest is a no-op for the same reason as SuspendContinuation.
 func (h *fakeHost) SuspendCharmRest(*cards.SA, []string) {}
+
+// SuspendVillainousRest is a no-op for the same reason as
+// SuspendContinuation.
+func (h *fakeHost) SuspendVillainousRest(*cards.SA, VillainousRest) {}
 
 // SetDamageSource records the published damage source on the double (the
 // last value wins) and returns the previous one, mirroring the engine's

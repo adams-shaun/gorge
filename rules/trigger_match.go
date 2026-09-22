@@ -200,17 +200,23 @@ type triggerKey struct {
 	Face uint8
 }
 
-// damageBatchKey identifies one DamageDealtOnce/DamageDoneOnce trigger's
-// referent within one damage batch. DamageDealtOnce latches per DEALING
-// source (Forge GameAction.triggerDamageDoneOnce's dealt half: one trigger per
-// source per batch, its referent amount the total that source dealt in the
-// batch); DamageDoneOnce latches per DAMAGED object (the done half: one
-// trigger per target, its referent amount the total that target took). The
-// embedded triggerKey keeps two T: lines of one card -- and the same line on
-// two cards -- independent.
+// damageBatchKey identifies one DamageDealtOnce/DamageDoneOnce/DamageAll
+// trigger's referent within one damage batch. DamageDealtOnce latches per
+// DEALING source (Forge GameAction.triggerDamageDoneOnce's dealt half: one
+// trigger per source per batch, its referent amount the total that source
+// dealt in the batch); DamageDoneOnce latches per DAMAGED object (the done
+// half: one trigger per target, its referent amount the total that target
+// took); DamageAll latches per TRIGGER LINE -- the "one or more" batch mode
+// (Forge GameAction.triggerDamageAll): the FIRST (source, target) pair in the
+// batch whose both halves match queues the single instance, and every later
+// matching pair accumulates into it -- the key carries NO referent for the
+// all mode, so damage landing on several targets in one batch is still ONE
+// instance. The embedded triggerKey keeps two T: lines of one card -- and the
+// same line on two cards -- independent.
 type damageBatchKey struct {
 	triggerKey
 	dealt  bool           // true: referent is the dealing source (DamageDealtOnce)
+	all    bool           // true: the batch-level DamageAll latch (no referent)
 	obj    state.ObjID    // the referent object (dealing source, or damaged object)
 	player state.PlayerID // the referent player when the damage went to a player
 }
@@ -219,11 +225,19 @@ type damageBatchKey struct {
 // the open damage batch: the pendingTriggers index it queued at (the queue is
 // append-only while a batch is open, so the index is stable until batch close)
 // and the batch amount accumulated so far, which closeDamageBatch patches into
-// the queued trigger's TriggerAmount referent.
+// the queued trigger's TriggerAmount referent. A DamageAll entry (key.all)
+// additionally accumulates the batch's matching source and target SETS --
+// every (source, target) pair this line matched, deduplicated in first-seen
+// order -- which closeDamageBatch patches into the queued trigger's
+// TriggerDamageSources/TriggerDamageTargets capture, the referents the
+// TriggeredPlayersTargets$Amount count and the Defined$ TriggeredTargets /
+// TriggeredSourcesController plural selectors read at resolution.
 type damageBatchEntry struct {
-	key    damageBatchKey
-	idx    int
-	amount int32
+	key     damageBatchKey
+	idx     int
+	amount  int32
+	sources []state.ObjID
+	targets []state.Target
 }
 
 // turnFires is one T: line's trigger count within the turn it last
@@ -340,35 +354,113 @@ var actionTriggerModes = map[string]bool{
 	"Surveil": true,
 }
 
-// triggerActivationLimitAllows enforces ActivationLimit$ N ("this ability
-// triggers only once each turn"): the T: line triggers at most N times per
-// turn, counted when it triggers (Forge Trigger.checkActivationLimit and
-// TriggerHandler.runSingleTrigger). A malformed limit fails closed. The count
-// is recorded here, on the path that is about to queue the trigger.
-func (e *Engine) triggerActivationLimitAllows(t cards.Trigger, key triggerKey) bool {
-	raw, ok := t.Params["ActivationLimit"]
-	if !ok {
-		// Mode$ TokenCreatedOnce is Forge's own once-per-turn gate (Akim, the
-		// Soaring Wind: "whenever you create one or more tokens for the first
-		// time each turn"): an implicit ActivationLimit 1, latched at queue
-		// time on the same per-turn map so a batch of mints fires once and
-		// the next turn resets. Reusing triggerTurnFires (which Clone already
-		// deep-copies) instead of a second latch field keeps the two
-		// per-turn trigger counts structurally identical.
-		if t.Mode == "TokenCreatedOnce" {
-			raw, ok = "1", true
-		} else {
-			return true
-		}
+// triggerGameLimitFor parses a trigger's GameActivationLimit$ param (the
+// per-GAME "this ability triggers only once" sibling of ActivationLimit$).
+// present is true only when the param is there; a malformed or negative value
+// reports (0, true) so the gate denies it (fail closed), matching
+// triggerActivationLimitAllows's malformed handling.
+func triggerGameLimitFor(t cards.Trigger) (limit int, present bool) {
+	raw, present := t.Params["GameActivationLimit"]
+	if !present {
+		return 0, false
 	}
 	limit, err := strconv.Atoi(strings.TrimSpace(raw))
 	if err != nil || limit < 0 {
-		return false
+		return 0, true // malformed: present, denies
+	}
+	return limit, true
+}
+
+// triggerGameActivationLimitAllows is the READ half of the GameActivationLimit$
+// trigger gate: has this line's lifetime queue count (Engine.triggerGameFires)
+// reached the limit? It must never mutate. A matched event can still be
+// rejected by a later gate -- the per-turn ActivationLimit$ gate on a
+// combined-parameter line, a dedicated combat hook's empty candidate scan,
+// the Damage batch latch, a nil Execute$ body -- and such an event must not
+// consume a use; the count is therefore committed by
+// reserveTriggerGameActivationLimit at the queue point only.
+func (e *Engine) triggerGameActivationLimitAllows(t cards.Trigger, key triggerKey) bool {
+	limit, present := triggerGameLimitFor(t)
+	if !present {
+		return true
+	}
+	return int(e.triggerGameFires[key]) < limit
+}
+
+// reserveTriggerGameActivationLimit commits the lifetime queue count for a
+// trigger that passed every gate and is actually being queued. Callers MUST
+// have run the read half (triggerGameActivationLimitAllows) first; a commit
+// past a reached limit is refused defensively so a drifted caller cannot
+// exceed the limit.
+func (e *Engine) reserveTriggerGameActivationLimit(t cards.Trigger, key triggerKey) {
+	limit, present := triggerGameLimitFor(t)
+	if !present {
+		return
+	}
+	if e.triggerGameFires == nil {
+		e.triggerGameFires = map[triggerKey]int32{}
+	}
+	if int(e.triggerGameFires[key]) >= limit {
+		return
+	}
+	e.triggerGameFires[key]++
+}
+
+// triggerTurnLimitFor parses a trigger's effective per-turn limit: the
+// ActivationLimit$ param, or the implicit once-per-turn limit of Mode$
+// TokenCreatedOnce (Akim, the Soaring Wind: "whenever you create one or more
+// tokens for the first time each turn"). present is true only when a limit
+// applies; a malformed or negative value reports (0, true) so the gate denies
+// it (fail closed).
+func triggerTurnLimitFor(t cards.Trigger) (limit int, present bool) {
+	raw, ok := t.Params["ActivationLimit"]
+	if !ok {
+		// The Once mode's implicit limit reuses triggerTurnFires (which Clone
+		// already deep-copies) instead of a second latch field, keeping the two
+		// per-turn trigger counts structurally identical.
+		if t.Mode == "TokenCreatedOnce" {
+			return 1, true
+		}
+		return 0, false
+	}
+	limit, err := strconv.Atoi(strings.TrimSpace(raw))
+	if err != nil || limit < 0 {
+		return 0, true // malformed: present, denies
 	}
 	// The Once mode's meaning is once per turn; an explicit ActivationLimit$
 	// above 1 on a TokenCreatedOnce line cannot raise it.
 	if t.Mode == "TokenCreatedOnce" && limit > 1 {
 		limit = 1
+	}
+	return limit, true
+}
+
+// triggerActivationLimitAllows is the READ half of the per-turn
+// ActivationLimit$ gate ("this ability triggers only once each turn", Forge
+// Trigger.checkActivationLimit): has this line queued fewer than N triggers
+// this turn? It must never mutate -- a matched event rejected by a later gate
+// must not consume a use; the count is committed by
+// reserveTriggerActivationLimit at the queue point only.
+func (e *Engine) triggerActivationLimitAllows(t cards.Trigger, key triggerKey) bool {
+	limit, present := triggerTurnLimitFor(t)
+	if !present {
+		return true
+	}
+	f := e.triggerTurnFires[key]
+	if f.Turn != e.G.Turn {
+		f = turnFires{Turn: e.G.Turn}
+	}
+	return int(f.N) < limit
+}
+
+// reserveTriggerActivationLimit commits the per-turn queue count for a
+// trigger that passed every gate and is actually being queued. Callers MUST
+// have run the read half (triggerActivationLimitAllows) first; a commit past
+// a reached limit is refused defensively.
+func (e *Engine) reserveTriggerActivationLimit(t cards.Trigger, key triggerKey) {
+	limit, present := triggerTurnLimitFor(t)
+	if !present {
+		return
 	}
 	if e.triggerTurnFires == nil {
 		e.triggerTurnFires = map[triggerKey]turnFires{}
@@ -378,11 +470,22 @@ func (e *Engine) triggerActivationLimitAllows(t cards.Trigger, key triggerKey) b
 		f = turnFires{Turn: e.G.Turn}
 	}
 	if int(f.N) >= limit {
-		return false
+		return
 	}
 	f.N++
 	e.triggerTurnFires[key] = f
-	return true
+}
+
+// reserveTriggerLimits commits BOTH trigger-limit counts for a queue that is
+// happening, so every queue site reserves the same pair under the same
+// actionTriggerModes scoping (GameActivationLimit$ on every mode,
+// ActivationLimit$ only on the action modes) and a future queue site cannot
+// forget one half.
+func (e *Engine) reserveTriggerLimits(t cards.Trigger, key triggerKey) {
+	e.reserveTriggerGameActivationLimit(t, key)
+	if actionTriggerModes[t.Mode] {
+		e.reserveTriggerActivationLimit(t, key)
+	}
 }
 
 // dieRollNumberAllows enforces a RolledDie trigger's Number$ N ("whenever
@@ -553,7 +656,15 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object,
 		// Only leaves-the-battlefield triggers look back. Always and other
 		// event modes continue to read the live board, not an obsolete state.
 		observer := &Engine{G: e.triggerBefore.game, L: e.L,
-			continuous: e.triggerBefore.continuous, continuousVersion: e.continuousVersion}
+			continuous: e.triggerBefore.continuous, continuousVersion: e.continuousVersion,
+			setNameInPool: e.setNameInPool}
+		// The observer reads the PRE-departure board from its own Game clone,
+		// so it derives its own layer-3 rename table (setname.go) rather than
+		// inheriting the live engine's: a name filter here must see the
+		// snapshot's names, not the post-departure ones.
+		if observer.setNameInPool {
+			observer.refreshRenames()
+		}
 		obj := observer.G.Obj(ev.Obj)
 		var power, toughness int32
 		valid := obj != nil && obj.Zone == state.ZBattlefield && obj.Face() != nil
@@ -933,7 +1044,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					e.secondaryYields(observer, fc.face, ti, t, id, ev, objLKI) {
 					continue
 				}
-				if (t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce") && ev.Amount <= 0 {
+				if (t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce" || t.Mode == "DamageAll") && ev.Amount <= 0 {
 					continue
 				}
 				key := triggerKey{Source: id, Idx: ti, Face: fc.faceIdx}
@@ -942,6 +1053,9 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				}
 				if e.triggerFireCount[key] >= maxTriggerFires {
 					continue // cascade bound: see maxTriggerFires.
+				}
+				if !e.triggerGameActivationLimitAllows(t, key) {
+					continue // GameActivationLimit$: already triggered enough this game.
 				}
 				if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
 					continue // ActivationLimit$: already triggered enough this turn.
@@ -960,7 +1074,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 						continue // ResolvedLimit$: already resolved enough this turn.
 					}
 				}
-				if t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce" {
+				if t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce" || t.Mode == "DamageAll" {
 					// The "Once" gate latches once per DAMAGE BATCH, not per turn
 					// (CR 510.4; Forge PhaseHandler.dealAssignedDamage fires
 					// triggerDamageDoneOnce once per damage step, and one
@@ -974,12 +1088,25 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					// it); no batch open means every Damage event is its own batch,
 					// so there is nothing to latch across and the trigger fires per
 					// event with its own event amount already the batch total.
+					//
+					// DamageAll (Forge GameAction.triggerDamageAll) is the
+					// batch-level "one or more" mode: it must fire ONCE for the
+					// whole batch if at least one matching SOURCE dealt damage to
+					// at least one matching TARGET, not once per pair. Its latch
+					// therefore keys on the trigger line ALONE (all=true, no
+					// referent): damageMatches already requires BOTH ValidSource$
+					// and ValidTarget$ to match the SAME event, so the first such
+					// event queues the single instance and every later matching
+					// pair in the batch accumulates into it -- the "one or more"
+					// reading.
 					// Non-positive amounts (the negative-amount Damage events the
 					// cleanup/regeneration repair paths emit to clear marked
 					// damage) are not damage and never latch or queue a Once
 					// trigger.
 					if ev.Amount > 0 {
-						bk := damageBatchKey{triggerKey: key, dealt: t.Mode == "DamageDealtOnce"}
+						bk := damageBatchKey{triggerKey: key, dealt: t.Mode == "DamageDealtOnce", all: t.Mode == "DamageAll"}
+						var allSrc state.ObjID
+						var allTgt state.Target
 						if bk.dealt {
 							// Combat identifies the actual attacker/blocker in damaging;
 							// an effect batch's shared source is its published override
@@ -988,32 +1115,54 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 							// non-combat sources onto ObjID zero. Same priority order as
 							// the ValidSource$ match above: an explicit override always
 							// wins, e.damaging is combat-only, damageSource is the
-							// non-combat fallback.
-							bk.obj = e.dmgSrcOverride
-							if bk.obj == 0 {
-								if e.combatDamaging {
-									bk.obj = e.damaging
-								} else {
-									bk.obj = e.damageSource()
-								}
+							// non-combat fallback. Through the ONE shared resolution
+							// (damageEventSource) so the latch and the match agree.
+							bk.obj = e.damageEventSource()
+						} else if !bk.all {
+							// DamageDoneOnce: the per-damaged-referent latch key.
+							if ev.Obj != 0 {
+								bk.obj = ev.Obj
+							} else {
+								bk.player = ev.Player
 							}
-						} else if ev.Obj != 0 {
-							bk.obj = ev.Obj
 						} else {
-							bk.player = ev.Player
+							// DamageAll's line-only key carries no referent; instead
+							// the matching (source, target) pair of EVERY matching
+							// event accumulates into the entry's deduplicated batch
+							// sets, the capture the plural corpus readers resolve.
+							// The source read is the ONE shared dealer resolution, so
+							// a captured set can never contain a source the
+							// ValidSource$ match did not match (the match and the
+							// capture cannot drift).
+							allSrc = e.damageEventSource()
+							if ev.Obj != 0 {
+								allTgt = state.Target{Obj: ev.Obj}
+							} else {
+								allTgt = state.Target{Player: ev.Player, IsPlayer: true}
+							}
 						}
 						if e.damageBatchOpen {
 							if e.damageBatchIdx == nil {
 								e.damageBatchIdx = map[damageBatchKey]int{}
 							}
 							if entIdx, ok := e.damageBatchIdx[bk]; ok {
-								e.damageBatchLog[entIdx].amount += ev.Amount
+								ent := &e.damageBatchLog[entIdx]
+								ent.amount += ev.Amount
+								if bk.all {
+									ent.sources = batchAppendSource(ent.sources, allSrc)
+									ent.targets = batchAppendTarget(ent.targets, allTgt)
+								}
 								continue // already queued once for this batch and referent.
 							}
 							e.damageBatchIdx[bk] = len(e.damageBatchLog)
-							e.damageBatchLog = append(e.damageBatchLog, damageBatchEntry{
+							ent := damageBatchEntry{
 								key: bk, idx: len(e.pendingTriggers), amount: ev.Amount,
-							})
+							}
+							if bk.all {
+								ent.sources = batchAppendSource(ent.sources, allSrc)
+								ent.targets = batchAppendTarget(ent.targets, allTgt)
+							}
+							e.damageBatchLog = append(e.damageBatchLog, ent)
 							// Fall through: the trigger queues now, at the same point
 							// in the stream it queued at before this gate was
 							// batch-scoped; closeDamageBatch patches its referent
@@ -1037,6 +1186,14 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					// nothing to run.
 					continue
 				}
+				// GameActivationLimit$/ActivationLimit$ counts commit HERE, at the
+				// queue point, after every later-rejected gate (a nil Execute$ body,
+				// the Damage batch latch, the RolledDie Number$ gate): a matched
+				// event that ends up queueing nothing must not consume a use of
+				// either limit, and a combined-parameter line whose second same-turn
+				// match the per-turn ActivationLimit$ rejects must keep its other
+				// game use for the next turn.
+				e.reserveTriggerLimits(t, key)
 				// CR 603.3a/603.10a: a leaves-the-battlefield ability's source
 				// is controlled by whoever controlled it as it left, not by the
 				// owner the move has since reset it to (a stolen creature's own
@@ -1241,14 +1398,55 @@ func (e *Engine) closeDamageBatch() {
 		if ent.idx >= len(e.pendingTriggers) {
 			continue
 		}
-		pt := &e.pendingTriggers[ent.idx]
-		if pt.Source != ent.key.Source || pt.Idx != ent.key.Idx {
-			continue
+		// Every queued copy of this (trigger, referent) entry is patched: the
+		// Panharmonicon echo copies appended right after the original share
+		// the queue slot sequence and would otherwise resolve a partial
+		// amount and no batch sets.
+		for i := ent.idx; i < len(e.pendingTriggers); i++ {
+			pt := &e.pendingTriggers[i]
+			if pt.Source != ent.key.Source || pt.Idx != ent.key.Idx {
+				break
+			}
+			pt.Ctx.TriggerContext.TriggerAmount = ent.amount
+			if ent.key.all {
+				if len(ent.sources) > 0 {
+					pt.Ctx.TriggerContext.TriggerDamageSources = append([]state.ObjID(nil), ent.sources...)
+				}
+				if len(ent.targets) > 0 {
+					pt.Ctx.TriggerContext.TriggerDamageTargets = append([]state.Target(nil), ent.targets...)
+				}
+			}
 		}
-		pt.Ctx.TriggerContext.TriggerAmount = ent.amount
 	}
 	e.damageBatchIdx = nil
 	e.damageBatchLog = nil
+}
+
+// batchAppendSource appends id to a DamageAll entry's deduplicated source
+// set unless it is already present (or zero -- an unresolved dealer is
+// nothing to name). First-seen order is the set's order.
+func batchAppendSource(ts []state.ObjID, id state.ObjID) []state.ObjID {
+	if id == 0 {
+		return ts
+	}
+	for _, have := range ts {
+		if have == id {
+			return ts
+		}
+	}
+	return append(ts, id)
+}
+
+// batchAppendTarget appends t to a DamageAll entry's deduplicated target set
+// unless an equal target is already present. Equality compares kind and
+// identity together, so a player target and an object target never merge.
+func batchAppendTarget(ts []state.Target, t state.Target) []state.Target {
+	for _, have := range ts {
+		if have.IsPlayer == t.IsPlayer && have.Player == t.Player && have.Obj == t.Obj {
+			return ts
+		}
+	}
+	return append(ts, t)
 }
 
 // BeginDamageBatch/EndDamageBatch are effects.Host's damage-batch bracket
@@ -1542,7 +1740,7 @@ func init() {
 		"trig:Sacrificed", "trig:Discarded", "trig:CommitCrime", "trig:Taps", "trig:TapsForMana",
 		"trig:ClassLevelGained", "trig:BecomeMonstrous",
 		"trig:TokenCreated", "trig:TokenCreatedOnce",
-		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",
+		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:DamageAll", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",
 		"trig:LifeGained",
 		"trig:BecomesTarget", "trig:LandPlayed", "trig:Phase", "trig:Attached", "trig:Unattached", "trig:FlippedCoin",
 		"trig:Vote", "trig:RolledDie", "trig:RolledDieOnce",

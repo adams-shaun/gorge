@@ -43,10 +43,8 @@ func TestChangeZoneCompoundOriginWithDefinedMovesTheChosenCard(t *testing.T) {
 
 // TestChangeZoneUnknownOriginAlternativeNotesAndKeepsKnownZones is the
 // invasion_of_arcavios shape: `Origin$ Library | OriginAlternative$
-// Graveyard,Sideboard`. Sideboard parses to no modelled zone; the effect
-// must note the unmodelled alternative LOUDLY and still search every KNOWN
-// zone (library + graveyard), never bail the whole effect -- bailing would
-// lose the library half the pre-OriginAlternative engine still searched.
+// Graveyard,Sideboard`. Sideboard is a supported private origin, so the
+// effect searches every named zone without an unknown-origin note.
 func TestChangeZoneUnknownOriginAlternativeNotesAndKeepsKnownZones(t *testing.T) {
 	h, c := fixtureHost(t)
 	s := sa(t, "DB$ ChangeZone | Hidden$ True | Origin$ Library | Destination$ Hand | OriginAlternative$ Graveyard,Sideboard | ChangeType$ Sorcery.YouOwn,Instant.YouOwn | ShuffleNonMandatory$ True")
@@ -64,8 +62,8 @@ func TestChangeZoneUnknownOriginAlternativeNotesAndKeepsKnownZones(t *testing.T)
 			bailNotes++
 		}
 	}
-	if altNotes != 1 {
-		t.Fatalf("unrecognised-OriginAlternative notes = %d, want 1: %+v", altNotes, h.log)
+	if altNotes != 0 {
+		t.Fatalf("recognised sideboard alternative was reported unknown: %+v", h.log)
 	}
 	if bailNotes != 0 {
 		t.Fatalf("the whole effect bailed on the unmodelled alternative zone; the known zones must keep searching: %+v", h.log)

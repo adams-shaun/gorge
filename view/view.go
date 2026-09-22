@@ -836,6 +836,14 @@ func cardView(g *state.Game, ch Chars, id state.ObjID) CardView {
 	cv.Token = "#" + strconv.FormatUint(uint64(id), 10)
 	if f := o.Face(); f != nil {
 		cv.Name = f.Name
+		// Name is a layer-3 characteristic. Keep the optional method so
+		// lightweight Chars test doubles remain source-compatible while the
+		// real rules engine exposes SetName$ results to clients.
+		if named, ok := ch.(interface{ Name(state.ObjID) string }); ok {
+			if name := named.Name(id); name != "" {
+				cv.Name = name
+			}
+		}
 		cv.Types = strings.Join(f.Types, " ")
 		cv.ManaCost = f.ManaCost
 		cv.Printing = Printing{Name: f.Name}

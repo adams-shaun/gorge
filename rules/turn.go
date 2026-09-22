@@ -66,11 +66,12 @@ func (e *Engine) finishEnteredStep() {
 			if o == nil || o.Counter("TIME") <= 0 {
 				continue
 			}
-			if o.CastFlags&state.FlagSuspend == 0 {
-				// Only a card that entered exile through the Suspend action
-				// loses TIME counters. A plotted card carries none -- CR
-				// 701.34's timing is "on a later turn", not an upkeep count
-				// (rules/legal.go's exile walk reads Object.PlottedTurn).
+			if o.CastFlags&state.FlagSuspend == 0 && !o.SuspendGranted {
+				// Only a card that entered exile through the Suspend action,
+				// or received a real Suspend grant while in exile, loses TIME
+				// counters. A plotted card carries none -- CR 701.34's timing
+				// is "on a later turn", not an upkeep count (rules/legal.go's
+				// exile walk reads Object.PlottedTurn).
 				continue
 			}
 			e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "TIME", Amount: -1})
@@ -300,7 +301,8 @@ func (e *Engine) startSuspendedCast() bool {
 		id := e.suspendedCasts[0]
 		e.suspendedCasts = e.suspendedCasts[1:]
 		o := e.G.Obj(id)
-		if o == nil || o.Zone != state.ZExile || o.CastFlags&state.FlagSuspend == 0 || o.Face() == nil {
+		if o == nil || o.Zone != state.ZExile ||
+			(o.CastFlags&state.FlagSuspend == 0 && !o.SuspendGranted) || o.Face() == nil {
 			continue
 		}
 		// "If able" includes every restriction that makes casting illegal,
@@ -342,7 +344,7 @@ func (e *Engine) suspendCastAnswer(chosen []decision.Option) {
 	id := chosen[0].Obj
 	o := e.G.Obj(id)
 	if chosen[0].Kind == "suspend_cast_yes" && o != nil && o.Zone == state.ZExile &&
-		o.CastFlags&state.FlagSuspend != 0 && o.Face() != nil {
+		(o.CastFlags&state.FlagSuspend != 0 || o.SuspendGranted) && o.Face() != nil {
 		e.beginCast(o.Owner, decision.Option{Kind: "cast", Obj: id, Mode: "suspend_cast"})
 		return
 	}
@@ -799,7 +801,8 @@ func (e *Engine) advanceStep() {
 					e.emit(events.Event{Kind: events.Note, Player: seat,
 						Text: "R:Event$ BeginTurn ExtraTurn$ replacement matched with an unimplemented action (Skip$ absent or ReplaceWith$ present); the extra turn proceeds"})
 				} else if skip {
-					e.emit(events.Event{Kind: events.ExtraTurn, Player: seat, Amount: -1})
+					e.emit(events.Event{Kind: events.ExtraTurn, Player: seat, Amount: -1,
+						Text: events.ExtraTurnSkippedText})
 					continue
 				}
 			}
@@ -1032,7 +1035,7 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		e.castAnswer(d, chosen)
 		// A mana ability selection or Produced$ Any colour choice installed
 		// its own decision; only a fully resolved singleton may continue.
-		if e.pending != nil || e.choosing == chooseMana || e.choosing == chooseManaColor || e.choosing == chooseManaDiscard || e.choosing == chooseManaExile {
+		if e.pending != nil || e.choosing == chooseMana || e.choosing == chooseManaColor || e.choosing == chooseManaDiscard || e.choosing == chooseManaExile || e.choosing == chooseManaSacrifice {
 			return
 		}
 		e.continueCast()
@@ -1123,6 +1126,23 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		e.unleashMove = nil
 		e.choosing = chooseNone
 		e.emit(move)
+	case chooseAttached:
+		if e.attachedChoice == nil || len(chosen) != 1 {
+			e.attachedChoice = nil
+			e.choosing = chooseNone
+			return
+		}
+		ch := e.attachedChoice
+		if ch.stage == 0 {
+			e.emit(events.Event{Kind: events.Choose, Obj: ch.source, Counter: "name", Text: chosen[0].Label})
+			e.askAttachedType()
+			return
+		}
+		e.emit(events.Event{Kind: events.Choose, Obj: ch.source, Counter: "type", Text: chosen[0].Label})
+		move := ch.move
+		e.attachedChoice = nil
+		e.choosing = chooseNone
+		e.emitAttachedMove(move)
 	case chooseSiege:
 		// CR 310.10: the Battle Siege protector choice was answered. Record
 		// the chosen opponent through a Choose "protector" event (so the
@@ -1228,20 +1248,28 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// intervening-if reads enlistedThisCombat.
 		e.enlistAnswer(d, in)
 	case chooseAttackPay:
-		// The declare-attackers attack-cost payment window (rules/
-		// attack_cost.go): one tap of a CantAttackUnless payer's mana source.
-		// attackPayAnswer completes the moment the pool covers the charge and
-		// resumes the declaration at the enlist election; there is no trigger
-		// drain to resume (the window belongs to the turn structure, never
-		// to one).
+		// The declare-attackers attack-cost payment window.
 		e.attackPayAnswer(d, in)
+	case chooseBlockPay:
+		// The declare-blockers CantBlockUnless payment window. Completion
+		// emits the parked declaration and advances blockerRound.
+		e.blockPayAnswer(d, in)
 	case chooseMana:
 		// Several individual mana abilities share one tap cost. A payment
 		// window resumes its cast after the selected ability resolves; Ward's
 		// mid-resolution payment window reopens instead. An ordinary
 		// activation falls through to Advance's priority round.
 		cast := e.answerManaActivation(chosen)
-		if e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile {
+		if e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile && e.choosing != chooseManaSacrifice {
+			if e.wardMana != nil {
+				e.continueWardMana()
+			} else if cast {
+				e.continueCast()
+			}
+		}
+	case chooseManaSacrifice:
+		cast := e.answerManaSacrifice(chosen)
+		if e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile && e.choosing != chooseManaSacrifice {
 			if e.wardMana != nil {
 				e.continueWardMana()
 			} else if e.unlessPayment != nil {
@@ -1252,7 +1280,7 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		}
 	case chooseManaDiscard:
 		cast := e.answerManaDiscard(chosen)
-		if e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile {
+		if e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile && e.choosing != chooseManaSacrifice {
 			if e.wardMana != nil {
 				e.continueWardMana()
 			} else if e.unlessPayment != nil {
@@ -1263,7 +1291,7 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		}
 	case chooseManaExile:
 		cast := e.answerManaExile(chosen)
-		if e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile {
+		if e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile && e.choosing != chooseManaSacrifice {
 			if e.wardMana != nil {
 				e.continueWardMana()
 			} else if e.unlessPayment != nil {
@@ -1302,10 +1330,12 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 // ON: the holder of the most recent NORMAL turn -- a TurnChange that did not
 // begin an extra turn. An extra turn's TurnChange is the one a cleanup step
 // consumed a grant for: a -1 ExtraTurn event sits between the previous
-// TurnChange and it (backward window below), so scanning backward and
-// skipping every TurnChange whose backward window holds a consumption lands
-// on the last normal holder. When the pending-extra queue drains, the next
-// turn is this seat's successor (NextAlive) -- the extra turns were inserted
+// TurnChange and it (backward window below). A skipped grant carries
+// events.ExtraTurnSkippedText and has no TurnChange, so scanning backward and
+// skipping every TurnChange whose backward window holds a non-skipped
+// consumption lands on the last normal holder. When the pending-extra queue
+// drains, the next turn is this seat's successor (NextAlive) -- the extra
+// turns were inserted
 // after that seat's turn, never in place of the seats that follow it. No
 // TurnChange at all cannot happen (turn 1 opens the log); the fallback names
 // seat 0 for totality.
@@ -1317,6 +1347,15 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 // first TurnChange).
 func (e *Engine) rotationBase() state.PlayerID {
 	evs := e.L.Events
+	// The seeded-fixture escape hatch below is for the FIRST (most recent)
+	// candidate only. Older candidates legitimately mismatch the live active
+	// seat once an extra turn has been taken -- the extra-turn holder is
+	// Active, while the ordinary rotation must resume after the last NORMAL
+	// holder -- and returning Active there based the rotation on the
+	// extra-turn holder, swallowing the holder's ordinary next turn (CR
+	// 500.7) and diverging from nextTurnFor, whose rotation walk starts from
+	// exactly this last-normal base.
+	first := true
 	for i := len(evs) - 1; i >= 0; i-- {
 		if evs[i].Kind != events.TurnChange {
 			continue
@@ -1325,28 +1364,24 @@ func (e *Engine) rotationBase() state.PlayerID {
 		// mid-turn state without rewriting their genesis log. That live state
 		// is authoritative: it is an ordinary turn unless an in-log consumption
 		// says otherwise, so its successor is based on the live active seat.
-		if evs[i].Player != e.G.Active || evs[i].Amount != e.G.Turn {
+		if first && (evs[i].Player != e.G.Active || evs[i].Amount != e.G.Turn) {
 			return e.G.Active
 		}
+		first = false
 		// Backward window: (previous TurnChange, exclusive) .. (this one,
-		// exclusive). A -1 consumption of THIS TurnChange's own seat in it
-		// means THIS TurnChange began an extra turn (the consumption is
-		// emitted immediately before beginTurn); lost-seat skips consume
-		// several, all inside the window. The player check is what keeps a
-		// SKIPPED grant's consumption -- same -1 form, no beginTurn, so the
-		// next TurnChange is the ORDINARY rotation's, a different seat --
-		// from classifying that ordinary turn as extra: without it the next
-		// cleanup would base the rotation on the seat before the granted
-		// seat and hand it its turn again. The one seat the check cannot
-		// distinguish is a lone survivor whose own skipped grant is followed
-		// by the ordinary rotation rotating back to itself -- unreachable in
-		// a real 2+ seat game and not worth a new event kind.
+		// exclusive). A non-skipped -1 consumption of THIS TurnChange's own
+		// seat in it means THIS TurnChange began an extra turn: the consumer
+		// emits it immediately before beginTurn. A skipped grant emits the
+		// same accounting consumption but marks it ExtraTurnSkippedText and
+		// never calls beginTurn, so it must not classify the following
+		// ordinary TurnChange as extra even when both holders are the same.
 		extra := false
 		for j := i - 1; j >= 0; j-- {
 			if evs[j].Kind == events.TurnChange {
 				break
 			}
-			if evs[j].Kind == events.ExtraTurn && evs[j].Amount < 0 && evs[j].Player == evs[i].Player {
+			if evs[j].Kind == events.ExtraTurn && evs[j].Amount < 0 &&
+				evs[j].Player == evs[i].Player && evs[j].Text != events.ExtraTurnSkippedText {
 				extra = true
 				break
 			}

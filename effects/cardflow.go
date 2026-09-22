@@ -1769,7 +1769,20 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 	// RevealValid$ filter below narrows the may-reveal to the matching
 	// subset for every API in this row).
 	answer := c.RevealOpt
-	c.RevealOpt = "" // fx42 scoping: consumed once; a nested peek poses its own ask
+	// optTarget is the Defined$ target index whose yes/no answer this is (the
+	// decision's ResumeTarget); it travels with the answer exactly as
+	// pickTarget travels with RevealPick. An answer applies to its cursor
+	// target alone and every later target poses its own ask.
+	optTarget := c.RevealOptTarget
+	c.RevealOpt, c.RevealOptTarget = "", 0
+	// The answered hand-reveal pick (task infernaltutor1), consumed once per
+	// walk exactly as RevealOpt is: a nested Reveal-family effect below this
+	// one must pose its own ask instead of inheriting this walk's answer.
+	// Non-nil means answered (the resume arm always builds the slice, so an
+	// empty "reveal none" answer is non-nil), mirroring Ctx.Discard.
+	picks := c.RevealPick
+	pickTarget := c.RevealPickTarget
+	c.RevealPick, c.RevealPickTarget = nil, 0
 	// The bare-look ack (lookack): consumed once per WALK, together with its
 	// per-target cursor — the answer attaches to the exact Defined$ target
 	// that asked (the decision's ResumeTarget). Targets before the cursor
@@ -1818,6 +1831,32 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			// ack — re-running it would duplicate its events.
 			continue
 		}
+		if picks != nil && targetIndex < pickTarget {
+			// The pick cursor's skip: the targets before it were fully
+			// processed (their pick answered, their reveal emitted) on the pass
+			// that suspended on the cursor target's own pick; re-running them
+			// would duplicate their events and re-pose their asks.
+			continue
+		}
+		if answer != "" && targetIndex < optTarget {
+			// The optional-ask cursor's skip, the same discipline: targets
+			// before the cursor were fully processed (their yes/no answered,
+			// their reveal/decline applied) on the pass that suspended on the
+			// cursor target's own optional ask; re-running them would
+			// duplicate their events and re-pose their asks.
+			continue
+		}
+		// answerForTarget scopes the walk's single consumed RevealOpt answer to
+		// the target it was asked of. Every other target reads "" and so poses
+		// its own yes/no; without this the answer answered target 0 and then
+		// silently applied to every later target too.
+		answerForTarget := answer
+		if answer != "" && targetIndex != optTarget {
+			answerForTarget = ""
+		}
+		// A pick answers the optional gate only for the target that posed it.
+		// Later Defined$ targets still need their own may-reveal choice.
+		pickForTarget := picks != nil && targetIndex == pickTarget
 		p := PlayerOf(h, c, t)
 		pool := zoneOf(g, zone, p)
 		if sa.Params["RevealDefined"] != "" && !t.IsPlayer {
@@ -1860,6 +1899,114 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 		n := amt
 		if wholeHand || int32(len(pool)) < n {
 			n = int32(len(pool))
+		}
+		// A hand reveal is a CHOICE when the eligible pool holds strictly more
+		// cards than the answer must show. Forge asks the pool's owner which
+		// cards to reveal -- Infernal Tutor's "Reveal a card from your hand"
+		// (NumCards default 1 over a seven-card hand), an AnyNumber$ miss
+		// ("Reveal any number of green cards in your hand": zero through all
+		// of them) and an Optional$ miss ("You may reveal a Dinosaur card from
+		// your hand": none or the one). Pre-fix the walk silently took
+		// pool[:n], the FRONT cards of the hand, so the chained sub read the
+		// wrong card entirely. The pick is posed as a KChoose to the pool's
+		// owner and carried back on Ctx.RevealPick, the same answer-shape the
+		// discard ask uses.
+		//
+		// Not pickable, deliberately: RevealHand (the whole hand is public, no
+		// choice), Random$ (the engine picks, deterministically), a Look$
+		// (the looker sees the whole filtered set; Slayer's Bounty), and the
+		// RevealAllValid$ family (a filter that reveals EVERY match -- the
+		// revealer chooses nothing; the caster's later pick is a separate
+		// sub-ability). RevealValid$/RevealType$ narrow the pool BEFORE the
+		// pick, exactly as Forge's own filter does, so the options are the
+		// matching cards alone.
+		revealAllValid := strings.TrimSpace(sa.Params["RevealAllValid"])
+		pickable := zone == state.ZHand && !wholeHand && !random && !look && revealAllValid == ""
+		if pickable {
+			minPick, maxPick := n, n
+			if anyNumber := strings.EqualFold(strings.TrimSpace(sa.Params["AnyNumber"]), "True"); anyNumber {
+				minPick, maxPick = 0, int32(len(pool))
+			}
+			if maxPick > int32(len(pool)) {
+				maxPick = int32(len(pool))
+			}
+			if minPick > maxPick {
+				minPick = maxPick
+			}
+			// A real choice exists only when strictly more eligible cards than
+			// the answer's minimum. A hand of exactly the mandatory count (or
+			// fewer) must show all of them with no question, the same
+			// strict-supersets discipline effDiscard applies. An Optional$
+			// reveal answers its own yes/no ask FIRST (the block below); the pick
+			// then poses on that accepted resume. The answered pick suppresses
+			// that optional question only for its own target, so every later
+			// Defined$ target still receives its own may-reveal ask (fx42).
+			// A DECLINED optional (fx45) must never reach the pick: the
+			// reveal_optional resume sets answer == "no", which makes
+			// deferToOptionalAsk false, and the block below then posed a
+			// MANDATORY reveal_pick over the declined cards (measured: a
+			// two-card hand and `SP$ Reveal | Defined$ You | Optional$ True`
+			// resumed into a Min/Max 1/1 pick instead of finishing). The
+			// decline `continue` below runs after this block, so gate here.
+			declined := optional && answerForTarget == "no"
+			deferToOptionalAsk := optional && answerForTarget == "" && !pickForTarget
+			if int32(len(pool)) > minPick && !deferToOptionalAsk && !declined {
+				// The answer applies to exactly the cursor target: a pickable
+				// reveal over several Defined$ players poses one ask per target,
+				// and the re-entered walk must not apply target 0's answer to
+				// target 1's distinct hand (its ids cannot occur there, so the
+				// pool would empty and every later player would be silently
+				// skipped). Every non-cursor target poses its own ask below.
+				hasAnswer := pickForTarget
+				if !hasAnswer {
+					opts := make([]decision.Option, 0, len(pool))
+					for _, id := range pool {
+						name := "a card"
+						if o := g.Obj(id); o != nil && o.Face() != nil {
+							name = o.Face().Name
+						}
+						opts = append(opts, decision.Option{Index: len(opts), Kind: "reveal",
+							Label: "Reveal " + name, Obj: id, Player: p})
+					}
+					prompt := "Choose " + strconv.Itoa(int(minPick)) + ".." + strconv.Itoa(int(maxPick)) + " card(s) to reveal"
+					if minPick == 0 {
+						prompt = "You may reveal 0.." + strconv.Itoa(int(maxPick)) + " card(s)"
+					}
+					d := &decision.Decision{Player: p, Kind: decision.KChoose,
+						Min: int(minPick), Max: int(maxPick), Source: c.Source,
+						ResumeKind: "reveal_pick", ResumeSA: sa,
+						ResumeTarget: targetIndex,
+						Prompt:       prompt,
+						Options:      opts}
+					if Ask(h, d) == AskAsked {
+						return // resolution suspended; the answer re-enters with Ctx.RevealPick set.
+					}
+					// No host to ask (R-9): fall through with n unchanged, so
+					// the reveal takes the same first maxPick cards the pre-pick
+					// build did -- the reveal family's existing no-host
+					// convention (the Optional$ ask falls through the same way),
+					// deterministic run to run and byte-identical for fuzz.
+				} else {
+					// The answer: reveal exactly the chosen cards, in answer order,
+					// filtered against the pool the re-entry rebuilt (a card that left
+					// the hand meanwhile cannot be revealed). Replacing the pool --
+					// rather than the emit below -- keeps the Note/RememberRevealed$
+					// payload in one place. minPick/maxPick are deliberately not
+					// re-enforced here: the resume rebuilt the pool from live state,
+					// and a client's validated answer is trusted.
+					selected := make([]state.ObjID, 0, len(picks))
+					for _, id := range picks {
+						for _, cand := range pool {
+							if cand == id {
+								selected = append(selected, id)
+								break
+							}
+						}
+					}
+					pool = selected
+					n = int32(len(pool))
+				}
+			}
 		}
 		if random && len(pool) > 0 {
 			// Random$ True (Urza's Bauble: "Look at a card at random in target
@@ -1931,7 +2078,7 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 		if look {
 			asker = c.Controller
 		}
-		if optional && answer == "" {
+		if optional && answerForTarget == "" && !pickForTarget {
 			// The peek ask's wording and payload are byte-stable: a golden
 			// game (Delver of Secrets) poses exactly this ask.
 			var prompt, yesLabel string
@@ -1979,8 +2126,9 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			options[0].Label = yesLabel
 			d := &decision.Decision{Player: asker, Kind: decision.KChoose, Min: 1, Max: 1,
 				ResumeKind: "reveal_optional", ResumeSA: sa, Source: c.Source,
-				Prompt:  prompt,
-				Options: options}
+				ResumeTarget: targetIndex,
+				Prompt:       prompt,
+				Options:      options}
 			if Ask(h, d) == AskAsked {
 				return
 			}
@@ -1990,7 +2138,7 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			// AskEmpty is unreachable by construction; the shared helper owns
 			// the guard either way.)
 		}
-		if optional && answer == "no" {
+		if optional && answerForTarget == "no" {
 			// Declined: no Note, and RememberRevealed$ finds nothing —
 			// a chained gate (Delver's ConditionDefined$ Remembered)
 			// correctly does not fire. The walk continues.
@@ -2057,10 +2205,20 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			// condition gates or Defined$ Remembered bodies that Forge
 			// itself intends to see the reveal (the Kinship family), so
 			// inheriting the reveal here is the semantics, not a leak.
+			// The revealed cards ALSO join the source object's event-backed
+			// Remembered list (eventRemember, the rememberMilled two-halves
+			// discipline): Forge's host.addRemembered is the PERSISTENT host
+			// card list, and Count$RememberedSize reads only the source half
+			// — Temple of the Dragon Queen's DragonPresence gate counts the
+			// remembered reveal through it (a ctx-only capture is invisible
+			// there, and a ctx-first RememberedSize read would over-count
+			// every trigger resolution's capture seed — the Mind Maggots
+			// defect the ctx-preference attempt caused).
 			next := make([]state.Target, 0, len(c.Remembered)+len(revealed))
 			next = append(next, c.Remembered...)
 			for _, id := range revealed {
 				next = append(next, state.Target{Obj: id})
+				eventRemember(h, c, id)
 			}
 			c.Remembered = next
 		}

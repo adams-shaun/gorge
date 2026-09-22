@@ -958,64 +958,56 @@ func collapseCorpus(n int) []policynet.Example {
 	return out
 }
 
-// TestClipZeroDivergesToTheFirstOptionBaseline is the -clip 0 collapse's
-// mechanism pin (ticket policytrain-clip-rankweight-interaction): with the
-// cap disabled, the uncapped CE batch gradient drives a SUPER-CRITICAL
-// feedback loop (backprop through the hidden layer multiplies the table's
-// and HidW's magnitudes into each other — on the real corpus the batch
-// gradient norm is 90 at batch 0 and 2.3e24 by batch 12), the weights
-// overflow float32, every score the dead model computes is NaN, the argmax
-// comparison `ys[k] > ys[best]` never fires on NaN and the tie-break is the
-// FIRST labelled option — so holdout top-1 equals the first-option baseline
-// EXACTLY. The model has not overfit the option index; it is dead. The same
-// config with the cap at 1 stays finite and learns. This is the answer to
-// "is the default clip principled or a lucky constant": principled — it
-// bounds the feedback loop's per-step gain; the value 1 itself is the
-// stability constant that keeps the real corpus's lr·‖g‖ inside the
-// sub-critical region.
-func TestClipZeroDivergesToTheFirstOptionBaseline(t *testing.T) {
+// TestClipZeroRejectsNonFiniteModel proves that the uncapped diagnosis mode
+// fails at the update that first produces a non-finite learned parameter,
+// while the same reproducer remains a valid, learning run with the default cap.
+func TestClipZeroRejectsNonFiniteModel(t *testing.T) {
 	corpus := collapseCorpus(600)
 	cfg := Config{Epochs: 12, Batch: 64, LR: 1, Seed: 1, Holdout: 0.15,
 		Embed: 32, Hidden: 64, Mode: policynet.LossCE, RankWeight: 1, HuberDelta: 0.1}
-	run := func(clip float64) *Result {
-		t.Helper()
-		c := cfg
-		c.Clip = clip
-		res, err := Train(corpus, c)
-		if err != nil {
-			t.Fatalf("Train(clip=%v): %v", clip, err)
+
+	uncapped := cfg
+	uncapped.Clip = 0
+	dead, uncappedErr := Train(corpus, uncapped)
+	if dead != nil {
+		t.Fatalf("clip=0 returned a successful result after divergence: %+v", dead)
+	}
+	if uncappedErr == nil {
+		t.Fatal("clip=0: expected non-finite parameter error")
+	}
+	for _, want := range []string{"epoch ", "batch ", "[", "="} {
+		if !strings.Contains(uncappedErr.Error(), want) {
+			t.Fatalf("clip=0 error %q missing %q", uncappedErr, want)
 		}
-		return res
 	}
-	nonFinite := func(m *policynet.Model) int {
-		n := 0
-		for _, blk := range [][]float32{m.Table, m.StateW, m.StateB, m.HidW, m.HidB, m.OutW} {
-			for _, v := range blk {
-				if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
-					n++
-				}
-			}
-		}
-		return n
+	blockNamed := false
+	for _, block := range []string{"Table", "StateW", "StateB", "HidW", "HidB", "OutW", "OutB"} {
+		blockNamed = blockNamed || strings.Contains(uncappedErr.Error(), block+"[") || strings.Contains(uncappedErr.Error(), block+"=")
 	}
-	dead := run(0)
-	if n := nonFinite(dead.Model); n == 0 {
-		t.Fatalf("clip=0: no non-finite parameter — the corpus/config no longer reproduces the uncapped divergence")
+	if !blockNamed {
+		t.Fatalf("clip=0 error %q does not identify a learned block", uncappedErr)
 	}
-	k := dead.ByKind[0]
-	if k.ModelTop1 != k.FirstTop1 {
-		t.Fatalf("clip=0: model top-1 %.4f != first-option baseline %.4f — the dead-model signature moved", k.ModelTop1, k.FirstTop1)
+
+	capped := cfg
+	capped.Clip = 1
+	alive, cappedErr := Train(corpus, capped)
+	if cappedErr != nil {
+		t.Fatalf("clip=1: %v", cappedErr)
 	}
-	alive := run(1)
-	if n := nonFinite(alive.Model); n != 0 {
-		t.Fatalf("clip=1: %d non-finite parameters — the cap stopped protecting the run", n)
+	if alive == nil || len(alive.ByKind) == 0 {
+		t.Fatal("clip=1: expected a successful result with per-kind readout")
 	}
-	k = alive.ByKind[0]
+	if block, index, value, ok := firstNonFiniteParameter(alive.Model); ok {
+		t.Fatalf("clip=1: non-finite parameter %s[%d]=%g", block, index, value)
+	}
+	k := alive.ByKind[0]
 	if k.ModelTop1 < k.FirstTop1+0.2 {
-		t.Fatalf("clip=1: model top-1 %.3f not clearly above the first-option baseline %.3f", k.ModelTop1, k.FirstTop1)
+		t.Fatalf("clip=1: model top-1 %.3f not clearly above first-option baseline %.3f", k.ModelTop1, k.FirstTop1)
 	}
-	t.Logf("clip=0: %d non-finite params, model %.3f == first %.3f (dead) | clip=1: finite, model %.3f > first %.3f",
-		nonFinite(dead.Model), dead.ByKind[0].ModelTop1, dead.ByKind[0].FirstTop1, k.ModelTop1, k.FirstTop1)
+	if k.ModelTop1 == k.FirstTop1 {
+		t.Fatalf("clip=1: model and first-option values unexpectedly equal at %.3f", k.ModelTop1)
+	}
+	t.Logf("clip=0 rejected: %v | clip=1: model %.3f > first %.3f", uncappedErr, k.ModelTop1, k.FirstTop1)
 }
 
 func extraFeatureCorpus(n, nopts int) []policynet.Example {

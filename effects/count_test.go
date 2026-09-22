@@ -49,6 +49,19 @@ func TestNumEvaluatesInlineCountExpression(t *testing.T) {
 	}
 }
 
+func TestEvalCountPlusResolvesSVarOperand(t *testing.T) {
+	g, _ := board(t)
+	h := &fakeHost{g: g}
+	c := &Ctx{Controller: 0, SVars: map[string]string{
+		"Controlled": "Count$Valid Creature.YouCtrl",
+	}}
+	// The board fixture has two creatures controlled by seat 0. The operand
+	// must be evaluated as an SVar, not discarded as a non-numeric suffix.
+	if got := EvalCount(h, c, "Count$Valid Creature.YouCtrl/Plus.Controlled"); got != 4 {
+		t.Fatalf("Count$.../Plus.Controlled = %d, want 4", got)
+	}
+}
+
 func TestEvalCountValidCountsTheBattlefield(t *testing.T) {
 	g, _ := board(t)
 	h := &fakeHost{g: g}

@@ -428,6 +428,7 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 	if attacking {
 		ids = []state.ObjID{state.ObjID(defender)}
 	}
+	tokenMemory := tokenRememberedTargets(h, c, sa)
 
 	for _, t := range targets {
 		if t.IsPlayer {
@@ -445,6 +446,19 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 				Amount: amount, IDs: ids})
 			if g.Obj(want) == nil {
 				continue
+			}
+			if len(tokenMemory) > 0 {
+				remembered := make([]state.ObjID, 0, len(tokenMemory))
+				for _, rememberedTarget := range tokenMemory {
+					if rememberedTarget.IsPlayer {
+						remembered = append(remembered, state.PlayerRef(rememberedTarget.Player))
+					} else if rememberedTarget.Obj != 0 {
+						remembered = append(remembered, rememberedTarget.Obj)
+					}
+				}
+				if len(remembered) > 0 {
+					h.Emit(events.Event{Kind: events.Choose, Obj: want, Counter: "remembered", IDs: remembered})
+				}
 			}
 			h.Emit(events.Event{Kind: events.MoveZone, Obj: want,
 				From: state.ZLibrary, To: state.ZBattlefield})

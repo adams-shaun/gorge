@@ -470,6 +470,23 @@ func durationTiming(dur string) (permanent bool, untilEOT bool) {
 func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, sa *cards.SA, zone string, chosenKW []string) {
 	kws := cards.SplitKeywordList(sa.Params["KW"])
 	kws = append(kws, chosenKW...)
+	// Suspend is unusual among keyword grants: its target is commonly an
+	// exiled card, and the later upkeep/cast/filter machinery needs a replayed
+	// provenance bit rather than only a transient layer effect. The event is
+	// emitted only for the actual Exile scope; ordinary battlefield keyword
+	// pumps must not make a card suspendable.
+	grantSuspend := false
+	for _, kw := range kws {
+		if strings.EqualFold(cards.KeywordHead(kw), "Suspend") {
+			grantSuspend = true
+			break
+		}
+	}
+	if strings.EqualFold(strings.TrimSpace(zone), "Exile") && grantSuspend {
+		if o := h.Game().Obj(id); o != nil && o.Zone == state.ZExile && !o.SuspendGranted {
+			h.Emit(events.Event{Kind: events.AlterAttribute, Obj: id, Text: "Suspend", Amount: 1})
+		}
+	}
 	permanent, untilEOT := durationTiming(sa.Params["Duration"])
 	if att != 0 || def != 0 {
 		h.AddContinuous(state.ContinuousEffect{
@@ -765,7 +782,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 			// half-permanent — types kept while an UntilEOT P/T set
 			// strips them to an untransformed-basis 0/0 the CR 704.5f
 			// SBA destroys.
-			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent,
+			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent && !IsNextTurnDuration(ag.duration),
 			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
@@ -776,7 +793,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 			Layer: state.LType, AddTypes: ag.types,
 			RemoveCreatureTypes: ag.removeCreatureTypes,
 			AddAllCreatureTypes: ag.allCreatureTypes, RemoveCardTypes: ag.removeCardTypes,
-			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent,
+			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent && !IsNextTurnDuration(ag.duration),
 			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
@@ -785,7 +802,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LColor, AddColors: ag.colors, OverwriteColors: ag.overwriteColors,
-			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent,
+			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent && !IsNextTurnDuration(ag.duration),
 			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
@@ -794,7 +811,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LAbilities, AddKeywords: ag.kws,
-			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent,
+			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent && !IsNextTurnDuration(ag.duration),
 			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
@@ -804,7 +821,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LAbilities, AddAbilities: ag.abilities,
 			SVars: c.SVars, AbilityGrantor: c.Source,
-			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent,
+			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent && !IsNextTurnDuration(ag.duration),
 			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
@@ -825,7 +842,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 			Layer:          state.LAbilities,
 			AddTrigger:     &t,
 			TriggerGrantor: ag.triggerGrantor,
-			Duration:       ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent,
+			Duration:       ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent && !IsNextTurnDuration(ag.duration),
 			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})

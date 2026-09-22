@@ -22,6 +22,46 @@ import (
 // that's still a land. (This effect lasts indefinitely.)" — Duration$
 // Permanent with Power$ 3 | Toughness$ 3, self-targeted, no tap cost.
 
+// TestKarnAnimateUntilYourNextTurnSurvivesTheOpponentsTurn pins the real
+// Karn, the Great Creator +1 and a real noncreature artifact. UntilYourNextTurn
+// ends when Karn's next turn starts, so the animated artifact must remain a
+// creature throughout the opponent's turn but revert before Karn's next main.
+func TestKarnAnimateUntilYourNextTurnSurvivesTheOpponentsTurn(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := corpusEngine(t, reg, []*cards.Card{
+		lookup(t, reg, "Karn, the Great Creator"), lookup(t, reg, "Sol Ring"),
+	}, []*cards.Card{})
+	karn := moveByName(t, e, 0, "Karn, the Great Creator", state.ZBattlefield)
+	ring := moveByName(t, e, 0, "Sol Ring", state.ZBattlefield)
+	if e.G.Obj(karn).Counter("LOYALTY") <= 0 || e.G.Obj(ring).Zone != state.ZBattlefield {
+		t.Fatalf("precondition: Karn=%+v Sol Ring=%+v", e.G.Obj(karn), e.G.Obj(ring))
+	}
+	if e.IsCreature(ring) {
+		t.Fatal("precondition: Sol Ring is already a creature")
+	}
+	e.pending = nil
+	e.priorityRound()
+
+	submitChoices(t, e, abilityOption(t, e, karn, 0).Index)
+	submitTarget(t, e, ring)
+	passUntilStackEmpty(t, e, 40)
+	if !e.IsCreature(ring) {
+		t.Fatal("Karn's +1 did not animate Sol Ring")
+	}
+
+	// Turn 2 is the opponent's turn; the effect must still be active there.
+	driveToStep(t, e, 2, 1, state.StepMain1)
+	if !e.IsCreature(ring) {
+		t.Fatal("Karn's animation expired before the opponent's turn")
+	}
+
+	// The next turn is Karn's boundary: the animation has ended at its start.
+	driveToStep(t, e, 3, 0, state.StepMain1)
+	if e.IsCreature(ring) {
+		t.Fatal("Karn's animation survived into Karn's next turn")
+	}
+}
+
 func TestAnimatePermanentDurationKeepsPTThroughCleanup(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e := corpusEngine(t, reg, []*cards.Card{lookup(t, reg, "Stalking Stones")}, []*cards.Card{})

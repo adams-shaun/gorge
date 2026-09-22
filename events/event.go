@@ -886,6 +886,12 @@ func (k Kind) String() string {
 // schema change.
 const ExtraTurnSkipUntapText = "extra turn; skip untap"
 
+// ExtraTurnSkippedText marks a -1 ExtraTurn consumption whose BeginTurn
+// replacement skipped the granted turn. It distinguishes that bookkeeping
+// consumption from one immediately followed by a TurnChange, so the ordinary
+// rotation scan does not mistake the next normal turn for an extra turn.
+const ExtraTurnSkippedText = "extra turn; skipped"
+
 // Event is a state delta. The field set is a flat union so encoding stays
 // allocation-free and an external consumer needs no engine code to read it.
 // manaRestrictionPrefix marks a ManaAdd event whose added (or spent) mana is
@@ -1159,6 +1165,7 @@ var flagNames = [...]struct {
 	// bool, paid at most once. Appended at the end per the table's own
 	// ordering rule.
 	{"offspringpaid", state.FlagOffspringPaid},
+	{"optionalcostpaid", state.FlagOptionalCostPaid},
 	// The Fuse cast (CR 702.101b) of a non-Room Split card: one spell
 	// resolving both halves. Appended at the end per the table's own
 	// ordering rule.
@@ -1182,6 +1189,8 @@ var flagNames = [...]struct {
 	// no flag and no sacrifice. Appended at the end per the table's own
 	// ordering rule.
 	{"mayflashsac", state.FlagMayFlashSac},
+	// Compleated's life-paid amount reduces a planeswalker's entry loyalty.
+	{"compleated", state.FlagCompleated},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

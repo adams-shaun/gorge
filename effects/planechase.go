@@ -1,7 +1,10 @@
 package effects
 
 import (
+	"strings"
+
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 )
 
@@ -37,7 +40,33 @@ func effBlankLine(_ Host, _ *Ctx, _ *cards.SA) {}
 // and why nothing moved. It keeps a defined$ planeswalk from wedging a
 // resolution, and it is loud enough that a future planar-deck tier can find
 // every call site by Text.
-func effPlaneswalk(h Host, c *Ctx, _ *cards.SA) {
+func effPlaneswalk(h Host, c *Ctx, sa *cards.SA) {
+	// Optional$ True is the "you may planeswalk" election.  There is no
+	// planar deck in this build, but the election still matters: it must be
+	// visible to a host and a decline must still let Resolve walk the chained
+	// SubAbility.  The answer is scoped to this SA and consumed on re-entry.
+	if strings.EqualFold(strings.TrimSpace(sa.Params["Optional"]), "True") {
+		answer := c.PlaneswalkOpt
+		c.PlaneswalkOpt = ""
+		if answer == "" {
+			d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+				Source: c.Source, ResumeKind: "planeswalk_optional", ResumeSA: sa,
+				Prompt: "Planeswalk?", Options: []decision.Option{
+					{Index: 0, Kind: "yes", Label: "Yes — planeswalk", Player: c.Controller},
+					{Index: 1, Kind: "no", Label: "No", Player: c.Controller},
+				}}
+			if Ask(h, d) == AskAsked {
+				return
+			}
+			// R-9: a host without a decision channel deterministically declines.
+			answer = "no"
+		}
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "planeswalk election: " + answer})
+		if answer != "yes" {
+			return
+		}
+	}
 	notePlanechaseNoDeck(h, c, "planeswalk")
 }
 
@@ -52,10 +81,8 @@ func effChaosEnsues(h Host, c *Ctx, _ *cards.SA) {
 }
 
 // notePlanechaseNoDeck records the shared "resolved, but there is no planar
-// deck" Note. The Optional$ rider some corpus carriers spell
-// (tardis, start_the_tardis) is deliberately not consulted: an optional
-// planechase action with nowhere to go is declined either way, and a
-// deterministic decline needs no ask.
+// deck" Note. Optional$ elections are handled by effPlaneswalk before this
+// helper; non-optional callers reach it directly.
 func notePlanechaseNoDeck(h Host, c *Ctx, action string) {
 	text := action + " (no planar deck)"
 	if c != nil && c.Source != 0 {

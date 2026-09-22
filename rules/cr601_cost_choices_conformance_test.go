@@ -4,8 +4,7 @@ package rules
 // CR 601.2b (lines 4683-4696) announces modes, X and hybrid/Phyrexian
 // payments before targets; 601.2f (4730-4739) composes and locks total cost;
 // 601.2g (4741-4742) grants the mana-ability window before payment.
-// The conformance flag (GORGE_CR_CONFORMANCE=1) gates only the known-red
-// leaves that still FAIL; every passing leaf runs in the ordinary lane.
+// These cost-choice assertions run in the ordinary suite.
 
 import (
 	"strconv"

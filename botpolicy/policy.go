@@ -488,7 +488,50 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		if len(d.Options) == 0 {
 			break
 		}
+		if d.ResumeKind == "repeat_optional" {
+			// Repeat while life remains above the deterministic safety margin;
+			// this is deliberately conservative for Ad Nauseam and legal for
+			// every yes/no RepeatOptional$ election.
+			if b.Life[d.Player] > 5 {
+				in.Choices = []int{d.Options[0].Index}
+			} else if len(d.Options) > 1 {
+				in.Choices = []int{d.Options[1].Index}
+			}
+			break
+		}
 		switch d.Options[0].Kind {
+		case "vote_card":
+			// A card ballot is a political vote: remove the opponent's most
+			// valuable offered permanent, not merely the first one. Council's
+			// Judgment's ballot excludes only the CASTER's permanents, so at
+			// 3+ seats a voter's own permanent can be on the ballot beside an
+			// opponent's (Option.Player is the subject's controller). A voter
+			// must never vote to exile its own card when a foreign one is
+			// offered, so the worth ranking runs over the non-self options
+			// first, falling back to all options only when every offered
+			// permanent is the voter's own (the caster excluded itself and no
+			// opponent has a legal permanent -- the vote still has to name
+			// something).
+			best := -1
+			for i, o := range d.Options {
+				if o.Player == d.Player {
+					continue
+				}
+				if best < 0 || b.cardWorth(o.Obj) > b.cardWorth(d.Options[best].Obj) {
+					best = i
+				}
+			}
+			if best < 0 {
+				// Every offered permanent is the voter's own: name the
+				// highest-worth one rather than reading past the option list.
+				best = 0
+				for i := 1; i < len(d.Options); i++ {
+					if b.cardWorth(d.Options[i].Obj) > b.cardWorth(d.Options[best].Obj) {
+						best = i
+					}
+				}
+			}
+			in.Choices = []int{d.Options[best].Index}
 		case "x":
 			in.Choices = []int{d.Options[len(d.Options)-1].Index} // the most it can pay for
 		case "discard":
@@ -506,14 +549,19 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			} else {
 				in.Choices = []int{d.Options[0].Index}
 			}
-		case "dig", "hand_move", "hidden_pick", "counter_dist", "counter_pick", "blight", "proliferate", "move_counter_kind":
+		case "counter_kinds":
+			for i := 0; i < len(d.Options) && i < 2; i++ {
+				in.Choices = append(in.Choices, d.Options[i].Index)
+			}
+		case "dig", "hand_move", "hidden_pick", "counter_dist", "counter_pick", "counter_kind", "blight", "proliferate", "move_counter_kind", "reveal":
 			// A Dig look-and-take, a "choose N matching cards from hand"
 			// ChangeZone (handmove1), a Hidden$ True public-origin pick
 			// (hiddenpick1), a DividedAsYouChoose$ PutCounter distribution
 			// pick (Vastwood Hydra), a bare-Choices$ PutCounter pick
-			// (Promise of Loyalty's vow), or a Blight's per-player creature
-			// pick (CR 701.60): take the first Max options in offered
-			// (zone) order
+			// (Promise of Loyalty's vow), a Blight's per-player creature
+			// pick (CR 701.60), or a hand-reveal pick (infernaltutor1:
+			// Infernal Tutor's "Reveal a card from your hand"): take the
+			// first Max options in offered (zone) order
 			// -- the exact mirror of effDig's / effChangeZoneHand's /
 			// effHiddenPick's / putCounterPickDistribute's no-ask stand-in (R-9),
 			// so a bot-answered ask emits
@@ -885,6 +933,21 @@ func (b Board) unlessSacrificeOffer(d *decision.Decision) []int {
 // clamp reintroduced I-1(b): a Min:1 priority decision falling through with
 // nothing chosen got topped up into an activation instead of a pass.
 func Clamp(d *decision.Decision, in decision.Intent) decision.Intent {
+	// A same-controller target answer must be repaired as one controller's
+	// complete decision, not by retaining the first controller in the input:
+	// that controller can lack Min legal options while a later controller can
+	// satisfy Min, Groups and the budget. Build a feasible local decision
+	// before the ordinary repair so Clamp never returns an answer Validate
+	// rejects.
+	if d.TargetsWithSameController {
+		in.Choices = sameControllerChoices(d, in.Choices)
+	}
+	var targetController state.PlayerID
+	var haveTargetController bool
+	if d.TargetsWithSameController && len(in.Choices) > 0 {
+		targetController = d.Options[in.Choices[0]].Controller
+		haveTargetController = true
+	}
 	// The decision's joint constraints -- the Max ceiling, the cumulative
 	// budget (Decision.MaxSum, which Decision.Validate enforces) and the
 	// Required quota (Option.Required, CR 508.1d's "attacks if able", which
@@ -931,6 +994,9 @@ func Clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 		// and produced an intent Decision.Validate rejects.
 		fits := func(o decision.Option) bool { return !d.HasBudget() || sum+o.Value <= d.MaxSum }
 		add := func(o decision.Option) {
+			if d.TargetsWithSameController && !haveTargetController {
+				targetController, haveTargetController = o.Controller, true
+			}
 			have[o.Index] = true
 			sum += o.Value
 			in.Choices = append(in.Choices, o.Index)
@@ -939,7 +1005,8 @@ func Clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 			if len(in.Choices) >= min {
 				break
 			}
-			if o.Kind == "pass" && !have[o.Index] && fits(o) {
+			if o.Kind == "pass" && !have[o.Index] && fits(o) &&
+				(!d.TargetsWithSameController || !haveTargetController || o.Controller == targetController) {
 				add(o)
 			}
 		}
@@ -958,7 +1025,7 @@ func Clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 			if o.Group != "" && groups[o.Group] {
 				continue
 			}
-			if !fits(o) {
+			if !fits(o) || (d.TargetsWithSameController && haveTargetController && o.Controller != targetController) {
 				continue
 			}
 			if o.Group != "" {
@@ -986,4 +1053,61 @@ func Clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 		}
 	}
 	return in
+}
+
+// sameControllerChoices tries each represented controller in deterministic
+// input-then-option order. It projects that controller's options into a local
+// decision and uses Clamp recursively to apply the ordinary Max, Group,
+// budget and Required constraints before accepting only a locally valid
+// result. The projection prevents a controller with too few compatible picks
+// from trapping repair when another controller has a legal answer.
+func sameControllerChoices(d *decision.Decision, choices []int) []int {
+	controllers := make([]state.PlayerID, 0, len(d.Options))
+	seen := make(map[state.PlayerID]bool, len(d.Options))
+	addController := func(p state.PlayerID) {
+		if !seen[p] {
+			seen[p] = true
+			controllers = append(controllers, p)
+		}
+	}
+	for _, c := range choices {
+		if c >= 0 && c < len(d.Options) {
+			addController(d.Options[c].Controller)
+		}
+	}
+	for _, o := range d.Options {
+		addController(o.Controller)
+	}
+	for _, controller := range controllers {
+		local := *d
+		local.TargetsWithSameController = false
+		local.Options = nil
+		original := make([]int, 0, len(d.Options))
+		index := make(map[int]int, len(d.Options))
+		for _, o := range d.Options {
+			if o.Controller != controller {
+				continue
+			}
+			index[o.Index] = len(local.Options)
+			original = append(original, o.Index)
+			o.Index = len(local.Options)
+			local.Options = append(local.Options, o)
+		}
+		localIn := decision.Intent{Seq: d.Seq, Player: d.Player}
+		for _, c := range choices {
+			if i, ok := index[c]; ok {
+				localIn.Choices = append(localIn.Choices, i)
+			}
+		}
+		localOut := Clamp(&local, localIn)
+		if local.Validate(localOut) != nil {
+			continue
+		}
+		out := make([]int, len(localOut.Choices))
+		for i, c := range localOut.Choices {
+			out[i] = original[c]
+		}
+		return out
+	}
+	return nil
 }

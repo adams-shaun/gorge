@@ -1241,13 +1241,25 @@ func TestCharmAsksForItsModeBeforeAnySubAbilityRuns(t *testing.T) {
 func TestVoteRecordsANotePerVotingPlayer(t *testing.T) {
 	h := newHost(t, 2)
 	Resolve(h, &Ctx{Controller: 0}, sa(t, "SP$ Vote | Defined$ Player | Choices$ Sickness,Psychosis"))
-	if len(h.log) != 2 {
-		t.Fatalf("log = %+v, want one Note per player", h.log)
-	}
+	// The fixed-Choices$ ballot poses a private per-voter KChoose (the
+	// votepb1 ask machinery); the fake host cannot answer it, so each voter
+	// takes the deterministic first option (R-9) and records the loud
+	// no-host Note beside its "votes for" reveal — the same fallback shape
+	// the player-ballot and card-ballot no-host paths emit. One "votes for
+	// Sickness" Note per voting player is still the contract under test.
+	fallbacks, votes := 0, 0
 	for _, e := range h.log {
-		if e.Kind != events.Note || e.Text != "votes for Sickness" {
-			t.Fatalf("event = %+v", e)
+		switch {
+		case e.Kind == events.Note && strings.Contains(e.Text, "no engine host to ask"):
+			fallbacks++
+		case e.Kind == events.Note && e.Text == "votes for Sickness":
+			votes++
+		default:
+			t.Fatalf("event = %+v, want only no-host fallback and votes-for Notes", e)
 		}
+	}
+	if fallbacks != 2 || votes != 2 {
+		t.Fatalf("%d no-host fallback and %d votes-for Notes, want one of each per voting player (2): log %+v", fallbacks, votes, h.log)
 	}
 }
 
