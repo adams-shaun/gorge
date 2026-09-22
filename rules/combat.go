@@ -1852,11 +1852,12 @@ type assignment struct {
 	hasLink    bool
 	deathtouch bool
 	// infect records that the dealing creature has infect (CR 702.90b): the
-	// damage event carries the infect marker and events.Apply's Damage fold
-	// deals it as -1/-1 counters (a creature recipient) or poison counters
-	// (the defending player) instead of marked damage / life loss. A source
-	// granted infect by a static (Grafted Exoskeleton) reads the same way,
-	// because HasKeyword reads the derived keyword list.
+	// damage event carries the infect marker and rules' emit conversion
+	// (Engine.convertInfectDamage) deals it as -1/-1 counters (a creature
+	// recipient) or poison counters (the defending player) instead of marked
+	// damage / life loss. A source granted infect by a static (Grafted
+	// Exoskeleton) reads the same way, because HasKeyword reads the derived
+	// keyword list.
 	infect bool
 	// from is the creature dealing this assignment (the attacker for its own
 	// assignments, each blocker for its hit-back), kept so the damage emit
@@ -2115,13 +2116,22 @@ func (e *Engine) runCombatAssignments() {
 			// any replacement-substituted non-Damage kind) means the damage
 			// did NOT land -- skips both riders for a prevented assignment.
 			dam := events.Event{Kind: events.Damage, Obj: x.toObj, Amount: x.amount}
-			if x.infect {
-				// CR 702.90b: infect damage is dealt in counter form; the
-				// marker rides Damage's Counter carrier and events.Apply's
-				// Damage fold converts it. Preceding replacements (protection
-				// is handled before them, in emit) still act on the event, so
-				// a rewritten amount converts as the rewritten amount.
-				dam.Counter = "infect"
+			if x.infect && e.IsCreature(x.toObj) {
+				// CR 702.90b: a CREATURE recipient takes infect damage as
+				// -1/-1 counters; the compound marker rides Damage's Counter
+				// carrier (both facts -- the source's infect and the recipient's
+				// layer-accurate creature classification -- which the fold
+				// reuses) and Engine.convertInfectDamage places them as a real
+				// CounterChange right after this event folds, through the same
+				// replacement/trigger pipeline every other placement uses.
+				// Classifying rather than assuming keeps the marker honest for
+				// any future shape that lands a blocker-shaped hit on a
+				// non-creature (a Battle, a redirected hit): that recipient
+				// goes untagged and takes ordinary marked damage. Preceding
+				// replacements (protection is handled before them, in emit)
+				// still act on the event, so a rewritten amount converts as the
+				// rewritten amount.
+				dam.Counter = "infect+creature"
 			}
 			ev := e.emit(dam)
 			prevented = ev.Kind != events.Damage
@@ -2148,6 +2158,12 @@ func (e *Engine) runCombatAssignments() {
 			// changes nothing about them.
 			dam := events.Event{Kind: events.Damage, Player: x.toPlayer, Amount: x.amount}
 			if x.infect {
+				// CR 702.90b: that many poison counters instead of life loss;
+				// the marker rides Damage's Counter carrier and
+				// Engine.convertInfectDamage emits a real PlayerCounterChange
+				// right after this event folds, so the placement goes through
+				// the same replacement/trigger pipeline every other counter
+				// placement does.
 				dam.Counter = "infect"
 			}
 			ev := e.emit(dam)

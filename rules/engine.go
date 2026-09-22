@@ -1601,6 +1601,22 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	departingSource, departingSourceLifelink, departingSourceController := e.captureSourceLifelinkLKI(ev)
 	stackLen := len(e.G.Stack)
 	stored := events.Emit(e.G, e.L, ev)
+	// CR 702.90b (kw:Infect): the counters/poison an infect source's damage
+	// is dealt in the form of are placed HERE, as real events emitted
+	// through this same emit -- so the repl:AddCounter class (a Winding
+	// Constrictor doubler, a CantPutCounter lock) and trig:CounterAdded see
+	// the placement exactly like any other, and rules/sba.go's CR 704.5b
+	// ten-poison loss reads a real PlayerCounterChange fold. The marker was
+	// set by the emitter (rules/combat.go, rules/cast.go,
+	// rules/resolution.go, effects/damage.go) after it checked HasKeyword on
+	// the source; this conversion classifies the form off the event that
+	// actually landed (the replaced/prevented hit never reaches here -- a
+	// prevention is a Note), and the recipient-creature half of the marker
+	// is the emitter's layer-accurate classification the fold reuses.
+	if stored.Kind == events.Damage && stored.Amount > 0 &&
+		(stored.Counter == "infect" || stored.Counter == "infect+creature") {
+		e.convertInfectDamage(stored)
+	}
 	if len(e.turnsTaken) == len(e.G.Players) && e.turnsTakenEpoch == len(e.L.Events)-1 {
 		if stored.Kind == events.TurnChange && int(stored.Player) < len(e.turnsTaken) {
 			e.turnsTaken[stored.Player]++

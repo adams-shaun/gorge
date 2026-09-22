@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -19,6 +20,8 @@ func corpusInfectCard(t *testing.T, name string) *cards.Card {
 		"Blight Mamba":         "b/blight_mamba.txt",
 		"Blightsteel Colossus": "b/blightsteel_colossus.txt",
 		"Grafted Exoskeleton":  "g/grafted_exoskeleton.txt",
+		"Ichor Rats":           "i/ichor_rats.txt",
+		"Winding Constrictor":  "w/winding_constrictor.txt",
 	}
 	path, ok := paths[name]
 	if !ok {
@@ -150,5 +153,194 @@ func TestGraftedExoskeletonGrantedInfectDealsInCounterForm(t *testing.T) {
 	}
 	if got := e.G.Players[1].Life; got != 20 {
 		t.Fatalf("defender life = %d, want 20 (granted infect converts the same way)", got)
+	}
+}
+
+// TestInfectDamageToNonCreatureArtifactIsMarked pins the recipient-form
+// split the r2 review demanded (CR 702.90b rewrites creature and player
+// damage ONLY): an infect source's damage to a plain artifact -- a legal
+// DealDamage target that is neither creature nor player -- is ordinary
+// marked damage, with NO -1/-1 counters and NO -1/-1 CounterChange event in
+// the log.
+func TestInfectDamageToNonCreatureArtifactIsMarked(t *testing.T) {
+	e := combatEngine(t)
+	mamba := onBoardCard(t, e, 0, corpusInfectCard(t, "Blight Mamba"))
+	artifact := onBoard(t, e, 1, "Name:Brass Sprocket\nManaCost:2\nTypes:Artifact\nOracle:x\n")
+
+	// Preconditions the assertions below depend on: the source reads
+	// infect, the artifact is on the battlefield, reads as a NON-creature,
+	// and arrives undamaged and uncountered.
+	if !e.HasKeyword(mamba, "Infect") {
+		t.Fatal("precondition: Blight Mamba does not read infect")
+	}
+	if o := e.G.Obj(artifact); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatal("precondition: the artifact is not on the battlefield")
+	}
+	if e.IsCreature(artifact) {
+		t.Fatal("precondition: the artifact reads as a creature")
+	}
+
+	effects.Resolve(e, &effects.Ctx{Source: mamba, Controller: 0,
+		Targets: []state.Target{{Obj: artifact}}}, &cards.SA{Kind: "DB", API: "DealDamage",
+		Params: map[string]string{"Defined": "Targeted", "NumDmg": "3"}})
+
+	if got := e.G.Obj(artifact).Damage; got != 3 {
+		t.Fatalf("artifact marked damage = %d, want 3 (a non-creature recipient takes infect damage normally)", got)
+	}
+	if got := e.G.Obj(artifact).Counter("M1M1"); got != 0 {
+		t.Fatalf("artifact -1/-1 counters = %d, want 0 (CR 702.90b rewrites creature damage only)", got)
+	}
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.CounterChange && ev.Obj == artifact && ev.Counter == "M1M1" {
+			t.Fatalf("the log carries a -1/-1 CounterChange for the artifact (%+v): the fold must not convert a non-creature recipient", ev)
+		}
+	}
+}
+
+// TestInfectDamageToPlainPlaneswalkerOnlyRemovesLoyalty pins the same
+// recipient-form split for a printed planeswalker: CR 306.8's loyalty
+// exchange applies and nothing else -- no marked damage, no -1/-1 counters
+// (the r1 defect put counters on the walker IN ADDITION to the loyalty).
+func TestInfectDamageToPlainPlaneswalkerOnlyRemovesLoyalty(t *testing.T) {
+	e := combatEngine(t)
+	mamba := onBoardCard(t, e, 0, corpusInfectCard(t, "Blight Mamba"))
+	walker := onBoard(t, e, 1, "Name:Plain Walker\nTypes:Planeswalker Jace\nLoyalty:5\nOracle:x\n")
+	// onBoard's placement is eventless, so the printed starting loyalty is
+	// not granted by it; place it through the ordinary counter event.
+	e.emit(events.Event{Kind: events.CounterChange, Obj: walker, Counter: "LOYALTY", Amount: 5})
+
+	// Preconditions: the source reads infect; the walker is on the
+	// battlefield with 5 loyalty, reads as a NON-creature, and arrives
+	// uncountered and undamaged.
+	if !e.HasKeyword(mamba, "Infect") {
+		t.Fatal("precondition: Blight Mamba does not read infect")
+	}
+	if o := e.G.Obj(walker); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatal("precondition: the walker is not on the battlefield")
+	}
+	if e.IsCreature(walker) {
+		t.Fatal("precondition: the walker reads as a creature")
+	}
+	if got := e.G.Obj(walker).Counter("LOYALTY"); got != 5 {
+		t.Fatalf("precondition: walker loyalty = %d, want 5", got)
+	}
+
+	effects.Resolve(e, &effects.Ctx{Source: mamba, Controller: 0,
+		Targets: []state.Target{{Obj: walker}}}, &cards.SA{Kind: "DB", API: "DealDamage",
+		Params: map[string]string{"Defined": "Targeted", "NumDmg": "3"}})
+
+	if got := e.G.Obj(walker).Counter("LOYALTY"); got != 2 {
+		t.Fatalf("walker loyalty = %d, want 2 (CR 306.8's loyalty exchange is the only form)", got)
+	}
+	if got := e.G.Obj(walker).Damage; got != 0 {
+		t.Fatalf("walker marked damage = %d, want 0", got)
+	}
+	if got := e.G.Obj(walker).Counter("M1M1"); got != 0 {
+		t.Fatalf("walker -1/-1 counters = %d, want 0 (CR 702.90b does not rewrite non-creature permanent damage)", got)
+	}
+}
+
+// TestInfectCountersRideTheCounterReplacementPath pins the r2 review's
+// second MAJOR: the conversion emits REAL CounterChange/PlayerCounterChange
+// events, so the repl:AddCounter class replaces them -- Winding
+// Constrictor's "one more" lines double both the -1/-1 counters an opposing
+// infect creature puts on your blocker and the poison counters one puts on
+// you, exactly as it doubles any other placement.
+func TestInfectCountersRideTheCounterReplacementPath(t *testing.T) {
+	constrictor := corpusInfectCard(t, "Winding Constrictor")
+
+	// Creature half: the constrictor's controller blocks an opposing infect
+	// creature, and its `ValidCard$ Creature.YouCtrl` line doubles the
+	// -1/-1 counters the hit converts to.
+	e := combatEngine(t)
+	onBoardCard(t, e, 1, constrictor)
+	mamba := onBoardCard(t, e, 0, corpusInfectCard(t, "Blight Mamba"))
+	e.G.Obj(mamba).SummonSick = false
+	// A 4/4 blocker so the DOUBLED pair of -1/-1 counters leaves it alive --
+	// a 2/2 would die at toughness 0 and its counters would leave with it.
+	blocker := onBoard(t, e, 1, "Name:Bear\nManaCost:3 G\nTypes:Creature Bear\nPT:4/4\nOracle:x\n")
+	if got := e.G.Obj(blocker).Counter("M1M1"); got != 0 {
+		t.Fatalf("precondition: blocker already carries %d -1/-1 counters", got)
+	}
+	e.askAttackers()
+	submitAttackers(t, e, mamba)
+	submitBlockers(t, e, blocker)
+	if got := e.G.Obj(blocker).Counter("M1M1"); got != 2 {
+		t.Fatalf("blocker -1/-1 counters = %d, want 2 (the mamba's 1, doubled by the constrictor's AddCounter replacement)", got)
+	}
+
+	// Player half: the same constrictor's controller is hit unblocked by an
+	// opposing infect creature, and its `ValidPlayer$ You` line doubles the
+	// poison the hit converts to.
+	e2 := combatEngine(t)
+	onBoardCard(t, e2, 1, constrictor)
+	mamba2 := onBoardCard(t, e2, 0, corpusInfectCard(t, "Blight Mamba"))
+	e2.G.Obj(mamba2).SummonSick = false
+	if got := e2.G.Players[1].Counter("POISON"); got != 0 {
+		t.Fatalf("precondition: defender already carries %d poison", got)
+	}
+	e2.askAttackers()
+	submitAttackers(t, e2, mamba2)
+	// The defender controls a creature (the constrictor), so the combat
+	// flow waits for its (empty) block declaration before the damage step.
+	submitBlockers(t, e2)
+	if got := e2.G.Players[1].Counter("POISON"); got != 2 {
+		t.Fatalf("defender poison = %d, want 2 (the mamba's 1, doubled by the constrictor's AddCounter replacement)", got)
+	}
+	if got := e2.G.Players[1].Life; got != 20 {
+		t.Fatalf("defender life = %d, want 20", got)
+	}
+	if e2.G.Players[1].Lost {
+		t.Fatal("defender lost with only 2 poison counters")
+	}
+}
+
+// TestInfectDeathtouchKillsThroughCounters pins the counter-form
+// half of CR 704.5g: a deathtouch infect creature's damage is dealt as
+// -1/-1 counters with nothing marked, and the creature it damaged still
+// dies -- the Deathtouched mark is lethal on its own, without marked
+// damage, exactly as it is beside it.
+func TestInfectDeathtouchKillsThroughCounters(t *testing.T) {
+	e := combatEngine(t)
+	stinger := onBoard(t, e, 0, "Name:Toxic Stinger\nManaCost:B\nTypes:Creature Insect\nPT:1/1\nK:Deathtouch\nK:Infect\nOracle:x\n")
+	e.G.Obj(stinger).SummonSick = false
+	blocker := onBoard(t, e, 1, "Name:Guard\nManaCost:1 W\nTypes:Creature Soldier\nPT:2/2\nOracle:x\n")
+
+	// Preconditions: the stinger reads both keywords, the blocker is on the
+	// battlefield, undamaged, uncountered, and tall enough that the one
+	// -1/-1 counter ALONE would not kill it (toughness 1 after it) -- so
+	// only the deathtouch half can be why it dies.
+	if !e.HasKeyword(stinger, "Infect") || !e.HasKeyword(stinger, "Deathtouch") {
+		t.Fatal("precondition: the stinger does not read deathtouch + infect")
+	}
+	if o := e.G.Obj(blocker); o.Zone != state.ZBattlefield || o.Damage != 0 || o.Counter("M1M1") != 0 {
+		t.Fatal("precondition: the blocker does not arrive alive, undamaged and uncountered")
+	}
+	if got := e.Toughness(blocker); got != 2 {
+		t.Fatalf("precondition: blocker toughness = %d, want 2 (an undamaged 2/2)", got)
+	}
+
+	e.askAttackers()
+	submitAttackers(t, e, stinger)
+	submitBlockers(t, e, blocker)
+
+	// The blocker dies, so its counters leave with it (a zone change clears
+	// them) -- the placement is read off the log instead: exactly one
+	// -1/-1 CounterChange, and the damage event it rode is
+	// infect-marked (so nothing was ever marked on it).
+	counters := 0
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.CounterChange && ev.Obj == blocker && ev.Counter == "M1M1" {
+			if ev.Amount != 1 {
+				t.Fatalf("the blocker's -1/-1 placement = %+v, want exactly 1 (the stinger's power, in counter form)", ev)
+			}
+			counters++
+		}
+	}
+	if counters != 1 {
+		t.Fatalf("the log carries %d -1/-1 placements for the blocker, want 1 (the infect form)", counters)
+	}
+	if o := e.G.Obj(blocker); o.Zone == state.ZBattlefield {
+		t.Fatal("a 2/2 that took 1 deathtouch infect damage (one -1/-1 counter, nothing marked) survived -- CR 704.5g's mark-alone lethality did not fire")
 	}
 }

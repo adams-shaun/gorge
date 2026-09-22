@@ -375,16 +375,22 @@ func emitObjectDamage(r damageRider, target state.ObjID) int32 {
 		return 0
 	}
 	ev := events.Event{Kind: events.Damage, Obj: target, Amount: r.amount}
-	if h.HasKeyword(r.source, "Infect") {
-		// CR 702.90b: damage from an infect source is dealt to a creature in
-		// the form of -1/-1 counters. The marker rides Damage's Counter
-		// carrier; events.Apply's Damage fold converts it after the whole
-		// prevention/replacement pipeline (so a prevented or rewritten hit
-		// converts nothing / the rewritten amount). A granted infect (e.g. a
-		// Grafted Exoskeleton bearer) reads the same, because Host.HasKeyword
-		// reads the derived keyword list.
-		ev.Counter = "infect"
-	} else if h.IsCreature(target) && o.Face() != nil && o.Face().IsPlaneswalker() && !o.Face().IsCreature() {
+	creature := h.IsCreature(target)
+	if creature && h.HasKeyword(r.source, "Infect") {
+		// CR 702.90b: a CREATURE recipient takes infect damage as -1/-1
+		// counters. The compound marker rides Damage's Counter carrier and
+		// carries BOTH facts its consumers need -- the source's infect (rules'
+		// conversion emits the real CounterChange right after this event
+		// folds, through the same replacement/trigger pipeline) and the
+		// recipient's creature classification by layer state, which the fold
+		// cannot evaluate (its printed-face fallback covers only printed
+		// creatures; this tag covers an animated planeswalker too). Only a
+		// creature recipient is tagged: an artifact, a Battle or a printed
+		// planeswalker takes the hit as ordinary damage, untagged. A granted
+		// infect (e.g. a Grafted Exoskeleton bearer) reads the same, because
+		// Host.HasKeyword reads the derived keyword list.
+		ev.Counter = "infect+creature"
+	} else if creature && o.Face() != nil && o.Face().IsPlaneswalker() && !o.Face().IsCreature() {
 		ev.Counter = "creature"
 	}
 	applied := h.EmitDamage(ev)
