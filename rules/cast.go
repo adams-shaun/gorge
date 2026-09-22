@@ -3975,6 +3975,30 @@ func costAnnouncesPaidX(c Cost) bool {
 // manaToPayX is manaToPay with {X} folded to an explicit value.
 // paymentMana applies announced Convoke/Harmonize contributions to the
 // already-formed total. A stale answer can never make a requirement negative.
+// faceWantsConvoked reports whether the cast's face could have a reader of
+// Defined$ Convoked: an SVar body naming the selector (Lethal Scheme's
+// DBConnive, Venerated Loxodon's and Zephyr Singer's TrigPutCounterAll --
+// all three corpus carriers live in SVar bodies) or a compiled ability whose
+// Defined$ parameter names it directly. The scan is the faceWantsConverge
+// string-scan shape, one level wider (abilities), so a printed
+// `DB$ ... | Defined$ Convoked` ability line is caught too.
+func faceWantsConvoked(f *cards.Face) bool {
+	if f == nil {
+		return false
+	}
+	for _, v := range f.SVars {
+		if strings.Contains(v, "Defined$ Convoked") {
+			return true
+		}
+	}
+	for _, a := range f.Abilities {
+		if strings.EqualFold(strings.TrimSpace(a.Params["Defined"]), "Convoked") {
+			return true
+		}
+	}
+	return false
+}
+
 // faceWantsConverge is the heads-safety gate for the pay-time converge
 // CastInfo: it reports whether the face carries a Count$Converge SVar body.
 // Without it a count>0-only gate would stamp a CastInfo onto EVERY
@@ -5890,6 +5914,27 @@ func (e *Engine) payCast() {
 		cFlags := events.FlagsString(events.FlagsFrom(flags) | state.FlagConspired)
 		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: 1, Counter: cFlags})
 	}
+	// Convoke (CR 702.66, task connive1): the creatures the caster tapped to
+	// help pay for the cast ride their own TRAILING pay-time CastInfo's IDs
+	// -- the flag (NOT ORed into the accumulating flags, the Conspired
+	// pattern) routes the IDs into Object.Convoked (events.Apply folds it
+	// outside the Amount switch), and Defined$ Convoked reads it. Emitted
+	// only for a face whose SVar table or abilities reference the selector
+	// (faceWantsConvoked), so every unrelated convoke cast stays
+	// byte-identical; no accumulation means no later CastInfo carries it,
+	// so its arm's position in the newest-first switch is order-independent.
+	if len(pc.convoke) > 0 && faceWantsConvoked(e.G.Obj(pc.card).Face()) {
+		ids := make([]state.ObjID, 0, len(pc.convoke))
+		seen := make(map[state.ObjID]bool, len(pc.convoke))
+		for _, pay := range pc.convoke {
+			if !seen[pay.id] {
+				seen[pay.id] = true
+				ids = append(ids, pay.id)
+			}
+		}
+		cvFlags := events.FlagsString(events.FlagsFrom(flags) | state.FlagConvoked)
+		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: int32(len(ids)), Counter: cvFlags, IDs: ids})
+	}
 	// Cast-spend (task castprov1): the TOTAL mana actually spent to cast the
 	// spell rides its own TRAILING pay-time CastInfo -- the flag routes the
 	// Amount into Object.ManaSpent (events.Apply's CastInfo case), so this
@@ -5926,7 +5971,7 @@ func (e *Engine) payCast() {
 		// the total) or every later event would route into the first tag's
 		// field.
 		typedAmounts := [3]int32{pc.manaSpentTreasure, pc.manaSpentCave, pc.manaSpentDesert}
-		typedFlags := [3]uint32{state.FlagManaTreasureSpent, state.FlagManaCaveSpent, state.FlagManaDesertSpent}
+		typedFlags := [3]uint64{state.FlagManaTreasureSpent, state.FlagManaCaveSpent, state.FlagManaDesertSpent}
 		acc := events.FlagsFrom(flags)
 		for t := range typedFlags {
 			acc |= typedFlags[t]

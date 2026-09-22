@@ -618,6 +618,18 @@ const (
 	// after every earlier Kind, so no earlier ordinal, hash chain or golden
 	// replay is affected.
 	Seek
+	// Connive records one completed connive action (CR 702.59, task connive1):
+	// Obj is the conniving permanent, Player its controller, IDs the cards it
+	// discarded in discard order, and Amount the number of NONLAND cards
+	// among them (the +1/+1 counters that went on the conniver). It is an
+	// Apply no-op marker, exactly like Explore: the connive's own state
+	// changes (the draws, the discards, the counter) are their own events
+	// that precede this one, and the record is what trig:Connives matches
+	// (Iron Monger Sadistic Tycoon, Glorious Purpose, Ultron Unlimited).
+	// One marker per completed connive ACTION, never one per discarded card.
+	// Appended after Seek, still after every earlier Kind, so no earlier
+	// ordinal, hash chain or golden replay is affected.
+	Connive
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -628,7 +640,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(Seek) + 1
+	NumKinds = int(Connive) + 1
 )
 
 // mergedTriggerShift is the width MergedTriggerPush's Amount gives the
@@ -895,7 +907,7 @@ func appendStr(dst []byte, s string) []byte {
 // iteration).
 var flagNames = [...]struct {
 	name string
-	bit  uint32
+	bit  uint64
 }{
 	{"kicked", state.FlagKicked},
 	{"surged", state.FlagSurged},
@@ -954,6 +966,13 @@ var flagNames = [...]struct {
 	// Conspire emits no flag and resolves like the plain cast. Appended at
 	// the end per the table's own ordering rule.
 	{"conspired", state.FlagConspired},
+	// Convoke's creature provenance (CR 702.66, task connive1): the flag is
+	// what Defined$ Convoked reads -- the creatures tapped to help pay for
+	// the cast ride the pay-time CastInfo's IDs. Emitted only for a face
+	// whose SVar table or abilities reference the selector (rules/cast.go's
+	// faceWantsConvoked), so every unrelated convoke cast stays
+	// byte-identical. Appended at the end per the table's own ordering rule.
+	{"convoked", state.FlagConvoked},
 	// The total-mana-spent capture (task castprov1): a face whose SVar
 	// table reads the Count$CastTotalManaSpent head stamps its pay-time
 	// CastInfo with the flag, so the Amount folds into Object.ManaSpent
@@ -998,8 +1017,8 @@ var flagNames = [...]struct {
 // into a CastFlags word. Unrecognized names are silently ignored, the same
 // totality stance as everywhere else in this package: a stray or future
 // flag name in an untrusted log must not make this panic.
-func FlagsFrom(s string) uint32 {
-	var f uint32
+func FlagsFrom(s string) uint64 {
+	var f uint64
 	for _, part := range strings.Split(s, ",") {
 		for _, fn := range flagNames {
 			if strings.TrimSpace(part) == fn.name {
@@ -1012,7 +1031,7 @@ func FlagsFrom(s string) uint32 {
 
 // FlagsString is FlagsFrom's inverse: a canonical, fixed-order csv of the
 // flag names set in f.
-func FlagsString(f uint32) string {
+func FlagsString(f uint64) string {
 	var parts []string
 	for _, fn := range flagNames {
 		if f&fn.bit != 0 {
