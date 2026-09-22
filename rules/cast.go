@@ -5811,13 +5811,6 @@ func (e *Engine) targetAsk() bool {
 		excludeSelf = pc.card
 	}
 	candidates := e.legalTargetCandidates(pc.player, pc.card, excludeSelf, sa)
-	// Forge's TargetsForEachPlayer$ selection shape (one per player): the
-	// same bounds/group read the trigger-path askTarget uses, so a OneEach
-	// CAST ask (Unexplained Absence's "up to one target nonland permanent
-	// each player controls") offers the whole table's slots and the wire's
-	// mutual-exclusion rule enforces one pick per controller. Before this the
-	// cast-time ask ignored the shape and capped the ask at the plain Max.
-	min, max, _ = e.oneEachTargetBounds(sa, candidates, min, max)
 	// Overload changes the word "target" to "each". It makes no selection at
 	// announcement time: the current matching set is derived at resolution,
 	// so permanents entering or changing controller in response are handled.
@@ -5852,9 +5845,22 @@ func (e *Engine) targetAsk() bool {
 	// mirrors it. A candidate whose power alone fits but whose combination
 	// busts the cap stays offered: the wire contract rejects the combination.
 	candidates, powerCap, powerCapped := e.totalPowerCappedCandidates(candidates, pc.player, pc.card, sa, pc.x)
-	if min > 0 && len(candidates) < min {
+	// Forge's per-controller selection shapes (TargetsForEachPlayer$ one per
+	// player; TargetsWithDifferentControllers$ one per controller): the same
+	// bounds/group/capacity read the trigger-path askTarget uses, so a OneEach
+	// CAST ask (Unexplained Absence's "up to one target nonland permanent
+	// each player controls") offers the whole table's slots and the wire's
+	// mutual-exclusion rule enforces one pick per controller. Before this the
+	// cast-time ask ignored the shape and capped the ask at the plain Max.
+	// Read AFTER affordability and the power-cap prune so `distinct` is the
+	// real selectable capacity: an unaffordable or over-cap candidate cannot
+	// contribute a controller to it.
+	min, max, exclusive, distinct := e.oneEachTargetBounds(sa, candidates, min, max)
+	if min > 0 && (len(candidates) < min || (exclusive && min > distinct)) {
 		// CR 601.2c: a proposal with fewer legal targets than its mandatory
-		// minimum cannot be announced. Reverse the whole proposal (CR 733.1):
+		// minimum -- or one whose per-controller constraint admits fewer
+		// distinct controllers than its mandatory minimum -- cannot be
+		// announced. Reverse the whole proposal (CR 733.1):
 		// the pushed object returns to where it was, nothing is paid and no
 		// cast trigger fires. No library was shuffled during the proposal, so
 		// the 733.1 library exception does not apply.
@@ -5900,7 +5906,7 @@ func (e *Engine) targetAsk() bool {
 		label := e.targetOptionLabel(candidate)
 		o := decision.Option{Index: len(d.Options), Kind: candidate.kind,
 			Label: label, Obj: candidate.obj, Player: candidate.player}
-		o.Group = e.oneEachTargetGroup(sa, candidate)
+		o.Group = e.targetControllerGroup(sa, candidate)
 		// Option.Value is omitempty and read only under a budget
 		// (Decision.HasBudget), so a budget-less target ask keeps its wire
 		// payload byte-identical. Every present cap -- zero and negative
