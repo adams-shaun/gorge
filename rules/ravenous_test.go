@@ -31,27 +31,34 @@ import (
 // corpus card (mustCorpusCard) rather than an inline fixture, which is what
 // makes this a real-carrier test.
 func ravenousConfig(t *testing.T, seed uint64) (*Engine, Config, state.ObjID, state.PlayerID) {
+	return corpusCardConfig(t, seed, "Jacked Rabbit")
+}
+
+// corpusCardConfig is ravenousConfig generalised to any corpus card by name:
+// both seats carry the card plus Mountains so the seed-dependent turn-1
+// active seat always has one, and it is bridged into that seat's hand at its
+// first Main 1.
+func corpusCardConfig(t *testing.T, seed uint64, name string) (*Engine, Config, state.ObjID, state.PlayerID) {
 	t.Helper()
 	reg := testutil.CorpusRegistry(t)
-	rabbit := mustCorpusCard(t, reg, "Jacked Rabbit")
-	// The Rabbit is seeded into BOTH decks so the turn-1 active seat always
-	// has one; the toss winner is seed-dependent and the brief's test must
-	// not depend on the seed.
+	c := mustCorpusCard(t, reg, name)
 	seatDeck := func() []*cards.Card {
-		return append([]*cards.Card{rabbit}, mountainDeck(t, 39)...)
+		return append([]*cards.Card{c}, mountainDeck(t, 39)...)
 	}
+	// seatZeroStart pins the turn-1 active seat to 0 so the assertions do
+	// not depend on the seed (the toss winner is uniform over the seats).
 	cfg := seatZeroStart(Config{Seed: seed, Names: []string{"a", "b"}, Tokens: reg.Tokens,
 		Decks: [][]*cards.Card{seatDeck(), seatDeck()}})
 	e := New(cfg)
 	e.Advance()
 	// Drive to the first Main 1 of the turn-1 active seat (toMain1 is
 	// idempotent and keys on e.G.Turn/e.G.Active), then bridge that seat's
-	// Rabbit into its hand.
+	// card into its hand.
 	toMain1(t, e)
 	caster := e.G.Active
-	id := findByName(e, "Jacked Rabbit", caster)
+	id := findByName(e, name, caster)
 	if id == 0 {
-		t.Fatalf("corpus Jacked Rabbit not found for seat %d -- corpus missing?", caster)
+		t.Fatalf("corpus %q not found for seat %d -- corpus missing?", name, caster)
 	}
 	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: e.G.Obj(id).Zone, To: state.ZHand})
 	e.pending = nil
@@ -158,4 +165,93 @@ func countTokenCreate(e *Engine) int {
 		}
 	}
 	return n
+}
+
+// drainRavenous drains the stack to empty, answering any simultaneous-ETB
+// trigger_order decision (CR 603.3b: two triggers controlled by the same
+// player are ordered by that player). passUntilStackEmpty fatals on any
+// non-priority decision, and a trigger_order is posed BEFORE the triggers
+// reach the stack (so the stack can even be empty), which is why the plain
+// drain returns with the triggers unresolved for a carrier that has its own
+// ETB trigger beside Ravenous. Option 0 is a legal order; the tests assert
+// the outcome, which is order-independent for these shapes.
+func drainRavenous(t *testing.T, e *Engine, limit int) {
+	t.Helper()
+	for n := 0; n < limit && !e.G.Over; n++ {
+		d := e.Pending()
+		if d == nil {
+			return
+		}
+		if d.Kind == decision.KPriority && len(e.G.Stack) == 0 {
+			return
+		}
+		switch d.Kind {
+		case decision.KPriority:
+			idx := -1
+			for _, o := range d.Options {
+				if o.Kind == "pass" {
+					idx = o.Index
+				}
+			}
+			if idx < 0 {
+				t.Fatalf("priority decision with no pass option: %+v", d)
+			}
+			submitChoices(t, e, idx)
+		case decision.KTriggerOrder:
+			// CR 603.3b: submit every offered trigger, in the offered
+			// order (a legal order). Min==Max==len(Options), so the answer
+			// must name all of them.
+			idx := make([]int, 0, len(d.Options))
+			for _, o := range d.Options {
+				idx = append(idx, o.Index)
+			}
+			if len(idx) == 0 {
+				t.Fatalf("empty trigger_order decision")
+			}
+			submitChoices(t, e, idx...)
+		case decision.KChoose: // the X ask, or another mid-resolution pick
+			if len(d.Options) == 0 {
+				t.Fatalf("empty %s decision while draining: %+v", d.ResumeKind, d)
+			}
+			submitChoices(t, e, d.Options[0].Index)
+		default:
+			t.Fatalf("unexpected %s decision while draining: %+v", d.Kind, d)
+		}
+	}
+}
+
+// TestExocrineRavenousWithItsOwnEtbTrigger pins the multi-ETB carrier shape:
+// Exocrine carries K:Ravenous AND its own "when CARDNAME enters, it deals X
+// damage to each player and each other creature" trigger, so an X=5 cast
+// queues both ETB triggers. The Ravenous half must still place 5 counters and
+// draw (the two simultaneous triggers must resolve without wedging), and the
+// card's own trigger must deal 5 to each player.
+func TestExocrineRavenousWithItsOwnEtbTrigger(t *testing.T) {
+	e, cfg, id, caster := corpusCardConfig(t, 134, "Exocrine")
+	addMana(t, e, caster, "RRRRRRRR") // {X}{2}{R} with X=5 -> {7}{R}
+	submitChoices(t, e, castOptionFor(t, e, id).Index)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || len(d.Options) == 0 || d.Options[0].Kind != "x" {
+		t.Fatalf("X decision for the Exocrine cast: %+v", d)
+	}
+	submitChoices(t, e, 5)
+	before := countDraw(e)
+	lifeBefore := []int32{e.G.Players[0].Life, e.G.Players[1].Life}
+	drainRavenous(t, e, 60)
+	o := e.G.Obj(id)
+	if o.Zone != state.ZBattlefield {
+		t.Fatalf("precondition failed: Exocrine zone=%s, want battlefield (two ETB triggers must not wedge)", o.Zone)
+	}
+	if got := o.Counter("P1P1"); got != 5 {
+		t.Fatalf("Exocrine Ravenous X=5 put %d +1/+1 counters, want 5", got)
+	}
+	if got := countDraw(e) - before; got != 1 {
+		t.Fatalf("Exocrine Ravenous X=5 drew %d cards, want 1", got)
+	}
+	for p := 0; p < 2; p++ {
+		if got := e.G.Players[p].Life; got != lifeBefore[p]-5 {
+			t.Fatalf("seat %d life = %d, want %d (Exocrine's own trigger dealt 5)", p, got, lifeBefore[p]-5)
+		}
+	}
+	replayCheck(t, e, cfg)
 }
