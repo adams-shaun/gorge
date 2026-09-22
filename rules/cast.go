@@ -1014,6 +1014,17 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 			return false
 		}
 	}
+	// RevealChosen<Player>/<Type> parts (Stalking Leonin, Guardian Archon,
+	// Emissary of Grudges, A Killer Among Us): there is no hand choice and no
+	// mana to pay, so the ONLY gate is that the ability's source still carries
+	// the secretly-chosen designation. A source whose choice was cleared (or
+	// never recorded) cannot activate, which is the fail-closed direction --
+	// the ability is not offered rather than paying for a reveal of nothing.
+	for _, part := range cost.RevealChosen {
+		if !hasRevealChosenDesignation(e.G.Obj(id), part.Spec) {
+			return false
+		}
+	}
 	for _, part := range cost.Behold {
 		n := len(e.costCandidates(p, id, state.ZHand, part.Spec, true, false)) +
 			len(e.costCandidates(p, id, state.ZBattlefield, part.Spec, false, false))
@@ -1479,6 +1490,9 @@ func withSpellAbilityExtras(f *cards.Face, cost Cost) Cost {
 	}
 	if len(extra.Reveal) > 0 {
 		cost.Reveal = append(append([]CostPart(nil), cost.Reveal...), extra.Reveal...)
+	}
+	if len(extra.RevealChosen) > 0 {
+		cost.RevealChosen = append(append([]CostPart(nil), cost.RevealChosen...), extra.RevealChosen...)
 	}
 	if len(extra.Behold) > 0 {
 		cost.Behold = append(append([]CostPart(nil), cost.Behold...), extra.Behold...)
@@ -5520,6 +5534,16 @@ func (e *Engine) emitChoiceCosts(pc *pendingCast) {
 		e.emit(events.Event{Kind: events.Note, Player: pc.player, Obj: pc.card,
 			IDs: append([]state.ObjID(nil), pc.reveals...), Text: "revealed " + names(pc.reveals) + " as a cost"})
 	}
+	// RevealChosen<Player>/<Type> parts: the payer's secret designation is
+	// made public as the cost is paid. One public Note per part, naming the
+	// designation (the chosen player's chain-safe tossName, or the chosen
+	// creature type). Nothing is asked -- the choice was made earlier by the
+	// Secretly$ True ChoosePlayer/ChooseType.
+	for _, part := range pc.cost.RevealChosen {
+		if text, ok := revealChosenText(e.G, e.G.Obj(pc.card), part.Spec); ok {
+			e.emit(events.Event{Kind: events.Note, Player: pc.player, Obj: pc.card, Text: text})
+		}
+	}
 	if len(pc.beholds) > 0 {
 		e.emit(events.Event{Kind: events.Note, Player: pc.player, Obj: pc.card,
 			IDs: append([]state.ObjID(nil), pc.beholds...), Text: "beheld " + names(pc.beholds) + " as a cost"})
@@ -5533,6 +5557,51 @@ func (e *Engine) emitChoiceCosts(pc *pendingCast) {
 				Amount: pc.cost.Blight[i].N})
 		}
 	}
+}
+
+// hasRevealChosenDesignation reports whether o still carries the
+// secretly-chosen designation a RevealChosen<Spec> part names: a player entry
+// in Object.Chosen for RevealChosen<Player> (the Secretly$ True ChoosePlayer
+// answer), a non-empty Object.ChosenType for RevealChosen<Type/...> (the
+// Secretly$ True ChooseType answer). A RevealChosen part has no alternative
+// payment -- no hand card is picked -- so an unset designation makes the whole
+// cost unpayable and the ability is not offered at all.
+func hasRevealChosenDesignation(o *state.Object, spec string) bool {
+	if o == nil {
+		return false
+	}
+	if strings.EqualFold(spec, "Player") {
+		for _, t := range o.Chosen {
+			if t.IsPlayer {
+				return true
+			}
+		}
+		return false
+	}
+	return o.ChosenType != ""
+}
+
+// revealChosenText composes the public reveal line a RevealChosen<Spec> part
+// prints as it is paid. The chosen player's identity is the chain-safe
+// tossName -- the deck-identity Name, never the display PlayerName (the F3
+// invariant every other event text keeps; view/describe.go's player label may
+// prefer PlayerName, but that is a view projection, not chain text).
+func revealChosenText(g *state.Game, o *state.Object, spec string) (string, bool) {
+	if o == nil {
+		return "", false
+	}
+	if strings.EqualFold(spec, "Player") {
+		for _, t := range o.Chosen {
+			if t.IsPlayer {
+				return "revealed the chosen player: " + tossName(g, t.Player), true
+			}
+		}
+		return "", false
+	}
+	if o.ChosenType == "" {
+		return "", false
+	}
+	return "revealed the chosen creature type: " + o.ChosenType, true
 }
 
 // payCast implements CR 601.2h (pay all costs) and, for a spell, CR 601.2i

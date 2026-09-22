@@ -150,6 +150,62 @@ func TestUnlessRevealPortTownAsksRevealCost(t *testing.T) {
 	}
 }
 
+// TestUnlessRevealFurycalmSnarlPayEntersUntapped is the brief's named carrier
+// (Furycalm Snarl's UnlessCost$ Reveal<1/Mountain;Plains/...>): paying with a
+// Mountain in hand reveals it (one public Note, the card stays in hand) and
+// the land enters UNTAPPED; a decline keeps the old tapped entry.
+func TestUnlessRevealFurycalmSnarlPayEntersUntapped(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	mountain := card(t, "Name:Ridge\nTypes:Land Mountain\nOracle:x\n")
+	for _, tc := range []struct {
+		name  string
+		mount bool
+	}{
+		{name: "pay", mount: true},
+		{name: "decline", mount: false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			hand := []*cards.Card{mustCorpusCard(t, reg, "Furycalm Snarl")}
+			if tc.mount {
+				hand = append(hand, mountain)
+			}
+			e := handEngine(t, hand...)
+			e.askPriority(0)
+			land := playLandFromHand(t, e, "Furycalm Snarl")
+
+			ask := seekUnlessPayAsk(t, e, 40)
+			if ask == nil {
+				t.Fatal("no unless-pay ask posed for the entering Furycalm Snarl")
+			}
+			if tc.mount {
+				submitChoices(t, e, ask.Options[0].Index) // pay: reveal the Mountain
+			} else {
+				submitChoices(t, e, ask.Options[len(ask.Options)-1].Index) // decline
+			}
+			o := e.G.Obj(land)
+			if tc.mount {
+				if o == nil || o.Tapped {
+					t.Fatalf("paid Furycalm Snarl zone/tap = %+v, want untapped on the battlefield", o)
+				}
+				notes := revealNotes(e)
+				if len(notes) != 1 || notes[0].Text != "revealed Ridge as a cost" {
+					t.Fatalf("reveal Notes = %+v, want exactly one 'revealed Ridge as a cost'", notes)
+				}
+				if len(e.G.Zone(state.ZHand, 0)) != 1 {
+					t.Fatalf("revealed card left the hand: hand = %d cards", len(e.G.Zone(state.ZHand, 0)))
+				}
+			} else {
+				if o == nil || !o.Tapped {
+					t.Fatalf("declined Furycalm Snarl = %+v, want tapped on the battlefield", o)
+				}
+				if notes := revealNotes(e); len(notes) != 0 {
+					t.Fatalf("reveal Notes = %+v, want none", notes)
+				}
+			}
+		})
+	}
+}
+
 // TestUnlessRevealDeclineEntersTapped is leaf 2: a decline (or a pay with no
 // matching card in hand) must keep today's behaviour exactly — the land
 // enters tapped and no reveal Note is emitted.
