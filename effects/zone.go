@@ -2966,6 +2966,29 @@ func trimSharedLandTypes(g *state.Game, chosen []state.ObjID) []state.ObjID {
 	return out
 }
 
+// totalCardTypesSatisfied is the hidden-search constraint used by
+// WithTotalCardTypes$. Card types are the six ordinary spell types plus
+// Battle; supertypes and creature subtypes in Face.Types do not count.
+func totalCardTypesSatisfied(g *state.Game, ids []state.ObjID, need int) bool {
+	if need <= 0 {
+		return true
+	}
+	seen := make(map[string]bool, len(ids))
+	for _, id := range ids {
+		o := g.Obj(id)
+		if o == nil || o.Face() == nil {
+			continue
+		}
+		for _, typ := range o.Face().Types {
+			switch typ {
+			case "Artifact", "Battle", "Creature", "Enchantment", "Instant", "Land", "Planeswalker", "Sorcery":
+				seen[typ] = true
+			}
+		}
+	}
+	return len(seen) >= need
+}
+
 func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to state.Zone, chosen []state.ObjID, zones []state.Zone) {
 	// The search-control/replacement boundary (Opposition Agent's class):
 	// the moves this function emits are the moves OF A SEARCH, and the host
@@ -2987,7 +3010,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 	// Recheck the answer with the same hidden-zone meaning used to build the
 	// option list: a library Permanent is a permanent card.
 	spec = permanentCardSpec(spec)
-	// DifferentNames$ True (Realms Uncharted): the options carried one Group
+	// DifferentNames$ True (Realms Uncharted): the options carried a Group
 	// per card name, so a validated wire answer cannot repeat a name. A host
 	// that bypassed the wire (bot clamp top-up, a direct resume) is deduped
 	// here deterministically -- first per name in answer order -- so the
@@ -3020,6 +3043,24 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 	// everything kept before it.
 	if strings.EqualFold(strings.TrimSpace(sa.Params["ShareLandType"]), "True") {
 		chosen = trimSharedLandTypes(g, chosen)
+	}
+	// WithTotalCardTypes$ constrains the complete hidden pick, rather than
+	// each option independently. Decision.Validate cannot inspect card
+	// characteristics, so enforce the same constraint at the resolution
+	// boundary as a conservative host-bypass guard: an underspecified answer
+	// finds nothing and cannot feed the ChangeZone rider. This check follows
+	// the other set-level trims so those cannot invalidate the guarantee.
+	if raw := strings.TrimSpace(sa.Params["WithTotalCardTypes"]); raw != "" {
+		need, ok := NumResolved(h, c, sa, "WithTotalCardTypes", 0)
+		if !ok || need < 0 {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: owner,
+				Text: "WithTotalCardTypes$ cannot be resolved; hidden pick fails closed"})
+			chosen = nil
+		} else if !totalCardTypesSatisfied(g, chosen, int(need)) {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: owner,
+				Text: "hidden pick fails WithTotalCardTypes$ requirement"})
+			chosen = nil
+		}
 	}
 	moved := make([]state.ObjID, 0, len(chosen))
 	for _, id := range chosen {
@@ -3633,8 +3674,12 @@ func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 		if ReplaceUmbraArmor(h, id) {
 			continue
 		}
+		to := state.ZGraveyard
+		if o := h.Game().Obj(id); o != nil && o.Counter("FINALITY") > 0 {
+			to = state.ZExile
+		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
-			From: state.ZBattlefield, To: state.ZGraveyard, Text: "destroyed"})
+			From: state.ZBattlefield, To: to, Text: "destroyed"})
 		// Host.Emit applies move replacements before folding the move. Only
 		// remember a permanent that actually ended up in the graveyard; a
 		// replacement such as exile must not feed a later IsRemembered search.
@@ -3689,8 +3734,12 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 		if ReplaceUmbraArmor(h, id) {
 			continue
 		}
+		to := state.ZGraveyard
+		if o := g.Obj(id); o != nil && o.Counter("FINALITY") > 0 {
+			to = state.ZExile
+		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
-			From: state.ZBattlefield, To: state.ZGraveyard, Text: "destroyed"})
+			From: state.ZBattlefield, To: to, Text: "destroyed"})
 		if remember {
 			// Forge's RememberDestroyed$ adds only cards that actually
 			// reached the graveyard; a move replacement may redirect it.

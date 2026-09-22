@@ -550,6 +550,11 @@ type casualty struct {
 // reason for the rearm call below (an elimination during THIS function's
 // own emits, from a substitute effect that decks a player out, is picked up
 // by the next pass's rearm rather than mid-loop).
+func (e *Engine) hasFinalityCounter(id state.ObjID) bool {
+	o := e.G.Obj(id)
+	return o != nil && o.Counter("FINALITY") > 0
+}
+
 func (e *Engine) destroyLethalDamage(tried *sbaAttempts) bool {
 	tried.rearm(e.G.AliveCount())
 	var dead []casualty
@@ -648,8 +653,12 @@ func (e *Engine) destroyLethalDamage(tried *sbaAttempts) bool {
 		if c.text == "lethal damage" && effects.ReplaceUmbraArmor(e, c.id) {
 			continue
 		}
+		to := state.ZGraveyard
+		if c.text == "lethal damage" && e.hasFinalityCounter(c.id) {
+			to = state.ZExile
+		}
 		e.emit(events.Event{Kind: events.MoveZone, Obj: c.id,
-			From: state.ZBattlefield, To: state.ZGraveyard, Text: c.text})
+			From: state.ZBattlefield, To: to, Text: c.text})
 	}
 	return len(dead) > 0
 }
