@@ -579,6 +579,15 @@ func Describe(g *state.Game, ev events.Event) string {
 		// the same "triggers" phrasing -- the resolving ability's own line is
 		// what carries what it does.
 		return obj(g, ev.Obj) + " triggers (merged)"
+	case events.GainedAbilityPush:
+		// A has-all-abilities-of activated ability went on the stack (Forge's
+		// GainsAbilitiesOf$): Obj is the minted stack object.
+		return obj(g, ev.Obj) + " activates (gained)"
+	case events.GainedTriggerPush:
+		// A has-all-abilities-of triggered ability went on the stack (Forge's
+		// GainsTriggerAbsOf$): the same "triggers" phrasing the other grant
+		// pushes use -- the resolving ability's own line carries what it does.
+		return obj(g, ev.Obj) + " triggers (gained)"
 	case events.ManaActivate:
 		// The ActivationLimit$ scan marker for a mana ability's activation
 		// (events.ManaActivate's own comment). Obj is the source permanent.

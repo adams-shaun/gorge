@@ -36,25 +36,33 @@ provider = "deepinfra"
 model = "deepseek-ai/DeepSeek-V4.1-Flash"
 thinking = "high"
 
+# 2026-09-22 (operator): reviewer back on GPT terra (Codex plan verified live
+# with a one-prompt probe). Implementer roles stay on DeepSeek.
 [seats.reviewer]
-# provider = "openai-codex"
-# model = "gpt-5.6-terra"
-# thinking = "medium"
-provider = "deepinfra"
-model = "deepseek-ai/DeepSeek-V4.1-Flash"
-thinking = "high"
+provider = "openai-codex"
+model = "gpt-5.6-terra"
+thinking = "medium"
 
 # What an overrides.json entry may switch each role to (design §12.10); the
 # daemon re-checks every override against this list. Astra is never listed
+# 2026-09-22 (operator): triage has its own seat (agentctl b20353a); it
+# falls back to local, then overflow, when this seat is full or cut off.
+# terra's [caps.models] ceiling is shared with the reviewer seat.
+[seats.triage]
+provider = "openai-codex"
+model = "gpt-5.6-terra"
+thinking = "medium"
+
 # (config.py:49-50). The reviewer list is design §13.2's example.
 [seats.allow]
 local = ["bm-llms-glm/glm-5.3-flash"]
 # overflow = ["openai-codex/gpt-5.6-terra"]
 # escalated = ["openai-codex/gpt-5.6-terra", "openai-codex/gpt-5.6-sol"]
 # reviewer = ["openai-codex/gpt-5.6-terra", "openai-codex/gpt-5.6-sol", "bm-llms-glm/glm-5.3-flash"]
-overflow = ["deepinfra/deepseek-ai/DeepSeek-V4.1-Flash"]
+overflow = ["deepinfra/deepseek-ai/DeepSeek-V4.1-Flash", "openai-codex/gpt-5.6-luna"]
 escalated = ["deepinfra/deepseek-ai/DeepSeek-V4.1-Flash"]
-reviewer = ["deepinfra/deepseek-ai/DeepSeek-V4.1-Flash", "bm-llms-glm/glm-5.3-flash"]
+reviewer = ["openai-codex/gpt-5.6-terra", "openai-codex/gpt-5.6-sol", "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash", "bm-llms-glm/glm-5.3-flash"]
+triage = ["openai-codex/gpt-5.6-terra", "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash", "bm-llms-glm/glm-5.3-flash"]
 
 # config.py:64-65, 73, 79, 99-100, 119; daemon.py:308.
 [policy]
@@ -67,6 +75,9 @@ local_endpoint_probe = true
 # human_needed, no `new` or `briefed` ticket starts; in-flight work still
 # advances, so the fleet drains instead of growing.
 hold_new_while_parked = true
+# 2026-09-22 (operator): triage writes at most this many briefs ahead of the
+# implementers; no new triage launches while this many sit in `briefed`.
+triage_ahead = 100
 
 max_local_rounds = 2
 # 2026-09-19 (operator): the escalated tier is held for Claude. 0 means ONE
@@ -83,8 +94,19 @@ poll_seconds = 60
 # 2026-09-21 (operator): "2 local, 5 paid".
 [caps]
 local = 2
-paid = 5
+# 2026-09-22 (operator): the paid pool is sized to hold every per-model cap
+# below at once; [caps.models] does the real bounding, so one paid provider
+# can no longer fill the pool and push terra reviews onto the local seat.
+# Raised to 12 with luna (4) joining the per-model caps.
+paid = 12
 max_minutes = 75
+
+[caps.models]
+"bm-llms-glm/glm-5.3-flash" = 2
+"deepinfra/deepseek-ai/DeepSeek-V4.1-Flash" = 4
+"openai-codex/gpt-5.6-terra" = 4
+# 2026-09-22 (operator): luna overflow seats capped at 4.
+"openai-codex/gpt-5.6-luna" = 4
 
 # config.py:21-22.
 [dispatch]
@@ -122,13 +144,13 @@ timeout = 600
 # binaries across worktrees have exhausted this box's memory before.
 [[gates]]
 name = "go test (module)"
-cmd = ["go", "test", "-p=2", "-count=1", "-skip", "^TestHeads$", "./..."]
+cmd = ["go", "test", "-p=2", "-skip", "^TestHeads$", "./..."]
 timeout = 1200
 env = { GOMEMLIMIT = "5GiB" }
 
 [[gates]]
 name = "CR conformance"
-cmd = ["go", "test", "-p=2", "-count=1", "./rules", "-run", "TestCR", "-v"]
+cmd = ["go", "test", "-p=2", "./rules", "-run", "TestCR", "-v"]
 timeout = 300
 env = { GORGE_CR_CONFORMANCE = "1", GOMEMLIMIT = "5GiB" }
 accept = "orchestrator.hooks:cr_no_fail_lines"

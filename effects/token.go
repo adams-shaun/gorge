@@ -12,12 +12,16 @@ func init() { Register("Token", effToken) }
 
 // effToken creates TokenAmount$ tokens of each TokenScript$ (a comma-
 // separated list of Game.Tokens stems) for TokenOwner$ (the controller by
-// default; only "Opponent" is resolved specially, matching Defined's own
-// "You"/"Opponent" pair in context.go). Every other TokenOwner$ form the
-// corpus uses (a fidelity gap this task does not close) still falls back to
-// the controller rather than doing nothing, but now says so: a Note names
-// the unrecognised value, so the gap is visible rather than silently
-// papered over the way an unqualified fallback would be.
+// default; the switch below also resolves Opponent, Player -- "each player
+// creates ...", every ALIVE seat in seat order via AliveFrom(0) --
+// RememberedOwner, ThisTargetedPlayer and the two trig:Vote vote-carrier
+// sets). Every other TokenOwner$ form the corpus uses (the qualified
+// Player.<qualifier> spellings -- Player.IsRemembered x12 raw lines,
+// Player.Opponent, Player.Other, the Player.controls* gates -- and anything
+// else; a fidelity gap this task does not close) still falls back to the
+// controller rather than doing nothing, but now says so: a Note names the
+// unrecognised value, so the gap is visible rather than silently papered
+// over the way an unqualified fallback would be.
 //
 // Every token is its own TokenCreate event, in the order this loop visits
 // them (outer: TokenScript$ stems left to right; inner: TokenAmount$ copies
@@ -96,6 +100,21 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 				break
 			}
 		}
+	case "Player":
+		// "Each player creates ..." (Rendmaw, Creaking Nest, Marching
+		// Duodrone, Grismold the Dreadsower and 10 more corpus carriers of
+		// the bare spelling): EVERY alive seat creates TokenAmount$ tokens,
+		// including the resolving controller. The order is AliveFrom(0) --
+		// seat order from seat 0, NOT AliveFrom(c.Controller) -- so the
+		// mint sequence and the token ids are deterministic and replay-stable
+		// regardless of who is resolving, and a dead seat creates nothing
+		// (a player who has lost no longer creates; the alive set is the
+		// same one every other per-player walk uses). The mint loop below
+		// gives each owner its own TokenAmount$ copies, so a TokenAmount$ X
+		// carrier (Edge Rover's "each player creates X ...") reads X per
+		// player. The qualified Player.<qualifier> spellings stay in the
+		// default arm above.
+		owners = g.AliveFrom(0)
 	case "TriggeredOpponentVotedSame", "TriggeredOpponentVotedDiff":
 		// The vote-carrier referent (trig:Vote): each player in the List$
 		// set the firing trigger captured creates its own token. An EMPTY
@@ -109,6 +128,20 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 		}
 		owners = make([]state.PlayerID, 0, len(ps))
 		owners = append(owners, ps...)
+	case "Imprinted", "ImprintedController":
+		// Forge's TokenOwner$ ImprintedController: the controller of the
+		// RepeatEach iteration's current imprinted subject, and only that
+		// (UseImprinted$ binds the subject). The ordinary Defined resolver owns
+		// the selector, including the last-known controller a ChangeZone's
+		// RememberLKI$ captured -- Curse of the Swine's Boar per exiled
+		// creature. A subject whose controller cannot be resolved leaves the
+		// controller default, the same silent degrade the other miss cases take.
+		for _, t := range Defined(h, c, &cards.SA{Params: map[string]string{"Defined": v}}) {
+			if t.IsPlayer {
+				owners = []state.PlayerID{t.Player}
+				break
+			}
+		}
 	case "RememberedOwner":
 		// The owner of the first remembered OBJECT (Skyclave Apparition's
 		// "the exiled card's owner creates the token"). The same group the
@@ -135,7 +168,16 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 		// targeted, not by the ability's controller. A resolution with no
 		// player target keeps the controller, the same silent degrade the
 		// other miss cases here take.
-		for _, t := range c.Targets {
+		//
+		// The list is read through Defined, not raw Ctx.Targets: an SA whose
+		// own ValidTgts$ was answered by the mid-resolution pre-ask carries
+		// that answer in Ctx.PickedTargets while its body dispatches, and
+		// Ctx.Targets still holds the PARENT's target (Cybernetica Datasmith's
+		// root Draw targets player A, its Token SubAbility's TargetUnique$
+		// ask answers player B -- reading Ctx.Targets here created the token
+		// under A). For a charm mode PickedTargets is nil and Defined returns
+		// Ctx.Targets, exactly the historical read.
+		for _, t := range Defined(h, c, sa) {
 			if t.IsPlayer {
 				owners = []state.PlayerID{t.Player}
 				break
@@ -199,6 +241,43 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
 			Text: dynBad + " is not implemented; the token keeps its script's printed P/T"})
 	}
+	// WithCountersType$/WithCountersAmount$ (Printlifter Ooze's "create a
+	// 0/0 ... token ... The token enters with X +1/+1 counters on it"): every
+	// token this call creates enters with that many of the named counter
+	// kind, emitted as ONE CounterChange per mint right after the mint -- the
+	// ChangeZone entry counters' exact shape (zone.go's WithCounters read),
+	// so AddCounter replacements (Doubling Season) and every CounterAdded
+	// trigger see an entry counter the way they see a ChangeZone one. The
+	// amount resolves through the ordinary Num grammar: a signed literal
+	// (incubob's WithCountersAmount$ 1), an SVar name on the resolving face
+	// (Printlifter Ooze's WithCountersAmount$ X over SVar:X:Count$Valid
+	// Creature.YouCtrl), or an inline Count$... -- the same resolution the
+	// TokenPower$/TokenToughness$ read above uses. A WithCountersType$ with
+	// no WithCountersAmount$ defaults to 1; an amount the grammar cannot
+	// resolve is loud (one Note for the whole call, never per mint) and the
+	// set is skipped -- the token enters WITHOUT the counters, the honest
+	// degrade that for a 0/0 script means the zero-toughness SBA sweeps it
+	// visibly rather than a silent wrong count. The minted-object guard is
+	// the same g.Obj(want) identity check the other riders read: under a
+	// token replacement the counters land on the first mint only, the
+	// tokrepl1 extra-mints-get-no-riders contract this file's
+	// RememberTokens$ doc already records.
+	withKind := strings.TrimSpace(sa.Params["WithCountersType"])
+	var withAmt int32
+	var withOK bool
+	if withKind != "" {
+		if _, present := sa.Params["WithCountersAmount"]; present {
+			if v, ok := NumResolved(h, c, sa, "WithCountersAmount", 1); ok {
+				withAmt, withOK = v, true
+			} else {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+					Text: "WithCountersAmount$ " + strings.TrimSpace(sa.Params["WithCountersAmount"]) +
+						" is not implemented; the token enters with no " + withKind + " counters"})
+			}
+		} else {
+			withAmt, withOK = 1, true
+		}
+	}
 	tapped := strings.EqualFold(strings.TrimSpace(sa.Params["TokenTapped"]), "True")
 
 	// TokenAttacking$ True (Mobilize, Kari Zev's "tapped and attacking"
@@ -259,6 +338,9 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 				if remember && g.Obj(want) != nil {
 					c.Remembered = append(c.Remembered, state.Target{Obj: want})
 					eventRemember(h, c, want)
+				}
+				if withOK && g.Obj(want) != nil {
+					h.Emit(events.Event{Kind: events.CounterChange, Obj: want, Counter: withKind, Amount: withAmt})
 				}
 				if tapped && g.Obj(want) != nil {
 					h.Emit(events.Event{Kind: events.Tap, Obj: want, Player: owner, Text: "entered tapped"})

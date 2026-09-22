@@ -40,30 +40,73 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
-// canAttack reports whether id may be declared as an attacker (CR 508.1a):
-// a creature under the active player's control, untapped, without Defender
-// (CR 702.3b), and either not summoning sick or hasty.
+// canAttack reports whether id may be declared as an attacker against SOME
+// defender (CR 508.1a): a creature under the active player's control, untapped,
+// either not summoning sick or hasty, and not walled by Defender (CR 702.3b)
+// -- unless a CanAttackDefender static lifts the wall against some defender
+// (rules/attack_defender.go). A reconfigure card while attached is not a
+// creature (CR 702.150c): the derived type switch (reconfigureTypeSwitch)
+// already dropped Creature, so IsCreature answers false here with no extra
+// gate. The pair-precise read is canAttackPair; this defender-blind form is
+// only for callers that genuinely have no defender in hand
+// (mustAttackRequired's creature-shaped gates, whose per-pair half is
+// attackPairAvailable, and validateAttackers' belt check, whose precise half
+// is the offered-pair membership test).
 func (e *Engine) canAttack(id state.ObjID) bool {
-	o := e.G.Obj(id)
-	if o == nil || o.Zone != state.ZBattlefield || o.Controller != e.G.Active {
+	o, ok := e.attackableCreature(id)
+	if !ok {
 		return false
 	}
-	f := o.Face()
-	// The creature test is the DERIVED type (layer 4), not the printed face:
-	// an animated land (Raging Ravine, Mutavault) is a creature right now and
-	// attacks like one, while its printed face is a Land. Everything the
-	// printed face admits the derived walk admits too, so ordinary creatures
-	// are unchanged; a bestowed card stays excluded (BestowedAttached).
-	if f == nil || !e.IsCreature(id) || o.BestowedAttached() {
+	if !e.HasKeyword(id, "Defender") {
+		return true
+	}
+	for _, d := range e.G.AliveFrom(0) {
+		if d != o.Controller && e.attackAllowedThroughDefender(id, d) {
+			return true
+		}
+	}
+	return false
+}
+
+// canAttackPair is the (attacker, defender) pair reading of canAttack: the
+// same checks with the Defender wall lifted exactly when a CanAttackDefender
+// static applies to THIS pair (CR 702.3b) -- the pair-precise half the offer
+// list (attackOffers), the validator and the encore requirement read. A
+// ValidAttacked$-scoped static lifts the wall only against the defenders the
+// spec admits, so a Defender creature may be attackable against one defender
+// and walled against the rest.
+func (e *Engine) canAttackPair(id state.ObjID, defender state.PlayerID) bool {
+	if _, ok := e.attackableCreature(id); !ok {
 		return false
 	}
-	if o.Tapped || e.HasKeyword(id, "Defender") {
-		return false
-	}
-	if o.SummonSick && !e.HasKeyword(id, "Haste") {
+	if e.HasKeyword(id, "Defender") && !e.attackAllowedThroughDefender(id, defender) {
 		return false
 	}
 	return true
+}
+
+// attackableCreature is the defender-blind half both reads share: the object
+// exists, is a battlefield creature of the active player (the DERIVED type,
+// layer 4 -- an animated land attacks, while its printed face is a Land, and
+// everything the printed face admits the derived walk admits too, so ordinary
+// creatures are unchanged; a bestowed card stays excluded, BestowedAttached),
+// untapped, and either not summoning sick or hasty.
+func (e *Engine) attackableCreature(id state.ObjID) (*state.Object, bool) {
+	o := e.G.Obj(id)
+	if o == nil || o.Zone != state.ZBattlefield || o.Controller != e.G.Active {
+		return nil, false
+	}
+	f := o.Face()
+	if f == nil || !e.IsCreature(id) || o.BestowedAttached() {
+		return nil, false
+	}
+	if o.Tapped {
+		return nil, false
+	}
+	if o.SummonSick && !e.HasKeyword(id, "Haste") {
+		return nil, false
+	}
+	return o, true
 }
 
 // encoreAttackDefender reports the opponent an encore token must attack this
@@ -73,7 +116,7 @@ func (e *Engine) encoreAttackDefender(id state.ObjID) (state.PlayerID, bool) {
 	o := e.G.Obj(id)
 	if o == nil || o.EncoreAttackTurn == 0 || o.EncoreAttackTurn != e.G.Turn ||
 		int(o.EncoreAttackDefender) >= len(e.G.Players) || e.G.Players[o.EncoreAttackDefender].Lost ||
-		!e.canAttack(id) {
+		!e.canAttackPair(id, o.EncoreAttackDefender) {
 		return 0, false
 	}
 	return o.EncoreAttackDefender, true
@@ -104,6 +147,14 @@ func (e *Engine) canBlock(blocker, attacker state.ObjID) bool {
 	// can't-block gate lives (Flying, Shadow, blockRestricted), so the ask's
 	// options and the validator's recompute share one oracle.
 	if b.Suspected {
+		return false
+	}
+	// CR 702.86 (kw:Unleash): a creature with unleash can't block while it
+	// has a +1/+1 counter on it. The keyword rides the derived list (printed
+	// plus layer-6 granted -- Tesak's "Other Dogs you control have unleash"),
+	// and the counter is live state, so both halves are read here, the same
+	// status-gate shape the Suspected check above practises.
+	if e.HasKeyword(blocker, "Unleash") && b.Counter("P1P1") > 0 {
 		return false
 	}
 	// CR 509.1a / 702.16j: a creature that the attacker is protected from
@@ -566,7 +617,7 @@ func (e *Engine) validateAttackers(d *decision.Decision, in decision.Intent) err
 	budget := e.attackBudget(d.Player)
 	total := int32(0)
 	for _, o := range d.Chosen(in) {
-		if !e.canAttack(o.Obj) {
+		if !e.canAttackPair(o.Obj, o.Player) {
 			return fmt.Errorf("object %d cannot attack", o.Obj)
 		}
 		if seen[o.Obj] {
@@ -920,7 +971,7 @@ func (e *Engine) legalBlockerCount(attacker state.ObjID, defender state.PlayerID
 func (e *Engine) defenderCreatureCount(defender state.PlayerID) int {
 	n := 0
 	for _, id := range e.G.Zone(state.ZBattlefield, defender) {
-		if o := e.G.Obj(id); o != nil && o.EffectiveIsCreature() && !o.BestowedAttached() {
+		if o := e.G.Obj(id); o != nil && o.EffectiveIsCreature() && !o.BestowedAttached() && !o.ReconfiguredAttached() {
 			n++
 		}
 	}
@@ -1234,10 +1285,10 @@ func (e *Engine) divisionNeeding(pass bool) []state.ObjID {
 		if !e.actsThisDamageStep(id, pass) {
 			continue
 		}
-		if e.HasKeyword(id, "Trample") || e.Power(id) <= 0 || len(e.liveBlockers(a)) < 2 {
+		if e.HasKeyword(id, "Trample") || e.combatDamageAmount(id) <= 0 || len(e.liveBlockers(a)) < 2 {
 			continue
 		}
-		if e.divisionCount(e.liveBlockers(a), e.Power(id)) > maxDivisionOptions {
+		if e.divisionCount(e.liveBlockers(a), e.combatDamageAmount(id)) > maxDivisionOptions {
 			continue
 		}
 		out = append(out, id)
@@ -1330,7 +1381,7 @@ func (e *Engine) asUnblockedNeeding(pass bool) []state.ObjID {
 		if !e.actsThisDamageStep(id, pass) {
 			continue
 		}
-		if len(a.BlockedBy) == 0 || e.Power(id) <= 0 {
+		if len(a.BlockedBy) == 0 || e.combatDamageAmount(id) <= 0 {
 			continue
 		}
 		if e.HasKeyword(id, "Trample") && len(e.liveBlockers(a)) == 0 {
@@ -1424,7 +1475,7 @@ func (e *Engine) askNextDivision() bool {
 // the split table lets the answer handler recover the chosen amounts.
 func (e *Engine) divisionOptions(a state.ObjID) ([]decision.Option, [][]int32) {
 	blockers := e.liveBlockers(e.G.Obj(a))
-	pw := e.Power(a)
+	pw := e.combatDamageAmount(a)
 	n := len(blockers)
 	var splits [][]int32
 	var cur []int32
@@ -1703,7 +1754,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 		blockers := e.liveBlockers(a)
 
 		if e.actsThisDamageStep(aid, firstStrike) {
-			if pw := e.Power(aid); pw > 0 {
+			if pw := e.combatDamageAmount(aid); pw > 0 {
 				link := e.HasKeyword(aid, "Lifelink")
 				dt := e.HasKeyword(aid, "Deathtouch")
 				trample := e.HasKeyword(aid, "Trample")
@@ -1804,7 +1855,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 			if !e.actsThisDamageStep(bid, firstStrike) {
 				continue
 			}
-			if bp := e.Power(bid); bp > 0 {
+			if bp := e.combatDamageAmount(bid); bp > 0 {
 				as = append(as, assignment{toObj: aid, amount: bp,
 					lifelink: e.G.Obj(bid).Controller, hasLink: e.HasKeyword(bid, "Lifelink"),
 					deathtouch: e.HasKeyword(bid, "Deathtouch"), from: bid})

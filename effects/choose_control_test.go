@@ -731,3 +731,57 @@ func TestRepeatEachPlayerLoopKeepsRememberedCardsButNotTheTriggerObject(t *testi
 		t.Fatalf("relic zone %v source zone %v, want the remembered relic destroyed and the trigger source kept", rz, sz)
 	}
 }
+
+// TestChooseCardCanBeSacrificedByReadsTheHostGate is pred:CanBeSacrificedBy's
+// leaf: Eumidian Wastewaker's real attack-trigger choice
+// (`Choices$ Card.inZoneHand,Permanent.CanBeSacrificedBy`) must offer each
+// chooser their hand cards AND their battlefield permanents, with a
+// CantSacrifice-blocked permanent withheld by the Host's SacrificeBlocked
+// read and the controller's own permanents kept out by the walk's
+// ControlledByPlayer$ read.
+func TestChooseCardCanBeSacrificedByReadsTheHostGate(t *testing.T) {
+	card, sa := corpusSA(t, "Eumidian Wastewaker", "TrigChoose")
+	if sa.Params["Choices"] != "Card.inZoneHand,Permanent.CanBeSacrificedBy" {
+		t.Fatalf("carrier SA changed: Choices = %q", sa.Params["Choices"])
+	}
+	h := newHost(t, 2)
+	src := h.g.AddObject(card, 0)
+	h.Emit(events.Event{Kind: events.MoveZone, Obj: src.ID, From: state.ZLibrary, To: state.ZBattlefield})
+	perm := h.g.AddObject(mkCard(t, "Name:Sacme\nTypes:Creature\nPT:1/1\nOracle:x\n"), 1)
+	h.Emit(events.Event{Kind: events.MoveZone, Obj: perm.ID, From: state.ZLibrary, To: state.ZBattlefield})
+	hand := h.g.AddObject(mkCard(t, "Name:Handcard\nTypes:Instant\nOracle:x\n"), 1)
+	h.Emit(events.Event{Kind: events.MoveZone, Obj: hand.ID, From: state.ZLibrary, To: state.ZHand})
+	// Seat 0's own permanent: the chooser is seat 1, so the walk's
+	// ControlledByPlayer$ Chooser read must keep it out regardless of the
+	// predicate.
+	other := h.g.AddObject(mkCard(t, "Name:NotMine\nTypes:Creature\nPT:1/1\nOracle:x\n"), 0)
+	h.Emit(events.Event{Kind: events.MoveZone, Obj: other.ID, From: state.ZLibrary, To: state.ZBattlefield})
+
+	c := &Ctx{Source: src.ID, Controller: 0}
+	got := cardChoices(h, c, sa, 1)
+	ids := map[state.ObjID]bool{}
+	for _, t := range got {
+		ids[t.Obj] = true
+	}
+	if !ids[perm.ID] || !ids[hand.ID] {
+		t.Fatalf("chooser's pool = %v, want the permanent %d AND the hand card %d", ids, perm.ID, hand.ID)
+	}
+	if ids[other.ID] {
+		t.Fatalf("another player's permanent %d leaked into the pool: %v", other.ID, ids)
+	}
+
+	// A CantSacrifice-blocked permanent (the engine-side SacrificeBlocked
+	// read) is never offered; the hand half is untouched by it.
+	h.sacrificeBlocked = map[state.ObjID]bool{perm.ID: true}
+	got = cardChoices(h, c, sa, 1)
+	ids = map[state.ObjID]bool{}
+	for _, t := range got {
+		ids[t.Obj] = true
+	}
+	if ids[perm.ID] {
+		t.Fatalf("sacrifice-blocked permanent %d still offered: %v", perm.ID, ids)
+	}
+	if !ids[hand.ID] {
+		t.Fatalf("blocked-permanent read broke the hand half: %v", ids)
+	}
+}

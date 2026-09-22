@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -53,6 +54,13 @@ func init() { Register("Clone", effClone) }
 // the battlefield.
 func effClone(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
+
+	// The answered Optional$ may-copy election, consumed and cleared at the
+	// top of the walk (the fx42 scoping discipline): a nested Clone cannot
+	// inherit the outer answer.
+	cloneAns := c.Clone
+	cloneDone := c.CloneDone
+	c.Clone, c.CloneDone = "", false
 
 	// Copy SOURCE.
 	var source []state.Target
@@ -110,13 +118,72 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 
-	// Optional$ True: the copier is the become object's controller (a
-	// clone has no separate decision host here). The deterministic stand-in
-	// is to take the copy -- "you may" that cannot ask resolves as "do", the
-	// same convention the optional-discard family records.
+	// Eligible (source, become) pairs, computed ONCE, before the Optional$
+	// ask. A pair whose source object is gone, or whose become object is no
+	// longer on the battlefield, cannot act -- the copy loop at the bottom
+	// would silently skip it -- so asking the may-copy election over a board
+	// where every pair is dead poses a decision whose EVERY answer does
+	// nothing (Sarkhan Soul Aflame leaves the battlefield while its
+	// Dragon-entry trigger waits on the stack; findings-sol1 MAJOR). Filtering
+	// here means the election is only posed when a copy can actually be made,
+	// and the bottom loop walks the same pre-filtered pairs the ask was built
+	// from -- one eligibility home, never two.
+	type clonePair struct{ src, become state.Target }
+	var pairs []clonePair
+	for _, t := range source {
+		if t.IsPlayer {
+			continue
+		}
+		if srcObj := g.Obj(t.Obj); srcObj == nil || srcObj.Face() == nil {
+			continue
+		}
+		for _, b := range become {
+			if b.IsPlayer {
+				continue
+			}
+			if obj := g.Obj(b.Obj); obj == nil || obj.Zone != state.ZBattlefield {
+				continue
+			}
+			pairs = append(pairs, clonePair{src: t, become: b})
+		}
+	}
+	if len(pairs) == 0 {
+		return
+	}
+
+	// Optional$ True: the copier -- the resolving controller, who for every
+	// corpus carrier is also the become object's controller -- takes the real
+	// may-copy election (ticket api-clone-trigger-copy; Sarkhan Soul Aflame's
+	// "you may have CARDNAME become a copy of it"). The ask re-enters the
+	// whole walk with Ctx.Clone/CloneDone set; the answered decline returns
+	// without copying. A no-host run (an effects test double, a fuzz run)
+	// keeps the deterministic take stand-in the pre-election build shipped,
+	// byte-identical (the same convention the optional-discard family
+	// records) -- a "may" that cannot ask never wedges.
 	if strings.EqualFold(strings.TrimSpace(sa.Params["Optional"]), "True") {
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
-			Text: "Clone Optional$ resolved as take (no engine host to ask)"})
+		if !cloneDone {
+			prompt := "You may have a permanent become a copy?"
+			if ob := g.Obj(pairs[0].become.Obj); ob != nil && ob.Face() != nil {
+				prompt = "You may have " + ob.Face().Name + " become a copy?"
+			}
+			d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+				Source:     c.Source,
+				ResumeKind: "clone", ResumeSA: sa,
+				Prompt: prompt,
+				Options: []decision.Option{
+					{Index: 0, Kind: "yes", Label: "Yes — make the copy", Player: c.Controller},
+					{Index: 1, Kind: "no", Label: "No", Player: c.Controller},
+				}}
+			if Ask(h, d) == AskAsked {
+				return // resolution suspended; the answer re-enters with Ctx.Clone set.
+			}
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "Clone Optional$ resolved as take (no engine host to ask)"})
+		} else if cloneAns != "yes" {
+			// The answered decline: no copy. The decision_made event already
+			// carries the answer, so nothing else is emitted.
+			return
+		}
 	}
 
 	// Collect the modifier registrations once; every become object shares
@@ -157,6 +224,14 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 			unread = append(unread, key+"$ "+v)
 		}
 	}
+	// The `!cloneDone` guard the first cut carried here was WRONG: with a
+	// real host the initial pass always returns at the Ask above, so these
+	// diagnostics can only ever fire on the ANSWERED-YES re-entry (the
+	// decline path returned before this point) -- gating them on
+	// `!cloneDone` silenced them for exactly the carriers that ask
+	// (findings-r2 MAJOR; 7 corpus Optional$+AddSVars$ lines incl. Kimahri,
+	// Vesuvan Doppelganger, Lazav). The no-host path keeps cloneDone=false,
+	// so it still emits once.
 	if len(unread) > 0 {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
 			Text: "Clone does not read: " + strings.Join(unread, ", ")})
@@ -168,86 +243,83 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 	// itself is not carried onto the effects -- the no-duration case is simply
 	// a unit with no expiry field, kept until the become object leaves.
 	_, untilEOT, untilTurn, untilUnattached, durNote := cloneDuration(dur)
+	// Same shape as the unread-modifier Note above: reachable only on the
+	// answered-yes re-entry (real host) or the no-host pass, never
+	// duplicated.
 	if durNote != "" {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller, Text: durNote})
 	}
 
-	for _, t := range source {
-		if t.IsPlayer {
-			continue
-		}
+	for _, p := range pairs {
+		t := p.src
 		srcObj := g.Obj(t.Obj)
 		if srcObj == nil || srcObj.Face() == nil {
 			continue
 		}
-		for _, b := range become {
-			if b.IsPlayer {
-				continue
-			}
-			obj := g.Obj(b.Obj)
-			if obj == nil || obj.Zone != state.ZBattlefield {
-				continue
-			}
-			// One ClonePermanent event per (source, become) pair; the fold
-			// snapshots the source's printed face onto the become object.
-			ev := events.Event{Kind: events.ClonePermanent, Obj: b.Obj,
-				IDs: []state.ObjID{t.Obj}, Player: c.Controller, Text: newName}
-			if gainThisAbility {
-				ev.Counter = "gain-this-ability"
-			}
-			h.Emit(ev)
-
-			// Modifier layers, scoped to the become object (Card.Self with
-			// Source = its own id, the effPump convention). The lifetime is
-			// ALWAYS the source-leaves rule (Permanent=false): CR 400.7 makes
-			// the object a new object the instant it leaves the battlefield, so
-			// the copy and its modifiers must not follow it. active() drops the
-			// unit on the source-leaves check and effectMoveSweep removes it from
-			// e.continuous when the become object leaves (the CR 611.2a
-			// "Permanent" flag would keep it applying to a re-entered object).
-			reg := func(ce state.ContinuousEffect) {
-				ce.Source = b.Obj
-				ce.Affects = "Card.Self"
-				ce.Controller = c.Controller
-				ce.Duration = dur
-				ce.Permanent = false
-				ce.UntilEOT = untilEOT
-				ce.UntilTurn = untilTurn
-				ce.CloneTarget = b.Obj
-				h.AddContinuous(ce)
-			}
-			if len(addTypes) > 0 || removeCardTypes || removeCreatureTypes {
-				reg(state.ContinuousEffect{Layer: state.LType, AddTypes: addTypes,
-					RemoveCardTypes: removeCardTypes, RemoveCreatureTypes: removeCreatureTypes})
-			}
-			if setColorPresent {
-				reg(state.ContinuousEffect{Layer: state.LColor, AddColors: setColors, OverwriteColors: true})
-			}
-			if len(addKeywords) > 0 {
-				reg(state.ContinuousEffect{Layer: state.LAbilities, AddKeywords: addKeywords})
-			}
-			if setPowerPresent || setToughPresent {
-				reg(state.ContinuousEffect{Layer: state.LPT, Sub: state.SubSet, HasSet: true,
-					SetPower: setPower, SetToughness: setTough,
-					SetPowerPresent: setPowerPresent, SetToughnessPresent: setToughPresent,
-					StaticSet: true})
-			}
-			// The layer-1 LCopy MARKER owns the copy's lifetime. It is always
-			// registered (even when no modifier effect is), so rules' clone
-			// sweep has exactly one owner per copy to expire and can drop the
-			// marker's sibling effects with it. UntilUnattached is enforced by
-			// EndOfTurnCleanup's attached check, which reads the marker's
-			// Duration; every other duration rides UntilEOT/UntilTurn or the
-			// source-leaves rule.
-			//
-			// The marker also CARRIES the copy (source id, NewName$,
-			// GainThisAbility$) so that expiring one unit on an object that
-			// carries ANOTHER live unit re-bases the object onto the
-			// survivor instead of clearing the shared CopyFace basis.
-			_ = untilUnattached
-			reg(state.ContinuousEffect{Layer: state.LCopy, CloneSource: t.Obj,
-				CloneName: newName, CloneGainThisAbility: gainThisAbility})
+		b := p.become
+		obj := g.Obj(b.Obj)
+		if obj == nil || obj.Zone != state.ZBattlefield {
+			continue
 		}
+		// One ClonePermanent event per (source, become) pair; the fold
+		// snapshots the source's printed face onto the become object.
+		ev := events.Event{Kind: events.ClonePermanent, Obj: b.Obj,
+			IDs: []state.ObjID{t.Obj}, Player: c.Controller, Text: newName}
+		if gainThisAbility {
+			ev.Counter = "gain-this-ability"
+		}
+		h.Emit(ev)
+
+		// Modifier layers, scoped to the become object (Card.Self with
+		// Source = its own id, the effPump convention). The lifetime is
+		// ALWAYS the source-leaves rule (Permanent=false): CR 400.7 makes
+		// the object a new object the instant it leaves the battlefield, so
+		// the copy and its modifiers must not follow it. active() drops the
+		// unit on the source-leaves check and effectMoveSweep removes it from
+		// e.continuous when the become object leaves (the CR 611.2a
+		// "Permanent" flag would keep it applying to a re-entered object).
+		reg := func(ce state.ContinuousEffect) {
+			ce.Source = b.Obj
+			ce.Affects = "Card.Self"
+			ce.Controller = c.Controller
+			ce.Duration = dur
+			ce.Permanent = false
+			ce.UntilEOT = untilEOT
+			ce.UntilTurn = untilTurn
+			ce.CloneTarget = b.Obj
+			h.AddContinuous(ce)
+		}
+		if len(addTypes) > 0 || removeCardTypes || removeCreatureTypes {
+			reg(state.ContinuousEffect{Layer: state.LType, AddTypes: addTypes,
+				RemoveCardTypes: removeCardTypes, RemoveCreatureTypes: removeCreatureTypes})
+		}
+		if setColorPresent {
+			reg(state.ContinuousEffect{Layer: state.LColor, AddColors: setColors, OverwriteColors: true})
+		}
+		if len(addKeywords) > 0 {
+			reg(state.ContinuousEffect{Layer: state.LAbilities, AddKeywords: addKeywords})
+		}
+		if setPowerPresent || setToughPresent {
+			reg(state.ContinuousEffect{Layer: state.LPT, Sub: state.SubSet, HasSet: true,
+				SetPower: setPower, SetToughness: setTough,
+				SetPowerPresent: setPowerPresent, SetToughnessPresent: setToughPresent,
+				StaticSet: true})
+		}
+		// The layer-1 LCopy MARKER owns the copy's lifetime. It is always
+		// registered (even when no modifier effect is), so rules' clone
+		// sweep has exactly one owner per copy to expire and can drop the
+		// marker's sibling effects with it. UntilUnattached is enforced by
+		// EndOfTurnCleanup's attached check, which reads the marker's
+		// Duration; every other duration rides UntilEOT/UntilTurn or the
+		// source-leaves rule.
+		//
+		// The marker also CARRIES the copy (source id, NewName$,
+		// GainThisAbility$) so that expiring one unit on an object that
+		// carries ANOTHER live unit re-bases the object onto the
+		// survivor instead of clearing the shared CopyFace basis.
+		_ = untilUnattached
+		reg(state.ContinuousEffect{Layer: state.LCopy, CloneSource: t.Obj,
+			CloneName: newName, CloneGainThisAbility: gainThisAbility})
 	}
 }
 
