@@ -2899,6 +2899,17 @@ func (e *Engine) castModeAsk() bool {
 	}
 	ctx := &effects.Ctx{Source: pc.card, Controller: pc.player}
 	effects.SetSVars(ctx, f.SVars)
+	if effects.CharmRandomChosen(e, ctx, sa) {
+		// param:api:Charm.Random: a random Charm's mode announcement is not
+		// asked (measured corpus-unreachable -- every Random$ Charm carrier,
+		// 5 files, is a trigger body -- so this site is latent). Resolution's
+		// effCharm picks the mode with the engine's rng (Random$ True, or
+		// Random$ Compare while the comparison holds) or poses the ordinary
+		// KModes ask there; modesDone is already set, so the announcement is
+		// simply skipped and the per-mode legality filter above never
+		// narrows the pool the rng would pick from.
+		return false
+	}
 	choices := strings.Split(sa.Params["Choices"], ",")
 	// The potential pool (a pure read) is the colour-aware upper bound the
 	// per-mode cost filter below prices against: at this point in the cast no
