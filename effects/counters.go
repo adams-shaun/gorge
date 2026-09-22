@@ -14,6 +14,7 @@ import (
 
 func init() {
 	Register("PutCounter", effPutCounter)
+	Register("Poison", effPoison)
 	Register("PutCounterAll", effPutCounterAll)
 	Register("RemoveCounterAll", effRemoveCounterAll)
 	Register("RemoveCounter", effRemoveCounter)
@@ -123,6 +124,28 @@ func splitCounterKinds(raw string) []string {
 		}
 	}
 	return out
+}
+
+// effPoison applies Forge's Poison effect to player targets. Poison is a
+// player counter, but unlike PutCounter its signed Num$ is intentional:
+// Leeches uses a negative amount to remove the target's existing poison.
+// PlayerCounterChange is the shared event choke point, so replacement effects
+// and the poison-loss SBA observe both placement and removal.
+func effPoison(h Host, c *Ctx, sa *cards.SA) {
+	n := Num(h, c, sa, "Num", 1)
+	g := h.Game()
+	for _, t := range Defined(h, c, sa) {
+		if !t.IsPlayer {
+			continue
+		}
+		p := PlayerOf(h, c, t)
+		if int(p) < 0 || int(p) >= len(g.Players) {
+			continue
+		}
+		h.Emit(events.Event{Kind: events.PlayerCounterChange, Player: p,
+			Counter: "POISON", Amount: n})
+	}
+}
 }
 
 func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
