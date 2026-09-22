@@ -95,25 +95,51 @@ func manaFreeCost(c Cost) bool {
 		len(c.Hybrid) == 0 && len(c.Phyrexian) == 0
 }
 
-// windowManaUnit is one untapped permanent's single free-cost mana ability
-// as a PAYMENT WINDOW sees it: the exact ability resolveManaAbility will
-// resolve (so the activation poses no chooseMana sub-ask), its Produced$
-// colour counts, and its literal amount. It is the shared membership behind
-// every payment window that must not promise more than it can tap -- the
-// declare-attackers attack-cost window (attackManaSources) and the
-// mid-resolution unless-cost window (unlessManaBudget), so their offer
-// gates and their tap lists cannot drift apart.
-type windowManaUnit struct {
-	id     state.ObjID
+// windowManaAlt is one deterministic production alternative of a single
+// untapped permanent: the exact ability resolveManaAbility will resolve (so
+// the activation poses no chooseMana sub-ask), its Produced$ colour counts,
+// and its literal amount. A permanent that can tap for one of several
+// colours (a Volcanic Island's intrinsic {U} and {R} abilities) carries one
+// alt per ability, because the tap yields exactly one of them -- never their
+// sum. The window's tap list offers one option per alt, so the payer's
+// colour choice is made in the decision rather than in a nested ask.
+type windowManaAlt struct {
 	ma     *cards.SA
 	counts [6]int32
 	amt    int32
 }
 
+// mana is the alt's production as a mana vector, the form the walk's
+// affordability search and the window's safety ordering both add to a pool.
+func (a windowManaAlt) mana() state.Mana {
+	var m state.Mana
+	for i, n := range a.counts {
+		m[state.ManaIndex(cards.ManaSymbol(i))] += n * a.amt
+	}
+	return m
+}
+
+// windowManaUnit is one untapped permanent as a PAYMENT WINDOW sees it: its
+// single tap's production ALTERNATIVES. freeCount is the number of
+// free-cost, window-usable abilities the permanent has BEFORE the
+// per-ability priceability filter, so a consumer that must tap exactly one
+// ability without a sub-ask (the attack-cost window) can require freeCount
+// == 1 && len(alts) == 1, reproducing the pre-alternatives membership
+// exactly. It is the shared membership behind every payment window that
+// must not promise more than it can tap -- the declare-attackers attack-cost
+// window (attackManaSources) and the mid-resolution unless-cost window
+// (UnlessCostPayable / askUnlessMana), so their offer gates and their tap
+// lists cannot drift apart.
+type windowManaUnit struct {
+	id        state.ObjID
+	freeCount int
+	alts      []windowManaAlt
+}
+
 // windowManaUnits walks p's battlefield in zone order and returns every
-// untapped permanent whose PAYMENT-WINDOW mana abilities contain exactly one
+// untapped permanent whose PAYMENT-WINDOW mana abilities include at least one
 // free-cost ability whose production this build can price deterministically.
-// It is deliberately narrower than untappedManaSource in four honest ways a
+// It is deliberately narrower than untappedManaSource in three honest ways a
 // payment-window affordability bound must honour:
 //
 //   - the abilities come from availableManaAbilitiesForWindow(p, id, false),
@@ -123,16 +149,17 @@ type windowManaUnit struct {
 //     tap (the review's stranding defect);
 //   - a RestrictValid$-governed ability is excluded: its produced batch may
 //     not pay the cost, so counting its units would overstate reach;
-//   - several free abilities contribute nothing: the permanent taps for one
-//     of them, not their sum;
 //   - an Indeterminate Amount$ ("X", "Y", a Count$) yields no guaranteed
 //     amount, and a choice-shaped production ("Combo B R", "Chosen") names
 //     no single colour -- forward-direction symbols ("G", "R G", "RR") and
 //     the executor's own blank/"Any"/"Combo Any" one-colourless default are
 //     the only deterministic shapes. The default is returned as counts[5]==1
 //     (the same colourless slot AvailableMana folds it into) so a consumer
-//     that needs a colour vector (unlessManaBudget) sees exactly what the
+//     that needs a colour vector (UnlessCostPayable) sees exactly what the
 //     window can produce.
+//
+// A permanent with several free abilities is NOT dropped: each priceable
+// ability becomes one alt, since the permanent still taps for one of them.
 func (e *Engine) windowManaUnits(p state.PlayerID) []windowManaUnit {
 	var out []windowManaUnit
 	for _, id := range e.G.Zone(state.ZBattlefield, p) {
@@ -149,30 +176,42 @@ func (e *Engine) windowManaUnits(p state.PlayerID) []windowManaUnit {
 				free = append(free, ma)
 			}
 		}
-		if len(free) != 1 {
-			continue
-		}
-		ma := free[0]
-		amt := availableAmount(ma)
-		if amt <= 0 {
-			continue
-		}
-		counts, any := cards.ProducedCounts(ma.Params["Produced"])
-		total := int32(0)
-		for _, n := range counts {
-			total += n
-		}
-		if any {
-			// Only the executor's deterministic one-colourless default counts.
-			if total != 1 || counts[5] != 1 {
+		var alts []windowManaAlt
+		for _, ma := range free {
+			amt := availableAmount(ma)
+			if amt <= 0 {
 				continue
 			}
-		} else if total <= 0 {
+			counts, any := cards.ProducedCounts(ma.Params["Produced"])
+			total := int32(0)
+			for _, n := range counts {
+				total += n
+			}
+			if any {
+				// Only the executor's deterministic one-colourless default counts.
+				if total != 1 || counts[5] != 1 {
+					continue
+				}
+			} else if total <= 0 {
+				continue
+			}
+			alts = append(alts, windowManaAlt{ma: ma, counts: counts, amt: amt})
+		}
+		if len(alts) == 0 {
 			continue
 		}
-		out = append(out, windowManaUnit{id: id, ma: ma, counts: counts, amt: amt})
+		out = append(out, windowManaUnit{id: id, freeCount: len(free), alts: alts})
 	}
 	return out
+}
+
+// addMana returns a+b elementwise.
+func manaAdd(a, b state.Mana) state.Mana {
+	var m state.Mana
+	for i := range m {
+		m[i] = a[i] + b[i]
+	}
+	return m
 }
 
 // addAvailable folds one free-to-tap mana ability into an available-mana

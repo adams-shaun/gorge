@@ -165,16 +165,24 @@ func (e *Engine) attackManaSources(p state.PlayerID) []attackManaSource {
 	var out []attackManaSource
 	// windowManaUnits is the ONE membership the offer gate (attackBudget) and
 	// this tap list share, so the attack window can never be offered a charge
-	// its sources cannot reach (see the doc comment on windowManaUnits).
+	// its sources cannot reach (see the doc comment on windowManaUnits). The
+	// window taps one ability with no sub-ask, so only a source with exactly
+	// one free, priceable ability qualifies -- the same set the pre-
+	// alternatives membership returned (a multi-colour dual's two intrinsics
+	// stay excluded, ledgered under attackprop1).
 	for _, u := range e.windowManaUnits(p) {
+		if u.freeCount != 1 || len(u.alts) != 1 {
+			continue
+		}
+		a := u.alts[0]
 		units := int32(0)
-		for _, n := range u.counts {
-			units += n * u.amt
+		for _, n := range a.counts {
+			units += n * a.amt
 		}
 		if units <= 0 {
 			continue
 		}
-		out = append(out, attackManaSource{id: u.id, ma: u.ma, units: units})
+		out = append(out, attackManaSource{id: u.id, ma: a.ma, units: units})
 	}
 	return out
 }

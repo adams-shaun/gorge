@@ -266,11 +266,20 @@ func poseUnlessAsk(h Host, c *Ctx, sa *cards.SA, cost string, payers []state.Tar
 		}
 	}
 	// Rules hosts prove whether the pay branch is reachable (floating mana
-	// plus the sources the payment window can tap). The effects test host
-	// (and other embedders) keep the two options -- R-9 still declines when it
-	// cannot ask.
+	// plus the sources the payment window can tap, and the choice-bearing
+	// Sac/Discard/Reveal/Draw/RevealChosen/SubCounter components).
+	// UnlessCostPayableFromCtx hands the host this very resolution context,
+	// so a Draw<.../Player.targetedBy> or RevealChosen cost is evaluated
+	// against the same targets/roles the pay path will use. A host that
+	// implements only the two-argument form is still consulted. The effects
+	// test host (and other embedders) keep the two options -- R-9 still
+	// declines when it cannot ask.
 	payable := true
 	if checker, ok := h.(interface {
+		UnlessCostPayableFromCtx(state.PlayerID, string, *Ctx) bool
+	}); ok {
+		payable = checker.UnlessCostPayableFromCtx(payer, cost, c)
+	} else if checker, ok := h.(interface {
 		UnlessCostPayable(state.PlayerID, string) bool
 	}); ok {
 		payable = checker.UnlessCostPayable(payer, cost)

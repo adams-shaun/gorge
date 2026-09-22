@@ -1256,7 +1256,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				// cost type) keeps the decision on the wire for hosts to observe
 				// while never letting an empty pool satisfy it.
 				ctx.UnlessPay = "decline"
-			} else if len(chosen) > 0 && chosen[0].Index == 0 && e.UnlessCostPayable(chosen[0].Player, rawUnlessCost) {
+			} else if len(chosen) > 0 && chosen[0].Index == 0 && e.unlessCostPayable(chosen[0].Player, rawUnlessCost, ctx, rp.obj) {
 				if len(paid.Sac) > 0 || len(paid.Discard) > 0 || len(paid.Reveal) > 0 || len(paid.RevealChosen) > 0 {
 					// Sacrifice, discard and reveal are choice-bearing costs.
 					// Park this resume before any mutation and let the payer
