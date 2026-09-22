@@ -2455,17 +2455,20 @@ var knownUnsupportedParams = map[string][]string{
 	// changeZoneAttachedTo): the attach-the-returned-Aura leg is now real
 	// (pinned in rules/forum_filibuster_test.go). ForgetOtherRemembered stays
 	// unread.
-	"Gift of Immortality":            {"param:api:ChangeZone.ForgetOtherRemembered"},
-	"Hercules, Olympian Hero":        {"param:trig:DamageDoneOnce.FirstTime"},
-	"Heroic Return":                  {"param:api:ChangeZone.ValidTgtsDesc"},
-	"Heroic Sacrifice":               {"param:api:DelayedTrigger.Destination", "param:api:Effect.ValidTgtsDesc", "param:api:PutCounter.EachFromSource", "param:api:PutCounter.ValidTgtsDesc", "param:api:ReplaceEffect.VarType"},
-	"Iron Man, Armored Avenger":      {"param:api:PutCounter.ValidTgtsDesc"},
-	"Jocasta, Automaton Avenger":     {"param:api:ChangeZone.Attacking"},
-	"Love on the Battlefield":        {"param:trig:AttackersDeclared.NoResolvingCheck"},
-	"Methods of the Mighty":          {"param:api:Destroy.ValidTgtsDesc"},
-	"Mogis, God of Slaughter":        {"param:stat:Continuous.RemoveType"},
-	"Patriot, Shield Wielder":        {"param:api:Pump.ValidTgtsDesc"},
-	"Photon, Mighty Marvel":          {"param:api:Mana.PersistentMana"},
+	"Gift of Immortality":        {"param:api:ChangeZone.ForgetOtherRemembered"},
+	"Hercules, Olympian Hero":    {"param:trig:DamageDoneOnce.FirstTime"},
+	"Heroic Return":              {"param:api:ChangeZone.ValidTgtsDesc"},
+	"Heroic Sacrifice":           {"param:api:DelayedTrigger.Destination", "param:api:Effect.ValidTgtsDesc", "param:api:PutCounter.EachFromSource", "param:api:PutCounter.ValidTgtsDesc", "param:api:ReplaceEffect.VarType"},
+	"Iron Man, Armored Avenger":  {"param:api:PutCounter.ValidTgtsDesc"},
+	"Jocasta, Automaton Avenger": {"param:api:ChangeZone.Attacking"},
+	"Love on the Battlefield":    {"param:trig:AttackersDeclared.NoResolvingCheck"},
+	"Methods of the Mighty":      {"param:api:Destroy.ValidTgtsDesc"},
+	"Mogis, God of Slaughter":    {"param:stat:Continuous.RemoveType"},
+	"Patriot, Shield Wielder":    {"param:api:Pump.ValidTgtsDesc"},
+	// (Photon, Mighty Marvel's param:api:Mana.PersistentMana row retired when
+	// the PersistentMana$ read landed — the pm ManaAdd suffix, ManaClear's
+	// partial clear and the TurnChange expiry — pinned end to end on the real
+	// corpus carrier Rousing Refrain in rules/persistent_mana_test.go.)
 	"Purphoros, God of the Forge":    {"param:stat:Continuous.RemoveType"},
 	"Rescue, Pepper Potts":           {"param:api:ChangeZone.ValidTgtsDesc"},
 	"Scarlet Witch, Chaotic Avenger": {"param:api:Dig.WithMayLook"},

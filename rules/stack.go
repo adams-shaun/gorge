@@ -84,6 +84,23 @@ func (e *Engine) payManaFor(p state.PlayerID, id state.ObjID, ability bool, cost
 // shape.
 func (e *Engine) payManaForSpent(p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *manaConv, rider pipRider) (bool, state.Mana, state.Mana, state.Mana, [3]state.Mana) {
 	av := e.manaAvailableFor(p, id, ability)
+	// The payment's persistence attribution: the visible pool's persistent
+	// share (perVis) and its ordinary complement (perFresh). resolveMana is
+	// persistence-blind — the units are interchangeable — so attributing the
+	// spent units ordinary-first (the exception mana spent last) is a
+	// bookkeeping choice the emitted events carry: the split below emits the
+	// persistent remainder as a MARKED negative ManaAdd whose " pm" suffix is
+	// what moves Player.PersistentMana in events.Apply. Carrying the
+	// attribution on the events, rather than letting the fold derive it from
+	// the RAW pool (whose fresh share disagrees with this visible pool
+	// whenever a restricted batch is hidden from the payment, or the carve
+	// consumed the persistent batch first), is what keeps the tally on the
+	// units that actually survived a boundary.
+	perVis := e.visiblePersistentMana(p, id, ability)
+	perFresh := state.Mana{}
+	for i := range perFresh {
+		perFresh[i] = av.pool[i] - perVis[i]
+	}
 	before := av.pool
 	beforeSnow := e.G.Players[p].Snow
 	beforeTyped := av.typed
@@ -122,7 +139,7 @@ func (e *Engine) payManaForSpent(p state.PlayerID, id state.ObjID, ability bool,
 	// spentTyped keep the FULL deltas the pay-time capture reads.
 	emitSnow := spentSnow
 	emitTyped := spentTyped
-	e.emitRestrictedManaSpend(p, id, ability, &spent, &emitSnow, &emitTyped)
+	e.emitRestrictedManaSpend(p, id, ability, &spent, &emitSnow, &emitTyped, &perVis, &perFresh)
 	for i, letter := range manaLetters {
 		if spent[i] == 0 {
 			continue
@@ -140,7 +157,24 @@ func (e *Engine) payManaForSpent(p state.PlayerID, id state.ObjID, ability bool,
 			typedSpent += emitTyped[t][i]
 		}
 		if plain := spent[i] - snowSpent - typedSpent; plain > 0 {
-			e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: letter, Amount: -plain})
+			// The slot's ordinary units are attributed first (the exception
+			// mana is spent last); the plain share past perFresh is the
+			// persistent remainder and rides a MARKED event so the fold moves
+			// the tally with the units that were actually consumed. The carve
+			// above already charged its own consumption against perVis/perFresh
+			// by the consumed batch's flag, so the marked remainder can never
+			// exceed the visible persistent share.
+			ord := plain
+			if perFresh[i] < ord {
+				ord = perFresh[i]
+			}
+			if ord > 0 {
+				e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: letter, Amount: -ord})
+			}
+			if per := plain - ord; per > 0 {
+				e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: letter,
+					Amount: -per, Text: events.ManaPersistentText("")})
+			}
 		}
 		for t, tag := range state.TypedManaTags {
 			if emitTyped[t][i] > 0 {
@@ -184,11 +218,31 @@ func (e *Engine) payManaCastSpent(pc *pendingCast, cost Cost) (bool, state.Mana,
 // an Extort payment a player genuinely cannot make is a decline rather than
 // a free drain.
 func (e *Engine) payExtortPip(p state.PlayerID) bool {
-	pool := e.G.Players[p].Pool
+	// The pip is charged from the raw pool (the extort window carries no
+	// payment id, so the restriction-aware view does not apply here — the
+	// pre-existing, restriction-blind consumption is unchanged), but its
+	// attribution follows the shared payment rule (ordinary units first): a
+	// slot's persistent share is charged only past its non-persistent one,
+	// and the persistent unit's event carries the " pm" marker so the fold
+	// moves the tally with the unit actually consumed.
+	pl := e.G.Players[p]
+	fresh := pl.Pool
+	per := pl.PersistentMana
+	for i := range fresh {
+		fresh[i] -= per[i]
+	}
 	for _, idx := range []int{state.MW, state.MB} {
-		if pool[idx] > 0 {
+		if fresh[idx] > 0 {
 			e.emit(events.Event{Kind: events.ManaAdd, Player: p,
 				Counter: manaLetters[idx], Amount: -1})
+			return true
+		}
+	}
+	for _, idx := range []int{state.MW, state.MB} {
+		if per[idx] > 0 {
+			e.emit(events.Event{Kind: events.ManaAdd, Player: p,
+				Counter: manaLetters[idx], Amount: -1,
+				Text: events.ManaPersistentText("")})
 			return true
 		}
 	}
@@ -234,6 +288,32 @@ func (e *Engine) manaAvailableFor(p state.PlayerID, id state.ObjID, ability bool
 	return available
 }
 
+// visiblePersistentMana is the persistent share of p's VISIBLE pool for this
+// payment: the PersistentMana tally minus every persistent restriction batch
+// this payment cannot use. manaAvailableFor hides an unusable batch's units
+// from the payment, so those units cannot be what a spend here consumed and
+// must not be attributed to it; the same hiding rule keeps this view and the
+// visible pool from disagreeing. (An empty Valid is an unrestricted
+// AddsNoCounter batch — spendable anywhere — so its units stay attributed.)
+// Measured corpus: every PersistentMana carrier produces plain mana, so the
+// persistent share never carries a snow/typed tag in practice.
+func (e *Engine) visiblePersistentMana(p state.PlayerID, id state.ObjID, ability bool) state.Mana {
+	pl := e.G.Players[p]
+	per := pl.PersistentMana
+	for _, r := range pl.RestrictedMana {
+		if !r.Persistent || (r.Valid != "" && e.restrictValidMatches(p, id, ability, r.Valid, r.Source)) {
+			continue
+		}
+		idx := state.ManaSlot(r.Color)
+		if per[idx] < r.Amount {
+			per[idx] = 0
+		} else {
+			per[idx] -= r.Amount
+		}
+	}
+	return per
+}
+
 // emitRestrictedManaSpend consumes matching restriction batches in insertion
 // order before ordinary mana. Every matching unit is interchangeable for the
 // current payment; using this fixed order keeps the log deterministic. When a
@@ -255,7 +335,7 @@ func (e *Engine) manaAvailableFor(p state.PlayerID, id state.ObjID, ability bool
 // Capping at the tag's (or snow tally's, or the slot's remaining plain units')
 // actual spend reconciles the carve's restricted-first attribution with the
 // search's plain-first consumption and keeps every emission tally >= 0.
-func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, id state.ObjID, ability bool, spent *state.Mana, emitSnow *state.Mana, emitTyped *[3]state.Mana) {
+func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, id state.ObjID, ability bool, spent *state.Mana, emitSnow *state.Mana, emitTyped *[3]state.Mana, perVis *state.Mana, perFresh *state.Mana) {
 	e.noCounterSpend = 0
 	e.manaSpentSources = nil
 	// Emit mutates RestrictedMana through events.Apply, so range a snapshot:
@@ -312,6 +392,25 @@ func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, id state.ObjID, abili
 		e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: r.Color, Amount: -used,
 			Text: events.ManaRestrictionText(r.Valid, r.Source)})
 		spent[idx] -= used
+		// The consumed batch's own flag charges the persistence attribution:
+		// a persistent batch's units were the slot's persistent share (the
+		// fold moves Player.PersistentMana by the batch flags on this event),
+		// an ordinary batch's were the ordinary share. events.Apply reduces
+		// the SAME batches in the same insertion order, so the two views of
+		// which units were consumed cannot disagree.
+		if r.Persistent {
+			if (*perVis)[idx] < used {
+				(*perVis)[idx] = 0
+			} else {
+				(*perVis)[idx] -= used
+			}
+		} else {
+			if (*perFresh)[idx] < used {
+				(*perFresh)[idx] = 0
+			} else {
+				(*perFresh)[idx] -= used
+			}
+		}
 		// Carve the consumed units out of the emission split's tallies too:
 		// the carve emitted this batch's tagged/snow form directly, so the
 		// split loop must not emit it a second time. The caps above guarantee
