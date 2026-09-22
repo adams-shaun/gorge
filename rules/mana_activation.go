@@ -31,6 +31,7 @@ const chooseManaSacrifice chooseFor = 31
 const (
 	chooseManaUnless chooseFor = iota + 17
 	chooseUnlessCost
+	chooseUnlessMana
 )
 
 // manaActivation is the one outstanding choice among a permanent's distinct
