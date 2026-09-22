@@ -758,6 +758,22 @@ type Engine struct {
 	// always zero at a clone boundary.
 	combatDamaging bool
 
+	// declaredAttackers is the WHOLE of the current declare-attackers
+	// declaration: handleAttackers groups the chosen (attacker, defender)
+	// pairs into one DeclareAttackers event PER DEFENDER and emits them in
+	// turn order, so a trigger matched against one of those events sees only
+	// that defender's attackers in ev.IDs. CR 702.70's Training compares the
+	// attacking creature's power against ANOTHER creature attacking "with"
+	// it -- which spans every defender in the same declaration. Like
+	// combatDamaging this is engine scratch rather than an events.Event field
+	// (the event encoding is hash-chained): handleAttackers sets it from the
+	// chosen set before emitting, triggers are checked synchronously inside
+	// emit, and replay re-executes handleAttackers, rebuilding it
+	// deterministically. Not copied by Clone, for the same reason as
+	// damaging/combatDamaging above: it is always set-and-consumed inside one
+	// intent's driven flow, so it is stale-or-empty at a clone boundary.
+	declaredAttackers []state.ObjID
+
 	// manaFromTap and manaProducer identify the mana ability currently
 	// resolving. They are synchronous context rather than ManaAdd fields.
 	manaFromTap  bool

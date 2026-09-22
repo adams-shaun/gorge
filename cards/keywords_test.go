@@ -43,6 +43,7 @@ func TestTriggerKeywordsExpandWithLinkedEffects(t *testing.T) {
 		"Persist":           {"K:Persist", "ChangesZone", "ChangeZone"},
 		"Evolve":            {"K:Evolve", "ChangesZone", "PutCounter"},
 		"Exalted":           {"K:Exalted", "Attacks", "Pump"},
+		"Training":          {"K:Training", "Attacks", "PutCounter"},
 		"Prowess":           {"K:Prowess", "SpellCast", "Pump"},
 		"Storm":             {"K:Storm", "SpellCast", "CopySpellAbility"},
 		"Living Weapon":     {"K:Living Weapon", "ChangesZone", "Token"},

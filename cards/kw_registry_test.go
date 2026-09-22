@@ -22,6 +22,10 @@ var expandedHeads = []string{
 	"Living Weapon", "For Mirrodin", "Cumulative upkeep", "Echo",
 	"Equip", "Transmute", "Cycling", "TypeCycling", "Level up", "Affinity",
 	"Enchant", "Mobilize", "Afterlife", "Encore", "Embalm", "Eternalize",
+	// CR 702.70 Training: a genuinely new expansion added after the split
+	// (not a head the old switch covered), so it is listed here to keep the
+	// table equal to the registered set.
+	"Training",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {
