@@ -1690,8 +1690,9 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	// dominant spellings). wasCastFromGraveyard is modelled below — the
 	// resolving source's graveyard-origin cast bits (the Increasing cycle's
 	// Count$wasCastFromGraveyard.10.5, 11 corpus lines); the remaining
-	// exotic predicates — Delirium, Blessing, Void, Adamant_<n>.<colour> —
-	// stay unmodelled and degrade to zero. Morbid is
+	// exotic predicates — Delirium, Void, Adamant_<n>.<colour> —
+	// stay unmodelled and degrade to zero (Blessing is read below off the
+	// CR 702.131 latch). Morbid is
 	// CR 702.53's "a creature died this turn": a creature entered a graveyard
 	// FROM THE BATTLEFIELD this turn, folded off the same state.Entered list
 	// ThisTurnEntered_ reads (a battlefield→graveyard MoveZone is exactly a
@@ -1900,6 +1901,25 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			// branches, the Morbid/Monarch precedent.
 			y, n := splitDot(head[dot+1:])
 			if h.RevoltHolds(c.Controller) {
+				return y, true
+			}
+			return n, true
+		case "Blessing":
+			// CR 702.131's city's-blessing branch head (10 corpus carriers:
+			// Golden Demise's SVar:X:Count$Blessing.1.0 pump fork, Kumena's
+			// Awakening's TrigDraw, Expel from Orazca, Anduril/Pride of
+			// Conquerors' .2.1, Secrets of the Golden City's .3.2 and the
+			// .0.1 "unless you have it" forks). <yes> when the resolving
+			// CONTROLLER holds the one-way state.Player.Blessing latch that
+			// events.Apply's BlessingChange fold writes (rules/ascend.go
+			// grants it), else <no> -- the SAME bit the bare Condition$
+			// Blessing gate (effects/conditions.go) and the Activation$
+			// Blessing offer gate (rules/legal.go) read, so the three
+			// spellings cannot drift apart. Literal-branch read via
+			// splitDot, the Revolt/Morbid precedent; an out-of-range
+			// controller denies, the fail-closed direction its siblings take.
+			y, n := splitDot(head[dot+1:])
+			if int(c.Controller) < len(g.Players) && g.Players[c.Controller].Blessing {
 				return y, true
 			}
 			return n, true

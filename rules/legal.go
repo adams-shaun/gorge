@@ -334,13 +334,17 @@ var coreCardTypes = []string{"Artifact", "Battle", "Creature", "Enchantment",
 //   - Threshold: the activator's graveyard holds 7+ cards;
 //   - Metalcraft: the activator controls 3+ artifacts;
 //   - Delirium: the activator's graveyard holds 4+ distinct core card types
-//     (AbilityUtils.countCardTypesFromList's non-permanent form).
+//     (AbilityUtils.countCardTypesFromList's non-permanent form);
+//   - Blessing: the activator holds CR 702.131's city's blessing (the
+//     one-way state.Player.Blessing latch rules/ascend.go's Ascend scan and
+//     events.Apply's BlessingChange fold maintain). This is the gate half of
+//     the city's-blessing family; Count$Blessing.<yes>.<no> (effects/count.go)
+//     and the Condition$ Blessing gate read the same bit.
 //
-// Solved (the Case permanents' solved flag) and Blessing (the city's
-// blessing) name state this build does not track, so their gate FAILS
-// CLOSED -- the conservative direction for an "only if" condition whose
-// meeting cannot be verified. No repo-deck card carries either (measured at
-// the current corpus pin: 3 raw lines each, none in the decks).
+// Solved (the Case permanents' solved flag) names state this build does not
+// track, so that gate FAILS CLOSED -- the conservative direction for an
+// "only if" condition whose meeting cannot be verified (measured at the
+// current corpus pin: 3 raw lines, none in the decks).
 func (e *Engine) activationConditionOK(p state.PlayerID, ab *cards.SA) bool {
 	raw, ok := ab.Params["Activation"]
 	if !ok || strings.TrimSpace(raw) == "" {
@@ -359,6 +363,12 @@ func (e *Engine) activationConditionOK(p state.PlayerID, ab *cards.SA) bool {
 			}
 		}
 		return n >= 3
+	case "Blessing":
+		// CR 702.131: the city's blessing, read off the same one-way latch
+		// the Condition$ Blessing gate and the Count$Blessing branch head
+		// read. An out-of-range activator denies -- the fail-closed
+		// direction a blessing gate that cannot name its seat must take.
+		return int(p) < len(e.G.Players) && e.G.Players[p].Blessing
 	case "Delirium":
 		seen := map[string]bool{}
 		for _, id := range e.G.Zone(state.ZGraveyard, p) {
