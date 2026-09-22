@@ -216,7 +216,7 @@ func (e *Engine) blockPayAnswer(d *decision.Decision, in decision.Intent) {
 	if len(chosen) == 1 {
 		for _, s := range e.attackManaSources(st.player) {
 			if s.id == chosen[0].Obj {
-				e.resolveManaAbility(st.player, s.id, s.ma, false)
+				e.resolveManaAbilityRef(st.player, s.id, s.ma, s.gained, false, false, false)
 				break
 			}
 		}
@@ -241,22 +241,31 @@ func (e *Engine) blockPayAnswer(d *decision.Decision, in decision.Intent) {
 // may tap, with the units its single free mana ability produces.
 type attackManaSource struct {
 	id state.ObjID
-	// ma is the EXACT ability resolveManaAbility will resolve -- the source's
-	// single free window-usable mana ability -- so the activation poses no
-	// chooseMana sub-ask and adds exactly units.
-	ma    *cards.SA
-	units int32
+	// ma is the EXACT ability resolveManaAbilityRef will resolve -- the
+	// source's single free window-usable mana ability, with a choice-shaped
+	// Produced$ already pinned to one concrete colour -- so the activation
+	// poses no chooseMana or colour sub-ask and adds exactly units.
+	ma *cards.SA
+	// gained is ma's gained-ability identity, captured BEFORE the Produced$
+	// rewrite above: gainedManaRefFor matches on the ORIGINAL compiled
+	// pointer, so re-deriving it from the rewritten copy would lose a granted
+	// ability's identity (the SVar face its Amount$ resolves against, and the
+	// ActivationLimit marker). Same reason answerManaActivation threads a
+	// precomputed ref into resolveManaAbilityRef.
+	gained gainedManaRef
+	units  int32
 }
 
 // attackManaSources walks the payer's battlefield in zone order and returns
 // every untapped permanent whose window-usable mana abilities contain
-// EXACTLY ONE free-cost ability whose production this build resolves
-// deterministically here: a plain Produced$ symbol list ("G", "R G", "RR")
-// adds exactly those symbols; the blank/"Any"/"Combo Any" shape is the
-// executor's own deterministic one-colourless default (effects/misc.go
-// effMana) and counts one unit; a choice-shaped "Combo B R" or a Chosen token
-// is not deterministic (a choice ask, or the executor's loud fail-closed)
-// and excludes the source. A known literal Amount$ scales the units. The SAME membership is
+// EXACTLY ONE free-cost ability whose production this build can price: a
+// plain Produced$ symbol list ("G", "R G", "RR") adds exactly those symbols;
+// a choice-shaped production (the blank/"Any"/"Combo Any" shapes and the
+// "Combo <colours>"/"Chosen" families) yields ONE unit of mana per activation,
+// of a colour chosen when it is tapped (CR 106.1b) -- and any colour pays a
+// generic attack tax, so it counts one unit. A fail-closed shape the parser
+// claims no colour for (ColorIdentity, a Special word) is excluded. A known
+// literal Amount$ scales the units. The SAME membership is
 // the affordability bound's input (attackBudget), so a pair is offered only
 // when the window can actually reach the charge -- the wedge guard: every
 // tap adds its counted units, so the window can never strand.
@@ -294,19 +303,22 @@ func (e *Engine) attackManaSources(p state.PlayerID) []attackManaSource {
 		if amt <= 0 {
 			continue
 		}
-		counts, any := cards.ProducedCounts(ma.Params["Produced"])
+		counts, choice := cards.ProducedCounts(ma.Params["Produced"])
 		units := int32(0)
-		if any {
-			// Only the executor's own deterministic one-colourless default
-			// (blank / "Any" / "Combo Any") counts: exactly one unit. A
-			// choice-shaped production ("Combo B R", "Chosen") names no unit
-			// the pool is guaranteed to receive -- the executor either asks or
-			// fails closed -- so the source is excluded.
+		if choice {
+			// A choice-shaped production produces exactly ONE unit of mana
+			// per activation, of a colour chosen when the source is tapped
+			// (blank / "Any" / "Combo Any" / "Combo B R" / "Chosen", CR
+			// 106.1b). One unit of any colour pays a generic attack tax, so
+			// the source counts one payable unit no matter how many colour
+			// slots its alternatives name. A fail-closed shape the parser
+			// claims no colour for (ColorIdentity, a Special word) has an
+			// empty slot set and must not be admitted.
 			total := int32(0)
 			for _, n := range counts {
 				total += n
 			}
-			if total == 1 && counts[5] == 1 {
+			if total > 0 {
 				units = amt
 			}
 		} else {
@@ -317,9 +329,41 @@ func (e *Engine) attackManaSources(p state.PlayerID) []attackManaSource {
 		if units <= 0 {
 			continue
 		}
+		if choice {
+			// Pin the choice to ONE concrete colour before recording the
+			// ability. resolveManaAbility resolves the source's resolution
+			// inline, and a choice-shaped Produced$ would pose a
+			// mid-resolution colour ask there; attackPayAnswer then re-reads
+			// the pool and re-poses the next tap ask, and e.ask (with e.resume
+			// nil for a window, not a suspended resolution) would silently
+			// displace that colour ask -- tapping the source for nothing. The
+			// tax is generic, so the colour cannot matter: take the
+			// deterministic first producible colour (R-9), the same rewrite
+			// the activation path performs, so the tap adds exactly one unit
+			// and poses no sub-ask. The gained identity is captured before the
+			// rewrite, which changes the SA pointer.
+			gained := e.gainedManaRefFor(p, id, ma)
+			out = append(out, attackManaSource{id: id, ma: withProduced(ma, ma, oneColourProduced(counts)), gained: gained, units: units})
+			continue
+		}
 		out = append(out, attackManaSource{id: id, ma: ma, units: units})
 	}
 	return out
+}
+
+// oneColourProduced turns a choice-shaped production's slot vector into the
+// single plain Produced$ symbol the attack payment window resolves without a
+// sub-ask. It takes the first producible slot in WUBRG order (deterministic,
+// R-9) and colourless only when no colour is on offer, so a blank ability's
+// one colourless unit round-trips to "C". The caller has already established
+// at least one non-zero slot.
+func oneColourProduced(counts [6]int32) string {
+	for i := range counts {
+		if counts[i] > 0 {
+			return string(cards.ManaSymbol(i))
+		}
+	}
+	return "C"
 }
 
 // attackBudget is the declare-attackers affordability bound: the floating
@@ -527,7 +571,7 @@ func (e *Engine) attackPayAnswer(d *decision.Decision, in decision.Intent) {
 			if s.id != chosen[0].Obj {
 				continue
 			}
-			e.resolveManaAbility(st.player, s.id, s.ma, false)
+			e.resolveManaAbilityRef(st.player, s.id, s.ma, s.gained, false, false, false)
 			break
 		}
 	}

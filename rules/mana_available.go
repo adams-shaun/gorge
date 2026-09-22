@@ -76,7 +76,7 @@ func (e *Engine) AvailableMana(p state.PlayerID) state.Mana {
 		// several distinct abilities is omitted because the vector cannot encode
 		// which ability the tap will select.
 		if len(free) == 1 {
-			addAvailable(&out, free[0])
+			addAvailable(&out, free[0], e.chosenProducedColour(id))
 		}
 	}
 	return out
@@ -100,7 +100,7 @@ func manaFreeCost(c Cost) bool {
 // accumulator through cards.ProducedCounts -- the ONE Produced$ parse the
 // per-face projection (cards.ManaProduction.add) and this aggregate share,
 // so the two agree by construction: blank becomes one colourless,
-// Any/Combo Any and Chosen expose their possible WUBRG colours, a plain
+// Any/Combo Any expose their possible WUBRG colours, a plain
 // symbol token adds its listed colours ("Combo B R" one B and one R, "RR"
 // two red), and an unrecognised token ("ColorIdentity", a "Special ..."
 // word) claims no mana at all -- never the phantom colourless a rune walk of
@@ -108,8 +108,18 @@ func manaFreeCost(c Cost) bool {
 // executor's default of 1 and the T14-f negative clamp; an Indeterminate
 // amount ("X", "Y", a Count$, "Sacrificed$...") resolves to zero,
 // contributing nothing.
-func addAvailable(m *state.Mana, ma *cards.SA) {
-	counts, _ := cards.ProducedCounts(ma.Params["Produced"])
+//
+// chosen is the source's recorded as-enters colour (state.Object.ChosenColor,
+// a single WUBRG letter or "") and is substituted into a "Chosen"/"Combo <C>
+// Chosen" production BEFORE the parse (substituteChosenProduced, the same
+// read the activation path performs). Without it a "Combo R Chosen" permanent
+// whose recorded colour is G would be advertised as all five colours, when it
+// can currently produce only R or G. ProducedCounts itself still reports the
+// five-colour superset for a bare "Chosen" because it has no source object;
+// the substitution here is what supplies the source-aware answer.
+func addAvailable(m *state.Mana, ma *cards.SA, chosen string) {
+	produced := substituteChosenProduced(strings.TrimSpace(ma.Params["Produced"]), chosen)
+	counts, _ := cards.ProducedCounts(produced)
 	amt := availableAmount(ma)
 	for i, n := range counts {
 		m[state.ManaIndex(cards.ManaSymbol(i))] += n * amt
