@@ -354,54 +354,113 @@ var actionTriggerModes = map[string]bool{
 	"Surveil": true,
 }
 
-// triggerActivationLimitAllows enforces ActivationLimit$ N ("this ability
-// triggers only once each turn"): the T: line triggers at most N times per
-// turn, counted when it triggers (Forge Trigger.checkActivationLimit and
-// TriggerHandler.runSingleTrigger). A malformed limit fails closed. The count
-// is recorded here, on the path that is about to queue the trigger.
-func (e *Engine) triggerGameActivationLimitAllows(t cards.Trigger, key triggerKey) bool {
+// triggerGameLimitFor parses a trigger's GameActivationLimit$ param (the
+// per-GAME "this ability triggers only once" sibling of ActivationLimit$).
+// present is true only when the param is there; a malformed or negative value
+// reports (0, true) so the gate denies it (fail closed), matching
+// triggerActivationLimitAllows's malformed handling.
+func triggerGameLimitFor(t cards.Trigger) (limit int, present bool) {
 	raw, present := t.Params["GameActivationLimit"]
 	if !present {
-		return true
+		return 0, false
 	}
 	limit, err := strconv.Atoi(strings.TrimSpace(raw))
 	if err != nil || limit < 0 {
-		return false
+		return 0, true // malformed: present, denies
+	}
+	return limit, true
+}
+
+// triggerGameActivationLimitAllows is the READ half of the GameActivationLimit$
+// trigger gate: has this line's lifetime queue count (Engine.triggerGameFires)
+// reached the limit? It must never mutate. A matched event can still be
+// rejected by a later gate -- the per-turn ActivationLimit$ gate on a
+// combined-parameter line, a dedicated combat hook's empty candidate scan,
+// the Damage batch latch, a nil Execute$ body -- and such an event must not
+// consume a use; the count is therefore committed by
+// reserveTriggerGameActivationLimit at the queue point only.
+func (e *Engine) triggerGameActivationLimitAllows(t cards.Trigger, key triggerKey) bool {
+	limit, present := triggerGameLimitFor(t)
+	if !present {
+		return true
+	}
+	return int(e.triggerGameFires[key]) < limit
+}
+
+// reserveTriggerGameActivationLimit commits the lifetime queue count for a
+// trigger that passed every gate and is actually being queued. Callers MUST
+// have run the read half (triggerGameActivationLimitAllows) first; a commit
+// past a reached limit is refused defensively so a drifted caller cannot
+// exceed the limit.
+func (e *Engine) reserveTriggerGameActivationLimit(t cards.Trigger, key triggerKey) {
+	limit, present := triggerGameLimitFor(t)
+	if !present {
+		return
 	}
 	if e.triggerGameFires == nil {
 		e.triggerGameFires = map[triggerKey]int32{}
 	}
 	if int(e.triggerGameFires[key]) >= limit {
-		return false
+		return
 	}
 	e.triggerGameFires[key]++
-	return true
 }
 
-func (e *Engine) triggerActivationLimitAllows(t cards.Trigger, key triggerKey) bool {
+// triggerTurnLimitFor parses a trigger's effective per-turn limit: the
+// ActivationLimit$ param, or the implicit once-per-turn limit of Mode$
+// TokenCreatedOnce (Akim, the Soaring Wind: "whenever you create one or more
+// tokens for the first time each turn"). present is true only when a limit
+// applies; a malformed or negative value reports (0, true) so the gate denies
+// it (fail closed).
+func triggerTurnLimitFor(t cards.Trigger) (limit int, present bool) {
 	raw, ok := t.Params["ActivationLimit"]
 	if !ok {
-		// Mode$ TokenCreatedOnce is Forge's own once-per-turn gate (Akim, the
-		// Soaring Wind: "whenever you create one or more tokens for the first
-		// time each turn"): an implicit ActivationLimit 1, latched at queue
-		// time on the same per-turn map so a batch of mints fires once and
-		// the next turn resets. Reusing triggerTurnFires (which Clone already
-		// deep-copies) instead of a second latch field keeps the two
+		// The Once mode's implicit limit reuses triggerTurnFires (which Clone
+		// already deep-copies) instead of a second latch field, keeping the two
 		// per-turn trigger counts structurally identical.
 		if t.Mode == "TokenCreatedOnce" {
-			raw, ok = "1", true
-		} else {
-			return true
+			return 1, true
 		}
+		return 0, false
 	}
 	limit, err := strconv.Atoi(strings.TrimSpace(raw))
 	if err != nil || limit < 0 {
-		return false
+		return 0, true // malformed: present, denies
 	}
 	// The Once mode's meaning is once per turn; an explicit ActivationLimit$
 	// above 1 on a TokenCreatedOnce line cannot raise it.
 	if t.Mode == "TokenCreatedOnce" && limit > 1 {
 		limit = 1
+	}
+	return limit, true
+}
+
+// triggerActivationLimitAllows is the READ half of the per-turn
+// ActivationLimit$ gate ("this ability triggers only once each turn", Forge
+// Trigger.checkActivationLimit): has this line queued fewer than N triggers
+// this turn? It must never mutate -- a matched event rejected by a later gate
+// must not consume a use; the count is committed by
+// reserveTriggerActivationLimit at the queue point only.
+func (e *Engine) triggerActivationLimitAllows(t cards.Trigger, key triggerKey) bool {
+	limit, present := triggerTurnLimitFor(t)
+	if !present {
+		return true
+	}
+	f := e.triggerTurnFires[key]
+	if f.Turn != e.G.Turn {
+		f = turnFires{Turn: e.G.Turn}
+	}
+	return int(f.N) < limit
+}
+
+// reserveTriggerActivationLimit commits the per-turn queue count for a
+// trigger that passed every gate and is actually being queued. Callers MUST
+// have run the read half (triggerActivationLimitAllows) first; a commit past
+// a reached limit is refused defensively.
+func (e *Engine) reserveTriggerActivationLimit(t cards.Trigger, key triggerKey) {
+	limit, present := triggerTurnLimitFor(t)
+	if !present {
+		return
 	}
 	if e.triggerTurnFires == nil {
 		e.triggerTurnFires = map[triggerKey]turnFires{}
@@ -411,11 +470,22 @@ func (e *Engine) triggerActivationLimitAllows(t cards.Trigger, key triggerKey) b
 		f = turnFires{Turn: e.G.Turn}
 	}
 	if int(f.N) >= limit {
-		return false
+		return
 	}
 	f.N++
 	e.triggerTurnFires[key] = f
-	return true
+}
+
+// reserveTriggerLimits commits BOTH trigger-limit counts for a queue that is
+// happening, so every queue site reserves the same pair under the same
+// actionTriggerModes scoping (GameActivationLimit$ on every mode,
+// ActivationLimit$ only on the action modes) and a future queue site cannot
+// forget one half.
+func (e *Engine) reserveTriggerLimits(t cards.Trigger, key triggerKey) {
+	e.reserveTriggerGameActivationLimit(t, key)
+	if actionTriggerModes[t.Mode] {
+		e.reserveTriggerActivationLimit(t, key)
+	}
 }
 
 // dieRollNumberAllows enforces a RolledDie trigger's Number$ N ("whenever
@@ -1116,6 +1186,14 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					// nothing to run.
 					continue
 				}
+				// GameActivationLimit$/ActivationLimit$ counts commit HERE, at the
+				// queue point, after every later-rejected gate (a nil Execute$ body,
+				// the Damage batch latch, the RolledDie Number$ gate): a matched
+				// event that ends up queueing nothing must not consume a use of
+				// either limit, and a combined-parameter line whose second same-turn
+				// match the per-turn ActivationLimit$ rejects must keep its other
+				// game use for the next turn.
+				e.reserveTriggerLimits(t, key)
 				// CR 603.3a/603.10a: a leaves-the-battlefield ability's source
 				// is controlled by whoever controlled it as it left, not by the
 				// owner the move has since reset it to (a stolen creature's own

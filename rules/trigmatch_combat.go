@@ -493,6 +493,18 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 			if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
 				continue
 			}
+			// The two limit gates above are READ-ONLY: a DeclareBlockers event
+			// whose pairs match nothing (or whose Effect body is nil) queues
+			// nothing and must not consume a use of either limit. The counts
+			// commit below, at the first instance actually appended.
+			reserved := false
+			reserve := func() {
+				if reserved {
+					return
+				}
+				reserved = true
+				e.reserveTriggerLimits(t, key)
+			}
 			if t.Mode == "AttackerBlockedByCreature" {
 				// CR 702.25a: one instance per (attacker, non-flanking blocker)
 				// pair; the trigger's controller is the ATTACKER's controller,
@@ -515,6 +527,7 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 						if e.triggerFireCount[key] >= maxTriggerFires {
 							break
 						}
+						reserve()
 						e.triggerFireCount[key]++
 						e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
 							Source:     id,
@@ -544,6 +557,7 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 				if ao := e.G.Obj(aid); ao != nil {
 					defender = pt(ao.Attacking)
 				}
+				reserve()
 				e.triggerFireCount[key]++
 				e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
 					Source:     id,
@@ -640,6 +654,9 @@ func (e *Engine) checkAttackerUnblockedOnceTriggers() {
 			if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
 				continue
 			}
+			// The limit gates above are READ-ONLY: a combat with no matching
+			// unblocked attacker queues nothing and must not consume a use.
+			// The counts commit below, when the instance is actually appended.
 			if e.unblockedOnceFired == nil {
 				e.unblockedOnceFired = map[triggerKey]combatFires{}
 			}
@@ -678,6 +695,7 @@ func (e *Engine) checkAttackerUnblockedOnceTriggers() {
 			for _, aid := range attackerIDs {
 				remembered = append(remembered, state.Target{Obj: aid})
 			}
+			e.reserveTriggerLimits(t, key)
 			e.unblockedOnceFired[key] = stamp
 			e.triggerFireCount[key]++
 			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
@@ -799,12 +817,21 @@ func (e *Engine) checkBlocksTriggers(ev events.Event) {
 			if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
 				continue
 			}
+			// The two limit gates above are READ-ONLY: a DeclareBlockers event
+			// whose pairs match nothing queues nothing and must not consume a
+			// use of either limit. The counts commit below, at the first pair
+			// instance actually appended.
+			reserved := false
 			for _, pr := range e.blocksCandidates(t, id, ev) {
 				if t.Effect == nil {
 					break
 				}
 				attacker := pr[0]
 				defender := pt(ev.Player)
+				if !reserved {
+					reserved = true
+					e.reserveTriggerLimits(t, key)
+				}
 				e.triggerFireCount[key]++
 				e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
 					Source:     id,
