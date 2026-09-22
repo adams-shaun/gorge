@@ -76,6 +76,13 @@ func commanderFixture(t *testing.T) *cards.Registry {
 		// A second companion with no Doctor partner (the pair-of-companions
 		// rejection).
 		"Second Companion": "Name:Second Companion\nManaCost:W\nTypes:Legendary Creature Human\nK:Doctor's companion\n",
+		// Two distinct Doctors that EACH carry Doctor's companion: for each card
+		// the other commander is the Doctor, so the pair is legal even though
+		// both halves carry the companion keyword. The pair is {W}{U}, so a
+		// blue card is legal only because BOTH identities count. "Gallifrey
+		// Envoy" above (a non-Doctor companion) keeps its own negative test.
+		"The Fifth Doctor": "Name:The Fifth Doctor\nManaCost:W\nTypes:Legendary Creature Time Lord Doctor\nK:Doctor's companion\n",
+		"The Sixth Doctor": "Name:The Sixth Doctor\nManaCost:U\nTypes:Legendary Creature Time Lord Doctor\nK:Doctor's companion\n",
 	}
 	for name, src := range scripts {
 		c, diags := cards.ParseBytes("fixture.txt", []byte(src))
@@ -257,6 +264,46 @@ func TestValidateCommanderRejectsTwoCompanions(t *testing.T) {
 	err := f.ValidateCommander(r)
 	if err == nil || !strings.Contains(err.Error(), "not a legal commander pair") {
 		t.Fatalf("want two companions rejected as an illegal pair, got %v", err)
+	}
+}
+
+// doctorCompanionsBothDeck builds a CR-903.4-legal 100-card deck whose two
+// commanders are DISTINCT Doctors that each carry K:Doctor's companion. The
+// companion clause reads "You can have two commanders if the other is the
+// Doctor": for each card the other commander IS a Doctor, so the pair is
+// legal even though both halves carry the keyword. The union identity is
+// {W}{U}, so Drake (blue) is legal only because BOTH identities count.
+func doctorCompanionsBothDeck() File {
+	return File{
+		Name:       "TWODOC",
+		Commanders: []string{"The Fifth Doctor", "The Sixth Doctor"},
+		Cards: []Entry{
+			{"The Fifth Doctor", 1},
+			{"The Sixth Doctor", 1},
+			{"Drake", 1},
+			{"Plains", 97},
+		},
+	}
+}
+
+// TestValidateCommanderTwoDoctorCompanions pins the clause's bidirectional
+// half: two DISTINCT Doctors that EACH carry Doctor's companion are a legal
+// pair, because for each card the other commander is the Doctor. The pre-fix
+// predicate required exactly one companion half (ca == cb returned false) and
+// wrongly rejected this shape. The deck is otherwise legal (100 cards,
+// singleton) and its blue card is legal only through the union identity, so
+// the test also fails if the pair is admitted but the identity is not unioned.
+func TestValidateCommanderTwoDoctorCompanions(t *testing.T) {
+	r := commanderFixture(t)
+	d := doctorCompanionsBothDeck()
+	if err := d.ValidateCommander(r); err != nil {
+		t.Fatalf("two-Doctor-companion deck rejected: %v", err)
+	}
+	// The pair is legal in either designation order.
+	swapped := doctorCompanionsBothDeck()
+	swapped.Commanders = []string{"The Sixth Doctor", "The Fifth Doctor"}
+	if err := swapped.ValidateCommander(r); err != nil {
+		t.Fatalf("two-Doctor-companion deck rejected with the pair reversed: %v", err)
 	}
 }
 

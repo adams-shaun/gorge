@@ -13,10 +13,11 @@ import (
 //     and both are plain Partners — the "Friends forever" alias spells
 //     K:Partner:... and shares the head;
 //   - "Partner with" (CR 903.13c): each card names the other by printed name;
-//   - Doctor's companion (the Doctor Who cycle): exactly one card carries
-//     K:Doctor's companion and the other is a Doctor (the creature subtype).
-//     The companion's reminder text is "You can have two commanders if the
-//     other is the Doctor."
+//   - Doctor's companion (the Doctor Who cycle): one card carries
+//     K:Doctor's companion and the other is a Doctor (the creature subtype)
+//     — or two distinct Doctors each carrying the companion keyword. The
+//     companion's reminder text is "You can have two commanders if the other
+//     is the Doctor."
 //
 // A plain Partner paired with a Partner-with card is not a legal pair (each
 // half of a named pair names its own partner), and neither is a Doctor's
@@ -43,21 +44,26 @@ func IsPartnerPair(a, b *cards.Card) bool {
 }
 
 // doctorCompanionPair reports whether a and b are a legal Doctor's-companion
-// pair: exactly one carries K:Doctor's companion and the other is a Doctor.
+// pair. The clause reads "You can have two commanders if the other is the
+// Doctor", so a legal pair is one where AT LEAST ONE half carries
+// K:Doctor's companion and the OTHER half is a Doctor. That condition is
+// directional and must hold in one direction or the other:
+//
+//   - the ordinary shape: exactly one companion half, and the other is a
+//     Doctor;
+//   - two distinct Doctors that EACH carry Doctor's companion: for each card
+//     the other commander is the Doctor, so both directions hold and the pair
+//     is legal. Requiring exactly one companion (ca == cb rejected) wrongly
+//     denied this shape.
+//
+// It is NOT satisfied by two non-Doctor companions (neither half is a Doctor
+// in either direction), nor by a companion paired with a non-Doctor.
+//
 // The subtype match is case-insensitive over every face's Types, the same
 // read the rest of the deck package uses for a subtype.
 func doctorCompanionPair(a, b *cards.Card) bool {
-	ca, cb := hasDoctorCompanion(a), hasDoctorCompanion(b)
-	// Exactly one half must carry the companion keyword: two companions have
-	// no Doctor between them, and a pair of two Doctors carries no companion
-	// clause at all (the printed ability always names the companion half).
-	if ca == cb {
-		return false
-	}
-	if ca {
-		return isDoctorCard(b)
-	}
-	return isDoctorCard(a)
+	return (hasDoctorCompanion(a) && isDoctorCard(b)) ||
+		(hasDoctorCompanion(b) && isDoctorCard(a))
 }
 
 // hasDoctorCompanion reports whether c carries the K:Doctor's companion
