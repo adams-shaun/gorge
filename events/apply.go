@@ -2726,6 +2726,15 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.FaceIdx = 0
 		}
 	}
+	// CR 712.4d: a Modal DFC is front-face up in every non-battlefield
+	// zone. Its back face remains active while it is a permanent, but leaving
+	// the battlefield creates a new object whose characteristics are the
+	// front face. Keep this in the event fold so replay and live play agree.
+	if wasBattlefield && to != state.ZBattlefield && o.Card != nil &&
+		o.Card.AlternateMode == "Modal" && len(o.Card.Faces) == 2 &&
+		o.Card.Faces[0] != nil && o.Card.Faces[1] != nil {
+		o.FaceIdx = 0
+	}
 	// The incarnation stamp is used by promises tied to a particular
 	// permanent (evoke/dash/warp), so only crossing the battlefield
 	// boundary advances it. A provisional hand->stack->hand CR 733 reversal
