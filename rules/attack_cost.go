@@ -134,14 +134,17 @@ func (e *Engine) attackPairCharge(id state.ObjID, defender state.PlayerID) int32
 
 // blockPairCharge is the per (blocker, attacker) charge from block-prop
 // statics. The two specs are deliberately evaluated against their respective
-// combat objects; an absent Attacker$ is an unconditional attacker scope.
+// combat objects; an absent ValidCard$ is an UNCONDITIONAL blocker match
+// (Awesome Presence scopes only by Attacker$ and still prices every blocker
+// against its enchanted attacker), and an absent Attacker$ is an
+// unconditional attacker scope.
 func (e *Engine) blockPairCharge(blocker, attacker state.ObjID) int32 {
 	total := int32(0)
 	for _, sv := range e.activeStatics("CantBlockUnless") {
 		if !cantAttackUnlessParamsReadable(sv.Params) || !e.continuousGateHolds(sv) {
 			continue
 		}
-		if spec := sv.Params["ValidCard"]; spec == "" || !effects.MatchesSpecCtx(e.G, spec, blocker, e.specCtxSVars(sv.Source, sv.Controller, sv.SVars)) {
+		if spec := sv.Params["ValidCard"]; spec != "" && !effects.MatchesSpecCtx(e.G, spec, blocker, e.specCtxSVars(sv.Source, sv.Controller, sv.SVars)) {
 			continue
 		}
 		if spec := sv.Params["Attacker"]; spec != "" && !effects.MatchesSpecCtx(e.G, spec, attacker, e.specCtxSVars(sv.Source, sv.Controller, sv.SVars)) {
