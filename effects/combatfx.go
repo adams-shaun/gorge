@@ -779,6 +779,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LAbilities, AddAbilities: ag.abilities,
+			SVars: c.SVars, AbilityGrantor: c.Source,
 			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent,
 			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: ag.zone,

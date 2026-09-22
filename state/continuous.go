@@ -379,6 +379,11 @@ type ContinuousEffect struct {
 	// only, rebuilt by re-execution on replay like every other
 	// continuous-effect field.
 	TriggerGrantor ObjID
+	// AbilityGrantor is the object whose SVar table resolves an AddAbilities
+	// grant's body when that is not the effect's Source. 0 means Source.
+	// Like TriggerGrantor, this is engine-runtime state rebuilt by resolution;
+	// it is not part of the event schema.
+	AbilityGrantor ObjID
 	// AddSVars is a static-grant's named variables (AddSVar$): the SVar the
 	// affected object GAINS, parsed from Forge's "SVar:<Name>:<Value>" value
 	// shape. The corpus's granted SVars are AI-evaluation hints (AE, AITap,
