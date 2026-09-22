@@ -114,6 +114,12 @@ func (e *Engine) putTriggersOnStack() bool {
 		}
 		if e.orderedTriggers == 0 {
 			n := e.sortPendingTriggers()
+			// Forge's OrderDuplicates$: duplicate instances of a flagged
+			// trigger line are kept adjacent (their order among the copies
+			// stable) before the ordering ask is built. Must run BEFORE the
+			// ask so the decision's options and handleTriggerOrder's recheck
+			// see the same grouped queue.
+			e.groupOrderDuplicates(n)
 			if n >= 2 {
 				// R1. Exactly one trigger is never asked about: there is no
 				// choice to make, and a decision with a single legal answer is
@@ -184,6 +190,115 @@ func (e *Engine) sortPendingTriggers() int {
 		n++
 	}
 	return n
+}
+
+// triggerOrdersDuplicates reports whether a trigger line carries Forge's
+// OrderDuplicates$ True: the copies of that line, when several permanent
+// instances of the same card trigger at once, must be ordered as a block so
+// their relative order among themselves is stable (Forge forces its ordering
+// prompt for such duplicates even when the trigger texts are identical --
+// the shape Arcane Bombardment and Captured by the Consulate carry). A line
+// that does not carry the flag keeps its natural discovery order.
+func triggerOrdersDuplicates(t cards.Trigger) bool {
+	return strings.EqualFold(strings.TrimSpace(t.Params["OrderDuplicates"]), "True")
+}
+
+// printed reports whether pt is an ordinary printed face trigger -- one whose
+// TriggerPush re-derives from the source's active face at Idx. The keyword
+// and synthetic shapes (Ward, Afflict, Conspire, Cascade, Exploit, Offspring,
+// the Ring emblem, Miracle, Madness, Evoke) carry no face trigger line, and a
+// delayed, granted or merged entry's body is an Execute$ SVar rather than a
+// face Triggers entry -- none of them can carry OrderDuplicates$, and reading
+// face.Triggers[Idx] for one would hand back a different line entirely.
+func (pt pendingTrigger) printed() bool {
+	return !pt.Delayed && !pt.Granted && pt.Merged == 0 && !pt.Miracle && !pt.Madness &&
+		!pt.Evoke && pt.Ward == "" && pt.Afflict == "" && !pt.Conspire && !pt.Cascade &&
+		!pt.Exploit && !pt.Offspring && pt.RingEmblem == 0
+}
+
+// orderDuplicatesGroup returns the duplicate-group identity of pt's trigger
+// line when that line carries OrderDuplicates$ True. Two pending triggers are
+// duplicates exactly when they are the same trigger line of the same printed
+// card on two permanent instances: the identity is the source's printed card
+// name plus the line's index within that face (two copies of one card share
+// the face, so the index identifies the line). A non-duplicate -- a line
+// without the flag, or one this build cannot attribute to a printed face --
+// returns ok false and is never grouped.
+func (e *Engine) orderDuplicatesGroup(pt pendingTrigger) (string, bool) {
+	if !pt.printed() {
+		return "", false
+	}
+	t, ok := e.triggerOf(pt)
+	if !ok || !triggerOrdersDuplicates(t) {
+		return "", false
+	}
+	o := e.G.Obj(pt.Source)
+	if o == nil {
+		return "", false
+	}
+	f := o.Face()
+	if f == nil {
+		return "", false
+	}
+	return f.Name + "\x00" + strconv.Itoa(int(o.FaceIdx)) + "\x00" + strconv.Itoa(pt.Idx), true
+}
+
+// groupOrderDuplicates makes duplicate instances of an OrderDuplicates$
+// trigger line contiguous within the n leading entries of e.pendingTriggers
+// (one controller's group, just sorted by sortPendingTriggers). Instances of
+// a flagged line move to that line's FIRST occurrence, in their existing
+// relative order, so the copies' order among themselves is stable and none of
+// them is interleaved with another trigger's resolution.
+//
+// The reorder is a STABLE sort by each entry's group anchor: an entry is
+// anchored at the first occurrence of its flagged-duplicate signature when
+// that signature occurs more than once, and at its own position otherwise.
+// Anchors are unique per position, so the sort is deterministic and the
+// relative order of distinct triggers is preserved. Called only when
+// e.orderedTriggers is zero (right after sortPendingTriggers), so it can
+// never disturb an order a player already gave.
+func (e *Engine) groupOrderDuplicates(n int) {
+	if n < 2 {
+		return
+	}
+	group := e.pendingTriggers[:n]
+	sig := make([]string, n)
+	grouped := make([]bool, n)
+	first := make(map[string]int, n)
+	count := make(map[string]int, n)
+	for i := range group {
+		s, ok := e.orderDuplicatesGroup(group[i])
+		if !ok {
+			continue
+		}
+		sig[i], grouped[i] = s, true
+		if _, seen := first[s]; !seen {
+			first[s] = i
+		}
+		count[s]++
+	}
+	order := make([]int, n)
+	duplicate := false
+	for i := range group {
+		order[i] = i
+		if grouped[i] && count[sig[i]] >= 2 {
+			order[i] = first[sig[i]]
+			duplicate = true
+		}
+	}
+	if !duplicate {
+		return
+	}
+	idx := make([]int, n)
+	for i := range idx {
+		idx[i] = i
+	}
+	sort.SliceStable(idx, func(a, b int) bool { return order[idx[a]] < order[idx[b]] })
+	out := make([]pendingTrigger, n)
+	for a, i := range idx {
+		out[a] = group[i]
+	}
+	copy(group, out)
 }
 
 // dropDepartedTriggers discards every pending trigger controlled by a player
