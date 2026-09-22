@@ -81,10 +81,8 @@ func effChaosEnsues(h Host, c *Ctx, _ *cards.SA) {
 }
 
 // notePlanechaseNoDeck records the shared "resolved, but there is no planar
-// deck" Note. The Optional$ rider some corpus carriers spell
-// (tardis, start_the_tardis) is deliberately not consulted: an optional
-// planechase action with nowhere to go is declined either way, and a
-// deterministic decline needs no ask.
+// deck" Note. Optional$ elections are handled by effPlaneswalk before this
+// helper; non-optional callers reach it directly.
 func notePlanechaseNoDeck(h Host, c *Ctx, action string) {
 	text := action + " (no planar deck)"
 	if c != nil && c.Source != 0 {
