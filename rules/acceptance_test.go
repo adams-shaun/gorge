@@ -100,8 +100,14 @@ var knownUnsupported = map[string][]string{
 	// exposed (kw:Crew's siblings trig:AttackersDeclared, trig:Cycled,
 	// trig:CounterAdded, trig:AttackerBlocked, the PresentZone$ clause) was
 	// implemented and is pinned in rules/msh_commander_trigger_test.go.
-	"Avengers Quinjet":             {"kw:Crew"},
-	"Captain Marvel, Apex Avenger": {"trig:CounterPlayerAddedAll"},
+	"Avengers Quinjet": {"kw:Crew"},
+	// Captain Marvel, Apex Avenger's trig:CounterPlayerAddedAll entry was
+	// deleted when the mode was registered (trigmatch_counters.go's
+	// counterPlayerAddedAllMatches) -- its own trigger's ValidObject$
+	// Creature...+nonKree spec still fails closed on the unknown nonKree
+	// predicate (a filter-vocabulary gap, ledgered), so the trigger is
+	// primitive-supported but silent; the card's OTHER gap
+	// (param:api:PutCounter.TriggeredCounterMap) stays in the param census.
 	// Speed, Young Avenger's api:ImmediateTrigger entry was deleted when the
 	// API was registered (effects/immediate.go): the real card test
 	// rules/forum_filibuster_test.go's TestSpeedYoungAvengerImmediateTrigger

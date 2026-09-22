@@ -201,6 +201,26 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 		putCounterBolster(h, c, sa, kind, pickAns, pickDone)
 		return
 	}
+	// Support$ N (CR 701.14's support keyword action; 19 raw corpus lines,
+	// every one a PutCounter SA): "put a +1/+1 counter on each of up to N
+	// other target creatures". ONE counter per chosen creature; N is the
+	// TARGET COUNT (literal, X -- the announced X of a spell with X in its
+	// cost -- or SVar, through the shared Num read), never a per-creature
+	// count. The recipient pick is the counter_pick decision shape (Min 0:
+	// "up to"), reusing the bare-Choices$ pick's answer fields and resume
+	// arm; the default spec is every battlefield creature OTHER than the
+	// source (the Other predicate -- the "other" the creature-ETB reminder
+	// texts state; for a spell source the exclusion is vacuous), or the
+	// SA's own Choices$ spec when it carries one (no corpus support line
+	// does, measured). fx42 scoping: consume and clear the answered pick
+	// first, so a nested PutCounter below cannot inherit it.
+	if _, ok := sa.Params["Support"]; ok {
+		supAns := c.CounterPick
+		supDone := c.CounterPickDone
+		c.CounterPick, c.CounterPickDone = nil, false
+		putCounterSupport(h, c, sa, kind, supAns, supDone)
+		return
+	}
 	// DividedAsYouChoose$ (Vastwood Hydra's "you may distribute a number of
 	// +1/+1 counters equal to the number of +1/+1 counters on CARDNAME among
 	// any number of creatures you control", 54 raw corpus PutCounter lines):
@@ -711,6 +731,81 @@ func putCounterBolster(h Host, c *Ctx, sa *cards.SA, kind string, ans []state.Ob
 // that entry (Promise of Loyalty's Player.IsRemembered, Eye of Doom's bare
 // Remembered), falling back to the source's event-backed list the same way
 // the Player.IsRemembered Defined selector does.
+// putCounterSupport implements the Support$ N branch of effPutCounter: the
+// "up to N other target creatures, one counter each" pick. The choice reuses
+// the bare-Choices$ pick's decision shape (ResumeKind "counter_pick", the
+// CounterPick/CounterPickDone answer fields, the same resume arm and
+// botpolicy arm), but its Max is the SUPPORT value and its Min is always 0
+// -- "up to" -- so a decline is a real answer. The spec is the SA's own
+// Choices$ when it carries one, else "Creature.+Other": every battlefield
+// creature other than the resolving source, the "other" the creature-ETB
+// support reminder texts state (for a spell source the exclusion is
+// vacuous, and an artifact/enchantment source never matched the creature
+// spec anyway). One counter of the SA's kind per chosen creature.
+func putCounterSupport(h Host, c *Ctx, sa *cards.SA, kind string, ans []state.ObjID, done bool) {
+	if done {
+		// Re-entry: the answered pick, in answer order. A chosen creature
+		// that left the battlefield while the decision was outstanding takes
+		// nothing (putCounterPickApply's zone guard).
+		putCounterPickApply(h, c, sa, 1, kind, ans)
+		return
+	}
+	maxT := Num(h, c, sa, "Support", 1)
+	if maxT < 0 {
+		maxT = 0
+	}
+	if maxT == 0 {
+		return
+	}
+	g := h.Game()
+	spec := strings.TrimSpace(sa.Params["Choices"])
+	if spec == "" {
+		spec = "Creature.+Other"
+	}
+	var eligible []state.ObjID
+	for _, p := range g.AliveFrom(0) {
+		for _, id := range g.Zone(state.ZBattlefield, p) {
+			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+				eligible = append(eligible, id)
+			}
+		}
+	}
+	if len(eligible) == 0 {
+		return
+	}
+	max := maxT
+	if max > int32(len(eligible)) {
+		max = int32(len(eligible))
+	}
+	d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose,
+		Min:        0,
+		Max:        int(max),
+		Source:     c.Source,
+		ResumeKind: "counter_pick",
+		ResumeSA:   sa,
+		Prompt:     sa.Params["ChoiceTitle"]}
+	for _, id := range eligible {
+		name := "a creature"
+		if o := g.Obj(id); o != nil && o.Face() != nil {
+			name = o.Face().Name
+		}
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+			Kind: "counter_pick", Label: name, Obj: id, Player: c.Controller})
+	}
+	if Ask(h, d) == AskAsked {
+		return // resolution suspended; the answer re-enters with Ctx.CounterPick set.
+	}
+	// The no-host stand-in (R-9): the first max eligible creatures in zone
+	// order -- the exact mirror of botpolicy's "counter_pick" arm, so a
+	// bot-answered ask emits the same placement events the silent fallback
+	// would.
+	picks := eligible
+	if int32(len(picks)) > max {
+		picks = picks[:max]
+	}
+	putCounterPickApply(h, c, sa, 1, kind, picks)
+}
+
 func putCounterChooserFor(h Host, c *Ctx, v string) (state.PlayerID, bool) {
 	g := h.Game()
 	firstRememberedPlayer := func() (state.PlayerID, bool) {

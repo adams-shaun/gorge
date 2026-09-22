@@ -75,6 +75,23 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		// the permanent the counters landed on.
 		c.TriggerCard = ev.Obj
 		c.TriggerAmount = ev.Amount
+	case "CounterPlayerAddedAll":
+		// The batch "whenever you put one or more counters on ..." mode's
+		// roles (Generous Patron, Rikku, Kros, All Will Be One): the
+		// recipient permanent is ev.Obj -- triggerRemembered already seeds
+		// Remembered with it, so Defined$ TriggeredObjectLKICopy (Rikku's
+		// RememberObjects$ on the DB body) resolves against it -- and the
+		// batch size rides TriggerAmount for the count head TriggerCount$Amount
+		// (All Will Be One's "deals that much damage" NumDmg$ X). A player
+		// recipient (PlayerCounterChange, The Great Goblin's "or player")
+		// carries no object: the recipient player is the TriggerTarget role
+		// and the object roles stay absent rather than pointing at the
+		// trigger's source.
+		c.TriggerCard = ev.Obj
+		if ev.Obj == 0 {
+			c.TriggerTarget = player(ev.Player)
+		}
+		c.TriggerAmount = ev.Amount
 	case "DamagePreventedOnce":
 		// The prevention Note carries the prevented damage in Amount and the
 		// damaged side in Obj/Player (rules/replacement.go's stored-prevention

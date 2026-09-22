@@ -442,7 +442,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
 			}
-		case "CantTarget", "CantRegenerate", "CantPreventDamage", "CantAttack", "CantSacrifice", "CantPutCounter":
+		case "CantTarget", "CantRegenerate", "CantPreventDamage", "CantAttack", "CantSacrifice", "CantPutCounter", "CantBlockBy":
 			// A COMPOUND IsRemembered spec (Card.IsRemembered+Creature) resolves
 			// faithfully through the general filter now that it implements
 			// IsRemembered (rules/layers.go restrictionApplies consults the
@@ -458,6 +458,12 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// blanket — it is reported unimplemented instead, so the two
 			// registration paths cannot disagree about what is readable.
 			if (mode == "CantAttack" || mode == "CantSacrifice") && !CantRestrictionParamsReadable(params) {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
+				registered = true
+				break
+			}
+			if mode == "CantBlockBy" && !CantBlockByParamsReadable(params) {
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
@@ -796,13 +802,16 @@ func effectRemembered(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
 			if c.Replaced != 0 && h.Game().Obj(c.Replaced) != nil {
 				out = append(out, c.Replaced)
 			}
-		case "TriggeredCard":
+		case "TriggeredCard", "TriggeredObject", "TriggeredObjectLKICopy":
 			// The card the firing trigger's event captured (Mistrise Village's
 			// Effect RememberObjects$ TriggeredCard: the spell the can't-be-
 			// countered promise covers). The SpellCast referent capture binds
 			// c.TriggerCard to the cast stack object; a stale id (the spell
 			// already resolved) remembers nothing, the same live-object
-			// discipline the cases above apply.
+			// discipline the cases above apply. TriggeredObject(LKICopy) is the
+			// same capture under the CounterPlayerAddedAll batch triggers'
+			// spelling (Rikku's RememberObjects$ TriggeredObjectLKICopy: the
+			// creature the counters landed on).
 			if c.TriggerCard != 0 && h.Game().Obj(c.TriggerCard) != nil {
 				out = append(out, c.TriggerCard)
 			}
@@ -892,6 +901,33 @@ func CantRestrictionParamsReadable(params map[string]string) bool {
 	for k := range params {
 		switch k {
 		case "Mode", "ValidCard", "Target", "Description", "Secondary":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// CantBlockByParamsReadable is the parameter whitelist a CantBlockBy Effect
+// body must pass before effEffect registers it (the same discipline
+// CantRestrictionParamsReadable enforces for CantAttack/CantSacrifice, so the
+// registration and consultation paths cannot disagree): the two-side specs
+// the continuous consultation reads (rules/statics.go blockRestricted's
+// registered-effects walk: ValidAttacker$ against the ATTACKER, ValidBlocker$
+// against the would-be blocker, the historical ValidCard$ fallback), plus
+// display text. A body carrying a condition or scoping parameter this
+// build's continuous path does not evaluate (Condition$, IsPresent$,
+// CheckSVar$, the Relative$ spellings, ...) must not register blanket --
+// a gated "can't be blocked by ..." would become an UNCONDITIONAL one,
+// over-restricting -- so it stays the unimplemented Note. Measured over the
+// 594 CantBlockBy corpus files (619 raw lines): 48 carry an IsPresent$/
+// PresentCompare$/CheckSVar$/SVarCompare$/Condition$ gate or a Relative$/
+// ValidDefender$/ValidBlockerRelative$/PresentZone$/EffectZone$ scoping and
+// stay loud Notes; the other 571 read only the whitelisted parameters.
+func CantBlockByParamsReadable(params map[string]string) bool {
+	for k := range params {
+		switch k {
+		case "Mode", "ValidAttacker", "ValidBlocker", "ValidCard", "Description", "Secondary":
 		default:
 			return false
 		}

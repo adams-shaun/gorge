@@ -385,12 +385,19 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		return objectsOf(c.Remembered), true
 	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCard",
 		"TriggeredNewCardLKICopy",
+		"TriggeredObject", "TriggeredObjectLKICopy",
 		"TriggeredSourceSA", "TriggeredAttacker",
 		"TriggeredAttackerLKICopy",
 		"DelayTriggerRememberedLKI", "RememberedLKI":
 		// M1 does not model LKI copies, new-object identity or the
 		// ability-vs-card distinction separately: every one of these forms
 		// names the same Remembered object entry a trigger captured.
+		// TriggeredObject/TriggeredObjectLKICopy are the event-object
+		// spellings the CounterPlayerAddedAll batch triggers read (Rikku's
+		// RememberObjects$ TriggeredObjectLKICopy on its DB$ Effect body) and
+		// the unimplemented Unattached mode's bodies spell -- the triggering
+		// event's object, exactly what triggerRemembered seeds Remembered
+		// with for every non-zero ev.Obj.
 		// TriggeredSourceSA is the targeting spell/ability a BecomesTarget
 		// trigger captured (Reality Smasher's counter, Kira's and the
 		// glasskite family's counters -- 18 corpus files); its Controller

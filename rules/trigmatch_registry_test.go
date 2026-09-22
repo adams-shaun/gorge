@@ -81,6 +81,13 @@ var addedAfterTheSplit = []string{
 	// already but the MODE did not -- no pre-split switch arm could have
 	// dispatched it.
 	"ClassLevelGained",
+	// counterplayeraddedall: "Whenever you put one or more counters on a(n)
+	// <spec>" (Generous Patron, Rikku Resourceful Guardian, Kros Defense
+	// Contractor, All Will Be One; 8 corpus files). It matches the ordinary
+	// CounterChange AND PlayerCounterChange placement events, so the events
+	// existed already but the MODE did not -- no pre-split switch arm could
+	// have dispatched it.
+	"CounterPlayerAddedAll",
 }
 
 func allRegisteredModeNames() []string {
