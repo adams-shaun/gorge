@@ -928,7 +928,15 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// (CR 708.5 -- a manifested or cloaked card). The same live state read
 		// the rules-side scans gate on (faceDownPrintedHides); a face-down
 		// EXILE (Hideaway) is not a permanent and never matches.
-		return o.FaceDown && o.Zone == state.ZBattlefield
+		//
+		// AsFaceDown is a DERIVED-CHARACTERISTICS override, like AsStack just
+		// above: a Moved replacement's ValidCard$ is evaluated BEFORE
+		// events.Apply folds the face-down marker onto the object (the object
+		// is still in its origin zone with FaceDown false), so a filter like
+		// `Creature.faceDown+YouCtrl` (Veiled Ascension) would fail closed for
+		// the very entry it names. rules/replacement.go sets this bit when the
+		// intercepted move is a face-down battlefield entry.
+		return sc.AsFaceDown || (o.FaceDown && o.Zone == state.ZBattlefield)
 	case wordRingBearer:
 		// Forge's IsRingbearer (CR 701.54e): the object is its controller's
 		// Ring-bearer -- true exactly while it is on the battlefield under
@@ -2050,6 +2058,14 @@ type SpecContext struct {
 	// announced spell as the cast spell it is; nothing else reads it, and it
 	// is absent from every resolution- and target-time evaluation.
 	AsStack bool
+	// AsFaceDown is the same class of DERIVED-CHARACTERISTICS override for
+	// the faceDown predicate: a Moved replacement's ValidCard$ is evaluated
+	// ahead of the Move it intercepts, so the entering object is not yet
+	// FaceDown and is still in its origin zone. rules/replacement.go sets it
+	// while matching a face-down battlefield entry (manifest/cloak/FaceDown$),
+	// making `Creature.faceDown+...` specs match the entry they name. Like
+	// AsStack it is absent from every other evaluation.
+	AsFaceDown bool
 	// Remembered is the resolving spell or ability's Remembered set (a
 	// RepeatEach iteration binds its subject here). Like ResolutionTargets it
 	// is meaningful only while Resolving. It is also the Remembered.* base
