@@ -217,6 +217,16 @@ type pendingCast struct {
 	discards    []state.ObjID
 	discardPart int
 
+	// SubCounter cost parts whose removal-target field names a filter
+	// (SubCounter<N|X/Kind/Target>) record their chosen removal target here:
+	// the KChoose answer's object, or the sole candidate when the ask was
+	// never posed (the strict-supersets convention -- the settlement event
+	// records the object, so replay re-derives it). subCounterPart walks the
+	// parts in cost order like sacPart. Plain data, so Clone copies it like
+	// sacs/discards.
+	subCtrs        []state.ObjID
+	subCounterPart int
+
 	// convoke is the announced set of creatures paying Convoke or Harmonize.
 	// It is chosen after the complete mana cost exists and before the mana
 	// ability window; a committed creature is therefore unavailable to make
@@ -1245,7 +1255,24 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 			if part.Announced {
 				continue
 			}
-			if o.Counter(part.Spec) < part.N {
+			// A part whose removal-target field names something other than the
+			// source needs a battlefield candidate the payer controls with
+			// enough counters (Ghave's "remove a +1/+1 counter from a creature
+			// you control"), reserved against the earlier parts the same way.
+			// A source-anchored part keeps the pre-existing source read.
+			if !subCounterTargetsSource(part.Target) {
+				cands := e.subCounterRemovalCandidates(p, id, part, part.N, reserved)
+				if len(cands) == 0 {
+					return false
+				}
+				// Deterministically mirror the ask stage's reservation: the
+				// first candidate (candidates are in zone order) pays this
+				// part when the later parts of the same cost count the same
+				// pool. A board change before the ask aborts there.
+				reserved[cands[0]] = true
+				continue
+			}
+			if subCounterAvailable(o, part.Spec) < part.N {
 				return false
 			}
 		}
@@ -2225,6 +2252,13 @@ func (e *Engine) continueCast() {
 		return
 	}
 	if e.sacAsk() {
+		return
+	}
+	// The SubCounter cost parts whose removal-target field names a filter ask
+	// their payer which permanent the counters come off (Ghave's "remove a
+	// +1/+1 counter from a creature you control"), after the announced X
+	// exists so the candidate set can require that many counters.
+	if e.subCounterAsk() {
 		return
 	}
 	if e.discardAsk() {
@@ -3404,9 +3438,12 @@ func (e *Engine) xAsk() bool {
 		}
 	}
 	// An announced SubCounter<X/Kind> part's bound is the number of counters
-	// of that kind the source actually has (Chandra, Awakened Inferno's
-	// SubCounter<X/LOYALTY>: the loyalty the walker has to remove), and an
-	// announced PayLife<X> part's bound is the payer's life total divided
+	// of that kind the SOURCE actually has (Chandra, Awakened Inferno's
+	// SubCounter<X/LOYALTY>: the loyalty the walker has to remove); a part
+	// whose removal-target field names a filter (Moxite Refinery's Any-kind
+	// form) is bounded instead by the LARGEST matching candidate -- announcing
+	// an X no candidate could settle would strand the ask. An announced
+	// PayLife<X> part's bound is the payer's life total divided
 	// across the parts (the payer cannot pay more life than they have;
 	// paying exactly all of it is legal -- the SBA owns the zero-life
 	// consequence). When an announced part is the ONLY X the cost carries it
@@ -3428,8 +3465,18 @@ func (e *Engine) xAsk() bool {
 			continue
 		}
 		have := int32(0)
-		if o := e.G.Obj(pc.card); o != nil {
-			have = o.Counter(part.Spec)
+		if subCounterTargetsSource(part.Target) {
+			if o := e.G.Obj(pc.card); o != nil {
+				have = subCounterAvailable(o, part.Spec)
+			}
+		} else {
+			for _, oid := range e.subCounterRemovalCandidates(pc.player, pc.card, part, 1, nil) {
+				if o := e.G.Obj(oid); o != nil {
+					if n := subCounterAvailable(o, part.Spec); n > have {
+						have = n
+					}
+				}
+			}
 		}
 		applyCap(have)
 	}
@@ -3549,6 +3596,196 @@ func (e *Engine) delveAsk() bool {
 	e.choosing = chooseCast
 	e.ask(d)
 	return true
+}
+
+// subCounterTargetsSource reports whether a SubCounter part's removal-target
+// field names the paying source itself: the empty field (the original
+// two-field SubCounter<N/Kind> token, which has always removed from the
+// source) and Forge's payCostFromSource spellings CARDNAME/NICKNAME. Any
+// other value is a filter matched against the payer's battlefield.
+func subCounterTargetsSource(target string) bool {
+	switch strings.ToUpper(strings.TrimSpace(target)) {
+	case "", "CARDNAME", "NICKNAME":
+		return true
+	}
+	return false
+}
+
+// subCounterAvailable reports how many counters of the part's kind the object
+// could give up: the kind's own count, or the object's TOTAL counter count
+// for the "Any" kind (Forge's Any removes that many counters regardless of
+// kind). Used by the offer gate, the X bound and the candidate walk.
+func subCounterAvailable(o *state.Object, kind string) int32 {
+	if strings.EqualFold(kind, "Any") {
+		total := int32(0)
+		for _, c := range o.Counters {
+			if c.N > 0 {
+				total += c.N
+			}
+		}
+		return total
+	}
+	return o.Counter(kind)
+}
+
+// subCounterRemovalCandidates lists the permanents the payer could remove
+// part's counters from. A source-anchored part (subCounterTargetsSource)
+// offers just the source when it still carries enough counters; a filtered
+// part offers every battlefield object the PAYER controls that matches the
+// target spec (MatchesSpecFrom, the sacAsk machinery's read) and still
+// carries enough counters, excluding ids already reserved by an earlier part
+// of the same cost (sacs and earlier counter removals).
+func (e *Engine) subCounterRemovalCandidates(p state.PlayerID, source state.ObjID, part CostPart, amt int32, reserved map[state.ObjID]bool) []state.ObjID {
+	if subCounterTargetsSource(part.Target) {
+		if o := e.G.Obj(source); o != nil && o.Zone == state.ZBattlefield &&
+			subCounterAvailable(o, part.Spec) >= amt && (reserved == nil || !reserved[source]) {
+			return []state.ObjID{source}
+		}
+		return nil
+	}
+	var out []state.ObjID
+	for _, oid := range e.G.Zone(state.ZBattlefield, p) {
+		if reserved != nil && reserved[oid] {
+			continue
+		}
+		o := e.G.Obj(oid)
+		if o == nil || subCounterAvailable(o, part.Spec) < amt {
+			continue
+		}
+		if effects.MatchesSpecFrom(e.G, part.Target, oid, p, source) {
+			out = append(out, oid)
+		}
+	}
+	return out
+}
+
+// subCounterAsk offers the next unsettled SubCounter cost part whose
+// removal-target field names something other than the source (walking
+// pc.cost.SubCounter in order, pc.subCounterPart). Source-anchored parts and
+// zero-count parts record nothing: their settle emits on the source, the
+// pre-existing behaviour. The chosen removals are recorded into pc.subCtrs
+// and the counters actually leave the object at payCast, exactly like the
+// Sac parts' flow; a part with no remaining candidate aborts the whole
+// cast/activation cleanly (sacAsk's unpayable-cost rule -- a cost that
+// cannot be fully paid is never committed half paid). A sole candidate is
+// recorded without an ask: a decision nobody could answer differently is
+// never posed, and the settlement event records the object for replay.
+func (e *Engine) subCounterAsk() bool {
+	pc := e.cast
+	for pc.subCounterPart < len(pc.cost.SubCounter) {
+		part := pc.cost.SubCounter[pc.subCounterPart]
+		amt := part.N
+		if part.Announced {
+			// SubCounter<X/Kind/Target>: the announced count, already bounded
+			// by xAsk to the largest candidate available then; no priority
+			// passes mid-flow, so the board cannot shrink between announcement
+			// and this settle.
+			amt = pc.x
+		}
+		if subCounterTargetsSource(part.Target) || amt <= 0 {
+			pc.subCounterPart++
+			continue
+		}
+		reserved := map[state.ObjID]bool{}
+		for _, s := range pc.sacs {
+			reserved[s] = true
+		}
+		for _, s := range pc.subCtrs {
+			reserved[s] = true
+		}
+		candidates := e.subCounterRemovalCandidates(pc.player, pc.card, part, amt, reserved)
+		if len(candidates) == 0 {
+			e.abortCast(pc, "counter-removal cost no longer payable; cast/activation aborted", true)
+			return true
+		}
+		if len(candidates) == 1 {
+			pc.subCtrs = append(pc.subCtrs, candidates[0])
+			pc.subCounterPart++
+			continue
+		}
+		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
+			Prompt: "Choose a permanent to remove " + e.subCounterPhrase(part, amt) + " from",
+			Source: pc.card}
+		for _, oid := range candidates {
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "subcounter",
+				Obj: oid, Label: e.G.Obj(oid).Face().Name})
+		}
+		e.choosing = chooseCast
+		e.ask(d)
+		return true
+	}
+	return false
+}
+
+// subCounterPhrase renders the amount/kind half of a SubCounter part's
+// removal for a decision prompt: "A +1/+1 counter", "CHARGE counters", "ANY
+// counters". Display only.
+func (e *Engine) subCounterPhrase(part CostPart, amt int32) string {
+	unit := "counter"
+	if amt != 1 && !part.Announced {
+		unit = "counters"
+	}
+	return fmt.Sprintf("%s %s", strings.ToUpper(part.Spec), unit)
+}
+
+// settleSubCounterParts emits the SubCounter cost parts' counter removals,
+// shared by the payment branches so every path settles the same shape. A
+// source-anchored part (subCounterTargetsSource) removes from the paying
+// source -- the pre-existing behaviour -- and a filtered part removes from
+// the recorded pc.subCtrs entry, one index per settled part in cost order.
+// The "Any" kind removes the counters in the object's counter-list order
+// (already deterministic: events.Apply appends kinds in emission order),
+// one CounterChange per kind until the announced count is met.
+func (e *Engine) settleSubCounterParts(pc *pendingCast) {
+	idx := 0
+	for _, part := range pc.cost.SubCounter {
+		amt := part.N
+		if part.Announced {
+			amt = pc.x
+		}
+		if amt == 0 {
+			// A zero removal emits nothing: a CounterChange of 0 would be a
+			// no-op folded into state but a spurious log entry.
+			continue
+		}
+		target := pc.card
+		if !subCounterTargetsSource(part.Target) {
+			if idx >= len(pc.subCtrs) {
+				// The ask stage guarantees an entry for every filtered part
+				// this settle reaches; a missing one is a flow bug, not a
+				// payment to silently skip.
+				return
+			}
+			target = pc.subCtrs[idx]
+			idx++
+		}
+		if strings.EqualFold(part.Spec, "Any") {
+			// The Any kind: remove across the chosen object's kinds in its
+			// counter-list order (the fold order events.Apply maintains), one
+			// CounterChange per kind touched, until amt counters are gone.
+			o := e.G.Obj(target)
+			if o == nil {
+				return
+			}
+			left := amt
+			for _, c := range o.Counters {
+				if left <= 0 {
+					break
+				}
+				if c.N <= 0 {
+					continue
+				}
+				take := c.N
+				if take > left {
+					take = left
+				}
+				e.emit(events.Event{Kind: events.CounterChange, Obj: target, Counter: c.Kind, Amount: -take})
+				left -= take
+			}
+			continue
+		}
+		e.emit(events.Event{Kind: events.CounterChange, Obj: target, Counter: part.Spec, Amount: -amt})
+	}
 }
 
 // sacAsk offers the next unsettled Sac cost part, walking pc.cost.Sac in
@@ -5183,6 +5420,13 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 			pc.sacs = append(pc.sacs, o.Obj)
 		}
 		pc.sacPart++
+	case "subcounter":
+		// The chosen counter-removal target of a SubCounter<N|X/Kind/Target>
+		// cost part: the settle removes the part's counters from it.
+		for _, o := range chosen {
+			pc.subCtrs = append(pc.subCtrs, o.Obj)
+		}
+		pc.subCounterPart++
 	case "discard":
 		for _, o := range chosen {
 			pc.discards = append(pc.discards, o.Obj)
@@ -6089,15 +6333,7 @@ func (e *Engine) payCast() {
 		}
 		// Settled after the {T} tap for the same reason (see above).
 		e.settlePutToLibCost(pc)
-		for _, part := range pc.cost.SubCounter {
-			amt := part.N
-			if part.Announced {
-				amt = pc.x
-			}
-			if amt != 0 {
-				e.emit(events.Event{Kind: events.CounterChange, Obj: pc.card, Counter: part.Spec, Amount: -amt})
-			}
-		}
+		e.settleSubCounterParts(pc)
 		// CR 606.3: a [+N] loyalty cost adds N loyalty counters to the walker
 		// as part of the activation's payment, settled beside the SubCounter
 		// removals and before the AbilityPush (the ability object the effect
