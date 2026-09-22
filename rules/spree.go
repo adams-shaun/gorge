@@ -91,11 +91,14 @@ func modeCostTotal(f *cards.Face, names []string) Cost {
 // when every mode was withheld, drive the whole cast through the min >
 // len(legal) no-progress abort: a legal cast denied.
 //
-// The mana half goes through manaFeasiblePriced against the hypothetical
+// The mana half goes through manaFeasiblePool against the hypothetical
 // potential pool pot (a pure read: no mana has been floated yet in CR
 // 601.2g), the same over-bound direction legalActionsPriced's expensive-only
 // walk uses; every non-mana part is still checked against the REAL state by
-// nonManaCastable, so floating mana never buys a sacrifice.
+// nonManaCastable, so floating mana never buys a sacrifice. The composition
+// mirrors offerCastableUsing exactly: base and pc.mods with pc.taxGeneric
+// passed separately to the mana half (feasibleAny adds it after the
+// composition), and composedOfferCost for the non-mana halt.
 func (e *Engine) modeCostFeasible(pc *pendingCast, extra Cost, pot state.Mana) bool {
 	if pc == nil || pc.isAbility() {
 		return false
