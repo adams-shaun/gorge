@@ -1150,7 +1150,19 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	// An empty group also fails unresolvable for a life extreme (lifeExtreme
 	// reports no extreme), for the same reason: a threshold compared against
 	// an absent extreme is not readable either.
+	//
+	// The `Amount` property IS resolvable on the living groups (and the
+	// Registered spellings, which read the same living sets): Forge's
+	// property `Amount` counts 1 per group member, so
+	// PlayerCountOpponents$Amount is the opponent count — the dominant
+	// "one each" bound the corpus names SVar:OneEach (99 raw Opponents +
+	// 52 raw Players lines at the pfpe1 gate) and the per-player target
+	// bound the TargetsForEachPlayer$ shape needs (Havoc Eater's
+	// TargetMax$ X with SVar:X:PlayerCountOpponents$Amount).
 	if rest, ok := strings.CutPrefix(head, "PlayerCountPlayers$"); ok {
+		if n, ok2 := playerGroupCount(g.AliveFrom(0), rest); ok2 {
+			return n, true
+		}
 		if n, ok2 := lifeExtreme(g, g.AliveFrom(0), rest); ok2 {
 			return n, true
 		}
@@ -1160,6 +1172,9 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		return playerCountExtreme(h, g, c, g.AliveFrom(0), rest, arg)
 	}
 	if rest, ok := strings.CutPrefix(head, "PlayerCountRegisteredOpponents$"); ok {
+		if n, ok2 := playerGroupCount(opponentGroup(g, c), rest); ok2 {
+			return n, true
+		}
 		// Forge's REGISTERED opponents — the opponents registered at game
 		// start (Bloodchief Ascension's "if an opponent lost 2 or more life
 		// this turn" gate). No registered-membership list survives a replay
@@ -1172,6 +1187,9 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		return playerCountDefinedRegistered(h, g, c, opponentGroup(g, c), rest, arg)
 	}
 	if rest, ok := strings.CutPrefix(head, "PlayerCountOpponents$"); ok {
+		if n, ok2 := playerGroupCount(opponentGroup(g, c), rest); ok2 {
+			return n, true
+		}
 		if n, ok2 := lifeExtreme(g, opponentGroup(g, c), rest); ok2 {
 			return n, true
 		}
@@ -1197,9 +1215,15 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	//     resolving controller (Ludevic, Necro-Alchemist's "a player other
 	//     than you lost life this turn").
 	if rest, ok := strings.CutPrefix(head, "PlayerCountDefinedRegistered.Other$"); ok {
+		if n, ok2 := playerGroupCount(opponentGroup(g, c), rest); ok2 {
+			return n, true
+		}
 		return playerCountDefinedRegistered(h, g, c, opponentGroup(g, c), rest, arg)
 	}
 	if rest, ok := strings.CutPrefix(head, "PlayerCountDefinedRegistered$"); ok {
+		if n, ok2 := playerGroupCount(g.AliveFrom(0), rest); ok2 {
+			return n, true
+		}
 		return playerCountDefinedRegistered(h, g, c, g.AliveFrom(0), rest, arg)
 	}
 
@@ -1861,6 +1885,18 @@ func lifeExtreme(g *state.Game, players []state.PlayerID, prop string) (int32, b
 // controller — the group PlayerCountOpponents$ and (by the reading
 // documented at its dispatch site) PlayerCountRegisteredOpponents$ both
 // count over.
+// playerGroupCount answers Forge's count property `Amount` on a
+// PlayerCount<group>$ head: 1 per member, so the value is the group's size --
+// the "one each" bound (SVar:OneEach:PlayerCountOpponents$Amount) and the
+// per-player target maximum the TargetsForEachPlayer$ shape reads. Any other
+// property fails closed to the ordinary dispatch.
+func playerGroupCount(players []state.PlayerID, rest string) (int32, bool) {
+	if strings.TrimSpace(rest) != "Amount" {
+		return 0, false
+	}
+	return int32(len(players)), true
+}
+
 func opponentGroup(g *state.Game, c *Ctx) []state.PlayerID {
 	var opps []state.PlayerID
 	for _, p := range g.AliveFrom(0) {

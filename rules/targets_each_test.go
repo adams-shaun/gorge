@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -41,4 +42,197 @@ func TestTargetsForEachPlayerUsesDecisionGroups(t *testing.T) {
 	if err := d.Validate(decision.Intent{Seq: d.Seq, Player: 0, Choices: []int{0, 2}}); err != nil {
 		t.Fatalf("one target per controller rejected: %v", err)
 	}
+}
+
+// TestHavocEaterGoadsOneCreaturePerOpponentAndCountsThePower pins the
+// TargetsForEachPlayer$ target shape on Havoc Eater's real corpus card
+// (task pfpe1): its ETB trigger's DB$ Goad carries TargetMin$ 0,
+// TargetMax$ X (SVar:X:PlayerCountOpponents$Amount) and
+// TargetsForEachPlayer$ True — the ask is over the OPPONENTS' creatures with
+// at most one per controller, the maximum is the OPPONENT COUNT (a dynamic
+// bound the PlayerCountOpponents$Amount head must resolve; pre-pfpe1 the
+// head failed unresolvable and the bound degraded to 1, collapsing "for each
+// opponent, goad up to one target creature that opponent controls" to a
+// single target), and the chained DB$ PutCounter reads
+// Y:Remembered$CardPower — RememberGoaded$ True must land the goaded
+// creatures in the resolution's Remembered so X +1/+1 counters, where X is
+// the total goaded power, actually land.
+func TestHavocEaterGoadsOneCreaturePerOpponentAndCountsThePower(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	eater, ok := reg.Lookup("Havoc Eater")
+	if !ok {
+		t.Fatal("Havoc Eater missing from corpus")
+	}
+	bear, ok := reg.Lookup("Runeclaw Bear")
+	if !ok {
+		t.Fatal("Runeclaw Bear missing from corpus")
+	}
+	// Seat 1 carries TWO bears so the one-per-controller discipline is
+	// exercised on the wire, not just the offer.
+	deck0 := append(mountainDeck(t, 40), eater)
+	deck1 := append(mountainDeck(t, 40), bear, bear)
+	deck2 := append(mountainDeck(t, 40), bear)
+	e := New(seatZeroStart(Config{Seed: 42, Names: []string{"a", "b", "c"}, Decks: [][]*cards.Card{deck0, deck1, deck2}}))
+	e.Advance()
+	toMain1(t, e)
+	eaterID := crAbortMove(t, e, 0, "Havoc Eater", state.ZBattlefield)
+	bearA := crAbortMove(t, e, 1, "Runeclaw Bear", state.ZBattlefield)
+	bearB := crAbortMove(t, e, 1, "Runeclaw Bear", state.ZBattlefield)
+	bearC := crAbortMove(t, e, 2, "Runeclaw Bear", state.ZBattlefield)
+	e.pending = nil
+	e.priorityRound()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("pending = %+v, want the trigger's target decision", d)
+	}
+	if d.Min != 0 || d.Max != 2 {
+		t.Fatalf("target bounds = (%d, %d), want (0, 2): TargetMax$ X is the opponent count", d.Min, d.Max)
+	}
+	if len(d.Options) != 3 {
+		t.Fatalf("options = %+v, want one per opposing creature", d.Options)
+	}
+	groupOf := map[state.ObjID]string{}
+	for _, o := range d.Options {
+		if o.Obj != bearA && o.Obj != bearB && o.Obj != bearC {
+			t.Fatalf("offered %d — only the opponents' creatures are targets", o.Obj)
+		}
+		groupOf[o.Obj] = o.Group
+	}
+	if groupOf[bearA] == "" || groupOf[bearA] != groupOf[bearB] || groupOf[bearA] == groupOf[bearC] {
+		t.Fatalf("groups = %v, want one per controller", groupOf)
+	}
+	indexOf := func(id state.ObjID) int {
+		for _, o := range d.Options {
+			if o.Obj == id {
+				return o.Index
+			}
+		}
+		return -1
+	}
+	if err := d.Validate(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{indexOf(bearA), indexOf(bearB)}}); err == nil {
+		t.Fatal("two creatures controlled by one opponent were accepted")
+	}
+	// Replay discipline: the same answer must fold identically on a clone —
+	// the bound is resolved at ask time and the goaded set is a per-
+	// resolution ctx Remembered, both re-derived by replay without events.
+	clone := e.Clone()
+	pick := []int{indexOf(bearA), indexOf(bearC)}
+	for _, engine := range []*Engine{e, clone} {
+		if err := engine.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: pick}); err != nil {
+			t.Fatalf("submit one-per-opponent answer: %v", err)
+		}
+		for i := 0; i < 10 && !engine.G.Over; i++ {
+			dd := engine.Pending()
+			if dd == nil {
+				break
+			}
+			if dd.Kind != decision.KPriority {
+				t.Fatalf("unexpected decision after the goad ask: %+v", dd)
+			}
+			passIdx := -1
+			for _, o := range dd.Options {
+				if o.Kind == "pass" {
+					passIdx = o.Index
+				}
+			}
+			if passIdx < 0 {
+				t.Fatal("priority decision without a pass option")
+			}
+			if err := engine.Submit(decision.Intent{Seq: dd.Seq, Player: dd.Player, Choices: []int{passIdx}}); err != nil {
+				t.Fatalf("submit pass: %v", err)
+			}
+		}
+	}
+	eo := e.G.Obj(eaterID)
+	if n := targetCounterN(eo, "P1P1"); n != 4 {
+		t.Fatalf("Havoc Eater P1P1 counters = %d, want 4: X is the total goaded power (2+2)", n)
+	}
+	for _, id := range []state.ObjID{bearA, bearC} {
+		o := e.G.Obj(id)
+		if len(o.Goads) == 0 {
+			t.Fatalf("bear %d was not goaded", id)
+		}
+		goaded := false
+		for _, ge := range o.Goads {
+			if ge.Player == 0 {
+				goaded = true
+			}
+		}
+		if !goaded {
+			t.Fatalf("bear %d's goads %+v name no seat-0 goader", id, o.Goads)
+		}
+	}
+	if len(e.G.Obj(bearB).Goads) != 0 {
+		t.Fatal("the unchosen bear was goaded")
+	}
+	if !reflect.DeepEqual(e.L.Events, clone.L.Events) {
+		t.Fatal("clone diverged across the TargetsForEachPlayer ask and resolution")
+	}
+}
+
+// TestHavocEaterElectedZeroGoadsNothingAndStillResolves pins the Min-0 arm:
+// declining every target resolves the trigger with no goad and no counter,
+// the CR 608.2c untargeted resolution (a Min 0 ask with no legal target
+// never wedges either).
+func TestHavocEaterElectedZeroGoadsNothingAndStillResolves(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	eater, ok := reg.Lookup("Havoc Eater")
+	if !ok {
+		t.Fatal("Havoc Eater missing from corpus")
+	}
+	bear, ok := reg.Lookup("Runeclaw Bear")
+	if !ok {
+		t.Fatal("Runeclaw Bear missing from corpus")
+	}
+	deck0 := append(mountainDeck(t, 40), eater)
+	deck1 := append(mountainDeck(t, 40), bear)
+	e := New(seatZeroStart(Config{Seed: 42, Names: []string{"a", "b"}, Decks: [][]*cards.Card{deck0, deck1}}))
+	e.Advance()
+	toMain1(t, e)
+	eaterID := crAbortMove(t, e, 0, "Havoc Eater", state.ZBattlefield)
+	_ = crAbortMove(t, e, 1, "Runeclaw Bear", state.ZBattlefield)
+	e.pending = nil
+	e.priorityRound()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget || d.Min != 0 || d.Max != 1 {
+		t.Fatalf("pending = %+v, want the Min-0 one-opponent target ask", d)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{}}); err != nil {
+		t.Fatalf("submit empty answer: %v", err)
+	}
+	for i := 0; i < 10 && !e.G.Over; i++ {
+		dd := e.Pending()
+		if dd == nil {
+			break
+		}
+		if dd.Kind != decision.KPriority {
+			t.Fatalf("unexpected decision after the declined ask: %+v", dd)
+		}
+		passIdx := -1
+		for _, o := range dd.Options {
+			if o.Kind == "pass" {
+				passIdx = o.Index
+			}
+		}
+		if passIdx < 0 {
+			t.Fatal("priority decision without a pass option")
+		}
+		if err := e.Submit(decision.Intent{Seq: dd.Seq, Player: dd.Player, Choices: []int{passIdx}}); err != nil {
+			t.Fatalf("submit pass: %v", err)
+		}
+	}
+	if n := targetCounterN(e.G.Obj(eaterID), "P1P1"); n != 0 {
+		t.Fatalf("Havoc Eater P1P1 counters = %d, want 0", n)
+	}
+}
+
+// counterN reads one counter kind off an object's Counters (the cloak_test
+// helper shape, local to this file).
+func targetCounterN(o *state.Object, kind string) int {
+	for i := range o.Counters {
+		if o.Counters[i].Kind == kind {
+			return int(o.Counters[i].N)
+		}
+	}
+	return 0
 }

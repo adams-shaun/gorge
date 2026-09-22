@@ -463,6 +463,32 @@ func TestPlayerCountExtremePropertiesFailUnresolvable(t *testing.T) {
 	}
 }
 
+// TestPlayerCountGroupAmountHeadCountsTheGroup pins the `Amount` property on
+// the two living PlayerCount groups (pfpe1): Forge's property Amount counts 1
+// per member, so PlayerCountOpponents$Amount is the opponent count -- the
+// "one each" bound the corpus names SVar:OneEach (99 raw Opponents + 52 raw
+// Players lines) and the per-player target maximum the TargetsForEachPlayer$
+// shape reads (Havoc Eater's TargetMax$ X with
+// SVar:X:PlayerCountOpponents$Amount). Any other unmodelled property on the
+// same head keeps the fail-closed unresolvable verdict above.
+func TestPlayerCountGroupAmountHeadCountsTheGroup(t *testing.T) {
+	g, _ := board(t)
+	h := &fakeHost{g: g}
+	c := &Ctx{Controller: 0}
+	if got, ok := EvalCountOK(h, c, "Count$PlayerCountOpponents$Amount"); !ok || got != 1 {
+		t.Fatalf("PlayerCountOpponents$Amount = (%d, %v), want (1, true)", got, ok)
+	}
+	if got, ok := EvalCountOK(h, c, "Count$PlayerCountPlayers$Amount"); !ok || got != 2 {
+		t.Fatalf("PlayerCountPlayers$Amount = (%d, %v), want (2, true)", got, ok)
+	}
+	if got, ok := EvalCountOK(h, c, "Count$PlayerCountOpponents$Amount/Plus1"); !ok || got != 2 {
+		t.Fatalf("PlayerCountOpponents$Amount/Plus1 = (%d, %v), want (2, true)", got, ok)
+	}
+	if got, ok := EvalCountOK(h, c, "Count$PlayerCountOpponents$HighestAmount"); ok {
+		t.Fatalf("HighestAmount reported EVALUATED as %d -- only the bare Amount property is the group count", got)
+	}
+}
+
 // TestChosenNumberHeadReadsTheFrozenBinding locks the Count$ChosenNumber
 // head (task wildgrowth1): the head reads Ctx.ChosenNumber -- the
 // Effect-created replacement's SetChosenNumber$ binding rules' replCtx
