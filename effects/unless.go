@@ -58,12 +58,13 @@ import (
 // price. A value naming an SVar on the resolving face whose body is a
 // RESOLVABLE count expression folds its numeric result into one generic amount
 // "{N}": Feather, Radiant Arbiter's SVar:CopyCost:Count$ChosenSize/Times.2
-// becomes "{4}" for two chosen creatures. This applies to every unless API,
-// including Counter: X is payable when its SVar body resolves from captured
-// context (for example Sacrificed$CardPower). An SVar present but unresolvable
-// also passes
-// through: the ask is still posed and recorded, but it cannot be answered
-// "pay", exactly as before. The same string must reach the ask's label
+// becomes "{4}" for two chosen creatures. The fold is deliberately gated to
+// Counter and CopySpellAbility: Counter is this ticket's X-payable shape (X
+// resolves from captured context, for example Sacrificed$CardPower), while
+// every other API retains its strict, pre-existing grammar until its own
+// unless-cost semantics are implemented. An SVar present but unresolvable
+// also passes through: the ask is still posed and recorded, but it cannot be
+// answered "pay", exactly as before. The same string must reach the ask's label
 // (unlessProceed) and the payment (rules' unless_pay arm calls this with the
 // resumed ctx), so the offer and the charge can never disagree.
 func UnlessCostResolved(h Host, c *Ctx, sa *cards.SA) string {
