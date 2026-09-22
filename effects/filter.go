@@ -1400,6 +1400,12 @@ func positiveRecognised(p string) bool {
 	if p == "IsRemembered" || p == "token$DifferentCardNames" || strings.HasPrefix(p, "greatestPower") {
 		return true
 	}
+	// Forge's extreme-mana-value properties: greatestCMC_<prop>[ControlledBy
+	// <ref>] and the bare lowestCMC. Recognised here so the matcher and the
+	// census cannot disagree about the family (the classifier is shared).
+	if strings.HasPrefix(p, "greatestCMC_") || strings.HasPrefix(p, "lowestCMC") {
+		return true
+	}
 	if p == "TriggeredNewCard" || p == "TriggeredCard" {
 		return true
 	}
@@ -1977,6 +1983,99 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		}
 		return true, true
 	}
+	if rest, has := strings.CutPrefix(p, "greatestCMC_"); has {
+		// Forge's greatestCMC_<prop>[ControlledBy <players>] (CardProperty):
+		// the candidate is a battlefield card of type <prop> whose mana value
+		// no other battlefield <prop> exceeds -- TIES MATCH, every card at
+		// the maximum matches. The comparison SET is defined by the <prop>
+		// suffix, never by the filter base: Forge takes every battlefield
+		// card, filters it to the suffix's type (NonLandPermanent meaning
+		// nonland permanents, anything else the named card type), optionally
+		// restricts it to the ControlledBy players, keeps the highest-CMC
+		// members and requires the candidate to be among them. So a card not
+		// of the suffix type never matches even at the global maximum, and a
+		// card of the right type matches only if nothing in the (possibly
+		// player-restricted) set is dearer.
+		//
+		// The ControlledBy split is a string cut exactly as Forge's is
+		// (prop.contains("ControlledBy") then split), so the corpus's
+		// CreatureControlledByRemembered and
+		// NonLandPermanentControlledByRemembered forms resolve their set
+		// filter to Creature / NonLandPermanent and their players through the
+		// same controlReferentPlayers grammar greatestPower uses. A
+		// ControlledBy referent this build cannot bind fails closed (matches
+		// nobody) rather than degrading to the uncontrolled whole-field read.
+		prop := rest
+		var players []state.PlayerID
+		if i := strings.Index(prop, "ControlledBy"); i >= 0 {
+			ref := strings.TrimSpace(prop[i+len("ControlledBy"):])
+			prop = prop[:i]
+			var ok bool
+			players, ok = controlReferentPlayers(g, sc, "ControlledBy", ref)
+			if !ok {
+				return false, true
+			}
+		}
+		inSet := o.Zone == state.ZBattlefield && cmcSetMember(o, prop)
+		if inSet && len(players) > 0 {
+			inSet = false
+			for _, pl := range players {
+				if o.Controller == pl {
+					inSet = true
+				}
+			}
+		}
+		if !inSet {
+			return false, true
+		}
+		mine := objectManaValue(o)
+		for i := range g.Objs {
+			other := &g.Objs[i]
+			if other.ID == o.ID || other.Zone != state.ZBattlefield || !cmcSetMember(other, prop) {
+				continue
+			}
+			if len(players) > 0 {
+				controlled := false
+				for _, pl := range players {
+					if other.Controller == pl {
+						controlled = true
+					}
+				}
+				if !controlled {
+					continue
+				}
+			}
+			if objectManaValue(other) > mine {
+				return false, true
+			}
+		}
+		return true, true
+	}
+	if strings.HasPrefix(p, "lowestCMC") {
+		// Forge's lowestCMC (CardProperty): the candidate is a battlefield
+		// card whose mana value no other NONLAND battlefield card is below --
+		// TIES MATCH (the strict = test admits every tied minimum). Forge's
+		// lowestCMC carries no _ suffix, so there is no type/player set
+		// filter; the only exclusion is lands, which the reminder text states
+		// as "target nonland permanent with the lowest mana value" (Culling
+		// Scales, the one corpus carrier). Forge also skips immutable cards;
+		// that state has no equivalent in this build and no corpus carrier
+		// needs it -- recorded as a deliberate narrowing, not approximated.
+		// The candidate is compared even when it is a land (Forge has no
+		// candidate-in-set check here); every real carrier's base constrains
+		// it to a nonland permanent anyway, so no correct target is lost.
+		mine := objectManaValue(o)
+		for i := range g.Objs {
+			other := &g.Objs[i]
+			if other.Zone != state.ZBattlefield || hasType(other, "Land") {
+				continue
+			}
+			if objectManaValue(other) < mine {
+				return false, true
+			}
+		}
+		return true, true
+	}
 	if op, ref, recognised := controlReferent(p); recognised {
 		return matchControlReferent(g, o, sc, op, ref)
 	}
@@ -2196,6 +2295,37 @@ func objectToughness(o *state.Object) int {
 		return 0
 	}
 	return f.Toughness() + int(o.Counter("P1P1"))
+}
+
+// objectManaValue is the one mana-value read the extreme-CMC classifier
+// shares with the rest of the engine: the compiled face's CMC, the same
+// Face().Cmc() read manaValueOf, cascade and the Count$ walkers use. It is
+// the analogue of objectPower for greatestCMC/lowerCMC, so the two extreme
+// classifiers cannot drift on what a card's mana value is.
+func objectManaValue(o *state.Object) int {
+	f := o.Face()
+	if f == nil {
+		return 0
+	}
+	return int(f.Cmc())
+}
+
+// cmcSetMember reports whether o is in the comparison set a greatestCMC_<prop>
+// suffix names, mirroring Forge's CardProperty branch: NonLandPermanent is the
+// nonland-permanent predicate, and every other prop is the named card type
+// (Forge's CardLists.getType -> CardPredicates.isType). An empty prop is not a
+// shape Forge produces (greatestCMC_ always carries a suffix), so it fails
+// closed to no set rather than widening to "every battlefield card".
+func cmcSetMember(o *state.Object, prop string) bool {
+	switch prop {
+	case "":
+		return false
+	case "NonLandPermanent":
+		return !hasType(o, "Land")
+	case "Permanent":
+		return true
+	}
+	return hasType(o, prop)
 }
 
 func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (result, ok bool) {
