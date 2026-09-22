@@ -1821,16 +1821,13 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		// LATER cast (the foretell_cast case below).
 		cost = Cost{Generic: 2}
 	case "foretell_cast":
-		// CR 702.126a: the later cast pays the foretell cost -- the K: line's
-		// colon parameter (Starnheim Unleashed's "X X W" rides the ordinary
-		// X machinery here), read off the face; a missing parameter falls
-		// back to the rule's action default {2} (no corpus carrier -- every
-		// K:Foretell line carries a colon cost, measured 55/55). Stored RAW:
-		// cost modifiers apply later in manaToPay, exactly like every other
-		// alternative-cost mode's cost.
-		if fc, ok := f.KeywordParam("Foretell"); ok && strings.TrimSpace(fc) != "" {
-			cost = ParseCost(fc)
+		// CR 702.126a: use the explicit keyword cost, or the printed-cost
+		// reduction carried by an effect's ForetoldCost$ designation.
+		if fc, ok := foretellCost(f); ok {
+			cost = fc
 		} else {
+			// The option walk fails closed for this shape; retain a harmless
+			// fallback for stale options submitted after the designation changed.
 			cost = Cost{Generic: 2}
 		}
 	case "flashback":
@@ -1964,8 +1961,15 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// same card pays that mode's cost without recomposing this choice (no
 	// corpus card pairs both shapes). The OFFER gate already proved at least
 	// one part is payable (legal.go); the ask narrows it to exactly one.
-	tax := e.commanderTaxAmount(p, id)
-	mods := e.costModifiers(p, id, spellScope(opt.Mode))
+	tax := int32(0)
+	if opt.Mode != "foretell" {
+		tax = e.commanderTaxAmount(p, id)
+	}
+	scope := spellScope(opt.Mode)
+	if opt.Mode == "foretell" {
+		scope = foretellScope()
+	}
+	mods := e.costModifiers(p, id, scope)
 	// The SVar-fixed PayLife<X> conversion (fixLifeXCost) -- the same helper
 	// offerCastable shaped the offered cost with, so the stored cost and the
 	// gated charge agree. A fixed face's value folds into Life here; the

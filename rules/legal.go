@@ -1750,7 +1750,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		// and spellTimingOK continues bound the offer, the same window the
 		// Suspend offer above inherits.
 		if _, ok := f.KeywordParam("Foretell"); ok && e.G.Active == p &&
-			offerCastable(p, id, Cost{Generic: 2}, spellScope("foretell"), false) {
+			offerCastable(p, id, Cost{Generic: 2}, foretellScope(), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast", Label: "Foretell " + f.Name, Obj: id, Mode: "foretell"})
 		}
 	}
@@ -2166,7 +2166,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		// follows the card's own timing (spellTimingOK) and targets. The block
 		// sits BEFORE the warp gate's continue: a non-warp card (every foretell
 		// carrier) would otherwise never reach it.
-		if raw, ok := f.KeywordParam("Foretell"); ok && o.CastFlags&state.FlagForetold != 0 &&
+		if o.CastFlags&state.FlagForetold != 0 &&
 			e.foretellCastAvailable(id) && !castRestricted(p, id) && !e.castSuppressed(p, id) &&
 			e.spellTimingOK(p, id, f, sorcery) && e.castTargetsAvailable(p, id, f.SpellAbility()) {
 			// The K:Foretell parameter prices the later cast (CR 702.126a);
@@ -2175,11 +2175,8 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			// fallback is latent. The RAW parsed cost is offered here; cost
 			// modifiers (CR 601.2f) apply later, in manaToPay, exactly like
 			// the other alternative-cost recasts.
-			fc := Cost{Generic: 2}
-			if strings.TrimSpace(raw) != "" {
-				fc = ParseCost(raw)
-			}
-			if offerCastable(p, id, fc, spellScope("foretell_cast"), false) {
+			fc, ok := foretellCost(f)
+			if ok && offerCastable(p, id, fc, spellScope("foretell_cast"), false) {
 				out = append(out, decision.Option{Index: len(out), Kind: "cast",
 					Label: "Cast " + f.Name + " (foretold)", Obj: id, Mode: "foretell_cast"})
 			}

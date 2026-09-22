@@ -744,12 +744,17 @@ func Apply(g *state.Game, e Event) {
 		if o := g.Obj(e.Obj); o != nil {
 			if e.To == state.ZExile {
 				switch e.Counter {
-				case "exiled_with_face_down":
+				case "exiled_with_face_down", "exiled_with_face_down_foretold":
 					// Hideaway's face-down exile (CR 702.75): the exiling source
 					// rides in Amount, and FaceDown is state so a later projection
-					// knows not to reveal the card.
+					// knows not to reveal the card. The foretold variant also
+					// records the designation after Move has reset a battlefield
+					// object's cast flags.
 					o.ExiledWith = state.ObjID(e.Amount)
 					o.FaceDown = true
+					if e.Counter == "exiled_with_face_down_foretold" {
+						o.CastFlags |= state.FlagForetold
+					}
 				case "face_down":
 					// A bare ChangeZone FaceDown$ True exile (Tezzeret's
 					// Reckoning): the card is put into exile face down WITHOUT
