@@ -1,6 +1,6 @@
 // Counter trigger modes.
 //
-// Mode$ CounterAdded, CounterAddedOnce and CounterRemoved.
+// Mode$ CounterAdded, CounterAddedOnce, CounterRemoved and CounterRemovedOnce.
 //
 // Split out of trigger_match.go so tickets touching different modes stop
 // colliding on one file. Registration is at the bottom; a duplicate mode
@@ -85,8 +85,9 @@ func (e *Engine) counterAddedMatches(t cards.Trigger, source state.ObjID, ev eve
 	return true
 }
 
-// counterRemovedMatches is CounterAdded's mirror for Mode$ CounterRemoved
-// ("whenever a counter is removed from ~", "when the last <kind> counter is
+// counterRemovedMatches is CounterAdded's mirror for Mode$ CounterRemoved AND
+// Mode$ CounterRemovedOnce ("whenever a counter is removed from ~", "when the
+// last <kind> counter is removed from ~", "whenever one or more counters are
 // removed from ~"): the event is a CounterChange with a NEGATIVE Amount
 // (effects/counters.go's removal primitives, rules/turn.go:64's suspend TIME
 // upkeep decrement), filtered by CounterType$ (case-insensitive, same as the
@@ -99,7 +100,13 @@ func (e *Engine) counterAddedMatches(t cards.Trigger, source state.ObjID, ev eve
 // the total after. A malformed value fails closed (the Added arm's
 // strconv/splitCompare style). Fire-once semantics are the event granularity:
 // one Amount: -N batch removal is ONE trigger, exactly as CounterAdded fires
-// once per CounterChange; the Once batch modes are separate.
+// once per CounterChange, and that IS the CounterRemovedOnce contract --
+// "one or more counters removed" is one CounterChange, never one trigger per
+// counter. The two modes differ only in that a CounterRemovedOnce body reads
+// the removed magnitude through TriggerCount$Amount (Chandra, Fire Artisan's
+// "deals that much damage"; B.O.B. Bevy of Beebles; Regenerations Restored),
+// which the referent capture in trigger_referents.go supplies. No corpus
+// CounterRemovedOnce line carries CounterAmount$/NewCounterAmount$.
 func (e *Engine) counterRemovedMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
 	if ev.Kind != events.CounterChange || ev.Amount >= 0 {
 		return false
@@ -128,5 +135,5 @@ func (e *Engine) counterRemovedMatches(t cards.Trigger, source state.ObjID, ev e
 
 func init() {
 	registerTrigMatcher((*Engine).counterAddedMatches, "CounterAdded", "CounterAddedOnce")
-	registerTrigMatcher((*Engine).counterRemovedMatches, "CounterRemoved")
+	registerTrigMatcher((*Engine).counterRemovedMatches, "CounterRemoved", "CounterRemovedOnce")
 }

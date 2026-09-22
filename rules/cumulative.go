@@ -136,6 +136,11 @@ func costCarriesUnfoldedX(c Cost) bool {
 			return true
 		}
 	}
+	for _, part := range c.Energy {
+		if part.Spec == "X" {
+			return true
+		}
+	}
 	return false
 }
 
@@ -778,12 +783,23 @@ func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
 			bound = life
 		}
 	}
+	// A PayEnergy<X> part is bounded by the payer's energy counter total (the
+	// same cap the cast path's xAsk applies to an energy X -- Forge
+	// CostPayEnergy.getMaxAmountX). A fixed PayEnergy<N> part is charged as
+	// its N regardless of the announced X, but it must still be affordable
+	// for any offered value, so the total caps the bound too.
+	if tc.amount.energyCostX() {
+		if energy := e.G.Players[tc.player].Counter("ENERGY"); bound < 0 || energy < bound {
+			bound = energy
+		}
+	}
 	if bound < 0 {
 		return false
 	}
 	var opts []decision.Option
 	for x := int32(0); x <= bound; x++ {
-		if !e.costPayablePool(tc.player, tc.source, false, foldCostX(tc.amount, x), pot, e.G.Players[tc.player].TypedMana) {
+		v := foldCostX(tc.amount, x)
+		if !e.energyPayable(tc.player, v) || !e.costPayablePool(tc.player, tc.source, false, v, pot, e.G.Players[tc.player].TypedMana) {
 			continue
 		}
 		opts = append(opts, decision.Option{Index: len(opts), Kind: "trigger_cost_x",
@@ -803,6 +819,35 @@ func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
 	e.ask(&decision.Decision{Player: tc.player, Kind: decision.KChoose, Min: 1, Max: 1,
 		Prompt: name + " — choose a value for X", Source: tc.source, Options: opts})
 	return true
+}
+
+// triggeredCostPayable reports whether the window's "pay" election is
+// answerable: the payer's energy pool covers the cost's energy parts, no
+// other unmodelled component rides the cost, and the remaining mana/life (and
+// any Draw/Sac/Exile/Discard components) half is chargeable. It is the ONE
+// home for the ask gate's payable decision, so the offered answers and the
+// pay arm's charge can never disagree (the two energy sites are
+// energyPayable here and chargeEnergyCost there).
+func (e *Engine) triggeredCostPayable(tc *triggeredEffectCost) bool {
+	amt := tc.amount
+	if !e.energyPayable(tc.player, amt) {
+		return false
+	}
+	rest := amt.withoutEnergy()
+	if len(rest.Sac)+len(rest.Discard)+len(rest.Exile)+len(rest.MoveToGrave) > 0 {
+		// A component-bearing cost is payable ONLY through the settle gate
+		// (trigcost2): the Draw arm alone would offer "pay" while silently
+		// skipping the components.
+		return e.triggeredCostComponentsPayable(tc)
+	}
+	if rest.Priceable() {
+		return true
+	}
+	if len(rest.Draw) > 0 {
+		_, ok := e.triggeredCostDrawCounts(tc)
+		return ok
+	}
+	return false
 }
 
 // triggeredCostComponentsPayable reports whether the window can settle a
@@ -838,7 +883,7 @@ func (e *Engine) triggeredCostComponentsPayable(tc *triggeredEffectCost) bool {
 	// structurally rather than by population -- the corpus carries no trigger
 	// body with one today, and if one lands it must not be silently skipped.
 	if len(amt.SubCounter) > 0 || len(amt.Reveal) > 0 || len(amt.RevealChosen) > 0 || len(amt.Behold) > 0 ||
-		len(amt.TapPermanent) > 0 || len(amt.Blight) > 0 || len(amt.Energy) > 0 ||
+		len(amt.TapPermanent) > 0 || len(amt.Blight) > 0 ||
 		len(amt.AddCounter) > 0 || len(amt.Return) > 0 || len(amt.PutToLib) > 0 ||
 		len(amt.LifeX) > 0 || len(amt.DamageYou) > 0 || amt.Forage {
 		return false
@@ -949,16 +994,12 @@ func (e *Engine) triggeredCostPaymentAsk() {
 	// count resolves and the mana half -- if any -- is covered. The dynamic
 	// Draw<X/Spec> form (Champion of Wits' Cost$ Draw<X/You>) resolves its
 	// count from the source's SVar table here, at the window, so an
-	// unresolvable body offers decline only.
-	payable := tc.amount.Priceable()
-	if len(tc.amount.Sac)+len(tc.amount.Discard)+len(tc.amount.Exile)+len(tc.amount.MoveToGrave) > 0 {
-		// A component-bearing cost is payable ONLY through the settle gate
-		// (trigcost2): the Draw arm alone would offer "pay" while silently
-		// skipping the components -- the defect this gate closes.
-		payable = e.triggeredCostComponentsPayable(tc)
-	} else if !payable && len(tc.amount.Draw) > 0 {
-		_, payable = e.triggeredCostDrawCounts(tc)
-	}
+	// unresolvable body offers decline only. An energy-bearing cost
+	// (PayEnergy<N>) is likewise unPriceable but payable when the payer's
+	// energy pool covers the parts and the mana/life half is chargeable --
+	// the same split the cast path's nonManaCastable makes. The ONE shared
+	// gate keeps the ask and the pay arm in lockstep.
+	payable := e.triggeredCostPayable(tc)
 	if !payable {
 		// An unpriceable cost (PayLife<X>, Verrak, Warped Sengir's copy
 		// trigger) is a hard decline per the ParseUnlessCost convention: the
@@ -1130,10 +1171,12 @@ func (e *Engine) triggeredCostAnswer(chosen []decision.Option) {
 			// The Draw-bearing cost: resolve every count (source SVar for the
 			// dynamic form), charge the mana half, then draw. The window's ask
 			// offered "pay" only when this resolution succeeds, so the pay
-			// answer is never a partial payment.
+			// answer is never a partial payment. Any energy part is charged by
+			// the shared helper beside the mana (payMana ignores Energy).
 			draws, ok := e.triggeredCostDrawCounts(tc)
-			if ok && e.payManaConv(tc.player, tc.amount, e.paymentConv(tc.player, tc.source, false)) {
+			if ok && e.payManaConv(tc.player, tc.amount.withoutEnergy(), e.paymentConv(tc.player, tc.source, false)) {
 				paid = true
+				e.chargeEnergyCost(tc.player, tc.amount, tc.xPaid)
 				for i, part := range tc.amount.Draw {
 					if drawer, ok := castFlowDrawPlayer(part.Spec, tc.player); ok {
 						for n := int32(0); n < draws[i]; n++ {
@@ -1143,8 +1186,16 @@ func (e *Engine) triggeredCostAnswer(chosen []decision.Option) {
 				}
 			}
 		} else {
-			paid = tc.amount.Priceable() &&
-				e.payManaConv(tc.player, tc.amount, e.paymentConv(tc.player, tc.source, false))
+			// The mana/life half is charged by payManaConv; any energy part is
+			// charged by the shared chargeEnergyCost helper (payMana ignores
+			// Energy). The gate offered "pay" only when both halves were
+			// covered, so a paid answer is never a partial payment.
+			lower := tc.amount.withoutEnergy()
+			paid = lower.Priceable() &&
+				e.payManaConv(tc.player, lower, e.paymentConv(tc.player, tc.source, false))
+			if paid {
+				e.chargeEnergyCost(tc.player, tc.amount, tc.xPaid)
+			}
 		}
 	}
 	rp := tc.resume
@@ -1440,10 +1491,13 @@ func (e *Engine) settleTriggeredMandatory(tc *triggeredEffectCost) {
 	stripped.Sac, stripped.Discard, stripped.Exile, stripped.Draw = nil, nil, nil, nil
 	stripped.MoveToGrave = nil
 	if (stripped.hasManaPayment() || stripped.Life > 0) &&
-		!e.payManaConv(tc.player, stripped, e.paymentConv(tc.player, tc.source, false)) {
+		!e.payManaConv(tc.player, stripped.withoutEnergy(), e.paymentConv(tc.player, tc.source, false)) {
 		e.triggeredCostDecline(tc)
 		return
 	}
+	// The energy half of the component cost (payMana ignores Energy parts):
+	// the gate already confirmed the payer covers it (triggeredCostPayable).
+	e.chargeEnergyCost(tc.player, tc.amount, tc.xPaid)
 	rp := tc.resume
 	e.triggerCost = nil
 	e.choosing = chooseNone

@@ -78,6 +78,58 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 // (Moved/Untap/BeginPhase/Transform/ProduceMana/DamageDone). Factored out so
 // applyReplacements can wrap a player-targeted Damage event with the
 // repl:LifeReduced fallback above without duplicating this body.
+// bloodthirstEntryMatch builds the synthetic Moved replacement a permanent
+// with bloodthirst enters by (CR 702.54: "Bloodthirst N means 'If an
+// opponent was dealt damage this turn, this permanent enters the battlefield
+// with N +1/+1 counters on it.'"). The keyword is read from the entering
+// object's DERIVED keyword list (derivedKeywordParam), so a printed
+// K:Bloodthirst:<N> and a layer-6 `AddKeyword$ Bloodthirst:<N>` grant are
+// ONE identical shape -- the grant path is the shape a cards-side expansion
+// could never see (Twins of Discord; the primitive ratchet counts only
+// Face.Primitives()'s printed-keyword walk, so the grant was previously a
+// silent no-op the census could not even name).
+//
+// A fixed N gates on the existing CheckSVar$/SVarCompare$ pair -- the SVar
+// name is an INLINE Count body (replacementCheckValue falls through to
+// effects.EvalCount for a name no face SVar table defines), reading the
+// DamageOppsTakenThisTurn head compared GT0. Bloodthirst X has no gate: the
+// count IS the amount, so the body's CounterNum$ is the same inline Count
+// body. A param that is neither a positive literal nor X (unmeasured in the
+// corpus, all 23 printed lines spell <N> or X) fails closed to no match --
+// the conservative direction for a counter put.
+func (e *Engine) bloodthirstEntryMatch(ev events.Event) *replMatch {
+	param, ok := e.derivedKeywordParam(ev.Obj, "Bloodthirst")
+	if !ok {
+		return nil
+	}
+	body := &cards.SA{Kind: "DB", API: "PutCounter", Params: map[string]string{
+		"Defined":     "Self",
+		"CounterType": "P1P1",
+		"ETB":         "True",
+	}}
+	r := &cards.Repl{Event: "Moved", Params: map[string]string{
+		"Destination":       "Battlefield",
+		"ValidCard":         "Card.Self",
+		"ReplacementResult": "Updated",
+		"Keyword":           "Bloodthirst",
+		"KeywordLine":       "Bloodthirst:" + param,
+	},
+		With: body,
+	}
+	if param == "X" {
+		body.Params["CounterNum"] = "Count$DamageOppsTakenThisTurn"
+	} else {
+		n, err := strconv.Atoi(param)
+		if err != nil || n <= 0 {
+			return nil
+		}
+		body.Params["CounterNum"] = strconv.Itoa(n)
+		r.Params["CheckSVar"] = "Count$DamageOppsTakenThisTurn"
+		r.Params["SVarCompare"] = "GT0"
+	}
+	return &replMatch{id: ev.Obj, repl: r}
+}
+
 func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool) {
 	event, ok := replacementEvent(ev)
 	if !ok {
@@ -97,11 +149,11 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	// Only a POSITIVE placement of a real counter is subject to the
 	// restriction: a removal (Amount <= 0) is not a placement at all, and the
 	// engine's own status markers (regeneration's Shield, the Deathtouched
-	// mark) are not counters -- the same internalCounterMarker exclusion the
+	// mark) are not counters -- the same state.InternalCounterMarker exclusion the
 	// AddCounter matcher keeps, so a "counters can't be put on it" static
 	// cannot stop a regeneration shield or a removal.
 	if (ev.Kind == events.CounterChange || ev.Kind == events.PlayerCounterChange) &&
-		ev.Amount > 0 && !internalCounterMarker(ev.Counter) {
+		ev.Amount > 0 && !state.InternalCounterMarker(ev.Counter) {
 		if e.PutCounterBlocked(ev.Counter, ev.Obj, ev.Player, ev.Kind == events.PlayerCounterChange) {
 			return events.Event{}, true
 		}
@@ -117,6 +169,11 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	// would enter; parking the move keeps the entry out of the log until the
 	// as-enters choice is recorded next to it.
 	if e.applyRiotReplacement(ev) {
+		return ev, true
+	}
+	// kw:Unleash (CR 702.86) asks its take-the-counter-or-not question as the
+	// creature would enter, the Riot parking discipline (rules/unleash.go).
+	if e.applyUnleashReplacement(ev) {
 		return ev, true
 	}
 	// CR 310.10: a Battle Siege's protector is chosen as it enters. Parked
@@ -209,6 +266,17 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 			}
 		}
 	})
+	// kw:Bloodthirst (CR 702.54): the entering permanent's own bloodthirst --
+	// printed or layer-6 granted -- is one more Updated entry replacement,
+	// collected AFTER the face-Repl scan so the deterministic composition
+	// order stays "the card's own entry effects, then the keyword's". All
+	// entry augmentations commute, so the append position cannot change a
+	// result; it only fixes the scan order.
+	if ev.Kind == events.MoveZone && ev.To == state.ZBattlefield {
+		if m := e.bloodthirstEntryMatch(ev); m != nil && e.replacementMatches(*m.repl, m.id, ev) {
+			matches = append(matches, *m)
+		}
+	}
 	if ev.Kind == events.ManaAdd {
 		return e.continueManaReplacements(ev, manaCandidates, nil, false, e.manaFromTap, e.manaProducer)
 	}
@@ -1437,31 +1505,6 @@ func (e *Engine) continueCreateTokenReplacements(ev events.Event, matches []repl
 	return last, true
 }
 
-// internalCounterMarker reports whether a counter name is one of the engine's
-// own status markers rather than a counter a card could name. Both ride an
-// ordinary CounterChange -- the engine has no per-object status field, so a
-// marker is recorded as a counter -- and both are SET with Amount 1, so the
-// AddCounter matcher's positive-amount guard does not exclude them:
-//
-//   - "Shield", the this-turn regeneration shield (effects/counters.go's
-//     effRegenerate sets it, effects/regeneration.go reads it back, and
-//     rules/combat.go consumes one per destruction);
-//   - "Deathtouched", the CR 702.2b lethal mark (rules/combat.go's combat
-//     assignment, this file's replacement-applied damage, effects/damage.go),
-//     read by rules/sba.go's destruction check.
-//
-// A counter doubler whose R: line names no ValidCounterType$ -- Doubling
-// Season, Winding Constrictor's object line, Loading Zone, Pir, Selesnya Loft
-// Gardens -- matches any counter kind, so without this gate one Regenerate
-// would grant TWO regeneration shields. Excluding the markers by name is safe:
-// every counter kind the corpus scripts is upper-case (P1P1, LORE, AGE, TIME,
-// STUN, CHARGE, ENERGY, POISON, LOYALTY, ...), so no real kind can collide
-// with either mixed-case marker name, and a removal of a marker was already
-// excluded by the sign guard.
-func internalCounterMarker(name string) bool {
-	return name == "Shield" || name == "Deathtouched"
-}
-
 // applyAddCounterReplacements rewrites a CounterChange/PlayerCounterChange
 // event's Amount through every applicable R:Event$ AddCounter replacement,
 // then returns the event UNHANDLED so emit's ordinary path logs and folds the
@@ -1916,6 +1959,21 @@ func (e *Engine) applyRiotReplacement(ev events.Event) bool {
 	o := e.G.Obj(ev.Obj)
 	if o == nil || o.Zone == state.ZBattlefield || o.Face() == nil ||
 		!o.Face().HasKeyword("Riot") || o.RiotChoice != "" {
+		return false
+	}
+	// A face-down entry (manifest or cloak, CR 708.5) is a vanilla 2/2
+	// creature: no riot choice is posed for it, and no public Choose "riot"
+	// event may leak the hidden card. The guard MUST sit BEFORE the parking
+	// assignment below -- a face-down entry that parked its move and then
+	// returned false would leak a stale e.riotMove that is never emitted and
+	// never cleared (chooseRiot's answer arm cannot fire for it), so every
+	// later non-cast Riot entry would hit the parked-move guard above and
+	// never ask again. The FaceDown state is folded by Apply's Move AFTER
+	// this dispatch, so the incoming event's counter, not o.FaceDown, is
+	// what names the face-down entry (the Siege guard's exact shape, in the
+	// Siege guard's exact place -- before every return-past-parking; unleash
+	// carries the identical guard in the identical place).
+	if events.IsFaceDownEntry(ev.Counter) {
 		return false
 	}
 	move := ev
@@ -2485,8 +2543,8 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 		// ... and neither is one of the engine's own status markers, which
 		// ride a CounterChange for want of a status field and are emitted
 		// with a POSITIVE amount, so the sign guard above does not exclude
-		// them. See internalCounterMarker.
-		if internalCounterMarker(ev.Counter) {
+		// them. See state.InternalCounterMarker.
+		if state.InternalCounterMarker(ev.Counter) {
 			return false
 		}
 		// ValidCounterType$ names the kind of counter being added and appears
@@ -4512,7 +4570,17 @@ func init() {
 	// applyLifeReplacements. repl:DamageDone and repl:Counter are this
 	// ticket's own additions, matched by replacementMatches's DamageDone case
 	// and CounterAllowed respectively.
-	effects.RegisterNonAPI("kw:etbCounter", "kw:ETBReplacement", "kw:Devour", "kw:Ravenous",
+	// kw:Bloodthirst (CR 702.54) is implemented by this file's
+	// bloodthirstEntryMatch: the keyword line (printed K:Bloodthirst:<N> or a
+	// layer-6 AddKeyword$ grant) is read at MoveZone→Battlefield collection
+	// time from the entering object's DERIVED keyword list, so one read
+	// covers both shapes -- a printed carrier and Twins of Discord's
+	// `Affected$ Creature.Other+YouCtrl+Colorless | AddKeyword$ Bloodthirst:2`
+	// grant, which cards-side expansion could never see. No cards-side
+	// expansion exists: bloodthirst is a static ability whose whole meaning
+	// is an entry-time conditional counter put, which is exactly what the
+	// synthetic Repl below expresses.
+	effects.RegisterNonAPI("kw:etbCounter", "kw:ETBReplacement", "kw:Devour", "kw:Ravenous", "kw:Bloodthirst",
 		"repl:Untap", "repl:BeginPhase", "repl:Transform", "repl:ProduceMana",
 		"repl:GainLife", "repl:LifeReduced", "repl:DamageDone", "repl:Counter",
 		"repl:CreateToken", "repl:RollPlanarDice", "repl:Explore", "api:ReplaceToken",
