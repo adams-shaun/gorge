@@ -85,7 +85,8 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.CombatRetarget, events.RingTemptsYou, events.RingEmblemPush,
 		events.BlessingChange, events.ClonePermanent,
 		events.Mutate, events.MergedTriggerPush,
-		events.Enlist, events.AlterAttribute:
+		events.Enlist, events.AlterAttribute,
+		events.GainedAbilityPush, events.GainedTriggerPush:
 		// AlterAttribute (alterattr1) is the same shape past the bound as
 		// Enlist: the suspected designation (CR 702.157) is a status no
 		// trigger mode fires on -- the corpus reads it through filter
@@ -107,8 +108,13 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		// matched by trig:Mutates through the full matcher (mutatesMatches),
 		// and MergedTriggerPush is a mint marker no mode fires on. Enlist is
 		// the same shape past the bound: trig:Enlisted matches the full
-		// events.Enlist carrier through enlistedMatches. Naming them keeps
-		// the audit complete if the bound ever widens.
+		// events.Enlist carrier through enlistedMatches. GainedAbilityPush and
+		// GainedTriggerPush (gains1) are the has-all-abilities-of mint
+		// markers: the ability itself is matched on the event that caused it
+		// (an ordinary trigger scan), and the push only mints its stack
+		// object -- the GrantAbilityPush/GrantTriggerPush shape, and like
+		// those two past the bound so both classifiers fail open anyway.
+		// Naming them keeps the audit complete if the bound ever widens.
 		return 0
 	case events.Attach:
 		return cards.TriggerInterestAttach

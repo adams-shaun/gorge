@@ -2226,6 +2226,90 @@ func Apply(g *state.Game, e Event) {
 		o.Ability = sa
 		o.Source = e.Obj
 
+	case GainedAbilityPush:
+		// A has-all-abilities-of activated ability (Forge's GainsAbilitiesOf$,
+		// task gains1): like AbilityPush the object is minted inside Apply so a
+		// log-only replay creates the same object a live game did, but the
+		// ability is a compiled SA on a FOREIGN card's face rather than an
+		// index of the recipient's own. Obj is the recipient (o.Source, so
+		// `Defined$ Self`/`CARDNAME` in the body names it), IDs[0] the foreign
+		// card, Amount the index of the ability in that face's Abilities. The
+		// compiled pointer is what the activation-limit census and the
+		// owning-face SVar reads recover, so it must be the face's own SA --
+		// never a fresh parse. A missing IDs[0], a foreign card that left the
+		// scoped zone, or a stale index mints nothing (the totality stance
+		// every case here takes).
+		if !validPlayer(g, e.Player) {
+			break
+		}
+		if len(e.IDs) == 0 {
+			break
+		}
+		if g.Obj(e.Obj) == nil {
+			break
+		}
+		foreign := g.Obj(e.IDs[0])
+		if foreign == nil || foreign.Face() == nil {
+			break
+		}
+		abilities := foreign.Face().Abilities
+		if e.Amount < 0 || int(e.Amount) >= len(abilities) {
+			break
+		}
+		sa := abilities[int(e.Amount)]
+		if sa == nil {
+			break
+		}
+		o := g.AddObject(nil, e.Player)
+		Move(g, o.ID, state.ZLibrary, state.ZStack)
+		o.Ability = sa
+		o.Source = e.Obj
+
+	case GainedTriggerPush:
+		// A has-all-abilities-of triggered ability (Forge's GainsTriggerAbsOf$,
+		// task gains1): the GainedAbilityPush shape one level over, the
+		// MergedTriggerPush precedent's Apply-time mint. Obj is the recipient
+		// (o.Source), IDs[0] the foreign card, Amount the index of the
+		// trigger in that face's Triggers, and Counter the Execute$ name
+		// carried as readable provenance and checked against the trigger line
+		// here -- so a truncated or tampered log mints nothing rather than the
+		// wrong ability. The face's own compiled Trigger.Effect pointer is
+		// minted, never a by-name parse, for the same reason MergedTriggerPush
+		// mints the compiled pointer: every consumer that recovers a resolving
+		// ability's owning trigger (the OptionalDecider$ gate, the
+		// intervening-if recheck, the label, the SVar table) does so by
+		// pointer identity.
+		if !validPlayer(g, e.Player) {
+			break
+		}
+		if len(e.IDs) == 0 {
+			break
+		}
+		if g.Obj(e.Obj) == nil {
+			break
+		}
+		foreign := g.Obj(e.IDs[0])
+		if foreign == nil || foreign.Face() == nil {
+			break
+		}
+		triggers := foreign.Face().Triggers
+		if e.Amount < 0 || int(e.Amount) >= len(triggers) {
+			break
+		}
+		// The Trigger is a value type on the face; take a stable pointer to
+		// the element rather than copying (the compiled pointer identity the
+		// consumers rely on). A face's Triggers slice never resizes after
+		// parse, so the pointer stays valid for the match.
+		tr := &triggers[int(e.Amount)]
+		if tr.Effect == nil || tr.Params["Execute"] != e.Counter {
+			break
+		}
+		sa := tr.Effect
+		o := g.AddObject(nil, e.Player)
+		Move(g, o.ID, state.ZLibrary, state.ZStack)
+		o.Ability = sa
+		o.Source = e.Obj
+
 	case CmdDamage:
 		// Commander combat damage to a player (CR 903.10, Task m33): fold
 		// Amount into Player's cumulative tally at the source commander's

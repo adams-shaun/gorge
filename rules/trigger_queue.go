@@ -642,6 +642,46 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 	// resolves to the exact body the granting face's table names), and the
 	// ability receives the same CR 603.3c mode/target placement asks a
 	// TriggerPush ability would.
+	if pt.Gained {
+		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
+			return
+		}
+		ids := make([]state.ObjID, 0, len(pt.Ctx.Remembered)+1)
+		// IDs[0] is the foreign card (the event's own provenance slot); the
+		// remembered targets follow. events.Apply resolves the ability from
+		// IDs[0] and Amount, so the order is load-bearing.
+		ids = append(ids, pt.GainedFrom)
+		for _, tgt := range pt.Ctx.Remembered {
+			if tgt.IsPlayer {
+				ids = append(ids, state.PlayerRef(tgt.Player))
+				continue
+			}
+			ids = append(ids, tgt.Obj)
+		}
+		stackLen := len(e.G.Stack)
+		e.emit(events.Event{Kind: events.GainedTriggerPush, Player: pt.Controller,
+			Obj: pt.Source, Amount: int32(pt.Idx), Counter: pt.Execute,
+			IDs: ids, Text: "gained trigger"})
+		if pt.SA != nil && len(e.G.Stack) > stackLen {
+			id := e.G.Stack[len(e.G.Stack)-1]
+			if e.triggerContexts == nil {
+				e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
+			}
+			e.triggerContexts[id] = pt.Ctx.TriggerContext
+			handled := false
+			if pt.SA.Params["Choices"] != "" {
+				handled = e.askTriggerModes(pt.Controller, id, pt.SA)
+				if handled {
+					e.drainAwaitsModes = true
+				}
+			}
+			if !handled && pt.SA.Params["ValidTgts"] != "" {
+				e.askTarget(pt.Controller, id, pt.SA)
+			}
+		}
+		e.drainAwaitsTarget = e.Pending() != nil && !e.drainAwaitsModes
+		return
+	}
 	if pt.Granted {
 		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
 			return
@@ -993,6 +1033,24 @@ func (e *Engine) findTriggerForAbilityFace(source state.ObjID, sa *cards.SA) (ca
 		for _, t := range mf.Triggers {
 			if t.Effect == sa {
 				return t, mf, true
+			}
+		}
+	}
+	// A has-all-abilities-of GRANTED trigger (Forge's GainsTriggerAbsOf$): the
+	// resolving body is a compiled trigger on a FOREIGN card's face, so the
+	// owning face -- and therefore the SVar table, OptionalDecider$ gate,
+	// intervening-if recheck and label every consumer reads -- is that foreign
+	// face, not the recipient's. Measured against the live grants only (a grant
+	// that ended with its static is no owner), in active()'s deterministic
+	// order. A gained ACTIVATED ability is deliberately not matched here: it
+	// has no Trigger to return, and pileFaceForSA is its recovery point.
+	for _, gf := range e.gainedFacesForSource(source) {
+		if gf.Face == nil {
+			continue
+		}
+		for _, t := range gf.Face.Triggers {
+			if t.Effect == sa {
+				return t, gf.Face, true
 			}
 		}
 	}

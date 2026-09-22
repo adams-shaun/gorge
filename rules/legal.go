@@ -1036,6 +1036,16 @@ type grantedAbility struct {
 	// ability's Source stays the recipient.
 	source state.ObjID
 	svar   string
+	// gained marks an ability granted off a FOREIGN card's compiled face
+	// (state.ContinuousEffect.GainedFaces): sa is that card's own ability,
+	// gainedFrom is the foreign object id (in the scoped zone) and
+	// gainedIdx is the index of sa in that face's Abilities. The activation
+	// mints through GainedAbilityPush, which names both so a replay
+	// re-resolves the identical SA; a zero gainedFrom means the ordinary
+	// SVar-anchored grant.
+	gained     bool
+	gainedFrom state.ObjID
+	gainedIdx  int
 }
 
 // grantedAbilities collects the activated abilities the battlefield's
@@ -1050,10 +1060,34 @@ type grantedAbility struct {
 func (e *Engine) grantedAbilities(p state.PlayerID, id state.ObjID) []grantedAbility {
 	var out []grantedAbility
 	for _, ce := range e.active() {
-		if len(ce.AddAbilities) == 0 {
+		if len(ce.AddAbilities) == 0 && len(ce.GainedFaces) == 0 {
 			continue
 		}
 		if !effects.MatchesSpecFrom(e.G, ce.Affects, id, ce.Controller, ce.Source) {
+			continue
+		}
+		// A has-all-abilities-of grant (GainsAbilitiesOf$): each named
+		// foreign face's own compiled Abilities are the recipient's to
+		// activate. The face's `Abilities` slice holds only AB-kind SAs
+		// (cards' parser appends A: lines as AB/SP/ST kinds; a gained
+		// activated ability is the AB ones), matched by the same
+		// isManaAbilityAPI split the offer loop applies, so a gained mana
+		// ability flows through the payment path like any other. The index
+		// is the face-local position, which GainedAbilityPush re-resolves
+		// against the same face a replay rebuilds.
+		for _, gf := range ce.GainedFaces {
+			if gf.Face == nil {
+				continue
+			}
+			for i, ab := range gf.Face.Abilities {
+				if ab == nil || ab.Kind != "AB" {
+					continue
+				}
+				out = append(out, grantedAbility{sa: ab, source: ce.Source,
+					gained: true, gainedFrom: gf.Obj, gainedIdx: i})
+			}
+		}
+		if len(ce.AddAbilities) == 0 {
 			continue
 		}
 		src := e.G.Obj(ce.Source)
@@ -2315,6 +2349,22 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			}
 			// Adapt$ (CR 702.35a): the granted twin of the printed loop's gate.
 			if !e.adaptGateOK(id, ab) {
+				continue
+			}
+			// A has-all-abilities-of gained ability (GainsAbilitiesOf$) is
+			// offered with its foreign-card anchor; every other granted
+			// ability keeps the SVar-name anchor (boastGateOK's and the
+			// activation-limit gate's identity).
+			if ga.gained {
+				if strings.EqualFold(strings.TrimSpace(ab.Params["Boast"]), "True") && !e.boastGateOK(id, -1, "") {
+					continue
+				}
+				if e.activationLimitBlocked(p, id, ab, -1, "", 0) {
+					continue
+				}
+				out = append(out, decision.Option{Index: len(out), Kind: "ability",
+					Label: o.Face().Name + ": " + ab.Params["SpellDescription"], Obj: id,
+					GainedSource: ga.gainedFrom, GainedIdx: ga.gainedIdx})
 				continue
 			}
 			// kw:Boast (CR 702.142): the granted twin of the printed loop's

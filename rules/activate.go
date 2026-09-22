@@ -29,6 +29,16 @@ func (e *Engine) beginActivation(p state.PlayerID, opt decision.Option) {
 	if o == nil {
 		return
 	}
+	if opt.GainedSource != 0 {
+		// A has-all-abilities-of activation (Forge's GainsAbilitiesOf$,
+		// rules/legal.go's gained offer): the ability is a compiled SA on the
+		// named FOREIGN card's face, so the anchor is (gainedFrom, gainedIdx)
+		// rather than a printed face index or an SVar name. The SA is
+		// re-resolved here and minted through events.GainedAbilityPush, so a
+		// replay re-resolves the identical body.
+		e.beginGainedActivation(p, opt)
+		return
+	}
 	if opt.SVar != "" {
 		// A granted ability (rules/legal.go's AddAbilities offer) anchors on
 		// the SVar name, never a face index -- the same anchor the max-speed

@@ -77,6 +77,15 @@ type pendingCast struct {
 	grantSource state.ObjID
 	grantSVar   string
 
+	// gainedFrom / gainedIdx anchor a HAS-ALL-ABILITIES-OF activation
+	// (Forge's GainsAbilitiesOf$, rules/activation's gained branch): the body
+	// is a compiled SA on a FOREIGN card's face, so gainedFrom is that card's
+	// object id and gainedIdx the index of the SA in its Face().Abilities.
+	// Both are plain values carried through the same shallow Clone as the
+	// scalars above; a zero gainedFrom means no gained activation.
+	gainedFrom state.ObjID
+	gainedIdx  int
+
 	cost Cost
 
 	// mayPlayIgnore is the may-play grant's MayPlayIgnoreColor$ rider,
@@ -4262,7 +4271,9 @@ func (c Cost) announcePip(i int) []pipAlt {
 // raw index, so a granted proposal -- whose ability field is -1 -- takes the
 // ability arms (no spell legality recheck, no cast trigger, the ability
 // payment/mint branch, no modes ask) instead of the spell ones.
-func (pc *pendingCast) isAbility() bool { return pc.ability >= 0 || pc.grantSVar != "" }
+func (pc *pendingCast) isAbility() bool {
+	return pc.ability >= 0 || pc.grantSVar != "" || pc.gainedFrom != 0
+}
 
 // pcAbility resolves the proposal's ability body. A printed activation reads
 // its Face().Abilities index; a granted activation (task grantcost1) resolves
@@ -4273,6 +4284,21 @@ func (pc *pendingCast) isAbility() bool { return pc.ability >= 0 || pc.grantSVar
 // grantor's face no longer names -- a stale proposal) resolves to nil and the
 // caller degrades the way a stale option always has.
 func (e *Engine) pcAbility(pc *pendingCast) *cards.SA {
+	if pc.gainedFrom != 0 {
+		// A has-all-abilities-of body: the SA is the named foreign face's
+		// own compiled ability at gainedIdx. A card that left the scoped zone
+		// (or a stale index) resolves to nil and the caller degrades the way
+		// a stale option always has.
+		fo := e.G.Obj(pc.gainedFrom)
+		if fo == nil || fo.Face() == nil {
+			return nil
+		}
+		abilities := fo.Face().Abilities
+		if pc.gainedIdx < 0 || pc.gainedIdx >= len(abilities) {
+			return nil
+		}
+		return abilities[pc.gainedIdx]
+	}
 	if pc.grantSVar == "" {
 		if pc.ability < 0 {
 			return nil
@@ -6421,7 +6447,10 @@ func (e *Engine) payCast() {
 		// SVar-anchored body exactly as it always has, while every cost part
 		// above (sacrifice, discard, counter, energy, draw, ...) is now paid
 		// by the shared flow too.
-		if pc.grantSVar != "" {
+		if pc.gainedFrom != 0 {
+			e.emit(events.Event{Kind: events.GainedAbilityPush, Player: pc.player, Obj: pc.card,
+				Amount: int32(pc.gainedIdx), IDs: []state.ObjID{pc.gainedFrom}})
+		} else if pc.grantSVar != "" {
 			if pc.grantSource == pc.card {
 				e.emit(events.Event{Kind: events.DelayedPush, Player: pc.player, Obj: pc.card,
 					Amount: -1, Counter: pc.grantSVar, Text: "granted ability"})

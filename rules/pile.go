@@ -75,6 +75,21 @@ func (e *Engine) pileFaceForSA(source state.ObjID, sa *cards.SA) (*cards.Face, b
 			}
 		}
 	}
+	// A has-all-abilities-of GRANTED activated ability (Forge's
+	// GainsAbilitiesOf$): the resolving body is a compiled AB$ on a FOREIGN
+	// card's face, so its owning SVar table is that face's, not the
+	// recipient's. Measured against the live grants only (a grant that ended
+	// with its static is no owner), in active()'s deterministic order.
+	for _, gf := range e.gainedFacesForSource(source) {
+		if gf.Face == nil {
+			continue
+		}
+		for _, ab := range gf.Face.Abilities {
+			if ab == sa {
+				return gf.Face, true
+			}
+		}
+	}
 	return nil, false
 }
 

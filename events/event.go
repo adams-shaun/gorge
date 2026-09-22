@@ -676,6 +676,35 @@ const (
 	// Exploit, following every prior Kind's own append-only precedent, so no
 	// earlier ordinal, hash chain or golden replay is affected.
 	AlterAttribute
+	// GainedAbilityPush creates the stack object for an activated ability
+	// GAINED off a foreign card (Forge's GainsAbilitiesOf$ on a Mode$
+	// Continuous static, the Idris, Soul of the TARDIS shape). Like
+	// AbilityPush it mints inside Apply (Ruling T20-a) so a log-only replay
+	// creates the same object a live game did, but the ability is not a
+	// Face().Abilities index of the recipient: Obj is the recipient (the
+	// minted object's Source, so `Defined$ Self`/`CARDNAME` names it),
+	// IDs[0] is the FOREIGN card's object id, and Amount is the index of the
+	// ability in that card's Face().Abilities. The body is the foreign
+	// face's compiled SA, so a replay re-resolves the identical pointer (the
+	// MergedTriggerPush reasoning: pointer identity is what the
+	// activation-limit census and the owning-face SVar reads rely on). A
+	// foreign card that left the scoped zone, or a stale index, mints
+	// nothing. Appended here, after AlterAttribute, following every prior
+	// Kind's own append-only precedent, so no earlier ordinal, hash chain or
+	// golden replay is affected.
+	GainedAbilityPush
+	// GainedTriggerPush creates the stack object for a triggered ability
+	// GAINED off a foreign card (Forge's GainsTriggerAbsOf$ on a Mode$
+	// Continuous static). Obj is the recipient (the minted object's Source),
+	// IDs[0] is the foreign card's object id, Amount is the index of the
+	// trigger in that card's Face().Triggers, and Counter carries the
+	// trigger's Execute$ name as readable provenance checked at Apply the way
+	// MergedTriggerPush checks its own: a truncated or tampered log mints
+	// nothing rather than the wrong ability. Appended here, after
+	// GainedAbilityPush, following every prior Kind's own append-only
+	// precedent, so no earlier ordinal, hash chain or golden replay is
+	// affected.
+	GainedTriggerPush
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's

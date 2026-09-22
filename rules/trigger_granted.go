@@ -589,6 +589,82 @@ func (e *Engine) checkGrantedWardTriggers(observer *Engine, id state.ObjID, o *s
 // deliberately a read over active()'s sorted slice, never a map: the queue
 // order stays the scan's deterministic order.
 func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []ContinuousEffect, id state.ObjID, o *state.Object, ev events.Event, objLKI *state.Object, lkiPower, lkiToughness int32, lkiPTValid bool) {
+	// A has-all-abilities-of trigger (Forge's GainsTriggerAbsOf$, task
+	// gains1): the recipient gains every triggered ability of each named
+	// foreign card's face. The matching discipline is an ordinary trigger's --
+	// triggerMatches resolves the granted body's own TriggerZones$/
+	// ValidPlayer$/Phase$ clauses against the event -- and the queue carries
+	// the face-local Triggers index and the foreign object id so
+	// events.Apply mints the face's compiled Trigger.Effect pointer (the
+	// MergedTriggerPush reasoning: pointer identity is how the owning-trigger
+	// recoveries work). Nothing is linked by name here: a compiled trigger
+	// already holds its Effect pointer, so the live queue and a replay mint
+	// the identical body. The walk is a read over the memoised static slice
+	// and the foreign faces' own deterministic Triggers order, never a map.
+	for i := range statics {
+		ce := &statics[i]
+		if len(ce.GainedFaces) == 0 {
+			continue
+		}
+		if !effects.MatchesSpecFrom(observer.G, ce.Affects, id, ce.Controller, ce.Source) {
+			continue
+		}
+		for _, gf := range ce.GainedFaces {
+			if gf.Face == nil {
+				continue
+			}
+			for ti := range gf.Face.Triggers {
+				t := gf.Face.Triggers[ti]
+				if t.Effect == nil {
+					continue
+				}
+				// The batch discipline (mirrored from the face walk).
+				if t.Mode == "LifeLostAll" && e.lifeLossBatchDepth > 0 && !e.finishingLifeLossBatch {
+					continue
+				}
+				if e.finishingLifeLossBatch && t.Mode != "LifeLostAll" {
+					continue
+				}
+				// CR 603.8's outstanding-instance latch, mirrored from the face
+				// walk (a state trigger already queued or on the stack does not
+				// re-fire).
+				if t.Mode == "Always" && e.stateTriggerOutstanding(id, -1) {
+					continue
+				}
+				if !observer.triggerMatches(t, id, ev, objLKI) {
+					continue
+				}
+				key := triggerKey{Source: id, Idx: -1}
+				if e.triggerFireCount == nil {
+					e.triggerFireCount = map[triggerKey]int32{}
+				}
+				if e.triggerFireCount[key] >= maxTriggerFires {
+					continue
+				}
+				e.triggerFireCount[key]++
+				e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+					Source:     id,
+					Controller: o.Controller,
+					Idx:        ti,
+					SA:         t.Effect,
+					Gained:     true,
+					GainedFrom: gf.Obj,
+					Execute:    t.Params["Execute"],
+					Ctx: effects.Ctx{
+						Source:         id,
+						Controller:     o.Controller,
+						Remembered:     triggerRemembered(ev, id),
+						Captured:       triggerRemembered(ev, id),
+						LKI:            objLKI,
+						LKIPower:       lkiPower,
+						LKIToughness:   lkiToughness,
+						LKIPTValid:     objLKI != nil && lkiPTValid,
+						TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
+					},
+				})
+			}
+		}
+	}
 	// The face walk's life-loss-batch discipline, mirrored exactly (the
 	// Animate Triggers$ route needs it: a granted DamageDone trigger must
 	// fire on the in-batch Damage event the way a printed one does, and the

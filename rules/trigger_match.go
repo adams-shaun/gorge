@@ -88,6 +88,17 @@ type pendingTrigger struct {
 	Granted bool
 	Grantor state.ObjID
 	Execute string
+	// Gained marks a has-all-abilities-of trigger (Forge's
+	// GainsTriggerAbsOf$ on a Mode$ Continuous static, the Idris, Soul of the
+	// TARDIS shape): the ability is a compiled trigger on a FOREIGN card's
+	// face, so unlike a Granted trigger there is no SVar body and no grantor
+	// table -- the fired event names the foreign card (GainedFrom, carried as
+	// the event's IDs[0]) and that face's own Triggers index (Idx), and
+	// events.Apply mints the face's compiled Trigger.Effect pointer. Execute
+	// still carries the trigger's Execute$ name as readable provenance for
+	// Apply's tamper check. Gained and Granted are never both set.
+	Gained     bool
+	GainedFrom state.ObjID
 	// Ward is a GRANTED ward keyword (a layer-6 AddKeyword$ Ward:<cost>, e.g.
 	// Hexing Squelcher's "Other creatures you control have 'Ward—Pay 2
 	// life.'"): the trigger exists only in the layer system, never on the
