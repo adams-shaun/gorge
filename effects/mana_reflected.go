@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -282,6 +283,32 @@ func effManaReflected(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 	cols := ManaReflectedCandidates(h, c, sa)
+	// The rules mana-activation path resolves this ability with Produced$
+	// already rewritten to one letter (the guard above), so it never reaches
+	// the ask. Reached standalone -- a DB$/SP$ ManaReflected body resolved on
+	// its own -- a multi-colour set is a REAL mid-resolution colour choice: a
+	// real host is asked, and only a host that cannot answer (or an empty
+	// option list) keeps the deterministic first-candidate stand-in with its
+	// R-9 Note.
+	if answered := c.ManaReflectedColor; answered != "" {
+		// The answered ask's re-entry. Consume and clear the transport (fx42
+		// scoping: a nested ManaReflected below poses its own ask), accept the
+		// colour only when this resolution still offers it, and degrade a
+		// malformed/off-list answer to the first candidate rather than
+		// inventing a colour the candidates never named.
+		c.ManaReflectedColor = ""
+		col := strings.TrimPrefix(answered, "Add ")
+		for _, cand := range cols {
+			if cand == col {
+				manaAdd(recipient, col)
+				return
+			}
+		}
+		if len(cols) > 0 {
+			manaAdd(recipient, cols[0])
+		}
+		return
+	}
 	switch len(cols) {
 	case 0:
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
@@ -289,6 +316,15 @@ func effManaReflected(h Host, c *Ctx, sa *cards.SA) {
 	case 1:
 		manaAdd(recipient, cols[0])
 	default:
+		d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+			ResumeKind: "manareflected", ResumeSA: sa,
+			Prompt: "Choose a colour of mana to reflect", Source: c.Source}
+		for i, col := range cols {
+			d.Options = append(d.Options, decision.Option{Index: i, Kind: "mana", Obj: c.Source, Label: "Add " + col})
+		}
+		if Ask(h, d) == AskAsked {
+			return
+		}
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "chose first reflected colour " + cols[0] + " (no ask possible)"})
 		manaAdd(recipient, cols[0])
