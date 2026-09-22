@@ -59,39 +59,36 @@ func IsPartnerPair(a, b *cards.Card) bool {
 // It is NOT satisfied by two non-Doctor companions (neither half is a Doctor
 // in either direction), nor by a companion paired with a non-Doctor.
 //
-// The subtype match is case-insensitive over every face's Types, the same
-// read the rest of the deck package uses for a subtype.
+// Both traits are read from the FRONT face only, like every other pair
+// family here: the deck-construction rules consider a card outside the
+// battlefield/stack by its front-face characteristics (CR 712.2 for
+// transforming double-faced cards, CR 711.4 for modal ones), so a keyword or
+// subtype printed only on the back face must not make a legal pair.
 func doctorCompanionPair(a, b *cards.Card) bool {
 	return (hasDoctorCompanion(a) && isDoctorCard(b)) ||
 		(hasDoctorCompanion(b) && isDoctorCard(a))
 }
 
 // hasDoctorCompanion reports whether c carries the K:Doctor's companion
-// keyword on any face.
+// keyword on its front face.
 func hasDoctorCompanion(c *cards.Card) bool {
-	if c == nil {
+	if c == nil || len(c.Faces) == 0 {
 		return false
 	}
-	for i := range c.Faces {
-		if c.Faces[i].HasKeyword("Doctor's companion") {
-			return true
-		}
-	}
-	return false
+	return c.Faces[0].HasKeyword("Doctor's companion")
 }
 
-// isDoctorCard reports whether any face of c carries the Doctor creature
+// isDoctorCard reports whether c's front face carries the Doctor creature
 // subtype (the "the Doctor" the companion clause names). The corpus prints it
-// in the Types line ("Legendary Creature Time Lord Doctor").
+// in the Types line ("Legendary Creature Time Lord Doctor"), so the match is
+// case-insensitive over that face's Types.
 func isDoctorCard(c *cards.Card) bool {
-	if c == nil {
+	if c == nil || len(c.Faces) == 0 {
 		return false
 	}
-	for i := range c.Faces {
-		for _, ty := range c.Faces[i].Types {
-			if strings.EqualFold(strings.TrimSpace(ty), "Doctor") {
-				return true
-			}
+	for _, ty := range c.Faces[0].Types {
+		if strings.EqualFold(strings.TrimSpace(ty), "Doctor") {
+			return true
 		}
 	}
 	return false

@@ -124,24 +124,24 @@ func TestTwoDoctorCompanionsSeatBothCommanders(t *testing.T) {
 }
 
 // isDoctorCardForTest / hasCompanionForTest read the deck package's predicate
-// inputs through the same accessors production uses, so the precondition
-// above cannot pass on a card the real pair check would read differently.
+// inputs through the same accessors production uses (front face only), so the
+// precondition above cannot pass on a card the real pair check would read
+// differently.
 func isDoctorCardForTest(c *cards.Card) bool {
-	for i := range c.Faces {
-		for _, ty := range c.Faces[i].Types {
-			if strings.EqualFold(strings.TrimSpace(ty), "Doctor") {
-				return true
-			}
+	if len(c.Faces) == 0 {
+		return false
+	}
+	for _, ty := range c.Faces[0].Types {
+		if strings.EqualFold(strings.TrimSpace(ty), "Doctor") {
+			return true
 		}
 	}
 	return false
 }
 
 func hasCompanionForTest(c *cards.Card) bool {
-	for i := range c.Faces {
-		if c.Faces[i].HasKeyword("Doctor's companion") {
-			return true
-		}
+	if len(c.Faces) == 0 {
+		return false
 	}
-	return false
+	return c.Faces[0].HasKeyword("Doctor's companion")
 }

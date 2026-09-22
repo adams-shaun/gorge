@@ -1072,9 +1072,10 @@ func commanderCardLegal(c *cards.Card) bool {
 
 // partnerPairOK reports whether two cards may be a commander PAIR: each
 // carries a Partner-family ability and either both are plain Partners, or
-// each "Partner with" the other by printed name (CR 903.13a/c), or exactly
+// each "Partner with" the other by printed name (CR 903.13a/c), or at least
 // one carries K:Doctor's companion and the other is a Doctor (the Doctor Who
-// cycle's companion clause). The check
+// cycle's companion clause, which also admits two distinct Doctors that each
+// carry it). The check
 // itself lives in deck.IsPartnerPair — the same package that owns
 // IsCommanderEligible (which commanderCardLegal above already delegates to),
 // so the deck-file validator and the engine's seating gate cannot disagree
@@ -1087,7 +1088,8 @@ func partnerPairOK(a, b *cards.Card) bool {
 // the deck-construction rules (CR 903.4/903.13) and returns the indices
 // that MAY be seated, in Config order: a single commander must be a
 // legendary creature or a "can be your commander" card; a two-card seat is
-// a legal partner pair (plain Partners, or a mutual "Partner with" pair);
+// a legal partner pair (plain Partners, a mutual "Partner with" pair, or a
+// Doctor's-companion pair);
 // anything else -- a noncommander card, a pair without partner, more than
 // two -- is rejected WHOLE, never silently trimmed into a legal-looking
 // subset. This is what makes an illegal Config fail in play: the rejected
