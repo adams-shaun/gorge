@@ -2091,6 +2091,7 @@ var ignoredParamKeys = map[string]string{
 	"TriggerDescription":    "trigger caption; forge-game/src/main/java/forge/game/card/CardFactoryUtil.java",
 	"ChangeTypeDesc":        "search UI text; forge-game/src/main/java/forge/game/ability/effects/ChangeZoneEffect.java",
 	"ValidDescription":      "valid-card UI text; forge-game/src/main/java/forge/game/card/Card.java",
+	"ValidCardsDesc":        "valid-card UI text; forge-game/src/main/java/forge/game/card/Card.java",
 	"CostDesc":              "alternate-cost UI text; forge-game/src/main/java/forge/game/card/CardFactoryUtil.java",
 	"ConditionDescription":  "condition display text; forge-game/src/main/java/forge/game/ability/SpellAbilityEffect.java",
 	"PrecostDesc":           "cost-prompt prefix; forge-game/src/main/java/forge/game/card/CardFactoryUtil.java",
