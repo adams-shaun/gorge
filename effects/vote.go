@@ -1,8 +1,11 @@
 package effects
 
 import (
+	"strconv"
 	"strings"
 
+	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -158,4 +161,198 @@ func emitVoteFinished(h Host, c *Ctx, ballots []VoteBallot, ballotExisted bool) 
 		return
 	}
 	h.Emit(VoteFinishedNote(c.Controller, c.Source, ballots, ballotExisted))
+}
+
+// effPlayerVote is api:Vote's PLAYER-ballot shape (task votepb1): the third
+// ballot kind beside the fixed Choices$ list and the VoteCard$ permanent
+// ballot, spelled `VotePlayer$ <selector>` (Mob Verdict's `VotePlayer$ Other`,
+// Círdan the Shipwright's `VotePlayer$ Player`). It is Forge's VoteEffect
+// branch
+//
+//	else if (sa.hasParam("VotePlayer")) { String param = other ? "Player" : ...; }
+//
+// made real: every voting player is asked, mid-resolution, to vote for one
+// entry of the selector's ballot, and the per-entry tally is published on the
+// resolution Ctx (Ctx.VoteCounts) for the chained AmountFromVotes$ reader.
+//
+// The ballot universe is built ONCE per resolution, in the deterministic
+// APNAP seat order from the resolving controller (g.AliveFrom(c.Controller)):
+// every living player the selector admits, or -- for the `Other` spelling --
+// every living player, whose per-voter option list then drops the voter
+// themselves (Forge's `voteOpts.remove(realVoter)`). A voter with an empty
+// option list casts no vote at all (Forge's `if (voteOpts.isEmpty()) continue;`),
+// recorded as a zero Target so the picks stay aligned with the voter list.
+//
+// SECRECY: the ballot is secret by nature -- view.project attaches a pending
+// decision to its own Decision.Player only, so no other seat ever sees the
+// ask -- and the reveal is deferred: the per-voter "votes for <name>" Notes
+// are emitted after EVERY voter has answered (Forge's `if (secret)
+// notifyOfValue(...)` after the voting loop), never as each answer lands. The
+// canonical vote-finished carrier (emitVoteFinished) is emitted last, as it is
+// for the other two shapes.
+//
+// The tally is published behind StoreVoteNum$ True, the parameter Forge
+// requires before it stores VoteNum<SVar>s; an AmountFromVotes$ RepeatEach on
+// a vote without it therefore reads 0, matching Forge's unset read.
+func effPlayerVote(h Host, c *Ctx, sa *cards.SA) {
+	g := h.Game()
+	spec := strings.TrimSpace(sa.Params["VotePlayer"])
+	other := strings.EqualFold(spec, "Other")
+	var universe []state.PlayerID
+	for _, p := range g.AliveFrom(c.Controller) {
+		if other || MatchesPlayerSpec(g, spec, p, c.Controller) {
+			universe = append(universe, p)
+		}
+	}
+	voters := Defined(h, c, sa)
+	picks := append([]state.Target(nil), c.VotePicks...)
+	i := c.VoteTarget
+	if c.VoteDone {
+		// The answer to voter i's ask: one KChoose option naming a ballot
+		// entry, or the zero Target of a voter the no-host fallback left
+		// unanswered. Consume and clear (fx42).
+		pick := state.Target{}
+		if len(c.VoteAnswer) > 0 {
+			pick = c.VoteAnswer[0]
+		}
+		picks = append(picks, pick)
+		c.VoteDone, c.VoteAnswer = false, nil
+		i++
+	}
+	for ; i < len(voters); i++ {
+		voter := PlayerOf(h, c, voters[i])
+		opts := playerBallotOptions(universe, voter, other)
+		if len(opts) == 0 {
+			picks = append(picks, state.Target{})
+			continue
+		}
+		d := &decision.Decision{Player: voter, Kind: decision.KChoose, Source: c.Source,
+			Min: 1, Max: 1, ResumeKind: "vote", ResumeSA: sa, ResumeTarget: i,
+			ResumeChoices: append([]state.Target(nil), picks...), Prompt: "Vote for a player"}
+		for j, p := range opts {
+			d.Options = append(d.Options, decision.Option{Index: j, Kind: "player", Player: p,
+				Label: votePlayerLabel(g, p)})
+		}
+		if Ask(h, d) == AskAsked {
+			return
+		}
+		// No host to ask (the R-9 fuzz/test contract): the deterministic first
+		// admissible entry -- the same pick the pre-ask stand-in made.
+		picks = append(picks, state.Target{Player: opts[0], IsPlayer: true})
+	}
+	c.VotePicks, c.VoteTarget, c.VoteDone, c.VoteAnswer = nil, 0, false, nil
+
+	// Reveal, once everyone has voted. The label is the ballot entry's
+	// identity (the seat's deck Name, the same event-text identity every
+	// other chain Note carries; F3 keeps the display PlayerName out).
+	ballots := make([]VoteBallot, len(voters))
+	for k, t := range voters {
+		voter := PlayerOf(h, c, t)
+		pick := ballotPickIndex(universe, picks, k)
+		label := "nothing"
+		if pick >= 0 {
+			label = votePlayerLabel(g, universe[pick])
+		}
+		h.Emit(events.Event{Kind: events.Note, Player: voter, Text: "votes for " + label})
+		ballots[k] = VoteBallot{Player: voter, Pick: pick}
+	}
+	if strings.EqualFold(strings.TrimSpace(sa.Params["StoreVoteNum"]), "True") {
+		publishVoteCounts(c, voteCountsForPlayers(universe, picks))
+	}
+	emitVoteFinished(h, c, ballots, len(universe) > 0)
+}
+
+// playerBallotOptions is the ballot entry list one voter may pick from: the
+// universe, minus the voter themselves on the `Other` spelling.
+func playerBallotOptions(universe []state.PlayerID, voter state.PlayerID, other bool) []state.PlayerID {
+	out := make([]state.PlayerID, 0, len(universe))
+	for _, p := range universe {
+		if other && p == voter {
+			continue
+		}
+		out = append(out, p)
+	}
+	return out
+}
+
+// ballotPickIndex maps the k-th voter's accumulated pick onto its index in
+// the universe; -1 is "voted for nothing" (no answer recorded, an
+// out-of-universe answer, or a voter with no admissible entry).
+func ballotPickIndex(universe []state.PlayerID, picks []state.Target, k int) int {
+	if k >= len(picks) || !picks[k].IsPlayer {
+		return -1
+	}
+	for i, p := range universe {
+		if p == picks[k].Player {
+			return i
+		}
+	}
+	return -1
+}
+
+// voteCountsForPlayers tallies the player ballot: one entry per universe seat
+// (including a seat no one voted for, so an AmountFromVotes$ loop can still
+// bind Votes 0 for it -- Forge stores VoteNum<player> for every ballot entry).
+func voteCountsForPlayers(universe []state.PlayerID, picks []state.Target) []VoteCount {
+	out := make([]VoteCount, 0, len(universe))
+	for _, p := range universe {
+		n := 0
+		for _, pick := range picks {
+			if pick.IsPlayer && pick.Player == p {
+				n++
+			}
+		}
+		out = append(out, VoteCount{Subject: state.Target{Player: p, IsPlayer: true}, Count: n})
+	}
+	return out
+}
+
+// voteCountsForObjects is the card-ballot twin of voteCountsForPlayers: one
+// entry per ballot permanent (Forge stores VoteNum<card> for every VoteCard$
+// entry), so RememberVotedObjects$ and an AmountFromVotes$ loop share one
+// tally.
+func voteCountsForObjects(options []state.ObjID, counts map[state.ObjID]int) []VoteCount {
+	out := make([]VoteCount, 0, len(options))
+	for _, id := range options {
+		out = append(out, VoteCount{Subject: state.Target{Obj: id}, Count: counts[id]})
+	}
+	return out
+}
+
+// publishVoteCounts installs a ballot's tally on the resolution Ctx for the
+// chained AmountFromVotes$ reader. A nil/empty tally (a vote with no ballot)
+// clears the field rather than leaving a previous vote's stale one in place.
+func publishVoteCounts(c *Ctx, counts []VoteCount) {
+	if len(counts) == 0 {
+		c.VoteCounts = nil
+		return
+	}
+	c.VoteCounts = counts
+}
+
+// voteCountFor resolves an AmountFromVotes$ loop subject's tally. ok=false
+// when the most recent vote published no entry for it -- the caller then binds
+// Votes 0 (Forge's unset VoteNum<subject> read), never a stale SVar.
+func voteCountFor(c *Ctx, subject state.Target) (int, bool) {
+	if c == nil {
+		return 0, false
+	}
+	for _, vc := range c.VoteCounts {
+		if vc.Subject == subject {
+			return vc.Count, true
+		}
+	}
+	return 0, false
+}
+
+// votePlayerLabel is a ballot entry's event-text identity: the seat's deck
+// Name, else "seat N" -- the same F3-safe identity the toss Note uses. The
+// display PlayerName never reaches the chain.
+func votePlayerLabel(g *state.Game, p state.PlayerID) string {
+	if g != nil && int(p) < len(g.Players) {
+		if name := g.Players[p].Name; name != "" {
+			return name
+		}
+	}
+	return "seat " + strconv.Itoa(int(p))
 }

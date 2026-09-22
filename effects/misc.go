@@ -1778,6 +1778,15 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 		effCardVote(h, c, sa, ballot)
 		return
 	}
+	// The PLAYER ballot (task votepb1): VotePlayer$ with no Choices$ list
+	// names the ballot entries as players (Mob Verdict's `VotePlayer$ Other`).
+	// Choices$ keeps its precedence -- Forge's VoteEffect reads Choices first,
+	// then VoteCard$, then VotePlayer$ -- so this fires only when the vote
+	// carries no fixed option list.
+	if vp := strings.TrimSpace(sa.Params["VotePlayer"]); vp != "" && len(voteChoiceNames(sa)) == 0 {
+		effPlayerVote(h, c, sa)
+		return
+	}
 	choices := voteChoiceNames(sa)
 	voters := Defined(h, c, sa)
 	// Ctx.Votes is the answered per-voter choice list (a real per-player
@@ -1933,6 +1942,25 @@ func effCardVote(h Host, c *Ctx, sa *cards.SA, ballot string) {
 	if sub := strings.TrimSpace(sa.Params["VoteSubAbility"]); sub != "" {
 		if resolved := cards.ResolveSVar(c.SVars, sub); resolved != nil {
 			Resolve(h, c, resolved)
+		}
+	}
+	// The card ballot's per-subject tally, for the chained AmountFromVotes$
+	// reader (task votepb1): one entry per ballot permanent, published behind
+	// StoreVoteNum$ True -- the parameter Forge requires before it stores its
+	// VoteNum<card> SVars.
+	if strings.EqualFold(strings.TrimSpace(sa.Params["StoreVoteNum"]), "True") {
+		publishVoteCounts(c, voteCountsForObjects(options, counts))
+	}
+	// RememberVotedObjects$ True remembers exactly the objects that RECEIVED a
+	// vote (Forge's `host.addRemembered(votes.keySet())`, and votes.keySet()
+	// holds only ballot entries with at least one voter): Trap the Trespassers'
+	// RepeatEach loops over `DefinedCards$ Remembered` -- the voted
+	// creatures -- so an unvoted ballot permanent is never a loop subject.
+	if strings.EqualFold(strings.TrimSpace(sa.Params["RememberVotedObjects"]), "True") {
+		for _, id := range options {
+			if counts[id] > 0 {
+				c.Remembered = append(c.Remembered, state.Target{Obj: id})
+			}
 		}
 	}
 	// The canonical vote-finished carrier (trig:Vote, effects/vote.go),

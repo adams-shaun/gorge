@@ -77,7 +77,7 @@ func NumResolved(h Host, c *Ctx, sa *cards.SA, key string, def int32) (int32, bo
 	// exactly as the SVar$ indirection resolves the same name in an SVar
 	// body. Checked after the card's own SVar table so a real SVar of the
 	// same name keeps winning.
-	if v, ok := rollPublished(c, raw); ok {
+	if v, ok := runtimePublished(c, raw); ok {
 		return sign * v, true
 	}
 	// An inline Count$ expression (Storm's own Amount$ Count$ThisTurnCast/
@@ -306,7 +306,7 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 		n, ok3 := int32(0), false
 		if body, ok2 := c.SVars[strings.TrimSpace(name)]; ok2 {
 			n, ok3 = evalCountExprOK(h, c, body, depth+1)
-		} else if v, ok2 := rollPublished(c, strings.TrimSpace(name)); ok2 {
+		} else if v, ok2 := runtimePublished(c, strings.TrimSpace(name)); ok2 {
 			n, ok3 = v, true
 		}
 		if hasOp {
@@ -354,7 +354,7 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 		// same name the SVar$ indirection resolves above, in the one shape a
 		// corpus body carries a bare runtime name. Anything else is
 		// unrecognised: zero, and NOT evaluated.
-		if v, ok := rollPublished(c, strings.TrimSpace(expr)); ok {
+		if v, ok := runtimePublished(c, strings.TrimSpace(expr)); ok {
 			return v, true
 		}
 		return 0, false
