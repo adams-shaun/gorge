@@ -262,13 +262,13 @@ func (r *Registry) matchForLog(t *table, sc sidecar, l *events.Log) (*match, err
 		sideboards[i] = d.Sideboard
 	}
 	cfg := rules.Config{Seed: sc.Seed, Names: sc.Names, PlayerNames: sc.PlayerNames, Decks: decks, Sideboards: sideboardConfig(sideboards), Tokens: r.opts.Tokens, Mulligans: sc.Mulligans}
-	// NameUniverse is a match MODE, not just data: only a match whose sidecar
-	// records it was played with a corpus universe replays with one. A
-	// pre-feature sidecar (no field) reads false, so the replay takes the
-	// R-9 no-ask stand-in and a log that recorded no name decision still
-	// reproduces (R-8.4; see sidecar.NameUniverse).
+	// NameUniverse is a match MODE, not just data, and NameUniverseNames pins
+	// the exact ordered labels it offered. A pre-feature sidecar (no field)
+	// gets neither and therefore takes the legacy no-universe path, so a log
+	// that recorded no name decision still reproduces (R-8.4).
 	if sc.NameUniverse {
 		cfg.NameUniverse = r.opts.NameUniverse
+		cfg.NameUniverseNames = append([]string(nil), sc.NameUniverseNames...)
 	}
 	// A persisted Commander match carries its format, the opening life it
 	// played with and its per-seat commander indices, so the replay

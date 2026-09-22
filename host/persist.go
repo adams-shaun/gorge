@@ -62,17 +62,15 @@ type sidecar struct {
 	StartingLife int32   `json:"starting_life,omitempty"`
 	Commanders   [][]int `json:"commanders,omitempty"`
 	// NameUniverse records whether the live match was played with a card-name
-	// universe (rules.Config.NameUniverse): true means a NameCard decision was
-	// posed over the compiled corpus, false means the pre-feature no-universe
-	// behaviour. It is a match-semantic MODE, not data — the corpus itself is
-	// the embedder's (Options.NameUniverse), as with Tokens — so matchForLog
-	// replays with a universe only when this says the live match had one.
-	// omitempty keeps a sidecar written by a pre-feature binary (no field)
-	// loading as false = no universe = the R-9 no-ask stand-in, so an old
-	// Cabal Therapy log — which recorded no name decision — still replays
-	// (R-8.4/R-E5-2: a missing key is the value that match played with).
-	NameUniverse bool   `json:"name_universe,omitempty"`
-	BotPolicy    string `json:"bot_policy"`
+	// universe. A missing field is a pre-feature no-universe match, whose ETB
+	// and mid-resolution fallbacks replay unchanged.
+	NameUniverse bool `json:"name_universe,omitempty"`
+	// NameUniverseNames is the immutable, sorted name list actually offered by
+	// a universe-backed match. Keeping it beside the log prevents a later
+	// corpus addition, removal or rename from changing a recorded numeric name
+	// choice's label on replay.
+	NameUniverseNames []string `json:"name_universe_names,omitempty"`
+	BotPolicy         string   `json:"bot_policy"`
 }
 
 func (sc sidecar) info() protocol.MatchInfo {

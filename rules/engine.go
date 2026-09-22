@@ -79,6 +79,9 @@ type Config struct {
 	Tokens map[string]*cards.Card
 	// NameUniverse is the compiled corpus used by NameCard decisions.
 	NameUniverse []*cards.Card
+	// NameUniverseNames pins a persisted match's sorted name list. A live
+	// match leaves it nil and derives it from NameUniverse at genesis.
+	NameUniverseNames []string
 	// LoopGuard, when non-nil, overrides the livelock watcher's thresholds
 	// for this game (rules/livelock.go): how many consecutive events a
 	// repeating cycle must run before the engine aborts with a
@@ -1300,6 +1303,10 @@ func newWithRNG(cfg Config, random *rng) *Engine {
 	e.G.Tokens = cfg.Tokens
 	e.setNameInPool = poolHasSetNameStatic(cfg)
 	e.G.NameUniverse = cfg.NameUniverse
+	e.G.NameUniverseNames = append([]string(nil), cfg.NameUniverseNames...)
+	if len(e.G.NameUniverseNames) == 0 && len(cfg.NameUniverse) > 0 {
+		e.G.NameUniverseNames = effects.NameUniverseNames(cfg.NameUniverse)
+	}
 	e.manaExpendedTurn = e.G.Turn
 	e.format = cfg.Format
 	for i := range e.G.Players {

@@ -55,8 +55,9 @@ func NameChoices(g *state.Game, spec, description string) []string {
 		spec = descriptionSpec(description)
 	}
 	if spec == "" {
-		return nameUniverse(g.NameUniverse)
+		return nameUniverseSnapshot(g.NameUniverse, g.NameUniverseNames)
 	}
+	allowed := nameSet(g.NameUniverseNames)
 	seen := make(map[string]bool)
 	filtered := make([]string, 0, len(g.NameUniverse))
 	for _, c := range g.NameUniverse {
@@ -68,6 +69,9 @@ func NameChoices(g *state.Game, spec, description string) []string {
 			continue
 		}
 		name := c.Faces[0].Name
+		if allowed != nil && !allowed[name] {
+			continue
+		}
 		if name != "" && !seen[name] {
 			seen[name] = true
 			filtered = append(filtered, name)
@@ -75,7 +79,7 @@ func NameChoices(g *state.Game, spec, description string) []string {
 	}
 	if len(filtered) == 0 {
 		// The filter matched nothing evaluable; keep the ask total.
-		return nameUniverse(g.NameUniverse)
+		return nameUniverseSnapshot(g.NameUniverse, g.NameUniverseNames)
 	}
 	sort.Strings(filtered)
 	return filtered
@@ -108,9 +112,9 @@ func descriptionSpec(description string) string {
 	return ""
 }
 
-// nameUniverse is the unrestricted distinct-name pass, shared by the empty
-// spec and the totality fallback so the two can never diverge.
-func nameUniverse(universe []*cards.Card) []string {
+// NameUniverseNames returns the sorted, distinct primary-face-name list a
+// live match snapshots at genesis.
+func NameUniverseNames(universe []*cards.Card) []string {
 	seen := make(map[string]bool, len(universe))
 	out := make([]string, 0, len(universe))
 	for _, c := range universe {
@@ -125,5 +129,25 @@ func nameUniverse(universe []*cards.Card) []string {
 		out = append(out, name)
 	}
 	sort.Strings(out)
+	return out
+}
+
+// nameUniverseSnapshot prefers a persisted match's immutable list over the
+// current corpus so a later corpus update cannot renumber an answer.
+func nameUniverseSnapshot(universe []*cards.Card, snapshot []string) []string {
+	if len(snapshot) > 0 {
+		return append([]string(nil), snapshot...)
+	}
+	return NameUniverseNames(universe)
+}
+
+func nameSet(names []string) map[string]bool {
+	if len(names) == 0 {
+		return nil
+	}
+	out := make(map[string]bool, len(names))
+	for _, name := range names {
+		out[name] = true
+	}
 	return out
 }

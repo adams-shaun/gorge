@@ -4153,6 +4153,13 @@ func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCar
 		}
 		return out
 	case "name":
+		// A no-universe Config is a pre-feature match on replay. Its visible
+		// object builder, including the Card.nonLand default and its full
+		// MatchesSpecFrom semantics, is retained byte-for-byte below; changing
+		// it would invalidate persisted ETB NameCard logs.
+		if len(e.G.NameUniverse) == 0 {
+			return e.legacyETBNameOptions(you, card, validCards)
+		}
 		// NameCard ranges over the compiled card-name universe, not public
 		// objects currently visible to the chooser: Pithing Needle names any
 		// card (a land included) and Revoker/Cabal Therapy name a nonland,
@@ -4161,26 +4168,6 @@ func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCar
 		// the ONE builder the mid-resolution NameCard ask shares, so the two
 		// paths offer the same names.
 		names := effects.NameChoices(e.G, validCards, validDescription)
-		if len(names) == 0 {
-			// Legacy embedders that do not provide a corpus retain the
-			// deterministic visible-object fallback; corpus-backed games use
-			// the full universe above.
-			seen := map[string]bool{}
-			for _, p := range e.G.AliveFrom(0) {
-				for _, id := range append(e.G.Zone(state.ZHand, p), append(e.G.Zone(state.ZBattlefield, p), e.G.Zone(state.ZGraveyard, p)...)...) {
-					o := e.G.Obj(id)
-					if o == nil || o.Face() == nil || seen[o.Face().Name] {
-						continue
-					}
-					if validCards == "Card.nonLand" && o.Face().IsLand() {
-						continue
-					}
-					seen[o.Face().Name] = true
-					names = append(names, o.Face().Name)
-				}
-			}
-			sort.Strings(names)
-		}
 		out := make([]decision.Option, 0, len(names))
 		for _, n := range names {
 			out = append(out, decision.Option{Index: len(out), Kind: "name", Label: n, Player: you})
@@ -4197,6 +4184,45 @@ func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCar
 		}
 		return out
 	}
+}
+
+// legacyETBNameOptions is the exact pre-name-universe ETB builder. It stays
+// separate from the corpus path because a sidecar without NameUniverse is an
+// old log: its DecisionAsk options, including an empty ValidCards$ defaulting
+// to Card.nonLand, must replay byte-for-byte.
+func (e *Engine) legacyETBNameOptions(you state.PlayerID, card state.ObjID, validCards string) []decision.Option {
+	if validCards == "" {
+		validCards = "Card.nonLand"
+	}
+	seen := map[string]bool{}
+	names := []string{}
+	add := func(z state.Zone, players []state.PlayerID) {
+		for _, p := range players {
+			for _, id := range e.G.Zone(z, p) {
+				o := e.G.Obj(id)
+				if o == nil || o.Face() == nil {
+					continue
+				}
+				if !effects.MatchesSpecFrom(e.G, validCards, id, you, card) {
+					continue
+				}
+				if seen[o.Face().Name] {
+					continue
+				}
+				seen[o.Face().Name] = true
+				names = append(names, o.Face().Name)
+			}
+		}
+	}
+	add(state.ZHand, []state.PlayerID{you})
+	add(state.ZBattlefield, e.G.AliveFrom(0))
+	add(state.ZGraveyard, e.G.AliveFrom(0))
+	sort.Strings(names)
+	out := make([]decision.Option, 0, len(names))
+	for _, n := range names {
+		out = append(out, decision.Option{Index: len(out), Kind: "name", Label: n})
+	}
+	return out
 }
 
 // isCreatureFace is a local creature test (effects.hasType is unexported);

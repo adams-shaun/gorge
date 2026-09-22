@@ -293,6 +293,10 @@ type Game struct {
 	// NameUniverse is the immutable compiled card-name universe used by
 	// NameCard choices. It is supplied by the embedder and shared by clones.
 	NameUniverse []*cards.Card
+	// NameUniverseNames is its sorted, distinct primary-face-name snapshot.
+	// A persisted match supplies it on replay so a later corpus update cannot
+	// renumber a NameCard decision's options.
+	NameUniverseNames []string
 
 	// Delayed holds delayed-trigger registrations (CR 603.7: Mode$ Phase, or
 	// the event-matched shape a DelayedTrigger.EventMode names) that have not
