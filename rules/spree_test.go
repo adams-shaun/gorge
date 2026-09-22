@@ -32,26 +32,36 @@ func tapEveryManaSource(t *testing.T, e *Engine, p state.PlayerID) {
 }
 
 // spreeModeCosts proves the compiled face really carries what the test claims
-// to exercise: a K:Spree keyword and a per-mode ModeCost$ the engine can parse.
-// A test whose whole point is reading ModeCost$ must fail loudly if the
-// parameter stops reaching the SVar, not pass because both sides quietly read
-// zero.
+// to exercise: a keyword head (Spree or Tiered) and a per-mode ModeCost$ the
+// engine can parse. A test whose whole point is reading ModeCost$ must fail
+// loudly if the parameter stops reaching the SVar, not pass because both sides
+// quietly read zero.
 func spreeModeCosts(t *testing.T, e *Engine, id state.ObjID, want map[string]Cost) {
+	spreeModeCostsKeyword(t, e, id, "Spree", want)
+}
+
+// spreeModeCostsKeyword is spreeModeCosts with an explicit keyword head, so a
+// Tiered card can assert K:Tiered rather than K:Spree while sharing the
+// ModeCost$ precondition checks.
+func spreeModeCostsKeyword(t *testing.T, e *Engine, id state.ObjID, keyword string, want map[string]Cost) {
 	t.Helper()
 	f := e.G.Obj(id).Face()
 	found := false
 	for _, k := range f.Keywords {
-		if strings.EqualFold(cards.KeywordHead(k), "Spree") {
+		if strings.EqualFold(cards.KeywordHead(k), keyword) {
 			found = true
 		}
 	}
 	if !found {
-		t.Fatalf("fixture %s carries no K:Spree keyword", f.Name)
+		t.Fatalf("fixture %s carries no K:%s keyword", f.Name, keyword)
 	}
 	for name, wantCost := range want {
-		got, ok := modeCost(f, name)
+		got, present, ok := modeCost(f, name)
+		if !present {
+			t.Fatalf("fixture %s mode %s carries no ModeCost$", f.Name, name)
+		}
 		if !ok {
-			t.Fatalf("fixture %s mode %s carries no parseable ModeCost$", f.Name, name)
+			t.Fatalf("fixture %s mode %s ModeCost$ is not parseable", f.Name, name)
 		}
 		if !reflect.DeepEqual(got, wantCost) {
 			t.Fatalf("fixture %s mode %s ModeCost$ = %+v, want %+v", f.Name, name, got, wantCost)
@@ -261,4 +271,162 @@ func TestRequisitionRaidSpreeUnaffordableCombinationReverses(t *testing.T) {
 	if e.cast != nil {
 		t.Fatalf("over-budget Requisition Raid left a pending cast")
 	}
+}
+
+// TestMetamorphicBlastSpreeModeGateAppliesCostModifiers pins the modifier-aware
+// half of the per-mode cost gate: a mode priced ABOVE the floated mana by its
+// raw ModeCost$ may still be payable once the cast's live ReduceCost$ statics
+// are composed, and the gate must see that. Baral, Chief of Compliance's
+// "instant and sorcery spells you cast cost {1} less" makes Metamorphic Blast's
+// {1} Rabbit mode cost {U} total -- payable from the single floated Island --
+// even though its raw price is {U}{1}. A modifier-blind gate would withhold
+// every mode and drive the whole cast through the min > len(legal) no-progress
+// abort, denying a legal cast.
+func TestMetamorphicBlastSpreeModeGateAppliesCostModifiers(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := crAbortEngine(t, reg, "uw-control", "Metamorphic Blast", "Baral, Chief of Compliance", "Grizzly Bears")
+	id := crAbortMove(t, e, 0, "Metamorphic Blast", state.ZHand)
+	baral := crAbortMove(t, e, 0, "Baral, Chief of Compliance", state.ZBattlefield)
+	creature := crAbortMove(t, e, 0, "Grizzly Bears", state.ZBattlefield)
+	spreeModeCosts(t, e, id, map[string]Cost{
+		"DBAnimate": {Generic: 1},
+		"DBDraw":    {Generic: 3},
+	})
+	// Preconditions: Baral is really on the battlefield (the reducer source)
+	// and the Rabbit mode's target is present, so a withheld mode below is
+	// attributable to the cost gate, never to a missing target or static.
+	if e.G.Obj(baral).Zone != state.ZBattlefield || e.G.Obj(creature).Zone != state.ZBattlefield {
+		t.Fatalf("fixture not on the battlefield: baral=%s creature=%s",
+			e.G.Obj(baral).Zone, e.G.Obj(creature).Zone)
+	}
+	tapEveryManaSource(t, e, 0)
+	// One Island's worth of {U}: the raw {U}{1} Rabbit mode is unaffordable,
+	// but {1}-less makes it {U}.
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "U", Amount: 1})
+	e.askPriority(0)
+	crAbortAnswer(t, e, "Metamorphic Blast", crAbortOption(t, e, "Metamorphic Blast", "cast", id))
+
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KModes {
+		t.Fatalf("after cast, next decision = %+v, want modes", d)
+	}
+	hasRabbit := false
+	for _, opt := range d.Options {
+		hasRabbit = hasRabbit || strings.Contains(opt.Label, "Rabbit")
+	}
+	if !hasRabbit {
+		t.Fatalf("the {1} Rabbit mode was withheld under a {1}-less reducer: %+v", d.Options)
+	}
+	crAbortAnswer(t, e, "Metamorphic Blast", modeOptionContaining(t, d, "Rabbit"))
+	crAbortAnswer(t, e, "Metamorphic Blast", targetOptionFor(t, e, creature))
+	if got := e.G.Obj(id).Zone; got != state.ZStack {
+		t.Fatalf("Metamorphic Blast zone = %s, want stack (the {U} total was payable)", got)
+	}
+	if got := e.G.Players[0].Pool.Total(); got != 0 {
+		t.Fatalf("Metamorphic Blast left pool %d, want 0 (printed {U}, {1} mode reduced to 0)", got)
+	}
+}
+
+// TestFireMagicTieredChargesTheChosenMode pins the kw:Tiered half of the same
+// machinery on a real Tiered card: Fire Magic's printed {R} plus the chosen
+// mode's ModeCost$ (Fira {2} -> {R}{2}). Tiered shares the Spree
+// SP$ Charm + ModeCost$ + default CharmNum$ 1 shape, so it must charge
+// identically; this test would fail if the per-mode charge were wired to the
+// Spree keyword instead of to ModeCost$ itself.
+func TestFireMagicTieredChargesTheChosenMode(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := crAbortEngine(t, reg, "uw-control", "Fire Magic")
+	id := crAbortMove(t, e, 0, "Fire Magic", state.ZHand)
+	spreeModeCostsKeyword(t, e, id, "Tiered", map[string]Cost{
+		"DBFire":   {},
+		"DBFira":   {Generic: 2},
+		"DBFiraga": {Generic: 5},
+	})
+	f := e.G.Obj(id).Face()
+	found := false
+	for _, k := range f.Keywords {
+		if strings.EqualFold(cards.KeywordHead(k), "Tiered") {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("fixture %s carries no K:Tiered keyword", f.Name)
+	}
+	tapEveryManaSource(t, e, 0)
+	// {R}{R}{R}{R}: printed {R} plus the {2} Fira mode is 3 mana total, so
+	// exactly one R must remain -- a free mode would leave 3 and a
+	// printed-only charge 3 as well, so the residual discriminates the {2}.
+	for range 4 {
+		e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "R", Amount: 1})
+	}
+	e.askPriority(0)
+	crAbortAnswer(t, e, "Fire Magic", crAbortOption(t, e, "Fire Magic", "cast", id))
+
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KModes {
+		t.Fatalf("after Tiered cast, next decision = %+v, want modes", d)
+	}
+	crAbortAnswer(t, e, "Fire Magic", modeOptionContaining(t, d, "deals 2 damage"))
+	if got := e.G.Obj(id).Zone; got != state.ZStack {
+		t.Fatalf("Fire Magic zone = %s, want stack", got)
+	}
+	if got := e.G.Players[0].Pool.Total(); got != 1 {
+		t.Fatalf("Fire Magic left pool %d, want 1 (printed {R} + the {2} Fira mode of 3 floated)", got)
+	}
+	if got := e.G.Obj(id).ChosenModes; len(got) != 1 {
+		t.Fatalf("Fire Magic chosen modes = %v, want 1", got)
+	}
+}
+
+// TestSpreeUnparseableModeCostWithheld pins the present-vs-absent distinction
+// in modeCost: a mode that PRINTS a ModeCost$ this build cannot price must not
+// read as a free mode. The corpus carries only parsable ModeCost$ tokens, so
+// this authors a fixture carrying an unmodelled token ("Xyzzy", which ParseCost
+// records in Cost.Unknown) beside a real {1} mode: the unparseable mode is
+// withheld from the cast's legal set while the {1} mode is offered, and
+// modeCostUnparseable names the shape.
+func TestSpreeUnparseableModeCostWithheld(t *testing.T) {
+	const src = "Name:Bad Spree\nManaCost:U\nTypes:Sorcery\nK:Spree\n" +
+		"A:SP$ Charm | Choices$ DBGood,DBBad | MinCharmNum$ 1\n" +
+		"SVar:DBGood:DB$ Draw | ModeCost$ 1 | Defined$ You | NumCards$ 1 | SpellDescription$ Good mode.\n" +
+		"SVar:DBBad:DB$ Draw | ModeCost$ Xyzzy | Defined$ You | NumCards$ 1 | SpellDescription$ Bad mode.\n" +
+		"Oracle:x\n"
+	f := card(t, src).Faces[0]
+	// Precondition: the fixture really carries the two distinct shapes.
+	if _, present, ok := modeCost(f, "DBGood"); !present || !ok {
+		t.Fatalf("fixture DBGood ModeCost$ not present/parseable")
+	}
+	if !modeCostUnparseable(f, "DBBad") {
+		t.Fatalf("fixture DBBad ModeCost$ should be present but unparseable")
+	}
+	if _, present, ok := modeCost(f, "DBAbsent"); present || ok {
+		t.Fatalf("a mode with no ModeCost$ must read absent, not present")
+	}
+
+	e, cfg, id := newFixtureDeck(t, 9901, src)
+	// {U} only: the {1} good mode is unaffordable (so it is absent for COST),
+	// and the unparseable bad mode must be absent because it cannot be priced
+	// -- never offered as a free mode. min 1 > 0 legal modes reverses the cast.
+	toMain1(t, e)
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "U", Amount: 1})
+	e.pending = nil
+	e.askPriority(0)
+	var opt *decision.Option
+	opts := castOptions(t, e)
+	for i := range opts {
+		if opts[i].Obj == id {
+			opt = &opts[i]
+		}
+	}
+	if opt == nil {
+		t.Fatalf("fixture cast not offered at all before the mode answer")
+	}
+	submitChoices(t, e, opt.Index)
+	if e.cast != nil {
+		t.Fatalf("unpayable/unparseable-mode cast left a pending cast")
+	}
+	if got := e.G.Obj(id).Zone; got != state.ZHand {
+		t.Fatalf("cast zone = %s, want hand (the min>len(legal) abort)", got)
+	}
+	replayCheck(t, e, cfg)
 }

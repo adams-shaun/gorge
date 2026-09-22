@@ -2867,8 +2867,19 @@ func (e *Engine) castModeAsk() bool {
 		// unaffordable COMBINATION of individually affordable modes still
 		// aborts at payment (CR 733.1, the ordinary reversal), so no legal cast
 		// is lost here and no unpayable cast is silently allowed.
-		if mc, ok := modeCost(f, name); ok {
-			if !e.castablePriced(pc.player, pc.card, pc.cost.Plus(mc), false, pot) {
+		// modeCostFeasible prices the mode through the same modifier snapshot
+		// the charge applies (pc.mods, with the potential-target retry), so a
+		// ReduceCost/SetCost static that makes a mode payable is seen; the
+		// price is against the potential pool (no mana floated yet at 601.2b).
+		//
+		// A ModeCost$ this build cannot price (ParseCost leaves an unknown
+		// token) is withheld outright: an unparseable mandatory cost must never
+		// degrade to a free mode.
+		if modeCostUnparseable(f, name) {
+			continue
+		}
+		if mc, present, ok := modeCost(f, name); present && ok {
+			if !e.modeCostFeasible(pc, mc, pot) {
 				continue
 			}
 		}
