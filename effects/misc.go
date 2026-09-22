@@ -181,9 +181,9 @@ func effWard(h Host, c *Ctx, sa *cards.SA) {
 // when it is not. The registry entry the engine (rules/layers.go active())
 // expires is the same until-end-of-turn / source-leaves discipline every other
 // continuous effect uses: an Effect from an instant or sorcery (a one-shot
-// spell) or carrying an explicit this-turn Duration$ is UntilEOT, dropped at
-// end-of-turn cleanup; anything else persists while its source stays on the
-// battlefield.
+// spell), an absent Duration$, or carrying an explicit this-turn Duration$ is
+// UntilEOT, dropped at end-of-turn cleanup; an explicit Permanent (and other
+// source-relative durations) persists while its source stays on the battlefield.
 func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	rawDur := sa.Params["Duration"]
 	dur := rawDur
@@ -330,7 +330,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			(event == "Moved" && replacementBodyAPI(body) == "PutCounter")) {
 			h.AddContinuous(state.ContinuousEffect{
 				Source: c.Source, Controller: c.Controller,
-				UntilEOT: effectUntilEOT(h, c.Source, dur), Duration: dur,
+				UntilEOT: effectUntilEOT(h, c.Source, rawDur), Duration: dur,
 				Name:             effectName,
 				Remembered:       remembered,
 				ForgetOnMoved:    forgetOn,
@@ -357,7 +357,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// measured carriers). The shared damage dispatch prevents through
 			// damageReplacementPrevents and stores the prevention Note whose
 			// Amount Mode$ DamagePreventedOnce triggers read.
-			untilEOT := effectUntilEOT(h, c.Source, dur)
+			untilEOT := effectUntilEOT(h, c.Source, rawDur)
 			if event == "DamageDone" && sa.Params["Duration"] == "" {
 				// This family's oracle text is always "this turn" (Selfless
 				// Squire, Kurbis, the Fog spells) and none of its bodyless lines
@@ -398,7 +398,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				grant.Source = c.Source
 				grant.Controller = c.Controller
 				grant.Name = effectName
-				grant.UntilEOT = effectUntilEOT(h, c.Source, dur)
+				grant.UntilEOT = effectUntilEOT(h, c.Source, rawDur)
 				grant.Remembered = remembered
 				grant.Duration = dur
 				grant.ForgetOnMoved = forgetOn
@@ -433,7 +433,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					AddKeywords:   kws,
 					ImprintOnHost: imprintOnHost,
 					Name:          effectName,
-					UntilEOT:      effectUntilEOT(h, c.Source, dur),
+					UntilEOT:      effectUntilEOT(h, c.Source, rawDur),
 					Duration:      dur,
 					Remembered:    remembered,
 					ForgetOnMoved: forgetOn,
@@ -473,7 +473,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					SetMaxHandSize: val,
 					ImprintOnHost:  imprintOnHost,
 					Name:           effectName,
-					UntilEOT:       effectUntilEOT(h, c.Source, dur),
+					UntilEOT:       effectUntilEOT(h, c.Source, rawDur),
 					Permanent:      strings.EqualFold(strings.TrimSpace(dur), "Permanent"),
 					Duration:       dur,
 					Remembered:     remembered,
@@ -533,7 +533,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				registered = true
 				break
 			}
-			ceUntilEOT := effectUntilEOT(h, c.Source, dur)
+			ceUntilEOT := effectUntilEOT(h, c.Source, rawDur)
 			if absentDurationMeansThisTurn(mode) && sa.Params["Duration"] == "" {
 				// A restriction body whose oracle lifetime is THIS TURN but whose
 				// script writes no inline Duration$ gets UntilEOT, not effEffect's
@@ -628,7 +628,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// source until the cast sweep ends it. Any other spelling falls
 			// to the shared effectUntilEOT read every other registration
 			// here uses.
-			untilEOT := effectUntilEOT(h, c.Source, dur)
+			untilEOT := effectUntilEOT(h, c.Source, rawDur)
 			permanent := false
 			switch {
 			case forgetOnCast != "" && strings.EqualFold(strings.TrimSpace(rawDur), "Permanent"):
@@ -678,7 +678,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				Source:         c.Source,
 				Controller:     c.Controller,
 				Name:           effectName,
-				UntilEOT:       effectUntilEOT(h, c.Source, dur),
+				UntilEOT:       effectUntilEOT(h, c.Source, rawDur),
 				Restriction:    mode,
 				RestrictParams: params,
 				Remembered:     remembered,
@@ -1427,15 +1427,18 @@ func replacementBodyAPI(body string) string {
 }
 
 // effectUntilEOT decides expiry for an Effect registration: a one-shot spell
-// (instant/sorcery) source, or an explicit this-turn Duration$, is UntilEOT
-// and is dropped at end-of-turn cleanup (rules' EndOfTurnCleanup); anything
-// else -- Duration$ Permanent on a permanent, an until-untap form, ... ---
-// persists while its source stays on the battlefield, the same rule the
-// layer effects use. A Duration$ that spans the controller's NEXT turn is
-// NOT UntilEOT (it would expire a turn early); it is instead given a real
+// (instant/sorcery) source, an absent Duration$, or an explicit this-turn
+// Duration$ is UntilEOT and is dropped at end-of-turn cleanup
+// (rules' EndOfTurnCleanup). An explicit Permanent or source-relative form
+// persists while its source stays on the battlefield, the same rule the layer
+// effects use. A Duration$ that spans the controller's NEXT turn is NOT
+// UntilEOT (it would expire a turn early); it is instead given a real
 // turn-boundary lifetime (state.ContinuousEffect.UntilTurn) computed in
 // rules.Engine.AddContinuous, so effectUntilEOT returns false for it.
 func effectUntilEOT(h Host, source state.ObjID, dur string) bool {
+	if strings.TrimSpace(dur) == "" {
+		return true
+	}
 	if IsNextTurnDuration(dur) {
 		return false
 	}
