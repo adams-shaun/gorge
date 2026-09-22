@@ -49,6 +49,9 @@ func vraskaUltGame(t *testing.T, seed uint64) (*Engine, Config, state.ObjID) {
 	vraska := tokenReplCorpusCard(t, "Vraska, Betrayal's Sting")
 	e, cfg := tokenReplGame(t, seed, vraska)
 	id := moveSeededCard(t, e, 0, vraska, state.ZBattlefield)
+	if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("precondition: Vraska zone = %v, want battlefield", o)
+	}
 	e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "LOYALTY", Amount: 3})
 	if got := e.G.Obj(id).Counter("LOYALTY"); got != 9 {
 		t.Fatalf("precondition: Vraska loyalty = %d, want 9", got)
@@ -160,6 +163,9 @@ func TestLeechesPoisonRemovalMatchesPriorCount(t *testing.T) {
 	}
 	addMana(t, e, 0, "WWW")
 	id := searchMoveByName(t, e, "Leeches", state.ZHand)
+	if o := e.G.Obj(id); o == nil || o.Zone != state.ZHand {
+		t.Fatalf("precondition: Leeches zone = %v, want hand", o)
+	}
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KPriority {
 		t.Fatalf("no priority decision to cast in: %+v", d)
@@ -221,6 +227,9 @@ func TestPoisonSBAReachesTenLoses(t *testing.T) {
 	}
 	addMana(t, e, 0, "UU")
 	id := searchMoveByName(t, e, "Prologue to Phyresis", state.ZHand)
+	if o := e.G.Obj(id); o == nil || o.Zone != state.ZHand {
+		t.Fatalf("precondition: Prologue to Phyresis zone = %v, want hand", o)
+	}
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KPriority {
 		t.Fatalf("no priority decision to cast in: %+v", d)
@@ -267,7 +276,10 @@ func TestPoisonCounterProhibitionStillBinds(t *testing.T) {
 	// placements, not a count already standing (the fail-closed direction
 	// TestCantPutCounterPhilaBlocksPoisonOnly pins at the event level).
 	e.emit(events.Event{Kind: events.PlayerCounterChange, Player: 0, Counter: "POISON", Amount: 3})
-	moveSeededCard(t, e, 0, phila, state.ZBattlefield)
+	pid := moveSeededCard(t, e, 0, phila, state.ZBattlefield)
+	if o := e.G.Obj(pid); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("precondition: Phila zone = %v, want battlefield", o)
+	}
 	if got := e.G.Players[0].Counter("POISON"); got != 3 {
 		t.Fatalf("precondition: controller poison = %d, want 3", got)
 	}
