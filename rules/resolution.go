@@ -604,6 +604,10 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 		chosen := d.Chosen(in)
 		names := modeChoiceNames(d.ResumeSA, chosen, d.ResumeModes)
 		labels := chosenModeLabels(chosen)
+		// ChoiceRestriction$: log each announced mode on the SPELL object so a
+		// later Charm of the same source sees the pick. A no-op unless the SA
+		// carries the param.
+		effects.RecordCharmChoices(e, pc.card, d.ResumeSA, names)
 		if o := e.G.Obj(pc.stackObj); o != nil {
 			if !pc.modeChosen {
 				pc.preModes = append([]string(nil), o.ChosenModes...)
@@ -669,6 +673,14 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 			if o := e.G.Obj(id); o != nil {
 				so = o
 				o.ChosenModes = names
+			}
+			// ChoiceRestriction$: record the placement pick on the trigger's
+			// SOURCE (the permanent), not on the transient stack object, so the
+			// next trigger instance of the same Charm sees it -- including when
+			// a second instance is already waiting in the queue. A no-op unless
+			// the SA carries the param.
+			if so != nil {
+				effects.RecordCharmChoices(e, so.Source, d.ResumeSA, names)
 			}
 			e.emit(events.Event{Kind: events.ModeChosen, Obj: id, Player: in.Player,
 				Text: strings.Join(labels, ",")})
@@ -740,6 +752,12 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 	labels := chosenModeLabels(chosen)
 	e.emit(events.Event{Kind: events.ModeChosen, Obj: rp.obj, Player: in.Player,
 		Text: strings.Join(labels, ",")})
+	// ChoiceRestriction$: a mid-resolution Charm's pick is recorded on its
+	// source as well, so a later instance is restricted against it.
+	if o := e.G.Obj(rp.obj); o != nil {
+		effects.RecordCharmChoices(e, o.Source, d.ResumeSA,
+			modeChoiceNames(d.ResumeSA, chosen, d.ResumeModes))
+	}
 	e.resumeResolution(rp, chosen)
 }
 
@@ -1633,6 +1651,19 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 					ctx.TwoPiles = append(ctx.TwoPiles, t.Obj)
 				}
 			}
+		case "clone":
+			// A DB$ Clone Optional$ True may-copy election was answered
+			// (ticket api-clone-trigger-copy; Sarkhan Soul Aflame). The answer
+			// is a bare yes/no recorded as a marker the re-entered effect
+			// consumes and clears (fx42 scoping): "yes" performs the copy,
+			// "no" -- the decline -- leaves the permanent alone. A malformed
+			// or empty answer keeps the decline, the same conservative read
+			// the diguntil_move and attach_optional answers take.
+			ctx.Clone = "no"
+			if len(chosen) > 0 && chosen[0].Kind == "yes" {
+				ctx.Clone = "yes"
+			}
+			ctx.CloneDone = true
 		case "diguntil_move":
 			// A DigUntil reveal-until's OptionalFoundMove$ yes/no election was
 			// answered (task diguntil1; Songbirds' Blessing). The answer is a

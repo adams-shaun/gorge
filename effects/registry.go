@@ -980,6 +980,19 @@ type Ctx struct {
 	// discipline), so a nested DigUntil cannot inherit the outer answer.
 	DigUntilMove     string
 	DigUntilMoveDone bool
+	// Clone is the answered DB$ Clone Optional$ True may-copy election
+	// (ticket api-clone-trigger-copy; Sarkhan Soul Aflame's "you may have
+	// Sarkhan, Soul Aflame become a copy of it"): "yes" performs the copy,
+	// "no" -- the decline -- skips it. rules' resumeResolution sets it from
+	// the recorded answer before re-running the suspended sub-ability, and
+	// CloneDone distinguishes "answered" from the first pass. The asking
+	// effect consumes and clears both at the top of its own walk (the fx42
+	// scoping discipline), so a nested Clone cannot inherit the outer
+	// answer. A no-host run (AskNoHost) keeps the deterministic take stand-in
+	// without setting either field, so the byte-identical pre-election
+	// behaviour is preserved for fuzz runs.
+	Clone     string
+	CloneDone bool
 	// TwoPiles is the answered Fact or Fiction pile-split pick (task
 	// twopiles1): the cards the Separator$ player picked into pile A, in the
 	// separator's answer order — the rest of the card set, in the order it
