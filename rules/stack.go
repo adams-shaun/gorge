@@ -1774,7 +1774,12 @@ func (e *Engine) resolveTop() {
 		// such objects in exile. Ordered first because it decides whether
 		// the ability does anything at all.
 		if t, ok := e.findTriggerForAbility(o.Source, o.Ability); ok {
-			if !e.triggerConditionHolds(t, o.Source) {
+			// NoResolvingCheck$ True (Ugin's Mastery, Werewolf Pack Leader,
+			// Love on the Battlefield, ...): the condition was checked only
+			// when the trigger fired, and the transient state it counted (a
+			// bounced attacker, drained power) must not fizzle the ability
+			// here (triggerResolvingCheckHolds in rules/trigger_condition.go).
+			if !e.triggerResolvingCheckHolds(t, o.Source) {
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
 					From: state.ZStack, To: state.ZExile, Text: "fizzled: intervening-if no longer holds"})
 				e.ensureLeftTheStack(id, state.ZExile, "a replacement fully discarded this "+
