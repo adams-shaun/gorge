@@ -614,7 +614,7 @@ func (e *Engine) restrictValidTermMatches(p state.PlayerID, d paymentDescriptor,
 	if !provenanceOK {
 		return false
 	}
-	if effects.MatchesSpecFrom(e.G, spec, d.id, p, srcID) {
+	if e.matchesSpecFrom(spec, d.id, p, srcID) {
 		return true
 	}
 	// Forge's object-filter grammar defaults the base to Card, so a bare
@@ -626,7 +626,7 @@ func (e *Engine) restrictValidTermMatches(p state.PlayerID, d paymentDescriptor,
 	// explicit base before denying the batch: the retry can only turn a
 	// "never spendable" batch into the correct evaluation, never widen a
 	// spec that already evaluated (the first attempt ran unchanged).
-	return effects.MatchesSpecFrom(e.G, "Card."+spec, d.id, p, srcID)
+	return e.matchesSpecFrom("Card."+spec, d.id, p, srcID)
 }
 
 // paymentConv is the conversion set for p paying id (ability selects the
@@ -1500,7 +1500,7 @@ func (e *Engine) candidatesFor(p state.PlayerID, source, excludeSelf state.ObjID
 				if !ok {
 					continue
 				}
-				if effects.MatchesSpecCtx(e.G, tspec, oid, sc) {
+				if e.matchesSpec(tspec, oid, sc) {
 					out = append(out, targetCandidate{kind: "permanent", obj: oid, player: o.Controller})
 				}
 			}
@@ -1530,7 +1530,7 @@ func (e *Engine) candidatesFor(p state.PlayerID, source, excludeSelf state.ObjID
 					if !ok {
 						continue
 					}
-					if effects.MatchesSpecCtx(e.G, tspec, oid, sc) &&
+					if e.matchesSpec(tspec, oid, sc) &&
 						(!targeting || !(o.Zone == state.ZBattlefield && e.protectedFrom(oid, protSrc))) &&
 						(!targeting || !(o.Zone == state.ZBattlefield && e.shroudBlocksTarget(oid))) &&
 						(!targeting || !(o.Zone == state.ZBattlefield && e.hexproofBlocksTarget(oid, p, protSrc))) &&
@@ -1576,7 +1576,7 @@ func (e *Engine) filterTargetValidTargeting(in []targetCandidate, sa *cards.SA, 
 			if t.IsPlayer || t.Obj == 0 {
 				continue
 			}
-			if effects.MatchesSpecCtx(e.G, spec, t.Obj, sc) {
+			if e.matchesSpec(spec, t.Obj, sc) {
 				out = append(out, cand)
 				break
 			}
@@ -3107,7 +3107,7 @@ func (e *Engine) legalTargets(targets []state.Target, sa *cards.SA, zones []stat
 			// log before the ordinary filter, so offer and recheck cannot
 			// disagree about a spec carrying one.
 			tspec, ok := e.castProvenanceAdmits(targetSpecForZone(spec, o.Zone), t.Obj, you)
-			if ok && effects.MatchesSpecCtx(e.G, tspec, t.Obj, sc) &&
+			if ok && e.matchesSpec(tspec, t.Obj, sc) &&
 				!(o.Zone == state.ZBattlefield && e.restrictionBlocksTarget(t.Obj, you)) &&
 				!(o.Zone == state.ZBattlefield && e.shroudBlocksTarget(t.Obj)) &&
 				!(o.Zone == state.ZBattlefield && e.hexproofBlocksTarget(t.Obj, you, e.protectionSource(source))) &&
@@ -3410,7 +3410,7 @@ func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exc
 		if !ok {
 			continue
 		}
-		if effects.MatchesSpecFrom(e.G, matchSpec, ev.Obj, you, ev.Obj) {
+		if e.matchesSpecFrom(matchSpec, ev.Obj, you, ev.Obj) {
 			out = append(out, ev.Obj)
 		}
 	}
@@ -3653,6 +3653,22 @@ func (e *Engine) CountersRemovedThisTurn(p state.PlayerID, kind string) int32 {
 			strings.EqualFold(ev.Counter, kind) {
 			n += -ev.Amount
 		}
+	}
+	return n
+}
+
+// CountersAddedThisTurn is the rules-side backing for the three-part
+// Count$CountersAddedThisTurn head. It deliberately uses the pre-event
+// snapshot retained by emit rather than the live object.
+func (e *Engine) CountersAddedThisTurn(kind, actorSpec, objectSpec string, sc effects.SpecContext) int32 {
+	var n int32
+	for _, add := range e.counterAddsThisTurn {
+		if !strings.EqualFold(kind, "Any") && !strings.EqualFold(add.kind, kind) ||
+			!effects.MatchesPlayerSpec(e.G, actorSpec, add.actor, sc.You) ||
+			!effects.MatchesObjectCtx(e.G, objectSpec, &add.object, sc) {
+			continue
+		}
+		n += add.amount
 	}
 	return n
 }

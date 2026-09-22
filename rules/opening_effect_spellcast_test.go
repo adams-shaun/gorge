@@ -112,7 +112,8 @@ func TestChancellorOfTheAnnexCountersOnlyEachOpponentsFirstSpell(t *testing.T) {
 	}
 
 	// Seat 1's first spell, empty pool: the {1} tax cannot be paid, so the
-	// decline counters it and the registration is consumed (one-shot).
+	// reachability gate suppresses the pay branch entirely and the decline
+	// counters it, consuming the registration (one-shot).
 	e.G.Active, e.G.Priority = 1, 1 // a sorcery needs its controller's own main phase
 	e.askPriority(1)
 	submitChoices(t, e, passToCast(t, e, s1.ID))
@@ -123,7 +124,12 @@ func TestChancellorOfTheAnnexCountersOnlyEachOpponentsFirstSpell(t *testing.T) {
 	if pay.Player != 1 {
 		t.Fatalf("unless_pay payer = seat %d, want the taxed spell's controller (seat 1)", pay.Player)
 	}
-	submitChoices(t, e, pay.Options[1].Index) // decline
+	// An empty pool with no land leaves the {1} unreachable, so pay is not
+	// offered at all: the election is the lone decline.
+	if len(pay.Options) != 1 || pay.Options[0].Kind != "mode" {
+		t.Fatalf("unreachable {1} should offer only the decline: %+v", pay.Options)
+	}
+	submitChoices(t, e, pay.Options[0].Index) // decline
 	passUntilStackEmpty(t, e, 20)
 	if z := e.G.Obj(s1.ID).Zone; z != state.ZGraveyard {
 		t.Fatalf("unpayable first spell zone = %s, want Graveyard", z)
@@ -260,7 +266,12 @@ func TestChancellorOfTheAnnexOpeningRevealDrivesTheCounter(t *testing.T) {
 		if pay.Player != 1 {
 			t.Fatalf("unless_pay payer = seat %d, want seat 1", pay.Player)
 		}
-		submitChoices(t, e, pay.Options[1].Index) // decline: cannot pay {1}
+		// Seat 1 has no land and an empty pool, so the {1} is unreachable
+		// and pay is suppressed: the lone decline counters the spell.
+		if len(pay.Options) != 1 {
+			t.Fatalf("unreachable {1} should offer only the decline: %+v", pay.Options)
+		}
+		submitChoices(t, e, pay.Options[0].Index) // decline: cannot pay {1}
 		passUntilStackEmpty(t, e, 20)
 		if z := e.G.Obj(slowID).Zone; z != state.ZGraveyard {
 			t.Fatalf("unpayable first spell zone = %s, want Graveyard", z)

@@ -128,12 +128,19 @@ func TestSampleRealDeckGolden(t *testing.T) {
 		// with the one distribution-preserving proposal change switched off,
 		// the sampler still draws byte-identical worlds. Re-measured for the
 		// Mausoleum Wanderer unless-cost ask label (see the test comment).
-		{"pre-optimisation sampler", true, "dfe3967e922817df8390ec70b7f8a8394862e698d2a2d61899681db3b7e56a7a"},
+		// Re-measured again for the unless-pay mana window
+		// (cli-20260922T150843Z-daf1bd3e): the same ask is now decline-only,
+		// because the offer gate proves that payer cannot reach the {1}.
+		// Neutralising that change's two switches (poseUnlessAsk's payability
+		// consult and resumeResolution's guard plus window arm) reproduces
+		// dfe3967e... and bfa2b184... byte-for-byte, so it is the sole mover
+		// of both sampler digests and of the teacher digest below.
+		{"pre-optimisation sampler", true, "8575898916864bcfad21e3105a057d9adf31d21c8d4e40033b7d7a72f782d5bd"},
 		// With the declined-land-drop exclusion: different proposals (so
 		// different worlds for a seed), same target distribution -- see
 		// TestLandExclusionRemovesOnlyRejectedWorlds. Re-measured for the
 		// Mausoleum Wanderer unless-cost ask label (see the test comment).
-		{"land exclusion", false, "bfa2b1841974914eea28cc434b014f9bf2519585d12f68bc9f70eba4d7cd2e46"},
+		{"land exclusion", false, "1dab0393f3ff32803bff6400ee9bcfdd38cae078362d91883e419fb4fa0f37f1"},
 	} {
 		opts := benchSampleOptions()
 		opts.MinESS = 1 // resample worlds from the thin pool so the digest covers them
@@ -268,7 +275,11 @@ func TestTeacherChoiceRealDeckGolden(t *testing.T) {
 	// (pre-fix) -> 3160 (fixed). Per-candidate values, rollouts, terminal
 	// counts and the 8/8/8/8 wins split are unchanged, so this is the same
 	// behaviour at different world inputs, not a rollout-side change.
-	const want = "22215bd852036299b9f984f50c562e70ad983ee1395ae118d15f7526e5469040"
+	// Re-measured again by cli-20260922T150843Z-daf1bd3e (the unless-pay mana
+	// window), for the same reason and with the same verdict: Index, Values,
+	// Rollouts, Terminal, Capped and the 8/8/8/8 wins split are all unchanged
+	// and only Submits moves, 2891 -> 4054.
+	const want = "dc918f1851cb7df6299310480c8f02dc29fc58cab34210b1c0b6dc01e5c37bb0"
 	for _, parallelism := range []int{0, 4} {
 		res, err := TeacherChoice(worlds, cands, TeacherOptions{Seed: 99, MaxSubmits: 5000, Parallelism: parallelism})
 		if err != nil {

@@ -8,6 +8,18 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
+func cloneCounterAddsThisTurn(in []counterAddedThisTurn) []counterAddedThisTurn {
+	if in == nil {
+		return nil
+	}
+	out := make([]counterAddedThisTurn, len(in))
+	for i, v := range in {
+		out[i] = v
+		out[i].object = v.object.CloneDeep()
+	}
+	return out
+}
+
 // Clone deep-copies the engine: game, log, RNG position, the pending
 // decision, continuous effects, the pending-trigger queue and the trigger
 // bookkeeping maps. The copy and the original then evolve independently —
@@ -31,6 +43,7 @@ func (e *Engine) Clone() *Engine {
 		// value slice, copied like turnsTaken so an undo/DVR clone owns its
 		// own ledger.
 		combatHitsThisTurn:  append([]effects.CombatDamageHit(nil), e.combatHitsThisTurn...),
+		counterAddsThisTurn: cloneCounterAddsThisTurn(e.counterAddsThisTurn),
 		format:              e.format,
 		rng:                 e.rng.clone(),
 		orderedTriggers:     e.orderedTriggers,

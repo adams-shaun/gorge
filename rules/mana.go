@@ -2560,7 +2560,7 @@ func (e *Engine) payerGrantsMayPlayRider(p state.PlayerID, id state.ObjID, rider
 		}
 		sc := e.withNames(effects.SpecContext{You: ce.Controller, Source: ce.Source,
 			Remembered: rememberedTargets(ce.Remembered), Resolving: true})
-		if effects.MatchesSpecCtx(e.G, ce.Affects, id, sc) {
+		if e.matchesSpec(ce.Affects, id, sc) {
 			return true
 		}
 	}

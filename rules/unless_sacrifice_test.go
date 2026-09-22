@@ -49,7 +49,7 @@ func answerUnlessPay(t *testing.T, e *Engine, pay bool) {
 	if d == nil || d.Kind != decision.KModes || d.ResumeKind != "unless_pay" {
 		t.Fatalf("pending decision = %+v, want the unless-pay KModes", d)
 	}
-	idx := 1
+	idx := len(d.Options) - 1
 	if pay {
 		idx = 0
 	}

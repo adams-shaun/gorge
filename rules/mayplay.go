@@ -387,7 +387,7 @@ func (e *Engine) mayPlayStatic(params map[string]string, id state.ObjID, you sta
 			return false, false, false, Cost{}, hasRaise, priced
 		}
 	}
-	if !effects.MatchesSpecFrom(e.G, spec, id, you, source) {
+	if !e.matchesSpecFrom(spec, id, you, source) {
 		return false, false, false, Cost{}, hasRaise, priced
 	}
 	// MayPlayLimit$ (always the literal 1 in the corpus, 45 S: lines): the
@@ -412,7 +412,7 @@ func (e *Engine) mayPlayStatic(params map[string]string, id state.ObjID, you sta
 func (e *Engine) mayPlayIsPresent(spec string, you state.PlayerID, source state.ObjID) bool {
 	for _, p := range e.G.AliveFrom(0) {
 		for _, oid := range e.G.Zone(state.ZBattlefield, p) {
-			if effects.MatchesSpecFrom(e.G, spec, oid, you, source) {
+			if e.matchesSpecFrom(spec, oid, you, source) {
 				return true
 			}
 		}
@@ -541,7 +541,7 @@ func (e *Engine) mayPlayAltCosts(p state.PlayerID, id state.ObjID) []Cost {
 				continue
 			}
 		}
-		if !effects.MatchesSpecFrom(e.G, spec, id, sv.Controller, sv.Source) {
+		if !e.matchesSpecFrom(spec, id, sv.Controller, sv.Source) {
 			continue
 		}
 		if rawLimit := strings.TrimSpace(sv.Params["MayPlayLimit"]); rawLimit != "" {
@@ -656,7 +656,7 @@ func (e *Engine) mayPlayEffectGrantsCast(p state.PlayerID, o *state.Object) bool
 		}
 		sc := e.withNames(effects.SpecContext{You: ce.Controller, Source: ce.Source,
 			Remembered: rememberedTargets(ce.Remembered), Resolving: true})
-		if effects.MatchesSpecCtx(e.G, ce.Affects, o.ID, sc) {
+		if e.matchesSpec(ce.Affects, o.ID, sc) {
 			return true
 		}
 	}

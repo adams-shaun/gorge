@@ -1294,6 +1294,8 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		if e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile && e.choosing != chooseManaSacrifice {
 			if e.wardMana != nil {
 				e.continueWardMana()
+			} else if e.unlessPayment != nil {
+				e.advanceUnlessPayment()
 			} else if cast {
 				e.continueCast()
 			}
@@ -1303,6 +1305,8 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		if e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile && e.choosing != chooseManaSacrifice {
 			if e.wardMana != nil {
 				e.continueWardMana()
+			} else if e.unlessPayment != nil {
+				e.advanceUnlessPayment()
 			} else if cast {
 				e.continueCast()
 			}
@@ -1312,6 +1316,8 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		if e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile && e.choosing != chooseManaSacrifice {
 			if e.wardMana != nil {
 				e.continueWardMana()
+			} else if e.unlessPayment != nil {
+				e.advanceUnlessPayment()
 			} else if cast {
 				e.continueCast()
 			}
@@ -1320,6 +1326,9 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// A Sac/Discard component of an already-accepted UnlessCost$ needs
 		// its payer's real choice before the suspended effect can resume.
 		e.answerUnlessPayment(chosen)
+	case chooseUnlessMana:
+		// The accepted UnlessCost$ is assembling mana one source at a time.
+		e.answerUnlessMana(chosen)
 	case chooseManaColor:
 		// A CR 605.3b triggered mana ability may pose its own colour choice
 		// after this one; the cast (or Ward's payment window) resumes only

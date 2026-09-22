@@ -352,7 +352,7 @@ func triggerModeEvents(mode string) triggerEventMask {
 
 func grantedKeywordTriggerEvent(kind events.Kind) bool {
 	return kind == events.TargetsChosen || kind == events.DeclareAttackers || kind == events.DeclareBlockers ||
-		kind == events.PutOnStack || kind == events.MoveZone
+		kind == events.PutOnStack || kind == events.MoveZone || kind == events.StepChange
 }
 
 func triggerMaskForFace(f *cards.Face) triggerEventMask {

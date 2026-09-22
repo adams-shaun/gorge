@@ -776,7 +776,7 @@ func (e *Engine) conspireCandidates(p state.PlayerID, id state.ObjID) []state.Ob
 		if co == nil || co.Tapped {
 			continue
 		}
-		if !effects.MatchesSpecFrom(e.G, "Creature.YouCtrl", cid, p, id) {
+		if !e.matchesSpecFrom("Creature.YouCtrl", cid, p, id) {
 			continue
 		}
 		colors := e.objColors(co)
@@ -1030,7 +1030,7 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 			if reserved[oid] || e.SacrificeBlocked(oid, true) { // an earlier Sac part already claimed this one; a CantSacrifice-blocked one can never pay
 				continue
 			}
-			if effects.MatchesSpecFrom(e.G, matchSpec, oid, p, id) {
+			if e.matchesSpecFrom(matchSpec, oid, p, id) {
 				avail = append(avail, oid)
 			}
 		}
@@ -1067,7 +1067,7 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 			if reserved[oid] || (selfInZone && oid == id) {
 				continue
 			}
-			if effects.MatchesSpecFrom(e.G, part.Spec, oid, p, id) {
+			if e.matchesSpecFrom(part.Spec, oid, p, id) {
 				avail = append(avail, oid)
 			}
 		}
@@ -1200,7 +1200,7 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 			if reserved[oid] {
 				continue
 			}
-			if effects.MatchesSpecFrom(e.G, spec, oid, p, id) {
+			if e.matchesSpecFrom(spec, oid, p, id) {
 				avail = append(avail, oid)
 			}
 		}
@@ -1236,7 +1236,7 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 			if reserved[oid] {
 				continue
 			}
-			if effects.MatchesSpecFrom(e.G, spec, oid, p, id) {
+			if e.matchesSpecFrom(spec, oid, p, id) {
 				avail = append(avail, oid)
 			}
 		}
@@ -1456,7 +1456,7 @@ func (e *Engine) costCandidates(p state.PlayerID, source state.ObjID, zone state
 		if o == nil || (excludeSource && id == source) || (untapped && o.Tapped) {
 			continue
 		}
-		if effects.MatchesSpecFrom(e.G, spec, id, p, source) {
+		if e.matchesSpecFrom(spec, id, p, source) {
 			out = append(out, id)
 		}
 	}
@@ -1494,7 +1494,7 @@ func (e *Engine) discardCandidates(p state.PlayerID, source state.ObjID, part Co
 		if reserved[id] || (casting && id == source) {
 			continue
 		}
-		if all || effects.MatchesSpecFrom(e.G, matchSpec, id, p, source) {
+		if all || e.matchesSpecFrom(matchSpec, id, p, source) {
 			out = append(out, id)
 		}
 	}
@@ -2741,9 +2741,9 @@ func (e *Engine) exAsk() bool {
 			if !pc.isAbility() && oid == pc.card {
 				continue
 			}
-			match := effects.MatchesSpecFrom(e.G, part.Spec, oid, pc.player, pc.card)
+			match := e.matchesSpecFrom(part.Spec, oid, pc.player, pc.card)
 			if sc != nil {
-				match = effects.MatchesSpecCtx(e.G, part.Spec, oid, *sc)
+				match = e.matchesSpec(part.Spec, oid, *sc)
 			}
 			if match {
 				already := false
@@ -2948,7 +2948,7 @@ func (e *Engine) moveToGraveCandidates(p state.PlayerID, source state.ObjID, spe
 			if reserved[id] {
 				continue
 			}
-			if effects.MatchesSpecFrom(e.G, spec, id, p, source) {
+			if e.matchesSpecFrom(spec, id, p, source) {
 				out = append(out, id)
 			}
 		}
@@ -3471,7 +3471,7 @@ func (e *Engine) xAsk() bool {
 				if e.SacrificeBlocked(oid, true) {
 					continue
 				}
-				if effects.MatchesSpecFrom(e.G, matchSpec, oid, pc.player, pc.card) {
+				if e.matchesSpecFrom(matchSpec, oid, pc.player, pc.card) {
 					avail++
 				}
 			}
@@ -3727,7 +3727,7 @@ func (e *Engine) subCounterRemovalCandidates(p state.PlayerID, source state.ObjI
 		if o == nil || subCounterAvailable(o, part.Spec) < amt {
 			continue
 		}
-		if effects.MatchesSpecFrom(e.G, part.Target, oid, p, source) {
+		if e.matchesSpecFrom(part.Target, oid, p, source) {
 			out = append(out, oid)
 		}
 	}
@@ -3889,7 +3889,7 @@ func (e *Engine) sacAsk() bool {
 			if e.SacrificeBlocked(oid, true) {
 				continue
 			}
-			if effects.MatchesSpecFrom(e.G, matchSpec, oid, pc.player, pc.card) {
+			if e.matchesSpecFrom(matchSpec, oid, pc.player, pc.card) {
 				already := false
 				for _, s := range pc.sacs {
 					if s == oid {
@@ -4573,7 +4573,7 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 			}})
 			n := 0
 			for _, oid := range e.G.Zone(zone, pc.player) {
-				if effects.MatchesSpecCtx(e.G, part.Spec, oid, sc) {
+				if e.matchesSpec(part.Spec, oid, sc) {
 					n++
 				}
 			}
@@ -6102,7 +6102,7 @@ func (e *Engine) recheckIllegal(pc *pendingCast) bool {
 		sc := e.specCtx(sv.Source, sv.Controller)
 		sc.HasManaValue = true
 		sc.ManaValue = mv
-		if effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], pc.card, sc) {
+		if e.matchesSpec(sv.Params["ValidCard"], pc.card, sc) {
 			// suppress=true, not false: an illegal-proposal abort is a
 			// no-progress reversal (CR 733.1) exactly like every other abort
 			// site, so it rides the same F05-2 (CR 733.2) discipline -- first
