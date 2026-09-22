@@ -16,7 +16,7 @@ func init() {
 	// mints a token, remembers it and chains the Attach above -- so it is
 	// supported by the same code paths and must be registered here or the
 	// report's coverage still counts every carrier as missing a primitive.
-	RegisterNonAPI("kw:Equip", "kw:Enchant", "kw:Living Weapon", "kw:For Mirrodin")
+	RegisterNonAPI("kw:Equip", "kw:Enchant", "kw:Living Weapon", "kw:For Mirrodin", "kw:Reconfigure")
 }
 
 // Attachable reports whether obj may legally be attached to target. Task 14
@@ -84,6 +84,21 @@ func Attachable(g *state.Game, obj state.ObjID, target state.ObjID) bool {
 // two-half discipline RememberTokens$ on effToken and RememberTargets$ on
 // effPumpAll apply).
 func effAttach(h Host, c *Ctx, sa *cards.SA) {
+	// kw:Reconfigure's unattach half (cards/kw_reconfigure.go): the minted
+	// ability carries Unattach$ True and resolves to the no-IDs Attach
+	// event -- the detach encoding rules/attach.go's CR 704.5n SBA and the
+	// bestowed detach already fold. An unattached source (the offer gate in
+	// rules/legal.go withholds the ability, so this is only reachable on a
+	// stale or malformed answer) refuses with the same Note convention the
+	// illegal-destination refusals use, deterministically and observably.
+	if strings.EqualFold(strings.TrimSpace(sa.Params["Unattach"]), "True") {
+		if src := h.Game().Obj(c.Source); src == nil || src.AttachedTo == 0 {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "cannot unattach: not attached"})
+			return
+		}
+		h.Emit(events.Event{Kind: events.Attach, Obj: c.Source})
+		return
+	}
 	// fx42 scoping: consume and clear the answered attach_choice fields at
 	// the top, so a nested Attach in the same chain poses its own ask.
 	answered := c.AttachChoice

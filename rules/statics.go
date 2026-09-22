@@ -33,6 +33,13 @@ type staticView struct {
 	// nil means "read the source object's top face" -- every construction that
 	// predates this field keeps today's behaviour exactly.
 	SVars map[string]string
+	// ChosenNumber is the Effect's SetChosenNumber$ binding an Effect-delivered
+	// registry entry carries (state.ContinuousEffect.ChosenNumber, frozen at
+	// creation): an Amount$ body reading Count$ChosenNumber (Kaza, Roil
+	// Chaser's wizard count, Maelstrom Muse's power) resolves against it
+	// through modAmountX's Ctx instead of the always-zero read an unbound
+	// context gives. Printed statics never carry the head and keep the zero.
+	ChosenNumber int32
 }
 
 // costStaticViews is one ordered snapshot of cost-modifier membership. The
@@ -579,7 +586,7 @@ func (e *Engine) staticTimingGate(sv staticView) bool {
 	case "Ferocious":
 		found := false
 		for _, id := range e.G.Zone(state.ZBattlefield, sv.Controller) {
-			if o := e.G.Obj(id); o != nil && o.Face() != nil && o.EffectiveIsCreature() && !o.BestowedAttached() && e.Derived(id).Power >= 4 {
+			if o := e.G.Obj(id); o != nil && o.Face() != nil && o.EffectiveIsCreature() && !o.BestowedAttached() && !o.ReconfiguredAttached() && e.Derived(id).Power >= 4 {
 				found = true
 				break
 			}
@@ -722,7 +729,43 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []altCostVie
 		if !e.alternativeCostScopeOK(sv.Params, id, sv.Source, p, sv.Controller) {
 			continue
 		}
-		out = append(out, altCostView{cost: e.parseCost(sv.Params["Cost"]),
+		cost, ok := e.altCostParse(id, sv.Params["Cost"])
+		if !ok {
+			continue
+		}
+		out = append(out, altCostView{cost: cost,
+			announce: strings.TrimSpace(sv.Params["Announce"]), src: sv.Source})
+	}
+	// The Effect-delivered AlternativeCost statics (task
+	// param:api:Effect.ForgetOnCast, Marshland Bloodcaster): registry entries
+	// effEffect registered, read through the SAME reader logic as the printed
+	// route above over the same e.active() source collectCostStatics' sibling
+	// walk feeds the Raise/Reduce/Set modes, so the two delivery routes
+	// cannot disagree about what applies or when it expires.
+	for _, ce := range e.active() {
+		if ce.CostStaticMode != "AlternativeCost" {
+			continue
+		}
+		sv := staticView{Source: ce.Source, Controller: ce.Controller,
+			Params: ce.CostStaticParams, ChosenNumber: ce.ChosenNumber}
+		// ValidCard$ is presence-gated here exactly as costStaticApplies gates
+		// it: an absent spec restricts nothing (the printed face-static walk
+		// below never consults one at all -- Marshland's AlternativeCost body
+		// names none). The bare matchesObjectText read of an empty spec
+		// matches NOTHING, so an unconditional check would silently deny
+		// every ValidCard$-less grant.
+		if spec, ok := sv.Params["ValidCard"]; ok && spec != "" &&
+			!effects.MatchesSpecCtx(e.G, spec, id, e.staticSpecCtx(sv)) {
+			continue
+		}
+		if !e.alternativeCostScopeOK(sv.Params, id, sv.Source, p, sv.Controller) {
+			continue
+		}
+		cost, ok := e.altCostParse(id, sv.Params["Cost"])
+		if !ok {
+			continue
+		}
+		out = append(out, altCostView{cost: cost,
 			announce: strings.TrimSpace(sv.Params["Announce"]), src: sv.Source})
 	}
 	if o := e.G.Obj(id); o != nil {
@@ -734,7 +777,11 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []altCostVie
 				if !e.alternativeCostScopeOK(st.Params, id, id, p, o.Controller) {
 					continue
 				}
-				out = append(out, altCostView{cost: e.parseCost(st.Params["Cost"]),
+				cost, ok := e.altCostParse(id, st.Params["Cost"])
+				if !ok {
+					continue
+				}
+				out = append(out, altCostView{cost: cost,
 					announce: strings.TrimSpace(st.Params["Announce"]), src: id})
 			}
 		}
@@ -746,6 +793,33 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []altCostVie
 		out = append(out, altCostView{cost: c})
 	}
 	return out
+}
+
+// altCostParse prices one alternative-cost token (an AlternativeCost
+// static's Cost$, either registration route -- a printed S: static or an
+// Effect-delivered registry entry -- or a MayPlay static's
+// MayPlayAltManaCost$) for the cast of id. The ONE dynamic token the corpus
+// carries, ConvertedManaCost (Marshland Bloodcaster's "pay life equal to
+// that spell's mana value" Cost$ and the 12 may-play statics'
+// MayPlayAltManaCost$), substitutes the cast card's own mana value, the
+// same read the Play route's pricePlayCost makes. ok=false is the fail-
+// closed withholding: a token that cannot be resolved (no card face) or
+// parses into an unmodelled part is never offered -- an unpriceable cost
+// must not exist as an option, because ParseCost's malformed-token fallback
+// would otherwise price it one generic mana (the may-play route's
+// documented direction; the printed AlternativeCost statics all parse
+// today, measured over the corpus's 150 Mode$ AlternativeCost lines).
+func (e *Engine) altCostParse(id state.ObjID, raw string) (Cost, bool) {
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil {
+		return Cost{}, false
+	}
+	c := e.parseCost(convertedManaCostToken.ReplaceAllString(raw,
+		strconv.FormatInt(int64(o.Face().ManaValue()), 10)))
+	if len(c.Unknown) > 0 {
+		return Cost{}, false
+	}
+	return c, true
 }
 
 // altCostXCandidates returns the ASCENDING distinct mana values at which at
@@ -969,6 +1043,55 @@ func (e *Engine) blockRestricted(blocker, attacker state.ObjID) bool {
 		if effects.MatchesSpecCtx(e.G, spec, blocker, e.staticSpecCtx(sv)) {
 			return true
 		}
+	}
+	// The Effect-registered CantBlockBy restrictions (task cbb1): an
+	// `AB$ Effect | StaticAbilities$ Unblockable` whose SVar body is
+	// `Mode$ CantBlockBy | ValidAttacker$ Card.IsRemembered` -- Suspicious
+	// Bookcase's "{3},{T}: Target creature can't be blocked this turn", the
+	// dominant unblockable template (measured 246 corpus files carry the
+	// Effect-delivered shape) -- registers through effEffect's restriction
+	// case and is consulted here beside the face statics, so the remembered
+	// creature really is unblockable for the effect's lifetime. The
+	// registration gate (effects.CantBlockByRestrictionParamsReadable) has
+	// already refused every body whose scoping this loop cannot evaluate
+	// (ValidBlockerRelative$, IsPresent$/PresentCompare$ gates), so the
+	// loop reads ValidAttacker$/ValidBlocker$ unconditionally and the only
+	// fail-closed direction is the ordinary matcher's empty-set read.
+	for _, ce := range e.active() {
+		if ce.Restriction != "CantBlockBy" {
+			continue
+		}
+		attackerSpec := ce.RestrictParams["ValidAttacker"]
+		if attackerSpec == "" {
+			attackerSpec = ce.RestrictParams["ValidCard"]
+		}
+		sc := e.specCtx(ce.Source, ce.Controller)
+		for _, r := range ce.Remembered {
+			sc.Remembered = append(sc.Remembered, state.Target{Obj: r})
+		}
+		if attackerSpec == "" {
+			// A spec-less restriction names exactly its remembered set (the
+			// restrictionApplies convention, evaluated per-pair here because
+			// this read consults one (blocker, attacker) candidate at a
+			// time): an attacker outside the set is not restricted.
+			remembered := false
+			for _, r := range ce.Remembered {
+				if r == attacker {
+					remembered = true
+				}
+			}
+			if !remembered {
+				continue
+			}
+		} else if !effects.MatchesSpecCtx(e.G, attackerSpec, attacker, sc) {
+			continue
+		}
+		if spec, ok := ce.RestrictParams["ValidBlocker"]; ok {
+			if !effects.MatchesSpecCtx(e.G, spec, blocker, sc) {
+				continue
+			}
+		}
+		return true
 	}
 	return false
 }
@@ -1419,6 +1542,30 @@ func (e *Engine) collectCostStatics() costStaticViews {
 			}
 		}
 	}
+	// The Effect-delivered cost-modifier statics (task
+	// param:api:Effect.ForgetOnCast): Mode$ ReduceCost/RaiseCost/SetCost
+	// bodies effEffect registered with the line's own parameter map. The
+	// walk reads e.active() so the entries inherit exactly the lifetimes the
+	// layer walk honours -- Permanent entries survive their (already gone)
+	// spell source, UntilEOT entries are already dropped by cleanup,
+	// non-permanent entries end with the source -- and the printed walk
+	// above never sees these (they are not face statics). The printed walk's
+	// own PileStaticCount discipline stays untouched.
+	for _, ce := range e.active() {
+		var dst *[]staticView
+		switch ce.CostStaticMode {
+		case "RaiseCost":
+			dst = &out.raise
+		case "ReduceCost":
+			dst = &out.reduce
+		case "SetCost":
+			dst = &out.set
+		default:
+			continue
+		}
+		*dst = append(*dst, staticView{Source: ce.Source, Controller: ce.Controller,
+			Params: ce.CostStaticParams, ChosenNumber: ce.ChosenNumber})
+	}
 	return out
 }
 
@@ -1458,7 +1605,8 @@ func (e *Engine) modAmountX(sv staticView, x int32) int32 {
 	if svars == nil {
 		svars = o.Face().SVars
 	}
-	ctx := &effects.Ctx{Source: sv.Source, Controller: sv.Controller, SVars: svars, X: x}
+	ctx := &effects.Ctx{Source: sv.Source, Controller: sv.Controller, SVars: svars, X: x,
+		ChosenNumber: sv.ChosenNumber}
 	// An SVar NAME resolves through its body on the source's face; anything
 	// else is an inline Count$-class expression evaluated as written.
 	if body, ok := svars[raw]; ok {
@@ -2221,6 +2369,18 @@ func init() {
 		// price (Nils' RememberingAttacker$) stay unregistered
 		// behaviour-wise and are ledgered in AGENTS.md.
 		"stat:CantAttackUnless",
+		// canattackdefender1: the CR 702.3b permission static (the inverse of
+		// a restriction: it LIFTS the Defender wall per (attacker, defender)
+		// pair). rules/attack_defender.go attackAllowedThroughDefender is the
+		// read, consulted through canAttackPair from the offer list, the
+		// validator and the encore gate; the Effect-granted form registers as
+		// a CanAttackDefender restriction through effEffect (the Assault
+		// Formation shape). Only the whitelisted parameter shapes are
+		// enforced (effects.CanAttackDefenderParamsReadable for the face
+		// route with the shared gate grammar;
+		// effects.CanAttackDefenderGrantParamsReadable for the grant route,
+		// which cannot evaluate a gate and so keeps the narrower list).
+		"stat:CanAttackDefender",
 		// minmaxblocker1: the CR 509.1a block-count restriction static
 		// (rules/statics.go minMaxBlockerBounds, enforced whole-declaration by
 		// rules/combat.go validateBlockers and consulted by askBlockers' option
@@ -2228,6 +2388,15 @@ func init() {
 		// StaticAbilities$ directives are the Effect-delivered form and stay
 		// out of scope.
 		"stat:MinMaxBlocker",
+		// unspentmana1: the CR 500.4 exception static (rules/statics.go
+		// unspentManaKeep, consulted at the one ManaClear emit site in
+		// rules/turn.go's finishStepBoundary; the keep letters ride the
+		// ManaClear event Text and the ManaClear fold honours them). Both
+		// delivery routes are read -- the printed S: face statics and
+		// effEffect's UnspentMana registration arm -- and only the whitelisted
+		// parameter shapes are enforced (effects.UnspentManaParamsReadable,
+		// shared with effEffect's registration gate).
+		"stat:UnspentMana",
 		// The static's Cost$ Exert<1/CARDNAME> and Trigger$ rider are consumed
 		// by the declare-attackers offer (rules/combat.go's askNextExert) and
 		// the Exert-event trigger walker (rules/trigger_match.go
@@ -2240,7 +2409,15 @@ func init() {
 		// S:Mode$ statics are read; the SVar:Static: family that rides the
 		// Effect path is a separate ledgered gap, and Ruxa's NoAbilities
 		// predicate stays an unknown that fails closed.
-		"stat:AssignCombatDamageAsUnblocked")
+		"stat:AssignCombatDamageAsUnblocked",
+		// toughtdmg1: the CR 510.1 combat-damage assignment statics
+		// (rules/statics.go combatDamageToughnessMatches, consumed by the ONE
+		// amount helper combatDamageAmount that every assignment site reads).
+		// Only the printed S:Mode$ statics are read through activeStatics; the
+		// Effect-delivered SVar form (an AB$ Effect | StaticAbilities$
+		// CombatDamageToughness body) is the same Effect-registration gap
+		// AssignCombatDamageAsUnblocked carries and stays ledgered.
+		"stat:CombatDamageToughness")
 }
 
 // asUnblockedStaticMatches reports whether any battlefield
@@ -2257,7 +2434,7 @@ func init() {
 // predicates are known), the same clause shape the trigger-side
 // presentCondition reader evaluates.
 func (e *Engine) asUnblockedStaticMatches(id state.ObjID) (matched, mandatory bool) {
-	for _, sv := range e.activeStatics("AssignCombatDamageAsUnblocked") {
+	for _, sv := range e.assignmentStatics("AssignCombatDamageAsUnblocked") {
 		if !e.restrictionGateHolds(sv, id) || !e.checkSVarHolds(sv) {
 			continue
 		}
@@ -2278,6 +2455,115 @@ func (e *Engine) asUnblockedStaticMatches(id state.ObjID) (matched, mandatory bo
 		}
 	}
 	return matched, false
+}
+
+// assignmentStatics collects every S:Mode$ <mode> line from ANY zone a
+// static's EffectZone$ admits, for the combat damage-ASSIGNMENT static
+// family (CombatDamageToughness, AssignCombatDamageAsUnblocked). These two
+// modes are not battlefield-bound the way a lord's Continuous static is:
+// Weight Advantage is a Conspiracy that functions from the COMMAND ZONE
+// (EffectZone$ Command), so a battlefield-only walk can never see it and its
+// controller's creatures would keep assigning power. The walk mirrors
+// collectActionStatics/collectCostStatics exactly -- staticSourceZones in
+// one fixed order, each static gated by effectZoneOK, the shared stack
+// walked once under the first alive seat -- so the class of
+// assignment-source statements is covered by construction and the next
+// sibling mode added to this family cannot silently miss a non-battlefield
+// source the way CombatDamageToughness did.
+func (e *Engine) assignmentStatics(mode string) []staticView {
+	var out []staticView
+	for pi, p := range e.G.AliveFrom(0) {
+		for _, z := range staticSourceZones {
+			// The stack is a SHARED zone (state.Game.Zone returns g.Stack
+			// for every player), so walking it under every alive seat would
+			// collect each stack card's statics once per seat. Walk it once,
+			// under the first alive seat, keeping staticSourceZones' order.
+			if z == state.ZStack && pi > 0 {
+				continue
+			}
+			for _, id := range e.G.Zone(z, p) {
+				o := e.G.Obj(id)
+				if o == nil || o.Face() == nil {
+					continue
+				}
+				if e.faceDownPrintedHides(o) {
+					// CR 708.8: a face-down permanent's printed statics do not
+					// exist while it is face down.
+					continue
+				}
+				for si, sn := 0, o.PileStaticCount(); si < sn; si++ {
+					pst, ok := o.PileStaticAt(si)
+					if !ok {
+						continue
+					}
+					st := pst.Static
+					if st.Mode != mode {
+						continue
+					}
+					// The mode's own EffectZone$ gate. The default (Battlefield)
+					// keeps a plain printed static exactly where activeStatics put
+					// it; a static naming Command (Weight Advantage) is admitted
+					// only while its source really sits there, which is the same
+					// fail-closed direction effectZoneOK takes everywhere.
+					if !effectZoneOK(st.Params["EffectZone"], o.Zone) {
+						continue
+					}
+					out = append(out, staticView{Source: id, Controller: o.Controller, Params: st.Params, SVars: pst.Face.SVars})
+				}
+			}
+		}
+	}
+	return out
+}
+
+// combatDamageToughnessMatches reports whether any
+// CombatDamageToughness static applies to candidate creature id (CR 510.1:
+// "assigns combat damage equal to its toughness rather than its power"). The
+// match follows asUnblockedStaticMatches' pattern exactly -- the shared
+// restriction/condition gates, the ClassLevel band, IsPresent$ through the
+// shared countPresent walk, and ValidCard$ resolved against the CANDIDATE
+// with the static's host as the spec SOURCE, so an Aura's
+// Creature.EnchantedBy and a lord's Creature.YouCtrl both resolve. The source
+// walk is assignmentStatics (every EffectZone$ the mode admits), so a
+// command-zone Conspiracy (Weight Advantage) applies too.
+func (e *Engine) combatDamageToughnessMatches(id state.ObjID) bool {
+	for _, sv := range e.assignmentStatics("CombatDamageToughness") {
+		if !e.restrictionGateHolds(sv, id) || !e.checkSVarHolds(sv) {
+			continue
+		}
+		if !e.classBandGateHolds(sv.Params, sv.Source) {
+			continue
+		}
+		if spec := strings.TrimSpace(sv.Params["IsPresent"]); spec != "" {
+			if e.countPresent(spec, sv.Source, sv.Controller) <= 0 {
+				continue
+			}
+		}
+		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.staticSpecCtx(sv)) {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
+// combatDamageAmount is the amount creature id assigns as combat damage in a
+// damage step: its TOUGHNESS when a CombatDamageToughness static applies (CR
+// 510.1), else its power. This is the ONE read of the assignment source, so
+// every consumer -- the attacker's own assignment, each blocker's hit-back,
+// the division option count and the as-unblocked election gate -- cannot
+// disagree. It reads through the layer walk (Toughness/Power are
+// derivedScalar), so a static P/T bonus the same turn changes the amount
+// exactly as it changes the characteristic.
+//
+// A creature whose effective amount is at most zero assigns no combat damage
+// (an assignment of zero is not a decision and deals nothing), matching the
+// power gate it replaces; callers that need the amount also read its sign.
+func (e *Engine) combatDamageAmount(id state.ObjID) int32 {
+	if e.combatDamageToughnessMatches(id) {
+		return e.Toughness(id)
+	}
+	return e.Power(id)
 }
 
 // altCostLabel names the nth (0-indexed) alternative-cost option for a
@@ -2481,3 +2767,76 @@ func panharmoniconModes(ev events.Event) []string {
 		return nil
 	}
 }
+
+// unspentManaKeep renders the pool slots whose unspent mana the CR 500.4
+// boundary ManaClear must NOT empty for player p — the stat:UnspentMana
+// continuous static ("You don't lose unspent <colour> mana as steps and
+// phases end", Leyline Tyrant / Omnath, Locus of Mana / Upwelling). The
+// answer is one letter per protected slot in fixed WUBRGC slot order
+// ("R", "WU", ...); "" means every slot empties, so a game without a live
+// carrier emits the historical Text-less ManaClear byte-identically.
+//
+// Both delivery routes are read, the same pair SacrificeBlocked walks:
+// the printed S: face statics (activeStatics) and the Effect-delivered
+// registration (effEffect's UnspentMana arm — The Last Agni Kai's
+// `DB$ Effect | StaticAbilities$ Unspent`), the latter through the ordinary
+// active() lifetime machinery so the grant ends with its source or its
+// duration. A face static's "as long as" gates run through the shared
+// continuousGateHolds grammar; ValidPlayer$ goes through the shared player
+// spec matcher (You scopes to the static's controller, absent — Upwelling —
+// protects every seat). ManaType$ is a comma-separated colour-word list
+// parsed by effects.ColorLetters; absent (or an unparseable "Colorless"
+// word set, the C slot) protects every slot only when the parameter is
+// wholly absent. An unresolvable ManaType$ value fails closed and protects
+// nothing — the shipped-statics convention.
+func (e *Engine) unspentManaKeep(p state.PlayerID) string {
+	keep := make([]bool, len(e.G.Players[p].Pool))
+	apply := func(params map[string]string, you state.PlayerID) {
+		if spec := params["ValidPlayer"]; spec != "" &&
+			!effects.MatchesPlayerSpec(e.G, spec, p, you) {
+			return
+		}
+		mt := strings.TrimSpace(params["ManaType"])
+		if mt == "" {
+			for i := range keep {
+				keep[i] = true
+			}
+			return
+		}
+		letters, ok := effects.ColorLetters(mt)
+		if !ok {
+			return
+		}
+		if len(letters) == 0 {
+			// "Colorless" — the C slot alone.
+			keep[len(keep)-1] = true
+			return
+		}
+		for _, l := range letters {
+			keep[state.ManaIndex(l[0])] = true
+		}
+	}
+	for _, sv := range e.activeStatics("UnspentMana") {
+		if !e.continuousGateHolds(sv) {
+			continue
+		}
+		apply(sv.Params, sv.Controller)
+	}
+	for _, ce := range e.active() {
+		if ce.Restriction != "UnspentMana" {
+			continue
+		}
+		apply(ce.RestrictParams, ce.Controller)
+	}
+	var out []byte
+	for i, k := range keep {
+		if k {
+			out = append(out, manaSlotSymbols[i])
+		}
+	}
+	return string(out)
+}
+
+// manaSlotSymbols indexes the pool slot order (state.MW..state.MC) to its
+// WUBRGC letter, the encoding the ManaClear keep Text rides.
+const manaSlotSymbols = "WUBRGC"

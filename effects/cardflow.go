@@ -811,16 +811,23 @@ func containsID(ids []state.ObjID, id state.ObjID) bool {
 // every card it actually moves joins the resolution's remembered set, the
 // same both-halves recording discardAndRemember does, so a chained pickup
 // ("put a card from among them into your hand") filtering on IsRemembered
-// finds them instead of silently failing to find.
+// finds them instead of silently failing to find. With ShowMilledCards$ True
+// the mill REVEALS what it milled: one public ids-Note per acting player
+// after that player's moves (the same payload shape effDig's Reveal$ arm
+// emits -- Demonic Covenant's "mill two cards" transcript line), so the
+// table reads what was milled even though a graveyard move's own MoveZone
+// event carries no reveal line.
 func effMill(h Host, c *Ctx, sa *cards.SA) {
 	n := Num(h, c, sa, "NumCards", 1)
 	if n < 0 {
 		n = 0
 	}
 	remember := strings.EqualFold(sa.Params["RememberMilled"], "True")
+	show := strings.EqualFold(strings.TrimSpace(sa.Params["ShowMilledCards"]), "True")
 	g := h.Game()
 	for _, t := range actingPlayers(h, c, sa) {
 		p := PlayerOf(h, c, t)
+		var milledIDs []state.ObjID
 		for i := int32(0); i < n; i++ {
 			lib := zoneOf(g, state.ZLibrary, p)
 			if len(lib) == 0 {
@@ -832,6 +839,10 @@ func effMill(h Host, c *Ctx, sa *cards.SA) {
 			if remember {
 				rememberMilled(h, c, id)
 			}
+			milledIDs = append(milledIDs, id)
+		}
+		if show && len(milledIDs) > 0 {
+			h.Emit(events.Event{Kind: events.Note, Player: p, IDs: milledIDs})
 		}
 	}
 }

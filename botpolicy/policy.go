@@ -509,7 +509,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			// offered order while the running Value sum fits the budget -- the
 			// exact mirror of effDig's forced greedy take, so a budget dig
 			// moves the same cards the no-host stand-in would.
-			if d.MaxSum > 0 {
+			if d.HasBudget() {
 				sum := 0
 				// Bound by COUNT (len(in.Choices) < d.Max), not by index --
 				// the same run-length bound effDig's forced greedy take uses
@@ -622,7 +622,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			// name Groups even under a budget; 0 corpus carriers combine
 			// them), so the fill cannot name one card twice and hand back an
 			// intent Validate's mutual-exclusion rule rejects.
-			if d.MaxSum > 0 {
+			if d.HasBudget() {
 				sum := 0
 				groups := make(map[string]bool)
 				for _, o := range d.Options {
@@ -727,7 +727,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		// the decline stands-in unchanged; the engine lowers a mandatory
 		// budget ask's Min to what the budget affords, so a satisfying set
 		// always exists and Clamp's budget-aware top-up covers the rest.
-		if d.MaxSum > 0 {
+		if d.HasBudget() {
 			sum := 0
 			for j := 0; j < len(d.Options) && len(in.Choices) < d.Min; j++ {
 				if sum+d.Options[j].Value > d.MaxSum {
@@ -858,7 +858,7 @@ func Clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 		// decision keeps byte-identical top-up. This is the general fix for the
 		// livelock where a mandatory budget dig's Clamp padding ignored the cap
 		// and produced an intent Decision.Validate rejects.
-		fits := func(o decision.Option) bool { return d.MaxSum <= 0 || sum+o.Value <= d.MaxSum }
+		fits := func(o decision.Option) bool { return !d.HasBudget() || sum+o.Value <= d.MaxSum }
 		add := func(o decision.Option) {
 			have[o.Index] = true
 			sum += o.Value

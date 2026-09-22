@@ -149,6 +149,53 @@ func (e *Engine) maxSpeedAbilities(p state.PlayerID, id state.ObjID) []*cards.SA
 	return out
 }
 
+// beginGainedActivation starts a has-all-abilities-of activation (Forge's
+// GainsAbilitiesOf$, rules/legal.go's gained offer loop): the body is a
+// compiled AB$ SA on the foreign card's own face, named by
+// (opt.GainedSource, opt.GainedIdx), so it resolves directly off that face
+// instead of the SVar anchor beginGrantedActivation uses. Every later stage
+// is the shared activation flow -- cost parse, ReduceCost fold, targeting,
+// payment, then events.GainedAbilityPush mints the same SA on the stack. A
+// foreign card that left the scoped zone, or a stale index, degrades to a
+// no-op (a stale option always has).
+func (e *Engine) beginGainedActivation(p state.PlayerID, opt decision.Option) {
+	o := e.G.Obj(opt.Obj)
+	if o == nil || o.Zone != state.ZBattlefield || o.Face() == nil {
+		return
+	}
+	fo := e.G.Obj(opt.GainedSource)
+	if fo == nil || fo.Face() == nil {
+		return
+	}
+	abilities := fo.Face().Abilities
+	if opt.GainedIdx < 0 || opt.GainedIdx >= len(abilities) {
+		return
+	}
+	ab := abilities[opt.GainedIdx]
+	if ab == nil {
+		return
+	}
+	cost, ok := e.fixLifeXCost(p, opt.Obj, e.parseCost(ab.Params["Cost"]))
+	if !ok {
+		return
+	}
+	// The gained twin of the printed loop's own ReduceCost$ fold: targets do
+	// not exist yet (CR 601.2c runs later), so a target-dependent body reads
+	// 0 here and repriceForTargets re-runs the evaluation.
+	own := e.ownReduceCost(p, opt.Obj, ab, nil, 0)
+	if own > 0 {
+		if cost.Generic >= own {
+			cost.Generic -= own
+		} else {
+			cost.Generic = 0
+		}
+	}
+	mods := e.costModifiers(p, opt.Obj, abilityScope(ab))
+	e.cast = &pendingCast{player: p, card: opt.Obj, from: o.Zone, ability: -1,
+		gainedFrom: opt.GainedSource, gainedIdx: opt.GainedIdx, cost: cost, mods: mods, ownReduce: own}
+	e.continueCast()
+}
+
 // beginGrantedActivation activates an SVar-anchored granted ability: the
 // max-speed static's "granted" option (rules/speed.go's own offer) and the
 // AddAbilities grant's "ability" option (rules/legal.go, beginActivation's
