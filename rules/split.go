@@ -186,6 +186,49 @@ func (e *Engine) resolveFused(o *state.Object) {
 	}
 }
 
+// fusedHalfTargets reports whether sa is the root spell ability of one of
+// the fused spell o's halves (matched by Line, the same convention
+// chosenTargetsFor's OfferedSA suppression uses -- ResolveSVar parses fresh
+// on every call, so pointer identity never holds between derivations), and
+// when it is, returns that half's CR 608.2b-rechecked target slice: the
+// stage slice the payment published into Engine.fuseTargets, or, scratch
+// absent (a stack COPY of a fused spell), the spec re-derivation from the
+// flat list that resolveFused's fallback uses. This is what a mid-resolution
+// ask's resume binds instead of the generic resume ctx's whole-flat-list
+// Targets, so the re-entered half never acts on the other half's targets nor
+// re-poses its ValidTgts$ pre-ask (the spurious "Choose target" after an
+// answered sacrifice, Far // Away). A sub-ability of a half (its own
+// ValidTgts$) is NOT a half root and matches nothing: its targeting ask is a
+// genuine one the cast's stage ask never covered.
+func (e *Engine) fusedHalfTargets(o *state.Object, sa *cards.SA) ([]state.Target, bool) {
+	if o == nil || sa == nil {
+		return nil, false
+	}
+	ff, fa := fusedSplitFaces(o)
+	if ff == nil || fa == nil {
+		return nil, false
+	}
+	halves := []*cards.Face{ff, fa}
+	stageTargets := e.fuseTargets[o.ID]
+	for i, hf := range halves {
+		hsa := hf.SpellAbility()
+		if hsa == nil || hsa.Line != sa.Line {
+			continue
+		}
+		spec := strings.TrimSpace(hsa.Params["ValidTgts"])
+		if spec == "" {
+			// A targetless half: its slice is empty by construction.
+			return nil, true
+		}
+		own := o.Targets
+		if stageTargets != nil && i < len(stageTargets) {
+			own = stageTargets[i]
+		}
+		return e.legalTargets(own, spec, targetZones(hsa), o.Controller, o.ID, o.ID), true
+	}
+	return nil, false
+}
+
 // runFusedHalves runs halves[from:] of the fused spell o -- the shared half
 // loop of resolveFused's first pass and of every fuse-rest continuation --
 // and, when a half suspends on a mid-resolution ask, chains the ordinary

@@ -171,6 +171,11 @@ var baseBuckets = map[string]bucket{
 	// modal one. The same cards.SA parameter map, so the same bucket as
 	// o.Ability.
 	"offeredSA": bSA,
+	// hsa is rules/split.go's fusedHalfTargets' per-half root spell ability
+	// (the loop local for halves[i].SpellAbility(), read for the half's
+	// ValidTgts$ spec and targetZones): a *cards.SA parameter map exactly
+	// like the sa it mirrors.
+	"hsa": bSA,
 	// so.Ability is handleModes' placement branch's stack object (the local
 	// name for the same stack object o.Ability reads): the trigger Charm's
 	// resolved SA, whose full Choices$ list classifies the cross-mode

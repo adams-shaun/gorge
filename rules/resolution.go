@@ -961,6 +961,24 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	if offeredSA := offeredTargetSA(o, svars); offeredSA != nil {
 		ctx.OfferedSA = offeredSA
 	}
+	// A fused half's own mid-resolution ask (Down // Dirty's TgtChoose
+	// discard, Far // Away's CR 701.21a sacrifice) re-enters here with
+	// rp.sa = the asking half's root SA. The generic ctx above binds Targets
+	// from the stack object's WHOLE flat target list and OfferedSA from the
+	// front face alone -- for a fused spell the flat list carries BOTH
+	// halves' targets and the front face's SA is the other half's, so the
+	// re-entered half would act on the other half's targets and re-pose its
+	// own ValidTgts$ pre-ask (the spurious "Choose target" after the answered
+	// sacrifice). When rp.sa is one of the halves' roots, bind exactly what
+	// the first pass (rules/split.go's runFusedHalves) bound: the half's own
+	// rechecked stage slice as Targets, its own SA as OfferedSA, and the
+	// offered marker. A sub-ability's ask (not a half root) keeps the
+	// generic binding -- its targeting was never covered by the cast.
+	if half, ok := e.fusedHalfTargets(o, rp.sa); ok {
+		ctx.Targets = half
+		ctx.OfferedSA = rp.sa
+		ctx.TargetsOffered = true
+	}
 	effects.SetSVars(ctx, svars)
 	// An accepted optional trigger may itself carry Cost$ (Mana Vault's
 	// "you may pay {4}; if you do" untap). The optional answer chooses to
