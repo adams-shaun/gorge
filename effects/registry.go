@@ -613,9 +613,20 @@ type EffectFrame struct {
 // RepeatOptionalContinuation is the scoped continuation for RepeatOptional$.
 // It is carried only by the resolving Ctx; rules transports it across a
 // mid-resolution ask and it is never event state.
+//
+// It represents two DISTINCT resume states, never conflated (fx42):
+//   - Continue false: the player answered "no" and the loop stops.
+//   - Continue true, AskElection false: a completed election was answered
+//     "yes", so the next body to run is iteration Next -- no further
+//     election is owed for it.
+//   - Continue true, AskElection true: a body of iteration Next-1 completed
+//     after its own suspension (a body ask), so the do/while election owed
+//     for iteration Next has NOT been posed yet and must be asked before
+//     that iteration's body runs.
 type RepeatOptionalContinuation struct {
-	Continue bool
-	Next     int32
+	Continue    bool
+	Next        int32
+	AskElection bool
 }
 
 type Ctx struct {

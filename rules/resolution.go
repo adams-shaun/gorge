@@ -449,8 +449,10 @@ func (e *Engine) SuspendContinuation(sa *cards.SA) {
 // bound to the iteration's Remembered unless a deeper loop already bound it.
 // The loop's own frame follows them, bound to the RepeatEach's Remembered.
 // SuspendRepeatOptional implements effects.Host.SuspendRepeatOptional. The
-// body owns the pending ask; this frame runs only after that body resumes and
-// completes, re-entering RepeatOptional$ at its next iteration.
+// body of iteration next-1 owns the pending ask; this frame runs only after
+// that body resumes and completes, and it re-enters RepeatOptional$ to pose
+// the repeat election for iteration next (never that iteration's body
+// directly -- the do/while owes the player the election after every process).
 func (e *Engine) SuspendRepeatOptional(sa *cards.SA, next int32) {
 	if e.resume == nil {
 		return
@@ -1175,7 +1177,12 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			}
 		case "repeat_optional_loop":
 			if cur := rp.repeat; cur != nil {
-				ctx.RepeatOptional = &effects.RepeatOptionalContinuation{Continue: true, Next: int32(cur.next)}
+				// The body of iteration cur.next-1 completed after its own
+				// suspension: the repeat election for cur.next has not been
+				// posed, so AskElection re-enters the loop at the election
+				// rather than running the body directly.
+				ctx.RepeatOptional = &effects.RepeatOptionalContinuation{Continue: true, Next: int32(cur.next),
+					AskElection: true}
 			}
 		case "unless_pay":
 			if rp.unlessPay != "" {

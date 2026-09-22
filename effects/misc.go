@@ -1956,19 +1956,40 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 	start := int32(0)
+	// askElection marks a resume that must FIRST pose the repeat election for
+	// `start`, then run that iteration's body only if the player says yes. It
+	// is the state a RepeatOptional$ BODY suspension leaves behind: the body
+	// of iteration start-1 completed after its ask was answered, so the
+	// do/while election owed for iteration start has not been posed yet. It
+	// is distinct from a completed election answered yes, which begins the
+	// next body with no further election (see RepeatOptionalContinuation).
+	askElection := false
 	if c.RepeatOptional != nil {
 		if !c.RepeatOptional.Continue {
 			return
 		}
 		start = c.RepeatOptional.Next
+		askElection = c.RepeatOptional.AskElection
 	}
 	for i := start; i < n; i++ {
+		if askElection {
+			// The previous iteration's body completed after suspending: pose
+			// the repeat election that iteration i's body has not yet earned
+			// (CR 608.2c's do/while). The election concerns iteration i, so a
+			// yes resumes the body at i, not i+1.
+			askElection = false
+			if !poseRepeatOptionalElection(h, c, sa, i) {
+				return // R-9: a host that cannot answer stops here.
+			}
+			return
+		}
 		Resolve(h, c, sub)
 		if h.Suspended() {
 			// A RepeatOptional body can itself ask (Forbidden Ritual's
-			// sacrifice choice is the corpus example). Preserve the loop
+			// sacrifice/choice chain is the corpus example). Preserve the loop
 			// cursor so the answered body re-enters the repeat and poses the
-			// repeat election instead of falling through to Repeat.Sub.
+			// repeat election for the NEXT iteration instead of falling
+			// through to Repeat.Sub.
 			if optional {
 				h.SuspendRepeatOptional(sa, i+1)
 			}
@@ -1984,22 +2005,7 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 			if i+1 >= n {
 				return
 			}
-			player := c.Controller
-			if strings.TrimSpace(sa.Params["RepeatOptionalDecider"]) == "Remembered" {
-				for _, t := range c.Remembered {
-					if t.IsPlayer {
-						player = t.Player
-						break
-					}
-				}
-			}
-			d := &decision.Decision{Player: player, Kind: decision.KChoose,
-				Min: 1, Max: 1, Prompt: "Repeat this process?", Source: c.Source,
-				ResumeKind: "repeat_optional", ResumeSA: sa,
-				ResumeRepeatNext: i + 1,
-				Options: []decision.Option{{Index: 0, Kind: "yes", Label: "Repeat", Player: player},
-					{Index: 1, Kind: "no", Label: "Stop", Player: player}}}
-			if !h.Ask(d) {
+			if !poseRepeatOptionalElection(h, c, sa, i+1) {
 				return // R-9: a host that cannot answer stops after one pass.
 			}
 			return
@@ -2009,6 +2015,31 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 		}
 		// The gate was evaluated before the optional election.
 	}
+}
+
+// poseRepeatOptionalElection asks the RepeatOptional$ "Repeat this process?"
+// election for the iteration `next` whose body a yes would run, parking the
+// loop cursor on it (ResumeRepeatNext = next). RepeatOptionalDecider$
+// Remembered routes the ask to the remembered player when the line names
+// one. It returns h.Ask(d): false when the host cannot answer, the R-9
+// deterministic stop after one pass.
+func poseRepeatOptionalElection(h Host, c *Ctx, sa *cards.SA, next int32) bool {
+	player := c.Controller
+	if strings.TrimSpace(sa.Params["RepeatOptionalDecider"]) == "Remembered" {
+		for _, t := range c.Remembered {
+			if t.IsPlayer {
+				player = t.Player
+				break
+			}
+		}
+	}
+	d := &decision.Decision{Player: player, Kind: decision.KChoose,
+		Min: 1, Max: 1, Prompt: "Repeat this process?", Source: c.Source,
+		ResumeKind: "repeat_optional", ResumeSA: sa,
+		ResumeRepeatNext: next,
+		Options: []decision.Option{{Index: 0, Kind: "yes", Label: "Repeat", Player: player},
+			{Index: 1, Kind: "no", Label: "Stop", Player: player}}}
+	return h.Ask(d)
 }
 
 // repeatGateHolds evaluates one Repeat's between-iteration gate -- the
