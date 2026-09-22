@@ -260,7 +260,7 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// Note (once per die), RolledDieOnce on the per-resolution batch Note
 		// (once per roll action).
 		return 1 << events.Note
-	case "CounterAdded", "CounterAddedOnce", "CounterRemoved":
+	case "CounterAdded", "CounterAddedOnce", "CounterRemoved", "CounterRemovedOnce":
 		return 1 << events.CounterChange
 	case "ClassLevelGained":
 		// CR 702.118c: the same CounterChange event the level-up

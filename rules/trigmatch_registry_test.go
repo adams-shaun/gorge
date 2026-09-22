@@ -81,6 +81,12 @@ var addedAfterTheSplit = []string{
 	// already but the MODE did not -- no pre-split switch arm could have
 	// dispatched it.
 	"ClassLevelGained",
+	// counterchange-triggers: "Whenever one or more counters are removed from
+	// CARDNAME" (Regenerations Restored, Chandra Fire Artisan, B.O.B. Bevy of
+	// Beebles). The pre-split switch dispatched CounterRemoved but not its
+	// Once variant; one CounterChange event already carries the whole removal
+	// batch, which is the Once contract (matcher: counterRemovedMatches).
+	"CounterRemovedOnce",
 }
 
 func allRegisteredModeNames() []string {
