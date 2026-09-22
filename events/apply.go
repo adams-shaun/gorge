@@ -934,6 +934,14 @@ func Apply(g *state.Game, e Event) {
 			// per-turn combat-phase count resets with them.
 			g.ExtraPhases = nil
 			g.CombatsThisTurn = 0
+			// Snapshot the monarch designation as the NEW turn begins, for the
+			// trig:BecomeMonarch BeginTurn$ intervening-if ("if you were the
+			// monarch as the turn began"). Folding it here, from state
+			// MonarchChange already established, keeps the read replay-exact
+			// without a new event or event field; a game with no monarch ever
+			// set carries the false presence bit and the condition fails
+			// closed.
+			g.TurnStartMonarch, g.HasTurnStartMonarch = g.Monarch, g.HasMonarch
 		}
 		// PersistentMana$ True mana expires at the end of the turn it was
 		// produced in (the carriers' "until end of turn" bound), whichever

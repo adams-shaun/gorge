@@ -170,6 +170,14 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		}
 	case "Phase":
 		c.TriggerPlayer = player(e.G.Active)
+	case "BecomeMonarch":
+		// The monarch designation transition's role: the NEW monarch is the
+		// event's Player, so Defined$ TriggeredPlayer resolves the seat that
+		// just took the crown (Knights of the Black Rose's "that player loses
+		// 2 life", Custodi Lich's "target player"). The clause is read only
+		// when a BecomeMonarch matcher accepted the event, so ev.Player is
+		// always that seat here.
+		c.TriggerPlayer = player(ev.Player)
 	case "Explores":
 		// The explore record's roles (task explore1): TriggerCard is the
 		// EXPLORER (what ValidCard$ matched), the same ChangesZone read.

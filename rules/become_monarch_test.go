@@ -1,0 +1,162 @@
+package rules
+
+// trig-become-monarch: Mode$ BecomeMonarch ("whenever a player becomes the
+// monarch") was unregistered -- the api:BecomeMonarch primitive and the
+// events.MonarchChange fold were real, but triggerMatches had no arm for the
+// mode, so the five corpus carriers (Knights of the Black Rose, Custodi Lich,
+// Garland Royal Kidnapper, Starscream Power Hungry and Palace Jailer's
+// command-zone SVar) never fired. These leaves pin the mode on the real
+// corpus SA -- Knights of the Black Rose, whose trigger carries both
+// ValidPlayer$ Opponent and the BeginTurn$ You intervening-if ("if you were
+// the monarch as the turn began") -- including the turn-start snapshot the
+// gate reads.
+
+import (
+	"testing"
+
+	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/internal/testutil"
+	"github.com/adams-shaun/gorge/state"
+)
+
+// resolveKnightsETB drains the pending ETB trigger (the ChangesZone into
+// Activate$ TrigMonarch -> DB$ BecomeMonarch) so seat 0 is the monarch. It
+// asserts the trigger really was queued, so a silently-inert ETB cannot make
+// a later assertion vacuously pass.
+func resolveKnightsETB(t *testing.T, e *Engine) {
+	t.Helper()
+	if len(e.pendingTriggers) != 1 {
+		t.Fatalf("Knights ETB queued %d triggers, want 1", len(e.pendingTriggers))
+	}
+	e.putTriggersOnStack()
+	e.resolveTop()
+	if e.Pending() != nil {
+		t.Fatalf("Knights ETB left a pending decision: %+v", e.Pending())
+	}
+}
+
+// TestKnightsOfTheBlackRoseDrainsWhenOpponentTakesTheCrownAfterYourTurn pins
+// the positive half: seat 0's Knights enters (making seat 0 the monarch),
+// seat 0 begins a later turn as the monarch, and an opponent then becomes the
+// monarch -- the trigger fires, that opponent loses 2 life and seat 0 gains
+// 2.
+func TestKnightsOfTheBlackRoseDrainsWhenOpponentTakesTheCrownAfterYourTurn(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e, _ := linkBoard(t, reg, []string{"Knights of the Black Rose"}, nil)
+
+	// Precondition: the board starts with no monarch, so the ETB is what
+	// makes seat 0 the monarch -- not genesis state.
+	if e.G.HasMonarch {
+		t.Fatalf("precondition: game began with a monarch (%d)", e.G.Monarch)
+	}
+	resolveKnightsETB(t, e)
+	if !e.G.IsMonarch(0) {
+		t.Fatalf("Knights ETB did not make seat 0 the monarch: HasMonarch=%v Monarch=%d",
+			e.G.HasMonarch, e.G.Monarch)
+	}
+
+	// Seat 0 begins a fresh turn WHILE holding the crown: the TurnChange
+	// snapshot records seat 0 as the turn-start monarch.
+	e.emit(events.Event{Kind: events.TurnChange, Player: 0, Amount: 3})
+	e.emit(events.Event{Kind: events.StepChange, Step: state.StepMain1})
+	if !e.G.WasMonarchAtTurnStart(0) {
+		t.Fatalf("turn-start snapshot = %d (has=%v), want seat 0",
+			e.G.TurnStartMonarch, e.G.HasTurnStartMonarch)
+	}
+
+	life0, life1 := e.G.Players[0].Life, e.G.Players[1].Life
+	// The opponent takes the crown. This is the event the trigger matches.
+	e.emit(events.Event{Kind: events.MonarchChange, Player: 1})
+	requireOneEventTrigger(t, e, "Knights of the Black Rose")
+	e.putTriggersOnStack()
+	e.resolveTop()
+
+	if got := e.G.Players[1].Life; got != life1-2 {
+		t.Fatalf("opponent life = %d, want %d (lost 2)", got, life1-2)
+	}
+	if got := e.G.Players[0].Life; got != life0+2 {
+		t.Fatalf("seat 0 life = %d, want %d (gained 2)", got, life0+2)
+	}
+}
+
+// TestKnightsOfTheBlackRoseSilentWhenTurnBeganWithoutTheCrown pins the
+// BeginTurn$ You intervening-if: seat 0 takes the crown MID-turn (so it did
+// NOT hold it as the turn began), and an opponent then becomes the monarch in
+// that same turn -- the trigger must stay silent even though ValidPlayer$
+// Opponent is satisfied.
+func TestKnightsOfTheBlackRoseSilentWhenTurnBeganWithoutTheCrown(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := layerEngine(t)
+	onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Knights of the Black Rose"))
+
+	// Seat 0 becomes the monarch mid-turn via the ETB's own effect.
+	if e.G.HasMonarch {
+		t.Fatalf("precondition: game began with a monarch (%d)", e.G.Monarch)
+	}
+	e.emit(events.Event{Kind: events.MonarchChange, Player: 0})
+	if !e.G.IsMonarch(0) {
+		t.Fatal("precondition: seat 0 did not become the monarch")
+	}
+	if e.G.WasMonarchAtTurnStart(0) {
+		t.Fatal("precondition: the turn-start snapshot must not be seat 0 (the crown was taken mid-turn)")
+	}
+
+	life0, life1 := e.G.Players[0].Life, e.G.Players[1].Life
+	e.emit(events.Event{Kind: events.MonarchChange, Player: 1})
+	if len(e.pendingTriggers) != 0 {
+		t.Fatalf("BeginTurn$ You gate ignored: %d trigger(s) fired on a turn seat 0 did not begin as monarch",
+			len(e.pendingTriggers))
+	}
+	if e.G.Players[0].Life != life0 || e.G.Players[1].Life != life1 {
+		t.Fatalf("no trigger should have fired, but life moved: seat0 %d->%d, seat1 %d->%d",
+			life0, e.G.Players[0].Life, life1, e.G.Players[1].Life)
+	}
+}
+
+// TestKnightsOfTheBlackRoseSilentWhenSelfBecomesMonarch pins ValidPlayer$
+// Opponent: seat 0 taking the crown itself ("You") must not match the
+// opponent-scoped trigger -- neither from the trigger's own controller nor
+// from the opponent's seat.
+func TestKnightsOfTheBlackRoseSilentWhenSelfBecomesMonarch(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e, _ := linkBoard(t, reg, []string{"Knights of the Black Rose"}, nil)
+	resolveKnightsETB(t, e)
+	e.emit(events.Event{Kind: events.TurnChange, Player: 0, Amount: 3})
+	e.emit(events.Event{Kind: events.StepChange, Step: state.StepMain1})
+
+	// Give the crown to seat 1 first (fires once), then take it back: the
+	// take-back is seat 0 becoming the monarch, which ValidPlayer$ Opponent
+	// must reject.
+	e.emit(events.Event{Kind: events.MonarchChange, Player: 1})
+	requireOneEventTrigger(t, e, "Knights of the Black Rose")
+	e.putTriggersOnStack()
+	e.resolveTop()
+	e.emit(events.Event{Kind: events.MonarchChange, Player: 0})
+	if len(e.pendingTriggers) != 0 {
+		t.Fatalf("ValidPlayer$ Opponent ignored: %d trigger(s) fired when the trigger's controller became the monarch",
+			len(e.pendingTriggers))
+	}
+}
+
+// TestKnightsOfTheBlackRoseDrainReadsTriggeredPlayer pins the pg2 role the
+// body reads: Defined$ TriggeredPlayer must resolve the NEW monarch (the seat
+// that just took the crown), not the trigger's controller -- so the 2 life is
+// taken from the opponent, and the gain goes to seat 0.
+func TestKnightsOfTheBlackRoseDrainReadsTriggeredPlayer(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e, _ := linkBoard(t, reg, []string{"Knights of the Black Rose"}, nil)
+	resolveKnightsETB(t, e)
+	e.emit(events.Event{Kind: events.TurnChange, Player: 0, Amount: 3})
+	e.emit(events.Event{Kind: events.StepChange, Step: state.StepMain1})
+
+	// Seat 1 (the opponent) takes the crown; the drain must hit seat 1.
+	life0, life1 := e.G.Players[0].Life, e.G.Players[1].Life
+	e.emit(events.Event{Kind: events.MonarchChange, Player: 1})
+	requireOneEventTrigger(t, e, "Knights of the Black Rose")
+	e.putTriggersOnStack()
+	e.resolveTop()
+	if e.G.Players[1].Life != life1-2 || e.G.Players[0].Life != life0+2 {
+		t.Fatalf("drain went the wrong way: seat0 %d->%d, seat1 %d->%d (want seat0 +2, seat1 -2)",
+			life0, e.G.Players[0].Life, life1, e.G.Players[1].Life)
+	}
+}

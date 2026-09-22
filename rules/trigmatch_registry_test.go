@@ -81,6 +81,13 @@ var addedAfterTheSplit = []string{
 	// already but the MODE did not -- no pre-split switch arm could have
 	// dispatched it.
 	"ClassLevelGained",
+	// trig-become-monarch: "Whenever a player becomes the monarch ..." (the
+	// 5 corpus Mode$ BecomeMonarch carriers: Knights of the Black Rose,
+	// Custodi Lich, Garland Royal Kidnapper, Starscream Power Hungry, and
+	// Palace Jailer's command-zone SVar). It matches the events.MonarchChange
+	// designation transition api:BecomeMonarch emits, which existed before
+	// the mode did -- no pre-split switch arm dispatched BecomeMonarch.
+	"BecomeMonarch",
 }
 
 func allRegisteredModeNames() []string {
