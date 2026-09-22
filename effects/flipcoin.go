@@ -91,9 +91,10 @@ func flipRememberKind(v string) (string, bool) {
 // cumulative RememberNumber$ tally. The memory is a shared pointer mutated in
 // place, so a Ctx copy (a RepeatEach iteration, a resume rebuild) and the
 // pointer rules' Ask captured onto a pending resume point all see the flip.
-// player is the flipper and win the outcome (heads = win); rememberKind is the
-// normalised name the flip SA carried (empty means no number was remembered).
-func flipRecord(h Host, c *Ctx, player state.PlayerID, win bool, rememberKind string) {
+// player is the flipper and win the outcome (heads = win); rememberResult
+// controls the separate RememberResult$ result list, while rememberKind is the
+// normalised RememberNumber$ side (empty means no number was remembered).
+func flipRecord(h Host, c *Ctx, player state.PlayerID, win, rememberResult bool, rememberKind string) {
 	m := c.FlipMemory
 	if m == nil {
 		m = &FlipMemory{}
@@ -104,7 +105,9 @@ func flipRecord(h Host, c *Ctx, player state.PlayerID, win bool, rememberKind st
 			fh.SetResolutionFlipMemory(m)
 		}
 	}
-	m.Results = append(m.Results, FlipResult{Player: player, Heads: win})
+	if rememberResult {
+		m.Results = append(m.Results, FlipResult{Player: player, Heads: win})
+	}
 	m.Set = true
 	m.CurWin, m.CurLoss = 0, 0
 	if win {
@@ -189,9 +192,10 @@ func forEachPlayerFlippers(h Host, c *Ctx, spec string) ([]state.PlayerID, bool)
 //     chained sub sees Ctx.Remembered = that flipper, so the lose branch's
 //     Defined$ Remembered deals "to that player".
 //   - RememberResult$ True (Goblin Assassin, Mana Clash): every flip is
-//     appended to Ctx.FlipMemory, so a chained Defined$ FlippedHeads /
-//     FlippedTails (and ValidPlayers$ of the same spelling) resolves to the
-//     real flippers of that side.
+//     appended to Ctx.FlipMemory.Results, so a chained Defined$ FlippedHeads
+//     / FlippedTails (and ValidPlayers$ of the same spelling) resolves to the
+//     real flippers of that side. Absent or False leaves that result list
+//     empty; the independent per-flip Wins/Losses publication still occurs.
 //   - RememberNumber$ Wins/Losses (Goblin Traprunner, Yusri): the sided tally
 //     is published (Ctx.FlipWins/FlipLosses) for a chained bare "Wins"/"Losses"
 //     parameter and for Count$RememberedNumber. An unrecognised value is loud
@@ -216,6 +220,7 @@ func effFlipCoin(h Host, c *Ctx, sa *cards.SA) {
 		loseName = strings.TrimSpace(sa.Params["TailsSubAbility"])
 	}
 	rememberLoser := strings.EqualFold(sa.Params["RememberLoser"], "True")
+	rememberResult := strings.EqualFold(sa.Params["RememberResult"], "True")
 	forEach := strings.TrimSpace(sa.Params["ForEachPlayer"]) != ""
 	rememberKind := ""
 	if raw := strings.TrimSpace(sa.Params["RememberNumber"]); raw != "" {
@@ -279,7 +284,7 @@ func effFlipCoin(h Host, c *Ctx, sa *cards.SA) {
 		for i := start; untilLose || i < amount; i++ {
 			win := h.Rand(2) == 0
 			h.Emit(FlipCoinNote(c.Source, p, win))
-			flipRecord(h, c, p, win, rememberKind)
+			flipRecord(h, c, p, win, rememberResult, rememberKind)
 			if forEach || rememberLoser {
 				// The per-player loop binds the current flipper for the chained
 				// sub; RememberLoser$ remembers only the losing flipper, so a win
@@ -302,11 +307,19 @@ func effFlipCoin(h Host, c *Ctx, sa *cards.SA) {
 					// gets no frame (the pre-existing shape for a terminal
 					// suspension).
 					moreIter := (untilLose && win) || (!untilLose && i+1 < amount)
+					nextPlayer, nextIter := pi, i+1
+					if untilLose && !win {
+						// A losing until-lose flip finishes this player's loop. If
+						// its lose branch asked, resume at the NEXT ForEachPlayer$
+						// flipper, not at this player with Iter+1 (untilLose would
+						// otherwise ignore that bound and flip the loser again).
+						nextPlayer, nextIter = pi+1, 0
+					}
 					if moreIter || pi+1 < len(players) {
 						h.SuspendFlipRest(sa, FlipRest{
 							Players:     append([]state.PlayerID(nil), players...),
-							PlayerIndex: pi,
-							Iter:        i + 1,
+							PlayerIndex: nextPlayer,
+							Iter:        nextIter,
 							Amount:      amount,
 							UntilLose:   untilLose,
 						})

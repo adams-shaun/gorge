@@ -283,9 +283,10 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// RememberResult$ True, then a chained sub reading Defined$
 		// FlippedHeads/FlippedTails (Goblin Assassin's tails sacrifice and
 		// Mana Clash's ValidPlayers$ FlippedTails damage are the live
-		// carriers). effFlipCoin appends every flip to Ctx.FlipMemory, so the
-		// reader returns the real flippers of that side rather than the empty
-		// set. A resolution with no flip performed resolves to the empty set,
+		// carriers). When RememberResult$ is True, effFlipCoin appends every
+		// flip to Ctx.FlipMemory.Results, so the reader returns the real
+		// flippers of that side rather than the empty set. A resolution with no
+		// remembered result resolves to the empty set,
 		// ok=true (fail closed to nobody, the pre-existing convention).
 		wantHeads := spec == "FlippedHeads"
 		var out []state.Target

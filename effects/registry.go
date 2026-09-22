@@ -1672,8 +1672,8 @@ type FlipResult struct {
 // SubAbility$ and to the resumed walk. A nil *FlipMemory means this resolution
 // has performed no flip.
 type FlipMemory struct {
-	// Results is every flip of this resolution's chain, in flip order, the
-	// source of Defined$ FlippedHeads/FlippedTails.
+	// Results is every RememberResult$ True flip of this resolution's chain,
+	// in flip order, the source of Defined$ FlippedHeads/FlippedTails.
 	Results []FlipResult
 	// CurWin/CurLoss are the per-flip Wins/Losses SVars Forge's FlipCoinEffect
 	// publishes (1 to the side the current flip landed on, 0 to the other), so
