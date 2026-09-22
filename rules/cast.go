@@ -1668,6 +1668,19 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		if bc, ok := buybackCost(f); ok {
 			cost = cost.Plus(bc)
 		}
+	case "offspring":
+		// Offspring (CR 702.175a): the additional cost is paid ON TOP of the
+		// mana cost ("You may pay an additional [cost] as you cast this
+		// spell"), never a substitution -- the Buyback shape. The cost is
+		// resolved through the DERIVED keyword read (e.offspringCost), so a
+		// layer-6 grant (Zinnia) charges the GRANTED parameter, and a stale
+		// option whose keyword is gone pays the plain base cost rather than
+		// stranding. The offer gate priced the SAME derived read
+		// (rules/legal.go's hand and command-zone walks), so the two stages
+		// cannot disagree.
+		if oc, ok := e.offspringCost(id); ok {
+			cost = cost.Plus(oc)
+		}
 	case "replicated":
 		// Replicate (CR 702.55a): the mode marks the intent to pay the
 		// optional replicate cost. The PAYMENT COUNT is a cast announcement
@@ -5093,6 +5106,15 @@ func modeFlags(mode string) string {
 		return events.FlagsString(state.FlagAdventure)
 	case "buyback":
 		return events.FlagsString(state.FlagBuyback)
+	// Offspring (CR 702.175a): the mode marks the intent to pay the optional
+	// ADDITIONAL offspring cost, and the offer exists only when it is payable
+	// (rules/legal.go's walks), so -- unlike Squad/Multikicker/Replicate,
+	// whose count asks can still answer 0 -- there is no decline case and the
+	// flag is unconditional. Bare FlagOffspringPaid rides the ordinary
+	// pay-time CastInfo (payCast), and the keyword expansion's ETB trigger
+	// reads it through Count$OffspringPaid to mint the 1/1 token copy.
+	case "offspring":
+		return events.FlagsString(state.FlagOffspringPaid)
 	case "mayplay":
 		return events.FlagsString(state.FlagMayPlay)
 	case "harmonize":

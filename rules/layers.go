@@ -1753,7 +1753,7 @@ func (e *Engine) matchesWithTypes(ce ContinuousEffect, id state.ObjID, types []s
 	// filter match, through the combined entry point; its Contains guard is
 	// the early-out, so every Affected$ spec without the tokens costs three
 	// Contains calls on this shared hot path.
-	affects, ok := e.castProvenanceAdmits(ce.Affects, id, ce.Controller)
+	affects, ok := e.castProvenanceAdmitsWindow(ce.Affects, id, ce.Controller, atStack != 0)
 	if !ok {
 		return false
 	}
