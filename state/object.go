@@ -319,6 +319,33 @@ func WasCastFromGraveyard(flags uint64) bool {
 	return flags&(FlagFlashback|FlagHarmonize|FlagJumpstart|FlagEscaped) != 0
 }
 
+// ModeChoice is one ChoiceRestriction$ pick recorded on an object: the
+// chosen Choices$ SVar name and the restriction scope the picking Charm
+// named. This build only records ModeScopeThisTurn (the brief's scope); the
+// Scope field is kept so the shape is self-describing and a future scope can
+// widen it without a re-type.
+type ModeChoice struct {
+	Mode  string
+	Scope string
+}
+
+// The ChoiceRestriction$ scopes and the events.Choose counter key a pick is
+// recorded under. state owns them so effects (which emits the pick) and events
+// (which folds it) cannot drift apart. Only ThisTurn is modelled end to end:
+// ThisGame and YourLastCombat are named here for the corpus census but their
+// filtering is deliberately unimplemented (CharmEligibleModes returns the
+// input unchanged for them, and RecordCharmChoices emits nothing), so their
+// carriers keep pre-fix behaviour.
+const (
+	ModeScopeThisTurn       = "ThisTurn"
+	ModeScopeThisGame       = "ThisGame"
+	ModeScopeYourLastCombat = "YourLastCombat"
+
+	// ModeChoiceCounterPrefix + a scope is the events.Choose Counter value
+	// that records one pick (Text is the chosen mode name).
+	ModeChoiceCounterPrefix = "mode-"
+)
+
 // Object is any game object: a card in a zone, a permanent, or a spell on the
 // stack. One struct keeps identity stable across zone changes.
 type Object struct {
@@ -656,6 +683,19 @@ type Object struct {
 	// same decision through the identical code path, so it is not a second
 	// source of truth. Nil when no modal announcement has been made.
 	ChosenModes []string
+
+	// ModeChoices is the persistent per-object log a Charm's ChoiceRestriction$
+	// reads (task charm-choice-restriction): every mode this object has chosen
+	// this turn, with the scope the picking Charm named. Unlike ChosenModes it is
+	// NOT cleared when the choosing stack object resolves -- the whole point is
+	// that a LATER trigger instance on the same source sees the earlier pick --
+	// so it lives on the source permanent and is folded by events.Choose's
+	// scope-keyed pick markers. It is battlefield-stint state: the TurnChange
+	// loop clears it (ThisTurn is a per-turn fact) and the Move battlefield
+	// departure block clears it (CR 400.7 -- a permanent that leaves and returns
+	// is a new object), so a re-entered Parapet Thrasher offers every mode
+	// again.
+	ModeChoices []ModeChoice
 
 	// Imprinted holds cards ImprintCards$ explicitly associated with this
 	// object. It is distinct from ExiledCards: Forge's host card has separate

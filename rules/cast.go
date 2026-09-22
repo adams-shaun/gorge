@@ -3016,6 +3016,11 @@ func (e *Engine) castModeAsk() bool {
 		}
 		legal = append(legal, name)
 	}
+	// ChoiceRestriction$: a Charm cast (no corpus carrier today, but the
+	// class) still cannot announce a mode it already chose on the same source
+	// under the scope. Filtered before the bounds clamp, exactly as the
+	// triggered and mid-resolution asks do.
+	legal = effects.CharmEligibleModes(e, pc.card, sa, legal)
 	min, max, repeat := effects.CharmModeBounds(e, ctx, sa, len(legal))
 	// Escalate (the modal additional cost): a cast choosing N modes pays the
 	// escalate cost N-1 times, so a mode count the board cannot pay for is

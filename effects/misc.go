@@ -1968,6 +1968,76 @@ func CharmModeBounds(h Host, c *Ctx, sa *cards.SA, choices int) (min, max int, r
 	return min, max, repeat
 }
 
+// CharmChoiceRestriction returns a Charm SA's ChoiceRestriction$ value
+// ("ThisTurn", "ThisGame", "YourLastCombat"), or "" when the SA carries
+// none. It is the ONE reader the ask sites filter through and the answer
+// handler records through, so they cannot disagree about the scope.
+func CharmChoiceRestriction(sa *cards.SA) string {
+	if sa == nil {
+		return ""
+	}
+	return strings.TrimSpace(sa.Params["ChoiceRestriction"])
+}
+
+// CharmEligibleModes filters a Charm's Choices$ SVar names against the mode
+// picks already recorded on source (state.Object.ModeChoices) under the SA's
+// ChoiceRestriction$ scope -- the "choose one that hasn't been chosen this
+// turn" rule. The returned slice keeps the input's order, so the caller's
+// option indices stay dense and map back to the same SVar names.
+//
+// Only ThisTurn is read (the scope the brief authorises). A scope this build
+// does not model -- ThisGame, YourLastCombat -- returns the input unchanged,
+// the pre-fix behaviour: never a wrong-wide filter that would withhold a legal
+// mode, and never a live semantics change for the 13 ThisGame / 2
+// YourLastCombat corpus carriers. A pick is recorded only under ThisTurn (see
+// RecordCharmChoices), so the log holds nothing else to filter on.
+func CharmEligibleModes(h Host, source state.ObjID, sa *cards.SA, choices []string) []string {
+	if CharmChoiceRestriction(sa) != state.ModeScopeThisTurn || source == 0 {
+		return choices
+	}
+	o := h.Game().Obj(source)
+	if o == nil || len(o.ModeChoices) == 0 {
+		return choices
+	}
+	excluded := make(map[string]bool, len(choices))
+	for _, mc := range o.ModeChoices {
+		if mc.Scope == state.ModeScopeThisTurn {
+			excluded[mc.Mode] = true
+		}
+	}
+	if len(excluded) == 0 {
+		return choices
+	}
+	out := make([]string, 0, len(choices))
+	for _, name := range choices {
+		if !excluded[name] {
+			out = append(out, name)
+		}
+	}
+	return out
+}
+
+// RecordCharmChoices emits one events.Choose marker per answered mode name so
+// a LATER offer of the same Charm on the same source sees the pick through
+// CharmEligibleModes. It is a no-op unless the SA carries the scope this build
+// models (ThisTurn), so every ordinary Charm AND every out-of-scope
+// ChoiceRestriction$ carrier's event stream is byte-identical to pre-fix. The
+// scope is encoded in the event's Counter (state.ModeChoiceCounterPrefix +
+// scope) and the mode name in Text; events.Apply stamps the turn from its own
+// clock, so a replay derives the same log.
+func RecordCharmChoices(h Host, source state.ObjID, sa *cards.SA, names []string) {
+	if CharmChoiceRestriction(sa) != state.ModeScopeThisTurn || source == 0 || len(names) == 0 {
+		return
+	}
+	counter := state.ModeChoiceCounterPrefix + state.ModeScopeThisTurn
+	for _, name := range names {
+		if name == "" {
+			continue
+		}
+		h.Emit(events.Event{Kind: events.Choose, Obj: source, Counter: counter, Text: name})
+	}
+}
+
 // CharmUniqueNone/Supported/Unsupported classify a Charm's chosen-mode set
 // against the cross-mode "each mode must target a different player" family
 // (Shadrix Silverquill, the Tarkir/Ninja duo cycle, Balor, Vindictive Lich,
@@ -2267,6 +2337,20 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 	subs := make([]*cards.SA, len(choices))
 	for i, name := range choices {
 		subs[i] = cards.ResolveSVar(c.SVars, name)
+	}
+	// ChoiceRestriction$ ("choose one that hasn't been chosen this turn / this
+	// game"): drop the modes the source already chose under the same scope
+	// before posing the ask. The filtered list is what the bounds clamp and the
+	// options are built from, so the answer's indices map straight back to
+	// eligible SVar names (d.ResumeModes). When every mode is exhausted the
+	// ordinary min-over-modes decline below makes the Charm do nothing, which
+	// is exactly the oracle's "if you can't choose, nothing happens".
+	if eligible := CharmEligibleModes(h, c.Source, sa, choices); len(eligible) != len(choices) {
+		filteredSubs := make([]*cards.SA, len(eligible))
+		for i, name := range eligible {
+			filteredSubs[i] = cards.ResolveSVar(c.SVars, name)
+		}
+		choices, subs = eligible, filteredSubs
 	}
 	min, max, repeat := CharmModeBounds(h, c, sa, len(choices))
 	if min > len(choices) && !repeat {

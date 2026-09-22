@@ -934,6 +934,10 @@ func Apply(g *state.Game, e Event) {
 				g.Objs[i].EnlistedCombat = 0
 				// Only default-duration goads expire at the goader's next turn.
 				g.Objs[i].Goads = expireTurnGoads(g.Objs[i].Goads, e.Player)
+				// A Charm's ChoiceRestriction$ ThisTurn log is a per-turn fact, so
+				// the picks are dropped at the turn boundary (a new turn offers
+				// every mode again).
+				g.Objs[i].ModeChoices = nil
 			}
 			// The per-add entry list is per-turn state too.
 			g.Entered = nil
@@ -1524,6 +1528,15 @@ func Apply(g *state.Game, e Event) {
 				o.RiotChoice = e.Text
 			case "unleash":
 				o.UnleashChoice = e.Text
+			case state.ModeChoiceCounterPrefix + state.ModeScopeThisTurn:
+				// ChoiceRestriction$ (task charm-choice-restriction): one Charm
+				// mode pick, named in Text, keyed ThisTurn. The entry is pruned
+				// in the TurnChange per-object loop and cleared when the source
+				// leaves the battlefield (CR 400.7 -- battlefield-stint state).
+				o.ModeChoices = append(o.ModeChoices, state.ModeChoice{
+					Mode:  e.Text,
+					Scope: state.ModeScopeThisTurn,
+				})
 			case "protector":
 				// CR 310.10: the Siege protector chosen as this Battle
 				// entered. Player carries the chosen opponent's seat.
@@ -2804,6 +2817,12 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.Protector, o.ProtectorValid = 0, false
 			o.LastNotedMana = ""
 			o.Chosen = nil
+			// CR 400.7: leaving the battlefield makes the object a new object,
+			// so a Charm's ChoiceRestriction$ ThisTurn picks -- battlefield-
+			// stint state the source's own Charm reads -- do not follow it. A
+			// permanent that leaves and returns (blink, reanimation) starts
+			// with an empty log, even in the same turn.
+			o.ModeChoices = nil
 			// Exert state is the old permanent's, not the new object's
 			// (CR 400.7): a re-entering Combat Celebrant may exert again
 			// this turn and carries no untap-skip window.

@@ -732,7 +732,12 @@ type Engine struct {
 	// (pushTrigger) is pending, so its answer records the chosen modes onto
 	// the stack object and resumes the drain (handleModes) rather than
 	// granting priority. Plain scalar, Clone copies it, and a replay re-derives
-	// the same branch from the same recorded answer.
+	// the same branch from the same recorded answer. It is set only when the
+	// ask actually posed a decision (askTriggerModes can return true without
+	// asking -- a ChoiceRestriction$ that has exhausted every eligible mode,
+	// or a CharmNum$ above an unrepeatable mode count -- and a stale true
+	// would misroute the next unrelated KModes ask through the placement
+	// branch), matching the invariant its name states.
 	drainAwaitsModes bool
 
 	// deferCastTrigger is set only around the up-front cast push (CR 601.2a)
