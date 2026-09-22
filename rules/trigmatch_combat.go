@@ -54,6 +54,27 @@ func (e *Engine) attacksMatches(t cards.Trigger, source state.ObjID, ev events.E
 	if v, ok := t.Params["Alone"]; ok && strings.EqualFold(v, "True") && len(ev.IDs) != 1 {
 		return false
 	}
+	// Attacked$ scopes "whenever a creature attacks <defender>" (CR 508.1c's
+	// declared-defender half): Forge puts the ATTACKED player in this
+	// trigger-level param (Revenge of Ravens' "attacks you or a planeswalker
+	// you control" = Attacked$ You,Planeswalker.YouCtrl), and without reading
+	// it a Mode$ Attacks trigger fires on every DeclareAttackers event at the
+	// table -- over-broad in every multiplayer game. DeclareAttackers already
+	// carries the defender in ev.Player, one event per defender, so the gate
+	// is evaluated against that seat with the trigger's own controller as the
+	// perspective. The spec goes through the shared player filter, so You /
+	// Opponent / Player.withMostLife / Player.isMonarch / Player.Chosen / the
+	// life-comparison qualifiers resolve and every unmodelled alternative
+	// (Planeswalker.YouCtrl, Battle.ProtectedBy, Player.EnchantedBy, ...)
+	// fails closed. Because the value is a comma list, a rule naming both a
+	// player and an unmodellable permanent ("You,Planeswalker.YouCtrl") still
+	// fires on the player half -- the engine models players-only defenders,
+	// so that is the whole of the attack it can represent.
+	if v := t.Params["Attacked"]; v != "" {
+		if !effects.MatchesPlayerSpecFrom(e.G, v, ev.Player, e.controllerOf(source), source) {
+			return false
+		}
+	}
 	// Dethrone (CR 702.105) fires only when the attacked player has the
 	// greatest life total (tied is enough) among ALL players. Comparing only
 	// the attacker and its defender is wrong in multiplayer: a third player
