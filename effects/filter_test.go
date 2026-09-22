@@ -197,6 +197,35 @@ func TestUnknownPredicatesAreReportedNotSilentlyTrue(t *testing.T) {
 	}
 }
 
+// TestChosenCardStrictReadsSpecContextChosen pins api:ChooseSource's gate
+// predicate: ChosenCardStrict is the membership test a ChooseSource
+// replacement's ValidSource$ spec names (Deflecting Palm's
+// `Card.ChosenCardStrict,Emblem.ChosenCard`). It reads SpecContext.Chosen --
+// the binding rules seeds from the chosen-source answer -- matches exactly
+// that object, fails closed with no bound choice, and is reported as known by
+// UnknownPredicates so the census cannot drift from the matcher.
+func TestChosenCardStrictReadsSpecContextChosen(t *testing.T) {
+	g, id := board(t)
+	chosen := SpecContext{You: 0, Chosen: []state.Target{{Obj: id["myBear"]}}, ChosenValid: true}
+	if !MatchesObjectCtx(g, "Creature.ChosenCardStrict", g.Obj(id["myBear"]), chosen) {
+		t.Error("ChosenCardStrict must match the chosen object")
+	}
+	if MatchesObjectCtx(g, "Creature.ChosenCardStrict", g.Obj(id["myFlier"]), chosen) {
+		t.Error("ChosenCardStrict must not match an unchosen object")
+	}
+	if MatchesObjectCtx(g, "Creature.ChosenCardStrict", g.Obj(id["myBear"]), SpecContext{You: 0}) {
+		t.Error("ChosenCardStrict must fail closed with no bound choice")
+	}
+	if !MatchesObjectCtx(g, "Creature.!ChosenCardStrict", g.Obj(id["myFlier"]), chosen) {
+		t.Error("!ChosenCardStrict must admit an unchosen object")
+	}
+	for _, spec := range []string{"Creature.ChosenCardStrict", "Creature.!ChosenCardStrict"} {
+		if un := UnknownPredicates(spec); len(un) != 0 {
+			t.Errorf("UnknownPredicates(%q) = %v, want empty", spec, un)
+		}
+	}
+}
+
 func TestPlayerSpecs(t *testing.T) {
 	g, _ := board(t)
 	for _, tc := range []struct {

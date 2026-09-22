@@ -13,6 +13,7 @@ import (
 func init() {
 	Register("ChooseCard", effChooseCard)
 	Register("ChoosePlayer", effChoosePlayer)
+	Register("ChooseSource", effChooseSource)
 	Register("GainControl", effGainControl)
 	Register("ControlSpell", effControlSpell)
 	Register("ChangeTargets", effChangeTargets)
@@ -358,6 +359,88 @@ func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 		if reveal {
 			emitChosenReveal(h, choosers[i], recorded)
 		}
+	}
+}
+
+// sourceChoices is ChooseSource's candidate pool: every damage SOURCE the
+// Choices$ spec admits -- battlefield permanents and objects on the stack
+// (a red instant's Lightning Bolt is as much "a red source of your choice"
+// as a red creature is), in the deterministic object-registration order the
+// rest of the engine scans. The filter is evaluated from the chooser's
+// perspective through the same choiceMatches the ChooseCard family uses, so
+// `Card.RedSource`, `Card.ChosenColorSource` and the other ChooseSource
+// specs resolve with one grammar. A source this build cannot classify (the
+// Emblem half of the corpus's `Card,Emblem`, or a `Card.SharesColorWith`
+// qualifier) simply contributes no option: the matcher fails closed.
+func sourceChoices(h Host, c *Ctx, sa *cards.SA, chooser state.PlayerID) []state.Target {
+	g, spec := h.Game(), sa.Params["Choices"]
+	var out []state.Target
+	for i := range g.Objs {
+		o := &g.Objs[i]
+		if o.Zone != state.ZBattlefield && o.Zone != state.ZStack {
+			continue
+		}
+		cc := *c
+		cc.Controller = chooser
+		if spec == "" || choiceMatches(g, &cc, spec, o) {
+			out = append(out, state.Target{Obj: o.ID})
+		}
+	}
+	return out
+}
+
+// effChooseSource is Forge's ChooseSourceEffect: the player chooses a damage
+// source (a permanent or a spell), recorded exactly as ChooseCard records a
+// chosen card -- into Ctx.Chosen, and onto the resolution's source object
+// through the event-backed Choose "chosen" fold, which is what the registered
+// replacement's ValidSource$ Card.ChosenCardStrict gate and its
+// Defined$ ChosenCard/ChosenCardController body read back later. The choice
+// is mandatory ("a source of your choice" is not optional); a spec with no
+// eligible candidate -- an empty battlefield and stack, or a filter that
+// matches nothing -- asks nothing and records nothing, so the follow-up
+// replacement simply has no chosen source and does not fire.
+//
+// The KChoose/"choice" resume machinery is shared with ChooseCard: the
+// decision carries ResumeSA/ResumeTarget, and rules' resume arm rebuilds
+// Ctx.Choice/ChoiceDone/ChoiceTarget before re-entering this function, so a
+// suspended answer is applied on the second pass without re-asking.
+func effChooseSource(h Host, c *Ctx, sa *cards.SA) {
+	choosers := choiceChoosers(h, c, sa)
+	i := c.ChoiceTarget
+	if c.ChoiceDone {
+		choiceRecord(h, c, sa, c.Choice, false)
+		c.ChoiceDone, c.Choice = false, nil
+		i++
+	}
+	// cardChoice=false is the mandatory shape: Min defaults to Max. Only an
+	// explicit MinAmount$/Optional$ True lowers it, and no corpus ChooseSource
+	// carries one -- "choose a source" is a required choice.
+	minBase, maxBase := choiceBounds(h, c, sa, false)
+	for ; i < len(choosers); i++ {
+		choices := sourceChoices(h, c, sa, choosers[i])
+		min, max := minBase, maxBase
+		if max > len(choices) {
+			max = len(choices)
+		}
+		if min > max {
+			min = max
+		}
+		d := &decision.Decision{Player: choosers[i], Kind: decision.KChoose, Source: c.Source,
+			Min: min, Max: max, ResumeKind: "choice", ResumeSA: sa, ResumeTarget: i,
+			ResumeChoices:     append([]state.Target(nil), c.Chosen...),
+			ResumeChosenValid: c.ChosenValid,
+			ResumeRemembered:  append([]state.Target(nil), c.Remembered...),
+			Prompt:            sa.Params["ChoiceTitle"]}
+		for j, t := range choices {
+			d.Options = append(d.Options, decision.Option{Index: j, Kind: "card", Obj: t.Obj, Player: choosers[i]})
+		}
+		if d.Prompt == "" {
+			d.Prompt = "Choose a source"
+		}
+		if Ask(h, d) == AskAsked {
+			return
+		}
+		choiceRecord(h, c, sa, choices[:min], false)
 	}
 }
 

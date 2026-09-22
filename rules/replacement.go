@@ -465,8 +465,25 @@ type replMatch struct {
 // plus the remembered ids as targets when the caller carries any (the
 // Effect-created ReplaceDyingDefined$ family). Nil ids yield the plain
 // context every other caller already built.
+// rememberedSpecContext builds the match context a ValidCard$/ValidLKI$
+// spec on a Moved replacement evaluates under: the ordinary You/Source pair,
+// plus the remembered ids as targets when the caller carries any (the
+// Effect-created ReplaceDyingDefined$ family), plus the source object's
+// chosen cards. The chosen half is the event-backed Choose answer the
+// ChooseCard/ChooseSource family records on its source (events.Apply's
+// Choose "chosen" fold) and every ChosenCard/ChosenCardStrict predicate
+// gates on -- Forge reads the source's chosen list here, and reading it from
+// the SAME event-backed source the resolution-time filter reads (rather than
+// a second engine-runtime copy on the replacement registration) keeps the two
+// paths from drifting. A source with no choice leaves ChosenValid false, so
+// the predicates fail closed exactly as before. Nil ids yield the plain
+// context every caller without a remembered set already built.
 func (e *Engine) rememberedSpecContext(you state.PlayerID, source state.ObjID, remembered []state.ObjID) effects.SpecContext {
 	sc := effects.SpecContext{You: you, Source: source}
+	if chosen := effects.ChosenTargetsFrom(e.G, source); len(chosen) > 0 {
+		sc.Chosen = chosen
+		sc.ChosenValid = true
+	}
 	if len(remembered) > 0 {
 		for _, id := range remembered {
 			sc.Remembered = append(sc.Remembered, state.Target{Obj: id})
@@ -2717,13 +2734,23 @@ func (e *Engine) damageReplacementMatches(r cards.Repl, source state.ObjID, ev e
 			return false
 		}
 	}
-	if v := r.Params["ValidSource"]; v != "" &&
-		(e.damaging == 0 || !effects.MatchesSpecFrom(e.G, v, e.damaging, ctrl, source)) {
-		return false
+	if v := r.Params["ValidSource"]; v != "" {
+		// The source filter is evaluated through the shared remembered/chosen
+		// context, not a bare MatchesSpecFrom: a ChooseSource replacement names
+		// the chosen damage source with a ChosenCard/ChosenCardStrict predicate
+		// (Deflecting Palm's `Card.ChosenCardStrict,Emblem.ChosenCard`), which
+		// reads the chosen list the Choose event recorded on the replacement's
+		// OWN source object. Source-specific rather than the resolution's
+		// Ctx.Chosen: the damage replacement fires while some later object
+		// resolves, and the promise belongs to the object that chose.
+		if e.damaging == 0 ||
+			!effects.MatchesSpecCtx(e.G, v, e.damaging, e.rememberedSpecContext(ctrl, source, remembered)) {
+			return false
+		}
 	}
 	if v := r.Params["ValidTarget"]; v != "" {
 		if ev.Obj != 0 {
-			if !effects.MatchesSpecFrom(e.G, v, ev.Obj, ctrl, source) {
+			if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.rememberedSpecContext(ctrl, source, remembered)) {
 				return false
 			}
 		} else if !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
