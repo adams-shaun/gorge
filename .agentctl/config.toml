@@ -45,6 +45,14 @@ thinking = "medium"
 
 # What an overrides.json entry may switch each role to (design §12.10); the
 # daemon re-checks every override against this list. Astra is never listed
+# 2026-09-22 (operator): triage has its own seat (agentctl b20353a); it
+# falls back to local, then overflow, when this seat is full or cut off.
+# terra's [caps.models] ceiling is shared with the reviewer seat.
+[seats.triage]
+provider = "openai-codex"
+model = "gpt-5.6-terra"
+thinking = "medium"
+
 # (config.py:49-50). The reviewer list is design §13.2's example.
 [seats.allow]
 local = ["bm-llms-glm/glm-5.3-flash"]
@@ -54,6 +62,7 @@ local = ["bm-llms-glm/glm-5.3-flash"]
 overflow = ["deepinfra/deepseek-ai/DeepSeek-V4.1-Flash"]
 escalated = ["deepinfra/deepseek-ai/DeepSeek-V4.1-Flash"]
 reviewer = ["openai-codex/gpt-5.6-terra", "openai-codex/gpt-5.6-sol", "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash", "bm-llms-glm/glm-5.3-flash"]
+triage = ["openai-codex/gpt-5.6-terra", "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash", "bm-llms-glm/glm-5.3-flash"]
 
 # config.py:64-65, 73, 79, 99-100, 119; daemon.py:308.
 [policy]
