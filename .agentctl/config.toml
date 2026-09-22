@@ -104,6 +104,8 @@ max_minutes = 75
 "bm-llms-glm/glm-5.3-flash" = 2
 "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash" = 4
 "openai-codex/gpt-5.6-terra" = 4
+# 2026-09-22 (operator): luna overflow seats capped at 4.
+"openai-codex/gpt-5.6-luna" = 4
 
 # config.py:21-22.
 [dispatch]
