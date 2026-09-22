@@ -454,10 +454,42 @@ func TestGainsValidAbilitiesLoyaltyOnlyAdmitsOnlyLoyalty(t *testing.T) {
 	if gained[0].GainedSource != walkerID {
 		t.Fatalf("gained anchor = %d, want the rival walker", gained[0].GainedSource)
 	}
-	// The admitted ability is the +1 loyalty one, not the {2} draw-two: the
+	// The admitted ability is the +1 loyalty one, not the {T} draw-two: the
 	// option label carries the foreign ability's SpellDescription.
 	if !strings.Contains(gained[0].Label, "+1: Draw a card.") {
 		t.Fatalf("gained option label = %q, want the loyalty ability's text", gained[0].Label)
+	}
+
+	// Activate the gained [+1]: Bolas's loyalty rises by one (the
+	// AddCounter<1/LOYALTY> cost) and the controller draws (the body).
+	handBefore := len(e.G.Zone(state.ZHand, 0))
+	submitChoices(t, e, gained[0].Index)
+	passUntilStackEmpty(t, e, 20)
+	if o := e.G.Obj(bolasID); o == nil || countersOf(o, "LOYALTY") != 5 {
+		t.Fatalf("after the gained [+1], Bolas = %+v, want 5 loyalty", o)
+	}
+	if got := len(e.G.Zone(state.ZHand, 0)); got != handBefore+1 {
+		t.Fatalf("gained [+1] body: hand %d -> %d, want +1", handBefore, got)
+	}
+
+	// CR 606.3 is per PERMANENT and counts gained activations beside printed
+	// ones: after the gained [+1], Bolas's own printed [+1]/[-3]/[-8] are
+	// withheld too, and the gained [+1] itself is not re-offered.
+	e.priorityRound()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("pending = %+v, want priority", d)
+	}
+	for _, o := range d.Options {
+		if o.Kind == "ability" && o.Obj == bolasID {
+			t.Fatalf("a loyalty ability of Bolas still offered after the gained [+1] (gained=%v): %+v", o.GainedSource != 0, o)
+		}
+	}
+
+	// Next turn: the per-permanent window reset and the gained [+1] is back.
+	gainsDriveToStep(t, e, 3, 0, state.StepMain1)
+	if len(gainedAbilitiesOn(e, bolasID)) != 1 {
+		t.Fatal("the gained [+1] was not re-offered on the next turn")
 	}
 	replayCheck(t, e, cfg)
 }

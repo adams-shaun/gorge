@@ -685,6 +685,27 @@ func (e *Engine) loyaltyActivationsThisTurn(id state.ObjID) int {
 				used++
 			}
 
+		case events.GainedAbilityPush:
+			// A GAINED loyalty activation (GainsAbilitiesOf$, Nicol Bolas
+			// Dragon-God's class) counts toward the same CR 606.3
+			// once-per-permanent window: the foreign face's ability at index
+			// Amount is the loyalty ability that was activated FROM id, so the
+			// printed and gained activations share one per-permanent tally.
+			if ev.Obj != id || !onBattlefield || len(ev.IDs) == 0 {
+				continue
+			}
+			foreign := e.G.Obj(ev.IDs[0])
+			if foreign == nil || foreign.Face() == nil {
+				continue
+			}
+			abilities := foreign.Face().Abilities
+			if ev.Amount < 0 || int(ev.Amount) >= len(abilities) {
+				continue
+			}
+			if e.isLoyaltyAbility(abilities[int(ev.Amount)]) {
+				used++
+			}
+
 		case events.FlipFace:
 			if ev.Obj == id && ev.Amount >= 0 && int(ev.Amount) < len(o.Card.Faces) {
 				faceIdx = int(ev.Amount)
@@ -2397,10 +2418,13 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 	// option carries); mana ones flow through availableManaAbilities below so
 	// the "Tap for mana" priority action and the payment window share one
 	// member set. Gates mirror the printed loop above minus the loyalty gate
-	// (a grant is never a loyalty ability). The two activation limits are
-	// checked here too, with the SVar-name identity (see the gate's own
-	// comment below): Touch of Vitae carries GameActivationLimit$ 1 on an
-	// Animate-delivered AddAbility$ body.
+	// FOR THE SVAR-ANCHORED GRANTS (an AddAbility$ body is never a loyalty
+	// ability); a GAINED ability (GainsAbilitiesOf$) CAN be one -- Nicol
+	// Bolas Dragon-God's `GainsValidAbilities$ Activated.Loyalty` -- so the
+	// CR 606.3 gates below apply to it exactly as to a printed one. The two
+	// activation limits are checked here too, with the SVar-name identity
+	// (see the gate's own comment below): Touch of Vitae carries
+	// GameActivationLimit$ 1 on an Animate-delivered AddAbility$ body.
 	for _, id := range e.G.Zone(state.ZBattlefield, p) {
 		o := e.G.Obj(id)
 		if o == nil || o.Face() == nil || e.faceDownPrintedHides(o) {
@@ -2420,6 +2444,21 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			}
 			if ab.Params["SorcerySpeed"] == "True" && !sorcery {
 				continue
+			}
+			// CR 606.3 for a GAINED loyalty ability (GainsAbilitiesOf$): the
+			// same sorcery-timing and once-per-permanent gates the printed loop
+			// applies -- a gained [+1] is a loyalty ability of THIS permanent
+			// (the recipient), and loyaltyActivationsThisTurn counts its
+			// GainedAbilityPush activations beside the printed AbilityPush ones.
+			// The SVar-anchored AddAbilities grants above are never loyalty
+			// abilities, so gating on ga.gained keeps them untouched.
+			if ga.gained && e.isLoyaltyAbility(ab) {
+				if !sorcery {
+					continue
+				}
+				if e.loyaltyActivationsThisTurn(id) >= e.loyaltyAbilityLimit(id) {
+					continue
+				}
 			}
 			if abilityRestricted(p, id, ab) {
 				continue
