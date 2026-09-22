@@ -653,6 +653,41 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			}
 			h.AddContinuous(ce)
 			registered = true
+		case "MustAttack":
+			// An Effect-delivered per-player attack REQUIREMENT (Forge's
+			// MustAttack$ "that creature attacks that player this combat if
+			// able"): Territory Hellkite's DBPump, and the four plain-
+			// SubAbility siblings Knight Rampager, Ursine Monstrosity, Raving
+			// Dead and Ruhan of the Fomori. It registers like the restriction
+			// modes above (rules' requiredAttackDefender reads it from the
+			// continuous-effect registry beside the face statics), with the
+			// same readable-parameter gate so a conditional line fails closed
+			// instead of over-requiring. The chosen-/remembered-player binding
+			// the MustAttack$ reference resolves against rides the plain
+			// Source (ChosenPlayer reads the source object's event-backed
+			// Chosen list) and the captured players (effectRememberedPlayers),
+			// so no extra registration state is needed.
+			if !MustAttackParamsReadable(params) {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
+				registered = true
+				break
+			}
+			h.AddContinuous(state.ContinuousEffect{
+				Source:            c.Source,
+				Controller:        c.Controller,
+				Name:              effectName,
+				UntilEOT:          effectUntilEOT(h, c.Source, dur),
+				Restriction:       mode,
+				RestrictParams:    params,
+				Remembered:        remembered,
+				RememberedPlayers: effectRememberedPlayers(h, c, sa),
+				Duration:          dur,
+				ForgetOnMoved:     forgetOn,
+				ExileOnMoved:      exileOn,
+				ForgetCounter:     forgetCounter,
+			})
+			registered = true
 		default:
 			// A resolvable but unsupported mode is reported honestly; an
 			// unresolvable name (mode "") falls through to the generic Note
@@ -1067,6 +1102,32 @@ func CantBlockByRestrictionParamsReadable(params map[string]string) bool {
 	for k := range params {
 		switch k {
 		case "Mode", "ValidAttacker", "ValidBlocker", "ValidCard", "Description", "Secondary":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// MustAttackParamsReadable is the parameter whitelist a MustAttack line must
+// pass before effEffect registers it as an Effect-delivered per-player attack
+// REQUIREMENT (Territorial Hellkite's `DB$ Effect | StaticAbilities$
+// AttackChosen`, and the four plain-SubAbility siblings Knight Rampager,
+// Ursine Monstrosity, Raving Dead and Ruhan of the Fomori). It mirrors
+// CantRestrictionParamsReadable's shape, with ValidCreature$ in place of
+// ValidCard$/Target$ (Forge's MustAttack names the required creature with
+// ValidCreature$) and the MustAttack$ player reference itself. A line
+// carrying any other parameter (IsPresent$, PresentCompare$, Condition$,
+// CheckSVar$, AffectedZone$, ValidPlayer$, ...) names a condition this
+// registration path does not evaluate; registering it blanket would
+// OVER-require -- the non-permissive direction for a requirement -- so it
+// fails closed and is reported unimplemented, which is the pre-registration
+// behaviour. Secondary$ is allowed: it marks a Forge-side duplicate for
+// modifier composition, and a boolean requirement cannot be applied twice.
+func MustAttackParamsReadable(params map[string]string) bool {
+	for k := range params {
+		switch k {
+		case "Mode", "ValidCreature", "MustAttack", "Description", "Secondary":
 		default:
 			return false
 		}

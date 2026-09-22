@@ -269,7 +269,7 @@ func (e *Engine) attackOffers() []attackOffer {
 			if !e.canAttackPair(id, d) {
 				continue
 			}
-			if required, ok := e.encoreAttackDefender(id); ok && d != required {
+			if required, ok := e.requiredAttackDefender(id); ok && d != required {
 				continue
 			}
 			if !e.goadMayAttack(id, d) {

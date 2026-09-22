@@ -122,6 +122,114 @@ func (e *Engine) encoreAttackDefender(id state.ObjID) (state.PlayerID, bool) {
 	return o.EncoreAttackDefender, true
 }
 
+// requiredAttackDefender reports the ONE opponent creature id must attack
+// this combat when a requirement names a specific defender -- the encore
+// designation, or a MustAttack$ player reference on a Mode$ MustAttack
+// static (face S: line or an Effect-registered one: Territorial Hellkite,
+// Knight Rampager, Ursine Monstrosity, Raving Dead, Ruhan of the Fomori).
+// ok=false means no requirement names a defender; an unconditional MustAttack
+// is still handled by mustAttackRequired's broad scan below, and a
+// requirement whose player reference this build cannot resolve also returns
+// ok=false -- a requirement not counted changes nothing in the safe
+// direction, exactly the convention mustAttackRequired's parameter deny
+// documents. This is the one home for "which defender does this creature
+// HAVE to attack": attackOffers filters the pair list with it, and
+// mustAttackRequired reads it, so the option list and the requirement solver
+// can never disagree.
+func (e *Engine) requiredAttackDefender(id state.ObjID) (state.PlayerID, bool) {
+	if p, ok := e.encoreAttackDefender(id); ok {
+		return p, true
+	}
+	for _, ce := range e.active() {
+		if ce.Restriction != "MustAttack" {
+			continue
+		}
+		if !e.mustAttackLineSelects(ce.RestrictParams["ValidCreature"], id, ce.Source, ce.Controller, ce.Remembered) {
+			continue
+		}
+		if p, ok := e.requirementDefender(ce.RestrictParams["MustAttack"], ce.Source, ce.Controller, ce.RememberedPlayers); ok {
+			return p, true
+		}
+	}
+	for _, sv := range e.activeStatics("MustAttack") {
+		spec := strings.TrimSpace(sv.Params["MustAttack"])
+		if spec == "" {
+			continue
+		}
+		if !MustAttackParamsReadableForRules(sv.Params) {
+			continue
+		}
+		if !e.mustAttackLineSelects(sv.Params["ValidCreature"], id, sv.Source, sv.Controller, nil) {
+			continue
+		}
+		if p, ok := e.requirementDefender(spec, sv.Source, sv.Controller, nil); ok {
+			return p, true
+		}
+	}
+	return 0, false
+}
+
+// mustAttackLineSelects resolves a MustAttack line's ValidCreature$ against
+// the candidate creature, with the registration's remembered set bound for
+// the Card.IsRemembered family (Knight Rampager, Ursine Monstrosity, Raving
+// Dead, Ruhan of the Fomori all scope the requirement to a remembered self).
+// An absent ValidCreature$ is Forge's Card.Self default, the same default the
+// unconditional scan below applies.
+func (e *Engine) mustAttackLineSelects(spec string, id state.ObjID, source state.ObjID, controller state.PlayerID, remembered []state.ObjID) bool {
+	v := strings.TrimSpace(spec)
+	if v == "" {
+		v = "Card.Self"
+	}
+	sc := e.specCtx(source, controller)
+	for _, r := range remembered {
+		sc.Remembered = append(sc.Remembered, state.Target{Obj: r})
+	}
+	return effects.MatchesSpecCtx(e.G, v, id, sc)
+}
+
+// MustAttackParamsReadableForRules is effects.MustAttackParamsReadable for a
+// face S: line (rules cannot import the unexported effects helper, and the two
+// must agree or the face and Effect routes would diverge on what is
+// enforceable). Kept in lockstep by TestMustAttackFaceAndEffectWhitelistsAgree.
+func MustAttackParamsReadableForRules(params map[string]string) bool {
+	for k := range params {
+		switch k {
+		case "Mode", "ValidCreature", "MustAttack", "Description", "Secondary":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// requirementDefender resolves a MustAttack$ player reference to the
+// defending player it names, from the requirement registration's own
+// bindings. Only the references whose binding this build holds resolve:
+// ChosenPlayer/Player.Chosen reads the source object's event-backed Chosen
+// list (the ChoosePlayer answer, which survives from the begin-combat trigger
+// to the declare-attackers step because choiceRecord emits it on the source),
+// and You names the registration's own controller. Every other reference
+// (RememberedPlayer, Player.IsRemembered, EffectSource, CardOwner,
+// EnchantedController, Opponent.lifeEQX, ...) needs a binding or evaluator
+// this build does not carry, so it fails closed -- the requirement is simply
+// not counted, which is the safe direction.
+func (e *Engine) requirementDefender(spec string, source state.ObjID, controller state.PlayerID, rememberedPlayers []state.PlayerID) (state.PlayerID, bool) {
+	switch strings.TrimSpace(spec) {
+	case "ChosenPlayer", "Player.Chosen":
+		if o := e.G.Obj(source); o != nil {
+			for _, t := range o.Chosen {
+				if t.IsPlayer {
+					return t.Player, true
+				}
+			}
+		}
+	case "You":
+		return controller, true
+	}
+	_ = rememberedPlayers
+	return 0, false
+}
+
 // canBlock reports whether blocker may be declared against attacker (CR
 // 509.1a): an untapped creature controlled by the defending player, gated by
 // Flying/Reach (CR 702.9b), Horsemanship (CR 702.31b), Fear, Shadow and by
@@ -623,8 +731,8 @@ func (e *Engine) validateAttackers(d *decision.Decision, in decision.Intent) err
 		if seen[o.Obj] {
 			return fmt.Errorf("attacker %d declared against more than one defender", o.Obj)
 		}
-		if required, ok := e.encoreAttackDefender(o.Obj); ok && o.Player != required {
-			return fmt.Errorf("encore attacker %d must attack player %d", o.Obj, required)
+		if required, ok := e.requiredAttackDefender(o.Obj); ok && o.Player != required {
+			return fmt.Errorf("attacker %d must attack player %d", o.Obj, required)
 		}
 		if e.attackBlocked(o.Obj, o.Player) {
 			return fmt.Errorf("attacker %d cannot attack player %d", o.Obj, o.Player)
@@ -680,7 +788,13 @@ func (e *Engine) mustAttackRequired(id state.ObjID) bool {
 	if !e.attackPairAvailable(id) {
 		return false
 	}
-	if _, ok := e.encoreAttackDefender(id); ok {
+	// A requirement that names a specific defender (the encore designation, or
+	// a resolvable MustAttack$ player reference on a face or Effect-registered
+	// static) is required: attackOffers has already filtered the pair list to
+	// that one defender, so the "if able" gate above (attackPairAvailable)
+	// means the named defender is reachable. An unresolvable player reference
+	// returns ok=false and falls through to the unconditional scan below.
+	if _, ok := e.requiredAttackDefender(id); ok {
 		return true
 	}
 	if e.hasActiveGoad(o) {
@@ -693,12 +807,20 @@ func (e *Engine) mustAttackRequired(id state.ObjID) bool {
 		deny := false
 		for k := range sv.Params {
 			switch k {
-			case "Mode", "ValidCreature", "Description":
+			case "Mode", "ValidCreature", "MustAttack", "Description":
 			default:
 				deny = true
 			}
 		}
 		if deny {
+			continue
+		}
+		// A line naming a MustAttack$ player reference is a per-defender
+		// requirement, not the broad one this scan counts: requiredAttackDefender
+		// above already returned true for a resolvable reference, and an
+		// unresolvable one must not degrade into "attacks ANY defender" (that
+		// would over-require). Skip it either way.
+		if strings.TrimSpace(sv.Params["MustAttack"]) != "" {
 			continue
 		}
 		v := sv.Params["ValidCreature"]
