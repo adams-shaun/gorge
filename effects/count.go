@@ -362,7 +362,7 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 	body, op, hasOp := strings.Cut(body, "/")
 	n, ok2 := evalCountBody(h, c, strings.TrimSpace(body), depth)
 	if hasOp {
-		if clamped, isLimit := countColorsLimitMax(strings.TrimSpace(body), op, n); isLimit {
+		if clamped, isLimit := countDistinctLimitMax(strings.TrimSpace(body), op, n); isLimit {
 			n = clamped
 		} else {
 			n = applyCountOp(n, op)
@@ -371,22 +371,29 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 	return n, ok2
 }
 
-// countColorsLimitMax answers whether op is a LimitMax.<n> clamp on a
-// Count$Valid/ValidZone body whose property is Colors -- Colors's one corpus
-// op suffix (happily_ever_after's Permanent.YouCtrl$Colors/LimitMax.5). It is
-// called from evalCountExprOK's generic /Op site, which cuts the suffix off
-// the whole body BEFORE the head dispatch, so the countZone branch never sees
-// it; keeping the clamp here scopes the new op to Colors bodies only (the
+// countDistinctLimitMax answers whether op is a LimitMax.<n> clamp on a
+// Count$Valid/ValidZone body whose property is one of the bounded
+// distinct-set reads -- Colors's one corpus op suffix (happily_ever_after's
+// Permanent.YouCtrl$Colors/LimitMax.5) and CreatureType's two (Valiant
+// Changeling's /LimitMax.5, Saavik's /LimitMax.10). It is called from
+// evalCountExprOK's generic /Op site, which cuts the suffix off the whole
+// body BEFORE the head dispatch, so the countZone branch never sees it;
+// keeping the clamp scoped to the bounded distinct-set properties (the
 // summed properties carry no op in the corpus and keep the plain
 // applyCountOp read, where an unknown op name is ignored and the base value
-// stands).
-func countColorsLimitMax(body, op string, n int32) (int32, bool) {
+// stands) means an unclamped spelling cannot silently lose its cap.
+func countDistinctLimitMax(body, op string, n int32) (int32, bool) {
 	head, arg, _ := strings.Cut(body, " ")
 	if _, ok := countZone(head); !ok {
 		return n, false
 	}
 	_, prop, hasProp := strings.Cut(strings.TrimSpace(arg), "$")
-	if !hasProp || strings.TrimSpace(prop) != "Colors" {
+	if !hasProp {
+		return n, false
+	}
+	switch strings.TrimSpace(prop) {
+	case "Colors", "CreatureType":
+	default:
 		return n, false
 	}
 	lim, ok := strings.CutPrefix(op, "LimitMax.")
@@ -1850,14 +1857,16 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	// pre-existing fail-closed behaviour, since such a token never matched
 	// anyway. The Different* distinct family IS read since diffcount1
 	// (differentPropertyKindOf's case above): distinct powers/names/mana
-	// values among the matches, the Augur of Autumn Coven gate's shape. The
-	// four extreme reductions (GreatestCardPower 64 files,
+	// values among the matches, the Augur of Autumn Coven gate's shape.
+	// CreatureType and CardTypesPermanent (task diffcount2) are the same
+	// distinct-set shape over a narrower vocabulary. The four extreme
+	// reductions (GreatestCardPower 64 files,
 	// GreatestCardManaCost 62, GreatestCardToughness 12, LeastCardPower 1;
 	// 136 files total) are read: the max (or min, for Least) of the
 	// property over the matches, with zero matches yielding 0 rather than a
-	// sentinel. Colors's one corpus op suffix /LimitMax.<n> is honoured at
-	// evalCountExprOK's generic /Op site (countColorsLimitMax), scoped to
-	// Colors bodies.
+	// sentinel. The bounded distinct-set properties' /LimitMax.<n> op
+	// suffix (Colors one, CreatureType two) is honoured at
+	// evalCountExprOK's generic /Op site (countDistinctLimitMax).
 	isAll := head == "ValidAll"
 	if zone, ok := countZone(head); ok || isAll {
 		spec, prop, hasProp := strings.Cut(arg, "$")
@@ -1867,7 +1876,8 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			prop = strings.TrimSpace(prop)
 			switch {
 			case prop == "CardPower" || prop == "CardToughness" || prop == "CardManaCost" ||
-				prop == "CardTypes" || prop == "Colors":
+				prop == "CardTypes" || prop == "Colors" || prop == "CreatureType" ||
+				prop == "CardTypesPermanent":
 			case isExtremeProperty(prop):
 			case differentPropertyKindOf(prop) != diffNone:
 			default:
@@ -1879,10 +1889,20 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		// CardTypes is Tarmogoyf's distinct-card-type form, not a filter:
 		// count each real card type (CR 205.1) represented among the
 		// selected cards once. The map is read only through len, so its
-		// iteration order never reaches an event or a view.
+		// iteration order never reaches an event or a view. The two
+		// siblings (task diffcount2) are the same distinct-set shape over a
+		// narrower vocabulary: CreatureType counts distinct creature
+		// subtypes (Valiant Changeling's per-type reduction),
+		// CardTypesPermanent the six CR 205.2 permanent types (Korvold,
+		// Gleeful Glutton's combat-damage trigger; Matzalantli's transform
+		// gate, whose oracle names the six).
 		var seenCardTypes map[string]bool
-		if prop == "CardTypes" {
+		if prop == "CardTypes" || prop == "CardTypesPermanent" {
 			seenCardTypes = make(map[string]bool)
+		}
+		var seenCreatureTypes map[string]bool
+		if prop == "CreatureType" {
+			seenCreatureTypes = make(map[string]bool)
 		}
 		// The bare wasCastFromYourHand qualifier (task castprov3, Approach of
 		// the Second Sun's Count$ValidStack Card.wasCastFromYourHand+Self):
@@ -1946,7 +1966,8 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		specCtx := c.SpecContext(c.Controller)
 		f := zoneCountFold{h: h, g: g, spec: spec,
 			prop: prop, extreme: extreme, isLeast: isLeastProperty(prop),
-			hasBareHand: hasBareHand, seenTokenNames: seenTokenNames, seenCardTypes: seenCardTypes}
+			hasBareHand: hasBareHand, seenTokenNames: seenTokenNames, seenCardTypes: seenCardTypes,
+			seenCreatureTypes: seenCreatureTypes}
 		// The Different* distinct-set property family (task diffcount1):
 		// DifferentCardManaCost / DifferentCardPower / DifferentCardNames /
 		// DifferentColorPair count the DISTINCT values among the matching
@@ -1999,8 +2020,11 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			}
 			return f.best, true
 		}
-		if prop == "CardTypes" {
+		if prop == "CardTypes" || prop == "CardTypesPermanent" {
 			return int32(len(seenCardTypes)), true
+		}
+		if prop == "CreatureType" {
+			return int32(len(seenCreatureTypes)), true
 		}
 		if seenTokenNames != nil {
 			return int32(len(seenTokenNames)), true
@@ -2018,16 +2042,6 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	}
 	return 0, false
 }
-
-// countColorsLimitMax answers whether op is a LimitMax.<n> clamp on a
-// Count$Valid/ValidZone body whose property is Colors -- Colors's one corpus
-// op suffix (happily_ever_after's Permanent.YouCtrl$Colors/LimitMax.5). It is
-// called from evalCountExprOK's generic /Op site, which cuts the suffix off
-// the whole body BEFORE the head dispatch, so the countZone branch never sees
-// it; keeping the clamp here scopes the new op to Colors bodies only (the
-// summed properties carry no op in the corpus and keep the plain
-// applyCountOp read, where an unknown op name is ignored and the base value
-// stands).
 
 // evalThisTurnEntered parses a ThisTurnEntered_<Dest>[_from_<Origin>]_<Valid>
 // tail -- the split Forge's own parser applies (workingCopy[0] = the head, so
@@ -2781,7 +2795,11 @@ type zoneCountFold struct {
 	seen           bool
 	seenTokenNames map[string]bool
 	seenCardTypes  map[string]bool
-	colorsSeen     ColorMask
+	// seenCreatureTypes is the CreatureType spelling's distinct set (task
+	// diffcount2): creature-subtype words among the matched faces, read
+	// only through len.
+	seenCreatureTypes map[string]bool
+	colorsSeen        ColorMask
 	// diffKind and the seen sets for the Different* distinct-set property
 	// family (task diffcount1). Both maps are read only through len, so no
 	// map ordering ever reaches an event or a view.
@@ -2839,10 +2857,20 @@ func (f *zoneCountFold) visit(id state.ObjID, zone state.Zone, specCtx SpecConte
 		f.n += int32(o.Face().Toughness()) + o.Counter("P1P1")
 	case "CardManaCost":
 		f.n += o.Face().Cmc()
-	case "CardTypes":
+	case "CardTypes", "CardTypesPermanent":
+		vocab := cardTypeWords
+		if f.prop == "CardTypesPermanent" {
+			vocab = permanentTypeWords
+		}
 		for _, typ := range o.Face().Types {
-			if cardTypeWords[typ] {
+			if vocab[typ] {
 				f.seenCardTypes[typ] = true
+			}
+		}
+	case "CreatureType":
+		for _, typ := range o.Face().Types {
+			if creatureSubtypeWords[typ] {
+				f.seenCreatureTypes[typ] = true
 			}
 		}
 	case "Colors":
