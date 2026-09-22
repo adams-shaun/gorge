@@ -910,3 +910,120 @@ func TestGainedActivationKeepsItsOwnSVarsAfterTheGrantEnds(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// gainsSVarManaSrc is the foreign fixture for the gained-mana SVar finding:
+// "{T}: Add X {B}, where X is the number of artifacts you control" -- the X
+// lives on THIS card's face, so resolving the gained ability against the
+// recipient's (empty) table adds nothing.
+func gainsSVarManaSrc(t testing.TB) *cards.Card {
+	t.Helper()
+	return card(t, "Name:Gains Counting Font\nManaCost:2\nTypes:Artifact\n"+
+		"A:AB$ Mana | Cost$ T | Produced$ B | Amount$ X | SpellDescription$ Add X {B}.\n"+
+		"SVar:X:Count$Valid Artifact.YouCtrl\n"+
+		"Oracle:x\n")
+}
+
+// gainsSpareArtifactSrc is a vanilla artifact that only raises the
+// artifact count the SVar reads.
+func gainsSpareArtifactSrc(t testing.TB) *cards.Card {
+	t.Helper()
+	return card(t, "Name:Gains Spare Cog\nManaCost:1\nTypes:Artifact\nOracle:x\n")
+}
+
+// gainedManaOption returns the priority "activate" option on obj, if any.
+func gainedManaOption(e *Engine, obj state.ObjID) (decision.Option, bool) {
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KPriority {
+		return decision.Option{}, false
+	}
+	for _, o := range d.Options {
+		if o.Kind == "activate" && o.Obj == obj {
+			return o, true
+		}
+	}
+	return decision.Option{}, false
+}
+
+// TestGainedManaAbilityResolvesItsOwnSVars pins the sol1 finding's SVar half:
+// a gained mana ability whose Amount$ X is defined only on the FOREIGN face
+// resolves X there (two artifacts: the carrier and a spare cog -> {B}{B}),
+// not against the recipient's SVar-less face (which would add nothing).
+func TestGainedManaAbilityResolvesItsOwnSVars(t *testing.T) {
+	e, cfg, carrierID, _, _ := gainsBoardWith(t, gainsSVarManaSrc(t), gainsSpareArtifactSrc(t))
+	if n := len(e.G.Zone(state.ZBattlefield, 0)); n != 2 {
+		t.Fatalf("precondition: seat 0 battlefield holds %d objects, want the carrier and the cog", n)
+	}
+	opt, ok := gainedManaOption(e, carrierID)
+	if !ok {
+		t.Fatalf("carrier offers no gained mana ability: %+v", e.Pending())
+	}
+	before := e.G.Players[0].Pool[state.MB]
+	submitChoices(t, e, opt.Index)
+	if got := e.G.Players[0].Pool[state.MB] - before; got != 2 {
+		t.Fatalf("gained mana ability added %d black, want 2 (X from the foreign face's artifact count)", got)
+	}
+	if o := e.G.Obj(carrierID); o == nil || !o.Tapped {
+		t.Fatalf("carrier = %+v, want tapped by the gained mana ability", o)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// gainsCagedManaSrc is the caged card for the capped-mana finding: a NON-tap
+// mana ability, "{1}: Add {B}.", so the tap gate cannot mask the per-turn cap
+// -- only GainsAbilitiesLimitPerTurn$ can withhold a second activation.
+func gainsCagedManaSrc(t testing.TB) *cards.Card {
+	t.Helper()
+	return card(t, "Name:Caged Filter\nManaCost:2\nTypes:Artifact\n"+
+		"A:AB$ Mana | Cost$ 1 | Produced$ B | SpellDescription$ Add {B}.\n"+
+		"Oracle:x\n")
+}
+
+// TestGainsLimitPerTurnCapsAGainedManaAbility pins the sol1 finding's cap
+// half: a GainsAbilitiesLimitPerTurn$ 1 carrier may activate a gained
+// non-tap mana ability once per turn. The activation records the replayable
+// ManaActivate identity marker (IDs[0] = foreign card), and with {1} floating
+// again the ability is withheld for the rest of the turn.
+func TestGainsLimitPerTurnCapsAGainedManaAbility(t *testing.T) {
+	warden := gainsMairsilFixtureSrc(t)
+	caged := gainsCagedManaSrc(t)
+	e, cfg := tokenReplGame(t, 9114, warden, caged)
+	wardenID := moveSeededCard(t, e, 0, warden, state.ZBattlefield)
+	cagedID := moveSeededCard(t, e, 0, caged, state.ZBattlefield)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: cagedID, From: state.ZBattlefield,
+		To: state.ZExile, IDs: []state.ObjID{wardenID}})
+	e.emit(events.Event{Kind: events.CounterChange, Obj: cagedID, Counter: "CAGE", Amount: 1})
+	e.pending = nil
+	if o := e.G.Obj(cagedID); o == nil || o.Zone != state.ZExile || o.ExiledWith != wardenID || countersOf(o, "CAGE") != 1 {
+		t.Fatalf("caged card = %+v, want in exile with provenance and 1 CAGE counter", o)
+	}
+	addMana(t, e, 0, "C")
+	e.priorityRound()
+	opt, ok := gainedManaOption(e, wardenID)
+	if !ok {
+		t.Fatalf("precondition: Warden offers no gained mana ability: %+v", e.Pending())
+	}
+	submitChoices(t, e, opt.Index)
+	if got := e.G.Players[0].Pool[state.MB]; got != 1 {
+		t.Fatalf("gained mana ability produced %d black, want 1", got)
+	}
+	markers := 0
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.ManaActivate && ev.Obj == wardenID {
+			if len(ev.IDs) != 1 || ev.IDs[0] != cagedID || ev.Amount != 0 {
+				t.Fatalf("gained ManaActivate marker = %+v, want IDs [%d] Amount 0", ev, cagedID)
+			}
+			markers++
+		}
+	}
+	if markers != 1 {
+		t.Fatalf("gained ManaActivate markers = %d, want 1", markers)
+	}
+
+	// Same turn, {1} floating again: the cap binds.
+	addMana(t, e, 0, "C")
+	e.priorityRound()
+	if o, ok := gainedManaOption(e, wardenID); ok {
+		t.Fatalf("GainsAbilitiesLimitPerTurn$ 1 did not withhold the gained mana ability: %+v", o)
+	}
+	replayCheck(t, e, cfg)
+}

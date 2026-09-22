@@ -1324,14 +1324,14 @@ var apiSpecificRulesSA = map[string][]string{
 	// resolveTriggeredManaAbilities, so its Produced$ read belongs to
 	// api:Mana alone -- left in the generic union it would mask every
 	// other API's unread Produced$.
-	"Engine.rewriteChosenMana":  {"Mana"},
-	"Engine.resolveManaAbility": {"Mana"},
-	"Engine.resolveManaEffect":  {"Mana"},
-	"manaColourPrompt":          {"Mana"},
-	"Engine.AvailableMana":      {"Mana"},
-	"addAvailable":              {"Mana"},
-	"availableAmount":           {"Mana"},
-	"activatedMatchesValidSA":   {"Mana"},
+	"Engine.rewriteChosenMana":     {"Mana"},
+	"Engine.resolveManaAbilityRef": {"Mana"},
+	"Engine.resolveManaEffect":     {"Mana"},
+	"manaColourPrompt":             {"Mana"},
+	"Engine.AvailableMana":         {"Mana"},
+	"addAvailable":                 {"Mana"},
+	"availableAmount":              {"Mana"},
+	"activatedMatchesValidSA":      {"Mana"},
 	// The attack-prop payment window's affordability input
 	// (rules/attack_cost.go attackManaSources): it walks the payer's
 	// battlefield and reads each window-usable mana ability's Produced$

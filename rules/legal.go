@@ -782,6 +782,12 @@ func (e *Engine) activationUsedCount(id state.ObjID, ability int, svar string, t
 		}
 		switch ev.Kind {
 		case events.AbilityPush, events.ManaActivate:
+			// A ManaActivate carrying IDs is a GAINED mana activation
+			// (gainedManaRef): its Amount indexes the foreign face, not
+			// this object's pile, so it is never a printed activation.
+			if ev.Kind == events.ManaActivate && len(ev.IDs) > 0 {
+				continue
+			}
 			if ability >= 0 && ev.Amount == int32(ability) {
 				used++
 			}
@@ -1070,6 +1076,9 @@ type grantedAbility struct {
 	gained     bool
 	gainedFrom state.ObjID
 	gainedIdx  int
+	// gainedFace is the foreign face sa was compiled on (gained only): the
+	// SVar table a gained mana ability resolves against (gainedManaRef).
+	gainedFace *cards.Face
 }
 
 // grantedAbilities collects the activated abilities the battlefield's
@@ -1123,7 +1132,7 @@ func (e *Engine) grantedAbilities(p state.PlayerID, id state.ObjID) []grantedAbi
 					continue
 				}
 				out = append(out, grantedAbility{sa: ab, source: ce.Source,
-					gained: true, gainedFrom: gf.Obj, gainedIdx: i})
+					gained: true, gainedFrom: gf.Obj, gainedIdx: i, gainedFace: gf.Face})
 			}
 		}
 		if len(ce.AddAbilities) == 0 {
@@ -1220,7 +1229,11 @@ func (e *Engine) gainedActivationsThisTurn(id, foreign state.ObjID, idx int) int
 			if int(ev.Player) < len(e.G.Players) {
 				used = 0
 			}
-		case events.GainedAbilityPush:
+		case events.GainedAbilityPush, events.ManaActivate:
+			// A gained MANA ability never goes on the stack, so its
+			// activation is the ManaActivate marker carrying the same
+			// (recipient, foreign card, index) triple (gainedManaRef); a
+			// printed mana marker carries no IDs and never matches.
 			if ev.Obj == id && len(ev.IDs) > 0 && ev.IDs[0] == foreign && int(ev.Amount) == idx {
 				used++
 			}

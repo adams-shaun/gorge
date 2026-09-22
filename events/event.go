@@ -349,7 +349,12 @@ const (
 	// activations by source and ability index, the same way it already
 	// counts AbilityPush for non-mana abilities. Obj is the source permanent,
 	// Player the activator, Amount the ability's index in the face's
-	// Abilities slice. Appended here, after GrantTriggerPush, following every
+	// Abilities slice. A marker carrying IDs is a GAINED mana activation
+	// (Forge's GainsAbilitiesOf$, rules' gainedManaRef): IDs[0] names the
+	// FOREIGN card the ability belongs to and Amount indexes that card's face
+	// Abilities, which is what the GainsAbilitiesLimitPerTurn$ cap counts; it
+	// is emitted for every gained mana activation, limit or not, and the
+	// printed-limit scan skips it. Appended here, after GrantTriggerPush, following every
 	// prior Kind's own append-only precedent, so no earlier ordinal, hash
 	// chain or golden replay is affected.
 	ManaActivate
