@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -82,10 +83,6 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 	var skipped []string
 	blocked := false
 	note := func(label string) { skipped = append(skipped, label) }
-	if _, ok := sa.Params["Choices"]; ok {
-		note("Choices$")
-		blocked = true
-	}
 	if _, ok := sa.Params["DefinedName"]; ok {
 		note("DefinedName$")
 		blocked = true
@@ -106,23 +103,34 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 		note("ValidSupportedCopy$")
 		blocked = true
 	}
+	// These riders are implemented below.  Only the measured Zndrsplt shape
+	// is admitted; other Choices forms remain the source-blocking fail-closed
+	// path rather than silently copying the wrong object.
+	supportsChoice := strings.TrimSpace(sa.Params["Choices"]) == "Creature.RememberedPlayerCtrl" &&
+		strings.TrimSpace(sa.Params["Chooser"]) == "Remembered" &&
+		strings.TrimSpace(sa.Params["Controller"]) == "Remembered"
+	if _, ok := sa.Params["Choices"]; ok && !supportsChoice {
+		note("Choices$")
+		blocked = true
+	}
 	if _, ok := sa.Params["AddTriggers"]; ok {
-		note("AddTriggers$")
+		// copied below
 	}
 	if _, ok := sa.Params["AddSVars"]; ok {
-		note("AddSVars$")
+		// copied below
 	}
 	if _, ok := sa.Params["AddAbilities"]; ok {
-		note("AddAbilities$")
+		// copied below
 	}
 	if _, ok := sa.Params["WithDifferentNames"]; ok {
 		note("WithDifferentNames$")
 	}
 	if _, ok := sa.Params["AttachedTo"]; ok {
-		note("AttachedTo$")
+		// resolved and emitted after battlefield entry below
 	}
-	if _, ok := sa.Params["Chooser"]; ok {
+	if _, ok := sa.Params["Chooser"]; ok && !supportsChoice {
 		note("Chooser$")
+		blocked = true
 	}
 	if len(skipped) > 0 {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
@@ -370,6 +378,50 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 			return
 		}
 		targets = cands[:1]
+	case supportsChoice && !c.CopyPermanentChoiceDone:
+		chooser := c.Controller
+		for _, t := range c.Remembered {
+			if t.IsPlayer {
+				chooser = t.Player
+				break
+			}
+			if o := g.Obj(t.Obj); o != nil {
+				chooser = o.Controller
+				break
+			}
+		}
+		pick := Defined(h, c, &cards.SA{Params: map[string]string{"Defined": "Creature.RememberedPlayerCtrl"}})
+		if len(pick) == 0 {
+			return
+		}
+		d := &decision.Decision{Player: chooser, Kind: decision.KChoose, Min: 1, Max: 1,
+			Source: c.Source, ResumeKind: "copypermanent_choice", ResumeSA: sa,
+			ResumeRemembered: append([]state.Target(nil), c.Remembered...), Prompt: "Choose a creature to copy"}
+		for i, t := range pick {
+			if t.IsPlayer || t.Obj == 0 {
+				continue
+			}
+			d.Options = append(d.Options, decision.Option{Index: i, Obj: t.Obj, Kind: "permanent"})
+		}
+		if len(d.Options) == 0 {
+			return
+		}
+		outcome := Ask(h, d)
+		if outcome == AskAsked {
+			return
+		}
+		if outcome == AskNoHost {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: chooser,
+				Text: "CopyPermanent Choices$ has no engine host; copying the first eligible creature"})
+		}
+		targets = []state.Target{{Obj: d.Options[0].Obj}}
+	case supportsChoice && c.CopyPermanentChoiceDone:
+		if c.CopyPermanentChoice == 0 {
+			return
+		}
+		targets = []state.Target{{Obj: c.CopyPermanentChoice}}
+		c.CopyPermanentChoice = 0
+		c.CopyPermanentChoiceDone = false
 	case spec != "":
 		ts, ok := knownDefinedTargets(h, c, spec)
 		if !ok {
@@ -430,6 +482,59 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 	}
 	tokenMemory := tokenRememberedTargets(h, c, sa)
 
+	// Resolve the named attachment endpoint before minting. The endpoint is
+	// intentionally a destination selector, not a bearer-choice feature.
+	var attachTo state.ObjID
+	if raw := strings.TrimSpace(sa.Params["AttachedTo"]); raw != "" {
+		sub := *sa
+		sub.Params = map[string]string{"Defined": raw}
+		for _, t := range Defined(h, c, &sub) {
+			if !t.IsPlayer && t.Obj != 0 && g.Obj(t.Obj) != nil {
+				attachTo = t.Obj
+				break
+			}
+		}
+	}
+	// Copy the resolving source face's named SVar entries. The maps are
+	// populated from the comma lists, never ranged, so trigger order is stable.
+	sourceSVars := c.SVars
+	if sourceSVars == nil {
+		if o := g.Obj(c.Source); o != nil && o.Face() != nil {
+			sourceSVars = o.Face().SVars
+		}
+	}
+	var grantTriggers []*cards.Trigger
+	for _, name := range strings.Split(sa.Params["AddTriggers"], ",") {
+		name = strings.TrimSpace(name)
+		if name == "" {
+			continue
+		}
+		if raw, ok := sourceSVars[name]; ok {
+			if tr, ok := cards.ParseTriggerLine(raw); ok {
+				x := tr
+				grantTriggers = append(grantTriggers, &x)
+			}
+		}
+	}
+	grantSVars := make(map[string]string)
+	for _, name := range strings.Split(sa.Params["AddSVars"], ",") {
+		name = strings.TrimSpace(name)
+		if name != "" {
+			if raw, ok := sourceSVars[name]; ok {
+				grantSVars[name] = raw
+			}
+		}
+	}
+	var grantAbilities []string
+	for _, name := range strings.Split(sa.Params["AddAbilities"], ",") {
+		name = strings.TrimSpace(name)
+		if name != "" {
+			if _, ok := sourceSVars[name]; ok {
+				grantAbilities = append(grantAbilities, name)
+			}
+		}
+	}
+
 	for _, t := range targets {
 		if t.IsPlayer {
 			continue
@@ -462,6 +567,22 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 			}
 			h.Emit(events.Event{Kind: events.MoveZone, Obj: want,
 				From: state.ZLibrary, To: state.ZBattlefield})
+			if attachTo != 0 && g.Obj(attachTo) != nil {
+				h.Emit(events.Event{Kind: events.Attach, Obj: want, IDs: []state.ObjID{attachTo}})
+			}
+			if len(grantTriggers) > 0 || len(grantSVars) > 0 || len(grantAbilities) > 0 {
+				h.AddContinuous(state.ContinuousEffect{Source: want, Controller: owner,
+					Affects: "Card.Self", Layer: state.LAbilities, Permanent: true,
+					SVars: sourceSVars, AddSVars: cloneStringMap(grantSVars), AddAbilities: append([]string(nil), grantAbilities...),
+					TriggerGrantor: c.Source, AbilityGrantor: c.Source})
+				for _, tr := range grantTriggers {
+					trCopy := *tr
+					h.AddContinuous(state.ContinuousEffect{Source: want, Controller: owner,
+						Affects: "Card.Self", Layer: state.LAbilities, Permanent: true,
+						AddTrigger: &trCopy, TriggerGrantor: c.Source,
+						SVars: sourceSVars})
+				}
+			}
 			if withOK {
 				h.Emit(events.Event{Kind: events.CounterChange, Obj: want, Counter: withKind, Amount: withAmt})
 			}
@@ -557,6 +678,17 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 // type words. Whitespace is trimmed and empty members dropped; an absent or
 // empty list yields nil. (SplitKeywordList alone would keep a comma as part
 // of the same word, which is right for keywords and wrong here.)
+func cloneStringMap(in map[string]string) map[string]string {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(in))
+	for k, v := range in {
+		out[k] = v
+	}
+	return out
+}
+
 func copyTypeList(list string) []string {
 	var out []string
 	for _, part := range strings.Split(list, ",") {

@@ -913,6 +913,11 @@ type Ctx struct {
 	// empty optional choice from its first pass.
 	Choice     []state.Target
 	ChoiceDone bool
+	// CopyPermanentChoice is the selected source for the one supported
+	// CopyPermanent Choices$/Chooser$ shape. It is deliberately separate
+	// from Choice so nested choices cannot consume it.
+	CopyPermanentChoice     state.ObjID
+	CopyPermanentChoiceDone bool
 	// TargetsPick is the answered target set of the generic ValidTgts$
 	// pre-ask (chosenTargetsFor, posed inside effects.Resolve's dispatch
 	// loop for a sub the placement/announcement ask never covered -- the

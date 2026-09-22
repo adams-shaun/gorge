@@ -1625,6 +1625,13 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 					ctx.ConniveDiscard = append(ctx.ConniveDiscard, o.Obj)
 				}
 			}
+		case "copypermanent_choice":
+			// CopyPermanent's sole Choices$/Chooser$ shape has its own
+			// transport so a nested ordinary Choice cannot consume the answer.
+			ctx.CopyPermanentChoiceDone = true
+			if len(chosen) > 0 {
+				ctx.CopyPermanentChoice = chosen[0].Obj
+			}
 		case "choice":
 			// ChooseCard, ChoosePlayer and ChangeTargets all use KChoose. Keep
 			// the concrete target shape rather than just an ObjID because player
