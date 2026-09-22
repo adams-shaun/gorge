@@ -616,6 +616,25 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 			pc.modeCostsDone = true
 			pc.cost = pc.cost.Plus(modeCostTotal(e.G.Obj(pc.card).Face(), names))
 		}
+		// Escalate (the modal additional cost): a cast choosing N modes pays
+		// the escalate cost N-1 times. Folded into pc.cost once, exactly like
+		// the ModeCost$ fold above, so the tap/discard part asks the
+		// continueCast re-entry below walks ask for the extra resources and
+		// the payment window charges the composed total. An unpriceable
+		// parameter (ParseCost's degraded Unknown tokens) is a loud no-charge,
+		// never a fabricated generic. A one-mode cast folds nothing and stays
+		// byte-identical.
+		if pc.escalateSet && !pc.escalateDone && len(names) > 1 {
+			pc.escalateDone = true
+			if esc := ParseCost(pc.escalateParam); len(esc.Unknown) == 0 {
+				for i := 1; i < len(names); i++ {
+					pc.cost = pc.cost.Plus(esc)
+				}
+			} else {
+				e.emit(events.Event{Kind: events.Note, Player: pc.player, Obj: pc.card,
+					Text: "escalate cost unpriceable; casting without the escalate charge"})
+			}
+		}
 		e.emit(events.Event{Kind: events.ModeChosen, Obj: pc.stackObj, Player: in.Player,
 			Text: strings.Join(labels, ",")})
 		e.continueCast()
