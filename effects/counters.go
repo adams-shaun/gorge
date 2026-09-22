@@ -201,19 +201,21 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 		putCounterBolster(h, c, sa, kind, pickAns, pickDone)
 		return
 	}
-	// Support$ N (CR 701.14's support keyword action; 19 raw corpus lines,
-	// every one a PutCounter SA): "put a +1/+1 counter on each of up to N
-	// other target creatures". ONE counter per chosen creature; N is the
-	// TARGET COUNT (literal, X -- the announced X of a spell with X in its
-	// cost -- or SVar, through the shared Num read), never a per-creature
-	// count. The recipient pick is the counter_pick decision shape (Min 0:
-	// "up to"), reusing the bare-Choices$ pick's answer fields and resume
-	// arm; the default spec is every battlefield creature OTHER than the
-	// source (the Other predicate -- the "other" the creature-ETB reminder
-	// texts state; for a spell source the exclusion is vacuous), or the
-	// SA's own Choices$ spec when it carries one (no corpus support line
-	// does, measured). fx42 scoping: consume and clear the answered pick
-	// first, so a nested PutCounter below cannot inherit it.
+	// Support$ N (CR 701.41's support keyword action; 19 raw corpus lines,
+	// every one a PutCounter SA): CR 701.41a -- "Support N" on a permanent
+	// means "Put a +1/+1 counter on each of up to N OTHER target creatures";
+	// on an instant or sorcery spell, "... on each of up to N target
+	// creatures" (no "other" -- a spell resolving from the stack is not a
+	// creature, so it could never be its own target anyway). ONE counter per
+	// chosen creature; N is the TARGET COUNT (literal, X -- the announced X
+	// of a spell with X in its cost -- or SVar, through the shared Num read),
+	// never a per-creature count. The recipient pick is the counter_pick
+	// decision shape (Min 0: "up to"), reusing the bare-Choices$ pick's
+	// answer fields and resume arm; the default spec follows the CR 701.41a
+	// split (putCounterSupport), or the SA's own Choices$ spec when it
+	// carries one (no corpus support line does, measured). fx42 scoping:
+	// consume and clear the answered pick first, so a nested PutCounter
+	// below cannot inherit it.
 	if _, ok := sa.Params["Support"]; ok {
 		supAns := c.CounterPick
 		supDone := c.CounterPickDone
@@ -732,16 +734,22 @@ func putCounterBolster(h Host, c *Ctx, sa *cards.SA, kind string, ans []state.Ob
 // Remembered), falling back to the source's event-backed list the same way
 // the Player.IsRemembered Defined selector does.
 // putCounterSupport implements the Support$ N branch of effPutCounter: the
-// "up to N other target creatures, one counter each" pick. The choice reuses
-// the bare-Choices$ pick's decision shape (ResumeKind "counter_pick", the
+// "up to N target creatures, one counter each" pick. The choice reuses the
+// bare-Choices$ pick's decision shape (ResumeKind "counter_pick", the
 // CounterPick/CounterPickDone answer fields, the same resume arm and
 // botpolicy arm), but its Max is the SUPPORT value and its Min is always 0
-// -- "up to" -- so a decline is a real answer. The spec is the SA's own
-// Choices$ when it carries one, else "Creature.+Other": every battlefield
-// creature other than the resolving source, the "other" the creature-ETB
-// support reminder texts state (for a spell source the exclusion is
-// vacuous, and an artifact/enchantment source never matched the creature
-// spec anyway). One counter of the SA's kind per chosen creature.
+// -- "up to" -- so a decline is a real answer. The default spec encodes CR
+// 701.41a verbatim: on a PERMANENT source (the ETB/ability carriers) it is
+// "Creature.+Other" -- every battlefield creature other than the resolving
+// source, the "other" the rule itself states and every creature-ETB reminder
+// text repeats (Generous Patron's reminder: "up to two other target
+// creatures") -- while on an instant/sorcery SPELL source (Lead by Example,
+// Unity of Purpose) it is bare "Creature" (every creature). The spell half's
+// difference is vacuous on this battlefield-only scan -- a spell resolving
+// from the stack is never a battlefield creature -- but the split is encoded
+// so the rule lives where the spec is built, not in a reminder text. The
+// SA's own Choices$ spec (no corpus carrier has one, measured) overrides
+// both. One counter of the SA's kind per chosen creature.
 func putCounterSupport(h Host, c *Ctx, sa *cards.SA, kind string, ans []state.ObjID, done bool) {
 	if done {
 		// Re-entry: the answered pick, in answer order. A chosen creature
@@ -760,7 +768,12 @@ func putCounterSupport(h Host, c *Ctx, sa *cards.SA, kind string, ans []state.Ob
 	g := h.Game()
 	spec := strings.TrimSpace(sa.Params["Choices"])
 	if spec == "" {
+		// CR 701.41a's permanent/spell split (see the doc comment above).
 		spec = "Creature.+Other"
+		if o := g.Obj(c.Source); o != nil && o.Face() != nil &&
+			(o.Face().IsInstant() || o.Face().IsSorcery()) {
+			spec = "Creature"
+		}
 	}
 	var eligible []state.ObjID
 	for _, p := range g.AliveFrom(0) {

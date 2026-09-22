@@ -18,8 +18,10 @@ import (
 )
 
 // TestGenerousPatronSupportPutsCountersAndDrawsOncePerBatch pins the Patron
-// end to end: the ETB support asks "up to two other target creatures" (the
-// Patron itself excluded, one counter per creature — not two on one), the
+// end to end: the ETB support asks "up to two other target creatures" per CR
+// 701.41a's permanent half ("Support N" ON A PERMANENT means "up to N OTHER
+// target creatures" — the Patron itself excluded, one counter per creature —
+// not two on one), the
 // answered put on the OPPONENT's creature queues exactly one draw trigger,
 // and a later TWO-counter batch on the same creature draws exactly one more
 // — one trigger per counter-placing event, never per counter.
@@ -383,6 +385,103 @@ func TestRikkuWindowExpiresAtEndOfTurn(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("the bear had no block option on the turn after Rikku's window: %+v", d.Options)
+	}
+}
+
+// TestLeadByExampleSpellSupportOffersEveryCreature pins the CR 701.41a SPELL
+// half on the real corpus carrier: Lead by Example (an instant, `Support$ 2`,
+// oracle "Put a +1/+1 counter on each of up to two target creatures." -- no
+// "other", because a spell resolving from the stack is not a creature and
+// could never be its own target). The support pick must offer EVERY battlefield
+// creature -- the caster's own and the opponent's -- with Min 0 ("up to"), and
+// the answered pick puts one counter per chosen creature. The permanent half's
+// opposite ("other": a permanent's support cannot target its own source) is
+// pinned by the Generous Patron probe above.
+func TestLeadByExampleSpellSupportOffersEveryCreature(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	lead, ok := reg.Lookup("Lead by Example")
+	if !ok {
+		t.Fatal("corpus has no Lead by Example")
+	}
+	// Preconditions: the carrier's only ability is the Support$ 2 cast, so the
+	// test exercises the branch it names.
+	if len(lead.Faces) != 1 || len(lead.Faces[0].Abilities) != 1 ||
+		lead.Faces[0].Abilities[0].Params["Support"] != "2" {
+		t.Fatalf("Lead by Example abilities = %+v, want one SP$ PutCounter with Support$ 2", lead.Faces[0].Abilities)
+	}
+	e := layerEngine(t)
+	own := onBoard(t, e, 0, "Name:Goblin Skirmisher\nManaCost:R\nTypes:Creature Goblin\nPT:1/1\nOracle:x\n")
+	bear := onBoard(t, e, 1, "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+
+	sp := e.G.AddObject(lead, 0)
+	sp.Zone = state.ZHand
+	e.G.SetZone(state.ZHand, 0, append(e.G.Zone(state.ZHand, 0), sp.ID))
+	e.Advance() // start the game loop (toss + opening deal; no mulligan ask with the default config)
+	addMana(t, e, 0, "CG")
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("after addMana: %+v, want seat 0's priority", d)
+	}
+	idx := -1
+	for _, opt := range d.Options {
+		if opt.Kind == "cast" && opt.Obj == sp.ID {
+			idx = opt.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("no cast option for Lead by Example: %+v", d.Options)
+	}
+	submitChoices(t, e, idx)
+	// Priority on the stack: pass until someone is asked a real question (the
+	// support pick, posed when the spell resolves).
+	for i := 0; ; i++ {
+		d = e.Pending()
+		if d == nil {
+			t.Fatal("no decision after the cast")
+		}
+		if d.Kind != decision.KPriority {
+			break
+		}
+		if i > 10 {
+			t.Fatal("priority never left after the Lead by Example cast")
+		}
+		pass := -1
+		for _, o := range d.Options {
+			if o.Kind == "pass" {
+				pass = o.Index
+			}
+		}
+		if pass < 0 {
+			t.Fatalf("priority decision with no pass option: %+v", d)
+		}
+		e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{pass}})
+	}
+
+	// The support pick IS the targeting for a Support$ cast (no ValidTgts$, no
+	// KTarget stage): Min 0 ("up to"), Max 2, and every creature offered — the
+	// caster's own first in zone order, then the opponent's.
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "counter_pick" {
+		t.Fatalf("after casting: %+v, want the support counter_pick ask", d)
+	}
+	if d.Player != 0 || d.Min != 0 || d.Max != 2 {
+		t.Fatalf("support ask player/range = seat %d %d..%d, want seat 0 0..2", d.Player, d.Min, d.Max)
+	}
+	if len(d.Options) != 2 {
+		t.Fatalf("support ask options = %d, want 2 (every creature on the battlefield)", len(d.Options))
+	}
+	if d.Options[0].Obj != own || d.Options[1].Obj != bear {
+		t.Fatalf("support options = [%d %d], want [%d %d] in zone order", d.Options[0].Obj, d.Options[1].Obj, own, bear)
+	}
+	// Answer with BOTH creatures: one counter each (Support is never a
+	// per-creature count, even with count left over).
+	submitChoices(t, e, d.Options[0].Index, d.Options[1].Index)
+	passUntilStackEmpty(t, e, 60)
+	if got := e.G.Obj(own).Counter("P1P1"); got != 1 {
+		t.Fatalf("own creature +1/+1 counters after Lead by Example = %d, want 1", got)
+	}
+	if got := e.G.Obj(bear).Counter("P1P1"); got != 1 {
+		t.Fatalf("opponent creature +1/+1 counters after Lead by Example = %d, want 1", got)
 	}
 }
 
