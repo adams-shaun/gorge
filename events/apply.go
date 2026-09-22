@@ -1247,6 +1247,8 @@ func Apply(g *state.Game, e Event) {
 				o.ConvergeColours = e.Amount
 			case FlagsFrom(e.Counter)&state.FlagReplicated != 0:
 				o.ReplicateTimes = e.Amount
+			case FlagsFrom(e.Counter)&state.FlagSquadPaid != 0:
+				o.SquadPaid = e.Amount
 			case FlagsFrom(e.Counter)&state.FlagMultikicked != 0:
 				o.TimesKicked = e.Amount
 			// One CastInfo per captured total, each LATER event carrying ALL
@@ -2350,6 +2352,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		if wasBattlefield {
 			o.X, o.CastFlags = 0, 0
 			o.ReplicateTimes = 0
+			o.SquadPaid = 0
 			o.ConvergeColours = 0
 			o.TimesKicked = 0
 			o.Conspired = false
@@ -2381,6 +2384,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		if wasStack {
 			o.X, o.CastFlags = 0, 0
 			o.ReplicateTimes = 0
+			o.SquadPaid = 0
 			o.ConvergeColours = 0
 			o.TimesKicked = 0
 			o.Conspired = false

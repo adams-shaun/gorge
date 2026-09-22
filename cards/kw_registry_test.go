@@ -22,6 +22,10 @@ var expandedHeads = []string{
 	"Living Weapon", "For Mirrodin", "Cumulative upkeep", "Echo",
 	"Equip", "Transmute", "Cycling", "TypeCycling", "Level up", "Affinity",
 	"Enchant", "Mobilize", "Afterlife", "Encore", "Embalm", "Eternalize",
+	// Squad (CR 702.66) was added after the split: the corpus carries only
+	// the K:Squad:<cost> line, so the expansion supplies the ETB trigger
+	// that creates one token copy per squad payment (Count$SquadPaid).
+	"Squad",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {

@@ -895,7 +895,7 @@ func appendStr(dst []byte, s string) []byte {
 // iteration).
 var flagNames = [...]struct {
 	name string
-	bit  uint32
+	bit  uint64
 }{
 	{"kicked", state.FlagKicked},
 	{"surged", state.FlagSurged},
@@ -992,14 +992,18 @@ var flagNames = [...]struct {
 	// ordering rule.
 	{"mutated", state.FlagMutated},
 	{"mutated top", state.FlagMutatedTop},
+	// The Squad keyword's payment provenance (CR 702.66); the payment COUNT
+	// rides the same CastInfo's Amount. Appended at the end per the table's
+	// own ordering rule.
+	{"squadpaid", state.FlagSquadPaid},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)
 // into a CastFlags word. Unrecognized names are silently ignored, the same
 // totality stance as everywhere else in this package: a stray or future
 // flag name in an untrusted log must not make this panic.
-func FlagsFrom(s string) uint32 {
-	var f uint32
+func FlagsFrom(s string) uint64 {
+	var f uint64
 	for _, part := range strings.Split(s, ",") {
 		for _, fn := range flagNames {
 			if strings.TrimSpace(part) == fn.name {
@@ -1012,7 +1016,7 @@ func FlagsFrom(s string) uint32 {
 
 // FlagsString is FlagsFrom's inverse: a canonical, fixed-order csv of the
 // flag names set in f.
-func FlagsString(f uint32) string {
+func FlagsString(f uint64) string {
 	var parts []string
 	for _, fn := range flagNames {
 		if f&fn.bit != 0 {

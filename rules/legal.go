@@ -1270,6 +1270,20 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (multikicked)", Obj: id, Mode: "multikicked"})
 		}
+		// Squad (CR 702.66): the squadded variant pays the base cost plus ONE
+		// squad payment -- the replicate/multikicker offer's exact shape (one
+		// payment gates the offer; the count ask, squadAsk, settles how many
+		// afterwards, and the 601.2g payment window may still produce mana for
+		// the composed total). No corpus carrier pairs Squad with
+		// Replicate/Multikicker/Kicker (measured over the 15 K:Squad files), so
+		// this offer never collides with the count asks above. Non-mana parts
+		// fail closed in nonManaCastable (offerCastable's shared tail), so a
+		// squad cost ParseCost cannot price never offers.
+		if sqc, ok := squadCost(f); ok && targetsAvailable &&
+			offerCastable(p, id, e.rawBaseCost(p, id).Plus(sqc), spellScope("squadded"), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (squadded)", Obj: id, Mode: "squadded"})
+		}
 		// Conspire (CR 702.78a): the conspired variant pays NO extra mana --
 		// the base cost is unchanged and the cost is the tap of two untapped
 		// creatures the caster controls that share a colour with the spell.
