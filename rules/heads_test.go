@@ -945,7 +945,19 @@ var acceptanceHeads = map[int]string{
 	// choose:[1] (the higher-worth Gurmag Angler); the reveal Notes and the
 	// exile set follow (a three-way tie exiled all three, now one unanimous
 	// vote exiles the Angler). Every earlier event is byte-identical.
-	4: "8d2fd67b913e5f1f",
+	// vote_card_self1 (2026-09-22): 4 seats moved to ce1af3d502cbecb4 — a
+	// voter no longer votes its OWN permanent. Council's Judgment's ballot
+	// excludes only the CASTER's permanents, so seat 1's own Gurmag Angler
+	// (the ballot's global highest) and seat 3's Vampire Lacerator are both
+	// offered to voter 1; the option now carries the subject's controller
+	// (Option.Player) and the policy ranks non-self options first. First
+	// divergence at event 3950, the SECOND vote ask's decision_made
+	// (Player 1): choose:[1] (Gurmag Angler, its own) -> choose:[2]
+	// (Vampire Lacerator, seat 3's foreign permanent); the tally goes from
+	// unanimous Angler to Angler 3 / Lacerator 1, so the same Angler is
+	// still exiled. The first ask (voter 0, the caster, whose own are
+	// excluded) is unchanged. Every earlier event is byte-identical.
+	4: "ce1af3d502cbecb4",
 	// 6 seats moved to c8c36b87e598c090 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
@@ -1030,7 +1042,13 @@ var acceptanceHeads = map[int]string{
 	// choose:[3] (Geralf's Messenger, the highest-worth ballot entry; the
 	// reveal Notes and the single exile follow the unanimous vote). Every
 	// earlier event is byte-identical.
-	6: "a5d01c6f72adea2a",
+	// vote_card_self1 (2026-09-22): 6 seats moved to 2a545fc0bdd1fbc9 — same
+	// card-ballot self-preference fix. First divergence at event 7434, the
+	// THIRD vote ask's decision_made (Player 3): choose:[3] (Geralf's
+	// Messenger, its own global highest) -> choose:[7] (Leatherback Baloth,
+	// a foreign permanent); the Messenger tally still wins the exile. Every
+	// earlier event is byte-identical.
+	6: "2a545fc0bdd1fbc9",
 	// 8 seats moved to cc022f9ba9f2bf39 with task mana2 (fix(rules): pay mana
 	// ability costs and choose colors): mana abilities that spend a Sac cost
 	// are now gated on a payable, deterministic sacrifice candidate existing,
@@ -1160,7 +1178,13 @@ var acceptanceHeads = map[int]string{
 	// choose:[5] (Leatherback Baloth, the highest-worth ballot entry; the
 	// reveal Notes and the single exile follow the unanimous vote). Every
 	// earlier event is byte-identical.
-	8: "cdeed8f4963686ac",
+	// vote_card_self1 (2026-09-22): 8 seats moved to c8dddeb452ccb5b3 — same
+	// fix. First divergence at event 11223, the FOURTH vote ask's
+	// decision_made (Player 5): choose:[5] (Leatherback Baloth, its own
+	// global highest) -> choose:[0] (Vampire Lacerator, a foreign permanent);
+	// the Baloth tally still wins the exile. Every earlier event is
+	// byte-identical.
+	8: "c8dddeb452ccb5b3",
 }
 
 func TestHeads(t *testing.T) {

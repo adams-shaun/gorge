@@ -2902,10 +2902,19 @@ func askCardVote(h Host, c *Ctx, sa *cards.SA, options []state.ObjID, voters []s
 			ResumeKind: "vote", ResumeSA: sa, ResumeTarget: i, ResumeChoices: append([]state.Target(nil), picks...), Prompt: "Vote for a permanent"}
 		for j, id := range options {
 			label := "permanent"
+			var controller state.PlayerID
 			if o := h.Game().Obj(id); o != nil && o.Face() != nil {
 				label = o.Face().Name
+				// The subject's controller is public information (CR 400.2) and
+				// the one fact the voter's policy needs to prefer a foreign
+				// permanent over its own: Council's Judgment's ballot excludes
+				// only the CASTER's permanents, so a 3+ seat ballot offers a
+				// voter both its own and an opponent's permanents. Option.Player
+				// already carries exactly this subject-controller convention for
+				// player targets, so no new wire field is needed.
+				controller = o.Controller
 			}
-			d.Options = append(d.Options, decision.Option{Index: j, Kind: "vote_card", Label: label, Obj: id})
+			d.Options = append(d.Options, decision.Option{Index: j, Kind: "vote_card", Label: label, Obj: id, Player: controller})
 		}
 		if len(d.Options) == 0 {
 			picks = append(picks, state.Target{})

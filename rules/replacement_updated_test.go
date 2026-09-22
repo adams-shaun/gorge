@@ -246,6 +246,23 @@ func passUntilStackEmpty(t *testing.T, e *Engine, limit int) int {
 			}
 			continue
 		}
+		if d.Kind == decision.KChoose && d.ResumeKind == "vote" {
+			// A per-voter ballot ask (task vote_card_self1): the card and
+			// fixed-list Votes now pose a private ask mid-resolution where
+			// the pre-ask engine silently took the ballot's first option.
+			// These drains were written around that stand-in, so answer
+			// option 0 -- the deterministic first ballot entry, exactly the
+			// behaviour the assertions were written against. A test that
+			// wants to inspect or steer the vote answers it itself before
+			// draining (vote_card_bot_test.go, vote_card_self_test.go).
+			if len(d.Options) == 0 {
+				t.Fatalf("vote ask with no option to take: %+v", d)
+			}
+			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{d.Options[0].Index}}); err != nil {
+				t.Fatalf("submit vote first option: %v", err)
+			}
+			continue
+		}
 		if d.Kind != decision.KPriority {
 			t.Fatalf("non-priority decision %+v while draining the stack", d)
 		}

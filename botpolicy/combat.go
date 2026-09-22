@@ -326,7 +326,14 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 				continue
 			}
 			var power, toughness int32
-			if hasCombined {
+			if cr, seen := b.Creatures[id]; seen {
+				// The public creature census above (the ZBattlefield pass that
+				// walks every seat) already queried this object's combined
+				// characteristics; reuse them rather than querying the same
+				// object twice (TestBoardFromGameUsesCombinedCharacteristicsOncePerObject
+				// pins one combined query per projected object).
+				power, toughness = cr.Power, cr.Toughness
+			} else if hasCombined {
 				power, toughness, _ = combined.Characteristics(id)
 			} else {
 				power = ch.Power(id)
