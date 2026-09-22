@@ -1335,6 +1335,15 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 // first TurnChange).
 func (e *Engine) rotationBase() state.PlayerID {
 	evs := e.L.Events
+	// The seeded-fixture escape hatch below is for the FIRST (most recent)
+	// candidate only. Older candidates legitimately mismatch the live active
+	// seat once an extra turn has been taken -- the extra-turn holder is
+	// Active, while the ordinary rotation must resume after the last NORMAL
+	// holder -- and returning Active there based the rotation on the
+	// extra-turn holder, swallowing the holder's ordinary next turn (CR
+	// 500.7) and diverging from nextTurnFor, whose rotation walk starts from
+	// exactly this last-normal base.
+	first := true
 	for i := len(evs) - 1; i >= 0; i-- {
 		if evs[i].Kind != events.TurnChange {
 			continue
@@ -1343,9 +1352,10 @@ func (e *Engine) rotationBase() state.PlayerID {
 		// mid-turn state without rewriting their genesis log. That live state
 		// is authoritative: it is an ordinary turn unless an in-log consumption
 		// says otherwise, so its successor is based on the live active seat.
-		if evs[i].Player != e.G.Active || evs[i].Amount != e.G.Turn {
+		if first && (evs[i].Player != e.G.Active || evs[i].Amount != e.G.Turn) {
 			return e.G.Active
 		}
+		first = false
 		// Backward window: (previous TurnChange, exclusive) .. (this one,
 		// exclusive). A -1 consumption of THIS TurnChange's own seat in it
 		// means THIS TurnChange began an extra turn (the consumption is
