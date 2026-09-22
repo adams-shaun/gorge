@@ -34,7 +34,7 @@ import (
 // opponents) parked at seat 0's Main1, ready for the test to cross into
 // BeginCombat. Mountain decks fill every seat so the fixture's only
 // non-land permanent is the Hellkite.
-func hellkiteEngine(t *testing.T, extras int) (*Engine, state.ObjID) {
+func hellkiteEngine(t *testing.T, cfgOut *Config) (*Engine, state.ObjID) {
 	t.Helper()
 	reg := testutil.CorpusRegistry(t)
 	m, ok := reg.Lookup("Mountain")
@@ -62,6 +62,7 @@ func hellkiteEngine(t *testing.T, extras int) (*Engine, state.ObjID) {
 	e.Advance()
 	toMain1(t, e)
 	id := moveByName(t, e, 0, "Territorial Hellkite", state.ZBattlefield)
+	*cfgOut = cfg
 	return e, id
 }
 
@@ -87,7 +88,8 @@ func crossIntoBeginCombat(t *testing.T, e *Engine) {
 // declare-attackers offer list contains ONLY that defender for the dragon,
 // with the dragon marked Required.
 func TestTerritorialHellkiteChoosesAndBindsAttackDefender(t *testing.T) {
-	e, hk := hellkiteEngine(t, 0)
+	var cfg Config
+	e, hk := hellkiteEngine(t, &cfg)
 
 	// Precondition: the dragon is on the battlefield under seat 0's control
 	// and the board starts with NO chosen player and NO remembered opponents,
@@ -113,9 +115,18 @@ func TestTerritorialHellkiteChoosesAndBindsAttackDefender(t *testing.T) {
 		t.Fatalf("no MustAttack requirement binds the dragon to chosen player %d", chosen)
 	}
 
-	// Drive into the declare-attackers step and inspect the offer list.
-	e.G.Step = state.StepDeclareAttackers
-	e.askAttackers()
+	// Determinism: an identical engine driven identically picks the SAME seat
+	// (the choice is a seeded rng draw, never ambient state).
+	var cfg2 Config
+	e2, hk2 := hellkiteEngine(t, &cfg2)
+	crossIntoBeginCombat(t, e2)
+	if got2 := e2.G.Obj(hk2).Chosen; len(got2) != 1 || got2[0].Player != chosen {
+		t.Fatalf("second identical run chose %+v, want the same seat %d (non-deterministic pick)", got2, chosen)
+	}
+
+	// Drive the real step machinery into declare-attackers (a direct step
+	// write would not be replayed) and inspect the offer list.
+	passToKind(t, e, decision.KAttackers)
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KAttackers {
 		t.Fatalf("expected a KAttackers decision, got %+v", d)
@@ -138,6 +149,7 @@ func TestTerritorialHellkiteChoosesAndBindsAttackDefender(t *testing.T) {
 	}
 	// The declaration must be accepted against the chosen player.
 	submitAttackersOnly(t, e, hk)
+	replayCheck(t, e, cfg)
 }
 
 // TestTerritorialHellkiteNoCandidateTaps is the "If you can't choose an
@@ -146,7 +158,8 @@ func TestTerritorialHellkiteChoosesAndBindsAttackDefender(t *testing.T) {
 // excludes), CantChooseSubAbility$ DBTap runs, the dragon taps, and no
 // requirement is registered.
 func TestTerritorialHellkiteNoCandidateTaps(t *testing.T) {
-	e, hk := hellkiteEngine(t, 0)
+	var cfg Config
+	e, hk := hellkiteEngine(t, &cfg)
 
 	// Precondition: the dragon is on the battlefield and both opponents are
 	// already remembered, so the Choices$ filter admits nobody.
@@ -175,6 +188,7 @@ func TestTerritorialHellkiteNoCandidateTaps(t *testing.T) {
 	if _, ok := e.requiredAttackDefender(hk); ok {
 		t.Fatal("a failed choice still registered a MustAttack requirement")
 	}
+	replayCheck(t, e, cfg)
 }
 
 // requiredAttackDefenderMatches reports whether id is required to attack
