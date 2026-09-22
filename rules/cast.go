@@ -2702,12 +2702,13 @@ func (e *Engine) exAsk() bool {
 		var sc *effects.SpecContext
 		if pc.announceX != "" {
 			name := pc.announceX
-			sc = &effects.SpecContext{You: pc.player, Source: pc.card, Resolve: func(n string) (int32, bool) {
+			bound := e.withNames(effects.SpecContext{You: pc.player, Source: pc.card, Resolve: func(n string) (int32, bool) {
 				if n == name {
 					return pc.x, true
 				}
 				return 0, false
-			}}
+			}})
+			sc = &bound
 		}
 		var candidates []state.ObjID
 		for _, oid := range e.G.Zone(zone, pc.player) {
@@ -4511,12 +4512,12 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 			if zone == 0 {
 				zone = state.ZHand
 			}
-			sc := effects.SpecContext{You: pc.player, Source: pc.card, Resolve: func(n string) (int32, bool) {
+			sc := e.withNames(effects.SpecContext{You: pc.player, Source: pc.card, Resolve: func(n string) (int32, bool) {
 				if n == pc.announceX {
 					return pc.x, true
 				}
 				return 0, false
-			}}
+			}})
 			n := 0
 			for _, oid := range e.G.Zone(zone, pc.player) {
 				if effects.MatchesSpecCtx(e.G, part.Spec, oid, sc) {

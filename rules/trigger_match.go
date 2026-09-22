@@ -568,12 +568,6 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object,
 		// event modes continue to read the live board, not an obsolete state.
 		observer := &Engine{G: e.triggerBefore.game, L: e.L,
 			continuous: e.triggerBefore.continuous, continuousVersion: e.continuousVersion}
-		// The observer reads the PRE-departure board from its own Game clone,
-		// so repoint its derived-characteristics provider at itself: leaving
-		// the clone's copied back-pointer aimed at e would make a name filter
-		// read the live (post-departure) layer-3 name instead of the
-		// snapshot's. Same invariant rules.New and Engine.Clone keep.
-		observer.G.Characteristics = observer
 		obj := observer.G.Obj(ev.Obj)
 		var power, toughness int32
 		valid := obj != nil && obj.Zone == state.ZBattlefield && obj.Face() != nil

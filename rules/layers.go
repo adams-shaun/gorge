@@ -2489,13 +2489,6 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 // compare characteristics must use this rather than the printed face name.
 func (e *Engine) Name(id state.ObjID) string { return e.Derived(id).Name }
 
-// EffectiveName is the state.Characteristics implementation: the layer-3
-// effective name (SetName$, CR 613.1d) as the layer walk derives it, so the
-// effects tier's name filters agree with view and rules instead of
-// re-deriving applicability and timestamp order. It is Name under the
-// interface the state game carries.
-func (e *Engine) EffectiveName(id state.ObjID) string { return e.Derived(id).Name }
-
 func (e *Engine) Power(id state.ObjID) int32 {
 	p, _ := e.derivedScalar(id)
 	return p

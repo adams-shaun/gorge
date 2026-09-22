@@ -287,6 +287,13 @@ type Engine struct {
 	activeEpoch   int
 	activeVersion int
 	activeDepth   int
+	// renameBuf is the same class of cache for the layer-3 rename set
+	// (setname.go's effectiveNames), keyed by the same pair and with the same
+	// re-entry guard. Clone copies none of them either.
+	renameBuf      []effects.ObjectName
+	renameEpoch    int
+	renameVersion  int
+	renameBuilding bool
 	// continuousVersion is bumped by every direct mutation of e.continuous
 	// (layers.go's AddContinuous and EndOfTurnCleanup). It stands in for the
 	// events a board change would signal through the log head: while
@@ -1243,12 +1250,6 @@ func newWithRNG(cfg Config, random *rng) *Engine {
 		manaExpended: make([]int32, len(cfg.Names)),
 	}
 	e.G.Tokens = cfg.Tokens
-	// The engine installs itself as the game's derived-characteristics
-	// provider, so effects' name filters (NamedCard/named/sameName) read the
-	// layer-3 effective name through the same layer walk rules and view use.
-	// See state.Characteristics; this is a read-only back-pointer, never
-	// event-folded and never hashed.
-	e.G.Characteristics = e
 	e.manaExpendedTurn = e.G.Turn
 	e.format = cfg.Format
 	for i := range e.G.Players {

@@ -199,23 +199,6 @@ func (p *Player) AddCounter(kind string, n int32) {
 	}
 }
 
-// Characteristics is the derived-characteristics provider the rules engine
-// installs on the game it drives. It exists so the effects tier -- which
-// cannot import rules -- can read a layer-3 effective name (SetName$, CR
-// 613.1d) through the SAME layer walk that view and rules render from,
-// instead of re-deriving applicability and timestamp order itself. A bare
-// *state.Game (a unit test, a fuzz seat, genesis before New drives it) carries
-// none and callers fall back to printed characteristics. The value is a
-// read-only back-pointer: it is never part of the event fold, never hashed and
-// never cloned by value into another engine without being repointed (rules.New
-// and Engine.Clone both set it explicitly).
-type Characteristics interface {
-	// EffectiveName returns the object's current layer-3 name (the printed
-	// face name when no SetName$ effect applies). Empty for a face-down
-	// permanent, which CR 708.5 says has no name.
-	EffectiveName(ObjID) string
-}
-
 // Game is the complete authoritative state. Everything a client sees is a
 // projection of this. Only the events package may mutate it.
 type Game struct {
@@ -303,13 +286,6 @@ type Game struct {
 	NextID ObjID
 	// Clock is a monotonic timestamp source for continuous-effect ordering.
 	Clock uint32
-
-	// Characteristics is the rules engine's derived-characteristics provider,
-	// installed by rules.New and repointed by Engine.Clone so the effects
-	// tier's effective-name reads (effects' NamedCard/named/sameName filters)
-	// agree with rules' layer walk. Nil for a game no engine drives; see the
-	// Characteristics interface.
-	Characteristics Characteristics
 
 	// Tokens is the token definitions this match may create, keyed by
 	// Forge script stem; set at genesis, never mutated, so Clone shares it.

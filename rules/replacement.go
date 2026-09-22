@@ -554,7 +554,7 @@ type replMatch struct {
 // the predicates fail closed exactly as before. Nil ids yield the plain
 // context every caller without a remembered set already built.
 func (e *Engine) rememberedSpecContext(you state.PlayerID, source state.ObjID, remembered []state.ObjID) effects.SpecContext {
-	sc := effects.SpecContext{You: you, Source: source}
+	sc := e.withNames(effects.SpecContext{You: you, Source: source})
 	if chosen := effects.ChosenTargetsFrom(e.G, source); len(chosen) > 0 {
 		sc.Chosen = chosen
 		sc.ChosenValid = true

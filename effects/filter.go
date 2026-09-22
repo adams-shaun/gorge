@@ -143,9 +143,13 @@ var predicates = map[string]predFn{
 	"surged": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.CastFlags&state.FlagSurged != 0
 	},
+	// The context-free entry: a caller with no SpecContext compares printed
+	// names. matchPositive evaluates NamedCard through namePredicate below
+	// before reaching this map, so every context-aware call sees the layer-3
+	// name instead -- the same split typePredicate keeps for ExtraTypes.
 	"NamedCard": func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
 		s := g.Obj(src)
-		return s != nil && s.ChosenName != "" && sharesName(g, o, s.ChosenName)
+		return s != nil && s.ChosenName != "" && sharesName(o, s.ChosenName, SpecContext{})
 	},
 	"ChosenType": func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
 		s := g.Obj(src)
@@ -1323,13 +1327,13 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		return o.EnteredThisTurn && o.EnteredFrom == zoneWords[key]
 	case wordNamed:
 		// Forge CardProperty "named<X>": card.sharesNameWith the argument.
-		return sharesName(g, o, key)
+		return sharesName(o, key, sc)
 	case wordNotnamed:
 		// Forge implements no notnamed predicate and the corpus carries
 		// none (measured); this engine gives the token the negation
 		// semantics its shape implies rather than the always-true trap an
 		// unrecognised-but-plausible token could be mistaken for.
-		return !sharesName(g, o, key)
+		return !sharesName(o, key, sc)
 	case wordSameName:
 		// Forge CardProperty "sameName": card.sharesNameWith(source). The
 		// referent is SpecContext.Source as MatchesObjectCtx rewrote it: the
@@ -1343,7 +1347,7 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		if sc.Source == 0 {
 			return false
 		}
-		return sharesNameWithObject(g, o, g.Obj(sc.Source))
+		return sharesNameWithObject(o, g.Obj(sc.Source), sc)
 	case wordAttachedTo:
 		// Forge's AttachedTo <X>: this object (an Aura or Equipment) is
 		// attached to something, and the permanent it is attached to (its
@@ -1751,9 +1755,19 @@ func startsFilterAlternative(s string) bool {
 // face it had while transformed. On the battlefield and stack every layout
 // uses its selected face. Empty names are omitted; an ability object (Card
 // nil) has no name.
-func nameCharacteristics(g *state.Game, o *state.Object) []string {
+func nameCharacteristics(o *state.Object, sc SpecContext) []string {
 	if o == nil || o.Card == nil {
 		return nil
+	}
+	// A layer-3 name (SetName$, CR 613.1d) overwrites every printed name the
+	// object would otherwise present, split halves included. Applicability and
+	// timestamp order live in rules' layer walk, which hands the result down as
+	// the EffectiveNames value slice; the filter tier never re-derives them (a
+	// battlefield scan cannot see Affected$ applicability, a conditional
+	// SetName$, or timestamp order between two competing effects). A caller
+	// with no rules-supplied context keeps the printed name.
+	if n := sc.effectiveName(o.ID); n != "" {
+		return []string{n}
 	}
 	offPlay := o.Zone != state.ZStack && o.Zone != state.ZBattlefield
 	if offPlay && o.Card.AlternateMode == "Split" {
@@ -1772,30 +1786,27 @@ func nameCharacteristics(g *state.Game, o *state.Object) []string {
 	if f == nil || f.Name == "" {
 		return nil
 	}
-	// A layer-3 name (SetName$, CR 613.1d) overwrites the printed name. The
-	// applicable-effect applicability and timestamp ordering live in rules'
-	// layer walk, which the engine exposes through g.Characteristics -- the
-	// filter tier must not re-derive them (a battlefield scan cannot see
-	// Affected$ applicability, a conditional SetName$, or timestamp order
-	// between two competing effects; the previous attachment-only scan got
-	// all three wrong). A bare *state.Game without an engine keeps the
-	// printed name, and the read is battlefield-only: layer effects do not
-	// apply to a card in a library, graveyard or hand.
-	if o.Zone == state.ZBattlefield && g != nil && g.Characteristics != nil {
-		if n := g.Characteristics.EffectiveName(o.ID); n != "" {
-			return []string{n}
-		}
-	}
 	return []string{f.Name}
+}
+
+// namePredicate evaluates the name-comparison predicates that must read the
+// layer-3 effective name rather than the printed face. ok is false for every
+// other token, which then falls through to the ordinary predicate map.
+func namePredicate(p string, g *state.Game, o *state.Object, sc SpecContext) (bool, bool) {
+	if p != "NamedCard" {
+		return false, false
+	}
+	s := g.Obj(sc.Source)
+	return s != nil && s.ChosenName != "" && sharesName(o, s.ChosenName, sc), true
 }
 
 // sharesName reports whether o's name characteristics include name -- Forge
 // Card.sharesNameWith(String). An empty name never matches.
-func sharesName(g *state.Game, o *state.Object, name string) bool {
+func sharesName(o *state.Object, name string, sc SpecContext) bool {
 	if name == "" {
 		return false
 	}
-	for _, n := range nameCharacteristics(g, o) {
+	for _, n := range nameCharacteristics(o, sc) {
 		if n == name {
 			return true
 		}
@@ -1807,9 +1818,9 @@ func sharesName(g *state.Game, o *state.Object, name string) bool {
 // common -- Forge Card.sharesNameWith(Card), which compares the full name
 // sets of BOTH cards. A split source in a library or graveyard therefore
 // shares a name with a card named for either of its halves (CR 709.4).
-func sharesNameWithObject(g *state.Game, o, src *state.Object) bool {
-	for _, n := range nameCharacteristics(g, src) {
-		if sharesName(g, o, n) {
+func sharesNameWithObject(o, src *state.Object, sc SpecContext) bool {
+	for _, n := range nameCharacteristics(src, sc) {
+		if sharesName(o, n, sc) {
 			return true
 		}
 	}
@@ -2166,6 +2177,12 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 			has = !has
 		}
 		return has, true
+	}
+	// Name predicates must use the layer-3 derived name when rules supplies
+	// one, for the same reason type predicates must use the derived type
+	// list: the predicates map's legacy function carries no SpecContext.
+	if result, ok := namePredicate(p, g, o, sc); ok {
+		return result, true
 	}
 	if fn, ok := predicates[p]; ok {
 		return fn(g, o, sc.You, sc.Source), true
@@ -2736,6 +2753,38 @@ type SpecContext struct {
 	// (kw:Flanking's blocker check, Cavalry Master's `withFlanking` lord).
 	// nil keeps the object-alone read (printed face plus counters).
 	ExtraKeywords []string
+	// EffectiveNames optionally supplies the layer-3 derived names (SetName$,
+	// CR 613.1d) in force on the battlefield -- rules' layer walk computes
+	// them and binds the result on every SpecContext it builds. Ordinary
+	// filter callers leave it nil and fall back to the printed face name
+	// above. Like ExtraTypes it is a plain value slice and deliberately not a
+	// callable resolver: a call made through a SpecContext field makes escape
+	// analysis leak the whole context (its Resolve closure included) to the
+	// heap on every hot-path construction. It is also NOT a back-pointer into
+	// rules: the slice is an immutable snapshot, so a context built from one
+	// game can never read another game's board.
+	//
+	// Entries are only ever the renamed objects (a handful at most, nil on the
+	// overwhelmingly common board), so the linear scan below is cheaper than
+	// building a map.
+	EffectiveNames []ObjectName
+}
+
+// ObjectName binds one object to its layer-3 derived name.
+type ObjectName struct {
+	ID   state.ObjID
+	Name string
+}
+
+// effectiveName returns the layer-3 name bound for id, or "" when the context
+// carries none (which means the caller reads printed names).
+func (s SpecContext) effectiveName(id state.ObjID) string {
+	for _, n := range s.EffectiveNames {
+		if n.ID == id {
+			return n.Name
+		}
+	}
+	return ""
 }
 
 // triggeredSpellTargetSA derives the target-declaring SA of a stack spell
@@ -2780,7 +2829,12 @@ func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContex
 	if o == nil {
 		return false
 	}
-	if ps := sc.PredicatePrograms; ps != nil {
+	// A renamed object must be answered by the textual oracle: the compiled
+	// program path reads the printed face and cannot see EffectiveNames, so a
+	// compiled `named<X>` would silently miss the layer-3 name. The same
+	// discipline the layer walk keeps for ExtraTypes (rules/layers.go), scoped
+	// here to the one object that actually carries a rename.
+	if ps := sc.PredicatePrograms; ps != nil && sc.effectiveName(o.ID) == "" {
 		switch ps.Evaluate(spec, g, o, sc) {
 		case PredicateYes:
 			return true

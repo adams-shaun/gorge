@@ -80,8 +80,8 @@ func (e *Engine) mayPlayLandIds(p state.PlayerID) []state.ObjID {
 					if o == nil || o.Face() == nil || !o.Face().IsLand() {
 						continue
 					}
-					sc := effects.SpecContext{You: ce.Controller, Source: ce.Source,
-						Remembered: rememberedTargets(ce.Remembered), Resolving: true}
+					sc := e.withNames(effects.SpecContext{You: ce.Controller, Source: ce.Source,
+						Remembered: rememberedTargets(ce.Remembered), Resolving: true})
 					if !effects.MatchesSpecCtx(e.G, ce.Affects, id, sc) {
 						continue
 					}
@@ -303,8 +303,8 @@ func (e *Engine) mayPlaySpellIds(p state.PlayerID) []state.ObjID {
 					if o == nil || o.Face() == nil || o.Face().IsLand() {
 						continue
 					}
-					sc := effects.SpecContext{You: ce.Controller, Source: ce.Source,
-						Remembered: rememberedTargets(ce.Remembered), Resolving: true}
+					sc := e.withNames(effects.SpecContext{You: ce.Controller, Source: ce.Source,
+						Remembered: rememberedTargets(ce.Remembered), Resolving: true})
 					if !effects.MatchesSpecCtx(e.G, ce.Affects, id, sc) {
 						continue
 					}

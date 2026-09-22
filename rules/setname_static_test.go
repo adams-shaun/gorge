@@ -24,9 +24,11 @@ import (
 //     creature's layer-3 name the answered name and its derived creature type
 //     the answered type (dropping the printed ones).
 //
-// The name filter read is asserted through effects.MatchesSpecFrom -- the
-// filter tier's read must agree with the layer walk (a rename the engine
-// renders but a filter cannot see is the exact defect this pins).
+// The name filter read is asserted through effects.MatchesSpecCtx over a
+// rules-built SpecContext -- the filter tier's read must agree with the layer
+// walk (a rename the engine renders but a filter cannot see is the exact
+// defect this pins). The context is where the layer-3 names come from; see
+// rules/setname.go.
 func TestPsychicPaperRenameAndType(t *testing.T) {
 	t.Parallel()
 	paper := corpusAlternativeCard(t, "Psychic Paper")
@@ -119,10 +121,10 @@ func TestPsychicPaperRenameAndType(t *testing.T) {
 
 	// The FILTER tier must see the same effective name and types -- the
 	// centralization this fix introduces.
-	if !effects.MatchesSpecFrom(e.G, "Card.namedElvish_Mystic", bearID, 0, 0) {
+	if !effects.MatchesSpecCtx(e.G, "Card.namedElvish_Mystic", bearID, e.specCtx(0, 0)) {
 		t.Fatal("filter: the renamed bear must match Card.namedElvish_Mystic")
 	}
-	if effects.MatchesSpecFrom(e.G, "Card.namedGrizzly_Bears", bearID, 0, 0) {
+	if effects.MatchesSpecCtx(e.G, "Card.namedGrizzly_Bears", bearID, e.specCtx(0, 0)) {
 		t.Fatal("filter: the renamed bear must NOT match its printed name Grizzly Bears")
 	}
 	replayCheck(t, e, cfg)
@@ -170,10 +172,10 @@ func TestSetNameLiteralStaticIsVisibleToNameFilters(t *testing.T) {
 	if got := e.Name(bearID); got != "Legitimate Businessperson" {
 		t.Fatalf("enchanted bear effective name = %q, want Legitimate Businessperson", got)
 	}
-	if !effects.MatchesSpecFrom(e.G, "Card.namedLegitimate_Businessperson", bearID, 0, 0) {
+	if !effects.MatchesSpecCtx(e.G, "Card.namedLegitimate_Businessperson", bearID, e.specCtx(0, 0)) {
 		t.Fatal("filter: the renamed bear must match Card.namedLegitimate_Businessperson")
 	}
-	if effects.MatchesSpecFrom(e.G, "Card.namedGrizzly_Bears", bearID, 0, 0) {
+	if effects.MatchesSpecCtx(e.G, "Card.namedGrizzly_Bears", bearID, e.specCtx(0, 0)) {
 		t.Fatal("filter: the renamed bear must NOT match its printed name")
 	}
 	replayCheck(t, e, cfg)
@@ -231,10 +233,10 @@ func TestCompetingSetNameStaticsAgreeWithTheLayerWalk(t *testing.T) {
 	if want == "First Name" {
 		other = "Second Name"
 	}
-	if !effects.MatchesSpecFrom(e.G, "Card.named"+strings.ReplaceAll(want, " ", "_"), bearID, 0, 0) {
+	if !effects.MatchesSpecCtx(e.G, "Card.named"+strings.ReplaceAll(want, " ", "_"), bearID, e.specCtx(0, 0)) {
 		t.Fatalf("filter does not see the layer walk's name %q", want)
 	}
-	if effects.MatchesSpecFrom(e.G, "Card.named"+strings.ReplaceAll(other, " ", "_"), bearID, 0, 0) {
+	if effects.MatchesSpecCtx(e.G, "Card.named"+strings.ReplaceAll(other, " ", "_"), bearID, e.specCtx(0, 0)) {
 		t.Fatalf("filter sees the losing SetName$ name %q", other)
 	}
 }

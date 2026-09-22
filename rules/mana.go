@@ -2558,8 +2558,8 @@ func (e *Engine) payerGrantsMayPlayRider(p state.PlayerID, id state.ObjID, rider
 		if !all && !slices.Contains(zones, o.Zone) {
 			continue
 		}
-		sc := effects.SpecContext{You: ce.Controller, Source: ce.Source,
-			Remembered: rememberedTargets(ce.Remembered), Resolving: true}
+		sc := e.withNames(effects.SpecContext{You: ce.Controller, Source: ce.Source,
+			Remembered: rememberedTargets(ce.Remembered), Resolving: true})
 		if effects.MatchesSpecCtx(e.G, ce.Affects, id, sc) {
 			return true
 		}
