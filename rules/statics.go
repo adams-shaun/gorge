@@ -591,6 +591,12 @@ func (e *Engine) countStaticPresent(sv staticView, spec string) int {
 	switch zone {
 	case "Graveyard":
 		want = state.ZGraveyard
+	case "Stack":
+		// IsPresent$ over the stack (Molten Disaster's kicked-gated AddKeyword$
+		// Split second static: IsPresent$ Card.Self+kicked | PresentZone$ Stack
+		// on its own stack object). forEachObject walks the stack zone, so the
+		// same scan covers it.
+		want = state.ZStack
 	default:
 		return 0
 	}

@@ -173,7 +173,7 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 						// collected from the zone it names by the zone walk above.
 						// An unrecognised value denies -- the fail-closed direction
 						// effectZoneOK documents.
-						if !effectZoneOK(st.Params["EffectZone"], o.Zone) {
+						if !e.stackSelfStaticOK(st, o) && !effectZoneOK(st.Params["EffectZone"], o.Zone) {
 							continue
 						}
 						affects := st.Params["Affected"]
@@ -554,6 +554,25 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 		clear(dst[len(out):])
 	}
 	return out
+}
+
+// stackSelfStaticOK admits a printed Continuous static with NO EffectZone$
+// whose SOURCE sits on the stack, when the static's own text scopes itself to
+// the stack (an IsPresent$/PresentZone$ or AffectedZone$ naming Stack).
+// effectZoneOK's default admission is the battlefield -- right for a
+// permanent's continuous statics, wrong for a spell's own on-the-stack
+// static: Molten Disaster's kicked split second (IsPresent$ Card.Self+kicked
+// | PresentZone$ Stack) names the stack as the zone it functions from, and
+// CR 113.6 has it live exactly there, while an unqualified lord static (a
+// creature spell's "creatures you control get +1/+1") still stays
+// battlefield-only. PresentZone$ is a comma list in the grammar, hence the
+// substring read.
+func (e *Engine) stackSelfStaticOK(st cards.Static, o *state.Object) bool {
+	if st.Params["EffectZone"] != "" || o == nil || o.Zone != state.ZStack {
+		return false
+	}
+	return strings.Contains(st.Params["PresentZone"], "Stack") ||
+		st.Params["AffectedZone"] == "Stack"
 }
 
 // staticSourceZones is staticEffects' per-seat source walk, in one fixed
@@ -1923,6 +1942,21 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 	}
 	kw = append(kw[:0], f.Keywords...)
 	kw = append(kw, o.IntrinsicKeywords...)
+	// CR 122.1b: a marker counter whose kind names a keyword grants that
+	// keyword to the permanent it sits on (Forge's CounterKeywordType emits a
+	// Mode$ Continuous | AddKeyword$ static, EffectZone$ All). Appended here,
+	// ahead of the layer walk, so the grant is a base keyword the layer-6
+	// walk then removes or replaces exactly as it would Forge's static -- a
+	// RemoveAbilities/RemoveKeywords effect clears it and a later layer-6
+	// grant re-adds on top. Iterating o.Counters (a fixed-order slice) keeps
+	// this deterministic; cards.CounterKeyword is the single classifier, so
+	// every counter-to-keyword read agrees. Order is buttoned by the counter
+	// slice, which is append-order stable.
+	for _, c := range o.Counters {
+		if kwName, ok := cards.CounterKeyword(c.Kind); ok && c.N > 0 {
+			kw = append(kw, kwName)
+		}
+	}
 	// CR 708.5's cloak variant: a CLOAKED face-down card is a 2/2 creature
 	// with ward {2} -- the ward is part of the cloak status itself, not a
 	// printed or granted ability (the printed face does not exist while face

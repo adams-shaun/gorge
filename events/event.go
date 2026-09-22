@@ -618,6 +618,30 @@ const (
 	// after every earlier Kind, so no earlier ordinal, hash chain or golden
 	// replay is affected.
 	Seek
+	// Connive records one completed connive action (CR 702.59, task connive1):
+	// Obj is the conniving permanent, Player its controller, IDs the cards it
+	// discarded in discard order, and Amount the number of NONLAND cards
+	// among them (the +1/+1 counters that went on the conniver). It is an
+	// Apply no-op marker, exactly like Explore: the connive's own state
+	// changes (the draws, the discards, the counter) are their own events
+	// that precede this one, and the record is what trig:Connives matches
+	// (Iron Monger Sadistic Tycoon, Glorious Purpose, Ultron Unlimited).
+	// One marker per completed connive ACTION, never one per discarded card.
+	// Appended after Seek, still after every earlier Kind, so no earlier
+	// ordinal, hash chain or golden replay is affected.
+	Connive
+	// Enlist records one CR 702.160 enlist action (the `K:Enlist` keyword,
+	// task enlist1): Obj is the ATTACKING creature that enlisted (the
+	// trigger's source for Mode$ Enlisted, so ValidCard$ Card.Self matches
+	// it) and IDs[0] the nonattacking creature it tapped, Player the
+	// attacker's controller. Apply folds the per-combat stamp the
+	// enlistedThisCombat filter predicate reads; the tap is its own Tap
+	// event and the +X/+0 is a rules-registered continuous pump, so this
+	// event is the enlist action's canonical record and the Mode$ Enlisted
+	// trigger's carrier. Appended here, after Connive, following every prior
+	// Kind's own append-only precedent, so no earlier ordinal, hash chain
+	// or golden replay is affected.
+	Enlist
 	// Exploit records one completed exploit sacrifice (CR 702.58a, task
 	// exploit1): Obj is the EXPLOITING creature (the permanent whose exploit
 	// ability resolved), Player its controller, IDs[0] the exploited creature
@@ -628,9 +652,9 @@ const (
 	// creature you control exploits a creature", Colonel Autumn; "When
 	// CARDNAME exploits a creature", Graf Reaver). A declined exploit
 	// election records nothing at all -- CR 702.58a's "you may sacrifice a
-	// creature" means no sacrifice, no exploit. Appended after Seek, still
-	// after every earlier Kind, so no earlier ordinal, hash chain or golden
-	// replay is affected.
+	// creature" means no sacrifice, no exploit. Merged here after Enlist,
+	// following every prior Kind's own append-only precedent, so no earlier
+	// ordinal, hash chain or golden replay is affected.
 	Exploit
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
@@ -754,7 +778,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"monarch_change", "control_change", "card_token", "keyword_trigger_push", "goad", "player_counter", "imprint", "starting_player_change",
 	"pair", "myriad_copy", "myriad_cleanup", "grant_trigger_push", "mana_activate", "token_attacks",
 	"x_change", "note_number", "extra_phase", "copy_token", "exert", "planar_roll", "explore", "combat_retarget", "ring_tempts_you", "ring_emblem_push", "grant_ability_push", "investigate", "blessing_change", "clone_permanent", "mutate", "merged_trigger_push",
-	"discover", "seek", "exploit"}
+	"discover", "seek", "connive", "enlist", "exploit"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {
@@ -909,7 +933,7 @@ func appendStr(dst []byte, s string) []byte {
 // iteration).
 var flagNames = [...]struct {
 	name string
-	bit  uint32
+	bit  uint64
 }{
 	{"kicked", state.FlagKicked},
 	{"surged", state.FlagSurged},
@@ -968,6 +992,13 @@ var flagNames = [...]struct {
 	// Conspire emits no flag and resolves like the plain cast. Appended at
 	// the end per the table's own ordering rule.
 	{"conspired", state.FlagConspired},
+	// Convoke's creature provenance (CR 702.66, task connive1): the flag is
+	// what Defined$ Convoked reads -- the creatures tapped to help pay for
+	// the cast ride the pay-time CastInfo's IDs. Emitted only for a face
+	// whose SVar table or abilities reference the selector (rules/cast.go's
+	// faceWantsConvoked), so every unrelated convoke cast stays
+	// byte-identical. Appended at the end per the table's own ordering rule.
+	{"convoked", state.FlagConvoked},
 	// The total-mana-spent capture (task castprov1): a face whose SVar
 	// table reads the Count$CastTotalManaSpent head stamps its pay-time
 	// CastInfo with the flag, so the Amount folds into Object.ManaSpent
@@ -1006,14 +1037,18 @@ var flagNames = [...]struct {
 	// ordering rule.
 	{"mutated", state.FlagMutated},
 	{"mutated top", state.FlagMutatedTop},
+	// The Squad keyword's payment provenance (CR 702.66); the payment COUNT
+	// rides the same CastInfo's Amount. Appended at the end per the table's
+	// own ordering rule.
+	{"squadpaid", state.FlagSquadPaid},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)
 // into a CastFlags word. Unrecognized names are silently ignored, the same
 // totality stance as everywhere else in this package: a stray or future
 // flag name in an untrusted log must not make this panic.
-func FlagsFrom(s string) uint32 {
-	var f uint32
+func FlagsFrom(s string) uint64 {
+	var f uint64
 	for _, part := range strings.Split(s, ",") {
 		for _, fn := range flagNames {
 			if strings.TrimSpace(part) == fn.name {
@@ -1026,7 +1061,7 @@ func FlagsFrom(s string) uint32 {
 
 // FlagsString is FlagsFrom's inverse: a canonical, fixed-order csv of the
 // flag names set in f.
-func FlagsString(f uint32) string {
+func FlagsString(f uint64) string {
 	var parts []string
 	for _, fn := range flagNames {
 		if f&fn.bit != 0 {

@@ -1157,6 +1157,16 @@ type Ctx struct {
 	ExploreCard   state.ObjID
 	ExploreChoice string
 	ExploreDone   bool
+	// ConniveObj/ConniveDiscard/ConniveDone carry one pending connive
+	// discard (api:Connive, task connive1): ConniveDone marks an ANSWERED
+	// discard for the conniver parked in ConniveObj, ConniveDiscard the
+	// chosen card ids. rules' "connive" resume arm re-enters with
+	// ConniveDone set and both other fields restored from the resume
+	// point. Consumed and cleared at the point of application (fx42
+	// scoping), so a later conniving target poses its own fresh ask.
+	ConniveObj     state.ObjID
+	ConniveDiscard []state.ObjID
+	ConniveDone    bool
 	// LastRoll/LastRollName carry the result of a DB$ RollDice this same
 	// resolution just made (effects/dice.go), under the SVar name its
 	// ResultSVar$ parameter named (usually "Result" or "X"). evalCountExpr's

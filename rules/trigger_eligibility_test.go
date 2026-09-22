@@ -100,7 +100,7 @@ func TestTriggerEventInterestMapping(t *testing.T) {
 			// conservative catch-all, and compiledTriggerInterestAllows fails
 			// open for it before this mapping is even consulted.
 			want = cards.TriggerInterestAny
-		case events.Discover, events.Seek:
+		case events.Discover, events.Seek, events.Connive:
 			// The Investigate shape: trigger-relevant kinds past the 64-bit
 			// mask's reach, the conservative catch-all -- compiledTrigger-
 			// InterestAllows fails open for them before this mapping is even

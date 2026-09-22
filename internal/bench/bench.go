@@ -36,8 +36,11 @@ import (
 	"github.com/adams-shaun/gorge/botpolicy"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/internal/searchprobe"
+	"github.com/adams-shaun/gorge/internal/searchseat"
 	"github.com/adams-shaun/gorge/rules"
 	"github.com/adams-shaun/gorge/seat"
+	"github.com/adams-shaun/gorge/state"
 	"github.com/adams-shaun/gorge/view"
 )
 
@@ -110,6 +113,32 @@ func PlayGame(cfg rules.Config, seats []seat.Seat, maxTurns, maxIntents int, hoo
 	e := rules.New(cfg)
 	e.Advance()
 	board := botpolicy.NewBoard(len(seats))
+	// Search-seat feeds (the seat.BoardSeat branch, mirrored one level up):
+	// an engine-aware seat needs the driver-maintained observation stream --
+	// searchprobe.Collector.Capture takes the *rules.Engine and the raw event
+	// burst since the previous capture and must run at EVERY decision of
+	// EVERY player, while a seat is invoked only at its own (searchseat's
+	// package doc carries the full argument). So PlayGame owns one Feed per
+	// search seat, builds the declared public game once from the config the
+	// engine itself was built from, captures through every live feed at every
+	// decision, hands the deciding seat its Feed at its own decisions, and
+	// records the played intent back. A game with no search seat never builds
+	// a Feed and never pays a capture: its loop is byte-identical to the
+	// pre-feed one, which is what the bot-vs-bot self-control run relies on.
+	var feeds []*searchseat.Feed
+	var setup searchprobe.PublicGame
+	for i, s := range seats {
+		if _, ok := s.(searchseat.SearchSeat); !ok {
+			continue
+		}
+		if feeds == nil {
+			feeds = make([]*searchseat.Feed, len(seats))
+			setup = searchprobe.PublicGame{
+				Names: cfg.Names, Decks: cfg.Decks, Tokens: cfg.Tokens, StartingLife: cfg.StartingLife,
+			}
+		}
+		feeds[i] = searchseat.NewFeed(state.PlayerID(i))
+	}
 	n := 0
 	// The livelock watcher fires inside a single Submit call -- the loop is
 	// stuck there, so there is no error return to read -- and panics with a
@@ -138,7 +167,46 @@ func PlayGame(cfg rules.Config, seats []seat.Seat, maxTurns, maxIntents int, hoo
 			var in decision.Intent
 			var err error
 			var decisionBoard *botpolicy.Board
-			if s, ok := seats[d.Player].(seat.BoardSeat); ok {
+			// Capture through EVERY live feed at EVERY decision of EVERY
+			// player -- the sampler's epoch constraints need every player's
+			// bursts, exactly the teacher's loop (which captures at every
+			// decision, not only the search seat's). A feed that fails a
+			// capture stops observing; the game plays on.
+			var fdFrame bool
+			if feeds != nil {
+				fd := searchFeed(feeds, d.Player)
+				for _, f := range feeds {
+					if f == nil {
+						continue
+					}
+					if _, ok := f.Observe(e); ok && f == fd {
+						fdFrame = true
+					}
+				}
+			}
+			if fd := searchFeed(feeds, d.Player); fd != nil {
+				// The search branch: answer from the deciding seat's own
+				// feed. A feed that stopped observing (a capture error) or
+				// failed THIS capture plays the wrapped bot -- the teacher's
+				// own contract.
+				b := botpolicy.BoardFromGameInto(e.G, e, d.Player, &board)
+				decisionBoard = &b
+				if fdFrame {
+					in, err = seats[d.Player].(searchseat.SearchSeat).DecideSearch(context.Background(),
+						searchseat.Env{Setup: setup, Engine: e, Board: b, Feed: fd}, *d)
+					// The played intent is recorded back into the history
+					// exactly as the teacher's loop records it (the FINAL
+					// intent, post-override). A translation error means the
+					// history is missing an answer -- that corrupts every
+					// later Sample drawn from it, so the game errors loudly
+					// the way the teacher's loop errors loudly.
+					if err == nil {
+						err = fd.RecordAnswer(d, in)
+					}
+				} else {
+					in, err = seats[d.Player].(searchseat.SearchSeat).DecideBoard(context.Background(), b, *d)
+				}
+			} else if s, ok := seats[d.Player].(seat.BoardSeat); ok {
 				// Match the live host's reusable, seat-private Board path.
 				// Seats opting out (including legacy) still receive the full
 				// View.
@@ -192,6 +260,16 @@ func PlayGame(cfg rules.Config, seats []seat.Seat, maxTurns, maxIntents int, hoo
 		return finish(Outcome{StallOn: "intents", Turns: e.G.Turn, Intents: n})
 	}
 	return finish(outcomeFrom(e, n))
+}
+
+// searchFeed is the deciding seat's feed, or nil when that seat is not a
+// search seat (feeds is nil for a game with no search seat at all -- the
+// zero-capture fast path).
+func searchFeed(feeds []*searchseat.Feed, p state.PlayerID) *searchseat.Feed {
+	if feeds == nil || p < 0 || int(p) >= len(feeds) {
+		return nil
+	}
+	return feeds[p]
 }
 
 // outcomeFrom reads a finished game's result. Ruling P14: Draw must be read

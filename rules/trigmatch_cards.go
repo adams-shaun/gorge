@@ -81,6 +81,23 @@ func (e *Engine) exploresMatches(t cards.Trigger, source state.ObjID, ev events.
 	return true
 }
 
+// connivesMatches implements the "Whenever a creature you control connives
+// ..." trigger family (Forge Mode$ Connives, task connive1 -- Iron Monger
+// Sadistic Tycoon, Glorious Purpose, Ultron Unlimited; 3 files / 3 raw lines
+// at the corpus pin). The causing event is the completed events.Connive
+// record (a pure Apply no-op marker emitted by effConnive after each
+// conniver's draws, discards and counters): Obj is the CONNIVER (what
+// ValidCard$ matched, with the conniver's controller as the event player --
+// the same eventCardAndPlayerMatch read the Explores family applies) and
+// IDs are the discarded cards in discard order. The record is one per
+// completed connive action, never one per discarded card.
+func (e *Engine) connivesMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
+	if ev.Kind != events.Connive || ev.Obj == 0 {
+		return false
+	}
+	return e.eventCardAndPlayerMatch(t, source, ev.Obj, ev.Player)
+}
+
 // investigatedMatches implements the "whenever you investigate" trigger
 // family (Forge Mode$ Investigated, task investtrig1 -- Erdwal Illuminator,
 // Val, Marooned Surveyor; 2 files / 2 raw lines at the corpus pin). The
@@ -602,6 +619,7 @@ func init() {
 	registerTrigMatcher((*Engine).cycledMatches, "Cycled")
 	registerTrigMatcher((*Engine).exploitedMatches, "Exploited")
 	registerTrigMatcher((*Engine).exploresMatches, "Explores")
+	registerTrigMatcher((*Engine).connivesMatches, "Connives")
 	registerTrigMatcher((*Engine).investigatedMatches, "Investigated")
 	registerTrigMatcher((*Engine).discoverMatches, "Discover")
 	registerTrigMatcher((*Engine).seekAllMatches, "SeekAll")

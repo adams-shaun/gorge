@@ -1270,6 +1270,20 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (multikicked)", Obj: id, Mode: "multikicked"})
 		}
+		// Squad (CR 702.66): the squadded variant pays the base cost plus ONE
+		// squad payment -- the replicate/multikicker offer's exact shape (one
+		// payment gates the offer; the count ask, squadAsk, settles how many
+		// afterwards, and the 601.2g payment window may still produce mana for
+		// the composed total). No corpus carrier pairs Squad with
+		// Replicate/Multikicker/Kicker (measured over the 15 K:Squad files), so
+		// this offer never collides with the count asks above. Non-mana parts
+		// fail closed in nonManaCastable (offerCastable's shared tail), so a
+		// squad cost ParseCost cannot price never offers.
+		if sqc, ok := squadCost(f); ok && targetsAvailable &&
+			offerCastable(p, id, e.rawBaseCost(p, id).Plus(sqc), spellScope("squadded"), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (squadded)", Obj: id, Mode: "squadded"})
+		}
 		// Conspire (CR 702.78a): the conspired variant pays NO extra mana --
 		// the base cost is unchanged and the cost is the tap of two untapped
 		// creatures the caster controls that share a colour with the spell.
@@ -2095,6 +2109,19 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				Label: o.Face().Name + ": " + ab.Params["SpellDescription"],
 				Obj:   id, SVar: sv})
 		}
+	}
+	// K:Split second (CR 702.62, rules/split_second.go): while a split-second
+	// spell is on the stack, players can't cast spells or activate abilities
+	// that aren't mana abilities. The filter runs here -- at the ONE choke
+	// point every cast source (hand, command zone, may-play, flashback/
+	// aftermath/harmonize/warp/escape, exile recasts) and both ability loops
+	// flow through -- rather than at each of the ~30 append sites, so the next
+	// cast source added to this walk is covered by construction. Playing a
+	// land, mana abilities, Station and Room unlock stay legal; the Suspend
+	// and Foretell offers ride the "cast" Kind but are special actions, not
+	// spell casts, so they stay too.
+	if e.splitSecondHolds() {
+		out = e.filterSplitSecondActions(out)
 	}
 
 	// Pass is second-to-last. A client that wants to do nothing must choose

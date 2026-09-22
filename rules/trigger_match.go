@@ -736,6 +736,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					e.checkGrantedWardTriggers(observer, id, o, f, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
 				case events.DeclareAttackers:
 					e.checkGrantedDethroneTriggers(observer, id, o, f, ev, objLKI)
+					e.checkGrantedTrainingTriggers(observer, id, o, f, ev, objLKI)
 				case events.DeclareBlockers:
 					e.checkGrantedAfflictTriggers(id, o, f, ev)
 				case events.PutOnStack:
@@ -1017,6 +1018,11 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		// object's own printed triggers are live for this event -- the same
 		// both-paths rule Afflict and Conspire follow.
 		e.checkGrantedExploitTriggers(observer, id, o, f, ev, objLKI)
+		// A granted Training must fire even when the object's own printed
+		// triggers are live for this event (an attacking token with its own
+		// trigger carrying the training grant) -- the early-return path above
+		// reaches this object through checkGrantedTrainingTriggers's own call.
+		e.checkGrantedTrainingTriggers(observer, id, o, f, ev, objLKI)
 	})
 	for _, n := range phaseNotes {
 		e.emit(events.Event{Kind: events.Note, Obj: n.id,
@@ -1373,6 +1379,7 @@ func init() {
 		"trig:Vote",
 		"trig:Explores", "trig:Exerted", "trig:Investigated",
 		"trig:Exploited",
+		"trig:Connives",
 		"trig:Discover", "trig:SeekAll",
 		"trig:AbilityCast", "trig:SpellAbilityCast", "trig:Always",
 		// The cast-or-copy pair: SpellCopy matches a copy put on the stack and
@@ -1399,6 +1406,11 @@ func init() {
 		// dies-trigger shape, reading counters_EQ0_M1M1 off the LKI and
 		// returning the permanent with a -1/-1 counter.
 		"kw:Undying", "kw:Persist", "kw:Evolve", "kw:Exalted", "kw:Dethrone", "kw:Prowess", "kw:Riot", "kw:Hideaway", "kw:Extort", "kw:Myriad", "kw:Soulbond", "kw:Dredge",
+		// CR 702.70 Training: an Attacks trigger (cards/kw_training.go) whose
+		// "with another creature with greater power" condition is read by
+		// attacksMatches (the Dethrone precedent), with a granted-keyword
+		// synthesis (checkGrantedTrainingTriggers) for the layer-6 grant.
+		"kw:Training",
 		// Task 17: Storm's expansion (cards/keywords.go) is a SpellCast
 		// trigger whose effect is CopySpellAbility -- the expansion existed
 		// since Task 11; registering the keyword here completes its
