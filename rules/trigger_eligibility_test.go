@@ -42,6 +42,8 @@ func TestTriggerEligibilityEventMatrix(t *testing.T) {
 		{"Attached", []events.Kind{events.Attach}},
 		{"Explores", []events.Kind{events.Explore}},
 		{"Investigated", []events.Kind{events.Investigate}},
+		{"Discover", []events.Kind{events.Discover}},
+		{"SeekAll", []events.Kind{events.Seek}},
 		{"Exerted", []events.Kind{events.Exert}},
 		{"LandPlayed", []events.Kind{events.MoveZone}},
 		{"Phase", []events.Kind{events.StepChange}},
@@ -97,6 +99,12 @@ func TestTriggerEventInterestMapping(t *testing.T) {
 			// conservative catch-all, and compiledTriggerInterestAllows fails
 			// open for it before this mapping is even consulted.
 			want = cards.TriggerInterestAny
+		case events.Discover, events.Seek:
+			// The Investigate shape: trigger-relevant kinds past the 64-bit
+			// mask's reach, the conservative catch-all -- compiledTrigger-
+			// InterestAllows fails open for them before this mapping is even
+			// consulted.
+			want = cards.TriggerInterestAny
 		}
 		if got := eventTriggerInterest(kind); got != want {
 			t.Fatalf("kind %s interest = %x, want %x", kind, got, want)
@@ -115,7 +123,7 @@ func TestCompiledTriggerInterestParity(t *testing.T) {
 		"TapsForMana", "DamageDone", "DamageDealtOnce", "DamageDoneOnce", "CounterAdded",
 		"CounterRemoved", "DamagePreventedOnce", "TokenCreated", "TokenCreatedOnce",
 		"ChangesZoneAll", "SpellCastOrCopy", "SpellCopy", "Mutates",
-		"Drawn", "LifeLost", "Phase", "Attached", "Explores", "Investigated", "Always", "LifeLostAll", "FutureMode", "",
+		"Drawn", "LifeLost", "Phase", "Attached", "Explores", "Investigated", "Discover", "SeekAll", "Always", "LifeLostAll", "FutureMode", "",
 	}
 	card := &cards.Card{}
 	for _, mode := range modes {
@@ -405,8 +413,8 @@ func TestTriggerEligibilityKeepsRoomAlternateFace(t *testing.T) {
 // Measured ordinals at this merge: Explore 63 is the last kind INSIDE the
 // mask; CombatRetarget 64 is the first past it, and everything after --
 // RingTemptsYou 65, RingEmblemPush 66, GrantAbilityPush 67, Investigate 68,
-// BlessingChange 69, ClonePermanent 70, Mutate 71, MergedTriggerPush 72
-// (NumKinds 73) -- is past it too. So mutate's two kinds are NOT a special
+// BlessingChange 69, ClonePermanent 70, Mutate 71, MergedTriggerPush 72,
+// Discover 73, Seek 74 (NumKinds 75) -- is past it too. So mutate's two kinds are NOT a special
 // case: they fail open like every other kind past the bound, and trig:Mutates
 // is gated by the full matcher (mutatesMatches), not by the mask. An earlier
 // version of this test asserted the opposite contract (an enumerated mask

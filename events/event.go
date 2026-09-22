@@ -593,6 +593,31 @@ const (
 	// after Mutate, following every prior Kind's own append-only precedent,
 	// so no earlier ordinal, hash chain or golden replay is affected.
 	MergedTriggerPush
+	// Discover records one completed discover action (CR 701.57, task
+	// trigdisc1): Player is the discovering seat and Obj the resolving source
+	// permanent (0 for a source-less body). It is an Apply no-op marker,
+	// exactly like Explore/Investigate: the discover's own state changes (the
+	// exiles, the reveal Notes, the chosen card's move) are their own events
+	// that precede this one, and the record is what trig:Discover matches
+	// ("whenever you discover" -- Val, Marooned Surveyor, Curator of Sun's
+	// Creation). The marker is ONE per completed discover action, never one
+	// per exiled card. Appended after MergedTriggerPush, still after every
+	// earlier Kind, so no earlier ordinal, hash chain or golden replay is
+	// affected.
+	Discover
+	// Seek records one completed seek action (Forge's Alchemy seek, task
+	// trigdisc1): Player is the seeking seat and Obj the resolving source
+	// permanent (0 for a source-less body). It is an Apply no-op marker,
+	// exactly like Discover, and is what trig:SeekAll matches ("whenever you
+	// seek one or more cards" -- Vexyr, Ich-Tekik's Heir; Val, Marooned
+	// Surveyor; Lurker in the Deep). One marker per seek ACTION, never one
+	// per sought card -- a seek of three cards is one marker and one
+	// trigger -- and the emitter's contract (api:Seek, still unimplemented)
+	// is to emit only when the seek actually found at least one card, so the
+	// oracle's "one or more cards" holds. Appended after Discover, still
+	// after every earlier Kind, so no earlier ordinal, hash chain or golden
+	// replay is affected.
+	Seek
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -603,7 +628,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(MergedTriggerPush) + 1
+	NumKinds = int(Seek) + 1
 )
 
 // mergedTriggerShift is the width MergedTriggerPush's Amount gives the
@@ -714,7 +739,8 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"delayed_register", "delayed_push", "library_order", "extra_turn", "door_unlock", "speed_change",
 	"monarch_change", "control_change", "card_token", "keyword_trigger_push", "goad", "player_counter", "imprint", "starting_player_change",
 	"pair", "myriad_copy", "myriad_cleanup", "grant_trigger_push", "mana_activate", "token_attacks",
-	"x_change", "note_number", "extra_phase", "copy_token", "exert", "planar_roll", "explore", "combat_retarget", "ring_tempts_you", "ring_emblem_push", "grant_ability_push", "investigate", "blessing_change", "clone_permanent", "mutate", "merged_trigger_push"}
+	"x_change", "note_number", "extra_phase", "copy_token", "exert", "planar_roll", "explore", "combat_retarget", "ring_tempts_you", "ring_emblem_push", "grant_ability_push", "investigate", "blessing_change", "clone_permanent", "mutate", "merged_trigger_push",
+	"discover", "seek"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

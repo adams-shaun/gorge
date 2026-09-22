@@ -245,7 +245,25 @@ var actionTriggerModes = map[string]bool{
 	// itself reads FirstTime$ (8 lines over 7 files: Attended Healer,
 	// Deathless Knight, Vanguard Seraph, Gourmand's Talent, ...), the
 	// once-per-turn latch lifeLostMatches implements without the map.
+	// LifeGained joins them for the same reason: it is an event mode
+	// registered from the start (lifeGainedMatches over events.LifeChange,
+	// the api:RemoveCounter ticket's Prize Pig pin), so the trigger-level
+	// parameters Forge scopes to every event mode -- PlayerTurn$ (5 corpus
+	// lines: Vampire Scrivener, Wax//Wane Witness, Moonstone Harbinger,
+	// Cat Collector), ActivationLimit$ (2 lines) and an unevaluable
+	// CheckDefinedPlayer$ predicate failing closed -- apply. lifeGainedMatches
+	// itself reads FirstTime$ (8 lines over 7 files: Attended Healer,
+	// Deathless Knight, Vanguard Seraph, Gourmand's Talent, ...), the
+	// once-per-turn latch lifeLostMatches implements without the map.
 	"LifeGained": true,
+	// Discover and SeekAll join them: both are event modes registered with
+	// their own marker Kinds (events.Discover/events.Seek, task trigdisc1)
+	// whose corpus carriers carry the trigger-level parameters Forge scopes
+	// to every event mode -- Curator of Sun's Creation's ActivationLimit$ 1
+	// on its Discover line ("This ability triggers only once each turn")
+	// and Lurker in the Deep's PlayerTurn$ True on its SeekAll line -- so
+	// both gates must apply from day one.
+	"Discover": true, "SeekAll": true,
 }
 
 // triggerActivationLimitAllows enforces ActivationLimit$ N ("this ability
@@ -1331,6 +1349,7 @@ func init() {
 		"trig:BecomesTarget", "trig:LandPlayed", "trig:Phase", "trig:Attached", "trig:FlippedCoin",
 		"trig:Vote",
 		"trig:Explores", "trig:Exerted", "trig:Investigated",
+		"trig:Discover", "trig:SeekAll",
 		"trig:AbilityCast", "trig:SpellAbilityCast", "trig:Always",
 		// The cast-or-copy pair: SpellCopy matches a copy put on the stack and
 		// SpellCastOrCopy matches either half (magecraft). Both are matched

@@ -112,6 +112,62 @@ func (e *Engine) investigatedMatches(t cards.Trigger, source state.ObjID, ev eve
 	return true
 }
 
+// discoverMatches implements the "whenever you discover" trigger family
+// (Forge Mode$ Discover, task trigdisc1 -- Val, Marooned Surveyor, Curator of
+// Sun's Creation; 2 corpus files / 2 raw lines at the corpus pin). The causing
+// event is the completed events.Discover record (a pure Apply no-op marker the
+// api:Discover primitive will emit beside each completed discover action, one
+// per ACTION not per exiled card -- CR 701.57's exile-many-reveal-one shape is
+// ONE discover): Player is the discovering seat (what ValidPlayer$ matches --
+// both carriers' `ValidPlayer$ You`), Obj the resolving source permanent (what
+// a ValidCard$ spec would match; no corpus carrier uses one, but the grammar
+// is the investigatesMatches shape). FirstTime$ is not read -- no corpus
+// carrier carries it; the per-turn shape these modes use is ActivationLimit$,
+// enforced at queue time through actionTriggerModes membership (Curator's
+// ActivationLimit$ 1).
+func (e *Engine) discoverMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
+	if ev.Kind != events.Discover {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v := t.Params["ValidCard"]; v != "" && ev.Obj != 0 &&
+		!effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+		return false
+	}
+	if v := t.Params["ValidPlayer"]; v != "" &&
+		!effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+		return false
+	}
+	return true
+}
+
+// seekAllMatches implements the "whenever you seek one or more cards" trigger
+// family (Forge Mode$ SeekAll, task trigdisc1 -- Vexyr, Ich-Tekik's Heir; Val,
+// Marooned Surveyor; Lurker in the Deep; 3 corpus files / 3 raw lines at the
+// corpus pin). The causing event is the completed events.Seek record, ONE per
+// seek ACTION: a seek of three cards is one marker and one trigger (the
+// "one or more cards" of the oracle text is the number sought, not the trigger
+// count), and the emitter's contract is to emit only when the seek found at
+// least one card. Player is the seeking seat (what ValidPlayer$ matches -- all
+// three carriers' `ValidPlayer$ You`), Obj the resolving source permanent;
+// Lurker's `PlayerTurn$ True` rides the ordinary actionTriggerModes queue-time
+// gate, not this matcher.
+func (e *Engine) seekAllMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
+	if ev.Kind != events.Seek {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v := t.Params["ValidCard"]; v != "" && ev.Obj != 0 &&
+		!effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+		return false
+	}
+	if v := t.Params["ValidPlayer"]; v != "" &&
+		!effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+		return false
+	}
+	return true
+}
+
 // firstInvestigateThisTurn is true only when the investigate event being
 // matched is the investigating player's first of the current turn: the
 // current event is already in the log when triggers match (the
@@ -431,6 +487,8 @@ func init() {
 	registerTrigMatcher((*Engine).cycledMatches, "Cycled")
 	registerTrigMatcher((*Engine).exploresMatches, "Explores")
 	registerTrigMatcher((*Engine).investigatedMatches, "Investigated")
+	registerTrigMatcher((*Engine).discoverMatches, "Discover")
+	registerTrigMatcher((*Engine).seekAllMatches, "SeekAll")
 	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
 		return e.discardedMatches(t, source, ev)
 	}, "Discarded")
