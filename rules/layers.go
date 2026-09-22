@@ -2459,6 +2459,26 @@ func (e *Engine) derivedKeywordParam(id state.ObjID, head string) (string, bool)
 	return "", false
 }
 
+// ToxicValue is the object's toxic N (CR 702.164), read from its CURRENT
+// derived keyword list -- so a layer-6 `AddKeyword$ Toxic:1` grant (the Rat
+// lord, an Aura, an Equipment) is readable exactly where the printed K:Toxic
+// line is, the same derived read HasKeyword/derivedKeywordParam give every
+// other keyword. Reports 0 when the object has no toxic and when the printed
+// parameter is absent or not a positive integer (a non-numeric N can only be
+// a malformed script, so failing closed to no poison is the conservative
+// direction).
+func (e *Engine) ToxicValue(id state.ObjID) int {
+	raw, ok := e.derivedKeywordParam(id, "Toxic")
+	if !ok {
+		return 0
+	}
+	n, err := strconv.Atoi(strings.TrimSpace(raw))
+	if err != nil || n <= 0 {
+		return 0
+	}
+	return n
+}
+
 // IsCreature reads the current layer-derived type list. In particular, a
 // planeswalker animated by a layer-4 effect is a creature for damage marking,
 // even though its printed face is not.
