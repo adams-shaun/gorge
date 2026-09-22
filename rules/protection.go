@@ -202,6 +202,12 @@ func (e *Engine) sourceHasQuality(source state.ObjID, q string) bool {
 	if strings.EqualFold(q, "Spell.nonColorless") {
 		return o.Zone == state.ZStack && o.Face() != nil && effects.ColorsOf(o) != ""
 	}
+	// "Each color" means any source with at least one colour. It is not
+	// protection from everything: colourless sources, including artifacts,
+	// remain valid sources under CR 702.16c.
+	if strings.EqualFold(q, "each color") {
+		return e.objColors(o) != ""
+	}
 	// MonoColor and EnemyColor are Forge's colour-class predicates, rather
 	// than type predicates. They occur on Guardian/Frenemy of the Guildpact;
 	// keep them here with the other source-quality tests so generic
