@@ -465,6 +465,25 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		return Clamp(d, in)
 
 	case decision.KChoose:
+		// UnlessCost's mana window is a payment continuation. Activate one
+		// source at a time while it is offered; when the engine has enough
+		// floating mana it closes the source list and the bot submits Done.
+		// Keeping this arm explicit makes every answer pass Decision.Validate
+		// as sources disappear after each activation.
+		if d.ResumeKind == "unless_mana" {
+			for _, o := range d.Options {
+				if o.Kind == "activate" {
+					in.Choices = []int{o.Index}
+					return Clamp(d, in)
+				}
+			}
+			for _, o := range d.Options {
+				if o.Kind == "done" {
+					in.Choices = []int{o.Index}
+					return Clamp(d, in)
+				}
+			}
+		}
 		if len(d.Options) == 0 {
 			break
 		}

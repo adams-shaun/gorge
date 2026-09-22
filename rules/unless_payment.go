@@ -58,18 +58,33 @@ func cloneUnlessCtx(in effects.Ctx) effects.Ctx {
 // so neither this path nor a future sibling can fall back to a
 // first-in-zone-order pick.
 // UnlessCostPayable is the rules-side offer gate for the generic unless
-// election. It includes the CR 601.2g payment reach: floating mana or at
-// least one currently usable mana source. Non-mana and unpriceable costs are
-// left to the existing continuation, which can still offer their real choice.
+// election. It includes the CR 601.2g payment reach: floating mana or a
+// reachable combination of currently usable mana sources. Merely having one
+// source is not enough: a {3} tax with one Island, or a {R} tax with only an
+// Island, must not offer a pay branch.
 func (e *Engine) UnlessCostPayable(p state.PlayerID, raw string) bool {
 	cost, ok := ParseUnlessCost(raw)
 	if !ok {
 		return true
 	}
-	if cost.payable(e.G.Players[p].Pool, e.G.Players[p].Snow, e.G.Players[p].TypedMana, e.G.Players[p].Life) {
+	player := e.G.Players[p]
+	if cost.payable(player.Pool, player.Snow, player.TypedMana, player.Life) {
 		return true
 	}
-	return cost.hasManaPayment() && e.hasUntappedManaSource(p)
+	if !cost.hasManaPayment() {
+		return false
+	}
+	// AvailableMana is deliberately conservative: it includes only free,
+	// fixed-producing, singleton mana abilities, but it is exact for the
+	// ordinary land sources this payment window can activate. This keeps the
+	// offer gate from promising a colour or amount that the window cannot
+	// actually produce.
+	available := e.AvailableMana(p)
+	pool := player.Pool
+	for i, n := range available {
+		pool[i] += n
+	}
+	return cost.payable(pool, player.Snow, player.TypedMana, player.Life)
 }
 
 func (e *Engine) beginUnlessPayment(payer state.PlayerID, cost Cost, ctx *effects.Ctx, stackObj state.ObjID, rp *resumePoint) {
