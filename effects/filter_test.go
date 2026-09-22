@@ -288,8 +288,32 @@ func TestPlayerSpecIsMonarchStateLocal(t *testing.T) {
 	if MatchesPlayerSpec(g, "Opponent.isMonarch", 0, 1) {
 		t.Error("Opponent.isMonarch must still fail closed")
 	}
+	// NonActive is the complement of Active after the base qualifier is
+	// applied. In particular, Player/Any can select the other seat, while
+	// You selects only the active seat and Opponent/Other select only the
+	// non-active seat for this perspective.
+	for _, tc := range []struct {
+		spec string
+		p    state.PlayerID
+		want bool
+	}{
+		{"Player.NonActive", 0, false},
+		{"Player.NonActive", 1, true},
+		{"Any.NonActive", 0, false},
+		{"Any.NonActive", 1, true},
+		{"You.NonActive", 0, false},
+		{"You.NonActive", 1, false},
+		{"Opponent.NonActive", 0, false},
+		{"Opponent.NonActive", 1, true},
+		{"Other.NonActive", 0, false},
+		{"Other.NonActive", 1, true},
+	} {
+		if got := MatchesPlayerSpec(g, tc.spec, tc.p, 0); got != tc.want {
+			t.Errorf("MatchesPlayerSpec(%q, p=%d) = %v, want %v", tc.spec, tc.p, got, tc.want)
+		}
+	}
 	// The neighbouring unimplemented qualifiers remain dead.
-	for _, spec := range []string{"Player.EnchantedBy", "Player.descended", "Player.Chosen", "Player.NonActive"} {
+	for _, spec := range []string{"Player.EnchantedBy", "Player.descended", "Player.Chosen"} {
 		if MatchesPlayerSpec(g, spec, 1, 0) {
 			t.Errorf("%s must still fail closed", spec)
 		}

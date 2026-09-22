@@ -387,10 +387,17 @@ func TestMustAttackTwoNamedRequirementsKeepBothDefenders(t *testing.T) {
 	}
 }
 
-// TestMustAttackFaceAndEffectWhitelistsAgree guards the delegation that makes
-// the face S: line route and the Effect-delivered route share ONE parameter
-// whitelist. The two once diverged silently; the test fails if a future edit
-// re-duplicates the list instead of delegating.
+// TestMustAttackFaceAndEffectWhitelistsAgree guards the one-whitelist-home
+// contract between the face S: line route and the Effect-delivered route.
+// The face whitelist is the Effect registration whitelist EXTENDED by exactly
+// the condition-gate keys rules' continuousGateHolds evaluates
+// (agent task: face restriction gates): the face route can evaluate those
+// gates, the Effect registration path cannot, so a gate-bearing line is
+// face-readable but stays OFF the Effect whitelist -- registering it blanket
+// would over-require. The test pins three directions: the rules wrapper
+// delegates to the effects list (no re-duplicated copy), every
+// effect-readable line is face-readable (the superset direction), and the
+// gate keys diverge in exactly that direction.
 func TestMustAttackFaceAndEffectWhitelistsAgree(t *testing.T) {
 	cases := []map[string]string{
 		{"Mode": "MustAttack", "ValidCreature": "Card.Self", "MustAttack": "ChosenPlayer", "Description": "x"},
@@ -400,9 +407,19 @@ func TestMustAttackFaceAndEffectWhitelistsAgree(t *testing.T) {
 		{"Mode": "MustAttack", "ValidCreature": "Card.Self", "CheckSVar": "X", "SVarCompare": "GE1"},
 	}
 	for i, p := range cases {
-		if got, want := MustAttackParamsReadableForRules(p), effects.MustAttackParamsReadable(p); got != want {
-			t.Fatalf("case %d: face whitelist = %v, effects whitelist = %v for %v", i, got, want, p)
+		if got, want := MustAttackParamsReadableForRules(p), effects.MustAttackParamsReadableForRules(p); got != want {
+			t.Fatalf("case %d: rules wrapper = %v, effects face whitelist = %v for %v", i, got, want, p)
 		}
+		if eff, face := effects.MustAttackParamsReadable(p), MustAttackParamsReadableForRules(p); eff && !face {
+			t.Fatalf("case %d: effect-readable param set is not face-readable: %v", i, p)
+		}
+	}
+	gated := map[string]string{"Mode": "MustAttack", "ValidCreature": "Card.Self", "IsPresent": "Card.Self"}
+	if !MustAttackParamsReadableForRules(gated) {
+		t.Fatal("gate-key face line unreadable: the face route lost its gate extension")
+	}
+	if effects.MustAttackParamsReadable(gated) {
+		t.Fatal("gate-key line admitted by the Effect registration whitelist: it would over-require blanket")
 	}
 }
 

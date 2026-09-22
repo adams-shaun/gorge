@@ -10,7 +10,6 @@ package rules
 import (
 	"math"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -221,6 +220,8 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 							pt.Layer, pt.Sub = LPT, SubModify
 							pt.AddPowerExpr = st.Params["AddPower"]
 							pt.AddToughnessExpr = st.Params["AddToughness"]
+							pt.AddPowerAffected = affectedXStaticAmount(pt.AddPowerExpr)
+							pt.AddToughnessAffected = affectedXStaticAmount(pt.AddToughnessExpr)
 							out = append(out, pt)
 						}
 						if hasStat(st, "AddKeyword") {
@@ -289,11 +290,23 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 							if spec := strings.TrimSpace(st.Params["GainsAbilitiesOf"]); spec != "" {
 								gg.GainedFaces = e.gainedFacesForSpec(st, spec, id, o.Controller)
 							}
+							if spec := strings.TrimSpace(st.Params["GainsAbilitiesOfDefined"]); spec != "" {
+								ctx := &effects.Ctx{Source: id, Controller: o.Controller}
+								gg.GainedFaces = append(gg.GainedFaces, effects.GainedFacesOfDefined(e, ctx, spec)...)
+							}
 							if spec := strings.TrimSpace(st.Params["GainsTriggerAbsOf"]); spec != "" {
 								gg.GainedTriggerFaces = e.gainedFacesForSpec(st, spec, id, o.Controller)
 							}
 							if len(gg.GainedFaces) > 0 || len(gg.GainedTriggerFaces) > 0 {
 								out = append(out, gg)
+							}
+						}
+						if rawName, ok := st.Params["SetName"]; ok {
+							if name, ok := resolveChosenName(rawName, o); ok {
+								n := base
+								n.Layer = LText
+								n.SetName = name
+								out = append(out, n)
 							}
 						}
 						if hasStat(st, "AddType") || hasStat(st, "AddTypes") || hasStat(st, "AddAllCreatureTypes") {
@@ -712,6 +725,7 @@ func (e *Engine) gainedFacesForSource(source state.ObjID) []state.GainedFace {
 // because the parameters mean different ability kinds.
 func gainsAbilitiesOf(st cards.Static) bool {
 	return strings.TrimSpace(st.Params["GainsAbilitiesOf"]) != "" ||
+		strings.TrimSpace(st.Params["GainsAbilitiesOfDefined"]) != "" ||
 		strings.TrimSpace(st.Params["GainsTriggerAbsOf"]) != ""
 }
 
@@ -1105,25 +1119,46 @@ func hasStat(st cards.Static, key string) bool {
 	return ok
 }
 
+// affectedXStaticAmount identifies Forge's per-affected-object static P/T
+// convention. A leading sign is the amount direction, not part of the SVar
+// name (the same grammar effects.Num resolves), so Toxrill's -AffectedX is
+// also per affected creature. Every other expression remains grantor-anchored.
+func affectedXStaticAmount(expr string) bool {
+	expr = strings.TrimSpace(expr)
+	if len(expr) > 1 && (expr[0] == '+' || expr[0] == '-') {
+		expr = expr[1:]
+	}
+	return expr == "AffectedX"
+}
+
 // staticAmount evaluates a static's P/T parameter at derivation time. It
 // deliberately goes through effects.Num: that is the shared Forge numeric
 // grammar for signed SVar names and Count$ bodies. The source and its SVar
 // table are rebound on every call, so a life total, counters, or zones changing
 // after the static entered changes its value without any cached snapshot.
 func (e *Engine) staticAmount(ce ContinuousEffect, expr string) int32 {
+	return e.staticAmountOn(ce, expr, ce.Source)
+}
+
+// staticAmountOn evaluates a static's numeric expression with Ctx.Source
+// anchored on `anchor` while the SVar table still comes from the grantor
+// (ce.SVars, falling back to the grantor's face). staticAmount delegates
+// with the grantor itself as the anchor. The layer-7c modify walk uses an
+// affected-object anchor only for the explicit AffectedX convention.
+func (e *Engine) staticAmountOn(ce ContinuousEffect, expr string, anchor state.ObjID) int32 {
 	if expr == "" {
 		return 0
 	}
-	o := e.G.Obj(ce.Source)
-	if o == nil || o.Face() == nil {
+	src := e.G.Obj(ce.Source)
+	if src == nil || src.Face() == nil {
 		return 0
 	}
 	svars := ce.SVars
 	if svars == nil {
-		svars = o.Face().SVars
+		svars = src.Face().SVars
 	}
 	sa := &cards.SA{Params: map[string]string{"Amount": expr}}
-	return effects.Num(e, &effects.Ctx{Source: ce.Source, Controller: ce.Controller, SVars: svars}, sa, "Amount", 0)
+	return effects.Num(e, &effects.Ctx{Source: anchor, Controller: ce.Controller, SVars: svars}, sa, "Amount", 0)
 }
 
 // addPT saturates instead of allowing a large static expression to wrap a
@@ -1168,6 +1203,20 @@ func statList(st cards.Static, key string) []string {
 // Choose event the cast/play-time ask emitted). Everything else passes
 // through unchanged. ok is false when a ChosenType entry names a host with no
 // recorded choice — the caller withholds the grant whole.
+func resolveChosenName(raw string, o *state.Object) (string, bool) {
+	if strings.EqualFold(strings.TrimSpace(raw), "ChosenName") {
+		if o == nil || o.ChosenName == "" {
+			return "", false
+		}
+		return o.ChosenName, true
+	}
+	name := strings.TrimSpace(raw)
+	if name == "" {
+		return "", false
+	}
+	return name, true
+}
+
 func resolveChosenTypes(list []string, o *state.Object) ([]string, bool) {
 	out := make([]string, 0, len(list))
 	for _, t := range list {
@@ -1254,6 +1303,8 @@ type Derived struct {
 	Power, Toughness int32
 	Keywords         []string
 	Types            []string
+	// Name is the current layer-3 name. SetName$ overwrites the printed name.
+	Name string
 	// Colors is the object's current colour set as WUBRG letters (CR 613.1e):
 	// its face's colours (effects.ColorsOf, which already applies Devoid)
 	// then every applicable layer-5 effect in timestamp order -- an
@@ -1293,12 +1344,18 @@ func (e *Engine) AddContinuous(ce ContinuousEffect) {
 		ce.UntilTurn = e.nextTurnFor(ce.Controller)
 	}
 	e.continuous = append(e.continuous, ce)
+	// A REGISTERED layer-3 rename (an Effect-delivered SetName$, which has no
+	// printed static for the genesis pool probe to find) arms the rename
+	// table for the rest of the match; see rules/setname.go.
+	if ce.SetName != "" {
+		e.setNameInPool = true
+	}
 	// Bump the cache version: active() (below) caches its sorted effect list
 	// on (log head, continuousVersion), and this is the write that changes
 	// e.continuous. The ClockTick above moved the log head too, but naming
 	// the dependency explicitly here keeps active()'s invalidation correct
 	// even if a future caller adds a continuous effect without an event.
-	e.continuousVersion++
+	e.continuousChanged()
 }
 
 // EndEffect ends the one continuous-effect registration identified by
@@ -1327,7 +1384,7 @@ func (e *Engine) EndEffect(source state.ObjID, stamp uint32) {
 		return
 	}
 	e.continuous = kept
-	e.continuousVersion++
+	e.continuousChanged()
 }
 
 // EndImprintedEffects ends every live DB$ Effect registration that an
@@ -1359,7 +1416,7 @@ func (e *Engine) EndImprintedEffects(source state.ObjID) {
 		return
 	}
 	e.continuous = kept
-	e.continuousVersion++
+	e.continuousChanged()
 }
 
 // nextTurnFor returns the turn number of the next turn (strictly after the
@@ -1492,7 +1549,7 @@ func (e *Engine) EndOfTurnCleanup() {
 	// event and moves no log head) drops every UntilEOT pump and every
 	// expired UntilTurn effect. Without the bump, a stale active() cache
 	// would keep reporting a dead pump's P/T.
-	e.continuousVersion++
+	e.continuousChanged()
 }
 
 // cloneExpiry identifies ONE clone unit (task api-clone): the permanent that
@@ -1644,7 +1701,7 @@ func (e *Engine) effectMoveSweep(ev events.Event) {
 		return
 	}
 	e.continuous = kept
-	e.continuousVersion++
+	e.continuousChanged()
 }
 
 // effectCastSweep is the cast-driven lifetime of Effect-created continuous
@@ -1697,7 +1754,7 @@ func (e *Engine) effectCastSweep(ev events.Event) {
 		return
 	}
 	e.continuous = kept
-	e.continuousVersion++
+	e.continuousChanged()
 }
 
 // effectCounterSweep is the counter-driven lifetime of Effect-created
@@ -1732,7 +1789,7 @@ func (e *Engine) effectCounterSweep(ev events.Event) {
 		return
 	}
 	e.continuous = kept
-	e.continuousVersion++
+	e.continuousChanged()
 }
 
 // objIDIn reports whether ids holds id.
@@ -1850,15 +1907,24 @@ func (e *Engine) active() []ContinuousEffect {
 		e.staticContinuous = e.staticEffects(e.staticContinuous)
 	}
 	buf = append(buf, e.staticContinuous...)
-	sort.SliceStable(buf, func(i, j int) bool {
-		if buf[i].Layer != buf[j].Layer {
-			return buf[i].Layer < buf[j].Layer
+	slices.SortStableFunc(buf, func(a, b ContinuousEffect) int {
+		if a.Layer != b.Layer {
+			if a.Layer < b.Layer {
+				return -1
+			}
+			return 1
 		}
-		if buf[i].Sub != buf[j].Sub {
-			return buf[i].Sub < buf[j].Sub
+		if a.Sub != b.Sub {
+			if a.Sub < b.Sub {
+				return -1
+			}
+			return 1
 		}
-		if buf[i].Timestamp != buf[j].Timestamp {
-			return buf[i].Timestamp < buf[j].Timestamp
+		if a.Timestamp != b.Timestamp {
+			if a.Timestamp < b.Timestamp {
+				return -1
+			}
+			return 1
 		}
 		// A full tie inside layer 6 between an ability-REMOVING effect and an
 		// ability-granting one (a static line carrying both RemoveAllAbilities$
@@ -1870,10 +1936,13 @@ func (e *Engine) active() []ContinuousEffect {
 		// the removal wipes the very grant on its own line. Timestamps still
 		// dominate: a LATER removal (Humility entering after) still wipes an
 		// earlier grant.
-		if buf[i].Layer == LAbilities && buf[i].RemoveAbilities != buf[j].RemoveAbilities {
-			return buf[i].RemoveAbilities
+		if a.Layer == LAbilities && a.RemoveAbilities != b.RemoveAbilities {
+			if a.RemoveAbilities {
+				return -1
+			}
+			return 1
 		}
-		return false
+		return 0
 	})
 	if e.activeDepth <= 1 {
 		// Keep the grown, sorted buffer on the Engine for the next build or
@@ -2216,12 +2285,24 @@ func (e *Engine) derivedScalarFrom(id state.ObjID, o *state.Object, f *cards.Fac
 				}
 			}
 		case SubModify:
+			// AffectedX names Forge's per-affected-object P/T convention: its
+			// count reads the recipient (Knight of New Alara). Ordinary named
+			// expressions retain the static's grantor as their source (Mace of
+			// the Valiant counts charge counters on the Mace, not its bearer).
 			addPower, addToughness := ce.AddPower, ce.AddToughness
 			if ce.AddPowerExpr != "" {
-				addPower = e.staticAmount(ce, ce.AddPowerExpr)
+				anchor := ce.Source
+				if ce.AddPowerAffected {
+					anchor = id
+				}
+				addPower = e.staticAmountOn(ce, ce.AddPowerExpr, anchor)
 			}
 			if ce.AddToughnessExpr != "" {
-				addToughness = e.staticAmount(ce, ce.AddToughnessExpr)
+				anchor := ce.Source
+				if ce.AddToughnessAffected {
+					anchor = id
+				}
+				addToughness = e.staticAmountOn(ce, ce.AddToughnessExpr, anchor)
 			}
 			power = addPT(power, addPower)
 			toughness = addPT(toughness, addToughness)
@@ -2296,7 +2377,6 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 		f = faceDownBasis
 	}
 	active := e.active()
-	power, toughness := e.derivedScalarFrom(id, o, f, active)
 	zone := o.Zone
 	if atStack != 0 {
 		zone = atStack
@@ -2352,6 +2432,13 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 	if o.Suspected {
 		kw = append(kw, "Menace")
 	}
+	// A Pump/PumpAll "it gains suspend" grant is event-backed because the
+	// target may be in exile (where ordinary continuous effects still apply),
+	// and because cast legality and filters must agree after replay. Keep it in
+	// the same derived keyword stream as printed and layer-6 keywords.
+	if o.SuspendGranted {
+		kw = append(kw, "Suspend")
+	}
 	// Layer 4 runs first through typeCharacteristics (see above), so every
 	// later effect's Affected$ filter — and every layer-4 effect's own —
 	// sees the derived type list, not the printed face.
@@ -2362,6 +2449,7 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 	// ColorMaskOf is ColorsOf's compact bitmask (230574a2); the match keeps
 	// 837910f4's type-aware wrapper — a bare SpecContext carries no
 	// ExtraTypes, so MatchesSpecCtx here would regress to printed types only.
+	name := f.Name
 	col := effects.ColorMaskOf(o)
 	if faceDown {
 		col = 0 // CR 708.5: a face-down permanent has no colours
@@ -2388,6 +2476,10 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 			}
 		}
 		switch ce.Layer {
+		case LText:
+			if ce.SetName != "" {
+				name = ce.SetName
+			}
 		case LAbilities:
 			// CR 613.1f / 613.4b: an ability-removing effect (Humility)
 			// clears the object's printed and earlier-granted keywords before
@@ -2445,9 +2537,26 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 		e.derivedKW = kw
 		e.derivedTypes = ty
 	}
+	// Layer 7 (P/T) runs AFTER the layer-3/5/6 walk above. CR 613's layers are
+	// strictly ordered — no layer-7 result feeds a layer-5 characteristic — so
+	// hoisting the read is exact, and it is what makes a layer-7 pump
+	// expression that counts the affected object's OWN colours (Knight of New
+	// Alara's AffectedX:Count$CardNumColors) terminate: the stash below serves
+	// the object's finished layer-5 answer to Colors without re-entering
+	// Derived, which would re-run this very P/T walk forever. Save/restore
+	// keeps the stash correct when derivations nest (deriving Y inside X's
+	// scalar walk stashes Y and restores X's on the way out).
+	prevStashID, prevStashColors, prevStashSet := e.derivingColorsID, e.derivingColors, e.derivingColorsSet
+	e.derivingColorsSet, e.derivingColorsID, e.derivingColors = true, id, colors
+	power, toughness := e.derivedScalarFrom(id, o, f, active)
+	e.derivingColorsSet, e.derivingColorsID, e.derivingColors = prevStashSet, prevStashID, prevStashColors
 	e.derivedDepth--
-	return Derived{Power: power, Toughness: toughness, Keywords: kw, Types: ty, Colors: colors}
+	return Derived{Power: power, Toughness: toughness, Keywords: kw, Types: ty, Name: name, Colors: colors}
 }
+
+// Name returns the current layer-3 name of an object. Callers that render or
+// compare characteristics must use this rather than the printed face name.
+func (e *Engine) Name(id state.ObjID) string { return e.Derived(id).Name }
 
 func (e *Engine) Power(id state.ObjID) int32 {
 	p, _ := e.derivedScalar(id)
@@ -2538,6 +2647,15 @@ func (e *Engine) IsCreature(id state.ObjID) bool {
 // consults them -- protection qualities, Fear's black-blocker test, convoke's
 // colour contributions, the Count$...$Colors heads.
 func (e *Engine) Colors(id state.ObjID) string {
+	// A read of an object whose own characteristics are being derived right
+	// now (its layer-7 pump expression counting its own colours) is served
+	// from the stash derivedWith set before its layer-7 walk — re-entering
+	// Derived here would recurse forever. CR 613's layers are ordered: no
+	// layer-7 result feeds layer 5, so the stashed answer is the finished
+	// layer-5 result, exact rather than an approximation.
+	if e.derivingColorsSet && e.derivingColorsID == id {
+		return e.derivingColors
+	}
 	return e.Derived(id).Colors
 }
 

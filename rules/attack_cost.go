@@ -42,6 +42,10 @@ import (
 // (attackPayAnswer). chooseEnlist is 27; this is the next free value.
 const chooseAttackPay chooseFor = chooseEnlist + 1
 
+// chooseUnleash occupies chooseAttackPay+1; keep this transient window above
+// the fixed untap selector (40).
+const chooseBlockPay chooseFor = 41
+
 // cantAttackUnlessParamsReadable is the parameter whitelist a face
 // CantAttackUnless static must pass before this build enforces it. The gate
 // parameters (IsPresent$/IsPresent2$/CheckSVar$/SVarCompare$/Condition$) are
@@ -54,7 +58,7 @@ const chooseAttackPay chooseFor = chooseEnlist + 1
 func cantAttackUnlessParamsReadable(params map[string]string) bool {
 	for k := range params {
 		switch k {
-		case "Mode", "ValidCard", "Target", "Cost", "Description", "Secondary",
+		case "Mode", "ValidCard", "Target", "Cost", "Description", "Secondary", "Attacker",
 			"IsPresent", "IsPresent2", "CheckSVar", "SVarCompare", "Condition":
 		default:
 			return false
@@ -126,6 +130,111 @@ func (e *Engine) attackPairCharge(id state.ObjID, defender state.PlayerID) int32
 		total += n
 	}
 	return total
+}
+
+// blockPairCharge is the per (blocker, attacker) charge from block-prop
+// statics. The two specs are deliberately evaluated against their respective
+// combat objects; an absent ValidCard$ is an UNCONDITIONAL blocker match
+// (Awesome Presence scopes only by Attacker$ and still prices every blocker
+// against its enchanted attacker), and an absent Attacker$ is an
+// unconditional attacker scope.
+func (e *Engine) blockPairCharge(blocker, attacker state.ObjID) int32 {
+	total := int32(0)
+	for _, sv := range e.activeStatics("CantBlockUnless") {
+		if !cantAttackUnlessParamsReadable(sv.Params) || !e.continuousGateHolds(sv) {
+			continue
+		}
+		if spec := sv.Params["ValidCard"]; spec != "" && !effects.MatchesSpecCtx(e.G, spec, blocker, e.specCtxSVars(sv.Source, sv.Controller, sv.SVars)) {
+			continue
+		}
+		if spec := sv.Params["Attacker"]; spec != "" && !effects.MatchesSpecCtx(e.G, spec, attacker, e.specCtxSVars(sv.Source, sv.Controller, sv.SVars)) {
+			continue
+		}
+		n, ok := e.attackUnlessPrice(sv)
+		if ok && n > 0 {
+			total += n
+		}
+	}
+	return total
+}
+
+// blockManaBudget is the defending player's available payment budget. Unlike
+// attackers, that player has had priority since attackers were declared, so
+// floating mana is part of the normal declaration path.
+func (e *Engine) blockManaBudget(p state.PlayerID) int32 { return e.attackBudget(p) }
+
+type blockPayWindow struct {
+	chosen []decision.Option
+	player state.PlayerID
+	charge int32
+}
+
+func (e *Engine) startBlockPay(chosen []decision.Option, player state.PlayerID, charge int32) bool {
+	if e.blockManaBudget(player) < charge {
+		return false
+	}
+	e.blockPay = &blockPayWindow{chosen: chosen, player: player, charge: charge}
+	e.askNextBlockPay()
+	return true
+}
+
+func (e *Engine) askNextBlockPay() bool {
+	st := e.blockPay
+	if st == nil {
+		return false
+	}
+	remaining := st.charge - e.G.Players[st.player].Pool.Total()
+	if remaining <= 0 {
+		return false
+	}
+	sources := e.attackManaSources(st.player)
+	if len(sources) == 0 {
+		return false
+	}
+	d := &decision.Decision{Player: st.player, Kind: decision.KChoose, Min: 1, Max: 1,
+		Prompt: fmt.Sprintf("Pay %d to block -- tap a mana source", st.charge)}
+	for _, s := range sources {
+		name := "a permanent"
+		if o := e.G.Obj(s.id); o != nil && o.Face() != nil {
+			name = o.Face().Name
+		}
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "block_mana", Obj: s.id,
+			Label: fmt.Sprintf("Tap %s for mana", name)})
+	}
+	e.choosing = chooseBlockPay
+	e.ask(d)
+	return true
+}
+
+func (e *Engine) blockPayAnswer(d *decision.Decision, in decision.Intent) {
+	st := e.blockPay
+	e.choosing = chooseNone
+	if st == nil {
+		return
+	}
+	chosen := d.Chosen(in)
+	if len(chosen) == 1 {
+		for _, s := range e.attackManaSources(st.player) {
+			if s.id == chosen[0].Obj {
+				e.resolveManaAbility(st.player, s.id, s.ma, false)
+				break
+			}
+		}
+	}
+	if st.charge-e.G.Players[st.player].Pool.Total() <= 0 {
+		e.payMana(st.player, Cost{Generic: st.charge})
+		chosenPairs := make([][2]state.ObjID, 0, len(st.chosen))
+		for _, opt := range st.chosen {
+			chosenPairs = append(chosenPairs, [2]state.ObjID{opt.Attacker, opt.Obj})
+		}
+		e.blockPay = nil
+		e.emit(events.Event{Kind: events.DeclareBlockers, Player: st.player, Pairs: chosenPairs})
+		e.blockerRound.cursor++
+		return
+	}
+	if !e.askNextBlockPay() {
+		e.blockPay = nil
+	}
 }
 
 // attackManaSource is one mana source the declare-attackers payment window

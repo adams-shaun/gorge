@@ -20,7 +20,7 @@ func corpusKeywordCard(t *testing.T, name string) *cards.Card {
 	paths := map[string]string{
 		"Vein Ripper": "v/vein_ripper.txt", "Artisan of Kozilek": "a/artisan_of_kozilek.txt",
 		"Fury": "f/fury.txt", "Shriekmaw": "s/shriekmaw.txt", "Dauthi Voidwalker": "d/dauthi_voidwalker.txt",
-		"Emrakul, the World Anew": "e/emrakul_the_world_anew.txt", "Emrakul, the Aeons Torn": "e/emrakul_the_aeons_torn.txt", "Geyadrone Dihada": "g/geyadrone_dihada.txt", "Yavimaya Scion": "y/yavimaya_scion.txt", "Guardian of the Guildpact": "g/guardian_of_the_guildpact.txt", "Frenemy of the Guildpact": "f/frenemy_of_the_guildpact.txt", "Kitesail Larcenist": "k/kitesail_larcenist.txt", "Auntie Ool, Cursewretch": "a/auntie_ool_cursewretch.txt", "The Serpent Society": "t/the_serpent_society.txt", "Karazikar, the Eye Tyrant": "k/karazikar_the_eye_tyrant.txt", "Jon Irenicus, Shattered One": "j/jon_irenicus_shattered_one.txt", "Vislor Turlough": "v/vislor_turlough.txt", "Herald of Hoofbeats": "h/herald_of_hoofbeats.txt", "Gollum, Obsessed Stalker": "g/gollum_obsessed_stalker.txt", "Behind the Scenes": "b/behind_the_scenes.txt", "Ixhel, Scion of Atraxa": "i/ixhel_scion_of_atraxa.txt", "Prosthetic Injector": "p/prosthetic_injector.txt", "Necrogen Communion": "n/necrogen_communion.txt",
+		"Emrakul, the World Anew": "e/emrakul_the_world_anew.txt", "Emrakul, the Aeons Torn": "e/emrakul_the_aeons_torn.txt", "Geyadrone Dihada": "g/geyadrone_dihada.txt", "Yavimaya Scion": "y/yavimaya_scion.txt", "Guardian of the Guildpact": "g/guardian_of_the_guildpact.txt", "Frenemy of the Guildpact": "f/frenemy_of_the_guildpact.txt", "Kitesail Larcenist": "k/kitesail_larcenist.txt", "Auntie Ool, Cursewretch": "a/auntie_ool_cursewretch.txt", "The Serpent Society": "t/the_serpent_society.txt", "Karazikar, the Eye Tyrant": "k/karazikar_the_eye_tyrant.txt", "Jon Irenicus, Shattered One": "j/jon_irenicus_shattered_one.txt", "Vislor Turlough": "v/vislor_turlough.txt", "Herald of Hoofbeats": "h/herald_of_hoofbeats.txt", "Gollum, Obsessed Stalker": "g/gollum_obsessed_stalker.txt", "Behind the Scenes": "b/behind_the_scenes.txt", "Ixhel, Scion of Atraxa": "i/ixhel_scion_of_atraxa.txt", "Prosthetic Injector": "p/prosthetic_injector.txt", "Necrogen Communion": "n/necrogen_communion.txt", "Time Beetle": "t/time_beetle.txt",
 	}
 	path, ok := paths[name]
 	if !ok {
@@ -553,6 +553,65 @@ func TestSkulkBlocksOnlyGreaterPowerBlockers(t *testing.T) {
 	// GREATER power, and 4 < 5.
 	if !e.canBlock(equal, gollum) {
 		t.Fatal("a 4/4 could not block a grown-to-5/5 skulk attacker")
+	}
+}
+
+func TestTimeBeetleSkulkEvadesBiggerBlocker(t *testing.T) {
+	e := combatEngine(t)
+	attacker := onBoardCard(t, e, 1, corpusKeywordCard(t, "Time Beetle"))
+	e.G.Obj(attacker).IsAttacking, e.G.Obj(attacker).Attacking = true, 0
+	if e.G.Obj(attacker).Face().Name != "Time Beetle" || e.Derived(attacker).Power != 1 {
+		t.Fatal("Time Beetle precondition did not produce the expected 1-power attacker")
+	}
+	if !e.HasKeyword(attacker, "Skulk") {
+		t.Fatal("Time Beetle does not read as carrying printed Skulk")
+	}
+	blocker := onBoard(t, e, 0, "Name:Big Blocker\nManaCost:3\nTypes:Creature\nPT:2/2\nOracle:x\n")
+	if e.canBlock(blocker, attacker) {
+		t.Fatal("a 2/2 blocked Time Beetle's 1/1 skulk attack")
+	}
+}
+
+func TestSkulkDoesNotBlockSmaller(t *testing.T) {
+	e := combatEngine(t)
+	attacker := onBoardCard(t, e, 1, corpusKeywordCard(t, "Time Beetle"))
+	e.G.Obj(attacker).IsAttacking, e.G.Obj(attacker).Attacking = true, 0
+	// Assert the fixture before leaning on it: this test is about the
+	// PRINTED keyword on this exact card, so a fixture that lost the
+	// keyword (or was the wrong card) must fail loudly, not pass silently.
+	if got := e.G.Obj(attacker).Face().Name; got != "Time Beetle" {
+		t.Fatalf("fixture is %q, want Time Beetle", got)
+	}
+	if !e.HasKeyword(attacker, "Skulk") {
+		t.Fatal("Time Beetle does not read as carrying printed Skulk")
+	}
+	// A SMALLER blocker (0 power against the attacker's 1) is admitted:
+	// CR 702.110a bars only GREATER power, so the boundary below the
+	// attacker is legal. This is the "DoesNotBlockSmaller" half.
+	smaller := onBoard(t, e, 0, "Name:Small Blocker\nManaCost:1\nTypes:Creature\nPT:0/5\nOracle:x\n")
+	if e.Derived(smaller).Power >= e.Derived(attacker).Power {
+		t.Fatalf("skulk smaller-boundary precondition changed: blocker power %d, attacker power %d",
+			e.Derived(smaller).Power, e.Derived(attacker).Power)
+	}
+	if !e.canBlock(smaller, attacker) {
+		t.Fatal("a smaller creature could not block Time Beetle's skulk attack")
+	}
+	// The necessary Skulk property, proven by contrast: one GREATER-power
+	// blocker is refused against the Skulk attacker and admitted against
+	// an otherwise identical attacker WITHOUT the keyword. Removing the
+	// Skulk read in canBlock makes the first assertion fail, so this test
+	// cannot pass on the unfixed engine.
+	greater := onBoard(t, e, 0, "Name:Big Blocker\nManaCost:3\nTypes:Creature\nPT:2/2\nOracle:x\n")
+	plain := onBoard(t, e, 1, "Name:Plain Beetle\nManaCost:1\nTypes:Creature\nPT:1/1\nOracle:x\n")
+	e.G.Obj(plain).IsAttacking, e.G.Obj(plain).Attacking = true, 0
+	if e.HasKeyword(plain, "Skulk") {
+		t.Fatal("control attacker unexpectedly has Skulk; the contrast proves nothing")
+	}
+	if e.canBlock(greater, attacker) {
+		t.Fatal("a greater-power blocker blocked Time Beetle's skulk attack")
+	}
+	if !e.canBlock(greater, plain) {
+		t.Fatal("the same greater-power blocker was refused against a non-skulk attacker")
 	}
 }
 

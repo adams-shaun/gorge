@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"math"
 	"math/rand/v2"
 	"sort"
 
@@ -71,8 +72,8 @@ type Config struct {
 	// through the hidden layer multiplies the two blocks' magnitudes into
 	// each other), the weights overflow float32 within the epoch budget,
 	// and the diverged model's NaN scores tie-break to the first option on
-	// every decision — exactly the first-option baseline. Pin:
-	// TestClipZeroDivergesToTheFirstOptionBaseline.
+	// every decision — exactly the first-option baseline. Train rejects that
+	// divergence instead of checkpointing it. Pin: TestClipZeroRejectsNonFiniteModel.
 	Clip float64
 	// OverrideWeight multiplies every example whose label records a teacher
 	// override of the bot (Example.TeacherChoice != Example.BotIndex): the
@@ -235,6 +236,9 @@ func Train(examples []policynet.Example, cfg Config) (*Result, error) {
 				grads.Clip(cfg.Clip)
 			}
 			model.ApplyGrads(grads, float32(cfg.LR/float64(end-base)))
+			if block, index, value, ok := firstNonFiniteParameter(model); ok {
+				return nil, fmt.Errorf("policytrain: non-finite parameter after update at epoch %d batch %d: %s[%d]=%g", epoch, base/cfg.Batch+1, block, index, value)
+			}
 			sum += batchLoss / float64(end-base)
 		}
 		batches := (len(order) + cfg.Batch - 1) / cfg.Batch
@@ -253,6 +257,34 @@ func Train(examples []policynet.Example, cfg Config) (*Result, error) {
 	}
 	res.ByKind = evaluateByKind(model, usable, sp.hold, lc)
 	return res, nil
+}
+
+// firstNonFiniteParameter scans learned blocks in ApplyGrads order so the
+// reported location is deterministic. ResidualW is a fixed prior and is not
+// part of the learned model.
+func firstNonFiniteParameter(m *policynet.Model) (block string, index int, value float32, ok bool) {
+	blocks := []struct {
+		name string
+		data []float32
+	}{
+		{"Table", m.Table},
+		{"StateW", m.StateW},
+		{"StateB", m.StateB},
+		{"HidW", m.HidW},
+		{"HidB", m.HidB},
+		{"OutW", m.OutW},
+	}
+	for _, b := range blocks {
+		for i, v := range b.data {
+			if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
+				return b.name, i, v, true
+			}
+		}
+	}
+	if math.IsNaN(float64(m.OutB)) || math.IsInf(float64(m.OutB), 0) {
+		return "OutB", 0, m.OutB, true
+	}
+	return "", 0, 0, false
 }
 
 // splitCorpus shuffles the index space with the run's rng and takes the

@@ -13,6 +13,23 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
+// modalLandBack identifies the only Modal DFC face that may be selected by
+// the hand-zone modal-land action. Keeping the shape check here makes offer
+// and consumption use the same validation and prevents non-land modal backs
+// from becoming castable through this path.
+func modalLandBack(o *state.Object) *cards.Face {
+	if o == nil || o.Card == nil || o.FaceIdx != 0 ||
+		o.Card.AlternateMode != "Modal" || len(o.Card.Faces) != 2 ||
+		o.Card.Faces[0] == nil || o.Card.Faces[1] == nil ||
+		o.Zone != state.ZHand {
+		return nil
+	}
+	if !o.Card.Faces[1].IsLand() {
+		return nil
+	}
+	return o.Card.Faces[1]
+}
+
 // sorcerySpeed reports whether p may take a sorcery-speed action right now.
 func (e *Engine) sorcerySpeed(p state.PlayerID) bool {
 	return e.G.Active == p && e.G.Step.IsMain() && len(e.G.Stack) == 0
@@ -80,8 +97,8 @@ func (e *Engine) mayPlayLandIds(p state.PlayerID) []state.ObjID {
 					if o == nil || o.Face() == nil || !o.Face().IsLand() {
 						continue
 					}
-					sc := effects.SpecContext{You: ce.Controller, Source: ce.Source,
-						Remembered: rememberedTargets(ce.Remembered), Resolving: true}
+					sc := e.withNames(effects.SpecContext{You: ce.Controller, Source: ce.Source,
+						Remembered: rememberedTargets(ce.Remembered), Resolving: true})
 					if !effects.MatchesSpecCtx(e.G, ce.Affects, id, sc) {
 						continue
 					}
@@ -303,8 +320,8 @@ func (e *Engine) mayPlaySpellIds(p state.PlayerID) []state.ObjID {
 					if o == nil || o.Face() == nil || o.Face().IsLand() {
 						continue
 					}
-					sc := effects.SpecContext{You: ce.Controller, Source: ce.Source,
-						Remembered: rememberedTargets(ce.Remembered), Resolving: true}
+					sc := e.withNames(effects.SpecContext{You: ce.Controller, Source: ce.Source,
+						Remembered: rememberedTargets(ce.Remembered), Resolving: true})
 					if !effects.MatchesSpecCtx(e.G, ce.Affects, id, sc) {
 						continue
 					}
@@ -1364,8 +1381,23 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		if f.IsLand() {
 			if sorcery && e.G.Players[p].LandsPlayed < int32(1+e.adjustLandPlays(p)) {
 				add("play_land", "Play "+f.Name, id)
+				// A Modal DFC may also be played as its back land, even
+				// when its front face is itself a land (CR 712.8).
+				if back := modalLandBack(o); back != nil {
+					out = append(out, decision.Option{Index: len(out), Kind: "play_land",
+						Label: "Play " + back.Name, Obj: id, Mode: "modal_land"})
+				}
 			}
 			continue
+		}
+		// CR 712.8/712.4d: a Modal DFC in hand may be played as its back
+		// face when that face is a land.  Keep this separate from the ordinary
+		// front-face land path so its existing option remains byte-identical.
+		if sorcery && e.G.Players[p].LandsPlayed < int32(1+e.adjustLandPlays(p)) {
+			if back := modalLandBack(o); back != nil {
+				out = append(out, decision.Option{Index: len(out), Kind: "play_land",
+					Label: "Play " + back.Name, Obj: id, Mode: "modal_land"})
+			}
 		}
 		if castRestricted(p, id) {
 			continue
@@ -1404,6 +1436,19 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				if offerCastable(p, id, e.fuseCost(ff, fa), spellScope(""), false) {
 					out = append(out, decision.Option{Index: len(out), Kind: "cast",
 						Label: "Cast " + ff.Name + " // " + fa.Name + " (fused)", Obj: id, Mode: "fuse"})
+				}
+			}
+		}
+		// CR 714.3a: an Adventure spell face has its own timing and may be
+		// cast from hand even when the creature front is not currently castable.
+		// Keep the card-level restriction/suppression gates above shared, but
+		// evaluate this alternate face before the front-face timing gate.
+		if int(o.FaceIdx) == 0 {
+			if af := adventureSpellFace(o); af != nil && e.spellTimingOK(p, id, af, sorcery) &&
+				e.castTargetsAvailable(p, id, af.SpellAbility()) {
+				if offerCastable(p, id, withSpellAbilityExtras(af, ParseCost(af.ManaCost)), spellScope(""), false) {
+					out = append(out, decision.Option{Index: len(out), Kind: "cast",
+						Label: "Cast " + af.Name, Obj: id, Mode: "adventure_alt"})
 				}
 			}
 		}
@@ -1466,6 +1511,14 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			} else if offerCastable(p, id, withSpellAbilityExtras(f, convokeBase), spellScope(""), false) {
 				add("cast", "Cast "+f.Name, id)
 			}
+			// Self-spell OptionalCost is a separate paid offer; the plain
+			// cast above remains the decline path. Preserve static order.
+			for i, extra := range e.optionalCostViews(costStatics.get(), p, id) {
+				if offerCastable(p, id, withSpellAbilityExtras(f, convokeBase).Plus(extra), spellScope("optionalcost"), false) {
+					out = append(out, decision.Option{Index: len(out), Kind: "cast",
+						Label: "Cast " + f.Name + " (optional cost)", Obj: id, Mode: "optionalcost", AltCostIndex: i + 1})
+				}
+			}
 		}
 		// CR 309.4b: either door of a Room may be cast. Mode room_alt is
 		// consumed by beginCast, which records a FlipFace before the ordinary
@@ -1480,24 +1533,6 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				if offerCastable(p, id, withSpellAbilityExtras(rf, e.parseCost(rf.ManaCost)), spellScope(""), false) {
 					out = append(out, decision.Option{Index: len(out), Kind: "cast",
 						Label: "Cast " + rf.Name, Obj: id, Mode: "room_alt"})
-				}
-			}
-		}
-		// CR 714.3a: the Adventure spell face of an Adventure card may be cast
-		// from hand. Mode adventure_alt is consumed by beginCast, which records
-		// a FlipFace to the spell face before the ordinary cast transaction;
-		// the resolution then exiles the card into the adventure zone
-		// (spellRestZone's FlagAdventure branch). Gated on the ADVENTURE face's
-		// own timing, targets and cost -- an Instant Adventure casts at instant
-		// speed, a Sorcery Adventure only at sorcery timing -- exactly like the
-		// Room offer above, including the withSpellAbilityExtras fold (the
-		// spell face's own SP Cost$ additional parts).
-		if int(o.FaceIdx) == 0 {
-			if af := adventureSpellFace(o); af != nil && e.spellTimingOK(p, id, af, sorcery) &&
-				e.castTargetsAvailable(p, id, af.SpellAbility()) {
-				if offerCastable(p, id, withSpellAbilityExtras(af, ParseCost(af.ManaCost)), spellScope(""), false) {
-					out = append(out, decision.Option{Index: len(out), Kind: "cast",
-						Label: "Cast " + af.Name, Obj: id, Mode: "adventure_alt"})
 				}
 			}
 		}
@@ -1718,7 +1753,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		// and spellTimingOK continues bound the offer, the same window the
 		// Suspend offer above inherits.
 		if _, ok := f.KeywordParam("Foretell"); ok && e.G.Active == p &&
-			offerCastable(p, id, Cost{Generic: 2}, spellScope("foretell"), false) {
+			offerCastable(p, id, Cost{Generic: 2}, foretellScope(), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast", Label: "Foretell " + f.Name, Obj: id, Mode: "foretell"})
 		}
 	}
@@ -1846,6 +1881,13 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		targetsAvailable := e.castTargetsAvailable(p, id, f.SpellAbility())
 		if targetsAvailable && offerCastable(p, id, e.rawBaseCost(p, id), spellScope(""), false) {
 			add("cast", "Cast "+f.Name, id)
+		}
+		if targetsAvailable {
+			for i, extra := range e.optionalCostViews(costStatics.get(), p, id) {
+				if offerCastable(p, id, withSpellAbilityExtras(f, e.rawBaseCost(p, id)).Plus(extra), spellScope("optionalcost"), false) {
+					out = append(out, decision.Option{Index: len(out), Kind: "cast", Label: "Cast " + f.Name + " (optional cost)", Obj: id, Mode: "optionalcost", AltCostIndex: i + 1})
+				}
+			}
 		}
 		// Alternative costs replace the printed mana cost but not additional
 		// costs such as commander tax (CR 118.9d, 903.8). Dash and the other
@@ -2134,7 +2176,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		// follows the card's own timing (spellTimingOK) and targets. The block
 		// sits BEFORE the warp gate's continue: a non-warp card (every foretell
 		// carrier) would otherwise never reach it.
-		if raw, ok := f.KeywordParam("Foretell"); ok && o.CastFlags&state.FlagForetold != 0 &&
+		if o.CastFlags&state.FlagForetold != 0 &&
 			e.foretellCastAvailable(id) && !castRestricted(p, id) && !e.castSuppressed(p, id) &&
 			e.spellTimingOK(p, id, f, sorcery) && e.castTargetsAvailable(p, id, f.SpellAbility()) {
 			// The K:Foretell parameter prices the later cast (CR 702.126a);
@@ -2143,11 +2185,8 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			// fallback is latent. The RAW parsed cost is offered here; cost
 			// modifiers (CR 601.2f) apply later, in manaToPay, exactly like
 			// the other alternative-cost recasts.
-			fc := Cost{Generic: 2}
-			if strings.TrimSpace(raw) != "" {
-				fc = ParseCost(raw)
-			}
-			if offerCastable(p, id, fc, spellScope("foretell_cast"), false) {
+			fc, ok := foretellCost(f)
+			if ok && offerCastable(p, id, fc, spellScope("foretell_cast"), false) {
 				out = append(out, decision.Option{Index: len(out), Kind: "cast",
 					Label: "Cast " + f.Name + " (foretold)", Obj: id, Mode: "foretell_cast"})
 			}
@@ -2721,6 +2760,15 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.NextAlive(e.G.Priority), Amount: passes})
 
 	case "play_land":
+		// A modal-land option is a face selection, not a generic land play.
+		// Revalidate it against the current object before mutating state: the
+		// priority option may have gone stale while another decision resolved.
+		if opt.Mode == "modal_land" {
+			if modalLandBack(e.G.Obj(opt.Obj)) == nil {
+				return
+			}
+			e.emit(events.Event{Kind: events.FlipFace, Obj: opt.Obj, Amount: 1})
+		}
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})
 		// Task 12: a land with an "as this enters" choice (an
 		// ETBReplacement whose ReplaceWith$ is NameCard/ChooseType/

@@ -137,8 +137,7 @@ func crAbortUnchanged(t *testing.T, e *Engine, before *state.Game, start int, na
 	t.Logf("MEASURED %s seq %d: source resources checked, Pyromancer pushes=%d queue=%d suppressed=%v", name, start, pushes, len(e.pendingTriggers), e.suppressedCast)
 }
 
-// TestCR733EarlyAbortSitesPreserveResources is NOT behind requireCR601Audit,
-// for the same reason the miracle test above is not: these four sites are
+// TestCR733EarlyAbortSitesPreserveResources covers four sites that are
 // CORRECT, which refutes the premise that sent the audit looking for defects in
 // them. cast.go:437 (sacrifice unpayable), cast.go:800 (spell mana unpayable),
 // cast.go:747 (activation mana unpayable) and cast.go:708 (source moved) each
@@ -353,14 +352,12 @@ func TestCR733UnderDelveReversalAllowsLegalRetry(t *testing.T) {
 	}
 }
 
-// This test is NOT behind requireCR601Audit. All three of its arms are green --
-// the miracle entry check, the early return and the cast-trigger control -- and
-// Makefile:145-149 says a PASS in the known-red lane is the signal to remove the
-// guard, so removing it is the rule being followed rather than an exception to
-// it. Each arm was checked against a deliberate production mutation before the
-// guard came off: dropping the o.Zone != state.ZHand check in miracle.go's
-// castMiracle turns stale_card red, and suppressing the CastInfo emit at
-// cast.go:810 turns paid_control red.
+// All three arms are green in the ordinary suite: the miracle entry check, the
+// early return and the cast-trigger control. Each arm was checked against a
+// deliberate production mutation before the former opt-in guard came off:
+// dropping the o.Zone != state.ZHand check in miracle.go's castMiracle turns
+// stale_card red, and suppressing the CastInfo emit at cast.go:810 turns
+// paid_control red.
 func TestCR733MiracleAbortAndTriggerControl(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	checked := 0

@@ -146,9 +146,9 @@ func TestReturnOfTheWildspeakerDrawModeDrawsGreatestNonHumanPower(t *testing.T) 
 // commanders -- who sit in the COMMAND zone, the zone a battlefield-only
 // scan never sees. The commanders are named through Config.Commanders deck
 // indices, so genesis seats them event-sourced and a log-only replay
-// rebuilds the whole setup. Both commanders are hybrid-free faces (a
-// two-colour hybrid pip's mana value is read 1 by cmcFromManaCost -- a
-// recorded engine defect), so the mana values are unambiguous.
+// rebuilds the whole setup. Both commanders are hybrid-free faces, so the
+// mana values are unambiguous; a two-colour hybrid pip contributes one mana
+// value.
 func TestCactusPreserveAnimatesAtGreatestCommanderManaValue(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	for _, tc := range []struct {

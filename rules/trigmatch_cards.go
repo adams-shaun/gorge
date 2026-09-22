@@ -401,9 +401,9 @@ func (e *Engine) drawCauseTokenAdmits(token string, o *state.Object, source stat
 			if len(effects.UnknownPredicates(pred)) != 0 {
 				return false
 			}
-			if !effects.MatchesObjectCtx(e.G, pred, src, effects.SpecContext{
+			if !effects.MatchesObjectCtx(e.G, pred, src, e.withNames(effects.SpecContext{
 				You: e.controllerOf(source), Source: source,
-			}) {
+			})) {
 				return false
 			}
 		}

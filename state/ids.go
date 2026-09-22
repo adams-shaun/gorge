@@ -51,10 +51,13 @@ const (
 	// exist. It is appended so every serialized value above remains stable.
 	// Unlike game zones, it deliberately has no membership list; see Game.Zone.
 	ZCeased
-	numZones = int(ZCeased) + 1
+	// ZSideboard is appended after all historical values so serialized zones
+	// and event hashes remain stable. Sideboards are private to their owner.
+	ZSideboard
+	numZones = int(ZSideboard) + 1
 )
 
-var zoneNames = [numZones]string{"library", "hand", "battlefield", "graveyard", "exile", "stack", "command", "ceased"}
+var zoneNames = [numZones]string{"library", "hand", "battlefield", "graveyard", "exile", "stack", "command", "ceased", "sideboard"}
 
 func (z Zone) String() string { return zoneNames[z] }
 
@@ -67,7 +70,7 @@ func (z Zone) Valid() bool { return int(z) < numZones }
 
 // Hidden reports whether a zone's contents are private to its owner. View
 // projection and event redaction both key off this.
-func (z Zone) Hidden() bool { return z == ZLibrary || z == ZHand }
+func (z Zone) Hidden() bool { return z == ZLibrary || z == ZHand || z == ZSideboard }
 
 const (
 	StepUntap Step = iota
