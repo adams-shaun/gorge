@@ -140,7 +140,25 @@ func (e *Engine) attacksMatches(t cards.Trigger, source state.ObjID, ev events.E
 	}
 	ctrl := e.controllerOf(source)
 	for _, id := range ev.IDs {
-		if effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(source, ctrl)) && e.firstAttackOK(t, id) {
+		// The matched attacker's DERIVED types ride ExtraTypes (the mechanism
+		// the layer walk binds): the printed-face-only filter read would miss
+		// an animated manland's Creature grant -- Raging Ravine's own
+		// "Whenever this creature attacks" trigger names Creature.Self and
+		// must fire on the animated land. ExtraTypes is checked BEFORE the
+		// printed face and is a superset of it (Derived.Types includes every
+		// printed type), so ordinary creatures are unchanged, and the
+		// bestowed exclusion survives (the layer-4 switch drops Creature
+		// from a bestowed card's derived types, and hasType's
+		// BestowedAttached gate still answers below).
+		sc := e.specCtx(source, ctrl)
+		sc.ExtraTypes = e.Derived(id).Types
+		// ExtraTypes is answered by the textual oracle, never by the compiled
+		// sidecar (matchesWithTypes' established discipline: the compiled
+		// program is the printed-face read and would answer No definitively,
+		// bypassing ExtraTypes) -- so clear it for this match, exactly as
+		// layers.go's matchesWithTypes does.
+		sc.PredicatePrograms = nil
+		if effects.MatchesSpecCtx(e.G, spec, id, sc) && e.firstAttackOK(t, id) {
 			return true
 		}
 	}

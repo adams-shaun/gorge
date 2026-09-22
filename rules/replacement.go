@@ -4482,6 +4482,14 @@ func init() {
 	// own tags is what a replacement registration means -- nothing elsewhere
 	// in the tree registers them.
 	//
+	// kw:Devour and kw:Ravenous (CR 702.148) are the same idea for a K: line
+	// that expands to an ETB trigger instead of a replacement (kw:Devour's
+	// optional sacrifice + counter put, kw:Ravenous's X +1/+1-counter put
+	// plus the X>=5 conditional draw, both in cards/kw_*.go). The marker
+	// exists only so the coverage ratchet sees the head as supported; the
+	// machinery it needs (trig:ChangesZone, api:PutCounter, api:Draw, the
+	// SVar-condition gate) is all registered under its own primitives.
+	//
 	// The four turn/mana replacement events register the same way: repl:Untap
 	// (the Basalt Monolith class), repl:BeginPhase (the Necropotence class),
 	// repl:Transform (the Sephiroth class) and repl:ProduceMana (the Virtue
@@ -4495,7 +4503,7 @@ func init() {
 	// applyLifeReplacements. repl:DamageDone and repl:Counter are this
 	// ticket's own additions, matched by replacementMatches's DamageDone case
 	// and CounterAllowed respectively.
-	effects.RegisterNonAPI("kw:etbCounter", "kw:ETBReplacement", "kw:Devour",
+	effects.RegisterNonAPI("kw:etbCounter", "kw:ETBReplacement", "kw:Devour", "kw:Ravenous",
 		"repl:Untap", "repl:BeginPhase", "repl:Transform", "repl:ProduceMana",
 		"repl:GainLife", "repl:LifeReduced", "repl:DamageDone", "repl:Counter",
 		"repl:CreateToken", "repl:RollPlanarDice", "repl:Explore", "api:ReplaceToken",

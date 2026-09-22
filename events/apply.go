@@ -167,6 +167,17 @@ func Apply(g *state.Game, e Event) {
 		// Obj the exploiting creature, Player its controller, IDs[0] the
 		// exploited creature. A declined optional sacrifice records nothing.
 
+	case AlterAttribute:
+		// The AlterAttribute fold (task alterattr1): the engine models exactly
+		// one attribute, "Suspected" (CR 702.157). Text names the attribute so
+		// a future modelled one extends this switch without an event-schema
+		// change; an unmodelled name never reaches Apply (the effect emits its
+		// loud unsupported-attribute Note instead of an event), so the fall
+		// through to no fold is replay-safe. Amount 1 grants, -1 removes.
+		if o := g.Obj(e.Obj); o != nil && e.Text == "Suspected" {
+			o.Suspected = e.Amount >= 1
+		}
+
 	case Enlist:
 		// CR 702.160's enlist action (the `K:Enlist` keyword, task enlist1):
 		// Obj is the ATTACKING creature that enlisted (the Mode$ Enlisted
@@ -301,6 +312,15 @@ func Apply(g *state.Game, e Event) {
 					if g.Players[i].RingBearer == o.ID && state.PlayerID(i) != e.Player {
 						g.Players[i].RingBearer = 0
 					}
+				}
+				// CR 702.157b: the suspected designation ends the moment
+				// ANOTHER player gains control of the permanent -- the same
+				// condition the Ring-bearer designation keys on, evaluated on
+				// the still-old controller (o.Controller is still the old seat
+				// here). A same-controller ControlChange (no real change of
+				// controller) keeps the designation.
+				if o.Controller != e.Player {
+					o.Suspected = false
 				}
 				changeControl(g, o, e.Player)
 				// An AsLongAsControl goad ends the moment its controller
@@ -750,6 +770,12 @@ func Apply(g *state.Game, e Event) {
 		// a new object and never inherits one).
 		if wasBattlefield && e.To != state.ZBattlefield {
 			clearRingBearers(g, e.Obj)
+			// CR 702.157b: the suspected designation has the same shape -- it
+			// ends the moment the permanent leaves the battlefield; a later
+			// battlefield entry never inherits one.
+			if o := g.Obj(e.Obj); o != nil {
+				o.Suspected = false
+			}
 		}
 
 	case LifeChange:

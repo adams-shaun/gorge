@@ -1331,8 +1331,20 @@ var apiSpecificRulesSA = map[string][]string{
 	"Engine.askTriggerModes": {"Charm"},
 	// The unless-pay resume arm: only effCounter and effCopySpellAbility
 	// suspend with an UnlessCost$ ask, so resumeResolution's UnlessCost$
-	// read belongs to those two APIs alone.
-	"Engine.resumeResolution": {"Counter", "CopySpellAbility"},
+	// read belongs to those two APIs alone. api:Play joins them for the
+	// same reason: the "play" resume arm is the only reader of that
+	// primitive's own riders (WithoutManaCost$/PlayCost$/ReplaceGraveyard$/
+	// ImprintPlayed$/ShowCards$ -- only an answered Play effect re-enters
+	// here), and left in the generic union none of them was ever
+	// attributable to api:Play, which kept WithoutManaCost listed unread on
+	// every repo-deck carrier even though the free-cast read (and its vaan
+	// end-to-end pin) predates this entry. The function-level granularity
+	// over-attributes resumeResolution's OTHER cases' reads to Play too;
+	// measured against the repo-deck Play carriers (Scarlet Witch,
+	// Spinerock Knoll, West Coast Expansion, Conduit of Worlds) none of
+	// them carries a param only another case reads, and Play's genuinely
+	// unread RememberPlayed$ stays unmasked (no case reads it).
+	"Engine.resumeResolution": {"Counter", "CopySpellAbility", "Play"},
 	// The cast-offer ETB-choice walk (rules/cast.go collectETBChoices): it
 	// reads the ReplaceWith$ body's ValidCards$/Type$/Exclude$ for the
 	// NameCard / ChooseType / ChooseNumber / ChooseColor "as this enters"
@@ -2447,9 +2459,13 @@ var knownUnsupportedParams = map[string][]string{
 	"Photon, Mighty Marvel":          {"param:api:Mana.PersistentMana"},
 	"Purphoros, God of the Forge":    {"param:stat:Continuous.RemoveType"},
 	"Rescue, Pepper Potts":           {"param:api:ChangeZone.ValidTgtsDesc"},
-	"Scarlet Witch, Chaotic Avenger": {"param:api:Dig.WithMayLook", "param:api:Play.Controller", "param:api:Play.WithoutManaCost"},
+	"Scarlet Witch, Chaotic Avenger": {"param:api:Dig.WithMayLook"},
 	"Speed, Young Avenger":           {"param:api:Effect.ValidTgtsDesc"},
-	"Spinerock Knoll":                {"param:api:Play.Controller", "param:api:Play.WithoutManaCost"},
+	// (Spinerock Knoll and West Coast Expansion's param:api:Play.Controller
+	// / param:api:Play.WithoutManaCost rows retired when the Play
+	// Controller$ read landed and the play resume arm's rider reads were
+	// attributed to api:Play — ticket agent-20260918T221252Z-d504b33b; the
+	// vaan_forget_played_test.go pair is the free-cast end-to-end pin.)
 	// Vesuva's api:Clone body carries IntoPlayTapped$ True. The parameter
 	// means "the copy ENTERS tapped", which only has a referent on the
 	// ETB-replacement route -- the route Vesuva takes and the one this build
@@ -2457,9 +2473,11 @@ var knownUnsupportedParams = map[string][]string{
 	// as unread rather than tapping a permanent that never entered, so the
 	// label is honest until that ticket lands and can read it against real
 	// entry provenance.
-	"Vesuva":               {"param:api:Clone.IntoPlayTapped"},
-	"West Coast Expansion": {"param:api:Play.Controller", "param:api:Play.WithoutManaCost"},
-	"World Shaper":         {"param:api:Mill.Optional"},
+	"Vesuva": {"param:api:Clone.IntoPlayTapped"},
+	// West Coast Expansion's param:api:Play.Controller /
+	// param:api:Play.WithoutManaCost row retired with the same attribution
+	// fix (see the Spinerock Knoll note above).
+	"World Shaper": {"param:api:Mill.Optional"},
 	// Torment of Hailfire's FallbackAbility$/TempRemember$ are unread
 	// everywhere: its DB$ GenericChoice now resolves through effCharm's
 	// modal ask (effects/misc.go), but these two params ride the ask and

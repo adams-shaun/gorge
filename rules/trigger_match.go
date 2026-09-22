@@ -1292,9 +1292,30 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 	if !e.zoneGate(t, source, ev) || !e.phaseGate(t) {
 		return false
 	}
-	// Per-mode dispatch: see trigMatchers. A mode with no registered
-	// matcher never fires, which is what the old switch did by falling
-	// off its end with matched still false.
+	// NotThisAbility$ True (task nta1): the event being matched must not
+	// have been caused by the resolution of THIS very trigger instance
+	// (Kodama of the East Tree -- the corpus's one carrier, 1 of 38000+ card
+	// files -- is the shape: its "whenever another permanent you control
+	// enters, if it wasn't put onto the battlefield with this ability"
+	// rider would otherwise re-fire on the permanent its own Execute$
+	// ChangeZone just placed, a self-feeding loop). The cause is read the
+	// way every synchronous action matcher reads it -- actionCause(), the
+	// resolving wrapper at the top of the stack inside emit -- and compared
+	// by identity: the wrapper's Source is the trigger's source permanent
+	// and its Ability pointer is the exact compiled trigger line (the
+	// pointer TriggerPush mints the wrapper from), so two copies of the
+	// same card distinguish correctly (each wrapper names ITS source) and
+	// a sibling trigger line of the same card does not suppress its
+	// neighbour. The comparison is replay-safe with no event-schema
+	// change: trigger checks run synchronously inside emit, and a replay
+	// re-derives the same stack and the same compiled pointers. A cause
+	// that cannot be identified (no resolving wrapper, a keyword-granted
+	// trigger whose Effect is re-synthesized per scan) fails OPEN -- the
+	// trigger fires, the pre-fix behaviour -- so the gate only ever
+	// narrows when it can PROVE the cause is this ability.
+	if e.notThisAbilityExcludes(t, source) {
+		return false
+	}
 	var matched bool
 	if fn := trigMatchers[t.Mode]; fn != nil {
 		matched = fn(e, t, source, ev, lki)
@@ -1337,6 +1358,24 @@ func (e *Engine) triggerMatches(t cards.Trigger, source state.ObjID, ev events.E
 		return false
 	}
 	return true
+}
+
+// notThisAbilityExcludes implements NotThisAbility$ True: whether the event
+// now being matched was caused by the resolution of THIS very trigger
+// (same source permanent, same compiled trigger line). See the gate's
+// comment in triggerMatches for the full reasoning; this helper is the
+// read, kept beside actionCause's home package conventions. An absent or
+// non-True parameter is a cheap no-op (the corpus's 99.99% case).
+func (e *Engine) notThisAbilityExcludes(t cards.Trigger, source state.ObjID) bool {
+	if !strings.EqualFold(strings.TrimSpace(t.Params["NotThisAbility"]), "True") {
+		return false
+	}
+	cause := e.actionCause()
+	if cause == 0 {
+		return false
+	}
+	co := e.G.Obj(cause)
+	return co != nil && co.Source == source && co.Ability == t.Effect
 }
 
 // secondaryYields implements Forge's Secondary$ True (TriggerHandler,
@@ -1479,6 +1518,9 @@ func init() {
 		// Afterlife's expansion (cards/keywords.go) is a ChangesZone death
 		// trigger whose effect mints the wb_1_1_spirit_flying tokens.
 		"kw:Afterlife",
+		// Fabricate's expansion (cards/keywords.go) is a ChangesZone ETB
+		// trigger whose Charm elects counters or Servo tokens.
+		"kw:Fabricate",
 		// Exploit's expansion (cards/kw_exploit.go) is a ChangesZone ETB
 		// trigger whose effect is the optional DB$ Sacrifice -> DB$ Exploit
 		// chain (CR 702.58a). The layer-6 AddKeyword$ Exploit grant (Colonel
