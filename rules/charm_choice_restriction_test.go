@@ -15,6 +15,7 @@ import (
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
@@ -274,23 +275,70 @@ func TestParapetThrasherChoiceRestrictionThisTurn(t *testing.T) {
 	}
 }
 
-// TestParapetThrasherChoiceRestrictionThisGame pins the scope split: a
-// ThisGame pick is not pruned at the turn boundary. The corpus carrier is
-// Monument to Endurance's sibling shape -- actually a ThisTurn card -- so this
-// test drives the recorded-scope contract directly through the events.Choose
-// fold rather than a second card: the engine's own prune is what is under
-// test, and a ThisGame marker must survive it.
-func TestParapetThrasherChoiceRestrictionThisGame(t *testing.T) {
-	e, _, pt, _, _ := parapetThrasherGame(t, 99)
+// TestParapetThrasherChoiceRestrictionClearsOnBlink pins the CR 400.7 stake:
+// a ThisTurn pick is battlefield-stint state, so a permanent that leaves and
+// returns in the SAME turn is a new object and must offer every mode again.
+// The round-trip is eventful (logged MoveZone events), and the eligibility
+// check calls the real compiled Parapet Thrasher Charm SA through
+// effects.CharmEligibleModes -- the exact filter the three ask sites share --
+// so this cannot pass by inspecting a marker alone. A control assertion proves
+// the filter binds BEFORE the blink, making the clear the load-bearing act.
+func TestParapetThrasherChoiceRestrictionClearsOnBlink(t *testing.T) {
+	e, cfg, pt, _, _ := parapetThrasherGame(t, 99)
+
+	// Resolve the real compiled Charm SA (the trigger's Execute$ SVar) so the
+	// eligibility call reads the corpus parameter, not a fixture.
+	parapet := e.G.Obj(pt).Face()
+	charm := cards.ResolveSVar(parapet.SVars, "TrigCharm")
+	if charm == nil {
+		t.Fatal("Parapet Thrasher's TrigCharm SVar did not compile")
+	}
+	if got := charm.Params["ChoiceRestriction"]; got != state.ModeScopeThisTurn {
+		t.Fatalf("compiled Charm ChoiceRestriction$ = %q, want ThisTurn", got)
+	}
+	modes := []string{"DBSmash", "DBStrafe", "DBSwoop"}
+
+	// Record a real ThisTurn pick through the same event the answer handler
+	// emits, then confirm the shared filter binds on it.
 	e.emit(events.Event{Kind: events.Choose, Obj: pt,
-		Counter: state.ModeChoiceCounterPrefix + state.ModeScopeThisGame, Text: "DBStrafe"})
-	if got := e.G.Obj(pt).ModeChoices; len(got) != 1 || got[0].Scope != state.ModeScopeThisGame {
-		t.Fatalf("ThisGame pick not recorded: %+v", got)
-	}
-	e.emit(events.Event{Kind: events.TurnChange, Player: 0, Amount: 2})
+		Counter: state.ModeChoiceCounterPrefix + state.ModeScopeThisTurn, Text: "DBStrafe"})
 	if got := e.G.Obj(pt).ModeChoices; len(got) != 1 || got[0].Mode != "DBStrafe" {
-		t.Fatalf("ThisGame pick was pruned at the turn boundary: %+v", got)
+		t.Fatalf("fixture precondition: recorded pick = %+v, want one DBStrafe", got)
 	}
+	before := effects.CharmEligibleModes(e, pt, charm, modes)
+	for _, n := range before {
+		if n == "DBStrafe" {
+			t.Fatalf("control failed: CharmEligibleModes offered the already-picked DBStrafe: %v", before)
+		}
+	}
+	if len(before) != 2 {
+		t.Fatalf("control: eligible modes = %v, want the two unchosen", before)
+	}
+
+	// One logged battlefield -> exile, then exile -> battlefield. The same
+	// object ID is reused (CR 400.7), so without the Move clear the stale
+	// ThisTurn pick would survive and withhold DBStrafe forever this turn.
+	e.emit(events.Event{Kind: events.MoveZone, Obj: pt,
+		From: state.ZBattlefield, To: state.ZExile})
+	if got := e.G.Obj(pt).ModeChoices; len(got) != 0 {
+		t.Fatalf("ModeChoices after leaving the battlefield = %+v, want cleared", got)
+	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: pt,
+		From: state.ZExile, To: state.ZBattlefield})
+	if e.G.Obj(pt).Zone != state.ZBattlefield {
+		t.Fatalf("precondition: permanent is in zone %v, want battlefield", e.G.Obj(pt).Zone)
+	}
+
+	after := effects.CharmEligibleModes(e, pt, charm, modes)
+	if len(after) != 3 {
+		t.Fatalf("eligible modes after blink = %v, want all three", after)
+	}
+	if got := e.G.Obj(pt).ModeChoices; len(got) != 0 {
+		t.Fatalf("ModeChoices after re-entering = %+v, want empty", got)
+	}
+
+	// Everything above is logged, so the whole fixture still replays.
+	replayCheck(t, e, cfg)
 }
 
 // TestParapetThrasherAllModesExhaustedDoesNotWedge pins the exhaustion guard.

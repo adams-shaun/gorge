@@ -299,20 +299,22 @@ func WasCastFromGraveyard(flags uint64) bool {
 }
 
 // ModeChoice is one ChoiceRestriction$ pick recorded on an object: the
-// chosen Choices$ SVar name, the restriction scope the picking Charm named
-// ("ThisTurn", "ThisGame", ...), and the turn it was picked in. The scope
-// is stored per pick so a ThisTurn reset never discards a ThisGame pick,
-// even though no corpus card carries two differently-scoped Charms on one
-// object.
+// chosen Choices$ SVar name and the restriction scope the picking Charm
+// named. This build only records ModeScopeThisTurn (the brief's scope); the
+// Scope field is kept so the shape is self-describing and a future scope can
+// widen it without a re-type.
 type ModeChoice struct {
 	Mode  string
 	Scope string
-	Turn  int32
 }
 
 // The ChoiceRestriction$ scopes and the events.Choose counter key a pick is
 // recorded under. state owns them so effects (which emits the pick) and events
-// (which folds it) cannot drift apart.
+// (which folds it) cannot drift apart. Only ThisTurn is modelled end to end:
+// ThisGame and YourLastCombat are named here for the corpus census but their
+// filtering is deliberately unimplemented (CharmEligibleModes returns the
+// input unchanged for them, and RecordCharmChoices emits nothing), so their
+// carriers keep pre-fix behaviour.
 const (
 	ModeScopeThisTurn       = "ThisTurn"
 	ModeScopeThisGame       = "ThisGame"
@@ -646,14 +648,16 @@ type Object struct {
 	ChosenModes []string
 
 	// ModeChoices is the persistent per-object log a Charm's ChoiceRestriction$
-	// reads (task charm-choice-restriction): every mode this object has chosen,
-	// with the scope the picking Charm named and the turn it was picked in.
-	// Unlike ChosenModes it is NOT cleared when the choosing stack object
-	// resolves -- the whole point is that a LATER trigger instance on the same
-	// source sees the earlier pick -- so it lives on the source permanent and is
-	// folded by events.Choose's scope-keyed pick markers. A ThisTurn scope is
-	// pruned in events.Apply's TurnChange per-object loop; a new object (the
-	// permanent left and returned, CR 400.7) starts with an empty log.
+	// reads (task charm-choice-restriction): every mode this object has chosen
+	// this turn, with the scope the picking Charm named. Unlike ChosenModes it is
+	// NOT cleared when the choosing stack object resolves -- the whole point is
+	// that a LATER trigger instance on the same source sees the earlier pick --
+	// so it lives on the source permanent and is folded by events.Choose's
+	// scope-keyed pick markers. It is battlefield-stint state: the TurnChange
+	// loop clears it (ThisTurn is a per-turn fact) and the Move battlefield
+	// departure block clears it (CR 400.7 -- a permanent that leaves and returns
+	// is a new object), so a re-entered Parapet Thrasher offers every mode
+	// again.
 	ModeChoices []ModeChoice
 
 	// Imprinted holds cards ImprintCards$ explicitly associated with this
