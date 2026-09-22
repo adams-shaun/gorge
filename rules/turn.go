@@ -89,6 +89,17 @@ func (e *Engine) finishEnteredStep() {
 	if e.G.Step == state.StepDraw && e.drawStepTurnAction() {
 		return
 	}
+	// CR 724.2a: the monarch draws a card at the beginning of each end step.
+	// This is a turn-based action, before priority, and uses the ordinary draw
+	// path so replacements and replay observe the same event. A replacement
+	// decision suspends entry just like the draw-step action.
+	if e.G.Step == state.StepEnd && e.G.HasMonarch &&
+		!e.G.Players[e.G.Monarch].Lost {
+		e.drawCard(e.G.Monarch)
+		if e.G.Over || e.pending != nil {
+			return
+		}
+	}
 	// Entry resets the pass count along with the active holder. Cumulative
 	// upkeep is a real Phase trigger expanded from its keyword, so the upkeep
 	// StepChange queued it alongside every other upkeep trigger; the ordinary

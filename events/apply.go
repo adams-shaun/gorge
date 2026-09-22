@@ -2154,7 +2154,7 @@ func Apply(g *state.Game, e Event) {
 		}
 		mode, trigger := "", ""
 		if i := strings.Index(text, ":"); i > 0 &&
-			(text[:i] == "SpellCast" || text[:i] == "ChangesZone") {
+			(text[:i] == "SpellCast" || text[:i] == "ChangesZone" || text[:i] == "BecomeMonarch") {
 			mode, trigger = text[:i], text[i+1:]
 		}
 		g.Delayed = append(g.Delayed, state.DelayedTrigger{

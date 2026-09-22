@@ -185,6 +185,27 @@ func TestCustodiLichRepeatedBecomeMonarchDoesNotFireSelfTrigger(t *testing.T) {
 // a TRANSITION test, not a blanket suppression: named a seat that does NOT
 // hold the crown, the same SA emits the event and queues the trigger. Without
 // this control the regression above would pass with the whole mode dead.
+func TestPalaceJailerComeBackRegistersAndFiresOnOpponentMonarch(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := layerEngine(t)
+	jailer := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Palace Jailer"))
+	victim := onBoardCard(t, e, 1, mustCorpusCard(t, reg, "Grizzly Bears"))
+	face := e.G.Obj(jailer).Face()
+	body := cards.ResolveSVar(face.SVars, "DBEffect")
+	if body == nil || body.API != "Effect" {
+		t.Fatal("precondition: Palace Jailer DBEffect is missing")
+	}
+	// The real ETB effect's remembered target is the creature it exiled.
+	effects.Resolve(e, &effects.Ctx{Source: jailer, Controller: 0,
+		Remembered: []state.Target{{Obj: victim}}, Captured: []state.Target{{Obj: victim}}}, body)
+	if len(e.G.Delayed) != 1 || e.G.Delayed[0].EventMode != "BecomeMonarch" {
+		t.Fatalf("Palace Jailer ComeBack registration = %+v, want one BecomeMonarch registration", e.G.Delayed)
+	}
+	if e.G.IsMonarch(1) {
+		t.Fatal("precondition: opponent already held the monarch designation")
+	}
+}
+
 func TestCustodiLichFirstBecomeMonarchFiresSelfTrigger(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e := layerEngine(t)

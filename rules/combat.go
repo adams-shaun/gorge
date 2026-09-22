@@ -2194,6 +2194,14 @@ func (e *Engine) runCombatAssignments() {
 					// branch records (the object branch above is untouched): the
 					// property is only ever read about players.
 					e.combatHitsThisTurn = append(e.combatHitsThisTurn, e.combatHit(ev.Player, x.from, dealt))
+					// CR 724.2b: combat damage to the monarch makes the
+					// damage-dealing player become the monarch. Emit this
+					// transition only after confirming the damage landed.
+					if e.G.HasMonarch && ev.Player == e.G.Monarch &&
+						x.from != 0 && e.G.Obj(x.from) != nil {
+						e.emit(events.Event{Kind: events.MonarchChange,
+							Player: e.G.Obj(x.from).Controller})
+					}
 					// CR 702.164 (toxic): a player dealt combat damage by a source
 					// with toxic N ALSO gets N poison counters. Toxic modifies the
 					// damage only by adding a second instruction, so it must not

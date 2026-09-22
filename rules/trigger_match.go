@@ -563,7 +563,7 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object,
 		e.checkFaceTriggers(observer, ev, obj, power, toughness, valid, true, true)
 	}
 	e.checkFaceTriggers(e, ev, lki, lkiPower, lkiToughness, lkiPTValid, batch, false)
-	if ev.Kind == events.PutOnStack || ev.Kind == events.MoveZone {
+	if ev.Kind == events.PutOnStack || ev.Kind == events.MoveZone || ev.Kind == events.MonarchChange {
 		e.checkEventDelayedTriggers(ev, lki)
 	}
 	// Sagas (kw:Chapter): a lore counter's chapter ability queues off the

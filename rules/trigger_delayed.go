@@ -178,7 +178,7 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 		// ChangesZone (a move, the Earthbend return promise). A Mode$ Phase
 		// registration carries no EventMode at all and is owned by
 		// checkDelayedTriggers at its phase occurrence.
-		if dt.EventMode != "SpellCast" && dt.EventMode != "ChangesZone" {
+		if dt.EventMode != "SpellCast" && dt.EventMode != "ChangesZone" && dt.EventMode != "BecomeMonarch" {
 			continue
 		}
 		// The ThisTurn$ mirror: a registration whose expiry turn has passed
@@ -216,7 +216,32 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 		// so a departing source's last battlefield characteristics are read
 		// (CR 603.10a), the same lki the face-trigger walk uses.
 		var referentsArg *state.Object
-		if dt.EventMode == "ChangesZone" {
+		if dt.EventMode == "BecomeMonarch" {
+			// Palace Jailer’s command-zone trigger qualifies the new
+			// monarch as an opponent of its remembered exiled creature.
+			// This referent is registration state, not the source object.
+			if v := strings.TrimSpace(t.Params["ValidPlayer"]); strings.EqualFold(v, "Player.OpponentOf Remembered") {
+				ok := false
+				for _, remembered := range dt.Remembered {
+					if remembered.IsPlayer {
+						continue
+					}
+					o := e.G.Obj(remembered.Obj)
+					if o != nil && o.Controller != ev.Player && !e.G.Players[o.Controller].Lost {
+						ok = true
+						break
+					}
+				}
+				if !ok {
+					continue
+				}
+				delete(t.Params, "ValidPlayer")
+			}
+			if !e.becomeMonarchMatches(t, dt.Source, ev) {
+				continue
+			}
+			referentsArg = nil
+		} else if dt.EventMode == "ChangesZone" {
 			// The Earthbend return promise. destinationAdmits handles the
 			// comma-separated Destination$ list (Graveyard,Exile) that
 			// zoneChangeMatches reads with the single-word effects.ParseZone
@@ -237,7 +262,7 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 		} else if !e.eventDelayedSpellCastMatches(t, dt, ev) {
 			continue
 		}
-		if !e.triggerConditionHoldsAs(t, dt.Source, dt.Controller) {
+		if dt.EventMode != "BecomeMonarch" && !e.triggerConditionHoldsAs(t, dt.Source, dt.Controller) {
 			continue
 		}
 		sa := cards.ResolveSVar(src.Face().SVars, dt.Execute)

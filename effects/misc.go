@@ -294,6 +294,27 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		chosenNumber = n
 	}
 	registered := false
+	// Palace Jailer uses an Effect's Triggers$ as a one-shot event promise.
+	// Register the narrow BecomeMonarch shape through the replayable delayed
+	// trigger path; other Effect trigger modes remain unsupported.
+	for _, name := range strings.Fields(sa.Params["Triggers"]) {
+		raw := ""
+		if o := h.Game().Obj(c.Source); o != nil && o.Face() != nil {
+			raw = o.Face().SVars[name]
+		}
+		tr, ok := cards.ParseTriggerLine(raw)
+		if !ok || tr.Mode != "BecomeMonarch" {
+			continue
+		}
+		exec := strings.TrimSpace(tr.Params["Execute"])
+		if exec == "" {
+			continue
+		}
+		h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
+			Player: c.Controller, Step: h.Game().Step, Counter: exec,
+			IDs: encodeRemembered(c.Remembered), Text: "BecomeMonarch:" + name})
+		registered = true
+	}
 	// Effect can also create a replacement rather than a layer restriction.
 	// Forge stores its R: body behind an SVar name in ReplacementEffects$.
 	// Keep the parsed event data in state (which cannot import cards) and the
