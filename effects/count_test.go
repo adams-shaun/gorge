@@ -765,3 +765,77 @@ func TestPlayerCountConditionFamily(t *testing.T) {
 		t.Errorf("BogusProp reported EVALUATED as %d on a live group — must fail unresolvable", got)
 	}
 }
+
+// TestEvalCountValidAllScansEveryCardZone pins the ValidAll head: the scan
+// covers EVERY card zone (library, hand, battlefield, graveyard, exile,
+// command) plus one stack pass, and each candidate is matched against its
+// OWN zone -- the way Forge evaluates a ValidAll spec against the card's
+// actual zone. This is Cactus Preserve's and Tangleweave Armor's exact SVar
+// shape (greatest mana value among your commanders, who sit in the command
+// zone) and Kefka's (an imprinted card, which lives in exile).
+func TestEvalCountValidAllScansEveryCardZone(t *testing.T) {
+	g, ids := board(t)
+	h := &fakeHost{g: g}
+	c := &Ctx{Controller: 0}
+	// board(t) puts one Instant ("Trick") and one Sorcery ("Ritual") in
+	// seat 0's GRAVEYARD: the battlefield-only Valid head counts neither,
+	// ValidAll counts both -- and the comma-alternative spec reaches the
+	// pair the single-base spec cannot.
+	if got := EvalCount(h, c, "Count$Valid Instant"); got != 0 {
+		t.Errorf("precondition: Valid Instant = %d, want 0 (graveyard cards are outside the battlefield scan)", got)
+	}
+	if got := EvalCount(h, c, "Count$ValidAll Instant"); got != 1 {
+		t.Errorf("ValidAll Instant = %d, want 1 (the graveyard instant)", got)
+	}
+	if got := EvalCount(h, c, "Count$ValidAll Instant,Sorcery"); got != 2 {
+		t.Errorf("ValidAll Instant,Sorcery = %d, want 2 (the graveyard instant and sorcery)", got)
+	}
+	// The command zone: the Walker planeswalker moves there and is
+	// registered as seat 0's commander. IsCommander reads the seat's
+	// Commanders list, and the commander now sits in ZCommand -- neither
+	// the battlefield Valid head nor a battlefield-only scan can see it.
+	walker := g.Obj(ids["myWalker"])
+	var bf []state.ObjID
+	for _, id := range g.Zone(state.ZBattlefield, 0) {
+		if id != ids["myWalker"] {
+			bf = append(bf, id)
+		}
+	}
+	g.SetZone(state.ZBattlefield, 0, bf)
+	walker.Zone = state.ZCommand
+	g.SetZone(state.ZCommand, 0, []state.ObjID{ids["myWalker"]})
+	g.Players[0].Commanders = []state.ObjID{ids["myWalker"]}
+	if got := EvalCount(h, c, "Count$Valid Card.IsCommander"); got != 0 {
+		t.Errorf("Valid Card.IsCommander = %d, want 0 (the commander is in the command zone)", got)
+	}
+	if got := EvalCount(h, c, "Count$ValidAll Card.IsCommander+YouOwn"); got != 1 {
+		t.Errorf("ValidAll Card.IsCommander+YouOwn = %d, want 1", got)
+	}
+	// The extreme property folds over the all-zones scan: the greatest
+	// commander mana value reads the walker's mana value {2}{U} = 3.
+	if got := EvalCount(h, c, "Count$ValidAll Card.IsCommander+YouOwn$GreatestCardManaCost"); got != 3 {
+		t.Errorf("ValidAll Card.IsCommander+YouOwn$GreatestCardManaCost = %d, want 3", got)
+	}
+	// Extreme properties keep working over the mixed-zone scan: the
+	// battlefield creatures' greatest power is still the Giant's 5.
+	if got := EvalCount(h, c, "Count$ValidAll Creature$GreatestCardPower"); got != 5 {
+		t.Errorf("ValidAll Creature$GreatestCardPower = %d, want 5", got)
+	}
+	// The stack is scanned ONCE, not once per alive seat: two seats are
+	// alive here and one spell sits on the stack, so the count is 1 -- the
+	// pre-fix read was 2 (g.Zone(ZStack, p) returns the same global list
+	// for every seat, so the per-player loop counted it twice).
+	trick := g.Obj(ids["myInstant"])
+	var gy []state.ObjID
+	for _, id := range g.Zone(state.ZGraveyard, 0) {
+		if id != ids["myInstant"] {
+			gy = append(gy, id)
+		}
+	}
+	g.SetZone(state.ZGraveyard, 0, gy)
+	trick.Zone = state.ZStack
+	g.SetZone(state.ZStack, 0, []state.ObjID{ids["myInstant"]})
+	if got := EvalCount(h, c, "Count$ValidStack Card"); got != 1 {
+		t.Errorf("ValidStack Card = %d, want 1 (the stack is scanned once, not once per alive seat)", got)
+	}
+}
