@@ -460,6 +460,20 @@ type Engine struct {
 	// no event carries it. Never nil-checked on read outside recordAsk
 	// (which lazy-inits).
 	moveCounterAsk map[state.ObjID]*moveCounterPending
+	// aorAsk carries an AddOrRemoveCounter resolution's ANSWERED per-kind
+	// elections across the later suspensions of the same SA (the
+	// moveCounterAsk discipline — counterchoice1). An EachExistingCounter$
+	// walk (Dramatist's Puppet, Quarry Hauler) asks one add/remove election
+	// per counter kind; every resume builds a fresh Ctx, so without this map
+	// an already-answered PUT kind (whose counter count is still positive and
+	// therefore still enumerates) would be re-asked forever. rules/
+	// resolution.go's "aor_elect" arm records the answered kind here and the
+	// re-entry seeds it into Ctx.AorAnswered; the entry is deleted when the
+	// resolution completes. Decision-derived engine scratch, in the
+	// moveCounterAsk discipline: replay re-submits the recorded Intents
+	// through the same arms, so the map re-derives identically and no event
+	// carries it.
+	aorAsk map[state.ObjID]map[string]bool
 	// orderedTriggers is how many LEADING entries of pendingTriggers have
 	// already had their order settled by an answered KTriggerOrder decision
 	// (or, for a lone trigger, by there being nothing to decide). It is the
@@ -1597,6 +1611,20 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	departingSource, departingSourceLifelink, departingSourceController := e.captureSourceLifelinkLKI(ev)
 	stackLen := len(e.G.Stack)
 	stored := events.Emit(e.G, e.L, ev)
+	if ev.Kind == events.CounterChange && ev.Amount < 0 && ev.Counter == "TIME" {
+		// CR 702.62a/b (counterchoice1): the LAST time counter leaving a
+		// suspended card by ANY route — the upkeep tick or a Clockspinning/
+		// Amy-Pond-style removal mid-resolution — queues CR 702.62a's may-cast
+		// offer; startSuspendedCast drains the queue at the next step(). The
+		// ONE home replaces the upkeep tick's own append (which was the only
+		// emitter before): a counter removed mid-resolution used to strand a
+		// zero-TIME card in exile forever, because the tick skips a card
+		// already at zero and nothing else ever re-offered the cast.
+		if o := e.G.Obj(ev.Obj); o != nil && o.Zone == state.ZExile &&
+			o.CastFlags&state.FlagSuspend != 0 && o.Counter("TIME") == 0 {
+			e.suspendedCasts = append(e.suspendedCasts, ev.Obj)
+		}
+	}
 	if len(e.turnsTaken) == len(e.G.Players) && e.turnsTakenEpoch == len(e.L.Events)-1 {
 		if stored.Kind == events.TurnChange && int(stored.Player) < len(e.turnsTaken) {
 			e.turnsTaken[stored.Player]++

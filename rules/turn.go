@@ -69,9 +69,10 @@ func (e *Engine) finishEnteredStep() {
 				continue
 			}
 			e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "TIME", Amount: -1})
-			if o.Counter("TIME") == 0 {
-				e.suspendedCasts = append(e.suspendedCasts, id)
-			}
+			// The final-counter cast queue is fed by Engine.emit's own
+			// CounterChange hook (CR 702.62a/b — the one home every remover
+			// shares); no append here, or a tick-to-zero card would be queued
+			// twice and its may-cast offer re-posed after a decline.
 		}
 		if e.startSuspendedCast() {
 			return

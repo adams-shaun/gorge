@@ -840,6 +840,19 @@ const (
 	wordActivePlayerCtrl
 	wordTopLibrary
 	wordHasCounters
+	// Forge's isSuspended: the card sits in exile carrying the Suspend
+	// action's cast provenance (state.FlagSuspend, set by the suspend
+	// alternate-cast action's own CastInfo). The game/state-aware family --
+	// needs the object's zone and cast flags -- classified here so matcher
+	// and UnknownPredicates agree. The corpus spells it Card.suspended
+	// (Clockspinning's and Jhoira's Timebug's TgtZone$ Exile targets, Amy
+	// Pond's Choices$ card election).
+	wordSuspended
+	// Forge's OppProtect: the object is a battle whose CR 310.10 protector
+	// is an opponent of the evaluating controller (SpecContext's You). The
+	// protector state lives on the battle object itself (state.Object
+	// .Protector, recorded through the Choose "protector" event).
+	wordOppProtect
 	wordHistoric
 	wordIsCommander
 	wordBlockingSource
@@ -1028,6 +1041,10 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordRingBearer, ""
 	case "HasCounters":
 		return wordHasCounters, ""
+	case "suspended":
+		return wordSuspended, ""
+	case "OppProtect":
+		return wordOppProtect, ""
 	case "Historic":
 		return wordHistoric, ""
 	case "IsCommander":
@@ -1219,6 +1236,25 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// (state/object.go), so a permanent whose counters were all removed
 		// still carries a zero-count entry and must not match.
 		return hasCounters(o.Counters)
+	case wordSuspended:
+		// Forge's isSuspended: the card is in exile carrying the Suspend
+		// action's cast provenance. Time counters are deliberately NOT part
+		// of the read: a suspended card whose counters were all removed by a
+		// Clockspinning-style effect (or whose cast offer was declined) is
+		// still the "suspended card" the corpus's specs name, and a
+		// Clockspinning may put a time counter back on it.
+		return o.Zone == state.ZExile && o.CastFlags&state.FlagSuspend != 0
+	case wordOppProtect:
+		// Forge's OppProtect: the object is a battle whose CR 310.10
+		// protector is an opponent of the evaluating controller (sc.You).
+		// No protector chosen yet never matches; a protector that is the
+		// evaluating controller itself (their own battle after a control
+		// change) never matches.
+		if !o.ProtectorValid || o.Zone != state.ZBattlefield {
+			return false
+		}
+		return int(o.Protector) >= 0 && int(o.Protector) < len(g.Players) &&
+			o.Protector != sc.You && !g.Players[o.Protector].Lost
 	case wordHistoric:
 		// Forge's Historic: artifact, legendary, or Saga (the reminder text
 		// on the Historic keyword).

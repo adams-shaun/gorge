@@ -1061,6 +1061,26 @@ type Ctx struct {
 	// outer answer.
 	CounterPick     []state.ObjID
 	CounterPickDone bool
+	// AorElect is the answered AddOrRemoveCounter add/remove election
+	// ("remove" or "put"); AorKind names the counter kind the election
+	// covered — parsed out of the answer's own option encoding
+	// ("aor_remove:<kind>"/"aor_put:<kind>"), because an SA with no
+	// CounterType$ (Clockspinning) or an EachExistingCounter$ walk
+	// (Dramatist's Puppet) elects per kind. rules' "aor_elect" resume arm
+	// sets all three Aor fields before re-running the suspended sub-ability;
+	// AorDone distinguishes "answered" from the first pass. effAddOrRemove
+	// Counter consumes and clears them at the top of its own walk (the fx42
+	// scoping discipline), so a nested AddOrRemoveCounter cannot inherit
+	// the outer answer.
+	AorElect string
+	AorKind  string
+	AorDone  bool
+	// AorAnswered is the list of counter kinds EARLIER rounds of the same
+	// AddOrRemoveCounter resolution already answered an election for (seeded
+	// from rules' aorAsk pending map — the moveCounterAsk discipline — since
+	// every resume builds a fresh Ctx and an EachExistingCounter$ walk asks
+	// one election per kind). Consumed and cleared with the fields above.
+	AorAnswered []string
 	// Proliferate is the answered Proliferate recipient pick (CR 701.27):
 	// the permanents and/or players the resolving controller chose to give
 	// another counter of each kind already there, in the player's answer
