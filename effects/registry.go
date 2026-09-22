@@ -1521,7 +1521,32 @@ func RegisterNonAPI(prefixed ...string) {
 const maxChain = 32
 
 // Resolve runs an ability and every sub-ability chained beneath it.
+// effectFrameHost is implemented by the rules engine to publish the Effect
+// registration identity a resolution is currently running under, so an ask
+// posed from anywhere inside that body (Host.Ask) captures it onto the
+// decision's resume state and the resumed walk keeps the same registration
+// bound. It is optional so the effects test doubles stay small.
+type effectFrameHost interface {
+	GetCurrentEffectFrame() EffectFrame
+	SetCurrentEffectFrame(EffectFrame)
+}
+
 func Resolve(h Host, c *Ctx, sa *cards.SA) {
+	// Publish this walk's Effect-created registration frame (set by rules'
+	// seedEffectReplCtx on an api:Effect replacement's body Ctx) for the whole
+	// of the walk, restoring the enclosing value on exit so nested walks and
+	// sub-ability chains keep the outer binding. Only a non-zero frame is
+	// published: an inner body resolved with its own zero-valued Ctx (a
+	// `` &cc `` copy that did not carry the frame) must inherit the enclosing
+	// Effect rather than erase it, which is what a body reached through the
+	// Effect's own chain needs.
+	if fh, ok := h.(effectFrameHost); ok {
+		previous := fh.GetCurrentEffectFrame()
+		if c != nil && c.EffectFrame.Source != 0 {
+			fh.SetCurrentEffectFrame(c.EffectFrame)
+		}
+		defer fh.SetCurrentEffectFrame(previous)
+	}
 	if c != nil {
 		c.Host = h
 		c.numericRHS = c.X != 0 || len(c.SVars) > 0
