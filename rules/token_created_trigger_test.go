@@ -95,8 +95,9 @@ func TestTokenCreatedMirkwoodBatsLosesLifePerToken(t *testing.T) {
 // answerTargetAsksWith passes priority (draining the stack) and answers every
 // KTarget ask with the option targeting opt, returning how many asks it
 // answered -- for Rosie's per-mint counter asks (her own ETB Food and the
-// maker's Food each fire the trigger).
-func answerTargetAsksWith(t *testing.T, e *Engine, opt state.ObjID) int {
+// maker's Food each fire the trigger). forbidden must be absent from every
+// target option list.
+func answerTargetAsksWith(t *testing.T, e *Engine, opt, forbidden state.ObjID) int {
 	t.Helper()
 	answered := 0
 	for i := 0; i < 60; i++ {
@@ -104,6 +105,8 @@ func answerTargetAsksWith(t *testing.T, e *Engine, opt state.ObjID) int {
 		if d != nil && d.Kind == decision.KTarget {
 			if idx := indexOfObjOption(d, opt); idx < 0 {
 				t.Fatalf("target ask does not offer obj %d: %+v", opt, d.Options)
+			} else if forbiddenIdx := indexOfObjOption(d, forbidden); forbiddenIdx >= 0 {
+				t.Fatalf("target ask illegally offers excluded obj %d at option %d: %+v", forbidden, forbiddenIdx, d.Options)
 			} else {
 				submitChoices(t, e, idx)
 				answered++
@@ -148,10 +151,19 @@ func TestTokenCreatedRosieCottonAsksCounterTarget(t *testing.T) {
 	rosieID := moveSeededCard(t, e, 0, rosie, state.ZBattlefield)
 	makerID := moveSeededCard(t, e, 0, maker, state.ZBattlefield)
 	bearID := moveSeededCard(t, e, 0, bear, state.ZBattlefield)
+	if rosieID == bearID {
+		t.Fatalf("Rosie and Bear unexpectedly share object id %d", rosieID)
+	}
+	if o := e.G.Obj(rosieID); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("Rosie is not on the battlefield: %+v", o)
+	}
+	if o := e.G.Obj(bearID); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("Bear is not on the battlefield: %+v", o)
+	}
 
 	addMana(t, e, 0, "")
 	submitChoices(t, e, abilityOption(t, e, makerID, 0).Index)
-	answered := answerTargetAsksWith(t, e, bearID)
+	answered := answerTargetAsksWith(t, e, bearID, rosieID)
 	mints := countTokensNamedOnSeat(t, e, 0, "Food Token")
 	if mints != 2 {
 		t.Fatalf("Food Tokens on the battlefield = %d, want 2 (Rosie's ETB + the maker's)", mints)
