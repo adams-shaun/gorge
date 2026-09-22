@@ -35,6 +35,7 @@ func TestRegisteredKeywordsAreHonoured(t *testing.T) {
 		"kw:Annihilator":    "TestAnnihilatorArtisanSacrificesThePrintedAmount",
 		"kw:Mobilize":       "TestMobilizeUsesRealCorpusCard",
 		"kw:Afterlife":      "TestAfterlifeTitheTakerMintsSpiritTokens",
+		"kw:Fabricate":      "TestFabricateAngelOfInventionChoosesServosOrCounters",
 		"kw:Double Strike":  "TestDoubleStrikeFearAndShadowUseCorpusCombatKeywords",
 		"kw:Fear":           "TestDoubleStrikeFearAndShadowUseCorpusCombatKeywords",
 		"kw:Shadow":         "TestDoubleStrikeFearAndShadowUseCorpusCombatKeywords",

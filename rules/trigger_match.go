@@ -1478,6 +1478,9 @@ func init() {
 		// Afterlife's expansion (cards/keywords.go) is a ChangesZone death
 		// trigger whose effect mints the wb_1_1_spirit_flying tokens.
 		"kw:Afterlife",
+		// Fabricate's expansion (cards/keywords.go) is a ChangesZone ETB
+		// trigger whose Charm elects counters or Servo tokens.
+		"kw:Fabricate",
 		// Exploit's expansion (cards/kw_exploit.go) is a ChangesZone ETB
 		// trigger whose effect is the optional DB$ Sacrifice -> DB$ Exploit
 		// chain (CR 702.58a). The layer-6 AddKeyword$ Exploit grant (Colonel
