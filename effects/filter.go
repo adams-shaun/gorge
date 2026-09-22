@@ -1397,7 +1397,10 @@ func nonPredicate(p string) (kind wordKind, key string, ok bool) {
 // whether a word is recognised. An unrecognised word is "the engine does not
 // know", never "true" -- that is the fail-closed contract.
 func positiveRecognised(p string) bool {
-	if p == "IsRemembered" || p == "token$DifferentCardNames" || strings.HasPrefix(p, "greatestPower") {
+	if p == "IsRemembered" || p == "EffectSource" || p == "token$DifferentCardNames" || strings.HasPrefix(p, "greatestPower") {
+		// EffectSource is matched by matchPositive against SpecContext.Source;
+		// listing it here keeps the matcher and the UnknownPredicates census
+		// (both driven by positiveRecognised) in agreement.
 		return true
 	}
 	// Forge's extreme-mana-value properties: greatestCMC_<prop>[ControlledBy
@@ -2954,6 +2957,16 @@ func matchesPlayerCompoundFrom(g *state.Game, alt string, p, you state.PlayerID,
 		if neg {
 			clause = strings.TrimSpace(clause[1:])
 		}
+		// A bare property clause (IsRemembered/Chosen/ChosenPlayer) with no
+		// source bound cannot be evaluated at all: fail the WHOLE conjunction
+		// closed, rather than letting the negation invert the absence into a
+		// match. Without this a caller that passes source 0 (MatchesPlayerSpec)
+		// would newly admit every un-remembered player for
+		// `Player.Opponent+!IsRemembered` -- a widened pool where the old
+		// grammar matched nobody.
+		if source == 0 && isBarePlayerProperty(clause) {
+			return false
+		}
 		if matchesPlayerClauseFrom(g, clause, p, you, source) == neg {
 			return false
 		}
@@ -2969,6 +2982,9 @@ func matchesPlayerCompoundFrom(g *state.Game, alt string, p, you state.PlayerID,
 // source fails the bare property clauses closed, exactly as the qualified
 // `Player.IsRemembered` spelling already does.
 func matchesPlayerClauseFrom(g *state.Game, clause string, p, you state.PlayerID, source state.ObjID) bool {
+	if !isBarePlayerProperty(clause) {
+		return matchesPlayerSingleSpec(g, clause, p, you, source)
+	}
 	switch clause {
 	case "IsRemembered", "Chosen", "ChosenPlayer":
 		o := g.Obj(source)
@@ -2986,7 +3002,18 @@ func matchesPlayerClauseFrom(g *state.Game, clause string, p, you state.PlayerID
 		}
 		return false
 	}
-	return matchesPlayerSingleSpec(g, clause, p, you, source)
+	return false
+}
+
+// isBarePlayerProperty reports whether a player clause is one of the bare
+// property spellings a compound uses (`IsRemembered`, `Chosen`,
+// `ChosenPlayer`), as opposed to a base.qualifier form.
+func isBarePlayerProperty(clause string) bool {
+	switch clause {
+	case "IsRemembered", "Chosen", "ChosenPlayer":
+		return true
+	}
+	return false
 }
 
 // matchesPlayerSingleSpec is the original single-alternative player-spec
