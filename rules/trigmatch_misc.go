@@ -360,10 +360,141 @@ func (e *Engine) phaseMatches(t cards.Trigger, source state.ObjID, ev events.Eve
 	return true
 }
 
+// rolledDieMatches implements Mode$ RolledDie (trig:RolledDie): the trigger
+// fires on the canonical per-die roll Note effRollDice emits (effects/dice.go's
+// DieRollNote, decoded by DieRollResult), so every "whenever you roll a die /
+// roll a 4 or higher" line fires exactly as the roll happens. The trigger
+// fires ONCE PER DIE, each with that die's own result -- Forge's RolledDie
+// cadence, and the reading Natural$ True ("a die's highest natural result")
+// and Number$ 3 ("your third die each turn") require.
+//
+//   - ValidResult$ is the result filter: a literal ("4"), a comma list
+//     ("1,2"), an <OP><N> comparison (GE4, EQ1, LE3, GT/LT/NE) over the
+//     matched value, or "Highest" (the natural roll is the die's maximum,
+//     "a die's highest natural result"). An unparseable value fails closed.
+//   - Natural$ True matches against the UNMODIFIED die rather than the
+//     Modifier$-adjusted result ("when you roll a natural 20").
+//   - ValidSides$ scopes to a die size ("on a six-sided die").
+//   - ValidPlayer$ names the roller ("whenever YOU roll"), through the shared
+//     player-spec grammar with the trigger's own controller as You.
+//   - Number$ N ("your third die each turn") fires only on the Nth die,
+//     gated at the QUEUE site (dieRollNumberAllows, in trigger_match.go's
+//     checkFaceTriggers beside ActivationLimit$) -- the count can only
+//     advance when the trigger is really queued, never from a speculative
+//     matcher call, and the per-turn counter lives per trigger line.
+//   - Static$ True lines are Forge's continuous-effect-expressed-as-a-trigger
+//     (the two Attraction static lines), which this build does not run as
+//     triggers -- the attachedMatches guard.
+//   - RolledToVisitAttractions$ True scopes to a roll made to visit
+//     Attractions; no Attraction deck exists here, so no roll is one and the
+//     line never fires (fail closed, never over-fires).
+func (e *Engine) rolledDieMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	roller, sides, natural, result, ok := effects.DieRollResult(ev)
+	if !ok {
+		return false
+	}
+	return e.rolledDieCommon(t, source, roller, sides, natural, result)
+}
+
+// rolledDieOnceMatches implements Mode$ RolledDieOnce (trig:RolledDieOnce),
+// Forge's "whenever you roll one or more dice" mode: the trigger fires ONCE
+// per DB$ RollDice resolution on the canonical batch roll Note effRollDice
+// emits (effects/dice.go's DieRollBatchNote, decoded by DieRollBatchResult),
+// however many dice the action rolled. The per-die Mode$ RolledDie matcher
+// cannot express this cadence -- it would fire once per die -- and the batch
+// Note is the resolution boundary the per-die Notes do not carry.
+//
+// The result filter runs against the batch's HIGHEST modified result
+// (Pairs[0][1]): a ValidResult$ line fires if any die of the batch satisfied
+// it, which is what Farideh's "if any of those results was 10 or higher"
+// means and the only multi-die Once reader in the corpus. Every other
+// RolledDieOnce carrier (Vexing Puzzlebox, Brazen Dwarf, Feywild Trickster,
+// Vrondiss, Wyll, Barbarian Class) rolls exactly one die, where the highest
+// result IS the result. Natural$ True on a Once line is likewise read against
+// the highest modified result (0 corpus carriers; the natural-max is not
+// carried on the batch Note). No Number$ rides this mode.
+func (e *Engine) rolledDieOnceMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	roller, _, maxResult, _, ok := effects.DieRollBatchResult(ev)
+	if !ok {
+		return false
+	}
+	return e.rolledDieCommon(t, source, roller, 0, maxResult, maxResult)
+}
+
+// rolledDieCommon applies the parameters Mode$ RolledDie and Mode$ RolledDieOnce
+// share, so the two cadences can never disagree about Static$/ValidSides$/
+// ValidResult$/ValidPlayer$. sides is 0 when the carrier (the batch Note) does
+// not name a die size, in which case a ValidSides$ line fails closed rather
+// than matching any size.
+func (e *Engine) rolledDieCommon(t cards.Trigger, source state.ObjID, roller state.PlayerID, sides, natural, result int32) bool {
+	if strings.EqualFold(strings.TrimSpace(t.Params["Static"]), "True") {
+		return false
+	}
+	if strings.EqualFold(strings.TrimSpace(t.Params["RolledToVisitAttractions"]), "True") {
+		return false
+	}
+	if v := strings.TrimSpace(t.Params["ValidSides"]); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || int32(n) != sides {
+			return false
+		}
+	}
+	matched := result
+	if strings.EqualFold(strings.TrimSpace(t.Params["Natural"]), "True") {
+		matched = natural
+	}
+	if v, present := t.Params["ValidResult"]; present && !dieResultMatches(v, matched, natural, sides) {
+		return false
+	}
+	if v, present := t.Params["ValidPlayer"]; present {
+		if !effects.MatchesPlayerSpecFrom(e.G, v, roller, e.controllerOf(source), source) {
+			return false
+		}
+	}
+	return true
+}
+
+// dieResultMatches reports whether a die roll's matched value (the modified
+// result, or the natural roll when Natural$ True) satisfies a trigger's
+// ValidResult$ spec: the comma-list of literals and <OP><N> comparisons the
+// corpus carries, plus the special "Highest" (the natural roll is the die's
+// maximum face). An unrecognised token fails closed.
+func dieResultMatches(spec string, matched, natural, sides int32) bool {
+	spec = strings.TrimSpace(spec)
+	if spec == "" {
+		return true
+	}
+	if strings.EqualFold(spec, "Highest") {
+		return sides > 0 && natural == sides
+	}
+	for _, part := range strings.Split(spec, ",") {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		if n, err := strconv.Atoi(part); err == nil {
+			if int32(n) == matched {
+				return true
+			}
+			continue
+		}
+		if compareIntCount(matched, part) {
+			return true
+		}
+	}
+	return false
+}
+
 func init() {
 	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
 		return e.commitCrimeMatches(t, source, ev)
 	}, "CommitCrime")
+	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+		return e.rolledDieMatches(t, source, ev)
+	}, "RolledDie")
+	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+		return e.rolledDieOnceMatches(t, source, ev)
+	}, "RolledDieOnce")
 	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
 		return e.voteMatches(t, source, ev)
 	}, "Vote")

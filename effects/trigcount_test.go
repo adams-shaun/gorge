@@ -49,16 +49,82 @@ func TestTriggerCountHeadsEmptyTriggerAmountIsZero(t *testing.T) {
 	}
 }
 
-// Heads whose triggering events this build does not raise (a die/dice roll's
-// Result, a scry event's ScryNum/ScryBottom) stay zero -- the conservative
-// same-as-before no-op, not a regression.
+// Heads whose triggering events this build does not raise (a scry event's
+// ScryNum/ScryBottom) stay zero -- the conservative same-as-before no-op, not
+// a regression. Result is NO LONGER one of them: it is the RolledDie head
+// (TestTriggerCountResultReadsTheDieRoll below).
 func TestTriggerCountUnmodelledHeadsStayZero(t *testing.T) {
 	h := newHost(t, 2)
 	c := &Ctx{}
 	c.TriggerAmount = 6
-	for _, expr := range []string{"TriggerCount$Result", "TriggerCount$ScryNum", "TriggerCount$ScryBottom"} {
+	for _, expr := range []string{"TriggerCount$ScryNum", "TriggerCount$ScryBottom"} {
 		if got := EvalCount(h, c, expr); got != 0 {
 			t.Errorf("%s = %d, want 0 (unmodelled head)", expr, got)
+		}
+	}
+}
+
+// TestTriggerCountResultReadsTheDieRoll pins the RolledDie head against the
+// real corpus body Mr. House's DB$ Branch reads: BranchConditionSVar$
+// TriggerCount$Result compared GE6. The die result is captured by rules into
+// Ctx.TriggerResult when the RolledDie trigger fires (from the canonical
+// roll Note), and survives to resolution through the per-stack-instance
+// triggerContexts map -- not from TriggerAmount, and not re-inferred. The
+// /Op suffix applies exactly as for the other heads.
+func TestTriggerCountResultReadsTheDieRoll(t *testing.T) {
+	h := newHost(t, 2)
+	for _, tt := range []struct {
+		expr string
+		want int32
+	}{
+		{"TriggerCount$Result", 6},
+		{"TriggerCount$Result/Plus.2", 8},
+		{"TriggerCount$Result/Minus1", 5},
+	} {
+		c := &Ctx{}
+		c.TriggerResult = 6
+		if got := EvalCount(h, c, tt.expr); got != tt.want {
+			t.Errorf("%s = %d, want %d", tt.expr, got, tt.want)
+		}
+	}
+}
+
+// A Result head on a resolution whose trigger was not a die roll must stay
+// zero: TriggerResult is only ever set by the RolledDie capture, so a
+// non-roll trigger's body reading it acts on nothing rather than inventing a
+// result.
+func TestTriggerCountResultEmptyWithoutARoll(t *testing.T) {
+	h := newHost(t, 2)
+	c := &Ctx{}
+	c.TriggerAmount = 5 // a damage/life trigger's magnitude, NOT a die result
+	if got := EvalCount(h, c, "TriggerCount$Result"); got != 0 {
+		t.Fatalf("TriggerCount$Result with no die roll = %d, want 0", got)
+	}
+}
+
+// TestTriggerCountMaxResultReadsTheBatchHighRoll pins the second roll head,
+// TriggerCountMax$Result, against the real corpus body Farideh, Devil's
+// Chosen reads: SVar:DiceResult:TriggerCountMax$Result, gated
+// ConditionSVarCompare$ GE10 ("if any of those results was 10 or higher").
+// The batch's highest result is captured by rules into Ctx.TriggerResultMax
+// when the RolledDieOnce trigger fires, so the head answers the MAX across a
+// multi-die roll -- distinct from TriggerCount$Result, the batch's reported
+// (last) result.
+func TestTriggerCountMaxResultReadsTheBatchHighRoll(t *testing.T) {
+	h := newHost(t, 2)
+	c := &Ctx{}
+	c.TriggerResult = 3     // the last die
+	c.TriggerResultMax = 11 // the highest die of the batch
+	for _, tt := range []struct {
+		expr string
+		want int32
+	}{
+		{"TriggerCount$Result", 3},
+		{"TriggerCountMax$Result", 11},
+		{"TriggerCountMax$Result/Plus.2", 13},
+	} {
+		if got := EvalCount(h, c, tt.expr); got != tt.want {
+			t.Errorf("%s = %d, want %d", tt.expr, got, tt.want)
 		}
 	}
 }

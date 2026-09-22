@@ -976,7 +976,8 @@ func handMoveCountOf(h Host, c *Ctx, sa *cards.SA) (handMoveCount, bool) {
 		return handMoveCount{fixed: n}, true
 	}
 	resolvable := raw == "X" || strings.HasPrefix(raw, "Count$") ||
-		strings.HasPrefix(raw, "Sacrificed$") || strings.HasPrefix(raw, "TriggerCount$")
+		strings.HasPrefix(raw, "Sacrificed$") || strings.HasPrefix(raw, "TriggerCount$") ||
+		strings.HasPrefix(raw, "TriggerCountMax$")
 	if c != nil && c.SVars != nil {
 		if _, exists := c.SVars[raw]; exists {
 			resolvable = true
@@ -3907,7 +3908,7 @@ func sacrificeAmount(h Host, c *Ctx, sa *cards.SA) int32 {
 		return 0
 	}
 	known := strings.HasPrefix(raw, "Count$") || strings.HasPrefix(raw, "Sacrificed$") ||
-		strings.HasPrefix(raw, "TriggerCount$")
+		strings.HasPrefix(raw, "TriggerCount$") || strings.HasPrefix(raw, "TriggerCountMax$")
 	if !known && c.SVars != nil {
 		_, known = c.SVars[raw]
 	}

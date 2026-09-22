@@ -98,7 +98,7 @@ func NumResolved(h Host, c *Ctx, sa *cards.SA, key string, def int32) (int32, bo
 		// behind an SVar name.
 		return sign * EvalCount(h, c, raw), true
 	}
-	if strings.HasPrefix(raw, "TriggerCount$") || strings.HasPrefix(raw, "ReplaceCount$") {
+	if strings.HasPrefix(raw, "TriggerCount$") || strings.HasPrefix(raw, "TriggerCountMax$") || strings.HasPrefix(raw, "ReplaceCount$") {
 		return sign * EvalCount(h, c, raw), true
 	}
 	// A <Ref>>Count$... indirection (Unbound Flourishing's Value$
@@ -257,16 +257,21 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 	// A TriggerCount$... expression answers a question about the event that
 	// fired the trigger currently resolving -- "how much damage did that event
 	// deal" (TriggerCount$DamageAmount), "how much life did it gain/lose"
-	// (TriggerCount$LifeAmount), or the generic event magnitude
-	// (TriggerCount$Amount). The answer comes from the triggering event's own
-	// amount, captured by rules into Ctx.TriggerAmount when the trigger fired
+	// (TriggerCount$LifeAmount), the generic event magnitude
+	// (TriggerCount$Amount), or the die result a RolledDie trigger fired on
+	// (TriggerCount$Result). The answer comes from the triggering event's own
+	// amount, captured by rules into Ctx.TriggerAmount (or, for Result,
+	// Ctx.TriggerResult) when the trigger fired
 	// and carried to resolution through the per-stack-instance
 	// triggerContexts map -- never from the live board, and never re-inferred
-	// at resolution. A head this build does not model (Result, ScryNum,
+	// at resolution. A head this build does not model (ScryNum,
 	// ScryBottom) degrades to zero, exactly as it did before TriggerCount$ was
 	// recognised at all.
+	if body, ok := strings.CutPrefix(expr, "TriggerCountMax$"); ok {
+		return evalTriggerCountOK(c, strings.TrimSpace(body), true)
+	}
 	if body, ok := strings.CutPrefix(expr, "TriggerCount$"); ok {
-		return evalTriggerCountOK(c, strings.TrimSpace(body))
+		return evalTriggerCountOK(c, strings.TrimSpace(body), false)
 	}
 	// A SVar$<name>[/Op] indirection resolves another SVar on the same face
 	// and applies the suffix (Herald of War-adjacent shapes:
@@ -387,20 +392,40 @@ func countColorsLimitMax(body, op string, n int32) (int32, bool) {
 // same number, because each is the single amount the causing event carried;
 // the distinction between them is only in which trigger mode populates it
 // (and, for the corpus, that the LifeGained trigger mode is not yet
-// registered, so a LifeAmount head is unreachable today). The /Op suffix is
+// registered, so a LifeAmount head is unreachable today). Result is the
+// RolledDie head: the die result the trigger fired on (Ctx.TriggerResult,
+// captured at fire time -- Mr. House's BranchConditionSVar$ reads it after
+// the RollDice resolution that produced it has finished). The /Op suffix is
 // applied exactly as applyCountOp does for Count$ and Sacrificed$. An
-// unmodelled head (Result, ScryNum, ScryBottom) degrades to zero.
-func evalTriggerCountOK(c *Ctx, body string) (int32, bool) {
+// unmodelled head (ScryNum, ScryBottom) degrades to zero. max selects the
+// TriggerCountMax$ prefix's reading: the same heads, but Result answers the
+// highest result in the roll batch (Ctx.TriggerResultMax -- Farideh's "if any
+// of those results was 10 or higher") rather than the batch's reported result.
+//
+// Result is an EVALUATED head (verdict true) on every trigger, not only a
+// roll trigger: before RolledDie was registered it reported (0, false), so a
+// CheckSVar$ gate over it failed open; now a non-roll trigger reads 0 and the
+// gate is enforced. Measured: all 8 corpus files carrying TriggerCount$Result
+// (`/usr/bin/grep -rlE 'TriggerCount\$Result' .cards/cardsfolder`) sit on
+// Mode$ RolledDie/RolledDieOnce triggers, where Ctx.TriggerResult is set, so
+// no corpus gate changes direction.
+func evalTriggerCountOK(c *Ctx, body string, max bool) (int32, bool) {
 	body, op, hasOp := strings.Cut(body, "/")
 	var n int32
 	switch strings.TrimSpace(body) {
 	case "DamageAmount", "LifeAmount", "Amount":
 		n = c.TriggerAmount
+	case "Result":
+		if max {
+			n = c.TriggerResultMax
+		} else {
+			n = c.TriggerResult
+		}
 	default:
-		// Result (die-roll/dice), ScryNum and ScryBottom (scry events) are
-		// heads whose triggering events this build does not raise, so they
-		// stay zero -- the same conservative no-op as before the prefix was
-		// recognised. NOT evaluated: a gate over one of these fails open.
+		// ScryNum and ScryBottom (scry events) are heads whose triggering
+		// events this build does not raise, so they stay zero -- the same
+		// conservative no-op as before the prefix was recognised. NOT
+		// evaluated: a gate over one of these fails open.
 		return 0, false
 	}
 	if hasOp {

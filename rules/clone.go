@@ -254,6 +254,13 @@ func (e *Engine) Clone() *Engine {
 			c.triggerTurnResolved[k] = v
 		}
 	}
+	c.triggerTurnDiceTurn = e.triggerTurnDiceTurn
+	if e.triggerTurnDice != nil {
+		c.triggerTurnDice = make(map[triggerKey]turnFires, len(e.triggerTurnDice))
+		for k, v := range e.triggerTurnDice {
+			c.triggerTurnDice[k] = v
+		}
+	}
 	if e.tappedTurn != nil {
 		c.tappedTurn = make(map[state.ObjID]int32, len(e.tappedTurn))
 		for id, turn := range e.tappedTurn {
