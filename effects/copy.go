@@ -149,13 +149,84 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 	// flags it unread (review sol2: the earlier empty if-block was dropped).
 	_ = sa.Params["IgnoreFreeze"]
 	mayChoose := strings.EqualFold(strings.TrimSpace(sa.Params["MayChooseTarget"]), "True")
-	for n := Num(h, c, sa, "Amount", 1); n > 0; n-- {
-		h.Emit(events.Event{Kind: events.StackCopy, Obj: spell, Player: controller})
-		if mayChoose {
+	// DefinedTarget$ (Feather, Radiant Arbiter's DefinedTarget$ ChosenCard,
+	// Ivy, Gleeful Spellthief's DefinedTarget$ Self): Forge's
+	// CopySpellAbilityEffect makes ONE copy per defined target, each with
+	// its target REPLACED by that entry (the StackCopy event's IDs override
+	// the inherited list, events/event.go) -- "for each of those creatures,
+	// copy that spell. The copy targets that creature." The copy count is
+	// the defined set's size, never Amount$: no corpus carrier combines the
+	// param with an Amount$ (they name none), and the param is exactly the
+	// override of the copy-keeps-targets stand-in below. An unresolvable
+	// value (Zevlor, Elturel Exile's OppNonTriggeredSpellAbilityTargetsOr-
+	// Controller) keeps the historical single inherited-target copy under
+	// one loud Note -- the override applies only where the engine can
+	// resolve what it names.
+	targets, defined := copyDefinedTargets(h, c, sa)
+	switch {
+	case defined && len(targets) > 0:
+		// One copy per defined target, each carrying that entry alone in its
+		// IDs. Amount$ is deliberately not consulted on this route (no corpus
+		// carrier combines the two; Forge's definedTarget branch ignores it
+		// too).
+		for _, t := range targets {
+			h.Emit(events.Event{Kind: events.StackCopy, Obj: spell, Player: controller, IDs: []state.ObjID{t.Obj}})
+		}
+	case defined:
+		// A resolvable param whose set is empty (nothing chosen): no copy,
+		// no Note -- the resolution's sub-abilities (the cleanup chain) still
+		// run.
+	default:
+		if spec := strings.TrimSpace(sa.Params["DefinedTarget"]); spec != "" {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-				Text: "copy keeps its targets"})
+				Text: "copy: DefinedTarget$ " + spec + " not resolved; copy keeps its targets"})
+		}
+		for n := Num(h, c, sa, "Amount", 1); n > 0; n-- {
+			h.Emit(events.Event{Kind: events.StackCopy, Obj: spell, Player: controller})
+			if mayChoose {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "copy keeps its targets"})
+			}
 		}
 	}
+}
+
+// copyDefinedTargets resolves a CopySpellAbility DefinedTarget$ parameter to
+// the per-copy target list. true (defined) means the param is present and
+// every value this build recognises resolved: the copies follow the defined
+// entries one-for-one and the caller never falls back to the inherited
+// targets. false covers both the absent param and an unresolvable value, so
+// the caller can keep the historical copy-keeps-targets shape (under the
+// loud Note) instead of silently dropping the param.
+func copyDefinedTargets(h Host, c *Ctx, sa *cards.SA) ([]state.Target, bool) {
+	spec := strings.TrimSpace(sa.Params["DefinedTarget"])
+	if spec == "" {
+		return nil, false
+	}
+	g := h.Game()
+	switch spec {
+	case "ChosenCard":
+		// The ChooseCard chain's answered set (resolutionChosenCards is the
+		// shared read Count$ChosenSize and Defined$ ChosenCard take, so the
+		// copies can never disagree with either). Only object entries copy:
+		// a ChooseCard's chosen PLAYERS are not "those creatures".
+		var out []state.Target
+		for _, t := range resolutionChosenCards(g, c) {
+			if !t.IsPlayer && t.Obj != 0 {
+				out = append(out, t)
+			}
+		}
+		return out, true
+	case "Self":
+		// Ivy, Gleeful Spellthief: the copy targets the trigger's source
+		// permanent ("The copy targets NICKNAME"). An absent source fails
+		// the set empty -- defined, but nothing to target.
+		if c.Source == 0 || g.Obj(c.Source) == nil {
+			return nil, true
+		}
+		return []state.Target{{Obj: c.Source}}, true
+	}
+	return nil, false
 }
 
 // copyControllerFor resolves a CopySpellAbility Controller$ selector to the

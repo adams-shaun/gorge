@@ -1149,7 +1149,15 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				// reach the ask, so they never reach this arm.
 			}
 			// deterministically.
-			paid, ok := ParseUnlessCost(rp.sa.Params["UnlessCost"])
+			// UnlessCostResolved first: an UnlessCost$ naming an SVar whose
+			// count body resolves folds its numeric result into a generic
+			// amount (Feather, Radiant Arbiter's SVar:CopyCost:Count$ChosenSize/
+			// Times.2 -- "{2} for each of those creatures"), the same string
+			// unlessProceed's ask label showed, so the offer and the charge can
+			// never disagree. An SVar the ctx's table lacks or whose body does
+			// not resolve passes through raw and lands in the same hard
+			// decline as before.
+			paid, ok := ParseUnlessCost(effects.UnlessCostResolved(e, ctx, rp.sa))
 			if !ok {
 				// I-5: an unless-cost the payment API cannot price is a hard
 				// DECLINE. ParseCost("X") is {Generic:0, X:1}; payMana never

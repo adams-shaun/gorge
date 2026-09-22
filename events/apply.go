@@ -1698,6 +1698,19 @@ func Apply(g *state.Game, e Event) {
 		// the stack.
 		targets := append([]state.Target(nil), src.Targets...)
 		remembered := append([]state.Target(nil), src.Remembered...)
+		// A DefinedTarget$ copy names its own targets (the StackCopy doc): the
+		// event's IDs replace the inherited list with object targets. The
+		// ids are not re-validated here beyond existence -- the copy's own CR
+		// 608.2b resolution recheck judges legality, exactly as it does for
+		// every other stack object's targets.
+		if len(e.IDs) > 0 {
+			targets = targets[:0]
+			for _, id := range e.IDs {
+				if g.Obj(id) != nil {
+					targets = append(targets, state.Target{Obj: id})
+				}
+			}
+		}
 
 		o := g.AddObject(card, e.Player)
 		Move(g, o.ID, state.ZLibrary, state.ZStack)

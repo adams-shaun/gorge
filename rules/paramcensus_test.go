@@ -1069,6 +1069,11 @@ var stringMapParams = map[string]string{
 	// arm's whitelist); its dynamic gate-key loop (Condition/CheckSVar/...) is
 	// a fail-closed recognition, never a consumption.
 	"effects:cascadeKeywordGrantFromLine:params": "keys of a parseStaticLine-built static line (an SVar body), not a card Params map",
+	// effects/staticeffect.go parseStaticEffectGrant: params is the map
+	// parseStaticLine built from one SVar static line -- the StaticEffect$
+	// rider's Continuous body (AddType$/AddColor$/AddKeyword$/...), whose keys
+	// are static-line keys, not a card Params map.
+	"effects:parseStaticEffectGrant:params": "keys of a parseStaticLine-built SVar static line (the StaticEffect$ rider body), not a card Params map",
 	// effects/misc.go parseReplacementLine: svars is the face's SVars table
 	// (an Effect's ReplacementEffects$ body lives behind an SVar name),
 	// mirroring parseStaticLine's svars -- not a card Params map.
