@@ -75,7 +75,7 @@ func TestCorpusNameChoiceUsesFullUniverse(t *testing.T) {
 	if _, ok := reg.Lookup("Wasteland"); !ok {
 		t.Fatal("corpus precondition: Wasteland missing")
 	}
-	all := e.etbOptions(0, e.G.Zone(state.ZLibrary, 0)[0], "name", "", "", "")
+	all := e.etbOptions(0, e.G.Zone(state.ZLibrary, 0)[0], "name", "", "", "", "")
 	land := false
 	for _, o := range all {
 		if o.Label == "Wasteland" {
@@ -85,7 +85,7 @@ func TestCorpusNameChoiceUsesFullUniverse(t *testing.T) {
 	if !land {
 		t.Fatalf("unrestricted NameCard omitted unseen land; options=%d", len(all))
 	}
-	nonland := e.etbOptions(0, e.G.Zone(state.ZLibrary, 0)[0], "name", "Card.nonLand", "", "")
+	nonland := e.etbOptions(0, e.G.Zone(state.ZLibrary, 0)[0], "name", "Card.nonLand", "", "", "")
 	for _, o := range nonland {
 		if o.Label == "Wasteland" {
 			t.Fatal("nonland NameCard offered Wasteland")

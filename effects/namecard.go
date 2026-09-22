@@ -2,6 +2,7 @@ package effects
 
 import (
 	"sort"
+	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/state"
@@ -27,14 +28,31 @@ import (
 // deliberately unrestricted -- Forge's NameCardEffect does not filter when
 // ValidCards$ is absent (Pithing Needle names any card, lands included).
 //
+// description is the SA's ValidDescription$. Forge reads it as the rendered
+// PROMPT text only: ChooseCardNameEffect.resolve filters the common-card set
+// by ValidCards$ (defaulting to "Card") and uses ValidDescription$ just to
+// word the "choose a specific card name" message, which is why
+// rules/paramcensus_test.go's ignoredParamKeys cites it as UI text. When
+// ValidCards$ is present it is therefore the ONLY filter. When ValidCards$
+// is absent but a description this build can read is present, the description
+// is mapped to its equivalent predicate as a SAFETY fallback (see
+// descriptionSpec): it only ever narrows an otherwise-unrestricted offer,
+// never widens one, so it cannot change real corpus behaviour (no corpus
+// NameCard carries ValidDescription$ without ValidCards$). This keeps the
+// brief's "ValidCards$/ValidDescription semantics" honest without
+// re-implementing Forge's message localisation.
+//
 // A spec this build cannot evaluate for a printed face (a dynamic
 // game-state comparator such as `Creature.cmcEQX`, or an object predicate
 // with no resolving context) fails closed in the matcher, and a filter that
 // would empty the ask falls back to the unrestricted universe. That is the
 // totality rule (R-9): a name ask is never posted with zero options.
-func NameChoices(g *state.Game, spec string) []string {
+func NameChoices(g *state.Game, spec, description string) []string {
 	if g == nil {
 		return nil
+	}
+	if spec == "" {
+		spec = descriptionSpec(description)
 	}
 	if spec == "" {
 		return nameUniverse(g.NameUniverse)
@@ -61,6 +79,33 @@ func NameChoices(g *state.Game, spec string) []string {
 	}
 	sort.Strings(filtered)
 	return filtered
+}
+
+// descriptionSpec maps a NameCard ValidDescription$ to the predicate
+// equivalent of the description forms the corpus uses, so a description-only
+// script is offered a safely-narrowed list rather than the whole universe.
+// It is a fallback only: a present ValidCards$ is the filter and this is
+// never consulted (Forge semantics; see NameChoices). An unrecognised
+// description returns "" (unrestricted), which matches Forge's default and
+// keeps the offer total.
+func descriptionSpec(description string) string {
+	switch strings.ToLower(strings.TrimSpace(description)) {
+	case "nonland":
+		return "Card.nonLand"
+	case "creature", "creature card":
+		return "Card.Creature"
+	case "artifact", "artifact card":
+		return "Card.Artifact"
+	case "land", "land card":
+		return "Card.Land"
+	case "nonbasic land", "card other than a basic land":
+		return "Card.Land+nonBasic"
+	case "nonartifact, nonland":
+		return "Card.nonLand+nonArtifact"
+	case "noncreature, nonland":
+		return "Card.nonLand+nonCreature"
+	}
+	return ""
 }
 
 // nameUniverse is the unrestricted distinct-name pass, shared by the empty

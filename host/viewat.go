@@ -261,7 +261,15 @@ func (r *Registry) matchForLog(t *table, sc sidecar, l *events.Log) (*match, err
 		decks[i] = d.Cards
 		sideboards[i] = d.Sideboard
 	}
-	cfg := rules.Config{Seed: sc.Seed, Names: sc.Names, PlayerNames: sc.PlayerNames, Decks: decks, Sideboards: sideboardConfig(sideboards), Tokens: r.opts.Tokens, NameUniverse: r.opts.NameUniverse, Mulligans: sc.Mulligans}
+	cfg := rules.Config{Seed: sc.Seed, Names: sc.Names, PlayerNames: sc.PlayerNames, Decks: decks, Sideboards: sideboardConfig(sideboards), Tokens: r.opts.Tokens, Mulligans: sc.Mulligans}
+	// NameUniverse is a match MODE, not just data: only a match whose sidecar
+	// records it was played with a corpus universe replays with one. A
+	// pre-feature sidecar (no field) reads false, so the replay takes the
+	// R-9 no-ask stand-in and a log that recorded no name decision still
+	// reproduces (R-8.4; see sidecar.NameUniverse).
+	if sc.NameUniverse {
+		cfg.NameUniverse = r.opts.NameUniverse
+	}
 	// A persisted Commander match carries its format, the opening life it
 	// played with and its per-seat commander indices, so the replay
 	// reproduces the live match branch for branch (R-8.4: the replay Config

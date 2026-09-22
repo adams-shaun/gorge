@@ -4061,6 +4061,10 @@ func (e *Engine) collectETBChoices(you state.PlayerID) {
 			kind: kind,
 			options: e.etbOptions(you, pc.card, kind,
 				r.With.Params["ValidCards"],
+				// ValidDescription$ is Forge prompt text, not a second filter;
+				// effects.NameChoices reads it only as a safety fallback when
+				// ValidCards$ is absent (see NameChoices' doc).
+				r.With.Params["ValidDescription"],
 				// Type$ (Herald's Horn, Urza's Incubator, Roaming Throne, Three
 				// Tree City) names the category the choice ranges over. The
 				// option list below builds it; a category this build cannot
@@ -4118,7 +4122,7 @@ func etbColourLetter(name string) string {
 //
 // Option list order is deterministic: names and types are sorted strings
 // (never from a map), numbers are ascending.
-func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCards, typeCategory, exclude string) []decision.Option {
+func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCards, validDescription, typeCategory, exclude string) []decision.Option {
 	switch kind {
 	case "color":
 		// Exclude$ tokens (comma-separated, e.g. "black" on Black Dragon
@@ -4156,7 +4160,7 @@ func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCar
 		// ValidCards$ is intentionally unrestricted. effects.NameChoices is
 		// the ONE builder the mid-resolution NameCard ask shares, so the two
 		// paths offer the same names.
-		names := effects.NameChoices(e.G, validCards)
+		names := effects.NameChoices(e.G, validCards, validDescription)
 		if len(names) == 0 {
 			// Legacy embedders that do not provide a corpus retain the
 			// deterministic visible-object fallback; corpus-backed games use
