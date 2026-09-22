@@ -172,6 +172,28 @@ func knownDefinedTargets(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	return out, true
 }
 
+// ChosenTargets resolves the "chosen" answer a resolution or source object
+// holds: the in-flight choice while the resolution carries one, else the
+// source object's event-backed chosen list (the Choose "chosen" fold the
+// ChooseCard/ChooseSource/ChoosePlayer family emits). It is THE one read every
+// chosen-referent consumer goes through -- definedSpec's ChosenCard/
+// ChosenPlayer/ChosenCardController and rules' rememberedSpecContext (which
+// seeds SpecContext.Chosen so a ChosenCard/ChosenCardStrict filter spec can
+// gate a replacement's ValidSource$) -- so the resolution-time and
+// replacement-time bindings cannot drift apart. An unbound choice yields nil.
+func ChosenTargets(g *state.Game, c *Ctx) []state.Target {
+	return resolutionChosenCards(g, c)
+}
+
+// ChosenTargetsFrom is ChosenTargets for a source object named directly
+// (rules' replacement path has the registration's source id, not a Ctx).
+func ChosenTargetsFrom(g *state.Game, source state.ObjID) []state.Target {
+	if o := g.Obj(source); o != nil {
+		return copyTargets(o.Chosen)
+	}
+	return nil
+}
+
 // definedSpec resolves one RECOGNISED Defined$ value. The bool distinguishes
 // "this spec names an object reference this build models" from "unknown
 // spec": Defined's public contract keeps the chosen-targets fallback for
@@ -284,14 +306,7 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// only copies the answer there when RememberChosen$ is set. A later,
 		// independently resolving ability reads the same event-backed choice
 		// from its source permanent.
-		if c.ChosenValid || len(c.Chosen) > 0 {
-			return copyTargets(c.Chosen), true
-		}
-		// resolutionChosenCards is the shared chosen-card read
-		// (count.go's ChosenSize head, copy.go's DefinedTarget$ ChosenCard);
-		// this case keeps the player entries ChosenPlayer reads, which the
-		// helper carries too.
-		return resolutionChosenCards(g, c), true
+		return ChosenTargets(g, c), true
 	case "Player.IsRemembered":
 		// Forge's Player.IsRemembered names the source permanent's persistent
 		// player-Remembered list -- the same set the filter spelling of the
@@ -337,6 +352,15 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		return controllersOf(g, c.Targets), true
 	case "ChosenController":
 		return controllersOf(g, c.Chosen), true
+	case "ChosenCardController":
+		// Forge's ChosenCardController (Deflecting Palm's retaliation, New Way
+		// Forward's redirect): the controller of the chosen CARD. The chosen
+		// binding is the same one ChosenCard reads -- the in-flight choice
+		// while this resolution holds one, else the source object's
+		// event-backed chosen list -- reduced to its controllers. An unbound
+		// choice yields nothing, so the body acts on nobody rather than
+		// inventing a seat.
+		return controllersOf(g, ChosenTargets(g, c)), true
 	case "Targeted", "ParentTarget", "ParentTargeted", "ThisTargetedCard":
 		return copyTargets(c.Targets), true
 	case "TriggeredAttackers":

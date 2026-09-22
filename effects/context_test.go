@@ -99,6 +99,19 @@ func (h *fakeHost) AddContinuous(ce state.ContinuousEffect) {
 	h.continuous = append(h.continuous, ce)
 }
 
+// EndEffect mirrors rules.Engine's implementation: drop the registration
+// with exactly this (source, timestamp) identity.
+func (h *fakeHost) EndEffect(source state.ObjID, stamp uint32) {
+	kept := h.continuous[:0]
+	for _, ce := range h.continuous {
+		if ce.Source == source && ce.Timestamp == stamp {
+			continue
+		}
+		kept = append(kept, ce)
+	}
+	h.continuous = kept
+}
+
 // ContinuousNamed scans the double's own recorded slice: the effects tests
 // have no engine registry to ask.
 func (h *fakeHost) ContinuousNamed(controller state.PlayerID, name string) bool {

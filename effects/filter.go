@@ -1197,7 +1197,7 @@ func positiveRecognised(p string) bool {
 // positiveRecognised: a recognised classifier word (map predicate, numeric
 // predicate, generic non<X> negation, or wordPredicate word).
 func positiveRecognisedWord(p string) bool {
-	if p == "ChosenCard" || p == "nonChosenCard" || p == "RememberedPlayerCtrl" || p == "CanBeTargetedByTriggeredSpellAbility" {
+	if p == "ChosenCard" || p == "ChosenCardStrict" || p == "nonChosenCard" || p == "RememberedPlayerCtrl" || p == "CanBeTargetedByTriggeredSpellAbility" {
 		return true
 	}
 	if _, _, ok := controlReferent(p); ok {
@@ -1561,7 +1561,18 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		// every matching token without the distinctness narrowing.
 		return o.IsToken, true
 	}
-	if p == "ChosenCard" || p == "nonChosenCard" {
+	if p == "ChosenCard" || p == "ChosenCardStrict" || p == "nonChosenCard" {
+		// Forge's ChosenCard and ChosenCardStrict are one predicate for this
+		// build: the candidate is (or, under nonChosenCard, is not) one of the
+		// resolution's chosen cards (SpecContext.Chosen, seeded from the source
+		// object's event-backed choice for a context outside the resolution).
+		// The corpus uses ChosenCardStrict 66 files, almost all as a
+		// ValidSource$/ValidCard$ gate on a ChooseSource answer (Deflecting
+		// Palm's `Card.ChosenCardStrict,Emblem.ChosenCard`), and every carrier
+		// means exactly that membership; the non-strict spelling stays the
+		// ordinary chosen-list read. An unbound ChosenValid fails closed,
+		// including beneath '!' -- the conservative direction this predicate
+		// family has always taken.
 		if !sc.ChosenValid {
 			return false, true
 		}

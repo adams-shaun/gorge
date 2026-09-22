@@ -464,6 +464,23 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	var imprinted []state.ObjID
+	// Forge keeps every DB$ Effect in an implicit "effect" object in the
+	// Command zone, and the corpus's one-shot idiom `DB$ ChangeZone | Defined$
+	// Self | Origin$ Command | Destination$ Exile` is that effect object
+	// exiling itself -- ending the effect after one use (Deflecting Palm's
+	// RPreventNextFromSource: "the NEXT time the chosen source would deal
+	// damage"). This build has no effect object, so when the chain resolves
+	// inside an Effect-created replacement's body (Ctx.EffectFrame is bound
+	// by rules' seedEffectReplCtx) and the ChangeZone names that frame's own
+	// source, the shape ends exactly that registration. Everywhere else the
+	// ordinary move below runs unchanged (it moves nothing: the named source
+	// is not in the Command zone), so no other resolution changes.
+	if f := c.EffectFrame; f.Source != 0 && f.Source == c.Source && to == state.ZExile && !originAll &&
+		len(originZones) == 1 && originZones[0] == state.ZCommand &&
+		len(targets) == 1 && !targets[0].IsPlayer && targets[0].Obj == c.Source {
+		h.EndEffect(f.Source, f.Stamp)
+		return
+	}
 	// The objects the move loop actually moved, in move order: ChangeZone's
 	// AtEOT$ affected set is the MOVED objects (some carriers carry
 	// RememberChanged$ and some do not, so the moved set is collected here

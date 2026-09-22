@@ -1091,6 +1091,35 @@ func (e *Engine) AddContinuous(ce ContinuousEffect) {
 	e.continuousVersion++
 }
 
+// EndEffect ends the one continuous-effect registration identified by
+// (source, stamp) -- the one-shot Effect self-exile (`DB$ ChangeZone |
+// Defined$ Self | Origin$ Command | Destination$ Exile`) that Forge models by
+// exiling the implicit effect object it keeps in the Command zone. It drops
+// exactly the entries carrying that identity (the same identity the
+// replacement key and applyReplaceDamageTail's shield depletion use), so a
+// source's OTHER registrations and its printed abilities are untouched.
+// Engine-runtime only, rebuilt by re-execution on replay exactly like every
+// other continuous-registry write; it emits no event.
+func (e *Engine) EndEffect(source state.ObjID, stamp uint32) {
+	if source == 0 {
+		return
+	}
+	kept := e.continuous[:0]
+	changed := false
+	for _, ce := range e.continuous {
+		if ce.Source == source && ce.Timestamp == stamp {
+			changed = true
+			continue
+		}
+		kept = append(kept, ce)
+	}
+	if !changed {
+		return
+	}
+	e.continuous = kept
+	e.continuousVersion++
+}
+
 // nextTurnFor returns the turn number of the next turn (strictly after the
 // current one) whose active player is p -- i.e. p's NEXT turn, the
 // controller's-next-turn boundary of an UntilYourNextTurn effect.
