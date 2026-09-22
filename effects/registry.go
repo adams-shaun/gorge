@@ -292,6 +292,33 @@ type Host interface {
 	// owner there — a cost discard is paid from the payer's own hand (CR
 	// 118.2a), so the owner is the discarder.
 	CardsDiscardedThisTurn(p state.PlayerID) int32
+	// CardsDrawnThisTurn reports how many cards player p DREW this turn —
+	// every events.Draw naming p since the last TurnChange, derived from the
+	// event log so a replay derives the same number. This is the
+	// PlayerCount<group>$Condition<N> CardsDrawn backing (Smuggler's Share's
+	// "draw a card for each opponent who drew two or more cards this turn")
+	// and the per-player property read a player-count condition compares.
+	// Draws by effect, by the draw step and by an opening hand all emit the
+	// same event, so an opening-hand draw inside the first turn's window is
+	// counted, exactly as Forge's cardsDrawnThisTurn list is.
+	CardsDrawnThisTurn(p state.PlayerID) int32
+	// SpellsCastThisTurnBy counts the spells put on the stack this turn by
+	// player p — the per-caster projection of CastThisTurn, derived from the
+	// event log so a replay derives the same number. This is the
+	// PlayerCount<group>$Condition<N> SpellsCastThisTurn backing (Ertai's
+	// Scorn / Mindbreak Trap / Whiplash Trap: "for each opponent who cast
+	// two or more spells this turn"), the per-member property a player-count
+	// condition compares (SpellsCastThisTurnMatching cannot answer it because
+	// its scope is a Forge spec's You* qualifier, not the counted member).
+	SpellsCastThisTurnBy(p state.PlayerID) int
+	// StartingLife reports this game's opening life total (Config's
+	// 0-means-20 convention already resolved at genesis). It is the
+	// PlayerCountDefinedPlayer.PlayerUID_RelativePlayerUID$StartingLife
+	// backing (Anya, Merciless Angel's per-opponent "less than half their
+	// starting life total" and Game Over's relative half-starting-life
+	// threshold), the ONE game-wide value the relative-player property reads.
+	// Captured at genesis, so a replay derives the same number.
+	StartingLife() int32
 	// TurnsTaken reports how many of the game's turns have begun with p as
 	// the active player, INCLUDING the turn in progress when it is p's —
 	// Forge's Player.getTurns backing (Serra Avenger's

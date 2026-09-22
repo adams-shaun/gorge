@@ -656,3 +656,112 @@ func TestThisTurnEnteredExileSkipsSpellCopies(t *testing.T) {
 		}
 	}
 }
+
+// TestPlayerCountConditionFamily pins the Condition<OP><RHS> <property>
+// dispatch (the PlayerCount<group>$Condition family, condition1): per-member
+// property evaluation (the spec's You* qualifiers bind to the COUNTED
+// member, never the resolving controller), a literal threshold, an SVar
+// threshold resolved per member (the relative StartingLife/HalfDown read),
+// the PlayerCountHasLost$Amount head, and the unresolvable-property verdict
+// (0, false) — a gate over an unmodelled property must fail per its caller's
+// documented direction, never enforce a fake zero.
+func TestPlayerCountConditionFamily(t *testing.T) {
+	g, ids := board(t)
+	h := &fakeHost{g: g,
+		drawn:        map[state.PlayerID]int32{0: 2, 1: 2},
+		castsBy:      map[state.PlayerID]int{1: 2},
+		startingLife: 20}
+	c := &Ctx{Controller: 0}
+	// Both seats drew two cards, but only the OPPONENT is a group member.
+	if got := EvalCount(h, c, "Count$PlayerCountOpponents$ConditionGE2 CardsDrawn"); got != 1 {
+		t.Errorf("opponents with GE2 CardsDrawn = %d, want 1", got)
+	}
+	if got := EvalCount(h, c, "Count$PlayerCountPlayers$ConditionGE2 CardsDrawn"); got != 2 {
+		t.Errorf("players with GE2 CardsDrawn = %d, want 2", got)
+	}
+	// SpellsCastThisTurn backs 3 of the 9 corpus Condition carriers (Ertai's
+	// Scorn, Mindbreak Trap, the ConditionGE3 SpellsCastThisTurn shape) and
+	// counts per member: the opponent cast 2, the controller cast none.
+	if got := EvalCount(h, c, "Count$PlayerCountOpponents$ConditionGE2 SpellsCastThisTurn"); got != 1 {
+		t.Errorf("opponents with GE2 SpellsCastThisTurn = %d, want 1", got)
+	}
+	if got := EvalCount(h, c, "Count$PlayerCountPlayers$ConditionGE2 SpellsCastThisTurn"); got != 1 {
+		t.Errorf("players with GE2 SpellsCastThisTurn = %d, want 1 (only seat 1 cast)", got)
+	}
+	// The per-member ThisTurnEntered leg: one creature entered per seat; the
+	// spec's YouCtrl binds to the counted member.
+	g.Entered = append(g.Entered,
+		state.ZoneEntry{Obj: ids["myBear"], To: state.ZBattlefield, From: state.ZHand},
+		state.ZoneEntry{Obj: ids["theirBig"], To: state.ZBattlefield, From: state.ZHand})
+	if got := EvalCount(h, c, "Count$PlayerCountOpponents$ConditionGE1 ThisTurnEntered_Battlefield_Creature.YouCtrl"); got != 1 {
+		t.Errorf("opponents with GE1 creature entry = %d, want 1 (the resolved controller's own entry must not count)", got)
+	}
+	if got := EvalCount(h, c, "Count$PlayerCountPlayers$ConditionGE1 ThisTurnEntered_Battlefield_Creature.YouCtrl"); got != 2 {
+		t.Errorf("players with GE1 creature entry = %d, want 2", got)
+	}
+	// The SVar-RHS read resolved PER MEMBER: Anya's `ConditionLTZ LifeTotal`
+	// with Z = the member's own half starting life (20/2 = 10). Opponent at
+	// 9 counts; back at 10 it does not.
+	sv := &Ctx{Controller: 0, SVars: map[string]string{
+		"Z": "PlayerCountDefinedPlayer.PlayerUID_RelativePlayerUID$StartingLife/HalfDown"}}
+	g.Players[1].Life = 9
+	if got := EvalCount(h, sv, "Count$PlayerCountOpponents$ConditionLTZ LifeTotal"); got != 1 {
+		t.Errorf("opponents below half starting life = %d, want 1", got)
+	}
+	g.Players[1].Life = 10
+	if got := EvalCount(h, sv, "Count$PlayerCountOpponents$ConditionLTZ LifeTotal"); got != 0 {
+		t.Errorf("opponents below half starting life at 10 = %d, want 0", got)
+	}
+	// PlayerCountHasLost$Amount: the lost-seat count (Hot Pursuit's gate).
+	g.Players[1].Lost = true
+	if got := EvalCount(h, c, "Count$PlayerCountHasLost$Amount"); got != 1 {
+		t.Errorf("lost seats = %d, want 1", got)
+	}
+	// The /Op suffix applies (Rampant Frogantua's Amount/Times.10 — its
+	// +10/+10-per-lost-player SVar): 1 lost seat x 10.
+	if got := EvalCount(h, c, "Count$PlayerCountHasLost$Amount/Times.10"); got != 10 {
+		t.Errorf("lost seats /Times.10 = %d, want 10", got)
+	}
+	// An unmodelled property fails UNRESOLVABLE, never a fake zero — and
+	// the verdict must hold on an EMPTY group too (the HasLost assertions
+	// above left the only opponent lost): the per-member loop never runs
+	// there, so the property must be validated before it. An `...LE0`-shaped
+	// gate over an unmodelled property on an empty group would otherwise
+	// evaluate true (0 <= 0) — the wrong-wide class.
+	for _, body := range []string{
+		"Count$PlayerCountOpponents$ConditionGE2 BogusProp",
+		"Count$PlayerCountOpponents$ConditionLE0 BogusProp",
+		// A named RHS with no body anywhere is equally unresolvable on the
+		// empty group: the RHS body must be looked up before the range too.
+		"Count$PlayerCountOpponents$ConditionLENoSuchSVar LifeTotal",
+		// A MALFORMED ThisTurnEntered_ spec must fail unresolvable too: the
+		// pre-check has to share the evaluator's own grammar (a bare prefix
+		// or an unknown zone word is not a spec), or an `...LE0`-shaped gate
+		// over one evaluates true (0 <= 0) over nothing.
+		"Count$PlayerCountOpponents$ConditionLE0 ThisTurnEntered_",
+		"Count$PlayerCountOpponents$ConditionLE0 ThisTurnEntered_Nonsense",
+		"Count$PlayerCountOpponents$ConditionLE0 ThisTurnEntered_Battlefield_",
+	} {
+		if got, ok := EvalCountOK(h, c, body); ok {
+			t.Errorf("%s reported EVALUATED as %d on an empty group — must fail unresolvable", body, got)
+		}
+	}
+	// A WELL-FORMED ThisTurnEntered_ spec over the SAME empty group is still
+	// the honest zero — a modelled property must not be caught by the
+	// malformed-spec guard.
+	if got, ok := EvalCountOK(h, c, "Count$PlayerCountOpponents$ConditionLE0 ThisTurnEntered_Battlefield_Creature"); !ok || got != 0 {
+		t.Errorf("well-formed ThisTurnEntered over an empty group = (%d, %v), want (0, true)", got, ok)
+	}
+	// An SVar RHS whose body EXISTS but does not resolve is unresolvable on
+	// the empty group too (the body is only otherwise evaluated per member).
+	bad := &Ctx{Controller: 0, SVars: map[string]string{"Z": "Count$BogusHead"}}
+	if got, ok := EvalCountOK(h, bad, "Count$PlayerCountOpponents$ConditionLTZ LifeTotal"); ok {
+		t.Errorf("non-resolving SVar RHS reported EVALUATED as %d on an empty group — must fail unresolvable", got)
+	}
+	// Same verdict on a LIVE group (the per-member read the original pin
+	// covered).
+	g.Players[1].Lost = false
+	if got, ok := EvalCountOK(h, c, "Count$PlayerCountOpponents$ConditionGE2 BogusProp"); ok {
+		t.Errorf("BogusProp reported EVALUATED as %d on a live group — must fail unresolvable", got)
+	}
+}

@@ -2781,6 +2781,54 @@ func (e *Engine) CardsDiscardedThisTurn(p state.PlayerID) int32 {
 	return n
 }
 
+// CardsDrawnThisTurn satisfies effects.Host's CardsDrawnThisTurn for the
+// PlayerCount<group>$Condition<N> CardsDrawn property (Smuggler's Share's
+// "draw a card for each opponent who drew two or more cards this turn"):
+// every events.Draw naming p since the last TurnChange. Derived from the
+// event log like CardsDiscardedThisTurn, so a replay derives the same
+// number. Every draw emitter — the draw step, an effect's Draw and the
+// opening hand — emits the same event kind with Player set, so the fold
+// counts them all, exactly as Forge's per-turn cardsDrawn list does.
+func (e *Engine) CardsDrawnThisTurn(p state.PlayerID) int32 {
+	var n int32
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if ev.Kind == events.Draw && ev.Player == p {
+			n++
+		}
+	}
+	return n
+}
+
+// SpellsCastThisTurnBy satisfies effects.Host's SpellsCastThisTurnBy for the
+// PlayerCount<group>$Condition<N> SpellsCastThisTurn property (Ertai's
+// Scorn / Mindbreak Trap / Whiplash Trap: "for each opponent who cast two
+// or more spells this turn"): every PutOnStack naming p since the last
+// TurnChange. Derived from the event log like CastThisTurn, so a replay
+// derives the same number.
+func (e *Engine) SpellsCastThisTurnBy(p state.PlayerID) int {
+	n := 0
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if ev.Kind == events.PutOnStack && ev.Player == p {
+			n++
+		}
+	}
+	return n
+}
+
+// StartingLife satisfies effects.Host's StartingLife: the opening life total
+// genesis resolved (Config.StartingLife's 0-means-20 convention already
+// applied in newWithRNG). Captured at construction and copied by Clone, so a
+// replay derives the same value.
+func (e *Engine) StartingLife() int32 { return e.startingLife }
+
 // TurnsTaken satisfies effects.Host's TurnsTaken for Count$YourTurns (Serra
 // Avenger's "your first, second, or third turns of the game"): the number of
 // turns that have BEGUN with p as the active player, current turn included.

@@ -83,9 +83,10 @@ func (e *Engine) Clone() *Engine {
 		// CR 903.4b pregame colour round's state and the carried Mulligans
 		// limit. colorRound.asks is never mutated (only the cursor advances),
 		// so sharing the reference is safe -- the blockerRound class.
-		coloring:   e.coloring,
-		colorRound: e.colorRound,
-		mulligans:  e.mulligans,
+		coloring:     e.coloring,
+		colorRound:   e.colorRound,
+		mulligans:    e.mulligans,
+		startingLife: e.startingLife,
 		// E2 held-out cast suppression (cast.go): the set of card ids whose
 		// cast option is held out of the current window after an unpayable
 		// decline. A clone taken at any intent boundary carries it forward so

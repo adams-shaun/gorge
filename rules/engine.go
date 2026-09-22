@@ -161,6 +161,13 @@ type Engine struct {
 	// hand-off the genesis branch would have taken, and cfg is not otherwise
 	// retained. Plain int, so Clone copies it.
 	mulligans int
+	// startingLife is Config.StartingLife with the 0-means-20 convention
+	// already resolved at genesis — the value state.NewGameLife opened the
+	// game with. It is the effects.Host StartingLife backing (the
+	// PlayerCountDefinedPlayer.PlayerUID_RelativePlayerUID$StartingLife read
+	// behind Anya, Merciless Angel's and Game Over's relative
+	// half-starting-life thresholds). Plain int32, so Clone copies it.
+	startingLife int32
 	// pregame is true while the London mulligan round runs, between the
 	// opening deal and turn 1. Config.Mulligans > 0 sets it in New; step()
 	// dispatches to stepPregame (rules/mulligan.go) while it is true, and the
@@ -1110,6 +1117,7 @@ func newWithRNG(cfg Config, random *rng) *Engine {
 		turnsTaken:   make([]int32, len(cfg.Names)),
 		compiledText: newCompiledText(cfg),
 		mulligans:    cfg.Mulligans,
+		startingLife: life,
 	}
 	e.G.Tokens = cfg.Tokens
 	e.format = cfg.Format
