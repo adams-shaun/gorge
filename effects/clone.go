@@ -79,6 +79,15 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 		if c.CloneChoice == 0 {
 			return
 		}
+		// The election was made while the spell was announced, but a player
+		// may respond before it resolves. Recheck both battlefield presence
+		// and the body selector now: the chosen creature may have left, or
+		// changed controller and no longer satisfy Choices$ Creature.OppCtrl.
+		// An invalidated optional template means the entering object simply
+		// enters as itself, never as a copy of an object from a former zone.
+		if !cloneETBTemplateLegal(g, c, sa) {
+			return
+		}
 	}
 
 	// Copy SOURCE.
@@ -402,6 +411,28 @@ func cloneBecome(h Host, c *Ctx, sa *cards.SA) ([]state.Target, bool) {
 		return battlefieldValidTargets(h, c, strings.TrimSpace(rest)), true
 	}
 	return knownDefinedTargets(h, c, spec)
+}
+
+// cloneETBTemplateLegal revalidates the recorded ETB-copy template at
+// replacement resolution. ETB choices are announced before the spell moves to
+// the stack, so the cast-time option list is not sufficient: priority can
+// remove the chosen object or change its controller before this replacement
+// applies. Its selector normalization and MatchSpecFrom arguments deliberately
+// mirror rules' etbOptions copy arm, keeping eligibility in the same filter
+// grammar at announcement and resolution.
+func cloneETBTemplateLegal(g *state.Game, c *Ctx, sa *cards.SA) bool {
+	o := g.Obj(c.CloneChoice)
+	if o == nil || o.Zone != state.ZBattlefield || o.Face() == nil {
+		return false
+	}
+	spec := strings.TrimSpace(sa.Params["Choices"])
+	if spec == "" {
+		spec = "Creature.Other"
+	}
+	if !strings.Contains(spec, ".") && !strings.HasPrefix(spec, "Card") {
+		spec = "Card." + spec
+	}
+	return MatchesSpecFrom(g, spec, c.CloneChoice, c.Controller, c.Source)
 }
 
 // cloneChoiceSource resolves a Choices$ <filter> pick to the first eligible
