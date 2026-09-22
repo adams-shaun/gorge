@@ -371,10 +371,17 @@ func (e *Engine) setStep(s state.Step) {
 }
 
 func (e *Engine) finishStepBoundary(leaving, entering state.Step) {
-	// Mana pools empty as each step ends (CR 500.4).
+	// Mana pools empty as each step ends (CR 500.4). A live stat:UnspentMana
+	// static protects a seat's unspent mana of the named colour: its keep
+	// letters ride the event Text ("" = nothing protected, the historical
+	// shape every game without a carrier emits) and the ManaClear fold honours
+	// them, so the replay derives the same keep set from the same deterministic
+	// static walk.
 	for i := range e.G.Players {
 		if e.G.Players[i].Pool.Total() > 0 {
-			e.emit(events.Event{Kind: events.ManaClear, Player: state.PlayerID(i)})
+			ev := events.Event{Kind: events.ManaClear, Player: state.PlayerID(i)}
+			ev.Text = e.unspentManaKeep(state.PlayerID(i))
+			e.emit(ev)
 		}
 	}
 	if leaving == state.StepEndCombat && entering != leaving {
@@ -1035,6 +1042,26 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		e.emit(events.Event{Kind: events.Choose, Obj: e.riotMove.Obj, Counter: "riot", Text: choice})
 		move := *e.riotMove
 		e.riotMove = nil
+		e.choosing = chooseNone
+		e.emit(move)
+	case chooseUnleash:
+		// kw:Unleash (CR 702.86, rules/unleash.go) is an as-enters replacement
+		// for every MoveZone path, the Riot arm's exact shape: record the
+		// choice, then re-emit the parked entry; Apply consumes it on
+		// battlefield entry.
+		if e.unleashMove == nil || len(chosen) != 1 {
+			e.unleashMove = nil
+			e.choosing = chooseNone
+			e.emit(events.Event{Kind: events.Note, Player: in.Player, Text: "Unleash answered with no entry pending"})
+			return
+		}
+		choice := "plain"
+		if chosen[0].Index == 0 {
+			choice = "counter"
+		}
+		e.emit(events.Event{Kind: events.Choose, Obj: e.unleashMove.Obj, Counter: "unleash", Text: choice})
+		move := *e.unleashMove
+		e.unleashMove = nil
 		e.choosing = chooseNone
 		e.emit(move)
 	case chooseSiege:

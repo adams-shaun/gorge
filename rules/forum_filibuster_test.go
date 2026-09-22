@@ -246,9 +246,11 @@ func TestDiregrafHordeDividesTokensIntoOneInstance(t *testing.T) {
 // is AB$ ImmediateTrigger | Cost$ 1 -- the "you may pay {1}. When you do"
 // idiom. The ordinary triggered-cost window poses the pay/decline ask; the
 // paid answer charges one mana and executes TrigEffect (its CantBlockBy
-// static registration is still the unimplemented-Note stand-in, the
-// paramcensus's own param:api:Effect.ValidTgtsDesc row -- not this task's
-// scope); a decline (asserted on the second game) executes nothing.
+// static used to fall to the unimplemented Note; since the
+// Effect-delivered-CantBlockBy ticket -- rules/effect_cantblockby_test.go --
+// the paid body registers a REAL CantBlockBy restriction, which is what the
+// pay subtest now asserts instead of the old note); a decline (asserted on
+// the second game) executes nothing.
 func TestSpeedYoungAvengerImmediateTrigger(t *testing.T) {
 	reg := searchTestRegistry(t)
 
@@ -336,22 +338,43 @@ func TestSpeedYoungAvengerImmediateTrigger(t *testing.T) {
 			submitChoices(t, e, 0)
 		}
 
-		note := false
-		for _, ev := range e.L.Events {
-			if ev.Kind == events.Note && strings.Contains(ev.Text, "CantBlockBy") {
-				note = true
+		// The paid body is TrigEffect (DB$ Effect | StaticAbilities$ KWPump),
+		// whose Mode$ CantBlockBy grant effEffect registers for real (the
+		// ticket counterplayeraddedall added the mode to the registration
+		// case). The old assertion watched for the "unimplemented" Note the
+		// build used to emit; the registration IS the execution now. The
+		// registration's Remembered is a separate, pre-existing mvts1 gap:
+		// the answered tgts ask does not reach the body's RememberObjects$
+		// Targeted read (ledgered in the ticket report), so the grant itself
+		// remembers nothing here — the assertion pins the EXECUTION, not the
+		// remembered set.
+		registered := false
+		for i := range e.continuous {
+			if ce := &e.continuous[i]; ce.Restriction == "CantBlockBy" {
+				registered = true
 			}
 		}
+		count := effectCantBlockByCount(e)
 		if shouldPay {
 			poolAfter := e.G.Players[0].Pool.Total()
 			if poolAfter != poolBefore-1 {
 				t.Fatalf("pool %d -> %d, want exactly one mana charged", poolBefore, poolAfter)
 			}
-			if !note {
+			if !registered {
 				t.Fatalf("the paid body never executed TrigEffect (tail %+v)", tailEmit(e, 8))
 			}
-		} else if note {
-			t.Fatal("the declined cost still executed the body")
+			// The registered restriction is exactly the one static this board can
+			// hold, so count must be 1 (main's stricter cbb1 assertion).
+			if count != 1 {
+				t.Fatalf("CantBlockBy effects registered = %d, want 1 (tail %+v)", count, tailEmit(e, 8))
+			}
+		} else {
+			if registered {
+				t.Fatal("the declined cost still executed the body")
+			}
+			if count != 0 {
+				t.Fatalf("the declined cost still registered the CantBlockBy static (%d effects)", count)
+			}
 		}
 	}
 

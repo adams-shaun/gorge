@@ -551,7 +551,10 @@ func TestControlEndsAtEndOfCombatAndWhenAuraUnattaches(t *testing.T) {
 // resumed frame, so each choice reaches the post-loop random choice only if
 // the resumed iteration hands its Remembered back to the loop frame. The
 // seed is fixed so the random pick lands on the FIRST opponent's permanent,
-// which is in the pool only through that hand-over.
+// which is in the pool only through that hand-over. Each iteration offers
+// ONLY its own opponent's relic: Forge's getDefinedPlayers("Remembered")
+// names remembered players alone, so ControlledBy Remembered in iteration 2
+// is seat 2 even though the relic seat 1 remembered is still in the set.
 func TestChaosDefilerRemembersEveryAskedIteration(t *testing.T) {
 	e := New(Config{Seed: 702, Names: []string{"a", "b", "c"}, Decks: [][]*cards.Card{mountainDeck(t, 40), mountainDeck(t, 40), mountainDeck(t, 40)}})
 	defiler := e.G.AddObject(choiceCorpusCard(t, "Chaos Defiler"), 0)
@@ -566,13 +569,9 @@ func TestChaosDefilerRemembersEveryAskedIteration(t *testing.T) {
 	e.resolveTop()
 	for _, p := range []state.PlayerID{1, 2} {
 		d := e.Pending()
-		// Iteration 1 offers only opponent 1's relic. Iteration 2 also offers
-		// it: as in Forge, the card iteration 1 remembered stays remembered,
-		// so ControlledBy Remembered names its controller as well.
-		want := 1
-		if p == 2 {
-			want = 2
-		}
+		// Each iteration offers exactly its own opponent's relic: the loop
+		// subject is the only remembered PLAYER (Forge's addPlayer ignores
+		// the remembered card from the previous iteration).
 		pick := -1
 		if d != nil {
 			for _, o := range d.Options {
@@ -581,8 +580,8 @@ func TestChaosDefilerRemembersEveryAskedIteration(t *testing.T) {
 				}
 			}
 		}
-		if d == nil || d.Kind != decision.KChoose || d.Player != 0 || len(d.Options) != want || pick < 0 {
-			t.Fatalf("iteration for opponent %d asked %+v, want %d option(s) including relic %d", p, d, want, relics[p])
+		if d == nil || d.Kind != decision.KChoose || d.Player != 0 || len(d.Options) != 1 || pick < 0 {
+			t.Fatalf("iteration for opponent %d asked %+v, want 1 option (relic %d)", p, d, relics[p])
 		}
 		submitChoices(t, e, pick)
 	}

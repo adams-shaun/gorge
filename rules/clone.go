@@ -116,6 +116,10 @@ func (e *Engine) Clone() *Engine {
 		ev := *e.riotMove
 		c.riotMove = &ev
 	}
+	if e.unleashMove != nil {
+		ev := *e.unleashMove
+		c.unleashMove = &ev
+	}
 	if e.siegeMove != nil {
 		ev := *e.siegeMove
 		c.siegeMove = &ev
@@ -131,6 +135,7 @@ func (e *Engine) Clone() *Engine {
 		d.ResumeChoices = append([]state.Target(nil), e.pending.ResumeChoices...)
 		d.ResumeChosenValid = e.pending.ResumeChosenValid
 		d.ResumeRemembered = append([]state.Target(nil), e.pending.ResumeRemembered...)
+		d.ResumeTargetsUnique = append([]state.Target(nil), e.pending.ResumeTargetsUnique...)
 		c.pending = &d
 	}
 	if e.resume != nil {
@@ -165,6 +170,12 @@ func (e *Engine) Clone() *Engine {
 			}
 			ce.Remembered = append([]state.ObjID(nil), ce.Remembered...)
 			ce.RememberedPlayers = append([]state.PlayerID(nil), ce.RememberedPlayers...)
+			// The has-all-abilities-of face lists: deep-copied like the other
+			// rider slices so an intent-boundary clone never shares a backing
+			// array the live engine may extend (the entries' Face pointers are
+			// immutable compiled faces and are shared deliberately).
+			ce.GainedFaces = append([]state.GainedFace(nil), ce.GainedFaces...)
+			ce.GainedTriggerFaces = append([]state.GainedFace(nil), ce.GainedTriggerFaces...)
 			ce.ShieldTargets = append([]state.ObjID(nil), ce.ShieldTargets...)
 			ce.ShieldTargetPlayers = append([]state.PlayerID(nil), ce.ShieldTargetPlayers...)
 			if ce.ReplacementParams != nil {
@@ -487,6 +498,7 @@ func (e *Engine) Clone() *Engine {
 		pc.delve = append([]state.ObjID(nil), e.cast.delve...)
 		pc.sacs = append([]state.ObjID(nil), e.cast.sacs...)
 		pc.discards = append([]state.ObjID(nil), e.cast.discards...)
+		pc.subCtrs = append([]state.ObjID(nil), e.cast.subCtrs...)
 		pc.exiles = append([]state.ObjID(nil), e.cast.exiles...)
 		pc.returns = append([]state.ObjID(nil), e.cast.returns...)
 		pc.moveGraves = append([]state.ObjID(nil), e.cast.moveGraves...)
@@ -664,6 +676,7 @@ func cloneResume(rp *resumePoint) *resumePoint {
 	cp.chosenValid = rp.chosenValid
 	cp.remembered = append([]state.Target(nil), rp.remembered...)
 	cp.loopRemembered = append([]state.Target(nil), rp.loopRemembered...)
+	cp.targetsUnique = append([]state.Target(nil), rp.targetsUnique...)
 	if rp.repeat != nil {
 		cur := *rp.repeat
 		cur.subjects = append([]state.Target(nil), rp.repeat.subjects...)

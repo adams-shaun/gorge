@@ -144,13 +144,17 @@ type Trace struct {
 	// Sample diagnostics, zero when the clairvoyant path skipped sampling.
 	Attempts, Accepted, PrefixRejected, Duplicates int
 	ESS                                            float64
-	TopRejection                                   string
-	HandToStack                                    searchprobe.HandToStackCauses
-	CompetitionExclusions                          int
-	CompetitionResidual                            int
-	CompetitionUnguided                            int
-	BoardPotentialActionsOnly                      int
-	IncompatibleProposals                          int
+	// Rejections is the complete deterministic sampler rejection census for
+	// this decision. It is copied from SampleResult rather than retained by
+	// reference so diagnostics cannot alias a sampler result.
+	Rejections                []searchprobe.RejectionBucket
+	TopRejection              string
+	HandToStack               searchprobe.HandToStackCauses
+	CompetitionExclusions     int
+	CompetitionResidual       int
+	CompetitionUnguided       int
+	BoardPotentialActionsOnly int
+	IncompatibleProposals     int
 
 	// Teacher result. Index 0 is the bot's own answer.
 	Index    int
@@ -347,6 +351,7 @@ func sampleFallback(err error) string {
 func recordSample(tr *Trace, sr searchprobe.SampleResult) {
 	tr.Attempts, tr.Accepted, tr.PrefixRejected = sr.Attempts, sr.Accepted, sr.PrefixRejected
 	tr.ESS, tr.Duplicates = sr.ESS, sr.Duplicates
+	tr.Rejections = append([]searchprobe.RejectionBucket(nil), sr.Rejections...)
 	tr.HandToStack = sr.HandToStackCauses
 	tr.CompetitionExclusions, tr.CompetitionResidual = sr.CompetitionExclusions, sr.CompetitionResidual
 	tr.CompetitionUnguided, tr.IncompatibleProposals = sr.CompetitionUnguided, sr.IncompatibleProposals
