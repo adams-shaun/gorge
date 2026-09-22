@@ -18,6 +18,87 @@ func init() {
 	Register("Sacrifice", effSacrifice)
 	Register("Manifest", effManifest)
 	Register("Cloak", effCloak)
+	Register("Seek", effSeek)
+}
+
+// effSeek implements Alchemy's random library-to-hand seek. Unlike a hidden
+// library search, seek neither reveals nor shuffles: it samples the eligible
+// pool without replacement using the host's seeded RNG.
+func effSeek(h Host, c *Ctx, sa *cards.SA) {
+	g := h.Game()
+	players := Defined(h, c, sa)
+	if sa.Params["Defined"] == "" {
+		players = []state.Target{{Player: c.Controller, IsPlayer: true}}
+	}
+	for _, target := range players {
+		if !target.IsPlayer || int(target.Player) >= len(g.Players) {
+			continue
+		}
+		owner := target.Player
+		pool := zoneOf(g, state.ZLibrary, owner)
+		if raw := strings.TrimSpace(sa.Params["DefinedCards"]); raw != "" {
+			if raw != "Top_10_OfLibrary" {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "Seek withholds DefinedCards$ " + raw + "; no cards moved"})
+				continue
+			}
+			if len(pool) > 10 {
+				pool = pool[:10]
+			}
+		}
+
+		spec := strings.TrimSpace(sa.Params["Type"])
+		if spec == "" {
+			spec = "Card"
+		}
+		types := strings.Split(strings.TrimSpace(sa.Params["Types"]), ",")
+		if strings.TrimSpace(sa.Params["Types"]) == "" {
+			types = []string{spec}
+		}
+		selected := make([]state.ObjID, 0)
+		used := make(map[state.ObjID]bool)
+		for _, typeSpec := range types {
+			typeSpec = permanentCardSpec(strings.TrimSpace(typeSpec))
+			eligible := make([]state.ObjID, 0, len(pool))
+			for _, id := range pool {
+				if used[id] || !MatchesSpecCtx(g, typeSpec, id, c.SpecContext(c.Controller)) {
+					continue
+				}
+				eligible = append(eligible, id)
+			}
+			n := int32(1)
+			if len(types) == 1 {
+				n = Num(h, c, sa, "Num", 1)
+			}
+			if n < 0 {
+				n = 0
+			}
+			if n > int32(len(eligible)) {
+				n = int32(len(eligible))
+			}
+			for i := int32(0); i < n; i++ {
+				j := h.Rand(len(eligible))
+				id := eligible[j]
+				selected = append(selected, id)
+				used[id] = true
+				eligible = append(eligible[:j], eligible[j+1:]...)
+			}
+		}
+		if len(selected) == 0 {
+			continue
+		}
+		for _, id := range selected {
+			h.Emit(moveZoneEvent(c, id, state.ZLibrary, state.ZHand))
+			if strings.EqualFold(strings.TrimSpace(sa.Params["RememberFound"]), "True") {
+				c.Remembered = append(c.Remembered, state.Target{Obj: id})
+				eventRemember(h, c, id)
+			}
+		}
+		if strings.EqualFold(strings.TrimSpace(sa.Params["ImprintFound"]), "True") && c.Source != 0 {
+			h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: append([]state.ObjID(nil), selected...)})
+		}
+		h.Emit(events.Event{Kind: events.Seek, Player: owner, Obj: c.Source})
+	}
 }
 
 // ParseZone maps a Forge zone name to a state.Zone. Unknown names resolve to

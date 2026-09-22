@@ -134,7 +134,7 @@ func TestPrimitivesAreRegistered(t *testing.T) {
 		"DealDamage", "DamageAll", "Mana",
 		"Draw", "Discard", "Mill", "Dig", "DigUntil", "Reveal", "RevealHand", "PeekAndReveal",
 		"RearrangeTopOfLibrary", "Scry", "Surveil", "NameCard", "ChooseType", "ChooseNumber",
-		"ChangeZone", "ChangeZoneAll", "Destroy", "DestroyAll", "Sacrifice",
+		"ChangeZone", "ChangeZoneAll", "Destroy", "DestroyAll", "Sacrifice", "Seek",
 		"GainLife", "LoseLife",
 		"PutCounter", "RemoveCounterAll", "Regenerate",
 		"Tap", "Pump", "PumpAll", "Animate", "AnimateAll", "Protection",
