@@ -239,8 +239,12 @@ type pendingCast struct {
 	// records the object, so replay re-derives it). subCounterPart walks the
 	// parts in cost order like sacPart. Plain data, so Clone copies it like
 	// sacs/discards.
-	subCtrs        []state.ObjID
-	subCounterPart int
+	subCtrs []state.ObjID
+	// subCounterKinds records the selected kind for each SubCounter part;
+	// empty means the part has a fixed kind (or uses the legacy deterministic
+	// path). Any-kind costs populate it from the player's choice.
+	subCounterKinds []string
+	subCounterPart  int
 
 	// convoke is the announced set of creatures paying Convoke or Harmonize.
 	// It is chosen after the complete mana cost exists and before the mana
@@ -3751,15 +3755,7 @@ func (e *Engine) subCounterAsk() bool {
 		part := pc.cost.SubCounter[pc.subCounterPart]
 		amt := part.N
 		if part.Announced {
-			// SubCounter<X/Kind/Target>: the announced count, already bounded
-			// by xAsk to the largest candidate available then; no priority
-			// passes mid-flow, so the board cannot shrink between announcement
-			// and this settle.
 			amt = pc.x
-		}
-		if subCounterTargetsSource(part.Target) || amt <= 0 {
-			pc.subCounterPart++
-			continue
 		}
 		reserved := map[state.ObjID]bool{}
 		for _, s := range pc.sacs {
@@ -3773,17 +3769,55 @@ func (e *Engine) subCounterAsk() bool {
 			e.abortCast(pc, "counter-removal cost no longer payable; cast/activation aborted", true)
 			return true
 		}
+		if strings.EqualFold(part.Spec, "Any") {
+			if amt <= 0 {
+				pc.subCounterKinds = append(pc.subCounterKinds, "")
+				pc.subCounterPart++
+				continue
+			}
+			type choice struct {
+				obj  state.ObjID
+				kind string
+			}
+			var choices []choice
+			for _, oid := range candidates {
+				for _, c := range e.G.Obj(oid).Counters {
+					if c.N >= amt && c.N > 0 {
+						choices = append(choices, choice{oid, c.Kind})
+					}
+				}
+			}
+			if len(choices) == 0 {
+				e.abortCast(pc, "counter-removal kind no longer payable; cast/activation aborted", true)
+				return true
+			}
+			if len(choices) == 1 {
+				pc.subCtrs = append(pc.subCtrs, choices[0].obj)
+				pc.subCounterKinds = append(pc.subCounterKinds, choices[0].kind)
+				pc.subCounterPart++
+				continue
+			}
+			d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1, Prompt: "Choose a counter to remove", Source: pc.card}
+			for _, c := range choices {
+				d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "subcounter", Obj: c.obj, Counter: c.kind, Label: fmt.Sprintf("%s (%s counter)", e.G.Obj(c.obj).Face().Name, c.kind)})
+			}
+			e.choosing = chooseCast
+			e.ask(d)
+			return true
+		}
+		pc.subCounterKinds = append(pc.subCounterKinds, "")
+		if subCounterTargetsSource(part.Target) || amt <= 0 {
+			pc.subCounterPart++
+			continue
+		}
 		if len(candidates) == 1 {
 			pc.subCtrs = append(pc.subCtrs, candidates[0])
 			pc.subCounterPart++
 			continue
 		}
-		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
-			Prompt: "Choose a permanent to remove " + e.subCounterPhrase(part, amt) + " from",
-			Source: pc.card}
+		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1, Prompt: "Choose a permanent to remove " + e.subCounterPhrase(part, amt) + " from", Source: pc.card}
 		for _, oid := range candidates {
-			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "subcounter",
-				Obj: oid, Label: e.G.Obj(oid).Face().Name})
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "subcounter", Obj: oid, Label: e.G.Obj(oid).Face().Name})
 		}
 		e.choosing = chooseCast
 		e.ask(d)
@@ -3813,7 +3847,7 @@ func (e *Engine) subCounterPhrase(part CostPart, amt int32) string {
 // one CounterChange per kind until the announced count is met.
 func (e *Engine) settleSubCounterParts(pc *pendingCast) {
 	idx := 0
-	for _, part := range pc.cost.SubCounter {
+	for partIdx, part := range pc.cost.SubCounter {
 		amt := part.N
 		if part.Announced {
 			amt = pc.x
@@ -3835,13 +3869,20 @@ func (e *Engine) settleSubCounterParts(pc *pendingCast) {
 			idx++
 		}
 		if strings.EqualFold(part.Spec, "Any") {
-			// The Any kind: remove across the chosen object's kinds in its
-			// counter-list order (the fold order events.Apply maintains), one
-			// CounterChange per kind touched, until amt counters are gone.
 			o := e.G.Obj(target)
 			if o == nil {
 				return
 			}
+			kind := ""
+			if partIdx < len(pc.subCounterKinds) {
+				kind = pc.subCounterKinds[partIdx]
+			}
+			if kind != "" {
+				e.emit(events.Event{Kind: events.CounterChange, Obj: target, Counter: kind, Amount: -amt})
+				continue
+			}
+			// Legacy fallback for an unanswered/old pending cast: remove across
+			// kinds deterministically.
 			left := amt
 			for _, c := range o.Counters {
 				if left <= 0 {
@@ -5531,6 +5572,7 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 		// cost part: the settle removes the part's counters from it.
 		for _, o := range chosen {
 			pc.subCtrs = append(pc.subCtrs, o.Obj)
+			pc.subCounterKinds = append(pc.subCounterKinds, o.Counter)
 		}
 		pc.subCounterPart++
 	case "discard":
