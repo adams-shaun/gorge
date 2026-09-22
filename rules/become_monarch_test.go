@@ -14,6 +14,8 @@ package rules
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
@@ -136,6 +138,71 @@ func TestKnightsOfTheBlackRoseSilentWhenSelfBecomesMonarch(t *testing.T) {
 		t.Fatalf("ValidPlayer$ Opponent ignored: %d trigger(s) fired when the trigger's controller became the monarch",
 			len(e.pendingTriggers))
 	}
+}
+
+// TestCustodiLichRepeatedBecomeMonarchDoesNotFireSelfTrigger is the
+// regression for the review MAJOR: an unconditional MonarchChange emit made
+// a repeat DB$ BecomeMonarch on the REIGNING monarch fire "whenever you
+// become the monarch" again. The mode fires on a TRANSITION (CR 720.2), so
+// effBecomeMonarch now suppresses the event when its target already holds the
+// designation. The pin drives the real corpus Custodi Lich SA: seat 0 is
+// already the monarch, then the effect primitive is resolved on seat 0 a
+// second time and its ValidPlayer$ You trigger must not queue.
+func TestCustodiLichRepeatedBecomeMonarchDoesNotFireSelfTrigger(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := layerEngine(t)
+	lich := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Custodi Lich"))
+
+	// Precondition: seat 0 must already hold the crown, or the repeat is a
+	// real first transition and the trigger SHOULD fire -- the assertion
+	// below would then be vacuous. The establishing transition legitimately
+	// fires Custodi Lich's own trigger (pinned end to end by
+	// TestCustodiLichFirstBecomeMonarchFiresSelfTrigger), so drain it here.
+	e.emit(events.Event{Kind: events.MonarchChange, Player: 0})
+	requireOneEventTrigger(t, e, "Custodi Lich")
+	e.pendingTriggers = nil
+	if !e.G.IsMonarch(0) {
+		t.Fatalf("precondition: seat 0 is not the monarch (has=%v monarch=%d)",
+			e.G.HasMonarch, e.G.Monarch)
+	}
+
+	face := e.G.Obj(lich).Face()
+	sa := cards.ResolveSVar(face.SVars, "TrigMonarch")
+	if sa == nil {
+		t.Fatal("precondition: Custodi Lich's TrigMonarch SVar did not resolve")
+	}
+	// Resolve the real DB$ BecomeMonarch body naming seat 0: the reigning
+	// monarch. Before the fix this emitted MonarchChange and queued the
+	// ValidPlayer$ You trigger.
+	effects.Resolve(e, &effects.Ctx{Source: lich, Controller: 0}, sa)
+	if len(e.pendingTriggers) != 0 {
+		t.Fatalf("a repeat BecomeMonarch on the reigning monarch queued %d trigger(s), want 0",
+			len(e.pendingTriggers))
+	}
+}
+
+// TestCustodiLichFirstBecomeMonarchFiresSelfTrigger proves the guard above is
+// a TRANSITION test, not a blanket suppression: named a seat that does NOT
+// hold the crown, the same SA emits the event and queues the trigger. Without
+// this control the regression above would pass with the whole mode dead.
+func TestCustodiLichFirstBecomeMonarchFiresSelfTrigger(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := layerEngine(t)
+	lich := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Custodi Lich"))
+
+	if e.G.IsMonarch(0) {
+		t.Fatal("precondition: seat 0 already holds the crown")
+	}
+	face := e.G.Obj(lich).Face()
+	sa := cards.ResolveSVar(face.SVars, "TrigMonarch")
+	if sa == nil {
+		t.Fatal("precondition: Custodi Lich's TrigMonarch SVar did not resolve")
+	}
+	effects.Resolve(e, &effects.Ctx{Source: lich, Controller: 0}, sa)
+	if !e.G.IsMonarch(0) {
+		t.Fatal("the first BecomeMonarch did not make seat 0 the monarch")
+	}
+	requireOneEventTrigger(t, e, "Custodi Lich")
 }
 
 // TestKnightsOfTheBlackRoseDrainReadsTriggeredPlayer pins the pg2 role the

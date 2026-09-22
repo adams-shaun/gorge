@@ -19,9 +19,11 @@ import (
 // .cards/cardsfolder: 5 raw lines / 5 files contain "Mode$ BecomeMonarch",
 // but only 4 of those are T: trigger lines -- Knights of the Black Rose,
 // Custodi Lich, Garland Royal Kidnapper and Starscream Power Hungry. The 5th
-// (Palace Jailer) carries the mode on an Effect-delivered SVar body
-// (SVar:ComeBack), which runs the same matcher through the ordinary trigger
-// scans. The report's missing-primitive list showed "trig:BecomeMonarch 4"
+// (Palace Jailer) carries the mode on an Effect-delivered command-zone SVar
+// body (SVar:ComeBack) and does NOT reach this matcher: the Effect's
+// Triggers$ delivery is not registered and forEachObject never scans
+// ZCommand, so Palace Jailer's arm stays inert (AGENTS.md's Effect row).
+// The report's missing-primitive list showed "trig:BecomeMonarch 4"
 // before the registration and no entry at all after it.
 //
 //   - ValidPlayer$ is the shared player-spec grammar with the trigger's own
