@@ -1,10 +1,12 @@
 package rules
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -132,4 +134,64 @@ func TestPartnerWithETBOffersNamedPartnerSearch(t *testing.T) {
 		t.Fatalf("seat-0 shuffles = %d, want exactly 1 (CR 701.23 \"then shuffle\")", shuffles)
 	}
 	replayCheck(t, e, cfg)
+}
+
+// TestPartnerWithExpansionSearchesTheFullPartnerName is the class-level guard
+// over all 52 K:Partner with carriers at the pin. The param is either
+// "<full name>" or "<full name>:<short alias>" (Khorvath Brightflame:Khorvath,
+// Bebop, Skull & Crossbones:Bebop), and the search must name the FULL printed
+// card: the short form is only a deck-hint alias. The filter must also match
+// names a naive comma/space split would tear -- a raw comma (Kamber, the
+// Plunderer) and an ampersand (Bebop, Skull & Crossbones). A regression that
+// searched the short alias or mis-split the name would fail every carrier row
+// here, not just Kamber's proof leaf.
+func TestPartnerWithExpansionSearchesTheFullPartnerName(t *testing.T) {
+	reg := searchTestRegistry(t)
+	g := state.NewGame([]string{"you", "them"})
+	checked := 0
+	for _, c := range reg.Cards {
+		for _, f := range c.Faces {
+			line := ""
+			for _, k := range f.Keywords {
+				if cards.KeywordHead(k) == "Partner with" {
+					line = k
+				}
+			}
+			if line == "" {
+				continue
+			}
+			// The full name is the param up to the first colon (the short
+			// alias, when present, follows it).
+			full := strings.TrimSpace(strings.SplitN(line, ":", 3)[1])
+			tr, ok := partnerWithFaceTrigger(c)
+			if !ok {
+				t.Errorf("%s carries %q but has no synthesized Partner-with trigger", c.Path, line)
+				continue
+			}
+			if tr.Effect == nil {
+				t.Errorf("%s: Partner-with trigger Execute$ did not resolve to an effect", c.Path)
+				continue
+			}
+			want := "Card.named" + full
+			if got := tr.Effect.Params["ChangeType"]; got != want {
+				t.Errorf("%s: ChangeType$ = %q, want %q (the short alias must not be searched)", c.Path, got, want)
+				continue
+			}
+			partner, ok := reg.Lookup(full)
+			if !ok {
+				t.Errorf("%s names partner %q absent from the corpus", c.Path, full)
+				continue
+			}
+			id := g.AddObject(partner, 0).ID
+			if !effects.MatchesSpecFrom(g, want, id, 0, 0) {
+				t.Errorf("%s: filter %q does not match the real corpus card %q", c.Path, want, full)
+				continue
+			}
+			checked++
+		}
+	}
+	if checked == 0 {
+		t.Fatal("no K:Partner with carrier produced a verifiable search; the corpus pin may have moved")
+	}
+	t.Logf("verified %d K:Partner with carriers search their full named partner", checked)
 }
