@@ -75,6 +75,19 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		// the permanent the counters landed on.
 		c.TriggerCard = ev.Obj
 		c.TriggerAmount = ev.Amount
+	case "CounterRemovedOnce":
+		// The removal batch, mirrored: one CounterChange with a negative
+		// Amount carries the whole removal, and the magnitude the causing
+		// event carried is POSITIVE, so TriggerCount$Amount reads -ev.Amount
+		// (Chandra, Fire Artisan's "deals that much damage"; B.O.B. Bevy of
+		// Beebles; Regenerations Restored). ev.Obj is the permanent the
+		// counters left.
+		c.TriggerCard = ev.Obj
+		if ev.Amount < 0 {
+			c.TriggerAmount = -ev.Amount
+		} else {
+			c.TriggerAmount = ev.Amount
+		}
 	case "DamagePreventedOnce":
 		// The prevention Note carries the prevented damage in Amount and the
 		// damaged side in Obj/Player (rules/replacement.go's stored-prevention
