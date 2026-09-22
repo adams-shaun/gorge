@@ -210,6 +210,8 @@ func (h *fakeHost) SacrificeBlocked(id state.ObjID, forCost bool) bool {
 // for, so an effects-level surveil keeps its base count.
 func (h *fakeHost) SurveilLookExtra(p state.PlayerID) (int32, []int32) { return 0, nil }
 
+func (h *fakeHost) ScryLookExtra(p state.PlayerID) (int32, []int32) { return 0, nil }
+
 // ExploreReplaced has no replacement registry to consult here (the
 // replacement matching lives in rules.Engine), the same discipline as
 // SacrificeBlocked above: the double reports false rather than inventing a

@@ -1682,25 +1682,21 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			if len(chosen) > 0 && chosen[0].Kind == "yes" {
 				ctx.AttachOpt = "yes"
 			}
-		case "surveil_look_optional":
-			// The stat:SurveilNum optional "you may look at an additional N
-			// cards each time you surveil" election (Enhanced Surveillance)
-			// was answered. Each Optional$ static is an independent may effect,
-			// so the ask offered one option per optional static and the answer
-			// is the ACCEPTED subset: the accepted ordinals ride
-			// Ctx.SurveilLookOpt as a CSV done-marker the re-entered effSurveil
-			// consumes and clears (fx42 scoping), each accepted ordinal adding
-			// that static's Num$ to THE ASKING PLAYER's surveil count. An empty
-			// answer is the real decline of every static ("no", the Min-0
-			// Optional answer); a malformed one keeps the decline, the
-			// conservative read attach_optional takes.
-			ctx.SurveilLookOpt = "no"
+		case "surveil_look_optional", "scry_look_optional":
+			// The SurveilNum/ScryNum optional static election is an accepted
+			// subset of independent static additions. Keep the answer in the
+			// matching verb's Ctx marker so the resumed effect consumes it once.
+			marker := &ctx.SurveilLookOpt
+			if rp.kind == "scry_look_optional" {
+				marker = &ctx.ScryLookOpt
+			}
+			*marker = "no"
 			if len(chosen) > 0 {
 				parts := make([]string, 0, len(chosen))
 				for _, o := range chosen {
 					parts = append(parts, strconv.Itoa(o.Index))
 				}
-				ctx.SurveilLookOpt = strings.Join(parts, ",")
+				*marker = strings.Join(parts, ",")
 			}
 		case "attach_choice":
 			// A Choices$ Attach's card choice was answered (Goldwardens'
