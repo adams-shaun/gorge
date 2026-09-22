@@ -47,9 +47,10 @@ type staticView struct {
 // collector walks the game's zones only once. It contains no evaluated
 // applicability, amount, target, X, condition, or final cost.
 type costStaticViews struct {
-	raise  []staticView
-	reduce []staticView
-	set    []staticView
+	raise    []staticView
+	reduce   []staticView
+	set      []staticView
+	optional []staticView
 }
 
 // costStaticSource lazily owns one call-scoped membership snapshot. It is
@@ -1640,6 +1641,8 @@ func (e *Engine) collectCostStatics() costStaticViews {
 				dst = &out.reduce
 			case "SetCost":
 				dst = &out.set
+			case "OptionalCost":
+				dst = &out.optional
 			default:
 				continue
 			}
@@ -2038,6 +2041,26 @@ func (e *Engine) costModifiersWithTargetsUsing(statics costStaticViews, p state.
 		}
 	}
 	return mods
+}
+
+// optionalCostViews returns self-spell OptionalCost statics in collector order.
+// These are deliberately narrower than the general cost-modifier grammar: the
+// supported corpus shape is an EffectZone$ All self static on the spell face.
+func (e *Engine) optionalCostViews(statics costStaticViews, p state.PlayerID, id state.ObjID) []Cost {
+	var out []Cost
+	for _, sv := range statics.optional {
+		if strings.TrimSpace(sv.Params["ValidSA"]) != "Spell" ||
+			strings.TrimSpace(sv.Params["EffectZone"]) != "All" ||
+			!strings.Contains(sv.Params["ValidCard"], "Card.Self") ||
+			sv.Source != id || !e.costStaticApplies(sv, "OptionalCost", p, id, spellScope(""), nil, false) {
+			continue
+		}
+		c := ParseCost(sv.Params["Cost"])
+		if len(c.Unknown) == 0 {
+			out = append(out, c)
+		}
+	}
+	return out
 }
 
 // costStaticApplies runs the gate chain one cost-modifier static must pass

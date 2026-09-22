@@ -1511,6 +1511,14 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			} else if offerCastable(p, id, withSpellAbilityExtras(f, convokeBase), spellScope(""), false) {
 				add("cast", "Cast "+f.Name, id)
 			}
+			// Self-spell OptionalCost is a separate paid offer; the plain
+			// cast above remains the decline path. Preserve static order.
+			for i, extra := range e.optionalCostViews(costStatics.get(), p, id) {
+				if offerCastable(p, id, withSpellAbilityExtras(f, convokeBase).Plus(extra), spellScope("optionalcost"), false) {
+					out = append(out, decision.Option{Index: len(out), Kind: "cast",
+						Label: "Cast " + f.Name + " (optional cost)", Obj: id, Mode: "optionalcost", AltCostIndex: i + 1})
+				}
+			}
 		}
 		// CR 309.4b: either door of a Room may be cast. Mode room_alt is
 		// consumed by beginCast, which records a FlipFace before the ordinary
@@ -1873,6 +1881,13 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		targetsAvailable := e.castTargetsAvailable(p, id, f.SpellAbility())
 		if targetsAvailable && offerCastable(p, id, e.rawBaseCost(p, id), spellScope(""), false) {
 			add("cast", "Cast "+f.Name, id)
+		}
+		if targetsAvailable {
+			for i, extra := range e.optionalCostViews(costStatics.get(), p, id) {
+				if offerCastable(p, id, withSpellAbilityExtras(f, e.rawBaseCost(p, id)).Plus(extra), spellScope("optionalcost"), false) {
+					out = append(out, decision.Option{Index: len(out), Kind: "cast", Label: "Cast " + f.Name + " (optional cost)", Obj: id, Mode: "optionalcost", AltCostIndex: i + 1})
+				}
+			}
 		}
 		// Alternative costs replace the printed mana cost but not additional
 		// costs such as commander tax (CR 118.9d, 903.8). Dash and the other

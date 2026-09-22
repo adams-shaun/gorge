@@ -672,7 +672,7 @@ func TestConstructedDefaultIsByteIdentical(t *testing.T) {
 	if m == nil {
 		t.Fatalf("summary block missing:\n%s", buf.String())
 	}
-	// Seat 0 wins: 5, seat 1 wins: 15 at this fixed seed, for the default
+	// Seat 0 wins: 8, seat 1 wins: 12 at this fixed seed, for the default
 	// pair avengers-assemble:death-n-taxes (the first two sorted repo decks
 	// at the 2026-09-17 avengers-assemble import; the prior 16/4 belonged to
 	// death-n-taxes:dimir-tempo). This is a command golden, not a claim about
@@ -688,7 +688,16 @@ func TestConstructedDefaultIsByteIdentical(t *testing.T) {
 	// pumps each OTHER creature you control of the chosen type entering from
 	// the battlefield (its oracle) instead of pumping only itself, which
 	// moved 1 game across the 20 (reverting cards/kw_etbreplacement.go
-	// returns 7/13; the fix reproduces 6/14 deterministically). The 6/14 was
+	// returns 7/13; the fix reproduces 6/14 deterministically). The 8/12 was
+	// an ARTIFACT of the OptionalCost round's generic dotted-count-head split
+	// (effects/count.go): it silently truncated every no-space dotted head
+	// (Count$CardCounters.CHARGE, Count$Kicked.4.0, Count$Foretold.1.0) to an
+	// unresolved zero, and restoring the real reads — restricting the split to
+	// OptionalGenericCostPaid and adding the CastSA> ref — returns the
+	// original 5/15 (ticket agent-20260919T060203Z-702ca6ba round 2; reverting
+	// the dot-split fix alone reproduces 8/12). The OptionalCost OFFERS
+	// themselves do not move this split: neither deck carries an OptionalCost
+	// carrier. The 6/14 was
 	// itself re-measured by the ConditionDefined$ Targeted gate (ticket
 	// agent-20260918T210307Z-25a7b039): Rescue, Pepper Potts --
 	// avengers-assemble's one ConditionDefined$ Targeted carrier -- now takes

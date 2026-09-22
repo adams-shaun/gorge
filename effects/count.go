@@ -623,6 +623,31 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 			return []state.Target{{Obj: c.TriggerAbility}}, true
 		}
 		return c.Remembered, true
+	case "CastSA":
+		// The cast spell ability (Graven Archfiend's ETB gate
+		// "CastSA>Count$OptionalGenericCostPaid.1.0"): the cast spell's own
+		// object. For the corpus shape -- an ETB trigger of the permanent the
+		// cast spell became -- the ctx source IS that object (the
+		// stack->battlefield move preserves the id, and the pay-time CastInfo
+		// folded the paid provenance onto it), so binding the ctx source is
+		// exactly the binding the indirection needs; a copy of the spell is a
+		// distinct object and reads its own (unpaid) provenance.
+		//
+		// CastSA names THIS source's own cast. When the trigger context names
+		// a DIFFERENT cast spell (a SpellCast trigger firing on another card's
+		// cast), that referent is TriggeredSpellAbility, not CastSA -- this
+		// source was not the card being cast, so the ref is unbound. Every
+		// corpus CastSA carrier is self-referential (SpellCast ValidCard$
+		// Card.Self, a self ChangesZone ETB, or a bare CheckSVar$/replacement
+		// ctx with no trigger referent), so no real shape regresses; the
+		// alternative reading silently bound an unrelated cast spell's X.
+		if c.TriggerCard != 0 && c.TriggerCard != c.Source {
+			return nil, false
+		}
+		if c.Source != 0 {
+			return []state.Target{{Obj: c.Source}}, true
+		}
+		return nil, false
 	case "Remembered":
 		// Forge's plain Remembered$ form reads the executing ability's shared
 		// host-card remembered list: the ctx walk's set UNIONED with the
@@ -1062,6 +1087,17 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	}
 	head, arg, _ := strings.Cut(body, " ")
 	arg = strings.TrimSpace(arg)
+	if arg == "" {
+		// ONLY OptionalGenericCostPaid's space-less dotted <paid>.<unpaid>
+		// argument is split here. Every other dotted head (CardCounters.CHARGE,
+		// Kicked.4.0, Foretold.1.0, ...) is parsed WHOLE by its own downstream
+		// CutPrefix arm, so a generic split would truncate the head to its
+		// first segment and bypass that arm -- Count$CardCounters.CHARGE would
+		// reach the bare-CardCounters fallthrough as an unresolved zero.
+		if rest, ok := strings.CutPrefix(head, "OptionalGenericCostPaid."); ok {
+			head, arg = "OptionalGenericCostPaid", strings.TrimSpace(rest)
+		}
+	}
 
 	switch head {
 	case "Compare":
@@ -1104,6 +1140,22 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			return o.SquadPaid, true
 		}
 		return 0, true
+	case "OptionalGenericCostPaid":
+		// OptionalCost's paid/unpaid branches are a boolean cast provenance.
+		// The CastSA indirection has already bound c.Source to the cast object.
+		parts := strings.Split(strings.TrimSpace(arg), ".")
+		if len(parts) < 2 {
+			return 0, false
+		}
+		paid, ok1 := strconv.ParseInt(strings.TrimSpace(parts[0]), 10, 32)
+		unpaid, ok2 := strconv.ParseInt(strings.TrimSpace(parts[1]), 10, 32)
+		if ok1 != nil || ok2 != nil {
+			return 0, false
+		}
+		if o := g.Obj(c.Source); o != nil && o.OptionalCostPaid {
+			return int32(paid), true
+		}
+		return int32(unpaid), true
 	case "OffspringPaid":
 		// CR 702.175a: whether the resolving spell's cast paid the optional
 		// Offspring additional cost ("You may pay an additional [cost] as you

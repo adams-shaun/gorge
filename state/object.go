@@ -252,6 +252,8 @@ const (
 	// Count$OffspringPaid to decide whether to mint the 1/1 copy. Appended
 	// per the enum's own append-only precedent.
 	FlagOffspringPaid
+	// FlagOptionalCostPaid marks a self-spell OptionalCost additional cost.
+	FlagOptionalCostPaid
 	// FlagConvoked marks a cast whose pay-time CastInfo carries CR 702.66
 	// convoke provenance: the creatures the caster tapped to help pay for
 	// the cast ride the event's IDs into Object.Convoked. The flag is what
@@ -583,6 +585,8 @@ type Object struct {
 	// COPY of the spell was never cast and reads false (the same reading
 	// Count$ReplicatePaid documents).
 	OffspringPaid bool
+	// OptionalCostPaid records the boolean paid provenance for Count$OptionalGenericCostPaid.
+	OptionalCostPaid bool
 	// ConvergeColours is the number of distinct colours (WUBRG) of mana
 	// actually spent to cast the spell (CR 107.4f-family converge), carried
 	// by the pay-time CastInfo's FlagConverged Amount. It rides the same
