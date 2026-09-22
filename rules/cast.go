@@ -4413,10 +4413,6 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 	if !ok {
 		return nil
 	}
-	delve := int32(0)
-	if !pc.isAbility() {
-		delve = int32(len(pc.delve))
-	}
 	pl := e.G.Players[pc.player]
 	out := make([]targetCandidate, 0, len(candidates))
 	for _, candidate := range candidates {
@@ -4493,8 +4489,17 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 		}
 		// resolvedMana carries no live pip, so manaFeasible (the shared
 		// primitive) here degenerates to the composed payable check — the same
-		// composition payCast will charge for this candidate's repricing.
-		if e.manaFeasibleGrant(pc.player, pc.card, pc.isAbility(), pc.resolvedMana(), mods, pc.taxGeneric, delve, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}) ||
+		// composition payCast will charge for this candidate's repricing. The
+		// announced Convoke/Harmonize/Improvise contributions fold in exactly
+		// the way paymentMana folds them into the charged total (applyConvoke
+		// on the composed mods+tax+delve cost), so a cast whose pool alone
+		// cannot pay but whose announced artifacts/creatures can keeps its
+		// targets on the menu instead of being reversed at this ask. The
+		// announcement itself was already gate-checked for absorbability
+		// (convokeAbsorbs), so the fold is the payment's own arithmetic,
+		// probed, never charged.
+		convoked := e.applyConvoke(pc, cost)
+		if e.manaFeasibleGrant(pc.player, pc.card, pc.isAbility(), convoked, costMods{}, 0, 0, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}) ||
 			(cost.hasManaPayment() && e.hasUntappedManaSource(pc.player)) {
 			out = append(out, candidate)
 		}
