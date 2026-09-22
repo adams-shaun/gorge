@@ -529,6 +529,17 @@ func buybackCost(f *cards.Face) (Cost, bool) {
 	return ParseCost(s), true
 }
 
+// retraceExtra is Retrace's additional cost (CR 702.81a): discard a land
+// card, in addition to the spell's other costs. Unlike the alternative-cost
+// keyword family, Retrace is NOT a cost substitution -- the printed mana cost
+// is still paid -- so this returns only the ADDITIONAL part, folded onto the
+// printed base by both the offer gate (legal.go's graveyard walk) and
+// beginCast's "retrace" mode, through the one definition so the two cannot
+// disagree about what the cast costs.
+func retraceExtra() Cost {
+	return Cost{Discard: []CostPart{{Spec: "Land", N: 1}}}
+}
+
 // altAddCostParts splits a face's AlternateAdditionalCost keyword into its
 // alternative parts: the parameter is the parts joined by ":" (e.g. Bone
 // Shards' "Sac<1/Creature>:Discard<1/Card>", Redirect Lightning's
@@ -1657,6 +1668,19 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		if bc, ok := buybackCost(f); ok {
 			cost = cost.Plus(bc)
 		}
+	case "offspring":
+		// Offspring (CR 702.175a): the additional cost is paid ON TOP of the
+		// mana cost ("You may pay an additional [cost] as you cast this
+		// spell"), never a substitution -- the Buyback shape. The cost is
+		// resolved through the DERIVED keyword read (e.offspringCost), so a
+		// layer-6 grant (Zinnia) charges the GRANTED parameter, and a stale
+		// option whose keyword is gone pays the plain base cost rather than
+		// stranding. The offer gate priced the SAME derived read
+		// (rules/legal.go's hand and command-zone walks), so the two stages
+		// cannot disagree.
+		if oc, ok := e.offspringCost(id); ok {
+			cost = cost.Plus(oc)
+		}
 	case "replicated":
 		// Replicate (CR 702.55a): the mode marks the intent to pay the
 		// optional replicate cost. The PAYMENT COUNT is a cast announcement
@@ -1740,6 +1764,17 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		} else {
 			cost = Cost{}
 		}
+	case "retrace":
+		// Retrace (CR 702.81a): a graveyard cast paying the printed mana cost
+		// PLUS the additional discard-a-land cost -- never a substitution, so
+		// the printed base (cost's rawBaseCost seed) stays and only the
+		// additional part is folded on. The offer gate priced exactly this
+		// composition (legal.go's graveyard walk) and proved a land payable;
+		// a stale option whose keyword is gone folds nothing, degrading to a
+		// plain cast rather than charging a discard that was never offered.
+		if f.HasKeyword("Retrace") {
+			cost = cost.Plus(retraceExtra())
+		}
 	case "evoked", "dashed", "overloaded", "warped", "madness", "bestowed":
 		// The alternative-cost keyword family (altcosts): each mode's cost is
 		// the printed keyword parameter in place of the mana cost, exactly the
@@ -1799,7 +1834,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// this (pc.ability < 0 and no alternative/flashback recast), and a spell
 	// with no SP Cost$ contributes nothing.
 	if opt.AltCostIndex == 0 && (opt.Mode == "" || opt.Mode == "mayplay" || opt.Mode == "room_alt" ||
-		opt.Mode == "adventure_alt" || opt.Mode == "aftermath" || opt.Mode == "split_alt" || opt.Mode == "conspired" || opt.Mode == "mayflash") {
+		opt.Mode == "adventure_alt" || opt.Mode == "aftermath" || opt.Mode == "split_alt" || opt.Mode == "conspired" || opt.Mode == "mayflash" || opt.Mode == "retrace") {
 		cost = withSpellAbilityExtras(f, cost)
 	}
 	// Convoke and Harmonize are announced only after X/mode/pip choices have
@@ -5165,6 +5200,15 @@ func modeFlags(mode string) string {
 		return events.FlagsString(state.FlagAdventure)
 	case "buyback":
 		return events.FlagsString(state.FlagBuyback)
+	// Offspring (CR 702.175a): the mode marks the intent to pay the optional
+	// ADDITIONAL offspring cost, and the offer exists only when it is payable
+	// (rules/legal.go's walks), so -- unlike Squad/Multikicker/Replicate,
+	// whose count asks can still answer 0 -- there is no decline case and the
+	// flag is unconditional. Bare FlagOffspringPaid rides the ordinary
+	// pay-time CastInfo (payCast), and the keyword expansion's ETB trigger
+	// reads it through Count$OffspringPaid to mint the 1/1 token copy.
+	case "offspring":
+		return events.FlagsString(state.FlagOffspringPaid)
 	case "mayplay":
 		return events.FlagsString(state.FlagMayPlay)
 	case "harmonize":
@@ -6650,6 +6694,11 @@ func init() {
 		// implemented without being registered, so the coverage ratchet read
 		// it as a gap.
 		"kw:Escape",
+		// kw:Retrace: CR 702.81a, the graveyard cast paying the printed mana
+		// cost plus an additional discard-a-land cost. The offer lives in
+		// legal.go's graveyard walk and the cost fold in beginCast's "retrace"
+		// mode, both through retraceExtra so offer and charge cannot disagree.
+		"kw:Retrace",
 		"kw:Buyback", "kw:Transmute", "kw:Suspend", "kw:Convoke", "kw:Harmonize", "kw:Cycling",
 		// kw:Cascade: CR 702.85, the cast trigger read directly off the K:
 		// line (no keyword expansion — the printed K:Cascade and every
@@ -6680,6 +6729,15 @@ func init() {
 		// the level-band statics read the counter through the existing
 		// counters_<CMP><n>_LEVEL predicate, so no separate path of its own.
 		"kw:Level up",
+		// kw:Class: CR 702.118, expanded by cards/keywords.go into one
+		// sorcery-speed level-up activator per level (the kw:Level up shape,
+		// gated on the Class's level being below that level) plus the level's
+		// granted static/trigger/replacement, appended with its own ClassBand$
+		// band so it is live from level N on (read as an independent AND gate
+		// by rules/class_level.go's classBandGateHolds). The entry
+		// counter (a Class enters at level 1) is the same etbCounter
+		// PutCounter replacement shape. Proof: rules/class_test.go.
+		"kw:Class",
 		// kw:Replicate: CR 702.55, expanded by cards/keywords.go into the
 		// Storm-shaped copy trigger whose Amount$ Count$ReplicatePaid reads
 		// the pay-time CastInfo's count; the cast flow's replicateAsk poses

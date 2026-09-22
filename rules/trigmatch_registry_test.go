@@ -75,6 +75,12 @@ var addedAfterTheSplit = []string{
 	// on the caster's battlefield, so no new event Kind was needed -- but the
 	// mode is new to the table, so it lands here.
 	"ManaExpend",
+	// kw-class: "When this Class becomes level N" (CR 702.118c; 13 corpus
+	// TriggerClassLevel SVar bodies). It matches the ordinary CounterChange
+	// event the level-up activator's PutCounter emits, so the event existed
+	// already but the MODE did not -- no pre-split switch arm could have
+	// dispatched it.
+	"ClassLevelGained",
 }
 
 func allRegisteredModeNames() []string {

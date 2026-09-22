@@ -491,6 +491,7 @@ func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, sa *car
 func effAnimate(h Host, c *Ctx, sa *cards.SA) {
 	ag := parseAnimateGrant(h, c, sa)
 	emitAnimateColorsNotes(h, c, ag, "Animate")
+	emitAnimateTriggersNotes(h, c, ag, "Animate")
 	// RememberAnimated$ True (Rise and Shine): every permanent this Animate
 	// affected joins the ability's Remembered, both halves -- the ctx list
 	// the chained SubAbility reads (DBPutCounter's Defined$ Remembered) and
@@ -550,6 +551,19 @@ type animateGrant struct {
 	// land is a plain land -- is built on the same path as Stalking
 	// Stones's genuinely forever grant, never a second animator.
 	endOnLeave bool
+	// triggers is the Triggers$ grant: each named SVar body parsed into the
+	// same cards.Trigger shape a printed T: line would have; the animated
+	// object gains it for the animation's own lifetime.
+	triggers []cards.Trigger
+	// triggerGrantor is the ANIMATING source (Ctx.Source): the T:-shaped
+	// body lives on its face's SVar table, which for the cross-object shape
+	// (Dragon Cursed Halls animating a target creature) is not the animated
+	// object's own table.
+	triggerGrantor state.ObjID
+	// triggersUnread holds the Triggers$ names whose body the parser refused
+	// (missing SVar, or no Mode$ — an ability body, not a trigger); one loud
+	// note each, emitted by emitAnimateTriggersNotes.
+	triggersUnread []string
 }
 
 // parseAnimateGrant reads the shared Animate/AnimateAll parameter set. See
@@ -616,8 +630,41 @@ func parseAnimateGrant(h Host, c *Ctx, sa *cards.SA) animateGrant {
 			ag.abilities = append(ag.abilities, nm)
 		}
 	}
+	// Triggers$ names (comma-separated) SVars on THIS face's table whose
+	// bodies are T:-shaped triggers the animated object gains for the
+	// animation's own lifetime (Raging Ravine's "Whenever this creature
+	// attacks, put a +1/+1 counter on it"). cards.ParseTriggerLine gives the
+	// body the same shape a printed T: line would have; rules' granted-trigger
+	// walk (checkGrantedStaticTriggers, the AddTrigger$ static-grant
+	// precedent) matches it like any other trigger and links its Execute$
+	// from the ANIMATING face's own SVar table (triggerGrantor -- the table
+	// events.Apply's GrantTriggerPush resolves from, so the live queue and a
+	// replayed one mint the same stack object). A name whose body is missing
+	// or carries no Mode$ fails closed under one loud note per name
+	// (triggersUnread), never a silently inert half.
+	ag.triggerGrantor = c.Source
+	for _, nm := range strings.Split(sa.Params["Triggers"], ",") {
+		if nm = strings.TrimSpace(nm); nm == "" {
+			continue
+		}
+		t, ok := cards.ParseTriggerLine(c.SVars[nm])
+		if !ok {
+			ag.triggersUnread = append(ag.triggersUnread, nm)
+			continue
+		}
+		ag.triggers = append(ag.triggers, t)
+	}
 	ag.permanent = strings.EqualFold(strings.TrimSpace(sa.Params["Duration"]), "Permanent")
 	return ag
+}
+
+// emitAnimateTriggersNotes is the shared Triggers$ fail-closed surface: one
+// loud note per named body the parser refused.
+func emitAnimateTriggersNotes(h Host, c *Ctx, ag animateGrant, api string) {
+	for _, nm := range ag.triggersUnread {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: api + " Triggers$ " + nm + " is not a trigger body this engine can read; ignored"})
+	}
 }
 
 // emitAnimateColorsNotes is the shared Colors$ fail-closed surface: the two
@@ -711,6 +758,27 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 			AffectedZone: ag.zone,
 		})
 	}
+	// The Triggers$ grant: one continuous effect per named trigger, Source =
+	// the animated object itself (the trigger fires as ITS trigger; Affects
+	// Card.Self names it at the granted walk's match site), the body's
+	// Execute$ resolved from the ANIMATING face's table (TriggerGrantor --
+	// the self-animation shape degenerates to the animated object). The
+	// lifetime is the animation's, so the trigger leaves with it: UntilEOT
+	// at cleanup, Duration$ Permanent forever, and endOnLeave ends the grant
+	// on the animated object's departure like every other half. A fresh
+	// Trigger copy per object so no two grants share a pointer.
+	for i := range ag.triggers {
+		t := ag.triggers[i]
+		h.AddContinuous(state.ContinuousEffect{
+			Source: id, Affects: "Card.Self", Controller: c.Controller,
+			Layer:          state.LAbilities,
+			AddTrigger:     &t,
+			TriggerGrantor: ag.triggerGrantor,
+			Duration:       ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent,
+			ExileOnMoved: exileOn, Remembered: remembered,
+			AffectedZone: ag.zone,
+		})
+	}
 }
 
 // animateAllUnreadNote names, in ONE loud note, every parameter the SA carries
@@ -724,7 +792,6 @@ func animateAllUnreadNote(h Host, c *Ctx, sa *cards.SA) {
 		{"RemoveKeywords$", sa.Params["RemoveKeywords"]},
 		{"RemoveAllAbilities$", sa.Params["RemoveAllAbilities"]},
 		{"staticAbilities$", sa.Params["staticAbilities"]},
-		{"Triggers$", sa.Params["Triggers"]},
 		{"Replacements$", sa.Params["Replacements"]},
 		{"CantHaveKeyword$", sa.Params["CantHaveKeyword"]},
 		{"RemoveLandTypes$", sa.Params["RemoveLandTypes"]},
@@ -752,6 +819,7 @@ func animateAllUnreadNote(h Host, c *Ctx, sa *cards.SA) {
 func effAnimateAll(h Host, c *Ctx, sa *cards.SA) {
 	ag := parseAnimateGrant(h, c, sa)
 	emitAnimateColorsNotes(h, c, ag, "AnimateAll")
+	emitAnimateTriggersNotes(h, c, ag, "AnimateAll")
 	animateAllUnreadNote(h, c, sa)
 	var ateotIDs []state.ObjID
 	spec := sa.Params["ValidCards"]

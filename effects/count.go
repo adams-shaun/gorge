@@ -677,7 +677,15 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 					n += refToughness(h, o, lki)
 				}
 			}
-		case prop == "CardManaCost":
+		case prop == "CardManaCost" || prop == "CardManaCostLKI":
+			// CardManaCostLKI (56 raw corpus lines -- 51
+			// TriggeredSpellAbility$CardManaCostLKI, Sunbird's Invocation's
+			// PeekAmount X among them) is Forge's LKI spelling of the same
+			// property: the mana value the object HAD when the triggering
+			// event happened. A face's mana value never changes and the lki
+			// swap above already binds the zone-change snapshot when one is
+			// carried, so the LKI spelling reads the same number the plain
+			// spelling does -- one shared case, so the two cannot disagree.
 			if f != nil {
 				n += f.Cmc()
 			}
@@ -930,6 +938,23 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		// the same count; a copy of the spell was never cast and reads 0.
 		if o := g.Obj(c.Source); o != nil {
 			return o.SquadPaid, true
+		}
+		return 0, true
+	case "OffspringPaid":
+		// CR 702.175a: whether the resolving spell's cast paid the optional
+		// Offspring additional cost ("You may pay an additional [cost] as you
+		// cast this spell. If you do, when this creature enters, create a 1/1
+		// token copy of it."), carried by the pay-time CastInfo's
+		// FlagOffspringPaid (rules/cast.go's payCast). The same provenance
+		// read SquadPaid makes: read off the SOURCE -- the cast spell on the
+		// stack, and in the keyword expansion's ETB trigger the permanent the
+		// spell became (the stack->battlefield move preserves the field) -- so
+		// a replay derives the same value; a copy of the spell was never cast
+		// and reads 0 (so a minted 1/1 copy mints no further copies).
+		if o := g.Obj(c.Source); o != nil {
+			if o.OffspringPaid {
+				return 1, true
+			}
 		}
 		return 0, true
 	case "TimesKicked":

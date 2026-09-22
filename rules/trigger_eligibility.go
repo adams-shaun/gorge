@@ -255,6 +255,11 @@ func triggerModeEvents(mode string) triggerEventMask {
 		return 1 << events.Note
 	case "CounterAdded", "CounterAddedOnce", "CounterRemoved":
 		return 1 << events.CounterChange
+	case "ClassLevelGained":
+		// CR 702.118c: the same CounterChange event the level-up
+		// activator's PutCounter emits carries the level band crossing
+		// (matcher: classLevelGainedMatches).
+		return 1 << events.CounterChange
 	case "Mutates":
 		// CR 702.140f: "whenever this creature mutates". The event is the
 		// mutate-spell merge fold (events.Mutate), fired once per mutation --
