@@ -2217,9 +2217,16 @@ func effScry(h Host, c *Ctx, sa *cards.SA) {
 // -- keeps the base count.
 func effSurveil(h Host, c *Ctx, sa *cards.SA) {
 	n := Num(h, c, sa, "Amount", 1)
+	// The arrange re-entry pass (ctx.Arrange set by rules' handleArrange) must
+	// go straight to effLookAndArrange's done-marker return: each resume
+	// builds a fresh Ctx (fx42), so on that pass SurveilLookOpt is empty again
+	// and re-posing the election here would ping-pong election -> arrange ->
+	// election forever (the may-look answer belongs to the pass that posed
+	// the KArrange, which already priced the extra cards into its window).
+	arranging := c.Arrange
 	ans := c.SurveilLookOpt
 	c.SurveilLookOpt = ""
-	if ans == "" {
+	if ans == "" && !arranging {
 		// First pass: pose the election once, for the single surveilling
 		// player carrying an optional static. Several surveilling players
 		// with different optional extras are the same narrowing the arrange
@@ -2237,11 +2244,15 @@ func effSurveil(h Host, c *Ctx, sa *cards.SA) {
 						{Index: 1, Kind: "no", Label: "No", Player: p},
 					}}
 				// AskAsked suspends; the answer re-enters with Ctx.SurveilLookOpt
-				// set. AskNoHost is the deterministic decline stand-in (R-9) --
-				// the same class attach_optional falls back to (the
-				// clamp-answered bot path answers option 0 = "yes").
-				_ = Ask(h, d)
-				return
+				// set. A no-host (fuzz/effects-test double) falls through to the
+				// mandatory-only surveil below: declining the ELECTION must not
+				// drop the base Surveil, whose own no-host path inside
+				// effLookAndArrange applies the standing LibraryOrder stand-in
+				// (R-9). A real host's decline re-enters with the "no" marker and
+				// reaches the same fall-through through the ans != "" gate.
+				if Ask(h, d) == AskAsked {
+					return
+				}
 			}
 		}
 	}
