@@ -114,6 +114,14 @@ var addedAfterTheSplit = []string{
 	// which was appended for it, so it could not have been in the pre-split
 	// switch.
 	"Surveil",
+	// agent-20260920T063816Z-abb68c8f: "Whenever CARDNAME becomes unattached
+	// from a permanent ..." (CR 701.3b; Captain's Hook, Grafted Exoskeleton,
+	// Grafted Wargear, Stitcher's Graft). It matches the events.Unattached
+	// marker Kind, which was appended for it so that a detach fires this mode
+	// while Mode$ Attached keeps ignoring it -- the detach SBAs previously
+	// logged an empty-IDs events.Attach, so no pre-split switch arm could
+	// have dispatched it.
+	"Unattached",
 }
 
 func allRegisteredModeNames() []string {
