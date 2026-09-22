@@ -958,6 +958,25 @@ func (e *Engine) castablePriced(p state.PlayerID, id state.ObjID, cost Cost, abi
 	return e.nonManaCastable(p, id, cost, ability)
 }
 
+// chargeEnergyCost spends a cost's energy parts from the payer's pool, one
+// PlayerCounterChange per part (a player counter, not an object's -- CR
+// 118.2d). A fixed part spends its N; a dynamic part spends the announced x.
+// This is the ONE energy-charging site, shared by the cast/activation payment
+// path and the triggered-cost window, so a paid cost can never spend its
+// energy in one place and skip it in another.
+func (e *Engine) chargeEnergyCost(p state.PlayerID, c Cost, x int32) {
+	for _, part := range c.Energy {
+		amt := part.N
+		if part.Spec == "X" {
+			amt = x
+		}
+		if amt > 0 {
+			e.emit(events.Event{Kind: events.PlayerCounterChange, Player: p,
+				Counter: "ENERGY", Amount: -amt})
+		}
+	}
+}
+
 // nonManaCastable is castable's payment-independent tail. Cost-modifier
 // offer checks use it after their flexible-pip walk has established a payable
 // resolved mana face: applying Color$ before that walk would otherwise see a
@@ -1122,15 +1141,9 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 	// pool down once per part, so the parts cannot each spend the whole
 	// counter total independently. The dynamic X form is bounded by that
 	// total at the X ask, so the offer gate needs no assumption about the
-	// not-yet-chosen value.
-	energyTotal := int32(0)
-	for _, part := range cost.Energy {
-		if part.Spec == "X" {
-			continue
-		}
-		energyTotal += part.N
-	}
-	if energyTotal > 0 && e.G.Players[p].Counter("ENERGY") < energyTotal {
+	// not-yet-chosen value. The read is the shared energyPayable helper, so
+	// the cast path and the triggered-cost window cannot disagree about it.
+	if !e.energyPayable(p, cost) {
 		return false
 	}
 	// Return cost parts (Return<N/Spec>): the source itself (Spec CARDNAME,
@@ -5953,17 +5966,9 @@ func (e *Engine) payCast() {
 		// Energy cost parts (PayEnergy<N>/<X>): the announced amount leaves
 		// the payer's energy pool as one PlayerCounterChange (a player
 		// counter, not an object's -- CR 118.2d). The X form spends exactly
-		// the announced value (xAsk bounded it by this same total).
-		for _, part := range pc.cost.Energy {
-			amt := part.N
-			if part.Spec == "X" {
-				amt = pc.x
-			}
-			if amt > 0 {
-				e.emit(events.Event{Kind: events.PlayerCounterChange, Player: pc.player,
-					Counter: "ENERGY", Amount: -amt})
-			}
-		}
+		// the announced value (xAsk bounded it by this same total). The
+		// shared chargeEnergyCost helper is the ONE energy-charging site.
+		e.chargeEnergyCost(pc.player, pc.cost, pc.x)
 		// Announced PayLife<X> parts (Toxic Deluge's "pay X life"): each pays
 		// the announced X as one LifeChange beside the fixed life payMana
 		// charged above (payLife). xAsk bounded the announcement by the payer's
@@ -6161,16 +6166,7 @@ func (e *Engine) payCast() {
 		}
 	}
 	// Energy cost parts (see the ability branch above for the why).
-	for _, part := range pc.cost.Energy {
-		amt := part.N
-		if part.Spec == "X" {
-			amt = pc.x
-		}
-		if amt > 0 {
-			e.emit(events.Event{Kind: events.PlayerCounterChange, Player: pc.player,
-				Counter: "ENERGY", Amount: -amt})
-		}
-	}
+	e.chargeEnergyCost(pc.player, pc.cost, pc.x)
 	// Announced PayLife<X>, DamageYou<N> and Draw<N/Spec> cost parts (see the
 	// ability branch above for the why).
 	for range pc.cost.LifeX {
