@@ -43,6 +43,19 @@ import (
 // battlefield, so it never left the stack and resolveTop kept re-resolving
 // the same object forever (see Task 26's report and the resolveTop guard
 // below for the other half of this fix).
+func (e *Engine) finalityReplacementApplies(id state.ObjID) bool {
+	o := e.G.Obj(id)
+	if o == nil || o.Zone != state.ZBattlefield || o.Counter("FINALITY") <= 0 {
+		return false
+	}
+	for _, typ := range e.typeCharacteristics(id, 0) {
+		if typ == "Creature" {
+			return true
+		}
+	}
+	return false
+}
+
 func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 	// Positive LifeChange is a gain; it never carries a repl:DamageDone
 	// match (that class names a Damage event only), so it routes straight
@@ -170,9 +183,19 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 			return events.Event{}, true
 		}
 	}
+	// FINALITY (CR 122.1) is a replacement at the common move boundary:
+	// a creature with a finality counter that would go from the battlefield to
+	// a graveyard is exiled instead. This covers destruction, toughness-based
+	// SBAs, legend-rule departures and sacrifices alike. The derived type walk
+	// also handles a permanent animated into a creature, while the battlefield
+	// origin guard prevents unrelated graveyard moves from being widened.
+	if ev.Kind == events.MoveZone && ev.From == state.ZBattlefield &&
+		ev.To == state.ZGraveyard && e.finalityReplacementApplies(ev.Obj) {
+		ev.To = state.ZExile
+	}
 	// Madness is an optional discard replacement and must park before either
 	// destination is logged. The guarded re-emit still permits ordinary card
-	// and format replacements on the chosen destination.
+	// and format replacements to redirect the chosen destination.
 	if ev.Kind == events.MoveZone && !e.applyingMadnessChoice && e.madnessReplacementApplies(ev) {
 		e.parkMadnessDiscard(ev)
 		return ev, true
