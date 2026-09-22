@@ -603,7 +603,7 @@ func (e *Engine) manaAbilityPayablePool(p state.PlayerID, source state.ObjID, ma
 		return false
 	}
 	cost := e.parseCost(ma.Params["Cost"])
-	av := e.manaAvailableFor(p, source, true)
+	av := e.manaAvailableFor(p, paymentFor(source, true, cost))
 	pool := av.pool
 	typed := av.typed
 	if hyp != nil {
