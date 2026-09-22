@@ -3153,6 +3153,12 @@ func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, 
 			if p == g.Active {
 				return true
 			}
+		case "NonActive":
+			// NonActive is the complement of Active, evaluated after the
+			// Player/You/Opponent/Other base has matched.
+			if p != g.Active {
+				return true
+			}
 		case "isMonarch":
 			// CR 716.2's monarch designation, on the Player/Any base only:
 			// the state-local qualifier a control static's GainControl$
