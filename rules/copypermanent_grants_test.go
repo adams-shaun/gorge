@@ -450,3 +450,60 @@ func TestZndrspltJudgmentFriendChoosesTheCopiedCreature(t *testing.T) {
 	noCopyPermanentModNote(t, e, "Choices", "Chooser")
 	replayCheck(t, e, cfg)
 }
+
+// noAskHost embeds the engine but refuses every mid-resolution ask, forcing
+// the R-9 no-host stand-in while every state change still goes through the
+// engine's real event path.
+type noAskHost struct{ *Engine }
+
+func (noAskHost) Ask(*decision.Decision) bool { return false }
+
+// TestZndrspltJudgmentNoHostFallbackIsDeterministic pins the R-9 no-host
+// degradation for the Choices$ rider: a host that cannot ask copies the first
+// eligible friend creature deterministically and records the no-host Note,
+// never the resolving spell.
+func TestZndrspltJudgmentNoHostFallbackIsDeterministic(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, cfg := corpusEngineCfg(t, reg,
+		[]*cards.Card{lookup(t, reg, "Zndrsplt's Judgment")},
+		[]*cards.Card{lookup(t, reg, "Grizzly Bears"), lookup(t, reg, "Hill Giant")})
+	z := moveByName(t, e, 0, "Zndrsplt's Judgment", state.ZHand)
+	b1 := moveByName(t, e, 1, "Grizzly Bears", state.ZBattlefield)
+	b2 := moveByName(t, e, 1, "Hill Giant", state.ZBattlefield)
+	if e.G.Obj(b1).Zone != state.ZBattlefield || e.G.Obj(b2).Zone != state.ZBattlefield {
+		t.Fatalf("precondition failed: the friend's creatures are not on the battlefield")
+	}
+	// The first eligible creature in the friend's deterministic zone order.
+	want := e.G.Zone(state.ZBattlefield, 1)[0]
+	if o := e.G.Obj(want); o == nil || o.Card == nil {
+		t.Fatalf("precondition failed: no first battlefield permanent for the friend")
+	}
+
+	sa := resolveSourceFaceSA(t, e, z, "DBClone")
+	ctx := &effects.Ctx{Source: z, Controller: 0,
+		Remembered: []state.Target{{Player: 1, IsPlayer: true}}}
+	effects.Resolve(noAskHost{e}, ctx, sa)
+
+	// The no-host path never poses a decision; it copies the first eligible
+	// friend creature under the friend.
+	if d := e.Pending(); d != nil && d.Kind == decision.KChoose {
+		t.Fatalf("no-host run posed a KChoose: %+v", d)
+	}
+	copyID := findTokenCopyOf(t, e, e.G.Obj(want).Card, want)
+	if e.G.Obj(copyID).Zone != state.ZBattlefield {
+		t.Fatalf("the no-host fallback minted no copy (zone %s)", e.G.Obj(copyID).Zone)
+	}
+	if e.G.Obj(copyID).Controller != 1 {
+		t.Fatalf("the no-host copy controller = %d, want the friend 1", e.G.Obj(copyID).Controller)
+	}
+	sawNote := false
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "has no engine host") {
+			sawNote = true
+		}
+	}
+	if !sawNote {
+		t.Fatalf("the no-host fallback recorded no R-9 Note (notes: %v)", copyNotes(e))
+	}
+	replayCheck(t, e, cfg)
+}
