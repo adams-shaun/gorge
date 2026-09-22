@@ -254,12 +254,13 @@ func (e *Engine) startCumulativeUpkeep(stackObj, source state.ObjID, sa *cards.S
 	}
 	e.emit(events.Event{Kind: events.CounterChange, Obj: source, Counter: "AGE", Amount: 1})
 	label := sa.Params["Cost"]
+	parsed := e.parseCost(label)
 	action, actionOK := parseCumulativeAction(label)
 	// The triggered ability's controller was captured when it was placed on
 	// the stack. A response may change control of the cumulative permanent,
 	// but it must not transfer the already-triggered payment decision.
 	cu := &cumulativeUpkeep{stackObj: stackObj, source: source, player: stack.Controller,
-		amount: scaleCost(e.parseCost(label), o.Counter("AGE")), costLabel: label,
+		amount: scaleCost(parsed, o.Counter("AGE")), costLabel: cumulativeCostLabel(label, action, parsed),
 		actionRemaining: o.Counter("AGE")}
 	if actionOK {
 		cu.action = action
@@ -343,6 +344,53 @@ func mandatorySettleShape(c Cost) bool {
 	return stripped.Priceable()
 }
 
+// cumulativeCostLabel renders the player-facing phrase for a cumulative
+// upkeep's Cost$ value. A mana cost goes through the shared costPhrase; a
+// non-mana ACTION (Forge's keyword-action vocabulary parseCost does not
+// model -- AddMana, GainLife, FlipCoin, ...) has its own bounded prose
+// renderer so the label never falls back to the raw token or to the
+// one-generic parseCost degradation.
+func cumulativeCostLabel(raw string, action *cumulativeAction, c Cost) string {
+	if action != nil {
+		return cumulativeActionPhrase(action)
+	}
+	return costPhrase(c)
+}
+
+// cumulativeActionPhrase renders one cumulative-upkeep action as prose. The
+// kinds are the closed set parseCumulativeAction accepts.
+func cumulativeActionPhrase(a *cumulativeAction) string {
+	n := strconv.FormatInt(int64(a.n), 10)
+	plural := ""
+	if a.n != 1 {
+		plural = "s"
+	}
+	switch a.kind {
+	case "Sac":
+		return "sacrifice " + n + " " + specNoun(a.spec, "permanent")
+	case "Discard":
+		return "discard " + n + " card" + plural
+	case "AddCounter":
+		kind, _, _ := strings.Cut(a.spec, "/")
+		return "put " + n + " " + strings.ToUpper(kind) + " counter" + plural + " on this permanent"
+	case "AddMana":
+		return "add " + a.spec
+	case "Draw":
+		return "draw " + n + " card" + plural
+	case "ExileFromTop":
+		return "exile the top " + n + " card" + plural + " of your library"
+	case "FlipCoin":
+		return "flip a coin"
+	case "GainControl":
+		return "gain control of " + specNoun(a.spec, "permanent")
+	case "GainLife":
+		return "an opponent gains " + n + " life"
+	case "PutCardToLibFromSameGrave":
+		return "put " + n + " card" + plural + " from your graveyard into your library"
+	}
+	return ""
+}
+
 // startTriggeredEffectCost parks Mana Vault's triggered Untap before it runs
 // and opens the same mana-ability-only payment window used by mana cumulative
 // upkeep. Callers gate this helper on triggerBodyNeedsCostWindow.
@@ -352,8 +400,9 @@ func (e *Engine) startTriggeredEffectCost(rp *resumePoint, source state.ObjID) {
 		return
 	}
 	label := rp.sa.Params["Cost"]
+	amount := e.parseCost(label)
 	e.triggerCost = &triggeredEffectCost{resume: rp, source: source,
-		player: o.Controller, amount: e.parseCost(label), costLabel: label,
+		player: o.Controller, amount: amount, costLabel: costPhrase(amount),
 		mandatory: strings.HasPrefix(label, "Mandatory"), trig: e.triggerContexts[rp.obj]}
 	if e.triggerCost.mandatory {
 		e.advanceTriggeredMandatory(e.triggerCost)
@@ -424,7 +473,7 @@ func (e *Engine) cumulativePaymentAsk() {
 	}
 	if payable {
 		opts = append(opts, decision.Option{Index: 0, Kind: "cumulative_pay", Obj: cu.source,
-			Label: "Pay " + cu.costLabel + " per age (" + age + " age counter(s))"})
+			Label: capitaliseFirst(cu.costLabel) + " per age (" + age + " age counter(s))"})
 	}
 	opts = append(opts, decision.Option{Index: len(opts), Kind: "cumulative_sac", Obj: cu.source,
 		Label: "Sacrifice " + o.Face().Name})
@@ -872,7 +921,7 @@ func (e *Engine) triggeredCostPaymentAsk() {
 		rest := withoutDynTaps(tc.amount)
 		if rest.Priceable() && !rest.hasManaPayment() && rest.Life == 0 && rest.Snow == 0 {
 			if e.paymentManaAsk(tc.player, tc.source, rest, tc.windowDone,
-				"Activate mana abilities to pay "+tc.costLabel, chooseTriggeredCost) {
+				"Activate mana abilities to "+tc.costLabel, chooseTriggeredCost) {
 				return
 			}
 			if part, ok := e.nextDynTapPart(tc); ok {
@@ -886,14 +935,14 @@ func (e *Engine) triggeredCostPaymentAsk() {
 		return
 	}
 	if e.paymentManaAsk(tc.player, tc.source, tc.amount, tc.windowDone,
-		"Activate mana abilities to pay "+tc.costLabel, chooseTriggeredCost) {
+		"Activate mana abilities to "+tc.costLabel, chooseTriggeredCost) {
 		return
 	}
 	name := "triggered ability"
 	if o := e.G.Obj(tc.source); o != nil && o.Face() != nil {
 		name = o.Face().Name
 	}
-	opts := []decision.Option{{Index: 0, Kind: "trigger_cost_pay", Obj: tc.source, Label: "Pay " + tc.costLabel},
+	opts := []decision.Option{{Index: 0, Kind: "trigger_cost_pay", Obj: tc.source, Label: capitaliseFirst(tc.costLabel)},
 		{Index: 1, Kind: "trigger_cost_decline", Obj: tc.source, Label: "Do not pay"}}
 	// A Draw-bearing cost is Priceable()==false by construction (payMana
 	// cannot charge the draw), but it IS payable when every Draw component's
@@ -921,7 +970,7 @@ func (e *Engine) triggeredCostPaymentAsk() {
 	}
 	e.choosing = chooseTriggeredCost
 	e.ask(&decision.Decision{Player: tc.player, Kind: decision.KChoose, Min: 1, Max: 1,
-		Prompt: name + " — pay " + tc.costLabel + "?", Source: tc.source, Options: opts})
+		Prompt: name + " — " + tc.costLabel + "?", Source: tc.source, Options: opts})
 }
 
 func (e *Engine) cumulativeAnswer(chosen []decision.Option) {

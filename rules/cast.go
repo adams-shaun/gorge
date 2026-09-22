@@ -2144,7 +2144,7 @@ func (e *Engine) altAddAsk() bool {
 		Prompt: "Choose an additional cost to cast " + e.targetName(pc.card), Source: pc.card}
 	for _, i := range order {
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "altaddcost",
-			Label: "Pay " + formatCost(ParseCost(pc.altAddParts[i])), Amount: i})
+			Label: capitaliseFirst(costPhrase(ParseCost(pc.altAddParts[i]))), Amount: i})
 	}
 	e.choosing = chooseCast
 	e.ask(d)
