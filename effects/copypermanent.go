@@ -390,10 +390,16 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 				break
 			}
 		}
-		pick := Defined(h, c, &cards.SA{Params: map[string]string{"Defined": "Creature.RememberedPlayerCtrl"}})
-		if len(pick) == 0 {
-			return
-		}
+		// Choices$ names a CARD FILTER, not a Defined$ selector (Forge's
+		// CopyPermanent Choices$ is "the pool the chooser picks from"), so
+		// it is spelled with the established `Defined$ Valid <filter>` form
+		// and resolved through the battlefield filter sweep -- the
+		// RememberedPlayerCtrl predicate then matches creatures controlled
+		// by the remembered friend. Passing the bare filter as a Defined$
+		// selector would fall through Defined's per-member fallback to the
+		// resolving SOURCE, offering the chooser the spell itself.
+		pick := Defined(h, c, &cards.SA{Params: map[string]string{
+			"Defined": "Valid Creature.RememberedPlayerCtrl"}})
 		d := &decision.Decision{Player: chooser, Kind: decision.KChoose, Min: 1, Max: 1,
 			Source: c.Source, ResumeKind: "copypermanent_choice", ResumeSA: sa,
 			ResumeRemembered: append([]state.Target(nil), c.Remembered...), Prompt: "Choose a creature to copy"}
@@ -483,16 +489,30 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 	tokenMemory := tokenRememberedTargets(h, c, sa)
 
 	// Resolve the named attachment endpoint before minting. The endpoint is
-	// intentionally a destination selector, not a bearer-choice feature.
+	// intentionally a destination selector, not a bearer-choice feature. It
+	// must be an object ON THE BATTLEFIELD: an attachment point that is not a
+	// permanent (a card in a graveyard, an exiled object, an object that has
+	// already left) is not a legal endpoint, and emitting Attach at one would
+	// fasten the copy to a non-battlefield object the attachment SBAs cannot
+	// reason about. The check is the same battlefield gate effAttach applies.
 	var attachTo state.ObjID
 	if raw := strings.TrimSpace(sa.Params["AttachedTo"]); raw != "" {
 		sub := *sa
 		sub.Params = map[string]string{"Defined": raw}
 		for _, t := range Defined(h, c, &sub) {
-			if !t.IsPlayer && t.Obj != 0 && g.Obj(t.Obj) != nil {
-				attachTo = t.Obj
-				break
+			if t.IsPlayer || t.Obj == 0 {
+				continue
 			}
+			o := g.Obj(t.Obj)
+			if o == nil || o.Zone != state.ZBattlefield {
+				continue
+			}
+			attachTo = t.Obj
+			break
+		}
+		if attachTo == 0 {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "AttachedTo$ " + raw + " resolved to no legal battlefield permanent; the copy enters unattached"})
 		}
 	}
 	// Copy the resolving source face's named SVar entries. The maps are
@@ -511,6 +531,15 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 		}
 		if raw, ok := sourceSVars[name]; ok {
 			if tr, ok := cards.ParseTriggerLine(raw); ok {
+				// Resolve the trigger's Execute$ body against the SAME source
+				// table, the way cards/link.go links a printed trigger to its
+				// body. Without this the granted trigger carries a nil Effect,
+				// so the placement gate cannot read the body's ValidTgts$
+				// (the fight's "up to one target creature you don't control"
+				// ask is never posed) and rules' target dispatch has no SA.
+				if ex := strings.TrimSpace(tr.Params["Execute"]); ex != "" {
+					tr.Effect = cards.ResolveSVar(sourceSVars, ex)
+				}
 				x := tr
 				grantTriggers = append(grantTriggers, &x)
 			}
@@ -565,11 +594,13 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 					h.Emit(events.Event{Kind: events.Choose, Obj: want, Counter: "remembered", IDs: remembered})
 				}
 			}
-			h.Emit(events.Event{Kind: events.MoveZone, Obj: want,
-				From: state.ZLibrary, To: state.ZBattlefield})
-			if attachTo != 0 && g.Obj(attachTo) != nil {
-				h.Emit(events.Event{Kind: events.Attach, Obj: want, IDs: []state.ObjID{attachTo}})
-			}
+			// Register the named-ability/trigger grants BEFORE the copy enters
+			// the battlefield: a granted "when this creature enters" trigger
+			// must already be live when the entry MoveZone is applied, or the
+			// trigger walk sees no grant for the entering object and the copy
+			// silently lacks its text. The object id is already known (the
+			// want prediction), and every grant is self-scoped (Card.Self),
+			// so registering first changes nothing but the trigger's visibility.
 			if len(grantTriggers) > 0 || len(grantSVars) > 0 || len(grantAbilities) > 0 {
 				h.AddContinuous(state.ContinuousEffect{Source: want, Controller: owner,
 					Affects: "Card.Self", Layer: state.LAbilities, Permanent: true,
@@ -581,6 +612,17 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 						Affects: "Card.Self", Layer: state.LAbilities, Permanent: true,
 						AddTrigger: &trCopy, TriggerGrantor: c.Source,
 						SVars: sourceSVars})
+				}
+			}
+			h.Emit(events.Event{Kind: events.MoveZone, Obj: want,
+				From: state.ZLibrary, To: state.ZBattlefield})
+			if attachTo != 0 {
+				// The shared Attach emission: it publishes Unattached first
+				// when the copy was already attached to a different bearer,
+				// so a re-attach cannot drop the Mode$ Unattached family.
+				target := g.Obj(attachTo)
+				if target != nil && target.Zone == state.ZBattlefield && Attachable(g, want, attachTo) {
+					emitAttach(h, want, attachTo)
 				}
 			}
 			if withOK {
