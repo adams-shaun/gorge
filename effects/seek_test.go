@@ -147,11 +147,10 @@ func TestSeekEmptyAndRememberedImprintedRiders(t *testing.T) {
 	src := seekSource(t, h.fakeHost)
 	creature := mkCard(t, "Name:Alpha\nTypes:Creature\nPT:1/1\nOracle:x\n")
 	creatureID := seekCards(t, h.fakeHost, 0, creature)[0]
-	if seekHasNoteContaining(h.fakeHost, "unimplemented API Seek") {
-		t.Fatal("precondition: handler was not registered")
-	}
-
 	Resolve(h, &Ctx{Controller: 0, Source: src}, sa(t, "SP$ Seek | Type$ Artifact"))
+	if seekHasNoteContaining(h.fakeHost, "unimplemented API Seek") {
+		t.Fatal("empty seek reached the unimplemented API fallback")
+	}
 	if len(seekMarkers(h.fakeHost)) != 0 {
 		t.Fatalf("no-match seek emitted %d markers, want 0", len(seekMarkers(h.fakeHost)))
 	}
@@ -161,8 +160,8 @@ func TestSeekEmptyAndRememberedImprintedRiders(t *testing.T) {
 
 	// RememberFound$: both the resolution Ctx binding and the source's
 	// persistent (event-backed) remembered list must carry the found card.
-	Resolve(h, &Ctx{Controller: 0, Source: src},
-		sa(t, "SP$ Seek | Type$ Creature | RememberFound$ True"))
+	rememberCtx := &Ctx{Controller: 0, Source: src}
+	Resolve(h, rememberCtx, sa(t, "SP$ Seek | Type$ Creature | RememberFound$ True"))
 	if len(h.g.Zone(state.ZHand, 0)) != 1 {
 		t.Fatalf("remembered seek moved %d cards, want 1", len(h.g.Zone(state.ZHand, 0)))
 	}
@@ -171,9 +170,12 @@ func TestSeekEmptyAndRememberedImprintedRiders(t *testing.T) {
 	if len(got) != 1 || got[0].IsPlayer || got[0].Obj != found {
 		t.Fatalf("source Remembered = %v, want [%d] (the found card)", got, found)
 	}
-	// A chained `Defined$ Remembered` consumer must resolve the found card.
-	c2 := &Ctx{Controller: 0, Source: src, Remembered: []state.Target{{Obj: found}}}
-	rem := Defined(h, c2, &cards.SA{Params: map[string]string{"Defined": "Remembered"}})
+	// The live resolving context, not a test-authored replacement, must bind
+	// the found card for a chained Defined$ Remembered consumer.
+	if len(rememberCtx.Remembered) != 1 || rememberCtx.Remembered[0].IsPlayer || rememberCtx.Remembered[0].Obj != found {
+		t.Fatalf("resolving Ctx.Remembered = %+v, want the found card %d", rememberCtx.Remembered, found)
+	}
+	rem := Defined(h, rememberCtx, &cards.SA{Params: map[string]string{"Defined": "Remembered"}})
 	if len(rem) != 1 || rem[0].Obj != found {
 		t.Fatalf("Defined$ Remembered = %+v, want the found card %d", rem, found)
 	}
