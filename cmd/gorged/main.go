@@ -657,7 +657,11 @@ func deckLoader(reg *cards.Registry, dir string) func(string) (host.Deck, error)
 		if err != nil {
 			return host.Deck{}, err
 		}
-		d := host.Deck{Name: name, Cards: cs}
+		sb, err := f.ResolveSideboard(reg)
+		if err != nil {
+			return host.Deck{}, err
+		}
+		d := host.Deck{Name: name, Cards: cs, Sideboard: sb}
 		if names := f.CommanderNames(); len(names) > 0 {
 			d.Commanders = f.CommanderIndices()
 		}

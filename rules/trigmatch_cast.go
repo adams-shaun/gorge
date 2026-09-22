@@ -415,11 +415,24 @@ func (e *Engine) abilityCastMatches(t cards.Trigger, source state.ObjID, ev even
 	// pile TOP's printed cost (a wrong-wide pass whenever the top card's cost
 	// carried {X}). A plain permanent's flat index is unchanged.
 	pa, havePa := obj.PileAbilityAt(int(ev.Amount))
+	// ValidCard$ scopes AbilityCast to the permanent whose ability was
+	// activated. It is distinct from the trigger source: Avalanche of Sector
+	// 7's Artifact restriction must reject an ability from a non-artifact.
+	if v, ok := t.Params["ValidCard"]; ok {
+		if !effects.MatchesSpecCtx(e.G, v, obj.ID, e.specCtx(source, ctrl)) {
+			return false
+		}
+	}
 	if v, ok := t.Params["ValidSA"]; ok {
 		if !havePa {
 			return false
 		}
 		if !abilityCastValidSA(pa.SA, v, obj.Controller, ctrl) {
+			return false
+		}
+	}
+	if v, ok := t.Params["ValidSAonCard"]; ok {
+		if !havePa || !abilityCastValidSA(pa.SA, v, ev.Player, obj.Controller) {
 			return false
 		}
 	}
@@ -502,6 +515,10 @@ func abilityCastValidSA(ab *cards.SA, validSA string, abCtrl, ctrl state.PlayerI
 				}
 			case "YouCtrl":
 				if abCtrl == ctrl {
+					return true
+				}
+			case "OppCtrl":
+				if abCtrl != ctrl {
 					return true
 				}
 			}

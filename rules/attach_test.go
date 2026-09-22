@@ -36,6 +36,36 @@ func TestEquipAttachesAndTheStaticFollowsTheBearer(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+func TestEquipmentDetachesFromAReconfiguredBearer(t *testing.T) {
+	e, _, equipment := newFixtureDeck(t, 62,
+		"Name:Equipment\nManaCost:2\nTypes:Artifact Equipment\nK:Equip:1\nOracle:x\n",
+		"Name:Reconfigured Bear\nManaCost:2\nTypes:Artifact Creature Bear\nK:Reconfigure:1\nPT:2/2\nOracle:x\n")
+	e.emit(events.Event{Kind: events.MoveZone, Obj: equipment, From: state.ZHand, To: state.ZBattlefield})
+	bear := putCreature(t, e, 0, "Name:Reconfigured Bear\nManaCost:2\nTypes:Artifact Creature Bear\nK:Reconfigure:1\nPT:2/2\nOracle:x\n")
+	bearObj := e.G.Obj(bear)
+	// The fixture parser does not expand Reconfigure, so preserve the
+	// keyword on the synthetic face to model CR 702.150c's attached state.
+	bearObj.Face().Keywords = append(bearObj.Face().Keywords, "Reconfigure:1")
+	bearObj.AttachedTo = 999 // synthetic underlying permanent for the reconfigured bearer
+	e.G.Obj(equipment).AttachedTo = bear
+	if !bearObj.ReconfiguredAttached() {
+		t.Fatal("setup: bearer must be recognized as reconfigured while attached")
+	}
+	e.checkStateBased()
+	if e.G.Obj(equipment).AttachedTo != 0 {
+		t.Fatalf("equipment remains attached to reconfigured bearer %d", e.G.Obj(equipment).AttachedTo)
+	}
+	found := false
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Unattached && ev.Obj == equipment && len(ev.IDs) == 1 && ev.IDs[0] == bear {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("no Unattached event naming reconfigured bearer %d", bear)
+	}
+}
+
 func TestAuraTargetsOnCastAttachesOnResolutionAndDiesWithItsBearer(t *testing.T) {
 	rancor := "Name:Rancor\nManaCost:G\nTypes:Enchantment Aura\nK:Enchant:Creature\n" +
 		"S:Mode$ Continuous | Affected$ Creature.EnchantedBy | AddPower$ 2 | AddKeyword$ Trample | Description$ x\n" +

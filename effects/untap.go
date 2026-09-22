@@ -61,7 +61,14 @@ func untapBattlefieldCondition(h Host, c *Ctx, sa *cards.SA) bool {
 	}
 	n := 0
 	g := h.Game()
-	for _, p := range g.AliveFrom(0) {
+	for si, p := range g.AliveFrom(0) {
+		// ConditionZone$ Stack reads the SHARED stack (state/game.go Zone):
+		// counting it once per alive seat would make a one-spell stack read
+		// as an N-seat count and a ConditionCompare$ EQ1 gate wrongly false.
+		// Only the first alive seat scans it; other zones stay per-seat.
+		if zone == state.ZStack && si > 0 {
+			continue
+		}
 		for _, id := range g.Zone(zone, p) {
 			o := g.Obj(id)
 			if o != nil && MatchesObjectCtx(g, spec, o, c.SpecContext(c.Controller)) {

@@ -1,0 +1,132 @@
+package rules
+
+import (
+	"github.com/adams-shaun/gorge/effects"
+	"github.com/adams-shaun/gorge/state"
+)
+
+// This file is the ONE bridge between rules' layer walk and the effects tier's
+// name comparisons (Forge's named<X>, notnamed<X>, sameName and NamedCard).
+//
+// A layer-3 SetName$ effect (CR 613.1d) replaces a permanent's name, and only
+// the layer walk can say which effect applies and which of two competing
+// effects wins on timestamp. The effects tier cannot import rules and must not
+// re-derive any of that from a battlefield scan. So rules computes the renames
+// itself and hands them down as DATA on the SpecContext the filter call already
+// carries -- the same shape SpecContext.ExtraTypes and ExtraKeywords use, and
+// deliberately not a callable resolver field (which poisons escape analysis) or
+// a back-pointer from state.Game into a live engine (which would make an
+// authoritative Game depend on something outside its event fold, and would
+// survive a Game.Clone aimed at a different board).
+//
+// The table is a FIELD, refreshed after each emitted event, and specCtx binds
+// it with a plain field read. That is load-bearing, not a style choice: calling
+// a function from inside specCtxSVars pushes it over the inline budget, its
+// Resolve closure then escapes, and every SpecContext construction on the
+// Derived/legal-actions hot path allocates
+// (TestDerivedWithContinuousEffectsDoesNotAllocate,
+// TestLegalActionsReusesActionStaticMembership). The refresh itself is gated on
+// setNameInPool so a match whose cards carry no SetName$ static -- almost every
+// match -- pays one predictable branch per event and nothing else.
+//
+// A filter call that rules did not build -- effects.MatchesSpecFrom from inside
+// a resolving effect, a unit test, a bare *state.Game -- carries no names and
+// reads the printed face. That is the same reach ExtraTypes has (see the
+// "Layer-4 type grants reach only the layer walk" row in AGENTS.md) and it is
+// pinned by TestBareGameNameFilterReadsThePrintedName.
+
+// poolHasSetNameStatic reports whether any card this match can put on the
+// battlefield prints a SetName$ static. Computed once, at genesis, over the
+// decks and the token table: a card outside the pool can never register one of
+// these statics from its printed text. The per-card probe is cards.SetsName --
+// card-data introspection, deliberately not a statics-parameter read on a
+// rules path (rules/paramcensus_test.go attributes those to the primitive
+// whose activeStatics root reaches them, and this probe has no such root
+// because it runs before any board exists).
+func poolHasSetNameStatic(cfg Config) bool {
+	for _, deck := range cfg.Decks {
+		for _, c := range deck {
+			if c.SetsName() {
+				return true
+			}
+		}
+	}
+	for _, c := range cfg.Tokens {
+		if c.SetsName() {
+			return true
+		}
+	}
+	return false
+}
+
+// refreshRenames recomputes the rename table if the board or the continuous
+// effects moved since the last build. The key is active()'s own -- the log head
+// plus the continuous-effect version -- because the rename set is a pure
+// function of exactly those two inputs.
+func (e *Engine) refreshRenames() {
+	if e.renameBuilding {
+		// Re-entry: a Derived() call below reached something that re-emitted.
+		// The half-built table must never be published; the outer call
+		// finishes it.
+		return
+	}
+	if e.renameEpoch == len(e.L.Events) && e.renameVersion == e.continuousVersion {
+		return
+	}
+	e.renameEpoch, e.renameVersion = len(e.L.Events), e.continuousVersion
+	buf := e.renames[:0]
+	if !e.anySetNameActive() {
+		e.renames = buf[:0]
+		return
+	}
+	e.renameBuilding = true
+	defer func() { e.renameBuilding = false }()
+	// e.G.Objs is append-ordered, so this walk is deterministic; only the
+	// battlefield is scanned because a layer effect applies nowhere else.
+	for i := range e.G.Objs {
+		o := &e.G.Objs[i]
+		if o.Zone != state.ZBattlefield {
+			continue
+		}
+		f := o.Face()
+		if f == nil {
+			continue
+		}
+		name := e.Derived(o.ID).Name
+		if name == "" || name == f.Name {
+			continue
+		}
+		buf = append(buf, effects.ObjectName{ID: o.ID, Name: name})
+	}
+	e.renames = buf
+}
+
+// continuousChanged is the single mutator tail for e.continuous: bump the
+// version active() keys on, then keep the rename table in step, since a
+// continuous-effect change alone moves no log head and would otherwise leave a
+// stale table readable until the next emitted event.
+func (e *Engine) continuousChanged() {
+	e.continuousVersion++
+	if e.setNameInPool {
+		e.refreshRenames()
+	}
+}
+
+// anySetNameActive reports whether any active continuous effect sets a name.
+// Without this gate every refresh would pay for a full battlefield Derived()
+// walk on a board whose SetName$ carrier is still in a library.
+func (e *Engine) anySetNameActive() bool {
+	for _, ce := range e.active() {
+		if ce.Layer == LText && ce.SetName != "" {
+			return true
+		}
+	}
+	return false
+}
+
+// withNames binds the current renames on a SpecContext built outside
+// specCtxSVars, so every rules-built context agrees with the layer walk.
+func (e *Engine) withNames(sc effects.SpecContext) effects.SpecContext {
+	sc.EffectiveNames = e.renames
+	return sc
+}

@@ -63,6 +63,34 @@ func commanderFixture(t *testing.T) *cards.Registry {
 		"Elk":           "Name:Elk\nManaCost:G\nTypes:Creature Elk\n",
 		// A plain-Partner card (CR 903.13a) for the non-pair rejection.
 		"Plain Partner": "Name:Plain Partner\nManaCost:W\nTypes:Legendary Creature Human Cleric\nK:Partner\n",
+		// A Doctor's-companion pair for the Doctor Who cycle's deck
+		// construction: the companion half carries K:Doctor's companion and
+		// the other half is a Doctor (the creature subtype). Both are white so
+		// the union identity is {W}; the companion itself is NOT a Doctor (its
+		// type line is Human, exactly like Rose Tyler).
+		"Gallifrey Envoy":   "Name:Gallifrey Envoy\nManaCost:W\nTypes:Legendary Creature Human\nK:Doctor's companion\n",
+		"The Fourth Doctor": "Name:The Fourth Doctor\nManaCost:W\nTypes:Legendary Creature Time Lord Doctor\n",
+		// A legendary creature that is NOT a Doctor, for the non-Doctor
+		// companion rejection.
+		"Not A Doctor": "Name:Not A Doctor\nManaCost:W\nTypes:Legendary Creature Human Advisor\n",
+		// A second companion with no Doctor partner (the pair-of-companions
+		// rejection).
+		"Second Companion": "Name:Second Companion\nManaCost:W\nTypes:Legendary Creature Human\nK:Doctor's companion\n",
+		// Two distinct Doctors that EACH carry Doctor's companion: for each card
+		// the other commander is the Doctor, so the pair is legal even though
+		// both halves carry the companion keyword. The pair is {W}{U}, so a
+		// blue card is legal only because BOTH identities count. "Gallifrey
+		// Envoy" above (a non-Doctor companion) keeps its own negative test.
+		"The Fifth Doctor": "Name:The Fifth Doctor\nManaCost:W\nTypes:Legendary Creature Time Lord Doctor\nK:Doctor's companion\n",
+		"The Sixth Doctor": "Name:The Sixth Doctor\nManaCost:U\nTypes:Legendary Creature Time Lord Doctor\nK:Doctor's companion\n",
+		// Double-faced cards whose partner traits live ONLY on the back face.
+		// Outside the battlefield/stack a card is considered by its front-face
+		// characteristics (CR 712.2 for transforming DFCs, CR 711.4 for modal
+		// ones), so neither may form a Doctor's-companion pair: the front face
+		// carries no companion keyword / no Doctor subtype. The back faces are
+		// stocked so a bug that reads every face would accept the pair.
+		"Back Companion": "Name:Back Companion\nManaCost:W\nTypes:Legendary Creature Human\nAlternateMode:DoubleFaced\nOracle:x\nALTERNATE\nName:Back Companion Back\nTypes:Legendary Creature Human\nK:Doctor's companion\nOracle:x\n",
+		"Back Doctor":    "Name:Back Doctor\nManaCost:W\nTypes:Legendary Creature Human\nAlternateMode:DoubleFaced\nOracle:x\nALTERNATE\nName:Back Doctor Back\nTypes:Legendary Creature Time Lord Doctor\nOracle:x\n",
 	}
 	for name, src := range scripts {
 		c, diags := cards.ParseBytes("fixture.txt", []byte(src))
@@ -155,9 +183,229 @@ func TestValidateCommanderRejectsNonPartnerPair(t *testing.T) {
 		Cards:      []Entry{{"Amalia", 1}, {"Plain Partner", 1}, {"Plains", 98}},
 	}
 	err := f.ValidateCommander(r)
-	if err == nil || !strings.Contains(err.Error(), "not a legal partner pair") {
-		t.Fatalf("want a not-a-partner-pair rejection, got %v", err)
+	if err == nil || !strings.Contains(err.Error(), "not a legal commander pair") {
+		t.Fatalf("want a not-a-commander-pair rejection, got %v", err)
 	}
+}
+
+// doctorCompanionDeck builds a CR-903.4-legal 100-card deck seating a
+// Doctor's-companion pair: the companion half (Gallifrey Envoy, not itself a
+// Doctor) plus the Doctor (The Fourth Doctor). The union identity is {W}, so
+// the white cards are legal only because BOTH halves count.
+func doctorCompanionDeck() File {
+	return File{
+		Name:       "TIMEY",
+		Commanders: []string{"Gallifrey Envoy", "The Fourth Doctor"},
+		Cards: []Entry{
+			{"Gallifrey Envoy", 1},
+			{"The Fourth Doctor", 1},
+			{"Knight", 1},
+			{"Plains", 97},
+		},
+	}
+}
+
+// TestValidateCommanderDoctorCompanionPair pins the Doctor Who cycle's deck
+// construction clause: one commander carrying K:Doctor's companion and the
+// other being a Doctor (the creature subtype) is a legal pair, validated
+// against the CR 903.5 union of BOTH commanders' identities. The companion
+// half is deliberately NOT a Doctor itself (Gallifrey Envoy is Human, like
+// Rose Tyler), so a check that required the companion to carry the subtype
+// would reject this deck.
+func TestValidateCommanderDoctorCompanionPair(t *testing.T) {
+	r := commanderFixture(t)
+	if err := doctorCompanionDeck().ValidateCommander(r); err != nil {
+		t.Fatalf("Doctor's-companion deck rejected: %v", err)
+	}
+	// The pair is legal in either designation order, exactly like a partner
+	// pair: the clause names roles, not positions.
+	swapped := doctorCompanionDeck()
+	swapped.Commanders = []string{"The Fourth Doctor", "Gallifrey Envoy"}
+	if err := swapped.ValidateCommander(r); err != nil {
+		t.Fatalf("Doctor's-companion deck rejected with the pair reversed: %v", err)
+	}
+}
+
+// TestValidateCommanderRejectsNonDoctorCompanion pins the companion clause's
+// other half: a Doctor's companion paired with a legendary creature that is
+// NOT a Doctor is not a legal pair. This is the deck-level twin of the
+// brief's "rejects a non-Doctor companion" gate — and it must fail on the
+// PAIR, not on some unrelated colour or count, so the deck is otherwise legal
+// (100 cards, singleton, mono-white).
+func TestValidateCommanderRejectsNonDoctorCompanion(t *testing.T) {
+	r := commanderFixture(t)
+	f := File{
+		Name:       "NODOC",
+		Commanders: []string{"Gallifrey Envoy", "Not A Doctor"},
+		Cards: []Entry{
+			{"Gallifrey Envoy", 1},
+			{"Not A Doctor", 1},
+			{"Knight", 1},
+			{"Plains", 97},
+		},
+	}
+	err := f.ValidateCommander(r)
+	if err == nil || !strings.Contains(err.Error(), "not a legal commander pair") {
+		t.Fatalf("want the non-Doctor companion rejected as an illegal pair, got %v", err)
+	}
+	if strings.Contains(err.Error(), "outside commander") || strings.Contains(err.Error(), "cards, but") {
+		t.Fatalf("the deck is otherwise legal; the only rejection must be the pair, got %v", err)
+	}
+}
+
+// TestValidateCommanderRejectsTwoCompanions pins the exactly-one half: two
+// cards that each carry K:Doctor's companion have no Doctor between them, so
+// they are not a legal pair even though each is commander-eligible on its
+// own.
+func TestValidateCommanderRejectsTwoCompanions(t *testing.T) {
+	r := commanderFixture(t)
+	f := File{
+		Name:       "TWOCMP",
+		Commanders: []string{"Gallifrey Envoy", "Second Companion"},
+		Cards: []Entry{
+			{"Gallifrey Envoy", 1},
+			{"Second Companion", 1},
+			{"Knight", 1},
+			{"Plains", 97},
+		},
+	}
+	err := f.ValidateCommander(r)
+	if err == nil || !strings.Contains(err.Error(), "not a legal commander pair") {
+		t.Fatalf("want two companions rejected as an illegal pair, got %v", err)
+	}
+}
+
+// doctorCompanionsBothDeck builds a CR-903.4-legal 100-card deck whose two
+// commanders are DISTINCT Doctors that each carry K:Doctor's companion. The
+// companion clause reads "You can have two commanders if the other is the
+// Doctor": for each card the other commander IS a Doctor, so the pair is
+// legal even though both halves carry the keyword. The union identity is
+// {W}{U}, so Drake (blue) is legal only because BOTH identities count.
+func doctorCompanionsBothDeck() File {
+	return File{
+		Name:       "TWODOC",
+		Commanders: []string{"The Fifth Doctor", "The Sixth Doctor"},
+		Cards: []Entry{
+			{"The Fifth Doctor", 1},
+			{"The Sixth Doctor", 1},
+			{"Drake", 1},
+			{"Plains", 97},
+		},
+	}
+}
+
+// TestValidateCommanderTwoDoctorCompanions pins the clause's bidirectional
+// half: two DISTINCT Doctors that EACH carry Doctor's companion are a legal
+// pair, because for each card the other commander is the Doctor. The pre-fix
+// predicate required exactly one companion half (ca == cb returned false) and
+// wrongly rejected this shape. The deck is otherwise legal (100 cards,
+// singleton) and its blue card is legal only through the union identity, so
+// the test also fails if the pair is admitted but the identity is not unioned.
+func TestValidateCommanderTwoDoctorCompanions(t *testing.T) {
+	r := commanderFixture(t)
+	d := doctorCompanionsBothDeck()
+	if err := d.ValidateCommander(r); err != nil {
+		t.Fatalf("two-Doctor-companion deck rejected: %v", err)
+	}
+	// The pair is legal in either designation order.
+	swapped := doctorCompanionsBothDeck()
+	swapped.Commanders = []string{"The Sixth Doctor", "The Fifth Doctor"}
+	if err := swapped.ValidateCommander(r); err != nil {
+		t.Fatalf("two-Doctor-companion deck rejected with the pair reversed: %v", err)
+	}
+}
+
+// TestValidateCommanderRejectsBackFaceCompanionTraits pins the face read of
+// the companion clause's two traits. A double-faced card is considered by its
+// front-face characteristics outside the battlefield/stack (CR 712.2/711.4),
+// so a K:Doctor's companion keyword printed only on the back face does not
+// make a companion, and the Doctor subtype printed only on the back face
+// does not make a Doctor. The old all-faces read accepted both pairs. The
+// fixtures stock the trait on the BACK face, so the test fails loudly if the
+// parse stops producing two faces or the trait moves to the front.
+func TestValidateCommanderRejectsBackFaceCompanionTraits(t *testing.T) {
+	r := commanderFixture(t)
+
+	// Precondition: the fixtures really are two-faced, with the trait on the
+	// back face and NOT on the front, so the negative below is the face-read
+	// question rather than a fixture-parsing accident.
+	assertTraitFaces(t, r, "Back Companion", func(f *cards.Face) bool { return f.HasKeyword("Doctor's companion") })
+	assertTraitFaces(t, r, "Back Doctor", isDoctorFace)
+
+	// Back-only companion + a real Doctor: the pair is illegal because the
+	// companion keyword is not on Back Companion's front face.
+	f := File{
+		Name:       "BACKCMP",
+		Commanders: []string{"Back Companion", "The Fourth Doctor"},
+		Cards: []Entry{
+			{"Back Companion", 1},
+			{"The Fourth Doctor", 1},
+			{"Knight", 1},
+			{"Plains", 97},
+		},
+	}
+	err := f.ValidateCommander(r)
+	if err == nil || !strings.Contains(err.Error(), "not a legal commander pair") {
+		t.Fatalf("want a back-face-only companion rejected as an illegal pair, got %v", err)
+	}
+	// And the predicate itself is false in both orders.
+	backCompanion, _ := r.Lookup("Back Companion")
+	fourth, _ := r.Lookup("The Fourth Doctor")
+	if IsPartnerPair(backCompanion, fourth) || IsPartnerPair(fourth, backCompanion) {
+		t.Fatal("IsPartnerPair accepted a companion keyword printed only on the back face")
+	}
+
+	// Back-only Doctor + a real companion: illegal because the Doctor subtype
+	// is not on Back Doctor's front face.
+	g := File{
+		Name:       "BACKDOC",
+		Commanders: []string{"Gallifrey Envoy", "Back Doctor"},
+		Cards: []Entry{
+			{"Gallifrey Envoy", 1},
+			{"Back Doctor", 1},
+			{"Knight", 1},
+			{"Plains", 97},
+		},
+	}
+	err = g.ValidateCommander(r)
+	if err == nil || !strings.Contains(err.Error(), "not a legal commander pair") {
+		t.Fatalf("want a back-face-only Doctor rejected as an illegal pair, got %v", err)
+	}
+	backDoctor, _ := r.Lookup("Back Doctor")
+	envoy, _ := r.Lookup("Gallifrey Envoy")
+	if IsPartnerPair(envoy, backDoctor) || IsPartnerPair(backDoctor, envoy) {
+		t.Fatal("IsPartnerPair accepted the Doctor subtype printed only on the back face")
+	}
+}
+
+// assertTraitFaces requires want(name) on the back face ONLY: two faces, the
+// trait absent from the front and present on the back. It is the loud
+// precondition for the front-face negative test above.
+func assertTraitFaces(t *testing.T, r *cards.Registry, name string, want func(*cards.Face) bool) {
+	t.Helper()
+	c, ok := r.Lookup(name)
+	if !ok {
+		t.Fatalf("fixture %q not in registry", name)
+	}
+	if len(c.Faces) != 2 {
+		t.Fatalf("%s has %d faces, want 2 (a double-faced fixture)", name, len(c.Faces))
+	}
+	if want(c.Faces[0]) {
+		t.Fatalf("fixture drift: %s carries the trait on its FRONT face; the negative must test a back-face-only trait", name)
+	}
+	if !want(c.Faces[1]) {
+		t.Fatalf("fixture drift: %s does not carry the trait on its back face", name)
+	}
+}
+
+// isDoctorFace reports whether a face carries the Doctor creature subtype.
+func isDoctorFace(f *cards.Face) bool {
+	for _, ty := range f.Types {
+		if strings.EqualFold(strings.TrimSpace(ty), "Doctor") {
+			return true
+		}
+	}
+	return false
 }
 
 // TestFileCommanderIndices pins the plural accessor: both commanders' flat

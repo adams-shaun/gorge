@@ -147,6 +147,26 @@ type TriggerContext struct {
 	// empty outside a Vote capture.
 	TriggeredOpponentsVotedSame []state.PlayerID
 	TriggeredOpponentsVotedDiff []state.PlayerID
+	// TriggerDamageSources / TriggerDamageTargets are the deduplicated
+	// matching source and target sets of the whole damage batch a Mode$
+	// DamageAll trigger fired for (trig:DamageAll): every (source, target)
+	// pair the batch's Damage events carried that matched the trigger's
+	// ValidSource$/ValidTarget$, in first-seen event order, captured on the
+	// batch latch entry and patched onto the queued trigger at batch close.
+	// They are the referents the plural corpus readers resolve -- Malcolm
+	// Keen-Eyed Navigator's and Hordewing Skaab's
+	// "TriggeredPlayersTargets$Amount" (the count of matching target
+	// PLAYERS, the "for each opponent dealt damage" reading), Breeches'
+	// "Defined$ TriggeredTargets" ("each of those opponents' libraries") and
+	// Nelly Borca's "Defined$ TriggeredSourcesController" ("you and the
+	// controller of those creatures"). The singleton TriggerSource /
+	// TriggerTarget roles stay the FIRST matching pair's, exactly as before;
+	// an absent set (hand-built context, a batch-less capture) falls back to
+	// those singleton semantics. Not serialized into events.Event -- the
+	// capture is rebuilt by the same replay re-derivation as TriggerAmount's
+	// batch total.
+	TriggerDamageSources []state.ObjID
+	TriggerDamageTargets []state.Target
 }
 
 // TriggeredCardController is the one resolver for "that card's controller"
@@ -235,15 +255,20 @@ func controlReferentPlayers(g *state.Game, sc SpecContext, op, ref string) ([]st
 		}
 		targets = sc.ResolutionTargets
 	case "Remembered", "RememberedPlayer":
-		// Resolution-only, like Targeted*: the objects/players this
-		// resolution remembers -- a RepeatEach loop's current subject.
-		// RememberedPlayer (RememberedPlayerCtrl's referent) admits only
-		// player entries.
+		// Resolution-only, like Targeted*: the players this resolution
+		// remembers -- a RepeatEach loop's current subject. Forge's
+		// getDefinedPlayers("Remembered") adds remembered PLAYERS only; a
+		// remembered CARD contributes its controller only for the
+		// RememberedController/RememberedOwner spellings (handled by their
+		// own referents). Mapping a remembered card to its controller here
+		// would widen `ControlledBy Remembered` to the previous iteration's
+		// RememberChosen$ card's controller as well as the current subject
+		// (Summon: Valefor, Chaos Defiler).
 		if !sc.Resolving {
 			return nil, false
 		}
 		for _, t := range sc.Remembered {
-			if t.IsPlayer || ref == "Remembered" {
+			if t.IsPlayer {
 				targets = append(targets, t)
 			}
 		}

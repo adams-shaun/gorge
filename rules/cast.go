@@ -46,6 +46,11 @@ const (
 	// chooseRiot+1.. family; the numbers matter only inside this package's
 	// switch table.
 	chooseSiege chooseFor = 26
+	// chooseAttached is the Attached-replacement name/type election
+	// (rules/replacement.go). 30 is the next free value: 27-29 are
+	// chooseEnlist / chooseAttackPay / chooseUnleash, each defined relative
+	// to a neighbour, and 40 is chooseUntap.
+	chooseAttached chooseFor = 30
 )
 
 // pendingCast is the cast flow's own state, live only between beginCast and
@@ -76,6 +81,23 @@ type pendingCast struct {
 	// above.
 	grantSource state.ObjID
 	grantSVar   string
+
+	// gainedFrom / gainedIdx anchor a HAS-ALL-ABILITIES-OF activation
+	// (Forge's GainsAbilitiesOf$, rules/activation's gained branch): the body
+	// is a compiled SA on a FOREIGN card's face, so gainedFrom is that card's
+	// object id and gainedIdx the index of the SA in its Face().Abilities.
+	// Both are plain values carried through the same shallow Clone as the
+	// scalars above; a zero gainedFrom means no gained activation.
+	gainedFrom state.ObjID
+	gainedIdx  int
+
+	// offSorcery (kw:MayFlashSac) is the CR 702.8 rider's condition captured
+	// at beginCast, before CR 601.2a pushes the spell: true when this cast was
+	// made at a time a sorcery could NOT have been cast. payCast stamps
+	// state.FlagMayFlashSac onto the pay-time CastInfo only when this is true
+	// AND the face carries the keyword, so a sorcery-timed cast of the same
+	// card registers no cleanup sacrifice. Plain data, so Clone carries it.
+	offSorcery bool
 
 	cost Cost
 
@@ -151,6 +173,16 @@ type pendingCast struct {
 	multikickTimes int32
 	multikickDone  bool
 
+	// escalateParam is the raw Escalate keyword parameter (the modal
+	// additional cost "pay this for each mode chosen beyond the first") a
+	// Charm cast re-parses once the CR 601.2b mode answer is in; escalateDone
+	// marks the one fold already applied. There is no separate cast option --
+	// unlike Kicker, Escalate rides the mode count of the plain cast. Plain
+	// data, so Clone copies it like the replicate/multikick fields above.
+	escalateParam string
+	escalateSet   bool
+	escalateDone  bool
+
 	// Mutate (CR 702.140b): mutateTop is the answered over/under placement
 	// choice and mutatePlaceDone marks the one ask already posed. Plain data,
 	// so Clone copies them like the replicate/multikick fields above.
@@ -206,6 +238,16 @@ type pendingCast struct {
 
 	discards    []state.ObjID
 	discardPart int
+
+	// SubCounter cost parts whose removal-target field names a filter
+	// (SubCounter<N|X/Kind/Target>) record their chosen removal target here:
+	// the KChoose answer's object, or the sole candidate when the ask was
+	// never posed (the strict-supersets convention -- the settlement event
+	// records the object, so replay re-derives it). subCounterPart walks the
+	// parts in cost order like sacPart. Plain data, so Clone copies it like
+	// sacs/discards.
+	subCtrs        []state.ObjID
+	subCounterPart int
 
 	// convoke is the announced set of creatures paying Convoke or Harmonize.
 	// It is chosen after the complete mana cost exists and before the mana
@@ -602,7 +644,7 @@ func (e *Engine) harmonizePayment(p state.PlayerID, id state.ObjID, c Cost) (Cos
 			break
 		}
 		co := e.G.Obj(cid)
-		if co == nil || co.Tapped || co.Face() == nil || !co.EffectiveIsCreature() || co.BestowedAttached() {
+		if co == nil || co.Tapped || co.Face() == nil || !co.EffectiveIsCreature() || co.BestowedAttached() || co.ReconfiguredAttached() {
 			continue
 		}
 		// The reduction is the creature's ACTUAL power (CR 702.46a: "reduce
@@ -798,7 +840,7 @@ func (e *Engine) convokeCost(p state.PlayerID, id state.ObjID, c Cost) (Cost, []
 	var tapped []state.ObjID
 	for _, cid := range e.G.Zone(state.ZBattlefield, p) {
 		co := e.G.Obj(cid)
-		if co == nil || co.Tapped || co.Face() == nil || !co.EffectiveIsCreature() || co.BestowedAttached() {
+		if co == nil || co.Tapped || co.Face() == nil || !co.EffectiveIsCreature() || co.BestowedAttached() || co.ReconfiguredAttached() {
 			continue
 		}
 		used := false
@@ -956,6 +998,25 @@ func (e *Engine) castablePriced(p state.PlayerID, id state.ObjID, cost Cost, abi
 		return false
 	}
 	return e.nonManaCastable(p, id, cost, ability)
+}
+
+// chargeEnergyCost spends a cost's energy parts from the payer's pool, one
+// PlayerCounterChange per part (a player counter, not an object's -- CR
+// 118.2d). A fixed part spends its N; a dynamic part spends the announced x.
+// This is the ONE energy-charging site, shared by the cast/activation payment
+// path and the triggered-cost window, so a paid cost can never spend its
+// energy in one place and skip it in another.
+func (e *Engine) chargeEnergyCost(p state.PlayerID, c Cost, x int32) {
+	for _, part := range c.Energy {
+		amt := part.N
+		if part.Spec == "X" {
+			amt = x
+		}
+		if amt > 0 {
+			e.emit(events.Event{Kind: events.PlayerCounterChange, Player: p,
+				Counter: "ENERGY", Amount: -amt})
+		}
+	}
 }
 
 // nonManaCastable is castable's payment-independent tail. Cost-modifier
@@ -1122,15 +1183,9 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 	// pool down once per part, so the parts cannot each spend the whole
 	// counter total independently. The dynamic X form is bounded by that
 	// total at the X ask, so the offer gate needs no assumption about the
-	// not-yet-chosen value.
-	energyTotal := int32(0)
-	for _, part := range cost.Energy {
-		if part.Spec == "X" {
-			continue
-		}
-		energyTotal += part.N
-	}
-	if energyTotal > 0 && e.G.Players[p].Counter("ENERGY") < energyTotal {
+	// not-yet-chosen value. The read is the shared energyPayable helper, so
+	// the cast path and the triggered-cost window cannot disagree about it.
+	if !e.energyPayable(p, cost) {
 		return false
 	}
 	// Return cost parts (Return<N/Spec>): the source itself (Spec CARDNAME,
@@ -1222,7 +1277,24 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 			if part.Announced {
 				continue
 			}
-			if o.Counter(part.Spec) < part.N {
+			// A part whose removal-target field names something other than the
+			// source needs a battlefield candidate the payer controls with
+			// enough counters (Ghave's "remove a +1/+1 counter from a creature
+			// you control"), reserved against the earlier parts the same way.
+			// A source-anchored part keeps the pre-existing source read.
+			if !subCounterTargetsSource(part.Target) {
+				cands := e.subCounterRemovalCandidates(p, id, part, part.N, reserved)
+				if len(cands) == 0 {
+					return false
+				}
+				// Deterministically mirror the ask stage's reservation: the
+				// first candidate (candidates are in zone order) pays this
+				// part when the later parts of the same cost count the same
+				// pool. A board change before the ask aborts there.
+				reserved[cands[0]] = true
+				continue
+			}
+			if subCounterAvailable(o, part.Spec) < part.N {
 				return false
 			}
 		}
@@ -1364,7 +1436,13 @@ func (e *Engine) payDamageCost(payer state.PlayerID, n int32, source state.ObjID
 		return
 	}
 	prev := e.SetDamageSource(source)
-	ev := e.emit(events.Event{Kind: events.Damage, Player: payer, Amount: n})
+	dam := events.Event{Kind: events.Damage, Player: payer, Amount: n}
+	if e.HasKeyword(source, "Infect") {
+		// CR 702.90b: even a cost payment is damage dealt by its source, so
+		// an infect source's DamageYou cost pays in counter/poison form.
+		dam.Counter = "infect"
+	}
+	ev := e.emit(dam)
 	e.SetDamageSource(prev)
 	if ev.Kind != events.Damage || !e.HasKeyword(source, "Lifelink") {
 		return
@@ -1907,6 +1985,23 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		e.cast = &pendingCast{player: p, card: id, from: from, mode: opt.Mode, ability: -1,
 			cost: cost, faceBefore: faceBefore, mods: mods, taxGeneric: tax}
 	}
+	// Escalate (the modal additional cost "pay this for each mode chosen
+	// beyond the first"): the cost is carried as its raw keyword parameter
+	// and re-parsed by the cast_modes answer handler -- the same
+	// string-survives-Clone convention the replicate capture below documents.
+	// Escalate rides the plain cast (no separate option exists): the CR
+	// 601.2b mode answer's chosen count is what prices it, so the capture is
+	// mode-blind.
+	if s, ok := f.KeywordParam("Escalate"); ok && strings.TrimSpace(s) != "" {
+		e.cast.escalateParam, e.cast.escalateSet = s, true
+	}
+
+	// kw:MayFlashSac (CR 702.8): capture the rider's condition now, before
+	// CR 601.2a puts the spell on the stack, so the empty-stack half of
+	// sorcerySpeed is the board the caster announced into rather than this
+	// spell's own push. An ability proposal (pc.ability >= 0) never reads it:
+	// payCast's flag arm is gated on !pc.isAbility().
+	e.cast.offSorcery = e.offSorceryAtCast(p)
 	// The announce-bearing alternative (the Shoal cycle) and the
 	// TargetsWithSameController rider (Lodestone Bauble) ride the selected
 	// cast SA into the transaction: xAsk's announce arm and exAsk's binding
@@ -1991,13 +2086,25 @@ var convertedManaCostToken = regexp.MustCompile(`(?i)convertedmanacost`)
 // value (Amped Raptor's "an amount of {E} equal to its mana value") and the
 // result is parsed with the ordinary cost grammar -- PayEnergy<N>, PayLife<N>,
 // a fixed generic, and Discard<N/Spec> all land in the Cost fields the cast
-// flow already asks and charges. A token the grammar reports as unmodelled
-// (Cost.Unknown -- the corpus's one PlayCost$ SuspendCost, The Face of Boe)
-// is NOT degraded the way a printed cost's malformed token would be:
+// flow already asks and charges. SuspendCost is resolved from the chosen
+// card's K:Suspend before that ordinary grammar. A token the grammar reports as
+// unmodelled is NOT degraded the way a printed cost's malformed token would be:
 // PlayCost$ is an ALTERNATIVE to the mana cost (CR 118.9 "rather than paying
 // its mana cost"), so degrading it to one generic would still charge the
 // player full price -- the caller hard-declines instead, ParseUnlessCost-style.
 func pricePlayCost(f *cards.Face, token string) (Cost, bool) {
+	// SuspendCost is the one PlayCost token whose value is another keyword's
+	// cost rather than a standalone cost expression. Read the chosen card's
+	// printed K:Suspend, exactly as the Face of Boe's "pay its suspend cost"
+	// text requires; an absent or malformed Suspend keyword remains a hard
+	// decline.
+	if strings.EqualFold(strings.TrimSpace(token), "SuspendCost") {
+		info, ok := suspendCost(f)
+		if !ok || info.timeX {
+			return Cost{}, false
+		}
+		return info.cost, len(info.cost.Unknown) == 0
+	}
 	s := convertedManaCostToken.ReplaceAllString(token, strconv.FormatInt(int64(f.ManaValue()), 10))
 	c := ParseCost(s)
 	if len(c.Unknown) > 0 {
@@ -2192,6 +2299,13 @@ func (e *Engine) continueCast() {
 		return
 	}
 	if e.sacAsk() {
+		return
+	}
+	// The SubCounter cost parts whose removal-target field names a filter ask
+	// their payer which permanent the counters come off (Ghave's "remove a
+	// +1/+1 counter from a creature you control"), after the announced X
+	// exists so the candidate set can require that many counters.
+	if e.subCounterAsk() {
 		return
 	}
 	if e.discardAsk() {
@@ -2588,12 +2702,13 @@ func (e *Engine) exAsk() bool {
 		var sc *effects.SpecContext
 		if pc.announceX != "" {
 			name := pc.announceX
-			sc = &effects.SpecContext{You: pc.player, Source: pc.card, Resolve: func(n string) (int32, bool) {
+			bound := e.withNames(effects.SpecContext{You: pc.player, Source: pc.card, Resolve: func(n string) (int32, bool) {
 				if n == name {
 					return pc.x, true
 				}
 				return 0, false
-			}}
+			}})
+			sc = &bound
 		}
 		var candidates []state.ObjID
 		for _, oid := range e.G.Zone(zone, pc.player) {
@@ -2886,6 +3001,17 @@ func (e *Engine) castModeAsk() bool {
 	}
 	ctx := &effects.Ctx{Source: pc.card, Controller: pc.player}
 	effects.SetSVars(ctx, f.SVars)
+	if effects.CharmRandomChosen(e, ctx, sa) {
+		// param:api:Charm.Random: a random Charm's mode announcement is not
+		// asked (measured corpus-unreachable -- every Random$ Charm carrier,
+		// 5 files, is a trigger body -- so this site is latent). Resolution's
+		// effCharm picks the mode with the engine's rng (Random$ True, or
+		// Random$ Compare while the comparison holds) or poses the ordinary
+		// KModes ask there; modesDone is already set, so the announcement is
+		// simply skipped and the per-mode legality filter above never
+		// narrows the pool the rng would pick from.
+		return false
+	}
 	choices := strings.Split(sa.Params["Choices"], ",")
 	// The potential pool (a pure read) is the colour-aware upper bound the
 	// per-mode cost filter below prices against: at this point in the cast no
@@ -2929,7 +3055,38 @@ func (e *Engine) castModeAsk() bool {
 		}
 		legal = append(legal, name)
 	}
+	// ChoiceRestriction$: a Charm cast (no corpus carrier today, but the
+	// class) still cannot announce a mode it already chose on the same source
+	// under the scope. Filtered before the bounds clamp, exactly as the
+	// triggered and mid-resolution asks do.
+	legal = effects.CharmEligibleModes(e, pc.card, sa, legal)
 	min, max, repeat := effects.CharmModeBounds(e, ctx, sa, len(legal))
+	// Escalate (the modal additional cost): a cast choosing N modes pays the
+	// escalate cost N-1 times, so a mode count the board cannot pay for is
+	// not a legal announcement -- clamp Max to 1 + the largest number of
+	// escalate payments the SAME affordability checker the payment window's
+	// composed total faces (castable) still admits, the replicateAsk shape,
+	// pool-only at ask time (the CR 601.2g window afterwards may still
+	// produce mana). The loop is bounded by the bounds Max itself, so it
+	// terminates. An unpriceable parameter cannot clamp (it also cannot
+	// charge -- the answer handler emits a loud Note instead), so the
+	// CharmNum$ bounds stay honest on the wire.
+	if pc.escalateSet {
+		if esc := ParseCost(pc.escalateParam); len(esc.Unknown) == 0 {
+			maxEscalations := 0
+			cand := pc.cost
+			for 1+maxEscalations < max {
+				if !e.castable(pc.player, pc.card, cand.Plus(esc), false) {
+					break
+				}
+				cand = cand.Plus(esc)
+				maxEscalations++
+			}
+			if clamped := 1 + maxEscalations; clamped < max {
+				max = clamped
+			}
+		}
+	}
 	if min > len(legal) && !repeat {
 		// No legal set of modes can complete its required target choices or
 		// pay its per-mode costs. This is the modal counterpart of targetAsk's
@@ -2938,6 +3095,16 @@ func (e *Engine) castModeAsk() bool {
 		// repeatable Charm can fill its slots by repeating an eligible mode, so
 		// it never aborts here.
 		e.abortCast(pc, "cast aborted: no legal modal choice", true)
+		return true
+	}
+	// The defensive floor: a clamp below MinCharmNum$ cannot occur for the
+	// corpus (every Escalate carrier's MinCharmNum$ is 1 and the clamp's
+	// floor is 1 + 0 = 1), but a Min-2 future carrier on an unaffordable
+	// board must abort loudly rather than pose an ask no legal answer
+	// satisfies -- the same no-progress suppression as the no-legal-mode
+	// abort above.
+	if max < min {
+		e.abortCast(pc, "cast aborted: no affordable modal choice", true)
 		return true
 	}
 	d := modeDecisionForChoices(pc.player, pc.card, sa, f.SVars, legal, min, max, repeat)
@@ -3324,9 +3491,12 @@ func (e *Engine) xAsk() bool {
 		}
 	}
 	// An announced SubCounter<X/Kind> part's bound is the number of counters
-	// of that kind the source actually has (Chandra, Awakened Inferno's
-	// SubCounter<X/LOYALTY>: the loyalty the walker has to remove), and an
-	// announced PayLife<X> part's bound is the payer's life total divided
+	// of that kind the SOURCE actually has (Chandra, Awakened Inferno's
+	// SubCounter<X/LOYALTY>: the loyalty the walker has to remove); a part
+	// whose removal-target field names a filter (Moxite Refinery's Any-kind
+	// form) is bounded instead by the LARGEST matching candidate -- announcing
+	// an X no candidate could settle would strand the ask. An announced
+	// PayLife<X> part's bound is the payer's life total divided
 	// across the parts (the payer cannot pay more life than they have;
 	// paying exactly all of it is legal -- the SBA owns the zero-life
 	// consequence). When an announced part is the ONLY X the cost carries it
@@ -3348,8 +3518,18 @@ func (e *Engine) xAsk() bool {
 			continue
 		}
 		have := int32(0)
-		if o := e.G.Obj(pc.card); o != nil {
-			have = o.Counter(part.Spec)
+		if subCounterTargetsSource(part.Target) {
+			if o := e.G.Obj(pc.card); o != nil {
+				have = subCounterAvailable(o, part.Spec)
+			}
+		} else {
+			for _, oid := range e.subCounterRemovalCandidates(pc.player, pc.card, part, 1, nil) {
+				if o := e.G.Obj(oid); o != nil {
+					if n := subCounterAvailable(o, part.Spec); n > have {
+						have = n
+					}
+				}
+			}
 		}
 		applyCap(have)
 	}
@@ -3469,6 +3649,196 @@ func (e *Engine) delveAsk() bool {
 	e.choosing = chooseCast
 	e.ask(d)
 	return true
+}
+
+// subCounterTargetsSource reports whether a SubCounter part's removal-target
+// field names the paying source itself: the empty field (the original
+// two-field SubCounter<N/Kind> token, which has always removed from the
+// source) and Forge's payCostFromSource spellings CARDNAME/NICKNAME. Any
+// other value is a filter matched against the payer's battlefield.
+func subCounterTargetsSource(target string) bool {
+	switch strings.ToUpper(strings.TrimSpace(target)) {
+	case "", "CARDNAME", "NICKNAME":
+		return true
+	}
+	return false
+}
+
+// subCounterAvailable reports how many counters of the part's kind the object
+// could give up: the kind's own count, or the object's TOTAL counter count
+// for the "Any" kind (Forge's Any removes that many counters regardless of
+// kind). Used by the offer gate, the X bound and the candidate walk.
+func subCounterAvailable(o *state.Object, kind string) int32 {
+	if strings.EqualFold(kind, "Any") {
+		total := int32(0)
+		for _, c := range o.Counters {
+			if c.N > 0 {
+				total += c.N
+			}
+		}
+		return total
+	}
+	return o.Counter(kind)
+}
+
+// subCounterRemovalCandidates lists the permanents the payer could remove
+// part's counters from. A source-anchored part (subCounterTargetsSource)
+// offers just the source when it still carries enough counters; a filtered
+// part offers every battlefield object the PAYER controls that matches the
+// target spec (MatchesSpecFrom, the sacAsk machinery's read) and still
+// carries enough counters, excluding ids already reserved by an earlier part
+// of the same cost (sacs and earlier counter removals).
+func (e *Engine) subCounterRemovalCandidates(p state.PlayerID, source state.ObjID, part CostPart, amt int32, reserved map[state.ObjID]bool) []state.ObjID {
+	if subCounterTargetsSource(part.Target) {
+		if o := e.G.Obj(source); o != nil && o.Zone == state.ZBattlefield &&
+			subCounterAvailable(o, part.Spec) >= amt && (reserved == nil || !reserved[source]) {
+			return []state.ObjID{source}
+		}
+		return nil
+	}
+	var out []state.ObjID
+	for _, oid := range e.G.Zone(state.ZBattlefield, p) {
+		if reserved != nil && reserved[oid] {
+			continue
+		}
+		o := e.G.Obj(oid)
+		if o == nil || subCounterAvailable(o, part.Spec) < amt {
+			continue
+		}
+		if effects.MatchesSpecFrom(e.G, part.Target, oid, p, source) {
+			out = append(out, oid)
+		}
+	}
+	return out
+}
+
+// subCounterAsk offers the next unsettled SubCounter cost part whose
+// removal-target field names something other than the source (walking
+// pc.cost.SubCounter in order, pc.subCounterPart). Source-anchored parts and
+// zero-count parts record nothing: their settle emits on the source, the
+// pre-existing behaviour. The chosen removals are recorded into pc.subCtrs
+// and the counters actually leave the object at payCast, exactly like the
+// Sac parts' flow; a part with no remaining candidate aborts the whole
+// cast/activation cleanly (sacAsk's unpayable-cost rule -- a cost that
+// cannot be fully paid is never committed half paid). A sole candidate is
+// recorded without an ask: a decision nobody could answer differently is
+// never posed, and the settlement event records the object for replay.
+func (e *Engine) subCounterAsk() bool {
+	pc := e.cast
+	for pc.subCounterPart < len(pc.cost.SubCounter) {
+		part := pc.cost.SubCounter[pc.subCounterPart]
+		amt := part.N
+		if part.Announced {
+			// SubCounter<X/Kind/Target>: the announced count, already bounded
+			// by xAsk to the largest candidate available then; no priority
+			// passes mid-flow, so the board cannot shrink between announcement
+			// and this settle.
+			amt = pc.x
+		}
+		if subCounterTargetsSource(part.Target) || amt <= 0 {
+			pc.subCounterPart++
+			continue
+		}
+		reserved := map[state.ObjID]bool{}
+		for _, s := range pc.sacs {
+			reserved[s] = true
+		}
+		for _, s := range pc.subCtrs {
+			reserved[s] = true
+		}
+		candidates := e.subCounterRemovalCandidates(pc.player, pc.card, part, amt, reserved)
+		if len(candidates) == 0 {
+			e.abortCast(pc, "counter-removal cost no longer payable; cast/activation aborted", true)
+			return true
+		}
+		if len(candidates) == 1 {
+			pc.subCtrs = append(pc.subCtrs, candidates[0])
+			pc.subCounterPart++
+			continue
+		}
+		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
+			Prompt: "Choose a permanent to remove " + e.subCounterPhrase(part, amt) + " from",
+			Source: pc.card}
+		for _, oid := range candidates {
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "subcounter",
+				Obj: oid, Label: e.G.Obj(oid).Face().Name})
+		}
+		e.choosing = chooseCast
+		e.ask(d)
+		return true
+	}
+	return false
+}
+
+// subCounterPhrase renders the amount/kind half of a SubCounter part's
+// removal for a decision prompt: "A +1/+1 counter", "CHARGE counters", "ANY
+// counters". Display only.
+func (e *Engine) subCounterPhrase(part CostPart, amt int32) string {
+	unit := "counter"
+	if amt != 1 && !part.Announced {
+		unit = "counters"
+	}
+	return fmt.Sprintf("%s %s", strings.ToUpper(part.Spec), unit)
+}
+
+// settleSubCounterParts emits the SubCounter cost parts' counter removals,
+// shared by the payment branches so every path settles the same shape. A
+// source-anchored part (subCounterTargetsSource) removes from the paying
+// source -- the pre-existing behaviour -- and a filtered part removes from
+// the recorded pc.subCtrs entry, one index per settled part in cost order.
+// The "Any" kind removes the counters in the object's counter-list order
+// (already deterministic: events.Apply appends kinds in emission order),
+// one CounterChange per kind until the announced count is met.
+func (e *Engine) settleSubCounterParts(pc *pendingCast) {
+	idx := 0
+	for _, part := range pc.cost.SubCounter {
+		amt := part.N
+		if part.Announced {
+			amt = pc.x
+		}
+		if amt == 0 {
+			// A zero removal emits nothing: a CounterChange of 0 would be a
+			// no-op folded into state but a spurious log entry.
+			continue
+		}
+		target := pc.card
+		if !subCounterTargetsSource(part.Target) {
+			if idx >= len(pc.subCtrs) {
+				// The ask stage guarantees an entry for every filtered part
+				// this settle reaches; a missing one is a flow bug, not a
+				// payment to silently skip.
+				return
+			}
+			target = pc.subCtrs[idx]
+			idx++
+		}
+		if strings.EqualFold(part.Spec, "Any") {
+			// The Any kind: remove across the chosen object's kinds in its
+			// counter-list order (the fold order events.Apply maintains), one
+			// CounterChange per kind touched, until amt counters are gone.
+			o := e.G.Obj(target)
+			if o == nil {
+				return
+			}
+			left := amt
+			for _, c := range o.Counters {
+				if left <= 0 {
+					break
+				}
+				if c.N <= 0 {
+					continue
+				}
+				take := c.N
+				if take > left {
+					take = left
+				}
+				e.emit(events.Event{Kind: events.CounterChange, Obj: target, Counter: c.Kind, Amount: -take})
+				left -= take
+			}
+			continue
+		}
+		e.emit(events.Event{Kind: events.CounterChange, Obj: target, Counter: part.Spec, Amount: -amt})
+	}
 }
 
 // sacAsk offers the next unsettled Sac cost part, walking pc.cost.Sac in
@@ -3653,6 +4023,12 @@ func (e *Engine) collectETBChoices(you state.PlayerID) {
 			{Index: 0, Kind: "riot", Label: "Enter with a +1/+1 counter"},
 			{Index: 1, Kind: "riot", Label: "Gain haste"},
 		}})
+	}
+	// kw:Unleash (CR 702.86): the same as-enters may, two options (take the
+	// +1/+1 counter or enter without). The non-cast entry paths are caught
+	// by applyUnleashReplacement (rules/unleash.go), the Riot precedent.
+	if f.HasKeyword("Unleash") {
+		pc.etbs = append(pc.etbs, etbChoice{kind: "unleash", options: unleashOptions(pc.card, pc.player)})
 	}
 	for i := range f.Repls {
 		r := &f.Repls[i]
@@ -3895,6 +4271,8 @@ func etbChoicePrompt(kind string) string {
 		return " a color"
 	case "riot":
 		return " how this creature enters (counter or haste)"
+	case "unleash":
+		return " how this creature enters (with a +1/+1 counter or without)"
 	}
 	return " a number"
 }
@@ -3937,7 +4315,9 @@ func (c Cost) announcePip(i int) []pipAlt {
 // raw index, so a granted proposal -- whose ability field is -1 -- takes the
 // ability arms (no spell legality recheck, no cast trigger, the ability
 // payment/mint branch, no modes ask) instead of the spell ones.
-func (pc *pendingCast) isAbility() bool { return pc.ability >= 0 || pc.grantSVar != "" }
+func (pc *pendingCast) isAbility() bool {
+	return pc.ability >= 0 || pc.grantSVar != "" || pc.gainedFrom != 0
+}
 
 // pcAbility resolves the proposal's ability body. A printed activation reads
 // its Face().Abilities index; a granted activation (task grantcost1) resolves
@@ -3948,6 +4328,21 @@ func (pc *pendingCast) isAbility() bool { return pc.ability >= 0 || pc.grantSVar
 // grantor's face no longer names -- a stale proposal) resolves to nil and the
 // caller degrades the way a stale option always has.
 func (e *Engine) pcAbility(pc *pendingCast) *cards.SA {
+	if pc.gainedFrom != 0 {
+		// A has-all-abilities-of body: the SA is the named foreign face's
+		// own compiled ability at gainedIdx. A card that left the scoped zone
+		// (or a stale index) resolves to nil and the caller degrades the way
+		// a stale option always has.
+		fo := e.G.Obj(pc.gainedFrom)
+		if fo == nil || fo.Face() == nil {
+			return nil
+		}
+		abilities := fo.Face().Abilities
+		if pc.gainedIdx < 0 || pc.gainedIdx >= len(abilities) {
+			return nil
+		}
+		return abilities[pc.gainedIdx]
+	}
 	if pc.grantSVar == "" {
 		if pc.ability < 0 {
 			return nil
@@ -4088,10 +4483,6 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 	if !ok {
 		return nil
 	}
-	delve := int32(0)
-	if !pc.isAbility() {
-		delve = int32(len(pc.delve))
-	}
 	pl := e.G.Players[pc.player]
 	out := make([]targetCandidate, 0, len(candidates))
 	for _, candidate := range candidates {
@@ -4121,12 +4512,12 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 			if zone == 0 {
 				zone = state.ZHand
 			}
-			sc := effects.SpecContext{You: pc.player, Source: pc.card, Resolve: func(n string) (int32, bool) {
+			sc := e.withNames(effects.SpecContext{You: pc.player, Source: pc.card, Resolve: func(n string) (int32, bool) {
 				if n == pc.announceX {
 					return pc.x, true
 				}
 				return 0, false
-			}}
+			}})
 			n := 0
 			for _, oid := range e.G.Zone(zone, pc.player) {
 				if effects.MatchesSpecCtx(e.G, part.Spec, oid, sc) {
@@ -4168,8 +4559,17 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 		}
 		// resolvedMana carries no live pip, so manaFeasible (the shared
 		// primitive) here degenerates to the composed payable check — the same
-		// composition payCast will charge for this candidate's repricing.
-		if e.manaFeasibleGrant(pc.player, pc.card, pc.isAbility(), pc.resolvedMana(), mods, pc.taxGeneric, delve, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}) ||
+		// composition payCast will charge for this candidate's repricing. The
+		// announced Convoke/Harmonize/Improvise contributions fold in exactly
+		// the way paymentMana folds them into the charged total (applyConvoke
+		// on the composed mods+tax+delve cost), so a cast whose pool alone
+		// cannot pay but whose announced artifacts/creatures can keeps its
+		// targets on the menu instead of being reversed at this ask. The
+		// announcement itself was already gate-checked for absorbability
+		// (convokeAbsorbs), so the fold is the payment's own arithmetic,
+		// probed, never charged.
+		convoked := e.applyConvoke(pc, cost)
+		if e.manaFeasibleGrant(pc.player, pc.card, pc.isAbility(), convoked, costMods{}, 0, 0, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}) ||
 			(cost.hasManaPayment() && e.hasUntappedManaSource(pc.player)) {
 			out = append(out, candidate)
 		}
@@ -4694,7 +5094,7 @@ func (e *Engine) convokeAsk() bool {
 	sawCreature, sawArtifact := false, false
 	for _, id := range e.G.Zone(state.ZBattlefield, pc.player) {
 		o := e.G.Obj(id)
-		if o == nil || o.Tapped || o.Face() == nil || o.BestowedAttached() || e.convokeCommitted(pc, id) {
+		if o == nil || o.Tapped || o.Face() == nil || o.BestowedAttached() || o.ReconfiguredAttached() || e.convokeCommitted(pc, id) {
 			continue
 		}
 		group := fmt.Sprintf("payment:%d", id)
@@ -5006,6 +5406,12 @@ func (e *Engine) etbAnswer(d *decision.Decision, chosen []decision.Option) {
 			choice = "counter"
 		}
 		e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "riot", Text: choice})
+	case "unleash":
+		choice := "plain"
+		if opt.Index == 0 {
+			choice = "counter"
+		}
+		e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "unleash", Text: choice})
 	}
 	pc.etbIdx++
 }
@@ -5103,6 +5509,13 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 			pc.sacs = append(pc.sacs, o.Obj)
 		}
 		pc.sacPart++
+	case "subcounter":
+		// The chosen counter-removal target of a SubCounter<N|X/Kind/Target>
+		// cost part: the settle removes the part's counters from it.
+		for _, o := range chosen {
+			pc.subCtrs = append(pc.subCtrs, o.Obj)
+		}
+		pc.subCounterPart++
 	case "discard":
 		for _, o := range chosen {
 			pc.discards = append(pc.discards, o.Obj)
@@ -5427,18 +5840,21 @@ func (e *Engine) targetAsk() bool {
 	// targeting itself). The Face-less ability stack object on the stack is
 	// never offered (legalTargetCandidates drops Face()-less stack objects),
 	// so the source permanent is still a legal target of its own ability.
+	// An attach ability (the Equip/Reconfigure expansion mints AB$ Attach;
+	// a spell SA may carry API$ Attach directly) can never target its own
+	// source permanent: CR 701.3a attaches an object to ANOTHER permanent,
+	// and effAttach refuses the self-attach at resolution. The pool and the
+	// resolution must agree, so the source is excluded AT THE ASK for an
+	// attach SA even though the Mother-of-Runes convention lets a generic
+	// activated ability target its own source. For Equip the exclusion is
+	// inert (an Equipment face does not match Creature specs); it is live
+	// exactly for Reconfigure, whose unattached form IS a creature and was
+	// offered itself here (r2 review MAJOR).
 	var excludeSelf state.ObjID
-	if !pc.isAbility() {
+	if !pc.isAbility() || sa.API == "Attach" {
 		excludeSelf = pc.card
 	}
 	candidates := e.legalTargetCandidates(pc.player, pc.card, excludeSelf, sa)
-	// Forge's TargetsForEachPlayer$ selection shape (one per player): the
-	// same bounds/group read the trigger-path askTarget uses, so a OneEach
-	// CAST ask (Unexplained Absence's "up to one target nonland permanent
-	// each player controls") offers the whole table's slots and the wire's
-	// mutual-exclusion rule enforces one pick per controller. Before this the
-	// cast-time ask ignored the shape and capped the ask at the plain Max.
-	min, max, _ = e.oneEachTargetBounds(sa, candidates, min, max)
 	// Overload changes the word "target" to "each". It makes no selection at
 	// announcement time: the current matching set is derived at resolution,
 	// so permanents entering or changing controller in response are handled.
@@ -5459,9 +5875,36 @@ func (e *Engine) targetAsk() bool {
 	// engine's decision type cannot express cross-option dependencies, and
 	// withholding is safer than offering an illegal transaction.
 	candidates = e.affordableTargetCandidates(pc, candidates)
-	if min > 0 && len(candidates) < min {
+	// MaxTotalTargetPower$ (Reunion of the House): the running total-power
+	// cap over the selection. Prune the candidates that can provably join
+	// no legal selection (individually over the cap unless a negative-power
+	// candidate could offset them -- Scourge of the Skyclaves's CDA is -1 at
+	// a 21-life opponent and 11 + (-1) = 10 is legal under a cap of 10)
+	// BEFORE the mandatory-minimum census so a cast whose every candidate
+	// alone busts the cap aborts like a targetless one, and carry the
+	// running cap as the decision's cumulative budget (Decision.MaxSum over
+	// each option's Value = the candidate's power) -- the same wire contract
+	// a Dig's WithTotalCMC$ budget uses, so Decision.Validate enforces the
+	// cap on every submitted answer and the bot's Clamp/FitRequired repair
+	// mirrors it. A candidate whose power alone fits but whose combination
+	// busts the cap stays offered: the wire contract rejects the combination.
+	candidates, powerCap, powerCapped := e.totalPowerCappedCandidates(candidates, pc.player, pc.card, sa, pc.x)
+	// Forge's per-controller selection shapes (TargetsForEachPlayer$ one per
+	// player; TargetsWithDifferentControllers$ one per controller): the same
+	// bounds/group/capacity read the trigger-path askTarget uses, so a OneEach
+	// CAST ask (Unexplained Absence's "up to one target nonland permanent
+	// each player controls") offers the whole table's slots and the wire's
+	// mutual-exclusion rule enforces one pick per controller. Before this the
+	// cast-time ask ignored the shape and capped the ask at the plain Max.
+	// Read AFTER affordability and the power-cap prune so `distinct` is the
+	// real selectable capacity: an unaffordable or over-cap candidate cannot
+	// contribute a controller to it.
+	min, max, exclusive, distinct := e.oneEachTargetBounds(sa, candidates, min, max)
+	if min > 0 && (len(candidates) < min || (exclusive && min > distinct)) {
 		// CR 601.2c: a proposal with fewer legal targets than its mandatory
-		// minimum cannot be announced. Reverse the whole proposal (CR 733.1):
+		// minimum -- or one whose per-controller constraint admits fewer
+		// distinct controllers than its mandatory minimum -- cannot be
+		// announced. Reverse the whole proposal (CR 733.1):
 		// the pushed object returns to where it was, nothing is paid and no
 		// cast trigger fires. No library was shuffled during the proposal, so
 		// the 733.1 library exception does not apply.
@@ -5495,7 +5938,7 @@ func (e *Engine) targetAsk() bool {
 	// (Mother of Runes) via excludeSelf == 0. The prompt keeps the source
 	// permanent's name for readability.
 	var src state.ObjID
-	if !pc.isAbility() {
+	if !pc.isAbility() || sa.API == "Attach" {
 		src = pc.card
 	}
 	d := &decision.Decision{Player: pc.player, Kind: decision.KTarget, Min: min, Max: max,
@@ -5507,8 +5950,24 @@ func (e *Engine) targetAsk() bool {
 		label := e.targetOptionLabel(candidate)
 		o := decision.Option{Index: len(d.Options), Kind: candidate.kind,
 			Label: label, Obj: candidate.obj, Player: candidate.player}
-		o.Group = e.oneEachTargetGroup(sa, candidate)
+		o.Group = e.targetControllerGroup(sa, candidate)
+		// Option.Value is omitempty and read only under a budget
+		// (Decision.HasBudget), so a budget-less target ask keeps its wire
+		// payload byte-identical. Every present cap -- zero and negative
+		// included, via Decision.Budgeted -- rides the wire, so
+		// Decision.Validate enforces the total on every submitted answer.
+		// The Value is the DERIVED power (Engine.Power), matching the
+		// pruning read -- the printed Face().Power() read a CDA creature as
+		// zero.
+		if powerCapped && candidate.kind != "player" {
+			if co := e.G.Obj(candidate.obj); co != nil && co.Face() != nil {
+				o.Value = int(e.Power(candidate.obj))
+			}
+		}
 		d.Options = append(d.Options, o)
+	}
+	if powerCapped {
+		d.MaxSum, d.Budgeted = powerCap, true
 	}
 	e.ask(d)
 	return true
@@ -5886,7 +6345,7 @@ func (e *Engine) payCast() {
 		// see a self-sacrificing ability on the stack yet. Resolution consults
 		// this only if the source is gone; a source that remains in play uses
 		// its live derived state instead.
-		sourceLifelinkLKI := e.HasKeyword(pc.card, "Lifelink")
+		sourceKeywordLKI := e.damageKeywordsOf(pc.card)
 		sourceControllerLKI := e.G.Obj(pc.card).Controller
 		// Task 10: an activated ability. The shared stages above (X, Delve --
 		// never present on an ability --, Sac) have already run and been
@@ -5953,17 +6412,9 @@ func (e *Engine) payCast() {
 		// Energy cost parts (PayEnergy<N>/<X>): the announced amount leaves
 		// the payer's energy pool as one PlayerCounterChange (a player
 		// counter, not an object's -- CR 118.2d). The X form spends exactly
-		// the announced value (xAsk bounded it by this same total).
-		for _, part := range pc.cost.Energy {
-			amt := part.N
-			if part.Spec == "X" {
-				amt = pc.x
-			}
-			if amt > 0 {
-				e.emit(events.Event{Kind: events.PlayerCounterChange, Player: pc.player,
-					Counter: "ENERGY", Amount: -amt})
-			}
-		}
+		// the announced value (xAsk bounded it by this same total). The
+		// shared chargeEnergyCost helper is the ONE energy-charging site.
+		e.chargeEnergyCost(pc.player, pc.cost, pc.x)
 		// Announced PayLife<X> parts (Toxic Deluge's "pay X life"): each pays
 		// the announced X as one LifeChange beside the fixed life payMana
 		// charged above (payLife). xAsk bounded the announcement by the payer's
@@ -6007,15 +6458,7 @@ func (e *Engine) payCast() {
 		}
 		// Settled after the {T} tap for the same reason (see above).
 		e.settlePutToLibCost(pc)
-		for _, part := range pc.cost.SubCounter {
-			amt := part.N
-			if part.Announced {
-				amt = pc.x
-			}
-			if amt != 0 {
-				e.emit(events.Event{Kind: events.CounterChange, Obj: pc.card, Counter: part.Spec, Amount: -amt})
-			}
-		}
+		e.settleSubCounterParts(pc)
 		// CR 606.3: a [+N] loyalty cost adds N loyalty counters to the walker
 		// as part of the activation's payment, settled beside the SubCounter
 		// removals and before the AbilityPush (the ability object the effect
@@ -6054,7 +6497,10 @@ func (e *Engine) payCast() {
 		// SVar-anchored body exactly as it always has, while every cost part
 		// above (sacrifice, discard, counter, energy, draw, ...) is now paid
 		// by the shared flow too.
-		if pc.grantSVar != "" {
+		if pc.gainedFrom != 0 {
+			e.emit(events.Event{Kind: events.GainedAbilityPush, Player: pc.player, Obj: pc.card,
+				Amount: int32(pc.gainedIdx), IDs: []state.ObjID{pc.gainedFrom}})
+		} else if pc.grantSVar != "" {
 			if pc.grantSource == pc.card {
 				e.emit(events.Event{Kind: events.DelayedPush, Player: pc.player, Obj: pc.card,
 					Amount: -1, Counter: pc.grantSVar, Text: "granted ability"})
@@ -6096,8 +6542,17 @@ func (e *Engine) payCast() {
 			if e.sourceControllerLKI == nil {
 				e.sourceControllerLKI = make(map[state.ObjID]state.PlayerID)
 			}
-			e.sourceLifelinkLKI[pc.stackObj] = sourceLifelinkLKI
+			e.sourceLifelinkLKI[pc.stackObj] = sourceKeywordLKI.lifelink
 			e.sourceControllerLKI[pc.stackObj] = sourceControllerLKI
+			// The own-source fields above carry only lifelink and controller.
+			// CR 113.7a's other damage-relevant characteristics -- infect
+			// (CR 702.90b) and deathtouch (CR 702.2b) -- live in the named
+			// map, which Engine.emit's departure walk cannot seed here
+			// either, because AbilityPush is minted only after the cost is
+			// paid. Seed it with the same pre-cost snapshot, keyed on this
+			// ability and its own source, so a bearer sacrificed to pay for
+			// its own ability still deals damage in the granted form.
+			e.captureNamedDamageSourceLKI(pc.stackObj, pc.card, sourceKeywordLKI, sourceControllerLKI)
 			break
 		}
 		e.cast, e.choosing = nil, chooseNone
@@ -6161,16 +6616,7 @@ func (e *Engine) payCast() {
 		}
 	}
 	// Energy cost parts (see the ability branch above for the why).
-	for _, part := range pc.cost.Energy {
-		amt := part.N
-		if part.Spec == "X" {
-			amt = pc.x
-		}
-		if amt > 0 {
-			e.emit(events.Event{Kind: events.PlayerCounterChange, Player: pc.player,
-				Counter: "ENERGY", Amount: -amt})
-		}
-	}
+	e.chargeEnergyCost(pc.player, pc.cost, pc.x)
 	// Announced PayLife<X>, DamageYou<N> and Draw<N/Spec> cost parts (see the
 	// ability branch above for the why).
 	for range pc.cost.LifeX {
@@ -6297,6 +6743,18 @@ func (e *Engine) payCast() {
 	// the byte-identical no-event shape.
 	if pc.replaceGraveyard {
 		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagReplaceGraveyard)
+	}
+	// kw:MayFlashSac (CR 702.8): a card cast off-sorcery through the keyword's
+	// own flash permission carries the flag the keyword's ETB hook reads to
+	// register the cleanup-step sacrifice. A sorcery-timed cast of the same
+	// card (offSorcery false) or a cast of any other card emits nothing, so
+	// unrelated casts stay byte-identical. The modeFlags switch has no case
+	// for this keyword because the cast is ORDINARY -- there is no cast mode
+	// to read and no extra cost; the permission alone sets no flag.
+	if !pc.isAbility() && pc.offSorcery {
+		if o := e.G.Obj(pc.card); mayFlashSacFace(o.Face()) {
+			flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagMayFlashSac)
+		}
 	}
 	// Replicate (CR 702.55a): the payment count rides the same pay-time
 	// CastInfo. modeFlags deliberately maps "replicated" to "" -- a DECLINED
@@ -6502,6 +6960,14 @@ func (e *Engine) payCast() {
 	// nothing and asks nothing, so no game without a cascade carrier
 	// changes an event.
 	e.queueCascadeTriggers(pc.stackObj, pc.player)
+	// The Effect grants' cast-driven lifetime (ForgetOnCast$, task
+	// param:api:Effect.ForgetOnCast) ends the grants at this completed-cast
+	// moment, LAST in the pay stage: the qualifying cast often has its
+	// behaviour FROM the grant (Dark Apostle's granted cascade fires this
+	// very cast's cascade trigger, and the cascade resolution itself
+	// re-derives the spell's granted keywords), so every reader above must
+	// see pre-sweep state.
+	e.effectCastSweep(castEv)
 	e.cast, e.choosing = nil, chooseNone
 }
 
@@ -6788,6 +7254,15 @@ func init() {
 		// (the mandatory either-or additional cost choice).
 		"kw:Evoke", "kw:Dash", "kw:Overload", "kw:Warp", "kw:Madness",
 		"kw:Encore", "kw:AlternateAdditionalCost",
+		// kw:Escalate: the modal additional cost "pay this for each mode chosen
+		// beyond the first" -- read directly off the K: line by beginCast's
+		// capture and the cast_modes answer handler's fold, and bounded by
+		// castModeAsk's affordable-escalation clamp (no keyword expansion; the
+		// plain Charm cast is the only way in). The mode ask's Max is clamped
+		// to 1 + the affordable escalations so an unpayable mode count is
+		// never offered. All 9 corpus carriers parse (7 plain mana,
+		// tapXType<1/Creature> and Discard<1/Card>).
+		"kw:Escalate",
 		// kw:Escape: CR 702.135, the graveyard cast with its exile cost, read
 		// off the K: line by derivedKeywordParam and gated in legal.go's
 		// cast walk -- proved by TestUnderworldBreachGrantsEscapeAndTheEscape
@@ -6865,6 +7340,15 @@ func init() {
 		// (rules/legal.go) plus conspireAsk (rules/cast.go) pose and pay the
 		// two-creature tap.
 		"kw:Conspire",
+		// kw:Demonstrate: CR 702.152, expanded by cards/kw_demonstrate.go
+		// into the SpellCast trigger on the card's own cast whose DB$
+		// Demonstrate body (effects/demonstrate.go) poses the may-copy
+		// election and the opponent choice; a layer-6 AddKeyword$ Demonstrate
+		// grant (Silverquill Lecturer) reaches the same body through
+		// rules/trigger_granted.go's checkGrantedDemonstrateTriggers. The
+		// copies are ordinary StackCopy mints, so a creature-spell copy
+		// becomes a token through the standing CR 707.10g fold.
+		"kw:Demonstrate",
 		// kw:Squad: CR 702.66, expanded by cards/keywords.go into a
 		// ChangesZone self-entry trigger whose DB$ CopyPermanent body reads
 		// Count$SquadPaid (the Replicate pattern); the cast flow's "squadded"

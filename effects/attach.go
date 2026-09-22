@@ -16,7 +16,32 @@ func init() {
 	// mints a token, remembers it and chains the Attach above -- so it is
 	// supported by the same code paths and must be registered here or the
 	// report's coverage still counts every carrier as missing a primitive.
-	RegisterNonAPI("kw:Equip", "kw:Enchant", "kw:Living Weapon", "kw:For Mirrodin")
+	RegisterNonAPI("kw:Equip", "kw:Enchant", "kw:Living Weapon", "kw:For Mirrodin", "kw:Reconfigure")
+}
+
+// emitAttach publishes "obj becomes attached to bearer" as events.Attach,
+// first publishing events.Unattached when obj was already attached to a
+// DIFFERENT permanent. CR 701.3b makes "becomes unattached" a real event
+// (the Mode$ Unattached family: Captain's Hook, Grafted Exoskeleton, Grafted
+// Wargear, Stitcher's Graft), and an Attach overwriting state.Object.AttachedTo
+// would otherwise drop the former bearer's detach entirely -- leaving the
+// Grafted Exoskeleton trigger silent when its Equipment is re-equipped from
+// one creature to another. Every Attach emit in this package goes through
+// here, so a future re-attaching site cannot reintroduce the omission.
+//
+// The former bearer is carried on Unattached.IDs[0], the same field
+// rules/attach.go's attachmentSBAs detach arms use and the referent
+// rules/trigger_match.go's triggerRemembered reads for
+// Defined$ TriggeredObjectLKICopy. A fresh attach (AttachedTo == 0) or a
+// redundant re-attach to the SAME bearer emits no Unattached: nothing became
+// unattached, so no trigger may fire.
+func emitAttach(h Host, obj, bearer state.ObjID) {
+	if o := h.Game().Obj(obj); o != nil && o.AttachedTo != 0 && o.AttachedTo != bearer {
+		h.Emit(events.Event{Kind: events.Unattached, Obj: obj,
+			IDs:  []state.ObjID{o.AttachedTo},
+			Text: "reattached to a new permanent"})
+	}
+	h.Emit(events.Event{Kind: events.Attach, Obj: obj, IDs: []state.ObjID{bearer}})
 }
 
 // Attachable reports whether obj may legally be attached to target. Task 14
@@ -84,6 +109,21 @@ func Attachable(g *state.Game, obj state.ObjID, target state.ObjID) bool {
 // two-half discipline RememberTokens$ on effToken and RememberTargets$ on
 // effPumpAll apply).
 func effAttach(h Host, c *Ctx, sa *cards.SA) {
+	// kw:Reconfigure's unattach half (cards/kw_reconfigure.go): the minted
+	// ability carries Unattach$ True and resolves to the no-IDs Attach
+	// event -- the detach encoding rules/attach.go's CR 704.5n SBA and the
+	// bestowed detach already fold. An unattached source (the offer gate in
+	// rules/legal.go withholds the ability, so this is only reachable on a
+	// stale or malformed answer) refuses with the same Note convention the
+	// illegal-destination refusals use, deterministically and observably.
+	if strings.EqualFold(strings.TrimSpace(sa.Params["Unattach"]), "True") {
+		if src := h.Game().Obj(c.Source); src == nil || src.AttachedTo == 0 {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "cannot unattach: not attached"})
+			return
+		}
+		h.Emit(events.Event{Kind: events.Attach, Obj: c.Source})
+		return
+	}
 	// fx42 scoping: consume and clear the answered attach_choice fields at
 	// the top, so a nested Attach in the same chain poses its own ask.
 	answered := c.AttachChoice
@@ -138,7 +178,7 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 	// two-half remember (see the function comment).
 	rememberAttached := strings.EqualFold(strings.TrimSpace(sa.Params["RememberAttached"]), "True")
 	attachTo := func(target state.ObjID) {
-		h.Emit(events.Event{Kind: events.Attach, Obj: obj, IDs: []state.ObjID{target}})
+		emitAttach(h, obj, target)
 		if rememberAttached {
 			c.Remembered = append(c.Remembered, state.Target{Obj: obj})
 			eventRemember(h, c, obj)

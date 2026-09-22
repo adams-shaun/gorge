@@ -811,16 +811,23 @@ func containsID(ids []state.ObjID, id state.ObjID) bool {
 // every card it actually moves joins the resolution's remembered set, the
 // same both-halves recording discardAndRemember does, so a chained pickup
 // ("put a card from among them into your hand") filtering on IsRemembered
-// finds them instead of silently failing to find.
+// finds them instead of silently failing to find. With ShowMilledCards$ True
+// the mill REVEALS what it milled: one public ids-Note per acting player
+// after that player's moves (the same payload shape effDig's Reveal$ arm
+// emits -- Demonic Covenant's "mill two cards" transcript line), so the
+// table reads what was milled even though a graveyard move's own MoveZone
+// event carries no reveal line.
 func effMill(h Host, c *Ctx, sa *cards.SA) {
 	n := Num(h, c, sa, "NumCards", 1)
 	if n < 0 {
 		n = 0
 	}
 	remember := strings.EqualFold(sa.Params["RememberMilled"], "True")
+	show := strings.EqualFold(strings.TrimSpace(sa.Params["ShowMilledCards"]), "True")
 	g := h.Game()
 	for _, t := range actingPlayers(h, c, sa) {
 		p := PlayerOf(h, c, t)
+		var milledIDs []state.ObjID
 		for i := int32(0); i < n; i++ {
 			lib := zoneOf(g, state.ZLibrary, p)
 			if len(lib) == 0 {
@@ -832,6 +839,10 @@ func effMill(h Host, c *Ctx, sa *cards.SA) {
 			if remember {
 				rememberMilled(h, c, id)
 			}
+			milledIDs = append(milledIDs, id)
+		}
+		if show && len(milledIDs) > 0 {
+			h.Emit(events.Event{Kind: events.Note, Player: p, IDs: milledIDs})
 		}
 	}
 }
@@ -1586,7 +1597,7 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 					if bearer != 0 {
 						// The CR 303.4f attach, degraded to the deterministic
 						// stand-in documented above (the bearer the scan picked).
-						h.Emit(events.Event{Kind: events.Attach, Obj: id, IDs: []state.ObjID{bearer}})
+						emitAttach(h, id, bearer)
 					}
 					// StaticEffect$ on a DigUntil battlefield take: the same
 					// rider registration every ChangeZone mover applies (no
@@ -2046,10 +2057,20 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			// condition gates or Defined$ Remembered bodies that Forge
 			// itself intends to see the reveal (the Kinship family), so
 			// inheriting the reveal here is the semantics, not a leak.
+			// The revealed cards ALSO join the source object's event-backed
+			// Remembered list (eventRemember, the rememberMilled two-halves
+			// discipline): Forge's host.addRemembered is the PERSISTENT host
+			// card list, and Count$RememberedSize reads only the source half
+			// — Temple of the Dragon Queen's DragonPresence gate counts the
+			// remembered reveal through it (a ctx-only capture is invisible
+			// there, and a ctx-first RememberedSize read would over-count
+			// every trigger resolution's capture seed — the Mind Maggots
+			// defect the ctx-preference attempt caused).
 			next := make([]state.Target, 0, len(c.Remembered)+len(revealed))
 			next = append(next, c.Remembered...)
 			for _, id := range revealed {
 				next = append(next, state.Target{Obj: id})
+				eventRemember(h, c, id)
 			}
 			c.Remembered = next
 		}
@@ -2182,7 +2203,7 @@ func effScry(h Host, c *Ctx, sa *cards.SA) {
 	// Command's `ScryNum$ X` Charm mode resolves the announced X through the
 	// same Num grammar a literal would take).
 	n := Num(h, c, sa, "ScryNum", 1)
-	effLookAndArrange(h, c, sa, n, "bottom", "Scry")
+	effLookAndArrange(h, c, sa, n, "bottom", "Scry", nil, false)
 }
 
 // effSurveil implements the Surveil prompt API (CR 701.42): look at the top
@@ -2195,18 +2216,132 @@ func effScry(h Host, c *Ctx, sa *cards.SA) {
 // Re-entry and the no-host stand-in are exactly effScry's (the same shared
 // helper): the stand-in puts nothing in the graveyard, which is narrower
 // than the card text but deterministic.
+//
+// stat:SurveilNum raises the count ("You may look at an additional two
+// cards each time you surveil"): the battlefield statics are read per
+// surveilling player by rules (Host.SurveilLookExtra, the canonical
+// activeStatics collector), and each Optional$ static's "may" is an
+// independent election (surveilnum-r2): the ask offers ONE option per
+// optional static and the player accepts any subset, never one
+// all-or-nothing yes/no over the summed entries. The answered accepted
+// ordinals ride Ctx.SurveilLookOpt (a CSV done-marker) and are consumed and
+// cleared here (fx42 scoping), so a nested Surveil poses its own ask; the
+// answer applies to the ASKING player only -- the first acting player
+// carrying optionals, even when the Surveil resolves for several players
+// (the multi-library narrowing means only the first library is ever
+// arranged, so only the first player's count is priced) -- and anything
+// else (the no-host R-9 decline included) keeps the base count.
 func effSurveil(h Host, c *Ctx, sa *cards.SA) {
 	n := Num(h, c, sa, "Amount", 1)
-	effLookAndArrange(h, c, sa, n, "graveyard", "Surveil")
+	// The arrange re-entry pass (ctx.Arrange set by rules' handleArrange) must
+	// go straight to effLookAndArrange's done-marker return: each resume
+	// builds a fresh Ctx (fx42), so on that pass SurveilLookOpt is empty again
+	// and re-posing the election here would ping-pong election -> arrange ->
+	// election forever (the may-look answer belongs to the pass that posed
+	// the KArrange, which already priced the extra cards into its window).
+	arranging := c.Arrange
+	ans := c.SurveilLookOpt
+	c.SurveilLookOpt = ""
+	if ans == "" && !arranging {
+		// First pass: pose the election once, for the FIRST acting player
+		// carrying optionals -- the only library the arrange walk processes
+		// when the ask suspends. Several surveilling players with different
+		// extras are the same narrowing the arrange walk already takes (it
+		// asks only the first library): the answer here is that one player's,
+		// carried through extraOf below and applied to nobody else.
+		if players := actingPlayers(h, c, sa); len(players) > 0 {
+			p := PlayerOf(h, c, players[0])
+			if _, opts := h.SurveilLookExtra(p); len(opts) > 0 {
+				d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 0, Max: len(opts),
+					Source: c.Source, ResumeKind: "surveil_look_optional", ResumeSA: sa,
+					Prompt: "You may look at additional card(s) each time you surveil"}
+				for i, v := range opts {
+					d.Options = append(d.Options, decision.Option{Index: i, Kind: "static",
+						Label:  "Look at " + strconv.Itoa(int(v)) + " additional card(s) each time you surveil",
+						Player: p})
+				}
+				// AskAsked suspends; the answer re-enters with Ctx.SurveilLookOpt
+				// carrying the accepted ordinals. A no-host (fuzz/effects-test
+				// double) falls through to the mandatory-only surveil below:
+				// declining the ELECTION must not drop the base Surveil, whose
+				// own no-host path inside effLookAndArrange applies the standing
+				// LibraryOrder stand-in (R-9). A real host's decline re-enters
+				// with the "no" marker and reaches the same fall-through through
+				// the ans != "" gate.
+				if Ask(h, d) == AskAsked {
+					return
+				}
+			}
+		}
+	}
+	// accepted holds the election's answered ordinals, indexed into the
+	// deterministic optionals list the asking player's read returns. It is
+	// derived on every pass (the answer re-enters with a fresh Ctx carrying
+	// only the CSV marker); the read is deterministic, so the ordinals land
+	// on the same statics that were offered.
+	accepted := map[int]bool{}
+	if ans != "" && ans != "no" {
+		for _, tok := range strings.Split(ans, ",") {
+			if i, err := strconv.Atoi(strings.TrimSpace(tok)); err == nil && i >= 0 {
+				accepted[i] = true
+			}
+		}
+	}
+	// surveilAsker is the player the election belongs to: the first acting
+	// player carrying optionals, re-derived the same way on every pass. The
+	// accepted extras are applied to that player ONLY -- a multi-player
+	// Surveil's other libraries keep their base count.
+	surveilAsker := func() (state.PlayerID, bool) {
+		players := actingPlayers(h, c, sa)
+		if len(players) == 0 {
+			return 0, false
+		}
+		p := PlayerOf(h, c, players[0])
+		if _, opts := h.SurveilLookExtra(p); len(opts) > 0 {
+			return p, true
+		}
+		return 0, false
+	}
+	extraOf := func(p state.PlayerID) int32 {
+		mand, opts := h.SurveilLookExtra(p)
+		total := mand
+		if asker, ok := surveilAsker(); ok && p == asker {
+			for i := range opts {
+				if accepted[i] {
+					total += opts[i]
+				}
+			}
+		}
+		return total
+	}
+	effLookAndArrange(h, c, sa, n, "graveyard", "Surveil", extraOf, true)
 }
 
 // effLookAndArrange is the shared KArrange body behind effScry and
-// effSurveil: the count (ScryNum$ / Amount$, default 1) is resolved by the
-// calling api implementation through Num; this body resolves Defined$ (default = the ability's source, hence its controller),
-// and pose one KArrange decision per target library over the top min(N,
-// len(lib)) cards. The unchosen pile B's destination is the shared Option.Kind
-// passed in; only that differs between the two primitives.
-func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, n int32, kind, verb string) {
+// effSurveil: the base count (ScryNum$ / Amount$, default 1) is resolved by
+// the calling api implementation through Num; this body resolves Defined$
+// (default = the ability's source, hence its controller), adds extraOf's
+// per-player addition (the stat:SurveilNum static; nil for a Scry), and
+// poses one KArrange decision per target library over the top min(N,
+// len(lib)) cards. The unchosen pile B's destination is the shared
+// Option.Kind passed in; only that differs between the two primitives.
+//
+// markSurveil selects the one verb-specific record: Surveil emits ONE
+// events.Surveil marker per acting player -- the canonical record
+// trig:Surveil matches ("whenever you surveil" -- Mirko, Obsessive
+// Theorist; Dimir Spybug; Thoughtbound Phantasm; Whispering Snitch) --
+// while Scry emits none. The marker is emitted INSIDE the per-player loop,
+// at the point that player's arrangement is actually performed, NOT for
+// every defined target up front: a multi-player `Defined$` Surveil poses
+// only the FIRST library's KArrange (the documented multi-library
+// Scry/Surveil limitation), so emitting for every target before the loop
+// queued surveil triggers for players who never surveilled (fb: an
+// opponent's Whispering Snitch fired for a player whose library was
+// untouched). A suspended first player's re-entry (Ctx.Arrange set) returns
+// before the loop, so its marker is not re-emitted; the no-host stand-in
+// and the continuation passes both keep the marker already emitted for the
+// player the loop reached.
+func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, n int32, kind, verb string, extraOf func(state.PlayerID) int32, markSurveil bool) {
 	// Re-entry after rules' handleArrange applied the answered KArrange and
 	// emitted the LibraryOrder event: this pass must only let the resolution
 	// continue (the chained SubAbility$ runs), not re-ask or re-emit.
@@ -2220,8 +2355,17 @@ func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, n int32, kind, verb string)
 	g := h.Game()
 	for _, t := range actingPlayers(h, c, sa) {
 		p := PlayerOf(h, c, t)
+		if markSurveil {
+			h.Emit(events.Event{Kind: events.Surveil, Player: p, Obj: c.Source})
+		}
 		lib := zoneOf(g, state.ZLibrary, p)
 		k := n
+		if extraOf != nil {
+			k += extraOf(p)
+		}
+		if k < 0 {
+			k = 0
+		}
 		if int32(len(lib)) < k {
 			k = int32(len(lib))
 		}

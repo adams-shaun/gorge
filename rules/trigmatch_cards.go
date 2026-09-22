@@ -185,21 +185,57 @@ func (e *Engine) seekAllMatches(t cards.Trigger, source state.ObjID, ev events.E
 	return true
 }
 
-// firstInvestigateThisTurn is true only when the investigate event being
-// matched is the investigating player's first of the current turn: the
+// surveilMatches implements the "whenever you surveil" trigger family
+// (Forge Mode$ Surveil, task trig-surveil: 12 corpus files / 12 raw lines at
+// the corpus pin -- Mirko, Obsessive Theorist; Dimir Spybug; Thoughtbound
+// Phantasm; Whispering Snitch; Copy Catchers; Disinformation Campaign;
+// Blood Operative; and the five Secondary$ scry-paired lines). The causing
+// event is the completed events.Surveil record (a pure Apply no-op marker
+// api:Surveil's effSurveil emits beside each surveil instruction, one per
+// acting player): Player is the surveiling seat (what ValidPlayer$ matches --
+// eleven carriers' `ValidPlayer$ You` and River Song's `ValidPlayer$
+// Opponent`), Obj the resolving source permanent (what a ValidCard$ spec
+// would match; no corpus carrier uses one, the discoverMatches shape).
+// FirstTime$ is read the LifeLost/Investigated way: the log scan admits
+// exactly the acting player's first surveil of the turn (Whispering
+// Snitch's "for the first time each turn").
+func (e *Engine) surveilMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
+	if ev.Kind != events.Surveil {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v := t.Params["ValidCard"]; v != "" && ev.Obj != 0 &&
+		!effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+		return false
+	}
+	if v := t.Params["ValidPlayer"]; v != "" &&
+		!effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+		return false
+	}
+	if strings.EqualFold(t.Params["FirstTime"], "True") &&
+		!e.firstMarkerThisTurn(events.Surveil, ev.Player) {
+		return false
+	}
+	return true
+}
+
+// firstMarkerThisTurn is the shared replay-stable log scan behind the
+// FirstTime$ gates over pure marker Kinds: true only when the event being
+// matched is the player's FIRST record of `kind` in the current turn. The
 // current event is already in the log when triggers match (the
 // firstLifeLossThisTurn contract), so scanning back past TurnChange and
-// finding exactly one Investigate record for p means this is the first.
-// TurnChange is the logged reset boundary for every other per-turn fact, so
-// the scan is replay-stable and cannot leak a mutable counter across Clone.
-func (e *Engine) firstInvestigateThisTurn(p state.PlayerID) bool {
+// finding exactly one record for p means this is the first. TurnChange is
+// the logged reset boundary for every other per-turn fact, so the scan
+// cannot leak a mutable counter across Clone. firstInvestigateThisTurn's
+// identical scan now reads this helper (byte-identical behaviour).
+func (e *Engine) firstMarkerThisTurn(kind events.Kind, p state.PlayerID) bool {
 	seenCurrent := false
 	for i := len(e.L.Events) - 1; i >= 0; i-- {
 		ev := e.L.Events[i]
 		if ev.Kind == events.TurnChange {
 			return seenCurrent
 		}
-		if ev.Kind != events.Investigate || ev.Player != p {
+		if ev.Kind != kind || ev.Player != p {
 			continue
 		}
 		if seenCurrent {
@@ -208,6 +244,14 @@ func (e *Engine) firstInvestigateThisTurn(p state.PlayerID) bool {
 		seenCurrent = true
 	}
 	return seenCurrent
+}
+
+// firstInvestigateThisTurn is true only when the investigate event being
+// matched is the investigating player's first of the current turn: a
+// FirstTime$ True gate (CR 701.36a-family), evaluated through the shared
+// firstMarkerThisTurn scan (the contract comment there).
+func (e *Engine) firstInvestigateThisTurn(p state.PlayerID) bool {
+	return e.firstMarkerThisTurn(events.Investigate, p)
 }
 
 func (e *Engine) discardedMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
@@ -357,9 +401,9 @@ func (e *Engine) drawCauseTokenAdmits(token string, o *state.Object, source stat
 			if len(effects.UnknownPredicates(pred)) != 0 {
 				return false
 			}
-			if !effects.MatchesObjectCtx(e.G, pred, src, effects.SpecContext{
+			if !effects.MatchesObjectCtx(e.G, pred, src, e.withNames(effects.SpecContext{
 				You: e.controllerOf(source), Source: source,
-			}) {
+			})) {
 				return false
 			}
 		}
@@ -623,6 +667,7 @@ func init() {
 	registerTrigMatcher((*Engine).investigatedMatches, "Investigated")
 	registerTrigMatcher((*Engine).discoverMatches, "Discover")
 	registerTrigMatcher((*Engine).seekAllMatches, "SeekAll")
+	registerTrigMatcher((*Engine).surveilMatches, "Surveil")
 	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
 		return e.discardedMatches(t, source, ev)
 	}, "Discarded")

@@ -19,11 +19,15 @@ import (
 
 // lifeLoss names the player and positive magnitude of an event that lowers a
 // player's life total. Damage to a player and a negative LifeChange are both
-// loss of life; damage to an object is not.
+// loss of life; damage to an object is not. Infect-marked player damage is
+// NOT: CR 702.90b deals it as that many poison counters instead, so neither
+// the LifeLost/LifeLostAll triggers nor the repl:LifeReduced machinery (both
+// read through here) may treat it as a loss -- the same exclusion
+// Engine.emit's checkSpeedGain arm already applies.
 func lifeLoss(ev events.Event) (state.PlayerID, int32, bool) {
 	switch ev.Kind {
 	case events.Damage:
-		if ev.Obj == 0 && ev.Amount > 0 {
+		if ev.Obj == 0 && ev.Amount > 0 && ev.Counter != "infect" {
 			return ev.Player, ev.Amount, true
 		}
 	case events.LifeChange:

@@ -279,6 +279,36 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 
+	// WithCountersType$/WithCountersAmount$ (littjara_mirrorlake's "a token
+	// that's a copy ... enters with an additional +1/+1 counter on it",
+	// Ochre Jelly's split half "enters with half that many +1/+1 counters"):
+	// every copy this call mints enters with that many of the named counter
+	// kind, one CounterChange per mint right after the CopyToken+MoveZone --
+	// the ChangeZone entry counters' exact shape, so AddCounter replacements
+	// and CounterAdded triggers see the copy's entry counter the way they see
+	// any other placement. The amount resolves through the ordinary Num
+	// grammar (absent WithCountersAmount$ = 1 -- littjara's shape; an SVar
+	// name -- Ochre Jelly's WithCountersAmount$ Y over
+	// SVar:Y:TriggerRemembered$CardCounters.P1P1/HalfDown); an unresolvable
+	// value is one loud Note per call and the counters are skipped -- the
+	// copy enters without them, never a silent wrong count.
+	withKind := strings.TrimSpace(sa.Params["WithCountersType"])
+	var withAmt int32
+	var withOK bool
+	if withKind != "" {
+		if _, present := sa.Params["WithCountersAmount"]; present {
+			if v, ok := NumResolved(h, c, sa, "WithCountersAmount", 1); ok {
+				withAmt, withOK = v, true
+			} else {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+					Text: "WithCountersAmount$ " + strings.TrimSpace(sa.Params["WithCountersAmount"]) +
+						" is not implemented; the copy enters with no " + withKind + " counters"})
+			}
+		} else {
+			withAmt, withOK = 1, true
+		}
+	}
+
 	// Entry-state riders.
 	tapped := false
 	if v := strings.TrimSpace(sa.Params["TokenTapped"]); v != "" {
@@ -398,6 +428,7 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 	if attacking {
 		ids = []state.ObjID{state.ObjID(defender)}
 	}
+	tokenMemory := tokenRememberedTargets(h, c, sa)
 
 	for _, t := range targets {
 		if t.IsPlayer {
@@ -416,8 +447,24 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 			if g.Obj(want) == nil {
 				continue
 			}
+			if len(tokenMemory) > 0 {
+				remembered := make([]state.ObjID, 0, len(tokenMemory))
+				for _, rememberedTarget := range tokenMemory {
+					if rememberedTarget.IsPlayer {
+						remembered = append(remembered, state.PlayerRef(rememberedTarget.Player))
+					} else if rememberedTarget.Obj != 0 {
+						remembered = append(remembered, rememberedTarget.Obj)
+					}
+				}
+				if len(remembered) > 0 {
+					h.Emit(events.Event{Kind: events.Choose, Obj: want, Counter: "remembered", IDs: remembered})
+				}
+			}
 			h.Emit(events.Event{Kind: events.MoveZone, Obj: want,
 				From: state.ZLibrary, To: state.ZBattlefield})
+			if withOK {
+				h.Emit(events.Event{Kind: events.CounterChange, Obj: want, Counter: withKind, Amount: withAmt})
+			}
 			// Characteristic modifications, scoped to the copy itself
 			// (Affects Card.Self, Source the token). Permanent so the effect
 			// outlives its one-shot resolution and lasts as long as the token;

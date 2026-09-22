@@ -118,6 +118,21 @@ type Host interface {
 	// read the split. Implemented by rules.Engine (rules/layers.go); the
 	// effects test double reports false (no engine to consult).
 	SacrificeBlocked(id state.ObjID, forCost bool) bool
+	// SurveilLookExtra reports the additional cards a surveil performed by
+	// player p looks at, from the battlefield statics with Mode$ SurveilNum
+	// whose ValidPlayer$ admits p ("You may look at an additional two cards
+	// each time you surveil"). mandatory is added to the count
+	// unconditionally. optional holds ONE entry per OPTIONAL static -- each
+	// entry is that static's own Num$ -- in deterministic activeStatics
+	// order: each Optional$ True static is an independent may effect the
+	// surveilling player accepts or declines on its own (effSurveil poses one
+	// multi-select election over the entries), never an all-or-nothing sum.
+	// The read reuses rules' canonical activeStatics collector, so a
+	// face-down, merged-pile or EffectZone-scoped static is read exactly as
+	// every other static mode is. Implemented by rules.Engine
+	// (rules/statics.go); the effects test double reports zero/nil (no engine
+	// static registry to consult).
+	SurveilLookExtra(p state.PlayerID) (mandatory int32, optional []int32)
 	// ExploreReplaced reports whether a replacement effect replaces the
 	// named explorer's explore (R:Event$ Explore — Topography Tracker's
 	// "instead it explores, then it explores again", Twists and Turns'
@@ -285,6 +300,20 @@ type Host interface {
 	// Accord, Resplendent Angel, Valkyrie Harbinger — whose CheckSVar$ gate
 	// reads the count), the mirror of LifeLostThisTurn.
 	LifeGainedThisTurn(p state.PlayerID) int32
+	// CountersRemovedThisTurn reports how many counters of kind player p PAID
+	// OR LOST this turn — the sum of every negative-Amount PlayerCounterChange
+	// naming the kind since the last TurnChange, derived from the event log so
+	// a replay derives the same number. This is the Count$CountersRemovedThisTurn
+	// backing (Blaster Hulk's per-{E} cast discount, Izzet Generatorium's
+	// "activate only if you've paid or lost four or more {E} this turn" gate):
+	// a payment and a loss both leave the player's pool through the ONE event
+	// shape a grant uses — a negative PlayerCounterChange (rules/mana.go's
+	// PayEnergy settle) — so the removals are log-visible exactly like the
+	// life totals LifeLostThisTurn folds. Kind matching is case-insensitive
+	// (the same read the YourCounters heads take). Object-counter removals (a
+	// permanent losing counters) are NOT folded here — the head's object-spec
+	// form is a separate, unimplemented shape.
+	CountersRemovedThisTurn(p state.PlayerID, kind string) int32
 	// CombatDamageToPlayersThisTurn reports every instance of combat damage
 	// dealt to a PLAYER so far this turn, in assignment order. It is the
 	// PlayerCountDefinedRegistered$HasPropertywasDealtCombatDamageThisTurnBy
@@ -403,6 +432,18 @@ type Host interface {
 	// Dig's search). paid is the outcome the suspended pass resolved; the
 	// re-entry pass consumes the recorded marker instead of asking again.
 	SuspendUnless(sa *cards.SA, paid bool)
+	// SetResolutionTargetControllerLKI publishes the target-controller LKI
+	// captured at the start of a Resolve chain to the host, and returns the
+	// value it replaced so the caller can restore it (rules' Ask copies the
+	// published map onto the pending resumePoint). A target may leave the
+	// battlefield before a chained TokenOwner$ TargetedController runs;
+	// events.Apply resets a departed object's live Controller to Owner, so a
+	// resumed continuation -- which rebuilds its Ctx from the stack object's
+	// targets -- needs the controller snapshot, not the live object. The
+	// publish/restore bracket is what scopes it to the innermost running
+	// chain: a nested Resolve with a different Ctx restores the outer map on
+	// return. An effects-package test double may keep the no-op form.
+	SetResolutionTargetControllerLKI(map[state.ObjID]state.PlayerID) map[state.ObjID]state.PlayerID
 	// Suspended reports whether the resolution is currently suspended on a
 	// mid-resolution ask — Ask returned true and set the host's resume state,
 	// which has not yet been cleared by the answer arriving. effects.Resolve
@@ -465,6 +506,18 @@ type Host interface {
 	// (the charm frame re-enters the Charm itself), which is why the reporter
 	// marks it the way SuspendRepeat marks a RepeatEach.
 	SuspendCharmRest(sa *cards.SA, rest []string)
+	// SuspendVillainousRest reports that a VillainousChoice's chosen body
+	// suspended on a nested mid-resolution ask (for example Damocles Base's
+	// DBSac sacrifice picker) with victims still to process. sa is the
+	// VillainousChoice's own SA and rest carries the ordered Defined$ victim
+	// list plus the index of the NEXT victim to ask. The host records a
+	// continuation that re-enters the VillainousChoice with that cursor once
+	// the answered ask's own chain completes, so the remaining victims are
+	// still asked rather than dropped. The Resolve loop enclosing the
+	// VillainousChoice reports the same SA through SuspendContinuation next;
+	// the host drops that report (the villainous frame re-enters the
+	// primitive itself), the SuspendCharmRest convention.
+	SuspendVillainousRest(sa *cards.SA, rest VillainousRest)
 	// SetDamageSource overrides the in-flight damage source for the Damage
 	// events the caller is about to emit: the provenance rules' emit-side
 	// protection check (CR 702.16d) and DamageDone trigger matching read
@@ -510,6 +563,17 @@ type Host interface {
 	// never ends anything. rules.Engine implements it as an in-place drop of
 	// its registry; the effects test double drops from its recorded slice.
 	EndEffect(source state.ObjID, stamp uint32)
+	// EndImprintedEffects ends every live continuous-effect registration
+	// that an ImprintOnHost$ True Effect imprinted on the named host card
+	// (state.ContinuousEffect.ImprintOnHost): the analogue of Forge's
+	// `DB$ ChangeZone | Defined$ Imprinted | Origin$ Command | Destination$
+	// Exile` exiling the imprinted effect token from the Command zone
+	// (Superior Foes of Spider-Man's "until you exile another card with
+	// this creature" -- the second dig's trigger exiles the FIRST effect's
+	// token before the new dig's Effect registers). rules.Engine implements
+	// it as an in-place drop of its registry, rebuilt by re-execution on
+	// replay; the effects test double mirrors it.
+	EndImprintedEffects(source state.ObjID)
 }
 
 // RepeatCursor is a RepeatEach loop re-entered after an iteration suspended:
@@ -538,11 +602,34 @@ type RepeatSuspension struct {
 	ChosenValid bool
 }
 
+// VillainousRest is a VillainousChoice's continuation once its chosen body
+// has completed: Victims is the ordered Defined$ player set and Next is the
+// index of the victim still to ask (the completed victim's index + 1). The
+// host re-enters the VillainousChoice primitive with that cursor, so a body
+// that suspended on its own nested ask does not strand the remaining
+// victims. Plain data, so the host can carry it on its own continuation
+// frame and replay re-derives it identically.
+type VillainousRest struct {
+	Victims []state.Target
+	Next    int
+}
+
 // DamageSourceLKI is the pre-departure damage provenance of one object.
 // It remains separate from Ctx's own-source fields because DamageSource$ may
 // name an object distinct from the resolving spell or ability's source.
+//
+// Infect and Deathtouch join Lifelink because CR 113.7a reads the source's
+// last known characteristics for the whole damage rider, not just the life
+// gain: a bearer that left while its ability waited still deals its damage in
+// counter form (CR 702.90b) and still marks its hit deadly (CR 702.2b). Rules
+// seeds all three from one walk, so this map is their single home -- it is
+// populated for the resolution's OWN source as well as a named DamageSource$
+// object, and the older own-source Ctx fields stay authoritative only for
+// lifelink and controller, whose precedence predates it.
 type DamageSourceLKI struct {
 	Lifelink   bool
+	Infect     bool
+	Deathtouch bool
 	Controller state.PlayerID
 }
 
@@ -560,7 +647,13 @@ type Ctx struct {
 	Source     state.ObjID
 	Controller state.PlayerID
 	Targets    []state.Target
-	Remembered []state.Target
+	// TargetControllerLKI captures each object target's controller at the
+	// start of resolution. A target may leave the battlefield before a
+	// chained TokenOwner$ TargetedController is evaluated; events.Apply then
+	// resets its live Controller to Owner, so the live object is no longer the
+	// CR 608.2h last-known controller.
+	TargetControllerLKI map[state.ObjID]state.PlayerID
+	Remembered          []state.Target
 	// TargetsOffered marks that the resolution's OWN ValidTgts$ targeting was
 	// already offered at announcement (rules' resolveTop sets it on both the
 	// ability and the spell branch, exactly for the SA the placement ask
@@ -582,6 +675,20 @@ type Ctx struct {
 	// RepeatEach iteration body) is also suppressed while the flag is set --
 	// the conservative direction, same as the pre-mvts1 ChangeZone shape.
 	TargetsOffered bool
+	// TargetsUnique accumulates the targets chosen by earlier `TargetUnique$
+	// True` asks in THIS resolution chain, so a later ask in the same chain
+	// (Know Evil's three `DB$ Effect` "up to one target opponent" riders, or
+	// a root/SubAbility pair like Biomantic Mastery's "another target
+	// player") cannot re-offer one of them. Ctx.Targets holds the
+	// placement/announcement targets only and is never appended to, so the
+	// two are read together by TargetsAlreadyChosen. A fresh Ctx rebuilt by a
+	// resume re-binds this field from the pending ask's ride (Decision
+	// .ResumeTargetsUnique -> the resume point's targetsUnique), so an
+	// intervening suspension between two riders keeps the earlier picks; ask
+	// kinds that do not go through poseTargetsAsk or poseUnlessAsk (a Charm's
+	// mode election, a ward's pay window) still lose it -- the documented
+	// conservative edge (an ask that over-offers).
+	TargetsUnique []state.Target
 	// Captured is the part of Remembered the resolution started with because
 	// its trigger, delayed trigger or replacement put the event's object there
 	// (this engine's stand-in for Forge's separate TriggeredCard), rather than
@@ -617,6 +724,16 @@ type Ctx struct {
 	// directly so a SubAbility$ chained after it can read it. The
 	// Sacrificed$<Property> heads in count.go read it.
 	Sacrificed []state.SacrificedInfo
+	// ChangeZoneLKI is the resolution's last-known-information table for
+	// ChangeZoneRememberLKI$ moves: one entry per object the move captured,
+	// holding the controller/owner it had at that instant. events.Apply's Move
+	// resets a battlefield departure's controller to its owner (CR 400.7), so
+	// the live object can no longer answer "the exiled creature's controller"
+	// -- exactly Forge's reason for storing a Card LKI copy in Remembered
+	// (ChangeZoneEffect's CardCopyService.getLKICopy). A RepeatEach body's
+	// TokenOwner$ ImprintedController / Defined$ ImprintedController reads it
+	// for the current iteration subject (Curse of the Swine's Boars).
+	ChangeZoneLKI []state.LKIObject
 	// ResolvingObj is the stack-object WRAPPER of the spell/ability currently
 	// resolving -- rules' e.resolvingObj (resolveTop's ability and spell
 	// branches) and rp.obj (resumeResolution) -- set at those two ctx
@@ -820,6 +937,11 @@ type Ctx struct {
 	// carries the iteration's Remembered. Zero outside a loop iteration, and
 	// the Imprinted/ImprintedController selectors fail closed on zero.
 	RepeatSubject state.Target
+	// VillainousVictims is the ordered Defined$ player set for a
+	// VillainousChoice. The index advances only after the current victim's
+	// chosen body has completed.
+	VillainousVictims []state.Target
+	VillainousIndex   int
 	// Sacrifice is an Annihilator sacrifice answer on re-entry.
 	Sacrifice []state.ObjID
 	// Search is the answered hidden-library KChoose selection on a re-entered
@@ -872,6 +994,10 @@ type Ctx struct {
 	// is consumed and cleared at the re-entry's top (fx42 scoping), so a
 	// nested PutCounter poses its own ask.
 	PutOpt string
+	// PlaneswalkOpt is the answered Optional$ True "you may planeswalk"
+	// election. It is resolution-local so a nested Planeswalk cannot inherit
+	// an outer answer.
+	PlaneswalkOpt string
 	// Extort is the answered optional {W/B} payment on a re-entered Extort
 	// resolution (M2d-2): "pay" means the caster agreed to pay and the drain
 	// runs; anything else ("decline", first pass with a host that cannot ask)
@@ -931,6 +1057,19 @@ type Ctx struct {
 	// discipline), so a nested DigUntil cannot inherit the outer answer.
 	DigUntilMove     string
 	DigUntilMoveDone bool
+	// Clone is the answered DB$ Clone Optional$ True may-copy election
+	// (ticket api-clone-trigger-copy; Sarkhan Soul Aflame's "you may have
+	// Sarkhan, Soul Aflame become a copy of it"): "yes" performs the copy,
+	// "no" -- the decline -- skips it. rules' resumeResolution sets it from
+	// the recorded answer before re-running the suspended sub-ability, and
+	// CloneDone distinguishes "answered" from the first pass. The asking
+	// effect consumes and clears both at the top of its own walk (the fx42
+	// scoping discipline), so a nested Clone cannot inherit the outer
+	// answer. A no-host run (AskNoHost) keeps the deterministic take stand-in
+	// without setting either field, so the byte-identical pre-election
+	// behaviour is preserved for fuzz runs.
+	Clone     string
+	CloneDone bool
 	// TwoPiles is the answered Fact or Fiction pile-split pick (task
 	// twopiles1): the cards the Separator$ player picked into pile A, in the
 	// separator's answer order — the rest of the card set, in the order it
@@ -1012,7 +1151,16 @@ type Ctx struct {
 	// decline)" from the first pass. effMoveCounter consumes and clears all
 	// four at the top of its own walk (the fx42 scoping discipline), so a
 	// nested MoveCounter cannot inherit the outer answers.
-	MoveCounterKind     string
+	MoveCounterKind string
+	// TimeTravelChoice is the answered per-object add/remove/skip election.
+	// TimeTravelObjects is the stable per-round snapshot captured by the rules
+	// resume point; it prevents removing a counter from shifting the next
+	// object's cursor when the live eligible set is recomputed.
+	TimeTravelChoice    string
+	TimeTravelObjects   []state.ObjID
+	TimeTravelIndex     int
+	TimeTravelRound     int
+	TimeTravelDone      bool
 	MoveCounterKindDone bool
 	MoveCounterN        int32
 	MoveCounterNDone    bool
@@ -1091,6 +1239,20 @@ type Ctx struct {
 	// are done-markers: the re-entered pass must not pose the ask again. The
 	// field is consumed and cleared by the effect (fx42 scoping discipline).
 	MayShuffle string
+	// SurveilLookOpt is the answered may-look election a surveil poses when a
+	// battlefield stat:SurveilNum static with Optional$ True applies to the
+	// surveilling player (Enhanced Surveillance's "You may look at an
+	// additional two cards each time you surveil"). Each Optional$ static is
+	// an independent may effect, so the election offers one option per
+	// optional static and the field carries the ACCEPTED static ordinals as a
+	// CSV done-marker ("0" or "0,2"; "no" is the answered decline of every
+	// static). Anything else -- including the no-host R-9 decline and an
+	// unanswered first pass -- keeps the base count. All values are
+	// done-markers -- the re-entered pass must not pose the ask again -- and
+	// the field is consumed and cleared by effSurveil (fx42 scoping). The
+	// answer applies to the asking player only: a multi-player Surveil's
+	// other libraries keep their own base count.
+	SurveilLookOpt string
 	// Hideaway holds the selected top-library card while the Hideaway
 	// replacement resumes to exile it; HideawayPicked distinguishes that
 	// selected answer from the first pass. HideawayArranged marks completion
@@ -1312,6 +1474,19 @@ type Ctx struct {
 	VoteAnswer []state.Target
 	VoteDone   bool
 	VoteTarget int
+	// Demonstrate carries the demonstrate trigger's answered asks (CR
+	// 702.152) across a mid-resolution ask. DemonstrateStage is which ask
+	// was answered -- 0 the may-copy election, 1 the opponent choice --
+	// DemonstrateYes the election's answer, DemonstrateOpp the answered
+	// opponent (player targets). rules' "demonstrate" resume arm rebuilds
+	// all four from the decision's ResumeTarget and answer, and
+	// effDemonstrate consumes and clears all four at the top of its walk
+	// (the fx42 scoping discipline), so a nested Demonstrate below this
+	// walk poses its own asks.
+	DemonstrateDone  bool
+	DemonstrateStage int
+	DemonstrateYes   bool
+	DemonstrateOpp   []state.Target
 	// VoteCounts is the per-subject tally the most recent api:Vote left for
 	// this resolution's AmountFromVotes$ readers (effects/choose_control.go's
 	// effRepeatEach): one entry per ballot subject -- every player the
@@ -1520,6 +1695,22 @@ func RegisterNonAPI(prefixed ...string) {
 
 const maxChain = 32
 
+// CloneTargetControllerLKI returns an independent copy of a target-controller
+// LKI map threaded across a suspension (rules' resumePoint). The map is treated
+// as immutable once captured -- Resolve never mutates a non-nil one -- so a
+// shared reference would be safe, but an explicit copy keeps a cloned engine's
+// pending frame from ever aliasing another's.
+func CloneTargetControllerLKI(m map[state.ObjID]state.PlayerID) map[state.ObjID]state.PlayerID {
+	if m == nil {
+		return nil
+	}
+	out := make(map[state.ObjID]state.PlayerID, len(m))
+	for id, controller := range m {
+		out[id] = controller
+	}
+	return out
+}
+
 // Resolve runs an ability and every sub-ability chained beneath it.
 // effectFrameHost is implemented by the rules engine to publish the Effect
 // registration identity a resolution is currently running under, so an ask
@@ -1550,6 +1741,27 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 	if c != nil {
 		c.Host = h
 		c.numericRHS = c.X != 0 || len(c.SVars) > 0
+		// Capture target controllers before the first effect can move a target.
+		// Keep an existing map on re-entry: it is the earlier battlefield state,
+		// not the current (possibly reset) object, that TokenOwner needs.
+		if c.TargetControllerLKI == nil {
+			c.TargetControllerLKI = make(map[state.ObjID]state.PlayerID)
+			for _, target := range c.Targets {
+				if target.IsPlayer {
+					continue
+				}
+				if object := h.Game().Obj(target.Obj); object != nil {
+					c.TargetControllerLKI[target.Obj] = object.Controller
+				}
+			}
+		}
+		// Publish the snapshot to the host for the whole of this chain, so an
+		// ask posed by any of its effects (or a nested Resolve that inherits
+		// the same Ctx) carries it onto the resumePoint. Restored on return:
+		// the map belongs to THIS chain, and an enclosing chain must not see
+		// it after a nested one has finished.
+		prev := h.SetResolutionTargetControllerLKI(c.TargetControllerLKI)
+		defer h.SetResolutionTargetControllerLKI(prev)
 	}
 	reg := registry.load()
 	for d := 0; sa != nil && d < maxChain; d, sa = d+1, sa.Sub {
@@ -1648,6 +1860,14 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 				// pass consumes the answer and dispatches with it visible to
 				// Defined for this SA.
 				h.SuspendContinuation(sa)
+				// The same asking-body-under-UnlessCost$ class as the body
+				// path below: when the gate already resolved on THIS pass,
+				// record its outcome on the ask's own resume point so the
+				// answered re-entry consumes it instead of re-posing the pay
+				// ask.
+				if strings.TrimSpace(sa.Params["UnlessCost"]) != "" {
+					h.SuspendUnless(sa, paid)
+				}
 				return
 			}
 			c.PickedTargets = ts

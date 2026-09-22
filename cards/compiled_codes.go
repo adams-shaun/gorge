@@ -822,6 +822,11 @@ const (
 	TriggerInterestAttach
 	TriggerInterestExplore
 	TriggerInterestCastInfo
+	// TriggerInterestMonarch is the monarch-designation transition class
+	// (events.MonarchChange), which trig:BecomeMonarch fires on. It gets a
+	// dedicated bit so a BecomeMonarch-only face's compiled scan set narrows
+	// to that one event kind instead of the fail-open Any default.
+	TriggerInterestMonarch
 )
 
 func triggerInterestForMode(mode string) TriggerInterest {
@@ -851,6 +856,11 @@ func triggerInterestForMode(mode string) TriggerInterest {
 		// keeps a ManaExpend-only face's scan set narrow instead of the
 		// fail-open default.
 		return TriggerInterestCastInfo
+	case "BecomeMonarch":
+		// The monarch designation transition (events.MonarchChange), matched
+		// by rules' becomeMonarchMatches. The dedicated bit narrows a
+		// BecomeMonarch-only face's scan set to that kind.
+		return TriggerInterestMonarch
 	case "Taps", "TapsForMana":
 		return TriggerInterestTap
 	case "DamageDone", "DamageDealtOnce", "DamageDoneOnce":

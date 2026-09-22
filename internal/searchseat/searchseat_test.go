@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/internal/searchprobe"
 )
 
 // Defaults must BE cmd/searchteacher's flag defaults, because those are the
@@ -92,6 +93,69 @@ func TestEligibleMatchesTheImplementedKinds(t *testing.T) {
 		if Eligible(&decision.Decision{Kind: k}, on) {
 			t.Errorf("kind %q should delegate, but Eligible returned true", k)
 		}
+	}
+}
+
+// recordSample is the ONLY transport between the sampler's SampleResult and
+// the cost report's per-bucket rejection census: botbench reads
+// Trace.Rejections, and nothing else copies SampleResult.Rejections into a
+// Trace. If this copy is dropped the report still renders, but every
+// rejection-shape line is empty and a late "insufficient worlds/ESS"
+// fallback can no longer be attributed to a sampler rejection reason -- the
+// exact diagnostic the cost report exists to produce. The test therefore
+// pins the transport itself, not the report renderer (whose fixture builds
+// Trace values directly and so cannot see this copy disappear).
+func TestRecordSampleCarriesEveryRejectionBucket(t *testing.T) {
+	// Distinct component/shape pairs and counts, deliberately out of sort
+	// order in the source, so a transport that reorders or drops entries is
+	// visible. Frame is carried too: the report aggregates by component/shape,
+	// but a copy that lost the frame would still be a lossy census.
+	sr := searchprobe.SampleResult{
+		Attempts: 64, Accepted: 2, PrefixRejected: 62, ESS: 1.25,
+		Rejections: []searchprobe.RejectionBucket{
+			{Frame: 3, Component: "identities", Shape: "hand_to_stack", Count: 41},
+			{Frame: 1, Component: "board", Shape: "state", Count: 9},
+			{Frame: 2, Component: "events", Shape: "count", Count: 12},
+		},
+	}
+
+	var tr Trace
+	recordSample(&tr, sr)
+
+	// Precondition: the source really carries buckets, or the assertions
+	// below would be asserting zero equals zero.
+	if len(sr.Rejections) != 3 {
+		t.Fatalf("fixture precondition: sr.Rejections has %d buckets, want 3", len(sr.Rejections))
+	}
+	if len(tr.Rejections) != len(sr.Rejections) {
+		t.Fatalf("Trace.Rejections has %d buckets, want %d (recordSample must carry every bucket)",
+			len(tr.Rejections), len(sr.Rejections))
+	}
+	for i, want := range sr.Rejections {
+		if got := tr.Rejections[i]; got != want {
+			t.Errorf("Trace.Rejections[%d] = %+v, want %+v", i, got, want)
+		}
+	}
+
+	// The trace must own its slice: a later in-place edit of the sampler's
+	// result (the sampler grows and rewrites this slice across attempts) must
+	// never mutate diagnostics already recorded for a previous decision.
+	sr.Rejections[0].Count = 999
+	sr.Rejections = append(sr.Rejections, searchprobe.RejectionBucket{Frame: 4, Component: "decision", Shape: "missing", Count: 1})
+	if tr.Rejections[0].Count != 41 {
+		t.Errorf("Trace.Rejections[0].Count = %d after mutating the source, want 41: the copy must not alias sr.Rejections",
+			tr.Rejections[0].Count)
+	}
+	if len(tr.Rejections) != 3 {
+		t.Errorf("Trace.Rejections grew to %d after appending to the source, want 3: the copy must not share the source's backing array",
+			len(tr.Rejections))
+	}
+
+	// TopRejection is derived from the same census and is what a one-line
+	// summary reads; it must name the largest bucket (identities/hand_to_stack
+	// at 41).
+	if tr.TopRejection != "identities/hand_to_stack" {
+		t.Errorf("TopRejection = %q, want %q (the largest bucket)", tr.TopRejection, "identities/hand_to_stack")
 	}
 }
 
