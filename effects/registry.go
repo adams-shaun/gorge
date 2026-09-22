@@ -1001,7 +1001,12 @@ type Ctx struct {
 	CounterKindDone  bool
 	CounterKinds     []string
 	CounterKindsDone bool
-	CounterKindIndex int
+	// CounterKindAnswers is the replay-derived per-recipient answer table
+	// rules seeds for CounterTypePerDefined$; effPutCounter consumes it at
+	// entry so a nested PutCounter cannot inherit it.
+	CounterKindAnswers     []string
+	CounterKindAnswerIndex int
+	CounterKindAnswerSet   bool
 	// PlaneswalkOpt is the answered Optional$ True "you may planeswalk"
 	// election. It is resolution-local so a nested Planeswalk cannot inherit
 	// an outer answer.

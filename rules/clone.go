@@ -174,7 +174,7 @@ func (e *Engine) Clone() *Engine {
 			if p == nil {
 				continue
 			}
-			c.counterTypeAsk[id] = &counterTypePending{targets: append([]state.Target(nil), p.targets...), answers: append([]string(nil), p.answers...)}
+			c.counterTypeAsk[id] = &counterTypePending{sa: p.sa, answers: append([]string(nil), p.answers...)}
 		}
 	}
 	// The per-turn ManaExpend tally (engine scratch, rules/cast.go): a clone

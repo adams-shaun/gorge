@@ -589,10 +589,13 @@ type moveCounterPending struct {
 	nSet    bool
 }
 
-// counterTypePending is the replay-derived continuation for CounterTypePerDefined.
+// counterTypePending is the replay-derived continuation for one
+// CounterTypePerDefined$ SA. It is keyed below the resolving stack object and
+// then owned by this exact immutable SA, so a chained PutCounter cannot see
+// another PutCounter's answers.
 type counterTypePending struct {
-	targets []state.Target
-	answers []string
+	sa      *cards.SA
+	answers []string // recipient index -> answered individual kind
 }
 
 // moveCounterEntry returns (creating if needed) the pending state for a
@@ -616,14 +619,18 @@ func (e *Engine) moveCounterEntry(obj state.ObjID) *moveCounterPending {
 // which chosenTargetsFor consumes exactly like a just-answered ask, so the
 // re-entered SA does not re-pose its target ask; the kind and amount ride
 // their own pairs, which effMoveCounter consumes-and-clears (fx42).
-func (e *Engine) seedCounterTypeAsk(obj state.ObjID, ctx *effects.Ctx) {
+func (e *Engine) seedCounterTypeAsk(obj state.ObjID, sa *cards.SA, ctx *effects.Ctx) {
 	p := e.counterTypeAsk[obj]
-	if p == nil || len(p.answers) == 0 {
+	if p == nil || p.sa != sa || len(p.answers) == 0 {
 		return
 	}
-	ctx.CounterKind = p.answers[len(p.answers)-1]
-	ctx.CounterKindDone = true
-	ctx.CounterKindIndex = len(p.answers) - 1
+	ctx.CounterKindAnswers = append([]string(nil), p.answers...)
+	for i := len(p.answers) - 1; i >= 0; i-- {
+		if p.answers[i] != "" {
+			ctx.CounterKindAnswerIndex, ctx.CounterKindAnswerSet = i, true
+			break
+		}
+	}
 }
 
 func (e *Engine) seedMoveCounterAsk(obj state.ObjID, ctx *effects.Ctx) {
@@ -1893,16 +1900,32 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				ctx.CounterKind = chosen[0].Label
 			}
 			ctx.CounterKindDone = true
-			if e.counterTypeAsk == nil {
-				e.counterTypeAsk = make(map[state.ObjID]*counterTypePending)
+			// A bare Choices$ recipient pick precedes its comma-list kind
+			// question. Carry that completed pick only through THIS re-entry;
+			// effPutCounter consumes it at entry before a nested SA can see it.
+			if len(rp.choices) > 0 {
+				for _, t := range rp.choices {
+					if !t.IsPlayer && t.Obj != 0 {
+						ctx.CounterPick = append(ctx.CounterPick, t.Obj)
+					}
+				}
+				ctx.CounterPickDone = true
 			}
-			p := e.counterTypeAsk[rp.obj]
-			if p == nil {
-				p = &counterTypePending{}
-				e.counterTypeAsk[rp.obj] = p
+			if rp.sa != nil && strings.EqualFold(strings.TrimSpace(rp.sa.Params["CounterTypePerDefined"]), "True") {
+				if e.counterTypeAsk == nil {
+					e.counterTypeAsk = make(map[state.ObjID]*counterTypePending)
+				}
+				p := e.counterTypeAsk[rp.obj]
+				if p == nil || p.sa != rp.sa {
+					p = &counterTypePending{sa: rp.sa}
+					e.counterTypeAsk[rp.obj] = p
+				}
+				for len(p.answers) <= rp.target {
+					p.answers = append(p.answers, "")
+				}
+				p.answers[rp.target] = ctx.CounterKind
+				ctx.CounterKindAnswerIndex, ctx.CounterKindAnswerSet = rp.target, true
 			}
-			p.answers = append(p.answers, ctx.CounterKind)
-			ctx.CounterKindIndex = len(p.answers) - 1
 		case "counter_kinds":
 			ctx.CounterKinds = nil
 			for _, o := range chosen {
@@ -2479,7 +2502,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			e.seedMoveCounterAsk(rp.obj, ctx)
 		}
 		if rp.sa.API == "PutCounter" {
-			e.seedCounterTypeAsk(rp.obj, ctx)
+			e.seedCounterTypeAsk(rp.obj, rp.sa, ctx)
 		}
 		// A frame of a fused half's resolution re-enters here: restore the
 		// half's own target binding as the AMBIENT resolving target for the
