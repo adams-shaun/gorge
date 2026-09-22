@@ -592,6 +592,31 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			return []state.Target{{Player: p, IsPlayer: true}}, true
 		}
 		return nil, true
+	case "TriggeredCardOwner":
+		// The triggering card's immutable owner (CR 108.3), never its
+		// last-known controller: a stolen creature that dies is still its
+		// owner's (Oft-Nabbed Goat's "its owner draws"). Absent a
+		// triggering card the set is empty, never the ability's source.
+		if p, ok := TriggeredCardOwner(g, c.TriggerContext, c.Remembered); ok {
+			return []state.Target{{Player: p, IsPlayer: true}}, true
+		}
+		return nil, true
+	case "NonTriggeredCardOwner":
+		// Every LIVING player except the triggering card's owner, in the
+		// deterministic g.AliveFrom(0) seat order (Goat's "each other player
+		// loses that much life"). Absent a triggering card the set is empty
+		// rather than every player.
+		owner, ok := TriggeredCardOwner(g, c.TriggerContext, c.Remembered)
+		if !ok {
+			return nil, true
+		}
+		var out []state.Target
+		for _, p := range g.AliveFrom(0) {
+			if p != owner {
+				out = append(out, state.Target{Player: p, IsPlayer: true})
+			}
+		}
+		return out, true
 	case "TriggeredAttackerController", "TriggeredBlockerController":
 		// The controller of the triggering event's attacker or blocker. The
 		// Blocks mode captures both roles per pair (rules/trigger_match.go's

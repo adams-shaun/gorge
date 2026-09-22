@@ -175,6 +175,42 @@ func TriggeredCardController(g *state.Game, tc TriggerContext, remembered []stat
 	return 0, false
 }
 
+// triggeredCardIdentity resolves the object a Triggered*Card referent names:
+// the trigger's captured TriggerCard, or, for a mode that records none, the
+// first object the trigger remembered. It is the one lookup shared by the
+// controller and owner resolvers so the two can never disagree about which
+// card they are speaking of. Zero when no such object exists.
+func triggeredCardIdentity(g *state.Game, tc TriggerContext, remembered []state.Target) state.ObjID {
+	card := tc.TriggerCard
+	if card == 0 {
+		for _, t := range remembered {
+			if !t.IsPlayer {
+				card = t.Obj
+				break
+			}
+		}
+	}
+	if g.Obj(card) == nil {
+		return 0
+	}
+	return card
+}
+
+// TriggeredCardOwner is the one resolver for "that card's owner" in a trigger
+// (the TriggeredCardOwner Defined$ selector). Ownership is immutable card
+// ownership (CR 108.3) -- unlike TriggeredCardController it does NOT consult
+// last-known control, so a stolen creature that dies is still its owner's, not
+// its taker's. The card is the trigger's TriggerCard or, for a mode that
+// records none, the first object the trigger remembered. Absent a card the
+// caller gets ok=false, never a guessed seat.
+func TriggeredCardOwner(g *state.Game, tc TriggerContext, remembered []state.Target) (state.PlayerID, bool) {
+	card := triggeredCardIdentity(g, tc, remembered)
+	if card == 0 {
+		return 0, false
+	}
+	return g.Obj(card).Owner, true
+}
+
 // controlReferent is the single classifier for the two-token ownership and
 // control grammar. The Triggered* arms read event provenance; the Targeted*
 // arms read only the targets of the resolving object. A provenance chain (>)
