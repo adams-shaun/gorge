@@ -12,12 +12,16 @@ func init() { Register("Token", effToken) }
 
 // effToken creates TokenAmount$ tokens of each TokenScript$ (a comma-
 // separated list of Game.Tokens stems) for TokenOwner$ (the controller by
-// default; only "Opponent" is resolved specially, matching Defined's own
-// "You"/"Opponent" pair in context.go). Every other TokenOwner$ form the
-// corpus uses (a fidelity gap this task does not close) still falls back to
-// the controller rather than doing nothing, but now says so: a Note names
-// the unrecognised value, so the gap is visible rather than silently
-// papered over the way an unqualified fallback would be.
+// default; the switch below also resolves Opponent, Player -- "each player
+// creates ...", every ALIVE seat in seat order via AliveFrom(0) --
+// RememberedOwner, ThisTargetedPlayer and the two trig:Vote vote-carrier
+// sets). Every other TokenOwner$ form the corpus uses (the qualified
+// Player.<qualifier> spellings -- Player.IsRemembered x12 raw lines,
+// Player.Opponent, Player.Other, the Player.controls* gates -- and anything
+// else; a fidelity gap this task does not close) still falls back to the
+// controller rather than doing nothing, but now says so: a Note names the
+// unrecognised value, so the gap is visible rather than silently papered
+// over the way an unqualified fallback would be.
 //
 // Every token is its own TokenCreate event, in the order this loop visits
 // them (outer: TokenScript$ stems left to right; inner: TokenAmount$ copies
@@ -96,6 +100,21 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 				break
 			}
 		}
+	case "Player":
+		// "Each player creates ..." (Rendmaw, Creaking Nest, Marching
+		// Duodrone, Grismold the Dreadsower and 10 more corpus carriers of
+		// the bare spelling): EVERY alive seat creates TokenAmount$ tokens,
+		// including the resolving controller. The order is AliveFrom(0) --
+		// seat order from seat 0, NOT AliveFrom(c.Controller) -- so the
+		// mint sequence and the token ids are deterministic and replay-stable
+		// regardless of who is resolving, and a dead seat creates nothing
+		// (a player who has lost no longer creates; the alive set is the
+		// same one every other per-player walk uses). The mint loop below
+		// gives each owner its own TokenAmount$ copies, so a TokenAmount$ X
+		// carrier (Edge Rover's "each player creates X ...") reads X per
+		// player. The qualified Player.<qualifier> spellings stay in the
+		// default arm above.
+		owners = g.AliveFrom(0)
 	case "TriggeredOpponentVotedSame", "TriggeredOpponentVotedDiff":
 		// The vote-carrier referent (trig:Vote): each player in the List$
 		// set the firing trigger captured creates its own token. An EMPTY
