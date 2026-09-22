@@ -10,7 +10,6 @@ package rules
 import (
 	"math"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -1880,15 +1879,24 @@ func (e *Engine) active() []ContinuousEffect {
 		e.staticContinuous = e.staticEffects(e.staticContinuous)
 	}
 	buf = append(buf, e.staticContinuous...)
-	sort.SliceStable(buf, func(i, j int) bool {
-		if buf[i].Layer != buf[j].Layer {
-			return buf[i].Layer < buf[j].Layer
+	slices.SortStableFunc(buf, func(a, b ContinuousEffect) int {
+		if a.Layer != b.Layer {
+			if a.Layer < b.Layer {
+				return -1
+			}
+			return 1
 		}
-		if buf[i].Sub != buf[j].Sub {
-			return buf[i].Sub < buf[j].Sub
+		if a.Sub != b.Sub {
+			if a.Sub < b.Sub {
+				return -1
+			}
+			return 1
 		}
-		if buf[i].Timestamp != buf[j].Timestamp {
-			return buf[i].Timestamp < buf[j].Timestamp
+		if a.Timestamp != b.Timestamp {
+			if a.Timestamp < b.Timestamp {
+				return -1
+			}
+			return 1
 		}
 		// A full tie inside layer 6 between an ability-REMOVING effect and an
 		// ability-granting one (a static line carrying both RemoveAllAbilities$
@@ -1900,10 +1908,13 @@ func (e *Engine) active() []ContinuousEffect {
 		// the removal wipes the very grant on its own line. Timestamps still
 		// dominate: a LATER removal (Humility entering after) still wipes an
 		// earlier grant.
-		if buf[i].Layer == LAbilities && buf[i].RemoveAbilities != buf[j].RemoveAbilities {
-			return buf[i].RemoveAbilities
+		if a.Layer == LAbilities && a.RemoveAbilities != b.RemoveAbilities {
+			if a.RemoveAbilities {
+				return -1
+			}
+			return 1
 		}
-		return false
+		return 0
 	})
 	if e.activeDepth <= 1 {
 		// Keep the grown, sorted buffer on the Engine for the next build or
