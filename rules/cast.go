@@ -4880,10 +4880,27 @@ func faceWantsConvoked(f *cards.Face) bool {
 		if strings.EqualFold(strings.TrimSpace(a.Params["Defined"]), "Convoked") {
 			return true
 		}
-		for _, v := range a.Params {
-			if effects.SpecUsesConvokedReferent(v) {
-				return true
-			}
+		if abilityParamsUseConvoked(a.Params) {
+			return true
+		}
+	}
+	return false
+}
+
+// abilityParamsUseConvoked is the ability half of faceWantsConvoked: a
+// whole-map VALUE scan -- it reads no specific Params key, only every value,
+// the same shape the SVar loop above reads f.SVars with -- so it takes the
+// map as a plain map[string]string parameter (the paramcensus scanner's
+// helper-passed-map form, with no key indexed and therefore no key read the
+// census would attribute). Keeping it a value scan is the point: the
+// share-family referent can ride any spec-bearing parameter, and a key
+// whitelist here would silently miss the next one -- exactly the silent gap
+// (sharesCreatureTypeWith Convoked classifying wordUnknown) this ticket
+// fixed.
+func abilityParamsUseConvoked(params map[string]string) bool {
+	for _, v := range params {
+		if effects.SpecUsesConvokedReferent(v) {
+			return true
 		}
 	}
 	return false
