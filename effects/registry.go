@@ -317,6 +317,9 @@ type Host interface {
 	// permanent losing counters) are NOT folded here — the head's object-spec
 	// form is a separate, unimplemented shape.
 	CountersRemovedThisTurn(p state.PlayerID, kind string) int32
+	// CountersAddedThisTurn sums final positive object-counter placements this
+	// turn matching the count head's kind, actor and object specifications.
+	CountersAddedThisTurn(kind, actorSpec, objectSpec string, sc SpecContext) int32
 	// CombatDamageToPlayersThisTurn reports every instance of combat damage
 	// dealt to a PLAYER so far this turn, in assignment order. It is the
 	// PlayerCountDefinedRegistered$HasPropertywasDealtCombatDamageThisTurnBy
