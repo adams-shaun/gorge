@@ -1,0 +1,121 @@
+package rules
+
+import (
+	"strings"
+	"testing"
+
+	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/effects"
+	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/internal/testutil"
+	"github.com/adams-shaun/gorge/state"
+)
+
+func manaConvertCard(t *testing.T, reg *cards.Registry, name string) *cards.Card {
+	t.Helper()
+	c, ok := reg.Lookup(name)
+	if !ok {
+		t.Fatalf("corpus card %q missing", name)
+	}
+	return c
+}
+
+func TestEffectManaConvertReachesPayment(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := corpusEngine(t, reg,
+		[]*cards.Card{manaConvertCard(t, reg, "North Star"), manaConvertCard(t, reg, "Ancestral Recall")}, nil)
+	star := moveByName(t, e, 0, "North Star", state.ZBattlefield)
+	spell := moveByName(t, e, 0, "Ancestral Recall", state.ZHand)
+	face := e.G.Obj(star).Face()
+	if e.G.Obj(star).Zone != state.ZBattlefield || face == nil {
+		t.Fatal("precondition: North Star is not on the battlefield with a face")
+	}
+	effect := face.Abilities[0]
+	if effect.API != "Effect" || effect.Params["StaticAbilities"] != "Convert" {
+		t.Fatalf("precondition: North Star effect changed: %+v", effect)
+	}
+	effects.Resolve(e, &effects.Ctx{Source: star, Controller: 0, SVars: face.SVars}, effect)
+	if !strings.Contains(e.G.Obj(star).Face().SVars["Convert"], "ManaConversion$ AnyType->AnyType") {
+		t.Fatal("precondition: North Star's real Convert SVar changed")
+	}
+	e.G.Players[0].Pool[state.MR] = 1
+	if !e.payManaConvFor(0, spell, false, ParseCost("U"), e.paymentConv(0, spell, false)) {
+		t.Fatal("Effect-delivered North Star conversion did not pay blue with red mana")
+	}
+	if e.G.Players[0].Pool.Total() != 0 {
+		t.Fatalf("converted payment left mana in the pool: %+v", e.G.Players[0].Pool)
+	}
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "continuous effect ManaConvert unimplemented") {
+			t.Fatalf("Effect-delivered ManaConvert fell through its unimplemented handler: %q", ev.Text)
+		}
+	}
+}
+
+func TestCommandManaConvertReachesPayment(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := corpusEngine(t, reg,
+		[]*cards.Card{manaConvertCard(t, reg, "Emissary's Ploy"), manaConvertCard(t, reg, "Grizzly Bears")}, nil)
+	conspiracy := moveByName(t, e, 0, "Emissary's Ploy", state.ZCommand)
+	bear := moveByName(t, e, 0, "Grizzly Bears", state.ZBattlefield)
+	if e.G.Obj(conspiracy).Zone != state.ZCommand || e.G.Obj(bear).Zone != state.ZBattlefield {
+		t.Fatal("precondition: command static or creature is in the wrong zone")
+	}
+	e.emit(events.Event{Kind: events.Choose, Obj: conspiracy, Counter: "number", Amount: 2})
+	e.G.Players[0].Pool[state.MR] = 1
+	if !e.payManaConvFor(0, bear, false, ParseCost("G"), e.paymentConv(0, bear, false)) {
+		t.Fatal("command-zone ManaConvert did not pay green with red mana")
+	}
+	if e.G.Players[0].Pool.Total() != 0 {
+		t.Fatalf("command conversion left mana in the pool: %+v", e.G.Players[0].Pool)
+	}
+}
+
+func TestManaConvertCanTapForConvertedPayment(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := corpusEngine(t, reg,
+		[]*cards.Card{manaConvertCard(t, reg, "Mycosynth Lattice"), manaConvertCard(t, reg, "Ancestral Recall"), manaConvertCard(t, reg, "Mountain")}, nil)
+	lattice := moveByName(t, e, 0, "Mycosynth Lattice", state.ZBattlefield)
+	mountain := moveByName(t, e, 0, "Mountain", state.ZBattlefield)
+	spell := moveByName(t, e, 0, "Ancestral Recall", state.ZHand)
+	if e.G.Obj(lattice).Zone != state.ZBattlefield || e.G.Obj(mountain).Zone != state.ZBattlefield || e.G.Obj(mountain).Tapped || e.G.Obj(spell).Zone != state.ZHand {
+		t.Fatal("precondition: Lattice, Ancestral Recall, and an untapped Mountain are not in the expected zones")
+	}
+	// A payment window's selected source resolves through this same tap path;
+	// exercise the source activation directly so the test stays focused on
+	// the converted payment rather than priority setup.
+	e.activateManaPayment(0, mountain, false)
+	if !e.G.Obj(mountain).Tapped || e.G.Players[0].Pool[state.MR] != 1 {
+		t.Fatalf("mana payment source did not tap Mountain for red: pool=%+v tapped=%t", e.G.Players[0].Pool, e.G.Obj(mountain).Tapped)
+	}
+	if !e.costPayable(0, spell, false, ParseCost("U")) {
+		t.Fatal("converted red mana was not payable as blue after tapping")
+	}
+	if !e.payManaConvFor(0, spell, false, ParseCost("U"), e.paymentConv(0, spell, false)) || e.G.Players[0].Pool.Total() != 0 {
+		t.Fatalf("converted tap-to-pay did not consume the red mana: pool=%+v", e.G.Players[0].Pool)
+	}
+}
+
+func TestOptionalManaConvertIsAskedBeforePayment(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := corpusEngine(t, reg,
+		[]*cards.Card{manaConvertCard(t, reg, "North Star"), manaConvertCard(t, reg, "Ancestral Recall")}, nil)
+	star := moveByName(t, e, 0, "North Star", state.ZBattlefield)
+	moveByName(t, e, 0, "Ancestral Recall", state.ZHand)
+	face := e.G.Obj(star).Face()
+	effects.Resolve(e, &effects.Ctx{Source: star, Controller: 0, SVars: face.SVars}, face.Abilities[0])
+	e.G.Players[0].Pool[state.MR] = 1
+	e.priorityRound()
+	if got := optionKinds(e.Pending())["cast"]; got != 1 {
+		t.Fatalf("precondition: Ancestral Recall was not offered from red plus North Star: %+v", e.Pending())
+	}
+	castFirst(t, e, "cast")
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || d.Prompt != "Use optional mana conversion?" {
+		t.Fatalf("North Star Optional$ did not pose a real election: %+v", d)
+	}
+	if len(d.Options) != 2 || d.Options[0].Index != 0 || d.Options[1].Index != 1 {
+		t.Fatalf("optional conversion options = %+v", d.Options)
+	}
+}

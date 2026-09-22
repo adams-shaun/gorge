@@ -198,57 +198,87 @@ func staticSAKindMatches(validSA string, ability bool) bool {
 	return false
 }
 
-// manaConversion composes the conversion set for p's payment of id (ability
-// selects a spell cast vs an ability activation, the ValidSA$ split). It
-// reads every battlefield static in activeStatics' deterministic order:
-//
-//   - ValidPlayer$ (You/Opponent/Other, MatchesPlayerSpec): whose payments
-//     the static applies to; absent means every player ("Players may spend
-//     mana as though it were mana of any color").
-//   - ValidCard$: the object being paid for (Chromatic Orrery names none --
-//     every payment; Quicksilver Elemental names Card.Self -- only its own
-//     abilities). A spec this build cannot evaluate (Card.NamedCard,
-//     cmcEQChosen) fails closed and never grants, exactly like the
-//     restriction statics.
-//   - ValidSA$: the payment kind.
-//
-// ManaConversion$ may carry several space-separated tokens ("White->AnyColor
-// nonWhite<-C"); each is a grant "<from>-><to>" or a restriction
-// "<from><-C>", and they compose as a union over the payment's ONE
-// conversion set. Effect-granted conversions (the SVar:SpendAnyMana family,
-// 22 corpus occurrences of "Mode$ ManaConvert" inside an Effect body) are
-// NOT wired: the continuous-effect registry this build consults for cost
-// payment is the battlefield statics only, so those stay inert -- see
-// AGENTS.md's Known approximations for the standing shape.
+// manaConversion composes the conversion set for one payment. Printed
+// statics are collected from every EffectZone-admitted source zone (including
+// Command), while Effect-delivered SVar statics are read from the active
+// continuous-effect registry. Optional grants are returned separately so the
+// cast flow can make a real election instead of silently applying them.
 func (e *Engine) manaConversion(p state.PlayerID, id state.ObjID, ability bool) manaConv {
-	var conv manaConv
-	for _, sv := range e.activeStatics("ManaConvert") {
+	mandatory, optional := e.manaConversionParts(p, id, ability)
+	mergeManaConv(&mandatory, optional)
+	return mandatory
+}
+
+func (e *Engine) manaConversionParts(p state.PlayerID, id state.ObjID, ability bool) (manaConv, manaConv) {
+	var mandatory, optional manaConv
+	apply := func(sv staticView) {
 		if vp, ok := sv.Params["ValidPlayer"]; ok &&
 			!effects.MatchesPlayerSpec(e.G, vp, p, sv.Controller) {
-			continue
+			return
 		}
 		if vc, ok := sv.Params["ValidCard"]; ok && vc != "" &&
 			!effects.MatchesSpecCtx(e.G, vc, id, e.specCtx(sv.Source, p)) {
-			continue
+			return
 		}
 		if vsa, ok := sv.Params["ValidSA"]; ok && !staticSAKindMatches(vsa, ability) {
-			continue
+			return
+		}
+		dst := &mandatory
+		if strings.EqualFold(strings.TrimSpace(sv.Params["Optional"]), "True") {
+			dst = &optional
 		}
 		for _, tok := range strings.Fields(sv.Params["ManaConversion"]) {
 			if from, to, ok := strings.Cut(tok, "->"); ok {
 				if froms := manaColourFrom(from); froms != nil {
-					applyManaConversionTo(&conv, froms, to)
+					applyManaConversionTo(dst, froms, to)
 				}
 				continue
 			}
 			if from, ok := strings.CutSuffix(tok, "<-C"); ok {
 				if froms := manaColourFrom(from); froms != nil {
 					for _, i := range froms {
-						conv.onlyC[i] = true
+						dst.onlyC[i] = true
 					}
 				}
 			}
 		}
 	}
-	return conv
+	for pi, p := range e.G.AliveFrom(0) {
+		for _, z := range staticSourceZones {
+			if z == state.ZStack && pi > 0 {
+				continue
+			}
+			for _, oid := range e.G.Zone(z, p) {
+				o := e.G.Obj(oid)
+				if o == nil || o.Face() == nil || (z == state.ZBattlefield && e.faceDownPrintedHides(o)) {
+					continue
+				}
+				for si, sn := 0, o.PileStaticCount(); si < sn; si++ {
+					pst, ok := o.PileStaticAt(si)
+					if !ok || pst.Static.Mode != "ManaConvert" || !effectZoneOK(pst.Static.Params["EffectZone"], o.Zone) {
+						continue
+					}
+					apply(staticView{Source: oid, Controller: o.Controller, Params: pst.Static.Params, SVars: pst.Face.SVars})
+				}
+			}
+		}
+	}
+	for _, ce := range e.active() {
+		if ce.CostStaticMode == "ManaConvert" {
+			apply(staticView{Source: ce.Source, Controller: ce.Controller,
+				Params: ce.CostStaticParams, SVars: ce.CostStaticSVars})
+		}
+	}
+	return mandatory, optional
+}
+
+func mergeManaConv(dst *manaConv, src manaConv) {
+	for i := range dst.wild {
+		dst.wild[i] = dst.wild[i] || src.wild[i]
+		dst.onlyC[i] = dst.onlyC[i] || src.onlyC[i]
+		for j := range dst.to[i] {
+			dst.to[i][j] = dst.to[i][j] || src.to[i][j]
+		}
+	}
+	dst.wildC = dst.wildC || src.wildC
 }

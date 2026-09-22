@@ -51,6 +51,10 @@ const (
 	// chooseEnlist / chooseAttackPay / chooseUnleash, each defined relative
 	// to a neighbour, and 40 is chooseUntap.
 	chooseAttached chooseFor = 30
+	// chooseManaConvert is the cast-time election for an Optional$ ManaConvert
+	// static. It is deliberately separate from the mana-source window: the
+	// player chooses whether to use the permission before targets and payment.
+	chooseManaConvert chooseFor = 42
 )
 
 // pendingCast is the cast flow's own state, live only between beginCast and
@@ -282,6 +286,11 @@ type pendingCast struct {
 	// windowDone is set when the 601.2g mana window was answered "done", so
 	// payCast proceeds straight to payment instead of re-offering it.
 	windowDone bool
+	// manaConvertDone records the Optional$ ManaConvert election. Before the
+	// election, feasibility uses the union so the cast remains offerable; after
+	// it, paymentConv uses only the selected optional contribution.
+	manaConvertDone bool
+	manaConvertUse  bool
 	// modesDone is set once a modal spell's CR 601.2b mode question has been
 	// posed. modeChosen says its answer was recorded during this proposal;
 	// preModes is the object's value immediately before that answer, so
@@ -2410,6 +2419,12 @@ func (e *Engine) continueCast() {
 	// half of a hybrid, whether a Phyrexian pip is paid with life -- before
 	// targets (601.2c) and payment (601.2h). Runs as one decision per pip.
 	if e.manaAsk() {
+		return
+	}
+	// An Optional$ ManaConvert permission is a real CR 601.2 choice. It is
+	// asked after pip announcements, before targets, and the selected arm is
+	// then used consistently by target affordability and final payment.
+	if e.manaConvertAsk() {
 		return
 	}
 	// CR 601.2c: choose targets, now that the object is on the stack. An SA
@@ -5433,6 +5448,31 @@ func (e *Engine) etbAnswer(d *decision.Decision, chosen []decision.Option) {
 	pc.etbIdx++
 }
 
+// manaConvertAsk poses the Optional$ ManaConvert election once for this
+// proposal. A mandatory conversion remains automatic; an optional conversion
+// is offered even when the ordinary pool already pays, because declining is a
+// meaningful player choice and the grant may matter to a later repricing.
+func (e *Engine) manaConvertAsk() bool {
+	pc := e.cast
+	if pc == nil || pc.manaConvertDone {
+		return false
+	}
+	_, optional := e.manaConversionParts(pc.player, pc.card, pc.isAbility())
+	if optional.empty() {
+		pc.manaConvertDone = true
+		return false
+	}
+	pc.manaConvertDone = true
+	e.choosing = chooseCast
+	e.ask(&decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
+		Prompt: "Use optional mana conversion?", Source: pc.card,
+		Options: []decision.Option{
+			{Index: 0, Kind: "manaconvert", Label: "Use mana conversion", Obj: pc.card, Player: pc.player},
+			{Index: 1, Kind: "manaconvert", Label: "Don't use mana conversion", Obj: pc.card, Player: pc.player},
+		}})
+	return true
+}
+
 // castAnswer records a chooseCast answer into the flow, keyed off which
 // stage asked it (every option in one decision shares a Kind). A mana-window
 // decision (CR 601.2g) is the exception: it offers both "activate" and
@@ -5456,6 +5496,11 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 		kind = chosen[0].Kind
 	}
 	switch kind {
+	case "manaconvert":
+		// Option 0 is the affirmative election. The decision is deliberately
+		// positional rather than label-based so a translated label cannot alter
+		// the payment semantics.
+		pc.manaConvertUse = len(chosen) > 0 && chosen[0].Index == 0
 	case "x":
 		if len(chosen) > 0 {
 			// The value rides on Option.Amount, not Option.Index: xAsk is the
