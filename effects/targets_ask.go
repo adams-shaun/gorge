@@ -83,6 +83,13 @@ func chosenTargetsFor(h Host, c *Ctx, sa *cards.SA, atRoot bool) ([]state.Target
 	if c.TargetsPickDone {
 		ans := c.TargetsPick
 		c.TargetsPickDone, c.TargetsPick = false, nil
+		// Record this ask's answer so a LATER TargetUnique$ ask in the SAME
+		// Resolve walk excludes it too (Know Evil's three chained DB$ Effect
+		// "up to one target opponent" riders). A resume rebuilds a fresh Ctx
+		// with this field empty, which is the documented conservative edge.
+		if TargetUniqueRequested(sa) {
+			c.TargetsUnique = append(c.TargetsUnique, ans...)
+		}
 		return ans, true
 	}
 	if c.OfferedSA != nil && sa.Line == c.OfferedSA.Line {
@@ -194,6 +201,23 @@ func poseTargetsAsk(h Host, c *Ctx, sa *cards.SA, chooser state.PlayerID,
 	prompt := strings.TrimSpace(sa.Params["TgtPrompt"])
 	if prompt == "" {
 		prompt = "Choose target"
+	}
+	// TargetUnique$ True: no candidate already chosen in this resolution may
+	// be offered again (a root's target to an "another target" sub, or an
+	// earlier TargetUnique pick in the same chain). The bounds clamp AFTER
+	// the filter, so the no-host stand-in's candidates[:max] can never slice
+	// past the filtered length, and a decision every candidate of which was
+	// excluded is never posed (the caller keeps Defined's own fallthrough,
+	// exactly as for an empty eligible set).
+	candidates = TargetUniqueFilter(sa, candidates, TargetsAlreadyChosen(c))
+	if max > int32(len(candidates)) {
+		max = int32(len(candidates))
+	}
+	if min > max {
+		min = max
+	}
+	if max <= 0 {
+		return nil, false
 	}
 	d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
 		Min: int(min), Max: int(max), Source: c.Source,

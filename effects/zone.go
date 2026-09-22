@@ -4091,6 +4091,9 @@ func changeZoneChosenTargets(h Host, c *Ctx, sa *cards.SA) ([]state.Target, bool
 	if c.ChoiceDone {
 		ans := c.Choice
 		c.ChoiceDone, c.Choice = false, nil
+		if TargetUniqueRequested(sa) {
+			c.TargetsUnique = append(c.TargetsUnique, ans...)
+		}
 		return ans, true
 	}
 	if len(c.Targets) > 0 {

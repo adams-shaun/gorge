@@ -607,6 +607,17 @@ type Ctx struct {
 	// RepeatEach iteration body) is also suppressed while the flag is set --
 	// the conservative direction, same as the pre-mvts1 ChangeZone shape.
 	TargetsOffered bool
+	// TargetsUnique accumulates the targets chosen by earlier `TargetUnique$
+	// True` asks in THIS resolution chain, so a later ask in the same chain
+	// (Know Evil's three `DB$ Effect` "up to one target opponent" riders, or
+	// a root/SubAbility pair like Biomantic Mastery's "another target
+	// player") cannot re-offer one of them. Ctx.Targets holds the
+	// placement/announcement targets only and is never appended to, so the
+	// two are read together by TargetsAlreadyChosen. A fresh Ctx rebuilt by a
+	// resume starts empty: a chain that suspended on an ask loses the
+	// earlier TargetUnique picks, which is the conservative direction (an
+	// ask that over-offers) and is documented in the approximation ledger.
+	TargetsUnique []state.Target
 	// Captured is the part of Remembered the resolution started with because
 	// its trigger, delayed trigger or replacement put the event's object there
 	// (this engine's stand-in for Forge's separate TriggeredCard), rather than
