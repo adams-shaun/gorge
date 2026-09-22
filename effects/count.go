@@ -687,7 +687,7 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 //
 // The per-object answers mirror evalCountBody's own source-anchored heads:
 // CardPower/CardToughness read the face plus marked P1P1 counters
-// ( battlefield layer output for a battlefield object; a graveyard object's
+// (battlefield layer output for a battlefield object; a graveyard object's
 // face), CardManaCost the face's converted cost, CardCounters.<KIND> one
 // counter kind, Valid the count of referenced objects matching a card spec
 // (unknown predicates fail closed inside the matcher, so an unreadable
@@ -1036,7 +1036,7 @@ func refToughness(h Host, o *state.Object, snapshot bool) int32 {
 // anchor moved to ONE specific object: a shallow Ctx copy keeps the resolving
 // ability's SVar table, controller and remembered set, but `Source` -- what
 // the source-anchored heads (CardPower, CardToughness, CardManaCost,
-// CardManaCost) read -- becomes obj. This is what a
+// CardNumColors) read -- becomes obj. This is what a
 // `CounterNumPerDefined$` parameter needs: the count is evaluated per
 // AFFECTED object (Canopy Gargantuan's "equal to that creature's toughness"),
 // not once for the resolving source. An expression whose head the evaluator
@@ -1104,6 +1104,11 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	switch head {
 	case "Compare":
 		return evalCompare(h, c, arg, depth), true
+	case "CardNumColors":
+		if o := g.Obj(c.Source); o != nil {
+			return int32(len(h.ObjectColors(o))), true
+		}
+		return 0, true
 	case "xPaid":
 		// CR 107.3i: the {X} paid for the resolving spell or ability. On a
 		// TRIGGER of a permanent that was cast for {X} the ability object's

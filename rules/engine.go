@@ -353,6 +353,16 @@ type Engine struct {
 	derivedTypes []string
 	derivedDepth int
 
+	// derivingColorsSet/ID/Colors: the finished layer-5 colour answer for the
+	// object whose Derived is mid-build (set by derivedWith before its layer-7
+	// P/T walk, restored on the way out). Colors serves it to a layer-7 pump
+	// expression that counts the object's own colours, instead of re-entering
+	// Derived and recursing forever. Pure per-call scratch exactly like
+	// derivedDepth — Clone copies none of it (clone.go's scratch precedent).
+	derivingColorsSet bool
+	derivingColorsID  state.ObjID
+	derivingColors    string
+
 	// pendingTriggers holds matched triggers not yet placed on the stack.
 	// checkTriggers appends; putTriggersOnStack drains. Task 20 (trigger.go).
 	pendingTriggers []pendingTrigger

@@ -40,6 +40,9 @@ type Host interface {
 	// Emit (which routes through events.Apply), which is what keeps the event
 	// log a complete description of the match.
 	Game() *state.Game
+	// ObjectColors returns the object's live layer-5 colours when it is on the
+	// battlefield, and its face/CDA colours in other zones.
+	ObjectColors(*state.Object) string
 	Emit(events.Event)
 	// EmitDamage emits a Damage event and returns the event that actually
 	// landed after replacement effects. A prevention returns a non-Damage
