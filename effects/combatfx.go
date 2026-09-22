@@ -782,7 +782,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 			// half-permanent — types kept while an UntilEOT P/T set
 			// strips them to an untransformed-basis 0/0 the CR 704.5f
 			// SBA destroys.
-			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent,
+			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent && !IsNextTurnDuration(ag.duration),
 			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
@@ -793,7 +793,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 			Layer: state.LType, AddTypes: ag.types,
 			RemoveCreatureTypes: ag.removeCreatureTypes,
 			AddAllCreatureTypes: ag.allCreatureTypes, RemoveCardTypes: ag.removeCardTypes,
-			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent,
+			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent && !IsNextTurnDuration(ag.duration),
 			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
@@ -802,7 +802,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LColor, AddColors: ag.colors, OverwriteColors: ag.overwriteColors,
-			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent,
+			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent && !IsNextTurnDuration(ag.duration),
 			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
@@ -811,7 +811,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LAbilities, AddKeywords: ag.kws,
-			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent,
+			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent && !IsNextTurnDuration(ag.duration),
 			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
@@ -821,7 +821,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LAbilities, AddAbilities: ag.abilities,
 			SVars: c.SVars, AbilityGrantor: c.Source,
-			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent,
+			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent && !IsNextTurnDuration(ag.duration),
 			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
@@ -842,7 +842,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 			Layer:          state.LAbilities,
 			AddTrigger:     &t,
 			TriggerGrantor: ag.triggerGrantor,
-			Duration:       ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent,
+			Duration:       ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent && !IsNextTurnDuration(ag.duration),
 			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})

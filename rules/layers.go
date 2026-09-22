@@ -1342,6 +1342,17 @@ func (e *Engine) AddContinuous(ce ContinuousEffect) {
 	// boundary and falls back to the source-leaves rule.
 	if effects.IsNextTurnDuration(ce.Duration) && ce.UntilTurn == 0 {
 		ce.UntilTurn = e.nextTurnFor(ce.Controller)
+		// UntilYourNextTurn ends as that turn begins. Cleanup is the
+		// preceding turn's boundary, while UntilTheEndOfYourNextTurn
+		// remains active through the next turn's cleanup.
+		if effects.IsUntilYourNextTurn(ce.Duration) && ce.UntilTurn > e.G.Turn {
+			ce.UntilTurn--
+		}
+		// The frozen value is the FALLBACK, not the authority: expiry
+		// (EndOfTurnCleanup, via rescheduleNextTurnBoundaries) re-derives the
+		// boundary from the live rotation and pending extra-turn queue, so an
+		// extra turn granted after this registration moves the boundary with
+		// the controller's next actual turn.
 	}
 	e.continuous = append(e.continuous, ce)
 	// A REGISTERED layer-3 rename (an Effect-delivered SetName$, which has no
@@ -1440,10 +1451,125 @@ func (e *Engine) ContinuousNamed(p state.PlayerID, name string) bool {
 	return false
 }
 
+// rescheduleNextTurnBoundaries re-derives UntilTurn for every live
+// next-turn-duration effect (Duration$ UntilYourNextTurn /
+// UntilTheEndOfYourNextTurn) from the live rotation and the pending
+// extra-turn queue. AddContinuous freezes the boundary at registration,
+// which goes stale the moment a +1 ExtraTurn grant is emitted AFTER the
+// effect began: the granted turn is inserted before the ordinary rotation
+// (most recently created grant first), moving the controller's next actual
+// turn either earlier (their own grant -- the boundary becomes the extra
+// turn) or later (another seat's grant). Nothing else moves it: a -1
+// consumption converts a pending entry into an actual turn in lockstep, and
+// a TurnChange only advances the base the count starts from. EndOfTurnCleanup
+// reschedules first thing, so the once-per-turn expiry decision sees every
+// grant made during the turn now ending.
+//
+// The one case the strictly-after walk cannot see is an
+// UntilTheEndOfYourNextTurn whose boundary turn is the CURRENT turn:
+// nextTurnFor never returns the turn in progress, so a plain recompute
+// would push the boundary past it and the effect would survive its own
+// expiry forever. The tracked boundary names the current turn exactly when
+// it is the controller's first turn since registration (the only way a
+// turn-boundary effect is alive while its controller is active with the
+// boundary not strictly future), so that value is kept. A start-boundary
+// effect is never alive during its controller's turn -- it drops at the
+// PRECEDING cleanup -- so the override cannot misfire on it. A controller
+// the rotation cannot reach (eliminated; nextTurnFor returns 0) keeps the
+// frozen registration-time value.
+func (e *Engine) rescheduleNextTurnBoundaries() {
+	changed := false
+	for i := range e.continuous {
+		ce := &e.continuous[i]
+		if ce.UntilTurn == 0 || !effects.IsNextTurnDuration(ce.Duration) {
+			continue
+		}
+		start := effects.IsUntilYourNextTurn(ce.Duration)
+		if !start && e.G.Active == ce.Controller && ce.UntilTurn == e.G.Turn {
+			continue // the boundary is the turn now being cleaned up
+		}
+		next := e.nextTurnFor(ce.Controller)
+		if next == 0 {
+			continue
+		}
+		b := next
+		if start {
+			b = next - 1
+		}
+		if b != ce.UntilTurn {
+			ce.UntilTurn = b
+			changed = true
+		}
+	}
+	// GainControl's LoseControl$ UntilTheEndOfYourNextTurn carries the same
+	// boundary in controlGrant.untilTurn (rules/control.go). A late +1 grant
+	// moves it exactly as it moves a continuous effect's: the granted turn
+	// can be the effect controller's next turn (their own grant -- the
+	// boundary moves earlier) or insert turns before it (another seat's
+	// grant -- the boundary moves later). The spelling is the END boundary
+	// (no -1), and expireControl(controlAtCleanup) reads untilTurn AFTER this
+	// reschedule, so a stale value would end the steal on the wrong cleanup.
+	// The same current-turn override applies: nextTurnFor is strictly-after,
+	// so an end-boundary grant already standing on the turn now being cleaned
+	// up must keep it. A controller the rotation cannot reach (nextTurnFor
+	// returns 0; RegisterControl already stored e.G.Turn for that case) keeps
+	// its value.
+	for i := range e.controlGrants {
+		g := &e.controlGrants[i]
+		if !g.Duration.NextTurn {
+			continue
+		}
+		if e.G.Active == g.You && g.untilTurn == e.G.Turn {
+			continue
+		}
+		next := e.nextTurnFor(g.You)
+		if next == 0 {
+			continue
+		}
+		if next != g.untilTurn {
+			g.untilTurn = next
+			changed = true
+		}
+	}
+	if changed {
+		// Same reason AddContinuous bumps: the boundary rewrite emits no
+		// event and moves no log head, but active() caches on
+		// continuousVersion.
+		e.continuousVersion++
+	}
+}
+
 func (e *Engine) nextTurnFor(p state.PlayerID) int32 {
-	alive := e.G.AliveCount()
+	// Pending extra turns are taken before ordinary rotation, most recently
+	// created first. Entries for eliminated players are consumed without a
+	// turn, just as advanceStep does, so they must not advance the boundary.
+	// The same is true of an entry whose R:Event$ BeginTurn | ExtraTurn$ True
+	// | Skip$ True replacement makes the granted seat skip the turn
+	// (rules/turn.go's advanceStep consumer emits the -1 consumption but never
+	// calls beginTurn); nextTurnFor must apply the SAME skip decision the
+	// consumer does, or a skipped grant for the controller expires the effect
+	// one cleanup too early and a skipped opponent grant one cleanup too
+	// late. extraTurnSkipped is pure and shared with that consumer, so the
+	// two can never drift.
 	t := e.G.Turn
-	q := e.G.Active
+	for i := len(e.G.ExtraTurnQueue) - 1; i >= 0; i-- {
+		seat := e.G.ExtraTurnQueue[i].Player
+		if e.G.Players[seat].Lost {
+			continue
+		}
+		if skip, _ := e.extraTurnSkipped(seat); skip {
+			continue
+		}
+		t++
+		if seat == p {
+			return t
+		}
+	}
+
+	// Once the pending queue drains, ordinary rotation resumes after the
+	// latest normal turn, not after the active extra turn.
+	alive := e.G.AliveCount()
+	q := e.rotationBase()
 	for i := 0; i < alive; i++ {
 		q = e.G.NextAlive(q)
 		t++
@@ -1459,6 +1585,11 @@ func (e *Engine) nextTurnFor(p state.PlayerID) int32 {
 // from rules/combat.go's cleanupStep, which runs it on entry to the cleanup
 // step.
 func (e *Engine) EndOfTurnCleanup() {
+	// Re-derive the next-turn boundaries before the expiry walk below: a +1
+	// ExtraTurn grant emitted after a next-turn effect was registered moves
+	// the controller's next actual turn, and the frozen registration-time
+	// value must not decide the expiry (see rescheduleNextTurnBoundaries).
+	e.rescheduleNextTurnBoundaries()
 	e.expireControl(controlAtCleanup)
 	e.reconcileControlStatics()
 	kept := e.continuous[:0]

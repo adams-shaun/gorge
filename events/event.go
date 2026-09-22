@@ -886,6 +886,12 @@ func (k Kind) String() string {
 // schema change.
 const ExtraTurnSkipUntapText = "extra turn; skip untap"
 
+// ExtraTurnSkippedText marks a -1 ExtraTurn consumption whose BeginTurn
+// replacement skipped the granted turn. It distinguishes that bookkeeping
+// consumption from one immediately followed by a TurnChange, so the ordinary
+// rotation scan does not mistake the next normal turn for an extra turn.
+const ExtraTurnSkippedText = "extra turn; skipped"
+
 // Event is a state delta. The field set is a flat union so encoding stays
 // allocation-free and an external consumer needs no engine code to read it.
 // manaRestrictionPrefix marks a ManaAdd event whose added (or spent) mana is
