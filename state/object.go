@@ -739,6 +739,15 @@ type Object struct {
 	// because later abilities (Chrome Mox) refer to it after the originating
 	// resolution has ended.
 	Imprinted []ObjID
+	// ImprintTokens holds the TOKENS a Token/CopyPermanent effect imprinted on
+	// this object through ImprintTokens$ True (Forge's imprintedCards written
+	// by TokenEffect) -- the association a following SubAbility$' `Defined$
+	// Imprinted` (Timothar's Animate, Intrude on the Mind's PutCounter, Ugin's
+	// Effect) reads. Deliberately separate from Imprinted: that list is the CR
+	// 607.2a exiled-card link whose reader may only consume entries still in
+	// exile, while a token imprint is a battlefield permanent and must
+	// resolve while it is on the battlefield.
+	ImprintTokens []ObjID
 	// ExiledCards holds cards this object exiled through ChangeZone (Forge's
 	// hostCard.exiledCards). The association exists only while the card
 	// remains in exile; events.Move removes it when the card leaves. It is
@@ -1143,6 +1152,7 @@ func (o *Object) CloneDeep() Object {
 	c.ChosenModes = append([]string(nil), o.ChosenModes...)
 	c.IntrinsicKeywords = append([]string(nil), o.IntrinsicKeywords...)
 	c.Imprinted = append([]ObjID(nil), o.Imprinted...)
+	c.ImprintTokens = append([]ObjID(nil), o.ImprintTokens...)
 	c.ExiledCards = append([]ObjID(nil), o.ExiledCards...)
 	c.ExileReturn = append([]ExileReturnEntry(nil), o.ExileReturn...)
 	c.MergedCards = append([]MergedCard(nil), o.MergedCards...)

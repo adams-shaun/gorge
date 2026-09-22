@@ -298,11 +298,20 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			return nil, true
 		}
 		if o := g.Obj(c.Source); o != nil {
-			out := make([]state.Target, 0, len(o.Imprinted))
+			out := make([]state.Target, 0, len(o.Imprinted)+len(o.ImprintTokens))
 			for _, id := range o.Imprinted {
 				// Imprint links an exiled card only while the linked card remains
 				// in exile (CR 607.2a); its persistent ID cannot follow it later.
 				if linked := g.Obj(id); linked != nil && linked.Zone == state.ZExile {
+					out = append(out, state.Target{Obj: id})
+				}
+			}
+			// ImprintTokens$ True names the created TOKENS (Forge's
+			// imprintedCards written by TokenEffect): they are battlefield
+			// permanents, so they resolve while they exist -- the exiled-card
+			// zone filter above must not apply to them.
+			for _, id := range o.ImprintTokens {
+				if g.Obj(id) != nil {
 					out = append(out, state.Target{Obj: id})
 				}
 			}

@@ -364,6 +364,7 @@ func Apply(g *state.Game, e Event) {
 		if o := g.Obj(e.Obj); o != nil {
 			if e.Text == "clear" {
 				o.Imprinted = nil
+				o.ImprintTokens = nil
 			} else if e.Text == "forget" {
 				// ForgetImprinted$ (Pump's Chrome Mox body): remove exactly the
 				// named ids from the persistent Imprinted list, keeping the
@@ -380,6 +381,13 @@ func Apply(g *state.Game, e Event) {
 					}
 				}
 				o.Imprinted = kept
+				keptTokens := make([]state.ObjID, 0, len(o.ImprintTokens))
+				for _, id := range o.ImprintTokens {
+					if !drop[id] {
+						keptTokens = append(keptTokens, id)
+					}
+				}
+				o.ImprintTokens = keptTokens
 			} else {
 				// Text is an in-kind discriminator, not a new Event field:
 				// ImprintCards$ records Forge's imprintedCards list while a
@@ -413,6 +421,11 @@ func Apply(g *state.Game, e Event) {
 					list := &o.Imprinted
 					if e.Text == "exiled-with" {
 						list = &o.ExiledCards
+					} else if e.Text == "imprint-tokens" {
+						// ImprintTokens$ records the created TOKENS here, the
+						// association `Defined$ Imprinted` resolves while they sit
+						// on the battlefield (state.Object.ImprintTokens).
+						list = &o.ImprintTokens
 					}
 					for _, id := range e.IDs {
 						if g.Obj(id) != nil {
@@ -2895,6 +2908,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		// and replay derive it identically either way.
 		if wasBattlefield {
 			o.Imprinted = nil
+			o.ImprintTokens = nil
 		}
 		// X/CastFlags/Chosen* carry cast-time and choose-time information
 		// forward from the stack onto the permanent it resolves into (an

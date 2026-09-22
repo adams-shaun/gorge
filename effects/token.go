@@ -477,29 +477,29 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 				if attachTo != 0 && g.Obj(want) != nil && g.Obj(attachTo) != nil {
 					emitAttach(h, want, attachTo)
 				}
-				if strings.EqualFold(strings.TrimSpace(sa.Params["ImprintTokens"]), "True") && g.Obj(want) != nil {
-					// ImprintTokens$ True (Ugin, the Ineffable's [+1] spirit token):
-					// the created token is IMPRINTED with the cards the resolution
-					// remembered -- the face-down-exiled card the preceding Dig
-					// captured -- so Card.IsImprinted matches the token exactly as
-					// Forge's imprintedCards association would. An empty remembered
-					// set records nothing: an imprint of nothing is not an imprint.
-					ids := make([]state.ObjID, 0, len(c.Remembered))
-					for _, t := range c.Remembered {
-						if !t.IsPlayer && t.Obj != 0 {
-							ids = append(ids, t.Obj)
-						}
-					}
-					if len(ids) > 0 {
-						h.Emit(events.Event{Kind: events.Imprint, Obj: want, IDs: ids})
-					}
-				}
 				// AtEOT$ (Valduk, Zektar Shrine Expedition: "exile those tokens at
 				// the beginning of the next end step"): remember the predicted mint
 				// id (the CopyPermanent pattern); the shared reader schedules the
 				// whole minted set in one call after the loop.
 				minted = append(minted, want)
 			}
+		}
+	}
+	// ImprintTokens$ True: the SOURCE is imprinted with the created tokens, so
+	// a following SubAbility$ resolving `Defined$ Imprinted` (Timothar's
+	// DBAnimate grant, Intrude on the Mind's DBPutCounters, Ugin's DBEffect)
+	// names the newly-created token -- the reverse association (token imprinted
+	// with the resolution's remembered cards) names the exiled cards instead
+	// and leaves every such sub-ability acting on nothing.
+	if strings.EqualFold(strings.TrimSpace(sa.Params["ImprintTokens"]), "True") && c.Source != 0 {
+		ids := make([]state.ObjID, 0, len(minted))
+		for _, id := range minted {
+			if g.Obj(id) != nil {
+				ids = append(ids, id)
+			}
+		}
+		if len(ids) > 0 {
+			h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: ids, Text: "imprint-tokens"})
 		}
 	}
 	scheduleAtEOT(h, c, sa, minted)
