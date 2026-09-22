@@ -518,7 +518,11 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			} else {
 				in.Choices = []int{d.Options[0].Index}
 			}
-		case "dig", "hand_move", "hidden_pick", "counter_dist", "counter_pick", "blight", "proliferate", "move_counter_kind":
+		case "counter_kinds":
+			for i := 0; i < len(d.Options) && i < 2; i++ {
+				in.Choices = append(in.Choices, d.Options[i].Index)
+			}
+		case "dig", "hand_move", "hidden_pick", "counter_dist", "counter_pick", "counter_kind", "blight", "proliferate", "move_counter_kind":
 			// A Dig look-and-take, a "choose N matching cards from hand"
 			// ChangeZone (handmove1), a Hidden$ True public-origin pick
 			// (hiddenpick1), a DividedAsYouChoose$ PutCounter distribution
