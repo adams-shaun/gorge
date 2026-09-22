@@ -2214,7 +2214,7 @@ func Apply(g *state.Game, e Event) {
 		}
 		mode, trigger := "", ""
 		if i := strings.Index(text, ":"); i > 0 &&
-			(text[:i] == "SpellCast" || text[:i] == "ChangesZone") {
+			(text[:i] == "SpellCast" || text[:i] == "ChangesZone" || text[:i] == "BecomeMonarch") {
 			mode, trigger = text[:i], text[i+1:]
 		}
 		g.Delayed = append(g.Delayed, state.DelayedTrigger{
@@ -2247,18 +2247,26 @@ func Apply(g *state.Game, e Event) {
 		if !validPlayer(g, e.Player) {
 			break
 		}
+		// CR 724.2a's monarch draw is the engine's OWN trigger, minted from
+		// a synthetic body with no card registration at all: it must never
+		// consume one. Its event carries Amount zero (no DelayedRegister
+		// ever set it), which would otherwise match registration ID 0 and
+		// delete a bystander's pending delayed trigger.
+		monarchDraw := e.Counter == "__monarch_draw"
 		// Consume the registration first, even when its tracked permanent has
 		// changed incarnation. A stale dash/warp promise expires once; it must
 		// neither act on the returned object nor be retried forever. Ordinary
 		// delayed triggers, including Encore's group cleanup, are independent
 		// of their source and still resolve.
 		var registration *state.DelayedTrigger
-		for i := range g.Delayed {
-			if g.Delayed[i].ID == uint32(e.Amount) {
-				dt := g.Delayed[i]
-				registration = &dt
-				g.Delayed = append(g.Delayed[:i], g.Delayed[i+1:]...)
-				break
+		if !monarchDraw {
+			for i := range g.Delayed {
+				if g.Delayed[i].ID == uint32(e.Amount) {
+					dt := g.Delayed[i]
+					registration = &dt
+					g.Delayed = append(g.Delayed[:i], g.Delayed[i+1:]...)
+					break
+				}
 			}
 		}
 		src := g.Obj(e.Obj)
@@ -2272,7 +2280,14 @@ func Apply(g *state.Game, e Event) {
 		if src.Face() == nil {
 			break
 		}
-		sa := resolveSVarAcrossFaces(src, e.Counter)
+		var sa *cards.SA
+		if monarchDraw {
+			sa = &cards.SA{Kind: "DB", API: "Draw", Params: map[string]string{
+				"Defined": "You", "NumCards": "1",
+			}}
+		} else {
+			sa = resolveSVarAcrossFaces(src, e.Counter)
+		}
 		if sa == nil {
 			break
 		}
