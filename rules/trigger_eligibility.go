@@ -133,8 +133,13 @@ func triggerModeEvents(mode string) triggerEventMask {
 		return 1<<events.PutOnStack | 1<<events.StackCopy
 	case "SpellCopy":
 		return 1 << events.StackCopy
-	case "AbilityCast", "SpellAbilityCast":
+	case "AbilityCast":
 		return 1 << events.AbilityPush
+	case "SpellAbilityCast":
+		// The spell-or-activate union (targetsvalid1): the activation arm
+		// matches an AbilityPush, the spell arm a PutOnStack. AbilityCast
+		// stays narrow above -- its oracle text is activation-only.
+		return 1<<events.AbilityPush | 1<<events.PutOnStack
 	case "Attacks", "AttackersDeclaredOneTarget", "AttackersDeclared":
 		return 1 << events.DeclareAttackers
 	case "AttackerBlocked", "AttackerBlockedByCreature", "AttackerUnblockedOnce", "Blocks":
