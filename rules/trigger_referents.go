@@ -400,5 +400,5 @@ func (e *Engine) targetSpecContext(source, stack state.ObjID, you state.PlayerID
 	if o := e.G.Obj(stack); o != nil {
 		sc.Remembered = append(sc.Remembered, o.Remembered...)
 	}
-	return sc
+	return e.withNames(sc)
 }

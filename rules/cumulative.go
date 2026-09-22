@@ -1325,7 +1325,7 @@ func (e *Engine) triggeredMandatoryCandidatesWith(tc *triggeredEffectCost, idx i
 	// cost spec naming a trigger referent (Card.TriggeredNewCard -- the
 	// "you may exile it" family) resolves the card the triggering event
 	// captured. A zero context is the filter's fail-closed default.
-	sc := effects.SpecContext{You: tc.player, Source: tc.source, TriggerContext: tc.trig}
+	sc := e.withNames(effects.SpecContext{You: tc.player, Source: tc.source, TriggerContext: tc.trig})
 	var out []state.ObjID
 	for _, id := range e.G.Zone(zone, tc.player) {
 		if used[id] {

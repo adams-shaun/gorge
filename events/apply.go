@@ -364,6 +364,7 @@ func Apply(g *state.Game, e Event) {
 		if o := g.Obj(e.Obj); o != nil {
 			if e.Text == "clear" {
 				o.Imprinted = nil
+				o.ImprintTokens = nil
 			} else if e.Text == "forget" {
 				// ForgetImprinted$ (Pump's Chrome Mox body): remove exactly the
 				// named ids from the persistent Imprinted list, keeping the
@@ -380,6 +381,13 @@ func Apply(g *state.Game, e Event) {
 					}
 				}
 				o.Imprinted = kept
+				keptTokens := make([]state.ObjID, 0, len(o.ImprintTokens))
+				for _, id := range o.ImprintTokens {
+					if !drop[id] {
+						keptTokens = append(keptTokens, id)
+					}
+				}
+				o.ImprintTokens = keptTokens
 			} else {
 				// Text is an in-kind discriminator, not a new Event field:
 				// ImprintCards$ records Forge's imprintedCards list while a
@@ -413,6 +421,11 @@ func Apply(g *state.Game, e Event) {
 					list := &o.Imprinted
 					if e.Text == "exiled-with" {
 						list = &o.ExiledCards
+					} else if e.Text == "imprint-tokens" {
+						// ImprintTokens$ records the created TOKENS here, the
+						// association `Defined$ Imprinted` resolves while they sit
+						// on the battlefield (state.Object.ImprintTokens).
+						list = &o.ImprintTokens
 					}
 					for _, id := range e.IDs {
 						if g.Obj(id) != nil {
@@ -731,12 +744,17 @@ func Apply(g *state.Game, e Event) {
 		if o := g.Obj(e.Obj); o != nil {
 			if e.To == state.ZExile {
 				switch e.Counter {
-				case "exiled_with_face_down":
+				case "exiled_with_face_down", "exiled_with_face_down_foretold":
 					// Hideaway's face-down exile (CR 702.75): the exiling source
 					// rides in Amount, and FaceDown is state so a later projection
-					// knows not to reveal the card.
+					// knows not to reveal the card. The foretold variant also
+					// records the designation after Move has reset a battlefield
+					// object's cast flags.
 					o.ExiledWith = state.ObjID(e.Amount)
 					o.FaceDown = true
+					if e.Counter == "exiled_with_face_down_foretold" {
+						o.CastFlags |= state.FlagForetold
+					}
 				case "face_down":
 					// A bare ChangeZone FaceDown$ True exile (Tezzeret's
 					// Reckoning): the card is put into exile face down WITHOUT
@@ -1511,6 +1529,9 @@ func Apply(g *state.Game, e Event) {
 			if FlagsFrom(e.Counter)&state.FlagOffspringPaid != 0 {
 				o.OffspringPaid = true
 			}
+			if FlagsFrom(e.Counter)&state.FlagOptionalCostPaid != 0 {
+				o.OptionalCostPaid = true
+			}
 			// Convoke (CR 702.66, task connive1) is an ID-LIST fold, not an
 			// amount: the convoked creatures ride the pay-time CastInfo's IDs
 			// whenever the flag is present, whatever other tags ride the same
@@ -1533,9 +1554,13 @@ func Apply(g *state.Game, e Event) {
 				// bool folded above; the Amount is deliberately unused
 			case FlagsFrom(e.Counter)&state.FlagOffspringPaid != 0:
 				// bool folded above; the Amount is deliberately unused
+			case FlagsFrom(e.Counter)&state.FlagOptionalCostPaid != 0:
+				// bool folded above; the Amount is deliberately unused
 			case FlagsFrom(e.Counter)&state.FlagConvoked != 0:
 				// the convoked id list was folded above; the Amount is
 				// deliberately unused (the Conspired arm's consume shape)
+			case FlagsFrom(e.Counter)&state.FlagCompleated != 0:
+				o.CompleatedLifePaid = e.Amount
 			case FlagsFrom(e.Counter)&state.FlagConverged != 0:
 				o.ConvergeColours = e.Amount
 			case FlagsFrom(e.Counter)&state.FlagReplicated != 0:
@@ -2729,6 +2754,15 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.FaceIdx = 0
 		}
 	}
+	// CR 712.4d: a Modal DFC is front-face up in every non-battlefield
+	// zone. Its back face remains active while it is a permanent, but leaving
+	// the battlefield creates a new object whose characteristics are the
+	// front face. Keep this in the event fold so replay and live play agree.
+	if wasBattlefield && to != state.ZBattlefield && o.Card != nil &&
+		o.Card.AlternateMode == "Modal" && len(o.Card.Faces) == 2 &&
+		o.Card.Faces[0] != nil && o.Card.Faces[1] != nil {
+		o.FaceIdx = 0
+	}
 	// The incarnation stamp is used by promises tied to a particular
 	// permanent (evoke/dash/warp), so only crossing the battlefield
 	// boundary advances it. A provisional hand->stack->hand CR 733 reversal
@@ -2816,7 +2850,11 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			// counter.
 			if f := o.Face(); f != nil && f.IsPlaneswalker() && !o.FaceDown {
 				if n, err := strconv.Atoi(strings.TrimSpace(f.Loyalty)); err == nil && n > 0 {
-					o.AddCounter("LOYALTY", int32(n))
+					loyalty := int32(n) - o.CompleatedLifePaid
+					if loyalty < 0 {
+						loyalty = 0
+					}
+					o.AddCounter("LOYALTY", loyalty)
 				}
 			}
 			// Riot's choice is made before this entry. Applying it in Move
@@ -2911,6 +2949,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		// and replay derive it identically either way.
 		if wasBattlefield {
 			o.Imprinted = nil
+			o.ImprintTokens = nil
 		}
 		// X/CastFlags/Chosen* carry cast-time and choose-time information
 		// forward from the stack onto the permanent it resolves into (an
@@ -2926,6 +2965,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.ReplicateTimes = 0
 			o.SquadPaid = 0
 			o.OffspringPaid = false
+			o.OptionalCostPaid = false
 			o.ConvergeColours = 0
 			o.TimesKicked = 0
 			o.Conspired = false
@@ -2935,6 +2975,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.ManaTreasureSpent = 0
 			o.ManaCaveSpent = 0
 			o.ManaDesertSpent = 0
+			o.CompleatedLifePaid = 0
 			o.NotedNumber = 0
 			o.ChosenName, o.ChosenType, o.ChosenNumber, o.ChosenColor = "", "", 0, ""
 			o.Protector, o.ProtectorValid = 0, false
@@ -2969,6 +3010,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.ReplicateTimes = 0
 			o.SquadPaid = 0
 			o.OffspringPaid = false
+			o.OptionalCostPaid = false
 			o.ConvergeColours = 0
 			o.TimesKicked = 0
 			o.Conspired = false
@@ -2978,6 +3020,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.ManaTreasureSpent = 0
 			o.ManaCaveSpent = 0
 			o.ManaDesertSpent = 0
+			o.CompleatedLifePaid = 0
 			o.NotedNumber = 0
 		}
 		// ChosenModes is needed only while a modal spell/ability resolves (or

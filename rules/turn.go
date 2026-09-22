@@ -1125,6 +1125,23 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		e.unleashMove = nil
 		e.choosing = chooseNone
 		e.emit(move)
+	case chooseAttached:
+		if e.attachedChoice == nil || len(chosen) != 1 {
+			e.attachedChoice = nil
+			e.choosing = chooseNone
+			return
+		}
+		ch := e.attachedChoice
+		if ch.stage == 0 {
+			e.emit(events.Event{Kind: events.Choose, Obj: ch.source, Counter: "name", Text: chosen[0].Label})
+			e.askAttachedType()
+			return
+		}
+		e.emit(events.Event{Kind: events.Choose, Obj: ch.source, Counter: "type", Text: chosen[0].Label})
+		move := ch.move
+		e.attachedChoice = nil
+		e.choosing = chooseNone
+		e.emitAttachedMove(move)
 	case chooseSiege:
 		// CR 310.10: the Battle Siege protector choice was answered. Record
 		// the chosen opponent through a Choose "protector" event (so the
@@ -1230,13 +1247,12 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// intervening-if reads enlistedThisCombat.
 		e.enlistAnswer(d, in)
 	case chooseAttackPay:
-		// The declare-attackers attack-cost payment window (rules/
-		// attack_cost.go): one tap of a CantAttackUnless payer's mana source.
-		// attackPayAnswer completes the moment the pool covers the charge and
-		// resumes the declaration at the enlist election; there is no trigger
-		// drain to resume (the window belongs to the turn structure, never
-		// to one).
+		// The declare-attackers attack-cost payment window.
 		e.attackPayAnswer(d, in)
+	case chooseBlockPay:
+		// The declare-blockers CantBlockUnless payment window. Completion
+		// emits the parked declaration and advances blockerRound.
+		e.blockPayAnswer(d, in)
 	case chooseMana:
 		// Several individual mana abilities share one tap cost. A payment
 		// window resumes its cast after the selected ability resolves; Ward's

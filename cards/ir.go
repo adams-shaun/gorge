@@ -119,6 +119,30 @@ func (c *Card) ColourIdentity() uint8 {
 	return m
 }
 
+// SetsName reports whether any face prints a `S:Mode$ Continuous | SetName$`
+// static (CR 613.1d, layer 3). It is a card-data question the rules engine
+// asks ONCE, at genesis, over the match's card pool: a match whose pool has no
+// such carrier can never have a layer-3 rename, so the engine skips
+// maintaining its rename table entirely (rules/setname.go). It lives here,
+// with the IR it reads, rather than in rules -- it is a capability probe over
+// printed script text, not a parameter read on a resolving primitive's path.
+func (c *Card) SetsName() bool {
+	if c == nil {
+		return false
+	}
+	for _, f := range c.Faces {
+		if f == nil {
+			continue
+		}
+		for _, st := range f.Statics {
+			if _, ok := st.Params["SetName"]; ok {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // Card is one script file. AlternateMode describes how its faces relate;
 // name-characteristic rules distinguish split cards from transforming DFCs.
 type Card struct {

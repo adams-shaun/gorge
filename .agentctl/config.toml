@@ -32,10 +32,12 @@ thinking = "high"
 fallback = ["openai-codex/gpt-5.6-luna"]
 
 [seats.escalated]
-# provider = "openai-codex"
-# model = "gpt-5.6-terra"
-provider = "deepinfra"
-model = "deepseek-ai/DeepSeek-V4.1-Flash"
+# 2026-09-22 (operator): "escalate terra". DeepSeek-high was the top rung and
+# no stronger than the terra reviewer: the 15:08Z batch parked at sol2 with a
+# fresh MAJOR every round. terra's [caps.models] ceiling is shared with the
+# reviewer and triage seats.
+provider = "openai-codex"
+model = "gpt-5.6-terra"
 thinking = "high"
 
 # 2026-09-22 (operator): reviewer back on GPT terra (Codex plan verified live
@@ -62,7 +64,7 @@ local = ["bm-llms-glm/glm-5.3-flash"]
 # escalated = ["openai-codex/gpt-5.6-terra", "openai-codex/gpt-5.6-sol"]
 # reviewer = ["openai-codex/gpt-5.6-terra", "openai-codex/gpt-5.6-sol", "bm-llms-glm/glm-5.3-flash"]
 overflow = ["deepinfra/deepseek-ai/DeepSeek-V4.1-Flash", "openai-codex/gpt-5.6-luna"]
-escalated = ["deepinfra/deepseek-ai/DeepSeek-V4.1-Flash"]
+escalated = ["openai-codex/gpt-5.6-terra", "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash"]
 reviewer = ["openai-codex/gpt-5.6-terra", "openai-codex/gpt-5.6-sol", "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash", "bm-llms-glm/glm-5.3-flash"]
 triage = ["openai-codex/gpt-5.6-terra", "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash", "bm-llms-glm/glm-5.3-flash"]
 
@@ -70,7 +72,11 @@ triage = ["openai-codex/gpt-5.6-terra", "deepinfra/deepseek-ai/DeepSeek-V4.1-Fla
 [policy]
 review_local_fallback = true
 review_local_thinking = "high"
-escalation_local_fallback = true
+# 2026-09-22 (operator): false. With the fallback on, 51 escalated rounds in
+# 48h ran on local glm-flash because the DeepInfra cap was full, so the
+# ladder's LAST chance ran on its weakest seat and exhausted straight into
+# human_needed. An escalated round now waits for a paid slot instead.
+escalation_local_fallback = false
 local_endpoint_probe = true
 # 2026-09-20 (operator): "stop taking all new tickets into local or paid jobs
 # until needs-human or blocked jobs are resolved". While any ticket sits in
@@ -91,7 +97,14 @@ max_local_rounds = 2
 # escalated round before it checks the cap), then human_needed, which a Claude
 # operator session picks up with ~/projects/agentctl/docs/claude-operator-prompt.md.
 # max_escalated_rounds = 5
-max_escalated_rounds = 0
+# 2026-09-22 (operator): 3 escalated rounds (handle_failure checks the cap AFTER
+# the round counter increments, so N means N rounds for N >= 1). Measured over the
+# previous 48h: 26 of 34 human_needed entries were "review/gate failed and
+# escalation ladder exhausted", 20 of the last 25 a REQUEST_CHANGES at the
+# single escalated round, and a batch of 17 tickets queued at 15:08Z hit
+# that wall together between 17:00 and 19:50Z (15 exhaustions in 3h).
+# The Claude hand-landing path is the safety valve, not the pipeline.
+max_escalated_rounds = 3
 max_merge_rounds = 2
 seat_start_grace_s = 180
 # 2026-09-22 (operator): tick every 10s.

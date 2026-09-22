@@ -1,6 +1,9 @@
 package cards
 
-import "sort"
+import (
+	"sort"
+	"strings"
+)
 
 // Primitives lists every engine symbol this face needs, prefixed by kind. The
 // result is sorted so it is stable across runs — coverage reports and the IR
@@ -53,6 +56,15 @@ func (f *Face) Primitives() []string {
 	// and rules' param census (cardCensusLabels) cannot disagree about which
 	// SVar bodies are reachable.
 	f.EachSVarAbility(func(sa *SA) { walk(sa, 0) })
+	f.EachRawEffectChild(func(c EffectChild) {
+		if c.Trigger != nil {
+			set["trig:"+c.Trigger.Mode] = struct{}{}
+		} else if c.Static != nil {
+			set["stat:"+c.Static.Mode] = struct{}{}
+		} else if c.Repl != nil {
+			set["repl:"+c.Repl.Event] = struct{}{}
+		}
+	})
 	out := make([]string, 0, len(set))
 	for k := range set {
 		out = append(out, k)
@@ -79,6 +91,75 @@ func (f *Face) EachSVarAbility(visit func(sa *SA)) {
 			visit(sa)
 		}
 	}
+}
+
+// EffectChild is one raw trigger, static, or replacement body named by an
+// Effect ability. Exactly one pointer is non-nil.
+type EffectChild struct {
+	Trigger *Trigger
+	Static  *Static
+	Repl    *Repl
+}
+
+// EachRawEffectChild visits the typed raw bodies named by every Effect in the
+// face. The owning Effect field is the type authority; malformed, missing, or
+// wrong-shaped SVar bodies are ignored.
+func (f *Face) EachRawEffectChild(visit func(EffectChild)) {
+	if visit == nil {
+		return
+	}
+	seen := map[*SA]bool{}
+	var walk func(*SA)
+	walk = func(sa *SA) {
+		if sa == nil || seen[sa] {
+			return
+		}
+		seen[sa] = true
+		if sa.API == "Effect" {
+			for _, name := range rawEffectNames(sa.Params["Triggers"]) {
+				if t, ok := ParseTriggerLine(f.SVars[name]); ok {
+					visit(EffectChild{Trigger: &t})
+				}
+			}
+			for _, name := range rawEffectNames(sa.Params["StaticAbilities"]) {
+				for _, s := range parseRawStatics(f.SVars[name]) {
+					visit(EffectChild{Static: &s})
+				}
+			}
+			for _, name := range rawEffectNames(sa.Params["ReplacementEffects"]) {
+				if r, ok := ParseReplacementLine(f.SVars[name]); ok {
+					visit(EffectChild{Repl: &r})
+				}
+			}
+		}
+		walk(sa.Sub)
+	}
+	for _, a := range f.Abilities {
+		walk(a)
+	}
+	for _, t := range f.Triggers {
+		walk(t.Effect)
+	}
+	for _, r := range f.Repls {
+		walk(r.With)
+	}
+	f.EachSVarAbility(walk)
+}
+
+// rawEffectNames matches Effect's runtime name-list grammar: commas and
+// whitespace separate SVar names in all three typed fields.
+func rawEffectNames(value string) []string {
+	return strings.FieldsFunc(value, func(r rune) bool {
+		return r == ',' || r == ' ' || r == '\t' || r == '\n'
+	})
+}
+
+func parseRawStatics(body string) []Static {
+	statics, ok := ParseStaticLines(body)
+	if !ok {
+		return nil
+	}
+	return statics
 }
 
 // Primitives is the union across every face.

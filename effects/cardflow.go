@@ -2057,10 +2057,20 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			// condition gates or Defined$ Remembered bodies that Forge
 			// itself intends to see the reveal (the Kinship family), so
 			// inheriting the reveal here is the semantics, not a leak.
+			// The revealed cards ALSO join the source object's event-backed
+			// Remembered list (eventRemember, the rememberMilled two-halves
+			// discipline): Forge's host.addRemembered is the PERSISTENT host
+			// card list, and Count$RememberedSize reads only the source half
+			// — Temple of the Dragon Queen's DragonPresence gate counts the
+			// remembered reveal through it (a ctx-only capture is invisible
+			// there, and a ctx-first RememberedSize read would over-count
+			// every trigger resolution's capture seed — the Mind Maggots
+			// defect the ctx-preference attempt caused).
 			next := make([]state.Target, 0, len(c.Remembered)+len(revealed))
 			next = append(next, c.Remembered...)
 			for _, id := range revealed {
 				next = append(next, state.Target{Obj: id})
+				eventRemember(h, c, id)
 			}
 			c.Remembered = next
 		}

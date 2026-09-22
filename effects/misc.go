@@ -181,9 +181,9 @@ func effWard(h Host, c *Ctx, sa *cards.SA) {
 // when it is not. The registry entry the engine (rules/layers.go active())
 // expires is the same until-end-of-turn / source-leaves discipline every other
 // continuous effect uses: an Effect from an instant or sorcery (a one-shot
-// spell) or carrying an explicit this-turn Duration$ is UntilEOT, dropped at
-// end-of-turn cleanup; anything else persists while its source stays on the
-// battlefield.
+// spell), an absent Duration$, or carrying an explicit this-turn Duration$ is
+// UntilEOT, dropped at end-of-turn cleanup; an explicit Permanent (and other
+// source-relative durations) persists while its source stays on the battlefield.
 func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	rawDur := sa.Params["Duration"]
 	dur := rawDur
@@ -330,7 +330,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			(event == "Moved" && replacementBodyAPI(body) == "PutCounter")) {
 			h.AddContinuous(state.ContinuousEffect{
 				Source: c.Source, Controller: c.Controller,
-				UntilEOT: effectUntilEOT(h, c.Source, dur), Duration: dur,
+				UntilEOT: effectUntilEOT(h, c.Source, rawDur), Duration: dur,
 				Name:             effectName,
 				Remembered:       remembered,
 				ForgetOnMoved:    forgetOn,
@@ -342,7 +342,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			})
 			registered = true
 		} else if event != "" && body == "" && (replacementLineCantHappen(params) ||
-			(event == "DamageDone" && replacementLinePrevents(params))) {
+			((event == "DamageDone" || event == "GainLife") && replacementLinePrevents(params))) {
 			// The bodyless CantHappen form (Mistrise Village's AntiMagic: the
 			// Event$ Counter | ValidCard$ Card.IsRemembered | Layer$ CantHappen
 			// R: the delayed Effect registers): stopping the event is the
@@ -357,7 +357,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// measured carriers). The shared damage dispatch prevents through
 			// damageReplacementPrevents and stores the prevention Note whose
 			// Amount Mode$ DamagePreventedOnce triggers read.
-			untilEOT := effectUntilEOT(h, c.Source, dur)
+			untilEOT := effectUntilEOT(h, c.Source, rawDur)
 			if event == "DamageDone" && sa.Params["Duration"] == "" {
 				// This family's oracle text is always "this turn" (Selfless
 				// Squire, Kurbis, the Fog spells) and none of its bodyless lines
@@ -369,10 +369,11 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			h.AddContinuous(state.ContinuousEffect{
 				Source: c.Source, Controller: c.Controller,
 				UntilEOT: untilEOT, Duration: dur,
-				Name:             effectName,
-				Remembered:       remembered,
-				ImprintOnHost:    imprintOnHost,
-				ReplacementEvent: event, ReplacementParams: params,
+				Name:              effectName,
+				Remembered:        remembered,
+				RememberedPlayers: effectRememberedPlayers(h, c, sa),
+				ImprintOnHost:     imprintOnHost,
+				ReplacementEvent:  event, ReplacementParams: params,
 			})
 			registered = true
 		} else if name != "" {
@@ -398,7 +399,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				grant.Source = c.Source
 				grant.Controller = c.Controller
 				grant.Name = effectName
-				grant.UntilEOT = effectUntilEOT(h, c.Source, dur)
+				grant.UntilEOT = effectUntilEOT(h, c.Source, rawDur)
 				grant.Remembered = remembered
 				grant.Duration = dur
 				grant.ForgetOnMoved = forgetOn
@@ -433,7 +434,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					AddKeywords:   kws,
 					ImprintOnHost: imprintOnHost,
 					Name:          effectName,
-					UntilEOT:      effectUntilEOT(h, c.Source, dur),
+					UntilEOT:      effectUntilEOT(h, c.Source, rawDur),
 					Duration:      dur,
 					Remembered:    remembered,
 					ForgetOnMoved: forgetOn,
@@ -455,16 +456,14 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				// path cannot evaluate -- or it fails closed to the
 				// unimplemented Note below.
 				//
-				// Lifetime: the Duration$ grammar every other Effect
-				// registration shares (effects/staticeffect.go's switch is the
-				// model). Duration$ Permanent (Finale of Revelation's "for the
-				// rest of the game", Wrenn and Seven's emblem) is flagged
-				// Permanent so it outlives its one-shot source (CR 611.2a);
-				// UntilYourNextTurn (Enter the Infinite) gets its real turn
-				// boundary from AddContinuous; an explicit this-turn Duration
-				// or an instant/sorcery with no Duration$ is UntilEOT. Without
-				// the Permanent flag a sorcery's effect would be dropped at the
-				// end of the very turn it resolved, one turn early.
+				// Lifetime: absent Duration$ is Forge's end-of-turn default for
+				// every source kind. An explicit Duration$ Permanent (Finale of
+				// Revelation's "for the rest of the game", Wrenn and Seven's
+				// emblem) is flagged Permanent so it outlives its one-shot source
+				// (CR 611.2a); UntilYourNextTurn (Enter the Infinite) gets its
+				// real turn boundary from AddContinuous. The Permanent flag must
+				// inspect rawDur: dur is normalized for the duration machinery, but
+				// an absent value must not become Permanent here.
 				ce := state.ContinuousEffect{
 					Source:         c.Source,
 					Controller:     c.Controller,
@@ -473,8 +472,8 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					SetMaxHandSize: val,
 					ImprintOnHost:  imprintOnHost,
 					Name:           effectName,
-					UntilEOT:       effectUntilEOT(h, c.Source, dur),
-					Permanent:      strings.EqualFold(strings.TrimSpace(dur), "Permanent"),
+					UntilEOT:       effectUntilEOT(h, c.Source, rawDur),
+					Permanent:      strings.EqualFold(strings.TrimSpace(rawDur), "Permanent"),
 					Duration:       dur,
 					Remembered:     remembered,
 					ForgetOnMoved:  forgetOn,
@@ -533,12 +532,11 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				registered = true
 				break
 			}
-			ceUntilEOT := effectUntilEOT(h, c.Source, dur)
+			ceUntilEOT := effectUntilEOT(h, c.Source, rawDur)
 			if absentDurationMeansThisTurn(mode) && sa.Params["Duration"] == "" {
 				// A restriction body whose oracle lifetime is THIS TURN but whose
-				// script writes no inline Duration$ gets UntilEOT, not effEffect's
-				// plain absent-Duration default (Permanent, set at the top of
-				// this function). For a restriction the Permanent reading is the
+				// script writes no inline Duration$ gets UntilEOT, matching the
+				// general absent-Duration default. For a restriction the Permanent reading is the
 				// non-permissive direction: the lock/permission would outlive the
 				// turn the card text names and apply to every later turn too.
 				//
@@ -628,7 +626,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// source until the cast sweep ends it. Any other spelling falls
 			// to the shared effectUntilEOT read every other registration
 			// here uses.
-			untilEOT := effectUntilEOT(h, c.Source, dur)
+			untilEOT := effectUntilEOT(h, c.Source, rawDur)
 			permanent := false
 			switch {
 			case forgetOnCast != "" && strings.EqualFold(strings.TrimSpace(rawDur), "Permanent"):
@@ -678,7 +676,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				Source:         c.Source,
 				Controller:     c.Controller,
 				Name:           effectName,
-				UntilEOT:       effectUntilEOT(h, c.Source, dur),
+				UntilEOT:       effectUntilEOT(h, c.Source, rawDur),
 				Restriction:    mode,
 				RestrictParams: params,
 				Remembered:     remembered,
@@ -1055,6 +1053,14 @@ func effectRememberedPlayers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 					add(t.Player)
 				}
 			}
+		case "TargetedOrController":
+			for _, t := range c.Targets {
+				if t.IsPlayer {
+					add(t.Player)
+				} else if o := h.Game().Obj(t.Obj); o != nil {
+					add(o.Controller)
+				}
+			}
 		case "RememberedPlayer", "RememberedPlayers", "Remembered":
 			for _, t := range c.Remembered {
 				if t.IsPlayer {
@@ -1144,6 +1150,34 @@ func MustAttackParamsReadable(params map[string]string) bool {
 	for k := range params {
 		switch k {
 		case "Mode", "ValidCreature", "MustAttack", "Description", "Secondary":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// MustAttackParamsReadableForRules is the FACE S:-line whitelist: the shared
+// MustAttackParamsReadable core EXTENDED by exactly the condition-gate keys
+// the rules package's shared continuous gate (rules/layers.go
+// continuousGateHolds) evaluates -- IsPresent$, IsPresent2$, PresentCompare$,
+// PresentZone$, CheckSVar$, SVarCompare$, Condition$ and ClassBand$. It
+// lives here, beside MustAttackParamsReadable, so the two lists cannot drift
+// apart unseen: the face route (rules' attackRequirements) CAN evaluate those
+// gates -- the evaluator, continuousGateHolds, is rules-side, which is why
+// this function cannot simply be MustAttackParamsReadable -- while the
+// Effect-delivered route (effEffect's registration above) cannot, so its
+// whitelist stays at the core set: registering a gate-bearing line as an
+// Effect requirement would apply it blanket and OVER-require, the
+// non-permissive direction for a requirement. The superset direction
+// (every effect-readable line is face-readable) and the gate-key divergence
+// are pinned by rules' TestMustAttackFaceAndEffectWhitelistsAgree.
+func MustAttackParamsReadableForRules(params map[string]string) bool {
+	for k := range params {
+		switch k {
+		case "Mode", "ValidCreature", "MustAttack", "Description", "Secondary",
+			"IsPresent", "IsPresent2", "PresentCompare", "PresentZone",
+			"CheckSVar", "SVarCompare", "Condition", "ClassBand":
 		default:
 			return false
 		}
@@ -1319,12 +1353,12 @@ func CanAttackDefenderParamsReadable(params map[string]string) bool {
 
 // absentDurationMeansThisTurn is the ONE home for the restriction modes whose
 // Effect-granted bodies write no inline Duration$ yet whose card text names a
-// THIS-TURN lifetime. effEffect defaults an absent Duration$ to Permanent (a
-// one-shot that survives its source, CR 611.2a), which is correct for a body
-// that genuinely says "for the rest of the game" but wrong for these: a
-// this-turn restriction read as Permanent outlives the turn the card names and
-// applies to every later turn too, the non-permissive direction for a
-// restriction.
+// THIS-TURN lifetime. effEffect now gives every absent Duration$ the Forge
+// end-of-turn default; this helper records the mode-specific corpus audit and
+// keeps the intent explicit at the registration site. An explicit Permanent
+// remains a game-lasting effect, while treating these absent values as
+// Permanent would outlive the turn the card names, the non-permissive direction
+// for a restriction.
 //
 // The membership test is structural, not per-card: add a mode here only when
 // its absent Duration$ is this-turn by the corpus's own oracle text, and the
@@ -1427,15 +1461,18 @@ func replacementBodyAPI(body string) string {
 }
 
 // effectUntilEOT decides expiry for an Effect registration: a one-shot spell
-// (instant/sorcery) source, or an explicit this-turn Duration$, is UntilEOT
-// and is dropped at end-of-turn cleanup (rules' EndOfTurnCleanup); anything
-// else -- Duration$ Permanent on a permanent, an until-untap form, ... ---
-// persists while its source stays on the battlefield, the same rule the
-// layer effects use. A Duration$ that spans the controller's NEXT turn is
-// NOT UntilEOT (it would expire a turn early); it is instead given a real
+// (instant/sorcery) source, an absent Duration$, or an explicit this-turn
+// Duration$ is UntilEOT and is dropped at end-of-turn cleanup
+// (rules' EndOfTurnCleanup). An explicit Permanent or source-relative form
+// persists while its source stays on the battlefield, the same rule the layer
+// effects use. A Duration$ that spans the controller's NEXT turn is NOT
+// UntilEOT (it would expire a turn early); it is instead given a real
 // turn-boundary lifetime (state.ContinuousEffect.UntilTurn) computed in
 // rules.Engine.AddContinuous, so effectUntilEOT returns false for it.
 func effectUntilEOT(h Host, source state.ObjID, dur string) bool {
+	if strings.TrimSpace(dur) == "" {
+		return true
+	}
 	if IsNextTurnDuration(dur) {
 		return false
 	}
@@ -1467,9 +1504,11 @@ func effCleanup(h Host, c *Ctx, sa *cards.SA) {
 	// list clear produces. The clear is recorded as a real event ONLY when
 	// the source's list actually held entries -- clearing an empty list is
 	// a no-op, and emitting for it would move every chain head that carries
-	// a ClearRemembered$ cleanup for no observable change (measured: Delver
-	// of Secrets' DBCleanup in the 4/6/8-seat golden games runs its cleanup
-	// with an empty list).
+	// a ClearRemembered$ cleanup for no observable change. (Delver of
+	// Secrets' DBCleanup used to be the measured empty-list case; since
+	// effReveal's RememberRevealed$ arm writes the source list too
+	// (count:Plus.<SVarName>), Delver's cleanup holds a real entry and does
+	// emit -- that is what moved the 4- and 6-seat heads.)
 	noted := false
 	if strings.EqualFold(sa.Params["ClearRemembered"], "True") {
 		c.Remembered = nil
@@ -1925,7 +1964,9 @@ func encodeRemembered(remembered []state.Target) []state.ObjID {
 func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 	check := strings.TrimSpace(sa.Params["RepeatCheckSVar"])
 	cmp := strings.TrimSpace(sa.Params["RepeatSVarCompare"])
-	gated := check != ""
+	defined := strings.TrimSpace(sa.Params["RepeatDefined"])
+	present := strings.TrimSpace(sa.Params["RepeatPresent"])
+	gated := check != "" || defined != ""
 	n := Num(h, c, sa, "MaxRepeat", -1)
 	if n < 0 {
 		if gated {
@@ -1977,6 +2018,15 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 		// times, since neither condition can hold before the first body has
 		// remembered anything.
 		holds, evaluated := repeatGateHolds(h, c, check, cmp)
+		if defined != "" {
+			definedCmp := strings.TrimSpace(sa.Params["RepeatCompare"])
+			if definedCmp == "" && check == "" {
+				definedCmp = cmp
+			}
+			definedHolds, definedEvaluated := repeatDefinedGateHolds(h, c, sa, defined, present, definedCmp)
+			holds = holds && definedHolds
+			evaluated = evaluated && definedEvaluated
+		}
 		if !evaluated || !holds {
 			break
 		}
@@ -2014,6 +2064,37 @@ func repeatGateHolds(h Host, c *Ctx, check, cmp string) (holds, evaluated bool) 
 		return false, false
 	}
 	return CheckSVarHolds(h, c, check, cmp)
+}
+
+// repeatDefinedGateHolds evaluates the RepeatDefined$/RepeatPresent$ gate.
+// Only the measured Remembered and Imprinted selectors are admitted: unlike
+// ordinary Defined resolution, an unknown selector must not fall back to the
+// source object and accidentally make an EQ0 gate repeat forever.
+func repeatDefinedGateHolds(h Host, c *Ctx, sa *cards.SA, defined, present, compare string) (holds, evaluated bool) {
+	if defined != "Remembered" && defined != "Imprinted" {
+		return false, false
+	}
+	copySA := *sa
+	copySA.Params = map[string]string{"Defined": defined}
+	objects := Defined(h, c, &copySA)
+	if present != "" && len(UnknownPredicates(present)) != 0 {
+		return false, false
+	}
+	sc := c.SpecContext(c.Controller)
+	count := 0
+	for _, target := range objects {
+		if target.IsPlayer {
+			continue
+		}
+		o := h.Game().Obj(target.Obj)
+		if o == nil {
+			return false, false
+		}
+		if present == "" || MatchesObjectCtx(h.Game(), present, o, sc) {
+			count++
+		}
+	}
+	return evalConditionCount(count, compare)
 }
 
 // CharmRepeatModes reports whether a Charm's CanRepeatModes$ True grants
