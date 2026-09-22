@@ -673,7 +673,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				registered = true
 				break
 			}
-			h.AddContinuous(state.ContinuousEffect{
+			ce := state.ContinuousEffect{
 				Source:         c.Source,
 				Controller:     c.Controller,
 				Name:           effectName,
@@ -685,7 +685,19 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				ForgetOnMoved:  forgetOn,
 				ExileOnMoved:   exileOn,
 				ForgetCounter:  forgetCounter,
-			})
+			}
+			// The PLAYER half of the remembered capture: a MustAttack$ line
+			// whose reference is a remembered player (RememberedPlayer /
+			// Remembered.NonActive -- the token-then-effect carriers For Each
+			// of You a Gift, Furygale Flocking, City of the Daleks, Rotted
+			// Ones Lay Siege, The Brothers War) resolves it from
+			// ce.RememberedPlayers at consultation time (rules/combat.go
+			// requirementDefender). effectRemembered records objects only, so
+			// without this the captured player would silently vanish and the
+			// requirement would never be counted. Same read the adjacent
+			// CantAttack/CantSacrifice case makes.
+			ce.RememberedPlayers = effectRememberedPlayers(h, c, sa)
+			h.AddContinuous(ce)
 			registered = true
 		default:
 			// A resolvable but unsupported mode is reported honestly; an
@@ -1006,11 +1018,15 @@ func effectRemembered(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
 // effectRememberedPlayers resolves RememberObjects$ into the concrete PLAYER
 // ids the Effect captured — the player half of effectRemembered, which
 // deliberately records objects only (a player-only remember yields an empty
-// slice there). Only the player-flavoured RememberObjects$ spellings are
-// read: "TargetedPlayer" (the chosen player targets — Call for Aid's
-// "target opponent", whose remembered self the registered CantAttack's
-// Target$ Player.IsRemembered then resolves), "RememberedPlayer"/
-// "RememberedPlayers" (the resolution's remembered players). Anything else
+// slice there). The player-flavoured RememberObjects$ spellings are read:
+// "TargetedPlayer"/"Targeted" (the chosen player targets — Call for Aid's
+// "target opponent" and The Brothers' War's "choose two target players",
+// whose remembered selves the registered restrictions then resolve) and
+// "RememberedPlayer"/"RememberedPlayers"/"Remembered" (the resolution's
+// remembered players — the per-opponent token-then-effect carriers For Each
+// of You a Gift, Furygale Flocking, City of the Daleks and Rotted Ones Lay
+// Siege bind the RepeatEach loop's current player into Ctx.Remembered, which
+// their DBEff's `RememberObjects$ Remembered` then captures). Anything else
 // contributes no player, so an effect whose remember the helper cannot read
 // registers a restriction with an empty player set (its IsRemembered target
 // clauses match nobody — fail closed). Deduplicated, first-capture order.
@@ -1032,13 +1048,13 @@ func effectRememberedPlayers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 	}) {
 		part = strings.TrimSpace(part)
 		switch part {
-		case "TargetedPlayer":
+		case "TargetedPlayer", "Targeted":
 			for _, t := range c.Targets {
 				if t.IsPlayer {
 					add(t.Player)
 				}
 			}
-		case "RememberedPlayer", "RememberedPlayers":
+		case "RememberedPlayer", "RememberedPlayers", "Remembered":
 			for _, t := range c.Remembered {
 				if t.IsPlayer {
 					add(t.Player)

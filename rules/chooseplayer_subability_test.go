@@ -22,6 +22,7 @@ package rules
 // byte-identically.
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -402,5 +403,98 @@ func TestMustAttackFaceAndEffectWhitelistsAgree(t *testing.T) {
 		if got, want := MustAttackParamsReadableForRules(p), effects.MustAttackParamsReadable(p); got != want {
 			t.Fatalf("case %d: face whitelist = %v, effects whitelist = %v for %v", i, got, want, p)
 		}
+	}
+}
+
+// TestMustAttackRememberedPlayerBindsThroughRealEffectRegistration is the
+// review's end-to-end case: the Effect-delivered MustAttack$ RememberedPlayer
+// requirement must bind the player captured by a REAL `DB$ Effect |
+// RememberObjects$ Remembered | StaticAbilities$ MustAttack` registration,
+// not only a hand-built AddContinuous with RememberedPlayers prefilled. The
+// fixture resolves the actual compiled `DBEff` SVar of the real corpus
+// carrier Furygale Flocking, whose DBToken chain is the per-opponent
+// RepeatEach loop body: by the time DBEff runs, the loop's current player is
+// bound into Ctx.Remembered beside the tokens the chain created. The
+// registered requirement then has to reach attackRequirements with that
+// player named -- effectRemembered records objects only, so the player half
+// must come from effectRememberedPlayers reading the same
+// `RememberObjects$ Remembered` spelling the card writes.
+func TestMustAttackRememberedPlayerBindsThroughRealEffectRegistration(t *testing.T) {
+	deck := func() []*cards.Card {
+		out := make([]*cards.Card, 40)
+		for i := range out {
+			out[i] = card(t, "Name:Mountain\nTypes:Basic Land\nOracle:x\n")
+		}
+		return out
+	}
+	e := New(Config{Seed: 5, Names: []string{"a", "b", "c"}, Decks: [][]*cards.Card{deck(), deck(), deck()}})
+
+	// A real creature to carry the requirement, and a real token object the
+	// Effect's object half remembers (the card creates the tokens itself; the
+	// helper exercises the registration in isolation, so both are on board).
+	dragon := onBoardReady(t, e, 0, "Name:Elemental\nTypes:Creature\nPT:3/3\nOracle:x\n")
+	token := onBoardReady(t, e, 0, "Name:Elemental Token\nTypes:Creature\nPT:3/3\nOracle:x\n")
+	if o := e.G.Obj(dragon); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("precondition: requirement carrier not on the battlefield")
+	}
+	if o := e.G.Obj(token); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("precondition: remembered token not on the battlefield")
+	}
+
+	flock := choiceCorpusCard(t, "Furygale Flocking")
+	if flock == nil {
+		t.Fatal("corpus fixture: Furygale Flocking missing")
+	}
+	sa := cards.ResolveSVar(flock.Faces[0].SVars, "DBEff")
+	if sa == nil || sa.API != "Effect" {
+		t.Fatalf("Furygale Flocking DBEff not compiled as an Effect SA: %+v", sa)
+	}
+	if got := sa.Params["RememberObjects"]; got != "Remembered" {
+		t.Fatalf("precondition: DBEff RememberObjects$ = %q, want Remembered", got)
+	}
+	must := strings.TrimSpace(flock.Faces[0].SVars[strings.TrimSpace(sa.Params["StaticAbilities"])])
+	if !strings.Contains(must, "MustAttack$ RememberedPlayer") {
+		t.Fatalf("precondition: Furygale Flocking's MustAttack SVar not the RememberedPlayer line: %q", must)
+	}
+
+	ctx := &effects.Ctx{Source: dragon, Controller: 0, SVars: flock.Faces[0].SVars,
+		Remembered: []state.Target{{Obj: token}, {Player: 1, IsPlayer: true}}}
+	effects.Resolve(e, ctx, sa)
+
+	// The registration reached the continuous-effect registry (not a Note).
+	regs := 0
+	for _, ce := range e.active() {
+		if ce.Restriction == "MustAttack" {
+			regs++
+			if len(ce.RememberedPlayers) != 1 || ce.RememberedPlayers[0] != 1 {
+				t.Fatalf("registered MustAttack RememberedPlayers = %v, want [1]", ce.RememberedPlayers)
+			}
+			if len(ce.Remembered) != 1 || ce.Remembered[0] != token {
+				t.Fatalf("registered MustAttack Remembered = %v, want [%d]", ce.Remembered, token)
+			}
+		}
+	}
+	if regs != 1 {
+		t.Fatalf("expected exactly one registered MustAttack effect, got %d", regs)
+	}
+
+	// The requirement binds the remembered player on the remembered creature
+	// (ValidCreature$ Card.IsRemembered selects the Effect's own remembered
+	// token, not an arbitrary board object).
+	rs := e.attackRequirements(token)
+	if !rs.any() {
+		t.Fatalf("registered requirement did not bind the remembered token: %+v", rs)
+	}
+	if rs.named[1] != 1 {
+		t.Fatalf("requirement names = %+v, want player 1 required once", rs.named)
+	}
+	if !e.requiredForDefender(token, 1) {
+		t.Fatal("remembered token is not required to attack the remembered player 1")
+	}
+	if e.requiredForDefender(token, 2) {
+		t.Fatal("remembered token must not be required against player 2")
+	}
+	if rsDragon := e.attackRequirements(dragon); rsDragon.any() {
+		t.Fatalf("a creature outside the Effect's remembered set must not be required: %+v", rsDragon)
 	}
 }
