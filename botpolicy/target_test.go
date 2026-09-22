@@ -236,6 +236,40 @@ func TestChooseTargetsHonoursMinAndMaxDirect(t *testing.T) {
 	}
 }
 
+// TestTargetNeverTakesTwoOfOneGroup pins the pick loop's group discipline
+// (pfpe1): Decision.Validate's mutual-exclusion rule makes two options
+// sharing one non-empty Group mutually exclusive -- the TargetsForEachPlayer$
+// shape (one target per controller) and the cross-mode Charm ask both attach
+// it -- so a multi-target answer that took two same-group options would be
+// rejected and Clamp could never repair it (a wedging answer). The ranked
+// pick skips a represented group exactly the way Clamp's own top-up does.
+// The Havoc Eater shape: Max 2, one opponent with TWO strong creatures and
+// the second opponent with one weaker -- the two same-group bears must not
+// both be taken even though they out-rank the other group's option.
+func TestTargetNeverTakesTwoOfOneGroup(t *testing.T) {
+	b := boardOf(def(1, 5, 5), def(2, 5, 5), def(3, 1, 1))
+	opts := []decision.Option{
+		{Index: 0, Kind: "permanent", Obj: 201, Player: 1, Group: "target-controller-1"},
+		{Index: 1, Kind: "permanent", Obj: 202, Player: 1, Group: "target-controller-1"},
+		{Index: 2, Kind: "permanent", Obj: 203, Player: 2, Group: "target-controller-2"},
+	}
+	ch := b.chooseTargets(&decision.Decision{Player: 0, Kind: decision.KTarget, Min: 0, Max: 2, Options: opts})
+	if len(ch) != 2 {
+		t.Fatalf("chooseTargets(Min 0 Max 2) = %v, want two targets (the full width)", ch)
+	}
+	taken := map[string]bool{}
+	for _, c := range ch {
+		g := opts[c].Group
+		if taken[g] {
+			t.Fatalf("answer %v took two options of group %q", ch, g)
+		}
+		taken[g] = true
+	}
+	if !taken["target-controller-2"] {
+		t.Fatalf("answer %v left the second controller untargeted", ch)
+	}
+}
+
 // TestTargetSizeIncludesOwnPlayer is a determinism guard on the corner
 // where a "player" option names the deciding seat itself (never produced
 // by askTarget, but a valid wire shape): it is treated as an own option,

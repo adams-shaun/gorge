@@ -32,7 +32,20 @@ func init() {
 
 // effGoad records each independently-lived goad relationship. Duration and
 // source are event payload so replay can expire conditional goads identically.
+//
+// RememberGoaded$ True (2 corpus files: Havoc Eater, Kaima the Fractured
+// Calm) makes the resolution remember each goaded creature, so the chained
+// SubAbility$ (both carriers' DB$ PutCounter reading SVar:Y:Remembered$
+// CardPower — "X +1/+1 counters, where X is the total power of creatures
+// goaded this way") reads exactly what was goaded. Ctx is threaded by
+// pointer through Resolve, so appending here is visible to the sub-ability
+// without any state write — the same per-resolution ctx Remembered the
+// RememberDamaged$ arm of DealDamage takes (damage.go), replay re-derived by
+// re-running the resolution. Only the goad-granting arm remembers; a
+// NoLonger$ release remembers nothing (its corpus shape never pairs the
+// rider with a release).
 func effGoad(h Host, c *Ctx, sa *cards.SA) {
+	remember := strings.EqualFold(strings.TrimSpace(sa.Params["RememberGoaded"]), "True")
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
@@ -48,6 +61,9 @@ func effGoad(h Host, c *Ctx, sa *cards.SA) {
 			}
 			h.Emit(events.Event{Kind: events.Goad, Obj: o.ID, Player: c.Controller,
 				Text: duration, IDs: []state.ObjID{c.Source}, Amount: int32(o.Controller) + 1})
+			if remember {
+				c.Remembered = append(c.Remembered, state.Target{Obj: o.ID})
+			}
 		}
 	}
 }
