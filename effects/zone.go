@@ -3294,8 +3294,11 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 	// emission), Fisher-Yates'd per destination-library owner through the
 	// seeded engine rng (the randomChoices/Host.Rand precedent — a replay
 	// re-derives the identical order), and only then emitted, so the
-	// MoveZone appends land the shuffled order at the bottom. The
-	// Dig/RestRandomOrder$/RevealRandomOrder$ variants are their own rows
+	// MoveZone appends settle in the shuffled order. The shuffle only sets
+	// the MOVE ORDER; the LibraryPosition$/Shuffle$ tail below still applies
+	// on top of it (Triumph of Saint Katherine's `LibraryPosition$ 0` after
+	// a RandomOrder$ sweep puts the shuffled pile on TOP, not the bottom).
+	// The Dig/RestRandomOrder$/RevealRandomOrder$ variants are their own rows
 	// and are not touched here.
 	randomOrder := strings.EqualFold(strings.TrimSpace(sa.Params["RandomOrder"]), "True")
 	emitMove := func(id state.ObjID, z state.Zone, p state.PlayerID) {
@@ -3381,20 +3384,23 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 				emitMove(pm.id, pm.z, pm.p)
 			}
 		}
-		scheduleAtEOT(h, c, sa, moved)
-		return
-	}
-	for _, z := range from {
-		for _, p := range players {
-			// Snapshot the zone: emitting move events mutates it underneath us.
-			ids := append([]state.ObjID(nil), g.Zone(z, p)...)
-			for _, id := range ids {
-				if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
-					emitMove(id, z, p)
+	} else {
+		for _, z := range from {
+			for _, p := range players {
+				// Snapshot the zone: emitting move events mutates it underneath us.
+				ids := append([]state.ObjID(nil), g.Zone(z, p)...)
+				for _, id := range ids {
+					if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+						emitMove(id, z, p)
+					}
 				}
 			}
 		}
 	}
+	// The post-placement tail runs for BOTH branches: the shuffled order is
+	// only the ORDER the moves settle in, so `LibraryPosition$ 0` (Triumph of
+	// Saint Katherine's "shuffle that pile and put it back on TOP of your
+	// library") and `Shuffle$` must still apply after a RandomOrder$ sweep.
 	if to == state.ZLibrary && len(placements) > 0 {
 		// LibraryPosition$: MoveZone already appends at the bottom of the
 		// destination library in settle order, so "-1" (Terminus) is exactly the
