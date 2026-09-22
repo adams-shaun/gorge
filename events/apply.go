@@ -1135,15 +1135,37 @@ func Apply(g *state.Game, e Event) {
 			// empties, and the tag tallies are drained alongside it so they
 			// never exceed the shrunken pool. Persistent RESTRICTION batches
 			// survive too; the ordinary ones empty with the pool.
+			//
+			// The Text keep letters (stat:UnspentMana, rules/turn.go's
+			// unspentManaKeep) protect a slot whole: the static's "don't lose
+			// unspent mana as steps and phases end" keeps the slot's ordinary
+			// share AND its restriction batches of that colour (the restriction
+			// provenance is not time-bounded; only the emptying is). "" keeps
+			// nothing — the historical shape every game without a live carrier
+			// emits — so old logs replay byte-identically.
+			keep := manaClearKeepSlots(e.Text)
 			player := &g.Players[e.Player]
 			for i := range player.Pool {
+				if keep[i] {
+					continue
+				}
 				if clear := player.Pool[i] - player.PersistentMana[i]; clear > 0 {
 					clearNonPersistent(player, i, clear)
 				}
 			}
 			kept := player.RestrictedMana[:0]
 			for _, r := range player.RestrictedMana {
-				if r.Persistent {
+				// state.ManaSlot is the ONE full-counter decoder (the payment
+				// paths in rules/stack.go use it): a restricted batch stores its
+				// producing ManaAdd.Counter verbatim, so a tagged red batch
+				// ("SR" snow red, "TreasureR") read through ManaIndex(c[0])
+				// would decode the tag letter as colourless and silently drop
+				// the protected colour's spend restriction at the very boundary
+				// the keep exists for. An empty Color batch (the unrestricted
+				// AddsNoCounter provenance shape) decodes to the C slot, so a
+				// keep that protects the C slot keeps it, slot-whole, like the
+				// ordinary share above.
+				if r.Persistent || keep[state.ManaSlot(r.Color)] {
 					kept = append(kept, r)
 				}
 			}
@@ -2917,6 +2939,22 @@ func changeControl(g *state.Game, o *state.Object, p state.PlayerID) {
 // validPlayer reports whether p indexes an existing seat.
 func validPlayer(g *state.Game, p state.PlayerID) bool {
 	return int(p) < len(g.Players)
+}
+
+// manaClearKeepSlots parses the keep-mask Text the stat:UnspentMana emitter
+// rides on a ManaClear event: one WUBRGC letter per pool slot whose unspent
+// mana the boundary must not empty (rules/turn.go's unspentManaKeep). An
+// empty Text (every historical event, and every game without a live
+// carrier) keeps nothing. The answer is a fixed-size mask over the pool
+// slot order, so the fold is a slice test, not a map lookup.
+func manaClearKeepSlots(text string) [6]bool {
+	var keep [6]bool
+	for i := 0; i < len(text); i++ {
+		if s := state.ManaIndex(text[i]); s >= 0 && s < len(keep) {
+			keep[s] = true
+		}
+	}
+	return keep
 }
 
 // cutManaPersistent splits a ManaAdd event's Text encoding into the

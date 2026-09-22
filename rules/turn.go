@@ -349,10 +349,17 @@ func (e *Engine) setStep(s state.Step) {
 }
 
 func (e *Engine) finishStepBoundary(leaving, entering state.Step) {
-	// Mana pools empty as each step ends (CR 500.4).
+	// Mana pools empty as each step ends (CR 500.4). A live stat:UnspentMana
+	// static protects a seat's unspent mana of the named colour: its keep
+	// letters ride the event Text ("" = nothing protected, the historical
+	// shape every game without a carrier emits) and the ManaClear fold honours
+	// them, so the replay derives the same keep set from the same deterministic
+	// static walk.
 	for i := range e.G.Players {
 		if e.G.Players[i].Pool.Total() > 0 {
-			e.emit(events.Event{Kind: events.ManaClear, Player: state.PlayerID(i)})
+			ev := events.Event{Kind: events.ManaClear, Player: state.PlayerID(i)}
+			ev.Text = e.unspentManaKeep(state.PlayerID(i))
+			e.emit(ev)
 		}
 	}
 	if leaving == state.StepEndCombat && entering != leaving {

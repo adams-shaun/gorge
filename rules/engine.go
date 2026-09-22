@@ -399,6 +399,19 @@ type Engine struct {
 	// alongside fusedResolving, captured by Ask onto the resumePoint. Nil
 	// outside a fused half's resolution.
 	fusedResolvingSVars map[string]string
+	// windowPaidX is the X the triggered-cost window's payment announced
+	// (rules/cumulative.go's X fold, tc.xPaid at the pay arm), kept as AMBIENT
+	// engine state while the paid body resolves — the fusedResolving pattern:
+	// rules/resolution.go's resumeResolution arms it from the frame's
+	// rp.winPaidX around the re-entry's effects.Resolve, Ask captures it onto
+	// every pending resumePoint it poses, and buildContinuationChain stamps it
+	// onto the continuation frames — so a body that suspends on a
+	// mid-resolution ask (Leyline Tyrant's "pay any amount of {R}" death
+	// trigger, whose DB$ DealDamage target pick is exactly such an ask)
+	// resumes with its X instead of rebuilding ctx.X from a trigger object
+	// that was never paid one (0). Transient scratch, restored with the same
+	// defer discipline as fusedResolving; rebuilt identically by replay.
+	windowPaidX int32
 	// exploitedLKI maps an EXPLOITED creature's object id to the LKI snapshot
 	// of it at the instant it was sacrificed to pay an exploit (CR 702.58a),
 	// published by effects/exploit.go through Host.RememberExploitedLKI while

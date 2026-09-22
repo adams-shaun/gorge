@@ -2388,6 +2388,15 @@ func init() {
 		// StaticAbilities$ directives are the Effect-delivered form and stay
 		// out of scope.
 		"stat:MinMaxBlocker",
+		// unspentmana1: the CR 500.4 exception static (rules/statics.go
+		// unspentManaKeep, consulted at the one ManaClear emit site in
+		// rules/turn.go's finishStepBoundary; the keep letters ride the
+		// ManaClear event Text and the ManaClear fold honours them). Both
+		// delivery routes are read -- the printed S: face statics and
+		// effEffect's UnspentMana registration arm -- and only the whitelisted
+		// parameter shapes are enforced (effects.UnspentManaParamsReadable,
+		// shared with effEffect's registration gate).
+		"stat:UnspentMana",
 		// The static's Cost$ Exert<1/CARDNAME> and Trigger$ rider are consumed
 		// by the declare-attackers offer (rules/combat.go's askNextExert) and
 		// the Exert-event trigger walker (rules/trigger_match.go
@@ -2758,3 +2767,76 @@ func panharmoniconModes(ev events.Event) []string {
 		return nil
 	}
 }
+
+// unspentManaKeep renders the pool slots whose unspent mana the CR 500.4
+// boundary ManaClear must NOT empty for player p — the stat:UnspentMana
+// continuous static ("You don't lose unspent <colour> mana as steps and
+// phases end", Leyline Tyrant / Omnath, Locus of Mana / Upwelling). The
+// answer is one letter per protected slot in fixed WUBRGC slot order
+// ("R", "WU", ...); "" means every slot empties, so a game without a live
+// carrier emits the historical Text-less ManaClear byte-identically.
+//
+// Both delivery routes are read, the same pair SacrificeBlocked walks:
+// the printed S: face statics (activeStatics) and the Effect-delivered
+// registration (effEffect's UnspentMana arm — The Last Agni Kai's
+// `DB$ Effect | StaticAbilities$ Unspent`), the latter through the ordinary
+// active() lifetime machinery so the grant ends with its source or its
+// duration. A face static's "as long as" gates run through the shared
+// continuousGateHolds grammar; ValidPlayer$ goes through the shared player
+// spec matcher (You scopes to the static's controller, absent — Upwelling —
+// protects every seat). ManaType$ is a comma-separated colour-word list
+// parsed by effects.ColorLetters; absent (or an unparseable "Colorless"
+// word set, the C slot) protects every slot only when the parameter is
+// wholly absent. An unresolvable ManaType$ value fails closed and protects
+// nothing — the shipped-statics convention.
+func (e *Engine) unspentManaKeep(p state.PlayerID) string {
+	keep := make([]bool, len(e.G.Players[p].Pool))
+	apply := func(params map[string]string, you state.PlayerID) {
+		if spec := params["ValidPlayer"]; spec != "" &&
+			!effects.MatchesPlayerSpec(e.G, spec, p, you) {
+			return
+		}
+		mt := strings.TrimSpace(params["ManaType"])
+		if mt == "" {
+			for i := range keep {
+				keep[i] = true
+			}
+			return
+		}
+		letters, ok := effects.ColorLetters(mt)
+		if !ok {
+			return
+		}
+		if len(letters) == 0 {
+			// "Colorless" — the C slot alone.
+			keep[len(keep)-1] = true
+			return
+		}
+		for _, l := range letters {
+			keep[state.ManaIndex(l[0])] = true
+		}
+	}
+	for _, sv := range e.activeStatics("UnspentMana") {
+		if !e.continuousGateHolds(sv) {
+			continue
+		}
+		apply(sv.Params, sv.Controller)
+	}
+	for _, ce := range e.active() {
+		if ce.Restriction != "UnspentMana" {
+			continue
+		}
+		apply(ce.RestrictParams, ce.Controller)
+	}
+	var out []byte
+	for i, k := range keep {
+		if k {
+			out = append(out, manaSlotSymbols[i])
+		}
+	}
+	return string(out)
+}
+
+// manaSlotSymbols indexes the pool slot order (state.MW..state.MC) to its
+// WUBRGC letter, the encoding the ManaClear keep Text rides.
+const manaSlotSymbols = "WUBRGC"

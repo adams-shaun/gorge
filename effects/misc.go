@@ -487,7 +487,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
 			}
-		case "CantTarget", "CantRegenerate", "CantPreventDamage", "CantAttack", "CantSacrifice", "CantPutCounter", "CantBlockBy", "CanAttackDefender":
+		case "CantTarget", "CantRegenerate", "CantPreventDamage", "CantAttack", "CantSacrifice", "CantPutCounter", "CantBlockBy", "CanAttackDefender", "UnspentMana":
 			// A COMPOUND IsRemembered spec (Card.IsRemembered+Creature) resolves
 			// faithfully through the general filter now that it implements
 			// IsRemembered (rules/layers.go restrictionApplies consults the
@@ -521,6 +521,12 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				break
 			}
 			if mode == "CantBlockBy" && !CantBlockByRestrictionParamsReadable(params) {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
+				registered = true
+				break
+			}
+			if mode == "UnspentMana" && !UnspentManaParamsReadable(params) {
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
@@ -1099,6 +1105,34 @@ func CantPutCounterParamsReadable(params map[string]string) bool {
 	for k := range params {
 		switch k {
 		case "Mode", "ValidCard", "ValidObject", "ValidPlayer", "CounterType", "AffectedZone", "Duration", "Description", "Secondary":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// UnspentManaParamsReadable is the parameter whitelist an UnspentMana static
+// must pass before this build enforces it -- used BOTH by the face-static
+// reader (rules/statics.go's unspentManaKeep activeStatics walk) and by
+// effEffect's registration case, so the two paths cannot disagree about what
+// is readable. The readable parameters are the mode, the player scope
+// (ValidPlayer$), the colour scope (ManaType$, a comma-separated colour-word
+// list effects.ColorLetters parses; absent protects every slot, the Upwelling
+// spelling) and display text. Duration$ rides the registration only through
+// effEffect's own effectUntilEOT read (an instant/sorcery source's grant is
+// the UntilEOT lifetime the oracle's "until end of turn" states), so it is
+// NOT readable here: an UnspentMana body naming Duration$ explicitly would
+// need a lifetime the whitelist cannot vouch for. A static carrying any other
+// parameter names a condition or scoping this build does not evaluate
+// (IsPresent$, CheckSVar$, ActiveZones$, ...) -- enforcing it blanket would
+// OVER-protect mana that should empty, so it is skipped/reported. Secondary$
+// is allowed: a Forge-side duplicate for modifier composition, and a boolean
+// keep cannot be applied twice.
+func UnspentManaParamsReadable(params map[string]string) bool {
+	for k := range params {
+		switch k {
+		case "Mode", "ValidPlayer", "ManaType", "Description", "Secondary":
 		default:
 			return false
 		}
