@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -58,9 +59,18 @@ import (
 // predicate fails closed) keeps today's empty-set no-op.
 //
 // Deliberately NOT honoured here (measured carrier population: one sub
-// each, both noted in the mvts1 report): TargetsForEachPlayer$ and
-// DividedAsYouChoose$ -- the ask offers the plain TargetMin$/TargetMax$
-// bounds, exactly like the placement ask does for the same parameters.
+// each, both noted in the mvts1 report): DividedAsYouChoose$ -- the ask
+// offers the plain TargetMin$/TargetMax$ bounds, exactly like the placement
+// ask does for the same parameters.
+//
+// TargetsForEachPlayer$ IS honoured (pfpe1; the mvts1 round deliberately
+// skipped it): the bounds read the OneEach spellings against the distinct-
+// controller count of the eligible candidates, and the pose attaches each
+// option's controller Group -- the same label rules' ask sites attach -- so
+// Decision.Validate's mutual-exclusion rule enforces one pick per
+// controller on the wire whatever host answers. A depth-2 SubAbility$
+// carrier (Kaya, Spirits' Justice's exile-each; mega_flare,
+// tasha_the_witch_queen, geths_summons) reaches its ask here.
 func chosenTargetsFor(h Host, c *Ctx, sa *cards.SA, atRoot bool) ([]state.Target, bool) {
 	defined := strings.TrimSpace(sa.Params["Defined"])
 	if strings.TrimSpace(sa.Params["ValidTgts"]) == "" ||
@@ -94,6 +104,22 @@ func chosenTargetsFor(h Host, c *Ctx, sa *cards.SA, atRoot bool) ([]state.Target
 	candidates := h.LegalTargets(chooser, c.Source, sa)
 	min := Num(h, c, sa, "TargetMin", 1)
 	max := Num(h, c, sa, "TargetMax", 1)
+	if strings.EqualFold(strings.TrimSpace(sa.Params["TargetsForEachPlayer"]), "True") {
+		// pfpe1: OneEach is the distinct-controller count of the eligible
+		// set (Forge's TargetRestrictions.setForEachPlayer), not a literal
+		// Num can read -- and a dynamic bound (TargetMax$ X with
+		// SVar:X:PlayerCountOpponents$Amount) already resolved above.
+		owners := map[state.PlayerID]bool{}
+		for _, t := range candidates {
+			owners[targetOwnerOf(h, t)] = true
+		}
+		if strings.EqualFold(sa.Params["TargetMin"], "OneEach") {
+			min = int32(len(owners))
+		}
+		if strings.EqualFold(sa.Params["TargetMax"], "OneEach") {
+			max = int32(len(owners))
+		}
+	}
 	if max > int32(len(candidates)) {
 		max = int32(len(candidates))
 	}
@@ -148,6 +174,20 @@ func definedIsTargetReuse(defined string) bool {
 // caller names, with the R-9 no-host stand-in (the first max candidates in
 // offered order) when the host cannot ask. ok=true with a nil set is the
 // SUSPENDED outcome; ok=true with a non-nil set is the stand-in.
+// targetOwnerOf is the controlling player of one target candidate: the
+// player itself, else the object's controller. A vanished object fails to
+// seat 0 -- it only merges a dead candidate's group with seat 0's, the
+// over-restrictive direction.
+func targetOwnerOf(h Host, t state.Target) state.PlayerID {
+	if t.IsPlayer {
+		return t.Player
+	}
+	if o := h.Game().Obj(t.Obj); o != nil {
+		return o.Controller
+	}
+	return 0
+}
+
 func poseTargetsAsk(h Host, c *Ctx, sa *cards.SA, chooser state.PlayerID,
 	candidates []state.Target, min, max int32, resumeKind string,
 ) ([]state.Target, bool) {
@@ -159,19 +199,34 @@ func poseTargetsAsk(h Host, c *Ctx, sa *cards.SA, chooser state.PlayerID,
 		Min: int(min), Max: int(max), Source: c.Source,
 		ResumeKind: resumeKind, ResumeSA: sa,
 		ResumeRemembered: copyTargets(c.Remembered), Prompt: prompt}
+	// pfpe1: the TargetsForEachPlayer$ shape binds each option to its
+	// controller's Group -- the same label rules' ask sites attach (askTarget
+	// / cast.go targetAsk) -- so Decision.Validate's mutual-exclusion rule
+	// enforces one pick per controller whatever host answers. The bot's
+	// KChoose default arm plus Clamp's group-aware top-up answers it
+	// validly (first offer, topped up one per new group).
+	forEach := strings.EqualFold(strings.TrimSpace(sa.Params["TargetsForEachPlayer"]), "True")
 	for _, t := range candidates {
 		o := decision.Option{Index: len(d.Options)}
+		owner := state.PlayerID(0)
 		label := ""
 		if t.IsPlayer {
 			o.Kind, o.Player = "player", t.Player
 			if p := h.Game(); int(t.Player) < len(p.Players) {
 				label = p.Players[t.Player].Name
 			}
+			owner = t.Player
 		} else {
 			o.Kind, o.Obj = "card", t.Obj
 			if g := h.Game().Obj(t.Obj); g != nil && g.Face() != nil {
 				label = g.Face().Name
 			}
+			if g := h.Game().Obj(t.Obj); g != nil {
+				owner = g.Controller
+			}
+		}
+		if forEach {
+			o.Group = "target-controller-" + strconv.Itoa(int(owner))
 		}
 		o.Label = label
 		d.Options = append(d.Options, o)
