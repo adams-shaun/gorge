@@ -72,6 +72,9 @@ func TestUnleashChoicePosedAndCounterApplied(t *testing.T) {
 	if f := e.G.Objs[0].Face(); id == 0 || f == nil || f.Name != "Rakdos Cackler" {
 		t.Fatalf("seeded card is not Rakdos Cackler: %+v", e.G.Objs[0].Face())
 	}
+	if got := e.G.Obj(id).Zone; got != state.ZLibrary {
+		t.Fatalf("precondition: cackler zone = %s, want library", got)
+	}
 	// The shared entry replacement must pose Unleash before the move applies.
 	enterWithUnleashChoice(t, e, id, state.ZLibrary, true)
 	o := e.G.Obj(id)

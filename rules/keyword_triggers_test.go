@@ -200,6 +200,9 @@ func TestRiotAndHideawayUseRealCorpusCards(t *testing.T) {
 	cfgSpider := seatZeroStart(Config{Seed: 187, Names: []string{"spider", "other"}, Decks: [][]*cards.Card{deck, deck}})
 	e := New(cfgSpider)
 	id := e.G.Objs[0].ID
+	if got := e.G.Obj(id).Zone; got != state.ZLibrary {
+		t.Fatalf("precondition: Spider-Punk zone = %s, want library", got)
+	}
 	// Drive the real card through the entry-boundary as-enters selection.
 	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZBattlefield})
 	rd := e.Pending()
