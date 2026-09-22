@@ -285,6 +285,20 @@ type Host interface {
 	// Accord, Resplendent Angel, Valkyrie Harbinger — whose CheckSVar$ gate
 	// reads the count), the mirror of LifeLostThisTurn.
 	LifeGainedThisTurn(p state.PlayerID) int32
+	// CountersRemovedThisTurn reports how many counters of kind player p PAID
+	// OR LOST this turn — the sum of every negative-Amount PlayerCounterChange
+	// naming the kind since the last TurnChange, derived from the event log so
+	// a replay derives the same number. This is the Count$CountersRemovedThisTurn
+	// backing (Blaster Hulk's per-{E} cast discount, Izzet Generatorium's
+	// "activate only if you've paid or lost four or more {E} this turn" gate):
+	// a payment and a loss both leave the player's pool through the ONE event
+	// shape a grant uses — a negative PlayerCounterChange (rules/mana.go's
+	// PayEnergy settle) — so the removals are log-visible exactly like the
+	// life totals LifeLostThisTurn folds. Kind matching is case-insensitive
+	// (the same read the YourCounters heads take). Object-counter removals (a
+	// permanent losing counters) are NOT folded here — the head's object-spec
+	// form is a separate, unimplemented shape.
+	CountersRemovedThisTurn(p state.PlayerID, kind string) int32
 	// CombatDamageToPlayersThisTurn reports every instance of combat damage
 	// dealt to a PLAYER so far this turn, in assignment order. It is the
 	// PlayerCountDefinedRegistered$HasPropertywasDealtCombatDamageThisTurnBy

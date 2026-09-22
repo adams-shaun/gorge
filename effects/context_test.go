@@ -221,6 +221,10 @@ func (h *fakeHost) DamageTakenThisTurn(p state.PlayerID) int32 { return h.dmgTak
 // same conservative no-op as LifeLostThisTurn).
 func (h *fakeHost) LifeGainedThisTurn(_ state.PlayerID) int32 { return 0 }
 
+// CountersRemovedThisTurn has no event log here; the double reports zero
+// (the same conservative no-op as LifeLostThisTurn).
+func (h *fakeHost) CountersRemovedThisTurn(_ state.PlayerID, _ string) int32 { return 0 }
+
 // CombatDamageToPlayersThisTurn reports the h.combatHits slice the
 // effects-level PlayerCountDefinedRegistered tests configure.
 func (h *fakeHost) CombatDamageToPlayersThisTurn() []CombatDamageHit { return h.combatHits }

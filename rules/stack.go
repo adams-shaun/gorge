@@ -2829,6 +2829,33 @@ func (e *Engine) LifeLostThisTurn(p state.PlayerID) int32 {
 	return n
 }
 
+// CountersRemovedThisTurn satisfies effects.Host's CountersRemovedThisTurn
+// for Count$CountersRemovedThisTurn <KIND> <player> (Blaster Hulk's per-{E}
+// cast discount and Izzet Generatorium's paid-or-lost-four-or-more {E}
+// activation gate): the TOTAL of player counters of kind p paid or lost this
+// turn, summed from every negative-Amount PlayerCounterChange naming the kind
+// (case-insensitively — the grants and the pays write the same kind text a
+// card's script uses, e.g. "ENERGY") since the last TurnChange. Derived from
+// the event log like LifeLostThisTurn, so a replay derives the same number.
+// A payment and a loss are the same event shape — rules/mana.go's PayEnergy
+// settle emits exactly this fold's input — and an object-counter removal
+// (Kind CounterChange, a permanent losing counters) is deliberately NOT
+// folded: the head's player form counts the PLAYER's pool only.
+func (e *Engine) CountersRemovedThisTurn(p state.PlayerID, kind string) int32 {
+	var n int32
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if ev.Kind == events.PlayerCounterChange && ev.Player == p && ev.Amount < 0 &&
+			strings.EqualFold(ev.Counter, kind) {
+			n += -ev.Amount
+		}
+	}
+	return n
+}
+
 // DamageTakenThisTurn satisfies effects.Host's DamageTakenThisTurn for the
 // TargetedPlayer$DamageThisTurn count head (Knollspine Dragon's "draw cards
 // equal to the damage dealt to target opponent this turn"): the total damage
