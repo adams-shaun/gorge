@@ -184,7 +184,8 @@ func effWard(h Host, c *Ctx, sa *cards.SA) {
 // end-of-turn cleanup; anything else persists while its source stays on the
 // battlefield.
 func effEffect(h Host, c *Ctx, sa *cards.SA) {
-	dur := sa.Params["Duration"]
+	rawDur := sa.Params["Duration"]
+	dur := rawDur
 	if dur == "" {
 		dur = "Permanent"
 	}
@@ -221,6 +222,22 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	// effect's Remembered set. Both this and ForgetOnMoved$ ride every
 	// registration below.
 	forgetCounter := strings.TrimSpace(sa.Params["ForgetCounter"])
+	// ForgetOnCast$ <spec> (task param:api:Effect.ForgetOnCast): the
+	// cast-driven lifetime -- the first qualifying spell cast ENDS the whole
+	// effect ("the next spell you cast this turn ...", Marshland
+	// Bloodcaster's alternative cost, Dark Apostle's one-cast cascade). The
+	// spec is a card spec over the cast spell, You-relative to the effect's
+	// controller; rules' effectCastSweep matches it at the deferred re-walk
+	// of the cast's PutOnStack (payCast, after payment), so an ABORTED
+	// proposal (reversed before payment, CR 733.1) never consumes the grant
+	// while a completed cast -- even one later countered -- does. Forge's
+	// explicit False is the no-forget default and degrades to the absent
+	// read; it rides every registration below that can actually expire this
+	// way (the cost-static and cascade-grant arms).
+	forgetOnCast := strings.TrimSpace(sa.Params["ForgetOnCast"])
+	if strings.EqualFold(forgetOnCast, "False") {
+		forgetOnCast = ""
+	}
 	// ImprintOnHost$ True (task param:api:Effect.ImprintOnHost): Forge's
 	// EffectEffect imprints the CREATED EFFECT TOKEN on the host card and
 	// moves the token to the Command zone -- the imprint is the link "this
@@ -401,9 +418,11 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				// it past the whitelist; anything else fails closed to the
 				// unimplemented Note below. The grant's lifetime is the Effect's
 				// own (the source-leaves/UntilEOT discipline every registration
-				// here uses) — the corpus's "the NEXT spell" precision is the
-				// Triggers$/ForgetOnCast$ rider, which stays unread (see the
-				// cascade row in AGENTS.md's Known approximations).
+				// here uses) — and when the SA carries ForgetOnCast$, the cast
+				// sweep (rules' effectCastSweep) ends the grant on the first
+				// qualifying cast, which is the "the NEXT spell" precision the
+				// corpus's GrantCascade riders (Dark Apostle, Bigger on the
+				// Inside, World War Hulk, Sloppity Bilepiper) write.
 				ce := state.ContinuousEffect{
 					Source:        c.Source,
 					Controller:    c.Controller,
@@ -419,6 +438,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					ForgetOnMoved: forgetOn,
 					ExileOnMoved:  exileOn,
 					ForgetCounter: forgetCounter,
+					ForgetOnCast:  forgetOnCast,
 				}
 				h.AddContinuous(ce)
 				registered = true
@@ -536,6 +556,68 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				// objects only, so without this the remembered player would
 				// silently vanish.
 				ce.RememberedPlayers = effectRememberedPlayers(h, c, sa)
+			}
+			h.AddContinuous(ce)
+			registered = true
+		case "ReduceCost", "RaiseCost", "SetCost", "AlternativeCost":
+			// An Effect-delivered cost-modifier static (task
+			// param:api:Effect.ForgetOnCast; Marshland Bloodcaster's "Rather
+			// than pay the mana cost of the next spell you cast this turn, you
+			// may pay life equal to that spell's mana value", plus the 11
+			// Effect-delivered Mode$ ReduceCost carriers -- Kaza, Roil Chaser
+			// et al). Registered into the continuous registry with the line's
+			// own parameter map; the cost path reads it through the SAME
+			// readers the printed S: static route feeds (rules'
+			// collectCostStatics for the Raise/Reduce/Set modes, rules'
+			// alternativeCosts for AlternativeCost), so the two registration
+			// paths cannot disagree about what applies. The whitelist is the
+			// keys the cost chain's own gates evaluate plus display text: a
+			// line carrying a scoping parameter this build does not evaluate
+			// must not register blanket -- it is reported unimplemented
+			// instead (the permissive direction for a grant).
+			if !CostStaticParamsReadable(params) {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
+				registered = true
+				break
+			}
+			// Lifetime. The Duration$ spellings the corpus's cost carriers
+			// write are exactly two (measured 13/13 at the corpus pin):
+			// absent -- every one of whose texts says "this turn", so the
+			// grant is this-turn even from a battlefield source (the plain
+			// effectUntilEOT read would give a creature source the
+			// source-leaves lifetime and let the grant survive past the
+			// turn it was granted) -- and explicit Permanent (xho_cai,
+			// draconic_debut, stonehide, commander_liara's "the next ...",
+			// no "this turn"), which pairs with ForgetOnCast$ on every
+			// carrier: the lifetime is entirely forget-driven, CR 611.2a's
+			// Permanent read keeps the grant past its (already gone) spell
+			// source until the cast sweep ends it. Any other spelling falls
+			// to the shared effectUntilEOT read every other registration
+			// here uses.
+			untilEOT := effectUntilEOT(h, c.Source, dur)
+			permanent := false
+			switch {
+			case forgetOnCast != "" && strings.EqualFold(strings.TrimSpace(rawDur), "Permanent"):
+				untilEOT, permanent = false, true
+			case strings.TrimSpace(rawDur) == "":
+				untilEOT = true
+			}
+			ce := state.ContinuousEffect{
+				Source:           c.Source,
+				Controller:       c.Controller,
+				Name:             effectName,
+				UntilEOT:         untilEOT,
+				Permanent:        permanent,
+				Duration:         dur,
+				Remembered:       remembered,
+				ForgetOnMoved:    forgetOn,
+				ExileOnMoved:     exileOn,
+				ForgetCounter:    forgetCounter,
+				ForgetOnCast:     forgetOnCast,
+				CostStaticMode:   mode,
+				CostStaticParams: params,
+				ChosenNumber:     chosenNumber,
 			}
 			h.AddContinuous(ce)
 			registered = true
@@ -974,6 +1056,41 @@ func CantPutCounterParamsReadable(params map[string]string) bool {
 	for k := range params {
 		switch k {
 		case "Mode", "ValidCard", "ValidObject", "ValidPlayer", "CounterType", "AffectedZone", "Duration", "Description", "Secondary":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// CostStaticParamsReadable is the parameter whitelist an Effect-delivered
+// cost-modifier static (Mode$ ReduceCost/RaiseCost/SetCost/AlternativeCost
+// behind an AB$ Effect's StaticAbilities$ entry, task
+// param:api:Effect.ForgetOnCast) must pass before effEffect registers it
+// into the continuous registry. It lists exactly the keys the cost chain's
+// own gates evaluate -- rules' costStaticApplies (Type$, ValidCard$,
+// ValidSpell$, ValidTarget$, AffectedZone$, IsPresent$, OnlyFirstSpell$,
+// RaiseTo$, Secondary$, Relative$, CheckSVar$ + SVarCompare$, Condition$ --
+// whose unread values fail closed), costActorMatches (Activator$/Caster$),
+// costModifiers' own reads (Amount$, Cost$, Color$, MinMana$,
+// IgnoreGeneric$), alternativeCostScopeOK (ValidSA$, ValidPlayer$,
+// IsPresent$, EffectZone$, CheckSVar$/CheckSecondSVar$ + their compares,
+// ClassBand$), presentGate's PresentZone$/PresentCompare$ and the Announce$
+// X binding -- plus the display-only Description$ keys. A line carrying any
+// other key would register blanket where that key was meant to scope, so it
+// is refused: the unimplemented Note is the permissive direction for a
+// grant, exactly the whitelist discipline every other registration arm
+// here keeps.
+func CostStaticParamsReadable(params map[string]string) bool {
+	for k := range params {
+		switch k {
+		case "Mode", "Type", "ValidCard", "ValidSA", "ValidPlayer", "ValidSpell",
+			"ValidTarget", "Activator", "Caster", "Amount", "Cost", "Announce",
+			"Color", "MinMana", "IgnoreGeneric", "RaiseTo", "OnlyFirstSpell",
+			"IsPresent", "PresentZone", "PresentCompare", "CheckSVar", "SVarCompare",
+			"CheckSecondSVar", "SecondSVarCompare", "Condition", "EffectZone",
+			"AffectedZone", "Secondary", "Relative", "ClassBand",
+			"Description", "SpellDescription":
 		default:
 			return false
 		}

@@ -402,6 +402,42 @@ type ContinuousEffect struct {
 	// continuous-effect field.
 	ForgetCounter string
 
+	// ForgetOnCast carries the Effect's ForgetOnCast$ spec (task
+	// param:api:Effect.ForgetOnCast; Marshland Bloodcaster's "Rather than
+	// pay the mana cost of the NEXT spell you cast this turn", Dark
+	// Apostle's / Bigger on the Inside's one-cast cascade grant): the first
+	// qualifying spell cast ENDS the whole effect. The spec is a card spec
+	// over the cast spell, You-relative to the effect's controller, matched
+	// by rules' effectCastSweep at the deferred re-walk of the cast's
+	// PutOnStack (payCast, after payment) -- so an ABORTED proposal (one
+	// reversed before payment, CR 733.1) never consumes the grant while a
+	// completed cast, even one later countered, does. Empty means the
+	// effect never forgets (Forge's explicit False degrades to this at
+	// registration). Engine-runtime only, rebuilt by re-execution on
+	// replay like every other continuous-effect field.
+	ForgetOnCast string
+
+	// CostStaticMode carries an Effect-delivered cost-modifier static's
+	// mode ("ReduceCost"/"RaiseCost"/"SetCost"/"AlternativeCost" -- the
+	// parseStaticLine Mode$ of the SVar body the Effect SA's
+	// StaticAbilities$ entry named). The cost path reads it through the
+	// SAME readers the printed S: static route feeds -- rules'
+	// collectCostStatics for the Raise/Reduce/Set modes, rules'
+	// alternativeCosts for AlternativeCost -- so the two registration
+	// paths cannot disagree about what applies. Empty on every effect
+	// that delivers no cost static. Engine-runtime only, rebuilt by
+	// re-execution on replay like every other continuous-effect field.
+	CostStaticMode string
+
+	// CostStaticParams carries the static line's own parameter map (the
+	// parseStaticLine output effEffect whitelisted through
+	// effects.CostStaticParamsReadable before registering). The cost
+	// chain's gates (ValidCard$, Activator$/Caster$, ValidSA$, ValidPlayer$,
+	// ...) evaluate it exactly as they evaluate a printed static's map.
+	// Engine-runtime only, rebuilt by re-execution on replay like every
+	// other continuous-effect field.
+	CostStaticParams map[string]string
+
 	// AdjustLandPlays marks an additional-land-drops grant (Azusa, Lost but
 	// Seeking's "You may play two additional lands on each of your turns",
 	// Oracle of Mul Daya, Exploration): the number of EXTRA land drops the

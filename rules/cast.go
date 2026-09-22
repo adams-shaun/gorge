@@ -6825,6 +6825,14 @@ func (e *Engine) payCast() {
 	// nothing and asks nothing, so no game without a cascade carrier
 	// changes an event.
 	e.queueCascadeTriggers(pc.stackObj, pc.player)
+	// The Effect grants' cast-driven lifetime (ForgetOnCast$, task
+	// param:api:Effect.ForgetOnCast) ends the grants at this completed-cast
+	// moment, LAST in the pay stage: the qualifying cast often has its
+	// behaviour FROM the grant (Dark Apostle's granted cascade fires this
+	// very cast's cascade trigger, and the cascade resolution itself
+	// re-derives the spell's granted keywords), so every reader above must
+	// see pre-sweep state.
+	e.effectCastSweep(castEv)
 	e.cast, e.choosing = nil, chooseNone
 }
 
