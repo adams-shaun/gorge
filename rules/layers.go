@@ -2921,7 +2921,7 @@ func (e *Engine) restrictionApplies(ce ContinuousEffect, id state.ObjID) bool {
 	for _, r := range ce.Remembered {
 		sc.Remembered = append(sc.Remembered, state.Target{Obj: r})
 	}
-	return effects.MatchesSpecCtx(e.G, spec, id, sc)
+	return e.matchesSpec(spec, id, sc)
 }
 
 // restrictionActorMatches scopes a CantTarget restriction by Activator$:
@@ -2994,7 +2994,7 @@ func (e *Engine) SacrificeBlocked(id state.ObjID, forCost bool) bool {
 			}
 		}
 		if spec := sv.Params["ValidCard"]; spec != "" &&
-			effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(sv.Source, sv.Controller)) {
+			e.matchesSpec(spec, id, e.specCtx(sv.Source, sv.Controller)) {
 			return true
 		}
 	}
@@ -3077,7 +3077,7 @@ func (e *Engine) PutCounterBlocked(kind string, obj state.ObjID, player state.Pl
 			spec = strings.TrimSpace(sv.Params["ValidObject"])
 		}
 		if spec != "" {
-			if effects.MatchesSpecCtx(e.G, spec, obj, e.specCtx(sv.Source, sv.Controller)) {
+			if e.matchesSpec(spec, obj, e.specCtx(sv.Source, sv.Controller)) {
 				return true
 			}
 			continue
@@ -3124,7 +3124,7 @@ func (e *Engine) attackBlocked(id state.ObjID, defender state.PlayerID) bool {
 			continue
 		}
 		spec := sv.Params["ValidCard"]
-		if spec == "" || !effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(sv.Source, sv.Controller)) {
+		if spec == "" || !e.matchesSpec(spec, id, e.specCtx(sv.Source, sv.Controller)) {
 			continue
 		}
 		if !restrictionPlayerTargetMatches(e.G, sv.Params["Target"], defender, sv.Controller, nil) {
