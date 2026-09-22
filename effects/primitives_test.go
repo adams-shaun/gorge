@@ -930,7 +930,7 @@ func TestEffectRecordsTheIntendedRegistration(t *testing.T) {
 // TestEffectDeliveredSetMaxHandSizeRegisters pins the Effect-delivery half of
 // the SetMaxHandSize$ read: a DB$ Effect whose StaticAbilities$ SVar carries
 // "Mode$ Continuous | Affected$ You | SetMaxHandSize$ Unlimited" (Finale of
-// Revelation's STHandSize, Wrenn and Six's UnlimitedHand) must register a
+// Revelation's STHandSize, Wrenn and Seven's UnlimitedHand) must register a
 // continuous effect carrying the value, not fall to the unimplemented Note.
 // The registration is what rules' maxHandSizeFor consults for the cleanup
 // gate, so without it the effect is invisible and the CR 514.1 discard still

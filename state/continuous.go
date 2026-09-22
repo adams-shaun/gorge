@@ -258,7 +258,7 @@ type ContinuousEffect struct {
 	// the Affects spec and this field are what the consultation reads. Empty on
 	// every effect that does not set a maximum hand size. Registered by
 	// effects' effEffect (the Effect-delivered route: Finale of Revelation's
-	// STHandSize, Wrenn and Six's UnlimitedHand) and read beside the printed
+	// STHandSize, Wrenn and Seven's UnlimitedHand) and read beside the printed
 	// S:-static scan so the two routes cannot disagree about the value's
 	// grammar (rules' handSizeValue).
 	SetMaxHandSize string

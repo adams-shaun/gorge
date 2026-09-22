@@ -1952,7 +1952,7 @@ const unlimitedHandSize = 1 << 20
 // "Unlimited"; a numeric value sets the maximum outright, Forge's
 // StaticAbilityContinuous RULES layer reads both shapes), plus the
 // Effect-delivered route (an Effect whose StaticAbilities$ SVar carries the
-// same S: line -- Finale of Revelation's STHandSize, Wrenn and Six's
+// same S: line -- Finale of Revelation's STHandSize, Wrenn and Seven's
 // UnlimitedHand), else the default.
 //
 // Both routes are consulted through the ONE value grammar
