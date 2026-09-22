@@ -1538,6 +1538,11 @@ var handRoots = struct {
 		// mustAttackRequired has. staticPresentHolds (its IsPresent$/
 		// PresentCompare$ gate) is reached through it.
 		"UntapOtherPlayer": {"Engine.untapOtherStaticsMatch"},
+		// lookExtra is the shared reader for the two look-addition static
+		// modes; its variable activeStatics call and value parser are not
+		// discoverable from a literal mode dispatch site.
+		"SurveilNum": {"Engine.lookExtra", "Engine.surveilNumValue"},
+		"ScryNum":    {"Engine.lookExtra", "Engine.surveilNumValue"},
 	},
 	// The trigger-queue drain and the stack-resolution paths read trigger
 	// params (OptionalDecider$, TriggerDescription$, Static$, ValidCard$)
