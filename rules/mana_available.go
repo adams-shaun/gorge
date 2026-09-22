@@ -95,6 +95,86 @@ func manaFreeCost(c Cost) bool {
 		len(c.Hybrid) == 0 && len(c.Phyrexian) == 0
 }
 
+// windowManaUnit is one untapped permanent's single free-cost mana ability
+// as a PAYMENT WINDOW sees it: the exact ability resolveManaAbility will
+// resolve (so the activation poses no chooseMana sub-ask), its Produced$
+// colour counts, and its literal amount. It is the shared membership behind
+// every payment window that must not promise more than it can tap -- the
+// declare-attackers attack-cost window (attackManaSources) and the
+// mid-resolution unless-cost window (unlessManaBudget), so their offer
+// gates and their tap lists cannot drift apart.
+type windowManaUnit struct {
+	id     state.ObjID
+	ma     *cards.SA
+	counts [6]int32
+	amt    int32
+}
+
+// windowManaUnits walks p's battlefield in zone order and returns every
+// untapped permanent whose PAYMENT-WINDOW mana abilities contain exactly one
+// free-cost ability whose production this build can price deterministically.
+// It is deliberately narrower than untappedManaSource in four honest ways a
+// payment-window affordability bound must honour:
+//
+//   - the abilities come from availableManaAbilitiesForWindow(p, id, false),
+//     so an InstantSpeed$ True ability (Lion's Eye Diamond, "Activate only as
+//     an instant") is withheld -- the window genuinely cannot activate it, so
+//     counting it would let the offer gate promise mana the window cannot
+//     tap (the review's stranding defect);
+//   - a RestrictValid$-governed ability is excluded: its produced batch may
+//     not pay the cost, so counting its units would overstate reach;
+//   - several free abilities contribute nothing: the permanent taps for one
+//     of them, not their sum;
+//   - an Indeterminate Amount$ ("X", "Y", a Count$) yields no guaranteed
+//     amount, and a choice-shaped production ("Combo B R", "Chosen") names
+//     no single colour -- forward-direction symbols ("G", "R G", "RR") and
+//     the executor's own blank/"Any"/"Combo Any" one-colourless default are
+//     the only deterministic shapes. The default is returned as counts[5]==1
+//     (the same colourless slot AvailableMana folds it into) so a consumer
+//     that needs a colour vector (unlessManaBudget) sees exactly what the
+//     window can produce.
+func (e *Engine) windowManaUnits(p state.PlayerID) []windowManaUnit {
+	var out []windowManaUnit
+	for _, id := range e.G.Zone(state.ZBattlefield, p) {
+		o := e.G.Obj(id)
+		if o == nil || o.Tapped || o.Face() == nil {
+			continue
+		}
+		var free []*cards.SA
+		for _, ma := range e.availableManaAbilitiesForWindow(p, id, false) {
+			if strings.TrimSpace(ma.Params["RestrictValid"]) != "" {
+				continue
+			}
+			if manaFreeCost(e.parseCost(ma.Params["Cost"])) {
+				free = append(free, ma)
+			}
+		}
+		if len(free) != 1 {
+			continue
+		}
+		ma := free[0]
+		amt := availableAmount(ma)
+		if amt <= 0 {
+			continue
+		}
+		counts, any := cards.ProducedCounts(ma.Params["Produced"])
+		total := int32(0)
+		for _, n := range counts {
+			total += n
+		}
+		if any {
+			// Only the executor's deterministic one-colourless default counts.
+			if total != 1 || counts[5] != 1 {
+				continue
+			}
+		} else if total <= 0 {
+			continue
+		}
+		out = append(out, windowManaUnit{id: id, ma: ma, counts: counts, amt: amt})
+	}
+	return out
+}
+
 // addAvailable folds one free-to-tap mana ability into an available-mana
 // accumulator through cards.ProducedCounts -- the ONE Produced$ parse the
 // per-face projection (cards.ManaiProduction.add) and this aggregate share,

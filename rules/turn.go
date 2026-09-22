@@ -1238,7 +1238,8 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 	case chooseMana:
 		// Several individual mana abilities share one tap cost. A payment
 		// window resumes its cast after the selected ability resolves; Ward's
-		// and UnlessCost$'s mid-resolution payment windows reopen instead.
+		// mid-resolution payment window reopens instead. An ordinary
+		// activation falls through to Advance's priority round.
 		cast := e.answerManaActivation(chosen)
 		if e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile {
 			if e.wardMana != nil {
@@ -1286,8 +1287,6 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		if e.pending == nil && e.choosing != chooseManaColor {
 			if e.wardMana != nil {
 				e.continueWardMana()
-			} else if e.unlessPayment != nil {
-				e.advanceUnlessPayment()
 			} else if cast {
 				e.continueCast()
 			}

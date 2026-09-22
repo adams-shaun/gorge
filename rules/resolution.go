@@ -1232,7 +1232,8 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// never disagree. An SVar the ctx's table lacks or whose body does
 			// not resolve passes through raw and lands in the same hard
 			// decline as before.
-			paid, ok := ParseUnlessCost(effects.UnlessCostResolved(e, ctx, rp.sa))
+			rawUnlessCost := effects.UnlessCostResolved(e, ctx, rp.sa)
+			paid, ok := ParseUnlessCost(rawUnlessCost)
 			if !ok {
 				// I-5: an unless-cost the payment API cannot price is a hard
 				// DECLINE. ParseCost("X") is {Generic:0, X:1}; payMana never
@@ -1255,7 +1256,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				// cost type) keeps the decision on the wire for hosts to observe
 				// while never letting an empty pool satisfy it.
 				ctx.UnlessPay = "decline"
-			} else if len(chosen) > 0 && chosen[0].Index == 0 {
+			} else if len(chosen) > 0 && chosen[0].Index == 0 && e.UnlessCostPayable(chosen[0].Player, rawUnlessCost) {
 				if len(paid.Sac) > 0 || len(paid.Discard) > 0 || len(paid.Reveal) > 0 || len(paid.RevealChosen) > 0 {
 					// Sacrifice, discard and reveal are choice-bearing costs.
 					// Park this resume before any mutation and let the payer
@@ -1266,10 +1267,12 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 				if e.payUnlessCost(chosen[0].Player, paid, ctx, rp.obj) {
 					ctx.UnlessPay = "pay"
-				} else if paid.hasManaPayment() && e.hasUntappedManaSource(chosen[0].Player) {
+				} else if paid.hasManaPayment() && len(e.windowManaUnits(chosen[0].Player)) > 0 {
 					// A failed pool-only attempt is not a decline: open the
 					// CR 601.2g mana-ability window and resume this exact frame
-					// after the payer has assembled enough floating mana.
+					// after the payer has assembled enough floating mana. The
+					// offer gate proved the budget reachable before Pay was
+					// offered, so sources remain while the charge is unmet.
 					e.beginUnlessPayment(chosen[0].Player, paid, ctx, rp.obj, rp)
 					return
 				} else {

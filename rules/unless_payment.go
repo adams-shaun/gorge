@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
@@ -33,9 +34,6 @@ type unlessPayment struct {
 	// two parts — and the settled picks are announced with one public Note
 	// (the same event the cast flow's emitChoiceCosts emits).
 	reveals []state.ObjID
-	// manaWindow keeps the resolution suspended while the payer activates
-	// mana abilities for this unless cost.
-	manaWindow bool
 }
 
 func cloneUnlessCtx(in effects.Ctx) effects.Ctx {
@@ -53,15 +51,30 @@ func cloneUnlessCtx(in effects.Ctx) effects.Ctx {
 	return out
 }
 
-// beginUnlessPayment begins a payer-selected payment. It owns all Sac,
-// Discard and Reveal components, including the exact-candidate no-ask cases,
-// so neither this path nor a future sibling can fall back to a
-// first-in-zone-order pick.
+// unlessManaBudget is the unless offer gate's affordability bound: the
+// payer's floating pool plus the mana windowManaUnits can actually produce.
+// It shares windowManaUnits with the window's own tap list, so the "pay"
+// option is offered only when the window can reach the charge -- an ordinary
+// land taps into this budget, an InstantSpeed$-only or RestrictValid$-
+// governed ability does not (the t2 review's stranding defect). The pool term
+// is the floating mana payMana already spends directly.
+func (e *Engine) unlessManaBudget(p state.PlayerID) state.Mana {
+	out := e.G.Players[p].Pool
+	for _, u := range e.windowManaUnits(p) {
+		for i, n := range u.counts {
+			out[state.ManaIndex(cards.ManaSymbol(i))] += n * u.amt
+		}
+	}
+	return out
+}
+
 // UnlessCostPayable is the rules-side offer gate for the generic unless
-// election. It includes the CR 601.2g payment reach: floating mana or a
-// reachable combination of currently usable mana sources. Merely having one
-// source is not enough: a {3} tax with one Island, or a {R} tax with only an
-// Island, must not offer a pay branch.
+// election. A cost is offered when the payer's pool alone can pay it, or when
+// its mana component plus the window's reachable sources can. A non-mana
+// component (Sac/Discard/Reveal/Counter/Draw) still needs its own choice, so
+// the bound is deliberately generous for those: the mana half is what the
+// window decides. An unpriceable cost is not gated here -- ParseUnlessCost's
+// ok=false is the hard decline the ask path already records.
 func (e *Engine) UnlessCostPayable(p state.PlayerID, raw string) bool {
 	cost, ok := ParseUnlessCost(raw)
 	if !ok {
@@ -72,21 +85,15 @@ func (e *Engine) UnlessCostPayable(p state.PlayerID, raw string) bool {
 		return true
 	}
 	if !cost.hasManaPayment() {
-		return false
+		return true
 	}
-	// AvailableMana is deliberately conservative: it includes only free,
-	// fixed-producing, singleton mana abilities, but it is exact for the
-	// ordinary land sources this payment window can activate. This keeps the
-	// offer gate from promising a colour or amount that the window cannot
-	// actually produce.
-	available := e.AvailableMana(p)
-	pool := player.Pool
-	for i, n := range available {
-		pool[i] += n
-	}
-	return cost.payable(pool, player.Snow, player.TypedMana, player.Life)
+	return cost.payable(e.unlessManaBudget(p), player.Snow, player.TypedMana, player.Life)
 }
 
+// beginUnlessPayment begins a payer-selected payment. It owns all Sac,
+// Discard and Reveal components, including the exact-candidate no-ask cases,
+// so neither this path nor a future sibling can fall back to a
+// first-in-zone-order pick.
 func (e *Engine) beginUnlessPayment(payer state.PlayerID, cost Cost, ctx *effects.Ctx, stackObj state.ObjID, rp *resumePoint) {
 	e.unlessPayment = &unlessPayment{payer: payer, cost: cost, ctx: cloneUnlessCtx(*ctx), stackObj: stackObj, rp: rp}
 	e.advanceUnlessPayment()
@@ -122,10 +129,21 @@ func (e *Engine) advanceUnlessPayment() {
 		return
 	}
 	if int(u.payer) < 0 || int(u.payer) >= len(e.G.Players) ||
-		(!u.manaWindow && !u.cost.payable(e.G.Players[u.payer].Pool, e.G.Players[u.payer].Snow, e.G.Players[u.payer].TypedMana, e.G.Players[u.payer].Life) &&
-			!(u.cost.hasManaPayment() && e.hasUntappedManaSource(u.payer))) ||
 		!e.unlessCountersAffordable(u) ||
 		!u.revealChosenDesignated(e) {
+		e.finishUnlessPayment(false)
+		return
+	}
+	// A mana component the pool cannot yet cover opens the one-source-at-a-
+	// time CR 601.2g window (the ward/attack-prop discipline) rather than
+	// declining: the payer taps until the pool covers the charge, then the
+	// ordinary path below pays it. The window is only opened while a source
+	// remains that the budget counted.
+	if !u.cost.payable(e.G.Players[u.payer].Pool, e.G.Players[u.payer].Snow, e.G.Players[u.payer].TypedMana, e.G.Players[u.payer].Life) {
+		if u.cost.hasManaPayment() && len(e.windowManaUnits(u.payer)) > 0 {
+			e.askUnlessMana()
+			return
+		}
 		e.finishUnlessPayment(false)
 		return
 	}
@@ -181,14 +199,7 @@ func (e *Engine) advanceUnlessPayment() {
 		}
 		drawers[i] = players
 	}
-	if !e.payMana(u.payer, u.cost) {
-		// Assemble floating mana one source at a time, as in Ward and the
-		// cast payment window, rather than treating an empty pool as a decline.
-		if u.cost.hasManaPayment() && e.hasUntappedManaSource(u.payer) {
-			u.manaWindow = true
-			e.askUnlessMana()
-			return
-		}
+	if !e.payMana(u.payer, u.cost) { // guarded above; retain totality if state changes.
 		e.finishUnlessPayment(false)
 		return
 	}
@@ -235,6 +246,10 @@ func (e *Engine) advanceUnlessPayment() {
 	e.finishUnlessPayment(true)
 }
 
+// askUnlessMana opens one tap ask over the payer's remaining window-eligible
+// sources. "Done" is always legal: it settles the payment (the ordinary path
+// declines if the pool still cannot cover the charge) and is the R-9
+// no-host-compatible completion.
 func (e *Engine) askUnlessMana() {
 	u := e.unlessPayment
 	if u == nil {
@@ -242,24 +257,24 @@ func (e *Engine) askUnlessMana() {
 	}
 	d := &decision.Decision{Player: u.payer, Kind: decision.KChoose, Min: 1, Max: 1,
 		Prompt: "Activate mana abilities to pay the unless cost", ResumeKind: "unless_mana"}
-	for _, id := range e.G.Zone(state.ZBattlefield, u.payer) {
-		if e.untappedManaSource(u.payer, id) {
-			o := e.G.Obj(id)
-			label := "Tap a mana source"
-			if o != nil && o.Face() != nil {
-				label = "Tap " + o.Face().Name + " for mana"
-			}
-			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "activate", Obj: id, Label: label})
+	for _, src := range e.windowManaUnits(u.payer) {
+		label := "Tap a mana source"
+		if o := e.G.Obj(src.id); o != nil && o.Face() != nil {
+			label = "Tap " + o.Face().Name + " for mana"
 		}
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "activate", Obj: src.id, Label: label})
 	}
-	// Done is intentionally always legal: it lets the payer settle the cost
-	// after the last activation, and is the R-9 no-host-compatible decline when
-	// no payment can actually be completed.
 	d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "done", Label: "Done"})
 	e.choosing = chooseUnlessMana
 	e.ask(d)
 }
 
+// answerUnlessMana applies one window answer. "Done" re-enters the ordinary
+// payment path (which declines if the pool is still short); an activation
+// resolves the recorded ability -- the exact *cards.SA the membership walk
+// captured, so no chooseMana sub-ask is posed -- and then either re-enters
+// advanceUnlessPayment (a sub-askless activation) or waits for
+// handleChoose's continuation.
 func (e *Engine) answerUnlessMana(chosen []decision.Option) {
 	u := e.unlessPayment
 	e.choosing = chooseNone
@@ -267,18 +282,24 @@ func (e *Engine) answerUnlessMana(chosen []decision.Option) {
 		return
 	}
 	if chosen[0].Kind == "done" {
-		u.manaWindow = false
 		e.advanceUnlessPayment()
 		return
 	}
-	if chosen[0].Kind != "activate" || !e.untappedManaSource(u.payer, chosen[0].Obj) {
+	if chosen[0].Kind != "activate" {
 		e.finishUnlessPayment(false)
 		return
 	}
-	e.activateManaPayment(u.payer, chosen[0].Obj, false)
-	if e.Pending() == nil {
-		e.advanceUnlessPayment()
+	for _, src := range e.windowManaUnits(u.payer) {
+		if src.id != chosen[0].Obj {
+			continue
+		}
+		e.resolveManaAbility(u.payer, src.id, src.ma, false)
+		if e.Pending() == nil {
+			e.advanceUnlessPayment()
+		}
+		return
 	}
+	e.finishUnlessPayment(false)
 }
 
 func (e *Engine) unlessPaymentCandidates(u *unlessPayment, zone state.Zone, kind string, part CostPart) []state.ObjID {

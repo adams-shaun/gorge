@@ -265,10 +265,10 @@ func poseUnlessAsk(h Host, c *Ctx, sa *cards.SA, cost string, payers []state.Tar
 			}
 		}
 	}
-	// Rules hosts can prove whether the pay branch is reachable using both
-	// floating mana and tappable mana sources. Keep the pay option for the
-	// effects test host (and other embedders) that cannot provide that proof;
-	// R-9 still declines when it cannot ask.
+	// Rules hosts prove whether the pay branch is reachable (floating mana
+	// plus the sources the payment window can tap). The effects test host
+	// (and other embedders) keep the two options -- R-9 still declines when it
+	// cannot ask.
 	payable := true
 	if checker, ok := h.(interface {
 		UnlessCostPayable(state.PlayerID, string) bool
