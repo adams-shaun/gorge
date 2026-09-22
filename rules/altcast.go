@@ -394,6 +394,60 @@ func (e *Engine) warpRecastAvailable(id state.ObjID) bool {
 // resolution's own stack move -- fails step 2, so a re-exiled foretell card
 // never inherits the old provenance. Everything is a fixed-order walk of the
 // log, so a replayed game derives the same answer.
+// mayhemCastCost is id's Mayhem cast cost (the Doom Prevails keyword): the
+// K:Mayhem colon parameter is the ALTERNATIVE mana cost the graveyard cast
+// pays in place of the card's mana cost (Abomination, World Ravager's
+// "for {4}{R}"). The bare parameterless K:Mayhem -- Oscorp Industries, the
+// one corpus line -- is the separate "you may PLAY this card from your
+// graveyard" land shape, not a cast, so it is withheld here. A cost the
+// parser cannot price (no corpus carrier today) is withheld rather than
+// charged wrong, the escapeCost convention. Read off the DERIVED keyword
+// list, so a continuous-effect grant would count exactly where a printed
+// K:Mayhem line does.
+func (e *Engine) mayhemCastCost(id state.ObjID) (Cost, bool) {
+	raw, ok := e.derivedKeywordParam(id, "Mayhem")
+	if !ok || strings.TrimSpace(raw) == "" {
+		return Cost{}, false
+	}
+	c := ParseCost(raw)
+	if len(c.Unknown) > 0 || c.X > 0 {
+		return Cost{}, false
+	}
+	return c, true
+}
+
+// mayhemDiscardedThisTurn is Mayhem's provenance gate ("if you discarded it
+// this turn"): some events.IsDiscard move of id since the last TurnChange
+// naming p as the discarder -- the ordinary discard by its Player field, the
+// cost form (events.DiscardCost carries no Player) by the card's owner,
+// since a cost discard is paid from the payer's own hand (CR 118.2a, the
+// same read CardsDiscardedThisTurn takes). Log-derived so a replayed game
+// derives the same answer, like warpRecastAvailable and
+// foretellCastAvailable; the last TurnChange bounds the window, so a card
+// discarded LAST turn has no offer even while it still sits in the
+// graveyard.
+func (e *Engine) mayhemDiscardedThisTurn(p state.PlayerID, id state.ObjID) bool {
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			return false
+		}
+		if ev.Kind != events.MoveZone || ev.Obj != id || !events.IsDiscard(ev) {
+			continue
+		}
+		if events.IsDiscardCost(ev) {
+			if o := e.G.Obj(id); o != nil && o.Owner == p {
+				return true
+			}
+			continue
+		}
+		if ev.Player == p {
+			return true
+		}
+	}
+	return false
+}
+
 func (e *Engine) foretellCastAvailable(id state.ObjID) bool {
 	log := e.L.Events
 	exileIdx := -1

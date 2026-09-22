@@ -1907,6 +1907,21 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		} else {
 			cost = Cost{}
 		}
+	case "mayhem":
+		// Mayhem (the Doom Prevails keyword): a graveyard cast paying the
+		// mayhem cost in place of the mana cost -- the alternative-cost
+		// substitution family, the Miracle shape. The discard-this-turn
+		// provenance gate is the OFFER's gate (legal.go's graveyard walk via
+		// mayhemDiscardedThisTurn); the charge only re-reads the cost through
+		// the same helper, so offer and charge cannot drift, and a stale
+		// option whose keyword is gone falls back to the empty cost like the
+		// family above. No mode flag: Mayhem has no post-resolution behaviour
+		// to prove (no exile tail), so a declined-to-copy cast is byte-identical.
+		if mc, ok := e.mayhemCastCost(id); ok {
+			cost = mc
+		} else {
+			cost = Cost{}
+		}
 	case "mutated":
 		// Mutate (CR 702.140a): the mutate cast pays the MUTATE cost in place
 		// of the mana cost -- the same substitution the offer gate priced

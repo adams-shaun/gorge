@@ -2122,6 +2122,39 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		}
 	}
 
+	// Mayhem (the Doom Prevails keyword): a card in its owner's graveyard
+	// that was discarded THIS TURN may be cast for its mayhem cost -- a cost
+	// SUBSTITUTION ("cast this card from your graveyard for {4}{R}"), not an
+	// addition, and no post-resolution destination change: the oracle's only
+	// rider is "Timing rules still apply", which spellTimingOK enforces, so
+	// the spell resolves like an ordinary cast. The provenance gate is
+	// log-derived (mayhemDiscardedThisTurn), the same shape the warp-recast
+	// and foretell gates take, so a replayed game derives the same offer;
+	// the cost helper reads the derived keyword list, so a continuous-effect
+	// grant would count. The bare parameterless K:Mayhem is the "play this
+	// card" LAND shape (Oscorp Industries) and is withheld here -- not a
+	// cast. Offer and charge both go through mayhemCastCost, so they cannot
+	// drift.
+	for _, id := range e.G.Zone(state.ZGraveyard, p) {
+		o := e.G.Obj(id)
+		f := o.Face()
+		if f == nil || castRestricted(p, id) || e.castSuppressed(p, id) {
+			continue
+		}
+		mc, ok := e.mayhemCastCost(id)
+		if !ok || !e.mayhemDiscardedThisTurn(p, id) {
+			continue
+		}
+		if !e.spellTimingOK(p, id, f, sorcery) ||
+			!e.castTargetsAvailable(p, id, f.SpellAbility()) {
+			continue
+		}
+		if offerCastable(p, id, mc, spellScope("mayhem"), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (mayhem)", Obj: id, Mode: "mayhem"})
+		}
+	}
+
 	// Warp recast from exile (CR 702: "exile this creature at the beginning
 	// of the next end step, then you may cast it from exile on a later
 	// turn"). The exile-zone walk offers the cast only to a warp card that
