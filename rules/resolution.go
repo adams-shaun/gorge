@@ -1581,6 +1581,19 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			if len(chosen) > 0 {
 				ctx.ChosenType = chosen[0].Label
 			}
+		case "manareflected":
+			// A standalone AB$ ManaReflected colour ask (the mid-resolution
+			// choice effManaReflected poses when a DB$/SP$ body reflecting
+			// several colours resolves outside the mana-activation path) was
+			// answered. The option Label ("Add W") carries the picked colour;
+			// the re-entered effManaReflected consumes and clears it and emits
+			// the answered ManaAdd, so a nested ManaReflected poses its own ask.
+			// An empty answer (malformed -- the ask is Min 1/Max 1 over a set of
+			// two or more) leaves the field empty, and the effect's re-entry
+			// degrades to its deterministic first candidate.
+			if len(chosen) > 0 {
+				ctx.ManaReflectedColor = chosen[0].Label
+			}
 		case "taporuntap":
 			// A TapOrUntap's tap-vs-untap election (api:TapOrUntap, Merrow
 			// Reejerey / Twiddle) was answered. Each offered option carries the
