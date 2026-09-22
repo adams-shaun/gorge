@@ -130,11 +130,24 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 		n = Num(h, c, sa, "CounterNum", 1)
 	} else if strings.TrimSpace(sa.Params["Adapt"]) != "" {
 		n = Num(h, c, sa, "Adapt", 1)
+	} else if strings.TrimSpace(sa.Params["Monstrosity"]) != "" {
+		// Monstrosity$ (CR 701.31; Giggling Skitterspike's `{5}: Monstrosity
+		// 5`, task agent-20260919T190014Z): a Monstrosity line names its own
+		// counter amount and no carrier pairs it with CounterNum$/Adapt$
+		// (measured over the 36 raw corpus lines), so the read is a fallback
+		// in the same chain. The literal AND X shapes resolve through the
+		// ordinary Num grammar -- the announced X (Domesticated Hydra's
+		// `Cost$ X G G G`, Vitality Hunter's `Cost$ X W W`) and an SVar X
+		// (Grim Giganotosaurus's `SVar:X:Count$Valid
+		// Creature.OppCtrl+powerGE4`). An unresolvable body degrades to 0,
+		// Num's convention.
+		n = Num(h, c, sa, "Monstrosity", 1)
 	}
 	if n < 0 {
 		n = 0
 	}
 	adapt := strings.TrimSpace(sa.Params["Adapt"]) != ""
+	mono := strings.TrimSpace(sa.Params["Monstrosity"]) != ""
 	kind := sa.Params["CounterType"]
 	if kind == "" {
 		kind = "P1P1"
@@ -289,7 +302,32 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 		if adapt && o.Counter("P1P1") > 0 {
 			continue
 		}
+		// CR 701.31b defense-in-depth: a monstrosity ability's activation is
+		// gated once-only at offer time (rules/legal.go's monstrosityGateOK),
+		// but the resolve-time read keeps an already-monstrous permanent from
+		// taking a second batch through a path no offer gate covers (a
+		// chained body, a future granted route). Corpus-unreachable today.
+		if mono && o.Monstrous {
+			continue
+		}
 		h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: kind, Amount: n})
+		// The mark (CR 701.31b: "...and it becomes monstrous"): one
+		// AlterAttribute per placed object, emitted AFTER its counters so the
+		// BecomeMonstrous triggers see the counters already landed. Amount is
+		// the monstrosity COUNT -- Hydra Broodmaster's
+		// `SVar:MonstrosityX:TriggerCount$Amount` reads the triggering event's
+		// Amount -- and Player names the controller at mark time so the
+		// trigger's referents bind it. Gated on the param's presence, so every
+		// other PutCounter shape emits byte-identically; gated on n > 0, so a
+		// body whose monstrosity amount resolves to 0 (Clay Golem's
+		// `Monstrosity$ X` where X is a die result the unmodelled RollDice
+		// cost token never publishes -- Num degrades it to 0) never emits a
+		// mark and never fires its BecomeMonstrous trigger: the creature
+		// never became monstrous, and a paid no-op must not Berserk.
+		if mono && n > 0 {
+			h.Emit(events.Event{Kind: events.AlterAttribute, Obj: o.ID,
+				Player: o.Controller, Text: "Monstrous", Amount: n})
+		}
 		if !t.IsPlayer && t.Obj != 0 {
 			placed = append(placed, t)
 		}

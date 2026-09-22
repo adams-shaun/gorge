@@ -179,6 +179,15 @@ func Apply(g *state.Game, e Event) {
 			switch e.Text {
 			case "Suspected":
 				o.Suspected = e.Amount >= 1
+			case "Monstrous":
+				// CR 701.31b's monstrous designation (Giggling Skitterspike's
+				// `{5}: Monstrosity 5`, task agent-20260919T190014Z): Amount is
+				// the monstrosity COUNT the resolving ability carried (the
+				// BecomeMonstrous triggers' `SVar:MonstrosityX:TriggerCount$Amount`
+				// reads it back), and Amount >= 1 sets the mark. CR 701.31 gives
+				// the designation no controller-change end -- the only clear is
+				// the Move fold's leaving-battlefield block below.
+				o.Monstrous = e.Amount >= 1
 			case "Plotted":
 				// CR 701.34c: the plotted designation on an exiled card. The
 				// grant stamps PlottedTurn with the CURRENT turn so the free
@@ -795,6 +804,7 @@ func Apply(g *state.Game, e Event) {
 			// path).
 			if o := g.Obj(e.Obj); o != nil {
 				o.Suspected = false
+				o.Monstrous = false
 				o.PlottedTurn = 0
 			}
 		}

@@ -669,6 +669,17 @@ func (e *Engine) targetBoundCtx(p state.PlayerID, source state.ObjID) (*effects.
 		return nil, false
 	}
 	ctx := &effects.Ctx{Controller: p}
+	// A trigger's dynamic target bound reading the causing event (Vitality
+	// Hunter's `TargetMax$ MaxTgts` with `SVar:MaxTgts:TriggerCount$Amount`,
+	// task agent-20260919T190014Z): the trigger context recorded for this
+	// stack wrapper carries TriggerAmount, so the bound reads the mark/damage
+	// magnitude instead of degrading to the clamp's 1. Measured corpus: the
+	// ONLY two TargetMax$ TriggerCount$Amount shapes (one inline, one behind
+	// the MaxTgts SVar name) are Vitality Hunter's; every other dynamic bound
+	// names a Count$ body targetBoundCtx's SVar table already resolves.
+	if tc, ok := e.triggerContexts[source]; ok {
+		ctx.TriggerContext = tc
+	}
 	// The pending cast's own multikicker count (rules/cast.go's multikickAsk):
 	// at the CR 601.2c announcement ask the pay-time CastInfo has not run
 	// yet, so a TimesKicked bound (Comet Storm's TargetMin/Max$ TargetsNum)
