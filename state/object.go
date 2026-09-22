@@ -48,6 +48,21 @@ type SacrificedInfo struct {
 	ManaValue int32
 }
 
+// LKIObject is the last-known-information snapshot of an object a
+// ChangeZoneRememberLKI$ move captured: the controller and owner it had
+// while the move happened. events.Apply's Move resets a battlefield
+// departure's controller to its owner (CR 400.7), so a later reader of "the
+// exiled creature's controller" -- Forge's TokenOwner$ ImprintedController,
+// the Boar Curse of the Swine makes for each exiled creature -- can no
+// longer recover it from the live object. Forge captures a full Card LKI
+// copy at the same point (ChangeZoneEffect's CardCopyService.getLKICopy);
+// this struct is the slice of it this build's readers need.
+type LKIObject struct {
+	Obj        ObjID
+	Controller PlayerID
+	Owner      PlayerID
+}
+
 // CastFlags bits record how an object was cast. Several can be set at once
 // (a spell can be both kicked and cast via flashback), so they are
 // OR-combined into one byte rather than modeled as separate bools.
