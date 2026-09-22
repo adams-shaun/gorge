@@ -343,8 +343,10 @@ var coreCardTypes = []string{"Artifact", "Battle", "Creature", "Enchantment",
 //
 // Solved (the Case permanents' solved flag) names state this build does not
 // track, so that gate FAILS CLOSED -- the conservative direction for an
-// "only if" condition whose meeting cannot be verified (measured at the
-// current corpus pin: 3 raw lines, none in the decks).
+// "only if" condition whose meeting cannot be verified. Blessing is the
+// city's-blessing latch in state.Player and is read by the same offer-time
+// gate as the other conditions. No repo-deck card carries Solved or Blessing
+// (measured at the current corpus pin: 3 raw lines each, none in the decks).
 func (e *Engine) activationConditionOK(p state.PlayerID, ab *cards.SA) bool {
 	raw, ok := ab.Params["Activation"]
 	if !ok || strings.TrimSpace(raw) == "" {
@@ -368,7 +370,7 @@ func (e *Engine) activationConditionOK(p state.PlayerID, ab *cards.SA) bool {
 		// the Condition$ Blessing gate and the Count$Blessing branch head
 		// read. An out-of-range activator denies -- the fail-closed
 		// direction a blessing gate that cannot name its seat must take.
-		return int(p) < len(e.G.Players) && e.G.Players[p].Blessing
+		return int(p) < len(e.G.Players) && !e.G.Players[p].Lost && e.G.Players[p].Blessing
 	case "Delirium":
 		seen := map[string]bool{}
 		for _, id := range e.G.Zone(state.ZGraveyard, p) {
@@ -1144,6 +1146,10 @@ func (e *Engine) grantedAbilities(p state.PlayerID, id state.ObjID) []grantedAbi
 		}
 		for _, nm := range ce.AddAbilities {
 			svars := ce.SVars
+			grantor := ce.AbilityGrantor
+			if grantor == 0 {
+				grantor = ce.Source
+			}
 			if svars == nil {
 				svars = src.Face().SVars
 			}
@@ -1151,7 +1157,7 @@ func (e *Engine) grantedAbilities(p state.PlayerID, id state.ObjID) []grantedAbi
 			if ab == nil || ab.Kind != "AB" {
 				continue
 			}
-			out = append(out, grantedAbility{sa: ab, source: ce.Source, svar: nm})
+			out = append(out, grantedAbility{sa: ab, source: grantor, svar: nm})
 		}
 	}
 	return out
@@ -2694,6 +2700,21 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 			}
 			// advanceStep's own emit carries the reset pass count; the count
 			// this round reached is never itself a value anything observes.
+			//
+			// CR 514.3b (mayflashsac2, review round 3): an emptied cleanup-step
+			// stack is NOT licence to advance. The rules require the cleanup
+			// procedure to REPEAT, redoing its 514.1/514.2 actions, after a
+			// trigger resolves or a player acts in this window -- an instant
+			// cast here (Giant Growth) must have its 'until end of turn' effect
+			// expire in the repeated cleanup, and a trigger that drew the
+			// active player over the hand limit must face the repeat's
+			// discard. advanceStep would instead begin the next turn outright,
+			// skipping both. repeatCleanup runs the whole procedure once more
+			// and itself reaches advanceStep only when nothing is waiting.
+			if e.G.Step == state.StepCleanup {
+				e.repeatCleanup()
+				return
+			}
 			e.advanceStep()
 			return
 		}

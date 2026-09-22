@@ -289,14 +289,18 @@ func Describe(g *state.Game, ev events.Event) string {
 			s += " " + obj(g, ev.IDs[0])
 		}
 		return s
-	case events.Discover, events.Seek:
-		// The discover (CR 701.57) and seek records (task trigdisc1) are pure
+	case events.Discover, events.Seek, events.Surveil:
+		// The discover (CR 701.57), seek (task trigdisc1) and surveil
+		// (CR 701.42) records (task trigdisc1) are pure
 		// markers: the action's own state changes (the exiles/reveals and the
-		// sought card's move) are their own lines, so these lines name only
-		// the acting seat (Player; Obj is the source permanent, which may be
-		// 0 for a source-less body).
+		// sought card's move, the surveil's KArrange answer) are their own
+		// lines, so these lines name only the acting seat (Player; Obj is the
+		// source permanent, which may be 0 for a source-less body).
 		if ev.Kind == events.Seek {
 			return player(g, ev.Player) + " seeks"
+		}
+		if ev.Kind == events.Surveil {
+			return player(g, ev.Player) + " surveils"
 		}
 		return player(g, ev.Player) + " discovers"
 	case events.Connive:
@@ -496,6 +500,19 @@ func Describe(g *state.Game, ev events.Event) string {
 			return obj(g, ev.Obj) + " attaches to " + obj(g, ev.IDs[0])
 		}
 		s := obj(g, ev.Obj) + " detaches"
+		if ev.Text != "" {
+			s += " (" + ev.Text + ")"
+		}
+		return s
+	case events.Unattached:
+		// CR 701.3b: Obj became unattached from the former bearer (IDs[0]).
+		// The attachment stays on the battlefield (its own departure is a
+		// MoveZone), so this is the detach half of Attach's line; Text carries
+		// the reason the same way Attach's detach shape does.
+		s := obj(g, ev.Obj) + " becomes unattached"
+		if len(ev.IDs) > 0 {
+			s += " from " + obj(g, ev.IDs[0])
+		}
 		if ev.Text != "" {
 			s += " (" + ev.Text + ")"
 		}

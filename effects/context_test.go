@@ -684,6 +684,59 @@ func TestDefinedTriggeredForms(t *testing.T) {
 	}
 }
 
+// TestDefinedTriggeredCardOwners pins the TriggeredCardOwner /
+// NonTriggeredCardOwner selectors on a three-seat game whose trigger card is
+// OWNED by seat 2 while CONTROLLED by seat 1 -- so ownership and last-known
+// control can never be confused -- with the resolving source owned and
+// controlled by seat 0. The trigger card's owner is distinct from both the
+// source's owner and its controller, which is the precondition the ownership
+// assertions depend on.
+func TestDefinedTriggeredCardOwners(t *testing.T) {
+	h := newHost(t, 3)
+	card := mkCard(t, "Name:Fixture\nTypes:Creature\nPT:1/1\nOracle:x\n")
+	src := h.g.AddObject(card, 0)  // the resolving ability's source, seat 0
+	trig := h.g.AddObject(card, 2) // the triggering card: owner seat 2
+	trig.Controller = 1            // ... but last controlled by seat 1
+	c := &Ctx{Source: src.ID, Controller: 0, TriggerContext: TriggerContext{TriggerCard: trig.ID}}
+
+	// Precondition: the fixture really does distinguish owner from controller
+	// and from the resolving source's owner, or the assertions below prove
+	// nothing.
+	if trig.Owner != 2 || trig.Controller != 1 || trig.Owner == src.Owner {
+		t.Fatalf("fixture precondition: trigger owner=%d controller=%d source owner=%d, want owner 2 != controller 1 != source owner 0",
+			trig.Owner, trig.Controller, src.Owner)
+	}
+
+	got := Defined(h, c, &cards.SA{Params: map[string]string{"Defined": "TriggeredCardOwner"}})
+	if len(got) != 1 || !got[0].IsPlayer || got[0].Player != 2 {
+		t.Fatalf("TriggeredCardOwner = %v, want owner seat 2", got)
+	}
+
+	got = Defined(h, c, &cards.SA{Params: map[string]string{"Defined": "NonTriggeredCardOwner"}})
+	if len(got) != 2 || !got[0].IsPlayer || got[0].Player != 0 || !got[1].IsPlayer || got[1].Player != 1 {
+		t.Fatalf("NonTriggeredCardOwner = %v, want every other living seat [0 1] in AliveFrom order", got)
+	}
+
+	// A departed non-owner drops out of the "other players" set while the
+	// set stays deterministic: seat 0 loses, so only seat 1 remains.
+	h.g.Players[0].Lost = true
+	got = Defined(h, c, &cards.SA{Params: map[string]string{"Defined": "NonTriggeredCardOwner"}})
+	if len(got) != 1 || !got[0].IsPlayer || got[0].Player != 1 {
+		t.Fatalf("NonTriggeredCardOwner with seat 0 dead = %v, want [1]", got)
+	}
+	h.g.Players[0].Lost = false
+
+	// No triggering card: both forms fail CLOSED to the empty set, never to
+	// the ability's source or to every player. A remembered object must not
+	// substitute for the absent TriggerCard role.
+	empty := &Ctx{Source: src.ID, Controller: 0, Remembered: []state.Target{{Obj: trig.ID}}}
+	for _, form := range []string{"TriggeredCardOwner", "NonTriggeredCardOwner"} {
+		if got := Defined(h, empty, &cards.SA{Params: map[string]string{"Defined": form}}); len(got) != 0 {
+			t.Errorf("%s with no triggering card = %v, want the empty set", form, got)
+		}
+	}
+}
+
 func TestSupportedListsRegisteredAPIs(t *testing.T) {
 	Register("TestZ", func(Host, *Ctx, *cards.SA) {})
 	t.Cleanup(func() { unregister("TestZ") })

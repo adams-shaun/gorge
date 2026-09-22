@@ -287,7 +287,32 @@ const (
 	// on resolution and when countered. Appended per the enum's own
 	// append-only precedent.
 	FlagJumpstart
+	// FlagMayFlashSac marks a spell cast off-sorcery through its K:MayFlashSac
+	// permission (CR 702.8's "you may cast this as though it had flash" plus
+	// the keyword's own "sacrifice it at the beginning of the next cleanup
+	// step" rider). It is set by the pay-time CastInfo only when the cast was
+	// NOT at a time a sorcery could have been cast, so the keyword's ETB hook
+	// (rules/altcast.go's altCostEnter) can register the delayed sacrifice.
+	// Appended per the enum's own append-only precedent.
+	FlagMayFlashSac
 )
+
+// CastProvenanceFlags is the ONE home for the CastFlags bits whose reader
+// turns them into an obligation conditioned on the object having been CAST
+// ("if you cast it ..."). A stack copy is PUT on the stack, never cast
+// (CR 707.10/706.10), so events.Apply's StackCopy case strips this set from
+// the flags it inherits: the copy resolves, Move turns it into a token and
+// clears IsCopy, and rules/altcast.go's entry hook would otherwise read the
+// inherited bit and hand a never-cast token the obligation.
+//
+// Only FlagMayFlashSac is in the set, deliberately. The three sibling bits
+// that entry hook also reads -- FlagEvoked, FlagDashed, FlagWarped -- are
+// conditioned on an alternative COST having been paid, which is a choice
+// made as the spell was cast and which the copy rules do carry for the
+// comparable cases (the copied-kicker precedent), so changing them is a
+// separate ruling with its own corpus measurement. Add a bit here only when
+// its reader's condition is the cast itself.
+const CastProvenanceFlags = FlagMayFlashSac
 
 // ExilesLeavingStack reports whether a cast carrying these flags is a
 // keyword cast whose card is exiled as it leaves the stack, whichever way it
@@ -644,6 +669,10 @@ type Object struct {
 	// RiotChoice is set by the logged as-enters Riot choice. It survives the
 	// hand/stack path and Move consumes it on battlefield entry.
 	RiotChoice string
+	// UntapChoice records the permanent's answer to its untap-step election.
+	// It is folded by events.Choose so a replay makes the same turn-based
+	// decision; the turn boundary clears it before the next election.
+	UntapChoice string
 	// UnleashChoice is set by the logged as-enters Unleash choice (CR 702.86:
 	// "counter" = enter with a +1/+1 counter, "plain" = enter without). It
 	// survives the hand/stack path and Move consumes it on battlefield entry,

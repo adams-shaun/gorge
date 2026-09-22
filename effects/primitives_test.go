@@ -1231,6 +1231,56 @@ func TestBecomeMonarchRecordsTheTargetPlayer(t *testing.T) {
 	}
 }
 
+// TestBecomeMonarchRepeatOnReigningMonarchEmitsNothing pins the transition
+// semantics (CR 720.2): a repeat BecomeMonarch naming the seat that already
+// holds the designation is a no-op. MonarchChange is what
+// rules' trig:BecomeMonarch matcher reads, so an unconditional emit fired
+// "whenever YOU become the monarch" a second time for the reigning player.
+func TestBecomeMonarchRepeatOnReigningMonarchEmitsNothing(t *testing.T) {
+	h := newHost(t, 2)
+	line := sa(t, "AB$ BecomeMonarch | ValidTgts$ Player")
+	ctx := func() *Ctx {
+		return &Ctx{Controller: 0, Targets: []state.Target{{Player: 1, IsPlayer: true}}, TargetsOffered: true}
+	}
+	Resolve(h, ctx(), line)
+	if !h.g.IsMonarch(1) {
+		t.Fatalf("precondition: the first BecomeMonarch did not make seat 1 the monarch (%v/%d)", h.g.HasMonarch, h.g.Monarch)
+	}
+	Resolve(h, ctx(), line)
+	monarch := 0
+	for _, ev := range h.log {
+		if ev.Kind == events.MonarchChange {
+			monarch++
+		}
+	}
+	if monarch != 1 {
+		t.Fatalf("MonarchChange emitted %d times, want 1 (the repeat is a no-op)", monarch)
+	}
+}
+
+// TestBecomeMonarchMovesTheDesignationBetweenSeats is the control the guard
+// above needs: a naming of a DIFFERENT seat is a real transition and must
+// still emit. Without it the repeat test would pass with the primitive
+// suppressed outright.
+func TestBecomeMonarchMovesTheDesignationBetweenSeats(t *testing.T) {
+	h := newHost(t, 2)
+	line := sa(t, "AB$ BecomeMonarch | ValidTgts$ Player")
+	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Player: 0, IsPlayer: true}}, TargetsOffered: true}, line)
+	Resolve(h, &Ctx{Controller: 0, Targets: []state.Target{{Player: 1, IsPlayer: true}}, TargetsOffered: true}, line)
+	if !h.g.IsMonarch(1) {
+		t.Fatalf("designation did not move to seat 1 (%v/%d)", h.g.HasMonarch, h.g.Monarch)
+	}
+	monarch := 0
+	for _, ev := range h.log {
+		if ev.Kind == events.MonarchChange {
+			monarch++
+		}
+	}
+	if monarch != 2 {
+		t.Fatalf("MonarchChange emitted %d times, want 2 (both moves are real transitions)", monarch)
+	}
+}
+
 // TestRestartGameEndsTheGame is the fix-round-2 regression test for the
 // re-review's N3: effRestartGame's own comment and Text both say the game
 // ends as a draw, but the GameOver event it emitted left Amount at its zero

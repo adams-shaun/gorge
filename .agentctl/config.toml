@@ -76,7 +76,11 @@ local_endpoint_probe = true
 # until needs-human or blocked jobs are resolved". While any ticket sits in
 # human_needed, no `new` or `briefed` ticket starts; in-flight work still
 # advances, so the fleet drains instead of growing.
-hold_new_while_parked = true
+# 2026-09-22 (operator): measured 686 of the last 1440 minutes on hold (11
+# human_needed tickets in 24h, each freezing every new dispatch until a hand
+# landing finished); the 20-min health check now lands parked tickets with an
+# Opus agent, so the drain-while-parked policy costs more than it saves.
+hold_new_while_parked = false
 # 2026-09-22 (operator): triage writes at most this many briefs ahead of the
 # implementers; no new triage launches while this many sit in `briefed`.
 triage_ahead = 100

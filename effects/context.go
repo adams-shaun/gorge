@@ -403,10 +403,14 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// names the same Remembered object entry a trigger captured.
 		// TriggeredObject/TriggeredObjectLKICopy are the event-object
 		// spellings the CounterPlayerAddedAll batch triggers read (Rikku's
-		// RememberObjects$ TriggeredObjectLKICopy on its DB$ Effect body) and
-		// the unimplemented Unattached mode's bodies spell -- the triggering
-		// event's object, exactly what triggerRemembered seeds Remembered
-		// with for every non-zero ev.Obj.
+		// RememberObjects$ TriggeredObjectLKICopy on its DB$ Effect body) --
+		// the triggering event's object, exactly what triggerRemembered seeds
+		// Remembered with for every non-zero ev.Obj. It is also the object a
+		// Mode$ Unattached trigger became unattached FROM (the former bearer
+		// rules/trigger_match.go's triggerRemembered carries on the event's
+		// IDs): the Grafted Exoskeleton cycle reads it as its SacrificeAll
+		// referent, so it must resolve like the rest of the family rather
+		// than fall through to the source-default fallback.
 		// TriggeredSourceSA is the targeting spell/ability a BecomesTarget
 		// trigger captured (Reality Smasher's counter, Kira's and the
 		// glasskite family's counters -- 18 corpus files); its Controller
@@ -592,6 +596,26 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			return []state.Target{{Player: p, IsPlayer: true}}, true
 		}
 		return nil, true
+	case "TriggeredCardOwner", "NonTriggeredCardOwner":
+		// These selectors use the triggering card's immutable owner (CR
+		// 108.3), never a remembered-object fallback. A stolen creature that
+		// dies is still its owner's (Oft-Nabbed Goat's "its owner draws").
+		// If TriggerCard is absent or no longer resolves, both forms fail
+		// closed to the empty set rather than guessing from the source.
+		triggered := g.Obj(c.TriggerCard)
+		if triggered == nil {
+			return nil, true
+		}
+		if spec == "TriggeredCardOwner" {
+			return []state.Target{{Player: triggered.Owner, IsPlayer: true}}, true
+		}
+		var out []state.Target
+		for _, p := range g.AliveFrom(0) {
+			if p != triggered.Owner {
+				out = append(out, state.Target{Player: p, IsPlayer: true})
+			}
+		}
+		return out, true
 	case "TriggeredAttackerController", "TriggeredBlockerController":
 		// The controller of the triggering event's attacker or blocker. The
 		// Blocks mode captures both roles per pair (rules/trigger_match.go's

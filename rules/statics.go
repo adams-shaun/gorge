@@ -756,7 +756,7 @@ func (e *Engine) spellTimingOK(p state.PlayerID, id state.ObjID, f *cards.Face, 
 	if !e.activationPhasesOK(p, f.SpellAbility()) {
 		return false
 	}
-	return sorcery || (f.IsInstant() || e.HasKeyword(id, "Flash") || e.castWithFlash(p, id))
+	return sorcery || (f.IsInstant() || e.HasKeyword(id, "Flash") || mayFlashSacFace(f) || e.castWithFlash(p, id))
 }
 
 // altCostView is one alternative-cost entry: the parsed cost plus the

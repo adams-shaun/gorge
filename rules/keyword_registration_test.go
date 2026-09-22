@@ -47,6 +47,7 @@ func TestRegisteredKeywordsAreHonoured(t *testing.T) {
 		"kw:Devour":         "TestGorgerWurmDevourAsksAndCountsTheSacrificed",
 		"kw:Gravestorm":     "TestOminousHarvestGravestormCopiesPerDeath",
 		"kw:Toxic":          "TestToxicIxhelAddsPoisonOnCombatDamage",
+		"kw:Infect":         "TestInfectDamageToCreatureIsMinusOneCountersNotMarkedDamage",
 	} {
 		if !sup[kw] {
 			t.Errorf("%s is not registered (proof test: %s)", kw, proof)

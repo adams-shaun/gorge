@@ -86,6 +86,14 @@ type pendingCast struct {
 	gainedFrom state.ObjID
 	gainedIdx  int
 
+	// offSorcery (kw:MayFlashSac) is the CR 702.8 rider's condition captured
+	// at beginCast, before CR 601.2a pushes the spell: true when this cast was
+	// made at a time a sorcery could NOT have been cast. payCast stamps
+	// state.FlagMayFlashSac onto the pay-time CastInfo only when this is true
+	// AND the face carries the keyword, so a sorcery-timed cast of the same
+	// card registers no cleanup sacrifice. Plain data, so Clone carries it.
+	offSorcery bool
+
 	cost Cost
 
 	// mayPlayIgnore is the may-play grant's MayPlayIgnoreColor$ rider,
@@ -1423,7 +1431,13 @@ func (e *Engine) payDamageCost(payer state.PlayerID, n int32, source state.ObjID
 		return
 	}
 	prev := e.SetDamageSource(source)
-	ev := e.emit(events.Event{Kind: events.Damage, Player: payer, Amount: n})
+	dam := events.Event{Kind: events.Damage, Player: payer, Amount: n}
+	if e.HasKeyword(source, "Infect") {
+		// CR 702.90b: even a cost payment is damage dealt by its source, so
+		// an infect source's DamageYou cost pays in counter/poison form.
+		dam.Counter = "infect"
+	}
+	ev := e.emit(dam)
 	e.SetDamageSource(prev)
 	if ev.Kind != events.Damage || !e.HasKeyword(source, "Lifelink") {
 		return
@@ -1976,6 +1990,13 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	if s, ok := f.KeywordParam("Escalate"); ok && strings.TrimSpace(s) != "" {
 		e.cast.escalateParam, e.cast.escalateSet = s, true
 	}
+
+	// kw:MayFlashSac (CR 702.8): capture the rider's condition now, before
+	// CR 601.2a puts the spell on the stack, so the empty-stack half of
+	// sorcerySpeed is the board the caster announced into rather than this
+	// spell's own push. An ability proposal (pc.ability >= 0) never reads it:
+	// payCast's flag arm is gated on !pc.isAbility().
+	e.cast.offSorcery = e.offSorceryAtCast(p)
 	// The announce-bearing alternative (the Shoal cycle) and the
 	// TargetsWithSameController rider (Lodestone Bauble) ride the selected
 	// cast SA into the transaction: xAsk's announce arm and exAsk's binding
@@ -6306,7 +6327,7 @@ func (e *Engine) payCast() {
 		// see a self-sacrificing ability on the stack yet. Resolution consults
 		// this only if the source is gone; a source that remains in play uses
 		// its live derived state instead.
-		sourceLifelinkLKI := e.HasKeyword(pc.card, "Lifelink")
+		sourceKeywordLKI := e.damageKeywordsOf(pc.card)
 		sourceControllerLKI := e.G.Obj(pc.card).Controller
 		// Task 10: an activated ability. The shared stages above (X, Delve --
 		// never present on an ability --, Sac) have already run and been
@@ -6503,8 +6524,17 @@ func (e *Engine) payCast() {
 			if e.sourceControllerLKI == nil {
 				e.sourceControllerLKI = make(map[state.ObjID]state.PlayerID)
 			}
-			e.sourceLifelinkLKI[pc.stackObj] = sourceLifelinkLKI
+			e.sourceLifelinkLKI[pc.stackObj] = sourceKeywordLKI.lifelink
 			e.sourceControllerLKI[pc.stackObj] = sourceControllerLKI
+			// The own-source fields above carry only lifelink and controller.
+			// CR 113.7a's other damage-relevant characteristics -- infect
+			// (CR 702.90b) and deathtouch (CR 702.2b) -- live in the named
+			// map, which Engine.emit's departure walk cannot seed here
+			// either, because AbilityPush is minted only after the cost is
+			// paid. Seed it with the same pre-cost snapshot, keyed on this
+			// ability and its own source, so a bearer sacrificed to pay for
+			// its own ability still deals damage in the granted form.
+			e.captureNamedDamageSourceLKI(pc.stackObj, pc.card, sourceKeywordLKI, sourceControllerLKI)
 			break
 		}
 		e.cast, e.choosing = nil, chooseNone
@@ -6695,6 +6725,18 @@ func (e *Engine) payCast() {
 	// the byte-identical no-event shape.
 	if pc.replaceGraveyard {
 		flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagReplaceGraveyard)
+	}
+	// kw:MayFlashSac (CR 702.8): a card cast off-sorcery through the keyword's
+	// own flash permission carries the flag the keyword's ETB hook reads to
+	// register the cleanup-step sacrifice. A sorcery-timed cast of the same
+	// card (offSorcery false) or a cast of any other card emits nothing, so
+	// unrelated casts stay byte-identical. The modeFlags switch has no case
+	// for this keyword because the cast is ORDINARY -- there is no cast mode
+	// to read and no extra cost; the permission alone sets no flag.
+	if !pc.isAbility() && pc.offSorcery {
+		if o := e.G.Obj(pc.card); mayFlashSacFace(o.Face()) {
+			flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagMayFlashSac)
+		}
 	}
 	// Replicate (CR 702.55a): the payment count rides the same pay-time
 	// CastInfo. modeFlags deliberately maps "replicated" to "" -- a DECLINED

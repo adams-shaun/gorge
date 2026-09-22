@@ -47,6 +47,7 @@ func TestTriggerEligibilityEventMatrix(t *testing.T) {
 		{"Discover", []events.Kind{events.Discover}},
 		{"SeekAll", []events.Kind{events.Seek}},
 		{"Exploited", []events.Kind{events.Exploit}},
+		{"BecomeMonarch", []events.Kind{events.MonarchChange}},
 		{"Exerted", []events.Kind{events.Exert}},
 		{"LandPlayed", []events.Kind{events.MoveZone}},
 		{"Phase", []events.Kind{events.StepChange}},
@@ -113,11 +114,22 @@ func TestTriggerEventInterestMapping(t *testing.T) {
 			// InterestAllows fails open for them before this mapping is even
 			// consulted.
 			want = cards.TriggerInterestAny
+		case events.Surveil:
+			// The same Investigate shape (trig-surveil): the surveil marker is
+			// trigger-relevant (trig:Surveil matches it through the full
+			// matcher) and past the mask's reach, so the conservative
+			// catch-all is the honest mapping.
+			want = cards.TriggerInterestAny
 		case events.Exploit:
 			// The same Investigate shape: the exploit marker is
 			// trigger-relevant (trig:Exploited) and past the mask's reach, so
 			// the conservative catch-all is the honest mapping.
 			want = cards.TriggerInterestAny
+		case events.MonarchChange:
+			// trig-become-monarch: the monarch designation transition has its
+			// own interest bit (the BecomeMonarch mode), not the zero mapping
+			// it carried while no mode matched it.
+			want = cards.TriggerInterestMonarch
 		}
 		if got := eventTriggerInterest(kind); got != want {
 			t.Fatalf("kind %s interest = %x, want %x", kind, got, want)
@@ -136,7 +148,7 @@ func TestCompiledTriggerInterestParity(t *testing.T) {
 		"TapsForMana", "DamageDone", "DamageDealtOnce", "DamageDoneOnce", "CounterAdded",
 		"CounterAddedOnce", "CounterRemoved", "CounterRemovedOnce", "DamagePreventedOnce", "TokenCreated", "TokenCreatedOnce",
 		"ChangesZoneAll", "SpellCastOrCopy", "SpellCopy", "Mutates",
-		"CounterPlayerAddedAll", "Drawn", "LifeLost", "Phase", "Attached", "Explores", "Investigated", "Discover", "SeekAll", "Exploited", "Always", "LifeLostAll", "FutureMode", "",
+		"CounterPlayerAddedAll", "Drawn", "LifeLost", "Phase", "Attached", "Explores", "Investigated", "Discover", "SeekAll", "Exploited", "BecomeMonarch", "Always", "LifeLostAll", "FutureMode", "",
 	}
 	card := &cards.Card{}
 	for _, mode := range modes {

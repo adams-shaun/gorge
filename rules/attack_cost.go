@@ -235,12 +235,12 @@ type attackOffer struct {
 	price int32
 }
 
-// attackOffers builds the offer list askAttackers, attackPairAvailable and
-// validateAttackers share -- the one source of truth for which pairs exist
+// attackOffers builds the offer list askAttackers, attackDutyDischargeable
+// and validateAttackers share -- the one source of truth for which pairs exist
 // this combat. The enumeration and the ORDER are exactly askAttackers':
 // defender-major -- for each defender in AliveFrom(0) minus the active
 // player, for each canAttack-filtered battlefield creature in zone order,
-// through the encore/goad/CantAttack filters. On top, the affordability
+// through the goad/CantAttack filters. On top, the affordability
 // bound: a chargeable pair is admitted when its INDIVIDUAL price fits the
 // payer's attackBudget, so the list never offers an option the payer cannot
 // afford at all. The declaration's TOTAL is enforced at submit
@@ -252,8 +252,22 @@ type attackOffer struct {
 // declaration outright. Admitting each individually-affordable pair and
 // pricing the whole declaration on submission lets the client assemble any
 // declaration the payer can actually pay; the solver's requirement read
-// (attackPairAvailable) then asks only that a required creature HAS an
-// affordable pair, which is the CR 508.1d "if able" reading.
+// (attackDutyDischargeable) then asks only that a required creature has an
+// affordable pair that DISCHARGES one of its duties, which is the CR 508.1d
+// "if able" reading.
+//
+// CR 508.1d's "satisfy as many requirements as possible": once the legal,
+// affordable pairs are known, every pair of a creature that satisfies FEWER
+// named requirements than the creature's best available defender is dropped.
+// That is what keeps a named MustAttack$ duty and a goad from cancelling each
+// other out into "the creature attacks nobody": the earlier single-defender
+// filter removed the non-named pairs while goadMayAttack removed the named
+// one, so the offer list emptied and the requirement solver saw an unrequired
+// creature (the t2 review's defect). A creature with no requirement set keeps
+// every legal pair, so an ordinary declaration is byte-identical. When two
+// named duties name different defenders neither dominates (both satisfy one),
+// so both defenders stay offered and the controller picks; when they name the
+// same defender that defender is uniquely maximal.
 func (e *Engine) attackOffers() []attackOffer {
 	p := e.G.Active
 	var out []attackOffer
@@ -264,12 +278,18 @@ func (e *Engine) attackOffers() []attackOffer {
 			defenders = append(defenders, q)
 		}
 	}
+	// One requirement set per creature, computed once from the board (never
+	// per pair), keyed by ObjID and read by lookup only -- no map iteration
+	// reaches the offer list order.
+	reqs := make(map[state.ObjID]attackRequirementSet)
+	for _, id := range e.G.Zone(state.ZBattlefield, p) {
+		if e.canAttack(id) {
+			reqs[id] = e.attackRequirements(id)
+		}
+	}
 	for _, d := range defenders {
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
 			if !e.canAttackPair(id, d) {
-				continue
-			}
-			if required, ok := e.encoreAttackDefender(id); ok && d != required {
 				continue
 			}
 			if !e.goadMayAttack(id, d) {
@@ -285,7 +305,22 @@ func (e *Engine) attackOffers() []attackOffer {
 			out = append(out, attackOffer{id: id, def: d, price: price})
 		}
 	}
-	return out
+	// Best named satisfaction per creature over the pairs that survived.
+	best := make(map[state.ObjID]int)
+	for _, of := range out {
+		if n := reqs[of.id].satisfiedBy(of.def); n > best[of.id] {
+			best[of.id] = n
+		}
+	}
+	keep := out[:0]
+	for _, of := range out {
+		rs := reqs[of.id]
+		if rs.any() && rs.satisfiedBy(of.def) < best[of.id] {
+			continue
+		}
+		keep = append(keep, of)
+	}
+	return keep
 }
 
 // attackCharge prices a whole declaration: the sum over its chosen pairs.

@@ -89,6 +89,14 @@ func (e *Engine) altCostEnter(ev events.Event) {
 		e.emit(events.Event{Kind: events.DelayedRegister, Obj: ev.Obj,
 			Player: o.Controller, Step: state.StepEnd, Counter: "__kwWarpExile"})
 	}
+	if o.CastFlags&state.FlagMayFlashSac != 0 {
+		// K:MayFlashSac (CR 702.8): cast off-sorcery through the keyword's
+		// flash permission, so the permanent it became is sacrificed at the
+		// beginning of the next cleanup step. The pay-time flag is the
+		// replayable provenance; a sorcery-timed cast of the same card
+		// carries none and registers nothing.
+		e.mayFlashSacEnter(ev.Obj, o.Controller)
+	}
 }
 
 // escapeCost is id's Escape cost (CR 702.42a): the printed K:Escape

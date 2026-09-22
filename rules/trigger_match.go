@@ -164,6 +164,17 @@ type pendingTrigger struct {
 	// Count$OffspringPaid read resolves against its pay-time provenance.
 	// Idx and SA are unset for it.
 	Offspring bool
+	// Flanking is a GRANTED flanking instance (CR 702.25a via a layer-6
+	// AddKeyword$ Flanking -- Agility, Flanking Licid, Sidewinder Sliver,
+	// Cavalry Master): the Ward/Conspire shape. A creature granted flanking
+	// has no printed K:Flanking trigger to carry the pump body, so the drain
+	// pushes a KeywordTriggerPush whose __kwFlanking: payload events.Apply
+	// rebuilds into the same DB$ Pump | Defined$ TriggeredBlockerLKICopy |
+	// NumAtt$ -1 | NumDef$ -1 body the printed expansion carries. The blocked
+	// creature rides IDs as Remembered (the printed path's own slot), which
+	// Defined$ TriggeredBlockerLKICopy reads at resolution. Idx and SA are
+	// unset for it.
+	Flanking bool
 	// RingEmblem is one of the Ring emblem's four level abilities (CR
 	// 701.54c), queued by checkRingEmblemTriggers. The emblem has no face
 	// and no object in any zone, so like Ward/Afflict this entry carries
@@ -317,6 +328,16 @@ var actionTriggerModes = map[string]bool{
 	// and Lurker in the Deep's PlayerTurn$ True on its SeekAll line -- so
 	// both gates must apply from day one.
 	"Discover": true, "SeekAll": true,
+	// Surveil joins them for the same reason: it is an event mode registered
+	// from the start (surveilMatches over events.Surveil, the marker Kind
+	// api:Surveil emits, task trig-surveil), so the trigger-level parameters
+	// Forge scopes to every event mode -- PlayerTurn$, ActivationLimit$
+	// (Prudent Fateseer's "This ability triggers only once each turn" on its
+	// scry-or-surveil line) and an unevaluable CheckDefinedPlayer$ predicate
+	// failing closed -- apply from day one. surveilMatches itself reads
+	// FirstTime$ (Whispering Snitch's "for the first time each turn")
+	// through the shared firstMarkerThisTurn log scan.
+	"Surveil": true,
 }
 
 // triggerActivationLimitAllows enforces ActivationLimit$ N ("this ability
@@ -1289,6 +1310,19 @@ func triggerRemembered(ev events.Event, source state.ObjID) []state.Target {
 		}
 		return append(out, state.Target{Player: ev.Player, IsPlayer: true})
 	}
+	// Mode$ Unattached's referent is the FORMER BEARER, not the event's Obj
+	// (the attachment that became unattached): the corpus's Execute bodies read
+	// Defined$ TriggeredObjectLKICopy (Grafted Exoskeleton's sacrifice, the
+	// whole cycle), and on the bearer-leaves path that object is already off
+	// the battlefield. Carrying it as Remembered is what lets the spellings in
+	// effects/context.go's TriggeredObjectLKICopy case resolve it -- whether it
+	// is still a permanent (the under-protection/no-longer-a-creature detach)
+	// or a graveyard LKI reference (the bearer-left detach). An emit with no
+	// bearer (the zero-value event a test might build) has nothing to bind, so
+	// it falls through to the ordinary source fallback below.
+	if ev.Kind == events.Unattached && len(ev.IDs) > 0 {
+		return []state.Target{{Obj: ev.IDs[0]}}
+	}
 	if ev.Obj != 0 {
 		return []state.Target{{Obj: ev.Obj}}
 	}
@@ -1510,13 +1544,14 @@ func init() {
 		"trig:TokenCreated", "trig:TokenCreatedOnce",
 		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",
 		"trig:LifeGained",
-		"trig:BecomesTarget", "trig:LandPlayed", "trig:Phase", "trig:Attached", "trig:FlippedCoin",
+		"trig:BecomesTarget", "trig:LandPlayed", "trig:Phase", "trig:Attached", "trig:Unattached", "trig:FlippedCoin",
 		"trig:Vote", "trig:RolledDie", "trig:RolledDieOnce",
 		"trig:Explores", "trig:Exerted", "trig:Investigated",
 		"trig:Exploited",
 		"trig:ManaExpend",
 		"trig:Connives",
 		"trig:Discover", "trig:SeekAll",
+		"trig:Surveil",
 		"trig:AbilityCast", "trig:SpellAbilityCast", "trig:Always",
 		// The cast-or-copy pair: SpellCopy matches a copy put on the stack and
 		// SpellCastOrCopy matches either half (magecraft). Both are matched

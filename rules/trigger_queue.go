@@ -551,6 +551,42 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		e.drainAwaitsTarget = e.Pending() != nil
 		return
 	}
+	// A granted flanking instance (CR 702.25a via a layer-6 AddKeyword$
+	// Flanking -- Agility, Flanking Licid, Sidewinder Sliver, Cavalry
+	// Master): the Ward/Conspire shape. A creature GRANTED flanking has no
+	// printed K:Flanking trigger to carry the pump body, so the queue pushes
+	// a KeywordTriggerPush whose __kwFlanking: payload events.Apply rebuilds
+	// into the same DB$ Pump | Defined$ TriggeredBlockerLKICopy | NumAtt$ -1
+	// | NumDef$ -1 body the printed expansion carries. The blocked creature
+	// rides IDs as Remembered (the printed path's own slot, which
+	// Defined$ TriggeredBlockerLKICopy reads), and the trailing colon keeps
+	// the payload from aliasing the "__kwFlanking" SVar a printed bare
+	// K:Flanking line mints.
+	if pt.Flanking {
+		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
+			return
+		}
+		ids := make([]state.ObjID, 0, len(pt.Ctx.Remembered))
+		for _, tgt := range pt.Ctx.Remembered {
+			if tgt.IsPlayer {
+				ids = append(ids, state.PlayerRef(tgt.Player))
+				continue
+			}
+			ids = append(ids, tgt.Obj)
+		}
+		stackLen := len(e.G.Stack)
+		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
+			Obj: pt.Source, Counter: "__kwFlanking:", IDs: ids, Text: "flanking ability"})
+		if len(e.G.Stack) > stackLen {
+			id := e.G.Stack[len(e.G.Stack)-1]
+			if e.triggerContexts == nil {
+				e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
+			}
+			e.triggerContexts[id] = pt.Ctx.TriggerContext
+		}
+		e.drainAwaitsTarget = e.Pending() != nil
+		return
+	}
 	// A granted Exploit (CR 702.58a via a layer-6 AddKeyword$ Exploit --
 	// Colonel Autumn's "Other legendary creatures you control have
 	// exploit"): the Ward/Afflict shape. The trigger is optional in

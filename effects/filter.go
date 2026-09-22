@@ -23,6 +23,21 @@ import (
 
 type predFn func(g *state.Game, o *state.Object, you state.PlayerID, source state.ObjID) bool
 
+// keywordPredicates maps a `with<Keyword>`/`without<Keyword>` predicate name
+// to the keyword it tests and whether it is negated. The predicate-map
+// functions below can only answer from the object alone (printed face plus
+// marker counters), but a rules caller that has already run the layer walk
+// can bind the FULL derived keyword list through SpecContext.ExtraKeywords --
+// exactly the ExtraTypes seam for layer-4 types -- so a layer-6 AddKeyword$
+// grant is visible to the filter that gates it (Cavalry Master's
+// `withFlanking` lord, kw:Flanking's `withoutFlanking` blocker check).
+type keywordPredicate struct {
+	keyword string
+	negated bool
+}
+
+var keywordPredicates = map[string]keywordPredicate{}
+
 var predicates = map[string]predFn{
 	"YouCtrl": func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool {
 		return o.Controller == you
@@ -283,6 +298,8 @@ func init() {
 		predicates["without"+strings.ReplaceAll(k, " ", "")] = func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 			return !objectHasKeyword(o, k)
 		}
+		keywordPredicates["with"+strings.ReplaceAll(k, " ", "")] = keywordPredicate{keyword: k}
+		keywordPredicates["without"+strings.ReplaceAll(k, " ", "")] = keywordPredicate{keyword: k, negated: true}
 	}
 	// These read ColorsOf, not the face directly, so Devoid (effects.ColorsOf)
 	// correctly stops a card from matching any colour predicate, Green included.
@@ -1006,7 +1023,9 @@ func wordPredicate(p string) (wordKind, string) {
 	// closed. wasCastFromYourHandByYou is checked before the bare
 	// wasCastFromYourHand because the bare token is a substring of the ByYou
 	// spelling -- the same ordering rule castProvenanceAdmits documents.
-	case "wasCastFromYourHandByYou", "wasCastByYou", "wasCastFromYourHand":
+	case "wasCastFromYourHandByYou", "wasCastByYou", "wasCastFromYourHand",
+		"wasCastFromExile", "wasCastFromYourGraveyard",
+		"wasCastFromYourGraveyardByYou", "wasCastFromTheirHand":
 		return wordCastProvenance, p
 	// The card-level CastSa property tokens (task castsa-provenance): the
 	// four mana-spend spellings the payment path's tagged ManaAdd encoding
@@ -1397,7 +1416,10 @@ func nonPredicate(p string) (kind wordKind, key string, ok bool) {
 // whether a word is recognised. An unrecognised word is "the engine does not
 // know", never "true" -- that is the fail-closed contract.
 func positiveRecognised(p string) bool {
-	if p == "IsRemembered" || p == "token$DifferentCardNames" || strings.HasPrefix(p, "greatestPower") {
+	if p == "IsRemembered" || p == "EffectSource" || p == "token$DifferentCardNames" || strings.HasPrefix(p, "greatestPower") {
+		// EffectSource is matched by matchPositive against SpecContext.Source;
+		// listing it here keeps the matcher and the UnknownPredicates census
+		// (both driven by positiveRecognised) in agreement.
 		return true
 	}
 	// Forge's extreme-mana-value properties: greatestCMC_<prop>[ControlledBy
@@ -1901,6 +1923,19 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		}
 		return false, true
 	}
+	if p == "EffectSource" {
+		// Forge's Card.EffectSource (CardProperty "EffectSource"): the
+		// candidate IS the ability's/effect's own source object. A real
+		// corpus class (86 raw occurrences over 79 files, in ValidCard$,
+		// ValidTarget$, ValidCreature$, ValidAttacker$, IsPresent$,
+		// Affected$, ...), it failed closed before because the spec was
+		// parsed as an unknown predicate word. Resolved against the
+		// SpecContext's Source, so it works wherever a caller binds one
+		// (the layer walk's restriction specs, target offers from a source,
+		// the MustAttack requirement matcher); with no source bound it
+		// fails closed, exactly as the unknown word did.
+		return sc.Source != 0 && o.ID == sc.Source, true
+	}
 	if p == "IsRemembered" {
 		// Forge's IsRemembered (CardProperty "IsRemembered" ->
 		// source.isRemembered(card)): the candidate is in the remembered list
@@ -2085,6 +2120,24 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 	// but must not bypass the context-aware matcher here.
 	if result, ok := typePredicate(p, g, o, sc); ok {
 		return result, true
+	}
+	// Keyword predicates must use the derived keyword list when rules
+	// supplies one, for the same reason type predicates use ExtraTypes: the
+	// predicate-map functions read the object alone and cannot see a layer-6
+	// AddKeyword$ grant. Keep this before the generic predicate map so a
+	// context-aware caller never has its bound list bypassed.
+	if kp, ok := keywordPredicates[p]; ok && sc.ExtraKeywords != nil {
+		has := false
+		for _, x := range sc.ExtraKeywords {
+			if strings.EqualFold(cards.KeywordHead(x), kp.keyword) {
+				has = true
+				break
+			}
+		}
+		if kp.negated {
+			has = !has
+		}
+		return has, true
 	}
 	if fn, ok := predicates[p]; ok {
 		return fn(g, o, sc.You, sc.Source), true
@@ -2646,6 +2699,15 @@ type SpecContext struct {
 	// SpecContext field makes escape analysis leak the whole context (its
 	// Resolve closure included) to the heap on every hot-path construction.
 	ExtraTypes []string
+	// ExtraKeywords optionally supplies the layer-derived KEYWORD list for the
+	// ONE object the spec is being matched against (a value slice, same
+	// rationale as ExtraTypes). When non-nil it is authoritative for the
+	// `with<Keyword>`/`without<Keyword>` predicates: it already holds printed
+	// keywords, marker-counter grants and layer-6 AddKeyword$ grants, so a
+	// caller with the layer walk in hand can gate on a granted keyword
+	// (kw:Flanking's blocker check, Cavalry Master's `withFlanking` lord).
+	// nil keeps the object-alone read (printed face plus counters).
+	ExtraKeywords []string
 }
 
 // triggeredSpellTargetSA derives the target-declaring SA of a stack spell
@@ -2907,6 +2969,102 @@ func MatchesPlayerSpec(g *state.Game, spec string, p, you state.PlayerID) bool {
 // explicit lets ordinary player filters retain their existing API while
 // trigger matching can supply its owning permanent.
 func MatchesPlayerSpecFrom(g *state.Game, spec string, p, you state.PlayerID, source state.ObjID) bool {
+	for _, alt := range strings.Split(spec, ",") {
+		alt = strings.TrimSpace(alt)
+		if alt == "" {
+			continue
+		}
+		if matchesPlayerCompoundFrom(g, alt, p, you, source) {
+			return true
+		}
+	}
+	return false
+}
+
+// matchesPlayerCompoundFrom evaluates ONE comma alternative as a `+`-joined
+// conjunction of player clauses, each optionally negated with a leading `!`.
+// Forge's player specs spell their properties this way -- Tribal
+// Hellkite's `Choices$ Player.Opponent+!IsRemembered`
+// ("choose an opponent at random that CARDNAME didn't attack"),
+// `Player.Opponent+lifeEQX`, `Player.Opponent+!EnchantedBy`. Before this the
+// whole `+` string was cut on the first `.` and fell into the unknown-
+// qualifier branch, so every such spec matched NOBODY -- a Choices$ pool that
+// is silently empty (Territorial Hellkite could never choose an opponent, so
+// its random pick always took the no-candidate arm) and a ValidTgts$ pool
+// that admits no target. A clause with no `+` is a one-clause conjunction and
+// behaves exactly as before, so the single-qualifier grammar is unchanged.
+func matchesPlayerCompoundFrom(g *state.Game, alt string, p, you state.PlayerID, source state.ObjID) bool {
+	for _, clause := range strings.Split(alt, "+") {
+		clause = strings.TrimSpace(clause)
+		if clause == "" {
+			return false
+		}
+		neg := strings.HasPrefix(clause, "!")
+		if neg {
+			clause = strings.TrimSpace(clause[1:])
+		}
+		// A bare property clause (IsRemembered/Chosen/ChosenPlayer) with no
+		// source bound cannot be evaluated at all: fail the WHOLE conjunction
+		// closed, rather than letting the negation invert the absence into a
+		// match. Without this a caller that passes source 0 (MatchesPlayerSpec)
+		// would newly admit every un-remembered player for
+		// `Player.Opponent+!IsRemembered` -- a widened pool where the old
+		// grammar matched nobody.
+		if source == 0 && isBarePlayerProperty(clause) {
+			return false
+		}
+		if matchesPlayerClauseFrom(g, clause, p, you, source) == neg {
+			return false
+		}
+	}
+	return true
+}
+
+// matchesPlayerClauseFrom evaluates ONE player clause (no `,` or `+`). It
+// first resolves the BARE property spellings a compound uses
+// (`IsRemembered`, `Chosen`, `ChosenPlayer`) against the source object's
+// event-backed choice state, then falls back to the ordinary single-spec
+// grammar (matchesPlayerSingleSpec) for a base.qualifier form. An absent
+// source fails the bare property clauses closed, exactly as the qualified
+// `Player.IsRemembered` spelling already does.
+func matchesPlayerClauseFrom(g *state.Game, clause string, p, you state.PlayerID, source state.ObjID) bool {
+	if !isBarePlayerProperty(clause) {
+		return matchesPlayerSingleSpec(g, clause, p, you, source)
+	}
+	switch clause {
+	case "IsRemembered", "Chosen", "ChosenPlayer":
+		o := g.Obj(source)
+		if o == nil {
+			return false
+		}
+		set := o.Chosen
+		if clause == "IsRemembered" {
+			set = o.Remembered
+		}
+		for _, t := range set {
+			if t.IsPlayer && t.Player == p {
+				return true
+			}
+		}
+		return false
+	}
+	return false
+}
+
+// isBarePlayerProperty reports whether a player clause is one of the bare
+// property spellings a compound uses (`IsRemembered`, `Chosen`,
+// `ChosenPlayer`), as opposed to a base.qualifier form.
+func isBarePlayerProperty(clause string) bool {
+	switch clause {
+	case "IsRemembered", "Chosen", "ChosenPlayer":
+		return true
+	}
+	return false
+}
+
+// matchesPlayerSingleSpec is the original single-alternative player-spec
+// evaluator: one clause, no `,` or `+` (the callers above split those).
+func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, source state.ObjID) bool {
 	for _, alt := range strings.Split(spec, ",") {
 		base, qualifier, qualified := strings.Cut(strings.TrimSpace(alt), ".")
 		if (base == "Player" || base == "Any") && qualified && (qualifier == "Chosen" || qualifier == "IsRemembered") {

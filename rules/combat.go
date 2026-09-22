@@ -122,6 +122,189 @@ func (e *Engine) encoreAttackDefender(id state.ObjID) (state.PlayerID, bool) {
 	return o.EncoreAttackDefender, true
 }
 
+// attackRequirementSet is every requirement binding ONE creature's attack this
+// combat (CR 508.1d's "attacks if able" duties). A requirement is either
+// NAMED (it names a specific defending player) or BROAD (any defender
+// satisfies it), and a goad is a requirement to attack a non-goader when one
+// is available.
+//
+// The set is the ONE home for "what must this creature attack": attackOffers
+// derives its pair list from it (dropping every pair that satisfies fewer
+// named requirements than the best available defender -- CR 508.1d's
+// "satisfy as many requirements as possible"), and mustAttackRequired reads
+// its emptiness as "is this creature required at all". A requirement whose
+// player reference this build cannot resolve contributes nothing (fail
+// closed, the safe direction for a requirement), exactly the convention
+// MustAttackParamsReadable documents.
+type attackRequirementSet struct {
+	// named counts, per defending player, how many named requirements that
+	// defender satisfies. A pair attacking the defender satisfies every one of
+	// them. nil when no named requirement applies.
+	named map[state.PlayerID]int
+	// broad is set by an unconditional MustAttack static (no MustAttack$
+	// player reference): every defender satisfies it.
+	broad bool
+	// goad is set by a live goad (CR 701.38b): the creature must attack a
+	// non-goader when one is available. The goader pairs are already removed
+	// by goadMayAttack, so goad never discriminates among the pairs that DO
+	// survive; it only makes the creature required.
+	goad bool
+}
+
+// any reports whether at least one requirement binds the creature.
+func (s attackRequirementSet) any() bool {
+	return len(s.named) > 0 || s.broad || s.goad
+}
+
+// addNamed records one named requirement for defender.
+func (s *attackRequirementSet) addNamed(defender state.PlayerID) {
+	if s.named == nil {
+		s.named = make(map[state.PlayerID]int, 2)
+	}
+	s.named[defender]++
+}
+
+// satisfiedBy reports how many NAMED requirements the given defender
+// satisfies. The broad and goad requirements contribute uniformly across
+// every surviving pair, so they are not counted here -- they never decide
+// which defender is maximal.
+func (s attackRequirementSet) satisfiedBy(defender state.PlayerID) int {
+	return s.named[defender]
+}
+
+// maxNamed is the greatest number of named requirements any single defender
+// satisfies at once -- the best any offered pair can do against the named
+// half of the requirement set.
+func (s attackRequirementSet) maxNamed() int {
+	best := 0
+	for _, n := range s.named {
+		if n > best {
+			best = n
+		}
+	}
+	return best
+}
+
+// attackRequirements collects every requirement binding creature id this
+// combat: the encore designation, each applicable Effect-registered and face
+// Mode$ MustAttack static, and a live goad. Multiple named requirements are
+// kept SEPARATELY (a map count per defender) rather than collapsed to the
+// first, so two simultaneous "attacks that player" duties are both honoured
+// and neither silently wins.
+func (e *Engine) attackRequirements(id state.ObjID) attackRequirementSet {
+	var s attackRequirementSet
+	o := e.G.Obj(id)
+	if o == nil {
+		return s
+	}
+	if p, ok := e.encoreAttackDefender(id); ok {
+		s.addNamed(p)
+	}
+	for _, ce := range e.active() {
+		if ce.Restriction != "MustAttack" {
+			continue
+		}
+		if !e.mustAttackLineSelects(ce.RestrictParams["ValidCreature"], id, ce.Source, ce.Controller, ce.Remembered) {
+			continue
+		}
+		spec := strings.TrimSpace(ce.RestrictParams["MustAttack"])
+		if spec == "" {
+			s.broad = true
+			continue
+		}
+		if p, ok := e.requirementDefender(spec, ce.Source, ce.RememberedPlayers); ok {
+			s.addNamed(p)
+		}
+	}
+	for _, sv := range e.activeStatics("MustAttack") {
+		if !MustAttackParamsReadableForRules(sv.Params) {
+			continue
+		}
+		if !e.mustAttackLineSelects(sv.Params["ValidCreature"], id, sv.Source, sv.Controller, nil) {
+			continue
+		}
+		spec := strings.TrimSpace(sv.Params["MustAttack"])
+		if spec == "" {
+			s.broad = true
+			continue
+		}
+		if p, ok := e.requirementDefender(spec, sv.Source, nil); ok {
+			s.addNamed(p)
+		}
+	}
+	if e.hasActiveGoad(o) {
+		s.goad = true
+	}
+	return s
+}
+
+// mustAttackLineSelects resolves a MustAttack line's ValidCreature$ against
+// the candidate creature, with the registration's remembered set bound for
+// the Card.IsRemembered family (Knight Rampager, Ursine Monstrosity, Raving
+// Dead, Ruhan of the Fomori all scope the requirement to a remembered self).
+// An absent ValidCreature$ is Forge's Card.Self default, the same default
+// attackRequirements applies.
+func (e *Engine) mustAttackLineSelects(spec string, id state.ObjID, source state.ObjID, controller state.PlayerID, remembered []state.ObjID) bool {
+	v := strings.TrimSpace(spec)
+	if v == "" {
+		v = "Card.Self"
+	}
+	sc := e.specCtx(source, controller)
+	for _, r := range remembered {
+		sc.Remembered = append(sc.Remembered, state.Target{Obj: r})
+	}
+	return effects.MatchesSpecCtx(e.G, v, id, sc)
+}
+
+// MustAttackParamsReadableForRules is the face S:-line half of
+// effects.MustAttackParamsReadable, and DELEGATES to it so the face and
+// Effect routes can never diverge on what is enforceable: rules imports
+// effects (the package order is effects -> rules), so there is one whitelist,
+// not a copy kept in step by hand. Kept as a named wrapper because the rules
+// callers read better for it and a future relocation has one call site.
+func MustAttackParamsReadableForRules(params map[string]string) bool {
+	return effects.MustAttackParamsReadable(params)
+}
+
+// requirementDefender resolves a MustAttack$ player reference to the
+// defending player it names, from the requirement registration's own
+// bindings. ChosenPlayer/Player.Chosen reads the source object's event-backed
+// Chosen list (the ChoosePlayer answer, which survives from the begin-combat
+// trigger to the declare-attackers step because choiceRecord emits it on the
+// source). RememberedPlayer/Player.IsRemembered reads the registration's
+// captured PLAYERS (state.ContinuousEffect.RememberedPlayers,
+// For Each of You a Gift / Furygale Flocking / City of the Daleks), and
+// Remembered.NonActive additionally requires that player not be the active
+// one. Every other reference (You, EffectSource, CardOwner,
+// EnchantedController, Opponent.lifeEQX, ...) names a binding or evaluator
+// this build does not carry, so it fails closed -- the requirement is simply
+// not counted, which is the safe direction for a requirement and is the
+// pre-existing behaviour for every one of them. They are listed in the
+// ticket report's Issues section rather than implemented unproven.
+func (e *Engine) requirementDefender(spec string, source state.ObjID, rememberedPlayers []state.PlayerID) (state.PlayerID, bool) {
+	switch strings.TrimSpace(spec) {
+	case "ChosenPlayer", "Player.Chosen":
+		if o := e.G.Obj(source); o != nil {
+			for _, t := range o.Chosen {
+				if t.IsPlayer {
+					return t.Player, true
+				}
+			}
+		}
+	case "RememberedPlayer", "Player.IsRemembered":
+		if len(rememberedPlayers) > 0 {
+			return rememberedPlayers[0], true
+		}
+	case "Remembered.NonActive":
+		for _, p := range rememberedPlayers {
+			if p != e.G.Active {
+				return p, true
+			}
+		}
+	}
+	return 0, false
+}
+
 // canBlock reports whether blocker may be declared against attacker (CR
 // 509.1a): an untapped creature controlled by the defending player, gated by
 // Flying/Reach (CR 702.9b), Horsemanship (CR 702.31b), Fear, Shadow and by
@@ -272,12 +455,16 @@ func (e *Engine) askAttackers() {
 	// fact (life, clock, board) rather than on seat index. attackOffers
 	// (rules/attack_cost.go) preserves exactly this enumeration.
 	// The CR 508.1d requirements are told to the seat on the options: an
-	// attacker the declaration MUST include (a goaded creature, CR 701.38,
-	// or one under an unconditional MustAttack static) carries
-	// Option.Required, so a rules-ignorant client can build a legal
-	// declaration without re-deriving goad state from the log. The engine
-	// rejects an omission (validateAttackDeclaration), so an unmarked list
-	// is a trap the seat cannot reason its way out of.
+	// attacker the declaration MUST include (a goaded creature, CR 701.38, an
+	// encore token, or one under an unconditional or named MustAttack static)
+	// carries Option.Required, so a rules-ignorant client can build a legal
+	// declaration without re-deriving goad state from the log. attackOffers
+	// has already dropped every pair that satisfies fewer named requirements
+	// than the creature's best defender, so marking all of a required
+	// creature's SURVIVING pairs Required cannot mislead: each one is a
+	// maximal-satisfaction pair. The engine rejects an omission
+	// (validateAttackDeclaration), so an unmarked list is a trap the seat
+	// cannot reason its way out of.
 	mustAtt := make(map[state.ObjID]bool, len(attackers))
 	for _, id := range attackers {
 		if e.mustAttackRequired(id) {
@@ -623,12 +810,15 @@ func (e *Engine) validateAttackers(d *decision.Decision, in decision.Intent) err
 		if seen[o.Obj] {
 			return fmt.Errorf("attacker %d declared against more than one defender", o.Obj)
 		}
-		if required, ok := e.encoreAttackDefender(o.Obj); ok && o.Player != required {
-			return fmt.Errorf("encore attacker %d must attack player %d", o.Obj, required)
-		}
 		if e.attackBlocked(o.Obj, o.Player) {
 			return fmt.Errorf("attacker %d cannot attack player %d", o.Obj, o.Player)
 		}
+		// A required creature's named duty is enforced by the offered-pair set
+		// itself: attackOffers drops every pair that satisfies fewer named
+		// requirements than the creature's best available defender, so a
+		// sub-maximal defender is NOT offered and fails the membership check
+		// below with its own message. The requirement that the creature attack
+		// AT ALL is enforced by validateAttackDeclaration's RequiredQuota.
 		price, ok := offered[attackOffer{id: o.Obj, def: o.Player}]
 		if !ok {
 			return fmt.Errorf("attacker %d cannot attack player %d (attack cost not affordable or pair not offered)", o.Obj, o.Player)
@@ -647,18 +837,22 @@ func (e *Engine) validateAttackers(d *decision.Decision, in decision.Intent) err
 
 // mustAttackRequired reports whether id is a creature that must attack this
 // combat (CR 508.1d), under the active player's control and able to attack.
-// Only the unconditional self-attack and broad-creature MustAttack statics
-// are read: a MustAttack static carrying a condition, an alternative cost or
-// any other parameter the requirement solver cannot evaluate DENIES (it is
-// not counted as required), which is the safe direction for a requirement —
-// erring toward requiring a creature that already attacks changes nothing,
-// while falsely requiring one that cannot legitimately attack would make a
-// legal declaration unanswerable. The walk is the board-wide activeStatics
-// scan (which includes the creature's own face, source-bound through the
-// same specCtx the face walk used), so an AURA-carried requirement — Fealty
-// to the Realm's `S:Mode$ MustAttack | ValidCreature$ Creature.EnchantedBy`,
-// the Vow cycle's shape — reaches the enchanted creature, not just its
-// bearer's own face.
+//
+// A creature is required when its attackRequirementSet is non-empty (an
+// encore designation, any applicable Effect-registered or face Mode$
+// MustAttack static, or a live goad) AND at least one offered pair actually
+// DISCHARGES one of those duties (attackDutyDischargeable) -- CR 508.1d's
+// "attacks if able". The requirement set
+// is the board-wide collection (which includes the creature's own face,
+// source-bound through the same specCtx the face walk used), so an
+// AURA-carried requirement -- Fealty to the Realm's `S:Mode$ MustAttack |
+// ValidCreature$ Creature.EnchantedBy`, the Vow cycle's shape -- reaches the
+// enchanted creature, not just its bearer's own face. A MustAttack static
+// carrying a condition or any other parameter the requirement collector
+// cannot evaluate contributes nothing (attackRequirements skips it), the safe
+// direction for a requirement: erring toward requiring a creature that
+// already attacks changes nothing, while falsely requiring one that cannot
+// legitimately attack would make a legal declaration unanswerable.
 func (e *Engine) mustAttackRequired(id state.ObjID) bool {
 	o := e.G.Obj(id)
 	if o == nil || o.Zone != state.ZBattlefield || o.Controller != e.G.Active {
@@ -668,65 +862,61 @@ func (e *Engine) mustAttackRequired(id state.ObjID) bool {
 	if f == nil || !e.canAttack(id) {
 		return false
 	}
-	// CR 508.1d counts a requirement only when the creature can actually
-	// satisfy it ("attack ... if able"): a creature whose every (attacker,
-	// defender) pair a CantAttack static/restriction blocks is NOT required,
-	// otherwise validateAttackDeclaration would reject every legal
-	// declaration and the KAttackers decision would have no legal answer.
-	// The MaxAttackers$ ceiling is deliberately not a pair gate: the
-	// requirement solver's maxReq (validateAttackDeclaration) already clamps
-	// to it, and a nonzero ceiling that merely caps the count still leaves
-	// the requirement binding.
-	if !e.attackPairAvailable(id) {
+	s := e.attackRequirements(id)
+	if !s.any() {
 		return false
 	}
-	if _, ok := e.encoreAttackDefender(id); ok {
-		return true
-	}
-	if e.hasActiveGoad(o) {
-		return true
-	}
-	for _, sv := range e.activeStatics("MustAttack") {
-		// A conditional or non-self requirement is out of scope for this
-		// solver: that STATIC is not counted (another static on the same or
-		// another permanent may still require).
-		deny := false
-		for k := range sv.Params {
-			switch k {
-			case "Mode", "ValidCreature", "Description":
-			default:
-				deny = true
-			}
-		}
-		if deny {
-			continue
-		}
-		v := sv.Params["ValidCreature"]
-		if v == "" {
-			v = "Card.Self"
-		}
-		if effects.MatchesSpecCtx(e.G, v, id, e.specCtx(sv.Source, sv.Controller)) {
-			return true
-		}
-	}
-	return false
+	// CR 508.1d counts a requirement only when the creature can actually
+	// satisfy it ("attack ... if able"): a creature whose every (attacker,
+	// defender) pair a CantAttack static/restriction, a goad restriction or
+	// the attack-prop budget removes is NOT required, otherwise
+	// validateAttackDeclaration would reject every legal declaration and the
+	// KAttackers decision would have no legal answer. The MaxAttackers$
+	// ceiling is deliberately not a pair gate: the requirement solver's
+	// maxReq (validateAttackDeclaration) already clamps to it, and a nonzero
+	// ceiling that merely caps the count still leaves the requirement binding.
+	// attackDutyDischargeable reads the same maximal-satisfaction offer list
+	// the options do, so the two can never disagree.
+	return e.attackDutyDischargeable(id, s)
 }
 
-// attackPairAvailable reports whether creature id has at least one legal
-// (attacker, defender) pair this combat. The pairs ARE the attackOffers list
-// (rules/attack_cost.go): the defender enumeration (AliveFrom(0), controller
-// excluded), the encore/goad/CantAttack scoping and the attack-prop budget
-// serialization are all the offer list's own rules, so the requirement solver
-// and the option list can never disagree about which pairs exist (a creature
-// whose every pair the attack budget ran out on is not required, and the
-// declaration that pays for the remaining required creatures stays legal).
-func (e *Engine) attackPairAvailable(id state.ObjID) bool {
+// attackDutyDischargeable reports whether creature id has at least one
+// offered (attacker, defender) pair that actually DISCHARGES a requirement in
+// s. It is the "if able" half of CR 508.1d read as a duty, not merely as the
+// existence of some legal pair.
+//
+// A BROAD requirement (an unconditional Mode$ MustAttack) and a goad are
+// discharged by any surviving pair, so one offered pair is enough. A NAMED
+// requirement names its defender, so only a pair against that player
+// discharges it: when every such pair is gone -- a CantAttack static or
+// restriction scoped to that one defender, a goad restriction, or an
+// individually unaffordable attack-prop price -- attacking a DIFFERENT player
+// and not attacking at all both obey ZERO requirements, so CR 508.1d permits
+// either and the creature is NOT required. attackOffers deliberately keeps
+// every surviving pair in that case (its maximal-satisfaction filter is a
+// no-op when the best satisfaction is zero), so the creature may still attack
+// freely; it simply must not be MARKED Required, which would reject the
+// equally maximal no-attack declaration and, with no other required creature
+// to fall back on, leave the KAttackers decision no legal answer at all.
+//
+// The pairs ARE the attackOffers list (rules/attack_cost.go): the defender
+// enumeration (AliveFrom(0), controller excluded), the goad/CantAttack
+// scoping, the CR 508.1d maximal-satisfaction filter and the attack-prop
+// budget serialization are all the offer list's own rules, so the requirement
+// solver, the option list and validateAttackDeclaration can never disagree
+// about which pairs exist or which of them discharge a duty.
+func (e *Engine) attackDutyDischargeable(id state.ObjID, s attackRequirementSet) bool {
+	anyPair := false
 	for _, of := range e.attackOffers() {
-		if of.id == id {
+		if of.id != id {
+			continue
+		}
+		if s.satisfiedBy(of.def) > 0 {
 			return true
 		}
+		anyPair = true
 	}
-	return false
+	return anyPair && (s.broad || s.goad)
 }
 
 // maxAttackers reports the tightest total-attacker ceiling in force from
@@ -1661,6 +1851,14 @@ type assignment struct {
 	lifelink   state.PlayerID
 	hasLink    bool
 	deathtouch bool
+	// infect records that the dealing creature has infect (CR 702.90b): the
+	// damage event carries the infect marker and rules' emit conversion
+	// (Engine.convertInfectDamage) deals it as -1/-1 counters (a creature
+	// recipient) or poison counters (the defending player) instead of marked
+	// damage / life loss. A source granted infect by a static (Grafted
+	// Exoskeleton) reads the same way, because HasKeyword reads the derived
+	// keyword list.
+	infect bool
 	// from is the creature dealing this assignment (the attacker for its own
 	// assignments, each blocker for its hit-back), kept so the damage emit
 	// loop can set e.damaging (engine.go) and let protection prevent damage
@@ -1758,6 +1956,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 				link := e.HasKeyword(aid, "Lifelink")
 				dt := e.HasKeyword(aid, "Deathtouch")
 				trample := e.HasKeyword(aid, "Trample")
+				inf := e.HasKeyword(aid, "Infect")
 				switch {
 				case e.chosenElection(aid):
 					// stat:AssignCombatDamageAsUnblocked (CR 509's optional
@@ -1771,12 +1970,12 @@ func (e *Engine) damageStep(firstStrike bool) {
 					// still hit back below; only the ATTACKER's assignment is
 					// rerouted.
 					as = append(as, assignment{toPlayer: a.Attacking, amount: pw,
-						lifelink: a.Controller, hasLink: link, from: aid})
+						lifelink: a.Controller, hasLink: link, from: aid, infect: inf})
 
 				case len(a.BlockedBy) == 0:
 					// Genuinely unblocked: full damage to the defending player.
 					as = append(as, assignment{toPlayer: a.Attacking, amount: pw,
-						lifelink: a.Controller, hasLink: link, from: aid})
+						lifelink: a.Controller, hasLink: link, from: aid, infect: inf})
 
 				case len(blockers) == 0:
 					// Ruling T21-d (CR 509.1h): a creature that was blocked
@@ -1787,7 +1986,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 					// blocker left to owe any of it to).
 					if trample {
 						as = append(as, assignment{toPlayer: a.Attacking, amount: pw,
-							lifelink: a.Controller, hasLink: link, from: aid})
+							lifelink: a.Controller, hasLink: link, from: aid, infect: inf})
 					}
 
 				default:
@@ -1819,7 +2018,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 						for i, bid := range blockers {
 							if i < len(div) && div[i] > 0 {
 								as = append(as, assignment{toObj: bid, amount: div[i],
-									lifelink: a.Controller, hasLink: link, deathtouch: dt, from: aid})
+									lifelink: a.Controller, hasLink: link, deathtouch: dt, from: aid, infect: inf})
 							}
 						}
 						break
@@ -1835,7 +2034,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 							give = need
 						}
 						as = append(as, assignment{toObj: bid, amount: give,
-							lifelink: a.Controller, hasLink: link, deathtouch: dt, from: aid})
+							lifelink: a.Controller, hasLink: link, deathtouch: dt, from: aid, infect: inf})
 						remaining -= give
 						if remaining <= 0 {
 							break
@@ -1843,7 +2042,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 					}
 					if remaining > 0 && trample {
 						as = append(as, assignment{toPlayer: a.Attacking, amount: remaining,
-							lifelink: a.Controller, hasLink: link, from: aid})
+							lifelink: a.Controller, hasLink: link, from: aid, infect: inf})
 					}
 				}
 			}
@@ -1858,7 +2057,8 @@ func (e *Engine) damageStep(firstStrike bool) {
 			if bp := e.combatDamageAmount(bid); bp > 0 {
 				as = append(as, assignment{toObj: aid, amount: bp,
 					lifelink: e.G.Obj(bid).Controller, hasLink: e.HasKeyword(bid, "Lifelink"),
-					deathtouch: e.HasKeyword(bid, "Deathtouch"), from: bid})
+					deathtouch: e.HasKeyword(bid, "Deathtouch"), from: bid,
+					infect: e.HasKeyword(bid, "Infect")})
 			}
 		}
 	}
@@ -1915,7 +2115,25 @@ func (e *Engine) runCombatAssignments() {
 			// event's Kind -- the recipient-armed bet here is that a Note (or
 			// any replacement-substituted non-Damage kind) means the damage
 			// did NOT land -- skips both riders for a prevented assignment.
-			ev := e.emit(events.Event{Kind: events.Damage, Obj: x.toObj, Amount: x.amount})
+			dam := events.Event{Kind: events.Damage, Obj: x.toObj, Amount: x.amount}
+			if x.infect && e.IsCreature(x.toObj) {
+				// CR 702.90b: a CREATURE recipient takes infect damage as
+				// -1/-1 counters; the compound marker rides Damage's Counter
+				// carrier (both facts -- the source's infect and the recipient's
+				// layer-accurate creature classification -- which the fold
+				// reuses) and Engine.convertInfectDamage places them as a real
+				// CounterChange right after this event folds, through the same
+				// replacement/trigger pipeline every other placement uses.
+				// Classifying rather than assuming keeps the marker honest for
+				// any future shape that lands a blocker-shaped hit on a
+				// non-creature (a Battle, a redirected hit): that recipient
+				// goes untagged and takes ordinary marked damage. Preceding
+				// replacements (protection is handled before them, in emit)
+				// still act on the event, so a rewritten amount converts as the
+				// rewritten amount.
+				dam.Counter = "infect+creature"
+			}
+			ev := e.emit(dam)
 			prevented = ev.Kind != events.Damage
 			if !prevented {
 				dealt = ev.Amount
@@ -1938,7 +2156,17 @@ func (e *Engine) runCombatAssignments() {
 			// player-hit, consistent with the Obj branch. Non-Commander games
 			// take the original single-emit path untouched, so this task
 			// changes nothing about them.
-			ev := e.emit(events.Event{Kind: events.Damage, Player: x.toPlayer, Amount: x.amount})
+			dam := events.Event{Kind: events.Damage, Player: x.toPlayer, Amount: x.amount}
+			if x.infect {
+				// CR 702.90b: that many poison counters instead of life loss;
+				// the marker rides Damage's Counter carrier and
+				// Engine.convertInfectDamage emits a real PlayerCounterChange
+				// right after this event folds, so the placement goes through
+				// the same replacement/trigger pipeline every other counter
+				// placement does.
+				dam.Counter = "infect"
+			}
+			ev := e.emit(dam)
 			prevented = ev.Kind != events.Damage
 			if !prevented {
 				dealt = ev.Amount
@@ -2215,9 +2443,16 @@ type exertAsk struct {
 // turn loop re-entering itself to grant priority and then redoing cleanup --
 // was judged not a small, clearly-correct addition at this point of
 // priorityRound; an honest recorded gap beats a speculative turn-loop
-// change, and the brief directs exactly that). advanceStep is called from
-// here only after EVERY part of the cleanup -- the discard and the 514.2
-// body -- has run, so the step is never advanced mid-cleanup.
+// change, and the brief directs exactly that).
+//
+// mayflashsac2 implemented exactly that tail (finishCleanupStep, turn.go):
+// the discard and the 514.2 body are followed by the CR 514.3 tail the
+// no-discard path shares -- a trigger the discard or the body queued is
+// placed during the cleanup step and the players get priority while it
+// resolves, instead of the old gap where a cleanup-created trigger waited
+// until the next turn's first priority. advanceStep is reached only after
+// EVERY part of the cleanup has run and nothing is waiting, so the step is
+// never advanced mid-cleanup.
 func (e *Engine) discardCleanup(chosen []decision.Option) {
 	// Matching the cast flows (cast.go), clear the choosing marker this flow
 	// itself set in cleanupStep: once the discard answer is recorded there is
@@ -2230,7 +2465,7 @@ func (e *Engine) discardCleanup(chosen []decision.Option) {
 		e.emit(events.Discard(opt.Obj, e.G.Active))
 	}
 	e.cleanupBody()
-	e.advanceStep()
+	e.finishCleanupStep()
 }
 
 // Registered here: exactly the eight keywords this task actually implements
@@ -2250,6 +2485,11 @@ func (e *Engine) discardCleanup(chosen []decision.Option) {
 func init() {
 	effects.RegisterNonAPI("kw:Flying", "kw:Reach", "kw:Haste", "kw:Vigilance",
 		"kw:Deathtouch", "kw:Trample", "kw:Lifelink", "kw:First Strike", "kw:Double Strike",
+		// kw:Infect (CR 702.90): the conversion lives in events.Apply's Damage
+		// fold, driven by the infect marker rules/combat.go and effects/damage.go
+		// set on the event; rules need no keyword machinery of its own beyond
+		// the HasKeyword read the combat path already makes.
+		"kw:Infect",
 		"kw:Flash", "kw:Indestructible", "kw:Devoid", "kw:Defender", "kw:Menace",
 		"kw:Fear", "kw:Shadow", "kw:Horsemanship", "kw:Skulk",
 		// kw:Toxic (CR 702.164) is a static ability rules reads directly, the
