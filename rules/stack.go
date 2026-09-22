@@ -1432,33 +1432,62 @@ func (e *Engine) candidateControllerSeat(candidate targetCandidate) state.Player
 	return candidate.player
 }
 
-// oneEachTargetBounds applies Forge's TargetsForEachPlayer$ selection shape
-// (TargetRestrictions.setForEachPlayer): the selected targets are limited to
-// one controlled by each player, and a TargetMin$/TargetMax$ spelled OneEach
-// asks for exactly the distinct-controller count. askTarget (this file) and
-// cast.go's targetAsk share it so the two ask sites cannot drift; the bool
-// reports whether the shape applies (the caller attaches the matching
-// Option.Group through targetControllerGroup). TargetsWithDifferentControllers$
-// is the same set constraint but never respells the bounds -- it is the
-// group alone, so it does not reach this helper.
-func (e *Engine) oneEachTargetBounds(sa *cards.SA, candidates []targetCandidate, min, max int) (int, int, bool) {
-	if !strings.EqualFold(sa.Params["TargetsForEachPlayer"], "True") {
-		return min, max, false
+// oneEachTargetBounds applies Forge's per-controller target selection shapes:
+// TargetsForEachPlayer$ (TargetRestrictions.setForEachPlayer) and
+// TargetsWithDifferentControllers$ ("targets controlled by different
+// players"). Both are the SAME set constraint -- no two chosen targets may
+// share a controller -- and both are labelled on the wire by
+// targetControllerGroup's Option.Group. askTarget (this file) and cast.go's
+// targetAsk share it so the two ask sites cannot drift.
+//
+// It returns the (possibly rewritten) bounds, whether the constraint applies
+// at all, and the DISTINCT-CONTROLLER count. The count is the real capacity of
+// the constraint: a TargetMin$/TargetMax$ spelled OneEach asks for exactly
+// that many, and BOTH shapes cap the effective maximum at it, because no legal
+// answer can ever select more targets than there are distinct controllers.
+// Without the cap (the pre-fix state) a TargetsWithDifferentControllers$ SA
+// with a literal TargetMin$ 2 | TargetMax$ 2 asked for two picks while
+// offering only one selectable group -- an unsatisfiable decision that no
+// intent could answer (Run Away Together, Kitsune, Dragon's Daughter).
+// Callers compare min against distinct (not the raw option count) to detect
+// that no legal set exists.
+func (e *Engine) oneEachTargetBounds(sa *cards.SA, candidates []targetCandidate, min, max int) (int, int, bool, int) {
+	if !targetControllerExclusive(sa) {
+		return min, max, false, 0
 	}
-	// Option.Group makes the one-per-player restriction part of the generic
-	// decision contract, so every target API consumes the same enforcement
-	// rather than each effect maintaining a picker.
+	// Option.Group makes the one-per-controller restriction part of the
+	// generic decision contract, so every target API consumes the same
+	// enforcement rather than each effect maintaining a picker.
 	groups := map[state.PlayerID]bool{}
 	for _, candidate := range candidates {
 		groups[e.candidateControllerSeat(candidate)] = true
 	}
+	distinct := len(groups)
+	// OneEach respells a bound as the distinct-controller count. It is the
+	// TargetsForEachPlayer$ spelling in Forge's grammar, but the corpus also
+	// writes it on a TargetsWithDifferentControllers$ SA (Mysterious
+	// Stranger's "for each player" graveyard pick), where it means the same
+	// thing -- so the respell is driven by the VALUE, not by which of the two
+	// equivalent flags is present. Before this only the
+	// TargetsForEachPlayer$ spelling was read and Mysterious Stranger asked
+	// for ONE target (Min 1 / Max 1) instead of one per represented player.
 	if strings.EqualFold(sa.Params["TargetMin"], "OneEach") {
-		min = len(groups)
+		min = distinct
 	}
 	if strings.EqualFold(sa.Params["TargetMax"], "OneEach") {
-		max = len(groups)
+		max = distinct
 	}
-	return min, max, true
+	// Cap the maximum at the distinct-controller count for BOTH shapes: a
+	// literal or dynamic TargetMax$ larger than the number of controllers
+	// present could only invite an answer the exclusivity rule rejects, so
+	// the offer must advertise the true capacity (Havoc Eater's TargetMax$ X,
+	// Protector of the Wastes' TargetMax$ 2). distinct is 0 only when there
+	// are no candidates at all, and the no-option paths handle that before a
+	// decision is built, so the max >= 1 clamp contract is preserved.
+	if distinct > 0 && max > distinct {
+		max = distinct
+	}
+	return min, max, true, distinct
 }
 
 // targetControllerExclusive reports whether this targeting SA carries Forge's
@@ -1543,7 +1572,7 @@ func (e *Engine) narrowDifferentControllers(targets []state.Target) []state.Targ
 func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 	min, max := e.resolvedTargetBounds(p, source, sa, 0)
 	candidates := e.legalTargetCandidates(p, source, source, sa)
-	min, max, _ = e.oneEachTargetBounds(sa, candidates, min, max)
+	min, max, exclusive, distinct := e.oneEachTargetBounds(sa, candidates, min, max)
 	d := &decision.Decision{Player: p, Kind: decision.KTarget, Min: min, Max: max,
 		Prompt: "Choose a target for " + e.targetName(source),
 		Source: source, TargetEffect: describeTargetEffect(sa)}
@@ -1565,8 +1594,11 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 		if len(d.Options) == 0 {
 			return
 		}
-	} else if len(d.Options) < min {
-		// A target-hungry subject with fewer legal targets than Min uses CR
+	} else if len(d.Options) < min || (exclusive && min > distinct) {
+		// A target-hungry subject with fewer legal targets than Min -- or one
+		// whose per-controller constraint admits fewer distinct controllers
+		// than Min (exclusive && min > distinct: two mandatory targets, both
+		// controlled by one player) -- uses CR
 		// 608.2b's existing counter/fizzle exit: an immediate move to its
 		// normal resting place (exile instead of the graveyard for a
 		// Flashback cast, and for a triggered ability object -- which has no
