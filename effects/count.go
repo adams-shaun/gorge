@@ -1547,6 +1547,9 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		if n, ok2 := hasPropertyLostLifeCount(h, g.AliveFrom(0), rest); ok2 {
 			return n, true
 		}
+		if n, ok2 := hasPropertyStateBacked(h, g, c, g.AliveFrom(0), rest, arg); ok2 {
+			return n, true
+		}
 		if n, ok2 := playerCountCondition(h, g, c, g.AliveFrom(0), rest, arg); ok2 {
 			return n, true
 		}
@@ -1568,6 +1571,9 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		// HasPropertywasDealtCombatDamageThisTurnBy carriers on this group
 		// (Blitzball's legendary creature, Estinien Varlineau's
 		// Card.Self,Dragon) resolve through the same code.
+		if n, ok2 := hasPropertyStateBacked(h, g, c, opponentGroup(g, c), rest, arg); ok2 {
+			return n, true
+		}
 		return playerCountDefinedRegistered(h, g, c, opponentGroup(g, c), rest, arg)
 	}
 	if rest, ok := strings.CutPrefix(head, "PlayerCountOpponents$"); ok {
@@ -1578,6 +1584,9 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			return n, true
 		}
 		if n, ok2 := hasPropertyLostLifeCount(h, opponentGroup(g, c), rest); ok2 {
+			return n, true
+		}
+		if n, ok2 := hasPropertyStateBacked(h, g, c, opponentGroup(g, c), rest, arg); ok2 {
 			return n, true
 		}
 		if n, ok2 := playerCountCondition(h, g, c, opponentGroup(g, c), rest, arg); ok2 {
@@ -2596,6 +2605,126 @@ func playerCountDefinedRegistered(h Host, g *state.Game, c *Ctx, group []state.P
 	// reaches a zone-count extreme here); only the two LifeLostThisTurn
 	// extremes route into playerCountExtreme, above.
 	return 0, false
+}
+
+// hasPropertyStateBacked answers the narrowly supported player-state
+// HasProperty heads on the three ordinary living-player groups. Zone counts
+// are evaluated from each member's perspective, so You/YouOwn selectors refer
+// to that member rather than the resolving controller.
+func hasPropertyStateBacked(h Host, g *state.Game, c *Ctx, group []state.PlayerID, prop, arg string) (int32, bool) {
+	base, op, hasOp := strings.Cut(strings.TrimSpace(prop), "/")
+	base = strings.TrimSpace(base)
+	if strings.TrimSpace(arg) != "" {
+		return 0, false
+	}
+
+	var qualifies func(state.PlayerID) bool
+	switch {
+	case base == "HasPropertyisMonarch":
+		qualifies = func(p state.PlayerID) bool { return g.IsMonarch(p) }
+	case base == "HasPropertywasDealtDamageThisTurn":
+		qualifies = func(p state.PlayerID) bool { return h.DamageTakenThisTurn(p) > 0 }
+	case base == "HasPropertywasDealtCombatDamageThisTurn":
+		hits := h.CombatDamageToPlayersThisTurn()
+		qualifies = func(p state.PlayerID) bool {
+			for _, hit := range hits {
+				if hit.Player == p {
+					return true
+				}
+			}
+			return false
+		}
+	default:
+		zone := state.Zone(0)
+		prefix := ""
+		switch {
+		case strings.HasPrefix(base, "HasPropertyHasCardsInHand_"):
+			zone, prefix = state.ZHand, "HasPropertyHasCardsInHand_"
+		case strings.HasPrefix(base, "HasPropertyHasCardsInGraveyard_"):
+			zone, prefix = state.ZGraveyard, "HasPropertyHasCardsInGraveyard_"
+		default:
+			return 0, false
+		}
+		tail := strings.TrimPrefix(base, prefix)
+		i := strings.LastIndexByte(tail, '_')
+		if i <= 0 || i == len(tail)-1 {
+			return 0, false
+		}
+		spec, cmp := tail[:i], tail[i+1:]
+		parsedOp, threshold, ok := parseCountCompare(cmp)
+		if !ok || (parsedOp != "GE" && parsedOp != "GT" && parsedOp != "LE") {
+			return 0, false
+		}
+		// An unread card spec fails CLOSED before any member is evaluated:
+		// the zone matcher reports only a match boolean, so an unrecognized
+		// predicate (Card.NoSuchPredicate) or base (NoSuchBase) would match
+		// nothing, read as a fabricated count of zero and return (0, true) --
+		// a condition gate would then enforce a zero that no rule stated.
+		// unreadZoneSpec validates through the same classifiers the matcher
+		// itself walks (UnknownPredicates, the census's shared base/predicate
+		// vocabulary), so a spec the matcher would silently zero out here
+		// reads unresolvable instead.
+		if unreadZoneSpec(spec) {
+			return 0, false
+		}
+		qualifies = func(p state.PlayerID) bool {
+			var cards int32
+			for _, id := range g.Zone(zone, p) {
+				if matchesZoneSpecCtx(g, spec, id, c.SpecContext(p), zone) {
+					cards++
+				}
+			}
+			return countOpHolds(parsedOp, threshold, cards)
+		}
+	}
+	n := hasPropertyCount(group, qualifies)
+	if hasOp {
+		n = applyCountOp(n, op)
+	}
+	return n, true
+}
+
+// unreadZoneSpec reports whether a zone-count HasProperty's card spec is
+// unread — malformed, an unknown base word, or carrying a predicate no part
+// of the filter recognises. It is the object-free validation mirror of
+// matchesZoneSpecCtx: that matcher answers only a match boolean, so the sole
+// classifier shared with it is the UnknownPredicates census plus the base
+// vocabulary matchesBase dispatches on (its special bases, the CR 205.1
+// card-type words, and the creature-subtype words hasTypeCtx reads).
+// Anything outside that vocabulary fails closed here, so the count head can
+// never turn an unread spec into a fabricated zero.
+func unreadZoneSpec(spec string) bool {
+	spec = strings.TrimSpace(spec)
+	if spec == "" {
+		return true
+	}
+	// Comma alternatives are validated per alternative — the base of the
+	// WHOLE spec is only the first alternative's (Mysterious Stranger's
+	// `Instant,Sorcery` is two valid bases, not one unknown one).
+	for alt := range filterAlternatives(spec) {
+		alt = strings.TrimSpace(alt)
+		if alt == "" {
+			continue
+		}
+		base, _, _ := strings.Cut(alt, ".")
+		base = strings.TrimSpace(base)
+		if neg := strings.TrimPrefix(base, "non"); neg != base {
+			base = strings.TrimSpace(neg)
+		}
+		if base == "" {
+			return true
+		}
+		switch base {
+		case "Any", "Card", "Permanent", "PermanentCard", "Spell", "SpellAbility", "CARDNAME":
+			// matchesBase's own special bases (and the CARDNAME base
+			// matchesZoneSpecCtx binds to the resolving source).
+		default:
+			if !cardTypeWords[base] && !CreatureTypeWords(base) {
+				return true
+			}
+		}
+	}
+	return len(UnknownPredicates(spec)) != 0
 }
 
 // hasPropertyLostLifeCount answers PlayerCount*$HasPropertyLostLifeThisTurn
