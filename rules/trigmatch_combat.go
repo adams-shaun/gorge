@@ -582,6 +582,72 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 	})
 }
 
+// checkAttackerUnblockedTriggers queues one Mode$ AttackerUnblocked instance
+// for every matching unblocked attacker at declare-blockers round completion.
+// Unlike AttackerUnblockedOnce, this mode matches ValidCard$ against the
+// attacker and ValidDefender$ against that attacker's actual defender.
+func (e *Engine) checkAttackerUnblockedTriggers() {
+	pt := func(p state.PlayerID) state.Target { return state.Target{Player: p, IsPlayer: true} }
+	ev := events.Event{Kind: events.DeclareBlockers}
+	e.forEachObject(func(id state.ObjID) {
+		o := e.G.Obj(id)
+		if o == nil || o.Face() == nil {
+			return
+		}
+		f := o.Face()
+		if !o.Unlocked && !e.faceMayTrigger(f, ev.Kind) {
+			return
+		}
+		for ti, t := range f.Triggers {
+			if t.Mode != "AttackerUnblocked" || t.Effect == nil {
+				continue
+			}
+			if !e.zoneGate(t, id, ev) || !e.phaseGate(t) || !e.triggerConditionHolds(t, id) {
+				continue
+			}
+			key := triggerKey{Source: id, Idx: ti}
+			if e.triggerFireCount == nil {
+				e.triggerFireCount = map[triggerKey]int32{}
+			}
+			if e.triggerFireCount[key] >= maxTriggerFires {
+				continue
+			}
+			if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
+				continue
+			}
+			for _, p := range e.G.AliveFrom(0) {
+				for _, aid := range e.G.Zone(state.ZBattlefield, p) {
+					a := e.G.Obj(aid)
+					if a == nil || !a.IsAttacking || len(a.BlockedBy) != 0 {
+						continue
+					}
+					if v := t.Params["ValidCard"]; v != "" && !effects.MatchesSpecCtx(e.G, v, aid, e.specCtx(id, o.Controller)) {
+						continue
+					}
+					if v := t.Params["ValidDefender"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, a.Attacking, o.Controller) {
+						continue
+					}
+					e.triggerFireCount[key]++
+					e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+						Source: id, Controller: o.Controller, Idx: ti, SA: t.Effect,
+						Ctx: effects.Ctx{
+							Source: id, Controller: o.Controller,
+							Remembered: []state.Target{{Obj: aid}}, Captured: []state.Target{{Obj: aid}},
+							TriggerContext: effects.TriggerContext{
+								TriggerCard: aid, TriggerSource: aid,
+								AttackingPlayer: pt(e.controllerOf(aid)), DefendingPlayer: pt(a.Attacking),
+							},
+						},
+					})
+					if e.triggerFireCount[key] >= maxTriggerFires {
+						return
+					}
+				}
+			}
+		}
+	})
+}
+
 // checkAttackerUnblockedOnceTriggers queues Mode$ AttackerUnblockedOnce
 // (Coveted Jewel's "Whenever one or more creatures an opponent controls attack
 // you and aren't blocked, that player draws three cards and gains control of

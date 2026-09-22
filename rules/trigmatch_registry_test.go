@@ -130,6 +130,9 @@ var addedAfterTheSplit = []string{
 	// logged an empty-IDs events.Attach, so no pre-split switch arm could
 	// have dispatched it.
 	"Unattached",
+	// trigunblk2: AttackerUnblocked is a dedicated declare-blockers
+	// round-complete matcher, not an event-dispatch arm in the pre-split switch.
+	"AttackerUnblocked",
 }
 
 func allRegisteredModeNames() []string {
