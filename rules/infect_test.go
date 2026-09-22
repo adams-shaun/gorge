@@ -295,6 +295,98 @@ func TestInfectCountersRideTheCounterReplacementPath(t *testing.T) {
 	}
 }
 
+// TestInfectDamageRedirectedToCreatureIsCountersOnly pins the review-sol1
+// MAJOR: a damage REDIRECT changes the event's recipient (Palisade Giant's
+// `ReplaceEvent Affected$ Self` moves a player-targeted hit onto the Giant),
+// and the infect marker must be recomputed for the NEW recipient. Before the
+// fix the bare "infect" (player-form) marker survived onto the creature
+// recipient, so events.Apply marked ordinary damage on the Giant AND
+// convertInfectDamage placed -1/-1 counters for the same hit -- both forms of
+// one hit. After the fix the redirect lands exactly one form: -1/-1 counters,
+// no marked damage.
+func TestInfectDamageRedirectedToCreatureIsCountersOnly(t *testing.T) {
+	e := combatEngine(t)
+	// The infect attacker belongs to the active player (seat 1) and swings
+	// unblocked at seat 0, whose Palisade Giant redirects the hit to itself.
+	e.G.Active = 1
+	giant := onBoardCard(t, e, 0, mustCorpusCard(t, sharedCorpus(t), "Palisade Giant"))
+	mamba := onBoardCard(t, e, 1, corpusInfectCard(t, "Blight Mamba"))
+	e.G.Obj(mamba).SummonSick = false
+
+	// Preconditions the assertions below depend on: the source reads infect,
+	// the redirect target is on the battlefield as a creature, and it
+	// arrives undamaged and uncountered -- so the two counts below read a
+	// single hit's result, not a leftover from setup.
+	if !e.HasKeyword(mamba, "Infect") {
+		t.Fatal("precondition: Blight Mamba does not read infect")
+	}
+	if o := e.G.Obj(giant); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatal("precondition: Palisade Giant is not on the battlefield")
+	}
+	if !e.IsCreature(giant) {
+		t.Fatal("precondition: Palisade Giant does not read as a creature")
+	}
+	if got := e.G.Obj(giant).Damage; got != 0 {
+		t.Fatalf("precondition: Palisade Giant already carries %d marked damage", got)
+	}
+	if got := e.G.Obj(giant).Counter("M1M1"); got != 0 {
+		t.Fatalf("precondition: Palisade Giant already carries %d -1/-1 counters", got)
+	}
+
+	e.askAttackers()
+	submitAttackers(t, e, mamba)
+	// Seat 0 controls a creature, so combat waits for its (empty) block
+	// declaration before the unblocked hit lands.
+	submitBlockers(t, e)
+
+	if got := e.G.Obj(giant).Counter("M1M1"); got != 1 {
+		t.Fatalf("Palisade Giant -1/-1 counters = %d, want 1 (the redirected infect hit's counter form)", got)
+	}
+	if got := e.G.Obj(giant).Damage; got != 0 {
+		t.Fatalf("Palisade Giant marked damage = %d, want 0 (a redirected infect hit lands in counter form ONLY, never both)", got)
+	}
+	if got := e.G.Players[0].Life; got != 20 {
+		t.Fatalf("defending player life = %d, want 20 (the hit was redirected away)", got)
+	}
+	if got := e.G.Players[0].Counter("POISON"); got != 0 {
+		t.Fatalf("defending player poison = %d, want 0 (the hit was redirected away)", got)
+	}
+}
+
+// TestInfectDamageRedirectedToPlayerIsPoisonOnly is the reverse redirect: a
+// creature-targeted infect hit (the compound "infect+creature" marker) moved
+// onto a player must become the player form -- poison counters, no -1/-1
+// counters and no game loss from an impossible creature counter. It drives
+// ReplaceEvent directly, the one recipient-rewriting site a redirect owns.
+func TestInfectDamageRedirectedToPlayerIsPoisonOnly(t *testing.T) {
+	e := combatEngine(t)
+	mamba := onBoardCard(t, e, 0, corpusInfectCard(t, "Blight Mamba"))
+	self := onBoard(t, e, 0, "Name:Redirector\nTypes:Enchantment\nOracle:x\n")
+
+	// Preconditions: the source reads infect and the held event starts in
+	// the creature form with a creature recipient that exists.
+	if !e.HasKeyword(mamba, "Infect") {
+		t.Fatal("precondition: Blight Mamba does not read infect")
+	}
+	if got := e.G.Players[1].Counter("POISON"); got != 0 {
+		t.Fatalf("precondition: seat 1 already carries %d poison", got)
+	}
+
+	e.replacingSource = self
+	held := events.Event{Kind: events.Damage, Obj: mamba, Amount: 3, Counter: "infect+creature"}
+	e.replacingEvent = &held
+	e.ReplaceEvent("Affected", "You", 0)
+	e.replacingEvent = nil
+	e.replacingSource = 0
+
+	if held.Player != 0 || held.Obj != 0 {
+		t.Fatalf("redirected recipient = obj %d / player %d, want player 0", held.Obj, held.Player)
+	}
+	if held.Counter != "infect" {
+		t.Fatalf("redirected marker = %q, want %q (creature->player must become the poison form)", held.Counter, "infect")
+	}
+}
+
 // TestInfectDeathtouchKillsThroughCounters pins the counter-form
 // half of CR 704.5g: a deathtouch infect creature's damage is dealt as
 // -1/-1 counters with nothing marked, and the creature it damaged still

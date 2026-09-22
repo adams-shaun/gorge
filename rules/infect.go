@@ -26,6 +26,38 @@ import (
 // which the fold already applied. A recipient that left the battlefield
 // before the fold places nothing: damage dealt to an object that is no
 // longer there marks nothing and places no counters either.
+// recomputeInfectMarker re-derives an infect Damage event's FORM marker after
+// its recipient changed. The marker conflates two facts -- the source's infect
+// (which never changes) and the recipient's class (which a redirect does) --
+// and every emitter sets it after a HasKeyword read, so a NON-EMPTY infect
+// marker is itself the source-infect fact. Only the recipient half is rewritten
+// here:
+//
+//	player recipient          -> "infect"          (CR 702.90b poison)
+//	creature recipient        -> "infect+creature" (-1/-1 counters)
+//	any other object recipient-> ""                (ordinary damage)
+//
+// A non-infect marker (the walker-animation "creature" tag) and a bare/unset
+// marker are left untouched, so this cannot invent infect for an ordinary hit.
+// The recipient is classified by the SAME layer-accurate IsCreature the
+// emitters use, so a layer-animated creature recipient is tagged exactly as it
+// would have been had the hit been aimed there in the first place.
+func (e *Engine) recomputeInfectMarker(ev *events.Event) {
+	if ev == nil || ev.Kind != events.Damage || ev.Counter != "infect" && ev.Counter != "infect+creature" {
+		return
+	}
+	switch {
+	case ev.Obj != 0:
+		if o := e.G.Obj(ev.Obj); o != nil && o.Zone == state.ZBattlefield && e.IsCreature(ev.Obj) {
+			ev.Counter = "infect+creature"
+		} else {
+			ev.Counter = ""
+		}
+	case int(ev.Player) < len(e.G.Players):
+		ev.Counter = "infect"
+	}
+}
+
 func (e *Engine) convertInfectDamage(ev events.Event) {
 	if ev.Obj != 0 {
 		o := e.G.Obj(ev.Obj)
