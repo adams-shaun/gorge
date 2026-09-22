@@ -713,8 +713,8 @@ func TestDefinedTriggeredCardOwners(t *testing.T) {
 		t.Fatalf("NonTriggeredCardOwner = %v, want every other living seat [0 1] in AliveFrom order", got)
 	}
 
-	// A departed owner drops out of the "other players" set while the set
-	// stays deterministic: seat 0 loses, so only seat 1 remains.
+	// A departed non-owner drops out of the "other players" set while the
+	// set stays deterministic: seat 0 loses, so only seat 1 remains.
 	h.g.Players[0].Lost = true
 	got = Defined(h, c, &cards.SA{Params: map[string]string{"Defined": "NonTriggeredCardOwner"}})
 	if len(got) != 1 || !got[0].IsPlayer || got[0].Player != 1 {
@@ -723,8 +723,9 @@ func TestDefinedTriggeredCardOwners(t *testing.T) {
 	h.g.Players[0].Lost = false
 
 	// No triggering card: both forms fail CLOSED to the empty set, never to
-	// the ability's source or to every player.
-	empty := &Ctx{Source: src.ID, Controller: 0}
+	// the ability's source or to every player. A remembered object must not
+	// substitute for the absent TriggerCard role.
+	empty := &Ctx{Source: src.ID, Controller: 0, Remembered: []state.Target{{Obj: trig.ID}}}
 	for _, form := range []string{"TriggeredCardOwner", "NonTriggeredCardOwner"} {
 		if got := Defined(h, empty, &cards.SA{Params: map[string]string{"Defined": form}}); len(got) != 0 {
 			t.Errorf("%s with no triggering card = %v, want the empty set", form, got)
