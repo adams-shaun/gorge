@@ -295,6 +295,9 @@ const (
 	// (rules/altcast.go's altCostEnter) can register the delayed sacrifice.
 	// Appended per the enum's own append-only precedent.
 	FlagMayFlashSac
+	// FlagCompleated marks the pay-time CastInfo carrying life paid for a
+	// printed K:Compleated planeswalker's Phyrexian symbols.
+	FlagCompleated
 )
 
 // CastProvenanceFlags is the ONE home for the CastFlags bits whose reader
@@ -652,6 +655,10 @@ type Object struct {
 	ManaTreasureSpent int32
 	ManaCaveSpent     int32
 	ManaDesertSpent   int32
+	// CompleatedLifePaid is the amount of life paid for Phyrexian symbols on
+	// a printed K:Compleated cast. It follows the cast provenance window and
+	// is consumed by events.Move when the spell enters as a planeswalker.
+	CompleatedLifePaid int32
 	// NotedNumber is the number a trigger's Execute$ body noted onto the
 	// CARD (Lupine Harbingers' T:Mode$ ChangesZone | Destination$ Exile
 	// trigger executing DB$ Pump | NoteNumber$ Count$YourTurns -- the
