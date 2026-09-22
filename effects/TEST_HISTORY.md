@@ -345,3 +345,4 @@ so the pre-perf calibration is not lost.
 | 2026-09-22T08:49Z | 78964373+ | 2.4 | 628 | 0 | sadams |
 | 2026-09-22T08:45Z | 374bb8f9+ | 0.7 | 624 | 0 | sadams |
 | 2026-09-22T09:01Z | 3f0c709b+ | 2.3 | 634 | 0 | sadams |
+| 2026-09-22T08:46Z | 374bb8f9+ | 0.8 | 624 | 0 | sadams |

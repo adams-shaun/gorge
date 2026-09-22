@@ -859,6 +859,20 @@ func ManaRestrictionTextNC(valid string, source state.ObjID, cond string) string
 	}
 }
 
+// manaPersistentSuffix marks a ManaAdd event whose added mana carries
+// PersistentMana$ True (Forge): the mana does not empty as steps and phases
+// end (CR 500.4 with the card's exception, e.g. Rousing Refrain, Savage
+// Ventmaw), until the turn ends — events.Apply's TurnChange fold expires it.
+// The suffix rides Text after every other encoding (the restriction prefix
+// and its optional source/nc segments), so it composes with a restricted
+// batch (Klauth's PersistentMana$ True | RestrictValid$ Spell) and ordinary
+// historical ManaAdd events never carry it.
+const manaPersistentSuffix = " pm"
+
+// ManaPersistentText appends the PersistentMana$ True marker to a ManaAdd
+// event's Text encoding (which may already carry the restriction encoding).
+func ManaPersistentText(text string) string { return text + manaPersistentSuffix }
+
 // ManaRestrictionFromText returns the constraint carried by a restricted
 // ManaAdd event, with the producing source id when the encoding carries one
 // (0 otherwise) and the AddsNoCounter$ condition when one is encoded (""). It

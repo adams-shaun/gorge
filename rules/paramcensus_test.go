@@ -2465,7 +2465,10 @@ var knownUnsupportedParams = map[string][]string{
 	"Methods of the Mighty":          {"param:api:Destroy.ValidTgtsDesc"},
 	"Mogis, God of Slaughter":        {"param:stat:Continuous.RemoveType"},
 	"Patriot, Shield Wielder":        {"param:api:Pump.ValidTgtsDesc"},
-	"Photon, Mighty Marvel":          {"param:api:Mana.PersistentMana"},
+	// (Photon, Mighty Marvel's param:api:Mana.PersistentMana row retired when
+	// the PersistentMana$ read landed — the pm ManaAdd suffix, ManaClear's
+	// partial clear and the TurnChange expiry — pinned end to end on the real
+	// corpus carrier Rousing Refrain in rules/persistent_mana_test.go.)
 	"Purphoros, God of the Forge":    {"param:stat:Continuous.RemoveType"},
 	"Rescue, Pepper Potts":           {"param:api:ChangeZone.ValidTgtsDesc"},
 	"Scarlet Witch, Chaotic Avenger": {"param:api:Dig.WithMayLook"},

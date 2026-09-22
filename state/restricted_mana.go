@@ -21,4 +21,11 @@ type ManaRestriction struct {
 	// segment). Zero for every historical batch and for source-less
 	// producers; the source-relative Valid predicates resolve against it.
 	Source ObjID
+	// Persistent marks a batch whose producing ability carries
+	// PersistentMana$ True: its units do not empty as steps and phases end
+	// (CR 500.4 with the card's exception) until the turn ends. ManaClear
+	// keeps a persistent batch (and drops the ordinary ones); the pm Text
+	// suffix on the producing ManaAdd event is what sets it, so a replay
+	// derives it identically.
+	Persistent bool
 }

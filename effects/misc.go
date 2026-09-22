@@ -2311,6 +2311,23 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "unhandled AddsNoCounter$ " + strings.TrimSpace(sa.Params["AddsNoCounter"]) + "; the mana is ordinary"})
 	}
+	// PersistentMana$ True (Rousing Refrain, Savage Ventmaw, Klauth: 23 corpus
+	// files, every occurrence the literal True): the mana does not empty as
+	// steps and phases end (CR 500.4 with the card's exception) until the
+	// turn ends. The marker rides the ManaAdd event's Text suffix
+	// (events.ManaPersistentText) so events.Apply can keep the units through
+	// ManaClear and expire them at TurnChange; it composes with the
+	// restriction encoding (Klauth pairs it with RestrictValid$ Spell). Any
+	// other value is a loud Note and ordinary mana.
+	persistent := false
+	switch strings.TrimSpace(sa.Params["PersistentMana"]) {
+	case "":
+	case "True":
+		persistent = true
+	default:
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "unhandled PersistentMana$ " + strings.TrimSpace(sa.Params["PersistentMana"]) + "; the mana is ordinary"})
+	}
 	// CR 107.4h: mana produced by a SNOW permanent is snow mana. A snow unit
 	// is tagged in the pool event itself — Counter "S<colour>" — so the pool
 	// slot and the parallel snow tally move through one event and a replay
@@ -2390,6 +2407,9 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 				ev.Text = events.ManaRestrictionText(restriction, c.Source)
 			} else if provenanceOnly {
 				ev.Text = events.ManaRestrictionText("", c.Source)
+			}
+			if persistent {
+				ev.Text = events.ManaPersistentText(ev.Text)
 			}
 			h.Emit(ev)
 		}
