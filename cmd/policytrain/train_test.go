@@ -968,34 +968,37 @@ func TestClipZeroRejectsNonFiniteModel(t *testing.T) {
 
 	uncapped := cfg
 	uncapped.Clip = 0
-	dead, err := Train(corpus, uncapped)
+	dead, uncappedErr := Train(corpus, uncapped)
 	if dead != nil {
 		t.Fatalf("clip=0 returned a successful result after divergence: %+v", dead)
 	}
-	if err == nil {
+	if uncappedErr == nil {
 		t.Fatal("clip=0: expected non-finite parameter error")
 	}
 	for _, want := range []string{"epoch ", "batch ", "[", "="} {
-		if !strings.Contains(err.Error(), want) {
-			t.Fatalf("clip=0 error %q missing %q", err, want)
+		if !strings.Contains(uncappedErr.Error(), want) {
+			t.Fatalf("clip=0 error %q missing %q", uncappedErr, want)
 		}
 	}
 	blockNamed := false
 	for _, block := range []string{"Table", "StateW", "StateB", "HidW", "HidB", "OutW", "OutB"} {
-		blockNamed = blockNamed || strings.Contains(err.Error(), block+"[") || strings.Contains(err.Error(), block+"=")
+		blockNamed = blockNamed || strings.Contains(uncappedErr.Error(), block+"[") || strings.Contains(uncappedErr.Error(), block+"=")
 	}
 	if !blockNamed {
-		t.Fatalf("clip=0 error %q does not identify a learned block", err)
+		t.Fatalf("clip=0 error %q does not identify a learned block", uncappedErr)
 	}
 
 	capped := cfg
 	capped.Clip = 1
-	alive, err := Train(corpus, capped)
-	if err != nil {
-		t.Fatalf("clip=1: %v", err)
+	alive, cappedErr := Train(corpus, capped)
+	if cappedErr != nil {
+		t.Fatalf("clip=1: %v", cappedErr)
 	}
 	if alive == nil || len(alive.ByKind) == 0 {
 		t.Fatal("clip=1: expected a successful result with per-kind readout")
+	}
+	if block, index, value, ok := firstNonFiniteParameter(alive.Model); ok {
+		t.Fatalf("clip=1: non-finite parameter %s[%d]=%g", block, index, value)
 	}
 	k := alive.ByKind[0]
 	if k.ModelTop1 < k.FirstTop1+0.2 {
@@ -1004,7 +1007,7 @@ func TestClipZeroRejectsNonFiniteModel(t *testing.T) {
 	if k.ModelTop1 == k.FirstTop1 {
 		t.Fatalf("clip=1: model and first-option values unexpectedly equal at %.3f", k.ModelTop1)
 	}
-	t.Logf("clip=0 rejected: %v | clip=1: model %.3f > first %.3f", err, k.ModelTop1, k.FirstTop1)
+	t.Logf("clip=0 rejected: %v | clip=1: model %.3f > first %.3f", uncappedErr, k.ModelTop1, k.FirstTop1)
 }
 
 func extraFeatureCorpus(n, nopts int) []policynet.Example {
