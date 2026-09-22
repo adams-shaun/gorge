@@ -148,6 +148,76 @@ func (e *Engine) checkGrantedExploitTriggers(observer *Engine, id state.ObjID, o
 	})
 }
 
+// checkGrantedOffspringTriggers synthesizes Offspring's ETB trigger
+// (CR 702.175a) for a creature that currently HAS the keyword but does not
+// print it: a layer-6 AddKeyword$ Offspring:<cost> grant (Zinnia, Valley's
+// Voice's "Creature spells you cast have offspring {2}") gives the creature
+// the same rules text as a printed keyword, and the printed K:Offspring
+// expansion (cards/kw_offspring.go) only covers printed lines. Without this
+// walk the granted cast still offers and charges the additional cost, but
+// nothing mints the 1/1 token copy -- the player pays for nothing.
+//
+// The synthesized trigger reuses the ordinary ChangesZone machinery
+// (triggerModeEvents' MoveZone entry, zoneGate/phaseGate, the
+// changesZoneMatches Origin/Destination/ValidCard$ reads) with ValidCard$
+// Card.Self, so its behaviour is byte-identical to the printed path's for the
+// granted creature itself. The queue carries the __kwOffspringGranted
+// payload events.Apply rebuilds the same CopyPermanent body from (the Ward/
+// Afflict/Exploit shape; a granted creature has no printed Trigger index for
+// an inline body to ride). The body's Count$OffspringPaid reads the entering
+// permanent's pay-time provenance, which the stack->battlefield Move
+// preserved, so the plain cast mints nothing and the paid cast mints one.
+//
+// The face that PRINTS Offspring is skipped: the printed expansion already
+// owns the line for that creature, and firing both would mint a second copy.
+// The walk is reached from both the faceMayTrigger early-return path and the
+// full path, the Dethrone/Afflict/Exploit precedent, so a granted creature
+// whose own printed triggers are live for this event still gets its copy.
+func (e *Engine) checkGrantedOffspringTriggers(observer *Engine, id state.ObjID, o *state.Object, f *cards.Face, ev events.Event, objLKI *state.Object) {
+	// Cheap gates first: this walk is invoked for every object the event
+	// visits, so reject everything but the entering object before any
+	// derived-characteristics read.
+	if ev.Kind != events.MoveZone || ev.To != state.ZBattlefield || id != ev.Obj || o.Zone != state.ZBattlefield {
+		return
+	}
+	// The grant is evaluated with the STACK-zone override (hasCastOffspring,
+	// the derivedWith read the cast offer uses), NOT the live battlefield
+	// zone: Zinnia's grant is AffectedZone$ Stack, so the keyword is on the
+	// SPELL -- the ETB trigger it grants is part of that spell's ability set
+	// and must fire from the permanent the spell became. Reading the live
+	// battlefield zone would drop the grant the moment it resolved. The
+	// printed check stays on the face: a creature printing K:Offspring
+	// already has the expansion trigger and must not fire twice.
+	if f.HasKeyword("Offspring") || !e.hasCastOffspring(id) {
+		return
+	}
+	t := cards.Trigger{Mode: "ChangesZone", Params: map[string]string{
+		"Mode": "ChangesZone", "ValidCard": "Card.Self", "Origin": "Any",
+		"Destination": "Battlefield", "TriggerZones": "Battlefield",
+	}}
+	if !observer.triggerMatches(t, id, ev, objLKI) {
+		return
+	}
+	key := triggerKey{Source: id, Idx: -1}
+	if e.triggerFireCount == nil {
+		e.triggerFireCount = map[triggerKey]int32{}
+	}
+	if e.triggerFireCount[key] >= maxTriggerFires {
+		return // cascade bound: see maxTriggerFires.
+	}
+	e.triggerFireCount[key]++
+	e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+		Source:     id,
+		Controller: o.Controller,
+		Offspring:  true,
+		Ctx: effects.Ctx{
+			Source:         id,
+			Controller:     o.Controller,
+			TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
+		},
+	})
+}
+
 // checkGrantedDethroneTriggers synthesizes Dethrone's ordinary attack trigger
 // (CR 702.105) for a creature that currently HAS the keyword but does not
 // print it: a keyword granted in layer 6 has the same rules text as a printed

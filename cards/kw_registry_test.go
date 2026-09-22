@@ -33,6 +33,11 @@ var expandedHeads = []string{
 	// Appended after the split (each is a keyword whose expansion the
 	// pre-split switch never had): Exploit (CR 702.58, task exploit1).
 	"Exploit",
+	// Offspring (CR 702.175, task offspring1): the corpus carries only the
+	// K:Offspring:<cost> line, so the expansion supplies the ETB trigger
+	// that creates one 1/1 token copy when the additional cost was paid
+	// (Count$OffspringPaid).
+	"Offspring",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {

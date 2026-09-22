@@ -932,6 +932,23 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			return o.SquadPaid, true
 		}
 		return 0, true
+	case "OffspringPaid":
+		// CR 702.175a: whether the resolving spell's cast paid the optional
+		// Offspring additional cost ("You may pay an additional [cost] as you
+		// cast this spell. If you do, when this creature enters, create a 1/1
+		// token copy of it."), carried by the pay-time CastInfo's
+		// FlagOffspringPaid (rules/cast.go's payCast). The same provenance
+		// read SquadPaid makes: read off the SOURCE -- the cast spell on the
+		// stack, and in the keyword expansion's ETB trigger the permanent the
+		// spell became (the stack->battlefield move preserves the field) -- so
+		// a replay derives the same value; a copy of the spell was never cast
+		// and reads 0 (so a minted 1/1 copy mints no further copies).
+		if o := g.Obj(c.Source); o != nil {
+			if o.OffspringPaid {
+				return 1, true
+			}
+		}
+		return 0, true
 	case "TimesKicked":
 		// CR 702.43: the number of times the resolving spell's multikicker
 		// cost was paid as it was cast, carried by the pay-time CastInfo's

@@ -1048,6 +1048,10 @@ var flagNames = [...]struct {
 	// rides the same CastInfo's Amount. Appended at the end per the table's
 	// own ordering rule.
 	{"squadpaid", state.FlagSquadPaid},
+	// The Offspring keyword's additional-cost provenance (CR 702.175a); a
+	// bool, paid at most once. Appended at the end per the table's own
+	// ordering rule.
+	{"offspringpaid", state.FlagOffspringPaid},
 	// The Fuse cast (CR 702.101b) of a non-Room Split card: one spell
 	// resolving both halves. Appended at the end per the table's own
 	// ordering rule.

@@ -1273,6 +1273,13 @@ func Apply(g *state.Game, e Event) {
 			if FlagsFrom(e.Counter)&state.FlagConspired != 0 {
 				o.Conspired = true
 			}
+			// Offspring (CR 702.175a) is a BOOL fold as well: paid at most
+			// once, so it is set whenever the pay-time CastInfo carries
+			// FlagOffspringPaid, whatever other tags ride the same event
+			// (the Conspired pattern).
+			if FlagsFrom(e.Counter)&state.FlagOffspringPaid != 0 {
+				o.OffspringPaid = true
+			}
 			// Convoke (CR 702.66, task connive1) is an ID-LIST fold, not an
 			// amount: the convoked creatures ride the pay-time CastInfo's IDs
 			// whenever the flag is present, whatever other tags ride the same
@@ -1292,6 +1299,8 @@ func Apply(g *state.Game, e Event) {
 			// it the event fell through to default and wrote o.X = 1 onto every
 			// conspired cast (and StackCopy propagated that onto its copies).
 			case FlagsFrom(e.Counter)&state.FlagConspired != 0:
+				// bool folded above; the Amount is deliberately unused
+			case FlagsFrom(e.Counter)&state.FlagOffspringPaid != 0:
 				// bool folded above; the Amount is deliberately unused
 			case FlagsFrom(e.Counter)&state.FlagConvoked != 0:
 				// the convoked id list was folded above; the Amount is
@@ -1659,6 +1668,20 @@ func Apply(g *state.Game, e Event) {
 				sac.Sub = &cards.SA{Kind: "DB", API: "Exploit",
 					Params: map[string]string{"TriggerDescription": "Exploit"}}
 				sa = sac
+			}
+			// A granted Offspring (rules.pushTrigger's __kwOffspringGranted
+			// payload) has no SVar either: rebuilt structurally into the same
+			// DB$ CopyPermanent | Defined$ Self | NumCopies$ Count$OffspringPaid
+			// | SetPower$ 1 | SetToughness$ 1 body the printed K:Offspring
+			// expansion carries (cards/kw_offspring.go), so the live game and
+			// the replay mint identical objects from the event text alone. The
+			// "Granted" suffix keeps the payload from aliasing a printed bare
+			// K:Offspring line's "__kwOffspring" SVar (the Exploit comment's
+			// rule).
+			if _, ok := strings.CutPrefix(e.Counter, "__kwOffspringGranted"); ok {
+				sa = &cards.SA{Kind: "DB", API: "CopyPermanent",
+					Params: map[string]string{"Defined": "Self", "NumCopies": "Count$OffspringPaid",
+						"SetPower": "1", "SetToughness": "1"}}
 			}
 		}
 		if sa == nil {
@@ -2467,6 +2490,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.X, o.CastFlags = 0, 0
 			o.ReplicateTimes = 0
 			o.SquadPaid = 0
+			o.OffspringPaid = false
 			o.ConvergeColours = 0
 			o.TimesKicked = 0
 			o.Conspired = false
@@ -2503,6 +2527,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.X, o.CastFlags = 0, 0
 			o.ReplicateTimes = 0
 			o.SquadPaid = 0
+			o.OffspringPaid = false
 			o.ConvergeColours = 0
 			o.TimesKicked = 0
 			o.Conspired = false

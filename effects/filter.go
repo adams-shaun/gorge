@@ -777,6 +777,14 @@ const (
 	// convoke/cascade grants key on it (Chief Engineer). An ability object
 	// (Card == nil) was never cast.
 	wordWasCast
+	// The three cast-provenance tokens (castprov1/2/3): wasCastFromYourHandByYou,
+	// wasCastByYou and the bare wasCastFromYourHand. rules' castProvenanceAdmits
+	// strips and evaluates them at every match site (it holds the event log and
+	// the offer window the filter tier cannot reach), so the filter grammar's
+	// own body is a recognised-but-fail-closed marker: it exists so the census
+	// (UnknownPredicates) reports the token as recognised rather than unknown,
+	// and so an unstripped direct filter call fails closed instead of matching.
+	wordCastProvenance
 	// The and/or Kicker's index form: "kicked 1" / "kicked 2" (the whole
 	// two-token form survives the spec splitter) reads the specific part's
 	// CastFlags bit. The bare "kicked" word stays in the predicates map.
@@ -857,6 +865,14 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordMonoColor, ""
 	case "wasCast":
 		return wordWasCast, ""
+	// The cast-provenance tokens are recognised here (so the census no longer
+	// reports them unknown) but evaluated by rules' castProvenanceAdmits,
+	// which strips them before the filter runs; wordMatches' body fails
+	// closed. wasCastFromYourHandByYou is checked before the bare
+	// wasCastFromYourHand because the bare token is a substring of the ByYou
+	// spelling -- the same ordering rule castProvenanceAdmits documents.
+	case "wasCastFromYourHandByYou", "wasCastByYou", "wasCastFromYourHand":
+		return wordCastProvenance, p
 	case "ActivePlayerCtrl":
 		return wordActivePlayerCtrl, ""
 	case "TopLibrary":
@@ -983,6 +999,15 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// (rules.derivedWith) admits the spell a cast is announcing, which is
 		// still in hand at CR 601.2b but IS the spell being cast.
 		return (o.Zone == state.ZStack || sc.AsStack) && o.Card != nil
+	case wordCastProvenance:
+		// The three cast-provenance tokens (wasCastFromYourHandByYou,
+		// wasCastByYou, bare wasCastFromYourHand) are evaluated at every
+		// rules match site by castProvenanceAdmits -- which strips them from
+		// the spec before the filter is reached, because their truth lives in
+		// the event log and the pre-push offer window the filter tier cannot
+		// read. A direct filter call that somehow still carries the token
+		// therefore fails closed (this wordMatches body), never matches.
+		return false
 	case wordInZone:
 		// Forge's inZone<Zone>: the object is in that zone (measured at the
 		// corpus pin: inZoneBattlefield 272 raw occurrences, inZoneStack 30,
@@ -1783,6 +1808,20 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		return !wordMatches(nkind, nkey, g, o, sc), true
 	}
 	if kind, key := wordPredicate(p); kind != wordUnknown {
+		// The cast-provenance tokens (wasCastFromYourHandByYou, wasCastByYou,
+		// bare wasCastFromYourHand) are recognised by wordPredicate so the
+		// CENSUS no longer reports them unknown, but the filter tier itself
+		// cannot answer them (the truth is in the event log and the pre-push
+		// offer window rules' castProvenanceAdmits reads). Returning ok=false
+		// here makes BOTH the positive and the '!'-negated spelling fail
+		// closed: a recognised-but-false body would let a NEGATED token match
+		// every object in a direct filter call -- recognised-and-inert is
+		// worse than unknown for a negation. rules strips every provenance
+		// token before the filter runs, so this path is reached only by an
+		// unstripped caller, which is not entitled to a provenance answer.
+		if kind == wordCastProvenance {
+			return false, false
+		}
 		return wordMatches(kind, key, g, o, sc), true
 	}
 	return false, false

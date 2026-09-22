@@ -427,6 +427,33 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		e.drainAwaitsTarget = e.Pending() != nil
 		return
 	}
+	// A granted Offspring (CR 702.175a via a layer-6 AddKeyword$ Offspring --
+	// Zinnia, Valley's Voice's "Creature spells you cast have offspring
+	// {2}"): the Ward/Afflict/Exploit shape. The trigger's Counter payload
+	// "__kwOffspringGranted" is what events.Apply rebuilds into the same
+	// DB$ CopyPermanent | Defined$ Self | NumCopies$ Count$OffspringPaid |
+	// SetPower$ 1 | SetToughness$ 1 body the printed K:Offspring expansion
+	// carries, so live and replay mint identical objects from the event text
+	// alone. The trigger's Source is the granted creature that just entered,
+	// so the Count$OffspringPaid read resolves against its pay-time
+	// provenance (0 for a plain cast, 1 for the paid additional cost).
+	if pt.Offspring {
+		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
+			return
+		}
+		stackLen := len(e.G.Stack)
+		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
+			Obj: pt.Source, Counter: "__kwOffspringGranted", Text: "offspring ability"})
+		if len(e.G.Stack) > stackLen {
+			id := e.G.Stack[len(e.G.Stack)-1]
+			if e.triggerContexts == nil {
+				e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
+			}
+			e.triggerContexts[id] = pt.Ctx.TriggerContext
+		}
+		e.drainAwaitsTarget = e.Pending() != nil
+		return
+	}
 	// One of the Ring emblem's four level abilities (CR 701.54c): the emblem
 	// has no object in any zone and no face, so its stack object is minted by
 	// a RingEmblemPush event whose "__ring:<level>" payload events.Apply
