@@ -219,13 +219,8 @@ func (e *Engine) askAttackers() {
 	// The engine's order is not the defect -- it has to be deterministic and
 	// it has to match declare-blockers -- but it is what a positional
 	// tiebreak turns into a bias, so a defender preference belongs on a game
-	// fact (life, clock, board) rather than on seat index.
-	var defenders []state.PlayerID
-	for _, q := range e.G.AliveFrom(0) {
-		if q != p {
-			defenders = append(defenders, q)
-		}
-	}
+	// fact (life, clock, board) rather than on seat index. attackOffers
+	// (rules/attack_cost.go) preserves exactly this enumeration.
 	// The CR 508.1d requirements are told to the seat on the options: an
 	// attacker the declaration MUST include (a goaded creature, CR 701.38,
 	// or one under an unconditional MustAttack static) carries
@@ -239,26 +234,30 @@ func (e *Engine) askAttackers() {
 			mustAtt[id] = true
 		}
 	}
+	// The option list IS the attackOffers list (rules/attack_cost.go): the
+	// same enumeration and order the pre-prop list always had, plus the
+	// per-pair price. A chargeable pair is admitted when its individual price
+	// fits the payer's budget; the TOTAL is published to the client through
+	// the same cumulative-budget wire contract a Dig's WithTotalCMC$ cap uses
+	// -- Decision.MaxSum over each option's Value -- so a rules-ignorant
+	// client cannot assemble an over-budget declaration (Decision.Validate
+	// enforces it). mustAttackRequired and validateAttackDeclaration read the
+	// same list and the same budget.
+	offers := e.attackOffers()
+	budget := e.attackBudget(p)
 	var opts []decision.Option
-	for _, d := range defenders {
-		for _, id := range attackers {
-			if required, ok := e.encoreAttackDefender(id); ok && d != required {
-				continue
-			}
-			if !e.goadMayAttack(id, d) {
-				continue
-			}
-			// CR 508.1a per-pair CantAttack scoping: a creature a
-			// CantAttack static/restriction forbids attacking THIS defender is
-			// never offered the pair (and validateAttackers rejects it
-			// independently, so a hand-built intent cannot slip one in).
-			if e.attackBlocked(id, d) {
-				continue
-			}
-			opts = append(opts, decision.Option{Index: len(opts), Kind: "attacker",
-				Label: "Attack with " + e.G.Obj(id).Face().Name + " at " + seatFacingName(e.G, d),
-				Obj:   id, Player: d, Required: mustAtt[id]})
+	for _, of := range offers {
+		label := "Attack with " + e.G.Obj(of.id).Face().Name + " at " + seatFacingName(e.G, of.def)
+		if of.price > 0 {
+			label += fmt.Sprintf(" (pay {%d} per creature)", of.price)
 		}
+		opts = append(opts, decision.Option{Index: len(opts), Kind: "attacker",
+			Label: label, Obj: of.id, Player: of.def, Required: mustAtt[of.id],
+			// Value is the pair's mana price: the cumulative-budget contract
+			// MaxSum names. omitempty keeps a prop-free list byte-identical
+			// (price 0 omits), so the option enumeration order and the wire
+			// payload of every ordinary declaration are unchanged.
+			Value: int(of.price)})
 	}
 	// A MaxAttackers$ ceiling (CR 508.1j, Silent Arbiter's shape) bounds the
 	// WHOLE declaration, so the decision's Max is the honest ceiling, not the
@@ -270,10 +269,18 @@ func (e *Engine) askAttackers() {
 	if ceil := e.maxAttackers(); ceil < maxOpts {
 		maxOpts = ceil
 	}
+	maxSum := 0
+	for _, o := range opts {
+		if o.Value > 0 {
+			maxSum = int(budget)
+			break
+		}
+	}
 	if len(opts) == 0 {
 		// Every (attacker, defender) pair is blocked — a CantAttack static or
-		// restriction covering the whole table. No declaration anyone could
-		// answer differently exists, so the step resolves silently with the
+		// restriction covering the whole table — or priced out — a
+		// CantAttackUnless prop whose charge the payer's attackBudget cannot
+		// cover. No declaration anyone could answer differently exists, so the step resolves silently with the
 		// empty declaration, the same no-decision path the no-attacker case
 		// above takes (asking KAttackers with only the empty answer legal is
 		// the forbidden wedge shape).
@@ -281,7 +288,15 @@ func (e *Engine) askAttackers() {
 		return
 	}
 	e.ask(&decision.Decision{Player: p, Kind: decision.KAttackers, Min: 0, Max: maxOpts,
-		Prompt: fmt.Sprintf("turn %d — declare attackers", e.G.Turn), Options: opts})
+		Prompt: fmt.Sprintf("turn %d — declare attackers", e.G.Turn), Options: opts,
+		// The cumulative attack-cost budget: the sum of the chosen options'
+		// Value (each pair's mana price) must not exceed the payer's budget.
+		// Decision.Validate enforces it as a general wire contract, so the
+		// engine never sees an over-budget declaration and no client has to
+		// sum prices itself. Published only when some offered pair is priced:
+		// with every Value 0 the cap is vacuous, and leaving it 0 (omitted)
+		// keeps every prop-free declaration's wire payload byte-identical.
+		MaxSum: maxSum})
 }
 
 // handleAttackers records the chosen attackers (CR 508.1c: this is what
@@ -308,11 +323,6 @@ func (e *Engine) handleAttackers(d *decision.Decision, in decision.Intent) {
 	// test event, or a future emitter) can never read a stale declaration --
 	// triggers fire synchronously inside the emits above, so every reader has
 	// already run by the time this returns.
-	e.declaredAttackers = e.declaredAttackers[:0]
-	for _, opt := range chosen {
-		e.declaredAttackers = append(e.declaredAttackers, opt.Obj)
-	}
-	defer func() { e.declaredAttackers = e.declaredAttackers[:0] }()
 	if len(chosen) == 0 {
 		// An empty declaration is still an event: it is the replay-derived
 		// marker that the declaration turn-based action has completed. The
@@ -320,6 +330,37 @@ func (e *Engine) handleAttackers(d *decision.Decision, in decision.Intent) {
 		// completion skips blockers and damage under CR 508.8.
 		e.emit(events.Event{Kind: events.DeclareAttackers, Player: e.G.NextAlive(e.G.Active)})
 		return
+	}
+	// CR 508.1: attack costs are paid as attackers are declared, BEFORE the
+	// declaration commits (the enlist election follows the same rule -- "as
+	// this creature attacks" also happens during the declaration). A
+	// chargeable declaration pays from the floating pool when it already
+	// covers the charge, otherwise through the tap-payment window
+	// (startAttackPay, rules/attack_cost.go), whose completion resumes right
+	// here with the enlist election. Both the charge and the offer list were
+	// re-derived by validateAttackers moments ago from the same pure reads,
+	// so the window's coverage guard cannot fail here; the Note path is the
+	// loud defensive fallback.
+	if charge := e.attackCharge(chosen); charge > 0 {
+		if int32(e.G.Players[d.Player].Pool.Total()) >= charge {
+			e.payMana(d.Player, Cost{Generic: charge})
+		} else if !e.startAttackPay(chosen, d.Player, charge) {
+			// Unreachable through a submitted intent: the KAttackers decision
+			// carries Decision.MaxSum = the payer's budget, so Validate rejects
+			// an over-budget declaration before this handler runs. One loud
+			// Note (startAttackPay no longer emits its own) and then ABORT:
+			// the cost is a CR 508.1 declaration cost, so an unpaid charge may
+			// not silently commit -- the fallback emits the empty no-attack
+			// declaration (the same event the len(chosen)==0 branch emits) and
+			// advances the step. Per-missive by accident would be the opposite
+			// danger: committing an attack nobody paid for.
+			e.emit(events.Event{Kind: events.Note, Player: d.Player,
+				Text: fmt.Sprintf("could not pay the {%d} attack cost", charge)})
+			e.emit(events.Event{Kind: events.DeclareAttackers, Player: e.G.NextAlive(e.G.Active)})
+			return
+		} else {
+			return
+		}
 	}
 	// CR 702.160a (task enlist1): enlist is an "as this creature attacks"
 	// action that happens DURING the declaration, before the attack triggers
@@ -339,8 +380,28 @@ func (e *Engine) handleAttackers(d *decision.Decision, in decision.Intent) {
 // enlist election is answered: emit one DeclareAttackers event per defending
 // player, tap the non-Vigilance attackers (CR 508.1f), then offer the exert
 // elections (CR 702.100a, task exert1). Split out of handleAttackers so the
-// enlist continuation (rules/enlist.go) can resume exactly here.
+// enlist continuation (rules/enlist.go) and the attack-cost payment window
+// (rules/attack_cost.go's attackPayAnswer) can resume exactly here.
+//
+// The declaration-wide scratch is published HERE, not in handleAttackers:
+// the emits below fire the declaration's triggers synchronously, and the
+// declare-attackers step can now suspend between the choice and the emits (a
+// chargeable declaration whose pool cannot cover it opens the attack-cost
+// payment window, rules/attack_cost.go). handleAttackers' own frame has
+// unwound by then, so publishing there left the window path's emits with an
+// empty scratch and lost CR 702.70 Training's cross-defender match. Every
+// path that emits the DeclareAttackers events -- inline, the enlist
+// continuation, the payment window -- goes through this function, so this is
+// the one place the scratch must be built. The clear at the end is the same
+// guard as before: triggers fire synchronously inside the emits, so every
+// reader has run by the time this returns, and a LATER direct
+// DeclareAttackers emit can never read a stale declaration.
 func (e *Engine) finishAttackers(chosen []decision.Option, player state.PlayerID) {
+	e.declaredAttackers = e.declaredAttackers[:0]
+	for _, opt := range chosen {
+		e.declaredAttackers = append(e.declaredAttackers, opt.Obj)
+	}
+	defer func() { e.declaredAttackers = e.declaredAttackers[:0] }()
 	var defenders []state.PlayerID
 	byDef := make(map[state.PlayerID][]state.ObjID, len(chosen))
 	for _, opt := range chosen {
@@ -494,6 +555,17 @@ func (e *Engine) exertAnswer(d *decision.Decision, in decision.Intent) {
 // attack restrictions (e.g. Silent Arbiter's MaxAttackers).
 func (e *Engine) validateAttackers(d *decision.Decision, in decision.Intent) error {
 	seen := make(map[state.ObjID]bool, len(in.Choices))
+	// The offered-pair set (rules/attack_cost.go): every chosen option must
+	// be a pair the offer list admitted -- the CantAttack scoping and the
+	// attack-prop budget serialization are properties of the OFFER LIST, and
+	// re-deriving it here (the same pure read askAttackers ran) keeps a
+	// hand-built intent from naming a pair the budget ran out on.
+	offered := make(map[attackOffer]int32, 8)
+	for _, of := range e.attackOffers() {
+		offered[attackOffer{id: of.id, def: of.def}] = of.price
+	}
+	budget := e.attackBudget(d.Player)
+	total := int32(0)
 	for _, o := range d.Chosen(in) {
 		if !e.canAttack(o.Obj) {
 			return fmt.Errorf("object %d cannot attack", o.Obj)
@@ -506,6 +578,17 @@ func (e *Engine) validateAttackers(d *decision.Decision, in decision.Intent) err
 		}
 		if e.attackBlocked(o.Obj, o.Player) {
 			return fmt.Errorf("attacker %d cannot attack player %d", o.Obj, o.Player)
+		}
+		price, ok := offered[attackOffer{id: o.Obj, def: o.Player}]
+		if !ok {
+			return fmt.Errorf("attacker %d cannot attack player %d (attack cost not affordable or pair not offered)", o.Obj, o.Player)
+		}
+		// Belt against a future membership gap: the serialized offer list
+		// already bounds every subset's total, so this can only fire if the
+		// two walks ever diverge.
+		total += price
+		if total > budget {
+			return fmt.Errorf("declaration's attack cost {%d} exceeds the affordable {%d}", total, budget)
 		}
 		seen[o.Obj] = true
 	}
@@ -580,31 +663,18 @@ func (e *Engine) mustAttackRequired(id state.ObjID) bool {
 }
 
 // attackPairAvailable reports whether creature id has at least one legal
-// (attacker, defender) pair this combat under the requirements' own filters
-// (encore's fixed defender, goad's not-the-goaders rule) and the CantAttack
-// scoping (attackBlocked). The defender enumeration matches askAttackers'
-// (AliveFrom(0), controller excluded), so the solver and the option list can
-// never disagree about which pairs exist.
+// (attacker, defender) pair this combat. The pairs ARE the attackOffers list
+// (rules/attack_cost.go): the defender enumeration (AliveFrom(0), controller
+// excluded), the encore/goad/CantAttack scoping and the attack-prop budget
+// serialization are all the offer list's own rules, so the requirement solver
+// and the option list can never disagree about which pairs exist (a creature
+// whose every pair the attack budget ran out on is not required, and the
+// declaration that pays for the remaining required creatures stays legal).
 func (e *Engine) attackPairAvailable(id state.ObjID) bool {
-	o := e.G.Obj(id)
-	if o == nil {
-		return false
-	}
-	requiredDefender, required := e.encoreAttackDefender(id)
-	for _, d := range e.G.AliveFrom(0) {
-		if d == o.Controller {
-			continue
+	for _, of := range e.attackOffers() {
+		if of.id == id {
+			return true
 		}
-		if required && d != requiredDefender {
-			continue
-		}
-		if !e.goadMayAttack(id, d) {
-			continue
-		}
-		if e.attackBlocked(id, d) {
-			continue
-		}
-		return true
 	}
 	return false
 }
@@ -727,40 +797,22 @@ func (e *Engine) maxAttackers() int {
 // game), the checks are inert.
 func (e *Engine) validateAttackDeclaration(d *decision.Decision, in decision.Intent) error {
 	chosen := d.Chosen(in)
-	chosenSet := make(map[state.ObjID]bool, len(chosen))
-	for _, o := range chosen {
-		chosenSet[o.Obj] = true
-	}
-
-	var required []state.ObjID
-	for _, id := range e.G.Zone(state.ZBattlefield, e.G.Active) {
-		if e.mustAttackRequired(id) {
-			required = append(required, id)
-		}
-	}
-	if len(required) == 0 {
-		// No requirement is in force, so only a ceiling (if any) can be
-		// violated.
-		if maxAllowed := e.maxAttackers(); len(chosen) > maxAllowed {
-			return fmt.Errorf("declared %d attackers, more than the allowed %d", len(chosen), maxAllowed)
-		}
-		return nil
-	}
-
 	maxAllowed := e.maxAttackers()
-	maxReq := len(required)
-	if maxAllowed < maxReq {
-		maxReq = maxAllowed
-	}
-	chosenReq := 0
-	for _, id := range required {
-		if chosenSet[id] {
-			chosenReq++
-		}
-	}
-	if chosenReq < maxReq {
+	// CR 508.1d: the declaration must include as many required creatures as
+	// possible. The options carry the requirement (Option.Required, set from
+	// mustAttackRequired in askAttackers), the attack-prop budget
+	// (Decision.MaxSum over each pair's Value) and the MaxAttackers$ ceiling
+	// (Decision.Max), so "as many as possible" is decision.RequiredQuota --
+	// the ONE rule the client-side repair (botpolicy.Clamp via
+	// Decision.FitRequired) also builds from. A required creature a
+	// CantAttackUnless prop prices is "able" only while the declaration stays
+	// within budget; re-deriving that bound here from the board, on its own,
+	// is exactly how the bot's own answer came to be rejected on a board where
+	// a legal declaration existed (attackprop1 review, the livelock pinned by
+	// TestAttackPropRequiredBotAnswerNeverLivelocks).
+	if quota, got := d.RequiredQuota(), d.RequiredChosen(in.Choices); got < quota {
 		return fmt.Errorf("must attack with as many required creatures as possible (required %d, declared %d; max attackers %d)",
-			maxReq, chosenReq, maxAllowed)
+			quota, got, maxAllowed)
 	}
 	if len(chosen) > maxAllowed {
 		return fmt.Errorf("declared %d attackers, more than the allowed %d", len(chosen), maxAllowed)

@@ -442,6 +442,13 @@ func (e *Engine) Clone() *Engine {
 		wm := *e.wardMana
 		c.wardMana = &wm
 	}
+	// attackPay (combat.go/attack_cost.go): the declare-attackers attack-cost
+	// payment window. The chosen slice is shared with the original -- the
+	// enlistAsk reference-sharing class, never mutated by the window.
+	if e.attackPay != nil {
+		ap := *e.attackPay
+		c.attackPay = &ap
+	}
 	if e.cast != nil {
 		pc := *e.cast
 		pc.cost.Sac = append([]CostPart(nil), e.cast.cost.Sac...)

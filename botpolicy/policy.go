@@ -814,6 +814,21 @@ func (b Board) unlessSacrificeOffer(d *decision.Decision) []int {
 // clamp reintroduced I-1(b): a Min:1 priority decision falling through with
 // nothing chosen got topped up into an activation instead of a pass.
 func Clamp(d *decision.Decision, in decision.Intent) decision.Intent {
+	// The decision's joint constraints -- the Max ceiling, the cumulative
+	// budget (Decision.MaxSum, which Decision.Validate enforces) and the
+	// Required quota (Option.Required, CR 508.1d's "attacks if able", which
+	// the engine's declaration check enforces) -- are repaired FIRST, through
+	// decision.FitRequired: the same rule (Decision.RequiredQuota) the engine
+	// validates against, so an arm that builds its answer without pricing its
+	// picks (KAttackers' combat heuristic, a KModes budget fill) can never
+	// hand back an intent the engine refuses -- Submit would reject it without
+	// consuming the decision and the deterministic bot would re-derive it
+	// forever. An answer that already satisfies all three is returned
+	// untouched, so every budget-free, requirement-satisfied answer is
+	// byte-identical; otherwise the answer is rebuilt from the cheapest
+	// affordable required picks, then the arm's own picks, in its order, are
+	// swapped or appended while they fit.
+	in.Choices = d.FitRequired(in.Choices)
 	max := d.Max
 	if max < 0 {
 		max = 0

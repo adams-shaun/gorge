@@ -241,14 +241,15 @@ func AttackCandidates(d *decision.Decision, bot decision.Intent, limit int) []de
 		}
 		var choices []int
 		for _, o := range d.Options {
-			// Decision.Validate does not enforce Required; the engine does
-			// (CR 508.1d), so never offer a declaration omitting one.
-			if o.Required && !set[o.Index] {
-				return
-			}
 			if set[o.Index] {
 				choices = append(choices, o.Index)
 			}
+		}
+		// Decision.Validate does not enforce Required; the engine does
+		// (CR 508.1d), through the shared quota rule
+		// (decision.RequiredQuota), so never offer a declaration short of it.
+		if d.RequiredChosen(choices) < d.RequiredQuota() {
+			return
 		}
 		key := fmt.Sprint(choices)
 		if seen[key] {
@@ -265,11 +266,11 @@ func AttackCandidates(d *decision.Decision, bot decision.Intent, limit int) []de
 	if len(out) == 0 {
 		return nil
 	}
+	// "No attack" is the least declaration the requirement allows: the
+	// shared required core (decision.FitRequired over an empty preference).
 	none := make(map[int]bool)
-	for _, o := range d.Options {
-		if o.Required {
-			none[o.Index] = true
-		}
+	for _, c := range d.FitRequired(nil) {
+		none[c] = true
 	}
 	add(none)
 	all := make(map[int]bool)
