@@ -1342,6 +1342,12 @@ func (e *Engine) AddContinuous(ce ContinuousEffect) {
 	// boundary and falls back to the source-leaves rule.
 	if effects.IsNextTurnDuration(ce.Duration) && ce.UntilTurn == 0 {
 		ce.UntilTurn = e.nextTurnFor(ce.Controller)
+		// UntilYourNextTurn ends as that turn begins. Cleanup is the
+		// preceding turn's boundary, while UntilTheEndOfYourNextTurn
+		// remains active through the next turn's cleanup.
+		if effects.IsUntilYourNextTurn(ce.Duration) && ce.UntilTurn > e.G.Turn {
+			ce.UntilTurn--
+		}
 	}
 	e.continuous = append(e.continuous, ce)
 	// A REGISTERED layer-3 rename (an Effect-delivered SetName$, which has no
