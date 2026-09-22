@@ -119,6 +119,7 @@ type resumePoint struct {
 	// replacement to the player drawing even when the enclosing effect's
 	// controller is someone else.
 	player state.PlayerID
+	name   string
 	// direct identifies an effect invoked outside stack resolution (currently
 	// an enters-the-battlefield replacement such as Hideaway). It resumes its
 	// source directly rather than requiring a stack object.
@@ -1011,7 +1012,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
 		return
 	}
-	ctx := &effects.Ctx{Source: rp.obj, Controller: o.Controller, Targets: o.Targets,
+	ctx := &effects.Ctx{Source: rp.obj, Controller: o.Controller, NameChoice: rp.name, Targets: o.Targets,
 		Chosen: append([]state.Target(nil), rp.choices...), ChosenValid: rp.chosenValid,
 		VillainousVictims: append([]state.Target(nil), rp.villainousVictims...),
 		VillainousIndex:   rp.villainousIndex,
@@ -1039,6 +1040,11 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			Next:     rp.repeatOptionalNext,
 		}
 	}
+	// Cost-sacrificed objects are engine-only LKI keyed by the stack object.
+	// Re-entry must restore the same snapshot so an SVar such as Mausoleum
+	// Wanderer's Sacrificed$CardPower does not collapse to zero after the
+	// unless-pay answer suspends resolution.
+	ctx.Sacrificed = e.sacrificedLKI[rp.obj]
 	// CR 107.3i: X is the value paid for the object's {X}, preserved on the
 	// stack object by CastInfo -- the same binding resolveTop's spell and
 	// ability branches now carry. A spell whose resolution suspends on a
@@ -1623,6 +1629,13 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				if o.Obj != 0 {
 					ctx.ConniveDiscard = append(ctx.ConniveDiscard, o.Obj)
 				}
+			}
+		case "copypermanent_choice":
+			// CopyPermanent's sole Choices$/Chooser$ shape has its own
+			// transport so a nested ordinary Choice cannot consume the answer.
+			ctx.CopyPermanentChoiceDone = true
+			if len(chosen) > 0 {
+				ctx.CopyPermanentChoice = chosen[0].Obj
 			}
 		case "choice":
 			// ChooseCard, ChoosePlayer and ChangeTargets all use KChoose. Keep
@@ -2216,6 +2229,39 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			} else {
 				ctx.RevealOpt = "no"
 			}
+			// The per-target cursor: RevealOptTarget is the index of the
+			// Defined$ target whose yes/no this answer was, so the re-entered
+			// effReveal applies it to exactly that target and poses a fresh ask
+			// for every later target (the LookAckTarget/RevealPickTarget
+			// pattern). Without it, a multi-target optional reveal answered
+			// for target 0 and then applied that same answer to every later
+			// target — a yes silently revealed the rest, a no silently
+			// declined them.
+			ctx.RevealOptTarget = rp.target
+		case "reveal_pick":
+			// Task infernaltutor1: a mid-resolution hand-reveal pick (Infernal
+			// Tutor's "Reveal a card from your hand", an AnyNumber$/Optional$
+			// reveal) was answered. Every chosen option carries the revealed
+			// card in Obj (the same shape the "discard" arm reads), so the id
+			// list is read straight off them; the re-entered effReveal filters
+			// it against the rebuilt pool and emits the reveal plus the
+			// RememberRevealed$ capture for exactly those cards, which is what
+			// the chained ChangeType$ Remembered.sameName sub then reads. The
+			// slice is built non-nil (make, not nil) so a legitimate
+			// "reveal none" answer is distinguishable from a first pass -- the
+			// Ctx.Discard convention. effReveal consumes and clears it at the
+			// top of its walk (fx42 scoping).
+			ctx.RevealPick = make([]state.ObjID, 0, len(chosen))
+			for _, o := range chosen {
+				if o.Obj != 0 {
+					ctx.RevealPick = append(ctx.RevealPick, o.Obj)
+				}
+			}
+			// The per-target cursor: RevealPickTarget is the index of the
+			// Defined$ target whose pick this answer was, so the re-entered
+			// effReveal applies it to exactly that target's pool and poses a
+			// fresh ask for every later target (the LookAckTarget pattern).
+			ctx.RevealPickTarget = rp.target
 		case "look_ack":
 			// The bare private look's pacing ack (lookack, task
 			// fb-20260917T232325Z-35cfca4b, Mishra's Bauble / Gitaxian Probe):

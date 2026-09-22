@@ -340,6 +340,16 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 					out = append(out, state.Target{Obj: id})
 				}
 			}
+			// SeekFound (ImprintFound$ True) names cards the seek moved to a
+			// HAND: Forge's continuation reads imprintedCards without a zone
+			// filter, so these resolve wherever they currently sit. Kept in
+			// its own list so the CR 607.2a exile-only rule above still holds
+			// for the ordinary Imprinted association.
+			for _, id := range o.SeekFound {
+				if g.Obj(id) != nil {
+					out = append(out, state.Target{Obj: id})
+				}
+			}
 			return out, true
 		}
 		return nil, true

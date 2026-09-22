@@ -830,7 +830,20 @@ var acceptanceHeads = map[int]string{
 	// AR7 promotion (2026-09-19): the default bot now attacks with a creature
 	// that is lethal to its defender if unblocked even into an unfavourable
 	// block (botpolicy lethal pressure; held-out 2,066-1,934 vs the old bot).
-	2: "41aff817d4f931ef",
+	// 2 seats moved to bc7420d9e4c7d3d2 (task cli-20260922T150843Z-42f8f6dc,
+	// NameCard over the full corpus name universe): Cabal Therapy
+	// (dimir-tempo) resolves its mid-resolution `A:SP$ NameCard | ValidCards$
+	// Card.nonLand` in this game. Before the fix effNameCard named the TOP CARD
+	// OF THE CASTER'S OWN LIBRARY and posed no ask: at event seq 657 the base
+	// stream emits `choose Ponder` (Obj 116 = the resolving Cabal Therapy). The
+	// fixed stream emits `decision_ask choose` at 657 and `decision_made` at
+	// 658 (the two extra events), then `choose "Ach! Hans, Run!"` at 659 -- the
+	// bot's deterministic first legal nonland name from the full universe. The
+	// first divergence is therefore exactly seq 657, and every later choice
+	// difference follows from the Therapy name (its `DB$ Discard` then discards
+	// a different card). 4, 6 and 8 seats are UNMOVED (no NameCard resolves in
+	// those games).
+	2: "bc7420d9e4c7d3d2",
 	// 4 seats moved to c232a4aca592e0f8 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
@@ -1077,7 +1090,19 @@ var acceptanceHeads = map[int]string{
 	// merge re-measure (2026-09-22, cli-20260922T150844Z-dfebd0b5): with BOTH
 	// change sets present the measured head is 5e79231bd056d0fc -- each cause was
 	// measured on its own side above.
-	6: "5e79231bd056d0fc",
+	// Counter unless-cost SVar fold (2026-09-22,
+	// cli-20260922T150843Z-c6c925c4): 6 seats moves to 76f187361778b000.
+	// Mausoleum Wanderer (seat 4, obj 269, pushed at event 654) sacrifices
+	// itself for its Counter ability (obj 361); its UnlessCost$ X is
+	// SVar:X:Sacrificed$CardPower, which the strict parser could not price.
+	// The shared fold now resolves it from the captured sacrifice LKI, so the
+	// unless-pay ask is labelled with the real amount. First divergence is
+	// exactly event 1396, the ModeChosen: "Pay the cost — don't counter" ->
+	// "Pay {1} — don't counter"; every earlier event is byte-identical.
+	// Measured by reverting the Counter arm of UnlessCostResolved's API gate
+	// in a scratch copy: with it reverted this head returns to
+	// 5e79231bd056d0fc and 2/4 seats never move at all.
+	6: "76f187361778b000",
 	// 8 seats moved to cc022f9ba9f2bf39 with task mana2 (fix(rules): pay mana
 	// ability costs and choose colors): mana abilities that spend a Sac cost
 	// are now gated on a payable, deterministic sacrifice candidate existing,
@@ -1219,7 +1244,16 @@ var acceptanceHeads = map[int]string{
 	// is eligible; the bot chooses option 1 and sacrifices Prospector at 8068.
 	// The prior exact-only gate withheld that activation, the first difference
 	// at 8065, so this is the authorized >N behaviour.
-	8: "b14f1fc52a6835ed",
+	// Counter unless-cost SVar fold (2026-09-22,
+	// cli-20260922T150843Z-c6c925c4): 8 seats moves to 7c9dbf608ada58b3, the
+	// same Mausoleum Wanderer cause as at 6 seats (source obj 269, ability
+	// obj 481, payer seat 7). First divergence is event 2388, the same
+	// ModeChosen label change to "Pay {1} — don't counter". The payer cannot
+	// cover the tax either way, so the target is countered in both streams
+	// and the recorded ask label is the sole first difference; the bot's
+	// later trajectory follows from the changed log. Attributed by the same
+	// scratch revert, which returns this head to b14f1fc52a6835ed.
+	8: "7c9dbf608ada58b3",
 }
 
 func TestHeads(t *testing.T) {

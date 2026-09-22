@@ -178,7 +178,7 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 		// ChangesZone (a move, the Earthbend return promise). A Mode$ Phase
 		// registration carries no EventMode at all and is owned by
 		// checkDelayedTriggers at its phase occurrence.
-		if dt.EventMode != "SpellCast" && dt.EventMode != "ChangesZone" {
+		if dt.EventMode != "SpellCast" && dt.EventMode != "ChangesZone" && dt.EventMode != "BecomeMonarch" {
 			continue
 		}
 		// The ThisTurn$ mirror: a registration whose expiry turn has passed
@@ -216,7 +216,28 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 		// so a departing source's last battlefield characteristics are read
 		// (CR 603.10a), the same lki the face-trigger walk uses.
 		var referentsArg *state.Object
-		if dt.EventMode == "ChangesZone" {
+		if dt.EventMode == "BecomeMonarch" {
+			// Palace Jailer's command-zone trigger body reads
+			// `ValidPlayer$ Player.OpponentOf Remembered` — "until an
+			// OPPONENT becomes the monarch". The opponent relation is
+			// against the EFFECT's controller (dt.Controller), the player
+			// Forge's `RememberObjects$ You & Targeted` anchors. In a
+			// multiplayer game that is NOT the exiled creature's own
+			// controller: seat 0's Jailer exiles seat 1's creature and seat
+			// 2 takes the crown, so the creature must return even though
+			// seat 2 does not control it.
+			if v := strings.TrimSpace(t.Params["ValidPlayer"]); strings.EqualFold(v, "Player.OpponentOf Remembered") {
+				if int(ev.Player) >= len(e.G.Players) || e.G.Players[ev.Player].Lost ||
+					!effects.MatchesPlayerSpec(e.G, "Opponent", ev.Player, dt.Controller) {
+					continue
+				}
+				delete(t.Params, "ValidPlayer")
+			}
+			if !e.becomeMonarchMatches(t, dt.Source, ev) {
+				continue
+			}
+			referentsArg = nil
+		} else if dt.EventMode == "ChangesZone" {
 			// The Earthbend return promise. destinationAdmits handles the
 			// comma-separated Destination$ list (Graveyard,Exile) that
 			// zoneChangeMatches reads with the single-word effects.ParseZone
@@ -237,7 +258,7 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 		} else if !e.eventDelayedSpellCastMatches(t, dt, ev) {
 			continue
 		}
-		if !e.triggerConditionHoldsAs(t, dt.Source, dt.Controller) {
+		if dt.EventMode != "BecomeMonarch" && !e.triggerConditionHoldsAs(t, dt.Source, dt.Controller) {
 			continue
 		}
 		sa := cards.ResolveSVar(src.Face().SVars, dt.Execute)
@@ -245,12 +266,17 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 			continue
 		}
 		fires = append(fires, delayedSpellCastFire{
-			dt:         *dt,
-			sa:         sa,
-			remembered: triggerRemembered(ev, dt.Source),
-			referents:  e.triggerReferents(t, dt.Source, ev, referentsArg),
-			svars:      src.Face().SVars,
-			static:     strings.TrimSpace(t.Params["Static"]) != "",
+			dt: *dt,
+			sa: sa,
+			remembered: func() []state.Target {
+				if dt.EventMode == "BecomeMonarch" {
+					return append([]state.Target(nil), dt.Remembered...)
+				}
+				return triggerRemembered(ev, dt.Source)
+			}(),
+			referents: e.triggerReferents(t, dt.Source, ev, referentsArg),
+			svars:     src.Face().SVars,
+			static:    strings.TrimSpace(t.Params["Static"]) != "",
 		})
 	}
 	// The firing pass runs over the collected copies, never the live slice:
