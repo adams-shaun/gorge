@@ -587,7 +587,6 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 // Unlike AttackerUnblockedOnce, this mode matches ValidCard$ against the
 // attacker and ValidDefender$ against that attacker's actual defender.
 func (e *Engine) checkAttackerUnblockedTriggers() {
-	pt := func(p state.PlayerID) state.Target { return state.Target{Player: p, IsPlayer: true} }
 	ev := events.Event{Kind: events.DeclareBlockers}
 	e.forEachObject(func(id state.ObjID) {
 		o := e.G.Obj(id)
@@ -599,64 +598,102 @@ func (e *Engine) checkAttackerUnblockedTriggers() {
 			return
 		}
 		for ti, t := range f.Triggers {
-			if t.Mode != "AttackerUnblocked" || t.Effect == nil {
-				continue
-			}
-			if !e.zoneGate(t, id, ev) || !e.phaseGate(t) || !e.triggerConditionHolds(t, id) {
-				continue
-			}
-			key := triggerKey{Source: id, Idx: ti}
-			if e.triggerFireCount == nil {
-				e.triggerFireCount = map[triggerKey]int32{}
-			}
-			if e.triggerFireCount[key] >= maxTriggerFires {
-				continue
-			}
-			if !e.triggerGameActivationLimitAllows(t, key) {
-				continue
-			}
-			if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
-				continue
-			}
-			// The read-only limit gate consumes a use only after the first
-			// matching attacker actually queues an instance. Multiple unblocked
-			// attackers still produce their required individual triggers.
-			reserved := false
-			for _, p := range e.G.AliveFrom(0) {
-				for _, aid := range e.G.Zone(state.ZBattlefield, p) {
-					a := e.G.Obj(aid)
-					if a == nil || !a.IsAttacking || len(a.BlockedBy) != 0 {
-						continue
-					}
-					if v := t.Params["ValidCard"]; v != "" && !effects.MatchesSpecCtx(e.G, v, aid, e.specCtx(id, o.Controller)) {
-						continue
-					}
-					if v := t.Params["ValidDefender"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, a.Attacking, o.Controller) {
-						continue
-					}
-					if !reserved {
-						reserved = true
-						e.reserveTriggerLimits(t, key)
-					}
-					e.triggerFireCount[key]++
-					e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
-						Source: id, Controller: o.Controller, Idx: ti, SA: t.Effect,
-						Ctx: effects.Ctx{
-							Source: id, Controller: o.Controller,
-							Remembered: []state.Target{{Obj: aid}}, Captured: []state.Target{{Obj: aid}},
-							TriggerContext: effects.TriggerContext{
-								TriggerCard: aid, TriggerSource: aid,
-								AttackingPlayer: pt(e.controllerOf(aid)), DefendingPlayer: pt(a.Attacking),
-							},
-						},
-					})
-					if e.triggerFireCount[key] >= maxTriggerFires {
-						return
-					}
-				}
-			}
+			e.queueAttackerUnblockedTrigger(t, id, o.Controller, ti, false, 0, ev)
 		}
 	})
+	e.checkGrantedAttackerUnblockedTriggers(ev)
+}
+
+// checkGrantedAttackerUnblockedTriggers is the AddTrigger$ half of the
+// round-complete unblocked-attacker walk. The ordinary granted-trigger event
+// matcher cannot dispatch this mode: it has no synthetic DeclareBlockers event
+// carrying all unblocked attackers. Instead each live grant queues through the
+// same per-attacker helper as a printed trigger, preserving its grantor so
+// GrantTriggerPush can rebuild the Execute$ body during replay.
+func (e *Engine) checkGrantedAttackerUnblockedTriggers(ev events.Event) {
+	for _, ce := range e.active() {
+		if ce.AddTrigger == nil || ce.AddTrigger.Mode != "AttackerUnblocked" {
+			continue
+		}
+		grantorID := ce.Source
+		if ce.TriggerGrantor != 0 {
+			grantorID = ce.TriggerGrantor
+		}
+		grantor := e.G.Obj(grantorID)
+		if grantor == nil || grantor.Face() == nil {
+			continue
+		}
+		t := *ce.AddTrigger
+		t.Effect = grantedTriggerExecute(grantor, t.Params["Execute"])
+		if t.Effect == nil {
+			continue
+		}
+		e.forEachObject(func(id state.ObjID) {
+			o := e.G.Obj(id)
+			if o == nil || !e.matchesSpecFrom(ce.Affects, id, ce.Controller, ce.Source) {
+				return
+			}
+			e.queueAttackerUnblockedTrigger(t, id, o.Controller, -1, true, grantorID, ev)
+		})
+	}
+}
+
+// queueAttackerUnblockedTrigger queues one instance for every matching
+// unblocked attacker. Printed and AddTrigger$-granted instances share this
+// path so their ValidCard$/ValidDefender$ gates, captured attacker roles and
+// action-trigger limits cannot drift apart.
+func (e *Engine) queueAttackerUnblockedTrigger(t cards.Trigger, source state.ObjID, controller state.PlayerID, idx int, granted bool, grantor state.ObjID, ev events.Event) {
+	if t.Mode != "AttackerUnblocked" || t.Effect == nil ||
+		!e.zoneGate(t, source, ev) || !e.phaseGate(t) || !e.triggerConditionHolds(t, source) {
+		return
+	}
+	key := triggerKey{Source: source, Idx: idx}
+	if e.triggerFireCount == nil {
+		e.triggerFireCount = map[triggerKey]int32{}
+	}
+	if e.triggerFireCount[key] >= maxTriggerFires || !e.triggerGameActivationLimitAllows(t, key) ||
+		(actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key)) {
+		return
+	}
+	pt := func(p state.PlayerID) state.Target { return state.Target{Player: p, IsPlayer: true} }
+	// The read-only limit gate consumes a use only after the first matching
+	// attacker actually queues an instance. Multiple unblocked attackers still
+	// produce their required individual triggers.
+	reserved := false
+	for _, p := range e.G.AliveFrom(0) {
+		for _, aid := range e.G.Zone(state.ZBattlefield, p) {
+			a := e.G.Obj(aid)
+			if a == nil || !a.IsAttacking || len(a.BlockedBy) != 0 {
+				continue
+			}
+			if v := t.Params["ValidCard"]; v != "" && !effects.MatchesSpecCtx(e.G, v, aid, e.specCtx(source, controller)) {
+				continue
+			}
+			if v := t.Params["ValidDefender"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, a.Attacking, controller) {
+				continue
+			}
+			if !reserved {
+				reserved = true
+				e.reserveTriggerLimits(t, key)
+			}
+			e.triggerFireCount[key]++
+			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+				Source: source, Controller: controller, Idx: idx, SA: t.Effect,
+				Granted: granted, Grantor: grantor, Execute: t.Params["Execute"],
+				Ctx: effects.Ctx{
+					Source: source, Controller: controller,
+					Remembered: []state.Target{{Obj: aid}}, Captured: []state.Target{{Obj: aid}},
+					TriggerContext: effects.TriggerContext{
+						TriggerCard: aid, TriggerSource: aid,
+						AttackingPlayer: pt(e.controllerOf(aid)), DefendingPlayer: pt(a.Attacking),
+					},
+				},
+			})
+			if e.triggerFireCount[key] >= maxTriggerFires {
+				return
+			}
+		}
+	}
 }
 
 // checkAttackerUnblockedOnceTriggers queues Mode$ AttackerUnblockedOnce
