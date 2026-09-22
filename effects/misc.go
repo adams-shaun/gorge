@@ -455,16 +455,14 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				// path cannot evaluate -- or it fails closed to the
 				// unimplemented Note below.
 				//
-				// Lifetime: the Duration$ grammar every other Effect
-				// registration shares (effects/staticeffect.go's switch is the
-				// model). Duration$ Permanent (Finale of Revelation's "for the
-				// rest of the game", Wrenn and Seven's emblem) is flagged
-				// Permanent so it outlives its one-shot source (CR 611.2a);
-				// UntilYourNextTurn (Enter the Infinite) gets its real turn
-				// boundary from AddContinuous; an explicit this-turn Duration
-				// or an instant/sorcery with no Duration$ is UntilEOT. Without
-				// the Permanent flag a sorcery's effect would be dropped at the
-				// end of the very turn it resolved, one turn early.
+				// Lifetime: absent Duration$ is Forge's end-of-turn default for
+				// every source kind. An explicit Duration$ Permanent (Finale of
+				// Revelation's "for the rest of the game", Wrenn and Seven's
+				// emblem) is flagged Permanent so it outlives its one-shot source
+				// (CR 611.2a); UntilYourNextTurn (Enter the Infinite) gets its
+				// real turn boundary from AddContinuous. The Permanent flag must
+				// inspect rawDur: dur is normalized for the duration machinery, but
+				// an absent value must not become Permanent here.
 				ce := state.ContinuousEffect{
 					Source:         c.Source,
 					Controller:     c.Controller,
@@ -474,7 +472,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					ImprintOnHost:  imprintOnHost,
 					Name:           effectName,
 					UntilEOT:       effectUntilEOT(h, c.Source, rawDur),
-					Permanent:      strings.EqualFold(strings.TrimSpace(dur), "Permanent"),
+					Permanent:      strings.EqualFold(strings.TrimSpace(rawDur), "Permanent"),
 					Duration:       dur,
 					Remembered:     remembered,
 					ForgetOnMoved:  forgetOn,
@@ -536,9 +534,8 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			ceUntilEOT := effectUntilEOT(h, c.Source, rawDur)
 			if absentDurationMeansThisTurn(mode) && sa.Params["Duration"] == "" {
 				// A restriction body whose oracle lifetime is THIS TURN but whose
-				// script writes no inline Duration$ gets UntilEOT, not effEffect's
-				// plain absent-Duration default (Permanent, set at the top of
-				// this function). For a restriction the Permanent reading is the
+				// script writes no inline Duration$ gets UntilEOT, matching the
+				// general absent-Duration default. For a restriction the Permanent reading is the
 				// non-permissive direction: the lock/permission would outlive the
 				// turn the card text names and apply to every later turn too.
 				//
@@ -1319,12 +1316,12 @@ func CanAttackDefenderParamsReadable(params map[string]string) bool {
 
 // absentDurationMeansThisTurn is the ONE home for the restriction modes whose
 // Effect-granted bodies write no inline Duration$ yet whose card text names a
-// THIS-TURN lifetime. effEffect defaults an absent Duration$ to Permanent (a
-// one-shot that survives its source, CR 611.2a), which is correct for a body
-// that genuinely says "for the rest of the game" but wrong for these: a
-// this-turn restriction read as Permanent outlives the turn the card names and
-// applies to every later turn too, the non-permissive direction for a
-// restriction.
+// THIS-TURN lifetime. effEffect now gives every absent Duration$ the Forge
+// end-of-turn default; this helper records the mode-specific corpus audit and
+// keeps the intent explicit at the registration site. An explicit Permanent
+// remains a game-lasting effect, while treating these absent values as
+// Permanent would outlive the turn the card names, the non-permissive direction
+// for a restriction.
 //
 // The membership test is structural, not per-card: add a mode here only when
 // its absent Duration$ is this-turn by the corpus's own oracle text, and the
