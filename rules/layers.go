@@ -173,7 +173,17 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 						// collected from the zone it names by the zone walk above.
 						// An unrecognised value denies -- the fail-closed direction
 						// effectZoneOK documents.
-						if !e.stackSelfStaticOK(st, o) && !effectZoneOK(st.Params["EffectZone"], o.Zone) {
+						// ExcludeZone$ -- the zone(s) the static's SOURCE must NOT sit in
+						// for it to be live (Forge's mirror of EffectZone$; Grist, the
+						// Hunger Tide's "As long as Grist isn't on the battlefield, it's a
+						// 1/1 Insect creature in all other zones"). An exclusion with no
+						// explicit EffectZone$ REPLACES the battlefield default: the static
+						// is live in every other zone -- exactly the CR 604.3 every-zone
+						// CDA reading minus the excluded zone(s). staticZoneAdmits (below)
+						// is the ONE read both this gate and cdaPTStatic make, so the
+						// emitted characteristic grant and the layer-7a P/T claim can
+						// never disagree about where the static is live.
+						if !e.stackSelfStaticOK(st, o) && !staticZoneAdmits(st.Params["ExcludeZone"], st.Params["EffectZone"], o.Zone) {
 							continue
 						}
 						affects := st.Params["Affected"]
@@ -571,6 +581,32 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 // creature spell's "creatures you control get +1/+1") still stays
 // battlefield-only. PresentZone$ is a comma list in the grammar, hence the
 // substring read.
+// staticZoneAdmits is the source-zone admission a Continuous static's
+// ExcludeZone$ and EffectZone$ parameters jointly express, the ONE read
+// staticEffects' gate and cdaPTStatic's layer-7a CDA claim both make. With
+// no ExcludeZone$ the ordinary EffectZone$ gate stands unchanged (empty =
+// battlefield). With one, the named zones are excluded and -- absent an
+// explicit EffectZone$ -- every OTHER zone admits, which is what lets a
+// zone-conditional CDA (Grist) live exactly off the battlefield. An
+// unrecognised word excludes NOTHING (the mirror-image direction of
+// affectedZoneOK's fail-closed deny): the unparseable exclusion degrades to
+// the ordinary gate, today's applies-as-gated behaviour, rather than going
+// silent.
+func staticZoneAdmits(exclude, effectZone string, z state.Zone) bool {
+	exclude = strings.TrimSpace(exclude)
+	if exclude == "" {
+		return effectZoneOK(effectZone, z)
+	}
+	zones, all, ok := effects.ParseZones(exclude)
+	if !ok {
+		return effectZoneOK(effectZone, z)
+	}
+	if all || slices.Contains(zones, z) {
+		return false
+	}
+	return effectZone == "" || effectZoneOK(effectZone, z)
+}
+
 func (e *Engine) stackSelfStaticOK(st cards.Static, o *state.Object) bool {
 	if st.Params["EffectZone"] != "" || o == nil || o.Zone != state.ZStack {
 		return false
@@ -628,7 +664,7 @@ func parseSVarGrant(raw string) (name, value string, ok bool) {
 func (e *Engine) cdaPTStatic(st cards.Static, ctx *effects.Ctx) (p, t int32, hasP, hasT bool) {
 	for key := range st.Params {
 		switch key {
-		case "Mode", "CharacteristicDefining", "SetPower", "SetToughness", "Affected", "Description":
+		case "Mode", "CharacteristicDefining", "SetPower", "SetToughness", "Affected", "Description", "ExcludeZone":
 			// The keys the implemented CDA shape (and only it) carries.
 		default:
 			return 0, 0, false, false
@@ -636,6 +672,17 @@ func (e *Engine) cdaPTStatic(st cards.Static, ctx *effects.Ctx) (p, t int32, has
 	}
 	if aff := strings.TrimSpace(st.Params["Affected"]); aff != "" && aff != "Card.Self" {
 		return 0, 0, false, false
+	}
+	// ExcludeZone$ narrows the claim's zones (Grist, the Hunger Tide): the CDA
+	// read is every zone by CR 604.3/208.2, minus the ones the static names --
+	// and beside any explicit EffectZone$, exactly as the emission gate reads
+	// the pair. The same staticZoneAdmits helper, so the layer-7a claim and
+	// any emitted fallback ce cannot disagree about where the static is live.
+	// A source object already gone carries no zone to admit.
+	if raw := strings.TrimSpace(st.Params["ExcludeZone"]); raw != "" {
+		if oz := e.G.Obj(ctx.Source); oz == nil || !staticZoneAdmits(raw, st.Params["EffectZone"], oz.Zone) {
+			return 0, 0, false, false
+		}
 	}
 	if raw, ok := st.Params["SetPower"]; ok {
 		if n, ok := e.cdaValue(ctx, raw); ok {
