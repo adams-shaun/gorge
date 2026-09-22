@@ -77,6 +77,46 @@ func TestKnightOfNewAlaraUsesDerivedColorCount(t *testing.T) {
 	}
 }
 
+// TestAdversarialKnightCountsAffectedObjectNotSource is the unequal-colour
+// regression for the AffectedX anchor: Knight of New Alara (two colours)
+// pumps Rafiq of the Many (three colours) with NO Leyline on the table, so
+// counting the static's grantor instead of the affected creature awards +2
+// (power 5) rather than +3 (power 6). The Leyline test above cannot see the
+// difference because it makes every permanent all five colours.
+func TestAdversarialKnightCountsAffectedObjectNotSource(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := corpusEngine(t, reg, []*cards.Card{
+		mustCorpusCard(t, reg, "Knight of New Alara"),
+		mustCorpusCard(t, reg, "Rafiq of the Many"),
+	}, nil)
+	knight := moveByName(t, e, 0, "Knight of New Alara", state.ZBattlefield)
+	rafiq := moveByName(t, e, 0, "Rafiq of the Many", state.ZBattlefield)
+	if e.G.Obj(knight).Zone != state.ZBattlefield || e.G.Obj(rafiq).Zone != state.ZBattlefield {
+		t.Fatal("precondition: Knight and Rafiq must be on the battlefield")
+	}
+	if got := effects.ColorsOf(e.G.Obj(knight)); got != "WG" {
+		t.Fatalf("precondition: Knight face colours = %q, want WG", got)
+	}
+	if got := effects.ColorsOf(e.G.Obj(rafiq)); got != "WUG" {
+		t.Fatalf("precondition: Rafiq face colours = %q, want WUG", got)
+	}
+	if got, want := e.Colors(knight), "WG"; got != want {
+		t.Fatalf("precondition: Knight derived colours = %q, want %q", got, want)
+	}
+	if got, want := e.Colors(rafiq), "WUG"; got != want {
+		t.Fatalf("precondition: Rafiq derived colours = %q, want %q", got, want)
+	}
+	if got := e.Power(knight); got != 2 {
+		t.Fatalf("Knight power = %d, want 2 (its own pump excludes itself)", got)
+	}
+	if got := e.Power(rafiq); got != 6 {
+		t.Fatalf("Rafiq power = %d, want 6 (base 3 + 3 for its own three colours, not the Knight's two)", got)
+	}
+	if got := e.Toughness(rafiq); got != 6 {
+		t.Fatalf("Rafiq toughness = %d, want 6", got)
+	}
+}
+
 func TestCardNumColorsOffBattlefieldUsesFace(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e := corpusEngine(t, reg, []*cards.Card{

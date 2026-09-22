@@ -688,9 +688,8 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 // The per-object answers mirror evalCountBody's own source-anchored heads:
 // CardPower/CardToughness read the face plus marked P1P1 counters
 // (battlefield layer output for a battlefield object; a graveyard object's
-// face), CardManaCost the face's converted cost, CardNumColors the object's
-// live colours, CardCounters.<KIND> one counter kind, Valid the count of
-// referenced objects matching a card spec
+// face), CardManaCost the face's converted cost, CardCounters.<KIND> one
+// counter kind, Valid the count of referenced objects matching a card spec
 // (unknown predicates fail closed inside the matcher, so an unreadable
 // filter counts zero, never everything). Several references sum -- Forge's
 // Count$ reads the same way -- and the /Op suffix applies through
