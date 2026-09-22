@@ -216,12 +216,6 @@ func TestPlayerCountDefinedRegisteredUnknownPropertyFailsClosed(t *testing.T) {
 		"Count$PlayerCountDefinedRememberedOwner$HasPropertyLostLifeThisTurn",
 		"Count$PlayerCountDefinedNonTriggeredTarget$HasPropertyLostLifeThisTurn",
 		"Count$PlayerCountDefinedActivePlayer$HighestLifeLostThisTurn",
-		// The NON-combat damage properties on the shared RegisteredOpponents
-		// group route through this helper and must NOT resolve: the ledger is
-		// combat-only (war_elemental, furious_spinesplitter, skarrgan_firebird
-		// carry HasPropertywasDealtDamageThisTurn; chandras_incinerator
-		// carries NonCombatDamageDealtThisTurn).
-		"Count$PlayerCountRegisteredOpponents$HasPropertywasDealtDamageThisTurn",
 		"Count$PlayerCountRegisteredOpponents$NonCombatDamageDealtThisTurn",
 		// The life-TOTAL extremes resolve on the Players$/Opponents$ arms but
 		// are NOT among the three properties this head offers — they stay

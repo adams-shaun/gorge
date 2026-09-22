@@ -61,8 +61,7 @@ help:
 	@echo "  make lint-web       — svelte-check and eslint over web/"
 	@echo "  make smoke          — headless-browser smoke gate vs two real gorged servers (public+omniscient); fails on any browser error or a hung loading state"
 	@echo "  make test lint cover"
-	@echo "  make conformance    — run the CR 601/733 suites (KNOWN-RED; failing today is \
-the expected outcome — see the target's comment)"
+	@echo "  make conformance    — run the CR 601/733 conformance suites (see the target's comment)"
 	@echo "  NOTE: make test-web / npm test needs Node >=22 (vitest 5); see web/README.md"
 
 .PHONY: build
@@ -92,8 +91,10 @@ gorged: $(BIN_DIR)/gorged
 # deploy-demo refreshes the local demo: two servers on 127.0.0.1, public
 # spectator on :8080 and omniscient on :8081, each with two Commander and
 # two constructed tables so the overview's per-format sections are both
-# populated. .githooks/post-merge runs it in the background after a merge
-# into main, so what is on :8080 is never older than main.
+# populated. Run BY HAND, by the operator, when the demo should pick up
+# main: it stops the running servers, which aborts every in-flight vs-bot
+# game, so nothing runs it automatically any more (the post-merge hook and
+# the daemon's landing.deploy_cmd were removed on 2026-09-22).
 #
 # The binary is rebuilt unconditionally rather than through
 # $(BIN_DIR)/gorged: that rule depends on the Go sources, but the client
@@ -151,38 +152,23 @@ gentypes:
 test:
 	go test $(GO_TEST_FLAGS) ./...
 
-# conformance runs the CR 601 and CR 733 conformance suites
-# (rules/cr601_conformance_test.go, rules/cr733_reversal_conformance_test.go) as
-# an OPT-IN, KNOWN-RED lane. Those tests are RED BY DESIGN -- they pin unfixed
-# defects, each with its own owner:
+# conformance runs the CR 601 and CR 733 conformance suites. I-2
+# (mandatory-target feasibility), I-7 (targets before payment), and the CR 733.1
+# illegal-cast reversal are fixed and asserted by the ordinary suite; the
+# historical opt-in guard and GORGE_CR_CONFORMANCE switch were removed after
+# the following fixes landed:
 #
-#   I-2  legalActions (rules/legal.go:38) offers a cast whose mandatory targets
-#        cannot be satisfied: it checks timing, restrictions and payment, but
-#        never target feasibility.
-#   I-7  commitCast pays the mana before targets are chosen EVEN WHEN THE CAST
-#        IS LEGAL -- Lightning Bolt, Shock and Incinerate fail with living
-#        targets available, so no amount of illegal-cast reversal fixes this.
-#   CR 733.1 reversal  an illegal cast is not undone at all: the card lands in
-#        its resting zone rather than returning to hand, the payment is not
-#        cancelled, and a cast trigger that already fired (Young Pyromancer off
-#        an illegal Force of Will) stays on the stack.
+#   38846fb2  withhold casts without mandatory targets (I-2)
+#   22ea5da0  make the cast proposal a transaction (I-7)
+#   81ade672  undo as-enters choice on a mana abort (CR 733.1)
 #
-# They are gated behind GORGE_CR_CONFORMANCE=1 precisely because a PASS here
-# means a defect got fixed and the corresponding opt-in guard should be REMOVED
-# -- so failure TODAY is the expected outcome, not a regression, and a green run
-# is the signal to act, not a reason to celebrate. Fixing one of the three does
-# NOT green the lane; check which leaf turned before closing any issue.
-#
-# It is intentionally NOT reachable from `make test`, `go test ./...`, or any
-# default gate (there is no CI here): wiring it into the default tree would make
-# the tree red by construction, strictly worse than the status quo.
-#
-# -run TestCR, not TestCR601: the 733 reversal tests are named TestCR733* and a
-# narrower pattern silently drops them from the lane.
+# This remains an explicit lane because it is a focused CR audit rather than a
+# default full-suite target. Use -run TestCR, not TestCR601: the 733 reversal
+# tests are named TestCR733* and a narrower pattern silently drops them.
 .PHONY: conformance
 conformance:
-	@echo "== CR 601/733 conformance: KNOWN-RED lane -- failure is the EXPECTED outcome today; a PASS means one of I-2, I-7 or the 733.1 reversal got fixed and that test's opt-in guard should be removed =="
-	GORGE_CR_CONFORMANCE=1 go test $(GO_TEST_FLAGS) -count=1 ./rules -run TestCR -v
+	@echo "== CR 601/733 conformance: all audited leaves fixed; ordinary-suite assertions =="
+	go test $(GO_TEST_FLAGS) -count=1 ./rules -run TestCR -v
 
 # gc-gate budgets the share of consumed CPU a package's tests spend collecting
 # garbage. GC_PROCS pins GOMAXPROCS so the figure is a property of the code
@@ -309,6 +295,20 @@ clean-cards:
 # top level only — inbox/ is the un-triaged drop zone). Writes .ds4/ledger.json
 # (git-excluded).
 ledger:
-	GORGE_CR_CONFORMANCE=1 GOMEMLIMIT=5GiB go test -p=2 -count=1 ./rules -run TestCR -v \
+	GOMEMLIMIT=5GiB go test -p=2 -count=1 ./rules -run TestCR -v \
 	  > .ds4/lane-rules.txt || true
 	go run ./cmd/ledger -lane .ds4/lane-rules.txt -out .ds4/ledger.json
+
+# coverage regenerates the published card-support tables: docs/coverage.md in
+# full, plus the summary block README.md carries between its COVERAGE markers.
+# Output is deterministic (no wall clock; every table sorted), so a run over an
+# unchanged corpus rewrites nothing and the refresh workflow commits nothing.
+# `make coverage-check` is the read-only half: it fails when the committed
+# tables no longer match the corpus at FORGE_REF.
+.PHONY: coverage
+coverage: $(BIN_DIR)/forgec
+	$(BIN_DIR)/forgec coverage -dir $(CARDS_DIR)
+
+.PHONY: coverage-check
+coverage-check: $(BIN_DIR)/forgec
+	$(BIN_DIR)/forgec coverage -dir $(CARDS_DIR) -check

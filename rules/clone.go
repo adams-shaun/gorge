@@ -8,6 +8,18 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
+func cloneCounterAddsThisTurn(in []counterAddedThisTurn) []counterAddedThisTurn {
+	if in == nil {
+		return nil
+	}
+	out := make([]counterAddedThisTurn, len(in))
+	for i, v := range in {
+		out[i] = v
+		out[i].object = v.object.CloneDeep()
+	}
+	return out
+}
+
 // Clone deep-copies the engine: game, log, RNG position, the pending
 // decision, continuous effects, the pending-trigger queue and the trigger
 // bookkeeping maps. The copy and the original then evolve independently —
@@ -31,6 +43,7 @@ func (e *Engine) Clone() *Engine {
 		// value slice, copied like turnsTaken so an undo/DVR clone owns its
 		// own ledger.
 		combatHitsThisTurn:  append([]effects.CombatDamageHit(nil), e.combatHitsThisTurn...),
+		counterAddsThisTurn: cloneCounterAddsThisTurn(e.counterAddsThisTurn),
 		format:              e.format,
 		rng:                 e.rng.clone(),
 		orderedTriggers:     e.orderedTriggers,
@@ -111,6 +124,17 @@ func (e *Engine) Clone() *Engine {
 		// worth carrying, so a fresh watcher over the same thresholds is a
 		// faithful copy.
 		loop: newLivelockWatcherFromGuard(e.loop.guard),
+		// setname.go's layer-3 rename table and its genesis-time gate. The
+		// clone's board is identical at the clone boundary, so the table is
+		// carried with its (epoch, version) key rather than rebuilt -- but as
+		// a fresh slice, never the original's backing array, so the two
+		// engines' next refreshes cannot write over each other. This is what
+		// keeps a clone's name filters reading the CLONE's board once the two
+		// diverge (setname_filter_scope_test.go).
+		renames:       append([]effects.ObjectName(nil), e.renames...),
+		renameEpoch:   e.renameEpoch,
+		renameVersion: e.renameVersion,
+		setNameInPool: e.setNameInPool,
 	}
 	if e.riotMove != nil {
 		ev := *e.riotMove
@@ -128,6 +152,11 @@ func (e *Engine) Clone() *Engine {
 		r := *e.untapResume
 		c.untapResume = &r
 	}
+	if e.attachedChoice != nil {
+		ac := *e.attachedChoice
+		c.attachedChoice = &ac
+	}
+	c.attachedApplying = e.attachedApplying
 	if e.pending != nil {
 		d := *e.pending
 		d.Options = append([]decision.Option(nil), e.pending.Options...)
@@ -152,6 +181,15 @@ func (e *Engine) Clone() *Engine {
 		c.resume = cloneResume(e.resume)
 	}
 	c.controlGrants = append([]controlGrant(nil), e.controlGrants...)
+	if e.counterTypeAsk != nil {
+		c.counterTypeAsk = make(map[state.ObjID]*counterTypePending, len(e.counterTypeAsk))
+		for id, p := range e.counterTypeAsk {
+			if p == nil {
+				continue
+			}
+			c.counterTypeAsk[id] = &counterTypePending{sa: p.sa, answers: append([]string(nil), p.answers...)}
+		}
+	}
 	// The per-turn ManaExpend tally (engine scratch, rules/cast.go): a clone
 	// taken at an intent boundary must resume mid-turn with the original's
 	// cumulative spend, or a crossing measured after the clone would see a
@@ -290,6 +328,12 @@ func (e *Engine) Clone() *Engine {
 		c.triggerTurnFires = make(map[triggerKey]turnFires, len(e.triggerTurnFires))
 		for k, v := range e.triggerTurnFires {
 			c.triggerTurnFires[k] = v
+		}
+	}
+	if e.triggerGameFires != nil {
+		c.triggerGameFires = make(map[triggerKey]int32, len(e.triggerGameFires))
+		for k, v := range e.triggerGameFires {
+			c.triggerGameFires[k] = v
 		}
 	}
 	if e.unblockedOnceFired != nil {
@@ -487,6 +531,10 @@ func (e *Engine) Clone() *Engine {
 	if e.attackPay != nil {
 		ap := *e.attackPay
 		c.attackPay = &ap
+	}
+	if e.blockPay != nil {
+		bp := *e.blockPay
+		c.blockPay = &bp
 	}
 	if e.cast != nil {
 		pc := *e.cast

@@ -56,6 +56,7 @@ type matchJSON struct {
 	PlayerNames  []string          `json:"player_names,omitempty"`
 	Decks        []string          `json:"decks"`
 	DeckCards    [][]string        `json:"deck_cards"`
+	Sideboards   [][]string        `json:"sideboards,omitempty"`
 	Spectator    string            `json:"spectator"`
 	State        string            `json:"state"`
 	Result       string            `json:"result,omitempty"`
@@ -70,6 +71,19 @@ type matchJSON struct {
 	Commanders   [][]int           `json:"commanders,omitempty"`
 	Tokens       map[string]string `json:"tokens,omitempty"`
 	TokensUnread []string          `json:"tokens_unread,omitempty"`
+	// NameUniverse is the match MODE bit: true when the live match was
+	// played with a card-name universe, so its NameCard effects posed real
+	// asks. config() must restore it or the rebuilt engine takes the legacy
+	// no-ask path and every recorded name intent misaligns. Absent (a
+	// pre-feature capture) is the legacy path, unchanged.
+	NameUniverse bool `json:"name_universe,omitempty"`
+	// NameUniverseNames pins the exact ordered labels that match offered.
+	// A committed fixture has it stripped for size, the way `tokens` is
+	// stripped for licensing; config() then leaves it nil and the engine
+	// re-derives the list from the live corpus at genesis, which replays a
+	// recorded name choice exactly as long as the corpus pin has not moved
+	// (the documented DIVERGED cause, see AGENTS.md).
+	NameUniverseNames []string `json:"name_universe_names,omitempty"`
 }
 
 // logJSON is log.json's shape, mirroring host.FeedbackLog: the embedded
@@ -210,7 +224,10 @@ func Load(dir string) (*events.Log, rules.Config, Meta, error) {
 // config rebuilds a rules.Config from match.json's content: decks from the
 // recorded card-name lists (resolved through the registry exactly the way
 // deck.File.Resolve resolves a deck file — Lookup normalises the name, so
-// the recorded printed name finds its card), the already-compiled token
+// the recorded printed name finds its card), the sideboards the same way
+// when the capture recorded any (Sideboards are genesis configuration: the
+// engine mints their objects before the first event, so a replay without
+// them shifts every later object ID), the already-compiled token
 // scripts (resolved by resolveTokens — never raw text, which may be
 // GPL-3.0), and the format/life/commander/mulligan settings. The seed is
 // carried but replay overwrites it with the log's own seed (replay's
@@ -230,11 +247,26 @@ func config(m matchJSON, reg *cards.Registry, tokens map[string]*cards.Card) (ru
 			decks[i][j] = c
 		}
 	}
+	var sideboards [][]*cards.Card
+	if len(m.Sideboards) > 0 {
+		sideboards = make([][]*cards.Card, len(m.Sideboards))
+		for i, names := range m.Sideboards {
+			sideboards[i] = make([]*cards.Card, len(names))
+			for j, n := range names {
+				c, ok := reg.Lookup(n)
+				if !ok {
+					return rules.Config{}, fmt.Errorf("feedback: sideboard %d card %d (%q) is not in the corpus", i, j, n)
+				}
+				sideboards[i][j] = c
+			}
+		}
+	}
 	cfg := rules.Config{
 		Seed:        m.Seed,
 		Names:       m.Names,
 		PlayerNames: m.PlayerNames,
 		Decks:       decks,
+		Sideboards:  sideboards,
 		Mulligans:   m.Mulligans,
 		Tokens:      tokens,
 	}
@@ -242,6 +274,19 @@ func config(m matchJSON, reg *cards.Registry, tokens map[string]*cards.Card) (ru
 		cfg.Format = rules.FormatCommander
 		cfg.StartingLife = m.StartingLife
 		cfg.Commanders = m.Commanders
+	}
+	// The name-card universe is a match MODE, restored the way host's own
+	// matchForLog restores it (host/viewat.go): only a capture that records
+	// the mode replays with one, so a pre-feature snapshot still takes the
+	// legacy no-ask path and reproduces unchanged. With the mode set, the
+	// universe itself is the live corpus (the same registry the decks were
+	// resolved through above) and the pinned label list overrides the
+	// derived one when the capture carried it — a live, uncommitted capture
+	// always does; a size-stripped committed fixture does not, and then the
+	// engine derives the list from this corpus at genesis.
+	if m.NameUniverse {
+		cfg.NameUniverse = reg.Cards
+		cfg.NameUniverseNames = append([]string(nil), m.NameUniverseNames...)
 	}
 	return cfg, nil
 }

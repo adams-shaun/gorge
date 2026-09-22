@@ -36,6 +36,31 @@ var zoneValidPrefixes = []struct {
 // Resolve, so a caller that filters the returned slice in place (the ordinary
 // out := s[:0]; for range append(out, ...) idiom) must not be able to corrupt
 // state a later effect in the same Sub chain still relies on.
+// GainedFacesOfDefined resolves Forge's GainsAbilitiesOfDefined$ dynamic set
+// into the foreign faces consumed by the activated-ability grant path. It is
+// shared by printed statics and Effect-delivered statics so both routes use
+// Defined's object-reference semantics and preserve its deterministic order.
+func GainedFacesOfDefined(h Host, c *Ctx, spec string) []state.GainedFace {
+	if c == nil || strings.TrimSpace(spec) == "" {
+		return nil
+	}
+	sa := &cards.SA{Params: map[string]string{"Defined": strings.TrimSpace(spec)}}
+	var out []state.GainedFace
+	seen := make(map[state.ObjID]bool)
+	for _, t := range Defined(h, c, sa) {
+		if t.IsPlayer || t.Obj == 0 || seen[t.Obj] {
+			continue
+		}
+		o := h.Game().Obj(t.Obj)
+		if o == nil || o.Face() == nil {
+			continue
+		}
+		seen[t.Obj] = true
+		out = append(out, state.GainedFace{Obj: t.Obj, Face: o.Face()})
+	}
+	return out
+}
+
 func Defined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 	if ts, ok := knownDefinedTargets(h, c, sa.Params["Defined"]); ok {
 		return ts
@@ -298,11 +323,30 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			return nil, true
 		}
 		if o := g.Obj(c.Source); o != nil {
-			out := make([]state.Target, 0, len(o.Imprinted))
+			out := make([]state.Target, 0, len(o.Imprinted)+len(o.ImprintTokens))
 			for _, id := range o.Imprinted {
 				// Imprint links an exiled card only while the linked card remains
 				// in exile (CR 607.2a); its persistent ID cannot follow it later.
 				if linked := g.Obj(id); linked != nil && linked.Zone == state.ZExile {
+					out = append(out, state.Target{Obj: id})
+				}
+			}
+			// ImprintTokens$ True names the created TOKENS (Forge's
+			// imprintedCards written by TokenEffect): they are battlefield
+			// permanents, so they resolve while they exist -- the exiled-card
+			// zone filter above must not apply to them.
+			for _, id := range o.ImprintTokens {
+				if g.Obj(id) != nil {
+					out = append(out, state.Target{Obj: id})
+				}
+			}
+			// SeekFound (ImprintFound$ True) names cards the seek moved to a
+			// HAND: Forge's continuation reads imprintedCards without a zone
+			// filter, so these resolve wherever they currently sit. Kept in
+			// its own list so the CR 607.2a exile-only rule above still holds
+			// for the ordinary Imprinted association.
+			for _, id := range o.SeekFound {
+				if g.Obj(id) != nil {
 					out = append(out, state.Target{Obj: id})
 				}
 			}

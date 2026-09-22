@@ -94,6 +94,13 @@ type resumePoint struct {
 	replacementTarget state.Target
 	replacementSource state.ObjID
 	replacementAmount int32
+	// effectFrame is the Effect-created registration the asking body resolved
+	// under (Engine.currentEffectFrame, published by effects.Resolve). It is
+	// zero for every ordinary ask and non-zero only when the walk belongs to
+	// an api:Effect body (rules' seedEffectReplCtx), so a ReplaceWith$ body
+	// that suspends on a mid-resolution ask resumes with the same
+	// registration bound and its self-exile idiom still ends it.
+	effectFrame effects.EffectFrame
 	// action is the replaced event's action marker (Engine.replAction),
 	// captured with replaced so a body that suspends before its move still
 	// labels that move a sacrifice or discard on the resume.
@@ -102,9 +109,10 @@ type resumePoint struct {
 	// and timeTravelRound the count of repetitions it has already completed
 	// (Amount$ 3). The round is its own field, never packed into target: on
 	// a 32-bit build an int cannot hold both halves.
-	timeTravelObjects []state.ObjID
-	timeTravelRound   int
-	before            *triggerSnapshot // immutable look-back if a batch replacement suspends
+	timeTravelObjects  []state.ObjID
+	timeTravelRound    int
+	repeatOptionalNext int32
+	before             *triggerSnapshot // immutable look-back if a batch replacement suspends
 	// target is Dig's index into its deterministic Defined$ target list. It
 	// keeps a resumed answer attached to the library that actually asked.
 	target int
@@ -112,6 +120,7 @@ type resumePoint struct {
 	// replacement to the player drawing even when the enclosing effect's
 	// controller is someone else.
 	player state.PlayerID
+	name   string
 	// direct identifies an effect invoked outside stack resolution (currently
 	// an enters-the-battlefield replacement such as Hideaway). It resumes its
 	// source directly rather than requiring a stack object.
@@ -286,6 +295,7 @@ type repeatCursor struct {
 	next     int
 	last     []state.Target
 	hasLast  bool
+	optional bool
 }
 
 // fusedRest is a fuse-rest continuation's captured remainder (CR 702.101b):
@@ -401,6 +411,7 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 		replacedPlayer:    e.replReplacedPlayer,
 		replacementTarget: replacementTarget, replacementSource: e.protectionSource(e.damaging),
 		replacementAmount: replacementAmount,
+		effectFrame:       e.currentEffectFrame,
 		before:            e.triggerBefore, target: d.ResumeTarget, player: d.Player,
 		direct: direct, rolls: d.Rolls,
 		choices:     append([]state.Target(nil), d.ResumeChoices...),
@@ -418,6 +429,7 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 		winPaidX:                e.windowPaidX,
 		timeTravelObjects:       append([]state.ObjID(nil), d.ResumeObjects...),
 		timeTravelRound:         d.ResumeRound,
+		repeatOptionalNext:      d.ResumeRepeatNext,
 		// The pre-move controller snapshot of this chain's object targets,
 		// published by effects.Resolve around the whole chain. Captured onto
 		// the pending frame so a resumed continuation (which rebuilds its Ctx
@@ -500,6 +512,21 @@ func (e *Engine) SuspendContinuation(sa *cards.SA) {
 // nested inside the iteration -- resumes inside that iteration, so each is
 // bound to the iteration's Remembered unless a deeper loop already bound it.
 // The loop's own frame follows them, bound to the RepeatEach's Remembered.
+// SuspendRepeatOptional implements effects.Host.SuspendRepeatOptional. The
+// body of iteration next-1 owns the pending ask; this frame runs only after
+// that body resumes and completes, and it re-enters RepeatOptional$ to pose
+// the repeat election for iteration next (never that iteration's body
+// directly -- the do/while owes the player the election after every process).
+func (e *Engine) SuspendRepeatOptional(sa *cards.SA, next int32) {
+	if e.resume == nil {
+		return
+	}
+	e.contChain = append(e.contChain, contFrame{
+		sa: sa, repeat: &repeatCursor{next: int(next), optional: true},
+	})
+	e.repeatReported = sa
+}
+
 func (e *Engine) SuspendRepeat(s effects.RepeatSuspension) {
 	if e.resume == nil {
 		return
@@ -582,6 +609,15 @@ type moveCounterPending struct {
 	nSet    bool
 }
 
+// counterTypePending is the replay-derived continuation for one
+// CounterTypePerDefined$ SA. It is keyed below the resolving stack object and
+// then owned by this exact immutable SA, so a chained PutCounter cannot see
+// another PutCounter's answers.
+type counterTypePending struct {
+	sa      *cards.SA
+	answers []string // recipient index -> answered individual kind
+}
+
 // moveCounterEntry returns (creating if needed) the pending state for a
 // resolving MoveCounter stack object.
 func (e *Engine) moveCounterEntry(obj state.ObjID) *moveCounterPending {
@@ -603,6 +639,20 @@ func (e *Engine) moveCounterEntry(obj state.ObjID) *moveCounterPending {
 // which chosenTargetsFor consumes exactly like a just-answered ask, so the
 // re-entered SA does not re-pose its target ask; the kind and amount ride
 // their own pairs, which effMoveCounter consumes-and-clears (fx42).
+func (e *Engine) seedCounterTypeAsk(obj state.ObjID, sa *cards.SA, ctx *effects.Ctx) {
+	p := e.counterTypeAsk[obj]
+	if p == nil || p.sa != sa || len(p.answers) == 0 {
+		return
+	}
+	ctx.CounterKindAnswers = append([]string(nil), p.answers...)
+	for i := len(p.answers) - 1; i >= 0; i-- {
+		if p.answers[i] != "" {
+			ctx.CounterKindAnswerIndex, ctx.CounterKindAnswerSet = i, true
+			break
+		}
+	}
+}
+
 func (e *Engine) seedMoveCounterAsk(obj state.ObjID, ctx *effects.Ctx) {
 	p := e.moveCounterAsk[obj]
 	if p == nil {
@@ -872,6 +922,14 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 // continuation it carries have all completed — the fully-resolved object
 // goes where resolveTop's own tail would have sent it.
 func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
+	if rp.kind == "copy_targets" {
+		e.resume = nil
+		if rp.obj != 0 {
+			e.recordChosenTargets(rp.obj, chosen, false)
+		}
+		e.resolveTop()
+		return
+	}
 	// A GainLife→Draw replacement body parked its remaining draws on this
 	// ask (replacement.go's lifeReplacementDraw). The body is not a stack
 	// resolution: there is no sub-ability to re-enter (rp.sa is nil -- the
@@ -955,7 +1013,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
 		return
 	}
-	ctx := &effects.Ctx{Source: rp.obj, Controller: o.Controller, Targets: o.Targets,
+	ctx := &effects.Ctx{Source: rp.obj, Controller: o.Controller, NameChoice: rp.name, Targets: o.Targets,
 		Chosen: append([]state.Target(nil), rp.choices...), ChosenValid: rp.chosenValid,
 		VillainousVictims: append([]state.Target(nil), rp.villainousVictims...),
 		VillainousIndex:   rp.villainousIndex,
@@ -976,7 +1034,18 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// arm below may rebind ctx.Source to the replacement's host;
 		// ResolvingObj stays rp.obj -- the wrapper whose resolution this
 		// frame is.
-		ResolvingObj: rp.obj}
+		ResolvingObj: rp.obj, EffectFrame: rp.effectFrame}
+	if rp.kind == "repeat_optional" {
+		ctx.RepeatOptional = &effects.RepeatOptionalContinuation{
+			Continue: len(chosen) > 0 && chosen[0].Kind == "yes",
+			Next:     rp.repeatOptionalNext,
+		}
+	}
+	// Cost-sacrificed objects are engine-only LKI keyed by the stack object.
+	// Re-entry must restore the same snapshot so an SVar such as Mausoleum
+	// Wanderer's Sacrificed$CardPower does not collapse to zero after the
+	// unless-pay answer suspends resolution.
+	ctx.Sacrificed = e.sacrificedLKI[rp.obj]
 	// CR 107.3i: X is the value paid for the object's {X}, preserved on the
 	// stack object by CastInfo -- the same binding resolveTop's spell and
 	// ability branches now carry. A spell whose resolution suspends on a
@@ -1275,6 +1344,15 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				ctx.Repeat = &effects.RepeatCursor{SA: rp.sa, Subjects: cur.subjects, Next: cur.next,
 					Last: cur.last, HasLast: cur.hasLast}
 			}
+		case "repeat_optional_loop":
+			if cur := rp.repeat; cur != nil {
+				// The body of iteration cur.next-1 completed after its own
+				// suspension: the repeat election for cur.next has not been
+				// posed, so AskElection re-enters the loop at the election
+				// rather than running the body directly.
+				ctx.RepeatOptional = &effects.RepeatOptionalContinuation{Continue: true, Next: int32(cur.next),
+					AskElection: true}
+			}
 		case "unless_pay":
 			if rp.unlessPay != "" {
 				ctx.UnlessPay = rp.unlessPay
@@ -1356,7 +1434,8 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// never disagree. An SVar the ctx's table lacks or whose body does
 			// not resolve passes through raw and lands in the same hard
 			// decline as before.
-			paid, ok := ParseUnlessCost(effects.UnlessCostResolved(e, ctx, rp.sa))
+			rawUnlessCost := effects.UnlessCostResolved(e, ctx, rp.sa)
+			paid, ok := ParseUnlessCost(rawUnlessCost)
 			if !ok {
 				// I-5: an unless-cost the payment API cannot price is a hard
 				// DECLINE. ParseCost("X") is {Generic:0, X:1}; payMana never
@@ -1379,7 +1458,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				// cost type) keeps the decision on the wire for hosts to observe
 				// while never letting an empty pool satisfy it.
 				ctx.UnlessPay = "decline"
-			} else if len(chosen) > 0 && chosen[0].Index == 0 {
+			} else if len(chosen) > 0 && chosen[0].Index == 0 && e.unlessCostPayable(chosen[0].Player, rawUnlessCost, ctx, rp.obj) {
 				if len(paid.Sac) > 0 || len(paid.Discard) > 0 || len(paid.Reveal) > 0 || len(paid.RevealChosen) > 0 {
 					// Sacrifice, discard and reveal are choice-bearing costs.
 					// Park this resume before any mutation and let the payer
@@ -1390,6 +1469,14 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 				if e.payUnlessCost(chosen[0].Player, paid, ctx, rp.obj) {
 					ctx.UnlessPay = "pay"
+				} else if paid.hasManaPayment() && len(e.windowManaUnits(chosen[0].Player)) > 0 {
+					// A failed pool-only attempt is not a decline: open the
+					// CR 601.2g mana-ability window and resume this exact frame
+					// after the payer has assembled enough floating mana. The
+					// offer gate proved the budget reachable before Pay was
+					// offered, so sources remain while the charge is unmet.
+					e.beginUnlessPayment(chosen[0].Player, paid, ctx, rp.obj, rp)
+					return
 				} else {
 					ctx.UnlessPay = "decline"
 				}
@@ -1553,6 +1640,13 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 					ctx.ConniveDiscard = append(ctx.ConniveDiscard, o.Obj)
 				}
 			}
+		case "copypermanent_choice":
+			// CopyPermanent's sole Choices$/Chooser$ shape has its own
+			// transport so a nested ordinary Choice cannot consume the answer.
+			ctx.CopyPermanentChoiceDone = true
+			if len(chosen) > 0 {
+				ctx.CopyPermanentChoice = chosen[0].Obj
+			}
 		case "choice":
 			// ChooseCard, ChoosePlayer and ChangeTargets all use KChoose. Keep
 			// the concrete target shape rather than just an ObjID because player
@@ -1715,6 +1809,15 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 					ctx.AttachDests = append(ctx.AttachDests, t.Obj)
 				}
 			}
+		case "planeswalk_optional":
+			// An Optional$ True Planeswalk election is a KChoose yes/no. The
+			// effect is a no-op without a planar deck, but its election is still
+			// recorded by the effect and the normal Resolve walk continues into
+			// any SubAbility$.
+			ctx.PlaneswalkOpt = "no"
+			if len(chosen) > 0 && chosen[0].Kind == "yes" {
+				ctx.PlaneswalkOpt = "yes"
+			}
 		case "put_optional":
 			// An Optional$ True PutCounter's yes/no election (Talus Paladin's
 			// "you may put a +1/+1 counter on CARDNAME", Black Widow's "You
@@ -1847,6 +1950,44 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 			}
 			ctx.CounterDistDone = true
+		case "counter_kind":
+			ctx.CounterKind = ""
+			if len(chosen) > 0 {
+				ctx.CounterKind = chosen[0].Label
+			}
+			ctx.CounterKindDone = true
+			// A bare Choices$ recipient pick precedes its comma-list kind
+			// question. Carry that completed pick only through THIS re-entry;
+			// effPutCounter consumes it at entry before a nested SA can see it.
+			if len(rp.choices) > 0 {
+				for _, t := range rp.choices {
+					if !t.IsPlayer && t.Obj != 0 {
+						ctx.CounterPick = append(ctx.CounterPick, t.Obj)
+					}
+				}
+				ctx.CounterPickDone = true
+			}
+			if rp.sa != nil && strings.EqualFold(strings.TrimSpace(rp.sa.Params["CounterTypePerDefined"]), "True") {
+				if e.counterTypeAsk == nil {
+					e.counterTypeAsk = make(map[state.ObjID]*counterTypePending)
+				}
+				p := e.counterTypeAsk[rp.obj]
+				if p == nil || p.sa != rp.sa {
+					p = &counterTypePending{sa: rp.sa}
+					e.counterTypeAsk[rp.obj] = p
+				}
+				for len(p.answers) <= rp.target {
+					p.answers = append(p.answers, "")
+				}
+				p.answers[rp.target] = ctx.CounterKind
+				ctx.CounterKindAnswerIndex, ctx.CounterKindAnswerSet = rp.target, true
+			}
+		case "counter_kinds":
+			ctx.CounterKinds = nil
+			for _, o := range chosen {
+				ctx.CounterKinds = append(ctx.CounterKinds, o.Label)
+			}
+			ctx.CounterKindsDone = true
 		case "counter_pick":
 			// A bare-Choices$ PutCounter pick was answered (task vow1;
 			// Promise of Loyalty's vow): the chooser picked the creature(s)
@@ -2105,6 +2246,39 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			} else {
 				ctx.RevealOpt = "no"
 			}
+			// The per-target cursor: RevealOptTarget is the index of the
+			// Defined$ target whose yes/no this answer was, so the re-entered
+			// effReveal applies it to exactly that target and poses a fresh ask
+			// for every later target (the LookAckTarget/RevealPickTarget
+			// pattern). Without it, a multi-target optional reveal answered
+			// for target 0 and then applied that same answer to every later
+			// target — a yes silently revealed the rest, a no silently
+			// declined them.
+			ctx.RevealOptTarget = rp.target
+		case "reveal_pick":
+			// Task infernaltutor1: a mid-resolution hand-reveal pick (Infernal
+			// Tutor's "Reveal a card from your hand", an AnyNumber$/Optional$
+			// reveal) was answered. Every chosen option carries the revealed
+			// card in Obj (the same shape the "discard" arm reads), so the id
+			// list is read straight off them; the re-entered effReveal filters
+			// it against the rebuilt pool and emits the reveal plus the
+			// RememberRevealed$ capture for exactly those cards, which is what
+			// the chained ChangeType$ Remembered.sameName sub then reads. The
+			// slice is built non-nil (make, not nil) so a legitimate
+			// "reveal none" answer is distinguishable from a first pass -- the
+			// Ctx.Discard convention. effReveal consumes and clears it at the
+			// top of its walk (fx42 scoping).
+			ctx.RevealPick = make([]state.ObjID, 0, len(chosen))
+			for _, o := range chosen {
+				if o.Obj != 0 {
+					ctx.RevealPick = append(ctx.RevealPick, o.Obj)
+				}
+			}
+			// The per-target cursor: RevealPickTarget is the index of the
+			// Defined$ target whose pick this answer was, so the re-entered
+			// effReveal applies it to exactly that target's pool and poses a
+			// fresh ask for every later target (the LookAckTarget pattern).
+			ctx.RevealPickTarget = rp.target
 		case "look_ack":
 			// The bare private look's pacing ack (lookack, task
 			// fb-20260917T232325Z-35cfca4b, Mishra's Bauble / Gitaxian Probe):
@@ -2233,7 +2407,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 					if t.IsPlayer || t.Obj == 0 || seenShow[t.Obj] {
 						continue
 					}
-					if o := e.G.Obj(t.Obj); o != nil && effects.MatchesObjectCtx(e.G, show, o, sc) {
+					if o := e.G.Obj(t.Obj); o != nil && e.matchesSpec(show, t.Obj, sc) {
 						seenShow[t.Obj] = true
 						ids = append(ids, t.Obj)
 					}
@@ -2423,6 +2597,9 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		if rp.sa.API == "MoveCounter" {
 			e.seedMoveCounterAsk(rp.obj, ctx)
 		}
+		if rp.sa.API == "PutCounter" {
+			e.seedCounterTypeAsk(rp.obj, rp.sa, ctx)
+		}
 		// A frame of a fused half's resolution re-enters here: restore the
 		// half's own target binding as the AMBIENT resolving target for the
 		// whole of this re-entry (its root or sub-ability, and every frame
@@ -2467,9 +2644,11 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		e.damaging = 0
 		if rp.sa.API == "MoveCounter" && e.resume == nil {
 			// The MoveCounter resolution completed this round (nothing
-			// suspended): its pending state is spent -- delete it so a stale
-			// entry can never seed a later resolution of the same object.
+			// suspended): its pending state is spent.
 			delete(e.moveCounterAsk, rp.obj)
+		}
+		if rp.sa.API == "PutCounter" && e.resume == nil {
+			delete(e.counterTypeAsk, rp.obj)
 		}
 		if e.resume != nil {
 			// The re-entry posed a nested mid-resolution ask. The new
@@ -2676,6 +2855,9 @@ func (e *Engine) buildContinuationChain(frames []contFrame, obj state.ObjID, tai
 			f.villainousIndex = cf.villainousIndex
 		} else if cf.repeat != nil {
 			f.kind, f.sa, f.repeat = "repeat", sa, cf.repeat
+			if cf.repeat.optional {
+				f.kind, f.sa = "repeat_optional_loop", sa
+			}
 			f.choices, f.chosenValid = cf.choices, cf.chosenValid
 		}
 		if head == nil {
@@ -2815,6 +2997,9 @@ func modeChoiceNames(sa *cards.SA, chosen []decision.Option, eligible []string) 
 // corner both callers already guard, so a resolution can never leave its
 // object resolving forever.
 func (e *Engine) moveResolvedOffStack(o *state.Object) {
+	if o == nil || o.Zone != state.ZStack {
+		return
+	}
 	id := o.ID
 	if f := o.Face(); f != nil && f.IsPermanent() {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZBattlefield})

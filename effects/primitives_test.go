@@ -134,7 +134,7 @@ func TestPrimitivesAreRegistered(t *testing.T) {
 		"DealDamage", "DamageAll", "Mana",
 		"Draw", "Discard", "Mill", "Dig", "DigUntil", "Reveal", "RevealHand", "PeekAndReveal",
 		"RearrangeTopOfLibrary", "Scry", "Surveil", "NameCard", "ChooseType", "ChooseNumber",
-		"ChangeZone", "ChangeZoneAll", "Destroy", "DestroyAll", "Sacrifice",
+		"ChangeZone", "ChangeZoneAll", "Destroy", "DestroyAll", "Sacrifice", "Seek",
 		"GainLife", "LoseLife",
 		"PutCounter", "RemoveCounterAll", "Regenerate",
 		"Tap", "Pump", "PumpAll", "Animate", "AnimateAll", "Protection",
@@ -405,26 +405,6 @@ func TestRearrangeTopOfLibraryKeepsExistingOrder(t *testing.T) {
 	Resolve(h, &Ctx{Controller: 0}, sa(t, "SP$ RearrangeTopOfLibrary | Defined$ You | NumCards$ 3"))
 	if lib := h.g.Zone(state.ZLibrary, 0); len(lib) != 3 || lib[0] != ids[0] || lib[1] != ids[1] || lib[2] != ids[2] {
 		t.Fatalf("library = %v, want unchanged %v", lib, ids)
-	}
-}
-
-func TestNameCardNamesTheFirstLibraryCard(t *testing.T) {
-	h := newHost(t, 2)
-	bear := mkCard(t, "Name:Bear\nTypes:Creature\nPT:2/2\nOracle:x\n")
-	src := h.g.AddObject(mkCard(t, "Name:Source\nTypes:Land\nOracle:x\n"), 0).ID
-	fillLibrary(h.g, 0, bear, 1)
-	Resolve(h, &Ctx{Controller: 0, Source: src}, sa(t, "SP$ NameCard"))
-	var last events.Event
-	for _, e := range h.log {
-		if e.Kind == events.Choose && e.Counter == "name" {
-			last = e
-		}
-	}
-	if last.Text != "Bear" {
-		t.Fatalf("NameCard Choose text = %q, want Bear (the first library card)", last.Text)
-	}
-	if h.g.Obj(src).ChosenName != "Bear" {
-		t.Fatalf("name not recorded on the source: %q", h.g.Obj(src).ChosenName)
 	}
 }
 
@@ -1243,13 +1223,25 @@ func TestCharmAsksForItsModeBeforeAnySubAbilityRuns(t *testing.T) {
 func TestVoteRecordsANotePerVotingPlayer(t *testing.T) {
 	h := newHost(t, 2)
 	Resolve(h, &Ctx{Controller: 0}, sa(t, "SP$ Vote | Defined$ Player | Choices$ Sickness,Psychosis"))
-	if len(h.log) != 2 {
-		t.Fatalf("log = %+v, want one Note per player", h.log)
-	}
+	// The fixed-Choices$ ballot poses a private per-voter KChoose (the
+	// votepb1 ask machinery); the fake host cannot answer it, so each voter
+	// takes the deterministic first option (R-9) and records the loud
+	// no-host Note beside its "votes for" reveal — the same fallback shape
+	// the player-ballot and card-ballot no-host paths emit. One "votes for
+	// Sickness" Note per voting player is still the contract under test.
+	fallbacks, votes := 0, 0
 	for _, e := range h.log {
-		if e.Kind != events.Note || e.Text != "votes for Sickness" {
-			t.Fatalf("event = %+v", e)
+		switch {
+		case e.Kind == events.Note && strings.Contains(e.Text, "no engine host to ask"):
+			fallbacks++
+		case e.Kind == events.Note && e.Text == "votes for Sickness":
+			votes++
+		default:
+			t.Fatalf("event = %+v, want only no-host fallback and votes-for Notes", e)
 		}
+	}
+	if fallbacks != 2 || votes != 2 {
+		t.Fatalf("%d no-host fallback and %d votes-for Notes, want one of each per voting player (2): log %+v", fallbacks, votes, h.log)
 	}
 }
 

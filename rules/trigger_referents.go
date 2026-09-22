@@ -133,7 +133,7 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 			if spec == "" && t.Mode == "AttackersDeclared" {
 				spec = t.Params["ValidAttackers"]
 			}
-			if (spec == "" && id == source) || (spec != "" && effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(source, e.controllerOf(source)))) {
+			if (spec == "" && id == source) || (spec != "" && e.matchesSpec(spec, id, e.specCtx(source, e.controllerOf(source)))) {
 				matches++
 				c.TriggerCard = id
 			}
@@ -400,5 +400,5 @@ func (e *Engine) targetSpecContext(source, stack state.ObjID, you state.PlayerID
 	if o := e.G.Obj(stack); o != nil {
 		sc.Remembered = append(sc.Remembered, o.Remembered...)
 	}
-	return sc
+	return e.withNames(sc)
 }

@@ -65,6 +65,10 @@ type pendingTrigger struct {
 	// resolves from the source's SVar table).
 	Delayed   bool
 	DelayedID uint32
+	// MonarchDraw is the CR 724.2a beginning-of-end-step triggered draw.
+	// It is represented as a real stack ability through the existing delayed
+	// push event, rather than as an immediate turn action.
+	MonarchDraw bool
 	// Merged marks a mutated pile's under-card trigger (CR 702.140d): like
 	// a delayed trigger its Ability is the Execute$ SVar-named body, but the
 	// push must resolve that name against the UNDER-CARD's own face, never
@@ -175,6 +179,22 @@ type pendingTrigger struct {
 	// Defined$ TriggeredBlockerLKICopy reads at resolution. Idx and SA are
 	// unset for it.
 	Flanking bool
+	// Cumulative is a GRANTED cumulative-upkeep cost (CR 702.24 via a layer-6
+	// AddKeyword$ Cumulative upkeep:<cost> -- Breath of Dreams, Mana Chains,
+	// Decomposition -- or an A:AB$ Pump's KW$ Cumulative upkeep:<cost> --
+	// Balduvian Shaman, Dreams of the Dead): the Ward/Afflict/Flanking shape.
+	// A permanent granted the keyword has no printed K:Cumulative upkeep
+	// expansion trigger to carry the beginning-of-upkeep age-counter and
+	// pay/sacrifice window, so checkGrantedCumulativeUpkeepTriggers
+	// synthesizes the ordinary Phase trigger and the drain pushes a
+	// KeywordTriggerPush whose __kwCumulativeUpkeepGranted:<cost> payload
+	// events.Apply rebuilds into the same DB$ CumulativeUpkeep | Cost$ <cost>
+	// ability the printed K:Cumulative upkeep expansion carries. The field is
+	// the parsed-out upkeep COST text (the display suffix after a second colon
+	// stripped, exactly as cards/kw_cumulativeupkeep.go strips it). Idx and SA
+	// are unset for it; unlike Ward/Afflict it carries no Ctx roles (the
+	// trigger reads only the permanent and its controller).
+	Cumulative string
 	// RingEmblem is one of the Ring emblem's four level abilities (CR
 	// 701.54c), queued by checkRingEmblemTriggers. The emblem has no face
 	// and no object in any zone, so like Ward/Afflict this entry carries
@@ -354,35 +374,113 @@ var actionTriggerModes = map[string]bool{
 	"Surveil": true,
 }
 
-// triggerActivationLimitAllows enforces ActivationLimit$ N ("this ability
-// triggers only once each turn"): the T: line triggers at most N times per
-// turn, counted when it triggers (Forge Trigger.checkActivationLimit and
-// TriggerHandler.runSingleTrigger). A malformed limit fails closed. The count
-// is recorded here, on the path that is about to queue the trigger.
-func (e *Engine) triggerActivationLimitAllows(t cards.Trigger, key triggerKey) bool {
-	raw, ok := t.Params["ActivationLimit"]
-	if !ok {
-		// Mode$ TokenCreatedOnce is Forge's own once-per-turn gate (Akim, the
-		// Soaring Wind: "whenever you create one or more tokens for the first
-		// time each turn"): an implicit ActivationLimit 1, latched at queue
-		// time on the same per-turn map so a batch of mints fires once and
-		// the next turn resets. Reusing triggerTurnFires (which Clone already
-		// deep-copies) instead of a second latch field keeps the two
-		// per-turn trigger counts structurally identical.
-		if t.Mode == "TokenCreatedOnce" {
-			raw, ok = "1", true
-		} else {
-			return true
-		}
+// triggerGameLimitFor parses a trigger's GameActivationLimit$ param (the
+// per-GAME "this ability triggers only once" sibling of ActivationLimit$).
+// present is true only when the param is there; a malformed or negative value
+// reports (0, true) so the gate denies it (fail closed), matching
+// triggerActivationLimitAllows's malformed handling.
+func triggerGameLimitFor(t cards.Trigger) (limit int, present bool) {
+	raw, present := t.Params["GameActivationLimit"]
+	if !present {
+		return 0, false
 	}
 	limit, err := strconv.Atoi(strings.TrimSpace(raw))
 	if err != nil || limit < 0 {
-		return false
+		return 0, true // malformed: present, denies
+	}
+	return limit, true
+}
+
+// triggerGameActivationLimitAllows is the READ half of the GameActivationLimit$
+// trigger gate: has this line's lifetime queue count (Engine.triggerGameFires)
+// reached the limit? It must never mutate. A matched event can still be
+// rejected by a later gate -- the per-turn ActivationLimit$ gate on a
+// combined-parameter line, a dedicated combat hook's empty candidate scan,
+// the Damage batch latch, a nil Execute$ body -- and such an event must not
+// consume a use; the count is therefore committed by
+// reserveTriggerGameActivationLimit at the queue point only.
+func (e *Engine) triggerGameActivationLimitAllows(t cards.Trigger, key triggerKey) bool {
+	limit, present := triggerGameLimitFor(t)
+	if !present {
+		return true
+	}
+	return int(e.triggerGameFires[key]) < limit
+}
+
+// reserveTriggerGameActivationLimit commits the lifetime queue count for a
+// trigger that passed every gate and is actually being queued. Callers MUST
+// have run the read half (triggerGameActivationLimitAllows) first; a commit
+// past a reached limit is refused defensively so a drifted caller cannot
+// exceed the limit.
+func (e *Engine) reserveTriggerGameActivationLimit(t cards.Trigger, key triggerKey) {
+	limit, present := triggerGameLimitFor(t)
+	if !present {
+		return
+	}
+	if e.triggerGameFires == nil {
+		e.triggerGameFires = map[triggerKey]int32{}
+	}
+	if int(e.triggerGameFires[key]) >= limit {
+		return
+	}
+	e.triggerGameFires[key]++
+}
+
+// triggerTurnLimitFor parses a trigger's effective per-turn limit: the
+// ActivationLimit$ param, or the implicit once-per-turn limit of Mode$
+// TokenCreatedOnce (Akim, the Soaring Wind: "whenever you create one or more
+// tokens for the first time each turn"). present is true only when a limit
+// applies; a malformed or negative value reports (0, true) so the gate denies
+// it (fail closed).
+func triggerTurnLimitFor(t cards.Trigger) (limit int, present bool) {
+	raw, ok := t.Params["ActivationLimit"]
+	if !ok {
+		// The Once mode's implicit limit reuses triggerTurnFires (which Clone
+		// already deep-copies) instead of a second latch field, keeping the two
+		// per-turn trigger counts structurally identical.
+		if t.Mode == "TokenCreatedOnce" {
+			return 1, true
+		}
+		return 0, false
+	}
+	limit, err := strconv.Atoi(strings.TrimSpace(raw))
+	if err != nil || limit < 0 {
+		return 0, true // malformed: present, denies
 	}
 	// The Once mode's meaning is once per turn; an explicit ActivationLimit$
 	// above 1 on a TokenCreatedOnce line cannot raise it.
 	if t.Mode == "TokenCreatedOnce" && limit > 1 {
 		limit = 1
+	}
+	return limit, true
+}
+
+// triggerActivationLimitAllows is the READ half of the per-turn
+// ActivationLimit$ gate ("this ability triggers only once each turn", Forge
+// Trigger.checkActivationLimit): has this line queued fewer than N triggers
+// this turn? It must never mutate -- a matched event rejected by a later gate
+// must not consume a use; the count is committed by
+// reserveTriggerActivationLimit at the queue point only.
+func (e *Engine) triggerActivationLimitAllows(t cards.Trigger, key triggerKey) bool {
+	limit, present := triggerTurnLimitFor(t)
+	if !present {
+		return true
+	}
+	f := e.triggerTurnFires[key]
+	if f.Turn != e.G.Turn {
+		f = turnFires{Turn: e.G.Turn}
+	}
+	return int(f.N) < limit
+}
+
+// reserveTriggerActivationLimit commits the per-turn queue count for a
+// trigger that passed every gate and is actually being queued. Callers MUST
+// have run the read half (triggerActivationLimitAllows) first; a commit past
+// a reached limit is refused defensively.
+func (e *Engine) reserveTriggerActivationLimit(t cards.Trigger, key triggerKey) {
+	limit, present := triggerTurnLimitFor(t)
+	if !present {
+		return
 	}
 	if e.triggerTurnFires == nil {
 		e.triggerTurnFires = map[triggerKey]turnFires{}
@@ -392,11 +490,22 @@ func (e *Engine) triggerActivationLimitAllows(t cards.Trigger, key triggerKey) b
 		f = turnFires{Turn: e.G.Turn}
 	}
 	if int(f.N) >= limit {
-		return false
+		return
 	}
 	f.N++
 	e.triggerTurnFires[key] = f
-	return true
+}
+
+// reserveTriggerLimits commits BOTH trigger-limit counts for a queue that is
+// happening, so every queue site reserves the same pair under the same
+// actionTriggerModes scoping (GameActivationLimit$ on every mode,
+// ActivationLimit$ only on the action modes) and a future queue site cannot
+// forget one half.
+func (e *Engine) reserveTriggerLimits(t cards.Trigger, key triggerKey) {
+	e.reserveTriggerGameActivationLimit(t, key)
+	if actionTriggerModes[t.Mode] {
+		e.reserveTriggerActivationLimit(t, key)
+	}
 }
 
 // dieRollNumberAllows enforces a RolledDie trigger's Number$ N ("whenever
@@ -567,7 +676,15 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object,
 		// Only leaves-the-battlefield triggers look back. Always and other
 		// event modes continue to read the live board, not an obsolete state.
 		observer := &Engine{G: e.triggerBefore.game, L: e.L,
-			continuous: e.triggerBefore.continuous, continuousVersion: e.continuousVersion}
+			continuous: e.triggerBefore.continuous, continuousVersion: e.continuousVersion,
+			setNameInPool: e.setNameInPool}
+		// The observer reads the PRE-departure board from its own Game clone,
+		// so it derives its own layer-3 rename table (setname.go) rather than
+		// inheriting the live engine's: a name filter here must see the
+		// snapshot's names, not the post-departure ones.
+		if observer.setNameInPool {
+			observer.refreshRenames()
+		}
 		obj := observer.G.Obj(ev.Obj)
 		var power, toughness int32
 		valid := obj != nil && obj.Zone == state.ZBattlefield && obj.Face() != nil
@@ -577,7 +694,7 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object,
 		e.checkFaceTriggers(observer, ev, obj, power, toughness, valid, true, true)
 	}
 	e.checkFaceTriggers(e, ev, lki, lkiPower, lkiToughness, lkiPTValid, batch, false)
-	if ev.Kind == events.PutOnStack || ev.Kind == events.MoveZone {
+	if ev.Kind == events.PutOnStack || ev.Kind == events.MoveZone || ev.Kind == events.MonarchChange {
 		e.checkEventDelayedTriggers(ev, lki)
 	}
 	// Sagas (kw:Chapter): a lore counter's chapter ability queues off the
@@ -736,7 +853,7 @@ func (e *Engine) checkExertTriggers(ev events.Event) {
 			continue
 		}
 		if vc := sv.Params["ValidCard"]; vc != "" &&
-			!effects.MatchesSpecFrom(e.G, vc, ev.Obj, o.Controller, sv.Source) {
+			!e.matchesSpecFrom(vc, ev.Obj, o.Controller, sv.Source) {
 			continue
 		}
 		exec := sv.Params["Trigger"]
@@ -855,6 +972,8 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				case events.MoveZone:
 					e.checkGrantedExploitTriggers(observer, id, o, f, ev, objLKI)
 					e.checkGrantedOffspringTriggers(observer, id, o, f, ev, objLKI)
+				case events.StepChange:
+					e.checkGrantedCumulativeUpkeepTriggers(observer, id, o, f, ev, objLKI)
 				}
 			}
 			e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid, split, leaving)
@@ -956,6 +1075,9 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				}
 				if e.triggerFireCount[key] >= maxTriggerFires {
 					continue // cascade bound: see maxTriggerFires.
+				}
+				if !e.triggerGameActivationLimitAllows(t, key) {
+					continue // GameActivationLimit$: already triggered enough this game.
 				}
 				if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
 					continue // ActivationLimit$: already triggered enough this turn.
@@ -1086,6 +1208,14 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					// nothing to run.
 					continue
 				}
+				// GameActivationLimit$/ActivationLimit$ counts commit HERE, at the
+				// queue point, after every later-rejected gate (a nil Execute$ body,
+				// the Damage batch latch, the RolledDie Number$ gate): a matched
+				// event that ends up queueing nothing must not consume a use of
+				// either limit, and a combined-parameter line whose second same-turn
+				// match the per-turn ActivationLimit$ rejects must keep its other
+				// game use for the next turn.
+				e.reserveTriggerLimits(t, key)
 				// CR 603.3a/603.10a: a leaves-the-battlefield ability's source
 				// is controlled by whoever controlled it as it left, not by the
 				// owner the move has since reset it to (a stolen creature's own
@@ -1154,7 +1284,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				// the copy again: the copy is not an event). Panharmonicon's own
 				// trigger is excluded by the spec's Other predicate, which is
 				// relative to the Panharmonicon permanent itself.
-				for k := 0; k < e.panharmoniconEchoes(observer.G, id, ev); k++ {
+				for k := 0; k < e.panharmoniconEchoes(observer, id, ev); k++ {
 					e.pendingTriggers = append(e.pendingTriggers, pt)
 				}
 			}
@@ -1188,6 +1318,11 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		// trigger carrying the training grant) -- the early-return path above
 		// reaches this object through checkGrantedTrainingTriggers's own call.
 		e.checkGrantedTrainingTriggers(observer, id, o, f, ev, objLKI)
+		// A granted cumulative upkeep must fire at the beginning of the
+		// controller's upkeep even when the object's own printed triggers are
+		// live for this step change -- the same both-paths rule Afflict,
+		// Conspire, Exploit, Offspring and Training follow.
+		e.checkGrantedCumulativeUpkeepTriggers(observer, id, o, f, ev, objLKI)
 	})
 	for _, n := range phaseNotes {
 		e.emit(events.Event{Kind: events.Note, Obj: n.id,

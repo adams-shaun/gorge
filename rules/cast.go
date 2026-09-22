@@ -46,6 +46,11 @@ const (
 	// chooseRiot+1.. family; the numbers matter only inside this package's
 	// switch table.
 	chooseSiege chooseFor = 26
+	// chooseAttached is the Attached-replacement name/type election
+	// (rules/replacement.go). 30 is the next free value: 27-29 are
+	// chooseEnlist / chooseAttackPay / chooseUnleash, each defined relative
+	// to a neighbour, and 40 is chooseUntap.
+	chooseAttached chooseFor = 30
 )
 
 // pendingCast is the cast flow's own state, live only between beginCast and
@@ -123,13 +128,6 @@ type pendingCast struct {
 	// announced value into that filter). Empty on every ordinary cast.
 	announceX string
 
-	// sameCtrlTargets is the TargetsWithSameController$ True rider (Lodestone
-	// Bauble): every target this cast's announcement chooses must share one
-	// controller — in a graveyard, its owner. The offered option list spans
-	// every player's graveyard, so the pairwise constraint is enforced at
-	// Submit (validateCastContributions' preserve-and-reject shape), not by
-	// an option-list shape the wire cannot express.
-	sameCtrlTargets bool
 	// suspendTimeX makes the chosen cast X also set the number of TIME
 	// counters; suspendMinX is Forge's XMin<N> lower bound.
 	suspendTimeX bool
@@ -394,6 +392,8 @@ type pendingCast struct {
 	// without the keyword; altAddDone marks the one ask already posed.
 	altAddParts []string
 	altAddDone  bool
+	// optionalCost is the selected self-spell OptionalCost additional part.
+	optionalCost Cost
 
 	// exiles / exilePart carry the Exile cost parts (ExileFromHand /
 	// ExileFromGrave tokens: the evoke alternative cast's Fury/Grief shape,
@@ -776,7 +776,7 @@ func (e *Engine) conspireCandidates(p state.PlayerID, id state.ObjID) []state.Ob
 		if co == nil || co.Tapped {
 			continue
 		}
-		if !effects.MatchesSpecFrom(e.G, "Creature.YouCtrl", cid, p, id) {
+		if !e.matchesSpecFrom("Creature.YouCtrl", cid, p, id) {
 			continue
 		}
 		colors := e.objColors(co)
@@ -1030,7 +1030,7 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 			if reserved[oid] || e.SacrificeBlocked(oid, true) { // an earlier Sac part already claimed this one; a CantSacrifice-blocked one can never pay
 				continue
 			}
-			if effects.MatchesSpecFrom(e.G, matchSpec, oid, p, id) {
+			if e.matchesSpecFrom(matchSpec, oid, p, id) {
 				avail = append(avail, oid)
 			}
 		}
@@ -1067,7 +1067,7 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 			if reserved[oid] || (selfInZone && oid == id) {
 				continue
 			}
-			if effects.MatchesSpecFrom(e.G, part.Spec, oid, p, id) {
+			if e.matchesSpecFrom(part.Spec, oid, p, id) {
 				avail = append(avail, oid)
 			}
 		}
@@ -1200,7 +1200,7 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 			if reserved[oid] {
 				continue
 			}
-			if effects.MatchesSpecFrom(e.G, spec, oid, p, id) {
+			if e.matchesSpecFrom(spec, oid, p, id) {
 				avail = append(avail, oid)
 			}
 		}
@@ -1236,7 +1236,7 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 			if reserved[oid] {
 				continue
 			}
-			if effects.MatchesSpecFrom(e.G, spec, oid, p, id) {
+			if e.matchesSpecFrom(spec, oid, p, id) {
 				avail = append(avail, oid)
 			}
 		}
@@ -1456,7 +1456,7 @@ func (e *Engine) costCandidates(p state.PlayerID, source state.ObjID, zone state
 		if o == nil || (excludeSource && id == source) || (untapped && o.Tapped) {
 			continue
 		}
-		if effects.MatchesSpecFrom(e.G, spec, id, p, source) {
+		if e.matchesSpecFrom(spec, id, p, source) {
 			out = append(out, id)
 		}
 	}
@@ -1494,7 +1494,7 @@ func (e *Engine) discardCandidates(p state.PlayerID, source state.ObjID, part Co
 		if reserved[id] || (casting && id == source) {
 			continue
 		}
-		if all || effects.MatchesSpecFrom(e.G, matchSpec, id, p, source) {
+		if all || e.matchesSpecFrom(matchSpec, id, p, source) {
 			out = append(out, id)
 		}
 	}
@@ -1701,6 +1701,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		return
 	}
 
+	var optionalCost Cost
 	// Which cost this pays is opt.AltCostIndex, not always adjustedCost
 	// (Ruling T19b-b): legalActions gates each "cast" option on that
 	// specific option's own cost being payable, so beginCast must charge
@@ -1816,16 +1817,13 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		// LATER cast (the foretell_cast case below).
 		cost = Cost{Generic: 2}
 	case "foretell_cast":
-		// CR 702.126a: the later cast pays the foretell cost -- the K: line's
-		// colon parameter (Starnheim Unleashed's "X X W" rides the ordinary
-		// X machinery here), read off the face; a missing parameter falls
-		// back to the rule's action default {2} (no corpus carrier -- every
-		// K:Foretell line carries a colon cost, measured 55/55). Stored RAW:
-		// cost modifiers apply later in manaToPay, exactly like every other
-		// alternative-cost mode's cost.
-		if fc, ok := f.KeywordParam("Foretell"); ok && strings.TrimSpace(fc) != "" {
-			cost = ParseCost(fc)
+		// CR 702.126a: use the explicit keyword cost, or the printed-cost
+		// reduction carried by an effect's ForetoldCost$ designation.
+		if fc, ok := foretellCost(f); ok {
+			cost = fc
 		} else {
+			// The option walk fails closed for this shape; retain a harmless
+			// fallback for stale options submitted after the designation changed.
 			cost = Cost{Generic: 2}
 		}
 	case "flashback":
@@ -1944,6 +1942,28 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// replicated/multikicked modes keep the older no-fold divergence) reaches
 	// this (pc.ability < 0 and no alternative/flashback recast), and a spell
 	// with no SP Cost$ contributes nothing.
+	if opt.Mode == "optionalcost" {
+		// The offer stores the selected optional part in AltCostIndex's
+		// companion-independent mode; legalActions has already proved it payable.
+		// The actual non-mana payment is settled by the ordinary cost stages.
+		if opt.AltCostIndex <= 0 {
+			return
+		}
+		parts := e.optionalCostViews(e.collectCostStatics(), p, id)
+		if opt.AltCostIndex > len(parts) {
+			return
+		}
+		// The offer priced withSpellAbilityExtras(f, convokeBase).Plus(extra)
+		// (legal.go), so fold the same SpellAbility Cost$ extras here before
+		// the optional part: the charge must match the gate, or a spell that
+		// carries BOTH an OptionalCost static and a spell-ability additional
+		// cost undercharges by that additional cost. Zero corpus carriers pair
+		// the two today, so this is the structural agreement, not a behaviour
+		// change (the fold is a no-op without a SpellAbility Cost$).
+		cost = withSpellAbilityExtras(f, cost)
+		cost = cost.Plus(parts[opt.AltCostIndex-1])
+		optionalCost = parts[opt.AltCostIndex-1]
+	}
 	if opt.AltCostIndex == 0 && (opt.Mode == "" || opt.Mode == "mayplay" || opt.Mode == "room_alt" ||
 		opt.Mode == "adventure_alt" || opt.Mode == "aftermath" || opt.Mode == "split_alt" || opt.Mode == "conspired" || opt.Mode == "mayflash" || opt.Mode == "retrace" || opt.Mode == "jumpstart") {
 		cost = withSpellAbilityExtras(f, cost)
@@ -1959,8 +1979,15 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// same card pays that mode's cost without recomposing this choice (no
 	// corpus card pairs both shapes). The OFFER gate already proved at least
 	// one part is payable (legal.go); the ask narrows it to exactly one.
-	tax := e.commanderTaxAmount(p, id)
-	mods := e.costModifiers(p, id, spellScope(opt.Mode))
+	tax := int32(0)
+	if opt.Mode != "foretell" {
+		tax = e.commanderTaxAmount(p, id)
+	}
+	scope := spellScope(opt.Mode)
+	if opt.Mode == "foretell" {
+		scope = foretellScope()
+	}
+	mods := e.costModifiers(p, id, scope)
 	// The SVar-fixed PayLife<X> conversion (fixLifeXCost) -- the same helper
 	// offerCastable shaped the offered cost with, so the stored cost and the
 	// gated charge agree. A fixed face's value folds into Life here; the
@@ -1975,10 +2002,10 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	if opt.AltCostIndex == 0 && opt.Mode == "" {
 		pcAlt := altAddCostParts(f)
 		e.cast = &pendingCast{player: p, card: id, from: from, mode: opt.Mode, ability: -1,
-			cost: cost, faceBefore: faceBefore, mods: mods, taxGeneric: tax, altAddParts: pcAlt}
+			cost: cost, faceBefore: faceBefore, mods: mods, taxGeneric: tax, altAddParts: pcAlt, optionalCost: optionalCost}
 	} else {
 		e.cast = &pendingCast{player: p, card: id, from: from, mode: opt.Mode, ability: -1,
-			cost: cost, faceBefore: faceBefore, mods: mods, taxGeneric: tax}
+			cost: cost, faceBefore: faceBefore, mods: mods, taxGeneric: tax, optionalCost: optionalCost}
 	}
 	// Escalate (the modal additional cost "pay this for each mode chosen
 	// beyond the first"): the cost is carried as its raw keyword parameter
@@ -1997,15 +2024,11 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// spell's own push. An ability proposal (pc.ability >= 0) never reads it:
 	// payCast's flag arm is gated on !pc.isAbility().
 	e.cast.offSorcery = e.offSorceryAtCast(p)
-	// The announce-bearing alternative (the Shoal cycle) and the
-	// TargetsWithSameController rider (Lodestone Bauble) ride the selected
+	// The announce-bearing alternative (the Shoal cycle) rides the selected
 	// cast SA into the transaction: xAsk's announce arm and exAsk's binding
-	// read the first, handleTarget's Submit-time validator the second.
+	// read the captured value.
 	if announceAlt != nil && announceAlt.announce != "" {
 		e.cast.announceX = announceAlt.announce
-	}
-	if sa := f.SpellAbility(); sa != nil && strings.EqualFold(strings.TrimSpace(sa.Params["TargetsWithSameController"]), "True") {
-		e.cast.sameCtrlTargets = true
 	}
 	// CR 903.8: the commander tax, applied to whatever cost this cast pays
 	// (the base/alternative/kicked/flashback/surged/miracle cost resolved
@@ -2697,12 +2720,13 @@ func (e *Engine) exAsk() bool {
 		var sc *effects.SpecContext
 		if pc.announceX != "" {
 			name := pc.announceX
-			sc = &effects.SpecContext{You: pc.player, Source: pc.card, Resolve: func(n string) (int32, bool) {
+			bound := e.withNames(effects.SpecContext{You: pc.player, Source: pc.card, Resolve: func(n string) (int32, bool) {
 				if n == name {
 					return pc.x, true
 				}
 				return 0, false
-			}}
+			}})
+			sc = &bound
 		}
 		var candidates []state.ObjID
 		for _, oid := range e.G.Zone(zone, pc.player) {
@@ -2717,9 +2741,9 @@ func (e *Engine) exAsk() bool {
 			if !pc.isAbility() && oid == pc.card {
 				continue
 			}
-			match := effects.MatchesSpecFrom(e.G, part.Spec, oid, pc.player, pc.card)
+			match := e.matchesSpecFrom(part.Spec, oid, pc.player, pc.card)
 			if sc != nil {
-				match = effects.MatchesSpecCtx(e.G, part.Spec, oid, *sc)
+				match = e.matchesSpec(part.Spec, oid, *sc)
 			}
 			if match {
 				already := false
@@ -2924,7 +2948,7 @@ func (e *Engine) moveToGraveCandidates(p state.PlayerID, source state.ObjID, spe
 			if reserved[id] {
 				continue
 			}
-			if effects.MatchesSpecFrom(e.G, spec, id, p, source) {
+			if e.matchesSpecFrom(spec, id, p, source) {
 				out = append(out, id)
 			}
 		}
@@ -3447,7 +3471,7 @@ func (e *Engine) xAsk() bool {
 				if e.SacrificeBlocked(oid, true) {
 					continue
 				}
-				if effects.MatchesSpecFrom(e.G, matchSpec, oid, pc.player, pc.card) {
+				if e.matchesSpecFrom(matchSpec, oid, pc.player, pc.card) {
 					avail++
 				}
 			}
@@ -3539,7 +3563,11 @@ func (e *Engine) xAsk() bool {
 	for x := min; x <= bound; x++ {
 		wx := e.paymentManaX(pc, x)
 		wx.Generic -= e.delveCredit(pc.player, pc.card, wx.Generic)
-		if !e.costPayableGrant(pc.player, pc.card, pc.isAbility(), wx, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}) {
+		// The descriptor carries the announced-X marker: WithX folded this
+		// payment's X into Generic, and a CostContainsX batch must still see
+		// an X payment here or every X announcement would be unpayable.
+		if !e.costPayableClass(pc.player, paymentForCast(pc, wx),
+			pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}, wx) {
 			break
 		}
 		maxOld = x
@@ -3699,7 +3727,7 @@ func (e *Engine) subCounterRemovalCandidates(p state.PlayerID, source state.ObjI
 		if o == nil || subCounterAvailable(o, part.Spec) < amt {
 			continue
 		}
-		if effects.MatchesSpecFrom(e.G, part.Target, oid, p, source) {
+		if e.matchesSpecFrom(part.Target, oid, p, source) {
 			out = append(out, oid)
 		}
 	}
@@ -3861,7 +3889,7 @@ func (e *Engine) sacAsk() bool {
 			if e.SacrificeBlocked(oid, true) {
 				continue
 			}
-			if effects.MatchesSpecFrom(e.G, matchSpec, oid, pc.player, pc.card) {
+			if e.matchesSpecFrom(matchSpec, oid, pc.player, pc.card) {
 				already := false
 				for _, s := range pc.sacs {
 					if s == oid {
@@ -4037,6 +4065,10 @@ func (e *Engine) collectETBChoices(you state.PlayerID) {
 			kind: kind,
 			options: e.etbOptions(you, pc.card, kind,
 				r.With.Params["ValidCards"],
+				// ValidDescription$ is Forge prompt text, not a second filter;
+				// effects.NameChoices reads it only as a safety fallback when
+				// ValidCards$ is absent (see NameChoices' doc).
+				r.With.Params["ValidDescription"],
 				// Type$ (Herald's Horn, Urza's Incubator, Roaming Throne, Three
 				// Tree City) names the category the choice ranges over. The
 				// option list below builds it; a category this build cannot
@@ -4094,7 +4126,7 @@ func etbColourLetter(name string) string {
 //
 // Option list order is deterministic: names and types are sorted strings
 // (never from a map), numbers are ascending.
-func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCards, typeCategory, exclude string) []decision.Option {
+func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCards, validDescription, typeCategory, exclude string) []decision.Option {
 	switch kind {
 	case "color":
 		// Exclude$ tokens (comma-separated, e.g. "black" on Black Dragon
@@ -4125,36 +4157,24 @@ func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCar
 		}
 		return out
 	case "name":
-		if validCards == "" {
-			validCards = "Card.nonLand"
+		// A no-universe Config is a pre-feature match on replay. Its visible
+		// object builder, including the Card.nonLand default and its full
+		// MatchesSpecFrom semantics, is retained byte-for-byte below; changing
+		// it would invalidate persisted ETB NameCard logs.
+		if len(e.G.NameUniverse) == 0 {
+			return e.legacyETBNameOptions(you, card, validCards)
 		}
-		seen := map[string]bool{}
-		names := []string{}
-		add := func(z state.Zone, players []state.PlayerID) {
-			for _, p := range players {
-				for _, id := range e.G.Zone(z, p) {
-					o := e.G.Obj(id)
-					if o == nil || o.Face() == nil {
-						continue
-					}
-					if !effects.MatchesSpecFrom(e.G, validCards, id, you, card) {
-						continue
-					}
-					if seen[o.Face().Name] {
-						continue
-					}
-					seen[o.Face().Name] = true
-					names = append(names, o.Face().Name)
-				}
-			}
-		}
-		add(state.ZHand, []state.PlayerID{you})
-		add(state.ZBattlefield, e.G.AliveFrom(0))
-		add(state.ZGraveyard, e.G.AliveFrom(0))
-		sort.Strings(names)
+		// NameCard ranges over the compiled card-name universe, not public
+		// objects currently visible to the chooser: Pithing Needle names any
+		// card (a land included) and Revoker/Cabal Therapy name a nonland,
+		// both through the SA's own ValidCards$ filter. An omitted
+		// ValidCards$ is intentionally unrestricted. effects.NameChoices is
+		// the ONE builder the mid-resolution NameCard ask shares, so the two
+		// paths offer the same names.
+		names := effects.NameChoices(e.G, validCards, validDescription)
 		out := make([]decision.Option, 0, len(names))
 		for _, n := range names {
-			out = append(out, decision.Option{Index: len(out), Kind: "name", Label: n})
+			out = append(out, decision.Option{Index: len(out), Kind: "name", Label: n, Player: you})
 		}
 		return out
 	case "type":
@@ -4168,6 +4188,45 @@ func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCar
 		}
 		return out
 	}
+}
+
+// legacyETBNameOptions is the exact pre-name-universe ETB builder. It stays
+// separate from the corpus path because a sidecar without NameUniverse is an
+// old log: its DecisionAsk options, including an empty ValidCards$ defaulting
+// to Card.nonLand, must replay byte-for-byte.
+func (e *Engine) legacyETBNameOptions(you state.PlayerID, card state.ObjID, validCards string) []decision.Option {
+	if validCards == "" {
+		validCards = "Card.nonLand"
+	}
+	seen := map[string]bool{}
+	names := []string{}
+	add := func(z state.Zone, players []state.PlayerID) {
+		for _, p := range players {
+			for _, id := range e.G.Zone(z, p) {
+				o := e.G.Obj(id)
+				if o == nil || o.Face() == nil {
+					continue
+				}
+				if !effects.MatchesSpecFrom(e.G, validCards, id, you, card) {
+					continue
+				}
+				if seen[o.Face().Name] {
+					continue
+				}
+				seen[o.Face().Name] = true
+				names = append(names, o.Face().Name)
+			}
+		}
+	}
+	add(state.ZHand, []state.PlayerID{you})
+	add(state.ZBattlefield, e.G.AliveFrom(0))
+	add(state.ZGraveyard, e.G.AliveFrom(0))
+	sort.Strings(names)
+	out := make([]decision.Option, 0, len(names))
+	for _, n := range names {
+		out = append(out, decision.Option{Index: len(out), Kind: "name", Label: n})
+	}
+	return out
 }
 
 // isCreatureFace is a local creature test (effects.hasType is unexported);
@@ -4444,7 +4503,7 @@ func (e *Engine) targetDependentCostMayPay(pc *pendingCast) bool {
 	if !pc.isAbility() {
 		delve = int32(len(pc.delve))
 	}
-	return e.manaFeasibleGrant(pc.player, pc.card, pc.isAbility(), pc.resolvedMana(), mods, pc.taxGeneric, delve, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType})
+	return e.manaFeasibleDescriptor(pc.player, paymentForCast(pc, pc.resolvedMana()), pc.resolvedMana(), mods, pc.taxGeneric, delve, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType})
 }
 
 // pendingCastScope returns the exact spell or ability scope whose modifiers
@@ -4506,15 +4565,15 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 			if zone == 0 {
 				zone = state.ZHand
 			}
-			sc := effects.SpecContext{You: pc.player, Source: pc.card, Resolve: func(n string) (int32, bool) {
+			sc := e.withNames(effects.SpecContext{You: pc.player, Source: pc.card, Resolve: func(n string) (int32, bool) {
 				if n == pc.announceX {
 					return pc.x, true
 				}
 				return 0, false
-			}}
+			}})
 			n := 0
 			for _, oid := range e.G.Zone(zone, pc.player) {
-				if effects.MatchesSpecCtx(e.G, part.Spec, oid, sc) {
+				if e.matchesSpec(part.Spec, oid, sc) {
 					n++
 				}
 			}
@@ -4563,7 +4622,7 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 		// (convokeAbsorbs), so the fold is the payment's own arithmetic,
 		// probed, never charged.
 		convoked := e.applyConvoke(pc, cost)
-		if e.manaFeasibleGrant(pc.player, pc.card, pc.isAbility(), convoked, costMods{}, 0, 0, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}) ||
+		if e.manaFeasibleDescriptor(pc.player, paymentForCast(pc, convoked), convoked, costMods{}, 0, 0, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}) ||
 			(cost.hasManaPayment() && e.hasUntappedManaSource(pc.player)) {
 			out = append(out, candidate)
 		}
@@ -4980,42 +5039,6 @@ func (e *Engine) validateSearch(d *decision.Decision, in decision.Intent) error 
 	return nil
 }
 
-// validateSameControllerTargets is the Submit-time gate for a cast-flow
-// target announcement whose SA carries TargetsWithSameController$ True
-// (Lodestone Bauble): every chosen object must share one owner — in a
-// graveyard, the owner the card there has. Any other KTarget decision, a
-// single-object answer, and an out-of-range choice (Validate's own error)
-// pass through untouched.
-func (e *Engine) validateSameControllerTargets(d *decision.Decision, in decision.Intent) error {
-	pc := e.cast
-	if pc == nil || !pc.sameCtrlTargets || d.Kind != decision.KTarget || len(in.Choices) <= 1 {
-		return nil
-	}
-	var owner state.PlayerID
-	haveOwner := false
-	for _, c := range in.Choices {
-		if c < 0 || c >= len(d.Options) {
-			continue // Validate's own out-of-range error already fired
-		}
-		o := d.Options[c]
-		if o.Obj == 0 {
-			continue
-		}
-		obj := e.G.Obj(o.Obj)
-		if obj == nil {
-			return nil // the resolution-time recheck owns a vanished object
-		}
-		if !haveOwner {
-			owner, haveOwner = obj.Owner, true
-			continue
-		}
-		if obj.Owner != owner {
-			return fmt.Errorf("chosen targets do not share one controller")
-		}
-	}
-	return nil
-}
-
 // validateCastContributions is the Submit-time gate for the cast flow's
 // Convoke/Harmonize announcement decision (convokeAsk). The decision's
 // static Validate sees only the offered option list -- two white creatures
@@ -5266,7 +5289,7 @@ func (e *Engine) announceFeasible(pc *pendingCast, alt pipAlt, pool, snow state.
 	// above), so their slots leave the cost; the pips after payIdx stay live
 	// for the shared primitive to enumerate.
 	c = c.dropAnnouncePrefix(pc.payIdx + 1)
-	return e.manaFeasibleGrant(pc.player, pc.card, pc.isAbility(), c, pc.mods, pc.taxGeneric, delve, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType})
+	return e.manaFeasibleDescriptor(pc.player, paymentForCast(pc, c), c, pc.mods, pc.taxGeneric, delve, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType})
 }
 
 // manaAsk offers the player's payment choice for the next unsettled hybrid or
@@ -5701,6 +5724,8 @@ func modeFlags(mode string) string {
 	// reads it through Count$OffspringPaid to mint the 1/1 token copy.
 	case "offspring":
 		return events.FlagsString(state.FlagOffspringPaid)
+	case "optionalcost":
+		return events.FlagsString(state.FlagOptionalCostPaid)
 	case "mayplay":
 		return events.FlagsString(state.FlagMayPlay)
 	case "harmonize":
@@ -5823,7 +5848,8 @@ func (e *Engine) targetAsk() bool {
 	// conversion-aware equivalent: the SAME resolveMana payManaConvFor will
 	// run, including RestrictValid$ provenance. The
 	// targetDependentCostMayPay arm keeps the ValidTarget$ reducer exception.
-	if !e.costPayableGrant(pc.player, pc.card, pc.isAbility(), mana, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}) &&
+	if !e.costPayableClass(pc.player, paymentForCast(pc, mana),
+		pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}, mana) &&
 		!e.hasUntappedManaSource(pc.player) && !e.targetDependentCostMayPay(pc) {
 		e.abortCast(pc, "cast aborted: cost no longer payable", true)
 		return true
@@ -5894,7 +5920,8 @@ func (e *Engine) targetAsk() bool {
 	// real selectable capacity: an unaffordable or over-cap candidate cannot
 	// contribute a controller to it.
 	min, max, exclusive, distinct := e.oneEachTargetBounds(sa, candidates, min, max)
-	if min > 0 && (len(candidates) < min || (exclusive && min > distinct)) {
+	min, max, sameCapacity, sameController := e.sameControllerTargetBounds(sa, candidates, min, max)
+	if min > 0 && (len(candidates) < min || (exclusive && min > distinct) || (sameController && min > sameCapacity)) {
 		// CR 601.2c: a proposal with fewer legal targets than its mandatory
 		// minimum -- or one whose per-controller constraint admits fewer
 		// distinct controllers than its mandatory minimum -- cannot be
@@ -5937,7 +5964,8 @@ func (e *Engine) targetAsk() bool {
 	}
 	d := &decision.Decision{Player: pc.player, Kind: decision.KTarget, Min: min, Max: max,
 		Prompt: "Choose a target for " + e.targetName(pc.card),
-		Source: src, TargetEffect: describeTargetEffect(sa)}
+		Source: src, TargetEffect: describeTargetEffect(sa),
+		TargetsWithSameController: sameController}
 	for _, candidate := range candidates {
 		// Shared with stack.go's askTarget so a Face-less ability object (a
 		// TargetType$ Activated/Triggered census) can never nil-deref here.
@@ -5945,6 +5973,7 @@ func (e *Engine) targetAsk() bool {
 		o := decision.Option{Index: len(d.Options), Kind: candidate.kind,
 			Label: label, Obj: candidate.obj, Player: candidate.player}
 		o.Group = e.targetControllerGroup(sa, candidate)
+		o.Controller = e.candidateControllerSeat(candidate)
 		// Option.Value is omitempty and read only under a budget
 		// (Decision.HasBudget), so a budget-less target ask keeps its wire
 		// payload byte-identical. Every present cap -- zero and negative
@@ -6062,13 +6091,18 @@ func (e *Engine) recheckIllegal(pc *pendingCast) bool {
 		if !e.actorMatches(sv, "Caster", pc.player) {
 			continue
 		}
-		if !e.restrictionGateHolds(sv, pc.card) || !e.checkSVarHolds(sv) {
+		// The same shared continuous gate castRestrictedUsing runs: the
+		// CR 608.2b recheck must answer with the ONE grammar the offer
+		// answered with, or a cast offered under a false gate would abort
+		// here (and vice versa). It subsumes the checkSVarHolds the caller
+		// used to run separately.
+		if !e.continuousGateHolds(sv) || !e.restrictionGateHolds(sv, pc.card) {
 			continue
 		}
 		sc := e.specCtx(sv.Source, sv.Controller)
 		sc.HasManaValue = true
 		sc.ManaValue = mv
-		if effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], pc.card, sc) {
+		if e.matchesSpec(sv.Params["ValidCard"], pc.card, sc) {
 			// suppress=true, not false: an illegal-proposal abort is a
 			// no-progress reversal (CR 733.1) exactly like every other abort
 			// site, so it rides the same F05-2 (CR 733.2) discipline -- first
@@ -6109,8 +6143,10 @@ func (e *Engine) manaWindowAsk() bool {
 		return false
 	}
 	// A pool that already pays the total cost needs no window (nothing to
-	// gain by activating more mana abilities here).
-	if e.costPayableGrant(pc.player, pc.card, pc.isAbility(), mana, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}) {
+	// gain by activating more mana abilities here). The descriptor carries
+	// the announced-X marker so a CostContainsX batch sees the X payment.
+	if e.costPayableClass(pc.player, paymentForCast(pc, mana),
+		pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}, mana) {
 		return false
 	}
 	var sources []state.ObjID
@@ -6349,7 +6385,11 @@ func (e *Engine) payCast() {
 		// The ability object was already minted by pushCast; targets are
 		// recorded onto it by handleTarget.
 		mana := e.manaToPay(pc)
-		ok, _, spentMana, _, _ := e.payManaForSpent(pc.player, pc.card, true, mana, e.paymentConv(pc.player, pc.card, true), pipRider{})
+		// The descriptor carries the announced-X marker (the ability's own
+		// {X} cost was folded), so a CostContainsX batch sees this activation
+		// as an X payment exactly as the offer did.
+		ok, _, spentMana, _, _ := e.payManaDescriptorForSpent(pc.player, paymentForCast(pc, mana), mana,
+			e.paymentConv(pc.player, pc.card, true), pipRider{})
 		if !ok {
 			e.abortCast(pc, "activation aborted: cost no longer payable", true)
 			return
@@ -6933,6 +6973,20 @@ func (e *Engine) payCast() {
 		if e.manaExpendReaderOut(pc.player) {
 			meFlags := events.FlagsString(events.FlagsFrom(flags) | state.FlagManaExpendCast)
 			e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Player: pc.player, Amount: spend, Counter: meFlags})
+		}
+	}
+	// Compleated's life-paid amount is deliberately the FINAL CastInfo: all
+	// earlier payment captures may carry accumulated flags, so this event
+	// must not be followed by one that routes its Amount elsewhere.
+	if pc.payLife > 0 && !pc.isAbility() {
+		if o := e.G.Obj(pc.card); o != nil && o.Face() != nil {
+			for _, keyword := range o.Face().Keywords {
+				if strings.EqualFold(strings.TrimSpace(keyword), "Compleated") {
+					cf := events.FlagsString(events.FlagsFrom(flags) | state.FlagCompleated)
+					e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: pc.payLife, Counter: cf})
+					break
+				}
+			}
 		}
 	}
 	// CR 601.2i: the "when you cast" trigger, held back from the up-front

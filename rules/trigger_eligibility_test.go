@@ -329,8 +329,14 @@ func TestGrantedKeywordTriggerEventFilter(t *testing.T) {
 		// Dethrone/Conspire precedent, each of which needs its own carrying
 		// event admitted here).
 		{events.MoveZone, true},
+		// StepChange is the granted-cumulative-upkeep gate: a layer-6
+		// AddKeyword$ Cumulative upkeep:<cost> or a KW$ Cumulative upkeep:<cost>
+		// pump grant synthesizes its beginning-of-upkeep Phase trigger in
+		// checkGrantedCumulativeUpkeepTriggers, which must run on the upkeep
+		// step's StepChange (the Afflict/Dethrone/Exploit precedent, each of
+		// which needs its own carrying event admitted here).
+		{events.StepChange, true},
 		{events.Priority, false},
-		{events.StepChange, false},
 	} {
 		if got := grantedKeywordTriggerEvent(tc.kind); got != tc.want {
 			t.Fatalf("kind %s: eligible=%v, want %v", tc.kind, got, tc.want)

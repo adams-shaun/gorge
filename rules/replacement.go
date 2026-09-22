@@ -43,6 +43,19 @@ import (
 // battlefield, so it never left the stack and resolveTop kept re-resolving
 // the same object forever (see Task 26's report and the resolveTop guard
 // below for the other half of this fix).
+func (e *Engine) finalityReplacementApplies(id state.ObjID) bool {
+	o := e.G.Obj(id)
+	if o == nil || o.Zone != state.ZBattlefield || o.Counter("FINALITY") <= 0 {
+		return false
+	}
+	for _, typ := range e.typeCharacteristics(id, 0) {
+		if typ == "Creature" {
+			return true
+		}
+	}
+	return false
+}
+
 func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 	// Positive LifeChange is a gain; it never carries a repl:DamageDone
 	// match (that class names a Damage event only), so it routes straight
@@ -131,6 +144,18 @@ func (e *Engine) bloodthirstEntryMatch(ev events.Event) *replMatch {
 }
 
 func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool) {
+	if ev.Kind == events.Attach && e.attachedApplying {
+		return ev, false
+	}
+	if ev.Kind == events.Attach {
+		if e.applyAttachedReplacement(ev) {
+			return ev, true
+		}
+		// Only ChooseName has a parked Attached replacement continuation.
+		// Other Attached bodies must leave the Attach event untouched until
+		// their own continuation is implemented.
+		return ev, false
+	}
 	event, ok := replacementEvent(ev)
 	if !ok {
 		return ev, false
@@ -158,9 +183,19 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 			return events.Event{}, true
 		}
 	}
+	// FINALITY (CR 122.1) is a replacement at the common move boundary:
+	// a creature with a finality counter that would go from the battlefield to
+	// a graveyard is exiled instead. This covers destruction, toughness-based
+	// SBAs, legend-rule departures and sacrifices alike. The derived type walk
+	// also handles a permanent animated into a creature, while the battlefield
+	// origin guard prevents unrelated graveyard moves from being widened.
+	if ev.Kind == events.MoveZone && ev.From == state.ZBattlefield &&
+		ev.To == state.ZGraveyard && e.finalityReplacementApplies(ev.Obj) {
+		ev.To = state.ZExile
+	}
 	// Madness is an optional discard replacement and must park before either
 	// destination is logged. The guarded re-emit still permits ordinary card
-	// and format replacements on the chosen destination.
+	// and format replacements to redirect the chosen destination.
 	if ev.Kind == events.MoveZone && !e.applyingMadnessChoice && e.madnessReplacementApplies(ev) {
 		e.parkMadnessDiscard(ev)
 		return ev, true
@@ -542,7 +577,7 @@ type replMatch struct {
 // the predicates fail closed exactly as before. Nil ids yield the plain
 // context every caller without a remembered set already built.
 func (e *Engine) rememberedSpecContext(you state.PlayerID, source state.ObjID, remembered []state.ObjID) effects.SpecContext {
-	sc := effects.SpecContext{You: you, Source: source}
+	sc := e.withNames(effects.SpecContext{You: you, Source: source})
 	if chosen := effects.ChosenTargetsFrom(e.G, source); len(chosen) > 0 {
 		sc.Chosen = chosen
 		sc.ChosenValid = true
@@ -872,6 +907,8 @@ func drawMatchAmount(ev events.Event) int32 {
 // both, while the logged event remains the ordinary final mana production.
 func replacementEvent(ev events.Event) (string, bool) {
 	switch ev.Kind {
+	case events.Attach:
+		return "Attached", true
 	case events.MoveZone:
 		return "Moved", true
 	case events.Untap:
@@ -2001,6 +2038,105 @@ func (e *Engine) applyRiotReplacement(ev events.Event) bool {
 // offered; a controller with no living opponent (a battle entering after
 // everyone else lost -- unreachable in a real match) is recorded with no
 // protector rather than parking on an unanswerable ask.
+type attachedChoice struct {
+	move   events.Event
+	source state.ObjID
+	stage  int
+}
+
+// applyAttachedReplacement handles the ChooseName replacement on Psychic Paper.
+// It parks the Attach before events.Apply and records both answers on the source.
+func (e *Engine) applyAttachedReplacement(ev events.Event) bool {
+	if e.attachedChoice != nil || e.pending != nil || len(ev.IDs) == 0 {
+		return false
+	}
+	var source state.ObjID
+	var repl *cards.Repl
+	e.forEachReplacementSource(func(id state.ObjID) {
+		if source != 0 {
+			return
+		}
+		f := e.replacementFace(id, ev)
+		if f == nil {
+			return
+		}
+		for i := range f.Repls {
+			r := &f.Repls[i]
+			// The name-election primitive is Forge's NameCard (Psychic Paper's
+			// `ReplaceWith$ ChooseName` resolves to an SVar whose body IS
+			// `DB$ NameCard`, so the body's API is NameCard, never the SVar
+			// name). Keying on the API is the structural read: it is the
+			// primitive that poses a name ask, and the parked continuation
+			// below then asks the paired creature type before releasing the
+			// Attach. Every other Attached body (ChooseCard, ChooseColor) keeps
+			// today's untouched-Attach behaviour.
+			if r.Event == "Attached" && r.With != nil && r.With.API == "NameCard" && e.replacementMatches(*r, id, ev) {
+				source, repl = id, r
+				return
+			}
+		}
+	})
+	if source == 0 || repl == nil {
+		return false
+	}
+	o := e.G.Obj(source)
+	if o == nil {
+		return false
+	}
+	ch := &attachedChoice{move: ev, source: source}
+	e.attachedChoice = ch
+	// ValidDescription$ rides along exactly as it does at the cast-time ETB
+	// site (rules/cast.go): it is Forge prompt text, read by
+	// effects.NameChoices only as a safety fallback when ValidCards$ is absent.
+	opts := e.etbOptions(o.Controller, source, "name", repl.With.Params["ValidCards"], repl.With.Params["ValidDescription"], "", "")
+	if len(opts) <= 1 {
+		if len(opts) == 1 {
+			e.emit(events.Event{Kind: events.Choose, Obj: source, Counter: "name", Text: opts[0].Label})
+		}
+		return e.askAttachedType()
+	}
+	d := &decision.Decision{Player: o.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+		Source: source, Prompt: "Choose a creature card name", Options: opts}
+	e.choosing = chooseAttached
+	e.ask(d)
+	return true
+}
+
+func (e *Engine) askAttachedType() bool {
+	ch := e.attachedChoice
+	if ch == nil {
+		return false
+	}
+	o := e.G.Obj(ch.source)
+	if o == nil {
+		e.attachedChoice = nil
+		return false
+	}
+	ch.stage = 1
+	opts := e.creatureTypeOptions(o.Controller)
+	if len(opts) <= 1 {
+		if len(opts) == 1 {
+			e.emit(events.Event{Kind: events.Choose, Obj: ch.source, Counter: "type", Text: opts[0].Label})
+		}
+		move := ch.move
+		e.attachedChoice = nil
+		e.choosing = chooseNone
+		e.emitAttachedMove(move)
+		return true
+	}
+	d := &decision.Decision{Player: o.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+		Source: ch.source, Prompt: "Choose a creature type", Options: opts}
+	e.choosing = chooseAttached
+	e.ask(d)
+	return true
+}
+
+func (e *Engine) emitAttachedMove(move events.Event) {
+	e.attachedApplying = true
+	e.emit(events.Event{Kind: events.Attach, Obj: move.Obj, IDs: append([]state.ObjID(nil), move.IDs...)})
+	e.attachedApplying = false
+}
+
 func (e *Engine) applySiegeProtector(ev events.Event) bool {
 	// Same overwrite guard applyRiotReplacement documents: never park on an ask
 	// while another decision is outstanding.
@@ -2160,6 +2296,17 @@ func (e *Engine) replacementMatchesEffectCreated(r cards.Repl, source state.ObjI
 func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.ObjID, ev events.Event, remembered []state.ObjID, rememberedPlayers []state.PlayerID) bool {
 	you := e.controllerOf(source)
 	switch r.Event {
+	case "Attached":
+		if ev.Kind != events.Attach || len(ev.IDs) == 0 {
+			return false
+		}
+		if v := r.Params["ValidCard"]; v != "" && !e.matchesSpecFrom(v, source, you, source) {
+			return false
+		}
+		if v := r.Params["ValidTarget"]; v != "" && !e.matchesSpecFrom(v, ev.IDs[0], you, source) {
+			return false
+		}
+		return e.replacementConditionHolds(r, source, you)
 	case "Counter":
 		// The Effect-created bodyless CantHappen form (Mistrise Village's
 		// AntiMagic, reached only from counterReplacementMatchesAll's scan,
@@ -2170,7 +2317,7 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 		// no ActiveZones read — an Effect's lifetime is active()'s, not its
 		// source's zone.
 		if v, ok := r.Params["ValidCard"]; ok {
-			if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.rememberedSpecContext(you, source, remembered)) {
+			if !e.matchesSpec(v, ev.Obj, e.rememberedSpecContext(you, source, remembered)) {
 				return false
 			}
 		}
@@ -2233,7 +2380,7 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 				events.IsFaceDownEntry(ev.Counter) {
 				sc.AsFaceDown = true
 			}
-			if !ok2 || !effects.MatchesSpecCtx(e.G, spec, ev.Obj, sc) {
+			if !ok2 || !e.matchesSpec(spec, ev.Obj, sc) {
 				return false
 			}
 		}
@@ -2282,7 +2429,7 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 			}
 		}
 		if v, ok := r.Params["ValidCard"]; ok &&
-			!effects.MatchesSpecFrom(e.G, v, ev.Obj, you, source) {
+			!e.matchesSpecFrom(v, ev.Obj, you, source) {
 			return false
 		}
 		return e.replacementConditionHolds(r, source, you)
@@ -2353,8 +2500,29 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 		// face and applies to its own card's flip; replacementFace already
 		// scanned the destination face for this event.
 		if v, ok := r.Params["ValidCard"]; ok &&
-			!effects.MatchesSpecFrom(e.G, v, ev.Obj, you, source) {
+			!e.matchesSpecFrom(v, ev.Obj, you, source) {
 			return false
+		}
+		return e.replacementConditionHolds(r, source, you)
+	case "GainLife":
+		if ev.Kind != events.LifeChange || ev.Amount <= 0 {
+			return false
+		}
+		if vp := strings.TrimSpace(r.Params["ValidPlayer"]); vp != "" {
+			if vp == "Player.IsRemembered" {
+				found := false
+				for _, p := range rememberedPlayers {
+					if p == ev.Player {
+						found = true
+						break
+					}
+				}
+				if !found {
+					return false
+				}
+			} else if !effects.MatchesPlayerSpec(e.G, vp, ev.Player, you) {
+				return false
+			}
 		}
 		return e.replacementConditionHolds(r, source, you)
 	case "DamageDone":
@@ -2362,7 +2530,7 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 			return false
 		}
 		if v, ok := r.Params["ValidCard"]; ok &&
-			!effects.MatchesSpecFrom(e.G, v, ev.Obj, you, source) {
+			!e.matchesSpecFrom(v, ev.Obj, you, source) {
 			return false
 		}
 		return e.replacementConditionHolds(r, source, you)
@@ -2374,7 +2542,7 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 			return false
 		}
 		if v, ok := r.Params["ValidCard"]; ok &&
-			!effects.MatchesSpecFrom(e.G, v, e.manaProducer, you, source) {
+			!e.matchesSpecFrom(v, e.manaProducer, you, source) {
 			return false
 		}
 		// ValidActivator$ You: the player adding the mana (whoever activated
@@ -2413,7 +2581,7 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 			return false
 		}
 		if v, ok := r.Params["ValidExplorer"]; ok &&
-			!effects.MatchesSpecFrom(e.G, v, ev.Obj, you, source) {
+			!e.matchesSpecFrom(v, ev.Obj, you, source) {
 			return false
 		}
 		return e.replacementConditionHolds(r, source, you)
@@ -2581,7 +2749,7 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 			if ev.Kind != events.CounterChange {
 				return false
 			}
-			if !effects.MatchesSpecFrom(e.G, spec, ev.Obj, you, source) {
+			if !e.matchesSpecFrom(spec, ev.Obj, you, source) {
 				return false
 			}
 		}
@@ -2828,13 +2996,13 @@ func (e *Engine) damageReplacementMatches(r cards.Repl, source state.ObjID, ev e
 			// nil remembered: only the chosen half is added here, so an
 			// Effect-created `ValidSource$ Card.IsRemembered` line keeps the
 			// exact match it had before ChooseSource landed.
-			!effects.MatchesSpecCtx(e.G, v, e.damaging, e.rememberedSpecContext(ctrl, source, nil)) {
+			!e.matchesSpec(v, e.damaging, e.rememberedSpecContext(ctrl, source, nil)) {
 			return false
 		}
 	}
 	if v := r.Params["ValidTarget"]; v != "" {
 		if ev.Obj != 0 {
-			if !effects.MatchesSpecFrom(e.G, v, ev.Obj, ctrl, source) {
+			if !e.matchesSpecFrom(v, ev.Obj, ctrl, source) {
 				return false
 			}
 		} else if !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
@@ -2967,6 +3135,7 @@ func (e *Engine) ReplaceEvent(name, raw string, resolved int32) {
 	// ordinary marked damage while convertInfectDamage then also emits -1/-1
 	// counters, so a redirected infect hit would land in BOTH forms.
 	e.recomputeInfectMarker(ev)
+	e.recomputeWitherMarker(ev)
 }
 
 // replCountOp applies Forge's ReplaceCount$ arithmetic to a base amount: the
@@ -3063,7 +3232,7 @@ func (e *Engine) countPresentInZone(spec string, source state.ObjID, you state.P
 			}
 			return 0
 		}
-		if effects.MatchesSpecFrom(e.G, spec, source, you, source) {
+		if e.matchesSpecFrom(spec, source, you, source) {
 			return 1
 		}
 		return 0
@@ -3071,7 +3240,7 @@ func (e *Engine) countPresentInZone(spec string, source state.ObjID, you state.P
 	n := 0
 	e.forEachObject(func(id state.ObjID) {
 		o := e.G.Obj(id)
-		if o != nil && o.Zone == zone && effects.MatchesSpecFrom(e.G, spec, id, you, source) {
+		if o != nil && o.Zone == zone && e.matchesSpecFrom(spec, id, you, source) {
 			n++
 		}
 	})
@@ -3250,7 +3419,7 @@ func (e *Engine) counterReplacementMatchesAll(target, cause state.ObjID) []replM
 		if t == nil || src == nil {
 			continue
 		}
-		if spec := r.Params["ValidSA"]; spec != "" && !counterValidSA(e.G, t, spec, e.controllerOf(ce.Source), ce.Source) {
+		if spec := r.Params["ValidSA"]; spec != "" && !e.counterValidSA(t, spec, e.controllerOf(ce.Source), ce.Source) {
 			continue
 		}
 		matches = append(matches, replMatch{id: ce.Source, repl: &r,
@@ -3304,7 +3473,7 @@ func (e *Engine) counterReplacementMatches(r cards.Repl, source, target, cause s
 		return false
 	}
 	if v := r.Params["ValidCard"]; v != "" &&
-		!effects.MatchesSpecFrom(e.G, v, target, o.Controller, source) {
+		!e.matchesSpecFrom(v, target, o.Controller, source) {
 		return false
 	}
 	if v := r.Params["ValidCause"]; v != "" && !e.replacementCauseMatches(v, source, cause) {
@@ -3313,13 +3482,13 @@ func (e *Engine) counterReplacementMatches(r cards.Repl, source, target, cause s
 	if !e.replacementConditionHolds(r, source, o.Controller) {
 		return false
 	}
-	return counterValidSA(e.G, t, r.Params["ValidSA"], o.Controller, source)
+	return e.counterValidSA(t, r.Params["ValidSA"], o.Controller, source)
 }
 
 // counterValidSA is the Spell/Activated/Triggered subset used by R:Event$
 // Counter. A qualifier scopes the stack object's controller relative to the
 // replacement source; an unrecognised qualifier fails closed.
-func counterValidSA(g *state.Game, target *state.Object, spec string, you state.PlayerID, source state.ObjID) bool {
+func (e *Engine) counterValidSA(target *state.Object, spec string, you state.PlayerID, source state.ObjID) bool {
 	if spec == "" {
 		return true
 	}
@@ -3327,8 +3496,8 @@ func counterValidSA(g *state.Game, target *state.Object, spec string, you state.
 		kind, quals, _ := strings.Cut(strings.TrimSpace(alt), ".")
 		isKind := (kind == "Spell" && target.Ability == nil) ||
 			(kind == "SpellAbility") ||
-			(kind == "Activated" && target.Ability != nil && !isTriggered(g, target)) ||
-			(kind == "Triggered" && target.Ability != nil && isTriggered(g, target))
+			(kind == "Activated" && target.Ability != nil && !isTriggered(e.G, target)) ||
+			(kind == "Triggered" && target.Ability != nil && isTriggered(e.G, target))
 		if !isKind {
 			continue
 		}
@@ -3339,7 +3508,7 @@ func counterValidSA(g *state.Game, target *state.Object, spec string, you state.
 		// predicates. Reuse the ordinary object-filter grammar rather than a
 		// hand-maintained qualifier allowlist, so Creature/Instant/colour/P/T
 		// and future recognised predicates cannot drift from targeting.
-		if target.Ability == nil && counterSpellQualifiers(g, target, quals, you, source) {
+		if target.Ability == nil && e.counterSpellQualifiers(target, quals, you, source) {
 			return true
 		}
 		// Ability objects have no card face; their corpus qualifiers are the
@@ -3360,7 +3529,7 @@ func counterValidSA(g *state.Game, target *state.Object, spec string, you state.
 	return false
 }
 
-func counterSpellQualifiers(g *state.Game, target *state.Object, quals string, you state.PlayerID, source state.ObjID) bool {
+func (e *Engine) counterSpellQualifiers(target *state.Object, quals string, you state.PlayerID, source state.ObjID) bool {
 	var ordinary []string
 	for _, q := range strings.Split(quals, "+") {
 		switch q {
@@ -3379,7 +3548,7 @@ func counterSpellQualifiers(g *state.Game, target *state.Object, quals string, y
 	if len(ordinary) == 0 {
 		return true
 	}
-	return effects.MatchesSpecFrom(g, "Card."+strings.Join(ordinary, "+"), target.ID, you, source)
+	return e.matchesSpecFrom("Card."+strings.Join(ordinary, "+"), target.ID, you, source)
 }
 
 func isTriggered(g *state.Game, o *state.Object) bool {
@@ -4290,7 +4459,7 @@ func (e *Engine) lifeReplacementCandidates(ev events.Event, applied []replMatch)
 		for i := range o.Face().Repls {
 			r := &o.Face().Repls[i]
 			if r.Event != event || !replacementActive(e, id, r) || !replacementPlayerMatches(e, id, r, p) ||
-				lifeReplacementApplied(applied, id, r) {
+				lifeReplacementApplied(applied, replMatch{id: id, repl: r}) {
 				continue
 			}
 			if e.lifeReplacementApplies(ev, id, r, p, loss) {
@@ -4298,12 +4467,35 @@ func (e *Engine) lifeReplacementCandidates(ev events.Event, applied []replMatch)
 			}
 		}
 	})
+	for _, ce := range e.active() {
+		if ce.ReplacementEvent != event || ce.ReplacementBody != "" ||
+			!strings.EqualFold(strings.TrimSpace(ce.ReplacementParams["Prevent"]), "True") {
+			continue
+		}
+		r := &cards.Repl{Event: ce.ReplacementEvent, Params: ce.ReplacementParams}
+		m := replMatch{id: ce.Source, repl: r, remembered: ce.Remembered,
+			rememberedPlayers: ce.RememberedPlayers,
+			key:               "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))}
+		if lifeReplacementApplied(applied, m) ||
+			!e.replacementMatchesEffectCreated(*r, ce.Source, ev, ce.Remembered, ce.RememberedPlayers) {
+			continue
+		}
+		if e.lifeReplacementApplies(ev, ce.Source, r, p, loss) {
+			out = append(out, m)
+		}
+	}
 	return out
 }
 
-func lifeReplacementApplied(applied []replMatch, id state.ObjID, r *cards.Repl) bool {
+func lifeReplacementApplied(applied []replMatch, candidate replMatch) bool {
 	for _, m := range applied {
-		if m.id == id && m.repl == r {
+		if candidate.key != "" || m.key != "" {
+			if m.key != "" && m.key == candidate.key {
+				return true
+			}
+			continue
+		}
+		if m.id == candidate.id && m.repl == candidate.repl {
 			return true
 		}
 	}
@@ -4472,7 +4664,7 @@ func (e *Engine) replacementCondition(source state.ObjID, r *cards.Repl) bool {
 		found := false
 		for _, p := range e.G.AliveFrom(0) {
 			for _, id := range e.G.Zone(state.ZBattlefield, p) {
-				if effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(source, o.Controller)) {
+				if e.matchesSpec(spec, id, e.specCtx(source, o.Controller)) {
 					found = true
 					break
 				}

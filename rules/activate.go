@@ -1,8 +1,6 @@
 package rules
 
 import (
-	"strings"
-
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -88,13 +86,6 @@ func (e *Engine) beginActivation(p state.PlayerID, opt decision.Option) {
 	}
 	e.cast = &pendingCast{player: p, card: opt.Obj, from: o.Zone, ability: opt.Ability,
 		abilityMerged: pa.Merged, cost: cost, mods: mods, ownReduce: own}
-	// TargetsWithSameController$ True (Lodestone Bauble): the pairwise
-	// same-owner constraint rides the transaction into handleTarget's
-	// Submit-time validator (the offered option list spans every player's
-	// graveyard, which the wire's option shape cannot constrain).
-	if strings.EqualFold(strings.TrimSpace(ab.Params["TargetsWithSameController"]), "True") {
-		e.cast.sameCtrlTargets = true
-	}
 	e.continueCast()
 }
 

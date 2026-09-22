@@ -17,19 +17,11 @@ import (
 //     fix the key was unread and the shared CounterNum$ path defaulted to
 //     1, so every creature took exactly one.
 //
-// Two other carriers are deliberately NOT pinned here, and their count
-// heads stay unread:
-//
-//   - Jared Carthalion's [-3] needs `Count$CardNumColors`, which must read
-//     an object's LIVE derived colours (rules/layers.go's Engine.Colors
-//     read) — the face-only ColorMaskOf is wrong under a layer-5 colour
-//     effect (Leyline of the Guildpact etc.). Filed as its own ticket.
-//   - Sovereign Okinec Ahau needs `Count$CardBasePower` (a derived base
-//     characteristic after layer-7b SetPower statics) AND its
-//     `Defined$ Valid Creature.YouCtrl+powerGTbasePower` spec cannot resolve
-//     the non-literal `basePower` predicate RHS today (separate filter
-//     ticket), so its Defined set is empty regardless — not silently
-//     papered over here.
+// Sovereign Okinec Ahau remains unpinned: it needs `Count$CardBasePower`
+// (a derived base characteristic after layer-7b SetPower statics) AND its
+// `Defined$ Valid Creature.YouCtrl+powerGTbasePower` spec cannot resolve the
+// non-literal `basePower` predicate RHS today (separate filter ticket), so
+// its Defined set is empty regardless — not silently papered over here.
 
 func TestCanopyGargantuanPutsToughnessCountersOnEachOtherCreature(t *testing.T) {
 	t.Parallel()
