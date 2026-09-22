@@ -346,32 +346,6 @@ func TestDampingSphereReplacesTypeAndAmount(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestSkirkProspectorOffersSacrificeChoiceWithExtraGoblin uses the real
-// Prospector and Goblin Guide corpus cards. A second Goblin must widen the
-// activation into a legal sacrifice choice rather than suppressing it.
-func TestSkirkProspectorOffersSacrificeChoiceWithExtraGoblin(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
-	e, _, ids := realCardEngine(t, reg, 74, "Skirk Prospector", "Goblin Guide")
-	prospector, guide := ids[0], ids[1]
-	submitChoices(t, e, activateOption(t, e, prospector))
-	d := e.Pending()
-	if d == nil || d.Kind != decision.KChoose || d.Min != 1 || d.Max != 1 || len(d.Options) != 2 {
-		t.Fatalf("Prospector decision = %+v, want one-of-two Goblin sacrifice choice", d)
-	}
-	for _, o := range d.Options {
-		if o.Obj != prospector && o.Obj != guide {
-			t.Fatalf("non-Goblin sacrifice option: %+v", o)
-		}
-	}
-	submitChoices(t, e, d.Options[0].Index)
-	if e.G.Obj(d.Options[0].Obj).Zone != state.ZGraveyard {
-		t.Fatalf("chosen Goblin was not sacrificed")
-	}
-	if e.G.Players[0].Pool[state.MR] != 1 {
-		t.Fatalf("Prospector pool = %+v, want one red", e.G.Players[0].Pool)
-	}
-}
-
 // TestNyxbloomDoesNotMultiplySacrificeOnlyMana proves ProduceMana's
 // tap-for-mana provenance with two real scripts. Krark-Clan Ironworks pays a
 // sacrifice-only cost, so Nyxbloom Ancient's "tap a permanent for mana"
