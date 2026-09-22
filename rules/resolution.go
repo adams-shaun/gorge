@@ -263,6 +263,7 @@ type repeatCursor struct {
 	next     int
 	last     []state.Target
 	hasLast  bool
+	optional bool
 }
 
 // fusedRest is a fuse-rest continuation's captured remainder (CR 702.101b):
@@ -447,6 +448,19 @@ func (e *Engine) SuspendContinuation(sa *cards.SA) {
 // nested inside the iteration -- resumes inside that iteration, so each is
 // bound to the iteration's Remembered unless a deeper loop already bound it.
 // The loop's own frame follows them, bound to the RepeatEach's Remembered.
+// SuspendRepeatOptional implements effects.Host.SuspendRepeatOptional. The
+// body owns the pending ask; this frame runs only after that body resumes and
+// completes, re-entering RepeatOptional$ at its next iteration.
+func (e *Engine) SuspendRepeatOptional(sa *cards.SA, next int32) {
+	if e.resume == nil {
+		return
+	}
+	e.contChain = append(e.contChain, contFrame{
+		sa: sa, repeat: &repeatCursor{next: int(next), optional: true},
+	})
+	e.repeatReported = sa
+}
+
 func (e *Engine) SuspendRepeat(s effects.RepeatSuspension) {
 	if e.resume == nil {
 		return
@@ -1158,6 +1172,10 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			if cur := rp.repeat; cur != nil {
 				ctx.Repeat = &effects.RepeatCursor{SA: rp.sa, Subjects: cur.subjects, Next: cur.next,
 					Last: cur.last, HasLast: cur.hasLast}
+			}
+		case "repeat_optional_loop":
+			if cur := rp.repeat; cur != nil {
+				ctx.RepeatOptional = &effects.RepeatOptionalContinuation{Continue: true, Next: int32(cur.next)}
 			}
 		case "unless_pay":
 			if rp.unlessPay != "" {
@@ -2504,6 +2522,9 @@ func (e *Engine) buildContinuationChain(frames []contFrame, obj state.ObjID, tai
 			f.kind, f.sa, f.charmRest = "charm_rest", sa, cf.charmRest
 		} else if cf.repeat != nil {
 			f.kind, f.sa, f.repeat = "repeat", sa, cf.repeat
+			if cf.repeat.optional {
+				f.kind, f.sa = "repeat_optional_loop", sa
+			}
 			f.choices, f.chosenValid = cf.choices, cf.chosenValid
 		}
 		if head == nil {

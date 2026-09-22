@@ -100,9 +100,11 @@ type fakeHost struct {
 	// point; the double fakes the same shape for the Repeat loop's
 	// between-iteration suspension break). Zero value keeps the historical
 	// constant-false read every other effects test relies on.
-	suspendAfterAsk bool
-	askCount        int
-	askResult       bool
+	suspendAfterAsk      bool
+	repeatOptionalNext   int32
+	repeatOptionalCalled bool
+	askCount             int
+	askResult            bool
 	// startingLife is the StartingLife answer the double reports (0 when
 	// unset); the effects-level relative half-starting-life tests set it.
 	startingLife int32
@@ -434,6 +436,12 @@ func (h *fakeHost) EmitDamage(e events.Event) events.Event {
 	return e
 }
 func (h *fakeHost) CounterAllowed(state.ObjID, state.ObjID) bool { return true }
+
+// SuspendRepeatOptional is a no-op for the same reason as SuspendContinuation.
+func (h *fakeHost) SuspendRepeatOptional(_ *cards.SA, next int32) {
+	h.repeatOptionalCalled = true
+	h.repeatOptionalNext = next
+}
 
 // SuspendRepeat is a no-op for the same reason as SuspendContinuation.
 func (h *fakeHost) SuspendRepeat(RepeatSuspension) {}

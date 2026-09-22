@@ -1965,17 +1965,13 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 	for i := start; i < n; i++ {
 		Resolve(h, c, sub)
 		if h.Suspended() {
-			// A body ask suspended the resolution: the remaining iterations
-			// cannot run while the ask is pending, and a plain Repeat has no
-			// loop cursor to resume with (only RepeatEach does), so they are
-			// dropped. Returning lets the enclosing Resolve walk record its
-			// continuation frame -- the answer re-enters at this SA's chain
-			// tail (sa.Sub), never re-running the completed iterations. The
-			// pre-gate loop kept calling Resolve for the remaining iterations
-			// while the ask was pending; nothing on the current corpus reaches
-			// that (the MaxRepeat carriers' bodies ask nothing and every
-			// asking body's carrier runs once), so no event stream changes
-			// here beyond what the gate itself moves.
+			// A RepeatOptional body can itself ask (Forbidden Ritual's
+			// sacrifice choice is the corpus example). Preserve the loop
+			// cursor so the answered body re-enters the repeat and poses the
+			// repeat election instead of falling through to Repeat.Sub.
+			if optional {
+				h.SuspendRepeatOptional(sa, i+1)
+			}
 			return
 		}
 		if gated {

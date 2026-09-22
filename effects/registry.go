@@ -474,6 +474,10 @@ type Host interface {
 	// Counter replacement effects are rules, not a MoveZone replacement: they
 	// stop Counter before it emits the move off the stack.
 	CounterAllowed(target, cause state.ObjID) bool
+	// SuspendRepeatOptional reports that a RepeatOptional$ body suspended at
+	// a mid-resolution ask. The host must re-enter the repeat after the body
+	// answer completes, preserving the next-iteration cursor.
+	SuspendRepeatOptional(sa *cards.SA, next int32)
 	// SuspendRepeat reports that one iteration of a RepeatEach loop suspended
 	// at a mid-resolution ask. The host must bind the suspended iteration's
 	// Remembered to the pending ask (and to the iteration's own continuation
