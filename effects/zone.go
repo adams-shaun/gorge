@@ -2647,6 +2647,12 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 	if spec == "" {
 		spec = "Card"
 	}
+	// Away from the battlefield, Forge's Permanent base means a permanent
+	// card. Hidden graveyard/exile picks share the library search's rule;
+	// without it Winter's remembered permanent is never eligible for DBReturn.
+	if !zoneIn(originZones, state.ZBattlefield) {
+		spec = permanentCardSpec(spec)
+	}
 	max := Num(h, c, sa, "ChangeNum", 1)
 	if max < 0 {
 		max = 0
@@ -2688,6 +2694,11 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 			settleChangeZoneMoveAs(h, c, sa, id, o.Zone, to, withKind, withAmt, o.Owner, true)
 			moved = append(moved, id)
 			if strings.EqualFold(sa.Params["RememberChanged"], "True") {
+				// Keep the resolution-local set with the event-backed source
+				// memory: a linked SubAbility (Winter's DBReturn) reads the
+				// former through IsRemembered, while later effects read the
+				// latter from the source object's Choose events.
+				c.Remembered = append(c.Remembered, state.Target{Obj: id})
 				eventRemember(h, c, id)
 			}
 			eventForgetChanged(h, c, sa, id)
@@ -2974,16 +2985,15 @@ func trimSharedLandTypes(g *state.Game, chosen []state.ObjID) []state.ObjID {
 	return out
 }
 
-// totalCardTypesRequirement follows the linked ability chain because a hidden
-// pick can resume at a sub-ability after its answer; the requirement belongs
-// to the ChangeZone node that owns the pick, not to whichever node resumed it.
+// totalCardTypesRequirement reads the constraint from the ChangeZone node
+// that owns this hidden pick. ResumeSA preserves that node across an answer;
+// a linked sub-ability's parameter must not constrain its parent pick.
 func totalCardTypesRequirement(sa *cards.SA) (string, bool) {
-	for cur := sa; cur != nil; cur = cur.Sub {
-		if raw := strings.TrimSpace(cur.Params["WithTotalCardTypes"]); raw != "" {
-			return raw, true
-		}
+	if sa == nil {
+		return "", false
 	}
-	return "", false
+	raw := strings.TrimSpace(sa.Params["WithTotalCardTypes"])
+	return raw, raw != ""
 }
 
 // totalCardTypesSatisfied is the hidden-search constraint used by
@@ -3698,9 +3708,8 @@ func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 		if ReplaceUmbraArmor(h, id) {
 			continue
 		}
-		to := finalityDestination(h, id, state.ZBattlefield, state.ZGraveyard)
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
-			From: state.ZBattlefield, To: to, Text: "destroyed"})
+			From: state.ZBattlefield, To: state.ZGraveyard, Text: "destroyed"})
 		// Host.Emit applies move replacements before folding the move. Only
 		// remember a permanent that actually ended up in the graveyard; a
 		// replacement such as exile must not feed a later IsRemembered search.
@@ -3755,9 +3764,8 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 		if ReplaceUmbraArmor(h, id) {
 			continue
 		}
-		to := finalityDestination(h, id, state.ZBattlefield, state.ZGraveyard)
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
-			From: state.ZBattlefield, To: to, Text: "destroyed"})
+			From: state.ZBattlefield, To: state.ZGraveyard, Text: "destroyed"})
 		if remember {
 			// Forge's RememberDestroyed$ adds only cards that actually
 			// reached the graveyard; a move replacement may redirect it.
