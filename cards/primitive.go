@@ -116,18 +116,18 @@ func (f *Face) EachRawEffectChild(visit func(EffectChild)) {
 		}
 		seen[sa] = true
 		if sa.API == "Effect" {
-			for _, name := range strings.Split(sa.Params["Triggers"], ",") {
-				if t, ok := ParseTriggerLine(f.SVars[strings.TrimSpace(name)]); ok {
+			for _, name := range rawEffectNames(sa.Params["Triggers"]) {
+				if t, ok := ParseTriggerLine(f.SVars[name]); ok {
 					visit(EffectChild{Trigger: &t})
 				}
 			}
-			for _, name := range strings.Split(sa.Params["StaticAbilities"], ",") {
-				for _, s := range parseRawStatics(f.SVars[strings.TrimSpace(name)]) {
+			for _, name := range rawEffectNames(sa.Params["StaticAbilities"]) {
+				for _, s := range parseRawStatics(f.SVars[name]) {
 					visit(EffectChild{Static: &s})
 				}
 			}
-			for _, name := range strings.Split(sa.Params["ReplacementEffects"], ",") {
-				if r, ok := ParseReplacementLine(f.SVars[strings.TrimSpace(name)]); ok {
+			for _, name := range rawEffectNames(sa.Params["ReplacementEffects"]) {
+				if r, ok := ParseReplacementLine(f.SVars[name]); ok {
 					visit(EffectChild{Repl: &r})
 				}
 			}
@@ -144,6 +144,14 @@ func (f *Face) EachRawEffectChild(visit func(EffectChild)) {
 		walk(r.With)
 	}
 	f.EachSVarAbility(walk)
+}
+
+// rawEffectNames matches Effect's runtime name-list grammar: commas and
+// whitespace separate SVar names in all three typed fields.
+func rawEffectNames(value string) []string {
+	return strings.FieldsFunc(value, func(r rune) bool {
+		return r == ',' || r == ' ' || r == '\t' || r == '\n'
+	})
 }
 
 func parseRawStatics(body string) []Static {
