@@ -34,8 +34,8 @@ func TestAttackingEntryWithoutDefenderDegradesOnce(t *testing.T) {
 	h, c, id := attackingFixture(t)
 	applyAttackingEntry(h, c, &cards.SA{Params: map[string]string{"Attacking": "True"}}, id, 0, state.ZBattlefield)
 	o := h.g.Obj(id)
-	if o == nil || o.IsAttacking {
-		t.Fatalf("object = %+v, want it not attacking", o)
+	if o == nil || !o.Tapped || o.IsAttacking {
+		t.Fatalf("object = %+v, want it tapped and not attacking", o)
 	}
 	notes := 0
 	for _, ev := range h.log {
@@ -157,5 +157,8 @@ func TestAttackingEntryNonTrueSelectorDegradesOnce(t *testing.T) {
 	}
 	if len(h.log) != 2 || h.log[1].Kind != events.Note {
 		t.Fatalf("log = %+v, want one Note after setup", h.log)
+	}
+	if !strings.Contains(h.log[1].Text, "Remembered") {
+		t.Fatalf("Note = %q, want unsupported selector Remembered", h.log[1].Text)
 	}
 }
