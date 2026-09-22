@@ -387,15 +387,44 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		mode, params := parseStaticLine(c.SVars, name)
 		switch mode {
 		case "Continuous":
-			// A may-play-from-zone grant delivered by an Effect SA (Atsushi's
-			// "you may play those cards" STPlay static): registered like the
-			// S: static shape, with the Effect's Remembered set seeding the
-			// grant so the Affected$ Card.IsRemembered spec matches the cards
-			// the resolution exiled/remembered (rules' grant walk matches
-			// through a SpecContext that carries this list). The shared
-			// MayPlayStaticParams whitelist keeps both registration paths
-			// honest: a rider this build does not read fails closed here too.
-			if grant, ok := mayPlayGrantFromLine(params); ok {
+			// GainsAbilitiesOfDefined$ is the dynamic Defined-set spelling of
+			// the has-all-activated-abilities grant. Resolve it while the
+			// Effect's captured context is still available; unlike the printed
+			// card-filter spelling this must not scan a zone or lose the foreign
+			// object's identity.
+			if spec := strings.TrimSpace(params["GainsAbilitiesOfDefined"]); spec != "" {
+				definedCtx := *c
+				definedCtx.Remembered = make([]state.Target, 0, len(remembered))
+				for _, id := range remembered {
+					definedCtx.Remembered = append(definedCtx.Remembered, state.Target{Obj: id})
+				}
+				faces := GainedFacesOfDefined(h, &definedCtx, spec)
+				if len(faces) > 0 {
+					affected := strings.TrimSpace(params["Affected"])
+					if affected == "" && strings.TrimSpace(params["AffectedDefined"]) != "" {
+						affected = "Card.Self"
+					}
+					ce := state.ContinuousEffect{
+						Source: c.Source, Controller: c.Controller, Layer: state.LAbilities,
+						Affects: affected, AffectedZone: strings.TrimSpace(params["AffectedZone"]),
+						GainedFaces: faces, GainsValidAbilities: strings.TrimSpace(params["GainsValidAbilities"]),
+						GainsLimitPerTurn: effectGainsLimitPerTurn(params), Name: effectName,
+						UntilEOT: effectUntilEOT(h, c.Source, rawDur), Duration: dur,
+						Remembered: remembered, ForgetOnMoved: forgetOn, ExileOnMoved: exileOn,
+						ForgetCounter: forgetCounter, ImprintOnHost: imprintOnHost,
+					}
+					h.AddContinuous(ce)
+					registered = true
+				}
+			} else if grant, ok := mayPlayGrantFromLine(params); ok {
+				// A may-play-from-zone grant delivered by an Effect SA (Atsushi's
+				// "you may play those cards" STPlay static): registered like the
+				// S: static shape, with the Effect's Remembered set seeding the
+				// grant so the Affected$ Card.IsRemembered spec matches the cards
+				// the resolution exiled/remembered (rules' grant walk matches
+				// through a SpecContext that carries this list). The shared
+				// MayPlayStaticParams whitelist keeps both registration paths
+				// honest: a rider this build does not read fails closed here too.
 				grant.Source = c.Source
 				grant.Controller = c.Controller
 				grant.Name = effectName
@@ -912,6 +941,14 @@ func parseReplacementLine(svars map[string]string, name string) (string, map[str
 		params[strings.TrimSpace(key)] = strings.TrimSpace(val)
 	}
 	return params["Event"], params
+}
+
+func effectGainsLimitPerTurn(params map[string]string) int {
+	n, err := strconv.Atoi(strings.TrimSpace(params["GainsAbilitiesLimitPerTurn"]))
+	if err != nil || n < 0 {
+		return 0
+	}
+	return n
 }
 
 func parseStaticLine(svars map[string]string, name string) (string, map[string]string) {
