@@ -682,10 +682,14 @@ func blockedAttackerIn(pairs [][2]state.ObjID, id state.ObjID) bool {
 	return false
 }
 
-// damageMatches implements Mode$ DamageDone, DamageDealtOnce and
-// DamageDoneOnce (the once-per-damage-batch gate itself lives in
+// damageMatches implements Mode$ DamageDone, DamageDealtOnce, DamageDoneOnce
+// and DamageAll (the once-per-damage-batch gate itself lives in
 // checkTriggers, alongside the cascade bound; this is purely the per-event
-// parameter match, shared by all three modes).
+// parameter match, shared by all four modes). DamageAll additionally requires
+// ValidSource$ and ValidTarget$ to NAME the same event's source and
+// recipient (see the ValidSource$/ValidTarget$ reads below): the per-event
+// match is the "both halves match" test, and checkTriggers' all-latch turns
+// the first such event in a batch into the single "one or more" instance.
 func (e *Engine) damageMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
 	if ev.Kind != events.Damage {
 		return false
@@ -823,7 +827,7 @@ func init() {
 	}, "Exerted")
 	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
 		return e.damageMatches(t, source, ev)
-	}, "DamageDone", "DamageDealtOnce", "DamageDoneOnce")
+	}, "DamageDone", "DamageDealtOnce", "DamageDoneOnce", "DamageAll")
 	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
 		return e.damagePreventedMatches(t, source, ev)
 	}, "DamagePreventedOnce")

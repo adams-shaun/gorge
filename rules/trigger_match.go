@@ -167,17 +167,21 @@ type triggerKey struct {
 	Face uint8
 }
 
-// damageBatchKey identifies one DamageDealtOnce/DamageDoneOnce trigger's
-// referent within one damage batch. DamageDealtOnce latches per DEALING
-// source (Forge GameAction.triggerDamageDoneOnce's dealt half: one trigger per
-// source per batch, its referent amount the total that source dealt in the
-// batch); DamageDoneOnce latches per DAMAGED object (the done half: one
-// trigger per target, its referent amount the total that target took). The
-// embedded triggerKey keeps two T: lines of one card -- and the same line on
-// two cards -- independent.
+// damageBatchKey identifies one DamageDealtOnce/DamageDoneOnce/DamageAll
+// trigger's referent within one damage batch. DamageDealtOnce latches per
+// DEALING source (Forge GameAction.triggerDamageDoneOnce's dealt half: one
+// trigger per source per batch, its referent amount the total that source
+// dealt in the batch); DamageDoneOnce latches per DAMAGED object (the done
+// half: one trigger per target, its referent amount the total that target
+// took); DamageAll latches per TRIGGER LINE -- the "one or more" batch mode
+// (Forge GameAction.triggerDamageAll): the FIRST (source, target) pair in the
+// batch whose both halves match queues the single instance, and every later
+// matching pair accumulates into it. The embedded triggerKey keeps two T:
+// lines of one card -- and the same line on two cards -- independent.
 type damageBatchKey struct {
 	triggerKey
 	dealt  bool           // true: referent is the dealing source (DamageDealtOnce)
+	all    bool           // true: the batch-level DamageAll latch (no referent)
 	obj    state.ObjID    // the referent object (dealing source, or damaged object)
 	player state.PlayerID // the referent player when the damage went to a player
 }
@@ -889,7 +893,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					e.secondaryYields(observer, fc.face, ti, t, id, ev, objLKI) {
 					continue
 				}
-				if (t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce") && ev.Amount <= 0 {
+				if (t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce" || t.Mode == "DamageAll") && ev.Amount <= 0 {
 					continue
 				}
 				key := triggerKey{Source: id, Idx: ti, Face: fc.faceIdx}
@@ -916,7 +920,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 						continue // ResolvedLimit$: already resolved enough this turn.
 					}
 				}
-				if t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce" {
+				if t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce" || t.Mode == "DamageAll" {
 					// The "Once" gate latches once per DAMAGE BATCH, not per turn
 					// (CR 510.4; Forge PhaseHandler.dealAssignedDamage fires
 					// triggerDamageDoneOnce once per damage step, and one
@@ -930,12 +934,23 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					// it); no batch open means every Damage event is its own batch,
 					// so there is nothing to latch across and the trigger fires per
 					// event with its own event amount already the batch total.
+					//
+					// DamageAll (Forge GameAction.triggerDamageAll) is the
+					// batch-level "one or more" mode: it must fire ONCE for the
+					// whole batch if at least one matching SOURCE dealt damage to
+					// at least one matching TARGET, not once per pair. Its latch
+					// therefore keys on the trigger line ALONE (all=true, no
+					// referent): damageMatches already requires BOTH ValidSource$
+					// and ValidTarget$ to match the SAME event, so the first such
+					// event queues the single instance and every later matching
+					// pair in the batch accumulates into it -- the "one or more"
+					// reading.
 					// Non-positive amounts (the negative-amount Damage events the
 					// cleanup/regeneration repair paths emit to clear marked
 					// damage) are not damage and never latch or queue a Once
 					// trigger.
 					if ev.Amount > 0 {
-						bk := damageBatchKey{triggerKey: key, dealt: t.Mode == "DamageDealtOnce"}
+						bk := damageBatchKey{triggerKey: key, dealt: t.Mode == "DamageDealtOnce", all: t.Mode == "DamageAll"}
 						if bk.dealt {
 							// Combat identifies the actual attacker/blocker in damaging;
 							// an effect batch's shared source is its published override
@@ -1480,7 +1495,7 @@ func init() {
 		"trig:Sacrificed", "trig:Discarded", "trig:CommitCrime", "trig:Taps", "trig:TapsForMana",
 		"trig:ClassLevelGained",
 		"trig:TokenCreated", "trig:TokenCreatedOnce",
-		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",
+		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:DamageAll", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",
 		"trig:LifeGained",
 		"trig:BecomesTarget", "trig:LandPlayed", "trig:Phase", "trig:Attached", "trig:FlippedCoin",
 		"trig:Vote", "trig:RolledDie", "trig:RolledDieOnce",

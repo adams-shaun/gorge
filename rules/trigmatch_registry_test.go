@@ -81,6 +81,14 @@ var addedAfterTheSplit = []string{
 	// already but the MODE did not -- no pre-split switch arm could have
 	// dispatched it.
 	"ClassLevelGained",
+	// trig-damageall: "Whenever one or more <sources> deal damage to one or
+	// more <targets>" (Contaminant Grafter, Malcolm Keen-Eyed Navigator,
+	// Hordewing Skaab and 5 more corpus carriers). It matches the ordinary
+	// Damage event the pre-split switch already carried for DamageDone -- the
+	// response is one batch-level instance per damage batch (rules/
+	// trigger_match.go's all-latch), but the MODE name is new, so no pre-split
+	// switch arm could have dispatched it.
+	"DamageAll",
 }
 
 func allRegisteredModeNames() []string {
