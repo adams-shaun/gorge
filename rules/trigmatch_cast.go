@@ -508,5 +508,19 @@ func init() {
 	}, "SpellCopy")
 	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
 		return e.abilityCastMatches(t, source, ev)
-	}, "AbilityCast", "SpellAbilityCast")
+	}, "AbilityCast")
+	// SpellAbilityCast is the spell-OR-ability mode (Feather, Radiant
+	// Arbiter, Unbound Flourishing, Sunken Palace): the AbilityPush half is
+	// abilityCastMatches; the PutOnStack half is the ordinary SpellCast
+	// evaluation, whose ValidSA$ reads the Spell.* spell-kind alternatives
+	// abilityCastValidSA deliberately skips for abilities. Before this
+	// matcher existed the cast half was dead: the mode only ever saw
+	// AbilityPush events, so Feather's "Whenever you cast a noncreature
+	// spell that targets only CARDNAME ..." never fired.
+	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+		if ev.Kind == events.AbilityPush {
+			return e.abilityCastMatches(t, source, ev)
+		}
+		return e.spellCastMatches(t, source, ev)
+	}, "SpellAbilityCast")
 }

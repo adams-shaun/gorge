@@ -50,6 +50,45 @@ import (
 // 'Always' — the corpus default — runs the subs either way; WhenPaid runs
 // them only when the cost was paid; WhenNotPaid only when it was not.
 
+// UnlessCostResolved renders an SA's UnlessCost$ value as the string the
+// mid-resolution pay path prices. A literal value (a mana symbol list, a
+// Sac<...>/Discard<...>/... component, or an unpriceable spelling like X or
+// CopyCost with no matching SVar) passes through unchanged -- rules'
+// ParseUnlessCost stays the strict parser and hard-declines what it cannot
+// price. On a CopySpellAbility only -- this ticket's shape -- a value naming
+// an SVar on the resolving face whose body is a RESOLVABLE count expression
+// folds its numeric result into one generic amount "{N}": Feather, Radiant
+// Arbiter's SVar:CopyCost:Count$ChosenSize/Times.2 becomes "{4}" for two
+// chosen creatures. The gate is deliberately API-scoped: the Counter family's
+// UnlessCost$ X/Y spellings (Condescend's SVar:X:Count$xPaid, Oppressive
+// Will's Count$ValidHand) are the documented M4 X-cost-grammar hard declines,
+// and flipping them to payable here would reprice every "counter unless its
+// controller pays {X}" card in one silent sweep -- that grammar belongs to
+// the M4 unless-cost ticket, which owns the xPaid bindings and the bot
+// policy, not to this one. An SVar present but unresolvable also passes
+// through: the ask is still posed and recorded, but it cannot be answered
+// "pay", exactly as before. The same string must reach the ask's label
+// (unlessProceed) and the payment (rules' unless_pay arm calls this with the
+// resumed ctx), so the offer and the charge can never disagree.
+func UnlessCostResolved(h Host, c *Ctx, sa *cards.SA) string {
+	raw := strings.TrimSpace(sa.Params["UnlessCost"])
+	if raw == "" || c == nil || c.SVars == nil || sa == nil || sa.API != "CopySpellAbility" {
+		return raw
+	}
+	body, ok := c.SVars[raw]
+	if !ok {
+		return raw
+	}
+	n, resolved := EvalCountOK(h, c, body)
+	if !resolved {
+		return raw
+	}
+	if n < 0 {
+		n = 0
+	}
+	return "{" + strconv.Itoa(int(n)) + "}"
+}
+
 // unlessProceed reports whether the effect's body should run for this pass,
 // and whether the UnlessCost$ was paid. Called from Resolve immediately
 // before the dispatch, for every SA; a zero-cost SA returns (true, false)
@@ -60,8 +99,8 @@ import (
 // was charged — a decline, an unresolvable payer, a no-host fallback — it is
 // false.
 func unlessProceed(h Host, c *Ctx, sa *cards.SA) (bool, bool) {
-	cost := strings.TrimSpace(sa.Params["UnlessCost"])
-	if cost == "" {
+	cost := UnlessCostResolved(h, c, sa)
+	if strings.TrimSpace(sa.Params["UnlessCost"]) == "" {
 		return true, false
 	}
 	if sa.API == "Ward" {
@@ -101,6 +140,25 @@ func unlessProceed(h Host, c *Ctx, sa *cards.SA) (bool, bool) {
 	// continuation did not retain every transient payer binding from the ask.
 	if ans == "pay" {
 		return switched, true
+	}
+	// A DefinedTarget$ ChosenCard copy ask (Feather, Radiant Arbiter) with an
+	// EMPTY chosen set is not a decision anybody could answer differently:
+	// Forge's "you may choose any number of other creatures ... and pay {2}
+	// for each of those creatures. If you do, for each of those creatures,
+	// copy that spell" has no payment offer when the choice answered empty --
+	// neither the pay election nor a zero-cost "pay" that would copy nothing.
+	// Apply the not-paid orientation (switched: no copies) and let the
+	// SubAbility$ chain run, exactly as a decline would.
+	if sa.API == "CopySpellAbility" && strings.EqualFold(strings.TrimSpace(sa.Params["DefinedTarget"]), "ChosenCard") {
+		n := 0
+		for _, t := range resolutionChosenCards(h.Game(), c) {
+			if !t.IsPlayer {
+				n++
+			}
+		}
+		if n == 0 {
+			return !switched, false
+		}
 	}
 	payers, payerKnown := unlessPayerTargets(h, c, sa)
 	// A named selector whose binding is unavailable must not silently charge

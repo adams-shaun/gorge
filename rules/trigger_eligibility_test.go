@@ -22,7 +22,7 @@ func TestTriggerEligibilityEventMatrix(t *testing.T) {
 		{"ChangesZone", []events.Kind{events.MoveZone, events.Draw, events.PutOnStack}},
 		{"SpellCast", []events.Kind{events.PutOnStack}},
 		{"AbilityCast", []events.Kind{events.AbilityPush}},
-		{"SpellAbilityCast", []events.Kind{events.AbilityPush}},
+		{"SpellAbilityCast", []events.Kind{events.AbilityPush, events.PutOnStack}},
 		{"Attacks", []events.Kind{events.DeclareAttackers}},
 		{"AttackersDeclaredOneTarget", []events.Kind{events.DeclareAttackers}},
 		{"Blocks", []events.Kind{events.DeclareBlockers}},
