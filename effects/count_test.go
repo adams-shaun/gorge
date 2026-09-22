@@ -201,6 +201,44 @@ func TestEvalCountZoneScopedForms(t *testing.T) {
 	}
 }
 
+// TestEvalCountValidStackScansTheSharedStackOnce pins the ValidStack head
+// against the shared-zone double-count: state.Game.Zone returns g.Stack for
+// EVERY seat, so the zone-count scan must visit the shared stack exactly
+// once, not once per alive seat. On the two-seat fixture below one spell on
+// the stack read 2 before the fix and reads 1 after (Mindbreak Trap's
+// MaxTgts = the number of spells on the stack; Display of Power's copy
+// count). The preconditions are asserted so a vacuous setup fails loudly.
+func TestEvalCountValidStackScansTheSharedStackOnce(t *testing.T) {
+	h := newHost(t, 2)
+	// Precondition: both seats are alive, so a per-seat walk visits two
+	// seats and a broken scan would count the single spell twice.
+	if alive := h.g.AliveFrom(0); len(alive) != 2 {
+		t.Fatalf("fixture precondition: %d alive seats, want 2", len(alive))
+	}
+	src := h.g.AddObject(mkCard(t, "Name:Spell\nManaCost:1 U\nTypes:Instant\nOracle:x\n"), 0)
+	src.Zone = state.ZStack
+	h.g.SetZone(state.ZStack, 0, []state.ObjID{src.ID})
+	// Precondition: exactly one stack object, and the shared zone returns
+	// the same list for both seats (the property under test).
+	if got := h.g.Zone(state.ZStack, 0); len(got) != 1 {
+		t.Fatalf("fixture precondition: seat 0 stack has %d objects, want 1", len(got))
+	}
+	if got := h.g.Zone(state.ZStack, 1); len(got) != 1 {
+		t.Fatalf("fixture precondition: seat 1 stack has %d objects, want 1", len(got))
+	}
+	c := &Ctx{Controller: 0}
+	if got := EvalCount(h, c, "Count$ValidStack Card"); got != 1 {
+		t.Errorf("Count$ValidStack Card = %d, want 1 (one spell, two alive seats)", got)
+	}
+	if got := EvalCount(h, c, "Count$ValidStack Instant"); got != 1 {
+		t.Errorf("Count$ValidStack Instant = %d, want 1", got)
+	}
+	// A spec that matches nothing must stay 0 through the same shared scan.
+	if got := EvalCount(h, c, "Count$ValidStack Creature"); got != 0 {
+		t.Errorf("Count$ValidStack Creature = %d, want 0", got)
+	}
+}
+
 func TestEvalCountPlayerAndLifeForms(t *testing.T) {
 	g, _ := board(t)
 	h := &fakeHost{g: g}
