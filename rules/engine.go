@@ -516,6 +516,9 @@ type Engine struct {
 	// no event carries it. Never nil-checked on read outside recordAsk
 	// (which lazy-inits).
 	moveCounterAsk map[state.ObjID]*moveCounterPending
+	// counterTypeAsk carries per-recipient comma-list PutCounter answers across
+	// suspensions. It is replay-derived engine scratch, never game state.
+	counterTypeAsk map[state.ObjID]*counterTypePending
 	// orderedTriggers is how many LEADING entries of pendingTriggers have
 	// already had their order settled by an answered KTriggerOrder decision
 	// (or, for a lone trigger, by there being nothing to decide). It is the

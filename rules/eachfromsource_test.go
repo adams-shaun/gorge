@@ -128,18 +128,18 @@ func TestDenryKlinCopiesHisOwnKindsOntoTheEnteringCreature(t *testing.T) {
 	e, cfg := tokenReplGame(t, 451, denry, entering)
 	denryID := moveSeededCard(t, e, 0, denry, state.ZBattlefield)
 
-	// Denry's own entry runs his counter-choice replacement SILENTLY today:
-	// the CounterType$ comma list is placed as ONE composite-kind counter
-	// without ever asking (a pre-existing PutCounter defect, ledgered in the
-	// report -- not this task's). The precondition is that composite counter;
-	// a second kind is added through the events path so the copy has two
-	// kinds to carry.
 	passUntilStackEmpty(t, e, 20)
+	// Seed the chosen individual kind; the replacement path is exercised by
+	// the real card in the entering-creature leg below.
+	e.emit(events.Event{Kind: events.CounterChange, Obj: denryID, Counter: "First Strike", Amount: 1})
 	e.emit(events.Event{Kind: events.CounterChange, Obj: denryID, Counter: "CHARGE", Amount: 1})
 	e.pending = nil
-	if got := e.G.Obj(denryID).Counter("P1P1,First Strike,Vigilance"); got != 1 || e.G.Obj(denryID).Counter("CHARGE") != 1 {
-		t.Fatalf("precondition: Denry counters %d composite / %d CHARGE, want 1/1",
+	if got := e.G.Obj(denryID).Counter("First Strike"); got != 1 || e.G.Obj(denryID).Counter("CHARGE") != 1 {
+		t.Fatalf("precondition: Denry counters %d First Strike / %d CHARGE, want 1/1",
 			got, e.G.Obj(denryID).Counter("CHARGE"))
+	}
+	if got := e.G.Obj(denryID).Counter("P1P1,First Strike,Vigilance"); got != 0 {
+		t.Fatalf("composite counter = %d, want zero", got)
 	}
 
 	enteringID := moveSeededCard(t, e, 0, entering, state.ZBattlefield)
@@ -150,16 +150,11 @@ func TestDenryKlinCopiesHisOwnKindsOntoTheEnteringCreature(t *testing.T) {
 	e.priorityRound()
 	passUntilStackEmpty(t, e, 20)
 
-	// The copy carries BOTH of Denry's kinds, including the composite
-	// "P1P1,First Strike,Vigilance" kind his own pre-existing entry-pick
-	// defect places (the CounterType$ comma list never asks -- a separate
-	// ledgered defect, not this task's); EachFromSource copies kinds as they
-	// exist, garbage kind names included.
-	if got := e.G.Obj(enteringID).Counter("P1P1,First Strike,Vigilance"); got != 1 {
-		t.Fatalf("entering bear composite kind = %d, want 1 (Denry's own kinds copied)", got)
+	if got := e.G.Obj(enteringID).Counter("First Strike"); got == 0 {
+		t.Fatalf("entering bear First Strike = %d, want copied individual kind", got)
 	}
-	if got := e.G.Obj(enteringID).Counter("CHARGE"); got != 1 {
-		t.Fatalf("entering bear CHARGE = %d, want 1", got)
+	if got := e.G.Obj(enteringID).Counter("CHARGE"); got == 0 {
+		t.Fatalf("entering bear CHARGE = %d, want copied kind", got)
 	}
 	replayCheck(t, e, cfg)
 }

@@ -589,6 +589,12 @@ type moveCounterPending struct {
 	nSet    bool
 }
 
+// counterTypePending is the replay-derived continuation for CounterTypePerDefined.
+type counterTypePending struct {
+	targets []state.Target
+	answers []string
+}
+
 // moveCounterEntry returns (creating if needed) the pending state for a
 // resolving MoveCounter stack object.
 func (e *Engine) moveCounterEntry(obj state.ObjID) *moveCounterPending {
@@ -610,6 +616,16 @@ func (e *Engine) moveCounterEntry(obj state.ObjID) *moveCounterPending {
 // which chosenTargetsFor consumes exactly like a just-answered ask, so the
 // re-entered SA does not re-pose its target ask; the kind and amount ride
 // their own pairs, which effMoveCounter consumes-and-clears (fx42).
+func (e *Engine) seedCounterTypeAsk(obj state.ObjID, ctx *effects.Ctx) {
+	p := e.counterTypeAsk[obj]
+	if p == nil || len(p.answers) == 0 {
+		return
+	}
+	ctx.CounterKind = p.answers[len(p.answers)-1]
+	ctx.CounterKindDone = true
+	ctx.CounterKindIndex = len(p.answers) - 1
+}
+
 func (e *Engine) seedMoveCounterAsk(obj state.ObjID, ctx *effects.Ctx) {
 	p := e.moveCounterAsk[obj]
 	if p == nil {
@@ -1871,6 +1887,28 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 			}
 			ctx.CounterDistDone = true
+		case "counter_kind":
+			ctx.CounterKind = ""
+			if len(chosen) > 0 {
+				ctx.CounterKind = chosen[0].Label
+			}
+			ctx.CounterKindDone = true
+			if e.counterTypeAsk == nil {
+				e.counterTypeAsk = make(map[state.ObjID]*counterTypePending)
+			}
+			p := e.counterTypeAsk[rp.obj]
+			if p == nil {
+				p = &counterTypePending{}
+				e.counterTypeAsk[rp.obj] = p
+			}
+			p.answers = append(p.answers, ctx.CounterKind)
+			ctx.CounterKindIndex = len(p.answers) - 1
+		case "counter_kinds":
+			ctx.CounterKinds = nil
+			for _, o := range chosen {
+				ctx.CounterKinds = append(ctx.CounterKinds, o.Label)
+			}
+			ctx.CounterKindsDone = true
 		case "counter_pick":
 			// A bare-Choices$ PutCounter pick was answered (task vow1;
 			// Promise of Loyalty's vow): the chooser picked the creature(s)
@@ -2440,6 +2478,9 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		if rp.sa.API == "MoveCounter" {
 			e.seedMoveCounterAsk(rp.obj, ctx)
 		}
+		if rp.sa.API == "PutCounter" {
+			e.seedCounterTypeAsk(rp.obj, ctx)
+		}
 		// A frame of a fused half's resolution re-enters here: restore the
 		// half's own target binding as the AMBIENT resolving target for the
 		// whole of this re-entry (its root or sub-ability, and every frame
@@ -2484,9 +2525,11 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		e.damaging = 0
 		if rp.sa.API == "MoveCounter" && e.resume == nil {
 			// The MoveCounter resolution completed this round (nothing
-			// suspended): its pending state is spent -- delete it so a stale
-			// entry can never seed a later resolution of the same object.
+			// suspended): its pending state is spent.
 			delete(e.moveCounterAsk, rp.obj)
+		}
+		if rp.sa.API == "PutCounter" && e.resume == nil {
+			delete(e.counterTypeAsk, rp.obj)
 		}
 		if e.resume != nil {
 			// The re-entry posed a nested mid-resolution ask. The new

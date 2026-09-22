@@ -114,6 +114,17 @@ func hasCounters(kinds []state.Counter) bool {
 	return false
 }
 
+func splitCounterKinds(raw string) []string {
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
 func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 	// fx42 scoping: consume and clear the answered Optional$ election at the
 	// top, so a nested PutCounter in the same chain poses its own ask.
@@ -293,6 +304,56 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 		putCounterEachFromSource(h, c, sa, etb, strings.TrimSpace(sa.Params["EachFromSource"]))
 		return
 	}
+	// CounterType$ comma lists are choices between counter kinds, never a
+	// composite counter name. Keep the choice in Ctx so re-entry resumes the
+	// already selected recipient rather than repeating an earlier ask.
+	counterKinds := splitCounterKinds(kind)
+	perKind := strings.EqualFold(strings.TrimSpace(sa.Params["CounterTypePerDefined"]), "True")
+	if len(counterKinds) > 1 {
+		if strings.EqualFold(strings.TrimSpace(sa.Params["RandomType"]), "True") {
+			eligible := make([]string, 0, len(counterKinds))
+			for _, k := range counterKinds {
+				seen := false
+				for _, t := range Defined(h, c, sa) {
+					if !t.IsPlayer {
+						if o := h.Game().Obj(t.Obj); o != nil && o.Counter(k) > 0 {
+							seen = true
+						}
+					}
+				}
+				if !seen {
+					eligible = append(eligible, k)
+				}
+			}
+			if len(eligible) == 0 {
+				return
+			}
+			kind = eligible[h.Rand(len(eligible))]
+			counterKinds = []string{kind}
+		} else if strings.TrimSpace(sa.Params["ChooseDifferent"]) != "" {
+			if !c.CounterKindsDone {
+				d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 2, Max: 2, Source: c.Source, ResumeKind: "counter_kinds", ResumeSA: sa, Prompt: "Choose different counter kinds"}
+				for i, k := range counterKinds {
+					d.Options = append(d.Options, decision.Option{Index: i, Kind: "counter", Label: k, Player: c.Controller})
+				}
+				_ = Ask(h, d)
+				return
+			}
+			counterKinds = append([]string(nil), c.CounterKinds...)
+		} else if perKind {
+			// PerDefined asks independently below, once for each recipient.
+		} else if !c.CounterKindDone {
+			d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1, Source: c.Source, ResumeKind: "counter_kind", ResumeSA: sa, Prompt: "Choose a counter kind"}
+			for i, k := range counterKinds {
+				d.Options = append(d.Options, decision.Option{Index: i, Kind: "counter", Label: k, Player: c.Controller})
+			}
+			_ = Ask(h, d)
+			return
+		}
+		if c.CounterKindDone && !perKind {
+			kind = c.CounterKind
+		}
+	}
 	// CounterNumPerDefined$ (task param-putcounter-counternumperdefined): the
 	// count is evaluated PER AFFECTED OBJECT, not once for the resolving
 	// source -- Canopy Gargantuan's upkeep trigger puts +1/+1 counters on
@@ -313,7 +374,30 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	var placed []state.Target
-	for _, t := range Defined(h, c, sa) {
+	for ti, t := range Defined(h, c, sa) {
+		if perKind && len(counterKinds) > 1 {
+			if !c.CounterKindDone {
+				d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1, Source: c.Source, ResumeKind: "counter_kind", ResumeSA: sa, Prompt: "Choose a counter kind"}
+				for i, k := range counterKinds {
+					d.Options = append(d.Options, decision.Option{Index: i, Kind: "counter", Label: k, Player: c.Controller})
+				}
+				_ = Ask(h, d)
+				return
+			}
+			if ti < c.CounterKindIndex {
+				continue
+			}
+			if ti > c.CounterKindIndex {
+				c.CounterKindDone = false
+				d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1, Source: c.Source, ResumeKind: "counter_kind", ResumeSA: sa, Prompt: "Choose a counter kind"}
+				for i, k := range counterKinds {
+					d.Options = append(d.Options, decision.Option{Index: i, Kind: "counter", Label: k, Player: c.Controller})
+				}
+				_ = Ask(h, d)
+				return
+			}
+			kind = c.CounterKind
+		}
 		if t.IsPlayer {
 			// A player target takes a PLAYER counter (energy's "you get {E}{E}{E}",
 			// poison's "gets a poison counter"): the same instruction an object
@@ -361,7 +445,13 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 				amount = 0
 			}
 		}
-		h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: kind, Amount: amount})
+		if len(c.CounterKinds) > 0 && c.CounterKindsDone {
+			for _, chosenKind := range c.CounterKinds {
+				h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: chosenKind, Amount: amount})
+			}
+		} else {
+			h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: kind, Amount: amount})
+		}
 		// The mark (CR 701.31b: "...and it becomes monstrous"): one
 		// AlterAttribute per placed object, emitted AFTER its counters so the
 		// BecomeMonstrous triggers see the counters already landed. Amount is

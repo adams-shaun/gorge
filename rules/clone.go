@@ -168,6 +168,15 @@ func (e *Engine) Clone() *Engine {
 		c.resume = cloneResume(e.resume)
 	}
 	c.controlGrants = append([]controlGrant(nil), e.controlGrants...)
+	if e.counterTypeAsk != nil {
+		c.counterTypeAsk = make(map[state.ObjID]*counterTypePending, len(e.counterTypeAsk))
+		for id, p := range e.counterTypeAsk {
+			if p == nil {
+				continue
+			}
+			c.counterTypeAsk[id] = &counterTypePending{targets: append([]state.Target(nil), p.targets...), answers: append([]string(nil), p.answers...)}
+		}
+	}
 	// The per-turn ManaExpend tally (engine scratch, rules/cast.go): a clone
 	// taken at an intent boundary must resume mid-turn with the original's
 	// cumulative spend, or a crossing measured after the clone would see a

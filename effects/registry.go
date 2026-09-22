@@ -994,6 +994,14 @@ type Ctx struct {
 	// is consumed and cleared at the re-entry's top (fx42 scoping), so a
 	// nested PutCounter poses its own ask.
 	PutOpt string
+	// CounterKind is the answered kind for a comma-separated PutCounter list.
+	// CounterKindDone distinguishes an answered first-option fallback from the
+	// first pass; CounterKinds carries a ChooseDifferent$ multi-answer.
+	CounterKind      string
+	CounterKindDone  bool
+	CounterKinds     []string
+	CounterKindsDone bool
+	CounterKindIndex int
 	// PlaneswalkOpt is the answered Optional$ True "you may planeswalk"
 	// election. It is resolution-local so a nested Planeswalk cannot inherit
 	// an outer answer.
