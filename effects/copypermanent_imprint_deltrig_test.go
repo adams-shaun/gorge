@@ -13,9 +13,9 @@ import (
 // of DB$ CopyPermanent END TO END at the effects boundary: the mint imprints
 // the SOURCE with the copy (the Token-path precedent), and the following
 // DelTrig's `RememberObjects$ ImprintedLKI` -- the read-back both corpus
-// CopyPermanent carriers use (Kharasha Foothills, Shredder, Shadow Master) --
-// resolves that imprint pile, so the delayed registration remembers the
-// minted copies and the DelTrig body's `Defined$
+// carrier-shaped DelTrig that Kharasha Foothills and Shredder, Shadow Master
+// use -- resolves that imprint pile, so the delayed registration remembers
+// EXACTLY the minted copies and the DelTrig body's `Defined$
 // DelayTriggerRememberedLKI` names them. Before the ImprintedLKI case landed
 // in definedSpec the registration carried NO ids and emitted one "unmodelled
 // DelayedTrigger RememberObjects$ ImprintedLKI" Note, so the delayed
@@ -23,8 +23,8 @@ import (
 //
 // This test can fail three ways and each is the point: the copy is not
 // imprinted on the source (the emit dropped), the registration carries no ids
-// (the read-back dead again), or the read-back names the remembered CARD
-// rather than the minted copy.
+// (the read-back dead again), or the registration retains the chain's
+// remembered CARD alongside the minted copy.
 func TestCopyPermanentImprintTokensDelTrigReadBack(t *testing.T) {
 	h, c := fixtureHostWithTokens(t) // Game.Tokens: r_1_1_goblin, ...
 	// The copy SOURCE plus a distinct creature to copy: the DelTrig read-back
@@ -65,8 +65,9 @@ func TestCopyPermanentImprintTokensDelTrigReadBack(t *testing.T) {
 		t.Fatalf("Defined$ ImprintedLKI = %+v, want exactly the minted copy %d", pile, token)
 	}
 
-	// The carrier's DelTrig shape (kharasha_foothills / shredder_shadow_master):
-	// the CopyPermanent's sibling DelayedTrigger reads the imprint pile back.
+	// The carrier-shaped DelTrig: CopyPermanent's sibling DelayedTrigger reads
+	// the imprint pile back. The corpus carriers' RepeatEach selector remains
+	// unimplemented, so their complete chains are separately unreachable.
 	before := len(h.log)
 	Resolve(h, c, &cards.SA{Kind: "DB", API: "DelayedTrigger", Params: map[string]string{
 		"Mode": "Phase", "Phase": "End Of Turn", "Execute": "TrigExile",
@@ -80,14 +81,8 @@ func TestCopyPermanentImprintTokensDelTrigReadBack(t *testing.T) {
 	if reg == nil {
 		t.Fatalf("no DelayedRegister emitted; log %+v", h.log[before:])
 	}
-	sawToken := false
-	for _, id := range reg.IDs {
-		if id == token {
-			sawToken = true
-		}
-	}
-	if !sawToken {
-		t.Fatalf("DelTrig registration ids = %v, want the minted copy %d (the imprint read-back; the chain's own remember set may ride alongside)", reg.IDs, token)
+	if len(reg.IDs) != 1 || reg.IDs[0] != token {
+		t.Fatalf("DelTrig registration ids = %v, want exactly the minted copy [%d]", reg.IDs, token)
 	}
 	for _, ev := range h.log[before:] {
 		if ev.Kind == events.Note && strings.Contains(ev.Text, "unmodelled DelayedTrigger RememberObjects$") {

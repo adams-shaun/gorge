@@ -822,6 +822,7 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 // through after the objects. Deterministic (slices in order, no map range
 // reaches a caller's output) and allocation-only: it writes no state and
 // emits no event.
+//
 // imprintPileTargets resolves the SOURCE's persistent imprint association
 // (state.Object.Imprinted + ImprintTokens): the exiled cards -- Imprint links
 // an exiled card only while the linked card remains in exile (CR 607.2a); its
