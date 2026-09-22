@@ -353,4 +353,16 @@ func TestCountersAddedThisTurnMalformedStaysUnresolvable(t *testing.T) {
 	if n, ok := effects.EvalCountOK(e, ctx, "Count$CountersAddedThisTurn P1P1 You Creature Extra"); ok || n != 0 {
 		t.Fatalf("over-long count = %d (ok %v), want unresolvable", n, ok)
 	}
+	// Every field is a closed measured grammar. An unknown kind, player
+	// qualifier, or object filter must not be laundered into an evaluated
+	// zero: CheckSVar gives that result a different meaning.
+	for _, body := range []string{
+		"Count$CountersAddedThisTurn AGE You Creature",
+		"Count$CountersAddedThisTurn Any You.UnknownQualifier Creature",
+		"Count$CountersAddedThisTurn Any You NotAForgeObjectSpec",
+	} {
+		if n, ok := effects.EvalCountOK(e, ctx, body); ok || n != 0 {
+			t.Fatalf("unsupported count %q = %d (ok %v), want unresolvable", body, n, ok)
+		}
+	}
 }

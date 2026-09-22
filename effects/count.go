@@ -1424,7 +1424,7 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		// Keep malformed or unsupported shapes unresolvable: CheckSVar
 		// distinguishes that from an evaluated zero.
 		parts := strings.Fields(arg)
-		if len(parts) == 3 && c.Controller >= 0 && playerSpecBaseKnown(parts[1]) && parts[2] != "" {
+		if len(parts) == 3 && c.Controller >= 0 && countersAddedThisTurnArgsKnown(parts[0], parts[1], parts[2]) {
 			// The measured grammar needs only You and Source: Card.Self and
 			// Card.EffectSource resolve from Source, while the other forms are
 			// object/player predicates. Do not pass c.SpecContext here: handing
@@ -2349,6 +2349,25 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		return f.n, true
 	}
 	return 0, false
+}
+
+// countersAddedThisTurnArgsKnown accepts the complete measured grammar for
+// Count$CountersAddedThisTurn. Unlike the ordinary filter parser, this count
+// head cannot safely treat an unknown field as a filter that matches nothing:
+// CheckSVar distinguishes that evaluated zero from an unresolvable Count$.
+// Keep this narrow until a corpus carrier establishes another spelling.
+func countersAddedThisTurnArgsKnown(kind, actor, object string) bool {
+	if !strings.EqualFold(kind, "Any") && !strings.EqualFold(kind, "P1P1") && !strings.EqualFold(kind, "LORE") {
+		return false
+	}
+	if actor != "You" && actor != "Player" {
+		return false
+	}
+	switch object {
+	case "Creature", "Creature.YouCtrl", "Permanent.YouCtrl", "Card.Self", "Card.EffectSource":
+		return true
+	}
+	return false
 }
 
 // playerSpecBaseKnown reports whether spec's base word (the text before the
