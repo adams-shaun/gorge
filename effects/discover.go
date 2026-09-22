@@ -1,6 +1,9 @@
 package effects
 
 import (
+	"strconv"
+	"strings"
+
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
@@ -16,13 +19,21 @@ func init() {
 	Register("DiscoverBottom", effDiscoverBottom)
 }
 
-func discoverPlaySA() *cards.SA {
+func discoverPlaySA(value int32, remember bool) *cards.SA {
 	play := &cards.SA{Kind: "DB", API: "Play", Params: map[string]string{
 		"Defined": "Remembered", "WithoutManaCost": "True", "Optional": "True",
 		"TriggerDescription": "Discover",
 	}}
-	play.Sub = &cards.SA{Kind: "DB", API: "DiscoverBottom", Params: map[string]string{}}
+	tail := map[string]string{"Amount": strconv.FormatInt(int64(value), 10)}
+	if remember {
+		tail["RememberDiscovered"] = "True"
+	}
+	play.Sub = &cards.SA{Kind: "DB", API: "DiscoverBottom", Params: tail}
 	return play
+}
+
+func emitDiscover(h Host, c *Ctx, value int32) {
+	h.Emit(events.Event{Kind: events.Discover, Player: c.Controller, Obj: c.Source, Amount: value})
 }
 
 func effDiscover(h Host, c *Ctx, sa *cards.SA) {
@@ -67,11 +78,11 @@ func effDiscover(h Host, c *Ctx, sa *cards.SA) {
 			To: state.ZLibrary, Text: "undiscovered card put on the bottom of the library"})
 	}
 	if found == 0 {
-		h.Emit(events.Event{Kind: events.Discover, Player: p, Obj: c.Source})
+		emitDiscover(h, c, value)
 		return
 	}
 	c.Remembered = []state.Target{{Obj: found}}
-	play := discoverPlaySA()
+	play := discoverPlaySA(value, strings.EqualFold(strings.TrimSpace(sa.Params["RememberDiscovered"]), "True"))
 	effPlay(h, c, play)
 	if !h.Suspended() {
 		// R-9's no-host fallback declines the optional Play.
@@ -88,7 +99,9 @@ func effDiscover(h Host, c *Ctx, sa *cards.SA) {
 func effDiscoverBottom(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
 	remembered := c.Remembered
-	c.Remembered = nil
+	if !strings.EqualFold(strings.TrimSpace(sa.Params["RememberDiscovered"]), "True") {
+		c.Remembered = nil
+	}
 	for _, t := range remembered {
 		if t.IsPlayer || t.Obj == 0 {
 			continue
@@ -100,5 +113,5 @@ func effDiscoverBottom(h Host, c *Ctx, sa *cards.SA) {
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: t.Obj, From: state.ZExile,
 			To: state.ZHand, Text: "the undiscovered card is put into its owner's hand"})
 	}
-	h.Emit(events.Event{Kind: events.Discover, Player: c.Controller, Obj: c.Source})
+	emitDiscover(h, c, Num(h, c, sa, "Amount", 0))
 }
