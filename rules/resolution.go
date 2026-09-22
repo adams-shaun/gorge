@@ -616,6 +616,25 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 			pc.modeCostsDone = true
 			pc.cost = pc.cost.Plus(modeCostTotal(e.G.Obj(pc.card).Face(), names))
 		}
+		// Escalate (the modal additional cost): a cast choosing N modes pays
+		// the escalate cost N-1 times. Folded into pc.cost once, exactly like
+		// the ModeCost$ fold above, so the tap/discard part asks the
+		// continueCast re-entry below walks ask for the extra resources and
+		// the payment window charges the composed total. An unpriceable
+		// parameter (ParseCost's degraded Unknown tokens) is a loud no-charge,
+		// never a fabricated generic. A one-mode cast folds nothing and stays
+		// byte-identical.
+		if pc.escalateSet && !pc.escalateDone && len(names) > 1 {
+			pc.escalateDone = true
+			if esc := ParseCost(pc.escalateParam); len(esc.Unknown) == 0 {
+				for i := 1; i < len(names); i++ {
+					pc.cost = pc.cost.Plus(esc)
+				}
+			} else {
+				e.emit(events.Event{Kind: events.Note, Player: pc.player, Obj: pc.card,
+					Text: "escalate cost unpriceable; casting without the escalate charge"})
+			}
+		}
 		e.emit(events.Event{Kind: events.ModeChosen, Obj: pc.stackObj, Player: in.Player,
 			Text: strings.Join(labels, ",")})
 		e.continueCast()
@@ -1397,6 +1416,24 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 					ctx.VoteAnswer = append(ctx.VoteAnswer, state.Target{Player: o.Player, IsPlayer: true})
 				} else if o.Obj != 0 {
 					ctx.VoteAnswer = append(ctx.VoteAnswer, state.Target{Obj: o.Obj})
+				}
+			}
+		case "demonstrate":
+			// The demonstrate trigger's answered ask (CR 702.152): which ask
+			// rides the decision's ResumeTarget (rp.target -- 0 the may-copy
+			// election, 1 the opponent choice); the election's yes/no answer
+			// and the opponent pick are the chosen options. effDemonstrate
+			// consumes and clears all four fields at the top of its walk (the
+			// fx42 scoping discipline), so a nested Demonstrate below this
+			// one poses its own asks.
+			ctx.DemonstrateDone = true
+			ctx.DemonstrateStage = rp.target
+			for _, o := range chosen {
+				switch o.Kind {
+				case "yes":
+					ctx.DemonstrateYes = true
+				case "player":
+					ctx.DemonstrateOpp = append(ctx.DemonstrateOpp, state.Target{Player: o.Player, IsPlayer: true})
 				}
 			}
 		case "tgts":

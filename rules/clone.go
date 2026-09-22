@@ -115,6 +115,10 @@ func (e *Engine) Clone() *Engine {
 		ev := *e.riotMove
 		c.riotMove = &ev
 	}
+	if e.unleashMove != nil {
+		ev := *e.unleashMove
+		c.unleashMove = &ev
+	}
 	if e.siegeMove != nil {
 		ev := *e.siegeMove
 		c.siegeMove = &ev
@@ -482,6 +486,7 @@ func (e *Engine) Clone() *Engine {
 		pc.delve = append([]state.ObjID(nil), e.cast.delve...)
 		pc.sacs = append([]state.ObjID(nil), e.cast.sacs...)
 		pc.discards = append([]state.ObjID(nil), e.cast.discards...)
+		pc.subCtrs = append([]state.ObjID(nil), e.cast.subCtrs...)
 		pc.exiles = append([]state.ObjID(nil), e.cast.exiles...)
 		pc.returns = append([]state.ObjID(nil), e.cast.returns...)
 		pc.moveGraves = append([]state.ObjID(nil), e.cast.moveGraves...)

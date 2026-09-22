@@ -80,14 +80,24 @@ func (e *Engine) attacksMatches(t cards.Trigger, source state.ObjID, ev events.E
 	// the attacker and its defender is wrong in multiplayer: a third player
 	// with more life prevents the trigger even though it was not attacked.
 	if v, ok := t.Params["Dethrone"]; ok && strings.EqualFold(v, "True") {
-		if int(ev.Player) >= len(e.G.Players) || e.G.Players[ev.Player].Lost {
+		if !e.playerHasMostLife(ev.Player) {
 			return false
 		}
-		life := e.G.Players[ev.Player].Life
-		for i := range e.G.Players {
-			if !e.G.Players[i].Lost && e.G.Players[i].Life > life {
-				return false
-			}
+	}
+	// Condition$ AttackedPlayerWithMostLife (Scourge of the Throne, the
+	// corpus's one carrier of this spelling on a trigger line): the
+	// "if it's attacking the player with the most life or tied for most
+	// life" intervening-if. It is the SAME gate Dethrone reads -- one shared
+	// playerHasMostLife helper, so the two cannot drift -- evaluated on the
+	// event's declared defender, which is why it lives in the per-mode
+	// matcher beside Dethrone and not in the shared triggerConditionHolds
+	// walk (no event there to name the defender). Mirroring Dethrone, the
+	// gate is fire-time only: the resolution-time CR 603.4 recheck cannot
+	// re-derive the attacked player from the event, the same scope every
+	// other event-relative matcher gate here keeps.
+	if strings.EqualFold(strings.TrimSpace(t.Params["Condition"]), "AttackedPlayerWithMostLife") {
+		if !e.playerHasMostLife(ev.Player) {
+			return false
 		}
 	}
 	// Training (CR 702.70) fires only when the attacking source attacks
@@ -163,6 +173,25 @@ func (e *Engine) attacksMatches(t cards.Trigger, source state.ObjID, ev events.E
 		}
 	}
 	return false
+}
+
+// playerHasMostLife reports whether p is alive and their life total is
+// greater than or equal to every other LIVING player's (tied is enough). The
+// Dethrone gate (CR 702.105) and Scourge of the Throne's Condition$
+// AttackedPlayerWithMostLife share this one read so the two cannot drift: a
+// p outside the player slice or already lost answers false, and only living
+// seats count against the comparison (a dead larger total is no larger).
+func (e *Engine) playerHasMostLife(p state.PlayerID) bool {
+	if int(p) >= len(e.G.Players) || e.G.Players[p].Lost {
+		return false
+	}
+	life := e.G.Players[p].Life
+	for i := range e.G.Players {
+		if !e.G.Players[i].Lost && e.G.Players[i].Life > life {
+			return false
+		}
+	}
+	return true
 }
 
 // firstAttackOK reports whether the matched attacker passes the trigger's

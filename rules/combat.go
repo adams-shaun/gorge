@@ -42,7 +42,10 @@ import (
 
 // canAttack reports whether id may be declared as an attacker (CR 508.1a):
 // a creature under the active player's control, untapped, without Defender
-// (CR 702.3b), and either not summoning sick or hasty.
+// (CR 702.3b), and either not summoning sick or hasty. A reconfigure card
+// while attached is not a creature (CR 702.150c): the derived type switch
+// (reconfigureTypeSwitch) already dropped Creature, so IsCreature answers
+// false here with no extra gate.
 func (e *Engine) canAttack(id state.ObjID) bool {
 	o := e.G.Obj(id)
 	if o == nil || o.Zone != state.ZBattlefield || o.Controller != e.G.Active {
@@ -104,6 +107,14 @@ func (e *Engine) canBlock(blocker, attacker state.ObjID) bool {
 	// can't-block gate lives (Flying, Shadow, blockRestricted), so the ask's
 	// options and the validator's recompute share one oracle.
 	if b.Suspected {
+		return false
+	}
+	// CR 702.86 (kw:Unleash): a creature with unleash can't block while it
+	// has a +1/+1 counter on it. The keyword rides the derived list (printed
+	// plus layer-6 granted -- Tesak's "Other Dogs you control have unleash"),
+	// and the counter is live state, so both halves are read here, the same
+	// status-gate shape the Suspected check above practises.
+	if e.HasKeyword(blocker, "Unleash") && b.Counter("P1P1") > 0 {
 		return false
 	}
 	// CR 509.1a / 702.16j: a creature that the attacker is protected from
@@ -920,7 +931,7 @@ func (e *Engine) legalBlockerCount(attacker state.ObjID, defender state.PlayerID
 func (e *Engine) defenderCreatureCount(defender state.PlayerID) int {
 	n := 0
 	for _, id := range e.G.Zone(state.ZBattlefield, defender) {
-		if o := e.G.Obj(id); o != nil && o.EffectiveIsCreature() && !o.BestowedAttached() {
+		if o := e.G.Obj(id); o != nil && o.EffectiveIsCreature() && !o.BestowedAttached() && !o.ReconfiguredAttached() {
 			n++
 		}
 	}
@@ -1234,10 +1245,10 @@ func (e *Engine) divisionNeeding(pass bool) []state.ObjID {
 		if !e.actsThisDamageStep(id, pass) {
 			continue
 		}
-		if e.HasKeyword(id, "Trample") || e.Power(id) <= 0 || len(e.liveBlockers(a)) < 2 {
+		if e.HasKeyword(id, "Trample") || e.combatDamageAmount(id) <= 0 || len(e.liveBlockers(a)) < 2 {
 			continue
 		}
-		if e.divisionCount(e.liveBlockers(a), e.Power(id)) > maxDivisionOptions {
+		if e.divisionCount(e.liveBlockers(a), e.combatDamageAmount(id)) > maxDivisionOptions {
 			continue
 		}
 		out = append(out, id)
@@ -1330,7 +1341,7 @@ func (e *Engine) asUnblockedNeeding(pass bool) []state.ObjID {
 		if !e.actsThisDamageStep(id, pass) {
 			continue
 		}
-		if len(a.BlockedBy) == 0 || e.Power(id) <= 0 {
+		if len(a.BlockedBy) == 0 || e.combatDamageAmount(id) <= 0 {
 			continue
 		}
 		if e.HasKeyword(id, "Trample") && len(e.liveBlockers(a)) == 0 {
@@ -1424,7 +1435,7 @@ func (e *Engine) askNextDivision() bool {
 // the split table lets the answer handler recover the chosen amounts.
 func (e *Engine) divisionOptions(a state.ObjID) ([]decision.Option, [][]int32) {
 	blockers := e.liveBlockers(e.G.Obj(a))
-	pw := e.Power(a)
+	pw := e.combatDamageAmount(a)
 	n := len(blockers)
 	var splits [][]int32
 	var cur []int32
@@ -1703,7 +1714,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 		blockers := e.liveBlockers(a)
 
 		if e.actsThisDamageStep(aid, firstStrike) {
-			if pw := e.Power(aid); pw > 0 {
+			if pw := e.combatDamageAmount(aid); pw > 0 {
 				link := e.HasKeyword(aid, "Lifelink")
 				dt := e.HasKeyword(aid, "Deathtouch")
 				trample := e.HasKeyword(aid, "Trample")
@@ -1804,7 +1815,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 			if !e.actsThisDamageStep(bid, firstStrike) {
 				continue
 			}
-			if bp := e.Power(bid); bp > 0 {
+			if bp := e.combatDamageAmount(bid); bp > 0 {
 				as = append(as, assignment{toObj: aid, amount: bp,
 					lifelink: e.G.Obj(bid).Controller, hasLink: e.HasKeyword(bid, "Lifelink"),
 					deathtouch: e.HasKeyword(bid, "Deathtouch"), from: bid})

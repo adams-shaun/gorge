@@ -202,6 +202,16 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// than letting it fall to the allTriggerEvents default keeps an
 		// Exploited-only face's mask narrow for every other kind.
 		return 0
+	case "BecomeMonstrous":
+		// The AlterAttribute carrier's ordinal is past the 64-bit mask's
+		// reach, the Exploited/Investigated shape: a mask bit is not encodable
+		// and allows() fails open for every kind at or past
+		// triggerMaskKindBits, so the mode is admitted through that fail-open
+		// path and gated by the full matcher (becomeMonstrousMatches, task
+		// agent-20260919T190014Z). Naming the mode here rather than letting it
+		// fall to the allTriggerEvents default keeps a BecomeMonstrous-only
+		// face's mask narrow for every other kind.
+		return 0
 	case "RingTemptsYou":
 		// The Kind's ordinal (65) is past the 64-bit mask's reach: a mask bit
 		// is not encodable, and allows() fails open for every kind at or past
@@ -260,7 +270,7 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// Note (once per die), RolledDieOnce on the per-resolution batch Note
 		// (once per roll action).
 		return 1 << events.Note
-	case "CounterAdded", "CounterAddedOnce", "CounterRemoved":
+	case "CounterAdded", "CounterAddedOnce", "CounterRemoved", "CounterRemovedOnce":
 		return 1 << events.CounterChange
 	case "ClassLevelGained":
 		// CR 702.118c: the same CounterChange event the level-up
