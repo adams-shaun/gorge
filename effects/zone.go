@@ -517,6 +517,12 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// Mox's own DefinedCards$ ExiledWith read needs it, not just the
 		// distinct ExiledCards list exiledWithAssociation below maintains.
 		ev := moveZoneEvent(c, o.ID, o.Zone, to)
+		// Capture the LKI before the emit: events.Apply's Move fold resets a
+		// battlefield departure's controller to its owner (CR 400.7), so this
+		// is the last point the pre-move controller is readable.
+		if strings.EqualFold(sa.Params["RememberLKI"], "True") {
+			c.ChangeZoneLKI = append(c.ChangeZoneLKI, state.LKIObject{Obj: o.ID, Controller: o.Controller, Owner: o.Owner})
+		}
 		if to == state.ZExile && len(ev.IDs) == 0 && (faceStaticsNameExiledWithSource(h, c.Source) || strings.EqualFold(strings.TrimSpace(sa.Params["Imprint"]), "True")) {
 			ev.IDs = []state.ObjID{c.Source}
 		}
@@ -836,6 +842,11 @@ func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, 
 			Text: "Tapped$ True on a hand ChangeZone is not implemented; the card enters untapped"})
 	}
 	ev := moveZoneEvent(c, id, from, to)
+	if strings.EqualFold(sa.Params["RememberLKI"], "True") {
+		if o := h.Game().Obj(id); o != nil {
+			c.ChangeZoneLKI = append(c.ChangeZoneLKI, state.LKIObject{Obj: id, Controller: o.Controller, Owner: o.Owner})
+		}
+	}
 	if to == state.ZExile && len(ev.IDs) == 0 && (faceStaticsNameExiledWithSource(h, c.Source) || strings.EqualFold(strings.TrimSpace(sa.Params["Imprint"]), "True")) {
 		// The S: static spelling of the same provenance need: a source whose
 		// own Static lines name ExiledWithSource (Intellect Devourer's
