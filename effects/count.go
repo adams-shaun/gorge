@@ -623,6 +623,20 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 			return []state.Target{{Obj: c.TriggerAbility}}, true
 		}
 		return c.Remembered, true
+	case "CastSA":
+		// The cast spell ability (Graven Archfiend's ETB gate
+		// "CastSA>Count$OptionalGenericCostPaid.1.0"): the cast spell's own
+		// object. For the corpus shape -- an ETB trigger of the permanent the
+		// cast spell became -- the ctx source IS that object (the
+		// stack->battlefield move preserves the id, and the pay-time CastInfo
+		// folded the paid provenance onto it), so binding the ctx source is
+		// exactly the binding the indirection needs; a copy of the spell is a
+		// distinct object and reads its own (unpaid) provenance. An absent
+		// source fails closed, the refTargets convention.
+		if c.Source != 0 {
+			return []state.Target{{Obj: c.Source}}, true
+		}
+		return nil, false
 	case "Remembered":
 		// Forge's plain Remembered$ form reads the executing ability's shared
 		// host-card remembered list: the ctx walk's set UNIONED with the
@@ -1063,8 +1077,14 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	head, arg, _ := strings.Cut(body, " ")
 	arg = strings.TrimSpace(arg)
 	if arg == "" {
-		if h2, a2, ok := strings.Cut(head, "."); ok {
-			head, arg = h2, a2
+		// ONLY OptionalGenericCostPaid's space-less dotted <paid>.<unpaid>
+		// argument is split here. Every other dotted head (CardCounters.CHARGE,
+		// Kicked.4.0, Foretold.1.0, ...) is parsed WHOLE by its own downstream
+		// CutPrefix arm, so a generic split would truncate the head to its
+		// first segment and bypass that arm -- Count$CardCounters.CHARGE would
+		// reach the bare-CardCounters fallthrough as an unresolved zero.
+		if rest, ok := strings.CutPrefix(head, "OptionalGenericCostPaid."); ok {
+			head, arg = "OptionalGenericCostPaid", strings.TrimSpace(rest)
 		}
 	}
 
