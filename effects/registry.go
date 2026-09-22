@@ -192,6 +192,16 @@ type Host interface {
 	// first) — the order is irrelevant to the aggregate reads (a sum).
 	// Derived from the event log like SpellsCastThisTurnMatching.
 	EachSpellCastThisTurnMatching(you state.PlayerID, spec string, exclude state.ObjID) []state.ObjID
+	// CommanderCastsFromCommandZone counts how many times player p has cast
+	// one of THEIR OWN commanders from the command zone this game — the
+	// same provenance the CR 903.8 commander tax counts (rules/cast.go's
+	// recordCmdCast maintains the parallel CmdCasts slice from the same
+	// PutOnStack events). Whole-game scope, log-derived, so a replay that
+	// rebuilds the log arrives at the same number. This backs the
+	// Count$TotalCommanderCastFromCommandZone head (Thunderclap Drake's
+	// copy count, Commanders Insignia's P/T, Henzie's blitz discount; 17
+	// corpus carriers) — never a live-only engine counter.
+	CommanderCastsFromCommandZone(p state.PlayerID) int32
 	// WasCastFromHandByYou reports whether card obj was cast from ITS OWN
 	// CONTROLLER's hand by that controller — the Count$wasCastFromYourHandByYou
 	// branch head backing (the Myojin cycle's etbCounter CheckSVar$ gate:
@@ -229,6 +239,18 @@ type Host interface {
 	// ByYou read takes); a card never put on the stack (cheated into play)
 	// reads false; latest-cast-wins.
 	WasCastFromHand(obj state.ObjID) bool
+	// WasCastFromExile reports whether card obj's LATEST cast came from
+	// EXILE — the Count$wasCastFromExile branch head's backing (task
+	// wascastfrom: the "if this spell was cast from exile" carriers —
+	// Delayed Blast Fireball's 5-instead-of-2, Ultimate Magic's
+	// prevent-effect gate, Lifestream's Blessing's doubled life gain).
+	// Foretell, warp and may-play-from-exile casts carry no origin CastFlags
+	// bit, so the provenance is the event log: the object's latest
+	// PutOnStack event names the cast, whose From is the zone it was cast
+	// FROM; a copy was never cast; a card never put on the stack reads
+	// false; latest-cast-wins — the same discipline the hand reads take.
+	// Derived from the log, so a replay derives the same answer.
+	WasCastFromExile(obj state.ObjID) bool
 	// WasCast reports whether card obj is a CAST SPELL in the Forge
 	// Card.wasCast() sense (castFrom != null) -- the third conjunct of the
 	// Count$IfCastInOwnMainPhase branch head (task ifcastmain1). A card

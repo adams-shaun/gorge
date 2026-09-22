@@ -940,6 +940,23 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			return o.SquadPaid, true
 		}
 		return 0, true
+	case "OffspringPaid":
+		// CR 702.175a: whether the resolving spell's cast paid the optional
+		// Offspring additional cost ("You may pay an additional [cost] as you
+		// cast this spell. If you do, when this creature enters, create a 1/1
+		// token copy of it."), carried by the pay-time CastInfo's
+		// FlagOffspringPaid (rules/cast.go's payCast). The same provenance
+		// read SquadPaid makes: read off the SOURCE -- the cast spell on the
+		// stack, and in the keyword expansion's ETB trigger the permanent the
+		// spell became (the stack->battlefield move preserves the field) -- so
+		// a replay derives the same value; a copy of the spell was never cast
+		// and reads 0 (so a minted 1/1 copy mints no further copies).
+		if o := g.Obj(c.Source); o != nil {
+			if o.OffspringPaid {
+				return 1, true
+			}
+		}
+		return 0, true
 	case "TimesKicked":
 		// CR 702.43: the number of times the resolving spell's multikicker
 		// cost was paid as it was cast, carried by the pay-time CastInfo's
@@ -1095,6 +1112,16 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		// classic idiom is Count$ThisTurnCast/Minus1 (storm copies the spell
 		// once per spell cast before it, i.e. everyone's casts minus itself).
 		return int32(h.CastThisTurn()), true
+	case "TotalCommanderCastFromCommandZone":
+		// Forge's "for each time you've cast your commander from the command
+		// zone this game" head (Thunderclap Drake's copy Amount$ X,
+		// Commanders Insignia's P/T, Henzie's blitz discount, The Swarmlord's
+		// /Twice entry counters; 17 corpus carriers). The resolving
+		// controller's own command-zone commander casts over the WHOLE game
+		// — log-derived through the Host like CastThisTurn, so a replay
+		// derives the same number, and the same provenance read the
+		// CR 903.8 commander tax already counts.
+		return h.CommanderCastsFromCommandZone(c.Controller), true
 	case "RememberedNumber":
 		// Forge's Count$RememberedNumber is the executing ability's remembered
 		// count -- the same list evalRememberedOK's Amount head reads. In this
@@ -1614,6 +1641,37 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 				n3 = 0
 			}
 			return n3, true
+		case "wasCastFromExile":
+			// The resolving source was CAST FROM EXILE (task wascastfrom; the
+			// delayed_blast_fireball `Count$wasCastFromExile.5.2`,
+			// lifestreams_blessing `.2.0` and the ultimate_magic `.1.0`
+			// carriers): the CR 601.2b provenance of an exile-origin cast —
+			// foretell, warp, may-play — which carries no CastFlags bit (the
+			// flags mark alternative costs and origins only), so the read is
+			// the object's latest PutOnStack (Host.WasCastFromExile's log
+			// scan, replay-derivable), the same discipline the hand branch
+			// heads take: a copy was never cast, and a card never put on the
+			// stack (cheated into play) reads false. Branch tokens resolve
+			// through resolveCountOperand, the same machinery.
+			yesTok, noTok, _ := strings.Cut(head[dot+1:], ".")
+			holds := false
+			if o := g.Obj(c.Source); o != nil && !o.IsCopy {
+				if h != nil {
+					holds = h.WasCastFromExile(c.Source)
+				}
+			}
+			if holds {
+				y, ok := resolveCountOperand(h, c, yesTok, depth)
+				if !ok {
+					y = 0
+				}
+				return y, true
+			}
+			nE, ok := resolveCountOperand(h, c, noTok, depth)
+			if !ok {
+				nE = 0
+			}
+			return nE, true
 		case "IfCastInOwnMainPhase", "InOwnMainPhase":
 			// CR "if you cast this spell during your main phase": the
 			// yes/no branch head Forge's AbilityUtils reads as
@@ -1814,6 +1872,7 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 				for _, z := range countAllZones {
 					for _, id := range g.Zone(z, p) {
 						f.visit(id, z, specCtx)
+
 					}
 				}
 			}
@@ -1821,7 +1880,19 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 				f.visit(id, state.ZStack, specCtx)
 			}
 		} else {
-			for _, p := range g.AliveFrom(0) {
+			// The stack is ONE shared list (state.Game.Zone returns g.Stack
+			// for every seat), so a single-zone stack scan must run exactly
+			// once: without this guard an N-seat table counts every stack
+			// object N times -- Mindbreak Trap's MaxTgts bound and Display
+			// of Power's copy count both read on the caster's own spell(s).
+			// Scanned under the first alive seat, the same convention
+			// rules/statics.go and rules/trigger_match.go use for the
+			// shared stack. The ValidAll branch above is exempt: its stack
+			// pass sits outside the seat loop already.
+			for si, p := range g.AliveFrom(0) {
+				if zone == state.ZStack && si > 0 {
+					continue
+				}
 				for _, id := range g.Zone(zone, p) {
 					f.visit(id, zone, specCtx)
 				}

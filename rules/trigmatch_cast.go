@@ -10,6 +10,7 @@
 package rules
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -768,4 +769,49 @@ func init() {
 		return e.abilityCastMatches(t, source, ev)
 	}, "AbilityCast")
 	registerTrigMatcher((*Engine).spellAbilityCastMatches, "SpellAbilityCast")
+	// ManaExpend (CR-expend, Bloomburrow Commander): "Whenever you expend N
+	// ..." fires when its controller's per-turn cast-spend tally CROSSES the
+	// trigger's Amount$ N. payCast (rules/cast.go) folds every paid cast into
+	// the per-turn engine tally (manaExpended) and, when a carrier is out,
+	// emits a pay-time FlagManaExpendCast CastInfo whose Amount is that cast's
+	// spend; this matcher reads the tally for `total` and `total - Amount` for
+	// the pre-payment base, so prev < N <= total. A cast that starts
+	// at-or-above N fires nothing (no second crossing), and a later threshold
+	// (Muerra's expend 8 beside its expend 4) crosses independently in the
+	// same payment. Player$ You is the only selector the corpus writes (13
+	// lines): any other Player$ value fails closed.
+	registerTrigMatcher((*Engine).manaExpendMatches, "ManaExpend")
+}
+
+// manaExpendMatches implements Mode$ ManaExpend. See the registration above
+// for the crossing contract; manaExpendReaderOut (rules/cast.go) is the
+// heads-safety gate that makes the matched event exist at all.
+//
+// The crossing base is e.manaExpendTotal -- the engine's per-turn tally,
+// which payCast updates on EVERY paid cast (manaExpendAdd), not just casts
+// made while a carrier was out. Reading it, rather than a gated event fold,
+// is what makes a carrier that entered mid-turn see the casts made before it
+// entered: the pre-entry spend is in `total` but not in `ev.Amount`, so
+// `prev = total - ev.Amount` is the true pre-payment tally for this cast and
+// the crossing test is exact in both directions.
+func (e *Engine) manaExpendMatches(t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+	if ev.Kind != events.CastInfo || events.FlagsFrom(ev.Counter)&state.FlagManaExpendCast == 0 {
+		return false
+	}
+	// Player$ You: the expending player must be the trigger's controller.
+	if p := strings.TrimSpace(t.Params["Player"]); p != "" && !strings.EqualFold(p, "You") {
+		return false
+	}
+	if e.controllerOf(source) != ev.Player || int(ev.Player) >= len(e.G.Players) {
+		return false
+	}
+	n, err := strconv.Atoi(strings.TrimSpace(t.Params["Amount"]))
+	if err != nil || n <= 0 {
+		// An unreadable or non-positive Amount$ is a threshold this engine
+		// cannot evaluate: fail closed, never fire wide.
+		return false
+	}
+	total := e.manaExpendTotal(ev.Player)
+	prev := total - ev.Amount
+	return prev < int32(n) && total >= int32(n)
 }

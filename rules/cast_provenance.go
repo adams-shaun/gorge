@@ -34,9 +34,23 @@
 //     raw carrier files. A copy was never cast (the same IsCopy guard both
 //     existing families take); a card never put on the stack reads false.
 //
+//   - the origin-zone family (task wascastfrom): wasCastFromExile,
+//     wasCastFromYourGraveyard, wasCastFromYourGraveyardByYou and
+//     wasCastFromTheirHand — the object's LATEST PutOnStack cast came from
+//     the named zone (and, for the YourGraveyard spellings, was made by the
+//     evaluating you). The bare wasCastFromGraveyard spelling is NOT here:
+//     it is the effects-side CastFlags predicate (FlagFlashback | Harmonize
+//     | Escaped, effects/filter.go), which the rules-side strip must leave
+//     in place for the effects-only call sites (the ConditionPresent gates,
+//     the target ValidTgts$ matching) — and the log read and the flag read
+//     agree on every shape the flag covers, so a rules-side site that strips
+//     the other four never disagrees with an effects-side site that keeps it.
+//     The same latest-cast-wins and copy-was-never-cast guards the hand
+//     families take apply here.
+//
 // castProvenanceAdmits is the combined entry point every match site calls:
-// it evaluates all three families in one pass, so a future carrier mixing
-// the tokens in one spec is covered by construction (measured: alex_wilder
+// it evaluates all the families in one pass, so a future carrier mixing the
+// tokens in one spec is covered by construction (measured: alex_wilder
 // and quandrix_the_proof carry wasCastByYou AND the bare token in one
 // alternative).
 
@@ -44,6 +58,8 @@ package rules
 
 import (
 	"strings"
+
+	"github.com/adams-shaun/gorge/events"
 
 	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/state"
@@ -92,12 +108,26 @@ func admitProvenanceAlternatives(spec, pred string, holds bool) (string, bool) {
 // the surviving alternatives are rejoined. ok is false when no alternative
 // survives: the spec matches nothing.
 func (e *Engine) castFromHandAdmits(spec string, objID state.ObjID, you state.PlayerID) (string, bool) {
+	return e.castFromHandAdmitsWindow(spec, objID, you, false)
+}
+
+// castFromHandAdmitsWindow is castFromHandAdmits with the pre-push OFFER
+// window fallback: when pendingCast is set (the layer walk is evaluating an
+// AffectedZone$ Stack grant against the object being cast, before CR
+// 601.2a's push), the log carries no PutOnStack yet, so "cast from your hand
+// by you" is inferred from the offer-time object: its controller is the
+// caster and its zone is the hand. The log read still wins whenever it has
+// an answer (a real on-stack spell), so no pushed cast changes behaviour.
+func (e *Engine) castFromHandAdmitsWindow(spec string, objID state.ObjID, you state.PlayerID, pendingCast bool) (string, bool) {
 	if !strings.Contains(spec, "wasCastFromYourHandByYou") {
 		return spec, true
 	}
 	holds := false
 	if o := e.G.Obj(objID); o != nil && !o.IsCopy {
 		holds = e.WasCastFromHandByYou(objID, you)
+		if !holds && pendingCast {
+			holds = o.Controller == you && o.Zone == state.ZHand
+		}
 	}
 	return admitProvenanceAlternatives(spec, "wasCastFromYourHandByYou", holds)
 }
@@ -106,12 +136,29 @@ func (e *Engine) castFromHandAdmits(spec string, objID state.ObjID, you state.Pl
 // (castprov2): "was cast at all, by you" — some PutOnStack event for this
 // object names you as caster, any origin. Copies were never cast.
 func (e *Engine) castAtAllAdmits(spec string, objID state.ObjID, you state.PlayerID) (string, bool) {
+	return e.castAtAllAdmitsWindow(spec, objID, you, false)
+}
+
+// castAtAllAdmitsWindow is castAtAllAdmits with the pre-push OFFER window
+// fallback (see castFromHandAdmitsWindow): an AffectedZone$ Stack grant whose
+// Affected$ carries wasCastByYou (Zinnia's "Creature spells you cast have
+// offspring {2}", Witherbloom's affinity, Prismari's storm, Quandrix's
+// cascade, Silverquill's casualty, Mycosynth Golem's artifact affinity and
+// the rest) evaluates against the object BEING CAST, which is still in hand
+// at offer time and so has no PutOnStack in the log. "Cast by you" then
+// holds iff the offer-time object's controller (the caster) is you. The log
+// read wins whenever it has an answer, so a real on-stack spell is
+// unchanged.
+func (e *Engine) castAtAllAdmitsWindow(spec string, objID state.ObjID, you state.PlayerID, pendingCast bool) (string, bool) {
 	if !strings.Contains(spec, "wasCastByYou") {
 		return spec, true
 	}
 	holds := false
 	if o := e.G.Obj(objID); o != nil && !o.IsCopy {
 		holds = e.WasCastByYou(objID, you)
+		if !holds && pendingCast {
+			holds = o.Controller == you
+		}
 	}
 	return admitProvenanceAlternatives(spec, "wasCastByYou", holds)
 }
@@ -131,34 +178,172 @@ func (e *Engine) castAtAllAdmits(spec string, objID state.ObjID, you state.Playe
 // helper ran first — a ByYou spec would be evaluated under the bare,
 // caster-less read. ByYou must be stripped (or found absent) first.
 func (e *Engine) castFromHandAnyAdmits(spec string, objID state.ObjID) (string, bool) {
+	return e.castFromHandAnyAdmitsWindow(spec, objID, false)
+}
+
+// castFromHandAnyAdmitsWindow is castFromHandAnyAdmits with the pre-push
+// OFFER window fallback (see castFromHandAdmitsWindow): a bare
+// wasCastFromYourHand grant evaluated against the object being cast infers
+// "came from a hand" from the offer-time object's zone. The log read wins
+// whenever it has an answer.
+func (e *Engine) castFromHandAnyAdmitsWindow(spec string, objID state.ObjID, pendingCast bool) (string, bool) {
 	if strings.Contains(spec, "wasCastFromYourHandByYou") || !strings.Contains(spec, "wasCastFromYourHand") {
 		return spec, true
 	}
 	holds := false
 	if o := e.G.Obj(objID); o != nil && !o.IsCopy {
 		holds = e.WasCastFromHand(objID)
+		if !holds && pendingCast {
+			holds = o.Zone == state.ZHand
+		}
 	}
 	return admitProvenanceAlternatives(spec, "wasCastFromYourHand", holds)
 }
 
-// castProvenanceAdmits evaluates ALL THREE cast-provenance families of a
+// castProvenanceAdmits evaluates all four cast-provenance families of a
 // Forge filter spec against objID — the hand-origin ByYou one
-// (castFromHandAdmits), the any-origin one (castAtAllAdmits) and the bare
-// player-less hand one (castFromHandAnyAdmits) — chaining the splits so a
+// (castFromHandAdmits), the any-origin one (castAtAllAdmits), the bare
+// player-less hand one (castFromHandAnyAdmits) and the origin-zone one
+// (castOriginAdmits, task wascastfrom) — chaining the splits so a
 // spec carrying any (or several) of the tokens evaluates fully. The chain
 // order is load-bearing: ByYou before bare (see castFromHandAnyAdmits's
 // order invariant). This is the one entry point every rules-side match site
 // calls, so a future carrier mixing the tokens is covered by construction.
 func (e *Engine) castProvenanceAdmits(spec string, objID state.ObjID, you state.PlayerID) (string, bool) {
-	s, ok := e.castFromHandAdmits(spec, objID, you)
+	return e.castProvenanceAdmitsWindow(spec, objID, you, false)
+}
+
+// castProvenanceAdmitsWindow is castProvenanceAdmits with the pre-push OFFER
+// window fallback threaded through all three hand families (see
+// castFromHandAdmitsWindow): the layer walk's AffectedZone$ Stack read sets
+// pendingCast, every other match site passes false and keeps the log-only
+// semantics. The origin-zone family (castOriginAdmits) is appended after
+// them log-only — its own pre-push shape is castOriginAdmitsAtZone, taken
+// by castProvenanceAdmitsPending. The chain order is unchanged: ByYou before bare.
+func (e *Engine) castProvenanceAdmitsWindow(spec string, objID state.ObjID, you state.PlayerID, pendingCast bool) (string, bool) {
+	s, ok := e.castFromHandAdmitsWindow(spec, objID, you, pendingCast)
 	if !ok {
 		return "", false
 	}
-	s, ok = e.castAtAllAdmits(s, objID, you)
+	s, ok = e.castAtAllAdmitsWindow(s, objID, you, pendingCast)
 	if !ok {
 		return "", false
 	}
-	return e.castFromHandAnyAdmits(s, objID)
+	s, ok = e.castFromHandAnyAdmitsWindow(s, objID, pendingCast)
+	if !ok {
+		return "", false
+	}
+	return e.castOriginAdmits(s, objID, you)
+}
+
+// castOriginTokens is the origin-zone cast-provenance family (task
+// wascastfrom): each token reads the object's LATEST PutOnStack cast (the
+// zone the cast came from, optionally scoped to the evaluating you). ByYou
+// MUST be listed before the plain YourGraveyard spelling — it is a
+// superstring of it and the strip is exact-token, but the polarity must be
+// accounted under the ByYou read, the castFromHandAnyAdmits order
+// invariant.
+type castOriginToken struct {
+	token string
+	zone  state.Zone
+	byYou bool
+}
+
+var castOriginTokens = []castOriginToken{
+	// "you cast a spell from your graveyard" — the caster casts from their
+	// own graveyard; both Forge spellings collapse onto the same read (the
+	// ByYou suffix is the player scope the plain spelling takes implicitly:
+	// in this build a cast's From is always a zone its caster owns).
+	{token: "wasCastFromYourGraveyardByYou", zone: state.ZGraveyard, byYou: true},
+	{token: "wasCastFromYourGraveyard", zone: state.ZGraveyard, byYou: true},
+	// "whenever you cast a spell from exile" — any caster (the bare family's
+	// caster-agnostic reading; every player-scoped carrier supplies
+	// ValidActivatingPlayer$ or a You qualifier alongside).
+	{token: "wasCastFromExile", zone: state.ZExile},
+	// "whenever a player casts a spell from their hand" — "their" is the
+	// CASTER's own hand, so the predicate is caster-agnostic too: a cast from
+	// a hand IS from the caster's hand in this build (a player never casts
+	// from another seat's hand). Aether Revolt's Knowledge Pool, Wash Away's
+	// "wasn't cast from its owner's hand" (owner == caster for a spell this
+	// build can put on the stack) and Aerial Extortionist's negated form all
+	// read it.
+	{token: "wasCastFromTheirHand", zone: state.ZHand},
+}
+
+// specCarriesCastOrigin reports whether spec carries ANY origin-zone token
+// the castOriginAdmits chain strips — the pending guard's cheap gate.
+func specCarriesCastOrigin(spec string) bool {
+	for _, tok := range castOriginTokens {
+		if strings.Contains(spec, tok.token) {
+			return true
+		}
+	}
+	return false
+}
+
+// latestCastOrigin reports obj's LATEST PutOnStack cast: the zone it came
+// from and the player who cast it. ok=false for a card never put on the
+// stack (cheated into play) — the same read every existing provenance
+// family takes. Derived from the event log like WasCastFromHandByYou, so a
+// replay derives the same answer.
+func (e *Engine) latestCastOrigin(obj state.ObjID) (state.Zone, state.PlayerID, bool) {
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.PutOnStack && ev.Obj == obj {
+			return ev.From, ev.Player, true
+		}
+	}
+	return 0, 0, false
+}
+
+// castOriginAdmits evaluates the origin-zone cast-provenance family
+// (wasCastFromExile, wasCastFromYourGraveyard, wasCastFromYourGraveyardByYou,
+// wasCastFromTheirHand) of a Forge filter spec against objID: every
+// alternative carrying a token whose requirement is not met is dropped and
+// the survivors rejoined, the admitProvenanceAlternatives split the hand
+// families use. ok is false when no alternative survives. A spec without any
+// of the tokens is returned unchanged, so every unrelated evaluation is
+// byte-identical. The bare wasCastFromGraveyard spelling is deliberately NOT
+// evaluated here (it stays the effects-side CastFlags predicate).
+func (e *Engine) castOriginAdmits(spec string, objID state.ObjID, you state.PlayerID) (string, bool) {
+	for _, tok := range castOriginTokens {
+		if !strings.Contains(spec, tok.token) {
+			continue
+		}
+		holds := false
+		if o := e.G.Obj(objID); o != nil && !o.IsCopy {
+			if from, by, ok := e.latestCastOrigin(objID); ok {
+				holds = from == tok.zone && (!tok.byYou || by == you)
+			}
+		}
+		var ok bool
+		if spec, ok = admitProvenanceAlternatives(spec, tok.token, holds); !ok {
+			return "", false
+		}
+	}
+	return spec, true
+}
+
+// castOriginAdmitsAtZone evaluates the origin-zone family against the cast
+// IN PROGRESS rather than the log: the cast a CantBeCast restriction gates
+// has no PutOnStack yet, and the origin it will carry is the zone the
+// restricted object is being cast FROM — its CURRENT zone at every cast
+// evaluation site (the offer walks, beginCast's own re-check; the pending
+// cast's from is always the object's zone at creation). A ByYou token holds
+// unconditionally on the zone match: the caster attempting the cast IS the
+// evaluating you. No log scan, so a prior completed cast's origin cannot
+// leak into this cast's evaluation.
+func (e *Engine) castOriginAdmitsAtZone(spec string, objID state.ObjID, from state.Zone) (string, bool) {
+	for _, tok := range castOriginTokens {
+		if !strings.Contains(spec, tok.token) {
+			continue
+		}
+		var ok bool
+		if spec, ok = admitProvenanceAlternatives(spec, tok.token, from == tok.zone); !ok {
+			return "", false
+		}
+	}
+	return spec, true
 }
 
 // castProvenanceAdmitsPending is castProvenanceAdmits with the pending-cast
@@ -176,10 +361,27 @@ func (e *Engine) castProvenanceAdmits(spec string, objID state.ObjID, you state.
 // spec without a provenance token is returned unchanged, so every
 // unrelated cost evaluation is byte-identical.
 func (e *Engine) castProvenanceAdmitsPending(spec string, objID state.ObjID, you state.PlayerID) (string, bool) {
-	if !strings.Contains(spec, "wasCastFromYourHand") && !strings.Contains(spec, "wasCastByYou") {
+	if !strings.Contains(spec, "wasCastFromYourHand") && !strings.Contains(spec, "wasCastByYou") &&
+		!specCarriesCastOrigin(spec) {
 		return spec, true
 	}
-	if o := e.G.Obj(objID); o == nil || o.Zone != state.ZStack {
+	o := e.G.Obj(objID)
+	if o == nil {
+		return "", false
+	}
+	if o.Zone != state.ZStack {
+		// The origin-zone family is priceable PRE-push, unlike the hand
+		// families: the origin a cast from here will carry is the object's
+		// CURRENT zone (every cast evaluation site's pending origin — see
+		// castOriginAdmitsAtZone), so the affordability walk can honestly
+		// admit the restricted/reduced cost instead of the blanket deny that
+		// made a RestrictValid$ Spell.wasCastFromYourGraveyard batch unable to
+		// fund the very cast it names (Lord of the Forsaken's payment path).
+		// The hand families keep the deny: their ByYou cast is not yet in the
+		// log and the negated spellings would wrongly hold.
+		if specCarriesCastOrigin(spec) {
+			return e.castOriginAdmitsAtZone(spec, objID, o.Zone)
+		}
 		return "", false
 	}
 	return e.castProvenanceAdmits(spec, objID, you)

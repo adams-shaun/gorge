@@ -70,7 +70,7 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.CounterChange, events.PlayerLost, events.GameOver,
 		events.DecisionAsk, events.DecisionMade, events.Note, events.LandPlayed,
 		events.FlipFace, events.ClockTick, events.TriggerPush,
-		events.EndCombatReset, events.CastInfo, events.Choose,
+		events.EndCombatReset, events.Choose,
 		events.TokenCreate, events.StackCopy, events.ModeChosen,
 		events.CmdDamage, events.DelayedRegister, events.DelayedPush,
 		events.GrantAbilityPush,
@@ -114,6 +114,13 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		return cards.TriggerInterestAttach
 	case events.Explore:
 		return cards.TriggerInterestExplore
+	case events.CastInfo:
+		// manaexpend1: the pay-time CastInfo carries trig:ManaExpend's
+		// crossing read (rules/cast.go's FlagManaExpendCast emission), so it
+		// has its own interest bit rather than the fail-open default the
+		// default arm would give it -- a ManaExpend-only face's compiled
+		// scan set narrows to the one event kind it fires on.
+		return cards.TriggerInterestCastInfo
 	default:
 		return cards.TriggerInterestAny
 	}
@@ -254,6 +261,11 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// (once per roll action).
 		return 1 << events.Note
 	case "CounterAdded", "CounterAddedOnce", "CounterRemoved":
+		return 1 << events.CounterChange
+	case "ClassLevelGained":
+		// CR 702.118c: the same CounterChange event the level-up
+		// activator's PutCounter emits carries the level band crossing
+		// (matcher: classLevelGainedMatches).
 		return 1 << events.CounterChange
 	case "Mutates":
 		// CR 702.140f: "whenever this creature mutates". The event is the

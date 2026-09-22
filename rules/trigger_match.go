@@ -130,6 +130,18 @@ type pendingTrigger struct {
 	// entered, so the marker names it as the exploiter. Idx and SA are unset
 	// for it.
 	Exploit bool
+	// Offspring is a GRANTED offspring keyword (a layer-6 AddKeyword$
+	// Offspring:<cost>, e.g. Zinnia, Valley's Voice's "Creature spells you
+	// cast have offspring {2}"): the same Ward/Afflict/Exploit shape -- the
+	// queue carries no parameter (the trigger body is the same
+	// DB$ CopyPermanent | Defined$ Self | NumCopies$ Count$OffspringPaid |
+	// SetPower$ 1 | SetToughness$ 1 body the printed K:Offspring expansion
+	// carries) and the drain pushes a KeywordTriggerPush whose
+	// __kwOffspringGranted payload events.Apply rebuilds structurally. The
+	// trigger's Source is the GRANTED creature that just entered, so the
+	// Count$OffspringPaid read resolves against its pay-time provenance.
+	// Idx and SA are unset for it.
+	Offspring bool
 	// RingEmblem is one of the Ring emblem's four level abilities (CR
 	// 701.54c), queued by checkRingEmblemTriggers. The emblem has no face
 	// and no object in any zone, so like Ward/Afflict this entry carries
@@ -784,6 +796,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					e.checkGrantedConspireTriggers(observer, id, o, f, ev, objLKI)
 				case events.MoveZone:
 					e.checkGrantedExploitTriggers(observer, id, o, f, ev, objLKI)
+					e.checkGrantedOffspringTriggers(observer, id, o, f, ev, objLKI)
 				}
 			}
 			e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
@@ -1068,6 +1081,10 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		// object's own printed triggers are live for this event -- the same
 		// both-paths rule Afflict and Conspire follow.
 		e.checkGrantedExploitTriggers(observer, id, o, f, ev, objLKI)
+		// A granted Offspring must fire when its creature enters even when the
+		// object's own printed triggers are live for this event -- the same
+		// both-paths rule Afflict, Conspire, Exploit and Training follow.
+		e.checkGrantedOffspringTriggers(observer, id, o, f, ev, objLKI)
 		// A granted Training must fire even when the object's own printed
 		// triggers are live for this event (an attacking token with its own
 		// trigger carrying the training grant) -- the early-return path above
@@ -1461,6 +1478,7 @@ func init() {
 		"trig:ChangesZone", "trig:ChangesZoneAll", "trig:SpellCast", "trig:Attacks", "trig:AttackersDeclaredOneTarget",
 		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:AttackerBlockedByCreature", "trig:AttackerUnblockedOnce", "trig:Blocks", "trig:Cycled", "trig:CounterAdded", "trig:CounterAddedOnce", "trig:CounterRemoved",
 		"trig:Sacrificed", "trig:Discarded", "trig:CommitCrime", "trig:Taps", "trig:TapsForMana",
+		"trig:ClassLevelGained",
 		"trig:TokenCreated", "trig:TokenCreatedOnce",
 		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",
 		"trig:LifeGained",
@@ -1468,6 +1486,7 @@ func init() {
 		"trig:Vote", "trig:RolledDie", "trig:RolledDieOnce",
 		"trig:Explores", "trig:Exerted", "trig:Investigated",
 		"trig:Exploited",
+		"trig:ManaExpend",
 		"trig:Connives",
 		"trig:Discover", "trig:SeekAll",
 		"trig:AbilityCast", "trig:SpellAbilityCast", "trig:Always",

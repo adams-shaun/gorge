@@ -10,6 +10,7 @@ type Player struct {
 	Lost        bool
 	LandsPlayed int32
 	Pool        Mana
+
 	// RestrictedMana retains the spend restriction on mana produced by a
 	// RestrictValid$ mana ability. It is cleared with the pool at step/phase
 	// cleanup and is reconstructed from ManaAdd events.

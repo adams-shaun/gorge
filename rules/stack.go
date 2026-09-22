@@ -1117,7 +1117,17 @@ func (e *Engine) candidatesFor(p state.PlayerID, source, excludeSelf state.ObjID
 				if !stackKindAdmits(toks, e.stackObjKind(o), o, o.Controller, p) {
 					continue
 				}
-				if effects.MatchesSpecCtx(e.G, targetSpecForZone(spec, z), oid, sc) {
+				// The cast-provenance split (castprov1/castprov3/wascastfrom):
+				// a stack-target spec carrying a wasCast* token — Wash Away's
+				// `Card.!wasCastFromTheirHand` — evaluates the token against the
+				// candidate's cast log here, before the ordinary filter; the
+				// effects-side filter never strips the token, so without this the
+				// spec fails closed to no candidate.
+				tspec, ok := e.castProvenanceAdmits(targetSpecForZone(spec, z), oid, p)
+				if !ok {
+					continue
+				}
+				if effects.MatchesSpecCtx(e.G, tspec, oid, sc) {
 					out = append(out, targetCandidate{kind: "permanent", obj: oid, player: o.Controller})
 				}
 			}
@@ -1139,13 +1149,21 @@ func (e *Engine) candidatesFor(p state.PlayerID, source, excludeSelf state.ObjID
 				// or ability, its controller's included.
 				// All function only on the battlefield (CR 604.3), the same
 				// gate as protection above. CR 115.5 excludes the source.
-				if o != nil && o.Face() != nil && (excludeSelf == 0 || oid != excludeSelf) &&
-					effects.MatchesSpecCtx(e.G, targetSpecForZone(spec, z), oid, sc) &&
-					(!targeting || !(o.Zone == state.ZBattlefield && e.protectedFrom(oid, protSrc))) &&
-					(!targeting || !(o.Zone == state.ZBattlefield && e.shroudBlocksTarget(oid))) &&
-					(!targeting || !(o.Zone == state.ZBattlefield && e.hexproofBlocksTarget(oid, p, protSrc))) &&
-					(!targeting || !(o.Zone == state.ZBattlefield && e.restrictionBlocksTarget(oid, p))) {
-					out = append(out, targetCandidate{kind: "permanent", obj: oid, player: q})
+				if o != nil && o.Face() != nil && (excludeSelf == 0 || oid != excludeSelf) {
+					// The cast-provenance split at the non-battlefield target
+					// zones too (wascastfrom): the token evaluates against the
+					// candidate's cast log before the ordinary filter.
+					tspec, ok := e.castProvenanceAdmits(targetSpecForZone(spec, z), oid, p)
+					if !ok {
+						continue
+					}
+					if effects.MatchesSpecCtx(e.G, tspec, oid, sc) &&
+						(!targeting || !(o.Zone == state.ZBattlefield && e.protectedFrom(oid, protSrc))) &&
+						(!targeting || !(o.Zone == state.ZBattlefield && e.shroudBlocksTarget(oid))) &&
+						(!targeting || !(o.Zone == state.ZBattlefield && e.hexproofBlocksTarget(oid, p, protSrc))) &&
+						(!targeting || !(o.Zone == state.ZBattlefield && e.restrictionBlocksTarget(oid, p))) {
+						out = append(out, targetCandidate{kind: "permanent", obj: oid, player: q})
+					}
 				}
 			}
 		}
@@ -2269,13 +2287,19 @@ func (e *Engine) legalTargets(targets []state.Target, spec string, zones []state
 		// response) is dropped here, and a target with no other legal target
 		// left fizzles the whole spell/ability through the existing fizzle
 		// machinery upstream of this recheck.
-		if o := e.G.Obj(t.Obj); o != nil && zoneIn(o.Zone, zones) &&
-			effects.MatchesSpecCtx(e.G, targetSpecForZone(spec, o.Zone), t.Obj, sc) &&
-			!(o.Zone == state.ZBattlefield && e.restrictionBlocksTarget(t.Obj, you)) &&
-			!(o.Zone == state.ZBattlefield && e.shroudBlocksTarget(t.Obj)) &&
-			!(o.Zone == state.ZBattlefield && e.hexproofBlocksTarget(t.Obj, you, e.protectionSource(source))) &&
-			!e.protectedFrom(t.Obj, e.protectionSource(source)) {
-			legal = append(legal, t)
+		if o := e.G.Obj(t.Obj); o != nil && zoneIn(o.Zone, zones) {
+			// The cast-provenance split at the resolution recheck too
+			// (wascastfrom): the token evaluates against the target's cast
+			// log before the ordinary filter, so offer and recheck cannot
+			// disagree about a spec carrying one.
+			tspec, ok := e.castProvenanceAdmits(targetSpecForZone(spec, o.Zone), t.Obj, you)
+			if ok && effects.MatchesSpecCtx(e.G, tspec, t.Obj, sc) &&
+				!(o.Zone == state.ZBattlefield && e.restrictionBlocksTarget(t.Obj, you)) &&
+				!(o.Zone == state.ZBattlefield && e.shroudBlocksTarget(t.Obj)) &&
+				!(o.Zone == state.ZBattlefield && e.hexproofBlocksTarget(t.Obj, you, e.protectionSource(source))) &&
+				!e.protectedFrom(t.Obj, e.protectionSource(source)) {
+				legal = append(legal, t)
+			}
 		}
 	}
 	return legal
@@ -2527,13 +2551,20 @@ func (e *Engine) WasCastFromHandByYou(obj state.ObjID, p state.PlayerID) bool {
 // like WasCastFromHandByYou, so a replay derives the same answer;
 // latest-cast-wins.
 func (e *Engine) WasCastFromHand(obj state.ObjID) bool {
-	for i := len(e.L.Events) - 1; i >= 0; i-- {
-		ev := e.L.Events[i]
-		if ev.Kind == events.PutOnStack && ev.Obj == obj {
-			return ev.From == state.ZHand
-		}
-	}
-	return false
+	from, _, ok := e.latestCastOrigin(obj)
+	return ok && from == state.ZHand
+}
+
+// WasCastFromExile satisfies effects.Host's WasCastFromExile for the
+// Count$wasCastFromExile branch head (task wascastfrom): obj's LATEST
+// PutOnStack cast came from EXILE (foretell, warp, may-play — no CastFlags
+// bit carries an exile origin). Derived from the event log the way
+// WasCastFromHand is, so a replay derives the same answer; a copy was never
+// cast (the rules-side split applies that guard, this read answers the log
+// question alone); a card never put on the stack reads false.
+func (e *Engine) WasCastFromExile(obj state.ObjID) bool {
+	from, _, ok := e.latestCastOrigin(obj)
+	return ok && from == state.ZExile
 }
 
 // DiscardedInWindow satisfies effects.Host's DiscardedInWindow for the
@@ -2837,6 +2868,37 @@ func (e *Engine) StartingLife() int32 { return e.startingLife }
 // extra turns included, so a replay that rebuilds the log arrives at the
 // same count. The whole-log walk (not a TurnChange-bounded scan) is the
 // point: the count spans the game, not one turn.
+// CommanderCastsFromCommandZone satisfies effects.Host's method of the
+// same name for Count$TotalCommanderCastFromCommandZone: how many times
+// player p has cast one of THEIR OWN commanders from the command zone this
+// game. It walks the whole log for PutOnStack events whose caster is p,
+// origin is the command zone and object is one of p's commanders — the
+// exact criteria recordCmdCast (rules/cast.go) applies when it maintains
+// the parallel CmdCasts slice, and commitCast's PutOnStack emit is the ONE
+// site that can produce such an event, so this head and the CR 903.8 tax
+// can never disagree. Whole-game scope like TurnsTaken (the whole-log walk
+// is the point); derived from the event log, so a replay derives the same
+// number. A non-Commander seat carries an empty Commanders list, so the
+// count is 0 there by construction.
+func (e *Engine) CommanderCastsFromCommandZone(p state.PlayerID) int32 {
+	if p < 0 || int(p) >= len(e.G.Players) {
+		return 0
+	}
+	var n int32
+	for _, ev := range e.L.Events {
+		if ev.Kind != events.PutOnStack || ev.Player != p || ev.From != state.ZCommand {
+			continue
+		}
+		for _, cid := range e.G.Players[p].Commanders {
+			if cid == ev.Obj {
+				n++
+				break
+			}
+		}
+	}
+	return n
+}
+
 func (e *Engine) TurnsTaken(p state.PlayerID) int32 {
 	if int(p) >= len(e.G.Players) {
 		return 0
