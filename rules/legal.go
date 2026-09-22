@@ -473,6 +473,24 @@ func (e *Engine) adaptGateOK(id state.ObjID, ab *cards.SA) bool {
 	return o != nil && o.Counter("P1P1") == 0
 }
 
+// monstrosityGateOK evaluates AB$ PutCounter's Monstrosity$ activation gate
+// (CR 701.33a: "If this creature isn't monstrous, put N +1/+1 counters on it
+// and it becomes monstrous"). The designation is event-backed state
+// (state.Object.Monstrous, the events.AlterAttribute "Monstrous" fold
+// effects/counters.go emits), and the same one-shot-per-permanent rule is
+// enforced at resolution by the effect's own if-condition -- the exact
+// twin pair the Adapt gate and effPutCounter's adapt if-condition form.
+// Measured corpus: 36 `A:AB$ PutCounter ... Monstrosity$` carriers, every
+// one an AB (no DB body carries the param); values are literals (1-5) or
+// the announced X (Hydra Broodmaster, Polukranos).
+func (e *Engine) monstrosityGateOK(id state.ObjID, ab *cards.SA) bool {
+	if strings.TrimSpace(ab.Params["Monstrosity"]) == "" {
+		return true
+	}
+	o := e.G.Obj(id)
+	return o != nil && !o.Monstrous
+}
+
 // sVarGateOK evaluates the ability's CheckSVar$/SVarCompare$ intervening-if
 // at OFFER time: Bloodsoaked Champion's Raid ("Activate only if you attacked
 // this turn", CheckSVar$ RaidTest = Count$AttackersDeclared) and Ojer
@@ -2206,6 +2224,12 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				if !e.adaptGateOK(id, ab) {
 					continue
 				}
+				// Monstrosity$ (CR 701.33a): "If this creature isn't monstrous"
+				// -- the offer-time twin of the effect's own if-condition, the
+				// same pair the Adapt gate forms.
+				if !e.monstrosityGateOK(id, ab) {
+					continue
+				}
 				out = append(out, decision.Option{Index: len(out), Kind: "ability",
 					Label: abFace.Name + ": " + ab.Params["SpellDescription"], Obj: id, Ability: i,
 					Grant: e.abilityGrant(id, ab)})
@@ -2272,6 +2296,10 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			}
 			// Adapt$ (CR 702.35a): the granted twin of the printed loop's gate.
 			if !e.adaptGateOK(id, ab) {
+				continue
+			}
+			// Monstrosity$ (CR 701.33a): the granted twin of the same gate.
+			if !e.monstrosityGateOK(id, ab) {
 				continue
 			}
 			// kw:Boast (CR 702.142): the granted twin of the printed loop's
@@ -2374,6 +2402,11 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			}
 			// Adapt$ (CR 702.35a): the max-speed grant's twin of the same gate.
 			if !e.adaptGateOK(id, ab) {
+				continue
+			}
+			// Monstrosity$ (CR 701.33a): the max-speed grant's twin of the same
+			// gate.
+			if !e.monstrosityGateOK(id, ab) {
 				continue
 			}
 			// kw:Boast (CR 702.142): the max-speed grant is a third offer site

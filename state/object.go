@@ -441,6 +441,20 @@ type Object struct {
 	// api:AlterAttribute effect emits) may set it.
 	Suspected bool
 
+	// Monstrous is CR 701.33's monstrous designation (the kw-monstrosity
+	// task's `A:AB$ PutCounter | ... | Monstrosity$ N` activation family,
+	// Stormbreath Dragon's "{5}{R}{R}: Monstrosity 3."): a monstrous
+	// permanent has had its Monstrosity ability resolve on it (which put N
+	// +1/+1 counters on it), and the designation gates the activation's
+	// one-shot-per-permanent rule (CR 701.33a -- the offer gate reads it),
+	// the IsMonstrous filter predicate (Domesticated Hydra's "Affected$
+	// Card.Self+IsMonstrous" statics) and the Mode$ BecomeMonstrous
+	// trigger. Like Suspected it ends when the permanent leaves the
+	// battlefield, so events.Apply's Move departure fold clears it. It is a
+	// plain status field: a plain value copy in CloneDeep carries it, and
+	// only the events.AlterAttribute fold (Text "Monstrous") may set it.
+	Monstrous bool
+
 	// PlottedTurn stamps the turn a card gained CR 701.34's plotted
 	// designation (0 = not plotted), via the events.AlterAttribute fold -- the
 	// plot ACTION (rules/cast.go) and the corpus's DB$ AlterAttribute |

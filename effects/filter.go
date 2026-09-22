@@ -99,6 +99,16 @@ var predicates = map[string]predFn{
 	"IsSuspected": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.Suspected
 	},
+	// IsMonstrous is CR 701.33's monstrous designation (task kw-monstrosity;
+	// Domesticated Hydra's "Affected$ Card.Self+IsMonstrous" statics and the
+	// Fleecemane Lion family's "as long as {this} is monstrous" riders).
+	// It reads the event-backed status the events.AlterAttribute fold
+	// maintains; a permanent that left the battlefield has already been
+	// cleared by that fold, so the predicate cannot read a stale
+	// designation.
+	"IsMonstrous": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o.Monstrous
+	},
 	// IsGoaded is CR 701.38's goaded condition (Hot Pursuit's
 	// "GainControl | AllValid$ Creature.IsGoaded,Creature.IsSuspected").
 	// It reads the event-backed goad list ONLY: a statically goaded creature

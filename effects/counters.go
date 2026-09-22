@@ -130,11 +130,19 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 		n = Num(h, c, sa, "CounterNum", 1)
 	} else if strings.TrimSpace(sa.Params["Adapt"]) != "" {
 		n = Num(h, c, sa, "Adapt", 1)
+	} else if strings.TrimSpace(sa.Params["Monstrosity"]) != "" {
+		// Monstrosity$ N (CR 701.33a; task kw-monstrosity): the activation
+		// puts N +1/+1 counters and marks the permanent monstrous. Hydra
+		// Broodmaster's `Monstrosity$ X` reads the announced X through the
+		// same Num grammar the Adapt arm uses; an unresolvable body degrades
+		// to 0, Num's convention.
+		n = Num(h, c, sa, "Monstrosity", 1)
 	}
 	if n < 0 {
 		n = 0
 	}
 	adapt := strings.TrimSpace(sa.Params["Adapt"]) != ""
+	mon := strings.TrimSpace(sa.Params["Monstrosity"]) != ""
 	kind := sa.Params["CounterType"]
 	if kind == "" {
 		kind = "P1P1"
@@ -279,7 +287,28 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 		if adapt && o.Counter("P1P1") > 0 {
 			continue
 		}
+		// CR 701.33a's own if-condition, the Adapt twin: "If this creature
+		// isn't monstrous, put N +1/+1 counters on it and it becomes
+		// monstrous." The offer-time gate (rules/legal.go's
+		// monstrosityGateOK) already withheld a monstrous source's own
+		// activation, but the object can become monstrous in response
+		// between activation and resolution -- the effect's own if-condition
+		// is what governs the put then (and a chained DB$ body ever carries
+		// the param, it gets no other gate).
+		if mon && o.Monstrous {
+			continue
+		}
 		h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: kind, Amount: n})
+		if mon && !o.Monstrous {
+			// The designation grant rides the existing events.AlterAttribute
+			// fold (Text "Monstrous"), the same carrier the plot ACTION and
+			// the api:AlterAttribute effect use -- one Kind, Text-discriminated,
+			// with the Move departure fold as the only clear. It is emitted
+			// AFTER the counters so a BecomeMonstrous trigger resolving later
+			// already sees the counters, and it is what trig:BecomeMonstrous
+			// matches.
+			h.Emit(events.Event{Kind: events.AlterAttribute, Obj: o.ID, Text: "Monstrous", Amount: 1})
+		}
 		if !t.IsPlayer && t.Obj != 0 {
 			placed = append(placed, t)
 		}

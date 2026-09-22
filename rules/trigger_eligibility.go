@@ -267,6 +267,18 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// activator's PutCounter emits carries the level band crossing
 		// (matcher: classLevelGainedMatches).
 		return 1 << events.CounterChange
+	case "BecomeMonstrous":
+		// CR 701.33's monstrous designation (task kw-monstrosity): the mode
+		// fires on the events.AlterAttribute "Monstrous" grant the AB$
+		// PutCounter Monstrosity$ arm emits. The Kind's ordinal sits past
+		// the 64-bit mask's reach, the Enlisted shape: a mask bit is not
+		// encodable and allows() fails open for every kind at or past
+		// triggerMaskKindBits, so the mode is admitted through that fail-open
+		// path and gated by the full matcher (becomeMonstrousMatches). Naming
+		// the mode here rather than letting it fall to the allTriggerEvents
+		// default keeps a BecomeMonstrous-only face's mask narrow for every
+		// other kind.
+		return 0
 	case "Mutates":
 		// CR 702.140f: "whenever this creature mutates". The event is the
 		// mutate-spell merge fold (events.Mutate), fired once per mutation --

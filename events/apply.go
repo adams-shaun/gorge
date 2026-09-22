@@ -192,6 +192,14 @@ func Apply(g *state.Game, e Event) {
 				} else {
 					o.PlottedTurn = 0
 				}
+			case "Monstrous":
+				// CR 701.33's monstrous designation (task kw-monstrosity):
+				// Amount 1 marks the permanent monstrous -- the AB$ PutCounter
+				// Monstrosity$ arm (effects/counters.go) emits it after its
+				// counters land. There is no removal spelling: the designation
+				// ends only when the permanent leaves the battlefield, the Move
+				// departure fold below.
+				o.Monstrous = e.Amount >= 1
 			}
 		}
 
@@ -796,6 +804,10 @@ func Apply(g *state.Game, e Event) {
 			if o := g.Obj(e.Obj); o != nil {
 				o.Suspected = false
 				o.PlottedTurn = 0
+				// CR 701.33's monstrous designation ends the same way (the
+				// kw-monstrosity task): a later battlefield entry is a new
+				// permanent and never inherits it.
+				o.Monstrous = false
 			}
 		}
 
