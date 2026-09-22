@@ -5873,15 +5873,21 @@ func (e *Engine) targetAsk() bool {
 			Label: label, Obj: candidate.obj, Player: candidate.player}
 		o.Group = e.oneEachTargetGroup(sa, candidate)
 		// Option.Value is omitempty and read only when MaxSum > 0, so a
-		// budget-less target ask keeps its wire payload byte-identical.
-		if powerCapped && candidate.kind != "player" {
+		// budget-less target ask keeps its wire payload byte-identical. A cap
+		// of zero or less is enforced entirely by the pruning above (every
+		// surviving candidate's own power is <= the cap, so any subset sums
+		// under it) and attaches no budget: a Decision.MaxSum of 0 reads as
+		// NO budget on the wire, not as a zero budget. The Value is the
+		// DERIVED power (Engine.Power), matching the pruning read -- the
+		// printed Face().Power() read a CDA creature as zero.
+		if powerCapped && powerCap > 0 && candidate.kind != "player" {
 			if co := e.G.Obj(candidate.obj); co != nil && co.Face() != nil {
-				o.Value = co.Face().Power()
+				o.Value = int(e.Power(candidate.obj))
 			}
 		}
 		d.Options = append(d.Options, o)
 	}
-	if powerCapped {
+	if powerCapped && powerCap > 0 {
 		d.MaxSum = powerCap
 	}
 	e.ask(d)

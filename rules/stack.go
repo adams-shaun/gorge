@@ -1479,12 +1479,16 @@ func (e *Engine) oneEachTargetGroup(sa *cards.SA, candidate targetCandidate) str
 // cap -- the running total-power bound over a multi-target selection
 // ("Return any number of target creature cards with total power 10 or less",
 // Reunion of the House and Nethroi, Apex of Death; 2 corpus files). A literal
-// token reads directly; a dynamic token resolves through the effects numeric
-// grammar, the same reader resolvedTargetBounds applies to a TargetMax$ X
-// token, bound to the asking player and the source anchor. A token the
-// grammar cannot resolve returns ok=false -- the cap is then simply not
-// enforced (today's behaviour; measured, no corpus carrier reaches this
-// arm unresolvable, both carriers are the literal 10).
+// token reads directly (including a literal 0 or negative, both enforceable:
+// every surviving candidate's own power is then <= the cap, so any subset
+// sums under it and the per-candidate pruning alone enforces the bound --
+// the ask sites attach no Decision.MaxSum for such a cap, since a MaxSum of
+// 0 reads as NO budget on the wire); a dynamic token resolves through the
+// effects numeric grammar, the same reader resolvedTargetBounds applies to a
+// TargetMax$ X token, bound to the asking player and the source anchor. A
+// token the grammar cannot resolve returns ok=false -- the cap is then
+// simply not enforced (today's behaviour; measured, no corpus carrier
+// reaches this arm unresolvable, both carriers are the literal 10).
 
 func (e *Engine) maxTotalTargetPower(p state.PlayerID, source state.ObjID, sa *cards.SA, x int32) (int, bool) {
 	v, ok := sa.Params["MaxTotalTargetPower"]
@@ -1521,6 +1525,13 @@ func (e *Engine) maxTotalTargetPower(p state.PlayerID, source state.ObjID, sa *c
 // are never pruned (a MaxTotalTargetPower$ ask names cards; a player's
 // presence is free). Returns the pruned census, the cap and whether the
 // parameter is present at all.
+//
+// The power read is the DERIVED power (Engine.Power), not the printed
+// face: a characteristic-defining P/T applies in EVERY zone (CR 208.2 --
+// Lord of Extinction counts the graveyards from its own graveyard, which
+// derivedScalarFrom's CDA read covers), and the printed Face().Power()
+// returns 0 for such a face -- the first cut of this read undercounted a
+// CDA creature as a free target.
 func (e *Engine) totalPowerCappedCandidates(candidates []targetCandidate, p state.PlayerID, source state.ObjID, sa *cards.SA, x int32) ([]targetCandidate, int, bool) {
 	capPower, ok := e.maxTotalTargetPower(p, source, sa, x)
 	if !ok {
@@ -1533,10 +1544,10 @@ func (e *Engine) totalPowerCappedCandidates(candidates []targetCandidate, p stat
 			continue
 		}
 		o := e.G.Obj(c.obj)
-		if o == nil {
+		if o == nil || o.Face() == nil {
 			continue
 		}
-		if f := o.Face(); f != nil && f.Power() <= capPower {
+		if e.Power(c.obj) <= int32(capPower) {
 			out = append(out, c)
 		}
 	}
@@ -1566,15 +1577,19 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 			Label: label, Obj: candidate.obj, Player: candidate.player}
 		o.Group = e.oneEachTargetGroup(sa, candidate)
 		// Option.Value is omitempty and read only when MaxSum > 0, so a
-		// budget-less target ask keeps its wire payload byte-identical.
-		if powerCapped && candidate.kind != "player" {
+		// budget-less target ask keeps its wire payload byte-identical. A cap
+		// of zero or less is enforced entirely by the pruning above (every
+		// surviving candidate's own power is <= the cap, so any subset sums
+		// under it) and attaches no budget: a Decision.MaxSum of 0 reads as
+		// NO budget on the wire, not as a zero budget.
+		if powerCapped && powerCap > 0 && candidate.kind != "player" {
 			if co := e.G.Obj(candidate.obj); co != nil && co.Face() != nil {
-				o.Value = co.Face().Power()
+				o.Value = int(e.Power(candidate.obj))
 			}
 		}
 		d.Options = append(d.Options, o)
 	}
-	if powerCapped {
+	if powerCapped && powerCap > 0 {
 		d.MaxSum = powerCap
 	}
 	if min == 0 {

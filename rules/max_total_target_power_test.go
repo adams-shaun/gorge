@@ -348,3 +348,192 @@ func TestTotalPowerCapOnAnAbilityTargetAsk(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// TestTotalPowerCapReadsDerivedPowerInEveryZone: the cap prunes on the
+// DERIVED power, not the printed face. Lord of Extinction's printed P/T is
+// the characteristic-defining */* (Face().Power() reads 0 for it), but the
+// CDA applies in EVERY zone (CR 208.2; rules/layers.go derivedScalarFrom's
+// comment) -- with a populated graveyard its derived power is 13, over the
+// cap of 10, so it can never be part of any legal selection and must not be
+// offered. The first cut pruned on Face().Power(), read Lord as a free
+// 0-power target and let it through (findings-r2 MAJOR 1).
+func TestTotalPowerCapReadsDerivedPowerInEveryZone(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, cfg, reunion, grave := reunionEngine(t, reg, 5503, nil,
+		"Reunion of the House", "Lord of Extinction", "Craw Wurm", "Serra Angel")
+	lord := grave["Lord of Extinction"]
+	if lord == 0 {
+		t.Fatal("Lord of Extinction absent from seat 0's graveyard (precondition)")
+	}
+	// Precondition the assertions depend on: the printed face is the CDA
+	// */* (the zero the first cut pruned on) while the DERIVED power in the
+	// graveyard is over the cap. Bridge ten more cards out of the library
+	// so the graveyard Lord counts (all cards, both graveyards) pushes it
+	// past 10.
+	if f := e.G.Obj(lord).Face(); f.Power() != 0 {
+		t.Fatalf("Lord of Extinction printed power = %d, want the CDA 0 (precondition)", f.Power())
+	}
+	moved := 0
+	for _, id := range append([]state.ObjID(nil), e.G.Zone(state.ZLibrary, 0)...) {
+		if moved >= 10 {
+			break
+		}
+		o := e.G.Obj(id)
+		if o == nil || o.Face() == nil || o.Face().Name != "Grizzly Bears" {
+			continue
+		}
+		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZGraveyard})
+		moved++
+	}
+	if moved < 10 {
+		t.Fatalf("only %d Grizzly Bears reachable in seat 0's library (precondition)", moved)
+	}
+	e.pending = nil
+	e.priorityRound()
+	if p := e.Power(lord); p <= 10 {
+		t.Fatalf("Lord of Extinction derived power in the graveyard = %d, want > 10 (precondition)", p)
+	}
+
+	addMana(t, e, 0, "WWWWWWW")
+	submitChoices(t, e, reunionCastOption(t, e, reunion).Index)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("pending = %+v, want the cast-path KTarget ask", d)
+	}
+	if d.MaxSum != 10 {
+		t.Fatalf("MaxSum = %d, want 10 (MaxTotalTargetPower$ 10)", d.MaxSum)
+	}
+	offerSet := map[state.ObjID]decision.Option{}
+	for _, o := range d.Options {
+		offerSet[o.Obj] = o
+	}
+	if _, ok := offerSet[lord]; ok {
+		t.Fatalf("the derived-13-power Lord of Extinction was offered under the cap of 10: options=%+v", d.Options)
+	}
+	// The ordinary printed-power candidates are still offered with their
+	// own powers as Values, and the boundary answer 6+4=10 resolves.
+	for name, want := range map[string]int{"Craw Wurm": 6, "Serra Angel": 4} {
+		o, ok := offerSet[grave[name]]
+		if !ok {
+			t.Fatalf("the %d-power %s was not offered: options=%+v", want, name, d.Options)
+		}
+		if o.Value != want {
+			t.Fatalf("%s option Value = %d, want its power %d", name, o.Value, want)
+		}
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player,
+		Choices: []int{offerSet[grave["Craw Wurm"]].Index, offerSet[grave["Serra Angel"]].Index}}); err != nil {
+		t.Fatalf("in-budget boundary answer rejected: %v", err)
+	}
+	passUntilStackEmpty(t, e, 20)
+	for _, name := range []string{"Craw Wurm", "Serra Angel"} {
+		if id := findByName(e, name, 0); id == 0 || e.G.Obj(id).Zone != state.ZBattlefield {
+			t.Fatalf("%s did not reach the battlefield", name)
+		}
+	}
+	if o := e.G.Obj(lord); o == nil || o.Zone != state.ZGraveyard {
+		t.Fatalf("Lord of Extinction = %+v, want still in the graveyard", o)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestTotalPowerCapOfZeroIsEnforced: a MaxTotalTargetPower$ resolving to
+// zero (or negative) is still a real cap -- every surviving candidate's own
+// power is <= the cap, so any subset sums under it and the per-candidate
+// pruning alone enforces the bound; the ask attaches NO Decision.MaxSum
+// (a MaxSum of 0 reads as NO budget on the wire, not as a zero budget --
+// findings-r2 MAJOR 2). The pin: under a literal cap of 0 the 0/5 Wall of
+// Roots is offered and pickable, the 2-power Grizzly Bears is pruned, and
+// the CDA */* Lord of Extinction (printed power 0, derived power 13) is
+// pruned on its DERIVED power -- the first cut offered it as a free target
+// because its printed read was 0.
+func TestTotalPowerCapOfZeroIsEnforced(t *testing.T) {
+	reg := searchTestRegistry(t)
+	fixture := card(t, "Name:PowerReclaimerZero\nManaCost:2\nTypes:Creature\n"+
+		"A:AB$ ChangeZone | Cost$ 0 | Origin$ Graveyard | Destination$ Battlefield | "+
+		"TargetMin$ 0 | TargetMax$ X | ValidTgts$ Creature.YouOwn | MaxTotalTargetPower$ 0\n"+
+		"SVar:X:Count$ValidGraveyard Creature.YouOwn\nOracle:x\n")
+	e, cfg, src, _ := reunionEngine(t, reg, 5504, fixture,
+		"Lord of Extinction", "Wall of Roots", "Grizzly Bears")
+	// Precondition the assertions depend on: the three creatures are in the
+	// graveyard and the fixture is on the battlefield.
+	grave := map[string]state.ObjID{}
+	for _, cid := range e.G.Zone(state.ZGraveyard, 0) {
+		if o := e.G.Obj(cid); o != nil && o.Face() != nil {
+			grave[o.Face().Name] = cid
+		}
+	}
+	for _, name := range []string{"Lord of Extinction", "Wall of Roots", "Grizzly Bears"} {
+		if grave[name] == 0 {
+			t.Fatalf("corpus card %q not in seat 0's graveyard (precondition)", name)
+		}
+	}
+	if o := e.G.Obj(src); o == nil || o.Zone != state.ZBattlefield {
+		e.emit(events.Event{Kind: events.MoveZone, Obj: src, From: o.Zone, To: state.ZBattlefield})
+	}
+	// Bridge ten more cards out of the library so Lord of Extinction's CDA
+	// (all cards, both graveyards) pushes its derived power past 10 -- the
+	// printed-power read that the first cut used sees 0 and would offer it.
+	moved := 0
+	for _, id := range append([]state.ObjID(nil), e.G.Zone(state.ZLibrary, 0)...) {
+		if moved >= 10 {
+			break
+		}
+		o := e.G.Obj(id)
+		if o == nil || o.Face() == nil || o.Face().Name != "Grizzly Bears" {
+			continue
+		}
+		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZGraveyard})
+		moved++
+	}
+	if moved < 10 {
+		t.Fatalf("only %d Grizzly Bears reachable in seat 0's library (precondition)", moved)
+	}
+	e.pending = nil
+	e.priorityRound()
+	if p := e.Power(grave["Lord of Extinction"]); p <= 10 {
+		t.Fatalf("Lord of Extinction derived power = %d, want > 10 (precondition)", p)
+	}
+
+	opt := abilityOption(t, e, src, 0)
+	submitChoices(t, e, opt.Index)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("pending = %+v, want the ability-path KTarget ask", d)
+	}
+	// The budget is ABSENT (a zero cap reads as no budget on the wire); the
+	// cap is carried by the pruning instead.
+	if d.MaxSum != 0 {
+		t.Fatalf("MaxSum = %d, want 0 (a zero cap attaches no budget)", d.MaxSum)
+	}
+	offerSet := map[state.ObjID]decision.Option{}
+	for _, o := range d.Options {
+		offerSet[o.Obj] = o
+	}
+	for name, power := range map[string]int{"Grizzly Bears": 2, "Lord of Extinction": 0} {
+		if _, ok := offerSet[grave[name]]; ok {
+			t.Fatalf("the %s (power %d under the read that matters) was offered under a cap of 0: options=%+v",
+				name, power, d.Options)
+		}
+	}
+	wall, ok := offerSet[grave["Wall of Roots"]]
+	if !ok {
+		t.Fatalf("the 0-power Wall of Roots was not offered under a cap of 0: options=%+v", d.Options)
+	}
+	if err := d.Validate(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{wall.Index}}); err != nil {
+		t.Fatalf("the in-cap Wall of Roots answer was rejected: %v", err)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{wall.Index}}); err != nil {
+		t.Fatalf("Wall of Roots answer rejected: %v", err)
+	}
+	passUntilStackEmpty(t, e, 20)
+	if id := findByName(e, "Wall of Roots", 0); id == 0 || e.G.Obj(id).Zone != state.ZBattlefield {
+		t.Fatal("Wall of Roots did not reach the battlefield")
+	}
+	for _, name := range []string{"Lord of Extinction", "Grizzly Bears"} {
+		if o := e.G.Obj(grave[name]); o == nil || o.Zone != state.ZGraveyard {
+			t.Fatalf("%s = %+v, want still in the graveyard", name, o)
+		}
+	}
+	replayCheck(t, e, cfg)
+}
