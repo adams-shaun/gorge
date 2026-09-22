@@ -52,7 +52,7 @@ type SacrificedInfo struct {
 // (a spell can be both kicked and cast via flashback), so they are
 // OR-combined into one byte rather than modeled as separate bools.
 const (
-	FlagKicked uint32 = 1 << iota // CR 601.2b: paid an optional additional cost
+	FlagKicked uint64 = 1 << iota // CR 601.2b: paid an optional additional cost
 	FlagSurged
 	FlagFlashback
 	FlagMiracle
@@ -215,6 +215,13 @@ const (
 	// Appended per the enum's own append-only precedent.
 	FlagMutated
 	FlagMutatedTop
+	// FlagFused marks a Fuse cast (CR 702.101b) of a non-Room Split card:
+	// one spell paid the combined mana cost of both halves and resolves both
+	// halves' spell abilities in sequence. It is the provenance
+	// rules/stack.go's resolution reader dispatches on to run BOTH faces
+	// rather than the single Face().SpellAbility(). Appended per the enum's
+	// own append-only precedent.
+	FlagFused
 )
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the
@@ -347,7 +354,7 @@ type Object struct {
 	// permanent) -- events.Move resets both when the object leaves the
 	// battlefield.
 	X         int32
-	CastFlags uint32
+	CastFlags uint64
 	// ReplicateTimes is CR 702.55a's count of replicate payments the cast
 	// made, carried by the pay-time CastInfo's FlagReplicated Amount (the
 	// X-overwrite guard: the flag routes the Amount here instead of into X).
