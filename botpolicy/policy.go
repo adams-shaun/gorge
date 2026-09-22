@@ -813,7 +813,75 @@ func (b Board) unlessSacrificeOffer(d *decision.Decision) []int {
 // "activate" option, before "pass". That is precisely how fix round 1's own
 // clamp reintroduced I-1(b): a Min:1 priority decision falling through with
 // nothing chosen got topped up into an activation instead of a pass.
+// totalValue sums the Value of the chosen options (indices into d.Options),
+// skipping any stale index a caller might hold.
+func totalValue(d *decision.Decision, choices []int) int {
+	sum := 0
+	for _, c := range choices {
+		if c >= 0 && c < len(d.Options) {
+			sum += d.Options[c].Value
+		}
+	}
+	return sum
+}
+
+// trimToBudget drops chosen options until their Value sum fits d.MaxSum,
+// dearest non-Required option first (ties broken by option index, so the
+// result is deterministic), then dearest Required option if a required-only
+// remnant still cannot fit. Returns a fresh slice; the caller's is untouched.
+// Only called when the sum is already known to exceed the budget.
+func trimToBudget(d *decision.Decision, choices []int) []int {
+	out := append([]int(nil), choices...)
+	sum := totalValue(d, out)
+	dropDearest := func(required bool) {
+		best := -1
+		bestVal := 0
+		for i, c := range out {
+			if c < 0 || c >= len(d.Options) {
+				continue
+			}
+			if d.Options[c].Required != required {
+				continue
+			}
+			if best < 0 || d.Options[c].Value > bestVal ||
+				(d.Options[c].Value == bestVal && c > out[best]) {
+				best, bestVal = i, d.Options[c].Value
+			}
+		}
+		if best < 0 {
+			return
+		}
+		sum -= bestVal
+		out = append(out[:best], out[best+1:]...)
+	}
+	for sum > d.MaxSum {
+		before := sum
+		dropDearest(false)
+		if sum == before {
+			dropDearest(true)
+		}
+		if sum == before {
+			break // nothing droppable (should not happen: sum > MaxSum >= 0)
+		}
+	}
+	return out
+}
+
 func Clamp(d *decision.Decision, in decision.Intent) decision.Intent {
+	// A cumulative budget (Decision.MaxSum) is a HARD wire contract
+	// (Decision.Validate rejects an over-budget answer), and the arms that
+	// build an answer themselves (KAttackers' combat heuristic, a KModes
+	// budget fill) do not all price their picks. Trim first, so no arm can
+	// hand back an intent Validate refuses and the match livelocks. Cheapest
+	// declaration the policy actually wanted is preserved as far as the
+	// budget allows: the dearest chosen option is dropped until the sum fits,
+	// and a Required option (KAttackers' CR 508.1d marker) is dropped only
+	// after every non-Required pick is gone -- the engine clamps the
+	// requirement to what the budget can pay (validateAttackDeclaration), so
+	// a page of required picks always fits once the rest are gone.
+	if d.MaxSum > 0 && d.MaxSum < totalValue(d, in.Choices) {
+		in.Choices = trimToBudget(d, in.Choices)
+	}
 	max := d.Max
 	if max < 0 {
 		max = 0

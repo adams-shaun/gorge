@@ -255,3 +255,150 @@ func TestWindbornMusePropIsTheSameShape(t *testing.T) {
 	}
 	drainCombatPriority(t, e)
 }
+
+// TestGhostlyPrisonWindowKeepsCrossDefenderTraining pins the MAJOR finding
+// from review round 1: the declare-attackers scratch (Engine.declaredAttackers)
+// must survive the attack-cost payment window, because the DeclareAttackers
+// events are emitted by finishAttackers AFTER the window's taps are answered
+// -- not inside handleAttackers' own frame. Gryff Rider (Training, 2/1)
+// attacks the Ghostly Prison seat (charged {2}) while Craw Wurm (6/4)
+// attacks the free seat, in ONE declaration paid through the tap window; the
+// rider must still get its +1/+1 counter from the cross-defender companion.
+// Before the fix the window's finishAttackers ran with an emptied scratch and
+// the trainee got nothing.
+func TestGhostlyPrisonWindowKeepsCrossDefenderTraining(t *testing.T) {
+	e := threeSeatEngine(t)
+	onBoardCard(t, e, 1, mshCorpusCard(t, "Ghostly Prison")) // charged defender = seat 1
+	rider := onBoardCard(t, e, 0, mshCorpusCard(t, "Gryff Rider"))
+	wurm := onBoardCard(t, e, 0, mshCorpusCard(t, "Craw Wurm"))
+	if !e.G.Obj(rider).Face().HasKeyword("Training") {
+		t.Fatal("the real Gryff Rider face does not print Training")
+	}
+	var mountains []state.ObjID
+	for i := 0; i < 2; i++ {
+		mountains = append(mountains, onBoardCard(t, e, 0,
+			card(t, "Name:Mountain\nTypes:Basic Land Mountain\nOracle:x\n")))
+	}
+	for _, id := range []state.ObjID{rider, wurm} {
+		e.G.Obj(id).SummonSick = false
+	}
+	e.G.Active = 0
+	e.G.Step = state.StepDeclareAttackers
+
+	// PRECONDITION: the declaration rides the payment window, not the pool --
+	// the pool is empty at declare-attackers, so the window IS the route.
+	if e.G.Players[0].Pool.Total() != 0 {
+		t.Fatalf("precondition: pool must be empty, has %d", e.G.Players[0].Pool.Total())
+	}
+	e.askAttackers()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KAttackers {
+		t.Fatalf("expected a KAttackers decision, got %+v", d)
+	}
+	if d.MaxSum != 2 {
+		t.Fatalf("attack budget MaxSum = %d, want 2 (two Mountains)", d.MaxSum)
+	}
+	want := map[state.ObjID]state.PlayerID{rider: 1, wurm: 2}
+	choices := make([]int, 0, 2)
+	for _, o := range d.Options {
+		if want[o.Obj] == o.Player {
+			choices = append(choices, o.Index)
+		}
+	}
+	if len(choices) != 2 {
+		t.Fatalf("wanted rider->seat1 and wurm->seat2 offered; got %v from %+v", choices, d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: choices}); err != nil {
+		t.Fatalf("submit split charged attack: %v", err)
+	}
+	// Paying {2} through the tap window: two asks (one per Mountain).
+	for i := 0; i < 2; i++ {
+		pay := e.Pending()
+		if pay == nil || pay.Kind != decision.KChoose || len(pay.Options) == 0 ||
+			pay.Options[0].Kind != "attack_mana" {
+			t.Fatalf("tap %d: expected the payment window, got %+v", i, pay)
+		}
+		if err := e.Submit(decision.Intent{Seq: pay.Seq, Player: pay.Player, Choices: []int{0}}); err != nil {
+			t.Fatalf("tap source: %v", err)
+		}
+	}
+	for _, id := range mountains {
+		if !e.G.Obj(id).Tapped {
+			t.Fatalf("Mountain %d not tapped as the payment", id)
+		}
+	}
+	e.priorityRound()
+	passUntilStackEmpty(t, e, 20)
+	if got := e.G.Obj(rider).Counter("P1P1"); got != 1 {
+		t.Fatalf("cross-defender Training through the window gave %d counters, want 1", got)
+	}
+}
+
+// TestAttackPropsAcrossDefendersAllowAPayableDeclaration pins the MAJOR
+// finding from review round 1: the offer list must not deny a payable
+// declaration through a list-order greedy budget. Ghostly Prison {2} on seat
+// 1 and Archangel of Tithes {1} on seat 2, payer budget 3 (three Mountains),
+// two attackers -- declaring BOTH at seat 2 costs {2} <= 3 and is legal. The
+// old serialization spent the budget on the seat-1 pairs it walked first and
+// withheld the second seat-2 pair, so validateAttackers rejected the
+// declaration outright. The fix admits every individually-affordable pair and
+// bounds the declaration TOTAL through Decision.MaxSum, which this test
+// submits against the real decision.
+func TestAttackPropsAcrossDefendersAllowAPayableDeclaration(t *testing.T) {
+	e := threeSeatEngine(t)
+	onBoardCard(t, e, 1, mshCorpusCard(t, "Ghostly Prison"))      // seat 1: {2}
+	onBoardCard(t, e, 2, mshCorpusCard(t, "Archangel of Tithes")) // seat 2: {1} untapped
+	// Archangel of Tithes' Cost$ 1 static is gated on Card.Self+untapped.
+	var bears []state.ObjID
+	for i := 0; i < 2; i++ {
+		id := onBoardCard(t, e, 0, card(t, "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"))
+		e.G.Obj(id).SummonSick = false
+		bears = append(bears, id)
+	}
+	for i := 0; i < 3; i++ {
+		onBoardCard(t, e, 0, card(t, "Name:Mountain\nTypes:Basic Land Mountain\nOracle:x\n"))
+	}
+	e.G.Active = 0
+	e.G.Step = state.StepDeclareAttackers
+
+	e.askAttackers()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KAttackers {
+		t.Fatalf("expected a KAttackers decision, got %+v", d)
+	}
+	// PRECONDITION: both bears must be offered against seat 2 in the fixed
+	// build; the old greedy withheld the second. Assert the option's own
+	// price too, so a mis-priced pair cannot masquerade as a fix.
+	var choices []int
+	for _, o := range d.Options {
+		if o.Player == 2 && (o.Obj == bears[0] || o.Obj == bears[1]) {
+			if o.Value != 1 {
+				t.Fatalf("seat-2 pair priced at Value %d, want 1", o.Value)
+			}
+			choices = append(choices, o.Index)
+		}
+	}
+	if len(choices) != 2 {
+		t.Fatalf("both seat-2 pairs must be offered; got %v from %+v", choices, d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: choices}); err != nil {
+		t.Fatalf("payable two-attacker declaration at seat 2 rejected: %v", err)
+	}
+	// {2} paid through the tap window (three Mountains, so spare budget).
+	for i := 0; i < 2; i++ {
+		pay := e.Pending()
+		if pay == nil || pay.Kind != decision.KChoose || len(pay.Options) == 0 ||
+			pay.Options[0].Kind != "attack_mana" {
+			t.Fatalf("tap %d: expected the payment window, got %+v", i, pay)
+		}
+		if err := e.Submit(decision.Intent{Seq: pay.Seq, Player: pay.Player, Choices: []int{0}}); err != nil {
+			t.Fatalf("tap source: %v", err)
+		}
+	}
+	for _, id := range bears {
+		if !e.G.Obj(id).IsAttacking {
+			t.Fatalf("bear %d was not declared as an attacker", id)
+		}
+	}
+	drainCombatPriority(t, e)
+}

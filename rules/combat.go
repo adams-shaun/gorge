@@ -223,12 +223,15 @@ func (e *Engine) askAttackers() {
 	}
 	// The option list IS the attackOffers list (rules/attack_cost.go): the
 	// same enumeration and order the pre-prop list always had, plus the
-	// attack-prop serialization -- a chargeable (attacker, defender) pair is
-	// admitted only while the payer's attackBudget lasts, so every subset of
-	// the offered options is a payable declaration. mustAttackRequired and
-	// validateAttackDeclaration read the same list, so a requirement the
-	// budget ran out on is never demanded.
+	// per-pair price. A chargeable pair is admitted when its individual price
+	// fits the payer's budget; the TOTAL is published to the client through
+	// the same cumulative-budget wire contract a Dig's WithTotalCMC$ cap uses
+	// -- Decision.MaxSum over each option's Value -- so a rules-ignorant
+	// client cannot assemble an over-budget declaration (Decision.Validate
+	// enforces it). mustAttackRequired and validateAttackDeclaration read the
+	// same list and the same budget.
 	offers := e.attackOffers()
+	budget := e.attackBudget(p)
 	var opts []decision.Option
 	for _, of := range offers {
 		label := "Attack with " + e.G.Obj(of.id).Face().Name + " at " + seatFacingName(e.G, of.def)
@@ -236,7 +239,12 @@ func (e *Engine) askAttackers() {
 			label += fmt.Sprintf(" (pay {%d} per creature)", of.price)
 		}
 		opts = append(opts, decision.Option{Index: len(opts), Kind: "attacker",
-			Label: label, Obj: of.id, Player: of.def, Required: mustAtt[of.id]})
+			Label: label, Obj: of.id, Player: of.def, Required: mustAtt[of.id],
+			// Value is the pair's mana price: the cumulative-budget contract
+			// MaxSum names. omitempty keeps a prop-free list byte-identical
+			// (price 0 omits), so the option enumeration order and the wire
+			// payload of every ordinary declaration are unchanged.
+			Value: int(of.price)})
 	}
 	// A MaxAttackers$ ceiling (CR 508.1j, Silent Arbiter's shape) bounds the
 	// WHOLE declaration, so the decision's Max is the honest ceiling, not the
@@ -260,7 +268,13 @@ func (e *Engine) askAttackers() {
 		return
 	}
 	e.ask(&decision.Decision{Player: p, Kind: decision.KAttackers, Min: 0, Max: maxOpts,
-		Prompt: fmt.Sprintf("turn %d — declare attackers", e.G.Turn), Options: opts})
+		Prompt: fmt.Sprintf("turn %d — declare attackers", e.G.Turn), Options: opts,
+		// The cumulative attack-cost budget: the sum of the chosen options'
+		// Value (each pair's mana price) must not exceed the payer's budget.
+		// Decision.Validate enforces it as a general wire contract, so the
+		// engine never sees an over-budget declaration and no client has to
+		// sum prices itself. 0 (prop-free) omits the field, byte-identical.
+		MaxSum: int(budget)})
 }
 
 // handleAttackers records the chosen attackers (CR 508.1c: this is what
@@ -287,11 +301,6 @@ func (e *Engine) handleAttackers(d *decision.Decision, in decision.Intent) {
 	// test event, or a future emitter) can never read a stale declaration --
 	// triggers fire synchronously inside the emits above, so every reader has
 	// already run by the time this returns.
-	e.declaredAttackers = e.declaredAttackers[:0]
-	for _, opt := range chosen {
-		e.declaredAttackers = append(e.declaredAttackers, opt.Obj)
-	}
-	defer func() { e.declaredAttackers = e.declaredAttackers[:0] }()
 	if len(chosen) == 0 {
 		// An empty declaration is still an event: it is the replay-derived
 		// marker that the declaration turn-based action has completed. The
@@ -314,6 +323,12 @@ func (e *Engine) handleAttackers(d *decision.Decision, in decision.Intent) {
 		if int32(e.G.Players[d.Player].Pool.Total()) >= charge {
 			e.payMana(d.Player, Cost{Generic: charge})
 		} else if !e.startAttackPay(chosen, d.Player, charge) {
+			// Unreachable through a submitted intent: the KAttackers decision
+			// carries Decision.MaxSum = the payer's budget, so Validate rejects
+			// an over-budget declaration before this handler runs. Kept as ONE
+			// loud Note (startAttackPay no longer emits its own) and completed
+			// rather than wedged: the declare-attackers step must advance, and
+			// an unreachable defensive path may not strand the game.
 			e.emit(events.Event{Kind: events.Note, Player: d.Player,
 				Text: fmt.Sprintf("could not pay the {%d} attack cost", charge)})
 		} else {
@@ -338,8 +353,28 @@ func (e *Engine) handleAttackers(d *decision.Decision, in decision.Intent) {
 // enlist election is answered: emit one DeclareAttackers event per defending
 // player, tap the non-Vigilance attackers (CR 508.1f), then offer the exert
 // elections (CR 702.100a, task exert1). Split out of handleAttackers so the
-// enlist continuation (rules/enlist.go) can resume exactly here.
+// enlist continuation (rules/enlist.go) and the attack-cost payment window
+// (rules/attack_cost.go's attackPayAnswer) can resume exactly here.
+//
+// The declaration-wide scratch is published HERE, not in handleAttackers:
+// the emits below fire the declaration's triggers synchronously, and the
+// declare-attackers step can now suspend between the choice and the emits (a
+// chargeable declaration whose pool cannot cover it opens the attack-cost
+// payment window, rules/attack_cost.go). handleAttackers' own frame has
+// unwound by then, so publishing there left the window path's emits with an
+// empty scratch and lost CR 702.70 Training's cross-defender match. Every
+// path that emits the DeclareAttackers events -- inline, the enlist
+// continuation, the payment window -- goes through this function, so this is
+// the one place the scratch must be built. The clear at the end is the same
+// guard as before: triggers fire synchronously inside the emits, so every
+// reader has run by the time this returns, and a LATER direct
+// DeclareAttackers emit can never read a stale declaration.
 func (e *Engine) finishAttackers(chosen []decision.Option, player state.PlayerID) {
+	e.declaredAttackers = e.declaredAttackers[:0]
+	for _, opt := range chosen {
+		e.declaredAttackers = append(e.declaredAttackers, opt.Obj)
+	}
+	defer func() { e.declaredAttackers = e.declaredAttackers[:0] }()
 	var defenders []state.PlayerID
 	byDef := make(map[state.PlayerID][]state.ObjID, len(chosen))
 	for _, opt := range chosen {
@@ -617,6 +652,53 @@ func (e *Engine) attackPairAvailable(id state.ObjID) bool {
 	return false
 }
 
+// requiredAffordableCount is how many of the required creatures the active
+// player's attack budget can actually pay for, cheapest pair first. CR
+// 508.1d's "must attack if able" is bounded by affordability: a creature a
+// CantAttackUnless prop prices is able to attack only while the declaration
+// stays within budget, so demanding more required creatures than the budget
+// covers would leave no legal declaration (the KAttackers decision would have
+// no answerable intent). Deterministic: each required creature's cheapest
+// offered pair (attackOffers' own prices) is taken in ascending price order
+// while it fits.
+func (e *Engine) requiredAffordableCount(required []state.ObjID) int {
+	mins := make(map[state.ObjID]int32, len(required))
+	for _, of := range e.attackOffers() {
+		if !requiredHas(required, of.id) {
+			continue
+		}
+		if cur, ok := mins[of.id]; !ok || of.price < cur {
+			mins[of.id] = of.price
+		}
+	}
+	vals := make([]int32, 0, len(mins))
+	for _, v := range mins {
+		vals = append(vals, v)
+	}
+	sort.Slice(vals, func(i, j int) bool { return vals[i] < vals[j] })
+	budget := e.attackBudget(e.G.Active)
+	total := int32(0)
+	count := 0
+	for _, v := range vals {
+		if total+v > budget {
+			break
+		}
+		total += v
+		count++
+	}
+	return count
+}
+
+// requiredHas is a small membership test over the required slice.
+func requiredHas(required []state.ObjID, id state.ObjID) bool {
+	for _, r := range required {
+		if r == id {
+			return true
+		}
+	}
+	return false
+}
+
 // maxAttackers reports the tightest total-attacker ceiling in force from
 // every applicable AttackRestrict static, or a very large number when none
 // applies. Only the MaxAttackers$ parameter is read (Silent Arbiter's shape);
@@ -759,6 +841,17 @@ func (e *Engine) validateAttackDeclaration(d *decision.Decision, in decision.Int
 	maxReq := len(required)
 	if maxAllowed < maxReq {
 		maxReq = maxAllowed
+	}
+	// CR 508.1d's "if able" is bounded by AFFORDABILITY too: a required
+	// creature whose attack is priced by a CantAttackUnless prop is only able
+	// to attack while the declaration's total stays within the payer's
+	// budget. Demanding more required creatures than the budget can pay for
+	// would make every legal declaration unanswerable, so the requirement is
+	// clamped to the count the cheapest available pairs can cover (the same
+	// deterministic greedy mustAttackRequired's attackPairAvailable walk
+	// uses, over the prices attackPairCharge already resolved).
+	if aff := e.requiredAffordableCount(required); aff < maxReq {
+		maxReq = aff
 	}
 	chosenReq := 0
 	for _, id := range required {

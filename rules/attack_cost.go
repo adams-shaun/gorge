@@ -238,18 +238,22 @@ type attackOffer struct {
 // attackOffers builds the offer list askAttackers, attackPairAvailable and
 // validateAttackers share -- the one source of truth for which pairs exist
 // this combat. The enumeration and the ORDER are exactly askAttackers':
-// attacker-major? no, defender-major -- for each defender in AliveFrom(0)
-// minus the active player, for each canAttack-filtered battlefield creature
-// in zone order, through the encore/goad/CantAttack filters. On top, the
-// affordability serialization: chargeable pairs are admitted only while the
-// payer's attackBudget lasts, in the list's own order. The serialization is
-// what keeps every SUBSET of the offered pairs payable -- a rules-ignorant
-// client (or the bot policy) may pick any subset it was offered, so an
-// unaffordable combination must never be assembled from offered options --
-// and it is the deterministic greedy resolver for must-attack requirements
-// sharing one pool (a creature whose pair the budget ran out on is not
-// required, so validateAttackDeclaration's solver can never demand a
-// declaration that cannot pay).
+// defender-major -- for each defender in AliveFrom(0) minus the active
+// player, for each canAttack-filtered battlefield creature in zone order,
+// through the encore/goad/CantAttack filters. On top, the affordability
+// bound: a chargeable pair is admitted when its INDIVIDUAL price fits the
+// payer's attackBudget, so the list never offers an option the payer cannot
+// afford at all. The declaration's TOTAL is enforced at submit
+// (validateAttackers sums the chosen prices and rejects a total over the
+// budget) rather than by a running serialization here: a list-order greedy
+// bound denied legal, payable declarations -- two attackers at a {1} and a
+// {2} prop with a budget of 3 could not both be declared when they were
+// enumerated in the wrong order, and validateAttackers then rejected the
+// declaration outright. Admitting each individually-affordable pair and
+// pricing the whole declaration on submission lets the client assemble any
+// declaration the payer can actually pay; the solver's requirement read
+// (attackPairAvailable) then asks only that a required creature HAS an
+// affordable pair, which is the CR 508.1d "if able" reading.
 func (e *Engine) attackOffers() []attackOffer {
 	p := e.G.Active
 	var out []attackOffer
@@ -275,11 +279,8 @@ func (e *Engine) attackOffers() []attackOffer {
 				continue
 			}
 			price := e.attackPairCharge(id, d)
-			if price > 0 {
-				if budget < price {
-					continue
-				}
-				budget -= price
+			if price > 0 && budget < price {
+				continue
 			}
 			out = append(out, attackOffer{id: id, def: d, price: price})
 		}
@@ -309,17 +310,16 @@ type attackPayWindow struct {
 
 // startAttackPay opens the payment window for a declaration whose charge the
 // floating pool cannot cover. The coverage guard is the budget the offer
-// serialization already checked (attackOffers spent against attackBudget),
-// re-checked here for the defensive paths: the window can only be opened
-// when pool + tappable units >= charge, and every offered source adds its
-// counted units, so the window always terminates with the charge paid --
-// never stranded. Returns false (caller pays what it can and goes on) when
-// even the budget cannot cover the charge -- unreachable through the offer
-// path, kept loud for a hand-built declaration.
+// list already checked (attackOffers admits each individually-affordable
+// pair) re-checked here for the defensive paths: the window can only be
+// opened when pool + tappable units >= charge, and every offered source adds
+// its counted units, so the window always terminates with the charge paid --
+// never stranded. Returns false (the caller emits the one loud Note and
+// completes the declaration) when even the budget cannot cover the charge --
+// unreachable through a submitted intent, whose total Decision.MaxSum
+// already bounded, kept for a hand-built declaration.
 func (e *Engine) startAttackPay(chosen []decision.Option, player state.PlayerID, charge int32) bool {
 	if e.attackBudget(player) < charge {
-		e.emit(events.Event{Kind: events.Note, Player: player,
-			Text: fmt.Sprintf("could not pay the {%d} attack cost", charge)})
 		return false
 	}
 	e.attackPay = &attackPayWindow{chosen: chosen, player: player, charge: charge}
@@ -400,6 +400,12 @@ func (e *Engine) attackPayAnswer(d *decision.Decision, in decision.Intent) {
 	}
 	if !e.askNextAttackPay() {
 		e.attackPay = nil
-		e.startEnlistAsks(st.chosen, st.player)
+		if !e.startEnlistAsks(st.chosen, st.player) {
+			// Defensive (the coverage invariant makes this unreachable):
+			// the window found no source left to tap, so complete the
+			// declaration the same way the coverage branch does rather than
+			// leaving the step without its DeclareAttackers events.
+			e.finishAttackers(st.chosen, st.player)
+		}
 	}
 }
