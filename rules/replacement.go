@@ -3036,6 +3036,15 @@ func (e *Engine) RevoltHolds(controller state.PlayerID) bool {
 	return e.revoltThisTurn(controller)
 }
 
+// DeliriumHolds is the effects.Host bridge (the bare Condition$ Delirium
+// gate in effects/conditions.go): the same graveyardCardTypeCount census the
+// replacement path's Delirium$ clause, the Continuous static gate
+// (rules/layers.go) and the ability-offer gate (rules/legal.go) read, so
+// every Delirium spelling answers identically.
+func (e *Engine) DeliriumHolds(controller state.PlayerID) bool {
+	return e.graveyardCardTypeCount(controller) >= 4
+}
+
 func (e *Engine) graveyardCardTypeCount(controller state.PlayerID) int {
 	seen := map[string]bool{}
 	for _, id := range e.G.Zone(state.ZGraveyard, controller) {
