@@ -759,6 +759,16 @@ type Object struct {
 	// exile, while a token imprint is a battlefield permanent and must
 	// resolve while it is on the battlefield.
 	ImprintTokens []ObjID
+	// SeekFound holds the cards an Alchemy Seek associated with this object
+	// through ImprintFound$ True. Forge's SeekEffect writes imprintedCards,
+	// but the found cards sit in a HAND at continuation time -- the zone a
+	// chained `Defined$ Imprinted` body (Spawning Pod, Gitrog, Kardum, Puppet
+	// Raiser) immediately moves on -- so the ordinary Imprinted list's CR
+	// 607.2a exiled-only reader would hide them. A separate list keeps the
+	// exile-only Imprinted contract intact while letting the seek-found cards
+	// resolve wherever they currently sit. Event-backed through the Imprint
+	// kind's "seek-found" Text discriminator and cleared by ClearImprinted$.
+	SeekFound []ObjID
 	// ExiledCards holds cards this object exiled through ChangeZone (Forge's
 	// hostCard.exiledCards). The association exists only while the card
 	// remains in exile; events.Move removes it when the card leaves. It is
@@ -1154,7 +1164,7 @@ func (o *Object) AddCounter(kind string, n int32) {
 }
 
 // CloneDeep returns a value copy of o whose slice fields (Counters, Targets,
-// Remembered, BlockedBy, Chosen, Goads, ChosenModes) are independently backed, so mutating
+// Remembered, BlockedBy, Chosen, Goads, ChosenModes, SeekFound) are independently backed, so mutating
 // the copy's slices can never alias o's -- everything else (Card, a shared
 // pointer into the immutable compiled corpus, plus every scalar field) is
 // correct as a plain value copy. This is the one definition of "deep-copy an
@@ -1176,6 +1186,7 @@ func (o *Object) CloneDeep() Object {
 	c.IntrinsicKeywords = append([]string(nil), o.IntrinsicKeywords...)
 	c.Imprinted = append([]ObjID(nil), o.Imprinted...)
 	c.ImprintTokens = append([]ObjID(nil), o.ImprintTokens...)
+	c.SeekFound = append([]ObjID(nil), o.SeekFound...)
 	c.ExiledCards = append([]ObjID(nil), o.ExiledCards...)
 	c.ExileReturn = append([]ExileReturnEntry(nil), o.ExileReturn...)
 	c.MergedCards = append([]MergedCard(nil), o.MergedCards...)
