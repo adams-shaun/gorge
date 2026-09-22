@@ -58,7 +58,19 @@ func (e *Engine) finishEnteredStep() {
 		// (landing directly on the draw) does not decrement.
 		for _, id := range e.G.Zone(state.ZExile, e.G.Active) {
 			o := e.G.Obj(id)
-			if o == nil || o.CastFlags&state.FlagSuspend == 0 || o.Counter("TIME") <= 0 {
+			if o == nil || o.Counter("TIME") <= 0 {
+				continue
+			}
+			if o.CastFlags&state.FlagSuspend == 0 {
+				// CR 701.34: a plotted card (the plot ACTION's own provenance
+				// flag) loses its time counter at its owner's upkeep too. Unlike
+				// Suspend's cast-if-able ask, a plotted card whose last counter
+				// leaves is NOT asked here: CR 701.34d's cast follows sorcery
+				// timing, so it is offered from the exile-zone walk once its
+				// owner reaches main phase with an empty stack.
+				if o.CastFlags&state.FlagPlot != 0 {
+					e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "TIME", Amount: -1})
+				}
 				continue
 			}
 			e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "TIME", Amount: -1})

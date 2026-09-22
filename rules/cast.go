@@ -1713,6 +1713,17 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		}
 	case "suspend_cast":
 		cost = Cost{}
+	case "plot":
+		// CR 701.34a: the plot ACTION pays the K:Plot colon parameter. Not a
+		// cast: payCast's plot branch intercepts before the stack push, and
+		// continueCast never reaches the target/push stages for this mode.
+		if raw, ok := f.KeywordParam("Plot"); ok {
+			cost = ParseCost(raw)
+		}
+	case "plot_cast":
+		// CR 701.34d: the plotted card's later cast is free -- no mana cost,
+		// no raises; targets and resolution run the ordinary stages.
+		cost = Cost{}
 	case "foretell":
 		// CR 702.126a: the Foretell ACTION pays {2} and exiles the card face
 		// down -- never the keyword's own colon parameter, which prices the
@@ -2195,6 +2206,14 @@ func (e *Engine) continueCast() {
 		e.payCast()
 		return
 	}
+	// Plot (CR 701.34a) is the same shape again: the alternative action is
+	// not a cast -- no stack push, no targets; the card is exiled with time
+	// counters and its later free cast announces its own targets at sorcery
+	// timing.
+	if e.cast.mode == "plot" {
+		e.payCast()
+		return
+	}
 	// CR 601.2a: the object reaches the stack before the target choice
 	// (601.2c) and payment (601.2h). For a spell the cast trigger (601.2i)
 	// is held back until payCast; an ability's AbilityPush fires no trigger.
@@ -2218,8 +2237,12 @@ func (e *Engine) continueCast() {
 	}
 	// FlagSuspend is exile provenance, not cast-time state. Clear it when the
 	// mandatory free cast starts so a later unrelated exile move cannot revive
-	// an old suspension.
-	if e.cast.mode == "suspend_cast" && !e.cast.suspendCastClear {
+	// an old suspension. FlagPlot (CR 701.34) rides the same shape: the
+	// plotted card's later free cast clears it, so the standing cast
+	// permission cannot revive once the card has been cast. The two modes
+	// share the one suspendCastClear latch -- each is a different mode, so
+	// the latch can never serve the same cast twice.
+	if (e.cast.mode == "suspend_cast" || e.cast.mode == "plot_cast") && !e.cast.suspendCastClear {
 		e.emit(events.Event{Kind: events.CastInfo, Obj: e.cast.card})
 		e.cast.suspendCastClear = true
 	}
@@ -5481,7 +5504,7 @@ func (e *Engine) targetAsk() bool {
 // no reversal is owed.
 func (e *Engine) pushCast() bool {
 	pc := e.cast
-	if pc == nil || pc.mode == "land" || pc.mode == "suspend" || pc.isAbility() {
+	if pc == nil || pc.mode == "land" || pc.mode == "suspend" || pc.mode == "plot" || pc.isAbility() {
 		return false
 	}
 	if pc.pushed {
@@ -6166,6 +6189,26 @@ func (e *Engine) payCast() {
 		e.cast, e.choosing = nil, chooseNone
 		return
 	}
+	if pc.mode == "plot" {
+		// CR 701.34a: the plot ACTION is not a cast. CastInfo is the replayable
+		// provenance marker -- only this action sets FlagPlot, so an arbitrary
+		// exiled Plot carrier is never treated as plotted -- and the exile card
+		// takes TIME counters equal to its MANA VALUE (the count the CR fixes;
+		// measured, no K:Plot carrier's mana value carries {X}). The guard
+		// mirrors the suspend branch's: a zero-MV carrier exiles with no
+		// counter event at all.
+		n := int32(0)
+		if o := e.G.Obj(pc.card); o != nil && o.Face() != nil {
+			n = o.Face().Cmc()
+		}
+		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Counter: events.FlagsString(state.FlagPlot)})
+		e.emit(events.Event{Kind: events.MoveZone, Obj: pc.card, From: pc.from, To: state.ZExile, Text: "plotted"})
+		if n > 0 {
+			e.emit(events.Event{Kind: events.CounterChange, Obj: pc.card, Counter: "TIME", Amount: n})
+		}
+		e.cast, e.choosing = nil, chooseNone
+		return
+	}
 	if pc.mode == "foretell" {
 		// CR 702.126a: the Foretell ACTION is not a cast. CastInfo is the
 		// replayable provenance marker -- only this action sets FlagForetold
@@ -6811,5 +6854,13 @@ func init() {
 		// Count$ThisTurnEntered_Graveyard_from_Battlefield_Permanent reads the
 		// zone-aware count in effects.countEntered.
 		"kw:Gravestorm",
-		"kw:Embalm", "kw:Eternalize")
+		"kw:Embalm", "kw:Eternalize",
+		// kw:Plot: CR 701.34, the hand-origin alternative ACTION -- pay the
+		// K:Plot colon parameter, exile the card with TIME counters equal to
+		// its mana value, remove one at the owner's upkeep, and offer a free
+		// cast at sorcery timing once the last counter is gone (the exile-zone
+		// walk; no upkeep ask, unlike Suspend's cast-if-able). No keyword
+		// expansion: the K:Plot line is read directly. Proof:
+		// rules/plot_test.go.
+		"kw:Plot")
 }

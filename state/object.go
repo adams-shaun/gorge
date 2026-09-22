@@ -258,6 +258,17 @@ const (
 	// include casts made before the carrier entered, which emit no event.
 	// Appended per the enum's own append-only precedent.
 	FlagManaExpendCast
+	// FlagPlot marks a card exiled by its Plot ACTION (CR 701.34a): the
+	// alternative action paid the K:Plot colon parameter and moved the card
+	// hand->exile with TIME counters equal to its mana value. It is the
+	// provenance the owner's upkeep decrement (rules/turn.go) and the later
+	// free plot-cast offer (rules/legal.go's exile walk) read, so an
+	// arbitrary exiled Plot carrier -- one some other effect exiled -- is
+	// never treated as plotted. The later plot_cast clears it (the
+	// suspendCastClear shape), so the standing permission cannot revive
+	// after the card leaves exile. Appended per the enum's own append-only
+	// precedent.
+	FlagPlot
 )
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the

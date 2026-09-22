@@ -1077,6 +1077,11 @@ var flagNames = [...]struct {
 	// made before the carrier entered, which emit no such event. Appended at
 	// the end per the table's own ordering rule.
 	{"manaexpend", state.FlagManaExpendCast},
+	// The Plot ACTION's provenance (CR 701.34a): the alternative action
+	// (never a cast) that exiled the card with TIME counters, so the
+	// owner's upkeep decrement and the later sorcery-timing free cast read
+	// it. Appended at the end per the table's own ordering rule.
+	{"plotted", state.FlagPlot},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)
