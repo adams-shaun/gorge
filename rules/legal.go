@@ -1042,13 +1042,13 @@ type grantedAbility struct {
 	// gainedIdx is the index of sa in that face's Abilities. The activation
 	// mints through GainedAbilityPush, which names both so a replay
 	// re-resolves the identical SA; a zero gainedFrom means the ordinary
-	// SVar-anchored grant. limitPerTurn is the granting static's
-	// GainsAbilitiesLimitPerTurn$ cap (0 = unlimited), applied here so the
-	// offer loop and the mana collector share one home.
-	gained       bool
-	gainedFrom   state.ObjID
-	gainedIdx    int
-	limitPerTurn int
+	// SVar-anchored grant. The grant's GainsValidAbilities$ filter and
+	// GainsAbilitiesLimitPerTurn$ cap are applied at collection (inside
+	// grantedAbilities), the one home both the offer loop and the mana
+	// collector read, so no consumer can widen the grant.
+	gained     bool
+	gainedFrom state.ObjID
+	gainedIdx  int
 }
 
 // grantedAbilities collects the activated abilities the battlefield's
@@ -1102,8 +1102,7 @@ func (e *Engine) grantedAbilities(p state.PlayerID, id state.ObjID) []grantedAbi
 					continue
 				}
 				out = append(out, grantedAbility{sa: ab, source: ce.Source,
-					gained: true, gainedFrom: gf.Obj, gainedIdx: i,
-					limitPerTurn: ce.GainsLimitPerTurn})
+					gained: true, gainedFrom: gf.Obj, gainedIdx: i})
 			}
 		}
 		if len(ce.AddAbilities) == 0 {
