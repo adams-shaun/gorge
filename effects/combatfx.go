@@ -243,6 +243,38 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 
+	// NoteCards$ <defined> + NoteCardsFor$ <label> (Forge's NoteCardsEffect):
+	// the body records a player-notation that a later resolution reads through
+	// the shared player filter's `Player.NotedFor<label>` qualifier. Corpus
+	// carriers: Seize the Spotlight's fame/fortune branches, Master of
+	// Ceremonies' money/friends/secrets, Wheel of Potential, Borderland
+	// Explorer. The noted SEAT is the resolution's Defined set (a remembered
+	// chooser, `Defined$ Player`, or `Defined$ Player.!IsRemembered`); Forge's
+	// NoteCardsEffect notes the CURRENT player when Defined$ is absent, which
+	// here is the resolving controller. NoteCards$ itself (Self/Remembered)
+	// names the noted CARD and is read only to keep the parameter census
+	// honest: the card-notation half (`Card.NotedFor<label>` at
+	// ChooseCard/Play/ChangeType sites) is a separate family and is NOT
+	// implemented here. The note lands through its own event so a log-only
+	// replay rebuilds state.Player.Notes exactly; the pump body then runs
+	// unchanged (a `Defined$ Remembered` chooser is a player entry, skipped by
+	// the object walk below).
+	if label := strings.TrimSpace(sa.Params["NoteCardsFor"]); label != "" {
+		_ = strings.TrimSpace(sa.Params["NoteCards"])
+		spec := strings.TrimSpace(sa.Params["Defined"])
+		noted := false
+		for _, t := range Defined(h, c, sa) {
+			if !t.IsPlayer {
+				continue
+			}
+			h.Emit(events.Event{Kind: events.PlayerNoted, Player: t.Player, Text: label})
+			noted = true
+		}
+		if !noted && spec == "" {
+			h.Emit(events.Event{Kind: events.PlayerNoted, Player: c.Controller, Text: label})
+		}
+	}
+
 	// Secondary$ True (Amonkhet Raceway's max-speed AddAbility$ grant marks
 	// the granted pump with it): Forge CardFactoryUtil sets the key on
 	// machine-derived abilities, and Card.java's ability-text renderer skips
