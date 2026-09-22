@@ -1213,7 +1213,13 @@ var acceptanceHeads = map[int]string{
 	// global highest) -> choose:[0] (Vampire Lacerator, a foreign permanent);
 	// the Baloth tally still wins the exile. Every earlier event is
 	// byte-identical.
-	8: "c8dddeb452ccb5b3",
+	// Mana sacrifice choice (cli-20260922T150843Z-44188ca1): 8 seats moves to
+	// b14f1fc52a6835ed. After seat 6 selects Skirk Prospector's mana ability
+	// at event 8064, the fixed engine asks at 8066 because more than one Goblin
+	// is eligible; the bot chooses option 1 and sacrifices Prospector at 8068.
+	// The prior exact-only gate withheld that activation, the first difference
+	// at 8065, so this is the authorized >N behaviour.
+	8: "b14f1fc52a6835ed",
 }
 
 func TestHeads(t *testing.T) {
