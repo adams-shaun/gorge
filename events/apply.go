@@ -924,6 +924,10 @@ func Apply(g *state.Game, e Event) {
 				g.Objs[i].EnlistedCombat = 0
 				// Only default-duration goads expire at the goader's next turn.
 				g.Objs[i].Goads = expireTurnGoads(g.Objs[i].Goads, e.Player)
+				// A Charm's ChoiceRestriction$ ThisTurn log is a per-turn fact:
+				// One-off (ThisGame) picks survive the turn boundary on the same
+				// object, so only the ThisTurn entries are pruned.
+				g.Objs[i].ModeChoices = pruneTurnModeChoices(g.Objs[i].ModeChoices)
 			}
 			// The per-add entry list is per-turn state too.
 			g.Entered = nil
@@ -1490,6 +1494,19 @@ func Apply(g *state.Game, e Event) {
 				o.ChosenNumber = e.Amount
 			case "riot":
 				o.RiotChoice = e.Text
+			case state.ModeChoiceCounterPrefix + state.ModeScopeThisTurn,
+				state.ModeChoiceCounterPrefix + state.ModeScopeThisGame,
+				state.ModeChoiceCounterPrefix + state.ModeScopeYourLastCombat:
+				// ChoiceRestriction$ (task charm-choice-restriction): one Charm
+				// mode pick, named in Text, scoped by the Counter key. The turn
+				// is stamped from the fold's own clock so a live game and a
+				// replay derive the same log; a ThisTurn scope is pruned in the
+				// TurnChange per-object loop below.
+				o.ModeChoices = append(o.ModeChoices, state.ModeChoice{
+					Mode:  e.Text,
+					Scope: strings.TrimPrefix(e.Counter, "mode-"),
+					Turn:  g.Turn,
+				})
 			case "protector":
 				// CR 310.10: the Siege protector chosen as this Battle
 				// entered. Player carries the chosen opponent's seat.
@@ -2864,6 +2881,24 @@ func expireTurnGoads(in []state.GoadEffect, p state.PlayerID) []state.GoadEffect
 			continue
 		}
 		out = append(out, ge)
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+// pruneTurnModeChoices drops a Charm's ChoiceRestriction$ ThisTurn picks in
+// events.Apply's TurnChange per-object loop (a per-turn fact). ThisGame picks
+// survive on the same object; a new object starts empty. The slice is compacted
+// in place and nil when nothing is left, so it costs no allocation.
+func pruneTurnModeChoices(in []state.ModeChoice) []state.ModeChoice {
+	out := in[:0]
+	for _, mc := range in {
+		if mc.Scope == state.ModeScopeThisTurn {
+			continue
+		}
+		out = append(out, mc)
 	}
 	if len(out) == 0 {
 		return nil

@@ -298,6 +298,31 @@ func WasCastFromGraveyard(flags uint64) bool {
 	return flags&(FlagFlashback|FlagHarmonize|FlagJumpstart|FlagEscaped) != 0
 }
 
+// ModeChoice is one ChoiceRestriction$ pick recorded on an object: the
+// chosen Choices$ SVar name, the restriction scope the picking Charm named
+// ("ThisTurn", "ThisGame", ...), and the turn it was picked in. The scope
+// is stored per pick so a ThisTurn reset never discards a ThisGame pick,
+// even though no corpus card carries two differently-scoped Charms on one
+// object.
+type ModeChoice struct {
+	Mode  string
+	Scope string
+	Turn  int32
+}
+
+// The ChoiceRestriction$ scopes and the events.Choose counter key a pick is
+// recorded under. state owns them so effects (which emits the pick) and events
+// (which folds it) cannot drift apart.
+const (
+	ModeScopeThisTurn       = "ThisTurn"
+	ModeScopeThisGame       = "ThisGame"
+	ModeScopeYourLastCombat = "YourLastCombat"
+
+	// ModeChoiceCounterPrefix + a scope is the events.Choose Counter value
+	// that records one pick (Text is the chosen mode name).
+	ModeChoiceCounterPrefix = "mode-"
+)
+
 // Object is any game object: a card in a zone, a permanent, or a spell on the
 // stack. One struct keeps identity stable across zone changes.
 type Object struct {
@@ -619,6 +644,17 @@ type Object struct {
 	// same decision through the identical code path, so it is not a second
 	// source of truth. Nil when no modal announcement has been made.
 	ChosenModes []string
+
+	// ModeChoices is the persistent per-object log a Charm's ChoiceRestriction$
+	// reads (task charm-choice-restriction): every mode this object has chosen,
+	// with the scope the picking Charm named and the turn it was picked in.
+	// Unlike ChosenModes it is NOT cleared when the choosing stack object
+	// resolves -- the whole point is that a LATER trigger instance on the same
+	// source sees the earlier pick -- so it lives on the source permanent and is
+	// folded by events.Choose's scope-keyed pick markers. A ThisTurn scope is
+	// pruned in events.Apply's TurnChange per-object loop; a new object (the
+	// permanent left and returned, CR 400.7) starts with an empty log.
+	ModeChoices []ModeChoice
 
 	// Imprinted holds cards ImprintCards$ explicitly associated with this
 	// object. It is distinct from ExiledCards: Forge's host card has separate

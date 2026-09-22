@@ -2929,6 +2929,11 @@ func (e *Engine) castModeAsk() bool {
 		}
 		legal = append(legal, name)
 	}
+	// ChoiceRestriction$: a Charm cast (no corpus carrier today, but the
+	// class) still cannot announce a mode it already chose on the same source
+	// under the scope. Filtered before the bounds clamp, exactly as the
+	// triggered and mid-resolution asks do.
+	legal = effects.CharmEligibleModes(e, pc.card, sa, legal)
 	min, max, repeat := effects.CharmModeBounds(e, ctx, sa, len(legal))
 	if min > len(legal) && !repeat {
 		// No legal set of modes can complete its required target choices or

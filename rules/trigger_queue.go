@@ -517,7 +517,7 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 			handled := false
 			if pt.SA.Params["Choices"] != "" {
 				handled = e.askTriggerModes(pt.Controller, id, pt.SA)
-				if handled {
+				if handled && e.Pending() != nil {
 					e.drainAwaitsModes = true
 				}
 			}
@@ -592,7 +592,7 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 			handled := false
 			if pt.SA.Params["Choices"] != "" {
 				handled = e.askTriggerModes(pt.Controller, id, pt.SA)
-				if handled {
+				if handled && e.Pending() != nil {
 					e.drainAwaitsModes = true
 				}
 			}
@@ -700,7 +700,7 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		handled := false
 		if pt.SA.Params["Choices"] != "" {
 			handled = e.askTriggerModes(pt.Controller, id, pt.SA)
-			if handled {
+			if handled && e.Pending() != nil {
 				e.drainAwaitsModes = true
 			}
 		}
@@ -1218,18 +1218,26 @@ func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA
 		}
 	}
 	choices := strings.Split(sa.Params["Choices"], ",")
-	for _, ch := range choices {
-		if cards.ResolveSVar(svars, strings.TrimSpace(ch)) == nil {
+	for i := range choices {
+		choices[i] = strings.TrimSpace(choices[i])
+		if cards.ResolveSVar(svars, choices[i]) == nil {
 			return false // not modal: the primitive asks at resolution
 		}
 	}
 	ctx := &effects.Ctx{Source: source, Controller: p, TriggerContext: e.triggerContexts[obj]}
 	effects.SetSVars(ctx, svars)
-	min, max, repeat := effects.CharmModeBounds(e, ctx, sa, len(choices))
-	if min > len(choices) && !repeat {
+	// ChoiceRestriction$ ("choose one that hasn't been chosen this turn / this
+	// game"): a later instance of the same triggered Charm on the same source
+	// must not offer a mode an earlier instance already chose, so the eligible
+	// list is filtered before the bounds clamp and the options are built. With
+	// every mode exhausted, the min-over-modes guard below leaves the trigger
+	// doing nothing -- the oracle's own outcome.
+	eligible := effects.CharmEligibleModes(e, source, sa, choices)
+	min, max, repeat := effects.CharmModeBounds(e, ctx, sa, len(eligible))
+	if min > len(eligible) && !repeat {
 		return true
 	}
-	e.ask(modeDecision(p, source, sa, svars, min, max, repeat))
+	e.ask(modeDecisionForChoices(p, source, sa, svars, eligible, min, max, repeat))
 	return true
 }
 
