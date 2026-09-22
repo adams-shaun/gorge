@@ -294,6 +294,24 @@ func (e *Engine) specCtx(source state.ObjID, you state.PlayerID) effects.SpecCon
 	return e.specCtxSVars(source, you, nil)
 }
 
+// matchesSpec evaluates a live-object filter with its current derived
+// characteristics. The keyword slice is a value snapshot borrowed from the
+// allocation-free Derived path; it is never used for LKI or hypothetical
+// token objects, which go through MatchesObjectCtx and retain printed/counter
+// semantics. Keeping this seam in rules prevents effects from depending on
+// the layer owner while making every live-object rules query layer-aware.
+func (e *Engine) matchesSpec(spec string, id state.ObjID, sc effects.SpecContext) bool {
+	// During the layer scan Derived is already being built; consulting it
+	// again would recurse through active(). The scan's own matchesWithChars
+	// supplies its keywords-so-far snapshot directly.
+	if e.activeDepth == 0 {
+		if o := e.G.Obj(id); o != nil {
+			sc.ExtraKeywords = e.Derived(id).Keywords
+		}
+	}
+	return effects.MatchesSpecCtx(e.G, spec, id, sc)
+}
+
 // specCtxSVars is specCtx with an explicit SVar table: a static carried by a
 // card merged beneath a mutated pile's top resolves its Chosen*/SVar* terms
 // against that under-card's own table. A nil svars falls back to the source
@@ -386,7 +404,7 @@ func (e *Engine) castRestrictedUsing(statics []staticView, p state.PlayerID, id 
 				spec = s
 			}
 		}
-		if effects.MatchesSpecCtx(e.G, spec, id, e.staticSpecCtx(sv)) {
+		if e.matchesSpec(spec, id, e.staticSpecCtx(sv)) {
 			return true
 		}
 	}
@@ -472,7 +490,7 @@ func (e *Engine) abilityRestrictedUsing(statics []staticView, p state.PlayerID, 
 		if !e.restrictionGateHolds(sv, id) || !e.checkSVarHolds(sv) {
 			continue
 		}
-		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.staticSpecCtx(sv)) {
+		if !e.matchesSpec(sv.Params["ValidCard"], id, e.staticSpecCtx(sv)) {
 			continue
 		}
 		if activatedMatchesValidSA(ab, sv.Params["ValidSA"]) {
@@ -608,7 +626,7 @@ func (e *Engine) castWithFlash(p state.PlayerID, id state.ObjID) bool {
 		if o == nil || o.Face() == nil || !spellMatchesValidSA(o.Face(), sv.Params["ValidSA"], id, sv.Source) {
 			continue
 		}
-		if effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.staticSpecCtx(sv)) {
+		if e.matchesSpec(sv.Params["ValidCard"], id, e.staticSpecCtx(sv)) {
 			return true
 		}
 	}
@@ -714,7 +732,7 @@ func (e *Engine) countStaticPresent(sv staticView, spec string) int {
 	n := 0
 	e.forEachObject(func(id state.ObjID) {
 		o := e.G.Obj(id)
-		if o != nil && o.Zone == want && effects.MatchesSpecCtx(e.G, spec, id, e.staticSpecCtx(sv)) {
+		if o != nil && o.Zone == want && e.matchesSpec(spec, id, e.staticSpecCtx(sv)) {
 			n++
 		}
 	})
@@ -803,7 +821,7 @@ type altCostView struct {
 func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []altCostView {
 	var out []altCostView
 	for _, sv := range e.activeStatics("AlternativeCost") {
-		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.staticSpecCtx(sv)) {
+		if !e.matchesSpec(sv.Params["ValidCard"], id, e.staticSpecCtx(sv)) {
 			continue
 		}
 		if !e.alternativeCostScopeOK(sv.Params, id, sv.Source, p, sv.Controller) {
@@ -835,7 +853,7 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []altCostVie
 		// matches NOTHING, so an unconditional check would silently deny
 		// every ValidCard$-less grant.
 		if spec, ok := sv.Params["ValidCard"]; ok && spec != "" &&
-			!effects.MatchesSpecCtx(e.G, spec, id, e.staticSpecCtx(sv)) {
+			!e.matchesSpec(spec, id, e.staticSpecCtx(sv)) {
 			continue
 		}
 		if !e.alternativeCostScopeOK(sv.Params, id, sv.Source, p, sv.Controller) {
@@ -934,7 +952,7 @@ func (e *Engine) altCostXCandidates(p state.PlayerID, id state.ObjID, alt altCos
 				}
 				return 0, false
 			}})
-			if effects.MatchesSpecCtx(e.G, part.Spec, oid, sc) {
+			if e.matchesSpec(part.Spec, oid, sc) {
 				seen[v] = true
 				vals = append(vals, v)
 			}
@@ -1088,7 +1106,7 @@ func (e *Engine) onlyFirstSpellUsed(sv staticView, p state.PlayerID, id state.Ob
 			return true
 		}
 		if o := e.G.Obj(ev.Obj); o != nil && o.Face() != nil &&
-			effects.MatchesSpecCtx(e.G, spec, ev.Obj, e.staticSpecCtx(sv)) {
+			e.matchesSpec(spec, ev.Obj, e.staticSpecCtx(sv)) {
 			return true
 		}
 	}
@@ -1123,14 +1141,14 @@ func (e *Engine) blockRestricted(blocker, attacker state.ObjID) bool {
 		for _, r := range ce.Remembered {
 			sc.Remembered = append(sc.Remembered, state.Target{Obj: r})
 		}
-		if !effects.MatchesSpecCtx(e.G, atkSpec, attacker, sc) {
+		if !e.matchesSpec(atkSpec, attacker, sc) {
 			continue
 		}
 		blkSpec, ok := ce.RestrictParams["ValidBlocker"]
 		if !ok {
 			return true
 		}
-		if effects.MatchesSpecCtx(e.G, blkSpec, blocker, sc) {
+		if e.matchesSpec(blkSpec, blocker, sc) {
 			return true
 		}
 	}
@@ -1141,7 +1159,7 @@ func (e *Engine) blockRestricted(blocker, attacker state.ObjID) bool {
 		if !e.continuousGateHolds(sv) {
 			continue
 		}
-		if effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], blocker, e.staticSpecCtx(sv)) {
+		if e.matchesSpec(sv.Params["ValidCard"], blocker, e.staticSpecCtx(sv)) {
 			return true
 		}
 	}
@@ -1163,14 +1181,14 @@ func (e *Engine) blockRestricted(blocker, attacker state.ObjID) bool {
 		if attackerSpec == "" {
 			attackerSpec = sv.Params["ValidCard"]
 		}
-		if !effects.MatchesSpecCtx(e.G, attackerSpec, attacker, e.staticSpecCtx(sv)) {
+		if !e.matchesSpec(attackerSpec, attacker, e.staticSpecCtx(sv)) {
 			continue
 		}
 		spec, ok := sv.Params["ValidBlocker"]
 		if !ok {
 			return true
 		}
-		if effects.MatchesSpecCtx(e.G, spec, blocker, e.staticSpecCtx(sv)) {
+		if e.matchesSpec(spec, blocker, e.staticSpecCtx(sv)) {
 			return true
 		}
 	}
@@ -1213,11 +1231,11 @@ func (e *Engine) blockRestricted(blocker, attacker state.ObjID) bool {
 			if !remembered {
 				continue
 			}
-		} else if !effects.MatchesSpecCtx(e.G, attackerSpec, attacker, sc) {
+		} else if !e.matchesSpec(attackerSpec, attacker, sc) {
 			continue
 		}
 		if spec, ok := ce.RestrictParams["ValidBlocker"]; ok {
-			if !effects.MatchesSpecCtx(e.G, spec, blocker, sc) {
+			if !e.matchesSpec(spec, blocker, sc) {
 				continue
 			}
 		}
@@ -1274,7 +1292,7 @@ func (e *Engine) minMaxBlockerBounds(attacker state.ObjID) (min, max int, minOK,
 		if !e.continuousGateHolds(sv) {
 			continue
 		}
-		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], attacker, e.staticSpecCtx(sv)) {
+		if !e.matchesSpec(sv.Params["ValidCard"], attacker, e.staticSpecCtx(sv)) {
 			continue
 		}
 		if raw, ok := sv.Params["Min"]; ok {
@@ -2120,7 +2138,7 @@ func (e *Engine) costStaticApplies(sv staticView, mode string, p state.PlayerID,
 			e.costProvenanceSeen = true
 		}
 		spec, ok2 := e.castProvenanceAdmitsPending(spec, id, sv.Controller)
-		if !ok2 || !effects.MatchesSpecCtx(e.G, spec, id, e.staticSpecCtx(sv)) {
+		if !ok2 || !e.matchesSpec(spec, id, e.staticSpecCtx(sv)) {
 			return false
 		}
 	}
@@ -2204,7 +2222,7 @@ func (e *Engine) costTargetsMatch(sv staticView, spec string, targets []state.Ta
 			}
 			continue
 		}
-		if effects.MatchesSpecCtx(e.G, spec, target.Obj, ctx) {
+		if e.matchesSpec(spec, target.Obj, ctx) {
 			return true
 		}
 	}
@@ -2308,7 +2326,7 @@ func (e *Engine) isPresent(spec string, sv staticView) bool {
 	ctx := e.staticSpecCtx(sv)
 	for _, p := range e.G.AliveFrom(0) {
 		for _, oid := range e.G.Zone(state.ZBattlefield, p) {
-			if effects.MatchesSpecCtx(e.G, spec, oid, ctx) {
+			if e.matchesSpec(spec, oid, ctx) {
 				return true
 			}
 		}
@@ -2627,7 +2645,7 @@ func (e *Engine) asUnblockedStaticMatches(id state.ObjID) (matched, mandatory bo
 				continue
 			}
 		}
-		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.staticSpecCtx(sv)) {
+		if !e.matchesSpec(sv.Params["ValidCard"], id, e.staticSpecCtx(sv)) {
 			continue
 		}
 		matched = true
@@ -2720,7 +2738,7 @@ func (e *Engine) combatDamageToughnessMatches(id state.ObjID) bool {
 				continue
 			}
 		}
-		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.staticSpecCtx(sv)) {
+		if !e.matchesSpec(sv.Params["ValidCard"], id, e.staticSpecCtx(sv)) {
 			continue
 		}
 		return true
@@ -2798,7 +2816,8 @@ func altCostLabel(name string, i int) string {
 // build cannot evaluate (IsPresent/PresentCompare, Condition, ValidTurned --
 // there is no TurnFaceUp event) fail closed: the static does not double,
 // never over-applies.
-func (e *Engine) panharmoniconEchoes(g *state.Game, src state.ObjID, ev events.Event) int {
+func (e *Engine) panharmoniconEchoes(observer *Engine, src state.ObjID, ev events.Event) int {
+	g := observer.G
 	o := g.Obj(src)
 	if o == nil {
 		return 0
@@ -2853,7 +2872,7 @@ func (e *Engine) panharmoniconEchoes(g *state.Game, src state.ObjID, ev events.E
 					cause = ev.IDs[0]
 				}
 			}
-			if cause == 0 || !effects.MatchesSpecFrom(g, spec, cause, sv.Controller, sv.Source) {
+			if cause == 0 || !observer.matchesSpecFrom(spec, cause, sv.Controller, sv.Source) {
 				continue
 			}
 		}
@@ -2865,14 +2884,14 @@ func (e *Engine) panharmoniconEchoes(g *state.Game, src state.ObjID, ev events.E
 		}
 		if spec := sv.Params["ValidSource"]; spec != "" {
 			if ev.Kind != events.Damage || e.damaging == 0 ||
-				!effects.MatchesSpecFrom(g, spec, e.damaging, sv.Controller, sv.Source) {
+				!observer.matchesSpecFrom(spec, e.damaging, sv.Controller, sv.Source) {
 				continue
 			}
 		}
 		if spec := sv.Params["ValidTarget"]; spec != "" {
 			switch {
 			case ev.Kind == events.Damage && ev.Obj != 0:
-				if !effects.MatchesSpecFrom(g, spec, ev.Obj, sv.Controller, sv.Source) {
+				if !observer.matchesSpecFrom(spec, ev.Obj, sv.Controller, sv.Source) {
 					continue
 				}
 			case ev.Kind == events.Damage:
@@ -2881,7 +2900,7 @@ func (e *Engine) panharmoniconEchoes(g *state.Game, src state.ObjID, ev events.E
 				}
 			case ev.Kind == events.TargetsChosen:
 				// The BecomesTarget-ed object is the trigger's own source.
-				if !effects.MatchesSpecFrom(g, spec, src, sv.Controller, sv.Source) {
+				if !observer.matchesSpecFrom(spec, src, sv.Controller, sv.Source) {
 					continue
 				}
 			default:
@@ -2906,7 +2925,7 @@ func (e *Engine) panharmoniconEchoes(g *state.Game, src state.ObjID, ev events.E
 		if spec == "" {
 			continue
 		}
-		if effects.MatchesSpecFrom(g, spec, src, sv.Controller, sv.Source) {
+		if observer.matchesSpecFrom(spec, src, sv.Controller, sv.Source) {
 			n++
 		}
 	}

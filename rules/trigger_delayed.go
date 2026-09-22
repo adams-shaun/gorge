@@ -359,7 +359,7 @@ func (e *Engine) eventDelayedSpellCastMatches(t cards.Trigger, dt *state.Delayed
 		if !ok {
 			return false
 		}
-		if !effects.MatchesSpecCtx(e.G, spellCastPermanentSpec(v), ev.Obj, e.specCtx(dt.Source, dt.Controller)) {
+		if !e.matchesSpec(spellCastPermanentSpec(v), ev.Obj, e.specCtx(dt.Source, dt.Controller)) {
 			return false
 		}
 	}

@@ -2307,10 +2307,10 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 		if ev.Kind != events.Attach || len(ev.IDs) == 0 {
 			return false
 		}
-		if v := r.Params["ValidCard"]; v != "" && !effects.MatchesSpecFrom(e.G, v, source, you, source) {
+		if v := r.Params["ValidCard"]; v != "" && !e.matchesSpecFrom(v, source, you, source) {
 			return false
 		}
-		if v := r.Params["ValidTarget"]; v != "" && !effects.MatchesSpecFrom(e.G, v, ev.IDs[0], you, source) {
+		if v := r.Params["ValidTarget"]; v != "" && !e.matchesSpecFrom(v, ev.IDs[0], you, source) {
 			return false
 		}
 		return e.replacementConditionHolds(r, source, you)
@@ -2324,7 +2324,7 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 		// no ActiveZones read — an Effect's lifetime is active()'s, not its
 		// source's zone.
 		if v, ok := r.Params["ValidCard"]; ok {
-			if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.rememberedSpecContext(you, source, remembered)) {
+			if !e.matchesSpec(v, ev.Obj, e.rememberedSpecContext(you, source, remembered)) {
 				return false
 			}
 		}
@@ -2387,7 +2387,7 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 				events.IsFaceDownEntry(ev.Counter) {
 				sc.AsFaceDown = true
 			}
-			if !ok2 || !effects.MatchesSpecCtx(e.G, spec, ev.Obj, sc) {
+			if !ok2 || !e.matchesSpec(spec, ev.Obj, sc) {
 				return false
 			}
 		}
@@ -2436,7 +2436,7 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 			}
 		}
 		if v, ok := r.Params["ValidCard"]; ok &&
-			!effects.MatchesSpecFrom(e.G, v, ev.Obj, you, source) {
+			!e.matchesSpecFrom(v, ev.Obj, you, source) {
 			return false
 		}
 		return e.replacementConditionHolds(r, source, you)
@@ -2507,7 +2507,7 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 		// face and applies to its own card's flip; replacementFace already
 		// scanned the destination face for this event.
 		if v, ok := r.Params["ValidCard"]; ok &&
-			!effects.MatchesSpecFrom(e.G, v, ev.Obj, you, source) {
+			!e.matchesSpecFrom(v, ev.Obj, you, source) {
 			return false
 		}
 		return e.replacementConditionHolds(r, source, you)
@@ -2537,7 +2537,7 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 			return false
 		}
 		if v, ok := r.Params["ValidCard"]; ok &&
-			!effects.MatchesSpecFrom(e.G, v, ev.Obj, you, source) {
+			!e.matchesSpecFrom(v, ev.Obj, you, source) {
 			return false
 		}
 		return e.replacementConditionHolds(r, source, you)
@@ -2549,7 +2549,7 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 			return false
 		}
 		if v, ok := r.Params["ValidCard"]; ok &&
-			!effects.MatchesSpecFrom(e.G, v, e.manaProducer, you, source) {
+			!e.matchesSpecFrom(v, e.manaProducer, you, source) {
 			return false
 		}
 		// ValidActivator$ You: the player adding the mana (whoever activated
@@ -2588,7 +2588,7 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 			return false
 		}
 		if v, ok := r.Params["ValidExplorer"]; ok &&
-			!effects.MatchesSpecFrom(e.G, v, ev.Obj, you, source) {
+			!e.matchesSpecFrom(v, ev.Obj, you, source) {
 			return false
 		}
 		return e.replacementConditionHolds(r, source, you)
@@ -2756,7 +2756,7 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 			if ev.Kind != events.CounterChange {
 				return false
 			}
-			if !effects.MatchesSpecFrom(e.G, spec, ev.Obj, you, source) {
+			if !e.matchesSpecFrom(spec, ev.Obj, you, source) {
 				return false
 			}
 		}
@@ -3003,13 +3003,13 @@ func (e *Engine) damageReplacementMatches(r cards.Repl, source state.ObjID, ev e
 			// nil remembered: only the chosen half is added here, so an
 			// Effect-created `ValidSource$ Card.IsRemembered` line keeps the
 			// exact match it had before ChooseSource landed.
-			!effects.MatchesSpecCtx(e.G, v, e.damaging, e.rememberedSpecContext(ctrl, source, nil)) {
+			!e.matchesSpec(v, e.damaging, e.rememberedSpecContext(ctrl, source, nil)) {
 			return false
 		}
 	}
 	if v := r.Params["ValidTarget"]; v != "" {
 		if ev.Obj != 0 {
-			if !effects.MatchesSpecFrom(e.G, v, ev.Obj, ctrl, source) {
+			if !e.matchesSpecFrom(v, ev.Obj, ctrl, source) {
 				return false
 			}
 		} else if !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
@@ -3239,7 +3239,7 @@ func (e *Engine) countPresentInZone(spec string, source state.ObjID, you state.P
 			}
 			return 0
 		}
-		if effects.MatchesSpecFrom(e.G, spec, source, you, source) {
+		if e.matchesSpecFrom(spec, source, you, source) {
 			return 1
 		}
 		return 0
@@ -3247,7 +3247,7 @@ func (e *Engine) countPresentInZone(spec string, source state.ObjID, you state.P
 	n := 0
 	e.forEachObject(func(id state.ObjID) {
 		o := e.G.Obj(id)
-		if o != nil && o.Zone == zone && effects.MatchesSpecFrom(e.G, spec, id, you, source) {
+		if o != nil && o.Zone == zone && e.matchesSpecFrom(spec, id, you, source) {
 			n++
 		}
 	})
@@ -3426,7 +3426,7 @@ func (e *Engine) counterReplacementMatchesAll(target, cause state.ObjID) []replM
 		if t == nil || src == nil {
 			continue
 		}
-		if spec := r.Params["ValidSA"]; spec != "" && !counterValidSA(e.G, t, spec, e.controllerOf(ce.Source), ce.Source) {
+		if spec := r.Params["ValidSA"]; spec != "" && !e.counterValidSA(t, spec, e.controllerOf(ce.Source), ce.Source) {
 			continue
 		}
 		matches = append(matches, replMatch{id: ce.Source, repl: &r,
@@ -3480,7 +3480,7 @@ func (e *Engine) counterReplacementMatches(r cards.Repl, source, target, cause s
 		return false
 	}
 	if v := r.Params["ValidCard"]; v != "" &&
-		!effects.MatchesSpecFrom(e.G, v, target, o.Controller, source) {
+		!e.matchesSpecFrom(v, target, o.Controller, source) {
 		return false
 	}
 	if v := r.Params["ValidCause"]; v != "" && !e.replacementCauseMatches(v, source, cause) {
@@ -3489,13 +3489,13 @@ func (e *Engine) counterReplacementMatches(r cards.Repl, source, target, cause s
 	if !e.replacementConditionHolds(r, source, o.Controller) {
 		return false
 	}
-	return counterValidSA(e.G, t, r.Params["ValidSA"], o.Controller, source)
+	return e.counterValidSA(t, r.Params["ValidSA"], o.Controller, source)
 }
 
 // counterValidSA is the Spell/Activated/Triggered subset used by R:Event$
 // Counter. A qualifier scopes the stack object's controller relative to the
 // replacement source; an unrecognised qualifier fails closed.
-func counterValidSA(g *state.Game, target *state.Object, spec string, you state.PlayerID, source state.ObjID) bool {
+func (e *Engine) counterValidSA(target *state.Object, spec string, you state.PlayerID, source state.ObjID) bool {
 	if spec == "" {
 		return true
 	}
@@ -3503,8 +3503,8 @@ func counterValidSA(g *state.Game, target *state.Object, spec string, you state.
 		kind, quals, _ := strings.Cut(strings.TrimSpace(alt), ".")
 		isKind := (kind == "Spell" && target.Ability == nil) ||
 			(kind == "SpellAbility") ||
-			(kind == "Activated" && target.Ability != nil && !isTriggered(g, target)) ||
-			(kind == "Triggered" && target.Ability != nil && isTriggered(g, target))
+			(kind == "Activated" && target.Ability != nil && !isTriggered(e.G, target)) ||
+			(kind == "Triggered" && target.Ability != nil && isTriggered(e.G, target))
 		if !isKind {
 			continue
 		}
@@ -3515,7 +3515,7 @@ func counterValidSA(g *state.Game, target *state.Object, spec string, you state.
 		// predicates. Reuse the ordinary object-filter grammar rather than a
 		// hand-maintained qualifier allowlist, so Creature/Instant/colour/P/T
 		// and future recognised predicates cannot drift from targeting.
-		if target.Ability == nil && counterSpellQualifiers(g, target, quals, you, source) {
+		if target.Ability == nil && e.counterSpellQualifiers(target, quals, you, source) {
 			return true
 		}
 		// Ability objects have no card face; their corpus qualifiers are the
@@ -3536,7 +3536,7 @@ func counterValidSA(g *state.Game, target *state.Object, spec string, you state.
 	return false
 }
 
-func counterSpellQualifiers(g *state.Game, target *state.Object, quals string, you state.PlayerID, source state.ObjID) bool {
+func (e *Engine) counterSpellQualifiers(target *state.Object, quals string, you state.PlayerID, source state.ObjID) bool {
 	var ordinary []string
 	for _, q := range strings.Split(quals, "+") {
 		switch q {
@@ -3555,7 +3555,7 @@ func counterSpellQualifiers(g *state.Game, target *state.Object, quals string, y
 	if len(ordinary) == 0 {
 		return true
 	}
-	return effects.MatchesSpecFrom(g, "Card."+strings.Join(ordinary, "+"), target.ID, you, source)
+	return e.matchesSpecFrom("Card."+strings.Join(ordinary, "+"), target.ID, you, source)
 }
 
 func isTriggered(g *state.Game, o *state.Object) bool {
@@ -4671,7 +4671,7 @@ func (e *Engine) replacementCondition(source state.ObjID, r *cards.Repl) bool {
 		found := false
 		for _, p := range e.G.AliveFrom(0) {
 			for _, id := range e.G.Zone(state.ZBattlefield, p) {
-				if effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(source, o.Controller)) {
+				if e.matchesSpec(spec, id, e.specCtx(source, o.Controller)) {
 					found = true
 					break
 				}

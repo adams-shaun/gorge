@@ -85,7 +85,7 @@ func (e *Engine) untapOtherStaticsMatch(subject state.ObjID) bool {
 			if spec == "" {
 				spec = "Card.Self"
 			}
-			if effects.MatchesSpecFrom(e.G, spec, subject, e.controllerOf(id), id) {
+			if e.matchesSpecFrom(spec, subject, e.controllerOf(id), id) {
 				matched = true
 				return
 			}

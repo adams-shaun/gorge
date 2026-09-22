@@ -2,7 +2,6 @@ package rules
 
 import (
 	"github.com/adams-shaun/gorge/cards"
-	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -25,7 +24,7 @@ func (e *Engine) becomeMonstrousMatches(t cards.Trigger, source state.ObjID, ev 
 	}
 	ctrl := e.controllerOf(source)
 	sc := e.specCtx(source, ctrl)
-	if v := t.Params["ValidCard"]; v != "" && !effects.MatchesSpecCtx(e.G, v, ev.Obj, sc) {
+	if v := t.Params["ValidCard"]; v != "" && !e.matchesSpec(v, ev.Obj, sc) {
 		return false
 	}
 	return true
