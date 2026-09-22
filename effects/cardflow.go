@@ -1909,8 +1909,16 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			// then poses on that accepted resume, and the `picks == nil` guard
 			// keeps the optional question from being re-posed on the pick's
 			// resume (fx42).
+			// A DECLINED optional (fx45) must never reach the pick: the
+			// reveal_optional resume sets answer == "no", which makes
+			// deferToOptionalAsk false, and the block below then posed a
+			// MANDATORY reveal_pick over the declined cards (measured: a
+			// two-card hand and `SP$ Reveal | Defined$ You | Optional$ True`
+			// resumed into a Min/Max 1/1 pick instead of finishing). The
+			// decline `continue` below runs after this block, so gate here.
+			declined := optional && answer == "no"
 			deferToOptionalAsk := optional && answer == "" && picks == nil
-			if int32(len(pool)) > minPick && !deferToOptionalAsk {
+			if int32(len(pool)) > minPick && !deferToOptionalAsk && !declined {
 				if picks == nil {
 					opts := make([]decision.Option, 0, len(pool))
 					for _, id := range pool {
