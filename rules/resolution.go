@@ -783,9 +783,11 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// below with the rest already chained; when the last half ran
 		// unsuspended, this frame's shared completion tail runs -- the same
 		// finishResumption + priority-reset shape every outermost frame takes.
-		e.runFusedHalves(o, rp.fuseAlt.halves, rp.fuseAlt.sas, rp.fuseAlt.targets,
-			rp.fuseAlt.from, rp.outer)
-		if e.resume != nil {
+		if cont, suspended := e.runFusedHalves(o, rp.fuseAlt.halves, rp.fuseAlt.sas, rp.fuseAlt.targets,
+			rp.fuseAlt.from, rp.outer); suspended {
+			if e.resume != nil {
+				e.resume.outer = cont
+			}
 			return
 		}
 		if rp.outer != nil {

@@ -1983,7 +1983,13 @@ func (e *Engine) resolveTop() {
 	// resolveFused owns the per-half target recheck, the Resolve event, the
 	// Ascend blessing and the off-stack move.
 	if o.CastFlags&state.FlagFused != 0 {
-		e.resolveFused(o)
+		// A half that suspended on a mid-resolution ask hands back the
+		// continuation (the rest of that half plus a fuse-rest frame for any
+		// unrun half); link it onto the ask's fresh resume point here, the
+		// resolution machinery's own write (ruling T21-e).
+		if cont, suspended := e.resolveFused(o); suspended && e.resume != nil {
+			e.resume.outer = cont
+		}
 		return
 	}
 	targets := o.Targets

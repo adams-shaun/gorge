@@ -130,13 +130,20 @@ func (e *Engine) castHasNextTargetStage(pc *pendingCast, o *state.Object) bool {
 // targets and suppresses the spurious ValidTgts$ re-ask the empty tail was
 // once believed necessary for (review round 3, MINOR 2 -- the tail was
 // untested and redundant).
-func (e *Engine) resolveFused(o *state.Object) {
+//
+// It never writes the engine resume state itself (ruling T21-e, pinned by
+// internal/archtest's TestResumeStateOwnedOnlyByTheResolutionMachinery):
+// when a half suspends it returns (cont, true), and its caller -- resolveTop,
+// the resolution machinery's first pass -- links cont onto the fresh resume
+// point the ask installed, exactly as it does for an ordinary spell's
+// suspended SubAbility chain.
+func (e *Engine) resolveFused(o *state.Object) (*resumePoint, bool) {
 	ff, fa := fusedSplitFaces(o)
 	if ff == nil || fa == nil {
 		// FlagFused only ever rides an offered fuse cast, so this is a
 		// malformed log. Move the object off the stack rather than strand it.
 		e.moveResolvedOffStack(o)
-		return
+		return nil, false
 	}
 	halves := []*cards.Face{ff, fa}
 	sas := make([]*cards.SA, len(halves))
@@ -175,14 +182,15 @@ func (e *Engine) resolveFused(o *state.Object) {
 		e.ensureLeftTheStack(o.ID, rest, "a replacement fully discarded this "+
 			"fused spell's 'fizzled: no legal targets' move without relocating it anywhere; "+
 			"sent to its resting zone instead of re-resolving forever")
-		return
+		return nil, false
 	}
 	e.emit(events.Event{Kind: events.Resolve, Obj: o.ID, Text: ff.Name + " // " + fa.Name})
 	e.grantSpellBlessing(o, ff)
-	e.runFusedHalves(o, halves, sas, legalByHalf, 0, nil)
-	if e.resume == nil {
-		e.moveResolvedOffStack(o)
+	if cont, suspended := e.runFusedHalves(o, halves, sas, legalByHalf, 0, nil); suspended {
+		return cont, true
 	}
+	e.moveResolvedOffStack(o)
+	return nil, false
 }
 
 // fusedHalfRoot reports whether sa is the root spell ability of one of the
@@ -215,14 +223,19 @@ func fusedHalfRoot(o *state.Object, sa *cards.SA) (int, bool) {
 
 // runFusedHalves runs halves[from:] of the fused spell o -- the shared half
 // loop of resolveFused's first pass and of every fuse-rest continuation --
-// and, when a half suspends on a mid-resolution ask, chains the ordinary
+// and, when a half suspends on a mid-resolution ask, BUILDS the ordinary
 // continuation chain plus a fuse-rest frame for the still-unrun halves (each
-// carrying its own captured target slice) onto the new pending point, with
-// `outer` behind them. On suspension the caller must simply return: the
-// resolution now parks on the ask, and the fuse-rest frame's own completion
-// tail (resumeResolution's rp.fuseAlt branch) finishes the object.
+// carrying its own captured target slice), with `outer` behind them, and
+// returns it with suspended == true. It does not link that chain onto the
+// new pending point itself: only the resolution machinery may write the
+// engine resume state (ruling T21-e), so the caller -- resolveTop through
+// resolveFused, or resumeResolution's rp.fuseAlt branch -- sets
+// e.resume.outer to the returned chain and returns, and the fuse-rest
+// frame's own completion tail (resumeResolution's rp.fuseAlt branch)
+// finishes the object. The chain is built HERE because each frame captures
+// Engine.fusedResolving, which is only set for the duration of this call.
 func (e *Engine) runFusedHalves(o *state.Object, halves []*cards.Face, sas []*cards.SA,
-	legalByHalf [][]state.Target, from int, outer *resumePoint) {
+	legalByHalf [][]state.Target, from int, outer *resumePoint) (*resumePoint, bool) {
 	for i := from; i < len(halves); i++ {
 		sa := sas[i]
 		if sa == nil {
@@ -275,12 +288,13 @@ func (e *Engine) runFusedHalves(o *state.Object, halves []*cards.Face, sas []*ca
 				rest.outer = outer
 				tail = rest
 			}
-			e.resume.outer = e.buildContinuationChain(e.contChain, o.ID, tail)
+			cont := e.buildContinuationChain(e.contChain, o.ID, tail)
 			e.fusedResolving, e.fusedResolvingSet, e.fusedResolvingSVars = savedFused, savedFusedSet, savedSVars
-			return
+			return cont, true
 		}
 		e.fusedResolving, e.fusedResolvingSet, e.fusedResolvingSVars = savedFused, savedFusedSet, savedSVars
 	}
+	return nil, false
 }
 
 // split.go implements Forge's AlternateMode:Split split cards that are NOT
