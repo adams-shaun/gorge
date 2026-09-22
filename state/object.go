@@ -297,6 +297,23 @@ const (
 	FlagMayFlashSac
 )
 
+// CastProvenanceFlags is the ONE home for the CastFlags bits whose reader
+// turns them into an obligation conditioned on the object having been CAST
+// ("if you cast it ..."). A stack copy is PUT on the stack, never cast
+// (CR 707.10/706.10), so events.Apply's StackCopy case strips this set from
+// the flags it inherits: the copy resolves, Move turns it into a token and
+// clears IsCopy, and rules/altcast.go's entry hook would otherwise read the
+// inherited bit and hand a never-cast token the obligation.
+//
+// Only FlagMayFlashSac is in the set, deliberately. The three sibling bits
+// that entry hook also reads -- FlagEvoked, FlagDashed, FlagWarped -- are
+// conditioned on an alternative COST having been paid, which is a choice
+// made as the spell was cast and which the copy rules do carry for the
+// comparable cases (the copied-kicker precedent), so changing them is a
+// separate ruling with its own corpus measurement. Add a bit here only when
+// its reader's condition is the cast itself.
+const CastProvenanceFlags = FlagMayFlashSac
+
 // ExilesLeavingStack reports whether a cast carrying these flags is a
 // keyword cast whose card is exiled as it leaves the stack, whichever way it
 // leaves it (resolving, fizzling or being countered): flashback (CR 702.34a),

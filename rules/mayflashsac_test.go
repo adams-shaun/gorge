@@ -757,3 +757,96 @@ func TestCleanupEmptyStackPassRepeatsCleanup(t *testing.T) {
 		t.Fatalf("power after the empty-stack cleanup pass = %d, want 2: the cleanup step must REPEAT (CR 514.3b) rather than advance, so its 514.2 until-end-of-turn action runs again", got)
 	}
 }
+
+// --- CR 707.10: a COPY is never cast (review round 4 MAJOR) -----------------
+
+// countMayFlashSacRegisters counts the keyword's cleanup registrations in the
+// log, by object. One off-sorcery cast must produce exactly one, naming the
+// permanent the CAST spell became and nothing else.
+func countMayFlashSacRegisters(e *Engine) map[state.ObjID]int {
+	n := map[state.ObjID]int{}
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.DelayedRegister && ev.Step == state.StepCleanup &&
+			ev.Counter == "__kwMayFlashSacrifice" {
+			n[ev.Obj]++
+		}
+	}
+	return n
+}
+
+// TestMayFlashSacCopiedSpellIsNotSacrificed pins the cast-provenance half of
+// the keyword's rider: "if you CAST it any time a sorcery couldn't have been
+// cast". A copy of the spell is PUT on the stack, never cast (CR 707.10), so
+// the token it becomes (CR 707.10g) carries no obligation, while the spell
+// that really was cast off-sorcery still sacrifices itself at cleanup.
+//
+// events.StackCopy inherits the original's CastFlags on purpose (a copy of a
+// fused or kicked spell resolves as one), and Move clears IsCopy as it turns
+// the resolved copy into a token -- so by the time rules/altcast.go's entry
+// hook runs there is nothing left to tell a never-cast token from the real
+// cast except the flags themselves. state.CastProvenanceFlags is stripped at
+// the mint for exactly that reason.
+func TestMayFlashSacCopiedSpellIsNotSacrificed(t *testing.T) {
+	e, cfg, id := newFixtureDeck(t, 506, mayflashsacEnchantSrc, mayflashsacTargetSrc)
+	e.askPriority(0)
+	driveToStep(t, e, e.G.Turn, 0, state.StepBeginCombat)
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "G", Amount: 1})
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "C", Amount: 1})
+	e.pending = nil
+	e.askPriority(0)
+
+	submitChoices(t, e, plainCastOption(t, e, id).Index)
+
+	// Precondition: the cast spell is on the stack carrying the off-sorcery
+	// provenance, so the copy below really does inherit a set flag.
+	if o := e.G.Obj(id); o.Zone != state.ZStack {
+		t.Fatalf("setup: cast spell zone %s, want stack", o.Zone)
+	}
+	if e.G.Obj(id).CastFlags&state.FlagMayFlashSac == 0 {
+		t.Fatal("setup: the off-sorcery cast stamped no FlagMayFlashSac on the stack object")
+	}
+
+	// Copy the permanent spell on the stack (the effects/copy.go emission).
+	before := state.ObjID(len(e.G.Objs))
+	e.emit(events.Event{Kind: events.StackCopy, Obj: id, Player: 0})
+	copyID := state.ObjID(len(e.G.Objs))
+	if copyID != before+1 {
+		t.Fatalf("setup: StackCopy minted %d objects, want 1", copyID-before)
+	}
+	if o := e.G.Obj(copyID); o == nil || !o.IsCopy || o.Zone != state.ZStack {
+		t.Fatalf("setup: minted copy %+v, want a stack copy", o)
+	}
+	// The measured defect: the copy inherited the cast provenance.
+	if e.G.Obj(copyID).CastFlags&state.FlagMayFlashSac != 0 {
+		t.Fatal("a stack copy inherited FlagMayFlashSac; a copy is never cast (CR 707.10)")
+	}
+
+	passUntilStackEmpty(t, e, 60)
+
+	// Both are on the battlefield: the cast card, and the copy as a token.
+	if o := e.G.Obj(id); o.Zone != state.ZBattlefield {
+		t.Fatalf("cast permanent zone %s, want battlefield", o.Zone)
+	}
+	tok := e.G.Obj(copyID)
+	if tok.Zone != state.ZBattlefield || !tok.IsToken {
+		t.Fatalf("copy zone %s isToken=%v, want a battlefield token (CR 707.10g)", tok.Zone, tok.IsToken)
+	}
+
+	// Exactly one cleanup registration, and it names the cast permanent.
+	regs := countMayFlashSacRegisters(e)
+	if regs[copyID] != 0 {
+		t.Fatalf("the copy got %d cleanup-sacrifice registrations, want 0: a copy is never cast", regs[copyID])
+	}
+	if regs[id] != 1 {
+		t.Fatalf("the cast permanent got %d cleanup-sacrifice registrations, want 1", regs[id])
+	}
+
+	driveToStep(t, e, e.G.Turn+1, 1, state.StepMain1)
+	if o := e.G.Obj(id); o.Zone != state.ZGraveyard {
+		t.Fatalf("cast permanent zone %s after the cleanup, want graveyard (it was cast off-sorcery)", o.Zone)
+	}
+	if o := e.G.Obj(copyID); o.Zone != state.ZBattlefield {
+		t.Fatalf("copy token zone %s after the cleanup, want battlefield (only the CAST permanent is sacrificed)", o.Zone)
+	}
+	replayCheck(t, e, cfg)
+}
