@@ -365,6 +365,7 @@ func Apply(g *state.Game, e Event) {
 			if e.Text == "clear" {
 				o.Imprinted = nil
 				o.ImprintTokens = nil
+				o.SeekFound = nil
 			} else if e.Text == "forget" {
 				// ForgetImprinted$ (Pump's Chrome Mox body): remove exactly the
 				// named ids from the persistent Imprinted list, keeping the
@@ -388,6 +389,13 @@ func Apply(g *state.Game, e Event) {
 					}
 				}
 				o.ImprintTokens = keptTokens
+				keptFound := make([]state.ObjID, 0, len(o.SeekFound))
+				for _, id := range o.SeekFound {
+					if !drop[id] {
+						keptFound = append(keptFound, id)
+					}
+				}
+				o.SeekFound = keptFound
 			} else {
 				// Text is an in-kind discriminator, not a new Event field:
 				// ImprintCards$ records Forge's imprintedCards list while a
@@ -426,6 +434,13 @@ func Apply(g *state.Game, e Event) {
 						// association `Defined$ Imprinted` resolves while they sit
 						// on the battlefield (state.Object.ImprintTokens).
 						list = &o.ImprintTokens
+					} else if e.Text == "seek-found" {
+						// Seek's ImprintFound$ records the cards it moved to a
+						// hand here; `Defined$ Imprinted` resolves them wherever
+						// they currently sit (state.Object.SeekFound), so the
+						// ordinary Imprinted list's exile-only reader keeps its
+						// CR 607.2a contract.
+						list = &o.SeekFound
 					}
 					for _, id := range e.IDs {
 						if g.Obj(id) != nil {
@@ -2952,6 +2967,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		if wasBattlefield {
 			o.Imprinted = nil
 			o.ImprintTokens = nil
+			o.SeekFound = nil
 		}
 		// X/CastFlags/Chosen* carry cast-time and choose-time information
 		// forward from the stack onto the permanent it resolves into (an

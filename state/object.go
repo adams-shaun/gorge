@@ -759,6 +759,16 @@ type Object struct {
 	// exile, while a token imprint is a battlefield permanent and must
 	// resolve while it is on the battlefield.
 	ImprintTokens []ObjID
+	// SeekFound holds the cards an Alchemy Seek associated with this object
+	// through ImprintFound$ True. Forge's SeekEffect writes imprintedCards,
+	// but the found cards sit in a HAND at continuation time -- the zone a
+	// chained `Defined$ Imprinted` body (Spawning Pod, Gitrog, Kardum, Puppet
+	// Raiser) immediately moves on -- so the ordinary Imprinted list's CR
+	// 607.2a exiled-only reader would hide them. A separate list keeps the
+	// exile-only Imprinted contract intact while letting the seek-found cards
+	// resolve wherever they currently sit. Event-backed through the Imprint
+	// kind's "seek-found" Text discriminator and cleared by ClearImprinted$.
+	SeekFound []ObjID
 	// ExiledCards holds cards this object exiled through ChangeZone (Forge's
 	// hostCard.exiledCards). The association exists only while the card
 	// remains in exile; events.Move removes it when the card leaves. It is

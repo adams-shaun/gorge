@@ -95,7 +95,13 @@ func effSeek(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 		if strings.EqualFold(strings.TrimSpace(sa.Params["ImprintFound"]), "True") && c.Source != 0 {
-			h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: append([]state.ObjID(nil), selected...)})
+			// ImprintFound$ is Forge's seek imprint (SeekEffect writes
+			// imprintedCards). It rides the separate SeekFound list -- not the
+			// ordinary Imprinted one -- because the found cards sit in a hand
+			// at continuation time, where `Defined$ Imprinted`'s CR 607.2a
+			// exiled-only reader would hide them; a chained Origin$ Hand body
+			// (Spawning Pod, Gitrog, Kardum, Puppet Raiser) reads them here.
+			h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: append([]state.ObjID(nil), selected...), Text: "seek-found"})
 		}
 		h.Emit(events.Event{Kind: events.Seek, Player: owner, Obj: c.Source})
 	}
