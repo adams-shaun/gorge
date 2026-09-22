@@ -264,36 +264,62 @@ func boardFromView(v view.View) botpolicy.Board {
 	// graveyard card only when the View's derived keyword list carries
 	// Flashback (the same Derived list the engine's own flashback gate
 	// reads), and a battlefield permanent never.
-	for _, p := range v.Players {
-		if p.ID != v.Viewer {
-			continue
-		}
-		fillZone := func(zone []view.CardView, castable func(view.CardView) bool, battlefield bool) {
-			for _, cv := range zone {
-				var produces cards.ManaProduction
-				if cv.Produces != nil {
-					produces = *cv.Produces
-				}
-				b.Cards[cv.ID] = botpolicy.Card{
-					Creature:      isCreatureView(cv),
-					Power:         cv.Power,
-					Toughness:     cv.Toughness,
-					CMC:           botpolicy.CmcOf(cv.ManaCost),
-					Basic:         hasBasicView(cv),
-					AttachedTo:    cv.AttachedTo,
-					Activated:     cv.ActivatedThisTurn,
-					ManaCost:      cv.ManaCost,
-					Castable:      castable(cv),
-					OnBattlefield: battlefield,
-					Tapped:        cv.Tapped,
-					Produces:      produces,
-					InstantSpeed:  instantSpeedView(cv),
-					Counter:       cv.SpellAPI == "Counter",
-				}
+	//
+	// The public battlefield census (vote_card1): another seat's battlefield
+	// permanents are public CR 400.2 facts projected for every viewer, and
+	// they are exactly what a ballot offers a voter (VoteCard$'s Council's
+	// Judgment filter names only permanents the caster does not control),
+	// so the loop below fills their WORTH facts (Creature/Power/Toughness/
+	// CMC/Basic/ManaCost, what cardWorth prices) for every player, not only
+	// the viewer — botpolicy.BoardFromGameInto's opponent-battlefield walk
+	// is this call's exact mirror. The seat-relative facts stay ZERO on a
+	// foreign entry (OnBattlefield/Produces/Tapped/Castable/Activated/
+	// InstantSpeed/AttachedTo are the deciding seat's own-board facts; the
+	// land-drop greedy's mana readers would otherwise count an opponent's
+	// lands as the seat's own), so the foreign fill below is its own walk,
+	// not a fillZone call. A facedown opponent permanent projects stripped
+	// (no printed Types/Power), so its entry lands all-zero here — exactly
+	// the zero-fact Card the game half writes for the same object.
+	fillZone := func(zone []view.CardView, castable func(view.CardView) bool, battlefield bool) {
+		for _, cv := range zone {
+			var produces cards.ManaProduction
+			if cv.Produces != nil {
+				produces = *cv.Produces
+			}
+			b.Cards[cv.ID] = botpolicy.Card{
+				Creature:      isCreatureView(cv),
+				Power:         cv.Power,
+				Toughness:     cv.Toughness,
+				CMC:           botpolicy.CmcOf(cv.ManaCost),
+				Basic:         hasBasicView(cv),
+				AttachedTo:    cv.AttachedTo,
+				Activated:     cv.ActivatedThisTurn,
+				ManaCost:      cv.ManaCost,
+				Castable:      castable(cv),
+				OnBattlefield: battlefield,
+				Tapped:        cv.Tapped,
+				Produces:      produces,
+				InstantSpeed:  instantSpeedView(cv),
+				Counter:       cv.SpellAPI == "Counter",
 			}
 		}
-		aCastable := func(view.CardView) bool { return true }
-		notCastable := func(view.CardView) bool { return false }
+	}
+	aCastable := func(view.CardView) bool { return true }
+	notCastable := func(view.CardView) bool { return false }
+	for _, p := range v.Players {
+		if p.ID != v.Viewer {
+			for _, cv := range p.Battlefield {
+				b.Cards[cv.ID] = botpolicy.Card{
+					Creature:  isCreatureView(cv),
+					Power:     cv.Power,
+					Toughness: cv.Toughness,
+					CMC:       botpolicy.CmcOf(cv.ManaCost),
+					Basic:     hasBasicView(cv),
+					ManaCost:  cv.ManaCost,
+				}
+			}
+			continue
+		}
 		fillZone(p.Hand, aCastable, false)
 		fillZone(p.Graveyard, hasFlashbackView, false)
 		fillZone(p.Battlefield, notCastable, true)

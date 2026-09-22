@@ -933,7 +933,19 @@ var acceptanceHeads = map[int]string{
 	// old gate taps option 0 toward a {B} card with only blue sources
 	// offered, the fixed gate declines; the neutralised stream reproduces
 	// main's 832ea9b373fde3ed byte-for-byte, so the filter is the sole cause.
-	4: "22cf2bf04aeab3c7",
+	// vote_card1 (2026-09-22): 4 seats moved to 8d2fd67b913e5f1f — the card-
+	// ballot vote's bot answer became real. Both Board adapters now carry the
+	// public WORTH facts of every other seat's battlefield permanents, so the
+	// vote_card policy prices an offered opponent permanent instead of
+	// reading zero. Seat 0 (death-n-taxes) casts Council's Judgment at event
+	// 3945 and resolves it at 3946; the ballot is [Insectile Aberration,
+	// Gurmag Angler, Vampire Lacerator] (seat 1's dimir-tempo board plus
+	// seat 3's own Lacerator). First divergence at event 3948, the FIRST
+	// vote ask's decision_made: choose:[0] (the zero-fact first entry) ->
+	// choose:[1] (the higher-worth Gurmag Angler); the reveal Notes and the
+	// exile set follow (a three-way tie exiled all three, now one unanimous
+	// vote exiles the Angler). Every earlier event is byte-identical.
+	4: "8d2fd67b913e5f1f",
 	// 6 seats moved to c8c36b87e598c090 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
@@ -1011,7 +1023,14 @@ var acceptanceHeads = map[int]string{
 	// AddContinuous clock_tick at event 7109; every earlier event is byte-
 	// identical), the pumped creature then blocks differently, and the rest
 	// of the stream follows.
-	6: "51ca01ded64c6b74",
+	// vote_card1 (2026-09-22): 6 seats moved to a5d01c6f72adea2a — same card
+	// ballot fix as the 4-seat entry. Seat 0 (death-n-taxes) casts Council's
+	// Judgment at event 7354 and resolves it at 7428; first divergence at
+	// event 7430, the first vote ask's decision_made: choose:[0] ->
+	// choose:[3] (Geralf's Messenger, the highest-worth ballot entry; the
+	// reveal Notes and the single exile follow the unanimous vote). Every
+	// earlier event is byte-identical.
+	6: "a5d01c6f72adea2a",
 	// 8 seats moved to cc022f9ba9f2bf39 with task mana2 (fix(rules): pay mana
 	// ability costs and choose colors): mana abilities that spend a Sac cost
 	// are now gated on a payable, deterministic sacrifice candidate existing,
@@ -1134,7 +1153,14 @@ var acceptanceHeads = map[int]string{
 	// AddContinuous clock_tick at 11859; every earlier event is byte-
 	// identical, and Cabal Ritual appears in NEITHER stream, so the measured
 	// sole first-mover is Aspect of Hydra, as at 6 seats).
-	8: "275fb23897e22f6e",
+	// vote_card1 (2026-09-22): 8 seats moved to cdeed8f4963686ac — same card
+	// ballot fix as the 4-seat entry. Seat 0 (death-n-taxes) casts Council's
+	// Judgment at event 11127 and resolves it at 11217; first divergence at
+	// event 11219, the first vote ask's decision_made: choose:[0] ->
+	// choose:[5] (Leatherback Baloth, the highest-worth ballot entry; the
+	// reveal Notes and the single exile follow the unanimous vote). Every
+	// earlier event is byte-identical.
+	8: "cdeed8f4963686ac",
 }
 
 func TestHeads(t *testing.T) {
