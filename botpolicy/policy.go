@@ -469,6 +469,16 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			break
 		}
 		switch d.Options[0].Kind {
+		case "vote_card":
+			// A card ballot is a political vote: remove the opponent's most
+			// valuable offered permanent, not merely the first one.
+			best := d.Options[0]
+			for _, o := range d.Options[1:] {
+				if b.cardWorth(o.Obj) > b.cardWorth(best.Obj) {
+					best = o
+				}
+			}
+			in.Choices = []int{best.Index}
 		case "x":
 			in.Choices = []int{d.Options[len(d.Options)-1].Index} // the most it can pay for
 		case "discard":

@@ -2677,12 +2677,9 @@ func charmModeLabel(choices []string, subs []*cards.SA, idx int) string {
 //     most votes or tied for most lands in the resolution's Remembered set
 //     for VoteSubAbility$ (DBExile's ChangeZone Defined$ Remembered).
 //
-// The per-player vote CHOICE itself is still the deterministic no-ask
-// stand-in (every voter takes the first option, so the first eligible
-// permanent always wins unanimously): a real per-player vote ask produces
-// Ctx.Votes and needs a resume arm of its own, and stays in the
-// approximations table. Both VoteCard$ and VoteSubAbility$ are genuinely
-// read on the ballot path.
+// Fixed and card ballots use the real per-voter ask path below; a host that
+// cannot answer retains the R-9 first-option fallback. Both VoteCard$ and
+// VoteSubAbility$ are genuinely read on the ballot path.
 func effVote(h Host, c *Ctx, sa *cards.SA) {
 	if ballot := strings.TrimSpace(sa.Params["VoteCard"]); ballot != "" {
 		effCardVote(h, c, sa, ballot)
@@ -2699,6 +2696,44 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 	}
 	choices := voteChoiceNames(sa)
 	voters := Defined(h, c, sa)
+	// A live fixed-list ballot uses the same private, per-voter KChoose path as
+	// VotePlayer$. Keep Ctx.Votes as the small direct seam used by unit tests;
+	// real answers travel only through the decision's ResumeChoices.
+	if c.Votes == nil {
+		picks, complete := askFixedVote(h, c, sa, choices, voters)
+		if !complete {
+			return
+		}
+		for i, t := range voters {
+			label := ""
+			if i < len(picks) && picks[i].Obj > 0 && int(picks[i].Obj-1) < len(choices) {
+				label = choices[picks[i].Obj-1]
+			}
+			h.Emit(events.Event{Kind: events.Note, Player: PlayerOf(h, c, t), Text: "votes for " + label})
+		}
+		counts := make([]int, len(choices))
+		for _, p := range picks {
+			if p.Obj > 0 && int(p.Obj-1) < len(choices) {
+				counts[p.Obj-1]++
+			}
+		}
+		best, tied := voteWinner(counts)
+		if len(choices) > 0 && len(voters) > 0 {
+			name := choices[best]
+			if tied && strings.TrimSpace(sa.Params["VoteTiedAbility"]) != "" {
+				name = strings.TrimSpace(sa.Params["VoteTiedAbility"])
+			}
+			if sub := cards.ResolveSVar(c.SVars, name); sub != nil {
+				Resolve(h, c, sub)
+			}
+		}
+		ballots := make([]VoteBallot, len(voters))
+		for i, t := range voters {
+			ballots[i] = VoteBallot{Player: PlayerOf(h, c, t), Pick: int(picks[i].Obj) - 1}
+		}
+		emitVoteFinished(h, c, ballots, len(choices) > 0)
+		return
+	}
 	// Ctx.Votes is the answered per-voter choice list (a real per-player
 	// ask's result, or a test seam): one option index per voter, in voter
 	// order. It is consumed and cleared at the top of the walk so a nested
@@ -2762,6 +2797,43 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 	emitVoteFinished(h, c, ballots, len(choices) > 0)
 }
 
+// askFixedVote poses one private KChoose per voter. The answer is encoded as
+// ObjID(index+1), avoiding a second answer channel while keeping ResumeChoices
+// decision-scoped. A host that cannot answer takes option zero (R-9).
+func askFixedVote(h Host, c *Ctx, sa *cards.SA, choices []string, voters []state.Target) ([]state.Target, bool) {
+	picks := append([]state.Target(nil), c.VotePicks...)
+	i := c.VoteTarget
+	if c.VoteDone {
+		if len(c.VoteAnswer) > 0 {
+			picks = append(picks, c.VoteAnswer[0])
+		} else {
+			picks = append(picks, state.Target{})
+		}
+		c.VoteDone, c.VoteAnswer = false, nil
+		i++
+	}
+	for ; i < len(voters); i++ {
+		voter := PlayerOf(h, c, voters[i])
+		d := &decision.Decision{Player: voter, Kind: decision.KChoose, Source: c.Source,
+			Min: 1, Max: 1, ResumeKind: "vote", ResumeSA: sa, ResumeTarget: i,
+			ResumeChoices: append([]state.Target(nil), picks...), Prompt: "Vote for an option"}
+		for j, name := range choices {
+			d.Options = append(d.Options, decision.Option{Index: j, Kind: "vote", Label: name, Obj: state.ObjID(j + 1)})
+		}
+		if len(d.Options) == 0 {
+			picks = append(picks, state.Target{})
+			continue
+		}
+		if Ask(h, d) == AskAsked {
+			return nil, false
+		}
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "vote resolved as the first ballot entry (no engine host to ask)"})
+		picks = append(picks, state.Target{Obj: 1})
+	}
+	c.VotePicks, c.VoteTarget, c.VoteDone, c.VoteAnswer = nil, 0, false, nil
+	return picks, true
+}
+
 // voteWinner returns the index of the highest count and whether that count is
 // shared by more than one option. It is a separate function (rather than
 // inline in effVote) so the tie branch is testable on its own: the current
@@ -2807,11 +2879,52 @@ func voteChoiceNames(sa *cards.SA) []string {
 }
 
 // effCardVote is effVote's card-ballot half: the battlefield permanents
-// VoteCard$ admits are the options, each voting player takes the ballot's
-// first option (the deterministic stand-in), and the most-voted -- every
+// VoteCard$ admits are the options, each voting player answers a private ask,
+// and the most-voted -- every
 // member of the tie -- is remembered for VoteSubAbility$, which runs once
 // at the end (Council's Judgment's "exile each permanent with the most
 // votes or tied for most votes").
+func askCardVote(h Host, c *Ctx, sa *cards.SA, options []state.ObjID, voters []state.Target) ([]state.ObjID, bool) {
+	picks := append([]state.Target(nil), c.VotePicks...)
+	i := c.VoteTarget
+	if c.VoteDone {
+		if len(c.VoteAnswer) > 0 {
+			picks = append(picks, c.VoteAnswer[0])
+		} else {
+			picks = append(picks, state.Target{})
+		}
+		c.VoteDone, c.VoteAnswer = false, nil
+		i++
+	}
+	for ; i < len(voters); i++ {
+		voter := PlayerOf(h, c, voters[i])
+		d := &decision.Decision{Player: voter, Kind: decision.KChoose, Source: c.Source, Min: 1, Max: 1,
+			ResumeKind: "vote", ResumeSA: sa, ResumeTarget: i, ResumeChoices: append([]state.Target(nil), picks...), Prompt: "Vote for a permanent"}
+		for j, id := range options {
+			label := "permanent"
+			if o := h.Game().Obj(id); o != nil && o.Face() != nil {
+				label = o.Face().Name
+			}
+			d.Options = append(d.Options, decision.Option{Index: j, Kind: "vote_card", Label: label, Obj: id})
+		}
+		if len(d.Options) == 0 {
+			picks = append(picks, state.Target{})
+			continue
+		}
+		if Ask(h, d) == AskAsked {
+			return nil, false
+		}
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "card vote resolved as the first ballot entry (no engine host to ask)"})
+		picks = append(picks, state.Target{Obj: options[0]})
+	}
+	c.VotePicks, c.VoteTarget, c.VoteDone, c.VoteAnswer = nil, 0, false, nil
+	out := make([]state.ObjID, len(picks))
+	for j, p := range picks {
+		out[j] = p.Obj
+	}
+	return out, true
+}
+
 func effCardVote(h Host, c *Ctx, sa *cards.SA, ballot string) {
 	g := h.Game()
 	var options []state.ObjID
@@ -2825,20 +2938,40 @@ func effCardVote(h Host, c *Ctx, sa *cards.SA, ballot string) {
 	counts := map[state.ObjID]int{}
 	max := 0
 	voters := Defined(h, c, sa)
-	picks := make([]int, len(voters))
+	var picks []int
+	if c.Votes != nil {
+		// Direct seam retained for effects tests and replay-independent callers.
+		picks = append([]int(nil), c.Votes...)
+		c.Votes = nil
+	} else {
+		answered, complete := askCardVote(h, c, sa, options, voters)
+		if !complete {
+			return
+		}
+		picks = make([]int, len(answered))
+		for i, id := range answered {
+			picks[i] = -1
+			if id != 0 {
+				for j, option := range options {
+					if option == id {
+						picks[i] = j
+						break
+					}
+				}
+			}
+		}
+	}
 	for i, t := range voters {
 		label := "nothing"
-		if len(options) > 0 {
-			if o := g.Obj(options[0]); o != nil && o.Face() != nil {
+		if i < len(picks) && picks[i] >= 0 && picks[i] < len(options) {
+			id := options[picks[i]]
+			if o := g.Obj(id); o != nil && o.Face() != nil {
 				label = o.Face().Name
 			}
-			counts[options[0]]++
-			if counts[options[0]] > max {
-				max = counts[options[0]]
+			counts[id]++
+			if counts[id] > max {
+				max = counts[id]
 			}
-			picks[i] = 0
-		} else {
-			picks[i] = -1
 		}
 		h.Emit(events.Event{Kind: events.Note, Player: PlayerOf(h, c, t), Text: "votes for " + label})
 	}
