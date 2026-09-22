@@ -2743,7 +2743,7 @@ func (e *Engine) exAsk() bool {
 			}
 			match := effects.MatchesSpecFrom(e.G, part.Spec, oid, pc.player, pc.card)
 			if sc != nil {
-				match = effects.MatchesSpecCtx(e.G, part.Spec, oid, *sc)
+				match = e.matchesSpec(part.Spec, oid, *sc)
 			}
 			if match {
 				already := false
@@ -4538,7 +4538,7 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 			}})
 			n := 0
 			for _, oid := range e.G.Zone(zone, pc.player) {
-				if effects.MatchesSpecCtx(e.G, part.Spec, oid, sc) {
+				if e.matchesSpec(part.Spec, oid, sc) {
 					n++
 				}
 			}
@@ -6066,7 +6066,7 @@ func (e *Engine) recheckIllegal(pc *pendingCast) bool {
 		sc := e.specCtx(sv.Source, sv.Controller)
 		sc.HasManaValue = true
 		sc.ManaValue = mv
-		if effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], pc.card, sc) {
+		if e.matchesSpec(sv.Params["ValidCard"], pc.card, sc) {
 			// suppress=true, not false: an illegal-proposal abort is a
 			// no-progress reversal (CR 733.1) exactly like every other abort
 			// site, so it rides the same F05-2 (CR 733.2) discipline -- first

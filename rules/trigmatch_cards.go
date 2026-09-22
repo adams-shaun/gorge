@@ -67,7 +67,7 @@ func (e *Engine) exploresMatches(t cards.Trigger, source state.ObjID, ev events.
 	}
 	ctrl := e.controllerOf(source)
 	if v := t.Params["ValidCard"]; v != "" &&
-		!effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+		!e.matchesSpec(v, ev.Obj, e.specCtx(source, ctrl)) {
 		return false
 	}
 	if v := t.Params["ValidPlayer"]; v != "" &&
@@ -75,7 +75,7 @@ func (e *Engine) exploresMatches(t cards.Trigger, source state.ObjID, ev events.
 		return false
 	}
 	if v := t.Params["ValidExplored"]; v != "" &&
-		!effects.MatchesSpecCtx(e.G, v, ev.IDs[0], e.specCtx(source, ctrl)) {
+		!e.matchesSpec(v, ev.IDs[0], e.specCtx(source, ctrl)) {
 		return false
 	}
 	return true
@@ -116,7 +116,7 @@ func (e *Engine) investigatedMatches(t cards.Trigger, source state.ObjID, ev eve
 	}
 	ctrl := e.controllerOf(source)
 	if v := t.Params["ValidCard"]; v != "" && ev.Obj != 0 &&
-		!effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+		!e.matchesSpec(v, ev.Obj, e.specCtx(source, ctrl)) {
 		return false
 	}
 	if v := t.Params["ValidPlayer"]; v != "" &&
@@ -148,7 +148,7 @@ func (e *Engine) discoverMatches(t cards.Trigger, source state.ObjID, ev events.
 	}
 	ctrl := e.controllerOf(source)
 	if v := t.Params["ValidCard"]; v != "" && ev.Obj != 0 &&
-		!effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+		!e.matchesSpec(v, ev.Obj, e.specCtx(source, ctrl)) {
 		return false
 	}
 	if v := t.Params["ValidPlayer"]; v != "" &&
@@ -175,7 +175,7 @@ func (e *Engine) seekAllMatches(t cards.Trigger, source state.ObjID, ev events.E
 	}
 	ctrl := e.controllerOf(source)
 	if v := t.Params["ValidCard"]; v != "" && ev.Obj != 0 &&
-		!effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+		!e.matchesSpec(v, ev.Obj, e.specCtx(source, ctrl)) {
 		return false
 	}
 	if v := t.Params["ValidPlayer"]; v != "" &&
@@ -205,7 +205,7 @@ func (e *Engine) surveilMatches(t cards.Trigger, source state.ObjID, ev events.E
 	}
 	ctrl := e.controllerOf(source)
 	if v := t.Params["ValidCard"]; v != "" && ev.Obj != 0 &&
-		!effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+		!e.matchesSpec(v, ev.Obj, e.specCtx(source, ctrl)) {
 		return false
 	}
 	if v := t.Params["ValidPlayer"]; v != "" &&
@@ -301,7 +301,7 @@ func (e *Engine) drawnMatches(t cards.Trigger, source state.ObjID, ev events.Eve
 		return false
 	}
 	ctrl := e.controllerOf(source)
-	if v, ok := t.Params["ValidCard"]; ok && !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+	if v, ok := t.Params["ValidCard"]; ok && !e.matchesSpec(v, ev.Obj, e.specCtx(source, ctrl)) {
 		return false
 	}
 	if v := t.Params["ValidPlayer"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
@@ -645,11 +645,11 @@ func (e *Engine) exploitedMatches(t cards.Trigger, source state.ObjID, ev events
 	ctrl := e.controllerOf(source)
 	sc := e.specCtx(source, ctrl)
 	if v := t.Params["ValidSource"]; v != "" &&
-		!effects.MatchesSpecCtx(e.G, v, ev.Obj, sc) {
+		!e.matchesSpec(v, ev.Obj, sc) {
 		return false
 	}
 	if v := t.Params["ValidCard"]; v != "" &&
-		!effects.MatchesSpecCtx(e.G, v, ev.IDs[0], sc) {
+		!e.matchesSpec(v, ev.IDs[0], sc) {
 		return false
 	}
 	if v := t.Params["ValidPlayer"]; v != "" &&

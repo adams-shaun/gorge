@@ -253,7 +253,7 @@ func (e *Engine) mustAttackLineSelects(spec string, id state.ObjID, source state
 	for _, r := range remembered {
 		sc.Remembered = append(sc.Remembered, state.Target{Obj: r})
 	}
-	return effects.MatchesSpecCtx(e.G, v, id, sc)
+	return e.matchesSpec(v, id, sc)
 }
 
 // MustAttackParamsReadableForRules is the face S:-line half of
@@ -971,7 +971,7 @@ func (e *Engine) staticGoaders(o *state.Object) []state.PlayerID {
 		if spec == "" {
 			spec = "Card.Self"
 		}
-		if !effects.MatchesSpecCtx(e.G, spec, o.ID, e.specCtx(sv.Source, sv.Controller)) {
+		if !e.matchesSpec(spec, o.ID, e.specCtx(sv.Source, sv.Controller)) {
 			continue
 		}
 		out = append(out, sv.Controller)

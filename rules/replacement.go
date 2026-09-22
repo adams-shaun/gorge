@@ -2314,7 +2314,7 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 		// no ActiveZones read — an Effect's lifetime is active()'s, not its
 		// source's zone.
 		if v, ok := r.Params["ValidCard"]; ok {
-			if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.rememberedSpecContext(you, source, remembered)) {
+			if !e.matchesSpec(v, ev.Obj, e.rememberedSpecContext(you, source, remembered)) {
 				return false
 			}
 		}
@@ -2377,7 +2377,7 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 				events.IsFaceDownEntry(ev.Counter) {
 				sc.AsFaceDown = true
 			}
-			if !ok2 || !effects.MatchesSpecCtx(e.G, spec, ev.Obj, sc) {
+			if !ok2 || !e.matchesSpec(spec, ev.Obj, sc) {
 				return false
 			}
 		}
@@ -2993,7 +2993,7 @@ func (e *Engine) damageReplacementMatches(r cards.Repl, source state.ObjID, ev e
 			// nil remembered: only the chosen half is added here, so an
 			// Effect-created `ValidSource$ Card.IsRemembered` line keeps the
 			// exact match it had before ChooseSource landed.
-			!effects.MatchesSpecCtx(e.G, v, e.damaging, e.rememberedSpecContext(ctrl, source, nil)) {
+			!e.matchesSpec(v, e.damaging, e.rememberedSpecContext(ctrl, source, nil)) {
 			return false
 		}
 	}
@@ -4660,7 +4660,7 @@ func (e *Engine) replacementCondition(source state.ObjID, r *cards.Repl) bool {
 		found := false
 		for _, p := range e.G.AliveFrom(0) {
 			for _, id := range e.G.Zone(state.ZBattlefield, p) {
-				if effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(source, o.Controller)) {
+				if e.matchesSpec(spec, id, e.specCtx(source, o.Controller)) {
 					found = true
 					break
 				}

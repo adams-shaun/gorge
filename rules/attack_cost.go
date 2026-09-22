@@ -117,7 +117,7 @@ func (e *Engine) attackPairCharge(id state.ObjID, defender state.PlayerID) int32
 			// has no readable shape here. Skip, never blanket.
 			continue
 		}
-		if !effects.MatchesSpecCtx(e.G, spec, id, e.specCtxSVars(sv.Source, sv.Controller, sv.SVars)) {
+		if !e.matchesSpec(spec, id, e.specCtxSVars(sv.Source, sv.Controller, sv.SVars)) {
 			continue
 		}
 		if !restrictionPlayerTargetMatches(e.G, sv.Params["Target"], defender, sv.Controller, nil) {

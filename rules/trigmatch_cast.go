@@ -96,7 +96,7 @@ func (e *Engine) spellCastEval(t cards.Trigger, source state.ObjID, ev events.Ev
 		// cast-provenance families, tasks castprov1/castprov2) are split out
 		// and evaluated against the log here; the remainder matches as before.
 		spec, ok3 := e.castProvenanceAdmits(spec, ev.Obj, ctrl)
-		if !ok3 || !effects.MatchesSpecCtx(e.G, spec, ev.Obj, e.specCtx(source, ctrl)) {
+		if !ok3 || !e.matchesSpec(spec, ev.Obj, e.specCtx(source, ctrl)) {
 			return false
 		}
 		castAlts = alts
@@ -138,7 +138,7 @@ func (e *Engine) spellCastEval(t cards.Trigger, source state.ObjID, ev events.Ev
 		// a ValidCard$).
 		fired := false
 		for _, alt := range castAlts {
-			if !effects.MatchesSpecCtx(e.G, alt.spec, ev.Obj, e.specCtx(source, ctrl)) {
+			if !e.matchesSpec(alt.spec, ev.Obj, e.specCtx(source, ctrl)) {
 				continue
 			}
 			if compareIntCount(int32(e.spellsCastThisTurnByMatching(ev.Player, alt.spec, alt.exclSelf, source)), v) {
@@ -239,7 +239,7 @@ func (e *Engine) targetMatchesTargetsValid(spec string, tgt state.Target, source
 			}
 			continue
 		}
-		if tgt.Obj != 0 && effects.MatchesSpecCtx(e.G, alt, tgt.Obj, e.specCtx(source, ctrl)) {
+		if tgt.Obj != 0 && e.matchesSpec(alt, tgt.Obj, e.specCtx(source, ctrl)) {
 			return true
 		}
 	}
@@ -285,7 +285,7 @@ func (e *Engine) spellAbilityCastSpellMatches(t cards.Trigger, source state.ObjI
 		if !ok {
 			return false
 		}
-		if !effects.MatchesSpecCtx(e.G, spellCastPermanentSpec(v), ev.Obj, e.specCtx(source, ctrl)) {
+		if !e.matchesSpec(spellCastPermanentSpec(v), ev.Obj, e.specCtx(source, ctrl)) {
 			return false
 		}
 	}
@@ -419,7 +419,7 @@ func (e *Engine) abilityCastMatches(t cards.Trigger, source state.ObjID, ev even
 	// activated. It is distinct from the trigger source: Avalanche of Sector
 	// 7's Artifact restriction must reject an ability from a non-artifact.
 	if v, ok := t.Params["ValidCard"]; ok {
-		if !effects.MatchesSpecCtx(e.G, v, obj.ID, e.specCtx(source, ctrl)) {
+		if !e.matchesSpec(v, obj.ID, e.specCtx(source, ctrl)) {
 			return false
 		}
 	}
@@ -595,7 +595,7 @@ func (e *Engine) validSAMatches(source state.ObjID, ev events.Event, ctrl state.
 	fields := strings.Fields(strings.TrimSpace(clause))
 	switch len(fields) {
 	case 1:
-		return effects.MatchesSpecCtx(e.G, fields[0], ev.Obj, e.specCtx(source, ctrl))
+		return e.matchesSpec(fields[0], ev.Obj, e.specCtx(source, ctrl))
 	case 2:
 		if fields[0] == "Spell.ManaSpent" {
 			return compareIntCount(e.manaSpentForCast(ev.Player, ev.Obj), fields[1])

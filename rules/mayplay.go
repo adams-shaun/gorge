@@ -656,7 +656,7 @@ func (e *Engine) mayPlayEffectGrantsCast(p state.PlayerID, o *state.Object) bool
 		}
 		sc := e.withNames(effects.SpecContext{You: ce.Controller, Source: ce.Source,
 			Remembered: rememberedTargets(ce.Remembered), Resolving: true})
-		if effects.MatchesSpecCtx(e.G, ce.Affects, o.ID, sc) {
+		if e.matchesSpec(ce.Affects, o.ID, sc) {
 			return true
 		}
 	}

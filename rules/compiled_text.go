@@ -228,5 +228,5 @@ func (e *Engine) parseCost(raw string) Cost {
 // preserves the public helper's source-relative semantics while carrying this
 // engine's immutable predicate programs into configured filter evaluation.
 func (e *Engine) matchesSpecFrom(spec string, id state.ObjID, you state.PlayerID, source state.ObjID) bool {
-	return effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(source, you))
+	return e.matchesSpec(spec, id, e.specCtx(source, you))
 }

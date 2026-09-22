@@ -99,7 +99,7 @@ func (e *Engine) mayPlayLandIds(p state.PlayerID) []state.ObjID {
 					}
 					sc := e.withNames(effects.SpecContext{You: ce.Controller, Source: ce.Source,
 						Remembered: rememberedTargets(ce.Remembered), Resolving: true})
-					if !effects.MatchesSpecCtx(e.G, ce.Affects, id, sc) {
+					if !e.matchesSpec(ce.Affects, id, sc) {
 						continue
 					}
 					dup := false
@@ -322,7 +322,7 @@ func (e *Engine) mayPlaySpellIds(p state.PlayerID) []state.ObjID {
 					}
 					sc := e.withNames(effects.SpecContext{You: ce.Controller, Source: ce.Source,
 						Remembered: rememberedTargets(ce.Remembered), Resolving: true})
-					if !effects.MatchesSpecCtx(e.G, ce.Affects, id, sc) {
+					if !e.matchesSpec(ce.Affects, id, sc) {
 						continue
 					}
 					consider(z, id)
@@ -753,7 +753,7 @@ func (e *Engine) loyaltyAbilityLimit(id state.ObjID) int {
 	twice := false
 	additional := 0
 	for _, sv := range e.activeStatics("NumLoyaltyAct") {
-		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, sv.Controller)) {
+		if !e.matchesSpec(sv.Params["ValidCard"], id, e.specCtx(sv.Source, sv.Controller)) {
 			continue
 		}
 		if sv.Params["Twice"] == "True" {

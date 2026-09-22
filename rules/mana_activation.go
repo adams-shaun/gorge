@@ -330,7 +330,7 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 	printed := make(map[string]bool)
 	for _, sv := range continuous {
 		name := strings.TrimSpace(sv.Params["AddAbility"])
-		if name == "" || !effects.MatchesSpecCtx(e.G, sv.Params["Affected"], id, e.specCtx(sv.Source, sv.Controller)) {
+		if name == "" || !e.matchesSpec(sv.Params["Affected"], id, e.specCtx(sv.Source, sv.Controller)) {
 			continue
 		}
 		source := e.G.Obj(sv.Source)

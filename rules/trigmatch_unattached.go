@@ -54,7 +54,7 @@ func (e *Engine) unattachedMatches(t cards.Trigger, source state.ObjID, ev event
 		// what Card.Self binds to in specCtx, so the corpus's Card.Self lines
 		// keep their meaning while an unrelated detach can no longer fire
 		// this face.
-		if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+		if !e.matchesSpec(v, ev.Obj, e.specCtx(source, ctrl)) {
 			return false
 		}
 	}
@@ -77,7 +77,7 @@ func (e *Engine) unattachedMatches(t cards.Trigger, source state.ObjID, ev event
 // spec the live reading already decided.
 func (e *Engine) matchesUnattachedBearer(spec string, bearer, source state.ObjID, ctrl state.PlayerID) bool {
 	sc := e.specCtx(source, ctrl)
-	if effects.MatchesSpecCtx(e.G, spec, bearer, sc) {
+	if e.matchesSpec(spec, bearer, sc) {
 		return true
 	}
 	o := e.G.Obj(bearer)

@@ -217,7 +217,7 @@ func (e *Engine) unlessPaymentCandidates(u *unlessPayment, zone state.Zone, kind
 			// permanent cannot pay a sacrifice component.
 			continue
 		}
-		if !seen[id] && effects.MatchesSpecCtx(e.G, part.Spec, id, sc) {
+		if !seen[id] && e.matchesSpec(part.Spec, id, sc) {
 			out = append(out, id)
 		}
 	}
