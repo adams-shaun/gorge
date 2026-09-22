@@ -246,6 +246,22 @@ func passUntilStackEmpty(t *testing.T, e *Engine, limit int) int {
 			}
 			continue
 		}
+		if d.Kind == decision.KArrange && d.ResumeKind == "dig_arrange" {
+			// A Dig's ordered-bottom ask suspended mid-resolution: the untaken
+			// window cards go to the bottom in the OFFERED order -- the same
+			// deterministic answer botpolicy's clamp top-up gives, so a drain
+			// written around the pre-arrange engine keeps its board. Min ==
+			// Max == len(Options), so the full permutation is the only legal
+			// shape and the offered order is one.
+			choices := make([]int, 0, len(d.Options))
+			for _, o := range d.Options {
+				choices = append(choices, o.Index)
+			}
+			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: choices}); err != nil {
+				t.Fatalf("submit dig bottom order: %v", err)
+			}
+			continue
+		}
 		if d.Kind == decision.KChoose && d.ResumeKind == "vote" {
 			// A per-voter ballot ask (task vote_card_self1): the card and
 			// fixed-list Votes now pose a private ask mid-resolution where

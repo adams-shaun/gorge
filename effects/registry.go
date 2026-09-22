@@ -1284,6 +1284,14 @@ type Ctx struct {
 	// applied by the rules handler, unlike Modes/UnlessPay/Discard where the
 	// effect re-reads the answer -- so the field is only a done-marker.
 	Arrange bool
+	// ArrangeTarget is the Defined$-target index whose arrange was the one
+	// answered, carried only for a Dig (whose effDig walks several Defined$
+	// targets and must keep the deterministic processing for the ones after
+	// the asker on the arrange re-entry; the other arrange consumers are
+	// single-target). The re-entered effDig consumes and clears it together
+	// with Arrange (fx42 scoping). Zero is a legitimate index -- the marker
+	// is Arrange, never this field alone.
+	ArrangeTarget int
 	// MayShuffle is the answered may-shuffle ask a RearrangeTopOfLibrary
 	// carrying MayShuffle$ True (Ponder's "You may shuffle.") poses after its
 	// KArrange was applied: "yes" means the player shuffled (rules'

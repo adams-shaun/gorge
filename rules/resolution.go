@@ -48,7 +48,8 @@ import (
 // decision's answer resumes ("modes" for a Charm modal pick, "unless_pay"
 // for a CopySpellAbility may-pay, "discard" for a mid-resolution discard
 // choice, "search" for a hidden-library KChoose, "dig" for a Dig
-// look-and-take pick, "connive" for a Connive discard election, and "" for a pure outer
+// look-and-take pick, "dig_arrange" for a Dig's ordered-bottom KArrange,
+// "connive" for a Connive discard election, and "" for a pure outer
 // continuation that carries no answer),
 // which stack object's resolution is paused, and the exact sub-ability
 // whose effect asked — or, for an outer continuation, the sub-ability to
@@ -2152,14 +2153,21 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			}
 			ctx.HiddenPickDone = true
 			ctx.HiddenPickTarget = rp.target
-		case "arrange":
+		case "arrange", "dig_arrange":
 			// Ruling J0: rules' handleArrange already applied the answered
 			// arrangement and emitted the LibraryOrder event before calling
 			// resumeResolution, so the re-entered effect needs only to know
 			// not to re-ask -- the arrangement lives on the LibraryOrder
 			// event, not on Ctx, so this is a done-marker rather than an
-			// answer the effect re-reads.
+			// answer the effect re-reads. A Dig additionally carries the
+			// asking target's index (ArrangeTarget, only on its own
+			// "dig_arrange" continuation), because its walk must keep the
+			// deterministic processing of the LATER Defined$ targets on the
+			// arrange re-entry instead of dropping them.
 			ctx.Arrange = true
+			if rp.kind == "dig_arrange" {
+				ctx.ArrangeTarget = rp.target
+			}
 		case "arrange_mayshuffle":
 			// A RearrangeTopOfLibrary carrying MayShuffle$ True (Ponder) asked
 			// "you may shuffle?" on its arrange re-entry pass. The effect
