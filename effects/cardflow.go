@@ -860,14 +860,15 @@ func rememberMilled(h Host, c *Ctx, id state.ObjID) {
 
 // effDig implements Forge's Dig: look at the top DigNum cards of Defined$'s
 // library, move up to ChangeNum of the ones matching ChangeValid$ (default
-// "Card") to DestinationZone$ (default "Hand"), and leave everything else
-// exactly where it already is -- on top of the library, in its existing
-// relative order (the remainder-ordering decision is a separate, still-open
-// ask; see the row's end). The remainder's second destination DOES exist in
-// the corpus as "DestinationZone2$" (with "LibraryPosition2$" placing it in
-// a library) -- an earlier note here wrongly claimed the parameter does not
-// exist; it is read below. LibraryPosition$ (the PRIMARY move's position,
-// 96 corpus lines) is still unread.
+// "Card") to DestinationZone$ (default "Hand"), and put everything else on
+// the BOTTOM of the library in an order the player picks (the default Forge
+// leaves unwritten; measured at the current pin, 518 of the corpus's 737 Dig
+// lines carry no DestinationZone2$ and no SkipReorder$ and take this
+// default). The remainder's second destination DOES exist in the corpus as
+// "DestinationZone2$" (with "LibraryPosition2$" placing it in a library) --
+// an earlier note here wrongly claimed the parameter does not exist; it is
+// read below. LibraryPosition$ (the PRIMARY move's position, 96 corpus
+// lines) is still unread.
 //
 // A real card can also write "ChangeNum$ All" (e.g. Goblin Guide's own Dig)
 // to mean every matching card within the DigNum look, with no cap short of
@@ -905,9 +906,10 @@ func rememberMilled(h Host, c *Ctx, id state.ObjID) {
 // scoped to this primitive like every other Ctx answer field.
 //
 // A host that cannot answer (the fuzz/no-engine stand-in, R-9) and the
-// no-choice path (eligible <= ChangeNum) keep M1's silent behaviour
-// deterministically: the first ChangeNum eligible cards in zone order move,
-// the rest stay exactly where they are. A resumed multi-target Dig applies
+// no-choice path (eligible <= ChangeNum) keep the take deterministic: the
+// first ChangeNum eligible cards in zone order move, and the remainder takes
+// its second destination -- by default the bottom, ordered (asked; offered
+// order without a host). A resumed multi-target Dig applies
 // the answer only to the target that asked, skips earlier targets that already
 // completed before suspension, and preserves that same deterministic behaviour
 // for every later target; chained per-library asks remain separate work. On the
@@ -936,31 +938,28 @@ func rememberMilled(h Host, c *Ctx, id state.ObjID) {
 //   - DestinationZone2$ (with LibraryPosition2$) is the remainder's second
 //     destination: every window card the primary move did not take goes
 //     there (Chaos Warp and Goblin Guide's unmatched card back to the
-//     library, Matter Reshaper's unmatched card to the hand).
+//     library, Matter Reshaper's unmatched card to the hand). OMITTED -- the
+//     corpus's default -- it is the library bottom (Ancient Stirrings' own
+//     Oracle: "put the rest on the bottom of your library in any order").
 //   - LibraryPosition2$ places a library DestinationZone2$: "0" = top,
-//     which is exactly the engine's stay-in-place default, so the placement
-//     emits nothing; "-1" = bottom, a real library-to-library move (the
-//     MoveZone append lands it at the bottom); anything else is named in a
-//     loud Note and the card stays (the corpus carries only "0" and "-1").
-//   - SkipReorder$ True is the engine's remainder contract itself -- the
-//     untaken cards never move, so they stay on top in their existing
-//     relative order -- and it also suppresses a DestinationZone2$
-//     remainder placement (the corpus never pairs the two; Through the
-//     Forest Gate carries it without one).
+//     which leaves the cards exactly where they are, so the placement
+//     emits nothing; "-1" = bottom, the ordered-bottom KArrange ask (or,
+//     for a one-card remainder, the deterministic move -- one card has
+//     exactly one possible order); anything else is named in a loud Note
+//     and the card stays (the corpus carries only "0" and "-1").
+//   - SkipReorder$ True suppresses both the bottom default and a
+//     DestinationZone2$ remainder placement: the untaken cards never move,
+//     so they stay on top in their existing relative order (the corpus
+//     never pairs the two; Through the Forest Gate carries it without one).
 //
 // Still unread here (each a real divergence, named in AGENTS.md's Dig row):
 // Optional$ on the NO-CHOICE path (eligible <= ChangeNum still takes all
-// eligible; ChangeNum$ 0 takes nothing silently, correctly), the remainder-ordering decision ("the rest on the bottom in any
-// order"; RestRandomOrder$), the primary LibraryPosition$ (96 corpus lines
-// put the PRIMARY take at a library position),
-// Choser$ (the opponent-chooses planeswalker shape) and the exotic
-// DestinationZone2 values (PlanarDeck).
+// eligible; ChangeNum$ 0 takes nothing, correctly), RestRandomOrder$ (the
+// bottom pile returns in the answered/offered order, never shuffled), the
+// primary LibraryPosition$ (96 corpus lines put the PRIMARY take at a
+// library position), Choser$ (the opponent-chooses planeswalker shape) and
+// the exotic DestinationZone2 values (PlanarDeck).
 func effDig(h Host, c *Ctx, sa *cards.SA) {
-	// KArrange has already reordered the remainder on this resume.
-	if c.Arrange {
-		c.Arrange = false
-		return
-	}
 	digNum := Num(h, c, sa, "DigNum", 1)
 	if digNum < 0 {
 		digNum = 0
@@ -1016,6 +1015,11 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 	if dest2Name == "" {
 		dest2Name, pos2 = "Library", "-1"
 	}
+	// bottomRest says the remainder moves to the library bottom (the default,
+	// or an explicit Library + LibraryPosition2$ "-1"), so a no-choice tail
+	// with two or more untaken cards must record the look before the ordered
+	// bottom ask -- the same record the take-ask path makes before ITS ask.
+	bottomRest := !skipReorder && strings.EqualFold(strings.TrimSpace(dest2Name), "Library") && pos2 == "-1"
 	// fx42 scoping: capture and clear the answered pick BEFORE the target
 	// loop. DigTarget identifies the exact target that asked: earlier targets
 	// completed before suspension and must be skipped, that target consumes
@@ -1026,6 +1030,18 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 	digDone := c.DigDone
 	digTarget := c.DigTarget
 	c.Dig, c.DigDone, c.DigTarget = nil, false, 0
+	// The arrange done-marker, consumed and cleared here (fx42 scoping):
+	// handleArrange has already applied the asking target's answered bottom
+	// order (the LibraryOrder event). ArrangeTarget is the cursor -- the walk
+	// skips through that target and keeps the deterministic processing for
+	// the LATER ones (each may pose its own arrange, suspending again);
+	// dropping them would strand a multi-target Dig mid-walk.
+	arrangeThrough := -1
+	if c.Arrange {
+		c.Arrange = false
+		arrangeThrough = c.ArrangeTarget
+		c.ArrangeTarget = 0
+	}
 	g := h.Game()
 	for targetIndex, t := range Defined(h, c, sa) {
 		p := PlayerOf(h, c, t)
@@ -1071,9 +1087,9 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 		}
 		// rest moves the window cards the primary move did not take to the
 		// second destination (DestinationZone2$, placed by LibraryPosition2$).
-		// With no DestinationZone2$ -- and with SkipReorder$ True -- the cards
-		// stay exactly where they are, so the no-variant games emit nothing
-		// and replay byte-identically.
+		// With DestinationZone2$ Library / "-1" -- the omitted default -- the
+		// cards go to the bottom, in the answered order when two or more remain
+		// (the ask above) and in their existing order otherwise.
 		rest := func(ids []state.ObjID) bool {
 			if skipReorder {
 				return false
@@ -1083,20 +1099,39 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				if len(ids) == 0 {
 					return false
 				}
-				d := &decision.Decision{Player: p, Kind: decision.KArrange, Min: 0, Max: len(ids), Source: c.Source,
-					ResumeKind: "dig", ResumeSA: sa, ResumeTarget: targetIndex,
+				// A one-card remainder has exactly one possible order, so no
+				// decision anybody could answer differently is posed -- the same
+				// rule the take ask's ChangeNum$ 0 gate applies. It moves to the
+				// bottom directly (skipped when it already sits there).
+				if len(ids) == 1 {
+					moveRestToBottom(h, g, p, ids)
+					return false
+				}
+				// The ordered-bottom ask: Min == Max == len(ids), so the answer
+				// is a full permutation -- every remaining card is placed, and
+				// the ANSWER order is the bottom order (the hideaway contract;
+				// handleArrange's "dig_bottom" case applies it as
+				// untouched-library + answered remainder). ResumeKind
+				// "dig_arrange" is this ask's OWN continuation: reusing the
+				// take ask's "dig" would feed the answered order back through
+				// the "dig" arm as a TAKE answer and re-dig the next window.
+				d := &decision.Decision{Player: p, Kind: decision.KArrange, Min: len(ids), Max: len(ids), Source: c.Source,
+					ResumeKind: "dig_arrange", ResumeSA: sa, ResumeTarget: targetIndex,
 					Prompt: "Put the remaining cards on the bottom of your library in any order"}
 				for i, id := range ids {
 					name := "a card"
 					if o := g.Obj(id); o != nil && o.Face() != nil {
 						name = o.Face().Name
 					}
-					d.Options = append(d.Options, decision.Option{Index: i, Kind: "bottom", Label: name, Obj: id, Player: p})
+					d.Options = append(d.Options, decision.Option{Index: i, Kind: "dig_bottom", Label: name, Obj: id, Player: p})
 				}
 				if Ask(h, d) == AskAsked {
 					return true
 				}
-				h.Emit(events.Event{Kind: events.LibraryOrder, Player: p, IDs: append([]state.ObjID(nil), zoneOf(g, state.ZLibrary, p)...), Secret: true})
+				// R-9 no-host stand-in: the OFFERED order is the bottom order --
+				// the exact permutation botpolicy's clamp top-up answers, so the
+				// two deterministic readers cannot drift.
+				moveRestToBottom(h, g, p, ids)
 				return false
 			}
 			for _, id := range ids {
@@ -1117,38 +1152,46 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			}
 			return false
 		}
-		if digDone && targetIndex < digTarget {
-			// This target completed on the first pass before a later library
-			// suspended the effect. Re-running it could move a second batch (or
-			// newly create a choice after its first batch left), so skip it.
-			continue
-		}
-		if digDone && targetIndex == digTarget {
-			// Re-entry: move exactly the answered cards that still sit in the
-			// ASKING target's window (a per-window filter keeps a stray answer
-			// from moving an object that left the window meanwhile), in the
-			// player's answer order; the rest of the window goes to the
-			// second destination.
-			picked := make(map[state.ObjID]bool, len(digAns))
-			moved := make([]state.ObjID, 0, len(digAns))
-			for _, id := range digAns {
-				if !containsID(top, id) {
-					continue
+		if arrangeThrough >= 0 {
+			// The arrange re-entry: every target up to and including the one
+			// whose arrange was answered is complete.
+			if targetIndex <= arrangeThrough {
+				continue
+			}
+		} else {
+			if digDone && targetIndex < digTarget {
+				// This target completed on the first pass before a later library
+				// suspended the effect. Re-running it could move a second batch (or
+				// newly create a choice after its first batch left), so skip it.
+				continue
+			}
+			if digDone && targetIndex == digTarget {
+				// Re-entry: move exactly the answered cards that still sit in the
+				// ASKING target's window (a per-window filter keeps a stray answer
+				// from moving an object that left the window meanwhile), in the
+				// player's answer order; the rest of the window goes to the
+				// second destination.
+				picked := make(map[state.ObjID]bool, len(digAns))
+				moved := make([]state.ObjID, 0, len(digAns))
+				for _, id := range digAns {
+					if !containsID(top, id) {
+						continue
+					}
+					picked[id] = true
+					take(id)
+					moved = append(moved, id)
 				}
-				picked[id] = true
-				take(id)
-				moved = append(moved, id)
-			}
-			restIDs := make([]state.ObjID, 0, len(top))
-			for _, id := range top {
-				if !picked[id] {
-					restIDs = append(restIDs, id)
+				restIDs := make([]state.ObjID, 0, len(top))
+				for _, id := range top {
+					if !picked[id] {
+						restIDs = append(restIDs, id)
+					}
 				}
+				if rest(restIDs) {
+					return
+				}
+				continue
 			}
-			if rest(restIDs) {
-				return
-			}
-			continue
 		}
 		eligible := make([]state.ObjID, 0, len(top))
 		for _, id := range top {
@@ -1193,7 +1236,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 		// card, so the answer cannot differ from it and no ask is warranted.
 		forcedAll := len(greedy) == len(budgetEligible)
 		askBudget := hasBudget && len(budgetEligible) > 0 && !forcedAll
-		if !digDone && changeNum > 0 && ((int32(len(eligible)) > changeNum || anyNum && len(eligible) > 0) || askBudget) {
+		if !digDone && arrangeThrough < 0 && changeNum > 0 && ((int32(len(eligible)) > changeNum || anyNum && len(eligible) > 0) || askBudget) {
 			// A real choice: record the look, then ask the library's owner.
 			// Reveal$ True makes the record a PUBLIC reveal of the window (the
 			// same non-Secret ids-Note shape effReveal's public arm emits);
@@ -1274,14 +1317,22 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		// No choice to ask about: M1's silent behaviour for the no-variant
-		// cards -- only a Reveal$ window reveal, a Tapped$ Tap or a
-		// DestinationZone2$ remainder move can add an event, and only a card
-		// carrying those emits one. The forced greedy take moves in window
-		// order while the cumulative budget (WithTotalCMC$) allows; everything
-		// else in the window -- unmatched, over-budget and beyond the cap
-		// alike -- goes to the second destination or stays exactly where it is.
+		// cards -- only a Reveal$ window reveal, a Tapped$ Tap, a look Note
+		// ahead of an ordered-bottom ask, or a remainder move can add an
+		// event, and only a card carrying those emits one. The forced greedy
+		// take moves in window order while the cumulative budget
+		// (WithTotalCMC$) allows; everything else in the window -- unmatched,
+		// over-budget and beyond the cap alike -- goes to the second
+		// destination (by default the bottom, ordered) or stays exactly where
+		// it is (SkipReorder$, or a top LibraryPosition2$).
 		if revealWin && len(top) > 0 {
 			h.Emit(events.Event{Kind: events.Note, Player: p, IDs: top})
+		}
+		if bottomRest && !revealWin && int32(len(top)-len(greedy)) >= 2 {
+			// The ordered-bottom ask is coming: the look that authorises it is
+			// recorded here, the same Secret owner's Note the take-ask path
+			// emits before ITS ask (a Reveal$ window is already public).
+			emitLook(h, []state.PlayerID{p}, state.ZLibrary, top, "looks at the top of the library")
 		}
 		taken := make(map[state.ObjID]bool, len(greedy))
 		for _, id := range greedy {
@@ -1298,6 +1349,30 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			return
 		}
 	}
+}
+
+// moveRestToBottom moves the untaken Dig window cards to the BOTTOM of
+// their owner's library in the given order, as one Secret events.LibraryOrder
+// carrying the complete reordered library (Ruling J1) -- the same single-event
+// record rules' handleArrange emits for an answered arrange, so a replay
+// re-derives the same order either way. The emit is skipped when the move
+// would change nothing (the cards already sit on the bottom).
+func moveRestToBottom(h Host, g *state.Game, p state.PlayerID, ids []state.ObjID) {
+	lib := zoneOf(g, state.ZLibrary, p)
+	if len(ids) > len(lib) {
+		return
+	}
+	newLib := make([]state.ObjID, 0, len(lib))
+	newLib = append(newLib, lib[len(ids):]...)
+	newLib = append(newLib, ids...)
+	same := len(newLib) == len(lib)
+	for i := 0; same && i < len(newLib); i++ {
+		same = newLib[i] == lib[i]
+	}
+	if same {
+		return
+	}
+	h.Emit(events.Event{Kind: events.LibraryOrder, Player: p, IDs: newLib, Secret: true})
 }
 
 // manaValueOf is the offered card's own mana value -- the same Face().Cmc()
