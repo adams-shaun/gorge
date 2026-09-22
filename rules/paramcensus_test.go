@@ -2561,15 +2561,14 @@ var knownUnsupportedParams = map[string][]string{
 	// no-param control proving the recheck stays live for everyone else.)
 	"Methods of the Mighty":   {"param:api:Destroy.ValidTgtsDesc"},
 	"Mogis, God of Slaughter": {"param:stat:Continuous.RemoveType"},
-	// Opposition Agent, Quicksilver Elemental, Rakdos the Muscle and Sundering
-	// Eruption each carry their stat:Continuous rider on a raw StaticAbilities$
+	// Opposition Agent, Rakdos the Muscle and Sundering Eruption each carry their
+	// stat:Continuous rider on a raw StaticAbilities$
 	// body an Effect names (the census correction below), so these param
 	// labels were invisible before that walk existed. Each label is the same
 	// pre-existing static-scan gap a printed S: line with the same param
 	// reports -- the primitive is registered; only the parameter is unread.
 	"Opposition Agent":        {"param:stat:Continuous.MayPlay.MayPlayIgnoreColor"},
 	"Patriot, Shield Wielder": {"param:api:Pump.ValidTgtsDesc"},
-	"Quicksilver Elemental":   {"param:stat:Continuous.GainsAbilitiesOfDefined"},
 	"Rakdos, the Muscle":      {"param:stat:Continuous.MayPlay.MayPlayIgnoreType"},
 	// (Photon, Mighty Marvel's param:api:Mana.PersistentMana row retired when
 	// the PersistentMana$ read landed — the pm ManaAdd suffix, ManaClear's
