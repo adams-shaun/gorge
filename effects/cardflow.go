@@ -1854,6 +1854,9 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 		if answer != "" && targetIndex != optTarget {
 			answerForTarget = ""
 		}
+		// A pick answers the optional gate only for the target that posed it.
+		// Later Defined$ targets still need their own may-reveal choice.
+		pickForTarget := picks != nil && targetIndex == pickTarget
 		p := PlayerOf(h, c, t)
 		pool := zoneOf(g, zone, p)
 		if sa.Params["RevealDefined"] != "" && !t.IsPlayer {
@@ -1935,9 +1938,9 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			// fewer) must show all of them with no question, the same
 			// strict-supersets discipline effDiscard applies. An Optional$
 			// reveal answers its own yes/no ask FIRST (the block below); the pick
-			// then poses on that accepted resume, and the `picks == nil` guard
-			// keeps the optional question from being re-posed on the pick's
-			// resume (fx42).
+			// then poses on that accepted resume. The answered pick suppresses
+			// that optional question only for its own target, so every later
+			// Defined$ target still receives its own may-reveal ask (fx42).
 			// A DECLINED optional (fx45) must never reach the pick: the
 			// reveal_optional resume sets answer == "no", which makes
 			// deferToOptionalAsk false, and the block below then posed a
@@ -1946,7 +1949,7 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			// resumed into a Min/Max 1/1 pick instead of finishing). The
 			// decline `continue` below runs after this block, so gate here.
 			declined := optional && answerForTarget == "no"
-			deferToOptionalAsk := optional && answerForTarget == "" && picks == nil
+			deferToOptionalAsk := optional && answerForTarget == "" && !pickForTarget
 			if int32(len(pool)) > minPick && !deferToOptionalAsk && !declined {
 				// The answer applies to exactly the cursor target: a pickable
 				// reveal over several Defined$ players poses one ask per target,
@@ -1954,7 +1957,7 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 				// target 1's distinct hand (its ids cannot occur there, so the
 				// pool would empty and every later player would be silently
 				// skipped). Every non-cursor target poses its own ask below.
-				hasAnswer := picks != nil && targetIndex == pickTarget
+				hasAnswer := pickForTarget
 				if !hasAnswer {
 					opts := make([]decision.Option, 0, len(pool))
 					for _, id := range pool {
@@ -2075,7 +2078,7 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 		if look {
 			asker = c.Controller
 		}
-		if optional && answerForTarget == "" && picks == nil {
+		if optional && answerForTarget == "" && !pickForTarget {
 			// The peek ask's wording and payload are byte-stable: a golden
 			// game (Delver of Secrets) poses exactly this ask.
 			var prompt, yesLabel string
