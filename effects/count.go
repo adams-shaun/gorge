@@ -1419,6 +1419,14 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			return 0, true
 		}
 		return h.LifeGainedThisTurn(c.Controller), true
+	case "CountersAddedThisTurn":
+		// Count$CountersAddedThisTurn <KIND> <Player> <ObjectSpec>.
+		// Keep malformed or unsupported shapes unresolvable: CheckSVar
+		// distinguishes that from an evaluated zero.
+		parts := strings.Fields(arg)
+		if len(parts) == 3 && c.Controller >= 0 && playerSpecBaseKnown(parts[1]) && parts[2] != "" {
+			return h.CountersAddedThisTurn(parts[0], parts[1], parts[2], c.SpecContext(c.Controller)), true
+		}
 	case "CountersRemovedThisTurn":
 		// Count$CountersRemovedThisTurn <KIND> <Player> — the number of counters
 		// of KIND the named players have PAID or LOST this turn (Creative

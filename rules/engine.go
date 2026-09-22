@@ -103,6 +103,15 @@ type triggerObjectLKI struct {
 	ptValid          bool
 }
 
+// counterAddedThisTurn is engine-only provenance for positive object counter
+// placements. The snapshot is captured before events.Apply mutates the object.
+type counterAddedThisTurn struct {
+	actor  state.PlayerID
+	kind   string
+	amount int32
+	object state.Object
+}
+
 type Engine struct {
 	G            *state.Game
 	L            *events.Log
@@ -125,7 +134,8 @@ type Engine struct {
 	// cache-advance site below). It carries only damage that LANDED and only
 	// damage to a PLAYER; the object branch of runCombatAssignments records
 	// nothing. See effects.Host's CombatDamageToPlayersThisTurn.
-	combatHitsThisTurn []effects.CombatDamageHit
+	combatHitsThisTurn  []effects.CombatDamageHit
+	counterAddsThisTurn []counterAddedThisTurn
 
 	// format is the construction format New was configured with (Config.
 	// Format). It is the explicit gate the Commander rules (the tax, CR
@@ -1729,6 +1739,18 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	}
 	departingSource, departingSourceLifelink, departingSourceController := e.captureSourceLifelinkLKI(ev)
 	stackLen := len(e.G.Stack)
+	// Record only the final event after replacement selection. The object
+	// snapshot must precede Apply, and unknown adder provenance is not a
+	// match for either You or Player.
+	if ev.Kind == events.CounterChange && ev.Amount > 0 {
+		if actor, ok := e.inFlightCounterAdder(); ok {
+			if o := e.G.Obj(ev.Obj); o != nil {
+				e.counterAddsThisTurn = append(e.counterAddsThisTurn, counterAddedThisTurn{
+					actor: actor, kind: ev.Counter, amount: ev.Amount, object: o.CloneDeep(),
+				})
+			}
+		}
+	}
 	stored := events.Emit(e.G, e.L, ev)
 	// CR 702.90b (kw:Infect): the counters/poison an infect source's damage
 	// is dealt in the form of are placed HERE, as real events emitted
@@ -1763,6 +1785,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	// captured during the turn that just ended is no longer "this turn".
 	if stored.Kind == events.TurnChange {
 		e.combatHitsThisTurn = nil
+		e.counterAddsThisTurn = nil
 	}
 	e.loop.observe(stored)
 	// setname.go: keep the layer-3 rename table the filter tier reads in step

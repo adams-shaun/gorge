@@ -3510,6 +3510,22 @@ func (e *Engine) CountersRemovedThisTurn(p state.PlayerID, kind string) int32 {
 	return n
 }
 
+// CountersAddedThisTurn is the rules-side backing for the three-part
+// Count$CountersAddedThisTurn head. It deliberately uses the pre-event
+// snapshot retained by emit rather than the live object.
+func (e *Engine) CountersAddedThisTurn(kind, actorSpec, objectSpec string, sc effects.SpecContext) int32 {
+	var n int32
+	for _, add := range e.counterAddsThisTurn {
+		if !strings.EqualFold(kind, "Any") && !strings.EqualFold(add.kind, kind) ||
+			!effects.MatchesPlayerSpec(e.G, actorSpec, add.actor, sc.You) ||
+			!effects.MatchesObjectCtx(e.G, objectSpec, &add.object, sc) {
+			continue
+		}
+		n += add.amount
+	}
+	return n
+}
+
 // DamageTakenThisTurn satisfies effects.Host's DamageTakenThisTurn for the
 // TargetedPlayer$DamageThisTurn count head (Knollspine Dragon's "draw cards
 // equal to the damage dealt to target opponent this turn"): the total damage
