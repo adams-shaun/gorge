@@ -666,11 +666,20 @@ func (e *Engine) continueCumulativeAction() {
 // unresolvable (fail closed, the ParseUnlessCost hard-decline convention).
 func (e *Engine) triggeredCostDrawCounts(tc *triggeredEffectCost) ([]int32, bool) {
 	out := make([]int32, len(tc.amount.Draw))
+	// The window parks a TRIGGER body, so a dynamic Draw<X/Spec> part's SVar
+	// can name a trigger referent (Hordewing Skaab's
+	// TriggeredPlayersTargets$Amount): seed the fire-time capture exactly
+	// like evalTriggerCostFixedX does, else the count fails closed and the
+	// window offers decline only.
+	var tcx *effects.TriggerContext
+	if t, ok := e.triggerContexts[tc.resume.obj]; ok {
+		tcx = &t
+	}
 	for i, part := range tc.amount.Draw {
 		if _, ok := castFlowDrawPlayer(part.Spec, tc.player); !ok {
 			return nil, false
 		}
-		n, ok := e.drawCostCount(tc.source, tc.player, part)
+		n, ok := e.drawCostCountTrig(tc.source, tc.player, part, tcx)
 		if !ok {
 			return nil, false
 		}
@@ -1316,7 +1325,7 @@ func (e *Engine) triggeredMandatoryCandidatesWith(tc *triggeredEffectCost, idx i
 	// cost spec naming a trigger referent (Card.TriggeredNewCard -- the
 	// "you may exile it" family) resolves the card the triggering event
 	// captured. A zero context is the filter's fail-closed default.
-	sc := effects.SpecContext{You: tc.player, Source: tc.source, TriggerContext: tc.trig}
+	sc := e.withNames(effects.SpecContext{You: tc.player, Source: tc.source, TriggerContext: tc.trig})
 	var out []state.ObjID
 	for _, id := range e.G.Zone(zone, tc.player) {
 		if used[id] {

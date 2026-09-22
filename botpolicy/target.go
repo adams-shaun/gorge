@@ -380,7 +380,12 @@ func (b Board) chooseTargets(d *decision.Decision) []int {
 	// ANY answer; the ask builders never pose one (OneEach Min is the
 	// distinct-controller count, and a dynamic-max Min is 0).
 	chosen := make(map[string]bool)
+	var targetController state.PlayerID
+	haveTargetController := false
 	fits := func(o decision.Option) bool {
+		if d.TargetsWithSameController && haveTargetController && o.Controller != targetController {
+			return false
+		}
 		return o.Group == "" || !chosen[o.Group]
 	}
 	choices := make([]int, 0, pick)
@@ -389,6 +394,9 @@ func (b Board) chooseTargets(d *decision.Decision) []int {
 		o := d.Options[foreign[i].idx]
 		if !fits(o) {
 			continue
+		}
+		if d.TargetsWithSameController && !haveTargetController {
+			targetController, haveTargetController = o.Controller, true
 		}
 		if o.Group != "" {
 			chosen[o.Group] = true
@@ -401,6 +409,9 @@ func (b Board) chooseTargets(d *decision.Decision) []int {
 			o := d.Options[own[i].idx]
 			if !fits(o) {
 				continue
+			}
+			if d.TargetsWithSameController && !haveTargetController {
+				targetController, haveTargetController = o.Controller, true
 			}
 			if o.Group != "" {
 				chosen[o.Group] = true

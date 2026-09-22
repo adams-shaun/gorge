@@ -23,6 +23,11 @@ const (
 	chooseManaExile
 )
 
+// chooseManaSacrifice is the mana ability's sacrifice-cost pick. 31 is the
+// next free value: 30 is chooseAttached (rules/cast.go) and 40 is
+// chooseUntap; the numbers matter only inside this package's switch table.
+const chooseManaSacrifice chooseFor = 31
+
 const (
 	chooseManaUnless chooseFor = iota + 17
 	chooseUnlessCost
@@ -100,6 +105,7 @@ type manaDiscardActivation struct {
 	sacs       []state.ObjID
 	discards   []state.ObjID
 	exiles     []state.ObjID
+	sacPart    int
 	part       int
 	exilePart  int
 	cast       bool
@@ -474,7 +480,7 @@ func (e *Engine) activateManaFor(p state.PlayerID, source state.ObjID, cast, cum
 		return
 	}
 	if len(abilities) == 1 {
-		e.resolveManaAbility(p, source, abilities[0], cast, cumulative)
+		e.resolveManaAbilityInteractive(p, source, abilities[0], cast, cumulative)
 		if cumulative && e.choosing == chooseNone {
 			e.paymentWindowAsk()
 		}
@@ -634,11 +640,10 @@ func (e *Engine) manaAbilityPayablePool(p state.PlayerID, source state.ObjID, ma
 	return ok
 }
 
-// manaSacrifices finds the forced sacrifice for each cost part. An exact
-// candidate count means no player choice is being hidden: each candidate is
-// paid in deterministic battlefield order. More candidates than required are
-// intentionally not offered by manaAbilityPayable until a KChoose continuation
-// can collect that cost choice.
+// manaSacrifices finds enough candidates for each sacrifice cost part. The
+// activation continuation chooses which candidates pay when there is a choice.
+// Candidates are still returned in deterministic battlefield order for the
+// no-choice path.
 func (e *Engine) manaSacrifices(p state.PlayerID, source state.ObjID, cost Cost) ([]state.ObjID, bool) {
 	var sacs []state.ObjID
 	reserved := map[state.ObjID]bool{}
@@ -652,10 +657,10 @@ func (e *Engine) manaSacrifices(p state.PlayerID, source state.ObjID, cost Cost)
 				candidates = append(candidates, id)
 			}
 		}
-		if len(candidates) != int(part.N) {
+		if part.N <= 0 || len(candidates) < int(part.N) {
 			return nil, false
 		}
-		for _, id := range candidates {
+		for _, id := range candidates[:int(part.N)] {
 			reserved[id] = true
 			sacs = append(sacs, id)
 		}
@@ -723,6 +728,44 @@ func (e *Engine) manaDiscards(p state.PlayerID, source state.ObjID, cost Cost) (
 func (e *Engine) continueManaDiscard() {
 	md := e.manaDiscardActivation
 	if md == nil {
+		return
+	}
+	for md.sacPart < len(md.cost.Sac) {
+		part := md.cost.Sac[md.sacPart]
+		reserved := make(map[state.ObjID]bool, len(md.sacs))
+		for _, id := range md.sacs {
+			reserved[id] = true
+		}
+		var candidates []state.ObjID
+		for _, id := range e.G.Zone(state.ZBattlefield, md.player) {
+			if reserved[id] || e.SacrificeBlocked(id, true) {
+				continue
+			}
+			if effects.MatchesSpecFrom(e.G, part.Spec, id, md.player, md.source) {
+				candidates = append(candidates, id)
+			}
+		}
+		n := int(part.N)
+		if n <= 0 || n > len(candidates) {
+			e.manaDiscardActivation = nil
+			e.choosing = chooseNone
+			return
+		}
+		// Exactly N candidates makes the sacrifice forced. Record that
+		// deterministic battlefield-order set without a zero-information ask;
+		// only a wider candidate set gives the player a choice.
+		if len(candidates) == n {
+			md.sacs = append(md.sacs, candidates...)
+			md.sacPart++
+			continue
+		}
+		d := &decision.Decision{Player: md.player, Kind: decision.KChoose, Min: n, Max: n,
+			Prompt: "Choose permanents to sacrifice for the mana ability", Source: md.source}
+		for _, id := range candidates {
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "sacrifice", Obj: id, Label: e.G.Obj(id).Face().Name})
+		}
+		e.choosing = chooseManaSacrifice
+		e.ask(d)
 		return
 	}
 	for md.part < len(md.cost.Discard) {
@@ -839,6 +882,20 @@ func (e *Engine) commitManaDiscard() {
 
 // answerManaDiscard records one ordinary discard part and continues payment.
 // It reports whether this mana activation belongs to an outer cast window.
+func (e *Engine) answerManaSacrifice(chosen []decision.Option) bool {
+	md := e.manaDiscardActivation
+	if md == nil {
+		return false
+	}
+	for _, opt := range chosen {
+		md.sacs = append(md.sacs, opt.Obj)
+	}
+	md.sacPart++
+	cast := md.cast
+	e.continueManaDiscard()
+	return cast
+}
+
 func (e *Engine) answerManaDiscard(chosen []decision.Option) bool {
 	md := e.manaDiscardActivation
 	if md == nil {
@@ -1133,7 +1190,12 @@ func (e *Engine) chosenProducedColour(source state.ObjID) string {
 // before the mana effect, and no phantom generic mana is charged.
 func (e *Engine) resolveManaAbility(p state.PlayerID, source state.ObjID, ma *cards.SA, cast bool, cumulative ...bool) {
 	payment := len(cumulative) > 0 && cumulative[0]
-	e.resolveManaAbilityRef(p, source, ma, e.gainedManaRefFor(p, source, ma), cast, payment)
+	e.resolveManaAbilityRef(p, source, ma, e.gainedManaRefFor(p, source, ma), cast, payment, false)
+}
+
+func (e *Engine) resolveManaAbilityInteractive(p state.PlayerID, source state.ObjID, ma *cards.SA, cast bool, cumulative ...bool) {
+	payment := len(cumulative) > 0 && cumulative[0]
+	e.resolveManaAbilityRef(p, source, ma, e.gainedManaRefFor(p, source, ma), cast, payment, true)
 }
 
 // gainedManaRefFor reports the has-all-abilities-of identity of mana ability
@@ -1164,7 +1226,7 @@ func (e *Engine) gainedManaRefFor(p state.PlayerID, source state.ObjID, sa *card
 
 // resolveManaAbilityRef is resolveManaAbility with the gained identity
 // already known (answerManaActivation captured it before rewriting the SA).
-func (e *Engine) resolveManaAbilityRef(p state.PlayerID, source state.ObjID, ma *cards.SA, gained gainedManaRef, cast, payment bool) {
+func (e *Engine) resolveManaAbilityRef(p state.PlayerID, source state.ObjID, ma *cards.SA, gained gainedManaRef, cast, payment, interactive bool) {
 	if !e.manaAbilityPayable(p, source, ma) {
 		return
 	}
@@ -1194,9 +1256,20 @@ func (e *Engine) resolveManaAbilityRef(p state.PlayerID, source state.ObjID, ma 
 	}
 	cost := e.parseCost(ma.Params["Cost"])
 	sacs, _ := e.manaSacrifices(p, source, cost)
-	if len(cost.Discard) > 0 || len(cost.Exile) > 0 {
-		e.manaDiscardActivation = &manaDiscardActivation{player: p, source: source,
-			ability: ma, cost: cost, sacs: sacs, cast: cast, cumulative: payment, gained: gained}
+	// The continuation owns EVERY non-mana cost part, so it must be entered
+	// whenever one exists -- a caller that cannot ask (interactive == false:
+	// the attack-cost tap window and the direct-resolve tests) still has to
+	// pay the discard and exile parts. Only the sacrifice ASK is gated: such
+	// a caller keeps the R-9 deterministic first-eligible set manaSacrifices
+	// picked and skips straight past the sacrifice parts.
+	if len(cost.Sac) > 0 || len(cost.Discard) > 0 || len(cost.Exile) > 0 {
+		md := &manaDiscardActivation{player: p, source: source,
+			ability: ma, cost: cost, cast: cast, cumulative: payment, gained: gained}
+		if !interactive {
+			md.sacs = sacs
+			md.sacPart = len(cost.Sac)
+		}
+		e.manaDiscardActivation = md
 		e.continueManaDiscard()
 		return
 	}
@@ -1592,11 +1665,11 @@ func (e *Engine) answerManaActivation(chosen []decision.Option) bool {
 				// top-level abilities; granted and static-granted ones
 				// come from ResolveSVar bodies), so head == target copies
 				// the whole Sub chain with Produced$ rewritten.
-				e.resolveManaAbilityRef(ma.player, ma.source, withProduced(ab, ab, color), gained, ma.cast, ma.cumulative)
+				e.resolveManaAbilityRef(ma.player, ma.source, withProduced(ab, ab, color), gained, ma.cast, ma.cumulative, true)
 				return ma.cast
 			}
 		}
-		e.resolveManaAbilityRef(ma.player, ma.source, ab, gained, ma.cast, ma.cumulative)
+		e.resolveManaAbilityRef(ma.player, ma.source, ab, gained, ma.cast, ma.cumulative, true)
 	}
 	return ma.cast
 }

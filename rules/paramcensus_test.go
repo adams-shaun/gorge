@@ -169,6 +169,11 @@ var baseBuckets = map[string]bucket{
 	// replacement dispatcher (continueCreateTokenReplacements /
 	// applyTokenReplacementToPlan read its Type$/Amount$/TokenScript$).
 	"r.With": bSA, "m.repl.With": bSA, "with": bSA, "rp.sa": bSA, "o.Ability": bSA, "d.ResumeSA": bSA, "body": bSA,
+	// repl.With is the attached-replacement dispatcher's local *cards.Repl
+	// (the `r` it captured from replacementFace's scan), whose resolved With
+	// *cards.SA it reads for ChooseName's ValidCards$ pool -- the same
+	// cards.SA parameter map r.With covers.
+	"repl.With": bSA,
 	// offeredSA is resolveTop's ability-branch marker derivation: the SA
 	// whose ValidTgts$ the placement ask actually covered -- o.Ability for a
 	// non-modal trigger, the first target-bearing chosen mode's sub for a
@@ -1503,8 +1508,9 @@ var handRoots = struct {
 		// []string{"RaiseCost", "ReduceCost"} both call activeStatics with a
 		// variable; the literals sit at their callers. Declared instead of
 		// refactored so the scan stays read-only over production code.
-		"RaiseCost":  {"Engine.costModifiersWithTargets", "Engine.costModifiersWithTargetsX"},
-		"ReduceCost": {"Engine.costModifiersWithTargets", "Engine.costModifiersWithTargetsX"},
+		"RaiseCost":    {"Engine.costModifiersWithTargets", "Engine.costModifiersWithTargetsX"},
+		"ReduceCost":   {"Engine.costModifiersWithTargets", "Engine.costModifiersWithTargetsX"},
+		"OptionalCost": {"Engine.optionalCostViews"},
 		// staticEffects filters on st.Mode != "Continuous" before reading.
 		// activeStatics (the battlefield-only restriction collector) and
 		// collectActionStatics (the AddAbility$ mana-grant membership walk)
@@ -2382,6 +2388,62 @@ func cardCensusLabels(c *cards.Card, d *derivedReads, drop map[string]map[string
 		// behind ConditionCheckSVar$/SVarCompare$) fails parseSA and yields
 		// nil, so EachSVarAbility never calls walk for it.
 		f.EachSVarAbility(func(sa *cards.SA) { walk(sa) })
+		// Raw Effect children have no SP$/AB$ head, so Link cannot attach
+		// them. Use the cards-owned typed traversal, and apply the same
+		// trigger/static/replacement read sets as printed lines.
+		f.EachRawEffectChild(func(child cards.EffectChild) {
+			if child.Trigger != nil {
+				tr := child.Trigger
+				prim, readSet := "trig:"+tr.Mode, d.trig[tr.Mode]
+				if readSet == nil {
+					return
+				}
+				for k := range tr.Params {
+					if structuralKeys["trig"][k] || ignoredParam(prim, k) {
+						continue
+					}
+					if !readSet[k] || drop != nil && drop[prim][k] {
+						addLabel(labelFor(prim, k))
+					}
+				}
+				return
+			}
+			if child.Static != nil {
+				st := child.Static
+				mode := statCensusMode(st.Mode, st.Params)
+				prim, readSet := "stat:"+mode, d.stat[mode]
+				for k, v := range st.Params {
+					if k == "Cost" || k == "UnlessCost" {
+						for _, tok := range ParseCost(v).Unknown {
+							addLabel("cost:" + tok)
+						}
+					}
+					if readSet == nil {
+						continue
+					}
+					if structuralKeys["stat"][k] || ignoredParam(prim, k) {
+						continue
+					}
+					if !readSet[k] || drop != nil && drop[prim][k] {
+						addLabel(labelFor(prim, k))
+					}
+				}
+				return
+			}
+			r := child.Repl
+			prim, readSet := "repl:"+r.Event, d.repl[r.Event]
+			if readSet == nil {
+				return
+			}
+			for k := range r.Params {
+				if structuralKeys["repl"][k] || ignoredParam(prim, k) {
+					continue
+				}
+				if !readSet[k] || drop != nil && drop[prim][k] {
+					addLabel(labelFor(prim, k))
+				}
+			}
+		})
 	}
 	out := make([]string, 0, len(labels))
 	for label := range labels {
@@ -2499,7 +2561,15 @@ var knownUnsupportedParams = map[string][]string{
 	// no-param control proving the recheck stays live for everyone else.)
 	"Methods of the Mighty":   {"param:api:Destroy.ValidTgtsDesc"},
 	"Mogis, God of Slaughter": {"param:stat:Continuous.RemoveType"},
+	// Opposition Agent, Rakdos the Muscle and Sundering Eruption each carry their
+	// stat:Continuous rider on a raw StaticAbilities$
+	// body an Effect names (the census correction below), so these param
+	// labels were invisible before that walk existed. Each label is the same
+	// pre-existing static-scan gap a printed S: line with the same param
+	// reports -- the primitive is registered; only the parameter is unread.
+	"Opposition Agent":        {"param:stat:Continuous.MayPlay.MayPlayIgnoreColor"},
 	"Patriot, Shield Wielder": {"param:api:Pump.ValidTgtsDesc"},
+	"Rakdos, the Muscle":      {"param:stat:Continuous.MayPlay.MayPlayIgnoreType"},
 	// (Photon, Mighty Marvel's param:api:Mana.PersistentMana row retired when
 	// the PersistentMana$ read landed — the pm ManaAdd suffix, ManaClear's
 	// partial clear and the TurnChange expiry — pinned end to end on the real
@@ -2520,7 +2590,8 @@ var knownUnsupportedParams = map[string][]string{
 	// as unread rather than tapping a permanent that never entered, so the
 	// label is honest until that ticket lands and can read it against real
 	// entry provenance.
-	"Vesuva": {"param:api:Clone.IntoPlayTapped"},
+	"Sundering Eruption": {"param:stat:Continuous.AddHiddenKeyword"},
+	"Vesuva":             {"param:api:Clone.IntoPlayTapped"},
 	// West Coast Expansion's param:api:Play.Controller /
 	// param:api:Play.WithoutManaCost row retired with the same attribution
 	// fix (see the Spinerock Knoll note above).

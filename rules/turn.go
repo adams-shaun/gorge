@@ -66,11 +66,12 @@ func (e *Engine) finishEnteredStep() {
 			if o == nil || o.Counter("TIME") <= 0 {
 				continue
 			}
-			if o.CastFlags&state.FlagSuspend == 0 {
-				// Only a card that entered exile through the Suspend action
-				// loses TIME counters. A plotted card carries none -- CR
-				// 701.34's timing is "on a later turn", not an upkeep count
-				// (rules/legal.go's exile walk reads Object.PlottedTurn).
+			if o.CastFlags&state.FlagSuspend == 0 && !o.SuspendGranted {
+				// Only a card that entered exile through the Suspend action,
+				// or received a real Suspend grant while in exile, loses TIME
+				// counters. A plotted card carries none -- CR 701.34's timing
+				// is "on a later turn", not an upkeep count (rules/legal.go's
+				// exile walk reads Object.PlottedTurn).
 				continue
 			}
 			e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "TIME", Amount: -1})
@@ -300,7 +301,8 @@ func (e *Engine) startSuspendedCast() bool {
 		id := e.suspendedCasts[0]
 		e.suspendedCasts = e.suspendedCasts[1:]
 		o := e.G.Obj(id)
-		if o == nil || o.Zone != state.ZExile || o.CastFlags&state.FlagSuspend == 0 || o.Face() == nil {
+		if o == nil || o.Zone != state.ZExile ||
+			(o.CastFlags&state.FlagSuspend == 0 && !o.SuspendGranted) || o.Face() == nil {
 			continue
 		}
 		// "If able" includes every restriction that makes casting illegal,
@@ -342,7 +344,7 @@ func (e *Engine) suspendCastAnswer(chosen []decision.Option) {
 	id := chosen[0].Obj
 	o := e.G.Obj(id)
 	if chosen[0].Kind == "suspend_cast_yes" && o != nil && o.Zone == state.ZExile &&
-		o.CastFlags&state.FlagSuspend != 0 && o.Face() != nil {
+		(o.CastFlags&state.FlagSuspend != 0 || o.SuspendGranted) && o.Face() != nil {
 		e.beginCast(o.Owner, decision.Option{Kind: "cast", Obj: id, Mode: "suspend_cast"})
 		return
 	}
@@ -1032,7 +1034,7 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		e.castAnswer(d, chosen)
 		// A mana ability selection or Produced$ Any colour choice installed
 		// its own decision; only a fully resolved singleton may continue.
-		if e.pending != nil || e.choosing == chooseMana || e.choosing == chooseManaColor || e.choosing == chooseManaDiscard || e.choosing == chooseManaExile {
+		if e.pending != nil || e.choosing == chooseMana || e.choosing == chooseManaColor || e.choosing == chooseManaDiscard || e.choosing == chooseManaExile || e.choosing == chooseManaSacrifice {
 			return
 		}
 		e.continueCast()
@@ -1123,6 +1125,23 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		e.unleashMove = nil
 		e.choosing = chooseNone
 		e.emit(move)
+	case chooseAttached:
+		if e.attachedChoice == nil || len(chosen) != 1 {
+			e.attachedChoice = nil
+			e.choosing = chooseNone
+			return
+		}
+		ch := e.attachedChoice
+		if ch.stage == 0 {
+			e.emit(events.Event{Kind: events.Choose, Obj: ch.source, Counter: "name", Text: chosen[0].Label})
+			e.askAttachedType()
+			return
+		}
+		e.emit(events.Event{Kind: events.Choose, Obj: ch.source, Counter: "type", Text: chosen[0].Label})
+		move := ch.move
+		e.attachedChoice = nil
+		e.choosing = chooseNone
+		e.emitAttachedMove(move)
 	case chooseSiege:
 		// CR 310.10: the Battle Siege protector choice was answered. Record
 		// the chosen opponent through a Choose "protector" event (so the
@@ -1228,20 +1247,28 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// intervening-if reads enlistedThisCombat.
 		e.enlistAnswer(d, in)
 	case chooseAttackPay:
-		// The declare-attackers attack-cost payment window (rules/
-		// attack_cost.go): one tap of a CantAttackUnless payer's mana source.
-		// attackPayAnswer completes the moment the pool covers the charge and
-		// resumes the declaration at the enlist election; there is no trigger
-		// drain to resume (the window belongs to the turn structure, never
-		// to one).
+		// The declare-attackers attack-cost payment window.
 		e.attackPayAnswer(d, in)
+	case chooseBlockPay:
+		// The declare-blockers CantBlockUnless payment window. Completion
+		// emits the parked declaration and advances blockerRound.
+		e.blockPayAnswer(d, in)
 	case chooseMana:
 		// Several individual mana abilities share one tap cost. A payment
 		// window resumes its cast after the selected ability resolves; Ward's
 		// mid-resolution payment window reopens instead. An ordinary
 		// activation falls through to Advance's priority round.
 		cast := e.answerManaActivation(chosen)
-		if e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile {
+		if e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile && e.choosing != chooseManaSacrifice {
+			if e.wardMana != nil {
+				e.continueWardMana()
+			} else if cast {
+				e.continueCast()
+			}
+		}
+	case chooseManaSacrifice:
+		cast := e.answerManaSacrifice(chosen)
+		if e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile && e.choosing != chooseManaSacrifice {
 			if e.wardMana != nil {
 				e.continueWardMana()
 			} else if cast {
@@ -1250,7 +1277,7 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		}
 	case chooseManaDiscard:
 		cast := e.answerManaDiscard(chosen)
-		if e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile {
+		if e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile && e.choosing != chooseManaSacrifice {
 			if e.wardMana != nil {
 				e.continueWardMana()
 			} else if cast {
@@ -1259,7 +1286,7 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		}
 	case chooseManaExile:
 		cast := e.answerManaExile(chosen)
-		if e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile {
+		if e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile && e.choosing != chooseManaSacrifice {
 			if e.wardMana != nil {
 				e.continueWardMana()
 			} else if cast {

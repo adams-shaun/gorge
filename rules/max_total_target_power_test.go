@@ -193,6 +193,9 @@ func TestReunionOfTheHouseTotalPowerCap(t *testing.T) {
 		Choices: []int{idxOf(grave["Craw Wurm"]), idxOf(grave["Serra Angel"])}}); err != nil {
 		t.Fatalf("in-budget boundary answer rejected: %v", err)
 	}
+	if o := e.G.Obj(reunion); o == nil || o.Zone != state.ZStack {
+		t.Fatalf("Reunion before resolution completion = %+v, want on the stack", o)
+	}
 	passUntilStackEmpty(t, e, 20)
 
 	// Exactly the answered pair is on the battlefield; the unpicked
@@ -212,12 +215,8 @@ func TestReunionOfTheHouseTotalPowerCap(t *testing.T) {
 			t.Fatalf("%s = %+v, want still in the graveyard", name, o)
 		}
 	}
-	// The SubAbility$ DBExile exiles the spell itself (it is still on the
-	// stack while its resolution runs). The spell-completion housekeeping
-	// then still emits its stack-to-graveyard resting move -- the documented
-	// pre-existing resolution-path quirk for any spell whose own chain moves
-	// the spell card mid-resolution (TestChangeZoneWishFindsNothingOutsideTheGame)
-	// -- so the assertion is the exile event, not the final zone.
+	// The SubAbility$ DBExile exiles the spell itself while it is still on
+	// the stack. Completion must not subsequently move it to the graveyard.
 	exiled := false
 	for _, ev := range e.L.Events {
 		if ev.Kind == events.MoveZone && ev.Obj == reunion && ev.From == state.ZStack && ev.To == state.ZExile {
@@ -226,6 +225,14 @@ func TestReunionOfTheHouseTotalPowerCap(t *testing.T) {
 	}
 	if !exiled {
 		t.Fatal("Reunion's SubAbility$ self-exile did not run")
+	}
+	if o := e.G.Obj(reunion); o == nil || o.Zone != state.ZExile {
+		t.Fatalf("Reunion final zone = %+v, want exile", o)
+	}
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.MoveZone && ev.Obj == reunion && ev.From == state.ZStack && ev.To == state.ZGraveyard {
+			t.Fatalf("Reunion had a trailing stack-to-graveyard completion move: %+v", ev)
+		}
 	}
 	replayCheck(t, e, cfg)
 }

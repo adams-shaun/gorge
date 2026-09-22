@@ -487,8 +487,23 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 			if e.triggerFireCount[key] >= maxTriggerFires {
 				continue // cascade bound: see maxTriggerFires.
 			}
+			if !e.triggerGameActivationLimitAllows(t, key) {
+				continue // GameActivationLimit$: already triggered enough this game.
+			}
 			if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
 				continue
+			}
+			// The two limit gates above are READ-ONLY: a DeclareBlockers event
+			// whose pairs match nothing (or whose Effect body is nil) queues
+			// nothing and must not consume a use of either limit. The counts
+			// commit below, at the first instance actually appended.
+			reserved := false
+			reserve := func() {
+				if reserved {
+					return
+				}
+				reserved = true
+				e.reserveTriggerLimits(t, key)
 			}
 			if t.Mode == "AttackerBlockedByCreature" {
 				// CR 702.25a: one instance per (attacker, non-flanking blocker)
@@ -512,6 +527,7 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 						if e.triggerFireCount[key] >= maxTriggerFires {
 							break
 						}
+						reserve()
 						e.triggerFireCount[key]++
 						e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
 							Source:     id,
@@ -541,6 +557,7 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 				if ao := e.G.Obj(aid); ao != nil {
 					defender = pt(ao.Attacking)
 				}
+				reserve()
 				e.triggerFireCount[key]++
 				e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
 					Source:     id,
@@ -631,9 +648,15 @@ func (e *Engine) checkAttackerUnblockedOnceTriggers() {
 			if e.triggerFireCount[key] >= maxTriggerFires {
 				continue // cascade bound: see maxTriggerFires.
 			}
+			if !e.triggerGameActivationLimitAllows(t, key) {
+				continue // GameActivationLimit$: already triggered enough this game.
+			}
 			if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
 				continue
 			}
+			// The limit gates above are READ-ONLY: a combat with no matching
+			// unblocked attacker queues nothing and must not consume a use.
+			// The counts commit below, when the instance is actually appended.
 			if e.unblockedOnceFired == nil {
 				e.unblockedOnceFired = map[triggerKey]combatFires{}
 			}
@@ -672,6 +695,7 @@ func (e *Engine) checkAttackerUnblockedOnceTriggers() {
 			for _, aid := range attackerIDs {
 				remembered = append(remembered, state.Target{Obj: aid})
 			}
+			e.reserveTriggerLimits(t, key)
 			e.unblockedOnceFired[key] = stamp
 			e.triggerFireCount[key]++
 			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
@@ -787,15 +811,27 @@ func (e *Engine) checkBlocksTriggers(ev events.Event) {
 			if e.triggerFireCount[key] >= maxTriggerFires {
 				continue // cascade bound: see maxTriggerFires.
 			}
+			if !e.triggerGameActivationLimitAllows(t, key) {
+				continue // GameActivationLimit$: already triggered enough this game.
+			}
 			if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
 				continue
 			}
+			// The two limit gates above are READ-ONLY: a DeclareBlockers event
+			// whose pairs match nothing queues nothing and must not consume a
+			// use of either limit. The counts commit below, at the first pair
+			// instance actually appended.
+			reserved := false
 			for _, pr := range e.blocksCandidates(t, id, ev) {
 				if t.Effect == nil {
 					break
 				}
 				attacker := pr[0]
 				defender := pt(ev.Player)
+				if !reserved {
+					reserved = true
+					e.reserveTriggerLimits(t, key)
+				}
 				e.triggerFireCount[key]++
 				e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
 					Source:     id,
@@ -853,10 +889,14 @@ func blockedAttackerIn(pairs [][2]state.ObjID, id state.ObjID) bool {
 	return false
 }
 
-// damageMatches implements Mode$ DamageDone, DamageDealtOnce and
-// DamageDoneOnce (the once-per-damage-batch gate itself lives in
+// damageMatches implements Mode$ DamageDone, DamageDealtOnce, DamageDoneOnce
+// and DamageAll (the once-per-damage-batch gate itself lives in
 // checkTriggers, alongside the cascade bound; this is purely the per-event
-// parameter match, shared by all three modes).
+// parameter match, shared by all four modes). DamageAll additionally requires
+// ValidSource$ and ValidTarget$ to NAME the same event's source and
+// recipient (see the ValidSource$/ValidTarget$ reads below): the per-event
+// match is the "both halves match" test, and checkTriggers' all-latch turns
+// the first such event in a batch into the single "one or more" instance.
 func (e *Engine) damageMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
 	if ev.Kind != events.Damage {
 		return false
@@ -882,32 +922,11 @@ func (e *Engine) damageMatches(t cards.Trigger, source state.ObjID, ev events.Ev
 	}
 	ctrl := e.controllerOf(source)
 	if v, ok := t.Params["ValidSource"]; ok {
-		// The damage's source, in priority order:
-		//  1. an explicit published override (rules.Engine.SetDamageSource --
-		//     DamageSource$ names the PERMANENT that dealt it, never the
-		//     ability wrapper resolving it) -- authoritative whenever an
-		//     emitter set one, combat included.
-		//  2. during combat's assignment loop, e.damaging (the actual
-		//     attacker/blocker dealing this hit). The stack is USUALLY empty
-		//     during combat, but not always -- the between-passes priority
-		//     round (CR 510.3/4) can leave a first-strike trigger on the
-		//     stack while the regular pass deals (measured:
-		//     TestUmezawasJitteGainsChargeCountersPerDamageStep's bearer
-		//     deals in both passes with the first pass's trigger unresolved
-		//     on the stack) -- so combat damage must prefer e.damaging over
-		//     the stack top, or every ValidSource$ CombatDamage$ trigger
-		//     (Umezawa's Jitte's ValidSource$ Creature.EquippedBy among them)
-		//     goes dead for the second pass.
-		//  3. otherwise, the resolving spell or ability while it is the
-		//     stack top (damageSource).
-		src := e.dmgSrcOverride
-		if src == 0 {
-			if e.combatDamaging {
-				src = e.damaging
-			} else {
-				src = e.damageSource()
-			}
-		}
+		// The damage's source, through the ONE shared dealer resolution
+		// (damageEventSource, whose doc carries the full priority rationale:
+		// the published override, e.damaging during combat's assignment loop,
+		// else the resolving stack object).
+		src := e.damageEventSource()
 		if src == 0 || !effects.MatchesSpecCtx(e.G, v, src, e.specCtx(source, ctrl)) {
 			return false
 		}
@@ -982,6 +1001,28 @@ func (e *Engine) damageSource() state.ObjID {
 	return e.G.Stack[len(e.G.Stack)-1]
 }
 
+// damageEventSource is the ONE dealer resolution for a just-emitted Damage
+// event, shared by the ValidSource$ match (damageMatches), the DamageDealtOnce
+// latch and the DamageAll batch-set capture, so a captured batch set can never
+// name a source the matcher would not have matched. The priority is the
+// damageMatches comment's three: an explicit published override
+// (rules.Engine.SetDamageSource -- DamageSource$ names the PERMANENT that
+// dealt it, never the ability wrapper resolving it) wins over the dealing
+// creature during combat's assignment loop (e.damaging -- the stack is
+// USUALLY empty during combat but not always: the between-passes priority
+// round can leave a first-strike trigger on the stack while the regular pass
+// deals), and otherwise the resolving spell or ability while it is the stack
+// top (damageSource).
+func (e *Engine) damageEventSource() state.ObjID {
+	if e.dmgSrcOverride != 0 {
+		return e.dmgSrcOverride
+	}
+	if e.combatDamaging {
+		return e.damaging
+	}
+	return e.damageSource()
+}
+
 func init() {
 	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
 		return e.attacksMatches(t, source, ev)
@@ -994,7 +1035,7 @@ func init() {
 	}, "Exerted")
 	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
 		return e.damageMatches(t, source, ev)
-	}, "DamageDone", "DamageDealtOnce", "DamageDoneOnce")
+	}, "DamageDone", "DamageDealtOnce", "DamageDoneOnce", "DamageAll")
 	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
 		return e.damagePreventedMatches(t, source, ev)
 	}, "DamagePreventedOnce")

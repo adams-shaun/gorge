@@ -841,11 +841,9 @@ func TestTivashGainedLifeFixedXNoAskTokensAtPower(t *testing.T) {
 	}
 }
 
-// TestTymnaUnresolvableFixedXDeclineOnly pins the fail-closed direction: an
-// SVar:X body the count evaluator cannot resolve (Tymna the Weaver's
-// PlayerCountRegisteredOpponents$HasProperty… head) fixes nothing, poses NO
-// announcement ask, and the window offers DECLINE ONLY -- exactly the
-// pre-fold behaviour.
+// TestTymnaFixedXDeclineStillDeclines pins the zero-hit direction: Tymna's
+// now-resolvable player count has no combat hits in this setup, and declining
+// the resulting optional payment leaves the player unchanged.
 func TestTymnaUnresolvableFixedXDeclineOnly(t *testing.T) {
 	reg := searchTestRegistry(t)
 	e, _ := searchEngine(t, reg, "Tymna the Weaver")
@@ -858,13 +856,14 @@ func TestTymnaUnresolvableFixedXDeclineOnly(t *testing.T) {
 	if d.Kind != decision.KChoose {
 		t.Fatalf("expected the decline-only window ask, got %+v", d)
 	}
+	var hasDecline bool
 	for _, o := range d.Options {
-		if o.Kind == "trigger_cost_pay" || o.Kind == "trigger_cost_x" {
-			t.Fatalf("an unresolvable SVar:X body offered more than the decline: %+v", d.Options)
+		if o.Kind == "trigger_cost_decline" {
+			hasDecline = true
 		}
 	}
-	if len(d.Options) != 1 || d.Options[0].Kind != "trigger_cost_decline" {
-		t.Fatalf("want exactly the decline option, got %+v", d.Options)
+	if !hasDecline {
+		t.Fatalf("want a decline option, got %+v", d.Options)
 	}
 	mark := len(e.L.Events)
 	submitChoices(t, e, 0)

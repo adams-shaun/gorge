@@ -552,6 +552,34 @@ func TestDestroyMovesToGraveyard(t *testing.T) {
 }
 
 // TestDestroySkipsIndestructible is the brief's own worked-example test.
+func TestDestroyRememberTargetsRecordsDestroyedSurvivorsOnly(t *testing.T) {
+	g, ids := board(t)
+	h := &fakeHost{g: g}
+	source := g.Obj(ids["myLand"])
+	if source == nil || source.Zone != state.ZBattlefield {
+		t.Fatal("remembering source must start on the battlefield")
+	}
+	old := ids["theirBig"]
+	source.Remembered = []state.Target{{Obj: old}}
+	ctx := &Ctx{Source: source.ID, Controller: 0,
+		Targets: []state.Target{{Obj: ids["myBear"]}, {Obj: ids["myFlier"]}}, TargetsOffered: true,
+		Remembered: []state.Target{{Obj: old}}}
+	g.Obj(ids["myFlier"]).Card.Faces[0].Keywords = append(g.Obj(ids["myFlier"]).Card.Faces[0].Keywords, "Indestructible")
+	Resolve(h, ctx, sa(t, "SP$ Destroy | ValidTgts$ Creature | RememberTargets$ True | ForgetOtherTargets$ True"))
+	if g.Obj(ids["myBear"]).Zone != state.ZGraveyard {
+		t.Fatal("destroyed target did not leave the battlefield")
+	}
+	if g.Obj(ids["myFlier"]).Zone != state.ZBattlefield {
+		t.Fatal("indestructible target was not spared")
+	}
+	if len(ctx.Remembered) != 1 || ctx.Remembered[0].Obj != ids["myBear"] {
+		t.Fatalf("ctx remembered = %#v, want only destroyed target", ctx.Remembered)
+	}
+	if len(source.Remembered) != 1 || source.Remembered[0].Obj != ids["myBear"] {
+		t.Fatalf("source remembered = %#v, want only destroyed target", source.Remembered)
+	}
+}
+
 func TestDestroySkipsIndestructible(t *testing.T) {
 	g, ids := board(t)
 	h := &fakeHost{g: g}
@@ -1213,13 +1241,25 @@ func TestCharmAsksForItsModeBeforeAnySubAbilityRuns(t *testing.T) {
 func TestVoteRecordsANotePerVotingPlayer(t *testing.T) {
 	h := newHost(t, 2)
 	Resolve(h, &Ctx{Controller: 0}, sa(t, "SP$ Vote | Defined$ Player | Choices$ Sickness,Psychosis"))
-	if len(h.log) != 2 {
-		t.Fatalf("log = %+v, want one Note per player", h.log)
-	}
+	// The fixed-Choices$ ballot poses a private per-voter KChoose (the
+	// votepb1 ask machinery); the fake host cannot answer it, so each voter
+	// takes the deterministic first option (R-9) and records the loud
+	// no-host Note beside its "votes for" reveal — the same fallback shape
+	// the player-ballot and card-ballot no-host paths emit. One "votes for
+	// Sickness" Note per voting player is still the contract under test.
+	fallbacks, votes := 0, 0
 	for _, e := range h.log {
-		if e.Kind != events.Note || e.Text != "votes for Sickness" {
-			t.Fatalf("event = %+v", e)
+		switch {
+		case e.Kind == events.Note && strings.Contains(e.Text, "no engine host to ask"):
+			fallbacks++
+		case e.Kind == events.Note && e.Text == "votes for Sickness":
+			votes++
+		default:
+			t.Fatalf("event = %+v, want only no-host fallback and votes-for Notes", e)
 		}
+	}
+	if fallbacks != 2 || votes != 2 {
+		t.Fatalf("%d no-host fallback and %d votes-for Notes, want one of each per voting player (2): log %+v", fallbacks, votes, h.log)
 	}
 }
 

@@ -1,8 +1,8 @@
 package rules
 
 // Reference: Magic: The Gathering Comprehensive Rules, 2026-08-07 revision.
-// UNFIXED divergences, enabled only with GORGE_CR_CONFORMANCE=1, exactly like
-// cr601_conformance_test.go. Remove the guard when fixed, not the assertions.
+// These assertions pin the fixed CR 733.1 illegal-cast reversal in the
+// ordinary suite; they are conformance checks, not approved approximations.
 
 import (
 	"testing"

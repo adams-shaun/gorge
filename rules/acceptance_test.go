@@ -149,6 +149,10 @@ var knownUnsupported = map[string][]string{
 	// the body at runtime, so Face.Primitives never surfaced the API
 	// (prims1).
 	"Vision, Synthezoid Avenger": {"api:Phases"},
+	// Raw Effect child census correction surfaced these existing unsupported
+	// capabilities; the underlying primitives were not changed.
+	"Incinerate":        {"stat:CantRegenerate"},
+	"Vines of Vastwood": {"stat:CantTarget"},
 }
 
 // TestEveryRepoDeckIsFullySupported is the M1 coverage ratchet: every card

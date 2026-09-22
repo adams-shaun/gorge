@@ -1,14 +1,10 @@
 package rules
 
 // Reference: Magic: The Gathering Comprehensive Rules, 2026-08-07 revision.
-// These assertions expose UNFIXED divergences, not approved approximations.
-// Enable explicitly with GORGE_CR_CONFORMANCE=1. The flag gates ONLY the
-// known-red leaves that still fail; every passing leaf runs in the ordinary
-// lane. Remove each remaining opt-in guard when its defect is fixed; do not
-// turn the incorrect behaviour into an expectation.
+// These assertions pin Comprehensive Rules behaviour in the ordinary test
+// suite; they are conformance checks, not approved approximations.
 
 import (
-	"os"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -17,13 +13,6 @@ import (
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
 )
-
-func requireCR601Audit(t *testing.T, finding string) {
-	t.Helper()
-	if os.Getenv("GORGE_CR_CONFORMANCE") != "1" {
-		t.Skipf("CR 601 conformance: unfixed %s; NOT an AGENTS.md approximation; run with GORGE_CR_CONFORMANCE=1", finding)
-	}
-}
 
 // TestCR601NoMandatoryCounterCastOnEmptyStack checks a deliberately narrow,
 // independent oracle throughout the acceptance games: a mandatory spell target

@@ -129,6 +129,7 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 	} else {
 		// Population by Valid$ + ValidZone$.
 		valid := strings.TrimSpace(sa.Params["Valid"])
+		statedValid := valid != ""
 		if valid == "" {
 			valid = "Card"
 		}
@@ -139,8 +140,29 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 					zones = append(zones, zn)
 				}
 			}
-		}
-		if len(zones) == 0 {
+			if len(zones) == 0 {
+				// A PRESENT but unparseable ValidZone$ stays fail-closed.
+				return
+			}
+		} else if statedValid {
+			// Forge's PlayEffect default zone for a Valid$-population Play
+			// with no ValidZone$: the resolving controller's hand ("you may
+			// cast a spell ... from your hand"). Four corpus carriers omit
+			// the zone; the two whose filter can match the controller's own
+			// hand (The Face of Boe, The Conundrum of Bowls) now resolve,
+			// while My Wish Is Your Command and Reversal of Fortune name
+			// remembered/other-hand cards and stay inert.
+			zones = []state.Zone{state.ZHand}
+		} else {
+			// NO population param at all: no ValidTgts$, no Defined$, no
+			// Valid$ and no ValidZone$. The hand default belongs only to a
+			// STATED population; applying it here would turn 13 raw corpus
+			// lines whose bodies this effect does not implement
+			// (CopyFromChosenName$/AnySupportedCard$/self-referent shapes --
+			// syrix_carrier_of_the_flame, thunderblade_charge,
+			// tibalt_the_chaotic, jhoira_of_the_ghitu_avatar, ...) from a
+			// silent no-op into an offer of the controller's WHOLE hand.
+			// They stay fail-closed until their own shapes are implemented.
 			return
 		}
 		sc := c.SpecContext(c.Controller)

@@ -114,6 +114,17 @@ func hasCounters(kinds []state.Counter) bool {
 	return false
 }
 
+func splitCounterKinds(raw string) []string {
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
 func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 	// fx42 scoping: consume and clear the answered Optional$ election at the
 	// top, so a nested PutCounter in the same chain poses its own ask.
@@ -148,6 +159,17 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 	}
 	adapt := strings.TrimSpace(sa.Params["Adapt"]) != ""
 	mono := strings.TrimSpace(sa.Params["Monstrosity"]) != ""
+	// fx42 scoping: take every answered comma-list transport at entry and
+	// clear it before this SA can resolve a sub-ability. Resolve shares one
+	// Ctx across the chain, so leaving any of these live makes a nested
+	// PutCounter reuse the outer kind instead of asking its own question.
+	kindAns, kindDone := c.CounterKind, c.CounterKindDone
+	kindsAns, kindsDone := append([]string(nil), c.CounterKinds...), c.CounterKindsDone
+	kindAnswers := append([]string(nil), c.CounterKindAnswers...)
+	kindAnswerIndex, kindAnswerSet := c.CounterKindAnswerIndex, c.CounterKindAnswerSet
+	c.CounterKind, c.CounterKindDone = "", false
+	c.CounterKinds, c.CounterKindsDone = nil, false
+	c.CounterKindAnswers, c.CounterKindAnswerIndex, c.CounterKindAnswerSet = nil, 0, false
 	kind := sa.Params["CounterType"]
 	if kind == "" {
 		kind = "P1P1"
@@ -267,14 +289,6 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 		rememberPlaced(c, sa, placed)
 		return
 	}
-	if strings.TrimSpace(sa.Params["Choices"]) != "" {
-		// The bare-Choices$ pick shape (task vow1; Promise of Loyalty): the
-		// chooser picks which creatures take the counters, each chosen one
-		// taking the full CounterNum$ (no division). The choice re-enters
-		// through ResumeKind "counter_pick".
-		putCounterChoose(h, c, sa, n, kind, pickAns, pickDone)
-		return
-	}
 	// ETB$ True (the K:etbCounter expansion's body, Wishclaw Talisman and
 	// every "enters with N counters" card): the counters are placed on the
 	// ENTERING object as it enters, so the target does not have to be a
@@ -292,6 +306,67 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 	if strings.EqualFold(strings.TrimSpace(kind), "EachFromSource") {
 		putCounterEachFromSource(h, c, sa, etb, strings.TrimSpace(sa.Params["EachFromSource"]))
 		return
+	}
+	// CounterType$ comma lists are choices between counter kinds, never a
+	// composite counter name. A bare Choices$ picks its recipient FIRST, then
+	// asks for the individual kind while carrying that answered recipient on
+	// the decision's continuation.
+	counterKinds := splitCounterKinds(kind)
+	perKind := strings.EqualFold(strings.TrimSpace(sa.Params["CounterTypePerDefined"]), "True")
+	if strings.TrimSpace(sa.Params["Choices"]) != "" {
+		putCounterChoose(h, c, sa, n, kind, pickAns, pickDone, counterKinds, kindAns, kindDone)
+		return
+	}
+	if len(counterKinds) > 1 {
+		if strings.EqualFold(strings.TrimSpace(sa.Params["RandomType"]), "True") {
+			eligible := make([]string, 0, len(counterKinds))
+			for _, k := range counterKinds {
+				seen := false
+				for _, t := range Defined(h, c, sa) {
+					if !t.IsPlayer {
+						if o := h.Game().Obj(t.Obj); o != nil && o.Counter(k) > 0 {
+							seen = true
+						}
+					}
+				}
+				if !seen {
+					eligible = append(eligible, k)
+				}
+			}
+			if len(eligible) == 0 {
+				return
+			}
+			kind = eligible[h.Rand(len(eligible))]
+			counterKinds = []string{kind}
+		} else if strings.TrimSpace(sa.Params["ChooseDifferent"]) != "" {
+			if !kindsDone {
+				d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 2, Max: 2, Source: c.Source, ResumeKind: "counter_kinds", ResumeSA: sa, ResumeRemembered: copyTargets(c.Remembered), Prompt: "Choose different counter kinds"}
+				for i, k := range counterKinds {
+					d.Options = append(d.Options, decision.Option{Index: i, Kind: "counter_kinds", Label: k, Player: c.Controller})
+				}
+				if Ask(h, d) == AskAsked {
+					return
+				}
+				kindsAns = append([]string(nil), counterKinds[:2]...)
+				kindsDone = true
+			}
+			counterKinds = append([]string(nil), kindsAns...)
+		} else if perKind {
+			// PerDefined asks independently below, once for each recipient.
+		} else if !kindDone {
+			d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1, Source: c.Source, ResumeKind: "counter_kind", ResumeSA: sa, ResumeRemembered: copyTargets(c.Remembered), Prompt: "Choose a counter kind"}
+			for i, k := range counterKinds {
+				d.Options = append(d.Options, decision.Option{Index: i, Kind: "counter", Label: k, Player: c.Controller})
+			}
+			if Ask(h, d) == AskAsked {
+				return
+			}
+			kindAns = counterKinds[0]
+			kindDone = true
+		}
+		if kindDone && !perKind {
+			kind = kindAns
+		}
 	}
 	// CounterNumPerDefined$ (task param-putcounter-counternumperdefined): the
 	// count is evaluated PER AFFECTED OBJECT, not once for the resolving
@@ -313,7 +388,28 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	var placed []state.Target
-	for _, t := range Defined(h, c, sa) {
+	for ti, t := range Defined(h, c, sa) {
+		if perKind && len(counterKinds) > 1 {
+			// A resumed later recipient must not replay CounterChange events
+			// already emitted before its ask suspended the same SA.
+			if kindAnswerSet && ti < kindAnswerIndex {
+				continue
+			}
+			if ti >= len(kindAnswers) || kindAnswers[ti] == "" {
+				d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1, Source: c.Source, ResumeKind: "counter_kind", ResumeSA: sa, ResumeTarget: ti, ResumeRemembered: copyTargets(c.Remembered), Prompt: "Choose a counter kind"}
+				for i, k := range counterKinds {
+					d.Options = append(d.Options, decision.Option{Index: i, Kind: "counter", Label: k, Player: c.Controller})
+				}
+				if Ask(h, d) == AskAsked {
+					return
+				}
+				// The no-host fallback is the same first option botpolicy takes;
+				// no persistent state is needed because it did not suspend.
+				kindAnswers = append(kindAnswers, make([]string, ti-len(kindAnswers)+1)...)
+				kindAnswers[ti] = counterKinds[0]
+			}
+			kind = kindAnswers[ti]
+		}
 		if t.IsPlayer {
 			// A player target takes a PLAYER counter (energy's "you get {E}{E}{E}",
 			// poison's "gets a poison counter"): the same instruction an object
@@ -361,7 +457,13 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 				amount = 0
 			}
 		}
-		h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: kind, Amount: amount})
+		if len(kindsAns) > 0 && kindsDone {
+			for _, chosenKind := range kindsAns {
+				h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: chosenKind, Amount: amount})
+			}
+		} else {
+			h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: kind, Amount: amount})
+		}
 		// The mark (CR 701.31b: "...and it becomes monstrous"): one
 		// AlterAttribute per placed object, emitted AFTER its counters so the
 		// BecomeMonstrous triggers see the counters already landed. Amount is
@@ -746,17 +848,14 @@ func objTargets(ids []state.ObjID) []state.Target {
 // so the placement runs without an ask. Promise of Loyalty's "each player
 // chooses ONE creature" asks exactly when that player controls two or more
 // eligible creatures.
-func putCounterChoose(h Host, c *Ctx, sa *cards.SA, n int32, kind string, ans []state.ObjID, done bool) {
+func putCounterChoose(h Host, c *Ctx, sa *cards.SA, n int32, kind string, ans []state.ObjID, done bool, kinds []string, kindAns string, kindDone bool) {
 	if n <= 0 {
 		return
 	}
 	g := h.Game()
 	spec := strings.TrimSpace(sa.Params["Choices"])
 	if done {
-		// Re-entry: the answered pick, in answer order. A chosen creature
-		// that left the battlefield while the decision was outstanding takes
-		// nothing (the same totality stance the divided sibling takes).
-		putCounterPickApply(h, c, sa, n, kind, ans)
+		putCounterChooseApply(h, c, sa, n, kind, ans, kinds, kindAns, kindDone)
 		return
 	}
 	chooser, ok := putCounterChooserFor(h, c, strings.TrimSpace(sa.Params["Chooser"]))
@@ -809,7 +908,10 @@ func putCounterChoose(h Host, c *Ctx, sa *cards.SA, n int32, kind string, ans []
 		if int32(len(picks)) > maxCh {
 			picks = picks[:maxCh]
 		}
-		putCounterPickApply(h, c, sa, n, kind, picks)
+		// A deterministic recipient is not a deterministic counter kind.
+		// Route it through the same continuation as an answered recipient
+		// selection so a comma list still gets its own real election.
+		putCounterChooseApply(h, c, sa, n, kind, picks, kinds, kindAns, kindDone)
 	}
 	if len(eligible) < 2 || maxCh < 1 || minCh >= int32(len(eligible)) {
 		fallback()
@@ -834,6 +936,33 @@ func putCounterChoose(h Host, c *Ctx, sa *cards.SA, n int32, kind string, ans []
 		return // resolution suspended; the answer re-enters with Ctx.CounterPick set.
 	}
 	fallback()
+}
+
+// putCounterChooseApply resolves the counter-kind half of a bare Choices$
+// PutCounter. It is shared by an answered recipient election and a forced
+// recipient set: only the recipient can be deterministic; a comma list is
+// always a real counter-kind choice.
+func putCounterChooseApply(h Host, c *Ctx, sa *cards.SA, n int32, kind string, picks []state.ObjID, kinds []string, kindAns string, kindDone bool) {
+	if len(kinds) > 1 && !kindDone {
+		d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose,
+			Min: 1, Max: 1, Source: c.Source, ResumeKind: "counter_kind",
+			ResumeSA: sa, ResumeChoices: objTargets(picks),
+			ResumeRemembered: copyTargets(c.Remembered), Prompt: "Choose a counter kind"}
+		for i, k := range kinds {
+			d.Options = append(d.Options, decision.Option{Index: i, Kind: "counter", Label: k, Player: c.Controller})
+		}
+		if Ask(h, d) == AskAsked {
+			return
+		}
+		kindAns = kinds[0]
+		kindDone = true
+	}
+	if kindDone {
+		kind = kindAns
+	}
+	// A chosen creature that left while the decision was outstanding takes
+	// nothing (the same totality stance the divided sibling takes).
+	putCounterPickApply(h, c, sa, n, kind, picks)
 }
 
 // putCounterPickApply places CounterNum$ counters on each live chosen object

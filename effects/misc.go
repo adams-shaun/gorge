@@ -22,6 +22,7 @@ func init() {
 	Register("Repeat", effRepeat)
 	Register("Charm", effCharm)
 	Register("GenericChoice", effCharm)
+	Register("VillainousChoice", effVillainousChoice)
 	Register("Vote", effVote)
 	Register("BecomeMonarch", effBecomeMonarch)
 	Register("RingTemptsYou", effRingTemptsYou)
@@ -180,9 +181,9 @@ func effWard(h Host, c *Ctx, sa *cards.SA) {
 // when it is not. The registry entry the engine (rules/layers.go active())
 // expires is the same until-end-of-turn / source-leaves discipline every other
 // continuous effect uses: an Effect from an instant or sorcery (a one-shot
-// spell) or carrying an explicit this-turn Duration$ is UntilEOT, dropped at
-// end-of-turn cleanup; anything else persists while its source stays on the
-// battlefield.
+// spell), an absent Duration$, or carrying an explicit this-turn Duration$ is
+// UntilEOT, dropped at end-of-turn cleanup; an explicit Permanent (and other
+// source-relative durations) persists while its source stays on the battlefield.
 func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	rawDur := sa.Params["Duration"]
 	dur := rawDur
@@ -329,7 +330,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			(event == "Moved" && replacementBodyAPI(body) == "PutCounter")) {
 			h.AddContinuous(state.ContinuousEffect{
 				Source: c.Source, Controller: c.Controller,
-				UntilEOT: effectUntilEOT(h, c.Source, dur), Duration: dur,
+				UntilEOT: effectUntilEOT(h, c.Source, rawDur), Duration: dur,
 				Name:             effectName,
 				Remembered:       remembered,
 				ForgetOnMoved:    forgetOn,
@@ -341,7 +342,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			})
 			registered = true
 		} else if event != "" && body == "" && (replacementLineCantHappen(params) ||
-			(event == "DamageDone" && replacementLinePrevents(params))) {
+			((event == "DamageDone" || event == "GainLife") && replacementLinePrevents(params))) {
 			// The bodyless CantHappen form (Mistrise Village's AntiMagic: the
 			// Event$ Counter | ValidCard$ Card.IsRemembered | Layer$ CantHappen
 			// R: the delayed Effect registers): stopping the event is the
@@ -356,7 +357,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// measured carriers). The shared damage dispatch prevents through
 			// damageReplacementPrevents and stores the prevention Note whose
 			// Amount Mode$ DamagePreventedOnce triggers read.
-			untilEOT := effectUntilEOT(h, c.Source, dur)
+			untilEOT := effectUntilEOT(h, c.Source, rawDur)
 			if event == "DamageDone" && sa.Params["Duration"] == "" {
 				// This family's oracle text is always "this turn" (Selfless
 				// Squire, Kurbis, the Fog spells) and none of its bodyless lines
@@ -368,10 +369,11 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			h.AddContinuous(state.ContinuousEffect{
 				Source: c.Source, Controller: c.Controller,
 				UntilEOT: untilEOT, Duration: dur,
-				Name:             effectName,
-				Remembered:       remembered,
-				ImprintOnHost:    imprintOnHost,
-				ReplacementEvent: event, ReplacementParams: params,
+				Name:              effectName,
+				Remembered:        remembered,
+				RememberedPlayers: effectRememberedPlayers(h, c, sa),
+				ImprintOnHost:     imprintOnHost,
+				ReplacementEvent:  event, ReplacementParams: params,
 			})
 			registered = true
 		} else if name != "" {
@@ -385,19 +387,35 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		mode, params := parseStaticLine(c.SVars, name)
 		switch mode {
 		case "Continuous":
-			// A may-play-from-zone grant delivered by an Effect SA (Atsushi's
-			// "you may play those cards" STPlay static): registered like the
-			// S: static shape, with the Effect's Remembered set seeding the
-			// grant so the Affected$ Card.IsRemembered spec matches the cards
-			// the resolution exiled/remembered (rules' grant walk matches
-			// through a SpecContext that carries this list). The shared
-			// MayPlayStaticParams whitelist keeps both registration paths
-			// honest: a rider this build does not read fails closed here too.
-			if grant, ok := mayPlayGrantFromLine(params); ok {
+			// GainsAbilitiesOfDefined$ is the dynamic Defined-set spelling of
+			// the has-all-activated-abilities grant. Resolve it while the
+			// Effect's captured context is still available; unlike the printed
+			// card-filter spelling this must not scan a zone or lose the foreign
+			// object's identity.
+			if ce, ok := effectGainsAbilitiesOfDefined(h, c, params, remembered); ok {
+				ce.Name = effectName
+				ce.UntilEOT = effectUntilEOT(h, c.Source, rawDur)
+				ce.Duration = dur
+				ce.Remembered = remembered
+				ce.ForgetOnMoved = forgetOn
+				ce.ExileOnMoved = exileOn
+				ce.ForgetCounter = forgetCounter
+				ce.ImprintOnHost = imprintOnHost
+				h.AddContinuous(ce)
+				registered = true
+			} else if grant, ok := mayPlayGrantFromLine(params); ok {
+				// A may-play-from-zone grant delivered by an Effect SA (Atsushi's
+				// "you may play those cards" STPlay static): registered like the
+				// S: static shape, with the Effect's Remembered set seeding the
+				// grant so the Affected$ Card.IsRemembered spec matches the cards
+				// the resolution exiled/remembered (rules' grant walk matches
+				// through a SpecContext that carries this list). The shared
+				// MayPlayStaticParams whitelist keeps both registration paths
+				// honest: a rider this build does not read fails closed here too.
 				grant.Source = c.Source
 				grant.Controller = c.Controller
 				grant.Name = effectName
-				grant.UntilEOT = effectUntilEOT(h, c.Source, dur)
+				grant.UntilEOT = effectUntilEOT(h, c.Source, rawDur)
 				grant.Remembered = remembered
 				grant.Duration = dur
 				grant.ForgetOnMoved = forgetOn
@@ -432,7 +450,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					AddKeywords:   kws,
 					ImprintOnHost: imprintOnHost,
 					Name:          effectName,
-					UntilEOT:      effectUntilEOT(h, c.Source, dur),
+					UntilEOT:      effectUntilEOT(h, c.Source, rawDur),
 					Duration:      dur,
 					Remembered:    remembered,
 					ForgetOnMoved: forgetOn,
@@ -454,16 +472,14 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				// path cannot evaluate -- or it fails closed to the
 				// unimplemented Note below.
 				//
-				// Lifetime: the Duration$ grammar every other Effect
-				// registration shares (effects/staticeffect.go's switch is the
-				// model). Duration$ Permanent (Finale of Revelation's "for the
-				// rest of the game", Wrenn and Seven's emblem) is flagged
-				// Permanent so it outlives its one-shot source (CR 611.2a);
-				// UntilYourNextTurn (Enter the Infinite) gets its real turn
-				// boundary from AddContinuous; an explicit this-turn Duration
-				// or an instant/sorcery with no Duration$ is UntilEOT. Without
-				// the Permanent flag a sorcery's effect would be dropped at the
-				// end of the very turn it resolved, one turn early.
+				// Lifetime: absent Duration$ is Forge's end-of-turn default for
+				// every source kind. An explicit Duration$ Permanent (Finale of
+				// Revelation's "for the rest of the game", Wrenn and Seven's
+				// emblem) is flagged Permanent so it outlives its one-shot source
+				// (CR 611.2a); UntilYourNextTurn (Enter the Infinite) gets its
+				// real turn boundary from AddContinuous. The Permanent flag must
+				// inspect rawDur: dur is normalized for the duration machinery, but
+				// an absent value must not become Permanent here.
 				ce := state.ContinuousEffect{
 					Source:         c.Source,
 					Controller:     c.Controller,
@@ -472,8 +488,8 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					SetMaxHandSize: val,
 					ImprintOnHost:  imprintOnHost,
 					Name:           effectName,
-					UntilEOT:       effectUntilEOT(h, c.Source, dur),
-					Permanent:      strings.EqualFold(strings.TrimSpace(dur), "Permanent"),
+					UntilEOT:       effectUntilEOT(h, c.Source, rawDur),
+					Permanent:      strings.EqualFold(strings.TrimSpace(rawDur), "Permanent"),
 					Duration:       dur,
 					Remembered:     remembered,
 					ForgetOnMoved:  forgetOn,
@@ -532,12 +548,11 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				registered = true
 				break
 			}
-			ceUntilEOT := effectUntilEOT(h, c.Source, dur)
+			ceUntilEOT := effectUntilEOT(h, c.Source, rawDur)
 			if absentDurationMeansThisTurn(mode) && sa.Params["Duration"] == "" {
 				// A restriction body whose oracle lifetime is THIS TURN but whose
-				// script writes no inline Duration$ gets UntilEOT, not effEffect's
-				// plain absent-Duration default (Permanent, set at the top of
-				// this function). For a restriction the Permanent reading is the
+				// script writes no inline Duration$ gets UntilEOT, matching the
+				// general absent-Duration default. For a restriction the Permanent reading is the
 				// non-permissive direction: the lock/permission would outlive the
 				// turn the card text names and apply to every later turn too.
 				//
@@ -627,7 +642,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// source until the cast sweep ends it. Any other spelling falls
 			// to the shared effectUntilEOT read every other registration
 			// here uses.
-			untilEOT := effectUntilEOT(h, c.Source, dur)
+			untilEOT := effectUntilEOT(h, c.Source, rawDur)
 			permanent := false
 			switch {
 			case forgetOnCast != "" && strings.EqualFold(strings.TrimSpace(rawDur), "Permanent"):
@@ -677,7 +692,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				Source:         c.Source,
 				Controller:     c.Controller,
 				Name:           effectName,
-				UntilEOT:       effectUntilEOT(h, c.Source, dur),
+				UntilEOT:       effectUntilEOT(h, c.Source, rawDur),
 				Restriction:    mode,
 				RestrictParams: params,
 				Remembered:     remembered,
@@ -915,12 +930,55 @@ func parseReplacementLine(svars map[string]string, name string) (string, map[str
 	return params["Event"], params
 }
 
-func parseStaticLine(svars map[string]string, name string) (string, map[string]string) {
+// staticLineParams is a parsed SVar static body, deliberately distinct from
+// cards.SA.Params: it is metadata carried by a DB$ Effect's StaticAbilities$
+// reference, not a card primitive's parameter map.
+type staticLineParams map[string]string
+
+func effectGainsLimitPerTurn(params staticLineParams) int {
+	n, err := strconv.Atoi(strings.TrimSpace(params["GainsAbilitiesLimitPerTurn"]))
+	if err != nil || n < 0 {
+		return 0
+	}
+	return n
+}
+
+// effectGainsAbilitiesOfDefined converts an Effect-delivered Continuous
+// static's Defined set into the existing activated-ability grant payload.
+// Remembered is copied into the resolving context because an Effect's capture
+// is persisted on its registration as object ids.
+func effectGainsAbilitiesOfDefined(h Host, c *Ctx, params staticLineParams, remembered []state.ObjID) (state.ContinuousEffect, bool) {
+	spec := strings.TrimSpace(params["GainsAbilitiesOfDefined"])
+	if spec == "" {
+		return state.ContinuousEffect{}, false
+	}
+	definedCtx := *c
+	definedCtx.Remembered = make([]state.Target, 0, len(remembered))
+	for _, id := range remembered {
+		definedCtx.Remembered = append(definedCtx.Remembered, state.Target{Obj: id})
+	}
+	faces := GainedFacesOfDefined(h, &definedCtx, spec)
+	if len(faces) == 0 {
+		return state.ContinuousEffect{}, false
+	}
+	affected := strings.TrimSpace(params["Affected"])
+	if affected == "" && strings.TrimSpace(params["AffectedDefined"]) != "" {
+		affected = "Card.Self"
+	}
+	return state.ContinuousEffect{
+		Source: c.Source, Controller: c.Controller, Layer: state.LAbilities,
+		Affects: affected, AffectedZone: strings.TrimSpace(params["AffectedZone"]),
+		GainedFaces: faces, GainsValidAbilities: strings.TrimSpace(params["GainsValidAbilities"]),
+		GainsLimitPerTurn: effectGainsLimitPerTurn(params),
+	}, true
+}
+
+func parseStaticLine(svars map[string]string, name string) (string, staticLineParams) {
 	body := strings.TrimSpace(svars[name])
 	if body == "" {
 		return "", nil
 	}
-	params := make(map[string]string)
+	params := make(staticLineParams)
 	mode := ""
 	for _, seg := range strings.Split(body, "|") {
 		seg = strings.TrimSpace(seg)
@@ -1054,6 +1112,14 @@ func effectRememberedPlayers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 					add(t.Player)
 				}
 			}
+		case "TargetedOrController":
+			for _, t := range c.Targets {
+				if t.IsPlayer {
+					add(t.Player)
+				} else if o := h.Game().Obj(t.Obj); o != nil {
+					add(o.Controller)
+				}
+			}
 		case "RememberedPlayer", "RememberedPlayers", "Remembered":
 			for _, t := range c.Remembered {
 				if t.IsPlayer {
@@ -1143,6 +1209,34 @@ func MustAttackParamsReadable(params map[string]string) bool {
 	for k := range params {
 		switch k {
 		case "Mode", "ValidCreature", "MustAttack", "Description", "Secondary":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// MustAttackParamsReadableForRules is the FACE S:-line whitelist: the shared
+// MustAttackParamsReadable core EXTENDED by exactly the condition-gate keys
+// the rules package's shared continuous gate (rules/layers.go
+// continuousGateHolds) evaluates -- IsPresent$, IsPresent2$, PresentCompare$,
+// PresentZone$, CheckSVar$, SVarCompare$, Condition$ and ClassBand$. It
+// lives here, beside MustAttackParamsReadable, so the two lists cannot drift
+// apart unseen: the face route (rules' attackRequirements) CAN evaluate those
+// gates -- the evaluator, continuousGateHolds, is rules-side, which is why
+// this function cannot simply be MustAttackParamsReadable -- while the
+// Effect-delivered route (effEffect's registration above) cannot, so its
+// whitelist stays at the core set: registering a gate-bearing line as an
+// Effect requirement would apply it blanket and OVER-require, the
+// non-permissive direction for a requirement. The superset direction
+// (every effect-readable line is face-readable) and the gate-key divergence
+// are pinned by rules' TestMustAttackFaceAndEffectWhitelistsAgree.
+func MustAttackParamsReadableForRules(params map[string]string) bool {
+	for k := range params {
+		switch k {
+		case "Mode", "ValidCreature", "MustAttack", "Description", "Secondary",
+			"IsPresent", "IsPresent2", "PresentCompare", "PresentZone",
+			"CheckSVar", "SVarCompare", "Condition", "ClassBand":
 		default:
 			return false
 		}
@@ -1318,12 +1412,12 @@ func CanAttackDefenderParamsReadable(params map[string]string) bool {
 
 // absentDurationMeansThisTurn is the ONE home for the restriction modes whose
 // Effect-granted bodies write no inline Duration$ yet whose card text names a
-// THIS-TURN lifetime. effEffect defaults an absent Duration$ to Permanent (a
-// one-shot that survives its source, CR 611.2a), which is correct for a body
-// that genuinely says "for the rest of the game" but wrong for these: a
-// this-turn restriction read as Permanent outlives the turn the card names and
-// applies to every later turn too, the non-permissive direction for a
-// restriction.
+// THIS-TURN lifetime. effEffect now gives every absent Duration$ the Forge
+// end-of-turn default; this helper records the mode-specific corpus audit and
+// keeps the intent explicit at the registration site. An explicit Permanent
+// remains a game-lasting effect, while treating these absent values as
+// Permanent would outlive the turn the card names, the non-permissive direction
+// for a restriction.
 //
 // The membership test is structural, not per-card: add a mode here only when
 // its absent Duration$ is this-turn by the corpus's own oracle text, and the
@@ -1426,15 +1520,18 @@ func replacementBodyAPI(body string) string {
 }
 
 // effectUntilEOT decides expiry for an Effect registration: a one-shot spell
-// (instant/sorcery) source, or an explicit this-turn Duration$, is UntilEOT
-// and is dropped at end-of-turn cleanup (rules' EndOfTurnCleanup); anything
-// else -- Duration$ Permanent on a permanent, an until-untap form, ... ---
-// persists while its source stays on the battlefield, the same rule the
-// layer effects use. A Duration$ that spans the controller's NEXT turn is
-// NOT UntilEOT (it would expire a turn early); it is instead given a real
+// (instant/sorcery) source, an absent Duration$, or an explicit this-turn
+// Duration$ is UntilEOT and is dropped at end-of-turn cleanup
+// (rules' EndOfTurnCleanup). An explicit Permanent or source-relative form
+// persists while its source stays on the battlefield, the same rule the layer
+// effects use. A Duration$ that spans the controller's NEXT turn is NOT
+// UntilEOT (it would expire a turn early); it is instead given a real
 // turn-boundary lifetime (state.ContinuousEffect.UntilTurn) computed in
 // rules.Engine.AddContinuous, so effectUntilEOT returns false for it.
 func effectUntilEOT(h Host, source state.ObjID, dur string) bool {
+	if strings.TrimSpace(dur) == "" {
+		return true
+	}
 	if IsNextTurnDuration(dur) {
 		return false
 	}
@@ -1466,9 +1563,11 @@ func effCleanup(h Host, c *Ctx, sa *cards.SA) {
 	// list clear produces. The clear is recorded as a real event ONLY when
 	// the source's list actually held entries -- clearing an empty list is
 	// a no-op, and emitting for it would move every chain head that carries
-	// a ClearRemembered$ cleanup for no observable change (measured: Delver
-	// of Secrets' DBCleanup in the 4/6/8-seat golden games runs its cleanup
-	// with an empty list).
+	// a ClearRemembered$ cleanup for no observable change. (Delver of
+	// Secrets' DBCleanup used to be the measured empty-list case; since
+	// effReveal's RememberRevealed$ arm writes the source list too
+	// (count:Plus.<SVarName>), Delver's cleanup holds a real entry and does
+	// emit -- that is what moved the 4- and 6-seat heads.)
 	noted := false
 	if strings.EqualFold(sa.Params["ClearRemembered"], "True") {
 		c.Remembered = nil
@@ -1924,7 +2023,9 @@ func encodeRemembered(remembered []state.Target) []state.ObjID {
 func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 	check := strings.TrimSpace(sa.Params["RepeatCheckSVar"])
 	cmp := strings.TrimSpace(sa.Params["RepeatSVarCompare"])
-	gated := check != ""
+	defined := strings.TrimSpace(sa.Params["RepeatDefined"])
+	present := strings.TrimSpace(sa.Params["RepeatPresent"])
+	gated := check != "" || defined != ""
 	n := Num(h, c, sa, "MaxRepeat", -1)
 	if n < 0 {
 		if gated {
@@ -1976,6 +2077,15 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 		// times, since neither condition can hold before the first body has
 		// remembered anything.
 		holds, evaluated := repeatGateHolds(h, c, check, cmp)
+		if defined != "" {
+			definedCmp := strings.TrimSpace(sa.Params["RepeatCompare"])
+			if definedCmp == "" && check == "" {
+				definedCmp = cmp
+			}
+			definedHolds, definedEvaluated := repeatDefinedGateHolds(h, c, sa, defined, present, definedCmp)
+			holds = holds && definedHolds
+			evaluated = evaluated && definedEvaluated
+		}
 		if !evaluated || !holds {
 			break
 		}
@@ -2013,6 +2123,37 @@ func repeatGateHolds(h Host, c *Ctx, check, cmp string) (holds, evaluated bool) 
 		return false, false
 	}
 	return CheckSVarHolds(h, c, check, cmp)
+}
+
+// repeatDefinedGateHolds evaluates the RepeatDefined$/RepeatPresent$ gate.
+// Only the measured Remembered and Imprinted selectors are admitted: unlike
+// ordinary Defined resolution, an unknown selector must not fall back to the
+// source object and accidentally make an EQ0 gate repeat forever.
+func repeatDefinedGateHolds(h Host, c *Ctx, sa *cards.SA, defined, present, compare string) (holds, evaluated bool) {
+	if defined != "Remembered" && defined != "Imprinted" {
+		return false, false
+	}
+	copySA := *sa
+	copySA.Params = map[string]string{"Defined": defined}
+	objects := Defined(h, c, &copySA)
+	if present != "" && len(UnknownPredicates(present)) != 0 {
+		return false, false
+	}
+	sc := c.SpecContext(c.Controller)
+	count := 0
+	for _, target := range objects {
+		if target.IsPlayer {
+			continue
+		}
+		o := h.Game().Obj(target.Obj)
+		if o == nil {
+			return false, false
+		}
+		if present == "" || MatchesObjectCtx(h.Game(), present, o, sc) {
+			count++
+		}
+	}
+	return evalConditionCount(count, compare)
 }
 
 // CharmRepeatModes reports whether a Charm's CanRepeatModes$ True grants
@@ -2320,6 +2461,99 @@ func charmCrossModeRun(h Host, c *Ctx, sa *cards.SA, names []string) bool {
 	return true
 }
 
+// effVillainousChoice makes the player named by Defined$ choose one of the
+// supplied ability bodies. Unlike a modal trigger's placement choice, the
+// victim's choice happens during resolution: the victim is remembered before
+// the chosen body runs, so Defined$ Remembered and Player.IsRemembered in the
+// body refer to the victim.
+func effVillainousChoice(h Host, c *Ctx, sa *cards.SA) {
+	choices := strings.Split(sa.Params["Choices"], ",")
+	if len(choices) == 0 || c.SVars == nil {
+		return
+	}
+	for i := range choices {
+		choices[i] = strings.TrimSpace(choices[i])
+	}
+	// A resumed answer is scoped to the current victim. Once its body has
+	// completed, advance to the next Defined$ player and pose a fresh ask.
+	if c.Modes != nil {
+		names := c.Modes
+		c.Modes = nil
+		for _, name := range names {
+			if sub := cards.ResolveSVar(c.SVars, name); sub != nil {
+				Resolve(h, c, sub)
+			}
+			if h.Suspended() {
+				// The chosen body posed a nested mid-resolution ask (DBSac's
+				// sacrifice picker is the live carrier). Record this
+				// primitive's own continuation so the remaining victims are
+				// still asked once that ask's chain completes, instead of
+				// being stranded: the enclosing Resolve loop would otherwise
+				// resume only sa.Sub (nil for a VillainousChoice) and the
+				// outer levels would degrade to no-sub-ability Notes.
+				h.SuspendVillainousRest(sa, VillainousRest{
+					Victims: append([]state.Target(nil), c.VillainousVictims...),
+					Next:    c.VillainousIndex + 1})
+				return
+			}
+		}
+		c.VillainousIndex++
+	}
+	if c.VillainousVictims == nil {
+		for _, target := range Defined(h, c, sa) {
+			if target.IsPlayer {
+				c.VillainousVictims = append(c.VillainousVictims, target)
+			}
+		}
+		// Nested asks (for example DBSac's permanent picker) carry the
+		// Remembered victim but not this primitive's private cursor. Recover
+		// the cursor from that stable victim so the body is not re-asked and
+		// the following victims are still processed.
+		if c.Modes == nil && len(c.Remembered) > 0 {
+			for i, target := range c.VillainousVictims {
+				if target == c.Remembered[len(c.Remembered)-1] {
+					c.VillainousIndex = i + 1
+					break
+				}
+			}
+		}
+	}
+	for c.VillainousIndex < len(c.VillainousVictims) {
+		victim := c.VillainousVictims[c.VillainousIndex]
+		// The body is evaluated against this victim, not an earlier victim.
+		c.Remembered = []state.Target{victim}
+		d := &decision.Decision{Player: victim.Player, Kind: decision.KModes,
+			Min: 1, Max: 1, Source: c.Source, ResumeKind: "villainous",
+			ResumeSA: sa, ResumeModes: append([]string(nil), choices...),
+			ResumeRemembered:        append([]state.Target(nil), c.Remembered...),
+			ResumeVillainousVictims: append([]state.Target(nil), c.VillainousVictims...),
+			ResumeVillainousIndex:   c.VillainousIndex,
+			Prompt:                  "Choose a villainous option"}
+		for i, name := range choices {
+			label := name
+			if sub := cards.ResolveSVar(c.SVars, name); sub != nil {
+				if desc := strings.TrimSpace(sub.Params["SpellDescription"]); desc != "" {
+					label = desc
+				}
+			}
+			d.Options = append(d.Options, decision.Option{Index: i, Kind: "mode",
+				Label: label, Obj: c.Source, Player: victim.Player})
+		}
+		if Ask(h, d) == AskAsked {
+			return
+		}
+		// R-9: an effects-only host has no chooser, so deterministically take
+		// the first option and continue to the next victim.
+		if sub := cards.ResolveSVar(c.SVars, choices[0]); sub != nil {
+			Resolve(h, c, sub)
+		}
+		if h.Suspended() {
+			return
+		}
+		c.VillainousIndex++
+	}
+}
+
 // effCharm runs the selected Choices$ sub-abilities in chosen order.
 // Cast spells (CR 601.2b) and triggered abilities (CR 603.3c) arrive with
 // Ctx.Modes pre-seeded from their earlier announcement. A Charm reached only
@@ -2583,12 +2817,9 @@ func charmModeLabel(choices []string, subs []*cards.SA, idx int) string {
 //     most votes or tied for most lands in the resolution's Remembered set
 //     for VoteSubAbility$ (DBExile's ChangeZone Defined$ Remembered).
 //
-// The per-player vote CHOICE itself is still the deterministic no-ask
-// stand-in (every voter takes the first option, so the first eligible
-// permanent always wins unanimously): a real per-player vote ask produces
-// Ctx.Votes and needs a resume arm of its own, and stays in the
-// approximations table. Both VoteCard$ and VoteSubAbility$ are genuinely
-// read on the ballot path.
+// Fixed and card ballots use the real per-voter ask path below; a host that
+// cannot answer retains the R-9 first-option fallback. Both VoteCard$ and
+// VoteSubAbility$ are genuinely read on the ballot path.
 func effVote(h Host, c *Ctx, sa *cards.SA) {
 	if ballot := strings.TrimSpace(sa.Params["VoteCard"]); ballot != "" {
 		effCardVote(h, c, sa, ballot)
@@ -2605,6 +2836,44 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 	}
 	choices := voteChoiceNames(sa)
 	voters := Defined(h, c, sa)
+	// A live fixed-list ballot uses the same private, per-voter KChoose path as
+	// VotePlayer$. Keep Ctx.Votes as the small direct seam used by unit tests;
+	// real answers travel only through the decision's ResumeChoices.
+	if c.Votes == nil {
+		picks, complete := askFixedVote(h, c, sa, choices, voters)
+		if !complete {
+			return
+		}
+		for i, t := range voters {
+			label := ""
+			if i < len(picks) && picks[i].Obj > 0 && int(picks[i].Obj-1) < len(choices) {
+				label = choices[picks[i].Obj-1]
+			}
+			h.Emit(events.Event{Kind: events.Note, Player: PlayerOf(h, c, t), Text: "votes for " + label})
+		}
+		counts := make([]int, len(choices))
+		for _, p := range picks {
+			if p.Obj > 0 && int(p.Obj-1) < len(choices) {
+				counts[p.Obj-1]++
+			}
+		}
+		best, tied := voteWinner(counts)
+		if len(choices) > 0 && len(voters) > 0 {
+			name := choices[best]
+			if tied && strings.TrimSpace(sa.Params["VoteTiedAbility"]) != "" {
+				name = strings.TrimSpace(sa.Params["VoteTiedAbility"])
+			}
+			if sub := cards.ResolveSVar(c.SVars, name); sub != nil {
+				Resolve(h, c, sub)
+			}
+		}
+		ballots := make([]VoteBallot, len(voters))
+		for i, t := range voters {
+			ballots[i] = VoteBallot{Player: PlayerOf(h, c, t), Pick: int(picks[i].Obj) - 1}
+		}
+		emitVoteFinished(h, c, ballots, len(choices) > 0)
+		return
+	}
 	// Ctx.Votes is the answered per-voter choice list (a real per-player
 	// ask's result, or a test seam): one option index per voter, in voter
 	// order. It is consumed and cleared at the top of the walk so a nested
@@ -2668,6 +2937,43 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 	emitVoteFinished(h, c, ballots, len(choices) > 0)
 }
 
+// askFixedVote poses one private KChoose per voter. The answer is encoded as
+// ObjID(index+1), avoiding a second answer channel while keeping ResumeChoices
+// decision-scoped. A host that cannot answer takes option zero (R-9).
+func askFixedVote(h Host, c *Ctx, sa *cards.SA, choices []string, voters []state.Target) ([]state.Target, bool) {
+	picks := append([]state.Target(nil), c.VotePicks...)
+	i := c.VoteTarget
+	if c.VoteDone {
+		if len(c.VoteAnswer) > 0 {
+			picks = append(picks, c.VoteAnswer[0])
+		} else {
+			picks = append(picks, state.Target{})
+		}
+		c.VoteDone, c.VoteAnswer = false, nil
+		i++
+	}
+	for ; i < len(voters); i++ {
+		voter := PlayerOf(h, c, voters[i])
+		d := &decision.Decision{Player: voter, Kind: decision.KChoose, Source: c.Source,
+			Min: 1, Max: 1, ResumeKind: "vote", ResumeSA: sa, ResumeTarget: i,
+			ResumeChoices: append([]state.Target(nil), picks...), Prompt: "Vote for an option"}
+		for j, name := range choices {
+			d.Options = append(d.Options, decision.Option{Index: j, Kind: "vote", Label: name, Obj: state.ObjID(j + 1)})
+		}
+		if len(d.Options) == 0 {
+			picks = append(picks, state.Target{})
+			continue
+		}
+		if Ask(h, d) == AskAsked {
+			return nil, false
+		}
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "vote resolved as the first ballot entry (no engine host to ask)"})
+		picks = append(picks, state.Target{Obj: 1})
+	}
+	c.VotePicks, c.VoteTarget, c.VoteDone, c.VoteAnswer = nil, 0, false, nil
+	return picks, true
+}
+
 // voteWinner returns the index of the highest count and whether that count is
 // shared by more than one option. It is a separate function (rather than
 // inline in effVote) so the tie branch is testable on its own: the current
@@ -2713,11 +3019,61 @@ func voteChoiceNames(sa *cards.SA) []string {
 }
 
 // effCardVote is effVote's card-ballot half: the battlefield permanents
-// VoteCard$ admits are the options, each voting player takes the ballot's
-// first option (the deterministic stand-in), and the most-voted -- every
+// VoteCard$ admits are the options, each voting player answers a private ask,
+// and the most-voted -- every
 // member of the tie -- is remembered for VoteSubAbility$, which runs once
 // at the end (Council's Judgment's "exile each permanent with the most
 // votes or tied for most votes").
+func askCardVote(h Host, c *Ctx, sa *cards.SA, options []state.ObjID, voters []state.Target) ([]state.ObjID, bool) {
+	picks := append([]state.Target(nil), c.VotePicks...)
+	i := c.VoteTarget
+	if c.VoteDone {
+		if len(c.VoteAnswer) > 0 {
+			picks = append(picks, c.VoteAnswer[0])
+		} else {
+			picks = append(picks, state.Target{})
+		}
+		c.VoteDone, c.VoteAnswer = false, nil
+		i++
+	}
+	for ; i < len(voters); i++ {
+		voter := PlayerOf(h, c, voters[i])
+		d := &decision.Decision{Player: voter, Kind: decision.KChoose, Source: c.Source, Min: 1, Max: 1,
+			ResumeKind: "vote", ResumeSA: sa, ResumeTarget: i, ResumeChoices: append([]state.Target(nil), picks...), Prompt: "Vote for a permanent"}
+		for j, id := range options {
+			label := "permanent"
+			var controller state.PlayerID
+			if o := h.Game().Obj(id); o != nil && o.Face() != nil {
+				label = o.Face().Name
+				// The subject's controller is public information (CR 400.2) and
+				// the one fact the voter's policy needs to prefer a foreign
+				// permanent over its own: Council's Judgment's ballot excludes
+				// only the CASTER's permanents, so a 3+ seat ballot offers a
+				// voter both its own and an opponent's permanents. Option.Player
+				// already carries exactly this subject-controller convention for
+				// player targets, so no new wire field is needed.
+				controller = o.Controller
+			}
+			d.Options = append(d.Options, decision.Option{Index: j, Kind: "vote_card", Label: label, Obj: id, Player: controller})
+		}
+		if len(d.Options) == 0 {
+			picks = append(picks, state.Target{})
+			continue
+		}
+		if Ask(h, d) == AskAsked {
+			return nil, false
+		}
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "card vote resolved as the first ballot entry (no engine host to ask)"})
+		picks = append(picks, state.Target{Obj: options[0]})
+	}
+	c.VotePicks, c.VoteTarget, c.VoteDone, c.VoteAnswer = nil, 0, false, nil
+	out := make([]state.ObjID, len(picks))
+	for j, p := range picks {
+		out[j] = p.Obj
+	}
+	return out, true
+}
+
 func effCardVote(h Host, c *Ctx, sa *cards.SA, ballot string) {
 	g := h.Game()
 	var options []state.ObjID
@@ -2731,20 +3087,40 @@ func effCardVote(h Host, c *Ctx, sa *cards.SA, ballot string) {
 	counts := map[state.ObjID]int{}
 	max := 0
 	voters := Defined(h, c, sa)
-	picks := make([]int, len(voters))
+	var picks []int
+	if c.Votes != nil {
+		// Direct seam retained for effects tests and replay-independent callers.
+		picks = append([]int(nil), c.Votes...)
+		c.Votes = nil
+	} else {
+		answered, complete := askCardVote(h, c, sa, options, voters)
+		if !complete {
+			return
+		}
+		picks = make([]int, len(answered))
+		for i, id := range answered {
+			picks[i] = -1
+			if id != 0 {
+				for j, option := range options {
+					if option == id {
+						picks[i] = j
+						break
+					}
+				}
+			}
+		}
+	}
 	for i, t := range voters {
 		label := "nothing"
-		if len(options) > 0 {
-			if o := g.Obj(options[0]); o != nil && o.Face() != nil {
+		if i < len(picks) && picks[i] >= 0 && picks[i] < len(options) {
+			id := options[picks[i]]
+			if o := g.Obj(id); o != nil && o.Face() != nil {
 				label = o.Face().Name
 			}
-			counts[options[0]]++
-			if counts[options[0]] > max {
-				max = counts[options[0]]
+			counts[id]++
+			if counts[id] > max {
+				max = counts[id]
 			}
-			picks[i] = 0
-		} else {
-			picks[i] = -1
 		}
 		h.Emit(events.Event{Kind: events.Note, Player: PlayerOf(h, c, t), Text: "votes for " + label})
 	}

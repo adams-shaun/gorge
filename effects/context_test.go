@@ -106,7 +106,8 @@ type fakeHost struct {
 	startingLife int32
 }
 
-func (h *fakeHost) Game() *state.Game { return h.g }
+func (h *fakeHost) Game() *state.Game                   { return h.g }
+func (h *fakeHost) ObjectColors(o *state.Object) string { return ColorsOf(o) }
 func (h *fakeHost) Emit(e events.Event) {
 	h.log = append(h.log, e)
 	events.Apply(h.g, e)
@@ -425,6 +426,13 @@ func (h *fakeHost) SuspendContinuation(*cards.SA) {}
 // SuspendUnless is a no-op for the same reason as SuspendContinuation.
 func (h *fakeHost) SuspendUnless(*cards.SA, bool) {}
 
+// SetResolutionTargetControllerLKI keeps the no-op shape: this double never
+// suspends, so the map it publishes is never consumed. Returns nil as the
+// "previous" value, which the caller restores on return.
+func (h *fakeHost) SetResolutionTargetControllerLKI(map[state.ObjID]state.PlayerID) map[state.ObjID]state.PlayerID {
+	return nil
+}
+
 func (h *fakeHost) ReplaceEvent(string, string, int32) {}
 
 func (h *fakeHost) EmitDamage(e events.Event) events.Event {
@@ -438,6 +446,10 @@ func (h *fakeHost) SuspendRepeat(RepeatSuspension) {}
 
 // SuspendCharmRest is a no-op for the same reason as SuspendContinuation.
 func (h *fakeHost) SuspendCharmRest(*cards.SA, []string) {}
+
+// SuspendVillainousRest is a no-op for the same reason as
+// SuspendContinuation.
+func (h *fakeHost) SuspendVillainousRest(*cards.SA, VillainousRest) {}
 
 // SetDamageSource records the published damage source on the double (the
 // last value wins) and returns the previous one, mirroring the engine's
