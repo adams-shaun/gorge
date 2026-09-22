@@ -359,6 +359,25 @@ var actionTriggerModes = map[string]bool{
 // turn, counted when it triggers (Forge Trigger.checkActivationLimit and
 // TriggerHandler.runSingleTrigger). A malformed limit fails closed. The count
 // is recorded here, on the path that is about to queue the trigger.
+func (e *Engine) triggerGameActivationLimitAllows(t cards.Trigger, key triggerKey) bool {
+	raw, present := t.Params["GameActivationLimit"]
+	if !present {
+		return true
+	}
+	limit, err := strconv.Atoi(strings.TrimSpace(raw))
+	if err != nil || limit < 0 {
+		return false
+	}
+	if e.triggerGameFires == nil {
+		e.triggerGameFires = map[triggerKey]int32{}
+	}
+	if int(e.triggerGameFires[key]) >= limit {
+		return false
+	}
+	e.triggerGameFires[key]++
+	return true
+}
+
 func (e *Engine) triggerActivationLimitAllows(t cards.Trigger, key triggerKey) bool {
 	raw, ok := t.Params["ActivationLimit"]
 	if !ok {
@@ -964,6 +983,9 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				}
 				if e.triggerFireCount[key] >= maxTriggerFires {
 					continue // cascade bound: see maxTriggerFires.
+				}
+				if !e.triggerGameActivationLimitAllows(t, key) {
+					continue // GameActivationLimit$: already triggered enough this game.
 				}
 				if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
 					continue // ActivationLimit$: already triggered enough this turn.

@@ -487,6 +487,9 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 			if e.triggerFireCount[key] >= maxTriggerFires {
 				continue // cascade bound: see maxTriggerFires.
 			}
+			if !e.triggerGameActivationLimitAllows(t, key) {
+				continue // GameActivationLimit$: already triggered enough this game.
+			}
 			if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
 				continue
 			}
@@ -630,6 +633,9 @@ func (e *Engine) checkAttackerUnblockedOnceTriggers() {
 			}
 			if e.triggerFireCount[key] >= maxTriggerFires {
 				continue // cascade bound: see maxTriggerFires.
+			}
+			if !e.triggerGameActivationLimitAllows(t, key) {
+				continue // GameActivationLimit$: already triggered enough this game.
 			}
 			if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
 				continue
@@ -786,6 +792,9 @@ func (e *Engine) checkBlocksTriggers(ev events.Event) {
 			}
 			if e.triggerFireCount[key] >= maxTriggerFires {
 				continue // cascade bound: see maxTriggerFires.
+			}
+			if !e.triggerGameActivationLimitAllows(t, key) {
+				continue // GameActivationLimit$: already triggered enough this game.
 			}
 			if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
 				continue
