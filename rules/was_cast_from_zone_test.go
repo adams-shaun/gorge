@@ -1,10 +1,12 @@
 package rules
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -309,6 +311,93 @@ func TestArchfiendsVesselHandOriginEntryStaysPut(t *testing.T) {
 	passUntilStackEmpty(t, e, 20)
 	if o := e.G.Obj(vessel.ID); o.Zone != state.ZBattlefield {
 		t.Fatalf("a hand-origin entry was exiled to %s; the ByYou token must not hold", o.Zone)
+	}
+}
+
+// TestRoryWilliamsWasCastFromExilePredicate pins the real Rory Williams
+// carrier's negative exile-origin predicate and its census recognition.
+func TestRoryWilliamsWasCastFromExilePredicate(t *testing.T) {
+	if got := effects.UnknownPredicates("Card.Self+!wasCastFromExile"); len(got) != 0 {
+		t.Fatalf("Rory's real trigger predicate is still unknown: %v", got)
+	}
+	reg := searchTestRegistry(t)
+	rory := searchCorpusCard(t, reg, "Rory Williams")
+	e := handEngine(t, rory)
+	id := e.G.Zone(state.ZHand, 0)[0]
+	// Rory's real trigger carries Card.Self+!wasCastFromExile. Verify the
+	// provenance half on that real carrier's object after an actual exile-origin
+	// PutOnStack record; this is the state the SpellCast matcher consumes.
+	e.emit(events.Event{Kind: events.PutOnStack, Obj: id, From: state.ZExile, To: state.ZStack,
+		Player: 0, Text: "Rory Williams"})
+	if e.G.Obj(id).Zone != state.ZStack {
+		t.Fatalf("Rory test object is in %s, want stack", e.G.Obj(id).Zone)
+	}
+	if _, ok := e.castProvenanceAdmits("Card.wasCastFromExile", id, 0); !ok {
+		t.Fatal("Rory's exile-origin cast was not recognised")
+	}
+	if _, ok := e.castProvenanceAdmits("Card.!wasCastFromExile", id, 0); ok {
+		t.Fatal("Rory's negated exile-origin predicate incorrectly held")
+	}
+}
+
+// TestRorySpellCastTriggerReadsBothOrigins drives Rory's REAL compiled trigger
+// (ValidCard$ Card.Self+!wasCastFromExile) through the SpellCast matcher for
+// both origins. The hand-origin cast must MATCH (the negated predicate holds)
+// and the exile-origin cast must NOT (the predicate strips the only
+// alternative). This is the matcher-level half the end-to-end test cannot
+// isolate: with the origin read inert (holds always false) BOTH casts match
+// and a non-exile trigger wrongly fires on an exile cast, so the assertion
+// fails.
+func TestRorySpellCastTriggerReadsBothOrigins(t *testing.T) {
+	reg := searchTestRegistry(t)
+	eval := func(from state.Zone) (bool, *Engine, state.ObjID) {
+		rory := searchCorpusCard(t, reg, "Rory Williams")
+		e := handEngine(t, rory)
+		id := e.G.Zone(state.ZHand, 0)[0]
+		face := e.G.Obj(id).Face()
+		if face == nil || len(face.Triggers) == 0 || face.Triggers[0].Mode != "SpellCast" {
+			t.Fatalf("Rory precondition failed: trigger is %+v, want a SpellCast", face)
+		}
+		if !strings.Contains(face.Triggers[0].Params["ValidCard"], "!wasCastFromExile") {
+			t.Fatalf("Rory's real trigger ValidCard is %q, want it to carry !wasCastFromExile",
+				face.Triggers[0].Params["ValidCard"])
+		}
+		ev := events.Event{Kind: events.PutOnStack, Obj: id, Player: 0, From: from, To: state.ZStack}
+		e.emit(ev)
+		return e.spellCastEval(face.Triggers[0], id, ev), e, id
+	}
+	hand, _, _ := eval(state.ZHand)
+	exile, _, _ := eval(state.ZExile)
+	if !hand {
+		t.Fatal("Rory's trigger did not match an ordinary hand cast")
+	}
+	if exile {
+		t.Fatal("Rory's trigger wrongly matched an exile-origin cast; the !wasCastFromExile gate is inert")
+	}
+}
+
+// TestRoryExilesItselfWithTimeCountersOnCast pins the player-visible carrier:
+// a real hand cast fires Rory's SpellCast trigger, moves it to exile, and puts
+// the three TIME counters on the exiled card.
+func TestRoryExilesItselfWithTimeCountersOnCast(t *testing.T) {
+	reg := searchTestRegistry(t)
+	rory := searchCorpusCard(t, reg, "Rory Williams")
+	e := handEngine(t, rory)
+	id := e.G.Zone(state.ZHand, 0)[0]
+	if o := e.G.Obj(id); o == nil || o.Zone != state.ZHand {
+		t.Fatalf("Rory precondition failed: object is %+v, want hand", o)
+	}
+	addMana(t, e, 0, "WU")
+	castObj(t, e, id)
+	o := e.G.Obj(id)
+	if o == nil || o.Zone != state.ZExile {
+		t.Fatalf("Rory hand cast ended in %v, want exile", o.Zone)
+	}
+	if got := o.Counter("TIME"); got != 3 {
+		t.Fatalf("Rory exile trigger put %d TIME counters, want 3", got)
+	}
+	if hasNote(e, "unimplemented API ChangeZone") {
+		t.Fatal("Rory's real exile trigger fell through the ChangeZone handler")
 	}
 }
 
