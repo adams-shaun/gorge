@@ -953,6 +953,24 @@ func refToughness(h Host, o *state.Object, snapshot bool) int32 {
 	return int32(o.Face().Toughness()) + o.Counter("P1P1") - o.Counter("M1M1")
 }
 
+// EvalCountOnObject evaluates a Count$ expression with the count's source
+// anchor moved to ONE specific object: a shallow Ctx copy keeps the resolving
+// ability's SVar table, controller and remembered set, but `Source` -- what
+// the source-anchored heads (CardPower, CardToughness, CardManaCost,
+// CardManaCost) read -- becomes obj. This is what a
+// `CounterNumPerDefined$` parameter needs: the count is evaluated per
+// AFFECTED object (Canopy Gargantuan's "equal to that creature's toughness"),
+// not once for the resolving source. An expression whose head the evaluator
+// does not model degrades to zero, exactly as EvalCount does.
+func EvalCountOnObject(h Host, c *Ctx, expr string, obj state.ObjID) int32 {
+	if c == nil {
+		c = &Ctx{}
+	}
+	cc := *c
+	cc.Source = obj
+	return EvalCount(h, &cc, expr)
+}
+
 // evalCountBody is the Count$ head dispatch; ok is false only at the
 // fallthrough (the head matched nothing), never inside a modelled branch -- a
 // modelled head that legitimately counts zero still counts as evaluated.
