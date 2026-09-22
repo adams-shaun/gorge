@@ -1465,6 +1465,17 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 					e.beginUnlessPayment(chosen[0].Player, paid, ctx, rp.obj, rp)
 					return
 				}
+				// CR 601.2g: a mana-only unless cost gives the payer the same
+				// chance to activate mana abilities before the charge as a cast
+				// or a Ward does, so a converted colour (stat:ManaConvert) can be
+				// produced by tapping. The window only opens when the pool
+				// (under the payment's conversion) cannot already pay and an
+				// untapped source exists; otherwise the charge below is
+				// unchanged.
+				if e.unlessManaWindowNeeded(chosen[0].Player, paid, rp.obj) {
+					e.askUnlessMana(chosen[0].Player, paid, rp)
+					return
+				}
 				if e.payUnlessCost(chosen[0].Player, paid, ctx, rp.obj) {
 					ctx.UnlessPay = "pay"
 				} else {
@@ -1511,6 +1522,10 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			if e.answerWardMana(rp, chosen, ctx) {
 				return
 			}
+		case "unless_mana":
+			if e.answerWardMana(rp, chosen, ctx) {
+				return
+			}
 		case "ward_alt":
 			// The Discard<...>:<mana> Ward alternative can choose its mana
 			// half even when it is not already floating; it receives the same
@@ -1521,7 +1536,8 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				if e.payMana(chosen[0].Player, cost) {
 					ctx.UnlessPay = "pay"
 				} else if cost.hasManaPayment() && e.hasUntappedManaSource(chosen[0].Player) {
-					e.askWardMana(rp, chosen[0].Player, cost)
+					e.askWardMana(rp, &wardManaPayment{payer: chosen[0].Player, cost: cost,
+						resumeKind: "ward_mana", prompt: "Activate mana abilities to pay Ward"})
 					return
 				} else {
 					ctx.UnlessPay = "decline"

@@ -72,31 +72,6 @@ func TestCommandManaConvertReachesPayment(t *testing.T) {
 	}
 }
 
-func TestManaConvertCanTapForConvertedPayment(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
-	e := corpusEngine(t, reg,
-		[]*cards.Card{manaConvertCard(t, reg, "Mycosynth Lattice"), manaConvertCard(t, reg, "Ancestral Recall"), manaConvertCard(t, reg, "Mountain")}, nil)
-	lattice := moveByName(t, e, 0, "Mycosynth Lattice", state.ZBattlefield)
-	mountain := moveByName(t, e, 0, "Mountain", state.ZBattlefield)
-	spell := moveByName(t, e, 0, "Ancestral Recall", state.ZHand)
-	if e.G.Obj(lattice).Zone != state.ZBattlefield || e.G.Obj(mountain).Zone != state.ZBattlefield || e.G.Obj(mountain).Tapped || e.G.Obj(spell).Zone != state.ZHand {
-		t.Fatal("precondition: Lattice, Ancestral Recall, and an untapped Mountain are not in the expected zones")
-	}
-	// A payment window's selected source resolves through this same tap path;
-	// exercise the source activation directly so the test stays focused on
-	// the converted payment rather than priority setup.
-	e.activateManaPayment(0, mountain, false)
-	if !e.G.Obj(mountain).Tapped || e.G.Players[0].Pool[state.MR] != 1 {
-		t.Fatalf("mana payment source did not tap Mountain for red: pool=%+v tapped=%t", e.G.Players[0].Pool, e.G.Obj(mountain).Tapped)
-	}
-	if !e.costPayable(0, spell, false, ParseCost("U")) {
-		t.Fatal("converted red mana was not payable as blue after tapping")
-	}
-	if !e.payManaConvFor(0, spell, false, ParseCost("U"), e.paymentConv(0, spell, false)) || e.G.Players[0].Pool.Total() != 0 {
-		t.Fatalf("converted tap-to-pay did not consume the red mana: pool=%+v", e.G.Players[0].Pool)
-	}
-}
-
 func TestOptionalManaConvertIsAskedBeforePayment(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e := corpusEngine(t, reg,

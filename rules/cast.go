@@ -115,6 +115,15 @@ type pendingCast struct {
 	// Muscle): the same recorded-at-beginCast discipline as mayPlayIgnore,
 	// threading "mana of any type" through the same window and payment.
 	mayPlayIgnoreType bool
+	// mayPlayRemembered records, at beginCast, the remembered-object bindings
+	// of the ManaConvert continuous effects that matched this card WHILE it
+	// was still in the granted zone, keyed by effect source. A may-play
+	// grant's own ForgetOnMoved$ clears that binding the instant the card is
+	// put on the stack (CR 601.2a), but the paired ManaConvert's
+	// ValidCard$ Card.IsRemembered must keep resolving through the cost
+	// payment (CR 601.2h) -- the same recorded-at-beginCast discipline as
+	// mayPlayIgnore, and for the same reason. Nil for every ordinary cast.
+	mayPlayRemembered map[state.ObjID][]state.ObjID
 
 	// replaceGraveyard is the Play SA's ReplaceGraveyard$ Exile rider
 	// (task replplay1): the played spell must not rest in the graveyard —
@@ -2098,6 +2107,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	if opt.Mode == "mayplay" {
 		e.cast.mayPlayIgnore = e.payerGrantsIgnoreColor(p, id)
 		e.cast.mayPlayIgnoreType = e.payerGrantsIgnoreType(p, id)
+		e.cast.mayPlayRemembered = e.mayPlayManaConvertRemembered(p, id)
 	}
 	e.collectETBChoices(p)
 	e.continueCast()

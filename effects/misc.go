@@ -1376,6 +1376,25 @@ func CanAttackDefenderGrantParamsReadable(params map[string]string) bool {
 	return true
 }
 
+// ManaConvertParamsReadable is the deliberately narrow whitelist for an
+// Effect-delivered ManaConvert static. Unknown qualifiers fail closed rather
+// than granting a conversion with a scope the payment path cannot evaluate.
+// AffectedZone$ is admitted because the real corpus carrier (Abstruse
+// Appropriation's `ManaConvert | ValidCard$ Card.IsRemembered | ValidSA$
+// Spell.MayPlaySource | AffectedZone$ Exile`) names the zone the remembered
+// card is cast FROM; rules/mana_convert.go enforces that scope against the
+// cast's origin zone, so admitting it here is not a blanket grant.
+func ManaConvertParamsReadable(params map[string]string) bool {
+	for k := range params {
+		switch k {
+		case "Mode", "ValidCard", "ValidSA", "ValidPlayer", "ManaConversion", "Optional", "EffectZone", "AffectedZone", "Description", "SpellDescription":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
 // CostStaticParamsReadable is the parameter whitelist an Effect-delivered
 // cost-modifier static (Mode$ ReduceCost/RaiseCost/SetCost/AlternativeCost
 // behind an AB$ Effect's StaticAbilities$ entry, task
@@ -1394,20 +1413,6 @@ func CanAttackDefenderGrantParamsReadable(params map[string]string) bool {
 // is refused: the unimplemented Note is the permissive direction for a
 // grant, exactly the whitelist discipline every other registration arm
 // here keeps.
-// ManaConvertParamsReadable is the deliberately narrow whitelist for an
-// Effect-delivered ManaConvert static. Unknown qualifiers fail closed rather
-// than granting a conversion with a scope the payment path cannot evaluate.
-func ManaConvertParamsReadable(params map[string]string) bool {
-	for k := range params {
-		switch k {
-		case "Mode", "ValidCard", "ValidSA", "ValidPlayer", "ManaConversion", "Optional", "EffectZone", "Description", "SpellDescription":
-		default:
-			return false
-		}
-	}
-	return true
-}
-
 func CostStaticParamsReadable(params map[string]string) bool {
 	for k := range params {
 		switch k {
