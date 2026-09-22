@@ -1266,6 +1266,12 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 				if e.payUnlessCost(chosen[0].Player, paid, ctx, rp.obj) {
 					ctx.UnlessPay = "pay"
+				} else if paid.hasManaPayment() && e.hasUntappedManaSource(chosen[0].Player) {
+					// A failed pool-only attempt is not a decline: open the
+					// CR 601.2g mana-ability window and resume this exact frame
+					// after the payer has assembled enough floating mana.
+					e.beginUnlessPayment(chosen[0].Player, paid, ctx, rp.obj, rp)
+					return
 				} else {
 					ctx.UnlessPay = "decline"
 				}

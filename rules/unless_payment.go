@@ -33,6 +33,9 @@ type unlessPayment struct {
 	// two parts — and the settled picks are announced with one public Note
 	// (the same event the cast flow's emitChoiceCosts emits).
 	reveals []state.ObjID
+	// manaWindow keeps the resolution suspended while the payer activates
+	// mana abilities for this unless cost.
+	manaWindow bool
 }
 
 func cloneUnlessCtx(in effects.Ctx) effects.Ctx {
@@ -54,6 +57,21 @@ func cloneUnlessCtx(in effects.Ctx) effects.Ctx {
 // Discard and Reveal components, including the exact-candidate no-ask cases,
 // so neither this path nor a future sibling can fall back to a
 // first-in-zone-order pick.
+// UnlessCostPayable is the rules-side offer gate for the generic unless
+// election. It includes the CR 601.2g payment reach: floating mana or at
+// least one currently usable mana source. Non-mana and unpriceable costs are
+// left to the existing continuation, which can still offer their real choice.
+func (e *Engine) UnlessCostPayable(p state.PlayerID, raw string) bool {
+	cost, ok := ParseUnlessCost(raw)
+	if !ok {
+		return true
+	}
+	if cost.payable(e.G.Players[p].Pool, e.G.Players[p].Snow, e.G.Players[p].TypedMana, e.G.Players[p].Life) {
+		return true
+	}
+	return cost.hasManaPayment() && e.hasUntappedManaSource(p)
+}
+
 func (e *Engine) beginUnlessPayment(payer state.PlayerID, cost Cost, ctx *effects.Ctx, stackObj state.ObjID, rp *resumePoint) {
 	e.unlessPayment = &unlessPayment{payer: payer, cost: cost, ctx: cloneUnlessCtx(*ctx), stackObj: stackObj, rp: rp}
 	e.advanceUnlessPayment()
@@ -89,7 +107,8 @@ func (e *Engine) advanceUnlessPayment() {
 		return
 	}
 	if int(u.payer) < 0 || int(u.payer) >= len(e.G.Players) ||
-		!u.cost.payable(e.G.Players[u.payer].Pool, e.G.Players[u.payer].Snow, e.G.Players[u.payer].TypedMana, e.G.Players[u.payer].Life) ||
+		(!u.manaWindow && !u.cost.payable(e.G.Players[u.payer].Pool, e.G.Players[u.payer].Snow, e.G.Players[u.payer].TypedMana, e.G.Players[u.payer].Life) &&
+			!(u.cost.hasManaPayment() && e.hasUntappedManaSource(u.payer))) ||
 		!e.unlessCountersAffordable(u) ||
 		!u.revealChosenDesignated(e) {
 		e.finishUnlessPayment(false)
@@ -147,7 +166,14 @@ func (e *Engine) advanceUnlessPayment() {
 		}
 		drawers[i] = players
 	}
-	if !e.payMana(u.payer, u.cost) { // guarded above; retain totality if state changes.
+	if !e.payMana(u.payer, u.cost) {
+		// Assemble floating mana one source at a time, as in Ward and the
+		// cast payment window, rather than treating an empty pool as a decline.
+		if u.cost.hasManaPayment() && e.hasUntappedManaSource(u.payer) {
+			u.manaWindow = true
+			e.askUnlessMana()
+			return
+		}
 		e.finishUnlessPayment(false)
 		return
 	}
@@ -192,6 +218,52 @@ func (e *Engine) advanceUnlessPayment() {
 		}
 	}
 	e.finishUnlessPayment(true)
+}
+
+func (e *Engine) askUnlessMana() {
+	u := e.unlessPayment
+	if u == nil {
+		return
+	}
+	d := &decision.Decision{Player: u.payer, Kind: decision.KChoose, Min: 1, Max: 1,
+		Prompt: "Activate mana abilities to pay the unless cost", ResumeKind: "unless_mana"}
+	for _, id := range e.G.Zone(state.ZBattlefield, u.payer) {
+		if e.untappedManaSource(u.payer, id) {
+			o := e.G.Obj(id)
+			label := "Tap a mana source"
+			if o != nil && o.Face() != nil {
+				label = "Tap " + o.Face().Name + " for mana"
+			}
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "activate", Obj: id, Label: label})
+		}
+	}
+	// Done is intentionally always legal: it lets the payer settle the cost
+	// after the last activation, and is the R-9 no-host-compatible decline when
+	// no payment can actually be completed.
+	d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "done", Label: "Done"})
+	e.choosing = chooseUnlessMana
+	e.ask(d)
+}
+
+func (e *Engine) answerUnlessMana(chosen []decision.Option) {
+	u := e.unlessPayment
+	e.choosing = chooseNone
+	if u == nil || len(chosen) != 1 {
+		return
+	}
+	if chosen[0].Kind == "done" {
+		u.manaWindow = false
+		e.advanceUnlessPayment()
+		return
+	}
+	if chosen[0].Kind != "activate" || !e.untappedManaSource(u.payer, chosen[0].Obj) {
+		e.finishUnlessPayment(false)
+		return
+	}
+	e.activateManaPayment(u.payer, chosen[0].Obj, false)
+	if e.Pending() == nil {
+		e.advanceUnlessPayment()
+	}
 }
 
 func (e *Engine) unlessPaymentCandidates(u *unlessPayment, zone state.Zone, kind string, part CostPart) []state.ObjID {

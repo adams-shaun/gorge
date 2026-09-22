@@ -1238,12 +1238,13 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 	case chooseMana:
 		// Several individual mana abilities share one tap cost. A payment
 		// window resumes its cast after the selected ability resolves; Ward's
-		// mid-resolution payment window reopens instead. An ordinary
-		// activation falls through to Advance's priority round.
+		// and UnlessCost$'s mid-resolution payment windows reopen instead.
 		cast := e.answerManaActivation(chosen)
 		if e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile {
 			if e.wardMana != nil {
 				e.continueWardMana()
+			} else if e.unlessPayment != nil {
+				e.advanceUnlessPayment()
 			} else if cast {
 				e.continueCast()
 			}
@@ -1253,6 +1254,8 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		if e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile {
 			if e.wardMana != nil {
 				e.continueWardMana()
+			} else if e.unlessPayment != nil {
+				e.advanceUnlessPayment()
 			} else if cast {
 				e.continueCast()
 			}
@@ -1262,6 +1265,8 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		if e.pending == nil && e.choosing != chooseManaColor && e.choosing != chooseManaDiscard && e.choosing != chooseManaExile {
 			if e.wardMana != nil {
 				e.continueWardMana()
+			} else if e.unlessPayment != nil {
+				e.advanceUnlessPayment()
 			} else if cast {
 				e.continueCast()
 			}
@@ -1270,6 +1275,9 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// A Sac/Discard component of an already-accepted UnlessCost$ needs
 		// its payer's real choice before the suspended effect can resume.
 		e.answerUnlessPayment(chosen)
+	case chooseUnlessMana:
+		// The accepted UnlessCost$ is assembling mana one source at a time.
+		e.answerUnlessMana(chosen)
 	case chooseManaColor:
 		// A CR 605.3b triggered mana ability may pose its own colour choice
 		// after this one; the cast (or Ward's payment window) resumes only
@@ -1278,6 +1286,8 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		if e.pending == nil && e.choosing != chooseManaColor {
 			if e.wardMana != nil {
 				e.continueWardMana()
+			} else if e.unlessPayment != nil {
+				e.advanceUnlessPayment()
 			} else if cast {
 				e.continueCast()
 			}

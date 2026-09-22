@@ -112,6 +112,53 @@ func counterFixture(t *testing.T, reg *cards.Registry, counter, creature string)
 // spent everything casting). On the unmodified tree effCounter never poses
 // the unless_pay ask at all, so drainUntilUnlessPay returns nil and the test
 // fails before any payment is attempted.
+func TestCounterUnlessCostManaLeakTapsRealManaSources(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e, _, bearID := counterFixture(t, reg, "Mana Leak", "Grizzly Bears")
+	e.G.Players[0].Pool = state.Mana{}
+	land := mustCorpusCard(t, reg, "Island")
+	lands := []state.ObjID{
+		onBoardCard(t, e, 0, land),
+		onBoardCard(t, e, 0, land),
+		onBoardCard(t, e, 0, land),
+	}
+	for _, id := range lands {
+		if e.G.Obj(id).Zone != state.ZBattlefield || e.G.Obj(id).Tapped {
+			t.Fatalf("payment source precondition failed for %d: %+v", id, e.G.Obj(id))
+		}
+	}
+	pay := drainUntilUnlessPay(t, e, 30)
+	if pay == nil || len(pay.Options) != 2 || pay.Options[0].Index != 0 {
+		t.Fatalf("Mana Leak did not offer a payable pay/decline election: %+v", pay)
+	}
+	submitChoices(t, e, pay.Options[0].Index)
+	for i := 0; i < len(lands); i++ {
+		d := e.Pending()
+		if d == nil || d.ResumeKind != "unless_mana" {
+			t.Fatalf("mana window step %d = %+v", i, d)
+		}
+		chosen := -1
+		for _, o := range d.Options {
+			if o.Obj == lands[i] {
+				chosen = o.Index
+			}
+		}
+		if chosen < 0 {
+			t.Fatalf("mana window omitted untapped source %d: %+v", lands[i], d.Options)
+		}
+		submitChoices(t, e, chosen)
+	}
+	passUntilStackEmpty(t, e, 20)
+	if e.G.Obj(bearID).Zone != state.ZBattlefield {
+		t.Fatalf("Mana Leak paid from tapped lands but bear zone = %s", e.G.Obj(bearID).Zone)
+	}
+	for _, id := range lands {
+		if !e.G.Obj(id).Tapped {
+			t.Fatalf("payment source %d was not tapped", id)
+		}
+	}
+}
+
 func TestCounterUnlessCostEmptyPoolCannotPayAndCounters(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e, _, bearID := counterFixture(t, reg, "Mana Leak", "Grizzly Bears")

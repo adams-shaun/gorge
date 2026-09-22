@@ -265,6 +265,16 @@ func poseUnlessAsk(h Host, c *Ctx, sa *cards.SA, cost string, payers []state.Tar
 			}
 		}
 	}
+	// Rules hosts can prove whether the pay branch is reachable using both
+	// floating mana and tappable mana sources. Keep the pay option for the
+	// effects test host (and other embedders) that cannot provide that proof;
+	// R-9 still declines when it cannot ask.
+	payable := true
+	if checker, ok := h.(interface {
+		UnlessCostPayable(state.PlayerID, string) bool
+	}); ok {
+		payable = checker.UnlessCostPayable(payer, cost)
+	}
 	d := &decision.Decision{Player: payer, Kind: decision.KModes,
 		Min: 1, Max: 1, Source: c.Source, ResumeKind: "unless_pay",
 		ResumeSA: sa, ResumeTarget: i, Prompt: prompt,
@@ -280,9 +290,14 @@ func poseUnlessAsk(h Host, c *Ctx, sa *cards.SA, cost string, payers []state.Tar
 		// earlier riders' picks at the resumed Ctx's rebuild.
 		ResumeTargetsUnique: copyTargets(c.TargetsUnique),
 		Options: []decision.Option{
+			{Index: 0, Kind: "mode", Label: declineLabel, Obj: c.Source, Player: payer},
+		}}
+	if payable {
+		d.Options = []decision.Option{
 			{Index: 0, Kind: "mode", Label: payLabel, Obj: c.Source, Player: payer},
 			{Index: 1, Kind: "mode", Label: declineLabel, Obj: c.Source, Player: payer},
-		}}
+		}
+	}
 	if Ask(h, d) == AskAsked {
 		return true // resolution suspended; the answer re-enters this SA.
 	}
