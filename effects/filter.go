@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -161,6 +162,33 @@ var predicates = map[string]predFn{
 // Devoid card (effects.ColorsOf) matches no colour predicate, Green included.
 var colorLetter = map[string]string{"White": "W", "Blue": "U", "Black": "B", "Red": "R", "Green": "G"}
 
+// objectHasKeyword answers the `with<Keyword>`/`without<Keyword>` filter
+// predicates: does this object have keyword k from its printed face OR from a
+// CR 122.1b marker counter? A menace counter (Butch DeLoria), a trample
+// counter (Owen Grady), and so on grant the keyword through
+// cards.CounterKeyword's ONE classifier, so a filter and the engine's own
+// HasKeyword cannot disagree about a counter-granted keyword. This does not
+// see layer-6 AddKeyword$ grants (a continuous-effect grant needs the engine's
+// layer walk, which this predicate has no access to); a counter grant is
+// answerable from the object alone.
+func objectHasKeyword(o *state.Object, k string) bool {
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	if o.Face().HasKeyword(k) {
+		return true
+	}
+	for _, c := range o.Counters {
+		if c.N <= 0 {
+			continue
+		}
+		if name, ok := cards.CounterKeyword(c.Kind); ok && strings.EqualFold(cards.KeywordHead(name), k) {
+			return true
+		}
+	}
+	return false
+}
+
 func init() {
 	// kw:Changeling (CR 702.73) is a characteristic-defining type grant, not an
 	// effect: it is answered in changelingSubtype below, in every zone, and
@@ -174,10 +202,10 @@ func init() {
 		"Flanking", "Horsemanship"} {
 		k := kw
 		predicates["with"+strings.ReplaceAll(k, " ", "")] = func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
-			return o.Face() != nil && o.Face().HasKeyword(k)
+			return objectHasKeyword(o, k)
 		}
 		predicates["without"+strings.ReplaceAll(k, " ", "")] = func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
-			return o.Face() == nil || !o.Face().HasKeyword(k)
+			return !objectHasKeyword(o, k)
 		}
 	}
 	// These read ColorsOf, not the face directly, so Devoid (effects.ColorsOf)

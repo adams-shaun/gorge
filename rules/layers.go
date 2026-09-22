@@ -1942,6 +1942,21 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 	}
 	kw = append(kw[:0], f.Keywords...)
 	kw = append(kw, o.IntrinsicKeywords...)
+	// CR 122.1b: a marker counter whose kind names a keyword grants that
+	// keyword to the permanent it sits on (Forge's CounterKeywordType emits a
+	// Mode$ Continuous | AddKeyword$ static, EffectZone$ All). Appended here,
+	// ahead of the layer walk, so the grant is a base keyword the layer-6
+	// walk then removes or replaces exactly as it would Forge's static -- a
+	// RemoveAbilities/RemoveKeywords effect clears it and a later layer-6
+	// grant re-adds on top. Iterating o.Counters (a fixed-order slice) keeps
+	// this deterministic; cards.CounterKeyword is the single classifier, so
+	// every counter-to-keyword read agrees. Order is buttoned by the counter
+	// slice, which is append-order stable.
+	for _, c := range o.Counters {
+		if kwName, ok := cards.CounterKeyword(c.Kind); ok && c.N > 0 {
+			kw = append(kw, kwName)
+		}
+	}
 	// CR 708.5's cloak variant: a CLOAKED face-down card is a 2/2 creature
 	// with ward {2} -- the ward is part of the cloak status itself, not a
 	// printed or granted ability (the printed face does not exist while face
