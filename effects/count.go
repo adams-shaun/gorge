@@ -1848,8 +1848,10 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	// suffix /LimitMax.<n> (happily_ever_after) clamps the result. An
 	// unrecognised property keeps the whole token as the spec -- the
 	// pre-existing fail-closed behaviour, since such a token never matched
-	// anyway -- and the Different* distinct family is still out of scope
-	// here. The four extreme reductions (GreatestCardPower 64 files,
+	// anyway. The Different* distinct family IS read since diffcount1
+	// (differentPropertyKindOf's case above): distinct powers/names/mana
+	// values among the matches, the Augur of Autumn Coven gate's shape. The
+	// four extreme reductions (GreatestCardPower 64 files,
 	// GreatestCardManaCost 62, GreatestCardToughness 12, LeastCardPower 1;
 	// 136 files total) are read: the max (or min, for Least) of the
 	// property over the matches, with zero matches yielding 0 rather than a
