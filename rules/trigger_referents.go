@@ -52,7 +52,7 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		c.TriggerTarget = state.Target{Obj: source}
 		c.TriggerSource = e.protectionSource(ev.Obj)
 		c.TriggerStack = ev.Obj
-	case "DamageDone", "DamageDealtOnce", "DamageDoneOnce":
+	case "DamageDone", "DamageDealtOnce", "DamageDoneOnce", "DamageAll":
 		// The damage source the causing event names: the published override
 		// when a DamageSource$ emitter set one (Kediss' DamageAll with
 		// DamageSource$ TriggeredSource resolves its own execute through

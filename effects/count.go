@@ -823,8 +823,9 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 // applyCountOp like every other head. A property this build does not
 // model (StartingLife, DomainPlayer, CardsDrawn, ...) or a ref
 // outside the two names plus the vote-carrier ref
-// TriggeredPlayersOpponentVotedDiff (trig:Vote; its only property is
-// Amount) returns false, and the caller degrades to zero
+// TriggeredPlayersOpponentVotedDiff (trig:Vote) and the DamageAll batch
+// ref TriggeredPlayersTargets (trig:DamageAll; both refs' only property
+// is Amount) returns false, and the caller degrades to zero
 // exactly as evalRefProperty's default always did. CardsDiscardedThisTurn
 // is the one optional head the brief allowed in: the shared Host predicate
 // already existed.
@@ -853,6 +854,19 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 		}
 	default:
 		return 0, false
+	case "TriggeredPlayersTargets":
+		// The batch's matching TARGET PLAYERS (trig:DamageAll): Malcolm
+		// Keen-Eyed Navigator's and Hordewing Skaab's SVar:X reads the count
+		// of opponents the damage batch dealt damage to ("create a Treasure
+		// token for each opponent dealt damage" / "draw cards equal to the
+		// number of opponents dealt damage this way"). The capture is the
+		// fire-time batch target set, filtered to its player entries in
+		// first-seen order; Amount is the count of those players.
+		for _, t := range c.TriggerDamageTargets {
+			if t.IsPlayer {
+				ts = append(ts, state.Target{Player: t.Player, IsPlayer: true})
+			}
+		}
 	}
 	prop, op, hasOp := strings.Cut(prop, "/")
 	prop = strings.TrimSpace(prop)
@@ -861,8 +875,14 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 	// (Erestor's SVar:X, the scry size). Confine the head to it here, so the
 	// ref cannot silently inherit LifeTotal/CardsInHand/Valid... sums that
 	// belong to TargetedPlayer/ThisTargetedPlayer -- the contract the
-	// evalPlayerRefProperty doc states.
+	// evalPlayerRefProperty doc states. TriggeredPlayersTargets (the
+	// DamageAll batch ref) takes the same confinement: its only modelled
+	// property is Amount, so a future property on it fails closed to zero
+	// instead of silently reading the batch players' current zone sizes.
 	if ref == "TriggeredPlayersOpponentVotedDiff" && prop != "Amount" {
+		return 0, false
+	}
+	if ref == "TriggeredPlayersTargets" && prop != "Amount" {
 		return 0, false
 	}
 	g := h.Game()
@@ -901,7 +921,7 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 					n++
 				}
 			}
-		case prop == "Amount" && ref == "TriggeredPlayersOpponentVotedDiff":
+		case prop == "Amount" && (ref == "TriggeredPlayersOpponentVotedDiff" || ref == "TriggeredPlayersTargets"):
 			n++
 		default:
 			// The Valid head and its countZone family: "Valid <spec>",

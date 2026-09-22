@@ -1290,6 +1290,17 @@ func (e *Engine) fixLifeXCost(p state.PlayerID, id state.ObjID, c Cost) (Cost, b
 // the source face, the SVar, or the body is unavailable -- the cost is
 // unpayable (the fail-closed direction), never a silent zero draw.
 func (e *Engine) drawCostCount(id state.ObjID, you state.PlayerID, part CostPart) (int32, bool) {
+	return e.drawCostCountTrig(id, you, part, nil)
+}
+
+// drawCostCountTrig is drawCostCount with an optional fire-time trigger
+// context seeded into the evaluation: the triggered-cost window's dynamic
+// Draw<X/Spec> part (Hordewing Skaab's "draw cards equal to the number of
+// opponents dealt damage this way", SVar:X:TriggeredPlayersTargets$Amount)
+// reads the DAMAGE BATCH the triggering event captured, which the bare
+// cast-flow context carries nothing of. A nil context is the ordinary
+// cast/activation read, unchanged.
+func (e *Engine) drawCostCountTrig(id state.ObjID, you state.PlayerID, part CostPart, tcx *effects.TriggerContext) (int32, bool) {
 	if part.Dyn == "" {
 		return part.N, true
 	}
@@ -1302,6 +1313,9 @@ func (e *Engine) drawCostCount(id state.ObjID, you state.PlayerID, part CostPart
 		return 0, false
 	}
 	ctx := &effects.Ctx{Source: id, Controller: you, SVars: o.Face().SVars}
+	if tcx != nil {
+		ctx.TriggerContext = *tcx
+	}
 	n, resolvable := effects.EvalCountOK(e, ctx, body)
 	if !resolvable || n < 0 {
 		return 0, false

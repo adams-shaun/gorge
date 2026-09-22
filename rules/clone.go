@@ -259,7 +259,18 @@ func (e *Engine) Clone() *Engine {
 				c.damageBatchIdx[k] = v
 			}
 		}
-		c.damageBatchLog = append([]damageBatchEntry(nil), e.damageBatchLog...)
+		// Deep-copy the DamageAll batch sets: a shared backing array under two
+		// engines' appends must never leak an entry across a clone boundary.
+		c.damageBatchLog = make([]damageBatchEntry, len(e.damageBatchLog))
+		for i, ent := range e.damageBatchLog {
+			c.damageBatchLog[i] = ent
+			if len(ent.sources) > 0 {
+				c.damageBatchLog[i].sources = append([]state.ObjID(nil), ent.sources...)
+			}
+			if len(ent.targets) > 0 {
+				c.damageBatchLog[i].targets = append([]state.Target(nil), ent.targets...)
+			}
+		}
 	}
 	if e.phaseUnknownNoted != nil {
 		c.phaseUnknownNoted = make(map[string]bool, len(e.phaseUnknownNoted))
