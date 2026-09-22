@@ -82,8 +82,16 @@ poll_seconds = 60
 # 2026-09-21 (operator): "2 local, 5 paid".
 [caps]
 local = 2
-paid = 5
+# 2026-09-22 (operator): the paid pool is sized to hold every per-model cap
+# below at once; [caps.models] does the real bounding, so one paid provider
+# can no longer fill the pool and push terra reviews onto the local seat.
+paid = 8
 max_minutes = 75
+
+[caps.models]
+"bm-llms-glm/glm-5.3-flash" = 2
+"deepinfra/deepseek-ai/DeepSeek-V4.1-Flash" = 4
+"openai-codex/gpt-5.6-terra" = 4
 
 # config.py:21-22.
 [dispatch]
