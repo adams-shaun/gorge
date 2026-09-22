@@ -87,6 +87,13 @@ local_endpoint_probe = true
 # landing finished); the 20-min health check now lands parked tickets with an
 # Opus agent, so the drain-while-parked policy costs more than it saves.
 hold_new_while_parked = false
+# 2026-09-22 (operator: "tackle WAITING/REVIEW before any new tickets; set it
+# to 5"): while more than this many tickets sit in `waiting` (a fix round due,
+# queued for a seat) or `review`, no `new`/`briefed` ticket starts; in-flight
+# work keeps advancing and drains the backlog. Measured that day: 22 waiting
+# behind the overflow rounds fresh tickets kept spawning. Needs agentctl pin
+# >= the commit that adds the key.
+hold_new_while_waiting_over = 5
 # 2026-09-22 (operator): triage writes at most this many briefs ahead of the
 # implementers; no new triage launches while this many sit in `briefed`.
 triage_ahead = 100
