@@ -193,3 +193,38 @@ func TestFlankingAuraGrantedAttackerDebuffsBlocker(t *testing.T) {
 			e.G.Obj(blocker).Zone, e.Toughness(blocker))
 	}
 }
+
+// TestFlankingChainedGrantsStackInstances pins the layer-walk half of CR
+// 702.25b: Cavalry Master's `Affected$ Creature.Other+withFlanking+YouCtrl`
+// must see a flanking instance ANOTHER layer-6 effect granted, not only a
+// printed K:Flanking line. Sidewinder Sliver prints no flanking and gets its
+// first instance from its own "All Sliver creatures have flanking" static;
+// Cavalry Master then adds a second. Before the fix the layer walk bound only
+// the types-so-far list, so `withFlanking` read the printed face alone,
+// Cavalry Master's grant never matched the Sliver, and a 2/2 blocker survived
+// at 1/1 on one instance instead of dying to two.
+func TestFlankingChainedGrantsStackInstances(t *testing.T) {
+	sliverCard := mshCorpusCard(t, "Sidewinder Sliver")
+	master := mshCorpusCard(t, "Cavalry Master")
+	e := combatEngine(t)
+	// Sidewinder FIRST: its grant must already be in the accumulated list
+	// when Cavalry Master's Affected$ is evaluated.
+	attacker := onBoardCard(t, e, 0, sliverCard)
+	onBoardCard(t, e, 0, master)
+	e.G.Obj(attacker).SummonSick = false
+
+	if e.G.Obj(attacker).Face().HasKeyword("Flanking") {
+		t.Fatal("Sidewinder Sliver prints K:Flanking; the chained-grant case is not exercised")
+	}
+	if got := e.flankingInstances(attacker); got != 2 {
+		t.Fatalf("flanking instances = %d, want 2 (Sidewinder's own grant + Cavalry Master's)", got)
+	}
+
+	bear := onBoard(t, e, 1, "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	driveBlock(t, e, attacker, bear)
+	resolveAll(t, e)
+	if e.G.Obj(bear).Zone != state.ZGraveyard {
+		t.Fatalf("2/2 blocker = %v (toughness %d), want graveyard from two chained flanking instances",
+			e.G.Obj(bear).Zone, e.Toughness(bear))
+	}
+}

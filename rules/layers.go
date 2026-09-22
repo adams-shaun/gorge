@@ -2067,6 +2067,26 @@ func reconfigureTypeSwitch(o *state.Object, types []string) []string {
 }
 
 func (e *Engine) matchesWithTypes(ce ContinuousEffect, id state.ObjID, types []string, atStack state.Zone) bool {
+	return e.matchesWithChars(ce, id, types, nil, atStack)
+}
+
+// matchesWithChars is matchesWithTypes with the walk's KEYWORDS-so-far list
+// bound as well. It is the one seam a `with<Keyword>`/`without<Keyword>`
+// predicate in an `Affected$` spec is answered through, for the same reason
+// ExtraTypes exists: the effects filter's keyword predicates read the object
+// alone (printed face plus marker counters) and cannot see a layer-6
+// AddKeyword$ grant, so a lord that selects on a granted keyword would never
+// match. Cavalry Master's `Creature.Other+withFlanking+YouCtrl` over a
+// Sidewinder Sliver whose own static granted the flanking is the measured
+// case (CR 702.25b: each instance triggers separately).
+//
+// The list is keywords-SO-FAR in the walk's own layer/timestamp order, which
+// is the same reading ExtraTypes gives: a grant whose effect is applied
+// earlier is visible, a later one is not. CR 613.6's dependency reordering is
+// NOT modelled -- with Cavalry Master's effect older than the grant it
+// depends on, the second instance is missed (the conservative direction, and
+// the narrowing AGENTS.md records).
+func (e *Engine) matchesWithChars(ce ContinuousEffect, id state.ObjID, types, keywords []string, atStack state.Zone) bool {
 	// The cast-provenance qualifiers (castprov1/2/3 — the_twelfth_doctor's
 	// `Affected$ Card.YouCtrl+!wasCastFromYourHand`, quandrix_the_proof's
 	// `Instant.wasCastByYou+wasCastFromYourHand`) are split out before the
@@ -2084,6 +2104,7 @@ func (e *Engine) matchesWithTypes(ce ContinuousEffect, id state.ObjID, types []s
 	sc := e.specCtx(ce.Source, ce.Controller)
 	sc.AsStack = atStack != 0
 	sc.ExtraTypes = types
+	sc.ExtraKeywords = keywords
 	// The compiled predicate sidecar answers type and colour predicates
 	// against the PRINTED face (effects/compiled_predicate.go's
 	// matchesCompiledBase/matchesCompiledTerm call hasType/ColorsOf), so it
@@ -2346,7 +2367,14 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 		col = 0 // CR 708.5: a face-down permanent has no colours
 	}
 	for _, ce := range active {
-		if !e.matchesWithTypes(ce, id, ty, atStack) {
+		// kw is the walk's keywords-so-far list for THIS object (printed
+		// keywords, IntrinsicKeywords, marker-counter grants and every
+		// layer-6 grant applied so far), bound exactly as ty is: an
+		// `Affected$ ...+with<Keyword>` lord must see a keyword an earlier
+		// effect granted. derivedScalarFrom's layer-7 walk deliberately
+		// binds no keyword list -- it never builds one, and the supported
+		// P/T grammar has no keyword-gated applicability.
+		if !e.matchesWithChars(ce, id, ty, kw, atStack) {
 			continue
 		}
 		// An AffectedZone$ qualifier on a characteristic grant narrows where
