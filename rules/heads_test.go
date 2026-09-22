@@ -1001,7 +1001,17 @@ var acceptanceHeads = map[int]string{
 	// AR7 promotion (2026-09-19): the default bot now attacks with a creature
 	// that is lethal to its defender if unblocked even into an unfavourable
 	// block (botpolicy lethal pressure; held-out 2,066-1,934 vs the old bot).
-	6: "17354c8eda982ae3",
+	// Devotion/threshold count heads (2026-09-22): 6 seats moved to
+	// 51ca01ded64c6b74 with task cli-20260922T150843Z-f8b39ebe
+	// (feat(effects): Count$Threshold and Count$Devotion heads). Seat 5
+	// (mono-green-stompy) casts Aspect of Hydra at event 7087 and resolves it
+	// at 7108; the unmodelled Count$Devotion.Green made X read 0, so effPump
+	// registered nothing — the fixed engine registers the real +X/+X
+	// continuous pump (the first divergence is exactly the resolution's
+	// AddContinuous clock_tick at event 7109; every earlier event is byte-
+	// identical), the pumped creature then blocks differently, and the rest
+	// of the stream follows.
+	6: "51ca01ded64c6b74",
 	// 8 seats moved to cc022f9ba9f2bf39 with task mana2 (fix(rules): pay mana
 	// ability costs and choose colors): mana abilities that spend a Sac cost
 	// are now gated on a payable, deterministic sacrifice candidate existing,
@@ -1114,7 +1124,17 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	8: "2fe007e9f370364c",
+	// Devotion/threshold count heads (2026-09-22): 8 seats moved to
+	// 275fb23897e22f6e with task cli-20260922T150843Z-f8b39ebe
+	// (feat(effects): Count$Threshold and Count$Devotion heads). Seat 5
+	// (mono-green-stompy) casts Aspect of Hydra at event 11823 and resolves a
+	// copy at 11858; the unmodelled Count$Devotion.Green made X read 0, so
+	// effPump registered nothing — the fixed engine registers the real +X/+X
+	// continuous pump (the first divergence is exactly the resolution's
+	// AddContinuous clock_tick at 11859; every earlier event is byte-
+	// identical, and Cabal Ritual appears in NEITHER stream, so the measured
+	// sole first-mover is Aspect of Hydra, as at 6 seats).
+	8: "275fb23897e22f6e",
 }
 
 func TestHeads(t *testing.T) {

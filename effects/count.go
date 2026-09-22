@@ -1941,6 +1941,70 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 				return y, true
 			}
 			return n, true
+		case "Threshold":
+			// CR 702.24's Threshold branch head (7 corpus carriers: Cabal
+			// Ritual's Count$Threshold.5.3 mana ritual, Thermal Blast and
+			// Swirling Sandstorm's .5.x/.5.0 damage, Far Wanderings' .3.1
+			// search, Grizzly Fate's .4.2 tokens, Shower of Coals' and
+			// Patriarch's Desire's .4.2): <yes> when the resolving CONTROLLER
+			// has Threshold active -- seven or more cards in their graveyard
+			// (CR 702.24a's latch-free active-while read, the same seven the
+			// Threshold keyword statics share) -- else <no>. The graveyard is
+			// a plain zone read (event-backed), so a replay derives the same
+			// branch. Branch tokens resolve through resolveCountOperand (the
+			// wasCastFromGraveyard precedent -- a literal, an SVar name or an
+			// inline expression; an unresolvable token degrades to 0, never
+			// wedges), and an out-of-range controller denies, the same
+			// fail-closed direction the Blessing sibling takes.
+			yesTok, noTok, _ := strings.Cut(head[dot+1:], ".")
+			inGrave := false
+			if int(c.Controller) >= 0 && int(c.Controller) < len(g.Players) {
+				inGrave = len(g.Zone(state.ZGraveyard, c.Controller)) >= 7
+			}
+			return countBranchOperand(h, c, inGrave, yesTok, noTok, depth), true
+		case "Devotion":
+			// CR 700.5's devotion head (49 corpus carriers: Aspect of Hydra's
+			// Count$Devotion.Green pump, Gray Merchant of Asphodel's .Black
+			// drain, Nykthos' four .Chosen lines behind a ChooseColor): the
+			// number of mana symbols of ONE colour among the mana costs of the
+			// permanents the resolving CONTROLLER controls (devotionCount
+			// below). <Colour> is a Forge colour word or WUBRG letter
+			// (colourLetter); the corpus prints only the five words plus the
+			// Chosen spelling, which reads the source object's own recorded
+			// colour choice (events.Choose's "color" fold -- effChooseColor's
+			// deterministic "W" fallback included) so the count and the ask
+			// that binds it can never disagree; an unchosen or unreadable
+			// colour fails closed to the unresolvable verdict, never to a
+			// fake zero.
+			col := colourLetter(head[dot+1:])
+			if col == 0 {
+				if !strings.EqualFold(head[dot+1:], "Chosen") {
+					return 0, false
+				}
+				src := g.Obj(c.Source)
+				if src == nil {
+					return 0, false
+				}
+				col = colourLetter(src.ChosenColor)
+				if col == 0 {
+					return 0, false
+				}
+			}
+			return devotionCount(g, c.Controller, col), true
+		case "DevotionDual":
+			// CR 700.5's two-colour devotion head (14 corpus carriers: Mogis'
+			// Count$DevotionDual.Black.Red drain and the DevotionDual spellings
+			// the temples/god cycle print): the SUM of the devotion to both
+			// named colours -- each hybrid symbol counts once toward EACH of
+			// its colours, so the sum is the oracle's "devotion to <A> and
+			// <B>". An unreadable colour fails closed to the unresolvable
+			// verdict, the Devotion sibling's read.
+			aTok, bTok, found := strings.Cut(head[dot+1:], ".")
+			ca, cb := colourLetter(aTok), colourLetter(bTok)
+			if !found || ca == 0 || cb == 0 {
+				return 0, false
+			}
+			return devotionCount(g, c.Controller, ca) + devotionCount(g, c.Controller, cb), true
 		}
 	}
 
@@ -2875,6 +2939,93 @@ func splitDot(s string) (a, b int32) {
 	av, _ := strconv.Atoi(x)
 	bv, _ := strconv.Atoi(y)
 	return int32(av), int32(bv)
+}
+
+// countBranchOperand resolves one yes/no branch head's two branch tokens
+// against a boolean the head's predicate computed: <yes> when it holds, else
+// <no>. The token reader is resolveCountOperand (the wasCastFromGraveyard
+// branch-head precedent -- a literal, an SVar name, or an inline expression;
+// the recursion depth rides so a branch naming another SVar terminates), and
+// an unresolvable token degrades to 0 rather than wedging -- the same
+// direction the Compare head's operands take.
+func countBranchOperand(h Host, c *Ctx, holds bool, yesTok, noTok string, depth int) int32 {
+	if holds {
+		return evalCountOperand(h, c, yesTok, depth)
+	}
+	return evalCountOperand(h, c, noTok, depth)
+}
+
+// colourLetter parses one Forge colour spelling -- a WUBRG letter or a full
+// colour word, case-insensitive -- to its WUBRG letter, or 0 when the token
+// names no colour. The callers that fail closed on 0 keep an unreadable
+// colour unresolvable rather than counting a fake zero.
+func colourLetter(s string) byte {
+	s = strings.ToUpper(strings.TrimSpace(s))
+	if len(s) == 1 {
+		switch s[0] {
+		case 'W', 'U', 'B', 'R', 'G':
+			return s[0]
+		}
+		return 0
+	}
+	switch s {
+	case "WHITE":
+		return 'W'
+	case "BLUE":
+		return 'U'
+	case "BLACK":
+		return 'B'
+	case "RED":
+		return 'R'
+	case "GREEN":
+		return 'G'
+	}
+	return 0
+}
+
+// devotionCount is CR 700.5's devotion to one colour: the number of mana
+// symbols of that colour among the mana costs of the permanents the player
+// controls. Every printed spelling the corpus carries counts -- plain pips
+// ("2 B B"), two-colour hybrid ("GW"), monocolour hybrid ("2B"/"2/B"),
+// Phyrexian ("BP", CR 107.4f: it is a symbol of its colour) and the
+// compleated tricolour ("GWP"/"PRG") -- because each WUBRG letter inside a
+// pip token counts once for its colour (manaCostColourSymbols below). A
+// face-down battlefield permanent has no mana cost (CR 708.5's vanilla set)
+// and contributes nothing; an out-of-range controller counts nothing.
+func devotionCount(g *state.Game, controller state.PlayerID, col byte) int32 {
+	if int(controller) < 0 || int(controller) >= len(g.Players) {
+		return 0
+	}
+	var n int32
+	for _, id := range g.Zone(state.ZBattlefield, controller) {
+		o := g.Obj(id)
+		if o == nil || (o.FaceDown && o.Zone == state.ZBattlefield) {
+			continue
+		}
+		f := o.Face()
+		if f == nil {
+			continue
+		}
+		n += manaCostColourSymbols(f.ManaCost, col)
+	}
+	return n
+}
+
+// manaCostColourSymbols counts one printed ManaCost string's symbols of one
+// colour. The corpus costs are space-separated pip tokens (measured: zero
+// brace-form costs at the current pin); each WUBRG letter inside a token
+// counts once for its colour, so hybrid/Phyrexian/compleated spellings read
+// once per component colour. Generic digits, {X}, {S}, {C} and the P of a
+// Phyrexian pip contribute to no colour.
+func manaCostColourSymbols(cost string, col byte) int32 {
+	if cost == "" || strings.EqualFold(cost, "no cost") {
+		return 0
+	}
+	var n int32
+	for _, sym := range strings.Fields(cost) {
+		n += int32(strings.Count(sym, string(col)))
+	}
+	return n
 }
 
 // countZone maps a Count$ head to the zone it scopes over. ValidAll is NOT
