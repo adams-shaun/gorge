@@ -1149,9 +1149,13 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 		// else when it leaves the stack -- but an explicit non-graveyard
 		// destination (Remand's hand) is that anywhere-else, so the override
 		// applies only on the graveyard/default path. CR 702.85a: the same
-		// "then exile it" covers an Aftermath half's cast, every way it
-		// leaves the stack including being countered.
-		if o.CastFlags&(state.FlagFlashback|state.FlagAftermath) != 0 && to == state.ZGraveyard {
+		// "then exile it" covers an Aftermath half's cast, CR 702.84a a
+		// jump-start cast, and harmonize's "exile it instead of putting it
+		// into your graveyard" -- every way the spell leaves the stack,
+		// including being countered. One shared predicate (state.
+		// ExilesLeavingStack) so a new keyword in this family cannot be
+		// added to rules' readers and missed here.
+		if state.ExilesLeavingStack(o.CastFlags) && to == state.ZGraveyard {
 			to = state.ZExile
 		}
 		if remember {

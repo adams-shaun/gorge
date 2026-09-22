@@ -203,6 +203,44 @@ func TestEvalCountZoneScopedForms(t *testing.T) {
 	}
 }
 
+// TestEvalCountValidStackScansTheSharedStackOnce pins the ValidStack head
+// against the shared-zone double-count: state.Game.Zone returns g.Stack for
+// EVERY seat, so the zone-count scan must visit the shared stack exactly
+// once, not once per alive seat. On the two-seat fixture below one spell on
+// the stack read 2 before the fix and reads 1 after (Mindbreak Trap's
+// MaxTgts = the number of spells on the stack; Display of Power's copy
+// count). The preconditions are asserted so a vacuous setup fails loudly.
+func TestEvalCountValidStackScansTheSharedStackOnce(t *testing.T) {
+	h := newHost(t, 2)
+	// Precondition: both seats are alive, so a per-seat walk visits two
+	// seats and a broken scan would count the single spell twice.
+	if alive := h.g.AliveFrom(0); len(alive) != 2 {
+		t.Fatalf("fixture precondition: %d alive seats, want 2", len(alive))
+	}
+	src := h.g.AddObject(mkCard(t, "Name:Spell\nManaCost:1 U\nTypes:Instant\nOracle:x\n"), 0)
+	src.Zone = state.ZStack
+	h.g.SetZone(state.ZStack, 0, []state.ObjID{src.ID})
+	// Precondition: exactly one stack object, and the shared zone returns
+	// the same list for both seats (the property under test).
+	if got := h.g.Zone(state.ZStack, 0); len(got) != 1 {
+		t.Fatalf("fixture precondition: seat 0 stack has %d objects, want 1", len(got))
+	}
+	if got := h.g.Zone(state.ZStack, 1); len(got) != 1 {
+		t.Fatalf("fixture precondition: seat 1 stack has %d objects, want 1", len(got))
+	}
+	c := &Ctx{Controller: 0}
+	if got := EvalCount(h, c, "Count$ValidStack Card"); got != 1 {
+		t.Errorf("Count$ValidStack Card = %d, want 1 (one spell, two alive seats)", got)
+	}
+	if got := EvalCount(h, c, "Count$ValidStack Instant"); got != 1 {
+		t.Errorf("Count$ValidStack Instant = %d, want 1", got)
+	}
+	// A spec that matches nothing must stay 0 through the same shared scan.
+	if got := EvalCount(h, c, "Count$ValidStack Creature"); got != 0 {
+		t.Errorf("Count$ValidStack Creature = %d, want 0", got)
+	}
+}
+
 func TestEvalCountPlayerAndLifeForms(t *testing.T) {
 	g, _ := board(t)
 	h := &fakeHost{g: g}
@@ -765,5 +803,128 @@ func TestPlayerCountConditionFamily(t *testing.T) {
 	g.Players[1].Lost = false
 	if got, ok := EvalCountOK(h, c, "Count$PlayerCountOpponents$ConditionGE2 BogusProp"); ok {
 		t.Errorf("BogusProp reported EVALUATED as %d on a live group — must fail unresolvable", got)
+	}
+}
+
+// TestEvalCountValidAllScansEveryCardZone pins the ValidAll head: the scan
+// covers EVERY card zone (library, hand, battlefield, graveyard, exile,
+// command) plus one stack pass, and each candidate is matched against its
+// OWN zone -- the way Forge evaluates a ValidAll spec against the card's
+// actual zone. This is Cactus Preserve's and Tangleweave Armor's exact SVar
+// shape (greatest mana value among your commanders, who sit in the command
+// zone) and Kefka's (an imprinted card, which lives in exile).
+func TestEvalCountValidAllScansEveryCardZone(t *testing.T) {
+	g, ids := board(t)
+	h := &fakeHost{g: g}
+	c := &Ctx{Controller: 0}
+	// board(t) puts one Instant ("Trick") and one Sorcery ("Ritual") in
+	// seat 0's GRAVEYARD: the battlefield-only Valid head counts neither,
+	// ValidAll counts both -- and the comma-alternative spec reaches the
+	// pair the single-base spec cannot.
+	if got := EvalCount(h, c, "Count$Valid Instant"); got != 0 {
+		t.Errorf("precondition: Valid Instant = %d, want 0 (graveyard cards are outside the battlefield scan)", got)
+	}
+	if got := EvalCount(h, c, "Count$ValidAll Instant"); got != 1 {
+		t.Errorf("ValidAll Instant = %d, want 1 (the graveyard instant)", got)
+	}
+	if got := EvalCount(h, c, "Count$ValidAll Instant,Sorcery"); got != 2 {
+		t.Errorf("ValidAll Instant,Sorcery = %d, want 2 (the graveyard instant and sorcery)", got)
+	}
+	// The command zone: the Walker planeswalker moves there and is
+	// registered as seat 0's commander. IsCommander reads the seat's
+	// Commanders list, and the commander now sits in ZCommand -- neither
+	// the battlefield Valid head nor a battlefield-only scan can see it.
+	walker := g.Obj(ids["myWalker"])
+	var bf []state.ObjID
+	for _, id := range g.Zone(state.ZBattlefield, 0) {
+		if id != ids["myWalker"] {
+			bf = append(bf, id)
+		}
+	}
+	g.SetZone(state.ZBattlefield, 0, bf)
+	walker.Zone = state.ZCommand
+	g.SetZone(state.ZCommand, 0, []state.ObjID{ids["myWalker"]})
+	g.Players[0].Commanders = []state.ObjID{ids["myWalker"]}
+	if got := EvalCount(h, c, "Count$Valid Card.IsCommander"); got != 0 {
+		t.Errorf("Valid Card.IsCommander = %d, want 0 (the commander is in the command zone)", got)
+	}
+	if got := EvalCount(h, c, "Count$ValidAll Card.IsCommander+YouOwn"); got != 1 {
+		t.Errorf("ValidAll Card.IsCommander+YouOwn = %d, want 1", got)
+	}
+	// The extreme property folds over the all-zones scan: the greatest
+	// commander mana value reads the walker's mana value {2}{U} = 3.
+	if got := EvalCount(h, c, "Count$ValidAll Card.IsCommander+YouOwn$GreatestCardManaCost"); got != 3 {
+		t.Errorf("ValidAll Card.IsCommander+YouOwn$GreatestCardManaCost = %d, want 3", got)
+	}
+	// Extreme properties keep working over the mixed-zone scan: the
+	// battlefield creatures' greatest power is still the Giant's 5.
+	if got := EvalCount(h, c, "Count$ValidAll Creature$GreatestCardPower"); got != 5 {
+		t.Errorf("ValidAll Creature$GreatestCardPower = %d, want 5", got)
+	}
+	// The stack pass: ValidAll scans the global stack exactly ONCE (the
+	// single stack pass after the per-seat zones), so a spell on the stack
+	// counts 1, not once per alive seat.
+	trick := g.Obj(ids["myInstant"])
+	var gy []state.ObjID
+	for _, id := range g.Zone(state.ZGraveyard, 0) {
+		if id != ids["myInstant"] {
+			gy = append(gy, id)
+		}
+	}
+	g.SetZone(state.ZGraveyard, 0, gy)
+	trick.Zone = state.ZStack
+	g.SetZone(state.ZStack, 0, []state.ObjID{ids["myInstant"]})
+	if got := EvalCount(h, c, "Count$ValidAll Instant"); got != 1 {
+		t.Errorf("ValidAll Instant with the spell on the stack = %d, want 1 (the stack is scanned once, not once per alive seat)", got)
+	}
+}
+
+// TestEvalCountValidZoneScanIsAllocationFree pins the zone-count branch's
+// hot-path contract: Count$Valid is on the hottest condition path
+// (effects.CheckSVarHolds intervening-ifs, static gates, SVarCompare), so
+// its single-zone scan must iterate IN PLACE -- no materialised candidate
+// slice, no per-candidate heap work. The r1 restructure went 0 -> 4
+// allocs/op and was reverted to the in-place fold; this pin keeps the
+// restructure from recurring.
+func TestEvalCountValidZoneScanIsAllocationFree(t *testing.T) {
+	g, _ := board(t)
+	h := &fakeHost{g: g}
+	c := &Ctx{Controller: 0}
+	// Precondition: the head actually counts the battlefield creatures
+	// (Bear + Flier + Giant) so the alloc pin runs over a real scan, not
+	// an empty one that never enters the per-candidate body.
+	if got := EvalCount(h, c, "Count$Valid Creature"); got != 3 {
+		t.Fatalf("precondition: Count$Valid Creature = %d, want 3", got)
+	}
+	allocs := testing.AllocsPerRun(100, func() {
+		if got := EvalCount(h, c, "Count$Valid Creature"); got != 3 {
+			t.Fatalf("Count$Valid Creature = %d, want 3", got)
+		}
+	})
+	if allocs != 0 {
+		t.Fatalf("Count$Valid Creature allocated %.0f objects per eval; want zero (the zone-count scan must iterate in place)", allocs)
+	}
+	// The warm-Ctx shape the r3 review added: the layer walk (rules/
+	// layers.go's cdaSetPT) builds a FRESH &effects.Ctx{...} per call and
+	// hands it to EvalCount, so a warm caller-built Ctx must not be forced
+	// to the heap by anything evalCountBody does with it. The r2 fold
+	// stored c.SpecContext(...) in the zoneCountFold struct, which made
+	// escape analysis summarise the *Ctx param as leaking -- the rules
+	// Derived pin went 0 -> 1 alloc/call while this test still passed
+	// (its Ctx was built outside the region). Building the Ctx INSIDE the
+	// region here pins the caller-side contract in this package, where the
+	// break happens.
+	warm := testing.Benchmark(func(b *testing.B) {
+		b.ReportAllocs()
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			cWarm := &Ctx{Controller: 0}
+			if got := EvalCount(h, cWarm, "Count$Valid Creature"); got != 3 {
+				b.Fatalf("Count$Valid Creature = %d, want 3", got)
+			}
+		}
+	})
+	if warm.AllocsPerOp() != 0 {
+		t.Fatalf("warm Ctx built inside the region allocated %d objects/op; want zero (a caller-built Ctx must not escape through the count scan -- the layer walk builds one per object)", warm.AllocsPerOp())
 	}
 }

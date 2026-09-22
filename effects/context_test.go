@@ -69,6 +69,11 @@ type fakeHost struct {
 	// HasPropertyLostLifeThisTurn properties (the real log-scan read is
 	// pinned in rules).
 	lifeLost map[state.PlayerID]int32
+	// commanderCasts is the CommanderCastsFromCommandZone answer the double
+	// reports, keyed by player; a nil map (the default) reports zero. The
+	// effects-level Count$TotalCommanderCastFromCommandZone test sets it
+	// (the real log-walk read is pinned in rules).
+	commanderCasts map[state.PlayerID]int32
 	// dmgTaken is the DamageTakenThisTurn answer the double reports, keyed
 	// by player; a nil map (the default) reports zero for every player. The
 	// effects-level TargetedPlayer$DamageThisTurn tests set it; the real
@@ -197,6 +202,14 @@ func (h *fakeHost) EndDamageBatch()   {}
 // package tests set up their own boards, so the double reports zero.
 func (h *fakeHost) CastThisTurn() int { return 0 }
 
+// commanderCasts is the CommanderCastsFromCommandZone answer the double
+// reports (per player); the Count$TotalCommanderCastFromCommandZone
+// eval-level test flips it to pin the head through the Host seam (the real
+// log-walk read is pinned in rules).
+func (h *fakeHost) CommanderCastsFromCommandZone(p state.PlayerID) int32 {
+	return h.commanderCasts[p]
+}
+
 // LifeLostThisTurn reports the h.lifeLost entry the effects-level
 // PlayerCountDefinedRegistered tests configure; a nil map reports zero (the
 // pre-existing conservative no-op, so every other test is unchanged).
@@ -292,6 +305,12 @@ func (h *fakeHost) DiscardedInWindow(_ state.ObjID) []state.ObjID { return nil }
 // — enough for the branch-head and ConditionPresent$ gate unit tests, whose
 // provenance is pinned end to end on the real engine in rules.
 func (h *fakeHost) WasCastFromHand(_ state.ObjID) bool { return h.castFromHand }
+
+// WasCastFromExile (task wascastfrom): the fake has no cast log, so the
+// Count$wasCastFromExile branch head's fakeHost evals take the ifFalse
+// branch; the provenance is pinned end to end on the real engine in rules
+// (Delayed Blast Fireball's foretell-cast corpus test).
+func (h *fakeHost) WasCastFromExile(_ state.ObjID) bool { return false }
 
 // WasCast is the Count$IfCastInOwnMainPhase third conjunct's read (task
 // ifcastmain1): the fake reports the flag, so the eval-level head tests pin

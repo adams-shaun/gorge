@@ -254,6 +254,10 @@ type pendingCast struct {
 	modesDone  bool
 	modeChosen bool
 	preModes   []string
+	// modeCostsDone is set once a Spree/Tiered cast has folded its chosen
+	// modes' ModeCost$ into cost, so a re-entry through continueCast cannot
+	// charge the per-mode additional cost twice.
+	modeCostsDone bool
 
 	// passedTarget is set once the flow has moved past the 601.2c target
 	// choice into payCast, so a resume through continueCast (the mana-window
@@ -538,6 +542,19 @@ func buybackCost(f *cards.Face) (Cost, bool) {
 // disagree about what the cast costs.
 func retraceExtra() Cost {
 	return Cost{Discard: []CostPart{{Spec: "Land", N: 1}}}
+}
+
+// jumpstartExtra is Jump-start's additional cost (CR 702.84a): discard a card,
+// in addition to the spell's other costs. Jump-start is NOT a cost
+// substitution -- the oracle reads "in addition to paying its other costs" --
+// so, exactly like retraceExtra, this returns only the ADDITIONAL part, folded
+// onto the printed base by both the offer gate (legal.go's graveyard walk) and
+// beginCast's "jumpstart" mode, through the one definition so the two cannot
+// disagree. Unlike Retrace the discarded card may be any card (“a card”,
+// not “a land card”), and the spell is exiled on resolution -- the flashback
+// destination, charged by modeFlags' FlagJumpstart.
+func jumpstartExtra() Cost {
+	return Cost{Discard: []CostPart{{Spec: "Card", N: 1}}}
 }
 
 // altAddCostParts splits a face's AlternateAdditionalCost keyword into its
@@ -1775,6 +1792,16 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		if f.HasKeyword("Retrace") {
 			cost = cost.Plus(retraceExtra())
 		}
+	case "jumpstart":
+		// Jump-start (CR 702.84a): a graveyard cast paying the printed mana
+		// cost PLUS the additional discard-a-card cost -- never a
+		// substitution, exactly the retrace shape. The offer gate priced this
+		// composition and proved a card payable; the same stale-option
+		// degradation applies (a jumpstart mode whose keyword is gone folds
+		// nothing rather than charging an unoffered discard).
+		if f.HasKeyword("Jump-start") {
+			cost = cost.Plus(jumpstartExtra())
+		}
 	case "evoked", "dashed", "overloaded", "warped", "madness", "bestowed":
 		// The alternative-cost keyword family (altcosts): each mode's cost is
 		// the printed keyword parameter in place of the mana cost, exactly the
@@ -1834,7 +1861,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// this (pc.ability < 0 and no alternative/flashback recast), and a spell
 	// with no SP Cost$ contributes nothing.
 	if opt.AltCostIndex == 0 && (opt.Mode == "" || opt.Mode == "mayplay" || opt.Mode == "room_alt" ||
-		opt.Mode == "adventure_alt" || opt.Mode == "aftermath" || opt.Mode == "split_alt" || opt.Mode == "conspired" || opt.Mode == "mayflash" || opt.Mode == "retrace") {
+		opt.Mode == "adventure_alt" || opt.Mode == "aftermath" || opt.Mode == "split_alt" || opt.Mode == "conspired" || opt.Mode == "mayflash" || opt.Mode == "retrace" || opt.Mode == "jumpstart") {
 		cost = withSpellAbilityExtras(f, cost)
 	}
 	// Convoke and Harmonize are announced only after X/mode/pip choices have
@@ -2839,26 +2866,56 @@ func (e *Engine) castModeAsk() bool {
 	ctx := &effects.Ctx{Source: pc.card, Controller: pc.player}
 	effects.SetSVars(ctx, f.SVars)
 	choices := strings.Split(sa.Params["Choices"], ",")
+	// The potential pool (a pure read) is the colour-aware upper bound the
+	// per-mode cost filter below prices against: at this point in the cast no
+	// mana has been floated yet (the CR 601.2g window is in payCast), so the
+	// floating pool alone would wrongly withhold every payable mode.
+	pot := e.PotentialMana(pc.player)
 	legal := make([]string, 0, len(choices))
 	for _, name := range choices {
 		name = strings.TrimSpace(name)
 		sub := cards.ResolveSVar(f.SVars, name)
-		if sub == nil || sub.Params["ValidTgts"] == "" {
-			legal = append(legal, name)
+		if sub != nil && sub.Params["ValidTgts"] != "" {
+			min, _ := e.resolvedTargetBounds(pc.player, pc.card, sub, pc.x)
+			if len(e.legalTargetCandidates(pc.player, pc.card, pc.card, sub)) < min {
+				continue
+			}
+		}
+		// CR 601.2b/702.171b: a Spree/Tiered mode's own ModeCost$ is an
+		// additional cost charged per chosen mode. A mode whose cost cannot be
+		// paid even after floating every untapped source is not a legal
+		// announcement -- the same no-progress suppression the target-legality
+		// filter above applies, and what makes a mode declined for cost ABSENT
+		// rather than free. It is only a per-mode necessary condition: an
+		// unaffordable COMBINATION of individually affordable modes still
+		// aborts at payment (CR 733.1, the ordinary reversal), so no legal cast
+		// is lost here and no unpayable cast is silently allowed.
+		// modeCostFeasible prices the mode through the same modifier snapshot
+		// the charge applies (pc.mods, with the potential-target retry), so a
+		// ReduceCost/SetCost static that makes a mode payable is seen; the
+		// price is against the potential pool (no mana floated yet at 601.2b).
+		//
+		// A ModeCost$ this build cannot price (ParseCost leaves an unknown
+		// token) is withheld outright: an unparseable mandatory cost must never
+		// degrade to a free mode.
+		if modeCostUnparseable(f, name) {
 			continue
 		}
-		min, _ := e.resolvedTargetBounds(pc.player, pc.card, sub, pc.x)
-		if len(e.legalTargetCandidates(pc.player, pc.card, pc.card, sub)) >= min {
-			legal = append(legal, name)
+		if mc, present, ok := modeCost(f, name); present && ok {
+			if !e.modeCostFeasible(pc, mc, pot) {
+				continue
+			}
 		}
+		legal = append(legal, name)
 	}
 	min, max, repeat := effects.CharmModeBounds(e, ctx, sa, len(legal))
 	if min > len(legal) && !repeat {
-		// No legal set of modes can complete its required target choices. This
-		// is the modal counterpart of targetAsk's no-legal-target reversal; use
-		// the no-progress suppression so an automated seat cannot propose the
-		// same impossible cast forever. A repeatable Charm can fill its slots by
-		// repeating an eligible mode, so it never aborts here.
+		// No legal set of modes can complete its required target choices or
+		// pay its per-mode costs. This is the modal counterpart of targetAsk's
+		// no-legal-target reversal; use the no-progress suppression so an
+		// automated seat cannot propose the same impossible cast forever. A
+		// repeatable Charm can fill its slots by repeating an eligible mode, so
+		// it never aborts here.
 		e.abortCast(pc, "cast aborted: no legal modal choice", true)
 		return true
 	}
@@ -5163,6 +5220,13 @@ func modeFlags(mode string) string {
 		return events.FlagsString(state.FlagSurged)
 	case "flashback":
 		return events.FlagsString(state.FlagFlashback)
+	// Jump-start (CR 702.84a): like flashback, the flag is what the
+	// resolution reader (spellRestZone) and the fizzle reader
+	// (spellFizzleZone) read to exile the card instead of the graveyard, on
+	// resolution AND when countered -- the card may not be jump-started a
+	// second time from the graveyard.
+	case "jumpstart":
+		return events.FlagsString(state.FlagJumpstart)
 	// Aftermath (CR 702.85a): the flag is what the resolution reader
 	// (spellRestZone) and the fizzle reader (spellFizzleZone) read to exile
 	// the card instead of the graveyard -- on resolution AND when countered,
@@ -6699,6 +6763,14 @@ func init() {
 		// legal.go's graveyard walk and the cost fold in beginCast's "retrace"
 		// mode, both through retraceExtra so offer and charge cannot disagree.
 		"kw:Retrace",
+		// kw:Jump-start: CR 702.84a, the graveyard cast paying the printed
+		// mana cost plus an additional discard-a-card cost and exiling the
+		// card on resolution. The offer lives in legal.go's graveyard walk, the
+		// cost fold in beginCast's "jumpstart" mode (both through
+		// jumpstartExtra), and the exile destination in modeFlags' FlagJumpstart
+		// read by spellRestZone/spellFizzleZone -- proved by
+		// TestRadicalIdeaJumpstartCastsDiscardsAndExiles.
+		"kw:Jump-start",
 		"kw:Buyback", "kw:Transmute", "kw:Suspend", "kw:Convoke", "kw:Harmonize", "kw:Cycling",
 		// kw:Cascade: CR 702.85, the cast trigger read directly off the K:
 		// line (no keyword expansion — the printed K:Cascade and every

@@ -1160,6 +1160,16 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		// classic idiom is Count$ThisTurnCast/Minus1 (storm copies the spell
 		// once per spell cast before it, i.e. everyone's casts minus itself).
 		return int32(h.CastThisTurn()), true
+	case "TotalCommanderCastFromCommandZone":
+		// Forge's "for each time you've cast your commander from the command
+		// zone this game" head (Thunderclap Drake's copy Amount$ X,
+		// Commanders Insignia's P/T, Henzie's blitz discount, The Swarmlord's
+		// /Twice entry counters; 17 corpus carriers). The resolving
+		// controller's own command-zone commander casts over the WHOLE game
+		// — log-derived through the Host like CastThisTurn, so a replay
+		// derives the same number, and the same provenance read the
+		// CR 903.8 commander tax already counts.
+		return h.CommanderCastsFromCommandZone(c.Controller), true
 	case "RememberedNumber":
 		// Forge's Count$RememberedNumber is the executing ability's remembered
 		// count -- the same list evalRememberedOK's Amount head reads. In this
@@ -1604,7 +1614,7 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			yesTok, noTok, _ := strings.Cut(head[dot+1:], ".")
 			holds := false
 			if o := g.Obj(c.Source); o != nil && !o.IsCopy {
-				holds = o.CastFlags&(state.FlagFlashback|state.FlagHarmonize|state.FlagEscaped) != 0
+				holds = state.WasCastFromGraveyard(o.CastFlags)
 			}
 			if holds {
 				y, ok := resolveCountOperand(h, c, yesTok, depth)
@@ -1679,6 +1689,37 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 				n3 = 0
 			}
 			return n3, true
+		case "wasCastFromExile":
+			// The resolving source was CAST FROM EXILE (task wascastfrom; the
+			// delayed_blast_fireball `Count$wasCastFromExile.5.2`,
+			// lifestreams_blessing `.2.0` and the ultimate_magic `.1.0`
+			// carriers): the CR 601.2b provenance of an exile-origin cast —
+			// foretell, warp, may-play — which carries no CastFlags bit (the
+			// flags mark alternative costs and origins only), so the read is
+			// the object's latest PutOnStack (Host.WasCastFromExile's log
+			// scan, replay-derivable), the same discipline the hand branch
+			// heads take: a copy was never cast, and a card never put on the
+			// stack (cheated into play) reads false. Branch tokens resolve
+			// through resolveCountOperand, the same machinery.
+			yesTok, noTok, _ := strings.Cut(head[dot+1:], ".")
+			holds := false
+			if o := g.Obj(c.Source); o != nil && !o.IsCopy {
+				if h != nil {
+					holds = h.WasCastFromExile(c.Source)
+				}
+			}
+			if holds {
+				y, ok := resolveCountOperand(h, c, yesTok, depth)
+				if !ok {
+					y = 0
+				}
+				return y, true
+			}
+			nE, ok := resolveCountOperand(h, c, noTok, depth)
+			if !ok {
+				nE = 0
+			}
+			return nE, true
 		case "IfCastInOwnMainPhase", "InOwnMainPhase":
 			// CR "if you cast this spell during your main phase": the
 			// yes/no branch head Forge's AbilityUtils reads as
@@ -1762,7 +1803,8 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		}
 	}
 
-	// Valid / ValidZone forms count objects in a zone matching a filter.
+	// Valid / ValidZone forms count objects in a zone matching a filter (the
+	// ValidAll all-zones head is the one exception -- see the branch itself).
 	// A `$<Property>` suffix sums that numeric property over the matches
 	// instead of counting them -- Mosswort Bridge's gate
 	// `Count$Valid Creature.YouCtrl$CardPower` ("creatures you control have
@@ -1785,7 +1827,8 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	// sentinel. Colors's one corpus op suffix /LimitMax.<n> is honoured at
 	// evalCountExprOK's generic /Op site (countColorsLimitMax), scoped to
 	// Colors bodies.
-	if zone, ok := countZone(head); ok {
+	isAll := head == "ValidAll"
+	if zone, ok := countZone(head); ok || isAll {
 		spec, prop, hasProp := strings.Cut(arg, "$")
 		if !hasProp {
 			spec, prop = arg, ""
@@ -1835,108 +1878,95 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			spec = strings.ReplaceAll(spec, "token$DifferentCardNames", "token")
 			seenTokenNames = make(map[string]bool)
 		}
-		// Colors folds each match's colour mask; read only through a
-		// popcount at the end, so no per-colour ordering ever reaches an
-		// event or a view. An extreme property (Greatest*/Least*) folds a
-		// max/min over the matches instead of a sum, so it needs its own
-		// accumulator plus a seen flag -- zero matches must read 0, never
-		// an int-min/max sentinel.
-		var colorsSeen ColorMask
-		var n int32
+		// An extreme property (Greatest*/Least*) folds a max/min over the
+		// matches instead of a sum, so it needs its own accumulator plus a
+		// seen flag -- zero matches must read 0, never an int-min/max
+		// sentinel.
 		extreme := isExtremeProperty(prop)
-		var best int32
-		var seen bool
+		// The fold scans candidates IN PLACE -- no materialised candidate
+		// slice: Count$Valid is on the hottest condition path
+		// (effects.CheckSVarHolds intervening-ifs, static gates, SVarCompare)
+		// and the single-zone scan must stay allocation-free (the alloc-gate
+		// budget and TestEvalCountValidZoneScanIsAllocationFree hold the
+		// line). ValidAll (6 corpus Count$ValidAll carriers: Cactus Preserve
+		// and Tangleweave Armor's greatest-commander-mana-value, Kefka's
+		// imprinted card, Mangara/Tomik's attacking-LKI count, You Will Know
+		// True Suffering's commander mana value) extends the scan to EVERY
+		// card zone -- countAllZones per seat plus the ONE stack pass --
+		// because a commander sits in the command zone and an imprinted card
+		// in exile; a battlefield-only scan can never see them. Each
+		// candidate is matched against ITS OWN zone (the way Forge evaluates
+		// a ValidAll spec against the card's actual zone), so a battlefield
+		// candidate keeps the whole-spec MatchesObjectCtx read and a
+		// command-zone or exile candidate the per-alternative in-zone read.
+		// (ValidAll also occurs outside the count head -- `Defined$ ValidAll`
+		// 3 files, `ImprintCards$ ValidAll` 2; 11 carrier files total -- and
+		// those two paths are still unhandled: a `Defined$ ValidAll` spec
+		// fails closed in effects/context.go, an `ImprintCards$ ValidAll`
+		// imprint remembers nothing. Recorded in the report.)
+		// specCtx is a LOCAL, never a struct field: storing the
+		// SpecContext(...)-built value in the fold struct made escape
+		// analysis summarise evalCountBody's *Ctx param as leaking (the
+		// struct escapes through the pointer receiver), which heap-
+		// allocated EVERY caller-built Ctx on the hot layer-walk path
+		// (rules/layers.go's cdaSetPT Ctx) -- exactly the allocation class
+		// the alloc-gate budget and rules' Derived pin hold the line on.
+		// Built once here and passed to visit as a parameter instead.
+		specCtx := c.SpecContext(c.Controller)
+		f := zoneCountFold{h: h, g: g, spec: spec,
+			prop: prop, extreme: extreme, isLeast: isLeastProperty(prop),
+			hasBareHand: hasBareHand, seenTokenNames: seenTokenNames, seenCardTypes: seenCardTypes}
 		// The Different* distinct-set property family (task diffcount1):
 		// DifferentCardManaCost / DifferentCardPower / DifferentCardNames /
 		// DifferentColorPair count the DISTINCT values among the matching
 		// cards, not the cards themselves. Numeric values fold into a set
 		// keyed by the value; names into a string set. Both are read only
 		// through len, so no map ordering ever reaches an event or a view.
-		diffKind := differentPropertyKindOf(prop)
-		var seenDiffValues map[int32]bool
-		var seenDiffNames map[string]bool
-		if diffKind != diffNone {
-			if diffKind == diffName {
-				seenDiffNames = make(map[string]bool)
+		if dk := differentPropertyKindOf(prop); dk != diffNone {
+			f.diffKind = dk
+			if dk == diffName {
+				f.seenDiffNames = make(map[string]bool)
 			} else {
-				seenDiffValues = make(map[int32]bool)
+				f.seenDiffValues = make(map[int32]bool)
 			}
 		}
-		for _, p := range g.AliveFrom(0) {
-			for _, id := range g.Zone(zone, p) {
-				matchSpec := spec
-				if hasBareHand {
-					s, ok := castFromHandAnyAdmitsFilter(h, spec, id)
-					if !ok {
-						continue
+		if isAll {
+			for _, p := range g.AliveFrom(0) {
+				for _, z := range countAllZones {
+					for _, id := range g.Zone(z, p) {
+						f.visit(id, z, specCtx)
 					}
-					matchSpec = s
 				}
-				if !matchesZoneSpecCtx(g, matchSpec, id, c.SpecContext(c.Controller), zone) {
+			}
+			for _, id := range g.Stack {
+				f.visit(id, state.ZStack, specCtx)
+			}
+		} else {
+			// The stack is ONE shared list (state.Game.Zone returns g.Stack
+			// for every seat), so a single-zone stack scan must run exactly
+			// once: without this guard an N-seat table counts every stack
+			// object N times -- Mindbreak Trap's MaxTgts bound and Display
+			// of Power's copy count both read on the caster's own spell(s).
+			// Scanned under the first alive seat, the same convention
+			// rules/statics.go and rules/trigger_match.go use for the
+			// shared stack. The ValidAll branch above is exempt: its stack
+			// pass sits outside the seat loop already.
+			for si, p := range g.AliveFrom(0) {
+				if zone == state.ZStack && si > 0 {
 					continue
 				}
-				if prop == "" {
-					if seenTokenNames != nil {
-						if o := g.Obj(id); o != nil && o.Face() != nil {
-							seenTokenNames[o.Face().Name] = true
-						}
-						continue
-					}
-					n++
-					continue
-				}
-				o := g.Obj(id)
-				if o == nil || o.Face() == nil {
-					continue
-				}
-				if extreme {
-					// The DERIVED, layer-aware characteristic (h.Power/
-					// h.Toughness), not the printed face: Forge sizes
-					// "greatest power" from the game's actual power, so a
-					// lord's bonus or a -1/-1 counter counts. The sibling
-					// CardPower/... cases below keep the printed-face read;
-					// the divergence is recorded in the report.
-					v := extremePropertyValue(h, o, prop)
-					if !seen || (isLeastProperty(prop) && v < best) || (!isLeastProperty(prop) && v > best) {
-						best, seen = v, true
-					}
-					continue
-				}
-				switch prop {
-				case "CardPower":
-					n += int32(o.Face().Power()) + o.Counter("P1P1")
-				case "CardToughness":
-					n += int32(o.Face().Toughness()) + o.Counter("P1P1")
-				case "CardManaCost":
-					n += o.Face().Cmc()
-				case "CardTypes":
-					for _, typ := range o.Face().Types {
-						if cardTypeWords[typ] {
-							seenCardTypes[typ] = true
-						}
-					}
-				case "Colors":
-					colorsSeen |= ColorMaskOf(o)
-				default:
-					if diffKind != diffNone {
-						if seenDiffNames != nil {
-							if f := o.Face(); f != nil {
-								seenDiffNames[f.Name] = true
-							}
-						} else if v, ok := differentPropertyValue(h, o, diffKind); ok {
-							seenDiffValues[v] = true
-						}
-					}
+				for _, id := range g.Zone(zone, p) {
+					f.visit(id, zone, specCtx)
 				}
 			}
 		}
 		if extreme {
 			// A matched set with no members has no extreme: 0, per the
 			// seen guard, never an int-min/max sentinel.
-			if !seen {
+			if !f.seen {
 				return 0, true
 			}
-			return best, true
+			return f.best, true
 		}
 		if prop == "CardTypes" {
 			return int32(len(seenCardTypes)), true
@@ -1945,15 +1975,15 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			return int32(len(seenTokenNames)), true
 		}
 		if prop == "Colors" {
-			n = int32(bits.OnesCount8(uint8(colorsSeen)))
+			return int32(bits.OnesCount8(uint8(f.colorsSeen))), true
 		}
-		if diffKind != diffNone {
-			if seenDiffNames != nil {
-				return int32(len(seenDiffNames)), true
+		if f.diffKind != diffNone {
+			if f.seenDiffNames != nil {
+				return int32(len(f.seenDiffNames)), true
 			}
-			return int32(len(seenDiffValues)), true
+			return int32(len(f.seenDiffValues)), true
 		}
-		return n, true
+		return f.n, true
 	}
 	return 0, false
 }
@@ -2676,7 +2706,10 @@ func splitDot(s string) (a, b int32) {
 	return int32(av), int32(bv)
 }
 
-// countZone maps a Count$ head to the zone it scopes over.
+// countZone maps a Count$ head to the zone it scopes over. ValidAll is NOT
+// here: it scopes over every zone at once (countAllZones plus one stack
+// pass, handled directly in the zone-count branch), and a single-zone
+// mapping cannot express that.
 func countZone(head string) (state.Zone, bool) {
 	switch head {
 	case "Valid":
@@ -2693,6 +2726,120 @@ func countZone(head string) (state.Zone, bool) {
 		return state.ZStack, true
 	}
 	return 0, false
+}
+
+// zoneCountFold is the per-candidate accumulator the zone-count branch's
+// scan drives. The visit body is shared between the single-zone scan and
+// the ValidAll all-zones scan through a pointer-receiver method, so neither
+// loop materialises a candidate slice and the common single-zone head keeps
+// its allocation-free iteration (the maps are created only by the CardTypes
+// and token$DifferentCardNames heads, which need a heap map anyway; the
+// struct itself stays on the caller's stack because visit never leaks its
+// receiver). The spec's SpecContext is NOT a field: it is built once by the
+// caller and passed to visit as a parameter, so the *Ctx the caller built
+// (the hot layer-walk Ctx) never escapes through this type.
+type zoneCountFold struct {
+	h              Host
+	g              *state.Game
+	spec           string
+	prop           string
+	extreme        bool
+	isLeast        bool
+	hasBareHand    bool
+	n, best        int32
+	seen           bool
+	seenTokenNames map[string]bool
+	seenCardTypes  map[string]bool
+	colorsSeen     ColorMask
+	// diffKind and the seen sets for the Different* distinct-set property
+	// family (task diffcount1). Both maps are read only through len, so no
+	// map ordering ever reaches an event or a view.
+	diffKind       differentPropertyKind
+	seenDiffValues map[int32]bool
+	seenDiffNames  map[string]bool
+}
+
+// visit folds one candidate: the shared per-candidate body of the
+// zone-count scan (the bare-hand provenance split, the match against the
+// candidate's OWN zone, then the plain-count / extreme / sum /
+// distinct-set accumulation).
+func (f *zoneCountFold) visit(id state.ObjID, zone state.Zone, specCtx SpecContext) {
+	matchSpec := f.spec
+	if f.hasBareHand {
+		s, ok := castFromHandAnyAdmitsFilter(f.h, f.spec, id)
+		if !ok {
+			return
+		}
+		matchSpec = s
+	}
+	if !matchesZoneSpecCtx(f.g, matchSpec, id, specCtx, zone) {
+		return
+	}
+	if f.prop == "" {
+		if f.seenTokenNames != nil {
+			if o := f.g.Obj(id); o != nil && o.Face() != nil {
+				f.seenTokenNames[o.Face().Name] = true
+			}
+			return
+		}
+		f.n++
+		return
+	}
+	o := f.g.Obj(id)
+	if o == nil || o.Face() == nil {
+		return
+	}
+	if f.extreme {
+		// The DERIVED, layer-aware characteristic (h.Power/h.Toughness),
+		// not the printed face: Forge sizes "greatest power" from the
+		// game's actual power, so a lord's bonus or a -1/-1 counter
+		// counts. The sibling CardPower/... cases keep the printed-face
+		// read; the divergence is recorded in the report.
+		v := extremePropertyValue(f.h, o, f.prop)
+		if !f.seen || (f.isLeast && v < f.best) || (!f.isLeast && v > f.best) {
+			f.best, f.seen = v, true
+		}
+		return
+	}
+	switch f.prop {
+	case "CardPower":
+		f.n += int32(o.Face().Power()) + o.Counter("P1P1")
+	case "CardToughness":
+		f.n += int32(o.Face().Toughness()) + o.Counter("P1P1")
+	case "CardManaCost":
+		f.n += o.Face().Cmc()
+	case "CardTypes":
+		for _, typ := range o.Face().Types {
+			if cardTypeWords[typ] {
+				f.seenCardTypes[typ] = true
+			}
+		}
+	case "Colors":
+		f.colorsSeen |= ColorMaskOf(o)
+	default:
+		// The Different* distinct-set properties (task diffcount1): each
+		// matching object contributes its value to the seen set. The nil-face
+		// guard lives inside differentPropertyValue; visit's early return
+		// already guarantees o.Face() != nil for the name read.
+		if f.diffKind != diffNone {
+			if f.seenDiffNames != nil {
+				f.seenDiffNames[o.Face().Name] = true
+			} else if v, ok := differentPropertyValue(f.h, o, f.diffKind); ok {
+				f.seenDiffValues[v] = true
+			}
+		}
+	}
+}
+
+// countAllZones is the ordered per-seat zone list a Count$ValidAll body
+// scans -- every per-player card zone in enum order. ZStack is global and is
+// appended once by the ValidAll branch itself, never here; ZCeased has no
+// membership list and is never scanned. The order matters only for
+// determinism -- a count and an extreme fold are order-insensitive -- but a
+// fixed order keeps every evaluation byte-identical run to run.
+var countAllZones = []state.Zone{
+	state.ZLibrary, state.ZHand, state.ZBattlefield,
+	state.ZGraveyard, state.ZExile, state.ZCommand,
 }
 
 // isExtremeProperty reports whether prop is one of the four extreme-reduction

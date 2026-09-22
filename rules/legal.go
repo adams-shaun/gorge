@@ -1823,6 +1823,39 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		}
 	}
 
+	// Jump-start (CR 702.84a): "You may cast this card from your graveyard by
+	// discarding a card in addition to paying its other costs. Then exile this
+	// card." The retrace shape with any card discardable in place of a land,
+	// and the flashback destination on resolution. The keyword takes no
+	// parameter (all 13 corpus lines are the bare K:Jump-start), so the whole
+	// cost is the printed mana cost plus the additional Discard<1/Card>.
+	// Gated on the derived keyword (HasKeyword), so a continuous-effect grant
+	// would count; the same timing/target/restriction gates as every other
+	// graveyard alt-cast, and the discount payable gate -- an option whose
+	// discard cannot be paid must never be offered (the offerCastable ruling).
+	for _, id := range e.G.Zone(state.ZGraveyard, p) {
+		o := e.G.Obj(id)
+		f := o.Face()
+		if f == nil || castRestricted(p, id) || e.castSuppressed(p, id) {
+			continue
+		}
+		if !e.HasKeyword(id, "Jump-start") {
+			continue
+		}
+		if !e.spellTimingOK(p, id, f, sorcery) ||
+			!e.castTargetsAvailable(p, id, f.SpellAbility()) {
+			continue
+		}
+		js := jumpstartExtra()
+		if !e.discardCostPayable(p, id, js.Discard, true) {
+			continue
+		}
+		if offerCastable(p, id, withSpellAbilityExtras(f, e.castOfferBase(p, id)).Plus(js), spellScope("jumpstart"), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (jump-start)", Obj: id, Mode: "jumpstart"})
+		}
+	}
+
 	// Warp recast from exile (CR 702: "exile this creature at the beginning
 	// of the next end step, then you may cast it from exile on a later
 	// turn"). The exile-zone walk offers the cast only to a warp card that

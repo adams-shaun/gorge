@@ -258,7 +258,45 @@ const (
 	// include casts made before the carrier entered, which emit no event.
 	// Appended per the enum's own append-only precedent.
 	FlagManaExpendCast
+	// FlagJumpstart marks a cast paid for with the card's Jump-start keyword
+	// (CR 702.84a): the card was cast from the graveyard by discarding a
+	// card in addition to paying its other costs. It is the provenance
+	// rules/stack.go's resolution reader (spellRestZone) and fizzle reader
+	// (spellFizzleZone) use to exile the card instead of the graveyard, both
+	// on resolution and when countered. Appended per the enum's own
+	// append-only precedent.
+	FlagJumpstart
 )
+
+// ExilesLeavingStack reports whether a cast carrying these flags is a
+// keyword cast whose card is exiled as it leaves the stack, whichever way it
+// leaves it (resolving, fizzling or being countered): flashback (CR 702.34a),
+// jump-start (CR 702.84a), aftermath (CR 702.85a) and harmonize (whose
+// "exile it instead of putting it into your graveyard" is the same
+// destination).
+//
+// This is ONE home for the set so a new keyword with the same destination
+// cannot be added to rules' resolution/fizzle readers and forgotten by the
+// counter path in effects (which is the shape that missed jump-start's
+// predecessor flags): every site reads this predicate. It is deliberately
+// narrower than each caller's full condition -- spellRestZone also exiles
+// copies, an adventure face and a ReplaceGraveyard$ play, and spellFizzleZone
+// the same minus the adventure face -- so those extras stay at their call
+// sites and only the keyword-family set is shared here.
+func ExilesLeavingStack(flags uint64) bool {
+	return flags&(FlagFlashback|FlagHarmonize|FlagJumpstart|FlagAftermath) != 0
+}
+
+// WasCastFromGraveyard reports whether a cast carrying these flags was made
+// from a graveyard by a keyword that grants such a cast: flashback
+// (CR 702.32a), jump-start (CR 702.84a), harmonize and escape (CR 702.42a).
+// It is the effects-side body of the Card.wasCastFromGraveyard predicate
+// (effects/filter.go), shared by the three effects call sites so the
+// definition cannot drift between the filter, the compiled predicate and the
+// Count$wasCastFromGraveyard reader.
+func WasCastFromGraveyard(flags uint64) bool {
+	return flags&(FlagFlashback|FlagHarmonize|FlagJumpstart|FlagEscaped) != 0
+}
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the
 // stack. One struct keeps identity stable across zone changes.

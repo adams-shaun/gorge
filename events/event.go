@@ -1077,6 +1077,11 @@ var flagNames = [...]struct {
 	// made before the carrier entered, which emit no such event. Appended at
 	// the end per the table's own ordering rule.
 	{"manaexpend", state.FlagManaExpendCast},
+	// The Jump-start cast (CR 702.84a): the card was cast from the graveyard
+	// by discarding a card in addition to its other costs, so the resolution
+	// and fizzle readers exile it instead of the graveyard. Appended at the
+	// end per the table's own ordering rule.
+	{"jumpstart", state.FlagJumpstart},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)
