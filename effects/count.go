@@ -348,6 +348,28 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 		if n, err := strconv.Atoi(expr); err == nil {
 			return int32(n), true
 		}
+		// Forge's literal "Number$<int>" SVar body -- the "this is just the
+		// number" spelling (Vraska, Betrayal's Sting's
+		// SVar:Difference:Number$9/Minus.X, Kokusho's Number$7/Minus.Y,
+		// Krang's Number$4/Minus.X, and the bookkeeping Number$0 bodies)
+		// evaluates the literal, with the shared /Op suffix resolved through
+		// the same operand grammar the Count$ branch applies (so
+		// Number$9/Minus.X reads 9 minus the X SVar, the differential the
+		// [-9] ultimates print). A non-integer body fails closed to
+		// (0, false) -- the verdict every Number$ body had before this arm
+		// existed, so no new shape silently changes direction.
+		if rest, ok2 := strings.CutPrefix(expr, "Number$"); ok2 {
+			lit, op, hasOp := strings.Cut(strings.TrimSpace(rest), "/")
+			n, err := strconv.Atoi(strings.TrimSpace(lit))
+			if err != nil {
+				return 0, false
+			}
+			if hasOp {
+				v := applyCountOpOperand(h, c, int32(n), op, depth)
+				return v, true
+			}
+			return int32(n), true
+		}
 		// Forge's PlayerCount SVar bodies omit the Count$ prefix
 		// (SVar:OpponentSmallest:PlayerCountOpponents$LowestLifeTotal --
 		// Vampire Lacerator's upkeep gate): run the head dispatch on the raw
