@@ -2010,15 +2010,17 @@ func Apply(g *state.Game, e Event) {
 		// Dash and Warp refer to the exact permanent that received their
 		// keyword promise, and so does the AtEOT$ end-of-turn rider family
 		// (effects/atEOTBody reuses the warp body for Exile and mints its
-		// own __kwAtEOTDestroy for Destroy): a copy that left the battlefield
-		// and returned as a new incarnation is NOT acted on by the stale
-		// promise. Encore's grouped delayed trigger does not: CR
-		// 603.7 leaves it independent of the card that created it, and it
-		// must sacrifice its remembered token group even if that card later
-		// changes zones and returns as a new incarnation.
+		// own __kwAtEOTDestroy for Destroy) and the MayFlashSac cleanup
+		// sacrifice (rules/mayflashsac.go's __kwMayFlashSacrifice): a copy
+		// that left the battlefield and returned as a new incarnation is NOT
+		// acted on by the stale promise (CR 400.7). Encore's grouped delayed
+		// trigger does not: CR 603.7 leaves it independent of the card that
+		// created it, and it must sacrifice its remembered token group even
+		// if that card later changes zones and returns as a new incarnation.
 		track := strings.HasPrefix(e.Counter, "__kwDash") ||
 			strings.HasPrefix(e.Counter, "__kwWarp") ||
-			strings.HasPrefix(e.Counter, "__kwAtEOT")
+			strings.HasPrefix(e.Counter, "__kwAtEOT") ||
+			strings.HasPrefix(e.Counter, "__kwMayFlashSac")
 		// Event-matched (non-phase) registrations encode
 		// "<Mode$ value>:<trigger SVar name>" in Text. The DelayedRegister
 		// event gains no field of its own (Ruling T20-a's field-reuse

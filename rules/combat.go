@@ -2215,9 +2215,16 @@ type exertAsk struct {
 // turn loop re-entering itself to grant priority and then redoing cleanup --
 // was judged not a small, clearly-correct addition at this point of
 // priorityRound; an honest recorded gap beats a speculative turn-loop
-// change, and the brief directs exactly that). advanceStep is called from
-// here only after EVERY part of the cleanup -- the discard and the 514.2
-// body -- has run, so the step is never advanced mid-cleanup.
+// change, and the brief directs exactly that).
+//
+// mayflashsac2 implemented exactly that tail (finishCleanupStep, turn.go):
+// the discard and the 514.2 body are followed by the CR 514.3 tail the
+// no-discard path shares -- a trigger the discard or the body queued is
+// placed during the cleanup step and the players get priority while it
+// resolves, instead of the old gap where a cleanup-created trigger waited
+// until the next turn's first priority. advanceStep is reached only after
+// EVERY part of the cleanup has run and nothing is waiting, so the step is
+// never advanced mid-cleanup.
 func (e *Engine) discardCleanup(chosen []decision.Option) {
 	// Matching the cast flows (cast.go), clear the choosing marker this flow
 	// itself set in cleanupStep: once the discard answer is recorded there is
@@ -2230,7 +2237,7 @@ func (e *Engine) discardCleanup(chosen []decision.Option) {
 		e.emit(events.Discard(opt.Obj, e.G.Active))
 	}
 	e.cleanupBody()
-	e.advanceStep()
+	e.finishCleanupStep()
 }
 
 // Registered here: exactly the eight keywords this task actually implements

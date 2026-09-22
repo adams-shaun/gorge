@@ -132,6 +132,38 @@ func resolveStackFor(t *testing.T, e *Engine, preferred state.ObjID, limit int) 
 	}
 }
 
+// driveToNextTurnMain1 passes every decision (including a cleanup discard)
+// until the next turn's main phase begins. Used after a cast resolution.
+func driveToNextTurnMain1(t *testing.T, e *Engine) {
+	t.Helper()
+	driveToStep(t, e, e.G.Turn+1, e.G.NextAlive(e.G.Active), state.StepMain1)
+}
+
+// graveyardMoveStep reports the step the MoveZone that carried id to the
+// graveyard happened in, read off the log's own StepChange records (a log
+// records which step every event belongs to; a post-hoc snapshot cannot
+// answer this once the game has moved on). ok is false when no such move
+// exists. This is what pins the CR 514.3 timing: the sacrifice must be
+// emitted inside a cleanup step, never at the next turn's upkeep -- the old
+// gap the prior round shipped, where the queued registration waited until
+// the next turn's first priority round and resolved there (a StepUpkeep
+// answer here).
+func graveyardMoveStep(e *Engine, id state.ObjID) (state.Step, bool) {
+	step, moveStep := state.Step(0), state.Step(0)
+	found := false
+	for _, ev := range e.L.Events {
+		switch ev.Kind {
+		case events.StepChange:
+			step = ev.Step
+		case events.MoveZone:
+			if ev.Obj == id && ev.To == state.ZGraveyard {
+				moveStep, found = step, true
+			}
+		}
+	}
+	return moveStep, found
+}
+
 // TestMayFlashSacSorceryCastIsNotSacrificed is the negative half: cast at
 // NORMAL sorcery timing (main phase, empty stack), the ordinary cast is
 // offered, no FlagMayFlashSac is stamped, no cleanup registration is made,
@@ -217,6 +249,12 @@ func TestMayFlashSacInstantWindowCastSacrificedAtCleanup(t *testing.T) {
 	if o := e.G.Obj(id); o.Zone != state.ZGraveyard {
 		t.Fatalf("enchantment zone %s after the cleanup, want graveyard (sacrificed at the next cleanup step)", o.Zone)
 	}
+	// The CR 514.3 timing pin: the sacrifice MoveZone was emitted inside a
+	// cleanup step. The old gap resolved the registration at the next turn's
+	// upkeep, which kept the permanent alive through its cleanup step.
+	if s, ok := graveyardMoveStep(e, id); !ok || s != state.StepCleanup {
+		t.Fatalf("sacrifice emitted at step %v (found=%v), want StepCleanup (CR 514.3 resolves the registration inside the cleanup step)", s, ok)
+	}
 	if len(e.G.Delayed) != 0 {
 		t.Fatalf("MayFlashSac registration not consumed: %d", len(e.G.Delayed))
 	}
@@ -291,6 +329,111 @@ func TestNecromancyOffSorceryCastSacrificesItselfAtCleanup(t *testing.T) {
 	driveToStep(t, e, e.G.Turn+1, 1, state.StepMain1)
 	if o := e.G.Obj(id); o.Zone != state.ZGraveyard {
 		t.Fatalf("Necromancy zone %s after cleanup, want graveyard (the rider sacrifices the permanent it became)", o.Zone)
+	}
+	if s, ok := graveyardMoveStep(e, id); !ok || s != state.StepCleanup {
+		t.Fatalf("Necromancy sacrifice emitted at step %v (found=%v), want StepCleanup (CR 514.3)", s, ok)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestNecromancySorceryCastIsNotSacrificed is the corpus negative half the
+// prior round was missing: the REAL Necromancy script cast at plain
+// sorcery speed (main phase, empty stack) resolves its reanimation, stamps
+// no FlagMayFlashSac, registers no cleanup sacrifice, and survives its own
+// cleanup step into the next turn.
+func TestNecromancySorceryCastIsNotSacrificed(t *testing.T) {
+	necro := corpusCardText(t, "n/necromancy.txt")
+	if !mayFlashSacFace(card(t, necro).Faces[0]) {
+		t.Fatal("setup: the corpus Necromancy script does not carry K:MayFlashSac")
+	}
+	e, cfg, id := newFixtureDeck(t, 505, necro, mayflashsacTargetSrc)
+	bear := moveSeeded(t, e, 0, mayflashsacTargetSrc, state.ZGraveyard)
+	addMana(t, e, 0, "BCC") // {2}{B}
+
+	// Precondition: the ordinary sorcery-speed cast IS offered in the main
+	// phase (Mode ""), so the negative assertions below are not vacuous.
+	opt := plainCastOption(t, e, id)
+	if opt.Mode != "" {
+		t.Fatalf("sorcery-speed cast mode %q, want the ordinary cast", opt.Mode)
+	}
+	submitChoices(t, e, opt.Index)
+	resolveStackFor(t, e, bear, 60)
+	passUntilStackEmpty(t, e, 30)
+
+	if o := e.G.Obj(id); o.Zone != state.ZBattlefield {
+		t.Fatalf("Necromancy zone %s, want battlefield after the sorcery-speed cast", o.Zone)
+	}
+	if sawMayFlashSacFlag(e, id) {
+		t.Fatal("a sorcery-timed Necromancy cast must not stamp FlagMayFlashSac")
+	}
+	if sawMayFlashSacCleanupRegister(e, id) {
+		t.Fatal("a sorcery-timed Necromancy cast must register no cleanup sacrifice")
+	}
+	driveToNextTurnMain1(t, e)
+	if o := e.G.Obj(id); o.Zone != state.ZBattlefield {
+		t.Fatalf("Necromancy zone %s after the next turn began, want battlefield (a sorcery-timed cast is never sacrificed)", o.Zone)
+	}
+	if _, moved := graveyardMoveStep(e, id); moved {
+		t.Fatal("Necromancy reached the graveyard without an off-sorcery cast")
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestMayFlashSacLeaveAndReturnIsNotSacrificed is the CR 400.7 incarnation
+// pin (round-2 MAJOR): the delayed sacrifice is registered against the EXACT
+// permanent that entered. One that leaves the battlefield and returns before
+// that cleanup is a new incarnation; the stale promise must expire without
+// acting on the returned permanent -- which stays on the battlefield.
+func TestMayFlashSacLeaveAndReturnIsNotSacrificed(t *testing.T) {
+	e, cfg, id := newFixtureDeck(t, 504, mayflashsacEnchantSrc, mayflashsacTargetSrc)
+	e.askPriority(0)
+	driveToStep(t, e, e.G.Turn, 0, state.StepBeginCombat)
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "G", Amount: 1})
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "C", Amount: 1})
+	e.pending = nil
+	e.askPriority(0)
+
+	opt := plainCastOption(t, e, id)
+	submitChoices(t, e, opt.Index)
+	passUntilStackEmpty(t, e, 30)
+
+	// Precondition: the off-sorcery cast registered the cleanup sacrifice
+	// against this incarnation.
+	if !sawMayFlashSacCleanupRegister(e, id) {
+		t.Fatal("setup: the off-sorcery cast registered no cleanup sacrifice")
+	}
+	inc0 := e.G.Obj(id).Incarnation
+	if sawMayFlashSacFlag(e, id) != true {
+		t.Fatal("setup: the off-sorcery cast stamped no FlagMayFlashSac")
+	}
+
+	// Leave and return: each battlefield-boundary crossing advances the
+	// incarnation, so the returned object is a different incarnation of the
+	// same stable ObjID.
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZHand, Player: 0})
+	e.pending = nil
+	e.Advance()
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZBattlefield, Player: 0})
+	e.pending = nil
+	e.Advance()
+	if e.G.Obj(id).Incarnation == inc0 {
+		t.Fatal("setup: the bounce did not advance the incarnation; the test would not exercise the tracking")
+	}
+	if o := e.G.Obj(id); o.Zone != state.ZBattlefield {
+		t.Fatalf("setup: returned-incarnation zone %s, want battlefield", o.Zone)
+	}
+
+	driveToNextTurnMain1(t, e)
+	if o := e.G.Obj(id); o.Zone != state.ZBattlefield {
+		t.Fatalf("returned incarnation zone %s after the cleanup, want battlefield (the stale promise must expire, CR 400.7)", o.Zone)
+	}
+	if _, moved := graveyardMoveStep(e, id); moved {
+		t.Fatal("the stale promise sacrificed the returned incarnation")
+	}
+	// The one-shot registration was still consumed -- it expired once, it
+	// neither acts on the returned object nor waits for a later cleanup.
+	if len(e.G.Delayed) != 0 {
+		t.Fatalf("stale MayFlashSac registration not consumed at its fire: %d", len(e.G.Delayed))
 	}
 	replayCheck(t, e, cfg)
 }

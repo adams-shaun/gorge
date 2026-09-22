@@ -48,7 +48,14 @@ func init() {
 //     reads that flag and registers the delayed sacrifice at the next cleanup
 //     step, through the ordinary DelayedRegister/DelayedPush machinery with
 //     the builtin __kwMayFlashSacrifice SVar. A sorcery-timed cast carries no
-//     flag, so it registers nothing and the permanent stays.
+//     flag, so it registers nothing and the permanent stays. The promise is
+//     INCARNATION-TRACKED (events.Apply's DelayedRegister track set): a
+//     MayFlashSac permanent that leaves the battlefield and returns before
+//     that cleanup expires the promise without acting on the returned
+//     incarnation, the same CR 400.7 discipline dash/warp/AtEOT already
+//     follow. The registration is one-shot and resolves inside the cleanup
+//     step itself through the CR 514.3 tail (rules/turn.go's
+//     finishCleanupStep) -- not at the next turn's upkeep.
 
 // mayFlashSacFace reports whether f prints K:MayFlashSac. A nil face, or one
 // whose keyword is absent, is false -- the permission and the rider both key

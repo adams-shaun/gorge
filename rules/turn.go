@@ -473,7 +473,8 @@ func (e *Engine) declarationMadeThisStep(kind events.Kind) bool {
 }
 
 func (e *Engine) priorityRound() {
-	// Nobody receives priority during untap or cleanup.
+	// Nobody receives priority during untap or cleanup -- except on the
+	// CR 514.3 grounds cleanupStep's caller below spells out.
 	if e.G.Step == state.StepUntap || e.G.Step == state.StepCleanup {
 		if e.G.Step == state.StepCleanup {
 			// CR 514.1 (Task D1): the discard-down-to-maximum-hand-size
@@ -485,8 +486,8 @@ func (e *Engine) priorityRound() {
 			// loop would pause on e.pending regardless, but returning here
 			// keeps this round from advancing anyway; the answer resumes via
 			// Submit -> handleChoose -> e.discardCleanup (combat.go), which
-			// emits the discard moves, runs the 514.2 body, and then advances
-			// the step itself.
+			// emits the discard moves and then finishes the step through the
+			// same CR 514.3 tail as the no-discard path (finishCleanupStep).
 			//
 			// CR 514.2: cleanup removes damage and "until end of turn"
 			// effects. Wired in here by Task 21 -- Engine.EndOfTurnCleanup
@@ -511,6 +512,18 @@ func (e *Engine) priorityRound() {
 			if e.pending != nil {
 				return
 			}
+			// CR 514.3 (mayflashsac2): the step's own 514.3 tail. A trigger
+			// waiting here -- the checkDelayedTriggers registration whose
+			// step is this cleanup (Waylay's exile, Cunning's sacrifice,
+			// K:MayFlashSac's self-sacrifice), or anything the 514.2 body's
+			// events matched -- is placed on the stack NOW, and players get
+			// priority while it resolves; when the stack empties and nothing
+			// more is waiting, the next entry of this same branch repeats the
+			// 514.1/514.2 actions (CR 514.3b's repeat) and, nothing
+			// outstanding, advances the turn. Before this change such a
+			// trigger stayed queued and fired at the NEXT turn's upkeep.
+			e.finishCleanupStep()
+			return
 		}
 		e.advanceStep()
 		return
@@ -559,6 +572,36 @@ func (e *Engine) grantPriority() {
 	}
 	e.emit(events.Event{Kind: events.Priority, Player: holder, Amount: e.G.Passes})
 	e.askPriority(holder)
+}
+
+// finishCleanupStep is the CR 514.3 tail of the cleanup step, the one
+// continuation shared by the no-discard path (priorityRound above) and the
+// answered-discard path (discardCleanup, combat.go). After the 514.1/514.2
+// turn-based actions have run, CR 514.3a places every trigger waiting (the
+// state-based-action pass already happened at step()'s head) and gives the
+// players priority while the stack is non-empty; when it empties, this
+// function advances the turn and the repeat that CR 514.3b owns happens
+// naturally: a re-entry of the SAME cleanup branch runs cleanupStep once
+// more and, finding no trigger and no stack, ends the step. The loop
+// terminates on the same property every priority round here does: triggers
+// are finite and one-shot registrations are consumed at their DelayedPush.
+//
+// putTriggersOnStack's true return means it asked a decision (an ordering or
+// an optional-trigger ask): e.pending is set and the drain resumes through
+// resumeTriggerDrain, whose tail -- grantPriority, never a priorityRound
+// re-entry -- finishes this interrupted round exactly as it finishes every
+// other one. grantPriority's direct call below is the no-decision case: the
+// drain placed triggers on the stack and it is simply the players' turn to
+// respond (CR 117.1) while the step is still cleanup.
+func (e *Engine) finishCleanupStep() {
+	if e.putTriggersOnStack() {
+		return
+	}
+	if len(e.G.Stack) > 0 {
+		e.grantPriority()
+		return
+	}
+	e.advanceStep()
 }
 
 // resumeTriggerDrain continues a half-drained trigger queue after one of its
