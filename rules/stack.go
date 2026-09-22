@@ -1195,6 +1195,13 @@ func (e *Engine) targetDamageAmount(p state.PlayerID, source state.ObjID, sa *ca
 	}
 	if ctx.SVars != nil {
 		if body, found := ctx.SVars[raw]; found {
+			// A body reading the target reference family has no value at this
+			// ask: the unbound evaluation is the empty target set's sum, and
+			// publishing it would claim a false zero (Kiku's Shadow's
+			// SVar:X:Targeted$CardPower against a legal 5/5 deals 5, not 0).
+			if e.amountDependsOnPendingTarget(ctx, p, source, sa, body) {
+				return 0, false
+			}
 			n, resolved := effects.EvalCountOK(e, ctx, body)
 			return sign * n, resolved
 		}
@@ -1211,9 +1218,54 @@ func (e *Engine) targetDamageAmount(p state.PlayerID, source state.ObjID, sa *ca
 	// Inline Count$/ref-property bodies are valid direct numeric parameters.
 	// The evaluator supplies the unknown verdict instead of collapsing them to
 	// zero. This also covers published trigger/result values when their body is
-	// supported by the effects count grammar.
+	// supported by the effects count grammar. The same pending-target probe
+	// guards this branch: an inline Targeted$ body is exactly as unvalued at
+	// the ask as an SVar one.
+	if e.amountDependsOnPendingTarget(ctx, p, source, sa, raw) {
+		return 0, false
+	}
 	n, resolved := effects.EvalCountOK(e, ctx, raw)
 	return sign * n, resolved
+}
+
+// amountDependsOnPendingTarget reports whether a NumDmg body's value moves
+// with WHICH target the answering player is about to choose. The target ask
+// is CR 601.2c's choice among legal candidates, so a body reading the target
+// reference family (Targeted$CardPower, TargetedPlayer$Valid..., their
+// Parent/This/All spellings) has NO value yet: its unbound evaluation is the
+// empty target set's sum, and EvalCountOK rightly treats an empty set as a
+// legitimate count -- which is precisely why the payload cannot take that 0
+// as a nominal amount. The verdict is derived from evaluation, not from a
+// hand-built token list, so a future target-reading head is covered without
+// this site learning about it: bind each legal candidate as the body's ONLY
+// target and compare against the unbound read. Any disagreement means the
+// pending choice moves the amount, and no scalar may be published (null --
+// "unknown" -- is the honest payload). A body that agrees with its unbound
+// read under every candidate (Count$YourLifeTotal, Count$xPaid) is genuinely
+// target-independent and stays publishable; a target-dependent sum over a
+// multi-target ask also disagrees (any single binding differs from the empty
+// sum whenever the value is nonzero), so a plural selection cannot smuggle a
+// single-binding value through either. The census is the same
+// legalTargetCandidates walk askTarget poses its options from, so the probe
+// never sees a candidate the ask cannot offer. Cost: one extra census plus
+// len(candidates) evaluations per posed damage ask -- decision posing, not a
+// hot path.
+func (e *Engine) amountDependsOnPendingTarget(ctx *effects.Ctx, p state.PlayerID, source state.ObjID, sa *cards.SA, body string) bool {
+	base, _ := effects.EvalCountOK(e, ctx, body)
+	for _, cand := range e.legalTargetCandidates(p, source, source, sa) {
+		// Ctx is threaded by pointer through the evaluator; the probe binds
+		// targets on a value copy and never touches the caller's context.
+		probe := *ctx
+		if cand.kind == "player" {
+			probe.Targets = []state.Target{{Player: cand.player, IsPlayer: true}}
+		} else {
+			probe.Targets = []state.Target{{Obj: cand.obj}}
+		}
+		if v, _ := effects.EvalCountOK(e, &probe, body); v != base {
+			return true
+		}
+	}
+	return false
 }
 
 // targetRemoval classifies only APIs and destinations whose direct meaning is
