@@ -940,6 +940,87 @@ func (e *Engine) blockRestricted(blocker, attacker state.ObjID) bool {
 	return false
 }
 
+// minMaxBlockerParamsReadable is the parameter whitelist a MinMaxBlocker
+// static must pass before its blocker-count bound is enforced. A static
+// carrying a semantic parameter this build cannot evaluate is SKIPPED (the
+// restriction simply does not apply), the permissive direction for a
+// restriction and the same convention CantRestrictionParamsReadable uses for
+// CantAttack/CantSacrifice. The gate parameters are whitelisted because
+// continuousGateHolds evaluates them (fail-closed).
+func minMaxBlockerParamsReadable(params map[string]string) bool {
+	for k := range params {
+		switch k {
+		case "Mode", "ValidCard", "Min", "Max", "Description", "Secondary",
+			"Condition", "IsPresent", "IsPresent2", "PresentCompare", "PresentZone",
+			"CheckSVar", "SVarCompare", "AffectedZone":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// minMaxBlockerBounds reports the blocker-count bounds an attacking creature
+// is subject to from every applicable S:Mode$ MinMaxBlocker static (CR 509.1a's
+// block-restriction family: "can't be blocked by more than one creature" and
+// "can't be blocked except by N or more creatures"). min is the STRICTEST
+// Min$ among the matching statics (the largest), max the strictest Max$ (the
+// smallest); minOK/maxOK say whether a bound was present at all. all is set by
+// Min$ All (Tromokratis: "can't be blocked unless all creatures defending
+// player controls block it"), which the caller resolves against the defending
+// player's own board.
+//
+// ValidCard$ is resolved against the ATTACKER (the creature the restriction
+// applies to) with the static's host as the spec source, so a non-self scope
+// (Vorrac Battlehorns' Creature.EquippedBy, the YouCtrl team statics) reaches
+// the right creature. A static whose parameters or gates this build cannot
+// read is skipped -- a restriction that cannot be proven must not silently
+// apply. The SVar-delivered form (SVar:MinMaxBlocked:Mode$ MinMaxBlocker,
+// reached through DB$ Effect | StaticAbilities$) is NOT seen here: activeStatics
+// reads printed statics only, the same Effect-delivered gap AGENTS.md records
+// for other modes.
+func (e *Engine) minMaxBlockerBounds(attacker state.ObjID) (min, max int, minOK, maxOK, all bool) {
+	max = math.MaxInt32
+	for _, sv := range e.activeStatics("MinMaxBlocker") {
+		if !minMaxBlockerParamsReadable(sv.Params) {
+			continue
+		}
+		if !e.continuousGateHolds(sv) {
+			continue
+		}
+		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], attacker, e.staticSpecCtx(sv)) {
+			continue
+		}
+		if raw, ok := sv.Params["Min"]; ok {
+			if strings.EqualFold(strings.TrimSpace(raw), "All") {
+				all = true
+				continue
+			}
+			if n, ok := literalBlockCount(raw); ok && (!minOK || n > min) {
+				min, minOK = n, true
+			}
+		}
+		if raw, ok := sv.Params["Max"]; ok {
+			if n, ok := literalBlockCount(raw); ok && (!maxOK || n < max) {
+				max, maxOK = n, true
+			}
+		}
+	}
+	return min, max, minOK, maxOK, all
+}
+
+// literalBlockCount parses a Min$/Max$ bound: a non-negative integer, the
+// only shape the corpus prints. A non-literal value (an SVar name, an
+// expression) reports ok=false, so the bound is not enforced rather than
+// mis-enforced -- the same permissive direction the whitelist takes.
+func literalBlockCount(raw string) (int, bool) {
+	v, err := strconv.ParseInt(strings.TrimSpace(raw), 10, 64)
+	if err != nil || v < 0 || v > int64(math.MaxInt32) {
+		return 0, false
+	}
+	return int(v), true
+}
+
 // costScope names WHAT is being priced when cost modifiers are collected:
 // a spell cast (kind "Spell", with the cast variant mode naming the
 // flashback/surge/kicked/miracle shape a ValidSpell$ may gate on) or an
@@ -2095,6 +2176,13 @@ func init() {
 		"stat:CantPutCounter",
 		// exert1: CR 702.100's attack-time election.
 		"stat:OptionalAttackCost",
+		// minmaxblocker1: the CR 509.1a block-count restriction static
+		// (rules/statics.go minMaxBlockerBounds, enforced whole-declaration by
+		// rules/combat.go validateBlockers and consulted by askBlockers' option
+		// filter). Only the literal Min$/Max$ bounds are read; the printed
+		// StaticAbilities$ directives are the Effect-delivered form and stay
+		// out of scope.
+		"stat:MinMaxBlocker",
 		// The static's Cost$ Exert<1/CARDNAME> and Trigger$ rider are consumed
 		// by the declare-attackers offer (rules/combat.go's askNextExert) and
 		// the Exert-event trigger walker (rules/trigger_match.go
