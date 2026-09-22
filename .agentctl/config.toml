@@ -80,10 +80,10 @@ seat_start_grace_s = 180
 poll_seconds = 60
 
 # config.py:75, 90-91.
-# 2026-09-21 (operator): "2 local, 10 remote".
+# 2026-09-21 (operator): "2 local, 5 paid".
 [caps]
 local = 2
-paid = 10
+paid = 5
 max_minutes = 75
 
 # config.py:21-22.
