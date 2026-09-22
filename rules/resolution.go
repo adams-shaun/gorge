@@ -378,10 +378,7 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 		fusedSVars:      e.fusedResolvingSVars,
 		winPaidX:        e.windowPaidX}
 	if d.ResumeKind == "time_travel" {
-		e.resume.timeTravelObjects = make([]state.ObjID, 0, len(d.Options))
-		for _, option := range d.Options {
-			e.resume.timeTravelObjects = append(e.resume.timeTravelObjects, option.Obj)
-		}
+		e.resume.timeTravelObjects = append([]state.ObjID(nil), d.ResumeObjects...)
 	}
 	return true
 }

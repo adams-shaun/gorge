@@ -422,6 +422,17 @@ type Decision struct {
 	// continuation state, never client input, the same class as
 	// ResumeRemembered.
 	ResumeMoved []state.ObjID `json:"-"`
+	// ResumeObjects carries an ASK's own immutable object snapshot when the
+	// continuation must walk a list the answer can shrink out from under it.
+	// Time Travel (Doctor Who) is the first user: its per-object election
+	// offers add/remove/skip, so deriving the walk list from the decision's
+	// options would record the asked object three times instead of the full
+	// eligible set, and recomputing the set on re-entry would shift the
+	// cursor when a removal drops an object. The effect sets it to the exact
+	// list it is walking; rules stores it on the resume point and hands it
+	// back on re-entry. Runtime continuation state, never client input, the
+	// same class as ResumeMoved.
+	ResumeObjects []state.ObjID `json:"-"`
 	// ResumeUptoIdx/ResumeUptoCount ride an Upto$ Draw's in-flight per-target
 	// state across a Dredge ask parked inside that target's answered batch
 	// (Arcane Denial's "may draw up to two"): the re-entering upto branch

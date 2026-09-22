@@ -12,27 +12,33 @@ import (
 
 func init() { Register("TimeTravel", effTimeTravel) }
 
-// effTimeTravel implements Doctor Who's Time Travel action. The affected
-// objects are walked in the game's deterministic order: owned suspended
-// cards first, followed by the controller's battlefield permanents. Each
-// object gets its own optional add/remove/skip election. A resumed walk
-// carries its object index and repetition number in the decision's target
-// field (rules decodes that field into Ctx).
+// effTimeTravel implements Doctor Who's Time Travel action. It runs the
+// action Amount$ times (default 1, The Tenth Doctor's Amount$ 3): each
+// repetition re-enumerates — in the game's deterministic order, owned
+// suspended cards first then the controller's battlefield permanents — every
+// affected object and asks that object one optional add/remove/skip election
+// (CR: "for each suspended card you own and each permanent you control with a
+// time counter on it, you may add or remove a time counter").
+//
+// A repetition's eligible set is captured ONCE as an immutable snapshot and
+// rides the decision's ResumeObjects (rules stores it on the resume point and
+// restores Ctx.TimeTravelObjects on re-entry), so an answer that drops an
+// object's counter — or removes it from the battlefield — cannot shift the
+// next object's cursor. The cursor is TimeTravelIndex into that snapshot and
+// TimeTravelRound counts completed repetitions; every ask packs the pair into
+// ResumeTarget. Finishing a repetition copies a FRESH snapshot for the next
+// one, which is what makes "then do it two more times" re-evaluate each
+// object's current counter count.
 func effTimeTravel(h Host, c *Ctx, sa *cards.SA) {
 	choice := c.TimeTravelChoice
 	done := c.TimeTravelDone
 	idx, round := c.TimeTravelIndex, c.TimeTravelRound
+	objects := c.TimeTravelObjects
 	c.TimeTravelChoice, c.TimeTravelDone = "", false
+	c.TimeTravelObjects = nil
 
 	amount := int(Num(h, c, sa, "Amount", 1))
 	if amount < 1 {
-		return
-	}
-	objects := c.TimeTravelObjects
-	if len(objects) == 0 {
-		objects = timeTravelObjects(h.Game(), c.Controller)
-	}
-	if len(objects) == 0 {
 		return
 	}
 	if idx < 0 {
@@ -41,28 +47,34 @@ func effTimeTravel(h Host, c *Ctx, sa *cards.SA) {
 	if round < 0 {
 		round = 0
 	}
-	if idx >= len(objects) {
-		idx, round = 0, round+1
-	}
-	if round >= amount {
-		return
+	if len(objects) == 0 {
+		objects = timeTravelObjects(h.Game(), c.Controller)
 	}
 
-	if done {
-		if idx < len(objects) {
-			applyTimeTravel(h, objects[idx], choice)
-		}
+	// Apply the answer that suspended the previous pass, at the exact object
+	// it named (the snapshot and cursor are the ones that asked).
+	if done && idx < len(objects) {
+		applyTimeTravel(h, objects[idx], choice)
 		idx++
-		if idx >= len(objects) {
-			idx = 0
-			round++
-		}
-		if round >= amount {
-			return
-		}
 	}
 
-	for idx < len(objects) {
+	for {
+		// A finished repetition: start the next one over a freshly
+		// enumerated set, or stop once Amount repetitions have run.
+		if idx >= len(objects) {
+			round++
+			if round >= amount {
+				return
+			}
+			objects = timeTravelObjects(h.Game(), c.Controller)
+			idx = 0
+			if len(objects) == 0 {
+				// Nothing is affected in this repetition; later repetitions
+				// cannot gain objects without state changing, and the caller
+				// itself is the only such change, so stop.
+				return
+			}
+		}
 		id := objects[idx]
 		if !timeTravelEligible(h.Game(), id, c.Controller) {
 			idx++
@@ -72,10 +84,12 @@ func effTimeTravel(h Host, c *Ctx, sa *cards.SA) {
 			Min: 1, Max: 1, Source: c.Source,
 			ResumeKind: "time_travel", ResumeSA: sa,
 			// The low 32 bits carry the snapshot index; the repetition is in
-			// the high bits. The rules resume frame stores the offered object
-			// list separately, so removals cannot shift this cursor.
-			ResumeTarget: (round << 32) | idx,
-			Prompt:       "Time travel: add or remove a time counter?"}
+			// the high bits. ResumeObjects carries the snapshot itself, so a
+			// removal that shrinks the live eligible set cannot shift this
+			// cursor.
+			ResumeTarget:  (round << 32) | idx,
+			ResumeObjects: append([]state.ObjID(nil), objects...),
+			Prompt:        "Time travel: add or remove a time counter?"}
 		d.Options = append(d.Options,
 			decision.Option{Index: 0, Kind: "time_travel_skip", Label: "Skip", Obj: id},
 			decision.Option{Index: 1, Kind: "time_travel_add", Label: "Add a time counter", Obj: id},
@@ -87,16 +101,6 @@ func effTimeTravel(h Host, c *Ctx, sa *cards.SA) {
 		// traverses every affected object and never emits an unimplemented note.
 		applyTimeTravel(h, id, "time_travel_skip")
 		idx++
-	}
-	// A no-host pass may have completed this repetition; repeat Amount times.
-	if round+1 < amount {
-		for round++; round < amount; round++ {
-			for _, id := range objects {
-				if timeTravelEligible(h.Game(), id, c.Controller) {
-					applyTimeTravel(h, id, "time_travel_skip")
-				}
-			}
-		}
 	}
 }
 

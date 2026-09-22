@@ -66,7 +66,14 @@ func TestTimeTravelKeepsObjectIdentityWhenRemovalShrinksEligibility(t *testing.T
 	if h.asked == nil || h.asked.Options[0].Obj != ids[0] {
 		t.Fatalf("first ask = %+v, want object %d", h.asked, ids[0])
 	}
+	// The decision must carry the WHOLE eligible snapshot, not one entry per
+	// option: the three add/remove/skip options all name ids[0], so an
+	// option-derived list would be [A,A,A] and a resumed walk would ask A
+	// three times. This is the field rules copies onto its resume point.
 	snapshot := append([]state.ObjID(nil), ids...)
+	if len(h.asked.ResumeObjects) != 3 || h.asked.ResumeObjects[0] != ids[0] || h.asked.ResumeObjects[1] != ids[1] || h.asked.ResumeObjects[2] != ids[2] {
+		t.Fatalf("ResumeObjects = %v, want the eligible snapshot %v", h.asked.ResumeObjects, snapshot)
+	}
 	Resolve(h, &Ctx{Source: src.ID, Controller: 0, TimeTravelChoice: "time_travel_remove", TimeTravelDone: true, TimeTravelIndex: 0, TimeTravelObjects: snapshot}, sa)
 	if h.asked == nil || h.asked.Options[0].Obj != ids[1] {
 		t.Fatalf("second ask = %+v, want object %d after removing first", h.asked, ids[1])
