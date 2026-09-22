@@ -4,10 +4,12 @@ package rules
 // graveyard for {4}{R} if you discarded it this turn. Timing rules still
 // apply." Mayhem IS a cost substitution (the printed mayhem cost replaces the
 // mana cost, the Miracle/Madness shape) gated on a discard-this-turn
-// provenance, and carries NO post-resolution behaviour (no exile tail, no
-// mode flag), so the only pieces are the offer (legal.go's graveyard walk)
-// and the charge (beginCast's "mayhem" mode), both through mayhemCastCost;
-// the provenance gate is mayhemDiscardedThisTurn, log-derived like the
+// provenance, and carries NO post-resolution behaviour (no exile tail); the
+// cast's one provenance record is the state.FlagMayhem pay-time CastInfo
+// bit (the Card.CastSa Spell.Mayhem condition's read — see
+// mayhem_castsa_test.go), so the pieces are the offer (legal.go's graveyard
+// walk) and the charge (beginCast's "mayhem" mode), both through
+// mayhemCastCost; the provenance gate is mayhemDiscardedThisTurn, log-derived like the
 // warp-recast and foretell gates.
 //
 // The bare parameterless K:Mayhem (Oscorp Industries) is the separate
@@ -91,10 +93,11 @@ func TestAbominationWorldRavagerMayhemOfferedAndCasts(t *testing.T) {
 	if got := e.G.Obj(id).Zone; got != state.ZStack {
 		t.Fatalf("mayhem spell zone = %v, want stack", got)
 	}
-	// No post-resolution behaviour: the cast must carry no entry-hook flag,
-	// so a copy of this spell cannot inherit any.
-	if e.G.Obj(id).CastFlags != 0 {
-		t.Fatalf("mayhem cast carries CastFlags %+v, want none", e.G.Obj(id).CastFlags)
+	// No post-resolution behaviour: the cast carries only the CastSa
+	// provenance bit, no entry-hook flag — a copy of this spell strips the
+	// bit (state.CastProvenanceFlags), so it cannot inherit the provenance.
+	if got := e.G.Obj(id).CastFlags; got != state.FlagMayhem {
+		t.Fatalf("mayhem cast carries CastFlags %+v, want FlagMayhem only", got)
 	}
 
 	passUntilStackEmpty(t, e, 20)

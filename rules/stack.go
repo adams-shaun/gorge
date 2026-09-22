@@ -2885,6 +2885,23 @@ func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exc
 	// chain call (their castProvenanceAdmits strip is event-local and
 	// stateless).
 	saTokens := castSaTokensIn(spec)
+	// Flag tokens (CastSa Spell.Mayhem) read the cast's pay-time CastInfo
+	// flags rather than a spend bucket: the backward walk records each
+	// object's most recent CastInfo flags (latest-first, first write wins)
+	// and the push consumes its own cast's entry, so a re-cast object's
+	// older cast never inherits the newer cast's flags — the per-event
+	// mirror of castSaAdmits' latest-cast read. A plain cast emits no
+	// pay-time CastInfo at all, so a missing entry reads as no flags.
+	wantFlags := false
+	for _, tok := range saTokens {
+		if tok.flag != 0 {
+			wantFlags = true
+		}
+	}
+	var castFlags map[state.ObjID]uint64
+	if wantFlags {
+		castFlags = make(map[state.ObjID]uint64)
+	}
 	// The in-flight cast's own grant walk (queueCascadeTriggers' scratch,
 	// rules/cascade.go) counts PRIOR casts only: the Affected$ half of the
 	// same static evaluates the current cast's own qualification, and the
@@ -2903,6 +2920,13 @@ func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exc
 			break
 		}
 		switch ev.Kind {
+		case events.CastInfo:
+			if wantFlags {
+				if _, seen := castFlags[ev.Obj]; !seen {
+					castFlags[ev.Obj] = events.FlagsFrom(ev.Counter)
+				}
+			}
+			continue
 		case events.ManaAdd:
 			if useAcc && ev.Amount < 0 && int(ev.Player) < len(buckets) {
 				buckets[ev.Player].spent += -ev.Amount
@@ -2929,6 +2953,15 @@ func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exc
 		}
 		// The push itself proves a cast exists: the window's ok read.
 		facts.ok = true
+		// This cast's own pay-time CastInfo flags (see wantFlags above): the
+		// entry recorded at the CastInfo the backward walk already passed —
+		// the payment runs after the push, so its CastInfo sits BELOW the
+		// push in log order — is exactly this cast's.
+		var evFlags uint64
+		if wantFlags {
+			evFlags = castFlags[ev.Obj]
+			delete(castFlags, ev.Obj)
+		}
 		if skipObj != 0 && ev.Obj == skipObj {
 			continue
 		}
@@ -2942,7 +2975,7 @@ func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exc
 		alive := true
 		for _, tok := range saTokens {
 			var held bool
-			if matchSpec, held = admitProvenanceAlternatives(matchSpec, tok.token, castSaTokenHolds(tok, facts)); !held {
+			if matchSpec, held = admitProvenanceAlternatives(matchSpec, tok.token, castSaTokenHolds(tok, facts, evFlags)); !held {
 				alive = false
 				break
 			}

@@ -1915,8 +1915,9 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		// mayhemDiscardedThisTurn); the charge only re-reads the cost through
 		// the same helper, so offer and charge cannot drift, and a stale
 		// option whose keyword is gone falls back to the empty cost like the
-		// family above. No mode flag: Mayhem has no post-resolution behaviour
-		// to prove (no exile tail), so a declined-to-copy cast is byte-identical.
+		// family above. The mode's flag (state.FlagMayhem) is the whole of
+		// what the cast records: Sandman's Quicksand's Card.CastSa
+		// Spell.Mayhem condition reads it; there is no exile tail to gate.
 		if mc, ok := e.mayhemCastCost(id); ok {
 			cost = mc
 		} else {
@@ -5738,6 +5739,15 @@ func modeFlags(mode string) string {
 	// branch does not share this switch.
 	case "foretell_cast":
 		return events.FlagsString(state.FlagForetold)
+	// Mayhem (the Doom Prevails keyword): the flag is the provenance the
+	// Card.CastSa Spell.Mayhem condition reads (Sandman's Quicksand's "if
+	// this spell's mayhem cost was paid" split), through the CastSa
+	// provenance strip (rules/cast_provenance.go's castSaAdmits and the
+	// per-event walk in spellsCastThisTurnMatching, effects/conditions.go's
+	// conditionMet). Mayhem has no exile tail, so the flag is the whole of
+	// what the cast records.
+	case "mayhem":
+		return events.FlagsString(state.FlagMayhem)
 	// Bestow (CR 702.114a): the flag is the provenance the resolution
 	// reader (resolveTop) uses to substitute the synthesized Aura attach
 	// spell, and what keeps a bestowed cast distinguishable on the wire.

@@ -243,7 +243,7 @@ treats a row over that size as a MAJOR finding.
 | (ft1) Bot target selection is effect-blind except for a known literal damage amount: `effectDamage` trusts the supplied amount without inspecting the API string (a consumer-contract discrepancy, unreachable in play). Destroy, counter and non-damage effects are unranked, and "spare mana" is read only from the floating pool, never from untapped sources. | `botpolicy/target.go` (`effectDamage`, `mayKillMe`, `hasSpareMana`, `effectRanker`, `chooseTargets`) | richer outcome modelling / Board mana-source facts |
 | A host that cannot answer a decision gets the deterministic fallback: `Charm` takes its first mode with a Note. | `effects/misc.go` (`effCharm`'s fallback) | none -- the no-ask host is the fuzz/test degradation contract |
 | (fx20) `MatchesPlayerSpec` still fails closed on `EnchantedBy`, `EnchantedController`, `Chosen`, `descended`, `IsRemembered`, `TriggeredDefendingPlayer`, `counters_` and compound/space forms. `Active`, its `NonActive` complement, `life<OP><N>` and `isMonarch` evaluate. | `effects/filter.go` (`MatchesPlayerSpec`), `rules/trigger_match.go` (`spellCastMatches`, `damageMatches`, `phaseMatches`), `rules/statics.go` (`actorMatches`), `rules/layers.go` (`restrictionActorMatches`) | M4 (the remaining player-spec grammar and player-state machinery) |
-| `ValidLKI$` on a replacement fails closed for the may-play provenance it gates: `Spell.MayPlaySource`, `Warp`, `Mayhem` and `ManaFromArtifact` have no per-cast provenance, so a conditional graveyard-cast replacement (Glimpse the Cosmos) is never admitted -- conservative, but the positive route is unproven. Same predicates fail closed at the layer `Affected$` match and `Count$ThisTurnCast_`. | `rules/replacement.go` (`replacementMatches`), `rules/layers.go` (`matchesWithTypes`), `rules/stack.go` (`spellsCastThisTurnMatching`), `rules/cast_provenance.go` (`castSaAdmits`) | the may-play cast-provenance predicates (MayPlaySource/Warp/Mayhem/ManaFromArtifact) |
+| `ValidLKI$` on a replacement fails closed for the may-play provenance it gates: `Spell.MayPlaySource`, `Warp` and `ManaFromArtifact` have no per-cast provenance, so a conditional graveyard-cast replacement (Glimpse the Cosmos) is never admitted -- conservative, but the positive route is unproven. `Spell.Mayhem` is evaluated at the CastSa strip chain (`castSaAdmits`, the per-event count walk, and the effects ConditionPresent gates via `castSaAdmitsFilter` -- Sandman's Quicksand's split); the other spellings, and every spelling on the `ValidLKI$` route (which no strip reaches), fail closed. The remaining spellings also fail closed at the layer `Affected$` match and `Count$ThisTurnCast_`. | `rules/replacement.go` (`replacementMatches`), `rules/layers.go` (`matchesWithTypes`), `rules/stack.go` (`spellsCastThisTurnMatching`), `rules/cast_provenance.go` (`castSaAdmits`) | the may-play cast-provenance predicates (MayPlaySource/Warp/ManaFromArtifact) |
 | A competition of all-`Updated` replacements applies them in deterministic scan order with no CR 616.1 order choice -- correct where they commute, wrong where they do not. A non-commuting life competition met while another decision is outstanding, or affecting a player who has left the game, also applies in scan order, since a second ask would overwrite the first. | `rules/replacement.go` (`composeUpdatedReplacements`, `poseLifeReplacementChoice`) | M4 (order choice for every competing shape) |
 | A bot or a host that cannot answer takes option 0 of the `KReplacement` order decision through `botpolicy`'s clamp fallback; there is no policy arm of its own. Deterministic and non-wedging. | `botpolicy/policy.go` (`Decide`'s clamp fallback) | M4 (a real replacement-order policy) |
 | The CR 704.5j legend rule keeps the first duplicate in battlefield scan order and bins the rest, with no controller choice: an SBA is not a decision a seat answers, so the survivor is picked by scan position rather than by its controller. Correctly scoped per controller. | `rules/sba.go` (`legendCasualties`) | M4 (a controller choice for SBA-driven sacrifices, shared with the 704.5m/704.5q families) |
@@ -320,11 +320,15 @@ is the effects-side CastFlags predicate (flashback/harmonize/escape) instead.
 Wired at the trigger match walks, `Count$ThisTurnCast_<spec>`,
 `Count$wasCastFromExile`, the target walks (offer and CR 608.2b recheck) and
 the CantBeCast walk (`castOriginAdmitsAtZone` reads the pending cast's
-origin). Still open: the tokens are not evaluated by effects' own
-ConditionPresent/ConditionDefined evaluator (such a gate runs its sub
+origin). The `CastSa Spell.Mayhem` spelling is evaluated everywhere
+(including effects' own ConditionPresent evaluator, `castSaAdmitsFilter`);
+still open: the hand tokens in the no-ConditionDefined battlefield-group
+evaluator, the other CastSa spellings in the effects ConditionPresent
+evaluator (spend spellings and Spell.Warp -- Full Bore's DBPump is a
+ConditionPresent carrier, such a gate still runs its sub
 unconditionally), there is no `Count$wasCastFromYourGraveyard` head, and the
-may-play provenance predicates (`MayPlaySource`/`CastSa`) stay fail-closed
-(see the ValidLKI row).
+may-play provenance predicates (`MayPlaySource`/`Warp`/`ManaFromArtifact`)
+stay fail-closed (see the ValidLKI row).
 
 ## Regeneration (implemented, not an approximation)
 

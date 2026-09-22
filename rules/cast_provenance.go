@@ -320,7 +320,11 @@ func (e *Engine) castProvenanceAdmitsWindow(spec string, objID state.ObjID, you 
 //     delta (manaSpentForCast's read, Roiling Vortex's convention). These
 //     four spellings are implemented here.
 //
-//   - everything else (Spell.MayPlaySource, Spell.Warp, Spell.Mayhem,
+//   - the cast-mode flags the pay-time CastInfo carries: Spell.Mayhem
+//     (state.FlagMayhem, stamped by modeFlags' "mayhem" case) reads the
+//     object's cast CastFlags rather than a spend window. Implemented here.
+//
+//   - everything else (Spell.MayPlaySource, Spell.Warp,
 //     Spell.ManaFromArtifact) has no per-cast provenance this build can
 //     read and stays fail closed: the token is left unknown in the spec, so
 //     the alternative matches nothing (the ValidLKI$ row's documented
@@ -334,7 +338,13 @@ type castSaToken struct {
 	token string
 	// tag is the state.TypedMana index the property reads; -1 is the plain
 	// total-spend read (ManaSpent EQ0 — "no mana was spent to cast it").
+	// flag tokens ignore it.
 	tag int
+	// flag, when nonzero, marks a CAST-FLAG property: holds is read off the
+	// object's latest cast's CastFlags (state.FlagMayhem), never off a spend
+	// window. A stack copy never carries the bit (state.CastProvenanceFlags
+	// strips it), so a copy reads false — the never-cast convention.
+	flag uint64
 }
 
 var castSaTokens = []castSaToken{
@@ -342,6 +352,7 @@ var castSaTokens = []castSaToken{
 	{token: "CastSa Spell.ManaFromCave", tag: state.TypedCave},
 	{token: "CastSa Spell.ManaFromDesert", tag: state.TypedDesert},
 	{token: "CastSa Spell.ManaSpent EQ0", tag: -1},
+	{token: "CastSa Spell.Mayhem", tag: -1, flag: state.FlagMayhem},
 }
 
 // castSpendFacts is one cast's spend window: the total and per-tag mana the
@@ -370,8 +381,12 @@ func castSaTokensIn(spec string) []castSaToken {
 }
 
 // castSaTokenHolds evaluates one CastSa property against a cast's spend
-// window.
-func castSaTokenHolds(t castSaToken, f castSpendFacts) bool {
+// window and cast flags. A flag token reads the flags; a spend token reads
+// the window.
+func castSaTokenHolds(t castSaToken, f castSpendFacts, flags uint64) bool {
+	if t.flag != 0 {
+		return flags&t.flag != 0
+	}
 	if !f.ok {
 		return false
 	}
@@ -426,7 +441,9 @@ func (e *Engine) castSpendWindow(obj state.ObjID) castSpendFacts {
 //
 // There is no pre-push OFFER-window fallback here (unlike the hand
 // families): the mana spend the properties read does not exist until the
-// payment has run, so an AffectedZone$ Stack grant evaluated against the
+// payment has run — and the cast flags a flag token reads ride the same
+// pay-time CastInfo, after the push — so an AffectedZone$ Stack grant
+// evaluated against the
 // object being cast fails until CR 601.2f-h's payment is in the log — and
 // the only first-cast gates that need the grant evaluate it AFTER payment
 // (queueCascadeTriggers), where the window is exact.
@@ -436,16 +453,37 @@ func (e *Engine) castSaAdmits(spec string, objID state.ObjID) (string, bool) {
 	}
 	var facts castSpendFacts
 	factsRead := false
+	var flags uint64
+	flagsRead := false
 	for _, tok := range castSaTokens {
 		if !strings.Contains(spec, tok.token) {
 			continue
 		}
-		if !factsRead {
-			facts = e.castSpendWindow(objID)
-			factsRead = true
+		var holds bool
+		if tok.flag != 0 {
+			// A cast-flag token reads the object's LATEST cast's CastFlags
+			// (each pay-time CastInfo REPLACES the set, events.Apply's
+			// CastInfo case), so a re-cast object's older cast cannot
+			// inherit the newer cast's flags — the same latest-cast read the
+			// spend window takes. A copy was never cast and carries no
+			// provenance bit (state.CastProvenanceFlags strips it), so it
+			// reads false without a separate guard.
+			if !flagsRead {
+				if o := e.G.Obj(objID); o != nil {
+					flags = o.CastFlags
+				}
+				flagsRead = true
+			}
+			holds = flags&tok.flag != 0
+		} else {
+			if !factsRead {
+				facts = e.castSpendWindow(objID)
+				factsRead = true
+			}
+			holds = castSaTokenHolds(tok, facts, 0)
 		}
 		var ok bool
-		if spec, ok = admitProvenanceAlternatives(spec, tok.token, castSaTokenHolds(tok, facts)); !ok {
+		if spec, ok = admitProvenanceAlternatives(spec, tok.token, holds); !ok {
 			return "", false
 		}
 	}

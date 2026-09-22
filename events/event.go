@@ -1184,6 +1184,11 @@ var flagNames = [...]struct {
 	{"mayflashsac", state.FlagMayFlashSac},
 	// Compleated's life-paid amount reduces a planeswalker's entry loyalty.
 	{"compleated", state.FlagCompleated},
+	// The K:Mayhem alternative-cost cast (kw:Mayhem): the flag is the
+	// provenance the Card.CastSa Spell.Mayhem condition reads (Sandman's
+	// Quicksand's "if this spell's mayhem cost was paid" split). Appended
+	// at the end per the table's own ordering rule.
+	{"mayhem", state.FlagMayhem},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)
