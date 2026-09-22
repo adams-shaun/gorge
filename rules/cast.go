@@ -6941,6 +6941,20 @@ func (e *Engine) payCast() {
 			e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Player: pc.player, Amount: spend, Counter: meFlags})
 		}
 	}
+	// Compleated's life-paid amount is deliberately the FINAL CastInfo: all
+	// earlier payment captures may carry accumulated flags, so this event
+	// must not be followed by one that routes its Amount elsewhere.
+	if pc.payLife > 0 && !pc.isAbility() {
+		if o := e.G.Obj(pc.card); o != nil && o.Face() != nil {
+			for _, keyword := range o.Face().Keywords {
+				if strings.EqualFold(strings.TrimSpace(keyword), "Compleated") {
+					cf := events.FlagsString(events.FlagsFrom(flags) | state.FlagCompleated)
+					e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: pc.payLife, Counter: cf})
+					break
+				}
+			}
+		}
+	}
 	// CR 601.2i: the "when you cast" trigger, held back from the up-front
 	// push, fires now -- only after the spell is paid for. Capture the deferred
 	// PutOnStack event (and its LKI) BEFORE the call: fireDeferredCastTrigger

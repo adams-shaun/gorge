@@ -1540,6 +1540,8 @@ func Apply(g *state.Game, e Event) {
 			case FlagsFrom(e.Counter)&state.FlagConvoked != 0:
 				// the convoked id list was folded above; the Amount is
 				// deliberately unused (the Conspired arm's consume shape)
+			case FlagsFrom(e.Counter)&state.FlagCompleated != 0:
+				o.CompleatedLifePaid = e.Amount
 			case FlagsFrom(e.Counter)&state.FlagConverged != 0:
 				o.ConvergeColours = e.Amount
 			case FlagsFrom(e.Counter)&state.FlagReplicated != 0:
@@ -2822,7 +2824,11 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			// counter.
 			if f := o.Face(); f != nil && f.IsPlaneswalker() && !o.FaceDown {
 				if n, err := strconv.Atoi(strings.TrimSpace(f.Loyalty)); err == nil && n > 0 {
-					o.AddCounter("LOYALTY", int32(n))
+					loyalty := int32(n) - o.CompleatedLifePaid
+					if loyalty < 0 {
+						loyalty = 0
+					}
+					o.AddCounter("LOYALTY", loyalty)
 				}
 			}
 			// Riot's choice is made before this entry. Applying it in Move
@@ -2942,6 +2948,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.ManaTreasureSpent = 0
 			o.ManaCaveSpent = 0
 			o.ManaDesertSpent = 0
+			o.CompleatedLifePaid = 0
 			o.NotedNumber = 0
 			o.ChosenName, o.ChosenType, o.ChosenNumber, o.ChosenColor = "", "", 0, ""
 			o.Protector, o.ProtectorValid = 0, false
@@ -2985,6 +2992,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.ManaTreasureSpent = 0
 			o.ManaCaveSpent = 0
 			o.ManaDesertSpent = 0
+			o.CompleatedLifePaid = 0
 			o.NotedNumber = 0
 		}
 		// ChosenModes is needed only while a modal spell/ability resolves (or
