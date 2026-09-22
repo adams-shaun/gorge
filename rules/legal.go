@@ -440,6 +440,9 @@ func abilityZoneOK(ab *cards.SA, z state.Zone) bool {
 // the census's generic rules-side SA union for Mana/ManaReflected: see
 // genericSAExcludes in paramcensus_test.go.
 func (e *Engine) abilityPresentHolds(p state.PlayerID, id state.ObjID, ab *cards.SA) bool {
+	if !e.classBandGateHolds(ab.Params, id) {
+		return false
+	}
 	spec := strings.TrimSpace(ab.Params["IsPresent"])
 	if spec == "" {
 		return true
@@ -1443,6 +1446,24 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		if bc, ok := buybackCost(f); ok && offerCastable(p, id, e.rawBaseCost(p, id).Plus(bc), spellScope("buyback"), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast", Label: "Cast " + f.Name + " (buyback)", Obj: id, Mode: "buyback"})
 		}
+		// Offspring (CR 702.175a): the optional ADDITIONAL cost half, offered
+		// beside the plain cast. e.offspringCost reads the DERIVED keyword list
+		// with the stack-zone override (rules/offspring.go), so BOTH the
+		// printed K:Offspring line and a layer-6 AddKeyword$ Offspring grant
+		// reaching the cast (Zinnia, Valley's Voice's "Creature spells you cast
+		// have offspring {2}") are priced through the ONE read -- the granted
+		// cost is charged, never a printed one, and the offer and beginCast's
+		// modeCost stage structurally cannot disagree. The offer gate is the
+		// same base+additional composition beginCast will charge, and
+		// targetsAvailable keeps a target-bearing creature spell's offer honest
+		// (the plain cast's gate, which the offspring cast shares).
+		if targetsAvailable && e.hasCastOffspring(id) {
+			if oc, ok := e.offspringCost(id); ok &&
+				offerCastable(p, id, e.rawBaseCost(p, id).Plus(oc), spellScope("offspring"), false) {
+				out = append(out, decision.Option{Index: len(out), Kind: "cast",
+					Label: "Cast " + f.Name + " (offspring)", Obj: id, Mode: "offspring"})
+			}
+		}
 		if sc, ok := suspendCost(f); ok {
 			offer := sc.cost
 			if sc.timeX {
@@ -1622,6 +1643,16 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			offerCastable(p, id, mc, spellScope("mutated"), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (mutated)", Obj: id, Mode: "mutated"})
+		}
+		// Offspring (CR 702.175a), the command-zone half (a commander printed
+		// with offspring, or granted it by a static): the same base+additional
+		// composition the hand walk offers.
+		if targetsAvailable && e.hasCastOffspring(id) {
+			if oc, ok := e.offspringCost(id); ok &&
+				offerCastable(p, id, e.rawBaseCost(p, id).Plus(oc), spellScope("offspring"), false) {
+				out = append(out, decision.Option{Index: len(out), Kind: "cast",
+					Label: "Cast " + f.Name + " (offspring)", Obj: id, Mode: "offspring"})
+			}
 		}
 	}
 

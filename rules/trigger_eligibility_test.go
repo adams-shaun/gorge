@@ -97,6 +97,11 @@ func TestTriggerEventInterestMapping(t *testing.T) {
 			want = cards.TriggerInterestAttach
 		case events.Explore:
 			want = cards.TriggerInterestExplore
+		case events.CastInfo:
+			// manaexpend1: the pay-time CastInfo has its own interest bit
+			// (the FlagManaExpendCast crossing emission), not the zero
+			// mapping it carried before the ManaExpend mode existed.
+			want = cards.TriggerInterestCastInfo
 		case events.Investigate:
 			// A trigger-relevant Kind past the 64-bit mask's reach: the
 			// conservative catch-all, and compiledTriggerInterestAllows fails

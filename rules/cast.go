@@ -1668,6 +1668,19 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		if bc, ok := buybackCost(f); ok {
 			cost = cost.Plus(bc)
 		}
+	case "offspring":
+		// Offspring (CR 702.175a): the additional cost is paid ON TOP of the
+		// mana cost ("You may pay an additional [cost] as you cast this
+		// spell"), never a substitution -- the Buyback shape. The cost is
+		// resolved through the DERIVED keyword read (e.offspringCost), so a
+		// layer-6 grant (Zinnia) charges the GRANTED parameter, and a stale
+		// option whose keyword is gone pays the plain base cost rather than
+		// stranding. The offer gate priced the SAME derived read
+		// (rules/legal.go's hand and command-zone walks), so the two stages
+		// cannot disagree.
+		if oc, ok := e.offspringCost(id); ok {
+			cost = cost.Plus(oc)
+		}
 	case "replicated":
 		// Replicate (CR 702.55a): the mode marks the intent to pay the
 		// optional replicate cost. The PAYMENT COUNT is a cast announcement
@@ -4230,6 +4243,100 @@ func faceWantsTimesKicked(f *cards.Face) bool {
 	return f.Mentions("Count$TimesKicked")
 }
 
+// manaExpendReaderOut is the ManaExpend emission gate (the
+// triggeredConvergeReaderOut pattern): true when the CASTING player's own
+// battlefield holds a permanent whose live faces carry a Mode$ ManaExpend
+// trigger. A ManaExpend trigger can only fire for its controller's own cast
+// expenditure (every corpus line carries Player$ You), so scoping the scan to
+// the caster's zone stamps exactly when the value can be needed and no game
+// without a carrier out changes an event (heads stay put: no ManaExpend
+// carrier is in any repo deck). Pure read -- the deterministic zone walk
+// cannot reach an event; replay re-runs payCast and derives the same scan.
+//
+// The scan enumerates the SAME faces the ordinary trigger scan walks
+// (roomTriggerFaces plus triggerFacesWithMerged), not just the printed top
+// face: an unlocked Room's alternate face and a mutated pile's under-cards
+// can each carry a ManaExpend trigger (CR 309.6, CR 702.140d), and the
+// trigger scan would fire one if the wake-up event existed. Routing the gate
+// through the shared helpers keeps the gate from silently under-stamping a
+// shape the matcher supports -- the next such face shape is covered without
+// a second list.
+func (e *Engine) manaExpendReaderOut(player state.PlayerID) bool {
+	g := e.G
+	for _, id := range g.Zone(state.ZBattlefield, player) {
+		o := g.Obj(id)
+		if o == nil {
+			continue
+		}
+		if objectHasManaExpendTrigger(o) {
+			return true
+		}
+	}
+	return false
+}
+
+// objectHasManaExpendTrigger reports whether any face the trigger scan walks
+// for o carries a Mode$ ManaExpend trigger: the cast face, an unlocked Room's
+// alternate face (roomTriggerFaces) and every merged under-card face
+// (triggerFacesWithMerged). The shared face enumeration is what makes this
+// the gate's structural twin of the scan rather than a second, driftable
+// list.
+func objectHasManaExpendTrigger(o *state.Object) bool {
+	f := o.Face()
+	if f == nil {
+		return false
+	}
+	faces, n := roomTriggerFaces(o, f)
+	walk := faces[:n]
+	if len(o.MergedCards) > 0 {
+		walk = triggerFacesWithMerged(o, walk)
+	}
+	for _, fc := range walk {
+		if fc.face == nil {
+			continue
+		}
+		for _, t := range fc.face.Triggers {
+			if t.Mode == "ManaExpend" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// manaExpendAdd folds a paid cast's pool spend into the per-turn ManaExpend
+// tally, resetting it first when the turn has moved on. Called
+// UNCONDITIONALLY from payCast (before the gated wake-up emission), so the
+// tally counts casts made while no carrier was out -- the pre-entry base the
+// crossing test needs. Deterministic: e.G.Turn advances only through
+// TurnChange, and replay's payCast re-execution folds the same calls in the
+// same order.
+func (e *Engine) manaExpendAdd(player state.PlayerID, spend int32) {
+	if spend <= 0 {
+		return
+	}
+	if e.manaExpendedTurn != e.G.Turn {
+		e.manaExpendedTurn = e.G.Turn
+		for i := range e.manaExpended {
+			e.manaExpended[i] = 0
+		}
+	}
+	if int(player) < len(e.manaExpended) {
+		e.manaExpended[player] += spend
+	}
+}
+
+// manaExpendTotal is the player's cumulative mana spent casting spells this
+// turn -- the current-turn tally, or zero when the tally belongs to an
+// earlier turn (no cast has stamped the new turn yet). manaExpendMatches
+// reads it for the crossing test.
+func (e *Engine) manaExpendTotal(player state.PlayerID) int32 {
+	if e.manaExpendedTurn != e.G.Turn || int(player) >= len(e.manaExpended) {
+		return 0
+	}
+	return e.manaExpended[player]
+}
+
 // triggeredConvergeReaderOut is the capture gate's second arm: it reports
 // whether any alive player's battlefield holds a permanent whose face SVars
 // name TriggeredCard$Converge -- a trigger that reads ANOTHER spell's cast
@@ -5093,6 +5200,15 @@ func modeFlags(mode string) string {
 		return events.FlagsString(state.FlagAdventure)
 	case "buyback":
 		return events.FlagsString(state.FlagBuyback)
+	// Offspring (CR 702.175a): the mode marks the intent to pay the optional
+	// ADDITIONAL offspring cost, and the offer exists only when it is payable
+	// (rules/legal.go's walks), so -- unlike Squad/Multikicker/Replicate,
+	// whose count asks can still answer 0 -- there is no decline case and the
+	// flag is unconditional. Bare FlagOffspringPaid rides the ordinary
+	// pay-time CastInfo (payCast), and the keyword expansion's ETB trigger
+	// reads it through Count$OffspringPaid to mint the 1/1 token copy.
+	case "offspring":
+		return events.FlagsString(state.FlagOffspringPaid)
 	case "mayplay":
 		return events.FlagsString(state.FlagMayPlay)
 	case "harmonize":
@@ -6242,6 +6358,30 @@ func (e *Engine) payCast() {
 				Counter: events.FlagsString(acc)})
 		}
 	}
+	// ManaExpend (trig:ManaExpend): fold this cast's pool spend into the
+	// per-turn engine tally UNCONDITIONALLY -- including casts made before a
+	// carrier entered the battlefield, which emit no FlagManaExpendCast event
+	// under the gate below. The tally is what manaExpendMatches reads for the
+	// crossing test (a cast that moves it from below Amount$ N to at-or-above
+	// it fires once; a cast that starts at-or-above fires nothing); a
+	// gated-only tally would undercount the pre-entry base and misfire BOTH
+	// ways (spurious fire after a carrier entered mid-turn, missed crossing
+	// when the real total crossed with the carrier out).
+	//
+	// The wake-up CastInfo emission stays gated (heads safety: only a cast
+	// made while the caster's battlefield already holds a ManaExpend carrier
+	// can fire one, so no game without a carrier changes an event). Pool mana
+	// only, the same delta manaSpentTotal(spentMana) the faceWantsCastSpend
+	// capture prices: convoke contributions and free casts are not mana spent,
+	// and ability activations never reach this block. The tally update runs
+	// BEFORE the emit, so the matcher reads the post-payment total.
+	if spend := manaSpentTotal(spentMana); spend > 0 {
+		e.manaExpendAdd(pc.player, spend)
+		if e.manaExpendReaderOut(pc.player) {
+			meFlags := events.FlagsString(events.FlagsFrom(flags) | state.FlagManaExpendCast)
+			e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Player: pc.player, Amount: spend, Counter: meFlags})
+		}
+	}
 	// CR 601.2i: the "when you cast" trigger, held back from the up-front
 	// push, fires now -- only after the spell is paid for. Capture the deferred
 	// PutOnStack event (and its LKI) BEFORE the call: fireDeferredCastTrigger
@@ -6589,6 +6729,15 @@ func init() {
 		// the level-band statics read the counter through the existing
 		// counters_<CMP><n>_LEVEL predicate, so no separate path of its own.
 		"kw:Level up",
+		// kw:Class: CR 702.118, expanded by cards/keywords.go into one
+		// sorcery-speed level-up activator per level (the kw:Level up shape,
+		// gated on the Class's level being below that level) plus the level's
+		// granted static/trigger/replacement, appended with its own ClassBand$
+		// band so it is live from level N on (read as an independent AND gate
+		// by rules/class_level.go's classBandGateHolds). The entry
+		// counter (a Class enters at level 1) is the same etbCounter
+		// PutCounter replacement shape. Proof: rules/class_test.go.
+		"kw:Class",
 		// kw:Replicate: CR 702.55, expanded by cards/keywords.go into the
 		// Storm-shaped copy trigger whose Amount$ Count$ReplicatePaid reads
 		// the pay-time CastInfo's count; the cast flow's replicateAsk poses

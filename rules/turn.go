@@ -1085,6 +1085,14 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// triggers -- so the enlist marker is already folded when an
 		// intervening-if reads enlistedThisCombat.
 		e.enlistAnswer(d, in)
+	case chooseAttackPay:
+		// The declare-attackers attack-cost payment window (rules/
+		// attack_cost.go): one tap of a CantAttackUnless payer's mana source.
+		// attackPayAnswer completes the moment the pool covers the charge and
+		// resumes the declaration at the enlist election; there is no trigger
+		// drain to resume (the window belongs to the turn structure, never
+		// to one).
+		e.attackPayAnswer(d, in)
 	case chooseMana:
 		// Several individual mana abilities share one tap cost. A payment
 		// window resumes its cast after the selected ability resolves; Ward's

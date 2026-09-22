@@ -51,6 +51,12 @@ func (e *Engine) triggerConditionHolds(t cards.Trigger, source state.ObjID) bool
 // which can differ from the source card's own controller -- see
 // checkEventDelayedTriggers.
 func (e *Engine) triggerConditionHoldsAs(t cards.Trigger, source state.ObjID, you state.PlayerID) bool {
+	// A kw:Class level band is an independent AND gate beside every clause
+	// below (and beside the body's own IsPresent$, which the trigger gate
+	// otherwise reads as a union with IsPresent2$).
+	if !e.classBandGateHolds(t.Params, source) {
+		return false
+	}
 	// LifeLost's and LifeGained's LifeAmount$ are matched against the causing
 	// loss/gain by their matchers (lifeLostMatches/lifeGainedMatches), rather
 	// than against a player's current life total.

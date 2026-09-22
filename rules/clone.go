@@ -140,6 +140,12 @@ func (e *Engine) Clone() *Engine {
 		c.resume = cloneResume(e.resume)
 	}
 	c.controlGrants = append([]controlGrant(nil), e.controlGrants...)
+	// The per-turn ManaExpend tally (engine scratch, rules/cast.go): a clone
+	// taken at an intent boundary must resume mid-turn with the original's
+	// cumulative spend, or a crossing measured after the clone would see a
+	// reset tally. Copied as a plain value slice plus its turn stamp.
+	c.manaExpended = append([]int32(nil), e.manaExpended...)
+	c.manaExpendedTurn = e.manaExpendedTurn
 	if e.continuous != nil {
 		c.continuous = make([]ContinuousEffect, len(e.continuous))
 		for i, ce := range e.continuous {
@@ -441,6 +447,13 @@ func (e *Engine) Clone() *Engine {
 	if e.wardMana != nil {
 		wm := *e.wardMana
 		c.wardMana = &wm
+	}
+	// attackPay (combat.go/attack_cost.go): the declare-attackers attack-cost
+	// payment window. The chosen slice is shared with the original -- the
+	// enlistAsk reference-sharing class, never mutated by the window.
+	if e.attackPay != nil {
+		ap := *e.attackPay
+		c.attackPay = &ap
 	}
 	if e.cast != nil {
 		pc := *e.cast
