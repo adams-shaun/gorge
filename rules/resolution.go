@@ -603,6 +603,19 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 			}
 			o.ChosenModes = append([]string(nil), names...)
 		}
+		// CR 702.171b: a Spree/Tiered cast pays each chosen mode's own
+		// ModeCost$ on top of the printed cost -- the same additional-cost
+		// composition beginCast folds for Kicker, but per chosen mode and so
+		// only known once the CR 601.2b mode answer is in. Folded into pc.cost
+		// here (once; the guard survives a Clone) so the CR 601.2g mana window,
+		// the cost modifiers and the final payment all see the composed total.
+		// An unaffordable total aborts through the ordinary payment-reversal
+		// path (CR 733.1) -- this branch never silently discounts or drops a
+		// chosen mode.
+		if !pc.modeCostsDone {
+			pc.modeCostsDone = true
+			pc.cost = pc.cost.Plus(modeCostTotal(e.G.Obj(pc.card).Face(), names))
+		}
 		e.emit(events.Event{Kind: events.ModeChosen, Obj: pc.stackObj, Player: in.Player,
 			Text: strings.Join(labels, ",")})
 		e.continueCast()

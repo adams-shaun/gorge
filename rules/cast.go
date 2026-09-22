@@ -254,6 +254,10 @@ type pendingCast struct {
 	modesDone  bool
 	modeChosen bool
 	preModes   []string
+	// modeCostsDone is set once a Spree/Tiered cast has folded its chosen
+	// modes' ModeCost$ into cost, so a re-entry through continueCast cannot
+	// charge the per-mode additional cost twice.
+	modeCostsDone bool
 
 	// passedTarget is set once the flow has moved past the 601.2c target
 	// choice into payCast, so a resume through continueCast (the mana-window
@@ -2839,26 +2843,45 @@ func (e *Engine) castModeAsk() bool {
 	ctx := &effects.Ctx{Source: pc.card, Controller: pc.player}
 	effects.SetSVars(ctx, f.SVars)
 	choices := strings.Split(sa.Params["Choices"], ",")
+	// The potential pool (a pure read) is the colour-aware upper bound the
+	// per-mode cost filter below prices against: at this point in the cast no
+	// mana has been floated yet (the CR 601.2g window is in payCast), so the
+	// floating pool alone would wrongly withhold every payable mode.
+	pot := e.PotentialMana(pc.player)
 	legal := make([]string, 0, len(choices))
 	for _, name := range choices {
 		name = strings.TrimSpace(name)
 		sub := cards.ResolveSVar(f.SVars, name)
-		if sub == nil || sub.Params["ValidTgts"] == "" {
-			legal = append(legal, name)
-			continue
+		if sub != nil && sub.Params["ValidTgts"] != "" {
+			min, _ := e.resolvedTargetBounds(pc.player, pc.card, sub, pc.x)
+			if len(e.legalTargetCandidates(pc.player, pc.card, pc.card, sub)) < min {
+				continue
+			}
 		}
-		min, _ := e.resolvedTargetBounds(pc.player, pc.card, sub, pc.x)
-		if len(e.legalTargetCandidates(pc.player, pc.card, pc.card, sub)) >= min {
-			legal = append(legal, name)
+		// CR 601.2b/702.171b: a Spree/Tiered mode's own ModeCost$ is an
+		// additional cost charged per chosen mode. A mode whose cost cannot be
+		// paid even after floating every untapped source is not a legal
+		// announcement -- the same no-progress suppression the target-legality
+		// filter above applies, and what makes a mode declined for cost ABSENT
+		// rather than free. It is only a per-mode necessary condition: an
+		// unaffordable COMBINATION of individually affordable modes still
+		// aborts at payment (CR 733.1, the ordinary reversal), so no legal cast
+		// is lost here and no unpayable cast is silently allowed.
+		if mc, ok := modeCost(f, name); ok {
+			if !e.castablePriced(pc.player, pc.card, pc.cost.Plus(mc), false, pot) {
+				continue
+			}
 		}
+		legal = append(legal, name)
 	}
 	min, max, repeat := effects.CharmModeBounds(e, ctx, sa, len(legal))
 	if min > len(legal) && !repeat {
-		// No legal set of modes can complete its required target choices. This
-		// is the modal counterpart of targetAsk's no-legal-target reversal; use
-		// the no-progress suppression so an automated seat cannot propose the
-		// same impossible cast forever. A repeatable Charm can fill its slots by
-		// repeating an eligible mode, so it never aborts here.
+		// No legal set of modes can complete its required target choices or
+		// pay its per-mode costs. This is the modal counterpart of targetAsk's
+		// no-legal-target reversal; use the no-progress suppression so an
+		// automated seat cannot propose the same impossible cast forever. A
+		// repeatable Charm can fill its slots by repeating an eligible mode, so
+		// it never aborts here.
 		e.abortCast(pc, "cast aborted: no legal modal choice", true)
 		return true
 	}
