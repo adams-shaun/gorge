@@ -75,6 +75,19 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		// the permanent the counters landed on.
 		c.TriggerCard = ev.Obj
 		c.TriggerAmount = ev.Amount
+	case "CounterRemovedOnce":
+		// The removal batch, mirrored: one CounterChange with a negative
+		// Amount carries the whole removal, and the magnitude the causing
+		// event carried is POSITIVE, so TriggerCount$Amount reads -ev.Amount
+		// (Chandra, Fire Artisan's "deals that much damage"; B.O.B. Bevy of
+		// Beebles; Regenerations Restored). ev.Obj is the permanent the
+		// counters left.
+		c.TriggerCard = ev.Obj
+		if ev.Amount < 0 {
+			c.TriggerAmount = -ev.Amount
+		} else {
+			c.TriggerAmount = ev.Amount
+		}
 	case "DamagePreventedOnce":
 		// The prevention Note carries the prevented damage in Amount and the
 		// damaged side in Obj/Player (rules/replacement.go's stored-prevention
@@ -202,6 +215,20 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		c.TriggerPlayer = player(ev.Player)
 		if len(ev.IDs) > 0 {
 			c.TriggerEnlisted = ev.IDs[0]
+		}
+	case "BecomeMonstrous":
+		// The monstrous mark's roles (task agent-20260919T190014Z):
+		// TriggerCard is the creature that just became monstrous (ev.Obj, the
+		// trigger's own source for ValidCard$ Card.Self, so
+		// TriggeredCard/TriggeredCardLKICopy resolve against it) and
+		// TriggerAmount is the monstrosity COUNT the mark event carried --
+		// what Hydra Broodmaster's `SVar:MonstrosityX:TriggerCount$Amount` and
+		// Vitality Hunter's `SVar:MaxTgts:TriggerCount$Amount` read back.
+		c.TriggerCard = ev.Obj
+		c.TriggerSource = ev.Obj
+		c.TriggerAmount = ev.Amount
+		if int(ev.Player) >= 0 && int(ev.Player) < len(e.G.Players) {
+			c.TriggerPlayer = player(ev.Player)
 		}
 	case "Connives":
 		// The connive record's roles (task connive1): TriggerCard is the

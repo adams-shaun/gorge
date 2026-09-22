@@ -99,6 +99,19 @@ var predicates = map[string]predFn{
 	"IsSuspected": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.Suspected
 	},
+	// IsMonstrous is CR 701.31b's monstrous designation (task
+	// agent-20260919T190014Z): the 8 corpus statics keyed on it
+	// (`Affected$ Card.Self+IsMonstrous` -- Domesticated Hydra's trample,
+	// Fleecemane Lion, Colossus of Akros, ...) grant through the ordinary
+	// layer walk, and Polis Crusher's trigger-side `IsPresent$
+	// Card.Self+IsMonstrous` intervening-if evaluates through the shared
+	// gate. It reads the event-backed status the events.AlterAttribute fold
+	// (the Monstrous case) maintains; a permanent that left the battlefield
+	// has already been cleared by the Move fold, so the predicate cannot
+	// read a stale designation.
+	"IsMonstrous": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o.Monstrous
+	},
 	// IsGoaded is CR 701.38's goaded condition (Hot Pursuit's
 	// "GainControl | AllValid$ Creature.IsGoaded,Creature.IsSuspected").
 	// It reads the event-backed goad list ONLY: a statically goaded creature
@@ -262,7 +275,7 @@ func init() {
 
 	for _, kw := range [...]string{"Flying", "Trample", "Deathtouch", "Lifelink",
 		"Vigilance", "Reach", "Haste", "Indestructible", "First Strike", "Menace",
-		"Flanking", "Horsemanship"} {
+		"Flanking", "Horsemanship", "Defender"} {
 		k := kw
 		predicates["with"+strings.ReplaceAll(k, " ", "")] = func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 			return objectHasKeyword(o, k)
@@ -282,6 +295,15 @@ func init() {
 	// StrictlyOther is Forge's other spelling of the same "not the source"
 	// test Other already implements.
 	predicates["StrictlyOther"] = predicates["Other"]
+	// EffectSource is the Effect-delivered spelling of Self: the effect's own
+	// source object (Card.EffectSource in a StaticAbilities$ body's
+	// ValidCard$). The spec is evaluated with src = the registered effect's
+	// source, exactly what Self reads, so the two spellings are aliases. Before
+	// this the token was unknown and every such spec matched NOTHING (fail
+	// closed) -- the CanAttackDefender grant bodies' dominant shape
+	// ("EFFECTSOURCE can attack this turn as though it didn't have defender",
+	// 18 corpus carriers) being the case that surfaced it.
+	predicates["EffectSource"] = predicates["Self"]
 	// ExiledWithEffectSource is the Effect-delivered spelling of the same
 	// exiled-by-this-source provenance: the effect's source card is what
 	// exiled the candidate (Opposition Agent/Valki-style MayPlay grants name
@@ -434,8 +456,8 @@ func hasAttachmentOfKind(g *state.Game, id state.ObjID, kind string) bool {
 }
 
 // sharesTypeArg splits the space-bearing two-token predicates
-// "sharesCardTypeWith <X>" and "sharesCreatureTypeWith <X>" and classifies
-// their shared referent. The referent is a resolution-time object list: the
+// "sharesCardTypeWith <X>", "sharesCreatureTypeWith <X>" and
+// "sharesAllCardTypesWithOther <X>" and classifies their shared referent. The referent is a resolution-time object list: the
 // remembered set (RememberedCard — its first card entry, Braids's "a
 // permanent that shares a card type with it" — Remembered, RememberedLKI),
 // the triggering card (TriggeredCard/TriggeredCardLKICopy, Heirloom
@@ -448,7 +470,8 @@ func hasAttachmentOfKind(g *state.Game, id state.ObjID, kind string) bool {
 // widened.
 func sharesTypeArg(p string) (name, arg string, ok bool) {
 	name, arg, ok = strings.Cut(p, " ")
-	if !ok || (name != "sharesCardTypeWith" && name != "sharesCreatureTypeWith") {
+	if !ok || (name != "sharesCardTypeWith" && name != "sharesCreatureTypeWith" &&
+		name != "sharesAllCardTypesWithOther") {
 		return "", "", false
 	}
 	arg = strings.TrimSpace(arg)
@@ -528,6 +551,24 @@ func sharesTypeReferents(g *state.Game, sc SpecContext, ref string) []state.Targ
 // power/toughness/counters, not types). An unbound referent matches
 // nothing — fail closed, never widened.
 func sharesCardTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref string) bool {
+	// The candidate's ACTUAL card types, enumerated from its printed face
+	// through the CR 205.1 vocabulary (cardTypeWords) — the same enumeration
+	// sharesAllCardTypesWithOther probes. A FIXED probe list would miss the
+	// Instant/Sorcery half of the vocabulary, so two instants "sharing a
+	// card type" (Possibility Storm's dig, Cemetery Gatekeeper's trigger)
+	// would never intersect. A face enumerating to no card type is
+	// malformed; fail closed.
+	var oTypes []string
+	if f := o.Face(); f != nil {
+		for _, x := range f.Types {
+			if cardTypeWords[x] {
+				oTypes = append(oTypes, x)
+			}
+		}
+	}
+	if len(oTypes) == 0 {
+		return false
+	}
 	for _, t := range sharesTypeReferents(g, sc, ref) {
 		if t.IsPlayer {
 			continue
@@ -536,10 +577,71 @@ func sharesCardTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref stri
 		if r == nil {
 			continue
 		}
-		for _, cardType := range []string{"Artifact", "Battle", "Creature", "Enchantment", "Land", "Planeswalker"} {
-			if hasType(o, cardType) && hasType(r, cardType) {
+		for _, cardType := range oTypes {
+			if hasType(r, cardType) {
 				return true
 			}
+		}
+	}
+	return false
+}
+
+// sharesAllCardTypesWithOther reports whether o shares EVERY one of its CARD
+// types with some OTHER object the referent names (Forge
+// Card.sharesAllCardTypesWithOther — Demonic Covenant's "If two cards that
+// share all their card types were milled this way, sacrifice ...", whose
+// SVar is `Remembered$Valid Card.sharesAllCardTypesWithOther Remembered`):
+// every card type of the candidate is also a card type of the other object,
+// which is Forge's allMatch-over-the-candidate's-card-types read. With
+// exactly two remembered cards (this carrier's NumCards$) the count reaches
+// 2 only when the two cards' card-type sets are identical, which is the
+// oracle's "share all their card types".
+//
+// "Other" is Forge's own suffix: the matched object must be a different
+// object than the candidate (by identity — two milled copies of the same
+// card name are different objects and do share all their card types). The
+// referent objects are read live from the game, so a remembered card in the
+// graveyard still answers from its own face, exactly like
+// sharesCardTypeWith's read. An unbound referent matches nothing — fail
+// closed, never widened.
+func sharesAllCardTypesWithOther(g *state.Game, o *state.Object, sc SpecContext, ref string) bool {
+	// The candidate's ACTUAL card types, enumerated from its printed face and
+	// filtered by the CR 205.1 card-type vocabulary (cardTypeWords — the same
+	// set Count$Valid...$CardTypes counts for Tarmogoyf). Probing a FIXED
+	// list instead would trivially pass any candidate whose card types are
+	// all outside the list (an Instant or a Sorcery would "share all its
+	// card types" with anything — the false positive the GE2 gate exists to
+	// prevent), so the probe is the enumeration, not a list. A face that
+	// enumerates to no card type at all is malformed; fail closed rather
+	// than trivially matching.
+	var oTypes []string
+	if f := o.Face(); f != nil {
+		for _, x := range f.Types {
+			if cardTypeWords[x] {
+				oTypes = append(oTypes, x)
+			}
+		}
+	}
+	if len(oTypes) == 0 {
+		return false
+	}
+	for _, t := range sharesTypeReferents(g, sc, ref) {
+		if t.IsPlayer {
+			continue
+		}
+		r := g.Obj(t.Obj)
+		if r == nil || r.ID == o.ID {
+			continue
+		}
+		all := true
+		for _, cardType := range oTypes {
+			if !hasType(r, cardType) {
+				all = false
+				break
+			}
+		}
+		if all {
+			return true
 		}
 	}
 	return false
@@ -764,6 +866,11 @@ const (
 	// The creature-subtype twin "sharesCreatureTypeWith <X>": same referent
 	// switch, the intersection is over creature subtypes (Heirloom Blade).
 	wordSharesCreatureType
+	// "sharesAllCardTypesWithOther <X>": same referent switch, but the
+	// candidate must share EVERY one of its card types with some OTHER
+	// object the referent names (Demonic Covenant's "two cards that share
+	// all their card types were milled this way").
+	wordSharesAllCardTypes
 	// The two-token space form "EnchantedBy <Type>.<qual>": the candidate
 	// bears an attached permanent of the named type whose qualifier holds
 	// against that attached object (Daybreak Coronet's "creature with
@@ -809,6 +916,14 @@ const (
 	// two-token form survives the spec splitter) reads the specific part's
 	// CastFlags bit. The bare "kicked" word stays in the predicates map.
 	wordKickedIndex
+	// Forge's numTypesGE<n> card property: the object's printed face carries
+	// at least n distinct real card types (CR 205.1 -- the same vocabulary
+	// count.go's CardTypes count property reads, cardTypeWords). key is the
+	// decimal n, validated at classification time so the matcher's parse
+	// cannot miss. Only the GE spelling is in the corpus (numTypesGE2 x2,
+	// both on Rendmaw, Creaking Nest); the other comparison spellings stay
+	// wordUnknown and fail closed.
+	wordNumTypesGE
 )
 
 // wordPredicate classifies a bare predicate word. key is the WUBRG letter for
@@ -893,6 +1008,16 @@ func wordPredicate(p string) (wordKind, string) {
 	// spelling -- the same ordering rule castProvenanceAdmits documents.
 	case "wasCastFromYourHandByYou", "wasCastByYou", "wasCastFromYourHand":
 		return wordCastProvenance, p
+	// The card-level CastSa property tokens (task castsa-provenance): the
+	// four mana-spend spellings the payment path's tagged ManaAdd encoding
+	// answers. Recognised here (the census no longer reports them unknown)
+	// but evaluated by rules' castSaAdmits, which strips them before the
+	// filter runs; wordMatches' body fails closed. The unmodelled spellings
+	// (CastSa Spell.MayPlaySource / Warp / Mayhem / ManaFromArtifact) stay
+	// unknown and fail closed everywhere.
+	case "CastSa Spell.ManaFromTreasure", "CastSa Spell.ManaFromCave",
+		"CastSa Spell.ManaFromDesert", "CastSa Spell.ManaSpent EQ0":
+		return wordCastProvenance, p
 	case "ActivePlayerCtrl":
 		return wordActivePlayerCtrl, ""
 	case "TopLibrary":
@@ -932,8 +1057,11 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordAttachedTo, arg
 	}
 	if name, arg, ok := sharesTypeArg(p); ok {
-		if name == "sharesCreatureTypeWith" {
+		switch name {
+		case "sharesCreatureTypeWith":
 			return wordSharesCreatureType, arg
+		case "sharesAllCardTypesWithOther":
+			return wordSharesAllCardTypes, arg
 		}
 		return wordSharesCardType, arg
 	}
@@ -943,6 +1071,16 @@ func wordPredicate(p string) (wordKind, string) {
 	// else falls through to wordUnknown and fails closed.
 	if arg, ok := enchantedByArg(p); ok {
 		return wordEnchantedBy, arg
+	}
+	// Forge's numTypesGE<n> (CardProperty numTypesGE<n>): at least n
+	// distinct card types on the printed face. A non-integer or
+	// non-positive suffix stays wordUnknown and fails closed -- a bare
+	// "numTypesGE" never matches anything, the same contract the other
+	// argument-carrying classifiers keep.
+	if n, ok := strings.CutPrefix(p, "numTypesGE"); ok && n != "" {
+		if v, err := strconv.Atoi(n); err == nil && v > 0 {
+			return wordNumTypesGE, n
+		}
 	}
 	if predicateTypeWords[p] {
 		return wordType, p
@@ -987,6 +1125,8 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		return sharesCardTypeWith(g, o, sc, key)
 	case wordSharesCreatureType:
 		return sharesCreatureTypeWith(g, o, sc, key)
+	case wordSharesAllCardTypes:
+		return sharesAllCardTypesWithOther(g, o, sc, key)
 	case wordColor:
 		return strings.Contains(ColorsOf(o), key)
 	case wordType:
@@ -1104,6 +1244,37 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// Forge's blockedBySource: the object is being blocked by the source
 		// -- the source is one of THIS object's blockers.
 		return containsID(o.BlockedBy, source)
+	case wordNumTypesGE:
+		// Forge's numTypesGE<n>: the object's printed face carries at least
+		// n distinct real card types (CR 205.1). The vocabulary is the one
+		// shared census cardTypeWords (effects/creature_types.go), the same
+		// set count.go's CardTypes count property filters through, so the
+		// predicate and the count head cannot disagree about what a "card
+		// type" is. No allocation on this hot filter path: the nested loop
+		// dedupes against the already-scanned prefix of the same (always
+		// tiny) type list, and a nil face matches nothing.
+		n, err := strconv.Atoi(key)
+		if err != nil || n <= 0 || o.Face() == nil {
+			return false
+		}
+		count := 0
+		types := o.Face().Types
+		for i, t := range types {
+			if !cardTypeWords[t] {
+				continue
+			}
+			dup := false
+			for _, u := range types[:i] {
+				if u == t {
+					dup = true
+					break
+				}
+			}
+			if !dup {
+				count++
+			}
+		}
+		return count >= n
 	case wordTargetedPlayerCtrl:
 		matched, ok := matchTargetedPlayerCtrl(g, o, sc)
 		return ok && matched
@@ -1227,6 +1398,12 @@ func nonPredicate(p string) (kind wordKind, key string, ok bool) {
 // know", never "true" -- that is the fail-closed contract.
 func positiveRecognised(p string) bool {
 	if p == "IsRemembered" || p == "token$DifferentCardNames" || strings.HasPrefix(p, "greatestPower") {
+		return true
+	}
+	// Forge's extreme-mana-value properties: greatestCMC_<prop>[ControlledBy
+	// <ref>] and the bare lowestCMC. Recognised here so the matcher and the
+	// census cannot disagree about the family (the classifier is shared).
+	if strings.HasPrefix(p, "greatestCMC_") || strings.HasPrefix(p, "lowestCMC") {
 		return true
 	}
 	if p == "TriggeredNewCard" || p == "TriggeredCard" {
@@ -1806,6 +1983,99 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		}
 		return true, true
 	}
+	if rest, has := strings.CutPrefix(p, "greatestCMC_"); has {
+		// Forge's greatestCMC_<prop>[ControlledBy <players>] (CardProperty):
+		// the candidate is a battlefield card of type <prop> whose mana value
+		// no other battlefield <prop> exceeds -- TIES MATCH, every card at
+		// the maximum matches. The comparison SET is defined by the <prop>
+		// suffix, never by the filter base: Forge takes every battlefield
+		// card, filters it to the suffix's type (NonLandPermanent meaning
+		// nonland permanents, anything else the named card type), optionally
+		// restricts it to the ControlledBy players, keeps the highest-CMC
+		// members and requires the candidate to be among them. So a card not
+		// of the suffix type never matches even at the global maximum, and a
+		// card of the right type matches only if nothing in the (possibly
+		// player-restricted) set is dearer.
+		//
+		// The ControlledBy split is a string cut exactly as Forge's is
+		// (prop.contains("ControlledBy") then split), so the corpus's
+		// CreatureControlledByRemembered and
+		// NonLandPermanentControlledByRemembered forms resolve their set
+		// filter to Creature / NonLandPermanent and their players through the
+		// same controlReferentPlayers grammar greatestPower uses. A
+		// ControlledBy referent this build cannot bind fails closed (matches
+		// nobody) rather than degrading to the uncontrolled whole-field read.
+		prop := rest
+		var players []state.PlayerID
+		if i := strings.Index(prop, "ControlledBy"); i >= 0 {
+			ref := strings.TrimSpace(prop[i+len("ControlledBy"):])
+			prop = prop[:i]
+			var ok bool
+			players, ok = controlReferentPlayers(g, sc, "ControlledBy", ref)
+			if !ok {
+				return false, true
+			}
+		}
+		inSet := o.Zone == state.ZBattlefield && cmcSetMember(o, prop)
+		if inSet && len(players) > 0 {
+			inSet = false
+			for _, pl := range players {
+				if o.Controller == pl {
+					inSet = true
+				}
+			}
+		}
+		if !inSet {
+			return false, true
+		}
+		mine := objectManaValue(o)
+		for i := range g.Objs {
+			other := &g.Objs[i]
+			if other.ID == o.ID || other.Zone != state.ZBattlefield || !cmcSetMember(other, prop) {
+				continue
+			}
+			if len(players) > 0 {
+				controlled := false
+				for _, pl := range players {
+					if other.Controller == pl {
+						controlled = true
+					}
+				}
+				if !controlled {
+					continue
+				}
+			}
+			if objectManaValue(other) > mine {
+				return false, true
+			}
+		}
+		return true, true
+	}
+	if strings.HasPrefix(p, "lowestCMC") {
+		// Forge's lowestCMC (CardProperty): the candidate is a battlefield
+		// card whose mana value no other NONLAND battlefield card is below --
+		// TIES MATCH (the strict = test admits every tied minimum). Forge's
+		// lowestCMC carries no _ suffix, so there is no type/player set
+		// filter; the only exclusion is lands, which the reminder text states
+		// as "target nonland permanent with the lowest mana value" (Culling
+		// Scales, the one corpus carrier). Forge also skips immutable cards;
+		// that state has no equivalent in this build and no corpus carrier
+		// needs it -- recorded as a deliberate narrowing, not approximated.
+		// The candidate is compared even when it is a land (Forge has no
+		// candidate-in-set check here); every real carrier's base constrains
+		// it to a nonland permanent anyway, so no correct target is lost.
+		mine := objectManaValue(o)
+		for i := range g.Objs {
+			other := &g.Objs[i]
+			if other.Zone != state.ZBattlefield || hasType(other, "Land") {
+				continue
+			}
+			if objectManaValue(other) < mine {
+				return false, true
+			}
+		}
+		return true, true
+	}
 	if op, ref, recognised := controlReferent(p); recognised {
 		return matchControlReferent(g, o, sc, op, ref)
 	}
@@ -1885,6 +2155,16 @@ func hasType(o *state.Object, t string) bool {
 		if strings.EqualFold(t, "Aura") {
 			return true
 		}
+		if strings.EqualFold(t, "Creature") {
+			return false
+		}
+	}
+	// CR 702.150c: a Reconfigure card attached to a creature is not a
+	// creature, in the same every-filter-read sense (the target ask's
+	// ValidTgts$ Creature, a Count$Valid Creature census, the combat
+	// eligibility scans). Equipment and Artifact stay true -- they are the
+	// printed face's own types and the attached form keeps them.
+	if o.ReconfiguredAttached() && !(o.FaceDown && o.Zone == state.ZBattlefield) {
 		if strings.EqualFold(t, "Creature") {
 			return false
 		}
@@ -2007,6 +2287,47 @@ func objectPower(o *state.Object) int {
 	return f.Power() + int(o.Counter("P1P1"))
 }
 
+// objectToughness is objectPower's counterpart, the same base-plus-P1P1 read
+// the toughness family uses.
+func objectToughness(o *state.Object) int {
+	f := o.Face()
+	if f == nil {
+		return 0
+	}
+	return f.Toughness() + int(o.Counter("P1P1"))
+}
+
+// objectManaValue is the one mana-value read the extreme-CMC classifier
+// shares with the rest of the engine: the compiled face's CMC, the same
+// Face().Cmc() read manaValueOf, cascade and the Count$ walkers use. It is
+// the analogue of objectPower for greatestCMC/lowerCMC, so the two extreme
+// classifiers cannot drift on what a card's mana value is.
+func objectManaValue(o *state.Object) int {
+	f := o.Face()
+	if f == nil {
+		return 0
+	}
+	return int(f.Cmc())
+}
+
+// cmcSetMember reports whether o is in the comparison set a greatestCMC_<prop>
+// suffix names, mirroring Forge's CardProperty branch: NonLandPermanent is the
+// nonland-permanent predicate, and every other prop is the named card type
+// (Forge's CardLists.getType -> CardPredicates.isType). An empty prop is not a
+// shape Forge produces (greatestCMC_ always carries a suffix), so it fails
+// closed to no set rather than widening to "every battlefield card".
+func cmcSetMember(o *state.Object, prop string) bool {
+	switch prop {
+	case "":
+		return false
+	case "NonLandPermanent":
+		return !hasType(o, "Land")
+	case "Permanent":
+		return true
+	}
+	return hasType(o, prop)
+}
+
 func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (result, ok bool) {
 	resolve := sc.Resolve
 	if resolve == nil {
@@ -2062,6 +2383,39 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 			return false, false
 		}
 		cmp, numStr := rest[:2], rest[2:]
+		// powerLTtoughness / powerGTtoughness / powerEQtoughness (and the
+		// mirror): compare the two characteristics instead of a numeric RHS
+		// (Assault Formation, Bedrock Tortoise, Ancient Lumberknot). The
+		// shape is recognised before any object read, so UnknownPredicates'
+		// nil-object probe resolves it and the matcher and the census cannot
+		// disagree.
+		if (field == "power" || field == "toughness") && (numStr == "power" || numStr == "toughness" ||
+			numStr == "Power" || numStr == "Toughness") {
+			var lhs, rhs int
+			if field == "power" {
+				lhs = objectPower(o)
+			} else {
+				lhs = objectToughness(o)
+			}
+			if numStr == "power" || numStr == "Power" {
+				rhs = objectPower(o)
+			} else {
+				rhs = objectToughness(o)
+			}
+			switch cmp {
+			case "LE":
+				return lhs <= rhs, true
+			case "GE":
+				return lhs >= rhs, true
+			case "EQ":
+				return lhs == rhs, true
+			case "LT":
+				return lhs < rhs, true
+			case "GT":
+				return lhs > rhs, true
+			}
+			return false, false
+		}
 		n, err := strconv.Atoi(numStr)
 		if err != nil {
 			v, resolved := resolve(numStr)

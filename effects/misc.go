@@ -184,7 +184,8 @@ func effWard(h Host, c *Ctx, sa *cards.SA) {
 // end-of-turn cleanup; anything else persists while its source stays on the
 // battlefield.
 func effEffect(h Host, c *Ctx, sa *cards.SA) {
-	dur := sa.Params["Duration"]
+	rawDur := sa.Params["Duration"]
+	dur := rawDur
 	if dur == "" {
 		dur = "Permanent"
 	}
@@ -221,6 +222,42 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	// effect's Remembered set. Both this and ForgetOnMoved$ ride every
 	// registration below.
 	forgetCounter := strings.TrimSpace(sa.Params["ForgetCounter"])
+	// ForgetOnCast$ <spec> (task param:api:Effect.ForgetOnCast): the
+	// cast-driven lifetime -- the first qualifying spell cast ENDS the whole
+	// effect ("the next spell you cast this turn ...", Marshland
+	// Bloodcaster's alternative cost, Dark Apostle's one-cast cascade). The
+	// spec is a card spec over the cast spell, You-relative to the effect's
+	// controller; rules' effectCastSweep matches it at the deferred re-walk
+	// of the cast's PutOnStack (payCast, after payment), so an ABORTED
+	// proposal (reversed before payment, CR 733.1) never consumes the grant
+	// while a completed cast -- even one later countered -- does. Forge's
+	// explicit False is the no-forget default and degrades to the absent
+	// read; it rides every registration below that can actually expire this
+	// way (the cost-static and cascade-grant arms).
+	forgetOnCast := strings.TrimSpace(sa.Params["ForgetOnCast"])
+	if strings.EqualFold(forgetOnCast, "False") {
+		forgetOnCast = ""
+	}
+	// ImprintOnHost$ True (task param:api:Effect.ImprintOnHost): Forge's
+	// EffectEffect imprints the CREATED EFFECT TOKEN on the host card and
+	// moves the token to the Command zone -- the imprint is the link "this
+	// effect belongs to this card", never the remembered card itself. The
+	// corpus's dig-and-play family (Superior Foes of Spider-Man, Furious
+	// Rise, Unstable Amulet) then ends the previous effect through its
+	// trigger's `DB$ ChangeZone | Defined$ Imprinted | Origin$ Command |
+	// Destination$ Exile` (exiling the imprinted token is exiling the
+	// effect -- the "until you exile another card" lifetime), and Word of
+	// Command / Semester's End run the same idiom inside one chain. This
+	// build has no effect-token object, so the marker rides every
+	// registration this call creates (state.ContinuousEffect.ImprintOnHost)
+	// and the idiom ends exactly those through Host.EndImprintedEffects
+	// (rules' EndImprintedEffect). Any other value is a loud unmodelled
+	// read, the RememberLKI$ convention.
+	if v := strings.TrimSpace(sa.Params["ImprintOnHost"]); v != "" && !strings.EqualFold(v, "True") {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "unmodelled Effect ImprintOnHost$ " + v})
+	}
+	imprintOnHost := strings.EqualFold(strings.TrimSpace(sa.Params["ImprintOnHost"]), "True")
 	// RememberLKI$ (Quicksilver Elemental's "RememberLKI$ Targeted"): the
 	// effect remembers the TARGETED cards — "Targeted" (and Forge's bare
 	// "True", which is Targeted in the corpus's spelling) is exactly the
@@ -298,6 +335,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				ForgetOnMoved:    forgetOn,
 				ExileOnMoved:     exileOn,
 				ForgetCounter:    forgetCounter,
+				ImprintOnHost:    imprintOnHost,
 				ChosenNumber:     chosenNumber,
 				ReplacementEvent: event, ReplacementParams: params, ReplacementBody: body,
 			})
@@ -332,6 +370,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				UntilEOT: untilEOT, Duration: dur,
 				Name:             effectName,
 				Remembered:       remembered,
+				ImprintOnHost:    imprintOnHost,
 				ReplacementEvent: event, ReplacementParams: params,
 			})
 			registered = true
@@ -364,6 +403,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				grant.ForgetOnMoved = forgetOn
 				grant.ExileOnMoved = exileOn
 				grant.ForgetCounter = forgetCounter
+				grant.ImprintOnHost = imprintOnHost
 				h.AddContinuous(grant)
 				registered = true
 			} else if kws, affected, zone, ok := cascadeKeywordGrantFromLine(params); ok {
@@ -378,9 +418,11 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				// it past the whitelist; anything else fails closed to the
 				// unimplemented Note below. The grant's lifetime is the Effect's
 				// own (the source-leaves/UntilEOT discipline every registration
-				// here uses) — the corpus's "the NEXT spell" precision is the
-				// Triggers$/ForgetOnCast$ rider, which stays unread (see the
-				// cascade row in AGENTS.md's Known approximations).
+				// here uses) — and when the SA carries ForgetOnCast$, the cast
+				// sweep (rules' effectCastSweep) ends the grant on the first
+				// qualifying cast, which is the "the NEXT spell" precision the
+				// corpus's GrantCascade riders (Dark Apostle, Bigger on the
+				// Inside, World War Hulk, Sloppity Bilepiper) write.
 				ce := state.ContinuousEffect{
 					Source:        c.Source,
 					Controller:    c.Controller,
@@ -388,6 +430,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					Affects:       affected,
 					AffectedZone:  zone,
 					AddKeywords:   kws,
+					ImprintOnHost: imprintOnHost,
 					Name:          effectName,
 					UntilEOT:      effectUntilEOT(h, c.Source, dur),
 					Duration:      dur,
@@ -395,6 +438,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					ForgetOnMoved: forgetOn,
 					ExileOnMoved:  exileOn,
 					ForgetCounter: forgetCounter,
+					ForgetOnCast:  forgetOnCast,
 				}
 				h.AddContinuous(ce)
 				registered = true
@@ -426,6 +470,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					Affects:        affected,
 					AffectedZone:   zone,
 					SetMaxHandSize: val,
+					ImprintOnHost:  imprintOnHost,
 					Name:           effectName,
 					UntilEOT:       effectUntilEOT(h, c.Source, dur),
 					Permanent:      strings.EqualFold(strings.TrimSpace(dur), "Permanent"),
@@ -442,7 +487,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
 			}
-		case "CantTarget", "CantRegenerate", "CantPreventDamage", "CantAttack", "CantSacrifice", "CantPutCounter":
+		case "CantTarget", "CantRegenerate", "CantPreventDamage", "CantAttack", "CantSacrifice", "CantPutCounter", "CantBlockBy", "CanAttackDefender", "UnspentMana":
 			// A COMPOUND IsRemembered spec (Card.IsRemembered+Creature) resolves
 			// faithfully through the general filter now that it implements
 			// IsRemembered (rules/layers.go restrictionApplies consults the
@@ -463,28 +508,54 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				registered = true
 				break
 			}
-			if mode == "CantPutCounter" && !CantPutCounterParamsReadable(params) {
+			if mode == "CanAttackDefender" && !CanAttackDefenderGrantParamsReadable(params) {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
+				registered = true
+				break
+			}
+			if mode == "CanAttackDefender" && !CanAttackDefenderGrantParamsReadable(params) {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
+				registered = true
+				break
+			}
+			if mode == "CantBlockBy" && !CantBlockByRestrictionParamsReadable(params) {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
+				registered = true
+				break
+			}
+			if mode == "UnspentMana" && !UnspentManaParamsReadable(params) {
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
 				break
 			}
 			ceUntilEOT := effectUntilEOT(h, c.Source, dur)
-			if mode == "CantPutCounter" && sa.Params["Duration"] == "" {
-				// cantputcounter1-r2: a CantPutCounter lock with NO Duration$
-				// is the THIS-TURN lock the corpus's one Effect-delivered
-				// carrier writes (Melira, the Living Cure's "you can't get
-				// additional poison counters this turn", whose Description$
-				// states the lifetime the absent Duration$ leaves unstated).
-				// effEffect's plain absent-Duration default (Permanent, set at
-				// the top of this function) would never expire the lock and
-				// swallow every later turn's fresh poison outright -- the
-				// non-permissive direction for a restriction. An EXPLICIT
-				// Duration$ keeps the ordinary reading (Permanent stays
-				// permanent, this-turn spellings were already UntilEOT through
-				// effectUntilEOT). The DamageDone prevent precedent (this
-				// function) made the same absent-Duration read for the same
-				// reason.
+			if absentDurationMeansThisTurn(mode) && sa.Params["Duration"] == "" {
+				// A restriction body whose oracle lifetime is THIS TURN but whose
+				// script writes no inline Duration$ gets UntilEOT, not effEffect's
+				// plain absent-Duration default (Permanent, set at the top of
+				// this function). For a restriction the Permanent reading is the
+				// non-permissive direction: the lock/permission would outlive the
+				// turn the card text names and apply to every later turn too.
+				//
+				// cantputcounter1-r2 (Melira, the Living Cure's "you can't get
+				// additional poison counters this turn") fixed this for
+				// CantPutCounter one mode at a time; canattackdefender1-r2 hit
+				// the identical shape on CanAttackDefender (Krotiq Nestguard's
+				// "{2}{G}: This creature can attack this turn ...", Wakestone
+				// Gargoyle's team grant), so the class now has ONE home --
+				// absentDurationMeansThisTurn below names every mode whose
+				// absent Duration$ is this-turn, and the next sibling joins that
+				// list instead of growing another copy of this branch.
+				//
+				// An EXPLICIT Duration$ keeps the ordinary reading (Permanent
+				// stays permanent, this-turn spellings were already UntilEOT
+				// through effectUntilEOT). The DamageDone prevent precedent
+				// (this function) made the same absent-Duration read for the
+				// same reason.
 				ceUntilEOT = true
 			}
 			ce := state.ContinuousEffect{
@@ -494,6 +565,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				UntilEOT:       ceUntilEOT,
 				Restriction:    mode,
 				RestrictParams: params,
+				ImprintOnHost:  imprintOnHost,
 				Remembered:     remembered,
 				Duration:       dur,
 				ForgetOnMoved:  forgetOn,
@@ -510,6 +582,68 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				// objects only, so without this the remembered player would
 				// silently vanish.
 				ce.RememberedPlayers = effectRememberedPlayers(h, c, sa)
+			}
+			h.AddContinuous(ce)
+			registered = true
+		case "ReduceCost", "RaiseCost", "SetCost", "AlternativeCost":
+			// An Effect-delivered cost-modifier static (task
+			// param:api:Effect.ForgetOnCast; Marshland Bloodcaster's "Rather
+			// than pay the mana cost of the next spell you cast this turn, you
+			// may pay life equal to that spell's mana value", plus the 11
+			// Effect-delivered Mode$ ReduceCost carriers -- Kaza, Roil Chaser
+			// et al). Registered into the continuous registry with the line's
+			// own parameter map; the cost path reads it through the SAME
+			// readers the printed S: static route feeds (rules'
+			// collectCostStatics for the Raise/Reduce/Set modes, rules'
+			// alternativeCosts for AlternativeCost), so the two registration
+			// paths cannot disagree about what applies. The whitelist is the
+			// keys the cost chain's own gates evaluate plus display text: a
+			// line carrying a scoping parameter this build does not evaluate
+			// must not register blanket -- it is reported unimplemented
+			// instead (the permissive direction for a grant).
+			if !CostStaticParamsReadable(params) {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
+				registered = true
+				break
+			}
+			// Lifetime. The Duration$ spellings the corpus's cost carriers
+			// write are exactly two (measured 13/13 at the corpus pin):
+			// absent -- every one of whose texts says "this turn", so the
+			// grant is this-turn even from a battlefield source (the plain
+			// effectUntilEOT read would give a creature source the
+			// source-leaves lifetime and let the grant survive past the
+			// turn it was granted) -- and explicit Permanent (xho_cai,
+			// draconic_debut, stonehide, commander_liara's "the next ...",
+			// no "this turn"), which pairs with ForgetOnCast$ on every
+			// carrier: the lifetime is entirely forget-driven, CR 611.2a's
+			// Permanent read keeps the grant past its (already gone) spell
+			// source until the cast sweep ends it. Any other spelling falls
+			// to the shared effectUntilEOT read every other registration
+			// here uses.
+			untilEOT := effectUntilEOT(h, c.Source, dur)
+			permanent := false
+			switch {
+			case forgetOnCast != "" && strings.EqualFold(strings.TrimSpace(rawDur), "Permanent"):
+				untilEOT, permanent = false, true
+			case strings.TrimSpace(rawDur) == "":
+				untilEOT = true
+			}
+			ce := state.ContinuousEffect{
+				Source:           c.Source,
+				Controller:       c.Controller,
+				Name:             effectName,
+				UntilEOT:         untilEOT,
+				Permanent:        permanent,
+				Duration:         dur,
+				Remembered:       remembered,
+				ForgetOnMoved:    forgetOn,
+				ExileOnMoved:     exileOn,
+				ForgetCounter:    forgetCounter,
+				ForgetOnCast:     forgetOnCast,
+				CostStaticMode:   mode,
+				CostStaticParams: params,
+				ChosenNumber:     chosenNumber,
 			}
 			h.AddContinuous(ce)
 			registered = true
@@ -899,6 +1033,29 @@ func CantRestrictionParamsReadable(params map[string]string) bool {
 	return true
 }
 
+// CantBlockByRestrictionParamsReadable is the parameter whitelist an
+// Effect-registered CantBlockBy static must pass before this build enforces
+// it (task cbb1): Mode$, the ValidAttacker$ attacker spec, the ValidBlocker$
+// blocker spec, the historical ValidCard$ fallback (rules' blockRestricted
+// accepts both spellings, mirroring the face-static read), and display text
+// only. A body carrying anything else -- space_beleren's ValidBlockerRelative$
+// sector grammar, an IsPresent$/PresentCompare$ gate -- names a scoping the
+// registered-effect consumption path does not evaluate; enforcing it blanket
+// would make a conditional "can't be blocked" unconditional, so the body is
+// reported unimplemented instead -- the permissive direction for a
+// restriction. Secondary$ is allowed: it marks a Forge-side duplicate for
+// modifier composition, and a boolean restriction cannot be applied twice.
+func CantBlockByRestrictionParamsReadable(params map[string]string) bool {
+	for k := range params {
+		switch k {
+		case "Mode", "ValidAttacker", "ValidBlocker", "ValidCard", "Description", "Secondary":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
 // CantSacrificeRestrictionParamsReadable is the parameter whitelist a face
 // CantSacrifice static must pass before rules' SacrificeBlocked enforces it
 // (task vc-static1). It is the CantAttack list above PLUS the two
@@ -953,6 +1110,164 @@ func CantPutCounterParamsReadable(params map[string]string) bool {
 		}
 	}
 	return true
+}
+
+// UnspentManaParamsReadable is the parameter whitelist an UnspentMana static
+// must pass before this build enforces it -- used BOTH by the face-static
+// reader (rules/statics.go's unspentManaKeep activeStatics walk) and by
+// effEffect's registration case, so the two paths cannot disagree about what
+// is readable. The readable parameters are the mode, the player scope
+// (ValidPlayer$), the colour scope (ManaType$, a comma-separated colour-word
+// list effects.ColorLetters parses; absent protects every slot, the Upwelling
+// spelling) and display text. Duration$ rides the registration only through
+// effEffect's own effectUntilEOT read (an instant/sorcery source's grant is
+// the UntilEOT lifetime the oracle's "until end of turn" states), so it is
+// NOT readable here: an UnspentMana body naming Duration$ explicitly would
+// need a lifetime the whitelist cannot vouch for. A static carrying any other
+// parameter names a condition or scoping this build does not evaluate
+// (IsPresent$, CheckSVar$, ActiveZones$, ...) -- enforcing it blanket would
+// OVER-protect mana that should empty, so it is skipped/reported. Secondary$
+// is allowed: a Forge-side duplicate for modifier composition, and a boolean
+// keep cannot be applied twice.
+func UnspentManaParamsReadable(params map[string]string) bool {
+	for k := range params {
+		switch k {
+		case "Mode", "ValidPlayer", "ManaType", "Description", "Secondary":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// CanAttackDefenderGrantParamsReadable is the parameter whitelist an
+// Effect-granted CanAttackDefender body (a StaticAbilities$ CanAttack grant
+// such as Assault Formation's SVar:CanAttack) must pass before effEffect
+// registers it as a CanAttackDefender restriction. Readable: the mode, the
+// object spec (ValidCard$ — the corpus's dominant Card.EffectSource and
+// IsRemembered shapes — plus the ValidCards$ spelling one carrier uses), the
+// ValidTarget$ alias, the ValidAttacked$ player gate the face read evaluates,
+// and display text. The gate family (IsPresent$/CheckSVar$/Condition$/...)
+// is DELIBERATELY excluded: the continuous-effect path cannot evaluate a
+// gate, and registering such a body would grant blanket — a Defender
+// creature the gate should still wall would attack. The asymmetry with
+// CanAttackDefenderParamsReadable below is the same documented divergence
+// CantRestrictionParamsReadable vs CantSacrificeRestrictionParamsReadable
+// carries: the grant path keeps the narrower list.
+func CanAttackDefenderGrantParamsReadable(params map[string]string) bool {
+	for k := range params {
+		switch k {
+		case "Mode", "ValidCard", "ValidCards", "ValidTarget", "ValidAttacked", "Description", "Secondary":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// CostStaticParamsReadable is the parameter whitelist an Effect-delivered
+// cost-modifier static (Mode$ ReduceCost/RaiseCost/SetCost/AlternativeCost
+// behind an AB$ Effect's StaticAbilities$ entry, task
+// param:api:Effect.ForgetOnCast) must pass before effEffect registers it
+// into the continuous registry. It lists exactly the keys the cost chain's
+// own gates evaluate -- rules' costStaticApplies (Type$, ValidCard$,
+// ValidSpell$, ValidTarget$, AffectedZone$, IsPresent$, OnlyFirstSpell$,
+// RaiseTo$, Secondary$, Relative$, CheckSVar$ + SVarCompare$, Condition$ --
+// whose unread values fail closed), costActorMatches (Activator$/Caster$),
+// costModifiers' own reads (Amount$, Cost$, Color$, MinMana$,
+// IgnoreGeneric$), alternativeCostScopeOK (ValidSA$, ValidPlayer$,
+// IsPresent$, EffectZone$, CheckSVar$/CheckSecondSVar$ + their compares,
+// ClassBand$), presentGate's PresentZone$/PresentCompare$ and the Announce$
+// X binding -- plus the display-only Description$ keys. A line carrying any
+// other key would register blanket where that key was meant to scope, so it
+// is refused: the unimplemented Note is the permissive direction for a
+// grant, exactly the whitelist discipline every other registration arm
+// here keeps.
+func CostStaticParamsReadable(params map[string]string) bool {
+	for k := range params {
+		switch k {
+		case "Mode", "Type", "ValidCard", "ValidSA", "ValidPlayer", "ValidSpell",
+			"ValidTarget", "Activator", "Caster", "Amount", "Cost", "Announce",
+			"Color", "MinMana", "IgnoreGeneric", "RaiseTo", "OnlyFirstSpell",
+			"IsPresent", "PresentZone", "PresentCompare", "CheckSVar", "SVarCompare",
+			"CheckSecondSVar", "SecondSVarCompare", "Condition", "EffectZone",
+			"AffectedZone", "Secondary", "Relative", "ClassBand",
+			"Description", "SpellDescription":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// CanAttackDefenderParamsReadable is the parameter whitelist a FACE
+// CanAttackDefender static must pass before rules' attacker-legality read
+// (rules/attack_defender.go attackAllowedThroughDefender) enforces it. It is
+// the grant list above PLUS the gate family (IsPresent$/IsPresent2$/
+// CheckSVar$/SVarCompare$/Condition$), which the face read evaluates through
+// the shared continuousGateHolds grammar — the same shape
+// cantAttackUnlessParamsReadable carries for CantAttackUnless. A static
+// carrying any other parameter names a scoping this build does not evaluate;
+// skipping it is the conservative direction for a permission (the creature
+// stays walled, today's behaviour), never the wrong-wide one.
+func CanAttackDefenderParamsReadable(params map[string]string) bool {
+	for k := range params {
+		switch k {
+		case "Mode", "ValidCard", "ValidCards", "ValidTarget", "ValidAttacked", "Description", "Secondary",
+			"IsPresent", "IsPresent2", "CheckSVar", "SVarCompare", "Condition":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// absentDurationMeansThisTurn is the ONE home for the restriction modes whose
+// Effect-granted bodies write no inline Duration$ yet whose card text names a
+// THIS-TURN lifetime. effEffect defaults an absent Duration$ to Permanent (a
+// one-shot that survives its source, CR 611.2a), which is correct for a body
+// that genuinely says "for the rest of the game" but wrong for these: a
+// this-turn restriction read as Permanent outlives the turn the card names and
+// applies to every later turn too, the non-permissive direction for a
+// restriction.
+//
+// The membership test is structural, not per-card: add a mode here only when
+// its absent Duration$ is this-turn by the corpus's own oracle text, and the
+// registration branch below picks it up without a new copy of the expiry
+// logic. An EXPLICIT Duration$ always takes precedence over this list.
+//
+//   - CantPutCounter: Melira, the Living Cure's Effect-delivered lock is "you
+//     can't get additional poison counters this turn"; with no Duration$ the
+//     registration must be UntilEOT (cantputcounter1-r2).
+//   - CanAttackDefender: the Effect-granted permission family is uniformly
+//     "can attack this turn as though it didn't have defender" -- measured,
+//     ALL 22 corpus StaticAbilities$ CanAttack bodies write no inline
+//     Duration$ (18 Card.EffectSource self-grants, Assault Formation's
+//     Creature.IsRemembered, Wakestone Gargoyle's Creature.YouCtrl+withDefender
+//     team grant). Krotiq Nestguard's activated grant and Wakestone Gargoyle's
+//     both broke before canattackdefender1-r2 (canattackdefender1-r2).
+//   - CantBlockBy: Forge's Effect SA with NO Duration$ is a THIS-TURN effect
+//     -- the corpus's own convention proves it: every no-Duration unblockable
+//     grant is an activated/triggered ability whose oracle says "this turn"
+//     (Suspicious Bookcase, Kaito Cunning Infiltrator's +1, Kappa Cannoneer's
+//     counter trigger; 108 activated carriers), while the "for as long as"
+//     shapes spell Duration$ UntilHostLeavesPlayOrEOT out explicitly and the
+//     forever shapes spell Duration$ Permanent (cbb1, joined from main).
+//
+// DELIBERATELY ABSENT: CantAttack (42 bodies -- "Creatures can't attack you"
+// and the "during your next turn" shapes are not this-turn), CantTarget (5 --
+// "Players and Permanents can't be the targets" is a permanent lock),
+// CantPreventDamage (14 -- "Damage can't be prevented" is a permanent lock),
+// and CantSacrifice (5 -- "This permanent can't be sacrificed" is a static).
+// A mode joins this list only when EVERY corpus Effect body of it is this-turn;
+// adding one on a mixed population would expire a genuinely permanent
+// restriction a turn early, the wrong-wide direction.
+func absentDurationMeansThisTurn(mode string) bool {
+	switch mode {
+	case "CantPutCounter", "CantBlockBy", "CanAttackDefender":
+		return true
+	}
+	return false
 }
 
 // IsNextTurnDuration reports whether a Duration$ value names the
@@ -1493,10 +1808,39 @@ func encodeRemembered(remembered []state.Target) []state.ObjID {
 // predates MaxRepeat$. Either way the run count goes through Num(), so an
 // SVar-indirected Count$ works for either name. It is capped at 1000 so a
 // malformed or absurdly large repeat can never spin the engine.
+//
+// A Repeat carrying RepeatCheckSVar$/RepeatSVarCompare$ (Forge's
+// repeat-while gate; 28 corpus files) is gate-governed instead: the gate is
+// the between-iteration condition (repeatGateHolds below), re-evaluated
+// after every iteration because the body rewrites the named SVar
+// (StoreSVar's accumulator) or grows the remembered set it reads
+// (RememberMilled$) -- Grist's [+1] and Scalpelexis both loop on exactly
+// that. MaxRepeat$ (when present and resolvable) is then the CAP, and
+// Forge's unbounded default is clamped to the same 1000. A gate the
+// evaluator cannot read stops the loop after the iteration just run -- the
+// pre-gate single-iteration behaviour, never a spin: an unevaluated gate
+// must not stand in for "the condition holds" (a count body whose filter
+// predicates fail closed to 0 under an EQ0 compare would otherwise loop to
+// the cap on a number the engine cannot honestly compute). For the four
+// MaxRepeat carriers whose gate names such a body (Helm of Obedience,
+// Grindstone, Sphinx's Tutelage, The Tale of Tamiyo) this trades the
+// pre-gate loop's whole-library mill -- MaxRepeat$ is CardsInLibrary there
+// -- for one iteration, the conservative direction; every one of them sits
+// outside every repo deck and golden game.
 func effRepeat(h Host, c *Ctx, sa *cards.SA) {
+	check := strings.TrimSpace(sa.Params["RepeatCheckSVar"])
+	cmp := strings.TrimSpace(sa.Params["RepeatSVarCompare"])
+	gated := check != ""
 	n := Num(h, c, sa, "MaxRepeat", -1)
 	if n < 0 {
-		n = Num(h, c, sa, "RepeatNum", 1)
+		if gated {
+			// Gate-governed: Forge's default cap is unbounded (the gate
+			// decides when to stop); clamp to the same 1000-iteration cap a
+			// malformed MaxRepeat takes.
+			n = 1000
+		} else {
+			n = Num(h, c, sa, "RepeatNum", 1)
+		}
 	}
 	if n < 0 {
 		n = 0
@@ -1514,7 +1858,67 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 	}
 	for i := int32(0); i < n; i++ {
 		Resolve(h, c, sub)
+		if h.Suspended() {
+			// A body ask suspended the resolution: the remaining iterations
+			// cannot run while the ask is pending, and a plain Repeat has no
+			// loop cursor to resume with (only RepeatEach does), so they are
+			// dropped. Returning lets the enclosing Resolve walk record its
+			// continuation frame -- the answer re-enters at this SA's chain
+			// tail (sa.Sub), never re-running the completed iterations. The
+			// pre-gate loop kept calling Resolve for the remaining iterations
+			// while the ask was pending; nothing on the current corpus reaches
+			// that (the MaxRepeat carriers' bodies ask nothing and every
+			// asking body's carrier runs once), so no event stream changes
+			// here beyond what the gate itself moves.
+			return
+		}
+		if !gated {
+			continue
+		}
+		// The gate is a do-while: the body runs first, THEN the gate decides
+		// whether to run again. Every carrier's oracle reads "run, then
+		// repeat while <condition holds>" -- a check-before-first-body loop
+		// would run Grist's [+1] or Countryside Crusher's upkeep reveal zero
+		// times, since neither condition can hold before the first body has
+		// remembered anything.
+		holds, evaluated := repeatGateHolds(h, c, check, cmp)
+		if !evaluated || !holds {
+			break
+		}
 	}
+}
+
+// repeatGateHolds evaluates one Repeat's between-iteration gate -- the
+// RepeatCheckSVar$/RepeatSVarCompare$ pair. holds is the compare's answer;
+// evaluated is false when the gate cannot be read here: the named SVar (the
+// ctx table first, then the source face's own -- the same lookup
+// CheckSVarHolds makes) resolves to a body whose filter predicates this
+// build does not know (UnknownPredicates -- the same unresolved guard
+// conditions.go's present-count gates take), or whose count/compare
+// EvalCountOK does not model. An absent cmp is Forge's GE1 default;
+// CheckSVarHolds reads an empty compare as "nonzero", the same answer for
+// every count.
+func repeatGateHolds(h Host, c *Ctx, check, cmp string) (holds, evaluated bool) {
+	if check == "" {
+		return true, true // no gate; the loop's own run count governs
+	}
+	body := check
+	if c.SVars != nil {
+		if b, ok := c.SVars[check]; ok {
+			body = b
+		}
+	}
+	if body == check && c.Source != 0 {
+		if o := h.Game().Obj(c.Source); o != nil && o.Face() != nil {
+			if b, ok := o.Face().SVars[check]; ok {
+				body = b
+			}
+		}
+	}
+	if len(UnknownPredicates(body)) > 0 {
+		return false, false
+	}
+	return CheckSVarHolds(h, c, check, cmp)
 }
 
 // CharmRepeatModes reports whether a Charm's CanRepeatModes$ True grants
@@ -1872,6 +2276,31 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 		// must likewise make no arbitrary choice.
 		return
 	}
+	// param:api:Charm.Random (Random$ True / Random$ Compare with
+	// RandomCompareSVar$/RandomCompare$): a Charm whose mode is picked AT
+	// RANDOM rather than asked. The direction is the card oracle's, not the
+	// brief's gloss: Typhoid Mary, Fractured ("choose one at random. If you
+	// discarded a card this turn, you choose one instead", RandomCompare$
+	// LT1 over SVar Y = CardsDiscardedThisTurn) is random exactly while the
+	// comparison HOLDS, and a failed comparison reverts to the ordinary
+	// KModes ask below. An unresolvable comparison (a missing
+	// RandomCompareSVar$, an unmodelled count head, an unparseable
+	// comparator) fails to the ask too -- never to a fake random, the
+	// permissive direction. Only the single-slot shape is picked: a Random$
+	// Charm whose CharmNum$ fills several slots keeps the ordinary ask
+	// (measured corpus-unreachable -- every Random$ carrier, 5 files, is
+	// single-slot), because a multi-pick cannot share this suspension-free
+	// path.
+	if CharmRandomChosen(h, c, sa) && min == 1 && max == 1 && !repeat {
+		idx := h.Rand(len(choices))
+		label := charmModeLabel(choices, subs, idx)
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "chose a mode at random: " + label})
+		if subs[idx] != nil {
+			Resolve(h, c, subs[idx])
+		}
+		return
+	}
 	d := &decision.Decision{Player: c.Controller, Kind: decision.KModes,
 		Min: min, Max: max, Source: c.Source, Repeatable: repeat,
 		ResumeKind: "modes", ResumeSA: sa,
@@ -1899,6 +2328,60 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 	if subs[0] != nil {
 		Resolve(h, c, subs[0])
 	}
+}
+
+// CharmRandomChosen reports whether the Charm's mode is chosen AT RANDOM
+// rather than asked (param:api:Charm.Random):
+//
+//   - `Random$ True` is always random (Outlaws' Merriment, Cult of Skaro,
+//     Umaru the Raging Yeti, Summon the Magus Sisters);
+//   - `Random$ Compare` is random exactly while the RandomCompareSVar$
+//     comparison holds -- the card oracle's direction, NOT the brief's
+//     gloss. Typhoid Mary, Fractured's own oracle quote ("choose one at
+//     random. If you discarded a card this turn, you choose one instead")
+//     with RandomCompare$ LT1 over Y = CardsDiscardedThisTurn reads: zero
+//     discards (LT1 holds) -> random; a discard this turn (LT1 fails) ->
+//     the player chooses.
+//
+// The comparison rides the shared CheckSVarHolds evaluator (the SVar table,
+// then the source face's own, through EvalCountOK), so every head that
+// evaluates for CheckSVar$/SVarCompare$ gates evaluates here too. A
+// comparison that does not EVALUATE (missing RandomCompareSVar$, an
+// unmodelled count head, an unparseable comparator) reports false -- the
+// ordinary ask keeps the choice, never a fake random. Any other Random$
+// value is unread: the ordinary ask applies.
+//
+// Both mode-ask SITES consult this beside effCharm itself: the trigger
+// placement ask (rules' askTriggerModes) and the cast-time announcement
+// (rules' castModeAsk) skip their ask for a random Charm, so the pick (or
+// the failed comparison's ask) happens once, at resolution, in effCharm --
+// the rng draw stays in the replay-exact resolution path instead of
+// split-braining a placement-time pick with a resolution-time run.
+func CharmRandomChosen(h Host, c *Ctx, sa *cards.SA) bool {
+	switch strings.TrimSpace(sa.Params["Random"]) {
+	case "True":
+		return true
+	case "Compare":
+		holds, evaluated := CheckSVarHolds(h, c, sa.Params["RandomCompareSVar"], sa.Params["RandomCompare"])
+		return evaluated && holds
+	}
+	return false
+}
+
+// charmModeLabel is the display label of choice slot idx: the mode body's
+// SpellDescription$ when it carries one, else the SVar name -- the same
+// label the KModes decision's options carry, so the random-pick Note names
+// the mode exactly as an answered ask would.
+func charmModeLabel(choices []string, subs []*cards.SA, idx int) string {
+	if idx < 0 || idx >= len(choices) {
+		return ""
+	}
+	if subs[idx] != nil {
+		if d := strings.TrimSpace(subs[idx].Params["SpellDescription"]); d != "" {
+			return d
+		}
+	}
+	return choices[idx]
 }
 
 // effVote records one Note per voting player. Two shapes:

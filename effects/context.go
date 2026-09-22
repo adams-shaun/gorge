@@ -279,6 +279,15 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		if c.RepeatSubject.IsPlayer {
 			return []state.Target{{Player: c.RepeatSubject.Player, IsPlayer: true}}, true
 		}
+		// Prefer the last-known controller the ChangeZone captured: events.Apply's
+		// Move resets a battlefield departure's controller to its owner (CR
+		// 400.7), so the live object answers the WRONG seat for a stolen
+		// creature (Forge stores a Card LKI copy at the same point).
+		if spec == "ImprintedController" {
+			if p, ok := lkiControllerFor(c, c.RepeatSubject.Obj); ok {
+				return []state.Target{{Player: p, IsPlayer: true}}, true
+			}
+		}
 		if o := g.Obj(c.RepeatSubject.Obj); o != nil {
 			if spec == "ImprintedController" {
 				return []state.Target{{Player: o.Controller, IsPlayer: true}}, true
@@ -776,6 +785,24 @@ func rememberedWithSource(h Host, c *Ctx) []state.Target {
 	return out
 }
 
+// lkiControllerFor returns the last-known controller ChangeZone's
+// RememberLKI$ move captured for id, if this resolution captured one. The
+// live object cannot answer it: events.Apply's Move resets a battlefield
+// departure's controller to its owner (CR 400.7). This is the read Forge's
+// Card LKI copy gives readers such as RepeatEach's TokenOwner$
+// ImprintedController (Curse of the Swine).
+func lkiControllerFor(c *Ctx, id state.ObjID) (state.PlayerID, bool) {
+	if id == 0 {
+		return 0, false
+	}
+	for _, e := range c.ChangeZoneLKI {
+		if e.Obj == id {
+			return e.Controller, true
+		}
+	}
+	return 0, false
+}
+
 // objectsOf returns Remembered's object entries (IsPlayer false) as a fresh
 // slice -- never aliasing Ctx.Remembered, for the reason copyTargets' own
 // doc comment gives.
@@ -796,6 +823,25 @@ func oneTriggerPlayer(t state.Target) []state.Target {
 		return nil
 	}
 	return []state.Target{t}
+}
+
+// plainRememberedSelector reports whether a Defined$/ValidPlayers selector is
+// the plain Remembered family: it starts with "Remembered" and does NOT end
+// with Controller or Owner. Forge's AbilityUtils.addPlayer maps a remembered
+// CARD to its controller/owner only for those two suffixes; for every other
+// Remembered spelling a remembered card contributes no player at all. The
+// shared PlayerOf mapping would instead read a remembered card's controller
+// for EVERY spelling, which is the leak this guards: a RepeatEach iteration's
+// Remembered is the loop subject PLUS whatever the previous iteration
+// RememberChose$, so a chooser defined as `Remembered` would otherwise add
+// the previously chosen card's controller as a second chooser and re-ask that
+// player with the collective pool (Summon: Valefor re-asking the first
+// opponent on the second iteration).
+func plainRememberedSelector(sel string) bool {
+	if !strings.HasPrefix(sel, "Remembered") {
+		return false
+	}
+	return !strings.HasSuffix(sel, "Controller") && !strings.HasSuffix(sel, "Owner")
 }
 
 func playersOf(ts []state.Target) []state.Target {

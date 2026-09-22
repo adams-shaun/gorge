@@ -173,7 +173,17 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 						// collected from the zone it names by the zone walk above.
 						// An unrecognised value denies -- the fail-closed direction
 						// effectZoneOK documents.
-						if !e.stackSelfStaticOK(st, o) && !effectZoneOK(st.Params["EffectZone"], o.Zone) {
+						// ExcludeZone$ -- the zone(s) the static's SOURCE must NOT sit in
+						// for it to be live (Forge's mirror of EffectZone$; Grist, the
+						// Hunger Tide's "As long as Grist isn't on the battlefield, it's a
+						// 1/1 Insect creature in all other zones"). An exclusion with no
+						// explicit EffectZone$ REPLACES the battlefield default: the static
+						// is live in every other zone -- exactly the CR 604.3 every-zone
+						// CDA reading minus the excluded zone(s). staticZoneAdmits (below)
+						// is the ONE read both this gate and cdaPTStatic make, so the
+						// emitted characteristic grant and the layer-7a P/T claim can
+						// never disagree about where the static is live.
+						if !e.stackSelfStaticOK(st, o) && !staticZoneAdmits(st.Params["ExcludeZone"], st.Params["EffectZone"], o.Zone) {
 							continue
 						}
 						affects := st.Params["Affected"]
@@ -242,6 +252,48 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 							ga.AffectedZone = strings.TrimSpace(st.Params["AffectedZone"])
 							if len(ga.AddAbilities) > 0 {
 								out = append(out, ga)
+							}
+						}
+						// A has-all-abilities-of static (CR 613.1f): Forge's
+						// GainsAbilitiesOf$ / GainsTriggerAbsOf$ name a CARD filter, and
+						// every object the static's Affected$ matches gains all
+						// activated and/or triggered abilities of each named card while
+						// it sits in the GainsAbilitiesOfZones$ zones (Idris, Soul of
+						// the TARDIS: "NICKNAME has all activated and triggered
+						// abilities of the exiled card", zones Exile). Unlike
+						// AddAbility$ the bodies are compiled SAs on the FOREIGN card,
+						// not SVar names on this source, so the effect carries the
+						// foreign faces (state.GainedFace) and the offer/trigger walks
+						// read them directly. The spec is evaluated with src = this
+						// static's own source, which is exactly what makes
+						// `Card.ExiledWithSource` resolve (effects' ExiledWith
+						// provenance). A spec that matches nothing emits no effect, the
+						// fail-closed direction every grant takes; the scan re-runs per
+						// event, so a card exiled later is gained on the next rescan
+						// and a card that leaves the scoped zones loses its grant.
+						if gainsAbilitiesOf(st) {
+							// The two parameters are resolved SEPARATELY and carried on
+							// separate face lists: GainsAbilitiesOf$ means ACTIVATED
+							// abilities only and GainsTriggerAbsOf$ TRIGGERED only (a
+							// shared untyped list made a GainsAbilitiesOf-only card fire
+							// the foreign card's phase triggers and a
+							// GainsTriggerAbsOf-only card offer its activated ones -- the
+							// round-2 review's break). A GainsValidAbilities$ filter and a
+							// GainsAbilitiesLimitPerTurn$ cap ride the ACTIVATED half
+							// (both parameters are activated-ability vocabulary).
+							gg := base
+							gg.Layer = LAbilities
+							gg.GainedZones = strings.TrimSpace(st.Params["GainsAbilitiesOfZones"])
+							gg.GainsValidAbilities = strings.TrimSpace(st.Params["GainsValidAbilities"])
+							gg.GainsLimitPerTurn = gainsLimitPerTurn(st)
+							if spec := strings.TrimSpace(st.Params["GainsAbilitiesOf"]); spec != "" {
+								gg.GainedFaces = e.gainedFacesForSpec(st, spec, id, o.Controller)
+							}
+							if spec := strings.TrimSpace(st.Params["GainsTriggerAbsOf"]); spec != "" {
+								gg.GainedTriggerFaces = e.gainedFacesForSpec(st, spec, id, o.Controller)
+							}
+							if len(gg.GainedFaces) > 0 || len(gg.GainedTriggerFaces) > 0 {
+								out = append(out, gg)
 							}
 						}
 						if hasStat(st, "AddType") || hasStat(st, "AddTypes") || hasStat(st, "AddAllCreatureTypes") {
@@ -450,15 +502,19 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 						// follows); the inner static's own Affected$ scopes what IT
 						// affects, resolved against the host -- the Broodship's STATION
 						// 3+ grant is an AdjustLandPlays$ 1 to You, and You is the
-						// host's controller. cards.ParseStaticLine gives the body the
+						// host's controller. cards.ParseStaticLines gives the body the
 						// same shape a printed S: line would have, so EVERY grant branch
 						// above applies to the inner static unchanged. A body this
 						// parser refuses, one whose mode is not Continuous, or a host
 						// the outer spec no longer matches, grants nothing.
 						if name := strings.TrimSpace(st.Params["AddStaticAbility"]); name != "" && w.depth == 0 {
-							if inner, ok := cards.ParseStaticLine(fc.SVars[name]); ok && inner.Mode == "Continuous" &&
-								e.matchesSpecFrom(affects, id, o.Controller, id) {
-								grantQueue = append(grantQueue, staticWork{st: inner, depth: w.depth + 1})
+							if inners, ok := cards.ParseStaticLines(fc.SVars[name]); ok {
+								for _, inner := range inners {
+									if inner.Mode == "Continuous" &&
+										e.matchesSpecFrom(affects, id, o.Controller, id) {
+										grantQueue = append(grantQueue, staticWork{st: inner, depth: w.depth + 1})
+									}
+								}
 							}
 						}
 						// A triggered-ability grant (Hearthhull's "STATION 8+ Whenever
@@ -567,6 +623,32 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 // creature spell's "creatures you control get +1/+1") still stays
 // battlefield-only. PresentZone$ is a comma list in the grammar, hence the
 // substring read.
+// staticZoneAdmits is the source-zone admission a Continuous static's
+// ExcludeZone$ and EffectZone$ parameters jointly express, the ONE read
+// staticEffects' gate and cdaPTStatic's layer-7a CDA claim both make. With
+// no ExcludeZone$ the ordinary EffectZone$ gate stands unchanged (empty =
+// battlefield). With one, the named zones are excluded and -- absent an
+// explicit EffectZone$ -- every OTHER zone admits, which is what lets a
+// zone-conditional CDA (Grist) live exactly off the battlefield. An
+// unrecognised word excludes NOTHING (the mirror-image direction of
+// affectedZoneOK's fail-closed deny): the unparseable exclusion degrades to
+// the ordinary gate, today's applies-as-gated behaviour, rather than going
+// silent.
+func staticZoneAdmits(exclude, effectZone string, z state.Zone) bool {
+	exclude = strings.TrimSpace(exclude)
+	if exclude == "" {
+		return effectZoneOK(effectZone, z)
+	}
+	zones, all, ok := effects.ParseZones(exclude)
+	if !ok {
+		return effectZoneOK(effectZone, z)
+	}
+	if all || slices.Contains(zones, z) {
+		return false
+	}
+	return effectZone == "" || effectZoneOK(effectZone, z)
+}
+
 func (e *Engine) stackSelfStaticOK(st cards.Static, o *state.Object) bool {
 	if st.Params["EffectZone"] != "" || o == nil || o.Zone != state.ZStack {
 		return false
@@ -593,6 +675,120 @@ var staticSourceZones = []state.Zone{
 type staticWork struct {
 	st    cards.Static
 	depth int
+}
+
+// gainedFacesForSource collects every foreign face a live has-all-abilities-of
+// grant gives `source` right now: the union of the activated half (GainedFaces)
+// and the triggered half (GainedTriggerFaces) of every active grant whose Affects
+// spec matches source, in active()'s deterministic layer/timestamp
+// order and each effect's own face order. It is the ONE recovery point
+// the resolution-time owning-face reads use (findTriggerForAbilityFace for a
+// gained TRIGGER, pileFaceForSA for a gained ACTIVATED ability), so the
+// OptionalDecider$/intervening-if gates and the SVar-table reads all see the
+// foreign card's own face exactly as the offer/queue walk did. The union is
+// safe because each consumer matches its SA/trigger by pointer identity, so a
+// face present only in the other half never binds. A source no
+// live grant matches returns nil.
+func (e *Engine) gainedFacesForSource(source state.ObjID) []state.GainedFace {
+	var out []state.GainedFace
+	for _, ce := range e.active() {
+		if len(ce.GainedFaces) == 0 && len(ce.GainedTriggerFaces) == 0 {
+			continue
+		}
+		if !effects.MatchesSpecFrom(e.G, ce.Affects, source, ce.Controller, ce.Source) {
+			continue
+		}
+		out = append(out, ce.GainedFaces...)
+		out = append(out, ce.GainedTriggerFaces...)
+	}
+	return out
+}
+
+// gainsAbilitiesOf reports whether a Mode$ Continuous static grants abilities
+// off a named card (Forge's GainsAbilitiesOf$ / GainsTriggerAbsOf$). Either
+// parameter alone is enough: a static may grant only activations, only
+// triggers, or both (Idris, Soul of the TARDIS carries both). The two halves
+// are carried on separate face lists (GainedFaces / GainedTriggerFaces)
+// because the parameters mean different ability kinds.
+func gainsAbilitiesOf(st cards.Static) bool {
+	return strings.TrimSpace(st.Params["GainsAbilitiesOf"]) != "" ||
+		strings.TrimSpace(st.Params["GainsTriggerAbsOf"]) != ""
+}
+
+// gainsLimitPerTurn parses a has-all-abilities-of static's
+// GainsAbilitiesLimitPerTurn$ cap (Mairsil the Pretender's "only once each
+// turn"). Only a plain integer is enforced -- the corpus's every carrier is
+// a literal 1 -- and an unparseable value degrades to 0 (no cap), the
+// permissive direction for an unmodelled expression.
+func gainsLimitPerTurn(st cards.Static) int {
+	n, err := strconv.Atoi(strings.TrimSpace(st.Params["GainsAbilitiesLimitPerTurn"]))
+	if err != nil || n < 0 {
+		return 0
+	}
+	return n
+}
+
+// gainedFacesForSpec resolves one has-all-abilities-of parameter's named
+// cards: every object in the GainsAbilitiesOfZones$ zones (default
+// Battlefield, Forge's StaticAbilityContinuous default) whose face matches
+// the given card filter, paired with its object id. The spec is
+// evaluated with src = the static's own source object, so
+// `Card.ExiledWithSource` matches exactly the cards this source exiled.
+//
+// The walk order is fully deterministic -- the staticSourceZones order,
+// then each alive seat in APNAP order, then the zone slice -- so the granted
+// face list, and therefore the option and trigger order it feeds, is
+// reproducible run to run. A spec matching nothing returns nil (no grant);
+// an unparseable zones value returns nil, the fail-closed direction every
+// grant branch takes. Faces are de-duplicated by object id.
+func (e *Engine) gainedFacesForSpec(st cards.Static, spec string, src state.ObjID, controller state.PlayerID) []state.GainedFace {
+	if spec == "" {
+		return nil
+	}
+	zones, all, ok := effects.ParseZones(strings.TrimSpace(st.Params["GainsAbilitiesOfZones"]))
+	if strings.TrimSpace(st.Params["GainsAbilitiesOfZones"]) == "" {
+		// Forge's default zone for the has-all-abilities-of statics is the
+		// battlefield (StaticAbilityContinuous's default), not every zone.
+		zones, all, ok = []state.Zone{state.ZBattlefield}, false, true
+	}
+	if !ok {
+		return nil
+	}
+	inZones := func(z state.Zone) bool {
+		if all {
+			return true
+		}
+		for _, want := range zones {
+			if want == z {
+				return true
+			}
+		}
+		return false
+	}
+	var out []state.GainedFace
+	seen := map[state.ObjID]bool{}
+	for _, p := range e.G.AliveFrom(0) {
+		for _, z := range staticSourceZones {
+			if !inZones(z) {
+				continue
+			}
+			for _, id := range e.G.Zone(z, p) {
+				if seen[id] {
+					continue
+				}
+				o := e.G.Obj(id)
+				if o == nil || o.Face() == nil {
+					continue
+				}
+				if !e.matchesSpecFrom(spec, id, controller, src) {
+					continue
+				}
+				seen[id] = true
+				out = append(out, state.GainedFace{Obj: id, Face: o.Face()})
+			}
+		}
+	}
+	return out
 }
 
 // parseSVarGrant parses Forge's AddSVar$ value shape "SVar:<Name>:<Value>":
@@ -624,7 +820,7 @@ func parseSVarGrant(raw string) (name, value string, ok bool) {
 func (e *Engine) cdaPTStatic(st cards.Static, ctx *effects.Ctx) (p, t int32, hasP, hasT bool) {
 	for key := range st.Params {
 		switch key {
-		case "Mode", "CharacteristicDefining", "SetPower", "SetToughness", "Affected", "Description":
+		case "Mode", "CharacteristicDefining", "SetPower", "SetToughness", "Affected", "Description", "ExcludeZone":
 			// The keys the implemented CDA shape (and only it) carries.
 		default:
 			return 0, 0, false, false
@@ -632,6 +828,17 @@ func (e *Engine) cdaPTStatic(st cards.Static, ctx *effects.Ctx) (p, t int32, has
 	}
 	if aff := strings.TrimSpace(st.Params["Affected"]); aff != "" && aff != "Card.Self" {
 		return 0, 0, false, false
+	}
+	// ExcludeZone$ narrows the claim's zones (Grist, the Hunger Tide): the CDA
+	// read is every zone by CR 604.3/208.2, minus the ones the static names --
+	// and beside any explicit EffectZone$, exactly as the emission gate reads
+	// the pair. The same staticZoneAdmits helper, so the layer-7a claim and
+	// any emitted fallback ce cannot disagree about where the static is live.
+	// A source object already gone carries no zone to admit.
+	if raw := strings.TrimSpace(st.Params["ExcludeZone"]); raw != "" {
+		if oz := e.G.Obj(ctx.Source); oz == nil || !staticZoneAdmits(raw, st.Params["EffectZone"], oz.Zone) {
+			return 0, 0, false, false
+		}
 	}
 	if raw, ok := st.Params["SetPower"]; ok {
 		if n, ok := e.cdaValue(ctx, raw); ok {
@@ -1123,6 +1330,38 @@ func (e *Engine) EndEffect(source state.ObjID, stamp uint32) {
 	e.continuousVersion++
 }
 
+// EndImprintedEffects ends every live DB$ Effect registration that an
+// ImprintOnHost$ True Effect imprinted on the named host card (the entries
+// carrying state.ContinuousEffect.ImprintOnHost with that Source) -- the
+// analogue of Forge's later `DB$ ChangeZone | Defined$ Imprinted | Origin$
+// Command | Destination$ Exile` exiling the imprinted effect token from the
+// Command zone (Superior Foes of Spider-Man's "until you exile another card
+// with this creature": the second dig's trigger exiles the FIRST effect's
+// token, ending its may-play grant, before the new dig's Effect registers;
+// Word of Command and Semester's End run the same idiom inside one chain).
+// A registration without the marker -- the same source's OTHER effects and
+// its printed abilities -- is untouched. Engine-runtime only, rebuilt by
+// re-execution on replay exactly like EndEffect; it emits no event.
+func (e *Engine) EndImprintedEffects(source state.ObjID) {
+	if source == 0 {
+		return
+	}
+	kept := e.continuous[:0]
+	changed := false
+	for _, ce := range e.continuous {
+		if ce.Source == source && ce.ImprintOnHost {
+			changed = true
+			continue
+		}
+		kept = append(kept, ce)
+	}
+	if !changed {
+		return
+	}
+	e.continuous = kept
+	e.continuousVersion++
+}
+
 // nextTurnFor returns the turn number of the next turn (strictly after the
 // current one) whose active player is p -- i.e. p's NEXT turn, the
 // controller's-next-turn boundary of an UntilYourNextTurn effect.
@@ -1408,6 +1647,59 @@ func (e *Engine) effectMoveSweep(ev events.Event) {
 	e.continuousVersion++
 }
 
+// effectCastSweep is the cast-driven lifetime of Effect-created continuous
+// effects carrying ForgetOnCast$ (task param:api:Effect.ForgetOnCast): the
+// first qualifying spell cast ENDS the whole effect -- Marshland
+// Bloodcaster's "Rather than pay the mana cost of the NEXT spell you cast
+// this turn", the one-cast cascade grants (Dark Apostle, Bigger on the
+// Inside, Sloppity Bilepiper, World War Hulk), Kaza/Maelstrom Muse/
+// Elminster's one-shot reduction. The spec is a card spec over the cast
+// spell, You-relative to the effect's controller (the oracle's "spell YOU
+// cast"), evaluated with the same machinery the other Effect specs use
+// (MatchesSpecCtx against the effect's own source/controller context and
+// remembered set). A cast that only targets nothing (a CastInfo-less land
+// play never reaches this path: lands are never put on the stack) and a
+// spell the spec does not name (an opponent's cast, a creature spell under
+// a noncreature-only rider) leave the grant standing.
+//
+// Run from payCast's fireDeferredCastTrigger -- the deferred re-walk of the
+// cast's held PutOnStack, AFTER payment -- so the sweep's timing is the
+// completed cast: an ABORTED proposal (one reversed before payment, CR
+// 733.1) never consumes the grant, while a completed cast -- even one later
+// countered, which CR 601.2i still counts as cast -- does. Like
+// effectMoveSweep this is an in-place rewrite of e.continuous that emits no
+// event and moves no log head; a replay rebuilds it by re-executing the
+// same registrations against the same casts, so it reproduces
+// byte-identically.
+func (e *Engine) effectCastSweep(ev events.Event) {
+	if len(e.continuous) == 0 {
+		return
+	}
+	kept := e.continuous[:0]
+	changed := false
+	for _, ce := range e.continuous {
+		spec := strings.TrimSpace(ce.ForgetOnCast)
+		if spec == "" {
+			kept = append(kept, ce)
+			continue
+		}
+		sc := e.specCtx(ce.Source, ce.Controller)
+		for _, r := range ce.Remembered {
+			sc.Remembered = append(sc.Remembered, state.Target{Obj: r})
+		}
+		if effects.MatchesSpecCtx(e.G, spec, ev.Obj, sc) {
+			changed = true
+			continue // the effect ends: not kept
+		}
+		kept = append(kept, ce)
+	}
+	if !changed {
+		return
+	}
+	e.continuous = kept
+	e.continuousVersion++
+}
+
 // effectCounterSweep is the counter-driven lifetime of Effect-created
 // continuous effects (task vow1; ForgetCounter$), run from Engine.emit after
 // every CounterChange has been applied: a remembered card whose count of the
@@ -1648,7 +1940,7 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 		}
 	}
 	if !anyLType {
-		return bestowedTypeSwitch(o, base)
+		return reconfigureTypeSwitch(o, bestowedTypeSwitch(o, base))
 	}
 	ty := append([]string(nil), base...)
 	for _, ce := range e.active() {
@@ -1701,7 +1993,7 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 			ty = appendAllCreatureTypes(ty)
 		}
 	}
-	return bestowedTypeSwitch(o, ty)
+	return reconfigureTypeSwitch(o, bestowedTypeSwitch(o, ty))
 }
 
 // appendAllCreatureTypes materialises the layer-4 "all creature types"
@@ -1744,6 +2036,34 @@ func bestowedTypeSwitch(o *state.Object, types []string) []string {
 		out = append(out, t)
 	}
 	return append(out, "Aura")
+}
+
+// reconfigureTypeSwitch applies CR 702.150c's switch to a DERIVED type
+// list: a Reconfigure card attached to a creature is not a creature -- the
+// printed "Artifact Creature Equipment <subtype>" list loses only its
+// Creature half and keeps Equipment/Artifact and the subtypes (the same
+// deliberate keep-subtypes narrowing bestowedTypeSwitch practises: the
+// subtype words are inert on a non-creature in every filter this engine
+// evaluates, and stripping them would widen the diff into every
+// subtype-affected static). An unattached reconfigure card (or anything
+// not printed with the keyword) keeps the list unchanged, returning the
+// SAME slice so the common game stays byte-identical and allocation-free.
+// A face-down battlefield permanent keeps its CR 708.5 set: its printed
+// face (and with it the Reconfigure keyword the switch keys on) does not
+// exist while face down, so the switch must not strip Creature from a
+// manifested reconfigure card's vanilla 2/2.
+func reconfigureTypeSwitch(o *state.Object, types []string) []string {
+	if !o.ReconfiguredAttached() || (o.FaceDown && o.Zone == state.ZBattlefield) {
+		return types
+	}
+	out := make([]string, 0, len(types))
+	for _, t := range types {
+		if t == "Creature" {
+			continue
+		}
+		out = append(out, t)
+	}
+	return out
 }
 
 func (e *Engine) matchesWithTypes(ce ContinuousEffect, id state.ObjID, types []string, atStack state.Zone) bool {
@@ -2277,6 +2597,14 @@ func (e *Engine) restrictionApplies(ce ContinuousEffect, id state.ObjID) bool {
 	spec := ce.RestrictParams["ValidCard"]
 	if spec == "" {
 		spec = ce.RestrictParams["ValidTarget"]
+	}
+	if spec == "" {
+		// The ValidCards$ plural spelling: Forge allows both on a restriction
+		// body, and one CanAttackDefender grant (Wakestone Gargoyle's
+		// `ValidCards$ Creature.YouCtrl+withDefender`) spells it. Corpus
+		// census: no Cant* body carries ValidCards$ without ValidCard$, so
+		// the fallback is unreachable for every pre-existing restriction.
+		spec = ce.RestrictParams["ValidCards"]
 	}
 	if spec == "" {
 		return len(ce.Remembered) > 0
