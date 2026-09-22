@@ -2096,6 +2096,19 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				Obj:   id, SVar: sv})
 		}
 	}
+	// K:Split second (CR 702.62, rules/split_second.go): while a split-second
+	// spell is on the stack, players can't cast spells or activate abilities
+	// that aren't mana abilities. The filter runs here -- at the ONE choke
+	// point every cast source (hand, command zone, may-play, flashback/
+	// aftermath/harmonize/warp/escape, exile recasts) and both ability loops
+	// flow through -- rather than at each of the ~30 append sites, so the next
+	// cast source added to this walk is covered by construction. Playing a
+	// land, mana abilities, Station and Room unlock stay legal; the Suspend
+	// and Foretell offers ride the "cast" Kind but are special actions, not
+	// spell casts, so they stay too.
+	if e.splitSecondHolds() {
+		out = e.filterSplitSecondActions(out)
+	}
 
 	// Pass is second-to-last. A client that wants to do nothing must choose
 	// it explicitly: from M2d-3 the FINAL option is "concede" (R-M3, always

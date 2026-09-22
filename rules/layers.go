@@ -173,7 +173,7 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 						// collected from the zone it names by the zone walk above.
 						// An unrecognised value denies -- the fail-closed direction
 						// effectZoneOK documents.
-						if !effectZoneOK(st.Params["EffectZone"], o.Zone) {
+						if !e.stackSelfStaticOK(st, o) && !effectZoneOK(st.Params["EffectZone"], o.Zone) {
 							continue
 						}
 						affects := st.Params["Affected"]
@@ -554,6 +554,25 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 		clear(dst[len(out):])
 	}
 	return out
+}
+
+// stackSelfStaticOK admits a printed Continuous static with NO EffectZone$
+// whose SOURCE sits on the stack, when the static's own text scopes itself to
+// the stack (an IsPresent$/PresentZone$ or AffectedZone$ naming Stack).
+// effectZoneOK's default admission is the battlefield -- right for a
+// permanent's continuous statics, wrong for a spell's own on-the-stack
+// static: Molten Disaster's kicked split second (IsPresent$ Card.Self+kicked
+// | PresentZone$ Stack) names the stack as the zone it functions from, and
+// CR 113.6 has it live exactly there, while an unqualified lord static (a
+// creature spell's "creatures you control get +1/+1") still stays
+// battlefield-only. PresentZone$ is a comma list in the grammar, hence the
+// substring read.
+func (e *Engine) stackSelfStaticOK(st cards.Static, o *state.Object) bool {
+	if st.Params["EffectZone"] != "" || o == nil || o.Zone != state.ZStack {
+		return false
+	}
+	return strings.Contains(st.Params["PresentZone"], "Stack") ||
+		st.Params["AffectedZone"] == "Stack"
 }
 
 // staticSourceZones is staticEffects' per-seat source walk, in one fixed
