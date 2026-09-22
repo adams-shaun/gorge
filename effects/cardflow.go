@@ -956,6 +956,11 @@ func rememberMilled(h Host, c *Ctx, id state.ObjID) {
 // Choser$ (the opponent-chooses planeswalker shape) and the exotic
 // DestinationZone2 values (PlanarDeck).
 func effDig(h Host, c *Ctx, sa *cards.SA) {
+	// KArrange has already reordered the remainder on this resume.
+	if c.Arrange {
+		c.Arrange = false
+		return
+	}
 	digNum := Num(h, c, sa, "DigNum", 1)
 	if digNum < 0 {
 		digNum = 0
@@ -1007,6 +1012,10 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 	tapped := strings.EqualFold(strings.TrimSpace(sa.Params["Tapped"]), "True")
 	dest2Name := strings.TrimSpace(sa.Params["DestinationZone2"])
 	pos2 := strings.TrimSpace(sa.Params["LibraryPosition2"])
+	// Forge's omitted second destination means bottom-of-library remainder.
+	if dest2Name == "" {
+		dest2Name, pos2 = "Library", "-1"
+	}
 	// fx42 scoping: capture and clear the answered pick BEFORE the target
 	// loop. DigTarget identifies the exact target that asked: earlier targets
 	// completed before suspension and must be skipped, that target consumes
@@ -1065,24 +1074,34 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 		// With no DestinationZone2$ -- and with SkipReorder$ True -- the cards
 		// stay exactly where they are, so the no-variant games emit nothing
 		// and replay byte-identically.
-		rest := func(ids []state.ObjID) {
-			if dest2Name == "" || skipReorder {
-				return
+		rest := func(ids []state.ObjID) bool {
+			if skipReorder {
+				return false
 			}
 			dest2 := ParseZone(dest2Name)
+			if dest2 == state.ZLibrary && pos2 == "-1" {
+				if len(ids) == 0 {
+					return false
+				}
+				d := &decision.Decision{Player: p, Kind: decision.KArrange, Min: 0, Max: len(ids), Source: c.Source,
+					ResumeKind: "dig", ResumeSA: sa, ResumeTarget: targetIndex,
+					Prompt: "Put the remaining cards on the bottom of your library in any order"}
+				for i, id := range ids {
+					name := "a card"
+					if o := g.Obj(id); o != nil && o.Face() != nil {
+						name = o.Face().Name
+					}
+					d.Options = append(d.Options, decision.Option{Index: i, Kind: "bottom", Label: name, Obj: id, Player: p})
+				}
+				if Ask(h, d) == AskAsked {
+					return true
+				}
+				h.Emit(events.Event{Kind: events.LibraryOrder, Player: p, IDs: append([]state.ObjID(nil), zoneOf(g, state.ZLibrary, p)...), Secret: true})
+				return false
+			}
 			for _, id := range ids {
 				if dest2 == state.ZLibrary {
-					// Library placement: "0" (top) is the engine's
-					// stay-in-place default -- the remaining window cards
-					// already sit on top in their existing relative order, so
-					// the placement is no event; "-1" (bottom) is a real
-					// library-to-library move (Move's zone append lands it at
-					// the bottom); anything else is named loudly and the card
-					// stays.
-					if pos2 == "-1" {
-						h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
-							From: state.ZLibrary, To: state.ZLibrary, Player: p, Secret: true})
-					} else if pos2 != "" && pos2 != "0" {
+					if pos2 != "" && pos2 != "0" {
 						h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: p,
 							Text: "LibraryPosition2$ " + pos2 + " is not implemented; the card stays on top"})
 					}
@@ -1096,6 +1115,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				h.Emit(ev)
 				digRemember(c, sa, id)
 			}
+			return false
 		}
 		if digDone && targetIndex < digTarget {
 			// This target completed on the first pass before a later library
@@ -1125,7 +1145,9 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 					restIDs = append(restIDs, id)
 				}
 			}
-			rest(restIDs)
+			if rest(restIDs) {
+				return
+			}
 			continue
 		}
 		eligible := make([]state.ObjID, 0, len(top))
@@ -1272,7 +1294,9 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				restIDs = append(restIDs, id)
 			}
 		}
-		rest(restIDs)
+		if rest(restIDs) {
+			return
+		}
 	}
 }
 
