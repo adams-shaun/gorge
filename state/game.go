@@ -199,8 +199,6 @@ func (p *Player) AddCounter(kind string, n int32) {
 	}
 }
 
-// Game is the complete authoritative state. Everything a client sees is a
-// projection of this. Only the events package may mutate it.
 // Characteristics is the derived-characteristics provider the rules engine
 // installs on the game it drives. It exists so the effects tier -- which
 // cannot import rules -- can read a layer-3 effective name (SetName$, CR
@@ -218,6 +216,8 @@ type Characteristics interface {
 	EffectiveName(ObjID) string
 }
 
+// Game is the complete authoritative state. Everything a client sees is a
+// projection of this. Only the events package may mutate it.
 type Game struct {
 	Players []Player
 	// Objs is a dense arena: Objs[i] has ID i+1, so ObjID 0 is "no object".
