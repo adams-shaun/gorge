@@ -36,13 +36,12 @@ provider = "deepinfra"
 model = "deepseek-ai/DeepSeek-V4.1-Flash"
 thinking = "high"
 
+# 2026-09-22 (operator): reviewer back on GPT terra (Codex plan verified live
+# with a one-prompt probe). Implementer roles stay on DeepSeek.
 [seats.reviewer]
-# provider = "openai-codex"
-# model = "gpt-5.6-terra"
-# thinking = "medium"
-provider = "deepinfra"
-model = "deepseek-ai/DeepSeek-V4.1-Flash"
-thinking = "high"
+provider = "openai-codex"
+model = "gpt-5.6-terra"
+thinking = "medium"
 
 # What an overrides.json entry may switch each role to (design §12.10); the
 # daemon re-checks every override against this list. Astra is never listed
@@ -54,7 +53,7 @@ local = ["bm-llms-glm/glm-5.3-flash"]
 # reviewer = ["openai-codex/gpt-5.6-terra", "openai-codex/gpt-5.6-sol", "bm-llms-glm/glm-5.3-flash"]
 overflow = ["deepinfra/deepseek-ai/DeepSeek-V4.1-Flash"]
 escalated = ["deepinfra/deepseek-ai/DeepSeek-V4.1-Flash"]
-reviewer = ["deepinfra/deepseek-ai/DeepSeek-V4.1-Flash", "bm-llms-glm/glm-5.3-flash"]
+reviewer = ["openai-codex/gpt-5.6-terra", "openai-codex/gpt-5.6-sol", "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash", "bm-llms-glm/glm-5.3-flash"]
 
 # config.py:64-65, 73, 79, 99-100, 119; daemon.py:308.
 [policy]
