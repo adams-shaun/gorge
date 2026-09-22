@@ -46,6 +46,11 @@ func (e *Engine) payManaConv(p state.PlayerID, cost Cost, conv *manaConv) bool {
 	return e.payManaConvFor(p, 0, false, cost, conv)
 }
 
+func (e *Engine) payManaCumulative(p state.PlayerID, id state.ObjID, cost Cost, conv *manaConv) bool {
+	ok, _, _, _, _ := e.payManaDescriptorForSpent(p, paymentDescriptor{id: id, class: paymentCumulativeUpkeep, cost: &cost}, cost, conv, pipRider{})
+	return ok
+}
+
 // payManaConvFor pays a specific spell or activated ability. RestrictValid$
 // mana remains distinct from ordinary floating mana until this point: it is
 // included only when its restriction admits this payment, then spent first
@@ -83,7 +88,15 @@ func (e *Engine) payManaFor(p state.PlayerID, id state.ObjID, ability bool, cost
 // keeps the bool-only payManaFor wrapper, so no other payment site changes
 // shape.
 func (e *Engine) payManaForSpent(p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *manaConv, rider pipRider) (bool, state.Mana, state.Mana, state.Mana, [3]state.Mana) {
-	av := e.manaAvailableFor(p, id, ability)
+	class := paymentSpell
+	if ability {
+		class = paymentActivated
+	}
+	return e.payManaDescriptorForSpent(p, paymentDescriptor{id: id, class: class, cost: &cost}, cost, conv, rider)
+}
+
+func (e *Engine) payManaDescriptorForSpent(p state.PlayerID, d paymentDescriptor, cost Cost, conv *manaConv, rider pipRider) (bool, state.Mana, state.Mana, state.Mana, [3]state.Mana) {
+	av := e.manaAvailableFor(p, d)
 	// The payment's persistence attribution: the visible pool's persistent
 	// share (perVis) and its ordinary complement (perFresh). resolveMana is
 	// persistence-blind — the units are interchangeable — so attributing the
@@ -96,7 +109,7 @@ func (e *Engine) payManaForSpent(p state.PlayerID, id state.ObjID, ability bool,
 	// whenever a restricted batch is hidden from the payment, or the carve
 	// consumed the persistent batch first), is what keeps the tally on the
 	// units that actually survived a boundary.
-	perVis := e.visiblePersistentMana(p, id, ability)
+	perVis := e.visiblePersistentMana(p, d)
 	perFresh := state.Mana{}
 	for i := range perFresh {
 		perFresh[i] = av.pool[i] - perVis[i]
@@ -139,7 +152,7 @@ func (e *Engine) payManaForSpent(p state.PlayerID, id state.ObjID, ability bool,
 	// spentTyped keep the FULL deltas the pay-time capture reads.
 	emitSnow := spentSnow
 	emitTyped := spentTyped
-	e.emitRestrictedManaSpend(p, id, ability, &spent, &emitSnow, &emitTyped, &perVis, &perFresh)
+	e.emitRestrictedManaSpend(p, d, &spent, &emitSnow, &emitTyped, &perVis, &perFresh)
 	for i, letter := range manaLetters {
 		if spent[i] == 0 {
 			continue
@@ -261,13 +274,41 @@ type availableMana struct {
 	typed [3]state.Mana
 }
 
+type paymentClass uint8
+
+const (
+	paymentSpell paymentClass = iota
+	paymentActivated
+	paymentCumulativeUpkeep
+)
+
+type paymentDescriptor struct {
+	id    state.ObjID
+	class paymentClass
+	cost  *Cost
+}
+
+func paymentFor(id state.ObjID, ability bool, cost Cost) paymentDescriptor {
+	class := paymentSpell
+	if ability {
+		class = paymentActivated
+	}
+	return paymentDescriptor{id: id, class: class, cost: &cost}
+}
+
 // manaAvailableFor removes every restricted batch from the visible pool, then
 // restores exactly the batches valid for this payment. This means a cast or a
 // nonmatching activation can never borrow Tazri-style mana merely because it
 // shares a colour bucket with unrestricted mana. The typed tallies are
 // filtered by the same rule, so a typed restricted unit can never be spent
 // through the typed consumption path either.
-func (e *Engine) manaAvailableFor(p state.PlayerID, id state.ObjID, ability bool) availableMana {
+func (e *Engine) manaAvailableFor(p state.PlayerID, arg interface{}, legacy ...bool) availableMana {
+	d, _ := arg.(paymentDescriptor)
+	if d.id == 0 {
+		if id, ok := arg.(state.ObjID); ok {
+			d = paymentFor(id, len(legacy) > 0 && legacy[0], Cost{})
+		}
+	}
 	pl := e.G.Players[p]
 	available := availableMana{pool: pl.Pool, typed: pl.TypedMana}
 	for _, r := range pl.RestrictedMana {
@@ -276,7 +317,7 @@ func (e *Engine) manaAvailableFor(p state.PlayerID, id state.ObjID, ability bool
 		// An empty Valid is an UNRESTRICTED batch that carries only its
 		// AddsNoCounter$ provenance (Boseiju's plain {C}): it pays anything,
 		// exactly like ordinary pool mana, so its units stay visible.
-		if r.Valid == "" || e.restrictValidMatches(p, id, ability, r.Valid, r.Source) {
+		if r.Valid == "" || e.restrictValidMatches(p, d, r.Valid, r.Source) {
 			available.pool[idx] += r.Amount
 			continue
 		}
@@ -297,11 +338,11 @@ func (e *Engine) manaAvailableFor(p state.PlayerID, id state.ObjID, ability bool
 // AddsNoCounter batch — spendable anywhere — so its units stay attributed.)
 // Measured corpus: every PersistentMana carrier produces plain mana, so the
 // persistent share never carries a snow/typed tag in practice.
-func (e *Engine) visiblePersistentMana(p state.PlayerID, id state.ObjID, ability bool) state.Mana {
+func (e *Engine) visiblePersistentMana(p state.PlayerID, d paymentDescriptor) state.Mana {
 	pl := e.G.Players[p]
 	per := pl.PersistentMana
 	for _, r := range pl.RestrictedMana {
-		if !r.Persistent || (r.Valid != "" && e.restrictValidMatches(p, id, ability, r.Valid, r.Source)) {
+		if !r.Persistent || (r.Valid != "" && e.restrictValidMatches(p, d, r.Valid, r.Source)) {
 			continue
 		}
 		idx := state.ManaSlot(r.Color)
@@ -335,7 +376,7 @@ func (e *Engine) visiblePersistentMana(p state.PlayerID, id state.ObjID, ability
 // Capping at the tag's (or snow tally's, or the slot's remaining plain units')
 // actual spend reconciles the carve's restricted-first attribution with the
 // search's plain-first consumption and keeps every emission tally >= 0.
-func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, id state.ObjID, ability bool, spent *state.Mana, emitSnow *state.Mana, emitTyped *[3]state.Mana, perVis *state.Mana, perFresh *state.Mana) {
+func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, d paymentDescriptor, spent *state.Mana, emitSnow *state.Mana, emitTyped *[3]state.Mana, perVis *state.Mana, perFresh *state.Mana) {
 	e.noCounterSpend = 0
 	e.manaSpentSources = nil
 	// Emit mutates RestrictedMana through events.Apply, so range a snapshot:
@@ -343,7 +384,7 @@ func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, id state.ObjID, abili
 	// live slice shift under this loop and could skip or double-spend one.
 	batches := append([]state.ManaRestriction(nil), e.G.Players[p].RestrictedMana...)
 	for _, r := range batches {
-		if r.Amount <= 0 || (r.Valid != "" && !e.restrictValidMatches(p, id, ability, r.Valid, r.Source)) {
+		if r.Amount <= 0 || (r.Valid != "" && !e.restrictValidMatches(p, d, r.Valid, r.Source)) {
 			continue
 		}
 		idx := state.ManaSlot(r.Color)
@@ -376,8 +417,8 @@ func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, id state.ObjID, abili
 		if used <= 0 {
 			continue
 		}
-		if r.NoCounter != "" && !ability && e.noCounterSpend == 0 && addsNoCounterHolds(e.G, id, r.NoCounter) {
-			e.noCounterSpend = id
+		if r.NoCounter != "" && d.class != paymentActivated && e.noCounterSpend == 0 && addsNoCounterHolds(e.G, d.id, r.NoCounter) {
+			e.noCounterSpend = d.id
 		}
 		// A consumed batch's producing source is what the spell's
 		// TriggersWhenSpent$ riders key on. Only a SPELL payment (the
@@ -386,7 +427,7 @@ func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, id state.ObjID, abili
 		// payment fire nothing (the rider is a cast-spend gate). Dedup keeps
 		// one entry per source when several batches from it pay one cast; the
 		// insertion-order append keeps the queue deterministic.
-		if !ability && r.Source != 0 && !containsObjID(e.manaSpentSources, r.Source) {
+		if d.class != paymentActivated && r.Source != 0 && !containsObjID(e.manaSpentSources, r.Source) {
 			e.manaSpentSources = append(e.manaSpentSources, r.Source)
 		}
 		e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: r.Color, Amount: -used,
@@ -462,42 +503,61 @@ func addsNoCounterHolds(g *state.Game, id state.ObjID, cond string) bool {
 // id when the batch's event recorded one, so source-relative filter
 // predicates (Cavern of Souls' ChosenType) resolve against the mana source;
 // source-less batches keep the historical paid-card reading.
-func (e *Engine) restrictValidMatches(p state.PlayerID, id state.ObjID, ability bool, valid string, src state.ObjID) bool {
+func (e *Engine) restrictValidMatches(p state.PlayerID, d paymentDescriptor, valid string, src state.ObjID) bool {
 	for _, term := range strings.Split(strings.TrimSpace(valid), ",") {
-		if e.restrictValidTermMatches(p, id, ability, strings.TrimSpace(term), src) {
+		if e.restrictValidTermMatches(p, d, strings.TrimSpace(term), src) {
 			return true
 		}
 	}
 	return false
 }
 
-func (e *Engine) restrictValidTermMatches(p state.PlayerID, id state.ObjID, ability bool, term string, src state.ObjID) bool {
-	kind, spec, ok := strings.Cut(term, ".")
-	if !ok {
+func (e *Engine) restrictValidTermMatches(p state.PlayerID, d paymentDescriptor, term string, src state.ObjID) bool {
+	kind, spec, dotted := strings.Cut(term, ".")
+	if !dotted {
+		switch term {
+		case "Spell":
+			return d.class == paymentSpell
+		case "Activated", "nonSpell":
+			return d.class == paymentActivated
+		case "CantCastNonArtifactSpells":
+			o := e.G.Obj(d.id)
+			return d.class == paymentSpell && o != nil && o.Face() != nil && o.Face().IsArtifact()
+		case "CantCastSpellFromHand":
+			_, ok := e.castProvenanceAdmitsPending("Card.!wasCastFromYourHand", d.id, p)
+			return d.class == paymentSpell && ok
+		case "CostContainsX":
+			return d.cost != nil && d.cost.X > 0
+		case "CostContainsC":
+			return d.cost != nil && d.cost.Colored[state.ManaIndex('C')] > 0
+		case "CantPayGenericCosts":
+			return d.cost != nil && d.cost.Generic == 0
+		case "CumulativeUpkeep":
+			return d.class == paymentCumulativeUpkeep
+		default:
+			return false
+		}
+	}
+	ability := d.class == paymentActivated
+	if kind == "Activated" && !ability {
 		return false
 	}
-	switch kind {
-	case "Activated":
-		if !ability {
-			return false
-		}
-	case "Spell":
-		if ability {
-			return false
-		}
-	default:
+	if kind == "Spell" && ability {
+		return false
+	}
+	if kind != "Activated" && kind != "Spell" {
 		return false
 	}
 	needsBattlefield := strings.Contains(spec, "inZoneBattlefield")
 	spec = strings.Trim(strings.ReplaceAll(spec, "+inZoneBattlefield", ""), "+")
-	o := e.G.Obj(id)
+	o := e.G.Obj(d.id)
 	if o == nil || (needsBattlefield && o.Zone != state.ZBattlefield) {
 		return false
 	}
 	if spec == "" {
 		return true
 	}
-	srcID := id
+	srcID := d.id
 	if src != 0 {
 		srcID = src
 	}
@@ -516,11 +576,12 @@ func (e *Engine) restrictValidTermMatches(p state.PlayerID, id state.ObjID, abil
 	// helpers rejoin onto a base, so evaluate the Card.-prefixed form; a
 	// surviving alternative whose only predicate was the provenance token
 	// rejoins to bare "Card", which MatchesSpecFrom matches like any card.
-	spec, ok = e.castProvenanceAdmitsPending("Card."+spec, id, p)
-	if !ok {
+	var provenanceOK bool
+	spec, provenanceOK = e.castProvenanceAdmitsPending("Card."+spec, d.id, p)
+	if !provenanceOK {
 		return false
 	}
-	if effects.MatchesSpecFrom(e.G, spec, id, p, srcID) {
+	if effects.MatchesSpecFrom(e.G, spec, d.id, p, srcID) {
 		return true
 	}
 	// Forge's object-filter grammar defaults the base to Card, so a bare
@@ -532,7 +593,7 @@ func (e *Engine) restrictValidTermMatches(p state.PlayerID, id state.ObjID, abil
 	// explicit base before denying the batch: the retry can only turn a
 	// "never spendable" batch into the correct evaluation, never widen a
 	// spec that already evaluated (the first attempt ran unchanged).
-	return effects.MatchesSpecFrom(e.G, "Card."+spec, id, p, srcID)
+	return effects.MatchesSpecFrom(e.G, "Card."+spec, d.id, p, srcID)
 }
 
 // paymentConv is the conversion set for p paying id (ability selects the
@@ -555,6 +616,13 @@ func (e *Engine) costPayableGrant(p state.PlayerID, id state.ObjID, ability bool
 	av := e.manaAvailableFor(p, id, ability)
 	_, ok := cost.resolveManaWith(av.pool, e.G.Players[p].Snow, av.typed,
 		e.G.Players[p].Life, e.payerGrantsPayLifeInsteadOfB(p), rider, e.paymentConv(p, id, ability))
+	return ok
+}
+
+func (e *Engine) costPayableClass(p state.PlayerID, d paymentDescriptor, rider pipRider, cost Cost) bool {
+	av := e.manaAvailableFor(p, d)
+	_, ok := cost.resolveManaWith(av.pool, e.G.Players[p].Snow, av.typed,
+		e.G.Players[p].Life, e.payerGrantsPayLifeInsteadOfB(p), rider, e.paymentConv(p, d.id, d.class == paymentActivated))
 	return ok
 }
 

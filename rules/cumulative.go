@@ -433,7 +433,12 @@ func (e *Engine) paymentWindowAsk() {
 }
 
 func (e *Engine) paymentManaAsk(player state.PlayerID, source state.ObjID, amount Cost, windowDone bool, prompt string, flow chooseFor) bool {
-	if windowDone || !amount.Priceable() || e.costPayable(player, source, false, amount) {
+	return e.paymentManaAskClass(player, source, amount, windowDone, prompt, flow, paymentSpell)
+}
+
+func (e *Engine) paymentManaAskClass(player state.PlayerID, source state.ObjID, amount Cost, windowDone bool, prompt string, flow chooseFor, class paymentClass) bool {
+	rider := pipRider{anyColor: e.payerGrantsIgnoreColor(player, source), anyType: e.payerGrantsIgnoreType(player, source)}
+	if windowDone || !amount.Priceable() || e.costPayableClass(player, paymentDescriptor{id: source, class: class, cost: &amount}, rider, amount) {
 		return false
 	}
 	var sources []state.ObjID
@@ -466,15 +471,15 @@ func (e *Engine) cumulativePaymentAsk() {
 		e.finishCumulative()
 		return
 	}
-	if cu.action == nil && e.paymentManaAsk(cu.player, cu.source, cu.amount, cu.windowDone,
-		"Activate mana abilities to pay cumulative upkeep", chooseCumulative) {
+	if cu.action == nil && e.paymentManaAskClass(cu.player, cu.source, cu.amount, cu.windowDone,
+		"Activate mana abilities to pay cumulative upkeep", chooseCumulative, paymentCumulativeUpkeep) {
 		return
 	}
 	age := strconv.FormatInt(int64(o.Counter("AGE")), 10)
 	var opts []decision.Option
 	payable := cu.action != nil && e.cumulativeActionPayable(cu)
 	if cu.action == nil {
-		payable = cu.amount.Priceable() && e.costPayable(cu.player, cu.source, false, cu.amount)
+		payable = cu.amount.Priceable() && e.costPayableClass(cu.player, paymentDescriptor{id: cu.source, class: paymentCumulativeUpkeep, cost: &cu.amount}, pipRider{anyColor: e.payerGrantsIgnoreColor(cu.player, cu.source), anyType: e.payerGrantsIgnoreType(cu.player, cu.source)}, cu.amount)
 	}
 	if payable {
 		opts = append(opts, decision.Option{Index: 0, Kind: "cumulative_pay", Obj: cu.source,
@@ -1042,7 +1047,7 @@ func (e *Engine) cumulativeAnswer(chosen []decision.Option) {
 			e.continueCumulativeAction()
 			return
 		}
-		if e.payManaConv(cu.player, cu.amount, e.paymentConv(cu.player, cu.source, false)) {
+		if e.payManaCumulative(cu.player, cu.source, cu.amount, e.paymentConv(cu.player, cu.source, false)) {
 			e.finishCumulative()
 			return
 		}

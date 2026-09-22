@@ -183,11 +183,10 @@ func TestPersistentManaRestrictedBatchSpentFirstKeepsTheTallyExact(t *testing.T)
 	t.Parallel()
 	e := handEngine(t)
 	// Klauth's shape (a real corpus restriction encoding — the bare "Spell"
-	// spelling matches no payment in restrictValidTermMatches, so the test
-	// uses the dotted Spell.Instant,Spell.Sorcery form): a persistent
+	// spelling is the bare payment class): a persistent
 	// Spell-restricted R, plus one ordinary R.
 	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "R", Amount: 1,
-		Text: events.ManaPersistentText(events.ManaRestrictionText("Spell.Instant,Spell.Sorcery", 0))})
+		Text: events.ManaPersistentText(events.ManaRestrictionText("Spell", 0))})
 	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "R", Amount: 1})
 	if got, per, n := e.G.Players[0].Pool[state.MR], e.G.Players[0].PersistentMana[state.MR], len(e.G.Players[0].RestrictedMana); got != 2 || per != 1 || n != 1 {
 		t.Fatalf("test precondition: pool=%d persistent=%d batches=%d, want 2/1/1", got, per, n)
@@ -214,7 +213,7 @@ func TestPersistentManaRestrictedBatchSpentFirstKeepsTheTallyExact(t *testing.T)
 	// next payment must see the seat's real mana (no phantom batch hiding
 	// it), with the batch emptied by the next boundary ManaClear.
 	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "R", Amount: 1,
-		Text: events.ManaPersistentText(events.ManaRestrictionText("Spell.Instant,Spell.Sorcery", 0))})
+		Text: events.ManaPersistentText(events.ManaRestrictionText("Spell", 0))})
 	if per := e.G.Players[0].PersistentMana[state.MR]; per != 1 {
 		t.Fatalf("test precondition: persistent tally=%d, want 1", per)
 	}
@@ -246,7 +245,7 @@ func TestPersistentManaHiddenRestrictedBatchDoesNotSurviveTheBoundary(t *testing
 	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "R", Amount: 1,
 		Text: events.ManaPersistentText("")})
 	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "R", Amount: 1,
-		Text: events.ManaRestrictionText("Spell.Instant,Spell.Sorcery", 0)})
+		Text: events.ManaRestrictionText("Spell", 0)})
 	if got, per, n := e.G.Players[0].Pool[state.MR], e.G.Players[0].PersistentMana[state.MR], len(e.G.Players[0].RestrictedMana); got != 2 || per != 1 || n != 1 {
 		t.Fatalf("test precondition: pool=%d persistent=%d batches=%d, want 2/1/1", got, per, n)
 	}
