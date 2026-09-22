@@ -1,6 +1,6 @@
 // Counter trigger modes.
 //
-// Mode$ CounterAdded and CounterRemoved.
+// Mode$ CounterAdded, CounterAddedOnce and CounterRemoved.
 //
 // Split out of trigger_match.go so tickets touching different modes stop
 // colliding on one file. Registration is at the bottom; a duplicate mode
@@ -18,8 +18,16 @@ import (
 )
 
 // counterAddedMatches implements the "when a counter is put on" trigger
-// family (Forge Mode$ CounterAdded; Shang-Chi and the Ten Rings' "When the
-// tenth +1/+1 counter is put on NICKNAME"). The gate is the CounterChange
+// family for BOTH Mode$ CounterAdded (Shang-Chi and the Ten Rings' "When the
+// tenth +1/+1 counter is put on NICKNAME") and Mode$ CounterAddedOnce (Simic
+// Ascendancy's "Whenever one or more +1/+1 counters are put on a creature you
+// control"). The two modes share this matcher because the engine emits ONE
+// CounterChange event per placement batch, with the whole batch in Amount:
+// "one trigger per counter-placing event, not per counter" is exactly the
+// CounterAddedOnce contract, and the modes differ only in that
+// CounterAddedOnce never carries CounterAmount$ (measured: 0 corpus lines)
+// while its bodies read TriggerCount$Amount instead. The gate is the
+// CounterChange
 // event that put counters (Amount > 0: a removal event never adds one).
 // CounterType$ names the kind. CounterAmount$ <op><n> is the crossing gate
 // the card text means: the trigger fires when the put takes the event's
@@ -119,6 +127,6 @@ func (e *Engine) counterRemovedMatches(t cards.Trigger, source state.ObjID, ev e
 }
 
 func init() {
-	registerTrigMatcher((*Engine).counterAddedMatches, "CounterAdded")
+	registerTrigMatcher((*Engine).counterAddedMatches, "CounterAdded", "CounterAddedOnce")
 	registerTrigMatcher((*Engine).counterRemovedMatches, "CounterRemoved")
 }
