@@ -108,7 +108,10 @@ const (
 	// pile B's destination -- "bottom", "graveyard", "exile", "hand" -- so
 	// a rules-ignorant client can say "the ones you pick stay on top in the
 	// order you pick them; the rest go to <destination>" without learning a
-	// rule.
+	// rule. The two all-to-bottom kinds -- "hideaway_bottom" (CR 702.75a)
+	// and "dig_bottom" (Dig's default remainder) -- deviate: Min == Max ==
+	// N, every offered card goes to the BOTTOM, and the ANSWER order is the
+	// bottom order.
 	//
 	// DIRECTION, which is silent if a client gets it backwards (and which
 	// KTriggerOrder's own comment phrases the same way): pile A index 0 is
