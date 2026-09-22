@@ -189,6 +189,10 @@ func TestSanctumPrelateNumberIsChosenAtCastAndRestrictsCasting(t *testing.T) {
 	}
 	passUntilStackEmpty(t, e, 20)
 	b := addToHand(t, e, 1, bolt)
+	// Re-establish the legal active-player priority marker before setting up
+	// the non-active caster handoff.
+	e.pending = nil
+	e.emit(events.Event{Kind: events.Priority, Player: 0})
 	e.askPriority(0)
 	passToPlayerOne(t, e)
 	addMana(t, e, 1, "R")
@@ -235,6 +239,10 @@ func TestNeedleNamesACardAndCavernChoosesAType(t *testing.T) {
 	if e.G.Obj(n).ChosenName != "Ballista" {
 		t.Fatal("name not recorded")
 	}
+	// Re-establish the legal active-player priority marker before setting up
+	// the non-active caster handoff.
+	e.pending = nil
+	e.emit(events.Event{Kind: events.Priority, Player: 0})
 	e.askPriority(0)
 	passToPlayerOne(t, e)
 	if _, ok := findManaAbilityOption(e, b, 0); ok {

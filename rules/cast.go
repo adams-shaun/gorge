@@ -34,7 +34,7 @@ const (
 	chooseMiracle
 	// chooseETBEntry is the resolution-time counterpart of chooseETB. It is
 	// distinct because chooseETB remains the legacy cast-flow helper.
-	chooseETBEntry chooseFor = 31
+	chooseETBEntry chooseFor = 32
 	// chooseRiot is deliberately outside the independently extended
 	// chooseCleanup/chooseMana ranges in combat.go and mana_activation.go.
 	// It is 20 because the merged package occupies 1 through 18 (cast/etb/

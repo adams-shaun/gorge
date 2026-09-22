@@ -105,7 +105,10 @@ func TestUtopiaSprawlChoosesAColorAndAddsTheChosenMana(t *testing.T) {
 	}
 
 	// Tap the enchanted Forest for mana: its own {G} plus the Sprawl's extra
-	// chosen-colour {G}.
+	// chosen-colour {G}. Re-establish the legal active-player priority marker
+	// before the helper re-asks the funded window.
+	e.pending = nil
+	e.emit(events.Event{Kind: events.Priority, Player: 0})
 	e.askPriority(0)
 	addMana(t, e, 0, "")
 	mana, ok := findManaAbilityOption(e, forest, 0)
@@ -143,7 +146,10 @@ func TestQuirionElvesChosenManaFollowsTheETBChoice(t *testing.T) {
 	}
 
 	// Activate the second mana ability ({T}: Add one mana of the chosen
-	// color). Re-anchor priority on the caster after the resolution-time ask.
+	// color). Re-establish the legal active-player priority marker after the
+	// resolution-time ask.
+	e.pending = nil
+	e.emit(events.Event{Kind: events.Priority, Player: 0})
 	e.askPriority(0)
 	// The priority "activate" option opens the stage-1 ability wheel;
 	// the Chosen ability is Ability index 1 ("Add chosen color").
