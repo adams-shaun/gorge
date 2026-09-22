@@ -2719,6 +2719,48 @@ func TestParamCensusScopesSecondaryByPrimitive(t *testing.T) {
 	}
 }
 
+// TestParamCensusIgnoresValidCardsDesc pins the ValidCardsDesc$
+// classification (issue agent-20260920T073130Z-724f9676). ValidCardsDesc$
+// is the UI description of a ValidCards$ spec -- Forge reads it only to
+// render text (forge-game/src/main/java/forge/game/card/Card.java), the same
+// consumer as the already-ignored ValidDescription -- so it is a key-global
+// presentation key, not an engine gap. The test drives the real measured
+// carrier (Indulgent Aristocrat's api:PutCounterAll) through
+// cardCensusLabels: it first asserts the precondition that the card DOES
+// carry the key, then that the classification suppresses the label. Removing
+// ignoredParamKeys["ValidCardsDesc"] makes it fail with the label reported.
+func TestParamCensusIgnoresValidCardsDesc(t *testing.T) {
+	t.Parallel()
+	_, d := measureParamCensus(t, nil)
+	if !ignoredParam("api:PutCounterAll", "ValidCardsDesc") {
+		t.Fatalf("ignoredParamKeys no longer classifies ValidCardsDesc as presentation-only -- the census will report a false positive")
+	}
+	reg := testutil.CorpusRegistry(t)
+	c, ok := reg.Lookup("Indulgent Aristocrat")
+	if !ok {
+		t.Fatalf("corpus is missing Indulgent Aristocrat -- the measured ValidCardsDesc$ carrier")
+	}
+	carries := false
+	for _, f := range c.Faces {
+		for _, a := range f.Abilities {
+			if a.API == "PutCounterAll" && a.Params["ValidCardsDesc"] != "" {
+				carries = true
+			}
+		}
+	}
+	if !carries {
+		t.Fatalf("Indulgent Aristocrat no longer carries ValidCardsDesc$ on a PutCounterAll ability -- the pin measures nothing")
+	}
+	if d.api["PutCounterAll"] == nil {
+		t.Fatalf("api:PutCounterAll is no longer a registered primitive -- the census skips its params and this pin cannot fail")
+	}
+	for _, l := range cardCensusLabels(c, d, nil) {
+		if l == "param:api:PutCounterAll.ValidCardsDesc" {
+			t.Errorf("census reported %s despite the presentation-only classification", l)
+		}
+	}
+}
+
 // TestParamCensusPinsTheImportReviewExamples pins the examples the task
 // brief was written from: Daze's Return<1/Island> alternative cost (ParseCost
 // silently substituting generic mana), Chandra's SubCounter<X/LOYALTY>,
