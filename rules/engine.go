@@ -45,6 +45,10 @@ type Config struct {
 	// behaves byte-identically to today.
 	PlayerNames []string
 	Decks       [][]*cards.Card
+	// Sideboards carries each seat's optional sideboard. It is genesis
+	// configuration rather than an event, so replay receives the same cards
+	// without changing any existing event schema.
+	Sideboards [][]*cards.Card
 	// Format names the construction format. Zero means Constructed; the other
 	// tasks in the Commander milestone (the tax, CR 903.9, commander damage)
 	// read it. This task is plumbing: it reads Commanders and StartingLife
@@ -287,6 +291,23 @@ type Engine struct {
 	activeEpoch   int
 	activeVersion int
 	activeDepth   int
+	// renames is the layer-3 rename table (setname.go) the effects tier's
+	// name filters read through SpecContext.EffectiveNames. It is refreshed
+	// after each emitted event, under active()'s own (epoch, version) key,
+	// and only when setNameInPool says this match has a SetName$ carrier at
+	// all. It is a FIELD rather than a lazily-called derivation because
+	// specCtxSVars must stay inlinable: a call there makes its Resolve
+	// closure escape and allocates on every hot-path context construction.
+	// Clone copies the table (the clone's board is identical at the clone
+	// boundary) and the two key fields with it.
+	renames        []effects.ObjectName
+	renameEpoch    int
+	renameVersion  int
+	renameBuilding bool
+	// setNameInPool is a genesis-time fact: does any card this match can put
+	// on the battlefield print a SetName$ static? False for almost every
+	// match, which reduces the per-event refresh to one predictable branch.
+	setNameInPool bool
 	// continuousVersion is bumped by every direct mutation of e.continuous
 	// (layers.go's AddContinuous and EndOfTurnCleanup). It stands in for the
 	// events a board change would signal through the log head: while
@@ -348,6 +369,17 @@ type Engine struct {
 	// triggers, cloned at intent boundaries and removed when the stack object
 	// leaves. Never encoded in events or inferred from a resolving source.
 	triggerContexts map[state.ObjID]effects.TriggerContext
+	// currentEffectFrame is the Effect-created continuous-effect registration
+	// the effects.Resolve walk currently running belongs to. effects.Resolve
+	// publishes it (through the optional effectFrameHost interface) for the
+	// whole of a body walk and restores the enclosing value on exit, and
+	// Ask captures it onto the resume point so a body that suspends on a
+	// mid-resolution ask resumes still bound to its registration. It is
+	// resolution-scratch like the trigger contexts -- never event-encoded, and
+	// a replay re-derives it by re-running the same walk -- and it is zero
+	// outside an Effect-created body, so every ordinary resolution is
+	// unchanged.
+	currentEffectFrame effects.EffectFrame
 	// triggerLKI preserves the causing event's object snapshot from trigger
 	// match through placement and resolution. TriggerPush can log Remembered
 	// ids but not the pre-move object value (whose counters Move clears), so
@@ -639,6 +671,10 @@ type Engine struct {
 	// answer, so every entry path records the protector beside the entry and a
 	// log-only replay re-derives it. Clone-copied (clone.go).
 	siegeMove *events.Event
+	// attachedChoice parks an Attach event while an Attached replacement asks
+	// for its name and creature type.
+	attachedChoice   *attachedChoice
+	attachedApplying bool
 	// suspendedCasts is the mandatory "cast it if able" trigger created when
 	// a real suspended card loses its final TIME counter. IDs are appended in
 	// exile order and consumed before priority; it is plain replayable engine
@@ -677,6 +713,8 @@ type Engine struct {
 	// a CantAttackUnless prop. Same plain-data class as wardMana; Clone
 	// copies the pointer.
 	attackPay *attackPayWindow
+	// blockPay holds the declare-blockers CantBlockUnless payment window.
+	blockPay *blockPayWindow
 
 	// cmdZone is the queue of parked commander zone changes (CR 903.9, Task
 	// m32, rules/replacement.go): MoveZone events a commander is about to
@@ -938,6 +976,9 @@ type Engine struct {
 	tapEntering         bool
 	tappedTurn          map[state.ObjID]int32
 	triggerTurnFires    map[triggerKey]turnFires
+	// triggerGameFires is the lifetime queue count for GameActivationLimit$.
+	// Unlike triggerTurnFires it is never reset at TurnChange.
+	triggerGameFires map[triggerKey]int32
 	// triggerTurnResolved is ResolvedLimit$'s per-turn resolution count,
 	// keyed by the trigger's SOURCE object (not its triggerKey): Forge's
 	// TriggeredAbility.resolvedThisTurn caps how many times a T: line may
@@ -1223,6 +1264,9 @@ func newWithRNG(cfg Config, random *rng) *Engine {
 			break
 		}
 		initialObjects += len(deck)
+		if i < len(cfg.Sideboards) {
+			initialObjects += len(cfg.Sideboards[i])
+		}
 	}
 	e := &Engine{
 		G:            state.NewGameLife(cfg.Names, life, initialObjects),
@@ -1239,6 +1283,7 @@ func newWithRNG(cfg Config, random *rng) *Engine {
 		manaExpended: make([]int32, len(cfg.Names)),
 	}
 	e.G.Tokens = cfg.Tokens
+	e.setNameInPool = poolHasSetNameStatic(cfg)
 	e.manaExpendedTurn = e.G.Turn
 	e.format = cfg.Format
 	for i := range e.G.Players {
@@ -1317,6 +1362,15 @@ func newWithRNG(cfg Config, random *rng) *Engine {
 			ids = append(ids, e.G.AddObject(c, p).ID)
 		}
 		e.G.SetZone(state.ZLibrary, p, ids)
+		if i < len(cfg.Sideboards) && len(cfg.Sideboards[i]) > 0 {
+			sb := make([]state.ObjID, 0, len(cfg.Sideboards[i]))
+			for _, c := range cfg.Sideboards[i] {
+				o := e.G.AddObject(c, p)
+				o.Zone = state.ZSideboard
+				sb = append(sb, o.ID)
+			}
+			e.G.SetZone(state.ZSideboard, p, sb)
+		}
 		// Commanders leave the library for the command zone here, BEFORE the
 		// shuffle and BEFORE the opening hand is dealt, so they are neither
 		// shuffled into the library nor drawable. Emitted as real MoveZone
@@ -1676,6 +1730,12 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		e.combatHitsThisTurn = nil
 	}
 	e.loop.observe(stored)
+	// setname.go: keep the layer-3 rename table the filter tier reads in step
+	// with the board. Gated so a match with no SetName$ carrier pays one
+	// branch.
+	if e.setNameInPool {
+		e.refreshRenames()
+	}
 	if ev.Kind == events.StackCopy && len(e.G.Stack) > stackLen {
 		copyID := e.G.Stack[len(e.G.Stack)-1]
 		if tc, ok := e.triggerContexts[ev.Obj]; ok {
@@ -2067,6 +2127,14 @@ func (e *Engine) searchControlRedirect(d *decision.Decision) {
 		d.Player = sv.Controller
 		return
 	}
+}
+
+func (e *Engine) GetCurrentEffectFrame() effects.EffectFrame {
+	return e.currentEffectFrame
+}
+
+func (e *Engine) SetCurrentEffectFrame(frame effects.EffectFrame) {
+	e.currentEffectFrame = frame
 }
 
 func (e *Engine) ask(d *decision.Decision) {

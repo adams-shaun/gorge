@@ -127,6 +127,23 @@ func tokenOwnerPlayers(h Host, c *Ctx, spec string) ([]state.PlayerID, bool) {
 	return out, true
 }
 
+// tokenRememberedTargets resolves the set TokenRemembered$ attaches to each
+// minted token. It is shared by Token and CopyPermanent, whose two mint paths
+// must persist the same event-backed memory.
+func tokenRememberedTargets(h Host, c *Ctx, sa *cards.SA) []state.Target {
+	name := strings.TrimSpace(sa.Params["TokenRemembered"])
+	if name == "" {
+		return nil
+	}
+	if strings.EqualFold(name, "ExiledCards") {
+		return append([]state.Target(nil), c.Remembered...)
+	}
+	sub := *sa
+	sub.Params = map[string]string{"Defined": name}
+	return Defined(h, c, &sub)
+}
+
+// effToken creates the requested token scripts and applies their token riders.
 func effToken(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
 	n := Num(h, c, sa, "TokenAmount", 1)
@@ -343,6 +360,13 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	tapped := strings.EqualFold(strings.TrimSpace(sa.Params["TokenTapped"]), "True")
+	// TokenRemembered$ binds the newly-created token's persistent memory to
+	// the named Defined$ group.  ExiledCards is Forge's name for the cards
+	// exiled by the payment immediately before this Token effect; that set is
+	// already the resolution's Remembered set in this engine.  Other selector
+	// forms use the ordinary Defined resolver, so this remains extensible as
+	// Defined gains readers rather than special-casing individual cards.
+	tokenMemory := tokenRememberedTargets(h, c, sa)
 
 	// TokenAttacking$ True (Mobilize, Kari Zev's "tapped and attacking"
 	// rider): every token this call creates enters attacking the combat's
@@ -399,6 +423,19 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 				// having grown by watching its length before and after.
 				want := g.NextID
 				h.Emit(events.Event{Kind: events.TokenCreate, Player: owner, Text: key})
+				if len(tokenMemory) > 0 && g.Obj(want) != nil {
+					ids := make([]state.ObjID, 0, len(tokenMemory))
+					for _, t := range tokenMemory {
+						if t.IsPlayer {
+							ids = append(ids, state.PlayerRef(t.Player))
+						} else if t.Obj != 0 {
+							ids = append(ids, t.Obj)
+						}
+					}
+					if len(ids) > 0 {
+						h.Emit(events.Event{Kind: events.Choose, Obj: want, Counter: "remembered", IDs: ids})
+					}
+				}
 				if remember && g.Obj(want) != nil {
 					c.Remembered = append(c.Remembered, state.Target{Obj: want})
 					eventRemember(h, c, want)
@@ -440,29 +477,29 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 				if attachTo != 0 && g.Obj(want) != nil && g.Obj(attachTo) != nil {
 					emitAttach(h, want, attachTo)
 				}
-				if strings.EqualFold(strings.TrimSpace(sa.Params["ImprintTokens"]), "True") && g.Obj(want) != nil {
-					// ImprintTokens$ True (Ugin, the Ineffable's [+1] spirit token):
-					// the created token is IMPRINTED with the cards the resolution
-					// remembered -- the face-down-exiled card the preceding Dig
-					// captured -- so Card.IsImprinted matches the token exactly as
-					// Forge's imprintedCards association would. An empty remembered
-					// set records nothing: an imprint of nothing is not an imprint.
-					ids := make([]state.ObjID, 0, len(c.Remembered))
-					for _, t := range c.Remembered {
-						if !t.IsPlayer && t.Obj != 0 {
-							ids = append(ids, t.Obj)
-						}
-					}
-					if len(ids) > 0 {
-						h.Emit(events.Event{Kind: events.Imprint, Obj: want, IDs: ids})
-					}
-				}
 				// AtEOT$ (Valduk, Zektar Shrine Expedition: "exile those tokens at
 				// the beginning of the next end step"): remember the predicted mint
 				// id (the CopyPermanent pattern); the shared reader schedules the
 				// whole minted set in one call after the loop.
 				minted = append(minted, want)
 			}
+		}
+	}
+	// ImprintTokens$ True: the SOURCE is imprinted with the created tokens, so
+	// a following SubAbility$ resolving `Defined$ Imprinted` (Timothar's
+	// DBAnimate grant, Intrude on the Mind's DBPutCounters, Ugin's DBEffect)
+	// names the newly-created token -- the reverse association (token imprinted
+	// with the resolution's remembered cards) names the exiled cards instead
+	// and leaves every such sub-ability acting on nothing.
+	if strings.EqualFold(strings.TrimSpace(sa.Params["ImprintTokens"]), "True") && c.Source != 0 {
+		ids := make([]state.ObjID, 0, len(minted))
+		for _, id := range minted {
+			if g.Obj(id) != nil {
+				ids = append(ids, id)
+			}
+		}
+		if len(ids) > 0 {
+			h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: ids, Text: "imprint-tokens"})
 		}
 	}
 	scheduleAtEOT(h, c, sa, minted)

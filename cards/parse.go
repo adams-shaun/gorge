@@ -264,6 +264,17 @@ func ParseTriggerLine(body string) (Trigger, bool) {
 	return Trigger{Mode: mode, Params: p}, true
 }
 
+// ParseReplacementLine parses an Event$ replacement body held in an SVar.
+// Bodies without an Event$ key fail closed.
+func ParseReplacementLine(body string) (Repl, bool) {
+	p := parseParams(body)
+	event := strings.TrimSpace(p["Event"])
+	if event == "" {
+		return Repl{}, false
+	}
+	return Repl{Event: event, Params: p}, true
+}
+
 // parseParams splits a "| Key$ value" chain. Values routinely contain "$" and
 // occasionally "|" inside description text, so split on "|" first and then on
 // the first "$" only.

@@ -56,15 +56,27 @@ func TestCopySpellAbilityDuplicatesTheSourceNamedByParent(t *testing.T) {
 	if copies != 2 {
 		t.Fatalf("%d copy objects, want 2", copies)
 	}
-	// MayChooseTarget$ True records the "keeps its targets" Note.
+	// CR 707.10c: MayChooseTarget$ True now rides each StackCopy event as the
+	// Amount discriminator (1 = the copy's controller may choose new targets),
+	// recorded per copy instance and consumed when targets are recorded. There
+	// is no longer a "keeps its targets" Note: the election is real.
+	flagged := 0
+	for _, ev := range h.log {
+		if ev.Kind == events.StackCopy && ev.Amount == 1 {
+			flagged++
+		}
+	}
+	if flagged != 2 {
+		t.Fatalf("%d StackCopy events carry the MayChooseTarget$ flag, want 2", flagged)
+	}
 	notes := 0
 	for _, ev := range h.log {
 		if ev.Kind == events.Note && strings.Contains(ev.Text, "keeps its targets") {
 			notes++
 		}
 	}
-	if notes != 2 {
-		t.Fatalf("%d 'keeps its targets' Notes, want 2", notes)
+	if notes != 0 {
+		t.Fatalf("%d 'keeps its targets' Notes, want none (the election replaced the stand-in)", notes)
 	}
 }
 

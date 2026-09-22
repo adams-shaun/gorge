@@ -252,6 +252,8 @@ const (
 	// Count$OffspringPaid to decide whether to mint the 1/1 copy. Appended
 	// per the enum's own append-only precedent.
 	FlagOffspringPaid
+	// FlagOptionalCostPaid marks a self-spell OptionalCost additional cost.
+	FlagOptionalCostPaid
 	// FlagConvoked marks a cast whose pay-time CastInfo carries CR 702.66
 	// convoke provenance: the creatures the caster tapped to help pay for
 	// the cast ride the event's IDs into Object.Convoked. The flag is what
@@ -295,6 +297,9 @@ const (
 	// (rules/altcast.go's altCostEnter) can register the delayed sacrifice.
 	// Appended per the enum's own append-only precedent.
 	FlagMayFlashSac
+	// FlagCompleated marks the pay-time CastInfo carrying life paid for a
+	// printed K:Compleated planeswalker's Phyrexian symbols.
+	FlagCompleated
 )
 
 // CastProvenanceFlags is the ONE home for the CastFlags bits whose reader
@@ -580,6 +585,8 @@ type Object struct {
 	// COPY of the spell was never cast and reads false (the same reading
 	// Count$ReplicatePaid documents).
 	OffspringPaid bool
+	// OptionalCostPaid records the boolean paid provenance for Count$OptionalGenericCostPaid.
+	OptionalCostPaid bool
 	// ConvergeColours is the number of distinct colours (WUBRG) of mana
 	// actually spent to cast the spell (CR 107.4f-family converge), carried
 	// by the pay-time CastInfo's FlagConverged Amount. It rides the same
@@ -652,6 +659,10 @@ type Object struct {
 	ManaTreasureSpent int32
 	ManaCaveSpent     int32
 	ManaDesertSpent   int32
+	// CompleatedLifePaid is the amount of life paid for Phyrexian symbols on
+	// a printed K:Compleated cast. It follows the cast provenance window and
+	// is consumed by events.Move when the spell enters as a planeswalker.
+	CompleatedLifePaid int32
 	// NotedNumber is the number a trigger's Execute$ body noted onto the
 	// CARD (Lupine Harbingers' T:Mode$ ChangesZone | Destination$ Exile
 	// trigger executing DB$ Pump | NoteNumber$ Count$YourTurns -- the
@@ -739,6 +750,15 @@ type Object struct {
 	// because later abilities (Chrome Mox) refer to it after the originating
 	// resolution has ended.
 	Imprinted []ObjID
+	// ImprintTokens holds the TOKENS a Token/CopyPermanent effect imprinted on
+	// this object through ImprintTokens$ True (Forge's imprintedCards written
+	// by TokenEffect) -- the association a following SubAbility$' `Defined$
+	// Imprinted` (Timothar's Animate, Intrude on the Mind's PutCounter, Ugin's
+	// Effect) reads. Deliberately separate from Imprinted: that list is the CR
+	// 607.2a exiled-card link whose reader may only consume entries still in
+	// exile, while a token imprint is a battlefield permanent and must
+	// resolve while it is on the battlefield.
+	ImprintTokens []ObjID
 	// ExiledCards holds cards this object exiled through ChangeZone (Forge's
 	// hostCard.exiledCards). The association exists only while the card
 	// remains in exile; events.Move removes it when the card leaves. It is
@@ -824,6 +844,18 @@ type Object struct {
 	IsToken  bool
 	IsCopy   bool
 	IsMyriad bool
+
+	// CopyMayChooseTarget is CR 707.10c's new-target permission for ONE copy
+	// on the stack, carried per copy instance rather than re-derived from the
+	// copied spell's text. It is set true by the StackCopy fold when the
+	// CREATING CopySpellAbility SA declared MayChooseTarget$ True (the event's
+	// Amount discriminator) -- so an external copier (Mirari, Cloven Casting,
+	// a Storm or Replicate copy) that is not part of the copied spell's own
+	// text still grants the election. rules/stack.go's resolveTop asks the
+	// copy's controller exactly once while this is true and records the answer
+	// through TargetsChosen, whose fold clears the flag; a log-only replay
+	// rebuilds set-then-cleared identically.
+	CopyMayChooseTarget bool
 
 	// CopyFace is the CR 613.1a copy-effect basis for a permanent that became a
 	// copy of another (DB$ Clone): while non-nil, Face() returns THIS face
@@ -1143,6 +1175,7 @@ func (o *Object) CloneDeep() Object {
 	c.ChosenModes = append([]string(nil), o.ChosenModes...)
 	c.IntrinsicKeywords = append([]string(nil), o.IntrinsicKeywords...)
 	c.Imprinted = append([]ObjID(nil), o.Imprinted...)
+	c.ImprintTokens = append([]ObjID(nil), o.ImprintTokens...)
 	c.ExiledCards = append([]ObjID(nil), o.ExiledCards...)
 	c.ExileReturn = append([]ExileReturnEntry(nil), o.ExileReturn...)
 	c.MergedCards = append([]MergedCard(nil), o.MergedCards...)

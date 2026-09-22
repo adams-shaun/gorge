@@ -131,6 +131,18 @@ func (e *Engine) bloodthirstEntryMatch(ev events.Event) *replMatch {
 }
 
 func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool) {
+	if ev.Kind == events.Attach && e.attachedApplying {
+		return ev, false
+	}
+	if ev.Kind == events.Attach {
+		if e.applyAttachedReplacement(ev) {
+			return ev, true
+		}
+		// Only ChooseName has a parked Attached replacement continuation.
+		// Other Attached bodies must leave the Attach event untouched until
+		// their own continuation is implemented.
+		return ev, false
+	}
 	event, ok := replacementEvent(ev)
 	if !ok {
 		return ev, false
@@ -542,7 +554,7 @@ type replMatch struct {
 // the predicates fail closed exactly as before. Nil ids yield the plain
 // context every caller without a remembered set already built.
 func (e *Engine) rememberedSpecContext(you state.PlayerID, source state.ObjID, remembered []state.ObjID) effects.SpecContext {
-	sc := effects.SpecContext{You: you, Source: source}
+	sc := e.withNames(effects.SpecContext{You: you, Source: source})
 	if chosen := effects.ChosenTargetsFrom(e.G, source); len(chosen) > 0 {
 		sc.Chosen = chosen
 		sc.ChosenValid = true
@@ -872,6 +884,8 @@ func drawMatchAmount(ev events.Event) int32 {
 // both, while the logged event remains the ordinary final mana production.
 func replacementEvent(ev events.Event) (string, bool) {
 	switch ev.Kind {
+	case events.Attach:
+		return "Attached", true
 	case events.MoveZone:
 		return "Moved", true
 	case events.Untap:
@@ -2001,6 +2015,102 @@ func (e *Engine) applyRiotReplacement(ev events.Event) bool {
 // offered; a controller with no living opponent (a battle entering after
 // everyone else lost -- unreachable in a real match) is recorded with no
 // protector rather than parking on an unanswerable ask.
+type attachedChoice struct {
+	move   events.Event
+	source state.ObjID
+	stage  int
+}
+
+// applyAttachedReplacement handles the ChooseName replacement on Psychic Paper.
+// It parks the Attach before events.Apply and records both answers on the source.
+func (e *Engine) applyAttachedReplacement(ev events.Event) bool {
+	if e.attachedChoice != nil || e.pending != nil || len(ev.IDs) == 0 {
+		return false
+	}
+	var source state.ObjID
+	var repl *cards.Repl
+	e.forEachReplacementSource(func(id state.ObjID) {
+		if source != 0 {
+			return
+		}
+		f := e.replacementFace(id, ev)
+		if f == nil {
+			return
+		}
+		for i := range f.Repls {
+			r := &f.Repls[i]
+			// The name-election primitive is Forge's NameCard (Psychic Paper's
+			// `ReplaceWith$ ChooseName` resolves to an SVar whose body IS
+			// `DB$ NameCard`, so the body's API is NameCard, never the SVar
+			// name). Keying on the API is the structural read: it is the
+			// primitive that poses a name ask, and the parked continuation
+			// below then asks the paired creature type before releasing the
+			// Attach. Every other Attached body (ChooseCard, ChooseColor) keeps
+			// today's untouched-Attach behaviour.
+			if r.Event == "Attached" && r.With != nil && r.With.API == "NameCard" && e.replacementMatches(*r, id, ev) {
+				source, repl = id, r
+				return
+			}
+		}
+	})
+	if source == 0 || repl == nil {
+		return false
+	}
+	o := e.G.Obj(source)
+	if o == nil {
+		return false
+	}
+	ch := &attachedChoice{move: ev, source: source}
+	e.attachedChoice = ch
+	opts := e.etbOptions(o.Controller, source, "name", repl.With.Params["ValidCards"], "", "")
+	if len(opts) <= 1 {
+		if len(opts) == 1 {
+			e.emit(events.Event{Kind: events.Choose, Obj: source, Counter: "name", Text: opts[0].Label})
+		}
+		return e.askAttachedType()
+	}
+	d := &decision.Decision{Player: o.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+		Source: source, Prompt: "Choose a creature card name", Options: opts}
+	e.choosing = chooseAttached
+	e.ask(d)
+	return true
+}
+
+func (e *Engine) askAttachedType() bool {
+	ch := e.attachedChoice
+	if ch == nil {
+		return false
+	}
+	o := e.G.Obj(ch.source)
+	if o == nil {
+		e.attachedChoice = nil
+		return false
+	}
+	ch.stage = 1
+	opts := e.creatureTypeOptions(o.Controller)
+	if len(opts) <= 1 {
+		if len(opts) == 1 {
+			e.emit(events.Event{Kind: events.Choose, Obj: ch.source, Counter: "type", Text: opts[0].Label})
+		}
+		move := ch.move
+		e.attachedChoice = nil
+		e.choosing = chooseNone
+		e.emitAttachedMove(move)
+		return true
+	}
+	d := &decision.Decision{Player: o.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+		Source: ch.source, Prompt: "Choose a creature type", Options: opts}
+	e.choosing = chooseAttached
+	e.ask(d)
+	return true
+}
+
+func (e *Engine) emitAttachedMove(move events.Event) {
+	e.attachedApplying = true
+	e.emit(events.Event{Kind: events.Attach, Obj: move.Obj, IDs: append([]state.ObjID(nil), move.IDs...)})
+	e.attachedApplying = false
+}
+
 func (e *Engine) applySiegeProtector(ev events.Event) bool {
 	// Same overwrite guard applyRiotReplacement documents: never park on an ask
 	// while another decision is outstanding.
@@ -2160,6 +2270,17 @@ func (e *Engine) replacementMatchesEffectCreated(r cards.Repl, source state.ObjI
 func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.ObjID, ev events.Event, remembered []state.ObjID, rememberedPlayers []state.PlayerID) bool {
 	you := e.controllerOf(source)
 	switch r.Event {
+	case "Attached":
+		if ev.Kind != events.Attach || len(ev.IDs) == 0 {
+			return false
+		}
+		if v := r.Params["ValidCard"]; v != "" && !effects.MatchesSpecFrom(e.G, v, source, you, source) {
+			return false
+		}
+		if v := r.Params["ValidTarget"]; v != "" && !effects.MatchesSpecFrom(e.G, v, ev.IDs[0], you, source) {
+			return false
+		}
+		return e.replacementConditionHolds(r, source, you)
 	case "Counter":
 		// The Effect-created bodyless CantHappen form (Mistrise Village's
 		// AntiMagic, reached only from counterReplacementMatchesAll's scan,
@@ -2355,6 +2476,27 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 		if v, ok := r.Params["ValidCard"]; ok &&
 			!effects.MatchesSpecFrom(e.G, v, ev.Obj, you, source) {
 			return false
+		}
+		return e.replacementConditionHolds(r, source, you)
+	case "GainLife":
+		if ev.Kind != events.LifeChange || ev.Amount <= 0 {
+			return false
+		}
+		if vp := strings.TrimSpace(r.Params["ValidPlayer"]); vp != "" {
+			if vp == "Player.IsRemembered" {
+				found := false
+				for _, p := range rememberedPlayers {
+					if p == ev.Player {
+						found = true
+						break
+					}
+				}
+				if !found {
+					return false
+				}
+			} else if !effects.MatchesPlayerSpec(e.G, vp, ev.Player, you) {
+				return false
+			}
 		}
 		return e.replacementConditionHolds(r, source, you)
 	case "DamageDone":
@@ -4290,7 +4432,7 @@ func (e *Engine) lifeReplacementCandidates(ev events.Event, applied []replMatch)
 		for i := range o.Face().Repls {
 			r := &o.Face().Repls[i]
 			if r.Event != event || !replacementActive(e, id, r) || !replacementPlayerMatches(e, id, r, p) ||
-				lifeReplacementApplied(applied, id, r) {
+				lifeReplacementApplied(applied, replMatch{id: id, repl: r}) {
 				continue
 			}
 			if e.lifeReplacementApplies(ev, id, r, p, loss) {
@@ -4298,12 +4440,35 @@ func (e *Engine) lifeReplacementCandidates(ev events.Event, applied []replMatch)
 			}
 		}
 	})
+	for _, ce := range e.active() {
+		if ce.ReplacementEvent != event || ce.ReplacementBody != "" ||
+			!strings.EqualFold(strings.TrimSpace(ce.ReplacementParams["Prevent"]), "True") {
+			continue
+		}
+		r := &cards.Repl{Event: ce.ReplacementEvent, Params: ce.ReplacementParams}
+		m := replMatch{id: ce.Source, repl: r, remembered: ce.Remembered,
+			rememberedPlayers: ce.RememberedPlayers,
+			key:               "effect:" + strconv.Itoa(int(ce.Source)) + ":" + strconv.Itoa(int(ce.Timestamp))}
+		if lifeReplacementApplied(applied, m) ||
+			!e.replacementMatchesEffectCreated(*r, ce.Source, ev, ce.Remembered, ce.RememberedPlayers) {
+			continue
+		}
+		if e.lifeReplacementApplies(ev, ce.Source, r, p, loss) {
+			out = append(out, m)
+		}
+	}
 	return out
 }
 
-func lifeReplacementApplied(applied []replMatch, id state.ObjID, r *cards.Repl) bool {
+func lifeReplacementApplied(applied []replMatch, candidate replMatch) bool {
 	for _, m := range applied {
-		if m.id == id && m.repl == r {
+		if candidate.key != "" || m.key != "" {
+			if m.key != "" && m.key == candidate.key {
+				return true
+			}
+			continue
+		}
+		if m.id == candidate.id && m.repl == candidate.repl {
 			return true
 		}
 	}

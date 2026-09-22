@@ -1184,7 +1184,7 @@ func (e *Engine) offerCostForUsing(statics costStaticViews, p state.PlayerID, id
 // both the per-face enumeration and the composed castable check.
 func (e *Engine) composedOfferCost(p state.PlayerID, id state.ObjID, base Cost, mods costMods, scope costScope) Cost {
 	c := mods.apply(base)
-	if scope.kind != "Ability" {
+	if scope.kind != "Ability" && scope.kind != "Foretell" {
 		c = e.commanderTaxFor(p, id, c)
 	}
 	return c
@@ -1344,7 +1344,7 @@ func (e *Engine) offerCastableUsing(statics costStaticViews, p state.PlayerID, i
 	}
 	mods := e.costModifiersWithTargetsUsing(statics, p, id, scope, nil, false)
 	tax := int32(0)
-	if scope.kind != "Ability" {
+	if scope.kind != "Ability" && scope.kind != "Foretell" {
 		tax = e.commanderTaxAmount(p, id)
 	}
 	delve := int32(0)
@@ -2558,8 +2558,8 @@ func (e *Engine) payerGrantsMayPlayRider(p state.PlayerID, id state.ObjID, rider
 		if !all && !slices.Contains(zones, o.Zone) {
 			continue
 		}
-		sc := effects.SpecContext{You: ce.Controller, Source: ce.Source,
-			Remembered: rememberedTargets(ce.Remembered), Resolving: true}
+		sc := e.withNames(effects.SpecContext{You: ce.Controller, Source: ce.Source,
+			Remembered: rememberedTargets(ce.Remembered), Resolving: true})
 		if effects.MatchesSpecCtx(e.G, ce.Affects, id, sc) {
 			return true
 		}

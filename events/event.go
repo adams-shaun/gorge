@@ -1159,6 +1159,7 @@ var flagNames = [...]struct {
 	// bool, paid at most once. Appended at the end per the table's own
 	// ordering rule.
 	{"offspringpaid", state.FlagOffspringPaid},
+	{"optionalcostpaid", state.FlagOptionalCostPaid},
 	// The Fuse cast (CR 702.101b) of a non-Room Split card: one spell
 	// resolving both halves. Appended at the end per the table's own
 	// ordering rule.
@@ -1182,6 +1183,8 @@ var flagNames = [...]struct {
 	// no flag and no sacrifice. Appended at the end per the table's own
 	// ordering rule.
 	{"mayflashsac", state.FlagMayFlashSac},
+	// Compleated's life-paid amount reduces a planeswalker's entry loyalty.
+	{"compleated", state.FlagCompleated},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

@@ -46,10 +46,13 @@ type zoneEntry struct {
 	ids []state.ObjID
 }
 
-// zoneEntries collects every zone list the game holds: every player's five
-// zones, in a fixed order, plus the one shared stack.
+// zoneEntries collects every zone list the game holds: every player's six
+// zones, in a fixed order, plus the one shared stack. ZSideboard is
+// enumerated like any other player zone: its cards are live objects the
+// post-walk requires exactly once, and it is a hidden zone for the
+// battlefield-overlap pass (state.ZSideboard.Hidden() is true).
 func zoneEntries(g *state.Game) []zoneEntry {
-	out := make([]zoneEntry, 0, len(g.Players)*5+1)
+	out := make([]zoneEntry, 0, len(g.Players)*6+1)
 	for i := range g.Players {
 		p := state.PlayerID(i)
 		out = append(out,
@@ -58,6 +61,7 @@ func zoneEntries(g *state.Game) []zoneEntry {
 			zoneEntry{state.ZBattlefield, p, g.Zone(state.ZBattlefield, p)},
 			zoneEntry{state.ZGraveyard, p, g.Zone(state.ZGraveyard, p)},
 			zoneEntry{state.ZExile, p, g.Zone(state.ZExile, p)},
+			zoneEntry{state.ZSideboard, p, g.Zone(state.ZSideboard, p)},
 		)
 	}
 	out = append(out, zoneEntry{z: state.ZStack, ids: g.Stack})

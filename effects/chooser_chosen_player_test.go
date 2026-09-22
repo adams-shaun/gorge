@@ -46,8 +46,8 @@ func TestChooserChosenPlayerResolvesTheChosenSeat(t *testing.T) {
 	if got := searchChooser(h, c, chooserSA("ChosenPlayer")); got != 0 {
 		t.Fatalf("searchChooser with no chosen answer = %d, want controller 0", got)
 	}
-	if got := hiddenPickChooser(h, c, chooserSA("ChosenPlayer"), 2); got != 0 {
-		t.Fatalf("hiddenPickChooser with no chosen answer = %d, want controller 0", got)
+	if got := hiddenPickChooser(h, c, chooserSA("ChosenPlayer"), 2); got != 2 {
+		t.Fatalf("hiddenPickChooser with no chosen answer = %d, want owner 2", got)
 	}
 
 	// Record seat 1 as the chosen player through the real event fold.
@@ -92,8 +92,8 @@ func TestChooserChosenPlayerResolvesTheChosenSeat(t *testing.T) {
 	if got := searchChooser(h, c, chooserSA("ChosenPlayer")); got != 0 {
 		t.Fatalf("searchChooser with a dead chosen seat = %d, want controller 0", got)
 	}
-	if got := hiddenPickChooser(h, c, chooserSA("ChosenPlayer"), 2); got != 0 {
-		t.Fatalf("hiddenPickChooser with a dead chosen seat = %d, want controller 0", got)
+	if got := hiddenPickChooser(h, c, chooserSA("ChosenPlayer"), 2); got != 2 {
+		t.Fatalf("hiddenPickChooser with a dead chosen seat = %d, want owner 2", got)
 	}
 	if got, ok := handMoveChooserFor(h, c, chooserSA("ChosenPlayer"), 2); ok || got != 2 {
 		t.Fatalf("handMoveChooserFor with a dead chosen seat = (%d, %v), want fail-closed (2, false)", got, ok)

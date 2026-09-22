@@ -303,6 +303,15 @@ func TestCopySpellAbilityControllerGivesTheCopyToThePayer(t *testing.T) {
 		t.Fatalf("no seat-1-controlled copy was created for the paid unless-cost (copy %v, event %v)", copied, stackCopy)
 	}
 
+	// CR 707.10c: the copy's controller (seat 1) may choose new targets.
+	// Keep the inherited player target (option 0) so the copy still hits
+	// seat 1 and the life assertion below is meaningful.
+	d = passUntilNonPriority(t, e, 30)
+	if d == nil || d.Kind != decision.KTarget || d.ResumeKind != "copy_targets" {
+		t.Fatalf("expected the copy's new-target ask, got %+v", d)
+	}
+	submitChoices(t, e, d.Options[0].Index)
+
 	// The copy resolves its kept target: 3 more damage to seat 1, whose pool
 	// is now empty, so the copy's own unless ask must be a decline.
 	d = passUntilNonPriority(t, e, 30)
