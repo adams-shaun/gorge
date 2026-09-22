@@ -1865,7 +1865,8 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			prop = strings.TrimSpace(prop)
 			switch {
 			case prop == "CardPower" || prop == "CardToughness" || prop == "CardManaCost" ||
-				prop == "CardTypes" || prop == "Colors":
+				prop == "CardTypes" || prop == "Colors" ||
+				strings.HasPrefix(prop, "CardCounters."):
 			case isExtremeProperty(prop):
 			case differentPropertyKindOf(prop) != diffNone:
 			default:
@@ -2828,6 +2829,15 @@ func (f *zoneCountFold) visit(id state.ObjID, zone state.Zone, specCtx SpecConte
 		if !f.seen || (f.isLeast && v < f.best) || (!f.isLeast && v > f.best) {
 			f.best, f.seen = v, true
 		}
+		return
+	}
+	// CardCounters.<KIND> sums one counter kind over the matched set (Kate
+	// Stewart's time counters, Kyler's P1P1); CardCounters.ALL sums every
+	// kind. state.Object.Counter is the ONE home for that marker, so this
+	// read and the $<Ref>$CardCounters readers (evalRefProperty, the bare
+	// source head) cannot disagree.
+	if kind, ok := strings.CutPrefix(f.prop, "CardCounters."); ok {
+		f.n += o.Counter(kind)
 		return
 	}
 	switch f.prop {

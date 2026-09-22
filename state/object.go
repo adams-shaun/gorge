@@ -908,6 +908,19 @@ func (o *Object) Ephemeral() bool {
 }
 
 func (o *Object) Counter(kind string) int32 {
+	// "ALL" is Forge's CounterType.ALL marker, meaning every counter kind
+	// on the object summed -- not a real counter kind (no corpus script
+	// names one "ALL"; the removal spellings use AllCounters$ True). The
+	// CardCounters.ALL count family (Backstreet Bruiser, Maester Seymour,
+	// Lux Artillery's "counters among ...") reads through this one home,
+	// so the three CardCounters.<KIND> call sites cannot disagree.
+	if kind == "ALL" {
+		var n int32
+		for _, c := range o.Counters {
+			n += c.N
+		}
+		return n
+	}
 	for _, c := range o.Counters {
 		if c.Kind == kind {
 			return c.N
