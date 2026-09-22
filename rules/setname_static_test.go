@@ -1,11 +1,13 @@
 package rules
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/effects"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -175,6 +177,66 @@ func TestSetNameLiteralStaticIsVisibleToNameFilters(t *testing.T) {
 		t.Fatal("filter: the renamed bear must NOT match its printed name")
 	}
 	replayCheck(t, e, cfg)
+}
+
+// TestCompetingSetNameStaticsAgreeWithTheLayerWalk pins the property that
+// closed the reviewer's scan-order finding: with two SetName$ static effects
+// on one bearer, the FILTER tier and the LAYER WALK must name the same effect
+// the winner. The old filter read scanned the battlefield in zone order and
+// took the last attachment, which need not be the highest-timestamp layer
+// effect; the fix makes the filter consult the layer walk itself. The test
+// does not hardcode which blade wins (object timestamps decide that) -- it
+// asserts that the filter's answer IS the layer walk's.
+func TestCompetingSetNameStaticsAgreeWithTheLayerWalk(t *testing.T) {
+	t.Parallel()
+	first := card(t, "Name:First Blade\nManaCost:1\nTypes:Artifact Equipment\nK:Equip:1\n"+
+		"S:Mode$ Continuous | Affected$ Creature.EquippedBy | SetName$ First Name | Description$ x\nOracle:x\n")
+	second := card(t, "Name:Second Blade\nManaCost:1\nTypes:Artifact Equipment\nK:Equip:1\n"+
+		"S:Mode$ Continuous | Affected$ Creature.EquippedBy | SetName$ Second Name | Description$ x\nOracle:x\n")
+	bear := card(t, "Name:Grizzly Bears\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	e, _, _ := corpusDeckEngine(t, nil, []*cards.Card{first, second, bear})
+
+	var firstID, secondID, bearID state.ObjID
+	for i := range e.G.Objs {
+		o := &e.G.Objs[i]
+		if o.Zone != state.ZBattlefield {
+			continue
+		}
+		switch o.Card {
+		case first:
+			firstID = o.ID
+		case second:
+			secondID = o.ID
+		case bear:
+			bearID = o.ID
+		}
+	}
+	if firstID == 0 || secondID == 0 || bearID == 0 {
+		t.Fatalf("setup: first=%d second=%d bear=%d", firstID, secondID, bearID)
+	}
+	// Attach BOTH blades, deliberately in the reverse of the order the
+	// battlefield scan would reach them, so a scan-order read and the layer
+	// walk can disagree.
+	e.emit(events.Event{Kind: events.Attach, Obj: secondID, IDs: []state.ObjID{bearID}})
+	e.emit(events.Event{Kind: events.Attach, Obj: firstID, IDs: []state.ObjID{bearID}})
+	if e.G.Obj(firstID).AttachedTo != bearID || e.G.Obj(secondID).AttachedTo != bearID {
+		t.Fatal("precondition: both blades must be attached to the bear")
+	}
+
+	want := e.Name(bearID)
+	if want != "First Name" && want != "Second Name" {
+		t.Fatalf("layer walk named the bearer %q, want one of the two SetName$ effects", want)
+	}
+	other := "First Name"
+	if want == "First Name" {
+		other = "Second Name"
+	}
+	if !effects.MatchesSpecFrom(e.G, "Card.named"+strings.ReplaceAll(want, " ", "_"), bearID, 0, 0) {
+		t.Fatalf("filter does not see the layer walk's name %q", want)
+	}
+	if effects.MatchesSpecFrom(e.G, "Card.named"+strings.ReplaceAll(other, " ", "_"), bearID, 0, 0) {
+		t.Fatalf("filter sees the losing SetName$ name %q", other)
+	}
 }
 
 func containsStr(list []string, want string) bool {
