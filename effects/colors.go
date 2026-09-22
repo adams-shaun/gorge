@@ -37,6 +37,20 @@ func (m ColorMask) String() string {
 	return colorMaskStrings[m&31]
 }
 
+// numColorsOf counts the colours ColorMaskOf reports: the printed cost
+// colours or an explicit Colors line, Devoid colourless, a self SetColor$ CDA
+// claim overwriting. This is Count$CardNumColors' read (Jared Carthalion's
+// "put a number of +1/+1 counters on it equal to the number of colors it
+// is"), the same mask protection and the colour predicates already share.
+func numColorsOf(o *state.Object) int {
+	mask := ColorMaskOf(o)
+	n := 0
+	for ; mask != 0; mask &= mask - 1 {
+		n++
+	}
+	return n
+}
+
 // ColorsOf is an object's colours as WUBRG letters in that fixed order:
 // the colours of its mana cost, or an explicit Colors: line for a card
 // whose cost does not show them (a token, an artifact "that is green").

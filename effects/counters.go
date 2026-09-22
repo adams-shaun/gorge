@@ -248,6 +248,25 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 	// while the object is still mid-entry must place the counters anyway,
 	// not skip on the battlefield precondition.
 	etb := strings.EqualFold(strings.TrimSpace(sa.Params["ETB"]), "True")
+	// CounterNumPerDefined$ (task param-putcounter-counternumperdefined): the
+	// count is evaluated PER AFFECTED OBJECT, not once for the resolving
+	// source -- Canopy Gargantuan's upkeep trigger puts +1/+1 counters on
+	// each other creature equal to THAT creature's toughness
+	// (`SVar:X:Count$CardToughness` behind `CounterNumPerDefined$ X`). The
+	// value is an SVar name resolved through the resolution's own table, or
+	// an inline Count$ body; EvalCountOnObject re-anchors the source-anchored
+	// heads on each recipient. A body the evaluator does not model degrades
+	// to 0 for every recipient (Num's convention), so such a card places
+	// nothing rather than something arbitrary. The corpus's three carriers
+	// pair the param with none of the Optional$/Divided$/Choices$/Bolster
+	// shapes above, so those keep the shared `n`.
+	perDefExpr := ""
+	if raw := strings.TrimSpace(sa.Params["CounterNumPerDefined"]); raw != "" {
+		perDefExpr = raw
+		if body, ok := c.SVars[raw]; ok {
+			perDefExpr = body
+		}
+	}
 	var placed []state.Target
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
@@ -279,7 +298,17 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 		if adapt && o.Counter("P1P1") > 0 {
 			continue
 		}
-		h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: kind, Amount: n})
+		amount := n
+		if perDefExpr != "" {
+			// The per-object amount: the affected object's own value. A player
+			// target has no object to anchor on and keeps the shared `n` (no
+			// corpus carrier pairs the param with a player target -- measured).
+			amount = EvalCountOnObject(h, c, perDefExpr, o.ID)
+			if amount < 0 {
+				amount = 0
+			}
+		}
+		h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: kind, Amount: amount})
 		if !t.IsPlayer && t.Obj != 0 {
 			placed = append(placed, t)
 		}
