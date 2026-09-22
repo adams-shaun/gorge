@@ -99,6 +99,19 @@ var predicates = map[string]predFn{
 	"IsSuspected": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.Suspected
 	},
+	// IsMonstrous is CR 701.31b's monstrous designation (task
+	// agent-20260919T190014Z): the 8 corpus statics keyed on it
+	// (`Affected$ Card.Self+IsMonstrous` -- Domesticated Hydra's trample,
+	// Fleecemane Lion, Colossus of Akros, ...) grant through the ordinary
+	// layer walk, and Polis Crusher's trigger-side `IsPresent$
+	// Card.Self+IsMonstrous` intervening-if evaluates through the shared
+	// gate. It reads the event-backed status the events.AlterAttribute fold
+	// (the Monstrous case) maintains; a permanent that left the battlefield
+	// has already been cleared by the Move fold, so the predicate cannot
+	// read a stale designation.
+	"IsMonstrous": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o.Monstrous
+	},
 	// IsGoaded is CR 701.38's goaded condition (Hot Pursuit's
 	// "GainControl | AllValid$ Creature.IsGoaded,Creature.IsSuspected").
 	// It reads the event-backed goad list ONLY: a statically goaded creature

@@ -441,6 +441,17 @@ type Object struct {
 	// api:AlterAttribute effect emits) may set it.
 	Suspected bool
 
+	// Monstrous is CR 701.31b's monstrous designation (Giggling
+	// Skitterspike's `{5}: Monstrosity 5`): a creature becomes monstrous
+	// when a monstrosity ability resolves, and the designation lasts for
+	// the rest of the game -- CR 701.31 gives it NO controller-change end,
+	// so events.Apply clears it only when the permanent leaves the
+	// battlefield (a later battlefield entry is a new permanent, CR 701.31b
+	// in reverse). It is a plain status field: a plain value copy in
+	// CloneDeep carries it, and only events.AlterAttribute (the mark
+	// effPutCounter emits for a `Monstrosity$` PutCounter line) may set it.
+	Monstrous bool
+
 	// PlottedTurn stamps the turn a card gained CR 701.34's plotted
 	// designation (0 = not plotted), via the events.AlterAttribute fold -- the
 	// plot ACTION (rules/cast.go) and the corpus's DB$ AlterAttribute |

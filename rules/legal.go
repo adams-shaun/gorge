@@ -473,6 +473,24 @@ func (e *Engine) adaptGateOK(id state.ObjID, ab *cards.SA) bool {
 	return o != nil && o.Counter("P1P1") == 0
 }
 
+// monstrosityGateOK evaluates AB$ PutCounter's Monstrosity$ once-only gate
+// (CR 701.31b: "Activate only if this creature isn't already monstrous",
+// Giggling Skitterspike's `{5}: Monstrosity 5`). Monstrosity$ is an ability
+// PARAMETER like Adapt$, so the offer loop reads it directly -- the same
+// shape the Adapt$ gate takes. Offer-time only, exactly like the Adapt$ /
+// IsPresent$ / CheckSVar$ gates it sits beside: no state can move between
+// the offer and the answer inside one priority window. effects/counters.go
+// keeps a resolve-time already-monstrous skip as defense-in-depth (no
+// corpus shape reaches the resolution through any other door -- no granted
+// or copied route for these abilities).
+func (e *Engine) monstrosityGateOK(id state.ObjID, ab *cards.SA) bool {
+	if strings.TrimSpace(ab.Params["Monstrosity"]) == "" {
+		return true
+	}
+	o := e.G.Obj(id)
+	return o != nil && !o.Monstrous
+}
+
 // sVarGateOK evaluates the ability's CheckSVar$/SVarCompare$ intervening-if
 // at OFFER time: Bloodsoaked Champion's Raid ("Activate only if you attacked
 // this turn", CheckSVar$ RaidTest = Count$AttackersDeclared) and Ojer
@@ -2204,6 +2222,12 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				// +1/+1 counters on it" -- the offer-time twin of the effect's own
 				// if-condition effects/counters.go enforces at resolution.
 				if !e.adaptGateOK(id, ab) {
+					continue
+				}
+				// Monstrosity$ (CR 701.31b): "Activate only if this creature
+				// isn't monstrous" -- the once-only monstrosity gate, the same
+				// offer-time funnel the Adapt$ gate above sits in.
+				if !e.monstrosityGateOK(id, ab) {
 					continue
 				}
 				out = append(out, decision.Option{Index: len(out), Kind: "ability",
