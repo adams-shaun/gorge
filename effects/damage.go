@@ -257,12 +257,19 @@ func registerReplaceDying(h Host, c *Ctx, sa *cards.SA, damaged []state.Target) 
 // it through one struct is what makes the lifelink rider impossible to forget
 // at a new site -- a new emitter takes a rider, and payLifelinkRider runs for
 // it unless the emitter can prove the damage did not land.
+// damageRider carries the damage-source facts one resolution's emits share.
+// The three keyword bits are resolved ONCE, in the constructor, so every emit
+// below reads the same answer -- and so a source that left while the
+// resolution waited reads CR 113.7a's last known characteristics rather than
+// a live board that has already stripped a granted keyword.
 type damageRider struct {
-	h           Host
-	source      state.ObjID
-	controller  state.PlayerID
-	amount      int32
-	hasLifelink bool
+	h             Host
+	source        state.ObjID
+	controller    state.PlayerID
+	amount        int32
+	hasLifelink   bool
+	hasInfect     bool
+	hasDeathtouch bool
 }
 
 // resolveSourceObject unwraps one object id to the permanent a damage rider
@@ -305,6 +312,8 @@ func newDamageRider(h Host, c *Ctx, sa *cards.SA, amount int32) damageRider {
 		}
 	}
 	hasLifelink := h.HasKeyword(source, "Lifelink")
+	hasInfect := h.HasKeyword(source, "Infect")
+	hasDeathtouch := h.HasKeyword(source, "Deathtouch")
 	// CR 608.2h: a source that left while this resolution waited uses LKI.
 	// The own-source fields cover the independently resolving ability's own
 	// permanent; DamageSourceLKI covers a distinct named source such as
@@ -316,25 +325,39 @@ func newDamageRider(h Host, c *Ctx, sa *cards.SA, amount int32) damageRider {
 	}
 	controller := c.Controller
 	if !live {
-		if source == own && c.SourceLifelinkLKIValid {
+		lki, named := c.DamageSourceLKI[source]
+		if named {
+			// CR 113.7a covers the whole damage rider, not just lifelink: the
+			// same departure walk seeds this map for the resolution's OWN
+			// source as well as a named DamageSource$ object, so it is the one
+			// home for infect and deathtouch. Lifelink and controller keep the
+			// own-source fields' older precedence below.
+			hasInfect, hasDeathtouch = lki.Infect, lki.Deathtouch
+		}
+		switch {
+		case source == own && c.SourceLifelinkLKIValid:
 			hasLifelink = c.SourceLifelinkLKI
 			controller = c.SourceControllerLKI
 			if !c.SourceControllerLKIValid {
 				controller = c.Controller
 			}
-		} else if lki, ok := c.DamageSourceLKI[source]; ok {
+		case named:
 			hasLifelink = lki.Lifelink
 			controller = lki.Controller
-		} else if o := h.Game().Obj(source); o != nil {
-			// A non-permanent source (for example a spell on the stack) still
-			// has a live controller even though it is not a battlefield object.
-			controller = o.Controller
+		default:
+			if o := h.Game().Obj(source); o != nil {
+				// A non-permanent source (for example a spell on the stack)
+				// still has a live controller even though it is not a
+				// battlefield object.
+				controller = o.Controller
+			}
 		}
 	} else if o := h.Game().Obj(source); o != nil {
 		controller = o.Controller
 	}
 	return damageRider{h: h, source: source, controller: controller,
-		amount: amount, hasLifelink: hasLifelink}
+		amount: amount, hasLifelink: hasLifelink, hasInfect: hasInfect,
+		hasDeathtouch: hasDeathtouch}
 }
 
 // payLifelinkRider is CR 702.15a's life gain for NON-COMBAT damage: when
@@ -375,7 +398,22 @@ func emitObjectDamage(r damageRider, target state.ObjID) int32 {
 		return 0
 	}
 	ev := events.Event{Kind: events.Damage, Obj: target, Amount: r.amount}
-	if h.IsCreature(target) && o.Face() != nil && o.Face().IsPlaneswalker() && !o.Face().IsCreature() {
+	creature := h.IsCreature(target)
+	if creature && r.hasInfect {
+		// CR 702.90b: a CREATURE recipient takes infect damage as -1/-1
+		// counters. The compound marker rides Damage's Counter carrier and
+		// carries BOTH facts its consumers need -- the source's infect (rules'
+		// conversion emits the real CounterChange right after this event
+		// folds, through the same replacement/trigger pipeline) and the
+		// recipient's creature classification by layer state, which the fold
+		// cannot evaluate (its printed-face fallback covers only printed
+		// creatures; this tag covers an animated planeswalker too). Only a
+		// creature recipient is tagged: an artifact, a Battle or a printed
+		// planeswalker takes the hit as ordinary damage, untagged. A granted
+		// infect (e.g. a Grafted Exoskeleton bearer) reads the same, because
+		// Host.HasKeyword reads the derived keyword list.
+		ev.Counter = "infect+creature"
+	} else if creature && o.Face() != nil && o.Face().IsPlaneswalker() && !o.Face().IsCreature() {
 		ev.Counter = "creature"
 	}
 	applied := h.EmitDamage(ev)
@@ -383,7 +421,7 @@ func emitObjectDamage(r damageRider, target state.ObjID) int32 {
 	if applied.Kind == events.Damage {
 		dealt = applied.Amount
 	}
-	if dealt > 0 && applied.Obj != 0 && h.HasKeyword(r.source, "Deathtouch") {
+	if dealt > 0 && applied.Obj != 0 && r.hasDeathtouch {
 		h.Emit(events.Event{Kind: events.CounterChange, Obj: applied.Obj,
 			Counter: "Deathtouched", Amount: 1})
 	}
@@ -394,7 +432,13 @@ func emitObjectDamage(r damageRider, target state.ObjID) int32 {
 // emitPlayerDamage lands one non-combat Damage event on a player and pays the
 // lifelink rider from the amount that survived replacement effects.
 func emitPlayerDamage(r damageRider, target state.PlayerID) {
-	applied := r.h.EmitDamage(events.Event{Kind: events.Damage, Player: target, Amount: r.amount})
+	ev := events.Event{Kind: events.Damage, Player: target, Amount: r.amount}
+	if r.hasInfect {
+		// CR 702.90b: damage from an infect source is dealt to a player in
+		// the form of that many poison counters; the fold converts it.
+		ev.Counter = "infect"
+	}
+	applied := r.h.EmitDamage(ev)
 	dealt := int32(0)
 	if applied.Kind == events.Damage {
 		dealt = applied.Amount
@@ -583,10 +627,10 @@ func emitFightHit(h Host, src, dst state.ObjID) {
 
 // fightRider builds the per-fighter damage rider: source is the fighter
 // (unwrapped through resolveSourceObject, the effDealDamage convention), the
-// controller its LIVE controller, lifelink read DERIVED off the fighter.
-// effFight guards both sides onto the battlefield before emitting, so the
-// live branch of newDamageRider's LKI ladder is the only reachable one and
-// no DamageSourceLKI capture exists for a fight hit.
+// controller its LIVE controller, lifelink/infect/deathtouch read DERIVED off
+// the fighter. effFight guards both sides onto the battlefield before
+// emitting, so the live branch of newDamageRider's LKI ladder is the only
+// reachable one and no DamageSourceLKI capture exists for a fight hit.
 func fightRider(h Host, fighter state.ObjID, amount int32) damageRider {
 	source := resolveSourceObject(h, fighter)
 	controller := state.PlayerID(0)
@@ -594,7 +638,9 @@ func fightRider(h Host, fighter state.ObjID, amount int32) damageRider {
 		controller = o.Controller
 	}
 	return damageRider{h: h, source: source, controller: controller,
-		amount: amount, hasLifelink: h.HasKeyword(source, "Lifelink")}
+		amount: amount, hasLifelink: h.HasKeyword(source, "Lifelink"),
+		hasInfect:     h.HasKeyword(source, "Infect"),
+		hasDeathtouch: h.HasKeyword(source, "Deathtouch")}
 }
 
 // effDamageAll is the sweep pattern: when ValidCards$ is present, iterate the

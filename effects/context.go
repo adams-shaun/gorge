@@ -279,6 +279,15 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		if c.RepeatSubject.IsPlayer {
 			return []state.Target{{Player: c.RepeatSubject.Player, IsPlayer: true}}, true
 		}
+		// Prefer the last-known controller the ChangeZone captured: events.Apply's
+		// Move resets a battlefield departure's controller to its owner (CR
+		// 400.7), so the live object answers the WRONG seat for a stolen
+		// creature (Forge stores a Card LKI copy at the same point).
+		if spec == "ImprintedController" {
+			if p, ok := lkiControllerFor(c, c.RepeatSubject.Obj); ok {
+				return []state.Target{{Player: p, IsPlayer: true}}, true
+			}
+		}
 		if o := g.Obj(c.RepeatSubject.Obj); o != nil {
 			if spec == "ImprintedController" {
 				return []state.Target{{Player: o.Controller, IsPlayer: true}}, true
@@ -385,12 +394,23 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		return objectsOf(c.Remembered), true
 	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCard",
 		"TriggeredNewCardLKICopy",
+		"TriggeredObject", "TriggeredObjectLKICopy",
 		"TriggeredSourceSA", "TriggeredAttacker",
 		"TriggeredAttackerLKICopy",
 		"DelayTriggerRememberedLKI", "RememberedLKI":
 		// M1 does not model LKI copies, new-object identity or the
 		// ability-vs-card distinction separately: every one of these forms
 		// names the same Remembered object entry a trigger captured.
+		// TriggeredObject/TriggeredObjectLKICopy are the event-object
+		// spellings the CounterPlayerAddedAll batch triggers read (Rikku's
+		// RememberObjects$ TriggeredObjectLKICopy on its DB$ Effect body) --
+		// the triggering event's object, exactly what triggerRemembered seeds
+		// Remembered with for every non-zero ev.Obj. It is also the object a
+		// Mode$ Unattached trigger became unattached FROM (the former bearer
+		// rules/trigger_match.go's triggerRemembered carries on the event's
+		// IDs): the Grafted Exoskeleton cycle reads it as its SacrificeAll
+		// referent, so it must resolve like the rest of the family rather
+		// than fall through to the source-default fallback.
 		// TriggeredSourceSA is the targeting spell/ability a BecomesTarget
 		// trigger captured (Reality Smasher's counter, Kira's and the
 		// glasskite family's counters -- 18 corpus files); its Controller
@@ -607,6 +627,26 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			return []state.Target{{Player: p, IsPlayer: true}}, true
 		}
 		return nil, true
+	case "TriggeredCardOwner", "NonTriggeredCardOwner":
+		// These selectors use the triggering card's immutable owner (CR
+		// 108.3), never a remembered-object fallback. A stolen creature that
+		// dies is still its owner's (Oft-Nabbed Goat's "its owner draws").
+		// If TriggerCard is absent or no longer resolves, both forms fail
+		// closed to the empty set rather than guessing from the source.
+		triggered := g.Obj(c.TriggerCard)
+		if triggered == nil {
+			return nil, true
+		}
+		if spec == "TriggeredCardOwner" {
+			return []state.Target{{Player: triggered.Owner, IsPlayer: true}}, true
+		}
+		var out []state.Target
+		for _, p := range g.AliveFrom(0) {
+			if p != triggered.Owner {
+				out = append(out, state.Target{Player: p, IsPlayer: true})
+			}
+		}
+		return out, true
 	case "TriggeredAttackerController", "TriggeredBlockerController":
 		// The controller of the triggering event's attacker or blocker. The
 		// Blocks mode captures both roles per pair (rules/trigger_match.go's
@@ -807,6 +847,24 @@ func rememberedWithSource(h Host, c *Ctx) []state.Target {
 	return out
 }
 
+// lkiControllerFor returns the last-known controller ChangeZone's
+// RememberLKI$ move captured for id, if this resolution captured one. The
+// live object cannot answer it: events.Apply's Move resets a battlefield
+// departure's controller to its owner (CR 400.7). This is the read Forge's
+// Card LKI copy gives readers such as RepeatEach's TokenOwner$
+// ImprintedController (Curse of the Swine).
+func lkiControllerFor(c *Ctx, id state.ObjID) (state.PlayerID, bool) {
+	if id == 0 {
+		return 0, false
+	}
+	for _, e := range c.ChangeZoneLKI {
+		if e.Obj == id {
+			return e.Controller, true
+		}
+	}
+	return 0, false
+}
+
 // objectsOf returns Remembered's object entries (IsPlayer false) as a fresh
 // slice -- never aliasing Ctx.Remembered, for the reason copyTargets' own
 // doc comment gives.
@@ -827,6 +885,25 @@ func oneTriggerPlayer(t state.Target) []state.Target {
 		return nil
 	}
 	return []state.Target{t}
+}
+
+// plainRememberedSelector reports whether a Defined$/ValidPlayers selector is
+// the plain Remembered family: it starts with "Remembered" and does NOT end
+// with Controller or Owner. Forge's AbilityUtils.addPlayer maps a remembered
+// CARD to its controller/owner only for those two suffixes; for every other
+// Remembered spelling a remembered card contributes no player at all. The
+// shared PlayerOf mapping would instead read a remembered card's controller
+// for EVERY spelling, which is the leak this guards: a RepeatEach iteration's
+// Remembered is the loop subject PLUS whatever the previous iteration
+// RememberChose$, so a chooser defined as `Remembered` would otherwise add
+// the previously chosen card's controller as a second chooser and re-ask that
+// player with the collective pool (Summon: Valefor re-asking the first
+// opponent on the second iteration).
+func plainRememberedSelector(sel string) bool {
+	if !strings.HasPrefix(sel, "Remembered") {
+		return false
+	}
+	return !strings.HasSuffix(sel, "Controller") && !strings.HasSuffix(sel, "Owner")
 }
 
 func playersOf(ts []state.Target) []state.Target {

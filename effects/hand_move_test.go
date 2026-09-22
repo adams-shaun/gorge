@@ -192,20 +192,86 @@ func TestHandMoveChangeZoneNoHostTakesFirstEligible(t *testing.T) {
 	}
 }
 
-// TestHandMoveChangeZoneExileDoesNotParseUnusedCounterAmount guards an
-// exact-Origin$ Hand picker that moves to exile with a dynamic
-// WithCountersAmount$. Counters only apply on entry to the battlefield, so
-// this path must neither parse X nor emit its malformed-amount Note.
-func TestHandMoveChangeZoneExileDoesNotParseUnusedCounterAmount(t *testing.T) {
+// TestHandMoveChangeZoneExileAppliesTimeCounters pins the exile half of the
+// counterDestination contract: a ChangeZone to exile parses
+// WithCountersType$ TIME and puts the counters on the exiled card (the
+// suspend shape Rory Williams' trigger uses). Unlike battlefield-only
+// counters, exile must carry them too, so this path is exercised end to end
+// through the hand-move settle path.
+func TestHandMoveChangeZoneExileAppliesTimeCounters(t *testing.T) {
+	h, ids := handAskFixture(t)
+	Resolve(h, &Ctx{Controller: 0, HandMove: []state.ObjID{ids[1]}, HandMoveDone: true}, sa(t,
+		"DB$ ChangeZone | Origin$ Hand | Destination$ Exile | ChangeType$ Land | WithCountersType$ TIME | WithCountersAmount$ 3"))
+	o := h.g.Obj(ids[1])
+	if o.Zone != state.ZExile {
+		t.Fatalf("answered land is on %s, want exile", o.Zone)
+	}
+	if got := o.Counter("TIME"); got != 3 {
+		t.Fatalf("exiled land has %d TIME counters, want 3", got)
+	}
+	var counter bool
+	for _, ev := range h.log {
+		if ev.Kind == events.CounterChange && ev.Obj == ids[1] && ev.Counter == "TIME" {
+			counter = true
+		}
+		if ev.Kind == events.Note {
+			t.Fatalf("literal exile counter amount emitted Note: %+v", ev)
+		}
+	}
+	if !counter {
+		t.Fatalf("no TIME CounterChange for the exiled land: %+v", h.log)
+	}
+}
+
+// TestHandMoveChangeZoneExileDynamicCounterAmountIsLoud pins the dynamic half
+// of the same contract: a hand-origin move to exile with a dynamic
+// WithCountersAmount$ now PARSES the amount (exile is counter-bearing), so an
+// unresolvable X surfaces the deterministic malformed-amount Note and falls
+// back to the safe default 1 rather than being silently ignored. This is the
+// contract that replaced the old battlefield-only reading.
+func TestHandMoveChangeZoneExileDynamicCounterAmountIsLoud(t *testing.T) {
 	h, ids := handAskFixture(t)
 	Resolve(h, &Ctx{Controller: 0, HandMove: []state.ObjID{ids[1]}, HandMoveDone: true}, sa(t,
 		"DB$ ChangeZone | Origin$ Hand | Destination$ Exile | ChangeType$ Land | WithCountersType$ TIME | WithCountersAmount$ X"))
-	if o := h.g.Obj(ids[1]); o.Zone != state.ZExile {
+	o := h.g.Obj(ids[1])
+	if o.Zone != state.ZExile {
 		t.Fatalf("answered land is on %s, want exile", o.Zone)
+	}
+	if got := o.Counter("TIME"); got != 1 {
+		t.Fatalf("dynamic exile counter amount defaulted to %d, want 1", got)
+	}
+	var note string
+	for _, ev := range h.log {
+		if ev.Kind == events.Note {
+			note = ev.Text
+		}
+	}
+	if want := "malformed WithCountersAmount X"; note != want {
+		t.Fatalf("Note.Text = %q, want %q", note, want)
+	}
+}
+
+// TestHandMoveChangeZoneCounterlessDestinationStaysSilent pins the other side
+// of counterDestination: a destination that cannot carry counters (hand ->
+// graveyard) neither parses the amount nor emits anything, so a dynamic
+// amount there is never a malformed-amount Note either.
+func TestHandMoveChangeZoneCounterlessDestinationStaysSilent(t *testing.T) {
+	h, ids := handAskFixture(t)
+	Resolve(h, &Ctx{Controller: 0, HandMove: []state.ObjID{ids[1]}, HandMoveDone: true}, sa(t,
+		"DB$ ChangeZone | Origin$ Hand | Destination$ Graveyard | ChangeType$ Land | WithCountersType$ TIME | WithCountersAmount$ X"))
+	o := h.g.Obj(ids[1])
+	if o.Zone != state.ZGraveyard {
+		t.Fatalf("answered land is on %s, want graveyard", o.Zone)
+	}
+	if got := o.Counter("TIME"); got != 0 {
+		t.Fatalf("counterless destination got %d TIME counters, want 0", got)
 	}
 	for _, ev := range h.log {
 		if ev.Kind == events.Note {
-			t.Fatalf("unused exile counter amount emitted Note: %+v", ev)
+			t.Fatalf("counterless destination emitted Note: %+v", ev)
+		}
+		if ev.Kind == events.CounterChange && ev.Obj == ids[1] {
+			t.Fatalf("counterless destination emitted CounterChange: %+v", ev)
 		}
 	}
 }

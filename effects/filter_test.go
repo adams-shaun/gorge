@@ -536,3 +536,107 @@ func TestCtxSpecContextResolvesXAndSVarNumericRHS(t *testing.T) {
 	sc = c.SpecContext(0)
 	MatchesSpecCtx(g, "Creature.powerGTX", id["myBear"], sc) // must not hang
 }
+
+// TestNumTypesGEPredicate pins Forge's numTypesGE<n> card property
+// (pred:Card.numTypesGE<n>): the candidate's PRINTED face carries at least
+// n distinct real card types (CR 205.1), read through the same vocabulary
+// count.go's CardTypes count property uses (cardTypeWords) so the predicate
+// and the count head cannot disagree. The two-type carriers are an artifact
+// creature and an artifact land (Darksteel Citadel's shape); Legendary is a
+// SUPERTYPE, not a card type, so the walker fixture (Legendary Planeswalker)
+// is exactly one card type and must not match.
+func TestNumTypesGEPredicate(t *testing.T) {
+	g, id := board(t)
+	mk := func(owner state.PlayerID, src string) state.ObjID {
+		c, d := cards.ParseBytes("t.txt", []byte(src))
+		if len(d) != 0 {
+			t.Fatalf("diags: %v", d)
+		}
+		c.Link()
+		for _, f := range c.Faces {
+			f.ApplyIntrinsics()
+		}
+		o := g.AddObject(c, owner)
+		o.Zone = state.ZBattlefield
+		g.SetZone(state.ZBattlefield, owner, append(g.Zone(state.ZBattlefield, owner), o.ID))
+		return o.ID
+	}
+	artifactCreature := mk(0, "Name:Brass Squire\nManaCost:2\nTypes:Artifact Creature Myr\nPT:2/2\nOracle:x\n")
+	artifactLand := mk(0, "Name:Darksteel Citadel\nTypes:Artifact Land\nOracle:x\n")
+	enchantmentCreature := mk(0, "Name:Sentinel\nManaCost:2 G\nTypes:Enchantment Creature\nPT:2/2\nOracle:x\n")
+	id["artifactCreature"], id["artifactLand"], id["enchantmentCreature"] = artifactCreature, artifactLand, enchantmentCreature
+
+	// Precondition the comparisons ride on: the two carriers really are
+	// multi-type and the single-type fixtures really are not, under the same
+	// vocabulary the predicate itself reads -- otherwise every row below is
+	// vacuous.
+	for _, tc := range []struct {
+		id       state.ObjID
+		name     string
+		minTypes int
+		maxTypes int
+	}{
+		{id["myBear"], "myBear", 1, 1},
+		{artifactCreature, "artifactCreature", 2, 2},
+		{artifactLand, "artifactLand", 2, 2},
+		{enchantmentCreature, "enchantmentCreature", 2, 2},
+	} {
+		n := 0
+		for _, typ := range g.Obj(tc.id).Face().Types {
+			if cardTypeWords[typ] {
+				n++
+			}
+		}
+		if n < tc.minTypes || n > tc.maxTypes {
+			t.Fatalf("%s carries %d real card types %v, want between %d and %d -- fixture broken",
+				tc.name, n, g.Obj(tc.id).Face().Types, tc.minTypes, tc.maxTypes)
+		}
+	}
+
+	cases := []struct {
+		spec string
+		obj  string
+		want bool
+	}{
+		{"Card.numTypesGE2", "artifactCreature", true},
+		{"Land.numTypesGE2+YouCtrl", "artifactLand", true},
+		{"Land.numTypesGE2+YouCtrl", "myLand", false}, // Basic Land Mountain: one type
+		{"Card.numTypesGE2", "enchantmentCreature", true},
+		{"Card.numTypesGE2", "myBear", false},
+		{"Card.numTypesGE2", "myWalker", false}, // Legendary is a supertype
+		{"Card.numTypesGE1", "myBear", true},
+		{"Card.numTypesGE3", "artifactCreature", false},
+		{"Card.numTypesGE2", "myLand", false},
+		{"Creature.numTypesGE2", "artifactCreature", true},
+		{"Creature.numTypesGE2", "myBear", false},
+		// The generic non<X> negation: a single-type card matches the
+		// negated form, the two-type carriers do not.
+		{"Card.!numTypesGE2", "myBear", true},
+		{"Card.!numTypesGE2", "artifactCreature", false},
+	}
+	for _, c := range cases {
+		if got := MatchesSpec(g, c.spec, id[c.obj], 0); got != c.want {
+			t.Errorf("MatchesSpec(%q, %s) = %v, want %v", c.spec, c.obj, got, c.want)
+		}
+	}
+}
+
+// TestNumTypesGEFailClosedShapes: the classifier recognises only a
+// positive-integer GE suffix. A bare or malformed spelling stays unknown --
+// the census reports it and the matcher matches nobody -- so a future
+// corpus spelling the build does not implement is visible, never
+// silently-always-true.
+func TestNumTypesGEFailClosedShapes(t *testing.T) {
+	g, id := board(t)
+	for _, spec := range []string{"Card.numTypesGE", "Card.numTypesGEX", "Card.numTypesGE0", "Card.numTypesGE-1", "Card.numTypesGT2", "Card.numTypesEQ2"} {
+		if got := UnknownPredicates(spec); len(got) == 0 {
+			t.Errorf("UnknownPredicates(%q) = empty, want the malformed comparison reported unknown", spec)
+		}
+		if MatchesSpec(g, spec, id["myBear"], 0) {
+			t.Errorf("MatchesSpec(%q) matched, want fail-closed no-match", spec)
+		}
+	}
+	if got := UnknownPredicates("Card.numTypesGE2"); len(got) != 0 {
+		t.Errorf("UnknownPredicates(Card.numTypesGE2) = %v, want empty (the corpus spelling is recognised)", got)
+	}
+}

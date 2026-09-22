@@ -36,6 +36,11 @@ type fakeHost struct {
 	// RememberExploitedLKI, keyed by exploited object id, so an effects-level
 	// test can assert the marker publication without an engine.
 	exploitedLKI map[state.ObjID]state.SacrificedInfo
+	// sacrificeBlocked is the per-object SacrificeBlocked answer the double
+	// reports (nil = nothing blocked, the default): the engine-side CantSacrifice
+	// machinery lives in rules.Engine, so the effects-package tests configure the
+	// answers they need instead of inventing a registry.
+	sacrificeBlocked map[state.ObjID]bool
 	// castFromHand is the WasCastFromHandByYou answer the double reports;
 	// the eval-level Count$wasCastFromYourHandByYou tests flip it to pin the
 	// true branch (the real log-scan read is pinned in rules).
@@ -90,6 +95,12 @@ type fakeHost struct {
 	// map keeps the pre-existing constant zero. The effects-level
 	// PlayerCount$Condition SpellsCastThisTurn tests set it.
 	castsBy map[state.PlayerID]int
+	// suspendAfterAsk is the opt-in suspension the double reports after its
+	// Ask was called (the real engine's Suspended() reads its pending resume
+	// point; the double fakes the same shape for the Repeat loop's
+	// between-iteration suspension break). Zero value keeps the historical
+	// constant-false read every other effects test relies on.
+	suspendAfterAsk bool
 	// startingLife is the StartingLife answer the double reports (0 when
 	// unset); the effects-level relative half-starting-life tests set it.
 	startingLife int32
@@ -125,6 +136,19 @@ func (h *fakeHost) EndEffect(source state.ObjID, stamp uint32) {
 	kept := h.continuous[:0]
 	for _, ce := range h.continuous {
 		if ce.Source == source && ce.Timestamp == stamp {
+			continue
+		}
+		kept = append(kept, ce)
+	}
+	h.continuous = kept
+}
+
+// EndImprintedEffects mirrors rules.Engine's EndImprintedEffect: drop every
+// registration the ImprintOnHost$ True Effect imprinted on the host.
+func (h *fakeHost) EndImprintedEffects(source state.ObjID) {
+	kept := h.continuous[:0]
+	for _, ce := range h.continuous {
+		if ce.Source == source && ce.ImprintOnHost {
 			continue
 		}
 		kept = append(kept, ce)
@@ -173,9 +197,18 @@ func (h *fakeHost) RegenerationDisallowed(id state.ObjID) bool { return false }
 
 // SacrificeBlocked has no registry to consult here (the engine-side
 // restriction lives in rules.Engine), the same discipline as
-// RegenerationDisallowed above: the double reports false rather than
-// inventing a registry it cannot answer for.
-func (h *fakeHost) SacrificeBlocked(id state.ObjID, forCost bool) bool { return false }
+// RegenerationDisallowed above: the double reports the per-object answers
+// sacrificeBlocked configures (nil = false everywhere -- nothing blocked)
+// rather than inventing a registry it cannot answer for.
+func (h *fakeHost) SacrificeBlocked(id state.ObjID, forCost bool) bool {
+	return h.sacrificeBlocked[id]
+}
+
+// SurveilLookExtra has no static registry to consult here (the activeStatics
+// walk lives in rules.Engine), the same discipline as SacrificeBlocked above:
+// the double reports zero rather than inventing a registry it cannot answer
+// for, so an effects-level surveil keeps its base count.
+func (h *fakeHost) SurveilLookExtra(p state.PlayerID) (int32, []int32) { return 0, nil }
 
 // ExploreReplaced has no replacement registry to consult here (the
 // replacement matching lives in rules.Engine), the same discipline as
@@ -220,6 +253,10 @@ func (h *fakeHost) DamageTakenThisTurn(p state.PlayerID) int32 { return h.dmgTak
 // LifeGainedThisTurn has no event log here; the double reports zero (the
 // same conservative no-op as LifeLostThisTurn).
 func (h *fakeHost) LifeGainedThisTurn(_ state.PlayerID) int32 { return 0 }
+
+// CountersRemovedThisTurn has no event log here; the double reports zero
+// (the same conservative no-op as LifeLostThisTurn).
+func (h *fakeHost) CountersRemovedThisTurn(_ state.PlayerID, _ string) int32 { return 0 }
 
 // CombatDamageToPlayersThisTurn reports the h.combatHits slice the
 // effects-level PlayerCountDefinedRegistered tests configure.
@@ -378,7 +415,7 @@ func (h *fakeHost) TypeChoices(_ state.PlayerID, _ string) []decision.Option {
 // suspended-check from breaking the chain on a host that never asked; the
 // real suspension behaviour is exercised through the rules engine, where
 // Engine.Suspended reports e.resume != nil.
-func (h *fakeHost) Suspended() bool { return false }
+func (h *fakeHost) Suspended() bool { return h.suspendAfterAsk }
 
 // SuspendContinuation is a no-op: an effects-package test double never
 // suspends (its Ask returns false), so effects.Resolve never reaches the
@@ -401,6 +438,10 @@ func (h *fakeHost) SuspendRepeat(RepeatSuspension) {}
 
 // SuspendCharmRest is a no-op for the same reason as SuspendContinuation.
 func (h *fakeHost) SuspendCharmRest(*cards.SA, []string) {}
+
+// SuspendVillainousRest is a no-op for the same reason as
+// SuspendContinuation.
+func (h *fakeHost) SuspendVillainousRest(*cards.SA, VillainousRest) {}
 
 // SetDamageSource records the published damage source on the double (the
 // last value wins) and returns the previous one, mirroring the engine's
@@ -640,6 +681,59 @@ func TestDefinedTriggeredForms(t *testing.T) {
 	h.Game().Obj(c.Source).AttachedTo = 2
 	if got := Defined(h, c, &cards.SA{Params: map[string]string{"Defined": "Equipped"}}); len(got) != 1 || got[0].Obj != 2 {
 		t.Errorf("Equipped: %v", got)
+	}
+}
+
+// TestDefinedTriggeredCardOwners pins the TriggeredCardOwner /
+// NonTriggeredCardOwner selectors on a three-seat game whose trigger card is
+// OWNED by seat 2 while CONTROLLED by seat 1 -- so ownership and last-known
+// control can never be confused -- with the resolving source owned and
+// controlled by seat 0. The trigger card's owner is distinct from both the
+// source's owner and its controller, which is the precondition the ownership
+// assertions depend on.
+func TestDefinedTriggeredCardOwners(t *testing.T) {
+	h := newHost(t, 3)
+	card := mkCard(t, "Name:Fixture\nTypes:Creature\nPT:1/1\nOracle:x\n")
+	src := h.g.AddObject(card, 0)  // the resolving ability's source, seat 0
+	trig := h.g.AddObject(card, 2) // the triggering card: owner seat 2
+	trig.Controller = 1            // ... but last controlled by seat 1
+	c := &Ctx{Source: src.ID, Controller: 0, TriggerContext: TriggerContext{TriggerCard: trig.ID}}
+
+	// Precondition: the fixture really does distinguish owner from controller
+	// and from the resolving source's owner, or the assertions below prove
+	// nothing.
+	if trig.Owner != 2 || trig.Controller != 1 || trig.Owner == src.Owner {
+		t.Fatalf("fixture precondition: trigger owner=%d controller=%d source owner=%d, want owner 2 != controller 1 != source owner 0",
+			trig.Owner, trig.Controller, src.Owner)
+	}
+
+	got := Defined(h, c, &cards.SA{Params: map[string]string{"Defined": "TriggeredCardOwner"}})
+	if len(got) != 1 || !got[0].IsPlayer || got[0].Player != 2 {
+		t.Fatalf("TriggeredCardOwner = %v, want owner seat 2", got)
+	}
+
+	got = Defined(h, c, &cards.SA{Params: map[string]string{"Defined": "NonTriggeredCardOwner"}})
+	if len(got) != 2 || !got[0].IsPlayer || got[0].Player != 0 || !got[1].IsPlayer || got[1].Player != 1 {
+		t.Fatalf("NonTriggeredCardOwner = %v, want every other living seat [0 1] in AliveFrom order", got)
+	}
+
+	// A departed non-owner drops out of the "other players" set while the
+	// set stays deterministic: seat 0 loses, so only seat 1 remains.
+	h.g.Players[0].Lost = true
+	got = Defined(h, c, &cards.SA{Params: map[string]string{"Defined": "NonTriggeredCardOwner"}})
+	if len(got) != 1 || !got[0].IsPlayer || got[0].Player != 1 {
+		t.Fatalf("NonTriggeredCardOwner with seat 0 dead = %v, want [1]", got)
+	}
+	h.g.Players[0].Lost = false
+
+	// No triggering card: both forms fail CLOSED to the empty set, never to
+	// the ability's source or to every player. A remembered object must not
+	// substitute for the absent TriggerCard role.
+	empty := &Ctx{Source: src.ID, Controller: 0, Remembered: []state.Target{{Obj: trig.ID}}}
+	for _, form := range []string{"TriggeredCardOwner", "NonTriggeredCardOwner"} {
+		if got := Defined(h, empty, &cards.SA{Params: map[string]string{"Defined": form}}); len(got) != 0 {
+			t.Errorf("%s with no triggering card = %v, want the empty set", form, got)
+		}
 	}
 }
 

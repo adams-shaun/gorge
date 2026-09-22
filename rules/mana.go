@@ -54,6 +54,17 @@ type CostPart struct {
 	// "0" default). It is unused by every other cost head, whose zero value
 	// is inert.
 	LibraryPos int32
+	// Target is the removal-target filter of a SubCounter part's third field
+	// (SubCounter<N|X/Kind/Target[/desc]>): the permanent WHOSE counters the
+	// payment removes (Ghave, Guru of Spores' "remove a +1/+1 counter from a
+	// creature you control"), matched with MatchesSpecFrom against the payer's
+	// battlefield exactly like a Sac part's spec. Empty (and Forge's
+	// CARDNAME/NICKNAME spellings, rules/cast.go's subCounterTargetsSource)
+	// anchors the removal on the SOURCE itself -- the reading every two-field
+	// SubCounter<N/Kind> token has always had. Forge writes the restriction
+	// space-free and the display description prose, so a space-bearing third
+	// field is a description, not a filter.
+	Target string
 	// Desc is Forge's trailing human-readable description field
 	// (the ".../another creature" in Sac<1/Creature.Other/another creature>),
 	// captured verbatim so a player-facing prompt can render prose instead of
@@ -367,7 +378,20 @@ var payLifeXCost = regexp.MustCompile(`^PayLife<X>$`)
 // counters"): the kind is read and the count is the cast's announced X,
 // bounded by the counters the source actually has. The fixed form is the
 // nonManaCost head above.
-var subCounterXCost = regexp.MustCompile(`^SubCounter<X/([^/>]+)(?:/([^>]*))?>$`)
+// subCounterCost matches Forge's counter-removal cost token in every modelled
+// spelling: the two-field forms SubCounter<N/Kind> (fixed count) and
+// SubCounter<X/Kind> (the announced count, CR 601.2b -- Chandra, Awakened
+// Inferno's "remove X loyalty counters"), and the third-field form
+// SubCounter<N|X/Kind/Target[/desc]> whose removal-target filter names whose
+// counters the payment removes (Moxite Refinery's
+// "SubCounter<X/Any/Artifact.YouCtrl;Creature.YouCtrl/...>": X counters of
+// ANY kind from an artifact or creature you control). The count field is the
+// literal digits or the announced X; the kind is read verbatim ("Any" reads
+// every kind); the optional third field is the target filter, matched against
+// the payer's battlefield like a Sac part's spec, and the optional fourth is
+// the display description. The old subCounterXCost head (X form only, target
+// dropped) is subsumed by this one.
+var subCounterCost = regexp.MustCompile(`^SubCounter<(X|\d+)/([^/>]+)(?:/([^/>]+))?(?:/([^>]*))?>$`)
 
 // damageYouCost matches Forge's DamageYou<N> token -- the payer takes N
 // damage from the source as the payment (Forge CostDamage). The corpus's
@@ -486,6 +510,40 @@ func ParseCost(s string) Cost {
 				c.Life = addClampedGeneric(c.Life, n)
 				continue
 			}
+			if m := subCounterCost.FindStringSubmatch(sym); m != nil {
+				// The counter-removal cost in every modelled spelling. The kind
+				// is read verbatim ("Any" reads every kind -- the candidate/
+				// bound reads in rules/cast.go); the count is the literal digits
+				// or the cast's announced X (bounded at the X ask). The optional
+				// third field is the removal-target filter: Forge writes the
+				// restriction space-free and the display description prose, so a
+				// space-bearing third field is a description and the removal
+				// stays source-anchored (subCounterTargetsSource). The ";" OR
+				// alternation folds to "," like every other spec.
+				kind := strings.ReplaceAll(m[2], ";", ",")
+				target, desc := "", m[3]
+				if t := m[3]; t != "" && !strings.ContainsAny(t, " \t") {
+					target, desc = t, m[4]
+				}
+				target = strings.ReplaceAll(target, ";", ",")
+				if m[1] == "X" {
+					// The announced form: the count is the cast's announced X
+					// (bounded at the X ask).
+					c.SubCounter = append(c.SubCounter, CostPart{Spec: kind, Target: target, Announced: true, Desc: desc})
+					continue
+				}
+				n, err := strconv.ParseInt(m[1], 10, 64)
+				if err != nil || n < 0 || n > int64(math.MaxInt32) {
+					// Same safe fallback as every other malformed cost token --
+					// and REPORT it: the head is recognised, this instance is
+					// not modelled.
+					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
+					continue
+				}
+				c.SubCounter = append(c.SubCounter, CostPart{N: int32(n), Spec: kind, Target: target, Desc: desc})
+				continue
+			}
 			if m := nonManaCost.FindStringSubmatch(sym); m != nil {
 				n, err := strconv.ParseInt(m[2], 10, 64)
 				if err != nil || n < 0 || n > int64(math.MaxInt32) {
@@ -557,13 +615,6 @@ func ParseCost(s string) Cost {
 				// payer's life at the X ask) and the settle pays that much life.
 				// No generic substitution, no Unknown entry.
 				c.LifeX = append(c.LifeX, CostPart{Spec: "X", Announced: true})
-				continue
-			}
-			if m := subCounterXCost.FindStringSubmatch(sym); m != nil {
-				// The announced form: the kind is read; the count is the cast's
-				// announced X (bounded by the source's counters at the X ask).
-				spec := strings.ReplaceAll(m[1], ";", ",")
-				c.SubCounter = append(c.SubCounter, CostPart{Spec: spec, Announced: true, Desc: m[2]})
 				continue
 			}
 			if m := damageYouCost.FindStringSubmatch(sym); m != nil {
@@ -1546,7 +1597,11 @@ func costPhrase(c Cost) string {
 		if part.Announced {
 			n = "X"
 		}
-		clauses = append(clauses, "remove "+n+" "+strings.ToUpper(part.Spec)+" counter"+pluralSuffix(part.N))
+		clause := "remove " + n + " " + strings.ToUpper(part.Spec) + " counter" + pluralSuffix(part.N)
+		if part.Target != "" && !subCounterTargetsSource(part.Target) && part.Desc != "" {
+			clause += " from " + part.Desc
+		}
+		clauses = append(clauses, clause)
 	}
 	for _, part := range c.AddCounter {
 		clauses = append(clauses, "add "+countPhrase(part.N)+" loyalty counter"+pluralSuffix(part.N))
@@ -1882,6 +1937,55 @@ func (c Cost) Priceable() bool {
 		len(c.Hybrid) == 0 && len(c.Phyrexian) == 0 && len(c.Twobrid) == 0 && len(c.HybridPhyrexian) == 0 &&
 		len(c.Energy) == 0 && len(c.Return) == 0 && len(c.PutToLib) == 0 && len(c.LifeX) == 0 && len(c.DamageYou) == 0 &&
 		len(c.MoveToGrave) == 0
+}
+
+// energyCostTotal returns the fixed energy a cost's PayEnergy<N> parts demand:
+// the SUM of every fixed part, so a composed cost carrying the part several
+// times (a replicated cast re-pays its PayEnergy cost once per payment) draws
+// the pool down once per part rather than each spending the whole total
+// independently. A dynamic PayEnergy<X> part contributes nothing here -- its
+// amount is the announced X, bounded at the X ask by the payer's energy total
+// (createEnergyCostX's rule) and charged as that value.
+func (c Cost) energyCostTotal() int32 {
+	total := int32(0)
+	for _, part := range c.Energy {
+		if part.Spec == "X" {
+			continue
+		}
+		total += part.N
+	}
+	return total
+}
+
+// energyCostX reports whether the cost carries a dynamic PayEnergy<X> part
+// whose amount is the announced X rather than a fixed N.
+func (c Cost) energyCostX() bool {
+	for _, part := range c.Energy {
+		if part.Spec == "X" {
+			return true
+		}
+	}
+	return false
+}
+
+// withoutEnergy returns the cost with its energy parts stripped, so a caller
+// can judge the remaining mana/life/components by the ordinary rules (an
+// energy part is charged by chargeEnergyCost, never by payMana).
+func (c Cost) withoutEnergy() Cost {
+	if len(c.Energy) == 0 {
+		return c
+	}
+	c.Energy = nil
+	return c
+}
+
+// energyPayable reports whether the payer's ENERGY counter total covers the
+// cost's fixed energy parts (Forge CostPayEnergy.canPay reads the same total).
+// A dynamic PayEnergy<X> part is bounded by that total at its own X ask, so
+// this gate makes no assumption about the not-yet-chosen value.
+func (e *Engine) energyPayable(p state.PlayerID, c Cost) bool {
+	total := c.energyCostTotal()
+	return total == 0 || e.G.Players[p].Counter("ENERGY") >= total
 }
 
 // pip is one flexible mana demand inside a cost's mana part, as a list of

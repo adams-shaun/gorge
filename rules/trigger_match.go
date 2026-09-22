@@ -88,6 +88,17 @@ type pendingTrigger struct {
 	Granted bool
 	Grantor state.ObjID
 	Execute string
+	// Gained marks a has-all-abilities-of trigger (Forge's
+	// GainsTriggerAbsOf$ on a Mode$ Continuous static, the Idris, Soul of the
+	// TARDIS shape): the ability is a compiled trigger on a FOREIGN card's
+	// face, so unlike a Granted trigger there is no SVar body and no grantor
+	// table -- the fired event names the foreign card (GainedFrom, carried as
+	// the event's IDs[0]) and that face's own Triggers index (Idx), and
+	// events.Apply mints the face's compiled Trigger.Effect pointer. Execute
+	// still carries the trigger's Execute$ name as readable provenance for
+	// Apply's tamper check. Gained and Granted are never both set.
+	Gained     bool
+	GainedFrom state.ObjID
 	// Ward is a GRANTED ward keyword (a layer-6 AddKeyword$ Ward:<cost>, e.g.
 	// Hexing Squelcher's "Other creatures you control have 'Ward—Pay 2
 	// life.'"): the trigger exists only in the layer system, never on the
@@ -112,6 +123,17 @@ type pendingTrigger struct {
 	// expansion carries, with the cast spell riding IDs as Remembered.
 	// Idx and SA are unset for it.
 	Conspire bool
+	// Demonstrate is a GRANTED demonstrate keyword (a layer-6 AddKeyword$
+	// Demonstrate -- Silverquill Lecturer's "Creature spells you cast have
+	// demonstrate", The Twelfth Doctor's non-hand grant, Try-My-Deck
+	// Elemental's commander grant, the Strixhaven plane's instant/sorcery
+	// grant): the same shape as Conspire -- the queue carries no parameter
+	// (the body has none) and the drain pushes a KeywordTriggerPush whose
+	// __kwDemonstrate: payload events.Apply rebuilds into the same
+	// DB$ Demonstrate body the printed K:Demonstrate expansion carries,
+	// with the cast spell riding IDs as Remembered. Idx and SA are unset
+	// for it.
+	Demonstrate bool
 	// Cascade is a printed-or-granted cascade keyword (CR 702.85, task
 	// cascade1): the queue carries no parameter (the trigger body is the
 	// same DB$ Cascade body whichever route granted the keyword) and the
@@ -142,6 +164,17 @@ type pendingTrigger struct {
 	// Count$OffspringPaid read resolves against its pay-time provenance.
 	// Idx and SA are unset for it.
 	Offspring bool
+	// Flanking is a GRANTED flanking instance (CR 702.25a via a layer-6
+	// AddKeyword$ Flanking -- Agility, Flanking Licid, Sidewinder Sliver,
+	// Cavalry Master): the Ward/Conspire shape. A creature granted flanking
+	// has no printed K:Flanking trigger to carry the pump body, so the drain
+	// pushes a KeywordTriggerPush whose __kwFlanking: payload events.Apply
+	// rebuilds into the same DB$ Pump | Defined$ TriggeredBlockerLKICopy |
+	// NumAtt$ -1 | NumDef$ -1 body the printed expansion carries. The blocked
+	// creature rides IDs as Remembered (the printed path's own slot), which
+	// Defined$ TriggeredBlockerLKICopy reads at resolution. Idx and SA are
+	// unset for it.
+	Flanking bool
 	// RingEmblem is one of the Ring emblem's four level abilities (CR
 	// 701.54c), queued by checkRingEmblemTriggers. The emblem has no face
 	// and no object in any zone, so like Ward/Afflict this entry carries
@@ -309,6 +342,16 @@ var actionTriggerModes = map[string]bool{
 	// and Lurker in the Deep's PlayerTurn$ True on its SeekAll line -- so
 	// both gates must apply from day one.
 	"Discover": true, "SeekAll": true,
+	// Surveil joins them for the same reason: it is an event mode registered
+	// from the start (surveilMatches over events.Surveil, the marker Kind
+	// api:Surveil emits, task trig-surveil), so the trigger-level parameters
+	// Forge scopes to every event mode -- PlayerTurn$, ActivationLimit$
+	// (Prudent Fateseer's "This ability triggers only once each turn" on its
+	// scry-or-surveil line) and an unevaluable CheckDefinedPlayer$ predicate
+	// failing closed -- apply from day one. surveilMatches itself reads
+	// FirstTime$ (Whispering Snitch's "for the first time each turn")
+	// through the shared firstMarkerThisTurn log scan.
+	"Surveil": true,
 }
 
 // triggerActivationLimitAllows enforces ActivationLimit$ N ("this ability
@@ -808,12 +851,13 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					e.checkGrantedAfflictTriggers(id, o, f, ev)
 				case events.PutOnStack:
 					e.checkGrantedConspireTriggers(observer, id, o, f, ev, objLKI)
+					e.checkGrantedDemonstrateTriggers(observer, id, o, f, ev, objLKI)
 				case events.MoveZone:
 					e.checkGrantedExploitTriggers(observer, id, o, f, ev, objLKI)
 					e.checkGrantedOffspringTriggers(observer, id, o, f, ev, objLKI)
 				}
 			}
-			e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
+			e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid, split, leaving)
 			return
 		}
 		// Enchantment Rooms (rules/rooms.go): an UNLOCKED room's alternate
@@ -1115,7 +1159,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				}
 			}
 		}
-		e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
+		e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid, split, leaving)
 		// A granted Afflict must fire even when the object's own printed
 		// triggers are live for this event (a Zombie with its own become-blocked
 		// trigger carrying the Monarch's grant) -- the early-return path above
@@ -1126,6 +1170,11 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		// carrying a Conspire grant) -- the early-return path above reaches this
 		// object through checkGrantedConspireTriggers's own call.
 		e.checkGrantedConspireTriggers(observer, id, o, f, ev, objLKI)
+		// A granted Demonstrate must fire even when the object's own printed
+		// triggers are live for this event (a spell with its own cast trigger
+		// carrying a Demonstrate grant) -- the same both-paths rule Conspire
+		// follows.
+		e.checkGrantedDemonstrateTriggers(observer, id, o, f, ev, objLKI)
 		// A granted Exploit must fire when its creature enters even when the
 		// object's own printed triggers are live for this event -- the same
 		// both-paths rule Afflict and Conspire follow.
@@ -1351,6 +1400,19 @@ func triggerRemembered(ev events.Event, source state.ObjID) []state.Target {
 		}
 		return append(out, state.Target{Player: ev.Player, IsPlayer: true})
 	}
+	// Mode$ Unattached's referent is the FORMER BEARER, not the event's Obj
+	// (the attachment that became unattached): the corpus's Execute bodies read
+	// Defined$ TriggeredObjectLKICopy (Grafted Exoskeleton's sacrifice, the
+	// whole cycle), and on the bearer-leaves path that object is already off
+	// the battlefield. Carrying it as Remembered is what lets the spellings in
+	// effects/context.go's TriggeredObjectLKICopy case resolve it -- whether it
+	// is still a permanent (the under-protection/no-longer-a-creature detach)
+	// or a graveyard LKI reference (the bearer-left detach). An emit with no
+	// bearer (the zero-value event a test might build) has nothing to bind, so
+	// it falls through to the ordinary source fallback below.
+	if ev.Kind == events.Unattached && len(ev.IDs) > 0 {
+		return []state.Target{{Obj: ev.IDs[0]}}
+	}
 	if ev.Obj != 0 {
 		return []state.Target{{Obj: ev.Obj}}
 	}
@@ -1566,19 +1628,20 @@ func init() {
 
 	effects.RegisterNonAPI(
 		"trig:ChangesZone", "trig:ChangesZoneAll", "trig:SpellCast", "trig:Attacks", "trig:AttackersDeclaredOneTarget",
-		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:AttackerBlockedByCreature", "trig:AttackerUnblockedOnce", "trig:Blocks", "trig:Cycled", "trig:CounterAdded", "trig:CounterAddedOnce", "trig:CounterRemoved",
+		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:AttackerBlockedByCreature", "trig:AttackerUnblockedOnce", "trig:Blocks", "trig:Cycled", "trig:CounterAdded", "trig:CounterAddedOnce", "trig:CounterRemoved", "trig:CounterRemovedOnce", "trig:CounterPlayerAddedAll",
 		"trig:Sacrificed", "trig:Discarded", "trig:CommitCrime", "trig:Taps", "trig:TapsForMana",
-		"trig:ClassLevelGained",
+		"trig:ClassLevelGained", "trig:BecomeMonstrous",
 		"trig:TokenCreated", "trig:TokenCreatedOnce",
 		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:DamageAll", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",
 		"trig:LifeGained",
-		"trig:BecomesTarget", "trig:LandPlayed", "trig:Phase", "trig:Attached", "trig:FlippedCoin",
+		"trig:BecomesTarget", "trig:LandPlayed", "trig:Phase", "trig:Attached", "trig:Unattached", "trig:FlippedCoin",
 		"trig:Vote", "trig:RolledDie", "trig:RolledDieOnce",
 		"trig:Explores", "trig:Exerted", "trig:Investigated",
 		"trig:Exploited",
 		"trig:ManaExpend",
 		"trig:Connives",
 		"trig:Discover", "trig:SeekAll",
+		"trig:Surveil",
 		"trig:AbilityCast", "trig:SpellAbilityCast", "trig:Always",
 		// The cast-or-copy pair: SpellCopy matches a copy put on the stack and
 		// SpellCastOrCopy matches either half (magecraft). Both are matched
@@ -1657,5 +1720,16 @@ func init() {
 		"trig:UnlockDoor", "kw:Station", "kw:Chapter", "kw:Start your engines",
 		"stat:Panharmonicon", "kw:Partner", "kw:Partner with",
 		"kw:CARDNAME can be your commander.",
+		// kw:Doctor's companion (the WHO two-commander keyword, the
+		// Doctor's-companion analogue of Companion CR 702.139) is DECK
+		// CONSTRUCTION too: "You can have two commanders if the other is the
+		// Doctor." Nothing in play reads it -- the corpus's in-play uses of
+		// the keyword are the `withDoctor's companion` FILTER predicate
+		// (rose_noble's trigger, an_unearthly_child's DigUntil), which is a
+		// filter-grammar shape, not this keyword -- so the registration
+		// asserts the corpus shape is understood, not that the second-commander
+		// seating exists (the deck.IsPartnerPair extension is a separate
+		// ticket; the Partner precedent above is the same class).
+		"kw:Doctor's companion",
 	)
 }

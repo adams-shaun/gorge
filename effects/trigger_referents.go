@@ -255,15 +255,20 @@ func controlReferentPlayers(g *state.Game, sc SpecContext, op, ref string) ([]st
 		}
 		targets = sc.ResolutionTargets
 	case "Remembered", "RememberedPlayer":
-		// Resolution-only, like Targeted*: the objects/players this
-		// resolution remembers -- a RepeatEach loop's current subject.
-		// RememberedPlayer (RememberedPlayerCtrl's referent) admits only
-		// player entries.
+		// Resolution-only, like Targeted*: the players this resolution
+		// remembers -- a RepeatEach loop's current subject. Forge's
+		// getDefinedPlayers("Remembered") adds remembered PLAYERS only; a
+		// remembered CARD contributes its controller only for the
+		// RememberedController/RememberedOwner spellings (handled by their
+		// own referents). Mapping a remembered card to its controller here
+		// would widen `ControlledBy Remembered` to the previous iteration's
+		// RememberChosen$ card's controller as well as the current subject
+		// (Summon: Valefor, Chaos Defiler).
 		if !sc.Resolving {
 			return nil, false
 		}
 		for _, t := range sc.Remembered {
-			if t.IsPlayer || ref == "Remembered" {
+			if t.IsPlayer {
 				targets = append(targets, t)
 			}
 		}

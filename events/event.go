@@ -349,7 +349,12 @@ const (
 	// activations by source and ability index, the same way it already
 	// counts AbilityPush for non-mana abilities. Obj is the source permanent,
 	// Player the activator, Amount the ability's index in the face's
-	// Abilities slice. Appended here, after GrantTriggerPush, following every
+	// Abilities slice. A marker carrying IDs is a GAINED mana activation
+	// (Forge's GainsAbilitiesOf$, rules' gainedManaRef): IDs[0] names the
+	// FOREIGN card the ability belongs to and Amount indexes that card's face
+	// Abilities, which is what the GainsAbilitiesLimitPerTurn$ cap counts; it
+	// is emitted for every gained mana activation, limit or not, and the
+	// printed-limit scan skips it. Appended here, after GrantTriggerPush, following every
 	// prior Kind's own append-only precedent, so no earlier ordinal, hash
 	// chain or golden replay is affected.
 	ManaActivate
@@ -676,6 +681,73 @@ const (
 	// Exploit, following every prior Kind's own append-only precedent, so no
 	// earlier ordinal, hash chain or golden replay is affected.
 	AlterAttribute
+	// GainedAbilityPush creates the stack object for an activated ability
+	// GAINED off a foreign card (Forge's GainsAbilitiesOf$ on a Mode$
+	// Continuous static, the Idris, Soul of the TARDIS shape). Like
+	// AbilityPush it mints inside Apply (Ruling T20-a) so a log-only replay
+	// creates the same object a live game did, but the ability is not a
+	// Face().Abilities index of the recipient: Obj is the recipient (the
+	// minted object's Source, so `Defined$ Self`/`CARDNAME` names it),
+	// IDs[0] is the FOREIGN card's object id, and Amount is the index of the
+	// ability in that card's Face().Abilities. The body is the foreign
+	// face's compiled SA, so a replay re-resolves the identical pointer (the
+	// MergedTriggerPush reasoning: pointer identity is what the
+	// activation-limit census and the owning-face SVar reads rely on). A
+	// foreign card that left the scoped zone, or a stale index, mints
+	// nothing. Appended here, after AlterAttribute, following every prior
+	// Kind's own append-only precedent, so no earlier ordinal, hash chain or
+	// golden replay is affected.
+	GainedAbilityPush
+	// GainedTriggerPush creates the stack object for a triggered ability
+	// GAINED off a foreign card (Forge's GainsTriggerAbsOf$ on a Mode$
+	// Continuous static). Obj is the recipient (the minted object's Source),
+	// IDs[0] is the foreign card's object id, Amount is the index of the
+	// trigger in that card's Face().Triggers, and Counter carries the
+	// trigger's Execute$ name as readable provenance checked at Apply the way
+	// MergedTriggerPush checks its own: a truncated or tampered log mints
+	// nothing rather than the wrong ability. Appended here, after
+	// GainedAbilityPush, following every prior Kind's own append-only
+	// precedent, so no earlier ordinal, hash chain or golden replay is
+	// affected.
+	GainedTriggerPush
+	// Surveil records one completed surveil instruction (CR 701.42, task
+	// trig-surveil): Player is the surveiling seat and Obj the resolving
+	// source permanent (0 for a source-less body). It is an Apply no-op
+	// marker, exactly like Explore/Investigate: the surveil's own state
+	// changes (the KArrange answer's LibraryOrder and any graveyard
+	// MoveZones) are their own events that follow this one, and the record
+	// is what trig:Surveil matches ("whenever you surveil" -- Mirko,
+	// Obsessive Theorist; Dimir Spybug; Thoughtbound Phantasm; Whispering
+	// Snitch). One marker per surveil instruction per acting player, emitted
+	// by api:Surveil (effects/cardflow.go effSurveil) before the arrangement
+	// -- the trigger bodies queue and resolve after the surveil spell or
+	// ability finishes either way. Appended here, after GainedTriggerPush
+	// (main's own append while this branch carried Surveil after
+	// AlterAttribute; the merge keeps main's ordinals intact and appends the
+	// branch's Kind after them, still after every earlier Kind), following
+	// every prior Kind's own append-only precedent, so no earlier ordinal,
+	// hash chain or golden replay is affected.
+	Surveil
+	// Unattached records an Aura/Equipment permanent Obj becoming detached
+	// from the permanent it was attached to (CR 701.3b), on a path where Obj
+	// itself stays on the battlefield: the attachmentSBAs detach arms in
+	// rules/attach.go (the bearer left, the bearer stopped being a valid
+	// bearer, or protection) and the CR 702.114b bestowed type switch. It is
+	// deliberately SEPARATE from Attach's empty-IDs detach shape, because
+	// Mode$ Unattached is a real trigger mode (the Grafted Exoskeleton family)
+	// and Mode$ Attached must keep ignoring a detach -- a distinct Kind is
+	// what lets the two modes' event masks stay exact. IDs holds the former
+	// bearer (the object Obj became unattached FROM), which is what the
+	// trigger's TriggeredObjectLKICopy referent resolves; Text carries the
+	// detach reason for the transcript, exactly as Attach's detach shape does.
+	// Apply clears Obj's AttachedTo (the same fold an empty-IDs Attach makes).
+	// Appended here, after Surveil (main appended GainedAbilityPush,
+	// GainedTriggerPush and Surveil after AlterAttribute while this branch
+	// carried Unattached there; the merge keeps main's ordinals intact and
+	// appends the branch's Kind after them), following every prior Kind's own
+	// append-only precedent, so no earlier ordinal, hash chain or golden
+	// replay is affected.
+	Unattached
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -686,7 +758,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(AlterAttribute) + 1
+	NumKinds = int(Unattached) + 1
 )
 
 // mergedTriggerShift is the width MergedTriggerPush's Amount gives the
@@ -798,7 +870,8 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"monarch_change", "control_change", "card_token", "keyword_trigger_push", "goad", "player_counter", "imprint", "starting_player_change",
 	"pair", "myriad_copy", "myriad_cleanup", "grant_trigger_push", "mana_activate", "token_attacks",
 	"x_change", "note_number", "extra_phase", "copy_token", "exert", "planar_roll", "explore", "combat_retarget", "ring_tempts_you", "ring_emblem_push", "grant_ability_push", "investigate", "blessing_change", "clone_permanent", "mutate", "merged_trigger_push",
-	"discover", "seek", "connive", "enlist", "exploit", "alter_attribute"}
+	"discover", "seek", "connive", "enlist", "exploit", "alter_attribute",
+	"gained_ability_push", "gained_trigger_push", "surveil", "unattached"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {
@@ -1103,6 +1176,12 @@ var flagNames = [...]struct {
 	// and fizzle readers exile it instead of the graveyard. Appended at the
 	// end per the table's own ordering rule.
 	{"jumpstart", state.FlagJumpstart},
+	// The K:MayFlashSac off-sorcery cast (kw:MayFlashSac): the flag is the
+	// provenance the keyword's own ETB hook reads to register the delayed
+	// cleanup-step sacrifice, so a sorcery-timed cast of the same card emits
+	// no flag and no sacrifice. Appended at the end per the table's own
+	// ordering rule.
+	{"mayflashsac", state.FlagMayFlashSac},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

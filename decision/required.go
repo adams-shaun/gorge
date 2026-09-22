@@ -65,7 +65,7 @@ func (d *Decision) requiredCore() []int {
 			break
 		}
 		v := d.Options[p.idx].Value
-		if d.MaxSum > 0 && sum+v > d.MaxSum {
+		if d.HasBudget() && sum+v > d.MaxSum {
 			break // ascending: nothing later fits either
 		}
 		sum += v
@@ -120,7 +120,7 @@ func (d *Decision) FitRequired(choices []int) []int {
 		}
 	}
 	if len(choices) <= d.maxChoices() &&
-		(d.MaxSum <= 0 || sum <= d.MaxSum) &&
+		(!d.HasBudget() || sum <= d.MaxSum) &&
 		d.RequiredChosen(choices) >= d.RequiredQuota() {
 		return choices
 	}
@@ -146,7 +146,7 @@ func (d *Decision) FitRequired(choices []int) []int {
 			requiredObj[d.Options[i].Obj] = true
 		}
 	}
-	fits := func(delta int) bool { return d.MaxSum <= 0 || sum+delta <= d.MaxSum }
+	fits := func(delta int) bool { return !d.HasBudget() || sum+delta <= d.MaxSum }
 	for _, c := range choices {
 		if c < 0 || c >= len(d.Options) || (have[c] && !d.Repeatable) {
 			continue
@@ -192,6 +192,42 @@ func (d *Decision) FitRequired(choices []int) []int {
 		}
 		if requiredObj[o.Obj] {
 			slotOf[o.Obj] = len(out) - 1
+		}
+	}
+	// A budget of zero or less (Budgeted, MaxTotalTargetPower$ <= 0) can
+	// leave even the rebuilt answer over it: the empty answer totals 0,
+	// which busts a negative cap, and the fold above skips a negative option
+	// whose own offset is not enough on its own. Every negative-Value option
+	// strictly lowers the total, so take the unused ones, most negative
+	// first, until the answer fits (Max, Groups and the one-pair-per-creature
+	// rule still apply). The engine offers such a decision only when taking
+	// every negative option fits (rules' totalPowerCappedCandidates prunes
+	// the whole census otherwise), so this reaches a valid answer whenever
+	// one exists. A positive budget never reaches this: the rebuild starts
+	// within it and the fold only appends what fits.
+	if d.HasBudget() && sum > d.MaxSum {
+		var neg []int
+		for i := range d.Options {
+			if d.Options[i].Value < 0 && !have[i] {
+				neg = append(neg, i)
+			}
+		}
+		sort.SliceStable(neg, func(a, b int) bool { return d.Options[neg[a]].Value < d.Options[neg[b]].Value })
+		for _, c := range neg {
+			if sum <= d.MaxSum || len(out) >= d.maxChoices() {
+				break
+			}
+			o := &d.Options[c]
+			if (o.Group != "" && groups[o.Group]) || (d.Kind == KAttackers && objTaken[o.Obj]) {
+				continue
+			}
+			sum += o.Value
+			out = append(out, c)
+			have[c] = true
+			objTaken[o.Obj] = true
+			if o.Group != "" {
+				groups[o.Group] = true
+			}
 		}
 	}
 	return out

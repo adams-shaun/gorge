@@ -112,7 +112,7 @@ func TestGrantedStaticTriggerSnapshotQueuesMatchingTrigger(t *testing.T) {
 		AddTrigger: &cards.Trigger{Mode: "Always", Params: map[string]string{"Execute": "Go"}},
 	})
 
-	e.checkGrantedStaticTriggersUsing(e, e.active(), id, e.G.Obj(id), events.Event{Kind: events.Note}, nil, 0, 0, false)
+	e.checkGrantedStaticTriggersUsing(e, e.active(), id, e.G.Obj(id), events.Event{Kind: events.Note}, nil, 0, 0, false, false, false)
 	if len(e.pendingTriggers) != 1 {
 		t.Fatalf("pending granted triggers = %d, want 1", len(e.pendingTriggers))
 	}
