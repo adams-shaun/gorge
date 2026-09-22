@@ -42,6 +42,15 @@ const saonManaOnlyWatcher = "Name:Test SAon Card Watcher\nManaCost:2\nTypes:Arti
 	"T:Mode$ AbilityCast | ValidSAonCard$ Activated.ManaAbility | TriggerZones$ Battlefield | Execute$ TrigDmg | TriggerDescription$ x\n" +
 	"SVar:TrigDmg:DB$ DealDamage | NumDmg$ 1 | Defined$ TriggeredActivator\nOracle:x\n"
 
+// saonArtifactOnlyWatcher carries ValidCard$ and NO ValidSA$/ValidSAonCard$,
+// so it depends on nothing but the source-card filter. It is the independent
+// discriminator for the ValidCard$ block: on a matcher that does not read
+// ValidCard$ (main) an AbilityCast fires WIDE, so the creature activation
+// below deals damage and the negative test fails.
+const saonArtifactOnlyWatcher = "Name:Test SAon Card Watcher\nManaCost:2\nTypes:Artifact\n" +
+	"T:Mode$ AbilityCast | ValidCard$ Artifact.inZoneBattlefield | TriggerZones$ Battlefield | Execute$ TrigDmg | TriggerDescription$ x\n" +
+	"SVar:TrigDmg:DB$ DealDamage | NumDmg$ 1 | Defined$ TriggeredActivator\nOracle:x\n"
+
 func saonSettle(t *testing.T, e *Engine) {
 	t.Helper()
 	for i := 0; i < 60; i++ {
@@ -143,13 +152,48 @@ func TestAbilityCastValidSAonCardRejectsNonMatchingAbility(t *testing.T) {
 	}
 }
 
-// This is the required negative discriminator for the carrier's ValidCard$:
-// the same activated ability shape on a creature must not trigger Avalanche.
+// This is the independent negative discriminator for the ValidCard$ block:
+// an AbilityCast trigger scoped ONLY by ValidCard$ (no ValidSA$, no
+// ValidSAonCard$) must reject the activated ability of a non-matching source
+// card. On main the param is unread, so the trigger fires wide and this test
+// fails; the artifact-only watcher needs no other gate to reach the filter.
+func TestAbilityCastValidCardRejectsNonMatchingAbilitySource(t *testing.T) {
+	e := saonEngine(t, []*cards.Card{card(t, saonArtifactOnlyWatcher)}, []*cards.Card{card(t, saonCreature)})
+	watcher := e.G.Obj(e.G.Zone(state.ZBattlefield, 0)[0])
+	if watcher.Face().Name != "Test SAon Card Watcher" {
+		t.Fatal("test precondition: watcher is not on seat 0's battlefield")
+	}
+	if len(watcher.Face().Triggers) != 1 || watcher.Face().Triggers[0].Params["ValidCard"] == "" {
+		t.Fatal("test precondition: watcher trigger does not carry ValidCard$")
+	}
+	vehicle := e.G.Obj(e.G.Zone(state.ZBattlefield, 1)[0])
+	if vehicle.Face().Types[0] == "Artifact" {
+		t.Fatal("test precondition: vehicle must be non-artifact")
+	}
+	if e.G.Players[1].Life != 20 {
+		t.Fatalf("test precondition: seat 1 life = %d, want 20", e.G.Players[1].Life)
+	}
+	before := damageEvents(e)
+	saonActivate(t, e, 1)
+	saonSettle(t, e)
+	if e.G.Players[1].Life != 20 || damageEvents(e) != before {
+		t.Fatalf("non-artifact ability incorrectly satisfied ValidCard$: life=%d damage-events=%d (before %d)", e.G.Players[1].Life, damageEvents(e), before)
+	}
+}
+
+// This is the isolated-hunk negative for the carrier's ValidCard$: the same
+// activated ability shape on a creature must not trigger Avalanche. It is a
+// second, card-real instance of the filter the independent carrier above
+// pins; retained so a future change to either validSAonCard or ValidCard
+// cannot regress Avalanche silently.
 func TestAvalancheOfSector7RejectsNonArtifactAbilitySource(t *testing.T) {
 	av := corpusAlternativeCard(t, "Avalanche of Sector 7")
 	e := saonEngine(t, []*cards.Card{av}, []*cards.Card{card(t, saonCreature)})
 	if e.G.Obj(e.G.Zone(state.ZBattlefield, 1)[0]).Face().Types[0] == "Artifact" {
 		t.Fatal("test precondition: vehicle must be non-artifact")
+	}
+	if e.G.Players[1].Life != 20 {
+		t.Fatalf("test precondition: seat 1 life = %d, want 20", e.G.Players[1].Life)
 	}
 	before := damageEvents(e)
 	saonActivate(t, e, 1)
