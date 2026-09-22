@@ -566,6 +566,12 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		if to == state.ZBattlefield && strings.EqualFold(sa.Params["Tapped"], "True") {
 			h.Emit(events.Event{Kind: events.Tap, Obj: o.ID, Player: c.Controller, Text: "entered tapped"})
 		}
+		// StaticEffect$ on the inlined object path: the same rider the shared
+		// settle path applies for every other mover (the main loop deliberately
+		// predates settleChangeZoneMoveAs and is not routed through it).
+		if to == state.ZBattlefield {
+			applyStaticEffect(h, c, sa, to, []state.ObjID{o.ID})
+		}
 		if strings.EqualFold(sa.Params["Imprint"], "True") && to == state.ZExile {
 			if moved := h.Game().Obj(o.ID); moved != nil && moved.Zone == state.ZExile {
 				imprinted = append(imprinted, o.ID)
@@ -857,6 +863,11 @@ func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, 
 	if to == state.ZBattlefield {
 		applyGainControl(h, c, sa, id)
 		applyTransformed(h, c, sa, id)
+		// StaticEffect$ <name> (the "return it ... It's a Spirit Detective"
+		// rider): the named Continuous static registers onto the moved card
+		// once its move and entry riders are settled. A no-op on every SA
+		// without the parameter.
+		applyStaticEffect(h, c, sa, to, []state.ObjID{id})
 	}
 }
 
@@ -2954,6 +2965,11 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 			// while replay folds the same tapped state.
 			h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: owner, Text: "entered tapped"})
 		}
+		// StaticEffect$ on the library-origin branch: the same rider the
+		// shared settle path applied for the alternative-origin branch above.
+		if to == state.ZBattlefield {
+			applyStaticEffect(h, c, sa, to, []state.ObjID{id})
+		}
 	}
 	// The search's reveal (hiddenreveal1): Forge's changeHiddenOriginResolve
 	// reveals the moved cards when Reveal$ says so, and ALSO by default when
@@ -3287,6 +3303,10 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		// than silent on an unresolvable selector.
 		if to == state.ZBattlefield {
 			applyGainControl(h, c, sa, id)
+			// StaticEffect$ (ChangeZoneAll's carriers -- Ghost Vacuum, Grimoire
+			// of the Dead, Storm of Souls, Shilgengar): the same per-card rider
+			// registration every other ChangeZone mover applies.
+			applyStaticEffect(h, c, sa, to, []state.ObjID{id})
 		}
 		if to == state.ZLibrary {
 			owner := p

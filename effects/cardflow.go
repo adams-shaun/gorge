@@ -1042,6 +1042,12 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			if tapped && dest == state.ZBattlefield {
 				h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: p, Text: "entered tapped"})
 			}
+			// StaticEffect$ on a battlefield take (Arbiter of the Ideal's
+			// "put it onto the battlefield ... it's an enchantment"): the same
+			// rider registration every ChangeZone mover applies.
+			if dest == state.ZBattlefield {
+				applyStaticEffect(h, c, sa, dest, []state.ObjID{id})
+			}
 		}
 		// rest moves the window cards the primary move did not take to the
 		// second destination (DestinationZone2$, placed by LibraryPosition2$).
@@ -1582,6 +1588,11 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 						// stand-in documented above (the bearer the scan picked).
 						h.Emit(events.Event{Kind: events.Attach, Obj: id, IDs: []state.ObjID{bearer}})
 					}
+					// StaticEffect$ on a DigUntil battlefield take: the same
+					// rider registration every ChangeZone mover applies (no
+					// corpus carrier rides a DigUntil today; hooked so the
+					// class cannot miss one).
+					applyStaticEffect(h, c, sa, dest, []state.ObjID{id})
 					continue
 				}
 				ev := moveZoneEvent(c, id, state.ZLibrary, dest)
