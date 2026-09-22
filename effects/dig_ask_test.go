@@ -421,3 +421,74 @@ func TestDigMultiPlayerResumeKeepsEveryLibrary(t *testing.T) {
 		t.Fatalf("seat 2 library = %v, want the answered bottom order [%d %d]", lib, libs[2][2], libs[2][1])
 	}
 }
+
+// TestDigTakeResumeContinuesToLaterLibrary is the multi-target take-resume
+// continuation: a Dig over several libraries where an EARLIER target's take
+// answer resumes the walk must continue to a LATER library and pose ITS own
+// take ask -- never silently complete it with the deterministic
+// first-eligible take. Each window is two cards so the answered target's
+// remainder is a single card (exactly one possible order): that keeps the
+// ordered-bottom arrange ask out of the path, leaving the take ask itself as
+// the only continuation under test.
+func TestDigTakeResumeContinuesToLaterLibrary(t *testing.T) {
+	h := &askHost{}
+	h.g = state.NewGame(names(3))
+	bear := mkCard(t, "Name:Bear\nTypes:Creature\nPT:2/2\nOracle:x\n")
+	land := mkCard(t, "Name:Isle\nTypes:Basic Land Island\nOracle:x\n")
+	// Seats 1 and 2 each hold two eligible lands, so each poses its own take
+	// ask; seat 0 holds one eligible land and a nonland (no choice), so the
+	// first pass completes it deterministically and reaches seat 1.
+	libs := make([][]state.ObjID, 3)
+	for p := state.PlayerID(1); p < 3; p++ {
+		libs[p] = []state.ObjID{
+			h.g.AddObject(land, p).ID,
+			h.g.AddObject(land, p).ID,
+		}
+		h.g.SetZone(state.ZLibrary, p, libs[p])
+	}
+	libs[0] = []state.ObjID{
+		h.g.AddObject(land, 0).ID,
+		h.g.AddObject(bear, 0).ID,
+	}
+	h.g.SetZone(state.ZLibrary, 0, libs[0])
+	// Precondition: the later libraries' two cards are distinct object ids, so
+	// an assertion cannot pass by comparing identical values; seat 0 has
+	// exactly one eligible card, so it presents no take ask.
+	if libs[1][0] == libs[1][1] || libs[2][0] == libs[2][1] {
+		t.Fatal("precondition: the later libraries must hold distinct eligible cards")
+	}
+	effect := sa(t, "SP$ Dig | Defined$ Player | DigNum$ 2 | ChangeNum$ 1 | Optional$ True | ChangeValid$ Land | DestinationZone$ Hand")
+	Resolve(h, &Ctx{Controller: 0}, effect)
+	if h.asked == nil || h.asked.Player != 1 || h.asked.ResumeTarget != 1 {
+		t.Fatalf("first decision = %+v, want seat 1's take ask at target index 1", h.asked)
+	}
+	if len(h.g.Zone(state.ZHand, 2)) != 0 {
+		t.Fatal("seat 2 was processed before seat 1's ask suspended the effect")
+	}
+	picked := libs[1][1]
+	h.asked = nil
+	Resolve(h, &Ctx{Controller: 0, Dig: []state.ObjID{picked}, DigDone: true, DigTarget: 1}, effect)
+	// The continuation: seat 2's library keeps its own take ask instead of
+	// being completed with the deterministic first-eligible take.
+	if h.asked == nil || h.asked.Player != 2 || h.asked.ResumeTarget != 2 {
+		t.Fatalf("later library did not get its own take ask: %+v", h.asked)
+	}
+	if h.asked.Kind != decision.KChoose {
+		t.Fatalf("later decision kind = %v, want the take KChoose", h.asked.Kind)
+	}
+	if hand := h.g.Zone(state.ZHand, 1); len(hand) != 1 || hand[0] != picked {
+		t.Fatalf("seat 1 hand = %v, want its answered card [%d]", hand, picked)
+	}
+	if len(h.g.Zone(state.ZHand, 2)) != 0 {
+		t.Fatal("seat 2 was completed before its own ask was answered")
+	}
+	laterPicked := libs[2][1]
+	h.asked = nil
+	Resolve(h, &Ctx{Controller: 0, Dig: []state.ObjID{laterPicked}, DigDone: true, DigTarget: 2}, effect)
+	if h.asked != nil {
+		t.Fatalf("after the last library answer, another ask remained: %+v", h.asked)
+	}
+	if hand := h.g.Zone(state.ZHand, 2); len(hand) != 1 || hand[0] != laterPicked {
+		t.Fatalf("seat 2 hand = %v, want its answered card [%d]", hand, laterPicked)
+	}
+}

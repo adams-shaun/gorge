@@ -1743,6 +1743,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 			}
 			ctx.SearchDone = true
+			ctx.LibraryTarget = rp.target
 		case "search_mayshuffle":
 			// A ChangeZone search carrying ShuffleNonMandatory$ True (Path to
 			// Exile, Stoneforge Mystic, Boggart Harbinger) asked its searcher
@@ -1761,6 +1762,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				ctx.SearchShuffle = "yes"
 			}
 			ctx.SearchShuffleMoved = append([]state.ObjID(nil), rp.moved...)
+			ctx.LibraryTarget = rp.target
 		case "attach_optional":
 			// An Optional$ True Attach's yes/no election (Ajani's Chosen's
 			// "you may attach it to the token") was answered. The answer is a
@@ -2181,6 +2183,11 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			if rp.kind == "dig_arrange" {
 				ctx.ArrangeTarget = rp.target
 			}
+			// The shared per-player cursor every multi-library walk (search,
+			// arrange, scry/surveil) reads to resume at the NEXT library; a
+			// Dig's own arrange continuation additionally carries
+			// ArrangeTarget so effDig's walk skips through it.
+			ctx.LibraryTarget = rp.target
 		case "arrange_mayshuffle":
 			// A RearrangeTopOfLibrary carrying MayShuffle$ True (Ponder) asked
 			// "you may shuffle?" on its arrange re-entry pass. The effect
@@ -2195,6 +2202,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// owner (the arranging player the ask was posed to).
 			ctx.Arrange = true
 			ctx.MayShuffle = "no"
+			ctx.LibraryTarget = rp.target
 			if len(chosen) > 0 && chosen[0].Kind == "yes" {
 				ctx.MayShuffle = "yes"
 				order := append([]state.ObjID(nil), e.G.Zone(state.ZLibrary, rp.player)...)

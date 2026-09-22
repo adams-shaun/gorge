@@ -1239,7 +1239,11 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 		// card, so the answer cannot differ from it and no ask is warranted.
 		forcedAll := len(greedy) == len(budgetEligible)
 		askBudget := hasBudget && len(budgetEligible) > 0 && !forcedAll
-		if !digDone && arrangeThrough < 0 && changeNum > 0 && ((int32(len(eligible)) > changeNum || anyNum && len(eligible) > 0) || askBudget) {
+		// The ask gate must allow a LATER target to pose its own take ask after
+		// an EARLIER target's take answer resumed the walk (targetIndex >
+		// digTarget), while an arrange re-entry keeps main's deliberate
+		// deterministic processing for every target past arrangeThrough.
+		if (!digDone || targetIndex > digTarget) && arrangeThrough < 0 && changeNum > 0 && ((int32(len(eligible)) > changeNum || anyNum && len(eligible) > 0) || askBudget) {
 			// A real choice: record the look, then ask the library's owner.
 			// Reveal$ True makes the record a PUBLIC reveal of the window (the
 			// same non-Secret ids-Note shape effReveal's public arm emits);
@@ -2357,19 +2361,22 @@ func effRearrangeTopOfLibrary(h Host, c *Ctx, sa *cards.SA) {
 	// the MayShuffle done-marker (consumed and cleared here, fx42 scoping)
 	// keeps that third pass from posing the ask again.
 	mayShuffle := strings.EqualFold(strings.TrimSpace(sa.Params["MayShuffle"]), "True")
-	// Re-entry after rules' handleArrange applied the answered KArrange and
-	// emitted the LibraryOrder event: this pass must only let the resolution
-	// continue (the chained SubAbility$ runs), not re-ask or re-emit. Clear
-	// the marker so a nested arrange — the fx42 class of leak — cannot read
-	// an outer arrange's "done".
+	// Re-entry after rules' handleArrange applied the answered KArrange starts
+	// at the next target. If MayShuffle is present, that answer belongs to the
+	// target at LibraryTarget; otherwise the current target still needs its
+	// post-arrange shuffle election. In both cases the walk then continues to
+	// later libraries.
+	start := 0
 	if c.Arrange {
+		start = c.LibraryTarget
 		c.Arrange = false
 		if mayShuffle && c.MayShuffle == "" {
-			for _, t := range actingPlayers(h, c, sa) {
-				p := PlayerOf(h, c, t)
+			players := actingPlayers(h, c, sa)
+			if start >= 0 && start < len(players) {
+				p := PlayerOf(h, c, players[start])
 				d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
 					Source: c.Source, ResumeKind: "arrange_mayshuffle", ResumeSA: sa,
-					Prompt: "Shuffle your library?",
+					ResumeTarget: start, Prompt: "Shuffle your library?",
 					Options: []decision.Option{
 						{Index: 0, Kind: "yes", Label: "Yes — shuffle", Player: p},
 						{Index: 1, Kind: "no", Label: "No — keep the order", Player: p},
@@ -2377,21 +2384,23 @@ func effRearrangeTopOfLibrary(h Host, c *Ctx, sa *cards.SA) {
 				if Ask(h, d) == AskAsked {
 					return // resolution suspended; the answer re-enters with Ctx.MayShuffle set.
 				}
-				// Fuzz/no-engine host: the deterministic stand-in keeps the
-				// order (declines the shuffle, R-9).
 			}
 		}
 		if mayShuffle {
 			c.MayShuffle = ""
 		}
-		return
+		start++
 	}
 	n := Num(h, c, sa, "NumCards", 1)
 	if n < 0 {
 		n = 0
 	}
 	g := h.Game()
-	for _, t := range actingPlayers(h, c, sa) {
+	for targetIndex, t := range actingPlayers(h, c, sa) {
+		if targetIndex < start {
+			continue
+		}
+		c.LibraryTarget = targetIndex
 		p := PlayerOf(h, c, t)
 		lib := zoneOf(g, state.ZLibrary, p)
 		k := n
@@ -2400,12 +2409,13 @@ func effRearrangeTopOfLibrary(h Host, c *Ctx, sa *cards.SA) {
 		}
 		emitLook(h, []state.PlayerID{p}, state.ZLibrary, nil, "looks at the top of the library")
 		d := &decision.Decision{Player: p, Kind: decision.KArrange,
-			Min:        int(k),
-			Max:        int(k),
-			Source:     c.Source,
-			ResumeKind: "arrange",
-			ResumeSA:   sa,
-			Prompt:     "Rearrange the top " + strconv.Itoa(int(k)) + " card(s); the first card you pick goes on top"}
+			Min:          int(k),
+			Max:          int(k),
+			Source:       c.Source,
+			ResumeKind:   "arrange",
+			ResumeSA:     sa,
+			ResumeTarget: targetIndex,
+			Prompt:       "Rearrange the top " + strconv.Itoa(int(k)) + " card(s); the first card you pick goes on top"}
 		for i := int32(0); i < k; i++ {
 			name := "a card"
 			if o := g.Obj(lib[i]); o != nil && o.Face() != nil {
@@ -2478,8 +2488,7 @@ func effScry(h Host, c *Ctx, sa *cards.SA) {
 // cleared here (fx42 scoping), so a nested Surveil poses its own ask; the
 // answer applies to the ASKING player only -- the first acting player
 // carrying optionals, even when the Surveil resolves for several players
-// (the multi-library narrowing means only the first library is ever
-// arranged, so only the first player's count is priced) -- and anything
+// later libraries still arrange, but keep their own base count -- and anything
 // else (the no-host R-9 decline included) keeps the base count.
 func effSurveil(h Host, c *Ctx, sa *cards.SA) {
 	n := Num(h, c, sa, "Amount", 1)
@@ -2494,11 +2503,8 @@ func effSurveil(h Host, c *Ctx, sa *cards.SA) {
 	c.SurveilLookOpt = ""
 	if ans == "" && !arranging {
 		// First pass: pose the election once, for the FIRST acting player
-		// carrying optionals -- the only library the arrange walk processes
-		// when the ask suspends. Several surveilling players with different
-		// extras are the same narrowing the arrange walk already takes (it
-		// asks only the first library): the answer here is that one player's,
-		// carried through extraOf below and applied to nobody else.
+		// carrying optionals. The answer belongs to that player and is carried
+		// through extraOf below; later libraries keep their own base count.
 		if players := actingPlayers(h, c, sa); len(players) > 0 {
 			p := PlayerOf(h, c, players[0])
 			if _, opts := h.SurveilLookExtra(p); len(opts) > 0 {
@@ -2582,28 +2588,28 @@ func effSurveil(h Host, c *Ctx, sa *cards.SA) {
 // Theorist; Dimir Spybug; Thoughtbound Phantasm; Whispering Snitch) --
 // while Scry emits none. The marker is emitted INSIDE the per-player loop,
 // at the point that player's arrangement is actually performed, NOT for
-// every defined target up front: a multi-player `Defined$` Surveil poses
-// only the FIRST library's KArrange (the documented multi-library
-// Scry/Surveil limitation), so emitting for every target before the loop
-// queued surveil triggers for players who never surveilled (fb: an
-// opponent's Whispering Snitch fired for a player whose library was
-// untouched). A suspended first player's re-entry (Ctx.Arrange set) returns
-// before the loop, so its marker is not re-emitted; the no-host stand-in
-// and the continuation passes both keep the marker already emitted for the
-// player the loop reached.
+// every defined target up front. A suspended player's re-entry
+// (Ctx.Arrange set) skips the completed target, so its marker is not
+// re-emitted; the no-host stand-in and continuation passes each record only
+// the library whose arrangement they reach.
 func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, n int32, kind, verb string, extraOf func(state.PlayerID) int32, markSurveil bool) {
-	// Re-entry after rules' handleArrange applied the answered KArrange and
-	// emitted the LibraryOrder event: this pass must only let the resolution
-	// continue (the chained SubAbility$ runs), not re-ask or re-emit.
+	// Re-entry after rules' handleArrange resumes with the next library. The
+	// cursor is shared with RearrangeTopOfLibrary, so every Defined$/targeted
+	// Scry or Surveil library gets its own ask.
+	start := 0
 	if c.Arrange {
+		start = c.LibraryTarget + 1
 		c.Arrange = false
-		return
 	}
 	if n < 0 {
 		n = 0
 	}
 	g := h.Game()
-	for _, t := range actingPlayers(h, c, sa) {
+	for targetIndex, t := range actingPlayers(h, c, sa) {
+		if targetIndex < start {
+			continue
+		}
+		c.LibraryTarget = targetIndex
 		p := PlayerOf(h, c, t)
 		if markSurveil {
 			h.Emit(events.Event{Kind: events.Surveil, Player: p, Obj: c.Source})
@@ -2621,12 +2627,13 @@ func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, n int32, kind, verb string,
 		}
 		emitLook(h, []state.PlayerID{p}, state.ZLibrary, nil, "looks at the top of the library")
 		d := &decision.Decision{Player: p, Kind: decision.KArrange,
-			Min:        0,
-			Max:        int(k),
-			Source:     c.Source,
-			ResumeKind: "arrange",
-			ResumeSA:   sa,
-			Prompt:     verb + " " + strconv.Itoa(int(k)) + ": pick the cards to keep on top, in order; the rest go to " + destinationPhrase(kind)}
+			Min:          0,
+			Max:          int(k),
+			Source:       c.Source,
+			ResumeKind:   "arrange",
+			ResumeSA:     sa,
+			ResumeTarget: targetIndex,
+			Prompt:       verb + " " + strconv.Itoa(int(k)) + ": pick the cards to keep on top, in order; the rest go to " + destinationPhrase(kind)}
 		for i := int32(0); i < k; i++ {
 			name := "a card"
 			if o := g.Obj(lib[i]); o != nil && o.Face() != nil {
