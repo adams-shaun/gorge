@@ -830,7 +830,20 @@ var acceptanceHeads = map[int]string{
 	// AR7 promotion (2026-09-19): the default bot now attacks with a creature
 	// that is lethal to its defender if unblocked even into an unfavourable
 	// block (botpolicy lethal pressure; held-out 2,066-1,934 vs the old bot).
-	2: "41aff817d4f931ef",
+	// 2 seats moved to bc7420d9e4c7d3d2 (task cli-20260922T150843Z-42f8f6dc,
+	// NameCard over the full corpus name universe): Cabal Therapy
+	// (dimir-tempo) resolves its mid-resolution `A:SP$ NameCard | ValidCards$
+	// Card.nonLand` in this game. Before the fix effNameCard named the TOP CARD
+	// OF THE CASTER'S OWN LIBRARY and posed no ask: at event seq 657 the base
+	// stream emits `choose Ponder` (Obj 116 = the resolving Cabal Therapy). The
+	// fixed stream emits `decision_ask choose` at 657 and `decision_made` at
+	// 658 (the two extra events), then `choose "Ach! Hans, Run!"` at 659 -- the
+	// bot's deterministic first legal nonland name from the full universe. The
+	// first divergence is therefore exactly seq 657, and every later choice
+	// difference follows from the Therapy name (its `DB$ Discard` then discards
+	// a different card). 4, 6 and 8 seats are UNMOVED (no NameCard resolves in
+	// those games).
+	2: "bc7420d9e4c7d3d2",
 	// 4 seats moved to c232a4aca592e0f8 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
