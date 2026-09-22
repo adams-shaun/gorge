@@ -576,12 +576,42 @@ func TestSkulkDoesNotBlockSmaller(t *testing.T) {
 	e := combatEngine(t)
 	attacker := onBoardCard(t, e, 1, corpusKeywordCard(t, "Time Beetle"))
 	e.G.Obj(attacker).IsAttacking, e.G.Obj(attacker).Attacking = true, 0
-	blocker := onBoard(t, e, 0, "Name:Small Blocker\nManaCost:1\nTypes:Creature\nPT:1/1\nOracle:x\n")
-	if e.Derived(attacker).Power != e.Derived(blocker).Power {
-		t.Fatalf("skulk equality precondition changed: attacker=%d blocker=%d", e.Derived(attacker).Power, e.Derived(blocker).Power)
+	// Assert the fixture before leaning on it: this test is about the
+	// PRINTED keyword on this exact card, so a fixture that lost the
+	// keyword (or was the wrong card) must fail loudly, not pass silently.
+	if got := e.G.Obj(attacker).Face().Name; got != "Time Beetle" {
+		t.Fatalf("fixture is %q, want Time Beetle", got)
 	}
-	if !e.canBlock(blocker, attacker) {
-		t.Fatal("an equal-power creature could not block Time Beetle's skulk attack")
+	if !e.HasKeyword(attacker, "Skulk") {
+		t.Fatal("Time Beetle does not read as carrying printed Skulk")
+	}
+	// A SMALLER blocker (0 power against the attacker's 1) is admitted:
+	// CR 702.110a bars only GREATER power, so the boundary below the
+	// attacker is legal. This is the "DoesNotBlockSmaller" half.
+	smaller := onBoard(t, e, 0, "Name:Small Blocker\nManaCost:1\nTypes:Creature\nPT:0/5\nOracle:x\n")
+	if e.Derived(smaller).Power >= e.Derived(attacker).Power {
+		t.Fatalf("skulk smaller-boundary precondition changed: blocker power %d, attacker power %d",
+			e.Derived(smaller).Power, e.Derived(attacker).Power)
+	}
+	if !e.canBlock(smaller, attacker) {
+		t.Fatal("a smaller creature could not block Time Beetle's skulk attack")
+	}
+	// The necessary Skulk property, proven by contrast: one GREATER-power
+	// blocker is refused against the Skulk attacker and admitted against
+	// an otherwise identical attacker WITHOUT the keyword. Removing the
+	// Skulk read in canBlock makes the first assertion fail, so this test
+	// cannot pass on the unfixed engine.
+	greater := onBoard(t, e, 0, "Name:Big Blocker\nManaCost:3\nTypes:Creature\nPT:2/2\nOracle:x\n")
+	plain := onBoard(t, e, 1, "Name:Plain Beetle\nManaCost:1\nTypes:Creature\nPT:1/1\nOracle:x\n")
+	e.G.Obj(plain).IsAttacking, e.G.Obj(plain).Attacking = true, 0
+	if e.HasKeyword(plain, "Skulk") {
+		t.Fatal("control attacker unexpectedly has Skulk; the contrast proves nothing")
+	}
+	if e.canBlock(greater, attacker) {
+		t.Fatal("a greater-power blocker blocked Time Beetle's skulk attack")
+	}
+	if !e.canBlock(greater, plain) {
+		t.Fatal("the same greater-power blocker was refused against a non-skulk attacker")
 	}
 }
 
