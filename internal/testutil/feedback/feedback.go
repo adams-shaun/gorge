@@ -56,6 +56,7 @@ type matchJSON struct {
 	PlayerNames  []string          `json:"player_names,omitempty"`
 	Decks        []string          `json:"decks"`
 	DeckCards    [][]string        `json:"deck_cards"`
+	Sideboards   [][]string        `json:"sideboards,omitempty"`
 	Spectator    string            `json:"spectator"`
 	State        string            `json:"state"`
 	Result       string            `json:"result,omitempty"`
@@ -210,7 +211,10 @@ func Load(dir string) (*events.Log, rules.Config, Meta, error) {
 // config rebuilds a rules.Config from match.json's content: decks from the
 // recorded card-name lists (resolved through the registry exactly the way
 // deck.File.Resolve resolves a deck file — Lookup normalises the name, so
-// the recorded printed name finds its card), the already-compiled token
+// the recorded printed name finds its card), the sideboards the same way
+// when the capture recorded any (Sideboards are genesis configuration: the
+// engine mints their objects before the first event, so a replay without
+// them shifts every later object ID), the already-compiled token
 // scripts (resolved by resolveTokens — never raw text, which may be
 // GPL-3.0), and the format/life/commander/mulligan settings. The seed is
 // carried but replay overwrites it with the log's own seed (replay's
@@ -230,11 +234,26 @@ func config(m matchJSON, reg *cards.Registry, tokens map[string]*cards.Card) (ru
 			decks[i][j] = c
 		}
 	}
+	var sideboards [][]*cards.Card
+	if len(m.Sideboards) > 0 {
+		sideboards = make([][]*cards.Card, len(m.Sideboards))
+		for i, names := range m.Sideboards {
+			sideboards[i] = make([]*cards.Card, len(names))
+			for j, n := range names {
+				c, ok := reg.Lookup(n)
+				if !ok {
+					return rules.Config{}, fmt.Errorf("feedback: sideboard %d card %d (%q) is not in the corpus", i, j, n)
+				}
+				sideboards[i][j] = c
+			}
+		}
+	}
 	cfg := rules.Config{
 		Seed:        m.Seed,
 		Names:       m.Names,
 		PlayerNames: m.PlayerNames,
 		Decks:       decks,
+		Sideboards:  sideboards,
 		Mulligans:   m.Mulligans,
 		Tokens:      tokens,
 	}

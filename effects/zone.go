@@ -56,6 +56,8 @@ func parseZone(s string) (state.Zone, bool) {
 		return state.ZStack, true
 	case "Command":
 		return state.ZCommand, true
+	case "Sideboard":
+		return state.ZSideboard, true
 	case "Ceased":
 		return state.ZCeased, true
 	}
@@ -171,13 +173,17 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// hand, and/or library"). Every one of the corpus's 62 carriers pairs
 		// it with Origin$ Library; without this merge the exact-Library branch
 		// below sees a library-only origin and silently searches just that.
+		// (A compound Origin$ WITHOUT OriginAlternative$ is merged here too
+		// when its chooser must pick from the zones and it names Sideboard --
+		// the search-branch gate below -- but the note above about selector
+		// carriers keeping their object path still governs the rest.)
 		// The merge is deliberately SCOPED to this parameter (altPresent below
 		// gates the widened search branch): a compound Origin$ WITHOUT an
 		// OriginAlternative$ keeps its pre-existing object path -- Eladamri,
 		// Korvecdal's `Defined$ ChosenCard | Origin$ Library,Hand` must move
 		// the already-chosen card, never pose a fresh whole-library pick.
 		// Parse with the same vocabulary as Origin$. A zone word ParseZones
-		// does not model (Sideboard) is noted loudly and dropped from the
+		// does not model an origin is noted loudly and dropped from the
 		// merged set while every KNOWN zone keeps searching -- bailing the
 		// whole effect (folding altValid into `valid`) would lose the library
 		// half of invasion_of_arcavios's "library, graveyard, and/or outside
@@ -202,8 +208,8 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// ... and the branch excludes every origin the dedicated walkers own:
 		// exactly-Library is the search below, exactly-Hand the hand movers,
 		// a mixed-Hand origin the loud note -- and this branch must sit BEFORE
-		// the unrecognised-Origin bail, because Origin$ Sideboard parses to no
-		// modelled zone at all yet still resolves (Burning Wish's wish, whose
+		// the unrecognised-Origin bail, because some hidden origins may still
+		// resolve (Burning Wish's wish, whose
 		// SubAbility$ self-exile must run). Origin$ All stays on the object
 		// path too -- every no-Defined$ corpus line naming it carries Defined$
 		// (all eight are Dauthi-shaped replacements), and a game-wide all-zones
@@ -213,11 +219,15 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// reveal and the shuffle conditions) -- exactly what the object path
 		// below already performs, which is why Dauthi Voidwalker's Hidden$
 		// "exile it instead" replacement carries no behaviour of its own
-		// beyond this read.
+		// beyond this read. A Hidden$ compound origin naming Sideboard skips
+		// this branch too: the search below is its chooser (Karn, the Great
+		// Creator's -2), and effHiddenPick's game-wide or owner-public fetch
+		// list is the wrong shape for an owner-private sideboard union.
 		if hidden && sa.Params["Defined"] == "" &&
 			!strings.EqualFold(strings.TrimSpace(sa.Params["Imprint"]), "True") &&
 			!originAll && !mixedOriginIncludesHand(originZones, originAll) &&
 			!zoneIn(originZones, state.ZLibrary) &&
+			!zoneIn(originZones, state.ZSideboard) &&
 			!(len(originZones) == 1 && originZones[0] == state.ZHand) {
 			effHiddenPick(h, c, sa, to, originZones, originAll, valid, from)
 			return
@@ -234,8 +244,8 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// and the resolver asks the chooser to pick ChangeNum$ of them. The
 		// object path below would instead move the Defined() source default
 		// silently (a self-bounce) or skip the player fetchers entirely (a
-		// silent no-op). Origin$ Sideboard must resolve despite parsing to no
-		// modelled zone (Burning Wish's wish, whose SubAbility$ self-exile
+		// silent no-op). Hidden sideboard searches resolve here (Burning Wish's
+		// wish, whose SubAbility$ self-exile
 		// must run), which is why the branch sits before the
 		// unrecognised-Origin bail. Origin$ All stays on the object path too
 		// -- every no-Defined$ corpus line naming it carries Defined$ (all
@@ -255,10 +265,16 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// A ChangeZone whose origin set includes Library and no other hidden
 		// walker's zone is the hidden-origin search, now spanning every zone
 		// Origin$ plus OriginAlternative$ named (the and/or shapes). The
-		// widened cross-zone shape fires ONLY when OriginAlternative$ is
-		// present: a compound Origin$ alone keeps its existing dispatcher, so
-		// a Defined$-bearing carrier (Eladamri, Korvecdal) still takes its
-		// already-chosen objects. The
+		// widened cross-zone shape fires when OriginAlternative$ is present,
+		// and ALSO for a compound DIRECT Origin$ whose chooser must pick FROM
+		// the zones -- no Defined$/DefinedPlayer$/ValidTgts$ naming the
+		// objects or the fetch player -- whenever it names Sideboard (the
+		// "outside the game" zone; the corpus's three such lines are Karn, the
+		// Great Creator's Origin$ Sideboard,Exile, one Eldrazi wish of the
+		// same shape, and one Library,Sideboard wish). A compound Origin$ WITH
+		// a selector keeps its existing dispatcher, so a Defined$-bearing
+		// carrier (Eladamri, Korvecdal) still takes its already-chosen
+		// objects. The
 		// searching player may fail to find a card with the stated quality (Min
 		// is always zero), and the answer resumes this same effect before its
 		// SubAbility runs. The exact-Library spelling is the single-zone case of
@@ -269,9 +285,12 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// because the search IS the origin-aware chooser that note says does not
 		// exist: the fetch player sees their own hand, so no hidden information
 		// is exposed by offering it by name.
-		if zoneIn(originZones, state.ZLibrary) && !originAll &&
+		noObjectSelector := sa.Params["Defined"] == "" && sa.Params["DefinedPlayer"] == "" &&
+			sa.Params["ValidTgts"] == ""
+		if (zoneIn(originZones, state.ZLibrary) || zoneIn(originZones, state.ZSideboard)) && !originAll &&
 			!zoneIn(originZones, state.ZBattlefield) &&
-			(altPresent || len(originZones) == 1) {
+			(altPresent || len(originZones) == 1 ||
+				(noObjectSelector && zoneIn(originZones, state.ZSideboard))) {
 			// Forge treats a Defined$ that resolves to objects in a hidden
 			// library as the already-selected fetch list, not as the owner of a
 			// fresh whole-library search. This is structural rather than keyed to
@@ -1741,6 +1760,9 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 	owner := players[0]
 	g := h.Game()
 	lib := zoneOf(g, state.ZLibrary, owner)
+	if !zoneIn(zones, state.ZLibrary) {
+		lib = nil
+	}
 
 	// A ShuffleNonMandatory$ search's may-shuffle confirm was answered: the
 	// moves already happened in the first pass, so this pass is tail-only --
@@ -2585,10 +2607,8 @@ func hiddenPickChooser(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID) state
 
 // effHiddenPick is Forge's changeHiddenOriginResolve for a Hidden$ True
 // ChangeZone whose origin zones are PUBLIC (Battlefield, Graveyard, Exile,
-// Command, Stack) or name no modelled zone at all (Origin$ Sideboard: this
-// engine holds no outside-the-game cards, so the wish finds nothing -- one
-// loud note says so, and the SubAbility$ chain still runs, Burning Wish's
-// self-exile included). With no Defined$ the fetch list is the origin zones'
+// Command, Stack). Sideboard is handled by the owner-scoped hidden search
+// path before this dispatcher. With no Defined$ the fetch list is the origin zones'
 // cards matching ChangeType$ -- game-wide for a public origin when no fetch
 // player is named, the named fetch player's own zones otherwise -- and the
 // chooser picks ChangeNum$ of them (Mandatory$ True makes the pick

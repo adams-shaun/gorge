@@ -45,6 +45,10 @@ type Config struct {
 	// behaves byte-identically to today.
 	PlayerNames []string
 	Decks       [][]*cards.Card
+	// Sideboards carries each seat's optional sideboard. It is genesis
+	// configuration rather than an event, so replay receives the same cards
+	// without changing any existing event schema.
+	Sideboards [][]*cards.Card
 	// Format names the construction format. Zero means Constructed; the other
 	// tasks in the Commander milestone (the tax, CR 903.9, commander damage)
 	// read it. This task is plumbing: it reads Commanders and StartingLife
@@ -1244,6 +1248,9 @@ func newWithRNG(cfg Config, random *rng) *Engine {
 			break
 		}
 		initialObjects += len(deck)
+		if i < len(cfg.Sideboards) {
+			initialObjects += len(cfg.Sideboards[i])
+		}
 	}
 	e := &Engine{
 		G:            state.NewGameLife(cfg.Names, life, initialObjects),
@@ -1339,6 +1346,15 @@ func newWithRNG(cfg Config, random *rng) *Engine {
 			ids = append(ids, e.G.AddObject(c, p).ID)
 		}
 		e.G.SetZone(state.ZLibrary, p, ids)
+		if i < len(cfg.Sideboards) && len(cfg.Sideboards[i]) > 0 {
+			sb := make([]state.ObjID, 0, len(cfg.Sideboards[i]))
+			for _, c := range cfg.Sideboards[i] {
+				o := e.G.AddObject(c, p)
+				o.Zone = state.ZSideboard
+				sb = append(sb, o.ID)
+			}
+			e.G.SetZone(state.ZSideboard, p, sb)
+		}
 		// Commanders leave the library for the command zone here, BEFORE the
 		// shuffle and BEFORE the opening hand is dealt, so they are neither
 		// shuffled into the library nor drawable. Emitted as real MoveZone
