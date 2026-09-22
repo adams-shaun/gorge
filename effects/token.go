@@ -213,6 +213,43 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
 			Text: dynBad + " is not implemented; the token keeps its script's printed P/T"})
 	}
+	// WithCountersType$/WithCountersAmount$ (Printlifter Ooze's "create a
+	// 0/0 ... token ... The token enters with X +1/+1 counters on it"): every
+	// token this call creates enters with that many of the named counter
+	// kind, emitted as ONE CounterChange per mint right after the mint -- the
+	// ChangeZone entry counters' exact shape (zone.go's WithCounters read),
+	// so AddCounter replacements (Doubling Season) and every CounterAdded
+	// trigger see an entry counter the way they see a ChangeZone one. The
+	// amount resolves through the ordinary Num grammar: a signed literal
+	// (incubob's WithCountersAmount$ 1), an SVar name on the resolving face
+	// (Printlifter Ooze's WithCountersAmount$ X over SVar:X:Count$Valid
+	// Creature.YouCtrl), or an inline Count$... -- the same resolution the
+	// TokenPower$/TokenToughness$ read above uses. A WithCountersType$ with
+	// no WithCountersAmount$ defaults to 1; an amount the grammar cannot
+	// resolve is loud (one Note for the whole call, never per mint) and the
+	// set is skipped -- the token enters WITHOUT the counters, the honest
+	// degrade that for a 0/0 script means the zero-toughness SBA sweeps it
+	// visibly rather than a silent wrong count. The minted-object guard is
+	// the same g.Obj(want) identity check the other riders read: under a
+	// token replacement the counters land on the first mint only, the
+	// tokrepl1 extra-mints-get-no-riders contract this file's
+	// RememberTokens$ doc already records.
+	withKind := strings.TrimSpace(sa.Params["WithCountersType"])
+	var withAmt int32
+	var withOK bool
+	if withKind != "" {
+		if _, present := sa.Params["WithCountersAmount"]; present {
+			if v, ok := NumResolved(h, c, sa, "WithCountersAmount", 1); ok {
+				withAmt, withOK = v, true
+			} else {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+					Text: "WithCountersAmount$ " + strings.TrimSpace(sa.Params["WithCountersAmount"]) +
+						" is not implemented; the token enters with no " + withKind + " counters"})
+			}
+		} else {
+			withAmt, withOK = 1, true
+		}
+	}
 	tapped := strings.EqualFold(strings.TrimSpace(sa.Params["TokenTapped"]), "True")
 
 	// TokenAttacking$ True (Mobilize, Kari Zev's "tapped and attacking"
@@ -273,6 +310,9 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 				if remember && g.Obj(want) != nil {
 					c.Remembered = append(c.Remembered, state.Target{Obj: want})
 					eventRemember(h, c, want)
+				}
+				if withOK && g.Obj(want) != nil {
+					h.Emit(events.Event{Kind: events.CounterChange, Obj: want, Counter: withKind, Amount: withAmt})
 				}
 				if tapped && g.Obj(want) != nil {
 					h.Emit(events.Event{Kind: events.Tap, Obj: want, Player: owner, Text: "entered tapped"})
