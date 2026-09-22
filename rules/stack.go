@@ -2930,7 +2930,14 @@ func (e *Engine) EmitDamage(ev events.Event) events.Event { return e.emit(ev) }
 // ExchangeLifeVariant uses this to avoid installing its characteristic half
 // after a life replacement prevents, transforms, or parks the event.
 func (e *Engine) EmitLifeChange(ev events.Event) bool {
+	queued := len(e.replChoices)
 	stored := e.emit(ev)
+	// A parked CR 616.1 competition leaves the original event in hand while
+	// putting a replacement choice on the engine queue.  It is not equivalent
+	// to an unchanged event that was actually applied.
+	if e.pending != nil || len(e.replChoices) != queued {
+		return false
+	}
 	return stored.Kind == events.LifeChange && stored.Player == ev.Player && stored.Amount == ev.Amount
 }
 func (e *Engine) Rand(n int) int { return e.rng.IntN(n) }
