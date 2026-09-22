@@ -509,3 +509,249 @@ func TestConnivesTriggerFiresForIronMonger(t *testing.T) {
 		t.Fatalf("shredder zone = %s, want battlefield", o.Zone)
 	}
 }
+
+// conniveSeedGraveyard moves the corpus card named by name from seat p's
+// hand or library into their graveyard and returns it. A Dredge carrier must
+// start in the graveyard (CR 702.55), so the draw-replacement tests seed it
+// through a logged MoveZone rather than a deck slot.
+func conniveSeedGraveyard(t *testing.T, e *Engine, p state.PlayerID, name string) state.ObjID {
+	t.Helper()
+	for _, z := range []state.Zone{state.ZHand, state.ZLibrary} {
+		for _, id := range e.G.Zone(z, p) {
+			if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == name {
+				e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: z, To: state.ZGraveyard})
+				e.pending = nil
+				e.priorityRound()
+				return id
+			}
+		}
+	}
+	t.Fatalf("corpus card %q absent from seat %d's hand/library", name, p)
+	return 0
+}
+
+// TestLethalSchemeConviveDrawReplacementDoesNotOrphanTheAsk is the
+// findings-t2 CRITICAL regression: a connive whose draw poses a Dredge
+// replacement (CR 702.55) used to drive its draws through a bare DrawFor
+// loop, so the connive's discard ask was posted while the dredge ask was
+// still outstanding and the engine panicked ("ask overwrote a suspended
+// resolution's pending decision"), crashing the match. Post-fix the connive
+// is resumable across the draw suspension: the dredge ask is answered, the
+// remaining draws (none here, N == 1) complete, and only THEN does the
+// discard ask fire; the discard reads the post-replacement hand and the
+// connive record/counter land exactly once.
+func TestLethalSchemeConviveDrawReplacementDoesNotOrphanTheAsk(t *testing.T) {
+	e, cfg := conniveEngine(t, []string{"Lethal Scheme", "Grizzly Bears", "Grizzly Bears", "Golgari Thug"}, []string{"Grizzly Bears"})
+	convokeWith := conniveMoveTo(t, e, 0, "Grizzly Bears", state.ZBattlefield)
+	opponentBear := conniveMoveTo(t, e, 1, "Grizzly Bears", state.ZBattlefield)
+	conniveMoveTo(t, e, 0, "Grizzly Bears", state.ZHand)
+	conniveSeedGraveyard(t, e, 0, "Golgari Thug")
+	before := len(e.G.Zone(state.ZHand, 0))
+
+	castLethalSchemeAtBear(t, e, opponentBear, convokeWith)
+	// The connive's draw parked on a Dredge ask (the graveyard carrier is
+	// legal: library holds more than its Dredge 4). The discard ask must NOT
+	// be pending yet -- that co-pending ask was the panic.
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KModes || d.ResumeKind != "dredge" {
+		t.Fatalf("after the cast pending = %+v, want the connive draw's dredge ask", d)
+	}
+	// Decline the dredge: the ordinary draw happens, then the connive
+	// discard ask is posed -- sequentially, after the draw is settled.
+	submitChoices(t, e, len(d.Options)-1)
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KModes || d.ResumeKind != "connive" {
+		t.Fatalf("after the dredge decline pending = %+v, want the connive discard ask", d)
+	}
+	nonland := firstNonlandHandOption(t, e)
+	submitChoices(t, e, nonland.Index)
+	passUntilStackEmpty(t, e, 30)
+
+	// The connive happened exactly once: one draw, one discard, net hand
+	// unchanged, one record, one nonland counter.
+	if got := len(e.G.Zone(state.ZHand, 0)); got != before {
+		t.Fatalf("hand after connive = %d, want %d (one draw, one discard)", got, before)
+	}
+	if o := e.G.Obj(convokeWith); o == nil || o.Zone != state.ZBattlefield || o.Counter("P1P1") != 1 {
+		t.Fatalf("conniver after nonland discard = %+v, want exactly 1 P1P1", e.G.Obj(convokeWith))
+	}
+	records := 0
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Connive && ev.Obj == convokeWith {
+			records++
+			if ev.Amount != 1 || len(ev.IDs) != 1 || ev.IDs[0] != nonland.Obj {
+				t.Fatalf("connive record = %+v, want Amount 1 IDs [the discarded nonland card]", ev)
+			}
+		}
+	}
+	if records != 1 {
+		t.Fatalf("events.Connive records for the conniver = %d, want exactly 1", records)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestLethalSchemeConviveDrawReplacementHandAtMostN covers the findings-t2
+// MAJOR shape: when the conniver's hand is at most N there is no discard ask
+// at all, so the pre-fix code applied the discard, the counter and the
+// record from the PRE-draw hand while the dredge ask was still pending, and
+// the answered dredge then resumed with no sub-ability recorded. Post-fix
+// the discard runs only after the draw's replacement is settled, so the
+// record reflects what the replacement actually did.
+//
+// The Lethal Scheme convoked connive is the carrier and the hand is emptied
+// to exactly Lethal Scheme before the cast, so the connive's draw leaves one
+// card; accepting the Dredge returns the nonland carrier to hand, which the
+// connive discards (one counter) in the same resolution.
+func TestLethalSchemeConviveDrawReplacementHandAtMostN(t *testing.T) {
+	e, cfg := conniveEngine(t, []string{"Lethal Scheme", "Grizzly Bears", "Grizzly Bears", "Golgari Thug"}, []string{"Grizzly Bears"})
+	convokeWith := conniveMoveTo(t, e, 0, "Grizzly Bears", state.ZBattlefield)
+	opponentBear := conniveMoveTo(t, e, 1, "Grizzly Bears", state.ZBattlefield)
+	conniveSeedGraveyard(t, e, 0, "Golgari Thug")
+	// Put Lethal Scheme in hand (the deck is shuffled, so it may still be in
+	// the library), then empty the hand down to it alone.
+	conniveMoveTo(t, e, 0, "Lethal Scheme", state.ZHand)
+	// Empty the hand down to Lethal Scheme alone, so the post-draw hand is
+	// exactly N == 1 and no discard ask is owed.
+	var handIDs []state.ObjID
+	for _, id := range e.G.Zone(state.ZHand, 0) {
+		if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name != "Lethal Scheme" {
+			handIDs = append(handIDs, id)
+		}
+	}
+	for _, id := range handIDs {
+		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZLibrary})
+	}
+	e.pending = nil
+	e.priorityRound()
+	if got := len(e.G.Zone(state.ZHand, 0)); got != 1 {
+		t.Fatalf("hand before cast = %d, want 1 (Lethal Scheme alone)", got)
+	}
+
+	castLethalSchemeAtBear(t, e, opponentBear, convokeWith)
+	// The connive's draw parked on a Dredge ask; no discard ask may be
+	// pending alongside it (that co-pending ask was the panic).
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KModes || d.ResumeKind != "dredge" {
+		t.Fatalf("after the cast pending = %+v, want the connive draw's dredge ask", d)
+	}
+	// Accept the dredge: mill 4, return the nonland carrier to hand. The
+	// hand is now exactly N == 1, so no discard ask -- the connive discards
+	// the returned carrier directly and puts one counter on the conniver.
+	submitChoices(t, e, 0)
+	// If any discard ask gets posed here the CRITICAL/MAJOR class is back:
+	// with hand == N nobody could answer differently, so the connive must
+	// not ask.
+	if pd := e.Pending(); pd != nil && pd.ResumeKind == "connive" {
+		t.Fatalf("connive posed a discard ask with hand == N: %+v", pd)
+	}
+	passUntilStackEmpty(t, e, 30)
+
+	if got := len(e.G.Zone(state.ZHand, 0)); got != 0 {
+		t.Fatalf("hand after the connive = %d, want 0 (Dredge returned the carrier, the connive discarded it)", got)
+	}
+	if o := e.G.Obj(convokeWith); o == nil || o.Zone != state.ZBattlefield || o.Counter("P1P1") != 1 {
+		t.Fatalf("conniver after the nonland discard = %+v, want exactly 1 P1P1", e.G.Obj(convokeWith))
+	}
+	records := 0
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Connive && ev.Obj == convokeWith {
+			records++
+			if len(ev.IDs) != 1 {
+				t.Fatalf("connive record IDs = %v, want the one discarded card", ev.IDs)
+			}
+		}
+	}
+	if records != 1 {
+		t.Fatalf("events.Connive records = %d, want exactly 1", records)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestSpymastersVaultConniveTwoWithDrawReplacements covers the findings-t2
+// N >= 2 shape the review named by inspection: Spymaster's Vault's activated
+// ability makes a target creature connive X where X is the creatures that
+// died this turn, so each of the two draws poses its OWN Dredge ask
+// sequentially -- the pre-fix bare-DrawFor loop posed the second over the
+// first (the orphaned-decision panic). Post-fix the loop parks the first
+// ask, the answer drives the re-entry to the second, and only after both
+// draws are settled does the discard fire.
+func TestSpymastersVaultConniveTwoWithDrawReplacements(t *testing.T) {
+	e, cfg := conniveEngine(t, []string{"Spymaster's Vault", "Grizzly Bears", "Grizzly Bears", "Grizzly Bears", "Grizzly Bears", "Golgari Thug"}, nil)
+	vault := conniveMoveTo(t, e, 0, "Spymaster's Vault", state.ZBattlefield)
+	// A direct battlefield move still runs the enter-tapped replacement (no
+	// Swamp controlled), so untap it before activating.
+	e.emit(events.Event{Kind: events.Untap, Obj: vault})
+	e.pending = nil
+	e.priorityRound()
+	// Two creatures die this turn, feeding Count$ThisTurnEntered... .
+	for i := 0; i < 2; i++ {
+		bear := conniveMoveTo(t, e, 0, "Grizzly Bears", state.ZBattlefield)
+		e.emit(events.Event{Kind: events.MoveZone, Obj: bear, From: state.ZBattlefield, To: state.ZGraveyard})
+		e.pending = nil
+		e.priorityRound()
+	}
+	conniver := conniveMoveTo(t, e, 0, "Grizzly Bears", state.ZBattlefield)
+	// Seed a nonland in hand so the two-card discard is a real ask, and a
+	// Dredge carrier so each draw can be replaced.
+	conniveMoveTo(t, e, 0, "Grizzly Bears", state.ZHand)
+	conniveSeedGraveyard(t, e, 0, "Golgari Thug")
+
+	addMana(t, e, 0, "B")
+	// The connive ability is the second A: on the card (index 1).
+	opt := abilityOption(t, e, vault, 1)
+	submitChoices(t, e, opt.Index)
+	// The ability's target ask: the conniver.
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("after activation pending = %+v, want the target ask", d)
+	}
+	tIdx := -1
+	for _, o := range d.Options {
+		if o.Obj == conniver {
+			tIdx = o.Index
+		}
+	}
+	if tIdx < 0 {
+		t.Fatalf("target ask offers no conniver %d: %+v", conniver, d.Options)
+	}
+	submitChoices(t, e, tIdx)
+
+	// Draw 1's Dredge ask, then draw 2's -- sequential, never two at once.
+	// The first ask is reached by passing priority until the ability
+	// resolves; the second is posed directly by the resumed resolution.
+	for draw := 0; draw < 2; draw++ {
+		if draw == 0 {
+			d = passUntilNonPriority(t, e, 30)
+		} else {
+			d = e.Pending()
+		}
+		if d == nil || d.Kind != decision.KModes || d.ResumeKind != "dredge" {
+			t.Fatalf("draw %d pending = %+v, want a dredge ask", draw, d)
+		}
+		// Decline: the ordinary draw, keeping the carrier in the graveyard so
+		// the next draw asks again.
+		submitChoices(t, e, len(d.Options)-1)
+	}
+	// Now the discard ask: connive 2 over the post-draw hand.
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KModes || d.ResumeKind != "connive" || d.Min != 2 || d.Max != 2 {
+		t.Fatalf("pending = %+v, want the connive-2 discard ask", d)
+	}
+	submitChoices(t, e, d.Options[0].Index, d.Options[1].Index)
+	passUntilStackEmpty(t, e, 30)
+
+	// The connive ran once with two discards and the one record.
+	records := 0
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Connive && ev.Obj == conniver {
+			records++
+			if len(ev.IDs) != 2 {
+				t.Fatalf("connive-2 record IDs = %v, want two discarded cards", ev.IDs)
+			}
+		}
+	}
+	if records != 1 {
+		t.Fatalf("events.Connive records = %d, want exactly 1", records)
+	}
+	replayCheck(t, e, cfg)
+}
