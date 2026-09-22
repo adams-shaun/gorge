@@ -106,7 +106,8 @@ type fakeHost struct {
 	startingLife int32
 }
 
-func (h *fakeHost) Game() *state.Game { return h.g }
+func (h *fakeHost) Game() *state.Game                   { return h.g }
+func (h *fakeHost) ObjectColors(o *state.Object) string { return ColorsOf(o) }
 func (h *fakeHost) Emit(e events.Event) {
 	h.log = append(h.log, e)
 	events.Apply(h.g, e)
