@@ -164,6 +164,17 @@ type pendingTrigger struct {
 	// Count$OffspringPaid read resolves against its pay-time provenance.
 	// Idx and SA are unset for it.
 	Offspring bool
+	// Flanking is a GRANTED flanking instance (CR 702.25a via a layer-6
+	// AddKeyword$ Flanking -- Agility, Flanking Licid, Sidewinder Sliver,
+	// Cavalry Master): the Ward/Conspire shape. A creature granted flanking
+	// has no printed K:Flanking trigger to carry the pump body, so the drain
+	// pushes a KeywordTriggerPush whose __kwFlanking: payload events.Apply
+	// rebuilds into the same DB$ Pump | Defined$ TriggeredBlockerLKICopy |
+	// NumAtt$ -1 | NumDef$ -1 body the printed expansion carries. The blocked
+	// creature rides IDs as Remembered (the printed path's own slot), which
+	// Defined$ TriggeredBlockerLKICopy reads at resolution. Idx and SA are
+	// unset for it.
+	Flanking bool
 	// RingEmblem is one of the Ring emblem's four level abilities (CR
 	// 701.54c), queued by checkRingEmblemTriggers. The emblem has no face
 	// and no object in any zone, so like Ward/Afflict this entry carries

@@ -1770,6 +1770,7 @@ func Apply(g *state.Game, e Event) {
 		sa := cards.ResolveSVar(src.Face().SVars, e.Counter)
 		conspire := false
 		demonstrate := false
+		flanking := false
 		if sa == nil {
 			// A granted ward (rules.pushTrigger's __kwWard: payload) has no
 			// SVar to resolve: the ability is rebuilt structurally from the
@@ -1836,6 +1837,21 @@ func Apply(g *state.Game, e Event) {
 				sa = &cards.SA{Kind: "DB", API: "Cascade",
 					Params: map[string]string{"TriggerDescription": "Cascade"}}
 			}
+			// A granted flanking (rules.pushTrigger's __kwFlanking: payload) has
+			// no SVar either: rebuilt structurally into the same
+			// DB$ Pump | Defined$ TriggeredBlockerLKICopy | NumAtt$ -1 | NumDef$
+			// -1 body the printed K:Flanking expansion carries
+			// (cards/kw_flanking.go), so the live game and the replay mint
+			// identical objects from the event text alone. The blocked creature
+			// rides Remembered (IDs), exactly as the printed expansion's own
+			// TriggerPush entries carry it. The trailing colon keeps the payload
+			// from aliasing the "__kwFlanking" SVar a printed bare K:Flanking
+			// line mints.
+			if _, ok := strings.CutPrefix(e.Counter, "__kwFlanking:"); ok {
+				sa = &cards.SA{Kind: "DB", API: "Pump",
+					Params: map[string]string{"Defined": "TriggeredBlockerLKICopy", "NumAtt": "-1", "NumDef": "-1"}}
+				flanking = ok
+			}
 			// A granted Exploit (rules.pushTrigger's __kwExploitGranted
 			// payload) has no SVar either: rebuilt structurally into the same
 			// DB$ Sacrifice | Optional$ True | SacValid$ Creature |
@@ -1883,7 +1899,7 @@ func Apply(g *state.Game, e Event) {
 		o.Ability = sa
 		o.Source = e.Obj
 		o.SourceIncarnation = incarnation
-		if conspire || demonstrate {
+		if conspire || demonstrate || flanking {
 			o.Remembered = rememberedFrom(e.IDs)
 		}
 

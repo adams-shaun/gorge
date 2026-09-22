@@ -23,6 +23,21 @@ import (
 
 type predFn func(g *state.Game, o *state.Object, you state.PlayerID, source state.ObjID) bool
 
+// keywordPredicates maps a `with<Keyword>`/`without<Keyword>` predicate name
+// to the keyword it tests and whether it is negated. The predicate-map
+// functions below can only answer from the object alone (printed face plus
+// marker counters), but a rules caller that has already run the layer walk
+// can bind the FULL derived keyword list through SpecContext.ExtraKeywords --
+// exactly the ExtraTypes seam for layer-4 types -- so a layer-6 AddKeyword$
+// grant is visible to the filter that gates it (Cavalry Master's
+// `withFlanking` lord, kw:Flanking's `withoutFlanking` blocker check).
+type keywordPredicate struct {
+	keyword string
+	negated bool
+}
+
+var keywordPredicates = map[string]keywordPredicate{}
+
 var predicates = map[string]predFn{
 	"YouCtrl": func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool {
 		return o.Controller == you
@@ -283,6 +298,8 @@ func init() {
 		predicates["without"+strings.ReplaceAll(k, " ", "")] = func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 			return !objectHasKeyword(o, k)
 		}
+		keywordPredicates["with"+strings.ReplaceAll(k, " ", "")] = keywordPredicate{keyword: k}
+		keywordPredicates["without"+strings.ReplaceAll(k, " ", "")] = keywordPredicate{keyword: k, negated: true}
 	}
 	// These read ColorsOf, not the face directly, so Devoid (effects.ColorsOf)
 	// correctly stops a card from matching any colour predicate, Green included.
@@ -2102,6 +2119,24 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 	if result, ok := typePredicate(p, g, o, sc); ok {
 		return result, true
 	}
+	// Keyword predicates must use the derived keyword list when rules
+	// supplies one, for the same reason type predicates use ExtraTypes: the
+	// predicate-map functions read the object alone and cannot see a layer-6
+	// AddKeyword$ grant. Keep this before the generic predicate map so a
+	// context-aware caller never has its bound list bypassed.
+	if kp, ok := keywordPredicates[p]; ok && sc.ExtraKeywords != nil {
+		has := false
+		for _, x := range sc.ExtraKeywords {
+			if strings.EqualFold(cards.KeywordHead(x), kp.keyword) {
+				has = true
+				break
+			}
+		}
+		if kp.negated {
+			has = !has
+		}
+		return has, true
+	}
 	if fn, ok := predicates[p]; ok {
 		return fn(g, o, sc.You, sc.Source), true
 	}
@@ -2662,6 +2697,15 @@ type SpecContext struct {
 	// SpecContext field makes escape analysis leak the whole context (its
 	// Resolve closure included) to the heap on every hot-path construction.
 	ExtraTypes []string
+	// ExtraKeywords optionally supplies the layer-derived KEYWORD list for the
+	// ONE object the spec is being matched against (a value slice, same
+	// rationale as ExtraTypes). When non-nil it is authoritative for the
+	// `with<Keyword>`/`without<Keyword>` predicates: it already holds printed
+	// keywords, marker-counter grants and layer-6 AddKeyword$ grants, so a
+	// caller with the layer walk in hand can gate on a granted keyword
+	// (kw:Flanking's blocker check, Cavalry Master's `withFlanking` lord).
+	// nil keeps the object-alone read (printed face plus counters).
+	ExtraKeywords []string
 }
 
 // triggeredSpellTargetSA derives the target-declaring SA of a stack spell
