@@ -42,7 +42,10 @@ import (
 
 // canAttack reports whether id may be declared as an attacker (CR 508.1a):
 // a creature under the active player's control, untapped, without Defender
-// (CR 702.3b), and either not summoning sick or hasty.
+// (CR 702.3b), and either not summoning sick or hasty. A reconfigure card
+// while attached is not a creature (CR 702.150c): the derived type switch
+// (reconfigureTypeSwitch) already dropped Creature, so IsCreature answers
+// false here with no extra gate.
 func (e *Engine) canAttack(id state.ObjID) bool {
 	o := e.G.Obj(id)
 	if o == nil || o.Zone != state.ZBattlefield || o.Controller != e.G.Active {
@@ -920,7 +923,7 @@ func (e *Engine) legalBlockerCount(attacker state.ObjID, defender state.PlayerID
 func (e *Engine) defenderCreatureCount(defender state.PlayerID) int {
 	n := 0
 	for _, id := range e.G.Zone(state.ZBattlefield, defender) {
-		if o := e.G.Obj(id); o != nil && o.EffectiveIsCreature() && !o.BestowedAttached() {
+		if o := e.G.Obj(id); o != nil && o.EffectiveIsCreature() && !o.BestowedAttached() && !o.ReconfiguredAttached() {
 			n++
 		}
 	}

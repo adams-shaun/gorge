@@ -1536,6 +1536,13 @@ var handRoots = struct {
 	trig: []string{"Engine.pushTrigger", "Engine.triggerLabel", "Engine.abilityLabel",
 		"Engine.resolveTop", "Engine.isTriggeredManaAbility", "Engine.triggerReferents",
 		"Engine.StackOptional", "Engine.optionalDecider",
+		// putTriggersOnStack is the queue drain's root: its
+		// groupOrderDuplicates step reads the OrderDuplicates$ trigger
+		// parameter (through orderDuplicatesGroup / triggerOrdersDuplicates)
+		// to keep duplicate instances of a flagged line adjacent. The drain
+		// has no machine-readable mode root, so it is declared here like the
+		// other queue-drain reads above.
+		"Engine.putTriggersOnStack",
 		// checkAttackerUnblockedOnceTriggers is a dedicated hook queued from
 		// rules/turn.go's declare-blockers round-complete branch, NOT from
 		// checkTriggers (unlike checkAttackerBlockedTriggers / checkBlocksTriggers

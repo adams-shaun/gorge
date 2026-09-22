@@ -221,6 +221,26 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	// effect's Remembered set. Both this and ForgetOnMoved$ ride every
 	// registration below.
 	forgetCounter := strings.TrimSpace(sa.Params["ForgetCounter"])
+	// ImprintOnHost$ True (task param:api:Effect.ImprintOnHost): Forge's
+	// EffectEffect imprints the CREATED EFFECT TOKEN on the host card and
+	// moves the token to the Command zone -- the imprint is the link "this
+	// effect belongs to this card", never the remembered card itself. The
+	// corpus's dig-and-play family (Superior Foes of Spider-Man, Furious
+	// Rise, Unstable Amulet) then ends the previous effect through its
+	// trigger's `DB$ ChangeZone | Defined$ Imprinted | Origin$ Command |
+	// Destination$ Exile` (exiling the imprinted token is exiling the
+	// effect -- the "until you exile another card" lifetime), and Word of
+	// Command / Semester's End run the same idiom inside one chain. This
+	// build has no effect-token object, so the marker rides every
+	// registration this call creates (state.ContinuousEffect.ImprintOnHost)
+	// and the idiom ends exactly those through Host.EndImprintedEffects
+	// (rules' EndImprintedEffect). Any other value is a loud unmodelled
+	// read, the RememberLKI$ convention.
+	if v := strings.TrimSpace(sa.Params["ImprintOnHost"]); v != "" && !strings.EqualFold(v, "True") {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "unmodelled Effect ImprintOnHost$ " + v})
+	}
+	imprintOnHost := strings.EqualFold(strings.TrimSpace(sa.Params["ImprintOnHost"]), "True")
 	// RememberLKI$ (Quicksilver Elemental's "RememberLKI$ Targeted"): the
 	// effect remembers the TARGETED cards — "Targeted" (and Forge's bare
 	// "True", which is Targeted in the corpus's spelling) is exactly the
@@ -298,6 +318,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				ForgetOnMoved:    forgetOn,
 				ExileOnMoved:     exileOn,
 				ForgetCounter:    forgetCounter,
+				ImprintOnHost:    imprintOnHost,
 				ChosenNumber:     chosenNumber,
 				ReplacementEvent: event, ReplacementParams: params, ReplacementBody: body,
 			})
@@ -332,6 +353,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				UntilEOT: untilEOT, Duration: dur,
 				Name:             effectName,
 				Remembered:       remembered,
+				ImprintOnHost:    imprintOnHost,
 				ReplacementEvent: event, ReplacementParams: params,
 			})
 			registered = true
@@ -364,6 +386,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				grant.ForgetOnMoved = forgetOn
 				grant.ExileOnMoved = exileOn
 				grant.ForgetCounter = forgetCounter
+				grant.ImprintOnHost = imprintOnHost
 				h.AddContinuous(grant)
 				registered = true
 			} else if kws, affected, zone, ok := cascadeKeywordGrantFromLine(params); ok {
@@ -388,6 +411,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					Affects:       affected,
 					AffectedZone:  zone,
 					AddKeywords:   kws,
+					ImprintOnHost: imprintOnHost,
 					Name:          effectName,
 					UntilEOT:      effectUntilEOT(h, c.Source, dur),
 					Duration:      dur,
@@ -426,6 +450,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					Affects:        affected,
 					AffectedZone:   zone,
 					SetMaxHandSize: val,
+					ImprintOnHost:  imprintOnHost,
 					Name:           effectName,
 					UntilEOT:       effectUntilEOT(h, c.Source, dur),
 					Permanent:      strings.EqualFold(strings.TrimSpace(dur), "Permanent"),
@@ -494,6 +519,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				UntilEOT:       ceUntilEOT,
 				Restriction:    mode,
 				RestrictParams: params,
+				ImprintOnHost:  imprintOnHost,
 				Remembered:     remembered,
 				Duration:       dur,
 				ForgetOnMoved:  forgetOn,
@@ -1872,6 +1898,31 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 		// must likewise make no arbitrary choice.
 		return
 	}
+	// param:api:Charm.Random (Random$ True / Random$ Compare with
+	// RandomCompareSVar$/RandomCompare$): a Charm whose mode is picked AT
+	// RANDOM rather than asked. The direction is the card oracle's, not the
+	// brief's gloss: Typhoid Mary, Fractured ("choose one at random. If you
+	// discarded a card this turn, you choose one instead", RandomCompare$
+	// LT1 over SVar Y = CardsDiscardedThisTurn) is random exactly while the
+	// comparison HOLDS, and a failed comparison reverts to the ordinary
+	// KModes ask below. An unresolvable comparison (a missing
+	// RandomCompareSVar$, an unmodelled count head, an unparseable
+	// comparator) fails to the ask too -- never to a fake random, the
+	// permissive direction. Only the single-slot shape is picked: a Random$
+	// Charm whose CharmNum$ fills several slots keeps the ordinary ask
+	// (measured corpus-unreachable -- every Random$ carrier, 5 files, is
+	// single-slot), because a multi-pick cannot share this suspension-free
+	// path.
+	if CharmRandomChosen(h, c, sa) && min == 1 && max == 1 && !repeat {
+		idx := h.Rand(len(choices))
+		label := charmModeLabel(choices, subs, idx)
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "chose a mode at random: " + label})
+		if subs[idx] != nil {
+			Resolve(h, c, subs[idx])
+		}
+		return
+	}
 	d := &decision.Decision{Player: c.Controller, Kind: decision.KModes,
 		Min: min, Max: max, Source: c.Source, Repeatable: repeat,
 		ResumeKind: "modes", ResumeSA: sa,
@@ -1899,6 +1950,60 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 	if subs[0] != nil {
 		Resolve(h, c, subs[0])
 	}
+}
+
+// CharmRandomChosen reports whether the Charm's mode is chosen AT RANDOM
+// rather than asked (param:api:Charm.Random):
+//
+//   - `Random$ True` is always random (Outlaws' Merriment, Cult of Skaro,
+//     Umaru the Raging Yeti, Summon the Magus Sisters);
+//   - `Random$ Compare` is random exactly while the RandomCompareSVar$
+//     comparison holds -- the card oracle's direction, NOT the brief's
+//     gloss. Typhoid Mary, Fractured's own oracle quote ("choose one at
+//     random. If you discarded a card this turn, you choose one instead")
+//     with RandomCompare$ LT1 over Y = CardsDiscardedThisTurn reads: zero
+//     discards (LT1 holds) -> random; a discard this turn (LT1 fails) ->
+//     the player chooses.
+//
+// The comparison rides the shared CheckSVarHolds evaluator (the SVar table,
+// then the source face's own, through EvalCountOK), so every head that
+// evaluates for CheckSVar$/SVarCompare$ gates evaluates here too. A
+// comparison that does not EVALUATE (missing RandomCompareSVar$, an
+// unmodelled count head, an unparseable comparator) reports false -- the
+// ordinary ask keeps the choice, never a fake random. Any other Random$
+// value is unread: the ordinary ask applies.
+//
+// Both mode-ask SITES consult this beside effCharm itself: the trigger
+// placement ask (rules' askTriggerModes) and the cast-time announcement
+// (rules' castModeAsk) skip their ask for a random Charm, so the pick (or
+// the failed comparison's ask) happens once, at resolution, in effCharm --
+// the rng draw stays in the replay-exact resolution path instead of
+// split-braining a placement-time pick with a resolution-time run.
+func CharmRandomChosen(h Host, c *Ctx, sa *cards.SA) bool {
+	switch strings.TrimSpace(sa.Params["Random"]) {
+	case "True":
+		return true
+	case "Compare":
+		holds, evaluated := CheckSVarHolds(h, c, sa.Params["RandomCompareSVar"], sa.Params["RandomCompare"])
+		return evaluated && holds
+	}
+	return false
+}
+
+// charmModeLabel is the display label of choice slot idx: the mode body's
+// SpellDescription$ when it carries one, else the SVar name -- the same
+// label the KModes decision's options carry, so the random-pick Note names
+// the mode exactly as an answered ask would.
+func charmModeLabel(choices []string, subs []*cards.SA, idx int) string {
+	if idx < 0 || idx >= len(choices) {
+		return ""
+	}
+	if subs[idx] != nil {
+		if d := strings.TrimSpace(subs[idx].Params["SpellDescription"]); d != "" {
+			return d
+		}
+	}
+	return choices[idx]
 }
 
 // effVote records one Note per voting player. Two shapes:

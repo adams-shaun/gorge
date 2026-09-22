@@ -48,6 +48,21 @@ type SacrificedInfo struct {
 	ManaValue int32
 }
 
+// LKIObject is the last-known-information snapshot of an object a
+// ChangeZoneRememberLKI$ move captured: the controller and owner it had
+// while the move happened. events.Apply's Move resets a battlefield
+// departure's controller to its owner (CR 400.7), so a later reader of "the
+// exiled creature's controller" -- Forge's TokenOwner$ ImprintedController,
+// the Boar Curse of the Swine makes for each exiled creature -- can no
+// longer recover it from the live object. Forge captures a full Card LKI
+// copy at the same point (ChangeZoneEffect's CardCopyService.getLKICopy);
+// this struct is the slice of it this build's readers need.
+type LKIObject struct {
+	Obj        ObjID
+	Controller PlayerID
+	Owner      PlayerID
+}
+
 // CastFlags bits record how an object was cast. Several can be set at once
 // (a spell can be both kicked and cast via flashback), so they are
 // OR-combined into one byte rather than modeled as separate bools.
@@ -772,6 +787,18 @@ type ExileReturnEntry struct {
 // never "bestowed attached".
 func (o *Object) BestowedAttached() bool {
 	return o.AttachedTo != 0 && o.Face() != nil && o.Face().HasKeyword("Bestow")
+}
+
+// ReconfiguredAttached reports whether o is a card printed with Reconfigure
+// that is currently attached to a permanent (CR 702.150c: while attached,
+// the permanent is not a creature; unattached it is a creature again).
+// Derived from live state -- AttachedTo and the printed face -- the same
+// discipline BestowedAttached practises, so every replay and every read
+// site derives the switch identically and no event field carries a marker.
+// An unattached reconfigure card, and any object printed without
+// Reconfigure, is never "reconfigured attached".
+func (o *Object) ReconfiguredAttached() bool {
+	return o.AttachedTo != 0 && o.Face() != nil && o.Face().HasKeyword("Reconfigure")
 }
 
 func (o *Object) Face() *cards.Face {

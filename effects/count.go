@@ -951,6 +951,38 @@ func refToughness(h Host, o *state.Object, snapshot bool) int32 {
 // modelled head that legitimately counts zero still counts as evaluated.
 func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	g := h.Game()
+	// ThisTurnCast_<spec> keeps the WHOLE body as the spec, before the
+	// generic head/space split below: a Forge count spec can carry a space
+	// (Rain of Riches' "Card.YouCtrl+CastSa Spell.ManaFromTreasure" — the
+	// card-level CastSa property token), and the split would truncate the
+	// spec at the space and drop the property. The /Op suffix was already
+	// cut by the caller. Space-free specs take the identical path they took
+	// through the switch arm (the same reads, the same returns), so every
+	// existing carrier is byte-identical.
+	if rest, ok := strings.CutPrefix(body, "ThisTurnCast_"); ok {
+		if stripped, selfExcl := stripBareCastSaSource(rest); selfExcl {
+			return int32(h.SpellsCastThisTurnMatchingExcluding(c.Controller, stripped, c.Source)), true
+		}
+		// The ARGUMENTED forms (task castprov2) peel the token and reuse the
+		// same Excluding read:
+		//
+		//   - !CastSaSource/<op> (thunder_salvo's /Plus.2): this form never
+		//     reaches this arm — evalCountExprOK's GENERIC /Op peel cuts the
+		//     body at the first "/" before the head parse, leaving the bare
+		//     !CastSaSource for the bare arm above and handing the op to the
+		//     ordinary applyCountOp — which is exactly the oracle's reading
+		//     (the exclusion count, then Plus.2). Pinned by
+		//     TestThunderSalvoXIsTwoPlusOtherSpellsCast.
+		//   - !CastSaSource$<Property> (call_forth_the_tempest's
+		//     $CardManaCost): the matching casts' objects, the property
+		//     AGGREGATED over them instead of counting 1 each (the zone-count
+		//     heads' `$Property` precedent). An unknown property fails closed
+		//     to (0, false), the unresolvable verdict.
+		if stripped, prop, ok2 := stripCastSaSourceAggregate(rest); ok2 {
+			return aggregateCastProperty(h, h.EachSpellCastThisTurnMatching(c.Controller, stripped, c.Source), prop)
+		}
+		return int32(h.SpellsCastThisTurnMatching(c.Controller, rest)), true
+	}
 	head, arg, _ := strings.Cut(body, " ")
 	arg = strings.TrimSpace(arg)
 
@@ -1213,6 +1245,28 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			}
 		}
 		return n, true
+	case "DamageOppsTakenThisTurn":
+		// The total damage the controller's OPPONENTS were dealt this turn
+		// (kw:Bloodthirst, CR 702.54, is the reader). Each opponent's take
+		// comes from the Host's log-derived DamageTakenThisTurn (player-targeted
+		// Damage events only, the same fold the TargetedPlayer$DamageThisTurn
+		// head reads), so the count is replay-derivable. The sum answers BOTH
+		// Bloodthirst shapes: a fixed N's condition ("an opponent was dealt
+		// damage this turn") is the sum compared GT0 -- damage amounts are
+		// positive, so a positive sum is exactly "at least one opponent was
+		// dealt damage" -- and Bloodthirst X's amount ("enters with X +1/+1
+		// counters, where X is the damage dealt to your opponents this turn",
+		// Petrified Wood-Kin) is the sum itself.
+		if c.Controller < 0 {
+			return 0, true
+		}
+		var n int32
+		for _, p := range g.AliveFrom(0) {
+			if p != c.Controller {
+				n += h.DamageTakenThisTurn(p)
+			}
+		}
+		return n, true
 	case "LifeYouGainedThisTurn":
 		// The total life the controller GAINED this turn — the CheckSVar$ gate
 		// behind the "At the beginning of each end step, if you gained 4 or
@@ -1224,6 +1278,36 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			return 0, true
 		}
 		return h.LifeGainedThisTurn(c.Controller), true
+	case "CountersRemovedThisTurn":
+		// Count$CountersRemovedThisTurn <KIND> <Player> — the number of counters
+		// of KIND the named players have PAID or LOST this turn (Creative
+		// Energy's cost engine: Blaster Hulk's `Amount$ Count$CountersRemovedThisTurn
+		// ENERGY You` cast discount and Izzet Generatorium's `CheckSVar$ … |
+		// SVarCompare$ GE4` paid-or-lost-four activation gate — 2 of the 3 corpus
+		// carriers; the third, Churning Reservoir, counts OBJECT-counter removals
+		// through an object spec plus a /Plus.X op, which this build does not
+		// resolve: it falls through to the (0,false) tail below). A payment and a
+		// loss both leave the player's pool through the ONE event shape a grant
+		// uses — a negative-Amount PlayerCounterChange (rules/mana.go's PayEnergy
+		// settle) — so the fold over that event since the last TurnChange, through
+		// the Host like LifeLostThisTurn, is replay-derivable. KIND matches
+		// case-insensitively (the same read YourCounters takes); the Player spec
+		// resolves over the living seats through MatchesPlayerSpec (You/Opponent/
+		// Player/Any and their qualifiers — a qualifier MatchesPlayerSpec does not
+		// know fails closed to an empty set, the documented filter convention); a
+		// spec whose BASE is not a player-spec base (an object spec) leaves the
+		// head unresolvable — (0,false), never a fake evaluated zero.
+		kind, spec, _ := strings.Cut(arg, " ")
+		spec = strings.TrimSpace(spec)
+		if kind != "" && spec != "" && playerSpecBaseKnown(spec) && c.Controller >= 0 {
+			var n int32
+			for _, p := range g.AliveFrom(0) {
+				if MatchesPlayerSpec(g, spec, p, c.Controller) {
+					n += h.CountersRemovedThisTurn(p, kind)
+				}
+			}
+			return n, true
+		}
 	case "YourTurns":
 		// How many of the game's turns have begun with the controller as the
 		// active player, current turn included (Serra Avenger's "your first,
@@ -1492,39 +1576,8 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		return 0, false
 	}
 
-	// ThisTurnCast_<spec> counts the spells cast this turn matching a Forge
-	// spec (Count$ThisTurnCast_Card.YouCtrl — the "first/second spell you
-	// cast" family): the caster scope is the controller when the spec carries
-	// a You* qualifier, everyone otherwise. The spec's bare !CastSaSource
-	// qualifier is Forge's "other than the spell being cast" device (every
-	// bare-form carrier's oracle says other/another), so the count excludes
-	// its own ctx source through the Host's Excluding read; the ARGUMENTED
-	// forms (!CastSaSource$CardManaCost, !CastSaSource/Plus.2) stay in place
-	// and keep failing closed downstream (no provenance grammar prices them).
-	if rest, ok := strings.CutPrefix(head, "ThisTurnCast_"); ok {
-		if stripped, selfExcl := stripBareCastSaSource(rest); selfExcl {
-			return int32(h.SpellsCastThisTurnMatchingExcluding(c.Controller, stripped, c.Source)), true
-		}
-		// The ARGUMENTED forms (task castprov2) peel the token and reuse the
-		// same Excluding read:
-		//
-		//   - !CastSaSource/<op> (thunder_salvo's /Plus.2): this form never
-		//     reaches this arm — evalCountExprOK's GENERIC /Op peel cuts the
-		//     body at the first "/" before the head parse, leaving the bare
-		//     !CastSaSource for the bare arm above and handing the op to the
-		//     ordinary applyCountOp — which is exactly the oracle's reading
-		//     (the exclusion count, then Plus.2). Pinned by
-		//     TestThunderSalvoXIsTwoPlusOtherSpellsCast.
-		//   - !CastSaSource$<Property> (call_forth_the_tempest's
-		//     $CardManaCost): the matching casts' objects, the property
-		//     AGGREGATED over them instead of counting 1 each (the zone-count
-		//     heads' `$Property` precedent). An unknown property fails closed
-		//     to (0, false), the unresolvable verdict.
-		if stripped, prop, ok2 := stripCastSaSourceAggregate(rest); ok2 {
-			return aggregateCastProperty(h, h.EachSpellCastThisTurnMatching(c.Controller, stripped, c.Source), prop)
-		}
-		return int32(h.SpellsCastThisTurnMatching(c.Controller, rest)), true
-	}
+	// ThisTurnCast_<spec> is handled ABOVE the head/space split — a spec
+	// can carry a space; see the comment at the top of this function.
 
 	// StartingPlayer.<yes>.<no> is Forge's two-branch opening designation
 	// count. Desert Cenote's StartingPlayer.0.1 feeds LT1, so only the
@@ -2041,6 +2094,27 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		return f.n, true
 	}
 	return 0, false
+}
+
+// playerSpecBaseKnown reports whether spec's base word (the text before the
+// first qualifier separator) is one of the player-spec bases MatchesPlayerSpec
+// resolves (You/Opponent/Other/Player/Any, matched case-insensitively). It is
+// what keeps a head argument that names an OBJECT spec (Churning Reservoir's
+// `Card.YouCtrl+inRealZoneBattlefield/Plus.X`) unresolvable rather than
+// laundering it through an empty-player-set read as a legitimate evaluated
+// zero — the fail-closed verdict (0,false), so the caller picks its own
+// direction for the gate it serves.
+func playerSpecBaseKnown(spec string) bool {
+	base := spec
+	if i := strings.IndexAny(base, ".+,"); i >= 0 {
+		base = base[:i]
+	}
+	for _, known := range []string{"You", "Opponent", "Other", "Player", "Any"} {
+		if strings.EqualFold(strings.TrimSpace(base), known) {
+			return true
+		}
+	}
+	return false
 }
 
 // evalThisTurnEntered parses a ThisTurnEntered_<Dest>[_from_<Origin>]_<Valid>

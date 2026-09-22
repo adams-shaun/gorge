@@ -151,6 +151,16 @@ type pendingCast struct {
 	multikickTimes int32
 	multikickDone  bool
 
+	// escalateParam is the raw Escalate keyword parameter (the modal
+	// additional cost "pay this for each mode chosen beyond the first") a
+	// Charm cast re-parses once the CR 601.2b mode answer is in; escalateDone
+	// marks the one fold already applied. There is no separate cast option --
+	// unlike Kicker, Escalate rides the mode count of the plain cast. Plain
+	// data, so Clone copies it like the replicate/multikick fields above.
+	escalateParam string
+	escalateSet   bool
+	escalateDone  bool
+
 	// Mutate (CR 702.140b): mutateTop is the answered over/under placement
 	// choice and mutatePlaceDone marks the one ask already posed. Plain data,
 	// so Clone copies them like the replicate/multikick fields above.
@@ -602,7 +612,7 @@ func (e *Engine) harmonizePayment(p state.PlayerID, id state.ObjID, c Cost) (Cos
 			break
 		}
 		co := e.G.Obj(cid)
-		if co == nil || co.Tapped || co.Face() == nil || !co.EffectiveIsCreature() || co.BestowedAttached() {
+		if co == nil || co.Tapped || co.Face() == nil || !co.EffectiveIsCreature() || co.BestowedAttached() || co.ReconfiguredAttached() {
 			continue
 		}
 		// The reduction is the creature's ACTUAL power (CR 702.46a: "reduce
@@ -798,7 +808,7 @@ func (e *Engine) convokeCost(p state.PlayerID, id state.ObjID, c Cost) (Cost, []
 	var tapped []state.ObjID
 	for _, cid := range e.G.Zone(state.ZBattlefield, p) {
 		co := e.G.Obj(cid)
-		if co == nil || co.Tapped || co.Face() == nil || !co.EffectiveIsCreature() || co.BestowedAttached() {
+		if co == nil || co.Tapped || co.Face() == nil || !co.EffectiveIsCreature() || co.BestowedAttached() || co.ReconfiguredAttached() {
 			continue
 		}
 		used := false
@@ -956,6 +966,25 @@ func (e *Engine) castablePriced(p state.PlayerID, id state.ObjID, cost Cost, abi
 		return false
 	}
 	return e.nonManaCastable(p, id, cost, ability)
+}
+
+// chargeEnergyCost spends a cost's energy parts from the payer's pool, one
+// PlayerCounterChange per part (a player counter, not an object's -- CR
+// 118.2d). A fixed part spends its N; a dynamic part spends the announced x.
+// This is the ONE energy-charging site, shared by the cast/activation payment
+// path and the triggered-cost window, so a paid cost can never spend its
+// energy in one place and skip it in another.
+func (e *Engine) chargeEnergyCost(p state.PlayerID, c Cost, x int32) {
+	for _, part := range c.Energy {
+		amt := part.N
+		if part.Spec == "X" {
+			amt = x
+		}
+		if amt > 0 {
+			e.emit(events.Event{Kind: events.PlayerCounterChange, Player: p,
+				Counter: "ENERGY", Amount: -amt})
+		}
+	}
 }
 
 // nonManaCastable is castable's payment-independent tail. Cost-modifier
@@ -1122,15 +1151,9 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 	// pool down once per part, so the parts cannot each spend the whole
 	// counter total independently. The dynamic X form is bounded by that
 	// total at the X ask, so the offer gate needs no assumption about the
-	// not-yet-chosen value.
-	energyTotal := int32(0)
-	for _, part := range cost.Energy {
-		if part.Spec == "X" {
-			continue
-		}
-		energyTotal += part.N
-	}
-	if energyTotal > 0 && e.G.Players[p].Counter("ENERGY") < energyTotal {
+	// not-yet-chosen value. The read is the shared energyPayable helper, so
+	// the cast path and the triggered-cost window cannot disagree about it.
+	if !e.energyPayable(p, cost) {
 		return false
 	}
 	// Return cost parts (Return<N/Spec>): the source itself (Spec CARDNAME,
@@ -1906,6 +1929,16 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	} else {
 		e.cast = &pendingCast{player: p, card: id, from: from, mode: opt.Mode, ability: -1,
 			cost: cost, faceBefore: faceBefore, mods: mods, taxGeneric: tax}
+	}
+	// Escalate (the modal additional cost "pay this for each mode chosen
+	// beyond the first"): the cost is carried as its raw keyword parameter
+	// and re-parsed by the cast_modes answer handler -- the same
+	// string-survives-Clone convention the replicate capture below documents.
+	// Escalate rides the plain cast (no separate option exists): the CR
+	// 601.2b mode answer's chosen count is what prices it, so the capture is
+	// mode-blind.
+	if s, ok := f.KeywordParam("Escalate"); ok && strings.TrimSpace(s) != "" {
+		e.cast.escalateParam, e.cast.escalateSet = s, true
 	}
 	// The announce-bearing alternative (the Shoal cycle) and the
 	// TargetsWithSameController rider (Lodestone Bauble) ride the selected
@@ -2886,6 +2919,17 @@ func (e *Engine) castModeAsk() bool {
 	}
 	ctx := &effects.Ctx{Source: pc.card, Controller: pc.player}
 	effects.SetSVars(ctx, f.SVars)
+	if effects.CharmRandomChosen(e, ctx, sa) {
+		// param:api:Charm.Random: a random Charm's mode announcement is not
+		// asked (measured corpus-unreachable -- every Random$ Charm carrier,
+		// 5 files, is a trigger body -- so this site is latent). Resolution's
+		// effCharm picks the mode with the engine's rng (Random$ True, or
+		// Random$ Compare while the comparison holds) or poses the ordinary
+		// KModes ask there; modesDone is already set, so the announcement is
+		// simply skipped and the per-mode legality filter above never
+		// narrows the pool the rng would pick from.
+		return false
+	}
 	choices := strings.Split(sa.Params["Choices"], ",")
 	// The potential pool (a pure read) is the colour-aware upper bound the
 	// per-mode cost filter below prices against: at this point in the cast no
@@ -2930,6 +2974,32 @@ func (e *Engine) castModeAsk() bool {
 		legal = append(legal, name)
 	}
 	min, max, repeat := effects.CharmModeBounds(e, ctx, sa, len(legal))
+	// Escalate (the modal additional cost): a cast choosing N modes pays the
+	// escalate cost N-1 times, so a mode count the board cannot pay for is
+	// not a legal announcement -- clamp Max to 1 + the largest number of
+	// escalate payments the SAME affordability checker the payment window's
+	// composed total faces (castable) still admits, the replicateAsk shape,
+	// pool-only at ask time (the CR 601.2g window afterwards may still
+	// produce mana). The loop is bounded by the bounds Max itself, so it
+	// terminates. An unpriceable parameter cannot clamp (it also cannot
+	// charge -- the answer handler emits a loud Note instead), so the
+	// CharmNum$ bounds stay honest on the wire.
+	if pc.escalateSet {
+		if esc := ParseCost(pc.escalateParam); len(esc.Unknown) == 0 {
+			maxEscalations := 0
+			cand := pc.cost
+			for 1+maxEscalations < max {
+				if !e.castable(pc.player, pc.card, cand.Plus(esc), false) {
+					break
+				}
+				cand = cand.Plus(esc)
+				maxEscalations++
+			}
+			if clamped := 1 + maxEscalations; clamped < max {
+				max = clamped
+			}
+		}
+	}
 	if min > len(legal) && !repeat {
 		// No legal set of modes can complete its required target choices or
 		// pay its per-mode costs. This is the modal counterpart of targetAsk's
@@ -2938,6 +3008,16 @@ func (e *Engine) castModeAsk() bool {
 		// repeatable Charm can fill its slots by repeating an eligible mode, so
 		// it never aborts here.
 		e.abortCast(pc, "cast aborted: no legal modal choice", true)
+		return true
+	}
+	// The defensive floor: a clamp below MinCharmNum$ cannot occur for the
+	// corpus (every Escalate carrier's MinCharmNum$ is 1 and the clamp's
+	// floor is 1 + 0 = 1), but a Min-2 future carrier on an unaffordable
+	// board must abort loudly rather than pose an ask no legal answer
+	// satisfies -- the same no-progress suppression as the no-legal-mode
+	// abort above.
+	if max < min {
+		e.abortCast(pc, "cast aborted: no affordable modal choice", true)
 		return true
 	}
 	d := modeDecisionForChoices(pc.player, pc.card, sa, f.SVars, legal, min, max, repeat)
@@ -4694,7 +4774,7 @@ func (e *Engine) convokeAsk() bool {
 	sawCreature, sawArtifact := false, false
 	for _, id := range e.G.Zone(state.ZBattlefield, pc.player) {
 		o := e.G.Obj(id)
-		if o == nil || o.Tapped || o.Face() == nil || o.BestowedAttached() || e.convokeCommitted(pc, id) {
+		if o == nil || o.Tapped || o.Face() == nil || o.BestowedAttached() || o.ReconfiguredAttached() || e.convokeCommitted(pc, id) {
 			continue
 		}
 		group := fmt.Sprintf("payment:%d", id)
@@ -5427,8 +5507,18 @@ func (e *Engine) targetAsk() bool {
 	// targeting itself). The Face-less ability stack object on the stack is
 	// never offered (legalTargetCandidates drops Face()-less stack objects),
 	// so the source permanent is still a legal target of its own ability.
+	// An attach ability (the Equip/Reconfigure expansion mints AB$ Attach;
+	// a spell SA may carry API$ Attach directly) can never target its own
+	// source permanent: CR 701.3a attaches an object to ANOTHER permanent,
+	// and effAttach refuses the self-attach at resolution. The pool and the
+	// resolution must agree, so the source is excluded AT THE ASK for an
+	// attach SA even though the Mother-of-Runes convention lets a generic
+	// activated ability target its own source. For Equip the exclusion is
+	// inert (an Equipment face does not match Creature specs); it is live
+	// exactly for Reconfigure, whose unattached form IS a creature and was
+	// offered itself here (r2 review MAJOR).
 	var excludeSelf state.ObjID
-	if !pc.isAbility() {
+	if !pc.isAbility() || sa.API == "Attach" {
 		excludeSelf = pc.card
 	}
 	candidates := e.legalTargetCandidates(pc.player, pc.card, excludeSelf, sa)
@@ -5495,7 +5585,7 @@ func (e *Engine) targetAsk() bool {
 	// (Mother of Runes) via excludeSelf == 0. The prompt keeps the source
 	// permanent's name for readability.
 	var src state.ObjID
-	if !pc.isAbility() {
+	if !pc.isAbility() || sa.API == "Attach" {
 		src = pc.card
 	}
 	d := &decision.Decision{Player: pc.player, Kind: decision.KTarget, Min: min, Max: max,
@@ -5953,17 +6043,9 @@ func (e *Engine) payCast() {
 		// Energy cost parts (PayEnergy<N>/<X>): the announced amount leaves
 		// the payer's energy pool as one PlayerCounterChange (a player
 		// counter, not an object's -- CR 118.2d). The X form spends exactly
-		// the announced value (xAsk bounded it by this same total).
-		for _, part := range pc.cost.Energy {
-			amt := part.N
-			if part.Spec == "X" {
-				amt = pc.x
-			}
-			if amt > 0 {
-				e.emit(events.Event{Kind: events.PlayerCounterChange, Player: pc.player,
-					Counter: "ENERGY", Amount: -amt})
-			}
-		}
+		// the announced value (xAsk bounded it by this same total). The
+		// shared chargeEnergyCost helper is the ONE energy-charging site.
+		e.chargeEnergyCost(pc.player, pc.cost, pc.x)
 		// Announced PayLife<X> parts (Toxic Deluge's "pay X life"): each pays
 		// the announced X as one LifeChange beside the fixed life payMana
 		// charged above (payLife). xAsk bounded the announcement by the payer's
@@ -6161,16 +6243,7 @@ func (e *Engine) payCast() {
 		}
 	}
 	// Energy cost parts (see the ability branch above for the why).
-	for _, part := range pc.cost.Energy {
-		amt := part.N
-		if part.Spec == "X" {
-			amt = pc.x
-		}
-		if amt > 0 {
-			e.emit(events.Event{Kind: events.PlayerCounterChange, Player: pc.player,
-				Counter: "ENERGY", Amount: -amt})
-		}
-	}
+	e.chargeEnergyCost(pc.player, pc.cost, pc.x)
 	// Announced PayLife<X>, DamageYou<N> and Draw<N/Spec> cost parts (see the
 	// ability branch above for the why).
 	for range pc.cost.LifeX {
@@ -6788,6 +6861,15 @@ func init() {
 		// (the mandatory either-or additional cost choice).
 		"kw:Evoke", "kw:Dash", "kw:Overload", "kw:Warp", "kw:Madness",
 		"kw:Encore", "kw:AlternateAdditionalCost",
+		// kw:Escalate: the modal additional cost "pay this for each mode chosen
+		// beyond the first" -- read directly off the K: line by beginCast's
+		// capture and the cast_modes answer handler's fold, and bounded by
+		// castModeAsk's affordable-escalation clamp (no keyword expansion; the
+		// plain Charm cast is the only way in). The mode ask's Max is clamped
+		// to 1 + the affordable escalations so an unpayable mode count is
+		// never offered. All 9 corpus carriers parse (7 plain mana,
+		// tapXType<1/Creature> and Discard<1/Card>).
+		"kw:Escalate",
 		// kw:Escape: CR 702.135, the graveyard cast with its exile cost, read
 		// off the K: line by derivedKeywordParam and gated in legal.go's
 		// cast walk -- proved by TestUnderworldBreachGrantsEscapeAndTheEscape
@@ -6865,6 +6947,15 @@ func init() {
 		// (rules/legal.go) plus conspireAsk (rules/cast.go) pose and pay the
 		// two-creature tap.
 		"kw:Conspire",
+		// kw:Demonstrate: CR 702.152, expanded by cards/kw_demonstrate.go
+		// into the SpellCast trigger on the card's own cast whose DB$
+		// Demonstrate body (effects/demonstrate.go) poses the may-copy
+		// election and the opponent choice; a layer-6 AddKeyword$ Demonstrate
+		// grant (Silverquill Lecturer) reaches the same body through
+		// rules/trigger_granted.go's checkGrantedDemonstrateTriggers. The
+		// copies are ordinary StackCopy mints, so a creature-spell copy
+		// becomes a token through the standing CR 707.10g fold.
+		"kw:Demonstrate",
 		// kw:Squad: CR 702.66, expanded by cards/keywords.go into a
 		// ChangesZone self-entry trigger whose DB$ CopyPermanent body reads
 		// Count$SquadPaid (the Replicate pattern); the cast flow's "squadded"

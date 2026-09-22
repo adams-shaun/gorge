@@ -1720,6 +1720,7 @@ func Apply(g *state.Game, e Event) {
 		}
 		sa := cards.ResolveSVar(src.Face().SVars, e.Counter)
 		conspire := false
+		demonstrate := false
 		if sa == nil {
 			// A granted ward (rules.pushTrigger's __kwWard: payload) has no
 			// SVar to resolve: the ability is rebuilt structurally from the
@@ -1755,6 +1756,23 @@ func Apply(g *state.Game, e Event) {
 					Params: map[string]string{"Defined": "TriggeredSpellAbility", "Amount": "Count$Conspired",
 						"MayChooseTarget": "True"}}
 				conspire = ok
+			}
+			// A granted Demonstrate (rules.pushTrigger's __kwDemonstrate:
+			// payload) has no SVar either: rebuilt structurally into the same
+			// DB$ Demonstrate body the printed K:Demonstrate expansion
+			// carries (cards/kw_demonstrate.go), so the live game and the
+			// replay mint identical objects from the event text alone. The
+			// may-copy election and the opponent choice are the body's own
+			// asks (effects/demonstrate.go); the triggering spell rides
+			// Remembered (IDs) -- Defined$ TriggeredSpellAbility reads it
+			// there, exactly as the printed expansion's own TriggerPush
+			// entries carry it. The trailing colon (the Conspire shape)
+			// keeps the payload distinct from the "__kwDemonstrate" SVar a
+			// printed bare K:Demonstrate line mints.
+			if _, ok := strings.CutPrefix(e.Counter, "__kwDemonstrate:"); ok {
+				sa = &cards.SA{Kind: "DB", API: "Demonstrate",
+					Params: map[string]string{"Defined": "TriggeredSpellAbility"}}
+				demonstrate = ok
 			}
 			// A cascade trigger (rules.pushTrigger's __kwCascade: payload) has
 			// no SVar either: rebuilt structurally into the DB$ Cascade body
@@ -1816,7 +1834,7 @@ func Apply(g *state.Game, e Event) {
 		o.Ability = sa
 		o.Source = e.Obj
 		o.SourceIncarnation = incarnation
-		if conspire {
+		if conspire || demonstrate {
 			o.Remembered = rememberedFrom(e.IDs)
 		}
 

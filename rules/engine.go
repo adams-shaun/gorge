@@ -769,6 +769,23 @@ type Engine struct {
 	// recorded ManaAdd events.
 	manaSpentSources []state.ObjID
 
+	// stackGrantCast is the in-flight cast whose OWN stack-grant walk is
+	// running (queueCascadeTriggers' cascadeInstances read, the only
+	// consumer): set around that one walk and cleared before it returns —
+	// never set at rest, so Clone copies nothing of it and no ask can
+	// suspend inside the walk (cascadeInstances is a pure derived read).
+	// While it is set, SpellsCastThisTurnMatching excludes the in-flight
+	// cast's own event from every count, so the "first spell you cast each
+	// turn" statics' EQ0 gates (the twelve AffectedZone$ Stack SVarCompare$
+	// lines in the corpus — Rain of Riches, Wild-Magic Sorcerer, Anhelo,
+	// the Doctor Who cycle) read the PRIOR casts the Affected$ half does
+	// not evaluate, instead of never granting (the in-flight cast's own
+	// PutOnStack is already in the log at queue time and an inclusive read
+	// would make EQ0 fail for the very cast the grant is for). Counts read
+	// anywhere else stay inclusive (Vengevine's EQ2 "second creature
+	// spell" gate).
+	stackGrantCast state.ObjID
+
 	// manaExpended is the per-seat, per-turn tally of mana spent CASTING
 	// spells this turn (trig:ManaExpend's "as you spend your Nth total mana
 	// to cast spells during a turn"). It is engine scratch, NOT event state,

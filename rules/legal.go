@@ -2206,6 +2206,15 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				if !e.adaptGateOK(id, ab) {
 					continue
 				}
+				// kw:Reconfigure (CR 702.150): the expansion's unattach half
+				// carries Unattach$ True and is offered only while the source is
+				// attached -- "unattach from a creature" has no legal action for
+				// an unattached permanent, and a payable no-op the deterministic
+				// bot can answer identically forever is the livelock shape the
+				// offer gates exist to withhold.
+				if strings.EqualFold(strings.TrimSpace(ab.Params["Unattach"]), "True") && o.AttachedTo == 0 {
+					continue
+				}
 				out = append(out, decision.Option{Index: len(out), Kind: "ability",
 					Label: abFace.Name + ": " + ab.Params["SpellDescription"], Obj: id, Ability: i,
 					Grant: e.abilityGrant(id, ab)})

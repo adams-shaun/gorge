@@ -109,6 +109,20 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 		}
 		owners = make([]state.PlayerID, 0, len(ps))
 		owners = append(owners, ps...)
+	case "Imprinted", "ImprintedController":
+		// Forge's TokenOwner$ ImprintedController: the controller of the
+		// RepeatEach iteration's current imprinted subject, and only that
+		// (UseImprinted$ binds the subject). The ordinary Defined resolver owns
+		// the selector, including the last-known controller a ChangeZone's
+		// RememberLKI$ captured -- Curse of the Swine's Boar per exiled
+		// creature. A subject whose controller cannot be resolved leaves the
+		// controller default, the same silent degrade the other miss cases take.
+		for _, t := range Defined(h, c, &cards.SA{Params: map[string]string{"Defined": v}}) {
+			if t.IsPlayer {
+				owners = []state.PlayerID{t.Player}
+				break
+			}
+		}
 	case "RememberedOwner":
 		// The owner of the first remembered OBJECT (Skyclave Apparition's
 		// "the exiled card's owner creates the token"). The same group the
