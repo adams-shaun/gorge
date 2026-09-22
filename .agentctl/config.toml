@@ -97,7 +97,8 @@ local = 2
 # 2026-09-22 (operator): the paid pool is sized to hold every per-model cap
 # below at once; [caps.models] does the real bounding, so one paid provider
 # can no longer fill the pool and push terra reviews onto the local seat.
-paid = 8
+# Raised to 12 with luna (4) joining the per-model caps.
+paid = 12
 max_minutes = 75
 
 [caps.models]
