@@ -85,7 +85,8 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.CombatRetarget, events.RingTemptsYou, events.RingEmblemPush,
 		events.BlessingChange, events.ClonePermanent,
 		events.Mutate, events.MergedTriggerPush,
-		events.Enlist, events.AlterAttribute:
+		events.Enlist, events.AlterAttribute,
+		events.GainedAbilityPush, events.GainedTriggerPush:
 		// AlterAttribute (alterattr1) is the same shape past the bound as
 		// Enlist: the suspected designation (CR 702.157) is a status no
 		// trigger mode fires on -- the corpus reads it through filter
@@ -107,8 +108,13 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		// matched by trig:Mutates through the full matcher (mutatesMatches),
 		// and MergedTriggerPush is a mint marker no mode fires on. Enlist is
 		// the same shape past the bound: trig:Enlisted matches the full
-		// events.Enlist carrier through enlistedMatches. Naming them keeps
-		// the audit complete if the bound ever widens.
+		// events.Enlist carrier through enlistedMatches. GainedAbilityPush and
+		// GainedTriggerPush (gains1) are the has-all-abilities-of mint
+		// markers: the ability itself is matched on the event that caused it
+		// (an ordinary trigger scan), and the push only mints its stack
+		// object -- the GrantAbilityPush/GrantTriggerPush shape, and like
+		// those two past the bound so both classifiers fail open anyway.
+		// Naming them keeps the audit complete if the bound ever widens.
 		return 0
 	case events.Attach:
 		return cards.TriggerInterestAttach
@@ -202,6 +208,16 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// than letting it fall to the allTriggerEvents default keeps an
 		// Exploited-only face's mask narrow for every other kind.
 		return 0
+	case "BecomeMonstrous":
+		// The AlterAttribute carrier's ordinal is past the 64-bit mask's
+		// reach, the Exploited/Investigated shape: a mask bit is not encodable
+		// and allows() fails open for every kind at or past
+		// triggerMaskKindBits, so the mode is admitted through that fail-open
+		// path and gated by the full matcher (becomeMonstrousMatches, task
+		// agent-20260919T190014Z). Naming the mode here rather than letting it
+		// fall to the allTriggerEvents default keeps a BecomeMonstrous-only
+		// face's mask narrow for every other kind.
+		return 0
 	case "RingTemptsYou":
 		// The Kind's ordinal (65) is past the 64-bit mask's reach: a mask bit
 		// is not encodable, and allows() fails open for every kind at or past
@@ -260,25 +276,13 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// Note (once per die), RolledDieOnce on the per-resolution batch Note
 		// (once per roll action).
 		return 1 << events.Note
-	case "CounterAdded", "CounterAddedOnce", "CounterRemoved":
+	case "CounterAdded", "CounterAddedOnce", "CounterRemoved", "CounterRemovedOnce":
 		return 1 << events.CounterChange
 	case "ClassLevelGained":
 		// CR 702.118c: the same CounterChange event the level-up
 		// activator's PutCounter emits carries the level band crossing
 		// (matcher: classLevelGainedMatches).
 		return 1 << events.CounterChange
-	case "BecomeMonstrous":
-		// CR 701.33's monstrous designation (task kw-monstrosity): the mode
-		// fires on the events.AlterAttribute "Monstrous" grant the AB$
-		// PutCounter Monstrosity$ arm emits. The Kind's ordinal sits past
-		// the 64-bit mask's reach, the Enlisted shape: a mask bit is not
-		// encodable and allows() fails open for every kind at or past
-		// triggerMaskKindBits, so the mode is admitted through that fail-open
-		// path and gated by the full matcher (becomeMonstrousMatches). Naming
-		// the mode here rather than letting it fall to the allTriggerEvents
-		// default keeps a BecomeMonstrous-only face's mask narrow for every
-		// other kind.
-		return 0
 	case "Mutates":
 		// CR 702.140f: "whenever this creature mutates". The event is the
 		// mutate-spell merge fold (events.Mutate), fired once per mutation --

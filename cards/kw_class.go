@@ -29,7 +29,7 @@ import (
 //     (Mode$ Continuous and Mode$ ReduceCost/RaiseCost/SetCost both occur in
 //     the corpus), AddTrigger$ a trigger body and AddReplacementEffect$ a
 //     replacement body; each is parsed with the SAME reader the printed line
-//     uses (ParseStaticLine/ParseTriggerLine/parseParams), so the grant runs
+//     uses (ParseStaticLines/ParseTriggerLine/parseParams), so the grant runs
 //     through the ordinary static/trigger/replacement machinery with no
 //     Class-specific consumer anywhere.
 //
@@ -105,7 +105,7 @@ func kwClass(f *Face, i int, k, head, param string, has func(kind, line string) 
 		switch key {
 		case "AddStaticAbility":
 			for _, name := range splitGrantNames(val) {
-				inner, ok := ParseStaticLine(f.SVars[name])
+				inners, ok := ParseStaticLines(f.SVars[name])
 				if !ok {
 					continue
 				}
@@ -113,10 +113,15 @@ func kwClass(f *Face, i int, k, head, param string, has func(kind, line string) 
 				if has("S", tag) {
 					continue
 				}
-				addLevelGate(inner.Params, level)
-				inner.Params["KeywordLine"] = tag
-				inner.Params["Keyword"] = "Class"
-				f.Statics = append(f.Statics, inner)
+				for _, inner := range inners {
+					// The split statics share one Params map (ParseStaticLines
+					// over one body), so the level gate and the grant tag below
+					// stamp every mode of a compound body identically.
+					addLevelGate(inner.Params, level)
+					inner.Params["KeywordLine"] = tag
+					inner.Params["Keyword"] = "Class"
+					f.Statics = append(f.Statics, inner)
+				}
 			}
 		case "AddTrigger":
 			for _, name := range splitGrantNames(val) {

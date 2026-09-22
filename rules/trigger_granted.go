@@ -88,6 +88,71 @@ func (e *Engine) checkGrantedConspireTriggers(observer *Engine, id state.ObjID, 
 	}
 }
 
+// checkGrantedDemonstrateTriggers synthesizes Demonstrate's copy trigger
+// (CR 702.152) for a spell that currently HAS the keyword but does not print
+// it: a layer-6 grant (Silverquill Lecturer's "Creature spells you cast have
+// demonstrate", The Twelfth Doctor's non-hand spell grant, Try-My-Deck
+// Elemental's commander grant, the Strixhaven plane's instant/sorcery grant)
+// gives the spell the same rules text as a printed keyword, and the printed
+// K:Demonstrate expansion (cards/kw_demonstrate.go) only covers printed
+// lines. Without this walk the granted spell's trigger never fires -- the
+// keyword grant reaches the derived keyword list but no trigger exists for
+// it. The synthesized trigger reuses the printed expansion's exact
+// trigger/body shape (Mode$ SpellCast, ValidCard$ Card.Self,
+// TriggerZones$ Stack; DB$ Demonstrate over Defined$ TriggeredSpellAbility),
+// so its behaviour is byte-identical to the printed path's: the may-copy
+// election and the opponent choice are the body's own asks
+// (effects/demonstrate.go). A copy emits StackCopy, not PutOnStack, so the
+// synthesis cannot double-fire on its own output. The walk skips a face that
+// PRINTS Demonstrate (the printed expansion already owns the line -- the
+// same grant-identical-to-a-printed-line dedup Conspire keeps). Like
+// Conspire's synthesis this is a read-only derived-characteristics check;
+// granting stays in the continuous-effect system. It runs on the
+// faceMayTrigger early-return path too (a granted keyword is independent of
+// printed triggers, the same shape Conspire is), and its gate is ordered
+// cheap-first -- event kind, then object identity, one integer compare each
+// on the hot per-event walk -- before the derived keyword scan allocates.
+func (e *Engine) checkGrantedDemonstrateTriggers(observer *Engine, id state.ObjID, o *state.Object, f *cards.Face, ev events.Event, objLKI *state.Object) {
+	if ev.Kind != events.PutOnStack || id != ev.Obj {
+		return
+	}
+	if !e.HasKeyword(id, "Demonstrate") || f.HasKeyword("Demonstrate") {
+		return
+	}
+	t := cards.Trigger{Mode: "SpellCast", Params: map[string]string{
+		"Mode": "SpellCast", "ValidCard": "Card.Self", "TriggerZones": "Stack", "TriggerDescription": "Demonstrate",
+	}, Effect: &cards.SA{Kind: "DB", API: "Demonstrate", Params: map[string]string{
+		"Defined": "TriggeredSpellAbility",
+	}}}
+	if observer.triggerMatches(t, id, ev, objLKI) {
+		key := triggerKey{Source: id, Idx: -1}
+		if e.triggerFireCount == nil {
+			e.triggerFireCount = map[triggerKey]int32{}
+		}
+		if e.triggerFireCount[key] < maxTriggerFires {
+			e.triggerFireCount[key]++
+			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+				Source:     id,
+				Controller: o.Controller,
+				// The Conspire shape: the body rides the push's
+				// __kwDemonstrate: payload for events.Apply to rebuild
+				// structurally -- a raw SA cannot cross the log, and the
+				// TriggerPush -1 index sentinel is this synthesis's own. The
+				// cast spell rides Remembered because Defined$
+				// TriggeredSpellAbility reads the triggering spell off it.
+				Demonstrate: true,
+				Ctx: effects.Ctx{
+					Source:         id,
+					Controller:     o.Controller,
+					Remembered:     triggerRemembered(ev, id),
+					LKI:            objLKI,
+					TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
+				},
+			})
+		}
+	}
+}
+
 // checkGrantedExploitTriggers synthesizes Exploit's ETB election (CR 702.58a)
 // for a creature that currently HAS the keyword but does not print it: a
 // layer-6 AddKeyword$ Exploit grant (Colonel Autumn's "Other legendary
@@ -523,7 +588,104 @@ func (e *Engine) checkGrantedWardTriggers(observer *Engine, id state.ObjID, o *s
 // the sharing cannot starve a legitimate fire. Like those two the walk is
 // deliberately a read over active()'s sorted slice, never a map: the queue
 // order stays the scan's deterministic order.
-func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []ContinuousEffect, id state.ObjID, o *state.Object, ev events.Event, objLKI *state.Object, lkiPower, lkiToughness int32, lkiPTValid bool) {
+// split/leaving are the face walk's two passes, passed through so the
+// leaves-the-battlefield look-back discipline applies to granted triggers
+// exactly as to printed ones (see the loop body): the look-back pass runs
+// only a battlefield-origin ChangesZone trigger, the live pass only the
+// rest -- a gate the first gains round omitted, which queued a gained "dies"
+// trigger once per pass and fired it twice.
+func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []ContinuousEffect, id state.ObjID, o *state.Object, ev events.Event, objLKI *state.Object, lkiPower, lkiToughness int32, lkiPTValid, split, leaving bool) {
+	// A has-all-abilities-of trigger (Forge's GainsTriggerAbsOf$, task
+	// gains1): the recipient gains every triggered ability of each named
+	// foreign card's face. The matching discipline is an ordinary trigger's --
+	// triggerMatches resolves the granted body's own TriggerZones$/
+	// ValidPlayer$/Phase$ clauses against the event -- and the queue carries
+	// the face-local Triggers index and the foreign object id so
+	// events.Apply mints the face's compiled Trigger.Effect pointer (the
+	// MergedTriggerPush reasoning: pointer identity is how the owning-trigger
+	// recoveries work). Nothing is linked by name here: a compiled trigger
+	// already holds its Effect pointer, so the live queue and a replay mint
+	// the identical body. The walk is a read over the memoised static slice
+	// and the foreign faces' own deterministic Triggers order, never a map.
+	for i := range statics {
+		ce := &statics[i]
+		// The TRIGGERED half only (Forge's GainsTriggerAbsOf$): a static that
+		// names GainsAbilitiesOf$ alone never fires the foreign card's
+		// triggers, because that parameter grants activated abilities and its
+		// faces ride GainedFaces, which only grantedAbilities reads.
+		if len(ce.GainedTriggerFaces) == 0 {
+			continue
+		}
+		if !effects.MatchesSpecFrom(observer.G, ce.Affects, id, ce.Controller, ce.Source) {
+			continue
+		}
+		for _, gf := range ce.GainedTriggerFaces {
+			if gf.Face == nil {
+				continue
+			}
+			for ti := range gf.Face.Triggers {
+				t := gf.Face.Triggers[ti]
+				if t.Effect == nil {
+					continue
+				}
+				// The batch discipline (mirrored from the face walk).
+				if t.Mode == "LifeLostAll" && e.lifeLossBatchDepth > 0 && !e.finishingLifeLossBatch {
+					continue
+				}
+				if e.finishingLifeLossBatch && t.Mode != "LifeLostAll" {
+					continue
+				}
+				// The leaves-the-battlefield split, mirrored from the face walk:
+				// a "from anywhere" graveyard trigger is NOT a
+				// leaves-the-battlefield trigger (CR 603.6c) and belongs to the
+				// live pass even when this move leaves the battlefield, while a
+				// battlefield-origin "dies" trigger looks back and belongs to
+				// the look-back pass. Without the gate a gained dies trigger
+				// queued once per pass and resolved twice.
+				looksBack := t.Mode == "ChangesZone" && t.Params["Origin"] == "Battlefield"
+				if split && looksBack != leaving {
+					continue
+				}
+				// CR 603.8's outstanding-instance latch, mirrored from the face
+				// walk (a state trigger already queued or on the stack does not
+				// re-fire).
+				if t.Mode == "Always" && e.stateTriggerOutstanding(id, -1) {
+					continue
+				}
+				if !observer.triggerMatches(t, id, ev, objLKI) {
+					continue
+				}
+				key := triggerKey{Source: id, Idx: -1}
+				if e.triggerFireCount == nil {
+					e.triggerFireCount = map[triggerKey]int32{}
+				}
+				if e.triggerFireCount[key] >= maxTriggerFires {
+					continue
+				}
+				e.triggerFireCount[key]++
+				e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+					Source:     id,
+					Controller: o.Controller,
+					Idx:        ti,
+					SA:         t.Effect,
+					Gained:     true,
+					GainedFrom: gf.Obj,
+					Execute:    t.Params["Execute"],
+					Ctx: effects.Ctx{
+						Source:         id,
+						Controller:     o.Controller,
+						Remembered:     triggerRemembered(ev, id),
+						Captured:       triggerRemembered(ev, id),
+						LKI:            objLKI,
+						LKIPower:       lkiPower,
+						LKIToughness:   lkiToughness,
+						LKIPTValid:     objLKI != nil && lkiPTValid,
+						TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
+					},
+				})
+			}
+		}
+	}
 	// The face walk's life-loss-batch discipline, mirrored exactly (the
 	// Animate Triggers$ route needs it: a granted DamageDone trigger must
 	// fire on the in-batch Damage event the way a printed one does, and the

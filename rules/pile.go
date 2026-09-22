@@ -75,7 +75,76 @@ func (e *Engine) pileFaceForSA(source state.ObjID, sa *cards.SA) (*cards.Face, b
 			}
 		}
 	}
+	// A has-all-abilities-of GRANTED activated ability (Forge's
+	// GainsAbilitiesOf$): the resolving body is a compiled AB$ on a FOREIGN
+	// card's face, so its owning SVar table is that face's, not the
+	// recipient's. Measured against the minted provenance first -- the
+	// resolving wrapper sits on the stack carrying the exact foreign face
+	// events.Apply stamped (gainedOwnedFace), which survives the granting
+	// static ending between the activation and the resolution, the case the
+	// live-grant scan below cannot answer -- and only then against the live
+	// grants (a grant that ended with its static is no owner), in active()'s
+	// deterministic order. Any stack wrapper with this (source, ability) pair
+	// carries the same provenance -- the foreign face is a property of the
+	// compiled SA pointer, not of the instance -- so the scan is
+	// deterministic and instance-independent.
+	for _, wid := range e.G.Stack {
+		wo := e.G.Obj(wid)
+		if wo == nil || wo.Ability != sa || wo.Source != source {
+			continue
+		}
+		if f := gainedOwnedFace(wo); f != nil {
+			for _, ab := range f.Abilities {
+				if ab == sa {
+					return f, true
+				}
+			}
+		}
+	}
+	for _, gf := range e.gainedFacesForSource(source) {
+		if gf.Face == nil {
+			continue
+		}
+		for _, ab := range gf.Face.Abilities {
+			if ab == sa {
+				return gf.Face, true
+			}
+		}
+	}
 	return nil, false
+}
+
+// gainedOwnedFace returns the foreign face a HAS-ALL-ABILITIES-OF ability
+// wrapper was minted from: the per-stack-instance provenance events.Apply
+// folds onto the wrapper at GainedAbilityPush/GainedTriggerPush time (r3).
+// The granting static can END between the push and the resolution -- the
+// foreign card leaves the scoped zone, the static's named set re-derives --
+// and findTriggerForAbilityFace / this file's live-grant scan then find no
+// owner and fall back to the recipient's face, whose SVar table the foreign
+// body never meant. The wrapper's own field is the answer: immutable, set by
+// events.Apply from the exact face that provided the compiled SA, and
+// reproduced by every replay because Apply re-runs. A nil return means "not a
+// gained wrapper" (every ordinary wrapper leaves the field nil) or a face
+// that no longer carries the pointer, and the caller keeps its existing
+// chain. The identity scan is a guard, not a search: Apply only ever stamps
+// the face it took the pointer from, so the hit is the first element at
+// worst.
+func gainedOwnedFace(o *state.Object) *cards.Face {
+	if o == nil || o.GainedFace == nil || o.Ability == nil {
+		return nil
+	}
+	f := o.GainedFace
+	for _, ab := range f.Abilities {
+		if ab == o.Ability {
+			return f
+		}
+	}
+	for i := range f.Triggers {
+		if f.Triggers[i].Effect == o.Ability {
+			return f
+		}
+	}
+	return nil
 }
 
 // pileAbilityRefOf maps a printed ability pointer back to its flat pile index

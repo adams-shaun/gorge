@@ -88,6 +88,17 @@ type pendingTrigger struct {
 	Granted bool
 	Grantor state.ObjID
 	Execute string
+	// Gained marks a has-all-abilities-of trigger (Forge's
+	// GainsTriggerAbsOf$ on a Mode$ Continuous static, the Idris, Soul of the
+	// TARDIS shape): the ability is a compiled trigger on a FOREIGN card's
+	// face, so unlike a Granted trigger there is no SVar body and no grantor
+	// table -- the fired event names the foreign card (GainedFrom, carried as
+	// the event's IDs[0]) and that face's own Triggers index (Idx), and
+	// events.Apply mints the face's compiled Trigger.Effect pointer. Execute
+	// still carries the trigger's Execute$ name as readable provenance for
+	// Apply's tamper check. Gained and Granted are never both set.
+	Gained     bool
+	GainedFrom state.ObjID
 	// Ward is a GRANTED ward keyword (a layer-6 AddKeyword$ Ward:<cost>, e.g.
 	// Hexing Squelcher's "Other creatures you control have 'Ward—Pay 2
 	// life.'"): the trigger exists only in the layer system, never on the
@@ -112,6 +123,17 @@ type pendingTrigger struct {
 	// expansion carries, with the cast spell riding IDs as Remembered.
 	// Idx and SA are unset for it.
 	Conspire bool
+	// Demonstrate is a GRANTED demonstrate keyword (a layer-6 AddKeyword$
+	// Demonstrate -- Silverquill Lecturer's "Creature spells you cast have
+	// demonstrate", The Twelfth Doctor's non-hand grant, Try-My-Deck
+	// Elemental's commander grant, the Strixhaven plane's instant/sorcery
+	// grant): the same shape as Conspire -- the queue carries no parameter
+	// (the body has none) and the drain pushes a KeywordTriggerPush whose
+	// __kwDemonstrate: payload events.Apply rebuilds into the same
+	// DB$ Demonstrate body the printed K:Demonstrate expansion carries,
+	// with the cast spell riding IDs as Remembered. Idx and SA are unset
+	// for it.
+	Demonstrate bool
 	// Cascade is a printed-or-granted cascade keyword (CR 702.85, task
 	// cascade1): the queue carries no parameter (the trigger body is the
 	// same DB$ Cascade body whichever route granted the keyword) and the
@@ -794,12 +816,13 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					e.checkGrantedAfflictTriggers(id, o, f, ev)
 				case events.PutOnStack:
 					e.checkGrantedConspireTriggers(observer, id, o, f, ev, objLKI)
+					e.checkGrantedDemonstrateTriggers(observer, id, o, f, ev, objLKI)
 				case events.MoveZone:
 					e.checkGrantedExploitTriggers(observer, id, o, f, ev, objLKI)
 					e.checkGrantedOffspringTriggers(observer, id, o, f, ev, objLKI)
 				}
 			}
-			e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
+			e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid, split, leaving)
 			return
 		}
 		// Enchantment Rooms (rules/rooms.go): an UNLOCKED room's alternate
@@ -1066,7 +1089,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				}
 			}
 		}
-		e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
+		e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid, split, leaving)
 		// A granted Afflict must fire even when the object's own printed
 		// triggers are live for this event (a Zombie with its own become-blocked
 		// trigger carrying the Monarch's grant) -- the early-return path above
@@ -1077,6 +1100,11 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		// carrying a Conspire grant) -- the early-return path above reaches this
 		// object through checkGrantedConspireTriggers's own call.
 		e.checkGrantedConspireTriggers(observer, id, o, f, ev, objLKI)
+		// A granted Demonstrate must fire even when the object's own printed
+		// triggers are live for this event (a spell with its own cast trigger
+		// carrying a Demonstrate grant) -- the same both-paths rule Conspire
+		// follows.
+		e.checkGrantedDemonstrateTriggers(observer, id, o, f, ev, objLKI)
 		// A granted Exploit must fire when its creature enters even when the
 		// object's own printed triggers are live for this event -- the same
 		// both-paths rule Afflict and Conspire follow.
@@ -1476,7 +1504,7 @@ func init() {
 
 	effects.RegisterNonAPI(
 		"trig:ChangesZone", "trig:ChangesZoneAll", "trig:SpellCast", "trig:Attacks", "trig:AttackersDeclaredOneTarget",
-		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:AttackerBlockedByCreature", "trig:AttackerUnblockedOnce", "trig:Blocks", "trig:Cycled", "trig:CounterAdded", "trig:CounterAddedOnce", "trig:CounterRemoved",
+		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:AttackerBlockedByCreature", "trig:AttackerUnblockedOnce", "trig:Blocks", "trig:Cycled", "trig:CounterAdded", "trig:CounterAddedOnce", "trig:CounterRemoved", "trig:CounterRemovedOnce",
 		"trig:Sacrificed", "trig:Discarded", "trig:CommitCrime", "trig:Taps", "trig:TapsForMana",
 		"trig:ClassLevelGained", "trig:BecomeMonstrous",
 		"trig:TokenCreated", "trig:TokenCreatedOnce",
