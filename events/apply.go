@@ -918,9 +918,21 @@ func Apply(g *state.Game, e Event) {
 		// produced in (the carriers' "until end of turn" bound), whichever
 		// seat holds it — so every seat's tally drops here and the units
 		// become ordinary pool mana again, emptied by the next boundary's
-		// ManaClear exactly like mana that was never persistent.
+		// ManaClear exactly like mana that was never persistent. The demotion
+		// takes the persistent RESTRICTION batches with it: ManaClear keeps a
+		// persistent batch unconditionally, so a batch left here after the
+		// tally's zero would outlive its units as a phantom whose Amount
+		// manaAvailableFor subtracts from every non-matching payment — hiding
+		// the seat's real mana behind units that no longer exist. The printed
+		// restriction (Klauth's "Spend this mana only to cast spells") is not
+		// time-bounded — only the don't-lose clause is — so the batch is
+		// DEMOTED to ordinary, not dropped: its units stay restricted until
+		// the next boundary's ManaClear empties them with the batch.
 		for i := range g.Players {
 			g.Players[i].PersistentMana = state.Mana{}
+			for j := range g.Players[i].RestrictedMana {
+				g.Players[i].RestrictedMana[j].Persistent = false
+			}
 		}
 
 	case Goad:
@@ -999,25 +1011,6 @@ func Apply(g *state.Game, e Event) {
 			} else if e.Counter != "" {
 				idx = state.ManaIndex(e.Counter[0])
 			}
-			if e.Amount < 0 && player.PersistentMana[idx] > 0 {
-				// The slot's ordinary units are consumed before its persistent
-				// ones (the exception mana is spent last): a spend of n units
-				// touches the persistent tally only past the slot's
-				// non-persistent share, so the payment path needs no
-				// persistent awareness and a replay derives the tally
-				// identically.
-				fresh := player.Pool[idx] - player.PersistentMana[idx]
-				if fresh < 0 {
-					fresh = 0
-				}
-				if over := -e.Amount - fresh; over > 0 {
-					d := over
-					if player.PersistentMana[idx] < d {
-						d = player.PersistentMana[idx]
-					}
-					player.PersistentMana[idx] -= d
-				}
-			}
 			player.Pool[idx] += e.Amount
 			if e.Amount > 0 && persistent {
 				player.PersistentMana[idx] += e.Amount
@@ -1046,7 +1039,15 @@ func Apply(g *state.Game, e Event) {
 					// consumes. Walk insertion order so two matching additions replay
 					// identically, and tolerate a malformed historical event that
 					// over-spends its batch without making Pool negative here.
+					//
+					// The consumed batches' own Persistent flags move the persistent
+					// tally: the payment path carved a MATCHING batch, so the units
+					// this spend took are the batch's, and the flag — not raw slot
+					// arithmetic — is what keeps the tally on the units that
+					// actually survived. The " pm" marker is meaningless on a
+					// restricted spend; the batch flags are authoritative.
 					need := -e.Amount
+					perUsed := int32(0)
 					for i := 0; i < len(player.RestrictedMana) && need > 0; {
 						r := &player.RestrictedMana[i]
 						if r.Color != e.Counter || r.Valid != valid {
@@ -1059,13 +1060,40 @@ func Apply(g *state.Game, e Event) {
 						}
 						r.Amount -= used
 						need -= used
+						if r.Persistent {
+							perUsed += used
+						}
 						if r.Amount == 0 {
 							player.RestrictedMana = append(player.RestrictedMana[:i], player.RestrictedMana[i+1:]...)
 							continue
 						}
 						i++
 					}
+					if perUsed > 0 {
+						d := perUsed
+						if player.PersistentMana[idx] < d {
+							d = player.PersistentMana[idx]
+						}
+						player.PersistentMana[idx] -= d
+					}
 				}
+			} else if e.Amount < 0 && persistent {
+				// A marked PLAIN spend event names the persistent share the
+				// payment consumed: the payment path (payManaForSpent) attributes
+				// the slot's units ordinary-first over the VISIBLE pool and marks
+				// the persistent remainder with this suffix, so the tally follows
+				// the units that actually survived instead of raw slot arithmetic.
+				// (The old fresh-rule — decrement past Pool minus PersistentMana —
+				// misattributed whenever a payment's visible pool differed from
+				// the raw slot: a hidden restricted batch, or a carve that consumed
+				// the persistent batch first, made ordinary mana wrongly survive a
+				// step boundary. An unmarked negative event consumes ordinary
+				// units only, by the same attribution convention.)
+				d := -e.Amount
+				if player.PersistentMana[idx] < d {
+					d = player.PersistentMana[idx]
+				}
+				player.PersistentMana[idx] -= d
 			}
 		}
 

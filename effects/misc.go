@@ -2311,14 +2311,15 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "unhandled AddsNoCounter$ " + strings.TrimSpace(sa.Params["AddsNoCounter"]) + "; the mana is ordinary"})
 	}
-	// PersistentMana$ True (Rousing Refrain, Savage Ventmaw, Klauth: 23 corpus
-	// files, every occurrence the literal True): the mana does not empty as
-	// steps and phases end (CR 500.4 with the card's exception) until the
-	// turn ends. The marker rides the ManaAdd event's Text suffix
-	// (events.ManaPersistentText) so events.Apply can keep the units through
-	// ManaClear and expire them at TurnChange; it composes with the
-	// restriction encoding (Klauth pairs it with RestrictValid$ Spell). Any
-	// other value is a loud Note and ordinary mana.
+	// PersistentMana$ True (Rousing Refrain, Savage Ventmaw, Klauth, Kessig
+	// Naturalist: 23 corpus files / 24 raw lines, every occurrence the
+	// literal True): the mana does not empty as steps and phases end (CR
+	// 500.4 with the card's exception) until the turn ends. The marker rides
+	// the ManaAdd event's Text suffix (events.ManaPersistentText) so
+	// events.Apply can keep the units through ManaClear and expire them at
+	// TurnChange; it composes with the restriction encoding (Klauth pairs it
+	// with RestrictValid$). Any other value is a loud Note and ordinary
+	// mana.
 	persistent := false
 	switch strings.TrimSpace(sa.Params["PersistentMana"]) {
 	case "":

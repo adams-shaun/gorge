@@ -24,8 +24,11 @@ type ManaRestriction struct {
 	// Persistent marks a batch whose producing ability carries
 	// PersistentMana$ True: its units do not empty as steps and phases end
 	// (CR 500.4 with the card's exception) until the turn ends. ManaClear
-	// keeps a persistent batch (and drops the ordinary ones); the pm Text
-	// suffix on the producing ManaAdd event is what sets it, so a replay
-	// derives it identically.
+	// keeps a persistent batch (and drops the ordinary ones); the TurnChange
+	// fold demotes it to ordinary — the printed restriction is not
+	// time-bounded, only the don't-lose clause is — so the next boundary's
+	// ManaClear empties the units WITH the batch instead of leaving a
+	// phantom. The pm Text suffix on the producing ManaAdd event is what
+	// sets it, so a replay derives it identically.
 	Persistent bool
 }

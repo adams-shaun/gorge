@@ -60,14 +60,16 @@ type Player struct {
 	// that does not empty as steps and phases end (CR 500.4 with the
 	// producing card's exception: Rousing Refrain, Savage Ventmaw, 23 corpus
 	// carriers). It is written only by events.Apply: the ManaAdd event's pm
-	// Text suffix raises it with its pool unit, a spend consumes the slot's
-	// ordinary units before its persistent ones, ManaClear clears only the
-	// non-persistent share, and the TurnChange fold expires it (the cards'
-	// "until end of turn" bound — the units become ordinary again and the
-	// next boundary's ManaClear empties them). PersistentMana[i] <= Pool[i]
-	// always holds and a replay derives both identically. No historical
-	// event ever carried the suffix, so every pre-existing game reconstructs
-	// an all-zero tally byte-identically.
+	// Text suffix raises it with its pool unit, a spend that consumed
+	// persistent units carries the attribution ON ITS EVENTS (a marked plain
+	// negative, or a restricted spend's batch flags — the payment path
+	// attributes a slot's units ordinary-first over its VISIBLE pool),
+	// ManaClear clears only the non-persistent share, and the TurnChange
+	// fold expires it (the cards' "until end of turn" bound — the units
+	// become ordinary again and the next boundary's ManaClear empties them).
+	// PersistentMana[i] <= Pool[i] always holds and a replay derives both
+	// identically. No historical event ever carried the suffix, so every
+	// pre-existing game reconstructs an all-zero tally byte-identically.
 	PersistentMana Mana
 
 	// Commanders lists this seat's commanders, in Config order, sized at

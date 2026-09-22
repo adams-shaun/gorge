@@ -36,19 +36,77 @@ func TestPersistentManaFold(t *testing.T) {
 		}
 	})
 
-	t.Run("spend consumes ordinary units before persistent ones", func(t *testing.T) {
+	t.Run("a marked spend consumes the persistent share, an unmarked one is ordinary", func(t *testing.T) {
 		g := twoSeatGame(t)
 		Apply(g, Event{Kind: ManaAdd, Player: 0, Counter: "R", Amount: 2})
 		Apply(g, Event{Kind: ManaAdd, Player: 0, Counter: "R", Amount: 1,
 			Text: ManaPersistentText("")})
+		// The payment path splits a spend that spans both shares: the
+		// ordinary part rides an unmarked event, the persistent part a marked
+		// one (rules/stack.go's payManaForSpent attribution).
 		Apply(g, Event{Kind: ManaAdd, Player: 0, Counter: "R", Amount: -2})
 		if got, per := g.Players[0].Pool[state.MR], g.Players[0].PersistentMana[state.MR]; got != 1 || per != 1 {
-			t.Fatalf("after a 2-unit spend pool=%d persistent=%d, want 1/1", got, per)
+			t.Fatalf("after the ordinary spend pool=%d persistent=%d, want 1/1", got, per)
 		}
-		// Spending past the ordinary share eats the persistent tally.
-		Apply(g, Event{Kind: ManaAdd, Player: 0, Counter: "R", Amount: -1})
+		Apply(g, Event{Kind: ManaAdd, Player: 0, Counter: "R", Amount: -1,
+			Text: ManaPersistentText("")})
 		if got, per := g.Players[0].Pool[state.MR], g.Players[0].PersistentMana[state.MR]; got != 0 || per != 0 {
-			t.Fatalf("after the last spend pool=%d persistent=%d, want 0/0", got, per)
+			t.Fatalf("after the marked spend pool=%d persistent=%d, want 0/0", got, per)
+		}
+	})
+
+	// The two misattributions the r2 review broke the fresh-rule with: the
+	// fold must follow the units the PAYMENT consumed, which the events now
+	// name (a marked plain spend, or a restricted spend's batch flags), not
+	// raw slot arithmetic — whose fresh share disagrees with the payment's
+	// visible pool whenever a restricted batch is hidden from the payment or
+	// the carve consumed the persistent batch first.
+	t.Run("hidden restricted batch does not make the persistent tally survive the wrong unit", func(t *testing.T) {
+		g := twoSeatGame(t)
+		// 1 persistent plain R + 1 ordinary Spell-restricted R. A non-Spell
+		// payment hides the restricted batch and consumes the persistent unit;
+		// the emission carries the attribution (marked), and the boundary
+		// clears exactly the restricted unit.
+		Apply(g, Event{Kind: ManaAdd, Player: 0, Counter: "R", Amount: 1,
+			Text: ManaPersistentText("")})
+		Apply(g, Event{Kind: ManaAdd, Player: 0, Counter: "R", Amount: 1,
+			Text: ManaRestrictionText("Spell", 7)})
+		if got, per := g.Players[0].Pool[state.MR], g.Players[0].PersistentMana[state.MR]; got != 2 || per != 1 {
+			t.Fatalf("precondition pool=%d persistent=%d, want 2/1", got, per)
+		}
+		Apply(g, Event{Kind: ManaAdd, Player: 0, Counter: "R", Amount: -1,
+			Text: ManaPersistentText("")})
+		if got, per := g.Players[0].Pool[state.MR], g.Players[0].PersistentMana[state.MR]; got != 1 || per != 0 {
+			t.Fatalf("after the payment pool=%d persistent=%d, want 1/0", got, per)
+		}
+		Apply(g, Event{Kind: ManaClear, Player: 0})
+		if got := g.Players[0].Pool[state.MR]; got != 0 {
+			t.Fatalf("the ordinary restricted unit survived the boundary: pool=%d, want 0", got)
+		}
+	})
+
+	t.Run("a restricted spend follows the consumed batch's own flag", func(t *testing.T) {
+		g := twoSeatGame(t)
+		// Klauth's shape beside an ordinary restricted batch in the same slot.
+		Apply(g, Event{Kind: ManaAdd, Player: 0, Counter: "R", Amount: 1,
+			Text: ManaPersistentText(ManaRestrictionText("Spell", 7))})
+		Apply(g, Event{Kind: ManaAdd, Player: 0, Counter: "R", Amount: 1,
+			Text: ManaRestrictionText("Instant", 7)})
+		p := &g.Players[0]
+		if got, per, n := p.Pool[state.MR], p.PersistentMana[state.MR], len(p.RestrictedMana); got != 2 || per != 1 || n != 2 {
+			t.Fatalf("precondition pool=%d persistent=%d batches=%d, want 2/1/2", got, per, n)
+		}
+		// Consuming the ORDINARY batch leaves the persistent tally.
+		Apply(g, Event{Kind: ManaAdd, Player: 0, Counter: "R", Amount: -1,
+			Text: ManaRestrictionText("Instant", 7)})
+		if got, per, n := p.Pool[state.MR], p.PersistentMana[state.MR], len(p.RestrictedMana); got != 1 || per != 1 || n != 1 {
+			t.Fatalf("after the ordinary batch's spend pool=%d persistent=%d batches=%d, want 1/1/1", got, per, n)
+		}
+		// Consuming the PERSISTENT batch drops the tally with it.
+		Apply(g, Event{Kind: ManaAdd, Player: 0, Counter: "R", Amount: -1,
+			Text: ManaRestrictionText("Spell", 7)})
+		if got, per, n := p.Pool[state.MR], p.PersistentMana[state.MR], len(p.RestrictedMana); got != 0 || per != 0 || n != 0 {
+			t.Fatalf("after the persistent batch's spend pool=%d persistent=%d batches=%d, want 0/0/0", got, per, n)
 		}
 	})
 
@@ -103,6 +161,32 @@ func TestPersistentManaFold(t *testing.T) {
 		Apply(g, Event{Kind: ManaClear, Player: 0})
 		if got := g.Players[0].Pool[state.MR]; got != 0 {
 			t.Fatalf("pool after the next boundary = %d, want 0", got)
+		}
+	})
+
+	// The phantom-batch defect the r2 review found: ManaClear keeps a
+	// persistent batch unconditionally, so a batch surviving the turn with
+	// the tally zeroed would outlive its units — manaAvailableFor subtracts
+	// its Amount from every non-matching payment and hides the seat's REAL
+	// mana behind units that no longer exist. The turn change demotes the
+	// batch to ordinary (the printed restriction is not time-bounded; only
+	// the don't-lose clause is), so the next boundary empties the units WITH
+	// the batch.
+	t.Run("turn change demotes the persistent batches too", func(t *testing.T) {
+		g := twoSeatGame(t)
+		Apply(g, Event{Kind: ManaAdd, Player: 0, Counter: "R", Amount: 1,
+			Text: ManaPersistentText(ManaRestrictionText("Spell", 7))})
+		Apply(g, Event{Kind: TurnChange, Player: 1, Amount: 2})
+		p := &g.Players[0]
+		if per := p.PersistentMana[state.MR]; per != 0 {
+			t.Fatalf("persistent tally after the turn = %d, want 0", per)
+		}
+		if len(p.RestrictedMana) != 1 || p.RestrictedMana[0].Persistent {
+			t.Fatalf("batch after the turn: %+v, want the persistent batch demoted to ordinary", p.RestrictedMana)
+		}
+		Apply(g, Event{Kind: ManaClear, Player: 0})
+		if got, n := p.Pool[state.MR], len(p.RestrictedMana); got != 0 || n != 0 {
+			t.Fatalf("after the next boundary pool=%d batches=%d, want 0/0 (no phantom batch)", got, n)
 		}
 	})
 }

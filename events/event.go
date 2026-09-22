@@ -871,6 +871,13 @@ const manaPersistentSuffix = " pm"
 
 // ManaPersistentText appends the PersistentMana$ True marker to a ManaAdd
 // event's Text encoding (which may already carry the restriction encoding).
+// On a POSITIVE add the marker raises Player.PersistentMana with the pool
+// unit; on a negative PLAIN spend event the marker names the persistent share
+// the payment consumed (the payment path attributes a slot's units
+// ordinary-first over its visible pool and splits a spend that spans both
+// shares into an unmarked and a marked event), and on a restricted spend the
+// marker is meaningless — the consumed batch's own Persistent flag is
+// authoritative.
 func ManaPersistentText(text string) string { return text + manaPersistentSuffix }
 
 // ManaRestrictionFromText returns the constraint carried by a restricted
