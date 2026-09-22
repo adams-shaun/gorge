@@ -8,6 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
+	"strings"
 )
 
 func corpusAlternativeCard(t *testing.T, name string) *cards.Card {
@@ -817,6 +818,19 @@ func TestChancellorOpeningEffectRegistersAndRunsItsPhaseTrigger(t *testing.T) {
 	e.applyOpeningEffect(openingEffect{player: 0, card: id, svar: "RevealCard"})
 	if len(e.G.Delayed) != 1 || e.G.Delayed[0].Execute != "EffMana" || e.G.Delayed[0].Phase != state.StepMain1 {
 		t.Fatalf("Chancellor opening Effect did not register its real phase child: %+v", e.G.Delayed)
+	}
+	// The effect-owned grant arm must SKIP the OneOff$ trigger loudly: a
+	// continuous registration here would fire the phase trigger on EVERY
+	// first main phase (and double with the delayed registration above).
+	// TrigMana carries OneOff$ True, so effEffect's Triggers$ arm declines
+	// with its loud Note and the opening machinery's own delayed registration
+	// stays the only mechanism.
+	noted := false
+	for _, ev := range e.L.Events {
+		noted = noted || (ev.Kind == events.Note && strings.Contains(ev.Text, "unimplemented Effect one-shot trigger (TrigMana)"))
+	}
+	if !noted {
+		t.Fatal("Chancellor's OneOff$ Effect trigger was skipped silently: the loud Note is missing")
 	}
 	// handEngine starts from a genesis priority decision; this direct
 	// pregame setup owns no live decision before its new first turn.

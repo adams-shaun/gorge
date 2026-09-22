@@ -343,7 +343,15 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	// Effect-created trigger grants use the same live grant walk as an
 	// AddTrigger static. Keeping the registration in the continuous registry
 	// gives the fired stack object the EffectFrame needed by its one-shot
-	// self-exile body.
+	// self-exile body. The grant is marked EffectGrant: the trigger belongs
+	// to the Forge effect OBJECT, which lives in the Command zone and is
+	// owned by the resolved EffectOwner$ player -- rules' granted walk
+	// matches and queues it as that identity (TriggerZones$ against Command;
+	// the trigger's "you" is the owner), never as the resolving permanent's
+	// battlefield self. An EffectOwner$ this build cannot resolve to exactly
+	// one player fails closed (loud Note, no grant): a multi-owner selector
+	// (Chancellor of the Annex's Opponent fan-out) registered under the
+	// creator's controller would fire the trigger against the WRONG player.
 	for _, name := range strings.FieldsFunc(sa.Params["Triggers"], func(r rune) bool {
 		return r == ',' || r == ' ' || r == '\t' || r == '\n'
 	}) {
@@ -352,12 +360,32 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		if t, ok := cards.ParseTriggerLine(raw); ok {
+			// OneOff$ True (the Chancellor-of-the-Tangle opening family's "at
+			// the beginning of your FIRST main phase", the "next time ..."
+			// triggers): a one-shot the granted walk cannot honour -- it has
+			// no once-only memory, so a registered grant would fire on EVERY
+			// matching event and the opening family would DOUBLE with its own
+			// delayed registration. Fail closed: loud Note, no grant. Static$
+			// True is NOT a skip: the ComeBack family's oracle behaviour is an
+			// ordinary event trigger.
+			if strings.EqualFold(strings.TrimSpace(t.Params["OneOff"]), "True") {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "unimplemented Effect one-shot trigger (" + name + ")"})
+				continue
+			}
+			owner, ok := effectOwnerPlayer(h, c, sa)
+			if !ok {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "unimplemented Effect EffectOwner$ " + strings.TrimSpace(sa.Params["EffectOwner"])})
+				continue
+			}
 			grant := state.ContinuousEffect{
 				Source: c.Source, Controller: c.Controller, Layer: state.LAbilities,
 				Affects: "Card.Self", AddTrigger: &t, Duration: dur,
 				Permanent: dur == "Permanent", UntilEOT: effectUntilEOT(h, c.Source, dur),
 				Remembered: remembered, ForgetOnMoved: forgetOn, ExileOnMoved: exileOn,
 				ForgetCounter: forgetCounter,
+				EffectGrant:   true, EffectOwnerPlayer: owner,
 			}
 			h.AddContinuous(grant)
 			registered = true
@@ -893,6 +921,56 @@ func effectRememberedPlayers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 		}
 	}
 	return out
+}
+
+// effectOwnerPlayer resolves the Effect's EffectOwner$ player selector: the
+// player the created effect object is owned by in Forge, whose identity the
+// granted triggers match and queue as (rules/trigger_granted.go's effect
+// arm). The selector is resolved against THIS resolution's own context --
+// the same definedSpec grammar every Defined$ player selector reads --
+// narrowed to the selectors that name exactly ONE player. An absent value is
+// the Forge default: the effect is owned by the resolving controller. A
+// value that resolves to several players (Chancellor of the Annex's Opponent
+// fan-out) or to none fails closed (ok=false): the caller skips the grant
+// rather than registering it under a wrong owner.
+func effectOwnerPlayer(h Host, c *Ctx, sa *cards.SA) (state.PlayerID, bool) {
+	spec := strings.TrimSpace(sa.Params["EffectOwner"])
+	if spec == "" || spec == "You" {
+		return c.Controller, true
+	}
+	var ts []state.Target
+	switch spec {
+	case "Targeted", "TargetedPlayer":
+		ts = playersOf(c.Targets)
+	case "TargetedOwner":
+		// The owner of the targeted object (Palace Jailer's EffectOwner$
+		// TargetedOwner): ownersOf, not controllersOf -- an ownership grant
+		// must survive a control change the way Forge's owner-anchored effect
+		// object does.
+		ts = ownersOf(h.Game(), c.Targets)
+	case "TargetedController":
+		ts = controllersOf(h.Game(), c.Targets)
+	case "TriggeredTarget", "TriggeredTargetController", "TriggeredSourceController",
+		"TriggeredActivator", "TriggeredDefendingPlayer", "TriggeredPlayer",
+		"Remembered", "RememberedController", "Player.IsRemembered":
+		resolved, ok := definedSpec(h, c, spec)
+		if !ok {
+			return 0, false
+		}
+		ts = resolved
+	default:
+		return 0, false
+	}
+	var players []state.PlayerID
+	for _, t := range ts {
+		if t.IsPlayer && t.Player < state.PlayerID(len(h.Game().Players)) && !h.Game().Players[t.Player].Lost {
+			players = append(players, t.Player)
+		}
+	}
+	if len(players) != 1 {
+		return 0, false
+	}
+	return players[0], true
 }
 
 // CantRestrictionParamsReadable is the parameter whitelist a CantAttack /

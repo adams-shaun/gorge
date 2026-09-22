@@ -314,6 +314,30 @@ type ContinuousEffect struct {
 	// only, rebuilt by re-execution on replay like every other
 	// continuous-effect field.
 	TriggerGrantor ObjID
+	// EffectGrant marks an AddTrigger registration created by the api:Effect
+	// primitive (effects' effEffect): the trigger belongs to the Forge
+	// effect OBJECT, which lives in the Command zone and is owned by the
+	// resolved EffectOwner$ player -- so the granted walk matches it as that
+	// identity (TriggerZones$ is evaluated against Command, never against
+	// the resolving permanent's battlefield zone) and queues the stack
+	// ability under the owner's controller. Written only by effEffect; every
+	// other AddTrigger registration (the statics scan, Animate) leaves it
+	// false and keeps the ordinary source reads. Engine-runtime only,
+	// rebuilt by re-execution on replay like every other continuous-effect
+	// field.
+	EffectGrant bool
+	// EffectOwnerPlayer is the resolved EffectOwner$ player of an
+	// EffectGrant registration: the controller the Forge effect object is
+	// owned by (Valiant Batrider's EffectOwner$ TriggeredTarget -- the
+	// damaged player who gets the boon; Palace Jailer's EffectOwner$
+	// TargetedOwner -- the exiled creature's owner). It is the player the
+	// granted trigger's "you" reads as and the controller its queued stack
+	// ability carries. Zero means the grant is an effect creation whose
+	// EffectOwner$ was absent or resolved to the creating resolution's own
+	// controller (the byte-identical default) -- the Command-zone identity
+	// still applies. Engine-runtime only, rebuilt by re-execution on replay
+	// like every other continuous-effect field.
+	EffectOwnerPlayer PlayerID
 	// AddSVars is a static-grant's named variables (AddSVar$): the SVar the
 	// affected object GAINS, parsed from Forge's "SVar:<Name>:<Value>" value
 	// shape. The corpus's granted SVars are AI-evaluation hints (AE, AITap,

@@ -81,6 +81,13 @@ var addedAfterTheSplit = []string{
 	// already but the MODE did not -- no pre-split switch arm could have
 	// dispatched it.
 	"ClassLevelGained",
+	// effectframe2 (Palace Jailer's ComeBack): "Whenever a player becomes
+	// the monarch" (CR 716.2; printed T: lines on Custodi Lich, Knights of
+	// the Black Rose, Garland Royal Kidnapper, Starscream and Palace
+	// Jailer's effect-owned grant). It matches the events.MonarchChange
+	// designation event, which already existed (effBecomeMonarch) but had
+	// no mode -- no pre-split switch arm could have dispatched it.
+	"BecomeMonarch",
 }
 
 func allRegisteredModeNames() []string {

@@ -356,6 +356,13 @@ type Engine struct {
 	// running. Ask captures it so a replacement body can resume with the same
 	// Effect registration after a mid-resolution decision.
 	currentEffectFrame effects.EffectFrame
+	// matchAs is the identity an Effect-created trigger grant matches as
+	// (rules/trigger_granted.go's effect arm): the Forge effect object's
+	// controller and its Command zone. It is set only around one synchronous
+	// triggerMatches call -- never across a decision boundary, so Clone needs
+	// no copy and a replay re-derives every match identically -- and reads
+	// through controllerOf and zoneGate while it is non-nil.
+	matchAs *triggerMatchAs
 	// triggerLKI preserves the causing event's object snapshot from trigger
 	// match through placement and resolution. TriggerPush can log Remembered
 	// ids but not the pre-move object value (whose counters Move clears), so
