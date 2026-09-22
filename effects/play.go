@@ -139,9 +139,19 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 					zones = append(zones, zn)
 				}
 			}
-		}
-		if len(zones) == 0 {
-			return
+			if len(zones) == 0 {
+				// A PRESENT but unparseable ValidZone$ stays fail-closed.
+				return
+			}
+		} else {
+			// Forge's PlayEffect default zone for a Valid$-population Play
+			// with no ValidZone$: the resolving controller's hand ("you may
+			// cast a spell ... from your hand"). Four corpus carriers omit
+			// the zone; the two whose filter can match the controller's own
+			// hand (The Face of Boe, The Conundrum of Bowls) now resolve,
+			// while My Wish Is Your Command and Reversal of Fortune name
+			// remembered/other-hand cards and stay inert.
+			zones = []state.Zone{state.ZHand}
 		}
 		sc := c.SpecContext(c.Controller)
 		for _, zn := range zones {

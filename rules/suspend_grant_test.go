@@ -20,31 +20,69 @@ func suspendCorpusCard(t *testing.T, name string) *cards.Card {
 	return c
 }
 
+// giveSuspendThroughDoctor resolves The Tenth Doctor's REAL compiled
+// GiveSuspend body against one remembered exiled card, exactly as the card's
+// own DB$ Pump does. It is the one grant path every test here shares, so none
+// of them can drift onto a hand-built replacement SA.
+func giveSuspendThroughDoctor(t *testing.T, e *Engine, doctorID, targetID state.ObjID) {
+	t.Helper()
+	f := e.G.Obj(doctorID).Face()
+	if f == nil {
+		t.Fatal("the Doctor has no face")
+	}
+	sa := cards.ResolveSVar(f.SVars, "GiveSuspend")
+	if sa == nil || sa.API != "Pump" {
+		t.Fatalf("the Doctor's GiveSuspend SVar did not compile to a Pump body: %+v", sa)
+	}
+	if got := sa.Params["Defined"]; got != "Remembered.withoutSuspend" {
+		t.Fatalf("the compiled GiveSuspend Defined$ = %q, want the real Remembered.withoutSuspend filter", got)
+	}
+	effects.Resolve(e, &effects.Ctx{Source: doctorID, Controller: 0, SVars: f.SVars,
+		Remembered: []state.Target{{Obj: targetID}}}, sa)
+}
+
 // TestTenthDoctorExileGainsSuspendAndCasts drives the real GiveSuspend body
-// from The Tenth Doctor's compiled SVar. In particular, it reaches the
-// final-counter upkeep path;
-// a grant that only affected the layer-6 keyword view would never tick TIME.
+// from The Tenth Doctor's compiled SVar onto a NON-Suspend exiled card,
+// reaches the ordinary upkeep tick, accepts the final-counter cast choice and
+// asserts the card reaches the stack. A grant that only affected the layer-6
+// keyword view would never tick TIME and never reach the suspend cast queue.
 func TestTenthDoctorExileGainsSuspendAndCasts(t *testing.T) {
 	doctor := suspendCorpusCard(t, "The Tenth Doctor")
-	spell := suspendCorpusCard(t, "Profane Tutor")
+	spell := suspendCorpusCard(t, "Grizzly Bears") // no printed Suspend
 	e := handEngine(t, doctor, spell)
 	doctorID, spellID := e.G.Zone(state.ZHand, 0)[0], e.G.Zone(state.ZHand, 0)[1]
 	e.emit(events.Event{Kind: events.MoveZone, Obj: doctorID, From: state.ZHand, To: state.ZBattlefield})
 	e.emit(events.Event{Kind: events.MoveZone, Obj: spellID, From: state.ZHand, To: state.ZExile})
-	f := e.G.Obj(doctorID).Face()
-	// Invoke the real GiveSuspend body from the Doctor's compiled SVar. The
-	// preceding DigUntil is deliberately not part of this focused pin: the
-	// grant and its later cast are the behaviour under test.
-	effects.Resolve(e, &effects.Ctx{Source: doctorID, Controller: 0, SVars: f.SVars,
-		Remembered: []state.Target{{Obj: spellID}}}, &cards.SA{Kind: "DB", API: "Pump", Params: map[string]string{
-		"Defined": "Remembered", "KW": "Suspend", "PumpZone": "Exile", "Duration": "Permanent",
-	}})
-	o := e.G.Obj(spellID)
-	if o.Zone != state.ZExile || o.Counter("TIME") != 0 || !o.SuspendGranted {
-		t.Fatalf("Tenth Doctor grant = zone %s TIME %d granted %v", o.Zone, o.Counter("TIME"), o.SuspendGranted)
+
+	// PRECONDITION the grant depends on: the card has no suspend yet, so the
+	// clear body really is what grants it (a printed-Suspend card would make
+	// the grant vacuous and the filter reject it).
+	if e.HasKeyword(spellID, "Suspend") {
+		t.Fatal("fixture card already has suspend; the grant would be vacuous")
 	}
-	// Add the three counters the real preceding PutCounter body supplies.
+	if !effects.MatchesSpecFrom(e.G, "Card.withoutSuspend", spellID, 0, spellID) {
+		t.Fatal("precondition: the card should be withoutSuspend before the grant")
+	}
+
+	giveSuspendThroughDoctor(t, e, doctorID, spellID)
+
+	o := e.G.Obj(spellID)
+	if o.Zone != state.ZExile || !o.SuspendGranted {
+		t.Fatalf("Tenth Doctor grant = zone %s granted %v, want exile+granted", o.Zone, o.SuspendGranted)
+	}
+	if !e.HasKeyword(spellID, "Suspend") {
+		t.Fatalf("granted suspend was not derived as a keyword: %v", e.Derived(spellID).Keywords)
+	}
+	if !effects.MatchesSpecFrom(e.G, "Card.withSuspend", spellID, 0, spellID) {
+		t.Fatal("Card.withSuspend did not see the granted keyword")
+	}
+
+	// The real DBPutCounter body precedes the grant on the card, but
+	// effPutCounter only places counters on battlefield objects (reported as
+	// an issue), so the three time counters the Doctor's PutCounter body
+	// supplies are placed directly here.
 	e.emit(events.Event{Kind: events.CounterChange, Obj: spellID, Counter: "TIME", Amount: 3})
+
 	// The first two upkeeps decrement TIME. The third must pose the normal
 	// suspend cast choice, proving the granted card is in the same queue.
 	e.beginTurn(0)
@@ -53,46 +91,133 @@ func TestTenthDoctorExileGainsSuspendAndCasts(t *testing.T) {
 		t.Fatalf("granted suspend TIME after two upkeeps = %d, want 1", got)
 	}
 	e.beginTurn(0)
-	if d := e.Pending(); d == nil || d.Kind != decision.KChoose || len(d.Options) != 2 || d.Options[0].Kind != "suspend_cast_yes" {
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || len(d.Options) < 2 || d.Options[0].Kind != "suspend_cast_yes" {
 		t.Fatalf("granted suspend final counter did not ask to cast: %+v", d)
+	}
+	// Accept the cast: the granted card must reach the stack.
+	submitChoices(t, e, 0)
+	if !hasEvent(e, events.PutOnStack, spellID) {
+		t.Fatalf("accepting the suspend cast did not put %d on the stack", spellID)
+	}
+	if got := e.G.Obj(spellID).Zone; got != state.ZStack {
+		t.Fatalf("granted suspend cast ended in %s, want stack", got)
 	}
 }
 
-// TestRoseTylerBadWolfCountsSuspendedCards uses Rose's compiled SVar, not a
-// hand-built count, so Card.suspended is exercised by a real consumer.
+// TestRoseTylerBadWolfCountsSuspendedCards grants suspend to a real exiled
+// card through the Doctor's compiled body and then resolves Rose Tyler's REAL
+// compiled TrigPutCounter SVar, so Card.suspended is exercised end to end by
+// the grant's own consumer.
 func TestRoseTylerBadWolfCountsSuspendedCards(t *testing.T) {
+	doctor := suspendCorpusCard(t, "The Tenth Doctor")
 	rose := suspendCorpusCard(t, "Rose Tyler")
-	spell := suspendCorpusCard(t, "Profane Tutor")
-	e := handEngine(t, rose, spell)
-	roseID, spellID := e.G.Zone(state.ZHand, 0)[0], e.G.Zone(state.ZHand, 0)[1]
+	spell := suspendCorpusCard(t, "Grizzly Bears")
+	e := handEngine(t, doctor, rose, spell)
+	doctorID, roseID, spellID := e.G.Zone(state.ZHand, 0)[0], e.G.Zone(state.ZHand, 0)[1], e.G.Zone(state.ZHand, 0)[2]
+	e.emit(events.Event{Kind: events.MoveZone, Obj: doctorID, From: state.ZHand, To: state.ZBattlefield})
 	e.emit(events.Event{Kind: events.MoveZone, Obj: roseID, From: state.ZHand, To: state.ZBattlefield})
 	e.emit(events.Event{Kind: events.MoveZone, Obj: spellID, From: state.ZHand, To: state.ZExile})
-	e.emit(events.Event{Kind: events.CounterChange, Obj: spellID, Counter: "TIME", Amount: 2})
-	e.emit(events.Event{Kind: events.AlterAttribute, Obj: spellID, Text: "Suspend", Amount: 1})
+
+	if effects.MatchesSpecFrom(e.G, "Card.suspended", spellID, 0, spellID) {
+		t.Fatal("precondition: the card is suspended before it has any time counters or grant")
+	}
+	giveSuspendThroughDoctor(t, e, doctorID, spellID)
+	// TIME > 0 is part of Card.suspended; supplied directly because
+	// effPutCounter cannot place on an exiled card (see the Doctor test).
+	e.emit(events.Event{Kind: events.CounterChange, Obj: spellID, Counter: "TIME", Amount: 1})
+	if !effects.MatchesSpecFrom(e.G, "Card.suspended", spellID, 0, spellID) {
+		t.Fatal("precondition: the granted exiled card with TIME should now be suspended")
+	}
+
 	f := e.G.Obj(roseID).Face()
-	effects.Resolve(e, &effects.Ctx{Source: roseID, Controller: 0, SVars: f.SVars}, cards.ResolveSVar(f.SVars, "TrigPutCounter"))
+	sa := cards.ResolveSVar(f.SVars, "TrigPutCounter")
+	if sa == nil || sa.API != "PutCounter" {
+		t.Fatalf("Rose's TrigPutCounter SVar did not compile to a PutCounter body: %+v", sa)
+	}
+	effects.Resolve(e, &effects.Ctx{Source: roseID, Controller: 0, SVars: f.SVars}, sa)
 	if got := e.G.Obj(roseID).Counter("TIME"); got != 1 {
 		t.Fatalf("Rose Bad Wolf TIME = %d, want 1 from one suspended card", got)
 	}
 }
 
-// TestFaceOfBoeCastsSuspendedSpellAtSuspendCost drives the real PlayCost
-// transaction used by The Face of Boe and checks that it reaches the stack
-// without paying the spell's printed mana cost.
+// TestFaceOfBoeCastsSuspendedSpellAtSuspendCost activates The Face of Boe's
+// REAL compiled AB$ Play through the ordinary ability offer, proving the
+// Valid$ Card.withSuspend population (a non-Suspend card in hand is NOT
+// offered), the optional selection, and the SuspendCost transaction that
+// puts the chosen card on the stack without its printed mana cost.
 func TestFaceOfBoeCastsSuspendedSpellAtSuspendCost(t *testing.T) {
 	boe := suspendCorpusCard(t, "The Face of Boe")
-	spell := suspendCorpusCard(t, "Profane Tutor")
-	e := handEngine(t, boe, spell)
-	boeID, spellID := e.G.Zone(state.ZHand, 0)[0], e.G.Zone(state.ZHand, 0)[1]
+	spell := suspendCorpusCard(t, "Profane Tutor") // K:Suspend:2:1 B
+	nonSuspend := suspendCorpusCard(t, "Grizzly Bears")
+	e := handEngine(t, boe, spell, nonSuspend)
+	hand := e.G.Zone(state.ZHand, 0)
+	boeID, spellID, nonSuspendID := hand[0], hand[1], hand[2]
 	e.emit(events.Event{Kind: events.MoveZone, Obj: boeID, From: state.ZHand, To: state.ZBattlefield})
-	// The Face's compiled ability selects this same card through Card.withSuspend;
-	// exercise the resulting PlayCost transaction directly so the test remains
-	// deterministic when the sole eligible card takes the no-ask path.
+	e.G.Obj(boeID).SummonSick = false
+
+	// PRECONDITION: the chosen spell has printed suspend and the other card
+	// does not, so the population's filter is what selects it.
+	if !effects.MatchesSpecFrom(e.G, "Card.withSuspend", spellID, 0, spellID) {
+		t.Fatal("precondition: Profane Tutor should have suspend")
+	}
+	if effects.MatchesSpecFrom(e.G, "Card.withSuspend", nonSuspendID, 0, nonSuspendID) {
+		t.Fatal("precondition: Grizzly Bears should NOT have suspend")
+	}
+
+	var opt *decision.Option
+	// {1}{B} is Profane Tutor's suspend cost; an empty pool makes the
+	// transaction unpayable and the test unable to distinguish the paths.
 	e.G.Players[0].Pool[state.MC] = 1
 	e.G.Players[0].Pool[state.MB] = 1
-	e.beginPlay(0, spellID, false, "SuspendCost", false)
-	if e.G.Obj(spellID).Zone != state.ZStack {
-		t.Fatalf("Face of Boe SuspendCost play did not reach stack: %s", e.G.Obj(spellID).Zone)
+	for _, o := range e.legalActions(0) {
+		if o.Kind == "ability" && o.Obj == boeID {
+			c := o
+			opt = &c
+			break
+		}
+	}
+	if opt == nil {
+		t.Fatal("The Face of Boe's Play ability was not offered")
+	}
+	e.beginActivation(0, *opt)
+
+	// Resolve the activated ability onto the stack and drive it to its Play
+	// selection. resolveTop asks for the mode, so the loop stops there.
+	var d *decision.Decision
+	for i := 0; i < 60; i++ {
+		if d = e.Pending(); d != nil && d.Kind == decision.KModes && d.ResumeKind == "play" {
+			break
+		}
+		if len(e.pendingTriggers) > 0 {
+			e.putTriggersOnStack()
+			continue
+		}
+		if len(e.G.Stack) > 0 {
+			e.resolveTop()
+			continue
+		}
+		break
+	}
+	if d == nil || d.Kind != decision.KModes || d.ResumeKind != "play" {
+		t.Fatalf("Face of Boe AB did not pose the Play selection: %+v", d)
+	}
+	if len(d.Options) != 1 || d.Options[0].Obj != spellID {
+		t.Fatalf("Play population = %+v, want exactly the one suspended spell (Valid$ Card.withSuspend)", d.Options)
+	}
+	submitChoices(t, e, 0)
+
+	if !hasEvent(e, events.PutOnStack, spellID) {
+		t.Fatalf("the SuspendCost play did not put the chosen spell on the stack")
+	}
+	if got := e.G.Obj(spellID).Zone; got != state.ZStack {
+		t.Fatalf("Face of Boe SuspendCost play ended in %s, want stack", got)
+	}
+	if pool := e.G.Players[0].Pool.Total(); pool != 0 {
+		t.Fatalf("mana pool after the SuspendCost play = %d, want 0 (the printed mana cost was never charged)", pool)
+	}
+	if !e.G.Obj(boeID).Tapped {
+		t.Fatal("activating the {T} ability did not tap The Face of Boe")
 	}
 }
 
