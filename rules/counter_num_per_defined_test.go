@@ -3,31 +3,33 @@ package rules
 import (
 	"testing"
 
-	"github.com/adams-shaun/gorge/decision"
-	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
 
 // CounterNumPerDefined$ (task param-putcounter-counternumperdefined): the
 // count a PutCounter places is evaluated PER AFFECTED OBJECT, not once for
-// the resolving source. Both corpus pins are real cards:
+// the resolving source. The pin is a real card:
 //
 //   - Canopy Gargantuan's upkeep trigger (`CounterNumPerDefined$ X`,
 //     `SVar:X:Count$CardToughness`) puts +1/+1 counters on each other
 //     creature you control equal to THAT creature's toughness. Before the
 //     fix the key was unread and the shared CounterNum$ path defaulted to
 //     1, so every creature took exactly one.
-//   - Jared Carthalion's [-3] (`CounterNumPerDefined$ X`,
-//     `SVar:X:Count$CardNumColors`) puts counters equal to the number of
-//     colours each chosen creature is -- the per-defined read on an
-//     ACTIVATED ability, exercising the new Count$CardNumColors head.
 //
-// The third corpus carrier (Sovereign Okinec Ahau) stays un-pinned: its
-// `Defined$ Valid Creature.YouCtrl+powerGTbasePower` spec cannot resolve the
-// `powerGTbasePower` predicate's non-literal RHS in the filter grammar
-// today, so its Defined set is empty regardless of this primitive -- that
-// filter-side gap is filed separately, not silently papered over here.
+// Two other carriers are deliberately NOT pinned here, and their count
+// heads stay unread:
+//
+//   - Jared Carthalion's [-3] needs `Count$CardNumColors`, which must read
+//     an object's LIVE derived colours (rules/layers.go's Engine.Colors
+//     read) — the face-only ColorMaskOf is wrong under a layer-5 colour
+//     effect (Leyline of the Guildpact etc.). Filed as its own ticket.
+//   - Sovereign Okinec Ahau needs `Count$CardBasePower` (a derived base
+//     characteristic after layer-7b SetPower statics) AND its
+//     `Defined$ Valid Creature.YouCtrl+powerGTbasePower` spec cannot resolve
+//     the non-literal `basePower` predicate RHS today (separate filter
+//     ticket), so its Defined set is empty regardless — not silently
+//     papered over here.
 
 func TestCanopyGargantuanPutsToughnessCountersOnEachOtherCreature(t *testing.T) {
 	t.Parallel()
@@ -70,44 +72,5 @@ func TestCanopyGargantuanPutsToughnessCountersOnEachOtherCreature(t *testing.T) 
 	}
 	if n := e.G.Obj(enemy).Counter("P1P1"); n != 0 {
 		t.Fatalf("the opponent's creature got %d counters, want 0 (YouCtrl)", n)
-	}
-}
-
-func TestJaredCarthalionMinus3PutsColorCountPerCreature(t *testing.T) {
-	t.Parallel()
-	e := handEngine(t, corpusAlternativeCard(t, "Jared Carthalion"))
-	jared := e.G.Zone(state.ZHand, 0)[0]
-	placeFromHand(t, e, jared)
-	if got := e.G.Obj(jared).Counter("LOYALTY"); got != 5 {
-		t.Fatalf("precondition: Jared entered with %d loyalty, want the printed 5", got)
-	}
-	mono := onBoardCard(t, e, 0, card(t, "Name:Mono\nTypes:Creature Human\nManaCost:2 G\nPT:2/2\nOracle:x\n"))
-	multi := onBoardCard(t, e, 0, card(t, "Name:Multi\nTypes:Creature Human\nManaCost:W U\nPT:2/2\nOracle:x\n"))
-	if effects.ColorsOf(e.G.Obj(mono)) != "G" || effects.ColorsOf(e.G.Obj(multi)) != "WU" {
-		t.Fatalf("precondition: colours mono=%q multi=%q", effects.ColorsOf(e.G.Obj(mono)), effects.ColorsOf(e.G.Obj(multi)))
-	}
-	// The [-3] is Jared's second A: line.
-	var opt decision.Option
-	found := false
-	for _, o := range e.legalActions(0) {
-		if o.Kind == "ability" && o.Obj == jared && o.Ability == 1 {
-			opt, found = o, true
-			break
-		}
-	}
-	if !found {
-		t.Fatalf("Jared's [-3] ability not offered: %+v", e.legalActions(0))
-	}
-	e.beginActivation(0, opt)
-	answerTargetAsk(t, e, []state.ObjID{mono, multi})
-	passUntilStackEmpty(t, e, 60)
-	if n := e.G.Obj(mono).Counter("P1P1"); n != 1 {
-		t.Fatalf("the monocoloured creature got %d +1/+1 counters, want 1 (its colour count)", n)
-	}
-	if n := e.G.Obj(multi).Counter("P1P1"); n != 2 {
-		t.Fatalf("the two-coloured creature got %d +1/+1 counters, want 2", n)
-	}
-	if got := e.G.Obj(jared).Counter("LOYALTY"); got != 2 {
-		t.Fatalf("Jared's loyalty after the [-3] = %d, want 2 (5-3)", got)
 	}
 }

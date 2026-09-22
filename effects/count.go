@@ -943,7 +943,7 @@ func refToughness(h Host, o *state.Object, snapshot bool) int32 {
 // anchor moved to ONE specific object: a shallow Ctx copy keeps the resolving
 // ability's SVar table, controller and remembered set, but `Source` -- what
 // the source-anchored heads (CardPower, CardToughness, CardManaCost,
-// CardBasePower, CardNumColors) read -- becomes obj. This is what a
+// CardManaCost) read -- becomes obj. This is what a
 // `CounterNumPerDefined$` parameter needs: the count is evaluated per
 // AFFECTED object (Canopy Gargantuan's "equal to that creature's toughness"),
 // not once for the resolving source. An expression whose head the evaluator
@@ -1249,28 +1249,6 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	case "CardToughness":
 		if o := g.Obj(c.Source); o != nil && o.Face() != nil {
 			return refToughness(h, o, false), true
-		}
-		return 0, true
-	case "CardBasePower":
-		// The BASE power, without the P1P1 counters refPower adds (Sovereign
-		// Okinec Ahau's `SVar:X:Count$CardPower/Minus.Count$CardBasePower`, the
-		// "equal to the difference" read, and Curie, Emergent Intelligence's
-		// `NumCards$ Count$CardBasePower`). The printed face is the base this
-		// build prices: layer statics that SET power are not folded in here
-		// (the face-only Count$-head convention), and no corpus carrier relies
-		// on them.
-		if o := g.Obj(c.Source); o != nil && o.Face() != nil {
-			return int32(o.Face().Power()), true
-		}
-		return 0, true
-	case "CardNumColors":
-		// The number of colours the source object IS (Jared Carthalion's
-		// `SVar:X:Count$CardNumColors` behind CounterNumPerDefined$; also the
-		// "+2 for each of its colors" pump family's AffectedX). ColorMaskOf is
-		// the shared colour read: printed cost or explicit Colors line, Devoid
-		// colourless, a self SetColor$ CDA claim overwriting.
-		if o := g.Obj(c.Source); o != nil {
-			return int32(numColorsOf(o)), true
 		}
 		return 0, true
 	case "AttackersDeclared":
