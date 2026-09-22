@@ -494,6 +494,18 @@ type Host interface {
 	// (the charm frame re-enters the Charm itself), which is why the reporter
 	// marks it the way SuspendRepeat marks a RepeatEach.
 	SuspendCharmRest(sa *cards.SA, rest []string)
+	// SuspendVillainousRest reports that a VillainousChoice's chosen body
+	// suspended on a nested mid-resolution ask (for example Damocles Base's
+	// DBSac sacrifice picker) with victims still to process. sa is the
+	// VillainousChoice's own SA and rest carries the ordered Defined$ victim
+	// list plus the index of the NEXT victim to ask. The host records a
+	// continuation that re-enters the VillainousChoice with that cursor once
+	// the answered ask's own chain completes, so the remaining victims are
+	// still asked rather than dropped. The Resolve loop enclosing the
+	// VillainousChoice reports the same SA through SuspendContinuation next;
+	// the host drops that report (the villainous frame re-enters the
+	// primitive itself), the SuspendCharmRest convention.
+	SuspendVillainousRest(sa *cards.SA, rest VillainousRest)
 	// SetDamageSource overrides the in-flight damage source for the Damage
 	// events the caller is about to emit: the provenance rules' emit-side
 	// protection check (CR 702.16d) and DamageDone trigger matching read
@@ -576,6 +588,18 @@ type RepeatSuspension struct {
 	Outer       []state.Target
 	Chosen      []state.Target
 	ChosenValid bool
+}
+
+// VillainousRest is a VillainousChoice's continuation once its chosen body
+// has completed: Victims is the ordered Defined$ player set and Next is the
+// index of the victim still to ask (the completed victim's index + 1). The
+// host re-enters the VillainousChoice primitive with that cursor, so a body
+// that suspended on its own nested ask does not strand the remaining
+// victims. Plain data, so the host can carry it on its own continuation
+// frame and replay re-derives it identically.
+type VillainousRest struct {
+	Victims []state.Target
+	Next    int
 }
 
 // DamageSourceLKI is the pre-departure damage provenance of one object.

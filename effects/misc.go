@@ -2268,6 +2268,16 @@ func effVillainousChoice(h Host, c *Ctx, sa *cards.SA) {
 				Resolve(h, c, sub)
 			}
 			if h.Suspended() {
+				// The chosen body posed a nested mid-resolution ask (DBSac's
+				// sacrifice picker is the live carrier). Record this
+				// primitive's own continuation so the remaining victims are
+				// still asked once that ask's chain completes, instead of
+				// being stranded: the enclosing Resolve loop would otherwise
+				// resume only sa.Sub (nil for a VillainousChoice) and the
+				// outer levels would degrade to no-sub-ability Notes.
+				h.SuspendVillainousRest(sa, VillainousRest{
+					Victims: append([]state.Target(nil), c.VillainousVictims...),
+					Next:    c.VillainousIndex + 1})
 				return
 			}
 		}
