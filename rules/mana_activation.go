@@ -751,8 +751,11 @@ func (e *Engine) continueManaDiscard() {
 			e.choosing = chooseNone
 			return
 		}
-		if n == 1 && len(candidates) == 1 && candidates[0] == md.source && strings.EqualFold(part.Spec, "CARDNAME") {
-			md.sacs = append(md.sacs, md.source)
+		// Exactly N candidates makes the sacrifice forced. Record that
+		// deterministic battlefield-order set without a zero-information ask;
+		// only a wider candidate set gives the player a choice.
+		if len(candidates) == n {
+			md.sacs = append(md.sacs, candidates...)
 			md.sacPart++
 			continue
 		}

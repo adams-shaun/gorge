@@ -356,11 +356,6 @@ func TestNyxbloomDoesNotMultiplySacrificeOnlyMana(t *testing.T) {
 	e, cfg, ids := realCardEngine(t, reg, 73, "Nyxbloom Ancient", "Krark-Clan Ironworks")
 	kci := ids[1]
 	submitChoices(t, e, activateOption(t, e, kci))
-	d := e.Pending()
-	if d == nil || d.Kind != decision.KChoose || len(d.Options) != 1 || d.Options[0].Kind != "sacrifice" {
-		t.Fatalf("KCI sacrifice cost decision = %+v, want its real artifact sacrifice", d)
-	}
-	submitChoices(t, e, d.Options[0].Index)
 	if got := e.G.Players[0].Pool; got.Total() != 2 || got[state.MC] != 2 {
 		t.Fatalf("KCI sacrifice-only production through Nyxbloom = %+v, want two colorless", got)
 	}
