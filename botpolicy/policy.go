@@ -469,6 +469,38 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			break
 		}
 		switch d.Options[0].Kind {
+		case "vote_card":
+			// A card ballot is a political vote: remove the opponent's most
+			// valuable offered permanent, not merely the first one. Council's
+			// Judgment's ballot excludes only the CASTER's permanents, so at
+			// 3+ seats a voter's own permanent can be on the ballot beside an
+			// opponent's (Option.Player is the subject's controller). A voter
+			// must never vote to exile its own card when a foreign one is
+			// offered, so the worth ranking runs over the non-self options
+			// first, falling back to all options only when every offered
+			// permanent is the voter's own (the caster excluded itself and no
+			// opponent has a legal permanent -- the vote still has to name
+			// something).
+			best := -1
+			for i, o := range d.Options {
+				if o.Player == d.Player {
+					continue
+				}
+				if best < 0 || b.cardWorth(o.Obj) > b.cardWorth(d.Options[best].Obj) {
+					best = i
+				}
+			}
+			if best < 0 {
+				// Every offered permanent is the voter's own: name the
+				// highest-worth one rather than reading past the option list.
+				best = 0
+				for i := 1; i < len(d.Options); i++ {
+					if b.cardWorth(d.Options[i].Obj) > b.cardWorth(d.Options[best].Obj) {
+						best = i
+					}
+				}
+			}
+			in.Choices = []int{d.Options[best].Index}
 		case "x":
 			in.Choices = []int{d.Options[len(d.Options)-1].Index} // the most it can pay for
 		case "discard":

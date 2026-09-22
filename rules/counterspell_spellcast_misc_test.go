@@ -342,7 +342,24 @@ func TestCouncilsJudgmentExilesTheMostVoted(t *testing.T) {
 	opponentBear := miscBoardObj(t, e, 1, "Grizzly Bears")
 	submitChoices(t, e, miscCastOption(t, e, judgment))
 	miscPass(t, e) // seat 0's follow-up priority
-	passUntilStackEmpty(t, e, 30)
+	// VoteCard$ is a real private per-voter decision; both voters select the
+	// only eligible permanent before the ordinary priority drain continues.
+	voteAsks := 0
+	for len(e.G.Stack) > 0 {
+		d := e.Pending()
+		if d == nil {
+			t.Fatal("no decision while draining Council's Judgment")
+		}
+		if d.Kind == decision.KChoose {
+			voteAsks++
+			submitChoices(t, e, d.Options[0].Index)
+			continue
+		}
+		passUntilStackEmpty(t, e, 1)
+	}
+	if voteAsks != 2 {
+		t.Fatalf("Council's Judgment posed %d VoteCard asks, want one per voter (2)", voteAsks)
+	}
 
 	// The opponent's bear was the only legal ballot entry, every player
 	// voted for it, and the exile sub-ability moved it. Seat 0's own bear is
