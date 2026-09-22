@@ -33,16 +33,17 @@ func init() {
 // family cards/keywords.go's expandKeywords doc names): there is no face
 // ability to add. The pieces:
 //
-//   - mayFlashSacPermission makes spellTimingOK accept the cast at instant
-//     timing, exactly like the printed Flash keyword. No extra cost is folded
-//     into the offer.
-//   - mayFlashSacCastThisWay reports whether a just-announced cast is the
-//     off-sorcery shape the rider keys on: the face carries the keyword AND
-//     the cast was not made at a time a sorcery could have been cast. It is
-//     captured at beginCast (before CR 601.2a puts the spell on the stack, so
-//     the stack-emptiness half of sorcerySpeed is the pre-cast board state,
-//     not this spell's own push) and stamped onto the pay-time CastInfo as
-//     state.FlagMayFlashSac -- the replayable provenance the ETB hook reads.
+//   - the permission itself is read inline from spellTimingOK
+//     (rules/statics.go), which accepts the cast at instant timing exactly
+//     like the printed Flash keyword. No extra cost is folded into the offer.
+//   - offSorceryAtCast captures whether a just-announced cast is the
+//     off-sorcery shape the rider keys on: the cast was not made at a time a
+//     sorcery could have been cast. It is evaluated at beginCast (before CR
+//     601.2a puts the spell on the stack, so the stack-emptiness half of
+//     sorcerySpeed is the pre-cast board state, not this spell's own push)
+//     and, gated on the face actually carrying the keyword, stamped onto the
+//     pay-time CastInfo as state.FlagMayFlashSac -- the replayable provenance
+//     the ETB hook reads.
 //   - mayFlashSacEnter (called from altCostEnter for every battlefield entry)
 //     reads that flag and registers the delayed sacrifice at the next cleanup
 //     step, through the ordinary DelayedRegister/DelayedPush machinery with
@@ -60,8 +61,8 @@ func mayFlashSacFace(f *cards.Face) bool {
 // time: true when the cast was made at a time a sorcery could NOT have been
 // cast. It is evaluated in beginCast, before the spell is pushed (CR 601.2a),
 // so sorcerySpeed's empty-stack half reflects the board the caster announced
-// into rather than the spell being announced. An ability proposal (pc.ability
-// >= 0) never carries the keyword flag, so the caller gates on the face.
+// into rather than the spell being announced. payCast's flag arm gates on
+// !pc.isAbility(), so an ability proposal never stamps the flag.
 func (e *Engine) offSorceryAtCast(p state.PlayerID) bool {
 	return !e.sorcerySpeed(p)
 }
