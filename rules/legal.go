@@ -1089,6 +1089,22 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			continue
 		}
 		if !e.spellTimingOK(p, id, f, sorcery) {
+			// MayFlashCost (Forge's K:MayFlashCost, CR 702.8): when the ordinary
+			// timing gate fails, a face printed with the keyword is NOT skipped
+			// outright -- it may be cast at instant timing by paying the extra.
+			// The mayflash offer below is the ONLY option this branch adds; the
+			// plain cast and every other mode on the face stay behind the
+			// sorcery-speed gate. When it is already sorcery timing the plain
+			// cast is strictly cheaper, so no mayflash option is offered and the
+			// face takes the ordinary path (no redundant duplicate offer).
+			if e.mayflashTimingOK(p, f) {
+				if extra, ok := mayflashExtraCost(f); ok && e.castTargetsAvailable(p, id, f.SpellAbility()) {
+					if offerCastable(p, id, withSpellAbilityExtras(f, e.castOfferBase(p, id)).Plus(extra), spellScope("mayflash"), false) {
+						out = append(out, decision.Option{Index: len(out), Kind: "cast",
+							Label: "Cast " + f.Name + " (may-flash)", Obj: id, Mode: "mayflash"})
+					}
+				}
+			}
 			continue
 		}
 		targetsAvailable := e.castTargetsAvailable(p, id, f.SpellAbility())
@@ -1109,11 +1125,11 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		// Only the plain cast folds the extras, matching beginCast's own
 		// condition: the kicked/surged/flashback/miracle offers below set
 		// Mode, and beginCast skips the fold for those.
-		convokeBase, convokeTaps := e.convokeCost(p, id, e.rawBaseCost(p, id))
-		// CR 702.66a: Improvise's artifacts credit the offer gate too, after
-		// Convoke's creatures, each reducing one generic; improviseCost
-		// excludes convokeTaps so one permanent is never committed twice.
-		convokeBase, _ = e.improviseCost(p, id, convokeBase, convokeTaps)
+		// convokeBase is the offer gate's composed RAW base: the printed mana
+		// cost with CR 702.51 Convoke and CR 702.66 Improvise's generic credits.
+		// castOfferBase is the shared recipe so the plain and mayflash offers
+		// cannot drift (the mayflash branch above uses it too).
+		convokeBase := e.castOfferBase(p, id)
 		// An either-or additional cost (AlternateAdditionalCost) makes the
 		// plain cast's gate existential: the cast is offerable when AT LEAST
 		// ONE alternative part is payable (the choice itself is asked by the
