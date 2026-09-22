@@ -73,12 +73,12 @@ func sawBestowedCastInfo(t *testing.T, e *Engine, id state.ObjID) bool {
 	return false
 }
 
-// sawDetach reports whether the log carries an Attach event for id with no
-// IDs -- the detach shape (events/apply.go clears AttachedTo on it).
+// sawDetach reports whether the log carries the Unattached detach event for
+// id. Its first ID preserves the former bearer for trigger referents.
 func sawDetach(t *testing.T, e *Engine, id state.ObjID) bool {
 	t.Helper()
 	for _, ev := range e.L.Events {
-		if ev.Kind == events.Attach && ev.Obj == id && len(ev.IDs) == 0 {
+		if ev.Kind == events.Unattached && ev.Obj == id && len(ev.IDs) > 0 {
 			return true
 		}
 	}
@@ -136,8 +136,8 @@ func TestCelestialArchonBestowedCastAttachesAuraToBearer(t *testing.T) {
 }
 
 // TestCelestialArchonBearerLeavesBecomesCreatureAgain: CR 702.114b's detach
-// half -- the bearer dies, the Archon DETACHES (events.Attach with no IDs)
-// and STAYS on the battlefield as a 4/4 white Archon creature again, never
+// half -- the bearer dies, the Archon DETACHES (events.Unattached naming the
+// former bearer) and STAYS on the battlefield as a 4/4 white Archon creature again, never
 // taking the "Aura attached to nothing" graveyard arm.
 func TestCelestialArchonBearerLeavesBecomesCreatureAgain(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)

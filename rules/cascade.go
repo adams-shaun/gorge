@@ -30,7 +30,21 @@ func (e *Engine) queueCascadeTriggers(stackObj state.ObjID, p state.PlayerID) {
 	if stackObj == 0 {
 		return
 	}
+	// The grant walk counts PRIOR casts (the stackGrantCast scratch,
+	// rules/engine.go): this is the one read where the in-flight cast's own
+	// PutOnStack — already in the log — must not satisfy the gate's EQ0.
+	// Neither scratch is part of the two cache keys active() serves the
+	// grants from (activeEpoch by log head + continuousVersion for the
+	// battlefield permanents' list, staticEpoch by log head alone for the
+	// static-derived list — and a build INSIDE the payment flow has already
+	// stamped the current log head with the scratch unset), so both are
+	// invalidated around the walk; the post-walk state (scratch cleared)
+	// invalidates again so the memo never serves a scratch-built list.
+	e.stackGrantCast = stackObj
+	e.activeEpoch, e.staticEpoch = -1, -1
 	n := e.cascadeInstances(stackObj)
+	e.stackGrantCast = 0
+	e.activeEpoch, e.staticEpoch = -1, -1
 	if n == 0 {
 		return
 	}

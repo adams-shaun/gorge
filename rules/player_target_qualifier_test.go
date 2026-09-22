@@ -190,7 +190,7 @@ func TestLegalTargetsRecheckAppliesThePlayerSpec(t *testing.T) {
 		{"Creature,Opponent", []state.PlayerID{1}}, // the object half is judged by the object arm
 	}
 	for _, tc := range cases {
-		legal := e.legalTargets(both, tc.spec, zones, 0, 0, 0)
+		legal := e.legalTargets(both, &cards.SA{Params: map[string]string{"ValidTgts": tc.spec}}, zones, 0, 0, 0)
 		var got []state.PlayerID
 		for _, t := range legal {
 			if t.IsPlayer {
@@ -377,7 +377,7 @@ func TestLegalTargetsRecheckAppliesTheTriggerRoleQualifier(t *testing.T) {
 	zones := []state.Zone{state.ZBattlefield}
 	kept := func(self state.ObjID) []state.PlayerID {
 		var got []state.PlayerID
-		for _, tg := range e.legalTargets(both, "Player.!TriggeredActivator", zones, 0, 0, self) {
+		for _, tg := range e.legalTargets(both, &cards.SA{Params: map[string]string{"ValidTgts": "Player.!TriggeredActivator"}}, zones, 0, 0, self) {
 			if tg.IsPlayer {
 				got = append(got, tg.Player)
 			}

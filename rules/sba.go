@@ -565,7 +565,9 @@ func (e *Engine) destroyLethalDamage(tried *sbaAttempts) bool {
 			f := o.Face()
 			// CR 702.114e: a bestowed-attached card is an Aura, not a creature,
 			// so the creature SBAs (lethal damage/toughness) do not hit it.
-			if f == nil || o.BestowedAttached() {
+			// CR 702.150c: the same for an attached Reconfigure card (not a
+			// creature while attached -- marked damage does not destroy it).
+			if f == nil || o.BestowedAttached() || o.ReconfiguredAttached() {
 				continue
 			}
 			// CR 708.5/708.8: a face-down permanent's printed face does not
@@ -585,10 +587,20 @@ func (e *Engine) destroyLethalDamage(tried *sbaAttempts) bool {
 				dead = append(dead, casualty{id, "toughness <= 0"})
 				continue
 			}
-			if o.Damage <= 0 {
+			// CR 704.5g reads "damage from a source with deathtouch", not
+			// "marked damage": the Deathtouched mark can stand alone when the
+			// damage was dealt in COUNTER form (infect, CR 702.90b -- a 1/1
+			// deathtouch infect creature deals its 1 as a -1/-1 counter and
+			// nothing is marked), so the mark alone is lethal. The mark is
+			// emitted only alongside damage that actually landed (both emit
+			// sites guard on the applied amount) and is cleared in the same
+			// cleanup block that clears marked damage, so a mark with no
+			// damage and no counter-form hit behind it is unreachable.
+			dtMark := o.Counter("Deathtouched")
+			if o.Damage <= 0 && dtMark == 0 {
 				continue
 			}
-			if o.Damage < e.Toughness(id) && o.Counter("Deathtouched") == 0 {
+			if o.Damage < e.Toughness(id) && dtMark == 0 {
 				continue
 			}
 			if e.HasKeyword(id, "Indestructible") {

@@ -88,6 +88,17 @@ type pendingTrigger struct {
 	Granted bool
 	Grantor state.ObjID
 	Execute string
+	// Gained marks a has-all-abilities-of trigger (Forge's
+	// GainsTriggerAbsOf$ on a Mode$ Continuous static, the Idris, Soul of the
+	// TARDIS shape): the ability is a compiled trigger on a FOREIGN card's
+	// face, so unlike a Granted trigger there is no SVar body and no grantor
+	// table -- the fired event names the foreign card (GainedFrom, carried as
+	// the event's IDs[0]) and that face's own Triggers index (Idx), and
+	// events.Apply mints the face's compiled Trigger.Effect pointer. Execute
+	// still carries the trigger's Execute$ name as readable provenance for
+	// Apply's tamper check. Gained and Granted are never both set.
+	Gained     bool
+	GainedFrom state.ObjID
 	// Ward is a GRANTED ward keyword (a layer-6 AddKeyword$ Ward:<cost>, e.g.
 	// Hexing Squelcher's "Other creatures you control have 'Ward—Pay 2
 	// life.'"): the trigger exists only in the layer system, never on the
@@ -112,6 +123,17 @@ type pendingTrigger struct {
 	// expansion carries, with the cast spell riding IDs as Remembered.
 	// Idx and SA are unset for it.
 	Conspire bool
+	// Demonstrate is a GRANTED demonstrate keyword (a layer-6 AddKeyword$
+	// Demonstrate -- Silverquill Lecturer's "Creature spells you cast have
+	// demonstrate", The Twelfth Doctor's non-hand grant, Try-My-Deck
+	// Elemental's commander grant, the Strixhaven plane's instant/sorcery
+	// grant): the same shape as Conspire -- the queue carries no parameter
+	// (the body has none) and the drain pushes a KeywordTriggerPush whose
+	// __kwDemonstrate: payload events.Apply rebuilds into the same
+	// DB$ Demonstrate body the printed K:Demonstrate expansion carries,
+	// with the cast spell riding IDs as Remembered. Idx and SA are unset
+	// for it.
+	Demonstrate bool
 	// Cascade is a printed-or-granted cascade keyword (CR 702.85, task
 	// cascade1): the queue carries no parameter (the trigger body is the
 	// same DB$ Cascade body whichever route granted the keyword) and the
@@ -142,6 +164,17 @@ type pendingTrigger struct {
 	// Count$OffspringPaid read resolves against its pay-time provenance.
 	// Idx and SA are unset for it.
 	Offspring bool
+	// Flanking is a GRANTED flanking instance (CR 702.25a via a layer-6
+	// AddKeyword$ Flanking -- Agility, Flanking Licid, Sidewinder Sliver,
+	// Cavalry Master): the Ward/Conspire shape. A creature granted flanking
+	// has no printed K:Flanking trigger to carry the pump body, so the drain
+	// pushes a KeywordTriggerPush whose __kwFlanking: payload events.Apply
+	// rebuilds into the same DB$ Pump | Defined$ TriggeredBlockerLKICopy |
+	// NumAtt$ -1 | NumDef$ -1 body the printed expansion carries. The blocked
+	// creature rides IDs as Remembered (the printed path's own slot), which
+	// Defined$ TriggeredBlockerLKICopy reads at resolution. Idx and SA are
+	// unset for it.
+	Flanking bool
 	// RingEmblem is one of the Ring emblem's four level abilities (CR
 	// 701.54c), queued by checkRingEmblemTriggers. The emblem has no face
 	// and no object in any zone, so like Ward/Afflict this entry carries
@@ -167,17 +200,23 @@ type triggerKey struct {
 	Face uint8
 }
 
-// damageBatchKey identifies one DamageDealtOnce/DamageDoneOnce trigger's
-// referent within one damage batch. DamageDealtOnce latches per DEALING
-// source (Forge GameAction.triggerDamageDoneOnce's dealt half: one trigger per
-// source per batch, its referent amount the total that source dealt in the
-// batch); DamageDoneOnce latches per DAMAGED object (the done half: one
-// trigger per target, its referent amount the total that target took). The
-// embedded triggerKey keeps two T: lines of one card -- and the same line on
-// two cards -- independent.
+// damageBatchKey identifies one DamageDealtOnce/DamageDoneOnce/DamageAll
+// trigger's referent within one damage batch. DamageDealtOnce latches per
+// DEALING source (Forge GameAction.triggerDamageDoneOnce's dealt half: one
+// trigger per source per batch, its referent amount the total that source
+// dealt in the batch); DamageDoneOnce latches per DAMAGED object (the done
+// half: one trigger per target, its referent amount the total that target
+// took); DamageAll latches per TRIGGER LINE -- the "one or more" batch mode
+// (Forge GameAction.triggerDamageAll): the FIRST (source, target) pair in the
+// batch whose both halves match queues the single instance, and every later
+// matching pair accumulates into it -- the key carries NO referent for the
+// all mode, so damage landing on several targets in one batch is still ONE
+// instance. The embedded triggerKey keeps two T: lines of one card -- and the
+// same line on two cards -- independent.
 type damageBatchKey struct {
 	triggerKey
 	dealt  bool           // true: referent is the dealing source (DamageDealtOnce)
+	all    bool           // true: the batch-level DamageAll latch (no referent)
 	obj    state.ObjID    // the referent object (dealing source, or damaged object)
 	player state.PlayerID // the referent player when the damage went to a player
 }
@@ -186,11 +225,19 @@ type damageBatchKey struct {
 // the open damage batch: the pendingTriggers index it queued at (the queue is
 // append-only while a batch is open, so the index is stable until batch close)
 // and the batch amount accumulated so far, which closeDamageBatch patches into
-// the queued trigger's TriggerAmount referent.
+// the queued trigger's TriggerAmount referent. A DamageAll entry (key.all)
+// additionally accumulates the batch's matching source and target SETS --
+// every (source, target) pair this line matched, deduplicated in first-seen
+// order -- which closeDamageBatch patches into the queued trigger's
+// TriggerDamageSources/TriggerDamageTargets capture, the referents the
+// TriggeredPlayersTargets$Amount count and the Defined$ TriggeredTargets /
+// TriggeredSourcesController plural selectors read at resolution.
 type damageBatchEntry struct {
-	key    damageBatchKey
-	idx    int
-	amount int32
+	key     damageBatchKey
+	idx     int
+	amount  int32
+	sources []state.ObjID
+	targets []state.Target
 }
 
 // turnFires is one T: line's trigger count within the turn it last
@@ -295,6 +342,16 @@ var actionTriggerModes = map[string]bool{
 	// and Lurker in the Deep's PlayerTurn$ True on its SeekAll line -- so
 	// both gates must apply from day one.
 	"Discover": true, "SeekAll": true,
+	// Surveil joins them for the same reason: it is an event mode registered
+	// from the start (surveilMatches over events.Surveil, the marker Kind
+	// api:Surveil emits, task trig-surveil), so the trigger-level parameters
+	// Forge scopes to every event mode -- PlayerTurn$, ActivationLimit$
+	// (Prudent Fateseer's "This ability triggers only once each turn" on its
+	// scry-or-surveil line) and an unevaluable CheckDefinedPlayer$ predicate
+	// failing closed -- apply from day one. surveilMatches itself reads
+	// FirstTime$ (Whispering Snitch's "for the first time each turn")
+	// through the shared firstMarkerThisTurn log scan.
+	"Surveil": true,
 }
 
 // triggerActivationLimitAllows enforces ActivationLimit$ N ("this ability
@@ -794,12 +851,13 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					e.checkGrantedAfflictTriggers(id, o, f, ev)
 				case events.PutOnStack:
 					e.checkGrantedConspireTriggers(observer, id, o, f, ev, objLKI)
+					e.checkGrantedDemonstrateTriggers(observer, id, o, f, ev, objLKI)
 				case events.MoveZone:
 					e.checkGrantedExploitTriggers(observer, id, o, f, ev, objLKI)
 					e.checkGrantedOffspringTriggers(observer, id, o, f, ev, objLKI)
 				}
 			}
-			e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
+			e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid, split, leaving)
 			return
 		}
 		// Enchantment Rooms (rules/rooms.go): an UNLOCKED room's alternate
@@ -889,7 +947,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					e.secondaryYields(observer, fc.face, ti, t, id, ev, objLKI) {
 					continue
 				}
-				if (t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce") && ev.Amount <= 0 {
+				if (t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce" || t.Mode == "DamageAll") && ev.Amount <= 0 {
 					continue
 				}
 				key := triggerKey{Source: id, Idx: ti, Face: fc.faceIdx}
@@ -916,7 +974,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 						continue // ResolvedLimit$: already resolved enough this turn.
 					}
 				}
-				if t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce" {
+				if t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce" || t.Mode == "DamageAll" {
 					// The "Once" gate latches once per DAMAGE BATCH, not per turn
 					// (CR 510.4; Forge PhaseHandler.dealAssignedDamage fires
 					// triggerDamageDoneOnce once per damage step, and one
@@ -930,12 +988,25 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					// it); no batch open means every Damage event is its own batch,
 					// so there is nothing to latch across and the trigger fires per
 					// event with its own event amount already the batch total.
+					//
+					// DamageAll (Forge GameAction.triggerDamageAll) is the
+					// batch-level "one or more" mode: it must fire ONCE for the
+					// whole batch if at least one matching SOURCE dealt damage to
+					// at least one matching TARGET, not once per pair. Its latch
+					// therefore keys on the trigger line ALONE (all=true, no
+					// referent): damageMatches already requires BOTH ValidSource$
+					// and ValidTarget$ to match the SAME event, so the first such
+					// event queues the single instance and every later matching
+					// pair in the batch accumulates into it -- the "one or more"
+					// reading.
 					// Non-positive amounts (the negative-amount Damage events the
 					// cleanup/regeneration repair paths emit to clear marked
 					// damage) are not damage and never latch or queue a Once
 					// trigger.
 					if ev.Amount > 0 {
-						bk := damageBatchKey{triggerKey: key, dealt: t.Mode == "DamageDealtOnce"}
+						bk := damageBatchKey{triggerKey: key, dealt: t.Mode == "DamageDealtOnce", all: t.Mode == "DamageAll"}
+						var allSrc state.ObjID
+						var allTgt state.Target
 						if bk.dealt {
 							// Combat identifies the actual attacker/blocker in damaging;
 							// an effect batch's shared source is its published override
@@ -944,32 +1015,54 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 							// non-combat sources onto ObjID zero. Same priority order as
 							// the ValidSource$ match above: an explicit override always
 							// wins, e.damaging is combat-only, damageSource is the
-							// non-combat fallback.
-							bk.obj = e.dmgSrcOverride
-							if bk.obj == 0 {
-								if e.combatDamaging {
-									bk.obj = e.damaging
-								} else {
-									bk.obj = e.damageSource()
-								}
+							// non-combat fallback. Through the ONE shared resolution
+							// (damageEventSource) so the latch and the match agree.
+							bk.obj = e.damageEventSource()
+						} else if !bk.all {
+							// DamageDoneOnce: the per-damaged-referent latch key.
+							if ev.Obj != 0 {
+								bk.obj = ev.Obj
+							} else {
+								bk.player = ev.Player
 							}
-						} else if ev.Obj != 0 {
-							bk.obj = ev.Obj
 						} else {
-							bk.player = ev.Player
+							// DamageAll's line-only key carries no referent; instead
+							// the matching (source, target) pair of EVERY matching
+							// event accumulates into the entry's deduplicated batch
+							// sets, the capture the plural corpus readers resolve.
+							// The source read is the ONE shared dealer resolution, so
+							// a captured set can never contain a source the
+							// ValidSource$ match did not match (the match and the
+							// capture cannot drift).
+							allSrc = e.damageEventSource()
+							if ev.Obj != 0 {
+								allTgt = state.Target{Obj: ev.Obj}
+							} else {
+								allTgt = state.Target{Player: ev.Player, IsPlayer: true}
+							}
 						}
 						if e.damageBatchOpen {
 							if e.damageBatchIdx == nil {
 								e.damageBatchIdx = map[damageBatchKey]int{}
 							}
 							if entIdx, ok := e.damageBatchIdx[bk]; ok {
-								e.damageBatchLog[entIdx].amount += ev.Amount
+								ent := &e.damageBatchLog[entIdx]
+								ent.amount += ev.Amount
+								if bk.all {
+									ent.sources = batchAppendSource(ent.sources, allSrc)
+									ent.targets = batchAppendTarget(ent.targets, allTgt)
+								}
 								continue // already queued once for this batch and referent.
 							}
 							e.damageBatchIdx[bk] = len(e.damageBatchLog)
-							e.damageBatchLog = append(e.damageBatchLog, damageBatchEntry{
+							ent := damageBatchEntry{
 								key: bk, idx: len(e.pendingTriggers), amount: ev.Amount,
-							})
+							}
+							if bk.all {
+								ent.sources = batchAppendSource(ent.sources, allSrc)
+								ent.targets = batchAppendTarget(ent.targets, allTgt)
+							}
+							e.damageBatchLog = append(e.damageBatchLog, ent)
 							// Fall through: the trigger queues now, at the same point
 							// in the stream it queued at before this gate was
 							// batch-scoped; closeDamageBatch patches its referent
@@ -1066,7 +1159,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				}
 			}
 		}
-		e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid)
+		e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid, split, leaving)
 		// A granted Afflict must fire even when the object's own printed
 		// triggers are live for this event (a Zombie with its own become-blocked
 		// trigger carrying the Monarch's grant) -- the early-return path above
@@ -1077,6 +1170,11 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		// carrying a Conspire grant) -- the early-return path above reaches this
 		// object through checkGrantedConspireTriggers's own call.
 		e.checkGrantedConspireTriggers(observer, id, o, f, ev, objLKI)
+		// A granted Demonstrate must fire even when the object's own printed
+		// triggers are live for this event (a spell with its own cast trigger
+		// carrying a Demonstrate grant) -- the same both-paths rule Conspire
+		// follows.
+		e.checkGrantedDemonstrateTriggers(observer, id, o, f, ev, objLKI)
 		// A granted Exploit must fire when its creature enters even when the
 		// object's own printed triggers are live for this event -- the same
 		// both-paths rule Afflict and Conspire follow.
@@ -1192,14 +1290,55 @@ func (e *Engine) closeDamageBatch() {
 		if ent.idx >= len(e.pendingTriggers) {
 			continue
 		}
-		pt := &e.pendingTriggers[ent.idx]
-		if pt.Source != ent.key.Source || pt.Idx != ent.key.Idx {
-			continue
+		// Every queued copy of this (trigger, referent) entry is patched: the
+		// Panharmonicon echo copies appended right after the original share
+		// the queue slot sequence and would otherwise resolve a partial
+		// amount and no batch sets.
+		for i := ent.idx; i < len(e.pendingTriggers); i++ {
+			pt := &e.pendingTriggers[i]
+			if pt.Source != ent.key.Source || pt.Idx != ent.key.Idx {
+				break
+			}
+			pt.Ctx.TriggerContext.TriggerAmount = ent.amount
+			if ent.key.all {
+				if len(ent.sources) > 0 {
+					pt.Ctx.TriggerContext.TriggerDamageSources = append([]state.ObjID(nil), ent.sources...)
+				}
+				if len(ent.targets) > 0 {
+					pt.Ctx.TriggerContext.TriggerDamageTargets = append([]state.Target(nil), ent.targets...)
+				}
+			}
 		}
-		pt.Ctx.TriggerContext.TriggerAmount = ent.amount
 	}
 	e.damageBatchIdx = nil
 	e.damageBatchLog = nil
+}
+
+// batchAppendSource appends id to a DamageAll entry's deduplicated source
+// set unless it is already present (or zero -- an unresolved dealer is
+// nothing to name). First-seen order is the set's order.
+func batchAppendSource(ts []state.ObjID, id state.ObjID) []state.ObjID {
+	if id == 0 {
+		return ts
+	}
+	for _, have := range ts {
+		if have == id {
+			return ts
+		}
+	}
+	return append(ts, id)
+}
+
+// batchAppendTarget appends t to a DamageAll entry's deduplicated target set
+// unless an equal target is already present. Equality compares kind and
+// identity together, so a player target and an object target never merge.
+func batchAppendTarget(ts []state.Target, t state.Target) []state.Target {
+	for _, have := range ts {
+		if have.IsPlayer == t.IsPlayer && have.Player == t.Player && have.Obj == t.Obj {
+			return ts
+		}
+	}
+	return append(ts, t)
 }
 
 // BeginDamageBatch/EndDamageBatch are effects.Host's damage-batch bracket
@@ -1260,6 +1399,19 @@ func triggerRemembered(ev events.Event, source state.ObjID) []state.Target {
 			out = append(out, state.Target{Obj: id})
 		}
 		return append(out, state.Target{Player: ev.Player, IsPlayer: true})
+	}
+	// Mode$ Unattached's referent is the FORMER BEARER, not the event's Obj
+	// (the attachment that became unattached): the corpus's Execute bodies read
+	// Defined$ TriggeredObjectLKICopy (Grafted Exoskeleton's sacrifice, the
+	// whole cycle), and on the bearer-leaves path that object is already off
+	// the battlefield. Carrying it as Remembered is what lets the spellings in
+	// effects/context.go's TriggeredObjectLKICopy case resolve it -- whether it
+	// is still a permanent (the under-protection/no-longer-a-creature detach)
+	// or a graveyard LKI reference (the bearer-left detach). An emit with no
+	// bearer (the zero-value event a test might build) has nothing to bind, so
+	// it falls through to the ordinary source fallback below.
+	if ev.Kind == events.Unattached && len(ev.IDs) > 0 {
+		return []state.Target{{Obj: ev.IDs[0]}}
 	}
 	if ev.Obj != 0 {
 		return []state.Target{{Obj: ev.Obj}}
@@ -1476,19 +1628,20 @@ func init() {
 
 	effects.RegisterNonAPI(
 		"trig:ChangesZone", "trig:ChangesZoneAll", "trig:SpellCast", "trig:Attacks", "trig:AttackersDeclaredOneTarget",
-		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:AttackerBlockedByCreature", "trig:AttackerUnblockedOnce", "trig:Blocks", "trig:Cycled", "trig:CounterAdded", "trig:CounterAddedOnce", "trig:CounterRemoved",
+		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:AttackerBlockedByCreature", "trig:AttackerUnblockedOnce", "trig:Blocks", "trig:Cycled", "trig:CounterAdded", "trig:CounterAddedOnce", "trig:CounterRemoved", "trig:CounterRemovedOnce", "trig:CounterPlayerAddedAll",
 		"trig:Sacrificed", "trig:Discarded", "trig:CommitCrime", "trig:Taps", "trig:TapsForMana",
-		"trig:ClassLevelGained",
+		"trig:ClassLevelGained", "trig:BecomeMonstrous",
 		"trig:TokenCreated", "trig:TokenCreatedOnce",
-		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",
+		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:DamageAll", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",
 		"trig:LifeGained",
-		"trig:BecomesTarget", "trig:LandPlayed", "trig:Phase", "trig:Attached", "trig:FlippedCoin",
+		"trig:BecomesTarget", "trig:LandPlayed", "trig:Phase", "trig:Attached", "trig:Unattached", "trig:FlippedCoin",
 		"trig:Vote", "trig:RolledDie", "trig:RolledDieOnce",
 		"trig:Explores", "trig:Exerted", "trig:Investigated",
 		"trig:Exploited",
 		"trig:ManaExpend",
 		"trig:Connives",
 		"trig:Discover", "trig:SeekAll",
+		"trig:Surveil",
 		"trig:AbilityCast", "trig:SpellAbilityCast", "trig:Always",
 		// The cast-or-copy pair: SpellCopy matches a copy put on the stack and
 		// SpellCastOrCopy matches either half (magecraft). Both are matched
@@ -1567,5 +1720,16 @@ func init() {
 		"trig:UnlockDoor", "kw:Station", "kw:Chapter", "kw:Start your engines",
 		"stat:Panharmonicon", "kw:Partner", "kw:Partner with",
 		"kw:CARDNAME can be your commander.",
+		// kw:Doctor's companion (the WHO two-commander keyword, the
+		// Doctor's-companion analogue of Companion CR 702.139) is DECK
+		// CONSTRUCTION too: "You can have two commanders if the other is the
+		// Doctor." Nothing in play reads it -- the corpus's in-play uses of
+		// the keyword are the `withDoctor's companion` FILTER predicate
+		// (rose_noble's trigger, an_unearthly_child's DigUntil), which is a
+		// filter-grammar shape, not this keyword -- so the registration
+		// asserts the corpus shape is understood, not that the second-commander
+		// seating exists (the deck.IsPartnerPair extension is a separate
+		// ticket; the Partner precedent above is the same class).
+		"kw:Doctor's companion",
 	)
 }

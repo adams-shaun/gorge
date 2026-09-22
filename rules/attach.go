@@ -69,7 +69,9 @@ func (e *Engine) attachmentSBAs() bool {
 				// "becomes a creature again if it's not attached".)
 				if bearer == nil || bearer.Zone != state.ZBattlefield ||
 					!e.IsCreature(bearer.ID) || e.protectedFrom(bearer.ID, o.ID) {
-					e.emit(events.Event{Kind: events.Attach, Obj: id})
+					e.emit(events.Event{Kind: events.Unattached, Obj: id,
+						IDs:  []state.ObjID{o.AttachedTo},
+						Text: "bestowed attachment ended"})
 					changed = true
 				}
 				continue
@@ -81,7 +83,9 @@ func (e *Engine) attachmentSBAs() bool {
 					e.emit(events.Event{Kind: events.MoveZone, Obj: id,
 						From: state.ZBattlefield, To: state.ZGraveyard, Text: "attached to an object that left the battlefield"})
 				} else {
-					e.emit(events.Event{Kind: events.Attach, Obj: id})
+					e.emit(events.Event{Kind: events.Unattached, Obj: id,
+						IDs:  []state.ObjID{o.AttachedTo},
+						Text: "bearer left the battlefield"})
 				}
 				changed = true
 				continue
@@ -93,9 +97,13 @@ func (e *Engine) attachmentSBAs() bool {
 				changed = true
 				continue
 			}
-			if isEquipment(o) && !bearer.EffectiveIsCreature() {
-				e.emit(events.Event{Kind: events.Attach, Obj: id,
-					Text: "Equipmentbearer is no longer a creature"})
+			if isEquipment(o) && (bearer.ReconfiguredAttached() || !bearer.EffectiveIsCreature()) {
+				// CR 702.150c: an attached Reconfigure card is not a creature,
+				// so another Equipment riding it detaches like from any other
+				// non-creature bearer (CR 301.5c / 704.5n).
+				e.emit(events.Event{Kind: events.Unattached, Obj: id,
+					IDs:  []state.ObjID{o.AttachedTo},
+					Text: "Equipment bearer is no longer a creature"})
 				changed = true
 			}
 		}

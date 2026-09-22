@@ -152,6 +152,57 @@ func TestAscendContinuousBuffFollowsTheBlessing(t *testing.T) {
 // per-static condition gate in blockRestricted is condition-driven, not
 // hardcoded to Blessing: Cephalid Inkmage's real CantBlockBy (Condition$
 // Threshold) only restricts once its controller's graveyard holds seven cards.
+// TestBlessingReadersUseThePerPlayerLatch pins the two READ paths on real
+// corpus cards: Twilight Prophet's upkeep trigger and Radiant Destiny's
+// vigilance static. Both must be absent before the latch and present after it;
+// the setup checks that each source and affected creature is actually on the
+// battlefield so neither assertion can pass vacuously.
+func TestBlessingReadersUseThePerPlayerLatch(t *testing.T) {
+	e := layerEngine(t)
+	prophet := onBoardCard(t, e, 0, corpusCard(t, "Twilight Prophet"))
+	prophetFace := e.G.Obj(prophet).Face()
+	if e.G.Obj(prophet).Zone != state.ZBattlefield || prophetFace == nil {
+		t.Fatal("Twilight Prophet was not placed on the battlefield")
+	}
+	var blessingTrigger *cards.Trigger
+	for i := range prophetFace.Triggers {
+		tr := &prophetFace.Triggers[i]
+		if tr.Params["Blessing"] == "True" {
+			blessingTrigger = tr
+			break
+		}
+	}
+	if blessingTrigger == nil {
+		t.Fatal("Twilight Prophet lost its Blessing$ True trigger parameter")
+	}
+	if e.triggerConditionHolds(*blessingTrigger, prophet) {
+		t.Fatal("Twilight Prophet blessing trigger fired while unblessed")
+	}
+
+	destiny := onBoardCard(t, e, 0, corpusCard(t, "Radiant Destiny"))
+	// Radiant Destiny's real static is scoped to its chosen creature type;
+	// seed the completed ETB choice so this test isolates Blessing$.
+	e.G.Obj(destiny).ChosenType = "Bear"
+	e.staticEpoch = -1
+	bear := onBoard(t, e, 0, "Name:Blessing Test Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	if e.G.Obj(destiny).Zone != state.ZBattlefield || e.G.Obj(bear).Zone != state.ZBattlefield {
+		t.Fatal("Radiant Destiny or its affected creature was not placed on the battlefield")
+	}
+	if e.HasKeyword(bear, "Vigilance") {
+		t.Fatal("Radiant Destiny granted vigilance while unblessed")
+	}
+	e.emit(events.Event{Kind: events.BlessingChange, Player: 0})
+	if !e.G.Players[0].Blessing {
+		t.Fatal("BlessingChange did not establish the blessing precondition")
+	}
+	if !e.triggerConditionHolds(*blessingTrigger, prophet) {
+		t.Fatal("Twilight Prophet blessing trigger did not fire while blessed")
+	}
+	if !e.HasKeyword(bear, "Vigilance") {
+		t.Fatal("Radiant Destiny did not grant vigilance while blessed")
+	}
+}
+
 func TestCantBlockByConditionGateThresholdNotBlessingSpecific(t *testing.T) {
 	e := layerEngine(t)
 	ink := onBoardCard(t, e, 0, corpusCard(t, "Cephalid Inkmage"))

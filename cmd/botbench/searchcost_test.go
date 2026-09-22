@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/internal/searchprobe"
 	"github.com/adams-shaun/gorge/internal/searchseat"
 )
 
@@ -31,9 +32,12 @@ func TestSearchCostReportNumbers(t *testing.T) {
 	resetSearchStats(t)
 	searchStats.mu.Lock()
 	searchStats.diags = []searchseat.Diag{
-		{Turn: 3, SampleMS: 100, SearchMS: 50, Trace: searchseat.Trace{Kind: "cast", Covered: true}},
+		{Turn: 3, SampleMS: 100, SearchMS: 50, Trace: searchseat.Trace{Kind: "cast", Covered: true, Attempts: 64, Accepted: 8, PrefixRejected: 56, ESS: 7.5}},
 		{Turn: 4, SampleMS: 40, SearchMS: 10, Trace: searchseat.Trace{Kind: "attackers", Covered: true}},
-		{Turn: 9, SampleMS: 10, Trace: searchseat.Trace{Kind: "cast", Fallback: "sample worlds"}},
+		{Turn: 9, SampleMS: 10, SearchMS: 0, Trace: searchseat.Trace{Kind: "cast", Fallback: "sample worlds", Attempts: 64, Accepted: 2, PrefixRejected: 62, ESS: 1.2, Rejections: []searchprobe.RejectionBucket{
+			{Component: "zeta", Shape: "late", Count: 2},
+			{Component: "alpha", Shape: "early", Count: 4},
+		}}},
 		{Turn: 20, SampleMS: 20, SearchMS: 20, Trace: searchseat.Trace{Kind: "cast", Covered: true}},
 	}
 	searchStats.mu.Unlock()
@@ -48,6 +52,12 @@ func TestSearchCostReportNumbers(t *testing.T) {
 		"t07-12: asked 1, covered 0 (0.0%), ms mean 10.0 p95 10.0",
 		"t13+: asked 1, covered 1 (100.0%), ms mean 40.0 p95 40.0",
 		`fallback "sample worlds": 1`,
+		"    timing: sample 70.0 + search 30.0 ms means",
+		"    sampler: attempts 64, accepted 8, prefix-rejected 56; ESS weighting decisions 1, mean 7.5, p50 7.5, p95 7.5",
+		"    sampler rejection \"alpha/early\": 4",
+		"    sampler rejection \"zeta/late\": 2",
+		"    sampler: attempts 64, accepted 2, prefix-rejected 62; ESS weighting decisions 1, mean 1.2, p50 1.2, p95 1.2",
+		"    sampler: attempts 0, accepted 0, prefix-rejected 0; ESS weighting decisions 0, mean 0.0, p50 0.0, p95 0.0",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("report missing %q:\n%s", want, out)

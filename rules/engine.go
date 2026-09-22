@@ -409,6 +409,33 @@ type Engine struct {
 	// before a chained TokenOwner$ TargetedController resolves). Transient
 	// scratch: rebuilt identically by replay, nil outside a chain.
 	resolvingTargetControllerLKI map[state.ObjID]state.PlayerID
+	// villainousRemembered is the victim of the VillainousChoice whose chosen
+	// body is CURRENTLY resolving, kept as ambient engine state for the
+	// duration of that body's effects.Resolve — the fusedResolving pattern.
+	// A nested ask the body poses captures it through Ask onto the pending
+	// resumePoint (and buildContinuationChain stamps it onto the body's
+	// continuation frames), so the nested ask's re-entry still resolves
+	// Defined$ Remembered / Player.IsRemembered to the victim rather than
+	// rebuilding the trigger's own capture. villainousRememberedSet is the
+	// presence bit (a victim set is never empty, but the bit keeps the "no
+	// villainous body in flight" case explicit). Transient scratch,
+	// restored with the same defer discipline as fusedResolving; rebuilt
+	// identically by replay.
+	villainousRemembered    []state.Target
+	villainousRememberedSet bool
+	// windowPaidX is the X the triggered-cost window's payment announced
+	// (rules/cumulative.go's X fold, tc.xPaid at the pay arm), kept as AMBIENT
+	// engine state while the paid body resolves — the fusedResolving pattern:
+	// rules/resolution.go's resumeResolution arms it from the frame's
+	// rp.winPaidX around the re-entry's effects.Resolve, Ask captures it onto
+	// every pending resumePoint it poses, and buildContinuationChain stamps it
+	// onto the continuation frames — so a body that suspends on a
+	// mid-resolution ask (Leyline Tyrant's "pay any amount of {R}" death
+	// trigger, whose DB$ DealDamage target pick is exactly such an ask)
+	// resumes with its X instead of rebuilding ctx.X from a trigger object
+	// that was never paid one (0). Transient scratch, restored with the same
+	// defer discipline as fusedResolving; rebuilt identically by replay.
+	windowPaidX int32
 	// exploitedLKI maps an EXPLOITED creature's object id to the LKI snapshot
 	// of it at the instant it was sacrificed to pay an exploit (CR 702.58a),
 	// published by effects/exploit.go through Host.RememberExploitedLKI while
@@ -601,6 +628,12 @@ type Engine struct {
 	// the answer, so every entry path reaches events.Move with RiotChoice set.
 	riotMove *events.Event
 	// siegeMove parks a non-cast Battle entry while its controller makes the
+	// unleashMove parks a non-cast battlefield entry while its controller
+	// makes Unleash's as-enters choice (CR 702.86, rules/unleash.go). Same
+	// discipline as riotMove: the MoveZone is emitted only after the Choose
+	// "unleash" event records the answer, so every entry path reaches
+	// events.Move with UnleashChoice set. Clone-copied (clone.go).
+	unleashMove *events.Event
 	// CR 310.10 Siege protector choice. Same discipline as riotMove: the
 	// MoveZone is emitted only after the Choose "protector" event records the
 	// answer, so every entry path records the protector beside the entry and a
@@ -668,6 +701,10 @@ type Engine struct {
 	// untapResume is set only around one Untap emission from finishUntapStep.
 	// If that event parks an Untap replacement choice, it moves into the queue.
 	untapResume *untapStep
+	// untapChoiceObj is the permanent whose permanent-specific untap-step
+	// election is pending. The answer is folded onto the object before this
+	// cursor resumes, so clones and replay preserve the same choice.
+	untapChoiceObj state.ObjID
 	// madnessChoices parks discard moves while the card's owner decides whether
 	// to apply Madness's optional hand-to-exile replacement.
 	madnessChoices []events.Event
@@ -723,7 +760,12 @@ type Engine struct {
 	// (pushTrigger) is pending, so its answer records the chosen modes onto
 	// the stack object and resumes the drain (handleModes) rather than
 	// granting priority. Plain scalar, Clone copies it, and a replay re-derives
-	// the same branch from the same recorded answer.
+	// the same branch from the same recorded answer. It is set only when the
+	// ask actually posed a decision (askTriggerModes can return true without
+	// asking -- a ChoiceRestriction$ that has exhausted every eligible mode,
+	// or a CharmNum$ above an unrepeatable mode count -- and a stale true
+	// would misroute the next unrelated KModes ask through the placement
+	// branch), matching the invariant its name states.
 	drainAwaitsModes bool
 
 	// deferCastTrigger is set only around the up-front cast push (CR 601.2a)
@@ -778,6 +820,23 @@ type Engine struct {
 	// it (like noCounterSpend), so a replay re-derives the same list from the
 	// recorded ManaAdd events.
 	manaSpentSources []state.ObjID
+
+	// stackGrantCast is the in-flight cast whose OWN stack-grant walk is
+	// running (queueCascadeTriggers' cascadeInstances read, the only
+	// consumer): set around that one walk and cleared before it returns —
+	// never set at rest, so Clone copies nothing of it and no ask can
+	// suspend inside the walk (cascadeInstances is a pure derived read).
+	// While it is set, SpellsCastThisTurnMatching excludes the in-flight
+	// cast's own event from every count, so the "first spell you cast each
+	// turn" statics' EQ0 gates (the twelve AffectedZone$ Stack SVarCompare$
+	// lines in the corpus — Rain of Riches, Wild-Magic Sorcerer, Anhelo,
+	// the Doctor Who cycle) read the PRIOR casts the Affected$ half does
+	// not evaluate, instead of never granting (the in-flight cast's own
+	// PutOnStack is already in the log at queue time and an inclusive read
+	// would make EQ0 fail for the very cast the grant is for). Counts read
+	// anywhere else stay inclusive (Vengevine's EQ2 "second creature
+	// spell" gate).
+	stackGrantCast state.ObjID
 
 	// manaExpended is the per-seat, per-turn tally of mana spent CASTING
 	// spells this turn (trig:ManaExpend's "as you spend your Nth total mana
@@ -894,7 +953,7 @@ type Engine struct {
 	// a lookup in any later turn replaces the map, bounding its size.
 	triggerTurnDiceTurn int32
 	dmgSrcOverride      state.ObjID
-	batchLifelink       map[state.ObjID]bool
+	batchDamageKeywords map[state.ObjID]damageKeywordLKI
 
 	// counterAdder is the player causing the CounterChange/PlayerCounterChange
 	// events currently in flight (the repl:AddCounter class's "who would put
@@ -997,22 +1056,41 @@ func (e *Engine) SetCounterAdder(p state.PlayerID) state.PlayerID {
 	return prev
 }
 
-// BatchDepartures implements effects.Host: snapshot the derived lifelink
-// state of every object the caller is about to move in one destruction
+// damageKeywordLKI is the derived damage-relevant keyword set of one source,
+// snapshotted before it leaves the battlefield. CR 113.7a reads the source's
+// last known characteristics for the whole damage rider: the life gain
+// (CR 702.15a), the counter form (CR 702.90b) and the deadly mark
+// (CR 702.2b) all answer off the same pre-departure state.
+type damageKeywordLKI struct {
+	lifelink   bool
+	infect     bool
+	deathtouch bool
+}
+
+func (e *Engine) damageKeywordsOf(id state.ObjID) damageKeywordLKI {
+	return damageKeywordLKI{
+		lifelink:   e.HasKeyword(id, "Lifelink"),
+		infect:     e.HasKeyword(id, "Infect"),
+		deathtouch: e.HasKeyword(id, "Deathtouch"),
+	}
+}
+
+// BatchDepartures implements effects.Host: snapshot the derived damage
+// keywords of every object the caller is about to move in one destruction
 // batch, so each member's departure capture reads the pre-batch state no
-// matter where it sits in battlefield order. See batchLifelink's field doc
-// for the consumption discipline.
+// matter where it sits in battlefield order. See batchDamageKeywords' field
+// doc for the consumption discipline.
 func (e *Engine) BatchDepartures(ids []state.ObjID) {
-	e.batchLifelink = make(map[state.ObjID]bool, len(ids))
+	e.batchDamageKeywords = make(map[state.ObjID]damageKeywordLKI, len(ids))
 	for _, id := range ids {
-		e.batchLifelink[id] = e.HasKeyword(id, "Lifelink")
+		e.batchDamageKeywords[id] = e.damageKeywordsOf(id)
 	}
 }
 
 // EndBatchDepartures closes a destruction/sacrifice batch even if one of its
 // proposed moves was prevented or replaced. Without this explicit boundary,
 // that survivor's pre-batch LKI could be consumed by an unrelated later move.
-func (e *Engine) EndBatchDepartures() { e.batchLifelink = nil }
+func (e *Engine) EndBatchDepartures() { e.batchDamageKeywords = nil }
 
 // chooseFor names the flow a pending KChoose decision belongs to. Task 9
 // declares chooseCast (rules/cast.go); Tasks 12 and 18 add the "as this
@@ -1041,7 +1119,10 @@ func commanderCardLegal(c *cards.Card) bool {
 
 // partnerPairOK reports whether two cards may be a commander PAIR: each
 // carries a Partner-family ability and either both are plain Partners, or
-// each "Partner with" the other by printed name (CR 903.13a/c). The check
+// each "Partner with" the other by printed name (CR 903.13a/c), or at least
+// one carries K:Doctor's companion and the other is a Doctor (the Doctor Who
+// cycle's companion clause, which also admits two distinct Doctors that each
+// carry it). The check
 // itself lives in deck.IsPartnerPair — the same package that owns
 // IsCommanderEligible (which commanderCardLegal above already delegates to),
 // so the deck-file validator and the engine's seating gate cannot disagree
@@ -1054,7 +1135,8 @@ func partnerPairOK(a, b *cards.Card) bool {
 // the deck-construction rules (CR 903.4/903.13) and returns the indices
 // that MAY be seated, in Config order: a single commander must be a
 // legendary creature or a "can be your commander" card; a two-card seat is
-// a legal partner pair (plain Partners, or a mutual "Partner with" pair);
+// a legal partner pair (plain Partners, a mutual "Partner with" pair, or a
+// Doctor's-companion pair);
 // anything else -- a noncommander card, a pair without partner, more than
 // two -- is rejected WHOLE, never silently trimmed into a legal-looking
 // subset. This is what makes an illegal Config fail in play: the rejected
@@ -1095,7 +1177,7 @@ func (c *Config) legalCommandersFor(i, deckLen int, deck []*cards.Card) []int {
 		if !inRange(a) || !inRange(b) {
 			_, reject = bad("is not a card this deck carries")
 		} else if !commanderCardLegal(deck[a]) || !commanderCardLegal(deck[b]) || !partnerPairOK(deck[a], deck[b]) {
-			_, reject = bad("is not a partner pair")
+			_, reject = bad("is not a legal commander pair")
 		}
 	default:
 		_, reject = bad("is not one or two commanders")
@@ -1562,6 +1644,22 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	departingSource, departingSourceLifelink, departingSourceController := e.captureSourceLifelinkLKI(ev)
 	stackLen := len(e.G.Stack)
 	stored := events.Emit(e.G, e.L, ev)
+	// CR 702.90b (kw:Infect): the counters/poison an infect source's damage
+	// is dealt in the form of are placed HERE, as real events emitted
+	// through this same emit -- so the repl:AddCounter class (a Winding
+	// Constrictor doubler, a CantPutCounter lock) and trig:CounterAdded see
+	// the placement exactly like any other, and rules/sba.go's CR 704.5b
+	// ten-poison loss reads a real PlayerCounterChange fold. The marker was
+	// set by the emitter (rules/combat.go, rules/cast.go,
+	// rules/resolution.go, effects/damage.go) after it checked HasKeyword on
+	// the source; this conversion classifies the form off the event that
+	// actually landed (the replaced/prevented hit never reaches here -- a
+	// prevention is a Note), and the recipient-creature half of the marker
+	// is the emitter's layer-accurate classification the fold reuses.
+	if stored.Kind == events.Damage && stored.Amount > 0 &&
+		(stored.Counter == "infect" || stored.Counter == "infect+creature") {
+		e.convertInfectDamage(stored)
+	}
 	if len(e.turnsTaken) == len(e.G.Players) && e.turnsTakenEpoch == len(e.L.Events)-1 {
 		if stored.Kind == events.TurnChange && int(stored.Player) < len(e.turnsTaken) {
 			e.turnsTaken[stored.Player]++
@@ -1728,7 +1826,8 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	// (a prevented hit is a Note, never a Damage), so a positive player
 	// Damage event here IS the life loss the rule reads.
 	if (ev.Kind == events.LifeChange && ev.Amount < 0) ||
-		(ev.Kind == events.Damage && ev.Obj == 0 && ev.Amount > 0) {
+		(ev.Kind == events.Damage && ev.Obj == 0 && ev.Amount > 0 &&
+			ev.Counter != "infect") {
 		e.checkSpeedGain(ev)
 	}
 	if ev.Kind == events.MoveZone && ev.To == state.ZBattlefield {
@@ -1804,10 +1903,10 @@ func (e *Engine) sweepExileReturn(source state.ObjID) {
 // slices rather than a map keeps this bookkeeping incapable of changing event
 // order. A self-sacrifice activation is not minted until after its departure;
 // payCast captures that one sibling before paying the cost.
-func (e *Engine) captureSourceLifelinkLKI(ev events.Event) (bool, bool, state.PlayerID) {
+func (e *Engine) captureSourceLifelinkLKI(ev events.Event) (bool, damageKeywordLKI, state.PlayerID) {
 	if ev.Kind != events.MoveZone || ev.From != state.ZBattlefield ||
 		ev.To == state.ZBattlefield {
-		return false, false, 0
+		return false, damageKeywordLKI{}, 0
 	}
 	// A destruction batch's own pre-state wins (rules.Engine.BatchDepartures,
 	// effects.Host): a later batch member must read the lifelink state from
@@ -1817,11 +1916,11 @@ func (e *Engine) captureSourceLifelinkLKI(ev events.Event) (bool, bool, state.Pl
 	// entry is consumed here; BatchDepartures rebuilds the map on its next
 	// call, so a straggler for an object that never left cannot outlive one
 	// effect call.
-	link, batched := e.batchLifelink[ev.Obj]
+	kw, batched := e.batchDamageKeywords[ev.Obj]
 	if batched {
-		delete(e.batchLifelink, ev.Obj)
+		delete(e.batchDamageKeywords, ev.Obj)
 	} else {
-		link = e.HasKeyword(ev.Obj, "Lifelink")
+		kw = e.damageKeywordsOf(ev.Obj)
 	}
 	controller := e.G.Obj(ev.Obj).Controller
 	for _, id := range e.G.Stack {
@@ -1832,56 +1931,61 @@ func (e *Engine) captureSourceLifelinkLKI(ev events.Event) (bool, bool, state.Pl
 			if e.sourceControllerLKI == nil {
 				e.sourceControllerLKI = make(map[state.ObjID]state.PlayerID)
 			}
-			e.sourceLifelinkLKI[id] = link
+			e.sourceLifelinkLKI[id] = kw.lifelink
 			e.sourceControllerLKI[id] = controller
 		}
-		e.captureNamedDamageSourceLKI(id, ev.Obj, link, controller)
+		e.captureNamedDamageSourceLKI(id, ev.Obj, kw, controller)
 	}
 	for i := range e.pendingTriggers {
 		if e.pendingTriggers[i].Source == ev.Obj {
-			e.pendingTriggers[i].Ctx.SourceLifelinkLKI = link
+			e.pendingTriggers[i].Ctx.SourceLifelinkLKI = kw.lifelink
 			e.pendingTriggers[i].Ctx.SourceLifelinkLKIValid = true
 			e.pendingTriggers[i].Ctx.SourceControllerLKI = controller
 			e.pendingTriggers[i].Ctx.SourceControllerLKIValid = true
 		}
-		e.capturePendingNamedDamageSourceLKI(&e.pendingTriggers[i].Ctx, ev.Obj, link, controller)
+		e.capturePendingNamedDamageSourceLKI(&e.pendingTriggers[i].Ctx, ev.Obj, kw, controller)
 	}
-	return true, link, controller
+	return true, kw, controller
 }
 
 // finishSourceLifelinkLKI attaches the same pre-departure snapshot to a
 // dies/leaves trigger that the event itself just queued. Such a trigger did not
 // exist during captureSourceLifelinkLKI's pre-event walk.
-func (e *Engine) finishSourceLifelinkLKI(ev events.Event, departing, link bool, controller state.PlayerID) {
+func (e *Engine) finishSourceLifelinkLKI(ev events.Event, departing bool, kw damageKeywordLKI, controller state.PlayerID) {
 	if !departing {
 		return
 	}
 	for i := range e.pendingTriggers {
 		if e.pendingTriggers[i].Source == ev.Obj {
-			e.pendingTriggers[i].Ctx.SourceLifelinkLKI = link
+			e.pendingTriggers[i].Ctx.SourceLifelinkLKI = kw.lifelink
 			e.pendingTriggers[i].Ctx.SourceLifelinkLKIValid = true
 			e.pendingTriggers[i].Ctx.SourceControllerLKI = controller
 			e.pendingTriggers[i].Ctx.SourceControllerLKIValid = true
 		}
-		e.capturePendingNamedDamageSourceLKI(&e.pendingTriggers[i].Ctx, ev.Obj, link, controller)
+		e.capturePendingNamedDamageSourceLKI(&e.pendingTriggers[i].Ctx, ev.Obj, kw, controller)
 	}
 }
 
-func (e *Engine) captureNamedDamageSourceLKI(stack, source state.ObjID, link bool, controller state.PlayerID) {
+func damageSourceLKIOf(kw damageKeywordLKI, controller state.PlayerID) effects.DamageSourceLKI {
+	return effects.DamageSourceLKI{Lifelink: kw.lifelink, Infect: kw.infect,
+		Deathtouch: kw.deathtouch, Controller: controller}
+}
+
+func (e *Engine) captureNamedDamageSourceLKI(stack, source state.ObjID, kw damageKeywordLKI, controller state.PlayerID) {
 	if e.damageSourceLKI == nil {
 		e.damageSourceLKI = make(map[state.ObjID]map[state.ObjID]effects.DamageSourceLKI)
 	}
 	if e.damageSourceLKI[stack] == nil {
 		e.damageSourceLKI[stack] = make(map[state.ObjID]effects.DamageSourceLKI)
 	}
-	e.damageSourceLKI[stack][source] = effects.DamageSourceLKI{Lifelink: link, Controller: controller}
+	e.damageSourceLKI[stack][source] = damageSourceLKIOf(kw, controller)
 }
 
-func (e *Engine) capturePendingNamedDamageSourceLKI(ctx *effects.Ctx, source state.ObjID, link bool, controller state.PlayerID) {
+func (e *Engine) capturePendingNamedDamageSourceLKI(ctx *effects.Ctx, source state.ObjID, kw damageKeywordLKI, controller state.PlayerID) {
 	if ctx.DamageSourceLKI == nil {
 		ctx.DamageSourceLKI = make(map[state.ObjID]effects.DamageSourceLKI)
 	}
-	ctx.DamageSourceLKI[source] = effects.DamageSourceLKI{Lifelink: link, Controller: controller}
+	ctx.DamageSourceLKI[source] = damageSourceLKIOf(kw, controller)
 }
 
 func cloneDamageSourceLKI(in map[state.ObjID]effects.DamageSourceLKI) map[state.ObjID]effects.DamageSourceLKI {
