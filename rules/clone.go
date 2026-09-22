@@ -130,6 +130,7 @@ func (e *Engine) Clone() *Engine {
 		d.ResumeChoices = append([]state.Target(nil), e.pending.ResumeChoices...)
 		d.ResumeChosenValid = e.pending.ResumeChosenValid
 		d.ResumeRemembered = append([]state.Target(nil), e.pending.ResumeRemembered...)
+		d.ResumeVillainousVictims = append([]state.Target(nil), e.pending.ResumeVillainousVictims...)
 		d.ResumeTargetsUnique = append([]state.Target(nil), e.pending.ResumeTargetsUnique...)
 		c.pending = &d
 	}

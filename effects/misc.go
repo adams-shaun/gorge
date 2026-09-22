@@ -2258,6 +2258,8 @@ func effVillainousChoice(h Host, c *Ctx, sa *cards.SA) {
 	for i := range choices {
 		choices[i] = strings.TrimSpace(choices[i])
 	}
+	// A resumed answer is scoped to the current victim. Once its body has
+	// completed, advance to the next Defined$ player and pose a fresh ask.
 	if c.Modes != nil {
 		names := c.Modes
 		c.Modes = nil
@@ -2269,40 +2271,60 @@ func effVillainousChoice(h Host, c *Ctx, sa *cards.SA) {
 				return
 			}
 		}
-		return
+		c.VillainousIndex++
 	}
-	var victim state.Target
-	for _, target := range Defined(h, c, sa) {
-		if target.IsPlayer {
-			victim = target
-			break
-		}
-	}
-	if !victim.IsPlayer {
-		return
-	}
-	c.Remembered = append(c.Remembered, victim)
-	d := &decision.Decision{Player: victim.Player, Kind: decision.KModes,
-		Min: 1, Max: 1, Source: c.Source, ResumeKind: "modes",
-		ResumeSA: sa, ResumeModes: append([]string(nil), choices...),
-		Prompt: "Choose a villainous option"}
-	for i, name := range choices {
-		label := name
-		if sub := cards.ResolveSVar(c.SVars, name); sub != nil {
-			if desc := strings.TrimSpace(sub.Params["SpellDescription"]); desc != "" {
-				label = desc
+	if c.VillainousVictims == nil {
+		for _, target := range Defined(h, c, sa) {
+			if target.IsPlayer {
+				c.VillainousVictims = append(c.VillainousVictims, target)
 			}
 		}
-		d.Options = append(d.Options, decision.Option{Index: i, Kind: "mode",
-			Label: label, Obj: c.Source, Player: victim.Player})
+		// Nested asks (for example DBSac's permanent picker) carry the
+		// Remembered victim but not this primitive's private cursor. Recover
+		// the cursor from that stable victim so the body is not re-asked and
+		// the following victims are still processed.
+		if c.Modes == nil && len(c.Remembered) > 0 {
+			for i, target := range c.VillainousVictims {
+				if target == c.Remembered[len(c.Remembered)-1] {
+					c.VillainousIndex = i + 1
+					break
+				}
+			}
+		}
 	}
-	if Ask(h, d) == AskAsked {
-		return
-	}
-	// R-9: an effects-only host has no chooser, so deterministically take the
-	// first option. The normal rules host never reaches this fallback.
-	if sub := cards.ResolveSVar(c.SVars, choices[0]); sub != nil {
-		Resolve(h, c, sub)
+	for c.VillainousIndex < len(c.VillainousVictims) {
+		victim := c.VillainousVictims[c.VillainousIndex]
+		// The body is evaluated against this victim, not an earlier victim.
+		c.Remembered = []state.Target{victim}
+		d := &decision.Decision{Player: victim.Player, Kind: decision.KModes,
+			Min: 1, Max: 1, Source: c.Source, ResumeKind: "villainous",
+			ResumeSA: sa, ResumeModes: append([]string(nil), choices...),
+			ResumeRemembered:        append([]state.Target(nil), c.Remembered...),
+			ResumeVillainousVictims: append([]state.Target(nil), c.VillainousVictims...),
+			ResumeVillainousIndex:   c.VillainousIndex,
+			Prompt:                  "Choose a villainous option"}
+		for i, name := range choices {
+			label := name
+			if sub := cards.ResolveSVar(c.SVars, name); sub != nil {
+				if desc := strings.TrimSpace(sub.Params["SpellDescription"]); desc != "" {
+					label = desc
+				}
+			}
+			d.Options = append(d.Options, decision.Option{Index: i, Kind: "mode",
+				Label: label, Obj: c.Source, Player: victim.Player})
+		}
+		if Ask(h, d) == AskAsked {
+			return
+		}
+		// R-9: an effects-only host has no chooser, so deterministically take
+		// the first option and continue to the next victim.
+		if sub := cards.ResolveSVar(c.SVars, choices[0]); sub != nil {
+			Resolve(h, c, sub)
+		}
+		if h.Suspended() {
+			return
+		}
+		c.VillainousIndex++
 	}
 }
 

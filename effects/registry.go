@@ -884,6 +884,11 @@ type Ctx struct {
 	// carries the iteration's Remembered. Zero outside a loop iteration, and
 	// the Imprinted/ImprintedController selectors fail closed on zero.
 	RepeatSubject state.Target
+	// VillainousVictims is the ordered Defined$ player set for a
+	// VillainousChoice. The index advances only after the current victim's
+	// chosen body has completed.
+	VillainousVictims []state.Target
+	VillainousIndex   int
 	// Sacrifice is an Annihilator sacrifice answer on re-entry.
 	Sacrifice []state.ObjID
 	// Search is the answered hidden-library KChoose selection on a re-entered

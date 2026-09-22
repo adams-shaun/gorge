@@ -134,8 +134,11 @@ type resumePoint struct {
 	// restores Ctx.DrawUptoIdx/Count/Answered from them so effDraw's upto
 	// branch continues the batch. uptoIdx -1 (the default every non-upto
 	// ask leaves) means no upto is in flight.
-	uptoIdx   int
-	uptoCount int32
+	uptoIdx           int
+	uptoCount         int32
+	villainousVictims []state.Target
+	villainousIndex   int
+	villainousChoice  string
 	// targetsUnique is the TargetUnique$ accumulator of the resolution that
 	// suspended (the Decision.ResumeTargetsUnique rider, captured at ask
 	// time from the in-flight Ctx): the resumed Ctx re-binds it, so a later
@@ -370,11 +373,13 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 		chosenValid: d.ResumeChosenValid, remembered: append([]state.Target(nil), d.ResumeRemembered...),
 		moved:   append([]state.ObjID(nil), d.ResumeMoved...),
 		uptoIdx: d.ResumeUptoIdx, uptoCount: d.ResumeUptoCount,
-		targetsUnique:   append([]state.Target(nil), d.ResumeTargetsUnique...),
-		fusedTargets:    append([]state.Target(nil), e.fusedResolving...),
-		fusedTargetsSet: e.fusedResolvingSet,
-		fusedSVars:      e.fusedResolvingSVars,
-		winPaidX:        e.windowPaidX}
+		villainousVictims: append([]state.Target(nil), d.ResumeVillainousVictims...),
+		villainousIndex:   d.ResumeVillainousIndex,
+		targetsUnique:     append([]state.Target(nil), d.ResumeTargetsUnique...),
+		fusedTargets:      append([]state.Target(nil), e.fusedResolving...),
+		fusedTargetsSet:   e.fusedResolvingSet,
+		fusedSVars:        e.fusedResolvingSVars,
+		winPaidX:          e.windowPaidX}
 	return true
 }
 
@@ -548,6 +553,23 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 	// An activated mana ability resolves outside the stack. Its UnlessCost$
 	// answer is therefore owned by the mana activation flow rather than an
 	// effects resume point, but is still recorded like every KModes answer.
+	if d.ResumeKind == "villainous" {
+		if e.resume == nil {
+			e.emit(events.Event{Kind: events.Note, Player: in.Player,
+				Text: "villainous choice answered with no resolution suspended"})
+			return
+		}
+		rp := e.resume
+		e.resume = nil
+		chosen := d.Chosen(in)
+		if len(chosen) > 0 && chosen[0].Index >= 0 && chosen[0].Index < len(d.ResumeModes) {
+			rp.villainousChoice = d.ResumeModes[chosen[0].Index]
+		}
+		e.emit(events.Event{Kind: events.ModeChosen, Obj: rp.obj, Player: in.Player,
+			Text: strings.Join(chosenModeLabels(chosen), ",")})
+		e.resumeResolution(rp, chosen)
+		return
+	}
 	if d.ResumeKind == "mana_unless" {
 		chosen := d.Chosen(in)
 		labels := chosenModeLabels(chosen)
@@ -858,7 +880,9 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	}
 	ctx := &effects.Ctx{Source: rp.obj, Controller: o.Controller, Targets: o.Targets,
 		Chosen: append([]state.Target(nil), rp.choices...), ChosenValid: rp.chosenValid,
-		ChoiceTarget: rp.target,
+		VillainousVictims: append([]state.Target(nil), rp.villainousVictims...),
+		VillainousIndex:   rp.villainousIndex,
+		ChoiceTarget:      rp.target,
 		// The resolving stack-object wrapper, same anchor resolveTop's
 		// branches set: a SUSPENDED-then-resumed ability (Ulalek's pay ask is
 		// exactly such a suspension) keeps the ValidStack otherAbility
@@ -954,6 +978,12 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// NESTED answer) only for a nested "modes" resume, which is the
 		// correct scoping -- a nested Charm below this one poses its own ask.
 		ctx.Modes = o.ChosenModes
+		if rp.kind == "villainous" {
+			if rp.villainousChoice != "" {
+				ctx.Modes = []string{rp.villainousChoice}
+			}
+			ctx.Remembered = append([]state.Target(nil), rp.remembered...)
+		}
 		// The same owning-face read resolveTop's ability branch makes: a
 		// mutated pile's under-card ability (CR 702.140d) must resume on the
 		// UNDER-CARD's SVar table, not the pile's top card's. An ordinary
@@ -1019,6 +1049,10 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 			}
 		}
+	}
+	if len(rp.villainousVictims) > 0 {
+		ctx.VillainousVictims = append([]state.Target(nil), rp.villainousVictims...)
+		ctx.VillainousIndex = rp.villainousIndex
 	}
 	if rp.loopBound {
 		ctx.Remembered = append([]state.Target(nil), rp.loopRemembered...)

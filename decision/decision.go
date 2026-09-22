@@ -431,6 +431,10 @@ type Decision struct {
 	// client input, the same class as ResumeMoved.
 	ResumeUptoIdx   int   `json:"-"`
 	ResumeUptoCount int32 `json:"-"`
+	// ResumeVillainousVictims and ResumeVillainousIndex carry the ordered
+	// victim cursor for a multi-player VillainousChoice resolution.
+	ResumeVillainousVictims []state.Target `json:"-"`
+	ResumeVillainousIndex   int            `json:"-"`
 }
 
 // New is a convenience constructor that fills a Decision's Player, Kind,
