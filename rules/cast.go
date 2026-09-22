@@ -4061,6 +4061,10 @@ func (e *Engine) collectETBChoices(you state.PlayerID) {
 			kind: kind,
 			options: e.etbOptions(you, pc.card, kind,
 				r.With.Params["ValidCards"],
+				// ValidDescription$ is Forge prompt text, not a second filter;
+				// effects.NameChoices reads it only as a safety fallback when
+				// ValidCards$ is absent (see NameChoices' doc).
+				r.With.Params["ValidDescription"],
 				// Type$ (Herald's Horn, Urza's Incubator, Roaming Throne, Three
 				// Tree City) names the category the choice ranges over. The
 				// option list below builds it; a category this build cannot
@@ -4118,7 +4122,7 @@ func etbColourLetter(name string) string {
 //
 // Option list order is deterministic: names and types are sorted strings
 // (never from a map), numbers are ascending.
-func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCards, typeCategory, exclude string) []decision.Option {
+func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCards, validDescription, typeCategory, exclude string) []decision.Option {
 	switch kind {
 	case "color":
 		// Exclude$ tokens (comma-separated, e.g. "black" on Black Dragon
@@ -4149,36 +4153,24 @@ func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCar
 		}
 		return out
 	case "name":
-		if validCards == "" {
-			validCards = "Card.nonLand"
+		// A no-universe Config is a pre-feature match on replay. Its visible
+		// object builder, including the Card.nonLand default and its full
+		// MatchesSpecFrom semantics, is retained byte-for-byte below; changing
+		// it would invalidate persisted ETB NameCard logs.
+		if len(e.G.NameUniverse) == 0 {
+			return e.legacyETBNameOptions(you, card, validCards)
 		}
-		seen := map[string]bool{}
-		names := []string{}
-		add := func(z state.Zone, players []state.PlayerID) {
-			for _, p := range players {
-				for _, id := range e.G.Zone(z, p) {
-					o := e.G.Obj(id)
-					if o == nil || o.Face() == nil {
-						continue
-					}
-					if !effects.MatchesSpecFrom(e.G, validCards, id, you, card) {
-						continue
-					}
-					if seen[o.Face().Name] {
-						continue
-					}
-					seen[o.Face().Name] = true
-					names = append(names, o.Face().Name)
-				}
-			}
-		}
-		add(state.ZHand, []state.PlayerID{you})
-		add(state.ZBattlefield, e.G.AliveFrom(0))
-		add(state.ZGraveyard, e.G.AliveFrom(0))
-		sort.Strings(names)
+		// NameCard ranges over the compiled card-name universe, not public
+		// objects currently visible to the chooser: Pithing Needle names any
+		// card (a land included) and Revoker/Cabal Therapy name a nonland,
+		// both through the SA's own ValidCards$ filter. An omitted
+		// ValidCards$ is intentionally unrestricted. effects.NameChoices is
+		// the ONE builder the mid-resolution NameCard ask shares, so the two
+		// paths offer the same names.
+		names := effects.NameChoices(e.G, validCards, validDescription)
 		out := make([]decision.Option, 0, len(names))
 		for _, n := range names {
-			out = append(out, decision.Option{Index: len(out), Kind: "name", Label: n})
+			out = append(out, decision.Option{Index: len(out), Kind: "name", Label: n, Player: you})
 		}
 		return out
 	case "type":
@@ -4192,6 +4184,45 @@ func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCar
 		}
 		return out
 	}
+}
+
+// legacyETBNameOptions is the exact pre-name-universe ETB builder. It stays
+// separate from the corpus path because a sidecar without NameUniverse is an
+// old log: its DecisionAsk options, including an empty ValidCards$ defaulting
+// to Card.nonLand, must replay byte-for-byte.
+func (e *Engine) legacyETBNameOptions(you state.PlayerID, card state.ObjID, validCards string) []decision.Option {
+	if validCards == "" {
+		validCards = "Card.nonLand"
+	}
+	seen := map[string]bool{}
+	names := []string{}
+	add := func(z state.Zone, players []state.PlayerID) {
+		for _, p := range players {
+			for _, id := range e.G.Zone(z, p) {
+				o := e.G.Obj(id)
+				if o == nil || o.Face() == nil {
+					continue
+				}
+				if !effects.MatchesSpecFrom(e.G, validCards, id, you, card) {
+					continue
+				}
+				if seen[o.Face().Name] {
+					continue
+				}
+				seen[o.Face().Name] = true
+				names = append(names, o.Face().Name)
+			}
+		}
+	}
+	add(state.ZHand, []state.PlayerID{you})
+	add(state.ZBattlefield, e.G.AliveFrom(0))
+	add(state.ZGraveyard, e.G.AliveFrom(0))
+	sort.Strings(names)
+	out := make([]decision.Option, 0, len(names))
+	for _, n := range names {
+		out = append(out, decision.Option{Index: len(out), Kind: "name", Label: n})
+	}
+	return out
 }
 
 // isCreatureFace is a local creature test (effects.hasType is unexported);

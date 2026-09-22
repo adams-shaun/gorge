@@ -365,6 +365,7 @@ func Apply(g *state.Game, e Event) {
 			if e.Text == "clear" {
 				o.Imprinted = nil
 				o.ImprintTokens = nil
+				o.SeekFound = nil
 			} else if e.Text == "forget" {
 				// ForgetImprinted$ (Pump's Chrome Mox body): remove exactly the
 				// named ids from the persistent Imprinted list, keeping the
@@ -388,6 +389,13 @@ func Apply(g *state.Game, e Event) {
 					}
 				}
 				o.ImprintTokens = keptTokens
+				keptFound := make([]state.ObjID, 0, len(o.SeekFound))
+				for _, id := range o.SeekFound {
+					if !drop[id] {
+						keptFound = append(keptFound, id)
+					}
+				}
+				o.SeekFound = keptFound
 			} else {
 				// Text is an in-kind discriminator, not a new Event field:
 				// ImprintCards$ records Forge's imprintedCards list while a
@@ -426,6 +434,13 @@ func Apply(g *state.Game, e Event) {
 						// association `Defined$ Imprinted` resolves while they sit
 						// on the battlefield (state.Object.ImprintTokens).
 						list = &o.ImprintTokens
+					} else if e.Text == "seek-found" {
+						// Seek's ImprintFound$ records the cards it moved to a
+						// hand here; `Defined$ Imprinted` resolves them wherever
+						// they currently sit (state.Object.SeekFound), so the
+						// ordinary Imprinted list's exile-only reader keeps its
+						// CR 607.2a contract.
+						list = &o.SeekFound
 					}
 					for _, id := range e.IDs {
 						if g.Obj(id) != nil {
@@ -856,6 +871,7 @@ func Apply(g *state.Game, e Event) {
 		// placement exactly like any other. This fold only withholds the
 		// form the counters replace.
 		infect := e.Counter == "infect"
+		wither := e.Counter == "wither+creature"
 		if o := g.Obj(e.Obj); o != nil {
 			// CR 306.8 / 120.3c: damage dealt to a planeswalker permanent
 			// removes that many loyalty counters instead of being marked as
@@ -897,8 +913,9 @@ func Apply(g *state.Game, e Event) {
 			// emitter (or a redirect's fresh event) hands here.
 			creature := e.Counter == "creature" || e.Counter == "infect+creature" ||
 				(o.Face() != nil && o.Face().IsCreature())
-			if e.Counter == "infect+creature" {
-				// CR 702.90b: that many -1/-1 counters instead of marked
+			if e.Counter == "infect+creature" || wither {
+				// Infect and Wither replace marked creature damage with a
+				// separate counter placement emitted by rules after this fold.
 				// damage. They arrive as the separate CounterChange event rules
 				// emitted right after this one. The branch also covers a
 				// rewritten negative amount (cleanup's marked-damage clearing),
@@ -2197,7 +2214,7 @@ func Apply(g *state.Game, e Event) {
 		}
 		mode, trigger := "", ""
 		if i := strings.Index(text, ":"); i > 0 &&
-			(text[:i] == "SpellCast" || text[:i] == "ChangesZone") {
+			(text[:i] == "SpellCast" || text[:i] == "ChangesZone" || text[:i] == "BecomeMonarch") {
 			mode, trigger = text[:i], text[i+1:]
 		}
 		g.Delayed = append(g.Delayed, state.DelayedTrigger{
@@ -2230,18 +2247,26 @@ func Apply(g *state.Game, e Event) {
 		if !validPlayer(g, e.Player) {
 			break
 		}
+		// CR 724.2a's monarch draw is the engine's OWN trigger, minted from
+		// a synthetic body with no card registration at all: it must never
+		// consume one. Its event carries Amount zero (no DelayedRegister
+		// ever set it), which would otherwise match registration ID 0 and
+		// delete a bystander's pending delayed trigger.
+		monarchDraw := e.Counter == "__monarch_draw"
 		// Consume the registration first, even when its tracked permanent has
 		// changed incarnation. A stale dash/warp promise expires once; it must
 		// neither act on the returned object nor be retried forever. Ordinary
 		// delayed triggers, including Encore's group cleanup, are independent
 		// of their source and still resolve.
 		var registration *state.DelayedTrigger
-		for i := range g.Delayed {
-			if g.Delayed[i].ID == uint32(e.Amount) {
-				dt := g.Delayed[i]
-				registration = &dt
-				g.Delayed = append(g.Delayed[:i], g.Delayed[i+1:]...)
-				break
+		if !monarchDraw {
+			for i := range g.Delayed {
+				if g.Delayed[i].ID == uint32(e.Amount) {
+					dt := g.Delayed[i]
+					registration = &dt
+					g.Delayed = append(g.Delayed[:i], g.Delayed[i+1:]...)
+					break
+				}
 			}
 		}
 		src := g.Obj(e.Obj)
@@ -2255,7 +2280,14 @@ func Apply(g *state.Game, e Event) {
 		if src.Face() == nil {
 			break
 		}
-		sa := resolveSVarAcrossFaces(src, e.Counter)
+		var sa *cards.SA
+		if monarchDraw {
+			sa = &cards.SA{Kind: "DB", API: "Draw", Params: map[string]string{
+				"Defined": "You", "NumCards": "1",
+			}}
+		} else {
+			sa = resolveSVarAcrossFaces(src, e.Counter)
+		}
 		if sa == nil {
 			break
 		}
@@ -2950,6 +2982,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		if wasBattlefield {
 			o.Imprinted = nil
 			o.ImprintTokens = nil
+			o.SeekFound = nil
 		}
 		// X/CastFlags/Chosen* carry cast-time and choose-time information
 		// forward from the stack onto the permanent it resolves into (an

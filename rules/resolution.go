@@ -119,6 +119,7 @@ type resumePoint struct {
 	// replacement to the player drawing even when the enclosing effect's
 	// controller is someone else.
 	player state.PlayerID
+	name   string
 	// direct identifies an effect invoked outside stack resolution (currently
 	// an enters-the-battlefield replacement such as Hideaway). It resumes its
 	// source directly rather than requiring a stack object.
@@ -1011,7 +1012,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
 		return
 	}
-	ctx := &effects.Ctx{Source: rp.obj, Controller: o.Controller, Targets: o.Targets,
+	ctx := &effects.Ctx{Source: rp.obj, Controller: o.Controller, NameChoice: rp.name, Targets: o.Targets,
 		Chosen: append([]state.Target(nil), rp.choices...), ChosenValid: rp.chosenValid,
 		VillainousVictims: append([]state.Target(nil), rp.villainousVictims...),
 		VillainousIndex:   rp.villainousIndex,
@@ -1632,6 +1633,13 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				if o.Obj != 0 {
 					ctx.ConniveDiscard = append(ctx.ConniveDiscard, o.Obj)
 				}
+			}
+		case "copypermanent_choice":
+			// CopyPermanent's sole Choices$/Chooser$ shape has its own
+			// transport so a nested ordinary Choice cannot consume the answer.
+			ctx.CopyPermanentChoiceDone = true
+			if len(chosen) > 0 {
+				ctx.CopyPermanentChoice = chosen[0].Obj
 			}
 		case "choice":
 			// ChooseCard, ChoosePlayer and ChangeTargets all use KChoose. Keep
