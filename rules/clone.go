@@ -133,10 +133,6 @@ func (e *Engine) Clone() *Engine {
 		c.attachedChoice = &ac
 	}
 	c.attachedApplying = e.attachedApplying
-	if e.attachedChoice != nil {
-		ac := *e.attachedChoice
-		c.attachedChoice = &ac
-	}
 	if e.pending != nil {
 		d := *e.pending
 		d.Options = append([]decision.Option(nil), e.pending.Options...)

@@ -145,7 +145,7 @@ var predicates = map[string]predFn{
 	},
 	"NamedCard": func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
 		s := g.Obj(src)
-		return s != nil && s.ChosenName != "" && sharesName(o, s.ChosenName)
+		return s != nil && s.ChosenName != "" && sharesName(g, o, s.ChosenName)
 	},
 	"ChosenType": func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
 		s := g.Obj(src)
@@ -1323,13 +1323,13 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		return o.EnteredThisTurn && o.EnteredFrom == zoneWords[key]
 	case wordNamed:
 		// Forge CardProperty "named<X>": card.sharesNameWith the argument.
-		return sharesName(o, key)
+		return sharesName(g, o, key)
 	case wordNotnamed:
 		// Forge implements no notnamed predicate and the corpus carries
 		// none (measured); this engine gives the token the negation
 		// semantics its shape implies rather than the always-true trap an
 		// unrecognised-but-plausible token could be mistaken for.
-		return !sharesName(o, key)
+		return !sharesName(g, o, key)
 	case wordSameName:
 		// Forge CardProperty "sameName": card.sharesNameWith(source). The
 		// referent is SpecContext.Source as MatchesObjectCtx rewrote it: the
@@ -1343,7 +1343,7 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		if sc.Source == 0 {
 			return false
 		}
-		return sharesNameWithObject(o, g.Obj(sc.Source))
+		return sharesNameWithObject(g, o, g.Obj(sc.Source))
 	case wordAttachedTo:
 		// Forge's AttachedTo <X>: this object (an Aura or Equipment) is
 		// attached to something, and the permanent it is attached to (its
@@ -1751,7 +1751,7 @@ func startsFilterAlternative(s string) bool {
 // face it had while transformed. On the battlefield and stack every layout
 // uses its selected face. Empty names are omitted; an ability object (Card
 // nil) has no name.
-func nameCharacteristics(o *state.Object) []string {
+func nameCharacteristics(g *state.Game, o *state.Object) []string {
 	if o == nil || o.Card == nil {
 		return nil
 	}
@@ -1772,16 +1772,32 @@ func nameCharacteristics(o *state.Object) []string {
 	if f == nil || f.Name == "" {
 		return nil
 	}
-	return []string{f.Name}
+	names := []string{f.Name}
+	// A SetName$ static on an attached object is a layer-3 name of the
+	// attached permanent. The choice is stored on the attachment and the
+	// derived-characteristics walk exposes it to view; mirror that read in
+	// the filter path so named/sameName predicates do not retain the printed
+	// name. Only attachments of this object contribute a chosen name.
+	if g != nil {
+		for p := range g.Players {
+			for _, id := range g.Zone(state.ZBattlefield, state.PlayerID(p)) {
+				a := g.Obj(id)
+				if a != nil && a.AttachedTo == o.ID && a.ChosenName != "" {
+					names = []string{a.ChosenName}
+				}
+			}
+		}
+	}
+	return names
 }
 
 // sharesName reports whether o's name characteristics include name -- Forge
 // Card.sharesNameWith(String). An empty name never matches.
-func sharesName(o *state.Object, name string) bool {
+func sharesName(g *state.Game, o *state.Object, name string) bool {
 	if name == "" {
 		return false
 	}
-	for _, n := range nameCharacteristics(o) {
+	for _, n := range nameCharacteristics(g, o) {
 		if n == name {
 			return true
 		}
@@ -1793,9 +1809,9 @@ func sharesName(o *state.Object, name string) bool {
 // common -- Forge Card.sharesNameWith(Card), which compares the full name
 // sets of BOTH cards. A split source in a library or graveyard therefore
 // shares a name with a card named for either of its halves (CR 709.4).
-func sharesNameWithObject(o, src *state.Object) bool {
-	for _, n := range nameCharacteristics(src) {
-		if sharesName(o, n) {
+func sharesNameWithObject(g *state.Game, o, src *state.Object) bool {
+	for _, n := range nameCharacteristics(g, src) {
+		if sharesName(g, o, n) {
 			return true
 		}
 	}

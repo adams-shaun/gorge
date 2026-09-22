@@ -2485,6 +2485,10 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 	return Derived{Power: power, Toughness: toughness, Keywords: kw, Types: ty, Name: name, Colors: colors}
 }
 
+// Name returns the current layer-3 name of an object. Callers that render or
+// compare characteristics must use this rather than the printed face name.
+func (e *Engine) Name(id state.ObjID) string { return e.Derived(id).Name }
+
 func (e *Engine) Power(id state.ObjID) int32 {
 	p, _ := e.derivedScalar(id)
 	return p

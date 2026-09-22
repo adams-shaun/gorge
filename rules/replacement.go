@@ -134,8 +134,14 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	if ev.Kind == events.Attach && e.attachedApplying {
 		return ev, false
 	}
-	if ev.Kind == events.Attach && e.applyAttachedReplacement(ev) {
-		return ev, true
+	if ev.Kind == events.Attach {
+		if e.applyAttachedReplacement(ev) {
+			return ev, true
+		}
+		// Only ChooseName has a parked Attached replacement continuation.
+		// Other Attached bodies must leave the Attach event untouched until
+		// their own continuation is implemented.
+		return ev, false
 	}
 	event, ok := replacementEvent(ev)
 	if !ok {
