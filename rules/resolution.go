@@ -93,6 +93,13 @@ type resumePoint struct {
 	replacementTarget state.Target
 	replacementSource state.ObjID
 	replacementAmount int32
+	// effectFrame is the Effect-created registration the asking body resolved
+	// under (Engine.currentEffectFrame, published by effects.Resolve). It is
+	// zero for every ordinary ask and non-zero only when the walk belongs to
+	// an api:Effect body (rules' seedEffectReplCtx), so a ReplaceWith$ body
+	// that suspends on a mid-resolution ask resumes with the same
+	// registration bound and its self-exile idiom still ends it.
+	effectFrame effects.EffectFrame
 	// action is the replaced event's action marker (Engine.replAction),
 	// captured with replaced so a body that suspends before its move still
 	// labels that move a sacrifice or discard on the resume.
@@ -400,6 +407,7 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 		replacedPlayer:    e.replReplacedPlayer,
 		replacementTarget: replacementTarget, replacementSource: e.protectionSource(e.damaging),
 		replacementAmount: replacementAmount,
+		effectFrame:       e.currentEffectFrame,
 		before:            e.triggerBefore, target: d.ResumeTarget, player: d.Player,
 		direct: direct, rolls: d.Rolls,
 		choices:     append([]state.Target(nil), d.ResumeChoices...),
@@ -975,7 +983,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// arm below may rebind ctx.Source to the replacement's host;
 		// ResolvingObj stays rp.obj -- the wrapper whose resolution this
 		// frame is.
-		ResolvingObj: rp.obj}
+		ResolvingObj: rp.obj, EffectFrame: rp.effectFrame}
 	// CR 107.3i: X is the value paid for the object's {X}, preserved on the
 	// stack object by CastInfo -- the same binding resolveTop's spell and
 	// ability branches now carry. A spell whose resolution suspends on a
