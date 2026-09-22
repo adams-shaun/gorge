@@ -590,6 +590,9 @@ type animateGrant struct {
 	// animation's own lifetime (WhipMustAttack, KheruMustAttack,
 	// MustBeBlocked, ...), resolved from THIS face's table at grant time.
 	svars []string
+	// staticAbilities names SVar Mode$ bodies the animated object gains for
+	// the animation's own lifetime (for example Stilt-Man's CantSacrifice).
+	staticAbilities []string
 }
 
 // parseAnimateGrant reads the shared Animate/AnimateAll parameter set. See
@@ -685,6 +688,17 @@ func parseAnimateGrant(h Host, c *Ctx, sa *cards.SA) animateGrant {
 	for _, nm := range strings.Split(sa.Params["sVars"], ",") {
 		if nm = strings.TrimSpace(nm); nm != "" {
 			ag.svars = append(ag.svars, nm)
+		}
+	}
+	// Forge uses the lower-case spelling on Animate bodies. Accept the
+	// canonical spelling too so parser-produced and hand-authored SAs agree.
+	for _, raw := range []string{sa.Params["staticAbilities"], sa.Params["StaticAbilities"]} {
+		for _, nm := range strings.FieldsFunc(raw, func(r rune) bool {
+			return r == ',' || r == ' ' || r == '\t' || r == '\n'
+		}) {
+			if nm != "" {
+				ag.staticAbilities = append(ag.staticAbilities, nm)
+			}
 		}
 	}
 	return ag
@@ -822,6 +836,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 	// effects/leavebattlefield.go for the shape each takes.
 	registerLeaveExile(h, c, id, ag.leaveExile, ag.duration, ag.permanent)
 	registerSVarGrants(h, c, id, ag.svars, ag.leaveExile, ag.duration, ag.permanent)
+	registerAnimateStaticAbilities(h, c, id, ag.staticAbilities, ag.duration, ag.permanent, exileOn, remembered)
 }
 
 // animateAllUnreadNote names, in ONE loud note, every parameter the SA carries
@@ -834,7 +849,6 @@ func animateAllUnreadNote(h Host, c *Ctx, sa *cards.SA) {
 	for _, key := range []struct{ name, val string }{
 		{"RemoveKeywords$", sa.Params["RemoveKeywords"]},
 		{"RemoveAllAbilities$", sa.Params["RemoveAllAbilities"]},
-		{"staticAbilities$", sa.Params["staticAbilities"]},
 		{"Replacements$", sa.Params["Replacements"]},
 		{"CantHaveKeyword$", sa.Params["CantHaveKeyword"]},
 		{"RemoveLandTypes$", sa.Params["RemoveLandTypes"]},
