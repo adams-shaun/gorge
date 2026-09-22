@@ -440,6 +440,9 @@ func abilityZoneOK(ab *cards.SA, z state.Zone) bool {
 // the census's generic rules-side SA union for Mana/ManaReflected: see
 // genericSAExcludes in paramcensus_test.go.
 func (e *Engine) abilityPresentHolds(p state.PlayerID, id state.ObjID, ab *cards.SA) bool {
+	if !e.classBandGateHolds(ab.Params, id) {
+		return false
+	}
 	spec := strings.TrimSpace(ab.Params["IsPresent"])
 	if spec == "" {
 		return true

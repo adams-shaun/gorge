@@ -54,11 +54,16 @@ func TestClassExpandsEntryCounterActivatorsAndGrants(t *testing.T) {
 	// 3. The granted statics, gated at their own level.
 	var sf, sr *Static
 	for i := range f.Statics {
-		switch f.Statics[i].Params["IsPresent"] {
-		case "Card.Self+counters_GE2_LEVEL":
+		switch f.Statics[i].Params["ClassBand"] {
+		case "2":
 			sf = &f.Statics[i]
-		case "Card.Self+counters_GE3_LEVEL":
+		case "3":
 			sr = &f.Statics[i]
+		}
+		// The band is a dedicated ClassBand$ param, NEVER an IsPresent$
+		// overwrite: a body's own present clause must survive intact.
+		if _, ok := f.Statics[i].Params["IsPresent2"]; ok {
+			t.Fatalf("Class grant wrote IsPresent2$: %+v", f.Statics[i].Params)
 		}
 	}
 	if sf == nil || sf.Mode != "Continuous" || sf.Params["MayPlay"] != "True" || sf.Params["CheckSVar"] != "X" {
@@ -70,9 +75,12 @@ func TestClassExpandsEntryCounterActivatorsAndGrants(t *testing.T) {
 }
 
 // TestClassExpandsTriggerAndAmpersandGrants pins the other two grant kinds:
-// AddTrigger$ appends a trigger with the level gate (Warlock Class's
+// AddTrigger$ appends a trigger with the level band (Warlock Class's
 // TriggerClassLevel shape) and an "A & B" AddStaticAbility$ value yields one
-// static per named body (with_two_of_everything? -> SMayLook & SMayPlay).
+// static per named body (with_two_of_everything? -> SMayLook & SMayPlay). The
+// trigger body here also carries its OWN ClassLevel$ crossing gate (the real
+// Mode$ ClassLevelGained param), which the band must NOT overwrite -- the band
+// is ClassBand$, a distinct name.
 func TestClassExpandsTriggerAndAmpersandGrants(t *testing.T) {
 	f := expanded(t, "Name:Warlock Class\nManaCost:B\nTypes:Enchantment Class\n"+
 		"K:Class:2:1 B:AddTrigger$ TriggerClassLevel\n"+
@@ -86,20 +94,71 @@ func TestClassExpandsTriggerAndAmpersandGrants(t *testing.T) {
 	if len(f.Triggers) != 1 || f.Triggers[0].Mode != "ClassLevelGained" {
 		t.Fatalf("want one ClassLevelGained trigger, got %+v", f.Triggers)
 	}
-	if f.Triggers[0].Params["IsPresent"] != "Card.Self+counters_GE2_LEVEL" {
-		t.Fatalf("trigger level gate: %q", f.Triggers[0].Params["IsPresent"])
+	if f.Triggers[0].Params["ClassBand"] != "2" {
+		t.Fatalf("trigger level gate: %q", f.Triggers[0].Params["ClassBand"])
+	}
+	if f.Triggers[0].Params["ClassLevel"] != "2" {
+		t.Fatalf("trigger's own ClassLevel$ crossing gate overwritten: %q", f.Triggers[0].Params["ClassLevel"])
+	}
+	if _, ok := f.Triggers[0].Params["IsPresent2"]; ok {
+		t.Fatalf("Class trigger grant wrote IsPresent2$: %+v", f.Triggers[0].Params)
 	}
 	if f.Triggers[0].Effect == nil || f.Triggers[0].Effect.API != "Dig" {
 		t.Fatalf("trigger Execute$ did not link: %+v", f.Triggers[0].Effect)
 	}
 	n := 0
 	for _, s := range f.Statics {
-		if s.Params["IsPresent"] == "Card.Self+counters_GE3_LEVEL" {
+		if s.Params["ClassBand"] == "3" {
 			n++
 		}
 	}
 	if n != 2 {
 		t.Fatalf("want 2 statics for an 'A & B' grant, got %d: %+v", n, f.Statics)
+	}
+}
+
+// TestClassGrantKeepsTheBodysOwnIsPresent pins the defect class the Class
+// level band must not reintroduce: a granted body that carries its OWN
+// IsPresent$ keeps it intact and gains the band as a SEPARATE ClassBand$
+// parameter. The old expansion pushed the band into IsPresent2$, which the
+// trigger gate reads as a UNION with IsPresent$ (Hunter's Talent's end-step
+// draw fired at level 1), and which the replacement gate never read at all.
+func TestClassGrantKeepsTheBodysOwnIsPresent(t *testing.T) {
+	f := expanded(t, "Name:Hunter's Talent\nManaCost:G\nTypes:Enchantment Class\n"+
+		"K:Class:3:3 G:AddTrigger$ TriggerEndStep\n"+
+		"K:Class:2:1 G:AddReplacementEffect$ SRepl\n"+
+		"SVar:TriggerEndStep:Mode$ Phase | Phase$ End of Turn | ValidPlayer$ You | TriggerZones$ Battlefield | IsPresent$ Creature.powerGE4+YouCtrl | Execute$ TrigDraw\n"+
+		"SVar:TrigDraw:DB$ Draw\n"+
+		"SVar:SRepl:Event$ Moved | Destination$ Battlefield | ValidCard$ Card.Self | ReplaceWith$ DBPutCounter | IsPresent$ Creature.YouCtrl\n"+
+		"SVar:DBPutCounter:DB$ PutCounter | Defined$ Self | CounterType$ P1P1 | CounterNum$ 1\n"+
+		"Oracle:x\n")
+	if len(f.Triggers) != 1 {
+		t.Fatalf("want one granted trigger, got %+v", f.Triggers)
+	}
+	tr := f.Triggers[0]
+	if tr.Params["IsPresent"] != "Creature.powerGE4+YouCtrl" {
+		t.Fatalf("granted trigger lost its own IsPresent$: %q", tr.Params["IsPresent"])
+	}
+	if tr.Params["IsPresent2"] != "" {
+		t.Fatalf("granted trigger wrote the band into IsPresent2$: %q", tr.Params["IsPresent2"])
+	}
+	if tr.Params["ClassBand"] != "3" {
+		t.Fatalf("granted trigger band = %q, want 3", tr.Params["ClassBand"])
+	}
+	var granted *Repl
+	for i := range f.Repls {
+		if f.Repls[i].Params["KeywordLine"] != "" {
+			granted = &f.Repls[i]
+		}
+	}
+	if granted == nil {
+		t.Fatalf("want one Class-granted replacement, got %+v", f.Repls)
+	}
+	if granted.Params["IsPresent"] != "Creature.YouCtrl" {
+		t.Fatalf("granted replacement lost its own IsPresent$: %q", granted.Params["IsPresent"])
+	}
+	if granted.Params["ClassBand"] != "2" {
+		t.Fatalf("granted replacement band = %q, want 2", granted.Params["ClassBand"])
 	}
 }
 

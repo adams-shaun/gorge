@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -134,10 +135,10 @@ func TestPaladinClassEntersAtLevel1LevelsUpAndTurnsOnItsStatic(t *testing.T) {
 	}
 }
 
-// TestPaladinClassLevelUpIsSorcerySpeed pins that the activator is withheld
+// TestPaladinClassBandUpIsSorcerySpeed pins that the activator is withheld
 // outside a sorcery window -- the CR 702.118b "only as a sorcery" clause the
 // expansion carries as SorcerySpeed$ True.
-func TestPaladinClassLevelUpIsSorcerySpeed(t *testing.T) {
+func TestPaladinClassBandUpIsSorcerySpeed(t *testing.T) {
 	reg := searchTestRegistry(t)
 	e, _ := classEngine(t, reg, "Paladin Class")
 	class := classMove(t, e, "Paladin Class", state.ZBattlefield)
@@ -307,5 +308,178 @@ func TestFortuneTellersTalentLevelTwoGrantsPlayFromTop(t *testing.T) {
 	}
 	if !offered {
 		t.Fatalf("top card %d not offered as a play: %+v", top, d.Options)
+	}
+}
+
+// classLevelUp funds seat 0 generously and activates the level-up activator
+// at ability index idx (0 = the first K:Class line, 1 = the second), then
+// drains the stack. It asserts the CLASS had the expected level before and
+// +1 after, so a vacuous activation (the activator not actually offered, or
+// resolving to nothing) fails loudly instead of leaving the caller to
+// misinterpret a later assertion.
+func classLevelUp(t *testing.T, e *Engine, class state.ObjID, idx int) {
+	t.Helper()
+	before := e.G.Obj(class).Counter("LEVEL")
+	addMana(t, e, 0, "WWWWWWGGGGGG")
+	opt, ok := findAbilityOption(e, class, idx)
+	if !ok {
+		t.Fatalf("level-up activator %d not offered: %+v", idx, e.Pending().Options)
+	}
+	submitChoices(t, e, opt.Index)
+	passUntilStackEmpty(t, e, 20)
+	if got := e.G.Obj(class).Counter("LEVEL"); got != before+1 {
+		t.Fatalf("level-up did not advance the Class: LEVEL %d -> %d, want %d", before, got, before+1)
+	}
+}
+
+// TestHuntersTalentEndStepTriggerIsGatedByItsOwnIsPresentAndTheLevelBand is
+// the regression pin for the level-band/own-IsPresent$ collision. Hunter's
+// Talent's level-3 grant is a Phase trigger whose body carries its OWN
+// IsPresent$ ("if you control a creature with power 4 or greater"). The old
+// kw:Class expansion pushed the level band into IsPresent2$, which the trigger
+// gate reads as a UNION with IsPresent$ -- so at LEVEL 1, with a 6/4 Craw Wurm
+// on the battlefield, the level-3 "draw a card" fired every end step. The
+// band is now a separate ClassBand$ AND gate.
+func TestHuntersTalentEndStepTriggerIsGatedByItsOwnIsPresentAndTheLevelBand(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, _ := classEngine(t, reg, "Hunter's Talent", "Craw Wurm")
+	class := classMove(t, e, "Hunter's Talent", state.ZBattlefield)
+	wurm := classMove(t, e, "Craw Wurm", state.ZBattlefield)
+
+	// Preconditions: the Class is at level 1, the trigger exists, its body
+	// has its own IsPresent$ (so the union reading would over-fire), and the
+	// power-4 creature is on the battlefield satisfying THAT clause.
+	if got := e.G.Obj(class).Counter("LEVEL"); got != 1 {
+		t.Fatalf("precondition: Class at level %d, want 1", got)
+	}
+	if !classHasTriggerMode(e.G.Obj(class).Face(), "Phase") {
+		t.Fatal("precondition: Hunter's Talent carries no Phase trigger")
+	}
+	if e.G.Obj(wurm) == nil || e.Power(wurm) < 4 {
+		t.Fatalf("precondition: power-%d Craw Wurm not power>=4", e.Power(wurm))
+	}
+
+	// Level 1: the end step must NOT draw. The hand-draw the trigger would
+	// emit is the only hand change across the end step.
+	driveToStepAll(t, e, e.G.Turn, 0, state.StepEnd)
+	before := len(e.G.Zone(state.ZHand, 0))
+	e.Advance()
+	passUntilStackEmpty(t, e, 40)
+	if got := len(e.G.Zone(state.ZHand, 0)); got != before {
+		t.Fatalf("level-1 end step drew: hand %d -> %d (the band was ORed with the body's IsPresent$)", before, got)
+	}
+
+	// Level up to 3 across the next own Main1, then the SAME end step DOES
+	// draw -- so the negative above is about the level band, not a dead
+	// trigger.
+	nextMain1 := e.G.Turn + 2 // seat 0's next own turn (2 seats)
+	driveToStepAll(t, e, nextMain1, 0, state.StepMain1)
+	classLevelUp(t, e, class, 0) // -> level 2
+	classLevelUp(t, e, class, 1) // -> level 3
+	if got := e.G.Obj(class).Counter("LEVEL"); got != 3 {
+		t.Fatalf("precondition: Class at level %d, want 3", got)
+	}
+	driveToStepAll(t, e, nextMain1, 0, state.StepEnd)
+	before = len(e.G.Zone(state.ZHand, 0))
+	e.Advance()
+	passUntilStackEmpty(t, e, 40)
+	if got := len(e.G.Zone(state.ZHand, 0)); got != before+1 {
+		t.Fatalf("level-3 end step did not draw: hand %d -> %d, want %d", before, got, before+1)
+	}
+}
+
+// TestPaladinClassBandThreeGrantFires pins the level-3 grant path the old
+// suite never asserted live: Paladin Class's level-3 AddTrigger$ is the
+// AttackersDeclared "target attacking creature gets +1/+1 per other attacker
+// and gains double strike". After the level-3 activation the trigger is on
+// the live face and fires on an attack, so the granted trigger is not merely
+// appended but actually reaches the trigger scan.
+func TestPaladinClassBandThreeGrantFires(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, _ := classEngine(t, reg, "Paladin Class", "Grizzly Bears")
+	class := classMove(t, e, "Paladin Class", state.ZBattlefield)
+	classMove(t, e, "Grizzly Bears", state.ZBattlefield)
+
+	if got := e.G.Obj(class).Counter("LEVEL"); got != 1 {
+		t.Fatalf("precondition: Class at level %d, want 1", got)
+	}
+	classLevelUp(t, e, class, 0) // -> level 2
+	classLevelUp(t, e, class, 1) // -> level 3
+	if got := e.G.Obj(class).Counter("LEVEL"); got != 3 {
+		t.Fatalf("precondition: Class at level %d, want 3", got)
+	}
+	if !classHasTriggerMode(e.G.Obj(class).Face(), "AttackersDeclared") {
+		t.Fatal("precondition: level-3 AttackersDeclared trigger is not on the live face")
+	}
+
+	// Attack with the Bear: the level-3 granted trigger must fire (a
+	// TriggerPush naming the Class as source).
+	passToKind(t, e, decision.KAttackers)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KAttackers {
+		t.Fatalf("expected a declare-attackers decision, got %+v", d)
+	}
+	attacker := -1
+	for _, o := range d.Options {
+		if o.Kind == "attacker" {
+			attacker = o.Index
+		}
+	}
+	if attacker < 0 {
+		t.Fatalf("no attacker option for the Bear: %+v", d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{attacker}}); err != nil {
+		t.Fatalf("declare attacker: %v", err)
+	}
+	fired := false
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.TriggerPush && ev.Obj == class {
+			fired = true
+			break
+		}
+	}
+	if !fired {
+		t.Fatal("level-3 AttackersDeclared trigger did not fire on the attack")
+	}
+}
+
+// TestClassBandBandGatesGrantedReplacement pins the replacement half of the
+// level-band class: a granted replacement body that carries its own IsPresent$
+// must keep that clause AND the level band. replacementConditionHolds reads
+// IsPresent$ but never IsPresent2$, so the OLD expansion's band-in-IsPresent2$
+// silently vanished and the level-N replacement was live from level 1 -- the
+// wrong-wide direction. The band is now its own ClassBand$ AND gate, and the
+// control below (same body, no band) proves the level-1 refusal is the band
+// and not the body's own present clause.
+func TestClassBandBandGatesGrantedReplacement(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, _ := classEngine(t, reg, "Paladin Class", "Grizzly Bears")
+	class := classMove(t, e, "Paladin Class", state.ZBattlefield)
+	classMove(t, e, "Grizzly Bears", state.ZBattlefield)
+	if got := e.G.Obj(class).Counter("LEVEL"); got != 1 {
+		t.Fatalf("precondition: Class at level %d, want 1", got)
+	}
+
+	// Control: the body's own IsPresent$ (a creature you control) holds at
+	// level 1, so a body WITHOUT the band is already live -- the band is the
+	// only thing that can withhold the gated one below.
+	control := cards.Repl{Event: "Moved", Params: map[string]string{"IsPresent": "Creature.YouCtrl"}}
+	if !e.replacementConditionHolds(control, class, 0) {
+		t.Fatal("control: body's own IsPresent$ does not hold, test premise broken")
+	}
+	gated := cards.Repl{Event: "Moved", Params: map[string]string{
+		"IsPresent": "Creature.YouCtrl",
+		"ClassBand": "2",
+	}}
+	if e.replacementConditionHolds(gated, class, 0) {
+		t.Fatal("level-2 granted replacement live at level 1: the ClassBand$ band was not read")
+	}
+
+	classLevelUp(t, e, class, 0) // -> level 2
+	if got := e.G.Obj(class).Counter("LEVEL"); got != 2 {
+		t.Fatalf("precondition: Class at level %d, want 2", got)
+	}
+	if !e.replacementConditionHolds(gated, class, 0) {
+		t.Fatal("granted replacement not live at level 2")
 	}
 }

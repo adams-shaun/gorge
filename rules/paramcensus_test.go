@@ -1055,6 +1055,14 @@ var stringMapParams = map[string]string{
 	// unclassified third argument. The MayPlay family's read set gains the
 	// keys via that same generic union, so this masks nothing.
 	"rules:Engine.mayPlayConditionGateHolds:params": "card Params map forwarded to checkSVarHolds; CheckSVar$/SVarCompare$ are read on the generic Continuous bucket",
+	// rules/class_level.go Engine.classBandGateHolds: params IS a card Params
+	// map, but the only key it indexes is ClassBand$ -- a compile-time band the
+	// cards keyword expansion injects onto a kw:Class granted body, never a key
+	// a raw corpus face carries. Attributing the read would add no gap (the
+	// census measures raw corpus faces), and the call sites forward a Params
+	// map that the surrounding gate functions already own, so the whitelist
+	// keeps this lookup from being mistaken for an unclassified third map.
+	"rules:Engine.classBandGateHolds:params": "reads only the compile-time ClassBand$ key the kw:Class expansion injects, never a raw corpus Params key",
 	// effects/misc.go MayPlayStaticParams: params is a map parseStaticLine
 	// built from one SVar static line (or the S: line's own Params map passed
 	// by rules/layers.go's mayPlayGrant) -- the MayPlay-family keys it

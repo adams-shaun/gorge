@@ -23,9 +23,9 @@ import (
 //     being BELOW this line's level (CR 702.118b: "you may activate a level
 //     ability ... only if this Class's level is less than N"), so a Class at
 //     level 2 is offered the level-3 activator and no longer the level-2 one;
-//   - the granted ability itself, appended to the face with a level gate
-//     `IsPresent$ Card.Self+counters_GE<N>_LEVEL` so it becomes live exactly
-//     when the Class's level reaches N. AddStaticAbility$ names a static body
+//   - the granted ability itself, appended to the face with its own
+//     `ClassBand$ <N>` band so it becomes live exactly when the Class's level
+//     reaches N. AddStaticAbility$ names a static body
 //     (Mode$ Continuous and Mode$ ReduceCost/RaiseCost/SetCost both occur in
 //     the corpus), AddTrigger$ a trigger body and AddReplacementEffect$ a
 //     replacement body; each is parsed with the SAME reader the printed line
@@ -93,7 +93,6 @@ func kwClass(f *Face, i int, k, head, param string, has func(kind, line string) 
 	// may name several bodies joined with " & " (SMayLook & SMayPlay), and a
 	// line may carry several Add* keys at once (ProdigysWill | AddTrigger$ ...),
 	// so every segment is read independently.
-	grantGate := "Card.Self+counters_GE" + strconv.Itoa(level) + "_LEVEL"
 	for _, seg := range strings.Split(body, "|") {
 		key, val, ok := strings.Cut(strings.TrimSpace(seg), "$")
 		if !ok {
@@ -114,7 +113,7 @@ func kwClass(f *Face, i int, k, head, param string, has func(kind, line string) 
 				if has("S", tag) {
 					continue
 				}
-				addLevelGate(inner.Params, grantGate)
+				addLevelGate(inner.Params, level)
 				inner.Params["KeywordLine"] = tag
 				inner.Params["Keyword"] = "Class"
 				f.Statics = append(f.Statics, inner)
@@ -129,7 +128,7 @@ func kwClass(f *Face, i int, k, head, param string, has func(kind, line string) 
 				if has("T", tag) {
 					continue
 				}
-				addLevelGate(tr.Params, grantGate)
+				addLevelGate(tr.Params, level)
 				tr.Params["KeywordLine"] = tag
 				tr.Params["Keyword"] = "Class"
 				f.Triggers = append(f.Triggers, tr)
@@ -144,7 +143,7 @@ func kwClass(f *Face, i int, k, head, param string, has func(kind, line string) 
 				if has("R", tag) {
 					continue
 				}
-				addLevelGate(rp, grantGate)
+				addLevelGate(rp, level)
 				rp["KeywordLine"] = tag
 				rp["Keyword"] = "Class"
 				f.Repls = append(f.Repls, Repl{Event: strings.TrimSpace(rp["Event"]), Params: rp})
@@ -167,18 +166,19 @@ func splitGrantNames(v string) []string {
 	return out
 }
 
-// addLevelGate attaches a Class level band as an intervening-if / continuous
-// gate on a granted body. IsPresent$ is preferred; a body that already carries
-// one gets the band as IsPresent2$, which every gate family
-// (continuousGateHolds, triggerConditionHolds, replacementConditionHolds)
-// evaluates alongside the first -- so a body with its own existence gate keeps
-// it rather than having it overwritten.
-func addLevelGate(params map[string]string, spec string) {
-	if strings.TrimSpace(params["IsPresent"]) == "" {
-		params["IsPresent"] = spec
-	} else {
-		params["IsPresent2"] = spec
-	}
+// addLevelGate attaches a Class level band to a granted body as its own
+// dedicated ClassBand$ N parameter. It deliberately does NOT write
+// IsPresent$/IsPresent2$: those carry per-family semantics this band must not
+// inherit. The trigger gate reads IsPresent$+IsPresent2$ as a UNION (the
+// "Name Sticker" Goblin two-set clause), so a band in IsPresent2$ would be ORed
+// with the body's own IsPresent$ and fire the level-N grant at level 1
+// (Hunter's Talent's end-step draw); replacementConditionHolds reads no
+// IsPresent2$ at all, so the band would vanish (wrong-wide). ClassBand$ is
+// read as an independent AND gate by every family a Class grant can reach --
+// rules/class_level.go holds the one evaluator, and each gate family calls it
+// beside its own IsPresent$ read.
+func addLevelGate(params map[string]string, level int) {
+	params["ClassBand"] = strconv.Itoa(level)
 }
 
 func init() { registerKeyword(kwClass, "Class") }
