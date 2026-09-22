@@ -1769,7 +1769,12 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 	// RevealValid$ filter below narrows the may-reveal to the matching
 	// subset for every API in this row).
 	answer := c.RevealOpt
-	c.RevealOpt = "" // fx42 scoping: consumed once; a nested peek poses its own ask
+	// optTarget is the Defined$ target index whose yes/no answer this is (the
+	// decision's ResumeTarget); it travels with the answer exactly as
+	// pickTarget travels with RevealPick. An answer applies to its cursor
+	// target alone and every later target poses its own ask.
+	optTarget := c.RevealOptTarget
+	c.RevealOpt, c.RevealOptTarget = "", 0
 	// The answered hand-reveal pick (task infernaltutor1), consumed once per
 	// walk exactly as RevealOpt is: a nested Reveal-family effect below this
 	// one must pose its own ask instead of inheriting this walk's answer.
@@ -1832,6 +1837,22 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			// that suspended on the cursor target's own pick; re-running them
 			// would duplicate their events and re-pose their asks.
 			continue
+		}
+		if answer != "" && targetIndex < optTarget {
+			// The optional-ask cursor's skip, the same discipline: targets
+			// before the cursor were fully processed (their yes/no answered,
+			// their reveal/decline applied) on the pass that suspended on the
+			// cursor target's own optional ask; re-running them would
+			// duplicate their events and re-pose their asks.
+			continue
+		}
+		// answerForTarget scopes the walk's single consumed RevealOpt answer to
+		// the target it was asked of. Every other target reads "" and so poses
+		// its own yes/no; without this the answer answered target 0 and then
+		// silently applied to every later target too.
+		answerForTarget := answer
+		if answer != "" && targetIndex != optTarget {
+			answerForTarget = ""
 		}
 		p := PlayerOf(h, c, t)
 		pool := zoneOf(g, zone, p)
@@ -1924,8 +1945,8 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			// two-card hand and `SP$ Reveal | Defined$ You | Optional$ True`
 			// resumed into a Min/Max 1/1 pick instead of finishing). The
 			// decline `continue` below runs after this block, so gate here.
-			declined := optional && answer == "no"
-			deferToOptionalAsk := optional && answer == "" && picks == nil
+			declined := optional && answerForTarget == "no"
+			deferToOptionalAsk := optional && answerForTarget == "" && picks == nil
 			if int32(len(pool)) > minPick && !deferToOptionalAsk && !declined {
 				// The answer applies to exactly the cursor target: a pickable
 				// reveal over several Defined$ players poses one ask per target,
@@ -2054,7 +2075,7 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 		if look {
 			asker = c.Controller
 		}
-		if optional && answer == "" && picks == nil {
+		if optional && answerForTarget == "" && picks == nil {
 			// The peek ask's wording and payload are byte-stable: a golden
 			// game (Delver of Secrets) poses exactly this ask.
 			var prompt, yesLabel string
@@ -2102,8 +2123,9 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			options[0].Label = yesLabel
 			d := &decision.Decision{Player: asker, Kind: decision.KChoose, Min: 1, Max: 1,
 				ResumeKind: "reveal_optional", ResumeSA: sa, Source: c.Source,
-				Prompt:  prompt,
-				Options: options}
+				ResumeTarget: targetIndex,
+				Prompt:       prompt,
+				Options:      options}
 			if Ask(h, d) == AskAsked {
 				return
 			}
@@ -2113,7 +2135,7 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			// AskEmpty is unreachable by construction; the shared helper owns
 			// the guard either way.)
 		}
-		if optional && answer == "no" {
+		if optional && answerForTarget == "no" {
 			// Declined: no Note, and RememberRevealed$ finds nothing —
 			// a chained gate (Delver's ConditionDefined$ Remembered)
 			// correctly does not fire. The walk continues.

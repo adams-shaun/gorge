@@ -1974,6 +1974,15 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			} else {
 				ctx.RevealOpt = "no"
 			}
+			// The per-target cursor: RevealOptTarget is the index of the
+			// Defined$ target whose yes/no this answer was, so the re-entered
+			// effReveal applies it to exactly that target and poses a fresh ask
+			// for every later target (the LookAckTarget/RevealPickTarget
+			// pattern). Without it, a multi-target optional reveal answered
+			// for target 0 and then applied that same answer to every later
+			// target — a yes silently revealed the rest, a no silently
+			// declined them.
+			ctx.RevealOptTarget = rp.target
 		case "reveal_pick":
 			// Task infernaltutor1: a mid-resolution hand-reveal pick (Infernal
 			// Tutor's "Reveal a card from your hand", an AnyNumber$/Optional$

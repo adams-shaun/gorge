@@ -1274,6 +1274,19 @@ type Ctx struct {
 	// RevealOptional$ peek in the same walk poses its own ask (fx42
 	// scoping).
 	RevealOpt string
+	// RevealOptTarget is the Defined$ target index whose reveal_optional
+	// yes/no was answered (the decision's ResumeTarget), the same per-target
+	// cursor LookAckTarget and RevealPickTarget carry. Meaningful only while
+	// RevealOpt is non-empty: targets before the cursor were fully processed
+	// on the pass that suspended and are skipped, the cursor target consumes
+	// the answer, and every LATER optional reveal in the walk poses its own
+	// yes/no. Without it a reveal_optional resolving over several Defined$
+	// players answered for target 0 and then either silently applied that
+	// same yes/no to every later target (a non-pickable reveal) or left the
+	// later target's ask unposed (a pickable one), because neither a yes nor
+	// a no can be attributed to a target it was never asked of. Consumed and
+	// cleared with RevealOpt.
+	RevealOptTarget int
 	// RevealPick is the answered mid-resolution hand-reveal pick (task
 	// infernaltutor1): the ids of the hand cards the revealing player chose
 	// to reveal. A hand reveal whose eligible pool is strictly larger than
