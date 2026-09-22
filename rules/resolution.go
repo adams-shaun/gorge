@@ -2824,6 +2824,9 @@ func modeChoiceNames(sa *cards.SA, chosen []decision.Option, eligible []string) 
 // corner both callers already guard, so a resolution can never leave its
 // object resolving forever.
 func (e *Engine) moveResolvedOffStack(o *state.Object) {
+	if o == nil || o.Zone != state.ZStack {
+		return
+	}
 	id := o.ID
 	if f := o.Face(); f != nil && f.IsPermanent() {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZBattlefield})
