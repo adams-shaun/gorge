@@ -40,33 +40,73 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
-// canAttack reports whether id may be declared as an attacker (CR 508.1a):
-// a creature under the active player's control, untapped, without Defender
-// (CR 702.3b), and either not summoning sick or hasty. A reconfigure card
-// while attached is not a creature (CR 702.150c): the derived type switch
-// (reconfigureTypeSwitch) already dropped Creature, so IsCreature answers
-// false here with no extra gate.
+// canAttack reports whether id may be declared as an attacker against SOME
+// defender (CR 508.1a): a creature under the active player's control, untapped,
+// either not summoning sick or hasty, and not walled by Defender (CR 702.3b)
+// -- unless a CanAttackDefender static lifts the wall against some defender
+// (rules/attack_defender.go). A reconfigure card while attached is not a
+// creature (CR 702.150c): the derived type switch (reconfigureTypeSwitch)
+// already dropped Creature, so IsCreature answers false here with no extra
+// gate. The pair-precise read is canAttackPair; this defender-blind form is
+// only for callers that genuinely have no defender in hand
+// (mustAttackRequired's creature-shaped gates, whose per-pair half is
+// attackPairAvailable, and validateAttackers' belt check, whose precise half
+// is the offered-pair membership test).
 func (e *Engine) canAttack(id state.ObjID) bool {
-	o := e.G.Obj(id)
-	if o == nil || o.Zone != state.ZBattlefield || o.Controller != e.G.Active {
+	o, ok := e.attackableCreature(id)
+	if !ok {
 		return false
 	}
-	f := o.Face()
-	// The creature test is the DERIVED type (layer 4), not the printed face:
-	// an animated land (Raging Ravine, Mutavault) is a creature right now and
-	// attacks like one, while its printed face is a Land. Everything the
-	// printed face admits the derived walk admits too, so ordinary creatures
-	// are unchanged; a bestowed card stays excluded (BestowedAttached).
-	if f == nil || !e.IsCreature(id) || o.BestowedAttached() {
+	if !e.HasKeyword(id, "Defender") {
+		return true
+	}
+	for _, d := range e.G.AliveFrom(0) {
+		if d != o.Controller && e.attackAllowedThroughDefender(id, d) {
+			return true
+		}
+	}
+	return false
+}
+
+// canAttackPair is the (attacker, defender) pair reading of canAttack: the
+// same checks with the Defender wall lifted exactly when a CanAttackDefender
+// static applies to THIS pair (CR 702.3b) -- the pair-precise half the offer
+// list (attackOffers), the validator and the encore requirement read. A
+// ValidAttacked$-scoped static lifts the wall only against the defenders the
+// spec admits, so a Defender creature may be attackable against one defender
+// and walled against the rest.
+func (e *Engine) canAttackPair(id state.ObjID, defender state.PlayerID) bool {
+	if _, ok := e.attackableCreature(id); !ok {
 		return false
 	}
-	if o.Tapped || e.HasKeyword(id, "Defender") {
-		return false
-	}
-	if o.SummonSick && !e.HasKeyword(id, "Haste") {
+	if e.HasKeyword(id, "Defender") && !e.attackAllowedThroughDefender(id, defender) {
 		return false
 	}
 	return true
+}
+
+// attackableCreature is the defender-blind half both reads share: the object
+// exists, is a battlefield creature of the active player (the DERIVED type,
+// layer 4 -- an animated land attacks, while its printed face is a Land, and
+// everything the printed face admits the derived walk admits too, so ordinary
+// creatures are unchanged; a bestowed card stays excluded, BestowedAttached),
+// untapped, and either not summoning sick or hasty.
+func (e *Engine) attackableCreature(id state.ObjID) (*state.Object, bool) {
+	o := e.G.Obj(id)
+	if o == nil || o.Zone != state.ZBattlefield || o.Controller != e.G.Active {
+		return nil, false
+	}
+	f := o.Face()
+	if f == nil || !e.IsCreature(id) || o.BestowedAttached() {
+		return nil, false
+	}
+	if o.Tapped {
+		return nil, false
+	}
+	if o.SummonSick && !e.HasKeyword(id, "Haste") {
+		return nil, false
+	}
+	return o, true
 }
 
 // encoreAttackDefender reports the opponent an encore token must attack this
@@ -76,7 +116,7 @@ func (e *Engine) encoreAttackDefender(id state.ObjID) (state.PlayerID, bool) {
 	o := e.G.Obj(id)
 	if o == nil || o.EncoreAttackTurn == 0 || o.EncoreAttackTurn != e.G.Turn ||
 		int(o.EncoreAttackDefender) >= len(e.G.Players) || e.G.Players[o.EncoreAttackDefender].Lost ||
-		!e.canAttack(id) {
+		!e.canAttackPair(id, o.EncoreAttackDefender) {
 		return 0, false
 	}
 	return o.EncoreAttackDefender, true
@@ -577,7 +617,7 @@ func (e *Engine) validateAttackers(d *decision.Decision, in decision.Intent) err
 	budget := e.attackBudget(d.Player)
 	total := int32(0)
 	for _, o := range d.Chosen(in) {
-		if !e.canAttack(o.Obj) {
+		if !e.canAttackPair(o.Obj, o.Player) {
 			return fmt.Errorf("object %d cannot attack", o.Obj)
 		}
 		if seen[o.Obj] {

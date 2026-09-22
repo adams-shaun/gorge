@@ -275,7 +275,7 @@ func init() {
 
 	for _, kw := range [...]string{"Flying", "Trample", "Deathtouch", "Lifelink",
 		"Vigilance", "Reach", "Haste", "Indestructible", "First Strike", "Menace",
-		"Flanking", "Horsemanship"} {
+		"Flanking", "Horsemanship", "Defender"} {
 		k := kw
 		predicates["with"+strings.ReplaceAll(k, " ", "")] = func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 			return objectHasKeyword(o, k)
@@ -295,6 +295,15 @@ func init() {
 	// StrictlyOther is Forge's other spelling of the same "not the source"
 	// test Other already implements.
 	predicates["StrictlyOther"] = predicates["Other"]
+	// EffectSource is the Effect-delivered spelling of Self: the effect's own
+	// source object (Card.EffectSource in a StaticAbilities$ body's
+	// ValidCard$). The spec is evaluated with src = the registered effect's
+	// source, exactly what Self reads, so the two spellings are aliases. Before
+	// this the token was unknown and every such spec matched NOTHING (fail
+	// closed) -- the CanAttackDefender grant bodies' dominant shape
+	// ("EFFECTSOURCE can attack this turn as though it didn't have defender",
+	// 18 corpus carriers) being the case that surfaced it.
+	predicates["EffectSource"] = predicates["Self"]
 	// ExiledWithEffectSource is the Effect-delivered spelling of the same
 	// exiled-by-this-source provenance: the effect's source card is what
 	// exiled the candidate (Opposition Agent/Valki-style MayPlay grants name

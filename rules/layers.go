@@ -2599,6 +2599,14 @@ func (e *Engine) restrictionApplies(ce ContinuousEffect, id state.ObjID) bool {
 		spec = ce.RestrictParams["ValidTarget"]
 	}
 	if spec == "" {
+		// The ValidCards$ plural spelling: Forge allows both on a restriction
+		// body, and one CanAttackDefender grant (Wakestone Gargoyle's
+		// `ValidCards$ Creature.YouCtrl+withDefender`) spells it. Corpus
+		// census: no Cant* body carries ValidCards$ without ValidCard$, so
+		// the fallback is unreachable for every pre-existing restriction.
+		spec = ce.RestrictParams["ValidCards"]
+	}
+	if spec == "" {
 		return len(ce.Remembered) > 0
 	}
 	sc := e.specCtx(ce.Source, ce.Controller)

@@ -266,7 +266,7 @@ func (e *Engine) attackOffers() []attackOffer {
 	}
 	for _, d := range defenders {
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
-			if !e.canAttack(id) {
+			if !e.canAttackPair(id, d) {
 				continue
 			}
 			if required, ok := e.encoreAttackDefender(id); ok && d != required {
