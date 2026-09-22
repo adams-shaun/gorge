@@ -217,7 +217,7 @@ func (e *Engine) attackRequirements(id state.ObjID) attackRequirementSet {
 		}
 	}
 	for _, sv := range e.activeStatics("MustAttack") {
-		if !MustAttackParamsReadableForRules(sv.Params) {
+		if !MustAttackParamsReadableForRules(sv.Params) || !e.continuousGateHolds(sv) {
 			continue
 		}
 		if !e.mustAttackLineSelects(sv.Params["ValidCreature"], id, sv.Source, sv.Controller, nil) {
@@ -263,7 +263,16 @@ func (e *Engine) mustAttackLineSelects(spec string, id state.ObjID, source state
 // not a copy kept in step by hand. Kept as a named wrapper because the rules
 // callers read better for it and a future relocation has one call site.
 func MustAttackParamsReadableForRules(params map[string]string) bool {
-	return effects.MustAttackParamsReadable(params)
+	for k := range params {
+		switch k {
+		case "Mode", "ValidCreature", "MustAttack", "Description", "Secondary",
+			"IsPresent", "IsPresent2", "PresentCompare", "PresentZone",
+			"CheckSVar", "SVarCompare", "Condition", "ClassBand":
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 // requirementDefender resolves a MustAttack$ player reference to the

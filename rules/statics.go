@@ -354,7 +354,7 @@ func (e *Engine) castRestrictedUsing(statics []staticView, p state.PlayerID, id 
 		if !e.actorMatches(sv, "Caster", p) {
 			continue
 		}
-		if !e.restrictionGateHolds(sv, id) || !e.checkSVarHolds(sv) {
+		if !e.restrictionGateHolds(sv, id) {
 			continue
 		}
 		spec := sv.Params["ValidCard"]
@@ -406,8 +406,8 @@ func (e *Engine) castRestrictionSources(statics []staticView, id state.ObjID) []
 	return out
 }
 
-// restrictionGateHolds evaluates the non-matching gates one CantBeCast /
-// CantBeActivated restriction must pass before its ValidCard$/ValidSA$ match
+// restrictionGateHolds evaluates the shared continuous gates and the
+// non-matching zone gate a CantBeCast / CantBeActivated restriction must pass before its ValidCard$/ValidSA$ match
 // is even consulted: AffectedZone$ (the zone the restricted card must sit
 // in -- Linvala's and Karn's Battlefield, Ashes of the Abhorrent's Graveyard)
 // and Condition$ (PlayerTurn / NotPlayerTurn, resolved against the SOURCE's
@@ -419,7 +419,7 @@ func (e *Engine) castRestrictionSources(statics []staticView, id state.ObjID) []
 // illegal action through, and the static family's whole point is the
 // prohibition.
 func (e *Engine) restrictionGateHolds(sv staticView, target state.ObjID) bool {
-	if !e.classBandGateHolds(sv.Params, sv.Source) {
+	if !e.continuousGateHolds(sv) {
 		return false
 	}
 	if az, ok := sv.Params["AffectedZone"]; ok {
@@ -458,7 +458,7 @@ func (e *Engine) abilityRestrictedUsing(statics []staticView, p state.PlayerID, 
 		if !e.actorMatches(sv, "Activator", p) {
 			continue
 		}
-		if !e.restrictionGateHolds(sv, id) || !e.checkSVarHolds(sv) {
+		if !e.restrictionGateHolds(sv, id) {
 			continue
 		}
 		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.staticSpecCtx(sv)) {
@@ -1124,17 +1124,10 @@ func (e *Engine) blockRestricted(blocker, attacker state.ObjID) bool {
 		}
 	}
 	for _, sv := range e.activeStatics("CantBlock") {
-		// Condition$ is evaluated per static (continuousConditionHolds:
-		// the Detective of the Month / Slippery Scoundrel family's
-		// Condition$ Blessing, Cephalid Inkmage's Threshold, Bilbo's
-		// Ring's PlayerTurn). Before this gate the restriction applied
-		// UNCONDITIONALLY (over-permissive); the evaluator's fail-closed
-		// direction (rules/layers.go) keeps an unimplementable condition
-		// denying instead. Only Condition$ is read here, NOT the rest of
-		// continuousGateHolds (IsPresent$/IsPresent2$/CheckSVar$), so an
-		// IsPresent$- or CheckSVar$-gated CantBlock stays unconditional
-		// exactly as before.
-		if !e.continuousConditionHolds(sv) {
+		// The shared continuous gate evaluates Condition$, IsPresent$ and
+		// CheckSVar$ families with the same fail-closed semantics used by
+		// continuous effects.
+		if !e.continuousGateHolds(sv) {
 			continue
 		}
 		if effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], blocker, e.staticSpecCtx(sv)) {
@@ -1142,8 +1135,8 @@ func (e *Engine) blockRestricted(blocker, attacker state.ObjID) bool {
 		}
 	}
 	for _, sv := range e.activeStatics("CantBlockBy") {
-		// The same per-static condition gate as the CantBlock loop above.
-		if !e.continuousConditionHolds(sv) {
+		// Apply the same shared per-static gate as the CantBlock loop above.
+		if !e.continuousGateHolds(sv) {
 			continue
 		}
 		// ValidAttacker$ is Forge's own spelling for the attacker side of a
@@ -2600,7 +2593,7 @@ func init() {
 // presentCondition reader evaluates.
 func (e *Engine) asUnblockedStaticMatches(id state.ObjID) (matched, mandatory bool) {
 	for _, sv := range e.assignmentStatics("AssignCombatDamageAsUnblocked") {
-		if !e.restrictionGateHolds(sv, id) || !e.checkSVarHolds(sv) {
+		if !e.restrictionGateHolds(sv, id) {
 			continue
 		}
 		if !e.classBandGateHolds(sv.Params, sv.Source) {
@@ -2693,7 +2686,7 @@ func (e *Engine) assignmentStatics(mode string) []staticView {
 // command-zone Conspiracy (Weight Advantage) applies too.
 func (e *Engine) combatDamageToughnessMatches(id state.ObjID) bool {
 	for _, sv := range e.assignmentStatics("CombatDamageToughness") {
-		if !e.restrictionGateHolds(sv, id) || !e.checkSVarHolds(sv) {
+		if !e.restrictionGateHolds(sv, id) {
 			continue
 		}
 		if !e.classBandGateHolds(sv.Params, sv.Source) {

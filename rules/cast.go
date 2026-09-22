@@ -6099,7 +6099,7 @@ func (e *Engine) recheckIllegal(pc *pendingCast) bool {
 		if !e.actorMatches(sv, "Caster", pc.player) {
 			continue
 		}
-		if !e.restrictionGateHolds(sv, pc.card) || !e.checkSVarHolds(sv) {
+		if !e.restrictionGateHolds(sv, pc.card) {
 			continue
 		}
 		sc := e.specCtx(sv.Source, sv.Controller)
