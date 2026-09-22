@@ -250,6 +250,11 @@ type pendingCast struct {
 	// re-entry) does not re-ask for targets.
 	passedTarget bool
 
+	// targetStage is the CR 702.101b Fuse target stage: 0 asks the front
+	// half's targets, 1 the alternate half's. Always 0 for an ordinary cast
+	// (and for an ability), so their single target ask is byte-identical.
+	targetStage int
+
 	// targets are the chosen cast-time targets while this proposal is live.
 	// They are copied from the target decision before payment so a ValidTarget$
 	// cost modifier can be recomputed after CR 601.2c and before 601.2h, even
@@ -1524,6 +1529,19 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		faceBefore = &before
 		e.emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: int32(1 - int(before))})
 	}
+	// CR 709.4: the alternate half of a non-Room split card (mode split_alt)
+	// is cast from hand exactly like a Room door or an Adventure spell face:
+	// one FlipFace to the chosen half before the ordinary cast transaction,
+	// after which rawBaseCost, targets and resolution all read that half. An
+	// aborted proposal restores the pre-flip face via pc.faceBefore.
+	if opt.Mode == "split_alt" {
+		if splitAlternateCastFace(o) == nil {
+			return
+		}
+		before := o.FaceIdx
+		faceBefore = &before
+		e.emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: int32(1 - int(before))})
+	}
 	f := o.Face()
 	if f == nil {
 		return
@@ -1554,6 +1572,13 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	case "kicked":
 		if kc, ok := kickerCost(f); ok {
 			cost = cost.Plus(kc)
+		}
+	// CR 702.101b: a Fuse cast pays BOTH halves' printed mana costs as one
+	// combined cost; the card itself stays at its front face (no FlipFace),
+	// and the pay-time FlagFused provenance makes resolution run both halves.
+	case "fuse":
+		if ff, fa := fusedSplitFaces(o); ff != nil {
+			cost = e.fuseCost(ff, fa)
 		}
 	case "kicked1", "kicked2", "kickedboth":
 		// The and/or Kicker's per-part modes (legal.go offers one option per
@@ -1708,7 +1733,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// this (pc.ability < 0 and no alternative/flashback recast), and a spell
 	// with no SP Cost$ contributes nothing.
 	if opt.AltCostIndex == 0 && (opt.Mode == "" || opt.Mode == "mayplay" || opt.Mode == "room_alt" ||
-		opt.Mode == "adventure_alt" || opt.Mode == "aftermath" || opt.Mode == "conspired") {
+		opt.Mode == "adventure_alt" || opt.Mode == "aftermath" || opt.Mode == "split_alt" || opt.Mode == "conspired") {
 		cost = withSpellAbilityExtras(f, cost)
 	}
 	// Convoke and Harmonize are announced only after X/mode/pip choices have
@@ -4843,6 +4868,12 @@ func modeFlags(mode string) string {
 	// TestFlashbackedSpellCounteredGoesToExile pins.
 	case "aftermath":
 		return events.FlagsString(state.FlagAftermath)
+	// Fuse (CR 702.101b): one spell resolving both halves. The flag is the
+	// provenance rules/stack.go's resolution reader dispatches on to run both
+	// faces' spell abilities instead of the single Face().SpellAbility().
+	// The card stays at its front face, so no face-flip reader is involved.
+	case "fuse":
+		return events.FlagsString(state.FlagFused)
 	case "miracle":
 		return events.FlagsString(state.FlagMiracle)
 	// The alternative-cost keyword family: the flag is what the ETB machinery
@@ -4945,29 +4976,15 @@ func (e *Engine) targetAsk() bool {
 		return false
 	}
 	f := o.Face()
-	var sa *cards.SA
-	if pc.isAbility() {
-		sa = e.pcAbility(pc)
-		if sa == nil {
-			return false
-		}
-	} else if f != nil {
-		sa = f.SpellAbility()
-		if sa == nil && pc.mode == "bestowed" {
-			// Bestow (CR 702.114a): the bestowed cast targets through the
-			// synthesized Aura attach SA -- the creature face has no SP of its
-			// own, so the plain cast's no-SP shape says nothing about the
-			// bestowed one.
-			sa = bestowedAttachSA()
-		}
-		if sa == nil && pc.mode == "mutated" {
-			// Mutate (CR 702.140a): the mutate cast targets the non-Human
-			// creature it merges into through the synthesized Mutate SA -- the
-			// same no-SP shape bestow has.
-			sa = mutateTargetSA()
-		}
+	sa := e.castStageSA(pc, o, f)
+	// A Fuse half that declares no targets (Alive // Well's Well) is skipped:
+	// advance to the next stage while one remains, so a half with a target
+	// requirement is still asked. When no stage declares targets the flow
+	// proceeds directly to payment, exactly as a single targetless cast does.
+	for sa != nil && sa.Params["ValidTgts"] == "" && e.castHasNextTargetStage(pc, o) {
+		pc.targetStage++
+		sa = e.castStageSA(pc, o, f)
 	}
-	sa = modalTargetSA(f, sa, o.ChosenModes)
 	if sa == nil || sa.Params["ValidTgts"] == "" {
 		return false
 	}
@@ -5913,7 +5930,7 @@ func (e *Engine) payCast() {
 		// the total) or every later event would route into the first tag's
 		// field.
 		typedAmounts := [3]int32{pc.manaSpentTreasure, pc.manaSpentCave, pc.manaSpentDesert}
-		typedFlags := [3]uint32{state.FlagManaTreasureSpent, state.FlagManaCaveSpent, state.FlagManaDesertSpent}
+		typedFlags := [3]uint64{state.FlagManaTreasureSpent, state.FlagManaCaveSpent, state.FlagManaDesertSpent}
 		acc := events.FlagsFrom(flags)
 		for t := range typedFlags {
 			acc |= typedFlags[t]

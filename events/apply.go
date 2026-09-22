@@ -2164,6 +2164,27 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 	}
 
 	o.Zone = to
+	// CR 709.4: a non-Room split card has no persistent "current half" once it
+	// leaves the stack -- both halves are printed on the same physical card and
+	// either is castable again from whatever zone it lands in. A split_alt (or
+	// aftermath) cast flips the object to face 1 for the cast transaction; this
+	// normalization resets it, or a card returned to hand would offer only the
+	// half it was last cast as. Rooms are excluded (their face IS persistent
+	// battlefield state) and so is a battlefield destination. Done inside
+	// Apply's Move fold so live play and log replay normalize identically.
+	if wasStack && to != state.ZBattlefield && o.Card != nil &&
+		o.Card.AlternateMode == "Split" && len(o.Card.Faces) == 2 && int(o.FaceIdx) != 0 {
+		room := false
+		for _, f := range o.Card.Faces {
+			if f != nil && f.IsRoom() {
+				room = true
+				break
+			}
+		}
+		if !room {
+			o.FaceIdx = 0
+		}
+	}
 	// The incarnation stamp is used by promises tied to a particular
 	// permanent (evoke/dash/warp), so only crossing the battlefield
 	// boundary advances it. A provisional hand->stack->hand CR 733 reversal
