@@ -16,8 +16,9 @@ import (
 //     enters with one counter per devoured creature; a decline enters it
 //     plain.
 //   - Thunder-Thrash Elder (Devour 3) and Thromok the Insatiable (Devour X):
-//     the per-devouree multiplier -- Times.3, and the X read that IS one
-//     counter per creature.
+//     the per-devouree multiplier -- Times.3, and Times.X, whose X resolves
+//     the face's own SVar (Count$RememberedSize, the devoured count), so n
+//     devoured creatures give n counters each, n² in all.
 //   - Feasting Hobbit (Devour 3 Food): the typed filter -- only Foods are
 //     offered and counted, non-Food permanents are not.
 

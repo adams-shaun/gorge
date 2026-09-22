@@ -1467,9 +1467,11 @@ func effCleanup(h Host, c *Ctx, sa *cards.SA) {
 	// list clear produces. The clear is recorded as a real event ONLY when
 	// the source's list actually held entries -- clearing an empty list is
 	// a no-op, and emitting for it would move every chain head that carries
-	// a ClearRemembered$ cleanup for no observable change (measured: Delver
-	// of Secrets' DBCleanup in the 4/6/8-seat golden games runs its cleanup
-	// with an empty list).
+	// a ClearRemembered$ cleanup for no observable change. (Delver of
+	// Secrets' DBCleanup used to be the measured empty-list case; since
+	// effReveal's RememberRevealed$ arm writes the source list too
+	// (count:Plus.<SVarName>), Delver's cleanup holds a real entry and does
+	// emit -- that is what moved the 4- and 6-seat heads.)
 	noted := false
 	if strings.EqualFold(sa.Params["ClearRemembered"], "True") {
 		c.Remembered = nil

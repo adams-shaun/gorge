@@ -933,7 +933,23 @@ var acceptanceHeads = map[int]string{
 	// old gate taps option 0 toward a {B} card with only blue sources
 	// offered, the fixed gate declines; the neutralised stream reproduces
 	// main's 832ea9b373fde3ed byte-for-byte, so the filter is the sole cause.
-	4: "22cf2bf04aeab3c7",
+	// RememberRevealed$ writes the source list (2026-09-22): 4 seats moved to
+	// eb8651db1973af36 with task agent-20260919T203859Z-d20caa2e
+	// (count:Plus.<SVarName>). Sole mover, bisected: the new eventRemember
+	// write in effReveal's RememberRevealed$ arm (effects/cardflow.go) --
+	// reverting just that call in a scratch copy restores both goldens, and
+	// reverting the count.go operand resolver instead does not. Mechanism:
+	// Delver of Secrets' upkeep TrigPeek (DB$ PeekAndReveal |
+	// RememberRevealed$ True) now puts the revealed card on the SOURCE
+	// object's persistent Remembered list as well as the ctx half, so the
+	// chained DBCleanup's ClearRemembered$ stops being the measured
+	// empty-list no-op and emits a real Choose event. Two extra Choose
+	// events per Delver upkeep resolution (10 reaches in the golden games,
+	// all Delver, seat 1). Delver's own transform decision is unchanged --
+	// it reads the ctx half, which held the reveal before and after.
+	// Accepted: CR conformance lane unchanged and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move.
+	4: "eb8651db1973af36",
 	// 6 seats moved to c8c36b87e598c090 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
@@ -1011,7 +1027,13 @@ var acceptanceHeads = map[int]string{
 	// AddContinuous clock_tick at event 7109; every earlier event is byte-
 	// identical), the pumped creature then blocks differently, and the rest
 	// of the stream follows.
-	6: "51ca01ded64c6b74",
+	// RememberRevealed$ writes the source list (2026-09-22): 6 seats moved to
+	// 7e9f2574e2d31c90 with task agent-20260919T203859Z-d20caa2e
+	// (count:Plus.<SVarName>) -- the same Delver of Secrets
+	// PeekAndReveal/ClearRemembered cause as the 4-seat entry above, measured
+	// by the same revert bisect. 2 and 8 seats are unchanged (neither game
+	// resolves a Delver upkeep reveal under its seed).
+	6: "7e9f2574e2d31c90",
 	// 8 seats moved to cc022f9ba9f2bf39 with task mana2 (fix(rules): pay mana
 	// ability costs and choose colors): mana abilities that spend a Sac cost
 	// are now gated on a payable, deterministic sacrifice candidate existing,

@@ -123,7 +123,7 @@ goldens in `rules/heads_test.go`:
 
 | seats | 2 | 4 | 6 | 8 |
 |---|---|---|---|---|
-| chain head | `6085b337c4a4c0a1` | `22cf2bf04aeab3c7` | `100db196f20a293a` | `35522b0d8c5d2bf9` |
+| chain head | `41aff817d4f931ef` | `eb8651db1973af36` | `7e9f2574e2d31c90` | `275fb23897e22f6e` |
 
 `TestEveryRepoDeckParamsAreRead` (`rules/paramcensus_test.go`) is the
 companion ratchet over the same decks' parameters: measured at the same
