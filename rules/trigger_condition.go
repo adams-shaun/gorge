@@ -19,6 +19,44 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
+// noResolvingCheck reports whether the trigger carries NoResolvingCheck$ True:
+// Forge's marker that its condition clause (an intervening-if, an
+// IsPresent$/PresentCompare$ or a CheckSVar$/SVarCompare$ gate) is checked
+// ONLY when the trigger would fire, never again as it resolves. Measured over
+// the corpus: 88 raw T: lines across 87 files, every one True -- transient
+// fire-time battlefield counts (pack tactics' attacking power, battalion's
+// other attackers, Valakut's Mountains, Vengevine's second creature spell,
+// Love on the Battlefield's exactly-two) whose re-evaluation at resolution
+// would wrongly fizzle the ability after the state moved. The read sits in
+// the ONE resolution-time recheck site (resolveTop's CR 603.4 half, via
+// triggerResolvingCheckHolds); every fire-time site (triggerMatches,
+// the event-matched delayed walker, the AttackerBlocked hook) keeps its own
+// check.
+func noResolvingCheck(t cards.Trigger) bool {
+	return strings.EqualFold(strings.TrimSpace(t.Params["NoResolvingCheck"]), "True")
+}
+
+// triggerResolvingCheckHolds is the resolution-time half of the CR 603.4
+// condition check, beside triggerMatches' fire-time half: a triggered
+// ability's condition is checked when it triggers AND as it resolves, and a
+// false answer at resolution removes the ability from the stack (CR 603.4).
+// NoResolvingCheck$ True opts the trigger out of this second check.
+//
+// tc is the ability's captured event roles (Engine.triggerContexts[id] at the
+// resolveTop call site), which is what lets the event-RELATIVE clauses below
+// be re-evaluated here: an intervening-if that names the attacked player has
+// no event at resolution time, but the role was captured when the trigger
+// queued and travels with the ability (effects.TriggerContext.DefendingPlayer).
+// A nil tc leaves those clauses to their fire-time matcher, so this function
+// is safe to call with no context for a trigger whose mode evaluates them
+// itself (the fire-time general gate passes nil for exactly that reason).
+func (e *Engine) triggerResolvingCheckHolds(t cards.Trigger, source state.ObjID, tc *effects.TriggerContext) bool {
+	if noResolvingCheck(t) {
+		return true
+	}
+	return e.triggerConditionHoldsCtx(t, source, e.controllerOf(source), tc)
+}
+
 // triggerConditionHolds evaluates the CR 603.4 intervening-if clause (and the
 // CR 603.8 state-trigger condition) carried on a T: line. Two clause shapes
 // are recognised, the two the corpus uses on the trigger lines this engine
@@ -42,7 +80,7 @@ import (
 // fire, never that an unreadable life/creature count is presumed large
 // enough to let a win or counter trigger slip through.
 func (e *Engine) triggerConditionHolds(t cards.Trigger, source state.ObjID) bool {
-	return e.triggerConditionHoldsAs(t, source, e.controllerOf(source))
+	return e.triggerConditionHoldsCtx(t, source, e.controllerOf(source), nil)
 }
 
 // triggerConditionHoldsAs is triggerConditionHolds with "you" supplied
@@ -51,6 +89,14 @@ func (e *Engine) triggerConditionHolds(t cards.Trigger, source state.ObjID) bool
 // which can differ from the source card's own controller -- see
 // checkEventDelayedTriggers.
 func (e *Engine) triggerConditionHoldsAs(t cards.Trigger, source state.ObjID, you state.PlayerID) bool {
+	return e.triggerConditionHoldsCtx(t, source, you, nil)
+}
+
+// triggerConditionHoldsCtx is the shared condition walk with the ability's
+// captured event roles supplied (nil at fire time, since the general gate has
+// no event to name a role and the per-mode matcher -- attacksMatches for
+// Condition$ AttackedPlayerWithMostLife -- owns the fire-time answer).
+func (e *Engine) triggerConditionHoldsCtx(t cards.Trigger, source state.ObjID, you state.PlayerID, tc *effects.TriggerContext) bool {
 	// A kw:Class level band is an independent AND gate beside every clause
 	// below (and beside the body's own IsPresent$, which the trigger gate
 	// otherwise reads as a union with IsPresent2$).
@@ -163,6 +209,25 @@ func (e *Engine) triggerConditionHoldsAs(t cards.Trigger, source state.ObjID, yo
 		// the two cannot drift apart.
 		if !e.revoltThisTurn(you) {
 			return false
+		}
+	}
+	if strings.EqualFold(strings.TrimSpace(t.Params["Condition"]), "AttackedPlayerWithMostLife") {
+		// Scourge of the Throne's intervening-if ("if it's attacking the
+		// player with the most life or tied for most life"): an
+		// event-RELATIVE clause, so it is re-evaluated here only when the
+		// ability's captured roles name the defender. A nil tc is the
+		// fire-time general gate, whose caller attacksMatches already
+		// evaluated the clause against the DeclareAttackers event against
+		// the SAME playerHasMostLife read -- skipping it here is what keeps
+		// the two halves from double-gating a passing trigger. A non-nil tc
+		// (resolution) with no defender binding is a condition this build
+		// cannot confirm and fails closed, the convention every clause above
+		// documents (an unreadable condition must never let a trigger slip
+		// through).
+		if tc != nil {
+			if !tc.DefendingPlayer.IsPlayer || !e.playerHasMostLife(tc.DefendingPlayer.Player) {
+				return false
+			}
 		}
 	}
 	if name, ok := t.Params["CheckSVar"]; ok {

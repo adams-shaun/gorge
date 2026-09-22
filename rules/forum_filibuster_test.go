@@ -246,9 +246,11 @@ func TestDiregrafHordeDividesTokensIntoOneInstance(t *testing.T) {
 // is AB$ ImmediateTrigger | Cost$ 1 -- the "you may pay {1}. When you do"
 // idiom. The ordinary triggered-cost window poses the pay/decline ask; the
 // paid answer charges one mana and executes TrigEffect (its CantBlockBy
-// static registration is still the unimplemented-Note stand-in, the
-// paramcensus's own param:api:Effect.ValidTgtsDesc row -- not this task's
-// scope); a decline (asserted on the second game) executes nothing.
+// static used to fall to the unimplemented Note; since the
+// Effect-delivered-CantBlockBy ticket -- rules/effect_cantblockby_test.go --
+// the paid body registers a REAL CantBlockBy restriction, which is what the
+// pay subtest now asserts instead of the old note); a decline (asserted on
+// the second game) executes nothing.
 func TestSpeedYoungAvengerImmediateTrigger(t *testing.T) {
 	reg := searchTestRegistry(t)
 
@@ -352,6 +354,7 @@ func TestSpeedYoungAvengerImmediateTrigger(t *testing.T) {
 				registered = true
 			}
 		}
+		count := effectCantBlockByCount(e)
 		if shouldPay {
 			poolAfter := e.G.Players[0].Pool.Total()
 			if poolAfter != poolBefore-1 {
@@ -360,8 +363,18 @@ func TestSpeedYoungAvengerImmediateTrigger(t *testing.T) {
 			if !registered {
 				t.Fatalf("the paid body never executed TrigEffect (tail %+v)", tailEmit(e, 8))
 			}
-		} else if registered {
-			t.Fatal("the declined cost still executed the body")
+			// The registered restriction is exactly the one static this board can
+			// hold, so count must be 1 (main's stricter cbb1 assertion).
+			if count != 1 {
+				t.Fatalf("CantBlockBy effects registered = %d, want 1 (tail %+v)", count, tailEmit(e, 8))
+			}
+		} else {
+			if registered {
+				t.Fatal("the declined cost still executed the body")
+			}
+			if count != 0 {
+				t.Fatalf("the declined cost still registered the CantBlockBy static (%d effects)", count)
+			}
 		}
 	}
 

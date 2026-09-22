@@ -81,6 +81,12 @@ var addedAfterTheSplit = []string{
 	// already but the MODE did not -- no pre-split switch arm could have
 	// dispatched it.
 	"ClassLevelGained",
+	// counterchange-triggers: "Whenever one or more counters are removed from
+	// CARDNAME" (Regenerations Restored, Chandra Fire Artisan, B.O.B. Bevy of
+	// Beebles). The pre-split switch dispatched CounterRemoved but not its
+	// Once variant; one CounterChange event already carries the whole removal
+	// batch, which is the Once contract (matcher: counterRemovedMatches).
+	"CounterRemovedOnce",
 	// counterplayeraddedall: "Whenever you put one or more counters on a(n)
 	// <spec>" (Generous Patron, Rikku Resourceful Guardian, Kros Defense
 	// Contractor, All Will Be One; 8 corpus files). It matches the ordinary
@@ -88,6 +94,13 @@ var addedAfterTheSplit = []string{
 	// existed already but the MODE did not -- no pre-split switch arm could
 	// have dispatched it.
 	"CounterPlayerAddedAll",
+	// monstrosity (task agent-20260919T190014Z): "When CARDNAME becomes
+	// monstrous, ..." (CR 701.31; Hydra Broodmaster, Fleecemane Lion,
+	// Polukranos and the mode's 19 corpus carrier files). It matches the
+	// events.AlterAttribute mark events.Apply folds for the Monstrosity$
+	// param's Text "Monstrous" mark -- the event Kind existed already, but
+	// the MODE did not -- so no pre-split switch arm could have dispatched it.
+	"BecomeMonstrous",
 }
 
 func allRegisteredModeNames() []string {

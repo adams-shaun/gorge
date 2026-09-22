@@ -274,6 +274,11 @@ func poseUnlessAsk(h Host, c *Ctx, sa *cards.SA, cost string, payers []state.Tar
 		// time (the RememberDrawn$ cards), or the replacement-arm reseed
 		// loses them and the body's condition gates read an empty set.
 		ResumeRemembered: append([]state.Target(nil), c.Remembered...),
+		// The TargetUnique$ accumulator rides too (the same ride every ask
+		// poseTargetsAsk makes): an unless ask parked between two TargetUnique$
+		// riders (Withdraw's UnlessCost$ ChangeZone sub) must not drop the
+		// earlier riders' picks at the resumed Ctx's rebuild.
+		ResumeTargetsUnique: copyTargets(c.TargetsUnique),
 		Options: []decision.Option{
 			{Index: 0, Kind: "mode", Label: payLabel, Obj: c.Source, Player: payer},
 			{Index: 1, Kind: "mode", Label: declineLabel, Obj: c.Source, Player: payer},

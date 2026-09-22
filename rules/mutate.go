@@ -116,7 +116,7 @@ func (e *Engine) resolveMutate(o *state.Object, targets []state.Target) {
 	// battlefield or no longer matches Creature.nonHuman+YouOwn fizzles the
 	// spell; it is revalidated with the same legalTargets helper every other
 	// spell uses before the merge.
-	legal := e.legalTargets(targets, sa.Params["ValidTgts"], targetZones(sa), o.Controller, id, id)
+	legal := e.legalTargets(targets, sa, targetZones(sa), o.Controller, id, id)
 	var victim state.ObjID
 	for _, t := range legal {
 		if t.IsPlayer || t.Obj == 0 {

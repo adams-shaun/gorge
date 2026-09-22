@@ -134,7 +134,7 @@ func TestCompiledTriggerInterestParity(t *testing.T) {
 		"AttackersDeclaredOneTarget", "AttackersDeclared", "AttackerBlocked", "AttackerBlockedByCreature", "AttackerUnblockedOnce", "Blocks", "Sacrificed",
 		"Discarded", "LandPlayed", "Cycled", "CommitCrime", "BecomesTarget", "Taps",
 		"TapsForMana", "DamageDone", "DamageDealtOnce", "DamageDoneOnce", "CounterAdded",
-		"CounterRemoved", "DamagePreventedOnce", "TokenCreated", "TokenCreatedOnce",
+		"CounterAddedOnce", "CounterRemoved", "CounterRemovedOnce", "DamagePreventedOnce", "TokenCreated", "TokenCreatedOnce",
 		"ChangesZoneAll", "SpellCastOrCopy", "SpellCopy", "Mutates",
 		"CounterPlayerAddedAll", "Drawn", "LifeLost", "Phase", "Attached", "Explores", "Investigated", "Discover", "SeekAll", "Exploited", "Always", "LifeLostAll", "FutureMode", "",
 	}
