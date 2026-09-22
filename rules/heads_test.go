@@ -1077,7 +1077,26 @@ var acceptanceHeads = map[int]string{
 	// merge re-measure (2026-09-22, cli-20260922T150844Z-dfebd0b5): with BOTH
 	// change sets present the measured head is 5e79231bd056d0fc -- each cause was
 	// measured on its own side above.
-	6: "5e79231bd056d0fc",
+	// unless-pay mana window (cli-20260922T150843Z-daf1bd3e): 6 seats moves to
+	// 400d8d9ae2777ded. Measured by neutralising exactly two switches in a
+	// scratch copy (poseUnlessAsk's host payability consult in effects/unless.go
+	// and resumeResolution's unlessCostPayable guard plus the window arm in
+	// rules/resolution.go): the neutralised build reproduces main's
+	// 5e79231bd056d0fc byte-for-byte, so this change is the sole cause. Both
+	// streams hold 8,732 events and differ in exactly TWO payloads, each a
+	// ModeChosen text -- a decision-enumeration move, not a game-outcome move.
+	// First divergence, event 1396: Mausoleum Wanderer (obj 269, seat 4) is
+	// sacrificed at 1366 and its ability (obj 361) counters seat 1's Ponder
+	// (obj 105) unless seat 1 pays the strict-unpriceable `UnlessCost$ X`; the
+	// old build offered "Pay the cost -- don't counter" and hard-declined it at
+	// the resume, the fixed build offers only "Don't pay". Second divergence,
+	// event 1671: seat 1's Daze (obj 98, cast at 1639) asks seat 2 for {1};
+	// the reachability gate finds neither floating mana nor a window-eligible
+	// source, so the unreachable pay is suppressed ("Pay 1 -- don't counter"
+	// -> "Don't pay"). That it WAS unreachable is visible in the old stream
+	// too: its recorded pay attempt failed and the spell was countered anyway. Both spells are countered in both streams (events 1397 and
+	// 1672 onward are identical).
+	6: "400d8d9ae2777ded",
 	// 8 seats moved to cc022f9ba9f2bf39 with task mana2 (fix(rules): pay mana
 	// ability costs and choose colors): mana abilities that spend a Sac cost
 	// are now gated on a payable, deterministic sacrifice candidate existing,
@@ -1219,7 +1238,16 @@ var acceptanceHeads = map[int]string{
 	// is eligible; the bot chooses option 1 and sacrifices Prospector at 8068.
 	// The prior exact-only gate withheld that activation, the first difference
 	// at 8065, so this is the authorized >N behaviour.
-	8: "b14f1fc52a6835ed",
+	// unless-pay mana window (cli-20260922T150843Z-daf1bd3e): 8 seats moves to
+	// 0b8b0506edbedc2e, same two-switch neutralisation as the 6-seat entry
+	// (the neutralised build reproduces b14f1fc52a6835ed byte-for-byte). Both
+	// streams hold 16,821 events and differ in exactly ONE payload: event 2388,
+	// the ModeChosen for Mausoleum Wanderer's (obj 269, seat 4, sacrificed at
+	// 2350) counter-ability (obj 481) against seat 7's Duress (obj 472) --
+	// the strict-unpriceable `UnlessCost$ X` pay option is no longer offered,
+	// so "Pay the cost -- don't counter" becomes "Don't pay". Duress is
+	// countered in both streams (event 2389 onward identical).
+	8: "0b8b0506edbedc2e",
 }
 
 func TestHeads(t *testing.T) {

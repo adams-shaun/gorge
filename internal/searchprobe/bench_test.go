@@ -119,11 +119,19 @@ func TestSampleRealDeckGolden(t *testing.T) {
 		// The digest taken at 0b6e568b, before any of the performance work:
 		// with the one distribution-preserving proposal change switched off,
 		// the sampler still draws byte-identical worlds.
-		{"pre-optimisation sampler", true, "91def6c77533be19728e00036cb9373dab3eb53a4424bc38ae13e5d0c89655bd"},
+		// unless-pay mana window (cli-20260922T150843Z-daf1bd3e, 2026-09-22):
+		// re-pinned from 91def6c7... . The sampled worlds are real engine
+		// streams, so an engine decision change moves this digest. Measured
+		// cause, by neutralising exactly two switches in a scratch copy
+		// (poseUnlessAsk's host payability consult and resumeResolution's
+		// unlessCostPayable guard plus the window arm): the neutralised build
+		// reproduces the old digest byte-for-byte on both sampler cases and on
+		// the teacher case below, so this change is the sole mover.
+		{"pre-optimisation sampler", true, "8575898916864bcfad21e3105a057d9adf31d21c8d4e40033b7d7a72f782d5bd"},
 		// With the declined-land-drop exclusion: different proposals (so
 		// different worlds for a seed), same target distribution -- see
 		// TestLandExclusionRemovesOnlyRejectedWorlds.
-		{"land exclusion", false, "28f7e01f514af2149efa054856204aa34c4d0a030d552178647d3365a31254ee"},
+		{"land exclusion", false, "1dab0393f3ff32803bff6400ee9bcfdd38cae078362d91883e419fb4fa0f37f1"},
 	} {
 		opts := benchSampleOptions()
 		opts.MinESS = 1 // resample worlds from the thin pool so the digest covers them
@@ -250,8 +258,14 @@ func BenchmarkTeacherChoiceRealDecks(b *testing.B) {
 // fixture: a rollout-side optimisation must not move any candidate's value.
 func TestTeacherChoiceRealDeckGolden(t *testing.T) {
 	worlds, cands := benchTeacherInputs(t)
-	// The digest taken at 0b6e568b, before the performance work.
-	const want = "71d2a8f07a7532c0a7b867d871b0c54ba424a429701600e13382c776fe081ddf"
+	// Taken at 0b6e568b, before the performance work; re-pinned from
+	// 71d2a8f0... by cli-20260922T150843Z-daf1bd3e (the unless-pay mana
+	// window). The teacher's VERDICT is unmoved -- Index 0, Values [1,1,1,1],
+	// Rollouts 32, Terminal 32, Capped 0, WinsByCandidate [8,8,8,8] are
+	// identical on both builds; only Submits moved (2891 -> 4054), because the
+	// rollout games now carry the window's extra intents. Neutralising the two
+	// switches named on the sampler golden above restores 71d2a8f0 exactly.
+	const want = "dc918f1851cb7df6299310480c8f02dc29fc58cab34210b1c0b6dc01e5c37bb0"
 	for _, parallelism := range []int{0, 4} {
 		res, err := TeacherChoice(worlds, cands, TeacherOptions{Seed: 99, MaxSubmits: 5000, Parallelism: parallelism})
 		if err != nil {
