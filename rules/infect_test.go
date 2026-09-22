@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -435,4 +436,136 @@ func TestInfectDeathtouchKillsThroughCounters(t *testing.T) {
 	if o := e.G.Obj(blocker); o.Zone == state.ZBattlefield {
 		t.Fatal("a 2/2 that took 1 deathtouch infect damage (one -1/-1 counter, nothing marked) survived -- CR 704.5g's mark-alone lethality did not fire")
 	}
+}
+
+// corpusInfectSrc is corpusInfectCard's raw-source twin, for the fixture-deck
+// helpers that build a Config from card SOURCE rather than a parsed card. The
+// GPL script is read at test time and never committed, exactly as
+// corpusInfectCard reads it.
+func corpusInfectSrc(t *testing.T, path string) string {
+	t.Helper()
+	b, err := os.ReadFile(filepath.Join("..", ".cards", "cardsfolder", path))
+	if err != nil {
+		t.Fatalf("read corpus script %s: %v", path, err)
+	}
+	return string(b)
+}
+
+// TestSacrificedGraftedExoskeletonBearerDealsInfectFromLKI pins CR 113.7a for
+// the granted-infect half of the damage rider, the review-sol1 MAJOR. Grafted
+// Exoskeleton grants infect to a creature whose damage ability sacrifices that
+// creature as its cost: the sacrifice detaches the Equipment (attachment SBAs)
+// before the independent ability resolves, so the live board no longer grants
+// infect. Before the fix newDamageRider re-read HasKeyword live and the hit
+// landed as one life loss; the source's last known infect must make it one
+// poison counter instead.
+func TestSacrificedGraftedExoskeletonBearerDealsInfectFromLKI(t *testing.T) {
+	pinger := "Name:Sac Pinger\nManaCost:2 R\nTypes:Creature Wizard\nPT:1/2\n" +
+		"A:AB$ DealDamage | Cost$ Sac<1/CARDNAME> | ValidTgts$ Player | NumDmg$ 1 | SpellDescription$ deals 1.\nOracle:x\n"
+	e, cfg, exoID := newFixtureDeck(t, 107, corpusInfectSrc(t, "g/grafted_exoskeleton.txt"), pinger)
+	var pingerID state.ObjID
+	for i := range e.G.Objs {
+		if o := &e.G.Objs[i]; o.Face() != nil && o.Face().Name == "Sac Pinger" {
+			pingerID = o.ID
+		}
+	}
+	if pingerID == 0 {
+		t.Fatal("board missing the Sac Pinger fixture")
+	}
+	for _, id := range []state.ObjID{exoID, pingerID} {
+		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: e.G.Obj(id).Zone, To: state.ZBattlefield})
+	}
+	addMana(t, e, 0, "CC")
+	e.Advance()
+	equip := abilityOption(t, e, exoID, 0)
+	submitChoices(t, e, equip.Index)
+	targetObject(t, e, pingerID)
+	passUntilStackEmpty(t, e, 20)
+
+	// Preconditions: the grant is live BEFORE the activation, and the
+	// defender arrives at full life with no poison -- so the two counts
+	// below read this one hit.
+	if !e.HasKeyword(pingerID, "Infect") {
+		t.Fatal("precondition: the equipped pinger does not read granted infect before activation")
+	}
+	if got := e.G.Players[1].Counter("POISON"); got != 0 {
+		t.Fatalf("precondition: defender already carries %d poison", got)
+	}
+
+	opt := abilityOption(t, e, pingerID, 0)
+	submitChoices(t, e, opt.Index)
+	activateAnswers(t, e, pingerID, 0, 1)
+	passUntilStackEmpty(t, e, 20)
+
+	// The cost really did remove the source and its grant before resolution:
+	// without both of these the test could pass on a live read.
+	if o := e.G.Obj(pingerID); o.Zone != state.ZGraveyard {
+		t.Fatalf("sacrificed source zone = %s, want graveyard", o.Zone)
+	}
+	if e.HasKeyword(pingerID, "Infect") {
+		t.Fatal("the sacrificed source still reads infect live: the test would pass without LKI")
+	}
+
+	if got := e.G.Players[1].Counter("POISON"); got != 1 {
+		t.Fatalf("defender poison = %d, want 1 (the departed source's last known infect, CR 113.7a/702.90b)", got)
+	}
+	if got := e.G.Players[1].Life; got != 20 {
+		t.Fatalf("defender life = %d, want 20 (infect damage to a player is never life loss)", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestSacrificedGrantedDeathtouchSourceUsesLKI is the same class one keyword
+// over: newDamageRider now resolves deathtouch once, from the same LKI, so an
+// Equipment-granted deathtouch source sacrificed to pay for its own damage
+// ability still marks its hit deadly (CR 702.2b/113.7a). Before the fix the
+// live read lost the grant and the 4/4 survived one damage.
+func TestSacrificedGrantedDeathtouchSourceUsesLKI(t *testing.T) {
+	collar := "Name:Fang Collar\nManaCost:1\nTypes:Artifact Equipment\nK:Equip:2\n" +
+		"S:Mode$ Continuous | Affected$ Creature.EquippedBy | AddKeyword$ Deathtouch | Description$ Equipped creature has deathtouch.\nOracle:x\n"
+	pinger := "Name:Sac Biter\nManaCost:2 B\nTypes:Creature Wizard\nPT:1/2\n" +
+		"A:AB$ DealDamage | Cost$ Sac<1/CARDNAME> | ValidTgts$ Creature | NumDmg$ 1 | SpellDescription$ deals 1.\nOracle:x\n"
+	e, cfg, collarID := newFixtureDeck(t, 107, collar, pinger)
+	var pingerID state.ObjID
+	for i := range e.G.Objs {
+		if o := &e.G.Objs[i]; o.Face() != nil && o.Face().Name == "Sac Biter" {
+			pingerID = o.ID
+		}
+	}
+	if pingerID == 0 {
+		t.Fatal("board missing the Sac Biter fixture")
+	}
+	for _, id := range []state.ObjID{collarID, pingerID} {
+		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: e.G.Obj(id).Zone, To: state.ZBattlefield})
+	}
+	// A 4/4 victim, so only the deathtouch half can be why it dies: one
+	// damage is nowhere near its toughness. Minted through the logged token
+	// path, not onBoard's eventless placement, so replayCheck below can
+	// rebuild it from the log alone.
+	victim := putToken(t, e, 1, "Name:Ox\nManaCost:3 G\nTypes:Creature Ox\nPT:4/4\nOracle:x\n", state.ZBattlefield)
+	addMana(t, e, 0, "CC")
+	e.Advance()
+	equip := abilityOption(t, e, collarID, 0)
+	submitChoices(t, e, equip.Index)
+	targetObject(t, e, pingerID)
+	passUntilStackEmpty(t, e, 20)
+	if !e.HasKeyword(pingerID, "Deathtouch") {
+		t.Fatal("precondition: the equipped biter does not read granted deathtouch before activation")
+	}
+
+	opt := abilityOption(t, e, pingerID, 0)
+	submitChoices(t, e, opt.Index)
+	activateAnswers(t, e, pingerID, victim, 0)
+	passUntilStackEmpty(t, e, 20)
+
+	if o := e.G.Obj(pingerID); o.Zone != state.ZGraveyard {
+		t.Fatalf("sacrificed source zone = %s, want graveyard", o.Zone)
+	}
+	if e.HasKeyword(pingerID, "Deathtouch") {
+		t.Fatal("the sacrificed source still reads deathtouch live: the test would pass without LKI")
+	}
+	if o := e.G.Obj(victim); o.Zone == state.ZBattlefield {
+		t.Fatalf("the 4/4 victim survived 1 damage from a departed deathtouch source (marked %d)", o.Damage)
+	}
+	replayCheck(t, e, cfg)
 }
