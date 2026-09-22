@@ -114,6 +114,13 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		return cards.TriggerInterestAttach
 	case events.Explore:
 		return cards.TriggerInterestExplore
+	case events.CastInfo:
+		// manaexpend1: the pay-time CastInfo carries trig:ManaExpend's
+		// crossing read (rules/cast.go's FlagManaExpendCast emission), so it
+		// has its own interest bit rather than the fail-open default the
+		// default arm would give it -- a ManaExpend-only face's compiled
+		// scan set narrows to the one event kind it fires on.
+		return cards.TriggerInterestCastInfo
 	default:
 		return cards.TriggerInterestAny
 	}
