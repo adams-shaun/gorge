@@ -332,23 +332,29 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 			counterKinds = []string{kind}
 		} else if strings.TrimSpace(sa.Params["ChooseDifferent"]) != "" {
 			if !c.CounterKindsDone {
-				d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 2, Max: 2, Source: c.Source, ResumeKind: "counter_kinds", ResumeSA: sa, Prompt: "Choose different counter kinds"}
+				d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 2, Max: 2, Source: c.Source, ResumeKind: "counter_kinds", ResumeSA: sa, ResumeRemembered: copyTargets(c.Remembered), Prompt: "Choose different counter kinds"}
 				for i, k := range counterKinds {
-					d.Options = append(d.Options, decision.Option{Index: i, Kind: "counter", Label: k, Player: c.Controller})
+					d.Options = append(d.Options, decision.Option{Index: i, Kind: "counter_kinds", Label: k, Player: c.Controller})
 				}
-				_ = Ask(h, d)
-				return
+				if Ask(h, d) == AskAsked {
+					return
+				}
+				c.CounterKinds = append([]string(nil), counterKinds[:2]...)
+				c.CounterKindsDone = true
 			}
 			counterKinds = append([]string(nil), c.CounterKinds...)
 		} else if perKind {
 			// PerDefined asks independently below, once for each recipient.
 		} else if !c.CounterKindDone {
-			d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1, Source: c.Source, ResumeKind: "counter_kind", ResumeSA: sa, Prompt: "Choose a counter kind"}
+			d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1, Source: c.Source, ResumeKind: "counter_kind", ResumeSA: sa, ResumeRemembered: copyTargets(c.Remembered), Prompt: "Choose a counter kind"}
 			for i, k := range counterKinds {
 				d.Options = append(d.Options, decision.Option{Index: i, Kind: "counter", Label: k, Player: c.Controller})
 			}
-			_ = Ask(h, d)
-			return
+			if Ask(h, d) == AskAsked {
+				return
+			}
+			c.CounterKind = counterKinds[0]
+			c.CounterKindDone = true
 		}
 		if c.CounterKindDone && !perKind {
 			kind = c.CounterKind
@@ -377,24 +383,32 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 	for ti, t := range Defined(h, c, sa) {
 		if perKind && len(counterKinds) > 1 {
 			if !c.CounterKindDone {
-				d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1, Source: c.Source, ResumeKind: "counter_kind", ResumeSA: sa, Prompt: "Choose a counter kind"}
+				d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1, Source: c.Source, ResumeKind: "counter_kind", ResumeSA: sa, ResumeRemembered: copyTargets(c.Remembered), Prompt: "Choose a counter kind"}
 				for i, k := range counterKinds {
 					d.Options = append(d.Options, decision.Option{Index: i, Kind: "counter", Label: k, Player: c.Controller})
 				}
-				_ = Ask(h, d)
-				return
+				if Ask(h, d) == AskAsked {
+					return
+				}
+				c.CounterKind = counterKinds[0]
+				c.CounterKindDone = true
+				c.CounterKindIndex = ti
 			}
 			if ti < c.CounterKindIndex {
 				continue
 			}
 			if ti > c.CounterKindIndex {
 				c.CounterKindDone = false
-				d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1, Source: c.Source, ResumeKind: "counter_kind", ResumeSA: sa, Prompt: "Choose a counter kind"}
+				d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1, Source: c.Source, ResumeKind: "counter_kind", ResumeSA: sa, ResumeRemembered: copyTargets(c.Remembered), Prompt: "Choose a counter kind"}
 				for i, k := range counterKinds {
 					d.Options = append(d.Options, decision.Option{Index: i, Kind: "counter", Label: k, Player: c.Controller})
 				}
-				_ = Ask(h, d)
-				return
+				if Ask(h, d) == AskAsked {
+					return
+				}
+				c.CounterKind = counterKinds[0]
+				c.CounterKindDone = true
+				c.CounterKindIndex = ti
 			}
 			kind = c.CounterKind
 		}
