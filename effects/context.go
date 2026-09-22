@@ -281,14 +281,27 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	case "FlippedHeads", "FlippedTails":
 		// Forge's RememberResult$ flip-result memory: DB$ FlipCoin |
 		// RememberResult$ True, then a chained sub reading Defined$
-		// FlippedHeads/FlippedTails (Goblin Assassin's tails sacrifice is the
-		// live carrier). This build does not persist the per-flip results the
-		// flag names — the flips run (effFlipCoin), the memory does not
-		// survive a suspension-bearing chain re-entry — so the reader resolves
-		// to the EMPTY set (ok=true, fail closed to nobody) rather than
-		// Defined's source fallback, which would act on the flipping ability's
-		// own source.
-		return nil, true
+		// FlippedHeads/FlippedTails (Goblin Assassin's tails sacrifice and
+		// Mana Clash's ValidPlayers$ FlippedTails damage are the live
+		// carriers). effFlipCoin appends every flip to Ctx.FlipMemory, so the
+		// reader returns the real flippers of that side rather than the empty
+		// set. A resolution with no flip performed resolves to the empty set,
+		// ok=true (fail closed to nobody, the pre-existing convention).
+		wantHeads := spec == "FlippedHeads"
+		var out []state.Target
+		seen := make(map[state.PlayerID]bool)
+		var results []FlipResult
+		if c.FlipMemory != nil {
+			results = c.FlipMemory.Results
+		}
+		for _, fr := range results {
+			if fr.Heads != wantHeads || seen[fr.Player] {
+				continue
+			}
+			seen[fr.Player] = true
+			out = append(out, state.Target{Player: fr.Player, IsPlayer: true})
+		}
+		return out, true
 	case "Remembered":
 		return copyTargets(c.Remembered), true
 	case "Imprinted", "ImprintedController":

@@ -456,6 +456,15 @@ type Engine struct {
 	// before a chained TokenOwner$ TargetedController resolves). Transient
 	// scratch: rebuilt identically by replay, nil outside a chain.
 	resolvingTargetControllerLKI map[state.ObjID]state.PlayerID
+	// resolvingFlipMemory is the coin-flip memory of the Resolve chain whose
+	// effect is CURRENTLY running, published by effects.Resolve (and by
+	// effFlipCoin when it lazily allocates the memory) through the optional
+	// Host.SetResolutionFlipMemory seam and restored on return. Ask captures it
+	// onto the pending resumePoint, so a resumed continuation re-attaches the
+	// SAME pointer and a chained Defined$ FlippedTails / Wins reader keeps
+	// every flip performed before the suspension. Transient scratch: rebuilt
+	// identically by replay, nil outside a chain or before any flip.
+	resolvingFlipMemory *effects.FlipMemory
 	// villainousRemembered is the victim of the VillainousChoice whose chosen
 	// body is CURRENTLY resolving, kept as ambient engine state for the
 	// duration of that body's effects.Resolve — the fusedResolving pattern.
