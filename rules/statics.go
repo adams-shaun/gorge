@@ -354,7 +354,18 @@ func (e *Engine) castRestrictedUsing(statics []staticView, p state.PlayerID, id 
 		if !e.actorMatches(sv, "Caster", p) {
 			continue
 		}
-		if !e.restrictionGateHolds(sv, id) {
+		// The shared continuous gate (rules/layers.go) adds the IsPresent$/
+		// IsPresent2$/PresentCompare$/PresentZone$/CheckSVar$/SVarCompare$
+		// family for the CantBeCast consumer (Blizzard's "as long as the
+		// defending player doesn't control a snow land"). It is wired HERE
+		// and at recheckIllegal only: the other restrictionGateHolds callers
+		// -- CantBeActivated, AssignCombatDamageAsUnblocked,
+		// CombatDamageToughness -- keep their pre-existing gate set, so no
+		// out-of-scope consumer's semantics move with this task. It subsumes
+		// the checkSVarHolds the caller used to run separately, and the
+		// duplicate ClassBand$/Condition$ reads inside restrictionGateHolds
+		// below are pure state reads with identical semantics.
+		if !e.continuousGateHolds(sv) || !e.restrictionGateHolds(sv, id) {
 			continue
 		}
 		spec := sv.Params["ValidCard"]
@@ -406,8 +417,8 @@ func (e *Engine) castRestrictionSources(statics []staticView, id state.ObjID) []
 	return out
 }
 
-// restrictionGateHolds evaluates the shared continuous gates and the
-// non-matching zone gate a CantBeCast / CantBeActivated restriction must pass before its ValidCard$/ValidSA$ match
+// restrictionGateHolds evaluates the non-matching gates one CantBeCast /
+// CantBeActivated restriction must pass before its ValidCard$/ValidSA$ match
 // is even consulted: AffectedZone$ (the zone the restricted card must sit
 // in -- Linvala's and Karn's Battlefield, Ashes of the Abhorrent's Graveyard)
 // and Condition$ (PlayerTurn / NotPlayerTurn, resolved against the SOURCE's
@@ -419,7 +430,7 @@ func (e *Engine) castRestrictionSources(statics []staticView, id state.ObjID) []
 // illegal action through, and the static family's whole point is the
 // prohibition.
 func (e *Engine) restrictionGateHolds(sv staticView, target state.ObjID) bool {
-	if !e.continuousGateHolds(sv) {
+	if !e.classBandGateHolds(sv.Params, sv.Source) {
 		return false
 	}
 	if az, ok := sv.Params["AffectedZone"]; ok {
@@ -458,7 +469,7 @@ func (e *Engine) abilityRestrictedUsing(statics []staticView, p state.PlayerID, 
 		if !e.actorMatches(sv, "Activator", p) {
 			continue
 		}
-		if !e.restrictionGateHolds(sv, id) {
+		if !e.restrictionGateHolds(sv, id) || !e.checkSVarHolds(sv) {
 			continue
 		}
 		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.staticSpecCtx(sv)) {
@@ -2593,7 +2604,7 @@ func init() {
 // presentCondition reader evaluates.
 func (e *Engine) asUnblockedStaticMatches(id state.ObjID) (matched, mandatory bool) {
 	for _, sv := range e.assignmentStatics("AssignCombatDamageAsUnblocked") {
-		if !e.restrictionGateHolds(sv, id) {
+		if !e.restrictionGateHolds(sv, id) || !e.checkSVarHolds(sv) {
 			continue
 		}
 		if !e.classBandGateHolds(sv.Params, sv.Source) {
@@ -2686,7 +2697,7 @@ func (e *Engine) assignmentStatics(mode string) []staticView {
 // command-zone Conspiracy (Weight Advantage) applies too.
 func (e *Engine) combatDamageToughnessMatches(id state.ObjID) bool {
 	for _, sv := range e.assignmentStatics("CombatDamageToughness") {
-		if !e.restrictionGateHolds(sv, id) {
+		if !e.restrictionGateHolds(sv, id) || !e.checkSVarHolds(sv) {
 			continue
 		}
 		if !e.classBandGateHolds(sv.Params, sv.Source) {
