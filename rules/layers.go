@@ -1501,6 +1501,36 @@ func (e *Engine) rescheduleNextTurnBoundaries() {
 			changed = true
 		}
 	}
+	// GainControl's LoseControl$ UntilTheEndOfYourNextTurn carries the same
+	// boundary in controlGrant.untilTurn (rules/control.go). A late +1 grant
+	// moves it exactly as it moves a continuous effect's: the granted turn
+	// can be the effect controller's next turn (their own grant -- the
+	// boundary moves earlier) or insert turns before it (another seat's
+	// grant -- the boundary moves later). The spelling is the END boundary
+	// (no -1), and expireControl(controlAtCleanup) reads untilTurn AFTER this
+	// reschedule, so a stale value would end the steal on the wrong cleanup.
+	// The same current-turn override applies: nextTurnFor is strictly-after,
+	// so an end-boundary grant already standing on the turn now being cleaned
+	// up must keep it. A controller the rotation cannot reach (nextTurnFor
+	// returns 0; RegisterControl already stored e.G.Turn for that case) keeps
+	// its value.
+	for i := range e.controlGrants {
+		g := &e.controlGrants[i]
+		if !g.Duration.NextTurn {
+			continue
+		}
+		if e.G.Active == g.You && g.untilTurn == e.G.Turn {
+			continue
+		}
+		next := e.nextTurnFor(g.You)
+		if next == 0 {
+			continue
+		}
+		if next != g.untilTurn {
+			g.untilTurn = next
+			changed = true
+		}
+	}
 	if changed {
 		// Same reason AddContinuous bumps: the boundary rewrite emits no
 		// event and moves no log head, but active() caches on
@@ -1511,12 +1541,23 @@ func (e *Engine) rescheduleNextTurnBoundaries() {
 
 func (e *Engine) nextTurnFor(p state.PlayerID) int32 {
 	// Pending extra turns are taken before ordinary rotation, most recently
-	// created first.  Entries for eliminated players are consumed without a
+	// created first. Entries for eliminated players are consumed without a
 	// turn, just as advanceStep does, so they must not advance the boundary.
+	// The same is true of an entry whose R:Event$ BeginTurn | ExtraTurn$ True
+	// | Skip$ True replacement makes the granted seat skip the turn
+	// (rules/turn.go's advanceStep consumer emits the -1 consumption but never
+	// calls beginTurn); nextTurnFor must apply the SAME skip decision the
+	// consumer does, or a skipped grant for the controller expires the effect
+	// one cleanup too early and a skipped opponent grant one cleanup too
+	// late. extraTurnSkipped is pure and shared with that consumer, so the
+	// two can never drift.
 	t := e.G.Turn
 	for i := len(e.G.ExtraTurnQueue) - 1; i >= 0; i-- {
 		seat := e.G.ExtraTurnQueue[i].Player
 		if e.G.Players[seat].Lost {
+			continue
+		}
+		if skip, _ := e.extraTurnSkipped(seat); skip {
 			continue
 		}
 		t++
