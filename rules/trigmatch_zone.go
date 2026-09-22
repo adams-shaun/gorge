@@ -147,20 +147,6 @@ func (e *Engine) zoneGate(t cards.Trigger, source state.ObjID, ev events.Event) 
 		// a script naming one knows where its trigger lives.
 		return true
 	}
-	// An Effect-created trigger grant (rules/trigger_granted.go's effect arm)
-	// matches as the Forge effect object the trigger belongs to: that object
-	// lives in the Command zone, so the resolving permanent's battlefield
-	// zone below is the wrong read. An explicit TriggerZones$/ActiveZones$
-	// stays authoritative against the Command zone; an absent spec means the
-	// trigger lives wherever its source -- the effect object -- is. None of
-	// the source==ev.Obj look-back admissions above can ever apply: the
-	// effect object is not the event's own object.
-	if e.matchAs != nil && source == e.matchAs.source {
-		if spec == "" {
-			return true
-		}
-		return zoneSpecContains(spec, e.matchAs.zone)
-	}
 	if spec == "" {
 		// "When you discard this card" (Orvar, Bartered Cow, Titanbones: 14
 		// of the corpus's Mode$ Discarded lines) declares no TriggerZones$,

@@ -289,12 +289,6 @@ func triggerModeEvents(mode string) triggerEventMask {
 		return 1 << events.LifeChange
 	case "Phase":
 		return 1 << events.StepChange
-	case "BecomeMonarch":
-		// CR 716.2's designation change: the mode fires on the MonarchChange
-		// designation event (effBecomeMonarch's emit; ordinal 43, within the
-		// mask's reach). The kind itself already existed -- the pre-split
-		// switch simply had no BecomeMonarch arm.
-		return 1 << events.MonarchChange
 	default:
 		// Always reads state on every event. LifeLostAll also has a batch-
 		// finishing entry point; leave its existing gates authoritative.

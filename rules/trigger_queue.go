@@ -514,12 +514,6 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 				e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
 			}
 			e.triggerContexts[id] = pt.Ctx.TriggerContext
-			if pt.Ctx.EffectFrame.Source != 0 {
-				if e.effectFrames == nil {
-					e.effectFrames = make(map[state.ObjID]effects.EffectFrame)
-				}
-				e.effectFrames[id] = pt.Ctx.EffectFrame
-			}
 			handled := false
 			if pt.SA.Params["Choices"] != "" {
 				handled = e.askTriggerModes(pt.Controller, id, pt.SA)

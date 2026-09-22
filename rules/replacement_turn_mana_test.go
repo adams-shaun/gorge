@@ -265,18 +265,10 @@ func TestSephirothTransformRunsTheDestinationFaceReplacement(t *testing.T) {
 	if e.G.Obj(seph).FaceIdx != 1 {
 		t.Fatalf("Sephiroth face index %d, want 1 -- the replacement augments the flip, never cancels it", e.G.Obj(seph).FaceIdx)
 	}
-	// The destination face's ReplaceWith$ DBEffect resolved and registered
-	// its real Triggers$ grant (the Effect trigger path), rather than leaving
-	// only the old honest stand-in Note.
-	registered := false
-	for _, ce := range e.continuous {
-		if ce.Source == seph && ce.AddTrigger != nil {
-			registered = true
-			break
-		}
-	}
-	if !registered {
-		t.Fatal("the Super Nova emblem Effect trigger was not registered")
+	// The destination face's ReplaceWith$ DBEffect resolved: effEffect's
+	// honest stand-in Note for a Triggers$-only effect names the emblem.
+	if !hasNote(e, "registers a continuous effect") {
+		t.Fatal("the Super Nova emblem effect body did not run")
 	}
 	if !hasEvent(e, events.FlipFace, seph) {
 		t.Fatal("no FlipFace event logged")

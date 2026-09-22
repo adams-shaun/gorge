@@ -490,24 +490,8 @@ func (e *Engine) forEachObject(fn func(id state.ObjID)) {
 
 // controllerOf is a nil-safe Object.Controller read: a nonexistent ObjID
 // (stale data, a malformed trigger source) degrades to seat 0 rather than
-// panicking. While an Effect-created trigger grant's match is in flight
-// (trigger_granted.go's effect arm) the grant's source id reads the effect
-// owner, not the resolving permanent's controller -- the identity the Forge
-// effect object carries.
-type triggerMatchAs struct {
-	source     state.ObjID
-	controller state.PlayerID
-	zone       state.Zone
-	// remembered is the effect object's own capture (the registration's
-	// Remembered list), which a ValidPlayer$ Player.OpponentOf Remembered
-	// gate reads at match time (Palace Jailer's ComeBack).
-	remembered []state.ObjID
-}
-
+// panicking.
 func (e *Engine) controllerOf(id state.ObjID) state.PlayerID {
-	if e.matchAs != nil && id == e.matchAs.source {
-		return e.matchAs.controller
-	}
 	if o := e.G.Obj(id); o != nil {
 		return o.Controller
 	}

@@ -570,39 +570,8 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []Con
 		if t.Mode == "Always" && e.stateTriggerOutstanding(id, -1) {
 			continue
 		}
-		// An Effect-created grant (api:Effect's Triggers$ arm, effects'
-		// effEffect) belongs to the Forge effect OBJECT: it lives in the
-		// Command zone, owned by the resolved EffectOwner$ player, so it
-		// matches and queues as that identity, never as the resolving
-		// permanent's battlefield self (the statics route keeps the ordinary
-		// reads below). The remembered list is the effect object's own
-		// capture -- seeded at registration, which is exactly when Forge
-		// captured it -- not the firing event's object: Palace Jailer's
-		// ComeBack reads Card.IsRemembered against the exiled creature the
-		// effect remembered, and ValidPlayer$ Player.OpponentOf Remembered
-		// against the same list through the identity.
-		var identity *triggerMatchAs
-		if ce.EffectGrant {
-			identity = &triggerMatchAs{source: ce.Source, controller: ce.Controller,
-				zone: state.ZCommand, remembered: ce.Remembered}
-			if ce.EffectOwnerPlayer != 0 {
-				identity.controller = ce.EffectOwnerPlayer
-			}
-			observer.matchAs = identity
-		}
-		matched := observer.triggerMatches(t, id, ev, objLKI)
-		observer.matchAs = nil
-		if !matched {
+		if !observer.triggerMatches(t, id, ev, objLKI) {
 			continue
-		}
-		ctrl := o.Controller
-		remembered := triggerRemembered(ev, id)
-		if identity != nil {
-			ctrl = identity.controller
-			remembered = nil
-			for _, rid := range identity.remembered {
-				remembered = append(remembered, state.Target{Obj: rid})
-			}
 		}
 		key := triggerKey{Source: id, Idx: -1}
 		if e.triggerFireCount == nil {
@@ -614,7 +583,7 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []Con
 		e.triggerFireCount[key]++
 		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
 			Source:     id,
-			Controller: ctrl,
+			Controller: o.Controller,
 			Idx:        -1,
 			SA:         t.Effect,
 			Granted:    true,
@@ -622,14 +591,13 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []Con
 			Execute:    t.Params["Execute"],
 			Ctx: effects.Ctx{
 				Source:         id,
-				Controller:     ctrl,
-				Remembered:     remembered,
+				Controller:     o.Controller,
+				Remembered:     triggerRemembered(ev, id),
 				LKI:            objLKI,
 				LKIPower:       lkiPower,
 				LKIToughness:   lkiToughness,
 				LKIPTValid:     objLKI != nil && lkiPTValid,
 				TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
-				EffectFrame:    effects.EffectFrame{Source: ce.Source, Stamp: ce.Timestamp},
 			},
 		})
 	}

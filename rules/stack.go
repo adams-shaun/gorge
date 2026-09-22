@@ -1987,7 +1987,6 @@ func (e *Engine) resolveTop() {
 		// o.Source; this was a one-line inconsistency, not a second design.
 		ctx := &effects.Ctx{Source: o.Source, Controller: o.Controller,
 			Targets: targets, Remembered: o.Remembered, Captured: o.Remembered, TriggerContext: e.triggerContexts[id],
-			EffectFrame: e.effectFrames[id],
 			// The resolving stack-object wrapper: ValidStack's otherAbility
 			// exclusion (Ulalek's sub-copy) anchors here, not on Source --
 			// Source is the source permanent (Ruling T20-b), which is not on
