@@ -160,24 +160,24 @@ func TestTokenOwnerDefaultsToYou(t *testing.T) {
 }
 
 // TestTokenOwnerUnrecognizedFormNotesAndDefaultsToController: a
-// TokenOwner$ this build does not model (e.g. "Defined$"-style forms
-// beyond You/Opponent/Player) still creates the token under the controller
-// -- the brief's own stated fallback -- but now says so with a Note, so the
+// TokenOwner$ this build does not model (the qualified Player.<qualifier>
+// spellings -- Player.IsRemembered x12 raw corpus lines, Player.Opponent,
+// Player.Other, the Player.controls* gates -- and anything else beyond
+// the switch's resolved set) still creates the token under the controller --
+// the brief's own stated fallback -- but now says so with a Note, so the
 // fidelity gap is visible in the log rather than silently indistinguishable
-// from the ordinary "You" default. (TokenOwner$ Player itself is MODELLED
-// since the numTypesGE task -- every living player creates -- so the
-// unrecognised example here is TargetedController, measured unread over the
-// corpus's 40 raw lines.)
+// from the ordinary "You" default. Bare "Player" is RESOLVED (each alive
+// player creates); only the qualified forms stay here.
 func TestTokenOwnerUnrecognizedFormNotesAndDefaultsToController(t *testing.T) {
 	h, c := fixtureHostWithTokens(t)
 	Resolve(h, c, &cards.SA{Kind: "DB", API: "Token",
-		Params: map[string]string{"TokenScript": "r_1_1_goblin", "TokenOwner": "TargetedController"}})
+		Params: map[string]string{"TokenScript": "r_1_1_goblin", "TokenOwner": "Player.IsRemembered"}})
 
 	if bf := h.Game().Zone(state.ZBattlefield, c.Controller); len(bf) != 1 {
 		t.Fatalf("controller's battlefield = %v, want 1 token (unrecognised TokenOwner$ still "+
 			"defaults to the controller)", bf)
 	}
-	want := "unrecognized TokenOwner TargetedController, defaulting to the controller"
+	want := "unrecognized TokenOwner Player.IsRemembered, defaulting to the controller"
 	found := false
 	for _, ev := range h.log {
 		if ev.Kind == events.Note && ev.Text == want {
@@ -186,6 +186,69 @@ func TestTokenOwnerUnrecognizedFormNotesAndDefaultsToController(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("log = %+v, want a Note %q", h.log, want)
+	}
+}
+
+// TestTokenOwnerPlayerMintsForEveryAlivePlayer covers the bare
+// TokenOwner$ Player spelling ("each player creates ..."): in a 3-seat
+// game EVERY seat -- the controller included -- creates its own token, each
+// owned and controlled by that seat, in seat order from seat 0 (so the
+// mint ids are deterministic and replay-stable regardless of who is
+// resolving). A seat that has already lost creates nothing.
+func TestTokenOwnerPlayerMintsForEveryAlivePlayer(t *testing.T) {
+	h := newHost(t, 3)
+	h.g.Tokens = tokenFixtures(t)
+	// Seat 1 has already lost: "each player" means each ALIVE player.
+	h.g.Players[1].Lost = true
+	c := &Ctx{Controller: 2}
+
+	Resolve(h, c, &cards.SA{Kind: "DB", API: "Token",
+		Params: map[string]string{"TokenScript": "r_1_1_goblin", "TokenOwner": "Player"}})
+
+	if n := countKind(h, events.TokenCreate); n != 2 {
+		t.Fatalf("%d TokenCreate events, want 2 (one per ALIVE seat: 0 and 2)", n)
+	}
+	// Mint order is seat order from seat 0, so the first mint is seat 0's.
+	for _, p := range []state.PlayerID{0, 2} {
+		bf := h.Game().Zone(state.ZBattlefield, p)
+		if len(bf) != 1 {
+			t.Fatalf("seat %d's battlefield = %v, want 1 token", p, bf)
+		}
+		o := h.Game().Obj(bf[0])
+		if o.Owner != p || o.Controller != p {
+			t.Fatalf("seat %d's token: owner=%d controller=%d, want both %d", p, o.Owner, o.Controller, p)
+		}
+		if !o.IsToken {
+			t.Fatalf("seat %d's object is not a token", p)
+		}
+	}
+	if bf := h.Game().Zone(state.ZBattlefield, 1); len(bf) != 0 {
+		t.Fatalf("lost seat 1's battlefield = %v, want empty", bf)
+	}
+	// No diagnostic Note: the bare spelling is resolved, not defaulted.
+	for _, ev := range h.log {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "TokenOwner") {
+			t.Fatalf("unexpected TokenOwner Note in log: %+v", ev)
+		}
+	}
+}
+
+// TestTokenOwnerPlayerPerPlayerTokenAmountAmount: with TokenAmount$ 2 each
+// alive player creates TWO tokens (Edge Rover's "each player creates X ..."
+// reads X PER player, not X in total), 2 seats -> 4 mints.
+func TestTokenOwnerPlayerPerPlayerTokenAmountAmount(t *testing.T) {
+	h := newHost(t, 2)
+	h.g.Tokens = tokenFixtures(t)
+	c := &Ctx{Controller: 0}
+	Resolve(h, c, &cards.SA{Kind: "DB", API: "Token",
+		Params: map[string]string{"TokenAmount": "2", "TokenScript": "r_1_1_goblin", "TokenOwner": "Player"}})
+	if n := countKind(h, events.TokenCreate); n != 4 {
+		t.Fatalf("%d TokenCreate events, want 4 (2 per seat x 2 alive seats)", n)
+	}
+	for _, p := range []state.PlayerID{0, 1} {
+		if got := len(h.Game().Zone(state.ZBattlefield, p)); got != 2 {
+			t.Fatalf("seat %d has %d tokens, want 2", p, got)
+		}
 	}
 }
 
