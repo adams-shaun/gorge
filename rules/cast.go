@@ -4858,24 +4858,32 @@ func costAnnouncesPaidX(c Cost) bool {
 // paymentMana applies announced Convoke/Harmonize contributions to the
 // already-formed total. A stale answer can never make a requirement negative.
 // faceWantsConvoked reports whether the cast's face could have a reader of
-// Defined$ Convoked: an SVar body naming the selector (Lethal Scheme's
-// DBConnive, Venerated Loxodon's and Zephyr Singer's TrigPutCounterAll --
-// all three corpus carriers live in SVar bodies) or a compiled ability whose
-// Defined$ parameter names it directly. The scan is the faceWantsConverge
-// string-scan shape, one level wider (abilities), so a printed
-// `DB$ ... | Defined$ Convoked` ability line is caught too.
+// the Convoked provenance: an SVar body or ability parameter naming the
+// `Defined$ Convoked` selector (Lethal Scheme's DBConnive, Venerated
+// Loxodon's and Zephyr Singer's TrigPutCounterAll) or a filter that names the
+// `Convoked` referent of the sharesCardTypeWith/sharesCreatureTypeWith family
+// (Everything Comes to Dust's ChangeType$ `...sharesCreatureTypeWith
+// Convoked...`). The string scan is the faceWantsConverge shape; the
+// shares-referent half goes through effects.SpecUsesConvokedReferent, the
+// SAME classifier the matcher uses, so the provenance gate can never drift
+// from who reads Convoked.
 func faceWantsConvoked(f *cards.Face) bool {
 	if f == nil {
 		return false
 	}
 	for _, v := range f.SVars {
-		if strings.Contains(v, "Defined$ Convoked") {
+		if strings.Contains(v, "Defined$ Convoked") || effects.SpecUsesConvokedReferent(v) {
 			return true
 		}
 	}
 	for _, a := range f.Abilities {
 		if strings.EqualFold(strings.TrimSpace(a.Params["Defined"]), "Convoked") {
 			return true
+		}
+		for _, v := range a.Params {
+			if effects.SpecUsesConvokedReferent(v) {
+				return true
+			}
 		}
 	}
 	return false

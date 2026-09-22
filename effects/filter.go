@@ -510,7 +510,9 @@ func hasAttachmentOfKind(g *state.Game, id state.ObjID, kind string) bool {
 // permanent that shares a card type with it" — Remembered, RememberedLKI),
 // the triggering card (TriggeredCard/TriggeredCardLKICopy, Heirloom
 // Blade's "a creature card that shares a creature type with it"), the
-// resolution's targets (Targeted), or the source itself (Self). The
+// resolution's targets (Targeted), the source itself (Self), the resolving
+// source's commanders (Commander), or the creatures that convoked the
+// resolving spell (Convoked). The
 // predicate NAME is returned alongside the referent so the dispatch can
 // tell the CARD-type and CREATURE-type readings apart. A referent with no
 // live binding — and any other <X>, including a nested predicate — is
@@ -528,10 +530,33 @@ func sharesTypeArg(p string) (name, arg string, ok bool) {
 	}
 	switch arg {
 	case "RememberedCard", "Remembered", "RememberedLKI", "TriggeredCard",
-		"TriggeredCardLKICopy", "Targeted", "Self", "Commander":
+		"TriggeredCardLKICopy", "Targeted", "Self", "Commander", "Convoked":
 		return name, arg, true
 	}
 	return "", "", false
+}
+
+// SpecUsesConvokedReferent reports whether spec is a filter that names the
+// Convoked referent anywhere in its comma-alternative list (Everything Comes
+// to Dust's `Creature.!sharesCreatureTypeWith Convoked,Artifact,Enchantment`).
+// It is the ONE classifier the provenance gate (rules' faceWantsConvoked) and
+// the matcher (sharesTypeArg -> sharesTypeReferents) share, so a face whose
+// filter reads Convoked always has Object.Convoked captured at cast time and
+// a face that does not stays byte-identical. The walk mirrors
+// UnknownPredicates' token split (comma alternatives, the `.` base separator,
+// the `+` conjunction, a leading `!`), so it recognises exactly the position
+// sharesTypeArg recognises.
+func SpecUsesConvokedReferent(spec string) bool {
+	for alt := range filterAlternatives(spec) {
+		_, rest, _ := strings.Cut(strings.TrimSpace(alt), ".")
+		for p := range strings.SplitSeq(rest, "+") {
+			p = strings.TrimPrefix(p, "!")
+			if _, arg, ok := sharesTypeArg(p); ok && arg == "Convoked" {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // sharesTypeReferents resolves the SHARED referent switch of the
@@ -544,6 +569,24 @@ func sharesTypeArg(p string) (name, arg string, ok bool) {
 func sharesTypeReferents(g *state.Game, sc SpecContext, ref string) []state.Target {
 	var ts []state.Target
 	switch ref {
+	case "Convoked":
+		// CR 702.66's "each creature that convoked it" (Everything Comes to
+		// Dust's `Creature.!sharesCreatureTypeWith Convoked`): the creatures
+		// the caster tapped to help pay for the resolving spell's cast,
+		// carried by the pay-time CastInfo's FlagConvoked IDs into
+		// Object.Convoked -- the SAME provenance the Defined$ Convoked
+		// selector reads, so the two readings of "convoked" can never
+		// disagree. The referent is the resolving source itself (a spell
+		// still on the stack); a source with no convoke, a copy, or a
+		// creature that has since left play contributes nothing -- fail
+		// closed, never widened.
+		if o := g.Obj(sc.Source); o != nil {
+			for _, id := range o.Convoked {
+				if g.Obj(id) != nil {
+					ts = append(ts, state.Target{Obj: id})
+				}
+			}
+		}
 	case "Commander":
 		// Forge's Commander referent: the resolving source's CONTROLLER's
 		// commanders (Path of Ancestry's "a creature spell that shares a
