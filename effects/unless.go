@@ -55,24 +55,27 @@ import (
 // Sac<...>/Discard<...>/... component, or an unpriceable spelling like X or
 // CopyCost with no matching SVar) passes through unchanged -- rules'
 // ParseUnlessCost stays the strict parser and hard-declines what it cannot
-// price. On a CopySpellAbility only -- this ticket's shape -- a value naming
-// an SVar on the resolving face whose body is a RESOLVABLE count expression
-// folds its numeric result into one generic amount "{N}": Feather, Radiant
-// Arbiter's SVar:CopyCost:Count$ChosenSize/Times.2 becomes "{4}" for two
-// chosen creatures. The gate is deliberately API-scoped: the Counter family's
-// UnlessCost$ X/Y spellings (Condescend's SVar:X:Count$xPaid, Oppressive
-// Will's Count$ValidHand) are the documented M4 X-cost-grammar hard declines,
-// and flipping them to payable here would reprice every "counter unless its
-// controller pays {X}" card in one silent sweep -- that grammar belongs to
-// the M4 unless-cost ticket, which owns the xPaid bindings and the bot
-// policy, not to this one. An SVar present but unresolvable also passes
-// through: the ask is still posed and recorded, but it cannot be answered
-// "pay", exactly as before. The same string must reach the ask's label
+// price. A value naming an SVar on the resolving face whose body is a
+// RESOLVABLE count expression folds its numeric result into one generic amount
+// "{N}": Feather, Radiant Arbiter's SVar:CopyCost:Count$ChosenSize/Times.2
+// becomes "{4}" for two chosen creatures. The fold is deliberately gated to
+// Counter and CopySpellAbility: Counter is this ticket's X-payable shape (X
+// resolves from captured context, for example Sacrificed$CardPower), while
+// every other API retains its strict, pre-existing grammar until its own
+// unless-cost semantics are implemented. An SVar present but unresolvable
+// also passes through: the ask is still posed and recorded, but it cannot be
+// answered "pay", exactly as before. The same string must reach the ask's label
 // (unlessProceed) and the payment (rules' unless_pay arm calls this with the
 // resumed ctx), so the offer and the charge can never disagree.
 func UnlessCostResolved(h Host, c *Ctx, sa *cards.SA) string {
 	raw := strings.TrimSpace(sa.Params["UnlessCost"])
-	if raw == "" || c == nil || c.SVars == nil || sa == nil || sa.API != "CopySpellAbility" {
+	if raw == "" || c == nil || c.SVars == nil || sa == nil {
+		return raw
+	}
+	// The Counter X/SVar shape is the targeted extension of the existing
+	// CopySpellAbility fold. Other APIs retain their strict, pre-existing
+	// grammar until their own unless-cost semantics are implemented.
+	if sa.API != "Counter" && sa.API != "CopySpellAbility" {
 		return raw
 	}
 	body, ok := c.SVars[raw]
@@ -587,6 +590,13 @@ func unlessCostLabel(cost string) string {
 		if _, err := strconv.Atoi(f); err == nil {
 			mana = append(mana, f) // generic amount
 			continue
+		}
+		if len(f) >= 3 && f[0] == '{' && f[len(f)-1] == '}' {
+			inner := f[1 : len(f)-1]
+			if _, err := strconv.Atoi(inner); err == nil {
+				mana = append(mana, f) // resolved generic amount
+				continue
+			}
 		}
 		if strings.Trim(f, "WUBRGC") == "" {
 			mana = append(mana, f) // colour/colourless symbols

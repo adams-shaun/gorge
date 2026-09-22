@@ -108,7 +108,15 @@ func worldsDigest(tb testing.TB, r SampleResult) string {
 // fixture. A performance change to Sample, Capture or the proposal machinery
 // must not move it: same seed, same worlds, same counters. If it moves, the
 // accepted-world distribution (or its diagnostics) changed and the change has
-// to be justified as such, not as an optimisation.
+// to be justified as such, not as an optimisation. An ENGINE behaviour change
+// that moves a captured frame's content moves it too, legitimately: the
+// digests were re-measured by cli-20260922T150843Z-c6c925c4 (Counter
+// UnlessCost$ X/SVar fold), whose one measured divergence on this fixture is
+// event index 305 — a mode_chosen unless-pay ask label inside the captured
+// frame (mono-blue-tempo's Mausoleum Wanderer), "Pay the cost — don't
+// counter" -> "Pay {1} — don't counter". The fixture game itself does not
+// diverge (same event count, same root at iter 121), so the sampler's
+// accepted-world count is unchanged; only the frame-seeded worlds moved.
 func TestSampleRealDeckGolden(t *testing.T) {
 	f := benchRoot(t)
 	for _, tc := range []struct {
@@ -118,19 +126,20 @@ func TestSampleRealDeckGolden(t *testing.T) {
 	}{
 		// The digest taken at 0b6e568b, before any of the performance work:
 		// with the one distribution-preserving proposal change switched off,
-		// the sampler still draws byte-identical worlds.
-		// unless-pay mana window (cli-20260922T150843Z-daf1bd3e, 2026-09-22):
-		// re-pinned from 91def6c7... . The sampled worlds are real engine
-		// streams, so an engine decision change moves this digest. Measured
-		// cause, by neutralising exactly two switches in a scratch copy
-		// (poseUnlessAsk's host payability consult and resumeResolution's
-		// unlessCostPayable guard plus the window arm): the neutralised build
-		// reproduces the old digest byte-for-byte on both sampler cases and on
-		// the teacher case below, so this change is the sole mover.
+		// the sampler still draws byte-identical worlds. Re-measured for the
+		// Mausoleum Wanderer unless-cost ask label (see the test comment).
+		// Re-measured again for the unless-pay mana window
+		// (cli-20260922T150843Z-daf1bd3e): the same ask is now decline-only,
+		// because the offer gate proves that payer cannot reach the {1}.
+		// Neutralising that change's two switches (poseUnlessAsk's payability
+		// consult and resumeResolution's guard plus window arm) reproduces
+		// dfe3967e... and bfa2b184... byte-for-byte, so it is the sole mover
+		// of both sampler digests and of the teacher digest below.
 		{"pre-optimisation sampler", true, "8575898916864bcfad21e3105a057d9adf31d21c8d4e40033b7d7a72f782d5bd"},
 		// With the declined-land-drop exclusion: different proposals (so
 		// different worlds for a seed), same target distribution -- see
-		// TestLandExclusionRemovesOnlyRejectedWorlds.
+		// TestLandExclusionRemovesOnlyRejectedWorlds. Re-measured for the
+		// Mausoleum Wanderer unless-cost ask label (see the test comment).
 		{"land exclusion", false, "1dab0393f3ff32803bff6400ee9bcfdd38cae078362d91883e419fb4fa0f37f1"},
 	} {
 		opts := benchSampleOptions()
@@ -258,13 +267,18 @@ func BenchmarkTeacherChoiceRealDecks(b *testing.B) {
 // fixture: a rollout-side optimisation must not move any candidate's value.
 func TestTeacherChoiceRealDeckGolden(t *testing.T) {
 	worlds, cands := benchTeacherInputs(t)
-	// Taken at 0b6e568b, before the performance work; re-pinned from
-	// 71d2a8f0... by cli-20260922T150843Z-daf1bd3e (the unless-pay mana
-	// window). The teacher's VERDICT is unmoved -- Index 0, Values [1,1,1,1],
-	// Rollouts 32, Terminal 32, Capped 0, WinsByCandidate [8,8,8,8] are
-	// identical on both builds; only Submits moved (2891 -> 4054), because the
-	// rollout games now carry the window's extra intents. Neutralising the two
-	// switches named on the sampler golden above restores 71d2a8f0 exactly.
+	// The digest taken at 0b6e568b, before the performance work. Re-measured
+	// by cli-20260922T150843Z-c6c925c4 (Counter UnlessCost$ X/SVar fold): the
+	// bench fixture's Mausoleum Wanderer unless-pay ask label is part of the
+	// captured frames that seed these worlds, so the sampled worlds (and
+	// hence the rollout submission count) moved: measured Submits 2891
+	// (pre-fix) -> 3160 (fixed). Per-candidate values, rollouts, terminal
+	// counts and the 8/8/8/8 wins split are unchanged, so this is the same
+	// behaviour at different world inputs, not a rollout-side change.
+	// Re-measured again by cli-20260922T150843Z-daf1bd3e (the unless-pay mana
+	// window), for the same reason and with the same verdict: Index, Values,
+	// Rollouts, Terminal, Capped and the 8/8/8/8 wins split are all unchanged
+	// and only Submits moves, 2891 -> 4054.
 	const want = "dc918f1851cb7df6299310480c8f02dc29fc58cab34210b1c0b6dc01e5c37bb0"
 	for _, parallelism := range []int{0, 4} {
 		res, err := TeacherChoice(worlds, cands, TeacherOptions{Seed: 99, MaxSubmits: 5000, Parallelism: parallelism})
