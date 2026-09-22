@@ -1566,7 +1566,7 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			yesTok, noTok, _ := strings.Cut(head[dot+1:], ".")
 			holds := false
 			if o := g.Obj(c.Source); o != nil && !o.IsCopy {
-				holds = o.CastFlags&(state.FlagFlashback|state.FlagHarmonize|state.FlagEscaped) != 0
+				holds = state.WasCastFromGraveyard(o.CastFlags)
 			}
 			if holds {
 				y, ok := resolveCountOperand(h, c, yesTok, depth)
