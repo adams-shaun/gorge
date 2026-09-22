@@ -47,7 +47,8 @@ func (e *Engine) payManaConv(p state.PlayerID, cost Cost, conv *manaConv) bool {
 }
 
 func (e *Engine) payManaCumulative(p state.PlayerID, id state.ObjID, cost Cost, conv *manaConv) bool {
-	ok, _, _, _, _ := e.payManaDescriptorForSpent(p, paymentDescriptor{id: id, class: paymentCumulativeUpkeep, cost: &cost}, cost, conv, pipRider{})
+	ok, _, _, _, _ := e.payManaDescriptorForSpent(p, paymentDescriptor{id: id, class: paymentCumulativeUpkeep,
+		cost: &cost, xAnnounced: cost.X > 0}, cost, conv, pipRider{})
 	return ok
 }
 
@@ -220,7 +221,8 @@ func (e *Engine) payManaDescriptorForSpent(p state.PlayerID, d paymentDescriptor
 // keeps it via pc.mayPlayIgnore because after the push (CR 601.2a) the card
 // is on the stack and a zone re-derivation would wrongly drop the grant.
 func (e *Engine) payManaCastSpent(pc *pendingCast, cost Cost) (bool, state.Mana, state.Mana, [3]state.Mana) {
-	ok, spentAll, _, spentSnow, spentTyped := e.payManaForSpent(pc.player, pc.card, false, cost, e.paymentConv(pc.player, pc.card, false),
+	ok, spentAll, _, spentSnow, spentTyped := e.payManaDescriptorForSpent(pc.player, paymentForCast(pc, cost), cost,
+		e.paymentConv(pc.player, pc.card, false),
 		pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType})
 	return ok, spentAll, spentSnow, spentTyped
 }
@@ -286,6 +288,15 @@ type paymentDescriptor struct {
 	id    state.ObjID
 	class paymentClass
 	cost  *Cost
+	// xAnnounced records that the payment's cost carried an X the
+	// announcement machinery has already folded (Cost.WithX clears Cost.X
+	// once a value is chosen, so the normalized cost alone can no longer
+	// identify an X payment for the CostContainsX restriction). Raw-cost
+	// sites (offer gates, mana-ability activations) get it from paymentFor's
+	// own derivation; the post-fold payment sites set it explicitly through
+	// paymentForCast. Offer and payment must agree about an X cost, never
+	// drift.
+	xAnnounced bool
 }
 
 func paymentFor(id state.ObjID, ability bool, cost Cost) paymentDescriptor {
@@ -293,7 +304,17 @@ func paymentFor(id state.ObjID, ability bool, cost Cost) paymentDescriptor {
 	if ability {
 		class = paymentActivated
 	}
-	return paymentDescriptor{id: id, class: class, cost: &cost}
+	return paymentDescriptor{id: id, class: class, cost: &cost, xAnnounced: cost.X > 0}
+}
+
+// paymentForCast is paymentFor for a pendingCast's resolved payment cost: the
+// X the announcement machinery folded into Generic is still an X component of
+// this payment (CostContainsX), so the marker rides pc.cost — the folded cost
+// itself has Cost.X == 0 and would read as X-less.
+func paymentForCast(pc *pendingCast, cost Cost) paymentDescriptor {
+	d := paymentFor(pc.card, pc.isAbility(), cost)
+	d.xAnnounced = pc.cost.X > 0
+	return d
 }
 
 // manaAvailableFor removes every restricted batch from the visible pool, then
@@ -301,14 +322,11 @@ func paymentFor(id state.ObjID, ability bool, cost Cost) paymentDescriptor {
 // nonmatching activation can never borrow Tazri-style mana merely because it
 // shares a colour bucket with unrestricted mana. The typed tallies are
 // filtered by the same rule, so a typed restricted unit can never be spent
-// through the typed consumption path either.
-func (e *Engine) manaAvailableFor(p state.PlayerID, arg interface{}, legacy ...bool) availableMana {
-	d, _ := arg.(paymentDescriptor)
-	if d.id == 0 {
-		if id, ok := arg.(state.ObjID); ok {
-			d = paymentFor(id, len(legacy) > 0 && legacy[0], Cost{})
-		}
-	}
+// through the typed consumption path either. The descriptor carries the real
+// payment: a cost-blind descriptor misreads every cost-keyed dotless term
+// (CostContainsX, CostContainsC, CantPayGenericCosts), so callers without a
+// real cost must say so with Cost{} and stay on the class-only terms.
+func (e *Engine) manaAvailableFor(p state.PlayerID, d paymentDescriptor) availableMana {
 	pl := e.G.Players[p]
 	available := availableMana{pool: pl.Pool, typed: pl.TypedMana}
 	for _, r := range pl.RestrictedMana {
@@ -527,11 +545,32 @@ func (e *Engine) restrictValidTermMatches(p state.PlayerID, d paymentDescriptor,
 			_, ok := e.castProvenanceAdmitsPending("Card.!wasCastFromYourHand", d.id, p)
 			return d.class == paymentSpell && ok
 		case "CostContainsX":
-			return d.cost != nil && d.cost.X > 0
+			// An announced X was folded into Generic (Cost.WithX clears
+			// Cost.X), so the descriptor's marker carries it — the cost the
+			// payment actually commits still contains an X component.
+			return d.cost != nil && (d.cost.X > 0 || d.xAnnounced)
 		case "CostContainsC":
 			return d.cost != nil && d.cost.Colored[state.ManaIndex('C')] > 0
 		case "CantPayGenericCosts":
-			return d.cost != nil && d.cost.Generic == 0
+			// The ACTUAL payment cost, never raw text: a resolved payment has
+			// Generic only when generic mana is genuinely owed (a folded X, an
+			// announced twobrid pip, printed generic), so a {2/W} announced as
+			// {W} pays and the same pip announced as {2} does not. Raw costs
+			// (the offer gates) are read before the announcement exists, so an
+			// unfolded {X} or a {2/W} twobrid pip — either face may still be
+			// chosen — counts as a generic component: the conservative
+			// direction never offers a payment the announcement could make
+			// illegal. A hybrid pip ({W/U}) is payable only by its two colours
+			// and never counts as generic.
+			if d.cost == nil || d.cost.Generic > 0 || d.cost.X > 0 {
+				return false
+			}
+			for _, tw := range d.cost.Twobrid {
+				if tw.Generic > 0 {
+					return false
+				}
+			}
+			return true
 		case "CumulativeUpkeep":
 			return d.class == paymentCumulativeUpkeep
 		default:
@@ -613,7 +652,11 @@ func (e *Engine) paymentConv(p state.PlayerID, id state.ObjID, ability bool) *ma
 // passed explicitly, for the payment sites that know the cast's recorded
 // rider and cannot re-derive it from the card's zone.
 func (e *Engine) costPayableGrant(p state.PlayerID, id state.ObjID, ability bool, cost Cost, rider pipRider) bool {
-	av := e.manaAvailableFor(p, id, ability)
+	// The descriptor carries the REAL cost: an offer gate priced against a
+	// descriptor with an empty cost would hide every cost-keyed restricted
+	// batch (CostContainsX, CostContainsC) even when the payment itself
+	// admits it — the offer and the payment must read the same cost.
+	av := e.manaAvailableFor(p, paymentFor(id, ability, cost))
 	_, ok := cost.resolveManaWith(av.pool, e.G.Players[p].Snow, av.typed,
 		e.G.Players[p].Life, e.payerGrantsPayLifeInsteadOfB(p), rider, e.paymentConv(p, id, ability))
 	return ok
