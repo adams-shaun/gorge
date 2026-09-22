@@ -221,6 +221,71 @@ func TestRolledDieOnceFiresOncePerMultiDieRoll(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+// TestRolledDieOnceFaridehDrawsOnTheBatchMax is the end-to-end leaf for the
+// second roll head, TriggerCountMax$Result, on real corpus Farideh, Devil's
+// Chosen. Her trigger is
+// T:Mode$ RolledDieOnce | ValidPlayer$ You,
+// SVar:TrigPump:DB$ Pump | Defined$ Self | KW$ Flying & Menace | SubAbility$ DBDraw,
+// SVar:DBDraw:DB$ Draw | ConditionCheckSVar$ DiceResult | ConditionSVarCompare$ GE10,
+// SVar:DiceResult:TriggerCountMax$Result -- "if any of those results was 10 or
+// higher, draw a card".
+//
+// The canonical multi-die batch Note is emitted directly (the same encoding
+// the RollDice primitive produces, decoded by DieRollBatchResult), so the test
+// can pin a batch whose INDIVIDUAL results straddle the threshold: [9, 11] has
+// a last die below 10 and a maximum at 10+, so a draw proves the head reads
+// the batch MAX, not the last/per-die result. The control batch [9, 9] leaves
+// the draw silent while the pump still applies, proving the condition is the
+// only thing gated and the trigger itself fired in both cases.
+func TestRolledDieOnceFaridehDrawsOnTheBatchMax(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+
+	roll := func(t *testing.T, seed uint64, results []int32) (*Engine, Config, int, state.ObjID) {
+		t.Helper()
+		e, cfg := flipEngine(t, reg, seed,
+			[]*cards.Card{lookup(t, reg, "Farideh, Devil's Chosen")}, nil)
+		id := moveByName(t, e, 0, "Farideh, Devil's Chosen", state.ZBattlefield)
+		from := len(e.L.Events)
+		var max int32
+		for _, r := range results {
+			// One canonical per-die Note per die, then the per-resolution batch
+			// Note the RolledDieOnce matcher reads.
+			e.emit(effects.DieRollNote(id, 0, 20, r, r))
+			if r > max {
+				max = r
+			}
+		}
+		e.emit(effects.DieRollBatchNote(id, 0, int32(len(results)), max, results[len(results)-1]))
+		e.priorityRound()
+		passUntilStackEmpty(t, e, 40)
+		return e, cfg, from, id
+	}
+
+	// [9, 11]: the highest die clears the threshold, so Farideh draws; the
+	// pump's Flying & Menace land regardless of the roll.
+	e, cfg, from, id := roll(t, 3, []int32{9, 11})
+	if got := logDrawsFor(e, from, 0); got != 1 {
+		t.Fatalf("batch max 11 (>=10): drew %d cards, want 1 (the TriggerCountMax$Result head)", got)
+	}
+	if !e.HasKeyword(id, "Flying") || !e.HasKeyword(id, "Menace") {
+		t.Fatalf("batch max 11: Farideh missing the pump keywords (Flying=%v Menace=%v)",
+			e.HasKeyword(id, "Flying"), e.HasKeyword(id, "Menace"))
+	}
+	replayCheck(t, e, cfg)
+
+	// [9, 9]: every die is below 10, so the draw is silent -- but the trigger
+	// still fired, so the pump keywords still apply. This is the negative the
+	// head must respect.
+	eLow, _, fromLow, idLow := roll(t, 3, []int32{9, 9})
+	if got := logDrawsFor(eLow, fromLow, 0); got != 0 {
+		t.Fatalf("batch max 9 (<10): drew %d cards, want 0", got)
+	}
+	if !eLow.HasKeyword(idLow, "Flying") || !eLow.HasKeyword(idLow, "Menace") {
+		t.Fatalf("batch max 9: Farideh missing the pump keywords (Flying=%v Menace=%v)",
+			eLow.HasKeyword(idLow, "Flying"), eLow.HasKeyword(idLow, "Menace"))
+	}
+}
+
 // TestRolledDieNumberFiresOnlyOnTheThirdDieEachTurn pins the Number$ 3 gate
 // on real corpus Resolute Veggiesaur ("Whenever you roll your third die each
 // turn, put a +1/+1 counter on CARDNAME"): three real roll Notes for the same
