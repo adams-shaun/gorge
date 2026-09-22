@@ -3,6 +3,10 @@ package rules
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -135,5 +139,130 @@ func TestToxicGrantedByLayerCountsToo(t *testing.T) {
 
 	if got := e.G.Players[1].Counter("POISON"); got != 1 {
 		t.Fatalf("granted-toxic defender poison = %d, want 1", got)
+	}
+}
+
+// TestToxicInstancesCumulate pins CR 702.164c on real corpus cards: toxic
+// instances are cumulative, so printed Toxic 2 (Ixhel, Scion of Atraxa)
+// equipped by Prosthetic Injector's AddKeyword$ Toxic:1 grant is toxic 3 --
+// the read must SUM every derived Toxic entry, not stop at the first. A
+// first-entry read reports 2 and this test fails while the single-instance
+// tests above still pass.
+func TestToxicInstancesCumulate(t *testing.T) {
+	e := combatEngine(t)
+	ixhel := onBoardCard(t, e, 0, corpusKeywordCard(t, "Ixhel, Scion of Atraxa"))
+	if got := e.ToxicValue(ixhel); got != 2 {
+		t.Fatalf("Ixhel toxic value = %d, want 2 (printed K:Toxic:2)", got)
+	}
+	injector := onBoardCard(t, e, 0, corpusKeywordCard(t, "Prosthetic Injector"))
+	if e.G.Obj(injector).Zone != state.ZBattlefield {
+		t.Fatal("Prosthetic Injector not on the battlefield")
+	}
+	e.G.Obj(injector).AttachedTo = ixhel
+	if got := e.ToxicValue(ixhel); got != 3 {
+		t.Fatalf("Ixhel + Injector toxic = %d, want 3 (CR 702.164c cumulative)", got)
+	}
+	e.G.Obj(ixhel).IsAttacking = true
+	e.G.Obj(ixhel).Attacking = 1
+	e.G.Obj(ixhel).SummonSick = false
+	e.dealCombatDamage()
+	if got := e.G.Players[1].Counter("POISON"); got != 3 {
+		t.Fatalf("defender poison = %d, want 3 (toxic 2 printed + toxic 1 granted)", got)
+	}
+}
+
+// TestToxicTwoGrantsCumulate pins the grant side alone: a plain creature
+// carrying BOTH the Equipment grant (Prosthetic Injector, toxic 1) and the
+// Aura grant (Necrogen Communion, AddKeyword$ Toxic:2) is toxic 3, proving
+// the sum walks past a single granted instance too.
+func TestToxicTwoGrantsCumulate(t *testing.T) {
+	e := combatEngine(t)
+	bear := onBoard(t, e, 0, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	if got := e.ToxicValue(bear); got != 0 {
+		t.Fatalf("plain bear toxic value = %d, want 0 before any grant", got)
+	}
+	injector := onBoardCard(t, e, 0, corpusKeywordCard(t, "Prosthetic Injector"))
+	e.G.Obj(injector).AttachedTo = bear
+	communion := onBoardCard(t, e, 0, corpusKeywordCard(t, "Necrogen Communion"))
+	e.G.Obj(communion).AttachedTo = bear
+	if got := e.ToxicValue(bear); got != 3 {
+		t.Fatalf("bear + Injector + Communion toxic = %d, want 3 (two grants sum)", got)
+	}
+}
+
+// TestToxicSurvivesParkedReplacement pins the parked CR 616.1 path: a
+// player-targeted combat hit from a toxic source whose replacement
+// competition is POSED (Battletide Alchemist's optional "you may prevent X"
+// ask, a real corpus carrier) never reaches runCombatAssignments'
+// synchronous toxic emit, so the landed event must place the cached poison
+// in finishChosenDamage. Both arms are pinned: the DECLINE arm (the ask is
+// answered "do not apply") and the APPLY arm (0 Clerics prevents 0, damage
+// still lands) -- each was a 0-poison defect before the replChoice toxic
+// rider existed.
+func TestToxicSurvivesParkedReplacement(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	deck0 := mountainDeck(t, 40)
+	ix, ok := reg.Lookup("Ixhel, Scion of Atraxa")
+	if !ok {
+		t.Fatalf("corpus fixture: Ixhel, Scion of Atraxa missing")
+	}
+	deck0 = append(deck0, ix)
+	deck1 := mountainDeck(t, 41)
+	batt, ok := reg.Lookup("Battletide Alchemist")
+	if !ok {
+		t.Fatalf("corpus fixture: Battletide Alchemist missing")
+	}
+	deck1 = append(deck1, batt)
+	e := New(seatZeroStart(Config{Seed: 42, Names: []string{"a", "b"},
+		Decks: [][]*cards.Card{deck0, deck1}}))
+	e.Advance()
+	ixhel := crAbortMove(t, e, 0, "Ixhel, Scion of Atraxa", state.ZBattlefield)
+	battletide := crAbortMove(t, e, 1, "Battletide Alchemist", state.ZBattlefield)
+	_ = battletide
+	e.pending = nil
+	if got := e.ToxicValue(ixhel); got != 2 {
+		t.Fatalf("Ixhel toxic value = %d, want 2", got)
+	}
+	if life := e.G.Players[1].Life; life != 20 {
+		t.Fatalf("defender life = %d, want 20 before any damage", life)
+	}
+
+	// The assignment parks on the optional prevention ask (posed to seat 1,
+	// Battletide's controller) and poison is 0 until the answer lands it.
+	e.combatRound.assignments = []assignment{{toPlayer: 1, amount: 2, from: ixhel}}
+	e.runCombatAssignments()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KReplacement || d.Player != 1 {
+		t.Fatalf("pending = %+v, want Battletide's optional-prevention ask to seat 1", d)
+	}
+	if got := e.G.Players[1].Counter("POISON"); got != 0 {
+		t.Fatalf("defender poison = %d before the answer, want 0 (event still parked)", got)
+	}
+
+	// DECLINE: the damage lands through finishChosenDamage -- life drops 2
+	// AND Ixhel's toxic 2 places 2 poison.
+	submitChoices(t, e, len(d.Options)-1)
+	e.pending = nil
+	e.pendingTriggers = nil
+	if got := e.G.Players[1].Counter("POISON"); got != 2 {
+		t.Fatalf("poison after declined parked replacement = %d, want 2", got)
+	}
+
+	// APPLY arm on a fresh turn: choosing the 0-Cleric prevention prevents 0,
+	// the damage still lands through the same finishChosenDamage path, and
+	// the toxic rider must fire there too.
+	e.emit(events.Event{Kind: events.TurnChange, Player: 1})
+	e.pending = nil
+	e.pendingTriggers = nil
+	e.combatRound.assignments = []assignment{{toPlayer: 1, amount: 2, from: ixhel}}
+	e.runCombatAssignments()
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KReplacement {
+		t.Fatalf("pending = %+v, want the optional-prevention ask again", d)
+	}
+	submitChoices(t, e, 0)
+	e.pendingTriggers = nil
+	if got := e.G.Players[1].Counter("POISON"); got != 4 {
+		t.Fatalf("poison after applied parked replacement = %d, want 4 (2 + 2 on the fresh turn)", got)
 	}
 }
