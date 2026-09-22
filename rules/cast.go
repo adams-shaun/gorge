@@ -261,6 +261,14 @@ type pendingCast struct {
 	// for an activated ability whose stack object is not minted until payment.
 	targets []state.Target
 
+	// stageTargets records each Fuse target stage's OWN chosen targets
+	// (index 0 the front half's, index 1 the alternate half's), so
+	// resolveFused hands each half exactly the targets chosen FOR it.
+	// Indexed by stage, so a targetless stage the ask loop skipped never
+	// misaligns the slices. A Fuse-only field; always empty for every other
+	// cast. Published to Engine.fuseTargets at payment.
+	stageTargets [][]state.Target
+
 	// stackObj is the id of the object pushCast placed on the stack (the
 	// spell card itself, or an activated ability's AbilityPush-minted
 	// object). Zero until pushCast runs; handleTarget records the chosen
@@ -5782,6 +5790,17 @@ func (e *Engine) payCast() {
 		e.sacrificedLKI = make(map[state.ObjID][]state.SacrificedInfo)
 	}
 	e.sacrificedLKI[pc.stackObj] = sacrificedLKI
+	// A Fuse cast publishes its per-stage target split for resolution
+	// (review MAJOR 1): resolveFused reads it instead of re-deriving the
+	// split from the flat target list. Engine-only scratch like
+	// sacrificedLKI — rebuilt by replay because payCast re-executes, and
+	// removed with the stack object by the shared MoveZone cleanup.
+	if pc.mode == "fuse" && len(pc.stageTargets) > 0 {
+		if e.fuseTargets == nil {
+			e.fuseTargets = make(map[state.ObjID][][]state.Target)
+		}
+		e.fuseTargets[pc.stackObj] = pc.stageTargets
+	}
 	// AddsNoCounter$ mana (Cavern of Souls): if the payment just consumed a
 	// batch carrying the can't-be-countered provenance FOR THIS CAST, fold
 	// state.FlagNoCounter into the same pay-time CastInfo so a replay marks

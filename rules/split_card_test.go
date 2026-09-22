@@ -379,3 +379,177 @@ func TestNonFuseSplitOffersBothHalvesButNoFusedCast(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// TestSplitFuseOverlappingHalfSpecsResolveTheirOwnTargets is review round 2's
+// MAJOR 1 pin: the two halves' target stages record their own slices at
+// payment (Engine.fuseTargets), so a fused cast whose halves' ValidTgts
+// specs OVERLAP resolves each half against exactly the target chosen for it.
+// On the real corpus card Turn // Burn (Turn `ValidTgts$ Creature`, Burn
+// `ValidTgts$ Any`) a fused cast targeting the opponent's bear with Turn and
+// the caster's own bear with Burn must not apply Turn to Burn's target (both
+// bears turned into 0/1 Weirds and both killed by Burn's 2 damage is the
+// pre-fix mis-assignment). Turn's Animate then leaves its own target a 0/1
+// red Weird that took no damage; Burn kills its own target.
+func TestSplitFuseOverlappingHalfSpecsResolveTheirOwnTargets(t *testing.T) {
+	reg := searchTestRegistry(t)
+	turn := searchCorpusCard(t, reg, "Turn")
+	bear := searchCorpusCard(t, reg, "Grizzly Bears")
+	island := searchCorpusCard(t, reg, "Island")
+	mountain := searchCorpusCard(t, reg, "Mountain")
+	deck := []*cards.Card{turn, bear, bear}
+	for len(deck) < 40 {
+		deck = append(deck, island)
+	}
+	opp := []*cards.Card{bear}
+	for len(opp) < 40 {
+		opp = append(opp, mountain)
+	}
+	cfg := seatZeroStart(Config{Seed: 8416, Names: []string{"split", "opponent"},
+		Decks: [][]*cards.Card{deck, opp}, Tokens: reg.Tokens})
+	e := New(cfg)
+	e.Advance()
+	toMain1(t, e)
+	myBear := splitMoveFromLibrary(t, e, 0, "Grizzly Bears")
+	oppBear := splitMoveFromLibrary(t, e, 1, "Grizzly Bears")
+	id := searchMoveByName(t, e, "Turn", state.ZHand)
+	// Fused cost {3}{U}{R}: the pool U,U,U,R,R pays the U and R pips and
+	// three generic.
+	addMana(t, e, 0, "UUURR")
+	fuse := splitOption(t, e, id, "fuse")
+	if fuse == nil || fuse.Label != "Cast Turn // Burn (fused)" {
+		t.Fatalf("fused offer missing/renamed: %+v", castOptions(t, e))
+	}
+	submitChoices(t, e, fuse.Index)
+
+	// Stage 0 (Turn): both bears are legal (spec Creature) -- choose the
+	// opponent's. Stage 1 (Burn): both are legal too (spec Any) -- choose
+	// my own. Every bear appears in BOTH stages' option lists; the
+	// assignment is what the slices must record.
+	wantOrder := []state.ObjID{oppBear, myBear}
+	for i, want := range wantOrder {
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KTarget {
+			t.Fatalf("fused target stage %d: pending=%+v, want target", i, d)
+		}
+		found := -1
+		for _, o := range d.Options {
+			if o.Obj == want {
+				found = o.Index
+			}
+		}
+		if found < 0 {
+			t.Fatalf("stage %d: no option for bear %d: %+v", i, want, d.Options)
+		}
+		submitChoices(t, e, found)
+	}
+	passUntilStackEmpty(t, e, 20)
+
+	// Turn applied to ITS target only: the opponent's bear is a 0/1 red
+	// Weird that took no damage and lives. Pre-fix both bears became 0/1
+	// Weirds AND both took Burn's 2 damage, so the opponent's bear died.
+	oppObj := e.G.Obj(oppBear)
+	if oppObj == nil || oppObj.Zone != state.ZBattlefield {
+		t.Fatalf("Turn's target zone=%v, want battlefield (pre-fix both halves applied to both targets)", oppObj)
+	}
+	if oppObj.Damage != 0 {
+		t.Fatalf("Turn's target took damage: %+v", oppObj)
+	}
+	der := e.Derived(oppBear)
+	if der.Power != 0 || der.Toughness != 1 {
+		t.Fatalf("Turn's target derived P/T = %d/%d, want 0/1 (the Weird)", der.Power, der.Toughness)
+	}
+	weird := false
+	for _, ty := range der.Types {
+		if ty == "Weird" {
+			weird = true
+		}
+	}
+	if !weird {
+		t.Fatalf("Turn's target types = %v, want Weird among them", der.Types)
+	}
+	if der.Colors != "R" {
+		t.Fatalf("Turn's target colors = %q, want R", der.Colors)
+	}
+	// Burn applied to ITS target only: my own bear took the 2 damage and is
+	// gone; pre-fix Turn's target also died.
+	if mine := e.G.Obj(myBear); mine != nil && mine.Zone == state.ZBattlefield {
+		t.Fatalf("Burn's target still on the battlefield: %+v", mine)
+	}
+	if z := e.G.Obj(id).Zone; z != state.ZGraveyard {
+		t.Fatalf("resolved fused spell zone=%s, want graveyard", z)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestSplitInstantHalfOfferedAtInstantTiming is review round 2's MAJOR 2
+// pin: the split offers stand above the front-face spellTimingOK gate, so a
+// front-Sorcery / alternate-Instant split card offers its instant half at
+// instant timing (CR 709.4 -- each half's own timing; carriers
+// incubation_incongruity, discovery_dispersal, said_done, spring_mind). On
+// the real corpus card Said // Done, during seat 0's own BEGIN COMBAT step
+// (sorcery timing is OFF) Said is withheld but Done is offered against a
+// creature of mine to tap. Pre-fix the front-face gate suppressed the whole
+// card's offers.
+func TestSplitInstantHalfOfferedAtInstantTiming(t *testing.T) {
+	reg := searchTestRegistry(t)
+	said := searchCorpusCard(t, reg, "Said")
+	bear := searchCorpusCard(t, reg, "Grizzly Bears")
+	island := searchCorpusCard(t, reg, "Island")
+	mountain := searchCorpusCard(t, reg, "Mountain")
+	deck := []*cards.Card{said, bear}
+	for len(deck) < 40 {
+		deck = append(deck, island)
+	}
+	opp := make([]*cards.Card, 40)
+	for i := range opp {
+		opp[i] = mountain
+	}
+	cfg := seatZeroStart(Config{Seed: 8417, Names: []string{"split", "opponent"},
+		Decks: [][]*cards.Card{deck, opp}, Tokens: reg.Tokens})
+	e := New(cfg)
+	e.Advance()
+	toMain1(t, e)
+	myBear := splitMoveFromLibrary(t, e, 0, "Grizzly Bears")
+	id := searchMoveByName(t, e, "Said", state.ZHand)
+	driveToStep(t, e, e.G.Turn, e.G.Active, state.StepBeginCombat)
+	e.pending = nil
+	e.priorityRound()
+	// Fund {3}{U} for Done AT the combat step: pools empty as each step ends
+	// (CR 500.4, finishStepBoundary's ManaClear), so Main1 mana cannot be
+	// carried here, and addMana's own drive back to Main1 cannot go backward.
+	for _, r := range "UUUU" {
+		e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: string(r), Amount: 1})
+	}
+	e.priorityRound()
+	if got := splitOption(t, e, id, ""); got != nil {
+		t.Fatalf("sorcery front half offered at instant timing: %+v", got)
+	}
+	alt := splitOption(t, e, id, "split_alt")
+	if alt == nil || alt.Label != "Cast Done" {
+		t.Fatalf("instant alternate half not offered at instant timing: %+v", castOptions(t, e))
+	}
+	// And it actually casts and resolves: Done taps my own bear.
+	submitChoices(t, e, alt.Index)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("Done target ask: %+v", d)
+	}
+	tgt := -1
+	for _, o := range d.Options {
+		if o.Obj == myBear {
+			tgt = o.Index
+		}
+	}
+	if tgt < 0 {
+		t.Fatalf("no option targeting my bear: %+v", d.Options)
+	}
+	submitChoices(t, e, tgt)
+	passUntilStackEmpty(t, e, 20)
+	if !e.G.Obj(myBear).Tapped {
+		t.Fatalf("Done did not tap its target: %+v", e.G.Obj(myBear))
+	}
+	if z := e.G.Obj(id).Zone; z != state.ZGraveyard {
+		t.Fatalf("resolved instant half zone=%s, want graveyard", z)
+	}
+	replayCheck(t, e, cfg)
+}

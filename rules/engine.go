@@ -346,6 +346,19 @@ type Engine struct {
 	// builds effects.Ctx.Sacrificed; the entry is removed when the stack
 	// object leaves, mirroring triggerContexts.
 	sacrificedLKI map[state.ObjID][]state.SacrificedInfo
+	// fuseTargets maps a fused (FlagFused) stack object id to its two target
+	// stages' own chosen targets (index 0 the front half's, index 1 the
+	// alternate half's). Recorded by payCast at payment, read by resolveFused
+	// (split.go) so each half resolves exactly the targets chosen FOR it:
+	// re-deriving the split from the object's flat target list through each
+	// half's ValidTgts spec mis-assigns any target a half's spec merely
+	// overlaps (Turn // Burn's Creature vs Any). Engine-only scratch like
+	// sacrificedLKI: rebuilt by replay because payCast re-executes, cloned
+	// with the engine at intent boundaries, removed with the stack object.
+	// A stack COPY of a fused spell has no entry (it inherits the flat list,
+	// not the scratch), and resolveFused's spec re-derivation is its
+	// fallback for exactly that shape.
+	fuseTargets map[state.ObjID][][]state.Target
 	// sourceLifelinkLKI maps an independently resolving ability's stack object
 	// to its source permanent's derived lifelink state at the last moment that
 	// source existed on the battlefield. The map's presence is the validity
@@ -1493,6 +1506,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		delete(e.triggerContexts, ev.Obj)
 		delete(e.triggerLKI, ev.Obj)
 		delete(e.sacrificedLKI, ev.Obj)
+		delete(e.fuseTargets, ev.Obj)
 		delete(e.sourceLifelinkLKI, ev.Obj)
 		delete(e.sourceControllerLKI, ev.Obj)
 		delete(e.damageSourceLKI, ev.Obj)

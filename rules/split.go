@@ -103,20 +103,34 @@ func (e *Engine) castHasNextTargetStage(pc *pendingCast, o *state.Object) bool {
 // single Face().SpellAbility().
 //
 // The cast recorded both halves' targets as one flat list on the stack
-// object (the two target stages in order). Each half's own ValidTgts spec
-// re-derives that half's targets from the flat list through legalTargets, so
-// the CR 608.2b recheck and the running effect are per half. The spell
-// fizzles only when EVERY declared target is now illegal (CR 608.2b's
-// one-instance rule); a half that lost its target does as much as possible
-// while the other still resolves.
+// object (the two target stages in order) AND each stage's own slice in
+// Engine.fuseTargets at payment. Each half resolves the targets chosen FOR
+// IT: the stage slice, rechecked against its own ValidTgts spec through
+// legalTargets (the CR 608.2b recheck). The scratch-absent fallback -- a
+// stack COPY of a fused spell inherits the flat list but not the engine
+// scratch -- re-derives the split from the flat list through the spec, the
+// pre-slice behaviour, which mis-assigns a target a half's spec merely
+// overlaps (Turn // Burn's Creature vs Any); a copy keeps the original's
+// targets by the standing copy stand-in, so the fallback is the same
+// disclosed narrowing as every other copy family.
+// The spell fizzles only when EVERY declared target is now illegal (CR
+// 608.2b's one-instance rule); a half that lost its target does as much as
+// possible while the other still resolves.
 //
-// Narrowing fixed: when a half SUSPENDS on a mid-resolution ask (an asking
+// Narrowing fixed: when ANY half SUSPENDS on a mid-resolution ask (an asking
 // primitive such as a discard or sacrifice choice), the resumed frame
 // completes THAT half through the ordinary resume machinery, and the
 // still-unrun halves are chained after it as a fuse-rest continuation
 // (resumeResolution's rp.fuseAlt frame) carrying each remaining half's own
 // CR 608.2b-filtered target slice -- so Down // Dirty's Dirty runs after the
-// answered discard ask exactly as it would have without the suspension.
+// answered discard ask exactly as it would have without the suspension. The
+// LAST half gets a frame too (from == len(halves): nothing left to run), so
+// an alternate-half suspension -- Far // Away, Catch // Release -- still
+// completes through the fuseAlt tail (finishResumption + the priority emit)
+// rather than through a generic completion whose fresh ctx re-derives the
+// object's flat target list and re-poses the half's ValidTgts$ pre-ask
+// (the spurious "Choose target" decision the last-half optimisation used to
+// leave on the wire).
 func (e *Engine) resolveFused(o *state.Object) {
 	ff, fa := fusedSplitFaces(o)
 	if ff == nil || fa == nil {
@@ -128,6 +142,7 @@ func (e *Engine) resolveFused(o *state.Object) {
 	halves := []*cards.Face{ff, fa}
 	sas := make([]*cards.SA, len(halves))
 	legalByHalf := make([][]state.Target, len(halves))
+	stageTargets := e.fuseTargets[o.ID]
 	checked := false
 	totalLegal := 0
 	for i, hf := range halves {
@@ -138,9 +153,18 @@ func (e *Engine) resolveFused(o *state.Object) {
 		}
 		spec := strings.TrimSpace(sa.Params["ValidTgts"])
 		if spec != "" {
-			legalByHalf[i] = e.legalTargets(o.Targets, spec, targetZones(sa), o.Controller, o.ID, o.ID)
+			// The half's OWN stage slice when the payment published one --
+			// exactly the targets chosen for THIS half, never a target the
+			// other half's spec merely overlaps. Scratch absent (a stack
+			// copy of a fused spell): re-derive from the flat list through
+			// the spec, the pre-slice fallback above.
+			own := o.Targets
+			if stageTargets != nil && i < len(stageTargets) {
+				own = stageTargets[i]
+			}
+			legalByHalf[i] = e.legalTargets(own, spec, targetZones(sa), o.Controller, o.ID, o.ID)
 			totalLegal += len(legalByHalf[i])
-			if !(e.resolvedTargetMin(o.Controller, o.ID, sa, 0) == 0 && len(o.Targets) == 0) {
+			if !(e.resolvedTargetMin(o.Controller, o.ID, sa, 0) == 0 && len(own) == 0) {
 				checked = true
 			}
 		}
@@ -195,19 +219,16 @@ func (e *Engine) runFusedHalves(o *state.Object, halves []*cards.Face, sas []*ca
 		e.damaging = 0
 		if e.resume != nil {
 			// Suspended mid-half: the resumed frame completes this half through
-			// the ordinary continuation chain, and the still-unrun halves (with
-			// their own captured target slices) follow it as a fuse-rest
-			// continuation -- never dropped, never silent. The rest frame's own
-			// outer is `outer`, the continuation the frame whose halves were
-			// running was itself carrying.
-			var tail *resumePoint
-			if i+1 < len(halves) {
-				tail = &resumePoint{obj: o.ID,
-					fuseAlt: &fusedRest{from: i + 1, halves: halves, sas: sas, targets: legalByHalf}}
-				tail.outer = outer
-			} else {
-				tail = outer
-			}
+			// the ordinary continuation chain, and the rest -- including the
+			// empty remainder of a LAST-half suspension -- follows it as a
+			// fuse-rest continuation (never dropped, never silent, and never
+			// completed by the generic chain, whose fresh ctx re-derives the
+			// object's flat target list and re-poses the half's ValidTgts$
+			// pre-ask). The rest frame's own outer is `outer`, the continuation
+			// the frame whose halves were running was itself carrying.
+			tail := &resumePoint{obj: o.ID,
+				fuseAlt: &fusedRest{from: i + 1, halves: halves, sas: sas, targets: legalByHalf}}
+			tail.outer = outer
 			e.resume.outer = e.buildContinuationChain(e.contChain, o.ID, tail)
 			return
 		}

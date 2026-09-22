@@ -1433,6 +1433,18 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 		// targets are already recorded (its first target must then APPEND).
 		stageBase := len(pc.targets)
 		pc.targets = append(pc.targets, targetOptions(chosen)...)
+		// A Fuse cast records the stage's own slice (review MAJOR 1): the flat
+		// list on the stack object cannot express which half chose which
+		// target, and re-deriving the split through each half's ValidTgts spec
+		// mis-assigns every target that half's spec merely overlaps (Turn //
+		// Burn's Creature vs Any). Indexed by pc.targetStage, so a targetless
+		// stage the ask loop skipped never misaligns the slices.
+		if pc.mode == "fuse" {
+			for len(pc.stageTargets) <= pc.targetStage {
+				pc.stageTargets = append(pc.stageTargets, nil)
+			}
+			pc.stageTargets[pc.targetStage] = append(pc.stageTargets[pc.targetStage], targetOptions(chosen)...)
+		}
 		e.repriceForTargets(pc)
 		if !pc.isAbility() {
 			if pc.stackObj != 0 {

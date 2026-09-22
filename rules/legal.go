@@ -1088,6 +1088,40 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		if e.castSuppressed(p, id) {
 			continue
 		}
+		// CR 709.4/709.5: a non-Room split card's alternate half is castable
+		// on its own (mode split_alt, consumed by beginCast's FlipFace exactly
+		// like room_alt) and, when the card carries K:Fuse, BOTH halves may be
+		// cast as one fused spell (mode fuse, paying the combined cost and
+		// resolving both halves). Both offers read the half's OWN timing
+		// (review MAJOR 2), targets and cost through
+		// splitCastTargetsAvailable, so a half with no legal target -- or one
+		// the seat cannot pay for -- is withheld independently of the front
+		// face. They stand ABOVE the front-face spellTimingOK gate below on
+		// purpose: CR 709.4 gives each half its own timing, so a front-Sorcery
+		// half must not withhold its instant alternate half during an
+		// opponent's turn (incubation_incongruity, discovery_dispersal,
+		// said_done, spring_mind). For that reason they also precede the
+		// plain cast in the option list for a split card. The card-level
+		// castRestricted/castSuppressed gates above stay shared -- casting a
+		// half is casting the card.
+		if sf := splitAlternateCastFace(o); sf != nil {
+			instant := sf.IsInstant() || e.HasKeyword(id, "Flash") || e.castWithFlash(p, id)
+			if (instant || sorcery) && e.splitCastTargetsAvailable(p, id, sf) {
+				if offerCastable(p, id, withSpellAbilityExtras(sf, e.parseCost(sf.ManaCost)), spellScope(""), false) {
+					out = append(out, decision.Option{Index: len(out), Kind: "cast",
+						Label: "Cast " + sf.Name, Obj: id, Mode: "split_alt"})
+				}
+			}
+		}
+		if ff, fa := fusedSplitFaces(o); ff != nil {
+			if e.fusedTimingOK(p, id, ff, fa, sorcery) &&
+				e.splitCastTargetsAvailable(p, id, ff) && e.splitCastTargetsAvailable(p, id, fa) {
+				if offerCastable(p, id, e.fuseCost(ff, fa), spellScope(""), false) {
+					out = append(out, decision.Option{Index: len(out), Kind: "cast",
+						Label: "Cast " + ff.Name + " // " + fa.Name + " (fused)", Obj: id, Mode: "fuse"})
+				}
+			}
+		}
 		if !e.spellTimingOK(p, id, f, sorcery) {
 			continue
 		}
@@ -1137,38 +1171,14 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		// cast transaction; from then on every cost/target/resolution reader
 		// sees the selected face. This is structural over every two-door Room,
 		// not a card-name exception (Spiked Corridor is the front-trigger case).
+		// (The split_alt/fuse offers live ABOVE the front-face timing gate --
+		// see their comment there.)
 		if rf := roomAlternateCastFace(o); rf != nil {
 			instant := rf.IsInstant() || e.HasKeyword(id, "Flash")
 			if (instant || sorcery) && e.castTargetsAvailable(p, id, rf.SpellAbility()) {
 				if offerCastable(p, id, withSpellAbilityExtras(rf, e.parseCost(rf.ManaCost)), spellScope(""), false) {
 					out = append(out, decision.Option{Index: len(out), Kind: "cast",
 						Label: "Cast " + rf.Name, Obj: id, Mode: "room_alt"})
-				}
-			}
-		}
-		// CR 709.4/709.5: a non-Room split card's alternate half is castable on
-		// its own (mode split_alt, consumed by beginCast's FlipFace exactly like
-		// room_alt) and, when the card carries K:Fuse, BOTH halves may be cast
-		// as one fused spell (mode fuse, paying the combined cost and resolving
-		// both halves). Both offers read the half's OWN timing, targets and
-		// cost through splitCastTargetsAvailable, so a half with no legal
-		// target -- or one the seat cannot pay for -- is withheld independently
-		// of the front face.
-		if sf := splitAlternateCastFace(o); sf != nil {
-			instant := sf.IsInstant() || e.HasKeyword(id, "Flash")
-			if (instant || sorcery) && e.splitCastTargetsAvailable(p, id, sf) {
-				if offerCastable(p, id, withSpellAbilityExtras(sf, e.parseCost(sf.ManaCost)), spellScope(""), false) {
-					out = append(out, decision.Option{Index: len(out), Kind: "cast",
-						Label: "Cast " + sf.Name, Obj: id, Mode: "split_alt"})
-				}
-			}
-		}
-		if ff, fa := fusedSplitFaces(o); ff != nil {
-			if e.fusedTimingOK(p, id, ff, fa, sorcery) &&
-				e.splitCastTargetsAvailable(p, id, ff) && e.splitCastTargetsAvailable(p, id, fa) {
-				if offerCastable(p, id, e.fuseCost(ff, fa), spellScope(""), false) {
-					out = append(out, decision.Option{Index: len(out), Kind: "cast",
-						Label: "Cast " + ff.Name + " // " + fa.Name + " (fused)", Obj: id, Mode: "fuse"})
 				}
 			}
 		}
