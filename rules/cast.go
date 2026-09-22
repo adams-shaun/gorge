@@ -51,6 +51,11 @@ const (
 	// chooseEnlist / chooseAttackPay / chooseUnleash, each defined relative
 	// to a neighbour, and 40 is chooseUntap.
 	chooseAttached chooseFor = 30
+	// chooseTokenReplace is the chosen-copy CreateToken replacement's
+	// election (rules/replacement.go's poseChosenTokenReplacement park:
+	// Esix/Moonlit/Mirrormind's `Type$ ReplaceToken | TokenScript$ Chosen`).
+	// 31 is the next free value after chooseAttached (30).
+	chooseTokenReplace chooseFor = 31
 )
 
 // pendingCast is the cast flow's own state, live only between beginCast and
