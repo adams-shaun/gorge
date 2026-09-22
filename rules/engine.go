@@ -778,8 +778,8 @@ type Engine struct {
 	// triggerTurnDiceTurn is the turn triggerTurnDice was last reset for;
 	// a lookup in any later turn replaces the map, bounding its size.
 	triggerTurnDiceTurn int32
-	dmgSrcOverride  state.ObjID
-	batchLifelink   map[state.ObjID]bool
+	dmgSrcOverride      state.ObjID
+	batchLifelink       map[state.ObjID]bool
 
 	// counterAdder is the player causing the CounterChange/PlayerCounterChange
 	// events currently in flight (the repl:AddCounter class's "who would put
