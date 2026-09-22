@@ -5812,6 +5812,17 @@ func (e *Engine) targetAsk() bool {
 	// engine's decision type cannot express cross-option dependencies, and
 	// withholding is safer than offering an illegal transaction.
 	candidates = e.affordableTargetCandidates(pc, candidates)
+	// MaxTotalTargetPower$ (Reunion of the House): the running total-power
+	// cap over the selection. Prune the individually unaffordable candidates
+	// BEFORE the mandatory-minimum census so a cast whose every candidate
+	// alone busts the cap aborts like a targetless one, and carry the
+	// running cap as the decision's cumulative budget (Decision.MaxSum over
+	// each option's Value = the candidate's power) -- the same wire contract
+	// a Dig's WithTotalCMC$ budget uses, so Decision.Validate enforces the
+	// cap on every submitted answer and the bot's Clamp/FitRequired repair
+	// mirrors it. A candidate whose power alone fits but whose combination
+	// busts the cap stays offered: the wire contract rejects the combination.
+	candidates, powerCap, powerCapped := e.totalPowerCappedCandidates(candidates, pc.player, pc.card, sa, pc.x)
 	if min > 0 && len(candidates) < min {
 		// CR 601.2c: a proposal with fewer legal targets than its mandatory
 		// minimum cannot be announced. Reverse the whole proposal (CR 733.1):
@@ -5861,7 +5872,17 @@ func (e *Engine) targetAsk() bool {
 		o := decision.Option{Index: len(d.Options), Kind: candidate.kind,
 			Label: label, Obj: candidate.obj, Player: candidate.player}
 		o.Group = e.oneEachTargetGroup(sa, candidate)
+		// Option.Value is omitempty and read only when MaxSum > 0, so a
+		// budget-less target ask keeps its wire payload byte-identical.
+		if powerCapped && candidate.kind != "player" {
+			if co := e.G.Obj(candidate.obj); co != nil && co.Face() != nil {
+				o.Value = co.Face().Power()
+			}
+		}
 		d.Options = append(d.Options, o)
+	}
+	if powerCapped {
+		d.MaxSum = powerCap
 	}
 	e.ask(d)
 	return true

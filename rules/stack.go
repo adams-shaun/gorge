@@ -1475,6 +1475,74 @@ func (e *Engine) oneEachTargetGroup(sa *cards.SA, candidate targetCandidate) str
 	return "target-controller-" + strconv.Itoa(int(owner))
 }
 
+// // maxTotalTargetPower resolves a targeting subject's MaxTotalTargetPower$
+// cap -- the running total-power bound over a multi-target selection
+// ("Return any number of target creature cards with total power 10 or less",
+// Reunion of the House and Nethroi, Apex of Death; 2 corpus files). A literal
+// token reads directly; a dynamic token resolves through the effects numeric
+// grammar, the same reader resolvedTargetBounds applies to a TargetMax$ X
+// token, bound to the asking player and the source anchor. A token the
+// grammar cannot resolve returns ok=false -- the cap is then simply not
+// enforced (today's behaviour; measured, no corpus carrier reaches this
+// arm unresolvable, both carriers are the literal 10).
+
+func (e *Engine) maxTotalTargetPower(p state.PlayerID, source state.ObjID, sa *cards.SA, x int32) (int, bool) {
+	v, ok := sa.Params["MaxTotalTargetPower"]
+	if !ok {
+		return 0, false
+	}
+	if n, err := strconv.Atoi(strings.TrimSpace(v)); err == nil {
+		return n, true
+	}
+	ctx, okc := e.targetBoundCtx(p, source)
+	if !okc {
+		return 0, false
+	}
+	ctx.X = x
+	if n, resolved := effects.NumResolved(e, ctx, sa, "MaxTotalTargetPower", 0); resolved {
+		return int(n), true
+	}
+	return 0, false
+}
+
+// totalPowerCappedCandidates applies the MaxTotalTargetPower$ cap to a
+// target census. The per-option half is a real filter: a candidate whose
+// power ALONE exceeds the cap can never be part of any legal selection and
+// is pruned from the offer. The running half -- any combination whose
+// summed power stays within the bound -- is NOT expressible as a
+// per-candidate property, so it is not a filter here: the two ask sites
+// (askTarget below and cast.go's targetAsk) attach it to the decision as
+// the cumulative-budget wire contract -- Decision.MaxSum over each object
+// option's Value (the candidate's power) -- which Decision.Validate
+// enforces on every submitted answer and Clamp/decision.FitRequired mirror
+// for the deterministic bot. That is the same mechanism a Dig's
+// WithTotalCMC$ budget uses, so what a client may submit and what the
+// engine offered can never disagree. Player candidates carry Value 0 and
+// are never pruned (a MaxTotalTargetPower$ ask names cards; a player's
+// presence is free). Returns the pruned census, the cap and whether the
+// parameter is present at all.
+func (e *Engine) totalPowerCappedCandidates(candidates []targetCandidate, p state.PlayerID, source state.ObjID, sa *cards.SA, x int32) ([]targetCandidate, int, bool) {
+	capPower, ok := e.maxTotalTargetPower(p, source, sa, x)
+	if !ok {
+		return candidates, 0, false
+	}
+	out := make([]targetCandidate, 0, len(candidates))
+	for _, c := range candidates {
+		if c.kind == "player" {
+			out = append(out, c)
+			continue
+		}
+		o := e.G.Obj(c.obj)
+		if o == nil {
+			continue
+		}
+		if f := o.Face(); f != nil && f.Power() <= capPower {
+			out = append(out, c)
+		}
+	}
+	return out, capPower, true
+}
+
 // askTarget offers every legal target for a spell or ability. It deliberately
 // retains the post-push insufficient-target backstop: modal and dynamic target
 // counts are not rejected by the earlier cast-offer census.
@@ -1482,6 +1550,10 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 	min, max := e.resolvedTargetBounds(p, source, sa, 0)
 	candidates := e.legalTargetCandidates(p, source, source, sa)
 	min, max, _ = e.oneEachTargetBounds(sa, candidates, min, max)
+	// MaxTotalTargetPower$ (Reunion of the House): prune the individually
+	// unaffordable candidates and carry the running cap as the decision's
+	// cumulative budget.
+	candidates, powerCap, powerCapped := e.totalPowerCappedCandidates(candidates, p, source, sa, 0)
 	d := &decision.Decision{Player: p, Kind: decision.KTarget, Min: min, Max: max,
 		Prompt: "Choose a target for " + e.targetName(source),
 		Source: source, TargetEffect: describeTargetEffect(sa)}
@@ -1493,7 +1565,17 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 		o := decision.Option{Index: len(d.Options), Kind: candidate.kind,
 			Label: label, Obj: candidate.obj, Player: candidate.player}
 		o.Group = e.oneEachTargetGroup(sa, candidate)
+		// Option.Value is omitempty and read only when MaxSum > 0, so a
+		// budget-less target ask keeps its wire payload byte-identical.
+		if powerCapped && candidate.kind != "player" {
+			if co := e.G.Obj(candidate.obj); co != nil && co.Face() != nil {
+				o.Value = co.Face().Power()
+			}
+		}
 		d.Options = append(d.Options, o)
+	}
+	if powerCapped {
+		d.MaxSum = powerCap
 	}
 	if min == 0 {
 		// Requirement N2 / totality: a target-hungry subject whose minimum
