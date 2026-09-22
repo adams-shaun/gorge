@@ -1,0 +1,327 @@
+// stat:UnspentMana — "You don't lose unspent <colour> mana as steps and
+// phases end" (CR 500.4 with the card's exception; Leyline Tyrant, Omnath
+// Locus of Mana, Upwelling, ...). The keep decision is made at the ONE
+// ManaClear emit site (rules/turn.go's finishStepBoundary, unspentManaKeep),
+// rides the ManaClear event's Text as keep letters, and the ManaClear fold
+// (events/apply.go) spares the protected slots and their restriction
+// batches. Both delivery routes are pinned here: the printed S: face static
+// (Leyline Tyrant, Upwelling) and the boundaries themselves are driven
+// through the real priority flow, because setStep skips the boundary while
+// a decision is pending.
+package rules
+
+import (
+	"reflect"
+	"testing"
+
+	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/events"
+	"github.com/adams-shaun/gorge/state"
+)
+
+// replaySince applies every event emitted since the snapshot to the cloned
+// game and asserts byte-identical state — the keep decision rides a live
+// static walk, so the ManaClear fold's Text handling must replay identically
+// from the events alone.
+func replaySince(t *testing.T, e *Engine, replayed *state.Game, start int) {
+	t.Helper()
+	for _, ev := range e.L.Events[start:] {
+		events.Apply(replayed, ev)
+	}
+	if !reflect.DeepEqual(replayed, e.G) {
+		t.Fatal("the kept-mana boundary does not replay exactly from the events")
+	}
+}
+
+// passOneBoundary passes priority until one ManaClear fires (the CR 500.4
+// boundary this whole feature rides), then returns — so the pool assertions
+// read the state exactly one boundary past where the caller left it, never a
+// second boundary later.
+func passOneBoundary(t *testing.T, e *Engine) {
+	t.Helper()
+	mark := len(e.L.Events)
+	for i := 0; i < 20; i++ {
+		d := e.Pending()
+		if d == nil {
+			t.Fatalf("no decision pending and no ManaClear fired (events %d..%d)", mark, len(e.L.Events))
+		}
+		if d.Kind != decision.KPriority {
+			t.Fatalf("non-priority decision %+v while waiting for the boundary", d)
+		}
+		idx := -1
+		for _, o := range d.Options {
+			if o.Kind == "pass" {
+				idx = o.Index
+			}
+		}
+		if idx < 0 {
+			t.Fatalf("priority decision with no pass option: %+v", d.Options)
+		}
+		submitChoices(t, e, idx)
+		for _, ev := range e.L.Events[mark:] {
+			if ev.Kind == events.ManaClear {
+				return
+			}
+		}
+	}
+	t.Fatal("no ManaClear fired within 20 priority passes")
+}
+
+// bankAtEndStep drives to the current turn's end step, seats the given pool
+// on the protagonist's side, and passes one boundary (the end step leaving).
+// The precondition every keep assertion rides on: the boundary's ManaClear
+// really fired with a non-empty pool in place.
+func bankAtEndStep(t *testing.T, e *Engine, pool state.Mana) state.Mana {
+	t.Helper()
+	driveToStep(t, e, e.G.Turn, e.G.Active, state.StepEnd)
+	e.G.Players[0].Pool = pool
+	if e.G.Players[0].Pool.Total() == 0 {
+		t.Fatalf("test precondition: pool to bank is empty: %+v", pool)
+	}
+	passOneBoundary(t, e)
+	return e.G.Players[0].Pool
+}
+
+// TestLeylineTyrantRedManaSurvivesBoundaries is the brief's Done pin: the
+// controller's floating {R}{R} survives the end-step boundary (and a further
+// boundary after it) while the same pool's {G} and the opponent's mana still
+// empty — banking red for the card's death trigger is its whole reason to
+// exist.
+func TestLeylineTyrantRedManaSurvivesBoundaries(t *testing.T) {
+	t.Parallel()
+	e := newSeats(t, 2)
+	tyrant := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Leyline Tyrant"))
+	if o := e.G.Obj(tyrant); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("test precondition: Leyline Tyrant not on the battlefield: %+v", o)
+	}
+
+	pool := bankAtEndStep(t, e, state.Mana{state.MR: 2, state.MG: 1})
+	if pool[state.MR] != 2 {
+		t.Fatalf("after the end-step boundary red pool = %d, want 2 (the UnspentMana static must bank it)", pool[state.MR])
+	}
+	if pool[state.MG] != 0 {
+		t.Fatalf("after the end-step boundary green pool = %d, want 0 (only the named colour is protected)", pool[state.MG])
+	}
+
+	// ValidPlayer$ You scopes the static to its controller: the opponent's
+	// red mana still emptied at the same boundary.
+	if pool := e.G.Players[1].Pool; pool[state.MR] != 0 {
+		t.Fatalf("opponent red pool after the boundary = %d, want 0 (ValidPlayer$ You scopes to the controller)", pool[state.MR])
+	}
+
+	// A further boundary keeps banking (steps and phases end, plural). A red
+	// RESTRICTION batch (Klauth-style provenance) rides the same keep: the
+	// restriction is not time-bounded, only the emptying is.
+	e.G.Players[0].RestrictedMana = []state.ManaRestriction{{Color: "R", Amount: 2, Valid: "CastSpell"}}
+	// Replay anchor: everything from here on is event-sourced (the banked
+	// boundary re-writes the same {2R} the events keep, so the direct write
+	// is a no-op the clone reproduces).
+	replayed := e.G.Clone()
+	start := len(e.L.Events)
+	pool = bankAtEndStep(t, e, pool)
+	if pool[state.MR] != 2 {
+		t.Fatalf("after the second boundary red pool = %d, want 2", pool[state.MR])
+	}
+	if len(e.G.Players[0].RestrictedMana) != 1 || e.G.Players[0].RestrictedMana[0].Color != "R" {
+		t.Fatalf("the red restriction batch did not survive the boundary: %+v", e.G.Players[0].RestrictedMana)
+	}
+	replaySince(t, e, replayed, start)
+}
+
+// TestUnspentManaStopsWhenTheSourceLeaves pins the lifetime: the banked red
+// survives boundaries only while the static's source is on the battlefield;
+// once it leaves, the next boundary empties the bank like any other mana.
+func TestUnspentManaStopsWhenTheSourceLeaves(t *testing.T) {
+	t.Parallel()
+	e := newSeats(t, 2)
+	tyrant := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Leyline Tyrant"))
+	pool := bankAtEndStep(t, e, state.Mana{state.MR: 2})
+	if pool[state.MR] != 2 {
+		t.Fatalf("test precondition: the static did not bank the red: %d", pool[state.MR])
+	}
+	// The source leaves to the hand (no death trigger to settle); the next
+	// boundary's walk sees no live UnspentMana static and empties the slot.
+	e.emit(events.Event{Kind: events.MoveZone, Obj: tyrant, From: state.ZBattlefield, To: state.ZHand})
+	pool = bankAtEndStep(t, e, pool)
+	if pool[state.MR] != 0 {
+		t.Fatalf("after the source left, red pool = %d, want 0 (the keep ends with the source)", pool[state.MR])
+	}
+}
+
+// TestUpwellingProtectsEverySeatAndColour pins the parameterless spelling:
+// no ValidPlayer$ and no ManaType$ — every seat's whole pool survives.
+func TestUpwellingProtectsEverySeatAndColour(t *testing.T) {
+	t.Parallel()
+	e := newSeats(t, 2)
+	upwelling := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Upwelling"))
+	if o := e.G.Obj(upwelling); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("test precondition: Upwelling not on the battlefield: %+v", o)
+	}
+	driveToStep(t, e, e.G.Turn, e.G.Active, state.StepEnd)
+	e.G.Players[0].Pool = state.Mana{state.MR: 1, state.MG: 2, state.MC: 1}
+	e.G.Players[1].Pool = state.Mana{state.MB: 1}
+	passOneBoundary(t, e)
+	if p := e.G.Players[0].Pool; p[state.MR] != 1 || p[state.MG] != 2 || p[state.MC] != 1 {
+		t.Fatalf("seat 0 pool after the boundary = %+v, want every slot intact", p)
+	}
+	if p := e.G.Players[1].Pool; p[state.MB] != 1 {
+		t.Fatalf("seat 1 pool after the boundary = %+v, want the black unit intact", p)
+	}
+}
+
+// TestLeylineTyrantDeathTriggerSpendsTheBank is the second half of the
+// brief's Done: with {R}{R} banked through a boundary, Leyline Tyrant dies
+// and the trigger's "you may pay any amount of {R}" window offers X up to
+// the banked amount, the payment consumes the BANKED pool mana (no
+// mana-activation ask — the pool covers it), and the body deals that much
+// damage to the chosen target.
+func TestLeylineTyrantDeathTriggerSpendsTheBank(t *testing.T) {
+	t.Parallel()
+	e := newSeats(t, 2)
+	tyrant := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Leyline Tyrant"))
+	if life := e.G.Players[1].Life; life != 20 {
+		t.Fatalf("test precondition: opponent life = %d, want 20", life)
+	}
+	if pool := bankAtEndStep(t, e, state.Mana{state.MR: 2}); pool[state.MR] != 2 {
+		t.Fatalf("test precondition: the boundary did not bank the red: %+v", pool)
+	}
+	// Replay anchor: the kill, the pay window, the payment and the damage are
+	// all event-sourced from here.
+	replayed := e.G.Clone()
+	start := len(e.L.Events)
+
+	// Kill it; the death trigger enters the pay window.
+	e.emit(events.Event{Kind: events.MoveZone, Obj: tyrant, From: state.ZBattlefield, To: state.ZGraveyard})
+	e.putTriggersOnStack()
+	if len(e.G.Stack) == 0 {
+		t.Fatal("the death trigger never reached the stack")
+	}
+	e.resolveTop()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || len(d.Options) == 0 || d.Options[0].Kind != "trigger_cost_x" {
+		t.Fatalf("expected the choose-X announcement ask, got %+v", d)
+	}
+	if d.Options[0].Amount != 0 {
+		t.Fatalf("choose-X options must ascend from 0, first is %d", d.Options[0].Amount)
+	}
+	if last := d.Options[len(d.Options)-1]; last.Amount != 2 {
+		t.Fatalf("choose-X bound = %d, want 2 (the banked pool is the whole potential)", last.Amount)
+	}
+	submitChoices(t, e, xFoldAskIndex(t, d, 2))
+
+	// The payment ask: the banked pool covers X = 2 whole, so no
+	// mana-activation ask may appear.
+	d = e.Pending()
+	if d == nil {
+		t.Fatal("no payment ask pending after the X announcement")
+	}
+	pay := -1
+	for _, o := range d.Options {
+		if o.Kind == "activate" {
+			t.Fatalf("the window asked to activate mana (%+v): the banked pool should cover X = 2", d.Options)
+		}
+		if o.Kind == "trigger_cost_pay" {
+			pay = o.Index
+		}
+	}
+	if pay < 0 {
+		t.Fatalf("no pay option in the payment ask: %+v", d.Options)
+	}
+	submitChoices(t, e, pay)
+
+	// The body's "any target" ask (the mid-resolution tgts resume); take the
+	// opponent.
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "tgts" {
+		t.Fatalf("expected the damage target ask, got %+v", d)
+	}
+	tgt := -1
+	for _, o := range d.Options {
+		if o.Kind == "player" && o.Player == 1 {
+			tgt = o.Index
+		}
+	}
+	if tgt < 0 {
+		t.Fatalf("the opponent was not offered as an Any target: %+v", d.Options)
+	}
+	submitChoices(t, e, tgt)
+
+	if life := e.G.Players[1].Life; life != 18 {
+		t.Fatalf("opponent life = %d after paying X = 2, want 18", life)
+	}
+	if pool := e.G.Players[0].Pool; pool[state.MR] != 0 {
+		t.Fatalf("red pool = %d after paying X = 2, want 0 (the bank paid it)", pool[state.MR])
+	}
+	replaySince(t, e, replayed, start)
+}
+
+// unspentGrantFixture is The Last Agni Kai's grant shape, reduced to a
+// one-target vehicle: the spell deals its damage, then its SubAbility$
+// registers the Effect-delivered `Mode$ UnspentMana` static (SVar:Unspent,
+// the DB$ Effect | StaticAbilities$ spelling). No Duration$: an
+// instant/sorcery source's grant is the UntilEOT lifetime
+// effectUntilEOT converts it to, which is the oracle's "until end of turn".
+const unspentGrantFixture = "Name:Unspent Grant Fixture\n" +
+	"ManaCost:2\nTypes:Instant\n" +
+	"A:SP$ DealDamage | ValidTgts$ Any | NumDmg$ 1 | SubAbility$ DBEffect\n" +
+	"SVar:DBEffect:DB$ Effect | StaticAbilities$ Unspent\n" +
+	"SVar:Unspent:Mode$ UnspentMana | ValidPlayer$ You | ManaType$ Red\n" +
+	"Oracle:x\n"
+
+// TestEffectDeliveredUnspentManaBanksUntilEndOfTurn pins the second delivery
+// route: the resolving spell's DB$ Effect registers the UnspentMana static
+// (effEffect's registration arm), the controller's red mana survives the
+// end-step boundary while the grant is live, and it empties again at the
+// next boundary once the UntilEOT grant expired at the turn's cleanup.
+func TestEffectDeliveredUnspentManaBanksUntilEndOfTurn(t *testing.T) {
+	t.Parallel()
+	e := newSeats(t, 2)
+	fixture := e.G.AddObject(card(t, unspentGrantFixture), 0)
+	fixture.Zone = state.ZHand
+	ids := append([]state.ObjID(nil), e.G.Zone(state.ZHand, 0)...)
+	e.G.SetZone(state.ZHand, 0, append(ids, fixture.ID))
+	e.G.Players[0].Pool = state.Mana{state.MR: 2, state.MC: 2}
+
+	castMode(t, e, fixture.ID, "")
+	d := e.Pending()
+	if d == nil || !(d.Kind == decision.KTarget || (d.Kind == decision.KChoose && d.ResumeKind == "tgts")) {
+		t.Fatalf("test precondition: the fixture's damage target ask did not pose: %+v", d)
+	}
+	tgt := -1
+	for _, o := range d.Options {
+		if o.Kind == "player" && o.Player == 1 {
+			tgt = o.Index
+		}
+	}
+	if tgt < 0 {
+		t.Fatalf("test precondition: opponent not offered as the fixture's target: %+v", d.Options)
+	}
+	submitChoices(t, e, tgt)
+	if top := e.G.Obj(e.G.Stack[len(e.G.Stack)-1]); top != nil && top.Zone == state.ZStack {
+		e.resolveTop()
+	}
+	if life := e.G.Players[1].Life; life != 19 {
+		t.Fatalf("test precondition: the fixture's damage never landed (opponent life %d, want 19)", life)
+	}
+
+	// The grant is registered and live at the end-step boundary: the
+	// boundary's ManaClear carries the keep letters (the event-level pin of
+	// the keep decision), and seat 0's red survives it into seat 1's turn —
+	// only to empty at a LATER boundary, because the UntilEOT grant expired
+	// at the turn's cleanup (the instant-source conversion) while the seat's
+	// own turn-change cascade ran on.
+	mark := len(e.L.Events)
+	pool := bankAtEndStep(t, e, state.Mana{state.MR: 2})
+	keptAtBoundary := false
+	for _, ev := range e.L.Events[mark:] {
+		if ev.Kind == events.ManaClear && ev.Player == 0 && ev.Text != "" {
+			keptAtBoundary = true
+		}
+	}
+	if !keptAtBoundary {
+		t.Fatalf("no boundary ManaClear carried keep letters while the grant was live (pool now %+v)", pool)
+	}
+	if pool[state.MR] != 0 {
+		t.Fatalf("after the grant expired red pool = %d, want 0", pool[state.MR])
+	}
+}

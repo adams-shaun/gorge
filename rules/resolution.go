@@ -366,7 +366,8 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 		uptoIdx: d.ResumeUptoIdx, uptoCount: d.ResumeUptoCount,
 		fusedTargets:    append([]state.Target(nil), e.fusedResolving...),
 		fusedTargetsSet: e.fusedResolvingSet,
-		fusedSVars:      e.fusedResolvingSVars}
+		fusedSVars:      e.fusedResolvingSVars,
+		winPaidX:        e.windowPaidX}
 	return true
 }
 
@@ -2165,8 +2166,10 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// structural) keeps the outer binding intact.
 		savedFused, savedFusedSet := e.fusedResolving, e.fusedResolvingSet
 		savedSVars := e.fusedResolvingSVars
+		savedWinX := e.windowPaidX
 		e.fusedResolving, e.fusedResolvingSet = rp.fusedTargets, rp.fusedTargetsSet
 		e.fusedResolvingSVars = rp.fusedSVars
+		e.windowPaidX = rp.winPaidX
 		// Restore only when this whole re-entry (and every rp.outer
 		// continuation it recurses into) has finished: buildContinuationChain
 		// in the nested-ask branch below stamps frames that must inherit the
@@ -2174,6 +2177,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// copy on top, so the deferred restore lands the original back.
 		defer func() {
 			e.fusedResolving, e.fusedResolvingSet, e.fusedResolvingSVars = savedFused, savedFusedSet, savedSVars
+			e.windowPaidX = savedWinX
 		}()
 		effects.Resolve(e, ctx, rp.sa)
 		e.replReplaced, e.replAction, e.replReplacedPlayer = 0, "", state.Target{}
@@ -2350,7 +2354,8 @@ func (e *Engine) buildContinuationChain(frames []contFrame, obj state.ObjID, tai
 			// SubAbility reached through an enclosing loop).
 			fusedTargets:    append([]state.Target(nil), e.fusedResolving...),
 			fusedTargetsSet: e.fusedResolvingSet,
-			fusedSVars:      e.fusedResolvingSVars}
+			fusedSVars:      e.fusedResolvingSVars,
+			winPaidX:        e.windowPaidX}
 		if e.replacingEvent != nil && e.replacingEvent.Kind == events.Damage {
 			f.replacementTarget = state.Target{Obj: e.replacingEvent.Obj}
 			if e.replacingEvent.Obj == 0 {
