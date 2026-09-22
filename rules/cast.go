@@ -4057,20 +4057,24 @@ func (e *Engine) collectETBChoices(you state.PlayerID) {
 		if kind == "" {
 			continue
 		}
-		pc.etbs = append(pc.etbs, etbChoice{
-			kind: kind,
-			options: e.etbOptions(you, pc.card, kind,
-				r.With.Params["ValidCards"],
-				// Type$ (Herald's Horn, Urza's Incubator, Roaming Throne, Three
-				// Tree City) names the category the choice ranges over. The
-				// option list below builds it; a category this build cannot
-				// enumerate is recorded loudly at resolution time by
-				// effects.effChooseType, never silently.
-				r.With.Params["Type"],
-				// Exclude$ (Black Dragon Gate, the five Thriving lands) names
-				// colours the choice must NOT offer, comma-separated.
-				r.With.Params["Exclude"]),
-		})
+		// The ETB Clone slice is deliberately narrow: offering a copy while
+		// dropping an exception rider is worse than retaining today's loud
+		// fallback.  The shared Clone primitive handles the same riders.
+		if kind == "copy" && !etbCloneWhitelist(r.With) {
+			continue
+		}
+		opts := e.etbOptions(you, pc.card, kind,
+			r.With.Params["ValidCards"],
+			r.With.Params["Choices"],
+			r.With.Params["Type"],
+			r.With.Params["Exclude"])
+		if kind == "copy" {
+			optional := strings.Contains(strings.ToLower(r.Params["KeywordLine"]), ":optional")
+			if optional || len(opts) == 0 {
+				opts = append(opts, decision.Option{Index: len(opts), Kind: "clone", Label: "Enter as itself"})
+			}
+		}
+		pc.etbs = append(pc.etbs, etbChoice{kind: kind, options: opts})
 	}
 }
 
@@ -4084,6 +4088,8 @@ func etbChoiceKind(api string) string {
 		return "number"
 	case "ChooseColor":
 		return "color"
+	case "Clone":
+		return "copy"
 	}
 	return ""
 }
@@ -4118,7 +4124,7 @@ func etbColourLetter(name string) string {
 //
 // Option list order is deterministic: names and types are sorted strings
 // (never from a map), numbers are ascending.
-func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCards, typeCategory, exclude string) []decision.Option {
+func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCards, choices, typeCategory, exclude string) []decision.Option {
 	switch kind {
 	case "color":
 		// Exclude$ tokens (comma-separated, e.g. "black" on Black Dragon
@@ -4145,6 +4151,27 @@ func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCar
 			out = make([]decision.Option, 0, len(etbColourLabels))
 			for _, cl := range etbColourLabels {
 				out = append(out, decision.Option{Index: len(out), Kind: "color", Label: cl.name})
+			}
+		}
+		return out
+	case "copy":
+		spec := strings.TrimSpace(choices)
+		if spec == "" {
+			spec = strings.TrimSpace(validCards)
+		}
+		if spec == "" {
+			spec = "Creature.Other"
+		}
+		if !strings.Contains(spec, ".") && !strings.HasPrefix(spec, "Card") {
+			spec = "Card." + spec
+		}
+		out := []decision.Option{}
+		for _, p := range e.G.AliveFrom(0) {
+			for _, id := range e.G.Zone(state.ZBattlefield, p) {
+				o := e.G.Obj(id)
+				if o != nil && o.Face() != nil && effects.MatchesSpecFrom(e.G, spec, id, you, card) {
+					out = append(out, decision.Option{Index: len(out), Kind: "clone", Obj: id, Label: o.Face().Name})
+				}
 			}
 		}
 		return out
@@ -4291,8 +4318,34 @@ func etbChoicePrompt(kind string) string {
 		return " how this creature enters (counter or haste)"
 	case "unleash":
 		return " how this creature enters (with a +1/+1 counter or without)"
+	case "copy":
+		return " a creature to copy"
 	}
 	return " a number"
+}
+
+func etbCloneWhitelist(sa *cards.SA) bool {
+	// Keep this explicit rather than ranging over Params: the param census
+	// classifies every script parameter read, and an explicit rider list makes
+	// the supported boundary auditable.
+	return strings.TrimSpace(sa.Params["ChoiceZone"]) == "" &&
+		strings.TrimSpace(sa.Params["AddTriggers"]) == "" &&
+		strings.TrimSpace(sa.Params["AddSVars"]) == "" &&
+		strings.TrimSpace(sa.Params["Defined"]) == "" &&
+		strings.TrimSpace(sa.Params["SubAbility"]) == "" &&
+		strings.TrimSpace(sa.Params["AddAbilities"]) == "" &&
+		strings.TrimSpace(sa.Params["SetPower"]) == "" &&
+		strings.TrimSpace(sa.Params["SetToughness"]) == "" &&
+		strings.TrimSpace(sa.Params["RememberCloneOrigin"]) == "" &&
+		strings.TrimSpace(sa.Params["NonLegendary"]) == "" &&
+		strings.TrimSpace(sa.Params["NewName"]) == "" &&
+		strings.TrimSpace(sa.Params["AddStaticAbilities"]) == "" &&
+		strings.TrimSpace(sa.Params["RemoveCardTypes"]) == "" &&
+		strings.TrimSpace(sa.Params["RemoveCreatureTypes"]) == "" &&
+		strings.TrimSpace(sa.Params["CloneTarget"]) == "" &&
+		strings.TrimSpace(sa.Params["GainThisAbility"]) == "" &&
+		strings.TrimSpace(sa.Params["SetColor"]) == "" &&
+		strings.TrimSpace(sa.Params["Duration"]) == ""
 }
 
 // announcePip resolves the i-th announcement pip of a cost's hybrid →
@@ -5394,6 +5447,12 @@ func (e *Engine) etbAnswer(d *decision.Decision, chosen []decision.Option) {
 			choice = "counter"
 		}
 		e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "unleash", Text: choice})
+	case "clone":
+		ids := []state.ObjID(nil)
+		if opt.Obj != 0 {
+			ids = []state.ObjID{opt.Obj}
+		}
+		e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "clone", IDs: ids})
 	}
 	pc.etbIdx++
 }

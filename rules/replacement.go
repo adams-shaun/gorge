@@ -1329,6 +1329,13 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 	if f != nil {
 		effects.SetSVars(ctx, f.SVars)
 	}
+	if o != nil && m.repl != nil && m.repl.Params["Keyword"] == "ETBReplacement" && m.repl.With != nil && m.repl.With.API == "Clone" {
+		ctx.CloneETB = true
+		ctx.CloneBecome = ev.Obj
+		ctx.CloneBecomeValid = true
+		ctx.CloneChoiceValid = o.ETBCloneChoiceValid
+		ctx.CloneChoice = o.ETBCloneChoice
+	}
 	e.seedEffectReplCtx(ctx, m)
 	return ctx
 }
@@ -2085,7 +2092,7 @@ func (e *Engine) applyAttachedReplacement(ev events.Event) bool {
 	}
 	ch := &attachedChoice{move: ev, source: source}
 	e.attachedChoice = ch
-	opts := e.etbOptions(o.Controller, source, "name", repl.With.Params["ValidCards"], "", "")
+	opts := e.etbOptions(o.Controller, source, "name", repl.With.Params["ValidCards"], "", "", "")
 	if len(opts) <= 1 {
 		if len(opts) == 1 {
 			e.emit(events.Event{Kind: events.Choose, Obj: source, Counter: "name", Text: opts[0].Label})

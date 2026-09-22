@@ -61,11 +61,20 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 	cloneAns := c.Clone
 	cloneDone := c.CloneDone
 	c.Clone, c.CloneDone = "", false
+	if c.CloneETB {
+		// The ETB election is answered before the move. A decline is a real
+		// answer, not the deterministic Choices$ fallback.
+		if !c.CloneChoiceValid || c.CloneChoice == 0 {
+			return
+		}
+	}
 
 	// Copy SOURCE.
 	var source []state.Target
 	spec := strings.TrimSpace(sa.Params["Defined"])
 	switch {
+	case c.CloneETB:
+		source = []state.Target{{Obj: c.CloneChoice}}
 	case spec != "":
 		ts, ok := knownDefinedTargets(h, c, spec)
 		if !ok {
@@ -160,7 +169,7 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 	// keeps the deterministic take stand-in the pre-election build shipped,
 	// byte-identical (the same convention the optional-discard family
 	// records) -- a "may" that cannot ask never wedges.
-	if strings.EqualFold(strings.TrimSpace(sa.Params["Optional"]), "True") {
+	if !c.CloneETB && strings.EqualFold(strings.TrimSpace(sa.Params["Optional"]), "True") {
 		if !cloneDone {
 			prompt := "You may have a permanent become a copy?"
 			if ob := g.Obj(pairs[0].become.Obj); ob != nil && ob.Face() != nil {
@@ -361,6 +370,9 @@ func cloneParamValue(sa *cards.SA, key string) string {
 // ability's own source object) -- "this permanent becomes a copy". The
 // named forms reuse the same Defined$ referent grammar the source half uses.
 func cloneBecome(h Host, c *Ctx, sa *cards.SA) ([]state.Target, bool) {
+	if c.CloneBecomeValid {
+		return []state.Target{{Obj: c.CloneBecome}}, true
+	}
 	spec := strings.TrimSpace(sa.Params["CloneTarget"])
 	if spec == "" {
 		if c.Source == 0 {

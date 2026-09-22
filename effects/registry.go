@@ -1112,6 +1112,14 @@ type Ctx struct {
 	// behaviour is preserved for fuzz runs.
 	Clone     string
 	CloneDone bool
+	// CloneETB carries the cast/replacement ETB copy election into DB$ Clone.
+	// The answer is event-backed on the entering object, so replacement-time
+	// resolution and log-only replay use the same selected permanent.
+	CloneETB         bool
+	CloneChoice      state.ObjID
+	CloneChoiceValid bool
+	CloneBecome      state.ObjID
+	CloneBecomeValid bool
 	// TwoPiles is the answered Fact or Fiction pile-split pick (task
 	// twopiles1): the cards the Separator$ player picked into pile A, in the
 	// separator's answer order — the rest of the card set, in the order it
