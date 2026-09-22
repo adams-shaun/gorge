@@ -210,6 +210,7 @@ func effFlipCoin(h Host, c *Ctx, sa *cards.SA) {
 		loseName = strings.TrimSpace(sa.Params["TailsSubAbility"])
 	}
 	rememberLoser := strings.EqualFold(sa.Params["RememberLoser"], "True")
+	forEach := strings.TrimSpace(sa.Params["ForEachPlayer"]) != ""
 	rememberKind := ""
 	if raw := strings.TrimSpace(sa.Params["RememberNumber"]); raw != "" {
 		if k, ok := flipRememberKind(raw); ok {
@@ -234,7 +235,7 @@ func effFlipCoin(h Host, c *Ctx, sa *cards.SA) {
 		players, playerIndex, iter = rest.Players, rest.PlayerIndex, rest.Iter
 		amount, untilLose = rest.Amount, rest.UntilLose
 	} else {
-		if spec := strings.TrimSpace(sa.Params["ForEachPlayer"]); spec != "" {
+		if spec := strings.TrimSpace(sa.Params["ForEachPlayer"]); forEach {
 			ps, ok := forEachPlayerFlippers(h, c, spec)
 			if !ok {
 				return // present but unresolvable: fail closed, nobody flips
@@ -273,12 +274,11 @@ func effFlipCoin(h Host, c *Ctx, sa *cards.SA) {
 			win := h.Rand(2) == 0
 			h.Emit(FlipCoinNote(c.Source, p, win))
 			flipRecord(h, c, p, win, rememberKind)
-			if strings.TrimSpace(sa.Params["ForEachPlayer"]) != "" || rememberLoser {
+			if forEach || rememberLoser {
 				// The per-player loop binds the current flipper for the chained
-				// sub; RememberLoser$ remembers the losing flipper instead.
-				if rememberLoser && !win {
-					c.Remembered = []state.Target{{Player: p, IsPlayer: true}}
-				} else if strings.TrimSpace(sa.Params["ForEachPlayer"]) != "" {
+				// sub; RememberLoser$ remembers only the losing flipper, so a win
+				// with no per-player loop leaves Remembered untouched.
+				if forEach || !win {
 					c.Remembered = []state.Target{{Player: p, IsPlayer: true}}
 				}
 			}
