@@ -110,15 +110,13 @@ func (e *Engine) castHasNextTargetStage(pc *pendingCast, o *state.Object) bool {
 // one-instance rule); a half that lost its target does as much as possible
 // while the other still resolves.
 //
-// Narrowing: when a half SUSPENDS on a mid-resolution ask (an asking
+// Narrowing fixed: when a half SUSPENDS on a mid-resolution ask (an asking
 // primitive such as a discard or sacrifice choice), the resumed frame
-// completes THAT half through the ordinary resume machinery, but the
-// alternate half is not chained after it -- a loud Note records the dropped
-// half rather than skipping it silently. No corpus fuse half reaches an ask
-// on the fused path today (measured: the fused halves that ask -- Down //
-// Dirty, Far // Away -- name their asks in what would be the front half, and
-// the fused cast is offered for every carrier regardless); the structural
-// fix is a dedicated fused-rest continuation, filed as a follow-up.
+// completes THAT half through the ordinary resume machinery, and the
+// still-unrun halves are chained after it as a fuse-rest continuation
+// (resumeResolution's rp.fuseAlt frame) carrying each remaining half's own
+// CR 608.2b-filtered target slice -- so Down // Dirty's Dirty runs after the
+// answered discard ask exactly as it would have without the suspension.
 func (e *Engine) resolveFused(o *state.Object) {
 	ff, fa := fusedSplitFaces(o)
 	if ff == nil || fa == nil {
@@ -158,11 +156,28 @@ func (e *Engine) resolveFused(o *state.Object) {
 	}
 	e.emit(events.Event{Kind: events.Resolve, Obj: o.ID, Text: ff.Name + " // " + fa.Name})
 	e.grantSpellBlessing(o, ff)
-	for i, hf := range halves {
+	e.runFusedHalves(o, halves, sas, legalByHalf, 0, nil)
+	if e.resume == nil {
+		e.moveResolvedOffStack(o)
+	}
+}
+
+// runFusedHalves runs halves[from:] of the fused spell o -- the shared half
+// loop of resolveFused's first pass and of every fuse-rest continuation --
+// and, when a half suspends on a mid-resolution ask, chains the ordinary
+// continuation chain plus a fuse-rest frame for the still-unrun halves (each
+// carrying its own captured target slice) onto the new pending point, with
+// `outer` behind them. On suspension the caller must simply return: the
+// resolution now parks on the ask, and the fuse-rest frame's own completion
+// tail (resumeResolution's rp.fuseAlt branch) finishes the object.
+func (e *Engine) runFusedHalves(o *state.Object, halves []*cards.Face, sas []*cards.SA,
+	legalByHalf [][]state.Target, from int, outer *resumePoint) {
+	for i := from; i < len(halves); i++ {
 		sa := sas[i]
 		if sa == nil {
 			continue
 		}
+		hf := halves[i]
 		e.damaging = o.ID
 		ctx := &effects.Ctx{Source: o.ID, Controller: o.Controller,
 			Targets: legalByHalf[i], ResolvingObj: o.ID}
@@ -180,16 +195,23 @@ func (e *Engine) resolveFused(o *state.Object) {
 		e.damaging = 0
 		if e.resume != nil {
 			// Suspended mid-half: the resumed frame completes this half through
-			// the ordinary continuation chain, but the alternate half is not
-			// chained after it. Record the dropped half loudly (never silent)
-			// and hand the chain to the resume so the object still completes.
-			e.emit(events.Event{Kind: events.Note, Player: o.Controller, Obj: o.ID,
-				Text: "fuse: alternate half not run after a mid-resolution suspension"})
-			e.resume.outer = e.buildContinuationChain(e.contChain, o.ID, nil)
+			// the ordinary continuation chain, and the still-unrun halves (with
+			// their own captured target slices) follow it as a fuse-rest
+			// continuation -- never dropped, never silent. The rest frame's own
+			// outer is `outer`, the continuation the frame whose halves were
+			// running was itself carrying.
+			var tail *resumePoint
+			if i+1 < len(halves) {
+				tail = &resumePoint{obj: o.ID,
+					fuseAlt: &fusedRest{from: i + 1, halves: halves, sas: sas, targets: legalByHalf}}
+				tail.outer = outer
+			} else {
+				tail = outer
+			}
+			e.resume.outer = e.buildContinuationChain(e.contChain, o.ID, tail)
 			return
 		}
 	}
-	e.moveResolvedOffStack(o)
 }
 
 // split.go implements Forge's AlternateMode:Split split cards that are NOT

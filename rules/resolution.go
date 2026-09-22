@@ -170,6 +170,17 @@ type resumePoint struct {
 	// rest — each target-bearing one with its own split target — after the
 	// answered ask's chain completes. Nil everywhere else.
 	charmRest []string
+	// fuseAlt carries the still-unrun halves of a FUSED split spell (CR
+	// 702.101b) onto the fuse-rest continuation frame rules/split.go's
+	// runFusedHalves chains after the asking half's own continuation chain:
+	// the alternate half must run with ITS OWN CR 608.2b-filtered target
+	// slice, never the stack object's whole flat target list, so the captured
+	// per-half abilities and target slices ride the frame. It is the same
+	// pointers resolveFused computed at resolution start (before the Resolve
+	// event), so the rest runs exactly as the no-suspension path would have.
+	// Engine scratch, rebuilt by re-execution on replay. nil on every other
+	// frame.
+	fuseAlt *fusedRest
 	// rolls is the per-die results of the RollDice ask whose answer this
 	// point resumes (effects/dice.go's ChosenSVar$/OtherSVar$ choose-one-
 	// result shape, the Endeavor cycle): the asking first pass carried them
@@ -217,6 +228,18 @@ type repeatCursor struct {
 	next     int
 	last     []state.Target
 	hasLast  bool
+}
+
+// fusedRest is a fuse-rest continuation's captured remainder (CR 702.101b):
+// the halves of the fused split spell still to run, from index `from`, with
+// the per-half spell abilities and the CR 608.2b-filtered target slices
+// resolveFused computed at resolution start. Engine scratch, rebuilt by
+// re-execution on replay.
+type fusedRest struct {
+	from    int
+	halves  []*cards.Face
+	sas     []*cards.SA
+	targets [][]state.Target
 }
 
 // contFrame is one enclosing-loop suspension reported during a resolution
@@ -726,6 +749,26 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// this is unreachable in a well-formed match; it degrades to a
 		// no-op rather than panicking, the same totality stance as every
 		// other resolution exit.
+		return
+	}
+	if rp.fuseAlt != nil {
+		// A fuse-rest continuation (CR 702.101b): run the captured remaining
+		// halves of the fused split spell, each with its own filtered target
+		// slice (rules/split.go's runFusedHalves). A further suspension parks
+		// below with the rest already chained; when the last half ran
+		// unsuspended, this frame's shared completion tail runs -- the same
+		// finishResumption + priority-reset shape every outermost frame takes.
+		e.runFusedHalves(o, rp.fuseAlt.halves, rp.fuseAlt.sas, rp.fuseAlt.targets,
+			rp.fuseAlt.from, rp.outer)
+		if e.resume != nil {
+			return
+		}
+		if rp.outer != nil {
+			e.resumeResolution(rp.outer, nil)
+			return
+		}
+		e.finishResumption(rp.obj)
+		e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
 		return
 	}
 	ctx := &effects.Ctx{Source: rp.obj, Controller: o.Controller, Targets: o.Targets,
@@ -1984,7 +2027,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			e.resume.outer = e.buildContinuationChain(e.contChain, rp.obj, rp.outer)
 			return
 		}
-	} else if !parkedDraws && rp.kind != "replacement" {
+	} else if !parkedDraws && rp.kind != "replacement" && rp.fuseAlt == nil {
 		// A resume with no sub-ability recorded: normally reachable only from
 		// a hand-built Ask (every real asking primitive sets ResumeSA). Two
 		// deliberate exceptions need no Note either: a parked GainLife→Draw
