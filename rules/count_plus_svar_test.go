@@ -31,6 +31,14 @@ func TestTempleOfTheDragonQueenPlusSVarOperand(t *testing.T) {
 	playTempleLand(t, e, temple)
 	resolveTempleChoices(t, e)
 	assertTempleEntry(t, e, temple, false)
+
+	// Revealed AND controlled: the oracle's OR -- either alone satisfies, so
+	// the land still enters untapped (presence = 2, the gate is only EQ0).
+	e, _, temple = templeDragonQueenGame(t, 9404, true, true)
+	playTempleLand(t, e, temple)
+	resolveTempleChoices(t, e)
+	assertDragonWasRevealed(t, e)
+	assertTempleEntry(t, e, temple, false)
 }
 
 func templeDragonQueenGame(t *testing.T, seed uint64, reveal, control bool) (*Engine, Config, state.ObjID) {
@@ -40,16 +48,24 @@ func templeDragonQueenGame(t *testing.T, seed uint64, reveal, control bool) (*En
 	if reveal || control {
 		fixtures = append(fixtures, "Dragon Whelp")
 	}
+	if reveal && control {
+		// The fourth case needs two Whelps: one on the battlefield to
+		// control, one in hand to reveal.
+		fixtures = append(fixtures, "Dragon Whelp")
+	}
 	e, cfg := searchEngine(t, reg, fixtures...)
 	temple := searchMoveByName(t, e, "Temple of the Dragon Queen", state.ZHand)
-	if reveal {
-		searchMoveByName(t, e, "Dragon Whelp", state.ZHand)
-	}
 	if control {
+		// Move the controlled Whelp FIRST: searchMoveByName scans hand
+		// before library, so in the revealed+controlled case the battlefield
+		// move must not consume the Whelp the hand reveal needs.
 		dragon := searchMoveByName(t, e, "Dragon Whelp", state.ZBattlefield)
 		if e.G.Obj(dragon).Zone != state.ZBattlefield {
 			t.Fatalf("controlled Dragon zone = %s, want battlefield", e.G.Obj(dragon).Zone)
 		}
+	}
+	if reveal {
+		searchMoveByName(t, e, "Dragon Whelp", state.ZHand)
 	}
 	return e, cfg, temple
 }

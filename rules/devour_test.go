@@ -125,10 +125,15 @@ func TestThunderThrashElderDevourThreeCountsSixPerCreature(t *testing.T) {
 	_ = fodder
 }
 
-// TestThromokDevourXCountsOnePerCreature pins the X amount: Times.X fails
-// the count-op parser and degrades to the bare RememberedSize, which IS the
-// CR 702.83 X read -- one counter per devoured creature.
-func TestThromokDevourXCountsOnePerCreature(t *testing.T) {
+// TestThromokDevourXSquaresTheCount pins the X amount (count-plus-svar-operand,
+// round 3): `Times.X` NOW resolves the SVar operand, and Forge's own script
+// is `SVar:X:Count$RememberedSize` -- so the expansion's
+// Count$RememberedSize/Times.X reads n², which is the card oracle: "This
+// creature enters with X +1/+1 counters on it for each of those creatures"
+// = n per devoured creature (X = the number devoured). The old
+// pin (2 for 2 devoured) held only while the operand parser left Times.X
+// unresolved -- a silent zero contribution, the defect this ticket fixes.
+func TestThromokDevourXSquaresTheCount(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t,
 		corpusAlternativeCard(t, "Thromok the Insatiable"),
@@ -141,8 +146,8 @@ func TestThromokDevourXCountsOnePerCreature(t *testing.T) {
 		t.Fatalf("sacrifice ask: %+v, want the KChoose sacrifice ask", d)
 	}
 	submitChoices(t, e, d.Options[0].Index, d.Options[1].Index)
-	if got := e.G.Obj(idOf(t, e, "Thromok the Insatiable")).Counter("P1P1"); got != 2 {
-		t.Fatalf("Thromok entered with %d P1P1, want 2 (Devour X: one per devoured creature)", got)
+	if got := e.G.Obj(idOf(t, e, "Thromok the Insatiable")).Counter("P1P1"); got != 4 {
+		t.Fatalf("Thromok entered with %d P1P1, want 4 (Devour X, 2 devoured: X per creature = n²)", got)
 	}
 }
 
