@@ -62,15 +62,10 @@ func (e *Engine) finishEnteredStep() {
 				continue
 			}
 			if o.CastFlags&state.FlagSuspend == 0 {
-				// CR 701.34: a plotted card (the plot ACTION's own provenance
-				// flag) loses its time counter at its owner's upkeep too. Unlike
-				// Suspend's cast-if-able ask, a plotted card whose last counter
-				// leaves is NOT asked here: CR 701.34d's cast follows sorcery
-				// timing, so it is offered from the exile-zone walk once its
-				// owner reaches main phase with an empty stack.
-				if o.CastFlags&state.FlagPlot != 0 {
-					e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "TIME", Amount: -1})
-				}
+				// Only a card that entered exile through the Suspend action
+				// loses TIME counters. A plotted card carries none -- CR
+				// 701.34's timing is "on a later turn", not an upkeep count
+				// (rules/legal.go's exile walk reads Object.PlottedTurn).
 				continue
 			}
 			e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "TIME", Amount: -1})

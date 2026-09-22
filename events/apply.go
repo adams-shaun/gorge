@@ -168,14 +168,31 @@ func Apply(g *state.Game, e Event) {
 		// exploited creature. A declined optional sacrifice records nothing.
 
 	case AlterAttribute:
-		// The AlterAttribute fold (task alterattr1): the engine models exactly
-		// one attribute, "Suspected" (CR 702.157). Text names the attribute so
-		// a future modelled one extends this switch without an event-schema
-		// change; an unmodelled name never reaches Apply (the effect emits its
-		// loud unsupported-attribute Note instead of an event), so the fall
+		// The AlterAttribute fold (task alterattr1): the engine models the
+		// "Suspected" (CR 702.157) and "Plotted" (CR 701.34, task kw-plot)
+		// attributes. Text names the attribute so a future modelled one
+		// extends this switch without an event-schema change; an unmodelled
+		// name never reaches Apply (the effect emits its loud
+		// unsupported-attribute Note instead of an event), so the fall
 		// through to no fold is replay-safe. Amount 1 grants, -1 removes.
-		if o := g.Obj(e.Obj); o != nil && e.Text == "Suspected" {
-			o.Suspected = e.Amount >= 1
+		if o := g.Obj(e.Obj); o != nil {
+			switch e.Text {
+			case "Suspected":
+				o.Suspected = e.Amount >= 1
+			case "Plotted":
+				// CR 701.34c: the plotted designation on an exiled card. The
+				// grant stamps PlottedTurn with the CURRENT turn so the free
+				// cast's "on a later turn" gate (rules/legal.go's exile walk)
+				// can compare e.G.Turn against it; a removal (-1) clears it.
+				// The turn is read from the game, never carried on the event,
+				// exactly like Enlist's EnlistedTurn stamp -- a log-only
+				// replay re-derives the same value.
+				if e.Amount >= 1 {
+					o.PlottedTurn = g.Turn
+				} else {
+					o.PlottedTurn = 0
+				}
+			}
 		}
 
 	case Enlist:
@@ -772,9 +789,13 @@ func Apply(g *state.Game, e Event) {
 			clearRingBearers(g, e.Obj)
 			// CR 702.157b: the suspected designation has the same shape -- it
 			// ends the moment the permanent leaves the battlefield; a later
-			// battlefield entry never inherits one.
+			// battlefield entry never inherits one. The Plotted designation
+			// (CR 701.34) has the same end condition on a permanent (the
+			// exile case is Move's own leaving-exile clear, the plot ACTION's
+			// path).
 			if o := g.Obj(e.Obj); o != nil {
 				o.Suspected = false
+				o.PlottedTurn = 0
 			}
 		}
 
@@ -2254,6 +2275,14 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		for i := range g.Objs {
 			g.Objs[i].ExiledCards = withoutObjID(g.Objs[i].ExiledCards, id)
 			g.Objs[i].ExileReturn = withoutExileReturnObj(g.Objs[i].ExileReturn, id)
+		}
+		// CR 701.34c: a plotted card is no longer plotted once it leaves
+		// exile (cast from exile to the stack, or moved on by any effect), so
+		// the free-cast permission cannot revive on a later return to exile.
+		// The exile-departure clear is the one home for this: every leaving
+		// path (MoveZone, Draw and PutOnStack all call Move) runs it.
+		if o := g.Obj(id); o != nil {
+			o.PlottedTurn = 0
 		}
 	}
 	if wasBattlefield && to != state.ZBattlefield {

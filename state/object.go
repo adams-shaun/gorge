@@ -258,17 +258,6 @@ const (
 	// include casts made before the carrier entered, which emit no event.
 	// Appended per the enum's own append-only precedent.
 	FlagManaExpendCast
-	// FlagPlot marks a card exiled by its Plot ACTION (CR 701.34a): the
-	// alternative action paid the K:Plot colon parameter and moved the card
-	// hand->exile with TIME counters equal to its mana value. It is the
-	// provenance the owner's upkeep decrement (rules/turn.go) and the later
-	// free plot-cast offer (rules/legal.go's exile walk) read, so an
-	// arbitrary exiled Plot carrier -- one some other effect exiled -- is
-	// never treated as plotted. The later plot_cast clears it (the
-	// suspendCastClear shape), so the standing permission cannot revive
-	// after the card leaves exile. Appended per the enum's own append-only
-	// precedent.
-	FlagPlot
 )
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the
@@ -413,6 +402,17 @@ type Object struct {
 	// CloneDeep carries it, and only events.AlterAttribute (the primitive the
 	// api:AlterAttribute effect emits) may set it.
 	Suspected bool
+
+	// PlottedTurn stamps the turn a card gained CR 701.34's plotted
+	// designation (0 = not plotted), via the events.AlterAttribute fold -- the
+	// plot ACTION (rules/cast.go) and the corpus's DB$ AlterAttribute |
+	// Attributes$ Plotted family both grant it. The designation is pure
+	// provenance for the free cast's "on a later turn" gate (rules/legal.go's
+	// exile walk compares Game.Turn against it); it ends when the card leaves
+	// exile (events.Apply's Move), the CR 701.34c end condition, so a later
+	// return to exile cannot revive the permission. A plain value copy in
+	// CloneDeep carries it.
+	PlottedTurn int32
 
 	// Timestamp orders continuous effects. Assigned from Game.Clock whenever
 	// the object enters the battlefield.

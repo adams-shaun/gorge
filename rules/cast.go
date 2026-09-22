@@ -2237,12 +2237,10 @@ func (e *Engine) continueCast() {
 	}
 	// FlagSuspend is exile provenance, not cast-time state. Clear it when the
 	// mandatory free cast starts so a later unrelated exile move cannot revive
-	// an old suspension. FlagPlot (CR 701.34) rides the same shape: the
-	// plotted card's later free cast clears it, so the standing cast
-	// permission cannot revive once the card has been cast. The two modes
-	// share the one suspendCastClear latch -- each is a different mode, so
-	// the latch can never serve the same cast twice.
-	if (e.cast.mode == "suspend_cast" || e.cast.mode == "plot_cast") && !e.cast.suspendCastClear {
+	// an old suspension. Plot needs no equivalent: its designation is
+	// Object.PlottedTurn, and the exile-departure clear in events.Apply's Move
+	// already drops it as the card leaves exile for the stack (CR 701.34c).
+	if e.cast.mode == "suspend_cast" && !e.cast.suspendCastClear {
 		e.emit(events.Event{Kind: events.CastInfo, Obj: e.cast.card})
 		e.cast.suspendCastClear = true
 	}
@@ -6190,22 +6188,18 @@ func (e *Engine) payCast() {
 		return
 	}
 	if pc.mode == "plot" {
-		// CR 701.34a: the plot ACTION is not a cast. CastInfo is the replayable
-		// provenance marker -- only this action sets FlagPlot, so an arbitrary
-		// exiled Plot carrier is never treated as plotted -- and the exile card
-		// takes TIME counters equal to its MANA VALUE (the count the CR fixes;
-		// measured, no K:Plot carrier's mana value carries {X}). The guard
-		// mirrors the suspend branch's: a zero-MV carrier exiles with no
-		// counter event at all.
-		n := int32(0)
-		if o := e.G.Obj(pc.card); o != nil && o.Face() != nil {
-			n = o.Face().Cmc()
-		}
-		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Counter: events.FlagsString(state.FlagPlot)})
+		// CR 701.34a/b: the plot ACTION is not a cast. It pays the K:Plot
+		// colon parameter, exiles the card face up, and gives it the plotted
+		// designation -- NO counters (that is Suspend's mechanic): the free
+		// cast's only timing restriction is CR 701.34b's "on a later turn",
+		// so the designation is recorded as an events.AlterAttribute grant,
+		// folded into Object.PlottedTurn with the CURRENT turn (the Enlist
+		// turn-stamp shape). An arbitrary exiled Plot carrier is never
+		// offered the cast: it carries no PlottedTurn, and only this action
+		// (and the corpus's DB$ AlterAttribute | Attributes$ Plotted family,
+		// once the effect side models it) grants the designation.
 		e.emit(events.Event{Kind: events.MoveZone, Obj: pc.card, From: pc.from, To: state.ZExile, Text: "plotted"})
-		if n > 0 {
-			e.emit(events.Event{Kind: events.CounterChange, Obj: pc.card, Counter: "TIME", Amount: n})
-		}
+		e.emit(events.Event{Kind: events.AlterAttribute, Obj: pc.card, Text: "Plotted", Amount: 1})
 		e.cast, e.choosing = nil, chooseNone
 		return
 	}
@@ -6856,11 +6850,12 @@ func init() {
 		"kw:Gravestorm",
 		"kw:Embalm", "kw:Eternalize",
 		// kw:Plot: CR 701.34, the hand-origin alternative ACTION -- pay the
-		// K:Plot colon parameter, exile the card with TIME counters equal to
-		// its mana value, remove one at the owner's upkeep, and offer a free
-		// cast at sorcery timing once the last counter is gone (the exile-zone
-		// walk; no upkeep ask, unlike Suspend's cast-if-able). No keyword
-		// expansion: the K:Plot line is read directly. Proof:
+		// K:Plot colon parameter, exile the card face up with the plotted
+		// designation stamped with the current turn (NO counters: the free
+		// cast's only restriction is CR 701.34b's "on a later turn"), and
+		// offer a free cast at sorcery timing from a later turn onward (the
+		// exile-zone walk; no upkeep ask, unlike Suspend's cast-if-able). No
+		// keyword expansion: the K:Plot line is read directly. Proof:
 		// rules/plot_test.go.
 		"kw:Plot")
 }

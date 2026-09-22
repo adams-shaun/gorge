@@ -1477,12 +1477,14 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			}
 		}
 		// Plot (CR 701.34a): the alternative ACTION pays the K: line's colon
-		// parameter and exiles the card with TIME counters equal to its mana
-		// value. "Plot only as a sorcery" is the engine's own sorcery-speed
-		// bool -- unlike the plain cast above, which follows the face's own
-		// type timing, even an instant's plot action waits for its controller's
-		// main phase with an empty stack. No target ask: the action itself only
-		// exiles; the later plot_cast announces its own targets.
+		// parameter and exiles the card with the plotted designation -- NO
+		// counters (the K:Plot token is the COST {generic}+{colour}, never a
+		// counter count). "Plot only as a sorcery" is the engine's own
+		// sorcery-speed bool -- unlike the plain cast above, which follows the
+		// face's own type timing, even an instant's plot action waits for its
+		// controller's main phase with an empty stack. No target ask: the
+		// action itself only exiles; the later plot_cast announces its own
+		// targets. The free cast's later-turn gate lives in Object.PlottedTurn.
 		if raw, ok := f.KeywordParam("Plot"); ok && sorcery &&
 			offerCastable(p, id, ParseCost(raw), spellScope("plot"), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
@@ -1897,18 +1899,21 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 					Label: "Cast " + f.Name + " (foretold)", Obj: id, Mode: "foretell_cast"})
 			}
 		}
-		// Plot's free cast (CR 701.34d): a card exiled by the plot ACTION (the
-		// flag is the action's own provenance marker) whose last TIME counter
-		// is gone may be cast from exile without paying its mana cost, for as
-		// long as it remains exiled. Unlike Suspend's one-shot upkeep ask, this
-		// is a STANDING permission that follows SORCERY timing whatever the
-		// face's own type is -- even a plotted instant waits for its owner's
-		// main phase with an empty stack -- so the gate is the engine's
-		// sorcery-speed bool plus the face's activation-phase gates, re-offered
-		// every priority round the permission holds. The offer sits BEFORE the
-		// warp gate's continue, the foretell block's own reason.
-		if _, ok := f.KeywordParam("Plot"); ok && o.CastFlags&state.FlagPlot != 0 &&
-			o.Counter("TIME") == 0 && !castRestricted(p, id) && !e.castSuppressed(p, id) &&
+		// Plot's free cast (CR 701.34b): a card carrying the plotted
+		// designation (Object.PlottedTurn, the AlterAttribute fold; only the
+		// plot ACTION and the corpus's own Attribute grants set it, so an
+		// arbitrary exiled Plot carrier is never offered) may be cast from
+		// exile without paying its mana cost "on a later turn" -- strictly
+		// after the turn it became plotted, NOT after a counter count (Plot
+		// has no counters; that is Suspend's mechanic). It is a STANDING
+		// permission that follows SORCERY timing whatever the face's own type
+		// is -- even a plotted instant waits for its owner's main phase with
+		// an empty stack -- so the gate is the engine's sorcery-speed bool
+		// plus the face's activation-phase gates, re-offered every priority
+		// round the permission holds. The offer sits BEFORE the warp gate's
+		// continue, the foretell block's own reason.
+		if _, ok := f.KeywordParam("Plot"); ok && o.PlottedTurn > 0 &&
+			e.G.Turn > o.PlottedTurn && !castRestricted(p, id) && !e.castSuppressed(p, id) &&
 			sorcery && e.spellTimingOK(p, id, f, true) &&
 			e.castTargetsAvailable(p, id, f.SpellAbility()) {
 			if offerCastable(p, id, Cost{}, spellScope("plot_cast"), false) {
