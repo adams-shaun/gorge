@@ -94,6 +94,26 @@ func init() { Register("Token", effToken) }
 // know the spelling at all, which is the caller's signal to keep the
 // controller and say so.
 func tokenOwnerPlayers(h Host, c *Ctx, spec string) ([]state.PlayerID, bool) {
+	// TargetedController is evaluated from the target's LKI. The target may
+	// have been destroyed by the parent SA before this chained Token runs;
+	// events.Apply intentionally resets a departed object's live Controller to
+	// Owner, so prefer the controller captured when Resolve began.
+	if spec == "TargetedController" && c != nil && c.TargetControllerLKI != nil {
+		owners := make([]state.PlayerID, 0, len(c.Targets))
+		for _, target := range c.Targets {
+			if target.IsPlayer {
+				continue
+			}
+			if controller, ok := c.TargetControllerLKI[target.Obj]; ok {
+				owners = append(owners, controller)
+				continue
+			}
+			if object := h.Game().Obj(target.Obj); object != nil {
+				owners = append(owners, object.Controller)
+			}
+		}
+		return owners, true
+	}
 	ts, ok := definedSpec(h, c, spec)
 	if !ok {
 		return nil, false

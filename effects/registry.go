@@ -560,7 +560,13 @@ type Ctx struct {
 	Source     state.ObjID
 	Controller state.PlayerID
 	Targets    []state.Target
-	Remembered []state.Target
+	// TargetControllerLKI captures each object target's controller at the
+	// start of resolution. A target may leave the battlefield before a
+	// chained TokenOwner$ TargetedController is evaluated; events.Apply then
+	// resets its live Controller to Owner, so the live object is no longer the
+	// CR 608.2h last-known controller.
+	TargetControllerLKI map[state.ObjID]state.PlayerID
+	Remembered          []state.Target
 	// TargetsOffered marks that the resolution's OWN ValidTgts$ targeting was
 	// already offered at announcement (rules' resolveTop sets it on both the
 	// ability and the spell branch, exactly for the SA the placement ask
@@ -1525,6 +1531,20 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 	if c != nil {
 		c.Host = h
 		c.numericRHS = c.X != 0 || len(c.SVars) > 0
+		// Capture target controllers before the first effect can move a target.
+		// Keep an existing map on re-entry: it is the earlier battlefield state,
+		// not the current (possibly reset) object, that TokenOwner needs.
+		if c.TargetControllerLKI == nil {
+			c.TargetControllerLKI = make(map[state.ObjID]state.PlayerID)
+			for _, target := range c.Targets {
+				if target.IsPlayer {
+					continue
+				}
+				if object := h.Game().Obj(target.Obj); object != nil {
+					c.TargetControllerLKI[target.Obj] = object.Controller
+				}
+			}
+		}
 	}
 	reg := registry.load()
 	for d := 0; sa != nil && d < maxChain; d, sa = d+1, sa.Sub {

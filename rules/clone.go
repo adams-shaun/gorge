@@ -600,6 +600,13 @@ func clonePendingTriggers(src []pendingTrigger) []pendingTrigger {
 	for i, pt := range src {
 		pt.Ctx.Targets = append([]state.Target(nil), pt.Ctx.Targets...)
 		pt.Ctx.Remembered = append([]state.Target(nil), pt.Ctx.Remembered...)
+		if pt.Ctx.TargetControllerLKI != nil {
+			m := make(map[state.ObjID]state.PlayerID, len(pt.Ctx.TargetControllerLKI))
+			for id, controller := range pt.Ctx.TargetControllerLKI {
+				m[id] = controller
+			}
+			pt.Ctx.TargetControllerLKI = m
+		}
 		if pt.Ctx.SVars != nil {
 			m := make(map[string]string, len(pt.Ctx.SVars))
 			for k, v := range pt.Ctx.SVars {

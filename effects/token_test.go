@@ -247,6 +247,45 @@ func TestTokenOwnerTargetedControllerStaysWithTheTargetsController(t *testing.T)
 // token rather than only the resolving controller. This is the fan-out the
 // shared resolver gives for free -- it is why the fix is a class fix, not a
 // TargetedController special case.
+// TestTokenOwnerTargetedControllerUsesControllerLKI covers a stolen target:
+// the target's owner is seat 0 but its controller is seat 1. Destroy resets
+// the live object controller to the owner before the chained Token resolves;
+// the token must still be created for the pre-destruction controller.
+func TestTokenOwnerTargetedControllerUsesControllerLKI(t *testing.T) {
+	h := newHost(t, 2)
+	h.g.Tokens = tokenFixtures(t)
+	victim := h.g.AddObject(mkCard(t, "Name:Stolen Relic\nTypes:Artifact\nOracle:x\n"), 0)
+	victim.Zone = state.ZBattlefield
+	victim.Controller = 1
+	h.g.SetZone(state.ZBattlefield, 1, append(h.g.Zone(state.ZBattlefield, 1), victim.ID))
+	if o := h.g.Obj(victim.ID); o == nil || o.Zone != state.ZBattlefield || o.Owner != 0 || o.Controller != 1 {
+		t.Fatalf("precondition: victim = %+v, want owner 0/controller 1 on battlefield", o)
+	}
+
+	card := mkCard(t, "Name:Generous Gift\nManaCost:2 W\nTypes:Instant\n"+
+		"A:SP$ Destroy | ValidTgts$ Permanent | SubAbility$ DBToken\n"+
+		"SVar:DBToken:DB$ Token | TokenScript$ r_1_1_goblin | TokenOwner$ TargetedController\n"+
+		"Oracle:x\n")
+	c := &Ctx{Source: victim.ID, Controller: 0, Targets: []state.Target{{Obj: victim.ID}}}
+	Resolve(h, c, card.Faces[0].Abilities[0])
+
+	if o := h.g.Obj(victim.ID); o == nil || o.Zone != state.ZGraveyard {
+		t.Fatalf("victim = %+v, want graveyard after Destroy", o)
+	}
+	bf := h.g.Zone(state.ZBattlefield, 1)
+	if len(bf) != 1 {
+		t.Fatalf("target controller battlefield = %v, want one token", bf)
+	}
+	if own := h.g.Zone(state.ZBattlefield, 0); len(own) != 0 {
+		t.Fatalf("owner/caster battlefield = %v, want empty", own)
+	}
+	for _, ev := range h.log {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "unrecognized TokenOwner") {
+			t.Fatalf("TargetedController emitted fallback Note: %q", ev.Text)
+		}
+	}
+}
+
 func TestTokenOwnerPlayerResolvesEveryAlivePlayer(t *testing.T) {
 	for _, seats := range []int{2, 4} {
 		h := newHost(t, seats)
@@ -267,6 +306,25 @@ func TestTokenOwnerPlayerResolvesEveryAlivePlayer(t *testing.T) {
 			if ev.Kind == events.Note && strings.Contains(ev.Text, "unrecognized TokenOwner") {
 				t.Fatalf("seats=%d: TokenOwner$ Player fell back with a Note: %q", seats, ev.Text)
 			}
+		}
+	}
+}
+
+// TestTokenOwnerPlayerSkipsAnEliminatedSeat preserves the Player selector's
+// fan-out contract: eliminated seats do not receive a token.
+func TestTokenOwnerPlayerSkipsAnEliminatedSeat(t *testing.T) {
+	h := newHost(t, 4)
+	h.g.Tokens = tokenFixtures(t)
+	h.g.Players[2].Lost = true
+	Resolve(h, &Ctx{Controller: 0}, &cards.SA{Kind: "DB", API: "Token",
+		Params: map[string]string{"TokenScript": "r_1_1_goblin", "TokenOwner": "Player"}})
+	for p := state.PlayerID(0); p < 4; p++ {
+		want := 1
+		if p == 2 {
+			want = 0
+		}
+		if got := len(h.Game().Zone(state.ZBattlefield, p)); got != want {
+			t.Fatalf("player %d battlefield = %v, want %d token(s)", p, h.Game().Zone(state.ZBattlefield, p), want)
 		}
 	}
 }
