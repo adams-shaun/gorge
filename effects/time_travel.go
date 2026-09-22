@@ -28,7 +28,10 @@ func effTimeTravel(h Host, c *Ctx, sa *cards.SA) {
 	if amount < 1 {
 		return
 	}
-	objects := timeTravelObjects(h.Game(), c.Controller)
+	objects := c.TimeTravelObjects
+	if len(objects) == 0 {
+		objects = timeTravelObjects(h.Game(), c.Controller)
+	}
 	if len(objects) == 0 {
 		return
 	}
@@ -61,10 +64,17 @@ func effTimeTravel(h Host, c *Ctx, sa *cards.SA) {
 
 	for idx < len(objects) {
 		id := objects[idx]
+		if !timeTravelEligible(h.Game(), id, c.Controller) {
+			idx++
+			continue
+		}
 		d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose,
 			Min: 1, Max: 1, Source: c.Source,
 			ResumeKind: "time_travel", ResumeSA: sa,
-			ResumeTarget: (round << 16) | idx,
+			// The low 32 bits carry the snapshot index; the repetition is in
+			// the high bits. The rules resume frame stores the offered object
+			// list separately, so removals cannot shift this cursor.
+			ResumeTarget: (round << 32) | idx,
 			Prompt:       "Time travel: add or remove a time counter?"}
 		d.Options = append(d.Options,
 			decision.Option{Index: 0, Kind: "time_travel_skip", Label: "Skip", Obj: id},
@@ -82,7 +92,9 @@ func effTimeTravel(h Host, c *Ctx, sa *cards.SA) {
 	if round+1 < amount {
 		for round++; round < amount; round++ {
 			for _, id := range objects {
-				applyTimeTravel(h, id, "time_travel_skip")
+				if timeTravelEligible(h.Game(), id, c.Controller) {
+					applyTimeTravel(h, id, "time_travel_skip")
+				}
 			}
 		}
 	}
@@ -95,7 +107,7 @@ func timeTravelObjects(g *state.Game, controller state.PlayerID) []state.ObjID {
 	// treated as suspended.
 	for _, id := range g.Zone(state.ZExile, controller) {
 		o := g.Obj(id)
-		if o != nil && o.Owner == controller && o.CastFlags&state.FlagSuspend != 0 && o.Counter("TIME") > 0 {
+		if o != nil && o.Owner == controller && o.CastFlags&state.FlagSuspend != 0 {
 			out = append(out, id)
 		}
 	}
@@ -108,9 +120,28 @@ func timeTravelObjects(g *state.Game, controller state.PlayerID) []state.ObjID {
 	return out
 }
 
+func timeTravelEligible(g *state.Game, id state.ObjID, controller state.PlayerID) bool {
+	o := g.Obj(id)
+	if o == nil {
+		return false
+	}
+	if o.Zone == state.ZExile {
+		return o.Owner == controller && o.CastFlags&state.FlagSuspend != 0
+	}
+	return o.Zone == state.ZBattlefield && o.Controller == controller && o.Counter("TIME") > 0
+}
+
 func applyTimeTravel(h Host, id state.ObjID, choice string) {
 	o := h.Game().Obj(id)
-	if o == nil || o.Counter("TIME") <= 0 {
+	if o == nil {
+		return
+	}
+	// A suspended card may receive its first TIME counter. Battlefield
+	// permanents, by contrast, are eligible only while they already have one.
+	if o.Zone == state.ZBattlefield && o.Counter("TIME") <= 0 {
+		return
+	}
+	if o.Zone != state.ZBattlefield && (o.Zone != state.ZExile || o.CastFlags&state.FlagSuspend == 0) {
 		return
 	}
 	switch strings.TrimSpace(choice) {

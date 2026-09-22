@@ -97,7 +97,9 @@ type resumePoint struct {
 	// captured with replaced so a body that suspends before its move still
 	// labels that move a sacrifice or discard on the resume.
 	action string
-	before *triggerSnapshot // immutable look-back if a batch replacement suspends
+	// timeTravelObjects is the stable object snapshot for a TimeTravel pass.
+	timeTravelObjects []state.ObjID
+	before            *triggerSnapshot // immutable look-back if a batch replacement suspends
 	// target is Dig's index into its deterministic Defined$ target list. It
 	// keeps a resumed answer attached to the library that actually asked.
 	target int
@@ -375,6 +377,12 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 		fusedTargetsSet: e.fusedResolvingSet,
 		fusedSVars:      e.fusedResolvingSVars,
 		winPaidX:        e.windowPaidX}
+	if d.ResumeKind == "time_travel" {
+		e.resume.timeTravelObjects = make([]state.ObjID, 0, len(d.Options))
+		for _, option := range d.Options {
+			e.resume.timeTravelObjects = append(e.resume.timeTravelObjects, option.Obj)
+		}
+	}
 	return true
 }
 
@@ -1782,8 +1790,9 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				ctx.TimeTravelChoice = chosen[0].Kind
 			}
 			ctx.TimeTravelDone = true
-			ctx.TimeTravelRound = rp.target >> 16
-			ctx.TimeTravelIndex = rp.target & 0xffff
+			ctx.TimeTravelRound = rp.target >> 32
+			ctx.TimeTravelIndex = int(rp.target & 0xffffffff)
+			ctx.TimeTravelObjects = append([]state.ObjID(nil), rp.timeTravelObjects...)
 		case "move_counter":
 			// A MoveCounter CounterNum$ Any amount pick was answered: how many
 			// counters of the chosen kind to move. The option's Amount carries

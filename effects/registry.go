@@ -1091,9 +1091,11 @@ type Ctx struct {
 	// nested MoveCounter cannot inherit the outer answers.
 	MoveCounterKind string
 	// TimeTravelChoice is the answered per-object add/remove/skip election.
-	// The index and round are encoded into Decision.ResumeTarget so a fresh
-	// resume context can continue the deterministic object walk.
+	// TimeTravelObjects is the stable per-round snapshot captured by the rules
+	// resume point; it prevents removing a counter from shifting the next
+	// object's cursor when the live eligible set is recomputed.
 	TimeTravelChoice    string
+	TimeTravelObjects   []state.ObjID
 	TimeTravelIndex     int
 	TimeTravelRound     int
 	TimeTravelDone      bool
