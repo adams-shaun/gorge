@@ -171,6 +171,13 @@ func scaleCost(c Cost, n int32) Cost {
 		out.Colored[i] = c.Colored[i] * n
 	}
 	out.Generic, out.Life = c.Generic*n, c.Life*n
+	// CR 702.24a / CR 107.4h: the upkeep cost is paid once per age counter, so a
+	// {S} pip must count once per counter too. Snow is a first-class cost
+	// component (rules/mana.go's ParseCost), not a generic substitute, so it is
+	// scaled like the mana it is -- without this a snow cumulative upkeep's
+	// requirement vanished at the second age counter and the permanent could be
+	// kept for free.
+	out.Snow = c.Snow * n
 	for i := int32(0); i < n; i++ {
 		out.Hybrid = append(out.Hybrid, c.Hybrid...)
 		out.Phyrexian = append(out.Phyrexian, c.Phyrexian...)

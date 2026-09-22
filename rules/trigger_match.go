@@ -179,6 +179,22 @@ type pendingTrigger struct {
 	// Defined$ TriggeredBlockerLKICopy reads at resolution. Idx and SA are
 	// unset for it.
 	Flanking bool
+	// Cumulative is a GRANTED cumulative-upkeep cost (CR 702.24 via a layer-6
+	// AddKeyword$ Cumulative upkeep:<cost> -- Breath of Dreams, Mana Chains,
+	// Decomposition -- or an A:AB$ Pump's KW$ Cumulative upkeep:<cost> --
+	// Balduvian Shaman, Dreams of the Dead): the Ward/Afflict/Flanking shape.
+	// A permanent granted the keyword has no printed K:Cumulative upkeep
+	// expansion trigger to carry the beginning-of-upkeep age-counter and
+	// pay/sacrifice window, so checkGrantedCumulativeUpkeepTriggers
+	// synthesizes the ordinary Phase trigger and the drain pushes a
+	// KeywordTriggerPush whose __kwCumulativeUpkeepGranted:<cost> payload
+	// events.Apply rebuilds into the same DB$ CumulativeUpkeep | Cost$ <cost>
+	// ability the printed K:Cumulative upkeep expansion carries. The field is
+	// the parsed-out upkeep COST text (the display suffix after a second colon
+	// stripped, exactly as cards/kw_cumulativeupkeep.go strips it). Idx and SA
+	// are unset for it; unlike Ward/Afflict it carries no Ctx roles (the
+	// trigger reads only the permanent and its controller).
+	Cumulative string
 	// RingEmblem is one of the Ring emblem's four level abilities (CR
 	// 701.54c), queued by checkRingEmblemTriggers. The emblem has no face
 	// and no object in any zone, so like Ward/Afflict this entry carries
@@ -956,6 +972,8 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				case events.MoveZone:
 					e.checkGrantedExploitTriggers(observer, id, o, f, ev, objLKI)
 					e.checkGrantedOffspringTriggers(observer, id, o, f, ev, objLKI)
+				case events.StepChange:
+					e.checkGrantedCumulativeUpkeepTriggers(observer, id, o, f, ev, objLKI)
 				}
 			}
 			e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid, split, leaving)
@@ -1300,6 +1318,11 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		// trigger carrying the training grant) -- the early-return path above
 		// reaches this object through checkGrantedTrainingTriggers's own call.
 		e.checkGrantedTrainingTriggers(observer, id, o, f, ev, objLKI)
+		// A granted cumulative upkeep must fire at the beginning of the
+		// controller's upkeep even when the object's own printed triggers are
+		// live for this step change -- the same both-paths rule Afflict,
+		// Conspire, Exploit, Offspring and Training follow.
+		e.checkGrantedCumulativeUpkeepTriggers(observer, id, o, f, ev, objLKI)
 	})
 	for _, n := range phaseNotes {
 		e.emit(events.Event{Kind: events.Note, Obj: n.id,

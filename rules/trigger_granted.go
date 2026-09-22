@@ -801,3 +801,121 @@ type triggerCastAlt struct {
 	spec     string
 	exclSelf bool
 }
+
+// checkGrantedCumulativeUpkeepTriggers synthesizes the beginning-of-upkeep
+// cumulative-upkeep trigger (CR 702.24a) for a permanent that currently HAS
+// the keyword but does not PRINT it: a layer-6 AddKeyword$ Cumulative
+// upkeep:<cost> grant (Breath of Dreams, Mana Chains, Decomposition) or an
+// A:AB$ Pump's KW$ Cumulative upkeep:<cost> grant (Balduvian Shaman, Dreams
+// of the Dead) gives the permanent the same rules text a printed
+// K:Cumulative upkeep line would, and keyword expansion (cards/
+// kw_cumulativeupkeep.go) only adds the Phase trigger for printed lines.
+// Without this walk the granted permanent never accrues an age counter and
+// is never asked to pay or be sacrificed -- the player's upkeep simply
+// passes.
+//
+// The synthesized trigger reuses the printed expansion's exact shape
+// (Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | TriggerZones$
+// Battlefield; DB$ CumulativeUpkeep | Cost$ <cost>), so its behaviour is
+// byte-identical to the printed path's: rules/stack.go's Stack resolution
+// reads o.Ability.API == "CumulativeUpkeep" and startCumulativeUpkeep reads
+// the Cost$ param, exactly as for a printed line. The union of printed and
+// granted keywords is a read-only derived-characteristics check (the
+// Dethrone/Afflict/Flanking precedent); granting stays in the
+// continuous-effect system, and nothing here mutates state.
+//
+// Dedup uses the Afflict rule, not the Dethrone one: every DISTINCT granted
+// instance whose exact text no printed line already carries is its own
+// trigger (CR 702.24a's "if a permanent has multiple instances of cumulative
+// upkeep, each triggers separately"), so a printed Cumulative upkeep:1 that
+// is also granted Cumulative upkeep:2 fires both. A grant identical to a
+// printed line is skipped -- the printed expansion already owns it, and the
+// two are indistinguishable as strings.
+//
+// Runs on BOTH the faceMayTrigger early-return path and the full path (a
+// granted keyword is independent of printed triggers, the same both-paths
+// rule Afflict/Conspire/Training follow). Cheap gates first: the walk is
+// invoked for every object the event visits, so reject everything but a
+// battlefield object on a step change before any derived-characteristics
+// read.
+func (e *Engine) checkGrantedCumulativeUpkeepTriggers(observer *Engine, id state.ObjID, o *state.Object, f *cards.Face, ev events.Event, objLKI *state.Object) {
+	if ev.Kind != events.StepChange || o.Zone != state.ZBattlefield {
+		return
+	}
+	costs := observer.grantedCumulativeCosts(id, f)
+	if len(costs) == 0 {
+		return
+	}
+	t := cards.Trigger{Mode: "Phase", Params: map[string]string{
+		"Mode": "Phase", "Phase": "Upkeep", "ValidPlayer": "You", "TriggerZones": "Battlefield",
+	}}
+	if !observer.triggerMatches(t, id, ev, objLKI) {
+		return
+	}
+	for _, cost := range costs {
+		key := triggerKey{Source: id, Idx: -1}
+		if e.triggerFireCount == nil {
+			e.triggerFireCount = map[triggerKey]int32{}
+		}
+		if e.triggerFireCount[key] >= maxTriggerFires {
+			return // cascade bound: see maxTriggerFires.
+		}
+		e.triggerFireCount[key]++
+		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+			Source:     id,
+			Controller: o.Controller,
+			Cumulative: cost,
+			Ctx: effects.Ctx{
+				Source:         id,
+				Controller:     o.Controller,
+				LKI:            objLKI,
+				TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
+			},
+		})
+	}
+}
+
+// grantedCumulativeCosts returns the upkeep cost of every cumulative-upkeep
+// instance the object currently HAS but does not PRINT, in deterministic
+// derived-keyword order. Each returned string is the Forge Cost$ text with
+// its trailing display suffix stripped (cards/kw_cumulativeupkeep.go cuts the
+// same way): "Cumulative upkeep:PayLife<1>:Pay 1 life." yields "PayLife<1>",
+// "Cumulative upkeep:S" yields "S", and a bare "Cumulative upkeep" yields the
+// empty string. A nil result means no granted instance (the whole object is
+// skipped, so a printed-only permanent never reaches the synthesis).
+func (e *Engine) grantedCumulativeCosts(id state.ObjID, f *cards.Face) []string {
+	var printed map[string]bool
+	for _, k := range f.Keywords {
+		if strings.EqualFold(cards.KeywordHead(k), "Cumulative upkeep") {
+			if printed == nil {
+				printed = map[string]bool{}
+			}
+			printed[strings.ToLower(k)] = true
+		}
+	}
+	var out []string
+	for _, k := range e.Derived(id).Keywords {
+		if !strings.EqualFold(cards.KeywordHead(k), "Cumulative upkeep") {
+			continue
+		}
+		if printed[strings.ToLower(k)] {
+			continue
+		}
+		param := ""
+		if j := strings.IndexByte(k, ':'); j >= 0 {
+			param = strings.TrimSpace(k[j+1:])
+		}
+		cost, _, _ := strings.Cut(param, ":")
+		cost = strings.TrimSpace(cost)
+		if cost == "" {
+			// A bare `Cumulative upkeep` grant (no cost field) still triggers:
+			// encode its zero cost as "0" so pendingTrigger.Cumulative is
+			// non-empty and the pushTrigger guard can tell it from an absent
+			// grant (the Ward/Afflict `!= ""` convention). ParseCost("0") is
+			// the same empty cost ParseCost("") is.
+			cost = "0"
+		}
+		out = append(out, cost)
+	}
+	return out
+}
