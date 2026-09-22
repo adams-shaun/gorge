@@ -1191,6 +1191,19 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 	if spec == "" {
 		spec = "Card" // the whole hand: Brainstorm, Jace's [0], Sawtooth Loon
 	}
+	// A leading `Permanent` base in a HAND-origin move must read Forge's
+	// "permanent CARD" (nta1): every candidate here is a card in a hand, so
+	// the shared matcher's on-the-battlefield base reading (matchesBase)
+	// can never be what the script meant -- `ChangeType$ Permanent...` from
+	// hand matched NOTHING and the whole walk was a silent no-op (Kodama of
+	// the East Tree's ETB rider, Kona Rescue Beastie, Mind into Matter; 29
+	// raw corpus lines on an exact `Origin$ Hand`). The rewrite is the same
+	// zone-aware normalizer the Dig windows (permanentCardSpec) and
+	// rules/stack.go's targetSpecForZone already apply -- one leading token,
+	// every qualifier riding along -- and it is safe for ALL of this
+	// function's callers (whole-hand, owner-selected, random) because a
+	// hand move has no on-battlefield candidates to mis-read.
+	spec = permanentCardSpec(spec)
 	g := h.Game()
 	// fx42 scoping: capture and clear the answered pick (and the cursor that
 	// binds it to the owner that asked) BEFORE anything else, so a nested
