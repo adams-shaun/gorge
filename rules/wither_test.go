@@ -2,6 +2,7 @@ package rules
 
 import (
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -32,17 +33,48 @@ func assertWitherCounter(t *testing.T, e *Engine, target state.ObjID, amount int
 	}
 }
 
-func TestWitherVillagePillagersRealSourceDealsCounters(t *testing.T) {
+func witherCounterChanges(e *Engine, target state.ObjID, amount int32) int {
+	count := 0
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.CounterChange && ev.Obj == target && ev.Counter == "M1M1" && ev.Amount == amount {
+			count++
+		}
+	}
+	return count
+}
+
+func TestWitherVillagePillagersETBDamageAllDealsCounters(t *testing.T) {
 	e := combatEngine(t)
-	source := onBoardCard(t, e, 0, witherCorpusCard(t, "v/village_pillagers.txt"))
 	target := onBoard(t, e, 1, "Name:Target\nTypes:Creature\nPT:4/4\nOracle:x\n")
-	if !e.HasKeyword(source, "Wither") || e.G.Obj(target).Zone != state.ZBattlefield {
+	source := onBoardCard(t, e, 0, witherCorpusCard(t, "v/village_pillagers.txt"))
+	face := e.G.Obj(source).Face()
+	if face == nil || len(face.Triggers) < 1 || face.Triggers[0].Mode != "ChangesZone" || face.Triggers[0].Effect == nil || face.Triggers[0].Effect.API != "DamageAll" {
+		t.Fatalf("precondition: Village Pillagers ETB DamageAll trigger = %+v", face)
+	}
+	if !e.HasKeyword(source, "Wither") || e.G.Obj(target).Zone != state.ZBattlefield || !e.IsCreature(target) {
 		t.Fatal("precondition: real Village Pillagers source/creature target not live")
 	}
-	effects.Resolve(e, &effects.Ctx{Source: source, Controller: 0,
-		Targets: []state.Target{{Obj: target}}}, &cards.SA{Kind: "DB", API: "DealDamage",
-		Params: map[string]string{"Defined": "Targeted", "NumDmg": "1"}})
+	if e.G.Obj(target).Damage != 0 || e.G.Obj(target).Counter("M1M1") != 0 {
+		t.Fatal("precondition: target is already damaged or countered")
+	}
+	// onBoardCard is eventless setup; make the real card enter so its compiled
+	// ChangesZone trigger, rather than a synthetic DamageAll body, resolves.
+	e.G.SetZone(state.ZBattlefield, 0, nil)
+	e.G.Obj(source).Zone = state.ZHand
+	e.G.SetZone(state.ZHand, 0, append(e.G.Zone(state.ZHand, 0), source))
+	e.emit(events.Event{Kind: events.MoveZone, Obj: source, From: state.ZHand, To: state.ZBattlefield})
+	if len(e.pendingTriggers) != 1 {
+		t.Fatalf("Village Pillagers ETB pending triggers = %d, want 1", len(e.pendingTriggers))
+	}
+	e.putTriggersOnStack()
+	if len(e.G.Stack) != 1 {
+		t.Fatalf("Village Pillagers ETB stack = %d, want 1", len(e.G.Stack))
+	}
+	e.resolveTop()
 	assertWitherCounter(t, e, target, 1)
+	if got := witherCounterChanges(e, target, 1); got != 1 {
+		t.Fatalf("Village Pillagers M1M1 CounterChange count = %d, want 1", got)
+	}
 }
 
 func TestWitherGrantedKeywordStartsAndStopsWithStatic(t *testing.T) {
@@ -72,25 +104,27 @@ func TestWitherGrantedKeywordStartsAndStopsWithStatic(t *testing.T) {
 
 func TestWitherCombatDamageToBlockerUsesCounterForm(t *testing.T) {
 	e := combatEngine(t)
-	atk := onBoardReady(t, e, 0, "Name:Wither Knight\nTypes:Creature\nPT:2/2\nK:Wither\nOracle:x\n")
+	atk := onBoardCard(t, e, 0, witherCorpusCard(t, "n/necroskitter.txt"))
+	e.G.Obj(atk).SummonSick = false
 	blk := onBoard(t, e, 1, "Name:Blocker\nTypes:Creature\nPT:4/4\nOracle:x\n")
-	if !e.HasKeyword(atk, "Wither") || e.G.Obj(blk).Zone != state.ZBattlefield {
-		t.Fatal("precondition: attacker or blocker not live")
+	if !e.HasKeyword(atk, "Wither") || e.G.Obj(blk).Zone != state.ZBattlefield || !e.IsCreature(blk) {
+		t.Fatal("precondition: printed-Wither attacker or blocker not live")
 	}
 	e.askAttackers()
 	submitAttackers(t, e, atk)
 	submitBlockers(t, e, blk)
-	assertWitherCounter(t, e, blk, 2)
+	assertWitherCounter(t, e, blk, 1)
 }
 
 func TestWitherDamageToPlayerRemainsOrdinary(t *testing.T) {
 	e := combatEngine(t)
-	source := onBoard(t, e, 0, "Name:Wither Source\nTypes:Creature\nPT:2/2\nK:Wither\nOracle:x\n")
+	source := onBoardCard(t, e, 0, witherCorpusCard(t, "v/village_pillagers.txt"))
 	before := e.G.Players[1].Life
-	if !e.HasKeyword(source, "Wither") {
-		t.Fatal("precondition: source does not have printed Wither")
+	if !e.HasKeyword(source, "Wither") || before != 20 {
+		t.Fatal("precondition: printed Wither source or player life is wrong")
 	}
-	e.emit(events.Event{Kind: events.Damage, Player: 1, Amount: 2, Counter: "wither"})
+	effects.Resolve(e, &effects.Ctx{Source: source, Controller: 0},
+		&cards.SA{Kind: "DB", API: "DealDamage", Params: map[string]string{"Defined": "Opponent", "NumDmg": "2"}})
 	if got := e.G.Players[1].Life; got != before-2 {
 		t.Fatalf("player life = %d, want %d", got, before-2)
 	}
@@ -101,54 +135,106 @@ func TestWitherDamageToPlayerRemainsOrdinary(t *testing.T) {
 	}
 }
 
-func TestWitherRedirectRecomputesRecipientForm(t *testing.T) {
+func TestWitherNoncombatPlayerHitRedirectsToCreatureCounters(t *testing.T) {
 	e := combatEngine(t)
-	source := onBoard(t, e, 0, "Name:Wither Source\nTypes:Creature\nPT:2/2\nK:Wither\nOracle:x\n")
-	creature := onBoard(t, e, 1, "Name:Target\nTypes:Creature\nPT:4/4\nOracle:x\n")
-	artifact := onBoard(t, e, 1, "Name:Artifact\nTypes:Artifact\nPT:0/0\nOracle:x\n")
-	if !e.HasKeyword(source, "Wither") || !e.IsCreature(creature) || e.IsCreature(artifact) {
-		t.Fatal("precondition: source/recipient classifications are not distinct")
+	source := onBoardCard(t, e, 0, witherCorpusCard(t, "v/village_pillagers.txt"))
+	giant := onBoardCard(t, e, 1, witherCorpusCard(t, "p/palisade_giant.txt"))
+	if !e.HasKeyword(source, "Wither") || !e.IsCreature(giant) || e.G.Obj(giant).Zone != state.ZBattlefield {
+		t.Fatal("precondition: Wither source or Palisade Giant redirect target is not live")
 	}
-	// ReplaceEvent's Affected rewrite models a DamageDone redirect. The source
-	// marker must be reclassified to the final recipient, not retained from the
-	// original creature target.
-	e.emit(events.Event{Kind: events.Damage, Obj: creature, Amount: 2, Counter: "wither"})
-	assertWitherCounter(t, e, creature, 2)
-	before := e.G.Obj(artifact).Damage
-	e.emit(events.Event{Kind: events.Damage, Obj: artifact, Amount: 2, Counter: "wither"})
-	if got := e.G.Obj(artifact).Damage; got != before+2 {
-		t.Fatalf("redirected noncreature damage = %d, want %d", got, before+2)
+	if e.G.Players[1].Life != 20 || e.G.Obj(giant).Damage != 0 || e.G.Obj(giant).Counter("M1M1") != 0 {
+		t.Fatal("precondition: redirected recipient does not start clean")
+	}
+	effects.Resolve(e, &effects.Ctx{Source: source, Controller: 0},
+		&cards.SA{Kind: "DB", API: "DealDamage", Params: map[string]string{"Defined": "Opponent", "NumDmg": "2"}})
+	assertWitherCounter(t, e, giant, 2)
+	if got := e.G.Players[1].Life; got != 20 {
+		t.Fatalf("redirected player life = %d, want 20", got)
+	}
+	if got := witherCounterChanges(e, giant, 2); got != 1 {
+		t.Fatalf("redirected M1M1 CounterChange count = %d, want 1", got)
 	}
 }
 
-func TestWitherDamageToCreatureIsMinusOneCountersNotMarkedDamage(t *testing.T) {
-	e, _, source := newFixtureDeck(t, 2, "Name:Wither Source\nTypes:Creature\nPT:2/2\nK:Wither\nOracle:x\n")
-	target := onBoard(t, e, 1, "Name:Target\nTypes:Creature\nPT:3/3\nOracle:x\n")
-	if !e.HasKeyword(source, "Wither") {
-		t.Fatal("precondition: source does not read printed Wither")
+func TestWitherCombatPlayerHitRedirectsToCreatureCounters(t *testing.T) {
+	e := combatEngine(t)
+	e.G.Active = 1
+	giant := onBoardCard(t, e, 0, witherCorpusCard(t, "p/palisade_giant.txt"))
+	atk := onBoardCard(t, e, 1, witherCorpusCard(t, "v/village_pillagers.txt"))
+	e.G.Obj(atk).SummonSick = false
+	if !e.HasKeyword(atk, "Wither") || !e.IsCreature(giant) || e.G.Obj(giant).Zone != state.ZBattlefield {
+		t.Fatal("precondition: combat Wither source or Palisade Giant is not live")
 	}
-	if e.G.Obj(target).Zone != state.ZBattlefield || !e.IsCreature(target) {
-		t.Fatal("precondition: target is not a battlefield creature")
+	if e.G.Players[0].Life != 20 || e.G.Obj(giant).Damage != 0 || e.G.Obj(giant).Counter("M1M1") != 0 {
+		t.Fatal("precondition: combat redirect recipient does not start clean")
 	}
-	effects.Resolve(e, &effects.Ctx{Source: source, Controller: 0,
-		Targets: []state.Target{{Obj: target}}}, &cards.SA{Kind: "DB", API: "DealDamage",
-		Params: map[string]string{"Defined": "Targeted", "NumDmg": "2"}})
-	if got := e.G.Obj(target).Counter("M1M1"); got != 2 {
-		t.Fatalf("target -1/-1 counters = %d, want 2", got)
+	e.askAttackers()
+	submitAttackers(t, e, atk)
+	submitBlockers(t, e)
+	assertWitherCounter(t, e, giant, 5)
+	if got := e.G.Players[0].Life; got != 20 {
+		t.Fatalf("redirected player life = %d, want 20", got)
 	}
+	if got := witherCounterChanges(e, giant, 5); got != 1 {
+		t.Fatalf("combat redirected M1M1 CounterChange count = %d, want 1", got)
+	}
+}
+
+func TestWitherPreventedCombatHitPlacesNoCounter(t *testing.T) {
+	e := combatEngine(t)
+	source := onBoardCard(t, e, 0, witherCorpusCard(t, "v/village_pillagers.txt"))
+	e.G.Obj(source).SummonSick = false
+	target := onBoard(t, e, 1, "Name:Red Ward\nTypes:Creature\nPT:1/6\nK:Protection from Red\nOracle:x\n")
+	if !e.HasKeyword(source, "Wither") || !e.HasKeyword(target, "Protection from Red") || e.G.Obj(target).Zone != state.ZBattlefield {
+		t.Fatal("precondition: Wither source or protection target is not live")
+	}
+	e.askAttackers()
+	submitAttackers(t, e, source)
+	submitBlockers(t, e, target)
 	if got := e.G.Obj(target).Damage; got != 0 {
-		t.Fatalf("target marked damage = %d, want 0", got)
+		t.Fatalf("protected target marked damage = %d, want 0", got)
 	}
-	count := 0
+	if got := e.G.Obj(target).Counter("M1M1"); got != 0 {
+		t.Fatalf("protected target -1/-1 counters = %d, want 0", got)
+	}
+	prevented := false
 	for _, ev := range e.L.Events {
+		if ev.Kind == events.Note && ev.Obj == target && strings.Contains(ev.Text, "prevented: protection") {
+			prevented = true
+		}
 		if ev.Kind == events.CounterChange && ev.Obj == target && ev.Counter == "M1M1" {
-			count++
-			if ev.Amount != 2 {
-				t.Fatalf("counter placement amount = %d, want 2", ev.Amount)
-			}
+			t.Fatal("prevented Wither hit emitted an M1M1 CounterChange")
 		}
 	}
-	if count != 1 {
-		t.Fatalf("M1M1 CounterChange count = %d, want 1", count)
+	if !prevented {
+		t.Fatal("protection path never recorded its prevented-damage Note")
+	}
+}
+
+func TestWitherCounterChangeTriggersWickersmithsTools(t *testing.T) {
+	e := combatEngine(t)
+	tools := onBoardCard(t, e, 0, witherCorpusCard(t, "w/wickersmiths_tools.txt"))
+	source := onBoardCard(t, e, 0, witherCorpusCard(t, "v/village_pillagers.txt"))
+	target := onBoard(t, e, 1, "Name:Target\nTypes:Creature\nPT:4/4\nOracle:x\n")
+	face := e.G.Obj(tools).Face()
+	if !e.HasKeyword(source, "Wither") || face == nil || len(face.Triggers) != 1 || face.Triggers[0].Mode != "CounterAddedOnce" || face.Triggers[0].Params["CounterType"] != "M1M1" {
+		t.Fatalf("precondition: source/CounterAddedOnce trigger = source=%t tools=%+v", e.HasKeyword(source, "Wither"), face)
+	}
+	if e.G.Obj(target).Zone != state.ZBattlefield || !e.IsCreature(target) || e.G.Obj(tools).Counter("CHARGE") != 0 {
+		t.Fatal("precondition: target or Wickersmith's Tools is not ready")
+	}
+	effects.Resolve(e, &effects.Ctx{Source: source, Controller: 0, Targets: []state.Target{{Obj: target}}},
+		&cards.SA{Kind: "DB", API: "DealDamage", Params: map[string]string{"Defined": "Targeted", "NumDmg": "2"}})
+	assertWitherCounter(t, e, target, 2)
+	if got := witherCounterChanges(e, target, 2); got != 1 {
+		t.Fatalf("Wither M1M1 CounterChange count = %d, want 1", got)
+	}
+	if len(e.pendingTriggers) != 1 {
+		t.Fatalf("Wickersmith's Tools pending CounterAddedOnce triggers = %d, want 1", len(e.pendingTriggers))
+	}
+	e.putTriggersOnStack()
+	e.resolveTop()
+	if got := e.G.Obj(tools).Counter("CHARGE"); got != 1 {
+		t.Fatalf("Wickersmith's Tools charge counters = %d, want 1 from Wither CounterChange", got)
 	}
 }

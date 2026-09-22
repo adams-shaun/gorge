@@ -445,6 +445,11 @@ func emitPlayerDamage(r damageRider, target state.PlayerID) {
 		// CR 702.90b: damage from an infect source is dealt to a player in
 		// the form of that many poison counters; the fold converts it.
 		ev.Counter = "infect"
+	} else if r.hasWither {
+		// Keep the source fact even though Wither damage to a player is
+		// ordinary. A DamageDone replacement can redirect this event to a
+		// creature, where Engine.emit recomputes it into counter form.
+		ev.Counter = "wither"
 	}
 	applied := r.h.EmitDamage(ev)
 	dealt := int32(0)

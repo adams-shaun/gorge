@@ -2211,6 +2211,12 @@ func (e *Engine) runCombatAssignments() {
 				// the same replacement/trigger pipeline every other counter
 				// placement does.
 				dam.Counter = "infect"
+			} else if x.wither {
+				// A player normally takes ordinary Wither damage, but preserve
+				// the source fact through the replacement pass: Palisade Giant
+				// and similar DamageDone replacements may redirect the hit onto
+				// a creature, where Engine.emit selects the counter form.
+				dam.Counter = "wither"
 			}
 			ev := e.emit(dam)
 			prevented = ev.Kind != events.Damage
