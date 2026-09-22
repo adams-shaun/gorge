@@ -214,6 +214,14 @@ func drainRavenous(t *testing.T, e *Engine, limit int) {
 				t.Fatalf("empty %s decision while draining: %+v", d.ResumeKind, d)
 			}
 			submitChoices(t, e, d.Options[0].Index)
+		case decision.KTarget:
+			// A carrier's own ETB trigger asking (Zoanthrope's Warp Blast
+			// "deals X damage to any target"): answer option 0. The tests
+			// assert the Ravenous outcome, not the damage.
+			if len(d.Options) == 0 {
+				t.Fatalf("empty target decision while draining")
+			}
+			submitChoices(t, e, d.Options[0].Index)
 		default:
 			t.Fatalf("unexpected %s decision while draining: %+v", d.Kind, d)
 		}
@@ -254,4 +262,62 @@ func TestExocrineRavenousWithItsOwnEtbTrigger(t *testing.T) {
 		}
 	}
 	replayCheck(t, e, cfg)
+}
+
+// TestZoanthropeRavenousZeroToughnessCarrierSurvives is the load-bearing
+// shape test: Zoanthrope is a 0/0 with K:Ravenous (the only such carrier),
+// so if Ravenous put its counters with a triggered ability the CR 704.5f
+// zero-toughness state-based action would kill it before the trigger could
+// resolve. The counters are an enters-with replacement (cards/kw_ravenous.go),
+// so the permanent is already a 2/2 when the SBA would look. X=2 -> enters as
+// a 2/2 with 2 counters and no draw (2 < 5); X=5 -> a 5/5 with 5 counters and
+// one draw.
+func TestZoanthropeRavenousZeroToughnessCarrierSurvives(t *testing.T) {
+	e, _, id, caster := corpusCardConfig(t, 141, "Zoanthrope")
+	addMana(t, e, caster, "UURR") // {X}{U}{R} with X=2 -> {2}{U}{R}
+	submitChoices(t, e, castOptionFor(t, e, id).Index)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || len(d.Options) == 0 || d.Options[0].Kind != "x" {
+		t.Fatalf("X decision for the Zoanthrope cast: %+v", d)
+	}
+	submitChoices(t, e, 2)
+	before := countDraw(e)
+	drainRavenous(t, e, 60)
+	o := e.G.Obj(id)
+	if o.Zone != state.ZBattlefield {
+		t.Fatalf("precondition failed: 0/0 Zoanthrope zone=%s, want battlefield (counters must be an enters-with replacement, not a trigger)", o.Zone)
+	}
+	if got := o.Counter("P1P1"); got != 2 {
+		t.Fatalf("Zoanthrope Ravenous X=2 put %d +1/+1 counters, want 2", got)
+	}
+	if e.Toughness(id) != 2 || e.Power(id) != 2 {
+		t.Fatalf("Zoanthrope X=2 is %d/%d, want 2/2", e.Power(id), e.Toughness(id))
+	}
+	if got := countDraw(e) - before; got != 0 {
+		t.Fatalf("Zoanthrope X=2 drew %d cards, want 0", got)
+	}
+
+	// X=5 leg on a fresh game: the same 0/0 must enter as a 5/5 and draw.
+	e5, cfg5, id5, caster5 := corpusCardConfig(t, 142, "Zoanthrope")
+	addMana(t, e5, caster5, "UUUURRR") // {X}{U}{R} with X=5 -> {6}{U}{R} (8 mana; WUBRGC units)
+	d5 := e5.Pending()
+	submitChoices(t, e5, castOptionFor(t, e5, id5).Index)
+	d5 = e5.Pending()
+	if d5 == nil || d5.Kind != decision.KChoose {
+		t.Fatalf("X decision for the second Zoanthrope cast: %+v", d5)
+	}
+	submitChoices(t, e5, 5)
+	before5 := countDraw(e5)
+	drainRavenous(t, e5, 60)
+	o5 := e5.G.Obj(id5)
+	if o5.Zone != state.ZBattlefield {
+		t.Fatalf("precondition failed: 0/0 Zoanthrope X=5 zone=%s, want battlefield", o5.Zone)
+	}
+	if got := o5.Counter("P1P1"); got != 5 {
+		t.Fatalf("Zoanthrope Ravenous X=5 put %d +1/+1 counters, want 5", got)
+	}
+	if got := countDraw(e5) - before5; got != 1 {
+		t.Fatalf("Zoanthrope X=5 drew %d cards, want 1", got)
+	}
+	replayCheck(t, e5, cfg5)
 }
