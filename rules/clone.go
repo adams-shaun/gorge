@@ -575,6 +575,11 @@ func (e *Engine) Clone() *Engine {
 		}
 	}
 	c.madnessChoices = append([]events.Event(nil), e.madnessChoices...)
+	// The clone owns its own Game copy, so repoint the derived-characteristics
+	// provider at the clone: leaving the original's back-pointer would make
+	// this clone's name filters read the live engine's (diverging) continuous
+	// effects. See state.Characteristics.
+	c.G.Characteristics = c
 	return c
 }
 

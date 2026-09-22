@@ -1243,6 +1243,12 @@ func newWithRNG(cfg Config, random *rng) *Engine {
 		manaExpended: make([]int32, len(cfg.Names)),
 	}
 	e.G.Tokens = cfg.Tokens
+	// The engine installs itself as the game's derived-characteristics
+	// provider, so effects' name filters (NamedCard/named/sameName) read the
+	// layer-3 effective name through the same layer walk rules and view use.
+	// See state.Characteristics; this is a read-only back-pointer, never
+	// event-folded and never hashed.
+	e.G.Characteristics = e
 	e.manaExpendedTurn = e.G.Turn
 	e.format = cfg.Format
 	for i := range e.G.Players {

@@ -2039,7 +2039,15 @@ func (e *Engine) applyAttachedReplacement(ev events.Event) bool {
 		}
 		for i := range f.Repls {
 			r := &f.Repls[i]
-			if r.Event == "Attached" && r.With != nil && r.With.API == "ChooseName" && e.replacementMatches(*r, id, ev) {
+			// The name-election primitive is Forge's NameCard (Psychic Paper's
+			// `ReplaceWith$ ChooseName` resolves to an SVar whose body IS
+			// `DB$ NameCard`, so the body's API is NameCard, never the SVar
+			// name). Keying on the API is the structural read: it is the
+			// primitive that poses a name ask, and the parked continuation
+			// below then asks the paired creature type before releasing the
+			// Attach. Every other Attached body (ChooseCard, ChooseColor) keeps
+			// today's untouched-Attach behaviour.
+			if r.Event == "Attached" && r.With != nil && r.With.API == "NameCard" && e.replacementMatches(*r, id, ev) {
 				source, repl = id, r
 				return
 			}

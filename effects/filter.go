@@ -1772,23 +1772,21 @@ func nameCharacteristics(g *state.Game, o *state.Object) []string {
 	if f == nil || f.Name == "" {
 		return nil
 	}
-	names := []string{f.Name}
-	// A SetName$ static on an attached object is a layer-3 name of the
-	// attached permanent. The choice is stored on the attachment and the
-	// derived-characteristics walk exposes it to view; mirror that read in
-	// the filter path so named/sameName predicates do not retain the printed
-	// name. Only attachments of this object contribute a chosen name.
-	if g != nil {
-		for p := range g.Players {
-			for _, id := range g.Zone(state.ZBattlefield, state.PlayerID(p)) {
-				a := g.Obj(id)
-				if a != nil && a.AttachedTo == o.ID && a.ChosenName != "" {
-					names = []string{a.ChosenName}
-				}
-			}
+	// A layer-3 name (SetName$, CR 613.1d) overwrites the printed name. The
+	// applicable-effect applicability and timestamp ordering live in rules'
+	// layer walk, which the engine exposes through g.Characteristics -- the
+	// filter tier must not re-derive them (a battlefield scan cannot see
+	// Affected$ applicability, a conditional SetName$, or timestamp order
+	// between two competing effects; the previous attachment-only scan got
+	// all three wrong). A bare *state.Game without an engine keeps the
+	// printed name, and the read is battlefield-only: layer effects do not
+	// apply to a card in a library, graveyard or hand.
+	if o.Zone == state.ZBattlefield && g != nil && g.Characteristics != nil {
+		if n := g.Characteristics.EffectiveName(o.ID); n != "" {
+			return []string{n}
 		}
 	}
-	return names
+	return []string{f.Name}
 }
 
 // sharesName reports whether o's name characteristics include name -- Forge
