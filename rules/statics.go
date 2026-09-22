@@ -1039,6 +1039,29 @@ func (e *Engine) alternativeCostScopeOK(params map[string]string, id, srcID stat
 // re-evaluate) is not counted -- the missing-match direction for a USED
 // tracking, which widens the discount by at most one cast on a board this
 // build cannot reconstruct, never withholds it.
+func (e *Engine) firstForetellUsed(p state.PlayerID) bool {
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if ev.Kind != events.MoveZone || ev.To != state.ZExile ||
+			ev.Counter != "exiled_with_face_down" || i == 0 {
+			continue
+		}
+		o := e.G.Obj(ev.Obj)
+		if o == nil || o.Owner != p {
+			continue
+		}
+		prev := e.L.Events[i-1]
+		if prev.Kind == events.CastInfo &&
+			events.FlagsFrom(prev.Counter)&state.FlagForetold != 0 {
+			return true
+		}
+	}
+	return false
+}
+
 func (e *Engine) onlyFirstSpellUsed(sv staticView, p state.PlayerID, id state.ObjID) bool {
 	spec := strings.TrimSpace(sv.Params["ValidCard"])
 	for i := len(e.L.Events) - 1; i >= 0; i-- {
@@ -1292,6 +1315,7 @@ type costScope struct {
 }
 
 func spellScope(mode string) costScope    { return costScope{kind: "Spell", mode: mode} }
+func foretellScope() costScope            { return costScope{kind: "Foretell", mode: "foretell"} }
 func abilityScope(ab *cards.SA) costScope { return costScope{kind: "Ability", ab: ab} }
 
 // costMod is ONE evaluated ReduceCost static's contribution to a total cost.
@@ -2061,6 +2085,10 @@ func (e *Engine) costStaticApplies(sv staticView, mode string, p state.PlayerID,
 			return false
 		}
 	}
+	if first, ok := sv.Params["FirstForetell"]; ok && strings.EqualFold(strings.TrimSpace(first), "True") &&
+		scope.kind == "Foretell" && e.firstForetellUsed(p) {
+		return false
+	}
 	if vs, ok := sv.Params["ValidSpell"]; ok && !e.validSpellMatches(scope, p, id, vs) {
 		return false
 	}
@@ -2334,8 +2362,11 @@ func (e *Engine) validSpellMatches(scope costScope, p state.PlayerID, id state.O
 			if e.abilityConstraintMatches(scope, p, id, constraint) {
 				return true
 			}
+		case "Static":
+			if scope.kind == "Foretell" && constraint == "Foretelling" {
+				return true
+			}
 		}
-		// Kind "Static" (and anything else): never matches.
 	}
 	return false
 }

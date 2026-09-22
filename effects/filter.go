@@ -48,7 +48,10 @@ var predicates = map[string]predFn{
 	"OppCtrl": func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool {
 		return o.Controller != you
 	},
-	"YouOwn":    func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool { return o.Owner == you },
+	"YouOwn": func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool { return o.Owner == you },
+	"foretold": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o.CastFlags&state.FlagForetold != 0
+	},
 	"OppOwn":    func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool { return o.Owner != you },
 	"Self":      func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool { return o.ID == src },
 	"Other":     func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool { return o.ID != src },

@@ -738,7 +738,11 @@ func applyFaceDownMarker(h Host, sa *cards.SA, c *Ctx, ev *events.Event, to stat
 	exileFaceDown := strings.EqualFold(strings.TrimSpace(sa.Params["ExileFaceDown"]), "True")
 	switch {
 	case to == state.ZExile && exileFaceDown:
-		ev.Counter = "exiled_with_face_down"
+		if strings.EqualFold(strings.TrimSpace(sa.Params["Foretold"]), "True") {
+			ev.Counter = "exiled_with_face_down_foretold"
+		} else {
+			ev.Counter = "exiled_with_face_down"
+		}
 		ev.Amount = int32(c.Source)
 		ev.IDs = nil
 	case to == state.ZExile && faceDown:
