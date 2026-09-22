@@ -23,7 +23,10 @@ const (
 	chooseManaExile
 )
 
-const chooseManaSacrifice chooseFor = 30
+// chooseManaSacrifice is the mana ability's sacrifice-cost pick. 31 is the
+// next free value: 30 is chooseAttached (rules/cast.go) and 40 is
+// chooseUntap; the numbers matter only inside this package's switch table.
+const chooseManaSacrifice chooseFor = 31
 
 const (
 	chooseManaUnless chooseFor = iota + 17
@@ -1250,9 +1253,20 @@ func (e *Engine) resolveManaAbilityRef(p state.PlayerID, source state.ObjID, ma 
 	}
 	cost := e.parseCost(ma.Params["Cost"])
 	sacs, _ := e.manaSacrifices(p, source, cost)
-	if interactive && (len(cost.Sac) > 0 || len(cost.Discard) > 0 || len(cost.Exile) > 0) {
-		e.manaDiscardActivation = &manaDiscardActivation{player: p, source: source,
-			ability: ma, cost: cost, sacs: nil, cast: cast, cumulative: payment, gained: gained}
+	// The continuation owns EVERY non-mana cost part, so it must be entered
+	// whenever one exists -- a caller that cannot ask (interactive == false:
+	// the attack-cost tap window and the direct-resolve tests) still has to
+	// pay the discard and exile parts. Only the sacrifice ASK is gated: such
+	// a caller keeps the R-9 deterministic first-eligible set manaSacrifices
+	// picked and skips straight past the sacrifice parts.
+	if len(cost.Sac) > 0 || len(cost.Discard) > 0 || len(cost.Exile) > 0 {
+		md := &manaDiscardActivation{player: p, source: source,
+			ability: ma, cost: cost, cast: cast, cumulative: payment, gained: gained}
+		if !interactive {
+			md.sacs = sacs
+			md.sacPart = len(cost.Sac)
+		}
+		e.manaDiscardActivation = md
 		e.continueManaDiscard()
 		return
 	}

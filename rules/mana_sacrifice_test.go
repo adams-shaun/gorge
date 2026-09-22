@@ -213,3 +213,70 @@ func TestSkirkProspectorBotChoosesLeastValuableGoblin(t *testing.T) {
 		t.Fatalf("bot sacrificed %v, want least-valuable Prospector", e.G.Obj(prospector).Zone)
 	}
 }
+
+// TestLionsEyeDiamondPaysItsWholeCost pins the CARDNAME-sacrifice shape on a
+// real corpus card: Lion's Eye Diamond's mana ability costs
+// "Sac<1/CARDNAME> Discard<0/Hand>", so the sacrifice has exactly ONE legal
+// candidate and must never pose a choice, and EVERY other cost part -- here
+// the hand discard -- must still be paid before the mana is produced. The
+// direct-resolve subtest is the non-interactive caller (attack_cost.go's tap
+// window takes the same route): gating the whole cost continuation on the
+// interactive flag silently skipped the discard there.
+func TestLionsEyeDiamondPaysItsWholeCost(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	handOf := func(e *Engine) []state.ObjID {
+		return append([]state.ObjID(nil), e.G.Zone(state.ZHand, 0)...)
+	}
+	// assertPaid checks the whole cost was paid and then answers the
+	// Produced$ Any colour ask the paid ability opens, so the three mana are
+	// observed in the pool rather than assumed.
+	assertPaid := func(t *testing.T, e *Engine, led state.ObjID, hand []state.ObjID) {
+		t.Helper()
+		if len(hand) == 0 {
+			t.Fatal("fixture: seat 0 holds no cards, so the discard cost is vacuous")
+		}
+		if z := e.G.Obj(led).Zone; z != state.ZGraveyard {
+			t.Fatalf("Lion's Eye Diamond zone = %s, want sacrificed to the graveyard", z)
+		}
+		for _, id := range hand {
+			if z := e.G.Obj(id).Zone; z != state.ZGraveyard {
+				t.Fatalf("hand card %d zone = %s, want discarded to the graveyard by the mana cost", id, z)
+			}
+		}
+		if got := len(e.G.Zone(state.ZHand, 0)); got != 0 {
+			t.Fatalf("hand size after the Discard<0/Hand> cost = %d, want 0", got)
+		}
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KChoose || len(d.Options) != 5 || d.Options[0].Kind != "mana" {
+			t.Fatalf("after the paid cost = %+v, want the Produced$ Any colour ask", d)
+		}
+		submitChoices(t, e, d.Options[3].Index)
+		if got := e.G.Players[0].Pool[state.MR]; got != 3 {
+			t.Fatalf("pool = %+v, want the ability's three red mana", e.G.Players[0].Pool)
+		}
+	}
+
+	t.Run("direct resolve", func(t *testing.T) {
+		e := layerEngine(t)
+		e.Advance()
+		led := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Lion's Eye Diamond"))
+		hand := handOf(e)
+		e.resolveManaAbility(0, led, e.availableManaAbilities(0, led)[0], false)
+		assertPaid(t, e, led, hand)
+	})
+
+	t.Run("activated", func(t *testing.T) {
+		e, _, ids := realCardEngine(t, reg, 76, "Lion's Eye Diamond")
+		led := ids[0]
+		hand := handOf(e)
+		submitChoices(t, e, activateOption(t, e, led))
+		if d := e.Pending(); d != nil {
+			for _, o := range d.Options {
+				if o.Kind == "sacrifice" {
+					t.Fatalf("Sac<1/CARDNAME> posed a sacrifice choice: %+v", d.Options)
+				}
+			}
+		}
+		assertPaid(t, e, led, hand)
+	})
+}
