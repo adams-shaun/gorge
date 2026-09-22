@@ -67,6 +67,37 @@ func registerLeaveExile(h Host, c *Ctx, id state.ObjID, value, dur string, perma
 	})
 }
 
+// registerAnimateStaticAbilities registers staticAbilities$ bodies on the
+// animated object. The Animate parameter is a list of SVar names, not a
+// Mode$ Continuous body: it is the same static table used by Effect's
+// StaticAbilities$ path. The restriction registration is deliberately
+// source-scoped to the affected object, so Card.Self (the common Forge
+// spelling) cannot accidentally apply to every matching permanent.
+func registerAnimateStaticAbilities(h Host, c *Ctx, id state.ObjID, names []string, dur string, permanent bool, exileOn string, remembered []state.ObjID) {
+	for _, name := range names {
+		mode, params := parseStaticLine(c.SVars, name)
+		if mode == "" {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "Animate staticAbilities$ " + name + " has no static body; ignored"})
+			continue
+		}
+		if mode != "CantSacrifice" || !CantSacrificeRestrictionParamsReadable(params) {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "Animate staticAbilities$ " + name + " mode " + mode + " is not implemented; ignored"})
+			continue
+		}
+		h.AddContinuous(state.ContinuousEffect{
+			Source: id, Controller: c.Controller,
+			// Next-turn durations are resolved by AddContinuous's UntilTurn
+			// boundary; marking them UntilEOT would discard the restriction at
+			// the current cleanup before that boundary is reached.
+			UntilEOT: !permanent && !IsNextTurnDuration(dur), Duration: dur, Permanent: permanent,
+			ExileOnMoved: exileOn, Remembered: remembered,
+			Restriction: mode, RestrictParams: params,
+		})
+	}
+}
+
 // registerSVarGrants registers a body's sVars$ grant (the named SVars the
 // animated object carries for the animation's own lifetime): one
 // ContinuousEffect with AddSVars, read back through Engine.GrantedSVar /
