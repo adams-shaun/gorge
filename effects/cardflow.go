@@ -1776,7 +1776,8 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 	// Non-nil means answered (the resume arm always builds the slice, so an
 	// empty "reveal none" answer is non-nil), mirroring Ctx.Discard.
 	picks := c.RevealPick
-	c.RevealPick = nil
+	pickTarget := c.RevealPickTarget
+	c.RevealPick, c.RevealPickTarget = nil, 0
 	// The bare-look ack (lookack): consumed once per WALK, together with its
 	// per-target cursor — the answer attaches to the exact Defined$ target
 	// that asked (the decision's ResumeTarget). Targets before the cursor
@@ -1823,6 +1824,13 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			// RememberRevealed$ captured) on an earlier pass of this same
 			// resume chain, before the walk suspended on a later target's
 			// ack — re-running it would duplicate its events.
+			continue
+		}
+		if picks != nil && targetIndex < pickTarget {
+			// The pick cursor's skip: the targets before it were fully
+			// processed (their pick answered, their reveal emitted) on the pass
+			// that suspended on the cursor target's own pick; re-running them
+			// would duplicate their events and re-pose their asks.
 			continue
 		}
 		p := PlayerOf(h, c, t)
@@ -1919,7 +1927,14 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 			declined := optional && answer == "no"
 			deferToOptionalAsk := optional && answer == "" && picks == nil
 			if int32(len(pool)) > minPick && !deferToOptionalAsk && !declined {
-				if picks == nil {
+				// The answer applies to exactly the cursor target: a pickable
+				// reveal over several Defined$ players poses one ask per target,
+				// and the re-entered walk must not apply target 0's answer to
+				// target 1's distinct hand (its ids cannot occur there, so the
+				// pool would empty and every later player would be silently
+				// skipped). Every non-cursor target poses its own ask below.
+				hasAnswer := picks != nil && targetIndex == pickTarget
+				if !hasAnswer {
 					opts := make([]decision.Option, 0, len(pool))
 					for _, id := range pool {
 						name := "a card"
@@ -1936,8 +1951,9 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 					d := &decision.Decision{Player: p, Kind: decision.KChoose,
 						Min: int(minPick), Max: int(maxPick), Source: c.Source,
 						ResumeKind: "reveal_pick", ResumeSA: sa,
-						Prompt:  prompt,
-						Options: opts}
+						ResumeTarget: targetIndex,
+						Prompt:       prompt,
+						Options:      opts}
 					if Ask(h, d) == AskAsked {
 						return // resolution suspended; the answer re-enters with Ctx.RevealPick set.
 					}

@@ -1993,6 +1993,11 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 					ctx.RevealPick = append(ctx.RevealPick, o.Obj)
 				}
 			}
+			// The per-target cursor: RevealPickTarget is the index of the
+			// Defined$ target whose pick this answer was, so the re-entered
+			// effReveal applies it to exactly that target's pool and poses a
+			// fresh ask for every later target (the LookAckTarget pattern).
+			ctx.RevealPickTarget = rp.target
 		case "look_ack":
 			// The bare private look's pacing ack (lookack, task
 			// fb-20260917T232325Z-35cfca4b, Mishra's Bauble / Gitaxian Probe):

@@ -1287,6 +1287,18 @@ type Ctx struct {
 	// clears it at the top of its own walk so a nested reveal poses its own
 	// ask (fx42 scoping).
 	RevealPick []state.ObjID
+	// RevealPickTarget is the Defined$ target index whose reveal_pick was
+	// answered (the decision's ResumeTarget), the same per-target cursor
+	// LookAckTarget carries. Meaningful only while RevealPick is non-nil:
+	// targets before the cursor were fully processed on the pass that
+	// suspended and are skipped, the cursor target consumes the answer, and
+	// every LATER pickable reveal in the walk poses its own ask. Without it,
+	// a pickable reveal resolving over several Defined$ players applied the
+	// first player's answer to every subsequent player's distinct hand —
+	// none of those ids can occur in another hand, so n became 0 and no
+	// later player was asked or revealed. Consumed and cleared with
+	// RevealPick.
+	RevealPickTarget int
 	// ChosenType is the answered mid-resolution ChooseType pick (task ct1):
 	// the creature type the chooser picked out of the TypeChoices list, set
 	// by rules' "choosetype" resume arm before the suspended sub-ability is
