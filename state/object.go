@@ -52,7 +52,7 @@ type SacrificedInfo struct {
 // (a spell can be both kicked and cast via flashback), so they are
 // OR-combined into one byte rather than modeled as separate bools.
 const (
-	FlagKicked uint32 = 1 << iota // CR 601.2b: paid an optional additional cost
+	FlagKicked uint64 = 1 << iota // CR 601.2b: paid an optional additional cost
 	FlagSurged
 	FlagFlashback
 	FlagMiracle
@@ -215,6 +215,15 @@ const (
 	// Appended per the enum's own append-only precedent.
 	FlagMutated
 	FlagMutatedTop
+	// FlagConvoked marks a cast whose pay-time CastInfo carries CR 702.66
+	// convoke provenance: the creatures the caster tapped to help pay for
+	// the cast ride the event's IDs into Object.Convoked. The flag is what
+	// Defined$ Convoked reads (Lethal Scheme's connive sub, Venerated
+	// Loxodon's and Zephyr Singer's ETB triggers). Emitted only for a face
+	// whose SVar table or abilities reference the selector (rules/cast.go's
+	// faceWantsConvoked), so every unrelated convoke cast stays
+	// byte-identical. Appended per the enum's own append-only precedent.
+	FlagConvoked
 )
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the
@@ -360,7 +369,7 @@ type Object struct {
 	// permanent) -- events.Move resets both when the object leaves the
 	// battlefield.
 	X         int32
-	CastFlags uint32
+	CastFlags uint64
 	// ReplicateTimes is CR 702.55a's count of replicate payments the cast
 	// made, carried by the pay-time CastInfo's FlagReplicated Amount (the
 	// X-overwrite guard: the flag routes the Amount here instead of into X).
@@ -390,6 +399,16 @@ type Object struct {
 	// events.Move; a COPY of the spell was never cast and reads false (the
 	// same reading Count$ReplicatePaid documents).
 	Conspired bool
+	// Convoked is CR 702.66's "each creature that convoked it": the ids of
+	// the creatures the caster tapped to help pay for the spell's cast,
+	// carried by the pay-time CastInfo's FlagConvoked IDs (the
+	// Defined$ Convoked selector reads it -- Lethal Scheme's connive sub
+	// while the spell is on the stack, Venerated Loxodon's and Zephyr
+	// Singer's ETB triggers after it resolves into a permanent). It rides
+	// the same provenance window as X/CastFlags and resets alongside them
+	// in events.Move; a COPY of the spell was never convoked for and reads
+	// empty.
+	Convoked []ObjID
 	// ManaSpent is the TOTAL mana actually spent to cast the spell (CR
 	// 601.2h's payment -- the spent delta's pips summed over every slot),
 	// carried by the pay-time CastInfo's FlagManaSpent Amount (the

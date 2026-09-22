@@ -2127,7 +2127,22 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 			// evaluated against the log here (task castprov1); the remainder
 			// matches as before.
 			spec, ok2 := e.castProvenanceAdmits(v, ev.Obj, you)
-			if !ok2 || !effects.MatchesSpecCtx(e.G, spec, ev.Obj, e.rememberedSpecContext(you, source, remembered)) {
+			sc := e.rememberedSpecContext(you, source, remembered)
+			// CR 708.5: a face-down battlefield entry (Manifest, Cloak, or a
+			// ChangeZone FaceDown$ True) has not yet been folded onto the
+			// object -- events.Apply sets Object.FaceDown DURING the move it
+			// intercepts, so at match time the object is still in its origin
+			// zone with FaceDown false. Pass the derived override so a
+			// ValidCard$ naming `faceDown` (Veiled Ascension's
+			// `Creature.faceDown+YouCtrl`) admits the entry it names instead
+			// of failing closed. events.IsFaceDownEntry is the one predicate
+			// covering BOTH markers (the manifest/FaceDown$ Counter and the
+			// cloak literal), so a third face-down marker cannot be missed.
+			if ev.Kind == events.MoveZone && ev.To == state.ZBattlefield &&
+				events.IsFaceDownEntry(ev.Counter) {
+				sc.AsFaceDown = true
+			}
+			if !ok2 || !effects.MatchesSpecCtx(e.G, spec, ev.Obj, sc) {
 				return false
 			}
 		}

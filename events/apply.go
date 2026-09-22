@@ -177,6 +177,15 @@ func Apply(g *state.Game, e Event) {
 		o.EnlistedTurn = g.Turn
 		o.EnlistedCombat = g.CombatsThisTurn
 
+	case Connive:
+		// The connive record (CR 702.59, task connive1) is a pure marker,
+		// exactly like Explore: the connive's own state changes (the draws,
+		// the discards, the +1/+1 counters) are their own events that
+		// preceded this one, and the record is what trig:Connives matches.
+		// Obj the conniving permanent, Player its controller, IDs the
+		// discarded cards in discard order, Amount the nonland count among
+		// them. One marker per completed connive action.
+
 	case Pair:
 		// CR 702.103: a Soulbond pairing. Obj is the pairing permanent and
 		// IDs[0] its chosen partner; both fields are set reciprocally when
@@ -1256,6 +1265,15 @@ func Apply(g *state.Game, e Event) {
 			if FlagsFrom(e.Counter)&state.FlagConspired != 0 {
 				o.Conspired = true
 			}
+			// Convoke (CR 702.66, task connive1) is an ID-LIST fold, not an
+			// amount: the convoked creatures ride the pay-time CastInfo's IDs
+			// whenever the flag is present, whatever other tags ride the same
+			// event. Folded OUTSIDE the exclusive switch below (the Conspired
+			// pattern) so a later event carrying the flag cannot steal that
+			// event's Amount from its own routing case.
+			if FlagsFrom(e.Counter)&state.FlagConvoked != 0 {
+				o.Convoked = append([]state.ObjID(nil), e.IDs...)
+			}
 			switch {
 			// Conspire's Amount is a marker, never data: the bool was folded
 			// above, and the flag rides a LOCAL counter at the emission site
@@ -1267,6 +1285,9 @@ func Apply(g *state.Game, e Event) {
 			// conspired cast (and StackCopy propagated that onto its copies).
 			case FlagsFrom(e.Counter)&state.FlagConspired != 0:
 				// bool folded above; the Amount is deliberately unused
+			case FlagsFrom(e.Counter)&state.FlagConvoked != 0:
+				// the convoked id list was folded above; the Amount is
+				// deliberately unused (the Conspired arm's consume shape)
 			case FlagsFrom(e.Counter)&state.FlagConverged != 0:
 				o.ConvergeColours = e.Amount
 			case FlagsFrom(e.Counter)&state.FlagReplicated != 0:
@@ -2377,6 +2398,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.ConvergeColours = 0
 			o.TimesKicked = 0
 			o.Conspired = false
+			o.Convoked = nil
 			o.ManaSpent = 0
 			o.ManaSnowSpent = 0
 			o.ManaTreasureSpent = 0
@@ -2411,6 +2433,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.ConvergeColours = 0
 			o.TimesKicked = 0
 			o.Conspired = false
+			o.Convoked = nil
 			o.ManaSpent = 0
 			o.ManaSnowSpent = 0
 			o.ManaTreasureSpent = 0

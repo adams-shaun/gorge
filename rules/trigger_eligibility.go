@@ -145,6 +145,15 @@ func triggerModeEvents(mode string) triggerEventMask {
 		return 1 << events.MoveZone
 	case "Explores":
 		return 1 << events.Explore
+	case "Connives":
+		// The marker Kind's ordinal is past the 64-bit mask's reach, the
+		// Investigated/Discover shape: a mask bit is not encodable and
+		// allows() fails open for every kind at or past triggerMaskKindBits,
+		// so the mode is admitted through that fail-open path. Naming the
+		// mode here (rather than letting it fall to the allTriggerEvents
+		// default) keeps a Connives-only face's mask narrow for every other
+		// kind.
+		return 0
 	case "Investigated":
 		// The Kind's ordinal (67) is past the 64-bit mask's reach, the
 		// RingTemptsYou shape: a mask bit is not encodable and allows()

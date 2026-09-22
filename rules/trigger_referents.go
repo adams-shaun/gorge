@@ -169,6 +169,13 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		if len(ev.IDs) > 0 {
 			c.TriggerEnlisted = ev.IDs[0]
 		}
+	case "Connives":
+		// The connive record's roles (task connive1): TriggerCard is the
+		// CONNIVER (what ValidCard$ matched), the same ChangesZone read. The
+		// discarded cards rode the record's IDs, but every corpus body reads
+		// the conniving creature or asks its own targets, so no separate
+		// referent field is minted for them.
+		c.TriggerCard = ev.Obj
 	case "Exerted":
 		// The Exert event names the exerted permanent (ev.Obj) and its
 		// controller at exert time (ev.Player). TriggerCard is the exerted

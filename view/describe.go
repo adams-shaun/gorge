@@ -289,6 +289,11 @@ func Describe(g *state.Game, ev events.Event) string {
 			return player(g, ev.Player) + " seeks"
 		}
 		return player(g, ev.Player) + " discovers"
+	case events.Connive:
+		// The connive record (task connive1): the draws and discards are
+		// already their own lines (Draw/Discard events), so this line names
+		// only the conniving permanent.
+		return obj(g, ev.Obj) + " connives"
 	case events.CombatRetarget:
 		// api:ChangeCombatants's reselect: Obj the attacker, Player the new
 		// defender. The old defender needs no line (the re-pointed attack is
