@@ -90,6 +90,36 @@ func (e *Engine) attacksMatches(t cards.Trigger, source state.ObjID, ev events.E
 			}
 		}
 	}
+	// Training (CR 702.70) fires only when the attacking source attacks
+	// alongside ANOTHER creature with strictly greater power. The declaration
+	// is spread across one DeclareAttackers event per defender, so the other
+	// attackers are read from Engine.declaredAttackers (the whole chosen set)
+	// rather than ev.IDs -- two creatures attacking different opponents still
+	// attack "with" each other. Power is the derived value, so a lord or a
+	// counter moves the comparison exactly as it moves the creature. An empty
+	// scratch (a synthetic event, or a helper that emits DeclareAttackers
+	// directly without a declaration) falls back to ev.IDs, which is the
+	// declaration itself in every single-defender case.
+	if v, ok := t.Params["Training"]; ok && strings.EqualFold(v, "True") {
+		attackers := e.declaredAttackers
+		if len(attackers) == 0 {
+			attackers = ev.IDs
+		}
+		power := e.Power(source)
+		bigger := false
+		for _, id := range attackers {
+			if id == source {
+				continue
+			}
+			if e.Power(id) > power {
+				bigger = true
+				break
+			}
+		}
+		if !bigger {
+			return false
+		}
+	}
 	// FirstAttack$ True (Aurelia the Warleader, Godo Bandit Warlord, Scourge
 	// of the Throne, Fear of Missing Out -- the four corpus carriers, all the
 	// plain True spelling) gates the trigger to the attacker's FIRST attack

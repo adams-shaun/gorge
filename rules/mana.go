@@ -1064,6 +1064,22 @@ func (e *Engine) rawBaseCost(p state.PlayerID, id state.ObjID) Cost {
 	return e.parseCost(o.Face().ManaCost)
 }
 
+// castOfferBase is the composed RAW base every ordinary cast offer is gated on:
+// the printed mana cost with CR 702.51 Convoke's creatures and CR 702.66
+// Improvise's artifacts credited as generic, in that order (improviseCost
+// excludes convokeTaps so one permanent is never committed twice). It is ONE
+// helper so the plain cast offer (rules/legal.go's hand walk) and the
+// MayFlashCost alternate offer (rules/mayflash.go) cannot drift: the mayflash
+// offer charges the same base PLUS its extra cost, and both must price the
+// printed cost identically. Returns a value (not the committed taps) because
+// the offer gate only needs the credit; the actual commitment is re-derived
+// per cast by convokeAsk.
+func (e *Engine) castOfferBase(p state.PlayerID, id state.ObjID) Cost {
+	base, taps := e.convokeCost(p, id, e.rawBaseCost(p, id))
+	base, _ = e.improviseCost(p, id, base, taps)
+	return base
+}
+
 // offerCostFor is the CR 601.2f-composed cost an offer is gated on: the
 // selected base cost (a spell's printed mana cost, or an alternative/
 // flashback/surge/kicker cost) with RaiseCost then ReduceCost applied to

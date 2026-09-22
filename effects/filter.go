@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -131,6 +132,21 @@ var predicates = map[string]predFn{
 	"notExertedThisTurn": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return !o.ExertedThisTurn
 	},
+	// enlistedThisCombat is CR 702.160's enlist marker (task enlist1): the
+	// creature enlisted another creature in the CURRENT combat. The stamp
+	// (state.Object.EnlistedTurn/EnlistedCombat, folded by events.Apply's
+	// Enlist case) is compared against the live game clock, so a later combat
+	// in the same turn -- an extra combat phase -- no longer matches, which
+	// is what "this combat" means. Aradesh, the Founder's
+	// `Mode$ Attacks | ValidCard$ Creature.YouCtrl+enlistedThisCombat` is the
+	// corpus's one carrier; the predicate is a recognised-shape entry (the
+	// compiled predicate layer marks an unlisted term `maybe` and falls
+	// through to this textual oracle, so no twin term is owed), and
+	// UnknownPredicates classifies it through the same predicates map, so
+	// the census and the matcher cannot disagree.
+	"enlistedThisCombat": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o.EnlistedTurn == g.Turn && o.EnlistedCombat == g.CombatsThisTurn
+	},
 	// Permanent is Forge's CardProperty.Permanent (card.isPermanent()): the
 	// printed face is a permanent type, in ANY zone (CR 109.2). This is the
 	// PREDICATE half of the pair; the bare `Permanent` BASE keeps the
@@ -161,6 +177,33 @@ var predicates = map[string]predFn{
 // Devoid card (effects.ColorsOf) matches no colour predicate, Green included.
 var colorLetter = map[string]string{"White": "W", "Blue": "U", "Black": "B", "Red": "R", "Green": "G"}
 
+// objectHasKeyword answers the `with<Keyword>`/`without<Keyword>` filter
+// predicates: does this object have keyword k from its printed face OR from a
+// CR 122.1b marker counter? A menace counter (Butch DeLoria), a trample
+// counter (Owen Grady), and so on grant the keyword through
+// cards.CounterKeyword's ONE classifier, so a filter and the engine's own
+// HasKeyword cannot disagree about a counter-granted keyword. This does not
+// see layer-6 AddKeyword$ grants (a continuous-effect grant needs the engine's
+// layer walk, which this predicate has no access to); a counter grant is
+// answerable from the object alone.
+func objectHasKeyword(o *state.Object, k string) bool {
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	if o.Face().HasKeyword(k) {
+		return true
+	}
+	for _, c := range o.Counters {
+		if c.N <= 0 {
+			continue
+		}
+		if name, ok := cards.CounterKeyword(c.Kind); ok && strings.EqualFold(cards.KeywordHead(name), k) {
+			return true
+		}
+	}
+	return false
+}
+
 func init() {
 	// kw:Changeling (CR 702.73) is a characteristic-defining type grant, not an
 	// effect: it is answered in changelingSubtype below, in every zone, and
@@ -174,10 +217,10 @@ func init() {
 		"Flanking", "Horsemanship"} {
 		k := kw
 		predicates["with"+strings.ReplaceAll(k, " ", "")] = func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
-			return o.Face() != nil && o.Face().HasKeyword(k)
+			return objectHasKeyword(o, k)
 		}
 		predicates["without"+strings.ReplaceAll(k, " ", "")] = func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
-			return o.Face() == nil || !o.Face().HasKeyword(k)
+			return !objectHasKeyword(o, k)
 		}
 	}
 	// These read ColorsOf, not the face directly, so Devoid (effects.ColorsOf)
@@ -928,7 +971,15 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// (CR 708.5 -- a manifested or cloaked card). The same live state read
 		// the rules-side scans gate on (faceDownPrintedHides); a face-down
 		// EXILE (Hideaway) is not a permanent and never matches.
-		return o.FaceDown && o.Zone == state.ZBattlefield
+		//
+		// AsFaceDown is a DERIVED-CHARACTERISTICS override, like AsStack just
+		// above: a Moved replacement's ValidCard$ is evaluated BEFORE
+		// events.Apply folds the face-down marker onto the object (the object
+		// is still in its origin zone with FaceDown false), so a filter like
+		// `Creature.faceDown+YouCtrl` (Veiled Ascension) would fail closed for
+		// the very entry it names. rules/replacement.go sets this bit when the
+		// intercepted move is a face-down battlefield entry.
+		return sc.AsFaceDown || (o.FaceDown && o.Zone == state.ZBattlefield)
 	case wordRingBearer:
 		// Forge's IsRingbearer (CR 701.54e): the object is its controller's
 		// Ring-bearer -- true exactly while it is on the battlefield under
@@ -2050,6 +2101,14 @@ type SpecContext struct {
 	// announced spell as the cast spell it is; nothing else reads it, and it
 	// is absent from every resolution- and target-time evaluation.
 	AsStack bool
+	// AsFaceDown is the same class of DERIVED-CHARACTERISTICS override for
+	// the faceDown predicate: a Moved replacement's ValidCard$ is evaluated
+	// ahead of the Move it intercepts, so the entering object is not yet
+	// FaceDown and is still in its origin zone. rules/replacement.go sets it
+	// while matching a face-down battlefield entry (manifest/cloak/FaceDown$),
+	// making `Creature.faceDown+...` specs match the entry they name. Like
+	// AsStack it is absent from every other evaluation.
+	AsFaceDown bool
 	// Remembered is the resolving spell or ability's Remembered set (a
 	// RepeatEach iteration binds its subject here). Like ResolutionTargets it
 	// is meaningful only while Resolving. It is also the Remembered.* base

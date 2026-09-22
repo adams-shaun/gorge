@@ -155,6 +155,27 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		// reads the trigger's own source or asks its own targets, so no
 		// separate referent field is minted for it.
 		c.TriggerCard = ev.Obj
+	case "Enlisted":
+		// The Enlist event names the ATTACKING creature that enlisted (ev.Obj,
+		// the trigger's source for ValidCard$ Card.Self) and the creature it
+		// tapped in ev.IDs[0]. TriggerCard is the attacker (so
+		// TriggeredCard/TriggeredCardLKICopy resolve against it, the Exerted
+		// shape) and TriggerEnlisted is the enlisted creature, what
+		// ValidEnlisted$ matched and what Defined$ TriggeredEnlisted reads
+		// (Goblin Morale Sergeant's conjured duplicate).
+		c.TriggerCard = ev.Obj
+		c.TriggerSource = ev.Obj
+		c.TriggerPlayer = player(ev.Player)
+		if len(ev.IDs) > 0 {
+			c.TriggerEnlisted = ev.IDs[0]
+		}
+	case "Connives":
+		// The connive record's roles (task connive1): TriggerCard is the
+		// CONNIVER (what ValidCard$ matched), the same ChangesZone read. The
+		// discarded cards rode the record's IDs, but every corpus body reads
+		// the conniving creature or asks its own targets, so no separate
+		// referent field is minted for them.
+		c.TriggerCard = ev.Obj
 	case "Exerted":
 		// The Exert event names the exerted permanent (ev.Obj) and its
 		// controller at exert time (ev.Player). TriggerCard is the exerted

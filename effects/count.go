@@ -860,6 +860,19 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			return o.ReplicateTimes, true
 		}
 		return 0, true
+	case "SquadPaid":
+		// CR 702.66: the number of squad payments the resolving spell's cast
+		// made ("you may pay [cost] any number of times"), carried by the
+		// pay-time CastInfo's FlagSquadPaid Amount (rules/cast.go's squadAsk
+		// and payCast). The same provenance read ReplicatePaid makes: read off
+		// the SOURCE -- the cast spell on the stack, and in the keyword
+		// expansion's ETB trigger the permanent the spell became (the
+		// stack->battlefield move preserves the field) -- so a replay derives
+		// the same count; a copy of the spell was never cast and reads 0.
+		if o := g.Obj(c.Source); o != nil {
+			return o.SquadPaid, true
+		}
+		return 0, true
 	case "TimesKicked":
 		// CR 702.43: the number of times the resolving spell's multikicker
 		// cost was paid as it was cast, carried by the pay-time CastInfo's

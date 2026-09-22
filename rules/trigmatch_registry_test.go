@@ -47,6 +47,16 @@ var addedAfterTheSplit = []string{
 	// appended for them, so neither mode could have been in the pre-split
 	// switch.
 	"Discover", "SeekAll",
+	// connive1: "Whenever a creature you control connives ..." (CR 702.59;
+	// Iron Monger Sadistic Tycoon, Glorious Purpose, Ultron Unlimited). It
+	// matches the events.Connive marker Kind, which was appended for it, so
+	// it could not have been in the pre-split switch.
+	"Connives",
+	// enlist1: "Whenever CARDNAME enlists a creature ..." (CR 702.160;
+	// Goblin Morale Sergeant, Guardian of New Benalia). It matches the
+	// events.Enlist marker Kind, appended for it (the Exerted shape), so it
+	// could not have been in the pre-split switch.
+	"Enlisted",
 }
 
 func allRegisteredModeNames() []string {

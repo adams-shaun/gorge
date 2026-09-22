@@ -1076,6 +1076,15 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// declaration itself queued -- the ordinary APNAP drain, no separate
 		// resume needed here.
 		e.exertAnswer(d, in)
+	case chooseEnlist:
+		// enlist1: the declare-attackers step's enlist election (CR 702.160a)
+		// was answered. enlistAnswer taps the chosen creature, emits the
+		// Enlist event and registers the +power/+0 pump, then advances the
+		// cursor to the next offerable attacker or finishes the declaration
+		// (finishAttackers), whose DeclareAttackers events queue the attack
+		// triggers -- so the enlist marker is already folded when an
+		// intervening-if reads enlistedThisCombat.
+		e.enlistAnswer(d, in)
 	case chooseMana:
 		// Several individual mana abilities share one tap cost. A payment
 		// window resumes its cast after the selected ability resolves; Ward's

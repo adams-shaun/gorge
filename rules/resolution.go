@@ -48,7 +48,7 @@ import (
 // decision's answer resumes ("modes" for a Charm modal pick, "unless_pay"
 // for a CopySpellAbility may-pay, "discard" for a mid-resolution discard
 // choice, "search" for a hidden-library KChoose, "dig" for a Dig
-// look-and-take pick, and "" for a pure outer
+// look-and-take pick, "connive" for a Connive discard election, and "" for a pure outer
 // continuation that carries no answer),
 // which stack object's resolution is paused, and the exact sub-ability
 // whose effect asked — or, for an outer continuation, the sub-ability to
@@ -1321,6 +1321,28 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			if len(chosen) > 0 {
 				ctx.ExploreChoice = chosen[0].Kind
 				ctx.ExploreCard = chosen[0].Obj
+			}
+		case "connive":
+			// A Connive's discard election (api:Connive, CR 702.59: draw N,
+			// then discard N — the ask fires only when the hand holds more
+			// than N cards, the strict-supersets discipline) was answered.
+			// The resume point carries the pending conniver
+			// (decision.ResumeTarget = the conniver's id) and every chosen
+			// option carries the card to discard in Obj (the same shape the
+			// "discard" arm reads), so the re-entered effConnive applies the
+			// discards, the per-nonland +1/+1 counters and the record, then
+			// every later conniving target poses its own fresh ask. An empty
+			// answer (malformed — the ask's Min is N >= 1 over a hand larger
+			// than N) still sets the Done marker with no picks: the effect's
+			// application path guards the absence, so the record names only
+			// what actually moved. The effect consumes and clears all three
+			// fields at the point of application (fx42 scoping).
+			ctx.ConniveDone = true
+			ctx.ConniveObj = state.ObjID(rp.target)
+			for _, o := range chosen {
+				if o.Obj != 0 {
+					ctx.ConniveDiscard = append(ctx.ConniveDiscard, o.Obj)
+				}
 			}
 		case "choice":
 			// ChooseCard, ChoosePlayer and ChangeTargets all use KChoose. Keep

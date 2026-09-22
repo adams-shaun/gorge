@@ -133,6 +133,67 @@ func TestNecropotenceSkipsItsControllersDrawStep(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+// TestWildWastelandSkipsItsControllersDrawStep pins the brief's named deck
+// carrier (Hail, Caesar pip census 2026-09-18): Wild Wasteland's real
+// R:Event$ BeginPhase | ActiveZones$ Battlefield | ValidPlayer$ You |
+// Phase$ Draw | Skip$ True line -- character-for-character the Necropotence
+// shape -- skips ITS CONTROLLER's draw step. Wild Wasteland is a distinct
+// card from a distinct set whose upkeep half is a real DB$ Dig, so the
+// library count alone is not enough (the Dig exiles two cards on the same
+// turn): the assertion is the DRAW EVENT COUNT. Seat 0 (the controller)
+// draws zero cards in its turn 3 draw step while seat 1 draws its normal one
+// in turn 2, and a control game with no Wild Wasteland draws seat 0 on turn
+// 3 -- so the skip is the card's doing, not a stuck engine.
+func TestWildWastelandSkipsItsControllersDrawStep(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e, cfg, _ := realCardEngine(t, reg, 7, "Wild Wasteland")
+
+	// The skip is ValidPlayer$ You: seat 1's turn-2 draw step still draws.
+	lib1 := len(e.G.Zone(state.ZLibrary, 1))
+	driveToStep(t, e, 2, 1, state.StepMain1)
+	if got := len(e.G.Zone(state.ZLibrary, 1)); got != lib1-1 {
+		t.Fatalf("seat 1's library went %d -> %d across its normal draw step, want one draw", lib1, got)
+	}
+
+	// Seat 0 reaches turn-3 main1 with no draw: the draw step is skipped, so
+	// driveToStep straight to main1 succeeds while the skipped step never
+	// enters the log.
+	driveToStep(t, e, 3, 0, state.StepMain1)
+	if e.G.Step != state.StepMain1 {
+		t.Fatalf("after the skip the turn is in %s, want main1 (the draw step is skipped, not stalled)", e.G.Step)
+	}
+	if got := wildWastelandDrawsInTurn(e, 0, 3); got != 0 {
+		t.Fatalf("seat 0 drew %d card(s) in its turn-3 draw step despite Wild Wasteland's Skip$ True", got)
+	}
+
+	// Control: the same seat-0 turn draws once with no Wild Wasteland, so the
+	// zero above is the replacement and not a broken driver.
+	e2, _, _ := realCardEngine(t, reg, 8)
+	driveToStep(t, e2, 3, 0, state.StepMain1)
+	if got := wildWastelandDrawsInTurn(e2, 0, 3); got != 1 {
+		t.Fatalf("control game drew seat 0 %d card(s) on turn 3, want exactly one", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// wildWastelandDrawsInTurn counts Draw events for p after the TurnChange that
+// opened `turn` -- the one unambiguous probe of a draw step whose StepChange
+// was skipped out of the log entirely.
+func wildWastelandDrawsInTurn(e *Engine, p state.PlayerID, turn int32) int {
+	inTurn := false
+	n := 0
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.TurnChange && ev.Amount == turn {
+			inTurn = true
+			continue
+		}
+		if inTurn && ev.Kind == events.Draw && ev.Player == p {
+			n++
+		}
+	}
+	return n
+}
+
 // TestChainedUntapAndUpkeepSkips exercises the chain no single corpus card
 // shows: two authored BeginPhase lines in the Stasis / Eon Hub shape (one
 // skipping untap, one upkeep), so turn 2 begins with NO untap of a tapped

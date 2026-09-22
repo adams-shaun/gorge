@@ -290,10 +290,8 @@ func playGame(setup searchprobe.PublicGame, seed uint64, searchSeat int, cfg con
 	rngs := searchprobe.BotRandoms(seed, len(setup.Names))
 	board := botpolicy.NewBoard(len(rngs))
 	actor := state.PlayerID(searchSeat)
-	collector := searchprobe.NewCollector(actor)
-	h := searchprobe.History{Actor: actor, Answers: map[int][]searchprobe.Action{}}
+	feed := searchseat.NewFeed(actor)
 	observing := search
-	pos := 0
 	for steps := 0; !e.G.Over; steps++ {
 		if steps >= 20000 || e.G.Turn >= 200 {
 			return e, nil // stall: Over=false
@@ -305,27 +303,21 @@ func playGame(setup searchprobe.PublicGame, seed uint64, searchSeat int, cfg con
 		b := botpolicy.BoardFromGameInto(e.G, e, d.Player, &board)
 		in := botpolicy.Decide(b, d, rngs[d.Player])
 		if observing {
-			f, err := collector.Capture(e, e.L.Events[pos:])
-			if err != nil {
+			f, ok := feed.Observe(e)
+			if !ok {
 				observing = false
-				rec.Unsupported = err.Error()
-			} else {
-				h.Frames = append(h.Frames, f)
-				if d.Player == actor {
-					if e.G.Turn <= cfg.maxTurn {
-						if chosen, ok := teach(setup, &h, collector, e, d, in, f, cfg, rec, &b); ok {
-							in = chosen
-						}
+				rec.Unsupported = feed.StopReason()
+			} else if d.Player == actor {
+				if e.G.Turn <= cfg.maxTurn {
+					if chosen, ok := teach(setup, feed.HistoryRef(), feed.Collector(), e, d, in, f, cfg, rec, &b); ok {
+						in = chosen
 					}
-					a, err := collector.Actions(d, in)
-					if err != nil {
-						return e, err
-					}
-					h.Answers[len(h.Frames)-1] = a
+				}
+				if err := feed.RecordAnswer(d, in); err != nil {
+					return e, err
 				}
 			}
 		}
-		pos = len(e.L.Events)
 		if err := e.Submit(in); err != nil {
 			return e, err
 		}

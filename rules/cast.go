@@ -131,6 +131,16 @@ type pendingCast struct {
 	replicateTimes int32
 	replicateDone  bool
 
+	// squadParam is the raw Squad keyword parameter (CR 702.66) a
+	// "squadded" cast re-parses at ask and answer time; squadTimes is the
+	// answered payment count (0 = declined: no flag, a plain cast) and
+	// squadDone marks the one ask already posed. The replicate fields' exact
+	// shape; plain data, so Clone copies it.
+	squadParam string
+	squadSet   bool
+	squadTimes int32
+	squadDone  bool
+
 	// multikickParam is the raw Multikicker keyword parameter (CR 702.43) a
 	// "multikicked" cast re-parses at ask and answer time; multikickTimes is
 	// the answered payment count (0 = declined: no flag, a plain cast) and
@@ -466,6 +476,27 @@ func replicateCost(f *cards.Face) (Cost, bool) {
 // model is withheld (the replicateCost fail-closed direction).
 func multikickerCost(f *cards.Face) (Cost, bool) {
 	s, ok := f.KeywordParam("Multikicker")
+	if !ok {
+		return Cost{}, false
+	}
+	c := ParseCost(s)
+	if len(c.Unknown) > 0 {
+		return Cost{}, false
+	}
+	return c, true
+}
+
+// squadCost resolves the Squad keyword's PER-PAYMENT cost (CR 702.66, Forge's
+// K:Squad:<cost>), the replicateCost/multikickerCost shape: "you may pay
+// [cost] any number of times" as the spell is cast, so the offer gates on ONE
+// payment being payable and the count ask (squadAsk) settles how many. A cost
+// carrying a token ParseCost genuinely cannot model is withheld (the same
+// fail-closed direction); a modelled non-mana part (Thrill-Kill Disciple's
+// "1 Discard<1/Card>", Ruthless Radrat's "ExileFromGrave<4/Card/cards>") is
+// accepted here and its payability decided by the ordinary offer gate
+// (nonManaCastable), exactly like any other cast cost.
+func squadCost(f *cards.Face) (Cost, bool) {
+	s, ok := f.KeywordParam("Squad")
 	if !ok {
 		return Cost{}, false
 	}
@@ -1728,6 +1759,19 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		} else {
 			cost = Cost{}
 		}
+	case "mayflash":
+		// MayFlashCost (CR 702.8, the "as though it had flash" alternate
+		// cast): the printed mana cost is paid PLUS the keyword's colon
+		// parameter -- the oracle wording is "pay {2} MORE to cast it", so
+		// this is base.Plus(extra), never a substitution. The offer gate
+		// (legal.go's hand walk) priced exactly this composition, so a stale
+		// option whose keyword is gone folds nothing rather than charging a
+		// cost the gate never proved payable. The extra's non-mana parts
+		// (tapXType<Tegwyll's Scouring>, Behold<Molten Exhale>) are settled
+		// by the ordinary tap/choice-cost machinery after this fold.
+		if mc, ok := mayflashExtraCost(f); ok {
+			cost = cost.Plus(mc)
+		}
 	}
 	// CR 601.2b/f/h: a spell's own SpellAbility may carry an explicit Cost$
 	// (Forge's SP Cost) naming an additional cost -- most commonly a
@@ -1741,7 +1785,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// this (pc.ability < 0 and no alternative/flashback recast), and a spell
 	// with no SP Cost$ contributes nothing.
 	if opt.AltCostIndex == 0 && (opt.Mode == "" || opt.Mode == "mayplay" || opt.Mode == "room_alt" ||
-		opt.Mode == "adventure_alt" || opt.Mode == "aftermath" || opt.Mode == "split_alt" || opt.Mode == "conspired") {
+		opt.Mode == "adventure_alt" || opt.Mode == "aftermath" || opt.Mode == "split_alt" || opt.Mode == "conspired" || opt.Mode == "mayflash") {
 		cost = withSpellAbilityExtras(f, cost)
 	}
 	// Convoke and Harmonize are announced only after X/mode/pip choices have
@@ -1821,6 +1865,14 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	if opt.Mode == "multikicked" {
 		if _, ok := multikickerCost(f); ok {
 			e.cast.multikickParam, e.cast.multikickSet = f.KeywordParam("Multikicker")
+		}
+	}
+	// Squad (CR 702.66): the per-payment cost is carried as its raw keyword
+	// parameter and re-parsed by squadAsk and the answer handler -- the exact
+	// string-survives-Clone convention the replicate capture above documents.
+	if opt.Mode == "squadded" {
+		if _, ok := squadCost(f); ok {
+			e.cast.squadParam, e.cast.squadSet = f.KeywordParam("Squad")
 		}
 	}
 	// Conspire (CR 702.78a) is param-less: the mode itself marks the intent
@@ -2025,6 +2077,13 @@ func (e *Engine) continueCast() {
 	// carrier pairs both keywords (measured over the corpus), so the two
 	// asks never coexist on one cast.
 	if e.multikickAsk() {
+		return
+	}
+	// CR 601.2b: the squad count (CR 702.66's optional additional cost, paid
+	// any number of times) is announced the same way. No corpus carrier pairs
+	// Squad with Replicate/Multikicker/Kicker (measured over the 15 K:Squad
+	// files), so the asks never coexist on one cast.
+	if e.squadAsk() {
 		return
 	}
 	// CR 702.78a: the Conspire tap election (two untapped creatures that
@@ -2885,6 +2944,63 @@ func (e *Engine) multikickAsk() bool {
 			label = fmt.Sprintf("Pay multikicker %d times", n)
 		}
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "multikick",
+			Label: label, Amount: int(n)})
+	}
+	e.choosing = chooseCast
+	e.ask(d)
+	return true
+}
+
+// squadAsk poses CR 702.66's squad count question -- "you may pay [the squad
+// cost] any number of times as you cast this spell" -- once, the
+// replicateAsk/multikickAsk shape (the same cast announcement, CR 601.2b): the
+// max is the largest N the current board can still pay, walked with the SAME
+// affordability checker the payment window's composed total faces (castable),
+// pool-only at ask time. The answered count folds that many payments into
+// cost (castAnswer); 0 declines: no flag, an exactly plain cast.
+func (e *Engine) squadAsk() bool {
+	pc := e.cast
+	if pc.squadDone || !pc.squadSet {
+		return false
+	}
+	pc.squadDone = true
+	sc := ParseCost(pc.squadParam)
+	max := int32(0)
+	cand := pc.cost
+	for i := int32(0); i < 64; i++ {
+		// The hard cap only exists so a degenerate future cost whose every
+		// part prices against a non-reserving candidate count cannot loop;
+		// every real squad resource (mana, energy, life, tap/sac candidates)
+		// is finite and breaks the loop naturally (the replicateAsk
+		// comment).
+		next := cand.Plus(sc)
+		if !e.castable(pc.player, pc.card, next, false) {
+			break
+		}
+		cand = next
+		max++
+	}
+	if max == 0 {
+		// The offer gate proved one payment payable; a board that changed
+		// under the proposal degrades the explicitly chosen "(squadded)"
+		// mode to the count-0 plain cast (the replicateAsk max==0 arm's
+		// conservative direction), never a wedge or abort. The degrade is
+		// loud: a silent downgrade would leave the player's choice
+		// unrecorded.
+		e.emit(events.Event{Kind: events.Note, Player: pc.player, Obj: pc.card,
+			Text: "squad no longer payable; casting without squad"})
+		return false
+	}
+	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
+		Prompt: "Pay the squad cost how many times?", Source: pc.card}
+	for n := int32(0); n <= max; n++ {
+		label := "No squad"
+		if n == 1 {
+			label = "Pay squad once"
+		} else if n > 1 {
+			label = fmt.Sprintf("Pay squad %d times", n)
+		}
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "squad",
 			Label: label, Amount: int(n)})
 	}
 	e.choosing = chooseCast
@@ -3995,6 +4111,30 @@ func costAnnouncesPaidX(c Cost) bool {
 // manaToPayX is manaToPay with {X} folded to an explicit value.
 // paymentMana applies announced Convoke/Harmonize contributions to the
 // already-formed total. A stale answer can never make a requirement negative.
+// faceWantsConvoked reports whether the cast's face could have a reader of
+// Defined$ Convoked: an SVar body naming the selector (Lethal Scheme's
+// DBConnive, Venerated Loxodon's and Zephyr Singer's TrigPutCounterAll --
+// all three corpus carriers live in SVar bodies) or a compiled ability whose
+// Defined$ parameter names it directly. The scan is the faceWantsConverge
+// string-scan shape, one level wider (abilities), so a printed
+// `DB$ ... | Defined$ Convoked` ability line is caught too.
+func faceWantsConvoked(f *cards.Face) bool {
+	if f == nil {
+		return false
+	}
+	for _, v := range f.SVars {
+		if strings.Contains(v, "Defined$ Convoked") {
+			return true
+		}
+	}
+	for _, a := range f.Abilities {
+		if strings.EqualFold(strings.TrimSpace(a.Params["Defined"]), "Convoked") {
+			return true
+		}
+	}
+	return false
+}
+
 // faceWantsConverge is the heads-safety gate for the pay-time converge
 // CastInfo: it reports whether the face carries a Count$Converge SVar body.
 // Without it a count>0-only gate would stamp a CastInfo onto EVERY
@@ -4705,6 +4845,17 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 			}
 			pc.multikickTimes = n
 		}
+	case "squad":
+		// CR 702.66: the answered payment count folds that many squad
+		// payments into cost -- the replicate/multikicker arm's exact shape.
+		if len(chosen) > 0 && pc.squadSet {
+			n := int32(chosen[0].Amount)
+			sc := ParseCost(pc.squadParam)
+			for i := int32(0); i < n; i++ {
+				pc.cost = pc.cost.Plus(sc)
+			}
+			pc.squadTimes = n
+		}
 	case "mutate_place":
 		// CR 702.140b: the answered over/under placement. Option.Amount is 1
 		// for "on top", 0 for "under", so the answer is read positionally.
@@ -4940,6 +5091,13 @@ func modeFlags(mode string) string {
 	// When a payment WAS made, payCast ORs bare FlagKicked (a multikicked
 	// cast IS a kicked cast) and FlagMultikicked onto the trailing CastInfo.
 	case "multikicked":
+		return ""
+	// Squad (CR 702.66): the mode marks the INTENT to pay the optional squad
+	// cost, and the count ask (squadAsk) can still answer 0 -- a DECLINED
+	// squad must stay the byte-identical plain cast, no flag and no event,
+	// exactly the "replicated"/"multikicked" contract above. When a payment
+	// WAS made, payCast ORs FlagSquadPaid onto a trailing CastInfo.
+	case "squadded":
 		return ""
 	// Conspire (CR 702.78a): the mode marks the INTENT to tap two eligible
 	// creatures, and the offer can be taken only when they exist, but a
@@ -5858,6 +6016,21 @@ func (e *Engine) payCast() {
 		}
 		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: amt, Counter: flags})
 	}
+	// Squad (CR 702.66): the payment count rides its own TRAILING pay-time
+	// CastInfo -- the flag routes the Amount into Object.SquadPaid (events.Apply's
+	// CastInfo case), so this event never clobbers the X or replicate count an
+	// earlier event in this block carried (no corpus carrier pairs {X} with
+	// Squad, measured over the 15 K:Squad files), and its Counter leaves
+	// CastFlags carrying every earlier flag too. modeFlags deliberately maps
+	// "squadded" to "" -- a DECLINED squad (count 0) must stay the
+	// byte-identical plain cast, no flag and no event -- so the emission is
+	// gated on a payment having actually been made. Only a "squadded" cast
+	// can carry a nonzero count, and no other mode reads pc.squadTimes, so
+	// the gate is exact.
+	if pc.mode == "squadded" && pc.squadTimes > 0 {
+		sqFlags := events.FlagsString(events.FlagsFrom(flags) | state.FlagSquadPaid)
+		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: pc.squadTimes, Counter: sqFlags})
+	}
 	// Converge (CR 107.4f-family, task converge1): the distinct-colour spend
 	// count rides its own TRAILING pay-time CastInfo -- the flag routes the
 	// Amount into Object.ConvergeColours (events.Apply's CastInfo case), so
@@ -5912,6 +6085,27 @@ func (e *Engine) payCast() {
 	if pc.conspirePaid {
 		cFlags := events.FlagsString(events.FlagsFrom(flags) | state.FlagConspired)
 		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: 1, Counter: cFlags})
+	}
+	// Convoke (CR 702.66, task connive1): the creatures the caster tapped to
+	// help pay for the cast ride their own TRAILING pay-time CastInfo's IDs
+	// -- the flag (NOT ORed into the accumulating flags, the Conspired
+	// pattern) routes the IDs into Object.Convoked (events.Apply folds it
+	// outside the Amount switch), and Defined$ Convoked reads it. Emitted
+	// only for a face whose SVar table or abilities reference the selector
+	// (faceWantsConvoked), so every unrelated convoke cast stays
+	// byte-identical; no accumulation means no later CastInfo carries it,
+	// so its arm's position in the newest-first switch is order-independent.
+	if len(pc.convoke) > 0 && faceWantsConvoked(e.G.Obj(pc.card).Face()) {
+		ids := make([]state.ObjID, 0, len(pc.convoke))
+		seen := make(map[state.ObjID]bool, len(pc.convoke))
+		for _, pay := range pc.convoke {
+			if !seen[pay.id] {
+				seen[pay.id] = true
+				ids = append(ids, pay.id)
+			}
+		}
+		cvFlags := events.FlagsString(events.FlagsFrom(flags) | state.FlagConvoked)
+		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: int32(len(ids)), Counter: cvFlags, IDs: ids})
 	}
 	// Cast-spend (task castprov1): the TOTAL mana actually spent to cast the
 	// spell rides its own TRAILING pay-time CastInfo -- the flag routes the
@@ -6317,6 +6511,13 @@ func init() {
 		// (rules/legal.go) plus conspireAsk (rules/cast.go) pose and pay the
 		// two-creature tap.
 		"kw:Conspire",
+		// kw:Squad: CR 702.66, expanded by cards/keywords.go into a
+		// ChangesZone self-entry trigger whose DB$ CopyPermanent body reads
+		// Count$SquadPaid (the Replicate pattern); the cast flow's "squadded"
+		// offer (rules/legal.go) plus squadAsk (rules/cast.go) pose and pay
+		// the CR 601.2b count announcement, and the trailing FlagSquadPaid
+		// CastInfo carries the count into Object.SquadPaid.
+		"kw:Squad",
 		// kw:Affinity: CR 702.41, expanded by cards/keywords.go into the
 		// ordinary ReduceCost cost-static machinery (rules/statics.go's
 		// collectCostStatics) -- no separate cast path of its own.

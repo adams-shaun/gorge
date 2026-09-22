@@ -97,6 +97,30 @@ func TestControlAndOwnershipPredicates(t *testing.T) {
 	}
 }
 
+func TestWithKeywordPredicateSeesCounterGrantedKeyword(t *testing.T) {
+	g, id := board(t)
+	// A CR 122.1b menace counter grants the keyword exactly as a printed
+	// K:Menace does, so the +withMenace/+withoutMenace predicates must see it
+	// (Butch DeLoria's counter, Frillscare Mentor's ValidCards$ ...+withMenace).
+	bear := g.Obj(id["myBear"])
+	if MatchesSpec(g, "Creature.YouCtrl+withMenace", id["myBear"], 0) {
+		t.Fatal("a counterless bear matched +withMenace")
+	}
+	bear.AddCounter("Menace", 1)
+	if !MatchesSpec(g, "Creature.YouCtrl+withMenace", id["myBear"], 0) {
+		t.Fatal("a menace-countered creature did not match +withMenace")
+	}
+	if MatchesSpec(g, "Creature.YouCtrl+withoutMenace", id["myBear"], 0) {
+		t.Fatal("a menace-countered creature matched +withoutMenace")
+	}
+	// A non-keyword marker counter grants nothing.
+	bear2 := g.Obj(id["myFlier"])
+	bear2.AddCounter("P1P1", 1)
+	if MatchesSpec(g, "Creature.YouCtrl+withMenace", id["myFlier"], 0) {
+		t.Fatal("a +1/+1 counter granted menace")
+	}
+}
+
 func TestConjunctionAndAlternation(t *testing.T) {
 	g, id := board(t)
 	// AND: both predicates must hold.
