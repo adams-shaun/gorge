@@ -32,7 +32,6 @@ import (
 	"fmt"
 	"math"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/decision"
@@ -1951,11 +1950,20 @@ const unlimitedHandSize = 1 << 20
 // maxHandSizeFor is p's effective CR 514.1 maximum: the SetMaxHandSize$
 // Continuous statics affecting p (Reliquary Tower's Affected$ You,
 // "Unlimited"; a numeric value sets the maximum outright, Forge's
-// StaticAbilityContinuous RULES layer reads both shapes), else the default.
-// The scan walks activeStatics in their deterministic order; the FIRST
-// affecting static wins (applying two at once has no rules meaning for a
-// set -- CR 613 uses timestamps, and "no maximum" can only be overridden by
-// another set, which the first-match reading approximates).
+// StaticAbilityContinuous RULES layer reads both shapes), plus the
+// Effect-delivered route (an Effect whose StaticAbilities$ SVar carries the
+// same S: line -- Finale of Revelation's STHandSize, Wrenn and Seven's
+// UnlimitedHand), else the default.
+//
+// Both routes are consulted through the ONE value grammar
+// effects.HandSizeValueOK, so they cannot disagree about what a value means.
+// The scan walks the printed statics first (in their deterministic
+// activeStatics order), then the registered continuous effects (in active()
+// order); the FIRST affecting static wins. Applying two at once has no rules
+// meaning for a set -- CR 613 orders them by timestamp, and "no maximum" can
+// only be overridden by another set, which the first-match reading
+// approximates; the printed-before-Effect tie-break is that same
+// approximation's deterministic choice.
 func (e *Engine) maxHandSizeFor(p state.PlayerID) int {
 	for _, sv := range e.activeStatics("Continuous") {
 		raw := strings.TrimSpace(sv.Params["SetMaxHandSize"])
@@ -1965,10 +1973,18 @@ func (e *Engine) maxHandSizeFor(p state.PlayerID) int {
 		if !effects.MatchesPlayerSpecFrom(e.G, sv.Params["Affected"], p, sv.Controller, sv.Source) {
 			continue
 		}
-		if strings.EqualFold(raw, "Unlimited") {
-			return unlimitedHandSize
+		if n, ok := effects.HandSizeValueOK(raw); ok {
+			return n
 		}
-		if n, err := strconv.Atoi(raw); err == nil && n >= 0 {
+	}
+	for _, ce := range e.active() {
+		if ce.SetMaxHandSize == "" {
+			continue
+		}
+		if !effects.MatchesPlayerSpecFrom(e.G, ce.Affects, p, ce.Controller, ce.Source) {
+			continue
+		}
+		if n, ok := effects.HandSizeValueOK(ce.SetMaxHandSize); ok {
 			return n
 		}
 	}

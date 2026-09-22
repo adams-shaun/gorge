@@ -321,7 +321,7 @@ func matchesCompiledTerm(term predicateTerm, g *state.Game, o *state.Object, sc 
 	case predicateTermEscaped:
 		matched = o.CastFlags&state.FlagEscaped != 0
 	case predicateTermWasCastFromGraveyard:
-		matched = o.CastFlags&(state.FlagFlashback|state.FlagHarmonize|state.FlagEscaped) != 0
+		matched = state.WasCastFromGraveyard(o.CastFlags)
 	case predicateTermColor:
 		matched = strings.Contains(ColorsOf(o), term.arg)
 	case predicateTermType:

@@ -927,6 +927,75 @@ func TestEffectRecordsTheIntendedRegistration(t *testing.T) {
 	}
 }
 
+// TestEffectDeliveredSetMaxHandSizeRegisters pins the Effect-delivery half of
+// the SetMaxHandSize$ read: a DB$ Effect whose StaticAbilities$ SVar carries
+// "Mode$ Continuous | Affected$ You | SetMaxHandSize$ Unlimited" (Finale of
+// Revelation's STHandSize, Wrenn and Seven's UnlimitedHand) must register a
+// continuous effect carrying the value, not fall to the unimplemented Note.
+// The registration is what rules' maxHandSizeFor consults for the cleanup
+// gate, so without it the effect is invisible and the CR 514.1 discard still
+// asks.
+func TestEffectDeliveredSetMaxHandSizeRegisters(t *testing.T) {
+	h := newHost(t, 2)
+	c := &Ctx{Controller: 0, Source: 1, SVars: map[string]string{
+		"STHandSize": "Mode$ Continuous | Affected$ You | SetMaxHandSize$ Unlimited | Description$ You have no maximum hand size.",
+	}}
+	Resolve(h, c, sa(t, "DB$ Effect | StaticAbilities$ STHandSize | Duration$ Permanent"))
+	if len(h.continuous) != 1 {
+		t.Fatalf("continuous = %+v, want one SetMaxHandSize registration", h.continuous)
+	}
+	ce := h.continuous[0]
+	if ce.SetMaxHandSize != "Unlimited" {
+		t.Fatalf("SetMaxHandSize = %q, want Unlimited", ce.SetMaxHandSize)
+	}
+	if ce.Affects != "You" {
+		t.Fatalf("Affects = %q, want You", ce.Affects)
+	}
+	if !ce.Permanent {
+		t.Fatalf("Duration$ Permanent registration = %+v, want a game-lasting effect", ce)
+	}
+	for _, ev := range h.log {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "SetMaxHandSize") {
+			t.Fatalf("SetMaxHandSize still reports unimplemented: %q", ev.Text)
+		}
+	}
+}
+
+// TestEffectDeliveredSetMaxHandSizeFailClosed pins the other direction: a
+// line carrying a condition gate this registration path does not evaluate
+// (Kruphix-style CheckSVar$ or a Delirium Condition$) must NOT register
+// blanket -- it reports the unimplemented Note instead, so the permissive
+// direction for the grant is refused. A dynamic value (an SVar name) is
+// likewise refused, matching rules' printed read.
+func TestEffectDeliveredSetMaxHandSizeFailClosed(t *testing.T) {
+	for _, tc := range []struct{ name, body string }{
+		{"condition gate", "Mode$ Continuous | Condition$ Delirium | Affected$ Opponent | SetMaxHandSize$ 3"},
+		{"dynamic value", "Mode$ Continuous | Affected$ You | SetMaxHandSize$ X"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			h := newHost(t, 2)
+			c := &Ctx{Controller: 0, Source: 1, SVars: map[string]string{"STHandSize": tc.body}}
+			Resolve(h, c, sa(t, "DB$ Effect | StaticAbilities$ STHandSize | Duration$ Permanent"))
+			for _, ce := range h.continuous {
+				if ce.SetMaxHandSize != "" {
+					t.Fatalf("unreadable line registered: %+v", ce)
+				}
+			}
+			// The unimplemented Note is the honest report; assert it fired so a
+			// silently ignored line cannot pass as "no registration".
+			found := false
+			for _, ev := range h.log {
+				if ev.Kind == events.Note && strings.Contains(ev.Text, "unimplemented") {
+					found = true
+				}
+			}
+			if !found {
+				t.Fatalf("unreadable SetMaxHandSize line produced no unimplemented Note: %+v", h.log)
+			}
+		})
+	}
+}
+
 func TestCleanupClearRememberedEmitsTheClearAndEmptiesTheList(t *testing.T) {
 	h := newHost(t, 2)
 	src := h.g.AddObject(mkCard(t, "Name:Src\nTypes:Instant\nOracle:x\n"), 0)

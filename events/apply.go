@@ -935,6 +935,26 @@ func Apply(g *state.Game, e Event) {
 			g.ExtraPhases = nil
 			g.CombatsThisTurn = 0
 		}
+		// PersistentMana$ True mana expires at the end of the turn it was
+		// produced in (the carriers' "until end of turn" bound), whichever
+		// seat holds it — so every seat's tally drops here and the units
+		// become ordinary pool mana again, emptied by the next boundary's
+		// ManaClear exactly like mana that was never persistent. The demotion
+		// takes the persistent RESTRICTION batches with it: ManaClear keeps a
+		// persistent batch unconditionally, so a batch left here after the
+		// tally's zero would outlive its units as a phantom whose Amount
+		// manaAvailableFor subtracts from every non-matching payment — hiding
+		// the seat's real mana behind units that no longer exist. The printed
+		// restriction (Klauth's "Spend this mana only to cast spells") is not
+		// time-bounded — only the don't-lose clause is — so the batch is
+		// DEMOTED to ordinary, not dropped: its units stay restricted until
+		// the next boundary's ManaClear empties them with the batch.
+		for i := range g.Players {
+			g.Players[i].PersistentMana = state.Mana{}
+			for j := range g.Players[i].RestrictedMana {
+				g.Players[i].RestrictedMana[j].Persistent = false
+			}
+		}
 
 	case Goad:
 		if o := g.Obj(e.Obj); o != nil {
@@ -985,6 +1005,10 @@ func Apply(g *state.Game, e Event) {
 	case ManaAdd:
 		if validPlayer(g, e.Player) {
 			player := &g.Players[e.Player]
+			// PersistentMana$ True (task persistentmana): the suffix rides Text
+			// after every other encoding, so cut it before the restriction
+			// parse and mark the tally/batch below.
+			rest, persistent := cutManaPersistent(e.Text)
 			// One event moves the pool and its parallel producer tally, so a
 			// tally can never drift from the pool it partitions. Three counter
 			// forms exist, and all three land in the colour's pool slot:
@@ -1000,19 +1024,22 @@ func Apply(g *state.Game, e Event) {
 			//                        of a cast's spend came from a producer of
 			//                        that type.
 			//   a bare WUBRGC letter (or the empty default) -- plain pool mana.
+			idx := state.MC
 			if len(e.Counter) == 2 && e.Counter[0] == 'S' {
-				idx := state.ManaIndex(e.Counter[1])
-				player.Pool[idx] += e.Amount
+				idx = state.ManaIndex(e.Counter[1])
+			} else if _, slot, ok := state.TypedManaCounter(e.Counter); ok {
+				idx = slot
+			} else if e.Counter != "" {
+				idx = state.ManaIndex(e.Counter[0])
+			}
+			player.Pool[idx] += e.Amount
+			if e.Amount > 0 && persistent {
+				player.PersistentMana[idx] += e.Amount
+			}
+			if len(e.Counter) == 2 && e.Counter[0] == 'S' {
 				player.Snow[idx] += e.Amount
 			} else if tag, slot, ok := state.TypedManaCounter(e.Counter); ok {
-				player.Pool[slot] += e.Amount
 				player.TypedMana[tag][slot] += e.Amount
-			} else {
-				idx := state.MC
-				if e.Counter != "" {
-					idx = state.ManaIndex(e.Counter[0])
-				}
-				player.Pool[idx] += e.Amount
 			}
 			// The RestrictValid$/AddsNoCounter$ provenance is registered for
 			// EVERY counter form, never only a plain one: a tagged restricted
@@ -1022,18 +1049,26 @@ func Apply(g *state.Game, e Event) {
 			// it here. Registering before the pool write would be equivalent
 			// for the ADD path; the consume path needs the batch list, which
 			// this block owns.
-			if valid, srcID, cond, restricted := ManaRestrictionFromText(e.Text); restricted {
+			if valid, srcID, cond, restricted := ManaRestrictionFromText(rest); restricted {
 				if e.Amount > 0 {
 					player.RestrictedMana = append(player.RestrictedMana, state.ManaRestriction{
 						Color: e.Counter, Amount: e.Amount, Valid: valid, Source: srcID,
-						NoCounter: cond,
+						NoCounter: cond, Persistent: persistent,
 					})
 				} else if e.Amount < 0 {
 					// A restricted spend event names exactly the restriction batch it
 					// consumes. Walk insertion order so two matching additions replay
 					// identically, and tolerate a malformed historical event that
 					// over-spends its batch without making Pool negative here.
+					//
+					// The consumed batches' own Persistent flags move the persistent
+					// tally: the payment path carved a MATCHING batch, so the units
+					// this spend took are the batch's, and the flag — not raw slot
+					// arithmetic — is what keeps the tally on the units that
+					// actually survived. The " pm" marker is meaningless on a
+					// restricted spend; the batch flags are authoritative.
 					need := -e.Amount
+					perUsed := int32(0)
 					for i := 0; i < len(player.RestrictedMana) && need > 0; {
 						r := &player.RestrictedMana[i]
 						if r.Color != e.Counter || r.Valid != valid {
@@ -1046,22 +1081,63 @@ func Apply(g *state.Game, e Event) {
 						}
 						r.Amount -= used
 						need -= used
+						if r.Persistent {
+							perUsed += used
+						}
 						if r.Amount == 0 {
 							player.RestrictedMana = append(player.RestrictedMana[:i], player.RestrictedMana[i+1:]...)
 							continue
 						}
 						i++
 					}
+					if perUsed > 0 {
+						d := perUsed
+						if player.PersistentMana[idx] < d {
+							d = player.PersistentMana[idx]
+						}
+						player.PersistentMana[idx] -= d
+					}
 				}
+			} else if e.Amount < 0 && persistent {
+				// A marked PLAIN spend event names the persistent share the
+				// payment consumed: the payment path (payManaForSpent) attributes
+				// the slot's units ordinary-first over the VISIBLE pool and marks
+				// the persistent remainder with this suffix, so the tally follows
+				// the units that actually survived instead of raw slot arithmetic.
+				// (The old fresh-rule — decrement past Pool minus PersistentMana —
+				// misattributed whenever a payment's visible pool differed from
+				// the raw slot: a hidden restricted batch, or a carve that consumed
+				// the persistent batch first, made ordinary mana wrongly survive a
+				// step boundary. An unmarked negative event consumes ordinary
+				// units only, by the same attribution convention.)
+				d := -e.Amount
+				if player.PersistentMana[idx] < d {
+					d = player.PersistentMana[idx]
+				}
+				player.PersistentMana[idx] -= d
 			}
 		}
 
 	case ManaClear:
 		if validPlayer(g, e.Player) {
-			g.Players[e.Player].Pool = state.Mana{}
-			g.Players[e.Player].RestrictedMana = nil
-			g.Players[e.Player].Snow = state.Mana{}
-			g.Players[e.Player].TypedMana = [3]state.Mana{}
+			// PersistentMana$ True units survive the boundary (CR 500.4 with the
+			// producing card's exception) — only the slot's ordinary share
+			// empties, and the tag tallies are drained alongside it so they
+			// never exceed the shrunken pool. Persistent RESTRICTION batches
+			// survive too; the ordinary ones empty with the pool.
+			player := &g.Players[e.Player]
+			for i := range player.Pool {
+				if clear := player.Pool[i] - player.PersistentMana[i]; clear > 0 {
+					clearNonPersistent(player, i, clear)
+				}
+			}
+			kept := player.RestrictedMana[:0]
+			for _, r := range player.RestrictedMana {
+				if r.Persistent {
+					kept = append(kept, r)
+				}
+			}
+			player.RestrictedMana = kept
 		}
 
 	case CounterChange:
@@ -2695,6 +2771,74 @@ func changeControl(g *state.Game, o *state.Object, p state.PlayerID) {
 // validPlayer reports whether p indexes an existing seat.
 func validPlayer(g *state.Game, p state.PlayerID) bool {
 	return int(p) < len(g.Players)
+}
+
+// cutManaPersistent splits a ManaAdd event's Text encoding into the
+// restriction encoding it may also carry and whether the mana is persistent
+// (PersistentMana$ True — the trailing " pm" suffix ManaPersistentText
+// appends). Ordinary historical events never carry the suffix.
+func cutManaPersistent(text string) (string, bool) {
+	rest, ok := strings.CutSuffix(text, manaPersistentSuffix)
+	return rest, ok
+}
+
+// clearNonPersistent drains n ordinary (non-persistent) units from slot i of
+// the pool ManaClear is emptying. The tagged tallies drain first (the typed
+// units in their fixed Treasure > Cave > Desert order, then snow), then the
+// plain remainder absorbs the rest with no tally to drain — so every
+// SURVIVING unit's tag is attributed to the persistent share, which is where
+// it belongs: every measured PersistentMana carrier produces plain mana, so
+// the ordinary share drained at a boundary is the tagged one when one
+// exists. The persistent tally is left alone: the surviving units are
+// exactly the persistent ones (the caller cleared exactly Pool minus
+// PersistentMana), so PersistentMana[i] keeps naming them. A persistent unit
+// that is ALSO tagged (snow/typed) is the one attribution this drain cannot
+// see — the final clamp keeps every tally within the pool in that
+// unmeasured corner instead of letting the Snow/Typed <= Pool invariant
+// break.
+func clearNonPersistent(p *state.Player, i int, n int32) {
+	p.Pool[i] -= n
+	for t := range p.TypedMana {
+		if n == 0 {
+			break
+		}
+		d := min(n, p.TypedMana[t][i])
+		p.TypedMana[t][i] -= d
+		n -= d
+	}
+	if n > 0 {
+		d := min(n, p.Snow[i])
+		p.Snow[i] -= d
+		n -= d
+	}
+	// n's remainder (if any) was plain ordinary units — no tally carries
+	// them. Clamp the corner: a persistent unit that is also snow or typed
+	// may have had its tag drained by the order above; restore the invariant
+	// every reader (takeUnit, the typed count heads) relies on.
+	if p.Snow[i] > p.Pool[i] {
+		p.Snow[i] = p.Pool[i]
+	}
+	total := p.Snow[i]
+	for t := range p.TypedMana {
+		if p.TypedMana[t][i] > p.Pool[i] {
+			p.TypedMana[t][i] = p.Pool[i]
+		}
+		total += p.TypedMana[t][i]
+	}
+	if over := total - p.Pool[i]; over > 0 {
+		if d := min(over, p.Snow[i]); d > 0 {
+			p.Snow[i] -= d
+			over -= d
+		}
+		for t := range p.TypedMana {
+			if over == 0 {
+				break
+			}
+			d := min(over, p.TypedMana[t][i])
+			p.TypedMana[t][i] -= d
+			over -= d
+		}
+	}
 }
 
 // clearRingBearers drops every seat's Ring-bearer designation naming id

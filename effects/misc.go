@@ -398,6 +398,45 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				}
 				h.AddContinuous(ce)
 				registered = true
+			} else if val, affected, zone, ok := setMaxHandSizeGrantFromLine(params); ok {
+				// SetMaxHandSize$ (the Effect-delivered "you have no maximum
+				// hand size" family: Finale of Revelation's STHandSize, Wrenn
+				// and Seven's UnlimitedHand emblem, Enter the Infinite's).
+				// Registered as a rules-mod the CR 514.1 consultation reads
+				// (rules' maxHandSizeFor), the same way the printed S: static
+				// route is read, so the two cannot disagree. The line must be
+				// fully readable -- only an Affected$ spec plus a
+				// SetMaxHandSize$ value, no condition gate this registration
+				// path cannot evaluate -- or it fails closed to the
+				// unimplemented Note below.
+				//
+				// Lifetime: the Duration$ grammar every other Effect
+				// registration shares (effects/staticeffect.go's switch is the
+				// model). Duration$ Permanent (Finale of Revelation's "for the
+				// rest of the game", Wrenn and Seven's emblem) is flagged
+				// Permanent so it outlives its one-shot source (CR 611.2a);
+				// UntilYourNextTurn (Enter the Infinite) gets its real turn
+				// boundary from AddContinuous; an explicit this-turn Duration
+				// or an instant/sorcery with no Duration$ is UntilEOT. Without
+				// the Permanent flag a sorcery's effect would be dropped at the
+				// end of the very turn it resolved, one turn early.
+				ce := state.ContinuousEffect{
+					Source:         c.Source,
+					Controller:     c.Controller,
+					Affects:        affected,
+					AffectedZone:   zone,
+					SetMaxHandSize: val,
+					Name:           effectName,
+					UntilEOT:       effectUntilEOT(h, c.Source, dur),
+					Permanent:      strings.EqualFold(strings.TrimSpace(dur), "Permanent"),
+					Duration:       dur,
+					Remembered:     remembered,
+					ForgetOnMoved:  forgetOn,
+					ExileOnMoved:   exileOn,
+					ForgetCounter:  forgetCounter,
+				}
+				h.AddContinuous(ce)
+				registered = true
 			} else if len(params) > 0 {
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
@@ -539,6 +578,67 @@ func cascadeKeywordGrantFromLine(params map[string]string) (kws []string, affect
 	}
 	return kws, affected, strings.TrimSpace(params["AffectedZone"]), true
 }
+
+// setMaxHandSizeGrantFromLine reports whether a Mode$ Continuous static body
+// (an S: line or an SVar static an Effect SA registers) carries the
+// SetMaxHandSize$ grant this build implements, and resolves its readable
+// fields. The implemented shape is Affected$ plus SetMaxHandSize$ Unlimited
+// or a plain non-negative integer, with only display/placement metadata
+// alongside; a value this build cannot price (an SVar name like X or Y, the
+// numeric-SVar carriers) fails closed, exactly the way the printed-static
+// reader's value read does, so the two routes agree. A condition gate
+// (Condition$/CheckSVar$/IsPresent$/...) is not evaluated on this
+// registration path, so a line carrying one is refused rather than applied
+// blanket -- the permissive direction for a grant.
+func setMaxHandSizeGrantFromLine(params map[string]string) (val, affected, zone string, ok bool) {
+	val = strings.TrimSpace(params["SetMaxHandSize"])
+	if val == "" {
+		return "", "", "", false
+	}
+	if _, ok := HandSizeValueOK(val); !ok {
+		return "", "", "", false
+	}
+	for _, key := range []string{"Condition", "CheckSVar", "SVarCompare", "IsPresent", "IsPresent2", "PresentCompare"} {
+		if strings.TrimSpace(params[key]) != "" {
+			return "", "", "", false
+		}
+	}
+	affected = strings.TrimSpace(params["Affected"])
+	if affected == "" {
+		affected = "Card.Self"
+	}
+	return val, affected, strings.TrimSpace(params["AffectedZone"]), true
+}
+
+// HandSizeValueOK is the ONE SetMaxHandSize$ value grammar both the
+// printed-static read (rules' maxHandSizeFor) and the Effect-delivery
+// whitelist (setMaxHandSizeGrantFromLine) consult, so the two registration
+// paths cannot disagree about what is readable. It accepts the literal word
+// Unlimited (any casing) or a plain non-negative decimal integer and returns
+// the priced maximum; a dynamic value (an SVar name like X or Y) reports
+// false, matching the fail-closed direction the printed read already took.
+func HandSizeValueOK(raw string) (int, bool) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return 0, false
+	}
+	if strings.EqualFold(raw, "Unlimited") {
+		return UnlimitedHandSize, true
+	}
+	n, err := strconv.Atoi(raw)
+	if err != nil || n < 0 {
+		return 0, false
+	}
+	return n, true
+}
+
+// UnlimitedHandSize is the value SetMaxHandSize$ Unlimited maps to on the
+// effects side of the shared grammar: far above any hand a game can assemble,
+// so the CR 514.1 discard never triggers. rules' maxHandSizeFor keeps its own
+// copy (unlimitedHandSize) because rules must not reach into effects for a
+// constant; both are tested to agree by TestHandSizeValueGrammarIsShared.
+const UnlimitedHandSize = 1 << 20
+
 func mayPlayGrantFromLine(params map[string]string) (state.ContinuousEffect, bool) {
 	ignoreColor, ignoreType, limit, playerTurn, ok := MayPlayStaticParams(params)
 	if !ok {
@@ -1149,9 +1249,13 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 		// else when it leaves the stack -- but an explicit non-graveyard
 		// destination (Remand's hand) is that anywhere-else, so the override
 		// applies only on the graveyard/default path. CR 702.85a: the same
-		// "then exile it" covers an Aftermath half's cast, every way it
-		// leaves the stack including being countered.
-		if o.CastFlags&(state.FlagFlashback|state.FlagAftermath) != 0 && to == state.ZGraveyard {
+		// "then exile it" covers an Aftermath half's cast, CR 702.84a a
+		// jump-start cast, and harmonize's "exile it instead of putting it
+		// into your graveyard" -- every way the spell leaves the stack,
+		// including being countered. One shared predicate (state.
+		// ExilesLeavingStack) so a new keyword in this family cannot be
+		// added to rules' readers and missed here.
+		if state.ExilesLeavingStack(o.CastFlags) && to == state.ZGraveyard {
 			to = state.ZExile
 		}
 		if remember {
@@ -2307,6 +2411,24 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "unhandled AddsNoCounter$ " + strings.TrimSpace(sa.Params["AddsNoCounter"]) + "; the mana is ordinary"})
 	}
+	// PersistentMana$ True (Rousing Refrain, Savage Ventmaw, Klauth, Kessig
+	// Naturalist: 23 corpus files / 24 raw lines, every occurrence the
+	// literal True): the mana does not empty as steps and phases end (CR
+	// 500.4 with the card's exception) until the turn ends. The marker rides
+	// the ManaAdd event's Text suffix (events.ManaPersistentText) so
+	// events.Apply can keep the units through ManaClear and expire them at
+	// TurnChange; it composes with the restriction encoding (Klauth pairs it
+	// with RestrictValid$). Any other value is a loud Note and ordinary
+	// mana.
+	persistent := false
+	switch strings.TrimSpace(sa.Params["PersistentMana"]) {
+	case "":
+	case "True":
+		persistent = true
+	default:
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "unhandled PersistentMana$ " + strings.TrimSpace(sa.Params["PersistentMana"]) + "; the mana is ordinary"})
+	}
 	// CR 107.4h: mana produced by a SNOW permanent is snow mana. A snow unit
 	// is tagged in the pool event itself — Counter "S<colour>" — so the pool
 	// slot and the parallel snow tally move through one event and a replay
@@ -2386,6 +2508,9 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 				ev.Text = events.ManaRestrictionText(restriction, c.Source)
 			} else if provenanceOnly {
 				ev.Text = events.ManaRestrictionText("", c.Source)
+			}
+			if persistent {
+				ev.Text = events.ManaPersistentText(ev.Text)
 			}
 			h.Emit(ev)
 		}

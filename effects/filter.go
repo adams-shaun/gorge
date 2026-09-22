@@ -166,7 +166,7 @@ var predicates = map[string]predFn{
 	// — as do River Kelpie's draws and Laquatus's Disdain's counter. A card
 	// never so cast never matches.
 	"wasCastFromGraveyard": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
-		return o.CastFlags&(state.FlagFlashback|state.FlagHarmonize|state.FlagEscaped) != 0
+		return state.WasCastFromGraveyard(o.CastFlags)
 	},
 	// notExertedThisTurn is CR 702.100a's offer gate (task exert1): the
 	// object has NOT been exerted this turn. The event-backed read is

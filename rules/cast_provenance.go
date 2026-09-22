@@ -45,6 +45,9 @@
 //     the target ValidTgts$ matching) — and the log read and the flag read
 //     agree on every shape the flag covers, so a rules-side site that strips
 //     the other four never disagrees with an effects-side site that keeps it.
+//     The flag set itself is state.WasCastFromGraveyard (flashback, harmonize,
+//     jump-start, escaped), shared with the three effects call sites so the
+//     two reads cannot drift.
 //     The same latest-cast-wins and copy-was-never-cast guards the hand
 //     families take apply here.
 //

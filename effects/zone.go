@@ -1153,6 +1153,15 @@ func handMoveChooserFor(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID) (sta
 			return c.TriggerPlayer.Player, true
 		}
 		return owner, true
+	case "ChosenPlayer", "Player.Chosen":
+		// The chosen player, resolved through the SAME shared read
+		// searchChooser/hiddenPickChooser use. With none bound or the seat
+		// gone, fail closed (never fall to the hand owner: a hidden-hand
+		// move from the wrong seat is worse than moving none).
+		if p, ok := chooserChosenPlayer(h, c); ok {
+			return p, true
+		}
+		return owner, false
 	}
 	return owner, false
 }
@@ -2433,9 +2442,31 @@ func searchPlayers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 	return out
 }
 
+// chooserChosenPlayer resolves a `Chooser$ ChosenPlayer` (or its
+// `Player.Chosen` spelling): the player chosen earlier in the resolution, or
+// the source permanent's event-backed choice. It reads the answer through the
+// SAME shared grammar `Defined$ ChosenPlayer` uses (searchPlayers' path), so a
+// chooser and the fetch-player lookup cannot drift apart. It reports false
+// when no chosen player is bound or the bound seat has left the game; callers
+// keep their own deterministic fallback rather than acting on a dead seat.
+func chooserChosenPlayer(h Host, c *Ctx) (state.PlayerID, bool) {
+	for _, t := range Defined(h, c, &cards.SA{Params: map[string]string{"Defined": "ChosenPlayer"}}) {
+		if !t.IsPlayer {
+			continue
+		}
+		p := PlayerOf(h, c, t)
+		if int(p) < len(h.Game().Players) && !h.Game().Players[p].Lost {
+			return p, true
+		}
+	}
+	return c.Controller, false
+}
+
 // searchChooser resolves who answers the search prompt. You is the default;
-// Targeted uses the first chosen target, and Opponent uses the first living
-// opponent in deterministic turn order.
+// Targeted uses the first chosen target, Opponent uses the first living
+// opponent in deterministic turn order, and ChosenPlayer uses the player
+// chosen earlier in the resolution (Burning-Rune Demon's opponent picks which
+// of the two revealed cards goes to hand).
 func searchChooser(h Host, c *Ctx, sa *cards.SA) state.PlayerID {
 	switch sa.Params["Chooser"] {
 	case "Targeted":
@@ -2447,6 +2478,10 @@ func searchChooser(h Host, c *Ctx, sa *cards.SA) state.PlayerID {
 			if p != c.Controller {
 				return p
 			}
+		}
+	case "ChosenPlayer", "Player.Chosen":
+		if p, ok := chooserChosenPlayer(h, c); ok {
+			return p
 		}
 	}
 	return c.Controller
@@ -2483,12 +2518,16 @@ func hiddenPickPlayers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 }
 
 // hiddenPickChooser resolves who answers the pick. A Chooser$ spelling wins
-// (Targeted/Opponent through searchChooser's grammar, You the controller);
-// with none the decider is the fetch player, exactly Forge's
+// (Targeted/Opponent/ChosenPlayer through searchChooser's grammar, You the
+// controller); with none the decider is the fetch player, exactly Forge's
 // `decider = Objects.requireNonNullElse(chooser, player)`.
 func hiddenPickChooser(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID) state.PlayerID {
 	switch sa.Params["Chooser"] {
-	case "Targeted", "Opponent":
+	case "Targeted", "Opponent", "ChosenPlayer", "Player.Chosen":
+		// ChosenPlayer resolves to the binding or, unbound, to the resolving
+		// controller (searchChooser's default), never to the owner fallback:
+		// a Chooser$ was written, so the fetch player is not this pick's
+		// decider.
 		return searchChooser(h, c, sa)
 	case "You":
 		return c.Controller

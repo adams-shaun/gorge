@@ -544,6 +544,19 @@ func retraceExtra() Cost {
 	return Cost{Discard: []CostPart{{Spec: "Land", N: 1}}}
 }
 
+// jumpstartExtra is Jump-start's additional cost (CR 702.84a): discard a card,
+// in addition to the spell's other costs. Jump-start is NOT a cost
+// substitution -- the oracle reads "in addition to paying its other costs" --
+// so, exactly like retraceExtra, this returns only the ADDITIONAL part, folded
+// onto the printed base by both the offer gate (legal.go's graveyard walk) and
+// beginCast's "jumpstart" mode, through the one definition so the two cannot
+// disagree. Unlike Retrace the discarded card may be any card (“a card”,
+// not “a land card”), and the spell is exiled on resolution -- the flashback
+// destination, charged by modeFlags' FlagJumpstart.
+func jumpstartExtra() Cost {
+	return Cost{Discard: []CostPart{{Spec: "Card", N: 1}}}
+}
+
 // altAddCostParts splits a face's AlternateAdditionalCost keyword into its
 // alternative parts: the parameter is the parts joined by ":" (e.g. Bone
 // Shards' "Sac<1/Creature>:Discard<1/Card>", Redirect Lightning's
@@ -1790,6 +1803,16 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		if f.HasKeyword("Retrace") {
 			cost = cost.Plus(retraceExtra())
 		}
+	case "jumpstart":
+		// Jump-start (CR 702.84a): a graveyard cast paying the printed mana
+		// cost PLUS the additional discard-a-card cost -- never a
+		// substitution, exactly the retrace shape. The offer gate priced this
+		// composition and proved a card payable; the same stale-option
+		// degradation applies (a jumpstart mode whose keyword is gone folds
+		// nothing rather than charging an unoffered discard).
+		if f.HasKeyword("Jump-start") {
+			cost = cost.Plus(jumpstartExtra())
+		}
 	case "evoked", "dashed", "overloaded", "warped", "madness", "bestowed":
 		// The alternative-cost keyword family (altcosts): each mode's cost is
 		// the printed keyword parameter in place of the mana cost, exactly the
@@ -1849,7 +1872,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// this (pc.ability < 0 and no alternative/flashback recast), and a spell
 	// with no SP Cost$ contributes nothing.
 	if opt.AltCostIndex == 0 && (opt.Mode == "" || opt.Mode == "mayplay" || opt.Mode == "room_alt" ||
-		opt.Mode == "adventure_alt" || opt.Mode == "aftermath" || opt.Mode == "split_alt" || opt.Mode == "conspired" || opt.Mode == "mayflash" || opt.Mode == "retrace") {
+		opt.Mode == "adventure_alt" || opt.Mode == "aftermath" || opt.Mode == "split_alt" || opt.Mode == "conspired" || opt.Mode == "mayflash" || opt.Mode == "retrace" || opt.Mode == "jumpstart") {
 		cost = withSpellAbilityExtras(f, cost)
 	}
 	// Convoke and Harmonize are announced only after X/mode/pip choices have
@@ -5218,6 +5241,13 @@ func modeFlags(mode string) string {
 		return events.FlagsString(state.FlagSurged)
 	case "flashback":
 		return events.FlagsString(state.FlagFlashback)
+	// Jump-start (CR 702.84a): like flashback, the flag is what the
+	// resolution reader (spellRestZone) and the fizzle reader
+	// (spellFizzleZone) read to exile the card instead of the graveyard, on
+	// resolution AND when countered -- the card may not be jump-started a
+	// second time from the graveyard.
+	case "jumpstart":
+		return events.FlagsString(state.FlagJumpstart)
 	// Aftermath (CR 702.85a): the flag is what the resolution reader
 	// (spellRestZone) and the fizzle reader (spellFizzleZone) read to exile
 	// the card instead of the graveyard -- on resolution AND when countered,
@@ -6770,6 +6800,14 @@ func init() {
 		// legal.go's graveyard walk and the cost fold in beginCast's "retrace"
 		// mode, both through retraceExtra so offer and charge cannot disagree.
 		"kw:Retrace",
+		// kw:Jump-start: CR 702.84a, the graveyard cast paying the printed
+		// mana cost plus an additional discard-a-card cost and exiling the
+		// card on resolution. The offer lives in legal.go's graveyard walk, the
+		// cost fold in beginCast's "jumpstart" mode (both through
+		// jumpstartExtra), and the exile destination in modeFlags' FlagJumpstart
+		// read by spellRestZone/spellFizzleZone -- proved by
+		// TestRadicalIdeaJumpstartCastsDiscardsAndExiles.
+		"kw:Jump-start",
 		"kw:Buyback", "kw:Transmute", "kw:Suspend", "kw:Convoke", "kw:Harmonize", "kw:Cycling",
 		// kw:Cascade: CR 702.85, the cast trigger read directly off the K:
 		// line (no keyword expansion — the printed K:Cascade and every

@@ -1077,6 +1077,11 @@ var stringMapParams = map[string]string{
 	// arm's whitelist); its dynamic gate-key loop (Condition/CheckSVar/...) is
 	// a fail-closed recognition, never a consumption.
 	"effects:cascadeKeywordGrantFromLine:params": "keys of a parseStaticLine-built static line (an SVar body), not a card Params map",
+	// effects/misc.go setMaxHandSizeGrantFromLine: params is the same
+	// parseStaticLine-built SVar static line (the SetMaxHandSize$ grant arm's
+	// whitelist); its dynamic gate-key loop (Condition/CheckSVar/...) is a
+	// fail-closed recognition, never a consumption.
+	"effects:setMaxHandSizeGrantFromLine:params": "keys of a parseStaticLine-built static line (an SVar body), not a card Params map",
 	// effects/staticeffect.go parseStaticEffectGrant: params is the map
 	// parseStaticLine built from one SVar static line -- the StaticEffect$
 	// rider's Continuous body (AddType$/AddColor$/AddKeyword$/...), whose keys
@@ -2455,17 +2460,20 @@ var knownUnsupportedParams = map[string][]string{
 	// changeZoneAttachedTo): the attach-the-returned-Aura leg is now real
 	// (pinned in rules/forum_filibuster_test.go). ForgetOtherRemembered stays
 	// unread.
-	"Gift of Immortality":            {"param:api:ChangeZone.ForgetOtherRemembered"},
-	"Hercules, Olympian Hero":        {"param:trig:DamageDoneOnce.FirstTime"},
-	"Heroic Return":                  {"param:api:ChangeZone.ValidTgtsDesc"},
-	"Heroic Sacrifice":               {"param:api:DelayedTrigger.Destination", "param:api:Effect.ValidTgtsDesc", "param:api:PutCounter.EachFromSource", "param:api:PutCounter.ValidTgtsDesc", "param:api:ReplaceEffect.VarType"},
-	"Iron Man, Armored Avenger":      {"param:api:PutCounter.ValidTgtsDesc"},
-	"Jocasta, Automaton Avenger":     {"param:api:ChangeZone.Attacking"},
-	"Love on the Battlefield":        {"param:trig:AttackersDeclared.NoResolvingCheck"},
-	"Methods of the Mighty":          {"param:api:Destroy.ValidTgtsDesc"},
-	"Mogis, God of Slaughter":        {"param:stat:Continuous.RemoveType"},
-	"Patriot, Shield Wielder":        {"param:api:Pump.ValidTgtsDesc"},
-	"Photon, Mighty Marvel":          {"param:api:Mana.PersistentMana"},
+	"Gift of Immortality":        {"param:api:ChangeZone.ForgetOtherRemembered"},
+	"Hercules, Olympian Hero":    {"param:trig:DamageDoneOnce.FirstTime"},
+	"Heroic Return":              {"param:api:ChangeZone.ValidTgtsDesc"},
+	"Heroic Sacrifice":           {"param:api:DelayedTrigger.Destination", "param:api:Effect.ValidTgtsDesc", "param:api:PutCounter.EachFromSource", "param:api:PutCounter.ValidTgtsDesc", "param:api:ReplaceEffect.VarType"},
+	"Iron Man, Armored Avenger":  {"param:api:PutCounter.ValidTgtsDesc"},
+	"Jocasta, Automaton Avenger": {"param:api:ChangeZone.Attacking"},
+	"Love on the Battlefield":    {"param:trig:AttackersDeclared.NoResolvingCheck"},
+	"Methods of the Mighty":      {"param:api:Destroy.ValidTgtsDesc"},
+	"Mogis, God of Slaughter":    {"param:stat:Continuous.RemoveType"},
+	"Patriot, Shield Wielder":    {"param:api:Pump.ValidTgtsDesc"},
+	// (Photon, Mighty Marvel's param:api:Mana.PersistentMana row retired when
+	// the PersistentMana$ read landed — the pm ManaAdd suffix, ManaClear's
+	// partial clear and the TurnChange expiry — pinned end to end on the real
+	// corpus carrier Rousing Refrain in rules/persistent_mana_test.go.)
 	"Purphoros, God of the Forge":    {"param:stat:Continuous.RemoveType"},
 	"Rescue, Pepper Potts":           {"param:api:ChangeZone.ValidTgtsDesc"},
 	"Scarlet Witch, Chaotic Avenger": {"param:api:Dig.WithMayLook"},

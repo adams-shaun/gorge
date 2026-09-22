@@ -859,6 +859,27 @@ func ManaRestrictionTextNC(valid string, source state.ObjID, cond string) string
 	}
 }
 
+// manaPersistentSuffix marks a ManaAdd event whose added mana carries
+// PersistentMana$ True (Forge): the mana does not empty as steps and phases
+// end (CR 500.4 with the card's exception, e.g. Rousing Refrain, Savage
+// Ventmaw), until the turn ends — events.Apply's TurnChange fold expires it.
+// The suffix rides Text after every other encoding (the restriction prefix
+// and its optional source/nc segments), so it composes with a restricted
+// batch (Klauth's PersistentMana$ True | RestrictValid$ Spell) and ordinary
+// historical ManaAdd events never carry it.
+const manaPersistentSuffix = " pm"
+
+// ManaPersistentText appends the PersistentMana$ True marker to a ManaAdd
+// event's Text encoding (which may already carry the restriction encoding).
+// On a POSITIVE add the marker raises Player.PersistentMana with the pool
+// unit; on a negative PLAIN spend event the marker names the persistent share
+// the payment consumed (the payment path attributes a slot's units
+// ordinary-first over its visible pool and splits a spend that spans both
+// shares into an unmarked and a marked event), and on a restricted spend the
+// marker is meaningless — the consumed batch's own Persistent flag is
+// authoritative.
+func ManaPersistentText(text string) string { return text + manaPersistentSuffix }
+
 // ManaRestrictionFromText returns the constraint carried by a restricted
 // ManaAdd event, with the producing source id when the encoding carries one
 // (0 otherwise) and the AddsNoCounter$ condition when one is encoded (""). It
@@ -1077,6 +1098,11 @@ var flagNames = [...]struct {
 	// made before the carrier entered, which emit no such event. Appended at
 	// the end per the table's own ordering rule.
 	{"manaexpend", state.FlagManaExpendCast},
+	// The Jump-start cast (CR 702.84a): the card was cast from the graveyard
+	// by discarding a card in addition to its other costs, so the resolution
+	// and fizzle readers exile it instead of the graveyard. Appended at the
+	// end per the table's own ordering rule.
+	{"jumpstart", state.FlagJumpstart},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)
