@@ -12,16 +12,20 @@ func init() { Register("Token", effToken) }
 
 // effToken creates TokenAmount$ tokens of each TokenScript$ (a comma-
 // separated list of Game.Tokens stems) for TokenOwner$ (the controller by
-// default; the switch below also resolves Opponent, Player -- "each player
-// creates ...", every ALIVE seat in seat order via AliveFrom(0) --
-// RememberedOwner, ThisTargetedPlayer and the two trig:Vote vote-carrier
-// sets). Every other TokenOwner$ form the corpus uses (the qualified
-// Player.<qualifier> spellings -- Player.IsRemembered x12 raw lines,
-// Player.Opponent, Player.Other, the Player.controls* gates -- and anything
-// else; a fidelity gap this task does not close) still falls back to the
-// controller rather than doing nothing, but now says so: a Note names the
-// unrecognised value, so the gap is visible rather than silently papered
-// over the way an unqualified fallback would be.
+// default; the switch below also resolves Opponent -- deliberately only the
+// FIRST opponent, not the fan-out the grammar would give -- Player ("each
+// player creates ...", every ALIVE seat in seat order via AliveFrom(0)), the
+// two trig:Vote vote-carrier sets (one token per voter), Imprinted/
+// ImprintedController, RememberedOwner and ThisTargetedPlayer as explicit
+// bespoke cases. Every OTHER TokenOwner$ spelling -- the whole
+// Targeted*/Triggered*/Remembered*/Chosen* referent family and the qualified
+// Player.<qualifier> forms -- is a Forge player selector resolved through
+// the SAME shared grammar every other player-valued parameter in this
+// package uses (tokenOwnerPlayers over definedSpec, the ordinary Defined$
+// resolver): the players, or the controllers of the object targets, the
+// spelling names. Only a value that grammar does not know at all falls back
+// to the controller, and it says so with a Note so the gap is visible rather
+// than silently papered over.
 //
 // Every token is its own TokenCreate event, in the order this loop visits
 // them (outer: TokenScript$ stems left to right; inner: TokenAmount$ copies
@@ -80,6 +84,49 @@ func init() { Register("Token", effToken) }
 // replaced token, not the token the script named. All 8 carriers are plain
 // `DB$ Token` lines with no `R:` replacement in reach (measured at the
 // corpus pin), so the divergence is corpus-unreachable today.
+// tokenOwnerPlayers resolves a TokenOwner$ value through the ordinary
+// Defined$ player-selector grammar (definedSpec), the one resolver every
+// player-valued parameter in this package reads. Player entries pass
+// through; an OBJECT selection (Targeted, Remembered, TriggeredCard, ...)
+// contributes its controller, exactly Forge's AbilityUtils.getDefinedPlayers
+// reading of a player selector. ok is false only when the grammar does not
+// know the spelling at all, which is the caller's signal to keep the
+// controller and say so.
+func tokenOwnerPlayers(h Host, c *Ctx, spec string) ([]state.PlayerID, bool) {
+	// TargetedController is evaluated from the target's LKI. The target may
+	// have been destroyed by the parent SA before this chained Token runs;
+	// events.Apply intentionally resets a departed object's live Controller to
+	// Owner, so prefer the controller captured when Resolve began.
+	if spec == "TargetedController" && c != nil && c.TargetControllerLKI != nil {
+		owners := make([]state.PlayerID, 0, len(c.Targets))
+		for _, target := range c.Targets {
+			if target.IsPlayer {
+				continue
+			}
+			if controller, ok := c.TargetControllerLKI[target.Obj]; ok {
+				owners = append(owners, controller)
+				continue
+			}
+			if object := h.Game().Obj(target.Obj); object != nil {
+				owners = append(owners, object.Controller)
+			}
+		}
+		return owners, true
+	}
+	ts, ok := definedSpec(h, c, spec)
+	if !ok {
+		return nil, false
+	}
+	ps := controllersOf(h.Game(), ts)
+	out := make([]state.PlayerID, 0, len(ps))
+	for _, t := range ps {
+		if t.IsPlayer {
+			out = append(out, t.Player)
+		}
+	}
+	return out, true
+}
+
 func effToken(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
 	n := Num(h, c, sa, "TokenAmount", 1)
@@ -184,8 +231,25 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 	default:
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-			Text: "unrecognized TokenOwner " + v + ", defaulting to the controller"})
+		// Every remaining player-selector spelling -- TargetedController,
+		// TargetedPlayer, TriggeredCardController, TriggeredPlayer,
+		// RememberedController, ChosenPlayer, Player, ImprintedController, ...
+		// -- resolves through the SAME shared Defined$ grammar every other
+		// player-valued parameter uses, so a new spelling Forge adds is covered
+		// by definedSpec without a second list here. Object selectors (Targeted,
+		// Remembered) contribute their controllers, which is Forge's
+		// getDefinedPlayers reading of a player selector. Only a value the
+		// grammar does not know at all keeps the controller fallback, under the
+		// loud Note. A recognised selector that resolves to NOBODY (a targeted
+		// permanent that left play before the chained Token, an empty referent
+		// set) creates no token and emits no Note -- the fail-closed direction,
+		// the same convention the vote referents above take.
+		if ps, ok := tokenOwnerPlayers(h, c, v); ok {
+			owners = ps
+		} else {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "unrecognized TokenOwner " + v + ", defaulting to the controller"})
+		}
 	}
 	// RememberOriginalTokens$ True mirrors RememberTokens$ exactly (see the
 	// doc above for the original-vs-replaced-mint note). The 8 carriers all

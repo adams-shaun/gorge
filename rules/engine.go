@@ -399,6 +399,16 @@ type Engine struct {
 	// alongside fusedResolving, captured by Ask onto the resumePoint. Nil
 	// outside a fused half's resolution.
 	fusedResolvingSVars map[string]string
+	// resolvingTargetControllerLKI is the target-controller snapshot of the
+	// Resolve chain whose effect is CURRENTLY running, published by
+	// effects.Resolve through Host.SetResolutionTargetControllerLKI around
+	// the whole chain and restored on return. Ask captures it onto the
+	// pending resumePoint (Engine.Ask), so a resumed continuation -- which
+	// rebuilds its Ctx from the already-reset live objects -- restores the
+	// controller a target had at the start of resolution (a target destroyed
+	// before a chained TokenOwner$ TargetedController resolves). Transient
+	// scratch: rebuilt identically by replay, nil outside a chain.
+	resolvingTargetControllerLKI map[state.ObjID]state.PlayerID
 	// villainousRemembered is the victim of the VillainousChoice whose chosen
 	// body is CURRENTLY resolving, kept as ambient engine state for the
 	// duration of that body's effects.Resolve — the fusedResolving pattern.

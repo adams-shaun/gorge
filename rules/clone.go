@@ -158,6 +158,10 @@ func (e *Engine) Clone() *Engine {
 	// reset tally. Copied as a plain value slice plus its turn stamp.
 	c.manaExpended = append([]int32(nil), e.manaExpended...)
 	c.manaExpendedTurn = e.manaExpendedTurn
+	// The in-flight Resolve chain's target-controller snapshot (engine
+	// scratch, published by effects.Resolve): nil at an intent boundary, but
+	// copied as a plain map when present so the clone owns its own storage.
+	c.resolvingTargetControllerLKI = effects.CloneTargetControllerLKI(e.resolvingTargetControllerLKI)
 	if e.continuous != nil {
 		c.continuous = make([]ContinuousEffect, len(e.continuous))
 		for i, ce := range e.continuous {
@@ -630,6 +634,13 @@ func clonePendingTriggers(src []pendingTrigger) []pendingTrigger {
 	for i, pt := range src {
 		pt.Ctx.Targets = append([]state.Target(nil), pt.Ctx.Targets...)
 		pt.Ctx.Remembered = append([]state.Target(nil), pt.Ctx.Remembered...)
+		if pt.Ctx.TargetControllerLKI != nil {
+			m := make(map[state.ObjID]state.PlayerID, len(pt.Ctx.TargetControllerLKI))
+			for id, controller := range pt.Ctx.TargetControllerLKI {
+				m[id] = controller
+			}
+			pt.Ctx.TargetControllerLKI = m
+		}
 		if pt.Ctx.SVars != nil {
 			m := make(map[string]string, len(pt.Ctx.SVars))
 			for k, v := range pt.Ctx.SVars {
@@ -689,6 +700,10 @@ func cloneResume(rp *resumePoint) *resumePoint {
 	cp.chosenValid = rp.chosenValid
 	cp.remembered = append([]state.Target(nil), rp.remembered...)
 	cp.loopRemembered = append([]state.Target(nil), rp.loopRemembered...)
+	// The pre-move controller snapshot is immutable once captured, but a clone
+	// must not share the original's map storage: an explicit copy keeps the
+	// two engines' pending frames independent.
+	cp.targetControllerLKI = effects.CloneTargetControllerLKI(rp.targetControllerLKI)
 	cp.targetsUnique = append([]state.Target(nil), rp.targetsUnique...)
 	// The VillainousChoice cursor and victim binding are sliced values the
 	// resumed Ctx re-binds, so the clone owns its own copies instead of
