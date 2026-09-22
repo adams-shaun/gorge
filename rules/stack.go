@@ -2925,7 +2925,15 @@ func (e *Engine) Game() *state.Game                       { return e.G }
 func (e *Engine) ObjectColors(o *state.Object) string     { return e.objColors(o) }
 func (e *Engine) Emit(ev events.Event)                    { e.emit(ev) }
 func (e *Engine) EmitDamage(ev events.Event) events.Event { return e.emit(ev) }
-func (e *Engine) Rand(n int) int                          { return e.rng.IntN(n) }
+
+// EmitLifeChange reports whether the exact proposed life change was applied.
+// ExchangeLifeVariant uses this to avoid installing its characteristic half
+// after a life replacement prevents, transforms, or parks the event.
+func (e *Engine) EmitLifeChange(ev events.Event) bool {
+	stored := e.emit(ev)
+	return stored.Kind == events.LifeChange && stored.Player == ev.Player && stored.Amount == ev.Amount
+}
+func (e *Engine) Rand(n int) int { return e.rng.IntN(n) }
 
 // ShuffleLibrary is the single library-shuffle path used by rules and effects.
 // State changes only when the caller emits the resulting Shuffle event.
