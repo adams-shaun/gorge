@@ -489,6 +489,10 @@ type Host interface {
 	// Counter replacement effects are rules, not a MoveZone replacement: they
 	// stop Counter before it emits the move off the stack.
 	CounterAllowed(target, cause state.ObjID) bool
+	// SuspendRepeatOptional reports that a RepeatOptional$ body suspended at
+	// a mid-resolution ask. The host must re-enter the repeat after the body
+	// answer completes, preserving the next-iteration cursor.
+	SuspendRepeatOptional(sa *cards.SA, next int32)
 	// SuspendRepeat reports that one iteration of a RepeatEach loop suspended
 	// at a mid-resolution ask. The host must bind the suspended iteration's
 	// Remembered to the pending ask (and to the iteration's own continuation
@@ -645,6 +649,25 @@ type EffectFrame struct {
 	Stamp  uint32
 }
 
+// RepeatOptionalContinuation is the scoped continuation for RepeatOptional$.
+// It is carried only by the resolving Ctx; rules transports it across a
+// mid-resolution ask and it is never event state.
+//
+// It represents two DISTINCT resume states, never conflated (fx42):
+//   - Continue false: the player answered "no" and the loop stops.
+//   - Continue true, AskElection false: a completed election was answered
+//     "yes", so the next body to run is iteration Next -- no further
+//     election is owed for it.
+//   - Continue true, AskElection true: a body of iteration Next-1 completed
+//     after its own suspension (a body ask), so the do/while election owed
+//     for iteration Next has NOT been posed yet and must be asked before
+//     that iteration's body runs.
+type RepeatOptionalContinuation struct {
+	Continue    bool
+	Next        int32
+	AskElection bool
+}
+
 type Ctx struct {
 	TriggerContext
 	Source     state.ObjID
@@ -657,6 +680,9 @@ type Ctx struct {
 	// CR 608.2h last-known controller.
 	TargetControllerLKI map[state.ObjID]state.PlayerID
 	Remembered          []state.Target
+	// RepeatOptional is set only when a RepeatOptional$ answer is being
+	// resumed. A nil value means this is the first pass through the Repeat.
+	RepeatOptional *RepeatOptionalContinuation
 	// TargetsOffered marks that the resolution's OWN ValidTgts$ targeting was
 	// already offered at announcement (rules' resolveTop sets it on both the
 	// ability and the spell branch, exactly for the SA the placement ask

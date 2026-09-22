@@ -2026,12 +2026,17 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 	defined := strings.TrimSpace(sa.Params["RepeatDefined"])
 	present := strings.TrimSpace(sa.Params["RepeatPresent"])
 	gated := check != "" || defined != ""
+	optional := strings.EqualFold(strings.TrimSpace(sa.Params["RepeatOptional"]), "True")
 	n := Num(h, c, sa, "MaxRepeat", -1)
 	if n < 0 {
 		if gated {
 			// Gate-governed: Forge's default cap is unbounded (the gate
 			// decides when to stop); clamp to the same 1000-iteration cap a
 			// malformed MaxRepeat takes.
+			n = 1000
+		} else if optional {
+			// RepeatOptional$ is an open-ended do/while election. The cap is
+			// only a malformed-input guard; the player decides when to stop.
 			n = 1000
 		} else {
 			n = Num(h, c, sa, "RepeatNum", 1)
@@ -2051,45 +2056,119 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 	if sub == nil {
 		return
 	}
-	for i := int32(0); i < n; i++ {
+	start := int32(0)
+	// askElection marks a resume that must FIRST pose the repeat election for
+	// `start`, then run that iteration's body only if the player says yes. It
+	// is the state a RepeatOptional$ BODY suspension leaves behind: the body
+	// of iteration start-1 completed after its ask was answered, so the
+	// do/while election owed for iteration start has not been posed yet. It
+	// is distinct from a completed election answered yes, which begins the
+	// next body with no further election (see RepeatOptionalContinuation).
+	askElection := false
+	if c.RepeatOptional != nil {
+		if !c.RepeatOptional.Continue {
+			return
+		}
+		start = c.RepeatOptional.Next
+		askElection = c.RepeatOptional.AskElection
+	}
+	for i := start; i < n; i++ {
+		if askElection {
+			// The previous iteration's body completed after suspending. Its
+			// between-iteration gate is owed before the repeat election, just
+			// like the ordinary post-body path below: a false or unreadable
+			// gate stops the do/while without offering another iteration.
+			if gated {
+				holds, evaluated := repeatGateEvaluates(h, c, sa, check, cmp, defined, present)
+				if !evaluated || !holds {
+					return
+				}
+			}
+			// Pose the repeat election that iteration i's body has not yet
+			// earned (CR 608.2c's do/while). The election concerns iteration
+			// i, so a yes resumes the body at i, not i+1.
+			askElection = false
+			if !poseRepeatOptionalElection(h, c, sa, i) {
+				return // R-9: a host that cannot answer stops here.
+			}
+			return
+		}
 		Resolve(h, c, sub)
 		if h.Suspended() {
-			// A body ask suspended the resolution: the remaining iterations
-			// cannot run while the ask is pending, and a plain Repeat has no
-			// loop cursor to resume with (only RepeatEach does), so they are
-			// dropped. Returning lets the enclosing Resolve walk record its
-			// continuation frame -- the answer re-enters at this SA's chain
-			// tail (sa.Sub), never re-running the completed iterations. The
-			// pre-gate loop kept calling Resolve for the remaining iterations
-			// while the ask was pending; nothing on the current corpus reaches
-			// that (the MaxRepeat carriers' bodies ask nothing and every
-			// asking body's carrier runs once), so no event stream changes
-			// here beyond what the gate itself moves.
+			// A RepeatOptional body can itself ask (Forbidden Ritual's
+			// sacrifice/choice chain is the corpus example). Preserve the loop
+			// cursor so the answered body re-enters the repeat and poses the
+			// repeat election for the NEXT iteration instead of falling
+			// through to Repeat.Sub.
+			if optional {
+				h.SuspendRepeatOptional(sa, i+1)
+			}
+			return
+		}
+		if gated {
+			holds, evaluated := repeatGateEvaluates(h, c, sa, check, cmp, defined, present)
+			if !evaluated || !holds {
+				break
+			}
+		}
+		if optional {
+			if i+1 >= n {
+				return
+			}
+			if !poseRepeatOptionalElection(h, c, sa, i+1) {
+				return // R-9: a host that cannot answer stops after one pass.
+			}
 			return
 		}
 		if !gated {
 			continue
 		}
-		// The gate is a do-while: the body runs first, THEN the gate decides
-		// whether to run again. Every carrier's oracle reads "run, then
-		// repeat while <condition holds>" -- a check-before-first-body loop
-		// would run Grist's [+1] or Countryside Crusher's upkeep reveal zero
-		// times, since neither condition can hold before the first body has
-		// remembered anything.
-		holds, evaluated := repeatGateHolds(h, c, check, cmp)
-		if defined != "" {
-			definedCmp := strings.TrimSpace(sa.Params["RepeatCompare"])
-			if definedCmp == "" && check == "" {
-				definedCmp = cmp
+		// The gate was evaluated before the optional election.
+	}
+}
+
+// repeatGateEvaluates evaluates a Repeat's full between-iteration gate: the
+// RepeatCheckSVar$/RepeatSVarCompare$ pair and, when the line names one, the
+// RepeatDefined$/RepeatPresent$ pair (RepeatCompare$ overrides the compare;
+// an absent RepeatCompare$ with no check gate falls back to cmp). Both the
+// ordinary post-body path and the AskElection resume path call it, so a
+// gated optional repeat cannot skip its gate by suspending inside the body.
+func repeatGateEvaluates(h Host, c *Ctx, sa *cards.SA, check, cmp, defined, present string) (holds, evaluated bool) {
+	holds, evaluated = repeatGateHolds(h, c, check, cmp)
+	if defined == "" {
+		return holds, evaluated
+	}
+	definedCmp := strings.TrimSpace(sa.Params["RepeatCompare"])
+	if definedCmp == "" && check == "" {
+		definedCmp = cmp
+	}
+	definedHolds, definedEvaluated := repeatDefinedGateHolds(h, c, sa, defined, present, definedCmp)
+	return holds && definedHolds, evaluated && definedEvaluated
+}
+
+// poseRepeatOptionalElection asks the RepeatOptional$ "Repeat this process?"
+// election for the iteration `next` whose body a yes would run, parking the
+// loop cursor on it (ResumeRepeatNext = next). RepeatOptionalDecider$
+// Remembered routes the ask to the remembered player when the line names
+// one. It returns h.Ask(d): false when the host cannot answer, the R-9
+// deterministic stop after one pass.
+func poseRepeatOptionalElection(h Host, c *Ctx, sa *cards.SA, next int32) bool {
+	player := c.Controller
+	if strings.TrimSpace(sa.Params["RepeatOptionalDecider"]) == "Remembered" {
+		for _, t := range c.Remembered {
+			if t.IsPlayer {
+				player = t.Player
+				break
 			}
-			definedHolds, definedEvaluated := repeatDefinedGateHolds(h, c, sa, defined, present, definedCmp)
-			holds = holds && definedHolds
-			evaluated = evaluated && definedEvaluated
-		}
-		if !evaluated || !holds {
-			break
 		}
 	}
+	d := &decision.Decision{Player: player, Kind: decision.KChoose,
+		Min: 1, Max: 1, Prompt: "Repeat this process?", Source: c.Source,
+		ResumeKind: "repeat_optional", ResumeSA: sa,
+		ResumeRepeatNext: next,
+		Options: []decision.Option{{Index: 0, Kind: "yes", Label: "Repeat", Player: player},
+			{Index: 1, Kind: "no", Label: "Stop", Player: player}}}
+	return h.Ask(d)
 }
 
 // repeatGateHolds evaluates one Repeat's between-iteration gate -- the
