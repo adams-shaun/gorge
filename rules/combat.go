@@ -1245,10 +1245,10 @@ func (e *Engine) divisionNeeding(pass bool) []state.ObjID {
 		if !e.actsThisDamageStep(id, pass) {
 			continue
 		}
-		if e.HasKeyword(id, "Trample") || e.Power(id) <= 0 || len(e.liveBlockers(a)) < 2 {
+		if e.HasKeyword(id, "Trample") || e.combatDamageAmount(id) <= 0 || len(e.liveBlockers(a)) < 2 {
 			continue
 		}
-		if e.divisionCount(e.liveBlockers(a), e.Power(id)) > maxDivisionOptions {
+		if e.divisionCount(e.liveBlockers(a), e.combatDamageAmount(id)) > maxDivisionOptions {
 			continue
 		}
 		out = append(out, id)
@@ -1341,7 +1341,7 @@ func (e *Engine) asUnblockedNeeding(pass bool) []state.ObjID {
 		if !e.actsThisDamageStep(id, pass) {
 			continue
 		}
-		if len(a.BlockedBy) == 0 || e.Power(id) <= 0 {
+		if len(a.BlockedBy) == 0 || e.combatDamageAmount(id) <= 0 {
 			continue
 		}
 		if e.HasKeyword(id, "Trample") && len(e.liveBlockers(a)) == 0 {
@@ -1435,7 +1435,7 @@ func (e *Engine) askNextDivision() bool {
 // the split table lets the answer handler recover the chosen amounts.
 func (e *Engine) divisionOptions(a state.ObjID) ([]decision.Option, [][]int32) {
 	blockers := e.liveBlockers(e.G.Obj(a))
-	pw := e.Power(a)
+	pw := e.combatDamageAmount(a)
 	n := len(blockers)
 	var splits [][]int32
 	var cur []int32
@@ -1714,7 +1714,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 		blockers := e.liveBlockers(a)
 
 		if e.actsThisDamageStep(aid, firstStrike) {
-			if pw := e.Power(aid); pw > 0 {
+			if pw := e.combatDamageAmount(aid); pw > 0 {
 				link := e.HasKeyword(aid, "Lifelink")
 				dt := e.HasKeyword(aid, "Deathtouch")
 				trample := e.HasKeyword(aid, "Trample")
@@ -1815,7 +1815,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 			if !e.actsThisDamageStep(bid, firstStrike) {
 				continue
 			}
-			if bp := e.Power(bid); bp > 0 {
+			if bp := e.combatDamageAmount(bid); bp > 0 {
 				as = append(as, assignment{toObj: aid, amount: bp,
 					lifelink: e.G.Obj(bid).Controller, hasLink: e.HasKeyword(bid, "Lifelink"),
 					deathtouch: e.HasKeyword(bid, "Deathtouch"), from: bid})

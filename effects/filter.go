@@ -2179,6 +2179,16 @@ func objectPower(o *state.Object) int {
 	return f.Power() + int(o.Counter("P1P1"))
 }
 
+// objectToughness is objectPower's counterpart, the same base-plus-P1P1 read
+// the toughness family uses.
+func objectToughness(o *state.Object) int {
+	f := o.Face()
+	if f == nil {
+		return 0
+	}
+	return f.Toughness() + int(o.Counter("P1P1"))
+}
+
 func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (result, ok bool) {
 	resolve := sc.Resolve
 	if resolve == nil {
@@ -2234,6 +2244,39 @@ func numericPred(name string, g *state.Game, o *state.Object, sc SpecContext) (r
 			return false, false
 		}
 		cmp, numStr := rest[:2], rest[2:]
+		// powerLTtoughness / powerGTtoughness / powerEQtoughness (and the
+		// mirror): compare the two characteristics instead of a numeric RHS
+		// (Assault Formation, Bedrock Tortoise, Ancient Lumberknot). The
+		// shape is recognised before any object read, so UnknownPredicates'
+		// nil-object probe resolves it and the matcher and the census cannot
+		// disagree.
+		if (field == "power" || field == "toughness") && (numStr == "power" || numStr == "toughness" ||
+			numStr == "Power" || numStr == "Toughness") {
+			var lhs, rhs int
+			if field == "power" {
+				lhs = objectPower(o)
+			} else {
+				lhs = objectToughness(o)
+			}
+			if numStr == "power" || numStr == "Power" {
+				rhs = objectPower(o)
+			} else {
+				rhs = objectToughness(o)
+			}
+			switch cmp {
+			case "LE":
+				return lhs <= rhs, true
+			case "GE":
+				return lhs >= rhs, true
+			case "EQ":
+				return lhs == rhs, true
+			case "LT":
+				return lhs < rhs, true
+			case "GT":
+				return lhs > rhs, true
+			}
+			return false, false
+		}
 		n, err := strconv.Atoi(numStr)
 		if err != nil {
 			v, resolved := resolve(numStr)
