@@ -1188,6 +1188,8 @@ speedup. Link the worktree before trusting a row it wrote:
 | 2026-09-22T08:13Z | e6be5af8+ | 13.0 | 2447 | 1 | sadams |
 | 2026-09-22T08:14Z | e743ff3e+ | 13.2 | 2447 | 1 | sadams |
 | 2026-09-22T08:32Z | f4baae5b+ | 8.9 | 2502 | 1 | sadams |
+| 2026-09-22T08:47Z | 374bb8f9+ | 8.7 | 2514 | 1 | sadams |
+| 2026-09-22T09:05Z | 86627197+ | 8.2 | 2517 | 1 | sadams |
 | 2026-09-22T08:29Z | 1ecfbe2f+ | 11.2 | 2489 | 1 | sadams |
 | 2026-09-22T08:35Z | ef13e0b0+ | 8.6 | 2508 | 1 | sadams |
 | 2026-09-22T08:29Z | 1ecfbe2f+ | 9.0 | 2489 | 1 | sadams |

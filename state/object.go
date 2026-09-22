@@ -441,6 +441,17 @@ type Object struct {
 	// api:AlterAttribute effect emits) may set it.
 	Suspected bool
 
+	// PlottedTurn stamps the turn a card gained CR 701.34's plotted
+	// designation (0 = not plotted), via the events.AlterAttribute fold -- the
+	// plot ACTION (rules/cast.go) and the corpus's DB$ AlterAttribute |
+	// Attributes$ Plotted family both grant it. The designation is pure
+	// provenance for the free cast's "on a later turn" gate (rules/legal.go's
+	// exile walk compares Game.Turn against it); it ends when the card leaves
+	// exile (events.Apply's Move), the CR 701.34c end condition, so a later
+	// return to exile cannot revive the permission. A plain value copy in
+	// CloneDeep carries it.
+	PlottedTurn int32
+
 	// Timestamp orders continuous effects. Assigned from Game.Clock whenever
 	// the object enters the battlefield.
 	Timestamp uint32
