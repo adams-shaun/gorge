@@ -487,7 +487,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
 			}
-		case "CantTarget", "CantRegenerate", "CantPreventDamage", "CantAttack", "CantSacrifice", "CantPutCounter":
+		case "CantTarget", "CantRegenerate", "CantPreventDamage", "CantAttack", "CantSacrifice", "CantPutCounter", "CantBlockBy":
 			// A COMPOUND IsRemembered spec (Card.IsRemembered+Creature) resolves
 			// faithfully through the general filter now that it implements
 			// IsRemembered (rules/layers.go restrictionApplies consults the
@@ -514,7 +514,29 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				registered = true
 				break
 			}
+			if mode == "CantBlockBy" && !CantBlockByRestrictionParamsReadable(params) {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
+				registered = true
+				break
+			}
 			ceUntilEOT := effectUntilEOT(h, c.Source, dur)
+			if mode == "CantBlockBy" && sa.Params["Duration"] == "" {
+				// cbb1: Forge's Effect SA with NO Duration$ is a THIS-TURN effect
+				// -- the corpus's own convention proves it: every no-Duration
+				// unblockable grant is an activated/triggered ability whose
+				// oracle says "this turn" (Suspicious Bookcase, Kaito Cunning
+				// Infiltrator's +1, Kappa Cannoneer's counter trigger; 108
+				// activated carriers), while the "for as long as" shapes spell
+				// Duration$ UntilHostLeavesPlayOrEOT out explicitly and the
+				// forever shapes spell Duration$ Permanent. The absent-Duration
+				// default from the top of this function (Permanent) would make
+				// "can't be blocked this turn" outlive its turn on a permanent
+				// source -- the over-restrictive direction. The CantPutCounter
+				// absent-Duration read below is the same precedent; an EXPLICIT
+				// Duration$ keeps the ordinary effectUntilEOT reading.
+				ceUntilEOT = true
+			}
 			if mode == "CantPutCounter" && sa.Params["Duration"] == "" {
 				// cantputcounter1-r2: a CantPutCounter lock with NO Duration$
 				// is the THIS-TURN lock the corpus's one Effect-delivered
@@ -1000,6 +1022,29 @@ func CantRestrictionParamsReadable(params map[string]string) bool {
 	for k := range params {
 		switch k {
 		case "Mode", "ValidCard", "Target", "Description", "Secondary":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// CantBlockByRestrictionParamsReadable is the parameter whitelist an
+// Effect-registered CantBlockBy static must pass before this build enforces
+// it (task cbb1): Mode$, the ValidAttacker$ attacker spec, the ValidBlocker$
+// blocker spec, the historical ValidCard$ fallback (rules' blockRestricted
+// accepts both spellings, mirroring the face-static read), and display text
+// only. A body carrying anything else -- space_beleren's ValidBlockerRelative$
+// sector grammar, an IsPresent$/PresentCompare$ gate -- names a scoping the
+// registered-effect consumption path does not evaluate; enforcing it blanket
+// would make a conditional "can't be blocked" unconditional, so the body is
+// reported unimplemented instead -- the permissive direction for a
+// restriction. Secondary$ is allowed: it marks a Forge-side duplicate for
+// modifier composition, and a boolean restriction cannot be applied twice.
+func CantBlockByRestrictionParamsReadable(params map[string]string) bool {
+	for k := range params {
+		switch k {
+		case "Mode", "ValidAttacker", "ValidBlocker", "ValidCard", "Description", "Secondary":
 		default:
 			return false
 		}

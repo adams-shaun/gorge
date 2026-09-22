@@ -1044,6 +1044,55 @@ func (e *Engine) blockRestricted(blocker, attacker state.ObjID) bool {
 			return true
 		}
 	}
+	// The Effect-registered CantBlockBy restrictions (task cbb1): an
+	// `AB$ Effect | StaticAbilities$ Unblockable` whose SVar body is
+	// `Mode$ CantBlockBy | ValidAttacker$ Card.IsRemembered` -- Suspicious
+	// Bookcase's "{3},{T}: Target creature can't be blocked this turn", the
+	// dominant unblockable template (measured 246 corpus files carry the
+	// Effect-delivered shape) -- registers through effEffect's restriction
+	// case and is consulted here beside the face statics, so the remembered
+	// creature really is unblockable for the effect's lifetime. The
+	// registration gate (effects.CantBlockByRestrictionParamsReadable) has
+	// already refused every body whose scoping this loop cannot evaluate
+	// (ValidBlockerRelative$, IsPresent$/PresentCompare$ gates), so the
+	// loop reads ValidAttacker$/ValidBlocker$ unconditionally and the only
+	// fail-closed direction is the ordinary matcher's empty-set read.
+	for _, ce := range e.active() {
+		if ce.Restriction != "CantBlockBy" {
+			continue
+		}
+		attackerSpec := ce.RestrictParams["ValidAttacker"]
+		if attackerSpec == "" {
+			attackerSpec = ce.RestrictParams["ValidCard"]
+		}
+		sc := e.specCtx(ce.Source, ce.Controller)
+		for _, r := range ce.Remembered {
+			sc.Remembered = append(sc.Remembered, state.Target{Obj: r})
+		}
+		if attackerSpec == "" {
+			// A spec-less restriction names exactly its remembered set (the
+			// restrictionApplies convention, evaluated per-pair here because
+			// this read consults one (blocker, attacker) candidate at a
+			// time): an attacker outside the set is not restricted.
+			remembered := false
+			for _, r := range ce.Remembered {
+				if r == attacker {
+					remembered = true
+				}
+			}
+			if !remembered {
+				continue
+			}
+		} else if !effects.MatchesSpecCtx(e.G, attackerSpec, attacker, sc) {
+			continue
+		}
+		if spec, ok := ce.RestrictParams["ValidBlocker"]; ok {
+			if !effects.MatchesSpecCtx(e.G, spec, blocker, sc) {
+				continue
+			}
+		}
+		return true
+	}
 	return false
 }
 
