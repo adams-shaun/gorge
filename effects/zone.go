@@ -481,6 +481,28 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		h.EndEffect(f.Source, f.Stamp)
 		return
 	}
+	// The ImprintOnHost$ ender (task param:api:Effect.ImprintOnHost): the
+	// same "exile the implicit effect object" idiom as the block above, but
+	// keyed on the HOST's imprint instead of the effect's own self-exile.
+	// Forge's DB$ Effect | ImprintOnHost$ True imprints the created effect
+	// token on the host card and moves the token to the Command zone; the
+	// corpus's `DB$ ChangeZone | Defined$ Imprinted | Origin$ Command |
+	// Destination$ Exile` (Superior Foes of Spider-Man, Furious Rise,
+	// Unstable Amulet, Word of Command, Semester's End -- 5 files) exiles
+	// that token, ending the effect it carries ("you may play that card
+	// until you exile another card with this creature" -- the second dig's
+	// trigger exiles the FIRST effect's token before the new Effect
+	// registers). This build has no effect-token object, so the marker
+	// rides the registrations (state.ContinuousEffect.ImprintOnHost) and
+	// the idiom ends exactly those through Host.EndImprintedEffects. The
+	// ordinary move below still runs: the source's real imprinted cards
+	// (Chrome Mox's) are never in the Command zone in this build, so the
+	// Origin$ precondition skips them exactly as it did before.
+	if to == state.ZExile && !originAll && len(originZones) == 1 &&
+		originZones[0] == state.ZCommand &&
+		strings.TrimSpace(sa.Params["Defined"]) == "Imprinted" {
+		h.EndImprintedEffects(c.Source)
+	}
 	// The objects the move loop actually moved, in move order: ChangeZone's
 	// AtEOT$ affected set is the MOVED objects (some carriers carry
 	// RememberChanged$ and some do not, so the moved set is collected here

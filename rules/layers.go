@@ -1123,6 +1123,38 @@ func (e *Engine) EndEffect(source state.ObjID, stamp uint32) {
 	e.continuousVersion++
 }
 
+// EndImprintedEffects ends every live DB$ Effect registration that an
+// ImprintOnHost$ True Effect imprinted on the named host card (the entries
+// carrying state.ContinuousEffect.ImprintOnHost with that Source) -- the
+// analogue of Forge's later `DB$ ChangeZone | Defined$ Imprinted | Origin$
+// Command | Destination$ Exile` exiling the imprinted effect token from the
+// Command zone (Superior Foes of Spider-Man's "until you exile another card
+// with this creature": the second dig's trigger exiles the FIRST effect's
+// token, ending its may-play grant, before the new dig's Effect registers;
+// Word of Command and Semester's End run the same idiom inside one chain).
+// A registration without the marker -- the same source's OTHER effects and
+// its printed abilities -- is untouched. Engine-runtime only, rebuilt by
+// re-execution on replay exactly like EndEffect; it emits no event.
+func (e *Engine) EndImprintedEffects(source state.ObjID) {
+	if source == 0 {
+		return
+	}
+	kept := e.continuous[:0]
+	changed := false
+	for _, ce := range e.continuous {
+		if ce.Source == source && ce.ImprintOnHost {
+			changed = true
+			continue
+		}
+		kept = append(kept, ce)
+	}
+	if !changed {
+		return
+	}
+	e.continuous = kept
+	e.continuousVersion++
+}
+
 // nextTurnFor returns the turn number of the next turn (strictly after the
 // current one) whose active player is p -- i.e. p's NEXT turn, the
 // controller's-next-turn boundary of an UntilYourNextTurn effect.

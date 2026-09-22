@@ -132,6 +132,19 @@ func (h *fakeHost) EndEffect(source state.ObjID, stamp uint32) {
 	h.continuous = kept
 }
 
+// EndImprintedEffects mirrors rules.Engine's EndImprintedEffect: drop every
+// registration the ImprintOnHost$ True Effect imprinted on the host.
+func (h *fakeHost) EndImprintedEffects(source state.ObjID) {
+	kept := h.continuous[:0]
+	for _, ce := range h.continuous {
+		if ce.Source == source && ce.ImprintOnHost {
+			continue
+		}
+		kept = append(kept, ce)
+	}
+	h.continuous = kept
+}
+
 // ContinuousNamed scans the double's own recorded slice: the effects tests
 // have no engine registry to ask.
 func (h *fakeHost) ContinuousNamed(controller state.PlayerID, name string) bool {

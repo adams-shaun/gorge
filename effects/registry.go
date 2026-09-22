@@ -524,6 +524,17 @@ type Host interface {
 	// never ends anything. rules.Engine implements it as an in-place drop of
 	// its registry; the effects test double drops from its recorded slice.
 	EndEffect(source state.ObjID, stamp uint32)
+	// EndImprintedEffects ends every live continuous-effect registration
+	// that an ImprintOnHost$ True Effect imprinted on the named host card
+	// (state.ContinuousEffect.ImprintOnHost): the analogue of Forge's
+	// `DB$ ChangeZone | Defined$ Imprinted | Origin$ Command | Destination$
+	// Exile` exiling the imprinted effect token from the Command zone
+	// (Superior Foes of Spider-Man's "until you exile another card with
+	// this creature" -- the second dig's trigger exiles the FIRST effect's
+	// token before the new dig's Effect registers). rules.Engine implements
+	// it as an in-place drop of its registry, rebuilt by re-execution on
+	// replay; the effects test double mirrors it.
+	EndImprintedEffects(source state.ObjID)
 }
 
 // RepeatCursor is a RepeatEach loop re-entered after an iteration suspended:
