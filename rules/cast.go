@@ -6589,6 +6589,15 @@ func init() {
 		// the level-band statics read the counter through the existing
 		// counters_<CMP><n>_LEVEL predicate, so no separate path of its own.
 		"kw:Level up",
+		// kw:Class: CR 702.118, expanded by cards/keywords.go into one
+		// sorcery-speed level-up activator per level (the kw:Level up shape,
+		// gated on the Class's level being below that level) plus the level's
+		// granted static/trigger/replacement, appended with its own ClassBand$
+		// band so it is live from level N on (read as an independent AND gate
+		// by rules/class_level.go's classBandGateHolds). The entry
+		// counter (a Class enters at level 1) is the same etbCounter
+		// PutCounter replacement shape. Proof: rules/class_test.go.
+		"kw:Class",
 		// kw:Replicate: CR 702.55, expanded by cards/keywords.go into the
 		// Storm-shaped copy trigger whose Amount$ Count$ReplicatePaid reads
 		// the pay-time CastInfo's count; the cast flow's replicateAsk poses

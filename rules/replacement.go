@@ -2628,6 +2628,13 @@ func phaseStep(ph string) (state.Step, bool) {
 // closed: the replacement does not apply, never that an unreadable count is
 // presumed large enough to let it.
 func (e *Engine) replacementConditionHolds(r cards.Repl, source state.ObjID, you state.PlayerID) bool {
+	// A kw:Class level band (ClassBand$) is an independent AND gate: this
+	// function reads only IsPresent$, so a band written anywhere else would be
+	// silently ignored and a level-N granted replacement would be live from
+	// level 1.
+	if !e.classBandGateHolds(r.Params, source) {
+		return false
+	}
 	if spec, ok := r.Params["IsPresent"]; ok {
 		cmp := r.Params["PresentCompare"]
 		if cmp == "" {
@@ -4365,6 +4372,9 @@ func (e *Engine) emitLifeReplacement(ev events.Event) (events.Event, bool) {
 // replacementCondition reads the common CheckSVar$/SVarCompare$ gate (Phial
 // of Galadriel) from the replacement source's current context.
 func (e *Engine) replacementCondition(source state.ObjID, r *cards.Repl) bool {
+	if !e.classBandGateHolds(r.Params, source) {
+		return false
+	}
 	o := e.G.Obj(source)
 	if o == nil || o.Face() == nil {
 		return false

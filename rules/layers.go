@@ -768,6 +768,9 @@ func (e *Engine) MayLookAtLibraryTop(p state.PlayerID) bool {
 // fails closed -- the shipped statics convention: an unreadable "as long as"
 // must not silently always-apply.
 func (e *Engine) continuousGateHolds(sv staticView) bool {
+	if !e.classBandGateHolds(sv.Params, sv.Source) {
+		return false
+	}
 	if spec, ok := sv.Params["IsPresent"]; ok && !e.presentGate(sv, spec) {
 		return false
 	}
