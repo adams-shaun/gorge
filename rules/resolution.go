@@ -1926,10 +1926,50 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// break so a cast suspended mid-transaction (a target ask inside
 			// the free cast) is still recorded as played.
 			imprintPlayed := strings.EqualFold(rp.sa.Params["ImprintPlayed"], "True")
+			// The play's own CONTROLLER rides the answer's options (effPlay set
+			// each option's Player to the Controller$-resolved seat): a
+			// Controller$ Play (Word of Command's TargetedPlayer, Wild
+			// Evocation's TriggeredPlayer, Spell Queller's RememberedOwner) is
+			// begun BY that seat, not by the resolving ability's controller.
+			// An option carrying no seat (a hand-built context, or every
+			// historical Controller$-absent game whose options named the
+			// resolving controller anyway) keeps ctx.Controller, the pre-
+			// Controller$ read.
+			player := ctx.Controller
+			if len(chosen) > 0 && int(chosen[0].Player) < len(e.G.Players) {
+				player = chosen[0].Player
+			}
+			// ShowCards$ (Sunbird's Invocation -- the corpus's one carrier):
+			// the play's public reveal rider. The population it names is a
+			// card filter over the walk's remembered set ("Card.IsRemembered"
+			// = the window the PeekAndReveal revealed and remembered); the
+			// reveal is ONE public Note (the ids payload view.Describe
+			// renders) emitted BEFORE the first cast begins, while the cards
+			// still sit in their hidden zones. A decline plays nothing and
+			// reveals nothing. The R-9 no-host path (effPlay's deterministic
+			// first candidate) never reaches this arm and stays untouched --
+			// the same boundary ForgetPlayed$ keeps.
 			var toPlay []state.ObjID
 			for _, ch := range chosen {
 				if ch.Obj != 0 {
 					toPlay = append(toPlay, ch.Obj)
+				}
+			}
+			if show := strings.TrimSpace(rp.sa.Params["ShowCards"]); show != "" && len(toPlay) > 0 {
+				sc := ctx.SpecContext(player)
+				var ids []state.ObjID
+				seenShow := map[state.ObjID]bool{}
+				for _, t := range ctx.Remembered {
+					if t.IsPlayer || t.Obj == 0 || seenShow[t.Obj] {
+						continue
+					}
+					if o := e.G.Obj(t.Obj); o != nil && effects.MatchesObjectCtx(e.G, show, o, sc) {
+						seenShow[t.Obj] = true
+						ids = append(ids, t.Obj)
+					}
+				}
+				if len(ids) > 0 {
+					e.emit(events.Event{Kind: events.Note, Player: player, IDs: ids})
 				}
 			}
 			ctx.PlayDone = true
@@ -1941,7 +1981,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				if o := e.G.Obj(id); o != nil {
 					from = o.Zone
 				}
-				e.beginPlay(ctx.Controller, id, free, playCost, replaceGraveyard)
+				e.beginPlay(player, id, free, playCost, replaceGraveyard)
 				if imprintPlayed && from.Valid() {
 					if o := e.G.Obj(id); o != nil && o.Zone != from {
 						e.emit(events.Event{Kind: events.Imprint, Obj: ctx.Source,

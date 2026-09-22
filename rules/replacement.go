@@ -2628,6 +2628,13 @@ func phaseStep(ph string) (state.Step, bool) {
 // closed: the replacement does not apply, never that an unreadable count is
 // presumed large enough to let it.
 func (e *Engine) replacementConditionHolds(r cards.Repl, source state.ObjID, you state.PlayerID) bool {
+	// A kw:Class level band (ClassBand$) is an independent AND gate: this
+	// function reads only IsPresent$, so a band written anywhere else would be
+	// silently ignored and a level-N granted replacement would be live from
+	// level 1.
+	if !e.classBandGateHolds(r.Params, source) {
+		return false
+	}
 	if spec, ok := r.Params["IsPresent"]; ok {
 		cmp := r.Params["PresentCompare"]
 		if cmp == "" {
@@ -3027,6 +3034,15 @@ func (e *Engine) revoltThisTurn(controller state.PlayerID) bool {
 // spellings answer identically and a replay derives each from the log.
 func (e *Engine) RevoltHolds(controller state.PlayerID) bool {
 	return e.revoltThisTurn(controller)
+}
+
+// DeliriumHolds is the effects.Host bridge (the bare Condition$ Delirium
+// gate in effects/conditions.go): the same graveyardCardTypeCount census the
+// replacement path's Delirium$ clause, the Continuous static gate
+// (rules/layers.go) and the ability-offer gate (rules/legal.go) read, so
+// every Delirium spelling answers identically.
+func (e *Engine) DeliriumHolds(controller state.PlayerID) bool {
+	return e.graveyardCardTypeCount(controller) >= 4
 }
 
 func (e *Engine) graveyardCardTypeCount(controller state.PlayerID) int {
@@ -4356,6 +4372,9 @@ func (e *Engine) emitLifeReplacement(ev events.Event) (events.Event, bool) {
 // replacementCondition reads the common CheckSVar$/SVarCompare$ gate (Phial
 // of Galadriel) from the replacement source's current context.
 func (e *Engine) replacementCondition(source state.ObjID, r *cards.Repl) bool {
+	if !e.classBandGateHolds(r.Params, source) {
+		return false
+	}
 	o := e.G.Obj(source)
 	if o == nil || o.Face() == nil {
 		return false
@@ -4472,6 +4491,14 @@ func init() {
 	// own tags is what a replacement registration means -- nothing elsewhere
 	// in the tree registers them.
 	//
+	// kw:Devour and kw:Ravenous (CR 702.148) are the same idea for a K: line
+	// that expands to an ETB trigger instead of a replacement (kw:Devour's
+	// optional sacrifice + counter put, kw:Ravenous's X +1/+1-counter put
+	// plus the X>=5 conditional draw, both in cards/kw_*.go). The marker
+	// exists only so the coverage ratchet sees the head as supported; the
+	// machinery it needs (trig:ChangesZone, api:PutCounter, api:Draw, the
+	// SVar-condition gate) is all registered under its own primitives.
+	//
 	// The four turn/mana replacement events register the same way: repl:Untap
 	// (the Basalt Monolith class), repl:BeginPhase (the Necropotence class),
 	// repl:Transform (the Sephiroth class) and repl:ProduceMana (the Virtue
@@ -4485,7 +4512,7 @@ func init() {
 	// applyLifeReplacements. repl:DamageDone and repl:Counter are this
 	// ticket's own additions, matched by replacementMatches's DamageDone case
 	// and CounterAllowed respectively.
-	effects.RegisterNonAPI("kw:etbCounter", "kw:ETBReplacement", "kw:Devour",
+	effects.RegisterNonAPI("kw:etbCounter", "kw:ETBReplacement", "kw:Devour", "kw:Ravenous",
 		"repl:Untap", "repl:BeginPhase", "repl:Transform", "repl:ProduceMana",
 		"repl:GainLife", "repl:LifeReduced", "repl:DamageDone", "repl:Counter",
 		"repl:CreateToken", "repl:RollPlanarDice", "repl:Explore", "api:ReplaceToken",

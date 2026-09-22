@@ -513,7 +513,9 @@ func (e *Engine) checkGrantedWardTriggers(observer *Engine, id state.ObjID, o *s
 // replayable-log invariant rather than minting an ability a replay cannot
 // rebuild. A self-grant (Hearthhull) trivially satisfies it, and so does a
 // cross-object grant (an Aura granting its enchanted creature a trigger): the
-// Execute$ SVar lives on the GRANTOR's face, which is ce.Source.
+// Execute$ SVar lives on the GRANTOR's face, which is ce.Source -- except for
+// the Animate route, whose Source is the ANIMATED object and whose grantor
+// the effect names via TriggerGrantor (the animating card's table).
 //
 // Fire-count: like Ward and Dethrone, every granted trigger shares the
 // granted slot's triggerKey (Source, Idx -1) -- the cascade bound only, not
@@ -522,9 +524,12 @@ func (e *Engine) checkGrantedWardTriggers(observer *Engine, id state.ObjID, o *s
 // deliberately a read over active()'s sorted slice, never a map: the queue
 // order stays the scan's deterministic order.
 func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []ContinuousEffect, id state.ObjID, o *state.Object, ev events.Event, objLKI *state.Object, lkiPower, lkiToughness int32, lkiPTValid bool) {
-	if e.finishingLifeLossBatch || e.lifeLossBatchDepth > 0 {
-		return
-	}
+	// The face walk's life-loss-batch discipline, mirrored exactly (the
+	// Animate Triggers$ route needs it: a granted DamageDone trigger must
+	// fire on the in-batch Damage event the way a printed one does, and the
+	// finishing pass must not re-check it -- the old blanket guard silenced
+	// every granted trigger for the WHOLE batch including its finishing
+	// pass, so a combat-damage DamageDone grant could never fire at all).
 	for i := range statics {
 		ce := &statics[i]
 		if ce.AddTrigger == nil {
@@ -534,12 +539,26 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []Con
 			continue
 		}
 		t := *ce.AddTrigger
+		// The batch discipline (mirrored from the face walk, above).
+		if t.Mode == "LifeLostAll" && e.lifeLossBatchDepth > 0 && !e.finishingLifeLossBatch {
+			continue
+		}
+		if e.finishingLifeLossBatch && t.Mode != "LifeLostAll" {
+			continue
+		}
 		// The live==replay gate: link the Execute$ body exactly the way
 		// events.Apply will (the GRANTOR's own table -- ce.Source carries the
-		// printed static; a self-grant degenerates to the affected object); a
-		// body it cannot resolve never queues, and a same-named body it CAN
-		// resolve is by construction the same body a replay would resolve.
-		grantor := observer.G.Obj(ce.Source)
+		// printed static; a self-grant degenerates to the affected object;
+		// the Animate route names the animating face via TriggerGrantor,
+		// since Source there is the ANIMATED object and the body lives on
+		// the animating card's table). A body it cannot resolve never
+		// queues, and a same-named body it CAN resolve is by construction
+		// the same body a replay would resolve.
+		grantorID := ce.Source
+		if ce.TriggerGrantor != 0 {
+			grantorID = ce.TriggerGrantor
+		}
+		grantor := observer.G.Obj(grantorID)
 		if grantor == nil || grantor.Face() == nil {
 			continue
 		}
@@ -549,11 +568,6 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []Con
 		// CR 603.8's outstanding-instance latch, mirrored from the face walk
 		// (a state trigger already queued or on the stack does not re-fire).
 		if t.Mode == "Always" && e.stateTriggerOutstanding(id, -1) {
-			continue
-		}
-		// LifeLostAll is evaluated once at the end of a simultaneous
-		// life-loss batch, exactly as the face walk scopes it.
-		if t.Mode == "LifeLostAll" && e.lifeLossBatchDepth > 0 && !e.finishingLifeLossBatch {
 			continue
 		}
 		if !observer.triggerMatches(t, id, ev, objLKI) {
@@ -573,7 +587,7 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []Con
 			Idx:        -1,
 			SA:         t.Effect,
 			Granted:    true,
-			Grantor:    ce.Source,
+			Grantor:    grantorID,
 			Execute:    t.Params["Execute"],
 			Ctx: effects.Ctx{
 				Source:         id,

@@ -50,7 +50,12 @@ func (e *Engine) canAttack(id state.ObjID) bool {
 		return false
 	}
 	f := o.Face()
-	if f == nil || !o.EffectiveIsCreature() || o.BestowedAttached() {
+	// The creature test is the DERIVED type (layer 4), not the printed face:
+	// an animated land (Raging Ravine, Mutavault) is a creature right now and
+	// attacks like one, while its printed face is a Land. Everything the
+	// printed face admits the derived walk admits too, so ordinary creatures
+	// are unchanged; a bestowed card stays excluded (BestowedAttached).
+	if f == nil || !e.IsCreature(id) || o.BestowedAttached() {
 		return false
 	}
 	if o.Tapped || e.HasKeyword(id, "Defender") {
@@ -88,10 +93,18 @@ func (e *Engine) canBlock(blocker, attacker state.ObjID) bool {
 		return false
 	}
 	bf := b.Face()
-	if bf == nil || !b.EffectiveIsCreature() || b.BestowedAttached() {
+	// Derived, not printed -- see canAttack (an animated manland blocks).
+	if bf == nil || !e.IsCreature(blocker) || b.BestowedAttached() {
 		return false
 	}
 	if b.Tapped || b.Controller != a.Attacking {
+		return false
+	}
+	// CR 702.157b: a suspected creature can't block. The designation is the
+	// declaration-legality rule itself, checked here where every other
+	// can't-block gate lives (Flying, Shadow, blockRestricted), so the ask's
+	// options and the validator's recompute share one oracle.
+	if b.Suspected {
 		return false
 	}
 	// CR 509.1a / 702.16j: a creature that the attacker is protected from

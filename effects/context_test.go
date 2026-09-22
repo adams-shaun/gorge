@@ -48,6 +48,10 @@ type fakeHost struct {
 	// Condition$ Revolt gate and the Count$Revolt branch head read it; the
 	// real event-log scan is pinned in rules).
 	revolt bool
+	// delirium is the DeliriumHolds answer the double reports (the bare
+	// Condition$ Delirium gate reads it; the real graveyard-census read is
+	// pinned in rules).
+	delirium bool
 	// typeChoices is the TypeChoices answer the double reports (nil by
 	// default): the effects-side ChooseType tests configure it to pose a
 	// real option list. Nil routes ChooseType through AskEmpty — the
@@ -247,6 +251,11 @@ func (h *fakeHost) StartingLife() int32 { return h.startingLife }
 // RevoltHolds has no event log here; the double reports the h.revolt flag
 // the eval-level tests flip (the real log-scan read is pinned in rules).
 func (h *fakeHost) RevoltHolds(_ state.PlayerID) bool { return h.revolt }
+
+// DeliriumHolds has no graveyard census here; the double reports the
+// h.delirium flag the eval-level tests flip (the real census read is pinned
+// in rules).
+func (h *fakeHost) DeliriumHolds(_ state.PlayerID) bool { return h.delirium }
 
 // SpellsCastThisTurnMatching has no event log here; the double reports zero.
 func (h *fakeHost) SpellsCastThisTurnMatching(_ state.PlayerID, _ string) int { return 0 }

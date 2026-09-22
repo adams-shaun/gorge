@@ -103,6 +103,9 @@ func isManaAbilityAPI(api string) bool { return api == "Mana" || api == "ManaRef
 // native mana ability excludes itself, while a static-granted SVar (Tazri)
 // requires one printed activated ability on that creature.
 func (e *Engine) manaReflectedPresentHolds(p state.PlayerID, source state.ObjID, ma *cards.SA) bool {
+	if !e.classBandGateHolds(ma.Params, source) {
+		return false
+	}
 	spec, ok := ma.Params["IsPresent"]
 	if !ok || strings.TrimSpace(spec) == "" {
 		return true

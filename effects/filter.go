@@ -89,6 +89,26 @@ var predicates = map[string]predFn{
 	"nonBlack": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return !strings.Contains(ColorsOf(o), "B")
 	},
+	// IsSuspected is CR 702.157's suspected designation (task alterattr1;
+	// Nelly Borca's "goad all suspected creatures", Hot Pursuit's "all
+	// goaded and/or suspected creatures", the DBDebuff family's
+	// "Creature.OppCtrl+IsSuspected"). It reads the event-backed status the
+	// events.AlterAttribute fold maintains; a permanent that left the
+	// battlefield or changed controller has already been cleared by those
+	// folds, so the predicate cannot read a stale designation.
+	"IsSuspected": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o.Suspected
+	},
+	// IsGoaded is CR 701.38's goaded condition (Hot Pursuit's
+	// "GainControl | AllValid$ Creature.IsGoaded,Creature.IsSuspected").
+	// It reads the event-backed goad list ONLY: a statically goaded creature
+	// (a Goad$ True continuous static, the Shiny Impetus shape) is invisible
+	// here -- open issue agent-20260919T203859Z-269892c3. Expired
+	// relationships are pruned by the same folds that prune the list
+	// (pruneGoads / expireTurnGoads), so the predicate reads live state.
+	"IsGoaded": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return len(o.Goads) > 0
+	},
 	"kicked": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.CastFlags&state.FlagKicked != 0
 	},

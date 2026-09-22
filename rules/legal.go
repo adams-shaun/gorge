@@ -440,6 +440,9 @@ func abilityZoneOK(ab *cards.SA, z state.Zone) bool {
 // the census's generic rules-side SA union for Mana/ManaReflected: see
 // genericSAExcludes in paramcensus_test.go.
 func (e *Engine) abilityPresentHolds(p state.PlayerID, id state.ObjID, ab *cards.SA) bool {
+	if !e.classBandGateHolds(ab.Params, id) {
+		return false
+	}
 	spec := strings.TrimSpace(ab.Params["IsPresent"])
 	if spec == "" {
 		return true
@@ -1785,6 +1788,38 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		if affordable(p, id, offerCostFor(p, id, ec, spellScope("escape")), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (escape)", Obj: id, Mode: "escape"})
+		}
+	}
+
+	// Retrace (CR 702.81a): a card in its owner's graveyard carrying the
+	// Retrace keyword may be cast from there by paying its printed mana cost
+	// PLUS an additional cost of discarding a land card. Unlike Escape this
+	// is not a cost substitution, so the offer prices the ordinary plain-cast
+	// base (castOfferBase credits Convoke/Improvise, withSpellAbilityExtras
+	// adds the spell's own additional parts) with retraceExtra folded on top.
+	// The discard is a real hand cost, so the offer is withheld unless a land
+	// card is actually there to discard -- an option that cannot be paid must
+	// never be offered (the offerCastable/withSpellAbilityExtras ruling).
+	for _, id := range e.G.Zone(state.ZGraveyard, p) {
+		o := e.G.Obj(id)
+		f := o.Face()
+		if f == nil || castRestricted(p, id) || e.castSuppressed(p, id) {
+			continue
+		}
+		if !e.HasKeyword(id, "Retrace") {
+			continue
+		}
+		if !e.spellTimingOK(p, id, f, sorcery) ||
+			!e.castTargetsAvailable(p, id, f.SpellAbility()) {
+			continue
+		}
+		rx := retraceExtra()
+		if !e.discardCostPayable(p, id, rx.Discard, true) {
+			continue
+		}
+		if offerCastable(p, id, withSpellAbilityExtras(f, e.castOfferBase(p, id)).Plus(rx), spellScope("retrace"), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (retrace)", Obj: id, Mode: "retrace"})
 		}
 	}
 
