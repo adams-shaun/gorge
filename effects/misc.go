@@ -1636,10 +1636,39 @@ func encodeRemembered(remembered []state.Target) []state.ObjID {
 // predates MaxRepeat$. Either way the run count goes through Num(), so an
 // SVar-indirected Count$ works for either name. It is capped at 1000 so a
 // malformed or absurdly large repeat can never spin the engine.
+//
+// A Repeat carrying RepeatCheckSVar$/RepeatSVarCompare$ (Forge's
+// repeat-while gate; 28 corpus files) is gate-governed instead: the gate is
+// the between-iteration condition (repeatGateHolds below), re-evaluated
+// after every iteration because the body rewrites the named SVar
+// (StoreSVar's accumulator) or grows the remembered set it reads
+// (RememberMilled$) -- Grist's [+1] and Scalpelexis both loop on exactly
+// that. MaxRepeat$ (when present and resolvable) is then the CAP, and
+// Forge's unbounded default is clamped to the same 1000. A gate the
+// evaluator cannot read stops the loop after the iteration just run -- the
+// pre-gate single-iteration behaviour, never a spin: an unevaluated gate
+// must not stand in for "the condition holds" (a count body whose filter
+// predicates fail closed to 0 under an EQ0 compare would otherwise loop to
+// the cap on a number the engine cannot honestly compute). For the four
+// MaxRepeat carriers whose gate names such a body (Helm of Obedience,
+// Grindstone, Sphinx's Tutelage, The Tale of Tamiyo) this trades the
+// pre-gate loop's whole-library mill -- MaxRepeat$ is CardsInLibrary there
+// -- for one iteration, the conservative direction; every one of them sits
+// outside every repo deck and golden game.
 func effRepeat(h Host, c *Ctx, sa *cards.SA) {
+	check := strings.TrimSpace(sa.Params["RepeatCheckSVar"])
+	cmp := strings.TrimSpace(sa.Params["RepeatSVarCompare"])
+	gated := check != ""
 	n := Num(h, c, sa, "MaxRepeat", -1)
 	if n < 0 {
-		n = Num(h, c, sa, "RepeatNum", 1)
+		if gated {
+			// Gate-governed: Forge's default cap is unbounded (the gate
+			// decides when to stop); clamp to the same 1000-iteration cap a
+			// malformed MaxRepeat takes.
+			n = 1000
+		} else {
+			n = Num(h, c, sa, "RepeatNum", 1)
+		}
 	}
 	if n < 0 {
 		n = 0
@@ -1657,7 +1686,67 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 	}
 	for i := int32(0); i < n; i++ {
 		Resolve(h, c, sub)
+		if h.Suspended() {
+			// A body ask suspended the resolution: the remaining iterations
+			// cannot run while the ask is pending, and a plain Repeat has no
+			// loop cursor to resume with (only RepeatEach does), so they are
+			// dropped. Returning lets the enclosing Resolve walk record its
+			// continuation frame -- the answer re-enters at this SA's chain
+			// tail (sa.Sub), never re-running the completed iterations. The
+			// pre-gate loop kept calling Resolve for the remaining iterations
+			// while the ask was pending; nothing on the current corpus reaches
+			// that (the MaxRepeat carriers' bodies ask nothing and every
+			// asking body's carrier runs once), so no event stream changes
+			// here beyond what the gate itself moves.
+			return
+		}
+		if !gated {
+			continue
+		}
+		// The gate is a do-while: the body runs first, THEN the gate decides
+		// whether to run again. Every carrier's oracle reads "run, then
+		// repeat while <condition holds>" -- a check-before-first-body loop
+		// would run Grist's [+1] or Countryside Crusher's upkeep reveal zero
+		// times, since neither condition can hold before the first body has
+		// remembered anything.
+		holds, evaluated := repeatGateHolds(h, c, check, cmp)
+		if !evaluated || !holds {
+			break
+		}
 	}
+}
+
+// repeatGateHolds evaluates one Repeat's between-iteration gate -- the
+// RepeatCheckSVar$/RepeatSVarCompare$ pair. holds is the compare's answer;
+// evaluated is false when the gate cannot be read here: the named SVar (the
+// ctx table first, then the source face's own -- the same lookup
+// CheckSVarHolds makes) resolves to a body whose filter predicates this
+// build does not know (UnknownPredicates -- the same unresolved guard
+// conditions.go's present-count gates take), or whose count/compare
+// EvalCountOK does not model. An absent cmp is Forge's GE1 default;
+// CheckSVarHolds reads an empty compare as "nonzero", the same answer for
+// every count.
+func repeatGateHolds(h Host, c *Ctx, check, cmp string) (holds, evaluated bool) {
+	if check == "" {
+		return true, true // no gate; the loop's own run count governs
+	}
+	body := check
+	if c.SVars != nil {
+		if b, ok := c.SVars[check]; ok {
+			body = b
+		}
+	}
+	if body == check && c.Source != 0 {
+		if o := h.Game().Obj(c.Source); o != nil && o.Face() != nil {
+			if b, ok := o.Face().SVars[check]; ok {
+				body = b
+			}
+		}
+	}
+	if len(UnknownPredicates(body)) > 0 {
+		return false, false
+	}
+	return CheckSVarHolds(h, c, check, cmp)
 }
 
 // CharmRepeatModes reports whether a Charm's CanRepeatModes$ True grants
