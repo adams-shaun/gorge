@@ -78,6 +78,58 @@ func (e *Engine) applyReplacements(ev events.Event) (events.Event, bool) {
 // (Moved/Untap/BeginPhase/Transform/ProduceMana/DamageDone). Factored out so
 // applyReplacements can wrap a player-targeted Damage event with the
 // repl:LifeReduced fallback above without duplicating this body.
+// bloodthirstEntryMatch builds the synthetic Moved replacement a permanent
+// with bloodthirst enters by (CR 702.54: "Bloodthirst N means 'If an
+// opponent was dealt damage this turn, this permanent enters the battlefield
+// with N +1/+1 counters on it.'"). The keyword is read from the entering
+// object's DERIVED keyword list (derivedKeywordParam), so a printed
+// K:Bloodthirst:<N> and a layer-6 `AddKeyword$ Bloodthirst:<N>` grant are
+// ONE identical shape -- the grant path is the shape a cards-side expansion
+// could never see (Twins of Discord; the primitive ratchet counts only
+// Face.Primitives()'s printed-keyword walk, so the grant was previously a
+// silent no-op the census could not even name).
+//
+// A fixed N gates on the existing CheckSVar$/SVarCompare$ pair -- the SVar
+// name is an INLINE Count body (replacementCheckValue falls through to
+// effects.EvalCount for a name no face SVar table defines), reading the
+// DamageOppsTakenThisTurn head compared GT0. Bloodthirst X has no gate: the
+// count IS the amount, so the body's CounterNum$ is the same inline Count
+// body. A param that is neither a positive literal nor X (unmeasured in the
+// corpus, all 23 printed lines spell <N> or X) fails closed to no match --
+// the conservative direction for a counter put.
+func (e *Engine) bloodthirstEntryMatch(ev events.Event) *replMatch {
+	param, ok := e.derivedKeywordParam(ev.Obj, "Bloodthirst")
+	if !ok {
+		return nil
+	}
+	body := &cards.SA{Kind: "DB", API: "PutCounter", Params: map[string]string{
+		"Defined":     "Self",
+		"CounterType": "P1P1",
+		"ETB":         "True",
+	}}
+	r := &cards.Repl{Event: "Moved", Params: map[string]string{
+		"Destination":       "Battlefield",
+		"ValidCard":         "Card.Self",
+		"ReplacementResult": "Updated",
+		"Keyword":           "Bloodthirst",
+		"KeywordLine":       "Bloodthirst:" + param,
+	},
+		With: body,
+	}
+	if param == "X" {
+		body.Params["CounterNum"] = "Count$DamageOppsTakenThisTurn"
+	} else {
+		n, err := strconv.Atoi(param)
+		if err != nil || n <= 0 {
+			return nil
+		}
+		body.Params["CounterNum"] = strconv.Itoa(n)
+		r.Params["CheckSVar"] = "Count$DamageOppsTakenThisTurn"
+		r.Params["SVarCompare"] = "GT0"
+	}
+	return &replMatch{id: ev.Obj, repl: r}
+}
+
 func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool) {
 	event, ok := replacementEvent(ev)
 	if !ok {
@@ -209,6 +261,17 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 			}
 		}
 	})
+	// kw:Bloodthirst (CR 702.54): the entering permanent's own bloodthirst --
+	// printed or layer-6 granted -- is one more Updated entry replacement,
+	// collected AFTER the face-Repl scan so the deterministic composition
+	// order stays "the card's own entry effects, then the keyword's". All
+	// entry augmentations commute, so the append position cannot change a
+	// result; it only fixes the scan order.
+	if ev.Kind == events.MoveZone && ev.To == state.ZBattlefield {
+		if m := e.bloodthirstEntryMatch(ev); m != nil && e.replacementMatches(*m.repl, m.id, ev) {
+			matches = append(matches, *m)
+		}
+	}
 	if ev.Kind == events.ManaAdd {
 		return e.continueManaReplacements(ev, manaCandidates, nil, false, e.manaFromTap, e.manaProducer)
 	}
@@ -4512,7 +4575,17 @@ func init() {
 	// applyLifeReplacements. repl:DamageDone and repl:Counter are this
 	// ticket's own additions, matched by replacementMatches's DamageDone case
 	// and CounterAllowed respectively.
-	effects.RegisterNonAPI("kw:etbCounter", "kw:ETBReplacement", "kw:Devour", "kw:Ravenous",
+	// kw:Bloodthirst (CR 702.54) is implemented by this file's
+	// bloodthirstEntryMatch: the keyword line (printed K:Bloodthirst:<N> or a
+	// layer-6 AddKeyword$ grant) is read at MoveZone→Battlefield collection
+	// time from the entering object's DERIVED keyword list, so one read
+	// covers both shapes -- a printed carrier and Twins of Discord's
+	// `Affected$ Creature.Other+YouCtrl+Colorless | AddKeyword$ Bloodthirst:2`
+	// grant, which cards-side expansion could never see. No cards-side
+	// expansion exists: bloodthirst is a static ability whose whole meaning
+	// is an entry-time conditional counter put, which is exactly what the
+	// synthetic Repl below expresses.
+	effects.RegisterNonAPI("kw:etbCounter", "kw:ETBReplacement", "kw:Devour", "kw:Ravenous", "kw:Bloodthirst",
 		"repl:Untap", "repl:BeginPhase", "repl:Transform", "repl:ProduceMana",
 		"repl:GainLife", "repl:LifeReduced", "repl:DamageDone", "repl:Counter",
 		"repl:CreateToken", "repl:RollPlanarDice", "repl:Explore", "api:ReplaceToken",

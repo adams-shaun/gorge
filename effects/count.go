@@ -1206,6 +1206,28 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			}
 		}
 		return n, true
+	case "DamageOppsTakenThisTurn":
+		// The total damage the controller's OPPONENTS were dealt this turn
+		// (kw:Bloodthirst, CR 702.54, is the reader). Each opponent's take
+		// comes from the Host's log-derived DamageTakenThisTurn (player-targeted
+		// Damage events only, the same fold the TargetedPlayer$DamageThisTurn
+		// head reads), so the count is replay-derivable. The sum answers BOTH
+		// Bloodthirst shapes: a fixed N's condition ("an opponent was dealt
+		// damage this turn") is the sum compared GT0 -- damage amounts are
+		// positive, so a positive sum is exactly "at least one opponent was
+		// dealt damage" -- and Bloodthirst X's amount ("enters with X +1/+1
+		// counters, where X is the damage dealt to your opponents this turn",
+		// Petrified Wood-Kin) is the sum itself.
+		if c.Controller < 0 {
+			return 0, true
+		}
+		var n int32
+		for _, p := range g.AliveFrom(0) {
+			if p != c.Controller {
+				n += h.DamageTakenThisTurn(p)
+			}
+		}
+		return n, true
 	case "LifeYouGainedThisTurn":
 		// The total life the controller GAINED this turn — the CheckSVar$ gate
 		// behind the "At the beginning of each end step, if you gained 4 or
