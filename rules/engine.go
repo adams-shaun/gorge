@@ -399,6 +399,19 @@ type Engine struct {
 	// alongside fusedResolving, captured by Ask onto the resumePoint. Nil
 	// outside a fused half's resolution.
 	fusedResolvingSVars map[string]string
+	// windowPaidX is the X the triggered-cost window's payment announced
+	// (rules/cumulative.go's X fold, tc.xPaid at the pay arm), kept as AMBIENT
+	// engine state while the paid body resolves — the fusedResolving pattern:
+	// rules/resolution.go's resumeResolution arms it from the frame's
+	// rp.winPaidX around the re-entry's effects.Resolve, Ask captures it onto
+	// every pending resumePoint it poses, and buildContinuationChain stamps it
+	// onto the continuation frames — so a body that suspends on a
+	// mid-resolution ask (Leyline Tyrant's "pay any amount of {R}" death
+	// trigger, whose DB$ DealDamage target pick is exactly such an ask)
+	// resumes with its X instead of rebuilding ctx.X from a trigger object
+	// that was never paid one (0). Transient scratch, restored with the same
+	// defer discipline as fusedResolving; rebuilt identically by replay.
+	windowPaidX int32
 	// exploitedLKI maps an EXPLOITED creature's object id to the LKI snapshot
 	// of it at the instant it was sacrificed to pay an exploit (CR 702.58a),
 	// published by effects/exploit.go through Host.RememberExploitedLKI while
@@ -591,6 +604,12 @@ type Engine struct {
 	// the answer, so every entry path reaches events.Move with RiotChoice set.
 	riotMove *events.Event
 	// siegeMove parks a non-cast Battle entry while its controller makes the
+	// unleashMove parks a non-cast battlefield entry while its controller
+	// makes Unleash's as-enters choice (CR 702.86, rules/unleash.go). Same
+	// discipline as riotMove: the MoveZone is emitted only after the Choose
+	// "unleash" event records the answer, so every entry path reaches
+	// events.Move with UnleashChoice set. Clone-copied (clone.go).
+	unleashMove *events.Event
 	// CR 310.10 Siege protector choice. Same discipline as riotMove: the
 	// MoveZone is emitted only after the Choose "protector" event records the
 	// answer, so every entry path records the protector beside the entry and a
@@ -658,6 +677,10 @@ type Engine struct {
 	// untapResume is set only around one Untap emission from finishUntapStep.
 	// If that event parks an Untap replacement choice, it moves into the queue.
 	untapResume *untapStep
+	// untapChoiceObj is the permanent whose permanent-specific untap-step
+	// election is pending. The answer is folded onto the object before this
+	// cursor resumes, so clones and replay preserve the same choice.
+	untapChoiceObj state.ObjID
 	// madnessChoices parks discard moves while the card's owner decides whether
 	// to apply Madness's optional hand-to-exile replacement.
 	madnessChoices []events.Event
@@ -713,7 +736,12 @@ type Engine struct {
 	// (pushTrigger) is pending, so its answer records the chosen modes onto
 	// the stack object and resumes the drain (handleModes) rather than
 	// granting priority. Plain scalar, Clone copies it, and a replay re-derives
-	// the same branch from the same recorded answer.
+	// the same branch from the same recorded answer. It is set only when the
+	// ask actually posed a decision (askTriggerModes can return true without
+	// asking -- a ChoiceRestriction$ that has exhausted every eligible mode,
+	// or a CharmNum$ above an unrepeatable mode count -- and a stale true
+	// would misroute the next unrelated KModes ask through the placement
+	// branch), matching the invariant its name states.
 	drainAwaitsModes bool
 
 	// deferCastTrigger is set only around the up-front cast push (CR 601.2a)
@@ -768,6 +796,23 @@ type Engine struct {
 	// it (like noCounterSpend), so a replay re-derives the same list from the
 	// recorded ManaAdd events.
 	manaSpentSources []state.ObjID
+
+	// stackGrantCast is the in-flight cast whose OWN stack-grant walk is
+	// running (queueCascadeTriggers' cascadeInstances read, the only
+	// consumer): set around that one walk and cleared before it returns —
+	// never set at rest, so Clone copies nothing of it and no ask can
+	// suspend inside the walk (cascadeInstances is a pure derived read).
+	// While it is set, SpellsCastThisTurnMatching excludes the in-flight
+	// cast's own event from every count, so the "first spell you cast each
+	// turn" statics' EQ0 gates (the twelve AffectedZone$ Stack SVarCompare$
+	// lines in the corpus — Rain of Riches, Wild-Magic Sorcerer, Anhelo,
+	// the Doctor Who cycle) read the PRIOR casts the Affected$ half does
+	// not evaluate, instead of never granting (the in-flight cast's own
+	// PutOnStack is already in the log at queue time and an inclusive read
+	// would make EQ0 fail for the very cast the grant is for). Counts read
+	// anywhere else stay inclusive (Vengevine's EQ2 "second creature
+	// spell" gate).
+	stackGrantCast state.ObjID
 
 	// manaExpended is the per-seat, per-turn tally of mana spent CASTING
 	// spells this turn (trig:ManaExpend's "as you spend your Nth total mana
@@ -1031,7 +1076,10 @@ func commanderCardLegal(c *cards.Card) bool {
 
 // partnerPairOK reports whether two cards may be a commander PAIR: each
 // carries a Partner-family ability and either both are plain Partners, or
-// each "Partner with" the other by printed name (CR 903.13a/c). The check
+// each "Partner with" the other by printed name (CR 903.13a/c), or at least
+// one carries K:Doctor's companion and the other is a Doctor (the Doctor Who
+// cycle's companion clause, which also admits two distinct Doctors that each
+// carry it). The check
 // itself lives in deck.IsPartnerPair — the same package that owns
 // IsCommanderEligible (which commanderCardLegal above already delegates to),
 // so the deck-file validator and the engine's seating gate cannot disagree
@@ -1044,7 +1092,8 @@ func partnerPairOK(a, b *cards.Card) bool {
 // the deck-construction rules (CR 903.4/903.13) and returns the indices
 // that MAY be seated, in Config order: a single commander must be a
 // legendary creature or a "can be your commander" card; a two-card seat is
-// a legal partner pair (plain Partners, or a mutual "Partner with" pair);
+// a legal partner pair (plain Partners, a mutual "Partner with" pair, or a
+// Doctor's-companion pair);
 // anything else -- a noncommander card, a pair without partner, more than
 // two -- is rejected WHOLE, never silently trimmed into a legal-looking
 // subset. This is what makes an illegal Config fail in play: the rejected
@@ -1085,7 +1134,7 @@ func (c *Config) legalCommandersFor(i, deckLen int, deck []*cards.Card) []int {
 		if !inRange(a) || !inRange(b) {
 			_, reject = bad("is not a card this deck carries")
 		} else if !commanderCardLegal(deck[a]) || !commanderCardLegal(deck[b]) || !partnerPairOK(deck[a], deck[b]) {
-			_, reject = bad("is not a partner pair")
+			_, reject = bad("is not a legal commander pair")
 		}
 	default:
 		_, reject = bad("is not one or two commanders")

@@ -29,6 +29,7 @@ func TestRegisteredKeywordsAreHonoured(t *testing.T) {
 		"kw:Dredge":         "TestDredgeUsesRealCorpusCard",
 		"kw:Myriad":         "TestMyriadUsesRealCorpusCard",
 		"kw:Soulbond":       "TestSoulbondUsesRealCorpusCard",
+		"kw:Unleash":        "TestUnleashChoicePosedAndCounterApplied",
 		"kw:Prowess":        "TestExaltedPumpsALoneAttackerAndProwessPumpsOnNoncreatureSpells",
 		"kw:Ward":           "TestWardVeinRipperCountersAnUnpaidTargetingSpell",
 		"kw:Echo":           "TestEchoKarmicGuidePaysEchoOrIsSacrificed",
@@ -45,6 +46,7 @@ func TestRegisteredKeywordsAreHonoured(t *testing.T) {
 		"kw:Flanking":       "TestFlankingKnightOfTheHolyNimbusDebuffsBlockers",
 		"kw:Devour":         "TestGorgerWurmDevourAsksAndCountsTheSacrificed",
 		"kw:Gravestorm":     "TestOminousHarvestGravestormCopiesPerDeath",
+		"kw:Toxic":          "TestToxicIxhelAddsPoisonOnCombatDamage",
 	} {
 		if !sup[kw] {
 			t.Errorf("%s is not registered (proof test: %s)", kw, proof)

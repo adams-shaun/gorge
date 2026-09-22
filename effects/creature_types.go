@@ -82,3 +82,14 @@ var cardTypeWords = map[string]bool{
 	"Phenomenon": true, "Plane": true, "Planeswalker": true, "Scheme": true,
 	"Sorcery": true, "Tribal": true, "Vanguard": true,
 }
+
+// permanentTypeWords is the CR 205.2 permanent-type vocabulary, the set
+// Count$Valid...$CardTypesPermanent counts distinct members of (Korvold,
+// Gleeful Glutton's combat-damage trigger; Matzalantli, the Great Door's
+// transform gate -- whose oracle text names the six). Battles stay in the
+// set: no carrier can match one today (battles never enter combat here),
+// but the vocabulary is the rule's, not the engine's reach.
+var permanentTypeWords = map[string]bool{
+	"Artifact": true, "Battle": true, "Creature": true, "Enchantment": true,
+	"Land": true, "Planeswalker": true,
+}

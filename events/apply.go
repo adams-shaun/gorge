@@ -151,13 +151,15 @@ func Apply(g *state.Game, e Event) {
 		// this one, and the record is what trig:Investigated matches. Player
 		// is the investigating seat, Obj the resolving source permanent.
 
-	case Discover, Seek:
-		// The discover (CR 701.57) and seek records (task trigdisc1) are
-		// pure markers, exactly like Explore/Investigate: the action's own
-		// state changes (the exiles/reveals and the sought card's move) are
-		// their own events that preceded this one, and the record is what
-		// trig:Discover / trig:SeekAll match. Player is the acting seat, Obj
-		// the resolving source permanent. One marker per completed action.
+	case Discover, Seek, Surveil:
+		// The discover (CR 701.57), seek (task trigdisc1) and surveil
+		// (CR 701.42, task trig-surveil) records are pure markers, exactly
+		// like Explore/Investigate: the action's own state changes (the
+		// exiles/reveals, the sought card's move, the KArrange answer's
+		// LibraryOrder) are their own events that surround this one, and the
+		// record is what trig:Discover / trig:SeekAll / trig:Surveil match.
+		// Player is the acting seat, Obj the resolving source permanent. One
+		// marker per completed action.
 
 	case Exploit:
 		// The exploit record (CR 702.58a, task exploit1) is a pure marker,
@@ -179,6 +181,15 @@ func Apply(g *state.Game, e Event) {
 			switch e.Text {
 			case "Suspected":
 				o.Suspected = e.Amount >= 1
+			case "Monstrous":
+				// CR 701.31b's monstrous designation (Giggling Skitterspike's
+				// `{5}: Monstrosity 5`, task agent-20260919T190014Z): Amount is
+				// the monstrosity COUNT the resolving ability carried (the
+				// BecomeMonstrous triggers' `SVar:MonstrosityX:TriggerCount$Amount`
+				// reads it back), and Amount >= 1 sets the mark. CR 701.31 gives
+				// the designation no controller-change end -- the only clear is
+				// the Move fold's leaving-battlefield block below.
+				o.Monstrous = e.Amount >= 1
 			case "Plotted":
 				// CR 701.34c: the plotted designation on an exiled card. The
 				// grant stamps PlottedTurn with the CURRENT turn so the free
@@ -795,6 +806,7 @@ func Apply(g *state.Game, e Event) {
 			// path).
 			if o := g.Obj(e.Obj); o != nil {
 				o.Suspected = false
+				o.Monstrous = false
 				o.PlottedTurn = 0
 			}
 		}
@@ -916,6 +928,9 @@ func Apply(g *state.Game, e Event) {
 				// deliberately NOT reset here -- its window spans the turn
 				// boundary and is consumed at the next untap step instead.
 				g.Objs[i].ExertedThisTurn = false
+				// An untap election belongs to one controller's untap
+				// step; the next turn gets a fresh election.
+				g.Objs[i].UntapChoice = ""
 				// CR 702.160: enlist is a per-combat fact; the stamp is cleared at
 				// the turn boundary (a same-turn second combat compares its own
 				// CombatsThisTurn against the stamp, so it needs no separate
@@ -924,6 +939,10 @@ func Apply(g *state.Game, e Event) {
 				g.Objs[i].EnlistedCombat = 0
 				// Only default-duration goads expire at the goader's next turn.
 				g.Objs[i].Goads = expireTurnGoads(g.Objs[i].Goads, e.Player)
+				// A Charm's ChoiceRestriction$ ThisTurn log is a per-turn fact, so
+				// the picks are dropped at the turn boundary (a new turn offers
+				// every mode again).
+				g.Objs[i].ModeChoices = nil
 			}
 			// The per-add entry list is per-turn state too.
 			g.Entered = nil
@@ -1133,15 +1152,37 @@ func Apply(g *state.Game, e Event) {
 			// empties, and the tag tallies are drained alongside it so they
 			// never exceed the shrunken pool. Persistent RESTRICTION batches
 			// survive too; the ordinary ones empty with the pool.
+			//
+			// The Text keep letters (stat:UnspentMana, rules/turn.go's
+			// unspentManaKeep) protect a slot whole: the static's "don't lose
+			// unspent mana as steps and phases end" keeps the slot's ordinary
+			// share AND its restriction batches of that colour (the restriction
+			// provenance is not time-bounded; only the emptying is). "" keeps
+			// nothing — the historical shape every game without a live carrier
+			// emits — so old logs replay byte-identically.
+			keep := manaClearKeepSlots(e.Text)
 			player := &g.Players[e.Player]
 			for i := range player.Pool {
+				if keep[i] {
+					continue
+				}
 				if clear := player.Pool[i] - player.PersistentMana[i]; clear > 0 {
 					clearNonPersistent(player, i, clear)
 				}
 			}
 			kept := player.RestrictedMana[:0]
 			for _, r := range player.RestrictedMana {
-				if r.Persistent {
+				// state.ManaSlot is the ONE full-counter decoder (the payment
+				// paths in rules/stack.go use it): a restricted batch stores its
+				// producing ManaAdd.Counter verbatim, so a tagged red batch
+				// ("SR" snow red, "TreasureR") read through ManaIndex(c[0])
+				// would decode the tag letter as colourless and silently drop
+				// the protected colour's spend restriction at the very boundary
+				// the keep exists for. An empty Color batch (the unrestricted
+				// AddsNoCounter provenance shape) decodes to the C slot, so a
+				// keep that protects the C slot keeps it, slot-whole, like the
+				// ordinary share above.
+				if r.Persistent || keep[state.ManaSlot(r.Color)] {
 					kept = append(kept, r)
 				}
 			}
@@ -1498,6 +1539,19 @@ func Apply(g *state.Game, e Event) {
 				o.ChosenNumber = e.Amount
 			case "riot":
 				o.RiotChoice = e.Text
+			case "untap":
+				o.UntapChoice = e.Text
+			case "unleash":
+				o.UnleashChoice = e.Text
+			case state.ModeChoiceCounterPrefix + state.ModeScopeThisTurn:
+				// ChoiceRestriction$ (task charm-choice-restriction): one Charm
+				// mode pick, named in Text, keyed ThisTurn. The entry is pruned
+				// in the TurnChange per-object loop and cleared when the source
+				// leaves the battlefield (CR 400.7 -- battlefield-stint state).
+				o.ModeChoices = append(o.ModeChoices, state.ModeChoice{
+					Mode:  e.Text,
+					Scope: state.ModeScopeThisTurn,
+				})
 			case "protector":
 				// CR 310.10: the Siege protector chosen as this Battle
 				// entered. Player carries the chosen opponent's seat.
@@ -1728,6 +1782,8 @@ func Apply(g *state.Game, e Event) {
 		}
 		sa := cards.ResolveSVar(src.Face().SVars, e.Counter)
 		conspire := false
+		demonstrate := false
+		flanking := false
 		if sa == nil {
 			// A granted ward (rules.pushTrigger's __kwWard: payload) has no
 			// SVar to resolve: the ability is rebuilt structurally from the
@@ -1764,6 +1820,23 @@ func Apply(g *state.Game, e Event) {
 						"MayChooseTarget": "True"}}
 				conspire = ok
 			}
+			// A granted Demonstrate (rules.pushTrigger's __kwDemonstrate:
+			// payload) has no SVar either: rebuilt structurally into the same
+			// DB$ Demonstrate body the printed K:Demonstrate expansion
+			// carries (cards/kw_demonstrate.go), so the live game and the
+			// replay mint identical objects from the event text alone. The
+			// may-copy election and the opponent choice are the body's own
+			// asks (effects/demonstrate.go); the triggering spell rides
+			// Remembered (IDs) -- Defined$ TriggeredSpellAbility reads it
+			// there, exactly as the printed expansion's own TriggerPush
+			// entries carry it. The trailing colon (the Conspire shape)
+			// keeps the payload distinct from the "__kwDemonstrate" SVar a
+			// printed bare K:Demonstrate line mints.
+			if _, ok := strings.CutPrefix(e.Counter, "__kwDemonstrate:"); ok {
+				sa = &cards.SA{Kind: "DB", API: "Demonstrate",
+					Params: map[string]string{"Defined": "TriggeredSpellAbility"}}
+				demonstrate = ok
+			}
 			// A cascade trigger (rules.pushTrigger's __kwCascade: payload) has
 			// no SVar either: rebuilt structurally into the DB$ Cascade body
 			// both a printed K:Cascade line and every layer-6 AddKeyword$
@@ -1776,6 +1849,21 @@ func Apply(g *state.Game, e Event) {
 			if _, ok := strings.CutPrefix(e.Counter, "__kwCascade:"); ok {
 				sa = &cards.SA{Kind: "DB", API: "Cascade",
 					Params: map[string]string{"TriggerDescription": "Cascade"}}
+			}
+			// A granted flanking (rules.pushTrigger's __kwFlanking: payload) has
+			// no SVar either: rebuilt structurally into the same
+			// DB$ Pump | Defined$ TriggeredBlockerLKICopy | NumAtt$ -1 | NumDef$
+			// -1 body the printed K:Flanking expansion carries
+			// (cards/kw_flanking.go), so the live game and the replay mint
+			// identical objects from the event text alone. The blocked creature
+			// rides Remembered (IDs), exactly as the printed expansion's own
+			// TriggerPush entries carry it. The trailing colon keeps the payload
+			// from aliasing the "__kwFlanking" SVar a printed bare K:Flanking
+			// line mints.
+			if _, ok := strings.CutPrefix(e.Counter, "__kwFlanking:"); ok {
+				sa = &cards.SA{Kind: "DB", API: "Pump",
+					Params: map[string]string{"Defined": "TriggeredBlockerLKICopy", "NumAtt": "-1", "NumDef": "-1"}}
+				flanking = ok
 			}
 			// A granted Exploit (rules.pushTrigger's __kwExploitGranted
 			// payload) has no SVar either: rebuilt structurally into the same
@@ -1824,7 +1912,7 @@ func Apply(g *state.Game, e Event) {
 		o.Ability = sa
 		o.Source = e.Obj
 		o.SourceIncarnation = incarnation
-		if conspire {
+		if conspire || demonstrate || flanking {
 			o.Remembered = rememberedFrom(e.IDs)
 		}
 
@@ -1846,7 +1934,19 @@ func Apply(g *state.Game, e Event) {
 		// is the engine's one mutation path, so it does not get to rely on
 		// that happening to remain true.
 		card, faceIdx, ability, source := src.Card, src.FaceIdx, src.Ability, src.Source
-		x, castFlags := src.X, src.CastFlags
+		// A copy of a HAS-ALL-ABILITIES-OF wrapper keeps the minted foreign-face
+		// provenance (r3): the copy resolves the same compiled SA, so it reads
+		// the same owning face.
+		gainedFace := src.GainedFace
+		// The copy inherits the original's CastFlags -- a copy of a fused,
+		// bestowed or kicked spell resolves as one -- EXCEPT the cast
+		// provenance a later reader turns into an "if you cast it"
+		// obligation. A copy is put on the stack, not cast (CR 707.10), so
+		// state.CastProvenanceFlags is stripped here, at the mint: the copy
+		// resolves, Move turns it into a token and clears IsCopy, and
+		// rules/altcast.go's battlefield-entry hook has no IsCopy left to
+		// tell a never-cast token from the real cast.
+		x, castFlags := src.X, src.CastFlags&^state.CastProvenanceFlags
 		// Deep-copy, never alias: the copy's Targets/Remembered must be
 		// able to change independently of the original's once both sit on
 		// the stack.
@@ -1869,6 +1969,7 @@ func Apply(g *state.Game, e Event) {
 		o := g.AddObject(card, e.Player)
 		Move(g, o.ID, state.ZLibrary, state.ZStack)
 		o.FaceIdx, o.Ability, o.Source = faceIdx, ability, source
+		o.GainedFace = gainedFace
 		o.Targets = targets
 		o.Remembered = remembered
 		o.X, o.CastFlags, o.IsCopy = x, castFlags, true
@@ -1946,15 +2047,17 @@ func Apply(g *state.Game, e Event) {
 		// Dash and Warp refer to the exact permanent that received their
 		// keyword promise, and so does the AtEOT$ end-of-turn rider family
 		// (effects/atEOTBody reuses the warp body for Exile and mints its
-		// own __kwAtEOTDestroy for Destroy): a copy that left the battlefield
-		// and returned as a new incarnation is NOT acted on by the stale
-		// promise. Encore's grouped delayed trigger does not: CR
-		// 603.7 leaves it independent of the card that created it, and it
-		// must sacrifice its remembered token group even if that card later
-		// changes zones and returns as a new incarnation.
+		// own __kwAtEOTDestroy for Destroy) and the MayFlashSac cleanup
+		// sacrifice (rules/mayflashsac.go's __kwMayFlashSacrifice): a copy
+		// that left the battlefield and returned as a new incarnation is NOT
+		// acted on by the stale promise (CR 400.7). Encore's grouped delayed
+		// trigger does not: CR 603.7 leaves it independent of the card that
+		// created it, and it must sacrifice its remembered token group even
+		// if that card later changes zones and returns as a new incarnation.
 		track := strings.HasPrefix(e.Counter, "__kwDash") ||
 			strings.HasPrefix(e.Counter, "__kwWarp") ||
-			strings.HasPrefix(e.Counter, "__kwAtEOT")
+			strings.HasPrefix(e.Counter, "__kwAtEOT") ||
+			strings.HasPrefix(e.Counter, "__kwMayFlashSac")
 		// Event-matched (non-phase) registrations encode
 		// "<Mode$ value>:<trigger SVar name>" in Text. The DelayedRegister
 		// event gains no field of its own (Ruling T20-a's field-reuse
@@ -2203,6 +2306,109 @@ func Apply(g *state.Game, e Event) {
 		Move(g, o.ID, state.ZLibrary, state.ZStack)
 		o.Ability = sa
 		o.Source = e.Obj
+
+	case GainedAbilityPush:
+		// A has-all-abilities-of activated ability (Forge's GainsAbilitiesOf$,
+		// task gains1): like AbilityPush the object is minted inside Apply so a
+		// log-only replay creates the same object a live game did, but the
+		// ability is a compiled SA on a FOREIGN card's face rather than an
+		// index of the recipient's own. Obj is the recipient (o.Source, so
+		// `Defined$ Self`/`CARDNAME` in the body names it), IDs[0] the foreign
+		// card, Amount the index of the ability in that face's Abilities. The
+		// compiled pointer is what the activation-limit census and the
+		// owning-face SVar reads recover, so it must be the face's own SA --
+		// never a fresh parse. A missing IDs[0], a foreign card that left the
+		// scoped zone, or a stale index mints nothing (the totality stance
+		// every case here takes).
+		if !validPlayer(g, e.Player) {
+			break
+		}
+		if len(e.IDs) == 0 {
+			break
+		}
+		if g.Obj(e.Obj) == nil {
+			break
+		}
+		foreign := g.Obj(e.IDs[0])
+		if foreign == nil || foreign.Face() == nil {
+			break
+		}
+		abilities := foreign.Face().Abilities
+		if e.Amount < 0 || int(e.Amount) >= len(abilities) {
+			break
+		}
+		sa := abilities[int(e.Amount)]
+		if sa == nil {
+			break
+		}
+		o := g.AddObject(nil, e.Player)
+		Move(g, o.ID, state.ZLibrary, state.ZStack)
+		o.Ability = sa
+		o.Source = e.Obj
+		// The wrapper carries its foreign-face provenance on itself (r3):
+		// the granting static can END between this push and the resolution --
+		// the foreign card leaves the scoped zone, the static's named set
+		// re-derives -- and the live-grant recovery scans then find no owner.
+		// Setting it here (never in rules/) is what makes a log-only replay
+		// reproduce the exact face the live mint resolved.
+		o.GainedFace = foreign.Face()
+
+	case GainedTriggerPush:
+		// A has-all-abilities-of triggered ability (Forge's GainsTriggerAbsOf$,
+		// task gains1): the GainedAbilityPush shape one level over, the
+		// MergedTriggerPush precedent's Apply-time mint. Obj is the recipient
+		// (o.Source), IDs[0] the foreign card, Amount the index of the
+		// trigger in that face's Triggers, and Counter the Execute$ name
+		// carried as readable provenance and checked against the trigger line
+		// here -- so a truncated or tampered log mints nothing rather than the
+		// wrong ability. The face's own compiled Trigger.Effect pointer is
+		// minted, never a by-name parse, for the same reason MergedTriggerPush
+		// mints the compiled pointer: every consumer that recovers a resolving
+		// ability's owning trigger (the OptionalDecider$ gate, the
+		// intervening-if recheck, the label, the SVar table) does so by
+		// pointer identity.
+		if !validPlayer(g, e.Player) {
+			break
+		}
+		if len(e.IDs) == 0 {
+			break
+		}
+		if g.Obj(e.Obj) == nil {
+			break
+		}
+		foreign := g.Obj(e.IDs[0])
+		if foreign == nil || foreign.Face() == nil {
+			break
+		}
+		triggers := foreign.Face().Triggers
+		if e.Amount < 0 || int(e.Amount) >= len(triggers) {
+			break
+		}
+		// The Trigger is a value type on the face; take a stable pointer to
+		// the element rather than copying (the compiled pointer identity the
+		// consumers rely on). A face's Triggers slice never resizes after
+		// parse, so the pointer stays valid for the match.
+		tr := &triggers[int(e.Amount)]
+		if tr.Effect == nil || tr.Params["Execute"] != e.Counter {
+			break
+		}
+		sa := tr.Effect
+		o := g.AddObject(nil, e.Player)
+		Move(g, o.ID, state.ZLibrary, state.ZStack)
+		o.Ability = sa
+		o.Source = e.Obj
+		// The same foreign-face provenance the GainedAbilityPush mint stamps
+		// (r3): the foreign face's own SVar table, OptionalDecider$ gate,
+		// intervening-if and label all stay resolvable after the grant ends.
+		o.GainedFace = foreign.Face()
+		// pushTrigger serializes the queue-time ctx Remembered AFTER the
+		// provenance slot (IDs[0] is the foreign card): the same decode
+		// TriggerPush/AbilityPush run through rememberedFrom, so a gained
+		// trigger's remembered-derived body (Defined$ Remembered,
+		// Remembered$Amount, Card.IsRemembered) resolves the same referents a
+		// live queue walked with. Without this the wrapper resolves with an
+		// empty remembered set and the body acts on nothing.
+		o.Remembered = rememberedFrom(e.IDs[1:])
 
 	case CmdDamage:
 		// Commander combat damage to a player (CR 903.10, Task m33): fold
@@ -2541,6 +2747,13 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 				o.IntrinsicKeywords = append(o.IntrinsicKeywords, "Haste")
 			}
 			o.RiotChoice = ""
+			// kw:Unleash's choice rides the same logged-then-consumed shape:
+			// "counter" enters with a +1/+1 counter (CR 702.86), "plain"
+			// enters without. Cleared either way, exactly like RiotChoice.
+			if o.UnleashChoice == "counter" {
+				o.AddCounter("P1P1", 1)
+			}
+			o.UnleashChoice = ""
 			// CR 702.151a (Sagas, kw:Chapter): "As this Saga enters ... add a
 			// lore counter" -- the same every-entry-site grant the loyalty
 			// half above is. The chapter-I trigger queues rules-side off this
@@ -2595,6 +2808,8 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		o.FaceDownHasPT = false
 		o.Cloaked = false
 		o.RiotChoice = ""
+		o.UntapChoice = ""
+		o.UnleashChoice = ""
 		o.IsMyriad = false
 		// CR 400.7: leaving the battlefield makes the object a new object, so
 		// a layer-1 copy effect does not follow it. The ClonePermanent basis
@@ -2644,6 +2859,12 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.Protector, o.ProtectorValid = 0, false
 			o.LastNotedMana = ""
 			o.Chosen = nil
+			// CR 400.7: leaving the battlefield makes the object a new object,
+			// so a Charm's ChoiceRestriction$ ThisTurn picks -- battlefield-
+			// stint state the source's own Charm reads -- do not follow it. A
+			// permanent that leaves and returns (blink, reanimation) starts
+			// with an empty log, even in the same turn.
+			o.ModeChoices = nil
 			// Exert state is the old permanent's, not the new object's
 			// (CR 400.7): a re-entering Combat Celebrant may exert again
 			// this turn and carries no untap-skip window.
@@ -2779,6 +3000,22 @@ func changeControl(g *state.Game, o *state.Object, p state.PlayerID) {
 // validPlayer reports whether p indexes an existing seat.
 func validPlayer(g *state.Game, p state.PlayerID) bool {
 	return int(p) < len(g.Players)
+}
+
+// manaClearKeepSlots parses the keep-mask Text the stat:UnspentMana emitter
+// rides on a ManaClear event: one WUBRGC letter per pool slot whose unspent
+// mana the boundary must not empty (rules/turn.go's unspentManaKeep). An
+// empty Text (every historical event, and every game without a live
+// carrier) keeps nothing. The answer is a fixed-size mask over the pool
+// slot order, so the fold is a slice test, not a map lookup.
+func manaClearKeepSlots(text string) [6]bool {
+	var keep [6]bool
+	for i := 0; i < len(text); i++ {
+		if s := state.ManaIndex(text[i]); s >= 0 && s < len(keep) {
+			keep[s] = true
+		}
+	}
+	return keep
 }
 
 // cutManaPersistent splits a ManaAdd event's Text encoding into the

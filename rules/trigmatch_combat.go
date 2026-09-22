@@ -80,14 +80,24 @@ func (e *Engine) attacksMatches(t cards.Trigger, source state.ObjID, ev events.E
 	// the attacker and its defender is wrong in multiplayer: a third player
 	// with more life prevents the trigger even though it was not attacked.
 	if v, ok := t.Params["Dethrone"]; ok && strings.EqualFold(v, "True") {
-		if int(ev.Player) >= len(e.G.Players) || e.G.Players[ev.Player].Lost {
+		if !e.playerHasMostLife(ev.Player) {
 			return false
 		}
-		life := e.G.Players[ev.Player].Life
-		for i := range e.G.Players {
-			if !e.G.Players[i].Lost && e.G.Players[i].Life > life {
-				return false
-			}
+	}
+	// Condition$ AttackedPlayerWithMostLife (Scourge of the Throne, the
+	// corpus's one carrier of this spelling on a trigger line): the
+	// "if it's attacking the player with the most life or tied for most
+	// life" intervening-if. It is the SAME gate Dethrone reads -- one shared
+	// playerHasMostLife helper, so the two cannot drift -- evaluated on the
+	// event's declared defender, which is why it lives in the per-mode
+	// matcher beside Dethrone and not in the shared triggerConditionHolds
+	// walk (no event there to name the defender). Mirroring Dethrone, the
+	// gate is fire-time only: the resolution-time CR 603.4 recheck cannot
+	// re-derive the attacked player from the event, the same scope every
+	// other event-relative matcher gate here keeps.
+	if strings.EqualFold(strings.TrimSpace(t.Params["Condition"]), "AttackedPlayerWithMostLife") {
+		if !e.playerHasMostLife(ev.Player) {
+			return false
 		}
 	}
 	// Training (CR 702.70) fires only when the attacking source attacks
@@ -163,6 +173,25 @@ func (e *Engine) attacksMatches(t cards.Trigger, source state.ObjID, ev events.E
 		}
 	}
 	return false
+}
+
+// playerHasMostLife reports whether p is alive and their life total is
+// greater than or equal to every other LIVING player's (tied is enough). The
+// Dethrone gate (CR 702.105) and Scourge of the Throne's Condition$
+// AttackedPlayerWithMostLife share this one read so the two cannot drift: a
+// p outside the player slice or already lost answers false, and only living
+// seats count against the comparison (a dead larger total is no larger).
+func (e *Engine) playerHasMostLife(p state.PlayerID) bool {
+	if int(p) >= len(e.G.Players) || e.G.Players[p].Lost {
+		return false
+	}
+	life := e.G.Players[p].Life
+	for i := range e.G.Players {
+		if !e.G.Players[i].Lost && e.G.Players[i].Life > life {
+			return false
+		}
+	}
+	return true
 }
 
 // firstAttackOK reports whether the matched attacker passes the trigger's
@@ -258,6 +287,7 @@ func (e *Engine) attackerBlockedByPairCandidates(t cards.Trigger, source state.O
 		return nil
 	}
 	ctrl := e.controllerOf(source)
+	sc := e.specCtx(source, ctrl)
 	var out [][2]state.ObjID
 	for _, pr := range ev.Pairs {
 		// The trigger's SOURCE must be the pair's ATTACKER. This hook binds the
@@ -272,15 +302,133 @@ func (e *Engine) attackerBlockedByPairCandidates(t cards.Trigger, source state.O
 		if pr[0] != source {
 			continue
 		}
-		if v := t.Params["ValidCard"]; v != "" && !effects.MatchesSpecCtx(e.G, v, pr[0], e.specCtx(source, ctrl)) {
-			continue
+		if v := t.Params["ValidCard"]; v != "" {
+			asc := sc
+			asc.ExtraKeywords = e.Derived(pr[0]).Keywords
+			asc.PredicatePrograms = nil
+			if !effects.MatchesSpecCtx(e.G, v, pr[0], asc) {
+				continue
+			}
 		}
-		if v := t.Params["ValidBlocker"]; v != "" && !effects.MatchesSpecCtx(e.G, v, pr[1], e.specCtx(source, ctrl)) {
-			continue
+		if v := t.Params["ValidBlocker"]; v != "" {
+			// The blocker's DERIVED keyword list is what `withoutFlanking` must
+			// read: a blocker granted flanking by a layer-6 AddKeyword$ (Agility,
+			// Flanking Licid, Sidewinder Sliver, Cavalry Master) HAS flanking and
+			// takes no -1/-1. The object-alone read the filter would otherwise
+			// use sees only the printed face plus marker counters.
+			bsc := sc
+			bsc.ExtraKeywords = e.Derived(pr[1]).Keywords
+			bsc.PredicatePrograms = nil
+			if !effects.MatchesSpecCtx(e.G, v, pr[1], bsc) {
+				continue
+			}
 		}
 		out = append(out, pr)
 	}
 	return out
+}
+
+// flankingPumpSA is kw:Flanking's resolution body (CR 702.25a): the blocked
+// creature gets -1/-1 until end of turn through the ordinary pump/continuous
+// path, naming the blocker the hook remembered. It is a package-level value so
+// a printed K:Flanking expansion and a granted flanking instance resolve to
+// the SAME body.
+var flankingPumpSA = &cards.SA{Kind: "DB", API: "Pump", Params: map[string]string{
+	"Defined": "TriggeredBlockerLKICopy", "NumAtt": "-1", "NumDef": "-1",
+}}
+
+// flankingTrigger is the trigger shape flanking instances share; only its
+// ValidBlocker$ spec matters (the hook supplies the source and the pairs).
+func flankingTrigger() cards.Trigger {
+	return cards.Trigger{Mode: "AttackerBlockedByCreature", Params: map[string]string{
+		"Mode": "AttackerBlockedByCreature", "ValidCard": "Card.Self",
+		"ValidBlocker": "Creature.withoutFlanking", "TriggerZones": "Battlefield",
+		"Keyword": "Flanking",
+	}, Effect: flankingPumpSA}
+}
+
+// isFlankingMarker reports whether a face trigger is kw:Flanking's own
+// expansion (addKeywordTrigger tags it Keyword$ Flanking). Such a trigger is a
+// MARKER: the derived-keyword flanking walk (queueGrantedFlanking and the
+// in-loop multiplication) owns the instance count, so the marker fires once
+// per DERIVED instance, not once per line -- and a creature granted flanking
+// with no printed line fires through the synthesized path instead.
+func isFlankingMarker(t cards.Trigger) bool {
+	return t.Mode == "AttackerBlockedByCreature" && strings.EqualFold(strings.TrimSpace(t.Params["Keyword"]), "Flanking")
+}
+
+// flankingInstances is the number of DERIVED flanking instances an object has
+// (CR 702.25b: each instance triggers separately). The derived keyword list
+// already folds the printed K:Flanking line, marker-counter grants and
+// layer-6 AddKeyword$ grants, and it preserves duplicates -- so Cavalry
+// Master's "other creatures you control with flanking have flanking" gives an
+// already-flanking creature a second instance and it triggers twice.
+func (e *Engine) flankingInstances(id state.ObjID) int {
+	n := 0
+	for _, k := range e.Derived(id).Keywords {
+		if strings.EqualFold(cards.KeywordHead(k), "Flanking") {
+			n++
+		}
+	}
+	return n
+}
+
+// queueGrantedFlanking fires the flanking trigger for a creature that has the
+// keyword DERIVED but does NOT print a K:Flanking line -- the layer-6
+// AddKeyword$ carriers (Agility, Flanking Licid, Sidewinder Sliver, Cavalry
+// Master). A granted keyword has no face trigger for the ordinary loop to
+// index, so its instance rides a KeywordTriggerPush whose __kwFlanking:
+// payload events.Apply rebuilds into the same pump body (pushTrigger's
+// Flanking branch, the Ward/Afflict shape). Printed flanking is handled by the
+// in-loop marker branch, which reuses the face trigger's own TriggerPush path;
+// running both would double-count a printed flanking creature, so the helper
+// defers whenever a marker exists. One trigger per NON-FLANKING blocker per
+// derived instance (CR 702.25a/b).
+func (e *Engine) queueGrantedFlanking(id state.ObjID, o *state.Object, ev events.Event) {
+	f := o.Face()
+	if f == nil {
+		return
+	}
+	for _, t := range f.Triggers {
+		if isFlankingMarker(t) {
+			return // printed path owns this creature's flanking
+		}
+	}
+	instances := e.flankingInstances(id)
+	if instances == 0 {
+		return
+	}
+	tr := flankingTrigger()
+	for _, pr := range e.attackerBlockedByPairCandidates(tr, id, ev) {
+		bid := pr[1]
+		for i := 0; i < instances; i++ {
+			key := triggerKey{Source: id, Idx: -1}
+			if e.triggerFireCount == nil {
+				e.triggerFireCount = map[triggerKey]int32{}
+			}
+			if e.triggerFireCount[key] >= maxTriggerFires {
+				return
+			}
+			e.triggerFireCount[key]++
+			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+				Source:     id,
+				Controller: o.Controller,
+				Idx:        -1,
+				Flanking:   true,
+				Ctx: effects.Ctx{
+					Source:     id,
+					Controller: o.Controller,
+					Remembered: []state.Target{{Obj: bid}},
+					Captured:   []state.Target{{Obj: bid}},
+					TriggerContext: effects.TriggerContext{
+						TriggerCard:    bid,
+						TriggerSource:  pr[0],
+						TriggerBlocker: bid,
+					},
+				},
+			})
+		}
+	}
 }
 
 // checkAttackerBlockedTriggers queues trigger instances off a DeclareBlockers
@@ -312,6 +460,16 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 		if f == nil {
 			return
 		}
+		// Flanking instances come from the DERIVED keyword list, not the
+		// printed trigger: a creature granted flanking (Agility, Sidewinder
+		// Sliver, Cavalry Master) has no face trigger to fire. This runs
+		// BEFORE the faceMayTrigger early return because a granted-only
+		// creature has no printed trigger line to make that gate true, and it
+		// defers to the in-loop marker branch when a printed K:Flanking
+		// exists (that branch owns the printed instance count).
+		if o.Zone == state.ZBattlefield && o.IsAttacking {
+			e.queueGrantedFlanking(id, o, ev)
+		}
 		if !o.Unlocked && !e.faceMayTrigger(f, ev.Kind) {
 			return
 		}
@@ -333,32 +491,45 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 				continue
 			}
 			if t.Mode == "AttackerBlockedByCreature" {
-				// CR 702.25a: one instance per (attacker, blocker) pair; the
-				// trigger's controller is the ATTACKER's controller, which the
-				// Source/Controller pair already are (the source is the
-				// flanking attacker itself).
+				// CR 702.25a: one instance per (attacker, non-flanking blocker)
+				// pair; the trigger's controller is the ATTACKER's controller,
+				// which the Source/Controller pair already are (the source is
+				// the flanking attacker itself). A kw:Flanking marker fires its
+				// trigger once per DERIVED flanking instance (CR 702.25b), so a
+				// creature with a printed instances plus a granted one --
+				// Cavalry Master's lord -- debuffs a blocker twice; a marker
+				// whose keyword has since been removed fires not at all.
+				instances := 1
+				if isFlankingMarker(t) {
+					instances = e.flankingInstances(id)
+				}
 				for _, pr := range e.attackerBlockedByPairCandidates(t, id, ev) {
 					if t.Effect == nil {
 						break
 					}
 					bid := pr[1]
-					e.triggerFireCount[key]++
-					e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
-						Source:     id,
-						Controller: o.Controller,
-						Idx:        ti,
-						SA:         t.Effect,
-						Ctx: effects.Ctx{
+					for i := 0; i < instances; i++ {
+						if e.triggerFireCount[key] >= maxTriggerFires {
+							break
+						}
+						e.triggerFireCount[key]++
+						e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
 							Source:     id,
 							Controller: o.Controller,
-							Remembered: []state.Target{{Obj: bid}},
-							Captured:   []state.Target{{Obj: bid}},
-							TriggerContext: effects.TriggerContext{
-								TriggerCard:   bid,
-								TriggerSource: pr[0],
+							Idx:        ti,
+							SA:         t.Effect,
+							Ctx: effects.Ctx{
+								Source:     id,
+								Controller: o.Controller,
+								Remembered: []state.Target{{Obj: bid}},
+								Captured:   []state.Target{{Obj: bid}},
+								TriggerContext: effects.TriggerContext{
+									TriggerCard:   bid,
+									TriggerSource: pr[0],
+								},
 							},
-						},
-					})
+						})
+					}
 				}
 				continue
 			}

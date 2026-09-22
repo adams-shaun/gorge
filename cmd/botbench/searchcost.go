@@ -69,12 +69,15 @@ func searchCostReport(totalGames int) string {
 	var total, sampleMS, searchMS []float64
 	var covered int
 	type bucket struct {
-		asked, covered int
-		ms             []float64
+		asked, covered                     int
+		attempts, accepted, prefixRejected int
+		ms, sampleMS, searchMS             []float64
+		ess                                []float64
+		rejections                         map[string]int
 	}
 	buckets := map[string]*bucket{}
 	for _, b := range []string{"t01-06", "t07-12", "t13+"} {
-		buckets[b] = &bucket{}
+		buckets[b] = &bucket{rejections: make(map[string]int)}
 	}
 	bucketOf := func(turn int32) string {
 		switch {
@@ -95,6 +98,19 @@ func searchCostReport(totalGames int) string {
 		bk := buckets[bucketOf(dg.Turn)]
 		bk.asked++
 		bk.ms = append(bk.ms, ms)
+		bk.sampleMS = append(bk.sampleMS, dg.SampleMS)
+		bk.searchMS = append(bk.searchMS, dg.SearchMS)
+		bk.attempts += dg.Trace.Attempts
+		bk.accepted += dg.Trace.Accepted
+		bk.prefixRejected += dg.Trace.PrefixRejected
+		// ESS is meaningful only after at least one proposal reached the
+		// weighting phase; failed attempts have the zero-value ESS.
+		if dg.Trace.Accepted > 0 {
+			bk.ess = append(bk.ess, dg.Trace.ESS)
+		}
+		for _, r := range dg.Trace.Rejections {
+			bk.rejections[r.Component+"/"+r.Shape] += r.Count
+		}
 		if dg.Trace.Covered {
 			covered++
 			bk.covered++
@@ -118,6 +134,17 @@ func searchCostReport(totalGames int) string {
 		}
 		fmt.Fprintf(&b, "  %s: asked %d, covered %d (%.1f%%), ms mean %.1f p95 %.1f\n",
 			name, bk.asked, bk.covered, 100*float64(bk.covered)/float64(bk.asked), meanF(bk.ms), quantF(bk.ms, .95))
+		fmt.Fprintf(&b, "    timing: sample %.1f + search %.1f ms means\n", meanF(bk.sampleMS), meanF(bk.searchMS))
+		fmt.Fprintf(&b, "    sampler: attempts %d, accepted %d, prefix-rejected %d; ESS weighting decisions %d, mean %.1f, p50 %.1f, p95 %.1f\n",
+			bk.attempts, bk.accepted, bk.prefixRejected, len(bk.ess), meanF(bk.ess), quantF(bk.ess, .5), quantF(bk.ess, .95))
+		var shapes []string
+		for shape := range bk.rejections {
+			shapes = append(shapes, shape)
+		}
+		sort.Strings(shapes)
+		for _, shape := range shapes {
+			fmt.Fprintf(&b, "    sampler rejection %q: %d\n", shape, bk.rejections[shape])
+		}
 	}
 	var fk []string
 	for k := range fallbacks {

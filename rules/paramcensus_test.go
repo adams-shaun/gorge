@@ -235,7 +235,8 @@ type fnInfo struct {
 type scan struct {
 	fns     map[string]*fnInfo
 	apiImpl map[string]string // api -> effects function name (from Register)
-	// statRoots[mode] = functions whose code calls activeStatics("mode").
+	// statRoots[mode] = functions whose code calls activeStatics("mode") or
+	// assignmentStatics("mode") -- the two literal-mode stat collectors.
 	statRoots map[string]map[string]bool
 	// modeFns[trigMode] = the dispatch function triggerMatches calls for it;
 	// dispatchFns is the set of all dispatch callees (excluded from the
@@ -794,9 +795,9 @@ func trigMatcherCallee(arg ast.Expr) string {
 
 // scanCall records package-local calls (with literal args for key
 // propagation) and the attribution roots the code states: effects.Register
-// and rules' activeStatics. FuncLit bodies are attributed to the enclosing
-// function by the caller's Inspect, so closures like adjustedCost's apply
-// participate here.
+// and rules' activeStatics/assignmentStatics. FuncLit bodies are attributed
+// to the enclosing function by the caller's Inspect, so closures like
+// adjustedCost's apply participate here.
 func (s *scan) scanCall(t *testing.T, fset *token.FileSet, fi *fnInfo, fname string, ce *ast.CallExpr, pkg string) {
 	var callee string
 	switch fun := ce.Fun.(type) {
@@ -818,7 +819,7 @@ func (s *scan) scanCall(t *testing.T, fset *token.FileSet, fi *fnInfo, fname str
 	default:
 		return
 	}
-	if callee == "Engine.activeStatics" && pkg == "rules" {
+	if (callee == "Engine.activeStatics" || callee == "Engine.assignmentStatics") && pkg == "rules" {
 		if len(ce.Args) > 0 {
 			if lit, ok := ce.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
 				if mode, err := strconv.Unquote(lit.Value); err == nil {
@@ -826,6 +827,13 @@ func (s *scan) scanCall(t *testing.T, fset *token.FileSet, fi *fnInfo, fname str
 						s.statRoots[mode] = map[string]bool{}
 					}
 					s.statRoots[mode][fname] = true
+					// assignmentStatics is a collector LIKE activeStatics, so
+					// its own stat-param reads (the EffectZone$ gate) are
+					// attributed through this call edge into the caller's mode
+					// bucket (activeStatics is a handRoots.stat entry instead).
+					if callee == "Engine.assignmentStatics" {
+						fi.calls[callee] = true
+					}
 					return
 				}
 			}
@@ -1316,14 +1324,14 @@ var apiSpecificRulesSA = map[string][]string{
 	// resolveTriggeredManaAbilities, so its Produced$ read belongs to
 	// api:Mana alone -- left in the generic union it would mask every
 	// other API's unread Produced$.
-	"Engine.rewriteChosenMana":  {"Mana"},
-	"Engine.resolveManaAbility": {"Mana"},
-	"Engine.resolveManaEffect":  {"Mana"},
-	"manaColourPrompt":          {"Mana"},
-	"Engine.AvailableMana":      {"Mana"},
-	"addAvailable":              {"Mana"},
-	"availableAmount":           {"Mana"},
-	"activatedMatchesValidSA":   {"Mana"},
+	"Engine.rewriteChosenMana":     {"Mana"},
+	"Engine.resolveManaAbilityRef": {"Mana"},
+	"Engine.resolveManaEffect":     {"Mana"},
+	"manaColourPrompt":             {"Mana"},
+	"Engine.AvailableMana":         {"Mana"},
+	"addAvailable":                 {"Mana"},
+	"availableAmount":              {"Mana"},
+	"activatedMatchesValidSA":      {"Mana"},
 	// The attack-prop payment window's affordability input
 	// (rules/attack_cost.go attackManaSources): it walks the payer's
 	// battlefield and reads each window-usable mana ability's Produced$
@@ -1536,6 +1544,13 @@ var handRoots = struct {
 	trig: []string{"Engine.pushTrigger", "Engine.triggerLabel", "Engine.abilityLabel",
 		"Engine.resolveTop", "Engine.isTriggeredManaAbility", "Engine.triggerReferents",
 		"Engine.StackOptional", "Engine.optionalDecider",
+		// putTriggersOnStack is the queue drain's root: its
+		// groupOrderDuplicates step reads the OrderDuplicates$ trigger
+		// parameter (through orderDuplicatesGroup / triggerOrdersDuplicates)
+		// to keep duplicate instances of a flagged line adjacent. The drain
+		// has no machine-readable mode root, so it is declared here like the
+		// other queue-drain reads above.
+		"Engine.putTriggersOnStack",
 		// checkAttackerUnblockedOnceTriggers is a dedicated hook queued from
 		// rules/turn.go's declare-blockers round-complete branch, NOT from
 		// checkTriggers (unlike checkAttackerBlockedTriggers / checkBlocksTriggers
@@ -2076,6 +2091,7 @@ var ignoredParamKeys = map[string]string{
 	"TriggerDescription":    "trigger caption; forge-game/src/main/java/forge/game/card/CardFactoryUtil.java",
 	"ChangeTypeDesc":        "search UI text; forge-game/src/main/java/forge/game/ability/effects/ChangeZoneEffect.java",
 	"ValidDescription":      "valid-card UI text; forge-game/src/main/java/forge/game/card/Card.java",
+	"ValidCardsDesc":        "valid-card UI text; forge-game/src/main/java/forge/game/card/Card.java",
 	"CostDesc":              "alternate-cost UI text; forge-game/src/main/java/forge/game/card/CardFactoryUtil.java",
 	"ConditionDescription":  "condition display text; forge-game/src/main/java/forge/game/ability/SpellAbilityEffect.java",
 	"PrecostDesc":           "cost-prompt prefix; forge-game/src/main/java/forge/game/card/CardFactoryUtil.java",
@@ -2460,16 +2476,30 @@ var knownUnsupportedParams = map[string][]string{
 	// changeZoneAttachedTo): the attach-the-returned-Aura leg is now real
 	// (pinned in rules/forum_filibuster_test.go). ForgetOtherRemembered stays
 	// unread.
-	"Gift of Immortality":        {"param:api:ChangeZone.ForgetOtherRemembered"},
-	"Hercules, Olympian Hero":    {"param:trig:DamageDoneOnce.FirstTime"},
-	"Heroic Return":              {"param:api:ChangeZone.ValidTgtsDesc"},
-	"Heroic Sacrifice":           {"param:api:DelayedTrigger.Destination", "param:api:Effect.ValidTgtsDesc", "param:api:PutCounter.EachFromSource", "param:api:PutCounter.ValidTgtsDesc", "param:api:ReplaceEffect.VarType"},
+	"Gift of Immortality":     {"param:api:ChangeZone.ForgetOtherRemembered"},
+	"Hercules, Olympian Hero": {"param:trig:DamageDoneOnce.FirstTime"},
+	"Heroic Return":           {"param:api:ChangeZone.ValidTgtsDesc"},
+	// Heroic Sacrifice's param:api:PutCounter.EachFromSource entry was deleted
+	// when the CounterType$ EachFromSource copy-each-kind shape was read
+	// (task eachfromsource, effects/counters.go effPutCounter's dispatch) --
+	// the shape is pinned end to end on real corpus carriers in
+	// rules/eachfromsource_test.go (Resourceful Defense, The Ozolith, Denry
+	// Klin, Ambitious Augmenter, Zack Fair). Heroic Sacrifice's own carrier
+	// path (its delayed trigger, Mode$ ChangesZone) stays unimplemented and
+	// the card's OTHER labels above are untouched.
+	"Heroic Sacrifice":           {"param:api:DelayedTrigger.Destination", "param:api:Effect.ValidTgtsDesc", "param:api:PutCounter.ValidTgtsDesc", "param:api:ReplaceEffect.VarType"},
 	"Iron Man, Armored Avenger":  {"param:api:PutCounter.ValidTgtsDesc"},
 	"Jocasta, Automaton Avenger": {"param:api:ChangeZone.Attacking"},
-	"Love on the Battlefield":    {"param:trig:AttackersDeclared.NoResolvingCheck"},
-	"Methods of the Mighty":      {"param:api:Destroy.ValidTgtsDesc"},
-	"Mogis, God of Slaughter":    {"param:stat:Continuous.RemoveType"},
-	"Patriot, Shield Wielder":    {"param:api:Pump.ValidTgtsDesc"},
+	// (Love on the Battlefield's param:trig:AttackersDeclared.NoResolvingCheck
+	// row retired when the NoResolvingCheck$ read landed: the resolution-time
+	// CR 603.4 recheck skips a trigger carrying the param
+	// (rules/trigger_condition.go noResolvingCheck/triggerResolvingCheckHolds,
+	// consulted by resolveTop) -- pinned end to end on the real corpus
+	// carrier Ugin's Mastery in rules/no_resolving_check_test.go, with a
+	// no-param control proving the recheck stays live for everyone else.)
+	"Methods of the Mighty":   {"param:api:Destroy.ValidTgtsDesc"},
+	"Mogis, God of Slaughter": {"param:stat:Continuous.RemoveType"},
+	"Patriot, Shield Wielder": {"param:api:Pump.ValidTgtsDesc"},
 	// (Photon, Mighty Marvel's param:api:Mana.PersistentMana row retired when
 	// the PersistentMana$ read landed — the pm ManaAdd suffix, ManaClear's
 	// partial clear and the TurnChange expiry — pinned end to end on the real
@@ -2686,6 +2716,48 @@ func TestParamCensusScopesSecondaryByPrimitive(t *testing.T) {
 	}
 	if !hit {
 		t.Errorf("dropped trigger Secondary read did not label param:trig:Phase.Secondary -- trigger Secondary$ measurability is broken")
+	}
+}
+
+// TestParamCensusIgnoresValidCardsDesc pins the ValidCardsDesc$
+// classification (issue agent-20260920T073130Z-724f9676). ValidCardsDesc$
+// is the UI description of a ValidCards$ spec -- Forge reads it only to
+// render text (forge-game/src/main/java/forge/game/card/Card.java), the same
+// consumer as the already-ignored ValidDescription -- so it is a key-global
+// presentation key, not an engine gap. The test drives the real measured
+// carrier (Indulgent Aristocrat's api:PutCounterAll) through
+// cardCensusLabels: it first asserts the precondition that the card DOES
+// carry the key, then that the classification suppresses the label. Removing
+// ignoredParamKeys["ValidCardsDesc"] makes it fail with the label reported.
+func TestParamCensusIgnoresValidCardsDesc(t *testing.T) {
+	t.Parallel()
+	_, d := measureParamCensus(t, nil)
+	if !ignoredParam("api:PutCounterAll", "ValidCardsDesc") {
+		t.Fatalf("ignoredParamKeys no longer classifies ValidCardsDesc as presentation-only -- the census will report a false positive")
+	}
+	reg := testutil.CorpusRegistry(t)
+	c, ok := reg.Lookup("Indulgent Aristocrat")
+	if !ok {
+		t.Fatalf("corpus is missing Indulgent Aristocrat -- the measured ValidCardsDesc$ carrier")
+	}
+	carries := false
+	for _, f := range c.Faces {
+		for _, a := range f.Abilities {
+			if a.API == "PutCounterAll" && a.Params["ValidCardsDesc"] != "" {
+				carries = true
+			}
+		}
+	}
+	if !carries {
+		t.Fatalf("Indulgent Aristocrat no longer carries ValidCardsDesc$ on a PutCounterAll ability -- the pin measures nothing")
+	}
+	if d.api["PutCounterAll"] == nil {
+		t.Fatalf("api:PutCounterAll is no longer a registered primitive -- the census skips its params and this pin cannot fail")
+	}
+	for _, l := range cardCensusLabels(c, d, nil) {
+		if l == "param:api:PutCounterAll.ValidCardsDesc" {
+			t.Errorf("census reported %s despite the presentation-only classification", l)
+		}
 	}
 }
 
