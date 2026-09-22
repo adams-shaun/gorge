@@ -1695,6 +1695,19 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		} else {
 			cost = Cost{}
 		}
+	case "mayflash":
+		// MayFlashCost (CR 702.8, the "as though it had flash" alternate
+		// cast): the printed mana cost is paid PLUS the keyword's colon
+		// parameter -- the oracle wording is "pay {2} MORE to cast it", so
+		// this is base.Plus(extra), never a substitution. The offer gate
+		// (legal.go's hand walk) priced exactly this composition, so a stale
+		// option whose keyword is gone folds nothing rather than charging a
+		// cost the gate never proved payable. The extra's non-mana parts
+		// (tapXType<Tegwyll's Scouring>, Behold<Molten Exhale>) are settled
+		// by the ordinary tap/choice-cost machinery after this fold.
+		if mc, ok := mayflashExtraCost(f); ok {
+			cost = cost.Plus(mc)
+		}
 	}
 	// CR 601.2b/f/h: a spell's own SpellAbility may carry an explicit Cost$
 	// (Forge's SP Cost) naming an additional cost -- most commonly a
@@ -1708,7 +1721,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// this (pc.ability < 0 and no alternative/flashback recast), and a spell
 	// with no SP Cost$ contributes nothing.
 	if opt.AltCostIndex == 0 && (opt.Mode == "" || opt.Mode == "mayplay" || opt.Mode == "room_alt" ||
-		opt.Mode == "adventure_alt" || opt.Mode == "aftermath" || opt.Mode == "conspired") {
+		opt.Mode == "adventure_alt" || opt.Mode == "aftermath" || opt.Mode == "conspired" || opt.Mode == "mayflash") {
 		cost = withSpellAbilityExtras(f, cost)
 	}
 	// Convoke and Harmonize are announced only after X/mode/pip choices have
