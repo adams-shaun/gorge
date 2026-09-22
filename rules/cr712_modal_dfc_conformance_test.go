@@ -51,6 +51,32 @@ func playModalLand(t *testing.T, e *Engine, id state.ObjID) {
 	}
 }
 
+// TestCR712ModalDFCLandLandOffersBothFaces pins that the back-land offer is
+// additive when the front face is also a land (CR 712.8).
+func TestCR712ModalDFCLandLandOffersBothFaces(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, _ := searchEngine(t, reg, "Branchloft Pathway")
+	id := searchMoveByName(t, e, "Branchloft Pathway", state.ZHand)
+	toMain1(t, e)
+	o := e.G.Obj(id)
+	if o == nil || o.Zone != state.ZHand || o.FaceIdx != 0 || o.Card == nil ||
+		o.Card.AlternateMode != "Modal" || len(o.Card.Faces) != 2 ||
+		o.Card.Faces[0] == nil || o.Card.Faces[1] == nil ||
+		!o.Card.Faces[0].IsLand() || !o.Card.Faces[1].IsLand() {
+		t.Fatalf("fixture faces do not prove Modal land/land precondition: %+v", o)
+	}
+	var lands []decision.Option
+	for _, option := range e.Pending().Options {
+		if option.Kind == "play_land" && option.Obj == id {
+			lands = append(lands, option)
+		}
+	}
+	if len(lands) != 2 || lands[0].Mode != "" || lands[0].Label != "Play Branchloft Pathway" ||
+		lands[1].Mode != "modal_land" || lands[1].Label != "Play Boulderloft Pathway" {
+		t.Fatalf("front/back land options = %+v", lands)
+	}
+}
+
 // TestCR712ModalDFCLandBackIsOfferedPlayedAndReplays pins CR 712.8/712.4d:
 // the hand action selects the land face, which enters face up as that land.
 func TestCR712ModalDFCLandBackIsOfferedPlayedAndReplays(t *testing.T) {

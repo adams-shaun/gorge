@@ -1381,6 +1381,12 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		if f.IsLand() {
 			if sorcery && e.G.Players[p].LandsPlayed < int32(1+e.adjustLandPlays(p)) {
 				add("play_land", "Play "+f.Name, id)
+				// A Modal DFC may also be played as its back land, even
+				// when its front face is itself a land (CR 712.8).
+				if back := modalLandBack(o); back != nil {
+					out = append(out, decision.Option{Index: len(out), Kind: "play_land",
+						Label: "Play " + back.Name, Obj: id, Mode: "modal_land"})
+				}
 			}
 			continue
 		}
