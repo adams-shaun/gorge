@@ -29,6 +29,7 @@ func TestRegisteredKeywordsAreHonoured(t *testing.T) {
 		"kw:Dredge":         "TestDredgeUsesRealCorpusCard",
 		"kw:Myriad":         "TestMyriadUsesRealCorpusCard",
 		"kw:Soulbond":       "TestSoulbondUsesRealCorpusCard",
+		"kw:Unleash":        "TestUnleashChoicePosedAndCounterApplied",
 		"kw:Prowess":        "TestExaltedPumpsALoneAttackerAndProwessPumpsOnNoncreatureSpells",
 		"kw:Ward":           "TestWardVeinRipperCountersAnUnpaidTargetingSpell",
 		"kw:Echo":           "TestEchoKarmicGuidePaysEchoOrIsSacrificed",

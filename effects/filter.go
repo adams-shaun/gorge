@@ -906,6 +906,16 @@ func wordPredicate(p string) (wordKind, string) {
 	// spelling -- the same ordering rule castProvenanceAdmits documents.
 	case "wasCastFromYourHandByYou", "wasCastByYou", "wasCastFromYourHand":
 		return wordCastProvenance, p
+	// The card-level CastSa property tokens (task castsa-provenance): the
+	// four mana-spend spellings the payment path's tagged ManaAdd encoding
+	// answers. Recognised here (the census no longer reports them unknown)
+	// but evaluated by rules' castSaAdmits, which strips them before the
+	// filter runs; wordMatches' body fails closed. The unmodelled spellings
+	// (CastSa Spell.MayPlaySource / Warp / Mayhem / ManaFromArtifact) stay
+	// unknown and fail closed everywhere.
+	case "CastSa Spell.ManaFromTreasure", "CastSa Spell.ManaFromCave",
+		"CastSa Spell.ManaFromDesert", "CastSa Spell.ManaSpent EQ0":
+		return wordCastProvenance, p
 	case "ActivePlayerCtrl":
 		return wordActivePlayerCtrl, ""
 	case "TopLibrary":
@@ -1898,6 +1908,16 @@ func hasType(o *state.Object, t string) bool {
 		if strings.EqualFold(t, "Aura") {
 			return true
 		}
+		if strings.EqualFold(t, "Creature") {
+			return false
+		}
+	}
+	// CR 702.150c: a Reconfigure card attached to a creature is not a
+	// creature, in the same every-filter-read sense (the target ask's
+	// ValidTgts$ Creature, a Count$Valid Creature census, the combat
+	// eligibility scans). Equipment and Artifact stay true -- they are the
+	// printed face's own types and the attached form keeps them.
+	if o.ReconfiguredAttached() && !(o.FaceDown && o.Zone == state.ZBattlefield) {
 		if strings.EqualFold(t, "Creature") {
 			return false
 		}

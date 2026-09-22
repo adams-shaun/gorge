@@ -114,6 +114,12 @@ func (e *Engine) putTriggersOnStack() bool {
 		}
 		if e.orderedTriggers == 0 {
 			n := e.sortPendingTriggers()
+			// Forge's OrderDuplicates$: duplicate instances of a flagged
+			// trigger line are kept adjacent (their order among the copies
+			// stable) before the ordering ask is built. Must run BEFORE the
+			// ask so the decision's options and handleTriggerOrder's recheck
+			// see the same grouped queue.
+			e.groupOrderDuplicates(n)
 			if n >= 2 {
 				// R1. Exactly one trigger is never asked about: there is no
 				// choice to make, and a decision with a single legal answer is
@@ -184,6 +190,115 @@ func (e *Engine) sortPendingTriggers() int {
 		n++
 	}
 	return n
+}
+
+// triggerOrdersDuplicates reports whether a trigger line carries Forge's
+// OrderDuplicates$ True: the copies of that line, when several permanent
+// instances of the same card trigger at once, must be ordered as a block so
+// their relative order among themselves is stable (Forge forces its ordering
+// prompt for such duplicates even when the trigger texts are identical --
+// the shape Arcane Bombardment and Captured by the Consulate carry). A line
+// that does not carry the flag keeps its natural discovery order.
+func triggerOrdersDuplicates(t cards.Trigger) bool {
+	return strings.EqualFold(strings.TrimSpace(t.Params["OrderDuplicates"]), "True")
+}
+
+// printed reports whether pt is an ordinary printed face trigger -- one whose
+// TriggerPush re-derives from the source's active face at Idx. The keyword
+// and synthetic shapes (Ward, Afflict, Conspire, Cascade, Exploit, Offspring,
+// the Ring emblem, Miracle, Madness, Evoke) carry no face trigger line, and a
+// delayed, granted or merged entry's body is an Execute$ SVar rather than a
+// face Triggers entry -- none of them can carry OrderDuplicates$, and reading
+// face.Triggers[Idx] for one would hand back a different line entirely.
+func (pt pendingTrigger) printed() bool {
+	return !pt.Delayed && !pt.Granted && pt.Merged == 0 && !pt.Miracle && !pt.Madness &&
+		!pt.Evoke && pt.Ward == "" && pt.Afflict == "" && !pt.Conspire && !pt.Cascade &&
+		!pt.Exploit && !pt.Offspring && pt.RingEmblem == 0
+}
+
+// orderDuplicatesGroup returns the duplicate-group identity of pt's trigger
+// line when that line carries OrderDuplicates$ True. Two pending triggers are
+// duplicates exactly when they are the same trigger line of the same printed
+// card on two permanent instances: the identity is the source's printed card
+// name plus the line's index within that face (two copies of one card share
+// the face, so the index identifies the line). A non-duplicate -- a line
+// without the flag, or one this build cannot attribute to a printed face --
+// returns ok false and is never grouped.
+func (e *Engine) orderDuplicatesGroup(pt pendingTrigger) (string, bool) {
+	if !pt.printed() {
+		return "", false
+	}
+	t, ok := e.triggerOf(pt)
+	if !ok || !triggerOrdersDuplicates(t) {
+		return "", false
+	}
+	o := e.G.Obj(pt.Source)
+	if o == nil {
+		return "", false
+	}
+	f := o.Face()
+	if f == nil {
+		return "", false
+	}
+	return f.Name + "\x00" + strconv.Itoa(int(o.FaceIdx)) + "\x00" + strconv.Itoa(pt.Idx), true
+}
+
+// groupOrderDuplicates makes duplicate instances of an OrderDuplicates$
+// trigger line contiguous within the n leading entries of e.pendingTriggers
+// (one controller's group, just sorted by sortPendingTriggers). Instances of
+// a flagged line move to that line's FIRST occurrence, in their existing
+// relative order, so the copies' order among themselves is stable and none of
+// them is interleaved with another trigger's resolution.
+//
+// The reorder is a STABLE sort by each entry's group anchor: an entry is
+// anchored at the first occurrence of its flagged-duplicate signature when
+// that signature occurs more than once, and at its own position otherwise.
+// Anchors are unique per position, so the sort is deterministic and the
+// relative order of distinct triggers is preserved. Called only when
+// e.orderedTriggers is zero (right after sortPendingTriggers), so it can
+// never disturb an order a player already gave.
+func (e *Engine) groupOrderDuplicates(n int) {
+	if n < 2 {
+		return
+	}
+	group := e.pendingTriggers[:n]
+	sig := make([]string, n)
+	grouped := make([]bool, n)
+	first := make(map[string]int, n)
+	count := make(map[string]int, n)
+	for i := range group {
+		s, ok := e.orderDuplicatesGroup(group[i])
+		if !ok {
+			continue
+		}
+		sig[i], grouped[i] = s, true
+		if _, seen := first[s]; !seen {
+			first[s] = i
+		}
+		count[s]++
+	}
+	order := make([]int, n)
+	duplicate := false
+	for i := range group {
+		order[i] = i
+		if grouped[i] && count[sig[i]] >= 2 {
+			order[i] = first[sig[i]]
+			duplicate = true
+		}
+	}
+	if !duplicate {
+		return
+	}
+	idx := make([]int, n)
+	for i := range idx {
+		idx[i] = i
+	}
+	sort.SliceStable(idx, func(a, b int) bool { return order[idx[a]] < order[idx[b]] })
+	out := make([]pendingTrigger, n)
+	for a, i := range idx {
+		out[a] = group[i]
+	}
+	copy(group, out)
 }
 
 // dropDepartedTriggers discards every pending trigger controlled by a player
@@ -365,6 +480,41 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		stackLen := len(e.G.Stack)
 		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
 			Obj: pt.Source, Counter: "__kwConspire:", IDs: ids, Text: "conspire ability"})
+		if len(e.G.Stack) > stackLen {
+			id := e.G.Stack[len(e.G.Stack)-1]
+			if e.triggerContexts == nil {
+				e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
+			}
+			e.triggerContexts[id] = pt.Ctx.TriggerContext
+		}
+		e.drainAwaitsTarget = e.Pending() != nil
+		return
+	}
+	// A granted Demonstrate (CR 702.152's copy trigger via a layer-6
+	// AddKeyword$ Demonstrate -- Silverquill Lecturer and friends): the
+	// Conspire shape. The trigger is mandatory (the "may copy" election is
+	// the BODY's own ask at resolution, not a placement election); its
+	// Counter payload "__kwDemonstrate:" is what events.Apply rebuilds into
+	// the same DB$ Demonstrate body the printed K:Demonstrate expansion
+	// carries, and the cast spell rides IDs as Remembered because Defined$
+	// TriggeredSpellAbility reads the triggering spell off it. The trailing
+	// colon keeps the payload from aliasing the "__kwDemonstrate" SVar a
+	// printed bare K:Demonstrate line mints.
+	if pt.Demonstrate {
+		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
+			return
+		}
+		ids := make([]state.ObjID, 0, len(pt.Ctx.Remembered))
+		for _, tgt := range pt.Ctx.Remembered {
+			if tgt.IsPlayer {
+				ids = append(ids, state.PlayerRef(tgt.Player))
+				continue
+			}
+			ids = append(ids, tgt.Obj)
+		}
+		stackLen := len(e.G.Stack)
+		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
+			Obj: pt.Source, Counter: "__kwDemonstrate:", IDs: ids, Text: "demonstrate ability"})
 		if len(e.G.Stack) > stackLen {
 			id := e.G.Stack[len(e.G.Stack)-1]
 			if e.triggerContexts == nil {
@@ -1104,6 +1254,15 @@ func (e *Engine) triggerLabel(pt pendingTrigger) string {
 		}
 		return name + ": conspire copy trigger"
 	}
+	if pt.Demonstrate {
+		name := "a spell"
+		if o := e.G.Obj(pt.Source); o != nil {
+			if f := o.Face(); f != nil && f.Name != "" {
+				name = f.Name
+			}
+		}
+		return name + ": demonstrate copy trigger"
+	}
 	if pt.Miracle || pt.Madness || pt.Evoke {
 		name := "it"
 		if o := e.G.Obj(pt.Source); o != nil {
@@ -1225,6 +1384,22 @@ func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA
 	}
 	ctx := &effects.Ctx{Source: source, Controller: p, TriggerContext: e.triggerContexts[obj]}
 	effects.SetSVars(ctx, svars)
+	if sa.API == "Charm" && effects.CharmRandomChosen(e, ctx, sa) {
+		// param:api:Charm.Random: a random Charm's mode is never asked at
+		// placement. The Charm gate keeps this site's other modal families
+		// (Vote, GenericChoice, VillainousChoice) untouched -- measured, no
+		// corpus carrier of those carries `Random$` (GenericChoice's own
+		// spelling is `AtRandom$`, a different unread parameter). Returning
+		// false is this function's own "not modal: the primitive asks at
+		// resolution" verdict -- resolution's effCharm then
+		// picks the mode with the engine's rng (Random$ True, or Random$
+		// Compare while the comparison holds) or poses the ordinary KModes
+		// ask (a failed or unresolvable comparison). The rng draw must happen
+		// at RESOLUTION, where a replay re-derives it byte-identically; a
+		// placement-time pick would consume the stream before the trigger is
+		// even on the stack.
+		return false
+	}
 	min, max, repeat := effects.CharmModeBounds(e, ctx, sa, len(choices))
 	if min > len(choices) && !repeat {
 		return true

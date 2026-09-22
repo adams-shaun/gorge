@@ -231,7 +231,8 @@ func (e *Engine) sourceHasQuality(source state.ObjID, q string) bool {
 		return f.IsArtifact()
 	case "creatures":
 		// CR 702.114e: a bestowed-attached card is an Aura, not a creature.
-		return o.EffectiveIsCreature() && !o.BestowedAttached()
+		// CR 702.150c: an attached Reconfigure card is not a creature either.
+		return o.EffectiveIsCreature() && !o.BestowedAttached() && !o.ReconfiguredAttached()
 	case "enchantments":
 		return f.IsEnchantment()
 	case "instants":

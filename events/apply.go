@@ -1500,6 +1500,8 @@ func Apply(g *state.Game, e Event) {
 				o.ChosenNumber = e.Amount
 			case "riot":
 				o.RiotChoice = e.Text
+			case "unleash":
+				o.UnleashChoice = e.Text
 			case "protector":
 				// CR 310.10: the Siege protector chosen as this Battle
 				// entered. Player carries the chosen opponent's seat.
@@ -1730,6 +1732,7 @@ func Apply(g *state.Game, e Event) {
 		}
 		sa := cards.ResolveSVar(src.Face().SVars, e.Counter)
 		conspire := false
+		demonstrate := false
 		if sa == nil {
 			// A granted ward (rules.pushTrigger's __kwWard: payload) has no
 			// SVar to resolve: the ability is rebuilt structurally from the
@@ -1765,6 +1768,23 @@ func Apply(g *state.Game, e Event) {
 					Params: map[string]string{"Defined": "TriggeredSpellAbility", "Amount": "Count$Conspired",
 						"MayChooseTarget": "True"}}
 				conspire = ok
+			}
+			// A granted Demonstrate (rules.pushTrigger's __kwDemonstrate:
+			// payload) has no SVar either: rebuilt structurally into the same
+			// DB$ Demonstrate body the printed K:Demonstrate expansion
+			// carries (cards/kw_demonstrate.go), so the live game and the
+			// replay mint identical objects from the event text alone. The
+			// may-copy election and the opponent choice are the body's own
+			// asks (effects/demonstrate.go); the triggering spell rides
+			// Remembered (IDs) -- Defined$ TriggeredSpellAbility reads it
+			// there, exactly as the printed expansion's own TriggerPush
+			// entries carry it. The trailing colon (the Conspire shape)
+			// keeps the payload distinct from the "__kwDemonstrate" SVar a
+			// printed bare K:Demonstrate line mints.
+			if _, ok := strings.CutPrefix(e.Counter, "__kwDemonstrate:"); ok {
+				sa = &cards.SA{Kind: "DB", API: "Demonstrate",
+					Params: map[string]string{"Defined": "TriggeredSpellAbility"}}
+				demonstrate = ok
 			}
 			// A cascade trigger (rules.pushTrigger's __kwCascade: payload) has
 			// no SVar either: rebuilt structurally into the DB$ Cascade body
@@ -1826,7 +1846,7 @@ func Apply(g *state.Game, e Event) {
 		o.Ability = sa
 		o.Source = e.Obj
 		o.SourceIncarnation = incarnation
-		if conspire {
+		if conspire || demonstrate {
 			o.Remembered = rememberedFrom(e.IDs)
 		}
 
@@ -2543,6 +2563,13 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 				o.IntrinsicKeywords = append(o.IntrinsicKeywords, "Haste")
 			}
 			o.RiotChoice = ""
+			// kw:Unleash's choice rides the same logged-then-consumed shape:
+			// "counter" enters with a +1/+1 counter (CR 702.86), "plain"
+			// enters without. Cleared either way, exactly like RiotChoice.
+			if o.UnleashChoice == "counter" {
+				o.AddCounter("P1P1", 1)
+			}
+			o.UnleashChoice = ""
 			// CR 702.151a (Sagas, kw:Chapter): "As this Saga enters ... add a
 			// lore counter" -- the same every-entry-site grant the loyalty
 			// half above is. The chapter-I trigger queues rules-side off this
@@ -2597,6 +2624,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		o.FaceDownHasPT = false
 		o.Cloaked = false
 		o.RiotChoice = ""
+		o.UnleashChoice = ""
 		o.IsMyriad = false
 		// CR 400.7: leaving the battlefield makes the object a new object, so
 		// a layer-1 copy effect does not follow it. The ClonePermanent basis

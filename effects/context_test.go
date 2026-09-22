@@ -36,6 +36,11 @@ type fakeHost struct {
 	// RememberExploitedLKI, keyed by exploited object id, so an effects-level
 	// test can assert the marker publication without an engine.
 	exploitedLKI map[state.ObjID]state.SacrificedInfo
+	// sacrificeBlocked is the per-object SacrificeBlocked answer the double
+	// reports (nil = nothing blocked, the default): the engine-side CantSacrifice
+	// machinery lives in rules.Engine, so the effects-package tests configure the
+	// answers they need instead of inventing a registry.
+	sacrificeBlocked map[state.ObjID]bool
 	// castFromHand is the WasCastFromHandByYou answer the double reports;
 	// the eval-level Count$wasCastFromYourHandByYou tests flip it to pin the
 	// true branch (the real log-scan read is pinned in rules).
@@ -132,6 +137,19 @@ func (h *fakeHost) EndEffect(source state.ObjID, stamp uint32) {
 	h.continuous = kept
 }
 
+// EndImprintedEffects mirrors rules.Engine's EndImprintedEffect: drop every
+// registration the ImprintOnHost$ True Effect imprinted on the host.
+func (h *fakeHost) EndImprintedEffects(source state.ObjID) {
+	kept := h.continuous[:0]
+	for _, ce := range h.continuous {
+		if ce.Source == source && ce.ImprintOnHost {
+			continue
+		}
+		kept = append(kept, ce)
+	}
+	h.continuous = kept
+}
+
 // ContinuousNamed scans the double's own recorded slice: the effects tests
 // have no engine registry to ask.
 func (h *fakeHost) ContinuousNamed(controller state.PlayerID, name string) bool {
@@ -173,9 +191,12 @@ func (h *fakeHost) RegenerationDisallowed(id state.ObjID) bool { return false }
 
 // SacrificeBlocked has no registry to consult here (the engine-side
 // restriction lives in rules.Engine), the same discipline as
-// RegenerationDisallowed above: the double reports false rather than
-// inventing a registry it cannot answer for.
-func (h *fakeHost) SacrificeBlocked(id state.ObjID, forCost bool) bool { return false }
+// RegenerationDisallowed above: the double reports the per-object answers
+// sacrificeBlocked configures (nil = false everywhere -- nothing blocked)
+// rather than inventing a registry it cannot answer for.
+func (h *fakeHost) SacrificeBlocked(id state.ObjID, forCost bool) bool {
+	return h.sacrificeBlocked[id]
+}
 
 // ExploreReplaced has no replacement registry to consult here (the
 // replacement matching lives in rules.Engine), the same discipline as
@@ -220,6 +241,10 @@ func (h *fakeHost) DamageTakenThisTurn(p state.PlayerID) int32 { return h.dmgTak
 // LifeGainedThisTurn has no event log here; the double reports zero (the
 // same conservative no-op as LifeLostThisTurn).
 func (h *fakeHost) LifeGainedThisTurn(_ state.PlayerID) int32 { return 0 }
+
+// CountersRemovedThisTurn has no event log here; the double reports zero
+// (the same conservative no-op as LifeLostThisTurn).
+func (h *fakeHost) CountersRemovedThisTurn(_ state.PlayerID, _ string) int32 { return 0 }
 
 // CombatDamageToPlayersThisTurn reports the h.combatHits slice the
 // effects-level PlayerCountDefinedRegistered tests configure.

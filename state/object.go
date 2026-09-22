@@ -46,6 +46,27 @@ type SacrificedInfo struct {
 	Power     int32
 	Toughness int32
 	ManaValue int32
+	// Counters is the object's counter kinds and counts at the instant of
+	// the sacrifice (the sacrificed-LKI ladder's third rung: a
+	// cost-sacrificed source whose EachFromSource$ copy reads it after Move
+	// cleared the live counters -- Zack Fair's self-sacrifice). Nil for the
+	// P/T-only readers the Sacrificed$<Property> heads are.
+	Counters []Counter
+}
+
+// LKIObject is the last-known-information snapshot of an object a
+// ChangeZoneRememberLKI$ move captured: the controller and owner it had
+// while the move happened. events.Apply's Move resets a battlefield
+// departure's controller to its owner (CR 400.7), so a later reader of "the
+// exiled creature's controller" -- Forge's TokenOwner$ ImprintedController,
+// the Boar Curse of the Swine makes for each exiled creature -- can no
+// longer recover it from the live object. Forge captures a full Card LKI
+// copy at the same point (ChangeZoneEffect's CardCopyService.getLKICopy);
+// this struct is the slice of it this build's readers need.
+type LKIObject struct {
+	Obj        ObjID
+	Controller PlayerID
+	Owner      PlayerID
 }
 
 // CastFlags bits record how an object was cast. Several can be set at once
@@ -596,6 +617,11 @@ type Object struct {
 	// RiotChoice is set by the logged as-enters Riot choice. It survives the
 	// hand/stack path and Move consumes it on battlefield entry.
 	RiotChoice string
+	// UnleashChoice is set by the logged as-enters Unleash choice (CR 702.86:
+	// "counter" = enter with a +1/+1 counter, "plain" = enter without). It
+	// survives the hand/stack path and Move consumes it on battlefield entry,
+	// exactly like RiotChoice.
+	UnleashChoice string
 	// Protector is the CR 310.10 Siege protector: the opponent its
 	// controller chose to protect this Battle as it entered. It is a property
 	// of the battle (not a counter), recorded through a Choose "protector"
@@ -783,6 +809,18 @@ type ExileReturnEntry struct {
 // never "bestowed attached".
 func (o *Object) BestowedAttached() bool {
 	return o.AttachedTo != 0 && o.Face() != nil && o.Face().HasKeyword("Bestow")
+}
+
+// ReconfiguredAttached reports whether o is a card printed with Reconfigure
+// that is currently attached to a permanent (CR 702.150c: while attached,
+// the permanent is not a creature; unattached it is a creature again).
+// Derived from live state -- AttachedTo and the printed face -- the same
+// discipline BestowedAttached practises, so every replay and every read
+// site derives the switch identically and no event field carries a marker.
+// An unattached reconfigure card, and any object printed without
+// Reconfigure, is never "reconfigured attached".
+func (o *Object) ReconfiguredAttached() bool {
+	return o.AttachedTo != 0 && o.Face() != nil && o.Face().HasKeyword("Reconfigure")
 }
 
 func (o *Object) Face() *cards.Face {
@@ -993,5 +1031,11 @@ func SacrificedInfoOf(g *Game, id ObjID) SacrificedInfo {
 	}
 	p := int32(o.Face().Power()) + o.Counter("P1P1")
 	t := int32(o.Face().Toughness()) + o.Counter("P1P1")
-	return SacrificedInfo{Obj: id, Power: p, Toughness: t, ManaValue: o.Face().Cmc()}
+	var counters []Counter
+	for i := range o.Counters {
+		if o.Counters[i].N > 0 {
+			counters = append(counters, o.Counters[i])
+		}
+	}
+	return SacrificedInfo{Obj: id, Power: p, Toughness: t, ManaValue: o.Face().Cmc(), Counters: counters}
 }

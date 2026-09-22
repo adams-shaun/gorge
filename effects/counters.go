@@ -261,6 +261,16 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 	// while the object is still mid-entry must place the counters anyway,
 	// not skip on the battlefield precondition.
 	etb := strings.EqualFold(strings.TrimSpace(sa.Params["ETB"]), "True")
+	// CounterType$ EachFromSource (task eachfromsource): the copy-each-kind
+	// shape -- the target(s) take a counter of each kind the EachFromSource$
+	// source carried. Not a real counter kind, so the ordinary loop below
+	// would put nothing of a nonexistent kind; dispatch to the shape's own
+	// walk. The referent is read HERE (not in the helper) so the parameter
+	// census's static scan attributes the read to this primitive directly.
+	if strings.EqualFold(strings.TrimSpace(kind), "EachFromSource") {
+		putCounterEachFromSource(h, c, sa, etb, strings.TrimSpace(sa.Params["EachFromSource"]))
+		return
+	}
 	var placed []state.Target
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
@@ -323,6 +333,131 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	rememberPlaced(c, sa, placed)
+}
+
+// putCounterEachFromSource runs the CounterType$ EachFromSource shape (task
+// eachfromsource): the target(s) take a counter of each kind the
+// EachFromSource$ source carried -- Forge's PutCounterEffect eachFromSource
+// arm, the "put those counters on target permanent" copy. The corpus's 23
+// carriers split on ONE axis: the referent (TriggeredCardLKICopy 19, Self 3,
+// Remembered 1), so the source is resolved through the ordinary Defined
+// referent machinery and the read never guesses at a fallback -- an unknown
+// or missing referent fails closed to a loud Note and no counter.
+//
+// The source's counters are read through a three-rung LKI ladder (CR 603.10
+// "look back in time"), because the usual case has the source's live
+// counters already gone:
+//  1. the source object's LIVE counters, when it holds a positive count
+//     (a battlefield source -- Denry's Self, Blue Loyal Raptor's Self, a
+//     clone origin -- or a token Remembered while it is still in play);
+//  2. the trigger's pre-move LKI snapshot (Ctx.LKI) when it names this
+//     object -- a permanent that LEFT the battlefield has had its live
+//     counters cleared by Move's fold, so Resourceful Defense's
+//     TriggeredCardLKICopy reads the snapshot;
+//  3. the cost-sacrifice LKI snapshot (Ctx.Sacrificed) when it names this
+//     object -- Zack Fair's Self was sacrificed as its own activation cost
+//     (commitCast captured it at the instant of the sacrifice).
+//
+// Each kind's amount is its count times CounterNum$ (the multiplier, default
+// 1; the corpus's one non-default is Blue Loyal Raptor's CounterNum$ 1),
+// emitted as one CounterChange per kind per target -- the same one-event-per-
+// kind discipline effMultiplyCounter uses, so the event stream records the
+// real folds. A target off the battlefield (and not ETB$ True mid-entry) is
+// skipped exactly like the ordinary loop; RememberCards$ still remembers
+// what was actually countered.
+func putCounterEachFromSource(h Host, c *Ctx, sa *cards.SA, etb bool, ref string) {
+	g := h.Game()
+	if ref == "" {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "unimplemented PutCounter shape: CounterType$ EachFromSource with no EachFromSource$ referent"})
+		return
+	}
+	srcs, ok := knownDefinedTargets(h, c, ref)
+	if !ok {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "unimplemented PutCounter shape: EachFromSource$ " + ref})
+		return
+	}
+	// The CounterNum$ multiplier (default 1): present-but-unresolvable
+	// degrades to 0 -- nothing is placed, the Num convention.
+	mult := int32(1)
+	if strings.TrimSpace(sa.Params["CounterNum"]) != "" {
+		mult = Num(h, c, sa, "CounterNum", 1)
+	}
+	var placed []state.Target
+	// SNAPSHOT FIRST, place second: a target that is also a source (the
+	// Remembered destination of a death trigger whose remembered list is the
+	// same one the TriggeredCardLKICopy referent reads -- Ambitious
+	// Augmenter's Fractal token) must be read as it WAS, not re-read after an
+	// earlier target's emission already countered it; the copy is of the
+	// counters the source HAD (CR 603.10's look-back), never of the running
+	// result.
+	srcCounters := make([][]state.Counter, 0, len(srcs))
+	for _, src := range srcs {
+		if src.IsPlayer {
+			srcCounters = append(srcCounters, nil)
+			continue
+		}
+		srcCounters = append(srcCounters, eachFromSourceCounters(h, c, src.Obj))
+	}
+	for _, t := range Defined(h, c, sa) {
+		if t.IsPlayer {
+			continue // no corpus carrier targets a player here
+		}
+		o := g.Obj(t.Obj)
+		if o == nil || (o.Zone != state.ZBattlefield && !etb) {
+			continue
+		}
+		for i, src := range srcs {
+			if src.IsPlayer {
+				continue
+			}
+			for _, k := range srcCounters[i] {
+				if amt := k.N * mult; amt > 0 {
+					h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID,
+						Counter: k.Kind, Amount: amt})
+				}
+			}
+		}
+		placed = append(placed, t)
+	}
+	rememberPlaced(c, sa, placed)
+}
+
+// eachFromSourceCounters reads one source object's copied counters through
+// the three-rung LKI ladder documented on putCounterEachFromSource, filtered
+// to POSITIVE counts (state keeps a drained slot in the slice at N == 0, and
+// a zero-count kind is not a kind the source "had").
+func eachFromSourceCounters(h Host, c *Ctx, id state.ObjID) []state.Counter {
+	g := h.Game()
+	if o := g.Obj(id); o != nil {
+		if ks := positiveCounters(o.Counters); len(ks) > 0 {
+			return ks
+		}
+	}
+	if c.LKI != nil && c.LKI.ID == id {
+		if ks := positiveCounters(c.LKI.Counters); len(ks) > 0 {
+			return ks
+		}
+	}
+	for _, s := range c.Sacrificed {
+		if s.Obj == id && len(s.Counters) > 0 {
+			return s.Counters
+		}
+	}
+	return nil
+}
+
+// positiveCounters copies the kinds a counter slice holds at a POSITIVE
+// count, in slice order (deterministic; never a map walk).
+func positiveCounters(cs []state.Counter) []state.Counter {
+	var out []state.Counter
+	for i := range cs {
+		if cs[i].N > 0 {
+			out = append(out, cs[i])
+		}
+	}
+	return out
 }
 
 // putCounterWouldPlace reports whether the put this SA describes would
