@@ -47,6 +47,12 @@ var expandedHeads = []string{
 	// Fabricate (CR 702.121, task fabricate1): a ChangesZone ETB trigger
 	// whose Charm elects N +1/+1 counters or N Servo tokens.
 	"Fabricate",
+	// Reconfigure (CR 702.150, task kw-reconfigure): the attach/unattach
+	// activated-ability pair per printed cost (an alternative second colon
+	// field like Razorfield Ripper's PayEnergy<3> gets its own pair), both
+	// sorcery-speed; the not-a-creature-while-attached switch is derived
+	// state (state.Object.ReconfiguredAttached).
+	"Reconfigure",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {

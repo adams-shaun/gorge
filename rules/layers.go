@@ -1648,7 +1648,7 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 		}
 	}
 	if !anyLType {
-		return bestowedTypeSwitch(o, base)
+		return reconfigureTypeSwitch(o, bestowedTypeSwitch(o, base))
 	}
 	ty := append([]string(nil), base...)
 	for _, ce := range e.active() {
@@ -1701,7 +1701,7 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 			ty = appendAllCreatureTypes(ty)
 		}
 	}
-	return bestowedTypeSwitch(o, ty)
+	return reconfigureTypeSwitch(o, bestowedTypeSwitch(o, ty))
 }
 
 // appendAllCreatureTypes materialises the layer-4 "all creature types"
@@ -1744,6 +1744,34 @@ func bestowedTypeSwitch(o *state.Object, types []string) []string {
 		out = append(out, t)
 	}
 	return append(out, "Aura")
+}
+
+// reconfigureTypeSwitch applies CR 702.150c's switch to a DERIVED type
+// list: a Reconfigure card attached to a creature is not a creature -- the
+// printed "Artifact Creature Equipment <subtype>" list loses only its
+// Creature half and keeps Equipment/Artifact and the subtypes (the same
+// deliberate keep-subtypes narrowing bestowedTypeSwitch practises: the
+// subtype words are inert on a non-creature in every filter this engine
+// evaluates, and stripping them would widen the diff into every
+// subtype-affected static). An unattached reconfigure card (or anything
+// not printed with the keyword) keeps the list unchanged, returning the
+// SAME slice so the common game stays byte-identical and allocation-free.
+// A face-down battlefield permanent keeps its CR 708.5 set: its printed
+// face (and with it the Reconfigure keyword the switch keys on) does not
+// exist while face down, so the switch must not strip Creature from a
+// manifested reconfigure card's vanilla 2/2.
+func reconfigureTypeSwitch(o *state.Object, types []string) []string {
+	if !o.ReconfiguredAttached() || (o.FaceDown && o.Zone == state.ZBattlefield) {
+		return types
+	}
+	out := make([]string, 0, len(types))
+	for _, t := range types {
+		if t == "Creature" {
+			continue
+		}
+		out = append(out, t)
+	}
+	return out
 }
 
 func (e *Engine) matchesWithTypes(ce ContinuousEffect, id state.ObjID, types []string, atStack state.Zone) bool {
