@@ -1359,11 +1359,6 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		// won five flips this way" gates Count$RememberedNumber), and the flip
 		// resolves in the SAME chain the reader runs, so the remembered number
 		// is the flip count, not the remembered-object count.
-		// A DB$ FlipCoin RememberNumber$ publication takes precedence: Forge's
-		// FlipCoinEffect writes the flip's rememberedNumber (Yusri's "If you
-		// won five flips this way" gates Count$RememberedNumber), and the flip
-		// resolves in the SAME chain the reader runs, so the remembered number
-		// is the flip count, not the remembered-object count.
 		if c.FlipMemory != nil && c.FlipMemory.RememberNumberKind != "" {
 			return c.FlipMemory.RememberNumber, true
 		}

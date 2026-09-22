@@ -125,20 +125,26 @@ func flipRecord(h Host, c *Ctx, player state.PlayerID, win bool, rememberKind st
 // living opponent of the resolving controller; "True"/"Player"/"All" is
 // every living player; any other value is resolved through the shared
 // knownDefinedTargets resolver, and a present-but-unresolvable spec names
-// nobody (ok=false, fail closed).
+// nobody (ok=false, fail closed). Every group enumerates in the SAME
+// controller-relative AliveFrom(c.Controller) order the shared defined
+// resolvers use (definedSpec's "Opponent" and "Player" cases), so a
+// ForEachPlayer$ spelling can never disagree with the same spelling under
+// Defined$ — in a 3+ seat game whose controller is not seat 0, the flips (and
+// the deterministic RNG outcomes bound to them) follow the controller's turn
+// order, not seat number order.
 func forEachPlayerFlippers(h Host, c *Ctx, spec string) ([]state.PlayerID, bool) {
 	g := h.Game()
 	switch strings.ToLower(strings.TrimSpace(spec)) {
 	case "opponent", "opponents":
 		var out []state.PlayerID
-		for _, p := range g.AliveFrom(0) {
+		for _, p := range g.AliveFrom(c.Controller) {
 			if p != c.Controller {
 				out = append(out, p)
 			}
 		}
 		return out, true
 	case "true", "player", "players", "all":
-		return g.AliveFrom(0), true
+		return g.AliveFrom(c.Controller), true
 	}
 	ts, ok := knownDefinedTargets(h, c, spec)
 	if !ok {

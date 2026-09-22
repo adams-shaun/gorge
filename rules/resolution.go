@@ -2885,6 +2885,17 @@ func (e *Engine) buildContinuationChain(frames []contFrame, obj state.ObjID, tai
 		if e.resume != nil {
 			f.targetControllerLKI = effects.CloneTargetControllerLKI(e.resume.targetControllerLKI)
 		}
+		// The same-resolution flip memory (Engine.Ask captured it off
+		// Engine.resolvingFlipMemory onto the pending point): a continuation
+		// frame of the same resolution carries the same shared pointer, so a
+		// resumed FlipCoin cursor re-entry (the "flip_rest" frame) and any
+		// chained Defined$ FlippedHeads / FlippedTails / Count$RememberedNumber
+		// reader in a later frame still see the flips performed before the
+		// suspension. The memory is mutated in place (effects.flipRecord), so a
+		// pointer copy — never a value clone — keeps every frame live.
+		if e.resume != nil {
+			f.flipMemory = e.resume.flipMemory
+		}
 		if e.replacingEvent != nil && e.replacingEvent.Kind == events.Damage {
 			f.replacementTarget = state.Target{Obj: e.replacingEvent.Obj}
 			if e.replacingEvent.Obj == 0 {
