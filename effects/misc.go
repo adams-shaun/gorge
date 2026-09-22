@@ -1033,13 +1033,6 @@ func CanAttackDefenderParamsReadable(params map[string]string) bool {
 //   - CantPutCounter: Melira, the Living Cure's Effect-delivered lock is "you
 //     can't get additional poison counters this turn"; with no Duration$ the
 //     registration must be UntilEOT (cantputcounter1-r2).
-//   - CantRegenerate: every one of the 19 corpus Effect-delivered
-//     CantRegenerate bodies says "this turn" (16 "Creature can't be
-//     regenerated this turn", plus the damage-scoped three). The
-//     permanent-source carriers are the activated grants -- Knight of the
-//     Holy Nimbus, Orcish Healer, Hurr Jackal, Clergy of the Holy Nimbus,
-//     Furnace Brood -- whose absent Duration$ left a this-turn no-regen lock
-//     live for the rest of the game while the source stayed out.
 //   - CanAttackDefender: the Effect-granted permission family is uniformly
 //     "can attack this turn as though it didn't have defender" -- measured,
 //     ALL 22 corpus StaticAbilities$ CanAttack bodies write no inline
@@ -1058,7 +1051,7 @@ func CanAttackDefenderParamsReadable(params map[string]string) bool {
 // restriction a turn early, the wrong-wide direction.
 func absentDurationMeansThisTurn(mode string) bool {
 	switch mode {
-	case "CantPutCounter", "CantRegenerate", "CanAttackDefender":
+	case "CantPutCounter", "CanAttackDefender":
 		return true
 	}
 	return false

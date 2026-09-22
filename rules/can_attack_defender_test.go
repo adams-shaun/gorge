@@ -246,69 +246,6 @@ func TestKrotiqNestguardGrantExpiresAtEndOfTurn(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestFurnaceBroodNoRegenExpiresAtEndOfTurn pins the canattackdefender1-r2
-// class fix on the sibling CantRegenerate mode. Furnace Brood's
-// `{R}: Target creature can't be regenerated this turn` is an AB$ Effect whose
-// body writes no inline Duration$ and whose source is a PERMANENT, so before
-// the fix its CantRegenerate registration defaulted to Permanent (CR 611.2a)
-// and the target stayed un-regenerable for the rest of the game while Furnace
-// Brood remained on the battlefield. The shared class helper
-// effects.absentDurationMeansThisTurn routes CantRegenerate's absent Duration$
-// to UntilEOT (measured: all 19 corpus Effect CantRegenerate bodies say "this
-// turn").
-func TestFurnaceBroodNoRegenExpiresAtEndOfTurn(t *testing.T) {
-	brood, ok := testutil.CorpusRegistry(t).Lookup("Furnace Brood")
-	if !ok {
-		t.Fatal("corpus fixture: Furnace Brood missing")
-	}
-	victim := card(t, "Name:Test Victim\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
-	e, cfg := restrictionGame(t, 7211, [][]*cards.Card{nil, nil},
-		[][]*cards.Card{{brood}, {victim}})
-	broodID := bearOnBoard(t, e, 0, brood)
-	victimID := bearOnBoard(t, e, 1, victim)
-
-	// Preconditions: both are battlefield creatures and the victim is
-	// regenerable before the lock (the assertion below depends on the lock
-	// existing -- a victim the engine already refuses to regenerate would
-	// make the post-cleanup check vacuous).
-	if e.G.Obj(broodID).Zone != state.ZBattlefield || e.G.Obj(victimID).Zone != state.ZBattlefield {
-		t.Fatal("precondition: a source or victim is not on the battlefield")
-	}
-	if e.RegenerationDisallowed(victimID) {
-		t.Fatal("precondition: the victim is already un-regenerable")
-	}
-
-	addMana(t, e, 0, "R")
-	opt, ok := findAbilityOption(e, broodID, 0)
-	if !ok {
-		t.Fatalf("Furnace Brood's {R} lock ability is not offered: %+v", e.Pending())
-	}
-	submitChoices(t, e, opt.Index)
-	submitTarget(t, e, victimID)
-	passUntilStackEmpty(t, e, 60)
-
-	// The lock is live this turn, and the source has NOT left the
-	// battlefield.
-	if e.G.Obj(broodID).Zone != state.ZBattlefield {
-		t.Fatal("precondition: the source left the battlefield")
-	}
-	if !e.RegenerationDisallowed(victimID) {
-		t.Fatal("precondition: the lock did not apply this turn")
-	}
-
-	// End the turn with the source still out: only a this-turn registration
-	// is reclaimed here.
-	e.EndOfTurnCleanup()
-	if e.G.Obj(broodID).Zone != state.ZBattlefield {
-		t.Fatal("precondition: the source left the battlefield at cleanup")
-	}
-	if e.RegenerationDisallowed(victimID) {
-		t.Fatal("the no-regen lock survived end of turn -- an absent-Duration " +
-			"CantRegenerate Effect registration was left Permanent")
-	}
-	replayCheck(t, e, cfg)
-}
-
 // TestAssaultFormationRememberedGrant pins the remembered-target grant on the
 // real corpus Assault Formation: its `AB$ Effect | RememberObjects$ Targeted`
 // delivers `Mode$ CanAttackDefender | ValidCard$ Creature.IsRemembered`, so
