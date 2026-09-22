@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -229,4 +230,82 @@ func classHasTriggerMode(f *cards.Face, mode string) bool {
 		}
 	}
 	return false
+}
+
+// TestFortuneTellersTalentLevelTwoGrantsPlayFromTop pins the brief's own
+// carrier end to end: Fortune Teller's Talent's level-2 grant is the
+// Mode$ Continuous MayPlay$ True static over Affected$ Card.TopLibrary+YouCtrl
+// gated on CheckSVar$ X ("as long as you've cast a spell this turn, you may
+// play cards from the top of your library"). The level gate the kw:Class
+// expansion adds (counters_GE2_LEVEL) AND the static's own CheckSVar$ both
+// have to hold before the top card is playable, and the top card must then
+// actually be offered.
+func TestFortuneTellersTalentLevelTwoGrantsPlayFromTop(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, _ := classEngine(t, reg, "Fortune Teller's Talent", "Grizzly Bears", "Forest", "Forest")
+	class := classMove(t, e, "Fortune Teller's Talent", state.ZBattlefield)
+	if got := e.G.Obj(class).Counter("LEVEL"); got != 1 {
+		t.Fatalf("precondition: Class at level %d, want 1", got)
+	}
+
+	addMana(t, e, 0, "UUUU") // {3}{U}
+	opt, ok := findAbilityOption(e, class, 0)
+	if !ok {
+		t.Fatalf("level-2 activator not offered: %+v", e.Pending().Options)
+	}
+	if !strings.Contains(opt.Label, "Level 2") {
+		t.Fatalf("activator label %q does not name level 2", opt.Label)
+	}
+	submitChoices(t, e, opt.Index)
+	passUntilStackEmpty(t, e, 20)
+	if got := e.G.Obj(class).Counter("LEVEL"); got != 2 {
+		t.Fatalf("LEVEL=%d after level-up, want 2", got)
+	}
+
+	lib := e.G.Zone(state.ZLibrary, 0)
+	if len(lib) == 0 {
+		t.Fatal("precondition: empty library")
+	}
+	top := lib[0]
+	if e.G.Obj(top).Face() == nil || e.G.Obj(top).Face().IsLand() {
+		t.Fatalf("precondition: top card %v is not a spell", e.G.Obj(top).Face())
+	}
+	// The static's own CheckSVar$ X ("you've cast a spell this turn") is
+	// false, so the Class's level gate alone must not grant the play.
+	if _, grant := e.mayPlayGrant(0, top); grant {
+		t.Fatal("grant live before any spell this turn: the CheckSVar$ X gate was not read")
+	}
+
+	// Cast a spell this turn, then the top card becomes playable.
+	addMana(t, e, 0, "GG")
+	castOpt := castByName(t, e, 0, "Grizzly Bears")
+	if castOpt == nil {
+		t.Fatalf("no Grizzly Bears cast option: %+v", e.Pending().Options)
+	}
+	submitChoices(t, e, castOpt.Index)
+	passUntilStackEmpty(t, e, 20)
+
+	// The hand cast spent the pool; fund the top-of-library cast before
+	// reading the offer, or the affordability gate (not the grant) is what
+	// withholds it.
+	addMana(t, e, 0, "GG")
+
+	if free, grant := e.mayPlayGrant(0, top); !grant || free {
+		t.Fatalf("top card grant after a spell this turn: free=%v grant=%v, want a non-free grant", free, grant)
+	}
+	// End to end: the top card is actually offered as a cast.
+	d := e.Pending()
+	if d == nil {
+		t.Fatal("no priority decision after resolving the cast")
+	}
+	offered := false
+	for _, o := range d.Options {
+		if o.Obj == top && (o.Kind == "cast" || o.Kind == "mayplay") {
+			offered = true
+			break
+		}
+	}
+	if !offered {
+		t.Fatalf("top card %d not offered as a play: %+v", top, d.Options)
+	}
 }
