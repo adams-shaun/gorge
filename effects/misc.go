@@ -1976,10 +1976,19 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 	}
 	for i := start; i < n; i++ {
 		if askElection {
-			// The previous iteration's body completed after suspending: pose
-			// the repeat election that iteration i's body has not yet earned
-			// (CR 608.2c's do/while). The election concerns iteration i, so a
-			// yes resumes the body at i, not i+1.
+			// The previous iteration's body completed after suspending. Its
+			// between-iteration gate is owed before the repeat election, just
+			// like the ordinary post-body path below: a false or unreadable
+			// gate stops the do/while without offering another iteration.
+			if gated {
+				holds, evaluated := repeatGateHolds(h, c, check, cmp)
+				if !evaluated || !holds {
+					return
+				}
+			}
+			// Pose the repeat election that iteration i's body has not yet
+			// earned (CR 608.2c's do/while). The election concerns iteration
+			// i, so a yes resumes the body at i, not i+1.
 			askElection = false
 			if !poseRepeatOptionalElection(h, c, sa, i) {
 				return // R-9: a host that cannot answer stops here.
