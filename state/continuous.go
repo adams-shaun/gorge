@@ -374,6 +374,22 @@ type ContinuousEffect struct {
 	// means the effect never ends on a move. Engine-runtime only, like
 	// ForgetOnMoved.
 	ExileOnMoved string
+	// ImprintOnHost marks a DB$ Effect registration whose SA carried
+	// ImprintOnHost$ True: Forge's EffectEffect imprints the CREATED EFFECT
+	// TOKEN on the host card and moves the token to the Command zone -- the
+	// imprint is the link "this effect belongs to this card", never the
+	// remembered card itself. The corpus's dig-and-play family (Superior
+	// Foes of Spider-Man, Furious Rise, Unstable Amulet) ends the previous
+	// effect through its trigger's `DB$ ChangeZone | Defined$ Imprinted |
+	// Origin$ Command | Destination$ Exile` -- exiling the imprinted token
+	// from the Command zone is exiling the effect, the "until you exile
+	// another card" lifetime -- and Word of Command / Semester's End use the
+	// same idiom inside one chain. This build has no effect-token object, so
+	// the marker rides every registration the resolving effEffect call
+	// creates and the idiom ends exactly those through rules'
+	// EndImprintedEffect. Engine-runtime only, rebuilt by re-execution on
+	// replay like every other continuous-effect field.
+	ImprintOnHost bool
 	// ForgetCounter carries the Effect's ForgetCounter$ counter kind (task
 	// vow1; Promise of Loyalty's VOW, Quicksilver Fountain's FLOOD,
 	// Obsidian Fireheart's BLAZE -- 18 corpus carriers): a remembered card

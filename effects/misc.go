@@ -221,6 +221,26 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	// effect's Remembered set. Both this and ForgetOnMoved$ ride every
 	// registration below.
 	forgetCounter := strings.TrimSpace(sa.Params["ForgetCounter"])
+	// ImprintOnHost$ True (task param:api:Effect.ImprintOnHost): Forge's
+	// EffectEffect imprints the CREATED EFFECT TOKEN on the host card and
+	// moves the token to the Command zone -- the imprint is the link "this
+	// effect belongs to this card", never the remembered card itself. The
+	// corpus's dig-and-play family (Superior Foes of Spider-Man, Furious
+	// Rise, Unstable Amulet) then ends the previous effect through its
+	// trigger's `DB$ ChangeZone | Defined$ Imprinted | Origin$ Command |
+	// Destination$ Exile` (exiling the imprinted token is exiling the
+	// effect -- the "until you exile another card" lifetime), and Word of
+	// Command / Semester's End run the same idiom inside one chain. This
+	// build has no effect-token object, so the marker rides every
+	// registration this call creates (state.ContinuousEffect.ImprintOnHost)
+	// and the idiom ends exactly those through Host.EndImprintedEffects
+	// (rules' EndImprintedEffect). Any other value is a loud unmodelled
+	// read, the RememberLKI$ convention.
+	if v := strings.TrimSpace(sa.Params["ImprintOnHost"]); v != "" && !strings.EqualFold(v, "True") {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "unmodelled Effect ImprintOnHost$ " + v})
+	}
+	imprintOnHost := strings.EqualFold(strings.TrimSpace(sa.Params["ImprintOnHost"]), "True")
 	// RememberLKI$ (Quicksilver Elemental's "RememberLKI$ Targeted"): the
 	// effect remembers the TARGETED cards — "Targeted" (and Forge's bare
 	// "True", which is Targeted in the corpus's spelling) is exactly the
@@ -298,6 +318,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				ForgetOnMoved:    forgetOn,
 				ExileOnMoved:     exileOn,
 				ForgetCounter:    forgetCounter,
+				ImprintOnHost:    imprintOnHost,
 				ChosenNumber:     chosenNumber,
 				ReplacementEvent: event, ReplacementParams: params, ReplacementBody: body,
 			})
@@ -332,6 +353,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				UntilEOT: untilEOT, Duration: dur,
 				Name:             effectName,
 				Remembered:       remembered,
+				ImprintOnHost:    imprintOnHost,
 				ReplacementEvent: event, ReplacementParams: params,
 			})
 			registered = true
@@ -364,6 +386,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				grant.ForgetOnMoved = forgetOn
 				grant.ExileOnMoved = exileOn
 				grant.ForgetCounter = forgetCounter
+				grant.ImprintOnHost = imprintOnHost
 				h.AddContinuous(grant)
 				registered = true
 			} else if kws, affected, zone, ok := cascadeKeywordGrantFromLine(params); ok {
@@ -388,6 +411,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					Affects:       affected,
 					AffectedZone:  zone,
 					AddKeywords:   kws,
+					ImprintOnHost: imprintOnHost,
 					Name:          effectName,
 					UntilEOT:      effectUntilEOT(h, c.Source, dur),
 					Duration:      dur,
@@ -426,6 +450,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					Affects:        affected,
 					AffectedZone:   zone,
 					SetMaxHandSize: val,
+					ImprintOnHost:  imprintOnHost,
 					Name:           effectName,
 					UntilEOT:       effectUntilEOT(h, c.Source, dur),
 					Permanent:      strings.EqualFold(strings.TrimSpace(dur), "Permanent"),
@@ -494,6 +519,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				UntilEOT:       ceUntilEOT,
 				Restriction:    mode,
 				RestrictParams: params,
+				ImprintOnHost:  imprintOnHost,
 				Remembered:     remembered,
 				Duration:       dur,
 				ForgetOnMoved:  forgetOn,
