@@ -200,6 +200,13 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// the exact carrier-event shape FlippedCoin shares, with the two
 		// List$ opponent sets riding IDs/Pairs as player refs.
 		return 1 << events.Note
+	case "RolledDie", "RolledDieOnce":
+		// Both modes fire on a canonical roll Note effects/dice.go emits
+		// (decoded by DieRollResult / DieRollBatchResult), the same
+		// carrier-event shape FlippedCoin/Vote share: RolledDie on the per-die
+		// Note (once per die), RolledDieOnce on the per-resolution batch Note
+		// (once per roll action).
+		return 1 << events.Note
 	case "CounterAdded", "CounterAddedOnce", "CounterRemoved":
 		return 1 << events.CounterChange
 	case "Mutates":

@@ -227,7 +227,16 @@ var actionTriggerModes = map[string]bool{
 	// PlayerTurn$, ActivationLimit$, and an unevaluable CheckDefinedPlayer$
 	// predicate failing closed -- apply from day one. No Once latch: each
 	// flip result Note is one occurrence.
-	"FlippedCoin":    true,
+	"FlippedCoin": true,
+	// RolledDie/RolledDieOnce join them for the same reason: both are event
+	// modes registered from the start (rules/trigmatch_misc.go's
+	// rolledDieMatches / rolledDieOnceMatches, firing off the canonical roll
+	// Notes effects/dice.go emits), so the trigger-level parameters Forge
+	// scopes to every event mode -- PlayerTurn$, ActivationLimit$, and an
+	// unevaluable CheckDefinedPlayer$ predicate failing closed -- apply from
+	// day one. RolledDieOnce's own batch cadence is the event, not a Once
+	// latch: each batch Note is one occurrence.
+	"RolledDie": true, "RolledDieOnce": true,
 	"ChangesZoneAll": true,
 	// Attached is an event mode registered from the start
 	// (attachedMatches over events.Attach), so the trigger-level parameters
@@ -309,6 +318,35 @@ func (e *Engine) triggerActivationLimitAllows(t cards.Trigger, key triggerKey) b
 	f.N++
 	e.triggerTurnFires[key] = f
 	return true
+}
+
+// dieRollNumberAllows enforces a RolledDie trigger's Number$ N ("whenever
+// you roll your third die each turn", Resolute Veggiesaur): the line queues
+// only on the Nth matching die of the turn, and the per-turn counter lives
+// per trigger line (triggerTurnDice, keyed by triggerKey) so several roll
+// triggers on one permanent do not consume each other's count. An absent
+// Number$ always allows; a malformed or non-positive one denies (fail
+// closed), matching triggerActivationLimitAllows's handling. The count self-
+// resets when the turn changes, exactly as triggerTurnFires does.
+func (e *Engine) dieRollNumberAllows(t cards.Trigger, key triggerKey) bool {
+	raw, present := t.Params["Number"]
+	if !present {
+		return true
+	}
+	n, err := strconv.Atoi(strings.TrimSpace(raw))
+	if err != nil || n < 1 {
+		return false
+	}
+	if e.triggerTurnDice == nil {
+		e.triggerTurnDice = map[triggerKey]turnFires{}
+	}
+	f := e.triggerTurnDice[key]
+	if f.Turn != e.G.Turn {
+		f = turnFires{Turn: e.G.Turn}
+	}
+	f.N++
+	e.triggerTurnDice[key] = f
+	return int(f.N) == n
 }
 
 // resolvedLimitValue parses a trigger's ResolvedLimit$ param. ok is true only
@@ -910,6 +948,13 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 						}
 					}
 				}
+				// RolledDie's Number$ N ("your third die each turn"): gated
+				// LAST, at the queue point, so a speculative matcher call or a
+				// later-rejected trigger never advances the count. Keyed by the
+				// trigger line, so each roll trigger counts its own dice.
+				if t.Mode == "RolledDie" && !e.dieRollNumberAllows(t, key) {
+					continue
+				}
 				e.triggerFireCount[key]++
 				if t.Effect == nil {
 					// Execute$ named an SVar this face never defined (or one
@@ -1347,7 +1392,7 @@ func init() {
 		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",
 		"trig:LifeGained",
 		"trig:BecomesTarget", "trig:LandPlayed", "trig:Phase", "trig:Attached", "trig:FlippedCoin",
-		"trig:Vote",
+		"trig:Vote", "trig:RolledDie", "trig:RolledDieOnce",
 		"trig:Explores", "trig:Exerted", "trig:Investigated",
 		"trig:Discover", "trig:SeekAll",
 		"trig:AbilityCast", "trig:SpellAbilityCast", "trig:Always",

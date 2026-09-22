@@ -770,8 +770,13 @@ type Engine struct {
 	// RESOLVE each turn, and a ResolvedLimit$ card's paired lines (the
 	// corruption_of_towashi halves of one printed ability) must share it.
 	triggerTurnResolved map[state.ObjID]turnFires
-	dmgSrcOverride      state.ObjID
-	batchLifelink       map[state.ObjID]bool
+	// triggerTurnDice is the RolledDie Number$ gate's per-turn die-roll count,
+	// keyed by the trigger line (triggerKey) so each "whenever you roll your
+	// third die each turn" line counts its own rolls. It self-resets when the
+	// turn changes, exactly as triggerTurnFires does.
+	triggerTurnDice map[triggerKey]turnFires
+	dmgSrcOverride  state.ObjID
+	batchLifelink   map[state.ObjID]bool
 
 	// counterAdder is the player causing the CounterChange/PlayerCounterChange
 	// events currently in flight (the repl:AddCounter class's "who would put

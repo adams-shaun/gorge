@@ -24,6 +24,28 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		c.TriggerCardController = player(lki.Controller)
 	}
 	switch t.Mode {
+	case "RolledDie", "RolledDieOnce":
+		// The canonical roll Note (effects/dice.go): the per-die DieRollNote
+		// for Mode$ RolledDie and the per-resolution DieRollBatchNote for
+		// Mode$ RolledDieOnce. Both name the roller (ev.Player) and the
+		// reported result (ev.Amount). TriggerResult is what the
+		// TriggerCount$Result head answers at resolution (Mr. House's
+		// BranchConditionSVar$ reads it long after the RollDice resolution that
+		// produced it has finished), TriggerResultMax is the
+		// TriggerCountMax$Result head (Farideh), and TriggerPlayer is the
+		// roller, so a body reading "that player" resolves the seat that
+		// rolled. Each decoder rejects the other mode's Note, so the two
+		// collectors can never cross-fire.
+		if roller, _, _, result, ok := effects.DieRollResult(ev); ok {
+			c.TriggerPlayer = player(roller)
+			c.TriggerResult = result
+			c.TriggerResultMax = result
+		}
+		if roller, _, maxResult, result, ok := effects.DieRollBatchResult(ev); ok {
+			c.TriggerPlayer = player(roller)
+			c.TriggerResult = result
+			c.TriggerResultMax = maxResult
+		}
 	case "BecomesTarget":
 		// This matcher fires only for its own source being targeted, even when
 		// the causing spell chose several targets. ev.Obj is that spell/ability.
