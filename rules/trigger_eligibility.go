@@ -75,7 +75,7 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.CmdDamage, events.DelayedRegister, events.DelayedPush,
 		events.GrantAbilityPush,
 		events.LibraryOrder, events.ExtraTurn, events.DoorUnlock,
-		events.SpeedChange, events.MonarchChange, events.ControlChange,
+		events.SpeedChange, events.ControlChange,
 		events.CardToken, events.KeywordTriggerPush, events.Goad,
 		events.PlayerCounterChange, events.Imprint, events.StartingPlayerChange,
 		events.Pair, events.MyriadCopy, events.MyriadCleanup,
@@ -127,6 +127,11 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		// default arm would give it -- a ManaExpend-only face's compiled
 		// scan set narrows to the one event kind it fires on.
 		return cards.TriggerInterestCastInfo
+	case events.MonarchChange:
+		// The monarch designation transition carries trig:BecomeMonarch
+		// (rules' becomeMonarchMatches), so it has its own interest bit rather
+		// than the zero mapping it carried while no mode matched it.
+		return cards.TriggerInterestMonarch
 	default:
 		return cards.TriggerInterestAny
 	}
@@ -236,6 +241,11 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// than letting it fall to the allTriggerEvents default) keeps a
 		// RingTemptsYou-only face's mask narrow for every other kind.
 		return 0
+	case "BecomeMonarch":
+		// The monarch designation transition (trig:BecomeMonarch), matched by
+		// rules' becomeMonarchMatches. MonarchChange is ordinal 43, inside the
+		// 64-bit mask's reach, so an exact bit is encodable.
+		return 1 << events.MonarchChange
 	case "CommitCrime", "BecomesTarget":
 		return 1 << events.TargetsChosen
 	case "Attached":

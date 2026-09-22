@@ -2819,12 +2819,27 @@ func effCardVote(h Host, c *Ctx, sa *cards.SA, ballot string) {
 
 // effBecomeMonarch records the game-level designation as an event so a
 // conditional trigger observes it identically in the live game and on replay.
+//
+// The event is a TRANSITION (CR 720.2: a player "becomes" the monarch only
+// when the designation moves to them), so a resolution that names the
+// reigning monarch as its target is a no-op: the designation does not move
+// and no "whenever a player becomes the monarch" trigger may fire. This is
+// load-bearing for events.MonarchChange's one reader, rules'
+// becomeMonarchMatches -- it sees only the post-fold designation, so an
+// unconditional emit here would queue trig:BecomeMonarch for a repeat
+// BecomeMonarch (Custodi Lich resolving twice, two Peacekeeper Colossi, etc.).
+// Suppressing at the source rather than inventing a previous-monarch field
+// keeps events.Event's encoding untouched and replay-exact.
 func effBecomeMonarch(h Host, c *Ctx, sa *cards.SA) {
 	targets := Defined(h, c, sa)
 	if len(targets) == 0 {
 		return
 	}
-	h.Emit(events.Event{Kind: events.MonarchChange, Player: PlayerOf(h, c, targets[0])})
+	p := PlayerOf(h, c, targets[0])
+	if g := h.Game(); g != nil && g.IsMonarch(p) {
+		return
+	}
+	h.Emit(events.Event{Kind: events.MonarchChange, Player: p})
 }
 
 // effRestartGame ends the game as a draw. Actually restarting (leaving
