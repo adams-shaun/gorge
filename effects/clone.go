@@ -191,7 +191,15 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 			unread = append(unread, key+"$ "+v)
 		}
 	}
-	if len(unread) > 0 && !cloneDone {
+	// The `!cloneDone` guard the first cut carried here was WRONG: with a
+	// real host the initial pass always returns at the Ask above, so these
+	// diagnostics can only ever fire on the ANSWERED-YES re-entry (the
+	// decline path returned before this point) -- gating them on
+	// `!cloneDone` silenced them for exactly the carriers that ask
+	// (findings-r2 MAJOR; 7 corpus Optional$+AddSVars$ lines incl. Kimahri,
+	// Vesuvan Doppelganger, Lazav). The no-host path keeps cloneDone=false,
+	// so it still emits once.
+	if len(unread) > 0 {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
 			Text: "Clone does not read: " + strings.Join(unread, ", ")})
 	}
@@ -202,7 +210,10 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 	// itself is not carried onto the effects -- the no-duration case is simply
 	// a unit with no expiry field, kept until the become object leaves.
 	_, untilEOT, untilTurn, untilUnattached, durNote := cloneDuration(dur)
-	if durNote != "" && !cloneDone {
+	// Same shape as the unread-modifier Note above: reachable only on the
+	// answered-yes re-entry (real host) or the no-host pass, never
+	// duplicated.
+	if durNote != "" {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller, Text: durNote})
 	}
 
