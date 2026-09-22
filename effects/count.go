@@ -1963,8 +1963,8 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			prop = strings.TrimSpace(prop)
 			switch {
 			case prop == "CardPower" || prop == "CardToughness" || prop == "CardManaCost" ||
-				prop == "CardTypes" || prop == "Colors" || prop == "CreatureType" ||
-				prop == "CardTypesPermanent":
+				prop == "CardTypes" || prop == "CardTypesPermanent" || prop == "Colors" ||
+				prop == "CreatureType" || strings.HasPrefix(prop, "CardCounters."):
 			case isExtremeProperty(prop):
 			case differentPropertyKindOf(prop) != diffNone:
 			default:
@@ -2958,6 +2958,15 @@ func (f *zoneCountFold) visit(id state.ObjID, zone state.Zone, specCtx SpecConte
 		}
 		return
 	}
+	// CardCounters.<KIND> sums one counter kind over the matched set (Kate
+	// Stewart's time counters, Kyler's P1P1); CardCounters.ALL sums every
+	// kind. state.Object.Counter is the ONE home for that marker, so this
+	// read and the $<Ref>$CardCounters readers (evalRefProperty, the bare
+	// source head) cannot disagree.
+	if kind, ok := strings.CutPrefix(f.prop, "CardCounters."); ok {
+		f.n += o.Counter(kind)
+		return
+	}
 	switch f.prop {
 	case "CardPower":
 		f.n += int32(o.Face().Power()) + o.Counter("P1P1")
@@ -3357,11 +3366,14 @@ func aggregateCastProperty(h Host, ids []state.ObjID, prop string) (int32, bool)
 // sumCounters totals a counter slice's POSITIVE counts (a drained slot sits
 // in the slice at N == 0 and adds nothing), in slice order -- the ALL
 // wildcard's one shared read for both the Count$CardCounters.ALL head and
-// the ref-property form.
+// the ref-property form. The engine's OWN status markers ("Shield"/"Deathtouched",
+// state.InternalCounterMarker) are excluded, the same exclusion
+// state.Object.Counter("ALL") applies -- the two ALL reads cannot disagree
+// (the marker-exclusion fix, branch agent-20260920T071934Z-c2f52dab).
 func sumCounters(cs []state.Counter) int32 {
 	var n int32
 	for i := range cs {
-		if cs[i].N > 0 {
+		if cs[i].N > 0 && !state.InternalCounterMarker(cs[i].Kind) {
 			n += cs[i].N
 		}
 	}
