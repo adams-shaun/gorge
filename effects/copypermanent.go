@@ -106,15 +106,6 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 		note("ValidSupportedCopy$")
 		blocked = true
 	}
-	if _, ok := sa.Params["AddTriggers"]; ok {
-		note("AddTriggers$")
-	}
-	if _, ok := sa.Params["AddSVars"]; ok {
-		note("AddSVars$")
-	}
-	if _, ok := sa.Params["AddAbilities"]; ok {
-		note("AddAbilities$")
-	}
 	if _, ok := sa.Params["WithDifferentNames"]; ok {
 		note("WithDifferentNames$")
 	}
@@ -430,6 +421,15 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 	}
 	tokenMemory := tokenRememberedTargets(h, c, sa)
 
+	// These grants belong to the copied permanent, but their SVar bodies live
+	// on the resolving ability's face (for example Hofri's return trigger).
+	// Keep the names and the grantor rather than copying parsed bodies: this is
+	// the same replay-safe shape used by Animate's ability grants.
+	grantAbilities := splitCopyGrantNames(sa.Params["AddAbilities"])
+	grantSVars := copyGrantedSVars(c.SVars, sa.Params["AddSVars"])
+	grantTriggers := copyGrantedTriggers(c.SVars, sa.Params["AddTriggers"])
+
+	var minted []state.ObjID
 	for _, t := range targets {
 		if t.IsPlayer {
 			continue
@@ -462,6 +462,29 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 			}
 			h.Emit(events.Event{Kind: events.MoveZone, Obj: want,
 				From: state.ZLibrary, To: state.ZBattlefield})
+			minted = append(minted, want)
+			if len(grantAbilities) > 0 {
+				h.AddContinuous(state.ContinuousEffect{
+					Source: want, Affects: "Card.Self", Controller: owner,
+					Layer: state.LAbilities, AddAbilities: grantAbilities,
+					SVars: c.SVars, AbilityGrantor: c.Source, Permanent: true,
+				})
+			}
+			if len(grantSVars) > 0 {
+				h.AddContinuous(state.ContinuousEffect{
+					Source: want, Affects: "Card.Self", Controller: owner,
+					Layer: state.LAbilities, AddSVars: grantSVars,
+					Permanent: true,
+				})
+			}
+			for i := range grantTriggers {
+				tr := grantTriggers[i]
+				h.AddContinuous(state.ContinuousEffect{
+					Source: want, Affects: "Card.Self", Controller: owner,
+					Layer: state.LAbilities, AddTrigger: &tr,
+					TriggerGrantor: c.Source, Permanent: true,
+				})
+			}
 			if withOK {
 				h.Emit(events.Event{Kind: events.CounterChange, Obj: want, Counter: withKind, Amount: withAmt})
 			}
@@ -549,6 +572,49 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 	}
+	if strings.EqualFold(strings.TrimSpace(sa.Params["ImprintTokens"]), "True") && c.Source != 0 {
+		ids := make([]state.ObjID, 0, len(minted))
+		for _, id := range minted {
+			if g.Obj(id) != nil {
+				ids = append(ids, id)
+			}
+		}
+		if len(ids) > 0 {
+			h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: ids, Text: "imprint-tokens"})
+		}
+	}
+}
+
+func splitCopyGrantNames(raw string) []string {
+	var out []string
+	for _, name := range strings.Split(raw, ",") {
+		if name = strings.TrimSpace(name); name != "" {
+			out = append(out, name)
+		}
+	}
+	return out
+}
+
+func copyGrantedSVars(table map[string]string, raw string) map[string]string {
+	out := map[string]string{}
+	for _, name := range splitCopyGrantNames(raw) {
+		if body, ok := table[name]; ok {
+			out[name] = body
+		}
+	}
+	return out
+}
+
+func copyGrantedTriggers(table map[string]string, raw string) []cards.Trigger {
+	var out []cards.Trigger
+	for _, name := range splitCopyGrantNames(raw) {
+		if body, ok := table[name]; ok {
+			if tr, ok := cards.ParseTriggerLine(body); ok {
+				out = append(out, tr)
+			}
+		}
+	}
+	return out
 }
 
 // copyTypeList parses Forge's multi-type grammar the way rules' statList
