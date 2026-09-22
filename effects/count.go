@@ -365,10 +365,35 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 		if clamped, isLimit := countDistinctLimitMax(strings.TrimSpace(body), op, n); isLimit {
 			n = clamped
 		} else {
-			n = applyCountOp(n, op)
+			n = applyCountOpOperand(h, c, n, op, depth)
 		}
 	}
 	return n, ok2
+}
+
+// applyCountOpOperand applies a Count$ arithmetic suffix. Besides numeric
+// operands such as Plus.1, Forge uses SVar names (for example
+// Plus.DragonControlled). Resolve those names in the current face's SVar
+// table before applying the existing saturating arithmetic.
+func applyCountOpOperand(h Host, c *Ctx, n int32, op string, depth int) int32 {
+	for _, prefix := range []string{"Plus.", "Minus.", "Times."} {
+		operand, ok := strings.CutPrefix(op, prefix)
+		if !ok {
+			continue
+		}
+		operand = strings.TrimSpace(operand)
+		if _, err := strconv.Atoi(operand); err == nil {
+			return applyCountOp(n, op)
+		}
+		if c != nil && c.SVars != nil {
+			if body, exists := c.SVars[operand]; exists {
+				value, _ := evalCountExprOK(h, c, body, depth+1)
+				return applyCountOp(n, prefix+strconv.FormatInt(int64(value), 10))
+			}
+		}
+		return applyCountOp(n, op)
+	}
+	return applyCountOp(n, op)
 }
 
 // countDistinctLimitMax answers whether op is a LimitMax.<n> clamp on a
