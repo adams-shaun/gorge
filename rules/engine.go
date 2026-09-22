@@ -359,6 +359,29 @@ type Engine struct {
 	// not the scratch), and resolveFused's spec re-derivation is its
 	// fallback for exactly that shape.
 	fuseTargets map[state.ObjID][][]state.Target
+	// fusedResolving is the target slice of the fused half whose resolution is
+	// CURRENTLY running (rules/split.go's runFusedHalves), set around the
+	// whole of that half's effects.Resolve -- the half's root SA and every
+	// sub-ability in its chain -- and restored afterwards. fusedResolvingSet
+	// is the presence bit: a half whose own ValidTgts$ produced an empty
+	// slice is still a fused half whose sub-abilities must read that empty
+	// list, never the stack object's flat one. Ask captures the pair onto the
+	// pending resumePoint, so a mid-resolution ask posed by ANY frame of the
+	// half (its root, a SubAbility$, a loop body) resumes with the half's own
+	// targets rather than both halves' (Flesh // Blood's DBPutCounter reads
+	// ParentTargeted$CardPower off this binding). Transient scratch, cleared
+	// when the half's resolve returns: rebuilt identically by replay.
+	fusedResolving    []state.Target
+	fusedResolvingSet bool
+	// fusedResolvingSVars is the SVar table of the fused half whose resolution
+	// is currently running -- the ALTERNATE half's table when Blood is the
+	// frame, never the object's front-face table. A fused spell keeps FaceIdx
+	// 0, so o.Face().SVars is the FRONT half's table and a resumed alternate
+	// half's sub reading its own SVar (Blood's NumDmg$ Y = Y:ParentTargeted$
+	// CardPower) would resolve against the wrong table. Set and restored
+	// alongside fusedResolving, captured by Ask onto the resumePoint. Nil
+	// outside a fused half's resolution.
+	fusedResolvingSVars map[string]string
 	// sourceLifelinkLKI maps an independently resolving ability's stack object
 	// to its source permanent's derived lifelink state at the last moment that
 	// source existed on the battlefield. The map's presence is the validity

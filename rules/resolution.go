@@ -181,6 +181,28 @@ type resumePoint struct {
 	// Engine scratch, rebuilt by re-execution on replay. nil on every other
 	// frame.
 	fuseAlt *fusedRest
+	// fusedTargets carries the resolving fused half's own CR 608.2b-filtered
+	// target slice onto a mid-resolution ask posed by ANY frame of that half
+	// (rules/split.go's runFusedHalves sets Engine.fusedResolving around the
+	// half's whole effects.Resolve, and Ask captures it here).
+	// resumeResolution binds Ctx.Targets to it instead of the stack object's
+	// whole flat target list, so a half's sub-ability reads its own half's
+	// targets -- ParentTargeted$, Targeted, AllTargeted, DamageSource$
+	// ParentTarget (Flesh // Blood, Double Jump // Flying Kick) -- never the
+	// sum of both halves'. fusedTargetsSet is the presence bit: an empty slice
+	// is a real binding (a targetless half), not "unset". Nil/false on every
+	// frame outside a fused half's resolution. Engine scratch, rebuilt by
+	// re-execution on replay.
+	fusedTargets    []state.Target
+	fusedTargetsSet bool
+	// fusedSVars is the resolving fused half's own SVar table (the ALTERNATE
+	// half's when Blood is the frame), captured with fusedTargets. A fused
+	// spell keeps FaceIdx 0, so the generic resume would rebuild the FRONT
+	// half's table and an alternate half's sub reading its own SVar -- Blood's
+	// NumDmg$ Y = SVar:Y:ParentTargeted$CardPower -- would resolve against
+	// the wrong table (0). resumeResolution uses it whenever fusedTargetsSet.
+	// Nil on every frame outside a fused half's resolution.
+	fusedSVars map[string]string
 	// rolls is the per-die results of the RollDice ask whose answer this
 	// point resumes (effects/dice.go's ChosenSVar$/OtherSVar$ choose-one-
 	// result shape, the Endeavor cycle): the asking first pass carried them
@@ -341,7 +363,10 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 		choices:     append([]state.Target(nil), d.ResumeChoices...),
 		chosenValid: d.ResumeChosenValid, remembered: append([]state.Target(nil), d.ResumeRemembered...),
 		moved:   append([]state.ObjID(nil), d.ResumeMoved...),
-		uptoIdx: d.ResumeUptoIdx, uptoCount: d.ResumeUptoCount}
+		uptoIdx: d.ResumeUptoIdx, uptoCount: d.ResumeUptoCount,
+		fusedTargets:    append([]state.Target(nil), e.fusedResolving...),
+		fusedTargetsSet: e.fusedResolvingSet,
+		fusedSVars:      e.fusedResolvingSVars}
 	return true
 }
 
@@ -961,23 +986,31 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	if offeredSA := offeredTargetSA(o, svars); offeredSA != nil {
 		ctx.OfferedSA = offeredSA
 	}
-	// A fused half's own mid-resolution ask (Down // Dirty's TgtChoose
-	// discard, Far // Away's CR 701.21a sacrifice) re-enters here with
-	// rp.sa = the asking half's root SA. The generic ctx above binds Targets
-	// from the stack object's WHOLE flat target list and OfferedSA from the
-	// front face alone -- for a fused spell the flat list carries BOTH
-	// halves' targets and the front face's SA is the other half's, so the
-	// re-entered half would act on the other half's targets and re-pose its
-	// own ValidTgts$ pre-ask (the spurious "Choose target" after the answered
-	// sacrifice). When rp.sa is one of the halves' roots, bind exactly what
-	// the first pass (rules/split.go's runFusedHalves) bound: the half's own
-	// rechecked stage slice as Targets, its own SA as OfferedSA, and the
-	// offered marker. A sub-ability's ask (not a half root) keeps the
-	// generic binding -- its targeting was never covered by the cast.
-	if half, ok := e.fusedHalfTargets(o, rp.sa); ok {
-		ctx.Targets = half
-		ctx.OfferedSA = rp.sa
-		ctx.TargetsOffered = true
+	// A fused half's own mid-resolution ask re-enters here. The generic ctx
+	// above binds Targets from the stack object's WHOLE flat target list, and
+	// OfferedSA from the front face alone -- for a fused spell the flat list
+	// carries BOTH halves' targets and the front face's SA is the other
+	// half's, so any frame of the re-entered half would read the other half's
+	// targets: a half ROOT re-posing its own ValidTgts$ pre-ask (the spurious
+	// "Choose target" after the answered sacrifice, Far // Away) and, just as
+	// wrong, a half's SUB-ABILITY reading ParentTargeted$CardPower off the
+	// flat list (Flesh // Blood's DBPutCounter counting the sum of both
+	// halves' chosen targets). Ask captured the resolving half's own
+	// rechecked slice onto this frame (Engine.fusedResolving), so bind it as
+	// Targets for EVERY frame of the half. When rp.sa is the half's ROOT its
+	// targeting WAS covered by the cast's stage ask, so mark it offered and
+	// skip the pre-ask; a sub-ability's targeting was never covered, so its
+	// own pre-ask still fires against the half's slice as its parent list.
+	if rp.fusedTargetsSet {
+		ctx.Targets = rp.fusedTargets
+		// The half's OWN SVar table: a fused spell keeps FaceIdx 0, so the
+		// generic svars above is the front half's; the re-entered alternate
+		// half's sub must resolve its own SVars (Blood's Y).
+		svars = rp.fusedSVars
+		if _, isRoot := fusedHalfRoot(o, rp.sa); isRoot {
+			ctx.OfferedSA = rp.sa
+			ctx.TargetsOffered = true
+		}
 	}
 	effects.SetSVars(ctx, svars)
 	// An accepted optional trigger may itself carry Cost$ (Mana Vault's
@@ -2017,6 +2050,27 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		if rp.sa.API == "MoveCounter" {
 			e.seedMoveCounterAsk(rp.obj, ctx)
 		}
+		// A frame of a fused half's resolution re-enters here: restore the
+		// half's own target binding as the AMBIENT resolving target for the
+		// whole of this re-entry (its root or sub-ability, and every frame
+		// reachable through it), so a further nested ask posed below captures
+		// the same half slice rather than the flat list. buildContinuationChain
+		// below runs while it is still set, so the frames it stamps inherit it
+		// too. Saved/restored like the replacement context just above: a
+		// re-entry nested inside another fused half (never in the corpus, but
+		// structural) keeps the outer binding intact.
+		savedFused, savedFusedSet := e.fusedResolving, e.fusedResolvingSet
+		savedSVars := e.fusedResolvingSVars
+		e.fusedResolving, e.fusedResolvingSet = rp.fusedTargets, rp.fusedTargetsSet
+		e.fusedResolvingSVars = rp.fusedSVars
+		// Restore only when this whole re-entry (and every rp.outer
+		// continuation it recurses into) has finished: buildContinuationChain
+		// in the nested-ask branch below stamps frames that must inherit the
+		// same half binding, and an rp.outer recursion saves/restores its own
+		// copy on top, so the deferred restore lands the original back.
+		defer func() {
+			e.fusedResolving, e.fusedResolvingSet, e.fusedResolvingSVars = savedFused, savedFusedSet, savedSVars
+		}()
 		effects.Resolve(e, ctx, rp.sa)
 		e.replReplaced, e.replAction, e.replReplacedPlayer = 0, "", state.Target{}
 		e.applyingReplacement = savedReplacement
@@ -2182,7 +2236,17 @@ func (e *Engine) buildContinuationChain(frames []contFrame, obj state.ObjID, tai
 		f := &resumePoint{obj: obj, sa: sa.Sub, replacement: e.applyingReplacement,
 			replaced: e.replReplaced, action: e.replAction, replacedPlayer: e.replReplacedPlayer,
 			before:    e.triggerBefore,
-			loopBound: cf.bound, loopRemembered: cf.remembered, repeatSubject: cf.repeatSubject}
+			loopBound: cf.bound, loopRemembered: cf.remembered, repeatSubject: cf.repeatSubject,
+			// Every continuation the loop of THIS re-entry reported belongs to
+			// the same resolution, so a fused half's target binding is inherited
+			// verbatim: the frames build while Engine.fusedResolving is set (the
+			// callers set it around effects.Resolve and keep it set through this
+			// build), and a frame that re-enters a loop body inside the half
+			// must bind the half's slice, not the flat list (Flesh // Blood's
+			// SubAbility reached through an enclosing loop).
+			fusedTargets:    append([]state.Target(nil), e.fusedResolving...),
+			fusedTargetsSet: e.fusedResolvingSet,
+			fusedSVars:      e.fusedResolvingSVars}
 		if e.replacingEvent != nil && e.replacingEvent.Kind == events.Damage {
 			f.replacementTarget = state.Target{Obj: e.replacingEvent.Obj}
 			if e.replacingEvent.Obj == 0 {

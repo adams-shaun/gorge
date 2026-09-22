@@ -327,3 +327,305 @@ func splitMoveFromHandOrLibrary(t *testing.T, e *Engine, p state.PlayerID, name 
 	t.Fatalf("corpus card %q absent from seat %d's hand or library", name, p)
 	return 0
 }
+
+// fusedFleshBloodEngine deals seat 0 a 40-card deck led by the corpus split
+// card Flesh // Blood, seats two Grizzly Bears on seat 0's battlefield (one
+// is Blood's Creature.YouCtrl target; both make Flesh's DBPutCounter SubAbility
+// target ask a real choice), and parks one Grizzly Bears in seat 1's graveyard
+// (Flesh's Origin$ Graveyard target, power 2). The returned ids are seat 0's
+// Flesh // Blood in hand, the two battlefield bears and the graveyard bear.
+func fusedFleshBloodEngine(t *testing.T, reg *cards.Registry, seed uint64) (*Engine, Config, state.ObjID, state.ObjID, state.ObjID, state.ObjID) {
+	t.Helper()
+	flesh := searchCorpusCard(t, reg, "Flesh")
+	island := searchCorpusCard(t, reg, "Island")
+	mountain := searchCorpusCard(t, reg, "Mountain")
+	bear := searchCorpusCard(t, reg, "Grizzly Bears")
+	deck := []*cards.Card{flesh, bear, bear}
+	for len(deck) < 40 {
+		deck = append(deck, island)
+	}
+	opp := []*cards.Card{bear}
+	for len(opp) < 40 {
+		opp = append(opp, mountain)
+	}
+	cfg := seatZeroStart(Config{Seed: seed, Names: []string{"fuse", "opponent"},
+		Decks: [][]*cards.Card{deck, opp}, Tokens: reg.Tokens})
+	e := New(cfg)
+	e.Advance()
+	toMain1(t, e)
+	bearA := splitMoveFromLibrary(t, e, 0, "Grizzly Bears")
+	bearB := splitMoveFromLibrary(t, e, 0, "Grizzly Bears")
+	// Park seat 1's Grizzly Bears in its graveyard -- Flesh's target.
+	gyID := state.ObjID(0)
+	for _, lid := range e.G.Zone(state.ZLibrary, 1) {
+		if o := e.G.Obj(lid); o != nil && o.Face() != nil && o.Face().Name == "Grizzly Bears" {
+			gyID = lid
+			break
+		}
+	}
+	if gyID == 0 {
+		t.Fatal("no Grizzly Bears in seat 1's library to park in the graveyard")
+	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: gyID, From: state.ZLibrary, To: state.ZGraveyard})
+	e.pending = nil
+	e.priorityRound()
+	id := searchMoveByName(t, e, "Flesh", state.ZHand)
+	return e, cfg, id, bearA, bearB, gyID
+}
+
+// TestFusedFleshBloodSubAbilityReadsItsOwnHalfTargets is review round 3's
+// MAJOR pin: a SUB-ABILITY of a fused half must read the half's own targets
+// as its parent list, never the stack object's whole flat target list. On the
+// real corpus card Flesh // Blood, Flesh's DBPutCounter SubAbility puts
+// X +1/+1 counters where X = ParentTargeted$CardPower -- the power of the
+// graveyard creature Flesh exiled (2), NOT the sum of both halves' chosen
+// targets (the exiled bear 2 + Blood's own target bear 2 = 4). Pre-fix
+// resumeResolution bound Ctx.Targets from o.Targets (the flat list) for any
+// frame that was not a half root, and fusedHalfTargets matched only the
+// halves' root SAs, so DBPutCounter read 4.
+func TestFusedFleshBloodSubAbilityReadsItsOwnHalfTargets(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, cfg, id, bearA, bearB, gyID := fusedFleshBloodEngine(t, reg, 7319)
+
+	// Fused cost {3}{B}{G}{R}{G} = 3 generic + B + G + R + G: 7 mana.
+	addMana(t, e, 0, "BBGGRRR")
+	fuse := splitOption(t, e, id, "fuse")
+	if fuse == nil {
+		t.Fatalf("fused offer missing for Flesh // Blood: %+v", castOptions(t, e))
+	}
+	submitChoices(t, e, fuse.Index)
+
+	// Stage 0 (Flesh): the graveyard creature card (the parked bear).
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("fused target stage 0: pending=%+v, want target", d)
+	}
+	gy := -1
+	for _, o := range d.Options {
+		if o.Obj == gyID {
+			gy = o.Index
+		}
+	}
+	if gy < 0 {
+		t.Fatalf("stage 0 offered no option for the graveyard card %d: %+v", gyID, d.Options)
+	}
+	submitChoices(t, e, gy)
+
+	// Stage 1 (Blood): a creature I control -- bearA.
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("fused target stage 1: pending=%+v, want target", d)
+	}
+	blood := -1
+	for _, o := range d.Options {
+		if o.Obj == bearA {
+			blood = o.Index
+		}
+	}
+	if blood < 0 {
+		t.Fatalf("stage 1 offered no option for bear %d: %+v", bearA, d.Options)
+	}
+	submitChoices(t, e, blood)
+
+	// Resolve to the DBPutCounter target ask (its own ValidTgts$ Creature over
+	// the two battlefield bears), answering with bearB.
+	d = passUntilPendingKind(t, e, decision.KChoose, 30)
+	if d == nil || d.ResumeKind != "tgts" {
+		t.Fatalf("DBPutCounter target ask pending=%+v, want KChoose tgts", d)
+	}
+	for _, o := range d.Options {
+		if o.Kind != "card" {
+			t.Fatalf("DBPutCounter ask offered a non-card option %+v -- this is not its Creature ask", o)
+		}
+	}
+	pick := -1
+	for _, o := range d.Options {
+		if o.Obj == bearB {
+			pick = o.Index
+		}
+	}
+	if pick < 0 {
+		t.Fatalf("DBPutCounter ask offered no option for bear %d: %+v", bearB, d.Options)
+	}
+	submitChoices(t, e, pick)
+
+	// Drain the rest: Blood's Pump runs, then BloodDamage's own ValidTgts$ Any
+	// ask. Answer any further mid-resolution ask (the first legal option) and
+	// pass priority until the stack empties.
+	for i := 0; i < 30 && len(e.G.Stack) > 0; i++ {
+		d = e.Pending()
+		if d == nil {
+			t.Fatalf("no decision while draining the fused resolution")
+		}
+		if d.Kind == decision.KPriority {
+			pass := -1
+			for _, o := range d.Options {
+				if o.Kind == "pass" {
+					pass = o.Index
+				}
+			}
+			if pass < 0 {
+				t.Fatalf("priority with no pass option: %+v", d.Options)
+			}
+			submitChoices(t, e, pass)
+			continue
+		}
+		submitChoices(t, e, d.Options[0].Index)
+	}
+
+	// DBPutCounter placed X = the exiled card's power (2) on bearB -- never 4
+	// (the sum of both halves' chosen targets, which the flat-list binding
+	// produced). Blood's own DealDamage may have killed bearB; assert the
+	// counter count only if it still exists, and assert the exiled card is in
+	// exile (Flesh ran).
+	if z := e.G.Obj(gyID).Zone; z != state.ZExile {
+		t.Fatalf("Flesh did not exile the graveyard card: zone=%s, want exile", z)
+	}
+	if o := e.G.Obj(bearB); o != nil {
+		if got := o.Counter("P1P1"); got != 2 {
+			t.Fatalf("DBPutCounter placed %d counters, want 2 (the exiled card's power only; "+
+				"4 means the flat both-halves list leaked into the sub-ability)", got)
+		}
+	}
+	if z := e.G.Obj(id).Zone; z != state.ZGraveyard {
+		t.Fatalf("resolved fused spell zone=%s, want graveyard", z)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// passUntilPendingKind advances priority rounds until a decision of the given
+// kind is pending (or the limit runs out), returning it.
+func passUntilPendingKind(t *testing.T, e *Engine, kind decision.Kind, limit int) *decision.Decision {
+	t.Helper()
+	for i := 0; i < limit; i++ {
+		d := e.Pending()
+		if d == nil {
+			t.Fatal("no pending decision while advancing to the target ask")
+		}
+		if d.Kind == kind {
+			return d
+		}
+		if d.Kind != decision.KPriority {
+			return d
+		}
+		pass := -1
+		for _, o := range d.Options {
+			if o.Kind == "pass" {
+				pass = o.Index
+			}
+		}
+		if pass < 0 {
+			t.Fatalf("priority with no pass option: %+v", d.Options)
+		}
+		submitChoices(t, e, pass)
+	}
+	t.Fatalf("no pending %v decision within %d rounds", kind, limit)
+	return nil
+}
+
+// TestFusedBloodSubAbilityReadsItsOwnHalfTargets is review round 3's MAJOR
+// second pin, taken on the ALTERNATE half of the same real corpus card.
+// Blood's BloodDamage SubAbility asks its own ValidTgts$ Any target and deals
+// NumDmg$ Y, where SVar:Y:ParentTargeted$CardPower reads the half's own
+// parent target -- Blood's root target (bearA, power 2), never the sum with
+// Flesh's exiled graveyard card (2+2=4). Pre-fix resumeResolution bound
+// Ctx.Targets from the stack object's flat list for the sub-ability frame
+// (fusedHalfTargets matched only the halves' root SAs), so Blood dealt 4.
+func TestFusedBloodSubAbilityReadsItsOwnHalfTargets(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, cfg, id, bearA, bearB, gyID := fusedFleshBloodEngine(t, reg, 7319)
+
+	// Fused cost {3}{B}{G}{R}{G}: 7 mana.
+	addMana(t, e, 0, "BBGGRRR")
+	fuse := splitOption(t, e, id, "fuse")
+	if fuse == nil {
+		t.Fatalf("fused offer missing for Flesh // Blood: %+v", castOptions(t, e))
+	}
+	submitChoices(t, e, fuse.Index)
+
+	// Stage 0 (Flesh): the graveyard creature card. Stage 1 (Blood): bearA.
+	for i, want := range []state.ObjID{gyID, bearA} {
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KTarget {
+			t.Fatalf("fused target stage %d: pending=%+v, want target", i, d)
+		}
+		found := -1
+		for _, o := range d.Options {
+			if o.Obj == want {
+				found = o.Index
+			}
+		}
+		if found < 0 {
+			t.Fatalf("stage %d: no option for %d: %+v", i, want, d.Options)
+		}
+		submitChoices(t, e, found)
+	}
+
+	// Flesh's DBPutCounter sub asks its own Creature target; answer bearB (so
+	// the counter placement is deterministic and bearB is the observable).
+	d := passUntilPendingKind(t, e, decision.KChoose, 30)
+	if d == nil || d.ResumeKind != "tgts" {
+		t.Fatalf("DBPutCounter target ask pending=%+v, want KChoose tgts", d)
+	}
+	pick := -1
+	for _, o := range d.Options {
+		if o.Obj == bearB {
+			pick = o.Index
+		}
+	}
+	if pick < 0 {
+		t.Fatalf("DBPutCounter ask offered no option for bear %d: %+v", bearB, d.Options)
+	}
+	submitChoices(t, e, pick)
+
+	// Blood's BloodDamage sub asks its own ValidTgts$ Any target. Aim it at
+	// seat 0's face (the option list starts with the players), so the amount
+	// is read straight off the life loss and no creature dies mid-test.
+	d = passUntilPendingKind(t, e, decision.KChoose, 30)
+	if d == nil || d.ResumeKind != "tgts" {
+		t.Fatalf("BloodDamage target ask pending=%+v, want KChoose tgts", d)
+	}
+	face := -1
+	for _, o := range d.Options {
+		if o.Kind == "player" && o.Player == 0 {
+			face = o.Index
+		}
+	}
+	if face < 0 {
+		t.Fatalf("BloodDamage ask offered no seat-0 face option: %+v", d.Options)
+	}
+	lifeBefore := e.G.Players[0].Life
+	submitChoices(t, e, face)
+
+	for i := 0; i < 30 && len(e.G.Stack) > 0; i++ {
+		d = e.Pending()
+		if d == nil {
+			t.Fatalf("no decision while draining the fused resolution")
+		}
+		if d.Kind != decision.KPriority {
+			t.Fatalf("unexpected non-priority ask while draining: %+v", d)
+		}
+		pass := -1
+		for _, o := range d.Options {
+			if o.Kind == "pass" {
+				pass = o.Index
+			}
+		}
+		if pass < 0 {
+			t.Fatalf("priority with no pass option: %+v", d.Options)
+		}
+		submitChoices(t, e, pass)
+	}
+
+	if lost := lifeBefore - e.G.Players[0].Life; lost != 2 {
+		t.Fatalf("Blood dealt %d damage, want 2 (its own target's power; "+
+			"4 means the flat both-halves list leaked into the sub-ability)", lost)
+	}
+	if got := e.G.Obj(bearB).Counter("P1P1"); got != 2 {
+		t.Fatalf("DBPutCounter placed %d counters, want 2", got)
+	}
+	if z := e.G.Obj(id).Zone; z != state.ZGraveyard {
+		t.Fatalf("resolved fused spell zone=%s, want graveyard", z)
+	}
+	replayCheck(t, e, cfg)
+}
