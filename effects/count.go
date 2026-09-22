@@ -944,6 +944,38 @@ func refToughness(h Host, o *state.Object, snapshot bool) int32 {
 // modelled head that legitimately counts zero still counts as evaluated.
 func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	g := h.Game()
+	// ThisTurnCast_<spec> keeps the WHOLE body as the spec, before the
+	// generic head/space split below: a Forge count spec can carry a space
+	// (Rain of Riches' "Card.YouCtrl+CastSa Spell.ManaFromTreasure" — the
+	// card-level CastSa property token), and the split would truncate the
+	// spec at the space and drop the property. The /Op suffix was already
+	// cut by the caller. Space-free specs take the identical path they took
+	// through the switch arm (the same reads, the same returns), so every
+	// existing carrier is byte-identical.
+	if rest, ok := strings.CutPrefix(body, "ThisTurnCast_"); ok {
+		if stripped, selfExcl := stripBareCastSaSource(rest); selfExcl {
+			return int32(h.SpellsCastThisTurnMatchingExcluding(c.Controller, stripped, c.Source)), true
+		}
+		// The ARGUMENTED forms (task castprov2) peel the token and reuse the
+		// same Excluding read:
+		//
+		//   - !CastSaSource/<op> (thunder_salvo's /Plus.2): this form never
+		//     reaches this arm — evalCountExprOK's GENERIC /Op peel cuts the
+		//     body at the first "/" before the head parse, leaving the bare
+		//     !CastSaSource for the bare arm above and handing the op to the
+		//     ordinary applyCountOp — which is exactly the oracle's reading
+		//     (the exclusion count, then Plus.2). Pinned by
+		//     TestThunderSalvoXIsTwoPlusOtherSpellsCast.
+		//   - !CastSaSource$<Property> (call_forth_the_tempest's
+		//     $CardManaCost): the matching casts' objects, the property
+		//     AGGREGATED over them instead of counting 1 each (the zone-count
+		//     heads' `$Property` precedent). An unknown property fails closed
+		//     to (0, false), the unresolvable verdict.
+		if stripped, prop, ok2 := stripCastSaSourceAggregate(rest); ok2 {
+			return aggregateCastProperty(h, h.EachSpellCastThisTurnMatching(c.Controller, stripped, c.Source), prop)
+		}
+		return int32(h.SpellsCastThisTurnMatching(c.Controller, rest)), true
+	}
 	head, arg, _ := strings.Cut(body, " ")
 	arg = strings.TrimSpace(arg)
 
@@ -1537,39 +1569,8 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		return 0, false
 	}
 
-	// ThisTurnCast_<spec> counts the spells cast this turn matching a Forge
-	// spec (Count$ThisTurnCast_Card.YouCtrl — the "first/second spell you
-	// cast" family): the caster scope is the controller when the spec carries
-	// a You* qualifier, everyone otherwise. The spec's bare !CastSaSource
-	// qualifier is Forge's "other than the spell being cast" device (every
-	// bare-form carrier's oracle says other/another), so the count excludes
-	// its own ctx source through the Host's Excluding read; the ARGUMENTED
-	// forms (!CastSaSource$CardManaCost, !CastSaSource/Plus.2) stay in place
-	// and keep failing closed downstream (no provenance grammar prices them).
-	if rest, ok := strings.CutPrefix(head, "ThisTurnCast_"); ok {
-		if stripped, selfExcl := stripBareCastSaSource(rest); selfExcl {
-			return int32(h.SpellsCastThisTurnMatchingExcluding(c.Controller, stripped, c.Source)), true
-		}
-		// The ARGUMENTED forms (task castprov2) peel the token and reuse the
-		// same Excluding read:
-		//
-		//   - !CastSaSource/<op> (thunder_salvo's /Plus.2): this form never
-		//     reaches this arm — evalCountExprOK's GENERIC /Op peel cuts the
-		//     body at the first "/" before the head parse, leaving the bare
-		//     !CastSaSource for the bare arm above and handing the op to the
-		//     ordinary applyCountOp — which is exactly the oracle's reading
-		//     (the exclusion count, then Plus.2). Pinned by
-		//     TestThunderSalvoXIsTwoPlusOtherSpellsCast.
-		//   - !CastSaSource$<Property> (call_forth_the_tempest's
-		//     $CardManaCost): the matching casts' objects, the property
-		//     AGGREGATED over them instead of counting 1 each (the zone-count
-		//     heads' `$Property` precedent). An unknown property fails closed
-		//     to (0, false), the unresolvable verdict.
-		if stripped, prop, ok2 := stripCastSaSourceAggregate(rest); ok2 {
-			return aggregateCastProperty(h, h.EachSpellCastThisTurnMatching(c.Controller, stripped, c.Source), prop)
-		}
-		return int32(h.SpellsCastThisTurnMatching(c.Controller, rest)), true
-	}
+	// ThisTurnCast_<spec> is handled ABOVE the head/space split — a spec
+	// can carry a space; see the comment at the top of this function.
 
 	// StartingPlayer.<yes>.<no> is Forge's two-branch opening designation
 	// count. Desert Cenote's StartingPlayer.0.1 feeds LT1, so only the
