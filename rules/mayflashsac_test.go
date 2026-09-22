@@ -437,3 +437,323 @@ func TestMayFlashSacLeaveAndReturnIsNotSacrificed(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// --- CR 514.3b repeat (review round 3 MAJOR) --------------------------------
+//
+// The cleanup step is not "run once and leave". CR 514.3b: when a triggered
+// ability is put on the stack during cleanup, the cleanup procedure REPEATS
+// -- its 514.1 discard and 514.2 "until end of turn" actions run again --
+// before the turn can end. The two tests below are the reviewer's two break
+// attempts against the first pass at the repeat: an instant cast in the
+// cleanup priority window whose until-end-of-turn effect must expire in the
+// repeated cleanup, and a spell that draws the active player over the hand
+// limit, which must face the repeated 514.1 discard. Both are driven through
+// the real priority loop (handlePriority's empty-stack pass), not a direct
+// repeatCleanup call, so the routing itself is under test.
+
+// driveToStepCleanupWindow drives to a pending priority decision held inside
+// the cleanup step with a non-empty stack -- the window the MayFlashSac
+// delayed sacrifice opens. It stops the instant that decision is pending so a
+// test can act in it (cast an instant), which driveToStep cannot do: it would
+// answer the priority and keep going.
+func driveToStepCleanupWindow(t *testing.T, e *Engine, turn int32, active state.PlayerID) {
+	t.Helper()
+	for i := 0; i < 4000; i++ {
+		if e.G.Turn == turn && e.G.Active == active && e.G.Step == state.StepCleanup &&
+			len(e.G.Stack) > 0 && e.Pending() != nil && e.Pending().Kind == decision.KPriority {
+			return
+		}
+		if e.G.Over {
+			t.Fatalf("game ended before the cleanup window (turn %d seat %d step %s)",
+				e.G.Turn, e.G.Active, e.G.Step)
+		}
+		if answerIfDiscard(t, e) {
+			continue
+		}
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KPriority {
+			t.Fatalf("non-priority decision %+v while driving to the cleanup window", d)
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player,
+			Choices: []int{passPriorityOption(t, d)}}); err != nil {
+			t.Fatalf("submit pass: %v", err)
+		}
+	}
+	t.Fatalf("never reached a cleanup priority window")
+}
+
+// passPriorityOption returns the pass option index of the pending priority
+// decision, failing the test when there is none.
+func passPriorityOption(t *testing.T, d *decision.Decision) int {
+	t.Helper()
+	for _, o := range d.Options {
+		if o.Kind == "pass" {
+			return o.Index
+		}
+	}
+	t.Fatalf("priority decision with no pass option: %+v", d)
+	return -1
+}
+
+// TestMayFlashSacCleanupWindowPumpExpiresInRepeatedCleanup is the reviewer's
+// until-end-of-turn break attempt. The MayFlashSac delayed sacrifice opens
+// priority during the cleanup step; seat 0 casts a pump instant in that
+// window, so the pump's until-end-of-turn effect exists while the cleanup
+// step is still being processed. CR 514.3b's repeat must run the 514.2 body
+// again once the stack empties, expiring the pump before the next turn --
+// without it, handlePriority's pass advanced straight to the next turn and
+// the +3/+3 survived it.
+func TestMayFlashSacCleanupWindowPumpExpiresInRepeatedCleanup(t *testing.T) {
+	const pumpSrc = "Name:Cleanup Pump\nManaCost:0\nTypes:Instant\nA:SP$ Pump | ValidTgts$ Creature | NumAtt$ +3 | NumTou$ +3\nOracle:x\n"
+
+	// Control, on its own engine: the fixture pump really applies its
+	// until-end-of-turn +3/+3 at ordinary timing (power 2 -> 5). Without this
+	// the cleanup assertion below could pass because the pump does nothing at
+	// all, which is the vacuous failure mode the review directive names.
+	{
+		ce, _, _ := newFixtureDeck(t, 7001, mayflashsacEnchantSrc, mayflashsacTargetSrc, pumpSrc)
+		cb := moveSeeded(t, ce, 0, mayflashsacTargetSrc, state.ZBattlefield)
+		cp := moveSeeded(t, ce, 0, pumpSrc, state.ZHand)
+		ce.askPriority(0)
+		submitChoices(t, ce, plainCastOption(t, ce, cp).Index)
+		if td := ce.Pending(); td != nil && td.Kind == decision.KTarget {
+			submitChoices(t, ce, indexOfObjOption(td, cb))
+		}
+		passUntilStackEmpty(t, ce, 30)
+		if got := ce.Power(cb); got != 5 {
+			t.Fatalf("control: the fixture pump did not apply at ordinary timing (power %d, want 5); the cleanup assertion would be vacuous", got)
+		}
+	}
+
+	e, cfg, id := newFixtureDeck(t, 506, mayflashsacEnchantSrc, mayflashsacTargetSrc, pumpSrc)
+	bear := moveSeeded(t, e, 0, mayflashsacTargetSrc, state.ZBattlefield)
+	pump := moveSeeded(t, e, 0, pumpSrc, state.ZHand)
+
+	// Precondition: the pump is a real hand card and the bear a real
+	// battlefield creature at its printed power.
+	if e.G.Obj(pump).Zone != state.ZHand || e.G.Obj(bear).Zone != state.ZBattlefield {
+		t.Fatalf("setup: pump zone %s bear zone %s, want hand/battlefield", e.G.Obj(pump).Zone, e.G.Obj(bear).Zone)
+	}
+	if got := e.Power(bear); got != 2 {
+		t.Fatalf("setup: bear power %d, want printed 2", got)
+	}
+
+	// Cast the keyword card off-sorcery so it registers the cleanup rider.
+	e.askPriority(0)
+	driveToStep(t, e, e.G.Turn, 0, state.StepBeginCombat)
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "G", Amount: 1})
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "C", Amount: 1})
+	e.pending = nil
+	e.askPriority(0)
+	submitChoices(t, e, plainCastOption(t, e, id).Index)
+	passUntilStackEmpty(t, e, 30)
+	if !sawMayFlashSacCleanupRegister(e, id) {
+		t.Fatal("setup: the off-sorcery cast registered no cleanup sacrifice")
+	}
+
+	// Reach the cleanup priority window the sacrifice opens.
+	driveToStepCleanupWindow(t, e, e.G.Turn, 0)
+	if len(e.G.Stack) == 0 {
+		t.Fatal("setup: no cleanup trigger on the stack; the window is not the delayed sacrifice")
+	}
+
+	// Cast the pump in the cleanup window. Precondition: it is offered and
+	// the target ask offers the bear, so the pump will act on it.
+	e.pending = nil
+	e.askPriority(0)
+	submitChoices(t, e, plainCastOption(t, e, pump).Index)
+	td := e.Pending()
+	if td == nil || td.Kind != decision.KTarget {
+		t.Fatalf("pump target decision: %+v", td)
+	}
+	tidx := indexOfObjOption(td, bear)
+	if tidx < 0 {
+		t.Fatalf("pump target ask does not offer the bear %d: %+v", bear, td.Options)
+	}
+	submitChoices(t, e, tidx)
+
+	// The pump resolves (into the graveyard) as the cleanup window drains.
+	// Its effect applies and then, in the SAME drain, the CR 514.3b repeat
+	// runs the 514.2 body and expires it, so the observable state here is
+	// already post-expiry -- that is the fix. Drive to the next turn.
+	for i := 0; i < 80 && !e.G.Over && e.G.Obj(pump).Zone != state.ZGraveyard; i++ {
+		d := e.Pending()
+		if d == nil {
+			e.Advance()
+			d = e.Pending()
+		}
+		if d == nil {
+			t.Fatalf("no decision while the cleanup-window pump resolves")
+		}
+		if d.Kind != decision.KPriority {
+			t.Fatalf("unexpected decision %+v while the cleanup-window pump resolves", d)
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player,
+			Choices: []int{passPriorityOption(t, d)}}); err != nil {
+			t.Fatalf("submit pass: %v", err)
+		}
+	}
+	if e.G.Obj(pump).Zone != state.ZGraveyard {
+		t.Fatal("precondition failed: the cleanup-window pump never resolved")
+	}
+
+	driveToNextTurnMain1(t, e)
+
+	// The repeated cleanup expired the pump before the next turn began. If
+	// the pass skipped the repeat and advanced the turn, the until-end-of-turn
+	// +3/+3 would still be live here (power 5; the control above proves the
+	// pump supplies exactly that when it is not expired).
+	if got := e.Power(bear); got != 2 {
+		t.Fatalf("bear power at the next turn = %d, want 2: a cleanup-window until-end-of-turn effect must expire in the CR 514.3b repeated cleanup, not survive into the next turn", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestMayFlashSacCleanupWindowDrawTriggersRepeatedDiscard is the reviewer's
+// second break attempt: a cleanup-window spell draws the active player over
+// the hand limit, so the repeated cleanup's 514.1 action must ask an
+// oversized hand to discard. Without the repeat, the turn advanced with the
+// hand still over the limit and nothing was asked.
+func TestMayFlashSacCleanupWindowDrawTriggersRepeatedDiscard(t *testing.T) {
+	const drawSrc = "Name:Cleanup Probe\nManaCost:0\nTypes:Instant\nA:SP$ Draw | Defined$ You | NumCards$ 2\nOracle:x\n"
+	e, cfg, id := newFixtureDeck(t, 507, mayflashsacEnchantSrc, drawSrc)
+	probe := moveSeeded(t, e, 0, drawSrc, state.ZHand)
+
+	// Precondition: the active player starts the cleanup window at the hand
+	// limit (7), so casting the free probe and drawing 2 leaves them exactly
+	// one over and there is a real discard owed in the repeat.
+	if probe == 0 || e.G.Obj(probe).Zone != state.ZHand {
+		t.Fatalf("setup: probe not in hand (zone %v)", e.G.Obj(probe).Zone)
+	}
+
+	e.askPriority(0)
+	driveToStep(t, e, e.G.Turn, 0, state.StepBeginCombat)
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "G", Amount: 1})
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "C", Amount: 1})
+	e.pending = nil
+	e.askPriority(0)
+	submitChoices(t, e, plainCastOption(t, e, id).Index)
+	passUntilStackEmpty(t, e, 30)
+	if !sawMayFlashSacCleanupRegister(e, id) {
+		t.Fatal("setup: the off-sorcery cast registered no cleanup sacrifice")
+	}
+
+	driveToStepCleanupWindow(t, e, e.G.Turn, 0)
+	handBefore := len(e.G.Zone(state.ZHand, 0))
+	if handBefore != 7 {
+		t.Fatalf("setup: hand at the cleanup window = %d, want 7 (the limit)", handBefore)
+	}
+
+	// Cast the cantrip in the cleanup window.
+	e.pending = nil
+	e.askPriority(0)
+	submitChoices(t, e, plainCastOption(t, e, probe).Index)
+
+	// Drive through the resolution and the repeat; the repeated cleanup must
+	// open a KChoose discard of the one over-limit card before the next turn
+	// can begin. (The draw happens as the spell resolves, so it is asserted
+	// here, at the point the discard is posed, not before.)
+	var discard *decision.Decision
+	for i := 0; i < 200 && discard == nil; i++ {
+		d := e.Pending()
+		if d == nil {
+			e.Advance()
+			d = e.Pending()
+		}
+		if d == nil {
+			t.Fatalf("no decision while waiting for the repeated cleanup discard")
+		}
+		if d.Kind == decision.KChoose && len(d.Options) > 0 && d.Options[0].Kind == "discard" {
+			discard = d
+			break
+		}
+		if d.Kind != decision.KPriority {
+			t.Fatalf("unexpected decision %+v while waiting for the repeated cleanup discard", d)
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player,
+			Choices: []int{passPriorityOption(t, d)}}); err != nil {
+			t.Fatalf("submit pass: %v", err)
+		}
+	}
+	if discard == nil {
+		t.Fatal("the CR 514.3b repeated cleanup never asked the over-limit hand to discard")
+	}
+	// The probe's draw really happened: the hand is one card over the limit.
+	if got := len(e.G.Zone(state.ZHand, 0)); got != handBefore+1 {
+		t.Fatalf("hand at the repeated cleanup discard = %d, want %d (7 minus the cast, plus the probe's 2)", got, handBefore+1)
+	}
+	if discard.Min != 1 || discard.Max != 1 {
+		t.Fatalf("repeated-cleanup discard Min==Max==%d/%d, want 1/1 (one over the limit)", discard.Min, discard.Max)
+	}
+	if e.G.Step != state.StepCleanup {
+		t.Fatalf("discard asked in step %s, want cleanup (CR 514.1 is a cleanup action)", e.G.Step)
+	}
+	// Answer it and finish the turn; the hand must be back at the limit.
+	handNow := e.G.Zone(state.ZHand, 0)
+	submitDiscard(t, e, handNow[len(handNow)-1])
+	driveToNextTurnMain1(t, e)
+	if got := len(e.G.Zone(state.ZHand, 0)); got != 7 {
+		t.Fatalf("hand after the repeated cleanup = %d, want 7", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestCleanupEmptyStackPassRepeatsCleanup targets the exact CR 514.3b path
+// the reviewer's trace names: a priority round held INSIDE the cleanup step
+// with an EMPTY stack, where handlePriority's pass case used to call
+// advanceStep and begin the next turn outright. That state is reachable --
+// finishCleanupStep's own doc records it: when the trigger drain asks a
+// decision during cleanup, the answer resumes through resumeTriggerDrain,
+// whose tail is grantPriority, "never a priorityRound re-entry". The player
+// then holds priority in cleanup with whatever the drain left on the stack.
+//
+// The test builds exactly that state: an until-end-of-turn pump is live, the
+// step is cleanup, the stack is empty, and priority is granted. Two passes
+// reach handlePriority's empty-stack arm, which must run the cleanup
+// procedure again (expiring the pump) before the turn can end. With
+// advanceStep there instead, the pump survives into the next turn -- the
+// assertion below is what fails.
+func TestCleanupEmptyStackPassRepeatsCleanup(t *testing.T) {
+	e := combatEngine(t)
+	id := onBoard(t, e, 0, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	e.AddContinuous(ContinuousEffect{Source: id, Timestamp: 1, Layer: LPT, Sub: SubModify,
+		Affects: "Card.Self", Controller: 0, AddPower: 3, AddToughness: 3, UntilEOT: true})
+
+	// Precondition: the until-end-of-turn effect is live and the step is
+	// cleanup with an empty stack, so the assertion below is about expiry in
+	// the repeated cleanup and not about an effect that never applied.
+	if got := e.Power(id); got != 5 {
+		t.Fatalf("setup: power %d, want 5 (2 printed + 3 until-end-of-turn)", got)
+	}
+	e.G.Step = state.StepCleanup
+	e.G.Stack = nil
+	e.G.Priority = 0
+	// Reach handlePriority's empty-stack arm in one pass: the pass count is
+	// already at AliveCount-1, so the next pass takes `passes >= AliveCount`.
+	// (With a lower count handlePriority only emits the next Priority event and
+	// Submit's Advance re-enters priorityRound, which repeats the cleanup by a
+	// different route -- that route is covered by the two end-to-end tests
+	// above; this one isolates the empty-stack arm itself.)
+	e.G.Passes = int32(e.G.AliveCount()) - 1
+	e.grantPriority()
+
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("setup: expected a cleanup priority decision, got %+v", d)
+	}
+	if e.G.Step != state.StepCleanup || len(e.G.Stack) != 0 {
+		t.Fatalf("setup: step=%s stack=%d, want cleanup with an empty stack", e.G.Step, len(e.G.Stack))
+	}
+	// One pass now crosses the threshold and lands on the empty-stack arm.
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player,
+		Choices: []int{passPriorityOption(t, d)}}); err != nil {
+		t.Fatalf("submit pass: %v", err)
+	}
+
+	// The cleanup procedure repeated: the 514.2 body expired the pump. Had
+	// handlePriority advanced the step instead, the effect would still read 5
+	// here.
+	if got := e.Power(id); got != 2 {
+		t.Fatalf("power after the empty-stack cleanup pass = %d, want 2: the cleanup step must REPEAT (CR 514.3b) rather than advance, so its 514.2 until-end-of-turn action runs again", got)
+	}
+}
