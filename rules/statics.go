@@ -206,6 +206,66 @@ func (e *Engine) activeStatics(mode string) []staticView {
 	return out
 }
 
+// SurveilLookExtra reports the additional cards a surveil performed by player
+// p looks at, from the battlefield statics with Mode$ SurveilNum whose
+// ValidPlayer$ admits p (Enhanced Surveillance's "You may look at an
+// additional two cards each time you surveil"). mandatory is added to the
+// count unconditionally; optional is the may-look election the surveilling
+// player answers before the arrange ask (effects' effSurveil poses it through
+// its "surveil_look_optional" resume arm). The walk is the canonical
+// activeStatics collector, so a face-down, merged-pile or EffectZone-scoped
+// static is read exactly as every other static mode is, and the order is
+// deterministic. Num$ must be a literal or an SVar name the static's own face
+// defines; anything else fails closed to no contribution, the same direction
+// HandSizeValueOK takes.
+func (e *Engine) SurveilLookExtra(p state.PlayerID) (mandatory, optional int32) {
+	for _, sv := range e.activeStatics("SurveilNum") {
+		spec := strings.TrimSpace(sv.Params["ValidPlayer"])
+		if spec == "" {
+			spec = "You"
+		}
+		if !effects.MatchesPlayerSpec(e.G, spec, p, sv.Controller) {
+			continue
+		}
+		n, ok := e.surveilNumValue(sv)
+		if !ok || n <= 0 {
+			continue
+		}
+		if strings.EqualFold(strings.TrimSpace(sv.Params["Optional"]), "True") {
+			optional += n
+		} else {
+			mandatory += n
+		}
+	}
+	return mandatory, optional
+}
+
+// surveilNumValue prices one SurveilNum static's Num$: a plain decimal
+// literal, else an SVar name resolved against the static's own face table.
+// A missing/empty Num$, an unresolvable SVar and a negative value all report
+// false.
+func (e *Engine) surveilNumValue(sv staticView) (int32, bool) {
+	raw := strings.TrimSpace(sv.Params["Num"])
+	if raw == "" {
+		return 0, false
+	}
+	if v, err := strconv.Atoi(raw); err == nil {
+		if v < 0 {
+			return 0, false
+		}
+		return int32(v), true
+	}
+	body, ok := sv.SVars[raw]
+	if !ok {
+		return 0, false
+	}
+	v, ok := effects.EvalCountOK(e, &effects.Ctx{Source: sv.Source, Controller: sv.Controller, SVars: sv.SVars}, body)
+	if !ok || v < 0 {
+		return 0, false
+	}
+	return v, true
+}
+
 // actorMatches implements the Caster$/Activator$ parameter, which scopes a
 // restriction to whose action it is. A restriction with no such parameter
 // applies regardless of actor.
@@ -2372,6 +2432,11 @@ func init() {
 	effects.RegisterNonAPI("stat:CantBeCast", "stat:CantBeActivated", "stat:RaiseCost", "stat:CastWithFlash",
 		"stat:ReduceCost", "stat:AlternativeCost", "stat:CantBlock", "stat:CantBlockBy",
 		"stat:CantGainLife", "stat:Continuous", "stat:ManaConvert", "stat:NumLoyaltyAct",
+		// surveilnum1: the stat:SurveilNum static (Host.SurveilLookExtra,
+		// consulted by effects' effSurveil through the shared activeStatics
+		// collector). Only the literal-or-SVar Num$ value and the Optional$
+		// election are read; a Num$ this build cannot price fails closed.
+		"stat:SurveilNum",
 		// combatrestriction1: the three combat/sacrifice restriction statics.
 		// CantAttack is enforced per (attacker, defender) pair
 		// (rules/layers.go attackBlocked, consulted by askAttackers /

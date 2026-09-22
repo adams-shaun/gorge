@@ -1535,6 +1535,19 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			if len(chosen) > 0 && chosen[0].Kind == "yes" {
 				ctx.AttachOpt = "yes"
 			}
+		case "surveil_look_optional":
+			// The stat:SurveilNum optional "you may look at an additional N
+			// cards each time you surveil" election (Enhanced Surveillance)
+			// was answered. The bare yes/no rides Ctx.SurveilLookOpt as a
+			// done-marker the re-entered effSurveil consumes and clears
+			// (fx42 scoping): "yes" adds the static's Num$ to the surveil
+			// count, anything else -- the decline -- keeps the base count. A
+			// malformed or empty answer keeps the decline, the conservative
+			// read attach_optional takes.
+			ctx.SurveilLookOpt = "no"
+			if len(chosen) > 0 && chosen[0].Kind == "yes" {
+				ctx.SurveilLookOpt = "yes"
+			}
 		case "attach_choice":
 			// A Choices$ Attach's card choice was answered (Goldwardens'
 			// Gambit's "for each of those tokens, you may attach an Equipment

@@ -2193,7 +2193,7 @@ func effScry(h Host, c *Ctx, sa *cards.SA) {
 	// Command's `ScryNum$ X` Charm mode resolves the announced X through the
 	// same Num grammar a literal would take).
 	n := Num(h, c, sa, "ScryNum", 1)
-	effLookAndArrange(h, c, sa, n, "bottom", "Scry")
+	effLookAndArrange(h, c, sa, n, "bottom", "Scry", nil)
 }
 
 // effSurveil implements the Surveil prompt API (CR 701.42): look at the top
@@ -2206,18 +2206,64 @@ func effScry(h Host, c *Ctx, sa *cards.SA) {
 // Re-entry and the no-host stand-in are exactly effScry's (the same shared
 // helper): the stand-in puts nothing in the graveyard, which is narrower
 // than the card text but deterministic.
+//
+// stat:SurveilNum raises the count ("You may look at an additional two
+// cards each time you surveil"): the battlefield statics are read per
+// surveilling player by rules (Host.SurveilLookExtra, the canonical
+// activeStatics collector), and an Optional$ static's "may" is a real
+// election. The answered marker rides Ctx.SurveilLookOpt and is consumed and
+// cleared here (fx42 scoping), so a nested Surveil poses its own ask; "yes"
+// adds the static's Num$, anything else -- the no-host R-9 decline included
+// -- keeps the base count.
 func effSurveil(h Host, c *Ctx, sa *cards.SA) {
 	n := Num(h, c, sa, "Amount", 1)
-	effLookAndArrange(h, c, sa, n, "graveyard", "Surveil")
+	ans := c.SurveilLookOpt
+	c.SurveilLookOpt = ""
+	if ans == "" {
+		// First pass: pose the election once, for the single surveilling
+		// player carrying an optional static. Several surveilling players
+		// with different optional extras are the same narrowing the arrange
+		// walk already takes (it asks only the first library): the answer
+		// here is one player's.
+		players := actingPlayers(h, c, sa)
+		if len(players) == 1 {
+			p := PlayerOf(h, c, players[0])
+			if _, optional := h.SurveilLookExtra(p); optional > 0 {
+				d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
+					Source: c.Source, ResumeKind: "surveil_look_optional", ResumeSA: sa,
+					Prompt: "Look at " + strconv.Itoa(int(optional)) + " additional card(s) each time you surveil?",
+					Options: []decision.Option{
+						{Index: 0, Kind: "yes", Label: "Yes — look", Player: p},
+						{Index: 1, Kind: "no", Label: "No", Player: p},
+					}}
+				// AskAsked suspends; the answer re-enters with Ctx.SurveilLookOpt
+				// set. AskNoHost is the deterministic decline stand-in (R-9) --
+				// the same class attach_optional falls back to (the
+				// clamp-answered bot path answers option 0 = "yes").
+				_ = Ask(h, d)
+				return
+			}
+		}
+	}
+	extraOf := func(p state.PlayerID) int32 {
+		mand, optional := h.SurveilLookExtra(p)
+		if ans == "yes" {
+			return mand + optional
+		}
+		return mand
+	}
+	effLookAndArrange(h, c, sa, n, "graveyard", "Surveil", extraOf)
 }
 
 // effLookAndArrange is the shared KArrange body behind effScry and
-// effSurveil: the count (ScryNum$ / Amount$, default 1) is resolved by the
-// calling api implementation through Num; this body resolves Defined$ (default = the ability's source, hence its controller),
-// and pose one KArrange decision per target library over the top min(N,
-// len(lib)) cards. The unchosen pile B's destination is the shared Option.Kind
-// passed in; only that differs between the two primitives.
-func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, n int32, kind, verb string) {
+// effSurveil: the base count (ScryNum$ / Amount$, default 1) is resolved by
+// the calling api implementation through Num; this body resolves Defined$
+// (default = the ability's source, hence its controller), adds extraOf's
+// per-player addition (the stat:SurveilNum static; nil for a Scry), and
+// poses one KArrange decision per target library over the top min(N,
+// len(lib)) cards. The unchosen pile B's destination is the shared
+// Option.Kind passed in; only that differs between the two primitives.
+func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, n int32, kind, verb string, extraOf func(state.PlayerID) int32) {
 	// Re-entry after rules' handleArrange applied the answered KArrange and
 	// emitted the LibraryOrder event: this pass must only let the resolution
 	// continue (the chained SubAbility$ runs), not re-ask or re-emit.
@@ -2233,6 +2279,12 @@ func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, n int32, kind, verb string)
 		p := PlayerOf(h, c, t)
 		lib := zoneOf(g, state.ZLibrary, p)
 		k := n
+		if extraOf != nil {
+			k += extraOf(p)
+		}
+		if k < 0 {
+			k = 0
+		}
 		if int32(len(lib)) < k {
 			k = int32(len(lib))
 		}
