@@ -636,10 +636,10 @@ func TestTotalPowerCapOfZeroIsEnforced(t *testing.T) {
 	if d == nil || d.Kind != decision.KTarget {
 		t.Fatalf("pending = %+v, want the ability-path KTarget ask", d)
 	}
-	// The budget is ABSENT (a zero cap reads as no budget on the wire); the
-	// cap is carried by the pruning instead.
-	if d.MaxSum != 0 {
-		t.Fatalf("MaxSum = %d, want 0 (a zero cap attaches no budget)", d.MaxSum)
+	// The zero cap rides the wire as a PRESENT budget (Budgeted, MaxSum 0):
+	// a MaxSum of 0 alone reads as no budget.
+	if d.MaxSum != 0 || !d.Budgeted || !d.HasBudget() {
+		t.Fatalf("MaxSum = %d Budgeted = %v, want a present budget of 0", d.MaxSum, d.Budgeted)
 	}
 	offerSet := map[state.ObjID]decision.Option{}
 	for _, o := range d.Options {
@@ -669,6 +669,87 @@ func TestTotalPowerCapOfZeroIsEnforced(t *testing.T) {
 		if o := e.G.Obj(grave[name]); o == nil || o.Zone != state.ZGraveyard {
 			t.Fatalf("%s = %+v, want still in the graveyard", name, o)
 		}
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestTotalPowerCapOfZeroKeepsANegativeOffsetSelection: a nonpositive cap
+// follows the SAME offset rule as a positive one (sol1 review MAJOR). With
+// the opponent at 21 life Scourge of the Skyclaves's CDA reads -1 in the
+// graveyard, so under a MaxTotalTargetPower$ of 0 the 1-power Llanowar Elves
+// is a legal target beside it (1 + (-1) = 0) and must stay offered, while
+// the 2-power Grizzly Bears (2 - 1 = 1 > 0 at best) is pruned. The cap must
+// ride the wire as a present zero budget (Decision.Budgeted), so Validate
+// rejects the Elves alone and accepts the compensated pair, and the real bot
+// (botpolicy.Decide through Clamp) must hand back an answer Validate accepts
+// -- the one-home rule that keeps the offer, the engine check and the bot
+// from ever disagreeing into a livelock.
+func TestTotalPowerCapOfZeroKeepsANegativeOffsetSelection(t *testing.T) {
+	reg := searchTestRegistry(t)
+	fixture := card(t, "Name:PowerReclaimerZeroOffset\nManaCost:2\nTypes:Creature\n"+
+		"A:AB$ ChangeZone | Cost$ 0 | Origin$ Graveyard | Destination$ Battlefield | "+
+		"TargetMin$ 0 | TargetMax$ X | ValidTgts$ Creature.YouOwn | MaxTotalTargetPower$ 0\n"+
+		"SVar:X:Count$ValidGraveyard Creature.YouOwn\nOracle:x\n")
+	e, cfg, src, grave := reunionEngine(t, reg, 5508, fixture,
+		"Llanowar Elves", "Scourge of the Skyclaves", "Grizzly Bears")
+	if o := e.G.Obj(src); o == nil || o.Zone != state.ZBattlefield {
+		e.emit(events.Event{Kind: events.MoveZone, Obj: src, From: o.Zone, To: state.ZBattlefield})
+	}
+	e.emit(events.Event{Kind: events.LifeChange, Player: 1, Amount: 21 - e.G.Players[1].Life})
+	e.pending = nil
+	e.priorityRound()
+	elves, scourge, bears := grave["Llanowar Elves"], grave["Scourge of the Skyclaves"], grave["Grizzly Bears"]
+	if elves == 0 || scourge == 0 || bears == 0 {
+		t.Fatalf("graveyard = %+v, want Elves, Scourge and Bears (precondition)", grave)
+	}
+	for id, want := range map[state.ObjID]int32{elves: 1, scourge: -1, bears: 2} {
+		if o := e.G.Obj(id); o.Zone != state.ZGraveyard || e.Power(id) != want {
+			t.Fatalf("%s zone %v power %d, want the graveyard at %d (precondition)",
+				o.Face().Name, o.Zone, e.Power(id), want)
+		}
+	}
+
+	submitChoices(t, e, abilityOption(t, e, src, 0).Index)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("pending = %+v, want the ability-path KTarget ask", d)
+	}
+	if !d.HasBudget() || d.MaxSum != 0 {
+		t.Fatalf("MaxSum = %d Budgeted = %v, want a present budget of 0", d.MaxSum, d.Budgeted)
+	}
+	offerSet := map[state.ObjID]decision.Option{}
+	for _, o := range d.Options {
+		offerSet[o.Obj] = o
+	}
+	el, ok := offerSet[elves]
+	if !ok {
+		t.Fatalf("the 1-power Elves was pruned though the -1-power Scourge offsets it under a cap of 0: options=%+v", d.Options)
+	}
+	sc, ok := offerSet[scourge]
+	if !ok || sc.Value != -1 || el.Value != 1 {
+		t.Fatalf("options = %+v, want Elves (Value 1) and Scourge (Value -1)", d.Options)
+	}
+	if _, ok := offerSet[bears]; ok {
+		t.Fatalf("the 2-power Bears was offered though no offset brings it to 0: options=%+v", d.Options)
+	}
+	if err := d.Validate(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{el.Index}}); err == nil {
+		t.Fatal("Elves alone (total 1) validated under a cap of 0")
+	}
+	if err := d.Validate(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{el.Index, sc.Index}}); err != nil {
+		t.Fatalf("the compensated 1 + (-1) = 0 answer was rejected: %v", err)
+	}
+	if in := newTestBot(1).answer(e, d); d.Validate(in) != nil {
+		t.Fatalf("bot answer %v failed Validate: %v", in.Choices, d.Validate(in))
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{el.Index, sc.Index}}); err != nil {
+		t.Fatalf("compensated answer rejected on submit: %v", err)
+	}
+	passUntilStackEmpty(t, e, 20)
+	if o := e.G.Obj(elves); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("Llanowar Elves = %+v, want on the battlefield", o)
+	}
+	if o := e.G.Obj(bears); o == nil || o.Zone != state.ZGraveyard {
+		t.Fatalf("Grizzly Bears = %+v, want still in the graveyard", o)
 	}
 	replayCheck(t, e, cfg)
 }

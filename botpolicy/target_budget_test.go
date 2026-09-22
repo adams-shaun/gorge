@@ -141,3 +141,62 @@ func TestTargetWithoutMaxSumUnchanged(t *testing.T) {
 		t.Fatalf("choices = %v, want all three (full-width policy unchanged)", in.Choices)
 	}
 }
+
+// A NEGATIVE budget (Budgeted, MaxTotalTargetPower$ below zero) busts even
+// the empty answer, so the bot's repair must take enough negative options to
+// reach it -- including one the fold alone skips because its own offset is
+// not enough on its own (-1 does not reach -2 until the other -1 joins). A
+// price-blind preference for the positive option must never come back as
+// an answer Validate rejects (the livelock the shared FitRequired rule
+// exists to prevent).
+func TestTargetBudgetNegativeCapTakesTheOffsets(t *testing.T) {
+	b := Board{Cards: map[state.ObjID]Card{}}
+	d := decision.Decision{
+		Player:   0,
+		Kind:     decision.KTarget,
+		Min:      0,
+		Max:      3,
+		MaxSum:   -2,
+		Budgeted: true,
+		Options: []decision.Option{
+			{Index: 0, Kind: "permanent", Obj: state.ObjID(1), Value: 1},
+			{Index: 1, Kind: "permanent", Obj: state.ObjID(2), Value: -1},
+			{Index: 2, Kind: "permanent", Obj: state.ObjID(3), Value: -1},
+		},
+	}
+	for _, pref := range [][]int{{0}, {}, {0, 1}} {
+		got := d.FitRequired(pref)
+		if err := d.Validate(decision.Intent{Choices: got}); err != nil {
+			t.Fatalf("FitRequired(%v) = %v failed Validate: %v", pref, got, err)
+		}
+	}
+	in := Decide(b, &d, rng(1))
+	if err := d.Validate(in); err != nil {
+		t.Fatalf("bot answer %v failed Validate: %v", in.Choices, err)
+	}
+}
+
+// A ZERO budget is a present budget only when Budgeted is set: the same
+// options with Budgeted false keep the historical budget-less reading
+// (MaxSum 0 = none), so no existing decision changes meaning.
+func TestTargetBudgetZeroCapNeedsBudgeted(t *testing.T) {
+	d := decision.Decision{Kind: decision.KTarget, Min: 0, Max: 2,
+		Options: []decision.Option{
+			{Index: 0, Kind: "permanent", Obj: state.ObjID(1), Value: 2},
+			{Index: 1, Kind: "permanent", Obj: state.ObjID(2), Value: -1},
+		}}
+	if err := d.Validate(decision.Intent{Choices: []int{0}}); err != nil {
+		t.Fatalf("budget-less decision rejected an answer: %v", err)
+	}
+	d.Budgeted = true
+	if err := d.Validate(decision.Intent{Choices: []int{0}}); err == nil {
+		t.Fatal("a total of 2 validated under a present budget of 0")
+	}
+	if err := d.Validate(decision.Intent{Choices: []int{0, 1}}); err == nil {
+		t.Fatal("a total of 1 validated under a present budget of 0")
+	}
+	in := Decide(Board{Cards: map[state.ObjID]Card{}}, &d, rng(1))
+	if err := d.Validate(in); err != nil {
+		t.Fatalf("bot answer %v failed Validate: %v", in.Choices, err)
+	}
+}

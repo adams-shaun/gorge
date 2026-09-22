@@ -338,6 +338,14 @@ type Decision struct {
 	// unaffordable pick without summing anything itself. 0 (no budget) omits
 	// the field, so every existing decision serialises byte-identically.
 	MaxSum int `json:"maxSum,omitempty"`
+	// Budgeted marks MaxSum as a PRESENT budget even when it is zero or
+	// negative: a MaxSum of 0 alone reads as "no budget" (the omitempty
+	// zero), which cannot express a total-power cap of 0 or less
+	// (MaxTotalTargetPower$ <= 0, where negative-power options can offset a
+	// positive one: powers 2,-1,-1 under a cap of 0 total 0). HasBudget is
+	// the one reader; false (the zero) omits the field, so every existing
+	// decision serialises byte-identically.
+	Budgeted bool `json:"budgeted,omitempty"`
 	// Repeatable relaxes Validate's no-duplicate-index rule: when true the
 	// SAME option index may be chosen more than once in one answer. It is
 	// set only by a modal (Charm) decision whose SA carries
@@ -439,6 +447,14 @@ func New(player state.PlayerID, kind Kind, prompt string, min, max int, options 
 	return &Decision{Player: player, Kind: kind, Prompt: prompt, Min: min, Max: max, Options: options}
 }
 
+// HasBudget reports whether the decision carries a cumulative budget over
+// its options' Value fields: MaxSum > 0 (every historical setter), or
+// Budgeted with any MaxSum (a zero or negative cap). Validate, the bot's
+// repair (FitRequired/Clamp) and every budget-aware policy arm read this one
+// predicate, so what the engine enforces and what a client assembles cannot
+// disagree about whether a budget exists.
+func (d *Decision) HasBudget() bool { return d.MaxSum > 0 || d.Budgeted }
+
 // Intent is a client's answer.
 type Intent struct {
 	Seq     uint64         `json:"seq"`
@@ -484,7 +500,7 @@ func (d *Decision) Validate(in Intent) error {
 	// the field says nothing about cards or mana values, only that the picked
 	// set's total price is capped -- so a client can enforce it without
 	// learning any rules.
-	if d.MaxSum > 0 {
+	if d.HasBudget() {
 		sum := 0
 		for _, c := range in.Choices {
 			sum += d.Options[c].Value
