@@ -151,6 +151,16 @@ type pendingCast struct {
 	multikickTimes int32
 	multikickDone  bool
 
+	// escalateParam is the raw Escalate keyword parameter (the modal
+	// additional cost "pay this for each mode chosen beyond the first") a
+	// Charm cast re-parses once the CR 601.2b mode answer is in; escalateDone
+	// marks the one fold already applied. There is no separate cast option --
+	// unlike Kicker, Escalate rides the mode count of the plain cast. Plain
+	// data, so Clone copies it like the replicate/multikick fields above.
+	escalateParam string
+	escalateSet   bool
+	escalateDone  bool
+
 	// Mutate (CR 702.140b): mutateTop is the answered over/under placement
 	// choice and mutatePlaceDone marks the one ask already posed. Plain data,
 	// so Clone copies them like the replicate/multikick fields above.
@@ -1920,6 +1930,16 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		e.cast = &pendingCast{player: p, card: id, from: from, mode: opt.Mode, ability: -1,
 			cost: cost, faceBefore: faceBefore, mods: mods, taxGeneric: tax}
 	}
+	// Escalate (the modal additional cost "pay this for each mode chosen
+	// beyond the first"): the cost is carried as its raw keyword parameter
+	// and re-parsed by the cast_modes answer handler -- the same
+	// string-survives-Clone convention the replicate capture below documents.
+	// Escalate rides the plain cast (no separate option exists): the CR
+	// 601.2b mode answer's chosen count is what prices it, so the capture is
+	// mode-blind.
+	if s, ok := f.KeywordParam("Escalate"); ok && strings.TrimSpace(s) != "" {
+		e.cast.escalateParam, e.cast.escalateSet = s, true
+	}
 	// The announce-bearing alternative (the Shoal cycle) and the
 	// TargetsWithSameController rider (Lodestone Bauble) ride the selected
 	// cast SA into the transaction: xAsk's announce arm and exAsk's binding
@@ -2954,6 +2974,32 @@ func (e *Engine) castModeAsk() bool {
 		legal = append(legal, name)
 	}
 	min, max, repeat := effects.CharmModeBounds(e, ctx, sa, len(legal))
+	// Escalate (the modal additional cost): a cast choosing N modes pays the
+	// escalate cost N-1 times, so a mode count the board cannot pay for is
+	// not a legal announcement -- clamp Max to 1 + the largest number of
+	// escalate payments the SAME affordability checker the payment window's
+	// composed total faces (castable) still admits, the replicateAsk shape,
+	// pool-only at ask time (the CR 601.2g window afterwards may still
+	// produce mana). The loop is bounded by the bounds Max itself, so it
+	// terminates. An unpriceable parameter cannot clamp (it also cannot
+	// charge -- the answer handler emits a loud Note instead), so the
+	// CharmNum$ bounds stay honest on the wire.
+	if pc.escalateSet {
+		if esc := ParseCost(pc.escalateParam); len(esc.Unknown) == 0 {
+			maxEscalations := 0
+			cand := pc.cost
+			for 1+maxEscalations < max {
+				if !e.castable(pc.player, pc.card, cand.Plus(esc), false) {
+					break
+				}
+				cand = cand.Plus(esc)
+				maxEscalations++
+			}
+			if clamped := 1 + maxEscalations; clamped < max {
+				max = clamped
+			}
+		}
+	}
 	if min > len(legal) && !repeat {
 		// No legal set of modes can complete its required target choices or
 		// pay its per-mode costs. This is the modal counterpart of targetAsk's
@@ -2962,6 +3008,16 @@ func (e *Engine) castModeAsk() bool {
 		// repeatable Charm can fill its slots by repeating an eligible mode, so
 		// it never aborts here.
 		e.abortCast(pc, "cast aborted: no legal modal choice", true)
+		return true
+	}
+	// The defensive floor: a clamp below MinCharmNum$ cannot occur for the
+	// corpus (every Escalate carrier's MinCharmNum$ is 1 and the clamp's
+	// floor is 1 + 0 = 1), but a Min-2 future carrier on an unaffordable
+	// board must abort loudly rather than pose an ask no legal answer
+	// satisfies -- the same no-progress suppression as the no-legal-mode
+	// abort above.
+	if max < min {
+		e.abortCast(pc, "cast aborted: no affordable modal choice", true)
 		return true
 	}
 	d := modeDecisionForChoices(pc.player, pc.card, sa, f.SVars, legal, min, max, repeat)
@@ -6805,6 +6861,15 @@ func init() {
 		// (the mandatory either-or additional cost choice).
 		"kw:Evoke", "kw:Dash", "kw:Overload", "kw:Warp", "kw:Madness",
 		"kw:Encore", "kw:AlternateAdditionalCost",
+		// kw:Escalate: the modal additional cost "pay this for each mode chosen
+		// beyond the first" -- read directly off the K: line by beginCast's
+		// capture and the cast_modes answer handler's fold, and bounded by
+		// castModeAsk's affordable-escalation clamp (no keyword expansion; the
+		// plain Charm cast is the only way in). The mode ask's Max is clamped
+		// to 1 + the affordable escalations so an unpayable mode count is
+		// never offered. All 9 corpus carriers parse (7 plain mana,
+		// tapXType<1/Creature> and Discard<1/Card>).
+		"kw:Escalate",
 		// kw:Escape: CR 702.135, the graveyard cast with its exile cost, read
 		// off the K: line by derivedKeywordParam and gated in legal.go's
 		// cast walk -- proved by TestUnderworldBreachGrantsEscapeAndTheEscape
