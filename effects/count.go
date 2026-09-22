@@ -1425,7 +1425,13 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		// distinguishes that from an evaluated zero.
 		parts := strings.Fields(arg)
 		if len(parts) == 3 && c.Controller >= 0 && playerSpecBaseKnown(parts[1]) && parts[2] != "" {
-			return h.CountersAddedThisTurn(parts[0], parts[1], parts[2], c.SpecContext(c.Controller)), true
+			// The measured grammar needs only You and Source: Card.Self and
+			// Card.EffectSource resolve from Source, while the other forms are
+			// object/player predicates. Do not pass c.SpecContext here: handing
+			// its resolution slices through the Host interface makes c escape,
+			// allocating on the Derived hot path.
+			sc := SpecContext{You: c.Controller, Source: c.Source}
+			return h.CountersAddedThisTurn(parts[0], parts[1], parts[2], sc), true
 		}
 	case "CountersRemovedThisTurn":
 		// Count$CountersRemovedThisTurn <KIND> <Player> — the number of counters
