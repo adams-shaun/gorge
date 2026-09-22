@@ -16,7 +16,9 @@ import (
 )
 
 // sharesAllFixture builds a 2-seat game with two Grizzly-Bear-shaped cards, a
-// Forest-shaped card and a bear-land-shaped card (Creature Land) as objects.
+// Forest-shaped card and a bear-land-shaped card (Creature Land) as objects,
+// plus an Instant and a Sorcery (the card types the old fixed probe list
+// omitted — the r2 review's false positive).
 func sharesAllFixture(t *testing.T) (*fakeHost, state.ObjID, state.ObjID, state.ObjID, state.ObjID) {
 	t.Helper()
 	h := newHost(t, 2)
@@ -112,6 +114,78 @@ func TestRememberedValidSharesAllCount(t *testing.T) {
 	c = &Ctx{Controller: 0, Remembered: []state.Target{{Obj: bear1}, {Obj: forest}}}
 	if n, ok := EvalCountOK(h, c, body); !ok || n != 0 {
 		t.Fatalf("EvalCountOK(bear, forest) = %d,%v, want 0,true", n, ok)
+	}
+}
+
+// TestSharesAllCardTypesInstantSorcery is the r2-review regression: the
+// probe must be the candidate's ACTUAL card types, not a fixed list. An
+// Instant and a Sorcery share NO card type, so neither matches and the
+// count reads 0 (before the fix both trivially passed a list with no
+// Instant/Sorcery entry and the count read 2 — the Covenant sacrificed
+// after milling two spells). Two instants DO share theirs: both match,
+// count 2. The intersection sibling sharesCardTypeWith is pinned on the
+// same vocabulary: two instants intersect, instant/sorcery does not.
+func TestSharesAllCardTypesInstantSorcery(t *testing.T) {
+	h := newHost(t, 2)
+	bolt1 := h.g.AddObject(mkCard(t, "Name:Bolt\nTypes:Instant\nOracle:x\n"), 0)
+	bolt2 := h.g.AddObject(mkCard(t, "Name:Other Bolt\nTypes:Instant\nOracle:x\n"), 0)
+	ritual := h.g.AddObject(mkCard(t, "Name:Ritual\nTypes:Sorcery\nOracle:x\n"), 0)
+	bear := h.g.AddObject(mkCard(t, "Name:Bear\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"), 0)
+	g := h.g
+	spec := "Card.sharesAllCardTypesWithOther Remembered"
+	countBody := "Remembered$Valid Card.sharesAllCardTypesWithOther Remembered"
+
+	// Instant + Sorcery: no shared card type — neither matches, count 0.
+	sc := SpecContext{You: 0, Remembered: []state.Target{{Obj: bolt1.ID}, {Obj: ritual.ID}}}
+	if MatchesObjectCtx(g, spec, g.Obj(bolt1.ID), sc) {
+		t.Errorf("an Instant must not share all its card types with a Sorcery")
+	}
+	if MatchesObjectCtx(g, spec, g.Obj(ritual.ID), sc) {
+		t.Errorf("a Sorcery must not share all its card types with an Instant")
+	}
+	c := &Ctx{Controller: 0, Remembered: []state.Target{{Obj: bolt1.ID}, {Obj: ritual.ID}}}
+	if n, ok := EvalCountOK(h, c, countBody); !ok || n != 0 {
+		t.Errorf("count(instant, sorcery) = %d,%v, want 0,true", n, ok)
+	}
+
+	// Instant + Creature: same answer.
+	sc = SpecContext{You: 0, Remembered: []state.Target{{Obj: bolt1.ID}, {Obj: bear.ID}}}
+	if MatchesObjectCtx(g, spec, g.Obj(bolt1.ID), sc) {
+		t.Errorf("an Instant must not share all its card types with a Creature")
+	}
+
+	// Instant + Instant: both match, count 2 — the GE2 gate's positive case
+	// for spells.
+	sc = SpecContext{You: 0, Remembered: []state.Target{{Obj: bolt1.ID}, {Obj: bolt2.ID}}}
+	if !MatchesObjectCtx(g, spec, g.Obj(bolt1.ID), sc) {
+		t.Errorf("an Instant must share all its card types with another Instant")
+	}
+	if !MatchesObjectCtx(g, spec, g.Obj(bolt2.ID), sc) {
+		t.Errorf("the second Instant must share all its card types with the first")
+	}
+	c = &Ctx{Controller: 0, Remembered: []state.Target{{Obj: bolt1.ID}, {Obj: bolt2.ID}}}
+	if n, ok := EvalCountOK(h, c, countBody); !ok || n != 2 {
+		t.Errorf("count(instant, instant) = %d,%v, want 2,true", n, ok)
+	}
+
+	// The intersection sibling sharesCardTypeWith on the same vocabulary:
+	// instant/instant intersects, instant/sorcery and instant/creature do
+	// not. The referent set holds only the OTHER card (the intersection,
+	// unlike the all-variant, has no self-exclusion — a card trivially
+	// shares a card type with itself, so a self-including set would
+	// trivially match).
+	xspec := "Card.sharesCardTypeWith Remembered"
+	sc = SpecContext{You: 0, Remembered: []state.Target{{Obj: bolt2.ID}}}
+	if !MatchesObjectCtx(g, xspec, g.Obj(bolt1.ID), sc) {
+		t.Errorf("sharesCardTypeWith: an Instant must intersect another Instant")
+	}
+	sc = SpecContext{You: 0, Remembered: []state.Target{{Obj: ritual.ID}}}
+	if MatchesObjectCtx(g, xspec, g.Obj(bolt1.ID), sc) {
+		t.Errorf("sharesCardTypeWith: an Instant must not intersect a Sorcery")
+	}
+	sc = SpecContext{You: 0, Remembered: []state.Target{{Obj: bear.ID}}}
+	if MatchesObjectCtx(g, xspec, g.Obj(bolt1.ID), sc) {
+		t.Errorf("sharesCardTypeWith: an Instant must not intersect a Creature")
 	}
 }
 

@@ -542,6 +542,24 @@ func sharesTypeReferents(g *state.Game, sc SpecContext, ref string) []state.Targ
 // power/toughness/counters, not types). An unbound referent matches
 // nothing — fail closed, never widened.
 func sharesCardTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref string) bool {
+	// The candidate's ACTUAL card types, enumerated from its printed face
+	// through the CR 205.1 vocabulary (cardTypeWords) — the same enumeration
+	// sharesAllCardTypesWithOther probes. A FIXED probe list would miss the
+	// Instant/Sorcery half of the vocabulary, so two instants "sharing a
+	// card type" (Possibility Storm's dig, Cemetery Gatekeeper's trigger)
+	// would never intersect. A face enumerating to no card type is
+	// malformed; fail closed.
+	var oTypes []string
+	if f := o.Face(); f != nil {
+		for _, x := range f.Types {
+			if cardTypeWords[x] {
+				oTypes = append(oTypes, x)
+			}
+		}
+	}
+	if len(oTypes) == 0 {
+		return false
+	}
 	for _, t := range sharesTypeReferents(g, sc, ref) {
 		if t.IsPlayer {
 			continue
@@ -550,8 +568,8 @@ func sharesCardTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref stri
 		if r == nil {
 			continue
 		}
-		for _, cardType := range []string{"Artifact", "Battle", "Creature", "Enchantment", "Land", "Planeswalker"} {
-			if hasType(o, cardType) && hasType(r, cardType) {
+		for _, cardType := range oTypes {
+			if hasType(r, cardType) {
 				return true
 			}
 		}
@@ -578,6 +596,26 @@ func sharesCardTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref stri
 // sharesCardTypeWith's read. An unbound referent matches nothing — fail
 // closed, never widened.
 func sharesAllCardTypesWithOther(g *state.Game, o *state.Object, sc SpecContext, ref string) bool {
+	// The candidate's ACTUAL card types, enumerated from its printed face and
+	// filtered by the CR 205.1 card-type vocabulary (cardTypeWords — the same
+	// set Count$Valid...$CardTypes counts for Tarmogoyf). Probing a FIXED
+	// list instead would trivially pass any candidate whose card types are
+	// all outside the list (an Instant or a Sorcery would "share all its
+	// card types" with anything — the false positive the GE2 gate exists to
+	// prevent), so the probe is the enumeration, not a list. A face that
+	// enumerates to no card type at all is malformed; fail closed rather
+	// than trivially matching.
+	var oTypes []string
+	if f := o.Face(); f != nil {
+		for _, x := range f.Types {
+			if cardTypeWords[x] {
+				oTypes = append(oTypes, x)
+			}
+		}
+	}
+	if len(oTypes) == 0 {
+		return false
+	}
 	for _, t := range sharesTypeReferents(g, sc, ref) {
 		if t.IsPlayer {
 			continue
@@ -587,8 +625,8 @@ func sharesAllCardTypesWithOther(g *state.Game, o *state.Object, sc SpecContext,
 			continue
 		}
 		all := true
-		for _, cardType := range []string{"Artifact", "Battle", "Creature", "Enchantment", "Land", "Planeswalker"} {
-			if hasType(o, cardType) && !hasType(r, cardType) {
+		for _, cardType := range oTypes {
+			if !hasType(r, cardType) {
 				all = false
 				break
 			}
@@ -600,6 +638,7 @@ func sharesAllCardTypesWithOther(g *state.Game, o *state.Object, sc SpecContext,
 	return false
 }
 
+// sharesCreatureTypeWith reports whether o shares at least one CREATURE
 // subtype with any object the referent names (Forge
 // Card.sharesCreatureTypeWith: an intersection over the creature subtypes —
 // Heirloom Blade's "a creature card that shares a creature type with it").

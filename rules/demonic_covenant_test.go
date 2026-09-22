@@ -28,13 +28,19 @@ import (
 // move, in top-to-bottom order.
 func covenantEngine(t *testing.T, reg *cards.Registry, top ...*cards.Card) (*Engine, state.ObjID, []state.ObjID) {
 	t.Helper()
+	return covenantEngineFiller(t, reg, searchCorpusCard(t, reg, "Forest"), searchCorpusCard(t, reg, "Grizzly Bears"), top...)
+}
+
+// covenantEngineFiller is covenantEngine with configurable deck filler, so a
+// test can load spells (the sharesAll gate's instant/sorcery cases) into the
+// milled library.
+func covenantEngineFiller(t *testing.T, reg *cards.Registry, fillerA, fillerB *cards.Card, top ...*cards.Card) (*Engine, state.ObjID, []state.ObjID) {
+	t.Helper()
 	covenant := searchCorpusCard(t, reg, "Demonic Covenant")
-	forest := searchCorpusCard(t, reg, "Forest")
-	bear := searchCorpusCard(t, reg, "Grizzly Bears")
 
 	deck := []*cards.Card{covenant}
 	for len(deck) < 40 {
-		deck = append(deck, forest, bear)
+		deck = append(deck, fillerA, fillerB)
 	}
 	cfg := seatZeroStart(Config{Seed: 9901, Names: []string{"covenanter", "opponent"},
 		Decks: [][]*cards.Card{deck, mountainDeck(t, 40)}, Tokens: reg.Tokens})
@@ -198,6 +204,46 @@ func TestDemonicCovenantStaysWhenMilledCardsDifferInType(t *testing.T) {
 	// 0, the gate fails closed the other way, and the Covenant stays.
 	passUntilStackEmpty(t, e, 40)
 	covenantAssertions(t, e, covID, milled, false)
+}
+
+// TestDemonicCovenantStaysWhenMilledSpellsShareNoType is the r2-review
+// regression, end to end: the gate's count head enumerates the candidate's
+// ACTUAL card types, so two milled SPELLS that share no card type (an
+// Instant and a Sorcery) must NOT fire the GE2 gate. Before the fix the
+// fixed probe list had no Instant/Sorcery entry, both trivially passed and
+// the Covenant sacrificed itself after milling two spells.
+func TestDemonicCovenantStaysWhenMilledSpellsShareNoType(t *testing.T) {
+	reg := searchTestRegistry(t)
+	bolt := searchCorpusCard(t, reg, "Lightning Bolt")
+	growth := searchCorpusCard(t, reg, "Rampant Growth")
+	e, covID, milled := covenantEngineFiller(t, reg, bolt, growth, bolt, growth)
+
+	// Precondition: the mill's window really holds an Instant and a Sorcery.
+	if f := e.G.Obj(milled[0]).Face(); f == nil || f.Name != "Lightning Bolt" {
+		t.Fatalf("milled top card = %+v, want Lightning Bolt", f)
+	}
+	if f := e.G.Obj(milled[1]).Face(); f == nil || f.Name != "Rampant Growth" {
+		t.Fatalf("milled second card = %+v, want Rampant Growth", f)
+	}
+
+	passUntilStackEmpty(t, e, 40)
+	covenantAssertions(t, e, covID, milled, false)
+}
+
+// TestDemonicCovenantSacrificesWhenMilledInstantsShareType is the positive
+// spell case on the real corpus: two Lightning Bolts share the card type
+// Instant, the count is 2 and the Covenant is sacrificed.
+func TestDemonicCovenantSacrificesWhenMilledInstantsShareType(t *testing.T) {
+	reg := searchTestRegistry(t)
+	bolt := searchCorpusCard(t, reg, "Lightning Bolt")
+	e, covID, milled := covenantEngineFiller(t, reg, bolt, searchCorpusCard(t, reg, "Rampant Growth"), bolt, bolt)
+
+	if f := e.G.Obj(milled[1]).Face(); f == nil || f.Name != "Lightning Bolt" {
+		t.Fatalf("milled second card = %+v, want Lightning Bolt", f)
+	}
+
+	passUntilStackEmpty(t, e, 40)
+	covenantAssertions(t, e, covID, milled, true)
 }
 
 // TestDemonicCovenantTriggerFiredAtAll guards the fixture: without the
