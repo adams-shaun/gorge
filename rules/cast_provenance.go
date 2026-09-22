@@ -310,7 +310,23 @@ func (e *Engine) castProvenanceAdmitsPending(spec string, objID state.ObjID, you
 		!specCarriesCastOrigin(spec) {
 		return spec, true
 	}
-	if o := e.G.Obj(objID); o == nil || o.Zone != state.ZStack {
+	o := e.G.Obj(objID)
+	if o == nil {
+		return "", false
+	}
+	if o.Zone != state.ZStack {
+		// The origin-zone family is priceable PRE-push, unlike the hand
+		// families: the origin a cast from here will carry is the object's
+		// CURRENT zone (every cast evaluation site's pending origin — see
+		// castOriginAdmitsAtZone), so the affordability walk can honestly
+		// admit the restricted/reduced cost instead of the blanket deny that
+		// made a RestrictValid$ Spell.wasCastFromYourGraveyard batch unable to
+		// fund the very cast it names (Lord of the Forsaken's payment path).
+		// The hand families keep the deny: their ByYou cast is not yet in the
+		// log and the negated spellings would wrongly hold.
+		if specCarriesCastOrigin(spec) {
+			return e.castOriginAdmitsAtZone(spec, objID, o.Zone)
+		}
 		return "", false
 	}
 	return e.castProvenanceAdmits(spec, objID, you)

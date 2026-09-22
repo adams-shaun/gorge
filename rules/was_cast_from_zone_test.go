@@ -354,3 +354,91 @@ func TestCastOriginAdmitsChainUnit(t *testing.T) {
 		t.Fatal("the plain YourGraveyard spelling must strip for its own caster")
 	}
 }
+
+// TestLordOfTheForsakenRestrictedManaPaysAFlashbackCast pins the
+// RestrictValid$ read at the PAYMENT (the origin-zone family's one
+// cost-path carrier): the demon's {C} mana is restricted to
+// Spell.wasCastFromYourGraveyard casts, and the payment evaluates the
+// restriction AFTER the push, where the log carries the cast from the
+// graveyard — so the restricted mana pays a flashback {2} and nothing else
+// is in the pool to pay it with.
+func TestLordOfTheForsakenRestrictedManaPaysAFlashbackCast(t *testing.T) {
+	flash2 := "Name:Flash2\nManaCost:2 U\nTypes:Instant\nK:Flashback:2\n" +
+		"A:SP$ GainLife | Defined$ You | LifeAmount$ 1\nOracle:x\n"
+	e := handEngine(t, corpusAlternativeCard(t, "Lord of the Forsaken"), card(t, flash2))
+	lord := e.G.Obj(e.G.Zone(state.ZHand, 0)[0])
+	lord.Zone = state.ZBattlefield
+	e.G.SetZone(state.ZBattlefield, 0, []state.ObjID{lord.ID})
+	flash := e.G.Obj(e.G.Zone(state.ZHand, 0)[1])
+	flash.Zone = state.ZGraveyard
+	e.G.SetZone(state.ZGraveyard, 0, []state.ObjID{flash.ID})
+	e.G.SetZone(state.ZHand, 0, nil)
+	for i := 0; i < 2; i++ {
+		e.pending = nil
+		e.priorityRound()
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KPriority {
+			t.Fatalf("no priority decision for the activation: %+v", d)
+		}
+		act := -1
+		for _, o := range d.Options {
+			if o.Kind == "activate" && o.Obj == lord.ID {
+				act = o.Index
+			}
+		}
+		if act < 0 {
+			t.Fatalf("the restricted {C} mana ability not offered: %+v", d.Options)
+		}
+		submitChoices(t, e, act)
+		// The {C} producer has no colour ask ({C} is one colourless unit), so
+		// the activation settles without a wheel; a wheel, if one ever
+		// appears, is answered with the restricted ability's own option.
+		if wheel := e.Pending(); wheel != nil && wheel.Kind == decision.KChoose {
+			idx := -1
+			for i, ab := range lord.Face().ManaAbilities() {
+				if ab.Params["RestrictValid"] != "" {
+					idx = i
+				}
+			}
+			if idx < 0 {
+				t.Fatal("Lord of the Forsaken has no restricted mana ability")
+			}
+			pick := -1
+			for _, o := range wheel.Options {
+				if o.Ability == idx {
+					pick = o.Index
+				}
+			}
+			if pick < 0 {
+				t.Fatalf("no wheel option for the restricted ability: %+v", wheel.Options)
+			}
+			submitChoices(t, e, pick)
+		}
+	}
+	if got := e.G.Players[0].Pool.Total(); got != 2 {
+		t.Fatalf("pool holds %d mana after two activations, want 2", got)
+	}
+	// The OFFER: the affordability walk (castable → costPayable) prices the
+	// restriction pre-push through castProvenanceAdmitsPending's at-zone
+	// read — the origin a flashback from here will carry IS the graveyard —
+	// so the restricted-only pool offers the cast.
+	e.pending = nil
+	e.priorityRound()
+	off := e.Pending()
+	offered := false
+	if off != nil {
+		for _, o := range off.Options {
+			if o.Kind == "cast" && o.Obj == flash.ID && o.Mode == "flashback" {
+				offered = true
+			}
+		}
+	}
+	if !offered {
+		t.Fatalf("the flashback cast is not offered on the restricted-only pool: %+v", off)
+	}
+	castMode(t, e, flash.ID, "flashback")
+	finishCast(t, e, flash.ID)
+	if o := e.G.Obj(flash.ID); o.Zone != state.ZExile {
+		t.Fatalf("the flashback cast did not resolve off restricted {C}: spell in %s", o.Zone)
+	}
+}
