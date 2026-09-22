@@ -67,7 +67,8 @@ func NumResolved(h Host, c *Ctx, sa *cards.SA, key string, def int32) (int32, bo
 	}
 	if c.SVars != nil {
 		if body, ok := c.SVars[raw]; ok {
-			return sign * EvalCount(h, c, body), true
+			n, resolved := EvalCountOK(h, c, body)
+			return sign * n, resolved
 		}
 	}
 	// A DB$ RollDice publication of this same resolution (effects/dice.go):
