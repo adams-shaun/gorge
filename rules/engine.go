@@ -775,6 +775,9 @@ type Engine struct {
 	// third die each turn" line counts its own rolls. It self-resets when the
 	// turn changes, exactly as triggerTurnFires does.
 	triggerTurnDice map[triggerKey]turnFires
+	// triggerTurnDiceTurn is the turn triggerTurnDice was last reset for;
+	// a lookup in any later turn replaces the map, bounding its size.
+	triggerTurnDiceTurn int32
 	dmgSrcOverride  state.ObjID
 	batchLifelink   map[state.ObjID]bool
 

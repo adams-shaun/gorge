@@ -327,7 +327,9 @@ func (e *Engine) triggerActivationLimitAllows(t cards.Trigger, key triggerKey) b
 // triggers on one permanent do not consume each other's count. An absent
 // Number$ always allows; a malformed or non-positive one denies (fail
 // closed), matching triggerActivationLimitAllows's handling. The count self-
-// resets when the turn changes, exactly as triggerTurnFires does.
+// resets when the turn changes, exactly as triggerTurnFires does, and the
+// whole map is dropped the first time it is consulted in a new turn, so it
+// holds only the current turn's lines rather than growing for the match.
 func (e *Engine) dieRollNumberAllows(t cards.Trigger, key triggerKey) bool {
 	raw, present := t.Params["Number"]
 	if !present {
@@ -337,8 +339,9 @@ func (e *Engine) dieRollNumberAllows(t cards.Trigger, key triggerKey) bool {
 	if err != nil || n < 1 {
 		return false
 	}
-	if e.triggerTurnDice == nil {
+	if e.triggerTurnDice == nil || e.triggerTurnDiceTurn != e.G.Turn {
 		e.triggerTurnDice = map[triggerKey]turnFires{}
+		e.triggerTurnDiceTurn = e.G.Turn
 	}
 	f := e.triggerTurnDice[key]
 	if f.Turn != e.G.Turn {
@@ -952,7 +955,9 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				// LAST, at the queue point, so a speculative matcher call or a
 				// later-rejected trigger never advances the count. Keyed by the
 				// trigger line, so each roll trigger counts its own dice.
-				if t.Mode == "RolledDie" && !e.dieRollNumberAllows(t, key) {
+				// A line whose Execute$ never resolved (t.Effect == nil) can
+				// never run, so it keeps no die count at all.
+				if t.Mode == "RolledDie" && t.Effect != nil && !e.dieRollNumberAllows(t, key) {
 					continue
 				}
 				e.triggerFireCount[key]++

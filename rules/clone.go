@@ -243,6 +243,7 @@ func (e *Engine) Clone() *Engine {
 			c.triggerTurnResolved[k] = v
 		}
 	}
+	c.triggerTurnDiceTurn = e.triggerTurnDiceTurn
 	if e.triggerTurnDice != nil {
 		c.triggerTurnDice = make(map[triggerKey]turnFires, len(e.triggerTurnDice))
 		for k, v := range e.triggerTurnDice {

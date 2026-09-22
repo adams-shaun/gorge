@@ -232,9 +232,10 @@ func TestRolledDieOnceFiresOncePerMultiDieRoll(t *testing.T) {
 //
 // The canonical multi-die batch Note is emitted directly (the same encoding
 // the RollDice primitive produces, decoded by DieRollBatchResult), so the test
-// can pin a batch whose INDIVIDUAL results straddle the threshold: [9, 11] has
-// a last die below 10 and a maximum at 10+, so a draw proves the head reads
-// the batch MAX, not the last/per-die result. The control batch [9, 9] leaves
+// can pin a batch whose INDIVIDUAL results straddle the threshold: [11, 9] has
+// its LAST die (the batch Note's reported result) below 10 and its maximum at
+// 10+, so a draw proves the head reads the batch MAX, not the last/per-die
+// result -- regressing the capture to the reported result leaves draws at 0. The control batch [9, 9] leaves
 // the draw silent while the pump still applies, proving the condition is the
 // only thing gated and the trigger itself fired in both cases.
 func TestRolledDieOnceFaridehDrawsOnTheBatchMax(t *testing.T) {
@@ -261,9 +262,10 @@ func TestRolledDieOnceFaridehDrawsOnTheBatchMax(t *testing.T) {
 		return e, cfg, from, id
 	}
 
-	// [9, 11]: the highest die clears the threshold, so Farideh draws; the
+	// [11, 9]: the highest die clears the threshold while the last (reported)
+	// die does not, so Farideh draws only if the head reads the batch MAX; the
 	// pump's Flying & Menace land regardless of the roll.
-	e, cfg, from, id := roll(t, 3, []int32{9, 11})
+	e, cfg, from, id := roll(t, 3, []int32{11, 9})
 	if got := logDrawsFor(e, from, 0); got != 1 {
 		t.Fatalf("batch max 11 (>=10): drew %d cards, want 1 (the TriggerCountMax$Result head)", got)
 	}

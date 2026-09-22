@@ -401,6 +401,14 @@ func countColorsLimitMax(body, op string, n int32) (int32, bool) {
 // TriggerCountMax$ prefix's reading: the same heads, but Result answers the
 // highest result in the roll batch (Ctx.TriggerResultMax -- Farideh's "if any
 // of those results was 10 or higher") rather than the batch's reported result.
+//
+// Result is an EVALUATED head (verdict true) on every trigger, not only a
+// roll trigger: before RolledDie was registered it reported (0, false), so a
+// CheckSVar$ gate over it failed open; now a non-roll trigger reads 0 and the
+// gate is enforced. Measured: all 8 corpus files carrying TriggerCount$Result
+// (`/usr/bin/grep -rlE 'TriggerCount\$Result' .cards/cardsfolder`) sit on
+// Mode$ RolledDie/RolledDieOnce triggers, where Ctx.TriggerResult is set, so
+// no corpus gate changes direction.
 func evalTriggerCountOK(c *Ctx, body string, max bool) (int32, bool) {
 	body, op, hasOp := strings.Cut(body, "/")
 	var n int32
