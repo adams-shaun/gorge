@@ -215,6 +215,14 @@ const (
 	// Appended per the enum's own append-only precedent.
 	FlagMutated
 	FlagMutatedTop
+	// FlagSquadPaid marks a cast that paid its Squad cost at least once
+	// (CR 702.66): "As an additional cost to cast this spell, you may pay
+	// [cost] any number of times." The payment COUNT rides the same
+	// pay-time CastInfo's Amount into Object.SquadPaid, and the keyword
+	// expansion's ETB trigger reads it through Count$SquadPaid to create
+	// that many token copies. Appended per the enum's own append-only
+	// precedent.
+	FlagSquadPaid
 	// FlagConvoked marks a cast whose pay-time CastInfo carries CR 702.66
 	// convoke provenance: the creatures the caster tapped to help pay for
 	// the cast ride the event's IDs into Object.Convoked. The flag is what
@@ -368,7 +376,13 @@ type Object struct {
 	// (an ETB "if it was kicked" trigger needs to read them off the
 	// permanent) -- events.Move resets both when the object leaves the
 	// battlefield.
-	X         int32
+	X int32
+	// CastFlags records how an object was cast (the Flag* bits below).
+	// Widened from uint32 to uint64 when FlagSquadPaid became the 33rd bit:
+	// the flag word is never serialized -- the event stream carries the flag
+	// NAMES as text (events.FlagsString/FlagsFrom) and state.Object is
+	// re-derived by replay -- so widening the in-memory word cannot move the
+	// hash chain or any golden replay.
 	CastFlags uint64
 	// ReplicateTimes is CR 702.55a's count of replicate payments the cast
 	// made, carried by the pay-time CastInfo's FlagReplicated Amount (the
@@ -376,6 +390,14 @@ type Object struct {
 	// It rides the same provenance window as X/CastFlags and resets
 	// alongside them in events.Move.
 	ReplicateTimes int32
+	// SquadPaid is CR 702.66's count of squad payments the cast made,
+	// carried by the pay-time CastInfo's FlagSquadPaid Amount (the
+	// X-overwrite guard: the flag routes the Amount here instead of into X).
+	// It rides the same provenance window as X/CastFlags and resets
+	// alongside them in events.Move; a copy of the spell was never cast and
+	// reads 0 (so a squad token's own ETB trigger creates no further
+	// copies).
+	SquadPaid int32
 	// ConvergeColours is the number of distinct colours (WUBRG) of mana
 	// actually spent to cast the spell (CR 107.4f-family converge), carried
 	// by the pay-time CastInfo's FlagConverged Amount. It rides the same

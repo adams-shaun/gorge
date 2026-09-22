@@ -1023,6 +1023,10 @@ var flagNames = [...]struct {
 	// ordering rule.
 	{"mutated", state.FlagMutated},
 	{"mutated top", state.FlagMutatedTop},
+	// The Squad keyword's payment provenance (CR 702.66); the payment COUNT
+	// rides the same CastInfo's Amount. Appended at the end per the table's
+	// own ordering rule.
+	{"squadpaid", state.FlagSquadPaid},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)
