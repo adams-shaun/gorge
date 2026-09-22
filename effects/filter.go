@@ -1889,6 +1889,16 @@ func hasType(o *state.Object, t string) bool {
 			return false
 		}
 	}
+	// CR 702.150c: a Reconfigure card attached to a creature is not a
+	// creature, in the same every-filter-read sense (the target ask's
+	// ValidTgts$ Creature, a Count$Valid Creature census, the combat
+	// eligibility scans). Equipment and Artifact stay true -- they are the
+	// printed face's own types and the attached form keeps them.
+	if o.ReconfiguredAttached() && !(o.FaceDown && o.Zone == state.ZBattlefield) {
+		if strings.EqualFold(t, "Creature") {
+			return false
+		}
+	}
 	for _, x := range f.Types {
 		if strings.EqualFold(x, t) {
 			return true

@@ -602,7 +602,7 @@ func (e *Engine) harmonizePayment(p state.PlayerID, id state.ObjID, c Cost) (Cos
 			break
 		}
 		co := e.G.Obj(cid)
-		if co == nil || co.Tapped || co.Face() == nil || !co.EffectiveIsCreature() || co.BestowedAttached() {
+		if co == nil || co.Tapped || co.Face() == nil || !co.EffectiveIsCreature() || co.BestowedAttached() || co.ReconfiguredAttached() {
 			continue
 		}
 		// The reduction is the creature's ACTUAL power (CR 702.46a: "reduce
@@ -798,7 +798,7 @@ func (e *Engine) convokeCost(p state.PlayerID, id state.ObjID, c Cost) (Cost, []
 	var tapped []state.ObjID
 	for _, cid := range e.G.Zone(state.ZBattlefield, p) {
 		co := e.G.Obj(cid)
-		if co == nil || co.Tapped || co.Face() == nil || !co.EffectiveIsCreature() || co.BestowedAttached() {
+		if co == nil || co.Tapped || co.Face() == nil || !co.EffectiveIsCreature() || co.BestowedAttached() || co.ReconfiguredAttached() {
 			continue
 		}
 		used := false
@@ -4707,7 +4707,7 @@ func (e *Engine) convokeAsk() bool {
 	sawCreature, sawArtifact := false, false
 	for _, id := range e.G.Zone(state.ZBattlefield, pc.player) {
 		o := e.G.Obj(id)
-		if o == nil || o.Tapped || o.Face() == nil || o.BestowedAttached() || e.convokeCommitted(pc, id) {
+		if o == nil || o.Tapped || o.Face() == nil || o.BestowedAttached() || o.ReconfiguredAttached() || e.convokeCommitted(pc, id) {
 			continue
 		}
 		group := fmt.Sprintf("payment:%d", id)
@@ -5440,8 +5440,18 @@ func (e *Engine) targetAsk() bool {
 	// targeting itself). The Face-less ability stack object on the stack is
 	// never offered (legalTargetCandidates drops Face()-less stack objects),
 	// so the source permanent is still a legal target of its own ability.
+	// An attach ability (the Equip/Reconfigure expansion mints AB$ Attach;
+	// a spell SA may carry API$ Attach directly) can never target its own
+	// source permanent: CR 701.3a attaches an object to ANOTHER permanent,
+	// and effAttach refuses the self-attach at resolution. The pool and the
+	// resolution must agree, so the source is excluded AT THE ASK for an
+	// attach SA even though the Mother-of-Runes convention lets a generic
+	// activated ability target its own source. For Equip the exclusion is
+	// inert (an Equipment face does not match Creature specs); it is live
+	// exactly for Reconfigure, whose unattached form IS a creature and was
+	// offered itself here (r2 review MAJOR).
 	var excludeSelf state.ObjID
-	if !pc.isAbility() {
+	if !pc.isAbility() || sa.API == "Attach" {
 		excludeSelf = pc.card
 	}
 	candidates := e.legalTargetCandidates(pc.player, pc.card, excludeSelf, sa)
@@ -5508,7 +5518,7 @@ func (e *Engine) targetAsk() bool {
 	// (Mother of Runes) via excludeSelf == 0. The prompt keeps the source
 	// permanent's name for readability.
 	var src state.ObjID
-	if !pc.isAbility() {
+	if !pc.isAbility() || sa.API == "Attach" {
 		src = pc.card
 	}
 	d := &decision.Decision{Player: pc.player, Kind: decision.KTarget, Min: min, Max: max,

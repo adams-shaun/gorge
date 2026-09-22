@@ -789,6 +789,18 @@ func (o *Object) BestowedAttached() bool {
 	return o.AttachedTo != 0 && o.Face() != nil && o.Face().HasKeyword("Bestow")
 }
 
+// ReconfiguredAttached reports whether o is a card printed with Reconfigure
+// that is currently attached to a permanent (CR 702.150c: while attached,
+// the permanent is not a creature; unattached it is a creature again).
+// Derived from live state -- AttachedTo and the printed face -- the same
+// discipline BestowedAttached practises, so every replay and every read
+// site derives the switch identically and no event field carries a marker.
+// An unattached reconfigure card, and any object printed without
+// Reconfigure, is never "reconfigured attached".
+func (o *Object) ReconfiguredAttached() bool {
+	return o.AttachedTo != 0 && o.Face() != nil && o.Face().HasKeyword("Reconfigure")
+}
+
 func (o *Object) Face() *cards.Face {
 	// CR 613.1a: a copy effect is the FIRST layer, so while one applies the
 	// object's characteristics come from the copied face. Routing it here is
