@@ -1716,15 +1716,23 @@ func (e *Engine) totalPowerCappedCandidates(candidates []targetCandidate, p stat
 // CopyMayChooseTarget flag -- set by the StackCopy fold from the CREATING
 // CopySpellAbility's MayChooseTarget$ parameter, so an external copier
 // (Mirari, Cloven Casting, a Storm or Replicate copy) grants the election
-// even though its SA is not part of the copied spell's text. The inherited
-// target is placed first as the keep-current default -- ALWAYS, even when it
-// is no longer legal, because choosing new targets is optional and a player
-// who keeps an illegal target simply lets the copy fizzle per CR 608.2b
-// (forcing a new target here would retarget a copy the player declined to
-// change). The remaining options use the same legal-target census as
-// casting. The election is one-shot: the answer records targets through
-// recordChosenTargets, whose TargetsChosen fold clears the flag, so the
-// resolveTop re-entry does not ask again.
+// even though its SA is not part of the copied spell's text.
+//
+// The ask preserves the copied spell's WHOLE target requirement, not just
+// one slot: MayChooseTarget$ True is not restricted to one-target spells, so
+// the decision's bounds come from the copy's own declaration through the
+// SAME resolvedTargetBounds / oneEachTargetBounds pair askTarget and cast.go's
+// targetAsk use (a two-target spell therefore accepts two picks, and a
+// per-controller declaration keeps its Option.Group exclusivity). Every
+// inherited target is offered first as a keep-current option -- ALWAYS, even
+// when it is no longer legal, because choosing new targets is optional and a
+// player who keeps an illegal target simply lets the copy fizzle per CR
+// 608.2b (forcing a new target here would retarget a copy the player declined
+// to change) -- so selecting the leading keep-current options reproduces
+// "choose nothing new". The remaining options use the same legal-target
+// census as casting. The election is one-shot: the answer records targets
+// through recordChosenTargets, whose TargetsChosen fold clears the flag, so
+// the resolveTop re-entry does not ask again.
 func (e *Engine) AskCopyTargets() bool {
 	n := len(e.G.Stack)
 	if n == 0 {
@@ -1766,12 +1774,32 @@ func (e *Engine) AskCopyTargets() bool {
 	if len(ordered) == 0 {
 		return false
 	}
-	d := &decision.Decision{Player: controller, Kind: decision.KTarget, Min: 1, Max: 1,
+	// The copy's OWN declaration supplies the required count (CR 707.10c
+	// retargets a copy per the spell's target rules), through the same shared
+	// readers the cast ask uses so the two sites cannot drift. oneEachTargetBounds
+	// is fed the full selectable list -- keep-current slots included -- so the
+	// per-controller capacity counts a kept target too.
+	min, max := e.resolvedTargetBounds(controller, o.ID, sa, o.X)
+	min, max, _, _ = e.oneEachTargetBounds(sa, ordered, min, max)
+	// A mandatory minimum above the offered list would be an unanswerable
+	// decision no seat could satisfy (a livelock). The inherited keep-current
+	// entries are always offered even when illegal, so the list is non-empty;
+	// clamping Min to it keeps totality whenever a dynamic bound outruns the
+	// copy's inherited set (the copy then fizzles at CR 608.2b like any other
+	// under-target resolution).
+	if min > len(ordered) {
+		min = len(ordered)
+	}
+	if max < min {
+		max = min
+	}
+	d := &decision.Decision{Player: controller, Kind: decision.KTarget, Min: min, Max: max,
 		Prompt: "Choose a new target for the copy", Source: o.ID,
 		ResumeKind: "copy_targets", ResumeSA: sa, TargetEffect: describeTargetEffect(sa)}
 	for _, candidate := range ordered {
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: candidate.kind,
-			Label: e.targetOptionLabel(candidate), Obj: candidate.obj, Player: candidate.player})
+			Label: e.targetOptionLabel(candidate), Obj: candidate.obj, Player: candidate.player,
+			Group: e.targetControllerGroup(sa, candidate)})
 	}
 	e.Ask(d)
 	return true

@@ -22,10 +22,13 @@ func init() {
 //     expands kw:Storm into exactly this).
 //
 // Amount$ copies are placed on the stack by StackCopy events (default 1),
-// each copy keeping its targets. MayChooseTarget$ True is a player's
-// mid-resolution choice this build still cannot ask (stay-down in the M2r
-// approximations list — switching the copy's targets is a later task), so
-// the copies keep their targets and each records a Note saying so.
+// each copy keeping its targets unless the creating SA declares
+// MayChooseTarget$ True (CR 707.10c: that copy's controller may choose new
+// targets). The permission rides the StackCopy event's Amount discriminator,
+// which rules/stack.go's resolveTop reads as a one-shot target election over
+// the copy's own target requirement — so an external copier (Mirari, Cloven
+// Casting, a Storm or Replicate copy) grants it too. Copies keep their
+// targets only when the parameter is absent or False.
 //
 // UnlessCost$ (Chain Lightning, String of Disappearances) rides the ONE
 // shared unless gate (effects.Resolve's unlessProceed dispatch, shared by

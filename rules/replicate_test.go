@@ -373,8 +373,18 @@ func drainStackDecliningPlays(t *testing.T, e *Engine, limit int) {
 			continue
 		}
 		if d.Kind == decision.KTarget && d.ResumeKind == "copy_targets" {
-			// CR 707.10c: keep the copy's inherited target (option 0).
-			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{d.Options[0].Index}}); err != nil {
+			// CR 707.10c: keep the copy's inherited targets (the leading
+			// d.Min options, placed first) -- one for a single-target copy,
+			// all of them for a multi-target copy.
+			choices := make([]int, 0, d.Min)
+			keep := d.Min
+			if keep < 1 {
+				keep = 1
+			}
+			for i := 0; i < keep && i < len(d.Options); i++ {
+				choices = append(choices, d.Options[i].Index)
+			}
+			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: choices}); err != nil {
 				t.Fatalf("submit copy target: %v", err)
 			}
 			continue

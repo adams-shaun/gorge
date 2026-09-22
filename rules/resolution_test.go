@@ -172,14 +172,22 @@ func drainToEnd(t *testing.T, e *Engine, limit int) {
 			submitChoices(t, e, idx)
 		case decision.KTarget:
 			// CR 707.10c: a copy with MayChooseTarget$ asks its controller
-			// for a new target. AskCopyTargets places the inherited target
-			// first, so option 0 is the deterministic keep-current answer
-			// every drain takes. Any other KTarget shape is a surprise the
-			// drain must not paper over.
+			// for a new target. AskCopyTargets places the inherited targets
+			// first, so the leading d.Min options are the deterministic
+			// keep-current answer every drain takes. Any other KTarget shape
+			// is a surprise the drain must not paper over.
 			if d.ResumeKind != "copy_targets" {
 				t.Fatalf("unexpected non-copy target decision while draining: %+v", d)
 			}
-			submitChoices(t, e, d.Options[0].Index)
+			ch := []int{}
+			keep := d.Min
+			if keep < 1 {
+				keep = 1
+			}
+			for j := 0; j < len(d.Options) && j < keep; j++ {
+				ch = append(ch, d.Options[j].Index)
+			}
+			submitChoices(t, e, ch...)
 		case decision.KModes:
 			ch := []int{}
 			for j := 0; j < len(d.Options) && j < d.Min; j++ {
