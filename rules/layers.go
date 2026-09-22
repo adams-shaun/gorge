@@ -1317,12 +1317,18 @@ func (e *Engine) AddContinuous(ce ContinuousEffect) {
 		ce.UntilTurn = e.nextTurnFor(ce.Controller)
 	}
 	e.continuous = append(e.continuous, ce)
+	// A REGISTERED layer-3 rename (an Effect-delivered SetName$, which has no
+	// printed static for the genesis pool probe to find) arms the rename
+	// table for the rest of the match; see rules/setname.go.
+	if ce.SetName != "" {
+		e.setNameInPool = true
+	}
 	// Bump the cache version: active() (below) caches its sorted effect list
 	// on (log head, continuousVersion), and this is the write that changes
 	// e.continuous. The ClockTick above moved the log head too, but naming
 	// the dependency explicitly here keeps active()'s invalidation correct
 	// even if a future caller adds a continuous effect without an event.
-	e.continuousVersion++
+	e.continuousChanged()
 }
 
 // EndEffect ends the one continuous-effect registration identified by
@@ -1351,7 +1357,7 @@ func (e *Engine) EndEffect(source state.ObjID, stamp uint32) {
 		return
 	}
 	e.continuous = kept
-	e.continuousVersion++
+	e.continuousChanged()
 }
 
 // EndImprintedEffects ends every live DB$ Effect registration that an
@@ -1383,7 +1389,7 @@ func (e *Engine) EndImprintedEffects(source state.ObjID) {
 		return
 	}
 	e.continuous = kept
-	e.continuousVersion++
+	e.continuousChanged()
 }
 
 // nextTurnFor returns the turn number of the next turn (strictly after the
@@ -1516,7 +1522,7 @@ func (e *Engine) EndOfTurnCleanup() {
 	// event and moves no log head) drops every UntilEOT pump and every
 	// expired UntilTurn effect. Without the bump, a stale active() cache
 	// would keep reporting a dead pump's P/T.
-	e.continuousVersion++
+	e.continuousChanged()
 }
 
 // cloneExpiry identifies ONE clone unit (task api-clone): the permanent that
@@ -1668,7 +1674,7 @@ func (e *Engine) effectMoveSweep(ev events.Event) {
 		return
 	}
 	e.continuous = kept
-	e.continuousVersion++
+	e.continuousChanged()
 }
 
 // effectCastSweep is the cast-driven lifetime of Effect-created continuous
@@ -1721,7 +1727,7 @@ func (e *Engine) effectCastSweep(ev events.Event) {
 		return
 	}
 	e.continuous = kept
-	e.continuousVersion++
+	e.continuousChanged()
 }
 
 // effectCounterSweep is the counter-driven lifetime of Effect-created
@@ -1756,7 +1762,7 @@ func (e *Engine) effectCounterSweep(ev events.Event) {
 		return
 	}
 	e.continuous = kept
-	e.continuousVersion++
+	e.continuousChanged()
 }
 
 // objIDIn reports whether ids holds id.

@@ -567,7 +567,15 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object,
 		// Only leaves-the-battlefield triggers look back. Always and other
 		// event modes continue to read the live board, not an obsolete state.
 		observer := &Engine{G: e.triggerBefore.game, L: e.L,
-			continuous: e.triggerBefore.continuous, continuousVersion: e.continuousVersion}
+			continuous: e.triggerBefore.continuous, continuousVersion: e.continuousVersion,
+			setNameInPool: e.setNameInPool}
+		// The observer reads the PRE-departure board from its own Game clone,
+		// so it derives its own layer-3 rename table (setname.go) rather than
+		// inheriting the live engine's: a name filter here must see the
+		// snapshot's names, not the post-departure ones.
+		if observer.setNameInPool {
+			observer.refreshRenames()
+		}
 		obj := observer.G.Obj(ev.Obj)
 		var power, toughness int32
 		valid := obj != nil && obj.Zone == state.ZBattlefield && obj.Face() != nil

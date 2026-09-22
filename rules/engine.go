@@ -287,13 +287,23 @@ type Engine struct {
 	activeEpoch   int
 	activeVersion int
 	activeDepth   int
-	// renameBuf is the same class of cache for the layer-3 rename set
-	// (setname.go's effectiveNames), keyed by the same pair and with the same
-	// re-entry guard. Clone copies none of them either.
-	renameBuf      []effects.ObjectName
+	// renames is the layer-3 rename table (setname.go) the effects tier's
+	// name filters read through SpecContext.EffectiveNames. It is refreshed
+	// after each emitted event, under active()'s own (epoch, version) key,
+	// and only when setNameInPool says this match has a SetName$ carrier at
+	// all. It is a FIELD rather than a lazily-called derivation because
+	// specCtxSVars must stay inlinable: a call there makes its Resolve
+	// closure escape and allocates on every hot-path context construction.
+	// Clone copies the table (the clone's board is identical at the clone
+	// boundary) and the two key fields with it.
+	renames        []effects.ObjectName
 	renameEpoch    int
 	renameVersion  int
 	renameBuilding bool
+	// setNameInPool is a genesis-time fact: does any card this match can put
+	// on the battlefield print a SetName$ static? False for almost every
+	// match, which reduces the per-event refresh to one predictable branch.
+	setNameInPool bool
 	// continuousVersion is bumped by every direct mutation of e.continuous
 	// (layers.go's AddContinuous and EndOfTurnCleanup). It stands in for the
 	// events a board change would signal through the log head: while
@@ -1250,6 +1260,7 @@ func newWithRNG(cfg Config, random *rng) *Engine {
 		manaExpended: make([]int32, len(cfg.Names)),
 	}
 	e.G.Tokens = cfg.Tokens
+	e.setNameInPool = poolHasSetNameStatic(cfg)
 	e.manaExpendedTurn = e.G.Turn
 	e.format = cfg.Format
 	for i := range e.G.Players {
@@ -1687,6 +1698,12 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		e.combatHitsThisTurn = nil
 	}
 	e.loop.observe(stored)
+	// setname.go: keep the layer-3 rename table the filter tier reads in step
+	// with the board. Gated so a match with no SetName$ carrier pays one
+	// branch.
+	if e.setNameInPool {
+		e.refreshRenames()
+	}
 	if ev.Kind == events.StackCopy && len(e.G.Stack) > stackLen {
 		copyID := e.G.Stack[len(e.G.Stack)-1]
 		if tc, ok := e.triggerContexts[ev.Obj]; ok {

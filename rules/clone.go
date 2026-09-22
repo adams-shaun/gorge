@@ -111,6 +111,17 @@ func (e *Engine) Clone() *Engine {
 		// worth carrying, so a fresh watcher over the same thresholds is a
 		// faithful copy.
 		loop: newLivelockWatcherFromGuard(e.loop.guard),
+		// setname.go's layer-3 rename table and its genesis-time gate. The
+		// clone's board is identical at the clone boundary, so the table is
+		// carried with its (epoch, version) key rather than rebuilt -- but as
+		// a fresh slice, never the original's backing array, so the two
+		// engines' next refreshes cannot write over each other. This is what
+		// keeps a clone's name filters reading the CLONE's board once the two
+		// diverge (setname_filter_scope_test.go).
+		renames:       append([]effects.ObjectName(nil), e.renames...),
+		renameEpoch:   e.renameEpoch,
+		renameVersion: e.renameVersion,
+		setNameInPool: e.setNameInPool,
 	}
 	if e.riotMove != nil {
 		ev := *e.riotMove

@@ -1755,19 +1755,13 @@ func startsFilterAlternative(s string) bool {
 // face it had while transformed. On the battlefield and stack every layout
 // uses its selected face. Empty names are omitted; an ability object (Card
 // nil) has no name.
-func nameCharacteristics(o *state.Object, sc SpecContext) []string {
+// A layer-3 name (SetName$, CR 613.1d) OVERRIDES everything below, split
+// halves included, and is handled by sharesName/sharesNameWithObject before
+// they reach here -- see hasEffectiveName for why it cannot be folded into
+// this function's return value.
+func nameCharacteristics(o *state.Object) []string {
 	if o == nil || o.Card == nil {
 		return nil
-	}
-	// A layer-3 name (SetName$, CR 613.1d) overwrites every printed name the
-	// object would otherwise present, split halves included. Applicability and
-	// timestamp order live in rules' layer walk, which hands the result down as
-	// the EffectiveNames value slice; the filter tier never re-derives them (a
-	// battlefield scan cannot see Affected$ applicability, a conditional
-	// SetName$, or timestamp order between two competing effects). A caller
-	// with no rules-supplied context keeps the printed name.
-	if n := sc.effectiveName(o.ID); n != "" {
-		return []string{n}
 	}
 	offPlay := o.Zone != state.ZStack && o.Zone != state.ZBattlefield
 	if offPlay && o.Card.AlternateMode == "Split" {
@@ -1806,7 +1800,15 @@ func sharesName(o *state.Object, name string, sc SpecContext) bool {
 	if name == "" {
 		return false
 	}
-	for _, n := range nameCharacteristics(o, sc) {
+	// Applicability and timestamp order live in rules' layer walk, which hands
+	// the result down as the EffectiveNames value slice; the filter tier never
+	// re-derives them (a battlefield scan cannot see Affected$ applicability, a
+	// conditional SetName$, or timestamp order between two competing effects).
+	// A caller with no rules-supplied context reads the printed name.
+	if hasEffectiveName(o, sc) {
+		return matchesEffectiveName(o, name, sc)
+	}
+	for _, n := range nameCharacteristics(o) {
 		if n == name {
 			return true
 		}
@@ -1819,7 +1821,18 @@ func sharesName(o *state.Object, name string, sc SpecContext) bool {
 // sets of BOTH cards. A split source in a library or graveyard therefore
 // shares a name with a card named for either of its halves (CR 709.4).
 func sharesNameWithObject(o, src *state.Object, sc SpecContext) bool {
-	for _, n := range nameCharacteristics(src, sc) {
+	if hasEffectiveName(src, sc) {
+		// The renamed source has exactly one name characteristic. The bound
+		// string is passed straight into sharesName, never returned, so the
+		// context's content still does not escape.
+		for _, n := range sc.EffectiveNames {
+			if n.ID == src.ID {
+				return sharesName(o, n.Name, sc)
+			}
+		}
+		return false
+	}
+	for _, n := range nameCharacteristics(src) {
 		if sharesName(o, n, sc) {
 			return true
 		}
@@ -2776,15 +2789,34 @@ type ObjectName struct {
 	Name string
 }
 
-// effectiveName returns the layer-3 name bound for id, or "" when the context
-// carries none (which means the caller reads printed names).
-func (s SpecContext) effectiveName(id state.ObjID) string {
-	for _, n := range s.EffectiveNames {
-		if n.ID == id {
-			return n.Name
+// hasEffectiveName reports whether the context binds a layer-3 name for o.
+//
+// Every read of EffectiveNames answers a BOOLEAN and never returns one of its
+// strings to a caller. That is load-bearing: a function that returns a string
+// sourced from a SpecContext field makes escape analysis summarise the whole
+// context's content as leaking, which forces the caller's *Ctx (and the
+// Resolve closure over it) to the heap on every hot-path construction --
+// exactly what TestEvalCountValidZoneScanIsAllocationFree pins against.
+func hasEffectiveName(o *state.Object, sc SpecContext) bool {
+	if o == nil {
+		return false
+	}
+	for _, n := range sc.EffectiveNames {
+		if n.ID == o.ID {
+			return n.Name != ""
 		}
 	}
-	return ""
+	return false
+}
+
+// matchesEffectiveName reports whether o's bound layer-3 name is name.
+func matchesEffectiveName(o *state.Object, name string, sc SpecContext) bool {
+	for _, n := range sc.EffectiveNames {
+		if n.ID == o.ID {
+			return n.Name != "" && n.Name == name
+		}
+	}
+	return false
 }
 
 // triggeredSpellTargetSA derives the target-declaring SA of a stack spell
@@ -2834,7 +2866,7 @@ func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContex
 	// compiled `named<X>` would silently miss the layer-3 name. The same
 	// discipline the layer walk keeps for ExtraTypes (rules/layers.go), scoped
 	// here to the one object that actually carries a rename.
-	if ps := sc.PredicatePrograms; ps != nil && sc.effectiveName(o.ID) == "" {
+	if ps := sc.PredicatePrograms; ps != nil && !hasEffectiveName(o, sc) {
 		switch ps.Evaluate(spec, g, o, sc) {
 		case PredicateYes:
 			return true
