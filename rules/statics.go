@@ -1527,12 +1527,24 @@ func (e *Engine) manaFeasible(p state.PlayerID, id state.ObjID, ability bool, c 
 // grant derived here. Both widen the leaf payable check the same way the
 // payment (resolveManaWith) widens it, so an offered cast, an offered
 // announcement face and the charged total can never disagree on a
-// K'rrik-shaped or MayPlayIgnoreColor$-shaped cost either.
-func (e *Engine) manaFeasibleGrant(p state.PlayerID, id state.ObjID, ability bool, c Cost, mods costMods, taxGeneric, delve int32, rider pipRider) bool {
+// K'rrik-shaped or MayPlayIgnoreColor$-shaped cost either. The descriptor is
+// the caller's: post-announcement costs (pc.resolvedMana and friends) have
+// WithX folded their X into Generic, so they must arrive through
+// paymentForCast — a paymentFor-built descriptor from a folded cost would
+// hide every CostContainsX batch from the target-repricing gates exactly
+// where the offer and the payment both admit it.
+func (e *Engine) manaFeasibleDescriptor(p state.PlayerID, d paymentDescriptor, c Cost, mods costMods, taxGeneric, delve int32, rider pipRider) bool {
 	pl := e.G.Players[p]
-	av := e.manaAvailableFor(p, id, ability)
+	av := e.manaAvailableFor(p, d)
 	return mods.feasibleAny(c, av.pool, pl.Snow, av.typed, pl.Life, taxGeneric, delve,
-		e.payerGrantsPayLifeInsteadOfB(p), rider, e.paymentConv(p, id, ability))
+		e.payerGrantsPayLifeInsteadOfB(p), rider, e.paymentConv(p, d.id, d.class == paymentActivated))
+}
+
+// manaFeasibleGrant prices a RAW (unannounced) cost: the offer-side entry
+// whose cost still carries any unfolded X, so paymentFor's own derivation
+// sets the announced-X marker.
+func (e *Engine) manaFeasibleGrant(p state.PlayerID, id state.ObjID, ability bool, c Cost, mods costMods, taxGeneric, delve int32, rider pipRider) bool {
+	return e.manaFeasibleDescriptor(p, paymentFor(id, ability, c), c, mods, taxGeneric, delve, rider)
 }
 
 // manaFeasiblePool is manaFeasible priced against an EXPLICIT pool instead of
@@ -1555,7 +1567,7 @@ func (e *Engine) manaFeasiblePool(p state.PlayerID, id state.ObjID, ability bool
 // ordinary real-pool gate, hyp non-nil prices the feasibility against the
 // potential walk's hypothetical bound (rules/legal.go legalActionsPriced).
 func (e *Engine) manaFeasiblePriced(p state.PlayerID, id state.ObjID, ability bool, c Cost, mods costMods, taxGeneric, delve int32, hyp *state.Mana) bool {
-	av := e.manaAvailableFor(p, id, ability)
+	av := e.manaAvailableFor(p, paymentFor(id, ability, c))
 	pool, typed := av.pool, av.typed
 	if hyp != nil {
 		pool = *hyp

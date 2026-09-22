@@ -3563,7 +3563,11 @@ func (e *Engine) xAsk() bool {
 	for x := min; x <= bound; x++ {
 		wx := e.paymentManaX(pc, x)
 		wx.Generic -= e.delveCredit(pc.player, pc.card, wx.Generic)
-		if !e.costPayableGrant(pc.player, pc.card, pc.isAbility(), wx, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}) {
+		// The descriptor carries the announced-X marker: WithX folded this
+		// payment's X into Generic, and a CostContainsX batch must still see
+		// an X payment here or every X announcement would be unpayable.
+		if !e.costPayableClass(pc.player, paymentForCast(pc, wx),
+			pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}, wx) {
 			break
 		}
 		maxOld = x
@@ -4499,7 +4503,7 @@ func (e *Engine) targetDependentCostMayPay(pc *pendingCast) bool {
 	if !pc.isAbility() {
 		delve = int32(len(pc.delve))
 	}
-	return e.manaFeasibleGrant(pc.player, pc.card, pc.isAbility(), pc.resolvedMana(), mods, pc.taxGeneric, delve, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType})
+	return e.manaFeasibleDescriptor(pc.player, paymentForCast(pc, pc.resolvedMana()), pc.resolvedMana(), mods, pc.taxGeneric, delve, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType})
 }
 
 // pendingCastScope returns the exact spell or ability scope whose modifiers
@@ -4618,7 +4622,7 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 		// (convokeAbsorbs), so the fold is the payment's own arithmetic,
 		// probed, never charged.
 		convoked := e.applyConvoke(pc, cost)
-		if e.manaFeasibleGrant(pc.player, pc.card, pc.isAbility(), convoked, costMods{}, 0, 0, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}) ||
+		if e.manaFeasibleDescriptor(pc.player, paymentForCast(pc, convoked), convoked, costMods{}, 0, 0, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}) ||
 			(cost.hasManaPayment() && e.hasUntappedManaSource(pc.player)) {
 			out = append(out, candidate)
 		}
@@ -5285,7 +5289,7 @@ func (e *Engine) announceFeasible(pc *pendingCast, alt pipAlt, pool, snow state.
 	// above), so their slots leave the cost; the pips after payIdx stay live
 	// for the shared primitive to enumerate.
 	c = c.dropAnnouncePrefix(pc.payIdx + 1)
-	return e.manaFeasibleGrant(pc.player, pc.card, pc.isAbility(), c, pc.mods, pc.taxGeneric, delve, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType})
+	return e.manaFeasibleDescriptor(pc.player, paymentForCast(pc, c), c, pc.mods, pc.taxGeneric, delve, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType})
 }
 
 // manaAsk offers the player's payment choice for the next unsettled hybrid or
@@ -5844,7 +5848,8 @@ func (e *Engine) targetAsk() bool {
 	// conversion-aware equivalent: the SAME resolveMana payManaConvFor will
 	// run, including RestrictValid$ provenance. The
 	// targetDependentCostMayPay arm keeps the ValidTarget$ reducer exception.
-	if !e.costPayableGrant(pc.player, pc.card, pc.isAbility(), mana, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}) &&
+	if !e.costPayableClass(pc.player, paymentForCast(pc, mana),
+		pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}, mana) &&
 		!e.hasUntappedManaSource(pc.player) && !e.targetDependentCostMayPay(pc) {
 		e.abortCast(pc, "cast aborted: cost no longer payable", true)
 		return true
@@ -6138,8 +6143,10 @@ func (e *Engine) manaWindowAsk() bool {
 		return false
 	}
 	// A pool that already pays the total cost needs no window (nothing to
-	// gain by activating more mana abilities here).
-	if e.costPayableGrant(pc.player, pc.card, pc.isAbility(), mana, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}) {
+	// gain by activating more mana abilities here). The descriptor carries
+	// the announced-X marker so a CostContainsX batch sees the X payment.
+	if e.costPayableClass(pc.player, paymentForCast(pc, mana),
+		pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}, mana) {
 		return false
 	}
 	var sources []state.ObjID
@@ -6378,7 +6385,11 @@ func (e *Engine) payCast() {
 		// The ability object was already minted by pushCast; targets are
 		// recorded onto it by handleTarget.
 		mana := e.manaToPay(pc)
-		ok, _, spentMana, _, _ := e.payManaForSpent(pc.player, pc.card, true, mana, e.paymentConv(pc.player, pc.card, true), pipRider{})
+		// The descriptor carries the announced-X marker (the ability's own
+		// {X} cost was folded), so a CostContainsX batch sees this activation
+		// as an X payment exactly as the offer did.
+		ok, _, spentMana, _, _ := e.payManaDescriptorForSpent(pc.player, paymentForCast(pc, mana), mana,
+			e.paymentConv(pc.player, pc.card, true), pipRider{})
 		if !ok {
 			e.abortCast(pc, "activation aborted: cost no longer payable", true)
 			return
