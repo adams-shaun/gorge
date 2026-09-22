@@ -32,10 +32,12 @@ thinking = "high"
 fallback = ["openai-codex/gpt-5.6-luna"]
 
 [seats.escalated]
-# provider = "openai-codex"
-# model = "gpt-5.6-terra"
-provider = "deepinfra"
-model = "deepseek-ai/DeepSeek-V4.1-Flash"
+# 2026-09-22 (operator): "escalate terra". DeepSeek-high was the top rung and
+# no stronger than the terra reviewer: the 15:08Z batch parked at sol2 with a
+# fresh MAJOR every round. terra's [caps.models] ceiling is shared with the
+# reviewer and triage seats.
+provider = "openai-codex"
+model = "gpt-5.6-terra"
 thinking = "high"
 
 # 2026-09-22 (operator): reviewer back on GPT terra (Codex plan verified live
@@ -62,7 +64,7 @@ local = ["bm-llms-glm/glm-5.3-flash"]
 # escalated = ["openai-codex/gpt-5.6-terra", "openai-codex/gpt-5.6-sol"]
 # reviewer = ["openai-codex/gpt-5.6-terra", "openai-codex/gpt-5.6-sol", "bm-llms-glm/glm-5.3-flash"]
 overflow = ["deepinfra/deepseek-ai/DeepSeek-V4.1-Flash", "openai-codex/gpt-5.6-luna"]
-escalated = ["deepinfra/deepseek-ai/DeepSeek-V4.1-Flash"]
+escalated = ["openai-codex/gpt-5.6-terra", "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash"]
 reviewer = ["openai-codex/gpt-5.6-terra", "openai-codex/gpt-5.6-sol", "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash", "bm-llms-glm/glm-5.3-flash"]
 triage = ["openai-codex/gpt-5.6-terra", "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash", "bm-llms-glm/glm-5.3-flash"]
 
