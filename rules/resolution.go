@@ -136,6 +136,12 @@ type resumePoint struct {
 	// ask leaves) means no upto is in flight.
 	uptoIdx   int
 	uptoCount int32
+	// targetsUnique is the TargetUnique$ accumulator of the resolution that
+	// suspended (the Decision.ResumeTargetsUnique rider, captured at ask
+	// time from the in-flight Ctx): the resumed Ctx re-binds it, so a later
+	// TargetUnique$ rider in the same chain still excludes the targets an
+	// earlier rider chose. Nil for every non-TargetUnique ask.
+	targetsUnique []state.Target
 	// unlessResolved is the unless-cost outcome the suspended pass recorded
 	// through Host.SuspendUnless (effects.Resolve: the gate had resolved
 	// when the SA's own body posed the pending ask). "resolved-pay" and
@@ -364,6 +370,7 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 		chosenValid: d.ResumeChosenValid, remembered: append([]state.Target(nil), d.ResumeRemembered...),
 		moved:   append([]state.ObjID(nil), d.ResumeMoved...),
 		uptoIdx: d.ResumeUptoIdx, uptoCount: d.ResumeUptoCount,
+		targetsUnique:   append([]state.Target(nil), d.ResumeTargetsUnique...),
 		fusedTargets:    append([]state.Target(nil), e.fusedResolving...),
 		fusedTargetsSet: e.fusedResolvingSet,
 		fusedSVars:      e.fusedResolvingSVars}
@@ -1011,6 +1018,15 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	// frames, which never carry rp.remembered otherwise.
 	if rp.remembered != nil && !rp.replacement && !rp.loopBound {
 		ctx.Remembered = append([]state.Target(nil), rp.remembered...)
+	}
+	// The TargetUnique$ accumulator, captured at ask time: the resumed Ctx
+	// re-binds it so a LATER TargetUnique$ rider in the same chain still
+	// excludes the targets earlier riders chose (a fresh Ctx would otherwise
+	// rebuild the accumulator empty). ctx.Targets itself re-binds from the
+	// stack object's flat list above, so the parent-target half of the
+	// exclusion set survives the suspension untouched.
+	if len(rp.targetsUnique) > 0 {
+		ctx.TargetsUnique = append(ctx.TargetsUnique, rp.targetsUnique...)
 	}
 	// Task mvts1: carry the SA whose targeting the placement/announcement
 	// ask covered, exactly as resolveTop's first pass does. An optional

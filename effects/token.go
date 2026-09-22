@@ -168,7 +168,16 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 		// targeted, not by the ability's controller. A resolution with no
 		// player target keeps the controller, the same silent degrade the
 		// other miss cases here take.
-		for _, t := range c.Targets {
+		//
+		// The list is read through Defined, not raw Ctx.Targets: an SA whose
+		// own ValidTgts$ was answered by the mid-resolution pre-ask carries
+		// that answer in Ctx.PickedTargets while its body dispatches, and
+		// Ctx.Targets still holds the PARENT's target (Cybernetica Datasmith's
+		// root Draw targets player A, its Token SubAbility's TargetUnique$
+		// ask answers player B -- reading Ctx.Targets here created the token
+		// under A). For a charm mode PickedTargets is nil and Defined returns
+		// Ctx.Targets, exactly the historical read.
+		for _, t := range Defined(h, c, sa) {
 			if t.IsPlayer {
 				owners = []state.PlayerID{t.Player}
 				break

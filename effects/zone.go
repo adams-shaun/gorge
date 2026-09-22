@@ -4082,21 +4082,35 @@ func changeZoneChosenTargets(h Host, c *Ctx, sa *cards.SA) ([]state.Target, bool
 		strings.TrimSpace(sa.Params["Defined"]) != "" {
 		return nil, false
 	}
-	if c.TargetsOffered {
-		// The announcement ask offered THIS SA's targeting (rules sets the
-		// marker on the ability/spell branch exactly for the resolving SA);
-		// the chosen-zero election must not be re-asked here.
+	if c.TargetsOffered && (c.OfferedSA == nil || sa.Line == c.OfferedSA.Line) {
+		// The announcement/placement ask offered THIS SA's targeting (rules
+		// sets the marker exactly for the SA the ask covered, and OfferedSA
+		// names it); the chosen-zero election must not be re-asked here. A
+		// deeper sub's own targeting was never offered -- the same
+		// mvts1 boundary chosenTargetsFor's OfferedSA check draws -- so it
+		// falls through to its own ask below.
 		return nil, false
 	}
 	if c.ChoiceDone {
 		ans := c.Choice
 		c.ChoiceDone, c.Choice = false, nil
+		if TargetUniqueRequested(sa) {
+			c.TargetsUnique = append(c.TargetsUnique, ans...)
+		}
 		return ans, true
 	}
 	if len(c.Targets) > 0 {
-		// The placement ask already offered this targeting; Defined's own
-		// fallthrough reads it.
-		return nil, false
+		// The placement ask already offered THIS SA's targeting (its OfferedSA
+		// marker matches) or the targets are this same SA's; Defined's own
+		// fallthrough reads them. A DIFFERENT SA carrying TargetUnique$ True
+		// must not silently inherit them (a root target followed by a
+		// `DB$ ChangeZone | TargetUnique$ True` sub reusing the parent target
+		// with no filter and no ask): fall through to the shared ask, whose
+		// filter excludes the inherited parent target via
+		// TargetsAlreadyChosen.
+		if !TargetUniqueRequested(sa) || (c.OfferedSA != nil && sa.Line == c.OfferedSA.Line) {
+			return nil, false
+		}
 	}
 	chooser := c.Controller
 	candidates := h.LegalTargets(chooser, c.Source, sa)

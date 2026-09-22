@@ -130,6 +130,7 @@ func (e *Engine) Clone() *Engine {
 		d.ResumeChoices = append([]state.Target(nil), e.pending.ResumeChoices...)
 		d.ResumeChosenValid = e.pending.ResumeChosenValid
 		d.ResumeRemembered = append([]state.Target(nil), e.pending.ResumeRemembered...)
+		d.ResumeTargetsUnique = append([]state.Target(nil), e.pending.ResumeTargetsUnique...)
 		c.pending = &d
 	}
 	if e.resume != nil {
@@ -670,6 +671,7 @@ func cloneResume(rp *resumePoint) *resumePoint {
 	cp.chosenValid = rp.chosenValid
 	cp.remembered = append([]state.Target(nil), rp.remembered...)
 	cp.loopRemembered = append([]state.Target(nil), rp.loopRemembered...)
+	cp.targetsUnique = append([]state.Target(nil), rp.targetsUnique...)
 	if rp.repeat != nil {
 		cur := *rp.repeat
 		cur.subjects = append([]state.Target(nil), rp.repeat.subjects...)
