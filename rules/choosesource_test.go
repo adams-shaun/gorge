@@ -112,6 +112,18 @@ func TestDeflectingPalmPreventsOnlyTheNextDamage(t *testing.T) {
 
 	resolveChooseSource(t, e, palm.ID, chosen)
 
+	frames := func() int {
+		n := 0
+		for _, ce := range e.continuous {
+			if ce.Source == palm.ID && ce.ReplacementEvent == "DamageDone" {
+				n++
+			}
+		}
+		return n
+	}
+	if n := frames(); n != 1 {
+		t.Fatalf("precondition: %d DamageDone registrations from the spell, want 1", n)
+	}
 	life0, life1 := e.G.Players[0].Life, e.G.Players[1].Life
 	// First event: prevented, reflected to the source's controller.
 	e.damaging = chosen
@@ -122,6 +134,9 @@ func TestDeflectingPalmPreventsOnlyTheNextDamage(t *testing.T) {
 	}
 	if got := e.G.Players[1].Life; got != life1-3 {
 		t.Fatalf("seat 1 life = %d, want %d: the prevented amount was not reflected", got, life1-3)
+	}
+	if n := frames(); n != 0 {
+		t.Fatalf("after one application %d registrations remain, want the one-shot ended", n)
 	}
 	// Second event from the SAME source: the one-shot is spent, so it lands
 	// in full and reflects nothing.

@@ -465,31 +465,21 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	}
 	var imprinted []state.ObjID
 	// Forge keeps every DB$ Effect in an implicit "effect" object in the
-	// Command zone, and the corpus's universal one-shot idiom -- `DB$
-	// ChangeZone | Origin$ Command | Destination$ Exile`, the ChooseSource
-	// prevention family's RPreventNextFromSource, Words of Wind's bounce, Kor
-	// Dirge's OutOfSight, Unlucky Witness's exile-play frame -- is that effect
-	// object exile itself. The object is named by whichever source-alias
-	// spelling the carrier uses: an absent Defined$ (the majority), `Self`,
-	// or `OriginalHost`. This build has no effect object and no such source
-	// ever sits in the Command zone, so the shape can only mean "end this
-	// source's registered effects"; running the card move instead would be the
-	// silent no-op that left every one of these one-shots persisting past its
-	// first use (Deflecting Palm prevented and reflected EVERY subsequent
-	// damage from the chosen source rather than the next one). The check is
-	// STRUCTURAL rather than a list of spellings: the resolved target IS the
-	// source (so an absent Defined$, `Self` and `OriginalHost` all qualify,
-	// while `Imprinted` -- which names real exiled cards, not the effect frame
-	// -- resolves elsewhere), and a real command-zone card keeps its ordinary
-	// move because its own object IS in ZCommand.
-	if to == state.ZExile && !originAll && len(originZones) == 1 && originZones[0] == state.ZCommand &&
-		!strings.EqualFold(strings.TrimSpace(sa.Params["Defined"]), "Imprinted") &&
-		!strings.EqualFold(strings.TrimSpace(sa.Params["Defined"]), "ImprintedLKI") &&
+	// Command zone, and the corpus's one-shot idiom `DB$ ChangeZone | Defined$
+	// Self | Origin$ Command | Destination$ Exile` is that effect object
+	// exiling itself -- ending the effect after one use (Deflecting Palm's
+	// RPreventNextFromSource: "the NEXT time the chosen source would deal
+	// damage"). This build has no effect object, so when the chain resolves
+	// inside an Effect-created replacement's body (Ctx.EffectFrame is bound
+	// by rules' seedEffectReplCtx) and the ChangeZone names that frame's own
+	// source, the shape ends exactly that registration. Everywhere else the
+	// ordinary move below runs unchanged (it moves nothing: the named source
+	// is not in the Command zone), so no other resolution changes.
+	if f := c.EffectFrame; f.Source != 0 && f.Source == c.Source && to == state.ZExile && !originAll &&
+		len(originZones) == 1 && originZones[0] == state.ZCommand &&
 		len(targets) == 1 && !targets[0].IsPlayer && targets[0].Obj == c.Source {
-		if o := h.Game().Obj(c.Source); o == nil || o.Zone != state.ZCommand {
-			h.EndEffectSource(c.Source)
-			return
-		}
+		h.EndEffect(f.Source, f.Stamp)
+		return
 	}
 	// The objects the move loop actually moved, in move order: ChangeZone's
 	// AtEOT$ affected set is the MOVED objects (some carriers carry

@@ -463,11 +463,6 @@ type replMatch struct {
 // rememberedSpecContext builds the match context a ValidCard$/ValidLKI$
 // spec on a Moved replacement evaluates under: the ordinary You/Source pair,
 // plus the remembered ids as targets when the caller carries any (the
-// Effect-created ReplaceDyingDefined$ family). Nil ids yield the plain
-// context every other caller already built.
-// rememberedSpecContext builds the match context a ValidCard$/ValidLKI$
-// spec on a Moved replacement evaluates under: the ordinary You/Source pair,
-// plus the remembered ids as targets when the caller carries any (the
 // Effect-created ReplaceDyingDefined$ family), plus the source object's
 // chosen cards. The chosen half is the event-backed Choose answer the
 // ChooseCard/ChooseSource family records on its source (events.Apply's
@@ -1246,6 +1241,9 @@ func (e *Engine) seedEffectReplCtx(ctx *effects.Ctx, m replMatch) {
 	// only, so a printed or choose-event context stays UNRESOLVED and the
 	// EvalCountOK consumers keep their fail direction (see Ctx.ChosenNumberBound).
 	ctx.ChosenNumberBound = m.key != ""
+	if src, ts, ok := parseEffectKey(m.key); ok {
+		ctx.EffectFrame = effects.EffectFrame{Source: src, Stamp: ts}
+	}
 	if m.key == "" || len(m.remembered) == 0 {
 		return
 	}
@@ -1280,9 +1278,13 @@ func (e *Engine) runReplaceWith(ctx *effects.Ctx, replaced state.ObjID, with *ca
 	// the idiom that ends the effect after one use. A printed body keeps its
 	// already-linked chain (Sub non-nil), so this only touches the
 	// Effect-created parse.
-	if with.Sub == nil && ctx != nil && ctx.SVars != nil {
+	if with != nil && with.Sub == nil && ctx != nil && ctx.SVars != nil {
 		if name := strings.TrimSpace(with.Params["SubAbility"]); name != "" {
-			with.Sub = cards.ResolveSVar(ctx.SVars, name)
+			if sub := cards.ResolveSVar(ctx.SVars, name); sub != nil {
+				linked := *with
+				linked.Sub = sub
+				with = &linked
+			}
 		}
 	}
 	savedRepl, savedEvent, savedSource, savedAction, savedPlayer :=
@@ -2758,7 +2760,10 @@ func (e *Engine) damageReplacementMatches(r cards.Repl, source state.ObjID, ev e
 		// Ctx.Chosen: the damage replacement fires while some later object
 		// resolves, and the promise belongs to the object that chose.
 		if e.damaging == 0 ||
-			!effects.MatchesSpecCtx(e.G, v, e.damaging, e.rememberedSpecContext(ctrl, source, remembered)) {
+			// nil remembered: only the chosen half is added here, so an
+			// Effect-created `ValidSource$ Card.IsRemembered` line keeps the
+			// exact match it had before ChooseSource landed.
+			!effects.MatchesSpecCtx(e.G, v, e.damaging, e.rememberedSpecContext(ctrl, source, nil)) {
 			return false
 		}
 	}

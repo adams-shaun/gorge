@@ -99,12 +99,12 @@ func (h *fakeHost) AddContinuous(ce state.ContinuousEffect) {
 	h.continuous = append(h.continuous, ce)
 }
 
-// EndEffectSource mirrors rules.Engine's implementation for one-shot Effect
-// self-exile (DB$ ChangeZone | Defined$ Self | Origin$ Command).
-func (h *fakeHost) EndEffectSource(source state.ObjID) {
+// EndEffect mirrors rules.Engine's implementation: drop the registration
+// with exactly this (source, timestamp) identity.
+func (h *fakeHost) EndEffect(source state.ObjID, stamp uint32) {
 	kept := h.continuous[:0]
 	for _, ce := range h.continuous {
-		if ce.Source == source {
+		if ce.Source == source && ce.Timestamp == stamp {
 			continue
 		}
 		kept = append(kept, ce)

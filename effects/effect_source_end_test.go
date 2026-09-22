@@ -6,87 +6,77 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
-// TestChangeZoneCommandSelfExileEndsEffectSource pins the corpus's universal
-// one-shot Effect self-exile idiom (api:ChooseSource's RPreventNextFromSource,
-// Unlucky Witness's exile-play frame, Words of Wind, Kor Dirge): Forge keeps
-// every DB$ Effect in an implicit effect object in the Command zone, and a
-// body that exiles it (`DB$ ChangeZone | Origin$ Command | Destination$
-// Exile`) ends the effect after one use. This build has no such object, so the
-// shape is recognised structurally and ends the source's registered effects.
-//
-// The object is named by whichever source-alias spelling the carrier uses --
-// an absent Defined$ (the majority of raw lines), Self, or OriginalHost -- so
-// all three are pinned; the check is on the RESOLVED target being the source,
-// not on a list of literals, so a future alias cannot slip past it.
-func TestChangeZoneCommandSelfExileEndsEffectSource(t *testing.T) {
-	cases := []struct{ name, defined string }{
-		{"no Defined$", ""},
-		{"Defined$ Self", "Defined$ Self | "},
-		{"Defined$ OriginalHost", "Defined$ OriginalHost | "},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			h := newHost(t, 2)
-			src := h.g.AddObject(mkCard(t, "Name:Frame\nTypes:Sorcery\nOracle:x\n"), 0)
-			h.AddContinuous(state.ContinuousEffect{Source: src.ID, Controller: 0, Affects: "Card.Self"})
-			h.AddContinuous(state.ContinuousEffect{Source: 9999, Controller: 1, Affects: "Card.Self"})
+// TestChangeZoneCommandSelfExileEndsTheBoundEffectFrame pins the one-shot
+// Effect self-exile idiom (`DB$ ChangeZone | Defined$ Self | Origin$ Command
+// | Destination$ Exile`, Deflecting Palm's ExileEffect) run inside an
+// Effect-created replacement body: Ctx.EffectFrame names the registration
+// the body belongs to, and the shape ends exactly that registration -- not
+// the same source's OTHER registration, not another source's. Both spellings
+// the corpus uses for the effect object (Defined$ Self, and an absent
+// Defined$) are pinned.
+func TestChangeZoneCommandSelfExileEndsTheBoundEffectFrame(t *testing.T) {
+	for _, defined := range []string{"Defined$ Self | ", ""} {
+		h := newHost(t, 2)
+		src := h.g.AddObject(mkCard(t, "Name:Frame\nTypes:Instant\nOracle:x\n"), 0)
+		h.AddContinuous(state.ContinuousEffect{Source: src.ID, Timestamp: 7, Controller: 0, Affects: "Card.Self"})
+		h.AddContinuous(state.ContinuousEffect{Source: src.ID, Timestamp: 8, Controller: 0, Affects: "Card.Self"})
+		h.AddContinuous(state.ContinuousEffect{Source: 9999, Timestamp: 7, Controller: 1, Affects: "Card.Self"})
+		if len(h.continuous) != 3 {
+			t.Fatalf("precondition: %d registrations, want 3", len(h.continuous))
+		}
 
-			line := "DB$ ChangeZone | " + tc.defined + "Origin$ Command | Destination$ Exile"
-			Resolve(h, &Ctx{Source: src.ID, Controller: 0}, sa(t, line))
+		c := &Ctx{Source: src.ID, Controller: 0, EffectFrame: EffectFrame{Source: src.ID, Stamp: 7}}
+		Resolve(h, c, sa(t, "DB$ ChangeZone | "+defined+"Origin$ Command | Destination$ Exile"))
 
-			for _, ce := range h.continuous {
-				if ce.Source == src.ID {
-					t.Fatalf("%s: the source's continuous effect survived the one-shot ender", tc.name)
-				}
+		if len(h.continuous) != 2 {
+			t.Fatalf("%q: registrations = %+v, want the frame (src,7) dropped and the other two kept", defined, h.continuous)
+		}
+		for _, ce := range h.continuous {
+			if ce.Source == src.ID && ce.Timestamp == 7 {
+				t.Fatalf("%q: the bound frame survived its self-exile", defined)
 			}
-			if len(h.continuous) != 1 || h.continuous[0].Source != 9999 {
-				t.Fatalf("%s: an unrelated source's effect was dropped: %+v", tc.name, h.continuous)
-			}
-			// No card move was attempted: a real card never sits in Command
-			// under this shape, and the ender must not emit a zone move.
-			if got := h.g.Obj(src.ID).Zone; got == state.ZExile {
-				t.Fatalf("%s: the effect frame was exiled as a card", tc.name)
-			}
-		})
+		}
+		if got := h.g.Obj(src.ID).Zone; got == state.ZExile {
+			t.Fatalf("%q: the effect frame was exiled as a card", defined)
+		}
 	}
 }
 
-// TestChangeZoneCommandSelfExileKeepsARealCommandCard pins the guard's other
-// side: a card that genuinely IS in the Command zone under the same shape (a
-// companion/emblem-frame card, or an ST$ PayUp special action) keeps its
-// ordinary move and its registered effects -- the structural ender only fires
-// when the source is NOT in Command.
-func TestChangeZoneCommandSelfExileKeepsARealCommandCard(t *testing.T) {
+// TestChangeZoneCommandSelfExileWithoutAFrameEndsNothing pins the gate's
+// other side: the same shape resolved outside an Effect-created replacement
+// body (no Ctx.EffectFrame -- an ordinary spell, ability or printed
+// replacement) ends no registration; the ordinary move path runs unchanged.
+func TestChangeZoneCommandSelfExileWithoutAFrameEndsNothing(t *testing.T) {
 	h := newHost(t, 2)
-	src := h.g.AddObject(mkCard(t, "Name:Commander\nTypes:Legendary Creature\nPT:2/2\nOracle:x\n"), 0)
-	src.Zone = state.ZCommand
-	h.AddContinuous(state.ContinuousEffect{Source: src.ID, Controller: 0, Affects: "Card.Self"})
+	src := h.g.AddObject(mkCard(t, "Name:Frame\nTypes:Instant\nOracle:x\n"), 0)
+	h.AddContinuous(state.ContinuousEffect{Source: src.ID, Timestamp: 7, Controller: 0, Affects: "Card.Self"})
 
-	Resolve(h, &Ctx{Source: src.ID, Controller: 0}, sa(t, "DB$ ChangeZone | Origin$ Command | Destination$ Exile"))
+	Resolve(h, &Ctx{Source: src.ID, Controller: 0}, sa(t, "DB$ ChangeZone | Defined$ Self | Origin$ Command | Destination$ Exile"))
 
 	if len(h.continuous) != 1 {
-		t.Fatalf("a real command-zone card lost its effect: %+v", h.continuous)
-	}
-	if got := h.g.Obj(src.ID).Zone; got != state.ZExile {
-		t.Fatalf("command-zone card zone = %s, want %s (ordinary move)", got, state.ZExile)
+		t.Fatalf("an unframed self-exile ended a registration: %+v", h.continuous)
 	}
 }
 
-// TestChangeZoneCommandSelfExileLeavesImprinted pins the one spelling the
-// structural guard deliberately excludes: Defined$ Imprinted names real exiled
-// cards, not the effect frame. The only way the exclusion is reachable is the
-// degenerate self-imprint (the source's own Imprinted list holds the source),
-// so that is the fixture -- without the exclusion the resolved target WOULD be
-// the source and the frame would be ended wrongly.
-func TestChangeZoneCommandSelfExileLeavesImprinted(t *testing.T) {
+// TestChooseSourceFreshEntryReplacesAStaleChosenCard pins effChooseSource's
+// fresh-entry normalisation (effChooseCard's setChosenCards read): a Ctx
+// already carrying a chosen CARD from an earlier choice on the same
+// resolution ends with only the newly chosen source, matching the Choose
+// "chosen" fold that REPLACES the source object's list -- so the ctx read
+// (Defined$ ChosenCard) and the object read (a replacement's ValidSource$
+// Card.ChosenCardStrict) agree.
+func TestChooseSourceFreshEntryReplacesAStaleChosenCard(t *testing.T) {
 	h := newHost(t, 2)
-	src := h.g.AddObject(mkCard(t, "Name:Frame\nTypes:Sorcery\nOracle:x\n"), 0)
-	h.AddContinuous(state.ContinuousEffect{Source: src.ID, Controller: 0, Affects: "Card.Self"})
-	src.Imprinted = []state.ObjID{src.ID}
+	spell := h.g.AddObject(mkCard(t, "Name:Palm\nTypes:Instant\nOracle:x\n"), 0)
+	stale := h.g.AddObject(mkCard(t, "Name:Stale\nTypes:Artifact\nOracle:x\n"), 0)
+	stale.Zone = state.ZGraveyard
+	src := h.g.AddObject(mkCard(t, "Name:Aggressor\nTypes:Creature\nPT:2/2\nOracle:x\n"), 1)
+	src.Zone = state.ZBattlefield
 
-	Resolve(h, &Ctx{Source: src.ID, Controller: 0}, sa(t, "DB$ ChangeZone | Defined$ Imprinted | Origin$ Command | Destination$ Exile"))
+	c := &Ctx{Source: spell.ID, Controller: 0, Chosen: []state.Target{{Obj: stale.ID}}, ChosenValid: true}
+	Resolve(h, c, sa(t, "SP$ ChooseSource | Choices$ Card"))
 
-	if len(h.continuous) != 1 {
-		t.Fatalf("Defined$ Imprinted must not end the effect frame: %+v", h.continuous)
+	if len(c.Chosen) != 1 || c.Chosen[0].Obj != src.ID {
+		t.Fatalf("ctx chosen = %+v, want only the newly chosen source %d (stale %d dropped)", c.Chosen, src.ID, stale.ID)
 	}
 }

@@ -438,21 +438,17 @@ type Host interface {
 	// regeneration kept on the battlefield.
 	BatchDepartures(ids []state.ObjID)
 	EndBatchDepartures()
-	// EndEffectSource ends every continuous effect the named source has
-	// registered (rules.Engine's continuous registry), the analogue of
-	// Forge's effect object leaving the Command zone. It backs the corpus's
-	// universal one-shot idiom `DB$ ChangeZone | Defined$ Self | Origin$
-	// Command | Destination$ Exile` (the ChooseSource prevention family's
-	// RPreventNextFromSource, Words of Wind's bounce, Kor Dirge's OutOfSight):
-	// Forge keeps every DB$ Effect in an implicit Command-zone object, and a
-	// body that exiles that object ends the effect after one use. This build
-	// has no such object, so effChangeZone recognises the shape and ends the
-	// source's registered effects instead of running a card move that can
-	// never legally happen (no real card sits in the Command zone under
-	// Defined$ Self). rules.Engine implements it as an in-place rewrite of
-	// its registry; the effects test double removes the entries from its own
-	// recorded slice.
-	EndEffectSource(source state.ObjID)
+	// EndEffect ends the one continuous-effect registration named by its
+	// (source, timestamp) identity -- the analogue of Forge's implicit
+	// Command-zone effect object being exiled. It backs the corpus's one-shot
+	// idiom `DB$ ChangeZone | Defined$ Self | Origin$ Command | Destination$
+	// Exile` run from inside an Effect-created replacement's own body (the
+	// ChooseSource prevention family's RPreventNextFromSource: "the NEXT time
+	// ... prevent that damage"). effChangeZone reaches it only through
+	// Ctx.EffectFrame, so a body that is not an Effect-created replacement's
+	// never ends anything. rules.Engine implements it as an in-place drop of
+	// its registry; the effects test double drops from its recorded slice.
+	EndEffect(source state.ObjID, stamp uint32)
 }
 
 // RepeatCursor is a RepeatEach loop re-entered after an iteration suspended:
@@ -490,6 +486,14 @@ type DamageSourceLKI struct {
 }
 
 // Ctx carries the bindings a Forge script refers to during resolution.
+// EffectFrame identifies one continuous-effect registration by its source
+// and registration timestamp (the same identity rules' replMatch key
+// encodes). The zero value means "no frame".
+type EffectFrame struct {
+	Source state.ObjID
+	Stamp  uint32
+}
+
 type Ctx struct {
 	TriggerContext
 	Source     state.ObjID
@@ -597,6 +601,14 @@ type Ctx struct {
 	// Ctx). A zero binding with the flag set is still bound (torgal with no
 	// Dogs); only the flag distinguishes the two.
 	ChosenNumberBound bool
+	// EffectFrame names the Effect-created continuous-effect registration
+	// whose replacement body this Ctx is resolving (rules' seedEffectReplCtx
+	// sets it from the match's "effect:<source>:<timestamp>" key; zero Source
+	// on every printed-replacement, spell and ability resolution). It is the
+	// Ctx-side stand-in for Forge's Command-zone effect object: effChangeZone's
+	// self-exile idiom ends exactly this registration (Host.EndEffect) instead
+	// of attempting a card move no real card can make.
+	EffectFrame EffectFrame
 	// Host is the engine driving this resolution, bound by effects.Resolve
 	// itself (it receives the host as its own parameter, so every walk that
 	// can reach a resolution-time filter evaluation has passed through one
