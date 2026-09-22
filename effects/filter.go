@@ -893,6 +893,16 @@ func wordPredicate(p string) (wordKind, string) {
 	// spelling -- the same ordering rule castProvenanceAdmits documents.
 	case "wasCastFromYourHandByYou", "wasCastByYou", "wasCastFromYourHand":
 		return wordCastProvenance, p
+	// The card-level CastSa property tokens (task castsa-provenance): the
+	// four mana-spend spellings the payment path's tagged ManaAdd encoding
+	// answers. Recognised here (the census no longer reports them unknown)
+	// but evaluated by rules' castSaAdmits, which strips them before the
+	// filter runs; wordMatches' body fails closed. The unmodelled spellings
+	// (CastSa Spell.MayPlaySource / Warp / Mayhem / ManaFromArtifact) stay
+	// unknown and fail closed everywhere.
+	case "CastSa Spell.ManaFromTreasure", "CastSa Spell.ManaFromCave",
+		"CastSa Spell.ManaFromDesert", "CastSa Spell.ManaSpent EQ0":
+		return wordCastProvenance, p
 	case "ActivePlayerCtrl":
 		return wordActivePlayerCtrl, ""
 	case "TopLibrary":
