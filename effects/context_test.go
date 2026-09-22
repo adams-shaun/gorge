@@ -101,6 +101,8 @@ type fakeHost struct {
 	// between-iteration suspension break). Zero value keeps the historical
 	// constant-false read every other effects test relies on.
 	suspendAfterAsk bool
+	askCount        int
+	askResult       bool
 	// startingLife is the StartingLife answer the double reports (0 when
 	// unset); the effects-level relative half-starting-life tests set it.
 	startingLife int32
@@ -399,7 +401,7 @@ func (h *fakeHost) IsCreature(id state.ObjID) bool {
 // stand-in (effCharm's first mode, effCopySpellAbility's decline) -- which
 // is exactly today's no-ask behaviour, now with the engines it is a fallback
 // for clearly named (R-9).
-func (h *fakeHost) Ask(d *decision.Decision) bool { return false }
+func (h *fakeHost) Ask(d *decision.Decision) bool { h.askCount++; return h.askResult }
 
 // TypeChoices serves the double's configured typeChoices list (nil by
 // default): nil routes ChooseType through AskEmpty — the unchanged

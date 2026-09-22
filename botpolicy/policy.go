@@ -468,6 +468,17 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		if len(d.Options) == 0 {
 			break
 		}
+		if d.ResumeKind == "repeat_optional" {
+			// Repeat while life remains above the deterministic safety margin;
+			// this is deliberately conservative for Ad Nauseam and legal for
+			// every yes/no RepeatOptional$ election.
+			if b.Life[d.Player] > 5 {
+				in.Choices = []int{d.Options[0].Index}
+			} else if len(d.Options) > 1 {
+				in.Choices = []int{d.Options[1].Index}
+			}
+			break
+		}
 		switch d.Options[0].Kind {
 		case "x":
 			in.Choices = []int{d.Options[len(d.Options)-1].Index} // the most it can pay for

@@ -1925,12 +1925,17 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 	check := strings.TrimSpace(sa.Params["RepeatCheckSVar"])
 	cmp := strings.TrimSpace(sa.Params["RepeatSVarCompare"])
 	gated := check != ""
+	optional := strings.EqualFold(strings.TrimSpace(sa.Params["RepeatOptional"]), "True")
 	n := Num(h, c, sa, "MaxRepeat", -1)
 	if n < 0 {
 		if gated {
 			// Gate-governed: Forge's default cap is unbounded (the gate
 			// decides when to stop); clamp to the same 1000-iteration cap a
 			// malformed MaxRepeat takes.
+			n = 1000
+		} else if optional {
+			// RepeatOptional$ is an open-ended do/while election. The cap is
+			// only a malformed-input guard; the player decides when to stop.
 			n = 1000
 		} else {
 			n = Num(h, c, sa, "RepeatNum", 1)
@@ -1950,7 +1955,14 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 	if sub == nil {
 		return
 	}
-	for i := int32(0); i < n; i++ {
+	start := int32(0)
+	if c.RepeatOptional != nil {
+		if !c.RepeatOptional.Continue {
+			return
+		}
+		start = c.RepeatOptional.Next
+	}
+	for i := start; i < n; i++ {
 		Resolve(h, c, sub)
 		if h.Suspended() {
 			// A body ask suspended the resolution: the remaining iterations
@@ -1966,19 +1978,40 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 			// here beyond what the gate itself moves.
 			return
 		}
+		if gated {
+			holds, evaluated := repeatGateHolds(h, c, check, cmp)
+			if !evaluated || !holds {
+				break
+			}
+		}
+		if optional {
+			if i+1 >= n {
+				return
+			}
+			player := c.Controller
+			if strings.TrimSpace(sa.Params["RepeatOptionalDecider"]) == "Remembered" {
+				for _, t := range c.Remembered {
+					if t.IsPlayer {
+						player = t.Player
+						break
+					}
+				}
+			}
+			d := &decision.Decision{Player: player, Kind: decision.KChoose,
+				Min: 1, Max: 1, Prompt: "Repeat this process?", Source: c.Source,
+				ResumeKind: "repeat_optional", ResumeSA: sa,
+				ResumeRepeatNext: i + 1,
+				Options: []decision.Option{{Index: 0, Kind: "yes", Label: "Repeat", Player: player},
+					{Index: 1, Kind: "no", Label: "Stop", Player: player}}}
+			if !h.Ask(d) {
+				return // R-9: a host that cannot answer stops after one pass.
+			}
+			return
+		}
 		if !gated {
 			continue
 		}
-		// The gate is a do-while: the body runs first, THEN the gate decides
-		// whether to run again. Every carrier's oracle reads "run, then
-		// repeat while <condition holds>" -- a check-before-first-body loop
-		// would run Grist's [+1] or Countryside Crusher's upkeep reveal zero
-		// times, since neither condition can hold before the first body has
-		// remembered anything.
-		holds, evaluated := repeatGateHolds(h, c, check, cmp)
-		if !evaluated || !holds {
-			break
-		}
+		// The gate was evaluated before the optional election.
 	}
 }
 

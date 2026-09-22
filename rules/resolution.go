@@ -101,9 +101,10 @@ type resumePoint struct {
 	// and timeTravelRound the count of repetitions it has already completed
 	// (Amount$ 3). The round is its own field, never packed into target: on
 	// a 32-bit build an int cannot hold both halves.
-	timeTravelObjects []state.ObjID
-	timeTravelRound   int
-	before            *triggerSnapshot // immutable look-back if a batch replacement suspends
+	timeTravelObjects  []state.ObjID
+	timeTravelRound    int
+	repeatOptionalNext int32
+	before             *triggerSnapshot // immutable look-back if a batch replacement suspends
 	// target is Dig's index into its deterministic Defined$ target list. It
 	// keeps a resumed answer attached to the library that actually asked.
 	target int
@@ -376,13 +377,14 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 		chosenValid: d.ResumeChosenValid, remembered: append([]state.Target(nil), d.ResumeRemembered...),
 		moved:   append([]state.ObjID(nil), d.ResumeMoved...),
 		uptoIdx: d.ResumeUptoIdx, uptoCount: d.ResumeUptoCount,
-		targetsUnique:     append([]state.Target(nil), d.ResumeTargetsUnique...),
-		fusedTargets:      append([]state.Target(nil), e.fusedResolving...),
-		fusedTargetsSet:   e.fusedResolvingSet,
-		fusedSVars:        e.fusedResolvingSVars,
-		winPaidX:          e.windowPaidX,
-		timeTravelObjects: append([]state.ObjID(nil), d.ResumeObjects...),
-		timeTravelRound:   d.ResumeRound}
+		targetsUnique:      append([]state.Target(nil), d.ResumeTargetsUnique...),
+		fusedTargets:       append([]state.Target(nil), e.fusedResolving...),
+		fusedTargetsSet:    e.fusedResolvingSet,
+		fusedSVars:         e.fusedResolvingSVars,
+		winPaidX:           e.windowPaidX,
+		timeTravelObjects:  append([]state.ObjID(nil), d.ResumeObjects...),
+		timeTravelRound:    d.ResumeRound,
+		repeatOptionalNext: d.ResumeRepeatNext}
 	return true
 }
 
@@ -875,6 +877,12 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// ResolvingObj stays rp.obj -- the wrapper whose resolution this
 		// frame is.
 		ResolvingObj: rp.obj}
+	if rp.kind == "repeat_optional" {
+		ctx.RepeatOptional = &effects.RepeatOptionalContinuation{
+			Continue: len(chosen) > 0 && chosen[0].Kind == "yes",
+			Next:     rp.repeatOptionalNext,
+		}
+	}
 	// CR 107.3i: X is the value paid for the object's {X}, preserved on the
 	// stack object by CastInfo -- the same binding resolveTop's spell and
 	// ability branches now carry. A spell whose resolution suspends on a

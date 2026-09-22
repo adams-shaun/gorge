@@ -443,6 +443,8 @@ type Decision struct {
 	// compile and loses the round. Runtime continuation state, never client
 	// input, the same class as ResumeMoved.
 	ResumeRound int `json:"-"`
+	// ResumeRepeatNext is the completed-iteration cursor for RepeatOptional$.
+	ResumeRepeatNext int32 `json:"-"`
 	// ResumeUptoIdx/ResumeUptoCount ride an Upto$ Draw's in-flight per-target
 	// state across a Dredge ask parked inside that target's answered batch
 	// (Arcane Denial's "may draw up to two"): the re-entering upto branch

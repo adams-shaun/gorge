@@ -606,12 +606,23 @@ type EffectFrame struct {
 	Stamp  uint32
 }
 
+// RepeatOptionalContinuation is the scoped continuation for RepeatOptional$.
+// It is carried only by the resolving Ctx; rules transports it across a
+// mid-resolution ask and it is never event state.
+type RepeatOptionalContinuation struct {
+	Continue bool
+	Next     int32
+}
+
 type Ctx struct {
 	TriggerContext
 	Source     state.ObjID
 	Controller state.PlayerID
 	Targets    []state.Target
 	Remembered []state.Target
+	// RepeatOptional is set only when a RepeatOptional$ answer is being
+	// resumed. A nil value means this is the first pass through the Repeat.
+	RepeatOptional *RepeatOptionalContinuation
 	// TargetsOffered marks that the resolution's OWN ValidTgts$ targeting was
 	// already offered at announcement (rules' resolveTop sets it on both the
 	// ability and the spell branch, exactly for the SA the placement ask
