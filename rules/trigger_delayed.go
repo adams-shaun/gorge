@@ -217,22 +217,18 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 		// (CR 603.10a), the same lki the face-trigger walk uses.
 		var referentsArg *state.Object
 		if dt.EventMode == "BecomeMonarch" {
-			// Palace Jailer’s command-zone trigger qualifies the new
-			// monarch as an opponent of its remembered exiled creature.
-			// This referent is registration state, not the source object.
+			// Palace Jailer's command-zone trigger body reads
+			// `ValidPlayer$ Player.OpponentOf Remembered` — "until an
+			// OPPONENT becomes the monarch". The opponent relation is
+			// against the EFFECT's controller (dt.Controller), the player
+			// Forge's `RememberObjects$ You & Targeted` anchors. In a
+			// multiplayer game that is NOT the exiled creature's own
+			// controller: seat 0's Jailer exiles seat 1's creature and seat
+			// 2 takes the crown, so the creature must return even though
+			// seat 2 does not control it.
 			if v := strings.TrimSpace(t.Params["ValidPlayer"]); strings.EqualFold(v, "Player.OpponentOf Remembered") {
-				ok := false
-				for _, remembered := range dt.Remembered {
-					if remembered.IsPlayer {
-						continue
-					}
-					o := e.G.Obj(remembered.Obj)
-					if o != nil && o.Controller == ev.Player && !e.G.Players[o.Controller].Lost {
-						ok = true
-						break
-					}
-				}
-				if !ok {
+				if int(ev.Player) >= len(e.G.Players) || e.G.Players[ev.Player].Lost ||
+					!effects.MatchesPlayerSpec(e.G, "Opponent", ev.Player, dt.Controller) {
 					continue
 				}
 				delete(t.Params, "ValidPlayer")
