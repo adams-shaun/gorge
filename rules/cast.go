@@ -5507,7 +5507,7 @@ func (e *Engine) targetAsk() bool {
 		label := e.targetOptionLabel(candidate)
 		o := decision.Option{Index: len(d.Options), Kind: candidate.kind,
 			Label: label, Obj: candidate.obj, Player: candidate.player}
-		o.Group = e.oneEachTargetGroup(sa, candidate)
+		o.Group = e.targetControllerGroup(sa, candidate)
 		d.Options = append(d.Options, o)
 	}
 	e.ask(d)

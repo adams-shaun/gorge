@@ -1414,13 +1414,33 @@ func (e *Engine) askCrossModeCharmTargets(p state.PlayerID, source state.ObjID, 
 	return true
 }
 
+// candidateControllerSeat is the controller seat a TARGET CANDIDATE keys a
+// per-controller selection constraint on: a player candidate is its own seat
+// (player candidates carry an explicit seat), an object candidate is its
+// controller (its owner for a card in a graveyard/hand/exile, which Move sets
+// Controller to). Both oneEachTargetBounds' distinct-controller count and
+// targetControllerGroup's group label read this one helper, so the bound and
+// the wire exclusivity can never disagree about which candidates share a
+// controller.
+func (e *Engine) candidateControllerSeat(candidate targetCandidate) state.PlayerID {
+	if candidate.kind == "player" {
+		return candidate.player
+	}
+	if o := e.G.Obj(candidate.obj); o != nil {
+		return o.Controller
+	}
+	return candidate.player
+}
+
 // oneEachTargetBounds applies Forge's TargetsForEachPlayer$ selection shape
 // (TargetRestrictions.setForEachPlayer): the selected targets are limited to
 // one controlled by each player, and a TargetMin$/TargetMax$ spelled OneEach
 // asks for exactly the distinct-controller count. askTarget (this file) and
 // cast.go's targetAsk share it so the two ask sites cannot drift; the bool
 // reports whether the shape applies (the caller attaches the matching
-// Option.Group through oneEachTargetGroup).
+// Option.Group through targetControllerGroup). TargetsWithDifferentControllers$
+// is the same set constraint but never respells the bounds -- it is the
+// group alone, so it does not reach this helper.
 func (e *Engine) oneEachTargetBounds(sa *cards.SA, candidates []targetCandidate, min, max int) (int, int, bool) {
 	if !strings.EqualFold(sa.Params["TargetsForEachPlayer"], "True") {
 		return min, max, false
@@ -1430,13 +1450,7 @@ func (e *Engine) oneEachTargetBounds(sa *cards.SA, candidates []targetCandidate,
 	// rather than each effect maintaining a picker.
 	groups := map[state.PlayerID]bool{}
 	for _, candidate := range candidates {
-		owner := candidate.player
-		if candidate.kind != "player" {
-			if o := e.G.Obj(candidate.obj); o != nil {
-				owner = o.Controller
-			}
-		}
-		groups[owner] = true
+		groups[e.candidateControllerSeat(candidate)] = true
 	}
 	if strings.EqualFold(sa.Params["TargetMin"], "OneEach") {
 		min = len(groups)
@@ -1447,21 +1461,80 @@ func (e *Engine) oneEachTargetBounds(sa *cards.SA, candidates []targetCandidate,
 	return min, max, true
 }
 
-// oneEachTargetGroup is the Option.Group label binding one OneEach selection
-// slot to its controller -- the same label both ask sites attach, so
+// targetControllerExclusive reports whether this targeting SA carries Forge's
+// per-controller selection shape -- TargetsForEachPlayer$ True ("up to one
+// target each player controls", the OneEach family) or
+// TargetsWithDifferentControllers$ True ("targets controlled by different
+// players", Protector of the Wastes and 7 more corpus carriers). Both are the
+// SAME set constraint -- no two chosen targets may share a controller -- and
+// both are expressed on the wire by Option.Group, so one predicate backs both
+// and the resolution recheck reads it through the same helper.
+func targetControllerExclusive(sa *cards.SA) bool {
+	return strings.EqualFold(sa.Params["TargetsForEachPlayer"], "True") ||
+		strings.EqualFold(sa.Params["TargetsWithDifferentControllers"], "True")
+}
+
+// targetControllerGroup is the Option.Group label binding one selection slot
+// to its controller -- the same label both ask sites attach, so
 // Decision.Validate's mutual-exclusion rule enforces one pick per controller
-// on the wire.
-func (e *Engine) oneEachTargetGroup(sa *cards.SA, candidate targetCandidate) string {
-	if !strings.EqualFold(sa.Params["TargetsForEachPlayer"], "True") {
+// on the wire. It applies whenever targetControllerExclusive holds, so a
+// TargetsWithDifferentControllers$ ask restricts the SAME way a OneEach ask
+// does: the exclusivity is the generic wire contract's job, not each effect's.
+func (e *Engine) targetControllerGroup(sa *cards.SA, candidate targetCandidate) string {
+	if !targetControllerExclusive(sa) {
 		return ""
 	}
-	owner := candidate.player
-	if candidate.kind != "player" {
-		if o := e.G.Obj(candidate.obj); o != nil {
-			owner = o.Controller
+	return "target-controller-" + strconv.Itoa(int(e.candidateControllerSeat(candidate)))
+}
+
+// targetControllerSeat is the controller seat a chosen target keys the
+// per-controller constraint on, read at the resolution recheck: a player
+// target is its own seat; an object target is its controller (its owner for a
+// card in a graveyard/hand/exile, which apply.go's Move fold keeps equal to
+// Controller). It is the recheck's twin of targetControllerGroup, which reads
+// the same seat off a candidate at the offer (candidatesFor labels a
+// non-battlefield candidate with the zone slice's owner q, and Move sets
+// Controller = Owner there), so offer and recheck cannot disagree. ok is false
+// for a target whose seat is unknown (a vanished object), which the caller
+// keeps rather than duplicating a phantom controller.
+func (e *Engine) targetControllerSeat(t state.Target) (state.PlayerID, bool) {
+	if t.IsPlayer {
+		if int(t.Player) < len(e.G.Players) && !e.G.Players[t.Player].Lost {
+			return t.Player, true
 		}
+		return 0, false
 	}
-	return "target-controller-" + strconv.Itoa(int(owner))
+	if o := e.G.Obj(t.Obj); o != nil {
+		return o.Controller, true
+	}
+	return 0, false
+}
+
+// narrowDifferentControllers is CR 608.2b's "does as much as possible" read of
+// TargetsWithDifferentControllers$ at resolution: walk the still-legal targets
+// in recorded order and keep the first of each controller, dropping a later
+// target whose controller already appears. A controller change in response can
+// make two targets share a controller, and a resolution must never act on a
+// set the targeting requirement forbids; keeping the earliest chosen target is
+// the deterministic, order-stable reading (the same "first in the recorded
+// order" discipline legendCasualties uses for its scan-order survivor). It is
+// applied only to the flag-bearing SA, after the ordinary per-target legality
+// recheck, so it only ever REMOVES a target -- it can never widen a set the
+// per-target filter already narrowed.
+func (e *Engine) narrowDifferentControllers(targets []state.Target) []state.Target {
+	seen := map[state.PlayerID]bool{}
+	out := targets[:0:0]
+	for _, t := range targets {
+		seat, ok := e.targetControllerSeat(t)
+		if ok && seen[seat] {
+			continue
+		}
+		if ok {
+			seen[seat] = true
+		}
+		out = append(out, t)
+	}
+	return out
 }
 
 // askTarget offers every legal target for a spell or ability. It deliberately
@@ -1481,7 +1554,7 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 		label := e.targetOptionLabel(candidate)
 		o := decision.Option{Index: len(d.Options), Kind: candidate.kind,
 			Label: label, Obj: candidate.obj, Player: candidate.player}
-		o.Group = e.oneEachTargetGroup(sa, candidate)
+		o.Group = e.targetControllerGroup(sa, candidate)
 		d.Options = append(d.Options, o)
 	}
 	if min == 0 {
@@ -1802,7 +1875,7 @@ func (e *Engine) resolveTop() {
 		// and has none recorded resolves untargeted rather than fizzling --
 		// targetMin(o.Ability)==0 && len(targets)==0 is the exemption.
 		if spec := o.Ability.Params["ValidTgts"]; spec != "" && !(e.resolvedTargetMin(o.Controller, id, o.Ability, 0) == 0 && len(targets) == 0) {
-			legal := e.legalTargets(targets, spec, targetZones(o.Ability), o.Controller, o.Source, id)
+			legal := e.legalTargets(targets, o.Ability, targetZones(o.Ability), o.Controller, o.Source, id)
 			if len(legal) == 0 {
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
 					From: state.ZStack, To: state.ZExile, Text: "fizzled: no legal targets remain"})
@@ -2153,7 +2226,7 @@ func (e *Engine) resolveTop() {
 		// Requirement N2, the same exemption as the ability branch: an
 		// untargeted-with-Min-0 spell resolves rather than fizzling.
 		if spec := targetSA.Params["ValidTgts"]; spec != "" && !(e.resolvedTargetMin(o.Controller, id, targetSA, 0) == 0 && len(targets) == 0) {
-			legal := e.legalTargets(targets, spec, targetZones(targetSA), o.Controller, id, id)
+			legal := e.legalTargets(targets, targetSA, targetZones(targetSA), o.Controller, id, id)
 			if len(legal) == 0 {
 				// CR 608.2b: every target became illegal. This spell does
 				// not resolve -- no Resolve event, no script runs -- it goes
@@ -2337,7 +2410,11 @@ func (e *Engine) ensureLeftTheStack(id state.ObjID, to state.Zone, why string) {
 // offer and recheck cannot disagree (the one-definition rule). A target
 // whose qualifier the filter cannot evaluate was never offered and is
 // rejected here too, fail closed.
-func (e *Engine) legalTargets(targets []state.Target, spec string, zones []state.Zone, you state.PlayerID, source state.ObjID, self state.ObjID) []state.Target {
+func (e *Engine) legalTargets(targets []state.Target, sa *cards.SA, zones []state.Zone, you state.PlayerID, source state.ObjID, self state.ObjID) []state.Target {
+	spec := ""
+	if sa != nil {
+		spec = sa.Params["ValidTgts"]
+	}
 	var legal []state.Target
 	// The resolution recheck, unlike a target offer, has this stack object's
 	// Targets available. Targeted* predicates may read precisely this binding;
@@ -2399,6 +2476,11 @@ func (e *Engine) legalTargets(targets []state.Target, spec string, zones []state
 				legal = append(legal, t)
 			}
 		}
+	}
+	// CR 608.2b / CR 601.2c: the per-controller targeting requirement is
+	// rechecked on the surviving set too -- see narrowDifferentControllers.
+	if sa != nil && strings.EqualFold(sa.Params["TargetsWithDifferentControllers"], "True") {
+		legal = e.narrowDifferentControllers(legal)
 	}
 	return legal
 }
