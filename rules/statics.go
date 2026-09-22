@@ -2221,6 +2221,18 @@ func init() {
 		// price (Nils' RememberingAttacker$) stay unregistered
 		// behaviour-wise and are ledgered in AGENTS.md.
 		"stat:CantAttackUnless",
+		// canattackdefender1: the CR 702.3b permission static (the inverse of
+		// a restriction: it LIFTS the Defender wall per (attacker, defender)
+		// pair). rules/attack_defender.go attackAllowedThroughDefender is the
+		// read, consulted through canAttackPair from the offer list, the
+		// validator and the encore gate; the Effect-granted form registers as
+		// a CanAttackDefender restriction through effEffect (the Assault
+		// Formation shape). Only the whitelisted parameter shapes are
+		// enforced (effects.CanAttackDefenderParamsReadable for the face
+		// route with the shared gate grammar;
+		// effects.CanAttackDefenderGrantParamsReadable for the grant route,
+		// which cannot evaluate a gate and so keeps the narrower list).
+		"stat:CanAttackDefender",
 		// minmaxblocker1: the CR 509.1a block-count restriction static
 		// (rules/statics.go minMaxBlockerBounds, enforced whole-declaration by
 		// rules/combat.go validateBlockers and consulted by askBlockers' option

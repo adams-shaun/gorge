@@ -442,7 +442,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
 			}
-		case "CantTarget", "CantRegenerate", "CantPreventDamage", "CantAttack", "CantSacrifice", "CantPutCounter":
+		case "CantTarget", "CantRegenerate", "CantPreventDamage", "CantAttack", "CantSacrifice", "CantPutCounter", "CanAttackDefender":
 			// A COMPOUND IsRemembered spec (Card.IsRemembered+Creature) resolves
 			// faithfully through the general filter now that it implements
 			// IsRemembered (rules/layers.go restrictionApplies consults the
@@ -458,6 +458,12 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// blanket — it is reported unimplemented instead, so the two
 			// registration paths cannot disagree about what is readable.
 			if (mode == "CantAttack" || mode == "CantSacrifice") && !CantRestrictionParamsReadable(params) {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
+				registered = true
+				break
+			}
+			if mode == "CanAttackDefender" && !CanAttackDefenderGrantParamsReadable(params) {
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
@@ -948,6 +954,53 @@ func CantPutCounterParamsReadable(params map[string]string) bool {
 	for k := range params {
 		switch k {
 		case "Mode", "ValidCard", "ValidObject", "ValidPlayer", "CounterType", "AffectedZone", "Duration", "Description", "Secondary":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// CanAttackDefenderGrantParamsReadable is the parameter whitelist an
+// Effect-granted CanAttackDefender body (a StaticAbilities$ CanAttack grant
+// such as Assault Formation's SVar:CanAttack) must pass before effEffect
+// registers it as a CanAttackDefender restriction. Readable: the mode, the
+// object spec (ValidCard$ — the corpus's dominant Card.EffectSource and
+// IsRemembered shapes — plus the ValidCards$ spelling one carrier uses), the
+// ValidTarget$ alias, the ValidAttacked$ player gate the face read evaluates,
+// and display text. The gate family (IsPresent$/CheckSVar$/Condition$/...)
+// is DELIBERATELY excluded: the continuous-effect path cannot evaluate a
+// gate, and registering such a body would grant blanket — a Defender
+// creature the gate should still wall would attack. The asymmetry with
+// CanAttackDefenderParamsReadable below is the same documented divergence
+// CantRestrictionParamsReadable vs CantSacrificeRestrictionParamsReadable
+// carries: the grant path keeps the narrower list.
+func CanAttackDefenderGrantParamsReadable(params map[string]string) bool {
+	for k := range params {
+		switch k {
+		case "Mode", "ValidCard", "ValidCards", "ValidTarget", "ValidAttacked", "Description", "Secondary":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// CanAttackDefenderParamsReadable is the parameter whitelist a FACE
+// CanAttackDefender static must pass before rules' attacker-legality read
+// (rules/attack_defender.go attackAllowedThroughDefender) enforces it. It is
+// the grant list above PLUS the gate family (IsPresent$/IsPresent2$/
+// CheckSVar$/SVarCompare$/Condition$), which the face read evaluates through
+// the shared continuousGateHolds grammar — the same shape
+// cantAttackUnlessParamsReadable carries for CantAttackUnless. A static
+// carrying any other parameter names a scoping this build does not evaluate;
+// skipping it is the conservative direction for a permission (the creature
+// stays walled, today's behaviour), never the wrong-wide one.
+func CanAttackDefenderParamsReadable(params map[string]string) bool {
+	for k := range params {
+		switch k {
+		case "Mode", "ValidCard", "ValidCards", "ValidTarget", "ValidAttacked", "Description", "Secondary",
+			"IsPresent", "IsPresent2", "CheckSVar", "SVarCompare", "Condition":
 		default:
 			return false
 		}
