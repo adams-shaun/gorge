@@ -5,6 +5,7 @@ import (
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
@@ -356,6 +357,130 @@ func TestNumericSetMaxHandSize(t *testing.T) {
 	}
 	if got := e.maxHandSizeFor(1); got != 7 {
 		t.Fatalf("maxHandSizeFor for the unaffected seat = %d, want the 7 default", got)
+	}
+}
+
+// TestReliquaryTowerNoCleanupDiscard is the brief's end-to-end leaf for
+// S:Mode$ Continuous | Affected$ You | SetMaxHandSize$ Unlimited: with the
+// real corpus Reliquary Tower on seat 0's battlefield, the CR 514.1 cleanup
+// step must ask NOTHING even though the hand is well over seven, and the
+// hand must be unchanged. The sibling control (no Tower) asks the ordinary
+// discard, so a regression that made cleanupStep always skip (or always ask)
+// fails one half or the other rather than passing vacuously.
+func TestReliquaryTowerNoCleanupDiscard(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := layerEngine(t)
+	onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Reliquary Tower"))
+	e.G.Active = 0
+	e.G.Step = state.StepCleanup
+
+	for i := 0; i < 3; i++ {
+		onHand(t, e, 0, "Name:Moor\nManaCost:1 G\nTypes:Land\nOracle:x\n")
+	}
+	hand := e.G.Zone(state.ZHand, 0)
+	if len(hand) != 10 {
+		t.Fatalf("precondition: hand = %d, want 10 (opening 7 + 3) for this test", len(hand))
+	}
+	if got := e.maxHandSizeFor(0); got != unlimitedHandSize {
+		t.Fatalf("precondition: Reliquary Tower's effective maximum = %d, want unlimited (%d)", got, unlimitedHandSize)
+	}
+
+	e.priorityRound()
+	if d := e.Pending(); d != nil {
+		t.Fatalf("Reliquary Tower's controller was asked to discard at cleanup: %+v", d)
+	}
+	if got := len(e.G.Zone(state.ZHand, 0)); got != 10 {
+		t.Fatalf("hand changed under Reliquary Tower: %d, want 10", got)
+	}
+}
+
+// TestCleanupStillAsksWithoutReliquaryTower is the negative control for
+// TestReliquaryTowerNoCleanupDiscard: the same 10-card hand with no
+// no-maximum effect is asked to discard down to seven. Without this control
+// the Tower leaf could pass because cleanup stopped asking altogether.
+func TestCleanupStillAsksWithoutReliquaryTower(t *testing.T) {
+	e := layerEngine(t)
+	e.G.Active = 0
+	e.G.Step = state.StepCleanup
+	for i := 0; i < 3; i++ {
+		onHand(t, e, 0, "Name:Moor\nManaCost:1 G\nTypes:Land\nOracle:x\n")
+	}
+	if got := len(e.G.Zone(state.ZHand, 0)); got != 10 {
+		t.Fatalf("precondition: hand = %d, want 10 for this test", got)
+	}
+	e.priorityRound()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || d.Min != 3 || d.Max != 3 {
+		t.Fatalf("control: want a discard-3 decision, got %+v", d)
+	}
+}
+
+// TestEffectDeliveredSetMaxHandSizeRead is the rules-side read of the
+// Effect-delivered route maxHandSizeFor now consults: a registered
+// continuous effect carrying SetMaxHandSize (the shape effEffect stores for
+// Finale of Revelation's STHandSize) must set the effective maximum, and the
+// cleanup gate must then ask nothing for an oversized hand. The printed
+// Reliquary Tower read is the other half, pinned by
+// TestReliquaryTowerNoCleanupDiscard; this leaf proves the registered route
+// reaches the same gate (a fix that only widened activeStatics would leave
+// this red).
+func TestEffectDeliveredSetMaxHandSizeRead(t *testing.T) {
+	e := layerEngine(t)
+	src := onBoard(t, e, 0, "Name:Finale of Revelation\nManaCost:X U U\nTypes:Sorcery\nOracle:x\n")
+	e.AddContinuous(ContinuousEffect{
+		Source: src, Controller: 0, Affects: "You", SetMaxHandSize: "Unlimited",
+	})
+	if got := e.maxHandSizeFor(0); got != unlimitedHandSize {
+		t.Fatalf("Effect-delivered maximum = %d, want unlimited (%d)", got, unlimitedHandSize)
+	}
+	if got := e.maxHandSizeFor(1); got != maxHandSize {
+		t.Fatalf("unaffected seat = %d, want the %d default", got, maxHandSize)
+	}
+
+	// End-to-end: the cleanup gate consults the registered effect, so a
+	// seat-0 hand over seven is asked nothing.
+	e.G.Active = 0
+	e.G.Step = state.StepCleanup
+	for i := 0; i < 3; i++ {
+		onHand(t, e, 0, "Name:Moor\nManaCost:1 G\nTypes:Land\nOracle:x\n")
+	}
+	if got := len(e.G.Zone(state.ZHand, 0)); got != 10 {
+		t.Fatalf("precondition: hand = %d, want 10 for this test", got)
+	}
+	e.priorityRound()
+	if d := e.Pending(); d != nil {
+		t.Fatalf("Effect-delivered no-maximum still asked a discard: %+v", d)
+	}
+}
+
+// TestHandSizeValueGrammarIsShared pins the one grammar both registration
+// routes consult: rules' printed read (maxHandSizeFor) and effects'
+// Effect-delivery whitelist (setMaxHandSizeGrantFromLine) must agree on
+// Unlimited, a numeric value, and the dynamic values both refuse. The two
+// Unlimited constants are separate (neither package may import the other's)
+// so this is also the assertion that keeps them equal.
+func TestHandSizeValueGrammarIsShared(t *testing.T) {
+	if unlimitedHandSize != effects.UnlimitedHandSize {
+		t.Fatalf("unlimited constants diverged: rules %d, effects %d", unlimitedHandSize, effects.UnlimitedHandSize)
+	}
+	for _, tc := range []struct {
+		raw  string
+		want int
+		ok   bool
+	}{
+		{"Unlimited", unlimitedHandSize, true},
+		{"unlimited", unlimitedHandSize, true},
+		{"5", 5, true},
+		{"0", 0, true},
+		{"X", 0, false},
+		{"Y", 0, false},
+		{"", 0, false},
+		{"-1", 0, false},
+	} {
+		got, ok := effects.HandSizeValueOK(tc.raw)
+		if ok != tc.ok || (ok && got != tc.want) {
+			t.Fatalf("HandSizeValueOK(%q) = (%d, %v), want (%d, %v)", tc.raw, got, ok, tc.want, tc.ok)
+		}
 	}
 }
 
