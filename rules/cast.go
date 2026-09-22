@@ -5021,8 +5021,7 @@ func (e *Engine) validateSearch(d *decision.Decision, in decision.Intent) error 
 // other KTarget decision, a single-object answer, and an out-of-range choice
 // (Validate's own error) pass through untouched.
 func (e *Engine) validateSameControllerTargets(d *decision.Decision, in decision.Intent) error {
-	pc := e.cast
-	if pc == nil || !pc.sameCtrlTargets || d.Kind != decision.KTarget || len(in.Choices) <= 1 {
+	if !d.TargetsWithSameController || d.Kind != decision.KTarget || len(in.Choices) <= 1 {
 		return nil
 	}
 	var owner state.PlayerID
@@ -5974,7 +5973,8 @@ func (e *Engine) targetAsk() bool {
 	}
 	d := &decision.Decision{Player: pc.player, Kind: decision.KTarget, Min: min, Max: max,
 		Prompt: "Choose a target for " + e.targetName(pc.card),
-		Source: src, TargetEffect: describeTargetEffect(sa)}
+		Source: src, TargetEffect: describeTargetEffect(sa),
+		TargetsWithSameController: sameController}
 	for _, candidate := range candidates {
 		// Shared with stack.go's askTarget so a Face-less ability object (a
 		// TargetType$ Activated/Triggered census) can never nil-deref here.
@@ -5982,6 +5982,7 @@ func (e *Engine) targetAsk() bool {
 		o := decision.Option{Index: len(d.Options), Kind: candidate.kind,
 			Label: label, Obj: candidate.obj, Player: candidate.player}
 		o.Group = e.targetControllerGroup(sa, candidate)
+		o.Controller = e.candidateControllerSeat(candidate)
 		// Option.Value is omitempty and read only under a budget
 		// (Decision.HasBudget), so a budget-less target ask keeps its wire
 		// payload byte-identical. Every present cap -- zero and negative

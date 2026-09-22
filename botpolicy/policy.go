@@ -846,6 +846,28 @@ func (b Board) unlessSacrificeOffer(d *decision.Decision) []int {
 // clamp reintroduced I-1(b): a Min:1 priority decision falling through with
 // nothing chosen got topped up into an activation instead of a pass.
 func Clamp(d *decision.Decision, in decision.Intent) decision.Intent {
+	// Same-controller target answers are a set constraint, not an ordinary
+	// option-group constraint. Keep the first represented controller and drop
+	// other controllers before the shared quota repair; top-up then stays on
+	// that controller, so Clamp cannot manufacture an answer Submit rejects.
+	var targetController state.PlayerID
+	var haveTargetController bool
+	if d.TargetsWithSameController {
+		kept := make([]int, 0, len(in.Choices))
+		for _, c := range in.Choices {
+			if c < 0 || c >= len(d.Options) {
+				continue
+			}
+			got := d.Options[c].Controller
+			if !haveTargetController {
+				targetController, haveTargetController = got, true
+			}
+			if got == targetController {
+				kept = append(kept, c)
+			}
+		}
+		in.Choices = kept
+	}
 	// The decision's joint constraints -- the Max ceiling, the cumulative
 	// budget (Decision.MaxSum, which Decision.Validate enforces) and the
 	// Required quota (Option.Required, CR 508.1d's "attacks if able", which
@@ -892,6 +914,9 @@ func Clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 		// and produced an intent Decision.Validate rejects.
 		fits := func(o decision.Option) bool { return !d.HasBudget() || sum+o.Value <= d.MaxSum }
 		add := func(o decision.Option) {
+			if d.TargetsWithSameController && !haveTargetController {
+				targetController, haveTargetController = o.Controller, true
+			}
 			have[o.Index] = true
 			sum += o.Value
 			in.Choices = append(in.Choices, o.Index)
@@ -900,7 +925,8 @@ func Clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 			if len(in.Choices) >= min {
 				break
 			}
-			if o.Kind == "pass" && !have[o.Index] && fits(o) {
+			if o.Kind == "pass" && !have[o.Index] && fits(o) &&
+				(!d.TargetsWithSameController || !haveTargetController || o.Controller == targetController) {
 				add(o)
 			}
 		}
@@ -919,7 +945,7 @@ func Clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 			if o.Group != "" && groups[o.Group] {
 				continue
 			}
-			if !fits(o) {
+			if !fits(o) || (d.TargetsWithSameController && haveTargetController && o.Controller != targetController) {
 				continue
 			}
 			if o.Group != "" {

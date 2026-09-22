@@ -1885,7 +1885,8 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 	min, max, sameCapacity, sameController := e.sameControllerTargetBounds(sa, candidates, min, max)
 	d := &decision.Decision{Player: p, Kind: decision.KTarget, Min: min, Max: max,
 		Prompt: "Choose a target for " + e.targetName(source),
-		Source: source, TargetEffect: describeTargetEffect(sa)}
+		Source: source, TargetEffect: describeTargetEffect(sa),
+		TargetsWithSameController: sameController, ResumeSA: sa}
 	for _, candidate := range candidates {
 		// targetOptionLabel tolerates the Face-less ability object a
 		// TargetType$ Activated/Triggered spec now offers: targetName falls
@@ -1894,6 +1895,7 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 		o := decision.Option{Index: len(d.Options), Kind: candidate.kind,
 			Label: label, Obj: candidate.obj, Player: candidate.player}
 		o.Group = e.targetControllerGroup(sa, candidate)
+		o.Controller = e.candidateControllerSeat(candidate)
 		// Option.Value is omitempty and read only under a budget
 		// (Decision.HasBudget), so a budget-less target ask keeps its wire
 		// payload byte-identical. Every present cap -- zero and negative
