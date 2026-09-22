@@ -1447,9 +1447,25 @@ func (e *Engine) ContinuousNamed(p state.PlayerID, name string) bool {
 }
 
 func (e *Engine) nextTurnFor(p state.PlayerID) int32 {
-	alive := e.G.AliveCount()
+	// Pending extra turns are taken before ordinary rotation, most recently
+	// created first.  Entries for eliminated players are consumed without a
+	// turn, just as advanceStep does, so they must not advance the boundary.
 	t := e.G.Turn
-	q := e.G.Active
+	for i := len(e.G.ExtraTurnQueue) - 1; i >= 0; i-- {
+		seat := e.G.ExtraTurnQueue[i].Player
+		if e.G.Players[seat].Lost {
+			continue
+		}
+		t++
+		if seat == p {
+			return t
+		}
+	}
+
+	// Once the pending queue drains, ordinary rotation resumes after the
+	// latest normal turn, not after the active extra turn.
+	alive := e.G.AliveCount()
+	q := e.rotationBase()
 	for i := 0; i < alive; i++ {
 		q = e.G.NextAlive(q)
 		t++
