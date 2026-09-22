@@ -33,13 +33,13 @@ func resolveSourceFaceSA(t *testing.T, e *Engine, id state.ObjID, name string) *
 	return sa
 }
 
-// TestAggressiveBiomancyCopyHasTheFightETBTrigger pins AddTriggers$ + AddSVars$
+// TestAggressiveBiomancy pins AddTriggers$ + AddSVars$
 // on the real corpus sorcery: the copy of a creature you control carries the
 // granted "When this creature enters, it fights up to one target creature you
 // don't control" trigger, its Execute$ body resolves from the SOURCE
 // (Biomancy) SVar table, the trigger fires exactly once, and the copied
 // original never gains the trigger.
-func TestAggressiveBiomancyCopyHasTheFightETBTrigger(t *testing.T) {
+func TestAggressiveBiomancy(t *testing.T) {
 	reg := searchTestRegistry(t)
 	e, cfg := corpusEngineCfg(t, reg,
 		[]*cards.Card{lookup(t, reg, "Aggressive Biomancy"), lookup(t, reg, "Grizzly Bears")},
@@ -175,14 +175,14 @@ func copyNotes(e *Engine) []string {
 	return out
 }
 
-// TestShelobFoodCopyGainsTheSacrificeAbility uses Brenard, Ginger Sculptor --
+// TestShelobFoodCopy uses Brenard, Ginger Sculptor --
 // a real carrier of AddAbilities$ FoodSac, alongside Shelob, Child of
 // Ungoliant -- because Shelob's own death trigger is gated on the unmodelled
 // DamagedBySpider predicate. The copy of the dead creature is a Food with
 // "{2}, {T}, Sacrifice this artifact: You gain 3 life", the ability is
 // granted on the COPY, activating it pays the {2} and sacrifices the copy to
 // gain 3 life, and it is never offered on the original effect source.
-func TestShelobFoodCopyGainsTheSacrificeAbility(t *testing.T) {
+func TestShelobFoodCopy(t *testing.T) {
 	reg := searchTestRegistry(t)
 	e, cfg := corpusEngineCfg(t, reg,
 		[]*cards.Card{lookup(t, reg, "Brenard, Ginger Sculptor"), lookup(t, reg, "Grizzly Bears")},
@@ -289,7 +289,7 @@ func drainOptionalYes(t *testing.T, e *Engine, limit int) {
 	}
 }
 
-// TestArnaCopyOfAttachedPermanentEntersAttached pins the AttachedTo$ rider:
+// TestArnaCopy pins the AttachedTo$ rider:
 // a copy of a nontoken permanent attached to the attacker enters attached to
 // that same attacker. The carrier is Arna, Skycaptain's real DBCopyPermanents
 // body, but its own Defined$ filter (`Permanent.!token+AttachedTo
@@ -298,7 +298,7 @@ func drainOptionalYes(t *testing.T, e *Engine, limit int) {
 // substitutes a resolvable `Defined$ Valid Permanent` to reach the rider.
 // (The unreachable source predicates are filed as a separate ticket.) The
 // endpoint is Arna's real `AttachedTo$ TriggeredAttackerLKICopy`.
-func TestArnaCopyOfAttachedPermanentEntersAttached(t *testing.T) {
+func TestArnaCopy(t *testing.T) {
 	reg := searchTestRegistry(t)
 	arnaCard := lookup(t, reg, "Arna Kennerüd, Skycaptain")
 	e, cfg := corpusEngineCfg(t, reg,
@@ -378,11 +378,11 @@ func TestArnaCopyOfAttachedPermanentEntersAttached(t *testing.T) {
 	replayCheck(t, e2, cfg2)
 }
 
-// TestZndrspltJudgmentFriendChoosesTheCopiedCreature pins the sole measured
+// TestZndrspltFriendCopy pins the sole measured
 // Choices$/Chooser$ shape: the remembered friend, not the spell controller,
 // receives the KChoose, selecting a non-first eligible creature copies THAT
 // creature under the friend, and the no-host fallback is deterministic.
-func TestZndrspltJudgmentFriendChoosesTheCopiedCreature(t *testing.T) {
+func TestZndrspltFriendCopy(t *testing.T) {
 	reg := searchTestRegistry(t)
 	e, cfg := corpusEngineCfg(t, reg,
 		[]*cards.Card{lookup(t, reg, "Zndrsplt's Judgment")},
@@ -458,11 +458,11 @@ type noAskHost struct{ *Engine }
 
 func (noAskHost) Ask(*decision.Decision) bool { return false }
 
-// TestZndrspltJudgmentNoHostFallbackIsDeterministic pins the R-9 no-host
+// TestZndrspltNoHostCopy pins the R-9 no-host
 // degradation for the Choices$ rider: a host that cannot ask copies the first
 // eligible friend creature deterministically and records the no-host Note,
 // never the resolving spell.
-func TestZndrspltJudgmentNoHostFallbackIsDeterministic(t *testing.T) {
+func TestZndrspltNoHostCopy(t *testing.T) {
 	reg := searchTestRegistry(t)
 	e, cfg := corpusEngineCfg(t, reg,
 		[]*cards.Card{lookup(t, reg, "Zndrsplt's Judgment")},
