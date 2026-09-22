@@ -10,12 +10,19 @@ import (
 // TestImprintTokensBindsCreatedTokensToTheSource pins the ImprintTokens$ True
 // class end to end at the effects boundary: Forge's TokenEffect writes the
 // created TOKENS into the SOURCE's imprintedCards, so a following
-// `Defined$ Imprinted` names the token. All 14 corpus carriers pair
-// `ImprintTokens$ True` with exactly such a follower (Timothar's DBAnimate
-// grant, Intrude on the Mind's DBPutCounters, Ugin the Ineffable's
-// DBEffect | ImprintCards$ Imprinted, and the Iroh/Kharasha/Stangg/
-// Saproling Burst/... PutCounter family), so pinning the association on one
-// authored shape covers the class rather than one card.
+// `Defined$ Imprinted` names the token. All 14 corpus carriers of
+// `ImprintTokens$ True` (measured with GNU grep over .cards/cardsfolder at
+// the current FORGE_REF) read the association back in that same direction:
+// 11 through `Defined$ Imprinted`/`ImprintCards$ Imprinted` (Timothar's
+// DBAnimate grant, Intrude on the Mind's DBPutCounters, Ugin the
+// Ineffable's DBEffect, ...) and 3 through the sibling spellings
+// `RememberObjects$ ImprintedLKI` (Kharasha Foothills, Shredder, Shadow
+// Master) and `AttachedTo$ Imprinted` (Stangg, Echo Warrior). So pinning the
+// association on one authored shape covers the class rather than one card.
+// The three sibling spellings are NOT covered by this test, and the two
+// CopyPermanent carriers among them (Kharasha, Shredder) do not reach this
+// code at all -- effCopyPermanent reads no ImprintTokens$ (the
+// (copyperm-grants) row in AGENTS.md's Known approximations).
 //
 // This test can fail two ways and each is the point:
 //   - the source carries no token imprint (the old behaviour, which imprinted

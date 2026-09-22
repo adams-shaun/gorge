@@ -94,12 +94,12 @@ func tokenRememberedBoard(t *testing.T, reg *cards.Registry, top, bearer string)
 	return e, cfg, out
 }
 
-// driveToAttackers drives the game (passing priority, declaring no attackers
+// driveToAttackersAt drives the game (passing priority, declaring no attackers
 // at every declare-attackers step) until it reaches turn `turn` seat `active`
 // at a declare-attackers decision -- the pre-attack stopping point a fixture
 // attacking on a LATER turn than the current one needs, so no direct
 // SummonSick mutation (which replayCheck would flag) is used.
-func driveToAttackers(t *testing.T, e *Engine, turn int32, active state.PlayerID) {
+func driveToAttackersAt(t *testing.T, e *Engine, turn int32, active state.PlayerID) {
 	t.Helper()
 	for i := 0; i < 4000; i++ {
 		if e.G.Over {
@@ -212,7 +212,7 @@ func TestTokenRememberedTimotharEndToEnd(t *testing.T) {
 	// can attack. The grant is Duration$ Permanent, so the granted trigger
 	// survives the turn boundary. Every intervening declare-attackers step is
 	// answered with no attackers.
-	driveToAttackers(t, e, 4, 0)
+	driveToAttackersAt(t, e, 4, 0)
 	submitAttackers(t, e, bat)
 	drainCombatDamagePriority(t, e)
 	passUntilStackEmpty(t, e, 60)

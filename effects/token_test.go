@@ -141,6 +141,15 @@ func TestTimotharTokenRememberedUsesExiledCards(t *testing.T) {
 	}
 }
 
+// TestHofriCopyPermanentTokenRemembered pins exactly ONE thing: that
+// `TokenRemembered$` is read on the CopyPermanent mint path too, and is
+// persisted on the minted token by the replay-visible Choose/"remembered"
+// event. It deliberately does NOT claim Hofri Ghostforge works: that card's
+// dies trigger also carries `AddSVars$ HofriTrigReturn` and `AddTriggers$
+// TrigLeavesBattlefield`, which effCopyPermanent still skips behind a loud
+// Note, so the Spirit copy has no leaves-the-battlefield return ability. The
+// card stays open; see the (copyperm-grants) row in AGENTS.md's Known
+// approximations.
 func TestHofriCopyPermanentTokenRemembered(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	card, ok := reg.Lookup("Hofri Ghostforge")
