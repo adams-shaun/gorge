@@ -171,6 +171,11 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	if e.applyRiotReplacement(ev) {
 		return ev, true
 	}
+	// kw:Unleash (CR 702.86) asks its take-the-counter-or-not question as the
+	// creature would enter, the Riot parking discipline (rules/unleash.go).
+	if e.applyUnleashReplacement(ev) {
+		return ev, true
+	}
 	// CR 310.10: a Battle Siege's protector is chosen as it enters. Parked
 	// exactly like Riot above so every entry path records it; the parked move
 	// is emitted once the answer is logged.
@@ -1979,6 +1984,21 @@ func (e *Engine) applyRiotReplacement(ev events.Event) bool {
 	o := e.G.Obj(ev.Obj)
 	if o == nil || o.Zone == state.ZBattlefield || o.Face() == nil ||
 		!o.Face().HasKeyword("Riot") || o.RiotChoice != "" {
+		return false
+	}
+	// A face-down entry (manifest or cloak, CR 708.5) is a vanilla 2/2
+	// creature: no riot choice is posed for it, and no public Choose "riot"
+	// event may leak the hidden card. The guard MUST sit BEFORE the parking
+	// assignment below -- a face-down entry that parked its move and then
+	// returned false would leak a stale e.riotMove that is never emitted and
+	// never cleared (chooseRiot's answer arm cannot fire for it), so every
+	// later non-cast Riot entry would hit the parked-move guard above and
+	// never ask again. The FaceDown state is folded by Apply's Move AFTER
+	// this dispatch, so the incoming event's counter, not o.FaceDown, is
+	// what names the face-down entry (the Siege guard's exact shape, in the
+	// Siege guard's exact place -- before every return-past-parking; unleash
+	// carries the identical guard in the identical place).
+	if events.IsFaceDownEntry(ev.Counter) {
 		return false
 	}
 	move := ev

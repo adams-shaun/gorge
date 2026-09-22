@@ -109,6 +109,14 @@ func (e *Engine) canBlock(blocker, attacker state.ObjID) bool {
 	if b.Suspected {
 		return false
 	}
+	// CR 702.86 (kw:Unleash): a creature with unleash can't block while it
+	// has a +1/+1 counter on it. The keyword rides the derived list (printed
+	// plus layer-6 granted -- Tesak's "Other Dogs you control have unleash"),
+	// and the counter is live state, so both halves are read here, the same
+	// status-gate shape the Suspected check above practises.
+	if e.HasKeyword(blocker, "Unleash") && b.Counter("P1P1") > 0 {
+		return false
+	}
 	// CR 509.1a / 702.16j: a creature that the attacker is protected from
 	// cannot block it.
 	if e.protectedFrom(attacker, blocker) {

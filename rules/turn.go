@@ -988,6 +988,26 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		e.riotMove = nil
 		e.choosing = chooseNone
 		e.emit(move)
+	case chooseUnleash:
+		// kw:Unleash (CR 702.86, rules/unleash.go) is an as-enters replacement
+		// for every MoveZone path, the Riot arm's exact shape: record the
+		// choice, then re-emit the parked entry; Apply consumes it on
+		// battlefield entry.
+		if e.unleashMove == nil || len(chosen) != 1 {
+			e.unleashMove = nil
+			e.choosing = chooseNone
+			e.emit(events.Event{Kind: events.Note, Player: in.Player, Text: "Unleash answered with no entry pending"})
+			return
+		}
+		choice := "plain"
+		if chosen[0].Index == 0 {
+			choice = "counter"
+		}
+		e.emit(events.Event{Kind: events.Choose, Obj: e.unleashMove.Obj, Counter: "unleash", Text: choice})
+		move := *e.unleashMove
+		e.unleashMove = nil
+		e.choosing = chooseNone
+		e.emit(move)
 	case chooseSiege:
 		// CR 310.10: the Battle Siege protector choice was answered. Record
 		// the chosen opponent through a Choose "protector" event (so the
