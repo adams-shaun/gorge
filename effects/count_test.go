@@ -821,10 +821,9 @@ func TestEvalCountValidAllScansEveryCardZone(t *testing.T) {
 	if got := EvalCount(h, c, "Count$ValidAll Creature$GreatestCardPower"); got != 5 {
 		t.Errorf("ValidAll Creature$GreatestCardPower = %d, want 5", got)
 	}
-	// The stack is scanned ONCE, not once per alive seat: two seats are
-	// alive here and one spell sits on the stack, so the count is 1 -- the
-	// pre-fix read was 2 (g.Zone(ZStack, p) returns the same global list
-	// for every seat, so the per-player loop counted it twice).
+	// The stack pass: ValidAll scans the global stack exactly ONCE (the
+	// single stack pass after the per-seat zones), so a spell on the stack
+	// counts 1, not once per alive seat.
 	trick := g.Obj(ids["myInstant"])
 	var gy []state.ObjID
 	for _, id := range g.Zone(state.ZGraveyard, 0) {
@@ -835,7 +834,34 @@ func TestEvalCountValidAllScansEveryCardZone(t *testing.T) {
 	g.SetZone(state.ZGraveyard, 0, gy)
 	trick.Zone = state.ZStack
 	g.SetZone(state.ZStack, 0, []state.ObjID{ids["myInstant"]})
-	if got := EvalCount(h, c, "Count$ValidStack Card"); got != 1 {
-		t.Errorf("ValidStack Card = %d, want 1 (the stack is scanned once, not once per alive seat)", got)
+	if got := EvalCount(h, c, "Count$ValidAll Instant"); got != 1 {
+		t.Errorf("ValidAll Instant with the spell on the stack = %d, want 1 (the stack is scanned once, not once per alive seat)", got)
+	}
+}
+
+// TestEvalCountValidZoneScanIsAllocationFree pins the zone-count branch's
+// hot-path contract: Count$Valid is on the hottest condition path
+// (effects.CheckSVarHolds intervening-ifs, static gates, SVarCompare), so
+// its single-zone scan must iterate IN PLACE -- no materialised candidate
+// slice, no per-candidate heap work. The r1 restructure went 0 -> 4
+// allocs/op and was reverted to the in-place fold; this pin keeps the
+// restructure from recurring.
+func TestEvalCountValidZoneScanIsAllocationFree(t *testing.T) {
+	g, _ := board(t)
+	h := &fakeHost{g: g}
+	c := &Ctx{Controller: 0}
+	// Precondition: the head actually counts the battlefield creatures
+	// (Bear + Flier + Giant) so the alloc pin runs over a real scan, not
+	// an empty one that never enters the per-candidate body.
+	if got := EvalCount(h, c, "Count$Valid Creature"); got != 3 {
+		t.Fatalf("precondition: Count$Valid Creature = %d, want 3", got)
+	}
+	allocs := testing.AllocsPerRun(100, func() {
+		if got := EvalCount(h, c, "Count$Valid Creature"); got != 3 {
+			t.Fatalf("Count$Valid Creature = %d, want 3", got)
+		}
+	})
+	if allocs != 0 {
+		t.Fatalf("Count$Valid Creature allocated %.0f objects per eval; want zero (the zone-count scan must iterate in place)", allocs)
 	}
 }

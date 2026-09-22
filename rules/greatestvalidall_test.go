@@ -1,9 +1,20 @@
 package rules
 
-// Task agent-20260918T222201Z-e27469dd round 1: the two Desert-Bloom/OTC
-// deck cards the brief names, pinned end to end on the REAL corpus cards
-// (never inline scripts -- these are corpus pins, so the corpus registry is
-// the source of truth and a corpus pin change fails loudly).
+// Task agent-20260918T222201Z-e27469dd: the two Desert-Bloom/OTC deck cards
+// the brief names, pinned end to end on the REAL corpus cards (never inline
+// scripts -- these are corpus pins, so the corpus registry is the source of
+// truth and a corpus pin change fails loudly).
+//
+// WHAT PROVES WHICH ROUND (r2 review finding 1): the extreme-property
+// GRAMMAR itself was merged in `1a16e76e`, an ancestor of this worktree's
+// base -- so leaf 1 (TestReturnOfTheWildspeakerDrawMode…) exercises ONLY
+// that merged grammar (`Count$Valid …$GreatestCardPower`) and PASSES with
+// this round's diff reverted: it is regression coverage for `1a16e76e`, not
+// this round's proof. This round's proof is leaf 2
+// (TestCactusPreserveAnimatesAtGreatestCommanderManaValue -- the ValidAll
+// all-zones scan, unknown before r1) and the effects-level
+// TestEvalCountValidAllScansEveryCardZone / TestEvalCountValidZoneScanIsAllocationFree
+// pins; both FAIL on the r1-base diff (verified by scratch-revert).
 //
 // 1. Return of the Wildspeaker's draw mode sizes from
 //    `Count$Valid Creature.YouCtrl+nonHuman$GreatestCardPower`: with two
@@ -144,8 +155,8 @@ func TestCactusPreserveAnimatesAtGreatestCommanderManaValue(t *testing.T) {
 	}{
 		// Atla Palani, Nest Tender: {1}{R}{G}{W}, mana value 4.
 		{name: "one_commander_mv4", commanders: []string{"Atla Palani, Nest Tender"}, cmc: []int32{4}, want: 4},
-		// Toxrill, the Corrosive: {5}{B}{B}{B}, mana value 8 -- the
-		// GREATEST of the two, not the sum (11) and not the first (4).
+		// Toxrill, the Corrosive: {5}{B}{B}, mana value 7 -- the GREATEST of
+		// the two, not the sum (11) and not the first (4).
 		{name: "two_commanders_greatest_seven", commanders: []string{"Atla Palani, Nest Tender", "Toxrill, the Corrosive"}, cmc: []int32{4, 7}, want: 7},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
