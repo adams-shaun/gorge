@@ -1595,5 +1595,16 @@ func init() {
 		"trig:UnlockDoor", "kw:Station", "kw:Chapter", "kw:Start your engines",
 		"stat:Panharmonicon", "kw:Partner", "kw:Partner with",
 		"kw:CARDNAME can be your commander.",
+		// kw:Doctor's companion (the WHO two-commander keyword, the
+		// Doctor's-companion analogue of Companion CR 702.139) is DECK
+		// CONSTRUCTION too: "You can have two commanders if the other is the
+		// Doctor." Nothing in play reads it -- the corpus's in-play uses of
+		// the keyword are the `withDoctor's companion` FILTER predicate
+		// (rose_noble's trigger, an_unearthly_child's DigUntil), which is a
+		// filter-grammar shape, not this keyword -- so the registration
+		// asserts the corpus shape is understood, not that the second-commander
+		// seating exists (the deck.IsPartnerPair extension is a separate
+		// ticket; the Partner precedent above is the same class).
+		"kw:Doctor's companion",
 	)
 }
