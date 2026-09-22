@@ -308,6 +308,12 @@ func (e *Engine) Clone() *Engine {
 			c.triggerTurnFires[k] = v
 		}
 	}
+	if e.triggerGameFires != nil {
+		c.triggerGameFires = make(map[triggerKey]int32, len(e.triggerGameFires))
+		for k, v := range e.triggerGameFires {
+			c.triggerGameFires[k] = v
+		}
+	}
 	if e.unblockedOnceFired != nil {
 		c.unblockedOnceFired = make(map[triggerKey]combatFires, len(e.unblockedOnceFired))
 		for k, v := range e.unblockedOnceFired {
