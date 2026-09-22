@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/decision"
@@ -163,6 +164,137 @@ func TestImproviseCommittedArtifactExcludedFromManaWindow(t *testing.T) {
 	}
 	if pool := e.G.Players[0].Pool; pool.Total() != 0 {
 		t.Fatalf("pool left %v after payment", pool)
+	}
+}
+
+// TestImproviseBottleCapBlastTapsTwoArtifactsPaysFullPrice is the
+// brief's named corpus pin (agent-20260919T185907Z): Bottle-Cap Blast
+// ({4}{R}, Improvise) cast for its full price from a pool holding only
+// the {R} -- the CR 601.2c target ask opens the flow, the CR 601.2b
+// announcement offers exactly exactly the four untapped artifacts, both are
+// committed and TAPPED, and the pool pays exactly the {R}. Resolution
+// then runs the card's own excess rider: against a 2/2 the CR 120.10
+// excess is 5 - 2 = 3, so exactly three TAPPED Treasure tokens are
+// created (ExcessSVar$ Excess -> DBToken's TokenAmount$ Excess,
+// TokenTapped$ True).
+func TestImproviseBottleCapBlastTapsTwoArtifactsPaysFullPrice(t *testing.T) {
+	e := handEngineTokens(t, corpusAlternativeCard(t, "Bottle-Cap Blast"))
+	bear := e.G.AddObject(card(t, "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"), 1)
+	bear.Zone = state.ZBattlefield
+	e.G.SetZone(state.ZBattlefield, 1, []state.ObjID{bear.ID})
+	ids := addArtifacts(t, e, 4, plainArtifactSrc)
+	spell := e.G.Zone(state.ZHand, 0)[0]
+	e.G.Players[0].Pool[state.MR] = 1
+	castMode(t, e, spell, "")
+	// CR 601.2b: the Improvise announcement opens the flow (it precedes
+	// the CR 601.2c target ask in this engine's cast walk).
+	d := e.Pending()
+	if d == nil || len(d.Options) != len(ids) {
+		t.Fatalf("Improvise announcement offered %v, want all four artifacts: %+v", d.Options, ids)
+	}
+	var byID map[state.ObjID]int
+	for i, o := range d.Options {
+		if o.Kind != "improvise_generic" {
+			t.Fatalf("announcement offered a non-improvise option: %+v", o)
+		}
+		if byID == nil {
+			byID = map[state.ObjID]int{}
+		}
+		byID[o.Obj] = i
+	}
+	var picks []int
+	for _, id := range ids {
+		picks = append(picks, byID[id])
+	}
+	submitChoices(t, e, picks...)
+	// CR 601.2c: the target ask. Precondition: the bear is on the
+	// battlefield and offered.
+	d = e.Pending()
+	targetIdx := -1
+	for i, o := range d.Options {
+		if o.Obj == bear.ID {
+			targetIdx = i
+		}
+	}
+	if targetIdx < 0 {
+		t.Fatalf("target ask did not offer the bear: %+v", d)
+	}
+	submitChoices(t, e, targetIdx)
+	if e.cast != nil {
+		t.Fatalf("two-artifact Improvise payment did not complete the cast: %+v", e.cast)
+	}
+	if e.G.Obj(spell).Zone != state.ZStack {
+		t.Fatalf("spell went to %s, want stack", e.G.Obj(spell).Zone)
+	}
+	for _, id := range ids {
+		if !e.G.Obj(id).Tapped {
+			t.Fatalf("committed Improvise artifact %d was not tapped", id)
+		}
+	}
+	if pool := e.G.Players[0].Pool; pool.Total() != 0 {
+		t.Fatalf("pool left %v after Improvise payment, want exactly the {R} spent", pool)
+	}
+	// Resolve: 5 damage to the 2/2, excess 3 -> three tapped Treasures.
+	passUntilStackEmpty(t, e, 20)
+	if got := e.G.Obj(bear.ID); got == nil || got.Zone != state.ZGraveyard {
+		t.Fatalf("bear did not die to the 5 damage: %+v", got)
+	}
+	var treasures int
+	for _, tid := range e.G.Zone(state.ZBattlefield, 0) {
+		to := e.G.Obj(tid)
+		if to == nil || to.Face() == nil || !strings.HasPrefix(to.Face().Name, "Treasure") {
+			continue
+		}
+		treasures++
+		if !to.Tapped {
+			t.Fatalf("Treasure token %d entered untapped, want TokenTapped$ True", tid)
+		}
+	}
+	if treasures != 3 {
+		t.Fatalf("excess 5-2 created %d Treasure tokens, want 3", treasures)
+	}
+}
+
+// TestImproviseBottleCapBlastPlayerTargetCreatesNoExcess is the control
+// half of the same card: a PLAYER target (dealt 5 damage, no lethal
+// permanent amount) binds no excess, so the same DBToken creates nothing.
+// Proves the token count is driven by the CR 120.10 excess, not a
+// constant.
+func TestImproviseBottleCapBlastPlayerTargetCreatesNoExcess(t *testing.T) {
+	e := handEngineTokens(t, corpusAlternativeCard(t, "Bottle-Cap Blast"))
+	ids := addArtifacts(t, e, 4, plainArtifactSrc)
+	spell := e.G.Zone(state.ZHand, 0)[0]
+	e.G.Players[0].Pool[state.MR] = 1
+	life1 := e.G.Players[1].Life
+	castMode(t, e, spell, "")
+	d := e.Pending()
+	if d == nil || len(d.Options) != len(ids) {
+		t.Fatalf("Improvise announcement did not offer all four artifacts: %+v", d)
+	}
+	submitChoices(t, e, 0, 1, 2, 3)
+	d = e.Pending()
+	playerIdx := -1
+	for i, o := range d.Options {
+		if o.Obj == 0 && o.Player == 1 {
+			playerIdx = i
+		}
+	}
+	if playerIdx < 0 {
+		t.Fatalf("target ask did not offer the opposing player: %+v", d.Options)
+	}
+	submitChoices(t, e, playerIdx)
+	if e.cast != nil || e.G.Obj(spell).Zone != state.ZStack {
+		t.Fatalf("cast did not complete: cast=%+v zone=%s", e.cast, e.G.Obj(spell).Zone)
+	}
+	passUntilStackEmpty(t, e, 20)
+	if e.G.Players[1].Life != life1-5 {
+		t.Fatalf("player 1 lost %d life, want 5", life1-e.G.Players[1].Life)
+	}
+	for _, tid := range e.G.Zone(state.ZBattlefield, 0) {
+		to := e.G.Obj(tid)
+		if to != nil && to.Face() != nil && strings.HasPrefix(to.Face().Name, "Treasure") {
+			t.Fatalf("player target created a Treasure token (no excess exists): %d", tid)
+		}
 	}
 }
 

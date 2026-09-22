@@ -46,6 +46,27 @@ type SacrificedInfo struct {
 	Power     int32
 	Toughness int32
 	ManaValue int32
+	// Counters is the object's counter kinds and counts at the instant of
+	// the sacrifice (the sacrificed-LKI ladder's third rung: a
+	// cost-sacrificed source whose EachFromSource$ copy reads it after Move
+	// cleared the live counters -- Zack Fair's self-sacrifice). Nil for the
+	// P/T-only readers the Sacrificed$<Property> heads are.
+	Counters []Counter
+}
+
+// LKIObject is the last-known-information snapshot of an object a
+// ChangeZoneRememberLKI$ move captured: the controller and owner it had
+// while the move happened. events.Apply's Move resets a battlefield
+// departure's controller to its owner (CR 400.7), so a later reader of "the
+// exiled creature's controller" -- Forge's TokenOwner$ ImprintedController,
+// the Boar Curse of the Swine makes for each exiled creature -- can no
+// longer recover it from the live object. Forge captures a full Card LKI
+// copy at the same point (ChangeZoneEffect's CardCopyService.getLKICopy);
+// this struct is the slice of it this build's readers need.
+type LKIObject struct {
+	Obj        ObjID
+	Controller PlayerID
+	Owner      PlayerID
 }
 
 // CastFlags bits record how an object was cast. Several can be set at once
@@ -266,7 +287,32 @@ const (
 	// on resolution and when countered. Appended per the enum's own
 	// append-only precedent.
 	FlagJumpstart
+	// FlagMayFlashSac marks a spell cast off-sorcery through its K:MayFlashSac
+	// permission (CR 702.8's "you may cast this as though it had flash" plus
+	// the keyword's own "sacrifice it at the beginning of the next cleanup
+	// step" rider). It is set by the pay-time CastInfo only when the cast was
+	// NOT at a time a sorcery could have been cast, so the keyword's ETB hook
+	// (rules/altcast.go's altCostEnter) can register the delayed sacrifice.
+	// Appended per the enum's own append-only precedent.
+	FlagMayFlashSac
 )
+
+// CastProvenanceFlags is the ONE home for the CastFlags bits whose reader
+// turns them into an obligation conditioned on the object having been CAST
+// ("if you cast it ..."). A stack copy is PUT on the stack, never cast
+// (CR 707.10/706.10), so events.Apply's StackCopy case strips this set from
+// the flags it inherits: the copy resolves, Move turns it into a token and
+// clears IsCopy, and rules/altcast.go's entry hook would otherwise read the
+// inherited bit and hand a never-cast token the obligation.
+//
+// Only FlagMayFlashSac is in the set, deliberately. The three sibling bits
+// that entry hook also reads -- FlagEvoked, FlagDashed, FlagWarped -- are
+// conditioned on an alternative COST having been paid, which is a choice
+// made as the spell was cast and which the copy rules do carry for the
+// comparable cases (the copied-kicker precedent), so changing them is a
+// separate ruling with its own corpus measurement. Add a bit here only when
+// its reader's condition is the cast itself.
+const CastProvenanceFlags = FlagMayFlashSac
 
 // ExilesLeavingStack reports whether a cast carrying these flags is a
 // keyword cast whose card is exiled as it leaves the stack, whichever way it
@@ -297,6 +343,33 @@ func ExilesLeavingStack(flags uint64) bool {
 func WasCastFromGraveyard(flags uint64) bool {
 	return flags&(FlagFlashback|FlagHarmonize|FlagJumpstart|FlagEscaped) != 0
 }
+
+// ModeChoice is one ChoiceRestriction$ pick recorded on an object: the
+// chosen Choices$ SVar name and the restriction scope the picking Charm
+// named. This build only records ModeScopeThisTurn (the brief's scope); the
+// Scope field is kept so the shape is self-describing and a future scope can
+// widen it without a re-type.
+type ModeChoice struct {
+	Mode  string
+	Scope string
+}
+
+// The ChoiceRestriction$ scopes and the events.Choose counter key a pick is
+// recorded under. state owns them so effects (which emits the pick) and events
+// (which folds it) cannot drift apart. Only ThisTurn is modelled end to end:
+// ThisGame and YourLastCombat are named here for the corpus census but their
+// filtering is deliberately unimplemented (CharmEligibleModes returns the
+// input unchanged for them, and RecordCharmChoices emits nothing), so their
+// carriers keep pre-fix behaviour.
+const (
+	ModeScopeThisTurn       = "ThisTurn"
+	ModeScopeThisGame       = "ThisGame"
+	ModeScopeYourLastCombat = "YourLastCombat"
+
+	// ModeChoiceCounterPrefix + a scope is the events.Choose Counter value
+	// that records one pick (Text is the chosen mode name).
+	ModeChoiceCounterPrefix = "mode-"
+)
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the
 // stack. One struct keeps identity stable across zone changes.
@@ -440,6 +513,17 @@ type Object struct {
 	// CloneDeep carries it, and only events.AlterAttribute (the primitive the
 	// api:AlterAttribute effect emits) may set it.
 	Suspected bool
+
+	// Monstrous is CR 701.31b's monstrous designation (Giggling
+	// Skitterspike's `{5}: Monstrosity 5`): a creature becomes monstrous
+	// when a monstrosity ability resolves, and the designation lasts for
+	// the rest of the game -- CR 701.31 gives it NO controller-change end,
+	// so events.Apply clears it only when the permanent leaves the
+	// battlefield (a later battlefield entry is a new permanent, CR 701.31b
+	// in reverse). It is a plain status field: a plain value copy in
+	// CloneDeep carries it, and only events.AlterAttribute (the mark
+	// effPutCounter emits for a `Monstrosity$` PutCounter line) may set it.
+	Monstrous bool
 
 	// PlottedTurn stamps the turn a card gained CR 701.34's plotted
 	// designation (0 = not plotted), via the events.AlterAttribute fold -- the
@@ -585,6 +669,15 @@ type Object struct {
 	// RiotChoice is set by the logged as-enters Riot choice. It survives the
 	// hand/stack path and Move consumes it on battlefield entry.
 	RiotChoice string
+	// UntapChoice records the permanent's answer to its untap-step election.
+	// It is folded by events.Choose so a replay makes the same turn-based
+	// decision; the turn boundary clears it before the next election.
+	UntapChoice string
+	// UnleashChoice is set by the logged as-enters Unleash choice (CR 702.86:
+	// "counter" = enter with a +1/+1 counter, "plain" = enter without). It
+	// survives the hand/stack path and Move consumes it on battlefield entry,
+	// exactly like RiotChoice.
+	UnleashChoice string
 	// Protector is the CR 310.10 Siege protector: the opponent its
 	// controller chose to protect this Battle as it entered. It is a property
 	// of the battle (not a counter), recorded through a Choose "protector"
@@ -619,6 +712,19 @@ type Object struct {
 	// same decision through the identical code path, so it is not a second
 	// source of truth. Nil when no modal announcement has been made.
 	ChosenModes []string
+
+	// ModeChoices is the persistent per-object log a Charm's ChoiceRestriction$
+	// reads (task charm-choice-restriction): every mode this object has chosen
+	// this turn, with the scope the picking Charm named. Unlike ChosenModes it is
+	// NOT cleared when the choosing stack object resolves -- the whole point is
+	// that a LATER trigger instance on the same source sees the earlier pick --
+	// so it lives on the source permanent and is folded by events.Choose's
+	// scope-keyed pick markers. It is battlefield-stint state: the TurnChange
+	// loop clears it (ThisTurn is a per-turn fact) and the Move battlefield
+	// departure block clears it (CR 400.7 -- a permanent that leaves and returns
+	// is a new object), so a re-entered Parapet Thrasher offers every mode
+	// again.
+	ModeChoices []ModeChoice
 
 	// Imprinted holds cards ImprintCards$ explicitly associated with this
 	// object. It is distinct from ExiledCards: Forge's host card has separate
@@ -733,6 +839,19 @@ type Object struct {
 	// CopyFace.
 	CopyGainThisAbility bool
 
+	// GainedFace is the foreign face a HAS-ALL-ABILITIES-OF ability wrapper
+	// (events.GainedAbilityPush / GainedTriggerPush) was minted from -- the
+	// per-stack-instance provenance rules/pile.go's gainedOwnedFace recovers.
+	// The granting static can END between the push and the resolution (the
+	// foreign card leaves the scoped zone, the static's named set re-derives),
+	// and the live-grant recovery scans then find no owner, so a resolving
+	// wrapper must not depend on them. Set ONLY inside events.Apply from the
+	// exact face that provided the compiled SA -- the same write-site
+	// discipline CopyFace takes -- so a live game and every replay, including
+	// the log-only state reconstruction, derive it identically. nil on every
+	// wrapper that is not a gained mint (and on every permanent).
+	GainedFace *cards.Face
+
 	// Unlocked marks one face of an Enchantment Room (CR 309): the door the
 	// room was CAST as is unlocked from entry; DoorUnlock (the unlock
 	// activation) flips this when the OTHER half's door is paid for. A
@@ -772,6 +891,18 @@ type ExileReturnEntry struct {
 // never "bestowed attached".
 func (o *Object) BestowedAttached() bool {
 	return o.AttachedTo != 0 && o.Face() != nil && o.Face().HasKeyword("Bestow")
+}
+
+// ReconfiguredAttached reports whether o is a card printed with Reconfigure
+// that is currently attached to a permanent (CR 702.150c: while attached,
+// the permanent is not a creature; unattached it is a creature again).
+// Derived from live state -- AttachedTo and the printed face -- the same
+// discipline BestowedAttached practises, so every replay and every read
+// site derives the switch identically and no event field carries a marker.
+// An unattached reconfigure card, and any object printed without
+// Reconfigure, is never "reconfigured attached".
+func (o *Object) ReconfiguredAttached() bool {
+	return o.AttachedTo != 0 && o.Face() != nil && o.Face().HasKeyword("Reconfigure")
 }
 
 func (o *Object) Face() *cards.Face {
@@ -908,12 +1039,63 @@ func (o *Object) Ephemeral() bool {
 }
 
 func (o *Object) Counter(kind string) int32 {
+	// "ALL" is Forge's CounterType.ALL marker, meaning every counter kind
+	// on the object summed -- not a real counter kind (no corpus script
+	// names one "ALL"; the removal spellings use AllCounters$ True). The
+	// CardCounters.ALL count family (Backstreet Bruiser, Maester Seymour,
+	// Lux Artillery's "counters among ...") reads through this one home,
+	// so the three CardCounters.<KIND> call sites cannot disagree.
+	//
+	// The engine's OWN status markers are excluded from the sum: "Shield"
+	// (the this-turn regeneration shield) and "Deathtouched" (the CR 702.2b
+	// lethal mark) ride an ordinary CounterChange for want of a status field
+	// and are cleared only at end-of-turn cleanup, so mid-turn -- after
+	// combat, exactly when an attack-trigger X is read -- every marked
+	// creature would otherwise inflate an ALL sum by 1-2 per mark. The
+	// same exclusion the AddCounter doubler gate applies (rules/replacement.go
+	// reads state.InternalCounterMarker) now governs the ALL read too.
+	// Callers that want a specific marker keep asking for it by name
+	// (effects/regeneration.go, rules/combat.go, rules/sba.go) -- the
+	// exclusion lives only in the ALL branch.
+	if kind == "ALL" {
+		var n int32
+		for _, c := range o.Counters {
+			if InternalCounterMarker(c.Kind) {
+				continue
+			}
+			n += c.N
+		}
+		return n
+	}
 	for _, c := range o.Counters {
 		if c.Kind == kind {
 			return c.N
 		}
 	}
 	return 0
+}
+
+// InternalCounterMarker reports whether a counter name is one of the engine's
+// own status markers rather than a counter a card could name. Both ride an
+// ordinary CounterChange -- the engine has no per-object status field, so a
+// marker is recorded as a counter -- and both are SET with Amount 1:
+//
+//   - "Shield", the this-turn regeneration shield (effects/counters.go's
+//     effRegenerate sets it, effects/regeneration.go reads it back, and
+//     rules/combat.go consumes one per destruction);
+//   - "Deathtouched", the CR 702.2b lethal mark (rules/combat.go's combat
+//     assignment, rules/replacement.go's replacement-applied damage,
+//     effects/damage.go), read by rules/sba.go's destruction check.
+//
+// The helper lives in state because the two consumers sit on either side of
+// the dependency line: Object.Counter's "ALL" sum (this file, read by the
+// CardCounters.ALL count family) and rules/replacement.go's AddCounter
+// doubler gate (rules imports state, never the reverse). Excluding the
+// markers by name is safe: every counter kind the corpus scripts is
+// upper-case (P1P1, LORE, AGE, TIME, STUN, CHARGE, ENERGY, POISON, LOYALTY,
+// ...), so no real kind can collide with either mixed-case marker name.
+func InternalCounterMarker(name string) bool {
+	return name == "Shield" || name == "Deathtouched"
 }
 
 // AddCounter adds n counters of a kind, creating the entry if needed. Counters
@@ -982,5 +1164,11 @@ func SacrificedInfoOf(g *Game, id ObjID) SacrificedInfo {
 	}
 	p := int32(o.Face().Power()) + o.Counter("P1P1")
 	t := int32(o.Face().Toughness()) + o.Counter("P1P1")
-	return SacrificedInfo{Obj: id, Power: p, Toughness: t, ManaValue: o.Face().Cmc()}
+	var counters []Counter
+	for i := range o.Counters {
+		if o.Counters[i].N > 0 {
+			counters = append(counters, o.Counters[i])
+		}
+	}
+	return SacrificedInfo{Obj: id, Power: p, Toughness: t, ManaValue: o.Face().Cmc(), Counters: counters}
 }

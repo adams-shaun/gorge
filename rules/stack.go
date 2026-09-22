@@ -669,6 +669,17 @@ func (e *Engine) targetBoundCtx(p state.PlayerID, source state.ObjID) (*effects.
 		return nil, false
 	}
 	ctx := &effects.Ctx{Controller: p}
+	// A trigger's dynamic target bound reading the causing event (Vitality
+	// Hunter's `TargetMax$ MaxTgts` with `SVar:MaxTgts:TriggerCount$Amount`,
+	// task agent-20260919T190014Z): the trigger context recorded for this
+	// stack wrapper carries TriggerAmount, so the bound reads the mark/damage
+	// magnitude instead of degrading to the clamp's 1. Measured corpus: the
+	// ONLY two TargetMax$ TriggerCount$Amount shapes (one inline, one behind
+	// the MaxTgts SVar name) are Vitality Hunter's; every other dynamic bound
+	// names a Count$ body targetBoundCtx's SVar table already resolves.
+	if tc, ok := e.triggerContexts[source]; ok {
+		ctx.TriggerContext = tc
+	}
 	// The pending cast's own multikicker count (rules/cast.go's multikickAsk):
 	// at the CR 601.2c announcement ask the pay-time CastInfo has not run
 	// yet, so a TimesKicked bound (Comet Storm's TargetMin/Max$ TargetsNum)
@@ -696,7 +707,9 @@ func (e *Engine) targetBoundCtx(p state.PlayerID, source state.ObjID) (*effects.
 	// Nethroi, Apex of Death both bound their targeting with TargetMax$ X,
 	// and the pile's top card can be any creature (with no X at all). The
 	// owning face comes from the compiled trigger pointer; an ordinary
-	// trigger's owning face is the top face, so nothing else moves.
+	// trigger's owning face is the top face, so nothing else moves. A
+	// HAS-ALL-ABILITIES-OF wrapper (r3) is covered inside the recovery
+	// functions themselves, so every caller shares the one read.
 	if _, mf, ok := e.findTriggerForAbilityFace(o.Source, o.Ability); ok && mf != nil {
 		effects.SetSVars(ctx, mf.SVars)
 	} else if mf, ok := e.pileFaceForSA(o.Source, o.Ability); ok && mf != nil {
@@ -1414,54 +1427,288 @@ func (e *Engine) askCrossModeCharmTargets(p state.PlayerID, source state.ObjID, 
 	return true
 }
 
-// oneEachTargetBounds applies Forge's TargetsForEachPlayer$ selection shape
-// (TargetRestrictions.setForEachPlayer): the selected targets are limited to
-// one controlled by each player, and a TargetMin$/TargetMax$ spelled OneEach
-// asks for exactly the distinct-controller count. askTarget (this file) and
-// cast.go's targetAsk share it so the two ask sites cannot drift; the bool
-// reports whether the shape applies (the caller attaches the matching
-// Option.Group through oneEachTargetGroup).
-func (e *Engine) oneEachTargetBounds(sa *cards.SA, candidates []targetCandidate, min, max int) (int, int, bool) {
-	if !strings.EqualFold(sa.Params["TargetsForEachPlayer"], "True") {
-		return min, max, false
+// candidateControllerSeat is the controller seat a TARGET CANDIDATE keys a
+// per-controller selection constraint on: a player candidate is its own seat
+// (player candidates carry an explicit seat), an object candidate is its
+// controller (its owner for a card in a graveyard/hand/exile, which Move sets
+// Controller to). Both oneEachTargetBounds' distinct-controller count and
+// targetControllerGroup's group label read this one helper, so the bound and
+// the wire exclusivity can never disagree about which candidates share a
+// controller.
+func (e *Engine) candidateControllerSeat(candidate targetCandidate) state.PlayerID {
+	if candidate.kind == "player" {
+		return candidate.player
 	}
-	// Option.Group makes the one-per-player restriction part of the generic
-	// decision contract, so every target API consumes the same enforcement
-	// rather than each effect maintaining a picker.
-	groups := map[state.PlayerID]bool{}
-	for _, candidate := range candidates {
-		owner := candidate.player
-		if candidate.kind != "player" {
-			if o := e.G.Obj(candidate.obj); o != nil {
-				owner = o.Controller
-			}
-		}
-		groups[owner] = true
+	if o := e.G.Obj(candidate.obj); o != nil {
+		return o.Controller
 	}
-	if strings.EqualFold(sa.Params["TargetMin"], "OneEach") {
-		min = len(groups)
-	}
-	if strings.EqualFold(sa.Params["TargetMax"], "OneEach") {
-		max = len(groups)
-	}
-	return min, max, true
+	return candidate.player
 }
 
-// oneEachTargetGroup is the Option.Group label binding one OneEach selection
-// slot to its controller -- the same label both ask sites attach, so
+// oneEachTargetBounds applies Forge's per-controller target selection shapes:
+// TargetsForEachPlayer$ (TargetRestrictions.setForEachPlayer) and
+// TargetsWithDifferentControllers$ ("targets controlled by different
+// players"). Both are the SAME set constraint -- no two chosen targets may
+// share a controller -- and both are labelled on the wire by
+// targetControllerGroup's Option.Group. askTarget (this file) and cast.go's
+// targetAsk share it so the two ask sites cannot drift.
+//
+// It returns the (possibly rewritten) bounds, whether the constraint applies
+// at all, and the DISTINCT-CONTROLLER count. The count is the real capacity of
+// the constraint: a TargetMin$/TargetMax$ spelled OneEach asks for exactly
+// that many, and BOTH shapes cap the effective maximum at it, because no legal
+// answer can ever select more targets than there are distinct controllers.
+// Without the cap (the pre-fix state) a TargetsWithDifferentControllers$ SA
+// with a literal TargetMin$ 2 | TargetMax$ 2 asked for two picks while
+// offering only one selectable group -- an unsatisfiable decision that no
+// intent could answer (Run Away Together, Kitsune, Dragon's Daughter).
+// Callers compare min against distinct (not the raw option count) to detect
+// that no legal set exists.
+func (e *Engine) oneEachTargetBounds(sa *cards.SA, candidates []targetCandidate, min, max int) (int, int, bool, int) {
+	if !targetControllerExclusive(sa) {
+		return min, max, false, 0
+	}
+	// Option.Group makes the one-per-controller restriction part of the
+	// generic decision contract, so every target API consumes the same
+	// enforcement rather than each effect maintaining a picker.
+	groups := map[state.PlayerID]bool{}
+	for _, candidate := range candidates {
+		groups[e.candidateControllerSeat(candidate)] = true
+	}
+	distinct := len(groups)
+	// OneEach respells a bound as the distinct-controller count. It is the
+	// TargetsForEachPlayer$ spelling in Forge's grammar, but the corpus also
+	// writes it on a TargetsWithDifferentControllers$ SA (Mysterious
+	// Stranger's "for each player" graveyard pick), where it means the same
+	// thing -- so the respell is driven by the VALUE, not by which of the two
+	// equivalent flags is present. Before this only the
+	// TargetsForEachPlayer$ spelling was read and Mysterious Stranger asked
+	// for ONE target (Min 1 / Max 1) instead of one per represented player.
+	if strings.EqualFold(sa.Params["TargetMin"], "OneEach") {
+		min = distinct
+	}
+	if strings.EqualFold(sa.Params["TargetMax"], "OneEach") {
+		max = distinct
+	}
+	// Cap the maximum at the distinct-controller count for BOTH shapes: a
+	// literal or dynamic TargetMax$ larger than the number of controllers
+	// present could only invite an answer the exclusivity rule rejects, so
+	// the offer must advertise the true capacity (Havoc Eater's TargetMax$ X,
+	// Protector of the Wastes' TargetMax$ 2). distinct is 0 only when there
+	// are no candidates at all, and the no-option paths handle that before a
+	// decision is built, so the max >= 1 clamp contract is preserved.
+	if distinct > 0 && max > distinct {
+		max = distinct
+	}
+	return min, max, true, distinct
+}
+
+// targetControllerExclusive reports whether this targeting SA carries Forge's
+// per-controller selection shape -- TargetsForEachPlayer$ True ("up to one
+// target each player controls", the OneEach family) or
+// TargetsWithDifferentControllers$ True ("targets controlled by different
+// players", Protector of the Wastes and 7 more corpus carriers). Both are the
+// SAME set constraint -- no two chosen targets may share a controller -- and
+// both are expressed on the wire by Option.Group, so one predicate backs both
+// and the resolution recheck reads it through the same helper.
+func targetControllerExclusive(sa *cards.SA) bool {
+	return strings.EqualFold(sa.Params["TargetsForEachPlayer"], "True") ||
+		strings.EqualFold(sa.Params["TargetsWithDifferentControllers"], "True")
+}
+
+// targetControllerGroup is the Option.Group label binding one selection slot
+// to its controller -- the same label both ask sites attach, so
 // Decision.Validate's mutual-exclusion rule enforces one pick per controller
-// on the wire.
-func (e *Engine) oneEachTargetGroup(sa *cards.SA, candidate targetCandidate) string {
-	if !strings.EqualFold(sa.Params["TargetsForEachPlayer"], "True") {
+// on the wire. It applies whenever targetControllerExclusive holds, so a
+// TargetsWithDifferentControllers$ ask restricts the SAME way a OneEach ask
+// does: the exclusivity is the generic wire contract's job, not each effect's.
+func (e *Engine) targetControllerGroup(sa *cards.SA, candidate targetCandidate) string {
+	if !targetControllerExclusive(sa) {
 		return ""
 	}
-	owner := candidate.player
-	if candidate.kind != "player" {
-		if o := e.G.Obj(candidate.obj); o != nil {
-			owner = o.Controller
+	return "target-controller-" + strconv.Itoa(int(e.candidateControllerSeat(candidate)))
+}
+
+// targetControllerSeat is the controller seat a chosen target keys the
+// per-controller constraint on, read at the resolution recheck: a player
+// target is its own seat; an object target is its controller (its owner for a
+// card in a graveyard/hand/exile, which apply.go's Move fold keeps equal to
+// Controller). It is the recheck's twin of targetControllerGroup, which reads
+// the same seat off a candidate at the offer (candidatesFor labels a
+// non-battlefield candidate with the zone slice's owner q, and Move sets
+// Controller = Owner there), so offer and recheck cannot disagree. ok is false
+// for a target whose seat is unknown (a vanished object), which the caller
+// keeps rather than duplicating a phantom controller.
+func (e *Engine) targetControllerSeat(t state.Target) (state.PlayerID, bool) {
+	if t.IsPlayer {
+		if int(t.Player) < len(e.G.Players) && !e.G.Players[t.Player].Lost {
+			return t.Player, true
+		}
+		return 0, false
+	}
+	if o := e.G.Obj(t.Obj); o != nil {
+		return o.Controller, true
+	}
+	return 0, false
+}
+
+// narrowDifferentControllers is CR 608.2b's "does as much as possible" read of
+// TargetsWithDifferentControllers$ at resolution: walk the still-legal targets
+// in recorded order and keep the first of each controller, dropping a later
+// target whose controller already appears. A controller change in response can
+// make two targets share a controller, and a resolution must never act on a
+// set the targeting requirement forbids; keeping the earliest chosen target is
+// the deterministic, order-stable reading (the same "first in the recorded
+// order" discipline legendCasualties uses for its scan-order survivor). It is
+// applied only to the flag-bearing SA, after the ordinary per-target legality
+// recheck, so it only ever REMOVES a target -- it can never widen a set the
+// per-target filter already narrowed.
+func (e *Engine) narrowDifferentControllers(targets []state.Target) []state.Target {
+	seen := map[state.PlayerID]bool{}
+	out := targets[:0:0]
+	for _, t := range targets {
+		seat, ok := e.targetControllerSeat(t)
+		if ok && seen[seat] {
+			continue
+		}
+		if ok {
+			seen[seat] = true
+		}
+		out = append(out, t)
+	}
+	return out
+}
+
+// maxTotalTargetPower resolves a targeting subject's MaxTotalTargetPower$
+// cap -- the running total-power bound over a multi-target selection
+// ("Return any number of target creature cards with total power 10 or less",
+// Reunion of the House and Nethroi, Apex of Death; 2 corpus files). A literal
+// token reads directly (including a literal 0 or negative, both enforceable:
+// the ask sites attach every present cap as the decision's budget with
+// Decision.Budgeted set, because a MaxSum of 0 alone reads as NO budget on
+// the wire); a dynamic token resolves through the
+// effects numeric grammar, the same reader resolvedTargetBounds applies to a
+// TargetMax$ X token, bound to the asking player and the source anchor. A
+// token the grammar cannot resolve returns ok=false -- the cap is then
+// simply not enforced (today's behaviour; measured, no corpus carrier
+// reaches this arm unresolvable, both carriers are the literal 10).
+
+func (e *Engine) maxTotalTargetPower(p state.PlayerID, source state.ObjID, sa *cards.SA, x int32) (int, bool) {
+	v, ok := sa.Params["MaxTotalTargetPower"]
+	if !ok {
+		return 0, false
+	}
+	if n, err := strconv.Atoi(strings.TrimSpace(v)); err == nil {
+		return n, true
+	}
+	ctx, okc := e.targetBoundCtx(p, source)
+	if !okc {
+		return 0, false
+	}
+	ctx.X = x
+	if n, resolved := effects.NumResolved(e, ctx, sa, "MaxTotalTargetPower", 0); resolved {
+		return int(n), true
+	}
+	return 0, false
+}
+
+// totalPowerCappedCandidates applies the MaxTotalTargetPower$ cap to a
+// target census. The per-option half is a real filter, but ONLY where a
+// candidate provably cannot join any legal selection: with every power
+// non-negative, a candidate whose power ALONE exceeds the cap busts every
+// set containing it and is pruned. A NEGATIVE-power candidate breaks that
+// argument -- a CDA can be negative in a zone (Scourge of the Skyclaves's
+// 20-minus-highest-life CDA is -1 at a 21-life opponent, and it applies in
+// EVERY zone per CR 208.2), and 11 + (-1) = 10 is a legal compensated
+// selection under a cap of 10 -- so when any candidate reads negative the
+// over-cap candidate is pruned only when even the maximal offset cannot
+// save it: no selection containing it can score under the cap unless it
+// takes EVERY other negative candidate on offer, so the prune test is
+// p + otherNeg > cap (otherNeg = the sum of the OTHER candidates' negative
+// powers). The one rule covers every cap, zero and negative included: a
+// cap of 0 keeps a 2-power candidate beside two -1s (2-1-1 = 0), and a
+// negative cap no combination of negatives can reach prunes the whole
+// census. The prune does NOT model TargetMax$ bounding how many negatives
+// one selection may take (both corpus carriers' TargetMax$ is X, every
+// candidate) -- a survivor it keeps may then be unselectable, never the
+// reverse, and Decision.Validate still rejects any over-cap answer.
+// The running half -- any combination whose summed power stays within the
+// bound -- is NOT expressible as a per-candidate property, so it is not a
+// filter here: the two ask sites (askTarget below and cast.go's targetAsk)
+// attach it to the decision as the cumulative-budget wire contract --
+// Decision.MaxSum over each object option's Value (the candidate's power,
+// negatives included) -- which Decision.Validate enforces on every
+// submitted answer and Clamp/decision.FitRequired mirror for the
+// deterministic bot. That is the same mechanism a Dig's WithTotalCMC$
+// budget uses, so what a client may submit and what the engine offered can
+// never disagree. Player candidates carry Value 0 and are never pruned (a
+// MaxTotalTargetPower$ ask names cards; a player's presence is free).
+// Returns the pruned census, the cap and whether the parameter is present
+// at all.
+//
+// The power read is the DERIVED power (Engine.Power), not the printed
+// face: a characteristic-defining P/T applies in EVERY zone (CR 208.2 --
+// Lord of Extinction counts the graveyards from its own graveyard, which
+// derivedScalarFrom's CDA read covers), and the printed Face().Power()
+// returns 0 for such a face -- the first cut of this read undercounted a
+// CDA creature as a free target.
+func (e *Engine) totalPowerCappedCandidates(candidates []targetCandidate, p state.PlayerID, source state.ObjID, sa *cards.SA, x int32) ([]targetCandidate, int, bool) {
+	capPower, ok := e.maxTotalTargetPower(p, source, sa, x)
+	if !ok {
+		return candidates, 0, false
+	}
+	// First pass: every card candidate's DERIVED power, and the maximal
+	// negative offset the census carries (the sum of the negative powers --
+	// the most any selection containing an over-cap candidate can ever
+	// claw back). Player candidates carry no power.
+	power := make([]int32, len(candidates))
+	negSum := int32(0)
+	for i, c := range candidates {
+		if c.kind == "player" {
+			continue
+		}
+		o := e.G.Obj(c.obj)
+		if o == nil || o.Face() == nil {
+			continue
+		}
+		power[i] = e.Power(c.obj)
+		if power[i] < 0 {
+			negSum += power[i]
 		}
 	}
-	return "target-controller-" + strconv.Itoa(int(owner))
+	out := make([]targetCandidate, 0, len(candidates))
+	for i, c := range candidates {
+		if c.kind == "player" {
+			out = append(out, c)
+			continue
+		}
+		o := e.G.Obj(c.obj)
+		if o == nil || o.Face() == nil {
+			continue
+		}
+		// Prune only a candidate no legal selection can contain: its own
+		// power plus the maximal offset the OTHER candidates can supply (the
+		// sum of their negative powers) still busts the cap. With no
+		// negatives that is the plain p > cap prune; a candidate at or under
+		// the cap is never pruned by it when cap >= 0. The same rule holds
+		// for a cap of zero or less (powers 2,-1,-1 under a cap of 0 total
+		// 0, so the 2 stays), and there it can prune the whole census --
+		// when even every negative candidate together cannot reach a
+		// negative cap, no selection is legal and the ask resolves as
+		// targetless. Whatever survives, taking every negative survivor
+		// alongside it fits, which is what decision.FitRequired's negative
+		// top-up relies on to always reach a valid answer.
+		p := power[i]
+		others := negSum
+		if p < 0 {
+			others -= p
+		}
+		if p+others > int32(capPower) {
+			continue
+		}
+		out = append(out, c)
+	}
+	return out, capPower, true
 }
 
 // askTarget offers every legal target for a spell or ability. It deliberately
@@ -1470,7 +1717,14 @@ func (e *Engine) oneEachTargetGroup(sa *cards.SA, candidate targetCandidate) str
 func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 	min, max := e.resolvedTargetBounds(p, source, sa, 0)
 	candidates := e.legalTargetCandidates(p, source, source, sa)
-	min, max, _ = e.oneEachTargetBounds(sa, candidates, min, max)
+	// MaxTotalTargetPower$ (Reunion of the House): prune the candidates that
+	// can provably join no legal selection (individually over the cap unless
+	// a negative-power candidate could offset them) and carry the running
+	// cap as the decision's cumulative budget. Read BEFORE the per-controller
+	// bounds so `distinct` counts only candidates a legal selection can
+	// still take.
+	candidates, powerCap, powerCapped := e.totalPowerCappedCandidates(candidates, p, source, sa, 0)
+	min, max, exclusive, distinct := e.oneEachTargetBounds(sa, candidates, min, max)
 	d := &decision.Decision{Player: p, Kind: decision.KTarget, Min: min, Max: max,
 		Prompt: "Choose a target for " + e.targetName(source),
 		Source: source, TargetEffect: describeTargetEffect(sa)}
@@ -1481,8 +1735,21 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 		label := e.targetOptionLabel(candidate)
 		o := decision.Option{Index: len(d.Options), Kind: candidate.kind,
 			Label: label, Obj: candidate.obj, Player: candidate.player}
-		o.Group = e.oneEachTargetGroup(sa, candidate)
+		o.Group = e.targetControllerGroup(sa, candidate)
+		// Option.Value is omitempty and read only under a budget
+		// (Decision.HasBudget), so a budget-less target ask keeps its wire
+		// payload byte-identical. Every present cap -- zero and negative
+		// included, via Decision.Budgeted -- rides the wire, so
+		// Decision.Validate enforces the total on every submitted answer.
+		if powerCapped && candidate.kind != "player" {
+			if co := e.G.Obj(candidate.obj); co != nil && co.Face() != nil {
+				o.Value = int(e.Power(candidate.obj))
+			}
+		}
 		d.Options = append(d.Options, o)
+	}
+	if powerCapped {
+		d.MaxSum, d.Budgeted = powerCap, true
 	}
 	if min == 0 {
 		// Requirement N2 / totality: a target-hungry subject whose minimum
@@ -1492,8 +1759,11 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 		if len(d.Options) == 0 {
 			return
 		}
-	} else if len(d.Options) < min {
-		// A target-hungry subject with fewer legal targets than Min uses CR
+	} else if len(d.Options) < min || (exclusive && min > distinct) {
+		// A target-hungry subject with fewer legal targets than Min -- or one
+		// whose per-controller constraint admits fewer distinct controllers
+		// than Min (exclusive && min > distinct: two mandatory targets, both
+		// controlled by one player) -- uses CR
 		// 608.2b's existing counter/fizzle exit: an immediate move to its
 		// normal resting place (exile instead of the graveyard for a
 		// Flashback cast, and for a triggered ability object -- which has no
@@ -1774,7 +2044,17 @@ func (e *Engine) resolveTop() {
 		// such objects in exile. Ordered first because it decides whether
 		// the ability does anything at all.
 		if t, ok := e.findTriggerForAbility(o.Source, o.Ability); ok {
-			if !e.triggerConditionHolds(t, o.Source) {
+			// NoResolvingCheck$ True (Ugin's Mastery, Werewolf Pack Leader,
+			// Love on the Battlefield, ...): the condition was checked only
+			// when the trigger fired, and the transient state it counted (a
+			// bounced attacker, drained power) must not fizzle the ability
+			// here (triggerResolvingCheckHolds in rules/trigger_condition.go).
+			// The captured event roles travel with the ability; passing them
+			// is what lets an event-relative clause (Condition$
+			// AttackedPlayerWithMostLife) be re-checked with the defender the
+			// trigger queued against, which no current state can re-derive.
+			tc := e.triggerContexts[id]
+			if !e.triggerResolvingCheckHolds(t, o.Source, &tc) {
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
 					From: state.ZStack, To: state.ZExile, Text: "fizzled: intervening-if no longer holds"})
 				e.ensureLeftTheStack(id, state.ZExile, "a replacement fully discarded this "+
@@ -1802,7 +2082,7 @@ func (e *Engine) resolveTop() {
 		// and has none recorded resolves untargeted rather than fizzling --
 		// targetMin(o.Ability)==0 && len(targets)==0 is the exemption.
 		if spec := o.Ability.Params["ValidTgts"]; spec != "" && !(e.resolvedTargetMin(o.Controller, id, o.Ability, 0) == 0 && len(targets) == 0) {
-			legal := e.legalTargets(targets, spec, targetZones(o.Ability), o.Controller, o.Source, id)
+			legal := e.legalTargets(targets, o.Ability, targetZones(o.Ability), o.Controller, o.Source, id)
 			if len(legal) == 0 {
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
 					From: state.ZStack, To: state.ZExile, Text: "fizzled: no legal targets remain"})
@@ -2153,7 +2433,7 @@ func (e *Engine) resolveTop() {
 		// Requirement N2, the same exemption as the ability branch: an
 		// untargeted-with-Min-0 spell resolves rather than fizzling.
 		if spec := targetSA.Params["ValidTgts"]; spec != "" && !(e.resolvedTargetMin(o.Controller, id, targetSA, 0) == 0 && len(targets) == 0) {
-			legal := e.legalTargets(targets, spec, targetZones(targetSA), o.Controller, id, id)
+			legal := e.legalTargets(targets, targetSA, targetZones(targetSA), o.Controller, id, id)
 			if len(legal) == 0 {
 				// CR 608.2b: every target became illegal. This spell does
 				// not resolve -- no Resolve event, no script runs -- it goes
@@ -2337,7 +2617,11 @@ func (e *Engine) ensureLeftTheStack(id state.ObjID, to state.Zone, why string) {
 // offer and recheck cannot disagree (the one-definition rule). A target
 // whose qualifier the filter cannot evaluate was never offered and is
 // rejected here too, fail closed.
-func (e *Engine) legalTargets(targets []state.Target, spec string, zones []state.Zone, you state.PlayerID, source state.ObjID, self state.ObjID) []state.Target {
+func (e *Engine) legalTargets(targets []state.Target, sa *cards.SA, zones []state.Zone, you state.PlayerID, source state.ObjID, self state.ObjID) []state.Target {
+	spec := ""
+	if sa != nil {
+		spec = sa.Params["ValidTgts"]
+	}
 	var legal []state.Target
 	// The resolution recheck, unlike a target offer, has this stack object's
 	// Targets available. Targeted* predicates may read precisely this binding;
@@ -2399,6 +2683,11 @@ func (e *Engine) legalTargets(targets []state.Target, spec string, zones []state
 				legal = append(legal, t)
 			}
 		}
+	}
+	// CR 608.2b / CR 601.2c: the per-controller targeting requirement is
+	// rechecked on the surviving set too -- see narrowDifferentControllers.
+	if sa != nil && strings.EqualFold(sa.Params["TargetsWithDifferentControllers"], "True") {
+		legal = e.narrowDifferentControllers(legal)
 	}
 	return legal
 }
@@ -2585,13 +2874,62 @@ func (e *Engine) EachSpellCastThisTurnMatching(you state.PlayerID, spec string, 
 
 func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exclude state.ObjID) []state.ObjID {
 	youScoped := strings.Contains(spec, "You")
+	// The CastSa count specs (Rain of Riches' gate) are evaluated per cast
+	// event against THAT cast's spend window, not the object's latest one —
+	// a re-cast object's older cast must not inherit the newer cast's spend
+	// — so the backward walk carries a per-caster spend bucket: a negative
+	// ManaAdd (a spend event carries no Obj) belongs to the NEXT PutOnStack
+	// the walk reaches for its player — the cast it sits above in the log —
+	// exactly the window manaSpentForCast reads for the SA-level ValidSA$
+	// family. Specs without a CastSa token take the unchanged per-event
+	// chain call (their castProvenanceAdmits strip is event-local and
+	// stateless).
+	saTokens := castSaTokensIn(spec)
+	// The in-flight cast's own grant walk (queueCascadeTriggers' scratch,
+	// rules/cascade.go) counts PRIOR casts only: the Affected$ half of the
+	// same static evaluates the current cast's own qualification, and the
+	// gate's EQ0 is Forge's "the first" idiom — the twelve AffectedZone$
+	// Stack SVarCompare$ gates in the corpus are all EQ0. Outside the walk
+	// the count is inclusive (Vengevine's "the second creature spell" EQ2
+	// gate is evaluated with the triggering cast in the log and must count
+	// it).
+	skipObj := e.stackGrantCast
+	var buckets [8]castSpendFacts
+	useAcc := len(saTokens) > 0
 	var out []state.ObjID
 	for i := len(e.L.Events) - 1; i >= 0; i-- {
 		ev := e.L.Events[i]
 		if ev.Kind == events.TurnChange {
 			break
 		}
-		if ev.Kind != events.PutOnStack {
+		switch ev.Kind {
+		case events.ManaAdd:
+			if useAcc && ev.Amount < 0 && int(ev.Player) < len(buckets) {
+				buckets[ev.Player].spent += -ev.Amount
+				if tag, _, ok := state.TypedManaCounter(ev.Counter); ok {
+					buckets[ev.Player].tagged[tag] += -ev.Amount
+				}
+			}
+			continue
+		case events.PutOnStack:
+		default:
+			continue
+		}
+		// This push closes the spend window of the cast it announces: the
+		// caster's bucket holds exactly the spends since the walk start,
+		// which are this cast's own (plus the caster's own post-payment
+		// floating — the manaSpentForCast convention). Take the facts and
+		// reset, so an older cast of the same object (a hand cast before a
+		// flashback) does not inherit them and the in-flight cast's window
+		// belongs to no counted cast.
+		var facts castSpendFacts
+		if useAcc && int(ev.Player) < len(buckets) {
+			facts = buckets[ev.Player]
+			buckets[ev.Player] = castSpendFacts{}
+		}
+		// The push itself proves a cast exists: the window's ok read.
+		facts.ok = true
+		if skipObj != 0 && ev.Obj == skipObj {
 			continue
 		}
 		if exclude != 0 && ev.Obj == exclude {
@@ -2600,12 +2938,24 @@ func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exc
 		if youScoped && ev.Player != you {
 			continue
 		}
+		matchSpec := spec
+		alive := true
+		for _, tok := range saTokens {
+			var held bool
+			if matchSpec, held = admitProvenanceAlternatives(matchSpec, tok.token, castSaTokenHolds(tok, facts)); !held {
+				alive = false
+				break
+			}
+		}
+		if !alive {
+			continue
+		}
 		// The bare wasCastFromYourHandByYou qualifier (the 5 end-step "if you
 		// haven't cast a spell from your hand this turn" carriers'
 		// Count$ThisTurnCast_Card.wasCastFromYourHandByYou bodies) is
 		// evaluated per cast event against the log (task castprov1); the
 		// wasCastByYou sibling (task castprov2) rides the same combined read.
-		matchSpec, ok := e.castProvenanceAdmits(spec, ev.Obj, you)
+		matchSpec, ok := e.castProvenanceAdmits(matchSpec, ev.Obj, you)
 		if !ok {
 			continue
 		}
@@ -2823,6 +3173,33 @@ func (e *Engine) LifeLostThisTurn(p state.PlayerID) int32 {
 			break
 		}
 		if ev.Kind == events.LifeChange && ev.Player == p && ev.Amount < 0 {
+			n += -ev.Amount
+		}
+	}
+	return n
+}
+
+// CountersRemovedThisTurn satisfies effects.Host's CountersRemovedThisTurn
+// for Count$CountersRemovedThisTurn <KIND> <player> (Blaster Hulk's per-{E}
+// cast discount and Izzet Generatorium's paid-or-lost-four-or-more {E}
+// activation gate): the TOTAL of player counters of kind p paid or lost this
+// turn, summed from every negative-Amount PlayerCounterChange naming the kind
+// (case-insensitively — the grants and the pays write the same kind text a
+// card's script uses, e.g. "ENERGY") since the last TurnChange. Derived from
+// the event log like LifeLostThisTurn, so a replay derives the same number.
+// A payment and a loss are the same event shape — rules/mana.go's PayEnergy
+// settle emits exactly this fold's input — and an object-counter removal
+// (Kind CounterChange, a permanent losing counters) is deliberately NOT
+// folded: the head's player form counts the PLAYER's pool only.
+func (e *Engine) CountersRemovedThisTurn(p state.PlayerID, kind string) int32 {
+	var n int32
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if ev.Kind == events.PlayerCounterChange && ev.Player == p && ev.Amount < 0 &&
+			strings.EqualFold(ev.Counter, kind) {
 			n += -ev.Amount
 		}
 	}

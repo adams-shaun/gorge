@@ -289,14 +289,18 @@ func Describe(g *state.Game, ev events.Event) string {
 			s += " " + obj(g, ev.IDs[0])
 		}
 		return s
-	case events.Discover, events.Seek:
-		// The discover (CR 701.57) and seek records (task trigdisc1) are pure
+	case events.Discover, events.Seek, events.Surveil:
+		// The discover (CR 701.57), seek (task trigdisc1) and surveil
+		// (CR 701.42) records (task trigdisc1) are pure
 		// markers: the action's own state changes (the exiles/reveals and the
-		// sought card's move) are their own lines, so these lines name only
-		// the acting seat (Player; Obj is the source permanent, which may be
-		// 0 for a source-less body).
+		// sought card's move, the surveil's KArrange answer) are their own
+		// lines, so these lines name only the acting seat (Player; Obj is the
+		// source permanent, which may be 0 for a source-less body).
 		if ev.Kind == events.Seek {
 			return player(g, ev.Player) + " seeks"
+		}
+		if ev.Kind == events.Surveil {
+			return player(g, ev.Player) + " surveils"
 		}
 		return player(g, ev.Player) + " discovers"
 	case events.Connive:
@@ -500,6 +504,19 @@ func Describe(g *state.Game, ev events.Event) string {
 			s += " (" + ev.Text + ")"
 		}
 		return s
+	case events.Unattached:
+		// CR 701.3b: Obj became unattached from the former bearer (IDs[0]).
+		// The attachment stays on the battlefield (its own departure is a
+		// MoveZone), so this is the detach half of Attach's line; Text carries
+		// the reason the same way Attach's detach shape does.
+		s := obj(g, ev.Obj) + " becomes unattached"
+		if len(ev.IDs) > 0 {
+			s += " from " + obj(g, ev.IDs[0])
+		}
+		if ev.Text != "" {
+			s += " (" + ev.Text + ")"
+		}
+		return s
 	case events.AbilityPush:
 		// An activated ability minted onto the stack (the same shape
 		// TriggerPush uses for triggers, Ruling T20-a): Player is the
@@ -575,6 +592,15 @@ func Describe(g *state.Game, ev events.Event) string {
 		// the same "triggers" phrasing -- the resolving ability's own line is
 		// what carries what it does.
 		return obj(g, ev.Obj) + " triggers (merged)"
+	case events.GainedAbilityPush:
+		// A has-all-abilities-of activated ability went on the stack (Forge's
+		// GainsAbilitiesOf$): Obj is the minted stack object.
+		return obj(g, ev.Obj) + " activates (gained)"
+	case events.GainedTriggerPush:
+		// A has-all-abilities-of triggered ability went on the stack (Forge's
+		// GainsTriggerAbsOf$): the same "triggers" phrasing the other grant
+		// pushes use -- the resolving ability's own line carries what it does.
+		return obj(g, ev.Obj) + " triggers (gained)"
 	case events.ManaActivate:
 		// The ActivationLimit$ scan marker for a mana ability's activation
 		// (events.ManaActivate's own comment). Obj is the source permanent.

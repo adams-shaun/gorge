@@ -168,7 +168,7 @@ func (e *Engine) resolveFused(o *state.Object) (*resumePoint, bool) {
 			if stageTargets != nil && i < len(stageTargets) {
 				own = stageTargets[i]
 			}
-			legalByHalf[i] = e.legalTargets(own, spec, targetZones(sa), o.Controller, o.ID, o.ID)
+			legalByHalf[i] = e.legalTargets(own, sa, targetZones(sa), o.Controller, o.ID, o.ID)
 			totalLegal += len(legalByHalf[i])
 			if !(e.resolvedTargetMin(o.Controller, o.ID, sa, 0) == 0 && len(own) == 0) {
 				checked = true

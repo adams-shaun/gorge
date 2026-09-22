@@ -261,6 +261,17 @@ type Game struct {
 	// keeps seat zero distinct from no monarch.
 	Monarch    PlayerID
 	HasMonarch bool
+	// TurnStartMonarch is the seat that held the monarch designation when the
+	// CURRENT turn began, with HasTurnStartMonarch its presence bit. It is
+	// snapshotted from Monarch/HasMonarch at every TurnChange (events/apply.go),
+	// exactly the CombatsThisTurn shape, so it is rebuilt identically by replay
+	// without any new event or event field. It backs the trig:BecomeMonarch
+	// intervening-if BeginTurn$ You -- "if you were the monarch as the turn
+	// began" (CR 603.4: the condition is evaluated as the turn began, not when
+	// the trigger later resolves) -- whose only corpus carrier is Knights of
+	// the Black Rose.
+	TurnStartMonarch    PlayerID
+	HasTurnStartMonarch bool
 	// NextID hands out object ids one at a time, starting at 1 (see NewGame)
 	// and incrementing by exactly one per AddObject call below -- it can
 	// never reach playerRefBit (1<<31, ids.go): a single match would need
@@ -522,6 +533,12 @@ func (g *Game) AliveCount() int { return len(g.AliveFrom(0)) }
 
 // IsMonarch reports whether p currently holds the monarch designation.
 func (g *Game) IsMonarch(p PlayerID) bool { return g.HasMonarch && g.Monarch == p }
+
+// WasMonarchAtTurnStart reports whether p held the monarch designation when
+// the current turn began (the trig:BecomeMonarch BeginTurn$ intervening-if).
+func (g *Game) WasMonarchAtTurnStart(p PlayerID) bool {
+	return g.HasTurnStartMonarch && g.TurnStartMonarch == p
+}
 
 // IsRingBearer reports whether id is p's Ring-bearer (CR 701.54e: the
 // creature is "your Ring-bearer" exactly while it is on the battlefield

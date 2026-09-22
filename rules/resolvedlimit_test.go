@@ -265,6 +265,84 @@ func TestResolvedLimitMixedLineOtherTriggerDoesNotConsume(t *testing.T) {
 	}
 }
 
+// TestResolvedLimitTidusCheerOncePerTurn is the brief's own "Done means"
+// corpus-card leaf: Tidus, Yuna's Guardian's Cheer trigger
+// (`T:Mode$ DamageDoneOnce | CombatDamage$ True | ValidSource$
+// Creature.YouCtrl+HasCounters | ValidTarget$ Player | ResolvedLimit$ 1 |
+// OptionalDecider$ You` -- "you may draw a card and proliferate. Do this
+// only once each turn.") is a DamageDoneOnce carrier, the mode whose own
+// once-per-batch latch (damageBatchKey) is per damaged object per batch and
+// therefore did NOT stop a second SEPARATE combat damage event in the same
+// turn from firing the cheer again. Two separate combat damage events in one
+// turn must yield exactly one cheer resolution; the turn change re-arms it.
+func TestResolvedLimitTidusCheerOncePerTurn(t *testing.T) {
+	tidus := mshCorpusCardPath(t, "Tidus, Yuna's Guardian", "t/tidus_yunas_guardian.txt")
+	e := combatEngine(t)
+	src := onBoardCard(t, e, 0, tidus)
+	// The cheer's ValidSource$ is Creature.YouCtrl+HasCounters, so the bearer
+	// needs a counter: place it and mark it with one eventlessly (the same
+	// eventless placement onBoardCard uses for the zone move itself).
+	bearer := onBoardCard(t, e, 0, card(t, "Name:Counter Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"))
+	e.G.Obj(bearer).AddCounter("P1P1", 1)
+	// Precondition the whole leaf depends on: the bearer really does carry a
+	// counter and really is a creature, so the trigger's ValidSource$ can
+	// match it (a mismatched setup would make the test pass vacuously).
+	if n := e.G.Obj(bearer).Counter("P1P1"); n != 1 {
+		t.Fatalf("precondition: bearer has %d P1P1 counters, want 1", n)
+	}
+	if !e.G.Obj(bearer).Face().IsCreature() {
+		t.Fatal("precondition: bearer is not a creature")
+	}
+	if len(e.pendingTriggers) != 0 {
+		t.Fatalf("precondition: %d triggers queued before any damage", len(e.pendingTriggers))
+	}
+
+	base := countDraws(e, 0)
+	// First combat damage event of the turn: the bearer hits player 1. The
+	// e.damaging/combatDamaging state is exactly what dealCombatDamage emits
+	// each assignment under (the TestScreamingNemesisFiresPerDamageEvent
+	// shape).
+	combatHit := func() {
+		e.damaging = bearer
+		e.combatDamaging = true
+		e.emit(events.Event{Kind: events.Damage, Player: 1, Amount: 2})
+		e.combatDamaging = false
+		e.damaging = 0
+	}
+	combatHit()
+	if len(e.pendingTriggers) != 1 {
+		t.Fatalf("first combat hit queued %d triggers, want 1", len(e.pendingTriggers))
+	}
+	drainQueuedTrigger(t, e, src)
+	if n := pushCount(e, src); n != 1 {
+		t.Fatalf("first cheer produced %d TriggerPush events, want 1", n)
+	}
+	if n := countDraws(e, 0) - base; n != 1 {
+		t.Fatalf("first accepted cheer drew %d cards, want 1", n)
+	}
+
+	// Second SEPARATE combat damage event, same turn. DamageDoneOnce's own
+	// latch is per batch, so before the ResolvedLimit$ gate this queued a
+	// second cheer; now the per-turn resolution cap must suppress it.
+	combatHit()
+	if len(e.pendingTriggers) != 0 {
+		t.Fatalf("second combat hit in the same turn queued %d triggers, want 0 (ResolvedLimit$ spent)", len(e.pendingTriggers))
+	}
+	if n := pushCount(e, src); n != 1 {
+		t.Fatalf("after the second hit, Tidus has %d TriggerPush events, want 1", n)
+	}
+
+	// New turn: the per-turn count self-resets, so a third hit cheers again.
+	e.emit(events.Event{Kind: events.TurnChange, Player: 0, Amount: 2})
+	combatHit()
+	if n := drainQueuedTrigger(t, e, src); n != 2 {
+		t.Fatalf("third hit on the next turn produced %d total TriggerPush events, want 2", n)
+	}
+	if n := countDraws(e, 0) - base; n != 2 {
+		t.Fatalf("two accepted cheers drew %d cards total, want 2", n)
+	}
+}
+
 // TestResolvedLimitReplaysExactly clones the engine after the first resolution
 // and proves the clone's continued play is byte-identical -- the leaf that
 // catches a missing Engine.Clone copy of triggerTurnResolved (the clone would

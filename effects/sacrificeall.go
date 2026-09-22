@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -76,6 +77,24 @@ func effSacrificeAll(h Host, c *Ctx, sa *cards.SA) {
 	if def := sa.Params["Defined"]; def != "" || sa.Params["ValidTgts"] != "" {
 		for _, t := range Defined(h, c, sa) {
 			if !t.IsPlayer {
+				// A Defined$-named object that is no longer on the battlefield
+				// is skipped LOUDLY rather than silently: this is the shape
+				// Mode$ Unattached's TriggeredObjectLKICopy referent reaches on
+				// the bearer-left path (Grafted Exoskeleton's "sacrifice that
+				// permanent"), where the named permanent has already left the
+				// battlefield and nothing may be sacrificed in its place. The
+				// same one-Note-per-object convention effRemoveCounter carries;
+				// the sweep branch below stays quiet (it names no specific
+				// object, so a skipped one is not a surprise).
+				if o := g.Obj(t.Obj); o == nil {
+					h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+						Text: fmt.Sprintf("SacrificeAll target %d no longer exists; skipped", t.Obj)})
+					continue
+				} else if o.Zone != state.ZBattlefield {
+					h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+						Text: fmt.Sprintf("SacrificeAll target %d is not on the battlefield (zone %s); skipped", o.ID, o.Zone)})
+					continue
+				}
 				sacrifice(t.Obj)
 			}
 		}

@@ -75,6 +75,36 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		// the permanent the counters landed on.
 		c.TriggerCard = ev.Obj
 		c.TriggerAmount = ev.Amount
+	case "CounterPlayerAddedAll":
+		// The batch "whenever you put one or more counters on ..." mode's
+		// roles (Generous Patron, Rikku, Kros, All Will Be One): the
+		// recipient permanent is ev.Obj -- triggerRemembered already seeds
+		// Remembered with it, so Defined$ TriggeredObjectLKICopy (Rikku's
+		// RememberObjects$ on the DB body) resolves against it -- and the
+		// batch size rides TriggerAmount for the count head TriggerCount$Amount
+		// (All Will Be One's "deals that much damage" NumDmg$ X). A player
+		// recipient (PlayerCounterChange, The Great Goblin's "or player")
+		// carries no object: the recipient player is the TriggerTarget role
+		// and the object roles stay absent rather than pointing at the
+		// trigger's source.
+		c.TriggerCard = ev.Obj
+		if ev.Obj == 0 {
+			c.TriggerTarget = player(ev.Player)
+		}
+		c.TriggerAmount = ev.Amount
+	case "CounterRemovedOnce":
+		// The removal batch, mirrored: one CounterChange with a negative
+		// Amount carries the whole removal, and the magnitude the causing
+		// event carried is POSITIVE, so TriggerCount$Amount reads -ev.Amount
+		// (Chandra, Fire Artisan's "deals that much damage"; B.O.B. Bevy of
+		// Beebles; Regenerations Restored). ev.Obj is the permanent the
+		// counters left.
+		c.TriggerCard = ev.Obj
+		if ev.Amount < 0 {
+			c.TriggerAmount = -ev.Amount
+		} else {
+			c.TriggerAmount = ev.Amount
+		}
 	case "DamagePreventedOnce":
 		// The prevention Note carries the prevented damage in Amount and the
 		// damaged side in Obj/Player (rules/replacement.go's stored-prevention
@@ -170,6 +200,14 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		}
 	case "Phase":
 		c.TriggerPlayer = player(e.G.Active)
+	case "BecomeMonarch":
+		// The monarch designation transition's role: the NEW monarch is the
+		// event's Player, so Defined$ TriggeredPlayer resolves the seat that
+		// just took the crown (Knights of the Black Rose's "that player loses
+		// 2 life", Custodi Lich's "target player"). The clause is read only
+		// when a BecomeMonarch matcher accepted the event, so ev.Player is
+		// always that seat here.
+		c.TriggerPlayer = player(ev.Player)
 	case "Explores":
 		// The explore record's roles (task explore1): TriggerCard is the
 		// EXPLORER (what ValidCard$ matched), the same ChangesZone read.
@@ -202,6 +240,20 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		c.TriggerPlayer = player(ev.Player)
 		if len(ev.IDs) > 0 {
 			c.TriggerEnlisted = ev.IDs[0]
+		}
+	case "BecomeMonstrous":
+		// The monstrous mark's roles (task agent-20260919T190014Z):
+		// TriggerCard is the creature that just became monstrous (ev.Obj, the
+		// trigger's own source for ValidCard$ Card.Self, so
+		// TriggeredCard/TriggeredCardLKICopy resolve against it) and
+		// TriggerAmount is the monstrosity COUNT the mark event carried --
+		// what Hydra Broodmaster's `SVar:MonstrosityX:TriggerCount$Amount` and
+		// Vitality Hunter's `SVar:MaxTgts:TriggerCount$Amount` read back.
+		c.TriggerCard = ev.Obj
+		c.TriggerSource = ev.Obj
+		c.TriggerAmount = ev.Amount
+		if int(ev.Player) >= 0 && int(ev.Player) < len(e.G.Players) {
+			c.TriggerPlayer = player(ev.Player)
 		}
 	case "Connives":
 		// The connive record's roles (task connive1): TriggerCard is the

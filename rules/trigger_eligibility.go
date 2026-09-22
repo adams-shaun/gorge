@@ -75,7 +75,7 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.CmdDamage, events.DelayedRegister, events.DelayedPush,
 		events.GrantAbilityPush,
 		events.LibraryOrder, events.ExtraTurn, events.DoorUnlock,
-		events.SpeedChange, events.MonarchChange, events.ControlChange,
+		events.SpeedChange, events.ControlChange,
 		events.CardToken, events.KeywordTriggerPush, events.Goad,
 		events.PlayerCounterChange, events.Imprint, events.StartingPlayerChange,
 		events.Pair, events.MyriadCopy, events.MyriadCleanup,
@@ -85,7 +85,8 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.CombatRetarget, events.RingTemptsYou, events.RingEmblemPush,
 		events.BlessingChange, events.ClonePermanent,
 		events.Mutate, events.MergedTriggerPush,
-		events.Enlist, events.AlterAttribute:
+		events.Enlist, events.AlterAttribute, events.Unattached,
+		events.GainedAbilityPush, events.GainedTriggerPush:
 		// AlterAttribute (alterattr1) is the same shape past the bound as
 		// Enlist: the suspected designation (CR 702.157) is a status no
 		// trigger mode fires on -- the corpus reads it through filter
@@ -107,8 +108,13 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		// matched by trig:Mutates through the full matcher (mutatesMatches),
 		// and MergedTriggerPush is a mint marker no mode fires on. Enlist is
 		// the same shape past the bound: trig:Enlisted matches the full
-		// events.Enlist carrier through enlistedMatches. Naming them keeps
-		// the audit complete if the bound ever widens.
+		// events.Enlist carrier through enlistedMatches. GainedAbilityPush and
+		// GainedTriggerPush (gains1) are the has-all-abilities-of mint
+		// markers: the ability itself is matched on the event that caused it
+		// (an ordinary trigger scan), and the push only mints its stack
+		// object -- the GrantAbilityPush/GrantTriggerPush shape, and like
+		// those two past the bound so both classifiers fail open anyway.
+		// Naming them keeps the audit complete if the bound ever widens.
 		return 0
 	case events.Attach:
 		return cards.TriggerInterestAttach
@@ -121,6 +127,11 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		// default arm would give it -- a ManaExpend-only face's compiled
 		// scan set narrows to the one event kind it fires on.
 		return cards.TriggerInterestCastInfo
+	case events.MonarchChange:
+		// The monarch designation transition carries trig:BecomeMonarch
+		// (rules' becomeMonarchMatches), so it has its own interest bit rather
+		// than the zero mapping it carried while no mode matched it.
+		return cards.TriggerInterestMonarch
 	default:
 		return cards.TriggerInterestAny
 	}
@@ -193,6 +204,16 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// fall to the allTriggerEvents default) keeps a Discover/SeekAll-only
 		// face's mask narrow for every other kind.
 		return 0
+	case "Surveil":
+		// The Surveil marker's ordinal (79, task trig-surveil) is past the
+		// 64-bit mask's reach, the Discover/SeekAll shape: a mask bit is not
+		// encodable and allows() fails open for every kind at or past
+		// triggerMaskKindBits, so the mode is admitted through that fail-open
+		// path and gated by the full matcher (surveilMatches). Naming the
+		// mode here rather than letting it fall to the allTriggerEvents
+		// default keeps a Surveil-only face's mask narrow for every other
+		// kind.
+		return 0
 	case "Exploited":
 		// The Exploit marker's ordinal is past the 64-bit mask's reach, the
 		// Investigated/Discover shape: a mask bit is not encodable and
@@ -202,6 +223,16 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// than letting it fall to the allTriggerEvents default keeps an
 		// Exploited-only face's mask narrow for every other kind.
 		return 0
+	case "BecomeMonstrous":
+		// The AlterAttribute carrier's ordinal is past the 64-bit mask's
+		// reach, the Exploited/Investigated shape: a mask bit is not encodable
+		// and allows() fails open for every kind at or past
+		// triggerMaskKindBits, so the mode is admitted through that fail-open
+		// path and gated by the full matcher (becomeMonstrousMatches, task
+		// agent-20260919T190014Z). Naming the mode here rather than letting it
+		// fall to the allTriggerEvents default keeps a BecomeMonstrous-only
+		// face's mask narrow for every other kind.
+		return 0
 	case "RingTemptsYou":
 		// The Kind's ordinal (65) is past the 64-bit mask's reach: a mask bit
 		// is not encodable, and allows() fails open for every kind at or past
@@ -210,10 +241,27 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// than letting it fall to the allTriggerEvents default) keeps a
 		// RingTemptsYou-only face's mask narrow for every other kind.
 		return 0
+	case "BecomeMonarch":
+		// The monarch designation transition (trig:BecomeMonarch), matched by
+		// rules' becomeMonarchMatches. MonarchChange is ordinal 43, inside the
+		// 64-bit mask's reach, so an exact bit is encodable.
+		return 1 << events.MonarchChange
 	case "CommitCrime", "BecomesTarget":
 		return 1 << events.TargetsChosen
 	case "Attached":
 		return 1 << events.Attach
+	case "Unattached":
+		// CR 701.3b's detach half. The Kind's ordinal is past the 64-bit
+		// mask's reach (Unattached is appended after Surveil, the same
+		// post-CombatRetarget range as Enlisted/Mutates), so a mask bit is not
+		// encodable and allows() fails open for every kind at or past
+		// triggerMaskKindBits -- the mode is admitted through that fail-open
+		// path and gated by the full matcher (unattachedMatches). Naming the
+		// mode here rather than letting it fall to the allTriggerEvents default
+		// keeps an Unattached-only face's mask narrow for every other kind, and
+		// keeps Mode$ Attached's mask exact (its bit is events.Attach, never
+		// events.Unattached).
+		return 0
 	case "Exerted":
 		// The mode fires on the CR 702.100 exert itself (events.Exert with
 		// Amount >= 0); the Amount == -1 untap-step consume marker is the
@@ -260,8 +308,14 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// Note (once per die), RolledDieOnce on the per-resolution batch Note
 		// (once per roll action).
 		return 1 << events.Note
-	case "CounterAdded", "CounterAddedOnce", "CounterRemoved":
+	case "CounterAdded", "CounterAddedOnce", "CounterRemoved", "CounterRemovedOnce":
 		return 1 << events.CounterChange
+	case "CounterPlayerAddedAll":
+		// The batch "whenever you put one or more counters on ..." mode
+		// (Generous Patron, Rikku Resourceful Guardian): fires on the object
+		// AND player placement events the matcher
+		// (counterPlayerAddedAllMatches) reads.
+		return 1<<events.CounterChange | 1<<events.PlayerCounterChange
 	case "ClassLevelGained":
 		// CR 702.118c: the same CounterChange event the level-up
 		// activator's PutCounter emits carries the level band crossing

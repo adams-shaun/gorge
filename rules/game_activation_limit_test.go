@@ -27,6 +27,7 @@ import (
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -172,6 +173,104 @@ func findAbilityOptionByLabel(e *Engine, id state.ObjID, want string) (decision.
 		}
 	}
 	return decision.Option{}, false
+}
+
+// TestTouchOfVitaeGrantsTargetedUntapAbility pins Animate's cross-object
+// AddAbilities provenance: the Bears remain the continuous effect's Source,
+// while Touch owns the SVar body and therefore the activation grant source.
+func TestTouchOfVitaeGrantsTargetedUntapAbility(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	touch := lookup(t, reg, "Touch of Vitae")
+	bearsCard := lookup(t, reg, "Grizzly Bears")
+	e, cfg := animateTriggersEngine(t, reg, touch, bearsCard)
+	touchID := moveByName(t, e, 0, "Touch of Vitae", state.ZHand)
+	bearsID := moveByName(t, e, 0, "Grizzly Bears", state.ZBattlefield)
+	if e.G.Obj(bearsID).Zone != state.ZBattlefield {
+		t.Fatalf("precondition: Bears not on battlefield: %+v", e.G.Obj(bearsID))
+	}
+	driveToStep(t, e, 3, 0, state.StepMain1)
+	addMana(t, e, 0, "CCG")
+	e.emit(events.Event{Kind: events.Tap, Obj: bearsID})
+	if !e.G.Obj(bearsID).Tapped {
+		t.Fatalf("precondition: Bears could not be tapped on battlefield: %+v", e.G.Obj(bearsID))
+	}
+	e.priorityRound()
+	var cast decision.Option
+	found := false
+	for _, o := range e.Pending().Options {
+		if o.Kind == "cast" && o.Obj == touchID {
+			cast, found = o, true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("Touch of Vitae cast option absent: obj=%+v pending=%+v", e.G.Obj(touchID), e.Pending().Options)
+	}
+	submitChoices(t, e, cast.Index)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("Touch target decision absent: %+v", d)
+	}
+	target := -1
+	for _, o := range d.Options {
+		if o.Obj == bearsID {
+			target = o.Index
+		}
+	}
+	if target < 0 {
+		t.Fatalf("Bears absent from Touch targets: %+v", d.Options)
+	}
+	submitChoices(t, e, target)
+	passUntilStackEmpty(t, e, 100)
+	if e.G.Obj(bearsID).Zone != state.ZBattlefield || !e.G.Obj(bearsID).Tapped {
+		t.Fatalf("precondition after Touch: Bears left battlefield or became untapped: %+v", e.G.Obj(bearsID))
+	}
+	var grant *ContinuousEffect
+	for i := range e.continuous {
+		ce := &e.continuous[i]
+		if ce.Source == bearsID && len(ce.AddAbilities) != 0 {
+			grant = ce
+			break
+		}
+	}
+	if grant == nil {
+		t.Fatal("Touch did not register an AddAbilities grant on Bears")
+	}
+	if grant.AbilityGrantor != touchID || grant.Source != bearsID {
+		t.Fatalf("grant Source/AbilityGrantor = %d/%d, want %d/%d", grant.Source, grant.AbilityGrantor, bearsID, touchID)
+	}
+	if cards.ResolveSVar(grant.SVars, "ABUntap") == nil {
+		t.Fatal("Touch AddAbilities grant does not resolve ABUntap from its SVar table")
+	}
+	gopt := grantedAbilityOption(t, e, bearsID, "ABUntap")
+	if gopt.GrantSource != touchID {
+		t.Fatalf("granted option source = %d, want Touch %d", gopt.GrantSource, touchID)
+	}
+	submitChoices(t, e, gopt.Index)
+	passUntilStackEmpty(t, e, 100)
+	if e.G.Obj(bearsID).Tapped {
+		t.Fatal("Touch's granted ABUntap did not untap Bears")
+	}
+	// Re-tap the recipient before checking the second offer: withholding is
+	// therefore demonstrably the GameActivationLimit, not an untapped-target
+	// legality shortcut.
+	e.emit(events.Event{Kind: events.Tap, Obj: bearsID})
+	if !e.G.Obj(bearsID).Tapped {
+		t.Fatal("precondition: Bears could not be re-tapped for the limit check")
+	}
+	var pushes []events.Event
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.GrantAbilityPush && ev.Obj == bearsID {
+			pushes = append(pushes, ev)
+		}
+	}
+	if len(pushes) != 1 || len(pushes[0].IDs) != 1 || pushes[0].IDs[0] != touchID {
+		t.Fatalf("GrantAbilityPush = %+v, want recipient Bears and grantor Touch", pushes)
+	}
+	if _, ok := findGrantedAbilityOption(e, bearsID, "ABUntap"); ok {
+		t.Fatal("Touch's GameActivationLimit$ 1 ability was offered after its one use")
+	}
+	replayCheck(t, e, cfg)
 }
 
 // findGrantedAbilityOption locates a granted option on obj by its SVar name.

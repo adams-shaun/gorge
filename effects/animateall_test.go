@@ -124,26 +124,43 @@ func TestAnimateAllPermanentDurationIsPermanent(t *testing.T) {
 	}
 }
 
-// TestAnimateAllUnreadParametersNoteLoudly: the shared pre-existing Animate
-// gaps (RemoveKeywords$/RemoveAllAbilities$/staticAbilities$/Replacements$/
-// CantHaveKeyword$/RemoveLandTypes$) must be LOUD — one note naming every
-// unread parameter present — while the supported parameters still apply.
+// TestAnimateAllUnreadParametersNoteLoudly: the remaining AnimateAll gaps
+// (RemoveKeywords$/RemoveAllAbilities$/Replacements$/CantHaveKeyword$/
+// RemoveLandTypes$) must be LOUD — one note naming every unread parameter
+// present — while the supported parameters still apply. staticAbilities$ is
+// tested through the shared Animate registration path below.
 // Triggers$ is READ since the Animate Triggers$ ticket: a named body the
 // parser refuses (no SVar table here, so TrigSomething resolves to
 // nothing) gets its own loud refuse-note instead of joining the unread
 // list.
+func TestAnimateStaticAbilitiesRegistersCantSacrifice(t *testing.T) {
+	g, ids := board(t)
+	h := &fakeHost{g: g}
+	c := &Ctx{Controller: 0, Source: ids["myBear"], SVars: map[string]string{
+		"SCantSac": "Mode$ CantSacrifice | ValidCard$ Card.Self",
+	}}
+	registerAnimateStaticAbilities(h, c, ids["myBear"], []string{"SCantSac"}, "UntilEOT", false, "", nil)
+	if len(h.continuous) != 1 {
+		t.Fatalf("registered continuous effects = %d, want one", len(h.continuous))
+	}
+	ce := h.continuous[0]
+	if ce.Source != ids["myBear"] || ce.Restriction != "CantSacrifice" || ce.RestrictParams["ValidCard"] != "Card.Self" {
+		t.Fatalf("staticAbilities registration = %+v", ce)
+	}
+}
+
 func TestAnimateAllUnreadParametersNoteLoudly(t *testing.T) {
 	g, _ := board(t)
 	h := &fakeHost{g: g}
 	Resolve(h, &Ctx{Controller: 0}, sa(t,
-		"DB$ AnimateAll | ValidCards$ Creature | Power$ 1 | RemoveAllAbilities$ True | staticAbilities$Flying | Triggers$ TrigSomething | Replacements$ ReplSomething"))
+		"DB$ AnimateAll | ValidCards$ Creature | Power$ 1 | RemoveAllAbilities$ True | Triggers$ TrigSomething | Replacements$ ReplSomething"))
 	notes := notesOf(h)
 	if len(notes) != 2 {
 		t.Fatalf("notes = %v, want the unread-params note plus the refused Triggers$ body's note", notes)
 	}
 	var unread, refused bool
 	for _, n := range notes {
-		if strings.Contains(n, "RemoveAllAbilities$") && strings.Contains(n, "staticAbilities$") &&
+		if strings.Contains(n, "RemoveAllAbilities$") &&
 			strings.Contains(n, "Replacements$") {
 			unread = true
 		}

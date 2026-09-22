@@ -130,11 +130,24 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 		n = Num(h, c, sa, "CounterNum", 1)
 	} else if strings.TrimSpace(sa.Params["Adapt"]) != "" {
 		n = Num(h, c, sa, "Adapt", 1)
+	} else if strings.TrimSpace(sa.Params["Monstrosity"]) != "" {
+		// Monstrosity$ (CR 701.31; Giggling Skitterspike's `{5}: Monstrosity
+		// 5`, task agent-20260919T190014Z): a Monstrosity line names its own
+		// counter amount and no carrier pairs it with CounterNum$/Adapt$
+		// (measured over the 36 raw corpus lines), so the read is a fallback
+		// in the same chain. The literal AND X shapes resolve through the
+		// ordinary Num grammar -- the announced X (Domesticated Hydra's
+		// `Cost$ X G G G`, Vitality Hunter's `Cost$ X W W`) and an SVar X
+		// (Grim Giganotosaurus's `SVar:X:Count$Valid
+		// Creature.OppCtrl+powerGE4`). An unresolvable body degrades to 0,
+		// Num's convention.
+		n = Num(h, c, sa, "Monstrosity", 1)
 	}
 	if n < 0 {
 		n = 0
 	}
 	adapt := strings.TrimSpace(sa.Params["Adapt"]) != ""
+	mono := strings.TrimSpace(sa.Params["Monstrosity"]) != ""
 	kind := sa.Params["CounterType"]
 	if kind == "" {
 		kind = "P1P1"
@@ -201,6 +214,28 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 		putCounterBolster(h, c, sa, kind, pickAns, pickDone)
 		return
 	}
+	// Support$ N (CR 701.41's support keyword action; 19 raw corpus lines,
+	// every one a PutCounter SA): CR 701.41a -- "Support N" on a permanent
+	// means "Put a +1/+1 counter on each of up to N OTHER target creatures";
+	// on an instant or sorcery spell, "... on each of up to N target
+	// creatures" (no "other" -- a spell resolving from the stack is not a
+	// creature, so it could never be its own target anyway). ONE counter per
+	// chosen creature; N is the TARGET COUNT (literal, X -- the announced X
+	// of a spell with X in its cost -- or SVar, through the shared Num read),
+	// never a per-creature count. The recipient pick is the counter_pick
+	// decision shape (Min 0: "up to"), reusing the bare-Choices$ pick's
+	// answer fields and resume arm; the default spec follows the CR 701.41a
+	// split (putCounterSupport), or the SA's own Choices$ spec when it
+	// carries one (no corpus support line does, measured). fx42 scoping:
+	// consume and clear the answered pick first, so a nested PutCounter
+	// below cannot inherit it.
+	if _, ok := sa.Params["Support"]; ok {
+		supAns := c.CounterPick
+		supDone := c.CounterPickDone
+		c.CounterPick, c.CounterPickDone = nil, false
+		putCounterSupport(h, c, sa, kind, supAns, supDone)
+		return
+	}
 	// DividedAsYouChoose$ (Vastwood Hydra's "you may distribute a number of
 	// +1/+1 counters equal to the number of +1/+1 counters on CARDNAME among
 	// any number of creatures you control", 54 raw corpus PutCounter lines):
@@ -248,6 +283,35 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 	// while the object is still mid-entry must place the counters anyway,
 	// not skip on the battlefield precondition.
 	etb := strings.EqualFold(strings.TrimSpace(sa.Params["ETB"]), "True")
+	// CounterType$ EachFromSource (task eachfromsource): the copy-each-kind
+	// shape -- the target(s) take a counter of each kind the EachFromSource$
+	// source carried. Not a real counter kind, so the ordinary loop below
+	// would put nothing of a nonexistent kind; dispatch to the shape's own
+	// walk. The referent is read HERE (not in the helper) so the parameter
+	// census's static scan attributes the read to this primitive directly.
+	if strings.EqualFold(strings.TrimSpace(kind), "EachFromSource") {
+		putCounterEachFromSource(h, c, sa, etb, strings.TrimSpace(sa.Params["EachFromSource"]))
+		return
+	}
+	// CounterNumPerDefined$ (task param-putcounter-counternumperdefined): the
+	// count is evaluated PER AFFECTED OBJECT, not once for the resolving
+	// source -- Canopy Gargantuan's upkeep trigger puts +1/+1 counters on
+	// each other creature equal to THAT creature's toughness
+	// (`SVar:X:Count$CardToughness` behind `CounterNumPerDefined$ X`). The
+	// value is an SVar name resolved through the resolution's own table, or
+	// an inline Count$ body; EvalCountOnObject re-anchors the source-anchored
+	// heads on each recipient. A body the evaluator does not model degrades
+	// to 0 for every recipient (Num's convention), so such a card places
+	// nothing rather than something arbitrary. The corpus's three carriers
+	// pair the param with none of the Optional$/Divided$/Choices$/Bolster
+	// shapes above, so those keep the shared `n`.
+	perDefExpr := ""
+	if raw := strings.TrimSpace(sa.Params["CounterNumPerDefined"]); raw != "" {
+		perDefExpr = raw
+		if body, ok := c.SVars[raw]; ok {
+			perDefExpr = body
+		}
+	}
 	var placed []state.Target
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
@@ -279,12 +343,172 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 		if adapt && o.Counter("P1P1") > 0 {
 			continue
 		}
-		h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: kind, Amount: n})
+		// CR 701.31b defense-in-depth: a monstrosity ability's activation is
+		// gated once-only at offer time (rules/legal.go's monstrosityGateOK),
+		// but the resolve-time read keeps an already-monstrous permanent from
+		// taking a second batch through a path no offer gate covers (a
+		// chained body, a future granted route). Corpus-unreachable today.
+		if mono && o.Monstrous {
+			continue
+		}
+		amount := n
+		if perDefExpr != "" {
+			// The per-object amount: the affected object's own value. A player
+			// target has no object to anchor on and keeps the shared `n` (no
+			// corpus carrier pairs the param with a player target -- measured).
+			amount = EvalCountOnObject(h, c, perDefExpr, o.ID)
+			if amount < 0 {
+				amount = 0
+			}
+		}
+		h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: kind, Amount: amount})
+		// The mark (CR 701.31b: "...and it becomes monstrous"): one
+		// AlterAttribute per placed object, emitted AFTER its counters so the
+		// BecomeMonstrous triggers see the counters already landed. Amount is
+		// the monstrosity COUNT -- Hydra Broodmaster's
+		// `SVar:MonstrosityX:TriggerCount$Amount` reads the triggering event's
+		// Amount -- and Player names the controller at mark time so the
+		// trigger's referents bind it. Gated on the param's presence, so every
+		// other PutCounter shape emits byte-identically; gated on n > 0, so a
+		// body whose monstrosity amount resolves to 0 (Clay Golem's
+		// `Monstrosity$ X` where X is a die result the unmodelled RollDice
+		// cost token never publishes -- Num degrades it to 0) never emits a
+		// mark and never fires its BecomeMonstrous trigger: the creature
+		// never became monstrous, and a paid no-op must not Berserk.
+		if mono && n > 0 {
+			h.Emit(events.Event{Kind: events.AlterAttribute, Obj: o.ID,
+				Player: o.Controller, Text: "Monstrous", Amount: n})
+		}
 		if !t.IsPlayer && t.Obj != 0 {
 			placed = append(placed, t)
 		}
 	}
 	rememberPlaced(c, sa, placed)
+}
+
+// putCounterEachFromSource runs the CounterType$ EachFromSource shape (task
+// eachfromsource): the target(s) take a counter of each kind the
+// EachFromSource$ source carried -- Forge's PutCounterEffect eachFromSource
+// arm, the "put those counters on target permanent" copy. The corpus's 23
+// carriers split on ONE axis: the referent (TriggeredCardLKICopy 19, Self 3,
+// Remembered 1), so the source is resolved through the ordinary Defined
+// referent machinery and the read never guesses at a fallback -- an unknown
+// or missing referent fails closed to a loud Note and no counter.
+//
+// The source's counters are read through a three-rung LKI ladder (CR 603.10
+// "look back in time"), because the usual case has the source's live
+// counters already gone:
+//  1. the source object's LIVE counters, when it holds a positive count
+//     (a battlefield source -- Denry's Self, Blue Loyal Raptor's Self, a
+//     clone origin -- or a token Remembered while it is still in play);
+//  2. the trigger's pre-move LKI snapshot (Ctx.LKI) when it names this
+//     object -- a permanent that LEFT the battlefield has had its live
+//     counters cleared by Move's fold, so Resourceful Defense's
+//     TriggeredCardLKICopy reads the snapshot;
+//  3. the cost-sacrifice LKI snapshot (Ctx.Sacrificed) when it names this
+//     object -- Zack Fair's Self was sacrificed as its own activation cost
+//     (commitCast captured it at the instant of the sacrifice).
+//
+// Each kind's amount is its count times CounterNum$ (the multiplier, default
+// 1; the corpus's one non-default is Blue Loyal Raptor's CounterNum$ 1),
+// emitted as one CounterChange per kind per target -- the same one-event-per-
+// kind discipline effMultiplyCounter uses, so the event stream records the
+// real folds. A target off the battlefield (and not ETB$ True mid-entry) is
+// skipped exactly like the ordinary loop; RememberCards$ still remembers
+// what was actually countered.
+func putCounterEachFromSource(h Host, c *Ctx, sa *cards.SA, etb bool, ref string) {
+	g := h.Game()
+	if ref == "" {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "unimplemented PutCounter shape: CounterType$ EachFromSource with no EachFromSource$ referent"})
+		return
+	}
+	srcs, ok := knownDefinedTargets(h, c, ref)
+	if !ok {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "unimplemented PutCounter shape: EachFromSource$ " + ref})
+		return
+	}
+	// The CounterNum$ multiplier (default 1): present-but-unresolvable
+	// degrades to 0 -- nothing is placed, the Num convention.
+	mult := int32(1)
+	if strings.TrimSpace(sa.Params["CounterNum"]) != "" {
+		mult = Num(h, c, sa, "CounterNum", 1)
+	}
+	var placed []state.Target
+	// SNAPSHOT FIRST, place second: a target that is also a source (the
+	// Remembered destination of a death trigger whose remembered list is the
+	// same one the TriggeredCardLKICopy referent reads -- Ambitious
+	// Augmenter's Fractal token) must be read as it WAS, not re-read after an
+	// earlier target's emission already countered it; the copy is of the
+	// counters the source HAD (CR 603.10's look-back), never of the running
+	// result.
+	srcCounters := make([][]state.Counter, 0, len(srcs))
+	for _, src := range srcs {
+		if src.IsPlayer {
+			srcCounters = append(srcCounters, nil)
+			continue
+		}
+		srcCounters = append(srcCounters, eachFromSourceCounters(h, c, src.Obj))
+	}
+	for _, t := range Defined(h, c, sa) {
+		if t.IsPlayer {
+			continue // no corpus carrier targets a player here
+		}
+		o := g.Obj(t.Obj)
+		if o == nil || (o.Zone != state.ZBattlefield && !etb) {
+			continue
+		}
+		for i, src := range srcs {
+			if src.IsPlayer {
+				continue
+			}
+			for _, k := range srcCounters[i] {
+				if amt := k.N * mult; amt > 0 {
+					h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID,
+						Counter: k.Kind, Amount: amt})
+				}
+			}
+		}
+		placed = append(placed, t)
+	}
+	rememberPlaced(c, sa, placed)
+}
+
+// eachFromSourceCounters reads one source object's copied counters through
+// the three-rung LKI ladder documented on putCounterEachFromSource, filtered
+// to POSITIVE counts (state keeps a drained slot in the slice at N == 0, and
+// a zero-count kind is not a kind the source "had").
+func eachFromSourceCounters(h Host, c *Ctx, id state.ObjID) []state.Counter {
+	g := h.Game()
+	if o := g.Obj(id); o != nil {
+		if ks := positiveCounters(o.Counters); len(ks) > 0 {
+			return ks
+		}
+	}
+	if c.LKI != nil && c.LKI.ID == id {
+		if ks := positiveCounters(c.LKI.Counters); len(ks) > 0 {
+			return ks
+		}
+	}
+	for _, s := range c.Sacrificed {
+		if s.Obj == id && len(s.Counters) > 0 {
+			return s.Counters
+		}
+	}
+	return nil
+}
+
+// positiveCounters copies the kinds a counter slice holds at a POSITIVE
+// count, in slice order (deterministic; never a map walk).
+func positiveCounters(cs []state.Counter) []state.Counter {
+	var out []state.Counter
+	for i := range cs {
+		if cs[i].N > 0 {
+			out = append(out, cs[i])
+		}
+	}
+	return out
 }
 
 // putCounterWouldPlace reports whether the put this SA describes would
@@ -711,6 +935,92 @@ func putCounterBolster(h Host, c *Ctx, sa *cards.SA, kind string, ans []state.Ob
 // that entry (Promise of Loyalty's Player.IsRemembered, Eye of Doom's bare
 // Remembered), falling back to the source's event-backed list the same way
 // the Player.IsRemembered Defined selector does.
+// putCounterSupport implements the Support$ N branch of effPutCounter: the
+// "up to N target creatures, one counter each" pick. The choice reuses the
+// bare-Choices$ pick's decision shape (ResumeKind "counter_pick", the
+// CounterPick/CounterPickDone answer fields, the same resume arm and
+// botpolicy arm), but its Max is the SUPPORT value and its Min is always 0
+// -- "up to" -- so a decline is a real answer. The default spec encodes CR
+// 701.41a verbatim: on a PERMANENT source (the ETB/ability carriers) it is
+// "Creature.+Other" -- every battlefield creature other than the resolving
+// source, the "other" the rule itself states and every creature-ETB reminder
+// text repeats (Generous Patron's reminder: "up to two other target
+// creatures") -- while on an instant/sorcery SPELL source (Lead by Example,
+// Unity of Purpose) it is bare "Creature" (every creature). The spell half's
+// difference is vacuous on this battlefield-only scan -- a spell resolving
+// from the stack is never a battlefield creature -- but the split is encoded
+// so the rule lives where the spec is built, not in a reminder text. The
+// SA's own Choices$ spec (no corpus carrier has one, measured) overrides
+// both. One counter of the SA's kind per chosen creature.
+func putCounterSupport(h Host, c *Ctx, sa *cards.SA, kind string, ans []state.ObjID, done bool) {
+	if done {
+		// Re-entry: the answered pick, in answer order. A chosen creature
+		// that left the battlefield while the decision was outstanding takes
+		// nothing (putCounterPickApply's zone guard).
+		putCounterPickApply(h, c, sa, 1, kind, ans)
+		return
+	}
+	maxT := Num(h, c, sa, "Support", 1)
+	if maxT < 0 {
+		maxT = 0
+	}
+	if maxT == 0 {
+		return
+	}
+	g := h.Game()
+	spec := strings.TrimSpace(sa.Params["Choices"])
+	if spec == "" {
+		// CR 701.41a's permanent/spell split (see the doc comment above).
+		spec = "Creature.+Other"
+		if o := g.Obj(c.Source); o != nil && o.Face() != nil &&
+			(o.Face().IsInstant() || o.Face().IsSorcery()) {
+			spec = "Creature"
+		}
+	}
+	var eligible []state.ObjID
+	for _, p := range g.AliveFrom(0) {
+		for _, id := range g.Zone(state.ZBattlefield, p) {
+			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+				eligible = append(eligible, id)
+			}
+		}
+	}
+	if len(eligible) == 0 {
+		return
+	}
+	max := maxT
+	if max > int32(len(eligible)) {
+		max = int32(len(eligible))
+	}
+	d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose,
+		Min:        0,
+		Max:        int(max),
+		Source:     c.Source,
+		ResumeKind: "counter_pick",
+		ResumeSA:   sa,
+		Prompt:     sa.Params["ChoiceTitle"]}
+	for _, id := range eligible {
+		name := "a creature"
+		if o := g.Obj(id); o != nil && o.Face() != nil {
+			name = o.Face().Name
+		}
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+			Kind: "counter_pick", Label: name, Obj: id, Player: c.Controller})
+	}
+	if Ask(h, d) == AskAsked {
+		return // resolution suspended; the answer re-enters with Ctx.CounterPick set.
+	}
+	// The no-host stand-in (R-9): the first max eligible creatures in zone
+	// order -- the exact mirror of botpolicy's "counter_pick" arm, so a
+	// bot-answered ask emits the same placement events the silent fallback
+	// would.
+	picks := eligible
+	if int32(len(picks)) > max {
+		picks = picks[:max]
+	}
+	putCounterPickApply(h, c, sa, 1, kind, picks)
+}
+
 func putCounterChooserFor(h Host, c *Ctx, v string) (state.PlayerID, bool) {
 	g := h.Game()
 	firstRememberedPlayer := func() (state.PlayerID, bool) {
