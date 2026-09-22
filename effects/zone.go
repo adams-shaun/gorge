@@ -875,10 +875,11 @@ func settleChangeZoneMove(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, to
 // counters when the move lands on a counter-bearing destination (battlefield
 // or exile -- counterDestination). Keeping the object path and the hand-choice
 // path on this one helper means the two cannot drift apart on any of the
-// three. Tapped$ True is event-backed for the hidden
-// library paths, but not for a card entering from hand; before every such
-// move this common path makes the narrowing replay-visible rather than
-// silently entering the card untapped.
+// three. Tapped$ True is event-backed for EVERY shape through this path:
+// this settle's own tail emits the hand-origin entry Tap (the object path,
+// the library search's library-origin branch and the Dig windows carry their
+// own), so no card this helper moves onto the battlefield silently enters
+// untapped.
 //
 // The exiled-with association and the RememberChanged$ event-backed rider
 // (eventRemember) are NOT done here: they are scoped to the two ORIGINAL
@@ -1040,6 +1041,15 @@ func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, 
 	if to == state.ZBattlefield {
 		applyGainControl(h, c, sa, id)
 		applyTransformed(h, c, sa, id)
+		// Tapped$ True (CR 110.5's entry state) for the hand-origin movers:
+		// the same "entered tapped" Tap the object path, the library search's
+		// library-origin branch and the Dig windows emit. Gated on the hand
+		// origin because this helper's OTHER callers (the hidden pick, the
+		// library search's alternative-origin branch) emit their own Tap after
+		// the call and a second one here would double-emit.
+		if from == state.ZHand && strings.EqualFold(sa.Params["Tapped"], "True") {
+			h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: player, Text: "entered tapped"})
+		}
 		applyAttackingEntry(h, c, sa, id, player, to)
 		// StaticEffect$ <name> (the "return it ... It's a Spirit Detective"
 		// rider): the named Continuous static registers onto the moved card
@@ -1392,10 +1402,10 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 	// hand's OWNER as its Player (a hidden-zone move of another player's
 	// card -- the same attribution the library search's move carries),
 	// while the whole-hand shape keeps its historical event shape
-	// (eventPlayer false, the r1 golden contract). settleChangeZoneMoveAs is
-	// also the one loud Tapped$ True fallback for every hand-origin mover, so
-	// concrete Defined$ objects and future hand-owner selectors cannot silently
-	// miss the unsupported entry state.
+	// (eventPlayer false, the r1 golden contract). settleChangeZoneMoveAs's
+	// tail is also the one Tapped$ True entry-state emitter for every
+	// hand-origin mover, so concrete Defined$ objects and future hand-owner
+	// selectors cannot silently miss the tapped entry.
 	settleHandMove := func(id state.ObjID, owner state.PlayerID) {
 		settleChangeZoneMoveAs(h, c, sa, id, state.ZHand, to, withKind, withAmt, owner, eventPlayer)
 	}
@@ -3624,6 +3634,7 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		if to == state.ZBattlefield && strings.EqualFold(strings.TrimSpace(sa.Params["Tapped"]), "True") {
 			h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: p, Text: "entered tapped"})
 		}
+		applyAttackingEntry(h, c, sa, id, p, to)
 		if to == state.ZExile {
 			recordExileReturn(h, c, sa, id, z, to)
 		}
