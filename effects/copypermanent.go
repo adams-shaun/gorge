@@ -70,15 +70,12 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 	//     the source IS reachable the copy mints and these are applied to it.
 	//     AddTypes$, SetPower$, SetToughness$, SetColor$, SetCreatureTypes$,
 	//     RemoveCardTypes$, RemoveCreatureTypes$, AddKeywords$, PumpKeywords$,
-	//     RemoveKeywords$ and NonLegendary$ ARE implemented (applied to the
-	//     mint as tracked continuous effects below); the remaining
-	//     modifications that need real ability/name/attachment machinery --
-	//     AddTriggers$, AddSVars$, AddAbilities$, WithDifferentNames$,
-	//     AttachedTo$, Chooser$ -- are noted and the copy keeps the original's
-	//     printed characteristics. RemoveSubTypes$ is subsumed by
-	//     RemoveCardTypes$ (state.ContinuousEffect's strip keeps only
-	//     supertypes, so a subtype is already gone) and is accepted without a
-	//     note.
+	//     RemoveKeywords$, NonLegendary$, AddTriggers$, AddSVars$ and
+	//     AddAbilities$ ARE implemented. Only the remaining name/attachment
+	//     modifications -- WithDifferentNames$, AttachedTo$, Chooser$ -- are
+	//     noted. RemoveSubTypes$ is subsumed by RemoveCardTypes$
+	//     (state.ContinuousEffect's strip keeps only supertypes, so a subtype
+	//     is already gone) and is accepted without a note.
 	var skipped []string
 	blocked := false
 	note := func(label string) { skipped = append(skipped, label) }
