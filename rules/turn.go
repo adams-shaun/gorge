@@ -801,7 +801,8 @@ func (e *Engine) advanceStep() {
 					e.emit(events.Event{Kind: events.Note, Player: seat,
 						Text: "R:Event$ BeginTurn ExtraTurn$ replacement matched with an unimplemented action (Skip$ absent or ReplaceWith$ present); the extra turn proceeds"})
 				} else if skip {
-					e.emit(events.Event{Kind: events.ExtraTurn, Player: seat, Amount: -1})
+					e.emit(events.Event{Kind: events.ExtraTurn, Player: seat, Amount: -1,
+						Text: events.ExtraTurnSkippedText})
 					continue
 				}
 			}
@@ -1320,10 +1321,12 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 // ON: the holder of the most recent NORMAL turn -- a TurnChange that did not
 // begin an extra turn. An extra turn's TurnChange is the one a cleanup step
 // consumed a grant for: a -1 ExtraTurn event sits between the previous
-// TurnChange and it (backward window below), so scanning backward and
-// skipping every TurnChange whose backward window holds a consumption lands
-// on the last normal holder. When the pending-extra queue drains, the next
-// turn is this seat's successor (NextAlive) -- the extra turns were inserted
+// TurnChange and it (backward window below). A skipped grant carries
+// events.ExtraTurnSkippedText and has no TurnChange, so scanning backward and
+// skipping every TurnChange whose backward window holds a non-skipped
+// consumption lands on the last normal holder. When the pending-extra queue
+// drains, the next turn is this seat's successor (NextAlive) -- the extra
+// turns were inserted
 // after that seat's turn, never in place of the seats that follow it. No
 // TurnChange at all cannot happen (turn 1 opens the log); the fallback names
 // seat 0 for totality.
@@ -1357,24 +1360,19 @@ func (e *Engine) rotationBase() state.PlayerID {
 		}
 		first = false
 		// Backward window: (previous TurnChange, exclusive) .. (this one,
-		// exclusive). A -1 consumption of THIS TurnChange's own seat in it
-		// means THIS TurnChange began an extra turn (the consumption is
-		// emitted immediately before beginTurn); lost-seat skips consume
-		// several, all inside the window. The player check is what keeps a
-		// SKIPPED grant's consumption -- same -1 form, no beginTurn, so the
-		// next TurnChange is the ORDINARY rotation's, a different seat --
-		// from classifying that ordinary turn as extra: without it the next
-		// cleanup would base the rotation on the seat before the granted
-		// seat and hand it its turn again. The one seat the check cannot
-		// distinguish is a lone survivor whose own skipped grant is followed
-		// by the ordinary rotation rotating back to itself -- unreachable in
-		// a real 2+ seat game and not worth a new event kind.
+		// exclusive). A non-skipped -1 consumption of THIS TurnChange's own
+		// seat in it means THIS TurnChange began an extra turn: the consumer
+		// emits it immediately before beginTurn. A skipped grant emits the
+		// same accounting consumption but marks it ExtraTurnSkippedText and
+		// never calls beginTurn, so it must not classify the following
+		// ordinary TurnChange as extra even when both holders are the same.
 		extra := false
 		for j := i - 1; j >= 0; j-- {
 			if evs[j].Kind == events.TurnChange {
 				break
 			}
-			if evs[j].Kind == events.ExtraTurn && evs[j].Amount < 0 && evs[j].Player == evs[i].Player {
+			if evs[j].Kind == events.ExtraTurn && evs[j].Amount < 0 &&
+				evs[j].Player == evs[i].Player && evs[j].Text != events.ExtraTurnSkippedText {
 				extra = true
 				break
 			}
