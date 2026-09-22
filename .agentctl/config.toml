@@ -141,13 +141,13 @@ timeout = 600
 # binaries across worktrees have exhausted this box's memory before.
 [[gates]]
 name = "go test (module)"
-cmd = ["go", "test", "-p=2", "-count=1", "-skip", "^TestHeads$", "./..."]
+cmd = ["go", "test", "-p=2", "-skip", "^TestHeads$", "./..."]
 timeout = 1200
 env = { GOMEMLIMIT = "5GiB" }
 
 [[gates]]
 name = "CR conformance"
-cmd = ["go", "test", "-p=2", "-count=1", "./rules", "-run", "TestCR", "-v"]
+cmd = ["go", "test", "-p=2", "./rules", "-run", "TestCR", "-v"]
 timeout = 300
 env = { GORGE_CR_CONFORMANCE = "1", GOMEMLIMIT = "5GiB" }
 accept = "orchestrator.hooks:cr_no_fail_lines"
