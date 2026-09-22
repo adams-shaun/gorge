@@ -2868,6 +2868,37 @@ func (e *Engine) StartingLife() int32 { return e.startingLife }
 // extra turns included, so a replay that rebuilds the log arrives at the
 // same count. The whole-log walk (not a TurnChange-bounded scan) is the
 // point: the count spans the game, not one turn.
+// CommanderCastsFromCommandZone satisfies effects.Host's method of the
+// same name for Count$TotalCommanderCastFromCommandZone: how many times
+// player p has cast one of THEIR OWN commanders from the command zone this
+// game. It walks the whole log for PutOnStack events whose caster is p,
+// origin is the command zone and object is one of p's commanders — the
+// exact criteria recordCmdCast (rules/cast.go) applies when it maintains
+// the parallel CmdCasts slice, and commitCast's PutOnStack emit is the ONE
+// site that can produce such an event, so this head and the CR 903.8 tax
+// can never disagree. Whole-game scope like TurnsTaken (the whole-log walk
+// is the point); derived from the event log, so a replay derives the same
+// number. A non-Commander seat carries an empty Commanders list, so the
+// count is 0 there by construction.
+func (e *Engine) CommanderCastsFromCommandZone(p state.PlayerID) int32 {
+	if p < 0 || int(p) >= len(e.G.Players) {
+		return 0
+	}
+	var n int32
+	for _, ev := range e.L.Events {
+		if ev.Kind != events.PutOnStack || ev.Player != p || ev.From != state.ZCommand {
+			continue
+		}
+		for _, cid := range e.G.Players[p].Commanders {
+			if cid == ev.Obj {
+				n++
+				break
+			}
+		}
+	}
+	return n
+}
+
 func (e *Engine) TurnsTaken(p state.PlayerID) int32 {
 	if int(p) >= len(e.G.Players) {
 		return 0

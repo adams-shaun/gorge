@@ -192,6 +192,16 @@ type Host interface {
 	// first) — the order is irrelevant to the aggregate reads (a sum).
 	// Derived from the event log like SpellsCastThisTurnMatching.
 	EachSpellCastThisTurnMatching(you state.PlayerID, spec string, exclude state.ObjID) []state.ObjID
+	// CommanderCastsFromCommandZone counts how many times player p has cast
+	// one of THEIR OWN commanders from the command zone this game — the
+	// same provenance the CR 903.8 commander tax counts (rules/cast.go's
+	// recordCmdCast maintains the parallel CmdCasts slice from the same
+	// PutOnStack events). Whole-game scope, log-derived, so a replay that
+	// rebuilds the log arrives at the same number. This backs the
+	// Count$TotalCommanderCastFromCommandZone head (Thunderclap Drake's
+	// copy count, Commanders Insignia's P/T, Henzie's blitz discount; 17
+	// corpus carriers) — never a live-only engine counter.
+	CommanderCastsFromCommandZone(p state.PlayerID) int32
 	// WasCastFromHandByYou reports whether card obj was cast from ITS OWN
 	// CONTROLLER's hand by that controller — the Count$wasCastFromYourHandByYou
 	// branch head backing (the Myojin cycle's etbCounter CheckSVar$ gate:
