@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -120,6 +121,20 @@ func TestRendmawSpellCastTriggerAlsoGoadsPerPlayer(t *testing.T) {
 	sp := e.G.AddObject(card(t, "Name:Toy Trooper\nTypes:Artifact Creature\nPT:1/1\nOracle:x\n"), 0)
 	e.emit(events.Event{Kind: events.PutOnStack, Obj: sp.ID, Player: 0, From: state.ZHand, To: state.ZStack})
 	e.putTriggersOnStack()
+	// Both of Rendmaw's lines are pending on this sequence now that
+	// numTypesGE2 is a real filter predicate (main's filter work): the ETB
+	// line queued at the entry's MoveZone and the SpellCast line queued at
+	// this PutOnStack, so the drain poses the CR 603.3b trigger_order ask
+	// before placing either. Answer it keeping the offered order; both arms
+	// resolve the same DBTokens SVar, so the per-player assertions below
+	// hold whichever instance lands on top.
+	if d := e.Pending(); d != nil && d.Kind == decision.KTriggerOrder {
+		choices := make([]int, 0, len(d.Options))
+		for _, o := range d.Options {
+			choices = append(choices, o.Index)
+		}
+		submitChoices(t, e, choices...)
+	}
 	if len(e.G.Zone(state.ZStack, 0)) == 0 {
 		t.Fatal("Rendmaw's SpellCast trigger never went on the stack")
 	}

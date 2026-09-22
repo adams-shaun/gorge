@@ -81,6 +81,13 @@ var addedAfterTheSplit = []string{
 	// already but the MODE did not -- no pre-split switch arm could have
 	// dispatched it.
 	"ClassLevelGained",
+	// monstrosity (task agent-20260919T190014Z): "When CARDNAME becomes
+	// monstrous, ..." (CR 701.31; Hydra Broodmaster, Fleecemane Lion,
+	// Polukranos and the mode's 19 corpus carrier files). It matches the
+	// events.AlterAttribute mark events.Apply folds for the Monstrosity$
+	// param's Text "Monstrous" mark -- the event Kind existed already, but
+	// the MODE did not -- so no pre-split switch arm could have dispatched it.
+	"BecomeMonstrous",
 }
 
 func allRegisteredModeNames() []string {

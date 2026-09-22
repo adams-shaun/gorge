@@ -252,6 +252,63 @@ func TestTokenOwnerPlayerPerPlayerTokenAmountAmount(t *testing.T) {
 	}
 }
 
+// TestTokenOwnerPlayerCreatesForEveryLivingSeat covers TokenOwner$ Player
+// (Rendmaw, Creaking Nest's "each player creates a tapped 2/2 black Bird";
+// 29 raw corpus lines): one token per LIVING player, each under its own
+// seat, none noted as unrecognised. An eliminated seat creates nothing.
+func TestTokenOwnerPlayerCreatesForEveryLivingSeat(t *testing.T) {
+	for _, tc := range []struct {
+		seats      int
+		controller state.PlayerID
+	}{
+		{2, 0}, {4, 1},
+	} {
+		h := newHost(t, tc.seats)
+		h.g.Tokens = tokenFixtures(t)
+		c := &Ctx{Controller: tc.controller}
+
+		Resolve(h, c, &cards.SA{Kind: "DB", API: "Token",
+			Params: map[string]string{"TokenScript": "r_1_1_goblin", "TokenOwner": "Player"}})
+
+		for _, ev := range h.log {
+			if ev.Kind == events.Note && strings.Contains(ev.Text, "TokenOwner") {
+				t.Fatalf("seats=%d controller=%d: unexpected Note %q", tc.seats, tc.controller, ev.Text)
+			}
+		}
+		if n := countKind(h, events.TokenCreate); n != tc.seats {
+			t.Fatalf("seats=%d controller=%d: %d TokenCreate events, want one per seat", tc.seats, tc.controller, n)
+		}
+		for p := range tc.seats {
+			bf := h.Game().Zone(state.ZBattlefield, state.PlayerID(p))
+			if len(bf) != 1 {
+				t.Fatalf("seats=%d controller=%d: seat %d's battlefield = %v, want 1 token", tc.seats, tc.controller, p, bf)
+			}
+			if o := h.Game().Obj(bf[0]); o.Owner != state.PlayerID(p) {
+				t.Fatalf("seats=%d controller=%d: seat %d's token owner=%d", tc.seats, tc.controller, p, o.Owner)
+			}
+		}
+	}
+}
+
+// TestTokenOwnerPlayerSkipsAnEliminatedSeat: the eliminated seat is not
+// "each player" anymore -- exactly one token per SURVIVOR.
+func TestTokenOwnerPlayerSkipsAnEliminatedSeat(t *testing.T) {
+	h := newHost(t, 4)
+	h.g.Tokens = tokenFixtures(t)
+	h.g.Players[2].Lost = true
+	c := &Ctx{Controller: 0}
+
+	Resolve(h, c, &cards.SA{Kind: "DB", API: "Token",
+		Params: map[string]string{"TokenScript": "r_1_1_goblin", "TokenOwner": "Player"}})
+
+	if n := countKind(h, events.TokenCreate); n != 3 {
+		t.Fatalf("%d TokenCreate events, want 3 (the living seats)", n)
+	}
+	if bf := h.Game().Zone(state.ZBattlefield, 2); len(bf) != 0 {
+		t.Fatalf("eliminated seat 2's battlefield = %v, want empty", bf)
+	}
+}
+
 // TestTokenAttackingTrueMarksTheDefender: with the firing Attacks trigger's
 // referent capture in context (c.DefendingPlayer set, what
 // rules/trigger_referents.go binds from the DeclareAttackers event), every

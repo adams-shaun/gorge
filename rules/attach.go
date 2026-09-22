@@ -93,7 +93,10 @@ func (e *Engine) attachmentSBAs() bool {
 				changed = true
 				continue
 			}
-			if isEquipment(o) && !bearer.EffectiveIsCreature() {
+			if isEquipment(o) && (bearer.ReconfiguredAttached() || !bearer.EffectiveIsCreature()) {
+				// CR 702.150c: an attached Reconfigure card is not a creature,
+				// so another Equipment riding it detaches like from any other
+				// non-creature bearer (CR 301.5c / 704.5n).
 				e.emit(events.Event{Kind: events.Attach, Obj: id,
 					Text: "Equipmentbearer is no longer a creature"})
 				changed = true

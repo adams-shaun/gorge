@@ -167,11 +167,81 @@ func cardChoices(h Host, c *Ctx, sa *cards.SA, chooser state.PlayerID) []state.T
 		// controller's card.
 		cc := *c
 		cc.Controller = chooser
-		if spec == "" || choiceMatches(g, &cc, spec, o) {
+		if spec == "" || choiceSpecAdmits(h, g, &cc, spec, o) {
 			out = append(out, t)
 		}
 	}
 	return out
+}
+
+// canBeSacrificedByToken is Forge's Card.canBeSacrificedBy(player): the
+// candidate is a permanent its controller could LEGALLY sacrifice. The
+// corpus carries exactly one file (Eumidian Wastewaker's attack trigger:
+// `Choices$ Card.inZoneHand,Permanent.CanBeSacrificedBy`), as the second
+// alternative of a ChooseCard choice. The eligibility half (the CantSacrifice
+// choke point) is Host.SacrificeBlocked -- the same read effSacrifice,
+// effSacrificeAll and every Sac cost site go through -- which the filter
+// tier cannot reach (effects sits below rules), so like the cast-provenance
+// family the token is read at the ONE site that has the Host: each comma
+// alternative carrying it is stripped of the token, and the alternative
+// admits a candidate only when the stripped spec matches AND the Host says
+// the sacrifice is legal. The controller half ("by its controller") is the
+// choice walk's own ControlledByPlayer$ read; the permanent half is the
+// stripped spec's own base. A negated !CanBeSacrificedBy spelling stays an
+// unknown predicate in the filter (fail closed) -- the corpus carries only
+// the positive form.
+const canBeSacrificedByToken = "CanBeSacrificedBy"
+
+func choiceSpecAdmits(h Host, g *state.Game, c *Ctx, spec string, o *state.Object) bool {
+	if !strings.Contains(spec, canBeSacrificedByToken) {
+		return choiceMatches(g, c, spec, o)
+	}
+	matched := false
+	for alt := range filterAlternatives(spec) {
+		alt = strings.TrimSpace(alt)
+		if alt == "" {
+			continue
+		}
+		if admits, carried := sacrificeableAlternative(h, g, c, alt, o); carried {
+			matched = matched || admits
+			continue
+		}
+		matched = matched || choiceMatches(g, c, alt, o)
+	}
+	return matched
+}
+
+// sacrificeableAlternative evaluates ONE comma alternative of a ChooseCard
+// Choices$ spec that carries the canBeSacrificedBy token: the alternative is
+// rewritten without the token (the remaining base and + predicates are the
+// ordinary filter, so `Permanent.CanBeSacrificedBy` reduces to base
+// `Permanent` -- the on-the-battlefield reading matchesBase gives it) and
+// ANDed with the Host's sacrifice-eligibility read. carried is false when the
+// alternative does not name the token (the caller evaluates it verbatim);
+// a !-negated spelling is deliberately not carried, so it keeps the filter's
+// fail-closed unknown-predicate behaviour.
+func sacrificeableAlternative(h Host, g *state.Game, c *Ctx, alt string, o *state.Object) (admits, carried bool) {
+	base, rest, hasRest := strings.Cut(alt, ".")
+	if !hasRest {
+		return false, false
+	}
+	var kept []string
+	found := false
+	for p := range strings.SplitSeq(rest, "+") {
+		if p == canBeSacrificedByToken {
+			found = true
+			continue
+		}
+		kept = append(kept, p)
+	}
+	if !found {
+		return false, false
+	}
+	stripped := base
+	if len(kept) > 0 {
+		stripped = base + "." + strings.Join(kept, "+")
+	}
+	return !h.SacrificeBlocked(o.ID, false) && choiceMatches(g, c, stripped, o), true
 }
 
 // controlledByChoicePlayer applies ChooseCard's ControlledByPlayer$, the

@@ -203,6 +203,20 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		if len(ev.IDs) > 0 {
 			c.TriggerEnlisted = ev.IDs[0]
 		}
+	case "BecomeMonstrous":
+		// The monstrous mark's roles (task agent-20260919T190014Z):
+		// TriggerCard is the creature that just became monstrous (ev.Obj, the
+		// trigger's own source for ValidCard$ Card.Self, so
+		// TriggeredCard/TriggeredCardLKICopy resolve against it) and
+		// TriggerAmount is the monstrosity COUNT the mark event carried --
+		// what Hydra Broodmaster's `SVar:MonstrosityX:TriggerCount$Amount` and
+		// Vitality Hunter's `SVar:MaxTgts:TriggerCount$Amount` read back.
+		c.TriggerCard = ev.Obj
+		c.TriggerSource = ev.Obj
+		c.TriggerAmount = ev.Amount
+		if int(ev.Player) >= 0 && int(ev.Player) < len(e.G.Players) {
+			c.TriggerPlayer = player(ev.Player)
+		}
 	case "Connives":
 		// The connive record's roles (task connive1): TriggerCard is the
 		// CONNIVER (what ValidCard$ matched), the same ChangesZone read. The

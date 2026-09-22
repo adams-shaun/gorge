@@ -669,6 +669,17 @@ func (e *Engine) targetBoundCtx(p state.PlayerID, source state.ObjID) (*effects.
 		return nil, false
 	}
 	ctx := &effects.Ctx{Controller: p}
+	// A trigger's dynamic target bound reading the causing event (Vitality
+	// Hunter's `TargetMax$ MaxTgts` with `SVar:MaxTgts:TriggerCount$Amount`,
+	// task agent-20260919T190014Z): the trigger context recorded for this
+	// stack wrapper carries TriggerAmount, so the bound reads the mark/damage
+	// magnitude instead of degrading to the clamp's 1. Measured corpus: the
+	// ONLY two TargetMax$ TriggerCount$Amount shapes (one inline, one behind
+	// the MaxTgts SVar name) are Vitality Hunter's; every other dynamic bound
+	// names a Count$ body targetBoundCtx's SVar table already resolves.
+	if tc, ok := e.triggerContexts[source]; ok {
+		ctx.TriggerContext = tc
+	}
 	// The pending cast's own multikicker count (rules/cast.go's multikickAsk):
 	// at the CR 601.2c announcement ask the pay-time CastInfo has not run
 	// yet, so a TimesKicked bound (Comet Storm's TargetMin/Max$ TargetsNum)
@@ -1774,7 +1785,12 @@ func (e *Engine) resolveTop() {
 		// such objects in exile. Ordered first because it decides whether
 		// the ability does anything at all.
 		if t, ok := e.findTriggerForAbility(o.Source, o.Ability); ok {
-			if !e.triggerConditionHolds(t, o.Source) {
+			// NoResolvingCheck$ True (Ugin's Mastery, Werewolf Pack Leader,
+			// Love on the Battlefield, ...): the condition was checked only
+			// when the trigger fired, and the transient state it counted (a
+			// bounced attacker, drained power) must not fizzle the ability
+			// here (triggerResolvingCheckHolds in rules/trigger_condition.go).
+			if !e.triggerResolvingCheckHolds(t, o.Source) {
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
 					From: state.ZStack, To: state.ZExile, Text: "fizzled: intervening-if no longer holds"})
 				e.ensureLeftTheStack(id, state.ZExile, "a replacement fully discarded this "+
@@ -2585,13 +2601,62 @@ func (e *Engine) EachSpellCastThisTurnMatching(you state.PlayerID, spec string, 
 
 func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exclude state.ObjID) []state.ObjID {
 	youScoped := strings.Contains(spec, "You")
+	// The CastSa count specs (Rain of Riches' gate) are evaluated per cast
+	// event against THAT cast's spend window, not the object's latest one —
+	// a re-cast object's older cast must not inherit the newer cast's spend
+	// — so the backward walk carries a per-caster spend bucket: a negative
+	// ManaAdd (a spend event carries no Obj) belongs to the NEXT PutOnStack
+	// the walk reaches for its player — the cast it sits above in the log —
+	// exactly the window manaSpentForCast reads for the SA-level ValidSA$
+	// family. Specs without a CastSa token take the unchanged per-event
+	// chain call (their castProvenanceAdmits strip is event-local and
+	// stateless).
+	saTokens := castSaTokensIn(spec)
+	// The in-flight cast's own grant walk (queueCascadeTriggers' scratch,
+	// rules/cascade.go) counts PRIOR casts only: the Affected$ half of the
+	// same static evaluates the current cast's own qualification, and the
+	// gate's EQ0 is Forge's "the first" idiom — the twelve AffectedZone$
+	// Stack SVarCompare$ gates in the corpus are all EQ0. Outside the walk
+	// the count is inclusive (Vengevine's "the second creature spell" EQ2
+	// gate is evaluated with the triggering cast in the log and must count
+	// it).
+	skipObj := e.stackGrantCast
+	var buckets [8]castSpendFacts
+	useAcc := len(saTokens) > 0
 	var out []state.ObjID
 	for i := len(e.L.Events) - 1; i >= 0; i-- {
 		ev := e.L.Events[i]
 		if ev.Kind == events.TurnChange {
 			break
 		}
-		if ev.Kind != events.PutOnStack {
+		switch ev.Kind {
+		case events.ManaAdd:
+			if useAcc && ev.Amount < 0 && int(ev.Player) < len(buckets) {
+				buckets[ev.Player].spent += -ev.Amount
+				if tag, _, ok := state.TypedManaCounter(ev.Counter); ok {
+					buckets[ev.Player].tagged[tag] += -ev.Amount
+				}
+			}
+			continue
+		case events.PutOnStack:
+		default:
+			continue
+		}
+		// This push closes the spend window of the cast it announces: the
+		// caster's bucket holds exactly the spends since the walk start,
+		// which are this cast's own (plus the caster's own post-payment
+		// floating — the manaSpentForCast convention). Take the facts and
+		// reset, so an older cast of the same object (a hand cast before a
+		// flashback) does not inherit them and the in-flight cast's window
+		// belongs to no counted cast.
+		var facts castSpendFacts
+		if useAcc && int(ev.Player) < len(buckets) {
+			facts = buckets[ev.Player]
+			buckets[ev.Player] = castSpendFacts{}
+		}
+		// The push itself proves a cast exists: the window's ok read.
+		facts.ok = true
+		if skipObj != 0 && ev.Obj == skipObj {
 			continue
 		}
 		if exclude != 0 && ev.Obj == exclude {
@@ -2600,12 +2665,24 @@ func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exc
 		if youScoped && ev.Player != you {
 			continue
 		}
+		matchSpec := spec
+		alive := true
+		for _, tok := range saTokens {
+			var held bool
+			if matchSpec, held = admitProvenanceAlternatives(matchSpec, tok.token, castSaTokenHolds(tok, facts)); !held {
+				alive = false
+				break
+			}
+		}
+		if !alive {
+			continue
+		}
 		// The bare wasCastFromYourHandByYou qualifier (the 5 end-step "if you
 		// haven't cast a spell from your hand this turn" carriers'
 		// Count$ThisTurnCast_Card.wasCastFromYourHandByYou bodies) is
 		// evaluated per cast event against the log (task castprov1); the
 		// wasCastByYou sibling (task castprov2) rides the same combined read.
-		matchSpec, ok := e.castProvenanceAdmits(spec, ev.Obj, you)
+		matchSpec, ok := e.castProvenanceAdmits(matchSpec, ev.Obj, you)
 		if !ok {
 			continue
 		}
@@ -2823,6 +2900,33 @@ func (e *Engine) LifeLostThisTurn(p state.PlayerID) int32 {
 			break
 		}
 		if ev.Kind == events.LifeChange && ev.Player == p && ev.Amount < 0 {
+			n += -ev.Amount
+		}
+	}
+	return n
+}
+
+// CountersRemovedThisTurn satisfies effects.Host's CountersRemovedThisTurn
+// for Count$CountersRemovedThisTurn <KIND> <player> (Blaster Hulk's per-{E}
+// cast discount and Izzet Generatorium's paid-or-lost-four-or-more {E}
+// activation gate): the TOTAL of player counters of kind p paid or lost this
+// turn, summed from every negative-Amount PlayerCounterChange naming the kind
+// (case-insensitively — the grants and the pays write the same kind text a
+// card's script uses, e.g. "ENERGY") since the last TurnChange. Derived from
+// the event log like LifeLostThisTurn, so a replay derives the same number.
+// A payment and a loss are the same event shape — rules/mana.go's PayEnergy
+// settle emits exactly this fold's input — and an object-counter removal
+// (Kind CounterChange, a permanent losing counters) is deliberately NOT
+// folded: the head's player form counts the PLAYER's pool only.
+func (e *Engine) CountersRemovedThisTurn(p state.PlayerID, kind string) int32 {
+	var n int32
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if ev.Kind == events.PlayerCounterChange && ev.Player == p && ev.Amount < 0 &&
+			strings.EqualFold(ev.Counter, kind) {
 			n += -ev.Amount
 		}
 	}

@@ -92,7 +92,9 @@ func ParseBytes(path string, src []byte) (*Card, []Diag) {
 			cur.Triggers = append(cur.Triggers, Trigger{Mode: p["Mode"], Params: p})
 		case "S":
 			p := parseParams(val)
-			cur.Statics = append(cur.Statics, Static{Mode: p["Mode"], Params: p})
+			for _, mode := range splitStaticModes(p["Mode"]) {
+				cur.Statics = append(cur.Statics, Static{Mode: mode, Params: p})
+			}
 		case "R":
 			p := parseParams(val)
 			cur.Repls = append(cur.Repls, Repl{Event: p["Event"], Params: p})
@@ -153,6 +155,61 @@ func normalizeImplicitTarget(api string, p map[string]string) {
 	}
 }
 
+// splitStaticModes splits a Static's Mode$ value on commas. The corpus
+// prints compound statics as ONE S: line naming several modes over the same
+// parameters (Pacifism's "S:Mode$ CantAttack,CantBlock | ValidCard$
+// Creature.EnchantedBy"), and every Static.Mode consumer — primitive.go's
+// "stat:" capability token, activeStatics, staticEffects, collectAction/
+// collectCostStatics, face.go's CDA reads, compiled_catalog.go's
+// staticModeCode — compares Mode against ONE literal mode, so the raw comma
+// list is a single opaque name no consumer recognises: the static is inert at
+// runtime and unsupported in coverage. One Static per mode, all sharing the
+// same Params map (which keeps the full Mode$ text; no consumer reads
+// Params["Mode"]), is the one structural home: parse is where every printed
+// S: line is built, and ParseStaticLines covers the SVar-bodied route.
+func splitStaticModes(mode string) []string {
+	mode = strings.TrimSpace(mode)
+	if !strings.Contains(mode, ",") {
+		return []string{mode}
+	}
+	parts := strings.Split(mode, ",")
+	out := make([]string, 0, len(parts))
+	for _, m := range parts {
+		if m = strings.TrimSpace(m); m != "" {
+			out = append(out, m)
+		}
+	}
+	return out
+}
+
+// resplitStatics re-applies splitStaticModes to a decoded static list: the
+// normalisation for the OTHER Static construction route, the gob decode in
+// LoadRegistry. A cache predating the split stores each compound S: line as
+// one Static whose Mode still carries the comma text (the full Mode$ param
+// survives the gob), so LoadRegistry repairs in memory instead of bumping
+// the cache version — the same "repair a stale shared cache without forcing
+// a rewrite" discipline the post-decode keyword relink uses.
+func resplitStatics(sts []Static) []Static {
+	n := 0
+	for _, s := range sts {
+		if strings.Contains(s.Mode, ",") {
+			n += len(splitStaticModes(s.Mode))
+		} else {
+			n++
+		}
+	}
+	if n == len(sts) {
+		return sts
+	}
+	out := make([]Static, 0, n)
+	for _, s := range sts {
+		for _, mode := range splitStaticModes(s.Mode) {
+			out = append(out, Static{Mode: mode, Params: s.Params})
+		}
+	}
+	return out
+}
+
 // ParseStaticLine parses one static body — an S: line's text, or an
 // S:-shaped SVar body ("Mode$ Continuous | Affected$ You | ...") — into a
 // Static. The face parser reads only printed S: lines; a static held in an
@@ -168,6 +225,26 @@ func ParseStaticLine(body string) (Static, bool) {
 		return Static{}, false
 	}
 	return Static{Mode: mode, Params: p}, true
+}
+
+// ParseStaticLines is ParseStaticLine with the same comma-mode split the
+// printed S: line gets (splitStaticModes): one Static per mode over the
+// shared Params, in the body's own order. ok is false only when the body has
+// no Mode$ at all, exactly like ParseStaticLine — a comma body always yields
+// at least one Static. ParseStaticLine itself stays single-entry for its
+// Mode=="Continuous" call sites; the two comma-aware call sites (kw_class
+// grants and rules/layers.go's static grant walk) range over this one.
+func ParseStaticLines(body string) ([]Static, bool) {
+	p := parseParams(body)
+	modes := splitStaticModes(p["Mode"])
+	if len(modes) == 0 || modes[0] == "" {
+		return nil, false
+	}
+	out := make([]Static, 0, len(modes))
+	for _, mode := range modes {
+		out = append(out, Static{Mode: mode, Params: p})
+	}
+	return out, true
 }
 
 // ParseTriggerLine parses one trigger body — a T: line's text, or a T:-shaped
