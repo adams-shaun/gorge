@@ -710,6 +710,24 @@ const (
 	// precedent, so no earlier ordinal, hash chain or golden replay is
 	// affected.
 	GainedTriggerPush
+	// Surveil records one completed surveil instruction (CR 701.42, task
+	// trig-surveil): Player is the surveiling seat and Obj the resolving
+	// source permanent (0 for a source-less body). It is an Apply no-op
+	// marker, exactly like Explore/Investigate: the surveil's own state
+	// changes (the KArrange answer's LibraryOrder and any graveyard
+	// MoveZones) are their own events that follow this one, and the record
+	// is what trig:Surveil matches ("whenever you surveil" -- Mirko,
+	// Obsessive Theorist; Dimir Spybug; Thoughtbound Phantasm; Whispering
+	// Snitch). One marker per surveil instruction per acting player, emitted
+	// by api:Surveil (effects/cardflow.go effSurveil) before the arrangement
+	// -- the trigger bodies queue and resolve after the surveil spell or
+	// ability finishes either way. Appended here, after GainedTriggerPush
+	// (main's own append while this branch carried Surveil after
+	// AlterAttribute; the merge keeps main's ordinals intact and appends the
+	// branch's Kind after them, still after every earlier Kind), following
+	// every prior Kind's own append-only precedent, so no earlier ordinal,
+	// hash chain or golden replay is affected.
+	Surveil
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -720,7 +738,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(GainedTriggerPush) + 1
+	NumKinds = int(Surveil) + 1
 )
 
 // mergedTriggerShift is the width MergedTriggerPush's Amount gives the
@@ -833,7 +851,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"pair", "myriad_copy", "myriad_cleanup", "grant_trigger_push", "mana_activate", "token_attacks",
 	"x_change", "note_number", "extra_phase", "copy_token", "exert", "planar_roll", "explore", "combat_retarget", "ring_tempts_you", "ring_emblem_push", "grant_ability_push", "investigate", "blessing_change", "clone_permanent", "mutate", "merged_trigger_push",
 	"discover", "seek", "connive", "enlist", "exploit", "alter_attribute",
-	"gained_ability_push", "gained_trigger_push"}
+	"gained_ability_push", "gained_trigger_push", "surveil"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

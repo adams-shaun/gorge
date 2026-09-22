@@ -2193,7 +2193,7 @@ func effScry(h Host, c *Ctx, sa *cards.SA) {
 	// Command's `ScryNum$ X` Charm mode resolves the announced X through the
 	// same Num grammar a literal would take).
 	n := Num(h, c, sa, "ScryNum", 1)
-	effLookAndArrange(h, c, sa, n, "bottom", "Scry", nil)
+	effLookAndArrange(h, c, sa, n, "bottom", "Scry", nil, false)
 }
 
 // effSurveil implements the Surveil prompt API (CR 701.42): look at the top
@@ -2304,7 +2304,7 @@ func effSurveil(h Host, c *Ctx, sa *cards.SA) {
 		}
 		return total
 	}
-	effLookAndArrange(h, c, sa, n, "graveyard", "Surveil", extraOf)
+	effLookAndArrange(h, c, sa, n, "graveyard", "Surveil", extraOf, true)
 }
 
 // effLookAndArrange is the shared KArrange body behind effScry and
@@ -2315,7 +2315,23 @@ func effSurveil(h Host, c *Ctx, sa *cards.SA) {
 // poses one KArrange decision per target library over the top min(N,
 // len(lib)) cards. The unchosen pile B's destination is the shared
 // Option.Kind passed in; only that differs between the two primitives.
-func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, n int32, kind, verb string, extraOf func(state.PlayerID) int32) {
+//
+// markSurveil selects the one verb-specific record: Surveil emits ONE
+// events.Surveil marker per acting player -- the canonical record
+// trig:Surveil matches ("whenever you surveil" -- Mirko, Obsessive
+// Theorist; Dimir Spybug; Thoughtbound Phantasm; Whispering Snitch) --
+// while Scry emits none. The marker is emitted INSIDE the per-player loop,
+// at the point that player's arrangement is actually performed, NOT for
+// every defined target up front: a multi-player `Defined$` Surveil poses
+// only the FIRST library's KArrange (the documented multi-library
+// Scry/Surveil limitation), so emitting for every target before the loop
+// queued surveil triggers for players who never surveilled (fb: an
+// opponent's Whispering Snitch fired for a player whose library was
+// untouched). A suspended first player's re-entry (Ctx.Arrange set) returns
+// before the loop, so its marker is not re-emitted; the no-host stand-in
+// and the continuation passes both keep the marker already emitted for the
+// player the loop reached.
+func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, n int32, kind, verb string, extraOf func(state.PlayerID) int32, markSurveil bool) {
 	// Re-entry after rules' handleArrange applied the answered KArrange and
 	// emitted the LibraryOrder event: this pass must only let the resolution
 	// continue (the chained SubAbility$ runs), not re-ask or re-emit.
@@ -2329,6 +2345,9 @@ func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, n int32, kind, verb string,
 	g := h.Game()
 	for _, t := range actingPlayers(h, c, sa) {
 		p := PlayerOf(h, c, t)
+		if markSurveil {
+			h.Emit(events.Event{Kind: events.Surveil, Player: p, Obj: c.Source})
+		}
 		lib := zoneOf(g, state.ZLibrary, p)
 		k := n
 		if extraOf != nil {

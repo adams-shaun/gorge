@@ -101,6 +101,12 @@ var addedAfterTheSplit = []string{
 	// param's Text "Monstrous" mark -- the event Kind existed already, but
 	// the MODE did not -- so no pre-split switch arm could have dispatched it.
 	"BecomeMonstrous",
+	// trig-surveil: "Whenever you surveil ..." (CR 701.42; Mirko, Obsessive
+	// Theorist; Dimir Spybug; Thoughtbound Phantasm; Whispering Snitch and 8
+	// more corpus carriers). It matches the events.Surveil marker Kind,
+	// which was appended for it, so it could not have been in the pre-split
+	// switch.
+	"Surveil",
 }
 
 func allRegisteredModeNames() []string {
