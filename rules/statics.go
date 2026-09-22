@@ -222,19 +222,7 @@ func (e *Engine) activeStatics(mode string) []staticView {
 // static's own face defines; anything else fails closed to no contribution,
 // the same direction HandSizeValueOK takes.
 func (e *Engine) SurveilLookExtra(p state.PlayerID) (mandatory int32, optional []int32) {
-	return e.lookExtra("SurveilNum", p)
-}
-
-// ScryLookExtra reports the additional cards a scry performed by player p
-// looks at, from battlefield statics with Mode$ ScryNum. It mirrors
-// SurveilLookExtra; the separate method keeps the effects Host contract
-// explicit for the two distinct static modes.
-func (e *Engine) ScryLookExtra(p state.PlayerID) (mandatory int32, optional []int32) {
-	return e.lookExtra("ScryNum", p)
-}
-
-func (e *Engine) lookExtra(mode string, p state.PlayerID) (mandatory int32, optional []int32) {
-	for _, sv := range e.activeStatics(mode) {
+	for _, sv := range e.activeStatics("SurveilNum") {
 		spec := strings.TrimSpace(sv.Params["ValidPlayer"])
 		if spec == "" {
 			spec = "You"
@@ -255,7 +243,7 @@ func (e *Engine) lookExtra(mode string, p state.PlayerID) (mandatory int32, opti
 	return mandatory, optional
 }
 
-// surveilNumValue prices one SurveilNum/ScryNum static's Num$: a plain decimal
+// surveilNumValue prices one SurveilNum static's Num$: a plain decimal
 // literal, else an SVar name resolved against the static's own face table.
 // A missing/empty Num$, an unresolvable SVar and a negative value all report
 // false.
@@ -2514,7 +2502,7 @@ func init() {
 		// consulted by effects' effSurveil through the shared activeStatics
 		// collector). Only the literal-or-SVar Num$ value and the Optional$
 		// election are read; a Num$ this build cannot price fails closed.
-		"stat:SurveilNum", "stat:ScryNum",
+		"stat:SurveilNum",
 		// combatrestriction1: the three combat/sacrifice restriction statics.
 		// CantAttack is enforced per (attacker, defender) pair
 		// (rules/layers.go attackBlocked, consulted by askAttackers /

@@ -2198,62 +2198,12 @@ func effRearrangeTopOfLibrary(h Host, c *Ctx, sa *cards.SA) {
 // narrower than the card text but deterministic.
 func effScry(h Host, c *Ctx, sa *cards.SA) {
 	// ScryNum$ is read HERE, at the api:Scry implementation, not inside the
-	// shared KArrange body. A ScryNum static is an independent may addition,
-	// exactly like SurveilNum, but uses its own election marker so nested or
-	// resumed Scry effects cannot consume a Surveil answer.
+	// shared KArrange body: the shared body takes the resolved count, so the
+	// parameter read is a literal-key read on this API's own SA (Kozilek's
+	// Command's `ScryNum$ X` Charm mode resolves the announced X through the
+	// same Num grammar a literal would take).
 	n := Num(h, c, sa, "ScryNum", 1)
-	arranging := c.Arrange
-	ans := c.ScryLookOpt
-	c.ScryLookOpt = ""
-	if ans == "" && !arranging {
-		if players := actingPlayers(h, c, sa); len(players) > 0 {
-			p := PlayerOf(h, c, players[0])
-			if _, opts := h.ScryLookExtra(p); len(opts) > 0 {
-				d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 0, Max: len(opts),
-					Source: c.Source, ResumeKind: "scry_look_optional", ResumeSA: sa,
-					Prompt: "You may look at additional card(s) each time you scry"}
-				for i, v := range opts {
-					d.Options = append(d.Options, decision.Option{Index: i, Kind: "static",
-						Label: "Look at " + strconv.Itoa(int(v)) + " additional card(s) each time you scry", Player: p})
-				}
-				if Ask(h, d) == AskAsked {
-					return
-				}
-			}
-		}
-	}
-	accepted := map[int]bool{}
-	if ans != "" && ans != "no" {
-		for _, tok := range strings.Split(ans, ",") {
-			if i, err := strconv.Atoi(strings.TrimSpace(tok)); err == nil && i >= 0 {
-				accepted[i] = true
-			}
-		}
-	}
-	scryAsker := func() (state.PlayerID, bool) {
-		players := actingPlayers(h, c, sa)
-		if len(players) == 0 {
-			return 0, false
-		}
-		p := PlayerOf(h, c, players[0])
-		if _, opts := h.ScryLookExtra(p); len(opts) > 0 {
-			return p, true
-		}
-		return 0, false
-	}
-	extraOf := func(p state.PlayerID) int32 {
-		mand, opts := h.ScryLookExtra(p)
-		total := mand
-		if asker, ok := scryAsker(); ok && p == asker {
-			for i := range opts {
-				if accepted[i] {
-					total += opts[i]
-				}
-			}
-		}
-		return total
-	}
-	effLookAndArrange(h, c, sa, n, "bottom", "Scry", extraOf, false)
+	effLookAndArrange(h, c, sa, n, "bottom", "Scry", nil, false)
 }
 
 // effSurveil implements the Surveil prompt API (CR 701.42): look at the top

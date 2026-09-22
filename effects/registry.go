@@ -133,10 +133,6 @@ type Host interface {
 	// (rules/statics.go); the effects test double reports zero/nil (no engine
 	// static registry to consult).
 	SurveilLookExtra(p state.PlayerID) (mandatory int32, optional []int32)
-	// ScryLookExtra reports the additional cards a scry performed by player p
-	// looks at from battlefield statics with Mode$ ScryNum. It has the same
-	// mandatory/independent-optional shape as SurveilLookExtra.
-	ScryLookExtra(p state.PlayerID) (mandatory int32, optional []int32)
 	// ExploreReplaced reports whether a replacement effect replaces the
 	// named explorer's explore (R:Event$ Explore — Topography Tracker's
 	// "instead it explores, then it explores again", Twists and Turns'
@@ -1257,9 +1253,6 @@ type Ctx struct {
 	// answer applies to the asking player only: a multi-player Surveil's
 	// other libraries keep their own base count.
 	SurveilLookOpt string
-	// ScryLookOpt is the answered may-look election for stat:ScryNum. It uses
-	// the same CSV ordinal done-marker convention as SurveilLookOpt.
-	ScryLookOpt string
 	// Hideaway holds the selected top-library card while the Hideaway
 	// replacement resumes to exile it; HideawayPicked distinguishes that
 	// selected answer from the first pass. HideawayArranged marks completion
