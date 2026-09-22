@@ -138,7 +138,7 @@ func (h *fakeHost) RegenerationDisallowed(id state.ObjID) bool { return false }
 // restriction lives in rules.Engine), the same discipline as
 // RegenerationDisallowed above: the double reports false rather than
 // inventing a registry it cannot answer for.
-func (h *fakeHost) SacrificeBlocked(id state.ObjID) bool { return false }
+func (h *fakeHost) SacrificeBlocked(id state.ObjID, forCost bool) bool { return false }
 
 // ExploreReplaced has no replacement registry to consult here (the
 // replacement matching lives in rules.Engine), the same discipline as

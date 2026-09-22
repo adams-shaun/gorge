@@ -3672,7 +3672,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 			ids := append([]state.ObjID(nil), g.Zone(state.ZBattlefield, t.Player)...)
 			eligible := make([]state.ObjID, 0, len(ids))
 			for _, id := range ids {
-				if h.SacrificeBlocked(id) {
+				if h.SacrificeBlocked(id, false) {
 					// A CantSacrifice restriction (Call for Aid) or face static:
 					// the permanent is not a sacrifice candidate at all — not
 					// offered, never taken (Annihilator rides this same pool).
@@ -3789,7 +3789,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 		if o == nil || o.Zone != state.ZBattlefield {
 			continue
 		}
-		if h.SacrificeBlocked(o.ID) {
+		if h.SacrificeBlocked(o.ID, false) {
 			// A CantSacrifice restriction (or face static): this specific
 			// object cannot be sacrificed at all — neither offered to its
 			// Optional$ ask nor emitted. The targeting already picked it; the

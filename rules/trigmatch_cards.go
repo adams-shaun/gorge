@@ -483,6 +483,77 @@ func (e *Engine) actionCause() state.ObjID {
 	return e.G.Stack[len(e.G.Stack)-1]
 }
 
+// causeSpecAdmits evaluates a CantSacrifice static's ValidCause$ stack spec
+// (task vc-static1) against the in-flight sacrifice cause -- actionCause(),
+// the resolving wrapper at the top of the stack for the whole effect-driven
+// call. The rules COST sites never reach it: SacrificeBlocked's forCost
+// callers skip every ValidCause-carrying static before this helper runs,
+// because a cost payment has no causing object (actionCause would name
+// whatever unrelated spell was already on the stack when the player paid --
+// the exact misattribution discardCauseAdmits guards against with its
+// IsDiscardCost check).
+//
+// The classifier is the shared StackKindTokenOf + StackKindAdmits pair the
+// Discarded/Drawn cause matchers use, so the static path cannot drift from
+// the trigger path. Two deliberate departures from the plural StackKindTokens
+// helper, both fail closed: a comma alternative naming no stack kind (e.g.
+// `Creature`) contributes nothing rather than falling into the plural
+// helper's Spell-only default, and an alternative carrying a qualifier the
+// classifier silently ignores (singleTarget, numTargets, ...) admits nothing
+// rather than the widening the target-offer path documents -- a cause spec
+// this build cannot evaluate exactly must never blanket-block a sacrifice.
+// Comma alternatives are OR, matching ValidCause$ semantics elsewhere; the
+// spec matches when SOME alternative admits the cause.
+func (e *Engine) causeSpecAdmits(spec string, source state.ObjID) bool {
+	cause := e.actionCause()
+	if cause == 0 {
+		return false
+	}
+	o := e.G.Obj(cause)
+	if o == nil {
+		return false
+	}
+	you := e.controllerOf(source)
+	for _, alt := range strings.Split(spec, ",") {
+		alt = strings.TrimSpace(alt)
+		if alt == "" {
+			continue
+		}
+		tok, ok := state.StackKindTokenOf(alt)
+		if !ok {
+			continue // a non-stack alternative never contributes (fail closed)
+		}
+		if !causeSpecQualifiersKnown(alt) {
+			continue // an unmodelled qualifier admits nothing (fail closed)
+		}
+		if state.StackKindAdmits([]state.StackKindToken{tok}, state.StackKindOf(e.G, o),
+			o, o.Controller, you) {
+			return true
+		}
+	}
+	return false
+}
+
+// causeSpecQualifiersKnown reports whether every dot qualifier of one stack
+// spec alternative is one the shared classifier actually reads. The
+// classifier's own qualifier loop (state/stackkind.go StackKindTokenOf)
+// silently DROPS an unknown qualifier -- sound for a target offer (the
+// documented widening) but wrong for a cause restriction, where the dropped
+// qualifier would widen the block. The known set is exactly what that loop
+// consumes: YouCtrl/OppCtrl (controller scoping) and Instant/Sorcery (the
+// Spell kind's card-type restriction).
+func causeSpecQualifiersKnown(alt string) bool {
+	_, rest, _ := strings.Cut(alt, ".")
+	for _, q := range strings.Split(rest, ".") {
+		switch q {
+		case "", "YouCtrl", "OppCtrl", "Instant", "Sorcery":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
 func init() {
 	registerTrigMatcher((*Engine).cycledMatches, "Cycled")
 	registerTrigMatcher((*Engine).exploresMatches, "Explores")
