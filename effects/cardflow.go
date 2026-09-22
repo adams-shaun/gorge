@@ -913,11 +913,11 @@ func rememberMilled(h Host, c *Ctx, id state.ObjID) {
 // the answer only to the target that asked, skips earlier targets that already
 // completed before suspension, and preserves that same deterministic behaviour
 // for every later target; chained per-library asks remain separate work. The
-// no-choice path asks NO take decision, but it is not event-free when a
-// variant param is present: a default-remainder Dig still moves its untaken
-// cards to the bottom (asking for that order when two or more remain), so only
-// a game that never reaches a Dig whose remainder moves replays byte-
-// identically to the pre-dig1 engine.
+// no-choice path asks NO take decision, but it is not event-free when the
+// remainder moves: a default-remainder Dig still moves its untaken cards to
+// the bottom (asking for that order when two or more remain), so only a game
+// that never reaches a Dig whose remainder moves replays byte-identically to
+// the pre-dig1 engine.
 //
 // The variant params (task inbox-paramcensus-dig-variants), each read
 // below:
