@@ -312,3 +312,5 @@ so the pre-perf calibration is not lost.
 | 2026-09-22T05:57Z | 7266a20e+ | 0.6 | 613 | 0 | sadams |
 | 2026-09-22T05:54Z | 4d23afb5+ | 0.6 | 604 | 0 | sadams |
 | 2026-09-22T06:15Z | 35d8a4f3+ | 0.6 | 605 | 0 | sadams |
+| 2026-09-22T05:18Z | bd6f2d09+ | 0.7 | 601 | 0 | sadams |
+| 2026-09-22T05:45Z | 1148fcf4+ | 0.6 | 602 | 0 | sadams |

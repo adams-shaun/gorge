@@ -1181,7 +1181,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				// while never letting an empty pool satisfy it.
 				ctx.UnlessPay = "decline"
 			} else if len(chosen) > 0 && chosen[0].Index == 0 {
-				if len(paid.Sac) > 0 || len(paid.Discard) > 0 || len(paid.Reveal) > 0 {
+				if len(paid.Sac) > 0 || len(paid.Discard) > 0 || len(paid.Reveal) > 0 || len(paid.RevealChosen) > 0 {
 					// Sacrifice, discard and reveal are choice-bearing costs.
 					// Park this resume before any mutation and let the payer
 					// select every component; finishUnlessPayment re-enters

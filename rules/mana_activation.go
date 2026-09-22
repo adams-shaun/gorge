@@ -564,7 +564,7 @@ func (e *Engine) manaAbilityPayablePool(p state.PlayerID, source state.ObjID, ma
 		// typed counts never affect payability anyway).
 		typed = e.G.Players[p].TypedMana
 	}
-	if cost.X != 0 || len(cost.Reveal) > 0 || len(cost.Behold) > 0 || len(cost.TapPermanent) > 0 ||
+	if cost.X != 0 || len(cost.Reveal) > 0 || len(cost.RevealChosen) > 0 || len(cost.Behold) > 0 || len(cost.TapPermanent) > 0 ||
 		len(cost.Blight) > 0 || cost.Forage || (cost.Tap && o.Tapped) || !e.costPayablePool(p, source, true, cost, pool, typed) {
 		return false
 	}
@@ -1307,7 +1307,7 @@ func (e *Engine) answerManaUnless(chosen []decision.Option) bool {
 	paid := false
 	if len(chosen) == 1 && chosen[0].Index == 0 {
 		if cost, ok := ParseUnlessCost(m.ability.Params["UnlessCost"]); ok {
-			if len(cost.Sac) > 0 || len(cost.Discard) > 0 || len(cost.Reveal) > 0 {
+			if len(cost.Sac) > 0 || len(cost.Discard) > 0 || len(cost.Reveal) > 0 || len(cost.RevealChosen) > 0 {
 				// Activated mana stays off stack, but a sacrifice/discard/reveal
 				// in its unless cost is still a real payer choice. The payment
 				// continuation returns through finishManaUnlessPayment.
