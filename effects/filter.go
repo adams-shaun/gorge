@@ -447,8 +447,8 @@ func hasAttachmentOfKind(g *state.Game, id state.ObjID, kind string) bool {
 }
 
 // sharesTypeArg splits the space-bearing two-token predicates
-// "sharesCardTypeWith <X>" and "sharesCreatureTypeWith <X>" and classifies
-// their shared referent. The referent is a resolution-time object list: the
+// "sharesCardTypeWith <X>", "sharesCreatureTypeWith <X>" and
+// "sharesAllCardTypesWithOther <X>" and classifies their shared referent. The referent is a resolution-time object list: the
 // remembered set (RememberedCard — its first card entry, Braids's "a
 // permanent that shares a card type with it" — Remembered, RememberedLKI),
 // the triggering card (TriggeredCard/TriggeredCardLKICopy, Heirloom
@@ -461,7 +461,8 @@ func hasAttachmentOfKind(g *state.Game, id state.ObjID, kind string) bool {
 // widened.
 func sharesTypeArg(p string) (name, arg string, ok bool) {
 	name, arg, ok = strings.Cut(p, " ")
-	if !ok || (name != "sharesCardTypeWith" && name != "sharesCreatureTypeWith") {
+	if !ok || (name != "sharesCardTypeWith" && name != "sharesCreatureTypeWith" &&
+		name != "sharesAllCardTypesWithOther") {
 		return "", "", false
 	}
 	arg = strings.TrimSpace(arg)
@@ -558,7 +559,47 @@ func sharesCardTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref stri
 	return false
 }
 
-// sharesCreatureTypeWith reports whether o shares at least one CREATURE
+// sharesAllCardTypesWithOther reports whether o shares EVERY one of its CARD
+// types with some OTHER object the referent names (Forge
+// Card.sharesAllCardTypesWithOther — Demonic Covenant's "If two cards that
+// share all their card types were milled this way, sacrifice ...", whose
+// SVar is `Remembered$Valid Card.sharesAllCardTypesWithOther Remembered`):
+// every card type of the candidate is also a card type of the other object,
+// which is Forge's allMatch-over-the-candidate's-card-types read. With
+// exactly two remembered cards (this carrier's NumCards$) the count reaches
+// 2 only when the two cards' card-type sets are identical, which is the
+// oracle's "share all their card types".
+//
+// "Other" is Forge's own suffix: the matched object must be a different
+// object than the candidate (by identity — two milled copies of the same
+// card name are different objects and do share all their card types). The
+// referent objects are read live from the game, so a remembered card in the
+// graveyard still answers from its own face, exactly like
+// sharesCardTypeWith's read. An unbound referent matches nothing — fail
+// closed, never widened.
+func sharesAllCardTypesWithOther(g *state.Game, o *state.Object, sc SpecContext, ref string) bool {
+	for _, t := range sharesTypeReferents(g, sc, ref) {
+		if t.IsPlayer {
+			continue
+		}
+		r := g.Obj(t.Obj)
+		if r == nil || r.ID == o.ID {
+			continue
+		}
+		all := true
+		for _, cardType := range []string{"Artifact", "Battle", "Creature", "Enchantment", "Land", "Planeswalker"} {
+			if hasType(o, cardType) && !hasType(r, cardType) {
+				all = false
+				break
+			}
+		}
+		if all {
+			return true
+		}
+	}
+	return false
+}
+
 // subtype with any object the referent names (Forge
 // Card.sharesCreatureTypeWith: an intersection over the creature subtypes —
 // Heirloom Blade's "a creature card that shares a creature type with it").
@@ -777,6 +818,11 @@ const (
 	// The creature-subtype twin "sharesCreatureTypeWith <X>": same referent
 	// switch, the intersection is over creature subtypes (Heirloom Blade).
 	wordSharesCreatureType
+	// "sharesAllCardTypesWithOther <X>": same referent switch, but the
+	// candidate must share EVERY one of its card types with some OTHER
+	// object the referent names (Demonic Covenant's "two cards that share
+	// all their card types were milled this way").
+	wordSharesAllCardTypes
 	// The two-token space form "EnchantedBy <Type>.<qual>": the candidate
 	// bears an attached permanent of the named type whose qualifier holds
 	// against that attached object (Daybreak Coronet's "creature with
@@ -955,8 +1001,11 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordAttachedTo, arg
 	}
 	if name, arg, ok := sharesTypeArg(p); ok {
-		if name == "sharesCreatureTypeWith" {
+		switch name {
+		case "sharesCreatureTypeWith":
 			return wordSharesCreatureType, arg
+		case "sharesAllCardTypesWithOther":
+			return wordSharesAllCardTypes, arg
 		}
 		return wordSharesCardType, arg
 	}
@@ -1010,6 +1059,8 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		return sharesCardTypeWith(g, o, sc, key)
 	case wordSharesCreatureType:
 		return sharesCreatureTypeWith(g, o, sc, key)
+	case wordSharesAllCardTypes:
+		return sharesAllCardTypesWithOther(g, o, sc, key)
 	case wordColor:
 		return strings.Contains(ColorsOf(o), key)
 	case wordType:
