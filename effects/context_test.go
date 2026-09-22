@@ -100,7 +100,15 @@ type fakeHost struct {
 	// point; the double fakes the same shape for the Repeat loop's
 	// between-iteration suspension break). Zero value keeps the historical
 	// constant-false read every other effects test relies on.
-	suspendAfterAsk bool
+	suspendAfterAsk      bool
+	repeatOptionalNext   int32
+	repeatOptionalCalled bool
+	askCount             int
+	askResult            bool
+	// lastAsk is the most recent decision handed to Ask, so an effects-level
+	// test can assert the election's ResumeRepeatNext (the two distinct
+	// RepeatOptional resume states) without an engine.
+	lastAsk *decision.Decision
 	// startingLife is the StartingLife answer the double reports (0 when
 	// unset); the effects-level relative half-starting-life tests set it.
 	startingLife int32
@@ -400,7 +408,7 @@ func (h *fakeHost) IsCreature(id state.ObjID) bool {
 // stand-in (effCharm's first mode, effCopySpellAbility's decline) -- which
 // is exactly today's no-ask behaviour, now with the engines it is a fallback
 // for clearly named (R-9).
-func (h *fakeHost) Ask(d *decision.Decision) bool { return false }
+func (h *fakeHost) Ask(d *decision.Decision) bool { h.askCount++; h.lastAsk = d; return h.askResult }
 
 // TypeChoices serves the double's configured typeChoices list (nil by
 // default): nil routes ChooseType through AskEmpty — the unchanged
@@ -440,6 +448,12 @@ func (h *fakeHost) EmitDamage(e events.Event) events.Event {
 	return e
 }
 func (h *fakeHost) CounterAllowed(state.ObjID, state.ObjID) bool { return true }
+
+// SuspendRepeatOptional is a no-op for the same reason as SuspendContinuation.
+func (h *fakeHost) SuspendRepeatOptional(_ *cards.SA, next int32) {
+	h.repeatOptionalCalled = true
+	h.repeatOptionalNext = next
+}
 
 // SuspendRepeat is a no-op for the same reason as SuspendContinuation.
 func (h *fakeHost) SuspendRepeat(RepeatSuspension) {}

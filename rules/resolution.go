@@ -108,9 +108,10 @@ type resumePoint struct {
 	// and timeTravelRound the count of repetitions it has already completed
 	// (Amount$ 3). The round is its own field, never packed into target: on
 	// a 32-bit build an int cannot hold both halves.
-	timeTravelObjects []state.ObjID
-	timeTravelRound   int
-	before            *triggerSnapshot // immutable look-back if a batch replacement suspends
+	timeTravelObjects  []state.ObjID
+	timeTravelRound    int
+	repeatOptionalNext int32
+	before             *triggerSnapshot // immutable look-back if a batch replacement suspends
 	// target is Dig's index into its deterministic Defined$ target list. It
 	// keeps a resumed answer attached to the library that actually asked.
 	target int
@@ -292,6 +293,7 @@ type repeatCursor struct {
 	next     int
 	last     []state.Target
 	hasLast  bool
+	optional bool
 }
 
 // fusedRest is a fuse-rest continuation's captured remainder (CR 702.101b):
@@ -425,6 +427,7 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 		winPaidX:                e.windowPaidX,
 		timeTravelObjects:       append([]state.ObjID(nil), d.ResumeObjects...),
 		timeTravelRound:         d.ResumeRound,
+		repeatOptionalNext:      d.ResumeRepeatNext,
 		// The pre-move controller snapshot of this chain's object targets,
 		// published by effects.Resolve around the whole chain. Captured onto
 		// the pending frame so a resumed continuation (which rebuilds its Ctx
@@ -507,6 +510,21 @@ func (e *Engine) SuspendContinuation(sa *cards.SA) {
 // nested inside the iteration -- resumes inside that iteration, so each is
 // bound to the iteration's Remembered unless a deeper loop already bound it.
 // The loop's own frame follows them, bound to the RepeatEach's Remembered.
+// SuspendRepeatOptional implements effects.Host.SuspendRepeatOptional. The
+// body of iteration next-1 owns the pending ask; this frame runs only after
+// that body resumes and completes, and it re-enters RepeatOptional$ to pose
+// the repeat election for iteration next (never that iteration's body
+// directly -- the do/while owes the player the election after every process).
+func (e *Engine) SuspendRepeatOptional(sa *cards.SA, next int32) {
+	if e.resume == nil {
+		return
+	}
+	e.contChain = append(e.contChain, contFrame{
+		sa: sa, repeat: &repeatCursor{next: int(next), optional: true},
+	})
+	e.repeatReported = sa
+}
+
 func (e *Engine) SuspendRepeat(s effects.RepeatSuspension) {
 	if e.resume == nil {
 		return
@@ -1015,6 +1033,12 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// ResolvingObj stays rp.obj -- the wrapper whose resolution this
 		// frame is.
 		ResolvingObj: rp.obj, EffectFrame: rp.effectFrame}
+	if rp.kind == "repeat_optional" {
+		ctx.RepeatOptional = &effects.RepeatOptionalContinuation{
+			Continue: len(chosen) > 0 && chosen[0].Kind == "yes",
+			Next:     rp.repeatOptionalNext,
+		}
+	}
 	// CR 107.3i: X is the value paid for the object's {X}, preserved on the
 	// stack object by CastInfo -- the same binding resolveTop's spell and
 	// ability branches now carry. A spell whose resolution suspends on a
@@ -1312,6 +1336,15 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			if cur := rp.repeat; cur != nil {
 				ctx.Repeat = &effects.RepeatCursor{SA: rp.sa, Subjects: cur.subjects, Next: cur.next,
 					Last: cur.last, HasLast: cur.hasLast}
+			}
+		case "repeat_optional_loop":
+			if cur := rp.repeat; cur != nil {
+				// The body of iteration cur.next-1 completed after its own
+				// suspension: the repeat election for cur.next has not been
+				// posed, so AskElection re-enters the loop at the election
+				// rather than running the body directly.
+				ctx.RepeatOptional = &effects.RepeatOptionalContinuation{Continue: true, Next: int32(cur.next),
+					AskElection: true}
 			}
 		case "unless_pay":
 			if rp.unlessPay != "" {
@@ -2792,6 +2825,9 @@ func (e *Engine) buildContinuationChain(frames []contFrame, obj state.ObjID, tai
 			f.villainousIndex = cf.villainousIndex
 		} else if cf.repeat != nil {
 			f.kind, f.sa, f.repeat = "repeat", sa, cf.repeat
+			if cf.repeat.optional {
+				f.kind, f.sa = "repeat_optional_loop", sa
+			}
 			f.choices, f.chosenValid = cf.choices, cf.chosenValid
 		}
 		if head == nil {

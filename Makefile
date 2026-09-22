@@ -298,3 +298,17 @@ ledger:
 	GOMEMLIMIT=5GiB go test -p=2 -count=1 ./rules -run TestCR -v \
 	  > .ds4/lane-rules.txt || true
 	go run ./cmd/ledger -lane .ds4/lane-rules.txt -out .ds4/ledger.json
+
+# coverage regenerates the published card-support tables: docs/coverage.md in
+# full, plus the summary block README.md carries between its COVERAGE markers.
+# Output is deterministic (no wall clock; every table sorted), so a run over an
+# unchanged corpus rewrites nothing and the refresh workflow commits nothing.
+# `make coverage-check` is the read-only half: it fails when the committed
+# tables no longer match the corpus at FORGE_REF.
+.PHONY: coverage
+coverage: $(BIN_DIR)/forgec
+	$(BIN_DIR)/forgec coverage -dir $(CARDS_DIR)
+
+.PHONY: coverage-check
+coverage-check: $(BIN_DIR)/forgec
+	$(BIN_DIR)/forgec coverage -dir $(CARDS_DIR) -check

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/internal/testutil"
 )
 
 // TestRepeatHonoursMaxRepeatAndIsBounded is Task 20's hygiene test for
@@ -13,6 +14,31 @@ import (
 // run). Two things are asserted: MaxRepeat$ actually drives the run count,
 // and an absurd/unbounded repeat is clamped to the 1000-run safety cap so a
 // malformed script can never spin the engine.
+func TestAdNauseamRepeatOptionalUsesRealCorpusAbility(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	card, ok := reg.Lookup("Ad Nauseam")
+	if !ok {
+		t.Fatal("real corpus card Ad Nauseam missing")
+	}
+	var repeat *cards.SA
+	for i := range card.Faces[0].Abilities {
+		if card.Faces[0].Abilities[i].API == "Repeat" {
+			repeat = card.Faces[0].Abilities[i]
+			break
+		}
+	}
+	if repeat == nil || repeat.Params["RepeatOptional"] != "True" {
+		t.Fatalf("Ad Nauseam RepeatOptional premise failed: %+v", repeat)
+	}
+	h, c := fixtureHost(t)
+	c.SVars = map[string]string{"DBDig": "DB$ GainLife | Defined$ You | LifeAmount$ 1"}
+	h.askResult = false
+	Resolve(h, c, repeat)
+	if h.askCount != 1 {
+		t.Fatalf("real Ad Nauseam RepeatOptional asked %d times, want one stop election", h.askCount)
+	}
+}
+
 func TestRepeatHonoursMaxRepeatAndIsBounded(t *testing.T) {
 	h, c := fixtureHost(t)
 	c.SVars = map[string]string{"DBLife": "DB$ GainLife | Defined$ You | LifeAmount$ 1"}
