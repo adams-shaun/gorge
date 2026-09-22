@@ -3314,12 +3314,39 @@ func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, 
 				return true
 			}
 		default:
+			// Player.NotedFor<label> reads the event-backed player notation that
+			// a DB$ Pump's NoteCardsFor$ wrote. Keeping this in the shared player
+			// filter means every selector consumer (RepeatPlayers$, Defined$,
+			// statics, and counts) gets the same semantics.
+			if base == "Player" || base == "Any" {
+				if label, ok := strings.CutPrefix(qualifier, "NotedFor"); ok && label != "" {
+					if playerHasNote(g, p, label) {
+						return true
+					}
+					continue
+				}
+			}
 			if int(p) < len(g.Players) {
 				op, n, ok := splitPlayerCompare(qualifier)
 				if ok && playerCompare(g.Players[p].Life, op, n) {
 					return true
 				}
 			}
+		}
+	}
+	return false
+}
+
+// playerHasNote reports whether a seat's event-backed player notation has
+// label. The slice's first-note order is deterministic and the lookup is
+// intentionally exact, matching Forge's string labels.
+func playerHasNote(g *state.Game, p state.PlayerID, label string) bool {
+	if int(p) < 0 || int(p) >= len(g.Players) {
+		return false
+	}
+	for _, note := range g.Players[p].Notes {
+		if note == label {
+			return true
 		}
 	}
 	return false

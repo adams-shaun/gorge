@@ -119,6 +119,11 @@ type Player struct {
 	// rebuilds it exactly. A plain bool is carried for free by Clone's
 	// per-player struct copy.
 	Blessing bool
+
+	// Notes is the ordered set of labels this player was noted for by a
+	// NoteCardsFor$ body. events.Apply is its only writer, preserving the
+	// player-notation state across replay; Clone deep-copies the slice.
+	Notes []string
 }
 
 // ExtraTurn is one pending CR 500.7 turn. It is deliberately a queue entry,
@@ -475,6 +480,7 @@ func (g *Game) Clone() *Game {
 		c.Players[i].CmdCasts = append([]int32(nil), g.Players[i].CmdCasts...)
 		c.Players[i].CmdDamage = append([]int32(nil), g.Players[i].CmdDamage...)
 		c.Players[i].RestrictedMana = append([]ManaRestriction(nil), g.Players[i].RestrictedMana...)
+		c.Players[i].Notes = append([]string(nil), g.Players[i].Notes...)
 	}
 	c.Objs = make([]Object, len(g.Objs))
 	for i := range g.Objs {

@@ -1601,6 +1601,21 @@ func Apply(g *state.Game, e Event) {
 			o.NotedNumber = e.Amount
 		}
 
+	case PlayerNoted:
+		// NoteCardsFor$ writes a real player label rather than a transcript-only
+		// Note, so a replayed log exposes the same Player.NotedFor selectors.
+		// Duplicate labels keep first-note order and invalid inputs fail closed.
+		if e.Text == "" || int(e.Player) < 0 || int(e.Player) >= len(g.Players) {
+			break
+		}
+		p := &g.Players[e.Player]
+		for _, label := range p.Notes {
+			if label == e.Text {
+				return
+			}
+		}
+		p.Notes = append(p.Notes, e.Text)
+
 	case Choose:
 		if o := g.Obj(e.Obj); o != nil {
 			switch e.Counter {

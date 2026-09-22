@@ -654,10 +654,6 @@ type Ctx struct {
 	// CR 608.2h last-known controller.
 	TargetControllerLKI map[state.ObjID]state.PlayerID
 	Remembered          []state.Target
-	// NotedFor is the per-resolution player notation used by NoteCardsFor$.
-	// The map is shared by Ctx copies so a branch can record its chooser and a
-	// later RepeatEach can select exactly that named group.
-	NotedFor map[string][]state.PlayerID
 	// TargetsOffered marks that the resolution's OWN ValidTgts$ targeting was
 	// already offered at announcement (rules' resolveTop sets it on both the
 	// ability and the spell branch, exactly for the SA the placement ask

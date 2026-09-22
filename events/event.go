@@ -748,6 +748,11 @@ const (
 	// append-only precedent, so no earlier ordinal, hash chain or golden
 	// replay is affected.
 	Unattached
+	// PlayerNoted records a DB$ Pump NoteCardsFor$ write. Player names the
+	// noted seat and Text its branch label; Apply folds it into Player.Notes so
+	// Player.NotedFor<label> is replayable state rather than a transcript Note.
+	// Appended after every existing kind to preserve established ordinals.
+	PlayerNoted
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -758,7 +763,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(Unattached) + 1
+	NumKinds = int(PlayerNoted) + 1
 )
 
 // mergedTriggerShift is the width MergedTriggerPush's Amount gives the
@@ -871,7 +876,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"pair", "myriad_copy", "myriad_cleanup", "grant_trigger_push", "mana_activate", "token_attacks",
 	"x_change", "note_number", "extra_phase", "copy_token", "exert", "planar_roll", "explore", "combat_retarget", "ring_tempts_you", "ring_emblem_push", "grant_ability_push", "investigate", "blessing_change", "clone_permanent", "mutate", "merged_trigger_push",
 	"discover", "seek", "connive", "enlist", "exploit", "alter_attribute",
-	"gained_ability_push", "gained_trigger_push", "surveil", "unattached"}
+	"gained_ability_push", "gained_trigger_push", "surveil", "unattached", "player_noted"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

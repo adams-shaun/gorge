@@ -226,29 +226,6 @@ func effTap(h Host, c *Ctx, sa *cards.SA) {
 // own lord-effect tests already established (layers_test.go), rather than
 // inventing a new filter form.
 func effPump(h Host, c *Ctx, sa *cards.SA) {
-	// NoteCards$ records the players represented by this branch under the
-	// NoteCardsFor$ label. Forge's Self form is the current resolution's
-	// remembered chooser; keeping the notation on Ctx makes it visible to the
-	// subsequent RepeatEach without introducing a second game-state mutation.
-	if note := strings.TrimSpace(sa.Params["NoteCards"]); note != "" {
-		label := strings.TrimSpace(sa.Params["NoteCardsFor"])
-		if label != "" {
-			if c.NotedFor == nil {
-				c.NotedFor = make(map[string][]state.PlayerID)
-			}
-			seen := make(map[state.PlayerID]bool)
-			for _, p := range c.NotedFor[label] {
-				seen[p] = true
-			}
-			for _, t := range c.Remembered {
-				if !t.IsPlayer || seen[t.Player] {
-					continue
-				}
-				c.NotedFor[label] = append(c.NotedFor[label], t.Player)
-				seen[t.Player] = true
-			}
-		}
-	}
 	// NoteNumber$ (Lupine Harbingers' exile trigger: "note the number of
 	// turns you've begun"): the body does not pump at all -- it notes the
 	// evaluated number onto its source CARD through the events.NotedNumber
@@ -264,6 +241,26 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.NoteNumber, Obj: c.Source, Amount: n})
 		}
 		return
+	}
+
+	// NoteCardsFor$ records player notation through an event so a later
+	// Player.NotedFor<label> selector survives replay. Defined$ identifies the
+	// noted players (Seize the Spotlight binds its chooser as Remembered); with
+	// no Defined$ Forge notes the resolving controller. NoteCards$ names the
+	// card half of the family, whose Card.NotedFor<label> reader is separate.
+	if label := strings.TrimSpace(sa.Params["NoteCardsFor"]); label != "" {
+		_ = strings.TrimSpace(sa.Params["NoteCards"])
+		noted := false
+		for _, t := range Defined(h, c, sa) {
+			if !t.IsPlayer {
+				continue
+			}
+			h.Emit(events.Event{Kind: events.PlayerNoted, Player: t.Player, Text: label})
+			noted = true
+		}
+		if !noted && strings.TrimSpace(sa.Params["Defined"]) == "" {
+			h.Emit(events.Event{Kind: events.PlayerNoted, Player: c.Controller, Text: label})
+		}
 	}
 
 	// Secondary$ True (Amonkhet Raceway's max-speed AddAbility$ grant marks
