@@ -136,6 +136,15 @@ func (e *Engine) triggerConditionHoldsAs(t cards.Trigger, source state.ObjID, yo
 			return false
 		}
 	}
+	if v, ok := t.Params["Blessing"]; ok {
+		// Blessing$ True is the trigger-side city's-blessing gate (CR
+		// 702.131). It is evaluated for the trigger's "you" player, including
+		// delayed triggers whose controller is supplied explicitly. A malformed
+		// value fails closed, as do all other unreadable trigger conditions.
+		if !strings.EqualFold(strings.TrimSpace(v), "True") || int(you) >= len(e.G.Players) || e.G.Players[you].Lost || !e.G.Players[you].Blessing {
+			return false
+		}
+	}
 	if v, ok := t.Params["Revolt"]; ok {
 		// Revolt$ (the CR 702.38 ability word, "if a permanent you
 		// controlled left the battlefield this turn"): the SAME
