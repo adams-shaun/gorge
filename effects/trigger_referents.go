@@ -101,6 +101,16 @@ type TriggerContext struct {
 	// serialized into events.Event -- the per-stack-instance capture is
 	// rebuilt by the same replay re-derivation as TriggerPaidX/TriggerConverge.
 	TriggerBlocker state.ObjID
+	// TriggerEnlisted is the nonattacking creature an attacking creature
+	// tapped for CR 702.160's enlist action (rules/enlist.go): the Enlist
+	// event's Obj is the ATTACKING creature, so the enlisted creature -- what
+	// Mode$ Enlisted's ValidEnlisted$ filters and what Defined$
+	// TriggeredEnlisted names (Goblin Morale Sergeant's conjured duplicate) --
+	// rides IDs[0] and is captured here at fire time. Zero outside an Enlisted
+	// capture; not serialized into events.Event -- the per-stack-instance
+	// capture is rebuilt by the same replay re-derivation as
+	// TriggerPaidX/TriggerConverge.
+	TriggerEnlisted state.ObjID
 	// TriggeredOpponentsVotedSame / TriggeredOpponentsVotedDiff are the two
 	// List$ opponent sets the canonical vote-finished carrier (effects/
 	// vote.go) encodes: the players other than the TRIGGER SOURCE'S

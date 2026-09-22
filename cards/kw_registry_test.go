@@ -26,6 +26,10 @@ var expandedHeads = []string{
 	// the K:Squad:<cost> line, so the expansion supplies the ETB trigger
 	// that creates one token copy per squad payment (Count$SquadPaid).
 	"Squad",
+	// CR 702.70 Training: a genuinely new expansion added after the split
+	// (not a head the old switch covered), so it is listed here to keep the
+	// table equal to the registered set.
+	"Training",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {

@@ -223,6 +223,15 @@ const (
 	// that many token copies. Appended per the enum's own append-only
 	// precedent.
 	FlagSquadPaid
+	// FlagConvoked marks a cast whose pay-time CastInfo carries CR 702.66
+	// convoke provenance: the creatures the caster tapped to help pay for
+	// the cast ride the event's IDs into Object.Convoked. The flag is what
+	// Defined$ Convoked reads (Lethal Scheme's connive sub, Venerated
+	// Loxodon's and Zephyr Singer's ETB triggers). Emitted only for a face
+	// whose SVar table or abilities reference the selector (rules/cast.go's
+	// faceWantsConvoked), so every unrelated convoke cast stays
+	// byte-identical. Appended per the enum's own append-only precedent.
+	FlagConvoked
 )
 
 // Object is any game object: a card in a zone, a permanent, or a spell on the
@@ -299,6 +308,19 @@ type Object struct {
 	// unaffected: CR 702.100b names only the untap step, and the skip is
 	// implemented in the turn scan, never in effects.TryUntap.
 	ExertSkipUntap bool
+
+	// EnlistedTurn and EnlistedCombat stamp the CR 702.160 enlist action (the
+	// `K:Enlist` keyword, task enlist1): the turn and combat phase in which
+	// this attacking creature last enlisted another creature. They are set
+	// together by events.Apply's Enlist case, so the enlistedThisCombat
+	// filter predicate (effects/filter.go) can answer "enlisted THIS combat"
+	// against the live g.Turn/g.CombatsThisTurn -- a same-turn extra combat
+	// begins with a higher CombatsThisTurn and the stamp correctly no longer
+	// matches it. Both are cleared in TurnChange's per-object loop (a
+	// per-combat fact) and when the permanent leaves the battlefield (CR
+	// 400.7: a new object never carries the old object's enlist status).
+	EnlistedTurn   int32
+	EnlistedCombat int32
 
 	// preStackEntry* carries a card's entry history only while it is on the
 	// stack. events.Apply captures it before PutOnStack overwrites the public
@@ -399,6 +421,16 @@ type Object struct {
 	// events.Move; a COPY of the spell was never cast and reads false (the
 	// same reading Count$ReplicatePaid documents).
 	Conspired bool
+	// Convoked is CR 702.66's "each creature that convoked it": the ids of
+	// the creatures the caster tapped to help pay for the spell's cast,
+	// carried by the pay-time CastInfo's FlagConvoked IDs (the
+	// Defined$ Convoked selector reads it -- Lethal Scheme's connive sub
+	// while the spell is on the stack, Venerated Loxodon's and Zephyr
+	// Singer's ETB triggers after it resolves into a permanent). It rides
+	// the same provenance window as X/CastFlags and resets alongside them
+	// in events.Move; a COPY of the spell was never convoked for and reads
+	// empty.
+	Convoked []ObjID
 	// ManaSpent is the TOTAL mana actually spent to cast the spell (CR
 	// 601.2h's payment -- the spent delta's pips summed over every slot),
 	// carried by the pay-time CastInfo's FlagManaSpent Amount (the
