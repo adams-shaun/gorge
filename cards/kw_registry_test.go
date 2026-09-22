@@ -33,6 +33,9 @@ var expandedHeads = []string{
 	// Appended after the split (each is a keyword whose expansion the
 	// pre-split switch never had): Exploit (CR 702.58, task exploit1).
 	"Exploit",
+	// CR 702.118 Class: the level-up activator plus the level-gated granted
+	// static/trigger/replacement, added after the split (kw-class).
+	"Class",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {
