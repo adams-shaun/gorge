@@ -846,27 +846,20 @@ func (b Board) unlessSacrificeOffer(d *decision.Decision) []int {
 // clamp reintroduced I-1(b): a Min:1 priority decision falling through with
 // nothing chosen got topped up into an activation instead of a pass.
 func Clamp(d *decision.Decision, in decision.Intent) decision.Intent {
-	// Same-controller target answers are a set constraint, not an ordinary
-	// option-group constraint. Keep the first represented controller and drop
-	// other controllers before the shared quota repair; top-up then stays on
-	// that controller, so Clamp cannot manufacture an answer Submit rejects.
+	// A same-controller target answer must be repaired as one controller's
+	// complete decision, not by retaining the first controller in the input:
+	// that controller can lack Min legal options while a later controller can
+	// satisfy Min, Groups and the budget. Build a feasible local decision
+	// before the ordinary repair so Clamp never returns an answer Validate
+	// rejects.
+	if d.TargetsWithSameController {
+		in.Choices = sameControllerChoices(d, in.Choices)
+	}
 	var targetController state.PlayerID
 	var haveTargetController bool
-	if d.TargetsWithSameController {
-		kept := make([]int, 0, len(in.Choices))
-		for _, c := range in.Choices {
-			if c < 0 || c >= len(d.Options) {
-				continue
-			}
-			got := d.Options[c].Controller
-			if !haveTargetController {
-				targetController, haveTargetController = got, true
-			}
-			if got == targetController {
-				kept = append(kept, c)
-			}
-		}
-		in.Choices = kept
+	if d.TargetsWithSameController && len(in.Choices) > 0 {
+		targetController = d.Options[in.Choices[0]].Controller
+		haveTargetController = true
 	}
 	// The decision's joint constraints -- the Max ceiling, the cumulative
 	// budget (Decision.MaxSum, which Decision.Validate enforces) and the
@@ -973,4 +966,61 @@ func Clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 		}
 	}
 	return in
+}
+
+// sameControllerChoices tries each represented controller in deterministic
+// input-then-option order. It projects that controller's options into a local
+// decision and uses Clamp recursively to apply the ordinary Max, Group,
+// budget and Required constraints before accepting only a locally valid
+// result. The projection prevents a controller with too few compatible picks
+// from trapping repair when another controller has a legal answer.
+func sameControllerChoices(d *decision.Decision, choices []int) []int {
+	controllers := make([]state.PlayerID, 0, len(d.Options))
+	seen := make(map[state.PlayerID]bool, len(d.Options))
+	addController := func(p state.PlayerID) {
+		if !seen[p] {
+			seen[p] = true
+			controllers = append(controllers, p)
+		}
+	}
+	for _, c := range choices {
+		if c >= 0 && c < len(d.Options) {
+			addController(d.Options[c].Controller)
+		}
+	}
+	for _, o := range d.Options {
+		addController(o.Controller)
+	}
+	for _, controller := range controllers {
+		local := *d
+		local.TargetsWithSameController = false
+		local.Options = nil
+		original := make([]int, 0, len(d.Options))
+		index := make(map[int]int, len(d.Options))
+		for _, o := range d.Options {
+			if o.Controller != controller {
+				continue
+			}
+			index[o.Index] = len(local.Options)
+			original = append(original, o.Index)
+			o.Index = len(local.Options)
+			local.Options = append(local.Options, o)
+		}
+		localIn := decision.Intent{Seq: d.Seq, Player: d.Player}
+		for _, c := range choices {
+			if i, ok := index[c]; ok {
+				localIn.Choices = append(localIn.Choices, i)
+			}
+		}
+		localOut := Clamp(&local, localIn)
+		if local.Validate(localOut) != nil {
+			continue
+		}
+		out := make([]int, len(localOut.Choices))
+		for i, c := range localOut.Choices {
+			out[i] = original[c]
+		}
+		return out
+	}
+	return nil
 }

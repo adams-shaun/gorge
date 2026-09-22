@@ -128,13 +128,6 @@ type pendingCast struct {
 	// announced value into that filter). Empty on every ordinary cast.
 	announceX string
 
-	// sameCtrlTargets is the TargetsWithSameController$ True rider (Lodestone
-	// Bauble): every target this cast's announcement chooses must share one
-	// controller — in a graveyard, its owner. The offered option list spans
-	// every player's graveyard, so the pairwise constraint is enforced at
-	// Submit (validateCastContributions' preserve-and-reject shape), not by
-	// an option-list shape the wire cannot express.
-	sameCtrlTargets bool
 	// suspendTimeX makes the chosen cast X also set the number of TIME
 	// counters; suspendMinX is Forge's XMin<N> lower bound.
 	suspendTimeX bool
@@ -2031,15 +2024,11 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// spell's own push. An ability proposal (pc.ability >= 0) never reads it:
 	// payCast's flag arm is gated on !pc.isAbility().
 	e.cast.offSorcery = e.offSorceryAtCast(p)
-	// The announce-bearing alternative (the Shoal cycle) and the
-	// TargetsWithSameController rider (Lodestone Bauble) ride the selected
+	// The announce-bearing alternative (the Shoal cycle) rides the selected
 	// cast SA into the transaction: xAsk's announce arm and exAsk's binding
-	// read the first, handleTarget's Submit-time validator the second.
+	// read the captured value.
 	if announceAlt != nil && announceAlt.announce != "" {
 		e.cast.announceX = announceAlt.announce
-	}
-	if sa := f.SpellAbility(); sa != nil && strings.EqualFold(strings.TrimSpace(sa.Params["TargetsWithSameController"]), "True") {
-		e.cast.sameCtrlTargets = true
 	}
 	// CR 903.8: the commander tax, applied to whatever cost this cast pays
 	// (the base/alternative/kicked/flashback/surged/miracle cost resolved
@@ -5011,40 +5000,6 @@ func (e *Engine) validateSearch(d *decision.Decision, in decision.Intent) error 
 	}
 	if !effects.SharedLandTypes(e.G, ids) {
 		return fmt.Errorf("chosen cards do not share a land type")
-	}
-	return nil
-}
-
-// validateSameControllerTargets is the Submit-time gate for a cast-flow
-// target announcement whose SA carries TargetsWithSameController$ True
-// (Lodestone Bauble): every chosen object must share one controller. Any
-// other KTarget decision, a single-object answer, and an out-of-range choice
-// (Validate's own error) pass through untouched.
-func (e *Engine) validateSameControllerTargets(d *decision.Decision, in decision.Intent) error {
-	if !d.TargetsWithSameController || d.Kind != decision.KTarget || len(in.Choices) <= 1 {
-		return nil
-	}
-	var owner state.PlayerID
-	haveOwner := false
-	for _, c := range in.Choices {
-		if c < 0 || c >= len(d.Options) {
-			continue // Validate's own out-of-range error already fired
-		}
-		o := d.Options[c]
-		if o.Obj == 0 {
-			continue
-		}
-		obj := e.G.Obj(o.Obj)
-		if obj == nil {
-			return nil // the resolution-time recheck owns a vanished object
-		}
-		if !haveOwner {
-			owner, haveOwner = obj.Controller, true
-			continue
-		}
-		if obj.Controller != owner {
-			return fmt.Errorf("chosen targets do not share one controller")
-		}
 	}
 	return nil
 }
