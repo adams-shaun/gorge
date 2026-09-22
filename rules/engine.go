@@ -77,6 +77,8 @@ type Config struct {
 	// events.Apply's TokenCreate case has something to mint from. Replay
 	// must pass the same table a live match's Config did.
 	Tokens map[string]*cards.Card
+	// NameUniverse is the compiled corpus used by NameCard decisions.
+	NameUniverse []*cards.Card
 	// LoopGuard, when non-nil, overrides the livelock watcher's thresholds
 	// for this game (rules/livelock.go): how many consecutive events a
 	// repeating cycle must run before the engine aborts with a
@@ -1297,6 +1299,7 @@ func newWithRNG(cfg Config, random *rng) *Engine {
 	}
 	e.G.Tokens = cfg.Tokens
 	e.setNameInPool = poolHasSetNameStatic(cfg)
+	e.G.NameUniverse = cfg.NameUniverse
 	e.manaExpendedTurn = e.G.Turn
 	e.format = cfg.Format
 	for i := range e.G.Players {

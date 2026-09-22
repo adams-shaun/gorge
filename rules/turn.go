@@ -1026,6 +1026,9 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 	// the effect).
 	if e.resume != nil {
 		rp := e.resume
+		if rp.kind == "name" && len(chosen) == 1 {
+			rp.name = chosen[0].Label
+		}
 		e.resume = nil
 		e.resumeResolution(rp, chosen)
 		return

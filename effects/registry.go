@@ -672,6 +672,8 @@ type Ctx struct {
 	TriggerContext
 	Source     state.ObjID
 	Controller state.PlayerID
+	// NameChoice carries a mid-resolution NameCard answer across re-entry.
+	NameChoice string
 	Targets    []state.Target
 	// TargetControllerLKI captures each object target's controller at the
 	// start of resolution. A target may leave the battlefield before a

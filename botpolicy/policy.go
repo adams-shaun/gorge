@@ -512,6 +512,11 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 				}
 			}
 			in.Choices = []int{d.Options[best].Index}
+		case "name":
+			// The full corpus list is deliberately large and hidden cards are
+			// not available in Board. Choose its deterministic first legal name;
+			// this is also the R-9 no-host fallback and always validates.
+			in.Choices = []int{d.Options[0].Index}
 		case "x":
 			in.Choices = []int{d.Options[len(d.Options)-1].Index} // the most it can pay for
 		case "discard":

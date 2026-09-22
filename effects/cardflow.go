@@ -2668,14 +2668,31 @@ func effNameCard(h Host, c *Ctx, sa *cards.SA) {
 	if o := h.Game().Obj(c.Source); o != nil && o.ChosenName != "" {
 		return
 	}
-	g := h.Game()
-	name := "a card"
-	if lib := zoneOf(g, state.ZLibrary, c.Controller); len(lib) > 0 {
-		if o := g.Obj(lib[0]); o != nil && o.Face() != nil {
-			name = o.Face().Name
+	valid := sa.Params["ValidCards"]
+	if valid == "" {
+		valid = sa.Params["ValidDescription"]
+	}
+	names := cards.NameChoices(h.Game().NameUniverse, valid)
+	if len(names) == 0 {
+		// R-9: a host without a supplied corpus still completes deterministically.
+		if o := h.Game().Obj(c.Source); o != nil && o.Face() != nil {
+			names = []string{o.Face().Name}
+		} else {
+			names = []string{"a card"}
 		}
 	}
-	h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "name", Text: name})
+	if c.NameChoice == "" {
+		d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+			Source: c.Source, ResumeKind: "name", ResumeSA: sa, Prompt: "Choose a card name"}
+		for i, name := range names {
+			d.Options = append(d.Options, decision.Option{Index: i, Kind: "name", Label: name, Player: c.Controller})
+		}
+		if Ask(h, d) == AskAsked {
+			return
+		}
+		c.NameChoice = names[0]
+	}
+	h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "name", Text: c.NameChoice})
 }
 
 // discardDefinedCards resolves a Discard SA's DefinedCards$ parameter to the

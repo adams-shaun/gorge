@@ -4149,36 +4149,34 @@ func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCar
 		}
 		return out
 	case "name":
-		if validCards == "" {
-			validCards = "Card.nonLand"
-		}
-		seen := map[string]bool{}
-		names := []string{}
-		add := func(z state.Zone, players []state.PlayerID) {
-			for _, p := range players {
-				for _, id := range e.G.Zone(z, p) {
+		// NameCard ranges over the compiled card-name universe, not public
+		// objects currently visible to the chooser. An omitted ValidCards$ is
+		// intentionally unrestricted (Pithing Needle); callers with a filter
+		// retain the SA's own nonland semantics.
+		names := cards.NameChoices(e.G.NameUniverse, validCards)
+		if len(names) == 0 && len(e.G.NameUniverse) == 0 {
+			// Legacy embedders that do not provide a corpus retain the
+			// deterministic visible-object fallback; corpus-backed games use
+			// the full universe above.
+			seen := map[string]bool{}
+			for _, p := range e.G.AliveFrom(0) {
+				for _, id := range append(e.G.Zone(state.ZHand, p), append(e.G.Zone(state.ZBattlefield, p), e.G.Zone(state.ZGraveyard, p)...)...) {
 					o := e.G.Obj(id)
-					if o == nil || o.Face() == nil {
+					if o == nil || o.Face() == nil || seen[o.Face().Name] {
 						continue
 					}
-					if !effects.MatchesSpecFrom(e.G, validCards, id, you, card) {
-						continue
-					}
-					if seen[o.Face().Name] {
+					if validCards == "Card.nonLand" && o.Face().IsLand() {
 						continue
 					}
 					seen[o.Face().Name] = true
 					names = append(names, o.Face().Name)
 				}
 			}
+			sort.Strings(names)
 		}
-		add(state.ZHand, []state.PlayerID{you})
-		add(state.ZBattlefield, e.G.AliveFrom(0))
-		add(state.ZGraveyard, e.G.AliveFrom(0))
-		sort.Strings(names)
 		out := make([]decision.Option, 0, len(names))
 		for _, n := range names {
-			out = append(out, decision.Option{Index: len(out), Kind: "name", Label: n})
+			out = append(out, decision.Option{Index: len(out), Kind: "name", Label: n, Player: you})
 		}
 		return out
 	case "type":

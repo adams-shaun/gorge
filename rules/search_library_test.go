@@ -62,11 +62,35 @@ func searchEngine(t *testing.T, reg *cards.Registry, fixtures ...string) (*Engin
 		opp[i] = mountain
 	}
 	cfg := Config{Seed: 9202, Names: []string{"searcher", "opponent"},
-		Decks: [][]*cards.Card{deck, opp}, Tokens: reg.Tokens}
+		Decks: [][]*cards.Card{deck, opp}, Tokens: reg.Tokens, NameUniverse: reg.Cards}
 	e := New(cfg)
 	e.Advance()
 	toMain1(t, e)
 	return e, cfg
+}
+
+func TestCorpusNameChoiceUsesFullUniverse(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, _ := searchEngine(t, reg, "Pithing Needle", "Phyrexian Revoker", "Cabal Therapy")
+	if _, ok := reg.Lookup("Wasteland"); !ok {
+		t.Fatal("corpus precondition: Wasteland missing")
+	}
+	all := e.etbOptions(0, e.G.Zone(state.ZLibrary, 0)[0], "name", "", "", "")
+	land := false
+	for _, o := range all {
+		if o.Label == "Wasteland" {
+			land = true
+		}
+	}
+	if !land {
+		t.Fatalf("unrestricted NameCard omitted unseen land; options=%d", len(all))
+	}
+	nonland := e.etbOptions(0, e.G.Zone(state.ZLibrary, 0)[0], "name", "Card.nonLand", "", "")
+	for _, o := range nonland {
+		if o.Label == "Wasteland" {
+			t.Fatal("nonland NameCard offered Wasteland")
+		}
+	}
 }
 
 func searchMoveByName(t *testing.T, e *Engine, name string, to state.Zone) state.ObjID {
