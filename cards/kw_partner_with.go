@@ -38,9 +38,12 @@ import "strings"
 // "&" is not a filter separator, so both parse as the printed name.
 //
 // DefinedPlayer$ Targeted makes the searching player the player the trigger
-// targeted (CR 702.128's "target player"), and ValidTgts$ Player sits on
-// this same effect SA because that is the SA rules asks targets for at
-// trigger push (the Kitesail Freebooter shape). The quality is STATED
+// targeted (CR 702.128's "target player"), and Chooser$ Targeted makes that
+// same targeted player the one who ANSWERS the private search ask — without
+// it, effSearchLibrary defaults the decision seat to the trigger controller,
+// who would read the opponent's library. ValidTgts$ Player sits on this same
+// effect SA because that is the SA rules asks targets for at trigger push
+// (the Kitesail Freebooter shape). The quality is STATED
 // (Card.named<name>), so effSearchLibrary offers a fail-to-find Min of 0 --
 // the "may" -- and then shuffles by default; Optional$ True is carried
 // verbatim from Forge's script shape even though the search path's Min 0,
@@ -59,7 +62,7 @@ func kwPartnerWith(f *Face, i int, k, head, param string, has func(kind, line st
 	f.addKeywordTrigger(head, k,
 		"Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | TriggerZones$ Battlefield | TriggerDescription$ Partner with "+name,
 		"DB$ ChangeZone | Origin$ Library | Destination$ Hand | ChangeType$ Card.named"+name+
-			" | ChangeTypeDesc$ "+name+" | DefinedPlayer$ Targeted | Optional$ True | ValidTgts$ Player | TgtPrompt$ Select target player", has)
+			" | ChangeTypeDesc$ "+name+" | DefinedPlayer$ Targeted | Chooser$ Targeted | Optional$ True | ValidTgts$ Player | TgtPrompt$ Select target player", has)
 }
 
 func init() { registerKeyword(kwPartnerWith, "Partner with") }
