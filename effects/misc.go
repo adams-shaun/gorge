@@ -342,7 +342,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			})
 			registered = true
 		} else if event != "" && body == "" && (replacementLineCantHappen(params) ||
-			(event == "DamageDone" && replacementLinePrevents(params))) {
+			((event == "DamageDone" || event == "GainLife") && replacementLinePrevents(params))) {
 			// The bodyless CantHappen form (Mistrise Village's AntiMagic: the
 			// Event$ Counter | ValidCard$ Card.IsRemembered | Layer$ CantHappen
 			// R: the delayed Effect registers): stopping the event is the
@@ -369,10 +369,11 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			h.AddContinuous(state.ContinuousEffect{
 				Source: c.Source, Controller: c.Controller,
 				UntilEOT: untilEOT, Duration: dur,
-				Name:             effectName,
-				Remembered:       remembered,
-				ImprintOnHost:    imprintOnHost,
-				ReplacementEvent: event, ReplacementParams: params,
+				Name:              effectName,
+				Remembered:        remembered,
+				RememberedPlayers: effectRememberedPlayers(h, c, sa),
+				ImprintOnHost:     imprintOnHost,
+				ReplacementEvent:  event, ReplacementParams: params,
 			})
 			registered = true
 		} else if name != "" {
@@ -1050,6 +1051,14 @@ func effectRememberedPlayers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 			for _, t := range c.Targets {
 				if t.IsPlayer {
 					add(t.Player)
+				}
+			}
+		case "TargetedOrController":
+			for _, t := range c.Targets {
+				if t.IsPlayer {
+					add(t.Player)
+				} else if o := h.Game().Obj(t.Obj); o != nil {
+					add(o.Controller)
 				}
 			}
 		case "RememberedPlayer", "RememberedPlayers", "Remembered":
