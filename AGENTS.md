@@ -81,6 +81,14 @@ directory first (exact historical text) and falls back to the live corpus
 (`.cards/` at the current `FORGE_REF`) when it is missing (a fresh clone), so
 a fixture still replays without ever re-embedding the text into committed
 files.
+
+A capture also records the name-card universe MODE (`name_universe`) and the
+exact sorted label list that match offered (`name_universe_names`), because
+a universe-backed match poses `NameCard` asks the legacy path never poses and
+a replay rebuilt without the mode refuses the recorded name intent. The
+committed fixture keeps only the mode bit -- the list is ~24k entries -- and
+`feedback.config` re-derives it from the live corpus, so a `FORGE_REF` move
+can renumber a recorded name choice and shows up as the same `DIVERGED`.
 ```
 
 Exit 0 is a verified replay: the rebuilt event stream matches the recording
@@ -121,7 +129,7 @@ goldens in `rules/heads_test.go`:
 
 | seats | 2 | 4 | 6 | 8 |
 |---|---|---|---|---|
-| chain head | `41aff817d4f931ef` | `eb8651db1973af36` | `7e9f2574e2d31c90` | `275fb23897e22f6e` |
+| chain head | `bc7420d9e4c7d3d2` | `e7cffb892a152493` | `5e79231bd056d0fc` | `b14f1fc52a6835ed` |
 
 `TestEveryRepoDeckParamsAreRead` (`rules/paramcensus_test.go`) is the
 companion ratchet over the same decks' parameters: measured at the same

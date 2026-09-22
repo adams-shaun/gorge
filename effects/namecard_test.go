@@ -213,3 +213,44 @@ func containsLabel(opts []decision.Option, want string) bool {
 	}
 	return false
 }
+
+// TestNameChoicesUnrestrictedPrefersThePersistedSnapshot closes the sol3
+// MINOR: the snapshot preference in nameUniverseSnapshot was only covered on
+// the FILTERED path, where the persisted list also acts as an allowlist. The
+// UNRESTRICTED path -- Pithing Needle, the brief's headline card, which
+// carries no ValidCards$ -- returns the snapshot directly, and nothing pinned
+// that. Without the preference a corpus ADDITION that sorts before an
+// existing name renumbers every later option, so a persisted numeric answer
+// replays as a different card name.
+//
+// The probe is the same shape the host replay test uses: a "!"-prefixed name
+// is forced to sort first in the current corpus, while the persisted
+// NameUniverseNames still holds the list the match offered.
+func TestNameChoicesUnrestrictedPrefersThePersistedSnapshot(t *testing.T) {
+	g := namecardGameWithUniverse(t)
+	pinned := NameChoices(g, "", "")
+	g.NameUniverseNames = append([]string(nil), pinned...)
+
+	// The corpus grows after the match was recorded.
+	g.NameUniverse = append(g.NameUniverse, mkCard(t, "Name:!Newcomer\nTypes:Creature\nPT:1/1\nOracle:x\n"))
+
+	got := NameChoices(g, "", "")
+	if len(got) != len(pinned) {
+		t.Fatalf("unrestricted NameChoices returned %d names (%v) after a corpus addition, want the persisted %d (%v)", len(got), got, len(pinned), pinned)
+	}
+	for i := range pinned {
+		if got[i] != pinned[i] {
+			t.Fatalf("option %d = %q, persisted %q: a corpus addition renumbered a recorded name choice", i, got[i], pinned[i])
+		}
+	}
+	if containsName(got, "!Newcomer") {
+		t.Fatal("unrestricted NameChoices offered a card added after the match was recorded")
+	}
+
+	// With no persisted list (a live match) the same call DOES see the
+	// addition -- the preference is a replay pin, not a corpus freeze.
+	g.NameUniverseNames = nil
+	if live := NameChoices(g, "", ""); !containsName(live, "!Newcomer") {
+		t.Fatalf("a live (unpinned) unrestricted NameChoices missed the new card: %v", live)
+	}
+}
