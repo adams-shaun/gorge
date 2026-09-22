@@ -23,7 +23,7 @@ var registeredModes = []string{
 	"SpellCast", "SpellCastOrCopy", "SpellCopy", "AbilityCast", "SpellAbilityCast",
 	"Attacks", "AttackersDeclared", "AttackersDeclaredOneTarget",
 	"Cycled", "Explores", "Investigated", "RingTemptsYou",
-	"CounterAdded", "CounterRemoved",
+	"CounterAdded", "CounterAddedOnce", "CounterRemoved",
 	"Attached", "Exerted", "TokenCreated", "TokenCreatedOnce",
 	"Sacrificed", "Discarded", "CommitCrime",
 	"Taps", "TapsForMana",

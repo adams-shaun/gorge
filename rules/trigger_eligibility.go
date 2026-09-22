@@ -200,7 +200,7 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// the exact carrier-event shape FlippedCoin shares, with the two
 		// List$ opponent sets riding IDs/Pairs as player refs.
 		return 1 << events.Note
-	case "CounterAdded", "CounterRemoved":
+	case "CounterAdded", "CounterAddedOnce", "CounterRemoved":
 		return 1 << events.CounterChange
 	case "Mutates":
 		// CR 702.140f: "whenever this creature mutates". The event is the

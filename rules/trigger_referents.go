@@ -46,6 +46,13 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		if o := e.G.Obj(e.inFlightDamageSource()); o != nil && o.IsAttacking {
 			c.DefendingPlayer = player(o.Attacking)
 		}
+	case "CounterAddedOnce":
+		// The batch size the body reads as TriggerCount$Amount (Simic
+		// Ascendancy's "put that many growth counters"): one CounterChange
+		// event carries the whole placement batch in Amount, and ev.Obj is
+		// the permanent the counters landed on.
+		c.TriggerCard = ev.Obj
+		c.TriggerAmount = ev.Amount
 	case "DamagePreventedOnce":
 		// The prevention Note carries the prevented damage in Amount and the
 		// damaged side in Obj/Player (rules/replacement.go's stored-prevention
