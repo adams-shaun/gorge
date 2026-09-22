@@ -290,7 +290,7 @@ func (e *Engine) spellAbilityCastSpellMatches(t cards.Trigger, source state.ObjI
 		}
 	}
 	if v, ok := t.Params["ValidSA"]; ok {
-		if !spellAbilityCastSpellValidSA(e.G, obj, v, ctrl, e.specCtx(source, ctrl)) {
+		if !e.spellAbilityCastSpellValidSA(obj, v, ctrl, e.specCtx(source, ctrl)) {
 			return false
 		}
 	}
@@ -323,7 +323,7 @@ func (e *Engine) spellAbilityCastSpellMatches(t cards.Trigger, source state.ObjI
 // An alternative this reading cannot resolve is skipped; the trigger fires
 // only when at least one alternative matches (an unresolvable clause fails
 // closed, the repo's convention).
-func spellAbilityCastSpellValidSA(g *state.Game, obj *state.Object, validSA string, ctrl state.PlayerID, sc effects.SpecContext) bool {
+func (e *Engine) spellAbilityCastSpellValidSA(obj *state.Object, validSA string, ctrl state.PlayerID, sc effects.SpecContext) bool {
 	v := strings.TrimSpace(validSA)
 	if v == "" {
 		return true
@@ -353,7 +353,7 @@ func spellAbilityCastSpellValidSA(g *state.Game, obj *state.Object, validSA stri
 		default:
 			// Spell / Instant / Sorcery / Card / Permanent / no kind -- the
 			// ordinary object filter over the cast spell.
-			if effects.MatchesObjectCtx(g, alt, obj, sc) {
+			if e.matchesSpec(alt, obj.ID, sc) {
 				return true
 			}
 		}
@@ -747,7 +747,7 @@ func (e *Engine) spellsCastThisTurnByMatching(p state.PlayerID, spec string, exc
 		if selfName != "" && o.Face().Name == selfName {
 			continue
 		}
-		if effects.MatchesSpecFrom(e.G, spec, ev.Obj, p, ev.Obj) {
+		if e.matchesSpecFrom(spec, ev.Obj, p, ev.Obj) {
 			n++
 		}
 	}

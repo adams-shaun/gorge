@@ -708,7 +708,7 @@ func (e *Engine) gainedFacesForSource(source state.ObjID) []state.GainedFace {
 		if len(ce.GainedFaces) == 0 && len(ce.GainedTriggerFaces) == 0 {
 			continue
 		}
-		if !effects.MatchesSpecFrom(e.G, ce.Affects, source, ce.Controller, ce.Source) {
+		if !e.matchesSpecFrom(ce.Affects, source, ce.Controller, ce.Source) {
 			continue
 		}
 		out = append(out, ce.GainedFaces...)
@@ -1875,7 +1875,7 @@ func (e *Engine) effectCastSweep(ev events.Event) {
 		for _, r := range ce.Remembered {
 			sc.Remembered = append(sc.Remembered, state.Target{Obj: r})
 		}
-		if effects.MatchesSpecCtx(e.G, spec, ev.Obj, sc) {
+		if e.matchesSpec(spec, ev.Obj, sc) {
 			changed = true
 			continue // the effect ends: not kept
 		}

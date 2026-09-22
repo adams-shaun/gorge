@@ -3,7 +3,6 @@ package rules
 import (
 	"strings"
 
-	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -128,7 +127,7 @@ func (e *Engine) auraStillMatchesEnchant(o, bearer *state.Object) bool {
 		return true
 	}
 	spec, _, _ := strings.Cut(param, ":")
-	return effects.MatchesSpecFrom(e.G, strings.TrimSpace(spec), bearer.ID, o.Controller, o.ID)
+	return e.matchesSpecFrom(strings.TrimSpace(spec), bearer.ID, o.Controller, o.ID)
 }
 
 // isAura reports whether a permanent has the Aura subtype.

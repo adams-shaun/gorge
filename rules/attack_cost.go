@@ -144,10 +144,10 @@ func (e *Engine) blockPairCharge(blocker, attacker state.ObjID) int32 {
 		if !cantAttackUnlessParamsReadable(sv.Params) || !e.continuousGateHolds(sv) {
 			continue
 		}
-		if spec := sv.Params["ValidCard"]; spec != "" && !effects.MatchesSpecCtx(e.G, spec, blocker, e.specCtxSVars(sv.Source, sv.Controller, sv.SVars)) {
+		if spec := sv.Params["ValidCard"]; spec != "" && !e.matchesSpec(spec, blocker, e.specCtxSVars(sv.Source, sv.Controller, sv.SVars)) {
 			continue
 		}
-		if spec := sv.Params["Attacker"]; spec != "" && !effects.MatchesSpecCtx(e.G, spec, attacker, e.specCtxSVars(sv.Source, sv.Controller, sv.SVars)) {
+		if spec := sv.Params["Attacker"]; spec != "" && !e.matchesSpec(spec, attacker, e.specCtxSVars(sv.Source, sv.Controller, sv.SVars)) {
 			continue
 		}
 		n, ok := e.attackUnlessPrice(sv)

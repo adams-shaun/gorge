@@ -2,7 +2,6 @@ package rules
 
 import (
 	"github.com/adams-shaun/gorge/cards"
-	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -84,7 +83,7 @@ func (e *Engine) matchesUnattachedBearer(spec string, bearer, source state.ObjID
 	if o == nil || o.Zone == state.ZBattlefield {
 		return false
 	}
-	return effects.MatchesObjectCtx(e.G, spellCastPermanentSpec(spec), o, sc)
+	return e.matchesSpec(spellCastPermanentSpec(spec), bearer, sc)
 }
 
 func init() {

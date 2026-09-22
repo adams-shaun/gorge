@@ -153,7 +153,7 @@ func (e *Engine) manaReflectedPresentHolds(p state.PlayerID, source state.ObjID,
 	}
 	if strings.Contains(spec, "hasAbility Activated.otherAbility") {
 		o := e.G.Obj(source)
-		if o == nil || o.Face() == nil || !effects.MatchesSpecFrom(e.G,
+		if o == nil || o.Face() == nil || !e.matchesSpecFrom(
 			strings.TrimSpace(strings.Split(spec, "+hasAbility Activated.otherAbility")[0]), source, p, source) {
 			return false
 		}
@@ -653,7 +653,7 @@ func (e *Engine) manaSacrifices(p state.PlayerID, source state.ObjID, cost Cost)
 			if e.SacrificeBlocked(id, true) {
 				continue
 			}
-			if !reserved[id] && effects.MatchesSpecFrom(e.G, part.Spec, id, p, source) {
+			if !reserved[id] && e.matchesSpecFrom(part.Spec, id, p, source) {
 				candidates = append(candidates, id)
 			}
 		}
@@ -681,7 +681,7 @@ func (e *Engine) manaExiles(p state.PlayerID, source state.ObjID, cost Cost) ([]
 		}
 		var candidates []state.ObjID
 		for _, id := range e.G.Zone(zone, p) {
-			if !reserved[id] && effects.MatchesSpecFrom(e.G, part.Spec, id, p, source) {
+			if !reserved[id] && e.matchesSpecFrom(part.Spec, id, p, source) {
 				candidates = append(candidates, id)
 			}
 		}
@@ -741,7 +741,7 @@ func (e *Engine) continueManaDiscard() {
 			if reserved[id] || e.SacrificeBlocked(id, true) {
 				continue
 			}
-			if effects.MatchesSpecFrom(e.G, part.Spec, id, md.player, md.source) {
+			if e.matchesSpecFrom(part.Spec, id, md.player, md.source) {
 				candidates = append(candidates, id)
 			}
 		}
@@ -817,7 +817,7 @@ func (e *Engine) continueManaDiscard() {
 		}
 		var candidates []state.ObjID
 		for _, id := range e.G.Zone(zone, md.player) {
-			if !reserved[id] && effects.MatchesSpecFrom(e.G, part.Spec, id, md.player, md.source) {
+			if !reserved[id] && e.matchesSpecFrom(part.Spec, id, md.player, md.source) {
 				candidates = append(candidates, id)
 			}
 		}

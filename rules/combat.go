@@ -709,7 +709,7 @@ func (e *Engine) exertOfferHolds(id state.ObjID) bool {
 		// 28 carriers, verified in triage) must still admit the attacker;
 		// an unparseable spec fails closed.
 		if vc := sv.Params["ValidCard"]; vc != "" &&
-			!effects.MatchesSpecFrom(e.G, vc, id, o.Controller, sv.Source) {
+			!e.matchesSpecFrom(vc, id, o.Controller, sv.Source) {
 			continue
 		}
 		if !e.continuousGateHolds(sv) {

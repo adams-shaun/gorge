@@ -520,7 +520,7 @@ func (e *Engine) restrictValidTermMatches(p state.PlayerID, id state.ObjID, abil
 	if !ok {
 		return false
 	}
-	if effects.MatchesSpecFrom(e.G, spec, id, p, srcID) {
+	if e.matchesSpecFrom(spec, id, p, srcID) {
 		return true
 	}
 	// Forge's object-filter grammar defaults the base to Card, so a bare
@@ -532,7 +532,7 @@ func (e *Engine) restrictValidTermMatches(p state.PlayerID, id state.ObjID, abil
 	// explicit base before denying the batch: the retry can only turn a
 	// "never spendable" batch into the correct evaluation, never widen a
 	// spec that already evaluated (the first attempt ran unchanged).
-	return effects.MatchesSpecFrom(e.G, "Card."+spec, id, p, srcID)
+	return e.matchesSpecFrom("Card."+spec, id, p, srcID)
 }
 
 // paymentConv is the conversion set for p paying id (ability selects the
@@ -3134,7 +3134,7 @@ func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exc
 		if !ok {
 			continue
 		}
-		if effects.MatchesSpecFrom(e.G, matchSpec, ev.Obj, you, ev.Obj) {
+		if e.matchesSpecFrom(matchSpec, ev.Obj, you, ev.Obj) {
 			out = append(out, ev.Obj)
 		}
 	}

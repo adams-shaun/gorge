@@ -2804,7 +2804,8 @@ func altCostLabel(name string, i int) string {
 // build cannot evaluate (IsPresent/PresentCompare, Condition, ValidTurned --
 // there is no TurnFaceUp event) fail closed: the static does not double,
 // never over-applies.
-func (e *Engine) panharmoniconEchoes(g *state.Game, src state.ObjID, ev events.Event) int {
+func (e *Engine) panharmoniconEchoes(observer *Engine, src state.ObjID, ev events.Event) int {
+	g := observer.G
 	o := g.Obj(src)
 	if o == nil {
 		return 0
@@ -2859,7 +2860,7 @@ func (e *Engine) panharmoniconEchoes(g *state.Game, src state.ObjID, ev events.E
 					cause = ev.IDs[0]
 				}
 			}
-			if cause == 0 || !effects.MatchesSpecFrom(g, spec, cause, sv.Controller, sv.Source) {
+			if cause == 0 || !observer.matchesSpecFrom(spec, cause, sv.Controller, sv.Source) {
 				continue
 			}
 		}
@@ -2871,14 +2872,14 @@ func (e *Engine) panharmoniconEchoes(g *state.Game, src state.ObjID, ev events.E
 		}
 		if spec := sv.Params["ValidSource"]; spec != "" {
 			if ev.Kind != events.Damage || e.damaging == 0 ||
-				!effects.MatchesSpecFrom(g, spec, e.damaging, sv.Controller, sv.Source) {
+				!observer.matchesSpecFrom(spec, e.damaging, sv.Controller, sv.Source) {
 				continue
 			}
 		}
 		if spec := sv.Params["ValidTarget"]; spec != "" {
 			switch {
 			case ev.Kind == events.Damage && ev.Obj != 0:
-				if !effects.MatchesSpecFrom(g, spec, ev.Obj, sv.Controller, sv.Source) {
+				if !observer.matchesSpecFrom(spec, ev.Obj, sv.Controller, sv.Source) {
 					continue
 				}
 			case ev.Kind == events.Damage:
@@ -2887,7 +2888,7 @@ func (e *Engine) panharmoniconEchoes(g *state.Game, src state.ObjID, ev events.E
 				}
 			case ev.Kind == events.TargetsChosen:
 				// The BecomesTarget-ed object is the trigger's own source.
-				if !effects.MatchesSpecFrom(g, spec, src, sv.Controller, sv.Source) {
+				if !observer.matchesSpecFrom(spec, src, sv.Controller, sv.Source) {
 					continue
 				}
 			default:
@@ -2912,7 +2913,7 @@ func (e *Engine) panharmoniconEchoes(g *state.Game, src state.ObjID, ev events.E
 		if spec == "" {
 			continue
 		}
-		if effects.MatchesSpecFrom(g, spec, src, sv.Controller, sv.Source) {
+		if observer.matchesSpecFrom(spec, src, sv.Controller, sv.Source) {
 			n++
 		}
 	}

@@ -498,7 +498,7 @@ func (e *Engine) cumulativeObjects(cu *cumulativeUpkeep, zone state.Zone, spec s
 	}
 	for _, p := range players {
 		for _, id := range e.G.Zone(zone, p) {
-			if effects.MatchesSpecFrom(e.G, spec, id, cu.player, cu.source) {
+			if e.matchesSpecFrom(spec, id, cu.player, cu.source) {
 				out = append(out, id)
 			}
 		}
