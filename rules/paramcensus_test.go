@@ -2481,10 +2481,16 @@ var knownUnsupportedParams = map[string][]string{
 	"Heroic Sacrifice":           {"param:api:DelayedTrigger.Destination", "param:api:Effect.ValidTgtsDesc", "param:api:PutCounter.ValidTgtsDesc", "param:api:ReplaceEffect.VarType"},
 	"Iron Man, Armored Avenger":  {"param:api:PutCounter.ValidTgtsDesc"},
 	"Jocasta, Automaton Avenger": {"param:api:ChangeZone.Attacking"},
-	"Love on the Battlefield":    {"param:trig:AttackersDeclared.NoResolvingCheck"},
-	"Methods of the Mighty":      {"param:api:Destroy.ValidTgtsDesc"},
-	"Mogis, God of Slaughter":    {"param:stat:Continuous.RemoveType"},
-	"Patriot, Shield Wielder":    {"param:api:Pump.ValidTgtsDesc"},
+	// (Love on the Battlefield's param:trig:AttackersDeclared.NoResolvingCheck
+	// row retired when the NoResolvingCheck$ read landed: the resolution-time
+	// CR 603.4 recheck skips a trigger carrying the param
+	// (rules/trigger_condition.go noResolvingCheck/triggerResolvingCheckHolds,
+	// consulted by resolveTop) -- pinned end to end on the real corpus
+	// carrier Ugin's Mastery in rules/no_resolving_check_test.go, with a
+	// no-param control proving the recheck stays live for everyone else.)
+	"Methods of the Mighty":   {"param:api:Destroy.ValidTgtsDesc"},
+	"Mogis, God of Slaughter": {"param:stat:Continuous.RemoveType"},
+	"Patriot, Shield Wielder": {"param:api:Pump.ValidTgtsDesc"},
 	// (Photon, Mighty Marvel's param:api:Mana.PersistentMana row retired when
 	// the PersistentMana$ read landed — the pm ManaAdd suffix, ManaClear's
 	// partial clear and the TurnChange expiry — pinned end to end on the real

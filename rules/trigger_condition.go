@@ -19,6 +19,35 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
+// noResolvingCheck reports whether the trigger carries NoResolvingCheck$ True:
+// Forge's marker that its condition clause (an intervening-if, an
+// IsPresent$/PresentCompare$ or a CheckSVar$/SVarCompare$ gate) is checked
+// ONLY when the trigger would fire, never again as it resolves. Measured over
+// the corpus: 88 raw T: lines across 87 files, every one True -- transient
+// fire-time battlefield counts (pack tactics' attacking power, battalion's
+// other attackers, Valakut's Mountains, Vengevine's second creature spell,
+// Love on the Battlefield's exactly-two) whose re-evaluation at resolution
+// would wrongly fizzle the ability after the state moved. The read sits in
+// the ONE resolution-time recheck site (resolveTop's CR 603.4 half, via
+// triggerResolvingCheckHolds); every fire-time site (triggerMatches,
+// the event-matched delayed walker, the AttackerBlocked hook) keeps its own
+// check.
+func noResolvingCheck(t cards.Trigger) bool {
+	return strings.EqualFold(strings.TrimSpace(t.Params["NoResolvingCheck"]), "True")
+}
+
+// triggerResolvingCheckHolds is the resolution-time half of the CR 603.4
+// condition check, beside triggerMatches' fire-time half: a triggered
+// ability's condition is checked when it triggers AND as it resolves, and a
+// false answer at resolution removes the ability from the stack (CR 603.4).
+// NoResolvingCheck$ True opts the trigger out of this second check.
+func (e *Engine) triggerResolvingCheckHolds(t cards.Trigger, source state.ObjID) bool {
+	if noResolvingCheck(t) {
+		return true
+	}
+	return e.triggerConditionHolds(t, source)
+}
+
 // triggerConditionHolds evaluates the CR 603.4 intervening-if clause (and the
 // CR 603.8 state-trigger condition) carried on a T: line. Two clause shapes
 // are recognised, the two the corpus uses on the trigger lines this engine
