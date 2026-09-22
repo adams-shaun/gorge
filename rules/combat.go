@@ -147,7 +147,7 @@ func (e *Engine) requiredAttackDefender(id state.ObjID) (state.PlayerID, bool) {
 		if !e.mustAttackLineSelects(ce.RestrictParams["ValidCreature"], id, ce.Source, ce.Controller, ce.Remembered) {
 			continue
 		}
-		if p, ok := e.requirementDefender(ce.RestrictParams["MustAttack"], ce.Source, ce.Controller, ce.RememberedPlayers); ok {
+		if p, ok := e.requirementDefender(ce.RestrictParams["MustAttack"], ce.Source); ok {
 			return p, true
 		}
 	}
@@ -162,7 +162,7 @@ func (e *Engine) requiredAttackDefender(id state.ObjID) (state.PlayerID, bool) {
 		if !e.mustAttackLineSelects(sv.Params["ValidCreature"], id, sv.Source, sv.Controller, nil) {
 			continue
 		}
-		if p, ok := e.requirementDefender(spec, sv.Source, sv.Controller, nil); ok {
+		if p, ok := e.requirementDefender(spec, sv.Source); ok {
 			return p, true
 		}
 	}
@@ -204,16 +204,17 @@ func MustAttackParamsReadableForRules(params map[string]string) bool {
 
 // requirementDefender resolves a MustAttack$ player reference to the
 // defending player it names, from the requirement registration's own
-// bindings. Only the references whose binding this build holds resolve:
-// ChosenPlayer/Player.Chosen reads the source object's event-backed Chosen
-// list (the ChoosePlayer answer, which survives from the begin-combat trigger
-// to the declare-attackers step because choiceRecord emits it on the source),
-// and You names the registration's own controller. Every other reference
-// (RememberedPlayer, Player.IsRemembered, EffectSource, CardOwner,
-// EnchantedController, Opponent.lifeEQX, ...) needs a binding or evaluator
-// this build does not carry, so it fails closed -- the requirement is simply
-// not counted, which is the safe direction.
-func (e *Engine) requirementDefender(spec string, source state.ObjID, controller state.PlayerID, rememberedPlayers []state.PlayerID) (state.PlayerID, bool) {
+// bindings. Only ChosenPlayer/Player.Chosen resolves today: it reads the
+// source object's event-backed Chosen list (the ChoosePlayer answer, which
+// survives from the begin-combat trigger to the declare-attackers step
+// because choiceRecord emits it on the source). Every other reference
+// (You, RememberedPlayer, Player.IsRemembered, EffectSource, CardOwner,
+// EnchantedController, Opponent.lifeEQX, ...) names a binding or evaluator
+// this change does not carry, so it fails closed -- the requirement is simply
+// not counted, which is the safe direction for a requirement and is the
+// pre-existing behaviour for every one of them. They are listed in the
+// ticket report's Issues section rather than implemented unproven.
+func (e *Engine) requirementDefender(spec string, source state.ObjID) (state.PlayerID, bool) {
 	switch strings.TrimSpace(spec) {
 	case "ChosenPlayer", "Player.Chosen":
 		if o := e.G.Obj(source); o != nil {
@@ -223,10 +224,7 @@ func (e *Engine) requirementDefender(spec string, source state.ObjID, controller
 				}
 			}
 		}
-	case "You":
-		return controller, true
 	}
-	_ = rememberedPlayers
 	return 0, false
 }
 

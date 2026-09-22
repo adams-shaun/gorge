@@ -674,18 +674,17 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				break
 			}
 			h.AddContinuous(state.ContinuousEffect{
-				Source:            c.Source,
-				Controller:        c.Controller,
-				Name:              effectName,
-				UntilEOT:          effectUntilEOT(h, c.Source, dur),
-				Restriction:       mode,
-				RestrictParams:    params,
-				Remembered:        remembered,
-				RememberedPlayers: effectRememberedPlayers(h, c, sa),
-				Duration:          dur,
-				ForgetOnMoved:     forgetOn,
-				ExileOnMoved:      exileOn,
-				ForgetCounter:     forgetCounter,
+				Source:         c.Source,
+				Controller:     c.Controller,
+				Name:           effectName,
+				UntilEOT:       effectUntilEOT(h, c.Source, dur),
+				Restriction:    mode,
+				RestrictParams: params,
+				Remembered:     remembered,
+				Duration:       dur,
+				ForgetOnMoved:  forgetOn,
+				ExileOnMoved:   exileOn,
+				ForgetCounter:  forgetCounter,
 			})
 			registered = true
 		default:
