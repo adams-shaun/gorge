@@ -462,6 +462,27 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			return []state.Target{{Player: o.Controller, IsPlayer: true}}, true
 		}
 		return nil, true
+	case "Convoked":
+		// CR 702.66's "each creature that convoked it" (task connive1): the
+		// creatures the caster tapped to help pay for the resolving spell's
+		// cast, carried by the pay-time CastInfo's FlagConvoked IDs into
+		// Object.Convoked (Lethal Scheme's connive sub while the spell is on
+		// the stack; Venerated Loxodon's and Zephyr Singer's ETB triggers
+		// after it resolves into a permanent). Absent (a cast with no
+		// convoke, a copy, a creature that left play) resolves to the EMPTY
+		// set, ok=true -- the same convention FlippedHeads/FlippedTails
+		// takes, so a reader acts on nobody rather than guessing at a
+		// fallback target.
+		if o := g.Obj(c.Source); o != nil {
+			out := make([]state.Target, 0, len(o.Convoked))
+			for _, id := range o.Convoked {
+				if g.Obj(id) != nil {
+					out = append(out, state.Target{Obj: id})
+				}
+			}
+			return out, true
+		}
+		return nil, true
 	case "ReplacedCard":
 		// The card a zone-change replacement is acting on. Outside such a
 		// replacement (or after the object ceased to exist), resolve nothing.
