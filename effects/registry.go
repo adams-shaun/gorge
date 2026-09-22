@@ -636,6 +636,7 @@ type VillainousRest struct {
 type DamageSourceLKI struct {
 	Lifelink   bool
 	Infect     bool
+	Wither     bool
 	Deathtouch bool
 	Controller state.PlayerID
 }

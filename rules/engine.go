@@ -1123,6 +1123,7 @@ func (e *Engine) SetCounterAdder(p state.PlayerID) state.PlayerID {
 type damageKeywordLKI struct {
 	lifelink   bool
 	infect     bool
+	wither     bool
 	deathtouch bool
 }
 
@@ -1130,6 +1131,7 @@ func (e *Engine) damageKeywordsOf(id state.ObjID) damageKeywordLKI {
 	return damageKeywordLKI{
 		lifelink:   e.HasKeyword(id, "Lifelink"),
 		infect:     e.HasKeyword(id, "Infect"),
+		wither:     e.HasKeyword(id, "Wither"),
 		deathtouch: e.HasKeyword(id, "Deathtouch"),
 	}
 }
@@ -1693,6 +1695,13 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// gets logged, not the emit caller's copy.
 		ev = replaced
 	}
+	// DamageDone may rewrite the recipient through ReplaceEvent, while an
+	// ordinary hit still needs its initial recipient form classified. Do this
+	// after the complete replacement pass so both paths share one rule.
+	if ev.Kind == events.Damage {
+		e.recomputeInfectMarker(&ev)
+		e.recomputeWitherMarker(&ev)
+	}
 	// CR 306.8's planeswalker loyalty exchange (and CR 120.3e's exception for
 	// a permanent that is also a creature) is folded directly into this
 	// Damage event by events.Apply below -- AddCounter("LOYALTY", ...) runs
@@ -1736,6 +1745,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	if stored.Kind == events.Damage && stored.Amount > 0 &&
 		(stored.Counter == "infect" || stored.Counter == "infect+creature") {
 		e.convertInfectDamage(stored)
+	}
+	if stored.Kind == events.Damage && stored.Amount > 0 && stored.Counter == "wither+creature" {
+		e.convertWitherDamage(stored)
 	}
 	if len(e.turnsTaken) == len(e.G.Players) && e.turnsTakenEpoch == len(e.L.Events)-1 {
 		if stored.Kind == events.TurnChange && int(stored.Player) < len(e.turnsTaken) {
@@ -2051,7 +2063,7 @@ func (e *Engine) finishSourceLifelinkLKI(ev events.Event, departing bool, kw dam
 
 func damageSourceLKIOf(kw damageKeywordLKI, controller state.PlayerID) effects.DamageSourceLKI {
 	return effects.DamageSourceLKI{Lifelink: kw.lifelink, Infect: kw.infect,
-		Deathtouch: kw.deathtouch, Controller: controller}
+		Wither: kw.wither, Deathtouch: kw.deathtouch, Controller: controller}
 }
 
 func (e *Engine) captureNamedDamageSourceLKI(stack, source state.ObjID, kw damageKeywordLKI, controller state.PlayerID) {
