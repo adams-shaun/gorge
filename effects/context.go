@@ -403,10 +403,14 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// names the same Remembered object entry a trigger captured.
 		// TriggeredObject/TriggeredObjectLKICopy are the event-object
 		// spellings the CounterPlayerAddedAll batch triggers read (Rikku's
-		// RememberObjects$ TriggeredObjectLKICopy on its DB$ Effect body) and
-		// the unimplemented Unattached mode's bodies spell -- the triggering
-		// event's object, exactly what triggerRemembered seeds Remembered
-		// with for every non-zero ev.Obj.
+		// RememberObjects$ TriggeredObjectLKICopy on its DB$ Effect body) --
+		// the triggering event's object, exactly what triggerRemembered seeds
+		// Remembered with for every non-zero ev.Obj. It is also the object a
+		// Mode$ Unattached trigger became unattached FROM (the former bearer
+		// rules/trigger_match.go's triggerRemembered carries on the event's
+		// IDs): the Grafted Exoskeleton cycle reads it as its SacrificeAll
+		// referent, so it must resolve like the rest of the family rather
+		// than fall through to the source-default fallback.
 		// TriggeredSourceSA is the targeting spell/ability a BecomesTarget
 		// trigger captured (Reality Smasher's counter, Kira's and the
 		// glasskite family's counters -- 18 corpus files); its Controller

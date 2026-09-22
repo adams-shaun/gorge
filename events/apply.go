@@ -2031,6 +2031,18 @@ func Apply(g *state.Game, e Event) {
 			}
 		}
 
+	case Unattached:
+		// CR 701.3b: Obj became unattached from the bearer on a path where Obj
+		// itself stays on the battlefield (the attachmentSBAs detach arms and
+		// the bestowed type switch). The fold is the same AttachedTo clear an
+		// empty-IDs Attach makes; the Kind is distinct so Mode$ Attached keeps
+		// ignoring a detach while Mode$ Unattached fires. IDs[0] is the former
+		// bearer, which only the trigger matcher reads -- nothing about the
+		// state fold depends on it.
+		if o := g.Obj(e.Obj); o != nil {
+			o.AttachedTo = 0
+		}
+
 	case AbilityPush:
 		// Mirrors TriggerPush above (Ruling T20-a): the ability object is
 		// minted here, inside Apply, so a log-only replay creates the same

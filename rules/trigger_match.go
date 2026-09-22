@@ -1310,6 +1310,19 @@ func triggerRemembered(ev events.Event, source state.ObjID) []state.Target {
 		}
 		return append(out, state.Target{Player: ev.Player, IsPlayer: true})
 	}
+	// Mode$ Unattached's referent is the FORMER BEARER, not the event's Obj
+	// (the attachment that became unattached): the corpus's Execute bodies read
+	// Defined$ TriggeredObjectLKICopy (Grafted Exoskeleton's sacrifice, the
+	// whole cycle), and on the bearer-leaves path that object is already off
+	// the battlefield. Carrying it as Remembered is what lets the spellings in
+	// effects/context.go's TriggeredObjectLKICopy case resolve it -- whether it
+	// is still a permanent (the under-protection/no-longer-a-creature detach)
+	// or a graveyard LKI reference (the bearer-left detach). An emit with no
+	// bearer (the zero-value event a test might build) has nothing to bind, so
+	// it falls through to the ordinary source fallback below.
+	if ev.Kind == events.Unattached && len(ev.IDs) > 0 {
+		return []state.Target{{Obj: ev.IDs[0]}}
+	}
 	if ev.Obj != 0 {
 		return []state.Target{{Obj: ev.Obj}}
 	}
@@ -1531,7 +1544,7 @@ func init() {
 		"trig:TokenCreated", "trig:TokenCreatedOnce",
 		"trig:DamageDone", "trig:DamageDealtOnce", "trig:DamageDoneOnce", "trig:Drawn", "trig:LifeLost", "trig:LifeLostAll",
 		"trig:LifeGained",
-		"trig:BecomesTarget", "trig:LandPlayed", "trig:Phase", "trig:Attached", "trig:FlippedCoin",
+		"trig:BecomesTarget", "trig:LandPlayed", "trig:Phase", "trig:Attached", "trig:Unattached", "trig:FlippedCoin",
 		"trig:Vote", "trig:RolledDie", "trig:RolledDieOnce",
 		"trig:Explores", "trig:Exerted", "trig:Investigated",
 		"trig:Exploited",

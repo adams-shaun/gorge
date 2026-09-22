@@ -728,6 +728,26 @@ const (
 	// every prior Kind's own append-only precedent, so no earlier ordinal,
 	// hash chain or golden replay is affected.
 	Surveil
+	// Unattached records an Aura/Equipment permanent Obj becoming detached
+	// from the permanent it was attached to (CR 701.3b), on a path where Obj
+	// itself stays on the battlefield: the attachmentSBAs detach arms in
+	// rules/attach.go (the bearer left, the bearer stopped being a valid
+	// bearer, or protection) and the CR 702.114b bestowed type switch. It is
+	// deliberately SEPARATE from Attach's empty-IDs detach shape, because
+	// Mode$ Unattached is a real trigger mode (the Grafted Exoskeleton family)
+	// and Mode$ Attached must keep ignoring a detach -- a distinct Kind is
+	// what lets the two modes' event masks stay exact. IDs holds the former
+	// bearer (the object Obj became unattached FROM), which is what the
+	// trigger's TriggeredObjectLKICopy referent resolves; Text carries the
+	// detach reason for the transcript, exactly as Attach's detach shape does.
+	// Apply clears Obj's AttachedTo (the same fold an empty-IDs Attach makes).
+	// Appended here, after Surveil (main appended GainedAbilityPush,
+	// GainedTriggerPush and Surveil after AlterAttribute while this branch
+	// carried Unattached there; the merge keeps main's ordinals intact and
+	// appends the branch's Kind after them), following every prior Kind's own
+	// append-only precedent, so no earlier ordinal, hash chain or golden
+	// replay is affected.
+	Unattached
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -738,7 +758,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(Surveil) + 1
+	NumKinds = int(Unattached) + 1
 )
 
 // mergedTriggerShift is the width MergedTriggerPush's Amount gives the
@@ -851,7 +871,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"pair", "myriad_copy", "myriad_cleanup", "grant_trigger_push", "mana_activate", "token_attacks",
 	"x_change", "note_number", "extra_phase", "copy_token", "exert", "planar_roll", "explore", "combat_retarget", "ring_tempts_you", "ring_emblem_push", "grant_ability_push", "investigate", "blessing_change", "clone_permanent", "mutate", "merged_trigger_push",
 	"discover", "seek", "connive", "enlist", "exploit", "alter_attribute",
-	"gained_ability_push", "gained_trigger_push", "surveil"}
+	"gained_ability_push", "gained_trigger_push", "surveil", "unattached"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

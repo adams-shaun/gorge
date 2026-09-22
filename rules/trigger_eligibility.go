@@ -85,7 +85,7 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.CombatRetarget, events.RingTemptsYou, events.RingEmblemPush,
 		events.BlessingChange, events.ClonePermanent,
 		events.Mutate, events.MergedTriggerPush,
-		events.Enlist, events.AlterAttribute,
+		events.Enlist, events.AlterAttribute, events.Unattached,
 		events.GainedAbilityPush, events.GainedTriggerPush:
 		// AlterAttribute (alterattr1) is the same shape past the bound as
 		// Enlist: the suspected designation (CR 702.157) is a status no
@@ -250,6 +250,18 @@ func triggerModeEvents(mode string) triggerEventMask {
 		return 1 << events.TargetsChosen
 	case "Attached":
 		return 1 << events.Attach
+	case "Unattached":
+		// CR 701.3b's detach half. The Kind's ordinal is past the 64-bit
+		// mask's reach (Unattached is appended after Surveil, the same
+		// post-CombatRetarget range as Enlisted/Mutates), so a mask bit is not
+		// encodable and allows() fails open for every kind at or past
+		// triggerMaskKindBits -- the mode is admitted through that fail-open
+		// path and gated by the full matcher (unattachedMatches). Naming the
+		// mode here rather than letting it fall to the allTriggerEvents default
+		// keeps an Unattached-only face's mask narrow for every other kind, and
+		// keeps Mode$ Attached's mask exact (its bit is events.Attach, never
+		// events.Unattached).
+		return 0
 	case "Exerted":
 		// The mode fires on the CR 702.100 exert itself (events.Exert with
 		// Amount >= 0); the Amount == -1 untap-step consume marker is the
