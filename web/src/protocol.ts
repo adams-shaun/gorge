@@ -702,6 +702,16 @@ export interface Decision {
    */
   maxSum?: number;
   /**
+   * Budgeted marks MaxSum as a PRESENT budget even when it is zero or
+   * negative: a MaxSum of 0 alone reads as "no budget" (the omitempty
+   * zero), which cannot express a total-power cap of 0 or less
+   * (MaxTotalTargetPower$ <= 0, where negative-power options can offset a
+   * positive one: powers 2,-1,-1 under a cap of 0 total 0). HasBudget is
+   * the one reader; false (the zero) omits the field, so every existing
+   * decision serialises byte-identically.
+   */
+  budgeted?: boolean;
+  /**
    * Repeatable relaxes Validate's no-duplicate-index rule: when true the
    * SAME option index may be chosen more than once in one answer. It is
    * set only by a modal (Charm) decision whose SA carries

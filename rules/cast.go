@@ -5812,6 +5812,20 @@ func (e *Engine) targetAsk() bool {
 	// engine's decision type cannot express cross-option dependencies, and
 	// withholding is safer than offering an illegal transaction.
 	candidates = e.affordableTargetCandidates(pc, candidates)
+	// MaxTotalTargetPower$ (Reunion of the House): the running total-power
+	// cap over the selection. Prune the candidates that can provably join
+	// no legal selection (individually over the cap unless a negative-power
+	// candidate could offset them -- Scourge of the Skyclaves's CDA is -1 at
+	// a 21-life opponent and 11 + (-1) = 10 is legal under a cap of 10)
+	// BEFORE the mandatory-minimum census so a cast whose every candidate
+	// alone busts the cap aborts like a targetless one, and carry the
+	// running cap as the decision's cumulative budget (Decision.MaxSum over
+	// each option's Value = the candidate's power) -- the same wire contract
+	// a Dig's WithTotalCMC$ budget uses, so Decision.Validate enforces the
+	// cap on every submitted answer and the bot's Clamp/FitRequired repair
+	// mirrors it. A candidate whose power alone fits but whose combination
+	// busts the cap stays offered: the wire contract rejects the combination.
+	candidates, powerCap, powerCapped := e.totalPowerCappedCandidates(candidates, pc.player, pc.card, sa, pc.x)
 	if min > 0 && len(candidates) < min {
 		// CR 601.2c: a proposal with fewer legal targets than its mandatory
 		// minimum cannot be announced. Reverse the whole proposal (CR 733.1):
@@ -5861,7 +5875,23 @@ func (e *Engine) targetAsk() bool {
 		o := decision.Option{Index: len(d.Options), Kind: candidate.kind,
 			Label: label, Obj: candidate.obj, Player: candidate.player}
 		o.Group = e.oneEachTargetGroup(sa, candidate)
+		// Option.Value is omitempty and read only under a budget
+		// (Decision.HasBudget), so a budget-less target ask keeps its wire
+		// payload byte-identical. Every present cap -- zero and negative
+		// included, via Decision.Budgeted -- rides the wire, so
+		// Decision.Validate enforces the total on every submitted answer.
+		// The Value is the DERIVED power (Engine.Power), matching the
+		// pruning read -- the printed Face().Power() read a CDA creature as
+		// zero.
+		if powerCapped && candidate.kind != "player" {
+			if co := e.G.Obj(candidate.obj); co != nil && co.Face() != nil {
+				o.Value = int(e.Power(candidate.obj))
+			}
+		}
 		d.Options = append(d.Options, o)
+	}
+	if powerCapped {
+		d.MaxSum, d.Budgeted = powerCap, true
 	}
 	e.ask(d)
 	return true
