@@ -1077,6 +1077,11 @@ var stringMapParams = map[string]string{
 	// arm's whitelist); its dynamic gate-key loop (Condition/CheckSVar/...) is
 	// a fail-closed recognition, never a consumption.
 	"effects:cascadeKeywordGrantFromLine:params": "keys of a parseStaticLine-built static line (an SVar body), not a card Params map",
+	// effects/misc.go setMaxHandSizeGrantFromLine: params is the same
+	// parseStaticLine-built SVar static line (the SetMaxHandSize$ grant arm's
+	// whitelist); its dynamic gate-key loop (Condition/CheckSVar/...) is a
+	// fail-closed recognition, never a consumption.
+	"effects:setMaxHandSizeGrantFromLine:params": "keys of a parseStaticLine-built static line (an SVar body), not a card Params map",
 	// effects/staticeffect.go parseStaticEffectGrant: params is the map
 	// parseStaticLine built from one SVar static line -- the StaticEffect$
 	// rider's Continuous body (AddType$/AddColor$/AddKeyword$/...), whose keys

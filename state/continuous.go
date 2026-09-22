@@ -250,6 +250,19 @@ type ContinuousEffect struct {
 	// effects.ParseZones. Meaningful only when MayPlay is set.
 	AffectedZone string
 
+	// SetMaxHandSize is an Effect-delivered S:Mode$ Continuous | Affected$
+	// <players> | SetMaxHandSize$ <value> static's raw value ("Unlimited" or a
+	// numeric string), the CR 514.1 maximum this effect sets for the affected
+	// players. Like MayPlay it is a rules-mod consulted by one decision point
+	// (rules' maxHandSizeFor, from cleanupStep), never a CR 613 layer change;
+	// the Affects spec and this field are what the consultation reads. Empty on
+	// every effect that does not set a maximum hand size. Registered by
+	// effects' effEffect (the Effect-delivered route: Finale of Revelation's
+	// STHandSize, Wrenn and Six's UnlimitedHand) and read beside the printed
+	// S:-static scan so the two routes cannot disagree about the value's
+	// grammar (rules' handSizeValue).
+	SetMaxHandSize string
+
 	// MayPlayIgnoreColor marks the grant's MayPlayIgnoreColor$ True rider:
 	// "you may spend mana as though it were mana of any color to cast it"
 	// (Opposition Agent, Kotose, ...). While it holds, every coloured pip of
