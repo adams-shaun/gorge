@@ -107,6 +107,7 @@ func (r *Registry) newMatch(t *table, k int) (*match, error) {
 	seed := MatchSeed(c.Seed, k)
 	names := make([]string, c.Seats)
 	decks := make([][]*cards.Card, c.Seats)
+	sideboards := make([][]*cards.Card, c.Seats)
 	deckNames := make([]string, c.Seats)
 	// Display player names, independent of the deck: configured per seat (the
 	// same slice index a match's seat uses, stable under the +k deck
@@ -137,7 +138,7 @@ func (r *Registry) newMatch(t *table, k int) (*match, error) {
 		if d.Name == "" {
 			d.Name = dn
 		}
-		names[i], decks[i], deckNames[i], cmds[i] = d.Name, d.Cards, dn, d.Commanders
+		names[i], decks[i], sideboards[i], deckNames[i], cmds[i] = d.Name, d.Cards, d.Sideboard, dn, d.Commanders
 		infos[i] = protocol.SeatInfo{Name: playerNames[i], Deck: d.Name, Colour: protocol.SeatColours[i%len(protocol.SeatColours)]}
 		// Human marks the slots TableConfig.Humans seats with a real person:
 		// the wire signal a client's undo control reads (protocol.SeatInfo's
@@ -149,7 +150,7 @@ func (r *Registry) newMatch(t *table, k int) (*match, error) {
 			}
 		}
 	}
-	cfg := rules.Config{Seed: seed, Names: names, PlayerNames: playerNames, Decks: decks, Tokens: r.opts.Tokens, Mulligans: c.Mulligans}
+	cfg := rules.Config{Seed: seed, Names: names, PlayerNames: playerNames, Decks: decks, Sideboards: sideboards, Tokens: r.opts.Tokens, Mulligans: c.Mulligans}
 	// The engine's own livelock watcher (rules/livelock.go) is the same
 	// non-terminating-loop protection as this file's per-turn decision
 	// guard, one level down: an embedder that opted out of the host guard

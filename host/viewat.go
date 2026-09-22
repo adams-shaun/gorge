@@ -252,14 +252,16 @@ func (r *Registry) loadArchived(t *table, sc sidecar) (*match, error) {
 // engine's own event stream is refused here, before it can be served.
 func (r *Registry) matchForLog(t *table, sc sidecar, l *events.Log) (*match, error) {
 	decks := make([][]*cards.Card, len(sc.Decks))
+	sideboards := make([][]*cards.Card, len(sc.Decks))
 	for i, dn := range sc.Decks {
 		d, err := r.opts.LoadDeck(dn)
 		if err != nil {
 			return nil, fmt.Errorf("host: %s/%d: deck %q: %w", t.cfg.ID, sc.Match, dn, err)
 		}
 		decks[i] = d.Cards
+		sideboards[i] = d.Sideboard
 	}
-	cfg := rules.Config{Seed: sc.Seed, Names: sc.Names, PlayerNames: sc.PlayerNames, Decks: decks, Tokens: r.opts.Tokens, Mulligans: sc.Mulligans}
+	cfg := rules.Config{Seed: sc.Seed, Names: sc.Names, PlayerNames: sc.PlayerNames, Decks: decks, Sideboards: sideboards, Tokens: r.opts.Tokens, Mulligans: sc.Mulligans}
 	// A persisted Commander match carries its format, the opening life it
 	// played with and its per-seat commander indices, so the replay
 	// reproduces the live match branch for branch (R-8.4: the replay Config

@@ -35,6 +35,7 @@ type File struct {
 	Commander  string   `json:"commander"`
 	Commanders []string `json:"commanders,omitempty"`
 	Cards      []Entry  `json:"cards"`
+	Sideboard  []Entry  `json:"sideboard,omitempty"`
 	// Policies is the deck's named bot policies, keyed by policy name. A
 	// value is one policy DOCUMENT, kept as raw JSON here deliberately: this
 	// package is deck data and knows nothing about bot behaviour, so the
@@ -195,7 +196,7 @@ func Parse(raw []byte) (File, error) {
 	if len(f.Cards) == 0 {
 		return File{}, fmt.Errorf("deck: no cards")
 	}
-	for i, e := range f.Cards {
+	for i, e := range append(append([]Entry(nil), f.Cards...), f.Sideboard...) {
 		if e.Name == "" {
 			return File{}, fmt.Errorf("deck: entry %d has no name", i)
 		}
@@ -278,11 +279,24 @@ func (f File) PolicyNames() []string {
 // expands it by its count, in file order. The first unknown card is named
 // in the error.
 func (f File) Resolve(r *cards.Registry) ([]*cards.Card, error) {
+	return resolveEntries(r, f.Name, f.Cards)
+}
+
+// ResolveSideboard resolves the optional sideboard list independently of the
+// main deck. A nil list remains nil, preserving the old genesis shape.
+func (f File) ResolveSideboard(r *cards.Registry) ([]*cards.Card, error) {
+	if len(f.Sideboard) == 0 {
+		return nil, nil
+	}
+	return resolveEntries(r, f.Name+" sideboard", f.Sideboard)
+}
+
+func resolveEntries(r *cards.Registry, name string, entries []Entry) ([]*cards.Card, error) {
 	var out []*cards.Card
-	for _, e := range f.Cards {
+	for _, e := range entries {
 		c, ok := r.Lookup(e.Name)
 		if !ok {
-			return nil, fmt.Errorf("deck %q: card %q is not in the registry", f.Name, e.Name)
+			return nil, fmt.Errorf("deck %q: card %q is not in the registry", name, e.Name)
 		}
 		for i := 0; i < e.Count; i++ {
 			out = append(out, c)

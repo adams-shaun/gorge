@@ -26,8 +26,9 @@ type TableID string
 // (deck.File.CommanderIndex, validated by deck.ValidateCommander), so the
 // host never guesses which card a deck means by its commander.
 type Deck struct {
-	Name  string
-	Cards []*cards.Card
+	Name      string
+	Cards     []*cards.Card
+	Sideboard []*cards.Card
 
 	Commanders []int
 }
