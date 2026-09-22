@@ -433,7 +433,7 @@ func (e *Engine) paymentWindowAsk() {
 }
 
 func (e *Engine) paymentManaAsk(player state.PlayerID, source state.ObjID, amount Cost, windowDone bool, prompt string, flow chooseFor) bool {
-	return e.paymentManaAskClass(player, source, amount, windowDone, prompt, flow, paymentSpell)
+	return e.paymentManaAskClass(player, source, amount, windowDone, prompt, flow, paymentOther)
 }
 
 func (e *Engine) paymentManaAskClass(player state.PlayerID, source state.ObjID, amount Cost, windowDone bool, prompt string, flow chooseFor, class paymentClass) bool {
@@ -949,7 +949,7 @@ func (e *Engine) triggeredCostComponentsPayable(tc *triggeredEffectCost) bool {
 	if mana.hasManaPayment() || mana.Life > 0 || mana.Snow > 0 ||
 		len(mana.Hybrid) > 0 || len(mana.Phyrexian) > 0 ||
 		len(mana.Twobrid) > 0 || len(mana.HybridPhyrexian) > 0 {
-		if !e.costPayable(tc.player, tc.source, false, mana) {
+		if !e.costPayableOther(tc.player, tc.source, mana) {
 			return false
 		}
 	}

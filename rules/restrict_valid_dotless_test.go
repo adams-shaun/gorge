@@ -15,6 +15,7 @@ import (
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -201,17 +202,13 @@ func leaveCombatWithNoBlockers(t *testing.T, e *Engine) {
 func TestRestrictValidDotlessSpell(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)
-	e := dotlessEngineE(t, reg,
+	e, cfg := dotlessEngine(t, reg,
 		searchCorpusCard(t, reg, "Klauth, Unrivaled Ancient"),
-		searchCorpusCard(t, reg, "Cryptic Trilobite"),
+		card(t, dotlessClerk),
 		card(t, dotlessCharge2))
 	kl := searchMoveByName(t, e, "Klauth, Unrivaled Ancient", state.ZBattlefield)
-	tri := searchMoveByName(t, e, "Cryptic Trilobite", state.ZBattlefield)
+	clerk := searchMoveByName(t, e, "Sunrise Clerk", state.ZBattlefield)
 	charge := searchMoveByName(t, e, "Splash Tithe", state.ZHand)
-	// The trilobite's raw move leaves it summoning-sick; its {1},{T}
-	// activation probe below needs a live (untapped, unsick) source, and
-	// Klauth's own haste makes the attack legal without such a write.
-	e.G.Obj(tri).SummonSick = false
 
 	// The producer is the REAL trigger: Klauth has haste, so turn 1 runs a
 	// real combat — declare the attack and let the TrigMana resolve ({X}
@@ -233,13 +230,13 @@ func TestRestrictValidDotlessSpell(t *testing.T) {
 	// Rejection: an activated-ability payment never sees the batch — the
 	// clerk's {1} counter ability is generic-payable from any mana, so a
 	// leaked class would surface as an offered option.
-	if got := e.manaAvailableFor(0, paymentFor(tri, true, e.parseCost("1"))).pool.Total(); got != 0 {
+	if got := e.manaAvailableFor(0, paymentFor(clerk, true, e.parseCost("1"))).pool.Total(); got != 0 {
 		t.Fatalf("manaAvailableFor(clerk activation) = %d, want 0 (Spell batch hidden)", got)
 	}
 	e.pending = nil
 	e.priorityRound()
-	if findOption(e.Pending(), "ability", tri) >= 0 || findOption(e.Pending(), "activate", tri) >= 0 {
-		t.Fatalf("the {1},{T} activation was offered on a bare-Spell-only pool: %+v", e.Pending())
+	if findOption(e.Pending(), "ability", clerk) >= 0 || findOption(e.Pending(), "activate", clerk) >= 0 {
+		t.Fatalf("the {1} activation was offered on a bare-Spell-only pool: %+v", e.Pending())
 	}
 
 	// Admission: the {2} instant's cast is offered on the batch alone and
@@ -270,9 +267,10 @@ func TestRestrictValidDotlessSpell(t *testing.T) {
 	// And the surviving batch still cannot pay the activation.
 	e.pending = nil
 	e.priorityRound()
-	if findOption(e.Pending(), "ability", tri) >= 0 || findOption(e.Pending(), "activate", tri) >= 0 {
+	if findOption(e.Pending(), "ability", clerk) >= 0 || findOption(e.Pending(), "activate", clerk) >= 0 {
 		t.Fatalf("the surviving Spell batch leaked into the {1} activation after the spell payment: %+v", e.Pending())
 	}
+	replayCheck(t, e, cfg)
 }
 
 // TestRestrictValidDotlessActivated pins the bare `Activated` term on its
@@ -280,6 +278,29 @@ func TestRestrictValidDotlessSpell(t *testing.T) {
 // to activate abilities.` The batch pays Cryptic Trilobite's {1},{T}
 // counter ability — a genuine activated-ability payment, consumed from the
 // restricted batch — and never funds a spell payment of the same shape.
+// TestRestrictValidSpellDoesNotPayOtherCosts pins the context-free payment
+// boundary shared by ward, unless-pay, attack and triggered-cost callers: it
+// has no cast descriptor, so Klauth's bare Spell batch must be hidden.
+func TestRestrictValidSpellDoesNotPayOtherCosts(t *testing.T) {
+	t.Parallel()
+	e := handEngine(t, corpusAlternativeCard(t, "Klauth, Unrivaled Ancient"))
+	source := e.G.Zone(state.ZHand, 0)[0]
+	if o := e.G.Obj(source); o == nil || o.Face() == nil || o.Face().Name != "Klauth, Unrivaled Ancient" {
+		t.Fatalf("test precondition: source = %+v, want Klauth", e.G.Obj(source))
+	}
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "R", Amount: 1,
+		Text: events.ManaRestrictionText("Spell", source)})
+	if batches := restrictedBatchesOf(e, 0, "Spell"); len(batches) != 1 || batches[0].Amount != 1 {
+		t.Fatalf("test precondition: restricted batch = %+v, want one bare Spell R", batches)
+	}
+	if e.payMana(0, ParseCost("R")) {
+		t.Fatal("bare Spell restricted mana paid a context-free payment")
+	}
+	if got := e.G.Players[0].Pool[state.MR]; got != 1 {
+		t.Fatalf("after the rejected other payment pool R=%d, want 1", got)
+	}
+}
+
 func TestRestrictValidDotlessActivated(t *testing.T) {
 	t.Parallel()
 	reg := searchTestRegistry(t)
@@ -477,11 +498,13 @@ func TestRestrictValidDotlessPaymentTerms(t *testing.T) {
 	t.Run("CantPayGenericCosts", func(t *testing.T) {
 		t.Parallel()
 		jeg := searchCorpusCard(t, reg, "Jegantha, the Wellspring")
-		e, cfg := dotlessEngine(t, reg, jeg, card(t, dotlessChargeWU), card(t, dotlessCharge1), card(t, dotlessTwobrid))
+		e, cfg := dotlessEngine(t, reg, jeg, card(t, dotlessChargeWU), card(t, dotlessCharge1), card(t, dotlessTwobrid),
+			searchCorpusCard(t, reg, "Kaervek's Torch"))
 		src := searchMoveByName(t, e, "Jegantha, the Wellspring", state.ZBattlefield)
 		wu := searchMoveByName(t, e, "Duo Praise", state.ZHand)
 		toll := searchMoveByName(t, e, "One Toll", state.ZHand)
 		twobrid := searchMoveByName(t, e, "Twobrid Toll", state.ZHand)
+		torch := searchMoveByName(t, e, "Kaervek's Torch", state.ZHand)
 
 		tapForRestrictedBatch(t, e, src, "CantPayGenericCosts")
 		batches := restrictedBatchesOf(e, 0, "CantPayGenericCosts")
@@ -494,23 +517,86 @@ func TestRestrictValidDotlessPaymentTerms(t *testing.T) {
 		if got := e.manaAvailableFor(0, paymentFor(toll, false, e.parseCost("1"))).pool.Total(); got != 0 {
 			t.Fatalf("manaAvailableFor({1} spell) = %d, want 0 (generic cost)", got)
 		}
-		// Rejection, twobrid: {2/W} may be paid as two generic, so the batch
-		// is hidden at the offer too — the pip's unannounced alternative is a
-		// generic component.
-		if got := e.manaAvailableFor(0, paymentFor(twobrid, false, e.parseCost("2/W"))).pool.Total(); got != 0 {
-			t.Fatalf("manaAvailableFor({2/W} spell) = %d, want 0 (twobrid pip)", got)
+		// An unannounced flexible pip remains offerable: its colour face has
+		// no generic component. The generic face is rejected at the real
+		// announcement ask, after that face has been folded into the cost.
+		if got := e.manaAvailableFor(0, paymentFor(twobrid, false, e.parseCost("2/W"))).pool.Total(); got != 5 {
+			t.Fatalf("manaAvailableFor(unannounced {2/W}) = %d, want 5 (its {W} face is non-generic)", got)
 		}
 		e.pending = nil
 		e.priorityRound()
-		if findOption(e.Pending(), "cast", toll) >= 0 || findOption(e.Pending(), "cast", twobrid) >= 0 {
-			t.Fatalf("a generic-bearing cast was offered on a CantPayGenericCosts-only pool: %+v", e.Pending())
+		if findOption(e.Pending(), "cast", toll) >= 0 {
+			t.Fatalf("the {1} cast was offered on a CantPayGenericCosts-only pool: %+v", e.Pending())
+		}
+		castIdx := findOption(e.Pending(), "cast", twobrid)
+		if castIdx < 0 {
+			t.Fatalf("precondition: the {2/W} cast was not offered for its non-generic face: %+v", e.Pending())
+		}
+		submitChoices(t, e, castIdx)
+		d := e.Pending()
+		if d == nil || d.Kind != decision.KChoose {
+			t.Fatalf("precondition: the twobrid face ask = %+v", d)
+		}
+		payW, payGeneric := -1, -1
+		for _, o := range d.Options {
+			switch o.Kind {
+			case "pay_W":
+				payW = o.Index
+			case "pay_generic":
+				payGeneric = o.Index
+			}
+		}
+		if payW < 0 || payGeneric >= 0 {
+			t.Fatalf("twobrid choices = %+v, want only the {W} face (generic must be withheld)", d.Options)
+		}
+		submitChoices(t, e, payW)
+		passUntilStackEmpty(t, e, 30)
+		batches = restrictedBatchesOf(e, 0, "CantPayGenericCosts")
+		if len(batches) != 4 || restrictedBatchUnits(batches) != 4 {
+			t.Fatalf("after the {W} twobrid payment the batches = %+v, want four 1-unit batches left", batches)
 		}
 
-		// Admission: {W}{U} — no generic, no X, no twobrid — is offered and
-		// paid from the restricted batch.
+		// The actual X announcement is likewise limited to X=0: raw X may
+		// still choose zero, while every positive choice folds generic mana
+		// into the cost and is withheld.
 		e.pending = nil
 		e.priorityRound()
-		castIdx := findOption(e.Pending(), "cast", wu)
+		castIdx = findOption(e.Pending(), "cast", torch)
+		if castIdx < 0 {
+			t.Fatalf("precondition: the X spell was not offered for X=0: %+v", e.Pending())
+		}
+		submitChoices(t, e, castIdx)
+		d = e.Pending()
+		if d == nil || d.Kind != decision.KChoose {
+			t.Fatalf("precondition: the X ask = %+v", d)
+		}
+		xZero, xPositive := -1, -1
+		for _, o := range d.Options {
+			if o.Kind == "x" && o.Amount == 0 {
+				xZero = o.Index
+			}
+			if o.Kind == "x" && o.Amount > 0 {
+				xPositive = o.Index
+			}
+		}
+		if xZero < 0 || xPositive >= 0 {
+			t.Fatalf("X choices = %+v, want X=0 only (positive X pays generic)", d.Options)
+		}
+		submitChoices(t, e, xZero)
+		d = e.Pending()
+		if d == nil || d.Kind != decision.KTarget {
+			t.Fatalf("precondition: the X=0 target ask = %+v", d)
+		}
+		submitChoices(t, e, d.Options[0].Index)
+		passUntilStackEmpty(t, e, 30)
+
+		// Admission: {W}{U} has no generic component and is paid from the
+		// remaining restricted batch. Add one ordinary W because the twobrid
+		// face already consumed Jegantha's W batch.
+		addMana(t, e, 0, "W")
+		e.pending = nil
+		e.priorityRound()
+		castIdx = findOption(e.Pending(), "cast", wu)
 		if castIdx < 0 {
 			t.Fatalf("precondition: the {W}{U} cast was not offered on the admitted pool: %+v", e.Pending())
 		}
@@ -520,11 +606,11 @@ func TestRestrictValidDotlessPaymentTerms(t *testing.T) {
 		}
 		passUntilStackEmpty(t, e, 30)
 		batches = restrictedBatchesOf(e, 0, "CantPayGenericCosts")
-		if len(batches) != 3 || restrictedBatchUnits(batches) != 3 {
-			t.Fatalf("after the {W}{U} payment the batches = %+v, want three 1-unit batches left (B R G)", batches)
+		if len(batches) != 2 || restrictedBatchUnits(batches) != 2 {
+			t.Fatalf("after the {W}{U} payment the batches = %+v, want two 1-unit batches left (R G)", batches)
 		}
-		if got := e.G.Players[0].Pool.Total(); got != 3 {
-			t.Fatalf("after the {W}{U} payment pool total = %d, want 3", got)
+		if got := e.G.Players[0].Pool.Total(); got != 2 {
+			t.Fatalf("after the {W}{U} payment pool total = %d, want 2", got)
 		}
 		replayCheck(t, e, cfg)
 	})
@@ -646,8 +732,7 @@ func TestRestrictValidDotlessPaymentTerms(t *testing.T) {
 		// The REAL window the term names: Remora's cumulative-upkeep trigger
 		// is on the stack, and the unicorn's {C}{U} is activated at that
 		// priority — the real play the mana exists for.
-		e.G.Turn = 2
-		e.beginTurn(0)
+		driveToStep(t, e, 3, 0, state.StepUpkeep)
 		e.priorityRound()
 		if len(e.G.Stack) != 1 || e.G.Obj(e.G.Stack[0]).Ability.API != "CumulativeUpkeep" {
 			t.Fatalf("test precondition: Remora's cumulative trigger not on the stack: %v", e.G.Stack)

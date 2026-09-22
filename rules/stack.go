@@ -35,7 +35,8 @@ var manaLetters = [...]string{"W", "U", "B", "R", "G", "C"}
 // having paid nothing. Reporting failure explicitly is what lets castSpell
 // abort the cast instead.
 func (e *Engine) payMana(p state.PlayerID, cost Cost) bool {
-	return e.payManaConvFor(p, 0, false, cost, nil)
+	ok, _, _, _, _ := e.payManaDescriptorForSpent(p, paymentDescriptor{class: paymentOther, cost: &cost}, cost, nil, pipRider{})
+	return ok
 }
 
 // payManaConv is payMana under a stat:ManaConvert conversion set (or nil,
@@ -43,7 +44,8 @@ func (e *Engine) payMana(p state.PlayerID, cost Cost) bool {
 // (and the <-C restriction narrows) what the pool's mana may pay, never what
 // the cost demands.
 func (e *Engine) payManaConv(p state.PlayerID, cost Cost, conv *manaConv) bool {
-	return e.payManaConvFor(p, 0, false, cost, conv)
+	ok, _, _, _, _ := e.payManaDescriptorForSpent(p, paymentDescriptor{class: paymentOther, cost: &cost}, cost, conv, pipRider{})
+	return ok
 }
 
 func (e *Engine) payManaCumulative(p state.PlayerID, id state.ObjID, cost Cost, conv *manaConv) bool {
@@ -282,6 +284,11 @@ const (
 	paymentSpell paymentClass = iota
 	paymentActivated
 	paymentCumulativeUpkeep
+	// paymentOther is a real mana payment (ward, unless-pay, attack costs,
+	// triggered costs, etc.) whose caller has no cast or activation
+	// descriptor. It must not inherit paymentSpell: bare RestrictValid$ Spell
+	// admits only a spell cast, and unknown/unclassified payments fail closed.
+	paymentOther
 )
 
 type paymentDescriptor struct {
@@ -435,7 +442,7 @@ func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, d paymentDescriptor, 
 		if used <= 0 {
 			continue
 		}
-		if r.NoCounter != "" && d.class != paymentActivated && e.noCounterSpend == 0 && addsNoCounterHolds(e.G, d.id, r.NoCounter) {
+		if r.NoCounter != "" && d.class == paymentSpell && e.noCounterSpend == 0 && addsNoCounterHolds(e.G, d.id, r.NoCounter) {
 			e.noCounterSpend = d.id
 		}
 		// A consumed batch's producing source is what the spell's
@@ -445,7 +452,7 @@ func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, d paymentDescriptor, 
 		// payment fire nothing (the rider is a cast-spend gate). Dedup keeps
 		// one entry per source when several batches from it pay one cast; the
 		// insertion-order append keeps the queue deterministic.
-		if d.class != paymentActivated && r.Source != 0 && !containsObjID(e.manaSpentSources, r.Source) {
+		if d.class == paymentSpell && r.Source != 0 && !containsObjID(e.manaSpentSources, r.Source) {
 			e.manaSpentSources = append(e.manaSpentSources, r.Source)
 		}
 		e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: r.Color, Amount: -used,
@@ -552,25 +559,12 @@ func (e *Engine) restrictValidTermMatches(p state.PlayerID, d paymentDescriptor,
 		case "CostContainsC":
 			return d.cost != nil && d.cost.Colored[state.ManaIndex('C')] > 0
 		case "CantPayGenericCosts":
-			// The ACTUAL payment cost, never raw text: a resolved payment has
-			// Generic only when generic mana is genuinely owed (a folded X, an
-			// announced twobrid pip, printed generic), so a {2/W} announced as
-			// {W} pays and the same pip announced as {2} does not. Raw costs
-			// (the offer gates) are read before the announcement exists, so an
-			// unfolded {X} or a {2/W} twobrid pip — either face may still be
-			// chosen — counts as a generic component: the conservative
-			// direction never offers a payment the announcement could make
-			// illegal. A hybrid pip ({W/U}) is payable only by its two colours
-			// and never counts as generic.
-			if d.cost == nil || d.cost.Generic > 0 || d.cost.X > 0 {
-				return false
-			}
-			for _, tw := range d.cost.Twobrid {
-				if tw.Generic > 0 {
-					return false
-				}
-			}
-			return true
+			// Read the actual resolved payment. Before its X and twobrid faces
+			// have been announced, the offer stays open if a colour / X=0 face
+			// can be selected; announceFeasible then rechecks the descriptor
+			// after that face is folded. Thus {2/W} may use this mana as {W},
+			// but not as {2}, and an X spell can choose only X=0 here.
+			return d.cost != nil && d.cost.Generic == 0
 		case "CumulativeUpkeep":
 			return d.class == paymentCumulativeUpkeep
 		default:
@@ -581,7 +575,7 @@ func (e *Engine) restrictValidTermMatches(p state.PlayerID, d paymentDescriptor,
 	if kind == "Activated" && !ability {
 		return false
 	}
-	if kind == "Spell" && ability {
+	if kind == "Spell" && d.class != paymentSpell {
 		return false
 	}
 	if kind != "Activated" && kind != "Spell" {
@@ -667,6 +661,15 @@ func (e *Engine) costPayableClass(p state.PlayerID, d paymentDescriptor, rider p
 	_, ok := cost.resolveManaWith(av.pool, e.G.Players[p].Snow, av.typed,
 		e.G.Players[p].Life, e.payerGrantsPayLifeInsteadOfB(p), rider, e.paymentConv(p, d.id, d.class == paymentActivated))
 	return ok
+}
+
+// costPayableOther is the offer-side partner of context-free payMana and
+// payManaConv windows. A cost paid outside casting or activating an ability
+// must not borrow spell- or activation-restricted mana merely because its
+// source happens to be a card object.
+func (e *Engine) costPayableOther(p state.PlayerID, id state.ObjID, cost Cost) bool {
+	return e.costPayableClass(p, paymentDescriptor{id: id, class: paymentOther, cost: &cost},
+		pipRider{anyColor: e.payerGrantsIgnoreColor(p, id), anyType: e.payerGrantsIgnoreType(p, id)}, cost)
 }
 
 // costPayable is the conversion-aware equivalent of Cost.payable at the
