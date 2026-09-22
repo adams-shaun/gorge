@@ -1633,6 +1633,19 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 					ctx.TwoPiles = append(ctx.TwoPiles, t.Obj)
 				}
 			}
+		case "clone":
+			// A DB$ Clone Optional$ True may-copy election was answered
+			// (ticket api-clone-trigger-copy; Sarkhan Soul Aflame). The answer
+			// is a bare yes/no recorded as a marker the re-entered effect
+			// consumes and clears (fx42 scoping): "yes" performs the copy,
+			// "no" -- the decline -- leaves the permanent alone. A malformed
+			// or empty answer keeps the decline, the same conservative read
+			// the diguntil_move and attach_optional answers take.
+			ctx.Clone = "no"
+			if len(chosen) > 0 && chosen[0].Kind == "yes" {
+				ctx.Clone = "yes"
+			}
+			ctx.CloneDone = true
 		case "diguntil_move":
 			// A DigUntil reveal-until's OptionalFoundMove$ yes/no election was
 			// answered (task diguntil1; Songbirds' Blessing). The answer is a

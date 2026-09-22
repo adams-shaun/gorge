@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -53,6 +54,13 @@ func init() { Register("Clone", effClone) }
 // the battlefield.
 func effClone(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
+
+	// The answered Optional$ may-copy election, consumed and cleared at the
+	// top of the walk (the fx42 scoping discipline): a nested Clone cannot
+	// inherit the outer answer.
+	cloneAns := c.Clone
+	cloneDone := c.CloneDone
+	c.Clone, c.CloneDone = "", false
 
 	// Copy SOURCE.
 	var source []state.Target
@@ -110,13 +118,39 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 
-	// Optional$ True: the copier is the become object's controller (a
-	// clone has no separate decision host here). The deterministic stand-in
-	// is to take the copy -- "you may" that cannot ask resolves as "do", the
-	// same convention the optional-discard family records.
+	// Optional$ True: the copier -- the resolving controller, who for every
+	// corpus carrier is also the become object's controller -- takes the real
+	// may-copy election (ticket api-clone-trigger-copy; Sarkhan Soul Aflame's
+	// "you may have CARDNAME become a copy of it"). The ask re-enters the
+	// whole walk with Ctx.Clone/CloneDone set; the answered decline returns
+	// without copying. A no-host run (an effects test double, a fuzz run)
+	// keeps the deterministic take stand-in the pre-election build shipped,
+	// byte-identical (the same convention the optional-discard family
+	// records) -- a "may" that cannot ask never wedges.
 	if strings.EqualFold(strings.TrimSpace(sa.Params["Optional"]), "True") {
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
-			Text: "Clone Optional$ resolved as take (no engine host to ask)"})
+		if !cloneDone {
+			prompt := "You may have a permanent become a copy?"
+			if ob := g.Obj(become[0].Obj); ob != nil && ob.Face() != nil {
+				prompt = "You may have " + ob.Face().Name + " become a copy?"
+			}
+			d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+				Source:     c.Source,
+				ResumeKind: "clone", ResumeSA: sa,
+				Prompt: prompt,
+				Options: []decision.Option{
+					{Index: 0, Kind: "yes", Label: "Yes — make the copy", Player: c.Controller},
+					{Index: 1, Kind: "no", Label: "No", Player: c.Controller},
+				}}
+			if Ask(h, d) == AskAsked {
+				return // resolution suspended; the answer re-enters with Ctx.Clone set.
+			}
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "Clone Optional$ resolved as take (no engine host to ask)"})
+		} else if cloneAns != "yes" {
+			// The answered decline: no copy. The decision_made event already
+			// carries the answer, so nothing else is emitted.
+			return
+		}
 	}
 
 	// Collect the modifier registrations once; every become object shares
@@ -157,7 +191,7 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 			unread = append(unread, key+"$ "+v)
 		}
 	}
-	if len(unread) > 0 {
+	if len(unread) > 0 && !cloneDone {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
 			Text: "Clone does not read: " + strings.Join(unread, ", ")})
 	}
@@ -168,7 +202,7 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 	// itself is not carried onto the effects -- the no-duration case is simply
 	// a unit with no expiry field, kept until the become object leaves.
 	_, untilEOT, untilTurn, untilUnattached, durNote := cloneDuration(dur)
-	if durNote != "" {
+	if durNote != "" && !cloneDone {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller, Text: durNote})
 	}
 
