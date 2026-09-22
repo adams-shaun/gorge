@@ -325,12 +325,17 @@ func (e *Engine) handleAttackers(d *decision.Decision, in decision.Intent) {
 		} else if !e.startAttackPay(chosen, d.Player, charge) {
 			// Unreachable through a submitted intent: the KAttackers decision
 			// carries Decision.MaxSum = the payer's budget, so Validate rejects
-			// an over-budget declaration before this handler runs. Kept as ONE
-			// loud Note (startAttackPay no longer emits its own) and completed
-			// rather than wedged: the declare-attackers step must advance, and
-			// an unreachable defensive path may not strand the game.
+			// an over-budget declaration before this handler runs. One loud
+			// Note (startAttackPay no longer emits its own) and then ABORT:
+			// the cost is a CR 508.1 declaration cost, so an unpaid charge may
+			// not silently commit -- the fallback emits the empty no-attack
+			// declaration (the same event the len(chosen)==0 branch emits) and
+			// advances the step. Per-missive by accident would be the opposite
+			// danger: committing an attack nobody paid for.
 			e.emit(events.Event{Kind: events.Note, Player: d.Player,
 				Text: fmt.Sprintf("could not pay the {%d} attack cost", charge)})
+			e.emit(events.Event{Kind: events.DeclareAttackers, Player: e.G.NextAlive(e.G.Active)})
+			return
 		} else {
 			return
 		}

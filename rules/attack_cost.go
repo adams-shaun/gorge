@@ -400,12 +400,13 @@ func (e *Engine) attackPayAnswer(d *decision.Decision, in decision.Intent) {
 	}
 	if !e.askNextAttackPay() {
 		e.attackPay = nil
-		if !e.startEnlistAsks(st.chosen, st.player) {
-			// Defensive (the coverage invariant makes this unreachable):
-			// the window found no source left to tap, so complete the
-			// declaration the same way the coverage branch does rather than
-			// leaving the step without its DeclareAttackers events.
-			e.finishAttackers(st.chosen, st.player)
-		}
+		// Defensive (the coverage invariant makes this unreachable): the
+		// window found no source left to tap, so the charge cannot be paid.
+		// Emit ONE loud Note and ABORT -- the empty no-attack declaration --
+		// rather than finishing the declaration unpaid (which would commit an
+		// attack whose CR 508.1 cost was never paid).
+		e.emit(events.Event{Kind: events.Note, Player: st.player,
+			Text: fmt.Sprintf("could not pay the {%d} attack cost", st.charge)})
+		e.emit(events.Event{Kind: events.DeclareAttackers, Player: e.G.NextAlive(e.G.Active)})
 	}
 }

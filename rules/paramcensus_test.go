@@ -1311,6 +1311,15 @@ var apiSpecificRulesSA = map[string][]string{
 	"addAvailable":              {"Mana"},
 	"availableAmount":           {"Mana"},
 	"activatedMatchesValidSA":   {"Mana"},
+	// The attack-prop payment window's affordability input
+	// (rules/attack_cost.go attackManaSources): it walks the payer's
+	// battlefield and reads each window-usable mana ability's Produced$
+	// (and Amount$, via availableAmount above) to count the units the
+	// window can tap. The walk only ever inspects api:Mana abilities
+	// (availableManaAbilitiesForWindow), so its Reads belong to api:Mana
+	// alone -- left in the generic union they would mask every other
+	// API's unread Produced$ (measured: api:Sacrifice/api:DealDamage).
+	"Engine.attackManaSources": {"Mana"},
 	// The Charm mode paths: the CR 601.2b cast-time modes ask (castModeAsk),
 	// the per-mode target declaration (modalTargetSA), the resume-side mode
 	// decisions/labels, and the modal-trigger placement ask (CharmNum$).
