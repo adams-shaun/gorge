@@ -1207,6 +1207,53 @@ type Ctx struct {
 	RollResults []int32
 	RollPick    []int
 	RollDone    bool
+	// VotePicks/VoteAnswer/VoteDone/VoteTarget carry the per-voter api:Vote
+	// PLAYER ballot (VotePlayer$, task votepb1) across a mid-resolution ask.
+	// VotePicks is every voter's answer accumulated so far, in voter order
+	// (one entry per voter already answered; a zero Target is a voter who
+	// cast no vote because the ballot held no admissible entry). VoteTarget
+	// is the index into Defined$'s voter list whose ask was just posed, and
+	// VoteAnswer the decision's chosen option as a player Target -- rules'
+	// "vote" resume arm rebuilds both from the decision's ResumeTarget/
+	// ResumeChoices, and effPlayerVote consumes and clears VoteAnswer/
+	// VoteDone at the top of its own walk (the fx42 scoping discipline), so
+	// a nested Vote poses its own ballot. The same fields the fixed-list
+	// shape's Ctx.Votes seam mirrors: VotePicks is the player-ballot answer
+	// list where Ctx.Votes is the fixed-list option-index list.
+	VotePicks  []state.Target
+	VoteAnswer []state.Target
+	VoteDone   bool
+	VoteTarget int
+	// VoteCounts is the per-subject tally the most recent api:Vote left for
+	// this resolution's AmountFromVotes$ readers (effects/choose_control.go's
+	// effRepeatEach): one entry per ballot subject -- every player the
+	// player-ballot universe admitted, or every permanent a card ballot
+	// admitted -- with the votes it received. Forge's VoteEffect stores the
+	// same tally as VoteNum<SVar>s on the vote ability and RepeatEachEffect's
+	// setVoteAmount reads it back per loop subject; this is the engine's
+	// per-resolution form of that side channel, read through voteCountFor. It
+	// is built on the pass the ballot completes and lives on the resolution
+	// Ctx, so the chained SubAbility$ (Mob Verdict's DBRepeatOpp) sees it; a
+	// vote with no ballot publishes nothing (the field stays nil).
+	VoteCounts []VoteCount
+	// VotePublished/VotePublishedSet are the per-iteration binding the
+	// AmountFromVotes$ RepeatEach writes before resolving one loop body: the
+	// vote count of the iteration's subject, resolved by the reserved name
+	// "Votes" through runtimePublished -- the same seam Ctx.RollPubs serves
+	// for DB$ RollDice, and the name Forge's setVoteAmount sets
+	// (sa.setSVar("Votes", "Number$<n>")). Set only on an
+	// AmountFromVotes$ loop's per-iteration Ctx copy, so an ordinary SVar
+	// table is never shadowed outside one loop body.
+	VotePublished    int32
+	VotePublishedSet bool
+}
+
+// VoteCount is one ballot subject's tally (see Ctx.VoteCounts).
+// Subject is a player Target for a player ballot, or an object Target for a
+// card ballot.
+type VoteCount struct {
+	Subject state.Target
+	Count   int
 }
 
 // RollPub is one name→value publication (see Ctx.RollPubs).

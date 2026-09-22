@@ -823,8 +823,12 @@ func triggerInterestForMode(mode string) TriggerInterest {
 		return TriggerInterestZoneChange
 	case "SpellCast":
 		return TriggerInterestStackPut
-	case "AbilityCast", "SpellAbilityCast":
+	case "AbilityCast":
 		return TriggerInterestAbilityPush
+	case "SpellAbilityCast":
+		// The spell-or-activate union (targetsvalid1): the activation arm
+		// matches an AbilityPush, the spell arm a PutOnStack.
+		return TriggerInterestAbilityPush | TriggerInterestStackPut
 	case "Attacks", "AttackersDeclaredOneTarget", "AttackersDeclared", "AttackerBlocked",
 		"AttackerBlockedByCreature", "Blocks":
 		return TriggerInterestAttackDeclaration

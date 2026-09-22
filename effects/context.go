@@ -287,10 +287,11 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		if c.ChosenValid || len(c.Chosen) > 0 {
 			return copyTargets(c.Chosen), true
 		}
-		if o := g.Obj(c.Source); o != nil {
-			return copyTargets(o.Chosen), true
-		}
-		return nil, true
+		// resolutionChosenCards is the shared chosen-card read
+		// (count.go's ChosenSize head, copy.go's DefinedTarget$ ChosenCard);
+		// this case keeps the player entries ChosenPlayer reads, which the
+		// helper carries too.
+		return resolutionChosenCards(g, c), true
 	case "Player.IsRemembered":
 		// Forge's Player.IsRemembered names the source permanent's persistent
 		// player-Remembered list -- the same set the filter spelling of the
@@ -903,6 +904,23 @@ func clearEventRemembered(h Host, c *Ctx) {
 			h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "clear-remembered"})
 		}
 	}
+}
+
+// resolutionChosenCards is the shared read of the current resolution's
+// chosen-card set: the ChooseCard binding (Ctx.Chosen, live when the choice
+// resolved in this walk) or, across an ask's suspension, the source object's
+// event-backed Chosen list (the Choose "chosen" fold). Count$ChosenSize,
+// Defined$ ChosenCard and CopySpellAbility's DefinedTarget$ ChosenCard all
+// resolve through it, so a count, a defined fetch and a per-target copy can
+// never disagree about what "the chosen cards" names.
+func resolutionChosenCards(g *state.Game, c *Ctx) []state.Target {
+	if c.ChosenValid || len(c.Chosen) > 0 {
+		return copyTargets(c.Chosen)
+	}
+	if o := g.Obj(c.Source); o != nil {
+		return copyTargets(o.Chosen)
+	}
+	return nil
 }
 
 func copyTargets(s []state.Target) []state.Target {

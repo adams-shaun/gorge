@@ -137,6 +137,13 @@ const (
 	// currently be on the stack) and places the copy on top of the stack.
 	// Player is the copy's controller (CR 707.10a: a copy's controller is
 	// whoever the copy effect says, not necessarily the original's).
+	// IDs, when non-empty, names the copy's chosen targets (object ids):
+	// the copy's target list is REPLACED with those object targets instead
+	// of inheriting the original's -- Forge's CopySpellAbilityEffect
+	// DefinedTarget$ route (Feather, Radiant Arbiter's "for each of those
+	// creatures, copy that spell. The copy targets that creature"). Every
+	// pre-existing emitter carries no IDs and keeps the inherited-target
+	// reading, so replaying an older log is unchanged.
 	StackCopy
 	// Attach records or clears what Aura/Equipment permanent Obj is
 	// attached to. IDs holds zero or one entries: empty detaches (sets

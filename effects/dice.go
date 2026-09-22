@@ -579,15 +579,26 @@ func effRollDice(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
-// rollPublished reports the value a DB$ RollDice of this resolution
-// published under name: the primary ResultSVar$ slot (LastRollName/LastRoll)
-// or one of the Ctx.RollPubs entries (ChosenSVar$/OtherSVar$ and the
-// MaxRollsResults$/EvenOddResults$ counts). ok=false on any resolution that
-// rolled nothing or published no such name -- the conservative same-as-before
-// degrade every unmodelled head applies.
-func rollPublished(c *Ctx, name string) (int32, bool) {
+// runtimePublished reports the value a runtime SVar publication of this
+// resolution made under name. Two producers publish here, both through the
+// same three readers (Num's bare-name fallback, evalCountExpr's SVar$ head
+// and a bare-name body, and Ctx.SpecContext's numeric-RHS resolver):
+//
+//   - DB$ RollDice: the primary ResultSVar$ slot (LastRollName/LastRoll) or
+//     one of the Ctx.RollPubs entries (ChosenSVar$/OtherSVar$ and the
+//     MaxRollsResults$/EvenOddResults$ counts).
+//   - api:Vote's AmountFromVotes$ RepeatEach: the reserved name "Votes"
+//     bound to the current loop subject's vote tally (Ctx.VotePublished,
+//     the form of Forge's sa.setSVar("Votes", "Number$<n>")).
+//
+// ok=false on any resolution that published no such name -- the conservative
+// same-as-before degrade every unmodelled head applies.
+func runtimePublished(c *Ctx, name string) (int32, bool) {
 	if c == nil {
 		return 0, false
+	}
+	if c.VotePublishedSet && name == "Votes" {
+		return c.VotePublished, true
 	}
 	if c.LastRollName != "" && c.LastRollName == name {
 		return c.LastRoll, true
@@ -598,4 +609,12 @@ func rollPublished(c *Ctx, name string) (int32, bool) {
 		}
 	}
 	return 0, false
+}
+
+// rollPublished is runtimePublished's DB$ RollDice spelling, kept for the
+// callers and tests that name the roll producer explicitly. It is the SAME
+// lookup -- a roll name must not be able to resolve differently from any
+// other runtime publication -- so the two can never drift.
+func rollPublished(c *Ctx, name string) (int32, bool) {
+	return runtimePublished(c, name)
 }

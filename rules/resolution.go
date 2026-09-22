@@ -1149,7 +1149,15 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				// reach the ask, so they never reach this arm.
 			}
 			// deterministically.
-			paid, ok := ParseUnlessCost(rp.sa.Params["UnlessCost"])
+			// UnlessCostResolved first: an UnlessCost$ naming an SVar whose
+			// count body resolves folds its numeric result into a generic
+			// amount (Feather, Radiant Arbiter's SVar:CopyCost:Count$ChosenSize/
+			// Times.2 -- "{2} for each of those creatures"), the same string
+			// unlessProceed's ask label showed, so the offer and the charge can
+			// never disagree. An SVar the ctx's table lacks or whose body does
+			// not resolve passes through raw and lands in the same hard
+			// decline as before.
+			paid, ok := ParseUnlessCost(effects.UnlessCostResolved(e, ctx, rp.sa))
 			if !ok {
 				// I-5: an unless-cost the payment API cannot price is a hard
 				// DECLINE. ParseCost("X") is {Generic:0, X:1}; payMana never
@@ -1359,6 +1367,25 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 			}
 			ctx.ChoiceDone = true
+		case "vote":
+			// api:Vote's PLAYER ballot (task votepb1): the answer to one
+			// voter's "vote for a player" KChoose. The accumulated picks ride
+			// the decision's ResumeChoices (rp.choices) and the answered voter
+			// index its ResumeTarget (rp.target); effPlayerVote consumes both,
+			// appends this answer, and asks the next voter -- or completes and
+			// publishes Ctx.VoteCounts for the chained AmountFromVotes$
+			// reader. The transport is decision-scoped (never Ctx.Chosen), so
+			// a nested vote cannot inherit an outer ballot's picks.
+			ctx.VotePicks = append([]state.Target(nil), rp.choices...)
+			ctx.VoteTarget = rp.target
+			ctx.VoteDone = true
+			for _, o := range chosen {
+				if o.Kind == "player" {
+					ctx.VoteAnswer = append(ctx.VoteAnswer, state.Target{Player: o.Player, IsPlayer: true})
+				} else if o.Obj != 0 {
+					ctx.VoteAnswer = append(ctx.VoteAnswer, state.Target{Obj: o.Obj})
+				}
+			}
 		case "tgts":
 			// The generic ValidTgts$ pre-ask (task mvts1) posed inside
 			// effects.Resolve's dispatch loop. Same KChoose answer shape as

@@ -1169,7 +1169,7 @@ func positiveRecognised(p string) bool {
 // positiveRecognised: a recognised classifier word (map predicate, numeric
 // predicate, generic non<X> negation, or wordPredicate word).
 func positiveRecognisedWord(p string) bool {
-	if p == "ChosenCard" || p == "nonChosenCard" || p == "RememberedPlayerCtrl" {
+	if p == "ChosenCard" || p == "nonChosenCard" || p == "RememberedPlayerCtrl" || p == "CanBeTargetedByTriggeredSpellAbility" {
 		return true
 	}
 	if _, _, ok := controlReferent(p); ok {
@@ -1555,6 +1555,43 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		// control" inside RepeatEach). Resolution-only; with no remembered
 		// player there is no binding, so it fails closed even beneath '!'.
 		return matchControlReferent(g, o, sc, "ControlledBy", "RememberedPlayer")
+	}
+	if p == "CanBeTargetedByTriggeredSpellAbility" {
+		// Forge's Card.canBeTargetedBy(theTriggeredSpellAbility): the
+		// candidate is an object the SPELL whose cast fired the trigger could
+		// legally target -- Feather, Radiant Arbiter's ChooseCard pool
+		// ("other creatures that spell could target"), the one corpus
+		// carrier. The binding is the ctx TriggerCard the cast/activation
+		// trigger roles captured (the spell on the stack); with no binding,
+		// an off-stack spell, or a spell with no target-declaring SA, it
+		// fails closed -- under the ordinary convention a spec that matches
+		// nothing, and beneath '!' a recognised shape whose absent binding
+		// cannot be negated into a match.
+		//
+		// The legality read is the target-spec half only: the candidate must
+		// match the spell's own ValidTgts$ evaluated from the spell's
+		// controller. The protection/shroud/hexproof/CantTarget half of
+		// Forge's canBeTargetedBy is NOT modelled here -- the filter tier has
+		// no rules engine to consult (effects sits below rules), so a
+		// candidate the spell's spec admits but its protection withholds
+		// still enters the choice pool. The error is bounded: the answered
+		// copy's own CR 608.2b resolution recheck judges each target legal
+		// and fizzles the one whose target is not, so an over-wide pool can
+		// never resolve an illegal copy (it can only take a {2} payment for
+		// one). Recorded in the Known approximations table.
+		if sc.TriggerCard == 0 {
+			return false, false
+		}
+		spell := g.Obj(sc.TriggerCard)
+		if spell == nil || spell.Zone != state.ZStack {
+			return false, true
+		}
+		sa := triggeredSpellTargetSA(spell)
+		if sa == nil {
+			return false, true
+		}
+		return MatchesSpecCtx(g, strings.TrimSpace(sa.Params["ValidTgts"]), o.ID,
+			SpecContext{You: spell.Controller, Source: spell.ID}), true
 	}
 	if p == "TriggeredNewCard" || p == "TriggeredCard" {
 		// Forge's bare TriggeredNewCard / TriggeredCard property
@@ -2137,6 +2174,35 @@ type SpecContext struct {
 	// SpecContext field makes escape analysis leak the whole context (its
 	// Resolve closure included) to the heap on every hot-path construction.
 	ExtraTypes []string
+}
+
+// triggeredSpellTargetSA derives the target-declaring SA of a stack spell
+// object: an ability wrapper's own SA when it carries ValidTgts$ (a
+// triggered/activated ability the cast family named), else the face's spell
+// ability. A spell whose SA declares no ValidTgts$ (or a modal spell whose
+// mode structure this effects-side read cannot see) yields nil -- the
+// CanBeTargetedByTriggeredSpellAbility predicate fails closed on it, the
+// narrow direction for a choice pool. Never the rules side's modalTargetSA:
+// that lives above the effects tier.
+func triggeredSpellTargetSA(spell *state.Object) *cards.SA {
+	if spell == nil {
+		return nil
+	}
+	if spell.Ability != nil {
+		if strings.TrimSpace(spell.Ability.Params["ValidTgts"]) != "" {
+			return spell.Ability
+		}
+		return nil
+	}
+	f := spell.Face()
+	if f == nil {
+		return nil
+	}
+	sa := f.SpellAbility()
+	if sa == nil || strings.TrimSpace(sa.Params["ValidTgts"]) == "" {
+		return nil
+	}
+	return sa
 }
 
 // MatchesObjectCtx applies one Forge filter spec to an object VALUE rather

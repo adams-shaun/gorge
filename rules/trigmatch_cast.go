@@ -154,10 +154,226 @@ func (e *Engine) spellCastEval(t cards.Trigger, source state.ObjID, ev events.Ev
 			return false
 		}
 	}
+	// The target-shape params (targetsvalid1): TargetsValid$ narrows the cast
+	// to spells whose targets all match the spec, IsSingleTarget$ to spells
+	// with exactly one target. A SpellCast trigger "that targets CARDNAME"
+	// (the whole Heroic family) must not fire on a cast that targets
+	// something else. The spell's targets were recorded onto the stack object
+	// by handleTarget BEFORE payCast emitted this PutOnStack (CR 601.2c:
+	// targets are chosen before costs), so obj.Targets is the completed list.
+	if !e.targetShapeMatches(t, obj.Targets, source, ctrl) {
+		return false
+	}
 	if !hasXManaCostGate(t.Params, obj.Face().ManaCost, nil) {
 		return false
 	}
 	return true
+}
+
+// targetShapeMatches implements the two target-shape parameters the
+// cast/activation trigger family carries (task targetsvalid1): TargetsValid$
+// and IsSingleTarget$. Both are read at every trigger arm the family has --
+// the SpellCast/SpellCastOrCopy/SpellCopy arm (spellCastEval), the
+// AbilityCast/SpellAbilityCast activation arm (abilityCastMatches) and the
+// SpellAbilityCast spell arm (spellAbilityCastSpellMatches) -- through this
+// one helper, so the grammar cannot drift between the arms. targets is the
+// triggering spell's or activation's chosen target list, in each arm's own
+// completion state (a spell's recorded stack-object Targets; an activation's
+// pending-cast targets -- see abilityCastMatches for the timing).
+//
+// TargetsValid$ <spec>: EVERY target of the triggering spell or ability must
+// match one of the comma alternatives (Forge's own all-targets reading of
+// the parameter -- the corpus never carries the singular TargetValid$). The
+// reading is what "targets only CARDNAME" needs together with
+// IsSingleTarget$ (exactly one target, and it is CARDNAME). Object targets
+// resolve through the ordinary object filter with the trigger source bound
+// (so Card.Self is the trigger's own permanent) and player targets through
+// the player filter (so Opponent matches the target player). A spell or
+// ability with NO targets never matches -- "targets X" presupposes targets.
+//
+// IsSingleTarget$ True: the triggering spell or ability carries exactly one
+// target. A present param with any other value fails closed (the trigger
+// stays silent), per the repo's unreadable-condition convention; a param
+// absent leaves the trigger's behaviour unchanged.
+func (e *Engine) targetShapeMatches(t cards.Trigger, targets []state.Target, source state.ObjID, ctrl state.PlayerID) bool {
+	if v, ok := t.Params["IsSingleTarget"]; ok {
+		if !strings.EqualFold(strings.TrimSpace(v), "True") {
+			return false
+		}
+		if len(targets) != 1 {
+			return false
+		}
+	}
+	if v, ok := t.Params["TargetsValid"]; ok {
+		if len(targets) == 0 {
+			return false
+		}
+		for _, tgt := range targets {
+			if !e.targetMatchesTargetsValid(v, tgt, source, ctrl) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// targetMatchesTargetsValid reports whether ONE chosen target matches a
+// TargetsValid$ spec. Comma alternatives are split with the shared
+// filterAlternatives splitter (a named<Name, Name> argument's printed comma
+// is not an alternative boundary); the target's own shape picks the filter:
+// a player target through the player filter, an object target through the
+// object filter with the trigger source bound so Card.Self and the other
+// source-relative predicates read the trigger's own permanent. An object
+// target never matches a player-base alternative and vice versa -- each
+// filter simply answers false for the other's bases.
+func (e *Engine) targetMatchesTargetsValid(spec string, tgt state.Target, source state.ObjID, ctrl state.PlayerID) bool {
+	for alt := range effects.FilterAlternatives(spec) {
+		alt = strings.TrimSpace(alt)
+		if alt == "" {
+			continue
+		}
+		if tgt.IsPlayer {
+			if effects.MatchesPlayerSpecFrom(e.G, alt, tgt.Player, ctrl, source) {
+				return true
+			}
+			continue
+		}
+		if tgt.Obj != 0 && effects.MatchesSpecCtx(e.G, alt, tgt.Obj, e.specCtx(source, ctrl)) {
+			return true
+		}
+	}
+	return false
+}
+
+// spellAbilityCastSpellMatches is the SPELL half of Mode$ SpellAbilityCast
+// ("whenever you cast a spell or activate an ability ..."): a PutOnStack
+// event, evaluated with the spell-side parameters the corpus carriers
+// write. Mode$ AbilityCast stays AbilityPush-only -- its oracle text is
+// "whenever you activate an ability" -- so the mode split at the bottom of
+// this file routes the two events by mode, not by event kind.
+//
+// The arm is deliberately narrow: ValidActivatingPlayer$, ValidSA$ (the
+// spell-side kind grammar, spellAbilityCastValidSA), the shared
+// target-shape params and HasXManaCost$ -- the same four the activation arm
+// reads, plus the ValidCard$ this build now reads (the delayed-registration
+// mirror's grammar: castProvenanceAdmits, then the ordinary filter) so a
+// future carrier's card restriction cannot silently widen. The cast-count
+// clauses (ActivatorThisTurnCast*) remain SpellCast-mode parameters no
+// SpellAbilityCast carrier carries.
+func (e *Engine) spellAbilityCastSpellMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	obj := e.G.Obj(ev.Obj)
+	if obj == nil || obj.Face() == nil {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v, ok := t.Params["ValidActivatingPlayer"]; ok {
+		// ev.Player is the player who cast the spell; MatchesPlayerSpec
+		// resolves "You" as the trigger's controller.
+		if !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+			return false
+		}
+	}
+	if v, ok := t.Params["ValidCard"]; ok {
+		// The delayed-registration mirror's ValidCard$ grammar
+		// (eventDelayedSpellCastMatches): the provenance strip, then the
+		// ordinary object filter over the cast spell on the stack. The
+		// corpus's one SpellAbilityCast carrier with the param is the trivial
+		// `Card` (vazi_keen_negotiator), so no live behaviour changes; the
+		// read keeps the first future carrier from widening silently.
+		v, ok := e.castProvenanceAdmits(v, ev.Obj, ctrl)
+		if !ok {
+			return false
+		}
+		if !effects.MatchesSpecCtx(e.G, spellCastPermanentSpec(v), ev.Obj, e.specCtx(source, ctrl)) {
+			return false
+		}
+	}
+	if v, ok := t.Params["ValidSA"]; ok {
+		if !spellAbilityCastSpellValidSA(e.G, obj, v, ctrl, e.specCtx(source, ctrl)) {
+			return false
+		}
+	}
+	if !e.targetShapeMatches(t, obj.Targets, source, ctrl) {
+		return false
+	}
+	if !hasXManaCostGate(t.Params, obj.Face().ManaCost, nil) {
+		return false
+	}
+	return true
+}
+
+// spellAbilityCastSpellValidSA evaluates a SpellAbilityCast trigger's
+// ValidSA$ clause on the SPELL half. The grammar is Forge's comma-separated
+// OR list of "<kind>.<constraint>" values where a kind may name a spell, an
+// ability, or the union:
+//
+//   - Spell / Instant / Sorcery / Card / Permanent (or no kind): the whole
+//     alternative is the ordinary object filter over the cast spell --
+//     Spell.nonCreature (Feather, Radiant Arbiter) and Instant.YouCtrl /
+//     Sorcery.YouCtrl (Bill Potts) resolve through the existing bases and
+//     predicates, including nonCreature and YouCtrl.
+//   - SpellAbility (the spell-or-ability union kind, Grip of Chaos's
+//     SpellAbility.!ManaAbility): any spell matches it -- a spell is never
+//     a mana ability, so !ManaAbility holds and a bare SpellAbility holds;
+//     YouCtrl checks the spell's controller; ManaAbility never holds.
+//   - Activated / Triggered name ability kinds only and never match a
+//     spell (the activation arm's abilityCastValidSA owns them there).
+//
+// An alternative this reading cannot resolve is skipped; the trigger fires
+// only when at least one alternative matches (an unresolvable clause fails
+// closed, the repo's convention).
+func spellAbilityCastSpellValidSA(g *state.Game, obj *state.Object, validSA string, ctrl state.PlayerID, sc effects.SpecContext) bool {
+	v := strings.TrimSpace(validSA)
+	if v == "" {
+		return true
+	}
+	for alt := range effects.FilterAlternatives(v) {
+		alt = strings.TrimSpace(alt)
+		if alt == "" {
+			continue
+		}
+		kind, constraint, _ := strings.Cut(alt, ".")
+		switch kind {
+		case "Activated", "Triggered":
+			continue
+		case "SpellAbility":
+			switch constraint {
+			case "", "!ManaAbility":
+				return true
+			case "ManaAbility":
+				continue
+			case "YouCtrl":
+				if obj.Controller == ctrl {
+					return true
+				}
+				continue
+			}
+			continue
+		default:
+			// Spell / Instant / Sorcery / Card / Permanent / no kind -- the
+			// ordinary object filter over the cast spell.
+			if effects.MatchesObjectCtx(g, alt, obj, sc) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// spellAbilityCastMatches is Mode$ SpellAbilityCast's dispatcher (the
+// spell-or-activate union): an AbilityPush event routes to the activation
+// arm, a PutOnStack to the spell arm (spellAbilityCastSpellMatches). A named
+// method, not an inline func literal, so the param census (the rot guard)
+// attributes both arms' trigger-param reads to this mode through the one
+// dispatch function.
+func (e *Engine) spellAbilityCastMatches(t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+	switch ev.Kind {
+	case events.AbilityPush:
+		return e.abilityCastMatches(t, source, ev)
+	case events.PutOnStack:
+		return e.spellAbilityCastSpellMatches(t, source, ev)
+	}
+	return false
 }
 
 // abilityCastMatches implements Mode$ AbilityCast and Mode$ SpellAbilityCast
@@ -202,9 +418,33 @@ func (e *Engine) abilityCastMatches(t cards.Trigger, source state.ObjID, ev even
 		if !havePa {
 			return false
 		}
-		if !abilityCastValidSA(pa.SA, v) {
+		if !abilityCastValidSA(pa.SA, v, obj.Controller, ctrl) {
 			return false
 		}
+	}
+	// The target-shape params (targetsvalid1), the activation arm: ertha_jo's
+	// "Whenever you activate an ability that targets a creature or player".
+	//
+	// TIMING (round-2 review MAJOR): this match runs synchronously inside
+	// payCast's AbilityPush emit -- BEFORE handleTarget's ability branch
+	// records the chosen targets onto the minted object via TargetsChosen --
+	// and ev.Obj is the SOURCE permanent, whose own Targets is always empty.
+	// Reading the stack object here made both params permanently silent on
+	// this arm (measured probe: an AbilityCast trigger with TargetsValid$
+	// queued 0 where the param-less shape queued 1). The match must read the
+	// ACTIVATION's chosen targets, which payCast holds on the pending cast
+	// (pc.targets, the targetOptions of the answered ask): the target ask
+	// completes before any cost is paid (CR 601.2c targets-before-costs), so
+	// pc.targets is the completed list exactly at this emit. A pending cast
+	// that is not this printed-ability activation (or none -- a synthetic
+	// push) falls back to the source object's Targets, the honest empty read
+	// that fails a TargetsValid$ gate the way a target-less activation must.
+	tgts := obj.Targets
+	if pc := e.cast; pc != nil && pc.isAbility() && pc.card == ev.Obj {
+		tgts = pc.targets
+	}
+	if !e.targetShapeMatches(t, tgts, source, ctrl) {
+		return false
 	}
 	// HasXManaCost$ True: the activation cost must contain {X}. The ability
 	// at the recorded index (the same bounds check ValidSA$ uses); a stale
@@ -224,13 +464,20 @@ func (e *Engine) abilityCastMatches(t cards.Trigger, source state.ObjID, ev even
 // comma-separated OR list of "<kind>.<constraint>" values; a value whose kind
 // names a spell (Spell/Instant/Sorcery) describes a cast, not an activation,
 // so it never matches an activated ability and is simply skipped. An absent
-// or unqualified value matches every activated ability.
-func abilityCastValidSA(ab *cards.SA, validSA string) bool {
+// or unqualified value matches every activated ability. abCtrl is the
+// activated ability's controller (the activator) and ctrl the trigger
+// source's controller: a YouCtrl constraint holds when the two agree
+// (bill_potts' Activated.YouCtrl; the spell half resolves its own YouCtrl
+// through the ordinary filter).
+func abilityCastValidSA(ab *cards.SA, validSA string, abCtrl, ctrl state.PlayerID) bool {
 	v := strings.TrimSpace(validSA)
 	if v == "" {
 		return true
 	}
-	for _, alt := range strings.Split(v, ",") {
+	// The SAME alternative splitter the spell half (spellAbilityCastSpellValidSA)
+	// uses: comma-aware of a named<Name, Name> argument's printed comma, so
+	// the two arms of one mode cannot disagree on where one alternative ends.
+	for alt := range effects.FilterAlternatives(v) {
 		alt = strings.TrimSpace(alt)
 		if alt == "" {
 			continue
@@ -250,6 +497,10 @@ func abilityCastValidSA(ab *cards.SA, validSA string) bool {
 				}
 			case "ManaAbility":
 				if isManaAbilityAPI(ab.API) {
+					return true
+				}
+			case "YouCtrl":
+				if abCtrl == ctrl {
 					return true
 				}
 			}
@@ -506,7 +757,15 @@ func init() {
 	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
 		return e.spellCopyMatches(t, source, ev)
 	}, "SpellCopy")
+	// The activation-cast family, split (targetsvalid1): Mode$ AbilityCast is
+	// "whenever you activate an ability" -- an AbilityPush event only, never a
+	// spell cast -- while Mode$ SpellAbilityCast is Forge's "spell or activate
+	// an ability" union and fires on BOTH events: an AbilityPush through the
+	// activation arm, a PutOnStack through the spell arm
+	// (spellAbilityCastSpellMatches). triggerModeEvents and the compiled
+	// triggerInterestForMode mirror this split.
 	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
 		return e.abilityCastMatches(t, source, ev)
-	}, "AbilityCast", "SpellAbilityCast")
+	}, "AbilityCast")
+	registerTrigMatcher((*Engine).spellAbilityCastMatches, "SpellAbilityCast")
 }

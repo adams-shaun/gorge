@@ -30,8 +30,11 @@ func Num(h Host, c *Ctx, sa *cards.SA, key string, def int32) int32 {
 // NumResolved is Num plus a resolvability verdict: it answers whether the
 // parameter RESOLVED under the same grammar Num reads -- a signed literal, an
 // SVar name present in the context's table, a recognised inline expression
-// prefix (Count$/Sacrificed$/Remembered$/TriggerCount$/ReplaceCount$), or the
-// bare X. Num itself degrades an unresolvable value to zero ("the card did
+// prefix (Count$/Sacrificed$/Remembered$/TriggerCount$/ReplaceCount$), a bare
+// count body the head dispatch resolves (the PlayerCount<group>$<property>
+// family -- Forge writes these as SVar bodies WITHOUT the Count$ prefix, so a
+// direct parameter value is the same bare body, Tolarian Contempt's
+// TargetMax$ PlayerCountOpponents$Amount), or the bare X. Num itself degrades an unresolvable value to zero ("the card did
 // nothing"); NumResolved exists for a caller that must not confuse that
 // degrade-to-zero with a LEGITIMATE zero -- rules' replacement matcher gates
 // a DB$ ReplaceDamage prevention body on its Amount$ and fails closed on a
@@ -74,7 +77,7 @@ func NumResolved(h Host, c *Ctx, sa *cards.SA, key string, def int32) (int32, bo
 	// exactly as the SVar$ indirection resolves the same name in an SVar
 	// body. Checked after the card's own SVar table so a real SVar of the
 	// same name keeps winning.
-	if v, ok := rollPublished(c, raw); ok {
+	if v, ok := runtimePublished(c, raw); ok {
 		return sign * v, true
 	}
 	// An inline Count$ expression (Storm's own Amount$ Count$ThisTurnCast/
@@ -114,6 +117,21 @@ func NumResolved(h Host, c *Ctx, sa *cards.SA, key string, def int32) (int32, bo
 	}
 	if raw == "X" {
 		return sign * c.X, true
+	}
+	// A bare inline count body with no SVar name and no Count$ prefix is a
+	// body in its own right: Forge writes the PlayerCount<group>$<property>
+	// family as SVar bodies WITHOUT the Count$ prefix (Vampire Lacerator's
+	// SVar:OpponentSmallest:PlayerCountOpponents$LowestLifeTotal), so a direct
+	// parameter value of the same shape -- Tolarian Contempt's
+	// TargetMax$ PlayerCountOpponents$Amount -- must resolve the way the
+	// SVar-mediated form (Havoc Eater's SVar:X:PlayerCountOpponents$Amount
+	// behind TargetMax$ X) resolves through the lookup above. Otherwise the
+	// pfpe1 per-player bound collapses to the default 1 on one spelling and
+	// not the other. A token that names no modelled head keeps the
+	// degrade-to-zero path -- evalCountExprOK's verdict is exactly
+	// "the head matched nothing".
+	if n, ok := evalCountExprOK(h, c, raw, 0); ok {
+		return sign * n, true
 	}
 	return 0, false
 }
@@ -288,7 +306,7 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 		n, ok3 := int32(0), false
 		if body, ok2 := c.SVars[strings.TrimSpace(name)]; ok2 {
 			n, ok3 = evalCountExprOK(h, c, body, depth+1)
-		} else if v, ok2 := rollPublished(c, strings.TrimSpace(name)); ok2 {
+		} else if v, ok2 := runtimePublished(c, strings.TrimSpace(name)); ok2 {
 			n, ok3 = v, true
 		}
 		if hasOp {
@@ -336,7 +354,7 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 		// same name the SVar$ indirection resolves above, in the one shape a
 		// corpus body carries a bare runtime name. Anything else is
 		// unrecognised: zero, and NOT evaluated.
-		if v, ok := rollPublished(c, strings.TrimSpace(expr)); ok {
+		if v, ok := runtimePublished(c, strings.TrimSpace(expr)); ok {
 			return v, true
 		}
 		return 0, false
@@ -1031,6 +1049,29 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		// of enforcing a meaningless zero. A bound zero is a real binding and
 		// evaluates (torgal with no Dogs/Wolves on the board).
 		return c.ChosenNumber, c.ChosenNumberBound
+	case "ChosenSize":
+		// Forge's Count$ChosenSize (CardUtil.getChosenCards().size()): the
+		// number of CARDS the current resolution's ChooseCard chain has
+		// chosen -- the same set Defined$ ChosenCard resolves (effects/
+		// context.go's definedSpec case), read with the same precedence so a
+		// count and a defined fetch can never disagree: the resolution's
+		// bound Ctx.Chosen when it is live, else the source object's
+		// event-backed Chosen list (the Choose "chosen" fold), which is what
+		// a re-entry after a suspended ask reads. Player entries (a
+		// ChoosePlayer's half) are not cards and do not count. A legitimate
+		// zero (Feather, Radiant Arbiter's MinAmount$ 0 ask answered with
+		// nothing) is exactly that -- the /Op suffix (/Times.2, the
+		// UnlessCost$ CopyCost pricing) folds the zero like any other.
+		// resolutionChosenCards is the shared chosen-card read (context.go's
+		// Defined$ ChosenCard case, copy.go's DefinedTarget$ ChosenCard).
+		chosen := resolutionChosenCards(g, c)
+		n := int32(0)
+		for _, t := range chosen {
+			if !t.IsPlayer {
+				n++
+			}
+		}
+		return n, true
 	case "YourLifeTotal":
 		if c.Controller < 0 || int(c.Controller) >= len(g.Players) {
 			return 0, true
@@ -1150,7 +1191,19 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	// An empty group also fails unresolvable for a life extreme (lifeExtreme
 	// reports no extreme), for the same reason: a threshold compared against
 	// an absent extreme is not readable either.
+	//
+	// The `Amount` property IS resolvable on the living groups (and the
+	// Registered spellings, which read the same living sets): Forge's
+	// property `Amount` counts 1 per group member, so
+	// PlayerCountOpponents$Amount is the opponent count — the dominant
+	// "one each" bound the corpus names SVar:OneEach (99 raw Opponents +
+	// 52 raw Players lines at the pfpe1 gate) and the per-player target
+	// bound the TargetsForEachPlayer$ shape needs (Havoc Eater's
+	// TargetMax$ X with SVar:X:PlayerCountOpponents$Amount).
 	if rest, ok := strings.CutPrefix(head, "PlayerCountPlayers$"); ok {
+		if n, ok2 := playerGroupCount(g.AliveFrom(0), rest); ok2 {
+			return n, true
+		}
 		if n, ok2 := lifeExtreme(g, g.AliveFrom(0), rest); ok2 {
 			return n, true
 		}
@@ -1160,6 +1213,9 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		return playerCountExtreme(h, g, c, g.AliveFrom(0), rest, arg)
 	}
 	if rest, ok := strings.CutPrefix(head, "PlayerCountRegisteredOpponents$"); ok {
+		if n, ok2 := playerGroupCount(opponentGroup(g, c), rest); ok2 {
+			return n, true
+		}
 		// Forge's REGISTERED opponents — the opponents registered at game
 		// start (Bloodchief Ascension's "if an opponent lost 2 or more life
 		// this turn" gate). No registered-membership list survives a replay
@@ -1172,6 +1228,9 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		return playerCountDefinedRegistered(h, g, c, opponentGroup(g, c), rest, arg)
 	}
 	if rest, ok := strings.CutPrefix(head, "PlayerCountOpponents$"); ok {
+		if n, ok2 := playerGroupCount(opponentGroup(g, c), rest); ok2 {
+			return n, true
+		}
 		if n, ok2 := lifeExtreme(g, opponentGroup(g, c), rest); ok2 {
 			return n, true
 		}
@@ -1197,9 +1256,15 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	//     resolving controller (Ludevic, Necro-Alchemist's "a player other
 	//     than you lost life this turn").
 	if rest, ok := strings.CutPrefix(head, "PlayerCountDefinedRegistered.Other$"); ok {
+		if n, ok2 := playerGroupCount(opponentGroup(g, c), rest); ok2 {
+			return n, true
+		}
 		return playerCountDefinedRegistered(h, g, c, opponentGroup(g, c), rest, arg)
 	}
 	if rest, ok := strings.CutPrefix(head, "PlayerCountDefinedRegistered$"); ok {
+		if n, ok2 := playerGroupCount(g.AliveFrom(0), rest); ok2 {
+			return n, true
+		}
 		return playerCountDefinedRegistered(h, g, c, g.AliveFrom(0), rest, arg)
 	}
 
@@ -1861,6 +1926,18 @@ func lifeExtreme(g *state.Game, players []state.PlayerID, prop string) (int32, b
 // controller — the group PlayerCountOpponents$ and (by the reading
 // documented at its dispatch site) PlayerCountRegisteredOpponents$ both
 // count over.
+// playerGroupCount answers Forge's count property `Amount` on a
+// PlayerCount<group>$ head: 1 per member, so the value is the group's size --
+// the "one each" bound (SVar:OneEach:PlayerCountOpponents$Amount) and the
+// per-player target maximum the TargetsForEachPlayer$ shape reads. Any other
+// property fails closed to the ordinary dispatch.
+func playerGroupCount(players []state.PlayerID, rest string) (int32, bool) {
+	if strings.TrimSpace(rest) != "Amount" {
+		return 0, false
+	}
+	return int32(len(players)), true
+}
+
 func opponentGroup(g *state.Game, c *Ctx) []state.PlayerID {
 	var opps []state.PlayerID
 	for _, p := range g.AliveFrom(0) {

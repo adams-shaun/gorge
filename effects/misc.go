@@ -32,7 +32,20 @@ func init() {
 
 // effGoad records each independently-lived goad relationship. Duration and
 // source are event payload so replay can expire conditional goads identically.
+//
+// RememberGoaded$ True (2 corpus files: Havoc Eater, Kaima the Fractured
+// Calm) makes the resolution remember each goaded creature, so the chained
+// SubAbility$ (both carriers' DB$ PutCounter reading SVar:Y:Remembered$
+// CardPower — "X +1/+1 counters, where X is the total power of creatures
+// goaded this way") reads exactly what was goaded. Ctx is threaded by
+// pointer through Resolve, so appending here is visible to the sub-ability
+// without any state write — the same per-resolution ctx Remembered the
+// RememberDamaged$ arm of DealDamage takes (damage.go), replay re-derived by
+// re-running the resolution. Only the goad-granting arm remembers; a
+// NoLonger$ release remembers nothing (its corpus shape never pairs the
+// rider with a release).
 func effGoad(h Host, c *Ctx, sa *cards.SA) {
+	remember := strings.EqualFold(strings.TrimSpace(sa.Params["RememberGoaded"]), "True")
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
@@ -48,6 +61,9 @@ func effGoad(h Host, c *Ctx, sa *cards.SA) {
 			}
 			h.Emit(events.Event{Kind: events.Goad, Obj: o.ID, Player: c.Controller,
 				Text: duration, IDs: []state.ObjID{c.Source}, Amount: int32(o.Controller) + 1})
+			if remember {
+				c.Remembered = append(c.Remembered, state.Target{Obj: o.ID})
+			}
 		}
 	}
 }
@@ -1762,6 +1778,15 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 		effCardVote(h, c, sa, ballot)
 		return
 	}
+	// The PLAYER ballot (task votepb1): VotePlayer$ with no Choices$ list
+	// names the ballot entries as players (Mob Verdict's `VotePlayer$ Other`).
+	// Choices$ keeps its precedence -- Forge's VoteEffect reads Choices first,
+	// then VoteCard$, then VotePlayer$ -- so this fires only when the vote
+	// carries no fixed option list.
+	if vp := strings.TrimSpace(sa.Params["VotePlayer"]); vp != "" && len(voteChoiceNames(sa)) == 0 {
+		effPlayerVote(h, c, sa)
+		return
+	}
 	choices := voteChoiceNames(sa)
 	voters := Defined(h, c, sa)
 	// Ctx.Votes is the answered per-voter choice list (a real per-player
@@ -1907,13 +1932,53 @@ func effCardVote(h Host, c *Ctx, sa *cards.SA, ballot string) {
 		}
 		h.Emit(events.Event{Kind: events.Note, Player: PlayerOf(h, c, t), Text: "votes for " + label})
 	}
-	if max > 0 {
+	// The card ballot's per-subject tally, for the chained AmountFromVotes$
+	// reader (task votepb1): one entry per ballot permanent, published behind
+	// StoreVoteNum$ True -- the parameter Forge requires before it stores its
+	// VoteNum<card> SVars. Forge's StoreVoteNum branch (a card ballot has no
+	// Choices$) is authoritative on what the resolution REMEMBERS as well:
+	// when the vote stores its per-subject tallies, the most-votes remember
+	// path does not run at all, and the only remember is
+	// RememberVotedObjects$'s `host.addRemembered(votes.keySet())` -- exactly
+	// the objects that RECEIVED a vote, each once. Without StoreVoteNum$ the
+	// most-votes append stands (Council's Judgment's "exile each permanent
+	// with the most votes or tied for most votes", feeding VoteSubAbility$);
+	// there a bare RememberVotedObjects$ beside it dedupes against the
+	// most-votes set instead of duplicating it (no corpus carrier combines
+	// the two without StoreVoteNum$, so the dedupe is the structural guard,
+	// not a behaviour change any carrier can see).
+	storeVoteNum := strings.EqualFold(strings.TrimSpace(sa.Params["StoreVoteNum"]), "True")
+	rememberVoted := strings.EqualFold(strings.TrimSpace(sa.Params["RememberVotedObjects"]), "True")
+	if storeVoteNum {
+		publishVoteCounts(c, voteCountsForObjects(options, counts))
+	} else if max > 0 {
 		for _, id := range options {
 			if counts[id] == max {
 				c.Remembered = append(c.Remembered, state.Target{Obj: id})
 			}
 		}
 	}
+	if rememberVoted {
+		// Exactly the objects that received a vote, each once: on the
+		// non-StoreVoteNum path the most-votes append above may already hold a
+		// voted object, so the voted set never duplicates it.
+		mostVoted := map[state.ObjID]bool{}
+		if !storeVoteNum && max > 0 {
+			for _, id := range options {
+				if counts[id] == max {
+					mostVoted[id] = true
+				}
+			}
+		}
+		for _, id := range options {
+			if counts[id] > 0 && !mostVoted[id] {
+				c.Remembered = append(c.Remembered, state.Target{Obj: id})
+			}
+		}
+	}
+	// VoteSubAbility$ resolves AFTER the tally publish and the remember, so a
+	// chained body sees Votes bound and the remembered set complete (fx42's
+	// consumers read before their own re-entries).
 	if sub := strings.TrimSpace(sa.Params["VoteSubAbility"]); sub != "" {
 		if resolved := cards.ResolveSVar(c.SVars, sub); resolved != nil {
 			Resolve(h, c, resolved)

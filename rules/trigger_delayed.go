@@ -355,5 +355,15 @@ func (e *Engine) eventDelayedSpellCastMatches(t cards.Trigger, dt *state.Delayed
 			return false
 		}
 	}
+	// The target-shape params (targetsvalid1), the delayed mirror: no corpus
+	// carrier combines a delayed SpellCast registration with either param
+	// (measured: the two files carrying both a DelayedTrigger and a
+	// target-shape param carry only Mode$ Phase bodies), but the stored
+	// grammar mirrors spellCastMatches' clauses one for one and the read is
+	// honest here -- the spell is already on the stack with its recorded
+	// targets, so a future registration cannot widen silently.
+	if !e.targetShapeMatches(t, obj.Targets, dt.Source, dt.Controller) {
+		return false
+	}
 	return true
 }
