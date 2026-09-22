@@ -2530,6 +2530,10 @@ func init() {
 		// price (Nils' RememberingAttacker$) stay unregistered
 		// behaviour-wise and are ledgered in AGENTS.md.
 		"stat:CantAttackUnless",
+		// blockprop1: the CR 509.1b block-prop static. Mana-priceable
+		// face statics are charged per (blocker, attacker); non-mana costs
+		// and Effect/Animate-delivered forms remain permissively skipped.
+		"stat:CantBlockUnless",
 		// canattackdefender1: the CR 702.3b permission static (the inverse of
 		// a restriction: it LIFTS the Defender wall per (attacker, defender)
 		// pair). rules/attack_defender.go attackAllowedThroughDefender is the

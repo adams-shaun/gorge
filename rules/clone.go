@@ -510,6 +510,10 @@ func (e *Engine) Clone() *Engine {
 		ap := *e.attackPay
 		c.attackPay = &ap
 	}
+	if e.blockPay != nil {
+		bp := *e.blockPay
+		c.blockPay = &bp
+	}
 	if e.cast != nil {
 		pc := *e.cast
 		pc.cost.Sac = append([]CostPart(nil), e.cast.cost.Sac...)
