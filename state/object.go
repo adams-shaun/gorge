@@ -914,9 +914,24 @@ func (o *Object) Counter(kind string) int32 {
 	// CardCounters.ALL count family (Backstreet Bruiser, Maester Seymour,
 	// Lux Artillery's "counters among ...") reads through this one home,
 	// so the three CardCounters.<KIND> call sites cannot disagree.
+	//
+	// The engine's OWN status markers are excluded from the sum: "Shield"
+	// (the this-turn regeneration shield) and "Deathtouched" (the CR 702.2b
+	// lethal mark) ride an ordinary CounterChange for want of a status field
+	// and are cleared only at end-of-turn cleanup, so mid-turn -- after
+	// combat, exactly when an attack-trigger X is read -- every marked
+	// creature would otherwise inflate an ALL sum by 1-2 per mark. The
+	// same exclusion the AddCounter doubler gate applies (rules/replacement.go
+	// reads state.InternalCounterMarker) now governs the ALL read too.
+	// Callers that want a specific marker keep asking for it by name
+	// (effects/regeneration.go, rules/combat.go, rules/sba.go) -- the
+	// exclusion lives only in the ALL branch.
 	if kind == "ALL" {
 		var n int32
 		for _, c := range o.Counters {
+			if InternalCounterMarker(c.Kind) {
+				continue
+			}
 			n += c.N
 		}
 		return n
@@ -927,6 +942,29 @@ func (o *Object) Counter(kind string) int32 {
 		}
 	}
 	return 0
+}
+
+// InternalCounterMarker reports whether a counter name is one of the engine's
+// own status markers rather than a counter a card could name. Both ride an
+// ordinary CounterChange -- the engine has no per-object status field, so a
+// marker is recorded as a counter -- and both are SET with Amount 1:
+//
+//   - "Shield", the this-turn regeneration shield (effects/counters.go's
+//     effRegenerate sets it, effects/regeneration.go reads it back, and
+//     rules/combat.go consumes one per destruction);
+//   - "Deathtouched", the CR 702.2b lethal mark (rules/combat.go's combat
+//     assignment, rules/replacement.go's replacement-applied damage,
+//     effects/damage.go), read by rules/sba.go's destruction check.
+//
+// The helper lives in state because the two consumers sit on either side of
+// the dependency line: Object.Counter's "ALL" sum (this file, read by the
+// CardCounters.ALL count family) and rules/replacement.go's AddCounter
+// doubler gate (rules imports state, never the reverse). Excluding the
+// markers by name is safe: every counter kind the corpus scripts is
+// upper-case (P1P1, LORE, AGE, TIME, STUN, CHARGE, ENERGY, POISON, LOYALTY,
+// ...), so no real kind can collide with either mixed-case marker name.
+func InternalCounterMarker(name string) bool {
+	return name == "Shield" || name == "Deathtouched"
 }
 
 // AddCounter adds n counters of a kind, creating the entry if needed. Counters

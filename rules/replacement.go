@@ -97,11 +97,11 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	// Only a POSITIVE placement of a real counter is subject to the
 	// restriction: a removal (Amount <= 0) is not a placement at all, and the
 	// engine's own status markers (regeneration's Shield, the Deathtouched
-	// mark) are not counters -- the same internalCounterMarker exclusion the
+	// mark) are not counters -- the same state.InternalCounterMarker exclusion the
 	// AddCounter matcher keeps, so a "counters can't be put on it" static
 	// cannot stop a regeneration shield or a removal.
 	if (ev.Kind == events.CounterChange || ev.Kind == events.PlayerCounterChange) &&
-		ev.Amount > 0 && !internalCounterMarker(ev.Counter) {
+		ev.Amount > 0 && !state.InternalCounterMarker(ev.Counter) {
 		if e.PutCounterBlocked(ev.Counter, ev.Obj, ev.Player, ev.Kind == events.PlayerCounterChange) {
 			return events.Event{}, true
 		}
@@ -1437,31 +1437,6 @@ func (e *Engine) continueCreateTokenReplacements(ev events.Event, matches []repl
 	return last, true
 }
 
-// internalCounterMarker reports whether a counter name is one of the engine's
-// own status markers rather than a counter a card could name. Both ride an
-// ordinary CounterChange -- the engine has no per-object status field, so a
-// marker is recorded as a counter -- and both are SET with Amount 1, so the
-// AddCounter matcher's positive-amount guard does not exclude them:
-//
-//   - "Shield", the this-turn regeneration shield (effects/counters.go's
-//     effRegenerate sets it, effects/regeneration.go reads it back, and
-//     rules/combat.go consumes one per destruction);
-//   - "Deathtouched", the CR 702.2b lethal mark (rules/combat.go's combat
-//     assignment, this file's replacement-applied damage, effects/damage.go),
-//     read by rules/sba.go's destruction check.
-//
-// A counter doubler whose R: line names no ValidCounterType$ -- Doubling
-// Season, Winding Constrictor's object line, Loading Zone, Pir, Selesnya Loft
-// Gardens -- matches any counter kind, so without this gate one Regenerate
-// would grant TWO regeneration shields. Excluding the markers by name is safe:
-// every counter kind the corpus scripts is upper-case (P1P1, LORE, AGE, TIME,
-// STUN, CHARGE, ENERGY, POISON, LOYALTY, ...), so no real kind can collide
-// with either mixed-case marker name, and a removal of a marker was already
-// excluded by the sign guard.
-func internalCounterMarker(name string) bool {
-	return name == "Shield" || name == "Deathtouched"
-}
-
 // applyAddCounterReplacements rewrites a CounterChange/PlayerCounterChange
 // event's Amount through every applicable R:Event$ AddCounter replacement,
 // then returns the event UNHANDLED so emit's ordinary path logs and folds the
@@ -2485,8 +2460,8 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 		// ... and neither is one of the engine's own status markers, which
 		// ride a CounterChange for want of a status field and are emitted
 		// with a POSITIVE amount, so the sign guard above does not exclude
-		// them. See internalCounterMarker.
-		if internalCounterMarker(ev.Counter) {
+		// them. See state.InternalCounterMarker.
+		if state.InternalCounterMarker(ev.Counter) {
 			return false
 		}
 		// ValidCounterType$ names the kind of counter being added and appears

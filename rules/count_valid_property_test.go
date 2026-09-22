@@ -156,3 +156,42 @@ func TestCardCountersAllSumsEveryKind(t *testing.T) {
 		t.Fatalf("bare CardCounters.ALL = %d (ok %v), want 3 (the source's own kinds)", n, ok)
 	}
 }
+
+// TestCardCountersAllExcludesEngineMarkers pins the marker-pollution edge of
+// the ALL read: the engine's own status markers ("Shield", the regeneration
+// shield; "Deathtouched", the CR 702.2b lethal mark) ride an ordinary
+// CounterChange and are cleared only at end-of-turn cleanup, so a mid-turn
+// ALL sum -- exactly when an attack-trigger X is read -- must exclude them
+// (state.InternalCounterMarker, the same exclusion the AddCounter doubler
+// gate applies). Without the exclusion, Backstreet Bruiser / Maester Seymour
+// / Lux Artillery over-count by 1-2 per marked creature after combat.
+func TestCardCountersAllExcludesEngineMarkers(t *testing.T) {
+	t.Parallel()
+	e := layerEngine(t)
+	a := onBoard(t, e, 0, "Name:Marked Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	b := onBoard(t, e, 0, "Name:Marked Ox\nManaCost:1 G\nTypes:Creature Ox\nPT:3/3\nOracle:x\n")
+	seedObjectCounter(t, e, a, "P1P1", 2)
+	seedObjectCounter(t, e, a, "Shield", 1)
+	seedObjectCounter(t, e, a, "Deathtouched", 1)
+	seedObjectCounter(t, e, b, "LORE", 3)
+
+	// Precondition: the real counters sum to 5 and the markers are present
+	// on the object as ordinary CounterChange slots, so an inclusion-heavy
+	// ALL read would return 7 and differ from the asserted 5.
+	if got := e.G.Obj(a).Counter("P1P1") + e.G.Obj(a).Counter("Shield") + e.G.Obj(a).Counter("Deathtouched") + e.G.Obj(b).Counter("LORE"); got != 7 {
+		t.Fatalf("test precondition: seeded counters = %d, want 7", got)
+	}
+
+	ctx := &effects.Ctx{Controller: 0, Source: a}
+	if n, ok := effects.EvalCountOK(e, ctx, "Count$Valid Creature.YouCtrl$CardCounters.ALL"); !ok || n != 5 {
+		t.Fatalf("CardCounters.ALL = %d (ok %v), want 5 (engine markers excluded)", n, ok)
+	}
+	if n, ok := effects.EvalCountOK(e, ctx, "Count$CardCounters.ALL"); !ok || n != 2 {
+		t.Fatalf("bare CardCounters.ALL = %d (ok %v), want 2 (the source's own P1P1; its markers excluded)", n, ok)
+	}
+	// A named kind still reaches a marker directly -- the exclusion lives
+	// only in the ALL branch (regeneration reads Counter("Shield") by name).
+	if got := e.G.Obj(a).Counter("Shield"); got != 1 {
+		t.Fatalf("Counter(Shield) = %d, want 1", got)
+	}
+}
