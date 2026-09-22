@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -201,5 +202,91 @@ func TestMouthOfSauronAmassCountsTheMilledPlayerGraveyard(t *testing.T) {
 	}
 	if counters != 2 {
 		t.Errorf("Army amassed %d counters, want 2 (Giant Growth + Rampant Growth; Shock in the CASTER'S graveyard does not count)", counters)
+	}
+}
+
+// moveLibraryCardToHand moves one card from seat p's library to seat p's hand
+// with a logged MoveZone (the library->hand bridge shape), so a test can pin a
+// specific hand size rather than inherit the opening deal's.
+func moveLibraryCardToHand(t *testing.T, e *Engine, p state.PlayerID) {
+	t.Helper()
+	z := e.G.Zone(state.ZLibrary, p)
+	if len(z) == 0 {
+		t.Fatalf("seat %d's library is empty", p)
+	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: z[0], From: state.ZLibrary, To: state.ZHand})
+	e.pending = nil
+	e.priorityRound()
+}
+
+// TestRousingRefrainAddsManaPerCardInTheTargetedOpponentsHand pins the
+// player-valued count head through the SP$ Mana resolution path: the spell's
+// `SP$ Mana | ValidTgts$ Opponent | Produced$ R | Amount$ Z` reads
+// SVar:Z:TargetedPlayer$CardsInHand, so the added {R} equals the TARGETED
+// opponent's hand size. Before tgtplayer1 this body fell through every head
+// and answered zero -- the spell resolved untargeted-as-zero, adding no mana
+// at all. The caster's own hand is a different size, so a wrong perspective
+// (You = the resolving controller) reads a different number.
+func TestRousingRefrainAddsManaPerCardInTheTargetedOpponentsHand(t *testing.T) {
+	for _, want := range []int{10, 12} {
+		t.Run(fmt.Sprintf("opponentHand%d", want), func(t *testing.T) {
+			reg := searchTestRegistry(t)
+			e, _ := tgtplayerTestEngine(t, reg, "Rousing Refrain", "Shock", "Mountain", "Mountain")
+			// Pin the TARGET opponent's hand size; the caster's hand stays the
+			// opening deal's, so the two must differ or the test cannot tell a
+			// correct perspective from the wrong one.
+			for len(e.G.Zone(state.ZHand, 1)) < want {
+				moveLibraryCardToHand(t, e, 1)
+			}
+			hand1 := len(e.G.Zone(state.ZHand, 1))
+			hand0 := len(e.G.Zone(state.ZHand, 0))
+			if hand1 != want {
+				t.Fatalf("precondition: target opponent hand = %d, want %d", hand1, want)
+			}
+			if hand0 == hand1 {
+				t.Fatalf("precondition: caster hand = target hand = %d; the perspective split cannot be tested", hand0)
+			}
+			// Five red, four more than the {3}{R}{R} cost: after payment the
+			// pool holds exactly the spell's addition, so the final red count is
+			// a clean read of it (a zero-addition spell would leave 0 red).
+			addMana(t, e, 0, "RRRRR")
+			id := searchMoveByName(t, e, "Rousing Refrain", state.ZHand)
+			d := e.Pending()
+			if d == nil {
+				t.Fatal("no priority decision before the cast")
+			}
+			// Rousing Refrain prints K:Suspend, so the hand walk offers BOTH a
+			// plain cast and the suspend special action; pick the plain one.
+			idx := -1
+			for _, o := range d.Options {
+				if o.Kind == "cast" && o.Obj == id && o.Label == "Cast Rousing Refrain" {
+					idx = o.Index
+				}
+			}
+			if idx < 0 {
+				t.Fatalf("no plain-cast option for Rousing Refrain: %+v", d.Options)
+			}
+			submitChoices(t, e, idx)
+			// CR 601.2c: the ValidTgts$ Opponent target is asked at cast time.
+			d = e.Pending()
+			if d == nil || d.Kind != decision.KTarget {
+				t.Fatalf("after the cast: %+v, want the opponent target ask", d)
+			}
+			tIdx := -1
+			for _, o := range d.Options {
+				if o.Kind == "player" && o.Player == 1 {
+					tIdx = o.Index
+				}
+			}
+			if tIdx < 0 {
+				t.Fatalf("seat 1 not offered as the mana target: %+v", d.Options)
+			}
+			submitChoices(t, e, tIdx)
+			passUntilStackEmpty(t, e, 20)
+			if got := e.G.Players[0].Pool[3]; got != int32(hand1) {
+				t.Errorf("added %d red mana, want %d (one per card in the targeted opponent's hand; the caster's hand holds %d)",
+					got, hand1, hand0)
+			}
+		})
 	}
 }
