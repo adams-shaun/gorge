@@ -433,6 +433,16 @@ type Decision struct {
 	// back on re-entry. Runtime continuation state, never client input, the
 	// same class as ResumeMoved.
 	ResumeObjects []state.ObjID `json:"-"`
+	// ResumeRound carries a repeating continuation's completed-repetition
+	// count beside ResumeTarget's index into that repetition's own list.
+	// Time Travel (Doctor Who) is the first user: The Tenth Doctor's
+	// Amount$ 3 runs the action three times, so the continuation must name
+	// BOTH the repetition and the object. It is a field of its own rather
+	// than a pair packed into ResumeTarget because `int` is 32 bits on a
+	// 32-bit build, where a `(round << 32) | idx` packing both fails to
+	// compile and loses the round. Runtime continuation state, never client
+	// input, the same class as ResumeMoved.
+	ResumeRound int `json:"-"`
 	// ResumeUptoIdx/ResumeUptoCount ride an Upto$ Draw's in-flight per-target
 	// state across a Dredge ask parked inside that target's answered batch
 	// (Arcane Denial's "may draw up to two"): the re-entering upto branch

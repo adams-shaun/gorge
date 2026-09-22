@@ -97,8 +97,12 @@ type resumePoint struct {
 	// captured with replaced so a body that suspends before its move still
 	// labels that move a sacrifice or discard on the resume.
 	action string
-	// timeTravelObjects is the stable object snapshot for a TimeTravel pass.
+	// timeTravelObjects is the stable object snapshot for a TimeTravel pass,
+	// and timeTravelRound the count of repetitions it has already completed
+	// (Amount$ 3). The round is its own field, never packed into target: on
+	// a 32-bit build an int cannot hold both halves.
 	timeTravelObjects []state.ObjID
+	timeTravelRound   int
 	before            *triggerSnapshot // immutable look-back if a batch replacement suspends
 	// target is Dig's index into its deterministic Defined$ target list. It
 	// keeps a resumed answer attached to the library that actually asked.
@@ -372,14 +376,13 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 		chosenValid: d.ResumeChosenValid, remembered: append([]state.Target(nil), d.ResumeRemembered...),
 		moved:   append([]state.ObjID(nil), d.ResumeMoved...),
 		uptoIdx: d.ResumeUptoIdx, uptoCount: d.ResumeUptoCount,
-		targetsUnique:   append([]state.Target(nil), d.ResumeTargetsUnique...),
-		fusedTargets:    append([]state.Target(nil), e.fusedResolving...),
-		fusedTargetsSet: e.fusedResolvingSet,
-		fusedSVars:      e.fusedResolvingSVars,
-		winPaidX:        e.windowPaidX}
-	if d.ResumeKind == "time_travel" {
-		e.resume.timeTravelObjects = append([]state.ObjID(nil), d.ResumeObjects...)
-	}
+		targetsUnique:     append([]state.Target(nil), d.ResumeTargetsUnique...),
+		fusedTargets:      append([]state.Target(nil), e.fusedResolving...),
+		fusedTargetsSet:   e.fusedResolvingSet,
+		fusedSVars:        e.fusedResolvingSVars,
+		winPaidX:          e.windowPaidX,
+		timeTravelObjects: append([]state.ObjID(nil), d.ResumeObjects...),
+		timeTravelRound:   d.ResumeRound}
 	return true
 }
 
@@ -1780,15 +1783,16 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			}
 		case "time_travel":
 			// Time Travel asks one optional add/remove/skip election per
-			// affected object. ResumeTarget packs the repetition and object
-			// index so the re-entered effect continues at the exact object.
+			// affected object. ResumeTarget is the object's index into the
+			// repetition's snapshot and ResumeRound the repetition itself,
+			// so the re-entered effect continues at the exact object.
 			ctx.TimeTravelChoice = "time_travel_skip"
 			if len(chosen) > 0 {
 				ctx.TimeTravelChoice = chosen[0].Kind
 			}
 			ctx.TimeTravelDone = true
-			ctx.TimeTravelRound = rp.target >> 32
-			ctx.TimeTravelIndex = int(rp.target & 0xffffffff)
+			ctx.TimeTravelRound = rp.timeTravelRound
+			ctx.TimeTravelIndex = rp.target
 			ctx.TimeTravelObjects = append([]state.ObjID(nil), rp.timeTravelObjects...)
 		case "move_counter":
 			// A MoveCounter CounterNum$ Any amount pick was answered: how many

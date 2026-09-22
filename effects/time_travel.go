@@ -25,8 +25,10 @@ func init() { Register("TimeTravel", effTimeTravel) }
 // restores Ctx.TimeTravelObjects on re-entry), so an answer that drops an
 // object's counter — or removes it from the battlefield — cannot shift the
 // next object's cursor. The cursor is TimeTravelIndex into that snapshot and
-// TimeTravelRound counts completed repetitions; every ask packs the pair into
-// ResumeTarget. Finishing a repetition copies a FRESH snapshot for the next
+// TimeTravelRound counts completed repetitions; an ask carries them as the
+// decision's ResumeTarget and ResumeRound, two fields rather than one packed
+// int, because an int is 32 bits wide on a 32-bit build and cannot hold both
+// halves. Finishing a repetition copies a FRESH snapshot for the next
 // one, which is what makes "then do it two more times" re-evaluate each
 // object's current counter count.
 func effTimeTravel(h Host, c *Ctx, sa *cards.SA) {
@@ -83,11 +85,13 @@ func effTimeTravel(h Host, c *Ctx, sa *cards.SA) {
 		d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose,
 			Min: 1, Max: 1, Source: c.Source,
 			ResumeKind: "time_travel", ResumeSA: sa,
-			// The low 32 bits carry the snapshot index; the repetition is in
-			// the high bits. ResumeObjects carries the snapshot itself, so a
-			// removal that shrinks the live eligible set cannot shift this
-			// cursor.
-			ResumeTarget:  (round << 32) | idx,
+			// The index into the repetition's snapshot and the repetition
+			// itself ride separate fields (an int is 32 bits on a 32-bit
+			// build, so the two cannot share one). ResumeObjects carries the
+			// snapshot itself, so a removal that shrinks the live eligible
+			// set cannot shift this cursor.
+			ResumeTarget:  idx,
+			ResumeRound:   round,
 			ResumeObjects: append([]state.ObjID(nil), objects...),
 			Prompt:        "Time travel: add or remove a time counter?"}
 		d.Options = append(d.Options,

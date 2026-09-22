@@ -393,3 +393,29 @@ func TestResumeStateOwnedOnlyByTheResolutionMachinery(t *testing.T) {
 		t.Logf("resume writer %s at %s", fn, strings.Join(writers[fn], ", "))
 	}
 }
+
+// TestEngineCompilesFor32Bit pins portability of the continuation machinery.
+// `int` is 64 bits on this box and 32 bits on a 32-bit build, so a
+// continuation that packs two counters into one int field — the shape Time
+// Travel's resume point first reached for, `(round << 32) | idx` in a
+// decision's ResumeTarget — is not merely unportable, it does not compile
+// there: the `0xffffffff` mask that unpacks it overflows an untyped int
+// constant, and even cast, the shift would discard the high half outright.
+// The same class covers any `1 << 31`-and-up constant assigned to an int, a
+// len() cast assumed to be 64 bits, and an unsafe.Sizeof assumption.
+//
+// A cross-compile is the honest test for it, because no amount of running on
+// amd64 can observe the narrower word. It costs about a second warm and three
+// cold, so it is kept here rather than in the engine packages' own suites.
+// GOARCH=386 is the narrowest target the toolchain always ships; CGO is off
+// because nothing in the module uses it and a 386 C toolchain is not assumed.
+func TestEngineCompilesFor32Bit(t *testing.T) {
+	cmd := exec.Command("go", "build", module+"/...")
+	cmd.Env = append(os.Environ(), "GOOS=linux", "GOARCH=386", "CGO_ENABLED=0")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Errorf("the module does not build for a 32-bit word (GOARCH=386): %v\n%s\n"+
+			"an int is 32 bits there; keep two counters in two fields rather than "+
+			"packing them into one int, and size any wide constant explicitly", err, out)
+	}
+}
