@@ -932,6 +932,8 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 			n += h.DamageTakenThisTurn(p)
 		case prop == "CardsDiscardedThisTurn":
 			n += h.CardsDiscardedThisTurn(p)
+		case prop == "TotalCommanderCastFromCommandZone":
+			n += h.CommanderCastsFromCommandZone(p)
 		case prop == "Counters.Poison":
 			for _, pc := range g.Players[p].Counters {
 				if pc.Kind == "POISON" {
