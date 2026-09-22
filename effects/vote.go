@@ -237,7 +237,10 @@ func effPlayerVote(h Host, c *Ctx, sa *cards.SA) {
 			return
 		}
 		// No host to ask (the R-9 fuzz/test contract): the deterministic first
-		// admissible entry -- the same pick the pre-ask stand-in made.
+		// admissible entry -- the same pick the pre-ask stand-in made -- under
+		// the R-9 degradation Note every other asking site records.
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "player vote resolved as the first ballot entry (no engine host to ask)"})
 		picks = append(picks, state.Target{Player: opts[0], IsPlayer: true})
 	}
 	c.VotePicks, c.VoteTarget, c.VoteDone, c.VoteAnswer = nil, 0, false, nil
