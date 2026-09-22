@@ -589,6 +589,82 @@ func TestDramatistsPuppetElectsForEachKind(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+// TestDramatistsPuppetCloneKeepsTheAnsweredKindCursor pins the clone half of
+// the aorAsk discipline: the per-kind cursor lives in Engine scratch, so a
+// Clone taken while the resolution is suspended on its SECOND election (the
+// pending ask is an intent boundary) must carry the first answered kind
+// forward. Without the copy the clone re-asks the already-answered PUT kind
+// the moment the second election is answered — a decision and event stream
+// the original never produces (counterchoice1 round 2).
+func TestDramatistsPuppetCloneKeepsTheAnsweredKindCursor(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	puppet, _ := reg.Lookup("Dramatist's Puppet")
+	e, cfg := counterChoiceGame(t, 4715, card(t, clockspinningFixtureBear), puppet)
+	bearID, _ := findSeededCard(t, e, 0, "Bear")
+	aorMoveTo(t, e, bearID, state.ZBattlefield)
+	e.emit(events.Event{Kind: events.CounterChange, Obj: bearID, Counter: "P1P1", Amount: 1})
+	e.emit(events.Event{Kind: events.CounterChange, Obj: bearID, Counter: "TIME", Amount: 1})
+	puppetID, zone := findSeededCard(t, e, 0, "Dramatist's Puppet")
+	e.emit(events.Event{Kind: events.MoveZone, Obj: puppetID, From: zone, To: state.ZBattlefield})
+
+	d := passUntilNonPriority(t, e, 60)
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("no trigger target ask: %+v", d)
+	}
+	if !aorTargetOption(t, e, bearID) {
+		t.Fatalf("trigger target ask offers no bear option: %+v", e.Pending())
+	}
+	// Election 1 (P1P1): answer PUT.
+	d = passUntilNonPriority(t, e, 60)
+	if d == nil || d.ResumeKind != "aor_elect" || len(d.Options) != 2 ||
+		d.Options[0].Kind != "aor_remove:P1P1" {
+		t.Fatalf("first election not about P1P1: %+v", d)
+	}
+	submitChoices(t, e, d.Options[1].Index)
+	// Election 2 (TIME): the resolution is now suspended on its second ask —
+	// an intent boundary. Clone HERE, then answer the election on each engine
+	// independently.
+	d = passUntilNonPriority(t, e, 60)
+	if d == nil || d.ResumeKind != "aor_elect" || len(d.Options) != 2 ||
+		d.Options[0].Kind != "aor_remove:TIME" {
+		t.Fatalf("second election not about TIME: %+v", d)
+	}
+	timeRemoveIdx := d.Options[0].Index
+	c := e.Clone()
+	if cp := c.Pending(); cp == nil || cp.ResumeKind != "aor_elect" || cp.Options[0].Kind != "aor_remove:TIME" {
+		t.Fatalf("precondition: clone did not carry the pending TIME election: %+v", cp)
+	}
+
+	// The CLONE: answer TIME-remove, then the resolution must drain with no
+	// further ask — P1P1 (now 2, still positive) is already answered, so the
+	// next decision must be plain priority.
+	submitChoices(t, c, timeRemoveIdx)
+	if pd := c.Pending(); pd == nil || pd.Kind != decision.KPriority {
+		t.Fatalf("clone posed an extra ask after the answered TIME election: %+v", pd)
+	}
+	passUntilStackEmpty(t, c, 60)
+	co := c.G.Obj(bearID)
+	if co.Counter("P1P1") != 2 || co.Counter("TIME") != 0 {
+		t.Fatalf("clone after both elections: P1P1=%d TIME=%d, want 2 and 0", co.Counter("P1P1"), co.Counter("TIME"))
+	}
+	assertNoCounterUnimplementedNote(t, c)
+
+	// The ORIGINAL, answered identically, must reach the same end state and
+	// likewise never re-ask — the clone must not have drained it.
+	submitChoices(t, e, timeRemoveIdx)
+	if pd := e.Pending(); pd == nil || pd.Kind != decision.KPriority {
+		t.Fatalf("original posed an extra ask after the answered TIME election: %+v", pd)
+	}
+	passUntilStackEmpty(t, e, 60)
+	o := e.G.Obj(bearID)
+	if o.Counter("P1P1") != 2 || o.Counter("TIME") != 0 {
+		t.Fatalf("original after both elections: P1P1=%d TIME=%d, want 2 and 0", o.Counter("P1P1"), o.Counter("TIME"))
+	}
+	assertNoCounterUnimplementedNote(t, e)
+	replayCheck(t, e, cfg)
+	replayCheck(t, c, cfg)
+}
+
 // TestPlagueBoilerElectionPuts pins the plain named-kind election (no
 // condition, no Optional$): the {1}{B}{G} activation asks remove-or-put and
 // the answered PUT lands one plague counter.

@@ -218,6 +218,34 @@ func (e *Engine) Clone() *Engine {
 			c.fuseTargets[id] = cp
 		}
 	}
+	// moveCounterAsk / aorAsk (resolution.go, the movecounter1/counterchoice1
+	// discipline): the two decision-derived answer cursors keyed by the
+	// resolving stack object. Both are written by the resume arms and read by
+	// seedMoveCounter/seedAorAsk on every fresh re-entry Ctx, so a clone taken
+	// while one of these resolutions is suspended (the pending mid-resolution
+	// ask IS the intent boundary) must carry the answered entries forward or
+	// the clone re-asks an already-answered kind and the decision/event stream
+	// diverges from the original's. Both are the cast/pendingTriggers class:
+	// deep-copied, including the inner maps and pointed-to pendings, never
+	// shared.
+	if e.moveCounterAsk != nil {
+		c.moveCounterAsk = make(map[state.ObjID]*moveCounterPending, len(e.moveCounterAsk))
+		for id, p := range e.moveCounterAsk {
+			cp := *p
+			cp.targets = append([]state.Target(nil), p.targets...)
+			c.moveCounterAsk[id] = &cp
+		}
+	}
+	if e.aorAsk != nil {
+		c.aorAsk = make(map[state.ObjID]map[string]bool, len(e.aorAsk))
+		for id, set := range e.aorAsk {
+			inner := make(map[string]bool, len(set))
+			for k, v := range set {
+				inner[k] = v
+			}
+			c.aorAsk[id] = inner
+		}
+	}
 	if e.exploitedLKI != nil {
 		c.exploitedLKI = make(map[state.ObjID]state.SacrificedInfo, len(e.exploitedLKI))
 		for id, info := range e.exploitedLKI {
