@@ -174,6 +174,81 @@ func TestScourgeOfTheThroneFirstAttackOnly(t *testing.T) {
 	}
 }
 
+// reachScourgeStack answers any trigger_order ask raised by the declaration
+// (Dethrone plus the Attacks trigger queue together) and returns once the
+// trigger is ON THE STACK with a priority decision pending -- the CR 603.4
+// response window the resolution-time recheck exists for. A precondition
+// failure is loud: without a non-empty stack the regression below would
+// assert nothing about resolution.
+func reachScourgeStack(t *testing.T, e *Engine) *decision.Decision {
+	t.Helper()
+	for i := 0; i < 64; i++ {
+		d := e.Pending()
+		if d == nil {
+			t.Fatal("no pending decision while reaching the trigger's stack window")
+		}
+		switch d.Kind {
+		case decision.KTriggerOrder:
+			choices := make([]int, 0, len(d.Options))
+			for _, o := range d.Options {
+				choices = append(choices, o.Index)
+			}
+			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: choices}); err != nil {
+				t.Fatalf("trigger order: %v", err)
+			}
+		case decision.KPriority:
+			if len(e.G.Stack) == 0 {
+				t.Fatal("precondition: a priority window was offered with an empty stack; the trigger never queued")
+			}
+			return d
+		default:
+			t.Fatalf("unexpected decision kind %v while reaching the trigger's stack window", d.Kind)
+		}
+	}
+	t.Fatal("did not reach the trigger's stack window within the decision budget")
+	return nil
+}
+
+// TestScourgeOfTheThroneInterveningIfRecheckedAtResolution is the regression
+// for the CR 603.4 resolution-time half: the defender holds the most life when
+// Scourge attacks (so the trigger QUEUES), then loses the lead during the
+// response window -- the intervening-if is false as the ability resolves, so
+// it must be removed from the stack and do nothing. Before the fix the
+// resolution check read no AttackedPlayerWithMostLife clause at all, so the
+// queued trigger still untapped the attackers and granted the extra combat.
+func TestScourgeOfTheThroneInterveningIfRecheckedAtResolution(t *testing.T) {
+	e, scourge := scourgeSeat(t, [3]int32{30, 20, 20})
+
+	e.askAttackers()
+	submitAttackerAt(t, e, scourge, 0)
+	if o := e.G.Obj(scourge); !o.Tapped {
+		t.Fatal("precondition: the attacker must be tapped by the declaration")
+	}
+	// The trigger queued because seat 0 held the most life (30 >= 20).
+	reachScourgeStack(t, e)
+	stacked := len(e.G.Stack)
+	if stacked == 0 {
+		t.Fatal("precondition: the attack trigger must be on the stack before the window")
+	}
+	// The defender loses the lead while the trigger waits to resolve; seat 2
+	// is now the strict leader, so "attacking the player with the most life"
+	// is false at resolution.
+	e.G.Players[0].Life = 10
+	e.G.Players[2].Life = 25
+
+	drainScourgeCombat(t, e)
+
+	if o := e.G.Obj(scourge); !o.Tapped {
+		t.Fatal("the queued trigger untapped Scourge after its intervening-if became false at resolution")
+	}
+	if len(e.G.ExtraPhases) != 0 {
+		t.Fatalf("len(ExtraPhases) = %d, want 0 (the fizzled trigger must grant no extra combat)", len(e.G.ExtraPhases))
+	}
+	if len(e.G.Stack) != 0 {
+		t.Fatalf("len(Stack) = %d, want 0 after the fizzled ability left the stack", len(e.G.Stack))
+	}
+}
+
 // TestAttacksConditionMostLifeMatcher drives attacksMatches directly on the
 // real card's trigger line, splitting the exact multiplayer edges of the
 // gate: strictly-most, tied, vetoed by a third seat, vetoed by death, and a
