@@ -1504,7 +1504,7 @@ func init() {
 
 	effects.RegisterNonAPI(
 		"trig:ChangesZone", "trig:ChangesZoneAll", "trig:SpellCast", "trig:Attacks", "trig:AttackersDeclaredOneTarget",
-		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:AttackerBlockedByCreature", "trig:AttackerUnblockedOnce", "trig:Blocks", "trig:Cycled", "trig:CounterAdded", "trig:CounterAddedOnce", "trig:CounterRemoved", "trig:CounterRemovedOnce",
+		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:AttackerBlockedByCreature", "trig:AttackerUnblockedOnce", "trig:Blocks", "trig:Cycled", "trig:CounterAdded", "trig:CounterAddedOnce", "trig:CounterRemoved", "trig:CounterRemovedOnce", "trig:CounterPlayerAddedAll",
 		"trig:Sacrificed", "trig:Discarded", "trig:CommitCrime", "trig:Taps", "trig:TapsForMana",
 		"trig:ClassLevelGained", "trig:BecomeMonstrous",
 		"trig:TokenCreated", "trig:TokenCreatedOnce",

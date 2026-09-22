@@ -514,7 +514,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				registered = true
 				break
 			}
-			if mode == "CanAttackDefender" && !CanAttackDefenderGrantParamsReadable(params) {
+			if mode == "CantPutCounter" && !CantPutCounterParamsReadable(params) {
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
@@ -550,6 +550,12 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				// absentDurationMeansThisTurn below names every mode whose
 				// absent Duration$ is this-turn, and the next sibling joins that
 				// list instead of growing another copy of this branch.
+				//
+				// CantBlockBy: the whole absent-Duration family is "... can't
+				// be blocked this turn" (K-9 Mark I, Key to the City, Infiltrate,
+				// Rikku Resourceful Guardian, and the 240-odd `Unblockable`
+				// activated/triggered bodies) -- a Permanent default left the
+				// bearer unblockable for the rest of the game.
 				//
 				// An EXPLICIT Duration$ keeps the ordinary reading (Permanent
 				// stays permanent, this-turn spellings were already UntilEOT
@@ -930,13 +936,16 @@ func effectRemembered(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
 			if c.Replaced != 0 && h.Game().Obj(c.Replaced) != nil {
 				out = append(out, c.Replaced)
 			}
-		case "TriggeredCard":
+		case "TriggeredCard", "TriggeredObject", "TriggeredObjectLKICopy":
 			// The card the firing trigger's event captured (Mistrise Village's
 			// Effect RememberObjects$ TriggeredCard: the spell the can't-be-
 			// countered promise covers). The SpellCast referent capture binds
 			// c.TriggerCard to the cast stack object; a stale id (the spell
 			// already resolved) remembers nothing, the same live-object
-			// discipline the cases above apply.
+			// discipline the cases above apply. TriggeredObject(LKICopy) is the
+			// same capture under the CounterPlayerAddedAll batch triggers'
+			// spelling (Rikku's RememberObjects$ TriggeredObjectLKICopy: the
+			// creature the counters landed on).
 			if c.TriggerCard != 0 && h.Game().Obj(c.TriggerCard) != nil {
 				out = append(out, c.TriggerCard)
 			}
@@ -1035,15 +1044,24 @@ func CantRestrictionParamsReadable(params map[string]string) bool {
 
 // CantBlockByRestrictionParamsReadable is the parameter whitelist an
 // Effect-registered CantBlockBy static must pass before this build enforces
-// it (task cbb1): Mode$, the ValidAttacker$ attacker spec, the ValidBlocker$
-// blocker spec, the historical ValidCard$ fallback (rules' blockRestricted
-// accepts both spellings, mirroring the face-static read), and display text
-// only. A body carrying anything else -- space_beleren's ValidBlockerRelative$
-// sector grammar, an IsPresent$/PresentCompare$ gate -- names a scoping the
-// registered-effect consumption path does not evaluate; enforcing it blanket
-// would make a conditional "can't be blocked" unconditional, so the body is
-// reported unimplemented instead -- the permissive direction for a
-// restriction. Secondary$ is allowed: it marks a Forge-side duplicate for
+// it (task cbb1; the same discipline CantRestrictionParamsReadable enforces
+// for CantAttack/CantSacrifice, so the registration and consultation paths
+// cannot disagree): the two-side specs the continuous consultation reads
+// (rules/statics.go blockRestricted's registered-effects walk: ValidAttacker$
+// against the ATTACKER, ValidBlocker$ against the would-be blocker, the
+// historical ValidCard$ fallback), plus display text. A body carrying a
+// condition or scoping parameter this build's continuous path does not
+// evaluate (Condition$, IsPresent$, CheckSVar$, the Relative$ spellings,
+// space_beleren's ValidBlockerRelative$ sector grammar, ...) must not
+// register blanket -- a gated "can't be blocked by ..." would become an
+// UNCONDITIONAL one, over-restricting -- so it stays the unimplemented Note;
+// enforcing it blanket would make a conditional "can't be blocked"
+// unconditional, the over-restricting direction for a restriction. Measured
+// over the 594 CantBlockBy corpus files (619 raw lines): 48 carry an
+// IsPresent$/PresentCompare$/CheckSVar$/SVarCompare$/Condition$ gate or a
+// Relative$/ValidDefender$/ValidBlockerRelative$/PresentZone$/EffectZone$
+// scoping and stay loud Notes; the other 571 read only the whitelisted
+// parameters. Secondary$ is allowed: it marks a Forge-side duplicate for
 // modifier composition, and a boolean restriction cannot be applied twice.
 func CantBlockByRestrictionParamsReadable(params map[string]string) bool {
 	for k := range params {

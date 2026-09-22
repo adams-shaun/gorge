@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -133,7 +134,121 @@ func (e *Engine) counterRemovedMatches(t cards.Trigger, source state.ObjID, ev e
 	return true
 }
 
+// counterPlayerAddedAllMatches implements Mode$ CounterPlayerAddedAll --
+// "Whenever you put one or more counters on a(n) <spec>" (Generous Patron,
+// Rikku Resourceful Guardian, Kros Defense Contractor): the batch trigger
+// that follows the PLAYER putting the counters, not (only) the recipient.
+// It fires on BOTH placement events: CounterChange (an object gained
+// counters) and PlayerCounterChange (a player gained counters -- The Great
+// Goblin's "a permanent or player", All Will Be One's same shape), with
+// Amount > 0 (a removal never adds one). The trigger-level params (PlayerTurn$,
+// ActivationLimit$, the intervening-if) run through the shared gates like
+// every other event mode.
+//
+// Batch granularity is the EVENT, never the counter: the engine emits one
+// placement event per recipient object with the whole batch in Amount, and
+// one matching event queues exactly one trigger however many counters that
+// one batch carried -- the "one or more" reading, the same
+// batch-of-one-per-event granularity the ChangesZoneAll registration shares
+// (rules/trigmatch_zone.go). One activation hitting several recipients
+// emits one event per recipient and queues one trigger per MATCHING
+// recipient event (each named by its own text); a batch that lands N
+// counters on ONE object queues one trigger, not N.
+//
+// ValidObject$ names the counter RECIPIENT as comma alternatives, object
+// and player forms mixed (All Will Be One's
+// "Permanent.inRealZoneBattlefield,Player"; the player form is
+// matched with MatchesPlayerSpec, the object form with MatchesSpecFrom,
+// each alternative by its own form -- a creature spec never matches a
+// player recipient and vice versa). A line with no ValidObject$ admits both
+// forms. ValidCard$/ValidPlayer$ keep the generic trigger read through
+// eventCardAndPlayerMatch for scripts that spell the recipient that way
+// (no corpus line of this mode does; measured at the ticket pin).
+//
+// ValidSource$ names the player CAUSING the placement (Generous Patron's
+// ValidSource$ You): a role the CounterChange event does not carry (it
+// records the recipient only), read from the engine's in-flight adder
+// scratch -- inFlightCounterAdder, the same read the AddCounter
+// replacement's ValidSource$ line uses (a published cost/turn-site
+// override wins, else the resolving ability's controller, else the line
+// fails closed rather than matching every placement).
+//
+// ValidObjectToSource$ (Bold Plagiarist) is NOT implemented: the
+// recipient spec whose You anchors to the counter-putter, with no second
+// carrier to pin the reading against -- a trigger carrying it fails closed
+// (never fires) rather than matching with a guessed anchor. Measured, the
+// only corpus carrier is bold_plagiarist (Aragorn, Company Leader, whose
+// earlier census note named it here, in fact uses ValidObject$
+// Card.Self+inRealZoneBattlefield).
+func (e *Engine) counterPlayerAddedAllMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
+	if ev.Amount <= 0 {
+		return false
+	}
+	switch ev.Kind {
+	case events.CounterChange:
+	case events.PlayerCounterChange:
+	default:
+		return false
+	}
+	you := e.controllerOf(source)
+	if spec := strings.TrimSpace(t.Params["ValidObject"]); spec != "" {
+		matched := false
+		for _, alt := range strings.Split(spec, ",") {
+			alt = strings.TrimSpace(alt)
+			if alt == "" {
+				continue
+			}
+			if ev.Kind == events.CounterChange {
+				if effects.MatchesSpecFrom(e.G, alt, ev.Obj, you, source) {
+					matched = true
+					break
+				}
+				continue
+			}
+			if effects.MatchesPlayerSpec(e.G, alt, ev.Player, you) {
+				matched = true
+				break
+			}
+		}
+		if !matched {
+			return false
+		}
+	}
+	if vs := strings.TrimSpace(t.Params["ValidSource"]); vs != "" {
+		adder, ok := e.inFlightCounterAdder()
+		if !ok || !effects.MatchesPlayerSpec(e.G, vs, adder, you) {
+			return false
+		}
+	}
+	if t.Params["ValidObjectToSource"] != "" {
+		// Unimplemented recipient anchor (see the doc above): fail closed.
+		return false
+	}
+	if !e.eventCardAndPlayerMatch(t, source, ev.Obj, e.gainingPlayerOf(ev)) {
+		return false
+	}
+	if kind := t.Params["CounterType"]; kind != "" && !strings.EqualFold(kind, ev.Counter) {
+		return false
+	}
+	return true
+}
+
+// gainingPlayerOf is the recipient a generic ValidPlayer$ spec matches: the
+// event's own player for a PlayerCounterChange put, else the recipient
+// object's controller -- the convention counterAddedMatches and
+// counterRemovedMatches both use for the same read.
+func (e *Engine) gainingPlayerOf(ev events.Event) state.PlayerID {
+	if ev.Kind == events.PlayerCounterChange {
+		return ev.Player
+	}
+	if o := e.G.Obj(ev.Obj); o != nil {
+		return o.Controller
+	}
+	return 0
+}
+
 func init() {
 	registerTrigMatcher((*Engine).counterAddedMatches, "CounterAdded", "CounterAddedOnce")
 	registerTrigMatcher((*Engine).counterRemovedMatches, "CounterRemoved", "CounterRemovedOnce")
+	registerTrigMatcher((*Engine).counterPlayerAddedAllMatches, "CounterPlayerAddedAll")
 }

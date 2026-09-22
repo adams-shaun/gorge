@@ -278,6 +278,12 @@ func triggerModeEvents(mode string) triggerEventMask {
 		return 1 << events.Note
 	case "CounterAdded", "CounterAddedOnce", "CounterRemoved", "CounterRemovedOnce":
 		return 1 << events.CounterChange
+	case "CounterPlayerAddedAll":
+		// The batch "whenever you put one or more counters on ..." mode
+		// (Generous Patron, Rikku Resourceful Guardian): fires on the object
+		// AND player placement events the matcher
+		// (counterPlayerAddedAllMatches) reads.
+		return 1<<events.CounterChange | 1<<events.PlayerCounterChange
 	case "ClassLevelGained":
 		// CR 702.118c: the same CounterChange event the level-up
 		// activator's PutCounter emits carries the level band crossing

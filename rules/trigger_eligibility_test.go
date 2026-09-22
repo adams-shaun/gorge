@@ -136,7 +136,7 @@ func TestCompiledTriggerInterestParity(t *testing.T) {
 		"TapsForMana", "DamageDone", "DamageDealtOnce", "DamageDoneOnce", "CounterAdded",
 		"CounterAddedOnce", "CounterRemoved", "CounterRemovedOnce", "DamagePreventedOnce", "TokenCreated", "TokenCreatedOnce",
 		"ChangesZoneAll", "SpellCastOrCopy", "SpellCopy", "Mutates",
-		"Drawn", "LifeLost", "Phase", "Attached", "Explores", "Investigated", "Discover", "SeekAll", "Exploited", "Always", "LifeLostAll", "FutureMode", "",
+		"CounterPlayerAddedAll", "Drawn", "LifeLost", "Phase", "Attached", "Explores", "Investigated", "Discover", "SeekAll", "Exploited", "Always", "LifeLostAll", "FutureMode", "",
 	}
 	card := &cards.Card{}
 	for _, mode := range modes {

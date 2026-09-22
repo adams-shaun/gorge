@@ -997,6 +997,40 @@ func (e *Engine) onlyFirstSpellUsed(sv staticView, p state.PlayerID, id state.Ob
 // which askBlockers and handleBlockers both use for real declare-blockers
 // option generation and validation.
 func (e *Engine) blockRestricted(blocker, attacker state.ObjID) bool {
+	// The Effect-registered CantBlockBy grants walk FIRST, beside the
+	// CantTarget precedent (restrictionBlocksTarget): the registered
+	// restriction's ValidAttacker$ is matched against the ATTACKER with the
+	// registration's Remembered set bound (Rikku Resourceful Guardian's
+	// "that creature can't be blocked by creatures your opponents control",
+	// RememberObjects$ TriggeredObjectLKICopy -- the gaining creature), and
+	// ValidBlocker$ against the would-be blocker with the effect's own
+	// controller as the spec's "you". The registration path (effEffect's
+	// CantBlockByRestrictionParamsReadable whitelist) already excluded gated
+	// bodies, so
+	// no per-static condition gate runs here.
+	for _, ce := range e.active() {
+		if ce.Restriction != "CantBlockBy" {
+			continue
+		}
+		atkSpec := ce.RestrictParams["ValidAttacker"]
+		if atkSpec == "" {
+			atkSpec = ce.RestrictParams["ValidCard"]
+		}
+		sc := e.specCtx(ce.Source, ce.Controller)
+		for _, r := range ce.Remembered {
+			sc.Remembered = append(sc.Remembered, state.Target{Obj: r})
+		}
+		if !effects.MatchesSpecCtx(e.G, atkSpec, attacker, sc) {
+			continue
+		}
+		blkSpec, ok := ce.RestrictParams["ValidBlocker"]
+		if !ok {
+			return true
+		}
+		if effects.MatchesSpecCtx(e.G, blkSpec, blocker, sc) {
+			return true
+		}
+	}
 	for _, sv := range e.activeStatics("CantBlock") {
 		// Condition$ is evaluated per static (continuousConditionHolds:
 		// the Detective of the Month / Slippery Scoundrel family's
