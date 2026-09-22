@@ -294,14 +294,19 @@ func TestChangeZoneWishFindsSideboard(t *testing.T) {
 	if d == nil || len(d.Options) != 1 || d.Options[0].Label != "Empty the Warrens" {
 		t.Fatalf("Burning Wish sideboard options = %+v, want the owner's Empty the Warrens", d)
 	}
+	// Precondition for the self-exile chain below: the wish is still on the
+	// stack while the sideboard choice is pending. The choice's submission
+	// drives the resolution (including DBChange's stack->exile) to
+	// completion synchronously, so this is the pre-resolution boundary the
+	// moveResolvedOffStack guard reads.
+	if o := e.G.Obj(id); o == nil || o.Zone != state.ZStack {
+		t.Fatalf("Burning Wish before resolution completion = %+v, want on the stack", o)
+	}
 	submitChoices(t, e, d.Options[0].Index)
 	passUntilStackEmpty(t, e, 20)
 	// The wish's own SubAbility$ (DBChange: Origin$ Stack → Destination$
-	// Exile) runs, so the self-exile happens as its own logged move. The
-	// spell-completion housekeeping then still emits its stack→graveyard
-	// resting move (a pre-existing resolution-path quirk for any spell whose
-	// own chain moves the spell card mid-resolution, unchanged here), so the
-	// final resting zone is the graveyard; the exile event is the assertion.
+	// Exile) runs while the spell is on the stack. Completion must not add a
+	// trailing stack→graveyard move.
 	exiled := false
 	for _, ev := range e.L.Events[start:] {
 		if ev.Kind == events.MoveZone && ev.Obj == id && ev.From == state.ZStack && ev.To == state.ZExile {
@@ -310,6 +315,14 @@ func TestChangeZoneWishFindsSideboard(t *testing.T) {
 	}
 	if !exiled {
 		t.Fatal("the wish's SubAbility$ self-exile did not run")
+	}
+	if o := e.G.Obj(id); o == nil || o.Zone != state.ZExile {
+		t.Fatalf("Burning Wish final zone = %+v, want exile", o)
+	}
+	for _, ev := range e.L.Events[start:] {
+		if ev.Kind == events.MoveZone && ev.Obj == id && ev.From == state.ZStack && ev.To == state.ZGraveyard {
+			t.Fatalf("Burning Wish had a trailing stack-to-graveyard completion move: %+v", ev)
+		}
 	}
 	for _, ev := range e.L.Events[start:] {
 		if ev.Kind == events.Note && strings.Contains(ev.Text, "unrecognised ChangeZone Origin") {

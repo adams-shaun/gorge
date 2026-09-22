@@ -128,13 +128,6 @@ type pendingCast struct {
 	// announced value into that filter). Empty on every ordinary cast.
 	announceX string
 
-	// sameCtrlTargets is the TargetsWithSameController$ True rider (Lodestone
-	// Bauble): every target this cast's announcement chooses must share one
-	// controller — in a graveyard, its owner. The offered option list spans
-	// every player's graveyard, so the pairwise constraint is enforced at
-	// Submit (validateCastContributions' preserve-and-reject shape), not by
-	// an option-list shape the wire cannot express.
-	sameCtrlTargets bool
 	// suspendTimeX makes the chosen cast X also set the number of TIME
 	// counters; suspendMinX is Forge's XMin<N> lower bound.
 	suspendTimeX bool
@@ -399,6 +392,8 @@ type pendingCast struct {
 	// without the keyword; altAddDone marks the one ask already posed.
 	altAddParts []string
 	altAddDone  bool
+	// optionalCost is the selected self-spell OptionalCost additional part.
+	optionalCost Cost
 
 	// exiles / exilePart carry the Exile cost parts (ExileFromHand /
 	// ExileFromGrave tokens: the evoke alternative cast's Fury/Grief shape,
@@ -1706,6 +1701,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		return
 	}
 
+	var optionalCost Cost
 	// Which cost this pays is opt.AltCostIndex, not always adjustedCost
 	// (Ruling T19b-b): legalActions gates each "cast" option on that
 	// specific option's own cost being payable, so beginCast must charge
@@ -1821,16 +1817,13 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		// LATER cast (the foretell_cast case below).
 		cost = Cost{Generic: 2}
 	case "foretell_cast":
-		// CR 702.126a: the later cast pays the foretell cost -- the K: line's
-		// colon parameter (Starnheim Unleashed's "X X W" rides the ordinary
-		// X machinery here), read off the face; a missing parameter falls
-		// back to the rule's action default {2} (no corpus carrier -- every
-		// K:Foretell line carries a colon cost, measured 55/55). Stored RAW:
-		// cost modifiers apply later in manaToPay, exactly like every other
-		// alternative-cost mode's cost.
-		if fc, ok := f.KeywordParam("Foretell"); ok && strings.TrimSpace(fc) != "" {
-			cost = ParseCost(fc)
+		// CR 702.126a: use the explicit keyword cost, or the printed-cost
+		// reduction carried by an effect's ForetoldCost$ designation.
+		if fc, ok := foretellCost(f); ok {
+			cost = fc
 		} else {
+			// The option walk fails closed for this shape; retain a harmless
+			// fallback for stale options submitted after the designation changed.
 			cost = Cost{Generic: 2}
 		}
 	case "flashback":
@@ -1949,6 +1942,28 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// replicated/multikicked modes keep the older no-fold divergence) reaches
 	// this (pc.ability < 0 and no alternative/flashback recast), and a spell
 	// with no SP Cost$ contributes nothing.
+	if opt.Mode == "optionalcost" {
+		// The offer stores the selected optional part in AltCostIndex's
+		// companion-independent mode; legalActions has already proved it payable.
+		// The actual non-mana payment is settled by the ordinary cost stages.
+		if opt.AltCostIndex <= 0 {
+			return
+		}
+		parts := e.optionalCostViews(e.collectCostStatics(), p, id)
+		if opt.AltCostIndex > len(parts) {
+			return
+		}
+		// The offer priced withSpellAbilityExtras(f, convokeBase).Plus(extra)
+		// (legal.go), so fold the same SpellAbility Cost$ extras here before
+		// the optional part: the charge must match the gate, or a spell that
+		// carries BOTH an OptionalCost static and a spell-ability additional
+		// cost undercharges by that additional cost. Zero corpus carriers pair
+		// the two today, so this is the structural agreement, not a behaviour
+		// change (the fold is a no-op without a SpellAbility Cost$).
+		cost = withSpellAbilityExtras(f, cost)
+		cost = cost.Plus(parts[opt.AltCostIndex-1])
+		optionalCost = parts[opt.AltCostIndex-1]
+	}
 	if opt.AltCostIndex == 0 && (opt.Mode == "" || opt.Mode == "mayplay" || opt.Mode == "room_alt" ||
 		opt.Mode == "adventure_alt" || opt.Mode == "aftermath" || opt.Mode == "split_alt" || opt.Mode == "conspired" || opt.Mode == "mayflash" || opt.Mode == "retrace" || opt.Mode == "jumpstart") {
 		cost = withSpellAbilityExtras(f, cost)
@@ -1964,8 +1979,15 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// same card pays that mode's cost without recomposing this choice (no
 	// corpus card pairs both shapes). The OFFER gate already proved at least
 	// one part is payable (legal.go); the ask narrows it to exactly one.
-	tax := e.commanderTaxAmount(p, id)
-	mods := e.costModifiers(p, id, spellScope(opt.Mode))
+	tax := int32(0)
+	if opt.Mode != "foretell" {
+		tax = e.commanderTaxAmount(p, id)
+	}
+	scope := spellScope(opt.Mode)
+	if opt.Mode == "foretell" {
+		scope = foretellScope()
+	}
+	mods := e.costModifiers(p, id, scope)
 	// The SVar-fixed PayLife<X> conversion (fixLifeXCost) -- the same helper
 	// offerCastable shaped the offered cost with, so the stored cost and the
 	// gated charge agree. A fixed face's value folds into Life here; the
@@ -1980,10 +2002,10 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	if opt.AltCostIndex == 0 && opt.Mode == "" {
 		pcAlt := altAddCostParts(f)
 		e.cast = &pendingCast{player: p, card: id, from: from, mode: opt.Mode, ability: -1,
-			cost: cost, faceBefore: faceBefore, mods: mods, taxGeneric: tax, altAddParts: pcAlt}
+			cost: cost, faceBefore: faceBefore, mods: mods, taxGeneric: tax, altAddParts: pcAlt, optionalCost: optionalCost}
 	} else {
 		e.cast = &pendingCast{player: p, card: id, from: from, mode: opt.Mode, ability: -1,
-			cost: cost, faceBefore: faceBefore, mods: mods, taxGeneric: tax}
+			cost: cost, faceBefore: faceBefore, mods: mods, taxGeneric: tax, optionalCost: optionalCost}
 	}
 	// Escalate (the modal additional cost "pay this for each mode chosen
 	// beyond the first"): the cost is carried as its raw keyword parameter
@@ -2002,15 +2024,11 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// spell's own push. An ability proposal (pc.ability >= 0) never reads it:
 	// payCast's flag arm is gated on !pc.isAbility().
 	e.cast.offSorcery = e.offSorceryAtCast(p)
-	// The announce-bearing alternative (the Shoal cycle) and the
-	// TargetsWithSameController rider (Lodestone Bauble) ride the selected
+	// The announce-bearing alternative (the Shoal cycle) rides the selected
 	// cast SA into the transaction: xAsk's announce arm and exAsk's binding
-	// read the first, handleTarget's Submit-time validator the second.
+	// read the captured value.
 	if announceAlt != nil && announceAlt.announce != "" {
 		e.cast.announceX = announceAlt.announce
-	}
-	if sa := f.SpellAbility(); sa != nil && strings.EqualFold(strings.TrimSpace(sa.Params["TargetsWithSameController"]), "True") {
-		e.cast.sameCtrlTargets = true
 	}
 	// CR 903.8: the commander tax, applied to whatever cost this cast pays
 	// (the base/alternative/kicked/flashback/surged/miracle cost resolved
@@ -4986,42 +5004,6 @@ func (e *Engine) validateSearch(d *decision.Decision, in decision.Intent) error 
 	return nil
 }
 
-// validateSameControllerTargets is the Submit-time gate for a cast-flow
-// target announcement whose SA carries TargetsWithSameController$ True
-// (Lodestone Bauble): every chosen object must share one owner — in a
-// graveyard, the owner the card there has. Any other KTarget decision, a
-// single-object answer, and an out-of-range choice (Validate's own error)
-// pass through untouched.
-func (e *Engine) validateSameControllerTargets(d *decision.Decision, in decision.Intent) error {
-	pc := e.cast
-	if pc == nil || !pc.sameCtrlTargets || d.Kind != decision.KTarget || len(in.Choices) <= 1 {
-		return nil
-	}
-	var owner state.PlayerID
-	haveOwner := false
-	for _, c := range in.Choices {
-		if c < 0 || c >= len(d.Options) {
-			continue // Validate's own out-of-range error already fired
-		}
-		o := d.Options[c]
-		if o.Obj == 0 {
-			continue
-		}
-		obj := e.G.Obj(o.Obj)
-		if obj == nil {
-			return nil // the resolution-time recheck owns a vanished object
-		}
-		if !haveOwner {
-			owner, haveOwner = obj.Owner, true
-			continue
-		}
-		if obj.Owner != owner {
-			return fmt.Errorf("chosen targets do not share one controller")
-		}
-	}
-	return nil
-}
-
 // validateCastContributions is the Submit-time gate for the cast flow's
 // Convoke/Harmonize announcement decision (convokeAsk). The decision's
 // static Validate sees only the offered option list -- two white creatures
@@ -5707,6 +5689,8 @@ func modeFlags(mode string) string {
 	// reads it through Count$OffspringPaid to mint the 1/1 token copy.
 	case "offspring":
 		return events.FlagsString(state.FlagOffspringPaid)
+	case "optionalcost":
+		return events.FlagsString(state.FlagOptionalCostPaid)
 	case "mayplay":
 		return events.FlagsString(state.FlagMayPlay)
 	case "harmonize":
@@ -5900,7 +5884,8 @@ func (e *Engine) targetAsk() bool {
 	// real selectable capacity: an unaffordable or over-cap candidate cannot
 	// contribute a controller to it.
 	min, max, exclusive, distinct := e.oneEachTargetBounds(sa, candidates, min, max)
-	if min > 0 && (len(candidates) < min || (exclusive && min > distinct)) {
+	min, max, sameCapacity, sameController := e.sameControllerTargetBounds(sa, candidates, min, max)
+	if min > 0 && (len(candidates) < min || (exclusive && min > distinct) || (sameController && min > sameCapacity)) {
 		// CR 601.2c: a proposal with fewer legal targets than its mandatory
 		// minimum -- or one whose per-controller constraint admits fewer
 		// distinct controllers than its mandatory minimum -- cannot be
@@ -5943,7 +5928,8 @@ func (e *Engine) targetAsk() bool {
 	}
 	d := &decision.Decision{Player: pc.player, Kind: decision.KTarget, Min: min, Max: max,
 		Prompt: "Choose a target for " + e.targetName(pc.card),
-		Source: src, TargetEffect: describeTargetEffect(sa)}
+		Source: src, TargetEffect: describeTargetEffect(sa),
+		TargetsWithSameController: sameController}
 	for _, candidate := range candidates {
 		// Shared with stack.go's askTarget so a Face-less ability object (a
 		// TargetType$ Activated/Triggered census) can never nil-deref here.
@@ -5951,6 +5937,7 @@ func (e *Engine) targetAsk() bool {
 		o := decision.Option{Index: len(d.Options), Kind: candidate.kind,
 			Label: label, Obj: candidate.obj, Player: candidate.player}
 		o.Group = e.targetControllerGroup(sa, candidate)
+		o.Controller = e.candidateControllerSeat(candidate)
 		// Option.Value is omitempty and read only under a budget
 		// (Decision.HasBudget), so a budget-less target ask keeps its wire
 		// payload byte-identical. Every present cap -- zero and negative
@@ -6068,7 +6055,12 @@ func (e *Engine) recheckIllegal(pc *pendingCast) bool {
 		if !e.actorMatches(sv, "Caster", pc.player) {
 			continue
 		}
-		if !e.restrictionGateHolds(sv, pc.card) || !e.checkSVarHolds(sv) {
+		// The same shared continuous gate castRestrictedUsing runs: the
+		// CR 608.2b recheck must answer with the ONE grammar the offer
+		// answered with, or a cast offered under a false gate would abort
+		// here (and vice versa). It subsumes the checkSVarHolds the caller
+		// used to run separately.
+		if !e.continuousGateHolds(sv) || !e.restrictionGateHolds(sv, pc.card) {
 			continue
 		}
 		sc := e.specCtx(sv.Source, sv.Controller)

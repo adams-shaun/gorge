@@ -168,6 +168,15 @@ func (e *Engine) Clone() *Engine {
 		c.resume = cloneResume(e.resume)
 	}
 	c.controlGrants = append([]controlGrant(nil), e.controlGrants...)
+	if e.counterTypeAsk != nil {
+		c.counterTypeAsk = make(map[state.ObjID]*counterTypePending, len(e.counterTypeAsk))
+		for id, p := range e.counterTypeAsk {
+			if p == nil {
+				continue
+			}
+			c.counterTypeAsk[id] = &counterTypePending{sa: p.sa, answers: append([]string(nil), p.answers...)}
+		}
+	}
 	// The per-turn ManaExpend tally (engine scratch, rules/cast.go): a clone
 	// taken at an intent boundary must resume mid-turn with the original's
 	// cumulative spend, or a crossing measured after the clone would see a
@@ -306,6 +315,12 @@ func (e *Engine) Clone() *Engine {
 		c.triggerTurnFires = make(map[triggerKey]turnFires, len(e.triggerTurnFires))
 		for k, v := range e.triggerTurnFires {
 			c.triggerTurnFires[k] = v
+		}
+	}
+	if e.triggerGameFires != nil {
+		c.triggerGameFires = make(map[triggerKey]int32, len(e.triggerGameFires))
+		for k, v := range e.triggerGameFires {
+			c.triggerGameFires[k] = v
 		}
 	}
 	if e.unblockedOnceFired != nil {
@@ -503,6 +518,10 @@ func (e *Engine) Clone() *Engine {
 	if e.attackPay != nil {
 		ap := *e.attackPay
 		c.attackPay = &ap
+	}
+	if e.blockPay != nil {
+		bp := *e.blockPay
+		c.blockPay = &bp
 	}
 	if e.cast != nil {
 		pc := *e.cast

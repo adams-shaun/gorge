@@ -353,6 +353,16 @@ type Engine struct {
 	derivedTypes []string
 	derivedDepth int
 
+	// derivingColorsSet/ID/Colors: the finished layer-5 colour answer for the
+	// object whose Derived is mid-build (set by derivedWith before its layer-7
+	// P/T walk, restored on the way out). Colors serves it to a layer-7 pump
+	// expression that counts the object's own colours, instead of re-entering
+	// Derived and recursing forever. Pure per-call scratch exactly like
+	// derivedDepth — Clone copies none of it (clone.go's scratch precedent).
+	derivingColorsSet bool
+	derivingColorsID  state.ObjID
+	derivingColors    string
+
 	// pendingTriggers holds matched triggers not yet placed on the stack.
 	// checkTriggers appends; putTriggersOnStack drains. Task 20 (trigger.go).
 	pendingTriggers []pendingTrigger
@@ -516,6 +526,9 @@ type Engine struct {
 	// no event carries it. Never nil-checked on read outside recordAsk
 	// (which lazy-inits).
 	moveCounterAsk map[state.ObjID]*moveCounterPending
+	// counterTypeAsk carries per-recipient comma-list PutCounter answers across
+	// suspensions. It is replay-derived engine scratch, never game state.
+	counterTypeAsk map[state.ObjID]*counterTypePending
 	// orderedTriggers is how many LEADING entries of pendingTriggers have
 	// already had their order settled by an answered KTriggerOrder decision
 	// (or, for a lone trigger, by there being nothing to decide). It is the
@@ -713,6 +726,8 @@ type Engine struct {
 	// a CantAttackUnless prop. Same plain-data class as wardMana; Clone
 	// copies the pointer.
 	attackPay *attackPayWindow
+	// blockPay holds the declare-blockers CantBlockUnless payment window.
+	blockPay *blockPayWindow
 
 	// cmdZone is the queue of parked commander zone changes (CR 903.9, Task
 	// m32, rules/replacement.go): MoveZone events a commander is about to
@@ -974,6 +989,9 @@ type Engine struct {
 	tapEntering         bool
 	tappedTurn          map[state.ObjID]int32
 	triggerTurnFires    map[triggerKey]turnFires
+	// triggerGameFires is the lifetime queue count for GameActivationLimit$.
+	// Unlike triggerTurnFires it is never reset at TurnChange.
+	triggerGameFires map[triggerKey]int32
 	// triggerTurnResolved is ResolvedLimit$'s per-turn resolution count,
 	// keyed by the trigger's SOURCE object (not its triggerKey): Forge's
 	// TriggeredAbility.resolvedThisTurn caps how many times a T: line may
@@ -2266,18 +2284,6 @@ func (e *Engine) Submit(in decision.Intent) error {
 		// survives for a legal (or smaller) answer. Single-card answers are
 		// trivially legal.
 		if err := e.validateSearch(d, in); err != nil {
-			return err
-		}
-	}
-	if d.Kind == decision.KTarget {
-		// TargetsWithSameController$ True (Lodestone Bauble): a target
-		// announcement's answer must name objects that all share one owner —
-		// in a graveyard, the "controller" a card in a graveyard has. The
-		// offered option list spans every player's graveyard, a pairwise
-		// constraint the option shape cannot express, so the answer is
-		// rejected here (the validateSearch preserve-and-reject shape) and
-		// the pending decision survives for a legal (or smaller) answer.
-		if err := e.validateSameControllerTargets(d, in); err != nil {
 			return err
 		}
 	}

@@ -40,6 +40,9 @@ type Host interface {
 	// Emit (which routes through events.Apply), which is what keeps the event
 	// log a complete description of the match.
 	Game() *state.Game
+	// ObjectColors returns the object's live layer-5 colours when it is on the
+	// battlefield, and its face/CDA colours in other zones.
+	ObjectColors(*state.Object) string
 	Emit(events.Event)
 	// EmitDamage emits a Damage event and returns the event that actually
 	// landed after replacement effects. A prevention returns a non-Damage
@@ -1020,6 +1023,19 @@ type Ctx struct {
 	// is consumed and cleared at the re-entry's top (fx42 scoping), so a
 	// nested PutCounter poses its own ask.
 	PutOpt string
+	// CounterKind is the answered kind for a comma-separated PutCounter list.
+	// CounterKindDone distinguishes an answered first-option fallback from the
+	// first pass; CounterKinds carries a ChooseDifferent$ multi-answer.
+	CounterKind      string
+	CounterKindDone  bool
+	CounterKinds     []string
+	CounterKindsDone bool
+	// CounterKindAnswers is the replay-derived per-recipient answer table
+	// rules seeds for CounterTypePerDefined$; effPutCounter consumes it at
+	// entry so a nested PutCounter cannot inherit it.
+	CounterKindAnswers     []string
+	CounterKindAnswerIndex int
+	CounterKindAnswerSet   bool
 	// PlaneswalkOpt is the answered Optional$ True "you may planeswalk"
 	// election. It is resolution-local so a nested Planeswalk cannot inherit
 	// an outer answer.

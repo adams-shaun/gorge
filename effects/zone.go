@@ -738,7 +738,11 @@ func applyFaceDownMarker(h Host, sa *cards.SA, c *Ctx, ev *events.Event, to stat
 	exileFaceDown := strings.EqualFold(strings.TrimSpace(sa.Params["ExileFaceDown"]), "True")
 	switch {
 	case to == state.ZExile && exileFaceDown:
-		ev.Counter = "exiled_with_face_down"
+		if strings.EqualFold(strings.TrimSpace(sa.Params["Foretold"]), "True") {
+			ev.Counter = "exiled_with_face_down_foretold"
+		} else {
+			ev.Counter = "exiled_with_face_down"
+		}
 		ev.Amount = int32(c.Source)
 		ev.IDs = nil
 	case to == state.ZExile && faceDown:
@@ -2536,25 +2540,31 @@ func chooserChosenPlayer(h Host, c *Ctx) (state.PlayerID, bool) {
 	return c.Controller, false
 }
 
-// searchChooser resolves who answers the search prompt. You is the default;
-// Targeted uses the first chosen target, Opponent uses the first living
-// opponent in deterministic turn order, and ChosenPlayer uses the player
-// chosen earlier in the resolution (Burning-Rune Demon's opponent picks which
-// of the two revealed cards goes to hand).
+// chooserPlayer resolves a non-empty Chooser$ selector through the shared
+// Defined$ grammar. It deliberately returns false for an unknown or dead
+// referent so each caller can preserve its own fallback.
+func chooserPlayer(h Host, c *Ctx, spec string) (state.PlayerID, bool) {
+	targets, ok := knownDefinedTargets(h, c, spec)
+	if !ok {
+		return 0, false
+	}
+	for _, t := range targets {
+		if !t.IsPlayer && h.Game().Obj(t.Obj) == nil {
+			continue
+		}
+		p := PlayerOf(h, c, t)
+		if int(p) < len(h.Game().Players) && !h.Game().Players[p].Lost {
+			return p, true
+		}
+	}
+	return 0, false
+}
+
+// searchChooser resolves who answers the search prompt. A known Chooser$
+// selector wins; an unbound or unknown selector falls back to the controller.
 func searchChooser(h Host, c *Ctx, sa *cards.SA) state.PlayerID {
-	switch sa.Params["Chooser"] {
-	case "Targeted":
-		if len(c.Targets) > 0 {
-			return PlayerOf(h, c, c.Targets[0])
-		}
-	case "Opponent":
-		for _, p := range h.Game().AliveFrom(c.Controller) {
-			if p != c.Controller {
-				return p
-			}
-		}
-	case "ChosenPlayer", "Player.Chosen":
-		if p, ok := chooserChosenPlayer(h, c); ok {
+	if spec := strings.TrimSpace(sa.Params["Chooser"]); spec != "" {
+		if p, ok := chooserPlayer(h, c, spec); ok {
 			return p
 		}
 	}
@@ -2591,20 +2601,15 @@ func hiddenPickPlayers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 	return []state.PlayerID{c.Controller}
 }
 
-// hiddenPickChooser resolves who answers the pick. A Chooser$ spelling wins
-// (Targeted/Opponent/ChosenPlayer through searchChooser's grammar, You the
-// controller); with none the decider is the fetch player, exactly Forge's
-// `decider = Objects.requireNonNullElse(chooser, player)`.
+// hiddenPickChooser resolves who answers the pick. A known Chooser$ selector
+// wins; an unbound or unknown selector falls back to the fetch owner. With no
+// selector, the owner remains the decider.
 func hiddenPickChooser(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID) state.PlayerID {
-	switch sa.Params["Chooser"] {
-	case "Targeted", "Opponent", "ChosenPlayer", "Player.Chosen":
-		// ChosenPlayer resolves to the binding or, unbound, to the resolving
-		// controller (searchChooser's default), never to the owner fallback:
-		// a Chooser$ was written, so the fetch player is not this pick's
-		// decider.
-		return searchChooser(h, c, sa)
-	case "You":
-		return c.Controller
+	if spec := strings.TrimSpace(sa.Params["Chooser"]); spec != "" {
+		if p, ok := chooserPlayer(h, c, spec); ok {
+			return p
+		}
+		return owner
 	}
 	return owner
 }
@@ -2641,6 +2646,12 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 	spec := sa.Params["ChangeType"]
 	if spec == "" {
 		spec = "Card"
+	}
+	// Away from the battlefield, Forge's Permanent base means a permanent
+	// card. Hidden graveyard/exile picks share the library search's rule;
+	// without it Winter's remembered permanent is never eligible for DBReturn.
+	if !zoneIn(originZones, state.ZBattlefield) {
+		spec = permanentCardSpec(spec)
 	}
 	max := Num(h, c, sa, "ChangeNum", 1)
 	if max < 0 {
@@ -2683,6 +2694,11 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 			settleChangeZoneMoveAs(h, c, sa, id, o.Zone, to, withKind, withAmt, o.Owner, true)
 			moved = append(moved, id)
 			if strings.EqualFold(sa.Params["RememberChanged"], "True") {
+				// Keep the resolution-local set with the event-backed source
+				// memory: a linked SubAbility (Winter's DBReturn) reads the
+				// former through IsRemembered, while later effects read the
+				// latter from the source object's Choose events.
+				c.Remembered = append(c.Remembered, state.Target{Obj: id})
 				eventRemember(h, c, id)
 			}
 			eventForgetChanged(h, c, sa, id)
@@ -2769,6 +2785,14 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 			continue
 		}
 		if done && i == cursor {
+			if raw, ok := totalCardTypesRequirement(sa); ok {
+				need, err := strconv.Atoi(raw)
+				if err != nil || need < 0 || !totalCardTypesSatisfied(h.Game(), ans, need) {
+					h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: owner,
+						Text: "hidden pick fails WithTotalCardTypes$ requirement"})
+					continue
+				}
+			}
 			apply(owner, ans)
 			continue
 		}
@@ -2961,6 +2985,40 @@ func trimSharedLandTypes(g *state.Game, chosen []state.ObjID) []state.ObjID {
 	return out
 }
 
+// totalCardTypesRequirement reads the constraint from the ChangeZone node
+// that owns this hidden pick. ResumeSA preserves that node across an answer;
+// a linked sub-ability's parameter must not constrain its parent pick.
+func totalCardTypesRequirement(sa *cards.SA) (string, bool) {
+	if sa == nil {
+		return "", false
+	}
+	raw := strings.TrimSpace(sa.Params["WithTotalCardTypes"])
+	return raw, raw != ""
+}
+
+// totalCardTypesSatisfied is the hidden-search constraint used by
+// WithTotalCardTypes$. Card types are the ordinary spell types, including
+// Kindred and Battle; supertypes and creature subtypes in Face.Types do not count.
+func totalCardTypesSatisfied(g *state.Game, ids []state.ObjID, need int) bool {
+	if need <= 0 {
+		return true
+	}
+	seen := make(map[string]bool, len(ids))
+	for _, id := range ids {
+		o := g.Obj(id)
+		if o == nil || o.Face() == nil {
+			continue
+		}
+		for _, typ := range o.Face().Types {
+			switch typ {
+			case "Artifact", "Battle", "Creature", "Enchantment", "Instant", "Kindred", "Land", "Planeswalker", "Sorcery":
+				seen[typ] = true
+			}
+		}
+	}
+	return len(seen) >= need
+}
+
 func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to state.Zone, chosen []state.ObjID, zones []state.Zone) {
 	// The search-control/replacement boundary (Opposition Agent's class):
 	// the moves this function emits are the moves OF A SEARCH, and the host
@@ -2982,7 +3040,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 	// Recheck the answer with the same hidden-zone meaning used to build the
 	// option list: a library Permanent is a permanent card.
 	spec = permanentCardSpec(spec)
-	// DifferentNames$ True (Realms Uncharted): the options carried one Group
+	// DifferentNames$ True (Realms Uncharted): the options carried a Group
 	// per card name, so a validated wire answer cannot repeat a name. A host
 	// that bypassed the wire (bot clamp top-up, a direct resume) is deduped
 	// here deterministically -- first per name in answer order -- so the
@@ -3015,6 +3073,28 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 	// everything kept before it.
 	if strings.EqualFold(strings.TrimSpace(sa.Params["ShareLandType"]), "True") {
 		chosen = trimSharedLandTypes(g, chosen)
+	}
+	// WithTotalCardTypes$ constrains the complete hidden pick, rather than
+	// each option independently. Decision.Validate cannot inspect card
+	// characteristics, so enforce the same constraint at the resolution
+	// boundary as a conservative host-bypass guard: an underspecified answer
+	// finds nothing and cannot feed the ChangeZone rider. This check follows
+	// the other set-level trims so those cannot invalidate the guarantee.
+	if raw, hasTotalCardTypes := totalCardTypesRequirement(sa); hasTotalCardTypes {
+		// This parameter is a literal card-type cardinality in the Forge
+		// grammar (Winter uses 4). Parse it directly so the hidden-search
+		// continuation cannot lose the literal when it rebuilds its Ctx.
+		literal, parseErr := strconv.Atoi(raw)
+		need, ok := int32(literal), parseErr == nil
+		if !ok || need < 0 {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: owner,
+				Text: "WithTotalCardTypes$ cannot be resolved; hidden pick fails closed"})
+			chosen = nil
+		} else if !totalCardTypesSatisfied(g, chosen, int(need)) {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: owner,
+				Text: "hidden pick fails WithTotalCardTypes$ requirement"})
+			chosen = nil
+		}
 	}
 	moved := make([]state.ObjID, 0, len(chosen))
 	for _, id := range chosen {
