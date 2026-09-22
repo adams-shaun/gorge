@@ -1631,6 +1631,37 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 				n3 = 0
 			}
 			return n3, true
+		case "wasCastFromExile":
+			// The resolving source was CAST FROM EXILE (task wascastfrom; the
+			// delayed_blast_fireball `Count$wasCastFromExile.5.2`,
+			// lifestreams_blessing `.2.0` and the ultimate_magic `.1.0`
+			// carriers): the CR 601.2b provenance of an exile-origin cast —
+			// foretell, warp, may-play — which carries no CastFlags bit (the
+			// flags mark alternative costs and origins only), so the read is
+			// the object's latest PutOnStack (Host.WasCastFromExile's log
+			// scan, replay-derivable), the same discipline the hand branch
+			// heads take: a copy was never cast, and a card never put on the
+			// stack (cheated into play) reads false. Branch tokens resolve
+			// through resolveCountOperand, the same machinery.
+			yesTok, noTok, _ := strings.Cut(head[dot+1:], ".")
+			holds := false
+			if o := g.Obj(c.Source); o != nil && !o.IsCopy {
+				if h != nil {
+					holds = h.WasCastFromExile(c.Source)
+				}
+			}
+			if holds {
+				y, ok := resolveCountOperand(h, c, yesTok, depth)
+				if !ok {
+					y = 0
+				}
+				return y, true
+			}
+			nE, ok := resolveCountOperand(h, c, noTok, depth)
+			if !ok {
+				nE = 0
+			}
+			return nE, true
 		case "IfCastInOwnMainPhase", "InOwnMainPhase":
 			// CR "if you cast this spell during your main phase": the
 			// yes/no branch head Forge's AbilityUtils reads as
