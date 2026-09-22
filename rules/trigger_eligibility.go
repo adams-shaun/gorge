@@ -151,6 +151,15 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// keeps an Investigated-only face's mask narrow for every other
 		// kind.
 		return 0
+	case "Discover", "SeekAll":
+		// The marker Kinds' ordinals (Discover 73, Seek 74) are past the
+		// 64-bit mask's reach, the RingTemptsYou/Investigated shape: a mask
+		// bit is not encodable and allows() fails open for every kind at or
+		// past triggerMaskKindBits, so the modes are admitted through that
+		// fail-open path. Naming the modes here (rather than letting them
+		// fall to the allTriggerEvents default) keeps a Discover/SeekAll-only
+		// face's mask narrow for every other kind.
+		return 0
 	case "RingTemptsYou":
 		// The Kind's ordinal (65) is past the 64-bit mask's reach: a mask bit
 		// is not encodable, and allows() fails open for every kind at or past

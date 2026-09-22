@@ -151,6 +151,14 @@ func Apply(g *state.Game, e Event) {
 		// this one, and the record is what trig:Investigated matches. Player
 		// is the investigating seat, Obj the resolving source permanent.
 
+	case Discover, Seek:
+		// The discover (CR 701.57) and seek records (task trigdisc1) are
+		// pure markers, exactly like Explore/Investigate: the action's own
+		// state changes (the exiles/reveals and the sought card's move) are
+		// their own events that preceded this one, and the record is what
+		// trig:Discover / trig:SeekAll match. Player is the acting seat, Obj
+		// the resolving source permanent. One marker per completed action.
+
 	case Pair:
 		// CR 702.103: a Soulbond pairing. Obj is the pairing permanent and
 		// IDs[0] its chosen partner; both fields are set reciprocally when

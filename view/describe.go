@@ -260,6 +260,16 @@ func Describe(g *state.Game, ev events.Event) string {
 		// line names only the investigating seat (Player; Obj is the source
 		// permanent, which may be 0 for a game-rule investigate).
 		return player(g, ev.Player) + " investigates"
+	case events.Discover, events.Seek:
+		// The discover (CR 701.57) and seek records (task trigdisc1) are pure
+		// markers: the action's own state changes (the exiles/reveals and the
+		// sought card's move) are their own lines, so these lines name only
+		// the acting seat (Player; Obj is the source permanent, which may be
+		// 0 for a source-less body).
+		if ev.Kind == events.Seek {
+			return player(g, ev.Player) + " seeks"
+		}
+		return player(g, ev.Player) + " discovers"
 	case events.CombatRetarget:
 		// api:ChangeCombatants's reselect: Obj the attacker, Player the new
 		// defender. The old defender needs no line (the re-pointed attack is
