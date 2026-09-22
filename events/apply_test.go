@@ -879,6 +879,25 @@ func TestClockTickIncrementsClock(t *testing.T) {
 	}
 }
 
+// TestEveryKindHasAName is the totality guard the per-Kind KindString
+// convention asks for: every Kind below NumKinds must carry a non-empty
+// kindNames entry. kindNames is declared [NumKinds]string, so a Kind appended
+// WITHOUT its name still compiles -- the literal simply fills the trailing
+// slot with the zero value and Kind.String() returns "" (the exact slip task
+// alterattr1 made, which the rules interest-mapping failure then printed as
+// `kind  interest`, a blank between the spaces). One assertion here cannot
+// miss the next Kind the way a remembered per-Kind test can.
+func TestEveryKindHasAName(t *testing.T) {
+	for k := Kind(0); int(k) < NumKinds; k++ {
+		if k.String() == "" {
+			t.Fatalf("Kind(%d).String() is empty: a Kind was appended without a kindNames entry", int(k))
+		}
+	}
+	if got, want := Kind(NumKinds).String(), "unknown"; got != want {
+		t.Fatalf("Kind(NumKinds).String() = %q, want %q", got, want)
+	}
+}
+
 func TestRingTemptsYouKindString(t *testing.T) {
 	if got, want := RingTemptsYou.String(), "ring_tempts_you"; got != want {
 		t.Fatalf("RingTemptsYou.String() = %q, want %q", got, want)

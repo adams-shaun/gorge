@@ -85,7 +85,16 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.CombatRetarget, events.RingTemptsYou, events.RingEmblemPush,
 		events.BlessingChange, events.ClonePermanent,
 		events.Mutate, events.MergedTriggerPush,
-		events.Enlist:
+		events.Enlist, events.AlterAttribute:
+		// AlterAttribute (alterattr1) is the same shape past the bound as
+		// Enlist: the suspected designation (CR 702.157) is a status no
+		// trigger mode fires on -- the corpus reads it through filter
+		// predicates (Creature.IsSuspected on ValidAttackers$, AllValid$),
+		// never through an event -- and its ordinal sits past
+		// triggerMaskKindBits, so both classifiers fail open before this map
+		// is consulted. Naming it keeps the audit complete if the bound ever
+		// widens.
+		//
 		// ClonePermanent is a characteristic change (the api:Clone layer-1
 		// CopyFace basis), not a game event any trigger mode fires on -- the
 		// same reading FlipFace and CardToken get. Without it here the
