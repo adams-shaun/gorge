@@ -101,9 +101,9 @@ func (e *Engine) checkGrantedConspireTriggers(observer *Engine, id state.ObjID, 
 // (triggerModeEvents' MoveZone entry, zoneGate/phaseGate, the
 // changesZoneMatches Origin/Destination/ValidCard$ reads) with ValidCard$
 // Card.Self, so its behaviour is byte-identical to the printed path's for the
-// granted creature itself. The queue carries the __kwExploit payload
+// granted creature itself. The queue carries the __kwExploitGranted payload
 // events.Apply rebuilds the same two-step Sacrifice -> Exploit chain from
-// (the Ward/Afflict/Conspire shape; a granted creature has no __kwExploit
+// (the Ward/Afflict/Conspire shape; a granted creature has no __kwExploitGranted
 // SVar for a TriggerPush face-index to resolve).
 //
 // The face that PRINTS Exploit is skipped: the printed expansion already owns

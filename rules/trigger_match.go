@@ -125,7 +125,7 @@ type pendingTrigger struct {
 	// exploit"): the same shape as Ward/Afflict -- the queue carries no
 	// parameter (the trigger body is the same two-step Sacrifice -> Exploit
 	// chain the printed K:Exploit expansion carries) and the drain pushes a
-	// KeywordTriggerPush whose __kwExploit payload events.Apply rebuilds
+	// KeywordTriggerPush whose __kwExploitGranted payload events.Apply rebuilds
 	// structurally. The trigger's Source is the GRANTED creature that just
 	// entered, so the marker names it as the exploiter. Idx and SA are unset
 	// for it.
@@ -978,6 +978,13 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					pt.Delayed = true
 					pt.DelayedID = ^uint32(0)
 					pt.Execute = t.Params["Execute"]
+				}
+				if t.Mode == "Exploited" {
+					// CR 702.58c's "that creature" is the exploited one, not the
+					// marker's causing object (the exploiter), so its LKI P/T -- not
+					// the exploiter's -- is what TriggeredExploited$CardPower and
+					// CardToughness must read.
+					e.attachExploitedLKI(&pt, ev)
 				}
 				e.pendingTriggers = append(e.pendingTriggers, pt)
 				// stat:Panharmonicon (CR 702.109): "If a triggered ability of a

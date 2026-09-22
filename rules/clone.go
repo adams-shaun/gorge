@@ -185,6 +185,12 @@ func (e *Engine) Clone() *Engine {
 			c.sacrificedLKI[id] = append([]state.SacrificedInfo(nil), info...)
 		}
 	}
+	if e.exploitedLKI != nil {
+		c.exploitedLKI = make(map[state.ObjID]state.SacrificedInfo, len(e.exploitedLKI))
+		for id, info := range e.exploitedLKI {
+			c.exploitedLKI[id] = info
+		}
+	}
 	if e.sourceLifelinkLKI != nil {
 		c.sourceLifelinkLKI = make(map[state.ObjID]bool, len(e.sourceLifelinkLKI))
 		for id, link := range e.sourceLifelinkLKI {

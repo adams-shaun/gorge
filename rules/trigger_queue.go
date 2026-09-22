@@ -400,8 +400,8 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 	// exploit"): the Ward/Afflict shape. The trigger is optional in
 	// EFFECT (its body poses the may-sacrifice election when it resolves),
 	// not in the trigger itself, so it is pushed unconditionally; its
-	// Counter payload "__kwExploit" is what events.Apply rebuilds into the
-	// same DB$ Sacrifice -> DB$ Exploit chain the printed K:Exploit
+	// Counter payload "__kwExploitGranted" is what events.Apply rebuilds
+	// into the same DB$ Sacrifice -> DB$ Exploit chain the printed K:Exploit
 	// expansion carries. The trigger's Source is the granted creature that
 	// just entered, which the marker half names as the exploiter.
 	if pt.Exploit {
@@ -410,7 +410,7 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		}
 		stackLen := len(e.G.Stack)
 		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
-			Obj: pt.Source, Counter: "__kwExploit", Text: "exploit ability"})
+			Obj: pt.Source, Counter: "__kwExploitGranted", Text: "exploit ability"})
 		if len(e.G.Stack) > stackLen {
 			id := e.G.Stack[len(e.G.Stack)-1]
 			if e.triggerContexts == nil {

@@ -1586,15 +1586,22 @@ func Apply(g *state.Game, e Event) {
 				sa = &cards.SA{Kind: "DB", API: "Cascade",
 					Params: map[string]string{"TriggerDescription": "Cascade"}}
 			}
-			// A granted Exploit (rules.pushTrigger's __kwExploit payload) has
-			// no SVar either: rebuilt structurally into the same
+			// A granted Exploit (rules.pushTrigger's __kwExploitGranted
+			// payload) has no SVar either: rebuilt structurally into the same
 			// DB$ Sacrifice | Optional$ True | SacValid$ Creature |
 			// RememberSacrificed$ True -> DB$ Exploit chain the printed
 			// K:Exploit expansion carries (cards/kw_exploit.go), so the live
 			// game and the replay mint identical objects from the event text
 			// alone. The Exploit body reads the sacrificed creature off
-			// Ctx.Sacrificed, exactly as the printed chain does.
-			if _, ok := strings.CutPrefix(e.Counter, "__kwExploit"); ok {
+			// Ctx.Sacrificed, exactly as the printed chain does. The payload
+			// is deliberately NOT the bare "__kwExploit": addKeywordTrigger
+			// mints a printed bare K:Exploit line's SVar as "__kw"+line =
+			// "__kwExploit", so the old spelling aliased a real printed-face
+			// SVar. The SVar lookup above wins today, but a future caller
+			// that pushed the bare payload for a face defining that SVar
+			// would silently take the SVar path; "Granted" cannot collide
+			// with any "__kw"+<keyword-line> mint.
+			if _, ok := strings.CutPrefix(e.Counter, "__kwExploitGranted"); ok {
 				sac := &cards.SA{Kind: "DB", API: "Sacrifice",
 					Params: map[string]string{"Defined": "You", "Optional": "True", "SacValid": "Creature",
 						"RememberSacrificed": "True"}}

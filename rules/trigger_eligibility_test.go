@@ -304,8 +304,13 @@ func TestGrantedKeywordTriggerEventFilter(t *testing.T) {
 	}{
 		{events.TargetsChosen, true},
 		{events.DeclareAttackers, true},
+		// MoveZone is the granted-exploit gate: a layer-6 AddKeyword$ Exploit
+		// grant synthesizes its ETB election in checkGrantedExploitTriggers,
+		// which must run on the entering creature's MoveZone (the Afflict/
+		// Dethrone/Conspire precedent, each of which needs its own carrying
+		// event admitted here).
+		{events.MoveZone, true},
 		{events.Priority, false},
-		{events.MoveZone, false},
 		{events.StepChange, false},
 	} {
 		if got := grantedKeywordTriggerEvent(tc.kind); got != tc.want {

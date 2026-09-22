@@ -133,6 +133,19 @@ type Host interface {
 	// emit path skips replacement application there, and the body's own
 	// explores are fresh events).
 	ExploreReplaced(explorer state.ObjID) bool
+	// RememberExploitedLKI publishes the last-known-information snapshot of
+	// one creature a resolving exploit ability just sacrificed (CR 702.58a).
+	// The events.Exploit marker names the exploited creature by id, but Move
+	// has by then cleared its counters and dropped its battlefield layers, so
+	// a later trig:Exploited body reading TriggeredExploited$CardPower/
+	// CardToughness would see the graveyard card's printed face instead of its
+	// as-sacrificed P/T. effects/exploit.go publishes the snapshot here, and
+	// the engine attaches it to the trig:Exploited pending trigger's Ctx.LKI
+	// (rules' attachExploitedLKI), where evalRefProperty already reads an
+	// object's LKI P/T for every other trigger. Rules-implemented and
+	// replay-derived exactly like the other LKI maps; the effects test double
+	// records it for its own assertions.
+	RememberExploitedLKI(state.SacrificedInfo)
 	// HasKeyword reports a DERIVED keyword — printed or granted by a
 	// continuous effect (rules.Engine.HasKeyword). Effects that gate on a
 	// keyword (Destroy on Indestructible) must ask this, never the face.

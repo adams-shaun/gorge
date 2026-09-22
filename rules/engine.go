@@ -346,6 +346,18 @@ type Engine struct {
 	// builds effects.Ctx.Sacrificed; the entry is removed when the stack
 	// object leaves, mirroring triggerContexts.
 	sacrificedLKI map[state.ObjID][]state.SacrificedInfo
+	// exploitedLKI maps an EXPLOITED creature's object id to the LKI snapshot
+	// of it at the instant it was sacrificed to pay an exploit (CR 702.58a),
+	// published by effects/exploit.go through Host.RememberExploitedLKI while
+	// the resolving marker holds Ctx.Sacrificed. The events.Exploit marker
+	// carries only the exploited id, and Move has already cleared the
+	// creature's counters and battlefield layers by emit time, so this map is
+	// what lets a trig:Exploited body read TriggeredExploited$CardPower/
+	// CardToughness as last-known information (rules' attachExploitedLKI).
+	// Engine-only and replay-derived like the other LKI maps: replay re-runs
+	// the same effect resolution, so it repopulates identically, and the entry
+	// is removed when the exploited object leaves a zone.
+	exploitedLKI map[state.ObjID]state.SacrificedInfo
 	// sourceLifelinkLKI maps an independently resolving ability's stack object
 	// to its source permanent's derived lifelink state at the last moment that
 	// source existed on the battlefield. The map's presence is the validity
@@ -1488,6 +1500,11 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// CR 400.7: an object that changes zones is a new object with no
 		// memory of having become tapped this turn.
 		delete(e.tappedTurn, ev.Obj)
+		// An exploited object's as-sacrificed snapshot is only meaningful
+		// while the object is where the exploit left it; a later move (the
+		// graveyard card exiled) retires it rather than letting the map grow
+		// for the rest of the game.
+		delete(e.exploitedLKI, ev.Obj)
 	}
 	if ev.Kind == events.MoveZone && ev.From == state.ZStack && ev.To != state.ZStack {
 		delete(e.triggerContexts, ev.Obj)
