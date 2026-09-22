@@ -1145,7 +1145,7 @@ func substituteChosenProduced(produced, chosen string) string {
 		return produced
 	}
 	trimmed := strings.TrimSpace(produced)
-	if trimmed == "Chosen" {
+	if trimmed == "Chosen" || trimmed == "ComboChosen" {
 		return chosen
 	}
 	toks := strings.Fields(trimmed)

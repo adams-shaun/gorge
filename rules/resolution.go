@@ -1336,6 +1336,18 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				ctx.DrawUptoCount = rp.uptoCount
 				ctx.DrawUptoAnswered = true
 			}
+		case "mana_color":
+			// A resolution-time Mana effect asked for the colour of one
+			// produced unit.  The answer is carried in the ordinary KChoose
+			// option label and consumed by effMana on this SA's re-entry; no
+			// event kind is needed because the resulting ManaAdd is the
+			// replayable state mutation.
+			if len(chosen) > 0 {
+				colour := strings.TrimSpace(strings.TrimPrefix(chosen[0].Label, "Add "))
+				if len(colour) == 1 && strings.Contains("WUBRG", colour) {
+					ctx.ManaChoice = colour
+				}
+			}
 		case "repeat":
 			// A RepeatEach loop re-entered after one of its iterations
 			// suspended: no answer, just the cursor (CR 608.2c).

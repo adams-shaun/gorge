@@ -709,8 +709,12 @@ func TestConstructedDefaultIsByteIdentical(t *testing.T) {
 	// (its oracle; pinned by rules/rescue_pepper_potts_test.go) instead of on
 	// every resolution, including a bounced plain creature or no target at
 	// all, where the gate used to fail open (reverting effects/conditions.go
-	// returns 6/14; the fix reproduces 5/15 deterministically).
-	const wantSeat0, wantSeat1 = 6, 14
+	// returns 6/14; the fix reproduces 5/15 deterministically). The Any-mana
+	// projection change in cards/mana_production.go then re-measured this
+	// same pair from 6/14 to 5/15: the bot can now see an untapped Any source
+	// as a real WUBRG alternative instead of the old colourless stand-in, so
+	// its tap choice changes in one game (reverting that file reproduces 6/14).
+	const wantSeat0, wantSeat1 = 5, 15
 	if seat0, seat1 := atoi(m[8]), atoi(m[9]); seat0 != wantSeat0 || seat1 != wantSeat1 {
 		t.Errorf("constructed default split = %d/%d, want %d/%d (%s vs %s at seed 0, games 20)", seat0, seat1, wantSeat0, wantSeat1, testutil.RepoDeckNames()[0], testutil.RepoDeckNames()[1])
 	}
