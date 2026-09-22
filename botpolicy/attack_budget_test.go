@@ -42,9 +42,10 @@ func TestClampTrimsOverBudgetAttackers(t *testing.T) {
 	}
 }
 
-// TestClampTrimKeepsRequiredAttackers: a Required pair (CR 508.1d) is dropped
-// only after every non-Required pair is gone, so a declaration the engine's
-// requirement solver demands is not silently trimmed away.
+// TestClampTrimKeepsRequiredAttackers: a Required pair (CR 508.1d) the budget
+// can carry survives the trim -- the repair starts from the shared required
+// core (decision.FitRequired), so a declaration the engine's requirement
+// check demands is never trimmed away.
 func TestClampTrimKeepsRequiredAttackers(t *testing.T) {
 	d := decision.Decision{
 		Kind:   decision.KAttackers,
@@ -83,5 +84,37 @@ func TestClampLeavesBudgetFreeAttackersUntouched(t *testing.T) {
 	in := Clamp(&d, decision.Intent{Choices: []int{0, 1, 2}})
 	if !reflect.DeepEqual(in.Choices, []int{0, 1, 2}) {
 		t.Fatalf("choices = %v, want all three unchanged", in.Choices)
+	}
+}
+
+// TestClampMeetsTheRequiredQuotaUnderBudget is the attackprop1 review's
+// livelock at the policy layer: two Required creatures, each offered at a
+// {2} defender and a free one, under a {3} budget. The heuristic's preferred
+// answer (both at the dear defender, {4}) used to be trimmed to ONE required
+// pick while the engine demanded two (both free pairs fit). Clamp must hand
+// back an answer that passes Validate AND meets decision.RequiredQuota --
+// the same rule the engine's declaration check reads.
+func TestClampMeetsTheRequiredQuotaUnderBudget(t *testing.T) {
+	d := decision.Decision{
+		Kind:   decision.KAttackers,
+		Min:    0,
+		Max:    4,
+		MaxSum: 3,
+		Options: []decision.Option{
+			{Index: 0, Kind: "attacker", Obj: 1, Player: 0, Value: 2, Required: true},
+			{Index: 1, Kind: "attacker", Obj: 2, Player: 0, Value: 2, Required: true},
+			{Index: 2, Kind: "attacker", Obj: 1, Player: 2, Required: true},
+			{Index: 3, Kind: "attacker", Obj: 2, Player: 2, Required: true},
+		},
+	}
+	if q := d.RequiredQuota(); q != 2 {
+		t.Fatalf("precondition: quota = %d, want 2", q)
+	}
+	in := Clamp(&d, decision.Intent{Choices: []int{0, 1}})
+	if err := d.Validate(in); err != nil {
+		t.Fatalf("clamped answer %v failed Validate: %v", in.Choices, err)
+	}
+	if n := d.RequiredChosen(in.Choices); n < 2 {
+		t.Fatalf("clamped answer %v covers %d required creatures, the engine demands 2", in.Choices, n)
 	}
 }

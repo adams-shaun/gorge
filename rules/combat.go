@@ -269,6 +269,13 @@ func (e *Engine) askAttackers() {
 	if ceil := e.maxAttackers(); ceil < maxOpts {
 		maxOpts = ceil
 	}
+	maxSum := 0
+	for _, o := range opts {
+		if o.Value > 0 {
+			maxSum = int(budget)
+			break
+		}
+	}
 	if len(opts) == 0 {
 		// Every (attacker, defender) pair is blocked — a CantAttack static or
 		// restriction covering the whole table — or priced out — a
@@ -286,8 +293,10 @@ func (e *Engine) askAttackers() {
 		// Value (each pair's mana price) must not exceed the payer's budget.
 		// Decision.Validate enforces it as a general wire contract, so the
 		// engine never sees an over-budget declaration and no client has to
-		// sum prices itself. 0 (prop-free) omits the field, byte-identical.
-		MaxSum: int(budget)})
+		// sum prices itself. Published only when some offered pair is priced:
+		// with every Value 0 the cap is vacuous, and leaving it 0 (omitted)
+		// keeps every prop-free declaration's wire payload byte-identical.
+		MaxSum: maxSum})
 }
 
 // handleAttackers records the chosen attackers (CR 508.1c: this is what
@@ -670,53 +679,6 @@ func (e *Engine) attackPairAvailable(id state.ObjID) bool {
 	return false
 }
 
-// requiredAffordableCount is how many of the required creatures the active
-// player's attack budget can actually pay for, cheapest pair first. CR
-// 508.1d's "must attack if able" is bounded by affordability: a creature a
-// CantAttackUnless prop prices is able to attack only while the declaration
-// stays within budget, so demanding more required creatures than the budget
-// covers would leave no legal declaration (the KAttackers decision would have
-// no answerable intent). Deterministic: each required creature's cheapest
-// offered pair (attackOffers' own prices) is taken in ascending price order
-// while it fits.
-func (e *Engine) requiredAffordableCount(required []state.ObjID) int {
-	mins := make(map[state.ObjID]int32, len(required))
-	for _, of := range e.attackOffers() {
-		if !requiredHas(required, of.id) {
-			continue
-		}
-		if cur, ok := mins[of.id]; !ok || of.price < cur {
-			mins[of.id] = of.price
-		}
-	}
-	vals := make([]int32, 0, len(mins))
-	for _, v := range mins {
-		vals = append(vals, v)
-	}
-	sort.Slice(vals, func(i, j int) bool { return vals[i] < vals[j] })
-	budget := e.attackBudget(e.G.Active)
-	total := int32(0)
-	count := 0
-	for _, v := range vals {
-		if total+v > budget {
-			break
-		}
-		total += v
-		count++
-	}
-	return count
-}
-
-// requiredHas is a small membership test over the required slice.
-func requiredHas(required []state.ObjID, id state.ObjID) bool {
-	for _, r := range required {
-		if r == id {
-			return true
-		}
-	}
-	return false
-}
-
 // maxAttackers reports the tightest total-attacker ceiling in force from
 // every applicable AttackRestrict static, or a very large number when none
 // applies. Only the MaxAttackers$ parameter is read (Silent Arbiter's shape);
@@ -835,51 +797,22 @@ func (e *Engine) maxAttackers() int {
 // game), the checks are inert.
 func (e *Engine) validateAttackDeclaration(d *decision.Decision, in decision.Intent) error {
 	chosen := d.Chosen(in)
-	chosenSet := make(map[state.ObjID]bool, len(chosen))
-	for _, o := range chosen {
-		chosenSet[o.Obj] = true
-	}
-
-	var required []state.ObjID
-	for _, id := range e.G.Zone(state.ZBattlefield, e.G.Active) {
-		if e.mustAttackRequired(id) {
-			required = append(required, id)
-		}
-	}
-	if len(required) == 0 {
-		// No requirement is in force, so only a ceiling (if any) can be
-		// violated.
-		if maxAllowed := e.maxAttackers(); len(chosen) > maxAllowed {
-			return fmt.Errorf("declared %d attackers, more than the allowed %d", len(chosen), maxAllowed)
-		}
-		return nil
-	}
-
 	maxAllowed := e.maxAttackers()
-	maxReq := len(required)
-	if maxAllowed < maxReq {
-		maxReq = maxAllowed
-	}
-	// CR 508.1d's "if able" is bounded by AFFORDABILITY too: a required
-	// creature whose attack is priced by a CantAttackUnless prop is only able
-	// to attack while the declaration's total stays within the payer's
-	// budget. Demanding more required creatures than the budget can pay for
-	// would make every legal declaration unanswerable, so the requirement is
-	// clamped to the count the cheapest available pairs can cover (the same
-	// deterministic greedy mustAttackRequired's attackPairAvailable walk
-	// uses, over the prices attackPairCharge already resolved).
-	if aff := e.requiredAffordableCount(required); aff < maxReq {
-		maxReq = aff
-	}
-	chosenReq := 0
-	for _, id := range required {
-		if chosenSet[id] {
-			chosenReq++
-		}
-	}
-	if chosenReq < maxReq {
+	// CR 508.1d: the declaration must include as many required creatures as
+	// possible. The options carry the requirement (Option.Required, set from
+	// mustAttackRequired in askAttackers), the attack-prop budget
+	// (Decision.MaxSum over each pair's Value) and the MaxAttackers$ ceiling
+	// (Decision.Max), so "as many as possible" is decision.RequiredQuota --
+	// the ONE rule the client-side repair (botpolicy.Clamp via
+	// Decision.FitRequired) also builds from. A required creature a
+	// CantAttackUnless prop prices is "able" only while the declaration stays
+	// within budget; re-deriving that bound here from the board, on its own,
+	// is exactly how the bot's own answer came to be rejected on a board where
+	// a legal declaration existed (attackprop1 review, the livelock pinned by
+	// TestAttackPropRequiredBotAnswerNeverLivelocks).
+	if quota, got := d.RequiredQuota(), d.RequiredChosen(in.Choices); got < quota {
 		return fmt.Errorf("must attack with as many required creatures as possible (required %d, declared %d; max attackers %d)",
-			maxReq, chosenReq, maxAllowed)
+			quota, got, maxAllowed)
 	}
 	if len(chosen) > maxAllowed {
 		return fmt.Errorf("declared %d attackers, more than the allowed %d", len(chosen), maxAllowed)
