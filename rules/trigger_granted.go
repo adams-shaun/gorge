@@ -598,6 +598,7 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []Con
 				LKIToughness:   lkiToughness,
 				LKIPTValid:     objLKI != nil && lkiPTValid,
 				TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
+				EffectFrame:    effects.EffectFrame{Source: ce.Source, Stamp: ce.Timestamp},
 			},
 		})
 	}

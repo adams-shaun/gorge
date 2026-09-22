@@ -348,6 +348,14 @@ type Engine struct {
 	// triggers, cloned at intent boundaries and removed when the stack object
 	// leaves. Never encoded in events or inferred from a resolving source.
 	triggerContexts map[state.ObjID]effects.TriggerContext
+	// effectFrames carries the continuous-effect registration identity onto
+	// stack objects created by an Effect's granted trigger. It is runtime
+	// state, rebuilt by the trigger walk on replay, like triggerContexts.
+	effectFrames map[state.ObjID]effects.EffectFrame
+	// currentEffectFrame is the frame of the effects.Resolve walk currently
+	// running. Ask captures it so a replacement body can resume with the same
+	// Effect registration after a mid-resolution decision.
+	currentEffectFrame effects.EffectFrame
 	// triggerLKI preserves the causing event's object snapshot from trigger
 	// match through placement and resolution. TriggerPush can log Remembered
 	// ids but not the pre-move object value (whose counters Move clears), so
@@ -1614,6 +1622,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	}
 	if ev.Kind == events.MoveZone && ev.From == state.ZStack && ev.To != state.ZStack {
 		delete(e.triggerContexts, ev.Obj)
+		delete(e.effectFrames, ev.Obj)
 		delete(e.triggerLKI, ev.Obj)
 		delete(e.sacrificedLKI, ev.Obj)
 		delete(e.fuseTargets, ev.Obj)
@@ -1953,6 +1962,14 @@ func (e *Engine) searchControlRedirect(d *decision.Decision) {
 		d.Player = sv.Controller
 		return
 	}
+}
+
+func (e *Engine) GetCurrentEffectFrame() effects.EffectFrame {
+	return e.currentEffectFrame
+}
+
+func (e *Engine) SetCurrentEffectFrame(frame effects.EffectFrame) {
+	e.currentEffectFrame = frame
 }
 
 func (e *Engine) ask(d *decision.Decision) {

@@ -1521,7 +1521,23 @@ func RegisterNonAPI(prefixed ...string) {
 const maxChain = 32
 
 // Resolve runs an ability and every sub-ability chained beneath it.
+// effectFrameHost is implemented by the rules engine to preserve an
+// Effect-created registration identity across Host.Ask. It is optional so
+// effects test doubles remain small.
+type effectFrameHost interface {
+	GetCurrentEffectFrame() EffectFrame
+	SetCurrentEffectFrame(EffectFrame)
+}
+
 func Resolve(h Host, c *Ctx, sa *cards.SA) {
+	var previous EffectFrame
+	if fh, ok := h.(effectFrameHost); ok {
+		previous = fh.GetCurrentEffectFrame()
+		if c != nil {
+			fh.SetCurrentEffectFrame(c.EffectFrame)
+		}
+		defer fh.SetCurrentEffectFrame(previous)
+	}
 	if c != nil {
 		c.Host = h
 		c.numericRHS = c.X != 0 || len(c.SVars) > 0

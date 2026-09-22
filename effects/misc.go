@@ -340,6 +340,29 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				Text: "continuous replacement unimplemented (" + name + ")"})
 		}
 	}
+	// Effect-created trigger grants use the same live grant walk as an
+	// AddTrigger static. Keeping the registration in the continuous registry
+	// gives the fired stack object the EffectFrame needed by its one-shot
+	// self-exile body.
+	for _, name := range strings.FieldsFunc(sa.Params["Triggers"], func(r rune) bool {
+		return r == ',' || r == ' ' || r == '\t' || r == '\n'
+	}) {
+		raw := strings.TrimSpace(c.SVars[name])
+		if raw == "" {
+			continue
+		}
+		if t, ok := cards.ParseTriggerLine(raw); ok {
+			grant := state.ContinuousEffect{
+				Source: c.Source, Controller: c.Controller, Layer: state.LAbilities,
+				Affects: "Card.Self", AddTrigger: &t, Duration: dur,
+				Permanent: dur == "Permanent", UntilEOT: effectUntilEOT(h, c.Source, dur),
+				Remembered: remembered, ForgetOnMoved: forgetOn, ExileOnMoved: exileOn,
+				ForgetCounter: forgetCounter,
+			}
+			h.AddContinuous(grant)
+			registered = true
+		}
+	}
 	for _, name := range strings.FieldsFunc(sa.Params["StaticAbilities"], func(r rune) bool {
 		return r == ',' || r == ' ' || r == '\t' || r == '\n'
 	}) {
