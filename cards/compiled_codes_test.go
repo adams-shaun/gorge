@@ -140,7 +140,7 @@ func TestCompiledTriggerInterests(t *testing.T) {
 		{"ChangesZone", TriggerInterestZoneChange},
 		{"SpellCast", TriggerInterestStackPut},
 		{"AbilityCast", TriggerInterestAbilityPush},
-		{"SpellAbilityCast", TriggerInterestAbilityPush},
+		{"SpellAbilityCast", TriggerInterestStackPut | TriggerInterestAbilityPush},
 		{"Attacks", TriggerInterestAttackDeclaration},
 		{"AttackersDeclared", TriggerInterestAttackDeclaration},
 		{"AttackersDeclaredOneTarget", TriggerInterestAttackDeclaration},

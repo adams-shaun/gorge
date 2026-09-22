@@ -133,8 +133,14 @@ func triggerModeEvents(mode string) triggerEventMask {
 		return 1<<events.PutOnStack | 1<<events.StackCopy
 	case "SpellCopy":
 		return 1 << events.StackCopy
-	case "AbilityCast", "SpellAbilityCast":
+	case "AbilityCast":
 		return 1 << events.AbilityPush
+	case "SpellAbilityCast":
+		// Magecraft's widest form: "whenever you cast or activate ..." --
+		// the ACTIVATION half (an AbilityPush) and the CAST half (a
+		// PutOnStack spell) both reach the mode; the matcher dispatches each
+		// kind to its own evaluation.
+		return 1<<events.AbilityPush | 1<<events.PutOnStack
 	case "Attacks", "AttackersDeclaredOneTarget", "AttackersDeclared":
 		return 1 << events.DeclareAttackers
 	case "AttackerBlocked", "AttackerBlockedByCreature", "AttackerUnblockedOnce", "Blocks":

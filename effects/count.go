@@ -1049,6 +1049,29 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		// of enforcing a meaningless zero. A bound zero is a real binding and
 		// evaluates (torgal with no Dogs/Wolves on the board).
 		return c.ChosenNumber, c.ChosenNumberBound
+	case "ChosenSize":
+		// Forge's Count$ChosenSize (CardUtil.getChosenCards().size()): the
+		// number of CARDS the current resolution's ChooseCard chain has
+		// chosen -- the same set Defined$ ChosenCard resolves (effects/
+		// context.go's definedSpec case), read with the same precedence so a
+		// count and a defined fetch can never disagree: the resolution's
+		// bound Ctx.Chosen when it is live, else the source object's
+		// event-backed Chosen list (the Choose "chosen" fold), which is what
+		// a re-entry after a suspended ask reads. Player entries (a
+		// ChoosePlayer's half) are not cards and do not count. A legitimate
+		// zero (Feather, Radiant Arbiter's MinAmount$ 0 ask answered with
+		// nothing) is exactly that -- the /Op suffix (/Times.2, the
+		// UnlessCost$ CopyCost pricing) folds the zero like any other.
+		// resolutionChosenCards is the shared chosen-card read (context.go's
+		// Defined$ ChosenCard case, copy.go's DefinedTarget$ ChosenCard).
+		chosen := resolutionChosenCards(g, c)
+		n := int32(0)
+		for _, t := range chosen {
+			if !t.IsPlayer {
+				n++
+			}
+		}
+		return n, true
 	case "YourLifeTotal":
 		if c.Controller < 0 || int(c.Controller) >= len(g.Players) {
 			return 0, true
