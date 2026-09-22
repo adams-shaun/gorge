@@ -490,6 +490,41 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		e.drainAwaitsTarget = e.Pending() != nil
 		return
 	}
+	// A granted Demonstrate (CR 702.152's copy trigger via a layer-6
+	// AddKeyword$ Demonstrate -- Silverquill Lecturer and friends): the
+	// Conspire shape. The trigger is mandatory (the "may copy" election is
+	// the BODY's own ask at resolution, not a placement election); its
+	// Counter payload "__kwDemonstrate:" is what events.Apply rebuilds into
+	// the same DB$ Demonstrate body the printed K:Demonstrate expansion
+	// carries, and the cast spell rides IDs as Remembered because Defined$
+	// TriggeredSpellAbility reads the triggering spell off it. The trailing
+	// colon keeps the payload from aliasing the "__kwDemonstrate" SVar a
+	// printed bare K:Demonstrate line mints.
+	if pt.Demonstrate {
+		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
+			return
+		}
+		ids := make([]state.ObjID, 0, len(pt.Ctx.Remembered))
+		for _, tgt := range pt.Ctx.Remembered {
+			if tgt.IsPlayer {
+				ids = append(ids, state.PlayerRef(tgt.Player))
+				continue
+			}
+			ids = append(ids, tgt.Obj)
+		}
+		stackLen := len(e.G.Stack)
+		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
+			Obj: pt.Source, Counter: "__kwDemonstrate:", IDs: ids, Text: "demonstrate ability"})
+		if len(e.G.Stack) > stackLen {
+			id := e.G.Stack[len(e.G.Stack)-1]
+			if e.triggerContexts == nil {
+				e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
+			}
+			e.triggerContexts[id] = pt.Ctx.TriggerContext
+		}
+		e.drainAwaitsTarget = e.Pending() != nil
+		return
+	}
 	// A printed-or-granted cascade (CR 702.85, task cascade1): the Ward
 	// shape. The trigger is mandatory; its Counter payload "__kwCascade:" is
 	// what events.Apply rebuilds into the DB$ Cascade body both the printed
@@ -1218,6 +1253,15 @@ func (e *Engine) triggerLabel(pt pendingTrigger) string {
 			}
 		}
 		return name + ": conspire copy trigger"
+	}
+	if pt.Demonstrate {
+		name := "a spell"
+		if o := e.G.Obj(pt.Source); o != nil {
+			if f := o.Face(); f != nil && f.Name != "" {
+				name = f.Name
+			}
+		}
+		return name + ": demonstrate copy trigger"
 	}
 	if pt.Miracle || pt.Madness || pt.Evoke {
 		name := "it"

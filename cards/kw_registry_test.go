@@ -47,6 +47,10 @@ var expandedHeads = []string{
 	// Fabricate (CR 702.121, task fabricate1): a ChangesZone ETB trigger
 	// whose Charm elects N +1/+1 counters or N Servo tokens.
 	"Fabricate",
+	// Demonstrate (CR 702.152): a SpellCast trigger on the card's own cast
+	// whose DB$ Demonstrate body asks the may-copy election and the
+	// opponent choice, the copies ordinary StackCopy mints (kw-demonstrate).
+	"Demonstrate",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {

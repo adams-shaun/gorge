@@ -6861,6 +6861,15 @@ func init() {
 		// (rules/legal.go) plus conspireAsk (rules/cast.go) pose and pay the
 		// two-creature tap.
 		"kw:Conspire",
+		// kw:Demonstrate: CR 702.152, expanded by cards/kw_demonstrate.go
+		// into the SpellCast trigger on the card's own cast whose DB$
+		// Demonstrate body (effects/demonstrate.go) poses the may-copy
+		// election and the opponent choice; a layer-6 AddKeyword$ Demonstrate
+		// grant (Silverquill Lecturer) reaches the same body through
+		// rules/trigger_granted.go's checkGrantedDemonstrateTriggers. The
+		// copies are ordinary StackCopy mints, so a creature-spell copy
+		// becomes a token through the standing CR 707.10g fold.
+		"kw:Demonstrate",
 		// kw:Squad: CR 702.66, expanded by cards/keywords.go into a
 		// ChangesZone self-entry trigger whose DB$ CopyPermanent body reads
 		// Count$SquadPaid (the Replicate pattern); the cast flow's "squadded"
