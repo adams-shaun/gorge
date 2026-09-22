@@ -912,9 +912,12 @@ func rememberMilled(h Host, c *Ctx, id state.ObjID) {
 // order without a host). A resumed multi-target Dig applies
 // the answer only to the target that asked, skips earlier targets that already
 // completed before suspension, and preserves that same deterministic behaviour
-// for every later target; chained per-library asks remain separate work. On the
-// no-choice path nothing new is emitted at all, so a game that never reaches a
-// strict-superset Dig replays byte-identically to the pre-dig1 engine.
+// for every later target; chained per-library asks remain separate work. The
+// no-choice path asks NO take decision, but it is not event-free when a
+// variant param is present: a default-remainder Dig still moves its untaken
+// cards to the bottom (asking for that order when two or more remain), so only
+// a game that never reaches a Dig whose remainder moves replays byte-
+// identically to the pre-dig1 engine.
 //
 // The variant params (task inbox-paramcensus-dig-variants), each read
 // below:
@@ -1316,15 +1319,15 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			rest(restIDs)
 			continue
 		}
-		// No choice to ask about: M1's silent behaviour for the no-variant
-		// cards -- only a Reveal$ window reveal, a Tapped$ Tap, a look Note
-		// ahead of an ordered-bottom ask, or a remainder move can add an
-		// event, and only a card carrying those emits one. The forced greedy
-		// take moves in window order while the cumulative budget
-		// (WithTotalCMC$) allows; everything else in the window -- unmatched,
-		// over-budget and beyond the cap alike -- goes to the second
-		// destination (by default the bottom, ordered) or stays exactly where
-		// it is (SkipReorder$, or a top LibraryPosition2$).
+		// No take decision to ask about (eligible <= ChangeNum): the M1 silent
+		// TAKE runs, but the tail may still act -- a Reveal$ window reveal, a
+		// Tapped$ Tap, a look Note ahead of an ordered-bottom ask, or a
+		// remainder move can each add an event, and a default-remainder card
+		// emits one. The forced greedy take moves in window order while the
+		// cumulative budget (WithTotalCMC$) allows; everything else in the
+		// window -- unmatched, over-budget and beyond the cap alike -- goes to
+		// the second destination (by default the bottom, ordered) or stays
+		// exactly where it is (SkipReorder$, or a top LibraryPosition2$).
 		if revealWin && len(top) > 0 {
 			h.Emit(events.Event{Kind: events.Note, Player: p, IDs: top})
 		}

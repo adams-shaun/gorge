@@ -145,10 +145,13 @@ func TestDigMandatoryAskMinsAtChangeNum(t *testing.T) {
 }
 
 // TestDigStaysSilentWhenTheWindowHoldsNoChoice pins the strict-supersets
-// gate: a window whose eligible count EQUALS ChangeNum admits no real pick,
-// so no decision is posed, no look Note is emitted, and the M1 silent
-// behaviour (first ChangeNum eligible in zone order move) runs unchanged --
-// byte-identical replay for games that never reach a strict-superset Dig.
+// gate's TAKE half: a window whose eligible count EQUALS ChangeNum admits no
+// real pick, so no take decision is posed and no look Note for the take ask is
+// emitted (with only one untaken card there is also no ordered-bottom ask).
+// The silent M1 take runs (first ChangeNum eligible in zone order move), but
+// the default remainder STILL moves the untaken card to the bottom -- so this
+// is not the byte-identical pre-dig1 engine: only a window whose remainder
+// cannot move would replay that way.
 func TestDigStaysSilentWhenTheWindowHoldsNoChoice(t *testing.T) {
 	h, ids := digAskFixture(t)
 	Resolve(h, &Ctx{Controller: 0},
@@ -158,11 +161,16 @@ func TestDigStaysSilentWhenTheWindowHoldsNoChoice(t *testing.T) {
 	}
 	for _, e := range h.log {
 		if e.Kind == events.Note && e.Text == "looks at the top of the library" {
-			t.Fatal("a look Note was emitted on the no-choice path: games without the decision must replay byte-identically")
+			t.Fatal("a take-ask look Note was emitted on the no-choice path")
 		}
 	}
 	if hand := h.g.Zone(state.ZHand, 0); len(hand) != 2 || hand[0] != ids[1] || hand[1] != ids[2] {
-		t.Fatalf("hand = %v, want [%d %d] (both lands, the silent M1 behaviour)", hand, ids[1], ids[2])
+		t.Fatalf("hand = %v, want [%d %d] (both lands, the silent M1 take)", hand, ids[1], ids[2])
+	}
+	// The PRECONDITION the remainder assertion depends on: a card was left
+	// untaken and must have moved off its window position to the bottom.
+	if lib := h.g.Zone(state.ZLibrary, 0); len(lib) != 2 || lib[len(lib)-1] != ids[0] || lib[0] != ids[3] {
+		t.Fatalf("library = %v, want [%d %d] (the untaken Bear moved to the bottom)", lib, ids[3], ids[0])
 	}
 }
 
