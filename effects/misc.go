@@ -476,21 +476,29 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				break
 			}
 			ceUntilEOT := effectUntilEOT(h, c.Source, dur)
-			if mode == "CantPutCounter" && sa.Params["Duration"] == "" {
-				// cantputcounter1-r2: a CantPutCounter lock with NO Duration$
-				// is the THIS-TURN lock the corpus's one Effect-delivered
-				// carrier writes (Melira, the Living Cure's "you can't get
-				// additional poison counters this turn", whose Description$
-				// states the lifetime the absent Duration$ leaves unstated).
-				// effEffect's plain absent-Duration default (Permanent, set at
-				// the top of this function) would never expire the lock and
-				// swallow every later turn's fresh poison outright -- the
-				// non-permissive direction for a restriction. An EXPLICIT
-				// Duration$ keeps the ordinary reading (Permanent stays
-				// permanent, this-turn spellings were already UntilEOT through
-				// effectUntilEOT). The DamageDone prevent precedent (this
-				// function) made the same absent-Duration read for the same
-				// reason.
+			if absentDurationMeansThisTurn(mode) && sa.Params["Duration"] == "" {
+				// A restriction body whose oracle lifetime is THIS TURN but whose
+				// script writes no inline Duration$ gets UntilEOT, not effEffect's
+				// plain absent-Duration default (Permanent, set at the top of
+				// this function). For a restriction the Permanent reading is the
+				// non-permissive direction: the lock/permission would outlive the
+				// turn the card text names and apply to every later turn too.
+				//
+				// cantputcounter1-r2 (Melira, the Living Cure's "you can't get
+				// additional poison counters this turn") fixed this for
+				// CantPutCounter one mode at a time; canattackdefender1-r2 hit
+				// the identical shape on CanAttackDefender (Krotiq Nestguard's
+				// "{2}{G}: This creature can attack this turn ...", Wakestone
+				// Gargoyle's team grant), so the class now has ONE home --
+				// absentDurationMeansThisTurn below names every mode whose
+				// absent Duration$ is this-turn, and the next sibling joins that
+				// list instead of growing another copy of this branch.
+				//
+				// An EXPLICIT Duration$ keeps the ordinary reading (Permanent
+				// stays permanent, this-turn spellings were already UntilEOT
+				// through effectUntilEOT). The DamageDone prevent precedent
+				// (this function) made the same absent-Duration read for the
+				// same reason.
 				ceUntilEOT = true
 			}
 			ce := state.ContinuousEffect{
@@ -1006,6 +1014,54 @@ func CanAttackDefenderParamsReadable(params map[string]string) bool {
 		}
 	}
 	return true
+}
+
+// absentDurationMeansThisTurn is the ONE home for the restriction modes whose
+// Effect-granted bodies write no inline Duration$ yet whose card text names a
+// THIS-TURN lifetime. effEffect defaults an absent Duration$ to Permanent (a
+// one-shot that survives its source, CR 611.2a), which is correct for a body
+// that genuinely says "for the rest of the game" but wrong for these: a
+// this-turn restriction read as Permanent outlives the turn the card names and
+// applies to every later turn too, the non-permissive direction for a
+// restriction.
+//
+// The membership test is structural, not per-card: add a mode here only when
+// its absent Duration$ is this-turn by the corpus's own oracle text, and the
+// registration branch below picks it up without a new copy of the expiry
+// logic. An EXPLICIT Duration$ always takes precedence over this list.
+//
+//   - CantPutCounter: Melira, the Living Cure's Effect-delivered lock is "you
+//     can't get additional poison counters this turn"; with no Duration$ the
+//     registration must be UntilEOT (cantputcounter1-r2).
+//   - CantRegenerate: every one of the 19 corpus Effect-delivered
+//     CantRegenerate bodies says "this turn" (16 "Creature can't be
+//     regenerated this turn", plus the damage-scoped three). The
+//     permanent-source carriers are the activated grants -- Knight of the
+//     Holy Nimbus, Orcish Healer, Hurr Jackal, Clergy of the Holy Nimbus,
+//     Furnace Brood -- whose absent Duration$ left a this-turn no-regen lock
+//     live for the rest of the game while the source stayed out.
+//   - CanAttackDefender: the Effect-granted permission family is uniformly
+//     "can attack this turn as though it didn't have defender" -- measured,
+//     ALL 22 corpus StaticAbilities$ CanAttack bodies write no inline
+//     Duration$ (18 Card.EffectSource self-grants, Assault Formation's
+//     Creature.IsRemembered, Wakestone Gargoyle's Creature.YouCtrl+withDefender
+//     team grant). Krotiq Nestguard's activated grant and Wakestone Gargoyle's
+//     both broke before canattackdefender1-r2 (canattackdefender1-r2).
+//
+// DELIBERATELY ABSENT: CantAttack (42 bodies -- "Creatures can't attack you"
+// and the "during your next turn" shapes are not this-turn), CantTarget (5 --
+// "Players and Permanents can't be the targets" is a permanent lock),
+// CantPreventDamage (14 -- "Damage can't be prevented" is a permanent lock),
+// and CantSacrifice (5 -- "This permanent can't be sacrificed" is a static).
+// A mode joins this list only when EVERY corpus Effect body of it is this-turn;
+// adding one on a mixed population would expire a genuinely permanent
+// restriction a turn early, the wrong-wide direction.
+func absentDurationMeansThisTurn(mode string) bool {
+	switch mode {
+	case "CantPutCounter", "CantRegenerate", "CanAttackDefender":
+		return true
+	}
+	return false
 }
 
 // IsNextTurnDuration reports whether a Duration$ value names the

@@ -171,6 +171,144 @@ func TestKrotiqNestguardEffectSourceGrant(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+// TestKrotiqNestguardGrantExpiresAtEndOfTurn is the canattackdefender1-r2
+// expiry regression. Krotiq Nestguard's grant body writes no inline
+// Duration$, and its card text names THIS TURN only ("{2}{G}: This creature
+// can attack this turn as though it didn't have defender"). Before the fix
+// effEffect's absent-Duration default ("Permanent") registered the grant as a
+// one-shot that survives its source (CR 611.2a), so the permission stayed live
+// for the rest of the game -- the wall was still lifted on later turns while
+// the Nestguard stayed on the battlefield. The class helper
+// effects.absentDurationMeansThisTurn now routes this mode's absent Duration$
+// to UntilEOT.
+//
+// The test drives the source through a real activation and then ends the turn
+// with the source STILL ON THE BATTLEFIELD, which is the condition that
+// separates an UntilEOT registration from a source-leaves one: if the grant
+// only disappeared because the source left, this test could not observe the
+// defect.
+func TestKrotiqNestguardGrantExpiresAtEndOfTurn(t *testing.T) {
+	nestguard, ok := testutil.CorpusRegistry(t).Lookup("Krotiq Nestguard")
+	if !ok {
+		t.Fatal("corpus fixture: Krotiq Nestguard missing")
+	}
+	e, cfg := restrictionGame(t, 7210, [][]*cards.Card{nil, nil},
+		[][]*cards.Card{{nestguard}, nil})
+	ngID := bearOnBoard(t, e, 0, nestguard)
+
+	// Preconditions the assertions depend on: the wall is a battlefield
+	// creature of the active player carrying Defender, and it is walled
+	// before the grant.
+	if e.G.Obj(ngID).Zone != state.ZBattlefield || !e.IsCreature(ngID) {
+		t.Fatal("precondition: the Nestguard is not a battlefield creature")
+	}
+	if !e.HasKeyword(ngID, "Defender") {
+		t.Fatal("precondition: the Nestguard carries no Defender")
+	}
+	if e.canAttackPair(ngID, 1) {
+		t.Fatal("precondition: the Nestguard is attackable before its grant")
+	}
+
+	addMana(t, e, 0, "GGG") // the {2}{G} grant, three units
+	opt, ok := findAbilityOption(e, ngID, 0)
+	if !ok {
+		t.Fatalf("the {2}{G} grant ability is not offered: %+v", e.Pending())
+	}
+	submitChoices(t, e, opt.Index)
+	passUntilStackEmpty(t, e, 60)
+
+	// The grant is live this turn (the route the sibling test pins) AND the
+	// source is still on the battlefield -- the two facts that make the
+	// expiry assertion non-vacuous.
+	if e.G.Obj(ngID).Zone != state.ZBattlefield {
+		t.Fatal("precondition: the grant removed the Nestguard")
+	}
+	if !e.canAttackPair(ngID, 1) {
+		t.Fatal("precondition: the grant did not lift the wall this turn")
+	}
+
+	// End the turn. The source has NOT left the battlefield, so only a
+	// this-turn (UntilEOT) registration is reclaimed here.
+	e.EndOfTurnCleanup()
+	if e.G.Obj(ngID).Zone != state.ZBattlefield {
+		t.Fatal("precondition: the Nestguard left the battlefield at cleanup")
+	}
+	if e.canAttackPair(ngID, 1) || e.canAttack(ngID) {
+		t.Fatal("the Nestguard's grant survived end of turn -- an absent-Duration " +
+			"CanAttackDefender Effect registration was left Permanent")
+	}
+
+	// A later turn must stay walled too: the same observation one turn on.
+	e.emit(events.Event{Kind: events.TurnChange, Player: 0, Amount: 2})
+	if e.canAttackPair(ngID, 1) || e.canAttack(ngID) {
+		t.Fatal("the Nestguard's grant is still live on a later turn")
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestFurnaceBroodNoRegenExpiresAtEndOfTurn pins the canattackdefender1-r2
+// class fix on the sibling CantRegenerate mode. Furnace Brood's
+// `{R}: Target creature can't be regenerated this turn` is an AB$ Effect whose
+// body writes no inline Duration$ and whose source is a PERMANENT, so before
+// the fix its CantRegenerate registration defaulted to Permanent (CR 611.2a)
+// and the target stayed un-regenerable for the rest of the game while Furnace
+// Brood remained on the battlefield. The shared class helper
+// effects.absentDurationMeansThisTurn routes CantRegenerate's absent Duration$
+// to UntilEOT (measured: all 19 corpus Effect CantRegenerate bodies say "this
+// turn").
+func TestFurnaceBroodNoRegenExpiresAtEndOfTurn(t *testing.T) {
+	brood, ok := testutil.CorpusRegistry(t).Lookup("Furnace Brood")
+	if !ok {
+		t.Fatal("corpus fixture: Furnace Brood missing")
+	}
+	victim := card(t, "Name:Test Victim\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	e, cfg := restrictionGame(t, 7211, [][]*cards.Card{nil, nil},
+		[][]*cards.Card{{brood}, {victim}})
+	broodID := bearOnBoard(t, e, 0, brood)
+	victimID := bearOnBoard(t, e, 1, victim)
+
+	// Preconditions: both are battlefield creatures and the victim is
+	// regenerable before the lock (the assertion below depends on the lock
+	// existing -- a victim the engine already refuses to regenerate would
+	// make the post-cleanup check vacuous).
+	if e.G.Obj(broodID).Zone != state.ZBattlefield || e.G.Obj(victimID).Zone != state.ZBattlefield {
+		t.Fatal("precondition: a source or victim is not on the battlefield")
+	}
+	if e.RegenerationDisallowed(victimID) {
+		t.Fatal("precondition: the victim is already un-regenerable")
+	}
+
+	addMana(t, e, 0, "R")
+	opt, ok := findAbilityOption(e, broodID, 0)
+	if !ok {
+		t.Fatalf("Furnace Brood's {R} lock ability is not offered: %+v", e.Pending())
+	}
+	submitChoices(t, e, opt.Index)
+	submitTarget(t, e, victimID)
+	passUntilStackEmpty(t, e, 60)
+
+	// The lock is live this turn, and the source has NOT left the
+	// battlefield.
+	if e.G.Obj(broodID).Zone != state.ZBattlefield {
+		t.Fatal("precondition: the source left the battlefield")
+	}
+	if !e.RegenerationDisallowed(victimID) {
+		t.Fatal("precondition: the lock did not apply this turn")
+	}
+
+	// End the turn with the source still out: only a this-turn registration
+	// is reclaimed here.
+	e.EndOfTurnCleanup()
+	if e.G.Obj(broodID).Zone != state.ZBattlefield {
+		t.Fatal("precondition: the source left the battlefield at cleanup")
+	}
+	if e.RegenerationDisallowed(victimID) {
+		t.Fatal("the no-regen lock survived end of turn -- an absent-Duration " +
+			"CantRegenerate Effect registration was left Permanent")
+	}
+	replayCheck(t, e, cfg)
+}
+
 // TestAssaultFormationRememberedGrant pins the remembered-target grant on the
 // real corpus Assault Formation: its `AB$ Effect | RememberObjects$ Targeted`
 // delivers `Mode$ CanAttackDefender | ValidCard$ Creature.IsRemembered`, so
