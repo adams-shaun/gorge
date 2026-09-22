@@ -239,6 +239,79 @@ func TestAttachedReconfigureIsNotACreature(t *testing.T) {
 	}
 }
 
+// TestReconfigureUnattachedSelfNeverInItsOwnTargetPool pins the r2 review
+// MAJOR: CR 702.150a's "another target creature you control" must be real
+// AT THE ASK, not only at resolution. The unattached reconfigurer IS a
+// creature matching the attach half's ValidTgts$ Creature.YouCtrl, so with
+// excludeSelf == 0 (the Mother-of-Runes ability convention) it offered
+// itself in its own attach pool on every board, and answering it paid the
+// {2} and attached nothing -- effAttach's self-refusal came only after the
+// cost. rules/cast.go's targetAsk now excludes the source for an attach SA
+// (the one home effAttach already used at resolution), so the pool never
+// offers it and the lone-creature board aborts BEFORE payment instead of
+// consuming the {2} for a refusal.
+func TestReconfigureUnattachedSelfNeverInItsOwnTargetPool(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+
+	// General board (reconfigurer + two other creatures): the pool holds the
+	// other creatures and never the unattached reconfigurer itself.
+	e, ripper, bear, cub := ripperBoard(t)
+	if e.G.Obj(ripper).AttachedTo != 0 {
+		t.Fatalf("precondition: ripper starts attached to %d", e.G.Obj(ripper).AttachedTo)
+	}
+	addMana(t, e, 0, "CC")
+	opt, ok := findAbilityOption(e, ripper, 0)
+	if !ok {
+		t.Fatal("Razorfield Ripper's {2} attach not offered")
+	}
+	submitChoices(t, e, opt.Index)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("want the attach half's target decision, got %+v", d)
+	}
+	sawBear, sawCub := false, false
+	for _, o := range d.Options {
+		if o.Obj == ripper {
+			t.Fatalf("the UNATTACHED reconfigurer is in its own attach target pool: %+v", d.Options)
+		}
+		if o.Obj == bear {
+			sawBear = true
+		}
+		if o.Obj == cub {
+			sawCub = true
+		}
+	}
+	if !sawBear || !sawCub {
+		t.Fatalf("precondition: the pool must hold the board's other creatures (bear %v cub %v): %+v", sawBear, sawCub, d.Options)
+	}
+	targetObject(t, e, bear)
+	passUntilStackEmpty(t, e, 20)
+	if e.G.Obj(ripper).AttachedTo != bear {
+		t.Fatalf("attach landed on %d, want the bear %d", e.G.Obj(ripper).AttachedTo, bear)
+	}
+
+	// The lone-creature board (the review's worst case): with the source
+	// excluded from its own pool the attach half has no legal target at all,
+	// so the activation aborts before payment (CR 733.1) -- the {2} stays in
+	// the pool and nothing attaches. Before the fix the self option filled
+	// the pool, the {2} was paid and the attach was refused.
+	e2, _ := linkBoard(t, reg, []string{"Razorfield Ripper"}, nil)
+	ripper2 := findOnBoard(t, e2, 0, "Razorfield Ripper")
+	addMana(t, e2, 0, "CC")
+	opt2, ok := findAbilityOption(e2, ripper2, 0)
+	if !ok {
+		t.Fatal("lone board: the {2} attach not offered")
+	}
+	submitChoices(t, e2, opt2.Index)
+	passUntilStackEmpty(t, e2, 20)
+	if got := e2.G.Obj(ripper2).AttachedTo; got != 0 {
+		t.Fatalf("lone board: ripper attached to %d with no legal target, want unattached", got)
+	}
+	if got := e2.G.Players[0].Pool.Total(); got != 2 {
+		t.Fatalf("lone board: pool %d after the aborted attach, want the unspent {2}", got)
+	}
+}
+
 // TestReconfigureOnlyAsASorcery pins CR 702.150a's timing: with the game
 // driven past the main phase (beginning of combat) neither half is offered
 // -- the minted SAs carry SorcerySpeed$ True and the offer loop's sorcery

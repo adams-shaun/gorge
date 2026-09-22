@@ -1894,7 +1894,7 @@ func hasType(o *state.Object, t string) bool {
 	// ValidTgts$ Creature, a Count$Valid Creature census, the combat
 	// eligibility scans). Equipment and Artifact stay true -- they are the
 	// printed face's own types and the attached form keeps them.
-	if o.ReconfiguredAttached() {
+	if o.ReconfiguredAttached() && !(o.FaceDown && o.Zone == state.ZBattlefield) {
 		if strings.EqualFold(t, "Creature") {
 			return false
 		}
