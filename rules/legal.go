@@ -454,6 +454,25 @@ func (e *Engine) abilityPresentHolds(p state.PlayerID, id state.ObjID, ab *cards
 	return n > 0
 }
 
+// adaptGateOK evaluates AB$ PutCounter's Adapt$ activation gate (CR 702.35a:
+// "Activate only if this creature has no +1/+1 counters on it"). Adapt$ is
+// an ability PARAMETER, not a K: keyword line, so the ability offer loop has
+// to read it directly -- the same shape Boast$ takes (rules/boast_test.go's
+// header). Measured corpus: 24 `A:AB$ PutCounter ... Adapt$` carriers
+// (Pteramander, Incubation Druid, ... every value a literal 1-4) plus one
+// chained `DB$ PutCounter | Adapt$ 3` body (Jetfire), which is governed by
+// the effect's own if-condition at resolution (effects/counters.go), not by
+// this activation gate. Offer-time only, exactly like the IsPresent$ /
+// CheckSVar$/Boast$ gates it sits beside: no state can move between the
+// offer and the answer inside one priority window.
+func (e *Engine) adaptGateOK(id state.ObjID, ab *cards.SA) bool {
+	if strings.TrimSpace(ab.Params["Adapt"]) == "" {
+		return true
+	}
+	o := e.G.Obj(id)
+	return o != nil && o.Counter("P1P1") == 0
+}
+
 // sVarGateOK evaluates the ability's CheckSVar$/SVarCompare$ intervening-if
 // at OFFER time: Bloodsoaked Champion's Raid ("Activate only if you attacked
 // this turn", CheckSVar$ RaidTest = Count$AttackersDeclared) and Ojer
@@ -2145,6 +2164,12 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				if !e.abilityPresentHolds(p, id, ab) {
 					continue
 				}
+				// Adapt$ (CR 702.35a): "Activate only if this creature has no
+				// +1/+1 counters on it" -- the offer-time twin of the effect's own
+				// if-condition effects/counters.go enforces at resolution.
+				if !e.adaptGateOK(id, ab) {
+					continue
+				}
 				out = append(out, decision.Option{Index: len(out), Kind: "ability",
 					Label: abFace.Name + ": " + ab.Params["SpellDescription"], Obj: id, Ability: i,
 					Grant: e.abilityGrant(id, ab)})
@@ -2207,6 +2232,10 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			// loop applies, so a granted ability and its printed twin share one
 			// eligibility set.
 			if !e.abilityPresentHolds(p, id, ab) {
+				continue
+			}
+			// Adapt$ (CR 702.35a): the granted twin of the printed loop's gate.
+			if !e.adaptGateOK(id, ab) {
 				continue
 			}
 			// kw:Boast (CR 702.142): the granted twin of the printed loop's
@@ -2305,6 +2334,10 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			// loop applies, so a max-speed grant and its printed twin share one
 			// eligibility set.
 			if !e.abilityPresentHolds(p, id, ab) {
+				continue
+			}
+			// Adapt$ (CR 702.35a): the max-speed grant's twin of the same gate.
+			if !e.adaptGateOK(id, ab) {
 				continue
 			}
 			// kw:Boast (CR 702.142): the max-speed grant is a third offer site

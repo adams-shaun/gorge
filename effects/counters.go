@@ -119,10 +119,22 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 	// top, so a nested PutCounter in the same chain poses its own ask.
 	optAns := c.PutOpt
 	c.PutOpt = ""
-	n := Num(h, c, sa, "CounterNum", 1)
+	// Adapt$ (CR 702.35a; task param-adapt): an AB/DB$ PutCounter carrying
+	// Adapt$ N reads N as the count -- Pteramander's `Adapt$ 4`, Jetfire's
+	// chained `SVar:DBAdapt:DB$ PutCounter | Adapt$ 3`. The corpus writes only
+	// literal values (measured: Adapt$ 1-4 over the 25 raw lines) and no
+	// carrier pairs it with CounterNum$, so the read is a fallback, never a
+	// competition. An unresolvable body degrades to 0, Num's convention.
+	n := int32(1)
+	if strings.TrimSpace(sa.Params["CounterNum"]) != "" {
+		n = Num(h, c, sa, "CounterNum", 1)
+	} else if strings.TrimSpace(sa.Params["Adapt"]) != "" {
+		n = Num(h, c, sa, "Adapt", 1)
+	}
 	if n < 0 {
 		n = 0
 	}
+	adapt := strings.TrimSpace(sa.Params["Adapt"]) != ""
 	kind := sa.Params["CounterType"]
 	if kind == "" {
 		kind = "P1P1"
@@ -253,6 +265,18 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 		}
 		o := h.Game().Obj(t.Obj)
 		if o == nil || (o.Zone != state.ZBattlefield && !etb) {
+			continue
+		}
+		// Adapt$'s put is itself conditional (CR 702.35a: "If this creature has
+		// no +1/+1 counters on it, put N +1/+1 counters on it"). For an AB$
+		// activation the offer-time gate (rules/legal.go's adaptGateOK) already
+		// withheld the ability while counters were present, but counters can
+		// arrive in response between activation and resolution -- the effect's
+		// own if-condition, not the activation restriction, is what governs the
+		// put. It is also the only gate a chained DB$ body (Jetfire's
+		// "then adapt 3") ever gets, since an activation restriction does not
+		// govern a resolution-time body.
+		if adapt && o.Counter("P1P1") > 0 {
 			continue
 		}
 		h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: kind, Amount: n})
