@@ -5017,10 +5017,9 @@ func (e *Engine) validateSearch(d *decision.Decision, in decision.Intent) error 
 
 // validateSameControllerTargets is the Submit-time gate for a cast-flow
 // target announcement whose SA carries TargetsWithSameController$ True
-// (Lodestone Bauble): every chosen object must share one owner — in a
-// graveyard, the owner the card there has. Any other KTarget decision, a
-// single-object answer, and an out-of-range choice (Validate's own error)
-// pass through untouched.
+// (Lodestone Bauble): every chosen object must share one controller. Any
+// other KTarget decision, a single-object answer, and an out-of-range choice
+// (Validate's own error) pass through untouched.
 func (e *Engine) validateSameControllerTargets(d *decision.Decision, in decision.Intent) error {
 	pc := e.cast
 	if pc == nil || !pc.sameCtrlTargets || d.Kind != decision.KTarget || len(in.Choices) <= 1 {
@@ -5041,10 +5040,10 @@ func (e *Engine) validateSameControllerTargets(d *decision.Decision, in decision
 			return nil // the resolution-time recheck owns a vanished object
 		}
 		if !haveOwner {
-			owner, haveOwner = obj.Owner, true
+			owner, haveOwner = obj.Controller, true
 			continue
 		}
-		if obj.Owner != owner {
+		if obj.Controller != owner {
 			return fmt.Errorf("chosen targets do not share one controller")
 		}
 	}
@@ -5931,7 +5930,8 @@ func (e *Engine) targetAsk() bool {
 	// real selectable capacity: an unaffordable or over-cap candidate cannot
 	// contribute a controller to it.
 	min, max, exclusive, distinct := e.oneEachTargetBounds(sa, candidates, min, max)
-	if min > 0 && (len(candidates) < min || (exclusive && min > distinct)) {
+	min, max, sameCapacity, sameController := e.sameControllerTargetBounds(sa, candidates, min, max)
+	if min > 0 && (len(candidates) < min || (exclusive && min > distinct) || (sameController && min > sameCapacity)) {
 		// CR 601.2c: a proposal with fewer legal targets than its mandatory
 		// minimum -- or one whose per-controller constraint admits fewer
 		// distinct controllers than its mandatory minimum -- cannot be
