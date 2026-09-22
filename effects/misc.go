@@ -392,30 +392,17 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// Effect's captured context is still available; unlike the printed
 			// card-filter spelling this must not scan a zone or lose the foreign
 			// object's identity.
-			if spec := strings.TrimSpace(params["GainsAbilitiesOfDefined"]); spec != "" {
-				definedCtx := *c
-				definedCtx.Remembered = make([]state.Target, 0, len(remembered))
-				for _, id := range remembered {
-					definedCtx.Remembered = append(definedCtx.Remembered, state.Target{Obj: id})
-				}
-				faces := GainedFacesOfDefined(h, &definedCtx, spec)
-				if len(faces) > 0 {
-					affected := strings.TrimSpace(params["Affected"])
-					if affected == "" && strings.TrimSpace(params["AffectedDefined"]) != "" {
-						affected = "Card.Self"
-					}
-					ce := state.ContinuousEffect{
-						Source: c.Source, Controller: c.Controller, Layer: state.LAbilities,
-						Affects: affected, AffectedZone: strings.TrimSpace(params["AffectedZone"]),
-						GainedFaces: faces, GainsValidAbilities: strings.TrimSpace(params["GainsValidAbilities"]),
-						GainsLimitPerTurn: effectGainsLimitPerTurn(params), Name: effectName,
-						UntilEOT: effectUntilEOT(h, c.Source, rawDur), Duration: dur,
-						Remembered: remembered, ForgetOnMoved: forgetOn, ExileOnMoved: exileOn,
-						ForgetCounter: forgetCounter, ImprintOnHost: imprintOnHost,
-					}
-					h.AddContinuous(ce)
-					registered = true
-				}
+			if ce, ok := effectGainsAbilitiesOfDefined(h, c, params, remembered); ok {
+				ce.Name = effectName
+				ce.UntilEOT = effectUntilEOT(h, c.Source, rawDur)
+				ce.Duration = dur
+				ce.Remembered = remembered
+				ce.ForgetOnMoved = forgetOn
+				ce.ExileOnMoved = exileOn
+				ce.ForgetCounter = forgetCounter
+				ce.ImprintOnHost = imprintOnHost
+				h.AddContinuous(ce)
+				registered = true
 			} else if grant, ok := mayPlayGrantFromLine(params); ok {
 				// A may-play-from-zone grant delivered by an Effect SA (Atsushi's
 				// "you may play those cards" STPlay static): registered like the
@@ -943,7 +930,12 @@ func parseReplacementLine(svars map[string]string, name string) (string, map[str
 	return params["Event"], params
 }
 
-func effectGainsLimitPerTurn(params map[string]string) int {
+// staticLineParams is a parsed SVar static body, deliberately distinct from
+// cards.SA.Params: it is metadata carried by a DB$ Effect's StaticAbilities$
+// reference, not a card primitive's parameter map.
+type staticLineParams map[string]string
+
+func effectGainsLimitPerTurn(params staticLineParams) int {
 	n, err := strconv.Atoi(strings.TrimSpace(params["GainsAbilitiesLimitPerTurn"]))
 	if err != nil || n < 0 {
 		return 0
@@ -951,12 +943,42 @@ func effectGainsLimitPerTurn(params map[string]string) int {
 	return n
 }
 
-func parseStaticLine(svars map[string]string, name string) (string, map[string]string) {
+// effectGainsAbilitiesOfDefined converts an Effect-delivered Continuous
+// static's Defined set into the existing activated-ability grant payload.
+// Remembered is copied into the resolving context because an Effect's capture
+// is persisted on its registration as object ids.
+func effectGainsAbilitiesOfDefined(h Host, c *Ctx, params staticLineParams, remembered []state.ObjID) (state.ContinuousEffect, bool) {
+	spec := strings.TrimSpace(params["GainsAbilitiesOfDefined"])
+	if spec == "" {
+		return state.ContinuousEffect{}, false
+	}
+	definedCtx := *c
+	definedCtx.Remembered = make([]state.Target, 0, len(remembered))
+	for _, id := range remembered {
+		definedCtx.Remembered = append(definedCtx.Remembered, state.Target{Obj: id})
+	}
+	faces := GainedFacesOfDefined(h, &definedCtx, spec)
+	if len(faces) == 0 {
+		return state.ContinuousEffect{}, false
+	}
+	affected := strings.TrimSpace(params["Affected"])
+	if affected == "" && strings.TrimSpace(params["AffectedDefined"]) != "" {
+		affected = "Card.Self"
+	}
+	return state.ContinuousEffect{
+		Source: c.Source, Controller: c.Controller, Layer: state.LAbilities,
+		Affects: affected, AffectedZone: strings.TrimSpace(params["AffectedZone"]),
+		GainedFaces: faces, GainsValidAbilities: strings.TrimSpace(params["GainsValidAbilities"]),
+		GainsLimitPerTurn: effectGainsLimitPerTurn(params),
+	}, true
+}
+
+func parseStaticLine(svars map[string]string, name string) (string, staticLineParams) {
 	body := strings.TrimSpace(svars[name])
 	if body == "" {
 		return "", nil
 	}
-	params := make(map[string]string)
+	params := make(staticLineParams)
 	mode := ""
 	for _, seg := range strings.Split(body, "|") {
 		seg = strings.TrimSpace(seg)
