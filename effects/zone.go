@@ -617,12 +617,6 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		if to == state.ZBattlefield {
 			applyStaticEffect(h, c, sa, to, []state.ObjID{o.ID})
 		}
-		// LeaveBattlefield$ Exile on the inlined object path (Isareth the
-		// Awakener, From the Catacombs): the same promise the shared settle
-		// path registers, on the object this move just landed.
-		if to == state.ZBattlefield {
-			registerLeaveExile(h, c, o.ID, sa.Params["LeaveBattlefield"], "", true)
-		}
 		if strings.EqualFold(sa.Params["Imprint"], "True") && to == state.ZExile {
 			if moved := h.Game().Obj(o.ID); moved != nil && moved.Zone == state.ZExile {
 				imprinted = append(imprinted, o.ID)
@@ -924,11 +918,6 @@ func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, 
 		// once its move and entry riders are settled. A no-op on every SA
 		// without the parameter.
 		applyStaticEffect(h, c, sa, to, []state.ObjID{id})
-		// LeaveBattlefield$ Exile (Isareth the Awakener, From the Catacombs):
-		// the promise rides the entered object for as long as it stays on the
-		// battlefield (effects/leavebattlefield.go) -- no Duration$ on either
-		// carrier, and the move sweep ends it on the departure itself.
-		registerLeaveExile(h, c, id, sa.Params["LeaveBattlefield"], "", true)
 	}
 }
 

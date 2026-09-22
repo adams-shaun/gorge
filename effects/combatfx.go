@@ -335,8 +335,6 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 			eventRemember(h, c, t.Obj)
 		}
 		registerPumpEffects(h, c, o.ID, att, def, sa, zone, chosenKW)
-		perm, _ := durationTiming(sa.Params["Duration"])
-		registerLeaveExile(h, c, o.ID, sa.Params["LeaveBattlefield"], sa.Params["Duration"], perm)
 		if atEOTInclude(h, c, sa, o.ID) {
 			ateotIDs = append(ateotIDs, o.ID)
 		}
@@ -452,19 +450,17 @@ func durationTiming(dur string) (permanent bool, untilEOT bool) {
 // caller's PumpZone$ value ("" for the default battlefield-only scope) and
 // chosenKW the answered KWChoice$ candidates — extra keyword grants riding
 // the same layer-6 registration.
+//
+// LeaveBattlefield$ is deliberately NOT read here: the rider's brief and its
+// controller authorization cover the DB$ Animate site only (Whip of Erebos,
+// Kheru Lich Lord, Gruesome Encore, Storm Herald). The two DB$ Pump carriers
+// (Moira and Teshar, Dreams of the Dead) and the two ChangeZone carriers
+// (Isareth the Awakener, From the Catacombs) are split out to a follow-up
+// ticket rather than implemented without a ruling.
 func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, sa *cards.SA, zone string, chosenKW []string) {
 	kws := cards.SplitKeywordList(sa.Params["KW"])
 	kws = append(kws, chosenKW...)
 	permanent, untilEOT := durationTiming(sa.Params["Duration"])
-	// A Pump body that carries `LeaveBattlefield$ Exile` (Moira and Teshar's,
-	// Dreams of the Dead's DB$ Pump) promises the pumped object is exiled if
-	// it would leave the battlefield, so every half of THIS pump shares the
-	// promise's move-driven lifetime: without it a Duration$ Permanent grant
-	// outlives the object's departure and re-arms on a later re-entry
-	// (CR 400.7). Read here, from the SA, so no caller can register a pump
-	// half that misses it -- effPump and effPumpAll both come through this
-	// one per-object path.
-	remembered, exileOn := leaveExileLifetime(id, sa.Params["LeaveBattlefield"])
 	if att != 0 || def != 0 {
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
@@ -472,7 +468,6 @@ func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, sa *car
 			AddPower: att, AddToughness: def,
 			Duration: sa.Params["Duration"], Permanent: permanent, UntilEOT: untilEOT,
 			AffectedZone: zone,
-			Remembered:   remembered, ExileOnMoved: exileOn,
 		})
 	}
 	if len(kws) > 0 {
@@ -481,7 +476,6 @@ func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, sa *car
 			Layer: state.LAbilities, AddKeywords: kws,
 			Duration: sa.Params["Duration"], Permanent: permanent, UntilEOT: untilEOT,
 			AffectedZone: zone,
-			Remembered:   remembered, ExileOnMoved: exileOn,
 		})
 	}
 }

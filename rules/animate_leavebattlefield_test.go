@@ -1,11 +1,13 @@
 // The LeaveBattlefield$ Exile promise and the sVars$ grant on a resolving
-// Animate/Pump/ChangeZone body (effects/leavebattlefield.go), pinned end to
-// end on real corpus cards: Whip of Erebos is the brief's flagship (Animate
-// site, the DB$ Animate | Defined$ Remembered | LeaveBattlefield$ Exile |
-// sVars$ WhipMustAttack | Duration$ Permanent | AtEOT$ Exile chain), Dreams
-// of the Dead is the Pump site, From the Catacombs the ChangeZone site. The
-// other participants are freely-authored or real corpus cards moved through
-// the ordinary helpers; no corpus .txt is inlined.
+// Animate body (effects/leavebattlefield.go), pinned end to end on the real
+// corpus card Whip of Erebos (the DB$ Animate | Defined$ Remembered |
+// LeaveBattlefield$ Exile | sVars$ WhipMustAttack | Duration$ Permanent |
+// AtEOT$ Exile chain). The other participants are freely-authored or real
+// corpus cards moved through the ordinary helpers; no corpus .txt is inlined.
+//
+// The Pump and ChangeZone sites are NOT implemented here: the brief
+// authorizes the Animate/Whip shape only, and the four non-Animate corpus
+// carriers are split out to a follow-up ticket.
 package rules
 
 import (
@@ -145,162 +147,6 @@ func TestWhipOfErebosAtEOTExilesTheAnimatedCreature(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestDreamsOfTheDeadLeaveBattlefieldExilesOnBounce: the Pump site — the
-// rider rides the sub's `DB$ Pump | ... | LeaveBattlefield$ Exile | Defined$
-// Targeted | Duration$ Permanent`, so the returned creature is exiled when
-// it would leave the battlefield.
-func TestDreamsOfTheDeadLeaveBattlefieldExilesOnBounce(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
-	dreams := lookup(t, reg, "Dreams of the Dead")
-	specter := lookup(t, reg, "Hypnotic Specter")
-	e, cfg := corpusEngineCfg(t, reg, []*cards.Card{dreams, specter}, []*cards.Card{})
-	did := moveByName(t, e, 0, "Dreams of the Dead", state.ZBattlefield)
-	sid := moveByName(t, e, 0, "Hypnotic Specter", state.ZGraveyard)
-
-	addMana(t, e, 0, "UU")
-	submitChoices(t, e, abilityOption(t, e, did, 0).Index)
-	d := e.Pending()
-	if d == nil || d.Kind != decision.KTarget {
-		t.Fatalf("no target decision after activating Dreams of the Dead: %+v", d)
-	}
-	idx := -1
-	for _, o := range d.Options {
-		if o.Obj == sid {
-			idx = o.Index
-		}
-	}
-	if idx < 0 {
-		t.Fatalf("graveyard specter %d not offered: %+v", sid, d.Options)
-	}
-	submitChoices(t, e, idx)
-	settleActivation(t, e)
-
-	if o := e.G.Obj(sid); o == nil || o.Zone != state.ZBattlefield {
-		t.Fatalf("returned specter zone = %+v, want battlefield (precondition)", o)
-	}
-	if !e.HasKeyword(sid, "Cumulative upkeep") {
-		t.Fatal("returned specter did not gain Cumulative upkeep from the chained DB$ Pump")
-	}
-
-	e.emit(events.Event{Kind: events.MoveZone, Obj: sid,
-		From: state.ZBattlefield, To: state.ZHand})
-	if o := e.G.Obj(sid); o == nil || o.Zone != state.ZExile {
-		t.Fatalf("the pumped specter's bounce ended in %v, want exile", o)
-	}
-	replayCheck(t, e, cfg)
-}
-
-// TestFromTheCatacombsLeaveBattlefieldExilesOnBounce: the ChangeZone site —
-// the rider rides the casting spell's own `SP$ ChangeZone | ...
-// LeaveBattlefield$ Exile`, so the creature it returns is exiled when it
-// would leave the battlefield.
-func TestFromTheCatacombsLeaveBattlefieldExilesOnBounce(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
-	catacombs := lookup(t, reg, "From the Catacombs")
-	specter := lookup(t, reg, "Hypnotic Specter")
-	e, cfg := corpusEngineCfg(t, reg, []*cards.Card{catacombs, specter}, []*cards.Card{})
-	sid := moveByName(t, e, 0, "Hypnotic Specter", state.ZGraveyard)
-	moveByName(t, e, 0, "From the Catacombs", state.ZHand)
-
-	addMana(t, e, 0, "BBBBB")
-	cast := castByName(t, e, 0, "From the Catacombs")
-	if cast == nil {
-		t.Fatal("From the Catacombs cast option not offered")
-	}
-	submitChoices(t, e, cast.Index)
-	d := e.Pending()
-	if d == nil || d.Kind != decision.KTarget {
-		t.Fatalf("no target decision after casting From the Catacombs: %+v", d)
-	}
-	idx := -1
-	for _, o := range d.Options {
-		if o.Obj == sid {
-			idx = o.Index
-		}
-	}
-	if idx < 0 {
-		t.Fatalf("graveyard specter %d not offered: %+v", sid, d.Options)
-	}
-	submitChoices(t, e, idx)
-	resolveCast(t, e)
-
-	if o := e.G.Obj(sid); o == nil || o.Zone != state.ZBattlefield {
-		t.Fatalf("returned specter zone = %+v, want battlefield (precondition)", o)
-	}
-	if o := e.G.Obj(sid); o.Controller != 0 {
-		t.Fatalf("returned specter controller = %d, want seat 0 (GainControl$ True)", o.Controller)
-	}
-
-	e.emit(events.Event{Kind: events.MoveZone, Obj: sid,
-		From: state.ZBattlefield, To: state.ZHand})
-	if o := e.G.Obj(sid); o == nil || o.Zone != state.ZExile {
-		t.Fatalf("the returned specter's bounce ended in %v, want exile", o)
-	}
-	replayCheck(t, e, cfg)
-}
-
-// TestDreamsOfTheDeadPumpGrantDoesNotSurviveReentry is the CR 400.7
-// regression the prior round missed: a Duration$ Permanent Pump grant that
-// rides a LeaveBattlefield$ Exile promise must end when the pumped object
-// leaves the battlefield, or it re-arms on a later re-entry. Drives the full
-// sequence -- reanimate (grant), bounce (rewritten to exile), then return
-// the card from exile to the battlefield -- and asserts the grant is gone.
-func TestDreamsOfTheDeadPumpGrantDoesNotSurviveReentry(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
-	dreams := lookup(t, reg, "Dreams of the Dead")
-	specter := lookup(t, reg, "Hypnotic Specter")
-	e, cfg := corpusEngineCfg(t, reg, []*cards.Card{dreams, specter}, []*cards.Card{})
-	did := moveByName(t, e, 0, "Dreams of the Dead", state.ZBattlefield)
-	sid := moveByName(t, e, 0, "Hypnotic Specter", state.ZGraveyard)
-
-	addMana(t, e, 0, "UU")
-	submitChoices(t, e, abilityOption(t, e, did, 0).Index)
-	d := e.Pending()
-	if d == nil || d.Kind != decision.KTarget {
-		t.Fatalf("no target decision after activating Dreams of the Dead: %+v", d)
-	}
-	idx := -1
-	for _, o := range d.Options {
-		if o.Obj == sid {
-			idx = o.Index
-		}
-	}
-	if idx < 0 {
-		t.Fatalf("graveyard specter %d not offered: %+v", sid, d.Options)
-	}
-	submitChoices(t, e, idx)
-	settleActivation(t, e)
-
-	// PRECONDITION: the specter is on the battlefield under seat 0 and the
-	// Pump grant is live. Without this the re-entry assertion could pass
-	// vacuously (a grant that never existed is trivially absent).
-	if o := e.G.Obj(sid); o == nil || o.Zone != state.ZBattlefield {
-		t.Fatalf("reanimated specter zone = %+v, want battlefield (precondition)", o)
-	}
-	if !e.HasKeyword(sid, "Cumulative upkeep") {
-		t.Fatal("reanimated specter never gained Cumulative upkeep (precondition)")
-	}
-
-	// Bounce: the leave-exile promise rewrites the departure to exile.
-	e.emit(events.Event{Kind: events.MoveZone, Obj: sid,
-		From: state.ZBattlefield, To: state.ZHand})
-	if o := e.G.Obj(sid); o == nil || o.Zone != state.ZExile {
-		t.Fatalf("the bounced specter ended in %+v, want exile (precondition)", o)
-	}
-
-	// Return the SAME card from exile to the battlefield. It is a new object
-	// (CR 400.7): the consumed Pump grant must not re-apply.
-	e.emit(events.Event{Kind: events.MoveZone, Obj: sid,
-		From: state.ZExile, To: state.ZBattlefield})
-	if o := e.G.Obj(sid); o == nil || o.Zone != state.ZBattlefield {
-		t.Fatalf("returned specter zone = %+v, want battlefield (precondition)", o)
-	}
-	if e.HasKeyword(sid, "Cumulative upkeep") {
-		t.Fatal("the consumed LeaveBattlefield$ Exile Pump grant re-applied to the returned card (CR 400.7)")
-	}
-	replayCheck(t, e, cfg)
-}
-
 // TestWhipOfErebosGrantsDoNotSurviveReentry is the same CR 400.7 regression
 // on the Animate/sVars path: after the animated creature is exiled by the
 // promise and returns to the battlefield, neither the animation's haste nor
@@ -332,6 +178,58 @@ func TestWhipOfErebosGrantsDoNotSurviveReentry(t *testing.T) {
 	}
 	if _, ok := e.GrantedSVar(cid, "MustAttack"); ok {
 		t.Fatal("the consumed sVars grant re-applied to the returned card (CR 400.7)")
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestLeaveBattlefieldPumpAndChangeZoneSitesAreNotImplemented pins the
+// deliberate SCOPE of this change: the brief and its controller authorization
+// cover the DB$ Animate site only (Whip of Erebos), so the two DB$ Pump
+// carriers and the two ChangeZone carriers must NOT rewrite a battlefield
+// departure. This is the boundary the prior round's review required: a
+// Dreams-of-the-Dead bounce reaches the hand as normal. If a future ticket
+// implements the Pump/ChangeZone sites, this test flips to the exile
+// expectation and is deleted with the follow-up.
+func TestLeaveBattlefieldPumpAndChangeZoneSitesAreNotImplemented(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	dreams := lookup(t, reg, "Dreams of the Dead")
+	specter := lookup(t, reg, "Hypnotic Specter")
+	e, cfg := corpusEngineCfg(t, reg, []*cards.Card{dreams, specter}, []*cards.Card{})
+	did := moveByName(t, e, 0, "Dreams of the Dead", state.ZBattlefield)
+	sid := moveByName(t, e, 0, "Hypnotic Specter", state.ZGraveyard)
+
+	addMana(t, e, 0, "UU")
+	submitChoices(t, e, abilityOption(t, e, did, 0).Index)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("no target decision after activating Dreams of the Dead: %+v", d)
+	}
+	idx := -1
+	for _, o := range d.Options {
+		if o.Obj == sid {
+			idx = o.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("graveyard specter %d not offered: %+v", sid, d.Options)
+	}
+	submitChoices(t, e, idx)
+	settleActivation(t, e)
+
+	// PRECONDITION: the specter really returned under seat 0 and really
+	// gained the Pump's Cumulative upkeep grant -- otherwise the departure
+	// assertion below would pass without any rider being involved at all.
+	if o := e.G.Obj(sid); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("returned specter zone = %+v, want battlefield (precondition)", o)
+	}
+	if !e.HasKeyword(sid, "Cumulative upkeep") {
+		t.Fatal("returned specter did not gain Cumulative upkeep from the DB$ Pump (precondition)")
+	}
+
+	e.emit(events.Event{Kind: events.MoveZone, Obj: sid,
+		From: state.ZBattlefield, To: state.ZHand})
+	if o := e.G.Obj(sid); o == nil || o.Zone != state.ZHand {
+		t.Fatalf("the pumped specter's bounce ended in %v, want hand (Pump site is out of scope)", o)
 	}
 	replayCheck(t, e, cfg)
 }

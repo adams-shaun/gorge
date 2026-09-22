@@ -1,10 +1,17 @@
 // The leave-the-battlefield rider family: Forge's `LeaveBattlefield$ <value>`
-// parameter on a resolving Animate/Pump/ChangeZone body ("If it would leave
-// the battlefield, exile it instead of putting it anywhere else" -- Whip of
-// Erebos, Kheru Lich Lord, Gruesome Encore, Storm Herald, Moira and Teshar,
-// Dreams of the Dead, Isareth the Awakener, From the Catacombs -- all eight
-// corpus carriers measured 2026-09-22), and the sibling `sVars$` grant on an
-// Animate body (the named SVars the animated object carries).
+// parameter on a resolving Animate body ("If it would leave the battlefield,
+// exile it instead of putting it anywhere else" -- Whip of Erebos, Kheru Lich
+// Lord, Gruesome Encore, Storm Herald, the four `DB$ Animate` corpus carriers
+// measured 2026-09-22), and the sibling `sVars$` grant on an Animate body
+// (the named SVars the animated object carries).
+//
+// The rider's scope is the Animate site only. The remaining four corpus
+// carriers -- two `DB$ Pump` (Moira and Teshar, Dreams of the Dead) and two
+// ChangeZone (Isareth the Awakener, From the Catacombs) -- are split out to a
+// follow-up ticket: the brief authorizes the Animate/Whip shape, and neither
+// the brief nor a controller ruling covers the class-wide expansion. The
+// `LeaveBattlefield$` value is therefore only ever read from an Animate SA
+// here.
 package effects
 
 import (
@@ -64,7 +71,8 @@ func registerLeaveExile(h Host, c *Ctx, id state.ObjID, value, dur string, perma
 // animated object carries for the animation's own lifetime): one
 // ContinuousEffect with AddSVars, read back through Engine.GrantedSVar /
 // grantedSVarsFor (rules/layers.go's AddSVar$ machinery, which pileSVars
-// layers under the printed table). A body whose own value is a nested
+// layers under the printed table). It is reached only from the Animate site
+// (registerAnimateEffects). A body whose own value is a nested
 // "SVar:<Name>:<Value>" declaration (Whip of Erebos's
 // SVar:WhipMustAttack:SVar:MustAttack:True) is granted under BOTH names --
 // the verbatim Forge grant and the expanded marker the nested form
