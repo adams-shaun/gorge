@@ -335,6 +335,8 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 			eventRemember(h, c, t.Obj)
 		}
 		registerPumpEffects(h, c, o.ID, att, def, sa, zone, chosenKW)
+		perm, _ := durationTiming(sa.Params["Duration"])
+		registerLeaveExile(h, c, o.ID, sa.Params["LeaveBattlefield"], sa.Params["Duration"], perm)
 		if atEOTInclude(h, c, sa, o.ID) {
 			ateotIDs = append(ateotIDs, o.ID)
 		}
@@ -564,6 +566,15 @@ type animateGrant struct {
 	// (missing SVar, or no Mode$ — an ability body, not a trigger); one loud
 	// note each, emitted by emitAnimateTriggersNotes.
 	triggersUnread []string
+	// leaveExile is the raw LeaveBattlefield$ value (Whip of Erebos's
+	// "If it would leave the battlefield, exile it instead of putting it
+	// anywhere else"): only "Exile" is implemented, per object in
+	// registerAnimateEffects (effects/leavebattlefield.go).
+	leaveExile string
+	// svars names the sVars$ SVars the animated object gains for the
+	// animation's own lifetime (WhipMustAttack, KheruMustAttack,
+	// MustBeBlocked, ...), resolved from THIS face's table at grant time.
+	svars []string
 }
 
 // parseAnimateGrant reads the shared Animate/AnimateAll parameter set. See
@@ -655,6 +666,12 @@ func parseAnimateGrant(h Host, c *Ctx, sa *cards.SA) animateGrant {
 		ag.triggers = append(ag.triggers, t)
 	}
 	ag.permanent = strings.EqualFold(strings.TrimSpace(sa.Params["Duration"]), "Permanent")
+	ag.leaveExile = strings.TrimSpace(sa.Params["LeaveBattlefield"])
+	for _, nm := range strings.Split(sa.Params["sVars"], ",") {
+		if nm = strings.TrimSpace(nm); nm != "" {
+			ag.svars = append(ag.svars, nm)
+		}
+	}
 	return ag
 }
 
@@ -697,10 +714,14 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 	// rides Remembered and ExileOnMoved$ names the battlefield, so
 	// effectMoveSweep ends EVERY half of the grant on the departure Move --
 	// a returned object is a plain permanent again, not a re-activated
-	// animation.
+	// animation. The LeaveBattlefield$ promise family (Whip of Erebos,
+	// Kheru Lich Lord, Gruesome Encore, Storm Herald) takes the same
+	// lifetime: its whole animation -- haste, everything -- is the rider
+	// sentence's own scope, so the animated object's departure ends every
+	// half of it too, and a re-entered card is a plain permanent again.
 	var exileOn string
 	var remembered []state.ObjID
-	if ag.endOnLeave {
+	if ag.endOnLeave || strings.EqualFold(ag.leaveExile, "Exile") {
 		exileOn = "Battlefield"
 		remembered = []state.ObjID{id}
 	}
@@ -779,6 +800,12 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 			AffectedZone: ag.zone,
 		})
 	}
+	// The LeaveBattlefield$ promise and the sVars$ grant (Whip of Erebos,
+	// Kheru Lich Lord, Gruesome Encore, Storm Herald): both ride the
+	// animation's own lifetime, one registration per animated object -- see
+	// effects/leavebattlefield.go for the shape each takes.
+	registerLeaveExile(h, c, id, ag.leaveExile, ag.duration, ag.permanent)
+	registerSVarGrants(h, c, id, ag.svars, ag.duration, ag.permanent)
 }
 
 // animateAllUnreadNote names, in ONE loud note, every parameter the SA carries
