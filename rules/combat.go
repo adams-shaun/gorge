@@ -217,7 +217,7 @@ func (e *Engine) attackRequirements(id state.ObjID) attackRequirementSet {
 		}
 	}
 	for _, sv := range e.activeStatics("MustAttack") {
-		if !MustAttackParamsReadableForRules(sv.Params) {
+		if !MustAttackParamsReadableForRules(sv.Params) || !e.continuousGateHolds(sv) {
 			continue
 		}
 		if !e.mustAttackLineSelects(sv.Params["ValidCreature"], id, sv.Source, sv.Controller, nil) {
@@ -257,13 +257,16 @@ func (e *Engine) mustAttackLineSelects(spec string, id state.ObjID, source state
 }
 
 // MustAttackParamsReadableForRules is the face S:-line half of
-// effects.MustAttackParamsReadable, and DELEGATES to it so the face and
-// Effect routes can never diverge on what is enforceable: rules imports
-// effects (the package order is effects -> rules), so there is one whitelist,
-// not a copy kept in step by hand. Kept as a named wrapper because the rules
-// callers read better for it and a future relocation has one call site.
+// effects.MustAttackParamsReadable, and DELEGATES to
+// effects.MustAttackParamsReadableForRules so the face and Effect routes can
+// never diverge on what is enforceable: rules imports effects (the package
+// order is effects -> rules), so there is one whitelist home, not a copy kept
+// in step by hand. The face list is the Effect registration list EXTENDED by
+// exactly the condition-gate keys -- the gate evaluator,
+// continuousGateHolds, is rules-side, so the face route can evaluate those
+// gates while the Effect-delivered registration path cannot.
 func MustAttackParamsReadableForRules(params map[string]string) bool {
-	return effects.MustAttackParamsReadable(params)
+	return effects.MustAttackParamsReadableForRules(params)
 }
 
 // requirementDefender resolves a MustAttack$ player reference to the

@@ -354,7 +354,18 @@ func (e *Engine) castRestrictedUsing(statics []staticView, p state.PlayerID, id 
 		if !e.actorMatches(sv, "Caster", p) {
 			continue
 		}
-		if !e.restrictionGateHolds(sv, id) || !e.checkSVarHolds(sv) {
+		// The shared continuous gate (rules/layers.go) adds the IsPresent$/
+		// IsPresent2$/PresentCompare$/PresentZone$/CheckSVar$/SVarCompare$
+		// family for the CantBeCast consumer (Blizzard's "as long as the
+		// defending player doesn't control a snow land"). It is wired HERE
+		// and at recheckIllegal only: the other restrictionGateHolds callers
+		// -- CantBeActivated, AssignCombatDamageAsUnblocked,
+		// CombatDamageToughness -- keep their pre-existing gate set, so no
+		// out-of-scope consumer's semantics move with this task. It subsumes
+		// the checkSVarHolds the caller used to run separately, and the
+		// duplicate ClassBand$/Condition$ reads inside restrictionGateHolds
+		// below are pure state reads with identical semantics.
+		if !e.continuousGateHolds(sv) || !e.restrictionGateHolds(sv, id) {
 			continue
 		}
 		spec := sv.Params["ValidCard"]
@@ -1124,17 +1135,10 @@ func (e *Engine) blockRestricted(blocker, attacker state.ObjID) bool {
 		}
 	}
 	for _, sv := range e.activeStatics("CantBlock") {
-		// Condition$ is evaluated per static (continuousConditionHolds:
-		// the Detective of the Month / Slippery Scoundrel family's
-		// Condition$ Blessing, Cephalid Inkmage's Threshold, Bilbo's
-		// Ring's PlayerTurn). Before this gate the restriction applied
-		// UNCONDITIONALLY (over-permissive); the evaluator's fail-closed
-		// direction (rules/layers.go) keeps an unimplementable condition
-		// denying instead. Only Condition$ is read here, NOT the rest of
-		// continuousGateHolds (IsPresent$/IsPresent2$/CheckSVar$), so an
-		// IsPresent$- or CheckSVar$-gated CantBlock stays unconditional
-		// exactly as before.
-		if !e.continuousConditionHolds(sv) {
+		// The shared continuous gate evaluates Condition$, IsPresent$ and
+		// CheckSVar$ families with the same fail-closed semantics used by
+		// continuous effects.
+		if !e.continuousGateHolds(sv) {
 			continue
 		}
 		if effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], blocker, e.staticSpecCtx(sv)) {
@@ -1142,8 +1146,8 @@ func (e *Engine) blockRestricted(blocker, attacker state.ObjID) bool {
 		}
 	}
 	for _, sv := range e.activeStatics("CantBlockBy") {
-		// The same per-static condition gate as the CantBlock loop above.
-		if !e.continuousConditionHolds(sv) {
+		// Apply the same shared per-static gate as the CantBlock loop above.
+		if !e.continuousGateHolds(sv) {
 			continue
 		}
 		// ValidAttacker$ is Forge's own spelling for the attacker side of a

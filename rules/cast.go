@@ -6099,7 +6099,12 @@ func (e *Engine) recheckIllegal(pc *pendingCast) bool {
 		if !e.actorMatches(sv, "Caster", pc.player) {
 			continue
 		}
-		if !e.restrictionGateHolds(sv, pc.card) || !e.checkSVarHolds(sv) {
+		// The same shared continuous gate castRestrictedUsing runs: the
+		// CR 608.2b recheck must answer with the ONE grammar the offer
+		// answered with, or a cast offered under a false gate would abort
+		// here (and vice versa). It subsumes the checkSVarHolds the caller
+		// used to run separately.
+		if !e.continuousGateHolds(sv) || !e.restrictionGateHolds(sv, pc.card) {
 			continue
 		}
 		sc := e.specCtx(sv.Source, sv.Controller)

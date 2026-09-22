@@ -1157,6 +1157,34 @@ func MustAttackParamsReadable(params map[string]string) bool {
 	return true
 }
 
+// MustAttackParamsReadableForRules is the FACE S:-line whitelist: the shared
+// MustAttackParamsReadable core EXTENDED by exactly the condition-gate keys
+// the rules package's shared continuous gate (rules/layers.go
+// continuousGateHolds) evaluates -- IsPresent$, IsPresent2$, PresentCompare$,
+// PresentZone$, CheckSVar$, SVarCompare$, Condition$ and ClassBand$. It
+// lives here, beside MustAttackParamsReadable, so the two lists cannot drift
+// apart unseen: the face route (rules' attackRequirements) CAN evaluate those
+// gates -- the evaluator, continuousGateHolds, is rules-side, which is why
+// this function cannot simply be MustAttackParamsReadable -- while the
+// Effect-delivered route (effEffect's registration above) cannot, so its
+// whitelist stays at the core set: registering a gate-bearing line as an
+// Effect requirement would apply it blanket and OVER-require, the
+// non-permissive direction for a requirement. The superset direction
+// (every effect-readable line is face-readable) and the gate-key divergence
+// are pinned by rules' TestMustAttackFaceAndEffectWhitelistsAgree.
+func MustAttackParamsReadableForRules(params map[string]string) bool {
+	for k := range params {
+		switch k {
+		case "Mode", "ValidCreature", "MustAttack", "Description", "Secondary",
+			"IsPresent", "IsPresent2", "PresentCompare", "PresentZone",
+			"CheckSVar", "SVarCompare", "Condition", "ClassBand":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
 // CantSacrificeRestrictionParamsReadable is the parameter whitelist a face
 // CantSacrifice static must pass before rules' SacrificeBlocked enforces it
 // (task vc-static1). It is the CantAttack list above PLUS the two
