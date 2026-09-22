@@ -298,6 +298,58 @@ or event fields. A multi-attacker event retains its defender but leaves the
 singular card/source absent if multiple attackers matched. Unsupported trigger
 modes and delayed registrations without these roles do not invent bindings.
 
+## Cast-provenance filter arguments (castprov1/2/3 + wascastfrom)
+
+The `Card.wasCast*` filter family is a rules-side split, not filter predicates:
+the Engine's log is what holds the provenance, so `castProvenanceAdmits`
+(rules/cast_provenance.go) strips the tokens from the spec and evaluates them
+at every match site that has the Engine in scope. Three families share one
+entry point and one read discipline (latest-PutOnStack-cast wins; a copy was
+never cast; a card never put on the stack reads false, so a negated spelling
+holds for it):
+
+- `wasCastFromYourHandByYou` (from you's hand by you), `wasCastByYou` (cast at
+  all, by you) and `wasCastFromYourHand` (from a hand, any caster) — the hand
+  families.
+- The ORIGIN-ZONE family (task wascastfrom): `wasCastFromExile` (latest cast
+  from exile), `wasCastFromYourGraveyard` and `wasCastFromYourGraveyardByYou`
+  (both = latest cast from YOUR graveyard — in this build a cast's origin zone
+  is always a zone its caster owns, so the two Forge spellings collapse), and
+  `wasCastFromTheirHand` (latest cast from a hand, any caster — "their" is the
+  caster's own hand).
+- `wasCastFromGraveyard` (bare) is deliberately NOT in the split: it is the
+  effects-side CastFlags predicate (`FlagFlashback|FlagHarmonize|FlagEscaped`,
+  effects/filter.go), which the effects-only call sites (the
+  `ConditionDefined$ Self` ConditionPresent gates — Sevinne's Reclamation's
+  flashback-copy gate — and the target `ValidTgts$ Card.wasCastFromGraveyard`
+  reads) evaluate without a log. The two reads agree on every shape the flags
+  cover.
+
+Wired sites: the trigger match walks (SpellCast, the delayed-registration
+mirror, ChangesZone/zoneGate, the Moved-replacement ValidCard$), the
+`Count$ThisTurnCast_<spec>` heads (through `SpellsCastThisTurnMatching`), the
+`Count$wasCastFromExile.<y>.<n>` branch head (new `effects.Host
+.WasCastFromExile`), the target walk — candidatesFor's zone loops AND the CR
+608.2b recheck in legalTargets (Wash Away's `Card.!wasCastFromTheirHand`
+ValidTgts$) — and the CantBeCast restriction walk, whose origin is the cast IN
+PROGRESS (no PutOnStack yet): `castOriginAdmitsAtZone` evaluates the tokens
+against the restricted object's CURRENT zone, the pending origin every cast
+evaluation site's `pendingCast.from` records. The cost paths (ReduceCost /
+RaiseCost statics, RestrictValid$ mana) keep the pending guard's
+fail-while-off-stack convention and re-price post-push. Pinned end to end on
+the real corpus carriers in `rules/was_cast_from_zone_test.go` (Burning
+Vengeance, Aerial Extortionist, Delayed Blast Fireball's foretell cast,
+Archfiend's Vessel, Sevinne's Reclamation).
+
+Still open (ledgered, none with a measured corpus carrier): the origin tokens
+are NOT evaluated by effects' own ConditionPresent/ConditionDefined evaluator
+(no `ConditionPresent$ Card.wasCastFromExile`-shaped line exists in the
+corpus; such a gate today resolves as unsupported and runs its sub
+unconditionally), there is no `Count$wasCastFromYourGraveyard` branch head
+(no corpus carrier), and the may-play provenance predicates (`MayPlaySource`
+/`CastSa`) in the ValidLKI replacement gate stay a separate open site (see
+the ValidLKI approximation row).
+
 **Limits:** `CombatDamage$ True`/`False` triggers ARE enabled (fb-20260914T145022Z-64a8422c:
 `damageMatches` reads the engine-side `combatDamaging` flag `dealCombatDamage` sets around
 each assignment; no event-schema change), but this does not implement `TargetingPlayer$`
