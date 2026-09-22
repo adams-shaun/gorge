@@ -115,6 +115,48 @@ func TestRememberedValidSharesAllCount(t *testing.T) {
 	}
 }
 
+// TestSacrificeShowSacrificedCardsRevealsPublicly is the twin on the
+// Sacrifice primitive (Demonic Covenant's DB$ Sacrifice line carries
+// ShowSacrificedCards$ True): one public Note naming the sacrificed object.
+// Without the param no Note is emitted.
+func TestSacrificeShowSacrificedCardsRevealsPublicly(t *testing.T) {
+	h := newHost(t, 2)
+	src := h.g.AddObject(mkCard(t, "Name:Oblation Fodder\nTypes:Creature\nPT:1/1\nOracle:x\n"), 0)
+	src.Zone = state.ZBattlefield
+	h.g.SetZone(state.ZBattlefield, 0, append([]state.ObjID{src.ID}, h.g.Zone(state.ZBattlefield, 0)...))
+
+	c := &Ctx{Source: src.ID, Controller: 0}
+	Resolve(h, c, sa(t, "DB$ Sacrifice | SacValid$ Self | ShowSacrificedCards$ True"))
+
+	var notes []events.Event
+	for _, ev := range h.log {
+		if ev.Kind == events.Note {
+			notes = append(notes, ev)
+		}
+	}
+	if len(notes) != 1 {
+		t.Fatalf("Note events = %d, want exactly the one reveal (%+v)", len(notes), h.log)
+	}
+	if notes[0].Secret || len(notes[0].IDs) != 1 || notes[0].IDs[0] != src.ID {
+		t.Fatalf("reveal Note = %+v, want a public Note naming %d", notes[0], src.ID)
+	}
+	if o := h.g.Obj(src.ID); o == nil || o.Zone != state.ZGraveyard {
+		t.Fatalf("sacrificed object = %+v, want in the graveyard", o)
+	}
+
+	// Negative: the same Sacrifice without ShowSacrificedCards$ emits no Note.
+	h2 := newHost(t, 2)
+	src2 := h2.g.AddObject(mkCard(t, "Name:Oblation Fodder\nTypes:Creature\nPT:1/1\nOracle:x\n"), 0)
+	src2.Zone = state.ZBattlefield
+	h2.g.SetZone(state.ZBattlefield, 0, append([]state.ObjID{src2.ID}, h2.g.Zone(state.ZBattlefield, 0)...))
+	Resolve(h2, &Ctx{Source: src2.ID, Controller: 0}, sa(t, "DB$ Sacrifice | SacValid$ Self"))
+	for _, ev := range h2.log {
+		if ev.Kind == events.Note {
+			t.Fatalf("no ShowSacrificedCards$ but a Note was emitted: %+v", ev)
+		}
+	}
+}
+
 // TestMillShowMilledCardsRevealsPublicly drives the real Mill primitive with
 // RememberMilled$ + ShowMilledCards$: the two milled cards move to the
 // graveyard, and ONE public Note (not Secret) names them. Without the param

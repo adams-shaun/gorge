@@ -153,9 +153,26 @@ func covenantAssertions(t *testing.T, e *Engine, covID state.ObjID, milled []sta
 		if cov == nil || cov.Zone != state.ZGraveyard {
 			t.Fatalf("Demonic Covenant = %+v, want sacrificed to the graveyard", cov)
 		}
+		// ShowSacrificedCards$ True on the sacrifice line: a public Note
+		// naming the sacrificed Covenant.
+		sawSacNote := false
+		for _, ev := range e.L.Events {
+			if ev.Kind == events.Note && !ev.Secret && len(ev.IDs) == 1 && ev.IDs[0] == covID {
+				sawSacNote = true
+			}
+		}
+		if !sawSacNote {
+			t.Fatalf("no public sacrifice-reveal Note naming %d", covID)
+		}
 	} else {
 		if cov == nil || cov.Zone != state.ZBattlefield {
 			t.Fatalf("Demonic Covenant = %+v, want still on the battlefield", cov)
+		}
+		// No sacrifice: no sacrifice-reveal Note naming the Covenant either.
+		for _, ev := range e.L.Events {
+			if ev.Kind == events.Note && len(ev.IDs) == 1 && ev.IDs[0] == covID {
+				t.Fatalf("a sacrifice-reveal Note was emitted with no sacrifice: %+v", ev)
+			}
 		}
 	}
 }

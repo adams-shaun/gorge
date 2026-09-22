@@ -3718,6 +3718,13 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 	sacOptional, sacOptionalTarget := c.SacOptional, c.SacOptionalTarget
 	c.SacOptional, c.SacOptionalTarget = "", 0
 	who := Defined(h, c, sa)
+	// ShowSacrificedCards$ True (Demonic Covenant's own sacrifice line): the
+	// sacrificed cards are REVEALED publicly — one ids-Note naming everything
+	// this call sacrificed, the same payload shape effMill's ShowMilledCards$
+	// arm emits. Collected across every path below (the answered batch, the
+	// re-entry batch and the plain object path) so one Note covers the call.
+	show := strings.EqualFold(strings.TrimSpace(sa.Params["ShowSacrificedCards"]), "True")
+	var sacrificed []state.ObjID
 	// A Sacrifice that names neither Defined$ nor ValidTgts$ but a SacValid$
 	// other than itself is Forge's default Defined$ You: its controller
 	// sacrifices a matching permanent (Braids's "you may sacrifice an
@@ -3763,6 +3770,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 							continue
 						}
 						rememberLKICapture(id)
+						sacrificed = append(sacrificed, id)
 						h.Emit(events.Sacrifice(id))
 					}
 				} else if len(sacAns) > 0 {
@@ -3771,6 +3779,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 					// the first pass, but re-check here in case it moved.
 					if o := g.Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield {
 						rememberLKICapture(o.ID)
+						sacrificed = append(sacrificed, o.ID)
 						h.Emit(events.Sacrifice(o.ID))
 					}
 				}
@@ -3910,6 +3919,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 			}
 			for _, id := range batch {
 				rememberLKICapture(id)
+				sacrificed = append(sacrificed, id)
 				h.Emit(events.Sacrifice(id))
 			}
 			continue
@@ -3961,7 +3971,11 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 				Text: "sacrifices the first matching permanent(s) (no engine host to ask)", Secret: true})
 		}
 		rememberLKICapture(o.ID)
+		sacrificed = append(sacrificed, o.ID)
 		h.Emit(events.Sacrifice(o.ID))
+	}
+	if show && len(sacrificed) > 0 {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller, IDs: sacrificed})
 	}
 }
 
