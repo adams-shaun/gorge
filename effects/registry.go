@@ -1089,7 +1089,14 @@ type Ctx struct {
 	// decline)" from the first pass. effMoveCounter consumes and clears all
 	// four at the top of its own walk (the fx42 scoping discipline), so a
 	// nested MoveCounter cannot inherit the outer answers.
-	MoveCounterKind     string
+	MoveCounterKind string
+	// TimeTravelChoice is the answered per-object add/remove/skip election.
+	// The index and round are encoded into Decision.ResumeTarget so a fresh
+	// resume context can continue the deterministic object walk.
+	TimeTravelChoice    string
+	TimeTravelIndex     int
+	TimeTravelRound     int
+	TimeTravelDone      bool
 	MoveCounterKindDone bool
 	MoveCounterN        int32
 	MoveCounterNDone    bool

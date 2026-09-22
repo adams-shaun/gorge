@@ -1773,6 +1773,17 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				p := e.moveCounterEntry(rp.obj)
 				p.kind, p.kindSet = ctx.MoveCounterKind, true
 			}
+		case "time_travel":
+			// Time Travel asks one optional add/remove/skip election per
+			// affected object. ResumeTarget packs the repetition and object
+			// index so the re-entered effect continues at the exact object.
+			ctx.TimeTravelChoice = "time_travel_skip"
+			if len(chosen) > 0 {
+				ctx.TimeTravelChoice = chosen[0].Kind
+			}
+			ctx.TimeTravelDone = true
+			ctx.TimeTravelRound = rp.target >> 16
+			ctx.TimeTravelIndex = rp.target & 0xffff
 		case "move_counter":
 			// A MoveCounter CounterNum$ Any amount pick was answered: how many
 			// counters of the chosen kind to move. The option's Amount carries
