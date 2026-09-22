@@ -456,6 +456,15 @@ func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, sa *car
 	kws := cards.SplitKeywordList(sa.Params["KW"])
 	kws = append(kws, chosenKW...)
 	permanent, untilEOT := durationTiming(sa.Params["Duration"])
+	// A Pump body that carries `LeaveBattlefield$ Exile` (Moira and Teshar's,
+	// Dreams of the Dead's DB$ Pump) promises the pumped object is exiled if
+	// it would leave the battlefield, so every half of THIS pump shares the
+	// promise's move-driven lifetime: without it a Duration$ Permanent grant
+	// outlives the object's departure and re-arms on a later re-entry
+	// (CR 400.7). Read here, from the SA, so no caller can register a pump
+	// half that misses it -- effPump and effPumpAll both come through this
+	// one per-object path.
+	remembered, exileOn := leaveExileLifetime(id, sa.Params["LeaveBattlefield"])
 	if att != 0 || def != 0 {
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
@@ -463,6 +472,7 @@ func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, sa *car
 			AddPower: att, AddToughness: def,
 			Duration: sa.Params["Duration"], Permanent: permanent, UntilEOT: untilEOT,
 			AffectedZone: zone,
+			Remembered:   remembered, ExileOnMoved: exileOn,
 		})
 	}
 	if len(kws) > 0 {
@@ -471,6 +481,7 @@ func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, sa *car
 			Layer: state.LAbilities, AddKeywords: kws,
 			Duration: sa.Params["Duration"], Permanent: permanent, UntilEOT: untilEOT,
 			AffectedZone: zone,
+			Remembered:   remembered, ExileOnMoved: exileOn,
 		})
 	}
 }
@@ -805,7 +816,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 	// animation's own lifetime, one registration per animated object -- see
 	// effects/leavebattlefield.go for the shape each takes.
 	registerLeaveExile(h, c, id, ag.leaveExile, ag.duration, ag.permanent)
-	registerSVarGrants(h, c, id, ag.svars, ag.duration, ag.permanent)
+	registerSVarGrants(h, c, id, ag.svars, ag.leaveExile, ag.duration, ag.permanent)
 }
 
 // animateAllUnreadNote names, in ONE loud note, every parameter the SA carries

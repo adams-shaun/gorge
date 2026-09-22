@@ -45,11 +45,12 @@ func registerLeaveExile(h Host, c *Ctx, id state.ObjID, value, dur string, perma
 	if h.Game().Obj(id) == nil {
 		return
 	}
+	remembered, exileOn := leaveExileLifetime(id, value)
 	h.AddContinuous(state.ContinuousEffect{
 		Source: id, Affects: "Card.Self", Controller: c.Controller,
 		Duration: dur, Permanent: permanent, UntilEOT: !permanent,
-		Remembered:       []state.ObjID{id},
-		ExileOnMoved:     "Battlefield",
+		Remembered:       remembered,
+		ExileOnMoved:     exileOn,
 		ReplacementEvent: "Moved",
 		ReplacementParams: map[string]string{
 			"Origin":    "Battlefield",
@@ -75,7 +76,7 @@ func registerLeaveExile(h Host, c *Ctx, id state.ObjID, value, dur string, perma
 // the grant itself is real and event-backed, so any future reader resolves
 // it. A named SVar missing from the granting face's table emits one loud
 // Note and grants nothing.
-func registerSVarGrants(h Host, c *Ctx, id state.ObjID, names []string, dur string, permanent bool) {
+func registerSVarGrants(h Host, c *Ctx, id state.ObjID, names []string, leaveValue, dur string, permanent bool) {
 	if len(names) == 0 {
 		return
 	}
@@ -98,17 +99,36 @@ func registerSVarGrants(h Host, c *Ctx, id state.ObjID, names []string, dur stri
 	if h.Game().Obj(id) == nil {
 		return
 	}
+	// The move-driven lifetime (registerAnimateEffects' idiom), applied only
+	// when the granting body also declared `LeaveBattlefield$ Exile`: the
+	// grant ends when the animated object leaves the battlefield, so the
+	// granted marker is not carried by a plain permanent again. A body with
+	// no leave clause keeps the historic lifetime (the documented Permanent
+	// asymmetry), so this read changes no existing carrier's behaviour.
+	remembered, exileOn := leaveExileLifetime(id, leaveValue)
 	h.AddContinuous(state.ContinuousEffect{
 		Source: id, Affects: "Card.Self", Controller: c.Controller,
 		Duration: dur, Permanent: permanent, UntilEOT: !permanent,
-		// The move-driven lifetime (registerAnimateEffects' idiom): the grant
-		// ends when the animated object leaves the battlefield -- the whole
-		// animation is over, and the granted marker is not carried by a
-		// plain permanent again.
-		Remembered:   []state.ObjID{id},
-		ExileOnMoved: "Battlefield",
+		Remembered:   remembered,
+		ExileOnMoved: exileOn,
 		AddSVars:     added,
 	})
+}
+
+// leaveExileLifetime returns the move-driven lifetime an object's grants must
+// carry when its granting body declared `LeaveBattlefield$ Exile`: Remembered
+// holds the object itself and ExileOnMoved names the battlefield, so
+// rules/layers.go's effectMoveSweep ends EVERY half of the grant the instant
+// that object leaves the battlefield (its departure is exactly what the
+// promise substitutes). It is the ONE place the pair is built, so no caller
+// can register a grant that outlives the departure and re-arms on a later
+// re-entry (CR 400.7): a card that returns to the battlefield is a plain
+// permanent again. Both results are nil/"" for every other body.
+func leaveExileLifetime(id state.ObjID, value string) (remembered []state.ObjID, exileOn string) {
+	if !strings.EqualFold(strings.TrimSpace(value), "Exile") {
+		return nil, ""
+	}
+	return []state.ObjID{id}, "Battlefield"
 }
 
 // parseNestedSVar parses the "SVar:<Name>:<Value>" body an sVars$ grant's

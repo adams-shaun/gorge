@@ -238,3 +238,100 @@ func TestFromTheCatacombsLeaveBattlefieldExilesOnBounce(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// TestDreamsOfTheDeadPumpGrantDoesNotSurviveReentry is the CR 400.7
+// regression the prior round missed: a Duration$ Permanent Pump grant that
+// rides a LeaveBattlefield$ Exile promise must end when the pumped object
+// leaves the battlefield, or it re-arms on a later re-entry. Drives the full
+// sequence -- reanimate (grant), bounce (rewritten to exile), then return
+// the card from exile to the battlefield -- and asserts the grant is gone.
+func TestDreamsOfTheDeadPumpGrantDoesNotSurviveReentry(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	dreams := lookup(t, reg, "Dreams of the Dead")
+	specter := lookup(t, reg, "Hypnotic Specter")
+	e, cfg := corpusEngineCfg(t, reg, []*cards.Card{dreams, specter}, []*cards.Card{})
+	did := moveByName(t, e, 0, "Dreams of the Dead", state.ZBattlefield)
+	sid := moveByName(t, e, 0, "Hypnotic Specter", state.ZGraveyard)
+
+	addMana(t, e, 0, "UU")
+	submitChoices(t, e, abilityOption(t, e, did, 0).Index)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("no target decision after activating Dreams of the Dead: %+v", d)
+	}
+	idx := -1
+	for _, o := range d.Options {
+		if o.Obj == sid {
+			idx = o.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("graveyard specter %d not offered: %+v", sid, d.Options)
+	}
+	submitChoices(t, e, idx)
+	settleActivation(t, e)
+
+	// PRECONDITION: the specter is on the battlefield under seat 0 and the
+	// Pump grant is live. Without this the re-entry assertion could pass
+	// vacuously (a grant that never existed is trivially absent).
+	if o := e.G.Obj(sid); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("reanimated specter zone = %+v, want battlefield (precondition)", o)
+	}
+	if !e.HasKeyword(sid, "Cumulative upkeep") {
+		t.Fatal("reanimated specter never gained Cumulative upkeep (precondition)")
+	}
+
+	// Bounce: the leave-exile promise rewrites the departure to exile.
+	e.emit(events.Event{Kind: events.MoveZone, Obj: sid,
+		From: state.ZBattlefield, To: state.ZHand})
+	if o := e.G.Obj(sid); o == nil || o.Zone != state.ZExile {
+		t.Fatalf("the bounced specter ended in %+v, want exile (precondition)", o)
+	}
+
+	// Return the SAME card from exile to the battlefield. It is a new object
+	// (CR 400.7): the consumed Pump grant must not re-apply.
+	e.emit(events.Event{Kind: events.MoveZone, Obj: sid,
+		From: state.ZExile, To: state.ZBattlefield})
+	if o := e.G.Obj(sid); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("returned specter zone = %+v, want battlefield (precondition)", o)
+	}
+	if e.HasKeyword(sid, "Cumulative upkeep") {
+		t.Fatal("the consumed LeaveBattlefield$ Exile Pump grant re-applied to the returned card (CR 400.7)")
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestWhipOfErebosGrantsDoNotSurviveReentry is the same CR 400.7 regression
+// on the Animate/sVars path: after the animated creature is exiled by the
+// promise and returns to the battlefield, neither the animation's haste nor
+// the granted sVars may re-apply.
+func TestWhipOfErebosGrantsDoNotSurviveReentry(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e, cfg, _, cid := whipEngine(t, reg, "Grizzly Bears")
+
+	// PRECONDITION: haste and the sVars grant are live on the battlefield.
+	if !e.HasKeyword(cid, "Haste") {
+		t.Fatal("animated creature never gained Haste (precondition)")
+	}
+	if _, ok := e.GrantedSVar(cid, "MustAttack"); !ok {
+		t.Fatal("animated creature never gained the sVars grant (precondition)")
+	}
+
+	e.emit(events.Event{Kind: events.MoveZone, Obj: cid,
+		From: state.ZBattlefield, To: state.ZHand})
+	if o := e.G.Obj(cid); o == nil || o.Zone != state.ZExile {
+		t.Fatalf("the bounced creature ended in %+v, want exile (precondition)", o)
+	}
+	e.emit(events.Event{Kind: events.MoveZone, Obj: cid,
+		From: state.ZExile, To: state.ZBattlefield})
+	if o := e.G.Obj(cid); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("returned creature zone = %+v, want battlefield (precondition)", o)
+	}
+	if e.HasKeyword(cid, "Haste") {
+		t.Fatal("the consumed Animate haste grant re-applied to the returned card (CR 400.7)")
+	}
+	if _, ok := e.GrantedSVar(cid, "MustAttack"); ok {
+		t.Fatal("the consumed sVars grant re-applied to the returned card (CR 400.7)")
+	}
+	replayCheck(t, e, cfg)
+}
