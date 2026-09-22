@@ -28,6 +28,8 @@ thinking = "medium"
 provider = "deepinfra"
 model = "deepseek-ai/DeepSeek-V4.1-Flash"
 thinking = "high"
+# 2026-09-22 (operator): spill to luna when DeepSeek has no free slot.
+fallback = ["openai-codex/gpt-5.6-luna"]
 
 [seats.escalated]
 # provider = "openai-codex"
