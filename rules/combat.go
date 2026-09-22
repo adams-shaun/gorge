@@ -2175,8 +2175,9 @@ func (e *Engine) runCombatAssignments() {
 				// still act on the event, so a rewritten amount converts as the
 				// rewritten amount.
 				dam.Counter = "infect+creature"
-			} else if x.wither && e.IsCreature(x.toObj) {
-				dam.Counter = "wither+creature"
+			} else if x.wither {
+				// Engine.emit recomputes the recipient half after redirects.
+				dam.Counter = "wither"
 			}
 			ev := e.emit(dam)
 			prevented = ev.Kind != events.Damage

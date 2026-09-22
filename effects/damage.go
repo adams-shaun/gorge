@@ -415,8 +415,12 @@ func emitObjectDamage(r damageRider, target state.ObjID) int32 {
 		// infect (e.g. a Grafted Exoskeleton bearer) reads the same, because
 		// Host.HasKeyword reads the derived keyword list.
 		ev.Counter = "infect+creature"
-	} else if creature && r.hasWither {
-		ev.Counter = "wither+creature"
+	} else if r.hasWither {
+		// Keep the source fact on every recipient; Engine.emit recomputes the
+		// recipient half after DamageDone redirects. This is required when a
+		// player hit is redirected onto a creature (and when a creature hit is
+		// redirected away from one).
+		ev.Counter = "wither"
 	} else if creature && o.Face() != nil && o.Face().IsPlaneswalker() && !o.Face().IsCreature() {
 		ev.Counter = "creature"
 	}

@@ -1685,6 +1685,13 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// gets logged, not the emit caller's copy.
 		ev = replaced
 	}
+	// DamageDone may rewrite the recipient through ReplaceEvent, while an
+	// ordinary hit still needs its initial recipient form classified. Do this
+	// after the complete replacement pass so both paths share one rule.
+	if ev.Kind == events.Damage {
+		e.recomputeInfectMarker(&ev)
+		e.recomputeWitherMarker(&ev)
+	}
 	// CR 306.8's planeswalker loyalty exchange (and CR 120.3e's exception for
 	// a permanent that is also a creature) is folded directly into this
 	// Damage event by events.Apply below -- AddCounter("LOYALTY", ...) runs

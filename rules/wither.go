@@ -10,6 +10,27 @@ import (
 // replacements, so its amount is the amount that actually landed. Keeping the
 // placement as a separate emitted event preserves counter replacements and
 // CounterAdded triggers.
+// recomputeWitherMarker preserves the source's Wither fact while deriving
+// the recipient form after DamageDone replacement effects have run. Unlike
+// infect, Wither has no player form: a player hit remains ordinary damage,
+// while a redirected hit onto a battlefield creature becomes counters.
+func (e *Engine) recomputeWitherMarker(ev *events.Event) {
+	if ev == nil || ev.Kind != events.Damage ||
+		(ev.Counter != "wither" && ev.Counter != "wither+creature") {
+		return
+	}
+	if ev.Obj != 0 {
+		if o := e.G.Obj(ev.Obj); o != nil && o.Zone == state.ZBattlefield && e.IsCreature(ev.Obj) {
+			ev.Counter = "wither+creature"
+		} else {
+			ev.Counter = "wither"
+		}
+		return
+	}
+	// Player damage is ordinary Wither damage.
+	ev.Counter = "wither"
+}
+
 func (e *Engine) convertWitherDamage(ev events.Event) {
 	if ev.Obj == 0 || ev.Amount <= 0 {
 		return

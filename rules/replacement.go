@@ -3132,6 +3132,7 @@ func (e *Engine) ReplaceEvent(name, raw string, resolved int32) {
 	// ordinary marked damage while convertInfectDamage then also emits -1/-1
 	// counters, so a redirected infect hit would land in BOTH forms.
 	e.recomputeInfectMarker(ev)
+	e.recomputeWitherMarker(ev)
 }
 
 // replCountOp applies Forge's ReplaceCount$ arithmetic to a base amount: the
