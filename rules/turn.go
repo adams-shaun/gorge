@@ -58,7 +58,14 @@ func (e *Engine) finishEnteredStep() {
 		// (landing directly on the draw) does not decrement.
 		for _, id := range e.G.Zone(state.ZExile, e.G.Active) {
 			o := e.G.Obj(id)
-			if o == nil || o.CastFlags&state.FlagSuspend == 0 || o.Counter("TIME") <= 0 {
+			if o == nil || o.Counter("TIME") <= 0 {
+				continue
+			}
+			if o.CastFlags&state.FlagSuspend == 0 {
+				// Only a card that entered exile through the Suspend action
+				// loses TIME counters. A plotted card carries none -- CR
+				// 701.34's timing is "on a later turn", not an upkeep count
+				// (rules/legal.go's exile walk reads Object.PlottedTurn).
 				continue
 			}
 			e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "TIME", Amount: -1})

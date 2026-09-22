@@ -1870,6 +1870,55 @@ func (c Cost) Priceable() bool {
 		len(c.MoveToGrave) == 0
 }
 
+// energyCostTotal returns the fixed energy a cost's PayEnergy<N> parts demand:
+// the SUM of every fixed part, so a composed cost carrying the part several
+// times (a replicated cast re-pays its PayEnergy cost once per payment) draws
+// the pool down once per part rather than each spending the whole total
+// independently. A dynamic PayEnergy<X> part contributes nothing here -- its
+// amount is the announced X, bounded at the X ask by the payer's energy total
+// (createEnergyCostX's rule) and charged as that value.
+func (c Cost) energyCostTotal() int32 {
+	total := int32(0)
+	for _, part := range c.Energy {
+		if part.Spec == "X" {
+			continue
+		}
+		total += part.N
+	}
+	return total
+}
+
+// energyCostX reports whether the cost carries a dynamic PayEnergy<X> part
+// whose amount is the announced X rather than a fixed N.
+func (c Cost) energyCostX() bool {
+	for _, part := range c.Energy {
+		if part.Spec == "X" {
+			return true
+		}
+	}
+	return false
+}
+
+// withoutEnergy returns the cost with its energy parts stripped, so a caller
+// can judge the remaining mana/life/components by the ordinary rules (an
+// energy part is charged by chargeEnergyCost, never by payMana).
+func (c Cost) withoutEnergy() Cost {
+	if len(c.Energy) == 0 {
+		return c
+	}
+	c.Energy = nil
+	return c
+}
+
+// energyPayable reports whether the payer's ENERGY counter total covers the
+// cost's fixed energy parts (Forge CostPayEnergy.canPay reads the same total).
+// A dynamic PayEnergy<X> part is bounded by that total at its own X ask, so
+// this gate makes no assumption about the not-yet-chosen value.
+func (e *Engine) energyPayable(p state.PlayerID, c Cost) bool {
+	total := c.energyCostTotal()
+	return total == 0 || e.G.Players[p].Counter("ENERGY") >= total
+}
+
 // pip is one flexible mana demand inside a cost's mana part, as a list of
 // alternative payments tried in order. The alternative kinds are exactly the
 // mana symbols CR 107.4 knows: one unit of a colour, N generic mana (a

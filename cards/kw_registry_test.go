@@ -53,6 +53,10 @@ var expandedHeads = []string{
 	// sorcery-speed; the not-a-creature-while-attached switch is derived
 	// state (state.Object.ReconfiguredAttached).
 	"Reconfigure",
+	// Demonstrate (CR 702.152): a SpellCast trigger on the card's own cast
+	// whose DB$ Demonstrate body asks the may-copy election and the
+	// opponent choice, the copies ordinary StackCopy mints (kw-demonstrate).
+	"Demonstrate",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {

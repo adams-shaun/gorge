@@ -1399,6 +1399,24 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 					ctx.VoteAnswer = append(ctx.VoteAnswer, state.Target{Obj: o.Obj})
 				}
 			}
+		case "demonstrate":
+			// The demonstrate trigger's answered ask (CR 702.152): which ask
+			// rides the decision's ResumeTarget (rp.target -- 0 the may-copy
+			// election, 1 the opponent choice); the election's yes/no answer
+			// and the opponent pick are the chosen options. effDemonstrate
+			// consumes and clears all four fields at the top of its walk (the
+			// fx42 scoping discipline), so a nested Demonstrate below this
+			// one poses its own asks.
+			ctx.DemonstrateDone = true
+			ctx.DemonstrateStage = rp.target
+			for _, o := range chosen {
+				switch o.Kind {
+				case "yes":
+					ctx.DemonstrateYes = true
+				case "player":
+					ctx.DemonstrateOpp = append(ctx.DemonstrateOpp, state.Target{Player: o.Player, IsPlayer: true})
+				}
+			}
 		case "tgts":
 			// The generic ValidTgts$ pre-ask (task mvts1) posed inside
 			// effects.Resolve's dispatch loop. Same KChoose answer shape as

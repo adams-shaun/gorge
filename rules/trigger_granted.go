@@ -88,6 +88,71 @@ func (e *Engine) checkGrantedConspireTriggers(observer *Engine, id state.ObjID, 
 	}
 }
 
+// checkGrantedDemonstrateTriggers synthesizes Demonstrate's copy trigger
+// (CR 702.152) for a spell that currently HAS the keyword but does not print
+// it: a layer-6 grant (Silverquill Lecturer's "Creature spells you cast have
+// demonstrate", The Twelfth Doctor's non-hand spell grant, Try-My-Deck
+// Elemental's commander grant, the Strixhaven plane's instant/sorcery grant)
+// gives the spell the same rules text as a printed keyword, and the printed
+// K:Demonstrate expansion (cards/kw_demonstrate.go) only covers printed
+// lines. Without this walk the granted spell's trigger never fires -- the
+// keyword grant reaches the derived keyword list but no trigger exists for
+// it. The synthesized trigger reuses the printed expansion's exact
+// trigger/body shape (Mode$ SpellCast, ValidCard$ Card.Self,
+// TriggerZones$ Stack; DB$ Demonstrate over Defined$ TriggeredSpellAbility),
+// so its behaviour is byte-identical to the printed path's: the may-copy
+// election and the opponent choice are the body's own asks
+// (effects/demonstrate.go). A copy emits StackCopy, not PutOnStack, so the
+// synthesis cannot double-fire on its own output. The walk skips a face that
+// PRINTS Demonstrate (the printed expansion already owns the line -- the
+// same grant-identical-to-a-printed-line dedup Conspire keeps). Like
+// Conspire's synthesis this is a read-only derived-characteristics check;
+// granting stays in the continuous-effect system. It runs on the
+// faceMayTrigger early-return path too (a granted keyword is independent of
+// printed triggers, the same shape Conspire is), and its gate is ordered
+// cheap-first -- event kind, then object identity, one integer compare each
+// on the hot per-event walk -- before the derived keyword scan allocates.
+func (e *Engine) checkGrantedDemonstrateTriggers(observer *Engine, id state.ObjID, o *state.Object, f *cards.Face, ev events.Event, objLKI *state.Object) {
+	if ev.Kind != events.PutOnStack || id != ev.Obj {
+		return
+	}
+	if !e.HasKeyword(id, "Demonstrate") || f.HasKeyword("Demonstrate") {
+		return
+	}
+	t := cards.Trigger{Mode: "SpellCast", Params: map[string]string{
+		"Mode": "SpellCast", "ValidCard": "Card.Self", "TriggerZones": "Stack", "TriggerDescription": "Demonstrate",
+	}, Effect: &cards.SA{Kind: "DB", API: "Demonstrate", Params: map[string]string{
+		"Defined": "TriggeredSpellAbility",
+	}}}
+	if observer.triggerMatches(t, id, ev, objLKI) {
+		key := triggerKey{Source: id, Idx: -1}
+		if e.triggerFireCount == nil {
+			e.triggerFireCount = map[triggerKey]int32{}
+		}
+		if e.triggerFireCount[key] < maxTriggerFires {
+			e.triggerFireCount[key]++
+			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+				Source:     id,
+				Controller: o.Controller,
+				// The Conspire shape: the body rides the push's
+				// __kwDemonstrate: payload for events.Apply to rebuild
+				// structurally -- a raw SA cannot cross the log, and the
+				// TriggerPush -1 index sentinel is this synthesis's own. The
+				// cast spell rides Remembered because Defined$
+				// TriggeredSpellAbility reads the triggering spell off it.
+				Demonstrate: true,
+				Ctx: effects.Ctx{
+					Source:         id,
+					Controller:     o.Controller,
+					Remembered:     triggerRemembered(ev, id),
+					LKI:            objLKI,
+					TriggerContext: observer.triggerReferents(t, id, ev, objLKI),
+				},
+			})
+		}
+	}
+}
+
 // checkGrantedExploitTriggers synthesizes Exploit's ETB election (CR 702.58a)
 // for a creature that currently HAS the keyword but does not print it: a
 // layer-6 AddKeyword$ Exploit grant (Colonel Autumn's "Other legendary

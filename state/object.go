@@ -48,6 +48,21 @@ type SacrificedInfo struct {
 	ManaValue int32
 }
 
+// LKIObject is the last-known-information snapshot of an object a
+// ChangeZoneRememberLKI$ move captured: the controller and owner it had
+// while the move happened. events.Apply's Move resets a battlefield
+// departure's controller to its owner (CR 400.7), so a later reader of "the
+// exiled creature's controller" -- Forge's TokenOwner$ ImprintedController,
+// the Boar Curse of the Swine makes for each exiled creature -- can no
+// longer recover it from the live object. Forge captures a full Card LKI
+// copy at the same point (ChangeZoneEffect's CardCopyService.getLKICopy);
+// this struct is the slice of it this build's readers need.
+type LKIObject struct {
+	Obj        ObjID
+	Controller PlayerID
+	Owner      PlayerID
+}
+
 // CastFlags bits record how an object was cast. Several can be set at once
 // (a spell can be both kicked and cast via flashback), so they are
 // OR-combined into one byte rather than modeled as separate bools.
@@ -440,6 +455,17 @@ type Object struct {
 	// CloneDeep carries it, and only events.AlterAttribute (the primitive the
 	// api:AlterAttribute effect emits) may set it.
 	Suspected bool
+
+	// PlottedTurn stamps the turn a card gained CR 701.34's plotted
+	// designation (0 = not plotted), via the events.AlterAttribute fold -- the
+	// plot ACTION (rules/cast.go) and the corpus's DB$ AlterAttribute |
+	// Attributes$ Plotted family both grant it. The designation is pure
+	// provenance for the free cast's "on a later turn" gate (rules/legal.go's
+	// exile walk compares Game.Turn against it); it ends when the card leaves
+	// exile (events.Apply's Move), the CR 701.34c end condition, so a later
+	// return to exile cannot revive the permission. A plain value copy in
+	// CloneDeep carries it.
+	PlottedTurn int32
 
 	// Timestamp orders continuous effects. Assigned from Game.Clock whenever
 	// the object enters the battlefield.

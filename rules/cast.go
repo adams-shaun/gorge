@@ -958,6 +958,25 @@ func (e *Engine) castablePriced(p state.PlayerID, id state.ObjID, cost Cost, abi
 	return e.nonManaCastable(p, id, cost, ability)
 }
 
+// chargeEnergyCost spends a cost's energy parts from the payer's pool, one
+// PlayerCounterChange per part (a player counter, not an object's -- CR
+// 118.2d). A fixed part spends its N; a dynamic part spends the announced x.
+// This is the ONE energy-charging site, shared by the cast/activation payment
+// path and the triggered-cost window, so a paid cost can never spend its
+// energy in one place and skip it in another.
+func (e *Engine) chargeEnergyCost(p state.PlayerID, c Cost, x int32) {
+	for _, part := range c.Energy {
+		amt := part.N
+		if part.Spec == "X" {
+			amt = x
+		}
+		if amt > 0 {
+			e.emit(events.Event{Kind: events.PlayerCounterChange, Player: p,
+				Counter: "ENERGY", Amount: -amt})
+		}
+	}
+}
+
 // nonManaCastable is castable's payment-independent tail. Cost-modifier
 // offer checks use it after their flexible-pip walk has established a payable
 // resolved mana face: applying Color$ before that walk would otherwise see a
@@ -1122,15 +1141,9 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 	// pool down once per part, so the parts cannot each spend the whole
 	// counter total independently. The dynamic X form is bounded by that
 	// total at the X ask, so the offer gate needs no assumption about the
-	// not-yet-chosen value.
-	energyTotal := int32(0)
-	for _, part := range cost.Energy {
-		if part.Spec == "X" {
-			continue
-		}
-		energyTotal += part.N
-	}
-	if energyTotal > 0 && e.G.Players[p].Counter("ENERGY") < energyTotal {
+	// not-yet-chosen value. The read is the shared energyPayable helper, so
+	// the cast path and the triggered-cost window cannot disagree about it.
+	if !e.energyPayable(p, cost) {
 		return false
 	}
 	// Return cost parts (Return<N/Spec>): the source itself (Spec CARDNAME,
@@ -1726,6 +1739,17 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		}
 	case "suspend_cast":
 		cost = Cost{}
+	case "plot":
+		// CR 701.34a: the plot ACTION pays the K:Plot colon parameter. Not a
+		// cast: payCast's plot branch intercepts before the stack push, and
+		// continueCast never reaches the target/push stages for this mode.
+		if raw, ok := f.KeywordParam("Plot"); ok {
+			cost = ParseCost(raw)
+		}
+	case "plot_cast":
+		// CR 701.34d: the plotted card's later cast is free -- no mana cost,
+		// no raises; targets and resolution run the ordinary stages.
+		cost = Cost{}
 	case "foretell":
 		// CR 702.126a: the Foretell ACTION pays {2} and exiles the card face
 		// down -- never the keyword's own colon parameter, which prices the
@@ -2218,6 +2242,14 @@ func (e *Engine) continueCast() {
 		e.payCast()
 		return
 	}
+	// Plot (CR 701.34a) is the same shape again: the alternative action is
+	// not a cast -- no stack push, no targets; the card is exiled with time
+	// counters and its later free cast announces its own targets at sorcery
+	// timing.
+	if e.cast.mode == "plot" {
+		e.payCast()
+		return
+	}
 	// CR 601.2a: the object reaches the stack before the target choice
 	// (601.2c) and payment (601.2h). For a spell the cast trigger (601.2i)
 	// is held back until payCast; an ability's AbilityPush fires no trigger.
@@ -2241,7 +2273,9 @@ func (e *Engine) continueCast() {
 	}
 	// FlagSuspend is exile provenance, not cast-time state. Clear it when the
 	// mandatory free cast starts so a later unrelated exile move cannot revive
-	// an old suspension.
+	// an old suspension. Plot needs no equivalent: its designation is
+	// Object.PlottedTurn, and the exile-departure clear in events.Apply's Move
+	// already drops it as the card leaves exile for the stack (CR 701.34c).
 	if e.cast.mode == "suspend_cast" && !e.cast.suspendCastClear {
 		e.emit(events.Event{Kind: events.CastInfo, Obj: e.cast.card})
 		e.cast.suspendCastClear = true
@@ -5521,7 +5555,7 @@ func (e *Engine) targetAsk() bool {
 // no reversal is owed.
 func (e *Engine) pushCast() bool {
 	pc := e.cast
-	if pc == nil || pc.mode == "land" || pc.mode == "suspend" || pc.isAbility() {
+	if pc == nil || pc.mode == "land" || pc.mode == "suspend" || pc.mode == "plot" || pc.isAbility() {
 		return false
 	}
 	if pc.pushed {
@@ -5942,17 +5976,9 @@ func (e *Engine) payCast() {
 		// Energy cost parts (PayEnergy<N>/<X>): the announced amount leaves
 		// the payer's energy pool as one PlayerCounterChange (a player
 		// counter, not an object's -- CR 118.2d). The X form spends exactly
-		// the announced value (xAsk bounded it by this same total).
-		for _, part := range pc.cost.Energy {
-			amt := part.N
-			if part.Spec == "X" {
-				amt = pc.x
-			}
-			if amt > 0 {
-				e.emit(events.Event{Kind: events.PlayerCounterChange, Player: pc.player,
-					Counter: "ENERGY", Amount: -amt})
-			}
-		}
+		// the announced value (xAsk bounded it by this same total). The
+		// shared chargeEnergyCost helper is the ONE energy-charging site.
+		e.chargeEnergyCost(pc.player, pc.cost, pc.x)
 		// Announced PayLife<X> parts (Toxic Deluge's "pay X life"): each pays
 		// the announced X as one LifeChange beside the fixed life payMana
 		// charged above (payLife). xAsk bounded the announcement by the payer's
@@ -6150,16 +6176,7 @@ func (e *Engine) payCast() {
 		}
 	}
 	// Energy cost parts (see the ability branch above for the why).
-	for _, part := range pc.cost.Energy {
-		amt := part.N
-		if part.Spec == "X" {
-			amt = pc.x
-		}
-		if amt > 0 {
-			e.emit(events.Event{Kind: events.PlayerCounterChange, Player: pc.player,
-				Counter: "ENERGY", Amount: -amt})
-		}
-	}
+	e.chargeEnergyCost(pc.player, pc.cost, pc.x)
 	// Announced PayLife<X>, DamageYou<N> and Draw<N/Spec> cost parts (see the
 	// ability branch above for the why).
 	for range pc.cost.LifeX {
@@ -6203,6 +6220,22 @@ func (e *Engine) payCast() {
 		if time > 0 {
 			e.emit(events.Event{Kind: events.CounterChange, Obj: pc.card, Counter: "TIME", Amount: time})
 		}
+		e.cast, e.choosing = nil, chooseNone
+		return
+	}
+	if pc.mode == "plot" {
+		// CR 701.34a/b: the plot ACTION is not a cast. It pays the K:Plot
+		// colon parameter, exiles the card face up, and gives it the plotted
+		// designation -- NO counters (that is Suspend's mechanic): the free
+		// cast's only timing restriction is CR 701.34b's "on a later turn",
+		// so the designation is recorded as an events.AlterAttribute grant,
+		// folded into Object.PlottedTurn with the CURRENT turn (the Enlist
+		// turn-stamp shape). An arbitrary exiled Plot carrier is never
+		// offered the cast: it carries no PlottedTurn, and only this action
+		// (and the corpus's DB$ AlterAttribute | Attributes$ Plotted family,
+		// once the effect side models it) grants the designation.
+		e.emit(events.Event{Kind: events.MoveZone, Obj: pc.card, From: pc.from, To: state.ZExile, Text: "plotted"})
+		e.emit(events.Event{Kind: events.AlterAttribute, Obj: pc.card, Text: "Plotted", Amount: 1})
 		e.cast, e.choosing = nil, chooseNone
 		return
 	}
@@ -6838,6 +6871,15 @@ func init() {
 		// (rules/legal.go) plus conspireAsk (rules/cast.go) pose and pay the
 		// two-creature tap.
 		"kw:Conspire",
+		// kw:Demonstrate: CR 702.152, expanded by cards/kw_demonstrate.go
+		// into the SpellCast trigger on the card's own cast whose DB$
+		// Demonstrate body (effects/demonstrate.go) poses the may-copy
+		// election and the opponent choice; a layer-6 AddKeyword$ Demonstrate
+		// grant (Silverquill Lecturer) reaches the same body through
+		// rules/trigger_granted.go's checkGrantedDemonstrateTriggers. The
+		// copies are ordinary StackCopy mints, so a creature-spell copy
+		// becomes a token through the standing CR 707.10g fold.
+		"kw:Demonstrate",
 		// kw:Squad: CR 702.66, expanded by cards/keywords.go into a
 		// ChangesZone self-entry trigger whose DB$ CopyPermanent body reads
 		// Count$SquadPaid (the Replicate pattern); the cast flow's "squadded"
@@ -6859,5 +6901,14 @@ func init() {
 		// Count$ThisTurnEntered_Graveyard_from_Battlefield_Permanent reads the
 		// zone-aware count in effects.countEntered.
 		"kw:Gravestorm",
-		"kw:Embalm", "kw:Eternalize")
+		"kw:Embalm", "kw:Eternalize",
+		// kw:Plot: CR 701.34, the hand-origin alternative ACTION -- pay the
+		// K:Plot colon parameter, exile the card face up with the plotted
+		// designation stamped with the current turn (NO counters: the free
+		// cast's only restriction is CR 701.34b's "on a later turn"), and
+		// offer a free cast at sorcery timing from a later turn onward (the
+		// exile-zone walk; no upkeep ask, unlike Suspend's cast-if-able). No
+		// keyword expansion: the K:Plot line is read directly. Proof:
+		// rules/plot_test.go.
+		"kw:Plot")
 }

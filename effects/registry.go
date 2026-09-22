@@ -617,6 +617,16 @@ type Ctx struct {
 	// directly so a SubAbility$ chained after it can read it. The
 	// Sacrificed$<Property> heads in count.go read it.
 	Sacrificed []state.SacrificedInfo
+	// ChangeZoneLKI is the resolution's last-known-information table for
+	// ChangeZoneRememberLKI$ moves: one entry per object the move captured,
+	// holding the controller/owner it had at that instant. events.Apply's Move
+	// resets a battlefield departure's controller to its owner (CR 400.7), so
+	// the live object can no longer answer "the exiled creature's controller"
+	// -- exactly Forge's reason for storing a Card LKI copy in Remembered
+	// (ChangeZoneEffect's CardCopyService.getLKICopy). A RepeatEach body's
+	// TokenOwner$ ImprintedController / Defined$ ImprintedController reads it
+	// for the current iteration subject (Curse of the Swine's Boars).
+	ChangeZoneLKI []state.LKIObject
 	// ResolvingObj is the stack-object WRAPPER of the spell/ability currently
 	// resolving -- rules' e.resolvingObj (resolveTop's ability and spell
 	// branches) and rp.obj (resumeResolution) -- set at those two ctx
@@ -1312,6 +1322,19 @@ type Ctx struct {
 	VoteAnswer []state.Target
 	VoteDone   bool
 	VoteTarget int
+	// Demonstrate carries the demonstrate trigger's answered asks (CR
+	// 702.152) across a mid-resolution ask. DemonstrateStage is which ask
+	// was answered -- 0 the may-copy election, 1 the opponent choice --
+	// DemonstrateYes the election's answer, DemonstrateOpp the answered
+	// opponent (player targets). rules' "demonstrate" resume arm rebuilds
+	// all four from the decision's ResumeTarget and answer, and
+	// effDemonstrate consumes and clears all four at the top of its walk
+	// (the fx42 scoping discipline), so a nested Demonstrate below this
+	// walk poses its own asks.
+	DemonstrateDone  bool
+	DemonstrateStage int
+	DemonstrateYes   bool
+	DemonstrateOpp   []state.Target
 	// VoteCounts is the per-subject tally the most recent api:Vote left for
 	// this resolution's AmountFromVotes$ readers (effects/choose_control.go's
 	// effRepeatEach): one entry per ballot subject -- every player the
