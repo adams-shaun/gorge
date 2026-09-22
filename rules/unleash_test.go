@@ -57,7 +57,7 @@ func enterWithUnleashChoice(t *testing.T, e *Engine, id state.ObjID, from state.
 }
 
 // TestUnleashChoicePosedAndCounterApplied drives Rakdos Cackler's printed
-// K:Unleash through the cast path: the as-enters choice is posed with both
+// K:Unleash at the entry boundary: the as-enters choice is posed with both
 // options, "yes" (index 0) records the Choose "unleash" event, and the
 // battlefield entry enters WITH the +1/+1 counter.
 func TestUnleashChoicePosedAndCounterApplied(t *testing.T) {
@@ -72,17 +72,8 @@ func TestUnleashChoicePosedAndCounterApplied(t *testing.T) {
 	if f := e.G.Objs[0].Face(); id == 0 || f == nil || f.Name != "Rakdos Cackler" {
 		t.Fatalf("seeded card is not Rakdos Cackler: %+v", e.G.Objs[0].Face())
 	}
-	// Cast path: the shared as-enters machinery must pose unleash's choice.
-	e.cast = &pendingCast{player: 0, card: id, from: state.ZLibrary, ability: -1}
-	e.collectETBChoices(0)
-	if len(e.cast.etbs) != 1 || e.cast.etbs[0].kind != "unleash" {
-		t.Fatalf("unleash choices = %#v, want one unleash etb choice", e.cast.etbs)
-	}
-	if len(e.cast.etbs[0].options) != 2 {
-		t.Fatalf("unleash options = %#v, want take-the-counter and decline", e.cast.etbs[0].options)
-	}
-	e.etbAnswer(&decision.Decision{}, []decision.Option{e.cast.etbs[0].options[0]})
-	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZBattlefield})
+	// The shared entry replacement must pose Unleash before the move applies.
+	enterWithUnleashChoice(t, e, id, state.ZLibrary, true)
 	o := e.G.Obj(id)
 	if o == nil || o.Zone != state.ZBattlefield {
 		t.Fatalf("cackler is not on the battlefield: %+v", o)
