@@ -403,6 +403,18 @@ type Host interface {
 	// Dig's search). paid is the outcome the suspended pass resolved; the
 	// re-entry pass consumes the recorded marker instead of asking again.
 	SuspendUnless(sa *cards.SA, paid bool)
+	// SetResolutionTargetControllerLKI publishes the target-controller LKI
+	// captured at the start of a Resolve chain to the host, and returns the
+	// value it replaced so the caller can restore it (rules' Ask copies the
+	// published map onto the pending resumePoint). A target may leave the
+	// battlefield before a chained TokenOwner$ TargetedController runs;
+	// events.Apply resets a departed object's live Controller to Owner, so a
+	// resumed continuation -- which rebuilds its Ctx from the stack object's
+	// targets -- needs the controller snapshot, not the live object. The
+	// publish/restore bracket is what scopes it to the innermost running
+	// chain: a nested Resolve with a different Ctx restores the outer map on
+	// return. An effects-package test double may keep the no-op form.
+	SetResolutionTargetControllerLKI(map[state.ObjID]state.PlayerID) map[state.ObjID]state.PlayerID
 	// Suspended reports whether the resolution is currently suspended on a
 	// mid-resolution ask — Ask returned true and set the host's resume state,
 	// which has not yet been cleared by the answer arriving. effects.Resolve
@@ -1526,6 +1538,22 @@ func RegisterNonAPI(prefixed ...string) {
 
 const maxChain = 32
 
+// CloneTargetControllerLKI returns an independent copy of a target-controller
+// LKI map threaded across a suspension (rules' resumePoint). The map is treated
+// as immutable once captured -- Resolve never mutates a non-nil one -- so a
+// shared reference would be safe, but an explicit copy keeps a cloned engine's
+// pending frame from ever aliasing another's.
+func CloneTargetControllerLKI(m map[state.ObjID]state.PlayerID) map[state.ObjID]state.PlayerID {
+	if m == nil {
+		return nil
+	}
+	out := make(map[state.ObjID]state.PlayerID, len(m))
+	for id, controller := range m {
+		out[id] = controller
+	}
+	return out
+}
+
 // Resolve runs an ability and every sub-ability chained beneath it.
 func Resolve(h Host, c *Ctx, sa *cards.SA) {
 	if c != nil {
@@ -1545,6 +1573,13 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 				}
 			}
 		}
+		// Publish the snapshot to the host for the whole of this chain, so an
+		// ask posed by any of its effects (or a nested Resolve that inherits
+		// the same Ctx) carries it onto the resumePoint. Restored on return:
+		// the map belongs to THIS chain, and an enclosing chain must not see
+		// it after a nested one has finished.
+		prev := h.SetResolutionTargetControllerLKI(c.TargetControllerLKI)
+		defer h.SetResolutionTargetControllerLKI(prev)
 	}
 	reg := registry.load()
 	for d := 0; sa != nil && d < maxChain; d, sa = d+1, sa.Sub {

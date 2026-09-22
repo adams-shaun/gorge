@@ -203,6 +203,16 @@ type resumePoint struct {
 	// the wrong table (0). resumeResolution uses it whenever fusedTargetsSet.
 	// Nil on every frame outside a fused half's resolution.
 	fusedSVars map[string]string
+	// targetControllerLKI is the controller snapshot of the resolution's
+	// object targets, captured when Resolve began (effects/registry.go) and
+	// carried by Ask onto the pending frame. resumeResolution rebuilds its
+	// Ctx from the stack object's targets, whose live controllers have been
+	// reset to their owners by any move the asking effect already made; the
+	// snapshot is what a chained TokenOwner$ TargetedController reads (the
+	// Generous Gift shape: Destroy the target, then create the token for its
+	// pre-destruction controller). Immutable once captured, cloned with the
+	// frame. Nil when the resolution has no object targets.
+	targetControllerLKI map[state.ObjID]state.PlayerID
 	// rolls is the per-die results of the RollDice ask whose answer this
 	// point resumes (effects/dice.go's ChosenSVar$/OtherSVar$ choose-one-
 	// result shape, the Endeavor cycle): the asking first pass carried them
@@ -366,7 +376,13 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 		uptoIdx: d.ResumeUptoIdx, uptoCount: d.ResumeUptoCount,
 		fusedTargets:    append([]state.Target(nil), e.fusedResolving...),
 		fusedTargetsSet: e.fusedResolvingSet,
-		fusedSVars:      e.fusedResolvingSVars}
+		fusedSVars:      e.fusedResolvingSVars,
+		// The pre-move controller snapshot of this chain's object targets,
+		// published by effects.Resolve around the whole chain. Captured onto
+		// the pending frame so a resumed continuation (which rebuilds its Ctx
+		// from objects whose live controllers may already have been reset to
+		// their owners) still sees the CR 608.2h last-known controller.
+		targetControllerLKI: effects.CloneTargetControllerLKI(e.resolvingTargetControllerLKI)}
 	return true
 }
 
@@ -378,6 +394,20 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 // sets e.resume, and handleModes clears it the moment the answer lands, so
 // the resume pass re-enters the chain with nothing suspended and walks the
 // rest of it exactly once.
+//
+// SetResolutionTargetControllerLKI implements
+// effects.Host.SetResolutionTargetControllerLKI: effects.Resolve publishes
+// the target-controller snapshot of the chain it is about to walk, and
+// restores the previous value on return, so the scratch holds exactly the
+// innermost running chain's map. Engine.Ask consumes it onto the pending
+// resumePoint. Writes engine scratch, never e.resume, so it is not a writer
+// of the resume state the archtest guards.
+func (e *Engine) SetResolutionTargetControllerLKI(m map[state.ObjID]state.PlayerID) map[state.ObjID]state.PlayerID {
+	prev := e.resolvingTargetControllerLKI
+	e.resolvingTargetControllerLKI = m
+	return prev
+}
+
 // SuspendUnless implements effects.Host.SuspendUnless: the unless-cost
 // outcome of an SA whose BODY posed the pending ask (the gate had resolved
 // before the body suspended). The pending ask's resume point re-enters that
@@ -814,6 +844,15 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	ctx := &effects.Ctx{Source: rp.obj, Controller: o.Controller, Targets: o.Targets,
 		Chosen: append([]state.Target(nil), rp.choices...), ChosenValid: rp.chosenValid,
 		ChoiceTarget: rp.target,
+		// The pre-move controller snapshot of this resolution's object
+		// targets, carried across the suspension: a resumed frame's Ctx is
+		// rebuilt from the LIVE objects (whose controllers any completed
+		// Destroy has already reset to their owners), so without this a
+		// chained TokenOwner$ TargetedController sees the wrong seat. The
+		// map is keyed by target ObjID, so a frame whose Targets are later
+		// narrowed (a fused half's slice, a Charm mode's target) still
+		// resolves the entries it names.
+		TargetControllerLKI: effects.CloneTargetControllerLKI(rp.targetControllerLKI),
 		// The resolving stack-object wrapper, same anchor resolveTop's
 		// branches set: a SUSPENDED-then-resumed ability (Ulalek's pay ask is
 		// exactly such a suspension) keeps the ValidStack otherAbility
@@ -2351,6 +2390,15 @@ func (e *Engine) buildContinuationChain(frames []contFrame, obj state.ObjID, tai
 			fusedTargets:    append([]state.Target(nil), e.fusedResolving...),
 			fusedTargetsSet: e.fusedResolvingSet,
 			fusedSVars:      e.fusedResolvingSVars}
+		// Every continuation frame re-enters a loop of the SAME resolution as
+		// the pending ask, rebuilding its Ctx from the stack object's targets;
+		// inherit that resolution's pre-move controller snapshot so a
+		// chained TokenOwner$ TargetedController reached through an enclosing
+		// loop still sees it (the pending point was built by Ask from the
+		// same chain's published map).
+		if e.resume != nil {
+			f.targetControllerLKI = effects.CloneTargetControllerLKI(e.resume.targetControllerLKI)
+		}
 		if e.replacingEvent != nil && e.replacingEvent.Kind == events.Damage {
 			f.replacementTarget = state.Target{Obj: e.replacingEvent.Obj}
 			if e.replacingEvent.Obj == 0 {
