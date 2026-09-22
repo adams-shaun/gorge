@@ -1838,7 +1838,18 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		extreme := isExtremeProperty(prop)
 		var best int32
 		var seen bool
-		for _, p := range g.AliveFrom(0) {
+		for si, p := range g.AliveFrom(0) {
+			// The stack is ONE shared list (state.Game.Zone returns g.Stack
+			// for every seat), so a ValidStack head must scan it exactly
+			// once. Without this guard an N-seat table counts every stack
+			// object N times -- Mindbreak Trap's MaxTgts bound and Display
+			// of Power's copy count both read on the caster's own spell(s).
+			// Scanned under the first alive seat, the same convention
+			// rules/statics.go and rules/trigger_match.go use for the
+			// shared stack.
+			if zone == state.ZStack && si > 0 {
+				continue
+			}
 			for _, id := range g.Zone(zone, p) {
 				matchSpec := spec
 				if hasBareHand {
