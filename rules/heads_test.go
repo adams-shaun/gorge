@@ -1011,7 +1011,22 @@ var acceptanceHeads = map[int]string{
 	// AddContinuous clock_tick at event 7109; every earlier event is byte-
 	// identical), the pumped creature then blocks differently, and the rest
 	// of the stream follows.
-	6: "51ca01ded64c6b74",
+	//
+	// cli-20260922T150843Z-daf1bd3e (unless payments open a mana window) moved
+	// 6 seats to ad9d7c0270fd68e8. The first divergence is event 1671: Daze
+	// resolves off the stack and its {1} unless election goes to a payer whose
+	// pool is empty and whose window-eligible source list is EMPTY (measured
+	// with a temporary debug print in UnlessCostPayable: budget all zeros,
+	// sources 0). The old build offered "Pay 1 — don't counter" anyway and the
+	// pay failed; the new reachability gate suppresses the unreachable pay, so
+	// the recorded ModeChosen text is "Don't pay". The countered spell
+	// (Thought-Knot Seer) is unchanged, so this is a decision-enumeration move,
+	// not a game-outcome move: 1670 events are byte-identical and only event
+	// 1671 differs. No `unless_mana` ask is posed in the game, so the window
+	// itself contributes nothing here -- the change is purely the suppressed
+	// option. This is why 2, 4 and 8 seats are unmoved: none of them reaches a
+	// pool-empty unless election.
+	6: "ad9d7c0270fd68e8",
 	// 8 seats moved to cc022f9ba9f2bf39 with task mana2 (fix(rules): pay mana
 	// ability costs and choose colors): mana abilities that spend a Sac cost
 	// are now gated on a payable, deterministic sacrifice candidate existing,
