@@ -69,7 +69,7 @@ func (e *Engine) checkGrantedConspireTriggers(observer *Engine, id state.ObjID, 
 			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
 				Source:     id,
 				Controller: o.Controller,
-				// The Ward shape: the body rides the push's __kwConspire
+				// The Ward shape: the body rides the push's __kwConspire:
 				// payload for events.Apply to rebuild structurally -- a raw
 				// SA cannot cross the log, and the TriggerPush -1 index
 				// sentinel is Dethrone's own. The cast spell rides

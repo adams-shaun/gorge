@@ -107,7 +107,7 @@ type pendingTrigger struct {
 	// sorcery spell you cast has conspire", Raiding Schemes' noncreature
 	// arm): the same shape as Ward/Afflict -- the queue carries no
 	// parameter (the copy trigger has none) and the drain pushes a
-	// KeywordTriggerPush whose __kwConspire payload events.Apply rebuilds
+	// KeywordTriggerPush whose __kwConspire: payload events.Apply rebuilds
 	// into the same DB$ CopySpellAbility body the printed K:Conspire
 	// expansion carries, with the cast spell riding IDs as Remembered.
 	// Idx and SA are unset for it.
@@ -115,7 +115,7 @@ type pendingTrigger struct {
 	// Cascade is a printed-or-granted cascade keyword (CR 702.85, task
 	// cascade1): the queue carries no parameter (the trigger body is the
 	// same DB$ Cascade body whichever route granted the keyword) and the
-	// drain pushes a KeywordTriggerPush whose __kwCascade payload
+	// drain pushes a KeywordTriggerPush whose __kwCascade: payload
 	// events.Apply rebuilds structurally -- the Ward shape. The trigger's
 	// Source is the CAST SPELL (the stack object), whose face's mana value
 	// the effect reads at resolution. Idx and SA are unset for it.

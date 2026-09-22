@@ -340,12 +340,16 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 	}
 	// A granted Conspire (CR 702.78a's copy trigger via a layer-6 AddKeyword$
 	// Conspire -- Wort, the Raidmother / Raiding Schemes): the Ward shape.
-	// The trigger is mandatory; its Counter payload "__kwConspire" is what
+	// The trigger is mandatory; its Counter payload "__kwConspire:" is what
 	// events.Apply rebuilds into the same DB$ CopySpellAbility body the
 	// printed K:Conspire expansion carries, and the cast spell rides IDs as
 	// Remembered because Defined$ TriggeredSpellAbility reads the triggering
 	// spell off it (the same IDs encoding the ordinary TriggerPush path
-	// uses, which is also what a replay needs).
+	// uses, which is also what a replay needs). The trailing colon is
+	// load-bearing: addKeywordTrigger mints a printed keyword's SVar as
+	// "__kw"+line, so a bare K:Conspire line mints exactly "__kwConspire" --
+	// the colon keeps the granted payload from aliasing that real SVar (the
+	// Ward/Afflict payloads already carry one).
 	if pt.Conspire {
 		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
 			return
@@ -360,7 +364,7 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		}
 		stackLen := len(e.G.Stack)
 		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
-			Obj: pt.Source, Counter: "__kwConspire", IDs: ids, Text: "conspire ability"})
+			Obj: pt.Source, Counter: "__kwConspire:", IDs: ids, Text: "conspire ability"})
 		if len(e.G.Stack) > stackLen {
 			id := e.G.Stack[len(e.G.Stack)-1]
 			if e.triggerContexts == nil {
@@ -372,19 +376,21 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		return
 	}
 	// A printed-or-granted cascade (CR 702.85, task cascade1): the Ward
-	// shape. The trigger is mandatory; its Counter payload "__kwCascade" is
+	// shape. The trigger is mandatory; its Counter payload "__kwCascade:" is
 	// what events.Apply rebuilds into the DB$ Cascade body both the printed
 	// K:Cascade line and every layer-6 AddKeyword$ Cascade grant share, and
 	// the exile-until + may-cast sequence runs when the ability RESOLVES
 	// (effects/cascade.go's effCascade), respondable like any trigger. The
-	// trigger carries no target or mode placement ask.
+	// trigger carries no target or mode placement ask. As with Conspire, the
+	// trailing colon keeps the payload from aliasing the "__kwCascade" SVar a
+	// printed bare K:Cascade line mints.
 	if pt.Cascade {
 		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
 			return
 		}
 		stackLen := len(e.G.Stack)
 		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
-			Obj: pt.Source, Counter: "__kwCascade", Text: "cascade ability"})
+			Obj: pt.Source, Counter: "__kwCascade:", Text: "cascade ability"})
 		if len(e.G.Stack) > stackLen {
 			id := e.G.Stack[len(e.G.Stack)-1]
 			if e.triggerContexts == nil {

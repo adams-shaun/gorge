@@ -1561,28 +1561,32 @@ func Apply(g *state.Game, e Event) {
 					Params: map[string]string{"Defined": "TriggeredDefendingPlayer", "LifeAmount": rest,
 						"TriggerDescription": "Afflict"}}
 			}
-			// A granted Conspire (rules.pushTrigger's __kwConspire payload)
+			// A granted Conspire (rules.pushTrigger's __kwConspire: payload)
 			// has no SVar either: rebuilt structurally into the same
 			// DB$ CopySpellAbility body the printed K:Conspire expansion
 			// carries, so the live game and the replay mint identical
 			// objects from the event text alone. The triggering spell rides
 			// Remembered (IDs) -- Defined$ TriggeredSpellAbility reads it
 			// there, exactly as the printed expansion's own TriggerPush
-			// entries carry it.
-			if _, ok := strings.CutPrefix(e.Counter, "__kwConspire"); ok {
+			// entries carry it. The trailing colon (the Ward/Afflict shape)
+			// keeps the payload distinct from the "__kwConspire" SVar a
+			// printed bare K:Conspire line mints.
+			if _, ok := strings.CutPrefix(e.Counter, "__kwConspire:"); ok {
 				sa = &cards.SA{Kind: "DB", API: "CopySpellAbility",
 					Params: map[string]string{"Defined": "TriggeredSpellAbility", "Amount": "Count$Conspired",
 						"MayChooseTarget": "True"}}
 				conspire = ok
 			}
-			// A cascade trigger (rules.pushTrigger's __kwCascade payload) has
+			// A cascade trigger (rules.pushTrigger's __kwCascade: payload) has
 			// no SVar either: rebuilt structurally into the DB$ Cascade body
 			// both a printed K:Cascade line and every layer-6 AddKeyword$
 			// Cascade grant share, so the live game and the replay mint
 			// identical objects from the event text alone. The trigger's
 			// Source (the cast spell) is what the effect reads its mana value
-			// off at resolution (CR 702.85a's "costs less" comparison).
-			if _, ok := strings.CutPrefix(e.Counter, "__kwCascade"); ok {
+			// off at resolution (CR 702.85a's "costs less" comparison). The
+			// trailing colon keeps the payload from aliasing a printed bare
+			// K:Cascade line's "__kwCascade" SVar.
+			if _, ok := strings.CutPrefix(e.Counter, "__kwCascade:"); ok {
 				sa = &cards.SA{Kind: "DB", API: "Cascade",
 					Params: map[string]string{"TriggerDescription": "Cascade"}}
 			}
