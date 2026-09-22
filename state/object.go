@@ -525,6 +525,12 @@ type Object struct {
 	// effPutCounter emits for a `Monstrosity$` PutCounter line) may set it.
 	Monstrous bool
 
+	// SuspendGranted is the replayed characteristic grant made by a
+	// Pump/PumpAll KW$ Suspend effect. It is separate from CastFlags.FlagSuspend:
+	// the latter records the suspend action, while this records gaining the
+	// keyword on an exiled card.
+	SuspendGranted bool
+
 	// PlottedTurn stamps the turn a card gained CR 701.34's plotted
 	// designation (0 = not plotted), via the events.AlterAttribute fold -- the
 	// plot ACTION (rules/cast.go) and the corpus's DB$ AlterAttribute |

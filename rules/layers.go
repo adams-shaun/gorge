@@ -2352,6 +2352,13 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 	if o.Suspected {
 		kw = append(kw, "Menace")
 	}
+	// A Pump/PumpAll "it gains suspend" grant is event-backed because the
+	// target may be in exile (where ordinary continuous effects still apply),
+	// and because cast legality and filters must agree after replay. Keep it in
+	// the same derived keyword stream as printed and layer-6 keywords.
+	if o.SuspendGranted {
+		kw = append(kw, "Suspend")
+	}
 	// Layer 4 runs first through typeCharacteristics (see above), so every
 	// later effect's Affected$ filter — and every layer-4 effect's own —
 	// sees the derived type list, not the printed face.

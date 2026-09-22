@@ -2081,13 +2081,25 @@ var convertedManaCostToken = regexp.MustCompile(`(?i)convertedmanacost`)
 // value (Amped Raptor's "an amount of {E} equal to its mana value") and the
 // result is parsed with the ordinary cost grammar -- PayEnergy<N>, PayLife<N>,
 // a fixed generic, and Discard<N/Spec> all land in the Cost fields the cast
-// flow already asks and charges. A token the grammar reports as unmodelled
-// (Cost.Unknown -- the corpus's one PlayCost$ SuspendCost, The Face of Boe)
-// is NOT degraded the way a printed cost's malformed token would be:
+// flow already asks and charges. SuspendCost is resolved from the chosen
+// card's K:Suspend before that ordinary grammar. A token the grammar reports as
+// unmodelled is NOT degraded the way a printed cost's malformed token would be:
 // PlayCost$ is an ALTERNATIVE to the mana cost (CR 118.9 "rather than paying
 // its mana cost"), so degrading it to one generic would still charge the
 // player full price -- the caller hard-declines instead, ParseUnlessCost-style.
 func pricePlayCost(f *cards.Face, token string) (Cost, bool) {
+	// SuspendCost is the one PlayCost token whose value is another keyword's
+	// cost rather than a standalone cost expression. Read the chosen card's
+	// printed K:Suspend, exactly as the Face of Boe's "pay its suspend cost"
+	// text requires; an absent or malformed Suspend keyword remains a hard
+	// decline.
+	if strings.EqualFold(strings.TrimSpace(token), "SuspendCost") {
+		info, ok := suspendCost(f)
+		if !ok || info.timeX {
+			return Cost{}, false
+		}
+		return info.cost, len(info.cost.Unknown) == 0
+	}
 	s := convertedManaCostToken.ReplaceAllString(token, strconv.FormatInt(int64(f.ManaValue()), 10))
 	c := ParseCost(s)
 	if len(c.Unknown) > 0 {

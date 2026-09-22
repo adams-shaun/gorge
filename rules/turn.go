@@ -300,7 +300,8 @@ func (e *Engine) startSuspendedCast() bool {
 		id := e.suspendedCasts[0]
 		e.suspendedCasts = e.suspendedCasts[1:]
 		o := e.G.Obj(id)
-		if o == nil || o.Zone != state.ZExile || o.CastFlags&state.FlagSuspend == 0 || o.Face() == nil {
+		if o == nil || o.Zone != state.ZExile ||
+			(o.CastFlags&state.FlagSuspend == 0 && !o.SuspendGranted) || o.Face() == nil {
 			continue
 		}
 		// "If able" includes every restriction that makes casting illegal,
@@ -342,7 +343,7 @@ func (e *Engine) suspendCastAnswer(chosen []decision.Option) {
 	id := chosen[0].Obj
 	o := e.G.Obj(id)
 	if chosen[0].Kind == "suspend_cast_yes" && o != nil && o.Zone == state.ZExile &&
-		o.CastFlags&state.FlagSuspend != 0 && o.Face() != nil {
+		(o.CastFlags&state.FlagSuspend != 0 || o.SuspendGranted) && o.Face() != nil {
 		e.beginCast(o.Owner, decision.Option{Kind: "cast", Obj: id, Mode: "suspend_cast"})
 		return
 	}
