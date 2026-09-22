@@ -88,7 +88,10 @@ func registerAnimateStaticAbilities(h Host, c *Ctx, id state.ObjID, names []stri
 		}
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Controller: c.Controller,
-			UntilEOT: !permanent, Duration: dur, Permanent: permanent,
+			// Next-turn durations are resolved by AddContinuous's UntilTurn
+			// boundary; marking them UntilEOT would discard the restriction at
+			// the current cleanup before that boundary is reached.
+			UntilEOT: !permanent && !IsNextTurnDuration(dur), Duration: dur, Permanent: permanent,
 			ExileOnMoved: exileOn, Remembered: remembered,
 			Restriction: mode, RestrictParams: params,
 		})
