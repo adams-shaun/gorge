@@ -128,6 +128,52 @@ func TestLeylineTyrantRedManaSurvivesBoundaries(t *testing.T) {
 	replaySince(t, e, replayed, start)
 }
 
+// TestKeptBoundaryKeepsTaggedRestrictedBatches pins the fold's batch-slot
+// decode: a restricted batch stores its producing ManaAdd.Counter verbatim —
+// "SR" (snow red), "TreasureR" (typed red) — so the keep must read the
+// batch's slot through state.ManaSlot, the canonical full-counter decoder the
+// payment paths in rules/stack.go use. A ManaIndex(Color[0]) read turns the
+// tag letter ('S'/'T') into the colourless slot and silently DROPS a
+// protected red batch's spend restriction at the very boundary the keep
+// exists for, while its units survive as unrestricted pool mana — a legal-
+// payment change after the boundary, exactly what the keep must not do. The
+// non-red CaveW batch keeps proving the filter still discriminates.
+func TestKeptBoundaryKeepsTaggedRestrictedBatches(t *testing.T) {
+	t.Parallel()
+	e := newSeats(t, 2)
+	tyrant := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Leyline Tyrant"))
+	if o := e.G.Obj(tyrant); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("test precondition: Leyline Tyrant not on the battlefield: %+v", o)
+	}
+
+	driveToStep(t, e, e.G.Turn, e.G.Active, state.StepEnd)
+	e.G.Players[0].Pool = state.Mana{state.MR: 3, state.MW: 1}
+	e.G.Players[0].RestrictedMana = []state.ManaRestriction{
+		{Color: "TreasureR", Amount: 1, Valid: "Spell"},
+		{Color: "SR", Amount: 1, Valid: "Spell"},
+		{Color: "CaveW", Amount: 1, Valid: "Spell"},
+	}
+	if e.G.Players[0].Pool.Total() == 0 || len(e.G.Players[0].RestrictedMana) != 3 {
+		t.Fatalf("test precondition: seeded pool/batches missing: pool %+v batches %+v",
+			e.G.Players[0].Pool, e.G.Players[0].RestrictedMana)
+	}
+	replayed := e.G.Clone()
+	start := len(e.L.Events)
+	pool := bankAtEndStep(t, e, e.G.Players[0].Pool)
+
+	if pool[state.MR] != 3 {
+		t.Fatalf("after the boundary red pool = %d, want 3 (the keep protects the red slot whole)", pool[state.MR])
+	}
+	if pool[state.MW] != 0 {
+		t.Fatalf("after the boundary white pool = %d, want 0 (only red is kept)", pool[state.MW])
+	}
+	kept := e.G.Players[0].RestrictedMana
+	if len(kept) != 2 || kept[0].Color != "TreasureR" || kept[1].Color != "SR" {
+		t.Fatalf("after the boundary batches = %+v, want the tagged red batches (TreasureR, SR) kept and CaveW dropped", kept)
+	}
+	replaySince(t, e, replayed, start)
+}
+
 // TestUnspentManaStopsWhenTheSourceLeaves pins the lifetime: the banked red
 // survives boundaries only while the static's source is on the battlefield;
 // once it leaves, the next boundary empties the bank like any other mana.
@@ -306,22 +352,38 @@ func TestEffectDeliveredUnspentManaBanksUntilEndOfTurn(t *testing.T) {
 
 	// The grant is registered and live at the end-step boundary: the
 	// boundary's ManaClear carries the keep letters (the event-level pin of
-	// the keep decision), and seat 0's red survives it into seat 1's turn —
-	// only to empty at a LATER boundary, because the UntilEOT grant expired
-	// at the turn's cleanup (the instant-source conversion) while the seat's
-	// own turn-change cascade ran on.
+	// the keep decision), and the FOLD retains the banked red at that
+	// boundary — asserted below against a clone replayed exactly through the
+	// kept ManaClear, because bankAtEndStep's one submit can fire several
+	// boundaries and its returned pool is the post-expiry state. Only then
+	// does the pool empty at a LATER boundary, because the UntilEOT grant
+	// expired at the turn's cleanup (the instant-source conversion) while the
+	// seat's own turn-change cascade ran on.
+	driveToStep(t, e, e.G.Turn, e.G.Active, state.StepEnd)
+	e.G.Players[0].Pool = state.Mana{state.MR: 2}
+	if e.G.Players[0].Pool.Total() == 0 {
+		t.Fatal("test precondition: pool to bank is empty")
+	}
+	replayed := e.G.Clone()
 	mark := len(e.L.Events)
-	pool := bankAtEndStep(t, e, state.Mana{state.MR: 2})
-	keptAtBoundary := false
-	for _, ev := range e.L.Events[mark:] {
+	passOneBoundary(t, e)
+	keptIdx := -1
+	for i, ev := range e.L.Events[mark:] {
 		if ev.Kind == events.ManaClear && ev.Player == 0 && ev.Text != "" {
-			keptAtBoundary = true
+			keptIdx = i
+			break
 		}
 	}
-	if !keptAtBoundary {
-		t.Fatalf("no boundary ManaClear carried keep letters while the grant was live (pool now %+v)", pool)
+	if keptIdx < 0 {
+		t.Fatalf("no boundary ManaClear carried keep letters while the grant was live (pool now %+v)", e.G.Players[0].Pool)
 	}
-	if pool[state.MR] != 0 {
-		t.Fatalf("after the grant expired red pool = %d, want 0", pool[state.MR])
+	for _, ev := range e.L.Events[mark : mark+keptIdx+1] {
+		events.Apply(replayed, ev)
+	}
+	if got := replayed.Players[0].Pool[state.MR]; got != 2 {
+		t.Fatalf("the kept boundary did not retain the banked red while the grant was live: red pool = %d, want 2", got)
+	}
+	if got := e.G.Players[0].Pool[state.MR]; got != 0 {
+		t.Fatalf("after the grant expired red pool = %d, want 0", got)
 	}
 }

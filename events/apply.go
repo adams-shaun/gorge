@@ -1145,7 +1145,17 @@ func Apply(g *state.Game, e Event) {
 			}
 			kept := player.RestrictedMana[:0]
 			for _, r := range player.RestrictedMana {
-				if r.Persistent || (len(r.Color) > 0 && keep[state.ManaIndex(r.Color[0])]) {
+				// state.ManaSlot is the ONE full-counter decoder (the payment
+				// paths in rules/stack.go use it): a restricted batch stores its
+				// producing ManaAdd.Counter verbatim, so a tagged red batch
+				// ("SR" snow red, "TreasureR") read through ManaIndex(c[0])
+				// would decode the tag letter as colourless and silently drop
+				// the protected colour's spend restriction at the very boundary
+				// the keep exists for. An empty Color batch (the unrestricted
+				// AddsNoCounter provenance shape) decodes to the C slot, so a
+				// keep that protects the C slot keeps it, slot-whole, like the
+				// ordinary share above.
+				if r.Persistent || keep[state.ManaSlot(r.Color)] {
 					kept = append(kept, r)
 				}
 			}
