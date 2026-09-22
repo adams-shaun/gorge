@@ -588,7 +588,13 @@ func (e *Engine) checkGrantedWardTriggers(observer *Engine, id state.ObjID, o *s
 // the sharing cannot starve a legitimate fire. Like those two the walk is
 // deliberately a read over active()'s sorted slice, never a map: the queue
 // order stays the scan's deterministic order.
-func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []ContinuousEffect, id state.ObjID, o *state.Object, ev events.Event, objLKI *state.Object, lkiPower, lkiToughness int32, lkiPTValid bool) {
+// split/leaving are the face walk's two passes, passed through so the
+// leaves-the-battlefield look-back discipline applies to granted triggers
+// exactly as to printed ones (see the loop body): the look-back pass runs
+// only a battlefield-origin ChangesZone trigger, the live pass only the
+// rest -- a gate the first gains round omitted, which queued a gained "dies"
+// trigger once per pass and fired it twice.
+func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []ContinuousEffect, id state.ObjID, o *state.Object, ev events.Event, objLKI *state.Object, lkiPower, lkiToughness int32, lkiPTValid, split, leaving bool) {
 	// A has-all-abilities-of trigger (Forge's GainsTriggerAbsOf$, task
 	// gains1): the recipient gains every triggered ability of each named
 	// foreign card's face. The matching discipline is an ordinary trigger's --
@@ -627,6 +633,17 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []Con
 					continue
 				}
 				if e.finishingLifeLossBatch && t.Mode != "LifeLostAll" {
+					continue
+				}
+				// The leaves-the-battlefield split, mirrored from the face walk:
+				// a "from anywhere" graveyard trigger is NOT a
+				// leaves-the-battlefield trigger (CR 603.6c) and belongs to the
+				// live pass even when this move leaves the battlefield, while a
+				// battlefield-origin "dies" trigger looks back and belongs to
+				// the look-back pass. Without the gate a gained dies trigger
+				// queued once per pass and resolved twice.
+				looksBack := t.Mode == "ChangesZone" && t.Params["Origin"] == "Battlefield"
+				if split && looksBack != leaving {
 					continue
 				}
 				// CR 603.8's outstanding-instance latch, mirrored from the face

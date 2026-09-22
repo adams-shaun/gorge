@@ -608,3 +608,305 @@ func TestGainsLimitPerTurnCapsEachForeignAbilityPerTurn(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// gainsCarrierSrc is an AUTHORED has-all-abilities-of carrier (never a corpus
+// .txt, per the licensing rule) for the r2/r3 regression boards: Idris's
+// static shape -- both GainsAbilitiesOf$ and GainsTriggerAbsOf$ over
+// Card.ExiledWithSource, scoped to Exile -- without Idris's own enters-trigger
+// and Vanishing, whose mandatory hidden artifact search and turn clock would
+// interleave with the tests' own machinery. The carrier has no SVar table, so
+// a body resolving an SVar off the WRONG (recipient) face reads zero -- which
+// is what makes the r3 assertions discriminating rather than vacuous.
+func gainsCarrierSrc(t testing.TB) *cards.Card {
+	t.Helper()
+	return card(t, "Name:Gains Carrier\nManaCost:3\nTypes:Artifact\n"+
+		"S:Mode$ Continuous | Affected$ Card.Self | EffectZone$ Battlefield | GainsAbilitiesOf$ Card.ExiledWithSource | GainsTriggerAbsOf$ Card.ExiledWithSource | GainsAbilitiesOfZones$ Exile\n"+
+		"Oracle:x\n")
+}
+
+// gainsReturnerSrc is the r2-finding foreign fixture: an artifact whose
+// trigger fires when a creature you control dies and whose body returns the
+// remembered card (the Custodi Squire shape, `DB$ ChangeZone | Defined$
+// Remembered | Origin$ Graveyard | Destination$ Hand`). The body reads NO
+// SVar -- this test isolates the remembered serialization, not the SVar
+// provenance.
+func gainsReturnerSrc(t testing.TB) *cards.Card {
+	t.Helper()
+	return card(t, "Name:Gains Returner\nManaCost:2\nTypes:Artifact\n"+
+		"T:Mode$ ChangesZone | ValidCard$ Creature.YouCtrl | Origin$ Battlefield | Destination$ Graveyard | Execute$ TrigReturn | TriggerDescription$ Whenever a creature you control dies, return it to its owner's hand.\n"+
+		"SVar:TrigReturn:DB$ ChangeZone | Defined$ Remembered | Origin$ Graveyard | Destination$ Hand\n"+
+		"Oracle:x\n")
+}
+
+// gainsReaperSrc is the r3-finding foreign fixture for the triggered arm: an
+// artifact whose death trigger pumps its recipient by X, where X is an SVar
+// on THIS card's face -- so a live-grant-only recovery after the grant ends
+// falls back to the recipient's (empty) table and pumps by zero.
+func gainsReaperSrc(t testing.TB) *cards.Card {
+	t.Helper()
+	return card(t, "Name:Gains Reaper\nManaCost:2\nTypes:Artifact\n"+
+		"T:Mode$ ChangesZone | ValidCard$ Creature.YouCtrl | Origin$ Battlefield | Destination$ Graveyard | Execute$ TrigPump | TriggerDescription$ Whenever a creature you control dies, it gets +X/+X.\n"+
+		"SVar:TrigPump:DB$ Pump | Defined$ Self | NumAtt$ +X | NumDef$ +X\n"+
+		"SVar:X:Count$Valid Artifact.YouCtrl\n"+
+		"Oracle:x\n")
+}
+
+// gainsBleederSrc is the r3-finding foreign fixture for the activated arm:
+// "{T}: You lose X life." where X is an SVar on THIS card's face (the Blight
+// Pile shape).
+func gainsBleederSrc(t testing.TB) *cards.Card {
+	t.Helper()
+	return card(t, "Name:Gains Bleeder\nManaCost:2\nTypes:Artifact\n"+
+		"A:AB$ LoseLife | Cost$ T | Defined$ You | LifeAmount$ X | SpellDescription$ You lose X life.\n"+
+		"SVar:X:Count$Valid Artifact.YouCtrl\n"+
+		"Oracle:x\n")
+}
+
+// gainsWiperSrc is the removal vehicle the r3 tests use to END the grant
+// while the gained ability sits on the stack: an artifact whose {T} ability
+// puts a card from Exile into its owner's graveyard (the Relic of
+// Progenitus shape).
+func gainsWiperSrc(t testing.TB) *cards.Card {
+	t.Helper()
+	return card(t, "Name:Gains Wiper\nManaCost:2\nTypes:Artifact\n"+
+		"A:AB$ ChangeZone | Cost$ T | ValidTgts$ Card.inZoneExile | TgtZone$ Exile | Origin$ Exile | Destination$ Graveyard | SpellDescription$ Put target card from exile into its owner's graveyard.\n"+
+		"Oracle:x\n")
+}
+
+// gainsVictimSrc is the one-shot 1/1 whose death fires the gained triggers.
+func gainsVictimSrc(t testing.TB) *cards.Card {
+	t.Helper()
+	return card(t, "Name:Gains Victim\nManaCost:1\nTypes:Creature\nPT:1/1\nOracle:x\n")
+}
+
+// gainsBoardWith seeds the authored carrier and a DIFFERENT authored foreign
+// artifact for seat 0, exiles the artifact with the carrier as the exiling
+// source (the provenance the static reads), seeds any extra cards onto seat
+// 0's battlefield and returns their object ids by card name.
+func gainsBoardWith(t *testing.T, foreign *cards.Card, extra ...*cards.Card) (*Engine, Config, state.ObjID, state.ObjID, map[string]state.ObjID) {
+	t.Helper()
+	carrier := gainsCarrierSrc(t)
+	e, cfg := tokenReplGame(t, 9107, append([]*cards.Card{carrier, foreign}, extra...)...)
+	carrierID := moveSeededCard(t, e, 0, carrier, state.ZBattlefield)
+	foreignID := moveSeededCard(t, e, 0, foreign, state.ZBattlefield)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: foreignID, From: state.ZBattlefield,
+		To: state.ZExile, IDs: []state.ObjID{carrierID}})
+	e.pending = nil
+	if o := e.G.Obj(foreignID); o == nil || o.Zone != state.ZExile || o.ExiledWith != carrierID {
+		t.Fatalf("foreign card = %+v, want exiled with %d", o, carrierID)
+	}
+	e.priorityRound()
+	ids := map[string]state.ObjID{}
+	for _, c := range extra {
+		ids[c.Faces[0].Name] = moveSeededCard(t, e, 0, c, state.ZBattlefield)
+	}
+	e.priorityRound()
+	return e, cfg, carrierID, foreignID, ids
+}
+
+// gainedTriggerPushEvents returns the GainedTriggerPush events a log carries
+// for one recipient, so a test can read the serialized IDs payload.
+func gainedTriggerPushEvents(log []events.Event, recipient state.ObjID) []events.Event {
+	var out []events.Event
+	for _, ev := range log {
+		if ev.Kind == events.GainedTriggerPush && ev.Obj == recipient {
+			out = append(out, ev)
+		}
+	}
+	return out
+}
+
+// gainedStackWrapper finds the resolving gained-ability wrapper on the stack
+// (Source = the recipient, Ability = the foreign SA) -- the precondition
+// both r3 resolution assertions hang off.
+func gainedStackWrapper(t *testing.T, e *Engine, recipient state.ObjID) *state.Object {
+	t.Helper()
+	for _, id := range e.G.Stack {
+		o := e.G.Obj(id)
+		if o != nil && o.Zone == state.ZStack && o.Source == recipient && o.Ability != nil {
+			return o
+		}
+	}
+	t.Fatalf("no gained-ability wrapper on the stack for recipient %d", recipient)
+	return nil
+}
+
+// activateGainedAbility activates the one gained ability offered on carrier
+// anchored on foreign (the offer precondition rides along).
+func activateGainedAbility(t *testing.T, e *Engine, carrierID, foreignID state.ObjID) {
+	t.Helper()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("pending = %+v, want priority before the activation", d)
+	}
+	for _, o := range d.Options {
+		if o.Kind == "ability" && o.Obj == carrierID && o.GainedSource == foreignID {
+			submitChoices(t, e, o.Index)
+			return
+		}
+	}
+	t.Fatalf("carrier offers no gained ability anchored on %d: %+v", foreignID, d.Options)
+}
+
+// submitTargetOn picks the pending target decision's option naming obj.
+func submitTargetOn(t *testing.T, e *Engine, obj state.ObjID) {
+	t.Helper()
+	d := e.Pending()
+	if d == nil {
+		t.Fatal("no target decision pending")
+	}
+	for _, o := range d.Options {
+		if o.Obj == obj {
+			submitChoices(t, e, o.Index)
+			return
+		}
+	}
+	t.Fatalf("target decision offers no option on %d: %+v", obj, d.Options)
+}
+
+// activateWiperOn activates the wiper's ability and targets obj, ending the
+// grant while a gained ability sits on the stack below.
+func activateWiperOn(t *testing.T, e *Engine, wiperID, foreignID state.ObjID) {
+	t.Helper()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("pending = %+v, want priority to activate the wiper", d)
+	}
+	for _, o := range d.Options {
+		if o.Kind == "ability" && o.Obj == wiperID {
+			submitChoices(t, e, o.Index)
+			submitTargetOn(t, e, foreignID)
+			return
+		}
+	}
+	t.Fatalf("the wiper offers no ability: %+v", d.Options)
+}
+
+// TestGainedTriggerCarriesItsRememberedReferent is the r2 review's MAJOR:
+// pushTrigger serializes the queue-time ctx Remembered after the foreign
+// card's provenance slot (IDs[0]), and events.Apply's GainedTriggerPush mint
+// must restore it onto the wrapper -- a gained trigger whose body reads
+// `Defined$ Remembered` (the Custodi Squire return shape) resolves the
+// remembered referent, not an empty set that acts on nobody.
+func TestGainedTriggerCarriesItsRememberedReferent(t *testing.T) {
+	returner := gainsReturnerSrc(t)
+	victim := gainsVictimSrc(t)
+	e, cfg, carrierID, foreignID, ids := gainsBoardWith(t, returner, victim)
+	victimID := ids["Gains Victim"]
+	if o := e.G.Obj(victimID); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("victim = %+v, want on the battlefield", o)
+	}
+
+	// Kill the victim: the gained trigger fires for the carrier and remembers
+	// the dying card (triggerRemembered's ChangesZone capture).
+	e.emit(events.Event{Kind: events.Damage, Obj: victimID, Amount: 99})
+	e.checkStateBased()
+	e.priorityRound()
+
+	pushes := gainedTriggerPushEvents(e.L.Events, carrierID)
+	if len(pushes) != 1 {
+		t.Fatalf("GainedTriggerPush count = %d, want 1", len(pushes))
+	}
+	if len(pushes[0].IDs) != 2 || pushes[0].IDs[0] != foreignID || pushes[0].IDs[1] != victimID {
+		t.Fatalf("GainedTriggerPush IDs = %v, want [%d %d] (foreign card, remembered victim)",
+			pushes[0].IDs, foreignID, victimID)
+	}
+	// Pre-resolution: the wrapper carries the remembered referent.
+	if wr := gainedStackWrapper(t, e, carrierID); len(wr.Remembered) != 1 || wr.Remembered[0].Obj != victimID {
+		t.Fatalf("wrapper Remembered = %+v, want the victim %d", wr.Remembered, victimID)
+	}
+
+	passUntilStackEmpty(t, e, 20)
+	if o := e.G.Obj(victimID); o == nil || o.Zone != state.ZHand {
+		t.Fatalf("victim = %+v, want back in its owner's hand (Defined$ Remembered resolved)", o)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestGainedTriggerKeepsItsOwnSVarsAfterTheGrantEnds is the r3 review's
+// triggered arm: the exiled card is removed from Exile while the gained
+// trigger sits on the stack and the grant ends -- and the trigger's body
+// must still resolve X from ITS OWN face's table (+1/+1 on the carrier), not
+// from the recipient's (empty) table, which pumps by zero.
+func TestGainedTriggerKeepsItsOwnSVarsAfterTheGrantEnds(t *testing.T) {
+	reaper := gainsReaperSrc(t)
+	wiper := gainsWiperSrc(t)
+	victim := gainsVictimSrc(t)
+	e, cfg, carrierID, foreignID, ids := gainsBoardWith(t, reaper, wiper, victim)
+	wiperID := ids["Gains Wiper"]
+	victimID := ids["Gains Victim"]
+
+	// Kill the victim; the gained trigger is pushed and waits on the stack.
+	e.emit(events.Event{Kind: events.Damage, Obj: victimID, Amount: 99})
+	e.checkStateBased()
+	e.priorityRound()
+	gainedStackWrapper(t, e, carrierID)
+
+	// While the trigger waits, activate the wiper and put the exiled card
+	// into the graveyard: the grant ends with the static's named set.
+	activateWiperOn(t, e, wiperID, foreignID)
+	passUntilStackEmpty(t, e, 20)
+
+	// The grant is dead: the foreign card is in the graveyard and the
+	// carrier no longer offers the foreign card's abilities. Without this
+	// the pump assertion below could pass on a grant that never ended.
+	if o := e.G.Obj(foreignID); o == nil || o.Zone != state.ZGraveyard {
+		t.Fatalf("foreign card = %+v, want in the graveyard", o)
+	}
+	d := e.Pending()
+	for _, o := range d.Options {
+		if o.Kind == "ability" && o.Obj == carrierID && o.GainedSource != 0 {
+			t.Fatalf("the grant is still live after the exiled card left: %+v", o)
+		}
+	}
+
+	// The trigger's body resolved X from the FOREIGN face: +2/+2 (X = the
+	// two artifacts you control -- the carrier and the wiper), not the
+	// recipient's (empty) table's zero.
+	if p, tg := e.Power(carrierID), e.Toughness(carrierID); p != 2 || tg != 2 {
+		t.Fatalf("gained trigger pumped the carrier to %d/%d, want 2/2 (X = 2 from the foreign face, not the recipient's zero)", p, tg)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestGainedActivationKeepsItsOwnSVarsAfterTheGrantEnds is the r3 review's
+// activated arm: the exiled card is removed from Exile while the gained
+// activation sits on the stack, and the ability's `LifeAmount$ X` still
+// resolves from ITS OWN face's SVar table (artifacts you control = 2), not
+// from the recipient's (empty) table, which loses zero life.
+func TestGainedActivationKeepsItsOwnSVarsAfterTheGrantEnds(t *testing.T) {
+	bleeder := gainsBleederSrc(t)
+	wiper := gainsWiperSrc(t)
+	e, cfg, carrierID, foreignID, ids := gainsBoardWith(t, bleeder, wiper)
+	wiperID := ids["Gains Wiper"]
+
+	// Precondition: the carrier offers the gained ability; seat 0's life is
+	// at its start-of-turn value.
+	lifeBefore := e.G.Players[0].Life
+	activateGainedAbility(t, e, carrierID, foreignID)
+	gainedStackWrapper(t, e, carrierID)
+
+	// End the grant while the ability waits: the wiper puts the exiled card
+	// into the graveyard.
+	activateWiperOn(t, e, wiperID, foreignID)
+	passUntilStackEmpty(t, e, 20)
+
+	// The grant is dead: the foreign card is in the graveyard and the
+	// carrier no longer offers the foreign card's abilities.
+	if o := e.G.Obj(foreignID); o == nil || o.Zone != state.ZGraveyard {
+		t.Fatalf("foreign card = %+v, want in the graveyard", o)
+	}
+	d := e.Pending()
+	for _, o := range d.Options {
+		if o.Kind == "ability" && o.Obj == carrierID && o.GainedSource != 0 {
+			t.Fatalf("the grant is still live after the exiled card left: %+v", o)
+		}
+	}
+
+	// The activation's LifeAmount$ X resolved from the FOREIGN face (X = 2:
+	// the carrier and the wiper), not the recipient's zero.
+	if got := e.G.Players[0].Life; got != lifeBefore-2 {
+		t.Fatalf("seat 0 life %d -> %d, want -2 (X = 2 from the foreign face, not the recipient's zero)", lifeBefore, got)
+	}
+	replayCheck(t, e, cfg)
+}

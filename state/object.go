@@ -770,6 +770,19 @@ type Object struct {
 	// CopyFace.
 	CopyGainThisAbility bool
 
+	// GainedFace is the foreign face a HAS-ALL-ABILITIES-OF ability wrapper
+	// (events.GainedAbilityPush / GainedTriggerPush) was minted from -- the
+	// per-stack-instance provenance rules/pile.go's gainedOwnedFace recovers.
+	// The granting static can END between the push and the resolution (the
+	// foreign card leaves the scoped zone, the static's named set re-derives),
+	// and the live-grant recovery scans then find no owner, so a resolving
+	// wrapper must not depend on them. Set ONLY inside events.Apply from the
+	// exact face that provided the compiled SA -- the same write-site
+	// discipline CopyFace takes -- so a live game and every replay, including
+	// the log-only state reconstruction, derive it identically. nil on every
+	// wrapper that is not a gained mint (and on every permanent).
+	GainedFace *cards.Face
+
 	// Unlocked marks one face of an Enchantment Room (CR 309): the door the
 	// room was CAST as is unlocked from entry; DoorUnlock (the unlock
 	// activation) flips this when the OTHER half's door is paid for. A

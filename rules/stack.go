@@ -707,7 +707,9 @@ func (e *Engine) targetBoundCtx(p state.PlayerID, source state.ObjID) (*effects.
 	// Nethroi, Apex of Death both bound their targeting with TargetMax$ X,
 	// and the pile's top card can be any creature (with no X at all). The
 	// owning face comes from the compiled trigger pointer; an ordinary
-	// trigger's owning face is the top face, so nothing else moves.
+	// trigger's owning face is the top face, so nothing else moves. A
+	// HAS-ALL-ABILITIES-OF wrapper (r3) is covered inside the recovery
+	// functions themselves, so every caller shares the one read.
 	if _, mf, ok := e.findTriggerForAbilityFace(o.Source, o.Ability); ok && mf != nil {
 		effects.SetSVars(ctx, mf.SVars)
 	} else if mf, ok := e.pileFaceForSA(o.Source, o.Ability); ok && mf != nil {

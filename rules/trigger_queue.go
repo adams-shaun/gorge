@@ -1040,10 +1040,31 @@ func (e *Engine) findTriggerForAbilityFace(source state.ObjID, sa *cards.SA) (ca
 	// resolving body is a compiled trigger on a FOREIGN card's face, so the
 	// owning face -- and therefore the SVar table, OptionalDecider$ gate,
 	// intervening-if recheck and label every consumer reads -- is that foreign
-	// face, not the recipient's. Measured against the live grants only (a grant
-	// that ended with its static is no owner), in active()'s deterministic
-	// order. A gained ACTIVATED ability is deliberately not matched here: it
-	// has no Trigger to return, and pileFaceForSA is its recovery point.
+	// face, not the recipient's. Measured against the minted provenance first
+	// -- the resolving wrapper sits on the stack carrying the exact foreign
+	// face events.Apply stamped (gainedOwnedFace), which survives the
+	// granting static ending between the queue and the resolution, the case
+	// the live-grant scan below cannot answer -- and only then against the
+	// live grants (a grant that ended with its static is no owner), in
+	// active()'s deterministic order. Any stack wrapper with this (source,
+	// ability) pair carries the same provenance -- the foreign face is a
+	// property of the compiled SA pointer, not of the instance -- so the scan
+	// is deterministic and instance-independent. A gained ACTIVATED ability is
+	// deliberately not matched here: it has no Trigger to return, and
+	// pileFaceForSA is its recovery point.
+	for _, wid := range e.G.Stack {
+		wo := e.G.Obj(wid)
+		if wo == nil || wo.Ability != sa || wo.Source != source {
+			continue
+		}
+		if f := gainedOwnedFace(wo); f != nil {
+			for i := range f.Triggers {
+				if f.Triggers[i].Effect == sa {
+					return f.Triggers[i], f, true
+				}
+			}
+		}
+	}
 	for _, gf := range e.gainedFacesForSource(source) {
 		if gf.Face == nil {
 			continue
@@ -1371,7 +1392,9 @@ func (e *Engine) abilityLabel(o *state.Object, t cards.Trigger) string {
 		}
 		// A mutated pile's under-card ability is labelled with the UNDER-CARD's
 		// own name: the ability belongs to the card beneath the top card
-		// (CR 702.140d), and the pile's top face can be any creature.
+		// (CR 702.140d), and the pile's top face can be any creature. A
+		// HAS-ALL-ABILITIES-OF trigger (r3) is covered inside the recovery
+		// function itself, so the foreign face's own name wins here too.
 		if _, mf, ok := e.findTriggerForAbilityFace(o.Source, t.Effect); ok && mf != nil && mf.Name != "" {
 			name = mf.Name
 		}
@@ -1418,8 +1441,9 @@ func (e *Engine) abilityLabel(o *state.Object, t cards.Trigger) string {
 func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA) bool {
 	var source state.ObjID
 	var svars map[string]string
-	if so := e.G.Obj(obj); so != nil {
-		source = so.Source
+	wr := e.G.Obj(obj)
+	if wr != nil {
+		source = wr.Source
 	}
 	if so := e.G.Obj(source); so != nil {
 		// The modal SVar names resolve against the face that OWNS the trigger
@@ -1427,7 +1451,8 @@ func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA
 		// modal trigger must not read the pile's top face's same-named SVar --
 		// the same top-face steal the MergedTriggerPush body resolution
 		// prevents. Ordinary triggers find their own face (the top one) and
-		// behave exactly as before.
+		// behave exactly as before. A HAS-ALL-ABILITIES-OF wrapper (r3) is
+		// covered inside the recovery function itself.
 		if _, mf, ok := e.findTriggerForAbilityFace(source, sa); ok && mf != nil {
 			svars = mf.SVars
 		} else if sf := so.Face(); sf != nil {
