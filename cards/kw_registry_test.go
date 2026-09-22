@@ -33,6 +33,9 @@ var expandedHeads = []string{
 	// Appended after the split (each is a keyword whose expansion the
 	// pre-split switch never had): Exploit (CR 702.58, task exploit1).
 	"Exploit",
+	// Ravenous (CR 702.148): the {X} +1/+1-counter ETB plus the X>=5 draw,
+	// expanded into an ETB trigger (task kw-ravenous).
+	"Ravenous",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {
