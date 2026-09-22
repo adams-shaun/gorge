@@ -287,6 +287,19 @@ func (e *Engine) askAttackers() {
 // Remembered reads, in trigger_match.go).
 func (e *Engine) handleAttackers(d *decision.Decision, in decision.Intent) {
 	chosen := d.Chosen(in)
+	// Publish the whole declaration for the declaration-wide trigger matches
+	// (CR 702.70 Training's "attacks with another creature"): the events
+	// below are per defender, so ev.IDs alone cannot answer it. Rebuilt by
+	// replay, which re-executes this handler (see the field doc). The defer
+	// clears it again so a LATER direct DeclareAttackers emit (a synthetic
+	// test event, or a future emitter) can never read a stale declaration --
+	// triggers fire synchronously inside the emits above, so every reader has
+	// already run by the time this returns.
+	e.declaredAttackers = e.declaredAttackers[:0]
+	for _, opt := range chosen {
+		e.declaredAttackers = append(e.declaredAttackers, opt.Obj)
+	}
+	defer func() { e.declaredAttackers = e.declaredAttackers[:0] }()
 	if len(chosen) == 0 {
 		// An empty declaration is still an event: it is the replay-derived
 		// marker that the declaration turn-based action has completed. The
