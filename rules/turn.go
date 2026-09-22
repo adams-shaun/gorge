@@ -45,6 +45,11 @@ func (e *Engine) beginTurn(active state.PlayerID, skipUntap ...bool) {
 // only need to differ.
 const chooseSuspendCast chooseFor = iota + 12
 
+// chooseUntap is the per-permanent untap-step election. It is deliberately
+// a KChoose (rather than a priority action): the controller answers before
+// the turn-based Untap event is emitted.
+const chooseUntap chooseFor = 40
+
 func (e *Engine) finishEnteredStep() {
 	if e.G.Step == state.StepUntap && !e.finishUntapStep(0) {
 		return
@@ -140,6 +145,23 @@ func (e *Engine) finishUntapStep(next int) bool {
 		}
 		if !o.Tapped {
 			continue
+		}
+		if hasUntapStepChoice(o) && o.UntapChoice == "" {
+			// CR 502.2: the controller may elect not to untap this
+			// permanent. Option 0 is the deterministic untap/default path;
+			// option 1 keeps it tapped. The answer is logged through Choose
+			// before the scan continues, so replay and clones agree.
+			e.untapResume = &untapStep{next: i + 1}
+			e.untapChoiceObj = o.ID
+			e.choosing = chooseUntap
+			e.ask(&decision.Decision{Player: o.Controller, Kind: decision.KChoose,
+				Min: 1, Max: 1, Source: o.ID,
+				Prompt: "Untap this permanent?",
+				Options: []decision.Option{
+					{Index: 0, Kind: "untap", Obj: o.ID, Label: "Untap"},
+					{Index: 1, Kind: "keep_tapped", Obj: o.ID, Label: "Keep tapped"},
+				}})
+			return false
 		}
 		e.untapResume = &untapStep{next: i + 1}
 		prior := e.pending
@@ -1035,6 +1057,33 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// commander_color.go): record it on the commander object as the same
 		// Choose "color" event an as-enters ask uses, then advance the round.
 		e.answerCommanderColor(d, chosen)
+	case chooseUntap:
+		if e.untapChoiceObj == 0 || len(chosen) != 1 {
+			e.choosing = chooseNone
+			e.untapChoiceObj = 0
+			e.untapResume = nil
+			return
+		}
+		id := e.untapChoiceObj
+		next := 0
+		if e.untapResume != nil {
+			next = e.untapResume.next
+		}
+		keep := chosen[0].Index == 1
+		e.emit(events.Event{Kind: events.Choose, Obj: id, Counter: "untap",
+			Text: map[bool]string{true: "keep", false: "untap"}[keep]})
+		e.choosing = chooseNone
+		e.untapChoiceObj = 0
+		if !keep {
+			e.untapTurnPermanent(id)
+			if e.pending != nil {
+				return
+			}
+		}
+		e.untapResume = nil
+		if e.finishUntapStep(next) {
+			e.finishEnteredStep()
+		}
 	case chooseRiot:
 		// Riot is an as-enters replacement for every MoveZone path, including
 		// reanimation and blink that never create pendingCast. Record the

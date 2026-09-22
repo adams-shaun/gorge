@@ -581,8 +581,19 @@ type RepeatSuspension struct {
 // DamageSourceLKI is the pre-departure damage provenance of one object.
 // It remains separate from Ctx's own-source fields because DamageSource$ may
 // name an object distinct from the resolving spell or ability's source.
+//
+// Infect and Deathtouch join Lifelink because CR 113.7a reads the source's
+// last known characteristics for the whole damage rider, not just the life
+// gain: a bearer that left while its ability waited still deals its damage in
+// counter form (CR 702.90b) and still marks its hit deadly (CR 702.2b). Rules
+// seeds all three from one walk, so this map is their single home -- it is
+// populated for the resolution's OWN source as well as a named DamageSource$
+// object, and the older own-source Ctx fields stay authoritative only for
+// lifelink and controller, whose precedence predates it.
 type DamageSourceLKI struct {
 	Lifelink   bool
+	Infect     bool
+	Deathtouch bool
 	Controller state.PlayerID
 }
 
@@ -1109,7 +1120,16 @@ type Ctx struct {
 	// decline)" from the first pass. effMoveCounter consumes and clears all
 	// four at the top of its own walk (the fx42 scoping discipline), so a
 	// nested MoveCounter cannot inherit the outer answers.
-	MoveCounterKind     string
+	MoveCounterKind string
+	// TimeTravelChoice is the answered per-object add/remove/skip election.
+	// TimeTravelObjects is the stable per-round snapshot captured by the rules
+	// resume point; it prevents removing a counter from shifting the next
+	// object's cursor when the live eligible set is recomputed.
+	TimeTravelChoice    string
+	TimeTravelObjects   []state.ObjID
+	TimeTravelIndex     int
+	TimeTravelRound     int
+	TimeTravelDone      bool
 	MoveCounterKindDone bool
 	MoveCounterN        int32
 	MoveCounterNDone    bool

@@ -36,6 +36,7 @@ func (e *Engine) Clone() *Engine {
 		orderedTriggers:     e.orderedTriggers,
 		applyingReplacement: e.applyingReplacement,
 		choosing:            e.choosing,
+		untapChoiceObj:      e.untapChoiceObj,
 		drainAwaitsTarget:   e.drainAwaitsTarget,
 		drainAwaitsModes:    e.drainAwaitsModes,
 		deferCastTrigger:    e.deferCastTrigger,
@@ -122,6 +123,10 @@ func (e *Engine) Clone() *Engine {
 	if e.siegeMove != nil {
 		ev := *e.siegeMove
 		c.siegeMove = &ev
+	}
+	if e.untapResume != nil {
+		r := *e.untapResume
+		c.untapResume = &r
 	}
 	if e.pending != nil {
 		d := *e.pending

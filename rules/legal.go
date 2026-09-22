@@ -343,8 +343,10 @@ var coreCardTypes = []string{"Artifact", "Battle", "Creature", "Enchantment",
 //
 // Solved (the Case permanents' solved flag) names state this build does not
 // track, so that gate FAILS CLOSED -- the conservative direction for an
-// "only if" condition whose meeting cannot be verified (measured at the
-// current corpus pin: 3 raw lines, none in the decks).
+// "only if" condition whose meeting cannot be verified. Blessing is the
+// city's-blessing latch in state.Player and is read by the same offer-time
+// gate as the other conditions. No repo-deck card carries Solved or Blessing
+// (measured at the current corpus pin: 3 raw lines each, none in the decks).
 func (e *Engine) activationConditionOK(p state.PlayerID, ab *cards.SA) bool {
 	raw, ok := ab.Params["Activation"]
 	if !ok || strings.TrimSpace(raw) == "" {
@@ -368,7 +370,7 @@ func (e *Engine) activationConditionOK(p state.PlayerID, ab *cards.SA) bool {
 		// the Condition$ Blessing gate and the Count$Blessing branch head
 		// read. An out-of-range activator denies -- the fail-closed
 		// direction a blessing gate that cannot name its seat must take.
-		return int(p) < len(e.G.Players) && e.G.Players[p].Blessing
+		return int(p) < len(e.G.Players) && !e.G.Players[p].Lost && e.G.Players[p].Blessing
 	case "Delirium":
 		seen := map[string]bool{}
 		for _, id := range e.G.Zone(state.ZGraveyard, p) {

@@ -374,7 +374,7 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 					})
 				}
 				if attachTo != 0 && g.Obj(want) != nil && g.Obj(attachTo) != nil {
-					h.Emit(events.Event{Kind: events.Attach, Obj: want, IDs: []state.ObjID{attachTo}})
+					emitAttach(h, want, attachTo)
 				}
 				if strings.EqualFold(strings.TrimSpace(sa.Params["ImprintTokens"]), "True") && g.Obj(want) != nil {
 					// ImprintTokens$ True (Ugin, the Ineffable's [+1] spirit token):

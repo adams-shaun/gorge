@@ -75,7 +75,7 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.CmdDamage, events.DelayedRegister, events.DelayedPush,
 		events.GrantAbilityPush,
 		events.LibraryOrder, events.ExtraTurn, events.DoorUnlock,
-		events.SpeedChange, events.MonarchChange, events.ControlChange,
+		events.SpeedChange, events.ControlChange,
 		events.CardToken, events.KeywordTriggerPush, events.Goad,
 		events.PlayerCounterChange, events.Imprint, events.StartingPlayerChange,
 		events.Pair, events.MyriadCopy, events.MyriadCleanup,
@@ -85,7 +85,7 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.CombatRetarget, events.RingTemptsYou, events.RingEmblemPush,
 		events.BlessingChange, events.ClonePermanent,
 		events.Mutate, events.MergedTriggerPush,
-		events.Enlist, events.AlterAttribute,
+		events.Enlist, events.AlterAttribute, events.Unattached,
 		events.GainedAbilityPush, events.GainedTriggerPush:
 		// AlterAttribute (alterattr1) is the same shape past the bound as
 		// Enlist: the suspected designation (CR 702.157) is a status no
@@ -127,6 +127,11 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		// default arm would give it -- a ManaExpend-only face's compiled
 		// scan set narrows to the one event kind it fires on.
 		return cards.TriggerInterestCastInfo
+	case events.MonarchChange:
+		// The monarch designation transition carries trig:BecomeMonarch
+		// (rules' becomeMonarchMatches), so it has its own interest bit rather
+		// than the zero mapping it carried while no mode matched it.
+		return cards.TriggerInterestMonarch
 	default:
 		return cards.TriggerInterestAny
 	}
@@ -236,10 +241,27 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// than letting it fall to the allTriggerEvents default) keeps a
 		// RingTemptsYou-only face's mask narrow for every other kind.
 		return 0
+	case "BecomeMonarch":
+		// The monarch designation transition (trig:BecomeMonarch), matched by
+		// rules' becomeMonarchMatches. MonarchChange is ordinal 43, inside the
+		// 64-bit mask's reach, so an exact bit is encodable.
+		return 1 << events.MonarchChange
 	case "CommitCrime", "BecomesTarget":
 		return 1 << events.TargetsChosen
 	case "Attached":
 		return 1 << events.Attach
+	case "Unattached":
+		// CR 701.3b's detach half. The Kind's ordinal is past the 64-bit
+		// mask's reach (Unattached is appended after Surveil, the same
+		// post-CombatRetarget range as Enlisted/Mutates), so a mask bit is not
+		// encodable and allows() fails open for every kind at or past
+		// triggerMaskKindBits -- the mode is admitted through that fail-open
+		// path and gated by the full matcher (unattachedMatches). Naming the
+		// mode here rather than letting it fall to the allTriggerEvents default
+		// keeps an Unattached-only face's mask narrow for every other kind, and
+		// keeps Mode$ Attached's mask exact (its bit is events.Attach, never
+		// events.Unattached).
+		return 0
 	case "Exerted":
 		// The mode fires on the CR 702.100 exert itself (events.Exert with
 		// Amount >= 0); the Amount == -1 untap-step consume marker is the

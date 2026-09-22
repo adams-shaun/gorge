@@ -81,6 +81,13 @@ var addedAfterTheSplit = []string{
 	// already but the MODE did not -- no pre-split switch arm could have
 	// dispatched it.
 	"ClassLevelGained",
+	// trig-become-monarch: "Whenever a player becomes the monarch ..." (the
+	// 5 corpus Mode$ BecomeMonarch carriers: Knights of the Black Rose,
+	// Custodi Lich, Garland Royal Kidnapper, Starscream Power Hungry, and
+	// Palace Jailer's command-zone SVar). It matches the events.MonarchChange
+	// designation transition api:BecomeMonarch emits, which existed before
+	// the mode did -- no pre-split switch arm dispatched BecomeMonarch.
+	"BecomeMonarch",
 	// counterchange-triggers: "Whenever one or more counters are removed from
 	// CARDNAME" (Regenerations Restored, Chandra Fire Artisan, B.O.B. Bevy of
 	// Beebles). The pre-split switch dispatched CounterRemoved but not its
@@ -107,6 +114,14 @@ var addedAfterTheSplit = []string{
 	// which was appended for it, so it could not have been in the pre-split
 	// switch.
 	"Surveil",
+	// agent-20260920T063816Z-abb68c8f: "Whenever CARDNAME becomes unattached
+	// from a permanent ..." (CR 701.3b; Captain's Hook, Grafted Exoskeleton,
+	// Grafted Wargear, Stitcher's Graft). It matches the events.Unattached
+	// marker Kind, which was appended for it so that a detach fires this mode
+	// while Mode$ Attached keeps ignoring it -- the detach SBAs previously
+	// logged an empty-IDs events.Attach, so no pre-split switch arm could
+	// have dispatched it.
+	"Unattached",
 }
 
 func allRegisteredModeNames() []string {

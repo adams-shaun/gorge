@@ -687,7 +687,7 @@ func changeZoneAttachedTo(h Host, c *Ctx, sa *cards.SA, moved state.ObjID) {
 			Text: "ChangeZone AttachedTo$ " + val + " resolved to nothing; the card enters unattached"})
 		return
 	}
-	h.Emit(events.Event{Kind: events.Attach, Obj: moved, IDs: []state.ObjID{to}})
+	emitAttach(h, moved, to)
 }
 
 // applyFaceDownMarker stamps a just-built ChangeZone MoveZone with the

@@ -817,6 +817,25 @@ func Apply(g *state.Game, e Event) {
 		}
 
 	case Damage:
+		// CR 702.90b: damage a source with INFECT dealt is dealt in a
+		// different FORM, decided by the recipient -- to a creature, as that
+		// many -1/-1 counters, not marked damage; to a player, as that many
+		// poison counters, not life loss; every other object (an artifact, a
+		// Battle, a printed planeswalker) takes it as ordinary damage. The
+		// Damage event itself still travels the whole replacement and trigger
+		// pipeline (protection, prevention, DamageDone triggers, lifelink,
+		// the combat-damage ledger), exactly as the planeswalker loyalty
+		// exchange below already converts the same event; the infect marker
+		// rides Counter, Damage's existing characteristic carrier.
+		//
+		// The counters/poison themselves are NOT written here: they are
+		// placed by rules' conversion (Engine.convertInfectDamage), which
+		// emits a REAL CounterChange/PlayerCounterChange right after this
+		// event folds, so the repl:AddCounter class (a Winding Constrictor
+		// doubler, a CantPutCounter lock) and trig:CounterAdded see the
+		// placement exactly like any other. This fold only withholds the
+		// form the counters replace.
+		infect := e.Counter == "infect"
 		if o := g.Obj(e.Obj); o != nil {
 			// CR 306.8 / 120.3c: damage dealt to a planeswalker permanent
 			// removes that many loyalty counters instead of being marked as
@@ -846,8 +865,27 @@ func Apply(g *state.Game, e Event) {
 			// effects/rules set it to creature from the current layer result.
 			// The printed-face fallback retains direct-event callers and normal
 			// printed creature behavior.
-			creature := e.Counter == "creature" || (o.Face() != nil && o.Face().IsCreature())
-			if !walker || creature {
+			// The infect marker on an OBJECT event is the compound
+			// "infect+creature": the emitter (rules/effects, which can read the
+			// layer state this fold cannot) tags exactly the CREATURE
+			// recipients, printed or layer-animated (CR 120.3e -- such a
+			// planeswalker takes the loyalty exchange above AND its damage in
+			// counter form). A bare "infect" object event is never emitted by
+			// the engine's own emitters -- a non-creature recipient goes
+			// untagged and marks normally -- so treating a bare marker as
+			// ordinary damage is the safe reading for anything a future
+			// emitter (or a redirect's fresh event) hands here.
+			creature := e.Counter == "creature" || e.Counter == "infect+creature" ||
+				(o.Face() != nil && o.Face().IsCreature())
+			if e.Counter == "infect+creature" {
+				// CR 702.90b: that many -1/-1 counters instead of marked
+				// damage. They arrive as the separate CounterChange event rules
+				// emitted right after this one. The branch also covers a
+				// rewritten negative amount (cleanup's marked-damage clearing),
+				// which an infect recipient never owes -- it has no marked
+				// damage to clear; its counters survive cleanup (they are not
+				// marked damage).
+			} else if !walker || creature {
 				o.Damage += e.Amount
 				if o.Damage < 0 {
 					o.Damage = 0
@@ -861,7 +899,17 @@ func Apply(g *state.Game, e Event) {
 				o.WasDealtDamageThisTurn = true
 			}
 		} else if validPlayer(g, e.Player) {
-			g.Players[e.Player].Life -= e.Amount
+			if infect && e.Amount > 0 {
+				// CR 702.90b: that many poison counters instead of life loss.
+				// The placement is rules' job (Engine.convertInfectDamage emits
+				// a real PlayerCounterChange right after this event, so the
+				// repl:AddCounter class and trig:CounterAdded see it and
+				// rules/sba.go's CR 704.5b ten-poison loss reads it exactly as
+				// it reads a Ward-poison counter); this fold only withholds the
+				// life loss the poison replaces.
+			} else {
+				g.Players[e.Player].Life -= e.Amount
+			}
 		}
 
 	case Tap:
@@ -928,6 +976,9 @@ func Apply(g *state.Game, e Event) {
 				// deliberately NOT reset here -- its window spans the turn
 				// boundary and is consumed at the next untap step instead.
 				g.Objs[i].ExertedThisTurn = false
+				// An untap election belongs to one controller's untap
+				// step; the next turn gets a fresh election.
+				g.Objs[i].UntapChoice = ""
 				// CR 702.160: enlist is a per-combat fact; the stamp is cleared at
 				// the turn boundary (a same-turn second combat compares its own
 				// CombatsThisTurn against the stamp, so it needs no separate
@@ -950,6 +1001,14 @@ func Apply(g *state.Game, e Event) {
 			// per-turn combat-phase count resets with them.
 			g.ExtraPhases = nil
 			g.CombatsThisTurn = 0
+			// Snapshot the monarch designation as the NEW turn begins, for the
+			// trig:BecomeMonarch BeginTurn$ intervening-if ("if you were the
+			// monarch as the turn began"). Folding it here, from state
+			// MonarchChange already established, keeps the read replay-exact
+			// without a new event or event field; a game with no monarch ever
+			// set carries the false presence bit and the condition fails
+			// closed.
+			g.TurnStartMonarch, g.HasTurnStartMonarch = g.Monarch, g.HasMonarch
 		}
 		// PersistentMana$ True mana expires at the end of the turn it was
 		// produced in (the carriers' "until end of turn" bound), whichever
@@ -1528,6 +1587,8 @@ func Apply(g *state.Game, e Event) {
 				o.ChosenNumber = e.Amount
 			case "riot":
 				o.RiotChoice = e.Text
+			case "untap":
+				o.UntapChoice = e.Text
 			case "unleash":
 				o.UnleashChoice = e.Text
 			case state.ModeChoiceCounterPrefix + state.ModeScopeThisTurn:
@@ -1770,6 +1831,7 @@ func Apply(g *state.Game, e Event) {
 		sa := cards.ResolveSVar(src.Face().SVars, e.Counter)
 		conspire := false
 		demonstrate := false
+		flanking := false
 		if sa == nil {
 			// A granted ward (rules.pushTrigger's __kwWard: payload) has no
 			// SVar to resolve: the ability is rebuilt structurally from the
@@ -1836,6 +1898,21 @@ func Apply(g *state.Game, e Event) {
 				sa = &cards.SA{Kind: "DB", API: "Cascade",
 					Params: map[string]string{"TriggerDescription": "Cascade"}}
 			}
+			// A granted flanking (rules.pushTrigger's __kwFlanking: payload) has
+			// no SVar either: rebuilt structurally into the same
+			// DB$ Pump | Defined$ TriggeredBlockerLKICopy | NumAtt$ -1 | NumDef$
+			// -1 body the printed K:Flanking expansion carries
+			// (cards/kw_flanking.go), so the live game and the replay mint
+			// identical objects from the event text alone. The blocked creature
+			// rides Remembered (IDs), exactly as the printed expansion's own
+			// TriggerPush entries carry it. The trailing colon keeps the payload
+			// from aliasing the "__kwFlanking" SVar a printed bare K:Flanking
+			// line mints.
+			if _, ok := strings.CutPrefix(e.Counter, "__kwFlanking:"); ok {
+				sa = &cards.SA{Kind: "DB", API: "Pump",
+					Params: map[string]string{"Defined": "TriggeredBlockerLKICopy", "NumAtt": "-1", "NumDef": "-1"}}
+				flanking = ok
+			}
 			// A granted Exploit (rules.pushTrigger's __kwExploitGranted
 			// payload) has no SVar either: rebuilt structurally into the same
 			// DB$ Sacrifice | Optional$ True | SacValid$ Creature |
@@ -1883,7 +1960,7 @@ func Apply(g *state.Game, e Event) {
 		o.Ability = sa
 		o.Source = e.Obj
 		o.SourceIncarnation = incarnation
-		if conspire || demonstrate {
+		if conspire || demonstrate || flanking {
 			o.Remembered = rememberedFrom(e.IDs)
 		}
 
@@ -1952,6 +2029,18 @@ func Apply(g *state.Game, e Event) {
 			} else if g.Obj(e.IDs[0]) != nil {
 				o.AttachedTo = e.IDs[0]
 			}
+		}
+
+	case Unattached:
+		// CR 701.3b: Obj became unattached from the bearer on a path where Obj
+		// itself stays on the battlefield (the attachmentSBAs detach arms and
+		// the bestowed type switch). The fold is the same AttachedTo clear an
+		// empty-IDs Attach makes; the Kind is distinct so Mode$ Attached keeps
+		// ignoring a detach while Mode$ Unattached fires. IDs[0] is the former
+		// bearer, which only the trigger matcher reads -- nothing about the
+		// state fold depends on it.
+		if o := g.Obj(e.Obj); o != nil {
+			o.AttachedTo = 0
 		}
 
 	case AbilityPush:
@@ -2779,6 +2868,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		o.FaceDownHasPT = false
 		o.Cloaked = false
 		o.RiotChoice = ""
+		o.UntapChoice = ""
 		o.UnleashChoice = ""
 		o.IsMyriad = false
 		// CR 400.7: leaving the battlefield makes the object a new object, so

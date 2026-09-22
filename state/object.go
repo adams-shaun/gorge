@@ -669,6 +669,10 @@ type Object struct {
 	// RiotChoice is set by the logged as-enters Riot choice. It survives the
 	// hand/stack path and Move consumes it on battlefield entry.
 	RiotChoice string
+	// UntapChoice records the permanent's answer to its untap-step election.
+	// It is folded by events.Choose so a replay makes the same turn-based
+	// decision; the turn boundary clears it before the next election.
+	UntapChoice string
 	// UnleashChoice is set by the logged as-enters Unleash choice (CR 702.86:
 	// "counter" = enter with a +1/+1 counter, "plain" = enter without). It
 	// survives the hand/stack path and Move consumes it on battlefield entry,

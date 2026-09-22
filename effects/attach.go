@@ -19,6 +19,31 @@ func init() {
 	RegisterNonAPI("kw:Equip", "kw:Enchant", "kw:Living Weapon", "kw:For Mirrodin", "kw:Reconfigure")
 }
 
+// emitAttach publishes "obj becomes attached to bearer" as events.Attach,
+// first publishing events.Unattached when obj was already attached to a
+// DIFFERENT permanent. CR 701.3b makes "becomes unattached" a real event
+// (the Mode$ Unattached family: Captain's Hook, Grafted Exoskeleton, Grafted
+// Wargear, Stitcher's Graft), and an Attach overwriting state.Object.AttachedTo
+// would otherwise drop the former bearer's detach entirely -- leaving the
+// Grafted Exoskeleton trigger silent when its Equipment is re-equipped from
+// one creature to another. Every Attach emit in this package goes through
+// here, so a future re-attaching site cannot reintroduce the omission.
+//
+// The former bearer is carried on Unattached.IDs[0], the same field
+// rules/attach.go's attachmentSBAs detach arms use and the referent
+// rules/trigger_match.go's triggerRemembered reads for
+// Defined$ TriggeredObjectLKICopy. A fresh attach (AttachedTo == 0) or a
+// redundant re-attach to the SAME bearer emits no Unattached: nothing became
+// unattached, so no trigger may fire.
+func emitAttach(h Host, obj, bearer state.ObjID) {
+	if o := h.Game().Obj(obj); o != nil && o.AttachedTo != 0 && o.AttachedTo != bearer {
+		h.Emit(events.Event{Kind: events.Unattached, Obj: obj,
+			IDs:  []state.ObjID{o.AttachedTo},
+			Text: "reattached to a new permanent"})
+	}
+	h.Emit(events.Event{Kind: events.Attach, Obj: obj, IDs: []state.ObjID{bearer}})
+}
+
 // Attachable reports whether obj may legally be attached to target. Task 14
 // leaves this always-true: the full check includes "the target is not
 // protected from the attachment's colours" (CR 702.16e for being attached
@@ -153,7 +178,7 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 	// two-half remember (see the function comment).
 	rememberAttached := strings.EqualFold(strings.TrimSpace(sa.Params["RememberAttached"]), "True")
 	attachTo := func(target state.ObjID) {
-		h.Emit(events.Event{Kind: events.Attach, Obj: obj, IDs: []state.ObjID{target}})
+		emitAttach(h, obj, target)
 		if rememberAttached {
 			c.Remembered = append(c.Remembered, state.Target{Obj: obj})
 			eventRemember(h, c, obj)

@@ -504,6 +504,19 @@ func Describe(g *state.Game, ev events.Event) string {
 			s += " (" + ev.Text + ")"
 		}
 		return s
+	case events.Unattached:
+		// CR 701.3b: Obj became unattached from the former bearer (IDs[0]).
+		// The attachment stays on the battlefield (its own departure is a
+		// MoveZone), so this is the detach half of Attach's line; Text carries
+		// the reason the same way Attach's detach shape does.
+		s := obj(g, ev.Obj) + " becomes unattached"
+		if len(ev.IDs) > 0 {
+			s += " from " + obj(g, ev.IDs[0])
+		}
+		if ev.Text != "" {
+			s += " (" + ev.Text + ")"
+		}
+		return s
 	case events.AbilityPush:
 		// An activated ability minted onto the stack (the same shape
 		// TriggerPush uses for triggers, Ruling T20-a): Player is the
