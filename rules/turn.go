@@ -66,11 +66,12 @@ func (e *Engine) finishEnteredStep() {
 			if o == nil || o.Counter("TIME") <= 0 {
 				continue
 			}
-			if o.CastFlags&state.FlagSuspend == 0 {
-				// Only a card that entered exile through the Suspend action
-				// loses TIME counters. A plotted card carries none -- CR
-				// 701.34's timing is "on a later turn", not an upkeep count
-				// (rules/legal.go's exile walk reads Object.PlottedTurn).
+			if o.CastFlags&state.FlagSuspend == 0 && !o.SuspendGranted {
+				// Only a card that entered exile through the Suspend action,
+				// or received a real Suspend grant while in exile, loses TIME
+				// counters. A plotted card carries none -- CR 701.34's timing
+				// is "on a later turn", not an upkeep count (rules/legal.go's
+				// exile walk reads Object.PlottedTurn).
 				continue
 			}
 			e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "TIME", Amount: -1})
