@@ -1999,6 +1999,15 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 	if faceDown && o.Cloaked {
 		kw = append(kw, "Ward:2")
 	}
+	// CR 702.157b: a suspected creature has menace. The designation is a
+	// status, not an ability, so appending it here -- ahead of the layer
+	// walk, exactly where the cloak's status ward lands -- is the same grant
+	// shape; leaving the battlefield or another player gaining control
+	// clears it (events.Apply's Move and ControlChange folds), so the menace
+	// drops with the designation.
+	if o.Suspected {
+		kw = append(kw, "Menace")
+	}
 	// Layer 4 runs first through typeCharacteristics (see above), so every
 	// later effect's Affected$ filter — and every layer-4 effect's own —
 	// sees the derived type list, not the printed face.
