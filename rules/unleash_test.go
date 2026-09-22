@@ -303,6 +303,77 @@ func TestRiotFaceDownEntryPosesNothing(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+// TestRiotFaceDownEntryDoesNotDisableTheNextRiotAsk is the regression pin
+// for the placement defect findings-sol1 named on the r2 guard: the
+// face-down check MUST run BEFORE applyRiotReplacement parks its move. A
+// face-down entry that parked e.riotMove and then returned false would
+// leave a stale parked move that is never emitted and never cleared
+// (chooseRiot's answer arm cannot fire for it), so the parked-move guard at
+// the top of applyRiotReplacement would suppress every later non-cast Riot
+// entry's ask for the rest of the match. The pin drives both face-down
+// markers and, after each, a SECOND (face-up) goblin entry whose
+// counter-or-haste ask must still be posed and answerable.
+func TestRiotFaceDownEntryDoesNotDisableTheNextRiotAsk(t *testing.T) {
+	goblin := unleashCard(t, "Zhur-Taa Goblin")
+	deck := make([]*cards.Card, 40)
+	for i := range deck {
+		deck[i] = goblin
+	}
+	cfg := seatZeroStart(Config{Seed: 408, Names: []string{"vandal", "other"}, Decks: [][]*cards.Card{deck, deck}})
+	for _, tc := range []struct{ name, counter string }{
+		{"manifest", events.FaceDownEntryCounter},
+		{"cloak", events.CloakEntryCounter},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// A fresh engine per marker: answering an ask lands the engine at
+			// priority, so each marker's sequence is driven on its own stream.
+			e := New(cfg)
+			var libs []state.ObjID
+			for i := range e.G.Objs {
+				o := &e.G.Objs[i]
+				if o.Owner == 0 && o.Zone == state.ZLibrary && o.Face() != nil && o.Face().Name == "Zhur-Taa Goblin" {
+					libs = append(libs, o.ID)
+				}
+			}
+			if len(libs) < 2 {
+				t.Fatalf("precondition failed: only %d library goblins", len(libs))
+			}
+			// First entry: face-down. No ask, no public Choose, no counter.
+			fd := libs[0]
+			e.emit(events.Event{Kind: events.MoveZone, Obj: fd, From: state.ZLibrary,
+				To: state.ZBattlefield, Counter: tc.counter})
+			if d := e.Pending(); d != nil {
+				t.Fatalf("face-down riot entry posed a decision: %+v (%s)", d, d.Prompt)
+			}
+			o := e.G.Obj(fd)
+			if o == nil || o.Zone != state.ZBattlefield || !o.FaceDown {
+				t.Fatalf("face-down precondition failed: %+v", o)
+			}
+			if e.riotMove != nil {
+				t.Fatalf("face-down riot entry left a stale parked riotMove: %+v", *e.riotMove)
+			}
+			// Second entry: face-up. The ask MUST still be posed.
+			next := libs[1]
+			e.emit(events.Event{Kind: events.MoveZone, Obj: next, From: state.ZLibrary,
+				To: state.ZBattlefield})
+			d := e.Pending()
+			if d == nil || d.Kind != decision.KChoose || len(d.Options) != 2 ||
+				d.Options[0].Kind != "riot" {
+				t.Fatalf("the follow-up riot entry's ask was suppressed: %+v", d)
+			}
+			// Answer "counter" and prove the parked move applied end to end.
+			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
+				t.Fatalf("submit riot choice: %v", err)
+			}
+			o2 := e.G.Obj(next)
+			if o2 == nil || o2.Zone != state.ZBattlefield || o2.Counter("P1P1") != 1 {
+				t.Fatalf("follow-up countered entry failed: %+v counters %d", o2, o2.Counter("P1P1"))
+			}
+			replayCheck(t, e, cfg)
+		})
+	}
+}
+
 // TestGrantedUnleashCounteredDogCantBlock uses Tesak, Judith's Hellhound's
 // real static ("Other Dogs you control have unleash"): a Dog that carries a
 // +1/+1 counter cannot block, because canBlock reads the DERIVED keyword
