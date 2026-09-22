@@ -83,12 +83,11 @@ func TestEvalCountValidSumsAPropertySuffix(t *testing.T) {
 	if got := EvalCount(h, c, "Count$Valid Creature.YouCtrl$CardManaCost"); got != 4 {
 		t.Errorf("Creature.YouCtrl$CardManaCost = %d, want 4", got)
 	}
-	// An unrecognised property keeps the old whole-token spec read: it
-	// never matched anything, so it stays a zero count, not a widening.
-	// (The Greatest/Least reductions ARE read now -- see
-	// TestEvalCountValidExtremeProperties below.)
-	if got := EvalCount(h, c, "Count$Valid Creature$DifferentCardPower"); got != 0 {
-		t.Errorf("DifferentCardPower token = %d, want 0 (out of scope, fail closed)", got)
+	// The Different* distinct-set properties ARE read since diffcount1:
+	// distinct DERIVED powers among the matches -- Bear 2, Flier 1, Giant
+	// 5 -- is 3, not a sum and not a fail-closed zero.
+	if got := EvalCount(h, c, "Count$Valid Creature$DifferentCardPower"); got != 3 {
+		t.Errorf("DifferentCardPower token = %d, want 3 (distinct powers 2,1,5)", got)
 	}
 }
 
@@ -174,15 +173,18 @@ func TestEvalCountValidCountsDistinctColors(t *testing.T) {
 	if got := EvalCount(h, c, "Count$Valid Permanent.YouCtrl$Colors/LimitMax.2"); got != 2 {
 		t.Errorf("Colors/LimitMax.2 = %d, want 2 (clamped)", got)
 	}
-	// An op suffix Colors does not READ (Bogus.3) follows applyCountOp's
-	// convention for every unknown op -- ignored, so the plain Colors count
-	// stands -- and the still-out-of-scope properties keep the whole-token
-	// fail-closed read.
 	if got := EvalCount(h, c, "Count$Valid Permanent.YouCtrl$Colors/Bogus.3"); got != 4 {
 		t.Errorf("Colors/Bogus.3 = %d, want 4 (unknown op ignored, plain Colors)", got)
 	}
-	if got := EvalCount(h, c, "Count$Valid Creature$DifferentCardPower"); got != 0 {
-		t.Errorf("DifferentCardPower token = %d, want 0 (out of scope, fail closed)", got)
+	// ...and the Different* family reads through the same suffix cut:
+	// distinct powers 2 (Bear), 1 (Flier), 5 (Giant) = 3.
+	if got := EvalCount(h, c, "Count$Valid Creature$DifferentCardPower"); got != 3 {
+		t.Errorf("DifferentCardPower token = %d, want 3 (distinct powers 2,1,5)", got)
+	}
+	// An UNKNOWN Different* spelling outside the family still keeps the
+	// whole-token fail-closed read.
+	if got := EvalCount(h, c, "Count$Valid Creature$DifferentBogus"); got != 0 {
+		t.Errorf("DifferentBogus token = %d, want 0 (out of scope, fail closed)", got)
 	}
 }
 

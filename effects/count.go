@@ -643,6 +643,20 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 	}
 	g := h.Game()
 	var n int32
+	// The Different* distinct-set property family over a reference's objects
+	// (task diffcount1): `Remembered$DifferentCardManaCost` (Azor's Gateway,
+	// Sanctum of the Sun settling X, Atemsis All-Seeing). The set is read
+	// through len, so no map ordering ever reaches an event or a view.
+	diffKind := differentPropertyKindOf(prop)
+	var seenDiffValues map[int32]bool
+	var seenDiffNames map[string]bool
+	if diffKind != diffNone {
+		if diffKind == diffName {
+			seenDiffNames = make(map[string]bool)
+		} else {
+			seenDiffValues = make(map[int32]bool)
+		}
+	}
 	for _, t := range ts {
 		if t.IsPlayer {
 			continue
@@ -724,7 +738,41 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 				n += o.ConvergeColours
 			}
 		default:
+			if diffKind != diffNone {
+				switch {
+				case seenDiffNames != nil:
+					if f := o.Face(); f != nil {
+						seenDiffNames[f.Name] = true
+					}
+				case diffKind == diffPower:
+					// The derived power, with the zone-change snapshot when one
+					// is carried -- the CardPower case's exact read.
+					if lki && c.LKIPTValid {
+						seenDiffValues[c.LKIPower] = true
+					} else {
+						seenDiffValues[refPower(h, o, lki)] = true
+					}
+				case diffKind == diffToughness:
+					if lki && c.LKIPTValid {
+						seenDiffValues[c.LKIToughness] = true
+					} else {
+						seenDiffValues[refToughness(h, o, lki)] = true
+					}
+				default:
+					if v, ok := differentPropertyValue(h, o, diffKind); ok {
+						seenDiffValues[v] = true
+					}
+				}
+				continue
+			}
 			return 0, false
+		}
+	}
+	if diffKind != diffNone {
+		if seenDiffNames != nil {
+			n = int32(len(seenDiffNames))
+		} else {
+			n = int32(len(seenDiffValues))
 		}
 	}
 	if hasOp {
@@ -1790,6 +1838,7 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			case prop == "CardPower" || prop == "CardToughness" || prop == "CardManaCost" ||
 				prop == "CardTypes" || prop == "Colors":
 			case isExtremeProperty(prop):
+			case differentPropertyKindOf(prop) != diffNone:
 			default:
 				// Not a recognised property (DifferentNames,
 				// Different*, ...): keep the old whole-token spec read.
@@ -1867,12 +1916,25 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		f := zoneCountFold{h: h, g: g, spec: spec,
 			prop: prop, extreme: extreme, isLeast: isLeastProperty(prop),
 			hasBareHand: hasBareHand, seenTokenNames: seenTokenNames, seenCardTypes: seenCardTypes}
+		// The Different* distinct-set property family (task diffcount1):
+		// DifferentCardManaCost / DifferentCardPower / DifferentCardNames /
+		// DifferentColorPair count the DISTINCT values among the matching
+		// cards, not the cards themselves. Numeric values fold into a set
+		// keyed by the value; names into a string set. Both are read only
+		// through len, so no map ordering ever reaches an event or a view.
+		if dk := differentPropertyKindOf(prop); dk != diffNone {
+			f.diffKind = dk
+			if dk == diffName {
+				f.seenDiffNames = make(map[string]bool)
+			} else {
+				f.seenDiffValues = make(map[int32]bool)
+			}
+		}
 		if isAll {
 			for _, p := range g.AliveFrom(0) {
 				for _, z := range countAllZones {
 					for _, id := range g.Zone(z, p) {
 						f.visit(id, z, specCtx)
-
 					}
 				}
 			}
@@ -1914,6 +1976,12 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		}
 		if prop == "Colors" {
 			return int32(bits.OnesCount8(uint8(f.colorsSeen))), true
+		}
+		if f.diffKind != diffNone {
+			if f.seenDiffNames != nil {
+				return int32(len(f.seenDiffNames)), true
+			}
+			return int32(len(f.seenDiffValues)), true
 		}
 		return f.n, true
 	}
@@ -2683,6 +2751,12 @@ type zoneCountFold struct {
 	seenTokenNames map[string]bool
 	seenCardTypes  map[string]bool
 	colorsSeen     ColorMask
+	// diffKind and the seen sets for the Different* distinct-set property
+	// family (task diffcount1). Both maps are read only through len, so no
+	// map ordering ever reaches an event or a view.
+	diffKind       differentPropertyKind
+	seenDiffValues map[int32]bool
+	seenDiffNames  map[string]bool
 }
 
 // visit folds one candidate: the shared per-candidate body of the
@@ -2742,6 +2816,18 @@ func (f *zoneCountFold) visit(id state.ObjID, zone state.Zone, specCtx SpecConte
 		}
 	case "Colors":
 		f.colorsSeen |= ColorMaskOf(o)
+	default:
+		// The Different* distinct-set properties (task diffcount1): each
+		// matching object contributes its value to the seen set. The nil-face
+		// guard lives inside differentPropertyValue; visit's early return
+		// already guarantees o.Face() != nil for the name read.
+		if f.diffKind != diffNone {
+			if f.seenDiffNames != nil {
+				f.seenDiffNames[o.Face().Name] = true
+			} else if v, ok := differentPropertyValue(f.h, o, f.diffKind); ok {
+				f.seenDiffValues[v] = true
+			}
+		}
 	}
 }
 
@@ -2770,6 +2856,89 @@ func isExtremeProperty(prop string) bool {
 		return true
 	}
 	return false
+}
+
+// differentPropertyKind classifies a Different* distinct-set property -- the
+// value family the count dedups over. diffNone means prop is not one of them.
+type differentPropertyKind int
+
+const (
+	// diffNone is the zero value: prop is not a Different* property.
+	diffNone differentPropertyKind = iota
+	// diffManaCost: DifferentCardManaCost -- distinct printed mana values.
+	diffManaCost
+	// diffPower: DifferentCardPower -- distinct DERIVED powers (a lord's
+	// bonus or a -1/-1 counter changes the value, matching the
+	// GreatestCardPower read).
+	diffPower
+	// diffToughness: DifferentCardToughness -- distinct derived toughnesses.
+	diffToughness
+	// diffName: DifferentCardNames -- distinct face names.
+	diffName
+	// diffColorPair: DifferentColorPair -- distinct two-colour pairs among
+	// permanents that are EXACTLY two colours (Niv-Mizzet, Guildpact).
+	diffColorPair
+)
+
+// differentPropertyKindOf classifies the Different* distinct-set property
+// family of a Count$Valid<zone> <spec>$<Property> body: the properties that
+// count DISTINCT VALUES among the matching cards rather than the cards
+// themselves. The three numeric spellings and the name spelling all existed in
+// the corpus unread (whole-token fail-closed to zero) before task diffcount1;
+// classifying them in ONE place keeps the matcher, the value fold and the
+// verdict from drifting apart. A spelling outside this set returns diffNone
+// and keeps the pre-existing behaviour.
+func differentPropertyKindOf(prop string) differentPropertyKind {
+	switch prop {
+	case "DifferentCardManaCost":
+		return diffManaCost
+	case "DifferentCardPower":
+		return diffPower
+	case "DifferentCardToughness":
+		return diffToughness
+	case "DifferentCardNames":
+		return diffName
+	case "DifferentColorPair":
+		return diffColorPair
+	}
+	return diffNone
+}
+
+// differentPropertyValue reads one matching object's contribution to a
+// numeric Different* set. ok is false when the object contributes nothing
+// (an exactly-two-colour property read against a card that is not exactly two
+// colours), so the value is never a meaningless zero that would collide with
+// a real zero-mana-value card. A diffName property has no numeric value and
+// must be handled through the name map at the call site; it returns ok=false
+// here so a caller that routed it wrongly adds nothing rather than a zero
+// that would inflate the count.
+func differentPropertyValue(h Host, o *state.Object, kind differentPropertyKind) (int32, bool) {
+	switch kind {
+	case diffManaCost:
+		// Face() is nil for a Card==nil or out-of-range FaceIdx object
+		// (state/object.go); a remembered/targeted shell contributes
+		// nothing rather than panicking the match.
+		if f := o.Face(); f != nil {
+			return f.Cmc(), true
+		}
+		return 0, false
+	case diffPower:
+		// The derived, layer-aware power, matching extremePropertyValue's
+		// GreatestCardPower read: a lord's bonus or a counter counts.
+		return refPower(h, o, false), true
+	case diffToughness:
+		return refToughness(h, o, false), true
+	case diffColorPair:
+		mask := ColorMaskOf(o)
+		// Only permanents that are EXACTLY two colours contribute a pair
+		// (Niv-Mizzet, Guildpact's "exactly two colors"): a monocoloured or
+		// colourless permanent has no pair to contribute.
+		if bits.OnesCount8(uint8(mask)) != 2 {
+			return 0, false
+		}
+		return int32(mask), true
+	}
+	return 0, false
 }
 
 // isLeastProperty reports whether an extreme property takes the MINIMUM over
