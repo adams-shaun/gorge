@@ -162,27 +162,58 @@ type ContinuousEffect struct {
 	// effect that grants none.
 	AddAbilities []string
 
-	// GainedFaces carries a has-all-abilities-of static's foreign faces
-	// (Forge's GainsAbilitiesOf$ / GainsTriggerAbsOf$ on a Mode$ Continuous
+	// GainedFaces carries a has-all-abilities-of static's foreign faces for
+	// its ACTIVATED half (Forge's GainsAbilitiesOf$ on a Mode$ Continuous
 	// static, the Idris, Soul of the TARDIS shape): each entry pairs the face
-	// of the named card with the object that face belongs to, so the
-	// affected object gains every ACTIVATED ability of Face (the layer-6
-	// grant rules' grantedAbilities offers) and every TRIGGERED ability of
-	// Face (the grant rules' granted-trigger walk queues). Unlike
-	// AddAbilities the abilities are compiled SAs on the FOREIGN card -- not
-	// SVar names on this effect's source -- so both consumers read the face
-	// directly and the events they emit carry the foreign object id and the
-	// face-ability/trigger index, which a replay re-resolves identically. The
-	// rule 613 layer sorter ignores this field: like AddAbilities it
-	// contributes an activation surface, never a characteristic. Written only
-	// by rules' static scan (rules/layers.go). Empty on every effect that
-	// gains none.
+	// of the named card with the object that face belongs to, so the affected
+	// object gains every ACTIVATED ability of Face the grant's
+	// GainsValidAbilities$ filter admits (the layer-6 grant rules'
+	// grantedAbilities offers). GainsAbilitiesOf$ alone NEVER grants
+	// triggered abilities: Forge's parameter means activated only, so the
+	// triggered half lives on GainedTriggerFaces and the trigger walk reads
+	// only that. Unlike AddAbilities the abilities are compiled SAs on the
+	// FOREIGN card -- not SVar names on this effect's source -- so the
+	// consumers read the face directly and the events they emit carry the
+	// foreign object id and the face-ability index, which a replay
+	// re-resolves identically. The rule 613 layer sorter ignores this field:
+	// like AddAbilities it contributes an activation surface, never a
+	// characteristic. Written only by rules' static scan (rules/layers.go).
+	// Empty on every effect that gains no activated ability.
 	GainedFaces []GainedFace
 
-	// GainedZones is the zone scoping a GainedFaces grant was built under
-	// (Forge's GainsAbilitiesOfZones$, default Battlefield): the zones the
-	// named card must sit in for its abilities to be gained. Engine-runtime
-	// only, rebuilt by re-execution on replay like every other
+	// GainedTriggerFaces is the TRIGGERED half of the same grant (Forge's
+	// GainsTriggerAbsOf$, the second parameter of Idris's static): the same
+	// GainedFace pairing, consumed by the granted-trigger walk (which queues
+	// every trigger Face.Triggers carries) and by the owning-face recovery.
+	// GainsTriggerAbsOf$ alone grants triggered abilities and NOTHING
+	// activated. Written only by rules' static scan (rules/layers.go). Empty
+	// on every effect that gains no triggered ability.
+	GainedTriggerFaces []GainedFace
+
+	// GainsValidAbilities is the activated-ability filter a GainsAbilitiesOf$
+	// grant carries (Forge's GainsValidAbilities$, e.g. Sharkey's
+	// `Activated.!ManaAbility`, Nicol Bolas Dragon-God's `Activated.Loyalty`):
+	// comma alternatives, each `Activated` with optional dot qualifiers, read
+	// by grantedAbilities so a foreign ability outside the filter is never
+	// offered, never a mana candidate. An unmodelled qualifier fails closed
+	// (that alternative admits nothing). Engine-runtime only, rebuilt by
+	// re-execution on replay like every other continuous-effect field.
+	GainsValidAbilities string
+
+	// GainsLimitPerTurn is the per-foreign-ability activation cap a
+	// GainsAbilitiesOf$ grant carries (Forge's GainsAbilitiesLimitPerTurn$,
+	// Mairsil the Pretender's "You may activate each of those abilities only
+	// once each turn"): each gained activated ability may be activated at
+	// most this many times per turn, counted per (foreign card, face-ability
+	// index) identity from the replayable log. 0 = no limit (the parameter is
+	// absent or unparseable). Engine-runtime only, rebuilt by re-execution on
+	// replay like every other continuous-effect field.
+	GainsLimitPerTurn int
+
+	// GainedZones is the zone scoping a GainedFaces/GainedTriggerFaces grant
+	// was built under (Forge's GainsAbilitiesOfZones$, default Battlefield):
+	// the zones the named card must sit in for its abilities to be gained.
+	// Engine-runtime only, rebuilt by re-execution on replay like every other
 	// continuous-effect field.
 	GainedZones string
 	// Restriction carries an Effect-created S: mode (CantTarget,

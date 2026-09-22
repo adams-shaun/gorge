@@ -1042,10 +1042,13 @@ type grantedAbility struct {
 	// gainedIdx is the index of sa in that face's Abilities. The activation
 	// mints through GainedAbilityPush, which names both so a replay
 	// re-resolves the identical SA; a zero gainedFrom means the ordinary
-	// SVar-anchored grant.
-	gained     bool
-	gainedFrom state.ObjID
-	gainedIdx  int
+	// SVar-anchored grant. limitPerTurn is the granting static's
+	// GainsAbilitiesLimitPerTurn$ cap (0 = unlimited), applied here so the
+	// offer loop and the mana collector share one home.
+	gained       bool
+	gainedFrom   state.ObjID
+	gainedIdx    int
+	limitPerTurn int
 }
 
 // grantedAbilities collects the activated abilities the battlefield's
@@ -1068,13 +1071,21 @@ func (e *Engine) grantedAbilities(p state.PlayerID, id state.ObjID) []grantedAbi
 		}
 		// A has-all-abilities-of grant (GainsAbilitiesOf$): each named
 		// foreign face's own compiled Abilities are the recipient's to
-		// activate. The face's `Abilities` slice holds only AB-kind SAs
-		// (cards' parser appends A: lines as AB/SP/ST kinds; a gained
-		// activated ability is the AB ones), matched by the same
-		// isManaAbilityAPI split the offer loop applies, so a gained mana
-		// ability flows through the payment path like any other. The index
-		// is the face-local position, which GainedAbilityPush re-resolves
-		// against the same face a replay rebuilds.
+		// activate -- ACTIVATED abilities only (the parameter means exactly
+		// that; the triggered half rides GainedTriggerFaces and the
+		// granted-trigger walk reads only that). The face's `Abilities` slice
+		// holds only AB-kind SAs (cards' parser appends A: lines as AB/SP/ST
+		// kinds; a gained activated ability is the AB ones), matched by the
+		// same isManaAbilityAPI split the offer loop applies, so a gained
+		// mana ability flows through the payment path like any other. The
+		// grant's GainsValidAbilities$ filter (Sharkey's
+		// `Activated.!ManaAbility`, Nicol Bolas Dragon-God's
+		// `Activated.Loyalty`) and its GainsAbilitiesLimitPerTurn$ per-turn
+		// cap are applied HERE -- the one home both the offer loop and the
+		// mana collector (rules/mana_activation.go) read, so no consumer can
+		// widen the grant. The index is the face-local position, which
+		// GainedAbilityPush re-resolves against the same face a replay
+		// rebuilds.
 		for _, gf := range ce.GainedFaces {
 			if gf.Face == nil {
 				continue
@@ -1083,8 +1094,16 @@ func (e *Engine) grantedAbilities(p state.PlayerID, id state.ObjID) []grantedAbi
 				if ab == nil || ab.Kind != "AB" {
 					continue
 				}
+				if !e.gainsValidAbilitiesAdmits(ce.GainsValidAbilities, ab) {
+					continue
+				}
+				if ce.GainsLimitPerTurn > 0 &&
+					e.gainedActivationsThisTurn(id, gf.Obj, i) >= ce.GainsLimitPerTurn {
+					continue
+				}
 				out = append(out, grantedAbility{sa: ab, source: ce.Source,
-					gained: true, gainedFrom: gf.Obj, gainedIdx: i})
+					gained: true, gainedFrom: gf.Obj, gainedIdx: i,
+					limitPerTurn: ce.GainsLimitPerTurn})
 			}
 		}
 		if len(ce.AddAbilities) == 0 {
@@ -1107,6 +1126,87 @@ func (e *Engine) grantedAbilities(p state.PlayerID, id state.ObjID) []grantedAbi
 		}
 	}
 	return out
+}
+
+// gainsValidAbilitiesAdmits reports whether the gained activated ability ab is
+// inside the granting static's GainsValidAbilities$ filter. The filter is
+// comma alternatives, each `Activated` plus optional dot qualifiers, and an
+// ABSENT filter admits everything. The corpus vocabulary (measured over the
+// 31 GainsAbilitiesOf files): `Activated` (Drana and Linvala),
+// `Activated.!ManaAbility` (Sharkey), `Activated.!Loyalty` (Scheming Fence),
+// `Activated.Loyalty` (Nicol Bolas Dragon-God, Kasmina). A qualifier this
+// build does not model fails closed -- that alternative admits nothing -- the
+// filter convention every spec reader takes, so an unknown restriction can
+// never widen the grant. The base word itself must be `Activated`
+// (case-insensitive): a differently-named base admits nothing.
+func (e *Engine) gainsValidAbilitiesAdmits(spec string, ab *cards.SA) bool {
+	spec = strings.TrimSpace(spec)
+	if spec == "" {
+		return true
+	}
+	for _, alt := range strings.Split(spec, ",") {
+		alt = strings.TrimSpace(alt)
+		if alt == "" {
+			continue
+		}
+		// The token splits on the FIRST dot: the base kind, then the qualifier
+		// tail (kept whole -- a qualifier this grammar does not name fails
+		// closed below rather than being silently dropped).
+		dot := strings.IndexByte(alt, '.')
+		base, tail := alt, ""
+		if dot >= 0 {
+			base, tail = alt[:dot], alt[dot+1:]
+		}
+		if !strings.EqualFold(base, "Activated") {
+			continue
+		}
+		ok := true
+		for _, q := range strings.Split(tail, ".") {
+			switch strings.TrimSpace(q) {
+			case "":
+				// A trailing dot ("Activated."): no qualifier, vacuous.
+			case "!ManaAbility":
+				ok = ok && !isManaAbilityAPI(ab.API)
+			case "!Loyalty":
+				ok = ok && !e.isLoyaltyAbility(ab)
+			case "Loyalty":
+				ok = ok && e.isLoyaltyAbility(ab)
+			default:
+				// Unmodelled qualifier: fail closed for this alternative.
+				ok = false
+			}
+		}
+		if ok {
+			return true
+		}
+	}
+	return false
+}
+
+// gainedActivationsThisTurn counts how many times the ACTIVATED ability at
+// foreign face-local index idx of the foreign card `foreign` has been
+// activated FROM the affected object id this turn. GainedAbilityPush events
+// name all three (Obj = recipient, IDs[0] = foreign card, Amount = index), so
+// the replayable log is the memory -- the loyaltyActivationsThisTurn fold
+// pattern. TurnChange resets the count (the limit is per turn, not per
+// battlefield stint: Mairsil's caged card sits in exile and never changes
+// zones while the count matters, and the identity is the foreign ability,
+// not the recipient).
+func (e *Engine) gainedActivationsThisTurn(id, foreign state.ObjID, idx int) int {
+	used := 0
+	for _, ev := range e.L.Events {
+		switch ev.Kind {
+		case events.TurnChange:
+			if int(ev.Player) < len(e.G.Players) {
+				used = 0
+			}
+		case events.GainedAbilityPush:
+			if ev.Obj == id && len(ev.IDs) > 0 && ev.IDs[0] == foreign && int(ev.Amount) == idx {
+				used++
+			}
+		}
+	}
+	return used
 }
 
 // adjustLandPlays reports how many land drops BEYOND the ordinary one

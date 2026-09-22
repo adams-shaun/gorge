@@ -603,13 +603,17 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []Con
 	// and the foreign faces' own deterministic Triggers order, never a map.
 	for i := range statics {
 		ce := &statics[i]
-		if len(ce.GainedFaces) == 0 {
+		// The TRIGGERED half only (Forge's GainsTriggerAbsOf$): a static that
+		// names GainsAbilitiesOf$ alone never fires the foreign card's
+		// triggers, because that parameter grants activated abilities and its
+		// faces ride GainedFaces, which only grantedAbilities reads.
+		if len(ce.GainedTriggerFaces) == 0 {
 			continue
 		}
 		if !effects.MatchesSpecFrom(observer.G, ce.Affects, id, ce.Controller, ce.Source) {
 			continue
 		}
-		for _, gf := range ce.GainedFaces {
+		for _, gf := range ce.GainedTriggerFaces {
 			if gf.Face == nil {
 				continue
 			}

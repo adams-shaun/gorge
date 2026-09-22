@@ -272,11 +272,27 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 						// event, so a card exiled later is gained on the next rescan
 						// and a card that leaves the scoped zones loses its grant.
 						if gainsAbilitiesOf(st) {
-							if gf := e.gainedFacesFor(st, id, o.Controller); len(gf) > 0 {
-								gg := base
-								gg.Layer = LAbilities
-								gg.GainedFaces = gf
-								gg.GainedZones = strings.TrimSpace(st.Params["GainsAbilitiesOfZones"])
+							// The two parameters are resolved SEPARATELY and carried on
+							// separate face lists: GainsAbilitiesOf$ means ACTIVATED
+							// abilities only and GainsTriggerAbsOf$ TRIGGERED only (a
+							// shared untyped list made a GainsAbilitiesOf-only card fire
+							// the foreign card's phase triggers and a
+							// GainsTriggerAbsOf-only card offer its activated ones -- the
+							// round-2 review's break). A GainsValidAbilities$ filter and a
+							// GainsAbilitiesLimitPerTurn$ cap ride the ACTIVATED half
+							// (both parameters are activated-ability vocabulary).
+							gg := base
+							gg.Layer = LAbilities
+							gg.GainedZones = strings.TrimSpace(st.Params["GainsAbilitiesOfZones"])
+							gg.GainsValidAbilities = strings.TrimSpace(st.Params["GainsValidAbilities"])
+							gg.GainsLimitPerTurn = gainsLimitPerTurn(st)
+							if spec := strings.TrimSpace(st.Params["GainsAbilitiesOf"]); spec != "" {
+								gg.GainedFaces = e.gainedFacesForSpec(st, spec, id, o.Controller)
+							}
+							if spec := strings.TrimSpace(st.Params["GainsTriggerAbsOf"]); spec != "" {
+								gg.GainedTriggerFaces = e.gainedFacesForSpec(st, spec, id, o.Controller)
+							}
+							if len(gg.GainedFaces) > 0 || len(gg.GainedTriggerFaces) > 0 {
 								out = append(out, gg)
 							}
 						}
@@ -662,24 +678,28 @@ type staticWork struct {
 }
 
 // gainedFacesForSource collects every foreign face a live has-all-abilities-of
-// grant gives `source` right now: the union of every active GainedFaces effect
-// whose Affects spec matches source, in active()'s deterministic layer/timestamp
-// order and each effect's own GainedFaces order. It is the ONE recovery point
+// grant gives `source` right now: the union of the activated half (GainedFaces)
+// and the triggered half (GainedTriggerFaces) of every active grant whose Affects
+// spec matches source, in active()'s deterministic layer/timestamp
+// order and each effect's own face order. It is the ONE recovery point
 // the resolution-time owning-face reads use (findTriggerForAbilityFace for a
 // gained TRIGGER, pileFaceForSA for a gained ACTIVATED ability), so the
 // OptionalDecider$/intervening-if gates and the SVar-table reads all see the
-// foreign card's own face exactly as the offer/queue walk did. A source no
+// foreign card's own face exactly as the offer/queue walk did. The union is
+// safe because each consumer matches its SA/trigger by pointer identity, so a
+// face present only in the other half never binds. A source no
 // live grant matches returns nil.
 func (e *Engine) gainedFacesForSource(source state.ObjID) []state.GainedFace {
 	var out []state.GainedFace
 	for _, ce := range e.active() {
-		if len(ce.GainedFaces) == 0 {
+		if len(ce.GainedFaces) == 0 && len(ce.GainedTriggerFaces) == 0 {
 			continue
 		}
 		if !effects.MatchesSpecFrom(e.G, ce.Affects, source, ce.Controller, ce.Source) {
 			continue
 		}
 		out = append(out, ce.GainedFaces...)
+		out = append(out, ce.GainedTriggerFaces...)
 	}
 	return out
 }
@@ -687,18 +707,31 @@ func (e *Engine) gainedFacesForSource(source state.ObjID) []state.GainedFace {
 // gainsAbilitiesOf reports whether a Mode$ Continuous static grants abilities
 // off a named card (Forge's GainsAbilitiesOf$ / GainsTriggerAbsOf$). Either
 // parameter alone is enough: a static may grant only activations, only
-// triggers, or both (Idris, Soul of the TARDIS carries both). The two share
-// one GainedFaces effect because they name the same card filter and the same
-// zone scoping.
+// triggers, or both (Idris, Soul of the TARDIS carries both). The two halves
+// are carried on separate face lists (GainedFaces / GainedTriggerFaces)
+// because the parameters mean different ability kinds.
 func gainsAbilitiesOf(st cards.Static) bool {
 	return strings.TrimSpace(st.Params["GainsAbilitiesOf"]) != "" ||
 		strings.TrimSpace(st.Params["GainsTriggerAbsOf"]) != ""
 }
 
-// gainedFacesFor resolves a has-all-abilities-of static's named cards: every
-// object in the GainsAbilitiesOfZones$ zones (default Battlefield, Forge's
-// StaticAbilityContinuous default) whose face matches the GainsAbilitiesOf$ /
-// GainsTriggerAbsOf$ card filter, paired with its object id. The spec is
+// gainsLimitPerTurn parses a has-all-abilities-of static's
+// GainsAbilitiesLimitPerTurn$ cap (Mairsil the Pretender's "only once each
+// turn"). Only a plain integer is enforced -- the corpus's every carrier is
+// a literal 1 -- and an unparseable value degrades to 0 (no cap), the
+// permissive direction for an unmodelled expression.
+func gainsLimitPerTurn(st cards.Static) int {
+	n, err := strconv.Atoi(strings.TrimSpace(st.Params["GainsAbilitiesLimitPerTurn"]))
+	if err != nil || n < 0 {
+		return 0
+	}
+	return n
+}
+
+// gainedFacesForSpec resolves one has-all-abilities-of parameter's named
+// cards: every object in the GainsAbilitiesOfZones$ zones (default
+// Battlefield, Forge's StaticAbilityContinuous default) whose face matches
+// the given card filter, paired with its object id. The spec is
 // evaluated with src = the static's own source object, so
 // `Card.ExiledWithSource` matches exactly the cards this source exiled.
 //
@@ -707,13 +740,8 @@ func gainsAbilitiesOf(st cards.Static) bool {
 // face list, and therefore the option and trigger order it feeds, is
 // reproducible run to run. A spec matching nothing returns nil (no grant);
 // an unparseable zones value returns nil, the fail-closed direction every
-// grant branch takes. Duplicate faces (a card named by both parameters) are
-// de-duplicated by object id, so its abilities are never granted twice.
-func (e *Engine) gainedFacesFor(st cards.Static, src state.ObjID, controller state.PlayerID) []state.GainedFace {
-	spec := strings.TrimSpace(st.Params["GainsAbilitiesOf"])
-	if spec == "" {
-		spec = strings.TrimSpace(st.Params["GainsTriggerAbsOf"])
-	}
+// grant branch takes. Faces are de-duplicated by object id.
+func (e *Engine) gainedFacesForSpec(st cards.Static, spec string, src state.ObjID, controller state.PlayerID) []state.GainedFace {
 	if spec == "" {
 		return nil
 	}
