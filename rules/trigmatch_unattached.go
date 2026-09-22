@@ -21,16 +21,22 @@ import (
 // bearer stopped being a valid bearer, protection, the CR 702.114b bestowed
 // type switch) -- the same detach sites its own comment enumerates.
 //
-// ValidAttachment$ names the ATTACHING object, which is the trigger's own
-// source (Card.Self on every carrier), so it is evaluated against source.
-// ValidObject$ names the bearer the attachment became unattached from:
-// ev.IDs[0]. On the bearer-left path that object has already left the
-// battlefield, so matchesUnattachedBearer reads a bare `Permanent` base the
-// way the rest of the engine reads a permanent CARD away from the
-// battlefield (the leading-token `PermanentCard` rewrite), exactly as the
-// Dig windows and the target census already do. A trigger naming neither
-// parameter is treated as self-scoped: an attachment-only line fires for its
-// own source rather than silently never firing.
+// ValidAttachment$ names the ATTACHING object -- Forge's ValidSource$ for
+// the detach half -- which is the object that actually became unattached:
+// ev.Obj. It is evaluated against ev.Obj, NOT the trigger's source. Every
+// corpus carrier spells it `Card.Self`, and Card.Self binds to the trigger's
+// own source, so the two coincide exactly for those lines; but a face that
+// pends several detaches on the battlefield must gate on the ONE attachment
+// the event names, or every Grafted Exoskeleton present would fire when an
+// unrelated Equipment detaches (the trigger would sacrifice that unrelated
+// event's former bearer). ValidObject$ names the bearer the attachment
+// became unattached from: ev.IDs[0]. On the bearer-left path that object has
+// already left the battlefield, so matchesUnattachedBearer reads a bare
+// `Permanent` base the way the rest of the engine reads a permanent CARD
+// away from the battlefield (the leading-token `PermanentCard` rewrite),
+// exactly as the Dig windows and the target census already do. A trigger
+// naming neither parameter is treated as self-scoped: an attachment-only
+// line fires for its own source rather than silently never firing.
 func (e *Engine) unattachedMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
 	if ev.Kind != events.Unattached || ev.Obj == 0 || len(ev.IDs) == 0 {
 		return false
@@ -43,7 +49,12 @@ func (e *Engine) unattachedMatches(t cards.Trigger, source state.ObjID, ev event
 	}
 	ctrl := e.controllerOf(source)
 	if v, ok := t.Params["ValidAttachment"]; ok {
-		if !effects.MatchesSpecCtx(e.G, v, source, e.specCtx(source, ctrl)) {
+		// ev.Obj is the attachment the event names, exactly as
+		// attachedMatches matches its ValidSource$ against ev.Obj. source is
+		// what Card.Self binds to in specCtx, so the corpus's Card.Self lines
+		// keep their meaning while an unrelated detach can no longer fire
+		// this face.
+		if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
 			return false
 		}
 	}

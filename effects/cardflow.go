@@ -1597,7 +1597,7 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 					if bearer != 0 {
 						// The CR 303.4f attach, degraded to the deterministic
 						// stand-in documented above (the bearer the scan picked).
-						h.Emit(events.Event{Kind: events.Attach, Obj: id, IDs: []state.ObjID{bearer}})
+						emitAttach(h, id, bearer)
 					}
 					// StaticEffect$ on a DigUntil battlefield take: the same
 					// rider registration every ChangeZone mover applies (no

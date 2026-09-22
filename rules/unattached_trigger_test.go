@@ -193,3 +193,135 @@ func TestUnattachedLiveBearerIsSacrificed(t *testing.T) {
 
 // idString renders an object id the way the effects Note does (%d).
 func idString(id state.ObjID) string { return strconv.Itoa(int(id)) }
+
+const unattachedPlainEquipSrc = "Name:Plain Sword\nManaCost:1\nTypes:Artifact Equipment\nK:Equip:1\nOracle:x\n"
+
+// TestUnrelatedEquipmentDetachDoesNotFireTheExoskeleton is the review-round-1
+// regression for the ValidAttachment$ gate: the parameter names the
+// attachment the EVENT is about (ev.Obj), never the trigger's own source.
+// With two Equipments on the battlefield, an Unattached event naming the
+// PLAIN one must not fire Grafted Exoskeleton's trigger at all -- before the
+// fix the matcher evaluated `Card.Self` against the Exoskeleton (its own
+// source), so it always matched and the trigger sacrificed the unrelated
+// event's former bearer.
+func TestUnrelatedEquipmentDetachDoesNotFireTheExoskeleton(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	exo := mustCorpusCard(t, reg, "Grafted Exoskeleton")
+	bearCard := card(t, attachedBearSrc)
+	plain := card(t, unattachedPlainEquipSrc)
+	e, cfg := tokenReplGame(t, 113, exo, bearCard, plain)
+	exoID := moveSeededCard(t, e, 0, exo, state.ZBattlefield)
+	bear := moveSeededCard(t, e, 0, bearCard, state.ZBattlefield)
+	sword := moveSeededCard(t, e, 0, plain, state.ZBattlefield)
+	passUntilStackEmpty(t, e, 20)
+
+	// Preconditions: both Equipments and the bear really are on the
+	// battlefield, and the Exoskeleton is NOT attached to the bear (it never
+	// was equipped), so a sacrifice of the bear could only come from the bug.
+	for _, id := range []state.ObjID{exoID, bear, sword} {
+		if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield {
+			t.Fatalf("precondition failed: object %d not on the battlefield (%+v)", id, o)
+		}
+	}
+	if got := e.G.Obj(exoID).AttachedTo; got != 0 {
+		t.Fatalf("precondition failed: the Exoskeleton is attached to %d, want unattached", got)
+	}
+
+	// The PLAIN Equipment detaches from the bear. Its Obj is the sword, not
+	// the Exoskeleton; the Exoskeleton's Card.Self gate must reject it.
+	e.emit(events.Event{Kind: events.Unattached, Obj: sword, IDs: []state.ObjID{bear},
+		Text: "test detach of an unrelated Equipment"})
+	e.pending = nil
+	e.Advance()
+	passUntilStackEmpty(t, e, 30)
+
+	// The bear survives: no unrelated Equipment's former bearer was
+	// sacrificed on the Exoskeleton's behalf.
+	if o := e.G.Obj(bear); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("the bear was sacrificed by the unrelated detach: zone %v", o.Zone)
+	}
+	for _, ev := range e.L.Events {
+		if events.IsSacrifice(ev) && ev.Obj == bear {
+			t.Fatal("a Sacrifice marker names the bear: the Exoskeleton's trigger fired on an unrelated detach")
+		}
+	}
+	// The trigger's body must not have run at all (no SacrificeAll skip Note).
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "SacrificeAll") {
+			t.Fatalf("the Exoskeleton's SacrificeAll body ran on an unrelated detach: %q", ev.Text)
+		}
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestReequipFromOneLivingCreatureToAnotherFiresUnattached is the
+// review-round-1 regression for the re-attach emit path: moving an Equipment
+// from one live creature to another is CR 701.3b's "becomes unattached" for
+// the former bearer, so events.Unattached must be emitted before the
+// replacement Attach. Before the fix effects/attach.go emitted only Attach
+// and overwrote AttachedTo, leaving the former bearer alive and the
+// Exoskeleton's trigger silent.
+func TestReequipFromOneLivingCreatureToAnotherFiresUnattached(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	exo := mustCorpusCard(t, reg, "Grafted Exoskeleton")
+	bearA := card(t, attachedBearSrc)
+	bearB := card(t, unattachedBystanderSrc)
+	e, cfg := tokenReplGame(t, 114, exo, bearA, bearB)
+	exoID := moveSeededCard(t, e, 0, exo, state.ZBattlefield)
+	a := moveSeededCard(t, e, 0, bearA, state.ZBattlefield)
+	b := moveSeededCard(t, e, 0, bearB, state.ZBattlefield)
+	passUntilStackEmpty(t, e, 20)
+	equipOn(t, e, exoID, a)
+
+	// Precondition: the Exoskeleton is attached to A before the re-equip.
+	if got := e.G.Obj(exoID).AttachedTo; got != a {
+		t.Fatalf("precondition failed: attached to %d, want bear A %d", got, a)
+	}
+	if o := e.G.Obj(a); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("precondition failed: bear A zone %v, want battlefield", o.Zone)
+	}
+
+	// Re-equip onto B. The former bearer A must be sacrificed by the trigger
+	// (Defined$ TriggeredObjectLKICopy = A), so a bug that drops the
+	// Unattached leaves A alive.
+	equipOn(t, e, exoID, b)
+
+	// The re-attach published a real Unattached naming A before the new Attach.
+	var detach *events.Event
+	for i := range e.L.Events {
+		ev := &e.L.Events[i]
+		if ev.Kind == events.Unattached && ev.Obj == exoID {
+			detach = ev
+		}
+	}
+	if detach == nil {
+		t.Fatal("re-equipping emitted no events.Unattached: CR 701.3b's detach was dropped")
+	}
+	if len(detach.IDs) == 0 || detach.IDs[0] != a {
+		t.Fatalf("events.Unattached former bearer = %v, want bear A [%d]", detach.IDs, a)
+	}
+	if got := e.G.Obj(exoID).AttachedTo; got != b {
+		t.Fatalf("the Equipment ended attached to %d, want bear B %d", got, b)
+	}
+	// The live former bearer A was sacrificed for real.
+	if o := e.G.Obj(a); o == nil || o.Zone != state.ZGraveyard {
+		t.Fatalf("former bearer A zone %v, want graveyard (the trigger must sacrifice it)", o.Zone)
+	}
+	sacrificed := false
+	for _, ev := range e.L.Events {
+		if events.IsSacrifice(ev) && ev.Obj == a {
+			sacrificed = true
+		}
+	}
+	if !sacrificed {
+		t.Fatal("no Sacrifice marker for former bearer A -- the re-equip's Unattached did not fire the trigger")
+	}
+	// B (the new bearer) and the Equipment survive.
+	if o := e.G.Obj(b); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("new bearer B zone %v, want battlefield", o.Zone)
+	}
+	if o := e.G.Obj(exoID); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("the Equipment zone %v, want battlefield", o.Zone)
+	}
+	replayCheck(t, e, cfg)
+}
