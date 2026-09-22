@@ -581,8 +581,19 @@ type RepeatSuspension struct {
 // DamageSourceLKI is the pre-departure damage provenance of one object.
 // It remains separate from Ctx's own-source fields because DamageSource$ may
 // name an object distinct from the resolving spell or ability's source.
+//
+// Infect and Deathtouch join Lifelink because CR 113.7a reads the source's
+// last known characteristics for the whole damage rider, not just the life
+// gain: a bearer that left while its ability waited still deals its damage in
+// counter form (CR 702.90b) and still marks its hit deadly (CR 702.2b). Rules
+// seeds all three from one walk, so this map is their single home -- it is
+// populated for the resolution's OWN source as well as a named DamageSource$
+// object, and the older own-source Ctx fields stay authoritative only for
+// lifelink and controller, whose precedence predates it.
 type DamageSourceLKI struct {
 	Lifelink   bool
+	Infect     bool
+	Deathtouch bool
 	Controller state.PlayerID
 }
 

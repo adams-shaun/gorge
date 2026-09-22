@@ -587,10 +587,20 @@ func (e *Engine) destroyLethalDamage(tried *sbaAttempts) bool {
 				dead = append(dead, casualty{id, "toughness <= 0"})
 				continue
 			}
-			if o.Damage <= 0 {
+			// CR 704.5g reads "damage from a source with deathtouch", not
+			// "marked damage": the Deathtouched mark can stand alone when the
+			// damage was dealt in COUNTER form (infect, CR 702.90b -- a 1/1
+			// deathtouch infect creature deals its 1 as a -1/-1 counter and
+			// nothing is marked), so the mark alone is lethal. The mark is
+			// emitted only alongside damage that actually landed (both emit
+			// sites guard on the applied amount) and is cleared in the same
+			// cleanup block that clears marked damage, so a mark with no
+			// damage and no counter-form hit behind it is unreachable.
+			dtMark := o.Counter("Deathtouched")
+			if o.Damage <= 0 && dtMark == 0 {
 				continue
 			}
-			if o.Damage < e.Toughness(id) && o.Counter("Deathtouched") == 0 {
+			if o.Damage < e.Toughness(id) && dtMark == 0 {
 				continue
 			}
 			if e.HasKeyword(id, "Indestructible") {

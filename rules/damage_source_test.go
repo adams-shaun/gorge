@@ -857,7 +857,7 @@ func TestDepartedStolenSourceCreditsLastController(t *testing.T) {
 }
 
 // TestBatchLifelinkClearedAfterRegeneratedBatchMember checks that the
-// end-of-batch clear resets batchLifelink so a later departure reads live
+// end-of-batch clear resets batchDamageKeywords so a later departure reads live
 // state rather than a stale pre-batch TRUE entry.
 func TestBatchLifelinkClearedAfterRegeneratedBatchMember(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
@@ -886,7 +886,7 @@ func TestBatchLifelinkClearedAfterRegeneratedBatchMember(t *testing.T) {
 	if z := e.G.Obj(collarID).Zone; z != state.ZGraveyard {
 		t.Fatalf("collar zone = %s, want graveyard", z)
 	}
-	if e.batchLifelink != nil {
-		t.Fatalf("batchLifelink=%v leaked after a batch with a regenerated member", e.batchLifelink)
+	if e.batchDamageKeywords != nil {
+		t.Fatalf("batchDamageKeywords=%v leaked after a batch with a regenerated member", e.batchDamageKeywords)
 	}
 }

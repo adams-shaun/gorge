@@ -2956,6 +2956,17 @@ func (e *Engine) ReplaceEvent(name, raw string, resolved int32) {
 			ev.Obj, ev.Player = 0, target.Controller
 		}
 	}
+	// CR 702.90b: the infect marker on a Damage event encodes the FORM the
+	// damage is dealt in, and the form depends on the RECIPIENT. A redirect
+	// just changed the recipient (a player-targeted hit moved onto a
+	// permanent, or vice versa), so the marker's recipient half is recomputed
+	// here. The source-infect fact is preserved: the marker is only ever set
+	// by an emitter whose source had infect, so a non-empty marker still means
+	// infect. Without this a bare "infect" (player form) survives onto a
+	// creature recipient: events.Apply treats a bare marker on an object as
+	// ordinary marked damage while convertInfectDamage then also emits -1/-1
+	// counters, so a redirected infect hit would land in BOTH forms.
+	e.recomputeInfectMarker(ev)
 }
 
 // replCountOp applies Forge's ReplaceCount$ arithmetic to a base amount: the
