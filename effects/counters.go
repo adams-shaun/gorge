@@ -308,8 +308,13 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 		// `SVar:MonstrosityX:TriggerCount$Amount` reads the triggering event's
 		// Amount -- and Player names the controller at mark time so the
 		// trigger's referents bind it. Gated on the param's presence, so every
-		// other PutCounter shape emits byte-identically.
-		if mono {
+		// other PutCounter shape emits byte-identically; gated on n > 0, so a
+		// body whose monstrosity amount resolves to 0 (Clay Golem's
+		// `Monstrosity$ X` where X is a die result the unmodelled RollDice
+		// cost token never publishes -- Num degrades it to 0) never emits a
+		// mark and never fires its BecomeMonstrous trigger: the creature
+		// never became monstrous, and a paid no-op must not Berserk.
+		if mono && n > 0 {
 			h.Emit(events.Event{Kind: events.AlterAttribute, Obj: o.ID,
 				Player: o.Controller, Text: "Monstrous", Amount: n})
 		}
