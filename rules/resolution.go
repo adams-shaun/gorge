@@ -1040,6 +1040,11 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			Next:     rp.repeatOptionalNext,
 		}
 	}
+	// Cost-sacrificed objects are engine-only LKI keyed by the stack object.
+	// Re-entry must restore the same snapshot so an SVar such as Mausoleum
+	// Wanderer's Sacrificed$CardPower does not collapse to zero after the
+	// unless-pay answer suspends resolution.
+	ctx.Sacrificed = e.sacrificedLKI[rp.obj]
 	// CR 107.3i: X is the value paid for the object's {X}, preserved on the
 	// stack object by CastInfo -- the same binding resolveTop's spell and
 	// ability branches now carry. A spell whose resolution suspends on a

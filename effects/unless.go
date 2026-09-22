@@ -71,6 +71,12 @@ func UnlessCostResolved(h Host, c *Ctx, sa *cards.SA) string {
 	if raw == "" || c == nil || c.SVars == nil || sa == nil {
 		return raw
 	}
+	// The Counter X/SVar shape is the targeted extension of the existing
+	// CopySpellAbility fold. Other APIs retain their strict, pre-existing
+	// grammar until their own unless-cost semantics are implemented.
+	if sa.API != "Counter" && sa.API != "CopySpellAbility" {
+		return raw
+	}
 	body, ok := c.SVars[raw]
 	if !ok {
 		return raw
@@ -547,6 +553,13 @@ func unlessCostLabel(cost string) string {
 		if _, err := strconv.Atoi(f); err == nil {
 			mana = append(mana, f) // generic amount
 			continue
+		}
+		if len(f) >= 3 && f[0] == '{' && f[len(f)-1] == '}' {
+			inner := f[1 : len(f)-1]
+			if _, err := strconv.Atoi(inner); err == nil {
+				mana = append(mana, f) // resolved generic amount
+				continue
+			}
 		}
 		if strings.Trim(f, "WUBRGC") == "" {
 			mana = append(mana, f) // colour/colourless symbols
