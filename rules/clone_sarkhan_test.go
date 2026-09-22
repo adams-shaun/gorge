@@ -206,6 +206,13 @@ func TestSarkhanLeavesBeforeTheOptionalChoiceNeverAsks(t *testing.T) {
 	// returned election fails the test here); with the pre-fix engine the
 	// election appears exactly at this point.
 	passUntilStackEmpty(t, e, 40)
+	// The silence must be effClone's own dead-become return, not the
+	// generic unimplemented-API fallback (which also asks nothing and clones
+	// nothing): with api:Clone unregistered this Note is what the trigger's
+	// resolution emits, so its absence proves the Clone handler ran.
+	if hasNote(e, "unimplemented API Clone") {
+		t.Fatal("the trigger resolved through the unimplemented-API fallback, not effClone")
+	}
 	if hasEventKind(e, events.ClonePermanent) {
 		t.Fatal("the trigger cloned despite Sarkhan being gone")
 	}
