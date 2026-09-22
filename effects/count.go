@@ -310,7 +310,7 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 			n, ok3 = v, true
 		}
 		if hasOp {
-			n = applyCountOp(n, op)
+			n = applyCountOpOperand(h, c, n, op, depth)
 		}
 		return n, ok3
 	}

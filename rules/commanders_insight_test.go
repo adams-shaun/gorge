@@ -104,8 +104,8 @@ func TestCommandersInsightUsesTargetedPlayersCommanderCastCount(t *testing.T) {
 			draws++
 		}
 	}
-	if draws != 2 {
-		t.Fatalf("target draws = %d, want 2 from the target's two commander casts", draws)
+	if draws != 3 {
+		t.Fatalf("target draws = %d, want X=1 plus the target's two commander casts", draws)
 	}
 	commanderReplayCheck(t, e, cfg)
 }
