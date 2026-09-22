@@ -220,6 +220,8 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 							pt.Layer, pt.Sub = LPT, SubModify
 							pt.AddPowerExpr = st.Params["AddPower"]
 							pt.AddToughnessExpr = st.Params["AddToughness"]
+							pt.AddPowerAffected = affectedXStaticAmount(pt.AddPowerExpr)
+							pt.AddToughnessAffected = affectedXStaticAmount(pt.AddToughnessExpr)
 							out = append(out, pt)
 						}
 						if hasStat(st, "AddKeyword") {
@@ -1117,25 +1119,46 @@ func hasStat(st cards.Static, key string) bool {
 	return ok
 }
 
+// affectedXStaticAmount identifies Forge's per-affected-object static P/T
+// convention. A leading sign is the amount direction, not part of the SVar
+// name (the same grammar effects.Num resolves), so Toxrill's -AffectedX is
+// also per affected creature. Every other expression remains grantor-anchored.
+func affectedXStaticAmount(expr string) bool {
+	expr = strings.TrimSpace(expr)
+	if len(expr) > 1 && (expr[0] == '+' || expr[0] == '-') {
+		expr = expr[1:]
+	}
+	return expr == "AffectedX"
+}
+
 // staticAmount evaluates a static's P/T parameter at derivation time. It
 // deliberately goes through effects.Num: that is the shared Forge numeric
 // grammar for signed SVar names and Count$ bodies. The source and its SVar
 // table are rebound on every call, so a life total, counters, or zones changing
 // after the static entered changes its value without any cached snapshot.
 func (e *Engine) staticAmount(ce ContinuousEffect, expr string) int32 {
+	return e.staticAmountOn(ce, expr, ce.Source)
+}
+
+// staticAmountOn evaluates a static's numeric expression with Ctx.Source
+// anchored on `anchor` while the SVar table still comes from the grantor
+// (ce.SVars, falling back to the grantor's face). staticAmount delegates
+// with the grantor itself as the anchor. The layer-7c modify walk uses an
+// affected-object anchor only for the explicit AffectedX convention.
+func (e *Engine) staticAmountOn(ce ContinuousEffect, expr string, anchor state.ObjID) int32 {
 	if expr == "" {
 		return 0
 	}
-	o := e.G.Obj(ce.Source)
-	if o == nil || o.Face() == nil {
+	src := e.G.Obj(ce.Source)
+	if src == nil || src.Face() == nil {
 		return 0
 	}
 	svars := ce.SVars
 	if svars == nil {
-		svars = o.Face().SVars
+		svars = src.Face().SVars
 	}
 	sa := &cards.SA{Params: map[string]string{"Amount": expr}}
-	return effects.Num(e, &effects.Ctx{Source: ce.Source, Controller: ce.Controller, SVars: svars}, sa, "Amount", 0)
+	return effects.Num(e, &effects.Ctx{Source: anchor, Controller: ce.Controller, SVars: svars}, sa, "Amount", 0)
 }
 
 // addPT saturates instead of allowing a large static expression to wrap a
@@ -2262,12 +2285,24 @@ func (e *Engine) derivedScalarFrom(id state.ObjID, o *state.Object, f *cards.Fac
 				}
 			}
 		case SubModify:
+			// AffectedX names Forge's per-affected-object P/T convention: its
+			// count reads the recipient (Knight of New Alara). Ordinary named
+			// expressions retain the static's grantor as their source (Mace of
+			// the Valiant counts charge counters on the Mace, not its bearer).
 			addPower, addToughness := ce.AddPower, ce.AddToughness
 			if ce.AddPowerExpr != "" {
-				addPower = e.staticAmount(ce, ce.AddPowerExpr)
+				anchor := ce.Source
+				if ce.AddPowerAffected {
+					anchor = id
+				}
+				addPower = e.staticAmountOn(ce, ce.AddPowerExpr, anchor)
 			}
 			if ce.AddToughnessExpr != "" {
-				addToughness = e.staticAmount(ce, ce.AddToughnessExpr)
+				anchor := ce.Source
+				if ce.AddToughnessAffected {
+					anchor = id
+				}
+				addToughness = e.staticAmountOn(ce, ce.AddToughnessExpr, anchor)
 			}
 			power = addPT(power, addPower)
 			toughness = addPT(toughness, addToughness)
@@ -2342,7 +2377,6 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 		f = faceDownBasis
 	}
 	active := e.active()
-	power, toughness := e.derivedScalarFrom(id, o, f, active)
 	zone := o.Zone
 	if atStack != 0 {
 		zone = atStack
@@ -2503,6 +2537,19 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 		e.derivedKW = kw
 		e.derivedTypes = ty
 	}
+	// Layer 7 (P/T) runs AFTER the layer-3/5/6 walk above. CR 613's layers are
+	// strictly ordered — no layer-7 result feeds a layer-5 characteristic — so
+	// hoisting the read is exact, and it is what makes a layer-7 pump
+	// expression that counts the affected object's OWN colours (Knight of New
+	// Alara's AffectedX:Count$CardNumColors) terminate: the stash below serves
+	// the object's finished layer-5 answer to Colors without re-entering
+	// Derived, which would re-run this very P/T walk forever. Save/restore
+	// keeps the stash correct when derivations nest (deriving Y inside X's
+	// scalar walk stashes Y and restores X's on the way out).
+	prevStashID, prevStashColors, prevStashSet := e.derivingColorsID, e.derivingColors, e.derivingColorsSet
+	e.derivingColorsSet, e.derivingColorsID, e.derivingColors = true, id, colors
+	power, toughness := e.derivedScalarFrom(id, o, f, active)
+	e.derivingColorsSet, e.derivingColorsID, e.derivingColors = prevStashSet, prevStashID, prevStashColors
 	e.derivedDepth--
 	return Derived{Power: power, Toughness: toughness, Keywords: kw, Types: ty, Name: name, Colors: colors}
 }
@@ -2600,6 +2647,15 @@ func (e *Engine) IsCreature(id state.ObjID) bool {
 // consults them -- protection qualities, Fear's black-blocker test, convoke's
 // colour contributions, the Count$...$Colors heads.
 func (e *Engine) Colors(id state.ObjID) string {
+	// A read of an object whose own characteristics are being derived right
+	// now (its layer-7 pump expression counting its own colours) is served
+	// from the stash derivedWith set before its layer-7 walk — re-entering
+	// Derived here would recurse forever. CR 613's layers are ordered: no
+	// layer-7 result feeds layer 5, so the stashed answer is the finished
+	// layer-5 result, exact rather than an approximation.
+	if e.derivingColorsSet && e.derivingColorsID == id {
+		return e.derivingColors
+	}
 	return e.Derived(id).Colors
 }
 

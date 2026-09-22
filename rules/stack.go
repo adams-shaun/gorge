@@ -2922,6 +2922,7 @@ func (e *Engine) resolveAbility(source state.ObjID, controller state.PlayerID,
 // already existed for the layer system's own callers before effects.Host
 // grew a method of the same name, and needed no change to satisfy it.
 func (e *Engine) Game() *state.Game                       { return e.G }
+func (e *Engine) ObjectColors(o *state.Object) string     { return e.objColors(o) }
 func (e *Engine) Emit(ev events.Event)                    { e.emit(ev) }
 func (e *Engine) EmitDamage(ev events.Event) events.Event { return e.emit(ev) }
 func (e *Engine) Rand(n int) int                          { return e.rng.IntN(n) }
