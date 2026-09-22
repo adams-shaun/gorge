@@ -651,14 +651,30 @@ export interface Option {
    */
 export interface DamageEffect {
   /**
-   * Amount is a nonnegative literal, or nil (JSON null) if absent, dynamic,
-   * invalid or outside the supported literal range. In particular X and
-   * SVar expressions stay unknown even if the engine could evaluate them.
-   * A known zero is a non-nil pointer to 0. There is deliberately no numeric
-   * default: Go consumers must check nil before dereferencing; wire consumers
-   * must check null before arithmetic. This is not a lethal-damage claim.
+   * Amount is the nonnegative literal or context-resolved amount at the
+   * point the target decision is posed, or nil (JSON null) if it is absent,
+   * unresolvable, invalid or outside the supported range. X and SVar
+   * expressions are evaluated when the announced/resolving context supplies
+   * their value. A known zero is a non-nil pointer to 0. There is deliberately
+   * no numeric default: Go consumers must check nil before dereferencing; wire
+   * consumers must check null before arithmetic. This is not a lethal-damage
+   * claim.
    */
   amount: number | null;
+}
+
+  /**
+   * RemovalEffect is a conservative classification of an active removal SA.
+   * It describes the scripted operation, not whether the target will actually
+   * leave at resolution (replacement effects, conditions and legality remain
+   * outside a targeting decision). Kind is one of destroy, sacrifice, exile,
+   * bounce, graveyard, library or command; Destination is populated for the
+   * ChangeZone family and repeats its normalized destination for clients that
+   * want the zone rather than the operation.
+   */
+export interface RemovalEffect {
+  kind: string;
+  destination?: string;
 }
 
   /**
@@ -676,6 +692,12 @@ export interface TargetEffect {
    * other abilities cannot deal damage.
    */
   damage?: DamageEffect | null;
+  /**
+   * Removal classifies the active SA's direct zone-removal shape. It is
+   * absent for an unknown API, a non-removal destination, or a ChangeZone
+   * whose destination this vocabulary does not model.
+   */
+  removal?: RemovalEffect | null;
 }
 
   /**

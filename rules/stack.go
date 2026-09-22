@@ -1134,25 +1134,120 @@ func (e *Engine) protectionSource(source state.ObjID) state.ObjID {
 	return source
 }
 
-// describeTargetEffect is intentionally independent of game state and host.
-// Only literal damage is known: evaluating Num here would collapse unresolved
-// SVars to zero and would mistake a current X/count for a resolution forecast.
-func describeTargetEffect(sa *cards.SA) *decision.TargetEffect {
+// describeTargetEffect is the context-aware target payload builder. The
+// target ask is CR 601.2c's choice among legal targets, so a dynamic amount
+// must be evaluated in the same announced/cast context the eventual effect
+// will use -- never guessed from a zero-value Num read.
+func (e *Engine) describeTargetEffect(p state.PlayerID, source state.ObjID, sa *cards.SA, x int32) *decision.TargetEffect {
 	if sa == nil {
 		return nil
 	}
 	out := &decision.TargetEffect{API: sa.API}
+	if x == 0 {
+		if o := e.G.Obj(source); o != nil {
+			x = o.X
+		}
+	}
+	if removal := targetRemoval(sa); removal != nil {
+		out.Removal = removal
+	}
 	switch sa.API {
 	case "DealDamage", "DamageAll":
 		out.Damage = &decision.DamageEffect{}
-		// Fixed-width parsing is architecture-independent and safely representable
-		// by the wire's JavaScript number. Negative/overflow/missing stay unknown.
-		if n, err := strconv.ParseInt(sa.Params["NumDmg"], 10, 32); err == nil && n >= 0 {
-			amount := int(n)
-			out.Damage.Amount = &amount
+		// A missing amount remains null even though the effect implementation
+		// has a defensive runtime default. A literal or a resolvable X/SVar is
+		// the amount the client and bot can actually reason about at this ask.
+		if amount, ok := e.targetDamageAmount(p, source, sa, x); ok && amount >= 0 {
+			n := int(amount)
+			out.Damage.Amount = &n
 		}
 	}
 	return out
+}
+
+// targetDamageAmount evaluates NumDmg with a verdict. effects.NumResolved is
+// intentionally a broad numeric reader for effect sites that degrade an
+// unmodelled SVar to zero; a decision payload must not turn that degradation
+// into a claimed damage amount, so SVar bodies use EvalCountOK here.
+func (e *Engine) targetDamageAmount(p state.PlayerID, source state.ObjID, sa *cards.SA, x int32) (int32, bool) {
+	ctx, ok := e.targetBoundCtx(p, source)
+	if !ok {
+		ctx = &effects.Ctx{Source: source, Controller: p}
+		if o := e.G.Obj(source); o != nil && o.Face() != nil {
+			effects.SetSVars(ctx, o.Face().SVars)
+		}
+	}
+	ctx.X = x
+	raw, present := sa.Params["NumDmg"]
+	if !present {
+		return 0, false
+	}
+	raw = strings.TrimSpace(raw)
+	if n, err := strconv.ParseInt(raw, 10, 32); err == nil {
+		return int32(n), true
+	}
+	sign := int32(1)
+	if len(raw) > 1 && (raw[0] == '+' || raw[0] == '-') {
+		if raw[0] == '-' {
+			sign = -1
+		}
+		raw = raw[1:]
+	}
+	if ctx.SVars != nil {
+		if body, found := ctx.SVars[raw]; found {
+			n, resolved := effects.EvalCountOK(e, ctx, body)
+			return sign * n, resolved
+		}
+	}
+	// A direct helper/test ask without a source object has no announced or
+	// resolving context in which a dynamic value could be known. Keep it null
+	// rather than turning the evaluator's zero fallback into a claim.
+	if source == 0 {
+		return 0, false
+	}
+	if raw == "X" {
+		return sign * ctx.X, true
+	}
+	// Inline Count$/ref-property bodies are valid direct numeric parameters.
+	// The evaluator supplies the unknown verdict instead of collapsing them to
+	// zero. This also covers published trigger/result values when their body is
+	// supported by the effects count grammar.
+	n, resolved := effects.EvalCountOK(e, ctx, raw)
+	return sign * n, resolved
+}
+
+// targetRemoval classifies only APIs and destinations whose direct meaning is
+// known. In particular, an unfamiliar API is never inferred to be removal
+// from a label or parameter spelling.
+func targetRemoval(sa *cards.SA) *decision.RemovalEffect {
+	if sa == nil {
+		return nil
+	}
+	switch sa.API {
+	case "Destroy", "DestroyAll":
+		return &decision.RemovalEffect{Kind: "destroy"}
+	case "Sacrifice", "SacrificeAll":
+		return &decision.RemovalEffect{Kind: "sacrifice"}
+	case "ChangeZone", "ChangeZoneAll":
+		destination := strings.ToLower(strings.TrimSpace(sa.Params["Destination"]))
+		kind := destination
+		switch destination {
+		case "exile":
+			kind = "exile"
+		case "hand":
+			kind = "bounce"
+		case "graveyard":
+			kind = "graveyard"
+		case "library":
+			kind = "library"
+		case "command":
+			kind = "command"
+		default:
+			return nil
+		}
+		return &decision.RemovalEffect{Kind: kind, Destination: destination}
+	}
+	return nil
 }
 
 type targetCandidate struct {
@@ -1527,7 +1622,7 @@ func (e *Engine) askCrossModeCharmTargets(p state.PlayerID, source state.ObjID, 
 	}
 	d := &decision.Decision{Player: p, Kind: decision.KTarget, Min: k, Max: k,
 		Prompt: fmt.Sprintf("Choose %d targets: one for each mode, each a different player", k),
-		Source: source, TargetEffect: describeTargetEffect(sub)}
+		Source: source, TargetEffect: e.describeTargetEffect(p, source, sub, 0)}
 	for _, candidate := range candidates {
 		o := decision.Option{Index: len(d.Options), Kind: candidate.kind,
 			Label: e.targetOptionLabel(candidate), Obj: candidate.obj, Player: candidate.player}
@@ -1953,7 +2048,7 @@ func (e *Engine) AskCopyTargets() bool {
 	}
 	d := &decision.Decision{Player: controller, Kind: decision.KTarget, Min: min, Max: max,
 		Prompt: "Choose a new target for the copy", Source: o.ID,
-		ResumeKind: "copy_targets", ResumeSA: sa, TargetEffect: describeTargetEffect(sa)}
+		ResumeKind: "copy_targets", ResumeSA: sa, TargetEffect: e.describeTargetEffect(controller, o.ID, sa, o.X)}
 	for _, candidate := range ordered {
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: candidate.kind,
 			Label: e.targetOptionLabel(candidate), Obj: candidate.obj, Player: candidate.player,
@@ -1999,7 +2094,7 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 	min, max, sameCapacity, sameController := e.sameControllerTargetBounds(sa, candidates, min, max)
 	d := &decision.Decision{Player: p, Kind: decision.KTarget, Min: min, Max: max,
 		Prompt: "Choose a target for " + e.targetName(source),
-		Source: source, TargetEffect: describeTargetEffect(sa),
+		Source: source, TargetEffect: e.describeTargetEffect(p, source, sa, 0),
 		TargetsWithSameController: sameController, ResumeSA: sa}
 	for _, candidate := range candidates {
 		// targetOptionLabel tolerates the Face-less ability object a

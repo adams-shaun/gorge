@@ -5964,7 +5964,7 @@ func (e *Engine) targetAsk() bool {
 	}
 	d := &decision.Decision{Player: pc.player, Kind: decision.KTarget, Min: min, Max: max,
 		Prompt: "Choose a target for " + e.targetName(pc.card),
-		Source: src, TargetEffect: describeTargetEffect(sa),
+		Source: src, TargetEffect: e.describeTargetEffect(pc.player, pc.card, sa, pc.x),
 		TargetsWithSameController: sameController}
 	for _, candidate := range candidates {
 		// Shared with stack.go's askTarget so a Face-less ability object (a
