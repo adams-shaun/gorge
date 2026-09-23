@@ -93,10 +93,11 @@ func TestCycledTriggerFiresOnTheCycleCostDiscard(t *testing.T) {
 }
 
 // TestCycledTriggerDistinguishesDiscardProvenance pins the discriminator: a
-// cost discard of a card with printed Cycling is a cycle, the same card
-// discarded by an effect is not, and a cost discard of a card WITHOUT
-// printed cycling never queues a Cycled trigger. Synthetic fixtures isolate
-// the event marker from every other mechanic.
+// cost discard TAGGED as a cycling ability's cost is a cycle, an effect
+// discard of the same card is not, and a cost discard whose cause is NOT a
+// cycling ability never queues a Cycled trigger even when the card prints
+// Cycling. Synthetic fixtures isolate the event provenance from every other
+// mechanic.
 func TestCycledTriggerDistinguishesDiscardProvenance(t *testing.T) {
 	const src = "Name:Cycle Watcher\nManaCost:U\nTypes:Creature\nPT:1/1\nK:Cycling:U\nOracle:x\nT:Mode$ Cycled | ValidCard$ Card.Self | Execute$ TrigDraw | TriggerDescription$ When you cycle CARDNAME, draw a card.\nSVar:TrigDraw:DB$ Draw | NumCards$ 1\n"
 	e := handEngine(t, card(t, src))
@@ -120,8 +121,10 @@ func TestCycledTriggerDistinguishesDiscardProvenance(t *testing.T) {
 		t.Fatal("a non-cycling cost discard queued the Cycled trigger")
 	}
 
-	// The cycle activation's own cost marker is a cycle.
-	e.emit(events.DiscardCost(id))
+	// A cost discard whose recorded cause is the cycling ability itself is a
+	// cycle. The provenance rides the event (events.DiscardCostCycling), the
+	// same tag the real K:Cycling activation emits.
+	e.emit(events.DiscardCostCycling(id, "Cycling"))
 	if len(e.pendingTriggers) != 1 {
 		t.Fatalf("pendingTriggers after the cycle = %d, want 1", len(e.pendingTriggers))
 	}

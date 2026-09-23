@@ -63,9 +63,18 @@ func (e *Engine) zoneChangeMatches(t cards.Trigger, source state.ObjID, ev event
 		// "a creature you control dies" must see a stolen creature as the
 		// taker's, though the move has already handed it back to its owner.
 		// ctrl is the trigger source's controller at that moment too, which
-		// for the departed source itself is its LKI controller.
+		// for the departed source itself is its LKI controller -- UNLESS the
+		// source is a recurring-Effect registration, whose virtual controller
+		// is the registration's owner and outranks the creating card's LKI
+		// controller (the registration is the presence, not the card; the
+		// card's own last-known controller is meaningless for it). Without
+		// this guard the LKI overwrite below would clobber the overlay that
+		// controllerOf just applied, so a ChangesZone predicate reading the
+		// source's controller ("creature you control dies") would match the
+		// creating card's controller instead of the Effect owner's.
 		ctrl := e.controllerOf(source)
-		if source == ev.Obj && lki != nil && leftBattlefield(ev) {
+		if _, overlaid := e.effectMatchControllerFor(source); !overlaid &&
+			source == ev.Obj && lki != nil && leftBattlefield(ev) {
 			ctrl = lki.Controller
 		}
 		// The bare wasCastFromYourHandByYou qualifier (the "if you cast it

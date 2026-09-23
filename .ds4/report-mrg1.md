@@ -1,231 +1,245 @@
-# Round record — merge resolver, this worktree (ticket cli-20260923T060000Z-hlcz-imprint), 2026-09-23
+# Merge-conflict resolution report — mrg1 (task agent-20260920T074357Z-b9ac41c2)
+
+## Outcome
+
+The dispatch's conflict was on `.ds4/report-t1.md` only. It is resolved: main's
+accumulated report file is kept intact and the branch's
+`# Report — NonRememberedController selectors` section is appended once at the
+end. The branch now carries the reviewed code fix plus its report commit on top
+of main, and the tree is clean.
+
+Final branch (on top of `main` = `93e84c28`):
+
+```
+196211dc fix(effects): resolve nonremembered controller selectors
+da2334ea docs: update nonremembered selector report
+<this commit> docs: record mrg1 merge-conflict resolution   (this report's own commit;
+                                                          its SHA changes on amend)
+```
+
+`git diff --stat main..HEAD`:
+
+```
+ .ds4/report-mrg1.md                      | 232 +++++++++++++++++++++----------
+ .ds4/report-t1.md                        |  85 +++++++++++
+ effects/context.go                       |  26 ++++
+ effects/copypermanent.go                 |  31 ++++-
+ effects/nonremembered_controller_test.go | 110 ++++++++++++++
+ 5 files changed, 404 insertions(+), 80 deletions(-)
+```
+
+The three code files are byte-identical to the reviewed fix (`diff` of
+`45ff269d^..45ff269d` against `main..HEAD` per file → identical for all three).
 
 ## Entry state
 
-`git status` found the tree CLEAN at the completed merge `519f86ff` (branch fix
-`417cb9aa` + main `e1829bf9`): no rebase or merge in flight. The dispatch's
-conflict set (`effects/zone.go`, `internal/testutil/agentsdoc_test.go`) was
-already resolved there — verified, not redone:
+`git status` on entry: **clean, no rebase or merge in flight**. The daemon's
+earlier attempt had been aborted — the reflog showed `rebase (abort)` at
+`HEAD@{1}`, returning to the branch tip `0156b143` with a clean tree. So this
+was a fresh integration, not the completion of an in-flight operation.
 
-- `effects/zone.go` keeps the branch's `Imprint$` retention in
-  `applyLibrarySearch` (the `var imprinted []state.ObjID` accumulation and the
-  post-move-zone-guarded batched `events.Imprint`), which main's side never
-  carried; main's changes to other zone movers are untouched.
-- `internal/testutil/agentsdoc_test.go` read `knownApproximationRows = 27`,
-  matching the merged AGENTS.md (27 data rows) — the base-2341274c 30 minus
-  this branch's hidden-library ChangeZone row deletion and main's `mtsp1`/
-  `battle1` deletions (staticgoad1→ap1 was a net-zero swap).
-- `417cb9aa` and `e1829bf9` were both ancestors; tree clean.
+Branch at entry:
+```
+8c6fdd56 merge(cli-20260923T060000Z-rv2b-countheads): approx: the exotic <Ref>$<Property> count heads evaluate to zero
+45ff269d fix(effects): resolve nonremembered controller selectors
+0156b143 docs: update nonremembered selector report
+```
+`git merge-base HEAD main` was `8c6fdd56`; the branch had exactly two commits
+ahead, `45ff269d` (the reviewed code fix) and `0156b143` (docs), confirmed with
+`git rev-list --count bf627f79..0156b143` = 2.
 
-## Second integration — main advanced to `fac07856` mid-round
+## The conflict and its root cause
 
-While verifying, `main` had moved `e1829bf9` → `fac07856` (the
-`cli-20260923T060000Z-ctms-refhead` ticket: TriggeredCard$CastTotalManaSpent
-reads the cast spend, deleting the `(castfilter1/2)` register row, plus the
-layers-pt7kw `(kw:Flanking)` deletion already in its lineage). The integration
-owed to main's tip was completed as `git merge main --no-edit`:
+Only **one** file conflicted: `.ds4/report-t1.md`.
 
-- `AGENTS.md` and `effects/zone.go` auto-merged — verified both intents
-  survive: the branch's `Imprint$` fix AND main's flip-before-move
-  `applyTransformed` reordering (CR 306.5b entry-face loyalty) are both
-  present in the merged mover.
-- ONE content conflict: `internal/testutil/agentsdoc_test.go` — the
-  `knownApproximationRows` constant and its comment. Base `e1829bf9` measured
-  28 data rows; the branch deleted the hidden-library ChangeZone row (28→27),
-  main deleted `(castfilter1/2)` and `(kw:Flanking)` (28→26); the merged
-  AGENTS.md measures **25** — verified with the test's own counting rule.
-  Neither side's constant was right for the merge. Resolution:
-  `knownApproximationRows = 25` with a comment naming all three disjoint
-  closures.
+That file is a tracked accumulator — every merged branch appends its task
+report to it (main's copy at the time was 979 lines, starting with the
+`TriggerController$ on ChangesZone` report). Both sides had changed it:
 
-## Commands and output
+- **main / rebase-HEAD side**: the accumulated 979-line report file.
+- **`0156b143` side**: an insertion of the branch's own
+  `# Report — NonRememberedController selectors` section.
 
-```text
-git status                              # clean at 519f86ff, nothing in flight
-git merge-base --is-ancestor main HEAD  # e1829bf9 yes; fac07856 NO
-git merge main --no-edit
-  Auto-merging AGENTS.md
-  Auto-merging effects/zone.go
-  Auto-merging internal/testutil/agentsdoc_test.go
-  CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go
-row counts: base e1829bf9 = 28, HEAD = 27, main = 26, merged = 25
-gofmt -l internal/testutil/agentsdoc_test.go effects/zone.go   # clean
-go test ./internal/testutil -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort' -v
-  --- PASS: TestKnownApproximationsOnlyShrinks (0.00s)
-  --- PASS: TestKnownApproximationRowsAreShort (0.00s)
-  ok  github.com/adams-shaun/gorge/internal/testutil 0.002s
-go test ./effects -run 'TestLibrarySearchExileImprintIsRetained|TestLibrarySearchNonExileImprintIsRetained' -v
-  --- PASS: TestLibrarySearchExileImprintIsRetained (0.68s)
-  --- PASS: TestLibrarySearchNonExileImprintIsRetained (0.00s)
-  ok  github.com/adams-shaun/gorge/effects 0.695s
-go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
-  ok  github.com/adams-shaun/gorge/rules 0.819s
-git add internal/testutil/agentsdoc_test.go && git commit --no-edit
-  -> 5e6e0760 Merge branch 'main' into wt/cli-20260923T060000Z-hlcz-imprint
-git status -> clean; main (fac07856) is now an ancestor of the branch
+The complication: the branch's version of `.ds4/report-t1.md` was **itself a
+botched earlier conflict resolution**. Its 324-line content was a literal
+interleaving of main's rv2b report and the branch's report, separated by the
+raw strings `--- main version ---` and `--- this commit version ---` — a prior
+resolver had committed the conflict marker text into the file instead of
+resolving it. `git diff 8c6fdd56 HEAD -- .ds4/report-t1.md` showed that commit
+*adding* those markers as content, and the branch file had 8 such markers.
+
+Because `0156b143` was derived from a clobbered 234-line base (not from main's
+979-line file), the three-way merge produced two conflict regions: one where
+the branch's base overwrote main's opening reports, one at the tail.
+
+## Resolution of `.ds4/report-t1.md`
+
+The two sides do not genuinely contradict — the branch's intent is "append my
+report", main's intent is "keep the accumulated reports". The correct
+integration is **main's file intact + the branch's NonRememberedController
+report appended once at the end**.
+
+Concretely:
+
+1. Confirmed the rebase-HEAD stage-2 blob was byte-identical to
+   `main:.ds4/report-t1.md` (`diff -q` → identical, 979 lines) — `45ff269d`
+   never touched this file, so HEAD's side carries no branch content.
+2. Reconstructed the branch's *clean* report section by concatenating the
+   `--- this commit version ---` blocks from the branch file in order
+   (`What changed`, `Fails without the fix`, `Gates`, `Issues`, `Commit`) into
+   `.ds4/scratch/nonremembered-report.md`. The rv2b `--- main version ---`
+   blocks were discarded — main already contains the full rv2b report (as
+   `# Merged concurrent report: cli-20260923T060000Z-rv2b-countheads`).
+3. Wrote the resolved file as main's file + the reconstructed section, purely
+   additive (85 appended lines, zero deletions).
+4. No `<<<<<<<` / `=======` / `>>>>>>>` and no `--- main version ---` /
+   `--- this commit version ---` remain in the file.
+
+`git add .ds4/report-t1.md` printed a harmless "paths are ignored" notice
+(`.ds4` is in `.git/info/exclude`), but the path was already staged as the
+resolved index entry, so `-f` was not needed for that file.
+
+## Resolution of `.ds4/report-mrg1.md` (this task's report)
+
+This file is git-excluded scratch that each mrg1 seat overwrites with its own
+report — the version main carried at rebase time said so explicitly ("The
+stale report-mrg1.md found in this worktree's `.ds4/` belonged to a different
+branch's resolution; it was replaced by this report, as the brief names exactly
+this path for this task's report."). So the resolution is **replace**: this
+report is the file content. It has no conflict markers and does not resurrect
+the stale accumulation.
+
+## Main moved during the task (not a rebase defect)
+
+When first inspected, `main` was `bf627f79`; a later `git diff --stat
+main..HEAD` showed unrelated files (`rules/zone_table_batch_test.go`,
+`effects/choose_control.go`, `rules/engine.go`, `rules/trigger_match.go`,
+`rules/paramcensus_test.go`) differing. That was **not** a rebase defect: the
+shared `main` ref advanced while this seat worked, because other agents merged
+their branches:
+
+```
+315137c7 merge(agent-20260922T090929Z-07378594)   (main after bf627f79)
+afc27969 merge(agent-20260920T070405Z-eea92966) stat:CountersRemain ...
+93e84c28 merge(fb-20260923T005805Z-1301f55a): dargo - no option to sac ...
 ```
 
-`.cards` is the real symlink to `/home/sadams/projects/gorge/.cards` — the
-rules ratchet run (0.819s) is real, not a vacuous corpus-skipped pass.
+I confirmed the daemon-dispatched rebase was correct for `bf627f79`, then
+rebased forward onto each newer main tip (`315137c7`, `afc27969`, then
+`93e84c28`, the tip this branch is now based on). The first forward rebase was
+clean; the one onto `afc27969` conflicted only on `.ds4/report-mrg1.md`, and the
+one onto `93e84c28` was clean. (Main is a moving target in this fleet; the
+daemon will rebase once more at merge time if it advances again.)
 
-## Issues
-
-None new. Integration only; the merged state closes the hidden-library
-ChangeZone register row (this ticket) plus main-side `(castfilter1/2)` and
-`(kw:Flanking)` closures, measured at 25 data rows.
-
----
-
-# Merge resolution report — mrg1
-
-## Conflict
-
-- `internal/testutil/agentsdoc_test.go`: main's side included the later `kw:Flanking` and `battle1` row deletions and set `knownApproximationRows` to 27; the reviewed branch also removed the `(castfilter1/2)` row and had the older constant 28. Kept all of main's updates and the branch's CTMS ref-head deletion, set the constant to 26, and updated the explanatory comment to describe the merged deletions. Measured the merged `AGENTS.md` table at 26 data rows before resolving. No other conflicted files.
-- The merge auto-merged `AGENTS.md` and `rules/cast.go`, preserving both sides' changes; no manual changes were needed there.
-
-## Commands and results
-
-- `git status --short --branch; git status` before integration: `## wt/cli-20260923T060000Z-ctms-refhead`; clean, no operation in progress.
-- `git merge main`: initially failed with a content conflict only in `internal/testutil/agentsdoc_test.go` (expected conflict); other files auto-merged.
-- Counted rows from the staged merged `AGENTS.md`: `staged AGENTS data rows: 26`.
-- `.cards` check: present as a symlink to `/home/sadams/projects/gorge/.cards`.
-- `go test -run 'TestTriggeredCardCastTotalManaSpent|TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' ./rules/`: `ok github.com/adams-shaun/gorge/rules 0.981s` (exit 0).
-- `go test -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort' ./internal/testutil/`: `ok github.com/adams-shaun/gorge/internal/testutil 0.001s` (exit 0).
-
-## Uncertainty / concerns
-
-None. Both requested ratchet groups and the conflict-specific CTMS tests passed.
-
----
-
-# Merge resolution report — mrg1 (wt/cli-20260923T060000Z-manaexp-nonpool), 2026-09-23
-
-## Entry state
-
-`git status` found the tree CLEAN at branch tip `e7f775f6` (the convoke
-ManaExpend fix: `b6d47f8b fix(rules): count Convoke mana for ManaExpend` +
-`e7f775f6 test(rules): assert Convoke expend trigger resolves after decision
-drain`). No rebase or merge in flight, no prior partial resolution — this
-resolver ran the integration itself.
-
-## Integration
-
-`git merge main` (main at `f2599d19`). Auto-merged: AGENTS.md regions outside
-the conflict, `rules/cast.go`, `rules/heads_test.go`, and ~60 other files from
-main's lineage (hlcz-imprint, ctms-refhead, layers-pt7kw merges plus their
-closure commits). TWO content conflicts:
-
-1. **`AGENTS.md`** — the `(battle1)` / `(manaexpend1)` adjacent rows at one
-   insertion point:
-   - Base `e9ed29f0` carried BOTH rows (verified: `git show e9ed29f0:AGENTS.md`
-     lines 236-237, and the `(manaexpend1)` row text is byte-identical
-     base-vs-main — main did NOT touch that row's lines).
-   - The branch DELETED `(manaexpend1)` (b6d47f8b: ManaExpend now counts
-     convoke contributions alongside pool mana — the row's own "Removed by"
-     condition met) and kept `(battle1)`.
-   - Main DELETED `(battle1)` (b732b382: the CR 310.11 defeated battle is
-     exiled and its owner may cast it transformed) and kept `(manaexpend1)`.
-   - **Resolution: keep NEITHER row** — both closures are deliberate,
-     disjoint, and reviewed; the merged table goes `(api:Clone)` →
-     `(devthr1)` directly. Measured the merged table at **24 data rows**
-     with the test's own `approximationRows()` rule (base 29 − 5 disjoint
-     closures: manaexpend1 [branch], battle1, hlcz-imprint hidden-library
-     ChangeZone row, castfilter1/2, kw:Flanking [main]).
-
-2. **`internal/testutil/agentsdoc_test.go`** — the `knownApproximationRows`
-   constant and comment: branch said 28, main said 25, neither right for the
-   merge. Resolution: `knownApproximationRows = 24` with a merged comment
-   naming all five disjoint closures and their commits/tickets.
-
-## Risky auto-merge verified
-
-`rules/cast.go` was auto-merged between main's 5390d8b3 (expend tally became
-engine scratch; `payCast` folds every paid cast unconditionally) and the
-branch's convoke change. The merged `payCast` computes
-`manaSpentTotal(spentMana) + convokeManaSpent(pc.convoke)` — both intents
-compose; `convokePayment` gained the `countsMana` field the branch's fix adds,
-and `convokeManaSpent` survives the merge. Confirmed by both sides' tests
-passing together (below).
+The branch content changed nothing in the code between rebases: the code fix
+stays byte-identical.
 
 ## Commands and output
 
-```text
-git status            # clean at e7f775f6, nothing in flight
-git merge main
-  Auto-merging AGENTS.md        Auto-merging internal/testutil/agentsdoc_test.go
-  Auto-merging rules/cast.go
-  CONFLICT (content): Merge conflict in AGENTS.md
-  CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go
-awk row-count of merged AGENTS.md -> 24
-git diff --check      # no leftover markers after resolution
-git add AGENTS.md internal/testutil/agentsdoc_test.go
-go test ./internal/testutil/
-  ok  github.com/adams-shaun/gorge/internal/testutil 1.266s
-go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|ManaExpend|Convoke'
-  ok  github.com/adams-shaun/gorge/rules 0.776s
-  (verified non-vacuous with -v: 22 RUNs, all PASS — incl.
-   TestEveryRepoDeckIsFullySupported, TestEveryRepoDeckParamsAreRead,
-   TestTeapotSlingerManaExpendCountsConvoke, and the branch's convoke tests)
-go test ./rules -run 'TestTeapotSlinger'   # main's expend tests on the merged cast.go
-  ok  github.com/adams-shaun/gorge/rules 0.584s
-gofmt -l <changed files>   # clean; go run ./cmd/gentypes -check clean
-git commit --no-edit -> b0937567 Merge branch 'main' into wt/cli-20260923T060000Z-manaexp-nonpool
-git status            # clean; main (f2599d19) is an ancestor of the branch
+Initial integration (dispatched target `bf627f79`):
+
+```
+$ git status
+On branch wt/agent-20260920T074357Z-b9ac41c2
+nothing to commit, working tree clean
+
+$ git rebase main
+Auto-merging .ds4/report-t1.md
+CONFLICT (content): Merge conflict in .ds4/report-t1.md
+error: could not apply 0156b143... docs: update nonremembered selector report
+   (commit 45ff269d applied cleanly; only the docs commit conflicted)
+
+# resolved report-t1.md as described
+$ GIT_EDITOR=true git rebase --continue
+[detached HEAD 8dede373] docs: update nonremembered selector report
+ 1 file changed, 85 insertions(+)
+Successfully rebased and updated refs/heads/wt/agent-20260920T074357Z-b9ac41c2.
 ```
 
-`.cards` is the real symlink to `/home/sadams/projects/gorge/.cards` — the
-rules runs are real, not vacuous corpus-skipped passes.
+Forward rebases onto the newer main tips (clean, then one report conflict):
 
-## Uncertainty / concerns
+```
+$ git rebase 315137c7
+Successfully rebased and updated refs/heads/wt/agent-20260920T074357Z-b9ac41c2.
 
-None. The only judgement call was deleting BOTH conflicting AGENTS.md rows;
-that follows from each row's deletion being a reviewed closure on its own side
-(main never modified the `(manaexpend1)` lines the branch deleted, and the
-branch never modified the `(battle1)` lines main deleted — verified
-byte-identical against the merge base), so no side's intent was overridden.
+$ git rebase afc27969
+Auto-merging .ds4/report-mrg1.md
+CONFLICT (content): Merge conflict in .ds4/report-mrg1.md
+error: could not apply ... docs: record mrg1 merge-conflict resolution
+# resolved report-mrg1.md as "replace with this seat's report"
+Successfully rebased and updated refs/heads/wt/agent-20260920T074357Z-b9ac41c2.
+
+$ git status
+On branch wt/agent-20260920T074357Z-b9ac41c2
+nothing to commit, working tree clean
+
+$ git log --oneline main..HEAD
+<this commit> docs: record mrg1 merge-conflict resolution
+da2334ea docs: update nonremembered selector report
+196211dc fix(effects): resolve nonremembered controller selectors
+```
+
+No conflict markers remain in either report file:
+
+```
+$ grep -nE '^(<<<<<<<|=======|>>>>>>>)' .ds4/report-t1.md .ds4/report-mrg1.md
+(no output; exit 1)
+```
+
+## Post-merge ratchets (required by the brief)
+
+```
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  	github.com/adams-shaun/gorge/rules	0.741s
+```
+
+No new `Mode$` matcher is registered, and no `knownUnsupported` /
+`knownUnsupportedParams` / `knownUnmodelledCountHeads` entry is closed by this
+branch, so no ratchet table needed an `addedAfterTheSplit` entry or a removal.
+
+## Targeted tests over the conflicted files' packages
+
+```
+$ go test -run 'TestFracturedIdentityGivesEveryOtherPlayerACopy|TestNonRememberedControllerDefinedPlayers' ./effects/
+ok  	github.com/adams-shaun/gorge/effects	0.621s
+
+$ go test ./effects/
+ok  	github.com/adams-shaun/gorge/effects	2.584s
+
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.491s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.344s
+```
+
+`.cards` is present as a symlink to `/home/sadams/projects/gorge/.cards`
+(`ls -la .cards` reproduced it), and the corpus-backed effects run took 0.62s —
+not the ~2ms of a skipped run — so the corpus was really exercised.
+
+No `TestHeads` failure: the rebase preserves the code fix byte-identically and
+no golden was edited. `TestConstructedDefaultIsByteIdentical` passed unchanged,
+so the botbench 20-game split did not move.
+
+## Notes / uncertainties
+
+- `0156b143`'s original content (the marker-laden file) was discarded for the
+  report body; only the branch's *intended* report text was kept. That is the
+  correct read of the branch's intent — its subject is "docs: update
+  nonremembered selector report", and the marker text was clearly an accident,
+  not authored prose.
+- Main's rv2b report was not duplicated; the branch base's copy of it is
+  already present in main's accumulated file in canonical form.
+- Both rewritten doc commits carry no `Ref:` trailer and no attribution
+  (gorge convention); the commit-msg hook's rules were respected.
+- The commit SHAs in the earlier draft of this report were provisional and are
+  superseded by the final three above.
 
 ## Issues
 
-None new. Integration only; the merged state closes `(manaexpend1)` (branch)
-plus main-side `(battle1)`, hlcz-imprint, `(castfilter1/2)` and `(kw:Flanking)`
-closures, measured at 24 data rows.
-
-
----
-
-# Merge-conflict resolution — mrg1
-
-## Conflict
-
-- `rules/trigmatch_combat.go` — branch `2a3078f7` added an SVar-bearing `effects.Ctx` and used `MatchesPlayerSpecWithSVars` for `AttackingPlayer` and `AttackedTarget`, so symbolic life thresholds resolve using the trigger source's face SVars. Main added whole-declaration attacker selection for `AttackersDeclared` batch triggers, using `e.declaredAttackers` when available. These changes are compatible.
-- `effects/filter.go` was auto-merged without a conflict; it retains the branch's life-threshold SVar resolver alongside main's changes.
-
-## Resolution
-
-Kept main's `ids` selection and `attacker := e.controllerOf(ids[0])`, then retained the branch's SVar-bearing context and used `MatchesPlayerSpecWithSVars` for both player-spec checks. The existing `ValidAttackers` and amount checks continue to use `ids`, preserving main's whole-declaration behavior.
-
-## Commands and output
-
-- Initial `git status --short --branch`: `## wt/agent-20260920T070405Z-c8f8e7b4` (clean; no operation was in flight).
-- `git merge main`:
-  ```
-  Auto-merging effects/filter.go
-  Auto-merging rules/trigmatch_combat.go
-  CONFLICT (content): Merge conflict in rules/trigmatch_combat.go
-  Automatic merge failed; fix conflicts and then commit the result.
-  ```
-- Confirmed `.cards` present.
-- `git diff --check`: no output (passed).
-- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|TestBreenaAttackTriggerReadsLifeGTX|TestLifeThresholdSVar'`:
-  ```
-  ok   github.com/adams-shaun/gorge/rules 0.831s
-  ```
-
-No uncertainty remains in the conflict resolution. No unrelated code was edited.
-
-## Issues
-
-No new issues found during this merge-only resolution; no conflict-related behavior was left unresolved.
-
-- `git merge --continue` initially could not launch the configured editor because stdin is non-interactive; `GIT_EDITOR=true git merge --continue` then completed the merge using the default message.
-- Final `git status --short --branch` after the merge commit showed only this report file modified; the report is being committed separately.
+None found. The conflict was confined to tracked, git-excluded report
+accumulators; no engine or test behavior was ambiguous. Pre-existing issues
+the branch's own report already records (`PlayerCountRemembered$LifeTotal`
+unread; the remaining `PlayerCountPropertyYou$` shapes) remain documented in
+the appended `report-t1.md` section and are neither introduced nor changed by
+this resolution.

@@ -6,22 +6,24 @@ import (
 	"github.com/adams-shaun/gorge/events"
 )
 
-// TestChooseEffectsRecordWithoutAsking pins R-9: ChooseType/ChooseNumber on
-// an object that already carries the choice emit nothing (the cast-time
-// Choose event already recorded it), and on one without a choice they emit a
-// Choose event with a deterministic fallback rather than asking.
+// TestChooseEffectsRespectARecordedChoice pins that a recorded TYPE choice
+// is not overwritten: ChooseType on an object that already carries a
+// ChosenType emits nothing (a valid type answer is never empty, so the
+// non-empty field IS the answered marker and the entry/cast-time ask already
+// recorded it). ChooseNumber is deliberately NOT in this test any more (task
+// cli-20260923T060000Z-choose-number): a number already on the object is an
+// EARLIER answer, not this ask's own, so a fresh resolution-time ask re-asks
+// -- see effects/choose_number_ask_test.go for that rule, including the
+// entry-body exemption.
 func TestChooseEffectsRespectARecordedChoice(t *testing.T) {
 	h := newHost(t, 2)
 	src := h.g.AddObject(mkCard(t, "Name:Source\nTypes:Land\nOracle:x\n"), 0).ID
 	// Put a Goblin the controller owns so effChooseType's fallback is real.
 	h.g.AddObject(mkCard(t, "Name:Grunt\nTypes:Creature Goblin\nPT:1/1\nOracle:x\n"), 0)
 	h.g.Obj(src).ChosenType = "Kithkin"
-	h.g.Obj(src).ChosenNumber = 5
 	Resolve(h, &Ctx{Source: src, Controller: 0}, sa(t, "DB$ ChooseType | Defined$ You"))
-	Resolve(h, &Ctx{Source: src, Controller: 0}, sa(t, "DB$ ChooseNumber | Defined$ You"))
-	if h.g.Obj(src).ChosenType != "Kithkin" || h.g.Obj(src).ChosenNumber != 5 {
-		t.Fatalf("a recorded choice must not be overwritten: type=%q number=%d",
-			h.g.Obj(src).ChosenType, h.g.Obj(src).ChosenNumber)
+	if h.g.Obj(src).ChosenType != "Kithkin" {
+		t.Fatalf("a recorded choice must not be overwritten: type=%q", h.g.Obj(src).ChosenType)
 	}
 	for _, e := range h.log {
 		if e.Kind == events.Choose {

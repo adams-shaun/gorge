@@ -155,6 +155,43 @@ func Apply(g *state.Game, e Event) {
 		// Pure marker for one completed library search; all resulting card
 		// moves and the shuffle have their own events.
 
+	case KeywordAbilityPush:
+		// A keyword-GRANTED activated ability (CR 613.1f): the mint mirrors
+		// AbilityPush (Ruling T20-a) so a log-only replay creates the same
+		// object a live game did, but the body is not a face index -- it is
+		// SYNTHESIZED from the derived keyword line Counter carries
+		// ("Cycling:1 U", "TypeCycling:Sliver:3"), exactly the synthesis the
+		// offer loop and pcAbility re-derive, so live game and replay mint the
+		// identical ability. Obj is the activating card and the minted
+		// object's Source (`Defined$ Self`/`CARDNAME` names it); no
+		// registration is consumed, a grant lives exactly as long as its
+		// granting static. A line no synthesizer can model, an invalid
+		// controller or a missing source mints nothing (the totality stance
+		// every case here takes).
+		if !validPlayer(g, e.Player) {
+			break
+		}
+		src := g.Obj(e.Obj)
+		if src == nil {
+			break
+		}
+		sa := cards.GrantedCyclingAbility(e.Counter)
+		if sa == nil {
+			break
+		}
+		// AbilityPush's per-source activation census, same condition: only a
+		// battlefield activation counts (a cycling activation is from the
+		// hand, so this is the mirror rather than a live increment).
+		if src.Zone == state.ZBattlefield {
+			src.ActivatedThisTurn++
+		}
+		o := g.AddObject(nil, e.Player)
+		Move(g, o.ID, state.ZLibrary, state.ZStack)
+		o.Ability = sa
+		o.StackKind, o.StackKindKnown = state.StackKindActivated, true
+		o.Source = e.Obj
+		o.Remembered = rememberedFrom(e.IDs)
+
 	case Discover, Seek, Surveil:
 		// The discover (CR 701.57), seek (task trigdisc1) and surveil
 		// (CR 701.42, task trig-surveil) records are pure markers, exactly
@@ -749,12 +786,16 @@ func Apply(g *state.Game, e Event) {
 		// 2/2 creature. Cloak shares the face-down entry with a second Counter
 		// value; only the cloak marker sets Cloaked, the state rules/layers.go
 		// and trigger_match.go read for the ward {2}.
+		moveCounter, countersRemain := CountersRemainMovePayload(e.Counter)
+		if !countersRemain {
+			moveCounter = e.Counter
+		}
 		setType, fdPower, fdTough, fdHasPT, manifesting := "", int32(0), int32(0), false, false
 		if e.Kind == MoveZone && e.To == state.ZBattlefield {
-			if e.Counter == CloakEntryCounter {
+			if moveCounter == CloakEntryCounter {
 				manifesting = true
 			} else {
-				setType, fdPower, fdTough, fdHasPT, manifesting = FaceDownEntryFields(e.Counter)
+				setType, fdPower, fdTough, fdHasPT, manifesting = FaceDownEntryFields(moveCounter)
 			}
 		}
 		if manifesting {
@@ -767,14 +808,18 @@ func Apply(g *state.Game, e Event) {
 				o.FaceDownHasPT = fdHasPT
 			}
 		}
-		Move(g, e.Obj, e.From, e.To)
+		if e.Kind == MoveZone && countersRemain {
+			MoveCountersRemain(g, e.Obj, e.From, e.To)
+		} else {
+			Move(g, e.Obj, e.From, e.To)
+		}
 		if o := g.Obj(e.Obj); o != nil {
 			if e.To == state.ZStack && o.Face() != nil {
 				o.StackKind, o.StackKindKnown = state.StackKindSpell, true
 			}
 
 			if e.To == state.ZExile {
-				switch e.Counter {
+				switch moveCounter {
 				case "exiled_with_face_down", "exiled_with_face_down_foretold":
 					// Hideaway's face-down exile (CR 702.75): the exiling source
 					// rides in Amount, and FaceDown is state so a later projection
@@ -783,7 +828,7 @@ func Apply(g *state.Game, e Event) {
 					// object's cast flags.
 					o.ExiledWith = state.ObjID(e.Amount)
 					o.FaceDown = true
-					if e.Counter == "exiled_with_face_down_foretold" {
+					if moveCounter == "exiled_with_face_down_foretold" {
 						o.CastFlags |= state.FlagForetold
 					}
 				case "face_down":
@@ -2116,6 +2161,22 @@ func Apply(g *state.Game, e Event) {
 					Params: map[string]string{"Defined": "Self", "NumCopies": "Count$OffspringPaid",
 						"SetPower": "1", "SetToughness": "1"}}
 			}
+			// A granted Mentor (rules.pushTrigger's __kwMentorGranted payload)
+			// has no SVar either: rebuilt structurally into the same
+			// DB$ PutCounter | ValidTgts$ Creature.attacking | Mentor$ True
+			// targeted body the printed K:Mentor expansion carries
+			// (cards/kw_mentor.go), so the live game and the replay mint
+			// identical objects from the event text alone. The "Granted"
+			// suffix keeps the payload from aliasing the "__kwMentor" SVar a
+			// printed bare K:Mentor line mints (the Exploit/Offspring rule).
+			// The Mentor$ marker rides the params, so rules' mentorAdmits reads
+			// it at both the target offer and the CR 608.2b recheck either way.
+			if _, ok := strings.CutPrefix(e.Counter, "__kwMentorGranted"); ok {
+				sa = &cards.SA{Kind: "DB", API: "PutCounter",
+					Params: map[string]string{"ValidTgts": "Creature.attacking",
+						"TgtPrompt": "Select target attacking creature with lesser power",
+						"Mentor":    "True", "CounterType": "P1P1", "CounterNum": "1"}}
+			}
 		}
 		if sa == nil {
 			break
@@ -2824,6 +2885,16 @@ func ringEmblemAbility(level int) *cards.SA {
 // removed from that zone and appended again, so it ends up at the end of the
 // zone's order. That is deterministic and matches every other move.
 func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
+	move(g, id, from, to, false)
+}
+
+// MoveCountersRemain folds a move whose departing permanent has the
+// CountersRemain static. The marker is carried by the logged MoveZone event.
+func MoveCountersRemain(g *state.Game, id state.ObjID, from, to state.Zone) {
+	move(g, id, from, to, true)
+}
+
+func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain bool) {
 	o := g.Obj(id)
 	if o == nil || !o.Zone.Valid() || !to.Valid() {
 		return
@@ -3113,7 +3184,9 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		o.IsAttacking = false
 		o.AttackingBattle = 0
 		o.BlockedBy = nil
-		o.Counters = nil
+		if !countersRemain || to == state.ZHand || to == state.ZLibrary {
+			o.Counters = nil
+		}
 		o.IntrinsicKeywords = nil
 		o.ExiledWith = 0
 		o.FaceDown = false

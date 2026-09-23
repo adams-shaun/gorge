@@ -206,14 +206,15 @@ func triggerOrdersDuplicates(t cards.Trigger) bool {
 // printed reports whether pt is an ordinary printed face trigger -- one whose
 // TriggerPush re-derives from the source's active face at Idx. The keyword
 // and synthetic shapes (Ward, Afflict, Conspire, Cascade, Exploit, Offspring,
-// the Ring emblem, Miracle, Madness, Evoke) carry no face trigger line, and a
-// delayed, granted or merged entry's body is an Execute$ SVar rather than a
-// face Triggers entry -- none of them can carry OrderDuplicates$, and reading
-// face.Triggers[Idx] for one would hand back a different line entirely.
+// Mentor, the Ring emblem, Miracle, Madness, Evoke) carry no face trigger
+// line, and a delayed, granted or merged entry's body is an Execute$ SVar
+// rather than a face Triggers entry -- none of them can carry
+// OrderDuplicates$, and reading face.Triggers[Idx] for one would hand back a
+// different line entirely.
 func (pt pendingTrigger) printed() bool {
 	return !pt.Delayed && !pt.Granted && pt.Merged == 0 && !pt.Miracle && !pt.Madness &&
 		!pt.Evoke && pt.Ward == "" && pt.Afflict == "" && !pt.Conspire && !pt.Cascade &&
-		!pt.Exploit && !pt.Offspring && pt.RingEmblem == 0
+		!pt.Exploit && !pt.Offspring && !pt.Mentor && pt.RingEmblem == 0
 }
 
 // orderDuplicatesGroup returns the duplicate-group identity of pt's trigger
@@ -616,6 +617,36 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		}
 		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
 			Obj: pt.Source, Counter: "__kwCumulativeUpkeepGranted:" + pt.Cumulative, Text: "cumulative upkeep ability"})
+		e.drainAwaitsTarget = e.Pending() != nil
+		return
+	}
+	// A granted Mentor (CR 702.134 via a layer-6 AddKeyword$ Mentor -- Aegis
+	// of the Legion's "Equipped creature has mentor", Nyxborn Unicorn's
+	// Bestow aura): the Ward/Afflict shape, but the body is TARGETED. Its
+	// Counter payload "__kwMentorGranted" is what events.Apply rebuilds into
+	// the same DB$ PutCounter | ValidTgts$ Creature.attacking | Mentor$ True
+	// targeted body the printed K:Mentor expansion carries
+	// (cards/kw_mentor.go), and the target ask is posed from the walk's own
+	// synthesized SA (the Gained/Granted branch shape) -- the offer and the
+	// CR 608.2b recheck both read the Mentor$ marker through mentorAdmits
+	// either way. The trigger is mandatory. The "Granted" suffix keeps the
+	// payload from aliasing the "__kwMentor" SVar a printed bare K:Mentor
+	// line mints (the Exploit/Offspring rule).
+	if pt.Mentor {
+		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
+			return
+		}
+		stackLen := len(e.G.Stack)
+		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
+			Obj: pt.Source, Counter: "__kwMentorGranted", Text: "mentor ability"})
+		if pt.SA != nil && len(e.G.Stack) > stackLen {
+			id := e.G.Stack[len(e.G.Stack)-1]
+			if e.triggerContexts == nil {
+				e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
+			}
+			e.triggerContexts[id] = pt.Ctx.TriggerContext
+			e.askTarget(pt.Controller, id, pt.SA)
+		}
 		e.drainAwaitsTarget = e.Pending() != nil
 		return
 	}

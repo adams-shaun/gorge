@@ -522,16 +522,20 @@ type Host interface {
 	// SuspendContinuation next; the host drops that report, because the loop
 	// frame re-enters the RepeatEach itself and so walks its Sub.
 	SuspendRepeat(RepeatSuspension)
-	// SuspendCharmRest reports that a cross-mode TargetUnique Charm's mode
-	// loop (effCharm's re-entry) suspended mid-mode with chosen modes still
-	// to run: sa is the Charm's own SA and rest the remaining chosen mode
-	// names in execution order. The host records a continuation that
-	// re-enters the Charm with Ctx.Modes = rest once the answered ask's own
-	// chain completes — the remaining modes must not run while the
-	// suspension is live. The Resolve loop enclosing the Charm reports that
-	// same SA through SuspendContinuation next; the host drops that report
-	// (the charm frame re-enters the Charm itself), which is why the reporter
-	// marks it the way SuspendRepeat marks a RepeatEach.
+	// SuspendCharmRest reports that a Charm's mode loop (effCharm's generic
+	// loop, charmDistinctTargetRun or charmCrossModeRun) suspended mid-mode:
+	// sa is the Charm's own SA and rest the remaining chosen mode names in
+	// execution order (EMPTY when the suspended mode was the last chosen
+	// one). The host records a continuation that re-enters the Charm with
+	// Ctx.Modes = rest once the answered ask's own chain completes — the
+	// remaining modes must not run while the suspension is live. An empty
+	// rest still reports, so the Charm re-enters (running no further mode)
+	// and walks its own Sub rather than the enclosing loop recording a plain
+	// continuation at a nil Sub that degrades to a no-sub-ability Note. The
+	// Resolve loop enclosing the Charm reports that same SA through
+	// SuspendContinuation next; the host drops that report (the charm frame
+	// re-enters the Charm itself), which is why the reporter marks it the way
+	// SuspendRepeat marks a RepeatEach.
 	SuspendCharmRest(sa *cards.SA, rest []string)
 	// SuspendVillainousRest reports that a VillainousChoice's chosen body
 	// suspended on a nested mid-resolution ask (for example Damocles Base's
@@ -646,6 +650,17 @@ type RepeatSuspension struct {
 	Outer       []state.Target
 	Chosen      []state.Target
 	ChosenValid bool
+	// VoteCounts is a deep copy of the outer resolution's Ctx.VoteCounts at
+	// the moment an AmountFromVotes$ iteration suspended. The tally is
+	// resolution-local (the api:Vote that built it is a prior chain link), so
+	// the fresh Ctx a resume rebuilds would otherwise lose it and every
+	// frame that re-derives "Votes" would read an unbound/zero value. The
+	// host carries this snapshot on the same continuation frame as the loop
+	// cursor, so both the suspended iteration's own body and the still-owed
+	// later iterations re-bind the right per-subject tally. Nil when the
+	// loop's resolution never published a tally (an ordinary RepeatEach, or
+	// one on a vote without StoreVoteNum$), preserving the unbound read.
+	VoteCounts []VoteCount
 }
 
 // FlipRest is a DB$ FlipCoin loop's continuation once a per-flip sub-ability
@@ -1670,6 +1685,36 @@ type Ctx struct {
 	// discipline), so a nested ChooseColor deeper in the same chain poses
 	// its own fresh ask.
 	ETBColorRecorded bool
+	// ChosenNumberPick is the answered mid-resolution ChooseNumber pick (task
+	// cli-20260923T060000Z-choose-number): the option Amount the chooser picked
+	// out of the number list, set by rules' "choosenumber" resume arm before
+	// the suspended sub-ability is re-run. effChooseNumber's re-entry consumes
+	// and clears it and emits the one Choose event the deterministic fallback
+	// would have emitted, with the answered number. A legitimate answer can be
+	// ZERO, so ChosenNumberAnswered is the answered marker (a bare int32 could
+	// not tell "answered 0" from "never asked"). This field is the
+	// mid-resolution pick and is DISTINCT from ChosenNumber, which carries the
+	// Effect's frozen SetChosenNumber$ binding (Count$ChosenNumber); the two
+	// never alias. Consumed and cleared at the top of the effect's walk (the
+	// fx42 scoping discipline), so a nested ChooseNumber cannot inherit the
+	// outer answer.
+	ChosenNumberPick     int32
+	ChosenNumberAnswered bool
+	// ETBNumberRecorded marks the ONE ChooseNumber invocation that must not
+	// ask: the as-enters ENTRY-choice body (K:ETBReplacement:Other:
+	// ChooseNumber). The entry machinery (rules' applyETBChoiceReplacement ->
+	// resumeETBEntry) already posed the entry ask and recorded the answer on
+	// the entering object before this body runs at the re-emitted MoveZone, so
+	// rules' replCtx flags that invocation and effChooseNumber keeps the
+	// historical no-op for it alone. Without the flag an unconditional
+	// o.ChosenNumber guard also suppressed a FRESH resolution-time ask after an
+	// earlier ChooseNumber had set the field -- the stale-source-state bug the
+	// sibling colour ticket's review named. The flag is what makes the entry
+	// no-op exact even when the recorded entry answer is 0 (the value a bare
+	// o.ChosenNumber guard cannot distinguish from unset). Consumed and cleared
+	// by the effect (the fx42 scoping discipline), so a nested ChooseNumber
+	// deeper in the same chain poses its own fresh ask.
+	ETBNumberRecorded bool
 	// ManaReflectedColor is the answered mid-resolution AB$ ManaReflected
 	// colour pick: the option Label ("Add W") the chooser picked, set by
 	// rules' "manareflected" resume arm before the suspended sub-ability is

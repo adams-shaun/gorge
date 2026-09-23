@@ -273,6 +273,20 @@ export interface CardView {
 }
 
   /**
+   * PoolRestrictionView is one restricted floating-mana batch as the wire
+   * sees it: the produced symbol verbatim (a bare WUBRGC letter, an "S<colour>"
+   * snow unit or a "<Tag><colour>" typed unit, exactly ManaRestriction.Color),
+   * the unit count, and Text -- a sentence naming what the mana may be spent
+   * on, or the raw Valid$ string when the formatter does not recognise the
+   * shape (an honest floor).
+   */
+export interface PoolRestrictionView {
+  color: string;
+  amount: number;
+  text: string;
+}
+
+  /**
    * PotentialAction is one action a seat COULD take if it first floated every
    * mana its untapped sources could produce: the engine's own legal-offer walk
    * (rules/legal.go) priced against a hypothetical pool instead of the floating
@@ -382,6 +396,24 @@ export interface PlayerView {
    * absent when nothing is available).
    */
   pool: Record<string, number>;
+  /**
+   * PoolRestrictions annotates Pool: one entry per batch of floating mana
+   * whose producing ability carried a RestrictValid$ spend limit, naming
+   * the colour, the amount and a human-readable spend text. It exists
+   * because Pool alone renders a bare spendable-looking chip for mana a
+   * cast may in fact refuse (Cavern of Souls' {B} that pays only for a
+   * creature spell of the chosen type), leaving the seat unable to learn
+   * why no cast was offered. Like Pool it is public information -- the
+   * restriction is derived from a public battlefield permanent's own
+   * ability (CR 106.4a/106.4b), so it is projected for every seat under
+   * every visibility. It carries omitempty: a seat holding no restricted
+   * mana is absent, never a JSON null, so every view without a restriction
+   * serialises byte-identically to before this field existed (the
+   * Available convention). A batch whose Valid is empty -- an
+   * AddsNoCounter$-only batch, which imposes no spend limit -- is omitted:
+   * this field names spend restrictions, and such a batch has none.
+   */
+  pool_restrictions?: PoolRestrictionView[];
   /**
    * PotentialActions is this seat's "what could I still do after tapping
    * out" projection, filled ONLY for the viewer's own seat (the walk reads
@@ -656,6 +688,19 @@ export interface Option {
    * it.
    */
   svar?: string;
+  /**
+   * Keyword anchors an "ability" option whose body a DERIVED keyword line
+   * grants (CR 613.1f): a layer-6 `AddKeyword$ Cycling:1 U` /
+   * `AddKeyword$ TypeCycling:Sliver:3` static (Tectonic Reformation,
+   * Rhet-Tomb Mystic, Jo Grant, Homing Sliver) gives a hand card a cycling
+   * ability no printed face carries, so neither the Ability index nor the
+   * SVar name anchors it -- the option carries the keyword line itself
+   * ("Cycling:1 U"), which beginActivation synthesizes the ability body
+   * from, exactly the SVar-anchor shape with the line standing in for the
+   * name. omitempty: only keyword-granted options carry it, so every
+   * existing option list serialises byte-identically.
+   */
+  keyword?: string;
   /**
    * Cost is the activation cost of a priority-window "activate" option whose
    * mana ability costs MORE than a bare tap, in the same whitespace-delimited

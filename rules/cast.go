@@ -94,6 +94,17 @@ type pendingCast struct {
 	grantSource state.ObjID
 	grantSVar   string
 
+	// grantKeyword anchors a KEYWORD-GRANTED activation (CR 613.1f, the
+	// layer-6 AddKeyword$ Cycling/TypeCycling route): the body is synthesized
+	// from the derived keyword line the option carries ("Cycling:1 U",
+	// "TypeCycling:Sliver:3") -- neither a face index nor an SVar name anchors
+	// it, since a granted keyword lives in no face's SVar table. pcAbility
+	// re-derives the identical SA from the line at every read site (a pure
+	// function of the string, so replay-safe), and payCast's ability branch
+	// mints through events.KeywordAbilityPush, whose Counter carries the same
+	// line. Empty means not a keyword grant. Plain data, so Clone carries it.
+	grantKeyword string
+
 	// gainedFrom / gainedIdx anchor a HAS-ALL-ABILITIES-OF activation
 	// (Forge's GainsAbilitiesOf$, rules/activation's gained branch): the body
 	// is a compiled SA on a FOREIGN card's face, so gainedFrom is that card's
@@ -1607,6 +1618,79 @@ func sacrificeMatchSpec(spec string) string {
 		return "CARDNAME"
 	}
 	return spec
+}
+
+// sacrificeCostCandidates returns, in battlefield scan order, the permanents
+// that can pay one Sac cost part for a cast (ability=false) or an activation
+// (ability=true) of source by p. Every Sac stage derives its candidate list
+// from this one helper -- the X announcement's upper bound (xAsk), the
+// sacrifice settle (sacAsk) and the offer gate's announced-X affordability
+// sweep (offerCastableUsing) -- so the count an offer is priced on, the count
+// the payer may announce, and the count the payment can settle cannot
+// disagree about whether a self-reference or a CantSacrifice block is
+// payable.
+func (e *Engine) sacrificeCostCandidates(p state.PlayerID, source state.ObjID, part CostPart, ability bool) []state.ObjID {
+	matchSpec := sacrificeMatchSpec(part.Spec)
+	cause := costCauseForAbility(ability)
+	var out []state.ObjID
+	for _, oid := range e.G.Zone(state.ZBattlefield, p) {
+		if e.sacrificeBlockedForCost(oid, cause) {
+			continue
+		}
+		if e.matchesSpecFrom(matchSpec, oid, p, source) {
+			out = append(out, oid)
+		}
+	}
+	return out
+}
+
+// sacrificeCostAssignable tests whether all Sac parts can be paid with
+// distinct permanents for an announced X. A per-part candidate count is
+// insufficient: two parts can each have X candidates but share every one.
+// Match each required sacrifice to an object, rerouting earlier matches when
+// a later, narrower part needs one of their objects. This is an existence
+// check, not a payment choice; sacAsk still lets the player choose the
+// actual sacrifices in cost-part order.
+func (e *Engine) sacrificeCostAssignable(p state.PlayerID, source state.ObjID, parts []CostPart, ability bool, x int32) bool {
+	candidates := make([][]state.ObjID, len(parts))
+	for i, part := range parts {
+		candidates[i] = e.sacrificeCostCandidates(p, source, part, ability)
+		need := part.N
+		if part.Announced {
+			need = x
+		}
+		if need > int32(len(candidates[i])) {
+			return false
+		}
+	}
+	assigned := make(map[state.ObjID]int)
+	var claim func(int, map[state.ObjID]bool) bool
+	claim = func(i int, seen map[state.ObjID]bool) bool {
+		for _, oid := range candidates[i] {
+			if seen[oid] {
+				continue
+			}
+			seen[oid] = true
+			prev, used := assigned[oid]
+			if !used || claim(prev, seen) {
+				assigned[oid] = i
+				return true
+			}
+		}
+		return false
+	}
+	for i, part := range parts {
+		need := part.N
+		if part.Announced {
+			need = x
+		}
+		for n := int32(0); n < need; n++ {
+			if !claim(i, make(map[state.ObjID]bool)) {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // discardCandidates returns the still-available cards that can pay one
@@ -3687,16 +3771,7 @@ func (e *Engine) xAsk() bool {
 	// mana/energy X also exists the candidate count caps it from above.
 	for _, part := range pc.cost.Sac {
 		if part.Announced {
-			matchSpec := sacrificeMatchSpec(part.Spec)
-			avail := int32(0)
-			for _, oid := range e.G.Zone(state.ZBattlefield, pc.player) {
-				if e.sacrificeBlockedForCost(oid, costCauseForPendingCast(pc)) {
-					continue
-				}
-				if e.matchesSpecFrom(matchSpec, oid, pc.player, pc.card) {
-					avail++
-				}
-			}
+			avail := int32(len(e.sacrificeCostCandidates(pc.player, pc.card, part, pc.isAbility())))
 			if pc.cost.X == 0 && !energyX && bound > avail {
 				bound = avail
 			} else if avail < bound {
@@ -3785,7 +3860,22 @@ func (e *Engine) xAsk() bool {
 	}
 	var legal []int32
 	maxOld := int32(0)
+	// A cost whose announced X feeds a ReduceCost static (Dargo's Sac<X>
+	// reading Count$xPaid) does NOT price monotonically in x: the total
+	// falls as the reduction grows, so the first unpayable X may be
+	// followed by a payable one. The offer gate's affordability sweep
+	// accepts exactly such an announcement, so xAsk must offer it too --
+	// breaking at the first unpayable x would withhold the only legal
+	// announcement and wedge the fetched cast. Every other announced-X
+	// cost keeps the early break (generic only grows with x, so nothing
+	// past the first unpayable x can be payable).
+	nonMonotonic := costAnnouncesPaidX(pc.cost)
 	for x := min; x <= bound; x++ {
+		// The offer sweep and the announcement must agree on whether the
+		// SAME X can settle every Sac part without reusing an object.
+		if sacX && !e.sacrificeCostAssignable(pc.player, pc.card, pc.cost.Sac, pc.isAbility(), x) {
+			continue
+		}
 		wx := e.paymentManaX(pc, x)
 		wx.Generic -= e.delveCredit(pc.player, pc.card, wx.Generic)
 		// The descriptor carries the announced-X marker: WithX folded this
@@ -3793,7 +3883,10 @@ func (e *Engine) xAsk() bool {
 		// an X payment here or every X announcement would be unpayable.
 		if !e.costPayableClass(pc.player, paymentForCast(pc, wx),
 			pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}, wx) {
-			break
+			if !nonMonotonic {
+				break
+			}
+			continue
 		}
 		maxOld = x
 		// Every announced contribution must actually reduce this X's cost
@@ -4231,23 +4324,17 @@ func (e *Engine) sacAsk() bool {
 	pc := e.cast
 	for pc.sacPart < len(pc.cost.Sac) {
 		part := pc.cost.Sac[pc.sacPart]
-		matchSpec := sacrificeMatchSpec(part.Spec)
 		var candidates []state.ObjID
-		for _, oid := range e.G.Zone(state.ZBattlefield, pc.player) {
-			if e.sacrificeBlockedForCost(oid, costCauseForPendingCast(pc)) {
-				continue
+		for _, oid := range e.sacrificeCostCandidates(pc.player, pc.card, part, pc.isAbility()) {
+			already := false
+			for _, s := range pc.sacs {
+				if s == oid {
+					already = true
+					break
+				}
 			}
-			if e.matchesSpecFrom(matchSpec, oid, pc.player, pc.card) {
-				already := false
-				for _, s := range pc.sacs {
-					if s == oid {
-						already = true
-						break
-					}
-				}
-				if !already {
-					candidates = append(candidates, oid)
-				}
+			if !already {
+				candidates = append(candidates, oid)
 			}
 		}
 		n := int(part.N)
@@ -4582,11 +4669,10 @@ func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCar
 		// typeChoiceOptions instead.
 		return e.typeChoiceOptions(you, card, map[string]string{"Type": typeCategory})
 	default: // "number"
-		out := make([]decision.Option, 0, 13)
-		for i := 0; i <= 12; i++ {
-			out = append(out, decision.Option{Index: len(out), Kind: "number", Label: strconv.Itoa(i), Amount: i})
-		}
-		return out
+		// The shared 0..N list (task cli-20260923T060000Z-choose-number:
+		// effects/number_choices.go is the ONE home), so the as-enters ask
+		// and the mid-resolution ChooseNumber ask cannot disagree.
+		return effects.NumberChoices()
 	}
 }
 
@@ -4855,7 +4941,7 @@ func (c Cost) announcePip(i int) []pipAlt {
 // ability arms (no spell legality recheck, no cast trigger, the ability
 // payment/mint branch, no modes ask) instead of the spell ones.
 func (pc *pendingCast) isAbility() bool {
-	return pc.ability >= 0 || pc.grantSVar != "" || pc.gainedFrom != 0
+	return pc.ability >= 0 || pc.grantSVar != "" || pc.gainedFrom != 0 || pc.grantKeyword != ""
 }
 
 // pcAbility resolves the proposal's ability body. A printed activation reads
@@ -4867,6 +4953,14 @@ func (pc *pendingCast) isAbility() bool {
 // grantor's face no longer names -- a stale proposal) resolves to nil and the
 // caller degrades the way a stale option always has.
 func (e *Engine) pcAbility(pc *pendingCast) *cards.SA {
+	if pc.grantKeyword != "" {
+		// A keyword-granted body (CR 613.1f, the AddKeyword$ Cycling/TypeCycling
+		// route): synthesized from the derived keyword line, a pure function of
+		// the string -- no state read, so every read site and a replay re-derive
+		// the identical SA. A line no synthesizer can model resolves nil and the
+		// caller degrades the way a stale option always has.
+		return cards.GrantedCyclingAbility(pc.grantKeyword)
+	}
 	if pc.gainedFrom != 0 {
 		// A has-all-abilities-of body: the SA is the named foreign face's
 		// own compiled ability at gainedIdx. A card that left the scoped zone
@@ -4902,6 +4996,29 @@ func (e *Engine) pcAbility(pc *pendingCast) *cards.SA {
 		return pa.SA
 	}
 	return e.grantedSAFrom(pc.grantSource, pc.card, pc.grantSVar)
+}
+
+// cyclingKeyword returns the Forge keyword head ("Cycling" or "TypeCycling")
+// when the activation pc's own ability is a cycling ability (CR 702.29), and
+// "" for every other activation. It is the provenance events.DiscardCostCycling
+// records on the cost discard: the discard is a cycle because THIS ability
+// paid for it, whether the cycling is printed (K:Cycling) or granted (a layer's
+// AddKeyword$ Cycling / K:TypeCycling, e.g. Rhet-Tomb Mystic, Tectonic
+// Reformation, Homing Sliver). Resolved through pcAbility, so it names the
+// ability a granted activation actually resolved rather than the card's face.
+// TypeCycling is a variant of cycling (CR 702.29d's "[type]cycling"), so it
+// tags a Mode$ Cycled trigger too.
+func (e *Engine) cyclingKeyword(pc *pendingCast) string {
+	ab := e.pcAbility(pc)
+	if ab == nil {
+		return ""
+	}
+	switch kw := strings.TrimSpace(ab.Params["Keyword"]); kw {
+	case "Cycling", "TypeCycling":
+		return kw
+	default:
+		return ""
+	}
 }
 
 // hybrids, the monocolour hybrids, the Phyrexian pips and the
@@ -7303,6 +7420,18 @@ func (e *Engine) graveyardManaValue(p state.PlayerID, ids []state.ObjID) int32 {
 	return n
 }
 
+// activationPushEvent names the replayable activation boundary for both
+// printed and keyword-granted abilities. Use it for spend riders too: a
+// synthetic AbilityPush with ability=-1 cannot describe a granted body.
+func (pc *pendingCast) activationPushEvent() events.Event {
+	if pc.grantKeyword != "" {
+		return events.Event{Kind: events.KeywordAbilityPush, Player: pc.player,
+			Obj: pc.card, Counter: pc.grantKeyword}
+	}
+	return events.Event{Kind: events.AbilityPush, Obj: pc.card,
+		Player: pc.player, Amount: int32(pc.ability)}
+}
+
 // finishTargetedCast is the completion tail every cast-flow target answer
 // converges on once no post-target ask is outstanding. payCast records an
 // ability's root targets once its stack object is minted (possibly after a
@@ -7322,8 +7451,7 @@ func (e *Engine) finishTargetedCast(pc *pendingCast, player state.PlayerID) {
 	// dispatch off a suspended payment.
 	if pc.isAbility() && pc.stackObj != 0 {
 		e.cast = pc
-		e.fireManaSpentTriggers(events.Event{Kind: events.AbilityPush, Obj: pc.card,
-			Player: pc.player, Amount: int32(pc.ability)}, nil)
+		e.fireManaSpentTriggers(pc.activationPushEvent(), nil)
 		e.cast = nil
 	}
 	if e.drainAwaitsTarget {
@@ -7829,7 +7957,11 @@ func (e *Engine) payCast() {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZExile, Text: "delved"})
 		}
 		for _, id := range pc.discards {
-			e.emit(events.DiscardCost(id))
+			if kw := e.cyclingKeyword(pc); kw != "" {
+				e.emit(events.DiscardCostCycling(id, kw))
+			} else {
+				e.emit(events.DiscardCost(id))
+			}
 		}
 		// Exile cost parts (ExileFromHand/ExileFromGrave): each chosen card
 		// leaves its zone (hand, or the graveyard for a self-reference) for
@@ -7957,15 +8089,18 @@ func (e *Engine) payCast() {
 		// AbilityPush mints the ability object onto the stack AFTER the cost
 		// settles, so an aborted activation leaves no stack object behind
 		// (CR 733.1). handleTarget records the chosen targets onto it. A
-		// GRANTED activation (task grantcost1) mints through the SAME two
-		// events beginGrantedActivation always minted -- the delayed-shape
-		// DelayedPush for a self-grant (Counter carries the SVar name; the
-		// ^uint32(0) registration id matches nothing) and GrantAbilityPush for
-		// a cross-object grant (IDs[0] carries the grantor; the minted
-		// ability's Source is the recipient) -- so resolution reads the
-		// SVar-anchored body exactly as it always has, while every cost part
-		// above (sacrifice, discard, counter, energy, draw, ...) is now paid
-		// by the shared flow too.
+		// GRANTED activation (task grantcost1) mints through the SAME three
+		// events beginGrantedActivation/beginKeywordGrantedActivation mint --
+		// the delayed-shape DelayedPush for a self-grant (Counter carries the
+		// SVar name; the ^uint32(0) registration id matches nothing) and
+		// GrantAbilityPush for a cross-object grant (IDs[0] carries the
+		// grantor; the minted ability's Source is the recipient) -- so
+		// resolution reads the SVar-anchored body exactly as it always has,
+		// while every cost part above (sacrifice, discard, counter, energy,
+		// draw, ...) is now paid by the shared flow too. A KEYWORD-GRANTED
+		// activation (the AddKeyword$ Cycling route, CR 613.1f) mints through
+		// KeywordAbilityPush, whose Counter carries the derived keyword line
+		// the body is synthesized from.
 		if pc.gainedFrom != 0 {
 			e.emit(events.Event{Kind: events.GainedAbilityPush, Player: pc.player, Obj: pc.card,
 				Amount: int32(pc.gainedIdx), IDs: []state.ObjID{pc.gainedFrom}})
@@ -7978,7 +8113,7 @@ func (e *Engine) payCast() {
 					Counter: pc.grantSVar, IDs: []state.ObjID{pc.grantSource}})
 			}
 		} else {
-			e.emit(events.Event{Kind: events.AbilityPush, Obj: pc.card, Player: pc.player, Amount: int32(pc.ability)})
+			e.emit(pc.activationPushEvent())
 		}
 		if len(e.G.Stack) > 0 {
 			pc.stackObj = e.G.Stack[len(e.G.Stack)-1]
@@ -8038,8 +8173,7 @@ func (e *Engine) payCast() {
 		if pc.rootOpts == nil {
 			// No target-recording continuation: dispatch at the completed
 			// AbilityPush boundary while the spent-source capture is still live.
-			e.fireManaSpentTriggers(events.Event{Kind: events.AbilityPush, Obj: pc.card,
-				Player: pc.player, Amount: int32(pc.ability)}, nil)
+			e.fireManaSpentTriggers(pc.activationPushEvent(), nil)
 		}
 		e.cast, e.choosing = nil, chooseNone
 		return
@@ -8614,7 +8748,7 @@ func (e *Engine) fireDeferredCastTrigger() {
 func (e *Engine) fireManaSpentTriggers(ev events.Event, lki *state.Object) {
 	sources := e.manaSpentSources
 	e.manaSpentSources = nil
-	if len(sources) == 0 || (ev.Kind != events.PutOnStack && ev.Kind != events.AbilityPush) {
+	if len(sources) == 0 || (ev.Kind != events.PutOnStack && ev.Kind != events.AbilityPush && ev.Kind != events.KeywordAbilityPush) {
 		return
 	}
 	for _, src := range sources {

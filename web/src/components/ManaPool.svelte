@@ -43,9 +43,20 @@
    * defensively but is no longer reachable from the wire: the retired
    * redaction (which sent null for a hidden pool) is gone.
    */
-  let { pool, available }: {
+  /**
+   * poolRestrictions is the spend limit on the floating-pool chips: one entry
+   * per restricted batch (view.PlayerView.PoolRestrictions). A chip alone
+   * reads as spendable, so a seat holding Cavern of Souls' {B} -- usable only
+   * for a creature spell of the chosen type -- sees mana it cannot spend and
+   * no reason why. This renders the reason as persistent text beside the
+   * chips (never a hover-only tooltip), the same legibility contract the
+   * pool/tap tags follow. Absent or empty, it draws exactly what the
+   * component drew before this prop existed.
+   */
+  let { pool, available, poolRestrictions }: {
     pool: Record<string, number> | null | undefined;
     available?: Record<string, number> | null | undefined;
+    poolRestrictions?: { color: string; amount: number; text: string }[] | null | undefined;
   } = $props();
 
   const ORDER = ['W', 'U', 'B', 'R', 'G', 'C'] as const;
@@ -61,9 +72,10 @@
   );
   const poolSummary = $derived(held.map((h) => `${h.n} ${NAMES[h.sym]}`).join(', '));
   const availSummary = $derived(avail.map((h) => `${h.n} ${NAMES[h.sym]}`).join(', '));
+  const restrictions = $derived((poolRestrictions ?? []).filter((r) => r.text));
 </script>
 
-{#if avail.length > 0 || held.length > 0}
+{#if avail.length > 0 || held.length > 0 || restrictions.length > 0}
   <div class="readout" data-mana-readout>
     {#if avail.length > 0}
       <div class="group avail" data-mana-available aria-label="Available by tapping: {availSummary}">
@@ -79,7 +91,7 @@
     {#if avail.length > 0 && held.length > 0}
       <span class="sep" data-mana-sep aria-hidden="true"></span>
     {/if}
-    {#if held.length > 0}
+    {#if held.length > 0 || restrictions.length > 0}
       <div class="group pool" data-mana-pool aria-label="Mana pool: {poolSummary}">
         <span class="tag" data-mana-tag="pool" aria-hidden="true">pool</span>
         {#each held as h (h.sym)}
@@ -88,6 +100,13 @@
             <span class="n">{h.n}</span>
           </span>
         {/each}
+        {#if restrictions.length > 0}
+          <span class="restr" data-mana-restrictions>
+            {#each restrictions as r}
+              <span class="restr-item" data-mana-restriction={r.color}>{r.amount} {NAMES[r.color] ?? r.color}: {r.text}</span>
+            {/each}
+          </span>
+        {/if}
       </div>
     {/if}
   </div>
@@ -160,5 +179,22 @@
     font-size: var(--t-12);
     line-height: 1;
     color: var(--ink-inst);
+  }
+  /* The spend limit on a floating chip is persistent text, never hover-only: a
+     reader looking at a static board must be able to tell that a symbol in the
+     pool cannot pay what they hold. It is set in the same data face as the
+     counts so it reads as part of the readout, not a separate aside. */
+  .restr {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+  }
+  .restr-item {
+    font-family: var(--font-data);
+    font-size: 0.6rem;
+    line-height: 1.1;
+    color: var(--ink-inst);
+    opacity: 0.85;
   }
 </style>

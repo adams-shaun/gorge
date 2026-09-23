@@ -219,7 +219,7 @@ func effPlayerVote(h Host, c *Ctx, sa *cards.SA) {
 			universe = append(universe, p)
 		}
 	}
-	voters := Defined(h, c, sa)
+	voters := definedPlayers(h, c, sa)
 	picks := append([]state.Target(nil), c.VotePicks...)
 	i := c.VoteTarget
 	if c.VoteDone {
@@ -235,7 +235,7 @@ func effPlayerVote(h Host, c *Ctx, sa *cards.SA) {
 		i++
 	}
 	for ; i < len(voters); i++ {
-		voter := PlayerOf(h, c, voters[i])
+		voter := voters[i]
 		opts := playerBallotOptions(universe, voter, other)
 		if len(opts) == 0 {
 			picks = append(picks, state.Target{})
@@ -264,7 +264,7 @@ func effPlayerVote(h Host, c *Ctx, sa *cards.SA) {
 	// voted. Secret ballots keep their answers private even after completion.
 	ballots := make([]VoteBallot, len(voters))
 	for k, t := range voters {
-		voter := PlayerOf(h, c, t)
+		voter := t
 		pick := ballotPickIndex(universe, picks, k)
 		if !strings.EqualFold(strings.TrimSpace(sa.Params["Secretly"]), "True") {
 			label := "nothing"
@@ -356,7 +356,17 @@ func voteCountFor(c *Ctx, subject state.Target) (int, bool) {
 	if c == nil {
 		return 0, false
 	}
-	for _, vc := range c.VoteCounts {
+	return VoteCountForTarget(c.VoteCounts, subject)
+}
+
+// VoteCountForTarget resolves a subject's tally out of a published
+// Ctx.VoteCounts table. It is the ONE home for the subject match, shared by
+// voteCountFor's per-iteration binding and rules' rebuilt-Ctx restoration of a
+// suspended AmountFromVotes$ loop (the tally is a prior chain link, so a
+// resume restores the table and re-derives the scalar from it). ok=false when
+// the table holds no entry for the subject.
+func VoteCountForTarget(counts []VoteCount, subject state.Target) (int, bool) {
+	for _, vc := range counts {
 		if vc.Subject == subject {
 			return vc.Count, true
 		}

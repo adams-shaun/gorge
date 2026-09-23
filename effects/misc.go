@@ -1,7 +1,6 @@
 package effects
 
 import (
-	"slices"
 	"strconv"
 	"strings"
 
@@ -786,7 +785,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
 			}
-		case "CantTarget", "CantRegenerate", "CantPreventDamage", "CantAttack", "CantSacrifice", "CantPutCounter", "CantBlockBy", "CanAttackDefender", "UnspentMana", "CantBlockUnless", "MustBlock":
+		case "CantTarget", "CantRegenerate", "CantPreventDamage", "CantAttack", "CantSacrifice", "CantPutCounter", "CantBlockBy", "CanAttackDefender", "UnspentMana", "CantBlockUnless", "MustBlock", "NumLoyaltyAct":
 			// A COMPOUND IsRemembered spec (Card.IsRemembered+Creature) resolves
 			// faithfully through the general filter now that it implements
 			// IsRemembered (rules/layers.go restrictionApplies consults the
@@ -832,6 +831,20 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				break
 			}
 			if mode == "UnspentMana" && !UnspentManaParamsReadable(params) {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
+				registered = true
+				break
+			}
+			if mode == "NumLoyaltyAct" && !NumLoyaltyActParamsReadable(params) {
+				// An Effect-delivered NumLoyaltyAct body (Kaito, Dancing
+				// Shadow's PWTwice, Comet, Stellar Pup's LoyaltyAbs, Urza
+				// Assembles the Titans' PWTwice) registers as a continuous
+				// restriction rules' loyaltyAbilityLimit reads alongside the
+				// printed S: route. A body carrying a scoping term this build
+				// does not evaluate must not register blanket -- it reports
+				// unimplemented instead (the shipped-statics convention every
+				// other whitelist arm here keeps).
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
@@ -1398,6 +1411,25 @@ func goadStaticGrantReadable(params map[string]string) bool {
 	for key := range params {
 		switch key {
 		case "Mode", "Affected", "Description", "Goad":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// NumLoyaltyActParamsReadable reports whether an Effect-delivered
+// Mode$ NumLoyaltyAct static body is entirely readable: the line's selector
+// (ValidCard$), its two grant parameters (Twice$ True, Additional$ N) and
+// the display text are the only keys this build evaluates. OnlySourceAbs$
+// True is accepted as source-scoping already implied by the corpus's
+// `ValidCard$ Card.EffectSource` selector (Comet, Stellar Pup's LoyaltyAbs).
+// Any other key is a condition gate or scoping term this build does not
+// evaluate, so the caller fails closed to its honest unimplemented Note.
+func NumLoyaltyActParamsReadable(params map[string]string) bool {
+	for key := range params {
+		switch key {
+		case "Mode", "ValidCard", "Twice", "Additional", "OnlySourceAbs", "Description":
 		default:
 			return false
 		}
@@ -2118,7 +2150,7 @@ func CanAttackDefenderParamsReadable(params map[string]string) bool {
 // restriction a turn early, the wrong-wide direction.
 func absentDurationMeansThisTurn(mode string) bool {
 	switch mode {
-	case "CantPutCounter", "CantBlockBy", "CanAttackDefender":
+	case "CantPutCounter", "CantBlockBy", "CanAttackDefender", "NumLoyaltyAct":
 		return true
 	}
 	return false
@@ -3351,10 +3383,11 @@ func charmCrossModeRun(h Host, c *Ctx, sa *cards.SA, names []string) bool {
 			// remaining modes resume through SuspendCharmRest's continuation
 			// once the answer lands — never while the suspension is live (the
 			// historical loop ran them immediately, before the answered mode
-			// had even completed).
-			if rest := names[i+1:]; len(rest) > 0 {
-				h.SuspendCharmRest(sa, rest)
-			}
+			// had even completed). An empty rest (this was the last mode) is
+			// still reported, so the Charm re-enters and walks its own Sub
+			// instead of the enclosing loop recording a plain continuation
+			// that resumes at a nil Sub and emits a false degradation Note.
+			h.SuspendCharmRest(sa, names[i+1:])
 			return true
 		}
 	}
@@ -3492,9 +3525,7 @@ func charmDistinctTargetRun(h Host, c *Ctx, sa *cards.SA, names []string) bool {
 		c.Targets, c.OfferedSA, c.TargetsOffered = savedTargets, savedOffered, savedMarker
 		c.CharmModeScope, c.CharmModeSA = savedScope, savedScopeSA
 		if h.Suspended() {
-			if rest := names[i+1:]; len(rest) > 0 {
-				h.SuspendCharmRest(sa, rest)
-			}
+			h.SuspendCharmRest(sa, names[i+1:])
 			return true
 		}
 	}
@@ -3599,10 +3630,12 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 				// remaining modes while a decision is pending (Engine.ask
 				// panics on the overwrite). Report the rest as a charm-rest
 				// continuation, the same report the cross-mode runner makes,
-				// so they run once the answer lands.
-				if rest := names[i+1:]; len(rest) > 0 {
-					h.SuspendCharmRest(sa, rest)
-				}
+				// so they run once the answer lands. An empty rest (this was
+				// the LAST mode) is reported too, so the Charm re-enters to
+				// walk its own Sub instead of the enclosing loop recording a
+				// plain continuation that degrades to a false no-sub-ability
+				// Note.
+				h.SuspendCharmRest(sa, names[i+1:])
 				return
 			}
 		}
@@ -3785,7 +3818,7 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 	choices := voteChoiceNames(sa)
-	voters := Defined(h, c, sa)
+	voters := definedPlayers(h, c, sa)
 	// A live fixed-list ballot uses the same private, per-voter KChoose path as
 	// VotePlayer$. Keep Ctx.Votes as the small direct seam used by unit tests;
 	// real answers travel only through the decision's ResumeChoices.
@@ -3800,7 +3833,7 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 				label = choices[picks[i].Obj-1]
 			}
 			if !strings.EqualFold(strings.TrimSpace(sa.Params["Secretly"]), "True") {
-				h.Emit(events.Event{Kind: events.Note, Player: PlayerOf(h, c, t), Text: "votes for " + label})
+				h.Emit(events.Event{Kind: events.Note, Player: t, Text: "votes for " + label})
 			}
 		}
 		counts := make([]int, len(choices))
@@ -3809,19 +3842,12 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 				counts[p.Obj-1]++
 			}
 		}
-		best, tied := voteWinner(counts)
 		if len(choices) > 0 && len(voters) > 0 {
-			name := choices[best]
-			if tied && strings.TrimSpace(sa.Params["VoteTiedAbility"]) != "" {
-				name = strings.TrimSpace(sa.Params["VoteTiedAbility"])
-			}
-			if sub := cards.ResolveSVar(c.SVars, name); sub != nil {
-				Resolve(h, c, sub)
-			}
+			resolveVoteOutcomes(h, c, sa, choices, counts)
 		}
 		ballots := make([]VoteBallot, len(voters))
 		for i, t := range voters {
-			ballots[i] = VoteBallot{Player: PlayerOf(h, c, t), Pick: int(picks[i].Obj) - 1}
+			ballots[i] = VoteBallot{Player: t, Pick: int(picks[i].Obj) - 1}
 		}
 		emitVoteFinished(h, c, ballots, len(choices) > 0, strings.EqualFold(strings.TrimSpace(sa.Params["Secretly"]), "True"))
 		return
@@ -3855,23 +3881,11 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 			picks[i] = choice
 		}
 		if !strings.EqualFold(strings.TrimSpace(sa.Params["Secretly"]), "True") {
-			h.Emit(events.Event{Kind: events.Note, Player: PlayerOf(h, c, t), Text: "votes for " + label})
+			h.Emit(events.Event{Kind: events.Note, Player: t, Text: "votes for " + label})
 		}
 	}
 	if len(choices) > 0 && len(voters) > 0 {
-		// The winner is the option with the most votes (ties: the first such
-		// option). When the top count is shared, VoteTiedAbility$ runs instead
-		// for the shapes that spell one (the Path cycle's DBChaos).
-		best, tied := voteWinner(counts)
-		name := choices[best]
-		if tied {
-			if alt := strings.TrimSpace(sa.Params["VoteTiedAbility"]); alt != "" {
-				name = alt
-			}
-		}
-		if sub := cards.ResolveSVar(c.SVars, name); sub != nil {
-			Resolve(h, c, sub)
-		}
+		resolveVoteOutcomes(h, c, sa, choices, counts)
 	}
 	// The canonical vote-finished carrier (trig:Vote, effects/vote.go):
 	// emitted AFTER the winning outcome resolved -- the vote (outcome
@@ -3886,15 +3900,53 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 	// which binds neither set.
 	ballots := make([]VoteBallot, len(voters))
 	for i, t := range voters {
-		ballots[i] = VoteBallot{Player: PlayerOf(h, c, t), Pick: picks[i]}
+		ballots[i] = VoteBallot{Player: t, Pick: picks[i]}
 	}
 	emitVoteFinished(h, c, ballots, len(choices) > 0, strings.EqualFold(strings.TrimSpace(sa.Params["Secretly"]), "True"))
+}
+
+// resolveVoteOutcomes executes the winning option normally. StoreVoteNum$ is
+// the multi-outcome form: publish each option's tally as VoteNum in a private
+// copy of the source SVar table, then resolve every option body so its numeric
+// effects consume that option's count (including zero).
+func resolveVoteOutcomes(h Host, c *Ctx, sa *cards.SA, choices []string, counts []int) {
+	if strings.EqualFold(strings.TrimSpace(sa.Params["StoreVoteNum"]), "True") {
+		for i, name := range choices {
+			count := 0
+			if i < len(counts) {
+				count = counts[i]
+			}
+			svars := make(map[string]string, len(c.SVars)+1)
+			for key, body := range c.SVars {
+				svars[key] = body
+			}
+			// Forge reuses the SVar name VoteNum for each outcome body, binding
+			// that option's tally while resolving it.
+			svars["VoteNum"] = "Number$" + strconv.Itoa(count)
+			cc := *c
+			cc.SVars = svars
+			if sub := cards.ResolveSVar(cc.SVars, name); sub != nil {
+				Resolve(h, &cc, sub)
+			}
+		}
+		return
+	}
+	best, tied := voteWinner(counts)
+	name := choices[best]
+	if tied {
+		if alt := strings.TrimSpace(sa.Params["VoteTiedAbility"]); alt != "" {
+			name = alt
+		}
+	}
+	if sub := cards.ResolveSVar(c.SVars, name); sub != nil {
+		Resolve(h, c, sub)
+	}
 }
 
 // askFixedVote poses one private KChoose per voter. The answer is encoded as
 // ObjID(index+1), avoiding a second answer channel while keeping ResumeChoices
 // decision-scoped. A host that cannot answer takes option zero (R-9).
-func askFixedVote(h Host, c *Ctx, sa *cards.SA, choices []string, voters []state.Target) ([]state.Target, bool) {
+func askFixedVote(h Host, c *Ctx, sa *cards.SA, choices []string, voters []state.PlayerID) ([]state.Target, bool) {
 	picks := append([]state.Target(nil), c.VotePicks...)
 	i := c.VoteTarget
 	if c.VoteDone {
@@ -3907,7 +3959,7 @@ func askFixedVote(h Host, c *Ctx, sa *cards.SA, choices []string, voters []state
 		i++
 	}
 	for ; i < len(voters); i++ {
-		voter := PlayerOf(h, c, voters[i])
+		voter := voters[i]
 		min := 1
 		if strings.EqualFold(strings.TrimSpace(sa.Params["UpTo"]), "True") {
 			min = 0
@@ -3986,7 +4038,7 @@ func voteChoiceNames(sa *cards.SA) []string {
 // member of the tie -- is remembered for VoteSubAbility$, which runs once
 // at the end (Council's Judgment's "exile each permanent with the most
 // votes or tied for most votes").
-func askCardVote(h Host, c *Ctx, sa *cards.SA, options []state.ObjID, voters []state.Target) ([]state.ObjID, bool) {
+func askCardVote(h Host, c *Ctx, sa *cards.SA, options []state.ObjID, voters []state.PlayerID) ([]state.ObjID, bool) {
 	picks := append([]state.Target(nil), c.VotePicks...)
 	i := c.VoteTarget
 	if c.VoteDone {
@@ -3999,7 +4051,7 @@ func askCardVote(h Host, c *Ctx, sa *cards.SA, options []state.ObjID, voters []s
 		i++
 	}
 	for ; i < len(voters); i++ {
-		voter := PlayerOf(h, c, voters[i])
+		voter := voters[i]
 		min := 1
 		if strings.EqualFold(strings.TrimSpace(sa.Params["UpTo"]), "True") {
 			min = 0
@@ -4056,7 +4108,7 @@ func effCardVote(h Host, c *Ctx, sa *cards.SA, ballot string) {
 	}
 	counts := map[state.ObjID]int{}
 	max := 0
-	voters := Defined(h, c, sa)
+	voters := definedPlayers(h, c, sa)
 	var picks []int
 	if c.Votes != nil {
 		// Direct seam retained for effects tests and replay-independent callers.
@@ -4093,7 +4145,7 @@ func effCardVote(h Host, c *Ctx, sa *cards.SA, ballot string) {
 			}
 		}
 		if !strings.EqualFold(strings.TrimSpace(sa.Params["Secretly"]), "True") {
-			h.Emit(events.Event{Kind: events.Note, Player: PlayerOf(h, c, t), Text: "votes for " + label})
+			h.Emit(events.Event{Kind: events.Note, Player: t, Text: "votes for " + label})
 		}
 	}
 	// The card ballot's per-subject tally, for the chained AmountFromVotes$
@@ -4160,7 +4212,7 @@ func effCardVote(h Host, c *Ctx, sa *cards.SA, ballot string) {
 	// always-fire reading the fixed-list shape takes.
 	ballots := make([]VoteBallot, len(voters))
 	for i, t := range voters {
-		ballots[i] = VoteBallot{Player: PlayerOf(h, c, t), Pick: picks[i]}
+		ballots[i] = VoteBallot{Player: t, Pick: picks[i]}
 	}
 	emitVoteFinished(h, c, ballots, len(options) > 0, strings.EqualFold(strings.TrimSpace(sa.Params["Secretly"]), "True"))
 }
@@ -4700,14 +4752,8 @@ func ManaRecipients(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 	if strings.TrimSpace(sa.Params["Defined"]) == "" {
 		return []state.PlayerID{c.Controller}
 	}
-	g := h.Game()
-	var out []state.PlayerID
-	for _, t := range Defined(h, c, sa) {
-		p := PlayerOf(h, c, t)
-		if int(p) >= len(g.Players) || slices.Contains(out, p) {
-			continue
-		}
-		out = append(out, p)
-	}
-	return out
+	// definedPlayers applies Forge's getDefinedPlayers rule: a remembered CARD
+	// contributes a seat only for the RememberedController/Owner spellings,
+	// never for the plain Remembered family (a RepeatEach loop's subject).
+	return definedPlayers(h, c, sa)
 }
