@@ -1052,6 +1052,13 @@ const (
 	// convoke/cascade grants key on it (Chief Engineer). An ability object
 	// (Card == nil) was never cast.
 	wordWasCast
+	// Forge's Card.copiedSpell: the object is a copy of a spell or permanent
+	// (CR 707), read off state.Object.IsCopy -- the same bit every other copy
+	// read in the engine uses. It is classified here so the generic non<X>
+	// negation can express nonCopiedSpell (The Heron Moon's
+	// `Card.OppOwn+!token+nonCopiedSpell`), and so matcher and
+	// UnknownPredicates agree.
+	wordCopiedSpell
 	// The three cast-provenance tokens (castprov1/2/3): wasCastFromYourHandByYou,
 	// wasCastByYou and the bare wasCastFromYourHand. rules' castProvenanceAdmits
 	// strips and evaluates them at every match site (it holds the event log and
@@ -1148,6 +1155,8 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordMonoColor, ""
 	case "wasCast":
 		return wordWasCast, ""
+	case "CopiedSpell":
+		return wordCopiedSpell, ""
 	// The cast-provenance tokens are recognised here (so the census no longer
 	// reports them unknown) but evaluated by rules' castProvenanceAdmits,
 	// which strips them before the filter runs; wordMatches' body fails
@@ -1322,6 +1331,14 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// (rules.derivedWith) admits the spell a cast is announcing, which is
 		// still in hand at CR 601.2b but IS the spell being cast.
 		return (o.Zone == state.ZStack || sc.AsStack) && o.Card != nil
+	case wordCopiedSpell:
+		// Forge's copiedSpell: the object IS a copy of a spell or permanent
+		// (CR 707.10), read off state.Object.IsCopy. The CR 707.10h guard in
+		// matchesObjectText already rejects a copy that has left both the
+		// stack and the battlefield, so only a live spell/permanent copy
+		// reaches here -- which is exactly the object nonCopiedSpell must
+		// exclude. Its negation is nonCopiedSpell.
+		return o.IsCopy
 	case wordCastProvenance:
 		// The three cast-provenance tokens (wasCastFromYourHandByYou,
 		// wasCastByYou, bare wasCastFromYourHand) are evaluated at every
@@ -1548,12 +1565,17 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 // <X> a colour name it is wordColor (with the WUBRG letter); for <X> a
 // type/supertype/subtype word in the corpus vocabulary it is wordType; for
 // <X> Colorless it is wordColorless (so nonColorless is "has at least one
-// colour"). The caller negates by evaluating wordMatches and inverting. ok is
+// colour"); for <X> CopiedSpell it is wordCopiedSpell (so nonCopiedSpell is
+// "is not a copy of a spell", CR 707). The caller negates by evaluating
+// wordMatches and inverting. ok is
 // false for a p that is not a non<X> shape at all, or whose <X> is none of a
-// colour, a known type word, or Colorless -- the caller must treat that as an
+// colour, a known type word, Colorless, or CopiedSpell -- the caller must
+// treat that as an
 // unknown predicate and fail closed, never as an always-true !hasType. Only
-// wordColor / wordType / wordColorless negate; a nonMultiColor / nonChosenCard
-// remains unknown. The four legacy non* entries in `predicates`
+// wordColor / wordType / wordColorless / wordCopiedSpell negate; a
+// nonMultiColor remains unknown (nonChosenCard is handled by matchPositive,
+// which holds the chosen-list context this classifier lacks). The four legacy
+// non* entries in `predicates`
 // (nonLand/nonCreature/nonBasic/nonBlack) are matched there first and never
 // reach this path, but this path reproduces their result exactly, so the
 // handwritten entries could be deleted without changing behaviour.
@@ -1564,7 +1586,7 @@ func nonPredicate(p string) (kind wordKind, key string, ok bool) {
 	}
 	kind, key = wordPredicate(x)
 	switch kind {
-	case wordColor, wordType, wordColorless:
+	case wordColor, wordType, wordColorless, wordCopiedSpell:
 		return kind, key, true
 	}
 	return wordUnknown, "", false
