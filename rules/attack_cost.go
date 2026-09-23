@@ -185,6 +185,11 @@ type blockPayWindow struct {
 	chosen []decision.Option
 	player state.PlayerID
 	charge int32
+	// sources is the tap list the CURRENT ask posed, in option order: the
+	// answer resolves its exact entry by the chosen option's Index (see
+	// paySourceForAnswer), the same alternative-identity rule the attack
+	// window follows.
+	sources []attackManaSource
 }
 
 func (e *Engine) startBlockPay(chosen []decision.Option, player state.PlayerID, charge int32) bool {
@@ -209,6 +214,7 @@ func (e *Engine) askNextBlockPay() bool {
 	if len(sources) == 0 {
 		return false
 	}
+	st.sources = sources
 	d := &decision.Decision{Player: st.player, Kind: decision.KChoose, Min: 1, Max: 1,
 		Prompt: fmt.Sprintf("Pay %d to block -- tap a mana source", st.charge)}
 	for _, s := range sources {
@@ -217,7 +223,7 @@ func (e *Engine) askNextBlockPay() bool {
 			name = o.Face().Name
 		}
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "block_mana", Obj: s.id,
-			Label: fmt.Sprintf("Tap %s for mana", name)})
+			Label: fmt.Sprintf("Tap %s for %s", name, s.prod)})
 	}
 	e.choosing = chooseBlockPay
 	e.ask(d)
@@ -232,11 +238,8 @@ func (e *Engine) blockPayAnswer(d *decision.Decision, in decision.Intent) {
 	}
 	chosen := d.Chosen(in)
 	if len(chosen) == 1 {
-		for _, s := range e.attackManaSources(st.player) {
-			if s.id == chosen[0].Obj {
-				e.resolveManaAbilityRefOriginal(st.player, s.id, s.ma, s.original, s.gained, false, false, false)
-				break
-			}
+		if s, ok := paySourceForAnswer(st.sources, chosen[0]); ok {
+			e.resolveManaAbilityRefOriginal(st.player, s.id, s.ma, s.original, s.gained, false, false, false)
 		}
 	}
 	if st.charge-e.G.Players[st.player].Pool.Total() <= 0 {
@@ -271,6 +274,47 @@ type attackManaSource struct {
 	// before a Produced$ rewrite.
 	gained gainedManaRef
 	units  int32
+	// prod is the exact production one activation yields, rendered as braced
+	// symbols ("{R}", "{C}{C}"): the tap option's label, so the
+	// alternatives of one multi-ability permanent are distinguishable on the
+	// wire and the payer taps the ability it meant to tap.
+	prod string
+}
+
+// manaUnitsLabel renders a production as braced mana symbols, e.g. "{R}{R}":
+// counts[i] slots of symbol i, each scaled by amt. It is the tap option's
+// production half of the label.
+func manaUnitsLabel(counts [6]int32, amt int32) string {
+	var b strings.Builder
+	for i := range counts {
+		for n := int32(0); n < counts[i]*amt; n++ {
+			b.WriteString("{")
+			b.WriteString(string(cards.ManaSymbol(i)))
+			b.WriteString("}")
+		}
+	}
+	return b.String()
+}
+
+// paySourceForAnswer resolves the EXACT source a tap answer selected. The
+// option's Index is its position in the list the window posed and the window
+// stores that list (attackPayWindow.sources / blockPayWindow.sources), so a
+// multi-ability permanent's second alternative resolves ITS ability, not the
+// first alternative that shares its Obj -- the round-1 defect: duplicate-Obj
+// options resolved the first ability while the budget counted the maximum.
+// The Obj cross-check keeps a malformed answer from activating another
+// object's ability; on a mismatch or an out-of-range Index the legacy
+// first-match-by-Obj scan applies, so an old-style answer still pays.
+func paySourceForAnswer(sources []attackManaSource, opt decision.Option) (attackManaSource, bool) {
+	if opt.Index >= 0 && opt.Index < len(sources) && sources[opt.Index].id == opt.Obj {
+		return sources[opt.Index], true
+	}
+	for _, s := range sources {
+		if s.id == opt.Obj {
+			return s, true
+		}
+	}
+	return attackManaSource{}, false
 }
 
 // attackManaSources walks the payer's battlefield in zone order and returns
@@ -313,7 +357,7 @@ func (e *Engine) attackManaSources(p state.PlayerID) []attackManaSource {
 			if units <= 0 {
 				continue
 			}
-			out = append(out, attackManaSource{id: u.id, ma: a.ma, original: a.ma, gained: e.gainedManaRefFor(p, u.id, a.ma), units: units})
+			out = append(out, attackManaSource{id: u.id, ma: a.ma, original: a.ma, gained: e.gainedManaRefFor(p, u.id, a.ma), units: units, prod: manaUnitsLabel(a.counts, a.amt)})
 		}
 	}
 	// The choice-shaped productions the shared membership deliberately
@@ -407,7 +451,9 @@ func (e *Engine) attackChoiceManaSources(p state.PlayerID) []attackManaSource {
 			// and poses no sub-ask. The gained identity is captured before the
 			// rewrite, which changes the SA pointer.
 			gained := e.gainedManaRefFor(p, id, ma)
-			out = append(out, attackManaSource{id: id, ma: withProduced(ma, ma, oneColourProduced(counts)), original: ma, gained: gained, units: units})
+			rewritten := withProduced(ma, ma, oneColourProduced(counts))
+			pc, _ := cards.ProducedCounts(oneColourProduced(counts))
+			out = append(out, attackManaSource{id: id, ma: rewritten, original: ma, gained: gained, units: units, prod: manaUnitsLabel(pc, amt)})
 		}
 	}
 	return out
@@ -586,6 +632,11 @@ type attackPayWindow struct {
 	chosen []decision.Option
 	player state.PlayerID
 	charge int32
+	// sources is the tap list the CURRENT ask posed, in option order: the
+	// answer resolves its exact entry by the chosen option's Index (see
+	// paySourceForAnswer), so a permanent with several free abilities pays
+	// with the alternative the payer selected.
+	sources []attackManaSource
 }
 
 // startAttackPay opens the payment window for a declaration whose charge the
@@ -629,6 +680,7 @@ func (e *Engine) askNextAttackPay() bool {
 			Text: fmt.Sprintf("could not pay the {%d} attack cost", st.charge)})
 		return false
 	}
+	st.sources = sources
 	d := &decision.Decision{Player: st.player, Kind: decision.KChoose, Min: 1, Max: 1,
 		Prompt: fmt.Sprintf("Pay {%d} to attack -- tap a mana source", st.charge)}
 	for _, s := range sources {
@@ -638,7 +690,7 @@ func (e *Engine) askNextAttackPay() bool {
 		}
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options),
 			Kind: "attack_mana", Obj: s.id,
-			Label: fmt.Sprintf("Tap %s for mana", name)})
+			Label: fmt.Sprintf("Tap %s for %s", name, s.prod)})
 	}
 	e.choosing = chooseAttackPay
 	e.ask(d)
@@ -659,12 +711,8 @@ func (e *Engine) attackPayAnswer(d *decision.Decision, in decision.Intent) {
 	}
 	chosen := d.Chosen(in)
 	if len(chosen) == 1 && chosen[0].Obj != 0 {
-		for _, s := range e.attackManaSources(st.player) {
-			if s.id != chosen[0].Obj {
-				continue
-			}
+		if s, ok := paySourceForAnswer(st.sources, chosen[0]); ok {
 			e.resolveManaAbilityRefOriginal(st.player, s.id, s.ma, s.original, s.gained, false, false, false)
-			break
 		}
 	}
 	if st.charge-e.G.Players[st.player].Pool.Total() <= 0 {
