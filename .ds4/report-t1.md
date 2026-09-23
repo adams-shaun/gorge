@@ -3192,7 +3192,12 @@ implementation is complete with no remainder to defer.
    `faceWantsConverge`/`sunburstGrantOut` must keep both consumers in mind.
    Documented in the gate's doc comment, not a defect.
 
-## Commits
+## Commits (post-rebase onto `main`)
 
-- `aa34c9d3` feat(rules): implement kw:Sunburst as an entry-time converge counter put
-- `0a265091` test(rules): load real corpus carriers for the sunburst coverage tests
+- `45e968b0` feat(rules): implement kw:Sunburst as an entry-time converge counter put
+- `68a7114b` test(rules): load real corpus carriers for the sunburst coverage tests
+- `91ee21e5` docs(agent): append kw:Sunburst round-1 report
+
+Rebased onto `main` after the controller directive (`git rebase main`, no
+conflicts); all gates above were re-run on the rebased tree and are the pasted
+output.
