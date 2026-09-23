@@ -93,7 +93,7 @@ func TestTriggerEventInterestMapping(t *testing.T) {
 			want = cards.TriggerInterestAttackDeclaration
 		case events.TargetsChosen:
 			want = cards.TriggerInterestTargetsChosen
-		case events.AbilityPush:
+		case events.AbilityPush, events.KeywordAbilityPush:
 			want = cards.TriggerInterestAbilityPush
 		case events.Attach:
 			want = cards.TriggerInterestAttach
