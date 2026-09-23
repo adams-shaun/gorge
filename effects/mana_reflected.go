@@ -248,11 +248,20 @@ func effManaReflected(h Host, c *Ctx, sa *cards.SA) {
 		amount = 0
 	}
 	restriction := strings.TrimSpace(sa.Params["RestrictValid"])
-	// Producer-type provenance: a reflected mana unit is produced by THIS
-	// ability's source permanent, so the same Treasure/Cave/Desert/Snow tag
-	// effMana stamps rides its ManaAdd counter too (Cactus Preserve's Desert
-	// reflection, task ctms). Read ONCE per resolution -- the source cannot
-	// change across the colour branches.
+	// Producer-type provenance (task ctms): the tag is the ABILITY SOURCE's
+	// printed Treasure/Cave/Desert/Snow types -- the same tag effMana stamps --
+	// because "mana from a <Type>" is mana PRODUCED BY a permanent of that
+	// type (Marut's official ruling defines "mana from a Treasure" exactly
+	// that way, and CR 107.4h's snow mana is the same producer-side
+	// definition), and the producer of a ManaReflected body's mana is the
+	// permanent resolving the body. Neither the object the body reflects FROM
+	// (Cactus Preserve reflecting a Mountain's red produces DESERT mana; Exotic
+	// Orchard reflecting a snow-covered mountain produces PLAIN red) nor the
+	// recipient the body pays TO (the Produced trigger's Defined$
+	// TriggeredActivator -- the ManaAdd event's Player, who owns the unit at
+	// spend time) changes who produced it. Pinned in both directions by
+	// rules/mana_reflected_attribution_test.go. Read ONCE per resolution -- the
+	// source cannot change across the colour branches.
 	tag, snow := ManaProducerTag(h, c.Source)
 	manaAdd := func(player state.PlayerID, color string) {
 		if amount == 0 {
