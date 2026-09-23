@@ -1,115 +1,82 @@
-# Report — r2 (agent-20260920T071934Z-9ce69d52)
+# Report — r2 (agent-20260923T002719Z-c0b56143) — merge resolution
+
+Ticket: `UnlessCost$ Mill<2>` is a hard decline (Deep Spawn always
+sacrificed). The **implementation itself was completed in round t1** — commit
+`01c62856 fix(rules): settle fixed Mill<N> in the mid-resolution UnlessCost
+path` — and its full verification report is preserved in this worktree at
+`.ds4/report-t1-mill-unless.md` (previously uncommitted at
+`.ds4/report-t1.md`).
 
 ## What this round did
 
-Round t1's only uncommitted artifact was `.ds4/report-t1.md` (the verification
-report; the split-cast/Fuse **code** itself was already committed on main as
-`b8347d4b` + follow-up `9b675a57`). This round:
-
-1. Committed the t1 report. On rebase against main its path collided with a
-   different agent's report already tracked at `.ds4/report-t1.md` on main
-   (fb-20260922T145544Z), so main's version was kept untouched and the t1
-   split-cast report was preserved alongside as
-   `.ds4/report-t1-split-cast.md` (same commit).
-2. Rebased the worktree onto main (`2954978f`) per the controller directive;
-   the branch had no unique code commits, so it is a clean fast-forward plus
-   the report commit.
-3. **Verified the brief's "Done" state and closed its one open gap**: the
-   brief names two specific pins that never existed in the landed work —
-   `TestKillerHalfIsCastable` and `TestGallifreyFallsFuseCastsBothHalves` on
-   `Coward // Killer` and `Gallifrey Falls // No More`. Added both in the new
-   file `rules/split_cast_test.go` (new file, per the no-shared-append rule):
-
-   - `TestKillerHalfIsCastable`: both halves offered from hand ("Cast Coward"
-     + mode `split_alt` "Cast Killer"); casting Killer asks its own creature
-     target; 3 damage kills the 2/2 Grizzly Bears; card → graveyard; replay
-     verified.
-   - `TestGallifreyFallsFuseCastsBothHalves`: the fused cast is WITHHELD at
-     exactly {4}{R}{R} (7 red) and offered only at the summed
-     {6}{R}{R}{W} (7R+2W) — the summed-cost assertion pins CR 702.101b's
-     "both halves' costs"; both halves resolve (Falls' 4 damage kills the
-     bear — see Issues for its inert exile rider); pool empty; replay
-     verified.
-
-   Both tests assert their preconditions (bear on battlefield, card in hand)
-   and both were proven to fail with the feature's offer gates neutralized
-   (see "Fails without the fix").
-
-## Verification of the brief's premises (claims vs measurement)
-
-- "128 files carry AlternateMode:Split" — **held** (measured: 128).
-- "17 files match ^K:Fuse" — **held** (measured: 17).
-- `Coward // Killer` and `Gallifrey Falls // No More` are IN the corpus
-  (`.cards/cardsfolder/c/coward_killer.txt`,
-  `.cards/cardsfolder/g/gallifrey_falls_no_more.txt`) — report-t1's claim
-  that they are "not present in the current corpus" was **wrong**; they are
-  absent only from `internal/testutil/decks/*.json` (measured: 0 hits), so
-  the "deck carriers" wording in the brief is inaccurate for the committed
-  deck set.
-- The brief's CR citation "Fuse (CR 702/702.36)" — Fuse is CR 702.101; the
-  landed code and tests cite it correctly.
-
-## Fails without the fix
-
-Neutralized `splitAlternateCastFace`/`fusedSplitFaces` in `rules/split.go`
-(scratch revert), ran the two new tests, restored byte-identically (`cmp`
-clean against the scratch copy):
+`findings-r2.md` reported that the rebase/merge onto main failed:
 
 ```
---- FAIL: TestKillerHalfIsCastable (0.59s)
-    split_cast_test.go:69: alternate-half offer missing/renamed (the brief's dead-half bug): [... only "Cast Coward" ...]
---- FAIL: TestGallifreyFallsFuseCastsBothHalves (0.00s)
-    split_cast_test.go:141: fused offer missing at the summed cost: [... only "Cast Gallifrey Falls" ...]
-FAIL	github.com/adams-shaun/gorge/rules	0.624s
-RESTORED-BYTE-IDENTICAL
+error: cannot rebase: You have unstaged changes.
+--- merge fallback ---
+error: Your local changes to the following files would be overwritten by merge:
+	.ds4/report-t1.md
 ```
 
-## Gates run (real output)
+Root cause: round t1 wrote its report at the SHARED path `.ds4/report-t1.md`
+and left it uncommitted. Main meanwhile tracks `.ds4/report-t1.md` with a
+different ticket's report (`fb-20260923T005857Z-c1a24352`,
+Count$ResolvedThisTurn), so the merge refused to touch the file. Resolution,
+following the precedent the split-cast round set (see the old r2 report,
+preserved here as `.ds4/report-r2-split-cast.md`):
 
-- `go test -run 'TestSplit|TestKillerHalfIsCastable|TestGallifreyFallsFuseCastsBothHalves' ./rules/`
-  → `ok github.com/adams-shaun/gorge/rules 0.626s` (the 9 existing split tests + the 2 new ones, green).
-- `gofmt -l rules/split_cast_test.go rules/split.go` → no output.
-- `go run ./cmd/gentypes -check` → exit 0 (`GENTYPES-OK`).
-- `go test ./internal/archtest/` → `ok 3.086s`.
-- `go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/` → `ok 1.240s`
-  (no engine code changed this round — only a new test file — so no split
-  movement was expected or observed).
-- `.cards/` symlink present (→ `/home/sadams/projects/gorge/.cards`); the
-  rules runs above were corpus-backed, not skips.
-- TestHeads / acceptance / `make sim` / conformance / `make report` are
-  daemon gates and were not run; heads are untouched by a test-only commit.
+1. Moved the t1 report to the unique path `.ds4/report-t1-mill-unless.md`
+   and restored `.ds4/report-t1.md` to its tracked content
+   (`git restore` — no branch switch, no shared-state change), then
+   committed the new file (`83d640d5`). Main's tracked `report-t1.md`
+   is untouched by this branch, so the merge takes main's version cleanly.
+2. Merged main (`c947f5c8`) into the branch → merge commit `4807a97c`,
+   **clean, no conflicts**. Main's `rules/mana.go` change (the RollDice
+   `ParseCost` token) is in a different function than this ticket's
+   `ParseUnlessCost` hunk; main's `rules/stack.go` change (`offeredTargetSA`,
+   line ~2970) is far from `payUnlessCost`; `rules/unless_unpriceable_test.go`
+   was not modified on main. Verified overlap before merging by diffing
+   `base..main` against my commit's hunks.
+3. Re-ran the brief's gates on the MERGED tree (output below) — all green.
+
+## Gates run on the merged tree (real output)
+
+```
+$ go test -run 'TestDeepSpawnUnlessMillCost|TestUnlessCostStrictParsePopulation' ./rules/ 2>&1 | tail -5
+ok  	github.com/adams-shaun/gorge/rules	0.686s
+
+$ go test ./internal/archtest/ 2>&1 | tail -3
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.965s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ 2>&1 | tail -3
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.259s
+```
+
+`.cards` was present (symlink to `/home/sadams/projects/gorge/.cards`); the
+0.69s Deep Spawn test ran the corpus, not a skip.
+
+## Status of the brief
+
+The brief's "Done means" items were all satisfied and verified in round t1
+(see `.ds4/report-t1-mill-unless.md` for the per-item evidence, including the
+"## Fails without the fix" failing-output paste: parser boundary tests, the
+real-corpus end-to-end Pay path, the short/empty-library CR 701.13a halves,
+the population-table update, the revert-and-restore byte-identity proof).
+This round re-verified the whole set still holds after the merge with main.
+The ratchet tables (`knownUnsupported`, `knownUnsupportedParams`,
+`knownUnmodelledCountHeads`) and `TestHeads` are daemon gates, not seat
+gates; nothing in this ticket's change or the merge is expected to move them,
+and the two ~2 s behaviour goldens both pass on the merged tree.
 
 ## Issues
 
-Defects found this round and NOT fixed (both outside the brief's scope; the
-brief's change only had to make the halves reachable, which it is):
-
-1. **A DamageAll's `ReplaceDyingDefined$` rider never registers** —
-   `effects/damage.go` wires `registerReplaceDying` into `effDealDamage`
-   (line 50) and the damage-exchange path (line 779) but NOT into
-   `effDamageAll` (line 867). Gallifrey Falls' "If a creature dealt damage
-   this way would die this turn, exile it instead" is therefore silently
-   inert: the bear died to the graveyard instead of being exiled (observed
-   directly in the new test; the assertion is written to the observed truth
-   with a comment naming the gap). Corpus prevalence: **6 files** carry
-   `SP$ DamageAll ... ReplaceDyingDefined` on one line
-   (`/tmp/dmgall_rdd.txt` list captured during the round: gallifrey_falls_no_more,
-   chandra's-fire heart variants and 4 others — the file list was printed by
-   the loop and is reproducible with
-   `grep -rlE 'SP\$ DamageAll.*ReplaceDyingDefined' .cards/cardsfolder`).
-   Fix is one `defer` mirroring effDealDamage's shape; it changes engine
-   behaviour, so it should be its own ticket with heads/botbench re-pinned.
-   A CR-lane test citing CR 614.9 would make this defect ledger-visible.
-2. **`api:Phases` (phasing out permanents) is unimplemented** — no
-   `Register("Phases", …)` anywhere; `SP$ Phases` appears in **7 corpus
-   files** (gallifrey_falls_no_more's No More half among them). The No More
-   half resolves as an unimplemented-API note; the brief's "mass phase-out"
-   behaviour does not exist yet. Deserves a ticket; a CR-lane test citing
-   CR 702.25 (phasing) would surface it.
-
-Both were left to the ledger rather than fixed: fixing either changes engine
-behaviour outside this brief (heads/botbench re-pin obligations), and the
-brief's own Done state is fully satisfied without them.
-
-Report files: `.ds4/report-t1-split-cast.md` (round t1's report, committed
-this round), `.ds4/report-r2.md` (this file).
+- **Process, not code:** shared report filenames (`.ds4/report-t1.md`,
+  `.ds4/report-r2.md`) collide across tickets because main tracks them while
+  concurrent worktrees write their own. The durable convention this and the
+  split-cast round both landed on: every report goes under a ticket-unique
+  path (`report-t1-mill-unless.md`, `report-r2-split-cast.md`); the
+  dispatched shared path holds the CURRENT round's report only. Worth a
+  controller-level rule so future rounds are dispatched with unique report
+  paths up front.
+- No engine defect was found this round; the merge introduced no conflict and
+  no behaviour movement (botbench split unchanged).
