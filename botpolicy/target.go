@@ -2,7 +2,6 @@ package botpolicy
 
 import (
 	"sort"
-	"strings"
 
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/state"
@@ -156,46 +155,67 @@ func (b Board) mayKillMe(me state.PlayerID, c Creature) bool {
 	return c.Power >= life
 }
 
-// hasSpareMana reports whether the deciding seat can afford to spend a
-// removal spell on pure value (tier 3). The one sound, readable fact is
-// unspent floating mana in the pool: if the pool already holds mana the
-// cast did not spend, that mana is spare. (The brief's other half -- an
-// untapped source beyond what the rest of the turn needs -- is not carried
-// on the Board: the mana producers in b.Cards carry no Tapped field, so
-// the policy cannot prove a source is untapped, and per the unknown-is-no
-// rule it therefore never assumes one.)
+// hasSpareMana reports whether the deciding seat has guaranteed mana beyond
+// its cheapest instant-speed reserve. It counts floating mana plus the
+// maximum literal production of each known, untapped battlefield source;
+// conditional-colour and indeterminate-amount sources are not assumed usable.
+// The reserve prevents a source from being called spare when it is the only
+// available mana for an instant the seat can cast.
 func (b Board) hasSpareMana() bool {
-	if b.Pool.Total() > 0 {
-		return true
-	}
+	available := b.Pool.Total()
 	for _, c := range b.Cards {
-		if !c.OnBattlefield || c.Tapped {
+		if !c.OnBattlefield || c.Tapped || c.Produces.Any || c.Produces.Indeterminate {
 			continue
 		}
+		// Colour entries describe alternatives as well as simultaneous
+		// production. Count only the largest guaranteed single activation.
+		var source int32
 		for _, n := range c.Produces.Colour {
-			if n > 0 {
-				return true
+			if n > source {
+				source = n
 			}
 		}
+		available += source
 	}
-	return false
+	return available > b.reserve()
 }
 
-func removalAPI(api string) bool {
-	switch strings.ToLower(api) {
-	case "destroy", "counter", "changezone", "sacrifice":
-		return true
-	default:
-		return false
-	}
-}
-
-func (b Board) removalRanker(me state.PlayerID) func(decision.Option) targetRank {
+func (b Board) removalRanker(me state.PlayerID, effect *decision.TargetEffect) func(decision.Option) targetRank {
 	return func(o decision.Option) targetRank {
 		r := b.rankOption(o, me)
-		if !r.ours && o.Kind != "player" && r.score > 0 {
-			r.score += tierValue
+		if r.ours {
+			return r
 		}
+		if effect.API == "Counter" {
+			for _, s := range b.Stack {
+				if s.ID == o.Obj && s.IsSpell && s.Controller != me {
+					return targetRank{score: tierValue + s.CMC, idx: o.Index}
+				}
+			}
+			return r
+		}
+		if o.Kind == "player" {
+			return r
+		}
+		value := r.score
+		if c, ok := b.Cards[o.Obj]; ok && value == 0 {
+			value = c.CMC * 3
+		}
+		if value == 0 {
+			return r
+		}
+		bonus := int32(0)
+		switch effect.Removal.Kind {
+		case "exile", "command":
+			bonus = 30
+		case "library":
+			bonus = 20
+		case "graveyard", "destroy", "sacrifice":
+			bonus = 10
+		case "bounce":
+			bonus = 5
+		}
+		r.score = tierValue + value + bonus
 		return r
 	}
 }
@@ -375,8 +395,8 @@ func (b Board) chooseTargets(d *decision.Decision) []int {
 	var rank func(decision.Option) targetRank
 	if dmg, ok := b.effectDamage(d); ok {
 		rank = b.effectRanker(me, dmg)
-	} else if d.TargetEffect != nil && d.TargetEffect.Removal != nil && removalAPI(d.TargetEffect.API) {
-		rank = b.removalRanker(me)
+	} else if d.TargetEffect != nil && (d.TargetEffect.API == "Counter" || d.TargetEffect.Removal != nil) {
+		rank = b.removalRanker(me, d.TargetEffect)
 	} else {
 		rank = func(o decision.Option) targetRank { return b.rankOption(o, me) }
 	}

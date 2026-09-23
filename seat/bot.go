@@ -186,7 +186,11 @@ func boardFromView(v view.View) botpolicy.Board {
 	// stackViews).
 	b.Stack = make([]botpolicy.StackEntry, 0, len(v.Stack))
 	for _, sv := range v.Stack {
-		b.Stack = append(b.Stack, botpolicy.StackEntry{ID: sv.ID, Controller: sv.Controller, IsSpell: sv.Kind == "spell"})
+		var cmc int32
+		if sv.Card != nil {
+			cmc = botpolicy.CmcOf(sv.Card.ManaCost)
+		}
+		b.Stack = append(b.Stack, botpolicy.StackEntry{ID: sv.ID, Controller: sv.Controller, IsSpell: sv.Kind == "spell", CMC: cmc})
 	}
 	for _, p := range v.Players {
 		b.Life[p.ID] = p.Life
