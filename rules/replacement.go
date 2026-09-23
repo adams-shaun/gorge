@@ -2778,17 +2778,23 @@ func (e *Engine) applyRiotReplacement(ev events.Event) bool {
 }
 
 // applySiegeProtector parks every non-cast Battle entry while its controller
-// makes the CR 310.10 Siege protector choice. CR 310.4/310.10: "As a Siege
-// enters, its controller chooses an opponent to protect it; that player is its
-// protector." The choice is a construct rule, not a card script -- none of the
-// 37 real Battle cards carries a GenericChoice/ChosenMode script -- so the
-// engine poses it here for every entry path, exactly as applyRiotReplacement
-// does for Riot. The parked move is emitted after handleChoose logs the choice
-// (a Choose "protector" event), so a log-only replay re-derives the protector
-// from the same event stream. Only the controller's LIVING opponents are
-// offered; a controller with no living opponent (a battle entering after
-// everyone else lost -- unreachable in a real match) is recorded with no
-// protector rather than parking on an unanswerable ask.
+// makes the protector choice. CR 310.10: "As a battle enters, its controller
+// chooses an opponent to protect it; that player is its protector." The
+// choice is a construct rule, not a card script -- none of the 37 real Battle
+// cards carries a GenericChoice/ChosenMode script -- so the engine poses it
+// here for every entry path, exactly as applyRiotReplacement does for Riot.
+// The rule is general over the Battle type, not the Siege subtype: the
+// protector is what the CR 310.7 combat defender and the effects-side
+// OppProtect predicate read, so every Battle gets one rather than Siege
+// alone (all 37 real corpus Battles happen to print the Siege subtype, so
+// this is reachable today only for a synthetic or a future non-Siege card).
+// The parked move is emitted after handleChoose logs the choice (a Choose
+// "protector" event), so a log-only replay re-derives the protector from the
+// same event stream. Only the controller's LIVING opponents are offered
+// (protectorOpponents is the single eligibility home, shared with the
+// re-derive after a protector leaves); a controller with no living opponent
+// (a battle entering after everyone else lost -- unreachable in a real match)
+// is recorded with no protector rather than parking on an unanswerable ask.
 type attachedChoice struct {
 	move   events.Event
 	source state.ObjID
@@ -2888,6 +2894,55 @@ func (e *Engine) emitAttachedMove(move events.Event) {
 	e.attachedApplying = false
 }
 
+// protectorOpponents lists the living opponents who may protect a battle
+// whose controller is controller, in the deterministic seat order
+// AliveFrom(0) yields. This is the ONE home for protector eligibility:
+// applySiegeProtector's ask, its two-player auto-record and
+// rechooseDepartedBattleProtector all read it, so eligibility cannot drift
+// between the entry ask and the re-derive after a protector leaves.
+// CR 310.10: a battle's controller chooses an opponent to be its protector;
+// a player who has left the game is no longer an opponent.
+func (e *Engine) protectorOpponents(controller state.PlayerID) []state.PlayerID {
+	var out []state.PlayerID
+	for _, p := range e.G.AliveFrom(0) {
+		if p == controller {
+			continue
+		}
+		out = append(out, p)
+	}
+	return out
+}
+
+// rechooseDepartedBattleProtector gives every Battle whose recorded
+// protector has just left the game a fresh living opponent as its protector
+// (CR 310.10: "If a battle's protector leaves the game, that battle's
+// controller chooses a new protector"). The choice rides the same Choose
+// "protector" event the entry ask records, so the protector stays
+// replay-derived and no new event kind or state field is introduced.
+//
+// The replacement is DERIVED, not re-posed: this runs from the PlayerLost
+// event inside emit, which is very often mid-resolution or inside the
+// state-based-action fixed point (a concession, a zero-life sweep, an
+// empty-library draw), and the engine has no way to park a decision there.
+// protectorOpponents is the deterministic fallback: the first living
+// opponent in seat order. A controller with no living opponent is the last
+// player in the game, so the stale protector is left in place rather than
+// re-pointed at nobody.
+func (e *Engine) rechooseDepartedBattleProtector(departed state.PlayerID) {
+	for _, controller := range e.G.AliveFrom(0) {
+		for _, id := range e.G.Zone(state.ZBattlefield, controller) {
+			o := e.G.Obj(id)
+			if o == nil || !o.ProtectorValid || o.Protector != departed || o.Face() == nil || !o.Face().IsBattle() {
+				continue
+			}
+			if next := e.protectorOpponents(o.Controller); len(next) > 0 {
+				e.emit(events.Event{Kind: events.Choose, Obj: o.ID,
+					Counter: "protector", Player: next[0]})
+			}
+		}
+	}
+}
+
 func (e *Engine) applySiegeProtector(ev events.Event) bool {
 	// Same overwrite guard applyRiotReplacement documents: never park on an ask
 	// while another decision is outstanding.
@@ -2914,13 +2969,6 @@ func (e *Engine) applySiegeProtector(ev events.Event) bool {
 	if !o.Face().IsBattle() {
 		return false
 	}
-	// Battle Siege (CR 310.10) is the only battle type this build models and
-	// the only one whose construct rule names a protector. A future
-	// non-Siege battle gains no protector ask, so match the subtype rather
-	// than every Battle.
-	if !hasType(o, "Siege") {
-		return false
-	}
 	// A protector already recorded (a re-entering object keeps none -- Move
 	// resets it -- but an object parked twice in one entry sequence must not
 	// ask twice).
@@ -2928,14 +2976,9 @@ func (e *Engine) applySiegeProtector(ev events.Event) bool {
 		return false
 	}
 	var opts []decision.Option
-	idx := 0
-	for _, p := range e.G.AliveFrom(0) {
-		if p == o.Controller {
-			continue
-		}
+	for idx, p := range e.protectorOpponents(o.Controller) {
 		opts = append(opts, decision.Option{Index: idx, Kind: "protector",
 			Label: e.G.Players[p].Name, Obj: o.ID, Player: p})
-		idx++
 	}
 	if len(opts) == 0 {
 		return false
