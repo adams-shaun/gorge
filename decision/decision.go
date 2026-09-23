@@ -147,6 +147,9 @@ type Option struct {
 	Kind  string      `json:"kind"`
 	Label string      `json:"label"`
 	Obj   state.ObjID `json:"obj,omitempty"`
+	// Counter identifies the counter kind for wildcard counter-removal costs.
+	// It is omitted for choices that do not select a counter kind.
+	Counter string `json:"counter,omitempty"`
 	// Player is always emitted because 0 is a valid seat (0-indexed), unlike
 	// Obj where 0 means "no object".
 	Player state.PlayerID `json:"player"`
@@ -412,11 +415,10 @@ type Decision struct {
 	// "untap", "dig"); ResumeSA
 	// names the exact sub-ability involved. ResumeModes maps a filtered cast-time
 	// mode option back to its SVar name while keeping wire indices dense.
-	// ResumeTarget is Dig's index into the deterministic Defined$ target list:
+	// ResumeTarget is the index into the deterministic per-library target list:
 	// re-entry applies the answer to exactly the library that asked, skips
-	// targets already completed before suspension, and preserves deterministic
-	// processing for later targets. rules alone selects these fields; clients
-	// never see them. Card data is shared immutable compiled corpus, so the SA
+	// targets already completed before suspension, and continues with later
+	// libraries. rules alone selects these fields; clients never see them. Card data is shared immutable compiled corpus, so the SA
 	// pointer is safe across Clone/replay.
 	ResumeKind   string    `json:"-"`
 	ResumeSA     *cards.SA `json:"-"`

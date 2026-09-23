@@ -516,6 +516,11 @@ export interface Option {
   label: string;
   obj?: number;
   /**
+   * Counter identifies the counter kind for wildcard counter-removal costs.
+   * It is omitted for choices that do not select a counter kind.
+   */
+  counter?: string;
+  /**
    * Player is always emitted because 0 is a valid seat (0-indexed), unlike
    * Obj where 0 means "no object".
    */

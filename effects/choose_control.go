@@ -1331,6 +1331,22 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 	if batched && firstPass && batcher != nil {
 		batcher.BeginDamageBatch()
 	}
+	// ClearRememberedBeforeLoop$ True (Forge's RepeatEachEffect: "clear the
+	// host's remembered list before the loop"): drop the resolving spell or
+	// ability's accumulated Remembered before the FIRST iteration body runs,
+	// so a chain's earlier remembered players/cards do not leak into the
+	// loop's iterations. Corpus carriers: Seize the Spotlight (clear the
+	// GenericChoice's remembered choosers before walking the notated players),
+	// Master of Ceremonies, Enter the Dungeon, Shahrazad. It is applied ONCE,
+	// on the first pass only: a resume after a mid-loop suspension must keep
+	// what the completed iterations remembered. It is applied AFTER the
+	// subject selector resolves, so `RepeatPlayers$ Remembered` (a real
+	// selector in the corpus) still sees the remembered set it names -- the
+	// clear is a loop-hygiene bound on the iteration bodies, not on the
+	// loop's own subject derivation.
+	if firstPass && strings.EqualFold(strings.TrimSpace(sa.Params["ClearRememberedBeforeLoop"]), "True") {
+		c.Remembered = nil
+	}
 	for i := start; i < len(subjects); i++ {
 		t := subjects[i]
 		cc := *c

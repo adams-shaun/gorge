@@ -393,6 +393,11 @@ var payLifeXCost = regexp.MustCompile(`^PayLife<X>$`)
 // dropped) is subsumed by this one.
 var subCounterCost = regexp.MustCompile(`^SubCounter<(X|\d+)/([^/>]+)(?:/([^/>]+))?(?:/([^>]*))?>$`)
 
+// removeAnyCounterCost is Forge's named spelling for a counter-removal cost.
+// Despite the name, the second field is the counter kind (often Any), while
+// the third field restricts the permanent the counters come from.
+var removeAnyCounterCost = regexp.MustCompile(`^RemoveAnyCounter<(X|\d+)/([^/>]+)(?:/([^/>]+))?(?:/([^>]*))?>$`)
+
 // damageYouCost matches Forge's DamageYou<N> token -- the payer takes N
 // damage from the source as the payment (Forge CostDamage). The corpus's
 // only shape is an UnlessCost$ (Vexing Devil's "have it deal 4 damage to
@@ -508,6 +513,29 @@ func ParseCost(s string) Cost {
 					continue
 				}
 				c.Life = addClampedGeneric(c.Life, n)
+				continue
+			}
+			if m := removeAnyCounterCost.FindStringSubmatch(sym); m != nil {
+				// RemoveAnyCounter is the same payment component as SubCounter;
+				// its distinct head is Forge's spelling for the counter-choice
+				// family. Keep the target filter and display description intact.
+				kind := strings.ReplaceAll(m[2], ";", ",")
+				target, desc := "", m[3]
+				if t := m[3]; t != "" && !strings.ContainsAny(t, " \t") {
+					target, desc = t, m[4]
+				}
+				target = strings.ReplaceAll(target, ";", ",")
+				if m[1] == "X" {
+					c.SubCounter = append(c.SubCounter, CostPart{Spec: kind, Target: target, Announced: true, Desc: desc})
+					continue
+				}
+				n, err := strconv.ParseInt(m[1], 10, 64)
+				if err != nil || n < 0 || n > int64(math.MaxInt32) {
+					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
+					continue
+				}
+				c.SubCounter = append(c.SubCounter, CostPart{N: int32(n), Spec: kind, Target: target, Desc: desc})
 				continue
 			}
 			if m := subCounterCost.FindStringSubmatch(sym); m != nil {
