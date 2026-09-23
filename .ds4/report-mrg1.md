@@ -2567,3 +2567,5 @@ ok   github.com/adams-shaun/gorge/cmd/botbench  1.180s
 The repository-deck ratchets ran with `.cards` present (not skipped). `TestHeads` and the pinned botbench split pass. One compile error was caught on the initial rules run: main's new MustBlock tests compared `blockPairCharge` (now the branch's composite struct) directly to an integer. Updated those assertions to check `.mana`, and updated the shared declarability check to use composite affordability, matching the branch's option/payment/validation contract; all reruns above pass.
 
 `gofmt` was applied to the merged Go files. `git diff --check` is clean. No unresolved conflict markers remain.
+
+Integration completed as merge commit `d753b80e` (`Merge branch 'main' into wt/cli-20260922T225142Z-1d4558a1`), with `edc24484` (current main) as its second parent. `git merge-base --is-ancestor main HEAD` exited 0. Final `git status` reported: `On branch wt/cli-20260922T225142Z-1d4558a1` / `nothing to commit, working tree clean`.
