@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -95,45 +96,147 @@ func TestVanishingTidewalkerDynamicCountUpkeepAndLastCounter(t *testing.T) {
 }
 
 // outOfTimeEngine puts the REAL corpus Out of Time -- the other bare
-// K:Vanishing carrier -- on seat 0's battlefield and places `counters` TIME
-// counters on it directly. Out of Time's own enters trigger counts phased-out
-// creatures to place counters, but its `DB$ Phases` step is not implemented in
-// this engine (an "unimplemented API Phases" Note; see the report's Issues),
-// so the counters this test needs are placed explicitly here. This isolates
-// the Vanishing clock -- the thing this ticket fixes -- from that separate
-// gap.
-func outOfTimeEngine(t *testing.T, counters int32) (*Engine, state.ObjID) {
+// K:Vanishing carrier -- on seat 0's battlefield with `creatures` real
+// Grizzly Bears already on that battlefield, each TAPPED, and resolves Out of
+// Time's own printed enters trigger. That trigger untaps the creatures
+// (DB$ UntapAll), phases them out while remembering each (DB$ Phases with
+// RememberAffected$ True -- the phase-out itself degrades to a loud Note;
+// see effects/phases.go and the report), and places a TIME counter on Out of
+// Time for each remembered creature (DB$ PutCounter, X = Count$RememberedSize).
+// The returned count is therefore the card's OWN dynamic count -- never a
+// Vanishing-synthesized or test-injected number.
+func outOfTimeEngine(t *testing.T, creatures int) (*Engine, state.ObjID, []state.ObjID) {
 	t.Helper()
 	reg := testutil.CorpusRegistry(t)
-	oot, ok := reg.Lookup("Out of Time")
+	root, ok := reg.Lookup("Out of Time")
 	if !ok {
 		t.Fatal("corpus fixture: Out of Time missing")
 	}
+	bear, ok := reg.Lookup("Grizzly Bears")
+	if !ok {
+		t.Fatal("corpus fixture: Grizzly Bears missing")
+	}
+	deck := []*cards.Card{root}
+	for i := 0; i < creatures; i++ {
+		deck = append(deck, bear)
+	}
 	e := New(Config{Seed: 7, Names: []string{"a", "b"}, Decks: [][]*cards.Card{
-		append([]*cards.Card{oot}, mountainDeck(t, 39)...), mountainDeck(t, 40),
+		append(deck, mountainDeck(t, 40-len(deck))...), mountainDeck(t, 40),
 	}, Tokens: reg.Tokens})
 	e.Advance()
 	toMain1(t, e)
+	var bears []state.ObjID
+	for i := 0; i < creatures; i++ {
+		bid := moveByName(t, e, 0, "Grizzly Bears", state.ZBattlefield)
+		if o := e.G.Obj(bid); o == nil || o.Zone != state.ZBattlefield {
+			t.Fatalf("precondition: bear is not on battlefield: %+v", o)
+		}
+		e.emit(events.Event{Kind: events.Tap, Obj: bid})
+		if !e.G.Obj(bid).Tapped {
+			t.Fatalf("precondition: bear %d is not tapped", bid)
+		}
+		bears = append(bears, bid)
+	}
 	id := moveByName(t, e, 0, "Out of Time", state.ZBattlefield)
 	if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield {
 		t.Fatalf("precondition: Out of Time is not on battlefield: %+v", o)
 	}
-	e.pendingTriggers = nil
-	if counters > 0 {
-		e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "TIME", Amount: counters})
+	// Resolve the PRINTED enters trigger -- untap, phase out + remember,
+	// count. This is the dynamic acquisition the seeded variant below cannot
+	// exercise.
+	e.putTriggersOnStack()
+	if len(e.G.Stack) != 1 {
+		t.Fatalf("Out of Time's entry queued %d stack objects, want exactly its printed enters trigger", len(e.G.Stack))
 	}
-	if got := e.G.Obj(id).Counter("TIME"); got != counters {
-		t.Fatalf("precondition: Out of Time holds %d TIME counters, want %d", got, counters)
+	e.resolveTop()
+	// The UntapAll step ran before the count step.
+	for _, bid := range bears {
+		if e.G.Obj(bid).Tapped {
+			t.Fatalf("bear %d stayed tapped: the printed UntapAll step did not run", bid)
+		}
 	}
-	return e, id
+	return e, id, bears
 }
 
-// TestVanishingOutOfTimeUpkeepAndLastCounter proves the other bare carrier
-// gets the same parameter-independent clock. Because Out of Time's own count
-// step is blocked (see outOfTimeEngine), a one-counter setup is placed and the
-// single controller upkeep must remove it and then sacrifice the enchantment.
-func TestVanishingOutOfTimeUpkeepAndLastCounter(t *testing.T) {
-	e, id := outOfTimeEngine(t, 1)
+// TestVanishingOutOfTimeDynamicCountUpkeepAndLastCounter is the brief's
+// integration case: the real corpus Out of Time acquires its TIME counters
+// through its OWN printed count mechanism (its enters trigger counts the
+// creatures it phased out, via RememberedSize -- nothing is injected and the
+// bare Vanishing expansion synthesizes nothing), the controller's Vanishing
+// upkeep removes one of that dynamic count, and reaching zero queues the
+// last-counter sacrifice.
+func TestVanishingOutOfTimeDynamicCountUpkeepAndLastCounter(t *testing.T) {
+	e, id, bears := outOfTimeEngine(t, 2)
+	if got := e.G.Obj(id).Counter("TIME"); got != 2 {
+		t.Fatalf("precondition: Out of Time entered with %d TIME counters, want 2 from its own printed count (2 creatures phased out)", got)
+	}
+	if got := e.G.Obj(id).Counter("TIME"); got == 0 {
+		t.Fatal("precondition: dynamic count must be positive before the clock runs")
+	}
+	// The count step is the registered Phases primitive, not the
+	// unimplemented-API fallback: no such note may appear in the log.
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "unimplemented API Phases") {
+			t.Fatalf("the printed count step ran unimplemented: %q", ev.Text)
+		}
+	}
+
+	// The controller's upkeep queues the Vanishing removal trigger; removal
+	// is not a turn-based action.
+	e.G.Active, e.G.Priority = 0, 0
+	e.emit(events.Event{Kind: events.StepChange, Step: state.StepUpkeep})
+	if got := e.G.Obj(id).Counter("TIME"); got != 2 {
+		t.Fatalf("precondition: TIME changed before the upkeep trigger resolved: %d, want 2", got)
+	}
+	e.putTriggersOnStack()
+	if len(e.G.Stack) != 1 {
+		t.Fatalf("controller upkeep put %d stack objects, want one Vanishing removal trigger", len(e.G.Stack))
+	}
+	e.resolveTop()
+	if got := e.G.Obj(id).Counter("TIME"); got != 1 {
+		t.Fatalf("after resolving upkeep trigger TIME = %d, want 1 (ticked down from the dynamic 2)", got)
+	}
+
+	// Drain the remainder through the log. The last-counter trigger is a
+	// separate stack object, not an immediate sacrifice from CounterChange.
+	e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "TIME", Amount: -1})
+	if got := e.G.Obj(id).Counter("TIME"); got != 0 {
+		t.Fatalf("precondition: last-counter removal left %d TIME counters, want zero (distinct from 1)", got)
+	}
+	if e.G.Obj(id).Zone != state.ZBattlefield {
+		t.Fatalf("precondition: last-counter removal sacrificed immediately; zone=%s", e.G.Obj(id).Zone)
+	}
+	e.putTriggersOnStack()
+	if len(e.G.Stack) != 1 {
+		t.Fatalf("last-counter removal put %d stack objects, want one sacrifice trigger", len(e.G.Stack))
+	}
+	e.resolveTop()
+	if z := e.G.Obj(id).Zone; z != state.ZGraveyard {
+		t.Fatalf("after resolving last-counter trigger zone = %s, want graveyard", z)
+	}
+	// End-state parity with a real game: the creatures Out of Time phased out
+	// this way come back when it leaves, and here they never left.
+	for _, bid := range bears {
+		if o := e.G.Obj(bid); o == nil || o.Zone != state.ZBattlefield {
+			t.Fatalf("bear %d left the battlefield: %+v (phase-in end state parity broken)", bid, o)
+		}
+	}
+}
+
+// TestVanishingOutOfTimeSeededCounterClock is the supplemental clock-only
+// coverage (kept per the r2 review): with NO creatures on the battlefield the
+// printed count legitimately reads zero, so a one-counter setup is seeded
+// through the event log and the single controller upkeep must remove it and
+// then sacrifice the enchantment.
+func TestVanishingOutOfTimeSeededCounterClock(t *testing.T) {
+	e, id, _ := outOfTimeEngine(t, 0)
+	if got := e.G.Obj(id).Counter("TIME"); got != 0 {
+		t.Fatalf("precondition: no creatures to count, Out of Time holds %d TIME counters, want 0", got)
+	}
+	e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "TIME", Amount: 1})
+	if got := e.G.Obj(id).Counter("TIME"); got != 1 {
+		t.Fatalf("precondition: seeded Out of Time holds %d TIME counters, want 1", got)
+	}
 
 	e.G.Active, e.G.Priority = 0, 0
 	e.emit(events.Event{Kind: events.StepChange, Step: state.StepUpkeep})
