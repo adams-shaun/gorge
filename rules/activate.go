@@ -76,7 +76,7 @@ func (e *Engine) beginActivation(p state.PlayerID, opt decision.Option) {
 	// Targets do not exist yet (CR 601.2c runs after this), so a
 	// target-dependent body reads 0 here; repriceForTargets re-runs the
 	// evaluation with the answered targets and net-adjusts pc.ownReduce.
-	own := e.ownReduceCost(p, opt.Obj, ab, nil, pa.Merged)
+	own := e.ownReduceCost(p, opt.Obj, ab, nil, nil, pa.Merged)
 	if own > 0 {
 		if cost.Generic >= own {
 			cost.Generic -= own

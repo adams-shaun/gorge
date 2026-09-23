@@ -1087,6 +1087,11 @@ var stringMapParams = map[string]string{
 	// consumed here, but the map originates in an SVar body, not a card's
 	// Params map.
 	"effects:compoundRememberedSpec:params": "keys of a parseStaticLine-built static line (an SVar body), not a card Params map",
+	// rules/cast.go bodyReadsAllTargeted: svars is the source face's (or
+	// merged pile's) SVar table, walked by SVar NAME to decide whether a
+	// cost head reaches the AllTargeted$ count ref (the alltargeted1 scope
+	// gate) -- an SVar-body lookup, not a card Params map.
+	"rules:bodyReadsAllTargeted:svars": "SVars table lookup by SVar name for the AllTargeted$ cost-head scan, not a card Params map",
 	// rules/mayplay.go mayPlayGateRejected: params IS a card Params map, but
 	// every key the function indexes is indexed ONLY to fail the MayPlay
 	// static closed (mayPlayUnreadGates + MayPlayPlayer$) -- a fail-closed

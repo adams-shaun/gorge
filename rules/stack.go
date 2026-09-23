@@ -2667,6 +2667,19 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 	// clears them.
 	if e.cast != nil {
 		pc := e.cast
+		// A chained sub-ability's cast-time pre-ask answer (alltargeted1): the
+		// KTarget decision posed by subTargetAsk. Record against the stage it
+		// was asked for (subStage indexes both), re-price (the union grew, so
+		// a target-dependent ReduceCost$ may now apply), then pose the next
+		// outstanding post-target ask or finish the payment.
+		if d.ResumeKind == "cast_sub" {
+			e.answerCastSubTarget(pc, chosen)
+			if e.postTargetAsks(pc) {
+				return
+			}
+			e.finishTargetedCast(pc, in.Player)
+			return
+		}
 		// A Fuse cast may ask targets twice (front, then alternate). Append
 		// rather than replace so the stack object's flat target list carries
 		// both halves, and stageBase records whether an earlier half's
@@ -2695,34 +2708,24 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 			// cast pays once every target stage is settled.
 			if e.castHasNextTargetStage(pc, e.G.Obj(pc.card)) {
 				pc.targetStage++
-				if !e.targetAsk() {
-					e.payCast()
+				if e.targetAsk() {
+					return
 				}
-			} else {
-				e.payCast()
 			}
 		} else {
-			e.payCast()
-			if pc.stackObj != 0 {
-				e.recordChosenTargets(pc.stackObj, chosen, false)
-			}
+			// The ability object does not exist until payCast's AbilityPush, so
+			// the root answer's options ride pc.rootOpts for the payment tail's
+			// recordChosenTargets; the post-target stages (alltargeted1's sub
+			// pre-asks, the CollectEvidence ask) run BEFORE payment (CR 601.2c).
+			pc.rootOpts = append([]decision.Option(nil), chosen...)
 		}
-		if e.drainAwaitsTarget {
-			e.drainAwaitsTarget = false
-			e.resumeTriggerDrain()
-		} else if e.pending == nil {
-			// CR 117.3c: the caster keeps priority after a completed cast.
-			// payCast can pose a MID-CAST ask (CR 601.2g's mana window, a
-			// cost choice) which leaves the engine parked on that question;
-			// the casting player does not keep priority until the cast has
-			// actually paid every cost and fired its cast trigger, so the
-			// "caster keeps priority" marker is emitted only once no further
-			// announcement decision is outstanding. Emitting it while parked
-			// is the same class of log lie as the pass-branch emit this task
-			// removed: the log would assert the caster held priority at a
-			// moment the engine is waiting on an unanswered question.
-			e.emit(events.Event{Kind: events.Priority, Player: in.Player, Amount: 0})
+		// alltargeted1: the post-target announcement stages -- the chain sub
+		// pre-asks first, then the CollectEvidence ask whose amount reads the
+		// union -- park the same way the root ask did, before any cost is paid.
+		if e.postTargetAsks(pc) {
+			return
 		}
+		e.finishTargetedCast(pc, in.Player)
 		return
 	}
 	e.recordChosenTargets(d.Source, chosen, false)
@@ -2987,6 +2990,12 @@ func (e *Engine) resolveTop() {
 		// 608.2b's "spell or ability" covers this shape too if a later
 		// task ever gives a triggered ability a player-chosen target.
 		targets := o.Targets
+		// alltargeted1 and the per-mode charm groups compose rather than
+		// compete: collectSubTargetPreAsks excludes a modal (Charm) root
+		// whole, so a charm-handled object has NO pre-asked sub answers and
+		// recheckCastSubTargets returns (0, 0) for it; conversely a
+		// non-modal chain never reaches recheckCharmTargets' groups.
+		subChosen, subLegal := e.recheckCastSubTargets(id, o.Ability, o.Controller, o.Source)
 		charmModeTargets, charmFlatTargets, charmHandled := e.recheckCharmTargets(o)
 		if charmHandled {
 			targets = charmFlatTargets
@@ -3004,7 +3013,11 @@ func (e *Engine) resolveTop() {
 		if !charmHandled {
 			if spec := o.Ability.Params["ValidTgts"]; spec != "" && !(e.resolvedTargetMin(o.Controller, id, o.Ability, 0) == 0 && len(targets) == 0) {
 				legal := e.legalTargets(targets, o.Ability, targetZones(o.Ability), o.Controller, o.Source, id)
-				if len(legal) == 0 {
+				// subLegal > 0 keeps a chain alive whose ROOT targets all
+				// became illegal but whose pre-asked sub target did not
+				// (alltargeted1); charmHandled cannot reach here, so the two
+				// survival rules never overlap.
+				if len(legal) == 0 && subLegal == 0 {
 					e.emit(events.Event{Kind: events.MoveZone, Obj: id,
 						From: state.ZStack, To: state.ZExile, Text: "fizzled: no legal targets remain"})
 					e.ensureLeftTheStack(id, state.ZExile, "a replacement fully discarded this "+
@@ -3014,6 +3027,12 @@ func (e *Engine) resolveTop() {
 				}
 				targets = legal
 			}
+		}
+		if len(targets) == 0 && subChosen > 0 && subLegal == 0 {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id,
+				From: state.ZStack, To: state.ZExile, Text: "fizzled: no legal targets remain"})
+			e.ensureLeftTheStack(id, state.ZExile, "all cast-time sub targets became illegal")
+			return
 		}
 		// CR 608.2m: a resolved ability just ceases to exist rather than
 		// moving to a card zone. This build has no "ceases to exist" zone,
@@ -3193,7 +3212,10 @@ func (e *Engine) resolveTop() {
 			// exclusion (Ulalek's sub-copy) anchors here, not on Source --
 			// Source is the source permanent (Ruling T20-b), which is not on
 			// the stack and would exclude nothing.
-			ResolvingObj: id}
+			ResolvingObj: id,
+			// alltargeted1: the cast flow's pre-asked SubAbility$ target
+			// answers, consumed line by line by chosenTargetsFor.
+			SubPreAsk: e.castSubTargets[id]}
 		// The SA whose targeting the placement ask actually offered, not
 		// blindly the resolving SA: for a non-modal ability that is the outer
 		// SA's own ValidTgts$ (pushTrigger's askTarget), for a modal one it is
@@ -3340,6 +3362,10 @@ func (e *Engine) resolveTop() {
 			}
 		}
 	}
+	// The spell branch's twin of the ability branch's composition: a modal
+	// root carries no pre-asked sub answers, so this returns (0, 0) exactly
+	// where charmHandled owns the recheck instead.
+	subChosen, subLegal := e.recheckCastSubTargets(id, sa, o.Controller, id)
 	if sa != nil && !overloaded && !charmHandled {
 		// A modal spell's target declaration lives on its announced mode SVar,
 		// not the outer Charm SA. Use the same selected declaration targetAsk
@@ -3361,7 +3387,7 @@ func (e *Engine) resolveTop() {
 		// untargeted-with-Min-0 spell resolves rather than fizzling.
 		if spec := targetSA.Params["ValidTgts"]; spec != "" && !(e.resolvedTargetMin(o.Controller, id, targetSA, 0) == 0 && len(targets) == 0) {
 			legal := e.legalTargets(targets, targetSA, targetZones(targetSA), o.Controller, id, id)
-			if len(legal) == 0 {
+			if len(legal) == 0 && subLegal == 0 {
 				// CR 608.2b: every target became illegal. This spell does
 				// not resolve -- no Resolve event, no script runs -- it goes
 				// straight to its normal resting place, the same zone it
@@ -3382,6 +3408,13 @@ func (e *Engine) resolveTop() {
 			targets = legal
 		}
 	}
+	if len(targets) == 0 && subChosen > 0 && subLegal == 0 {
+		rest := spellFizzleZone(o)
+		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: rest,
+			Text: "fizzled: no legal targets remain"})
+		e.ensureLeftTheStack(id, rest, "all cast-time sub targets became illegal")
+		return
+	}
 	e.emit(events.Event{Kind: events.Resolve, Obj: id, Text: f.Name})
 	// Ascend (CR 702.131a, the non-permanent case): an instant/sorcery with
 	// K:Ascend grants its controller the blessing BEFORE the spell's own
@@ -3392,7 +3425,11 @@ func (e *Engine) resolveTop() {
 	if sa != nil {
 		e.damaging = id
 		ctx := &effects.Ctx{Source: id, Controller: o.Controller, Targets: targets,
-			ModeTargets: charmModeTargets, ResolvingObj: id}
+			ModeTargets: charmModeTargets, ResolvingObj: id,
+			// alltargeted1: the cast flow's pre-asked SubAbility$ target
+			// answers, consumed line by line by chosenTargetsFor. Disjoint
+			// from ModeTargets: a modal root is never pre-asked.
+			SubPreAsk: e.castSubTargets[id]}
 		// Same marker as the ability branch: the cast-flow target ask
 		// (targetAsk's targetSA) offered exactly this spell's targeting.
 		if targetSA != nil && strings.TrimSpace(targetSA.Params["ValidTgts"]) != "" {
@@ -3545,6 +3582,32 @@ func (e *Engine) ensureLeftTheStack(id state.ObjID, to state.Zone, why string) {
 // offer and recheck cannot disagree (the one-definition rule). A target
 // whose qualifier the filter cannot evaluate was never offered and is
 // rejected here too, fail closed.
+// recheckCastSubTargets uses the same legality judge as the root target at
+// resolution. Answers remain in the map through suspended re-entries, so a
+// body resumed after an unrelated choice still uses its announced target.
+// Preserve an answered-empty entry as a non-nil slice so the effects walk
+// does not mistake it for an outstanding mid-resolution ask.
+func (e *Engine) recheckCastSubTargets(id state.ObjID, root *cards.SA, controller state.PlayerID, source state.ObjID) (chosen, legal int) {
+	answers := e.castSubTargets[id]
+	if len(answers) == 0 {
+		return 0, 0
+	}
+	for _, sa := range e.collectSubTargetPreAsks(root) {
+		ts, ok := answers[sa.Line]
+		if !ok {
+			continue
+		}
+		chosen += len(ts)
+		kept := e.legalTargets(ts, sa, targetZones(sa), controller, source, id)
+		legal += len(kept)
+		if kept == nil {
+			kept = []state.Target{}
+		}
+		answers[sa.Line] = kept
+	}
+	return chosen, legal
+}
+
 func (e *Engine) legalTargets(targets []state.Target, sa *cards.SA, zones []state.Zone, you state.PlayerID, source state.ObjID, self state.ObjID) []state.Target {
 	spec := ""
 	if sa != nil {

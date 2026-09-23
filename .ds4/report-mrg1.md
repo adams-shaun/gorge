@@ -533,3 +533,14 @@ None found in the conflict resolution itself. One note: main's own
 `agentsdoc_test.go` comment claimed 71 while main's table already held 70
 rows (it accounted for only one of its two deletions); the merged-tree
 constant 69 supersedes both comments.
+
+---
+
+## Section N+2 — searchmay1 (branch wt/cli-20260922T225139Z-18baec47, merge of main)
+
+`git merge main` conflicted in `AGENTS.md`, `internal/testutil/agentsdoc_test.go`
+and this report. `AGENTS.md`: both sides deleted DISJOINT rows — this branch the
+`(searchmay1)` row, main the "No LIMITED-look grammar" row — so the resolution
+keeps BOTH deletions (the conflict hunk collapses to nothing).
+`internal/testutil/agentsdoc_test.go`: main 66, branch 73; resolved to the
+measured merged count. This report resolved to main's log plus this section.

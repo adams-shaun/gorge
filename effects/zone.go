@@ -440,6 +440,18 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 					" (the move goes to the named objects alone)"})
 		}
 	}
+	// Answered ShuffleNonMandatory$ confirm re-entry for the OBJECT path
+	// (searchmay1): a hidden-library search's own re-entry is handled inside
+	// effSearchLibrary above and returns, so reaching here with an answer
+	// means the SA moved objects from a public origin (a graveyard/top
+	// shuffle-in) and those moves already landed on the first pass. Run only
+	// the answered tail -- consume the answer, shuffle on "yes" -- and stop:
+	// re-resolving targets would re-run the move pass and re-pose the
+	// pre-asks below against objects that have left their origin zone.
+	if c.SearchShuffle != "" && objectPathShuffleOwed(sa) {
+		objectPathShuffleTail(h, c, sa, nil)
+		return
+	}
 	// WithCountersType$/WithCountersAmount$ make the move put counters on the
 	// object it lands with -- the Undying expansion's "return to the battlefield
 	// with a +1/+1 counter" (cards/keywords.go) and a card exiled with TIME
@@ -715,8 +727,32 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	}
 	// AtEOT$ (Puppeteer Clique's reanimation: "at the beginning of your next
 	// end step, exile it"): schedule the end-step departure for every object
-	// this move actually moved.
+	// this move actually moved. Scheduled BEFORE the library shuffle tail:
+	// a ShuffleNonMandatory$ confirm suspension returns out of the tail, and
+	// the re-entry's early-return branch (c.SearchShuffle above) would never
+	// reach a schedule call placed after it -- the same order
+	// applyLibrarySearch uses for its own hidden-origin tail.
 	scheduleAtEOT(h, c, sa, moved)
+	// Object-path library shuffle tail (searchmay1): a ChangeZone that moved
+	// objects INTO a library and states Shuffle$ True now shuffles. This is
+	// the tail the AGENTS.md row named as "the object-path shuffle": the
+	// path previously shuffled nothing at all. Four corpus lines also set
+	// ShuffleNonMandatory$; three SP-parented DB subs (Cathartic Parting,
+	// Devious Cover-Up, Put Away) still inherit the parent's targets and
+	// cannot reach this tail until sub-ability targeting is separated. The 76
+	// mandatory carriers (Turn the Earth, Quandrix Command, Rite of Renewal,
+	// Stream of Consciousness, the death-trigger "shuffle CARDNAME into its
+	// owner's library" family) shuffled nothing either and now shuffle. Only
+	// the explicit Shuffle$ True is read: the corpus's LibraryPosition$
+	// "put it on top" movers state no Shuffle$ and must NOT shuffle. Each
+	// distinct card owner's library is shuffled once (a cross-graveyard mover
+	// like Turn the Earth touches several players), in first-move order so
+	// the event stream stays deterministic.
+	if to == state.ZLibrary && len(moved) > 0 && objectPathShuffleOwed(sa) {
+		if objectPathShuffleTail(h, c, sa, moved) {
+			return
+		}
+	}
 }
 
 // changeZoneAttachedTo implements ChangeZone's AttachedTo$ param: "the moved
@@ -3485,9 +3521,8 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 // shuffleLibraryExplicit below. ShuffleNonMandatory$ True -- Forge's "Do you
 // want to shuffle the library?" confirm, an information-mercy so a player may
 // keep the library order a search just taught them -- is NOT read here: this
-// helper is the mandatory path (the fail-to-find shape included, whose
-// no-ask silence the AskEmpty pins hold), and the confirm belongs to the
-// search's own tail, searchShuffleTail below.
+// helper is the mandatory path, and the confirm belongs to the search's own
+// tail, searchShuffleTail below.
 func shuffleLibrary(h Host, sa *cards.SA, owner state.PlayerID) {
 	if strings.EqualFold(sa.Params["NoShuffle"], "True") || strings.EqualFold(sa.Params["Shuffle"], "False") {
 		return
@@ -3495,17 +3530,88 @@ func shuffleLibrary(h Host, sa *cards.SA, owner state.PlayerID) {
 	shuffleLibraryOrder(h, owner)
 }
 
+// objectPathShuffleOwed reports whether an object-target ChangeZone that
+// moved objects into a library states the explicit Shuffle$ True (the
+// graveyard/battlefield/exile "shuffle it into their library" family). The
+// object path reads only the explicit flag: the 66 corpus lines that move a
+// card into a library with no Shuffle$ parameter are LibraryPosition$ "put
+// it on top of your library" movers, which must not shuffle. NoShuffle$
+// True is honoured exactly as shuffleLibrary reads it.
+func objectPathShuffleOwed(sa *cards.SA) bool {
+	return strings.EqualFold(strings.TrimSpace(sa.Params["Shuffle"]), "True") &&
+		!strings.EqualFold(sa.Params["NoShuffle"], "True")
+}
+
+// objectPathShuffleTail finishes an object-target ChangeZone that moved
+// objects into a library, after the moves landed in effChangeZone. It
+// shuffles each distinct card owner's library once, and when the SA also sets
+// ShuffleNonMandatory$ it poses Forge's may-shuffle confirm first. Today's
+// flag-bearing corpus lines target their controller's own graveyard, so the
+// controller is the owner; this is not a per-owner election for future
+// multi-owner movers. Three SP-parented DB carriers cannot reach this tail
+// until their own targeting is offered (see changeZoneChosenTargets).
+// Returns true when the confirm
+// suspended the resolution; the answer re-enters effChangeZone, whose
+// SearchShuffle early-return calls this again with moved == nil. A host that
+// cannot ask takes the deterministic decline (R-9), the same stand-in every
+// other may-shuffle confirm uses.
+func objectPathShuffleTail(h Host, c *Ctx, sa *cards.SA, moved []state.ObjID) bool {
+	if c.SearchShuffle != "" {
+		ans, placed := c.SearchShuffle, c.SearchShuffleMoved
+		c.SearchShuffle, c.SearchShuffleMoved = "", nil
+		if ans == "yes" {
+			objectPathShuffleOwners(h, placed)
+		}
+		return false
+	}
+	if !strings.EqualFold(strings.TrimSpace(sa.Params["ShuffleNonMandatory"]), "True") {
+		objectPathShuffleOwners(h, moved)
+		return false
+	}
+	d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+		Source: c.Source, ResumeKind: "search_mayshuffle", ResumeSA: sa,
+		ResumeMoved: append([]state.ObjID(nil), moved...),
+		Prompt:      "Shuffle your library?",
+		Options: []decision.Option{
+			{Index: 0, Kind: "yes", Label: "Yes — shuffle", Player: c.Controller},
+			{Index: 1, Kind: "no", Label: "No — keep the order", Player: c.Controller},
+		}}
+	if Ask(h, d) == AskAsked {
+		return true
+	}
+	// No-host stand-in (R-9): decline the shuffle, keep the order.
+	return false
+}
+
+// objectPathShuffleOwners shuffles the library of every distinct owner among
+// the moved objects, each once, in first-move order (deterministic; never a
+// map range). An object that has already left the game is skipped.
+func objectPathShuffleOwners(h Host, moved []state.ObjID) {
+	g := h.Game()
+	seen := make(map[state.PlayerID]bool, len(moved))
+	for _, id := range moved {
+		o := g.Obj(id)
+		if o == nil || seen[o.Owner] {
+			continue
+		}
+		seen[o.Owner] = true
+		shuffleLibraryOrder(h, o.Owner)
+	}
+}
+
 // searchShuffleTail is a hidden-library search's shuffle-and-place tail, with
 // the ShuffleNonMandatory$ read (Path to Exile, Stoneforge Mystic, Squadron
 // Hawk, Boggart Harbinger -- 209 exact-Origin$ Library corpus lines carry the
-// flag). When the flag is set AND the search moved at least one card, the
+// flag). When the flag is set, even if the search moved no cards, the
 // searcher is offered Forge's may-shuffle confirm -- "Shuffle your
 // library?" -- instead of the unconditional shuffle: declining keeps the
 // library order the search's option list (offered in library order) just
-// taught them. A search that moved NOTHING -- the fail-to-find shape -- keeps
-// the mandatory shuffle and asks nothing: that shape's no-ask silence is the
-// AskEmpty contract's pinned resolution (Squadron Hawk's live soft-lock), and
-// nothing was taken from the order the confirm would protect.
+// taught them. The confirm is offered whether or not the search moved a
+// card (searchmay1): the fail-to-find shape asks too, because the search's
+// mandatory shuffle is exactly what the confirm may spare, and a player who
+// failed to find has just as much reason to keep the order they know. This
+// is also the tail an object-target ChangeZone into a library calls
+// (searchmay1), so a graveyard shuffle-in poses the same confirm.
 //
 // The confirm suspends the resolution after the moves: the answer re-enters
 // through the "search_mayshuffle" resume arm (rules' resumeResolution), which
@@ -3534,7 +3640,7 @@ func searchShuffleTail(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, moved
 		placeLibraryObjects(h, sa, owner, placed, to)
 		return false
 	}
-	if !strings.EqualFold(strings.TrimSpace(sa.Params["ShuffleNonMandatory"]), "True") || len(moved) == 0 {
+	if !strings.EqualFold(strings.TrimSpace(sa.Params["ShuffleNonMandatory"]), "True") {
 		shuffleLibrary(h, sa, owner)
 		placeLibraryObjects(h, sa, owner, moved, to)
 		return false
