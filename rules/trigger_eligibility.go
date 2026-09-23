@@ -201,6 +201,10 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// default) keeps a Connives-only face's mask narrow for every other
 		// kind.
 		return 0
+	case "SearchedLibrary":
+		// This marker is appended beyond the 64-bit trigger-mask range, so
+		// naming it keeps a SearchedLibrary-only face narrow on older Kinds.
+		return 0
 	case "Investigated":
 		// The Kind's ordinal (67) is past the 64-bit mask's reach, the
 		// RingTemptsYou shape: a mask bit is not encodable and allows()
