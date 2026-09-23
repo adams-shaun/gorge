@@ -2653,3 +2653,64 @@ Everything else auto-merged (`AGENTS.md`, `rules/combat.go`, `effects/misc.go`,
 No new unfixed issue found in this round. The round-1 note stands: `legal.go`'s
 `offerCastable` remains pool-only, so a replicate option can be withheld when
 only convoke would fund it (documented in `0836163f`'s commit message).
+
+---
+
+## Round 3 — this ticket's integration of main at edc24484, and round 4 — main at fead1e59 (2026-09-23)
+
+### Rounds 1–2 (this ticket, main at edc24484)
+
+A previous resolver session of THIS ticket completed the dispatched rebase-conflict
+resolution as a merge fallback (commits `d753b80e` + `d54ba722`; the full record is
+in the "Current integration round — main at edc24484" section above): the composite
+CantBlockUnless block charge and main's MustBlock statics were both kept, and all
+gates passed.
+
+### Round 4 — main advanced to fead1e59
+
+Main moved from `edc24484` to `fead1e59` (sibling `cli-20260922T225141Z-5641f97b`
+merged: `0836163f`, the replicate count bound priced at the real charge). Ran
+`git merge main` again on this branch; one conflict:
+
+### `.ds4/report-mrg1.md`
+
+Same path collision as before: main's version REPLACED the accumulated archive with
+the sibling ticket's 77-line report. Resolved per the established convention: kept
+this ticket's 2571-line archive verbatim (stage 2), appended the sibling's 77-line
+report verbatim under a preservation header (stage 3), then this record.
+
+### `internal/testutil/agentsdoc_test.go`
+
+Auto-merged; the constant was 42 while the merged `AGENTS.md` table measures
+**41 data rows** (main's replicate-count-bound row deletion from `0836163f` was
+merged into the table on main without lowering the constant there). Lowered
+`knownApproximationRows` 42 → 41 to match the merged content, per the constant's
+own instruction; the comment now names all three joined closures.
+
+`AGENTS.md`, `rules/cast.go` and `rules/replicate_count_bound_test.go` auto-merged.
+
+### Commands and outputs
+
+- `git status` on arrival: clean; merge commit `d753b80e` already present; main at `fead1e59`.
+- `git merge main --no-edit`:
+  `Auto-merging .ds4/report-mrg1.md / CONFLICT (content): Merge conflict in .ds4/report-mrg1.md / Auto-merging AGENTS.md`
+- Row count: 41 data rows in merged `AGENTS.md` (awk over the table), 41 on main.
+- `.cards` check: present, symlink to `/home/sadams/projects/gorge/.cards`.
+- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|TestHeads$|Block|CantBlockUnless'`:
+  `ok github.com/adams-shaun/gorge/rules 1.954s`
+- `go test ./internal/testutil -run 'TestKnownApproximation'`:
+  `ok github.com/adams-shaun/gorge/internal/testutil 0.001s`
+- `go test ./internal/archtest/`:
+  `ok github.com/adams-shaun/gorge/internal/archtest 2.805s`
+- `go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/`:
+  `ok github.com/adams-shaun/gorge/cmd/botbench 0.985s`
+- `gofmt -l` on the touched Go files: clean.
+- `git merge-base --is-ancestor main HEAD`: exit 0.
+- Merge commit: `e8e9ad6a`; final `git status`: clean.
+
+### Issues
+
+No new engine issue found. Carried note from the sibling's report (unchanged, outside
+this conflict): `legal.go`'s `offerCastable` remains pool-only, so a replicate option
+can be withheld when only convoke would fund it (documented in `0836163f`'s commit
+message).
