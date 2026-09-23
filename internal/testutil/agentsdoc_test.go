@@ -19,7 +19,9 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	knownApproximationRows = 56
+	// 55 at the merge base: the branch deleted the (blockprop1) row and main
+	// deleted six more (disjoint), so the merged table holds 48.
+	knownApproximationRows = 48
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.

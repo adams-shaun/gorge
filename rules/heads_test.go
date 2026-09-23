@@ -843,7 +843,11 @@ var acceptanceHeads = map[int]string{
 	// difference follows from the Therapy name (its `DB$ Discard` then discards
 	// a different card). 4, 6 and 8 seats are UNMOVED (no NameCard resolves in
 	// those games).
-	2: "bc7420d9e4c7d3d2",
+	// 2 seats moved to 19a4893657e5d549 (autonomous orchestrator): resolving cli-20260922T225140Z-68ca4d95 (approx: the CR 704.5j legend rule picks the survivor by battlefield scan positio)
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	2: "19a4893657e5d549",
 	// 4 seats moved to c232a4aca592e0f8 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
@@ -1300,7 +1304,11 @@ var acceptanceHeads = map[int]string{
 	// 61ac399dda414c21 -- the resolution-time colour choice and the unless-pay
 	// mana window together move the same seat-8 game past either single
 	// change's value.
-	8: "61ac399dda414c21",
+	// 8 seats moved to 5e988854bf022347 (autonomous orchestrator): resolving cli-20260922T225140Z-677ee477 (approx: bot target selection is effect-blind except for literal damage — destroy)
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	8: "5e988854bf022347",
 }
 
 func TestHeads(t *testing.T) {

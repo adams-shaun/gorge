@@ -168,7 +168,8 @@ type Commander struct {
 }
 
 // StackEntry is one object on the stack, the plain-data shape of a
-// StackView the policy can read without importing view (Ruling F7).
+// StackView the policy can read without importing view (Ruling F7). CMC is
+// carried for target ranking, so a counter can prefer a more valuable spell.
 // IsSpell is true for a spell object (a card cast onto the stack, which a
 // counter can target) and false for an ability object (minted by a
 // TriggerPush/AbilityPush — Face-less; the engine's target census skips
@@ -182,6 +183,7 @@ type StackEntry struct {
 	ID         state.ObjID
 	Controller state.PlayerID
 	IsSpell    bool
+	CMC        int32
 }
 
 // closesClock reports whether an unblocked swing from the creature id —
@@ -464,6 +466,21 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		}
 		return Clamp(d, in)
 
+	case decision.KReplacement:
+		// CR 616.1: the affected player orders competing replacement effects.
+		// The effects themselves are unread -- botpolicy sees only the source
+		// permanent each option names -- so the arm ranks the real
+		// "replacement" options by the same standing-worth proxy the
+		// trigger-order arm uses (cardWorth), descending, with the offered
+		// index as the deterministic tie-break. A "skip_replacement" opt-out
+		// is bypassed while at least one real replacement is offered. Every
+		// other KReplacement shape (a colour-valued "mana" pick, an optional
+		// "apply"/"decline") keeps the ordinary fallback below.
+		if pick := b.chooseReplacementOrder(d); pick >= 0 {
+			in.Choices = []int{pick}
+		}
+		return Clamp(d, in)
+
 	case decision.KChoose:
 		// An UnlessCost$ mana window (ResumeKind "unless_mana") is a payment
 		// continuation, not a generic choose: activate one source at a time
@@ -640,6 +657,39 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 						groups[o.Group]++
 					}
 					in.Choices = append(in.Choices, o.Index)
+				}
+			}
+		case "multikick":
+			// CR 702.43: the multikicker count ask. Option 0 is "No multikick"
+			// (Amount 0) and the options ascend to the largest count the board
+			// can still pay, so taking the highest Amount is the same "most it
+			// can pay for" rule the "x" arm reads. Paying a kick is the
+			// positive play -- the multikicked cast mode was chosen for the
+			// kicker's effect -- and the count is bounded by affordability, so
+			// the maximum is deterministic and legal.
+			in.Choices = []int{d.Options[0].Index}
+			best := d.Options[0].Amount
+			for _, o := range d.Options {
+				if o.Amount > best {
+					best = o.Amount
+					in.Choices = []int{o.Index}
+				}
+			}
+		case "mutate_place":
+			// CR 702.140b: place the mutating creature UNDER the target
+			// (Amount 0) rather than on top (Amount 1, option 0). The target is
+			// not chosen until after this ask -- the placement is announced
+			// before CR 601.2c -- so the arm cannot compare the two bodies. A
+			// merged permanent keeps the TOP card's name, types and P/T but
+			// gains all abilities of every card beneath (CR 702.140d), so
+			// mutating under preserves the characteristics of the permanent
+			// already on the battlefield and still grants the mutating card's
+			// abilities. Both options are legal, so this never wedges.
+			in.Choices = []int{d.Options[0].Index}
+			for _, o := range d.Options {
+				if o.Kind == "mutate_place" && o.Amount == 0 {
+					in.Choices = []int{o.Index}
+					break
 				}
 			}
 		case "move_counter":

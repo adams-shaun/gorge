@@ -350,6 +350,11 @@ type ZoneEntry struct {
 	Obj  ObjID
 	To   Zone
 	From Zone
+	// Owner and PermanentCard capture descend provenance at the move. A
+	// later control change, copy effect or zone change cannot rewrite which
+	// player's graveyard received a permanent card this turn (CR 700.11).
+	Owner         PlayerID
+	PermanentCard bool
 }
 
 // DelayedTrigger is one registered delayed triggered ability awaiting its

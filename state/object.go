@@ -829,6 +829,11 @@ type Object struct {
 	// battlefield (events.Move) -- an Aura or Equipment cannot stay
 	// "attached" once it isn't a permanent.
 	AttachedTo ObjID
+	// AttachedPlayer is the player this Aura enchants. HasAttachedPlayer
+	// distinguishes seat zero from an unattached Aura. Only events.Attach
+	// writes the link; a permanent and a player are mutually exclusive.
+	AttachedPlayer    PlayerID
+	HasAttachedPlayer bool
 
 	// ExiledWith is the object whose effect most recently put this card into
 	// exile. events.Apply derives it from a MoveZone event's existing IDs

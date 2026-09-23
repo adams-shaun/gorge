@@ -1426,6 +1426,13 @@ type combatRound struct {
 	firstDone   bool // first-strike pass's damage dealt and priority granted
 	regularDone bool // regular pass's damage dealt
 
+	// priorityPending marks the between-passes priority round (CR 510.3/4) as
+	// owed: the first-strike pass's damage is dealt and its SBA tail posed an
+	// SBA decision (the CR 704.5j legend rule), so completeCombatPass deferred
+	// the round rather than displacing the ask. combatStep runs it once the
+	// answer lands. Zero in every no-decision game.
+	priorityPending bool
+
 	// pass is true while a combat damage pass is being processed (true = the
 	// first-strike pass, false = the regular pass).
 	pass bool
@@ -1498,9 +1505,25 @@ func (e *Engine) combatStep() {
 		e.combatRound.firstDone = true
 	}
 	if !e.combatRound.regularDone {
+		if e.combatRound.priorityPending {
+			// The first-strike pass's between-passes priority round was owed
+			// when its SBA tail posed a decision (completeCombatPass). The
+			// ask is now answered -- Submit's SBA tail already re-ran -- so
+			// run the deferred round. Its own pass once the round ends routes
+			// through advanceStep's StepCombatDamage arm, which starts the
+			// regular pass.
+			e.combatRound.priorityPending = false
+			e.priorityRound()
+			return
+		}
 		e.beginCombatPass(false)
 		return
 	}
+	// The regular pass's damage is dealt but its SBA tail was deferred for an
+	// SBA decision: completeCombatPass returned before the transition. Finish
+	// it now, exactly as the undeferred path would have.
+	e.combatRound = combatRound{}
+	e.setStep(state.StepEndCombat)
 }
 
 // beginCombatPass starts a combat damage pass: it collects the attackers that
@@ -1792,6 +1815,14 @@ func (e *Engine) completeCombatPass(pass bool) {
 		if e.G.Over {
 			return
 		}
+		// An SBA decision posed by checkStateBased (the CR 704.5j legend rule)
+		// must not be displaced by the between-passes priority round: defer the
+		// round (combatStep runs it after the answer) instead of overwriting
+		// the ask, the same return-shape step() takes at its own head.
+		if e.pending != nil {
+			e.combatRound.priorityPending = true
+			return
+		}
 		// CR 510.4: players gain priority after the first-strike damage step,
 		// before the regular damage step runs.
 		e.priorityRound()
@@ -1801,6 +1832,12 @@ func (e *Engine) completeCombatPass(pass bool) {
 	e.combatRound.active = false
 	e.checkStateBased()
 	if e.G.Over {
+		return
+	}
+	// Same displacement guard as the first-strike branch: an SBA decision
+	// outstanding from the tail defers the end-of-combat transition to
+	// combatStep rather than letting it run under the ask.
+	if e.pending != nil {
 		return
 	}
 	e.combatRound = combatRound{}
@@ -1852,6 +1889,13 @@ func (e *Engine) dealCombatDamage() {
 	if e.anyFirstStrike() {
 		e.damageStep(true)
 		e.checkStateBased()
+		// The SBA tail can pose a CR 704.5j legend choice; the regular pass
+		// must not deal under it (the same displacement guard completeCombatPass
+		// takes). A direct-call fixture answers through the normal Submit path,
+		// which resumes the step machinery.
+		if e.pending != nil {
+			return
+		}
 	}
 	e.damageStep(false)
 }
