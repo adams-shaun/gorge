@@ -4,14 +4,14 @@
 
 Restored `.ds4/report-t1.md` byte-for-byte from the parent of `80d29498`, undoing that commit's unrelated destructive rewrite (review finding). This round's report is only in `.ds4/report-t2.md`. No production files or tests changed. The existing `TestMustBlockTwoWatchdogsShareAttacker` regression test is already present in `rules/mustblock_min_team_test.go` and the fix is already landed in `4fe4eadc` (`fix(rules): satisfy MustBlock with legal whole blocking teams`). No ratchet, allowlist, or Known-approximations entry changed.
 
-`.cards` is a present symlink to the real corpus in this worktree, so the corpus-dependent test was not silently skipped for lack of corpus. `/usr/bin/grep -rlE 'Mode\\$ MustBlock' .cards/cardsfolder | wc -l` returned `27`, matching the brief.
+`.cards` is a present symlink to the real corpus in this worktree, so the corpus-dependent test was not silently skipped for lack of corpus. `/usr/bin/grep -rlE 'Mode\$ MustBlock' .cards/cardsfolder | wc -l` returned `27`, matching the brief.
 
 ## Gates run
 
 Exact targeted command from the brief:
 
 ```text
-$ go test -run 'TestMustBlockTwoWatchdogsShareAttacker$' ./rules/ 2>&1 | tail-30
+$ go test -run 'TestMustBlockTwoWatchdogsShareAttacker$' ./rules/ 2>&1 | tail -30
 ok   github.com/adams-shaun/gorge/rules (cached)
 ```
 
