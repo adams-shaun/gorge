@@ -50,13 +50,24 @@ git add .ds4/report-mrg1.md && git merge --continue
 
 `.cards` present (symlink to the shared corpus) — no vacuous runs.
 
-- `gofmt -l state/object.go` → no output.
+- `gofmt -l state/object.go rules/cast.go rules/legal.go` → no output;
+  `go run ./cmd/gentypes -check` → clean.
 - `go build ./...` → clean.
-- Branch-fix targeted tests (see TESTS line below) → ok, incl.
-  `TestCreatureCanAttackPlaneswalkerAndCombatDamageRemovesLoyalty` and
-  `TestCombatDamageToPlaneswalkerAtZeroLoyaltyAppliesStateBasedAction`, plus
-  main's new may-play/equip tests green on the merged tree.
-- Post-merge ratchets → ok (output below).
+- Branch-fix targeted tests + main's new tests:
+  `go test -run 'TestCreatureCanAttackPlaneswalker|TestCombatDamageToPlaneswalker|TestMayPlaySource|TestEquip.*Reduce|TestBeltOfGiantStrength' ./rules/`
+  → `ok github.com/adams-shaun/gorge/rules 0.675s` (the branch's
+  planeswalker-attack and loyalty-SBA tests AND main's may-play provenance
+  and targeted-equip tests all green on the merged tree).
+- Post-merge ratchets:
+  `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`
+  → `ok github.com/adams-shaun/gorge/rules 0.922s`.
+- Behaviour goldens: `go test ./internal/archtest/` → `ok 3.645s`;
+  `go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/` →
+  `ok 1.482s` (the pinned 20-game bot split did NOT move).
+- Completion: `GIT_EDITOR=true git merge --continue` →
+  `[wt/cli-20260923T060000Z-pw-combatdamage b45abcc3] Merge branch 'main'
+  into wt/cli-20260923T060000Z-pw-combatdamage`;
+  `git merge-base --is-ancestor main HEAD` → exit 0; `git status` → clean.
 
 ## Issues
 
