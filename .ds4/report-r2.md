@@ -261,3 +261,89 @@ Verdict `verdict-t1.md` = APPROVE carried two MINORs:
 - `.ds4/` is gitignored in this worktree, so committing the new report file
   required `git add -f` — same as the tracked `.ds4` files already in the
   index from prior merges.
+
+
+---
+
+# Report — r2 (agent-20260919T185907Z-f5c7e2dc) — trig:Attacks.NoResolvingCheck on Sentinel Sarah Lyons
+
+Round 2 of the ticket. Round 1's work was complete and green (`test(rules):
+cover Sentinel Sarah Lyons battalion trigger`, then report appended to
+`.ds4/report-t1.md`); the round was parked ONLY on the controller's rebase
+directive failing (`error: cannot rebase: You have unstaged changes` and a
+merge fallback conflicting on `.ds4/report-t1.md`). No review findings were
+attached beyond that (`findings-r2.md` holds only the rebase error), so this
+round did the rebase and re-verified everything after it.
+
+## What changed this round
+
+- Committed the uncommitted `.ds4/report-t1.md` round-1 report, then ran
+  `git rebase main` — **clean, no conflicts**. Branch is now
+  `126a5a95` on top of main (`git log main..HEAD` = exactly the two
+  round-1/round-2 commits; diff vs main is `rules/battalion_test.go` + the
+  report, nothing else).
+- Re-verified the round-1 state against post-rebase main: the production
+  `NoResolvingCheck$` read (`noResolvingCheck` +
+  `triggerResolvingCheckHolds` in `rules/trigger_condition.go`, applied at
+  the single resolution-time CR 603.4 site in `rules/stack.go`) survived the
+  merge intact, and main has since landed its own companion tests
+  (`rules/no_resolving_check_test.go`, Ugin's Mastery) plus a retired
+  `knownUnsupportedParams` row (Love on the Battlefield) for the sibling
+  ticket. My branch's contribution remains the brief's ask: the **real-corpus
+  card test** for Sentinel Sarah Lyons (Battalion: IsPresent$
+  `Creature.attacking+Other` GE2 + `NoResolvingCheck$ True`).
+- Brief premises re-measured, both held: `grep -rlE 'NoResolvingCheck$'
+  .cards/cardsfolder | wc -l` = 87 files / 88 lines; Sentinel Sarah Lyons is
+  NOT in `internal/testutil/decks/`, so there is no `knownUnsupportedParams`
+  row to delete for it.
+
+## Gates run (real output)
+
+`.cards` was PRESENT (symlink), so this is an executed run, not a skipped one.
+
+Targeted test (`rules/battalion_test.go`), after the rebase:
+
+```text
+$ go test -run '^TestSentinelSarahLyonsBattalionSurvivesAttackerLeaving$' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.609s
+```
+
+Behaviour goldens:
+
+```text
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.650s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.320s
+```
+
+## Fails without the fix
+
+The test pins the production bypass, so I neutralised the bypass
+(`triggerResolvingCheckHolds`'s `noResolvingCheck` early-return in
+`rules/trigger_condition.go`, saved to `.ds4/scratch/` first) and re-ran the
+one test:
+
+```text
+--- FAIL: TestSentinelSarahLyonsBattalionSurvivesAttackerLeaving (0.60s)
+    battalion_test.go:76: Sentinel Sarah Lyons trigger did not deal damage; it left the stack with "fizzled: intervening-if no longer holds"
+FAIL
+FAIL	github.com/adams-shaun/gorge/rules	0.616s
+```
+
+Then restored the file byte-identically (`cmp` OK) and the test passed again.
+
+## Head/ratchet movement
+
+None attributable to this ticket: no production code changed on this branch
+(the param read predates it and landed on main via
+`param:trig:AttackersDeclared.NoResolvingCheck`), no deck import, no census or
+heads change. `TestConstructedDefaultIsByteIdentical` unchanged.
+
+## Issues
+
+None new. Round 1's report (`.ds4/report-t1.md`, tail) already records the
+notes: the corpus-side `NoResolvingCheck$` population is entirely `True`, and
+the remaining exposure (if any) is cards whose `IsPresent$`/`PresentCompare$`
+clause is NOT paired with `NoResolvingCheck$` and therefore SHOULD re-check at
+resolution — that path is already the shared default, so no gap.

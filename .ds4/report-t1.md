@@ -2160,3 +2160,85 @@ production `events.Event` change.
 None. The suspending-body regression was added because the continuation
 transport DID change (a new resume kind consuming the parked loop frame), as
 the brief conditions it.
+
+# Report — trig:Attacks.NoResolvingCheck on Sentinel Sarah Lyons
+
+## What changed
+
+- `rules/battalion_test.go` (new): added a real-corpus end-to-end regression for
+  Sentinel Sarah Lyons. The test attacks with Sarah and two allies, confirms
+  her Battalion trigger queued, moves one supporting attacker to hand (and
+  asserts the remaining `Creature.attacking+Other` count is below GE2), then
+  selects the opponent and proves the trigger resolves for one damage. It also
+  asserts the source/trigger identity, artifact-count precondition, and actual
+  damage result, so neither an unregistered handler nor a vacuous setup passes.
+- No production code changed: the shared `noResolvingCheck` read and the
+  resolution-time CR 603.4 bypass were already present at this worktree's base
+  in `rules/trigger_condition.go` / `rules/stack.go`. This test pins that
+  existing generic behavior on the card named by this brief.
+
+The structural approach is the shared resolution-time trigger gate, not a
+Sentinel-specific exemption; any future trigger carrying
+`NoResolvingCheck$ True` uses the same `triggerResolvingCheckHolds` path.
+
+## Workspace and corpus measurement
+
+`.cards` and `.ds4/ledger.json` were present. The controller-directed
+`git rebase main` reported the branch up to date. Corpus prevalence held:
+`grep -rlE 'NoResolvingCheck\$' .cards/cardsfolder | wc -l` = 87 files, and
+`grep -R -hE 'NoResolvingCheck\$' .cards/cardsfolder | wc -l` = 88 lines.
+Sentinel Sarah Lyons is not present in `internal/testutil/decks/`, and there is
+no corresponding `knownUnsupportedParams` entry to delete; the param census
+only measures cards in those repo deck files.
+
+## Gates run
+
+Targeted regression (corpus is present):
+
+```text
+$ go test -run '^TestSentinelSarahLyonsBattalionSurvivesAttackerLeaving$' ./rules/
+ok   github.com/adams-shaun/gorge/rules  0.651s
+```
+
+Required behavior goldens:
+
+```text
+$ go test ./internal/archtest/
+ok   github.com/adams-shaun/gorge/internal/archtest  3.694s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok   github.com/adams-shaun/gorge/cmd/botbench  1.384s
+```
+
+Formatting and generated type check:
+
+```text
+$ gofmt -l rules/battalion_test.go
+(no output)
+$ go run ./cmd/gentypes -check
+(no output; exit 0)
+```
+
+## Fails without the fix
+
+The behavior implementation already existed, so for the regression proof I
+saved `rules/trigger_condition.go`, temporarily made its `NoResolvingCheck$`
+branch return false, ran the targeted test, restored the file and verified
+byte identity (`restore_cmp=0`):
+
+```text
+$ go test -run '^TestSentinelSarahLyonsBattalionSurvivesAttackerLeaving$' ./rules/
+--- FAIL: TestSentinelSarahLyonsBattalionSurvivesAttackerLeaving (0.59s)
+    battalion_test.go:76: Sentinel Sarah Lyons trigger did not deal damage; it left the stack with "fizzled: intervening-if no longer holds"
+```
+
+## Issues
+
+No unfixed engine behavior found in the requested scope. The param census does
+not yet include Sentinel Sarah Lyons because no repo-deck file contains it;
+therefore no ratchet entry applies to this card in this branch. The requested
+real-card behavior is covered directly by the new test. No CR-lane test is
+proposed: this is a param-specific trigger-resolution behavior test, not a new
+CR conformance finding.
+
+Commit: `30f3fc7a test(rules): cover Sentinel Sarah Lyons battalion trigger`
