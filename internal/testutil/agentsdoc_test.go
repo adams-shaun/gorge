@@ -19,15 +19,12 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	// The merged table measures 37 rows: the two sides deleted DISJOINT rows,
-	// so the merge keeps every closure. Base (main 90044c3f, already merged on
-	// this branch) measured 41 data rows. This branch deleted the `kw:Infect`
-	// row (fix 56f98b13, which reads CR 113.7a last-known characteristics for
-	// damage cost keywords at the two cost sites); main deleted the `cascade1`
-	// row (fix 4cdffbc1, cascade timing/free-cast election), the `tokrepl1` row
-	// (the token-replacement stand-ins) and the `maxpower1` row (the
-	// TargetMax$-aware prune with the cross-mode Charm ask). 41 - 4 = 37.
-	knownApproximationRows = 37
+	// The merged table measures 35 rows. From the 38-row base, this branch
+	// retains its `kw:Infect` closure and main's (bestow1) and (attackprop1)
+	// closures; all three deletions are disjoint. The auto-merged AGENTS.md
+	// count is authoritative; the conflicted side comments missed different
+	// combinations of these row changes.
+	knownApproximationRows = 35
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.

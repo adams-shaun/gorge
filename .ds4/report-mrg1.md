@@ -1534,67 +1534,100 @@ their own tip; the merged-tree constant 42 supersedes both.
 
 ## Result
 
-Integrated current `main` (`4cdffbc1`) into `wt/cli-20260922T225142Z-0ab0cb60`.
-The reviewed `8d83f028` fix (`MaxTotalTargetPower$` offset bound + cross-mode
-Charm cap read) and main's new commits (land-type statics `0fbc2d10`, cascade
-closures `e46f051d`/`fd…`) are both retained. Two content conflicts:
+Integrated `main` into `wt/cli-20260922T225142Z-171edf8c` with `git merge main`.
+The merge completed as a merge commit; the worktree is clean.
 
-- `internal/testutil/agentsdoc_test.go` — the approximation-row ratchet constant.
-- `.ds4/report-mrg1.md` — a tracked per-merge report artifact (this file).
+## Entry state
 
-## Background: an earlier merge commit already existed
+The worktree entered CLEAN at `10f64d27` (`Merge branch 'main' into
+wt/cli-20260922T225142Z-171edf8c`), with no in-flight rebase or merge. The
+daemon's reported rebase failure had already been aborted (reflog: `rebase
+(start): checkout main` at `e142295d` -> `rebase (abort): returning to
+refs/heads/wt/cli-...` -> `reset: moving to HEAD`), and its merge fallback had
+landed as `10f64d27` (parents `976ae1ee` + `08a1d59a`). But `main` had since
+advanced to `e142295d`, so `main` was NOT an ancestor of HEAD. The integration
+was therefore completed against the current `main` tip with `git merge main`.
 
-`HEAD` was already `a4fe169d`, a merge of main **as of `4a7bb2fe`** into
-`8d83f028`, produced by a prior mrg1 run that the daemon set aside
-(`.ds4/status-merge-mrg1.cutoff.json`, history line "merge resolver mrg1 name
-was held by an already-finished run; set it aside, relaunching fresh"). The
-daemon's fresh integration attempt rebased onto current `main`, conflicted on
-`8d83f028`, then aborted (`git reflog`: `rebase (abort): returning to …`). So
-the branch still did NOT contain main's newer commits; this run merged current
-`main` (`4cdffbc1`) to complete the integration.
+## Conflicts
 
-## Conflict 1 — `internal/testutil/agentsdoc_test.go`
+`git merge main` reported two content conflicts; `AGENTS.md` auto-merged.
 
-Both sides only differ in the explanatory comment above the constant; but the
-constant's value was wrong for this merge on BOTH sides.
+### `internal/testutil/agentsdoc_test.go`
 
-- **Branch side (HEAD):** the merged table measured **39** rows and documented
-  main's earlier closures plus this branch's `maxpower1` closure.
-- **Main side:** also **39** rows, documenting "this branch's cascade1 deletion
-  and main's token-replacement deletion".
-- **Measured truth after merging current main:** the merged `AGENTS.md` has
-  **38** data rows. Main's cascade work (`e46f051d`) deletes `(cascade1)`, and
-  this branch's reviewed fix deletes `(maxpower1)`; both deleted rows are
-  absent from the merged table. Each side's 39 counted only its own merge
-  (each side still carried the other side's row).
+Both sides set the `knownApproximationRows` ratchet constant, with different
+values and comments.
 
-Resolution: keep the branch's fuller closure-history comment, extend it to name
-main's `cascade1` deletion, and set `knownApproximationRows = 38` — the
-measured count. Verified with a row count over the merged `AGENTS.md`
-(`data rows: 38`) and
-`go test -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort' ./internal/testutil/` → `ok`.
+- HEAD (our merge commit `10f64d27`) comment: 38, attributing main's
+  First-Strike/layer-4/mulligan/non<X>/NameCard/battle-protector/cascade/
+  token-replacement closures plus this branch's maxpower1 closure and bestow1
+  deletion; constant `38`.
+- main (`e142295d`) comment: this branch's attackprop1 closure plus main's
+  maxpower1 closure on top of the cascade/token-replacement/replicate closures;
+  constant `37`.
 
-## Conflict 2 — `.ds4/report-mrg1.md`
+Both comments were stale. MEASURED the auto-merged `AGENTS.md` (staged by the
+merge, not hand-edited) with the same rule the test helper uses (`| ` lines
+inside the `## Known approximations` section, header row dropped):
 
-This file is a tracked merge-report artifact that collides on every branch
-(its on-main and on-branch versions document different tickets' merges;
-`git log main -- .ds4/report-mrg1.md` shows repeated `docs(merge)` commits).
-Resolved by replacing the conflicted content with this report for the current
-merge.
+| tree | data rows |
+|---|---|
+| merge base `08a1d59a` | 38 |
+| branch HEAD `10f64d27` | 37 |
+| main `e142295d` | 37 |
+| merged worktree `AGENTS.md` | **36** |
 
-## Commands and output
+Row-level diff confirms the two deletions are disjoint: the branch deleted
+`(bestow1)` (Three exotic bestow costs withheld) and main deleted
+`(attackprop1)` (The priced attack prop is mana-only ...), both present in the
+merge base. Disjoint deletions compose, so the merged table is `38 - 2 = 36`.
 
-- `git status` — clean, no operation in progress; HEAD `a4fe169d`, main `4cdffbc1`.
-- `git reflog -15` — showed the prior merge commit, then the fresh run's
-  `rebase (start): checkout main` → `rebase (abort)` → `reset: moving to HEAD`,
-  i.e. the fresh integration was aborted and never landed.
-- `git merge main` — `CONFLICT (content): Merge conflict in .ds4/report-mrg1.md`
-  and `internal/testutil/agentsdoc_test.go`; other changes auto-merged.
-- Row count of merged `AGENTS.md` (python3 over the `## Known approximations`
-  section) — `merged AGENTS.md data rows: 38`.
-- `gofmt -l internal/testutil/agentsdoc_test.go` — no output (clean).
-- `go test -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort' ./internal/testutil/` —
-  `ok github.com/adams-shaun/gorge/internal/testutil 0.017s`.
+Resolution: set `knownApproximationRows = 36` with a comment recording the
+measurement and the two disjoint deletions. `knownOversizeRows` was untouched
+by both sides and stays `8`.
+
+### `.ds4/report-mrg1.md`
+
+main's copy at this path was the sibling worktree
+`wt/cli-20260922T225142Z-462eca2e`'s integration report (a 185-line multi-round
+history that landed on main), not a contradiction of this worktree's report.
+Kept THIS worktree's report lineage and recorded this round (this file).
+
+## Commands run
+
+```text
+git status                       -> clean, branch wt/cli-20260922T225142Z-171edf8c
+git log --oneline main -5        -> tip e142295d
+git merge-base --is-ancestor main HEAD -> NO (main not integrated)
+git merge main
+  Auto-merging .ds4/report-mrg1.md
+  CONFLICT (content): Merge conflict in .ds4/report-mrg1.md
+  Auto-merging AGENTS.md
+  Auto-merging internal/testutil/agentsdoc_test.go
+  CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go
+  Automatic merge failed; fix conflicts and then commit the result.
+
+# measurement (awk, header dropped), per tree:
+#   base 08a1d59a = 38 · HEAD 10f64d27 = 37 · main e142295d = 37 · merged = 36
+# deletion diff vs base: branch removed (bestow1); main removed (attackprop1)
+```
+
+## Verification
+
+`.cards` present (symlink to the shared corpus), so the rules run was not
+vacuous. One targeted ratchet pass over the conflicted packages:
+
+```text
+go test ./internal/testutil -run 'TestKnownApproximation' -count=1
+ok  github.com/adams-shaun/gorge/internal/testutil  ...
+
+go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' -count=1
+ok  github.com/adams-shaun/gorge/rules  ...
+```
+
+No engine behaviour changed by this resolution: the only hand-edited lines are
+the ratchet constant/comment and this report. The branch's reviewed bestow fix
+(`rules/bestow.go` and friends) and main's attack-prop work compose without a
+code conflict.
 
 ## Issues
 
@@ -1826,6 +1859,34 @@ not vacuous skips.
 
 ### Issues
 
-No new unfixed issue found during this integration round. The count conflict
-here was pure drift: each branch's constant was stale relative to the other's
-deletion, and the merged row count (37) is the measured truth.
+No new issue was found in resolving the merge. The known pool-only
+`offerCastable` replicate/convoke limitation noted in the inherited ticket
+report was outside the conflicts and remains unchanged.
+
+## Round 4 — integration of main `835074e5` (2026-09-23)
+
+The tree was clean at merge commit `7a9985bd`, which had integrated main
+`08a1d59a`; main had since advanced to `835074e5`. Ran `git merge main --no-edit`.
+It conflicted in this accumulated report and `internal/testutil/agentsdoc_test.go`;
+`AGENTS.md` and `rules/cast.go` merged automatically. This report is the
+branch-side accumulated report, so its prior history is retained.
+
+- `internal/testutil/agentsdoc_test.go`: the constant/comment conflicted.
+  Main deletes the `(bestow1)` and `(attackprop1)` rows relative to the prior
+  merged tree, while the branch's `kw:Infect` closure remains. The merged
+  `AGENTS.md` table counts **35 data rows** (36 table lines including its
+  header), so resolved `knownApproximationRows` to 35; neither stale comment
+  value (37 or 36) described this merged tree.
+- `.ds4/report-mrg1.md`: retained the full branch-side report history and
+  replaced only this conflict tail with the present round's record.
+- Main's other changes, including bestow and attack-prop fixes/tests, were
+  retained. No engine-code conflict required a manual choice.
+
+Commands and results:
+
+- `git status --short --branch` before merge → `## wt/cli-20260922T225143Z-bc326d39` (clean).
+- `git merge main --no-edit` → conflicted as recorded above.
+- `go test ./internal/testutil -run 'TestKnownApproximation' -v` → both `TestKnownApproximationsOnlyShrinks` and `TestKnownApproximationRowsAreShort` passed; `ok github.com/adams-shaun/gorge/internal/testutil 0.001s`.
+- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' -v` → all five selected ratchets passed; `TestEveryRepoDeckIsFullySupported` reported 4 of 916 distinct cards unsupported and `TestEveryRepoDeckParamsAreRead` reported 29 of 916 cards with unread parameters; package `ok github.com/adams-shaun/gorge/rules 0.767s`.
+- The table parser counted 35 data rows; `.cards` is present.
+- `git diff --check` found one extra blank line at EOF in this report; it was removed. Conflict-marker scan will be confirmed after staging.
