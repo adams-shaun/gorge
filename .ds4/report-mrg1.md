@@ -124,3 +124,16 @@ found present, not created).
 
 `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|TestYuffieMayDeclineHerETBAttach'`
 (see final run output appended below).
+
+Ratchet + Yuffie regression run (real output):
+
+```text
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|TestYuffieMayDeclineHerETBAttach'
+ok  	github.com/adams-shaun/gorge/rules	0.816s
+
+$ go test -run 'TestRestrictedManaIsProjected|TestCR106ManaPoolIsPublicForEveryPlayer' ./view/
+ok  	github.com/adams-shaun/gorge/view	0.003s
+```
+
+Merge commit: `7d1e418e` (default message). Tree clean; `main` (`2954978f`)
+is now an ancestor of the branch. No head/ratchet movement.
