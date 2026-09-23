@@ -81,3 +81,76 @@ tracked `.ds4` reports) auto-merged without conflict.
 
 None found in this scope. The merge introduced no new engine behaviour of
 its own; both sides' reviewed changes were preserved.
+
+---
+
+# Merge-conflict resolution — agent-20260922T191943Z-4ffa25b7 (rv1 RevealAllValid$)
+
+## State and operation
+
+At entry the worktree was clean on `wt/agent-20260922T191943Z-4ffa25b7` at
+`2786ed95` — an earlier integration had already merged main `e8d1d9f9` ("keep
+both disjoint row closures — four-mode triggers (main) and RevealAllValid$
+(rv1); merged register 19 -> 18 rows"), but main had since advanced to
+`b4592552` (the ca8c201c `Defined$ Remembered` merge plus fleet merges). No
+merge/rebase was in flight, so I ran `git merge main` myself.
+
+Source files auto-merged cleanly on the merge route — including
+`effects/cardflow.go`, which had conflicted in the daemon's per-commit rebase
+but merged without conflict here (the branch's `RevealAllValid$` block in
+`effReveal` and main's `CountersRemain`/`Defined$ Remembered` changes touch
+disjoint regions; both retained, verified by grep and by the branch's
+`TestRevealAllValid` regression). `AGENTS.md` and
+`internal/testutil/agentsdoc_test.go` also auto-merged this time (main did not
+move the row table since the earlier merge), and
+`TestKnownApproximationsOnlyShrinks`/`TestKnownApproximationRowsAreShort` pass
+at the merged `knownApproximationRows = 18`.
+
+## Conflict and resolution
+
+- **`.ds4/report-t1.md`** — the accumulating report log. HEAD side: the
+  branch's approved rv1 `RevealAllValid$` report (ending with its STATUS block
+  and `---` divider). Main side: the newer `stat:CountersRemain` report and
+  companions, followed by content shared with HEAD. Kept both sides verbatim,
+  branch report first with main's after the divider that already terminates the
+  HEAD side: the resolution was exactly the deletion of the three conflict
+  marker lines (1231 -> 1228 lines; zero markers remain; `git diff --check`
+  clean). No report text was rewritten.
+
+## Commands and results
+
+```text
+git status                # clean, no merge/rebase in flight
+git merge main            # CONFLICT only in .ds4/report-t1.md; effects/cardflow.go auto-merged
+sed -i markers-out .ds4/report-t1.md   # 0 markers, diff --check clean
+git add .ds4/report-t1.md && git commit --no-edit
+                          # 8014a55d, both parents, tree clean
+
+ls -l .cards              # symlink -> /home/sadams/projects/gorge/.cards (present)
+
+go test ./internal/testutil -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort'
+ok  github.com/adams-shaun/gorge/internal/testutil  0.001s
+
+go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  github.com/adams-shaun/gorge/rules  0.779s
+
+go test -run 'TestRevealAllValid' ./effects/
+ok  github.com/adams-shaun/gorge/effects  0.640s
+
+gofmt -l effects/cardflow.go internal/testutil/agentsdoc_test.go   # clean
+```
+
+## Result
+
+- Branch `wt/agent-20260922T191943Z-4ffa25b7` at merge commit `8014a55d`;
+  main `b4592552` is an ancestor; tree clean.
+- No head/ratchet movement: the ratchet run passed unchanged; the branch
+  registers no new `Mode$` matcher and closes no `knownUnsupported`/
+  `knownUnsupportedParams`/`knownUnmodelledCountHeads` entry (its row closure
+  was already merged in `2786ed95`).
+- No `Ref:` trailers (gorge rule respected).
+
+## Issues
+
+None found. The only conflict was the report log; no engine code conflicted on
+the merge route.
