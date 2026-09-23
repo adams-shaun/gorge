@@ -778,6 +778,19 @@ export interface Decision {
    * other decision kinds and on older servers; absent means unknown.
    */
   target_effect?: TargetEffect | null;
+  /**
+   * Restable marks a KArrange ask whose answer MAY carry Intent.Rest -- the
+   * player-chosen order for pile B, the complement of the chosen set. Set
+   * only by the scry/surveil ask (effLookAndArrange), whose pile B can be
+   * non-empty AND observably ordered (CR 701.17's "in any order" for both
+   * piles). An ask without the flag still ACCEPTS a well-formed Rest
+   * (Validate's partition rule is kind-generic), but a client should not
+   * send one it was not offered -- for a Min == Max == N ask the only valid
+   * Rest is empty, so the flag is how a rules-ignorant client knows the
+   * second list exists. omitempty: every decision a client sees today
+   * serialises byte-identically.
+   */
+  restable?: boolean;
 }
 
   /**
@@ -970,4 +983,21 @@ export interface Intent {
   seq: number;
   player: number;
   choices: number[];
+  /**
+   * Rest is the answer's order for the COMPLEMENT of Choices — the second
+   * ordered list a KArrange answer may carry (the pile-B order): the options
+   * the player did not choose, in the order the player wants them, where
+   * "where they go" is still the decision's shared Option.Kind (bottom,
+   * graveyard, ...). Absent or empty means the legacy contract: the
+   * complement is taken in the order the options were OFFERED. The two lists
+   * together must be a partition of the offered options -- Rest's indices
+   * are in range, distinct, disjoint from Choices, and
+   * len(Rest) == len(Options) - len(Choices) -- which Decision.Validate
+   * enforces (one rule, one home: validateRest). Every non-arrange kind
+   * rejects a non-empty Rest outright. omitempty: every intent a client
+   * sends today serialises byte-identically, and a recorded intent's Rest
+   * rides the log and replays exactly (Ruling P2 submits intents as
+   * logged).
+   */
+  rest?: number[];
 }

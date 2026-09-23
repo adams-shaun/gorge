@@ -19,7 +19,12 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	knownApproximationRows = 59
+	// knownApproximationRows is the number of data rows in the table. Lower it
+	// by exactly the number of rows your change deletes. NEVER raise it.
+	// Merge of main's Scry/Surveil pile-B closure (2 rows) with the branch's
+	// non<X> negation closure (1 row) over the 58-row base: the merged table
+	// measures 55.
+	knownApproximationRows = 55
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.
