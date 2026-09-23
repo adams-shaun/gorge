@@ -152,6 +152,158 @@ CR conformance) skipped per `gorge-context.md`.
 STATUS=DONE
 COMMITS=3a8dc7122025f479d3d84b26325741e0e07c9116
 TESTS=go test -run 'TestRevealAllValid' ./effects/ → ok; TestKnownApproximation* → ok; archtest → ok; botbench TestConstructedDefaultIsByteIdentical → ok; gofmt/gentypes clean
+# Report — task agent-20260918T230554Z-74976c7c (kw:Backup)
+
+## What changed and why
+
+**`cards/kw_backup.go` (new)** — registers a `Backup` keyword expander
+(`registerKeyword(kwBackup, "Backup")`). `K:Backup:<N>:<SVar>` (CR 702.70) now
+expands into:
+
+    T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self
+      | Execute$ __kwBackup<i> | Keyword$ Backup | TriggerDescription$ Backup <N>
+    SVar:__kwBackup<i>:DB$ PutCounter | ValidTgts$ Creature | CounterType$ P1P1
+      | CounterNum$ <N> | SubAbility$ __kwBackupGrant<i>
+    SVar:__kwBackupGrant<i>:<the named SVar's body verbatim>
+      | Defined$ Targeted | ConditionDefined$ Targeted | ConditionPresent$ Creature.Other
+
+Two properties make the verbatim streamed body behave as the keyword rider:
+
+- `Defined$ Targeted` anchors the grant on the PutCounter's own target (the
+  corpus bodies name no `Defined$`; an untargeted sub defaults to the resolving
+  *source*, which would always grant the abilities to the entering creature).
+- `ConditionDefined$ Targeted | ConditionPresent$ Creature.Other` is CR
+  702.70's "if that's **another** creature". Without it a self-target grants the
+  source a duplicate of its own printed abilities — measured: the Scalelord
+  then queues **2** `Mode$ Attacks` triggers (proof below). The `Other`
+  predicate is source-relative (`o.ID != src`), and the `Targeted` condition
+  group is the supported one (`effects/conditions.go`).
+
+The named body is streamed rather than re-implemented, so whatever riders a
+carrier prints (`Keywords$`, `Triggers$`, `staticAbilities$`, `Abilities$`,
+`sVars$`) go through their ordinary parsing. All 26 corpus carriers' bodies are
+`DB$ Animate`/`DB$ Pump` and none names a `Defined$` (measured), so the
+injection is safe; a body that already named one is left untouched.
+
+If a carrier's SVar is missing, the counter trigger is still minted and the
+missing name is left as the `SubAbility$`, so `Link` reports the unresolved
+reference loudly instead of silently dropping the copy.
+
+**`cards/kw_registry_test.go`** — added `"Backup"` to `expandedHeads` with the
+comment naming the ticket. This is required: a head registered but not listed
+fails `TestNoKeywordIsRegisteredThatTheSwitchNeverExpanded`, and a head listed
+without an expander fails `TestEveryExpandedKeywordHasAnExpander`.
+
+**`rules/backup_test.go` (new)** — three real-corpus tests on Guardian
+Scalelord, each asserting its own precondition:
+
+1. `TestGuardianScalelordBackupCountersAndCopiesAbilities` — the cast ETB offers
+   the other creature, puts exactly one +1/+1 counter on it (2/2), grants the
+   copied **Flying**, and leaves the source at 0 counters.
+2. `TestGuardianScalelordBackupCopiesThePrintedTrigger` — Memnite prints **0**
+   triggers (asserted), so the exactly-one `Mode$ Attacks` trigger queued when
+   the backed-up Memnite attacks can only be the copied `AttackTrig`.
+3. `TestGuardianScalelordBackupSelfTargetGrantsNothing` — targeting the source
+   puts the counter but queues exactly **1** attack trigger (the printed one).
+
+## Brief's premise re-measured
+
+- Corpus prevalence `^K:Backup`: **26 files** — held
+  (`/usr/bin/grep -rlE '^K:Backup' .cards/cardsfolder | wc -l` → 26).
+- Guardian Scalelord is not in any repo deck (`internal/testutil/decks/`), so
+  no `knownUnsupported` / `knownUnsupportedParams` ratchet entry moves.
+- `.cards` was already present as a symlink to
+  `/home/sadams/projects/gorge/.cards` (corpus-backed tests really ran; the
+  `rules` run took ~1.0 s for 3 tests, and the `cards` registry run 0.005 s).
+
+## Exact commands and real output
+
+```
+$ go test -run 'TestGuardianScalelordBackup' -v ./rules/
+=== RUN   TestGuardianScalelordBackupCountersAndCopiesAbilities
+--- PASS: TestGuardianScalelordBackupCountersAndCopiesAbilities (1.04s)
+=== RUN   TestGuardianScalelordBackupCopiesThePrintedTrigger
+--- PASS: TestGuardianScalelordBackupCopiesThePrintedTrigger (0.00s)
+=== RUN   TestGuardianScalelordBackupSelfTargetGrantsNothing
+--- PASS: TestGuardianScalelordBackupSelfTargetGrantsNothing (0.00s)
+PASS
+ok  	github.com/adams-shaun/gorge/rules	1.060s
+
+$ go test -run 'TestEveryExpandedKeywordHasAnExpander|TestNoKeywordIsRegisteredThatTheSwitchNeverExpanded|TestAnUnregisteredKeywordIsNotExpanded' ./cards/
+ok  	github.com/adams-shaun/gorge/cards	0.005s
+
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	1.274s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.453s
+
+$ gofmt -l cards/kw_backup.go cards/kw_registry_test.go rules/backup_test.go
+(no output)
+
+$ go run ./cmd/gentypes -check
+(no output)
+```
+
+`go build ./...` and `go vet ./rules/` are clean. No head/ratchet movement.
+
+## Fails without the fix
+
+Each new test was proven non-vacuous by reverting the non-test hunk in place,
+running the one test, and restoring `cards/kw_backup.go` byte-identically
+(`cmp` against a `.ds4/scratch/` copy).
+
+1. **Registration removed** (`func init() { registerKeyword(kwBackup, "Backup") }`
+   deleted) → `TestGuardianScalelordBackupCountersAndCopiesAbilities` FAILS (the
+   ETB ask never arrives; the drain overruns into a later discard):
+   ```
+   --- FAIL: TestGuardianScalelordBackupCountersAndCopiesAbilities (0.60s)
+       backup_test.go:131: unexpected decision &{...Kind:choose...discard...} while draining Backup
+   ```
+
+2. **"Another creature" gate removed** (the `ConditionDefined$ Targeted |
+   ConditionPresent$ Creature.Other` line deleted) →
+   `TestGuardianScalelordBackupSelfTargetGrantsNothing` FAILS:
+   ```
+   --- FAIL: TestGuardianScalelordBackupSelfTargetGrantsNothing (0.63s)
+       backup_test.go:197: Backup self-target queued 2 attack triggers, want exactly 1
+       (the printed trigger); the grant must not duplicate the source's own abilities
+   ```
+
+3. **`Defined$ Targeted` injection removed** →
+   `TestGuardianScalelordBackupCopiesThePrintedTrigger` FAILS:
+   ```
+   --- FAIL: TestGuardianScalelordBackupCopiesThePrintedTrigger (0.70s)
+       backup_test.go:190: the granted rules text queued 0 attack triggers on the
+       target, want 1 (the copied AttackTrig)
+   ```
+
+After each revert the file was restored and `cmp` reported byte-identical.
+
+## Deviations from the brief
+
+None. The `sVars$`/`Abilities$`/`staticAbilities$` riders the companion
+`api-animate-svars` ticket tracks are read through the ordinary `DB$ Animate`
+path; nothing here re-implements them.
+
+## Issues
+
+- **`TriggeredAttacker$CardPower` in a trigger's target filter resolves to 0 at
+  target-offer time.** Discovered while building the self-target test: Guardian
+  Scalelord's printed attack trigger (`ValidTgts$ Permanent.nonLand+cmcLEX+YouOwn`
+  with `SVar:X:TriggeredAttacker$CardPower`) offers **only CMC-0** graveyard
+  cards. Measured on the real corpus: a CMC-2 Grizzly Bears in the graveyard
+  yields no target ask, a CMC-0 Memnite does. The keyword being implemented
+  (Backup) is unaffected; this is the card's own printed trigger, and it is a
+  general trigger-relative numeric-RHS-in-target-offer gap. Corpus prevalence
+  of `TriggeredAttacker$CardPower`: 14 files. Filed as
+  `.ds4/new-tickets/triggered-attacker-cardpower-target-offer.md` (suggested
+  fix site: `effects/count.go` `evalRefProperty`/`refTargets` plus the
+  target-offer `SpecContext` wiring). A CR-lane test citing CR 603.3c (targets
+  chosen as the trigger is put on the stack) would make it visible to the
+  ledger.
+- No other defect found; the frozen "Known approximations" table was not
+  touched.
 # fb-20260923T005857Z-c1a24352 — Count$ResolvedThisTurn (Sephiroth transform)
 
 ## Summary
