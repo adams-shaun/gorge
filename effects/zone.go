@@ -759,9 +759,10 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	// Object-path library shuffle tail (searchmay1): a ChangeZone that moved
 	// objects INTO a library and states Shuffle$ True now shuffles. This is
 	// the tail the AGENTS.md row named as "the object-path shuffle": the
-	// path previously shuffled nothing at all, so the four object-target
-	// carriers that ALSO set ShuffleNonMandatory$ (Cathartic Parting,
-	// Devious Cover-Up, Covetous Castaway, Put Away) were inert. The 76
+	// path previously shuffled nothing at all. Four corpus lines also set
+	// ShuffleNonMandatory$; three SP-parented DB subs (Cathartic Parting,
+	// Devious Cover-Up, Put Away) still inherit the parent's targets and
+	// cannot reach this tail until sub-ability targeting is separated. The 76
 	// mandatory carriers (Turn the Earth, Quandrix Command, Rite of Renewal,
 	// Stream of Consciousness, the death-trigger "shuffle CARDNAME into its
 	// owner's library" family) shuffled nothing either and now shuffle. Only
@@ -3502,10 +3503,12 @@ func objectPathShuffleOwed(sa *cards.SA) bool {
 // objectPathShuffleTail finishes an object-target ChangeZone that moved
 // objects into a library, after the moves landed in effChangeZone. It
 // shuffles each distinct card owner's library once, and when the SA also sets
-// ShuffleNonMandatory$ it poses Forge's may-shuffle confirm first (the four
-// corpus carriers -- Cathartic Parting, Devious Cover-Up, Covetous Castaway,
-// Put Away -- all target their own graveyard, so the confirm's player is the
-// controller, who is the only owner). Returns true when the confirm
+// ShuffleNonMandatory$ it poses Forge's may-shuffle confirm first. Today's
+// flag-bearing corpus lines target their controller's own graveyard, so the
+// controller is the owner; this is not a per-owner election for future
+// multi-owner movers. Three SP-parented DB carriers cannot reach this tail
+// until their own targeting is offered (see changeZoneChosenTargets).
+// Returns true when the confirm
 // suspended the resolution; the answer re-enters effChangeZone, whose
 // SearchShuffle early-return calls this again with moved == nil. A host that
 // cannot ask takes the deterministic decline (R-9), the same stand-in every
@@ -3557,7 +3560,7 @@ func objectPathShuffleOwners(h Host, moved []state.ObjID) {
 // searchShuffleTail is a hidden-library search's shuffle-and-place tail, with
 // the ShuffleNonMandatory$ read (Path to Exile, Stoneforge Mystic, Squadron
 // Hawk, Boggart Harbinger -- 209 exact-Origin$ Library corpus lines carry the
-// flag). When the flag is set AND the search moved at least one card, the
+// flag). When the flag is set, even if the search moved no cards, the
 // searcher is offered Forge's may-shuffle confirm -- "Shuffle your
 // library?" -- instead of the unconditional shuffle: declining keeps the
 // library order the search's option list (offered in library order) just

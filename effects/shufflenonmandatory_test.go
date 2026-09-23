@@ -20,7 +20,9 @@ import (
 // row's own code comment names carry the flag (Squadron Hawk, Path to Exile),
 // but the effects package drives the primitive directly so each precondition
 // (nothing moved / the compared zone actually differs) is asserted here and
-// the end-to-end corpus path is pinned in rules.
+// the mandatory object-path and fail-to-find corpus paths are pinned in
+// rules. This direct test does not prove that SP-parented DB subs reach this
+// tail: their inherited parent targets still prevent that in live play.
 
 // shuffleTailBoard builds a 2-seat board with one graveyard card owned by
 // seat 0 and a resolving source object. Returns the recording+suspending
@@ -52,8 +54,9 @@ func shuffleEvents(h *fakeHost, p state.PlayerID) int {
 // Graveyard -> Library move with Shuffle$ True | ShuffleNonMandatory$ True
 // (Cathartic Parting, Devious Cover-Up, Covetous Castaway, Put Away) moves
 // the card, poses Forge's may-shuffle confirm, and shuffles ONLY if the
-// searcher says yes. Before the fix the path shuffled nothing at all and the
-// flag was inert.
+// searcher says yes when this SA receives its own graveyard target. Three
+// named SP-parented DB carriers do NOT receive that target in live play;
+// this fixture exercises the tail, not their parent/sub targeting.
 func TestObjectPathShuffleNonMandatoryAsks(t *testing.T) {
 	for _, accept := range []bool{true, false} {
 		name := "decline keeps order"

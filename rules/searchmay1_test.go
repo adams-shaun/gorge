@@ -15,8 +15,9 @@ import (
 //       fail-to-find carrier);
 //   (b) an object-target ChangeZone that moves cards into a library and states
 //       Shuffle$ True now shuffles -- Turn the Earth is the silent
-//       (mandatory) carrier; the flag-bearing object carriers are covered
-//       directly in effects/shufflenonmandatory_test.go.
+//       (mandatory) carrier. The flag-bearing tail is covered by a direct
+//       effects test; SP-parented DB carriers still inherit the SP target
+//       and do not reach that tail in live play.
 //
 // The corpus scripts are loaded through the gitignored registry; no Forge
 // script text is committed.
