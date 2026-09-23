@@ -48,7 +48,8 @@ import (
 // decision's answer resumes ("modes" for a Charm modal pick, "unless_pay"
 // for a CopySpellAbility may-pay, "discard" for a mid-resolution discard
 // choice, "search" for a hidden-library KChoose, "dig" for a Dig
-// look-and-take pick, "connive" for a Connive discard election, and "" for a pure outer
+// look-and-take pick, "dig_arrange" for a Dig's ordered-bottom KArrange,
+// "connive" for a Connive discard election, and "" for a pure outer
 // continuation that carries no answer),
 // which stack object's resolution is paused, and the exact sub-ability
 // whose effect asked — or, for an outer continuation, the sub-ability to
@@ -1450,7 +1451,8 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// never disagree. An SVar the ctx's table lacks or whose body does
 			// not resolve passes through raw and lands in the same hard
 			// decline as before.
-			paid, ok := ParseUnlessCost(effects.UnlessCostResolved(e, ctx, rp.sa))
+			rawUnlessCost := effects.UnlessCostResolved(e, ctx, rp.sa)
+			paid, ok := ParseUnlessCost(rawUnlessCost)
 			if !ok {
 				// I-5: an unless-cost the payment API cannot price is a hard
 				// DECLINE. ParseCost("X") is {Generic:0, X:1}; payMana never
@@ -1473,7 +1475,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				// cost type) keeps the decision on the wire for hosts to observe
 				// while never letting an empty pool satisfy it.
 				ctx.UnlessPay = "decline"
-			} else if len(chosen) > 0 && chosen[0].Index == 0 {
+			} else if len(chosen) > 0 && chosen[0].Index == 0 && e.unlessCostPayable(chosen[0].Player, rawUnlessCost, ctx, rp.obj) {
 				if len(paid.Sac) > 0 || len(paid.Discard) > 0 || len(paid.Reveal) > 0 || len(paid.RevealChosen) > 0 {
 					// Sacrifice, discard and reveal are choice-bearing costs.
 					// Park this resume before any mutation and let the payer
@@ -1482,8 +1484,27 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 					e.beginUnlessPayment(chosen[0].Player, paid, ctx, rp.obj, rp)
 					return
 				}
+				// CR 601.2g: a mana-only unless cost gives the payer the same
+				// chance to activate mana abilities before the charge as a cast
+				// or a Ward does, so a converted colour (stat:ManaConvert) can be
+				// produced by tapping. The window only opens when the pool
+				// (under the payment's conversion) cannot already pay and an
+				// untapped source exists; otherwise the charge below is
+				// unchanged.
+				if e.unlessManaWindowNeeded(chosen[0].Player, paid, rp.obj) {
+					e.askUnlessWardMana(chosen[0].Player, paid, rp)
+					return
+				}
 				if e.payUnlessCost(chosen[0].Player, paid, ctx, rp.obj) {
 					ctx.UnlessPay = "pay"
+				} else if paid.hasManaPayment() && len(e.windowManaUnits(chosen[0].Player)) > 0 {
+					// A failed pool-only attempt is not a decline: open the
+					// CR 601.2g mana-ability window and resume this exact frame
+					// after the payer has assembled enough floating mana. The
+					// offer gate proved the budget reachable before Pay was
+					// offered, so sources remain while the charge is unmet.
+					e.beginUnlessPayment(chosen[0].Player, paid, ctx, rp.obj, rp)
+					return
 				} else {
 					ctx.UnlessPay = "decline"
 				}
@@ -1528,6 +1549,10 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			if e.answerWardMana(rp, chosen, ctx) {
 				return
 			}
+		case "unless_mana":
+			if e.answerWardMana(rp, chosen, ctx) {
+				return
+			}
 		case "ward_alt":
 			// The Discard<...>:<mana> Ward alternative can choose its mana
 			// half even when it is not already floating; it receives the same
@@ -1538,7 +1563,8 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				if e.payMana(chosen[0].Player, cost) {
 					ctx.UnlessPay = "pay"
 				} else if cost.hasManaPayment() && e.hasUntappedManaSource(chosen[0].Player) {
-					e.askWardMana(rp, chosen[0].Player, cost)
+					e.askWardMana(rp, &wardManaPayment{payer: chosen[0].Player, cost: cost,
+						resumeKind: "ward_mana", prompt: "Activate mana abilities to pay Ward"})
 					return
 				} else {
 					ctx.UnlessPay = "decline"
@@ -1587,6 +1613,19 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// ChooseType below poses its own ask.
 			if len(chosen) > 0 {
 				ctx.ChosenType = chosen[0].Label
+			}
+		case "manareflected":
+			// A standalone AB$ ManaReflected colour ask (the mid-resolution
+			// choice effManaReflected poses when a DB$/SP$ body reflecting
+			// several colours resolves outside the mana-activation path) was
+			// answered. The option Label ("Add W") carries the picked colour;
+			// the re-entered effManaReflected consumes and clears it and emits
+			// the answered ManaAdd, so a nested ManaReflected poses its own ask.
+			// An empty answer (malformed -- the ask is Min 1/Max 1 over a set of
+			// two or more) leaves the field empty, and the effect's re-entry
+			// degrades to its deterministic first candidate.
+			if len(chosen) > 0 {
+				ctx.ManaReflectedColor = chosen[0].Label
 			}
 		case "taporuntap":
 			// A TapOrUntap's tap-vs-untap election (api:TapOrUntap, Merrow
@@ -1737,6 +1776,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 			}
 			ctx.SearchDone = true
+			ctx.LibraryTarget = rp.target
 		case "search_mayshuffle":
 			// A ChangeZone search carrying ShuffleNonMandatory$ True (Path to
 			// Exile, Stoneforge Mystic, Boggart Harbinger) asked its searcher
@@ -1755,6 +1795,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				ctx.SearchShuffle = "yes"
 			}
 			ctx.SearchShuffleMoved = append([]state.ObjID(nil), rp.moved...)
+			ctx.LibraryTarget = rp.target
 		case "attach_optional":
 			// An Optional$ True Attach's yes/no election (Ajani's Chosen's
 			// "you may attach it to the token") was answered. The answer is a
@@ -2160,14 +2201,26 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			}
 			ctx.HiddenPickDone = true
 			ctx.HiddenPickTarget = rp.target
-		case "arrange":
+		case "arrange", "dig_arrange":
 			// Ruling J0: rules' handleArrange already applied the answered
 			// arrangement and emitted the LibraryOrder event before calling
 			// resumeResolution, so the re-entered effect needs only to know
 			// not to re-ask -- the arrangement lives on the LibraryOrder
 			// event, not on Ctx, so this is a done-marker rather than an
-			// answer the effect re-reads.
+			// answer the effect re-reads. A Dig additionally carries the
+			// asking target's index (ArrangeTarget, only on its own
+			// "dig_arrange" continuation), because its walk must keep the
+			// deterministic processing of the LATER Defined$ targets on the
+			// arrange re-entry instead of dropping them.
 			ctx.Arrange = true
+			if rp.kind == "dig_arrange" {
+				ctx.ArrangeTarget = rp.target
+			}
+			// The shared per-player cursor every multi-library walk (search,
+			// arrange, scry/surveil) reads to resume at the NEXT library; a
+			// Dig's own arrange continuation additionally carries
+			// ArrangeTarget so effDig's walk skips through it.
+			ctx.LibraryTarget = rp.target
 		case "arrange_mayshuffle":
 			// A RearrangeTopOfLibrary carrying MayShuffle$ True (Ponder) asked
 			// "you may shuffle?" on its arrange re-entry pass. The effect
@@ -2182,6 +2235,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// owner (the arranging player the ask was posed to).
 			ctx.Arrange = true
 			ctx.MayShuffle = "no"
+			ctx.LibraryTarget = rp.target
 			if len(chosen) > 0 && chosen[0].Kind == "yes" {
 				ctx.MayShuffle = "yes"
 				order := append([]state.ObjID(nil), e.G.Zone(state.ZLibrary, rp.player)...)
@@ -2407,7 +2461,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 					if t.IsPlayer || t.Obj == 0 || seenShow[t.Obj] {
 						continue
 					}
-					if o := e.G.Obj(t.Obj); o != nil && effects.MatchesObjectCtx(e.G, show, o, sc) {
+					if o := e.G.Obj(t.Obj); o != nil && e.matchesSpec(show, t.Obj, sc) {
 						seenShow[t.Obj] = true
 						ids = append(ids, t.Obj)
 					}

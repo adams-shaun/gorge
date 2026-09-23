@@ -119,6 +119,19 @@ type Player struct {
 	// rebuilds it exactly. A plain bool is carried for free by Clone's
 	// per-player struct copy.
 	Blessing bool
+
+	// Notes is the set of player-notation labels this seat has noted, in the
+	// order they were noted (Forge's `NoteCards$ ... | NoteCardsFor$ <label>`
+	// on a DB$ Pump body appends <label> here; `Player.NotedFor<label>` reads
+	// it). It is append-only and never re-ordered, so it is deterministic on
+	// replay, and a re-note of the same label does not duplicate the entry.
+	// Written ONLY by events.Apply's PlayerNoted case, so a live game and a
+	// log-only reconstruction derive it identically. Clone deep-copies it
+	// (the Notes slice is appended to in place, so sharing the backing array
+	// would let either game corrupt the other). The sibling CARD notation
+	// (`NoteCards$ Self` on a body whose label is read by `Card.NotedForX`)
+	// is a different family and is not stored here.
+	Notes []string
 }
 
 // ExtraTurn is one pending CR 500.7 turn. It is deliberately a queue entry,
@@ -482,6 +495,7 @@ func (g *Game) Clone() *Game {
 		c.Players[i].CmdCasts = append([]int32(nil), g.Players[i].CmdCasts...)
 		c.Players[i].CmdDamage = append([]int32(nil), g.Players[i].CmdDamage...)
 		c.Players[i].RestrictedMana = append([]ManaRestriction(nil), g.Players[i].RestrictedMana...)
+		c.Players[i].Notes = append([]string(nil), g.Players[i].Notes...)
 	}
 	c.Objs = make([]Object, len(g.Objs))
 	for i := range g.Objs {

@@ -1107,7 +1107,24 @@ var acceptanceHeads = map[int]string{
 	// Measured by reverting the Counter arm of UnlessCostResolved's API gate
 	// in a scratch copy: with it reverted this head returns to
 	// 5e79231bd056d0fc and 2/4 seats never move at all.
-	6: "76f187361778b000",
+	// unless-pay mana window (cli-20260922T150843Z-daf1bd3e): 6 seats moves on
+	// to 400d8d9ae2777ded. Measured by neutralising exactly two switches in a
+	// scratch copy (poseUnlessAsk's host payability consult in
+	// effects/unless.go, and resumeResolution's unlessCostPayable guard plus
+	// the mana-window arm in rules/resolution.go): the neutralised build
+	// reproduces 76f187361778b000 byte-for-byte, so this change is the sole
+	// mover. Both streams hold 8,732 events and differ in exactly TWO
+	// payloads, each a ModeChosen text -- a decision-enumeration move, not a
+	// game-outcome move. Event 1396 is the same Mausoleum Wanderer election
+	// the entry above describes: the SVar fold prices it at {1}, the offer
+	// gate then finds seat 1 has neither floating mana nor a window-eligible
+	// source, so "Pay {1} — don't counter" becomes "Don't pay". Event 1671 is
+	// seat 1's Daze (obj 98, cast at 1639) asking seat 2 for {1} with the same
+	// verdict ("Pay 1 — don't counter" -> "Don't pay"). Both were unreachable
+	// before too: in the neutralised stream each recorded pay attempt fails
+	// and the spell is countered anyway, so events 1397 and 1672 onward are
+	// identical.
+	6: "400d8d9ae2777ded",
 	// 8 seats moved to cc022f9ba9f2bf39 with task mana2 (fix(rules): pay mana
 	// ability costs and choose colors): mana abilities that spend a Sac cost
 	// are now gated on a payable, deterministic sacrifice candidate existing,
@@ -1263,7 +1280,19 @@ var acceptanceHeads = map[int]string{
 	// former colourless ManaAdd.Counter stand-in; its selected WUBRG counter
 	// is an intentional event payload difference and changes the deterministic
 	// downstream game.
-	8: "8657a61fc80a8576",
+	// unless-pay mana window (cli-20260922T150843Z-daf1bd3e): 8 seats moves on
+	// to 0b8b0506edbedc2e, same two-switch neutralisation as the 6-seat entry
+	// (the neutralised build reproduces 7c9dbf608ada58b3 byte-for-byte). Both
+	// streams hold 16,821 events and differ in exactly ONE payload: event
+	// 2388, the same Mausoleum Wanderer election (ability obj 481, payer seat
+	// 7, against Duress obj 472), whose priced-but-unreachable "Pay {1} —
+	// don't counter" is no longer offered and reads "Don't pay". Duress is
+	// countered in both streams (event 2389 onward identical).
+	// MERGE (both changes present, measured at the merged tip): 8 seats reads
+	// 61ac399dda414c21 -- the resolution-time colour choice and the unless-pay
+	// mana window together move the same seat-8 game past either single
+	// change's value.
+	8: "61ac399dda414c21",
 }
 
 func TestHeads(t *testing.T) {

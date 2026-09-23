@@ -507,6 +507,10 @@ type ContinuousEffect struct {
 	// re-execution on replay like every other continuous-effect field.
 	CostStaticMode string
 
+	// CostStaticSVars is the SVar table that owned an Effect-delivered static.
+	// Nil means the source object's current face supplies the table.
+	CostStaticSVars map[string]string
+
 	// CostStaticParams carries the static line's own parameter map (the
 	// parseStaticLine output effEffect whitelisted through
 	// effects.CostStaticParamsReadable before registering). The cost

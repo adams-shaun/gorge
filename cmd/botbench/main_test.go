@@ -714,7 +714,27 @@ func TestConstructedDefaultIsByteIdentical(t *testing.T) {
 	// same pair from 6/14 to 5/15: the bot can now see an untapped Any source
 	// as a real WUBRG alternative instead of the old colourless stand-in, so
 	// its tap choice changes in one game (reverting that file reproduces 6/14).
-	const wantSeat0, wantSeat1 = 5, 15
+	//
+	// The 6/14 was re-measured to 7/13 by the api:ManaReflected collector fix
+	// (ticket cli-20260922T225137Z): cards.ManaProduction now folds a face's
+	// AB$ ManaReflected abilities (Face.ManaReflectedAbilities) and the
+	// botpolicy tap gate aims a needed coloured pip at a Reflected source,
+	// so avengers-assemble's three reflected mana rocks -- Exotic Orchard,
+	// Fellwar Stone and Plaza of Heroes -- are tapped for a needed pip where
+	// before they projected as producing nothing and the gate passed over
+	// them. Measured: reverting ONLY the six reflected files (leaving the
+	// bench's own legacy-menace guard in place) returns 6/14 deterministically;
+	// the guard alone on HEAD also returns 6/14, so the one-game move is
+	// entirely the reflected-mana change. (The legacy guard is the reason this
+	// measurement exists at all: the fact-free legacy block policy coined an
+	// illegal lone block onto a Menace attacker and the engine rejected the
+	// intent, aborting the bench at HEAD seed 22 and at this change's seed 18;
+	// see legacySeat.Decide.)
+	// MERGE (Any-mana projection x ManaReflected collector, both present):
+	// measured at the merged tip as 6/14 -- neither parent's value (5/15 with
+	// the projection change alone, 7/13 with the collector fix alone); the two
+	// cards/mana_production.go changes interact on the shared bench pair.
+	const wantSeat0, wantSeat1 = 6, 14
 	if seat0, seat1 := atoi(m[8]), atoi(m[9]); seat0 != wantSeat0 || seat1 != wantSeat1 {
 		t.Errorf("constructed default split = %d/%d, want %d/%d (%s vs %s at seed 0, games 20)", seat0, seat1, wantSeat0, wantSeat1, testutil.RepoDeckNames()[0], testutil.RepoDeckNames()[1])
 	}

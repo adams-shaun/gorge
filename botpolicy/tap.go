@@ -251,7 +251,14 @@ func (b Board) neededColours(c Card) [5]bool {
 //   - tier 0: a source that DEMONSTRABLY produces a colour the intended card
 //     needs (producesColour, which is only true for a known, guaranteed
 //     colour slot -- an indeterminate source contributes nothing to claim
-//     it). This is the only tier a tap is aimed at a specific pip.
+//     it), OR a REFLECTED source (Produces.Reflected), whose colour is
+//     computed at resolution from what other objects produce and resolves to
+//     whatever colour is asked for when it is tapped. This is the only tier a
+//     tap is aimed at a specific pip. A plain conditional "Any" source
+//     (Cavern of Souls, and 500+ other corpus cards) is deliberately NOT
+//     here: widening the gate to every Any source is a separate behaviour
+//     change from the reflected-source fix and moves the botbench golden
+//     (ticket cli-20260922T225137Z), so only Produces.Reflected qualifies.
 //   - tier 1: a source that demonstrably produces some mana, but none of a
 //     needed colour (a screw in colour, or a pure generic shortfall): it at
 //     least adds to the pool, so it outranks a source that may produce
@@ -290,7 +297,7 @@ func (b Board) chooseTap(d *decision.Decision) int {
 			continue
 		}
 		for i := 0; i < 5; i++ {
-			if card.Produces.Colour[i] > 0 {
+			if card.Produces.Colour[i] > 0 || card.Produces.Reflected {
 				offered[i] = true
 			}
 		}
@@ -310,7 +317,7 @@ func (b Board) chooseTap(d *decision.Decision) int {
 		prod := b.Cards[o.Obj].Produces
 		matches := false
 		for i := 0; i < 5; i++ {
-			if need[i] && prod.ProducesColour(i) {
+			if need[i] && (prod.ProducesColour(i) || prod.Reflected) {
 				matches = true
 				break
 			}

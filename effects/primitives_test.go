@@ -273,7 +273,9 @@ func TestDigMovesMatchingCardsToDestinationLeavingTheRestOnTop(t *testing.T) {
 // test for "ChangeNum$ All" (e.g. Goblin Guide's own Dig): every matching
 // card within the top DigNum cards moves, not just the first ChangeNum of
 // them, with no cap short of DigNum itself. A card outside the DigNum window
-// is never even inspected, let alone moved.
+// is never even inspected, let alone moved. The one-card remainder (the bear)
+// takes the default bottom destination without an ask -- one card has exactly
+// one possible order -- so it lands BELOW the untouched library.
 func TestDigChangeNumAllMovesEveryMatchingCardOfTheTopN(t *testing.T) {
 	h := newHost(t, 2)
 	land := mkCard(t, "Name:Isle\nTypes:Basic Land Island\nOracle:x\n")
@@ -291,8 +293,8 @@ func TestDigChangeNumAllMovesEveryMatchingCardOfTheTopN(t *testing.T) {
 	if hand := g.Zone(state.ZHand, 0); len(hand) != 2 || hand[0] != c0 || hand[1] != c2 {
 		t.Fatalf("hand = %v, want [%d %d] (both lands in the top 3)", hand, c0, c2)
 	}
-	if lib := g.Zone(state.ZLibrary, 0); len(lib) != 2 || lib[0] != c1 || lib[1] != c3 {
-		t.Fatalf("library = %v, want [%d %d], unchanged relative order", lib, c1, c3)
+	if lib := g.Zone(state.ZLibrary, 0); len(lib) != 2 || lib[0] != c3 || lib[1] != c1 {
+		t.Fatalf("library = %v, want [%d %d] (the bear remainder on the bottom, below the untouched card)", lib, c3, c1)
 	}
 }
 

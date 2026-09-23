@@ -82,7 +82,15 @@ func TestEffectReplacementResumeEndsSelfExile(t *testing.T) {
 	}
 
 	// Decline: the resumed body runs the self-exile, which ends the effect.
-	submitChoices(t, e, ask.Options[1].Index)
+	// The pool is empty after the bear's GG and this fixture gives the payer
+	// no mana source the CR 601.2g payment window could tap, so the
+	// reachability gate offers the decline alone (see the control test below,
+	// where a spare G makes the pay option reachable).
+	decline := ask.Options[len(ask.Options)-1]
+	if decline.Label != "Don't pay" {
+		t.Fatalf("the unless ask's trailing option is not the decline: %+v", ask.Options)
+	}
+	submitChoices(t, e, decline.Index)
 	passUntilStackEmpty(t, e, 60)
 
 	if o := e.G.Obj(bear); o == nil || o.Counter("P1P1") != 1 {

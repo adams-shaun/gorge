@@ -8,6 +8,18 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
+func cloneCounterAddsThisTurn(in []counterAddedThisTurn) []counterAddedThisTurn {
+	if in == nil {
+		return nil
+	}
+	out := make([]counterAddedThisTurn, len(in))
+	for i, v := range in {
+		out[i] = v
+		out[i].object = v.object.CloneDeep()
+	}
+	return out
+}
+
 // Clone deep-copies the engine: game, log, RNG position, the pending
 // decision, continuous effects, the pending-trigger queue and the trigger
 // bookkeeping maps. The copy and the original then evolve independently —
@@ -31,6 +43,7 @@ func (e *Engine) Clone() *Engine {
 		// value slice, copied like turnsTaken so an undo/DVR clone owns its
 		// own ledger.
 		combatHitsThisTurn:  append([]effects.CombatDamageHit(nil), e.combatHitsThisTurn...),
+		counterAddsThisTurn: cloneCounterAddsThisTurn(e.counterAddsThisTurn),
 		format:              e.format,
 		rng:                 e.rng.clone(),
 		orderedTriggers:     e.orderedTriggers,
@@ -550,7 +563,7 @@ func (e *Engine) Clone() *Engine {
 		pc.delve = append([]state.ObjID(nil), e.cast.delve...)
 		pc.sacs = append([]state.ObjID(nil), e.cast.sacs...)
 		pc.discards = append([]state.ObjID(nil), e.cast.discards...)
-		pc.subCtrs = append([]state.ObjID(nil), e.cast.subCtrs...)
+		pc.subCounterPays = append([]subCounterPay(nil), e.cast.subCounterPays...)
 		pc.exiles = append([]state.ObjID(nil), e.cast.exiles...)
 		pc.returns = append([]state.ObjID(nil), e.cast.returns...)
 		pc.moveGraves = append([]state.ObjID(nil), e.cast.moveGraves...)
@@ -562,6 +575,13 @@ func (e *Engine) Clone() *Engine {
 		pc.preModes = append([]string(nil), e.cast.preModes...)
 		pc.preSuppress = cloneSuppressed(e.cast.preSuppress)
 		pc.preAborts = cloneAbortCounts(e.cast.preAborts)
+		if e.cast.mayPlayRemembered != nil {
+			m := make(map[state.ObjID][]state.ObjID, len(e.cast.mayPlayRemembered))
+			for k, v := range e.cast.mayPlayRemembered {
+				m[k] = append([]state.ObjID(nil), v...)
+			}
+			pc.mayPlayRemembered = m
+		}
 		c.cast = &pc
 		// The held-back cast trigger (CR 601.2i, cast.go): a clone taken at an
 		// intent boundary while a cast is suspended (its target/choose decision

@@ -117,7 +117,7 @@ func (e *Engine) attackPairCharge(id state.ObjID, defender state.PlayerID) int32
 			// has no readable shape here. Skip, never blanket.
 			continue
 		}
-		if !effects.MatchesSpecCtx(e.G, spec, id, e.specCtxSVars(sv.Source, sv.Controller, sv.SVars)) {
+		if !e.matchesSpec(spec, id, e.specCtxSVars(sv.Source, sv.Controller, sv.SVars)) {
 			continue
 		}
 		if !restrictionPlayerTargetMatches(e.G, sv.Params["Target"], defender, sv.Controller, nil) {
@@ -144,10 +144,10 @@ func (e *Engine) blockPairCharge(blocker, attacker state.ObjID) int32 {
 		if !cantAttackUnlessParamsReadable(sv.Params) || !e.continuousGateHolds(sv) {
 			continue
 		}
-		if spec := sv.Params["ValidCard"]; spec != "" && !effects.MatchesSpecCtx(e.G, spec, blocker, e.specCtxSVars(sv.Source, sv.Controller, sv.SVars)) {
+		if spec := sv.Params["ValidCard"]; spec != "" && !e.matchesSpec(spec, blocker, e.specCtxSVars(sv.Source, sv.Controller, sv.SVars)) {
 			continue
 		}
-		if spec := sv.Params["Attacker"]; spec != "" && !effects.MatchesSpecCtx(e.G, spec, attacker, e.specCtxSVars(sv.Source, sv.Controller, sv.SVars)) {
+		if spec := sv.Params["Attacker"]; spec != "" && !e.matchesSpec(spec, attacker, e.specCtxSVars(sv.Source, sv.Controller, sv.SVars)) {
 			continue
 		}
 		n, ok := e.attackUnlessPrice(sv)
@@ -280,6 +280,48 @@ type attackManaSource struct {
 // overstate the payer's reach.
 func (e *Engine) attackManaSources(p state.PlayerID) []attackManaSource {
 	var out []attackManaSource
+	// windowManaUnits is the ONE membership the offer gate (attackBudget) and
+	// this tap list share, so the attack window can never be offered a charge
+	// its sources cannot reach (see the doc comment on windowManaUnits). The
+	// window taps one ability with no sub-ask, so only a source with exactly
+	// one free, priceable ability qualifies -- the same set the pre-
+	// alternatives membership returned (a multi-colour dual's two intrinsics
+	// stay excluded, ledgered under attackprop1).
+	for _, u := range e.windowManaUnits(p) {
+		if u.freeCount != 1 || len(u.alts) != 1 {
+			continue
+		}
+		a := u.alts[0]
+		units := int32(0)
+		for _, n := range a.counts {
+			units += n * a.amt
+		}
+		if units <= 0 {
+			continue
+		}
+		out = append(out, attackManaSource{id: u.id, ma: a.ma, original: a.ma, gained: e.gainedManaRefFor(p, u.id, a.ma), units: units})
+	}
+	// The choice-shaped productions the shared membership deliberately
+	// excludes (windowManaUnits skips every "Any"/"Combo"/"Chosen" shape: the
+	// unless-cost window cannot tap one without a mid-resolution colour
+	// sub-ask). A generic attack tax is payable by ANY colour, so the attack
+	// window admits them through its own walk and pins the choice (ticket
+	// cli-20260922T225137Z-c670f42d) -- every source counted here is also
+	// tappable, so the wedge guard still holds.
+	out = append(out, e.attackChoiceManaSources(p)...)
+	return out
+}
+
+// attackChoiceManaSources is the attack window's choice-shaped membership: it
+// walks the payer's battlefield in zone order and returns every untapped
+// permanent with EXACTLY ONE free-cost window-usable mana ability whose
+// production is choice-shaped (the blank-excluded "Any" / "Combo Any" /
+// "Combo <colours>" / "Chosen" families). A plain Produced$ symbol list is
+// the shared walk's domain and never reaches here; a fail-closed shape the
+// parser claims no colour for (ColorIdentity, a Special word) has an empty
+// slot set and is excluded. A known literal Amount$ scales the units.
+func (e *Engine) attackChoiceManaSources(p state.PlayerID) []attackManaSource {
+	var out []attackManaSource
 	for _, id := range e.G.Zone(state.ZBattlefield, p) {
 		o := e.G.Obj(id)
 		if o == nil || o.Tapped || o.Face() == nil {
@@ -302,11 +344,17 @@ func (e *Engine) attackManaSources(p state.PlayerID) []attackManaSource {
 		if amt <= 0 {
 			continue
 		}
+		produced := strings.TrimSpace(ma.Params["Produced"])
+		if produced == "" {
+			// The shared walk's domain: the executor's deterministic one-
+			// colourless default, already counted there. Admitting it here
+			// too would double-count the source.
+			continue
+		}
 		// Chosen is an as-enters read. Substitute it before parsing so a
 		// Combo R Chosen land recorded as G has only R/G slots, never the
 		// raw parser's source-agnostic WUBRG superset. Without a valid record
 		// it cannot produce a colour and stays out of this payment window.
-		produced := strings.TrimSpace(ma.Params["Produced"])
 		if producedNeedsChosen(produced) {
 			chosen := e.chosenProducedColour(id)
 			if chosen == "" {
@@ -319,12 +367,10 @@ func (e *Engine) attackManaSources(p state.PlayerID) []attackManaSource {
 		if choice {
 			// A choice-shaped production produces exactly ONE unit of mana
 			// per activation, of a colour chosen when the source is tapped
-			// (blank / "Any" / "Combo Any" / "Combo B R" / "Chosen", CR
-			// 106.1b). One unit of any colour pays a generic attack tax, so
-			// the source counts one payable unit no matter how many colour
-			// slots its alternatives name. A fail-closed shape the parser
-			// claims no colour for (ColorIdentity, a Special word) has an
-			// empty slot set and must not be admitted.
+			// ("Any" / "Combo Any" / "Combo B R" / "Chosen", CR 106.1b). One
+			// unit of any colour pays a generic attack tax, so the source
+			// counts one payable unit no matter how many colour slots its
+			// alternatives name.
 			total := int32(0)
 			for _, n := range counts {
 				total += n
@@ -332,32 +378,24 @@ func (e *Engine) attackManaSources(p state.PlayerID) []attackManaSource {
 			if total > 0 {
 				units = amt
 			}
-		} else {
-			for _, n := range counts {
-				units += n * amt
-			}
 		}
 		if units <= 0 {
 			continue
 		}
-		if choice {
-			// Pin the choice to ONE concrete colour before recording the
-			// ability. resolveManaAbility resolves the source's resolution
-			// inline, and a choice-shaped Produced$ would pose a
-			// mid-resolution colour ask there; attackPayAnswer then re-reads
-			// the pool and re-poses the next tap ask, and e.ask (with e.resume
-			// nil for a window, not a suspended resolution) would silently
-			// displace that colour ask -- tapping the source for nothing. The
-			// tax is generic, so the colour cannot matter: take the
-			// deterministic first producible colour (R-9), the same rewrite
-			// the activation path performs, so the tap adds exactly one unit
-			// and poses no sub-ask. The gained identity is captured before the
-			// rewrite, which changes the SA pointer.
-			gained := e.gainedManaRefFor(p, id, ma)
-			out = append(out, attackManaSource{id: id, ma: withProduced(ma, ma, oneColourProduced(counts)), original: ma, gained: gained, units: units})
-			continue
-		}
-		out = append(out, attackManaSource{id: id, ma: ma, original: ma, gained: e.gainedManaRefFor(p, id, ma), units: units})
+		// Pin the choice to ONE concrete colour before recording the
+		// ability. resolveManaAbility resolves the source's resolution
+		// inline, and a choice-shaped Produced$ would pose a
+		// mid-resolution colour ask there; attackPayAnswer then re-reads
+		// the pool and re-poses the next tap ask, and e.ask (with e.resume
+		// nil for a window, not a suspended resolution) would silently
+		// displace that colour ask -- tapping the source for nothing. The
+		// tax is generic, so the colour cannot matter: take the
+		// deterministic first producible colour (R-9), the same rewrite
+		// the activation path performs, so the tap adds exactly one unit
+		// and poses no sub-ask. The gained identity is captured before the
+		// rewrite, which changes the SA pointer.
+		gained := e.gainedManaRefFor(p, id, ma)
+		out = append(out, attackManaSource{id: id, ma: withProduced(ma, ma, oneColourProduced(counts)), original: ma, gained: gained, units: units})
 	}
 	return out
 }

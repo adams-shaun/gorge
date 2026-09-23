@@ -317,6 +317,9 @@ type Host interface {
 	// permanent losing counters) are NOT folded here — the head's object-spec
 	// form is a separate, unimplemented shape.
 	CountersRemovedThisTurn(p state.PlayerID, kind string) int32
+	// CountersAddedThisTurn sums final positive object-counter placements this
+	// turn matching the count head's kind, actor and object specifications.
+	CountersAddedThisTurn(kind, actorSpec, objectSpec string, sc SpecContext) int32
 	// CombatDamageToPlayersThisTurn reports every instance of combat damage
 	// dealt to a PLAYER so far this turn, in assignment order. It is the
 	// PlayerCountDefinedRegistered$HasPropertywasDealtCombatDamageThisTurnBy
@@ -985,9 +988,15 @@ type Ctx struct {
 	// ChangeZone resolution. SearchDone distinguishes "answered with no cards"
 	// from the first pass; Search preserves the player's answer order. The
 	// asking effect consumes and clears both before continuing, so a nested
-	// search cannot inherit the outer answer.
+	// search cannot inherit the outer answer. LibraryTarget binds the answer
+	// to the exact owner in a multi-library walk.
 	Search     []state.ObjID
 	SearchDone bool
+	// LibraryTarget is the index in the deterministic per-library target list
+	// whose answer is being resumed. Search, KArrange and their follow-up
+	// confirms share this cursor so a suspended walk continues with the next
+	// library instead of restarting at the first one.
+	LibraryTarget int
 	// SearchShuffle is the answered ShuffleNonMandatory$ may-shuffle confirm
 	// ("yes"/"no") on a re-entered ChangeZone search; SearchShuffleMoved
 	// carries the objects the search's first pass moved, so the re-entry can
@@ -1086,8 +1095,8 @@ type Ctx struct {
 	// "answered (possibly with no cards)" from the first pass, and DigTarget
 	// identifies the Defined$ target whose library posed that ask. Re-entry
 	// skips earlier targets (already processed before suspension), applies the
-	// answer at DigTarget, then preserves the former deterministic processing
-	// for later targets until per-library chained asks exist. The asking effect
+	// answer at DigTarget, then continues with a fresh ask for each later
+	// library. The asking effect
 	// consumes and clears all three fields at the top of its own walk (the fx42
 	// scoping discipline), so a nested Dig cannot inherit the outer answer.
 	Dig       []state.ObjID
@@ -1275,12 +1284,22 @@ type Ctx struct {
 	// mid-resolution resolution (Ruling J0): true once rules' handleArrange
 	// has applied the answered arrangement and emitted the LibraryOrder
 	// event, so effRearrangeTopOfLibrary's re-entry lets the resolution
-	// continue (the chained SubAbility$ runs) instead of re-asking. False on
+	// continue (the chained SubAbility$ runs) instead of re-asking. The
+	// LibraryTarget cursor identifies which library's arrangement completed.
+	// False on
 	// the first pass, where the effect poses the ask. The arrangement itself
 	// lives on the LibraryOrder event, not on Ctx -- the answer shape is
 	// applied by the rules handler, unlike Modes/UnlessPay/Discard where the
 	// effect re-reads the answer -- so the field is only a done-marker.
 	Arrange bool
+	// ArrangeTarget is the Defined$-target index whose arrange was the one
+	// answered, carried only for a Dig (whose effDig walks several Defined$
+	// targets and must keep the deterministic processing for the ones after
+	// the asker on the arrange re-entry; the other arrange consumers are
+	// single-target). The re-entered effDig consumes and clears it together
+	// with Arrange (fx42 scoping). Zero is a legitimate index -- the marker
+	// is Arrange, never this field alone.
+	ArrangeTarget int
 	// MayShuffle is the answered may-shuffle ask a RearrangeTopOfLibrary
 	// carrying MayShuffle$ True (Ponder's "You may shuffle.") poses after its
 	// KArrange was applied: "yes" means the player shuffled (rules'
@@ -1428,6 +1447,15 @@ type Ctx struct {
 	// consumes and clears it at the top of its walk (the fx42 scoping
 	// discipline), so a nested ChooseType cannot inherit the outer answer.
 	ChosenType string
+	// ManaReflectedColor is the answered mid-resolution AB$ ManaReflected
+	// colour pick: the option Label ("Add W") the chooser picked, set by
+	// rules' "manareflected" resume arm before the suspended sub-ability is
+	// re-run. effManaReflected's re-entry consumes and clears it, accepts the
+	// colour only when the resolution still offers it, and emits the one
+	// ManaAdd the deterministic fallback would have emitted. Empty on the
+	// first pass, where the effect poses the ask (or, on a host that cannot
+	// answer, the R-9 stand-in).
+	ManaReflectedColor string
 	// LookAck is the answered bare-look "Continue" ack (lookack, task
 	// fb-20260917T232325Z-35cfca4b): the looker acknowledged the private
 	// look a NoReveal$ / mandatory-Look$ Reveal-family effect is about to
