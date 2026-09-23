@@ -938,13 +938,35 @@ func (e *Engine) triggeredCostPayable(tc *triggeredEffectCost) bool {
 		return e.triggeredCostComponentsPayable(tc)
 	}
 	if rest.Priceable() {
-		return true
+		return e.triggeredCostManaHalfPayable(tc, rest)
 	}
 	if len(rest.Draw) > 0 {
 		_, ok := e.triggeredCostDrawCounts(tc)
-		return ok
+		return ok && e.triggeredCostManaHalfPayable(tc, rest)
 	}
 	return false
+}
+
+// triggeredCostManaHalfPayable reports whether the pool can actually charge
+// the cost's mana/life half RIGHT NOW -- the same costPayableOther pricing
+// the pay arm's payManaConv (and the component-settle arm's stripped charge)
+// runs, so an offered "pay" and the charge that follows can never disagree.
+// A cost half with no mana payment at all is trivially payable. A half the
+// pool does not cover keeps the decline-only ask: by the time the pay/decline
+// ask is reached, paymentManaAskClass has already offered every untapped
+// source and either the pool covers, the payer pressed Done (windowDone --
+// the window is closed, no more mana can enter), or no untapped source
+// exists -- so pool coverability here is exactly coverability, and an
+// unpayable window never offers a "pay" that can only fail at the charge.
+func (e *Engine) triggeredCostManaHalfPayable(tc *triggeredEffectCost, rest Cost) bool {
+	mana := rest
+	mana.Sac, mana.Discard, mana.Exile, mana.Draw, mana.MoveToGrave = nil, nil, nil, nil, nil
+	if !mana.hasManaPayment() && mana.Life == 0 && mana.Snow == 0 &&
+		len(mana.Hybrid) == 0 && len(mana.Phyrexian) == 0 &&
+		len(mana.Twobrid) == 0 && len(mana.HybridPhyrexian) == 0 {
+		return true
+	}
+	return e.costPayableOther(tc.player, tc.source, mana)
 }
 
 // triggeredCostComponentsPayable reports whether the window can settle a
@@ -1160,11 +1182,15 @@ func (e *Engine) triggeredCostPaymentAsk() {
 	payable := e.triggeredCostPayable(tc)
 	if !payable {
 		// An unpriceable cost (PayLife<X>, Verrak, Warped Sengir's copy
-		// trigger) is a hard decline per the ParseUnlessCost convention: the
-		// ask is still posed and the decision recorded, but "pay" is not an
-		// answerable option -- never a free copy through a zero-amount read.
-		// Options are renumbered: an ask's option Index must equal its
-		// position.
+		// trigger) is a hard decline per the ParseUnlessCost convention, and
+		// since the pool-coverability gate (triggeredCostManaHalfPayable) the
+		// same decline-only shape covers a Priceable cost the pool cannot
+		// charge either (an empty pool over Alesha's WB WB, an X announced
+		// larger than the mana that can be produced): the ask is still posed
+		// and the decision recorded, but "pay" is not an answerable option --
+		// never a free copy through a zero-amount read, never an offered pay
+		// that can only fail at the charge. Options are renumbered: an ask's
+		// option Index must equal its position.
 		opts = []decision.Option{{Index: 0, Kind: "trigger_cost_decline", Obj: tc.source, Label: "Do not pay"}}
 	}
 	e.choosing = chooseTriggeredCost

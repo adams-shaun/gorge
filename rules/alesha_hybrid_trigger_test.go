@@ -143,14 +143,15 @@ func TestAleshaHybridTriggerPaysEitherFace(t *testing.T) {
 }
 
 // TestAleshaHybridTriggerWillNotPayUnpayable is the negative half: with an
-// empty pool and no untapped mana sources, the window must not actually take
-// the payment. The window still OFFERS trigger_cost_pay structurally -- the
-// repo's pinned convention for every mana trigger cost (see
-// TestManaVaultTriggerChargesItsRealCost, whose empty-pool {4} window offers
-// pay and fails at the charge) -- so the assertion here is on the outcome: a
-// selected pay charges nothing, the graveyard card stays put, and the pool
-// and life are untouched. It also proves the pip election really ran before
-// the decline (both faces offered).
+// empty pool and no untapped mana sources, the window must not falsely offer
+// the payment. Since the pool-coverability gate
+// (triggeredCostManaHalfPayable, ticket agent-20260922T232740Z-cf0357bb) the
+// pay/decline ask is DECLINE-ONLY when neither the pool nor any activatable
+// mana source can cover the announced cost -- the CR 601.2b pip announcement
+// is still posed (it is a choice, not a solvency claim), but the pay option
+// itself is absent, so an unpayable window can never take a payment that can
+// only fail at the charge. The test asserts the option list is decline-only
+// and that the card stays in the graveyard with pool and life untouched.
 func TestAleshaHybridTriggerWillNotPayUnpayable(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e, cfg, grav := aleshaTriggerBoard(t, reg)
@@ -176,7 +177,7 @@ func TestAleshaHybridTriggerWillNotPayUnpayable(t *testing.T) {
 	e.askAttackers()
 	submitAttackers(t, e, alesha)
 
-	pickedPay := false
+	declined := false
 	pipAsks := 0
 	entryDrive(t, e, func(d *decision.Decision) {
 		switch {
@@ -188,19 +189,25 @@ func TestAleshaHybridTriggerWillNotPayUnpayable(t *testing.T) {
 			chooseKindOption(t, e, d, "pay_W")
 			pipAsks++
 		case d.Kind == decision.KChoose && len(d.Options) > 0 && d.Options[0].Kind == "trigger_cost_pay":
-			// The structural offer is the pinned convention; choosing it must
-			// not move anything without the mana.
-			pickedPay = true
-			chooseKindOption(t, e, d, "trigger_cost_pay")
+			// The brief's requirement: an unpayable window does not falsely
+			// offer the payment. An empty pool with zero untapped mana sources
+			// cannot cover the announced WB WB, so the pay option must be
+			// absent -- decline-only.
+			t.Fatalf("the window falsely offered trigger_cost_pay with an empty pool and no mana sources: %+v", d.Options)
 		case d.Kind == decision.KChoose && len(d.Options) > 0 && d.Options[0].Kind == "trigger_cost_decline":
+			// The decline-only offer gate: exactly one option, no pay.
+			if len(d.Options) != 1 {
+				t.Fatalf("the unpayable window offered %d options, want exactly the single decline: %+v", len(d.Options), d.Options)
+			}
+			declined = true
 			chooseKindOption(t, e, d, "trigger_cost_decline")
 		default:
 			t.Fatalf("unexpected ask during Alesha's unpaid resolution: %+v", d)
 		}
-	}, func() bool { return pickedPay })
+	}, func() bool { return declined })
 
-	if !pickedPay {
-		t.Fatal("the window never reached its pay/decline ask")
+	if !declined {
+		t.Fatal("the window never reached its decline-only pay/decline ask")
 	}
 	if pipAsks != 2 {
 		t.Fatalf("saw %d pip elections, want 2 before the decline", pipAsks)
