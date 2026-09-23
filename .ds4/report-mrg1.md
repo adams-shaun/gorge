@@ -2212,6 +2212,63 @@ ok  	github.com/adams-shaun/gorge/cmd/botbench	1.207s
   the shared `report-mrg1.md` accumulator conflict on every integration; the
   union convention keeps everything.
 
+---
+
+# Merge-conflict resolution report — mrg1, round 5
+
+## Entry state and resolution
+
+`git status` initially showed a clean branch and no in-flight operation. The
+requested daemon merge had not remained in progress; this worktree already
+contained prior integration commits. I then merged the current `main` as the
+integration attempt requested. `git merge main` conflicted only in
+`.ds4/report-sol1.md`; `effects/defined_library_imprint_test.go` and
+`effects/zone.go` from main staged as clean additions/changes.
+
+The conflicting report tails were independent: the branch side preserved the
+Cascade free-cast report (CR 702.85a / 107.3b), while main appended its Teapot
+Slinger / Convoke verification report at the same shared accumulator location.
+I retained both sections, separated with `---`, and removed only Git conflict
+markers. No production/test file was conflicted or edited. Main's cascade test
+file deletion is unrelated to this report conflict and is not part of the
+merge diff; the branch's existing test remains intact.
+
+`.cards` is present as a symlink to `/home/sadams/projects/gorge/.cards`.
+
+## Commands and output
+
+```
+$ git status --short --branch
+## wt/agent-20260923T073156Z-d6f8c32b
+
+$ git merge main
+Auto-merging .ds4/report-sol1.md
+CONFLICT (content): Merge conflict in .ds4/report-sol1.md
+Automatic merge failed; fix conflicts and then commit the result.
+
+$ git diff --check
+(no output; exit 0 after removing an extra EOF blank line)
+
+$ go test -run '^TestDefinedLibraryFetchImprintsMovedCards$' ./effects/
+ok   github.com/adams-shaun/gorge/effects 0.736s
+exit=0
+
+$ go test -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|TestCascadeFreeCastAnnouncesNoX|TestCascadeXSpellUsesAnnouncedManaValue' ./rules/
+ok   github.com/adams-shaun/gorge/rules 0.875s
+exit=0
+```
+
+The effects test covers main's auto-merged `Defined$`/`Imprint$` change. The
+rules command runs the required post-merge ratchets and the branch's cascade
+regressions. Both passed; `.cards` was present, so corpus tests were not
+vacuous. No uncertainty remains about which report content each side wanted.
+
+## Issues
+
+No new issue found during integration. No ratchet tables or behavior goldens
+were edited. The Cascade report's finding remains that the proposed X=1 free
+cast is barred by CR 107.3b, rather than an unclosed engine defect.
+
 ## Issues
 
 - No new defect found; the only conflict was independent accumulator content.
