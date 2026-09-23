@@ -92,6 +92,16 @@ func TestVanishingOnlyTriggersOnControllersUpkeepAndNotAtZero(t *testing.T) {
 		t.Fatalf("precondition: TIME count after removal = %d, want zero distinct from 3", got)
 	}
 	e.pendingTriggers = nil
+	// A redundant decrement of a zero count is not a removal of the last
+	// counter, even though events.Apply clamps the resulting count to zero.
+	// This exercises the counter trigger independently of the upkeep gate.
+	if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield || o.Counter("TIME") != 0 {
+		t.Fatalf("precondition: zero-counter Vanishing object is not on battlefield: %+v", o)
+	}
+	e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "TIME", Amount: -1})
+	if len(e.pendingTriggers) != 0 {
+		t.Fatalf("redundant decrement at zero queued %d sacrifice triggers, want none", len(e.pendingTriggers))
+	}
 	e.G.Active, e.G.Priority = 0, 0
 	e.emit(events.Event{Kind: events.StepChange, Step: state.StepUpkeep})
 	e.putTriggersOnStack()
