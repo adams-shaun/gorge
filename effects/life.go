@@ -28,9 +28,9 @@ func effGainLife(h Host, c *Ctx, sa *cards.SA) {
 }
 
 // effExchangeLifeVariant exchanges the selected player's life total with the
-// source creature's current derived power or toughness. The optional
-// EmitLifeChange hook lets the rules engine report a replacement/prevention;
-// in that case the characteristic-setting half is deliberately not installed.
+// source creature's current derived power or toughness. The rules engine owns
+// the transaction so replacement effects can settle before the characteristic
+// setter is installed.
 func effExchangeLifeVariant(h Host, c *Ctx, sa *cards.SA) {
 	targets := actingPlayers(h, c, sa)
 	if len(targets) != 1 {
@@ -59,15 +59,13 @@ func effExchangeLifeVariant(h Host, c *Ctx, sa *cards.SA) {
 	oldLife := h.Game().Players[player].Life
 	life := events.Event{Kind: events.LifeChange, Player: player,
 		Amount: oldCharacteristic - oldLife}
-	if emitter, ok := h.(interface {
-		EmitLifeChange(events.Event) bool
+	if exchange, ok := h.(interface {
+		ExchangeLifeVariant(events.Event, state.ObjID, state.PlayerID, int32, bool, bool)
 	}); ok {
-		if !emitter.EmitLifeChange(life) {
-			return
-		}
-	} else {
-		h.Emit(life)
+		exchange.ExchangeLifeVariant(life, c.Source, c.Controller, oldLife, setPower, setToughness)
+		return
 	}
+	h.Emit(life)
 
 	ce := state.ContinuousEffect{
 		Source: c.Source, Controller: c.Controller, Affects: "Card.Self",

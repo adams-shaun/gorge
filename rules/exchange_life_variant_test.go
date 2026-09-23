@@ -177,15 +177,14 @@ func TestEvraExchangeFailsClosedForParkedLifeReplacement(t *testing.T) {
 	if got := exchangeVariantSettersOn(e, evra); got != 0 || e.Power(evra) != oldPower {
 		t.Fatalf("parked exchange installed %d setters and changed Evra power to %d", got, e.Power(evra))
 	}
-	// Any chosen order still transforms the life event, so this implementation
-	// deliberately completes only the life half rather than risking a partial
-	// exchange across the suspension boundary.
+	// The selected replacement settles the actual life change; the exchange
+	// continuation then installs the matching characteristic half.
 	submitChoices(t, e, d.Options[0].Index)
-	if got := exchangeVariantSettersOn(e, evra); got != 0 || e.Power(evra) != oldPower {
-		t.Fatalf("answered replacement installed %d setters and changed Evra power to %d", got, e.Power(evra))
-	}
 	if got := e.G.Players[0].Life; got <= oldLife {
 		t.Fatalf("replacement answer did not settle the gain: life=%d, want >%d", got, oldLife)
+	}
+	if got := exchangeVariantSettersOn(e, evra); got != 1 || e.Power(evra) != oldLife {
+		t.Fatalf("answered replacement installed %d setters and set Evra power to %d, want one setter to %d", got, e.Power(evra), oldLife)
 	}
 	// The original activation remains suspended while the engine drains the
 	// resolved replacement path; this checkpoint is the replayable boundary
