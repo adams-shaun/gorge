@@ -2138,26 +2138,64 @@ func (e *Engine) totalPowerCappedCandidates(candidates []targetCandidate, p stat
 // census as casting. The election is one-shot: the answer records targets
 // through recordChosenTargets, whose TargetsChosen fold clears the flag, so
 // the resolveTop re-entry does not ask again.
+//
+// A copy whose spell has MORE THAN ONE target DECLARATION -- the two halves
+// of a Fuse cast, or a modal spell whose announcement selected a
+// target-bearing mode -- is asked ONE DECISION PER DECLARATION, in the same
+// order the cast asked them (castStageSA / castHasNextTargetStage), so each
+// declaration is offered its own legal set, its own bounds and its own
+// per-controller Option.Group. The earlier single-list shape flattened every
+// declaration into one pool, so a half's own ValidTgts$ was never applied to
+// its half's choices (a fused Wear // Tear offered only artifacts and never
+// the enchantment the alternate half demands). The in-progress stage is
+// tracked in Engine.copyTargetStage keyed on the copy's stack object, so the
+// second-stage ask survives the TargetsChosen fold that clears
+// CopyMayChooseTarget after the first declaration.
 func (e *Engine) AskCopyTargets() bool {
 	n := len(e.G.Stack)
 	if n == 0 {
 		return false
 	}
 	o := e.G.Obj(e.G.Stack[n-1])
-	if o == nil || !o.IsCopy || !o.CopyMayChooseTarget {
+	if o == nil || !o.IsCopy {
+		return false
+	}
+	stage := 0
+	if e.copyTargetStage != nil {
+		stage = e.copyTargetStage[o.ID]
+	}
+	// The one-shot election is pending while the flag is set OR while a
+	// multi-declaration ask is mid-flight (the first answer's TargetsChosen
+	// fold clears the flag, but later declarations still owe an ask).
+	if !o.CopyMayChooseTarget && stage == 0 {
 		return false
 	}
 	controller := o.Controller
-	sa := o.Ability
-	if o.Face() != nil {
-		sa = o.Face().SpellAbility()
+	decls := e.copyTargetDeclarations(o)
+	if stage >= len(decls) {
+		return false
 	}
+	sa := decls[stage]
 	if sa == nil || strings.TrimSpace(sa.Params["ValidTgts"]) == "" {
 		return false
 	}
 	candidates := e.legalTargetCandidates(controller, o.ID, o.ID, sa)
-	ordered := make([]targetCandidate, 0, len(candidates)+len(o.Targets))
-	for _, old := range o.Targets {
+	// MaxTotalTargetPower$ (Reunion of the House): re-run the cast ask's
+	// per-candidate prune here, so a copy of a power-capped multi-target spell
+	// offers the same census the cast did. The running budget rides the
+	// decision as Decision.MaxSum over Option.Value (below), exactly as the
+	// cast ask attaches it.
+	candidates, powerCap, powerCapped := e.totalPowerCappedCandidates(candidates, controller, o.ID, sa, o.X)
+	// The inherited targets that belong to THIS declaration are offered first
+	// as keep-current slots. A copy carries only the flat list (a StackCopy
+	// inherits o.Targets, never the per-stage split), so a multi-declaration
+	// copy re-derives the attribution through each declaration's own ValidTgts
+	// spec -- the same fallback resolveFused already uses for a copied fused
+	// spell, with the same disclosed narrowing for a target the declarations'
+	// specs merely overlap.
+	inherited := e.copyInheritedForDeclaration(o, decls, stage)
+	ordered := make([]targetCandidate, 0, len(candidates)+len(inherited))
+	for _, old := range inherited {
 		matched := -1
 		for i, candidate := range candidates {
 			if targetCandidateEqual(old, candidate) {
@@ -2202,12 +2240,111 @@ func (e *Engine) AskCopyTargets() bool {
 		Prompt: "Choose a new target for the copy", Source: o.ID,
 		ResumeKind: "copy_targets", ResumeSA: sa, TargetEffect: e.describeTargetEffect(controller, o.ID, sa, o.X)}
 	for _, candidate := range ordered {
-		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: candidate.kind,
+		opt := decision.Option{Index: len(d.Options), Kind: candidate.kind,
 			Label: e.targetOptionLabel(candidate), Obj: candidate.obj, Player: candidate.player,
-			Group: e.targetControllerGroup(sa, candidate)})
+			Group: e.targetControllerGroup(sa, candidate)}
+		opt.Controller = e.candidateControllerSeat(candidate)
+		// Option.Value is read only under a budget (Decision.HasBudget), so a
+		// budget-less copy ask keeps its wire payload byte-identical. The
+		// value is the DERIVED power (Engine.Power), matching the prune read.
+		if powerCapped && candidate.kind != "player" {
+			if co := e.G.Obj(candidate.obj); co != nil && co.Face() != nil {
+				opt.Value = int(e.Power(candidate.obj))
+			}
+		}
+		d.Options = append(d.Options, opt)
 	}
+	if powerCapped {
+		d.MaxSum, d.Budgeted = powerCap, true
+	}
+	// Record the stage BEFORE the ask is answered: the answer's TargetsChosen
+	// clears the one-shot flag, so the resolveTop re-entry learns from this
+	// scratch that the next declaration (if any) still owes an ask.
+	if e.copyTargetStage == nil {
+		e.copyTargetStage = make(map[state.ObjID]int)
+	}
+	e.copyTargetStage[o.ID] = stage + 1
 	e.Ask(d)
 	return true
+}
+
+// copyTargetDeclarations returns the target DECLARATIONS a copy must ask, in
+// cast order. A Fuse copy has two: the front half's spell ability and the
+// alternate half's (split.go's fusedSplitFaces), each with its own ValidTgts$
+// and therefore its own legal set. Every other spell (and an ability) has one:
+// the modal target SA for a chosen-mode spell (modalTargetSA), else the face's
+// own spell ability. A declaration with no ValidTgts$ is dropped, matching the
+// cast's stage skip so a targetless half never misaligns the stages.
+func (e *Engine) copyTargetDeclarations(o *state.Object) []*cards.SA {
+	if o == nil {
+		return nil
+	}
+	if o.Ability != nil {
+		return []*cards.SA{o.Ability}
+	}
+	f := o.Face()
+	if f == nil {
+		return nil
+	}
+	if ff, fa := fusedSplitFaces(o); ff != nil && fa != nil {
+		out := make([]*cards.SA, 0, 2)
+		for _, hf := range []*cards.Face{ff, fa} {
+			sa := modalTargetSA(hf, hf.SpellAbility(), o.ChosenModes)
+			if sa != nil && strings.TrimSpace(sa.Params["ValidTgts"]) != "" {
+				out = append(out, sa)
+			}
+		}
+		return out
+	}
+	sa := modalTargetSA(f, f.SpellAbility(), o.ChosenModes)
+	if sa == nil {
+		return nil
+	}
+	return []*cards.SA{sa}
+}
+
+// copyInheritedForDeclaration returns the copy's inherited targets that belong
+// to declaration index `stage`. With one declaration every inherited target
+// belongs to it (the single-declaration ask is byte-identical to before). With
+// several, the flat inherited list is attributed through each declaration's own
+// ValidTgts spec in stage order: an inherited target that matches an earlier
+// declaration's spec goes to that declaration, so later declarations are not
+// offered it twice. An inherited target no declaration's spec matches is kept
+// by the LAST declaration, so it is always offered first as a keep-current slot
+// (the CR 707.10c contract: declining lets the copy fizzle).
+func (e *Engine) copyInheritedForDeclaration(o *state.Object, decls []*cards.SA, stage int) []state.Target {
+	if o == nil || len(o.Targets) == 0 {
+		return nil
+	}
+	if len(decls) <= 1 {
+		return o.Targets
+	}
+	out := make([]state.Target, 0, len(o.Targets))
+	for _, t := range o.Targets {
+		owner := -1
+		for i, sa := range decls {
+			if e.inheritedTargetMatchesDeclaration(o, t, sa, targetZones(sa)) {
+				owner = i
+				break
+			}
+		}
+		if owner < 0 {
+			owner = len(decls) - 1
+		}
+		if owner == stage {
+			out = append(out, t)
+		}
+	}
+	return out
+}
+
+// inheritedTargetMatchesDeclaration reports whether an inherited target still
+// satisfies declaration sa's own ValidTgts$ spec (through the resolution
+// recheck legalTargets, the one-definition judge every copy target site uses).
+// It is the attribution read for a multi-declaration copy's flat inherited
+// list: the target goes to the first declaration whose spec admits it.
+func (e *Engine) inheritedTargetMatchesDeclaration(o *state.Object, t state.Target, sa *cards.SA, zones []state.Zone) bool {
+	return len(e.legalTargets([]state.Target{t}, sa, zones, o.Controller, o.ID, o.ID)) > 0
 }
 
 // stateTargetCandidate converts a recorded state.Target into the option shape
@@ -2531,7 +2668,7 @@ func offeredTargetSA(o *state.Object, svars map[string]string) *cards.SA {
 func (e *Engine) resolveTop() {
 	id := e.G.Stack[len(e.G.Stack)-1]
 	o := e.G.Obj(id)
-	if o != nil && o.IsCopy && o.CopyMayChooseTarget {
+	if o != nil && o.IsCopy && (o.CopyMayChooseTarget || (e.copyTargetStage != nil && e.copyTargetStage[id] > 0)) {
 		if e.AskCopyTargets() {
 			return
 		}

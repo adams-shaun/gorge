@@ -433,6 +433,25 @@ type Engine struct {
 	// not the scratch), and resolveFused's spec re-derivation is its
 	// fallback for exactly that shape.
 	fuseTargets map[state.ObjID][][]state.Target
+	// copyTargetStage tracks the in-progress per-declaration copy-target
+	// election (CR 707.10c), keyed on the copying stack object: the value is
+	// the index of the NEXT declaration AskCopyTargets must ask. The
+	// TargetsChosen fold clears Object.CopyMayChooseTarget after the FIRST
+	// declaration's answer, so this scratch is what carries the election
+	// across the stage that follows -- a fused copy's second half, exactly as
+	// the cast's pendingCast.targetStage carries it for a cast. Engine-only
+	// scratch like fuseTargets: rebuilt by replay (the ask re-executes on the
+	// re-entered resolveTop), cloned with the engine, and removed with the
+	// stack object so a later object reusing the id never reads a stale stage.
+	copyTargetStage map[state.ObjID]int
+	// copyAnswerTargets accumulates a multi-declaration copy-target election's
+	// PER-DECLARATION answers until every declaration has been asked, at which
+	// point the flattened list is recorded in one replace. Recording each
+	// stage as it arrives would replace (or duplicate) the flat list mid-
+	// election and lose a later declaration's inherited keep-current slots.
+	// Engine-only scratch, rebuilt by replay, cloned with the engine, removed
+	// with the stack object.
+	copyAnswerTargets map[state.ObjID][][]decision.Option
 	// fusedResolving is the target slice of the fused half whose resolution is
 	// CURRENTLY running (rules/split.go's runFusedHalves), set around the
 	// whole of that half's effects.Resolve -- the half's root SA and every
@@ -1952,6 +1971,8 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		delete(e.triggerLKI, ev.Obj)
 		delete(e.sacrificedLKI, ev.Obj)
 		delete(e.fuseTargets, ev.Obj)
+		delete(e.copyTargetStage, ev.Obj)
+		delete(e.copyAnswerTargets, ev.Obj)
 		delete(e.sourceLifelinkLKI, ev.Obj)
 		delete(e.sourceControllerLKI, ev.Obj)
 		delete(e.damageSourceLKI, ev.Obj)

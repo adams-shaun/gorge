@@ -1191,7 +1191,56 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	if rp.kind == "copy_targets" {
 		e.resume = nil
 		if rp.obj != 0 {
-			e.recordChosenTargets(rp.obj, chosen, false)
+			// A multi-declaration copy (a fused half, a modal declaration) is
+			// asked once per declaration. Each answer is ACCUMULATED here and
+			// the whole flat list is recorded ONCE, after the LAST
+			// declaration -- recording the first stage's answer immediately
+			// would REPLACE o.Targets and destroy the later declarations'
+			// inherited keep-current slots. copyTargetStage[obj] is the NEXT
+			// stage, so the stage just answered is one less.
+			stage := e.copyTargetStage[rp.obj] - 1
+			if stage < 0 {
+				stage = 0
+			}
+			if e.copyAnswerTargets == nil {
+				e.copyAnswerTargets = make(map[state.ObjID][][]decision.Option)
+			}
+			ans := e.copyAnswerTargets[rp.obj]
+			for len(ans) <= stage {
+				ans = append(ans, nil)
+			}
+			ans[stage] = append(ans[stage][:0], chosen...)
+			e.copyAnswerTargets[rp.obj] = ans
+			// More declarations still owe an ask: re-enter resolveTop, whose
+			// AskCopyTargets guard reads copyTargetStage and poses the next
+			// one. Nothing is recorded yet.
+			decls := e.copyTargetDeclarations(e.G.Obj(rp.obj))
+			if e.copyTargetStage[rp.obj] < len(decls) {
+				e.resolveTop()
+				return
+			}
+			// Every declaration answered: record the flattened list in
+			// declaration order (option 0 replaces, the rest append) and
+			// publish the per-declaration split for a fused copy, so
+			// resolveFused hands each half exactly the targets chosen FOR it
+			// (the same split a cast publishes at payment).
+			flat := make([]decision.Option, 0, len(chosen))
+			stages := make([][]state.Target, len(ans))
+			for i, sl := range ans {
+				flat = append(flat, sl...)
+				stages[i] = targetOptions(sl)
+			}
+			if len(flat) == 0 {
+				flat = chosen
+			}
+			e.recordChosenTargets(rp.obj, flat, false)
+			if o := e.G.Obj(rp.obj); o != nil && o.CastFlags&state.FlagFused != 0 {
+				if e.fuseTargets == nil {
+					e.fuseTargets = make(map[state.ObjID][][]state.Target)
+				}
+				e.fuseTargets[rp.obj] = stages
+			}
+			delete(e.copyAnswerTargets, rp.obj)
 		}
 		e.resolveTop()
 		return
