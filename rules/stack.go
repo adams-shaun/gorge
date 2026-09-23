@@ -446,14 +446,11 @@ func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, d paymentDescriptor, 
 		if r.NoCounter != "" && d.class == paymentSpell && e.noCounterSpend == 0 && addsNoCounterHolds(e.G, d.id, r.NoCounter) {
 			e.noCounterSpend = d.id
 		}
-		// A consumed batch's producing source is what the spell's
-		// TriggersWhenSpent$ riders key on. Only a SPELL payment (the
-		// ability=false arm -- payManaCastSpent is its only caller) records
-		// it: an ability activation, the unless-pay arm and every other
-		// payment fire nothing (the rider is a cast-spend gate). Dedup keeps
-		// one entry per source when several batches from it pay one cast; the
-		// insertion-order append keeps the queue deterministic.
-		if d.class == paymentSpell && r.Source != 0 && !containsObjID(e.manaSpentSources, r.Source) {
+		// A consumed batch's producing source keys TriggersWhenSpent$.
+		// Capture spell and activated-ability payments; paymentOther (including
+		// unless-pay) and every other unclassified payment do not dispatch.
+		// Dedup keeps one entry per source, in deterministic batch order.
+		if (d.class == paymentSpell || d.class == paymentActivated) && r.Source != 0 && !containsObjID(e.manaSpentSources, r.Source) {
 			e.manaSpentSources = append(e.manaSpentSources, r.Source)
 		}
 		e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: r.Color, Amount: -used,
@@ -2687,9 +2684,14 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 				}
 				e.payCast()
 			} else {
+				pc.rootOpts = append([]decision.Option(nil), ordered...)
 				e.payCast()
 				if pc.stackObj != 0 {
 					e.recordChosenTargets(pc.stackObj, ordered, false)
+					e.cast = pc
+					e.fireManaSpentTriggers(events.Event{Kind: events.AbilityPush, Obj: pc.card,
+						Player: pc.player, Amount: int32(pc.ability)}, nil)
+					e.cast = nil
 				}
 			}
 		} else {

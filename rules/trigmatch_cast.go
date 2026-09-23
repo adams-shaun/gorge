@@ -440,23 +440,18 @@ func (e *Engine) abilityCastMatches(t cards.Trigger, source state.ObjID, ev even
 	// The target-shape params (targetsvalid1), the activation arm: ertha_jo's
 	// "Whenever you activate an ability that targets a creature or player".
 	//
-	// TIMING (round-2 review MAJOR): this match runs synchronously inside
-	// payCast's AbilityPush emit -- BEFORE handleTarget's ability branch
-	// records the chosen targets onto the minted object via TargetsChosen --
-	// and ev.Obj is the SOURCE permanent, whose own Targets is always empty.
-	// Reading the stack object here made both params permanently silent on
-	// this arm (measured probe: an AbilityCast trigger with TargetsValid$
-	// queued 0 where the param-less shape queued 1). The match must read the
-	// ACTIVATION's chosen targets, which payCast holds on the pending cast
-	// (pc.targets, the targetOptions of the answered ask): the target ask
-	// completes before any cost is paid (CR 601.2c targets-before-costs), so
-	// pc.targets is the completed list exactly at this emit. A pending cast
-	// that is not this printed-ability activation (or none -- a synthetic
-	// push) falls back to the source object's Targets, the honest empty read
-	// that fails a TargetsValid$ gate the way a target-less activation must.
+	// AbilityPush's ordinary trigger scan runs before handleTarget records
+	// targets, so while the cast flow is live use its answered target list.
+	// TriggersWhenSpent dispatches after finishTargetedCast records those
+	// targets; at that point read the minted ability stack object's event-backed
+	// Targets rather than the source permanent's (unrelated) target list.
 	tgts := obj.Targets
 	if pc := e.cast; pc != nil && pc.isAbility() && pc.card == ev.Obj {
 		tgts = pc.targets
+	} else if stack := e.abilityCastStackObject(ev.Obj); stack != 0 {
+		if stackObj := e.G.Obj(stack); stackObj != nil {
+			tgts = stackObj.Targets
+		}
 	}
 	if !e.targetShapeMatches(t, tgts, source, ctrl) {
 		return false

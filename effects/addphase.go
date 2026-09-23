@@ -61,20 +61,26 @@ func parseDelayedTriggerBody(phase, vp string) (state.Step, string, bool) {
 //     whole combat (BeginCombat..EndCombat), Beginning (4) the whole
 //     beginning phase (Untap..Draw -- the added untap, upkeep AND draw all
 //     run, Shadow of the Second Sun's oracle), Upkeep (3) and End of Turn
-//     (1) single steps. Any other value -- or an unresolvable one -- is a
-//     loud Note and no grant.
-//   - AfterPhase$ names the splice point (EndCombat 34, "End of Turn" 1);
-//     when omitted the grant splices after the phase it resolves in, so the
-//     granting step rides the event (Step) and replay folds the same splice
-//     the live game makes. An unparseable value is a loud Note and the
-//     omitted form (the current step) stands in.
+//     (1) single steps, and any other multi-step value -- a comma list or
+//     A->B range ("Upkeep,Draw") -- resolves to the whole named phase
+//     (entry = its first step, range = its last, the RANGEEND rider).
+//     A non-contiguous multi-step set -- or an unresolvable value -- is a
+//     loud Note and no grant (Forge's smartValueOf throws; the no-grant
+//     read is this build's equivalent, never a wrong grant).
+//   - AfterPhase$ names the splice point (EndCombat 34, "End of Turn" 1 --
+//     a singleton, or a multi-step set naming a whole phase, spliced after
+//     its LAST step); when omitted the grant splices after the phase it
+//     resolves in, so the granting step rides the event (Step) and replay
+//     folds the same splice the live game makes. An unparseable value is a
+//     loud Note and the omitted form (the current step) stands in.
 //   - FollowedBy$ (Main2, 12 lines -- the Aggravated Assault "followed by an
 //     additional main phase" family) names the resume point after the extra
-//     phase completes. Default (Forge's): the phase that would naturally
-//     have followed the splice point (AfterStep+1) -- which is what makes
-//     an extra Beginning spliced after Main2 resume at the END STEP, never
-//     back into Main1. An unparseable value is a loud Note and the default
-//     stands in.
+//     phase completes -- a singleton, or a multi-step set resumed at its
+//     FIRST step (the walk enters the followed phase). Default (Forge's):
+//     the phase that would naturally have followed the splice point
+//     (AfterStep+1) -- which is what makes an extra Beginning spliced after
+//     Main2 resume at the END STEP, never back into Main1. An unparseable
+//     value is a loud Note and the default stands in.
 //   - NumPhases$ (Obeka's "you get that many additional upkeep steps",
 //     TriggerCount$DamageAmount) is the grant count through the ordinary Num
 //     SVar indirection; an unresolvable value is a loud Note and grants one.
@@ -95,10 +101,10 @@ func parseDelayedTriggerBody(phase, vp string) (state.Step, string, bool) {
 // phase's entry step. An unresolvable DelTrig SVar or an unparseable Phase$
 // is a loud Note and the grant still applies without the rider.
 func effAddPhase(h Host, c *Ctx, sa *cards.SA) {
-	entry, ok := parseExtraPhaseValue(sa.Params["ExtraPhase"])
-	if !ok {
+	entry, rangeEnd, note := parseExtraPhaseValue(sa.Params["ExtraPhase"])
+	if note != "" {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-			Text: "unimplemented ExtraPhase$ value " + sa.Params["ExtraPhase"]})
+			Text: note})
 		return
 	}
 	n := int32(1)
@@ -120,12 +126,11 @@ func effAddPhase(h Host, c *Ctx, sa *cards.SA) {
 	after := g.Step
 	if raw := strings.TrimSpace(sa.Params["AfterPhase"]); raw != "" {
 		if set, unknown := state.ParsePhases(raw); len(unknown) == 0 && !set.Empty() {
-			if steps := set.Steps(); len(steps) == 1 {
-				after = steps[0]
-			} else {
-				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-					Text: "multi-step AfterPhase$ " + raw + " (splicing after the current phase)"})
-			}
+			// The splice point: a named phase's END -- its LAST step (a
+			// multi-step set like Beginning or a range splices after the
+			// whole phase has run; a singleton is its own end).
+			steps := set.Steps()
+			after = steps[len(steps)-1]
 		} else {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "unparseable AfterPhase$ " + raw + " (splicing after the current phase)"})
@@ -135,27 +140,32 @@ func effAddPhase(h Host, c *Ctx, sa *cards.SA) {
 	ids := []state.ObjID{state.ObjID(entry)}
 	if raw := strings.TrimSpace(sa.Params["FollowedBy"]); raw != "" {
 		if set, unknown := state.ParsePhases(raw); len(unknown) == 0 && !set.Empty() {
-			if steps := set.Steps(); len(steps) == 1 {
-				ids = append(ids, state.ObjID(steps[0]))
-			} else {
-				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-					Text: "multi-step FollowedBy$ " + raw + " (resuming after the splice point)"})
-			}
+			// The resume point: a named phase's BEGINNING -- its FIRST step
+			// (the walk enters the followed phase, never a step into it).
+			steps := set.Steps()
+			ids = append(ids, state.ObjID(steps[0]))
 		} else {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "unparseable FollowedBy$ " + raw + " (resuming after the splice point)"})
 		}
 	}
 
-	text := ""
+	// The rider payload: a multi-step ExtraPhase$ whose range is not the
+	// entry's default carries its last step (the fold would otherwise derive
+	// the entry's own range), beside any forwarded delayed trigger.
+	var riders events.ExtraPhaseRiders
+	if rangeEnd != state.ExtraPhaseRangeEnd(entry) {
+		riders.HasRangeEnd, riders.RangeEnd = true, rangeEnd
+	}
+	text := events.EncodeExtraPhaseRiders(riders)
 	counter := ""
 	if name := strings.TrimSpace(sa.Params["ExtraPhaseDelayedTrigger"]); name != "" {
 		if phase, vp, ok := delayedTriggerSpec(c, name); ok {
 			// The Text marker carries the forwarded delayed phase (the
 			// consume-time registration reads it); the Execute$ name rides
 			// Counter and a ValidPlayer$ rides the marker's VP= part.
-			text = events.EncodeExtraPhaseRiders(events.ExtraPhaseRiders{
-				HasDelayedPhase: true, DelayedPhase: phase, ValidPlayer: vp})
+			riders.HasDelayedPhase, riders.DelayedPhase, riders.ValidPlayer = true, phase, vp
+			text = events.EncodeExtraPhaseRiders(riders)
 		} else {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "unparseable ExtraPhaseDelayedTrigger$ " + name + " (no delayed trigger)"})
@@ -172,26 +182,37 @@ func effAddPhase(h Host, c *Ctx, sa *cards.SA) {
 }
 
 // parseExtraPhaseValue resolves a Forge ExtraPhase$ value to the extra
-// phase's entry step (state.ExtraPhaseRangeEnd derives the range end). The
-// two compound values -- Combat (the whole combat) and Beginning (the whole
-// beginning phase) -- are not Forge phase NAMES (state.ParsePhases does not
-// know bare "Combat"), so they map here; every other value goes through the
-// ONE shared phase-name parser and must be a singleton (Upkeep, End of
-// Turn, ...).
-func parseExtraPhaseValue(v string) (state.Step, bool) {
+// phase's entry step and its range end -- the LAST step of the named
+// phase(s), whose leaving completes the extra phase (rules/turn.go's
+// consumer). A multi-step value resolves to entry = its FIRST step and
+// rangeEnd = its LAST (the contiguous walk Entry..RangeEnd the fold's queue
+// stores): the compound names Combat (BeginCombat..EndCombat) and Beginning
+// (Untap..Draw) are not Forge phase NAMES (state.ParsePhases does not know
+// bare "Combat"), so they map here, and every other value -- a singleton or
+// a multi-step set/range -- goes through the ONE shared phase-name parser.
+// A non-contiguous multi-step set ("Untap,Main2") has no contiguous walk to
+// store, so it fails closed: note names the value, no grant. An
+// unresolvable value fails closed the same way (Forge's smartValueOf
+// throws; this is the loud-degrade equivalent), never a wrong grant.
+func parseExtraPhaseValue(v string) (state.Step, state.Step, string) {
 	switch strings.ToLower(strings.TrimSpace(v)) {
 	case "combat":
-		return state.StepBeginCombat, true
+		return state.StepBeginCombat, state.StepEndCombat, ""
 	case "beginning":
-		return state.StepUntap, true
+		return state.StepUntap, state.StepDraw, ""
 	}
 	set, unknown := state.ParsePhases(v)
 	if len(unknown) > 0 || set.Empty() {
-		return 0, false
+		return 0, 0, "unimplemented ExtraPhase$ value " + v
 	}
 	steps := set.Steps()
-	if len(steps) != 1 {
-		return 0, false
+	for i, s := range steps {
+		if int(s)-int(steps[0]) != i {
+			return 0, 0, "non-contiguous ExtraPhase$ value " + v
+		}
 	}
-	return steps[0], true
+	if len(steps) == 1 {
+		return steps[0], state.ExtraPhaseRangeEnd(steps[0]), ""
+	}
+	return steps[0], steps[len(steps)-1], ""
 }

@@ -23,7 +23,7 @@ var etbCloneCleanNames = []string{
 	"Clever Impersonator", "Clone", "Copy Artifact", "Copy Enchantment", "Copy Land",
 	"Dack's Duplicate", "Deceptive Frostkite", "Glasspool Mimic",
 	"Jwari Shapeshifter", "Malleable Impostor", "Masterwork of Ingenuity", "Mirror Image",
-	"Mirrormade", "Naga Fleshcrafter", "Omni-Changeling",
+	"Mirrormade", "Mocking Doppelganger", "Naga Fleshcrafter", "Omni-Changeling",
 	"Phyrexian Metamorph", "Sakashima's Protege", "Sakashima's Student", "Sculpting Steel",
 	"Stunt Double", "Synth Infiltrator", "Visage Bandit", "Waxen Shapethief",
 }
@@ -43,7 +43,7 @@ func TestETBCloneWhitelistCensus(t *testing.T) {
 				if r.Params["Keyword"] != "ETBReplacement" || r.With == nil || r.With.API != "Clone" {
 					continue
 				}
-				v := etbCloneWhitelist(r.With)
+				v := etbCloneWhitelist(r.With, f.SVars)
 				if prev, ok := verdicts[f.Name]; ok && prev != v {
 					t.Errorf("%s carries ETB Clone bodies classified both offered and not", f.Name)
 				}
@@ -86,6 +86,12 @@ func TestETBCloneWhitelistRegressionCarriers(t *testing.T) {
 		// rules/etb_clone_unsupported_riders_test.go for the end-to-end pins.
 		{"Mockingbird", false},
 		{"Flesh Duplicate", false},
+		// staticgoad1: Mocking Doppelganger's AddStaticAbilities$ FamilyTease
+		// is a readable Goad$ static, so its ETB copy is offered and the
+		// granted goad registers (rules/goad_granted_test.go pins it end to
+		// end). A carrier whose AddStaticAbilities$ member is NOT a readable
+		// Goad line stays withheld, the whitelist's own value gate.
+		{"Mocking Doppelganger", true},
 		{"Vesuva", false},               // IntoPlayTapped$ True
 		{"Cursed Mirror", false},        // Duration$ UntilEndOfTurn
 		{"Mirrorhall Mimic", false},     // ChoiceTitle$
@@ -104,7 +110,7 @@ func TestETBCloneWhitelistRegressionCarriers(t *testing.T) {
 					continue
 				}
 				found = true
-				if got := etbCloneWhitelist(r.With); got != p.want {
+				if got := etbCloneWhitelist(r.With, f.SVars); got != p.want {
 					t.Errorf("%s: etbCloneWhitelist = %v, want %v (body: %s)", p.name, got, p.want, r.With.Line)
 				}
 			}

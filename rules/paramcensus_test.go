@@ -155,6 +155,9 @@ var baseBuckets = map[string]bucket{
 	// every bSA entry covers.
 	"a": bSA, "targetSA": bSA, "SA": bSA, "Ability": bSA, "With": bSA,
 	"head": bSA, "ma": bSA, "mana": bSA, "original": bSA, "pt.SA": bSA,
+	// spell.Ability is the stack object's resolved *cards.SA, checked before
+	// falling back to its printed face in TargetableObjects.
+	"spell.Ability": bSA,
 	// rsub is runPreventionShieldRider's rewritten copy of the
 	// PreventionSubAbility$ rider (a shallow copy of a fresh ResolveSVar
 	// parse, whose NumDmg$/Defined$ the shield application binds): a
@@ -967,6 +970,12 @@ func (s *scan) scanRangeWhitelist(t *testing.T, fset *token.FileSet, fi *fnInfo,
 		if pkg == "effects" && fname == "effDigUntil" && digUntilWithheldRange(rs, keyIdent.Name) {
 			return
 		}
+		// saMentionsGoaded recognizes IsGoaded in any inline filter value so
+		// effects can install the matching filter resolver. Recognition only;
+		// it does not consume any SA parameter.
+		if pkg == "effects" && fname == "saMentionsGoaded" {
+			return
+		}
 		// A copy loop (`for k, v := range src.Params { dst.Params[k] = v }`)
 		// is not a read: every use of the key sits in a write-position index.
 		if rangeKeyIsWriteOnly(rs, keyIdent.Name, writes) {
@@ -1078,10 +1087,17 @@ func (s *scan) bucketOf(t *testing.T, fset *token.FileSet, pos token.Pos, base, 
 // each entry is "pkg:func:param" with its justification. Anything not listed
 // here AND not called with a `.Params`/alias argument fails the rot guard.
 var stringMapParams = map[string]string{
+	// ETB choice option builders receive the source ability's selector map;
+	// the map is forwarded to type-choice enumeration, not consumed as card
+	// Params by the census.
+	"rules:Engine.typeChoiceOptions:params": "ETB type-choice selector map, not a card Params map",
 	// effects/misc.go parseStaticLine: svars is the face's SVars table (a
 	// cards.SA's SVar: bodies), read by NAME to fetch a static line -- not a
 	// card Params map.
 	"effects:parseStaticLine:svars": "SVars table lookup by static-line name, not a card Params map",
+	// Goad-static helpers inspect map arguments copied from parsed SVar
+	// statics, not card SA Params; their callers classify the actual source.
+	"effects:goadStaticGrantReadable:params": "parsed Goad static-line Params map, not a card SA Params map",
 	// effects/misc.go compoundRememberedSpec: params is the map parseStaticLine
 	// built from one SVar static line -- its ValidCard$/ValidTarget$ keys are
 	// consumed here, but the map originates in an SVar body, not a card's

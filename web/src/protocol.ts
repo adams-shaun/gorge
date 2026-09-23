@@ -535,6 +535,16 @@ export interface Option {
    */
   attacker?: number;
   /**
+   * Battle, on an attacker option, names the CR 310.7 battle being
+   * attacked (0 = attacking a player). Obj is the attacking creature and
+   * Player is the battle's protector, so the pair alone cannot tell a battle
+   * attack from a player attack by the same creature; this field is what the
+   * engine reads back at declaration time to record Object.AttackingBattle.
+   * omitempty: a player attack emits no field, so every existing option list
+   * serialises byte-identically.
+   */
+  battle?: number;
+  /**
    * Required marks an attacker option whose creature MUST attack this
    * combat (CR 508.1d): a goaded creature (CR 701.38) or one under an
    * unconditional MustAttack static. A rules-ignorant client needs the

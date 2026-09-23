@@ -145,9 +145,8 @@ type attackRequirementSet struct {
 	// player reference): every defender satisfies it.
 	broad bool
 	// goad is set by a live goad (CR 701.38b): the creature must attack a
-	// non-goader when one is available. The goader pairs are already removed
-	// by goadMayAttack, so goad never discriminates among the pairs that DO
-	// survive; it only makes the creature required.
+	// player, preferably a non-goader. goadMayAttack handles the player
+	// preference; satisfiedByOffer excludes battles from satisfying this duty.
 	goad bool
 }
 
@@ -164,12 +163,27 @@ func (s *attackRequirementSet) addNamed(defender state.PlayerID) {
 	s.named[defender]++
 }
 
-// satisfiedBy reports how many NAMED requirements the given defender
-// satisfies. The broad and goad requirements contribute uniformly across
-// every surviving pair, so they are not counted here -- they never decide
-// which defender is maximal.
+// satisfiedBy reports how many NAMED requirements the given player defender
+// satisfies. The broad requirement contributes uniformly across all pairs;
+// goad is scored separately by satisfiedByOffer for player attacks only.
 func (s attackRequirementSet) satisfiedBy(defender state.PlayerID) int {
 	return s.named[defender]
+}
+
+// satisfiedByOffer distinguishes attacking a player from attacking a battle
+// that player protects. Named-player and goad duties are discharged only by
+// attacking a player; the protector field on a battle offer is not itself
+// the defender of the attack. Goad's non-goader preference is enforced by
+// goadMayAttack when enumerating the legal player pairs.
+func (s attackRequirementSet) satisfiedByOffer(of attackOffer) int {
+	if of.battle != 0 {
+		return 0
+	}
+	n := s.satisfiedBy(of.def)
+	if s.goad {
+		n++
+	}
+	return n
 }
 
 // maxNamed is the greatest number of named requirements any single defender
@@ -267,6 +281,22 @@ func (e *Engine) mustAttackLineSelects(spec string, id state.ObjID, source state
 // gates while the Effect-delivered registration path cannot.
 func MustAttackParamsReadableForRules(params map[string]string) bool {
 	return effects.MustAttackParamsReadableForRules(params)
+}
+
+// CantAttackParamsReadableForRules is the face S:-line half of
+// effects.CantRestrictionParamsReadable, and DELEGATES to
+// effects.CantAttackParamsReadableForRules so the face reader and the
+// whitelist can never diverge on what is enforceable. The face list is the
+// CantRestrictionParamsReadable core EXTENDED by exactly the conditional
+// parameter family attackBlocked reads -- UnlessDefender$ (through
+// effects.UnlessDefenderHolds) and CheckSVar$/SVarCompare$/Condition$
+// (through continuousGateHolds): the face route can evaluate those, the
+// Effect-delivered registration path cannot, so a gate-bearing line is
+// face-readable while the Effect whitelist stays at the core set (a
+// gate-bearing Effect body must not register blanket). The delegation is one
+// whitelist home, not a copy kept in step by hand.
+func CantAttackParamsReadableForRules(params map[string]string) bool {
+	return effects.CantAttackParamsReadableForRules(params)
 }
 
 // requirementDefender resolves a MustAttack$ player reference to the
@@ -488,11 +518,16 @@ func (e *Engine) askAttackers() {
 	var opts []decision.Option
 	for _, of := range offers {
 		label := "Attack with " + e.G.Obj(of.id).Face().Name + " at " + seatFacingName(e.G, of.def)
+		if of.battle != 0 {
+			if b := e.G.Obj(of.battle); b != nil && b.Face() != nil {
+				label = "Attack with " + e.G.Obj(of.id).Face().Name + " at " + b.Face().Name
+			}
+		}
 		if of.price > 0 {
 			label += fmt.Sprintf(" (pay {%d} per creature)", of.price)
 		}
 		opts = append(opts, decision.Option{Index: len(opts), Kind: "attacker",
-			Label: label, Obj: of.id, Player: of.def, Required: mustAtt[of.id],
+			Label: label, Obj: of.id, Player: of.def, Battle: of.battle, Required: mustAtt[of.id],
 			// Value is the pair's mana price: the cumulative-budget contract
 			// MaxSum names. omitempty keeps a prop-free list byte-identical
 			// (price 0 omits), so the option enumeration order and the wire
@@ -642,17 +677,27 @@ func (e *Engine) finishAttackers(chosen []decision.Option, player state.PlayerID
 		e.declaredAttackers = append(e.declaredAttackers, opt.Obj)
 	}
 	defer func() { e.declaredAttackers = e.declaredAttackers[:0] }()
-	var defenders []state.PlayerID
-	byDef := make(map[state.PlayerID][]state.ObjID, len(chosen))
-	for _, opt := range chosen {
-		if _, ok := byDef[opt.Player]; !ok {
-			defenders = append(defenders, opt.Player)
-		}
-		byDef[opt.Player] = append(byDef[opt.Player], opt.Obj)
+	type defKey struct {
+		player state.PlayerID
+		battle state.ObjID
 	}
-	sort.Slice(defenders, func(i, j int) bool { return defenders[i] < defenders[j] })
-	for _, d := range defenders {
-		e.emit(events.Event{Kind: events.DeclareAttackers, Player: d, IDs: byDef[d]})
+	byDef := make(map[defKey][]state.ObjID, len(chosen))
+	var keys []defKey
+	for _, opt := range chosen {
+		k := defKey{player: opt.Player, battle: opt.Battle}
+		if _, ok := byDef[k]; !ok {
+			keys = append(keys, k)
+		}
+		byDef[k] = append(byDef[k], opt.Obj)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		if keys[i].player != keys[j].player {
+			return keys[i].player < keys[j].player
+		}
+		return keys[i].battle < keys[j].battle
+	})
+	for _, k := range keys {
+		e.emit(events.Event{Kind: events.DeclareAttackers, Player: k.player, Obj: k.battle, IDs: byDef[k]})
 	}
 	for _, opt := range chosen {
 		if !e.HasKeyword(opt.Obj, "Vigilance") {
@@ -802,13 +847,16 @@ func (e *Engine) validateAttackers(d *decision.Decision, in decision.Intent) err
 	// hand-built intent from naming a pair the budget ran out on.
 	offered := make(map[attackOffer]int32, 8)
 	for _, of := range e.attackOffers() {
-		offered[attackOffer{id: of.id, def: of.def}] = of.price
+		offered[attackOffer{id: of.id, def: of.def, battle: of.battle}] = of.price
 	}
 	budget := e.attackBudget(d.Player)
 	total := int32(0)
 	for _, o := range d.Chosen(in) {
 		if !e.canAttackPair(o.Obj, o.Player) {
 			return fmt.Errorf("object %d cannot attack", o.Obj)
+		}
+		if o.Battle != 0 && !e.canAttackBattle(o.Battle, d.Player) {
+			return fmt.Errorf("object %d cannot attack battle %d", o.Obj, o.Battle)
 		}
 		if seen[o.Obj] {
 			return fmt.Errorf("attacker %d declared against more than one defender", o.Obj)
@@ -822,7 +870,7 @@ func (e *Engine) validateAttackers(d *decision.Decision, in decision.Intent) err
 		// sub-maximal defender is NOT offered and fails the membership check
 		// below with its own message. The requirement that the creature attack
 		// AT ALL is enforced by validateAttackDeclaration's RequiredQuota.
-		price, ok := offered[attackOffer{id: o.Obj, def: o.Player}]
+		price, ok := offered[attackOffer{id: o.Obj, def: o.Player, battle: o.Battle}]
 		if !ok {
 			return fmt.Errorf("attacker %d cannot attack player %d (attack cost not affordable or pair not offered)", o.Obj, o.Player)
 		}
@@ -888,8 +936,9 @@ func (e *Engine) mustAttackRequired(id state.ObjID) bool {
 // s. It is the "if able" half of CR 508.1d read as a duty, not merely as the
 // existence of some legal pair.
 //
-// A BROAD requirement (an unconditional Mode$ MustAttack) and a goad are
-// discharged by any surviving pair, so one offered pair is enough. A NAMED
+// A BROAD requirement (an unconditional Mode$ MustAttack) is discharged by
+// any surviving pair. A goad requires a surviving PLAYER pair; only then is
+// attacking mandatory. A NAMED
 // requirement names its defender, so only a pair against that player
 // discharges it: when every such pair is gone -- a CantAttack static or
 // restriction scoped to that one defender, a goad restriction, or an
@@ -914,12 +963,12 @@ func (e *Engine) attackDutyDischargeable(id state.ObjID, s attackRequirementSet)
 		if of.id != id {
 			continue
 		}
-		if s.satisfiedBy(of.def) > 0 {
+		if s.satisfiedByOffer(of) > 0 {
 			return true
 		}
 		anyPair = true
 	}
-	return anyPair && (s.broad || s.goad)
+	return anyPair && s.broad
 }
 
 // maxAttackers reports the tightest total-attacker ceiling in force from
@@ -946,23 +995,33 @@ func (e *Engine) goadMayAttack(id state.ObjID, defender state.PlayerID) bool {
 	return true
 }
 
-// staticGoaders returns the controllers of every live Mode$ Continuous
-// static with Goad$ True whose Affected$ spec matches o (CR 701.38b: a goad's
-// goader is the permanent's controller, so a static goad's goader is the
-// static's own controller). The static is a requirement, not a layer effect:
-// like every other S: restriction read by activeStatics it is re-derived on
-// demand from the current board (rebuilding on replay), so the goad ends when
-// the source leaves the battlefield, moves to another bearer, or an "as long
-// as" gate flips -- no lifetime bookkeeping. The Affected$ default is
-// Card.Self, mirroring staticEffects, so a Goad$ line without Affected$
-// fails closed to its own source rather than to every creature.
-//
-// Only the literal "True" is honoured; any other Goad$ value fails closed.
-// A granted static (AddStaticAbility$/StaticAbilities$ delivered by Clone or
-// Effect) is deliberately NOT expanded here -- those three corpus cards
-// (Mocking Doppelganger, Hot Pursuit, Immortal Obligation) stay un-goaded.
-func (e *Engine) staticGoaders(o *state.Object) []state.PlayerID {
-	var out []state.PlayerID
+// staticGoadLine is one live Goad$ True static: a printed S: line on a
+// battlefield permanent (activeStatics' walk) or a granted one — the
+// DB$ Effect StaticAbilities$ registrations (Hot Pursuit's IsGoaded body,
+// Immortal Obligation's Static) and the DB$ Clone AddStaticAbilities$ grant
+// (Mocking Doppelganger's FamilyTease) effEffect/effClone register into the
+// continuous registry. The Affected$ spec is matched against the BEARER; a
+// granted line carries its Effect's Remembered set for the
+// `Creature.IsRemembered` spelling.
+type staticGoadLine struct {
+	source     state.ObjID
+	controller state.PlayerID
+	spec       string
+	remembered []state.ObjID
+}
+
+// staticGoadLines collects every live Goad$ True static, both delivery
+// routes, in one deterministic pass: printed statics in activeStatics' APNAP
+// order, then the continuous registry's Goad restrictions in registry order.
+// The goad is a requirement, not a layer effect: like every other S:
+// restriction read by activeStatics it is re-derived on demand from the
+// current board (rebuilding on replay), so the goad ends when the source
+// leaves the battlefield, moves to another bearer, or an "as long as" gate
+// flips -- no lifetime bookkeeping. A granted static's lifetime is the
+// registration's own (the registry machinery expires it), so this reader
+// needs none.
+func (e *Engine) staticGoadLines() []staticGoadLine {
+	var out []staticGoadLine
 	for _, sv := range e.activeStatics("Continuous") {
 		if !strings.EqualFold(strings.TrimSpace(sv.Params["Goad"]), "True") {
 			continue
@@ -971,12 +1030,112 @@ func (e *Engine) staticGoaders(o *state.Object) []state.PlayerID {
 		if spec == "" {
 			spec = "Card.Self"
 		}
-		if !e.matchesSpec(spec, o.ID, e.specCtx(sv.Source, sv.Controller)) {
+		out = append(out, staticGoadLine{source: sv.Source, controller: sv.Controller, spec: spec})
+	}
+	for _, ce := range e.active() {
+		if ce.Restriction != "Goad" {
 			continue
 		}
-		out = append(out, sv.Controller)
+		spec := strings.TrimSpace(ce.RestrictParams["Affected"])
+		if spec == "" {
+			spec = "Card.Self"
+		}
+		out = append(out, staticGoadLine{source: ce.Source, controller: ce.Controller,
+			spec: spec, remembered: ce.Remembered})
 	}
 	return out
+}
+
+// goadLineMatches reports whether one live Goad$ True static goads o: its
+// Affected$ spec matched with the static's own source, controller and
+// remembered set bound (the Affected$ default is Card.Self, mirroring
+// staticEffects, so a Goad$ line without Affected$ fails closed to its own
+// source rather than to every creature). The goadProbe bracket keeps an
+// IsGoaded-conditioned Affected$ spec from re-entering the derivation (see
+// the engine field).
+func (e *Engine) goadLineMatches(l staticGoadLine, o *state.Object) bool {
+	if o == nil {
+		return false
+	}
+	sc := e.specCtx(l.source, l.controller)
+	for _, r := range l.remembered {
+		sc.Remembered = append(sc.Remembered, state.Target{Obj: r})
+	}
+	e.goadProbe++
+	defer func() { e.goadProbe-- }()
+	return e.matchesSpec(l.spec, o.ID, sc)
+}
+
+// staticGoaders returns the controllers of every live Goad$ True static
+// whose Affected$ spec matches o (CR 701.38b: a goad's goader is the
+// permanent's controller, so a static goad's goader is the static's own
+// controller), printed or granted alike.
+func (e *Engine) staticGoaders(o *state.Object) []state.PlayerID {
+	var out []state.PlayerID
+	for _, l := range e.staticGoadLines() {
+		if e.goadLineMatches(l, o) {
+			out = append(out, l.controller)
+		}
+	}
+	return out
+}
+
+// staticallyGoaded derives the static-goad SET the effects tier's IsGoaded
+// predicate reads (SpecContext.StaticGoads, published through the
+// goadTableHost seam and bound in matchesSpec): every battlefield object any
+// live Goad$ True static currently goads, printed or granted. One board walk,
+// AliveFrom(0) order, so the table is deterministic; nil when no goad static
+// is live, which keeps the per-Resolve publication free for every board
+// without one.
+func (e *Engine) staticallyGoaded() map[state.ObjID]bool {
+	return e.staticallyGoadedWithLKI(nil)
+}
+
+// staticallyGoadedWithLKI derives the live battlefield set and, when supplied,
+// evaluates the just-departed battlefield object's LKI against those same
+// live static sources. Trigger ValidCard$ filters run after the zone move, so
+// deriving only from the current battlefield would lose a static goad that
+// applied immediately before the object left.
+func (e *Engine) staticallyGoadedWithLKI(lki *state.Object) map[state.ObjID]bool {
+	lines := e.staticGoadLines()
+	if len(lines) == 0 {
+		return nil
+	}
+	out := map[state.ObjID]bool{}
+	for _, p := range e.G.AliveFrom(0) {
+		for _, id := range e.G.Zone(state.ZBattlefield, p) {
+			o := e.G.Obj(id)
+			if o == nil {
+				continue
+			}
+			for _, l := range lines {
+				if e.goadLineMatches(l, o) {
+					out[id] = true
+					break
+				}
+			}
+		}
+	}
+	if lki != nil && lki.Zone == state.ZBattlefield {
+		for _, l := range lines {
+			if e.goadLineMatches(l, lki) {
+				out[lki.ID] = true
+				break
+			}
+		}
+	}
+	return out
+}
+
+// StaticallyGoaded is the goadTableHost half (staticgoad1): effects.Resolve
+// binds this table on the resolving Ctx when a body's filter consults the
+// IsGoaded predicate, so a resolving effect's IsGoaded read agrees with the
+// combat requirement's staticGoaders derivation instead of seeing the
+// event-backed goad list alone. A value-map read, never a live engine
+// pointer: effects answer the filter without a back-pointer on state.Game,
+// and a cloned game cannot read another game's board.
+func (e *Engine) StaticallyGoaded() map[state.ObjID]bool {
+	return e.staticallyGoaded()
 }
 
 func (e *Engine) hasActiveGoad(o *state.Object) bool {
@@ -2007,6 +2166,25 @@ func (e *Engine) dealDamagePass(pass bool) {
 	e.damageStep(pass)
 }
 
+// combatDefenderTarget returns the recipient of an attacking creature's
+// forward combat damage: the battle object when the creature is attacking a
+// battle (CR 310.7), else the defending player. Object.AttackingBattle is set
+// by events.Apply from the DeclareAttackers event and cleared with IsAttacking.
+// A battle that has left the battlefield since the declaration returns
+// ok=false, which the caller drops -- the recipient no longer exists, the same
+// no-assignment shape a departed defender leaves. The ok flag, not a zero
+// value, is the discriminator: seat 0 is a legal defending player, so
+// (player 0, object 0) is a real assignment and cannot mean "no recipient".
+func (e *Engine) combatDefenderTarget(a *state.Object) (state.PlayerID, state.ObjID, bool) {
+	if a.AttackingBattle != 0 {
+		if b := e.G.Obj(a.AttackingBattle); b != nil && b.Zone == state.ZBattlefield {
+			return 0, a.AttackingBattle, true
+		}
+		return 0, 0, false
+	}
+	return a.Attacking, 0, true
+}
+
 // liveBlockers filters a's BlockedBy to blockers still actually on the
 // battlefield: one may have left play (destroyed by a trick, sacrificed) in
 // the gap between blocks being declared and damage being dealt.
@@ -2165,6 +2343,14 @@ func (e *Engine) damageStep(firstStrike bool) {
 				trample := e.HasKeyword(aid, "Trample")
 				inf := e.HasKeyword(aid, "Infect")
 				wit := e.HasKeyword(aid, "Wither")
+				damageToDefender := func(amount int32) {
+					tp, to, ok := e.combatDefenderTarget(a)
+					if !ok {
+						return
+					}
+					as = append(as, assignment{toPlayer: tp, toObj: to, amount: amount,
+						lifelink: a.Controller, hasLink: link, from: aid, infect: inf, wither: wit})
+				}
 				switch {
 				case e.chosenElection(aid):
 					// stat:AssignCombatDamageAsUnblocked (CR 509's optional
@@ -2177,13 +2363,11 @@ func (e *Engine) damageStep(firstStrike bool) {
 					// Trample) and the ordinary blocked shape. The blockers
 					// still hit back below; only the ATTACKER's assignment is
 					// rerouted.
-					as = append(as, assignment{toPlayer: a.Attacking, amount: pw,
-						lifelink: a.Controller, hasLink: link, from: aid, infect: inf, wither: wit})
+					damageToDefender(pw)
 
 				case len(a.BlockedBy) == 0:
-					// Genuinely unblocked: full damage to the defending player.
-					as = append(as, assignment{toPlayer: a.Attacking, amount: pw,
-						lifelink: a.Controller, hasLink: link, from: aid, infect: inf, wither: wit})
+					// Genuinely unblocked: full damage to the defender.
+					damageToDefender(pw)
 
 				case len(blockers) == 0:
 					// Ruling T21-d (CR 509.1h): a creature that was blocked
@@ -2193,8 +2377,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 					// amount push through to the player instead (there is no
 					// blocker left to owe any of it to).
 					if trample {
-						as = append(as, assignment{toPlayer: a.Attacking, amount: pw,
-							lifelink: a.Controller, hasLink: link, from: aid, infect: inf, wither: wit})
+						damageToDefender(pw)
 					}
 
 				default:
@@ -2249,8 +2432,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 						}
 					}
 					if remaining > 0 && trample {
-						as = append(as, assignment{toPlayer: a.Attacking, amount: remaining,
-							lifelink: a.Controller, hasLink: link, from: aid, infect: inf, wither: wit})
+						damageToDefender(remaining)
 					}
 				}
 			}

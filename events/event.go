@@ -842,33 +842,47 @@ const (
 	CopyTokenExileCombat int32 = 4
 )
 
-// ExtraPhaseRiders is the rider payload an api:AddPhase grant forwards for
-// its ExtraPhaseDelayedTrigger$ pair (Moraug's "at the beginning of that
-// combat, untap all creatures you control"), Text-encoded on the ExtraPhase
-// event (Ruling T20-a's field-reuse precedent -- the event gains no field):
-// "DELAY=<step ordinal>" and "VP=<ValidPlayer$ value>", joined with "|".
-// The delayed phase cannot ride the IDs slice beside the entry/FollowedBy
-// steps: an absent rider and the zero Step (untap) would be
-// indistinguishable, so the riders live in Text and the IDs slots stay
-// unambiguous (IDs[0] the entry step, IDs[1] an explicit FollowedBy$ only).
+// ExtraPhaseRiders is the rider payload an api:AddPhase grant forwards on
+// its ExtraPhase event, Text-encoded (Ruling T20-a's field-reuse precedent
+// -- the event gains no field), joined with "|":
+//
+//   - "DELAY=<step ordinal>" + "VP=<ValidPlayer$ value>": the grant's
+//     ExtraPhaseDelayedTrigger$ pair (Moraug's "at the beginning of that
+//     combat, untap all creatures you control"). The delayed phase cannot
+//     ride the IDs slice beside the entry/FollowedBy steps: an absent rider
+//     and the zero Step (untap) would be indistinguishable, so the riders
+//     live in Text and the IDs slots stay unambiguous (IDs[0] the entry
+//     step, IDs[1] an explicit FollowedBy$ only).
+//   - "RANGEEND=<step ordinal>": a multi-step ExtraPhase$ value whose range
+//     is not the entry's default (the fold derives Entry's own range through
+//     state.ExtraPhaseRangeEnd); the rider names the extra phase's LAST step
+//     so a whole named phase ("Upkeep,Draw", "Untap->Combat Damage") walks
+//     its full range. Only the +1 grant carries it -- the consume/complete
+//     messages match on the fold's own stored RangeEnd.
 type ExtraPhaseRiders struct {
 	HasDelayedPhase bool
 	DelayedPhase    state.Step
+	HasRangeEnd     bool
+	RangeEnd        state.Step
 	ValidPlayer     string
 }
 
 const (
 	extraPhaseDelayKey = "DELAY="
+	extraPhaseRangeKey = "RANGEEND="
 	extraPhaseVPKey    = "VP="
 )
 
 // EncodeExtraPhaseRiders writes the rider payload as the canonical Text
-// marker. Deterministic key order (DELAY first), so the same riders always
-// encode identically.
+// marker. Deterministic key order (DELAY, RANGEEND, VP), so the same riders
+// always encode identically.
 func EncodeExtraPhaseRiders(r ExtraPhaseRiders) string {
 	var parts []string
 	if r.HasDelayedPhase {
 		parts = append(parts, extraPhaseDelayKey+strconv.FormatInt(int64(r.DelayedPhase), 10))
+	}
+	if r.HasRangeEnd {
+		parts = append(parts, extraPhaseRangeKey+strconv.FormatInt(int64(r.RangeEnd), 10))
 	}
 	if r.ValidPlayer != "" {
 		parts = append(parts, extraPhaseVPKey+r.ValidPlayer)
@@ -884,6 +898,12 @@ func DecodeExtraPhaseRiders(text string) ExtraPhaseRiders {
 		if v, ok := strings.CutPrefix(part, extraPhaseDelayKey); ok {
 			if n, err := strconv.ParseInt(v, 10, 64); err == nil && n >= 0 && state.Step(n).Valid() {
 				r.HasDelayedPhase, r.DelayedPhase = true, state.Step(n)
+			}
+			continue
+		}
+		if v, ok := strings.CutPrefix(part, extraPhaseRangeKey); ok {
+			if n, err := strconv.ParseInt(v, 10, 64); err == nil && n >= 0 && state.Step(n).Valid() {
+				r.HasRangeEnd, r.RangeEnd = true, state.Step(n)
 			}
 			continue
 		}
