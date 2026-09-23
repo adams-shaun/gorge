@@ -198,6 +198,11 @@ func agreeOverCommanderGame(t testing.TB, newBot func(uint64) *Bot) {
 		}
 		// op6 (the tap gate's pool), the commander twin of the whole-game
 		// test's own pool agreement.
+		// The RepeatOptional$ stop gate's zone counts (the deciding seat's
+		// own library and hand sizes) must agree too.
+		if boardView.LibrarySize != boardGame.LibrarySize || boardView.HandSize != boardGame.HandSize {
+			t.Fatalf("intent %d: zone counts diverged: view lib %d hand %d vs game lib %d hand %d", n, boardView.LibrarySize, boardView.HandSize, boardGame.LibrarySize, boardGame.HandSize)
+		}
 		if boardView.Pool != boardGame.Pool {
 			t.Fatalf("intent %d: pool diverged: view %v vs game %v (step %s)", n, boardView.Pool, boardGame.Pool, eGame.G.Step)
 		}
