@@ -82,3 +82,27 @@ func TestOpenCorpusPrefersAFreshCacheAndRecompilesAStaleOne(t *testing.T) {
 		t.Fatal("recompiled OpenCorpus result has no catalog")
 	}
 }
+
+func TestOpenCorpusWritesBackARecompiledCache(t *testing.T) {
+	dir := t.TempDir()
+	writeScript(t, dir, "mountain.txt", "Name:Mountain\nTypes:Basic Land Mountain\nOracle:\n")
+	cache := filepath.Join(dir, "ir.gob.gz")
+	// An unreadable (here: garbage) cache is rejected and recompiled; the
+	// recompile must replace it so the next open does not pay again.
+	if err := os.WriteFile(cache, []byte("not a gzip stream"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := OpenCorpus(dir); err != nil {
+		t.Fatal(err)
+	}
+	r, err := LoadRegistry(cache)
+	if err != nil {
+		t.Fatalf("recompiled cache was not written back: %v", err)
+	}
+	if _, ok := r.Lookup("Mountain"); !ok {
+		t.Fatal("written-back cache lacks Mountain")
+	}
+	if left, _ := filepath.Glob(filepath.Join(dir, "*.tmp")); len(left) != 0 {
+		t.Fatalf("temp files left behind: %v", left)
+	}
+}

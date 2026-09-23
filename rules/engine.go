@@ -949,6 +949,17 @@ type Engine struct {
 	manaColorActivation   *manaColorActivation
 	manaDiscardActivation *manaDiscardActivation
 	manaUnlessActivation  *manaUnlessActivation
+	// offStackMana is the transient frame of the off-stack mana resolution
+	// currently running synchronously (rules/mana_activation.go's
+	// offStackManaFrame). It is nil between Submits, so Clone never sees it.
+	offStackMana *offStackManaFrame
+	// manaAfterCost is a mana ability whose cost is fully paid but whose
+	// payment posed a decision -- a sacrificed or discarded commander's
+	// CR 903.9 command-zone choice parks the move and asks its owner. The
+	// mana effect (and its own colour choice) waits here until that answer
+	// lands; Submit resumes it once nothing is pending (resumeManaAfterCost).
+	// Plain data, deep-copied by Clone like its siblings.
+	manaAfterCost *manaAfterCost
 	// unlessPayment carries an in-progress non-mana unless-cost payment. It
 	// keeps the enclosing resolution suspended while the payer chooses the
 	// sacrifice/discard objects that pay it.
@@ -2715,6 +2726,12 @@ func (e *Engine) Submit(in decision.Intent) error {
 		Text: fmt.Sprintf("%s:%v", d.Kind, in.Choices)})
 	e.pending = nil
 	e.handle(d, in)
+	// A mana ability whose cost payment posed a decision (the CR 903.9
+	// commander-zone choice for a sacrificed commander) resolves its mana
+	// effect once that decision -- and any it handed on to -- is answered.
+	if e.pending == nil && e.manaAfterCost != nil {
+		e.resumeManaAfterCost()
+	}
 	// A CR 616.1 competition that arose while THIS decision was outstanding
 	// was parked on the queue without an ask (poseLifeReplacementChoice's
 	// queued arm, poseDamageReplacementChoice's multi-recipient batch, the

@@ -95,6 +95,144 @@ type manaColorActivation struct {
 	gained     gainedManaRef
 	sacs       []state.ObjID
 	allocation bool
+	// nested is set when the colour choice was posed by effects.Ask from a
+	// SubAbility$ Mana effect inside an off-stack mana resolution (Gemstone
+	// Caverns' luck-counter DB$ Mana | Produced$ Any): Engine.Ask routed it
+	// here (offStackMana) instead of parking a stack resume point, and the
+	// answer re-enters effects.Resolve at nested with the chosen colour, then
+	// runs the same continuation (triggered mana batch, payment window) the
+	// unsuspended resolution would have run.
+	nested *cards.SA
+}
+
+// offStackManaFrame is the transient (never stored across a Submit, so never
+// cloned) record of one off-stack mana resolution in progress: a mana
+// ability's effect chain, or a CR 605.3b triggered mana ability, resolving
+// synchronously without a stack object. Two things read it:
+//
+//   - Engine.Ask routes a mana_color ask posed inside it into the rules-owned
+//     chooseManaColor flow (act is the continuation template), because a
+//     stack-oriented resume point would re-enter whatever object happens to
+//     be on top of the stack (the resolving cumulative-upkeep trigger, or an
+//     unrelated spell) and orphan the mana activation's own continuation --
+//     the payment window then re-asked over it (the ask-overwrote panic).
+//   - Engine.Suspended answers relative to the state the frame began in: a
+//     payment window (cumulative, echo/triggered cost, unless payment) or a
+//     suspended resolution that was ALREADY open when the mana ability was
+//     activated inside it is not this chain's suspension, so its
+//     SubAbility$ walk must continue (a mana ability's rider was silently
+//     dropped inside every such window).
+type offStackManaFrame struct {
+	act             manaColorActivation
+	asked           bool
+	baseResume      *resumePoint
+	baseUnless      bool
+	baseCumulative  bool
+	baseTriggerCost bool
+}
+
+// withOffStackMana runs one synchronous off-stack mana resolution under an
+// offStackManaFrame and reports whether a routed colour ask suspended it.
+func (e *Engine) withOffStackMana(act manaColorActivation, run func()) bool {
+	saved := e.offStackMana
+	f := &offStackManaFrame{act: act, baseResume: e.resume, baseUnless: e.unlessPayment != nil,
+		baseCumulative: e.cumulative != nil, baseTriggerCost: e.triggerCost != nil}
+	e.offStackMana = f
+	run()
+	e.offStackMana = saved
+	return f.asked
+}
+
+// askOffStackManaColor is Engine.Ask's route for a mana_color ask posed from
+// inside an off-stack mana resolution. It reports whether it took the ask.
+func (e *Engine) askOffStackManaColor(d *decision.Decision) bool {
+	f := e.offStackMana
+	if f == nil || d.ResumeKind != "mana_color" || d.ResumeSA == nil {
+		return false
+	}
+	act := f.act
+	act.nested = d.ResumeSA
+	act.allocation = d.Max > 1
+	act.triggers = append([]pendingTrigger(nil), f.act.triggers...)
+	e.manaColorActivation = &act
+	f.asked = true
+	e.choosing = chooseManaColor
+	e.ask(d)
+	return true
+}
+
+// offStackSuspended is Suspended() inside an offStackManaFrame.
+func (f *offStackManaFrame) suspended(e *Engine) bool {
+	return f.asked || (e.resume != nil && e.resume != f.baseResume) ||
+		(e.unlessPayment != nil && !f.baseUnless) ||
+		(e.cumulative != nil && !f.baseCumulative) ||
+		(e.triggerCost != nil && !f.baseTriggerCost)
+}
+
+// continueManaPaymentWindow re-opens a resolution-time payment window after a
+// mana activation made from it has fully resolved. Nothing may be pending: a
+// nested decision (a colour choice, a CR 616.1 replacement order) owns the
+// continuation until it is answered.
+func (e *Engine) continueManaPaymentWindow(cumulative bool) {
+	if cumulative && e.choosing == chooseNone && e.pending == nil {
+		e.paymentWindowAsk()
+	}
+}
+
+// finishManaEffect resolves a paid mana ability's effect with produced as its
+// Produced$, then its CR 605.3b triggered mana batch, then the payment
+// window it was activated from -- unless the effect chain suspended on a
+// routed colour ask, whose answer runs that same continuation.
+func (e *Engine) finishManaEffect(p state.PlayerID, source state.ObjID, ma *cards.SA, produced string,
+	gained gainedManaRef, sacs []state.ObjID, cast, cumulative bool, triggers []pendingTrigger) {
+	act := manaColorActivation{player: p, source: source, ability: ma, cast: cast, cumulative: cumulative,
+		triggers: triggers, gained: gained, sacs: append([]state.ObjID(nil), sacs...)}
+	if e.withOffStackMana(act, func() { e.resolveManaEffectColor(p, source, ma, produced, gained, sacs) }) {
+		return
+	}
+	e.resolveTriggeredManaAbilities(triggers, cast, cumulative)
+	e.continueManaPaymentWindow(cumulative)
+}
+
+// answerNestedManaColor completes a routed SubAbility$ colour ask: the chain
+// re-enters at the asking Mana effect with the answer, then continues exactly
+// as finishManaEffect / resolveTriggeredManaAbilities would have.
+func (e *Engine) answerNestedManaColor(ma *manaColorActivation, chosen []decision.Option) {
+	var ctx effects.Ctx
+	if ma.trigger != nil {
+		ctx = ma.trigger.Ctx
+	} else {
+		ctx = effects.Ctx{Source: ma.source, Controller: ma.player}
+		ctx.ResolvedThisTurn = e.resolvedAbilityTallyFor(ma.source, ma.ability)
+		if o := e.G.Obj(ma.source); o != nil && o.Face() != nil {
+			effects.SetSVars(&ctx, ma.gained.svars(o.Face().SVars))
+		}
+	}
+	for _, option := range chosen {
+		colour := strings.TrimSpace(strings.TrimPrefix(option.Label, "Add "))
+		if len(colour) != 1 || !strings.Contains("WUBRG", colour) {
+			continue
+		}
+		if len(chosen) == 1 {
+			ctx.ManaChoice = colour
+		} else {
+			ctx.ManaChoices = append(ctx.ManaChoices, colour)
+		}
+	}
+	savedTap, savedProducer := e.manaFromTap, e.manaProducer
+	if ma.trigger == nil && ma.ability != nil {
+		e.manaFromTap = e.parseCost(ma.ability.Params["Cost"]).Tap
+		e.manaProducer = ma.source
+	}
+	template := *ma
+	template.nested = nil
+	asked := e.withOffStackMana(template, func() { effects.Resolve(e, &ctx, ma.nested) })
+	e.manaFromTap, e.manaProducer = savedTap, savedProducer
+	if asked {
+		return
+	}
+	e.resolveTriggeredManaAbilities(ma.triggers, ma.cast, ma.cumulative)
+	e.continueManaPaymentWindow(ma.cumulative)
 }
 
 // manaDiscardActivation holds a synchronous mana ability while its discard
@@ -504,9 +642,7 @@ func (e *Engine) activateManaFor(p state.PlayerID, source state.ObjID, cast, cum
 	}
 	if len(abilities) == 1 {
 		e.resolveManaAbilityInteractive(p, source, abilities[0], cast, cumulative)
-		if cumulative && e.choosing == chooseNone {
-			e.paymentWindowAsk()
-		}
+		e.continueManaPaymentWindow(cumulative)
 		return
 	}
 	o := e.G.Obj(source)
@@ -889,6 +1025,8 @@ func (e *Engine) commitManaDiscard() {
 		e.choosing = chooseNone
 		return
 	}
+	// Only a decision posed BY this payment defers the mana effect below.
+	posedBefore := e.pending != nil
 	for _, id := range md.discards {
 		e.emit(events.DiscardCost(id))
 	}
@@ -911,9 +1049,60 @@ func (e *Engine) commitManaDiscard() {
 	}
 	e.manaDiscardActivation = nil
 	e.choosing = chooseNone
+	if !posedBefore && e.pending != nil {
+		// Paying the cost posed a decision: a sacrificed (or discarded,
+		// or exiled) commander's CR 903.9 move is parked and its owner is
+		// being asked. Resolving the mana effect now would pose its colour
+		// choice ON TOP of that ask -- overwriting it, so the parked move
+		// is never emitted, the commander stays on the battlefield and the
+		// same cost can be "paid" again for free forever (the botbench
+		// Phyrexian Altar + Rakdos, the Muscle livelock). The effect waits
+		// for the answer instead; Submit resumes it (resumeManaAfterCost).
+		e.manaAfterCost = &manaAfterCost{player: md.player, source: md.source, ability: md.ability,
+			cast: md.cast, cumulative: md.cumulative, triggers: manaTriggers,
+			sacs: append([]state.ObjID(nil), md.sacs...), gained: md.gained}
+		return
+	}
 	e.resolveManaEffect(md.player, md.source, md.ability, md.cast, md.cumulative, manaTriggers, md.sacs, md.gained)
-	if md.cumulative && e.choosing == chooseNone {
+	e.continueManaPaymentWindow(md.cumulative)
+}
+
+// manaAfterCost parks a paid mana ability's effect while a decision its cost
+// payment posed is outstanding (see Engine.manaAfterCost).
+type manaAfterCost struct {
+	player     state.PlayerID
+	source     state.ObjID
+	ability    *cards.SA
+	cast       bool
+	cumulative bool
+	triggers   []pendingTrigger
+	sacs       []state.ObjID
+	gained     gainedManaRef
+}
+
+// resumeManaAfterCost resolves the parked mana effect once the decision its
+// cost payment posed has been answered, then continues whatever flow the
+// activation belonged to -- the same tail the mana-cost choose arms run
+// (handleChoose's chooseManaSacrifice case): Ward's payment window, an
+// unless-cost payment, or the cast being paid for. A priority-window
+// activation has no tail; Advance grants priority as usual.
+func (e *Engine) resumeManaAfterCost() {
+	r := e.manaAfterCost
+	e.manaAfterCost = nil
+	e.resolveManaEffect(r.player, r.source, r.ability, r.cast, r.cumulative, r.triggers, r.sacs, r.gained)
+	if r.cumulative && e.choosing == chooseNone {
 		e.paymentWindowAsk()
+	}
+	if e.pending != nil || e.choosing == chooseManaColor || e.choosing == chooseManaDiscard ||
+		e.choosing == chooseManaExile || e.choosing == chooseManaSacrifice {
+		return
+	}
+	if e.wardMana != nil {
+		e.continueWardMana()
+	} else if e.unlessPayment != nil {
+		e.advanceUnlessPayment()
+	} else if r.cast {
+		e.continueCast()
 	}
 }
 
@@ -1029,7 +1218,7 @@ func (e *Engine) isTriggeredManaAbility(pt pendingTrigger) bool {
 // path's askManaColor asks. The answer resolves that ability with the chosen
 // colour and continues the batch (answerManaColor). cast is the payment
 // window flag the parked activation carries back to the caller.
-func (e *Engine) resolveTriggeredManaAbilities(triggers []pendingTrigger, cast bool) {
+func (e *Engine) resolveTriggeredManaAbilities(triggers []pendingTrigger, cast, cumulative bool) {
 	for i := range triggers {
 		pt := triggers[i]
 		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
@@ -1056,11 +1245,23 @@ func (e *Engine) resolveTriggeredManaAbilities(triggers []pendingTrigger, cast b
 			}
 		}
 		pt = e.rewriteChosenMana(pt)
-		if e.askTriggeredManaColor(pt, triggers[i+1:], cast) {
+		if e.askTriggeredManaColor(pt, triggers[i+1:], cast, cumulative) {
 			return
 		}
-		effects.Resolve(e, &pt.Ctx, pt.SA)
+		if e.resolveTriggeredManaOffStack(pt, triggers[i+1:], cast, cumulative) {
+			return
+		}
 	}
+}
+
+// resolveTriggeredManaOffStack resolves one triggered mana ability's chain
+// under an offStackManaFrame and reports whether a routed colour ask
+// suspended it (the rest of the batch is then carried by that ask).
+func (e *Engine) resolveTriggeredManaOffStack(pt pendingTrigger, rest []pendingTrigger, cast, cumulative bool) bool {
+	parked := clonePendingTriggers([]pendingTrigger{pt})[0]
+	act := manaColorActivation{player: pt.Controller, source: pt.Source, cast: cast, cumulative: cumulative,
+		triggers: rest, trigger: &parked}
+	return e.withOffStackMana(act, func() { effects.Resolve(e, &pt.Ctx, pt.SA) })
 }
 
 // rewriteChosenMana resolves a triggered Mana sub-ability's Produced$ Chosen
@@ -1101,7 +1302,7 @@ func (e *Engine) rewriteChosenMana(pt pendingTrigger) pendingTrigger {
 // reports whether it asked. The chooser is the first player the Mana
 // sub-ability adds mana for (effects.ManaRecipients, which reads Defined$):
 // Fertile Ground on an opponent's land asks that land's controller.
-func (e *Engine) askTriggeredManaColor(pt pendingTrigger, rest []pendingTrigger, cast bool) bool {
+func (e *Engine) askTriggeredManaColor(pt pendingTrigger, rest []pendingTrigger, cast, cumulative bool) bool {
 	mana, colours := triggeredManaColourChoice(pt.SA)
 	if mana == nil {
 		return false
@@ -1125,7 +1326,7 @@ func (e *Engine) askTriggeredManaColor(pt pendingTrigger, rest []pendingTrigger,
 	}
 	parked := pt
 	e.manaColorActivation = &manaColorActivation{player: chooser, source: pt.Source, ability: mana,
-		cast: cast, triggers: rest, trigger: &parked, allocation: allocation}
+		cast: cast, cumulative: cumulative, triggers: rest, trigger: &parked, allocation: allocation}
 	e.choosing = chooseManaColor
 	e.ask(d)
 	return true
@@ -1406,11 +1607,7 @@ func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *car
 		case 0:
 			e.emit(events.Event{Kind: events.Note, Obj: source, Text: "ManaReflected found no mana to reflect"})
 		case 1:
-			e.resolveManaEffectColor(p, source, ma, cols[0], gained, sacs)
-			e.resolveTriggeredManaAbilities(triggers, cast)
-			if cumulative && e.choosing == chooseNone {
-				e.paymentWindowAsk()
-			}
+			e.finishManaEffect(p, source, ma, cols[0], gained, sacs, cast, cumulative, triggers)
 		default:
 			e.askManaColor(p, source, ma, cast, cumulative, triggers, cols, gained, 1, sacs)
 		}
@@ -1437,11 +1634,7 @@ func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *car
 	// one-option stage-2 ask.
 	if colours, ok := effects.ComboColours(produced); ok {
 		if len(colours) == 1 {
-			e.resolveManaEffectColor(p, source, ma, colours[0], gained, sacs)
-			e.resolveTriggeredManaAbilities(triggers, cast)
-			if cumulative && e.choosing == chooseNone {
-				e.paymentWindowAsk()
-			}
+			e.finishManaEffect(p, source, ma, colours[0], gained, sacs, cast, cumulative, triggers)
 			return
 		}
 		e.askManaColor(p, source, ma, cast, cumulative, triggers, colours, gained,
@@ -1463,11 +1656,7 @@ func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *car
 		cols := e.commanderIdentityColours(p)
 		switch len(cols) {
 		case 1:
-			e.resolveManaEffectColor(p, source, ma, cols[0], gained, sacs)
-			e.resolveTriggeredManaAbilities(triggers, cast)
-			if cumulative && e.choosing == chooseNone {
-				e.paymentWindowAsk()
-			}
+			e.finishManaEffect(p, source, ma, cols[0], gained, sacs, cast, cumulative, triggers)
 			return
 		default:
 			if len(cols) > 1 {
@@ -1478,11 +1667,7 @@ func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *car
 			// 0 colours: fall through to the fail-closed resolve below.
 		}
 	}
-	e.resolveManaEffectColor(p, source, ma, produced, gained, sacs)
-	e.resolveTriggeredManaAbilities(triggers, cast)
-	if cumulative && e.choosing == chooseNone {
-		e.paymentWindowAsk()
-	}
+	e.finishManaEffect(p, source, ma, produced, gained, sacs, cast, cumulative, triggers)
 }
 
 // askManaUnless handles the one off-stack instance of the shared UnlessCost$
@@ -1578,7 +1763,8 @@ func (e *Engine) finishManaUnlessPayment(paid bool) {
 			delete(cp.Params, "UnlessSwitched")
 			e.resolveManaEffect(m.player, m.source, &cp, m.cast, m.cumulative, m.triggers, m.sacs, m.gained)
 		} else {
-			e.resolveTriggeredManaAbilities(m.triggers, m.cast)
+			e.resolveTriggeredManaAbilities(m.triggers, m.cast, m.cumulative)
+			e.continueManaPaymentWindow(m.cumulative)
 		}
 		return
 	}
@@ -1719,6 +1905,10 @@ func (e *Engine) answerManaColor(chosen []decision.Option) bool {
 		symbols.WriteString(color)
 	}
 	produced := symbols.String()
+	if ma.nested != nil {
+		e.answerNestedManaColor(ma, chosen)
+		return ma.cast
+	}
 	if ma.trigger != nil {
 		pt := *ma.trigger
 		if ma.allocation {
@@ -1728,22 +1918,21 @@ func (e *Engine) answerManaColor(chosen []decision.Option) bool {
 		}
 		// A later colour-choice Mana sub-ability in the same chain asks in
 		// turn; otherwise the ability resolves and the batch continues.
-		if e.askTriggeredManaColor(pt, ma.triggers, ma.cast) {
+		if e.askTriggeredManaColor(pt, ma.triggers, ma.cast, ma.cumulative) {
 			return ma.cast
 		}
-		effects.Resolve(e, &pt.Ctx, pt.SA)
-		e.resolveTriggeredManaAbilities(ma.triggers, ma.cast)
+		if e.resolveTriggeredManaOffStack(pt, ma.triggers, ma.cast, ma.cumulative) {
+			return ma.cast
+		}
+		e.resolveTriggeredManaAbilities(ma.triggers, ma.cast, ma.cumulative)
+		e.continueManaPaymentWindow(ma.cumulative)
 		return ma.cast
 	}
 	ability := ma.ability
 	if ma.allocation {
 		ability = withManaAllocation(ma.ability, ma.ability, produced)
 	}
-	e.resolveManaEffectColor(ma.player, ma.source, ability, produced, ma.gained, ma.sacs)
-	e.resolveTriggeredManaAbilities(ma.triggers, ma.cast)
-	if ma.cumulative && e.choosing == chooseNone {
-		e.paymentWindowAsk()
-	}
+	e.finishManaEffect(ma.player, ma.source, ability, produced, ma.gained, ma.sacs, ma.cast, ma.cumulative, ma.triggers)
 	return ma.cast
 }
 

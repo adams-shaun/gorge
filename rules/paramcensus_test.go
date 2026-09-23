@@ -174,6 +174,10 @@ var baseBuckets = map[string]bucket{
 	// whose activation cost/UnlessCost$ the off-stack mana-activation
 	// window reads (resolveManaEffect / askManaUnless / the settle path).
 	"m.ability": bSA,
+	// ma.ability is manaColorActivation's resolved *cards.SA — the paid
+	// mana ability whose Cost$ (its T part) answerNestedManaColor re-binds
+	// as manaFromTap when a routed SubAbility$ colour answer re-enters.
+	"ma.ability": bSA,
 	// selector bases: r.With and m.repl.With are cards.Repl's resolved
 	// With *cards.SA (the ReplaceWith$ body: a real SA parameter map, read
 	// as generic machinery), rp.sa the resume plan's SA, o.Ability the

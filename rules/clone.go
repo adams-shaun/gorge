@@ -555,6 +555,12 @@ func (e *Engine) Clone() *Engine {
 		ma.exiles = append([]state.ObjID(nil), e.manaDiscardActivation.exiles...)
 		c.manaDiscardActivation = &ma
 	}
+	if e.manaAfterCost != nil {
+		ma := *e.manaAfterCost
+		ma.triggers = clonePendingTriggers(e.manaAfterCost.triggers)
+		ma.sacs = append([]state.ObjID(nil), e.manaAfterCost.sacs...)
+		c.manaAfterCost = &ma
+	}
 	if e.manaUnlessActivation != nil {
 		ma := *e.manaUnlessActivation
 		ma.triggers = clonePendingTriggers(e.manaUnlessActivation.triggers)

@@ -595,7 +595,7 @@ func stallNotice(turnStalls, intentStalls, livelocks, eff int) string {
 	}
 	s := fmt.Sprintf("\n@@ STALLED: %d game(s) hit the -max-turns cap, %d hit the -max-intents cap", turnStalls, intentStalls)
 	if livelocks > 0 {
-		s += fmt.Sprintf(", %d aborted with a LIVELOCK (engine bug; the diagnostic names the repeating event shape)", livelocks)
+		s += fmt.Sprintf(", %d aborted with a LIVELOCK or engine PANIC (engine bug; the diagnostic names the repeating event shape or the panic and its stack)", livelocks)
 	}
 	return s + fmt.Sprintf("; win rates are over %d non-stalled game(s) @@\n", eff)
 }
@@ -648,6 +648,9 @@ func winnerLabel(o gameOutcome) string {
 	if o.isStalled() {
 		if o.stallOn == "livelock" {
 			return "LIVELOCK"
+		}
+		if o.stallOn == "panic" {
+			return "PANIC"
 		}
 		return "stalled"
 	}
@@ -825,7 +828,7 @@ func benchWithPool(baseSeed uint64, games, seats int, aName, bName string, play 
 			// at the end, because it is an engine bug, not a slow game.
 			if kind.stallOn == "intents" {
 				stallIntents++
-			} else if kind.stallOn == "livelock" {
+			} else if gbench.IsAbort(kind.stallOn) {
 				livelocks++
 			} else {
 				stallTurns++
@@ -921,7 +924,7 @@ func benchWithPool(baseSeed uint64, games, seats int, aName, bName string, play 
 		// real and must reach the reader -- and then the run fails: a
 		// livelocked game is an engine bug, and a zero exit would read as a
 		// clean pass to whatever automated caller ran the bench.
-		return fmt.Errorf("%d of %d game(s) aborted with a livelock (see the LIVELOCK diagnostics above)", livelocks, games)
+		return fmt.Errorf("%d of %d game(s) aborted with a livelock or engine panic (see the LIVELOCK diagnostics above)", livelocks, games)
 	}
 	return nil
 }
@@ -1436,7 +1439,7 @@ func writeMatrixText(out io.Writer, aName, bName string, baseSeed uint64, games 
 	if m.livelocks > 0 {
 		// After the full report: a livelocked game is an engine bug, and a
 		// zero exit would read as a clean pass to the automated caller.
-		return fmt.Errorf("%d of %d game(s) aborted with a livelock (see the LIVELOCK diagnostics above)", m.livelocks, m.games)
+		return fmt.Errorf("%d of %d game(s) aborted with a livelock or engine panic (see the LIVELOCK diagnostics above)", m.livelocks, m.games)
 	}
 	return nil
 }
@@ -1754,7 +1757,7 @@ func runMatrixTraced(baseSeed uint64, games, seats int, aName, bName, dir, forma
 		if m.livelocks > 0 {
 			// Same contract as the text report: the JSON document is complete
 			// (the per-pair livelocks counts are in it), then the run fails.
-			return fmt.Errorf("%d of %d game(s) aborted with a livelock (see the JSON livelocks fields)", m.livelocks, m.games)
+			return fmt.Errorf("%d of %d game(s) aborted with a livelock or engine panic (see the JSON livelocks fields)", m.livelocks, m.games)
 		}
 		if tracePath != "" {
 			return writeDecisionTrace(tracePath, newTraceRunV1(baseSeed, games, aName, bName, pairs, maxTurns, maxIntents, commander), traces)

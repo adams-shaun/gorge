@@ -198,6 +198,8 @@ func boardFromView(v view.View) botpolicy.Board {
 	for _, p := range v.Players {
 		b.Life[p.ID] = p.Life
 		if p.ID == v.Viewer {
+			b.LibrarySize = int32(p.LibrarySize)
+			b.HandSize = int32(p.HandSize)
 			// The tap gate's pool (tap.go): the projecting viewer's own mana
 			// pool, the same numbers poolView lifted off the engine state
 			// that BoardFromGameInto reads directly, so the two halves agree
