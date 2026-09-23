@@ -973,17 +973,28 @@ func (e *Engine) targetSAAvailable(p state.PlayerID, id, excludeSelf state.ObjID
 	}
 	min, max := e.resolvedTargetBounds(p, id, sa, x)
 	candidates := e.legalTargetCandidates(p, id, excludeSelf, sa)
-	min, max, exclusive, distinct := e.oneEachTargetBounds(sa, candidates, min, max)
-	min, _, sameCapacity, sameController := e.sameControllerTargetBounds(sa, candidates, min, max)
+	// oneEachTargetBounds is kept for its TargetMin$ OneEach respell -- that is
+	// a COUNT read ("for each player" means one per represented player), so
+	// the census honours it. The pairwise SET constraints are deliberately NOT
+	// applied to this census: oneEachTargetBounds' exclusive distinct count and
+	// sameControllerTargetBounds' group capacity are properties of the chosen
+	// COMBINATION, not of the candidate population, and their failure mode is
+	// the post-push abort the ask sites own (cast.go's targetAsk and stack.go's
+	// askTarget compare TargetMin$ against the distinct-controller count / group
+	// capacity and abort, CR 601.2c via CR 733.1 with the F05-2 suppression
+	// discipline; TestRunAwayTogetherMandatoryTwoSameControllerAbortsCast and
+	// TestBarrinsSpiteSameControllerCapacity pin that the offer survives so the
+	// abort fires). Withholding on the pairwise shape here would pre-empt those
+	// pinned failure modes and suppress a cast whose constraint a later play
+	// (a creature entering under a different controller) can still satisfy.
+	min, max, _, _ = e.oneEachTargetBounds(sa, candidates, min, max)
 	if min == 0 {
 		return true
 	}
 	if xPending && specNamesXBound(sa.Params["ValidTgts"]) {
 		return true
 	}
-	return len(candidates) >= min &&
-		(!exclusive || min <= distinct) &&
-		(!sameController || min <= sameCapacity)
+	return len(candidates) >= min
 }
 
 // charmTargetsAvailable evaluates the possible CR 601.2b mode announcement
