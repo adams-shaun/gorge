@@ -1,3 +1,123 @@
+# Report — DestroyAll.Zone (fix round 2: restore accumulated report history)
+
+## What this round changed and why
+
+The only MAJOR finding was that round 1's commit `6ef01416` had replaced the
+1,565-line accumulated `.ds4/report-t1.md` with this ticket's 42-line report,
+deleting unrelated durable review history. This round restores it and records
+this ticket narrowly.
+
+- `.ds4/report-t1.md` — restored. The file is now **main's current 1,951-line
+  accumulated report history with this ticket's 43-line report prepended at the
+  top**. Verified that main's entire file survives below the prepend:
+  `diff <(git show main:.ds4/report-t1.md) <(tail -n +44 .ds4/report-t1.md)`
+  prints nothing ("MAIN CONTENT FULLY PRESERVED"), all 17 top-level report
+  headings are present, and no conflict markers remain. This mirrors the
+  precedent from commit `00118ef5` ("restore historical report after MustBlock
+  verification"), which undid the same class of destructive rewrite the same
+  way.
+- `effects/zone.go`, `effects/destroyall_zone_test.go` — unchanged from the
+  already-reviewed round-1 code fix (`Zone$` read, defaults to `Battlefield`,
+  fails closed on an unknown zone word; victims collected and rechecked in the
+  selected zone; battlefield-only indestructibility/regeneration/Umbra/batch
+  handling left battlefield-scoped).
+- `.ds4/report-t2.md` — this round's report is prepended at the top; the prior
+  MustBlock verification report already in the file is **preserved below it**
+  rather than overwritten, so this round's diff deletes no durable report
+  either.
+
+Rebase directive (2026-09-23T03:20:03Z) was followed: work was committed first,
+then `git rebase main` was run. The code commit applied cleanly; the only
+conflict was in `.ds4/report-t1.md`, resolved by keeping both main's accumulated
+history and this ticket's report (the exact remedy the directive and the finding
+name). The rebase completed and the branch is now based on `main @ 19b8fb3a`.
+
+## Fails without the fix
+
+The code fix and its failing proof are unchanged from round 1 and re-verified
+here. I backed up `effects/zone.go` to `.ds4/scratch/zone.go.fixed`, removed the
+`Zone$` read (restoring the battlefield-only default), ran the one test,
+restored the file from the backup, and byte-compared it:
+
+```text
+$ go test -run '^TestDestroyAllUsesNamedZone$' ./effects/
+--- FAIL: TestDestroyAllUsesNamedZone (0.00s)
+    destroyall_zone_test.go:22: named-zone card moved to exile, want graveyard
+FAIL
+FAIL	github.com/adams-shaun/gorge/effects	0.002s
+FAIL
+
+$ cp .ds4/scratch/zone.go.fixed effects/zone.go
+$ cmp .ds4/scratch/zone.go.fixed effects/zone.go
+RESTORED_BYTE_IDENTICAL
+```
+
+## Gates run (this round, after the rebase)
+
+```text
+$ go build ./...
+(no output; exit 0)
+
+$ go test -run '^TestDestroyAllUsesNamedZone$' ./effects/
+ok  	github.com/adams-shaun/gorge/effects	0.002s
+
+$ go test ./internal/archtest/ 2>&1 | tail -5
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.685s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ 2>&1 | tail -5
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.368s
+
+$ gofmt -l effects/zone.go effects/destroyall_zone_test.go
+(no output; exit 0)
+$ go run ./cmd/gentypes -check
+(no output; exit 0)
+$ git diff --check
+(no output; exit 0)
+```
+
+`.cards` is a present symlink to `/home/sadams/projects/gorge/.cards`, so the
+corpus-dependent reads were not silently skipped. The brief's prevalence claim
+held:
+
+```text
+$ /usr/bin/grep -rlE 'DB\$ DestroyAll.*Zone\$' .cards/cardsfolder | wc -l
+1
+$ /usr/bin/grep -rlE 'DB\$ DestroyAll.*Zone\$' .cards/cardsfolder
+.cards/cardsfolder/k/kindred_dominance.txt
+```
+
+## Review finding disposition
+
+- [MAJOR] `.ds4/report-t1.md` deleted the accumulated report history — FIXED.
+  Main's full 1,951-line history is restored with this ticket's report prepended
+  (diff vs main is `+43` lines and no deletions), and the same preservation is
+  applied to `.ds4/report-t2.md`. The 17 prior report headings, including
+  "Task rv1 — RevealAllValid$", "kw:Backup" and "Count$ResolvedThisTurn", are
+  all present.
+
+## Final diff vs main
+
+```text
+ .ds4/report-t1.md               | 43 ++++++++++++++++++++++++++++++++++++++++
+ .ds4/report-t2.md               |  .. (this report prepended, MustBlock report preserved)
+ effects/destroyall_zone_test.go | 30 ++++++++++++++++++++++++++++++++
+ effects/zone.go                 | 34 ++++++++++++++++++++------------
+```
+
+## Issues
+
+- None new. The card Kindred Dominance still needs its other half — the
+  `Creature.IsNotChosenType` filter predicate — which is the separate ticket
+  `agent-20260918T201120Z-c09a9312`; the param-census row for `DestroyAll.Zone`
+  cannot retire until both land. This ticket's half (reading `Zone$`) is done.
+- Process note (not a code defect): `.ds4/report-t1.md` is a shared append target
+  reused across tickets, and a fresh round that writes it from scratch silently
+  destroys other tickets' durable reports. The structural guard would be for the
+  harness to refuse a shrinking write to a tracked report file (or to route each
+  ticket to its own path). I did not change the harness; I followed the
+  established restore-and-prepend convention.
+
+
 # Task report — model the `Convoked$Amount` Count head
 
 Ticket: agent-20260922T200200Z-7feb602c
