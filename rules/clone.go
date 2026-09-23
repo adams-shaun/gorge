@@ -232,6 +232,7 @@ func (e *Engine) Clone() *Engine {
 		c.continuous = make([]ContinuousEffect, len(e.continuous))
 		for i, ce := range e.continuous {
 			ce.AddKeywords = append([]string(nil), ce.AddKeywords...)
+			ce.RemoveKeywords = append([]string(nil), ce.RemoveKeywords...)
 			ce.AddTypes = append([]string(nil), ce.AddTypes...)
 			if ce.RestrictParams != nil {
 				m := make(map[string]string, len(ce.RestrictParams))
@@ -850,6 +851,9 @@ func clonePendingTriggers(src []pendingTrigger) []pendingTrigger {
 			}
 			pt.Ctx.TargetControllerLKI = m
 		}
+		if pt.Ctx.TargetCountersLKI != nil {
+			pt.Ctx.TargetCountersLKI = effects.CloneTargetCountersLKI(pt.Ctx.TargetCountersLKI)
+		}
 		if pt.Ctx.SVars != nil {
 			m := make(map[string]string, len(pt.Ctx.SVars))
 			for k, v := range pt.Ctx.SVars {
@@ -916,6 +920,7 @@ func cloneResume(rp *resumePoint) *resumePoint {
 	// must not share the original's map storage: an explicit copy keeps the
 	// two engines' pending frames independent.
 	cp.targetControllerLKI = effects.CloneTargetControllerLKI(rp.targetControllerLKI)
+	cp.targetCountersLKI = effects.CloneTargetCountersLKI(rp.targetCountersLKI)
 	cp.targetsUnique = append([]state.Target(nil), rp.targetsUnique...)
 	// The VillainousChoice cursor and victim binding are sliced values the
 	// resumed Ctx re-binds, so the clone owns its own copies instead of

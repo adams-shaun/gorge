@@ -333,6 +333,17 @@ func init() {
 	// StrictlyOther is Forge's other spelling of the same "not the source"
 	// test Other already implements.
 	predicates["StrictlyOther"] = predicates["Other"]
+	// StrictlySelf is the mirror spelling of the same source-identity read:
+	// the candidate is exactly the spec source object itself, read live. The
+	// measured carriers are trigger gates on the source card itself -- 35
+	// `IsPresent$ Card.StrictlySelf` (the graveyard-reanimate family's
+	// "if it's on the battlefield" presence gate: Animate Dead, Dance of the
+	// Dead, Necromancy, Genesis, ...) and 4 `ValidCard$ Card.StrictlySelf` --
+	// where the live id read is the whole meaning. The 3
+	// `ValidSA$ Spell.ManaFromCard.StrictlySelf` spellcast-provenance
+	// carriers stay fail closed on their own unread ManaFromCard word, so
+	// this alias cannot reach them.
+	predicates["StrictlySelf"] = predicates["Self"]
 	// EffectSource is the Effect-delivered spelling of Self: the effect's own
 	// source object (Card.EffectSource in a StaticAbilities$ body's
 	// ValidCard$). The spec is evaluated with src = the registered effect's
