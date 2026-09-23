@@ -2065,6 +2065,30 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			if len(chosen) > 0 {
 				ctx.ChosenColor = chosen[0].Label
 			}
+		case "choosenumber":
+			// A mid-resolution ChooseNumber ask (task
+			// cli-20260923T060000Z-choose-number: SP$/AB$/DB$ ChooseNumber
+			// resolving outside the cast-time "as this enters" choice -- Void's
+			// "Choose a number. Destroy all artifacts and creatures with mana
+			// value equal to that number") was answered. The chosen option is
+			// the number list's own "number" wire shape, so the option's Amount
+			// IS the number the chooser picked. The re-entered effChooseNumber
+			// emits the one Choose event the fallback emits, with the answered
+			// number, so events.Apply records o.ChosenNumber exactly the way
+			// every downstream reader (Card.ChosenNumber filters, Void's
+			// Count$ChosenNumber X) already reads. ZERO is a legal answer, so the
+			// answered marker is a separate bool. The effect consumes and clears
+			// both (fx42 scoping), so a nested ChooseNumber below poses its own
+			// ask.
+			ctx.ChosenNumberAnswered = true
+			if len(chosen) > 0 {
+				ctx.ChosenNumberPick = int32(chosen[0].Amount)
+			} else {
+				// A malformed empty answer (the ask is Min 1/Max 1): keep the
+				// deterministic fallback 0 rather than inventing a number the
+				// option list never offered.
+				ctx.ChosenNumberPick = 0
+			}
 		case "manareflected":
 			// A standalone AB$ ManaReflected colour ask (the mid-resolution
 			// choice effManaReflected poses when a DB$/SP$ body reflecting

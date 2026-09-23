@@ -1670,6 +1670,36 @@ type Ctx struct {
 	// discipline), so a nested ChooseColor deeper in the same chain poses
 	// its own fresh ask.
 	ETBColorRecorded bool
+	// ChosenNumberPick is the answered mid-resolution ChooseNumber pick (task
+	// cli-20260923T060000Z-choose-number): the option Amount the chooser picked
+	// out of the number list, set by rules' "choosenumber" resume arm before
+	// the suspended sub-ability is re-run. effChooseNumber's re-entry consumes
+	// and clears it and emits the one Choose event the deterministic fallback
+	// would have emitted, with the answered number. A legitimate answer can be
+	// ZERO, so ChosenNumberAnswered is the answered marker (a bare int32 could
+	// not tell "answered 0" from "never asked"). This field is the
+	// mid-resolution pick and is DISTINCT from ChosenNumber, which carries the
+	// Effect's frozen SetChosenNumber$ binding (Count$ChosenNumber); the two
+	// never alias. Consumed and cleared at the top of the effect's walk (the
+	// fx42 scoping discipline), so a nested ChooseNumber cannot inherit the
+	// outer answer.
+	ChosenNumberPick     int32
+	ChosenNumberAnswered bool
+	// ETBNumberRecorded marks the ONE ChooseNumber invocation that must not
+	// ask: the as-enters ENTRY-choice body (K:ETBReplacement:Other:
+	// ChooseNumber). The entry machinery (rules' applyETBChoiceReplacement ->
+	// resumeETBEntry) already posed the entry ask and recorded the answer on
+	// the entering object before this body runs at the re-emitted MoveZone, so
+	// rules' replCtx flags that invocation and effChooseNumber keeps the
+	// historical no-op for it alone. Without the flag an unconditional
+	// o.ChosenNumber guard also suppressed a FRESH resolution-time ask after an
+	// earlier ChooseNumber had set the field -- the stale-source-state bug the
+	// sibling colour ticket's review named. The flag is what makes the entry
+	// no-op exact even when the recorded entry answer is 0 (the value a bare
+	// o.ChosenNumber guard cannot distinguish from unset). Consumed and cleared
+	// by the effect (the fx42 scoping discipline), so a nested ChooseNumber
+	// deeper in the same chain poses its own fresh ask.
+	ETBNumberRecorded bool
 	// ManaReflectedColor is the answered mid-resolution AB$ ManaReflected
 	// colour pick: the option Label ("Add W") the chooser picked, set by
 	// rules' "manareflected" resume arm before the suspended sub-ability is

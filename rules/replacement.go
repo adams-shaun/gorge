@@ -1352,6 +1352,17 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 	if o != nil && m.repl != nil && m.repl.Params["Keyword"] == "ETBReplacement" && m.repl.With != nil && m.repl.With.API == "ChooseColor" {
 		ctx.ETBColorRecorded = true
 	}
+	// The as-enters NUMBER-choice body (K:ETBReplacement:Other:ChooseNumber,
+	// Talion the Kindly Lord) marks itself the same way: resumeETBEntry already
+	// posed the entry ask and recorded the answer on the entering object, so
+	// effChooseNumber keeps the historical no-op for THIS invocation rather
+	// than posing a second ask (task cli-20260923T060000Z-choose-number). The
+	// flag is exact where a bare o.ChosenNumber guard is not: a recorded entry
+	// answer of 0 is indistinguishable from unset on the object, but the flag
+	// is set precisely when the machinery recorded one.
+	if o != nil && m.repl != nil && m.repl.Params["Keyword"] == "ETBReplacement" && m.repl.With != nil && m.repl.With.API == "ChooseNumber" {
+		ctx.ETBNumberRecorded = true
+	}
 	e.seedEffectReplCtx(ctx, m)
 	return ctx
 }
