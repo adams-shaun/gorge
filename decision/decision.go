@@ -324,18 +324,36 @@ type TargetEffect struct {
 	// (DealDamage and DamageAll). Absence is not proof that a whole spell's
 	// other abilities cannot deal damage.
 	Damage *DamageEffect `json:"damage,omitempty"`
+	// Removal classifies the active SA's direct zone-removal shape. It is
+	// absent for an unknown API, a non-removal destination, or a ChangeZone
+	// whose destination this vocabulary does not model.
+	Removal *RemovalEffect `json:"removal,omitempty"`
+}
+
+// RemovalEffect is a conservative classification of an active removal SA.
+// It describes the scripted operation, not whether the target will actually
+// leave at resolution (replacement effects, conditions and legality remain
+// outside a targeting decision). Kind is one of destroy, sacrifice, exile,
+// bounce, graveyard, library or command; Destination is populated for the
+// ChangeZone family and repeats its normalized destination for clients that
+// want the zone rather than the operation.
+type RemovalEffect struct {
+	Kind        string `json:"kind"`
+	Destination string `json:"destination,omitempty"`
 }
 
 // DamageEffect describes nominal scripted damage, NEVER guaranteed damage.
 // Prevention, replacement, conditions, division among targets and resolution
 // legality are not evaluated. Spell damage is not commander combat damage.
 type DamageEffect struct {
-	// Amount is a nonnegative literal, or nil (JSON null) if absent, dynamic,
-	// invalid or outside the supported literal range. In particular X and
-	// SVar expressions stay unknown even if the engine could evaluate them.
-	// A known zero is a non-nil pointer to 0. There is deliberately no numeric
-	// default: Go consumers must check nil before dereferencing; wire consumers
-	// must check null before arithmetic. This is not a lethal-damage claim.
+	// Amount is the nonnegative literal or context-resolved amount at the
+	// point the target decision is posed, or nil (JSON null) if it is absent,
+	// unresolvable, invalid or outside the supported range. X and SVar
+	// expressions are evaluated when the announced/resolving context supplies
+	// their value. A known zero is a non-nil pointer to 0. There is deliberately
+	// no numeric default: Go consumers must check nil before dereferencing; wire
+	// consumers must check null before arithmetic. This is not a lethal-damage
+	// claim.
 	Amount *int `json:"amount"`
 }
 
@@ -397,11 +415,10 @@ type Decision struct {
 	// "untap", "dig"); ResumeSA
 	// names the exact sub-ability involved. ResumeModes maps a filtered cast-time
 	// mode option back to its SVar name while keeping wire indices dense.
-	// ResumeTarget is Dig's index into the deterministic Defined$ target list:
+	// ResumeTarget is the index into the deterministic per-library target list:
 	// re-entry applies the answer to exactly the library that asked, skips
-	// targets already completed before suspension, and preserves deterministic
-	// processing for later targets. rules alone selects these fields; clients
-	// never see them. Card data is shared immutable compiled corpus, so the SA
+	// targets already completed before suspension, and continues with later
+	// libraries. rules alone selects these fields; clients never see them. Card data is shared immutable compiled corpus, so the SA
 	// pointer is safe across Clone/replay.
 	ResumeKind   string    `json:"-"`
 	ResumeSA     *cards.SA `json:"-"`

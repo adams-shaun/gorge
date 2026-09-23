@@ -10,13 +10,16 @@ import (
 
 // TestPartnerWithPrimitiveIsRegistered pins the registration of
 // "kw:Partner with" (CR 903.13c, the named-pair alias of kw:Partner) in the
-// trigger_match.go non-API supported list. The keyword is deck construction,
-// not play: rules/engine.go's partnerPairOK -> deck.IsPartnerPair seats the
-// mutual named pair, so the registration asserts the corpus shape is
-// understood and the census stops counting the carriers unplayable. The walk
-// below is over the compiled corpus, never a hardcoded count: every
-// K:Partner with carrier must no longer name the keyword as a gap, and any
-// carrier still unplayable must be blocked on a DIFFERENT, known primitive
+// trigger_match.go non-API supported list. The deck-construction half is not
+// play: rules/engine.go's partnerPairOK -> deck.IsPartnerPair seats the mutual
+// named pair, so the registration asserts the corpus shape is understood and
+// the census stops counting the carriers unplayable. The keyword's OTHER half
+// -- CR 702.128's ETB may-search -- is real rules text and is implemented by
+// the cards/kw_partner_with.go expansion, pinned end to end by the proof leaf
+// in rules/partner_with_etb_test.go. The walk below is over the compiled
+// corpus, never a hardcoded count: every K:Partner with carrier must no longer
+// name the keyword as a gap, and any carrier still unplayable must be blocked
+// on a DIFFERENT, known primitive
 // (the measured six: Madame Vastra/Gorm the Great must-block, Pir
 // api:ReplaceCounter/repl:AddCounter, Rory api:Investigate, Amy Pond
 // api:RemoveCounter/kw:Doctor's companion, Jenny Flint kw:Training).

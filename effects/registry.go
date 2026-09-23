@@ -988,9 +988,15 @@ type Ctx struct {
 	// ChangeZone resolution. SearchDone distinguishes "answered with no cards"
 	// from the first pass; Search preserves the player's answer order. The
 	// asking effect consumes and clears both before continuing, so a nested
-	// search cannot inherit the outer answer.
+	// search cannot inherit the outer answer. LibraryTarget binds the answer
+	// to the exact owner in a multi-library walk.
 	Search     []state.ObjID
 	SearchDone bool
+	// LibraryTarget is the index in the deterministic per-library target list
+	// whose answer is being resumed. Search, KArrange and their follow-up
+	// confirms share this cursor so a suspended walk continues with the next
+	// library instead of restarting at the first one.
+	LibraryTarget int
 	// SearchShuffle is the answered ShuffleNonMandatory$ may-shuffle confirm
 	// ("yes"/"no") on a re-entered ChangeZone search; SearchShuffleMoved
 	// carries the objects the search's first pass moved, so the re-entry can
@@ -1089,8 +1095,8 @@ type Ctx struct {
 	// "answered (possibly with no cards)" from the first pass, and DigTarget
 	// identifies the Defined$ target whose library posed that ask. Re-entry
 	// skips earlier targets (already processed before suspension), applies the
-	// answer at DigTarget, then preserves the former deterministic processing
-	// for later targets until per-library chained asks exist. The asking effect
+	// answer at DigTarget, then continues with a fresh ask for each later
+	// library. The asking effect
 	// consumes and clears all three fields at the top of its own walk (the fx42
 	// scoping discipline), so a nested Dig cannot inherit the outer answer.
 	Dig       []state.ObjID
@@ -1278,7 +1284,9 @@ type Ctx struct {
 	// mid-resolution resolution (Ruling J0): true once rules' handleArrange
 	// has applied the answered arrangement and emitted the LibraryOrder
 	// event, so effRearrangeTopOfLibrary's re-entry lets the resolution
-	// continue (the chained SubAbility$ runs) instead of re-asking. False on
+	// continue (the chained SubAbility$ runs) instead of re-asking. The
+	// LibraryTarget cursor identifies which library's arrangement completed.
+	// False on
 	// the first pass, where the effect poses the ask. The arrangement itself
 	// lives on the LibraryOrder event, not on Ctx -- the answer shape is
 	// applied by the rules handler, unlike Modes/UnlessPay/Discard where the

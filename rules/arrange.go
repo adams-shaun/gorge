@@ -52,8 +52,9 @@ import (
 // `chosen` is handed on to resumeResolution, which re-enters the suspended
 // resolution the way handleModes does -- the engine's one resume mechanism,
 // not a second one. The re-entered effect (effRearrangeTopOfLibrary, or the
-// new effScry/effSurveil) sees Ctx.Arrange set and returns without re-asking,
-// so only the chained SubAbility$ runs. A KArrange answer with no suspended
+// new effScry/effSurveil) sees Ctx.Arrange set, skips the completed library
+// and continues the per-library walk; after the final library only the
+// chained SubAbility$ runs. A KArrange answer with no suspended
 // resolution is only reachable from a hand-built decision, never from a real
 // ask; it degrades with a Note rather than panicking, the same totality
 // stance every handler takes.
