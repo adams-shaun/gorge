@@ -711,6 +711,17 @@ type Ctx struct {
 	// Charm. Each entry is in target-bearing mode order; nil means the
 	// historical single-target-list path, including repeatable modes.
 	ModeTargets [][]state.Target
+	// CharmModeScope is the ONE mode's target group a distinct modal Charm
+	// scoped Ctx.Targets to while it dispatches that mode, plus the mode's own
+	// SA. charmDistinctTargetRun narrows Ctx.Targets per mode, but a mode that
+	// SUSPENDS on a mid-resolution ask re-enters through resumeResolution,
+	// which rebuilds Ctx.Targets from the stack object's WHOLE flat list --
+	// both modes' targets. A walking primitive then sees one acting target per
+	// mode and runs itself once per mode (a Collective Brutality discard asks
+	// twice). Engine.Ask captures this onto the pending frame and the resume
+	// re-binds it, the same shape rp.fusedTargets uses for a fused half.
+	CharmModeScope []state.Target
+	CharmModeSA    *cards.SA
 	// TargetControllerLKI captures each object target's controller at the
 	// start of resolution. A target may leave the battlefield before a
 	// chained TokenOwner$ TargetedController is evaluated; events.Apply then
@@ -951,6 +962,22 @@ type Ctx struct {
 	// discarder, which is why a plain ObjID is not enough state to rebuild:
 	// the two player roles are re-derived from Ctx on re-entry.
 	Discard []state.ObjID
+	// DiscardTarget is the per-target cursor for a mid-resolution discard
+	// whose asking walk covers several acting players: the index (into the
+	// effect's deterministic acting-player list) of the player whose answer
+	// Discard carries. The answer applies to that target alone and every
+	// LATER target poses its own ask, so a multi-target discard no longer
+	// applies target 0's choice to every other target (which left targets 2..n
+	// unasked). It is the RevealPickTarget cursor's discipline applied to
+	// discards, consumed and cleared with Discard at the top of effDiscard's
+	// walk (fx42 scoping).
+	DiscardTarget int
+	// DiscardVote is the answered "Mode$ Hand | Optional$ True" may-discard
+	// election (a whole-hand wheel's "each player may discard their hand"):
+	// "yes" discards that player's whole hand, "no" (or an empty answer)
+	// declines. It is separate from Discard because the election answers a
+	// yes/no, not an object list; the per-target cursor is DiscardTarget.
+	DiscardVote string
 	// Choice is the selected card(s) or player(s) from ChooseCard,
 	// ChoosePlayer, or ChangeTargets. ChoiceDone distinguishes an answered
 	// empty optional choice from its first pass.
