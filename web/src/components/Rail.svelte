@@ -142,7 +142,7 @@
 
   <section class="focus" data-focus-pane data-focus-seat={focused?.seat}>
     {#if focused}
-      <ManaPool pool={focused.pool} />
+      <ManaPool pool={focused.pool} poolRestrictions={focused.pool_restrictions} />
     {/if}
   </section>
 
