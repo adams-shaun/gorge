@@ -1492,6 +1492,17 @@ var apiSpecificRulesSA = map[string][]string{
 	"Engine.driveTokenReplacements":      {"ReplaceToken"},
 	"Engine.poseChosenTokenReplacement":  {"ReplaceToken"},
 	"Engine.applyTokenReplacementToPlan": {"ReplaceToken"},
+	// The CR 616.1 AddCounter order machinery reads the ReplaceWith$ body of
+	// an R:Event$ CounterChange replacement line ONLY -- the body is by
+	// definition a DB$ ReplaceCounter SA, so its Amount$ read belongs to
+	// api:ReplaceCounter alone (the same shape the token dispatch above
+	// scopes); left in the generic union it would mark Amount$ read for
+	// every other API (measured: api:ChangeZone).
+	"Engine.counterReplaceOp":            {"ReplaceCounter"},
+	"Engine.applyAddCounterReplacements": {"ReplaceCounter"},
+	"Engine.applyAddCounterBody":         {"ReplaceCounter"},
+	"tokenReplacementsCommute":           {"ReplaceToken"},
+	"tokenReplApplies":                   {"ReplaceToken"},
 }
 
 // apiSpecificRulesStat is the stat-bucket twin of apiSpecificRulesSA: it
