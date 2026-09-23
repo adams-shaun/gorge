@@ -123,8 +123,20 @@ func TestDelayedControlChangeExecuteUsesEventObject(t *testing.T) {
 		t.Fatalf("precondition: registered capture = %+v", e.G.Delayed)
 	}
 	e.emit(events.Event{Kind: events.ControlChange, Obj: changed, Player: 1})
-	if len(e.pendingTriggers) != 1 || e.pendingTriggers[0].Ctx.Remembered[0].Obj != captured {
-		t.Fatalf("event/capture context = %+v", e.pendingTriggers)
+	// The two referents are distinct: Ctx.Remembered is the FIRING event's
+	// object (what a printed trigger of this mode captures, and what every
+	// ordinary Triggered* spelling reads), while the registration's own
+	// capture rides DelayedRemembered for DelayTriggerRemembered.
+	if len(e.pendingTriggers) != 1 {
+		t.Fatalf("pending triggers = %d, want one", len(e.pendingTriggers))
+	}
+	ctx := e.pendingTriggers[0].Ctx
+	if len(ctx.Remembered) != 1 || ctx.Remembered[0].Obj != changed {
+		t.Fatalf("Ctx.Remembered = %+v, want the event object %d", ctx.Remembered, changed)
+	}
+	if len(ctx.DelayedRemembered) != 1 || ctx.DelayedRemembered[0].Obj != captured {
+		t.Fatalf("Ctx.DelayedRemembered = %+v, want the registration capture %d",
+			ctx.DelayedRemembered, captured)
 	}
 	e.putTriggersOnStack()
 	if len(e.G.Stack) == 0 {
@@ -193,4 +205,37 @@ func TestDelayedTriggerEventModesFire(t *testing.T) {
 			t.Fatalf("attackers-declared delayed trigger did not fire: pending=%d", len(e.pendingTriggers))
 		}
 	})
+}
+
+// The other half of the split TestDelayedControlChangeExecuteUsesEventObject
+// pins: an event-matched registration's Execute reaches the REGISTRATION's
+// own capture through Defined$ DelayTriggerRemembered, while the ordinary
+// Triggered* spellings keep reading the firing event's object.
+func TestDelayedControlChangeExecuteReadsRegistrationCapture(t *testing.T) {
+	e := layerEngine(t)
+	src := onBoard(t, e, 0, "Name:Delayed watcher\nTypes:Creature Wizard\nPT:2/2\n"+
+		"SVar:Trig:DB$ Tap | Defined$ DelayTriggerRemembered\nOracle:x\n")
+	captured := onBoard(t, e, 0, "Name:Captured\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	changed := onBoard(t, e, 0, "Name:Changed\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	if captured == changed || e.G.Obj(captured).Tapped || e.G.Obj(changed).Tapped ||
+		e.G.Obj(captured).Zone != state.ZBattlefield {
+		t.Fatal("precondition: distinct untapped battlefield objects required")
+	}
+	e.emit(events.Event{Kind: events.DelayedRegister, Obj: src, Player: 0, Step: e.G.Step,
+		Counter: "Trig", IDs: []state.ObjID{captured},
+		Text: "ChangesController:Mode$ ChangesController | ValidCard$ Creature | Execute$ Trig"})
+	if len(e.G.Delayed) != 1 || len(e.G.Delayed[0].Remembered) != 1 ||
+		e.G.Delayed[0].Remembered[0].Obj != captured {
+		t.Fatalf("precondition: registered capture = %+v", e.G.Delayed)
+	}
+	e.emit(events.Event{Kind: events.ControlChange, Obj: changed, Player: 1})
+	e.putTriggersOnStack()
+	if len(e.G.Stack) == 0 {
+		t.Fatal("delayed execute was not pushed")
+	}
+	e.resolveTop()
+	if !e.G.Obj(captured).Tapped || e.G.Obj(changed).Tapped {
+		t.Fatalf("DelayTriggerRemembered tapped the wrong object: captured=%v changed=%v",
+			e.G.Obj(captured).Tapped, e.G.Obj(changed).Tapped)
+	}
 }

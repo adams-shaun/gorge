@@ -24,13 +24,19 @@ type TriggerContext struct {
 	DefendingPlayer state.Target
 	TriggerPlayer   state.Target
 	TriggerCard     state.ObjID
-	// DelayedObject is the causing event's object for a delayed trigger.
-	// The registration's Remembered remains the original captured set (used
-	// by DelayTriggerRemembered); TriggeredObject reads this fire-time object.
-	DelayedObject    state.ObjID
-	AttackingPlayer  state.Target
-	AttackedTarget   state.Target
-	TriggerActivator state.Target
+	// DelayedObject is the causing event's object for a delayed trigger:
+	// the fire-time object TriggeredObject names.
+	DelayedObject state.ObjID
+	// DelayedRemembered is the set a delayed-trigger REGISTRATION captured
+	// (RememberObjects$ at registration time), which DelayTriggerRemembered
+	// names. It is carried beside Ctx.Remembered because an event-matched
+	// registration's Remembered is the firing EVENT's object -- the same
+	// capture a printed trigger of that mode makes -- so the two referents
+	// cannot share one slot.
+	DelayedRemembered []state.Target
+	AttackingPlayer   state.Target
+	AttackedTarget    state.Target
+	TriggerActivator  state.Target
 	// TriggerCardController is the controller the triggering card had as it
 	// LEFT the battlefield (CR 603.10a), recorded when the trigger fires and
 	// carried with the ability onto the stack. It is absent for every other

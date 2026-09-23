@@ -172,6 +172,11 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 				Controller: dt.Controller,
 				Remembered: append([]state.Target(nil), dt.Remembered...),
 				Captured:   append([]state.Target(nil), dt.Remembered...),
+				// A phase registration has no firing event, so its capture
+				// is both Remembered and the DelayTriggerRemembered referent.
+				TriggerContext: effects.TriggerContext{
+					DelayedRemembered: append([]state.Target(nil), dt.Remembered...),
+				},
 			},
 		})
 	}
@@ -333,13 +338,27 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 			continue
 		}
 		refs := e.triggerReferents(t, dt.Source, ev, referentsArg)
-		if dt.EventMode == "ChangesController" || dt.EventMode == "ChangesZone" || dt.EventMode == "SpellCast" || dt.EventMode == "DamageDone" {
-			refs.DelayedObject = ev.Obj
+		refs.DelayedObject = ev.Obj
+		// The REGISTRATION's capture rides its own referent field, never
+		// Ctx.Remembered: an event-matched registration's Remembered is the
+		// firing event's object, exactly what triggerRemembered seeds a
+		// printed trigger of the same mode with, because the Execute bodies
+		// read it through the ordinary Triggered* spellings (Chancellor of
+		// the Annex's Defined$ TriggeredSpellAbility is the cast spell, not
+		// whatever the Effect captured when it registered). Only
+		// DelayTriggerRemembered names the registration's own set.
+		remembered := triggerRemembered(ev, dt.Source)
+		if dt.EventMode == "BecomeMonarch" {
+			// Palace Jailer's exile promise: nothing on a MonarchChange
+			// names the exiled card, so the registration's capture IS the
+			// referent this body resolves.
+			remembered = append([]state.Target(nil), dt.Remembered...)
 		}
+		refs.DelayedRemembered = append([]state.Target(nil), dt.Remembered...)
 		fires = append(fires, delayedSpellCastFire{
 			dt:         *dt,
 			sa:         sa,
-			remembered: append([]state.Target(nil), dt.Remembered...),
+			remembered: remembered,
 			referents:  refs,
 			svars:      src.Face().SVars,
 			static:     strings.TrimSpace(t.Params["Static"]) != "",
