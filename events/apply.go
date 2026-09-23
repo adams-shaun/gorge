@@ -1627,6 +1627,30 @@ func Apply(g *state.Game, e Event) {
 			o.NotedNumber = e.Amount
 		}
 
+	case PlayerNoted:
+		// A DB$ Pump body noted a label onto a player (NoteCards$ <defined>
+		// | NoteCardsFor$ <label> -- Seize the Spotlight, Master of
+		// Ceremonies). Player is the seat and Text the label; the note is
+		// read back by the shared player filter's `Player.NotedFor<label>`
+		// qualifier. Appending is idempotent (a re-note of the same label
+		// does not duplicate it) and preserves first-note order, so a
+		// log-only replay rebuilds the exact slice. An empty label or an
+		// out-of-range seat writes nothing rather than a ghost note.
+		if e.Text == "" || int(e.Player) >= len(g.Players) {
+			break
+		}
+		p := &g.Players[e.Player]
+		seen := false
+		for _, n := range p.Notes {
+			if n == e.Text {
+				seen = true
+				break
+			}
+		}
+		if !seen {
+			p.Notes = append(p.Notes, e.Text)
+		}
+
 	case Choose:
 		if o := g.Obj(e.Obj); o != nil {
 			switch e.Counter {
@@ -1965,6 +1989,21 @@ func Apply(g *state.Game, e Event) {
 				sa = &cards.SA{Kind: "DB", API: "Pump",
 					Params: map[string]string{"Defined": "TriggeredBlockerLKICopy", "NumAtt": "-1", "NumDef": "-1"}}
 				flanking = ok
+			}
+			// A granted cumulative upkeep (rules.pushTrigger's
+			// __kwCumulativeUpkeepGranted:<cost> payload) has no SVar either:
+			// rebuilt structurally into the same DB$ CumulativeUpkeep |
+			// Cost$ <cost> ability the printed K:Cumulative upkeep expansion
+			// carries (cards/kw_cumulativeupkeep.go), so the live game and the
+			// replay mint identical objects from the event text alone. The
+			// "Granted" suffix and the trailing colon keep the payload from
+			// aliasing the "__kw<keyword-line>" SVar a printed bare
+			// K:Cumulative upkeep line mints (the Exploit/Offspring rule).
+			// The cost rides Params["Cost"], which rules' startCumulativeUpkeep
+			// reads at resolution.
+			if rest, ok := strings.CutPrefix(e.Counter, "__kwCumulativeUpkeepGranted:"); ok {
+				sa = &cards.SA{Kind: "DB", API: "CumulativeUpkeep",
+					Params: map[string]string{"Cost": rest, "TriggerDescription": "Cumulative upkeep"}}
 			}
 			// A granted Exploit (rules.pushTrigger's __kwExploitGranted
 			// payload) has no SVar either: rebuilt structurally into the same

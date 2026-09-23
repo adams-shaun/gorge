@@ -78,7 +78,7 @@ func (e *Engine) targetCommitsCrime(target state.Target, actor state.PlayerID) b
 // on action triggers. The player is the player who performed the action.
 func (e *Engine) eventCardAndPlayerMatch(t cards.Trigger, source, card state.ObjID, player state.PlayerID) bool {
 	ctrl := e.controllerOf(source)
-	if v := t.Params["ValidCard"]; v != "" && !effects.MatchesSpecCtx(e.G, v, card, e.specCtx(source, ctrl)) {
+	if v := t.Params["ValidCard"]; v != "" && !e.matchesSpec(v, card, e.specCtx(source, ctrl)) {
 		return false
 	}
 	if v := t.Params["ValidPlayer"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, player, ctrl) {
@@ -162,12 +162,12 @@ func (e *Engine) attachedMatches(t cards.Trigger, source state.ObjID, ev events.
 	}
 	ctrl := e.controllerOf(source)
 	if v, ok := t.Params["ValidSource"]; ok {
-		if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+		if !e.matchesSpec(v, ev.Obj, e.specCtx(source, ctrl)) {
 			return false
 		}
 	}
 	if v, ok := t.Params["ValidTarget"]; ok {
-		return effects.MatchesSpecCtx(e.G, v, ev.IDs[0], e.specCtx(source, ctrl))
+		return e.matchesSpec(v, ev.IDs[0], e.specCtx(source, ctrl))
 	}
 	return false
 }
@@ -196,7 +196,7 @@ func (e *Engine) ringTemptsMatches(t cards.Trigger, source state.ObjID, ev event
 		if ev.Obj == 0 {
 			return false // no creature became the Ring-bearer
 		}
-		if !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, ctrl)) {
+		if !e.matchesSpec(v, ev.Obj, e.specCtx(source, ctrl)) {
 			return false
 		}
 	}
@@ -224,13 +224,13 @@ func (e *Engine) becomesTargetMatches(t cards.Trigger, source state.ObjID, ev ev
 		// (Spell.OppCtrl) and Thunderbreak Regent's "spell or ability"
 		// (SpellAbility.OppCtrl) both resolve against that stack object; an
 		// event carrying no targeting object can never match.
-		if ev.Obj == 0 || !effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, e.controllerOf(source))) {
+		if ev.Obj == 0 || !e.matchesSpec(v, ev.Obj, e.specCtx(source, e.controllerOf(source))) {
 			return false
 		}
 	}
 	if v, ok := t.Params["ValidTarget"]; ok {
 		for _, id := range ev.IDs {
-			if effects.MatchesSpecCtx(e.G, v, id, e.specCtx(source, e.controllerOf(source))) {
+			if e.matchesSpec(v, id, e.specCtx(source, e.controllerOf(source))) {
 				// CR 702.21a compares the Ward permanent's controller with the
 				// controller of the targeting spell or ability ON THE STACK
 				// (the same ev.Obj ValidSource$ reads above). For an ability,
@@ -284,7 +284,7 @@ func (e *Engine) landPlayedMatches(t cards.Trigger, source state.ObjID, ev event
 		return false
 	}
 	if v, ok := t.Params["ValidCard"]; ok {
-		return effects.MatchesSpecCtx(e.G, v, ev.Obj, e.specCtx(source, e.controllerOf(source)))
+		return e.matchesSpec(v, ev.Obj, e.specCtx(source, e.controllerOf(source)))
 	}
 	return true
 }

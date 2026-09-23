@@ -68,7 +68,7 @@ func (e *Engine) attackAllowedThroughDefender(id state.ObjID, defender state.Pla
 		if spec == "" {
 			spec = sv.Params["ValidCards"]
 		}
-		if spec == "" || !effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(sv.Source, sv.Controller)) {
+		if spec == "" || !e.matchesSpec(spec, id, e.specCtx(sv.Source, sv.Controller)) {
 			continue
 		}
 		if !e.attackedSpecHolds(sv.Params["ValidAttacked"], defender, sv.Controller, nil) {

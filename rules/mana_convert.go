@@ -224,7 +224,7 @@ func (e *Engine) manaConversionParts(p state.PlayerID, id state.ObjID, ability b
 			return
 		}
 		if vc, ok := sv.Params["ValidCard"]; ok && vc != "" &&
-			!effects.MatchesSpecCtx(e.G, vc, id, e.manaConvSpecCtx(sv, p, remembered)) {
+			!e.matchesSpec(vc, id, e.manaConvSpecCtx(sv, p, remembered)) {
 			return
 		}
 		if vsa, ok := sv.Params["ValidSA"]; ok && !staticSAKindMatches(vsa, ability) {

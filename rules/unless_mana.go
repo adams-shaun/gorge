@@ -27,13 +27,13 @@ func (e *Engine) unlessManaWindowNeeded(p state.PlayerID, cost Cost, obj state.O
 	return e.hasUntappedManaSource(p)
 }
 
-// askUnlessMana opens the unless-cost activation window by delegating to the
-// ONE mid-resolution mana-window owner (askWardMana), which owns the
+// askUnlessWardMana opens the unless-cost activation window by delegating to
+// the ONE mid-resolution mana-window owner (askWardMana), which owns the
 // resume-state writes (ruling T21-e). The window's Done answer charges the
 // cost through payUnlessCost -- with the resolving object's ManaConvert
 // conversion -- and re-enters the asking SA with ctx.UnlessPay set, exactly
 // as the arm's ordinary pool-only charge does.
-func (e *Engine) askUnlessMana(payer state.PlayerID, cost Cost, rp *resumePoint) {
+func (e *Engine) askUnlessWardMana(payer state.PlayerID, cost Cost, rp *resumePoint) {
 	e.askWardMana(rp, &wardManaPayment{payer: payer, cost: cost, target: rp.target,
 		resumeKind: "unless_mana", prompt: "Activate mana abilities to pay the unless cost",
 		unless: true})

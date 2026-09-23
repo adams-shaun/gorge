@@ -412,7 +412,10 @@ func TestWithdrawChangeZoneSubAsksAnotherTarget(t *testing.T) {
 			t.Fatal("no decision while awaiting the unless pay ask")
 		}
 		if d.Kind == decision.KModes && d.ResumeKind == "unless_pay" {
-			submitChoices(t, e, 1) // decline: "Don't pay"
+			// The payer spent its {U}{U} casting Withdraw and has no source,
+			// so the bounded offer is decline-only. Use the trailing decline
+			// option to keep this test about the resumed target accumulator.
+			submitChoices(t, e, d.Options[len(d.Options)-1].Index)
 			paidAsk = true
 			break
 		}

@@ -598,6 +598,27 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		e.drainAwaitsTarget = e.Pending() != nil
 		return
 	}
+	// A granted cumulative upkeep (CR 702.24a via a layer-6 AddKeyword$
+	// Cumulative upkeep:<cost> or an A:AB$ Pump's KW$ Cumulative upkeep:<cost>
+	// -- Breath of Dreams, Mana Chains, Decomposition, Balduvian Shaman,
+	// Dreams of the Dead): the Ward/Afflict/Flanking shape. A permanent
+	// granted the keyword has no printed K:Cumulative upkeep expansion
+	// trigger, so the synthesized Phase trigger queues here and its Counter
+	// payload __kwCumulativeUpkeepGranted:<cost> is what events.Apply
+	// rebuilds into the same DB$ CumulativeUpkeep | Cost$ <cost> ability the
+	// printed expansion carries. The trailing colon (and the "Granted"
+	// suffix) keep the payload from aliasing the "__kwCumulativeupkeep:<cost>"
+	// SVar a printed bare K:Cumulative upkeep line mints. The trigger has no
+	// target roles, so no TriggerContext rides along.
+	if pt.Cumulative != "" {
+		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
+			return
+		}
+		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
+			Obj: pt.Source, Counter: "__kwCumulativeUpkeepGranted:" + pt.Cumulative, Text: "cumulative upkeep ability"})
+		e.drainAwaitsTarget = e.Pending() != nil
+		return
+	}
 	// A granted Exploit (CR 702.58a via a layer-6 AddKeyword$ Exploit --
 	// Colonel Autumn's "Other legendary creatures you control have
 	// exploit"): the Ward/Afflict shape. The trigger is optional in
