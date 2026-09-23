@@ -497,3 +497,68 @@ No new test or production fix: `e7f775f6` already pins the queue drain and resol
 ## Issues
 
 None found. The reported empty queue is correct after `Advance` drains it; the stack and resolved life are the relevant observations.
+
+---
+
+# IgnoreLegendRule — agent-20260918T232250Z-29aed5d6, sol1 integration
+
+## Changes and review resolution
+
+The implementation in `5b45f3b3` and `39f7dd7d` already delivers the brief: `rules/sba.go` filters the legend-SBA duplicate set with live `IgnoreLegendRule` statics, matching each candidate against the static's own context and honoring `continuousGateHolds` (the shared conditional-static grammar). `rules/ignorelegendrule_test.go` tests Council of Reeds' matching creature pair, a noncreature pair, an opponent's pair, removal of Council and return of the ordinary controller choice, two- and three-copy Brothers Yamazaki condition boundaries, and reproducible event kinds and chain head. The CR 704.5j closing-register row was deleted from `AGENTS.md` and the row bound lowered to 17 in `internal/testutil/agentsdoc_test.go`. No golden was re-pinned.
+
+The sol1 finding was **integration blocked by a dirty `.ds4/report-t2.md`**. Its uncommitted replacement of another task's player-count report was saved to `.ds4/scratch/ignorelegend-report-t2.saved.md` and the original restored from HEAD. The earlier IgnoreLegendRule commit also overwrote an unrelated tracked `.ds4/report-t1.md`: restored it from `main` in `da6067e5` so the merge would not erase unrelated work. With the tree clean, merged current `main` as `c79953ac` without conflict; both historical reports are preserved. This report is appended to the designated `.ds4/report-sol1.md`, leaving its earlier tasks' entries intact.
+
+The fix is structural, not specific to Council: every live static of this mode is collected in canonical order and checked through one gate and its own `ValidCard$` context. Prevalence re-measured at **11** corpus files (`/usr/bin/grep -rl 'Mode$ IgnoreLegendRule' .cards/cardsfolder | wc -l`). `.cards` was already a symlink to the corpus; the real fixtures ran, not skipped.
+
+## Gates after merging main (real outputs)
+
+```text
+$ go test -run 'TestIgnoreLegendRule|TestParamCensusScanIsComplete' ./rules/ > .ds4/scratch/sol1-legend-rules.log 2>&1; tail -30 .ds4/scratch/sol1-legend-rules.log
+ok   github.com/adams-shaun/gorge/rules  0.733s
+$ go test -run 'TestKnownApproximation' ./internal/testutil/ > .ds4/scratch/sol1-legend-doc.log 2>&1; tail -10 .ds4/scratch/sol1-legend-doc.log
+ok   github.com/adams-shaun/gorge/internal/testutil  0.001s
+$ go test ./internal/archtest/ > .ds4/scratch/sol1-legend-arch.log 2>&1; tail -15 .ds4/scratch/sol1-legend-arch.log
+ok   github.com/adams-shaun/gorge/internal/archtest  3.286s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ > .ds4/scratch/sol1-legend-bot.log 2>&1; tail -5 .ds4/scratch/sol1-legend-bot.log
+ok   github.com/adams-shaun/gorge/cmd/botbench  1.194s
+$ gofmt -l rules/sba.go rules/ignorelegendrule_test.go internal/testutil/agentsdoc_test.go
+(no output)
+$ go run ./cmd/gentypes -check
+(no output; exit 0)
+```
+
+All four Go tests exited 0. No head/ratchet or botbench split movement measured; full TestHeads and acceptance were left to the integration gates.
+
+## Fails without the fix
+
+Original production-hunk revert, five Council and scope/replay tests, from `.ds4/scratch/reverted.log` (restored byte-identically in the implementation round):
+
+```text
+--- FAIL: TestIgnoreLegendRuleExemptsMatchingCreatures (0.60s)
+    ignorelegendrule_test.go:104: a decision choose is pending under a live IgnoreLegendRule exemption
+--- FAIL: TestIgnoreLegendRuleDoesNotExemptNoncreatures (0.00s)
+    ignorelegendrule_test.go:148: legend option 0 names obj 82, want 84 (battlefield order)
+--- FAIL: TestIgnoreLegendRuleDoesNotExemptOtherPlayersCreatures (0.00s)
+    ignorelegendrule_test.go:186: legend choice asked seat 0, want the duplicates' controller seat 1
+--- FAIL: TestIgnoreLegendRuleExemptionEndsWhenSourceLeaves (0.00s)
+    ignorelegendrule_test.go:215: a decision choose is pending while the exemption is live
+--- FAIL: TestIgnoreLegendRuleEventStreamIsDeterministic (0.00s)
+    ignorelegendrule_test.go:256: legend option 0 names obj 82, want 84 (battlefield order)
+FAIL
+FAIL github.com/adams-shaun/gorge/rules 0.616s
+```
+
+The round-2 condition-gate revert fails the false-case regression (from `.ds4/scratch/rv-revert.log`), and was restored byte-identically:
+
+```text
+--- FAIL: TestIgnoreLegendRuleHonorsConditionFalse (0.00s)
+    ignorelegendrule_test.go:276: fixture: the false EQ2 gate still exempted permanent 81
+FAIL
+FAIL github.com/adams-shaun/gorge/rules 0.599s
+```
+
+The true-gate case depends on the same exemption insertion as the five Council tests (reverting that insertion gives a duplicate legend choice); the condition-only revert is deliberately a false-case probe. All new tests check battlefield, legendary/name/controller and matching/nonmatching static preconditions before asserting outcomes.
+
+## Issues
+
+No outstanding defect identified in this ticket; no new ticket or Known-approximations row added. The sol1 finding was report-file integration, not an engine failure.
