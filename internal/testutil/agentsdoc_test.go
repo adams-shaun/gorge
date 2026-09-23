@@ -19,12 +19,10 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	// The merged table measures 44 rows: main's closures merged here
-	// (non<X> via d56e404f, NameCard ChooseFromList$/AtRandom$ via 78d3b764,
-	// the battle protector row via f76f59fd, and the earlier pc1/each1/CR
-	// 616.1 closures), plus this branch's own layer-4 filter-grammar closure
-	// (fix 63c07260), which deletes main's last remaining layer-4 row.
-	knownApproximationRows = 44
+	// 44 at the rebase base (main's own closures: non<X>, NameCard, the battle
+	// protector, pc1/each1/CR 616.1, layer-4 filter grammar); this branch's
+	// attackprop1 closure deletes one more.
+	knownApproximationRows = 43
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.
