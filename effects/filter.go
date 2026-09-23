@@ -2279,17 +2279,10 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		// nothing, and beneath '!' a recognised shape whose absent binding
 		// cannot be negated into a match.
 		//
-		// The legality read is the target-spec half only: the candidate must
-		// match the spell's own ValidTgts$ evaluated from the spell's
-		// controller. The protection/shroud/hexproof/CantTarget half of
-		// Forge's canBeTargetedBy is NOT modelled here -- the filter tier has
-		// no rules engine to consult (effects sits below rules), so a
-		// candidate the spell's spec admits but its protection withholds
-		// still enters the choice pool. The error is bounded: the answered
-		// copy's own CR 608.2b resolution recheck judges each target legal
-		// and fizzles the one whose target is not, so an over-wide pool can
-		// never resolve an illegal copy (it can only take a {2} payment for
-		// one). Recorded in the Known approximations table.
+		// The effects tier evaluates the explicit target spec; rules publishes
+		// the candidates that pass full target legality as immutable data on
+		// SpecContext. This keeps effects below rules without a callable
+		// resolver or a rules pointer on state.Game.
 		if sc.TriggerCard == 0 {
 			return false, false
 		}
@@ -2299,6 +2292,9 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		}
 		sa := triggeredSpellTargetSA(spell)
 		if sa == nil {
+			return false, true
+		}
+		if !targetableObject(sc.TargetableObjects, o.ID) {
 			return false, true
 		}
 		return MatchesSpecCtx(g, strings.TrimSpace(sa.Params["ValidTgts"]), o.ID,
@@ -3209,6 +3205,9 @@ type SpecContext struct {
 	// (kw:Flanking's blocker check, Cavalry Master's `withFlanking` lord).
 	// nil keeps the object-alone read (printed face plus counters).
 	ExtraKeywords []string
+	// TargetableObjects is the rules tier's immutable snapshot of objects this
+	// triggered spell can currently target under full rules legality.
+	TargetableObjects []state.ObjID
 	// EffectiveNames optionally supplies the layer-3 derived names (SetName$,
 	// CR 613.1d) in force on the battlefield -- rules' layer walk computes
 	// them and binds the result on every SpecContext it builds. Ordinary
@@ -3326,6 +3325,15 @@ func derivedTypesFor(o *state.Object, sc SpecContext) ([]string, bool) {
 // CanBeTargetedByTriggeredSpellAbility predicate fails closed on it, the
 // narrow direction for a choice pool. Never the rules side's modalTargetSA:
 // that lives above the effects tier.
+func targetableObject(ids []state.ObjID, id state.ObjID) bool {
+	for _, candidate := range ids {
+		if candidate == id {
+			return true
+		}
+	}
+	return false
+}
+
 func triggeredSpellTargetSA(spell *state.Object) *cards.SA {
 	if spell == nil {
 		return nil

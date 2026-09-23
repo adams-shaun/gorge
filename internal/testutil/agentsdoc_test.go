@@ -26,7 +26,7 @@ const (
 	// battle-protector closure (f76f59fd), earlier pc1/each1/CR 616.1 closures,
 	// main's cascade1 closure (e46f051d), main's token-replacement closure, and
 	// this branch's maxpower1 closure.
-	knownApproximationRows = 38
+	knownApproximationRows = 37
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.
