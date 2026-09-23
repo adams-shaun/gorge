@@ -1968,13 +1968,21 @@ func (e *Engine) emit(ev events.Event) events.Event {
 				lkiPTValid = true
 			}
 		}
+	case events.CounterChange:
+		// Vanishing's last-counter trigger must distinguish a real removal
+		// from a redundant decrement at zero. Keep the pre-fold TIME count
+		// alongside the existing Suspend zero-crossing check below.
+		if ev.Amount < 0 && ev.Counter == "TIME" {
+			if o := e.G.Obj(ev.Obj); o != nil {
+				cp := o.CloneDeep()
+				lki = &cp
+			}
+		}
 	}
 	departingSource, departingSourceLifelink, departingSourceController := e.captureSourceLifelinkLKI(ev)
 	timeBefore := int32(0)
-	if ev.Kind == events.CounterChange && ev.Amount < 0 && ev.Counter == "TIME" {
-		if o := e.G.Obj(ev.Obj); o != nil {
-			timeBefore = o.Counter("TIME")
-		}
+	if lki != nil && ev.Kind == events.CounterChange {
+		timeBefore = lki.Counter("TIME")
 	}
 	// CR 310.11 (battle-defeated): the defeat feed below reads the defense
 	// count BEFORE the move fold -- Apply's Move clears o.Counters as the
@@ -1986,6 +1994,15 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		if o := e.G.Obj(ev.Obj); o != nil {
 			defenseBefore = o.Counter("DEFENSE")
 		}
+		// CR 608.2b/h departure boundary: this is the last moment a departing
+		// target of the resolving chain still carries the counters the
+		// look-back reads, so refresh the chain's Ctx.TargetCountersLKI HERE --
+		// after the replacement pass settled the final move, before events.Apply
+		// clears the counters. A chained effect that added or removed counters
+		// earlier in the same resolution must be read as it was immediately
+		// before the zone change, not as the resolution-start snapshot
+		// (effects.Resolve's entry capture) recorded it.
+		e.snapshotDepartingTargetCounters(ev.Obj)
 	}
 	stackLen := len(e.G.Stack)
 	// Record only the final event after replacement selection. The object

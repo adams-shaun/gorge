@@ -1,3 +1,130 @@
+# Convoked$Amount — fix-round report
+
+STATUS: DONE. Commit `88d159e4` (following initial implementation `9e650da1`). `.cards` was present as a symlink to the shared corpus; `/usr/bin/grep -rlE 'Convoked\$Amount' .cards/cardsfolder | wc -l` returned **2**.
+
+## Changes
+
+- `effects/count.go`: only the new Convoked head rejects unknown/invalid `/Op` suffixes for both bare and `Count$` forms; known operators still compose via the existing arithmetic. No changes to the behavior of other count heads.
+- `effects/convoked_amount_test.go`: assert `(0,true)` for empty and absent provenance and `(0,false)` for unsupported operators (both spellings), rather than losing evaluability through `Num`.
+- `rules/convoked_amount_test.go`: the real cast of Imperiosaur captures exactly two selected bears and excludes a third untapped battlefield bear, then ETB adds four counters. The real Knight ETB Dig is driven to its actual ask with a replay-visible library order and MV 0/2/4/5 fixture preconditions; only 0 and 2 are offered, and the MV-2 bear is selected and reaches hand. The prior post-resolution count assertion remains. This proves the engine consumer, rather than only a manually seeded SVar read.
+
+The structural fix uses `Object.Convoked` already captured by the cast and the existing `/Op` evaluator; no cast-time gating or event changes. No count-head ratchet entry or Known-approximations row corresponded to this head; neither was changed. Botbench split did not move.
+
+## Fails without the fix
+
+Copied `effects/count.go` to `.ds4/scratch/count-fixed.go`, replaced it temporarily with `git show 9e650da1^:effects/count.go`, ran `go test -run 'TestConvokedAmount|TestAncientImperiosaurEntersWithTwoCountersPerConvoker|TestKnightErrantOfEosXCountsConvokers' ./effects ./rules`, then restored the exact copy (`cmp` exit 0). Exit 1:
+
+```
+--- FAIL: TestConvokedAmountReadsTheCorpusHeads (0.59s)
+    convoked_amount_test.go:75: Num Amount$ X (Knight-Errant SVar) = 0, want 2
+--- FAIL: TestConvokedAmountEmptyAndAbsentAreEvaluatedZero (0.00s)
+    convoked_amount_test.go:111: empty provenance = (0,false), want (0,true)
+FAIL github.com/adams-shaun/gorge/effects
+--- FAIL: TestAncientImperiosaurEntersWithTwoCountersPerConvoker (0.57s)
+    convoked_amount_test.go:135: Ancient Imperiosaur P1P1 counters = 0, want 4 (2 convokers x /Twice)
+--- FAIL: TestKnightErrantOfEosXCountsConvokers (0.00s)
+    convoked_amount_test.go:216: Knight Dig never offered a choice
+FAIL github.com/adams-shaun/gorge/rules
+```
+
+Separately removed just the two operator-validation checks temporarily, ran `go test -run '^TestConvokedAmountEmptyAndAbsentAreEvaluatedZero$' ./effects` and restored the byte-identical copy (`cmp` exit 0). Exit 1:
+
+```
+--- FAIL: TestConvokedAmountEmptyAndAbsentAreEvaluatedZero (0.58s)
+    convoked_amount_test.go:124: unknown operator "Convoked$Amount/Unmodelled" = (0,true), want unresolved
+FAIL github.com/adams-shaun/gorge/effects
+```
+
+## Gates
+
+`go test -run 'TestConvokedAmount|TestAncientImperiosaurEntersWithTwoCountersPerConvoker|TestKnightErrantOfEosXCountsConvokers|TestEveryRepoDeckCountHeadResolves' ./effects ./rules` (exit 0):
+
+```
+ok   github.com/adams-shaun/gorge/effects (cached)
+ok   github.com/adams-shaun/gorge/rules 0.701s
+```
+
+`go test ./internal/archtest/` (exit 0):
+
+```
+ok   github.com/adams-shaun/gorge/internal/archtest 3.086s
+```
+
+`go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/` (exit 0):
+
+```
+ok   github.com/adams-shaun/gorge/cmd/botbench 1.191s
+```
+
+`gofmt -l effects/count.go effects/convoked_amount_test.go rules/convoked_amount_test.go` (exit 0): no output.
+`go run ./cmd/gentypes -check` (exit 0): no output.
+`git diff --check` (exit 0): no output.
+
+## Issues
+
+None found outside scope. No ledger entry closed; no CR lane test warranted for this card-specific count head.
+
+---
+
+Historical reports preserved verbatim below from the main lineage (Attached predicates, Deep Spawn UnlessCost Mill, RollDice, Gitaxian Probe verification, CopySpellAbility.Optional); they belong to separate tasks and are not findings of the Convoked$Amount ticket.
+---
+
+# Attached predicates — agent-20260922T210645Z-27e19c88
+
+## Changes and review finding
+
+The earlier commits `60976e28` (bare `Attached`, four context referents, Arna) and `53403389` (real Stangg trigger) implemented the brief; `82db540a` made plural bindings unbound. This fix-round commit `6b7f8116` closes the remaining MAJOR from `findings-sol1.md`: `effects/filter.go` now passes the game through `attachedToReferentObjects` and `contextPredicateBound`, rejecting any nonexistent object ID in a target or remembered binding before evaluating the positive OR its negation. The single-binding, literal/dotted, player-only, and plural paths remain unchanged. `effects/attachedto_stale_binding_test.go` is a new test file: it checks all four referents, missing IDs, mixed live/stale bindings, both polarities, grammar recognition, and battlefield/live-ID preconditions. This uses the shared resolver, so the next context-bound caller cannot forget the liveness check. `.cards` was already symlinked to `/home/sadams/projects/gorge/.cards`; corpus-backed runs did not skip. No Known-approximations row closed; no head golden or ratchet edited.
+
+## Fails without the fix
+
+New test was added before editing `filter.go`; this is the exact pre-fix run (`go test -run 'TestAttachedToStaleReferentFailsClosed' ./effects/`, exit 1):
+
+```
+--- FAIL: TestAttachedToStaleReferentFailsClosed (0.65s)
+    attachedto_stale_binding_test.go:38: AttachedTo Targeted: stale binding returned (true, true), want (false, false)
+    attachedto_stale_binding_test.go:41: Aura.AttachedTo Targeted: stale binding must match nothing
+    attachedto_stale_binding_test.go:38: !AttachedTo Targeted: stale binding returned (false, true), want (false, false)
+    attachedto_stale_binding_test.go:38: AttachedTo ParentTarget: stale binding returned (true, true), want (false, false)
+    attachedto_stale_binding_test.go:41: Aura.AttachedTo ParentTarget: stale binding must match nothing
+    attachedto_stale_binding_test.go:38: !AttachedTo ParentTarget: stale binding returned (false, true), want (false, false)
+    attachedto_stale_binding_test.go:38: AttachedTo TriggeredCardLKICopy: stale binding returned (true, true), want (false, false)
+    attachedto_stale_binding_test.go:41: Aura.AttachedTo TriggeredCardLKICopy: stale binding must match nothing
+    attachedto_stale_binding_test.go:38: !AttachedTo TriggeredCardLKICopy: stale binding returned (false, true), want (false, false)
+    attachedto_stale_binding_test.go:38: AttachedTo TriggeredAttackerLKICopy: stale binding returned (true, true), want (false, false)
+    attachedto_stale_binding_test.go:41: Aura.AttachedTo TriggeredAttackerLKICopy: stale binding must match nothing
+    attachedto_stale_binding_test.go:38: !AttachedTo TriggeredAttackerLKICopy: stale binding returned (false, true), want (false, false)
+FAIL
+FAIL github.com/adams-shaun/gorge/effects 0.662s
+FAIL
+```
+
+Earlier fix-reverted evidence for bare Attached/context referents is in `.ds4/scratch/fails-effects.log` (TestAttachedPredicate / TestAttachedToContextReferents failed); real Arna and Stangg carrier failures are in `.ds4/scratch/fails-rules2.log` (both lacked a Bonesplitter token copy). The plural-binding test's pre-fix failures are documented in the earlier round's report. All files are corpus-backed; carrier tests assert the source is attached, the trigger resolves and the copied object differs from the original.
+
+## Gates run (exact commands, actual output)
+
+```
+$ gofmt -l effects/filter.go effects/attachedto_stale_binding_test.go
+$ go run ./cmd/gentypes -check
+(exit 0, no output)
+$ go test -run 'TestAttachedPredicate|TestAttachedToContextReferents|TestAttachedToReferentPluralBindingFailsClosed|TestAttachedToStaleReferentFailsClosed|TestAttachedToLiteralPredicate|TestAttachedToTargetedBoundFromContext|TestAttachedToPlayerWordStaysUnknown|TestAttachedToPredicateUnlocksCorpusTargeting|TestArnaRealSourceFilterReachesCopyRider|TestStanggRealTriggerCopiesAttachedPermanents' ./effects ./rules/
+ok   github.com/adams-shaun/gorge/effects  0.747s
+ok   github.com/adams-shaun/gorge/rules    0.704s
+$ go test ./internal/archtest/
+ok   github.com/adams-shaun/gorge/internal/archtest (cached)
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok   github.com/adams-shaun/gorge/cmd/botbench 1.248s
+```
+
+## Issues
+
+No new unresolved defect in this fix round. The pre-existing Silence the Believers plural-target limitation is fail-closed by design in `effects/filter.go:attachedToReferentObjects`: at 2+ object targets its `Aura.AttachedTo Targeted` rider does not apply; the earlier commit `82db540a` documents this remainder, rather than enlarging the frozen Known-approximations register. No head/ratchet movement measured; the daemon owns full game/acceptance gates.
+
+---
+
+Historical Gitaxian Probe report preserved verbatim below; it belongs to a separate task and is not a finding of this round.
+
+---
+
 # Deep Spawn UnlessCost Mill — sol1 review response
 
 ## Finding resolved
@@ -170,3 +297,96 @@ No new tests: `## Fails without the fix` and new-test preconditions are inapplic
 ## Issues
 
 No new defect identified. Without the missing feedback capture the original live game's point of failure remains unverifiable; do not infer that the reported historical symptom did not occur.
+
+---
+
+# CopySpellAbility.Optional — sol1 rebase and report-conflict resolution
+
+## Finding resolved
+
+The MAJOR in `.ds4/findings-sol1.md` was a destructive overwrite of an unrelated ticket's `.ds4/report-t1.md`. Rebased onto `main` as directed and resolved both report conflicts by retaining **main's exact versions** of `.ds4/report-t1.md` and `.ds4/report-r2.md`; `cmp` verified both byte-for-byte against `main`. The CopySpellAbility reports from earlier rounds are preserved in the branch's historical commits; this ticket's current report is this section of `.ds4/report-sol1.md`, appended without replacing the other tickets' existing content at that path. No Go changes were needed in this review round. The prior findings (no-host AskOutcome and Optional+UnlessCost composition) were already fixed in `8054eb71` (rebased SHA), as confirmed by the reviewer and the focused tests below. No other MAJOR was raised.
+
+## Implementation already committed
+
+- `effects/copy.go`, `effects/registry.go`: Optional$ True asks the copy controller for a yes/no through `copy_optional`, pauses only on `AskAsked`, resumes with the chosen answer, and composes AFTER the shared UnlessCost gate. A no-host ask preserves the historical copy.
+- `rules/resolution.go`: returns the election answer through the existing mid-resolution resume machinery.
+- `rules/copy_spell_ability_optional_test.go`, `rules/copy_optional_unless_test.go`, `effects/copy_optional_no_host_test.go`, `effects/copy_test.go`: real-corpus Sevinne accept/decline, no-host fallback, switched and unswitched UnlessCost composition. `rules/was_cast_from_zone_test.go` answers Sevinne's newly-real election; `effects/context_test.go` updates the test double's comment.
+- `.cards` is present as a symlink to the real corpus. Prior measurement found 11 corpus files with CopySpellAbility and Optional$; no known-approximations row, chain-head golden, or acceptance ratchet was changed.
+
+## Gates on rebased branch (exact commands and real output)
+
+```
+$ go test -run 'TestCopySpellAbilityOptional|TestCopySpellAbilityUnswitchedShapePayingStopsTheCopies|TestOptionalUnless|TestSevinnesReclamationMayCopyElection' ./rules/ ./effects/ > .ds4/scratch/copy-sol1-focused.log 2>&1; rc=$?; tail -30 .ds4/scratch/copy-sol1-focused.log; echo focused_exit=$rc
+ok   github.com/adams-shaun/gorge/rules 0.663s
+ok   github.com/adams-shaun/gorge/effects 0.624s
+focused_exit=0
+
+$ go test ./internal/archtest/ > .ds4/scratch/copy-sol1-arch.log 2>&1; rc=$?; tail -15 .ds4/scratch/copy-sol1-arch.log; echo arch_exit=$rc
+ok   github.com/adams-shaun/gorge/internal/archtest 3.538s
+arch_exit=0
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ > .ds4/scratch/copy-sol1-bot.log 2>&1; rc=$?; tail -5 .ds4/scratch/copy-sol1-bot.log; echo bot_exit=$rc
+ok   github.com/adams-shaun/gorge/cmd/botbench 1.391s
+bot_exit=0
+
+$ gofmt -l effects/copy.go effects/copy_optional_no_host_test.go effects/context_test.go effects/copy_test.go effects/registry.go rules/copy_optional_unless_test.go rules/copy_spell_ability_optional_test.go rules/resolution.go rules/was_cast_from_zone_test.go
+(no output)
+$ go run ./cmd/gentypes -check; echo gentypes_exit=$?
+gentypes_exit=0
+$ cmp .ds4/report-t1.md <(git show main:.ds4/report-t1.md) && echo report_t1_matches_main
+report_t1_matches_main
+$ cmp .ds4/report-r2.md <(git show main:.ds4/report-r2.md) && echo report_r2_matches_main
+report_r2_matches_main
+```
+
+## Fails without the fix
+
+No new tests or Go edits in this round. Previous rounds proved the tests fail with the corresponding production hunks removed and restored the files byte-identically. Recorded failing output (from the original round-1/round-2 reports):
+
+```
+--- FAIL: TestSevinnesReclamationMayCopyElectionDeclineMakesNoCopy (0.59s)
+    copy_spell_ability_optional_test.go:178: expected the Optional$ True may-copy election (KChoose copy_optional), got ... Kind:target ... ResumeKind:copy_targets ...
+--- FAIL: TestCopySpellAbilityOptionalNoHostMakesTheCopy (0.00s)
+    copy_optional_no_host_test.go:33: 0 StackCopy events on a no-host election, want 1 (the R-9 stand-in makes the copy)
+--- FAIL: TestOptionalUnlessCopyDeclinePosesElectionToCopyController (0.00s)
+    copy_optional_unless_test.go:163: expected the may-copy election (KChoose copy_optional) after the declined gate, got ... priority ...
+```
+
+## Issues
+
+Existing, separate issue: a copied Sevinne's Reclamation inherits graveyard-cast flags in `events/apply.go`'s `StackCopy`, so `effects/filter.go`'s `wasCastFromGraveyard` can admit the copy's conditional copy clause even though the copy was not cast (CR 707.10). Earlier measurement: 29 corpus files mention `wasCastFromGraveyard`, six use `ConditionPresent$ Card.wasCastFromGraveyard`. Already filed in `.ds4/new-tickets/copy-inherits-cast-provenance.md`; not expanded in this ticket. No new defect found during the report-conflict fix.
+
+---
+
+# Teapot Slinger / Convoke expend-4 — verification report (agent-20260923T113045Z-aa7f7a4e)
+
+## Outcome and review finding
+
+Verification only; no Go source, production code, tests, events, allowlists, or goldens changed. `rules/manaexpend_convoke_test.go::TestTeapotSlingerManaExpendCountsConvoke` already asserts the real corpus Crowd's Favor Convoke payment raises the expend total from 3 to 4, the pay-time wake carries one Convoke mana, the trigger is on top of the two-object stack after `Submit` drains `pendingTriggers`, and resolving it changes opponent life from 20 to 18. Its preconditions check Teapot Slinger on the battlefield, the spell in hand, the pool empty, the helper tapped, and opponent life 20 before resolution. Empty `pendingTriggers` after the driven boundary is expected, not evidence of a missed trigger. No new test was warranted.
+
+The MAJOR review finding in `.ds4/findings-sol1.md` was destructive replacement of unrelated history: commits `f7374f16` and `d9de731a` had overwritten `.ds4/report-t1.md` and `.ds4/report-t2.md`. Restored both byte-for-byte from their respective commit parents without using checkout. Preserved all earlier content of this designated `.ds4/report-sol1.md`; this task's report is appended here, not in another task's historical report. The previous t1/t2 reports' claims about overwriting historical artifacts are superseded by this correction.
+
+`.cards` was already a symlink to `/home/sadams/projects/gorge/.cards`, with `ir.gob.gz` present (not a vacuous corpus skip). No head/ratchet movement or split re-pin; no other deviation from the verification-only brief.
+
+## Gates (exact commands and output)
+
+```text
+$ go test -run '^TestTeapotSlingerManaExpendCountsConvoke$' ./rules/ 2>&1 | tee .ds4/scratch/sol1-convoke.log | tail -30
+ok  	github.com/adams-shaun/gorge/rules	(cached)
+$ go test ./internal/archtest/ 2>&1 | tee .ds4/scratch/sol1-arch.log | tail -15
+ok  	github.com/adams-shaun/gorge/internal/archtest	(cached)
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ 2>&1 | tee .ds4/scratch/sol1-bot.log | tail -5
+ok  	github.com/adams-shaun/gorge/cmd/botbench	(cached)
+$ git show f7374f16^:.ds4/report-t1.md | cmp - .ds4/report-t1.md && git show d9de731a^:.ds4/report-t2.md | cmp - .ds4/report-t2.md
+(no output; both match)
+```
+
+The focused test was also run uncached in the earlier t2 round on this unchanged source (`ok ... 0.637s`); prior t1 negative check modified only the test expectation and observed actual opponent life 18 before byte-identical restoration.
+
+## Fails without the fix
+
+No new test or production fix: `e7f775f6` already pins the queue drain and resolution. The former matcher-only check did not demonstrate a production bug, and no production-fix-revert failure is claimed. Prior t1 negative check confirmed the existing resolution assertion is meaningful (actual opponent life 18 versus a temporarily altered expected 20); the original test was restored.
+
+## Issues
+
+None found. The reported empty queue is correct after `Advance` drains it; the stack and resolved life are the relevant observations.

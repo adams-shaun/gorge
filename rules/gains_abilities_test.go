@@ -54,6 +54,10 @@ func gainsBoard(t *testing.T) (*Engine, Config, state.ObjID, state.ObjID) {
 	e.emit(events.Event{Kind: events.MoveZone, Obj: artifactID, From: state.ZBattlefield,
 		To: state.ZExile, IDs: []state.ObjID{idrisID}})
 	e.pending = nil
+	// This harness supplies Idris's imprinted artifact explicitly. Do not
+	// also run its printed ETB exile trigger: that would start a second,
+	// unrelated artifact search at the next priority window.
+	e.pendingTriggers = nil
 	if o := e.G.Obj(artifactID); o == nil || o.Zone != state.ZExile || o.ExiledWith != idrisID {
 		t.Fatalf("artifact = %+v, want exiled with %d", o, idrisID)
 	}
@@ -77,7 +81,10 @@ func TestIdrisGainsTheExiledArtifactAbilities(t *testing.T) {
 	// next own upkeep (turn 3; Idris entered on turn 1, so this is not a
 	// summoning-sickness-dependent step).
 	lifeBefore := e.G.Players[0].Life
-	driveToStep(t, e, 3, 0, state.StepUpkeep)
+	gainsDriveToStep(t, e, 3, 0, state.StepUpkeep)
+	// The granted upkeep ability and Idris's own Vanishing tick trigger
+	// simultaneously. Choose their stack order before draining either.
+	gainsAnswerTriggerOrder(t, e)
 	passUntilStackEmpty(t, e, 20)
 	if got := e.G.Players[0].Life; got != lifeBefore-2 {
 		t.Fatalf("gained upkeep trigger: life %d -> %d, want -2", lifeBefore, got)
@@ -90,7 +97,7 @@ func TestIdrisGainsTheExiledArtifactAbilities(t *testing.T) {
 	// (turn 3's main phase), anchored on the foreign card. Idris's own
 	// AddPower$/AddToughness$ static (X = the exiled card's mana value) is the
 	// same Card.ExiledWithSource read the grant uses, so assert it too.
-	driveToStep(t, e, 3, 0, state.StepMain1)
+	gainsDriveToStep(t, e, 3, 0, state.StepMain1)
 	if p, tg := e.Power(idrisID), e.Toughness(idrisID); p != 5 || tg != 5 {
 		t.Fatalf("Idris P/T = %d/%d, want 5/5 (3/3 base +2/+2 from the exiled mana value)", p, tg)
 	}
@@ -137,7 +144,7 @@ func TestIdrisGainedAbilitiesEndWhenTheExiledCardLeaves(t *testing.T) {
 	e, cfg, idrisID, artifactID := gainsBoard(t)
 	// Advance past summoning sickness so the granted tap ability is offerable
 	// (otherwise this precondition would pass vacuously via the tap gate).
-	driveToStep(t, e, 3, 0, state.StepMain1)
+	gainsDriveToStep(t, e, 3, 0, state.StepMain1)
 	if !hasGainedAbility(e, idrisID) {
 		t.Fatal("precondition: Idris does not offer the gained ability before the move")
 	}
@@ -155,7 +162,7 @@ func TestIdrisGainedAbilitiesEndWhenTheExiledCardLeaves(t *testing.T) {
 // scoping: a card exiled by something ELSE is not gained.
 func TestIdrisDoesNotGainUnrelatedExiledCards(t *testing.T) {
 	e, cfg, idrisID, artifactID := gainsBoard(t)
-	driveToStep(t, e, 3, 0, state.StepMain1)
+	gainsDriveToStep(t, e, 3, 0, state.StepMain1)
 	if !hasGainedAbility(e, idrisID) {
 		t.Fatal("precondition: Idris does not offer the gained ability before the re-exile")
 	}
@@ -517,9 +524,24 @@ func gainsCagedCardSrc(t testing.TB) *cards.Card {
 		"Oracle:x\n")
 }
 
-// gainsDriveToStep is driveToStep with the two extra decision kinds this
-// file's longer drives cross: an attackers declaration (declined -- no
-// attack) and a cleanup discard (first-Max, answerIfDiscard).
+// gainsAnswerTriggerOrder settles a simultaneous-trigger order in the
+// offered order. The tests here do not inspect the relative resolution order.
+func gainsAnswerTriggerOrder(t *testing.T, e *Engine) {
+	t.Helper()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTriggerOrder {
+		return
+	}
+	choices := make([]int, 0, len(d.Options))
+	for _, o := range d.Options {
+		choices = append(choices, o.Index)
+	}
+	submitChoices(t, e, choices...)
+}
+
+// gainsDriveToStep is driveToStep with the extra decision kinds this file's
+// longer drives cross: attackers (declined), cleanup discard (first-Max),
+// and simultaneous trigger ordering (offered order).
 func gainsDriveToStep(t *testing.T, e *Engine, turn int32, active state.PlayerID, step state.Step) {
 	t.Helper()
 	for i := 0; i < 4000; i++ {
@@ -532,6 +554,7 @@ func gainsDriveToStep(t *testing.T, e *Engine, turn int32, active state.PlayerID
 		if answerIfDiscard(t, e) {
 			continue
 		}
+		gainsAnswerTriggerOrder(t, e)
 		d := e.Pending()
 		if d == nil || d.Kind != decision.KPriority && d.Kind != decision.KAttackers {
 			t.Fatalf("non-priority decision %+v encountered while driving to turn %d seat %d step %s",

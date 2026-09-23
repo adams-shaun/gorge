@@ -340,12 +340,17 @@ func drainOptionalYes(t *testing.T, e *Engine, limit int) {
 // TestArnaCopy pins the AttachedTo$ rider:
 // a copy of a nontoken permanent attached to the attacker enters attached to
 // that same attacker. The carrier is Arna, Skycaptain's real DBCopyPermanents
-// body, but its own Defined$ filter (`Permanent.!token+AttachedTo
-// TriggeredAttackerLKICopy`) is unreachable in this build -- both the bare
-// `Attached` and the `AttachedTo <ref>` predicates fail closed -- so the test
-// substitutes a resolvable `Defined$ Valid Permanent` to reach the rider.
-// (The unreachable source predicates are filed as a separate ticket.) The
-// endpoint is Arna's real `AttachedTo$ TriggeredAttackerLKICopy`.
+// body, but its own Defined$ filter is the real source filter
+// (`Permanent.!token+AttachedTo TriggeredAttackerLKICopy`); the bare `Attached`
+// and the `AttachedTo <ref>` predicates are now implemented (task attached1)
+// and the real source filter is driven end to end by
+// TestArnaRealSourceFilterReachesCopyRider in arna_source_filter_test.go. This
+// test keeps its historical `Defined$ Valid Permanent` substitution so the
+// rider's own behaviour stays pinned independently of the filter, and to keep
+// the endpoint assertions below deterministic. (Arna's own Mode$ Attacks
+// trigger is still unreachable for a separate reason: ValidCard$
+// Creature.modified+YouCtrl needs the unimplemented `modified` CardProperty.)
+// The endpoint is Arna's real `AttachedTo$ TriggeredAttackerLKICopy`.
 func TestArnaCopy(t *testing.T) {
 	reg := searchTestRegistry(t)
 	arnaCard := lookup(t, reg, "Arna Kennerüd, Skycaptain")
