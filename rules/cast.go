@@ -6341,6 +6341,24 @@ func revealChosenText(g *state.Game, o *state.Object, spec string) (string, bool
 	return "revealed the chosen creature type: " + o.ChosenType, true
 }
 
+// finishLandPlay logs a land play only after its identified object actually
+// reaches the battlefield. Updated replacement effects fold their MoveZone
+// directly through events.Emit, so both the ordinary emit path and those
+// replacement continuations call this one finalizer.
+func (e *Engine) finishLandPlay(id state.ObjID) {
+	if !e.etbLandPlay || id != e.etbLandObj {
+		return
+	}
+	o := e.G.Obj(id)
+	if o == nil || o.Zone != state.ZBattlefield {
+		return
+	}
+	p := e.etbLandPlayer
+	e.etbLandPlay = false
+	e.etbLandObj = 0
+	e.emit(events.Event{Kind: events.LandPlayed, Player: p})
+}
+
 // payCast implements CR 601.2h (pay all costs) and, for a spell, CR 601.2i
 // (the "when you cast" trigger). It runs after the target choice (601.2c);
 // the object is already on the stack (pushCast). A payment that fails here
@@ -6359,13 +6377,8 @@ func (e *Engine) payCast() {
 		// boundary, not during this proposal. Keep LandPlayed behind that
 		// boundary so it is logged only after the answered entry completes.
 		e.cast, e.choosing = nil, chooseNone
-		e.etbLandPlay, e.etbLandPlayer = true, pc.player
+		e.etbLandPlay, e.etbLandObj, e.etbLandPlayer = true, pc.card, pc.player
 		e.emit(events.Event{Kind: events.MoveZone, Obj: pc.card, From: pc.from, To: state.ZBattlefield})
-		if e.pending != nil {
-			return
-		}
-		e.etbLandPlay = false
-		e.emit(events.Event{Kind: events.LandPlayed, Player: pc.player})
 		return
 	}
 	// Publish the counter adder for the whole payment. A counter a COST places

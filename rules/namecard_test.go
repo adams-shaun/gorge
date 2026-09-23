@@ -82,7 +82,7 @@ func labelIndex(d *decision.Decision, want string) int {
 	return -1
 }
 
-// TestPithingNeedleNamesAnUnseenLand pins the cast-time "as this enters"
+// TestPithingNeedleNamesAnUnseenLand pins the entry-boundary "as this enters"
 // path on the real corpus card: Pithing Needle carries no ValidCards$, so
 // its name is ANY card — a Wasteland that is nowhere on the board included.
 // Before the fix the arm defaulted the filter to Card.nonLand and only
@@ -93,8 +93,14 @@ func TestPithingNeedleNamesAnUnseenLand(t *testing.T) {
 	needle := e.G.Zone(state.ZHand, 0)[0]
 	e.G.Players[0].Pool[state.MC] = 1
 	e.beginCast(0, decision.Option{Kind: "cast", Obj: needle})
-
-	d := pendingNameAsk(t, e, "Pithing Needle cast")
+	if got := e.G.Obj(needle).Zone; got != state.ZStack {
+		t.Fatalf("Pithing Needle precondition: zone = %s, want stack", got)
+	}
+	e.resolveTop()
+	d := pendingNameAsk(t, e, "Pithing Needle entry")
+	if d.ResumeKind != "etb" {
+		t.Fatalf("Pithing Needle name choice ResumeKind = %q, want etb", d.ResumeKind)
+	}
 	if len(d.Options) < 1000 {
 		t.Fatalf("Needle offered only %d names; the full corpus universe is not wired", len(d.Options))
 	}
@@ -119,7 +125,14 @@ func TestNameAskBotAnswerValidates(t *testing.T) {
 	needle := e.G.Zone(state.ZHand, 0)[0]
 	e.G.Players[0].Pool[state.MC] = 1
 	e.beginCast(0, decision.Option{Kind: "cast", Obj: needle})
-	d := pendingNameAsk(t, e, "Pithing Needle cast")
+	if got := e.G.Obj(needle).Zone; got != state.ZStack {
+		t.Fatalf("Pithing Needle precondition: zone = %s, want stack", got)
+	}
+	e.resolveTop()
+	d := pendingNameAsk(t, e, "Pithing Needle entry")
+	if d.ResumeKind != "etb" {
+		t.Fatalf("Pithing Needle name choice ResumeKind = %q, want etb", d.ResumeKind)
+	}
 	in := newTestBot(3).answer(e, d)
 	if err := d.Validate(in); err != nil {
 		t.Fatalf("bot answer %+v failed Decision.Validate: %v", in, err)
@@ -138,8 +151,14 @@ func TestPhyrexianRevokerNamesANonland(t *testing.T) {
 	revoker := e.G.Zone(state.ZHand, 0)[0]
 	e.G.Players[0].Pool[state.MC] = 2
 	e.beginCast(0, decision.Option{Kind: "cast", Obj: revoker})
-
-	d := pendingNameAsk(t, e, "Phyrexian Revoker cast")
+	if got := e.G.Obj(revoker).Zone; got != state.ZStack {
+		t.Fatalf("Phyrexian Revoker precondition: zone = %s, want stack", got)
+	}
+	e.resolveTop()
+	d := pendingNameAsk(t, e, "Phyrexian Revoker entry")
+	if d.ResumeKind != "etb" {
+		t.Fatalf("Phyrexian Revoker name choice ResumeKind = %q, want etb", d.ResumeKind)
+	}
 	if labelIndex(d, "Wasteland") >= 0 || labelIndex(d, "Forest") >= 0 || labelIndex(d, "Mountain") >= 0 {
 		t.Fatal("Revoker (Card.nonLand) offered a land name")
 	}

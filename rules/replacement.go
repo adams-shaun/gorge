@@ -1445,6 +1445,9 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 		e.checkTriggers(stored, nil, 0, 0, false)
 		e.finishSourceLifelinkLKI(ev, departing, link, controller)
 		e.runReplaceWith(ctx, ev.Obj, m.repl.With, nil)
+		if e.pending == nil && stored.Kind == events.MoveZone && stored.To == state.ZBattlefield {
+			e.finishLandPlay(stored.Obj)
+		}
 		return stored, true
 	}
 	e.runReplaceWith(ctx, ev.Obj, m.repl.With, &ev)
@@ -1474,6 +1477,9 @@ func (e *Engine) composeUpdatedReplacements(ev events.Event, matches []replMatch
 			continue
 		}
 		e.runReplaceWith(e.replCtx(m, ev), ev.Obj, m.repl.With, nil)
+	}
+	if e.pending == nil && stored.Kind == events.MoveZone && stored.To == state.ZBattlefield {
+		e.finishLandPlay(stored.Obj)
 	}
 	return stored, true
 }

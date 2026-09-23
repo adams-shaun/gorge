@@ -141,7 +141,7 @@ func (e *Engine) Clone() *Engine {
 		c.etbMove = &ev
 	}
 	c.etbNext = e.etbNext
-	c.etbLandPlay, c.etbLandPlayer = e.etbLandPlay, e.etbLandPlayer
+	c.etbLandPlay, c.etbLandObj, c.etbLandPlayer = e.etbLandPlay, e.etbLandObj, e.etbLandPlayer
 	if e.riotMove != nil {
 		ev := *e.riotMove
 		c.riotMove = &ev

@@ -950,11 +950,6 @@ func (e *Engine) resumeETBEntry(chosen []decision.Option) {
 	}
 	e.choosing = chooseNone
 	e.emit(move)
-	if e.pending == nil && e.etbLandPlay {
-		p := e.etbLandPlayer
-		e.etbLandPlay = false
-		e.emit(events.Event{Kind: events.LandPlayed, Player: p})
-	}
 }
 
 // resumeResolution re-enters a suspended resolution with its answer. It
@@ -2753,6 +2748,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// An Updated ETB replacement has already completed the spell's move.
 		// Its answer resumes only the replacement body; there is no stack
 		// object to finish or priority round to create here.
+		e.finishLandPlay(rp.replaced)
 		return
 	}
 	if rp.outer != nil { // No nested ask this pass and the frame itself completed: continue

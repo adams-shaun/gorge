@@ -687,9 +687,14 @@ type Engine struct {
 	// through the mid-resolution decision path. etbNext is the ordinal of the
 	// next choice on that entry; both are plain data so a clone at the decision
 	// boundary preserves the entry exactly.
-	etbMove       *events.Event
-	etbNext       int
+	etbMove *events.Event
+	etbNext int
+	// etbLandPlay identifies the land whose LandPlayed event must wait for its
+	// final battlefield entry. A replacement can suspend and later re-emit the
+	// move, so the object id is needed to avoid consuming this continuation on
+	// a different move the replacement body emits first.
 	etbLandPlay   bool
+	etbLandObj    state.ObjID
 	etbLandPlayer state.PlayerID
 	// riotMove parks a non-cast battlefield entry while its controller makes
 	// Riot's as-enters choice. The event is emitted only after Choose records
@@ -1998,6 +2003,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// wanted set), this registers the transfers the live scan newly
 		// wants. Both are no-ops unless such a static is in play.
 		e.reconcileControlStatics()
+	}
+	if stored.Kind == events.MoveZone && stored.To == state.ZBattlefield {
+		e.finishLandPlay(stored.Obj)
 	}
 	return stored
 }
