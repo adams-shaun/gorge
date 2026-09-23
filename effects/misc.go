@@ -1644,7 +1644,10 @@ func UnlessDefenderHolds(g *state.Game, spec string, defender, you state.PlayerI
 	if neg {
 		spec = strings.TrimSpace(spec[1:])
 	}
-	holds := unlessDefenderProperty(g, spec, defender, you, source)
+	holds, known := unlessDefenderProperty(g, spec, defender, you, source)
+	if !known {
+		return false
+	}
 	if neg {
 		return !holds
 	}
@@ -1652,23 +1655,23 @@ func UnlessDefenderHolds(g *state.Game, spec string, defender, you state.PlayerI
 }
 
 // unlessDefenderProperty evaluates ONE UnlessDefender$ property (no `!`). An
-// unknown property returns false: the restriction is enforced, the permissive
-// direction for a restriction whose condition this build cannot read.
-func unlessDefenderProperty(g *state.Game, property string, defender, you state.PlayerID, source state.ObjID) bool {
+// unknown or malformed property returns known=false so a leading `!` cannot
+// turn an unread predicate into permission to attack.
+func unlessDefenderProperty(g *state.Game, property string, defender, you state.PlayerID, source state.ObjID) (holds, known bool) {
 	if int(defender) >= len(g.Players) {
-		return false
+		return false, false
 	}
 	switch {
 	case property == "isMonarch":
-		return g.IsMonarch(defender)
+		return g.IsMonarch(defender), true
 	case property == "IsPoisoned":
-		return g.Players[defender].Counter("Poison") > 0
+		return g.Players[defender].Counter("Poison") > 0, true
 	case strings.HasPrefix(property, "controls"):
 		// The object spec is everything after "controls"; an optional trailing
 		// `_<cmp><n>` narrows an existential read to a count compare.
 		objSpec, op, want, counted := splitCountCompare(strings.TrimSpace(property[len("controls"):]))
 		if objSpec == "" {
-			return false
+			return false, false
 		}
 		sc := SpecContext{You: you, Source: source}
 		n := int32(0)
@@ -1678,37 +1681,37 @@ func unlessDefenderProperty(g *state.Game, property string, defender, you state.
 			}
 		}
 		if !counted {
-			return n > 0
+			return n > 0, true
 		}
-		return playerCompare(n, op, want)
+		return playerCompare(n, op, want), true
 	case strings.HasPrefix(property, "HasCardsIn"):
 		// HasCardsIn[zone]_[type]_[comparator]
 		parts := strings.Split(strings.TrimPrefix(property, "HasCardsIn"), "_")
 		if len(parts) != 3 {
-			return false
+			return false, false
 		}
 		z, ok := unlessDefenderZone(parts[0])
 		if !ok {
-			return false
+			return false, false
 		}
 		op, want, ok := unlessDefenderCompare(parts[2])
 		if !ok {
-			return false
+			return false, false
 		}
-		return playerCompare(unlessDefenderTypeCount(g, z, defender, parts[1]), op, want)
+		return playerCompare(unlessDefenderTypeCount(g, z, defender, parts[1]), op, want), true
 	case strings.HasPrefix(property, "hasFewer"):
 		// hasFewer[Type]sIn[Play|Yard]ThanYou
 		if int(you) >= len(g.Players) {
-			return false
+			return false, false
 		}
 		body := strings.TrimPrefix(property, "hasFewer")
 		i := strings.Index(body, "sIn")
 		if i < 0 {
-			return false
+			return false, false
 		}
 		cardType, tail := body[:i], body[i+len("sIn"):]
 		if cardType == "" {
-			return false
+			return false, false
 		}
 		z := state.ZBattlefield
 		switch {
@@ -1716,11 +1719,11 @@ func unlessDefenderProperty(g *state.Game, property string, defender, you state.
 		case strings.HasPrefix(tail, "YardThan"):
 			z = state.ZGraveyard
 		default:
-			return false
+			return false, false
 		}
-		return unlessDefenderTypeCount(g, z, defender, cardType) < unlessDefenderTypeCount(g, z, you, cardType)
+		return unlessDefenderTypeCount(g, z, defender, cardType) < unlessDefenderTypeCount(g, z, you, cardType), true
 	}
-	return false
+	return false, false
 }
 
 // unlessDefenderZone maps a Forge zone word in a HasCardsIn property to a
