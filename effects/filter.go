@@ -992,6 +992,10 @@ const (
 	wordIsCommander
 	wordBlockingSource
 	wordBlockedBySource
+	// The object is controlled by a player dealt combat damage this turn by
+	// the resolving source. Resolution effects bind the combat-hit ledger in
+	// SpecContext; an unbound filter context fails closed.
+	wordControllerDealtCombatDamageBySource
 	// Forge's faceDown: a face-down battlefield permanent (a manifested or
 	// cloaked card). The game/state-aware family -- needs the object's own
 	// zone, classified here so matcher and UnknownPredicates agree.
@@ -1143,6 +1147,9 @@ func wordPredicate(p string) (wordKind, string) {
 	}
 	if p == "sameName" {
 		return wordSameName, ""
+	}
+	if p == "controllerWasDealtCombatDamageByThisTurn" {
+		return wordControllerDealtCombatDamageBySource, ""
 	}
 	// Forge's inZone<Zone> property (CardProperty inZone<Zone>): the object
 	// sits in the named zone. The old specific inZoneStack spelling folds
@@ -1348,6 +1355,21 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		return hasTypeCtx(o, key, sc)
 	case wordColorless:
 		return ColorsOf(o) == ""
+	case wordControllerDealtCombatDamageBySource:
+		if source == 0 || o.Controller < 0 {
+			return false
+		}
+		// During resolution Source is the ability stack object; its source
+		// permanent is the card that dealt the combat damage.
+		if ability := g.Obj(source); ability != nil && ability.Ability != nil {
+			source = ability.Source
+		}
+		for _, hit := range sc.CombatDamageHits {
+			if hit.Source == source && hit.Player == o.Controller {
+				return true
+			}
+		}
+		return false
 	case wordColourSource:
 		return strings.Contains(ColorsOf(o), key)
 	case wordColourSourceless:
@@ -3119,9 +3141,12 @@ func matchesBase(g *state.Game, base string, o *state.Object, sc SpecContext) bo
 // contract -- rather than guessing at what the name might mean.
 type SpecContext struct {
 	TriggerContext
-	You     state.PlayerID
-	Source  state.ObjID
-	Resolve func(name string) (int32, bool)
+	You    state.PlayerID
+	Source state.ObjID
+	// CombatDamageHits is the per-turn combat-to-player ledger for
+	// resolution-time predicates that refer to damage dealt by Source.
+	CombatDamageHits []CombatDamageHit
+	Resolve          func(name string) (int32, bool)
 	// PredicatePrograms is an optional immutable compiled-text sidecar. A nil
 	// value keeps the textual matcher authoritative for synthetic fixtures and
 	// dynamic source strings.

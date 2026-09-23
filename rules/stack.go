@@ -3807,9 +3807,25 @@ func (e *Engine) resolveAbility(source state.ObjID, controller state.PlayerID,
 // (layers.go) and Ask (resolution.go) round out the interface -- HasKeyword
 // already existed for the layer system's own callers before effects.Host
 // grew a method of the same name, and needed no change to satisfy it.
-func (e *Engine) Game() *state.Game                       { return e.G }
-func (e *Engine) ObjectColors(o *state.Object) string     { return e.objColors(o) }
-func (e *Engine) Emit(ev events.Event)                    { e.emit(ev) }
+func (e *Engine) Game() *state.Game                   { return e.G }
+func (e *Engine) ObjectColors(o *state.Object) string { return e.objColors(o) }
+func (e *Engine) Emit(ev events.Event)                { e.emit(ev) }
+
+// EmitTokenCreate emits a token-creation event and returns every object it
+// actually created. A CreateToken replacement may rewrite one would-be token
+// into several mints (Divine Visitation, Doubling Season, Xorn);
+// effects/token.go consults this return so its per-token riders land on
+// EVERY mint, not just the first. The sink is a stack: a nested token
+// creation during this emit saves and restores it, so the outer call returns
+// only its own plan's mints.
+func (e *Engine) EmitTokenCreate(ev events.Event) []state.ObjID {
+	var ids []state.ObjID
+	saved := e.tokenMintSink
+	e.tokenMintSink = &ids
+	e.emit(ev)
+	e.tokenMintSink = saved
+	return ids
+}
 func (e *Engine) EmitDamage(ev events.Event) events.Event { return e.emit(ev) }
 
 // EmitLifeChange reports whether the exact proposed life change was applied.

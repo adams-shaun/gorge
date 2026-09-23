@@ -19,15 +19,13 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	// The merged table measures 43 rows: main's closures merged here
-	// (non<X> via d56e404f, NameCard ChooseFromList$/AtRandom$ via 78d3b764,
-	// the battle protector row via f76f59fd, and the earlier pc1/each1/CR
-	// 616.1 closures), plus this branch's own mulligan-redraw deferral
-	// (fix 7c4182ff), which deletes the "mulligan declaration's REDRAW
-	// resolves immediately" row; and the maxpower1 row (task
-	// cli-20260922T225142Z-0ab0cb60), which deletes the TargetMax$-unaware
-	// offset bound and the cross-mode Charm ask's unread cap.
-	knownApproximationRows = 42
+	// The merged table currently measures 39 rows. This includes main's
+	// First-Strike Damage closure (acc7878d), layer-4 filter-grammar closure
+	// (63c07260), mulligan-redraw-deferral closure (7c4182ff), non<X> closure
+	// (d56e404f), NameCard ChooseFromList$/AtRandom$ closure (78d3b764),
+	// battle-protector closure (f76f59fd), earlier pc1/each1/CR 616.1 closures,
+	// this branch's maxpower1 closure, and main's token-replacement closure.
+	knownApproximationRows = 39
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.
