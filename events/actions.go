@@ -111,12 +111,11 @@ func Mill(obj state.ObjID, player state.PlayerID) Event {
 		Player: player, Text: milledText}
 }
 
-// IsMill reports whether ev is a mill: a library->graveyard move carrying the
-// mill action marker. The destination is deliberately not part of the test --
-// a replacement may redirect the milled card while the action that caused the
-// move remains a mill.
+// IsMill reports a completed mill (CR 701.17a): a marked card move from
+// library into graveyard. A replacement redirecting or preventing that move
+// means the card was never milled, even if action provenance is retained.
 func IsMill(ev Event) bool {
-	return ev.Kind == MoveZone && ev.Text == milledText
+	return ev.Kind == MoveZone && ev.From == state.ZLibrary && ev.To == state.ZGraveyard && ev.Text == milledText
 }
 
 const sacrificeText = "sacrificed"
