@@ -284,9 +284,10 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 		// matching overlay -- controller-relative predicates (including
 		// nested spec matching and referent capture) resolve against this
 		// registration -- and touches no object and no state.Game field, so
-		// nothing here reaches an event. It is cleared at the head of every
-		// iteration (a `continue` therefore cannot leak it into the next
-		// registration) and again before the firing pass below.
+		// nothing here reaches an event. It is cleared immediately before
+		// each registration's own matching (so a `continue` cannot leak one
+		// registration's scope into the next) and again before the firing
+		// pass below, which resolves with no scope at all.
 		e.clearEffectMatchScope()
 		if dt.EffectRepeat {
 			e.effectMatchSource = dt.Source
