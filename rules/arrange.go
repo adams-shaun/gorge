@@ -41,9 +41,14 @@ import (
 //     exception below, not this arm.)
 //   - "graveyard": pile B leaves the library. Emit the events.LibraryOrder
 //     for pileA + remainder FIRST, then one events.MoveZone per pile-B card,
-//     in OFFERED order, From: ZLibrary, To: ZGraveyard. The order is a
-//     contract: a replay that applies the moves before the reorder gets a
-//     different library.
+//     in the player's pile-B order (see Rest below).
+//
+// Rest, the pile-B ORDER: an answer may carry Intent.Rest — a second ordered
+// index list naming the complement of the chosen set, in the order the player
+// wants pile B. Absent, the complement is taken in the order the options were
+// OFFERED (the original contract). Restable marks the asks that accept it
+// (Scry/Surveil, the only asks whose pile B can be non-empty AND ordered);
+// Validate enforces the partition rule (validateRest is its one home).
 //
 // Ruling J5: the Kind is uniform across one decision; a decision whose
 // options disagree is a programming error, never something a client can
@@ -74,11 +79,22 @@ func (e *Engine) handleArrange(d *decision.Decision, in decision.Intent) {
 		pileA = append(pileA, o.Obj)
 		chosenSet[o.Index] = true
 	}
-	// Pile B: the options not chosen, in the order they were offered.
+	// Pile B: the options not chosen. When the answer carries Rest (the
+	// player-chosen pile-B order, validated as a partition at Submit),
+	// resolve it in the player's order; otherwise the legacy contract, the
+	// complement in the order the options were OFFERED. ChosenRest's nil
+	// (out-of-range index, unreachable past Validate) falls back too.
 	var pileB []state.ObjID
-	for _, o := range d.Options {
-		if !chosenSet[o.Index] {
+	if rest := d.ChosenRest(in); rest != nil {
+		for _, o := range rest {
 			pileB = append(pileB, o.Obj)
+		}
+	}
+	if pileB == nil {
+		for _, o := range d.Options {
+			if !chosenSet[o.Index] {
+				pileB = append(pileB, o.Obj)
+			}
 		}
 	}
 	// Ruling J5: every option in one KArrange shares its Kind. A decision
