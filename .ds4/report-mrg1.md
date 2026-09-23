@@ -1774,3 +1774,26 @@ verification below (same command, re-run post-second-merge).
 ## Issues
 
 None new. No engine behaviour changed by the resolution itself.
+
+## Round-5 verification (post-second-merge, all exit 0)
+
+Merged as `107b6ee5` (parents `84b39833`, main `1be022eb`); main is now an
+ancestor of HEAD and the tree is clean.
+
+```text
+go test ./internal/testutil/ -run 'TestKnownApproximation'          ok
+go test -count=1 ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'  ok
+go test -count=1 ./rules -run 'TestHeads'                           ok
+go test ./internal/archtest/                                        ok
+go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/  ok (pinned split unchanged)
+gofmt -l internal/testutil/agentsdoc_test.go                        clean
+```
+
+`.cards` symlink present (→ /home/sadams/projects/gorge/.cards); no vacuous
+skips. `knownApproximationRows = 42` (measured 42 data rows).
+
+## Issues
+
+None new across either integration. This resolution changed no engine
+behaviour: the only non-archive edit was the row-register constant and its
+comment in `internal/testutil/agentsdoc_test.go`.
