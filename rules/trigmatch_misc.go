@@ -332,6 +332,19 @@ func (e *Engine) phaseGate(t cards.Trigger) bool {
 	if !p.valid || !p.set.Has(e.G.Step) {
 		return false
 	}
+	// gorge has one combat-damage step, while Forge distinguishes the
+	// first-strike damage step. Until the turn walk has that separate step,
+	// only let this mapping match when a first/double striker is actually in
+	// combat; otherwise the named phase does not occur at all.
+	for _, phase := range strings.Split(spec, ",") {
+		phase = strings.TrimSpace(phase)
+		if strings.EqualFold(phase, "First Strike Damage") ||
+			strings.EqualFold(phase, "COMBAT_FIRST_STRIKE_DAMAGE") {
+			if e.G.Step != state.StepCombatDamage || !e.anyFirstStrike() {
+				return false
+			}
+		}
+	}
 	count := strings.TrimSpace(t.Params["PhaseCount"])
 	if count == "" {
 		return true

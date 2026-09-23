@@ -897,6 +897,24 @@ type Ctx struct {
 	// Ctx). A zero binding with the flag set is still bound (torgal with no
 	// Dogs); only the flag distinguishes the two.
 	ChosenNumberBound bool
+	// RememberedCMC is the mana value the Counter primitive's
+	// RememberCounteredCMC$ rider remembered (task counter-cmc: Electrosiphon's
+	// "an amount of {E} equal to its mana value", Overwhelming Intellect's
+	// draw-equal-to-mana-value family -- 14 corpus carriers). effCounter sums
+	// every countered CARD's mana value into it (an ability has none and
+	// contributes nothing); the Count$RememberedNumber head reads it in
+	// preference to the list-length channel, because the number is a VALUE,
+	// not a count of remembered entries. Resolution-scratch like
+	// Ctx.Remembered -- never event-encoded; a replay re-derives it by
+	// replaying the same resolution.
+	RememberedCMC int32
+	// RememberedCMCBound marks a Ctx whose RememberedCMC IS a real
+	// RememberCounteredCMC$ binding. It is the Count$RememberedNumber head's
+	// verdict, the same shape ChosenNumberBound gives Count$ChosenNumber:
+	// bound means evaluated (a zero mana value reads as zero), unbound means
+	// the head falls through to the list-length read every pre-existing
+	// consumer keeps.
+	RememberedCMCBound bool
 	// EffectFrame names the Effect-created continuous-effect registration
 	// whose replacement body this Ctx is resolving (rules' seedEffectReplCtx
 	// sets it from the match's "effect:<source>:<timestamp>" key; zero Source
