@@ -972,6 +972,9 @@ const (
 	wordActivePlayerCtrl
 	wordTopLibrary
 	wordHasCounters
+	// Mjölnir's Worthy equip qualifier (CR 702.6): a legendary creature that
+	// is red or white and is not a Villain.
+	wordWorthy
 	// Forge's isSuspended: the card sits in exile carrying the Suspend
 	// action's cast provenance (state.FlagSuspend, set by the suspend
 	// alternate-cast action's own CastInfo). The game/state-aware family --
@@ -1177,6 +1180,8 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordMultiColor, ""
 	case "MonoColor":
 		return wordMonoColor, ""
+	case "Worthy":
+		return wordWorthy, ""
 	case "wasCast":
 		return wordWasCast, ""
 	case "CopiedSpell":
@@ -1363,6 +1368,10 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		return len(ColorsOf(o)) > 1
 	case wordMonoColor:
 		return len(ColorsOf(o)) == 1
+	case wordWorthy:
+		colors := ColorsOf(o)
+		return hasTypeCtx(o, "Legendary", sc) && !hasTypeCtx(o, "Villain", sc) &&
+			(strings.Contains(colors, "R") || strings.Contains(colors, "W"))
 	case wordWasCast:
 		// Forge's wasCast: a spell (Card != nil) currently on the stack. An
 		// ability object was activated, never cast. The AsStack override
