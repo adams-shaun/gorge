@@ -7068,6 +7068,13 @@ func (e *Engine) finishTargetedCast(pc *pendingCast, player state.PlayerID) {
 		if pc.stackObj != 0 && pc.rootOpts != nil {
 			e.recordChosenTargets(pc.stackObj, pc.rootOpts, false)
 		}
+		// payCast closes the proposal after creating the stack object. Keep its
+		// completed target bindings available while the deferred spend rider
+		// matches, then close it again before control returns to the host.
+		e.cast = pc
+		e.fireManaSpentTriggers(events.Event{Kind: events.AbilityPush, Obj: pc.card,
+			Player: pc.player, Amount: int32(pc.ability)}, nil)
+		e.cast = nil
 	} else {
 		e.payCast()
 	}
@@ -7706,9 +7713,7 @@ func (e *Engine) payCast() {
 					Counter: pc.grantSVar, IDs: []state.ObjID{pc.grantSource}})
 			}
 		} else {
-			push := events.Event{Kind: events.AbilityPush, Obj: pc.card, Player: pc.player, Amount: int32(pc.ability)}
-			e.emit(push)
-			e.fireManaSpentTriggers(push, nil)
+			e.emit(events.Event{Kind: events.AbilityPush, Obj: pc.card, Player: pc.player, Amount: int32(pc.ability)})
 		}
 		if len(e.G.Stack) > 0 {
 			pc.stackObj = e.G.Stack[len(e.G.Stack)-1]
