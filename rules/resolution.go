@@ -34,6 +34,7 @@
 package rules
 
 import (
+	"sort"
 	"strconv"
 	"strings"
 
@@ -721,6 +722,42 @@ func (e *Engine) seedMoveCounterAsk(obj state.ObjID, ctx *effects.Ctx) {
 	if !ctx.MoveCounterNDone && p.nSet {
 		ctx.MoveCounterN, ctx.MoveCounterNDone = p.n, true
 	}
+}
+
+// aorEntry returns (creating if needed) the answered-kind cursor for a
+// resolving AddOrRemoveCounter stack object.
+func (e *Engine) aorEntry(obj state.ObjID) map[string]bool {
+	if e.aorAsk == nil {
+		e.aorAsk = make(map[state.ObjID]map[string]bool)
+	}
+	set := e.aorAsk[obj]
+	if set == nil {
+		set = make(map[string]bool)
+		e.aorAsk[obj] = set
+	}
+	return set
+}
+
+// seedAorAsk fills a fresh resume Ctx with the kinds this AddOrRemoveCounter
+// resolution has already answered an election for — INCLUDING the current
+// round's own answer, which the "aor_elect" arm recorded before this runs
+// (the map is therefore always a superset of the walk's own skip guards; the
+// walk also skips the current kind by the AorElect/AorKind pair, so double
+// coverage is harmless). This is what keeps an EachExistingCounter$ walk
+// from re-asking an already-answered PUT kind, whose counter count is still
+// positive and therefore still enumerates (counterchoice1 — the
+// movecounter1 livelock's exact class).
+func (e *Engine) seedAorAsk(obj state.ObjID, ctx *effects.Ctx) {
+	set := e.aorAsk[obj]
+	if set == nil {
+		return
+	}
+	kinds := make([]string, 0, len(set))
+	for k := range set {
+		kinds = append(kinds, k)
+	}
+	sort.Strings(kinds) // deterministic: map iteration order never reaches a Ctx
+	ctx.AorAnswered = kinds
 }
 
 // handleModes applies an answered KModes decision. ResumeKind and the trigger
@@ -2254,6 +2291,40 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				p := e.moveCounterEntry(rp.obj)
 				p.n, p.nSet = ctx.MoveCounterN, true
 			}
+		case "aor_elect":
+			// An AddOrRemoveCounter add/remove election was answered
+			// (counterchoice1). The election's kind is parsed out of the
+			// answer's own option encoding ("aor_remove:<kind>"/
+			// "aor_put:<kind>"), so the fresh Ctx carries everything the
+			// re-entered walk needs without a second transport. A malformed
+			// answer elects the deterministic first option (remove), the same
+			// conservative read every KChoose arm takes. The answered kind is
+			// ALSO recorded on the pending state (the moveCounterAsk
+			// discipline): this round's re-entry may suspend again on the next
+			// kind's election, and that later re-entry must not re-ask an
+			// already-answered PUT kind (its counter count is still positive,
+			// so the kinds enumeration still lists it).
+			ctx.AorDone = true
+			ctx.AorElect, ctx.AorKind = "remove", ""
+			if len(chosen) > 0 {
+				if chosen[0].Kind == "aor_skip" {
+					// The combined absent-kind election has one skip option,
+					// unlike the per-kind form's aor_skip:<kind>.
+					ctx.AorElect = "skip"
+				} else {
+					if strings.HasPrefix(chosen[0].Kind, "aor_put:") {
+						ctx.AorElect = "put"
+					} else if strings.HasPrefix(chosen[0].Kind, "aor_skip:") {
+						ctx.AorElect = "skip"
+					}
+					if _, k, found := strings.Cut(chosen[0].Kind, ":"); found {
+						ctx.AorKind = k
+					}
+				}
+			}
+			if rp.sa != nil && rp.sa.API == "AddOrRemoveCounter" && ctx.AorKind != "" {
+				e.aorEntry(rp.obj)[ctx.AorKind] = true
+			}
 		case "blight":
 			// A Blight's per-player KChoose (CR 701.60: the blighting player
 			// chooses which of their own creatures takes the −1/−1 counters)
@@ -2792,6 +2863,9 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		if rp.sa.API == "MoveCounter" {
 			e.seedMoveCounterAsk(rp.obj, ctx)
 		}
+		if rp.sa.API == "AddOrRemoveCounter" {
+			e.seedAorAsk(rp.obj, ctx)
+		}
 		if rp.sa.API == "PutCounter" {
 			e.seedCounterTypeAsk(rp.obj, rp.sa, ctx)
 		}
@@ -2841,6 +2915,13 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// The MoveCounter resolution completed this round (nothing
 			// suspended): its pending state is spent.
 			delete(e.moveCounterAsk, rp.obj)
+		}
+		if rp.sa.API == "AddOrRemoveCounter" && e.resume == nil {
+			// The AddOrRemoveCounter resolution completed this round (nothing
+			// suspended): its pending state is spent -- delete it so a stale
+			// entry can never seed a later resolution of the same object (the
+			// moveCounterAsk discipline).
+			delete(e.aorAsk, rp.obj)
 		}
 		if rp.sa.API == "PutCounter" && e.resume == nil {
 			delete(e.counterTypeAsk, rp.obj)

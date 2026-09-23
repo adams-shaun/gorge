@@ -550,6 +550,20 @@ type Engine struct {
 	// no event carries it. Never nil-checked on read outside recordAsk
 	// (which lazy-inits).
 	moveCounterAsk map[state.ObjID]*moveCounterPending
+	// aorAsk carries an AddOrRemoveCounter resolution's ANSWERED per-kind
+	// elections across the later suspensions of the same SA (the
+	// moveCounterAsk discipline — counterchoice1). An EachExistingCounter$
+	// walk (Dramatist's Puppet, Quarry Hauler) asks one add/remove election
+	// per counter kind; every resume builds a fresh Ctx, so without this map
+	// an already-answered PUT kind (whose counter count is still positive and
+	// therefore still enumerates) would be re-asked forever. rules/
+	// resolution.go's "aor_elect" arm records the answered kind here and the
+	// re-entry seeds it into Ctx.AorAnswered; the entry is deleted when the
+	// resolution completes. Decision-derived engine scratch, in the
+	// moveCounterAsk discipline: replay re-submits the recorded Intents
+	// through the same arms, so the map re-derives identically and no event
+	// carries it.
+	aorAsk map[state.ObjID]map[string]bool
 	// counterTypeAsk carries per-recipient comma-list PutCounter answers across
 	// suspensions. It is replay-derived engine scratch, never game state.
 	counterTypeAsk map[state.ObjID]*counterTypePending
@@ -1772,6 +1786,12 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		}
 	}
 	departingSource, departingSourceLifelink, departingSourceController := e.captureSourceLifelinkLKI(ev)
+	timeBefore := int32(0)
+	if ev.Kind == events.CounterChange && ev.Amount < 0 && ev.Counter == "TIME" {
+		if o := e.G.Obj(ev.Obj); o != nil {
+			timeBefore = o.Counter("TIME")
+		}
+	}
 	stackLen := len(e.G.Stack)
 	// Record only the final event after replacement selection. The object
 	// snapshot must precede Apply, and unknown adder provenance is not a
@@ -1792,6 +1812,20 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		}
 	}
 	stored := events.Emit(e.G, e.L, ev)
+	if ev.Kind == events.CounterChange && ev.Amount < 0 && ev.Counter == "TIME" && timeBefore > 0 {
+		// CR 702.62a/b (counterchoice1): the LAST time counter leaving a
+		// suspended card by ANY route — the upkeep tick or a Clockspinning/
+		// Amy-Pond-style removal mid-resolution — queues CR 702.62a's may-cast
+		// offer; startSuspendedCast drains the queue at the next step(). The
+		// ONE home replaces the upkeep tick's own append (which was the only
+		// emitter before): a counter removed mid-resolution used to strand a
+		// zero-TIME card in exile forever, because the tick skips a card
+		// already at zero and nothing else ever re-offered the cast.
+		if o := e.G.Obj(ev.Obj); o != nil && o.Zone == state.ZExile &&
+			(o.CastFlags&state.FlagSuspend != 0 || o.SuspendGranted) && o.Counter("TIME") == 0 {
+			e.suspendedCasts = append(e.suspendedCasts, ev.Obj)
+		}
+	}
 	// CR 702.90b (kw:Infect): the counters/poison an infect source's damage
 	// is dealt in the form of are placed HERE, as real events emitted
 	// through this same emit -- so the repl:AddCounter class (a Winding
