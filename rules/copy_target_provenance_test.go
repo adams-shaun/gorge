@@ -108,26 +108,33 @@ func TestCopyCharmAsksEveryChosenTargetMode(t *testing.T) {
 	}
 	submitChoices(t, eng, picks...)
 	bear := miscBoardObj(t, eng, 1, "Grizzly Bears")
-	d = eng.Pending()
-	if d == nil || d.Kind != decision.KTarget {
-		t.Fatalf("cast target ask missing: %+v", d)
+	mystic := miscBoardObj(t, eng, 1, "Elvish Mystic")
+	if bear == mystic || eng.G.Obj(bear).Zone != state.ZBattlefield || eng.G.Obj(mystic).Zone != state.ZBattlefield {
+		t.Fatalf("precondition: distinct creature targets must be on battlefield: bear=%d mystic=%d", bear, mystic)
 	}
-	found := -1
+	d = eng.Pending()
+	if d == nil || d.Kind != decision.KTarget || d.Min != 2 || d.Max != 2 {
+		t.Fatalf("cast per-mode target ask missing: %+v", d)
+	}
+	first, second := -1, -1
 	for _, opt := range d.Options {
-		if opt.Obj == bear {
-			found = opt.Index
+		if opt.Group == "charm-mode-0" && opt.Obj == bear {
+			first = opt.Index
+		}
+		if opt.Group == "charm-mode-1" && opt.Obj == mystic {
+			second = opt.Index
 		}
 	}
-	if found < 0 {
-		t.Fatalf("cast target bear absent: %+v", d.Options)
+	if first < 0 || second < 0 || first == second {
+		t.Fatalf("cast target pair absent: %+v", d.Options)
 	}
-	submitChoices(t, eng, found)
+	submitChoices(t, eng, first, second)
 	if o := eng.G.Obj(spell); o == nil || o.Zone != state.ZStack || len(o.ChosenModes) != 2 {
 		t.Fatalf("modal cast precondition failed: %+v", o)
 	}
 	submitChoices(t, eng, abilityOption(t, eng, pool, 1).Index)
 	d = eng.Pending()
-	found = -1
+	found := -1
 	if d != nil {
 		for _, opt := range d.Options {
 			if opt.Obj == spell {
@@ -145,7 +152,7 @@ func TestCopyCharmAsksEveryChosenTargetMode(t *testing.T) {
 	}
 	submitChoices(t, eng, 0)
 	d = passUntilNonPriority(t, eng, 30)
-	if d == nil || d.ResumeKind != "copy_targets" || d.Source == spell || d.ResumeSA == nil || d.ResumeSA.Line != copyCharmModes(card.Faces[0], sa, []string{"DBTap", "DBDmg"})[1].Line {
+	if d == nil || d.ResumeKind != "copy_targets" || d.Source == spell || d.ResumeSA == nil || d.ResumeSA.Line != copyCharmModes(card.Faces[0], sa, []string{"DBTap", "DBDmg"})[1].Line || d.Options[0].Obj != mystic {
 		t.Fatalf("second modal copy target declaration missing: %+v", d)
 	}
 }

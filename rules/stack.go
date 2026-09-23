@@ -1089,6 +1089,22 @@ const (
 
 func (e *Engine) stackObjKind(o *state.Object) stackObjKind { return state.StackKindOf(e.G, o) }
 
+// stackTargetOptionKind maps the engine's stack-object classifier to the
+// public target-option kind. Keep this aligned with view.StackView.Kind so a
+// stack target is not mislabeled as a battlefield permanent on the wire.
+func stackTargetOptionKind(k stackObjKind) string {
+	switch k {
+	case stackSpell:
+		return "spell"
+	case stackTriggered:
+		return "trigger"
+	case stackActivated:
+		return "ability"
+	default:
+		return "spell"
+	}
+}
+
 // targetTypeToken is state.StackKindToken: one comma-separated TargetType$
 // token -- which stack object kinds its base admits, the controller qualifier
 // read off the qualifiers after the base ("YouCtrl" -- controller must be the
@@ -1614,7 +1630,7 @@ func (e *Engine) candidatesFor(p state.PlayerID, source, excludeSelf state.ObjID
 					continue
 				}
 				if e.matchesSpec(tspec, oid, sc) {
-					out = append(out, targetCandidate{kind: "permanent", obj: oid, player: o.Controller})
+					out = append(out, targetCandidate{kind: stackTargetOptionKind(e.stackObjKind(o)), obj: oid, player: o.Controller})
 				}
 			}
 			continue
@@ -1766,6 +1782,113 @@ func (e *Engine) filterTargetsWithDefinedController(in []targetCandidate, sa *ca
 	return out
 }
 
+// charmTargetSlots returns the selected DISTINCT target-bearing mode bodies.
+// Repeated mode instances deliberately return nil: their later occurrences
+// retain the established per-instance ask path.
+func charmTargetSlots(svars map[string]string, root *cards.SA, modes []string) []string {
+	if root == nil || root.API != "Charm" || len(modes) < 2 {
+		return nil
+	}
+	seen := make(map[string]bool, len(modes))
+	var slots []string
+	for _, name := range modes {
+		name = strings.TrimSpace(name)
+		if seen[name] {
+			return nil
+		}
+		seen[name] = true
+		if sub := cards.ResolveSVar(svars, name); sub != nil && strings.TrimSpace(sub.Params["ValidTgts"]) != "" {
+			slots = append(slots, name)
+		}
+	}
+	if len(slots) < 2 {
+		return nil
+	}
+	return slots
+}
+
+// askCharmModeTargets is the ordinary distinct-mode target ask. One option
+// group is allocated per target-bearing mode; with Min == Max == number of
+// modes, Decision.Validate therefore requires exactly one target from every
+// mode's own candidate set. The explicit single-target shape is intentional:
+// it is the independently-targeted Charm family and leaves multi-target and
+// repeatable declarations on their existing paths. infeasible means a mandatory
+// mode has no legal target: callers must not fall back to the first-mode ask.
+func (e *Engine) askCharmModeTargets(p state.PlayerID, source state.ObjID, svars map[string]string, root *cards.SA, modes []string) (asked, infeasible bool) {
+	slots := charmTargetSlots(svars, root, modes)
+	if len(slots) < 2 {
+		return false, false
+	}
+	choices := strings.Split(root.Params["Choices"], ",")
+	if status, _ := effects.CharmCrossModeShape(svars, choices); status != effects.CharmUniqueNone {
+		// The already-implemented TargetUnique family has a different wire
+		// contract (one target per mode AND one different player per target).
+		// Leave it to its dedicated ask path rather than weakening that
+		// constraint.
+		return false, false
+	}
+	type slot struct {
+		name string
+		sa   *cards.SA
+		cs   []targetCandidate
+	}
+	var all []slot
+	for _, name := range slots {
+		sa := cards.ResolveSVar(svars, name)
+		min, max := e.resolvedTargetBounds(p, source, sa, 0)
+		if min != 1 || max != 1 {
+			return false, false
+		}
+		cs := e.legalTargetCandidates(p, source, source, sa)
+		if len(cs) == 0 {
+			return false, true
+		}
+		all = append(all, slot{name: name, sa: sa, cs: cs})
+	}
+	d := &decision.Decision{Player: p, Kind: decision.KTarget, Min: len(all), Max: len(all),
+		Prompt: fmt.Sprintf("Choose one target for each of %d modes", len(all)), Source: source,
+		ResumeKind: "charm_targets", ResumeModes: append([]string(nil), slots...)}
+	for i, s := range all {
+		for _, candidate := range s.cs {
+			o := decision.Option{Index: len(d.Options), Kind: candidate.kind,
+				Label: e.targetOptionLabel(candidate), Obj: candidate.obj, Player: candidate.player,
+				Group: fmt.Sprintf("charm-mode-%d", i), Controller: e.candidateControllerSeat(candidate)}
+			d.Options = append(d.Options, o)
+		}
+	}
+	e.ask(d)
+	return true, false
+}
+
+// charmTargetGroups partitions a combined Charm target answer by its
+// per-mode Option.Group labels. The returned order is target-bearing mode
+// order, not the order in which a client happened to submit the options.
+func charmTargetGroups(d *decision.Decision, chosen []decision.Option) ([][]state.Target, []decision.Option) {
+	groups := make([][]state.Target, len(d.ResumeModes))
+	bySlot := make([][]decision.Option, len(groups))
+	for _, opt := range chosen {
+		const prefix = "charm-mode-"
+		if !strings.HasPrefix(opt.Group, prefix) {
+			continue
+		}
+		i, err := strconv.Atoi(strings.TrimPrefix(opt.Group, prefix))
+		if err != nil || i < 0 || i >= len(groups) {
+			continue
+		}
+		if opt.Kind == "player" {
+			groups[i] = append(groups[i], state.Target{Player: opt.Player, IsPlayer: true})
+		} else {
+			groups[i] = append(groups[i], state.Target{Obj: opt.Obj})
+		}
+		bySlot[i] = append(bySlot[i], opt)
+	}
+	var ordered []decision.Option
+	for i := range bySlot {
+		ordered = append(ordered, bySlot[i]...)
+	}
+	return groups, ordered
+}
+
 // askCrossModeCharmTargets poses the cross-mode TargetUnique family's ONE
 // combined target ask: Min == Max == the number of chosen target-bearing
 // modes, over the shared candidate pool of the modes' common ValidTgts$ spec,
@@ -1796,7 +1919,6 @@ func (e *Engine) askCrossModeCharmTargets(p state.PlayerID, source state.ObjID, 
 		}
 		d.Options = append(d.Options, o)
 	}
-	e.drainAwaitsTarget = true
 	e.ask(d)
 	return true
 }
@@ -2498,6 +2620,40 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 		}
 		return
 	}
+	if d.ResumeKind == "charm_targets" {
+		groups, ordered := charmTargetGroups(d, chosen)
+		if e.cast != nil {
+			pc := e.cast
+			pc.charmTargets = groups
+			stageBase := len(pc.targets)
+			pc.targets = append(pc.targets, targetOptions(ordered)...)
+			e.repriceForTargets(pc)
+			if !pc.isAbility() {
+				if pc.stackObj != 0 {
+					e.recordChosenTargets(pc.stackObj, ordered, stageBase > 0)
+				}
+				e.payCast()
+			} else {
+				e.payCast()
+				if pc.stackObj != 0 {
+					e.recordChosenTargets(pc.stackObj, ordered, false)
+				}
+			}
+		} else {
+			if e.charmTargets == nil {
+				e.charmTargets = make(map[state.ObjID][][]state.Target)
+			}
+			e.charmTargets[d.Source] = groups
+			e.recordChosenTargets(d.Source, ordered, false)
+		}
+		if e.drainAwaitsTarget {
+			e.drainAwaitsTarget = false
+			e.resumeTriggerDrain()
+		} else if e.pending == nil {
+			e.emit(events.Event{Kind: events.Priority, Player: in.Player, Amount: 0})
+		}
+		return
+	}
 	// A cast-flow target decision (CR 601.2c, asked by targetAsk after the
 	// object was pushed by pushCast but BEFORE any cost is paid): completing
 	// it means recording the chosen targets onto the stack object and then
@@ -2654,6 +2810,64 @@ func (e *Engine) recordChosenTargets(targetObj state.ObjID, chosen []decision.Op
 // script from running anyway once every target it had was gone. With only
 // some targets still legal, resolution proceeds against exactly that
 // narrowed set -- CR 608.2b's "resolves, doing as much as possible".
+func cloneCharmTargetGroups(in [][]state.Target) [][]state.Target {
+	if in == nil {
+		return nil
+	}
+	out := make([][]state.Target, len(in))
+	for i, group := range in {
+		out[i] = append([]state.Target(nil), group...)
+	}
+	return out
+}
+
+// recheckCharmTargets applies CR 608.2b independently to each selected
+// distinct mode's target declaration. The flat target list remains available
+// for legacy consumers, while the returned groups are what effCharm binds to
+// each mode.
+func (e *Engine) recheckCharmTargets(o *state.Object) ([][]state.Target, []state.Target, bool) {
+	if o == nil || e.charmTargets == nil || e.charmTargets[o.ID] == nil || len(o.ChosenModes) == 0 {
+		return nil, nil, false
+	}
+	var root *cards.SA
+	var svars map[string]string
+	if o.Ability != nil {
+		src := e.G.Obj(o.Source)
+		if src == nil || src.Face() == nil {
+			return nil, nil, false
+		}
+		root, svars = o.Ability, src.Face().SVars
+	} else {
+		f := o.Face()
+		if f == nil {
+			return nil, nil, false
+		}
+		root, svars = f.SpellAbility(), f.SVars
+	}
+	slots := charmTargetSlots(svars, root, o.ChosenModes)
+	groups := e.charmTargets[o.ID]
+	if len(slots) != len(groups) {
+		return nil, nil, false
+	}
+	checked := make([][]state.Target, len(groups))
+	var flat []state.Target
+	anyLegal := false
+	source := o.ID
+	if o.Ability != nil {
+		source = o.Source
+	}
+	for i, name := range slots {
+		sub := cards.ResolveSVar(svars, name)
+		legal := e.legalTargets(groups[i], sub, targetZones(sub), o.Controller, source, o.ID)
+		checked[i] = legal
+		if len(legal) > 0 {
+			anyLegal = true
+		}
+		flat = append(flat, legal...)
+	}
+	return checked, flat, anyLegal
+}
+
 // offeredTargetSA is the SA whose ValidTgts$ targeting the placement or
 // announcement ask covered for this stack object, derived exactly as the
 // TargetsOffered marker's derivation in resolveTop: the ability SA itself
@@ -2773,6 +2987,10 @@ func (e *Engine) resolveTop() {
 		// 608.2b's "spell or ability" covers this shape too if a later
 		// task ever gives a triggered ability a player-chosen target.
 		targets := o.Targets
+		charmModeTargets, charmFlatTargets, charmHandled := e.recheckCharmTargets(o)
+		if charmHandled {
+			targets = charmFlatTargets
+		}
 		// Fix round 2 (re-review N1): the gate is `spec != ""` -- "this
 		// ability declares a targeting requirement" -- not `len(targets) > 0`
 		// -- "this ability happens to have targets right now". The old form
@@ -2783,17 +3001,19 @@ func (e *Engine) resolveTop() {
 		// Requirement N2: an ability that MAY target zero things (TargetMin$ 0)
 		// and has none recorded resolves untargeted rather than fizzling --
 		// targetMin(o.Ability)==0 && len(targets)==0 is the exemption.
-		if spec := o.Ability.Params["ValidTgts"]; spec != "" && !(e.resolvedTargetMin(o.Controller, id, o.Ability, 0) == 0 && len(targets) == 0) {
-			legal := e.legalTargets(targets, o.Ability, targetZones(o.Ability), o.Controller, o.Source, id)
-			if len(legal) == 0 {
-				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
-					From: state.ZStack, To: state.ZExile, Text: "fizzled: no legal targets remain"})
-				e.ensureLeftTheStack(id, state.ZExile, "a replacement fully discarded this "+
-					"ability's 'fizzled: no legal targets' move without relocating it anywhere; "+
-					"sent to exile instead of re-resolving forever")
-				return
+		if !charmHandled {
+			if spec := o.Ability.Params["ValidTgts"]; spec != "" && !(e.resolvedTargetMin(o.Controller, id, o.Ability, 0) == 0 && len(targets) == 0) {
+				legal := e.legalTargets(targets, o.Ability, targetZones(o.Ability), o.Controller, o.Source, id)
+				if len(legal) == 0 {
+					e.emit(events.Event{Kind: events.MoveZone, Obj: id,
+						From: state.ZStack, To: state.ZExile, Text: "fizzled: no legal targets remain"})
+					e.ensureLeftTheStack(id, state.ZExile, "a replacement fully discarded this "+
+						"ability's 'fizzled: no legal targets' move without relocating it anywhere; "+
+						"sent to exile instead of re-resolving forever")
+					return
+				}
+				targets = legal
 			}
-			targets = legal
 		}
 		// CR 608.2m: a resolved ability just ceases to exist rather than
 		// moving to a card zone. This build has no "ceases to exist" zone,
@@ -2968,7 +3188,7 @@ func (e *Engine) resolveTop() {
 		// lookup two lines above already gets this right by reading from
 		// o.Source; this was a one-line inconsistency, not a second design.
 		ctx := &effects.Ctx{Source: o.Source, Controller: o.Controller,
-			Targets: targets, Remembered: o.Remembered, Captured: o.Remembered, TriggerContext: e.triggerContexts[id],
+			Targets: targets, ModeTargets: charmModeTargets, Remembered: o.Remembered, Captured: o.Remembered, TriggerContext: e.triggerContexts[id],
 			// The resolving stack-object wrapper: ValidStack's otherAbility
 			// exclusion (Ulalek's sub-copy) anchors here, not on Source --
 			// Source is the source permanent (Ruling T20-b), which is not on
@@ -3093,6 +3313,10 @@ func (e *Engine) resolveTop() {
 		return
 	}
 	targets := o.Targets
+	charmModeTargets, charmFlatTargets, charmHandled := e.recheckCharmTargets(o)
+	if charmHandled {
+		targets = charmFlatTargets
+	}
 	// targetSA is the SA whose ValidTgts$ the cast-flow target ask offered
 	// (the modal declaration for a Charm, the SpellAbility itself otherwise);
 	// hoisted so the resolution ctx can carry the TargetsOffered marker and
@@ -3116,7 +3340,7 @@ func (e *Engine) resolveTop() {
 			}
 		}
 	}
-	if sa != nil && !overloaded {
+	if sa != nil && !overloaded && !charmHandled {
 		// A modal spell's target declaration lives on its announced mode SVar,
 		// not the outer Charm SA. Use the same selected declaration targetAsk
 		// used during CR 601.2c, so its targets receive the ordinary CR 608.2b
@@ -3168,7 +3392,7 @@ func (e *Engine) resolveTop() {
 	if sa != nil {
 		e.damaging = id
 		ctx := &effects.Ctx{Source: id, Controller: o.Controller, Targets: targets,
-			ResolvingObj: id}
+			ModeTargets: charmModeTargets, ResolvingObj: id}
 		// Same marker as the ability branch: the cast-flow target ask
 		// (targetAsk's targetSA) offered exactly this spell's targeting.
 		if targetSA != nil && strings.TrimSpace(targetSA.Params["ValidTgts"]) != "" {

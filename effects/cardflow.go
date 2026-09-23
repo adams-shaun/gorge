@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"sort"
 	"strconv"
 	"strings"
 
@@ -867,8 +868,8 @@ func rememberMilled(h Host, c *Ctx, id state.ObjID) {
 // default). The remainder's second destination DOES exist in the corpus as
 // "DestinationZone2$" (with "LibraryPosition2$" placing it in a library) --
 // an earlier note here wrongly claimed the parameter does not exist; it is
-// read below. LibraryPosition$ (the PRIMARY move's position, 96 corpus
-// lines) is still unread.
+// read below. The primary LibraryPosition$ is applied after the primary
+// pile settles, including across an ordered-bottom remainder ask.
 //
 // A real card can also write "ChangeNum$ All" (e.g. Goblin Guide's own Dig)
 // to mean every matching card within the DigNum look, with no cap short of
@@ -955,15 +956,24 @@ func rememberMilled(h Host, c *Ctx, id state.ObjID) {
 //     so they stay on top in their existing relative order (the corpus
 //     never pairs the two; Through the Forest Gate carries it without one).
 //
-// Still unread here (each a real divergence, named in AGENTS.md's Dig row):
-// Optional$ on the NO-CHOICE path (eligible <= ChangeNum still takes all
-// eligible; ChangeNum$ 0 takes nothing, correctly), RestRandomOrder$ (the
-// bottom pile returns in the answered/offered order, never shuffled), the
-// primary LibraryPosition$ (96 corpus lines put the PRIMARY take at a
-// library position), Choser$ (the opponent-chooses planeswalker shape) and
-// the exotic DestinationZone2 values (PlanarDeck).
+// Still unread here: RestRandomOrder$ (the bottom pile returns in the
+// answered/offered order, never shuffled) and the exotic DestinationZone2
+// values (PlanarDeck). The primary optional election, primary
+// LibraryPosition$, Choser$ and DigNum$ X are handled by this walk.
 func effDig(h Host, c *Ctx, sa *cards.SA) {
 	digNum := Num(h, c, sa, "DigNum", 1)
+	// Forge's DigNum$ X names the resolving X value when one was paid, but
+	// trigger bodies also use the same spelling for their face SVar (Keldon
+	// Flamesage's SVar:X:Count$CardPower). A zero paid-X slot is not enough to
+	// distinguish those forms, so use the named SVar as the trigger fallback
+	// when the resolution carries one and its count body resolves.
+	if strings.TrimSpace(sa.Params["DigNum"]) == "X" && c.X == 0 && c.SVars != nil {
+		if body, ok := c.SVars["X"]; ok {
+			if n, resolved := EvalCountOK(h, c, body); resolved {
+				digNum = n
+			}
+		}
+	}
 	if digNum < 0 {
 		digNum = 0
 	}
@@ -1012,6 +1022,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 	forceReveal := strings.EqualFold(strings.TrimSpace(sa.Params["ForceRevealToController"]), "True")
 	skipReorder := strings.EqualFold(strings.TrimSpace(sa.Params["SkipReorder"]), "True")
 	tapped := strings.EqualFold(strings.TrimSpace(sa.Params["Tapped"]), "True")
+	primaryPos := strings.TrimSpace(sa.Params["LibraryPosition"])
 	dest2Name := strings.TrimSpace(sa.Params["DestinationZone2"])
 	pos2 := strings.TrimSpace(sa.Params["LibraryPosition2"])
 	// Forge's omitted second destination means bottom-of-library remainder.
@@ -1058,6 +1069,25 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			n = int32(len(lib))
 		}
 		top := append([]state.ObjID(nil), lib[:n]...)
+		// primaryMoved is the temporary library pile for a primary
+		// DestinationZone$ Library move. It is placed after the remainder has
+		// settled, so the primary LibraryPosition$ cannot be lost to the
+		// remainder's ordered-bottom ask.
+		primaryMoved := make([]state.ObjID, 0, len(top))
+		placePrimary := func() {
+			if dest != state.ZLibrary || len(primaryMoved) == 0 {
+				return
+			}
+			switch primaryPos {
+			case "", "0":
+				libraryOrderPlacement(h, p, primaryMoved, false)
+			case "-1":
+				// MoveZone already appends the primary pile at the bottom.
+			default:
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: p,
+					Text: "LibraryPosition$ " + primaryPos + " is not implemented; the cards sit at the BOTTOM of the library"})
+			}
+		}
 		// take moves one window card to the primary destination, revealing
 		// it first when ForceRevealToController$ asks (a public Note naming
 		// the card, then the Secret move -- the same reveal-then-secret-move
@@ -1070,6 +1100,9 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			}
 			ev := moveZoneEvent(c, id, state.ZLibrary, dest)
 			ev.Player, ev.Secret = p, true
+			if dest == state.ZLibrary {
+				primaryMoved = append(primaryMoved, id)
+			}
 			// ExileFaceDown$ True with an exile destination (Ugin, the
 			// Ineffable's [+1]: "Exile the top card of your library face down
 			// and look at it") carries the same face-down exile payload
@@ -1125,7 +1158,8 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				// the "dig" arm as a TAKE answer and re-dig the next window.
 				d := &decision.Decision{Player: p, Kind: decision.KArrange, Min: len(ids), Max: len(ids), Source: c.Source,
 					ResumeKind: "dig_arrange", ResumeSA: sa, ResumeTarget: targetIndex,
-					Prompt: "Put the remaining cards on the bottom of your library in any order"}
+					Prompt:           "Put the remaining cards on the bottom of your library in any order",
+					ResumeDigPrimary: append([]state.ObjID(nil), primaryMoved...)}
 				for i, id := range ids {
 					name := "a card"
 					if o := g.Obj(id); o != nil && o.Face() != nil {
@@ -1198,6 +1232,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				if rest(restIDs) {
 					return
 				}
+				placePrimary()
 				continue
 			}
 		}
@@ -1248,7 +1283,15 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 		// an EARLIER target's take answer resumed the walk (targetIndex >
 		// digTarget), while an arrange re-entry keeps main's deliberate
 		// deterministic processing for every target past arrangeThrough.
-		if (!digDone || targetIndex > digTarget) && arrangeThrough < 0 && changeNum > 0 && ((int32(len(eligible)) > changeNum || anyNum && len(eligible) > 0) || askBudget) {
+		optionalChoice := optional && len(budgetEligible) > 0 && changeNum > 0
+		takeChoice := int32(len(budgetEligible)) > changeNum || anyNum && len(budgetEligible) > 0
+		chooser := p
+		if rawChooser := strings.TrimSpace(sa.Params["Choser"]); rawChooser != "" {
+			if cp, ok := chooserPlayer(h, c, rawChooser); ok {
+				chooser = cp
+			}
+		}
+		if (!digDone || targetIndex > digTarget) && arrangeThrough < 0 && changeNum > 0 && (takeChoice || optionalChoice || askBudget) {
 			// A real choice: record the look, then ask the library's owner.
 			// Reveal$ True makes the record a PUBLIC reveal of the window (the
 			// same non-Secret ids-Note shape effReveal's public arm emits);
@@ -1269,6 +1312,10 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			if hasBudget && minv > int32(len(greedy)) {
 				minv = int32(len(greedy))
 			}
+			maxv := int(changeNum)
+			if maxv > len(budgetEligible) {
+				maxv = len(budgetEligible)
+			}
 			verb := "you may put up to "
 			if !optional && !anyNum {
 				verb = "put "
@@ -1277,9 +1324,9 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			if hasBudget {
 				prompt += " (total mana value " + strconv.Itoa(int(budget)) + " or less)"
 			}
-			d := &decision.Decision{Player: p, Kind: decision.KChoose,
+			d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
 				Min:          int(minv),
-				Max:          int(changeNum),
+				Max:          maxv,
 				MaxSum:       int(budget),
 				Source:       c.Source,
 				ResumeKind:   "dig",
@@ -1325,7 +1372,10 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 					restIDs = append(restIDs, id)
 				}
 			}
-			rest(restIDs)
+			if rest(restIDs) {
+				return
+			}
+			placePrimary()
 			continue
 		}
 		// No take decision to ask about (eligible <= ChangeNum): the M1 silent
@@ -1360,6 +1410,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 		if rest(restIDs) {
 			return
 		}
+		placePrimary()
 	}
 }
 
@@ -1421,8 +1472,8 @@ func digRemember(c *Ctx, sa *cards.SA, id state.ObjID) {
 // library-destination digs describe (Jace, the Mind Sculptor's "you may
 // put that card on the bottom", mesmeric_sliver's LibraryPosition$ -1).
 // A take at a DIFFERENT library position (the primary LibraryPosition$, e.g.
-// munda_ambush_leader's "0") is still unread -- the prompt describes what
-// the engine does, not what the card asks.
+// munda_ambush_leader's "0") is placed by the Dig walk after its primary
+// pile and any remainder have settled.
 
 // permanentCardSpec rewrites a leading `Permanent` base token to
 // `PermanentCard` -- the shared matcher's battlefield-object base -- so a
@@ -1523,19 +1574,17 @@ func digDestPhrase(dest state.Zone) string {
 // ControlChange event). A found card with an AURA face put onto the
 // battlefield gets the CR 303.4f non-cast-entry attach, degraded to the
 // deterministic stand-in: the first permanent in the controller's
-// battlefield zone order that satisfies the Enchant keyword's own spec (the
-// same read rules/attach.go's auraStillMatchesEnchant does; effects keeps
-// its own copy — it must not import rules). With NO eligible bearer the
-// Aura stays in the library (CR 303.4f's remain-in-current-zone) rather
-// than entering unattached and dying to the CR 704.5m SBA. Riders withheld with ONE loud Note naming each and
-// the core move still running: Amount$ non-literal (X/MassX/VoteNum/Y —
-// amount 1 then; literal 1..5 ARE honoured as "keep revealing until N
-// matches"), DigZone$ (only Library is a real zone — the PlanarDeck
-// carriers scan no zone at all and move nothing), NoMoveFound$ /
-// FoundLibraryPosition$ (the found card stays where it is), Shuffle$ /
-// ShuffleCondition$ (the revealed rest go to RevealedDestination$ in
-// existing order instead of shuffling in), ImprintFound$ /
-// ImprintRevealed$ (no imprint association is recorded).
+// battlefield zone order that satisfies the Enchant keyword's own spec. If
+// more than one permanent qualifies, the controller chooses the bearer; a
+// sole candidate is taken without an answer. With NO eligible bearer the Aura
+// stays in the library (CR 303.4f's remain-in-current-zone) rather than
+// entering unattached and dying to the CR 704.5m SBA. Riders withheld with
+// one loud Note per parameter and the core move still running: Amount$
+// non-literal (X/MassX/VoteNum/Y — amount 1 then; literal 1..5 ARE honoured
+// as "keep revealing until N matches"), DigZone$, NoMoveFound$ /
+// FoundLibraryPosition$, Shuffle$ / ShuffleCondition$, Imprint*$ and
+// NoneFound*$. RevealRandomOrder$ remains a deterministic existing-order
+// stand-in because ambient randomness is forbidden.
 func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 	spec := sa.Params["Valid"]
 	if spec == "" {
@@ -1567,20 +1616,37 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 			withheld = append(withheld, "Amount$ "+raw)
 		}
 	}
-	// The params that keep the FOUND card where it is: NoMoveFound$ True is
-	// the card's own instruction, and the FoundLibraryPosition$ carriers are
-	// all position "0" — already on top — so the no-move read is the
-	// behaviour the card names, with the loud Note saying the primitive is
-	// not the full param.
-	noMoveFound := false
-	for _, key := range []string{"NoMoveFound", "FoundLibraryPosition"} {
+	// These parameters are deliberately not interpreted yet. In particular,
+	// NoMoveFound$ and FoundLibraryPosition$ must not suppress the ordinary
+	// found-card move merely because their full placement grammar is absent.
+	for _, key := range []string{"DigZone", "NoMoveFound", "FoundLibraryPosition", "Shuffle", "ShuffleCondition"} {
 		if v := digUntilParamValue(sa, key); v != "" {
 			withheld = append(withheld, key+"$ "+v)
-			noMoveFound = true
 		}
 	}
-	// Purely inert riders: one loud Note, the move proceeds without them.
-	for _, key := range []string{"Shuffle", "ShuffleCondition", "ImprintFound", "ImprintRevealed"} {
+	var imprintKeys []string
+	for key := range sa.Params {
+		if strings.HasPrefix(key, "Imprint") {
+			imprintKeys = append(imprintKeys, key)
+		}
+	}
+	sort.Strings(imprintKeys)
+	for _, key := range imprintKeys {
+		if v := digUntilParamValue(sa, key); v != "" {
+			withheld = append(withheld, key+"$ "+v)
+		}
+	}
+	// NoneFound* is a family (Tunnel Vision carries Destination and
+	// LibraryPosition variants). Read its keys in sorted order so Note event
+	// order is deterministic even though SA.Params is a map.
+	var noneFoundKeys []string
+	for key := range sa.Params {
+		if strings.HasPrefix(key, "NoneFound") {
+			noneFoundKeys = append(noneFoundKeys, key)
+		}
+	}
+	sort.Strings(noneFoundKeys)
+	for _, key := range noneFoundKeys {
 		if v := digUntilParamValue(sa, key); v != "" {
 			withheld = append(withheld, key+"$ "+v)
 		}
@@ -1592,14 +1658,19 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 	// the withheld-params Note.
 	moveAns := c.DigUntilMove
 	moveDone := c.DigUntilMoveDone
+	auraBearer := c.DigUntilAuraBearer
+	auraDone := c.DigUntilAuraDone
 	c.DigUntilMove, c.DigUntilMoveDone = "", false
+	c.DigUntilAuraBearer, c.DigUntilAuraDone = 0, false
 	if moveAns == "" {
 		moveAns = "no"
 	}
 	g := h.Game()
-	if !moveDone && len(withheld) > 0 {
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-			Text: "DigUntil withholds " + strings.Join(withheld, ", ") + "; the core move runs without it"})
+	if !moveDone && !auraDone {
+		for _, param := range withheld {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "DigUntil withholds " + param + "; the core move runs without it"})
+		}
 	}
 	targets := Defined(h, c, sa)
 	if sa.Params["Defined"] == "" && sa.Params["ValidTgts"] == "" {
@@ -1609,13 +1680,9 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 		// source is the resolving permanent, not a player.
 		targets = []state.Target{{Player: c.Controller, IsPlayer: true}}
 	}
-	if digZone := strings.TrimSpace(sa.Params["DigZone"]); digZone != "" && !strings.EqualFold(digZone, "Library") {
-		// The PlanarDeck carriers (4): planes are unimplemented engine-wide
-		// and there is no planar-deck zone to scan. Loud, and nothing moves.
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-			Text: "DigUntil DigZone$ " + digZone + " is not implemented; no cards are revealed or moved"})
-		return
-	}
+	// DigZone$ is withheld above. The ordinary library scan remains the
+	// deterministic core move even for the PlanarDeck carriers; their full
+	// planar-zone semantics are outside this primitive.
 	// declineDest is where the found card goes when the optional move is
 	// declined: OptionalNoDestination$ when the SA carries one, else the
 	// revealed pile (the corpus oracles' "put all cards revealed this way
@@ -1649,7 +1716,7 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 		// The reveal is PUBLIC (the same non-Secret ids-Note effDig's Reveal$
 		// arm emits), recorded before the ask, once per resolution -- a
 		// re-entry after the optional-move answer must not reveal again.
-		if !moveDone {
+		if !moveDone && !auraDone {
 			h.Emit(events.Event{Kind: events.Note, Player: p, IDs: revealed})
 		}
 		if optionalMove && !moveDone {
@@ -1683,7 +1750,7 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 		foundJoinedRevealed := false
-		if !noMoveFound && len(found) > 0 {
+		if len(found) > 0 {
 			dest := foundDest
 			if optionalMove && moveAns != "yes" {
 				dest = declineDest
@@ -1697,6 +1764,40 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 					// remain-in-current-zone) instead of entering unattached and
 					// dying to the CR 704.5m SBA.
 					bearer, isAuraFace := auraEntryBearer(g, id, p)
+					if isAuraFace {
+						bearers, _ := auraEntryBearers(g, id, p)
+						switch {
+						case auraDone:
+							// The answered bearer is revalidated against the
+							// current battlefield before it is used.
+							bearer = 0
+							for _, candidate := range bearers {
+								if candidate == auraBearer {
+									bearer = candidate
+									break
+								}
+							}
+							auraDone = false
+						case len(bearers) == 0:
+							bearer = 0
+						case len(bearers) == 1:
+							bearer = bearers[0]
+						default:
+							d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
+								Source: c.Source, ResumeKind: "diguntil_aura", ResumeSA: sa,
+								ResumeDigUntilMove: moveAns, ResumeDigUntilMoveDone: moveDone,
+								Prompt: "Choose a permanent for the revealed Aura to enchant"}
+							for i, candidate := range bearers {
+								d.Options = append(d.Options, decision.Option{Index: i, Kind: "card", Obj: candidate, Player: p})
+							}
+							if Ask(h, d) == AskAsked {
+								return
+							}
+							// R-9: a host without an answer takes the
+							// deterministic first candidate.
+							bearer = bearers[0]
+						}
+					}
 					if isAuraFace && bearer == 0 {
 						h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: p,
 							Text: "no permanent the revealed Aura can enchant; it stays in the library (CR 303.4f)"})
@@ -1713,8 +1814,8 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 						h.Emit(events.Event{Kind: events.ControlChange, Obj: id, Player: c.Controller})
 					}
 					if bearer != 0 {
-						// The CR 303.4f attach, degraded to the deterministic
-						// stand-in documented above (the bearer the scan picked).
+						// CR 303.4f: the selected permanent is the Aura's
+						// chosen bearer on this non-cast battlefield entry.
 						emitAttach(h, id, bearer)
 					}
 					// StaticEffect$ on a DigUntil battlefield take: the same
@@ -1781,8 +1882,8 @@ func digUntilParamValue(sa *cards.SA, key string) string {
 }
 
 // auraEntryBearer resolves a non-cast battlefield entry's Aura bearer: the
-// first permanent in the entering controller's battlefield zone order that
-// satisfies the face's Enchant keyword spec (or any permanent when the face
+// first permanent in seat order, then battlefield order, that satisfies the
+// face's Enchant keyword spec (or any permanent when the face
 // carries no Enchant keyword — nothing in the corpus prints one, the same
 // convention rules/attach.go's auraStillMatchesEnchant uses). aura is false
 // when the face is not an Aura (no attach needed); aura && bearer == 0
@@ -1790,9 +1891,17 @@ func digUntilParamValue(sa *cards.SA, key string) string {
 // is the shared MatchesSpecFrom, so a compound spec (Enchant:
 // Creature.YouCtrl) evaluates exactly like an attach-time legality check.
 func auraEntryBearer(g *state.Game, id state.ObjID, p state.PlayerID) (state.ObjID, bool) {
+	bearers, isAura := auraEntryBearers(g, id, p)
+	if len(bearers) > 0 {
+		return bearers[0], true
+	}
+	return 0, isAura
+}
+
+func auraEntryBearers(g *state.Game, id state.ObjID, p state.PlayerID) ([]state.ObjID, bool) {
 	o := g.Obj(id)
 	if o == nil || o.Face() == nil {
-		return 0, false
+		return nil, false
 	}
 	isAura := false
 	for _, t := range o.Face().Types {
@@ -1802,22 +1911,25 @@ func auraEntryBearer(g *state.Game, id state.ObjID, p state.PlayerID) (state.Obj
 		}
 	}
 	if !isAura {
-		return 0, false
+		return nil, false
 	}
 	spec := "Permanent"
 	if param, ok := o.Face().KeywordParam("Enchant"); ok && strings.TrimSpace(param) != "" {
 		spec, _, _ = strings.Cut(param, ":")
 	}
 	spec = strings.TrimSpace(spec)
-	for _, bid := range g.Zone(state.ZBattlefield, p) {
-		if bid == id {
-			continue
-		}
-		if MatchesSpecFrom(g, spec, bid, p, id) {
-			return bid, true
+	var bearers []state.ObjID
+	for seat := range g.Players {
+		for _, bid := range g.Zone(state.ZBattlefield, state.PlayerID(seat)) {
+			if bid == id {
+				continue
+			}
+			if MatchesSpecFrom(g, spec, bid, p, id) {
+				bearers = append(bearers, bid)
+			}
 		}
 	}
-	return 0, true
+	return bearers, true
 }
 
 // effReveal backs Reveal, RevealHand and PeekAndReveal, which the brief

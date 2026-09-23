@@ -490,68 +490,24 @@ func TestAbilityNoProgressAbortHoldsTheAbilityOut(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// livenessShelter is the targetless-cast shape the bot bench livelocked on
-// (2026-09-15, seeds 1334 and 1386): a spell with a MANDATORY target
-// (ValidTgts$ Creature.YouCtrl, no TargetMin$/Max$, so min=1) plus a
-// Choices$ sub-effect parameter. The Choices$ shape is outside
-// castTargetsAvailable's narrow pre-offer census, so the cast is OFFERED even
-// with zero legal targets and aborts only after the push (CR 601.2c at
-// cast.go's target check), and the bot policy -- which cannot tell the offer
-// from a workable one -- re-picked it forever inside one window.
+// livenessShelter is a mandatory-target spell with a Choices$ parameter.
+// The cast-offer census must inspect its TargetMin$ requirement rather than
+// treating Choices$ as a reason to defer all target feasibility to the stack.
 const livenessShelter = "Name:Shelter\nManaCost:1 W\nTypes:Instant\n" +
 	"A:SP$ Protection | ValidTgts$ Creature.YouCtrl | Gains$ Choice | Choices$ AnyColor | SubAbility$ DBDraw | Oracle:x\n"
 
-// TestTargetlessCastAbortCannotSpinTheWindow pins the no-progress discipline
-// at the "cast aborted: no legal target" abort site (CR 601.2c + CR 733.1/733.2):
-// aborting a cast whose mandatory minimum target does not exist is a
-// no-progress reversal exactly like an unpayable cost, so it rides the same
-// F05-2 discipline every other abort site has -- the FIRST identical abort of
-// a card in the window leaves the option offered (a target could be created
-// first), the SECOND holds it out, and any state change resets both. Before
-// this site engaged suppression (abortCast suppress=false) a seat that kept
-// re-picking the same targetless cast spun that one priority window forever:
-// measured on the bench, 20000 intents of cast-abort-reverse with the turn
-// number frozen at 18 -- the exact livelock the -max-intents watchdog exists
-// to catch.
+// TestTargetlessCastAbortCannotSpinTheWindow pins the CR 601.2c offer gate:
+// a mandatory targetless cast is withheld before it can enter the stack.
 func TestTargetlessCastAbortCannotSpinTheWindow(t *testing.T) {
-	e, cfg, shelter := newFixtureDeck(t, 51, livenessShelter)
+	e, _, shelter := newFixtureDeck(t, 51, livenessShelter)
 	addMana(t, e, 0, "WW")
-	// seat 0 controls no creature (the fixture decks are Mountains), so the
-	// cast's single Creature.YouCtrl target has zero candidates: the abort
-	// fires at the target check, before any target or colour ask.
-
-	// First attempt: the cast is offered (Choices$ keeps the narrow
-	// pre-offer census from withholding it), and choosing it aborts with no
-	// progress. CR 733.2: the FIRST abort leaves the option offered -- the
-	// seat may still make a play that creates a legal target.
-	submitChoices(t, e, castOptionFor(t, e, shelter).Index)
-	if e.G.Over {
-		t.Fatal("the first targetless cast attempt ended the match")
+	if e.G.Obj(shelter) == nil || e.G.Obj(shelter).Zone != state.ZHand {
+		t.Fatalf("precondition: Shelter is not in seat 0's hand: %+v", e.G.Obj(shelter))
 	}
-	if d := e.Pending(); d == nil || d.Kind != decision.KPriority {
-		t.Fatalf("the targetless cast did not reverse straight back to priority: %+v", d)
-	}
-	if !castOffered(e, shelter) {
-		t.Fatal("a FIRST targetless abort held the cast out; CR 733.2 allows the legal retry")
-	}
-
-	// Second identical attempt: held out -- the repeat cannot loop the window.
-	submitChoices(t, e, castOptionFor(t, e, shelter).Index)
-	if e.G.Over {
-		t.Fatal("the second identical targetless cast attempt ended the match")
+	if got := len(e.legalTargetCandidates(0, shelter, shelter, e.G.Obj(shelter).Face().SpellAbility())); got != 0 {
+		t.Fatalf("precondition: Shelter unexpectedly has %d legal targets", got)
 	}
 	if castOffered(e, shelter) {
-		t.Fatal("targetless shelter is still offered after the second identical no-progress abort")
+		t.Fatal("mandatory targetless Shelter was offered after the CR 601.2c census")
 	}
-
-	// Productive play (a land, a state-changing event) resets the hold-out,
-	// so the option returns -- the cast may be retried after the board moves.
-	playLand(t, e)
-	if e.G.Over {
-		t.Fatal("a targetless abort pair plus a legal land play ended the match")
-	}
-	if !castOffered(e, shelter) {
-		t.Fatal("shelter's cast option did not return after a state-changing play")
-	}
-	replayCheck(t, e, cfg)
 }

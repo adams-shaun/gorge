@@ -130,10 +130,12 @@ type resumePoint struct {
 	// moved before its may-shuffle confirm suspended, ridden on the ask via
 	// Decision.ResumeMoved: the re-entry's LibraryPosition$ placement needs
 	// the list the suspension lost. Nil for every other ask.
-	moved       []state.ObjID
-	choices     []state.Target
-	chosenValid bool
-	remembered  []state.Target
+	moved            []state.ObjID
+	choices          []state.Target
+	chosenValid      bool
+	remembered       []state.Target
+	digUntilMove     string
+	digUntilMoveDone bool
 	// unlessPay is set only after a nested non-mana unless-cost payment has
 	// completed. It prevents the resumed `unless_pay` arm from charging that
 	// payment a second time.
@@ -433,6 +435,7 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 		direct: direct, rolls: d.Rolls,
 		choices:     append([]state.Target(nil), d.ResumeChoices...),
 		chosenValid: d.ResumeChosenValid, remembered: append([]state.Target(nil), d.ResumeRemembered...),
+		digUntilMove: d.ResumeDigUntilMove, digUntilMoveDone: d.ResumeDigUntilMoveDone,
 		moved:   append([]state.ObjID(nil), d.ResumeMoved...),
 		uptoIdx: d.ResumeUptoIdx, uptoCount: d.ResumeUptoCount,
 		villainousVictims:       append([]state.Target(nil), d.ResumeVillainousVictims...),
@@ -1028,13 +1031,11 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 			// target a different player" rule, enforced on the wire — and the
 			// answers attribute to the target-bearing modes positionally in
 			// chosen-mode order (ask order == chosen order == replay order).
-			// Every other shape keeps the historical one-undivided-list
-			// narrowing: only the FIRST target-bearing mode's targets are
-			// asked, and the resolution's modes share them (the same narrowing
-			// the spell-side Charm carries). The answer lands on the stack
-			// object through handleTarget's ordinary record, and the
-			// resolution's effToken (TokenOwner$ ThisTargetedPlayer) and
-			// friends read it as c.Targets.
+			// Distinct single-target modes use their own grouped options and
+			// target bindings. Other declarations keep their legacy ask path.
+			// The answer lands on the stack object through handleTarget's
+			// ordinary record; effToken (TokenOwner$ ThisTargetedPlayer) and
+			// friends read the mode's own c.Targets.
 			if so != nil && so.Ability != nil {
 				if src := e.G.Obj(so.Source); src != nil && src.Face() != nil {
 					svars := src.Face().SVars
@@ -1051,6 +1052,7 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 					}
 					status, why := effects.CharmCrossModeShape(svars, choices)
 					if status == effects.CharmUniqueSupported && len(tbms) >= 2 {
+						e.drainAwaitsTarget = true
 						if e.askCrossModeCharmTargets(in.Player, id, tbms) {
 							return
 						}
@@ -1061,6 +1063,24 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 					} else if status == effects.CharmUniqueUnsupported {
 						e.emit(events.Event{Kind: events.Note, Obj: id,
 							Text: "cross-mode TargetUnique$ Charm shape unimplemented: " + why})
+					} else if len(tbms) >= 2 {
+						asked, infeasible := e.askCharmModeTargets(in.Player, id, svars, so.Ability, names)
+						if infeasible {
+							// CR 603.3c: a triggered ability whose announced modes
+							// cannot all acquire mandatory targets cannot resolve.
+							// Remove it instead of posing an unanswerable decision
+							// or silently targeting only the first mode.
+							e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack,
+								To: state.ZExile, Text: "countered: no legal modal targets"})
+							e.ensureLeftTheStack(id, state.ZExile, "a replacement discarded an untargetable modal ability's move")
+							e.drainAwaitsTarget = false
+							e.resumeTriggerDrain()
+							return
+						}
+						if asked {
+							e.drainAwaitsTarget = true
+							return
+						}
 					}
 					for _, sub := range tbms {
 						e.drainAwaitsTarget = true
@@ -1334,7 +1354,9 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		return
 	}
 	ctx := &effects.Ctx{Source: rp.obj, Controller: o.Controller, NameChoice: rp.name, Targets: o.Targets,
-		Chosen: append([]state.Target(nil), rp.choices...), ChosenValid: rp.chosenValid,
+		ModeTargets: cloneCharmTargetGroups(e.charmTargets[rp.obj]),
+		Chosen:      append([]state.Target(nil), rp.choices...), ChosenValid: rp.chosenValid,
+		DigUntilMove: rp.digUntilMove, DigUntilMoveDone: rp.digUntilMoveDone,
 		VillainousVictims: append([]state.Target(nil), rp.villainousVictims...),
 		VillainousIndex:   rp.villainousIndex,
 		ChoiceTarget:      rp.target,
@@ -2336,6 +2358,14 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				ctx.DigUntilMove = "yes"
 			}
 			ctx.DigUntilMoveDone = true
+		case "diguntil_aura":
+			// CR 303.4f: an Aura entering without being cast chooses a
+			// permanent to enchant. The option's object is revalidated by
+			// effDigUntil against the current eligible bearer list.
+			if len(chosen) > 0 {
+				ctx.DigUntilAuraBearer = chosen[0].Obj
+			}
+			ctx.DigUntilAuraDone = true
 		case "counter_dist":
 			// A DividedAsYouChoose$ PutCounter distribution pick was answered
 			// (Vastwood Hydra): the chooser picked which of the Choices$
