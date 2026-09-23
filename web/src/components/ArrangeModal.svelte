@@ -1,7 +1,7 @@
 <script lang="ts">
   import { tick } from 'svelte';
   import type { Decision, Option } from '../protocol';
-  import { arrangeCard, arrangeDestination, arrangeFromOrder, arrangeOrder, arrangeSeed, arrangeSplit, moveWithin, type ArrangeSplit } from '../lib/arrange';
+  import { arrangeCard, arrangeDestination, arrangeOrder, arrangeSeed, arrangeSplit, moveWithin, type ArrangeSplit } from '../lib/arrange';
   import { oracle, type OracleCard } from '../lib/oracle';
   import CardImage from './CardImage.svelte';
 
@@ -20,8 +20,8 @@
    *    another to reorder it (HTML5 drag and drop), or click it to drop it
    *    back to the pool row (click-to-place);
    *  - the POOL row, the cards heading to the destination ("the bottom of
-   *    the library" / "the graveyard" / …) in offered order; click one to
-   *    keep it (it joins the keep pile at the end).
+   *    the library" / "the graveyard" / …); when Restable, drag to order
+   *    this pile too. Click one to keep it (it joins the keep pile at the end).
    *
    * Submitting posts the keep row's option indices in display order through
    * the caller's onSubmit — the same picked-order intent the inline
@@ -45,7 +45,7 @@
     decision: Decision;
     /** seed is the picked order the arrangement starts from (the seat's current picked set, so reopening the modal keeps the work). */
     seed?: readonly number[];
-    onSubmit: (order: number[]) => void;
+    onSubmit: (order: number[], rest?: number[]) => void;
     onClose: () => void;
     /** resolver resolves the previewed option's name to its printed facts; injectable for the SSR test harness (which has no catalog and no $effect), exactly as CardDetail's is. Production never passes it. */
     resolver?: (name: string) => OracleCard | null | Promise<OracleCard | null>;
@@ -55,11 +55,9 @@
 
   let dialog = $state<HTMLElement | null>(null);
 
-  // The arrangement is the keep ORDER, held as an edit state: null while the
-  // player has not touched it (the piles then derive live from the seed —
-  // which is also what SSR renders), and the edited order once any move has
-  // happened. Working in the modal never posts until submit.
-  let edits = $state<readonly number[] | null>(null);
+  // Null until the first edit; thereafter both ordered piles travel together.
+  // An unmarked arrange ask retains the legacy offered-order pool.
+  let edits = $state<{ keep: number[]; pool: number[] } | null>(null);
   // Seeded from the prop (a test's injected preview) at mount/SSR time only
   // — in production only a pointer/focus event ever sets it, and the prop is
   // a seed, not a stream (the same shape CardTile's initialAnchor has).
@@ -86,7 +84,13 @@
   const startOrder = $derived(arrangeSeed(decision, seed));
 
   const split = $derived.by((): ArrangeSplit => {
-    if (edits !== null) return arrangeFromOrder(decision, edits);
+    if (edits !== null) {
+      const byIndex = new Map(decision.options.map((o) => [o.index, o]));
+      return {
+        keep: edits.keep.flatMap((i) => byIndex.has(i) ? [byIndex.get(i)!] : []),
+        pool: edits.pool.flatMap((i) => byIndex.has(i) ? [byIndex.get(i)!] : []),
+      };
+    }
     return open ? arrangeSplit(decision, startOrder) : { keep: [], pool: [] };
   });
 
@@ -180,30 +184,37 @@
 
   function keepCard(optIndex: number): void {
     if (!split.pool.some((x) => x.index === optIndex)) return;
-    edits = [...arrangeOrder(split), optIndex];
+    edits = {
+      keep: [...arrangeOrder(split), optIndex],
+      pool: split.pool.filter((o) => o.index !== optIndex).map((o) => o.index),
+    };
     preview = null;
   }
 
   function dropToPool(optIndex: number): void {
     if (pureReorder) return; // nothing can leave a pure reorder's keep pile
-    const order = arrangeOrder(split);
-    const at = order.indexOf(optIndex);
-    if (at < 0) return;
-    order.splice(at, 1);
-    edits = order;
+    if (!split.keep.some((o) => o.index === optIndex)) return;
+    edits = {
+      keep: split.keep.filter((o) => o.index !== optIndex).map((o) => o.index),
+      pool: [...split.pool.map((o) => o.index), optIndex],
+    };
     preview = null;
   }
 
-  function reorder(optIndex: number, ontoIndex: number): void {
-    const order = arrangeOrder(split);
+  function reorder(optIndex: number, ontoIndex: number, pile: 'keep' | 'pool'): void {
+    if (pile === 'pool' && !decision.restable) return;
+    const order = split[pile].map((o) => o.index);
     const from = order.indexOf(optIndex);
     const to = order.indexOf(ontoIndex);
     if (from < 0 || to < 0) return;
-    edits = moveWithin(order, from, to);
+    edits = {
+      keep: pile === 'keep' ? moveWithin(order, from, to) : arrangeOrder(split),
+      pool: pile === 'pool' ? moveWithin(order, from, to) : split.pool.map((o) => o.index),
+    };
   }
 
   function submit(): void {
-    onSubmit(split.keep.map((o) => o.index));
+    onSubmit(arrangeOrder(split), decision.restable ? split.pool.map((o) => o.index) : undefined);
   }
 </script>
 
@@ -244,7 +255,7 @@
                   draggable="true"
                   ondragstart={(e) => { dragging = o.index; e.dataTransfer?.setData('text/plain', String(o.index)); }}
                   ondragover={(e) => e.preventDefault()}
-                  ondrop={(e) => { e.preventDefault(); if (dragging !== null) reorder(dragging, o.index); dragging = null; }}
+                  ondrop={(e) => { e.preventDefault(); if (dragging !== null) reorder(dragging, o.index, 'keep'); dragging = null; }}
                   ondragend={() => { dragging = null; }}
                 >
                   <button
@@ -269,14 +280,20 @@
           </section>
           {#if split.pool.length > 0 || decision.min < decision.max}
             <section class="pile pool">
-              <h3>Rest go to {arrangeDestination(decision)}</h3>
+              <h3>Rest go to {arrangeDestination(decision)}{decision.restable ? ', in this order' : ''}</h3>
               <ul class="cards" data-arrange-pool>
-                {#each split.pool as o (o.obj)}
+                {#each split.pool as o, i (o.obj)}
                   {@const card = arrangeCard(decision, o)}
                   <li
                     class="card dim"
+                    class:dragging={dragging === o.index}
                     data-arrange-card={o.index}
                     data-arrange-pool-card={o.index}
+                    draggable={decision.restable}
+                    ondragstart={(e) => { if (decision.restable) { dragging = o.index; e.dataTransfer?.setData('text/plain', String(o.index)); } }}
+                    ondragover={(e) => { if (decision.restable) e.preventDefault(); }}
+                    ondrop={(e) => { e.preventDefault(); if (dragging !== null) reorder(dragging, o.index, 'pool'); dragging = null; }}
+                    ondragend={() => { dragging = null; }}
                   >
                     <button
                       type="button"
@@ -290,12 +307,13 @@
                       onclick={() => keepCard(o.index)}
                     >
                       <CardImage {card} size="tile" pt={false} />
+                      {#if decision.restable}<span class="order">{i + 1}</span>{/if}
                       <span class="name">{o.label}</span>
                     </button>
                   </li>
                 {/each}
               </ul>
-              <p class="hint">Click a card to keep it (it joins the top at the end); drag cards above to reorder.</p>
+              <p class="hint">Click a card to keep it (it joins the top at the end); drag {decision.restable ? 'either pile' : 'cards above'} to reorder.</p>
             </section>
           {/if}
         </div>

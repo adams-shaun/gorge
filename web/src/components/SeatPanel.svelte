@@ -198,11 +198,14 @@
   function openArrange(): void {
     logic.arrangeOpen = true;
   }
-  /** submitArrange writes the popup's final keep order and posts it through the ordinary submit (the one posting path). */
-  function submitArrange(order: number[]): void {
+  /** Submit both ordered piles when offered; legacy arrange answers still use the ordinary picked-order path. */
+  function submitArrange(order: number[], rest?: number[]): void {
     logic.arrangeOpen = false;
-    logic.setPicked(order);
-    logic.submit();
+    if (rest !== undefined) logic.submitArrange(order, rest);
+    else {
+      logic.setPicked(order);
+      logic.submit();
+    }
   }
 
   /** openDiscard opens the discard-pick ask's big card view (fb-20260918T201739Z) — the affordance the arrange ask's button gives. */

@@ -2882,11 +2882,12 @@ func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, n int32, kind, verb string,
 		d := &decision.Decision{Player: p, Kind: decision.KArrange,
 			Min:          0,
 			Max:          int(k),
+			Restable:     true,
 			Source:       c.Source,
 			ResumeKind:   "arrange",
 			ResumeSA:     sa,
 			ResumeTarget: targetIndex,
-			Prompt:       verb + " " + strconv.Itoa(int(k)) + ": pick the cards to keep on top, in order; the rest go to " + destinationPhrase(kind)}
+			Prompt:       verb + " " + strconv.Itoa(int(k)) + ": pick the cards to keep on top, in order; the rest go to " + destinationPhrase(kind) + " in any order you give"}
 		for i := int32(0); i < k; i++ {
 			name := "a card"
 			if o := g.Obj(lib[i]); o != nil && o.Face() != nil {

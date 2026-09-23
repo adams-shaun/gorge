@@ -1085,6 +1085,16 @@ func Clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 			}
 		}
 	}
+	// The pile-B order (Intent.Rest) is the one repair-fragile answer shape:
+	// the partition rule (Decision.validateRest, the same rule Validate
+	// enforces) binds Rest to the exact chosen set, so a rest whose choices
+	// were repaired (or that never was a partition) must drop Rest and fall
+	// back to the legacy offered-order complement rather than hand back an
+	// intent Submit rejects. An arrange answer whose choices and rest still
+	// validate keeps both.
+	if d.Kind == decision.KArrange && len(in.Rest) > 0 && d.Validate(in) != nil {
+		in.Rest = nil
+	}
 	return in
 }
 

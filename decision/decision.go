@@ -102,8 +102,11 @@ const (
 	// The contract, stated once because a client that gets it backwards gets
 	// it silently wrong: the engine offers N cards. The answer is an ordered
 	// subset of them. The chosen indices, IN THE ORDER THE ANSWER GIVES THEM,
-	// become pile A in that order. The options NOT chosen, in the order they
-	// were OFFERED, become pile B in that order. Min/Max bound pile A's size.
+	// become pile A in that order. The options NOT chosen become pile B: in
+	// the order they were OFFERED by default, or in the order the answer's
+	// Rest gives them when it carries one (see Intent.Rest -- the pile-B
+	// order, accepted by the asks that set Restable and validated by
+	// validateRest). Min/Max bound pile A's size.
 	// Every option in one KArrange decision shares an Option.Kind naming
 	// pile B's destination -- "bottom", "graveyard", "exile", "hand" -- so
 	// a rules-ignorant client can say "the ones you pick stay on top in the
@@ -419,6 +422,17 @@ type Decision struct {
 	// TargetEffect is host-independent targeting context. It is absent on
 	// other decision kinds and on older servers; absent means unknown.
 	TargetEffect *TargetEffect `json:"target_effect,omitempty"`
+	// Restable marks a KArrange ask whose answer MAY carry Intent.Rest -- the
+	// player-chosen order for pile B, the complement of the chosen set. Set
+	// only by the scry/surveil ask (effLookAndArrange), whose pile B can be
+	// non-empty AND observably ordered (CR 701.17's "in any order" for both
+	// piles). An ask without the flag still ACCEPTS a well-formed Rest
+	// (Validate's partition rule is kind-generic), but a client should not
+	// send one it was not offered -- for a Min == Max == N ask the only valid
+	// Rest is empty, so the flag is how a rules-ignorant client knows the
+	// second list exists. omitempty: every decision a client sees today
+	// serialises byte-identically.
+	Restable bool `json:"restable,omitempty"`
 	// ResumeKind, ResumeSA, ResumeModes, ResumeTarget, ResumeChoices and
 	// ResumeRemembered are server-side only.
 	// ResumeKind selects a cast/placement/resolution continuation ("cast_modes",
@@ -567,6 +581,21 @@ type Intent struct {
 	Seq     uint64         `json:"seq"`
 	Player  state.PlayerID `json:"player"`
 	Choices []int          `json:"choices"`
+	// Rest is the answer's order for the COMPLEMENT of Choices — the second
+	// ordered list a KArrange answer may carry (the pile-B order): the options
+	// the player did not choose, in the order the player wants them, where
+	// "where they go" is still the decision's shared Option.Kind (bottom,
+	// graveyard, ...). Absent or empty means the legacy contract: the
+	// complement is taken in the order the options were OFFERED. The two lists
+	// together must be a partition of the offered options -- Rest's indices
+	// are in range, distinct, disjoint from Choices, and
+	// len(Rest) == len(Options) - len(Choices) -- which Decision.Validate
+	// enforces (one rule, one home: validateRest). Every non-arrange kind
+	// rejects a non-empty Rest outright. omitempty: every intent a client
+	// sends today serialises byte-identically, and a recorded intent's Rest
+	// rides the log and replays exactly (Ruling P2 submits intents as
+	// logged).
+	Rest []int `json:"rest,omitempty"`
 }
 
 // Validate rejects anything the engine did not offer. Everything a client can
@@ -643,6 +672,43 @@ func (d *Decision) Validate(in Intent) error {
 			return fmt.Errorf("choices total %d exceeds the budget %d", sum, d.MaxSum)
 		}
 	}
+	if len(in.Rest) > 0 {
+		if d.Kind != KArrange {
+			return fmt.Errorf("rest is only accepted on an arrange answer, not %s", d.Kind)
+		}
+		if err := d.validateRest(in.Choices, in.Rest); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// validateRest is the ONE home of the pile-B partition rule: on a KArrange
+// answer, Rest must be exactly the ordered complement of Choices — the same
+// rule Decision.Validate enforces and botpolicy.Clamp preserves (an arrange
+// repair that changes the chosen set drops Rest rather than sending a
+// partition Validate rejects). Rest's indices must be in range, distinct
+// from each other and from every choice, and len(Rest) must make the two
+// lists cover every offered option exactly once. seen carries the choices
+// Validate has already registered (in range and, for a non-repeatable
+// decision, distinct).
+func (d *Decision) validateRest(choices, rest []int) error {
+	if len(rest) != len(d.Options)-len(choices) {
+		return fmt.Errorf("rest names %d of the %d unchosen options", len(rest), len(d.Options)-len(choices))
+	}
+	seen := make(map[int]bool, len(choices)+len(rest))
+	for _, c := range choices {
+		seen[c] = true
+	}
+	for _, r := range rest {
+		if r < 0 || r >= len(d.Options) {
+			return fmt.Errorf("rest choice %d out of range (%d options)", r, len(d.Options))
+		}
+		if seen[r] {
+			return fmt.Errorf("rest choice %d is also chosen or repeated", r)
+		}
+		seen[r] = true
+	}
 	return nil
 }
 
@@ -659,6 +725,27 @@ func (d *Decision) Chosen(in Intent) []Option {
 	}
 	out := make([]Option, 0, len(in.Choices))
 	for _, c := range in.Choices {
+		out = append(out, d.Options[c])
+	}
+	return out
+}
+
+// ChosenRest resolves an arrange answer's Rest to options, in the order the
+// client sent them — the player-chosen pile-B order. It returns nil when the
+// intent carries no Rest or any index is out of range, the same all-or-nothing
+// rule Chosen uses; a nil return sends the caller to the legacy offered-order
+// complement. Validate is the sanctioned path for the partition rule.
+func (d *Decision) ChosenRest(in Intent) []Option {
+	if len(in.Rest) == 0 {
+		return nil
+	}
+	for _, c := range in.Rest {
+		if c < 0 || c >= len(d.Options) {
+			return nil
+		}
+	}
+	out := make([]Option, 0, len(in.Rest))
+	for _, c := range in.Rest {
 		out = append(out, d.Options[c])
 	}
 	return out
