@@ -154,7 +154,7 @@ var baseBuckets = map[string]bucket{
 	// Convoked provenance gate reads -- the same cards.SA parameter map
 	// every bSA entry covers.
 	"a": bSA, "targetSA": bSA, "SA": bSA, "Ability": bSA, "With": bSA,
-	"head": bSA, "ma": bSA, "pt.SA": bSA,
+	"head": bSA, "ma": bSA, "mana": bSA, "original": bSA, "pt.SA": bSA,
 	// rsub is runPreventionShieldRider's rewritten copy of the
 	// PreventionSubAbility$ rider (a shallow copy of a fresh ResolveSVar
 	// parse, whose NumDmg$/Defined$ the shield application binds): a
@@ -1329,19 +1329,24 @@ var apiSpecificRulesSA = map[string][]string{
 	"Engine.manaActivationGateHolds": {"Mana"},
 	"Engine.emitManaTap":             {"Mana"},
 	"Engine.isTriggeredManaAbility":  {"Mana"},
-	"triggeredManaColourChoice":      {"Mana"},
+	// askTriggeredManaColor reads the first resolved Mana sub-ability's
+	// Amount$/Produced$ to build its allocation; that local is bSA but this
+	// path only ever reaches api:Mana.
+	"Engine.askTriggeredManaColor": {"Mana"},
+	"Engine.askManaColor":          {"Mana"},
+	"triggeredManaColourChoice":    {"Mana"},
 	// rewriteChosenMana (rules/mana_activation.go) executes only inside
 	// resolveTriggeredManaAbilities, so its Produced$ read belongs to
 	// api:Mana alone -- left in the generic union it would mask every
 	// other API's unread Produced$.
-	"Engine.rewriteChosenMana":     {"Mana"},
-	"Engine.resolveManaAbilityRef": {"Mana"},
-	"Engine.resolveManaEffect":     {"Mana"},
-	"manaColourPrompt":             {"Mana"},
-	"Engine.AvailableMana":         {"Mana"},
-	"addAvailable":                 {"Mana"},
-	"availableAmount":              {"Mana"},
-	"activatedMatchesValidSA":      {"Mana"},
+	"Engine.rewriteChosenMana":             {"Mana"},
+	"Engine.resolveManaAbilityRefOriginal": {"Mana"},
+	"Engine.resolveManaEffect":             {"Mana"},
+	"manaColourPrompt":                     {"Mana"},
+	"Engine.AvailableMana":                 {"Mana"},
+	"addAvailable":                         {"Mana"},
+	"availableAmount":                      {"Mana"},
+	"activatedMatchesValidSA":              {"Mana"},
 	// The attack-prop and unless-cost payment windows' affordability input
 	// (rules/mana_available.go windowManaUnits, called by
 	// rules/attack_cost.go attackManaSources and
@@ -1353,6 +1358,16 @@ var apiSpecificRulesSA = map[string][]string{
 	// alone -- left in the generic union they would mask every other
 	// API's unread Produced$ (measured: api:Sacrifice/api:DealDamage).
 	"Engine.windowManaUnits": {"Mana"},
+	// The attack-prop payment window's choice-shaped membership
+	// (rules/attack_cost.go attackChoiceManaSources): it walks the payer's
+	// battlefield and reads each window-usable mana ability's Produced$ (plus
+	// Cost$/RestrictValid$) to decide whether an "Any"/"Combo"/"Chosen"
+	// source can pay a generic attack tax, and pins the colour it will be
+	// tapped for. Like windowManaUnits above it only ever inspects api:Mana
+	// abilities (availableManaAbilitiesForWindow), so its reads belong to
+	// api:Mana alone -- left in the generic union they mask every other API's
+	// unread Produced$ (measured: api:Sacrifice/api:DealDamage).
+	"Engine.attackChoiceManaSources": {"Mana"},
 	// The Charm mode paths: the CR 601.2b cast-time modes ask (castModeAsk),
 	// the per-mode target declaration (modalTargetSA), the resume-side mode
 	// decisions/labels, and the modal-trigger placement ask (CharmNum$).

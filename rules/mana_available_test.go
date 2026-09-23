@@ -80,20 +80,24 @@ func TestAvailableManaExcludesPaidCosts(t *testing.T) {
 	}
 }
 
-// TestAvailableManaAnyResolvesToColourless mirrors the executor's effMana and
-// the card projection: a Produced$ Any tap is the colourless the engine
-// actually resolves, never a coloured pip that would be invented.
-func TestAvailableManaAnyResolvesToColourless(t *testing.T) {
+// TestAvailableManaAnyReportsItsAlternatives keeps the available-mana
+// projection honest about what an untapped Any source can produce: it offers
+// each WUBRG colour and no colourless unit, while one activation still adds
+// only the colour the player chooses.
+func TestAvailableManaAnyReportsItsAlternatives(t *testing.T) {
 	e := layerEngine(t)
-	onBoard(t, e, 0, "Name:Cavern\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ Any | Oracle:x\n")
-	got := e.AvailableMana(0)
-	if got[state.MC] != 1 {
-		t.Errorf("available colourless = %d, want 1 (Any resolves to colourless)", got[state.MC])
+	id := onBoard(t, e, 0, "Name:Cavern\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ Any | Oracle:x\n")
+	if e.G.Obj(id).Zone != state.ZBattlefield || e.G.Obj(id).Tapped {
+		t.Fatalf("Any source precondition failed: %+v", e.G.Obj(id))
 	}
+	got := e.AvailableMana(0)
 	for i := 0; i < 5; i++ {
-		if got[i] != 0 {
-			t.Errorf("available asserted colour %d for an Any source", i)
+		if got[i] != 1 {
+			t.Errorf("available colour %d = %d, want one possible unit", i, got[i])
 		}
+	}
+	if got[state.MC] != 0 {
+		t.Errorf("available colourless = %d, want 0: Any is not a colourless producer", got[state.MC])
 	}
 }
 

@@ -185,6 +185,25 @@ func leaveCombatWithNoBlockers(t *testing.T, e *Engine) {
 				t.Fatalf("submit %s: %v", d.Kind, err)
 			}
 		case decision.KChoose, decision.KModes:
+			// Klauth's real Combo Any trigger allocates every produced unit.
+			// Pick every W option, preserving the test's all-white restricted
+			// batch while submitting the exact allocation the decision requires.
+			if d.Kind == decision.KChoose && d.Options[0].Kind == "mana" {
+				if d.Options[0].Label != "Add W" {
+					t.Fatalf("Klauth mana choice first option = %+v, want Add W", d.Options[0])
+				}
+				var white []int
+				for _, option := range d.Options {
+					if option.Label == "Add W" {
+						white = append(white, option.Index)
+					}
+				}
+				if len(white) != d.Min {
+					t.Fatalf("Klauth white allocation = %+v, want %d W options", d.Options, d.Min)
+				}
+				submitChoices(t, e, white...)
+				break
+			}
 			submitChoices(t, e, d.Options[0].Index)
 		default:
 			t.Fatalf("unexpected %s decision while leaving combat: %+v", d.Kind, d)
@@ -211,20 +230,20 @@ func TestRestrictValidDotlessSpell(t *testing.T) {
 	charge := searchMoveByName(t, e, "Splash Tithe", state.ZHand)
 
 	// The producer is the REAL trigger: Klauth has haste, so turn 1 runs a
-	// real combat — declare the attack and let the TrigMana resolve ({X}
-	// degenerates to X plain {C}, the documented Combo Any stand-in), each
-	// unit carrying the bare "Spell" restriction and the persistent marker.
+	// real combat — declare the attack and let the TrigMana resolve. Its
+	// Combo Any asks for a colour; this flow selects the first W option, so
+	// each unit carries the bare "Spell" restriction and persistent marker.
 	passToKind(t, e, decision.KAttackers)
 	passToKind(t, e, decision.KAttackers)
 	submitAttackersOnly(t, e, kl)
 	drainCombatPriority(t, e)
 	leaveCombatWithNoBlockers(t, e)
 	batches := restrictedBatchesOf(e, 0, "Spell")
-	if len(batches) != 1 || batches[0].Color != "C" || batches[0].Amount != 4 || !batches[0].Persistent {
-		t.Fatalf("test precondition: Klauth's attack batch = %+v, want one persistent 4×{C} Spell batch", batches)
+	if len(batches) != 1 || batches[0].Color != "W" || batches[0].Amount != 4 || !batches[0].Persistent {
+		t.Fatalf("test precondition: Klauth's attack batch = %+v, want one persistent 4×{W} Spell batch", batches)
 	}
-	if per := e.G.Players[0].PersistentMana[state.MC]; per != 4 {
-		t.Fatalf("test precondition: persistent C tally = %d, want 4", per)
+	if per := e.G.Players[0].PersistentMana[state.MW]; per != 4 {
+		t.Fatalf("test precondition: persistent W tally = %d, want 4", per)
 	}
 
 	// Rejection: an activated-ability payment never sees the batch — the
@@ -257,11 +276,11 @@ func TestRestrictValidDotlessSpell(t *testing.T) {
 	}
 	passUntilStackEmpty(t, e, 30)
 	batches = restrictedBatchesOf(e, 0, "Spell")
-	if len(batches) != 1 || batches[0].Amount != 2 {
-		t.Fatalf("after the spell payment the batch = %+v, want one 2×{C} Spell batch (consumed from the restricted batch)", batches)
+	if len(batches) != 1 || batches[0].Color != "W" || batches[0].Amount != 2 {
+		t.Fatalf("after the spell payment the batch = %+v, want one 2×{W} Spell batch (consumed from the restricted batch)", batches)
 	}
-	if got, per := e.G.Players[0].Pool[state.MC], e.G.Players[0].PersistentMana[state.MC]; got != 2 || per != 2 {
-		t.Fatalf("after the spell payment pool C=%d persistent C=%d, want 2/2", got, per)
+	if got, per := e.G.Players[0].Pool[state.MW], e.G.Players[0].PersistentMana[state.MW]; got != 2 || per != 2 {
+		t.Fatalf("after the spell payment pool W=%d persistent W=%d, want 2/2", got, per)
 	}
 
 	// And the surviving batch still cannot pay the activation.

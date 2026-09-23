@@ -5,10 +5,8 @@ package rules
 // combination of {B} and/or {R}, where X is the sacrificed creature's mana
 // value"). The amount resolves through Num's SVar fallback -- SVar:X is
 // Sacrificed$CardManaCost, which reads the LKI snapshot of what the cost
-// sacrificed (Ctx.Sacrificed) -- so the amount is pinned here on the real
-// corpus card. The Combo colour CHOICE is the documented M4 stand-in: the
-// executor still adds the amount in EVERY listed colour rather than asking
-// for a combination, so the totals below assert the amount half only.
+// sacrificed (Ctx.Sacrificed) -- so the amount and its all-black Combo
+// allocation are pinned here on the real corpus card.
 
 import (
 	"testing"
@@ -52,15 +50,32 @@ func TestBurntOfferingAmountIsTheSacrificedCreatureManaValue(t *testing.T) {
 		t.Fatalf("sacrifice ask %+v (creature %d)", ds, creature)
 	}
 	submitChoices(t, e, ds.Options[0].Index)
+	colour := passUntilNonPriority(t, e, 20)
+	if colour.Kind != decision.KChoose || colour.ResumeKind != "mana_color" || colour.Min != 4 || colour.Max != 4 {
+		t.Fatalf("Burnt Offering did not ask for its four-unit Combo allocation: %+v", colour)
+	}
+	// The colour list repeats B/R once per unit. Choose every B option to
+	// isolate the sacrificed-card amount while still submitting a legal
+	// allocation.
+	var black []int
+	for _, option := range colour.Options {
+		if option.Label == "Add B" {
+			black = append(black, option.Index)
+		}
+	}
+	if len(black) != 4 {
+		t.Fatalf("Burnt Offering black allocation options = %+v, want four", colour.Options)
+	}
+	submitChoices(t, e, black...)
 	passUntilStackEmpty(t, e, 20)
 	if e.G.Obj(creature).Zone != state.ZGraveyard {
 		t.Fatalf("creature zone=%s, want graveyard (the cost)", e.G.Obj(creature).Zone)
 	}
 	pool := e.G.Players[0].Pool
-	// The stand-in shape: X mana in EACH listed colour (the colour-choice ask
-	// is the M4 row). X = 3, so 3 black AND 3 red on top of the unspent float.
-	if pool[state.MB] != 5 || pool[state.MR] != 4 {
-		t.Fatalf("pool=%+v, want 5 black (4 added + float) and 4 red -- X = the sacrificed creature's mana value 4", pool)
+	// Choose B, then X = 4 is added to the one black left after paying the
+	// spell, for five black total and no red.
+	if pool[state.MB] != 5 || pool[state.MR] != 0 {
+		t.Fatalf("pool=%+v, want 5 black and no red -- X = the sacrificed creature's mana value 4", pool)
 	}
 }
 
@@ -79,9 +94,14 @@ func TestBurntOfferingAmountTracksAOneDrop(t *testing.T) {
 	submitChoices(t, e, opt)
 	ds := e.Pending()
 	submitChoices(t, e, ds.Options[0].Index)
+	colour := passUntilNonPriority(t, e, 20)
+	if colour.Kind != decision.KChoose || colour.ResumeKind != "mana_color" {
+		t.Fatalf("Burnt Offering did not ask for its Combo colour: %+v", colour)
+	}
+	submitChoices(t, e, colour.Options[0].Index)
 	passUntilStackEmpty(t, e, 20)
 	pool := e.G.Players[0].Pool
-	if pool[state.MB] != 2 || pool[state.MR] != 1 {
-		t.Fatalf("pool=%+v, want 2 black (1 added + float) and 1 red -- X = the sacrificed creature's mana value 1", pool)
+	if pool[state.MB] != 2 || pool[state.MR] != 0 {
+		t.Fatalf("pool=%+v, want 2 black and no red -- X = the sacrificed creature's mana value 1", pool)
 	}
 }
