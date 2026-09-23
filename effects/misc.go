@@ -1971,15 +1971,39 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 // map iteration here would make the event bytes (and therefore replay heads)
 // nondeterministic.
 func delayedTriggerBody(sa *cards.SA) string {
-	keys := []string{"ValidCard", "ValidCards", "Origin", "Destination", "ExcludedOrigins",
-		"ValidSource", "ValidTarget", "CombatDamage", "ValidAttackers", "ValidAttackersAmount",
-		"AttackingPlayer", "AttackedTarget", "ValidPlayer", "ValidOriginalController",
-		"ValidActivatingPlayer", "PlayerTurn", "ValidSA", "TriggerZones", "ActiveZones",
-		"ThisTurn", "Static", "IsPresent", "PresentDefined", "PresentCompare", "PresentZone"}
+	// Explicit Params reads let the parameter census attribute every clause;
+	// the ordered slice keeps the registration event deterministic.
+	clauses := []struct{ key, value string }{
+		{"ValidCard", sa.Params["ValidCard"]},
+		{"ValidCards", sa.Params["ValidCards"]},
+		{"Origin", sa.Params["Origin"]},
+		{"Destination", sa.Params["Destination"]},
+		{"ExcludedOrigins", sa.Params["ExcludedOrigins"]},
+		{"ValidSource", sa.Params["ValidSource"]},
+		{"ValidTarget", sa.Params["ValidTarget"]},
+		{"CombatDamage", sa.Params["CombatDamage"]},
+		{"ValidAttackers", sa.Params["ValidAttackers"]},
+		{"ValidAttackersAmount", sa.Params["ValidAttackersAmount"]},
+		{"AttackingPlayer", sa.Params["AttackingPlayer"]},
+		{"AttackedTarget", sa.Params["AttackedTarget"]},
+		{"ValidPlayer", sa.Params["ValidPlayer"]},
+		{"ValidOriginalController", sa.Params["ValidOriginalController"]},
+		{"ValidActivatingPlayer", sa.Params["ValidActivatingPlayer"]},
+		{"PlayerTurn", sa.Params["PlayerTurn"]},
+		{"ValidSA", sa.Params["ValidSA"]},
+		{"TriggerZones", sa.Params["TriggerZones"]},
+		{"ActiveZones", sa.Params["ActiveZones"]},
+		{"ThisTurn", sa.Params["ThisTurn"]},
+		{"Static", sa.Params["Static"]},
+		{"IsPresent", sa.Params["IsPresent"]},
+		{"PresentDefined", sa.Params["PresentDefined"]},
+		{"PresentCompare", sa.Params["PresentCompare"]},
+		{"PresentZone", sa.Params["PresentZone"]},
+	}
 	parts := []string{"Mode$ " + strings.TrimSpace(sa.Params["Mode"])}
-	for _, key := range keys {
-		if v := strings.TrimSpace(sa.Params[key]); v != "" {
-			parts = append(parts, key+"$ "+v)
+	for _, clause := range clauses {
+		if v := strings.TrimSpace(clause.value); v != "" {
+			parts = append(parts, clause.key+"$ "+v)
 		}
 	}
 	return strings.Join(parts, " | ")
