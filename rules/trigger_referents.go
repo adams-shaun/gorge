@@ -443,6 +443,11 @@ func (e *Engine) targetSpecContext(source, stack state.ObjID, you state.PlayerID
 			x = e.triggerPaidX(stack, stackObj)
 		}
 	}
+	// At the placement ask an activation may not yet have a stack object.
+	// Its announced X must take precedence over the stack/trigger value.
+	if e.cast != nil && (e.cast.card == source || e.cast.stackObj == source) {
+		x = e.cast.x
+	}
 	ctx := &effects.Ctx{Source: source, Controller: you, TriggerContext: tcx,
 		Remembered: remembered, SVars: svars, LKI: lki, LKIPower: lkiPower,
 		LKIToughness: lkiToughness, LKIPTValid: lkiPTValid, X: x}
@@ -461,9 +466,6 @@ func (e *Engine) targetSpecContext(source, stack state.ObjID, you state.PlayerID
 				}
 				if hasBody {
 					return effects.EvalCountOK(e, ctx, body)
-				}
-				if e.cast != nil && (e.cast.card == source || e.cast.stackObj == source) {
-					return e.cast.x, true
 				}
 				return x, true
 			}
