@@ -124,6 +124,29 @@ export function singleActionIcon(option: Option): SingleActionIcon {
 }
 
 /**
+ * isSelectionOption keeps the picker open while a MULTI-PICK decision is
+ * being answered.
+ *
+ * An attacker declaration (CR 508.1, decision kind `attackers` with option
+ * kind `attacker`) is a SELECTION, not a submission: SeatPanelState.click
+ * toggles a non-single decision into `picked` and posts nothing, and the
+ * player commits the whole declaration afterwards. Closing the picker on the
+ * click therefore interrupts exactly the flow it is meant to serve — the
+ * reported fb-20260923T020152Z bug, where each attacker had to be re-opened
+ * from the badge.
+ *
+ * The test is on the OPTION's own wire kind, in one place, so the next
+ * selection interaction that shares the `attacker` wire shape cannot miss it.
+ * It is deliberately narrow: an ordinary immediate action (`cast`,
+ * `activate`, an ability) posts and resolves that action, and the picker
+ * closes for it as before. Do not widen this to every multi-pick kind
+ * without an interaction report for that kind.
+ */
+export function isSelectionOption(option: Pick<Option, 'kind'>): boolean {
+  return option.kind === 'attacker';
+}
+
+/**
  * ACTION_GLYPHS is the icon → text-glyph table the badges render. Plain text
  * glyphs in the existing register (↻ ✦ ›), not colour emoji: the two new
  * pictographs carry an explicit U+FE0E text-presentation selector so a font
