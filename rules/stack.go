@@ -2689,8 +2689,7 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 				if pc.stackObj != 0 {
 					e.recordChosenTargets(pc.stackObj, ordered, false)
 					e.cast = pc
-					e.fireManaSpentTriggers(events.Event{Kind: events.AbilityPush, Obj: pc.card,
-						Player: pc.player, Amount: int32(pc.ability)}, nil)
+					e.fireManaSpentTriggers(pc.activationPushEvent(), nil)
 					e.cast = nil
 				}
 			}

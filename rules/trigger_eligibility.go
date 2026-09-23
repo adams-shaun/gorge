@@ -63,7 +63,7 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		return cards.TriggerInterestAttackDeclaration
 	case events.TargetsChosen:
 		return cards.TriggerInterestTargetsChosen
-	case events.AbilityPush:
+	case events.AbilityPush, events.KeywordAbilityPush:
 		return cards.TriggerInterestAbilityPush
 	case events.GameStart, events.Shuffle, events.Untap, events.TurnChange,
 		events.Priority, events.Resolve, events.ManaAdd, events.ManaClear,
@@ -87,8 +87,7 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.Mutate, events.MergedTriggerPush,
 		events.Enlist, events.AlterAttribute, events.Unattached, events.PlayerNoted,
 		events.PlayerNoteCleared,
-		events.GainedAbilityPush, events.GainedTriggerPush,
-		events.KeywordAbilityPush:
+		events.GainedAbilityPush, events.GainedTriggerPush:
 		// AlterAttribute (alterattr1) is the same shape past the bound as
 		// Enlist: the suspected designation (CR 702.157) is a status no
 		// trigger mode fires on -- the corpus reads it through filter
@@ -130,12 +129,6 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		// the catch-all default that would otherwise run a full trigger scan
 		// on every cleared label.
 		//
-		// KeywordAbilityPush (the layer-6 AddKeyword$ Cycling/TypeCycling
-		// grant's activation, CR 613.1f) is the same mint-marker shape: the
-		// push mints the synthesized body's stack object, no trigger mode
-		// fires on it, and its ordinal sits past triggerMaskKindBits so both
-		// classifiers fail open anyway. Naming it keeps the audit complete if
-		// the bound ever widens.
 		return 0
 	case events.Attach:
 		return cards.TriggerInterestAttach
@@ -182,11 +175,14 @@ func triggerModeEvents(mode string) triggerEventMask {
 	case "SpellCopy":
 		return 1 << events.StackCopy
 	case "AbilityCast":
+		// KeywordAbilityPush lies past this mask's 64-bit bound and fails
+		// open to the matcher, which reads its replayable Counter body.
 		return 1 << events.AbilityPush
 	case "SpellAbilityCast":
 		// The spell-or-activate union (targetsvalid1): the activation arm
-		// matches an AbilityPush, the spell arm a PutOnStack. AbilityCast
-		// stays narrow above -- its oracle text is activation-only.
+		// matches an AbilityPush or KeywordAbilityPush, the spell arm a
+		// PutOnStack. AbilityCast stays narrow above -- its oracle text is
+		// activation-only.
 		return 1<<events.AbilityPush | 1<<events.PutOnStack
 	case "Attacks", "AttackersDeclaredOneTarget", "AttackersDeclared":
 		return 1 << events.DeclareAttackers

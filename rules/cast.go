@@ -7344,6 +7344,18 @@ func (e *Engine) graveyardManaValue(p state.PlayerID, ids []state.ObjID) int32 {
 	return n
 }
 
+// activationPushEvent names the replayable activation boundary for both
+// printed and keyword-granted abilities. Use it for spend riders too: a
+// synthetic AbilityPush with ability=-1 cannot describe a granted body.
+func (pc *pendingCast) activationPushEvent() events.Event {
+	if pc.grantKeyword != "" {
+		return events.Event{Kind: events.KeywordAbilityPush, Player: pc.player,
+			Obj: pc.card, Counter: pc.grantKeyword}
+	}
+	return events.Event{Kind: events.AbilityPush, Obj: pc.card,
+		Player: pc.player, Amount: int32(pc.ability)}
+}
+
 // finishTargetedCast is the completion tail every cast-flow target answer
 // converges on once no post-target ask is outstanding. payCast records an
 // ability's root targets once its stack object is minted (possibly after a
@@ -7363,8 +7375,7 @@ func (e *Engine) finishTargetedCast(pc *pendingCast, player state.PlayerID) {
 	// dispatch off a suspended payment.
 	if pc.isAbility() && pc.stackObj != 0 {
 		e.cast = pc
-		e.fireManaSpentTriggers(events.Event{Kind: events.AbilityPush, Obj: pc.card,
-			Player: pc.player, Amount: int32(pc.ability)}, nil)
+		e.fireManaSpentTriggers(pc.activationPushEvent(), nil)
 		e.cast = nil
 	}
 	if e.drainAwaitsTarget {
@@ -8008,11 +8019,8 @@ func (e *Engine) payCast() {
 				e.emit(events.Event{Kind: events.GrantAbilityPush, Player: pc.player, Obj: pc.card,
 					Counter: pc.grantSVar, IDs: []state.ObjID{pc.grantSource}})
 			}
-		} else if pc.grantKeyword != "" {
-			e.emit(events.Event{Kind: events.KeywordAbilityPush, Player: pc.player,
-				Obj: pc.card, Counter: pc.grantKeyword})
 		} else {
-			e.emit(events.Event{Kind: events.AbilityPush, Obj: pc.card, Player: pc.player, Amount: int32(pc.ability)})
+			e.emit(pc.activationPushEvent())
 		}
 		if len(e.G.Stack) > 0 {
 			pc.stackObj = e.G.Stack[len(e.G.Stack)-1]
@@ -8072,8 +8080,7 @@ func (e *Engine) payCast() {
 		if pc.rootOpts == nil {
 			// No target-recording continuation: dispatch at the completed
 			// AbilityPush boundary while the spent-source capture is still live.
-			e.fireManaSpentTriggers(events.Event{Kind: events.AbilityPush, Obj: pc.card,
-				Player: pc.player, Amount: int32(pc.ability)}, nil)
+			e.fireManaSpentTriggers(pc.activationPushEvent(), nil)
 		}
 		e.cast, e.choosing = nil, chooseNone
 		return
@@ -8648,7 +8655,7 @@ func (e *Engine) fireDeferredCastTrigger() {
 func (e *Engine) fireManaSpentTriggers(ev events.Event, lki *state.Object) {
 	sources := e.manaSpentSources
 	e.manaSpentSources = nil
-	if len(sources) == 0 || (ev.Kind != events.PutOnStack && ev.Kind != events.AbilityPush) {
+	if len(sources) == 0 || (ev.Kind != events.PutOnStack && ev.Kind != events.AbilityPush && ev.Kind != events.KeywordAbilityPush) {
 		return
 	}
 	for _, src := range sources {
