@@ -938,18 +938,17 @@ func (e *Engine) planeswalkerZeroLoyalty(tried *sbaAttempts) bool {
 	return true
 }
 
-// battleZeroDefense is CR 704.5h: a battle with no defense counters is put
-// into its owner's graveyard. Modeled line-for-line on planeswalkerZeroLoyalty
-// above (CR 704.5i): same tried-set, same AliveFrom(0) battlefield-slice
-// determinism, same pre-departure trigger-board snapshot so a batch of battles
-// reaching zero in one pass all observe the same board (CR 704.3/603.10a). The
-// move is not destruction: no ReplaceDestruction, no regeneration shield
-// consulted -- exactly the zero-loyalty/zero-toughness treatment.
-//
-// The "defeated" exile-then-transform behaviour in a Siege's oracle stamp
-// belongs to the ATTACK leg (CR 310.11), not this SBA: this build does not
-// model attacking a battle, so a battle that reaches zero defense here goes to
-// the graveyard.
+// battleZeroDefense is the defeat state-based action for battles (CR
+// 704.5h/310.11): a battle with no defense counters is DEFEATED -- exiled,
+// not put into the graveyard -- and its owner's "may cast it transformed
+// without paying its mana cost" offer (CR 310.11) is queued by Engine.emit's
+// exile feed for startDefeatedCast to pose at the next step(). Modeled
+// line-for-line on planeswalkerZeroLoyalty above (CR 704.5i): same tried-set,
+// same AliveFrom(0) battlefield-slice determinism, same pre-departure
+// trigger-board snapshot so a batch of battles reaching zero in one pass all
+// observe the same board (CR 704.3/603.10a). The move is not destruction: no
+// ReplaceDestruction, no regeneration shield consulted -- exactly the
+// zero-loyalty/zero-toughness treatment.
 func (e *Engine) battleZeroDefense(tried *sbaAttempts) bool {
 	tried.rearm(e.G.AliveCount())
 	var dead []casualty
@@ -966,7 +965,8 @@ func (e *Engine) battleZeroDefense(tried *sbaAttempts) bool {
 			// Battle: Face() returns the printed front face regardless of
 			// FaceDown (and the entry grant above grants a face-down entry
 			// no defense counters), so without this guard a manifested or
-			// cloaked Battle would be swept into its owner's graveyard the
+			// cloaked Battle would be swept out of the battlefield by the
+			// defeat SBA the
 			// instant it entered.
 			if o.FaceDown {
 				continue
@@ -978,7 +978,7 @@ func (e *Engine) battleZeroDefense(tried *sbaAttempts) bool {
 			if o.Counter("DEFENSE") > 0 {
 				continue
 			}
-			dead = append(dead, casualty{id, "zero defense"})
+			dead = append(dead, casualty{id, "defeated"})
 		}
 	}
 	if len(dead) == 0 {
@@ -990,7 +990,7 @@ func (e *Engine) battleZeroDefense(tried *sbaAttempts) bool {
 	for _, c := range dead {
 		tried.objs[c.id] = true
 		e.emit(events.Event{Kind: events.MoveZone, Obj: c.id,
-			From: state.ZBattlefield, To: state.ZGraveyard, Text: c.text})
+			From: state.ZBattlefield, To: state.ZExile, Text: c.text})
 	}
 	return true
 }
