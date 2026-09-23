@@ -19,7 +19,7 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	knownApproximationRows = 76
+	knownApproximationRows = 75
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.
