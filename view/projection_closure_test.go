@@ -134,6 +134,13 @@ func TestViewMarshalsClosed(t *testing.T) {
 		// seat it is never filled and omitempty drops the key. The payload
 		// itself carries only action kinds and object ids, never a card list.
 		"potential_actions": true,
+		// pool_restrictions (task fb-20260922T145544Z) annotates Pool: it is
+		// derived from a public battlefield permanent's own mana ability (the
+		// CR 106.4a/106.4b announcement the Pool field already documents), so
+		// like available it is a public fact projected for every seat under
+		// every visibility, never a hidden-zone carrier. It names a colour, an
+		// amount and a spend text; it never carries a card list.
+		"pool_restrictions": true,
 	})
 	// StackView is public (R3) so it is a lesser leak surface, but the
 	// reflection is the same shape and cheap, so it is pinned too. The two

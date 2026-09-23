@@ -117,6 +117,57 @@ describe('ManaPool', () => {
     expect(tapIdx).toBeGreaterThan(availIdx);
     expect(availChip).toBeGreaterThan(tapIdx);
   });
+
+  // --- restricted floating mana (task fb-20260922T145544Z) ---
+
+  it('renders a restricted batch\'s spend text as persistent text, not a tooltip', () => {
+    const { html } = render(ManaPool, {
+      props: {
+        pool: { B: 1 },
+        poolRestrictions: [{ color: 'B', amount: 1, text: 'spend only to cast a Demon creature spell' }],
+      },
+    });
+    // The annotation is a real element in the static markup, keyed by the
+    // restricted colour, so a static board shows why the chip cannot pay.
+    expect(html).toContain('data-mana-restrictions');
+    expect(html).toContain('data-mana-restriction="B"');
+    expect(html).toContain('spend only to cast a Demon creature spell');
+    // The bare pool chip is still drawn alongside the annotation.
+    expect(html).toContain('data-mana="B"');
+  });
+
+  it('renders one annotation per restricted batch, not one per pool symbol', () => {
+    const { html } = render(ManaPool, {
+      props: {
+        pool: { B: 2, R: 1 },
+        poolRestrictions: [
+          { color: 'B', amount: 1, text: 'spend only to cast a creature spell' },
+          { color: 'R', amount: 1, text: 'spend only to activate an ability' },
+        ],
+      },
+    });
+    expect(html).toContain('data-mana-restriction="B"');
+    expect(html).toContain('data-mana-restriction="R"');
+    expect(html).toContain('spend only to cast a creature spell');
+    expect(html).toContain('spend only to activate an ability');
+  });
+
+  // An absent or empty restriction list must draw EXACTLY what the component
+  // drew before the prop existed: the same bytes, not merely visually similar.
+  it('renders byte-identically when the restriction list is absent, null or empty', () => {
+    const baseline = render(ManaPool, { props: { pool: { B: 1 }, available: { G: 2 } } }).html;
+    expect(render(ManaPool, { props: { pool: { B: 1 }, available: { G: 2 }, poolRestrictions: [] } }).html).toBe(baseline);
+    expect(render(ManaPool, { props: { pool: { B: 1 }, available: { G: 2 }, poolRestrictions: null } }).html).toBe(baseline);
+    expect(render(ManaPool, { props: { pool: { B: 1 }, available: { G: 2 }, poolRestrictions: undefined } }).html).toBe(baseline);
+    expect(baseline).not.toContain('data-mana-restrictions');
+  });
+
+  it('ignores a restriction entry with no text rather than drawing an empty note', () => {
+    const { html } = render(ManaPool, {
+      props: { pool: { B: 1 }, poolRestrictions: [{ color: 'B', amount: 1, text: '' }] },
+    });
+    expect(html).not.toContain('data-mana-restrictions');
+  });
 });
 
 const orderAvail = (html: string): string[] => [...html.matchAll(/data-avail="([WUBRGC])"/g)].map((m) => m[1]);
