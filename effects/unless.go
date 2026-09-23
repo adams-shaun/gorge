@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -63,9 +64,15 @@ import (
 // resolvable SVar opaque on Sacrifice, Tap, or another effect would make the
 // ask and its payment disagree. An SVar present but unresolvable also passes
 // through: the ask is still posed and recorded, but it cannot be answered
-// "pay", exactly as before. The same string must reach the ask's label
-// (unlessProceed) and the payment (rules' unless_pay arm calls this with the
-// resumed ctx), so the offer and the charge can never disagree.
+// "pay", exactly as before. Three more shapes fold here rather than at the
+// parser, because only the resolution context can bind them: an announced X
+// (including zero — Ctx.XAnnounced, CR 601.2b), a DefinedCost_ token's
+// card-anchored mana value (Tariff, Flash, Disruption Aura) and an amount
+// token (PayEnergy<N>, PayLife<X>) whose SVar body the face's table
+// resolves — the token keeps its shape, only the amount folds, so an energy
+// cost never turns into generic mana. The same string must reach the ask's
+// label (unlessProceed) and the payment (rules' unless_pay arm calls this
+// with the resumed ctx), so the offer and the charge can never disagree.
 func UnlessCostResolved(h Host, c *Ctx, sa *cards.SA) string {
 	if sa == nil {
 		return ""
@@ -76,31 +83,244 @@ func UnlessCostResolved(h Host, c *Ctx, sa *cards.SA) string {
 	}
 	// CR 601.2b: an X in an UnlessCost$ is the value announced by the
 	// resolving spell or ability. The rules package carries that announcement
-	// through Ctx.X when it rebuilds a suspended resolution. XX is Forge's
-	// spelling for twice the same announced value (Thassa's Intervention).
-	if c.X > 0 {
-		switch raw {
-		case "X":
-			return "{" + strconv.FormatInt(int64(c.X), 10) + "}"
-		case "XX":
-			return "{" + strconv.FormatInt(int64(c.X)*2, 10) + "}"
+	// through Ctx.X when it rebuilds a suspended resolution; XAnnounced marks
+	// that an X cost was genuinely paid, so an announced ZERO resolves too
+	// (Power Sink cast for X=0) instead of staying an unpriceable token. XX is
+	// Forge's spelling for twice the same announced value (Thassa's
+	// Intervention). A face whose SVar:X body is NOT Count$xPaid FIXES the
+	// value instead (fixLifeXCost's reading: Mausoleum Wanderer's
+	// Sacrificed$CardPower, Cephalid Shrine's graveyard count) — that binding
+	// wins over any announcement, so the token falls through to the SVar fold
+	// below.
+	if c.X > 0 || c.XAnnounced {
+		fixedX := false
+		if c.SVars != nil {
+			if body, ok := c.SVars["X"]; ok && !strings.EqualFold(strings.TrimSpace(body), "Count$xPaid") {
+				fixedX = true
+			}
+		}
+		if !fixedX {
+			switch raw {
+			case "X":
+				return "{" + strconv.FormatInt(int64(c.X), 10) + "}"
+			case "XX":
+				return "{" + strconv.FormatInt(int64(c.X)*2, 10) + "}"
+			}
 		}
 	}
-	if c.SVars == nil {
+	if c.SVars != nil {
+		body, ok := c.SVars[raw]
+		if ok {
+			n, resolved := EvalCountOK(h, c, body)
+			if resolved {
+				if n < 0 {
+					n = 0
+				}
+				return "{" + strconv.Itoa(int(n)) + "}"
+			}
+		}
+	}
+	// Forge's DefinedCost_<Defined>[_<Modifier>] spelling (AbilityUtils's
+	// handleDefinedCost family): the amount is a CARD's mana value — the
+	// source's (Disruption Aura's "pay its mana cost"), the chosen card's
+	// (Tariff's greatest-CMC creature), the remembered card's (Flash, minus
+	// 2) — and DefinedSACost_TriggeredSpellAbility (Ice Cave) names the
+	// triggering spell's whole mana COST, colours included.
+	if m := definedCostToken.FindStringSubmatch(raw); m != nil {
+		if out, ok := unlessDefinedCost(h, c, m); ok {
+			return out
+		}
+		// An unresolvable suffix passes through: the ask is still posed and
+		// recorded, but it cannot be answered "pay" — the strict parser
+		// rejects the token and the payer declines.
 		return raw
 	}
-	body, ok := c.SVars[raw]
-	if !ok {
-		return raw
+	// Token-level folds for components whose AMOUNT is an SVar: the token
+	// keeps its shape (an energy part stays an energy part; a life part stays
+	// a life part) and only the amount folds. Aether Spike's
+	// "UnlessCost$ Mandatory PayEnergy<N>" binds the energy to the payer's
+	// chosen amount, and Wand of Ith's "UnlessCost$ PayLife<X>" binds the
+	// life to the remembered card's mana value — both SVar bodies on the
+	// resolving face. "PayEnergy<X>" and unresolvable amounts pass through:
+	// the strict parser takes the X channel (the announced-X binding at the
+	// pay sites) or the token hard-declines, never a silent zero.
+	if c.SVars != nil && strings.ContainsAny(raw, "<>") {
+		fields := strings.Fields(raw)
+		out := make([]string, 0, len(fields))
+		changed := false
+		for _, f := range fields {
+			if strings.EqualFold(f, "Mandatory") {
+				// Forge's mandatory-payment marker (Cost$ Mandatory ...): no
+				// cost, so it does not reach the price.
+				changed = true
+				continue
+			}
+			if m := payEnergyToken.FindStringSubmatch(f); m != nil {
+				name := m[1]
+				if name == "X" {
+					// The announced-X channel, unless the face's SVar:X body
+					// FIXES the value (Behemoth of Vault 0's
+					// Targeted$CardManaCost): a non-Count$xPaid body is a fixed
+					// amount the resolution evaluates, exactly fixLifeXCost's
+					// reading of the same shape on the life side.
+					body, ok := c.SVars["X"]
+					if ok && !strings.EqualFold(strings.TrimSpace(body), "Count$xPaid") {
+						if n, resolved := EvalCountOK(h, c, body); resolved {
+							if n < 0 {
+								n = 0
+							}
+							f = "PayEnergy<" + strconv.Itoa(int(n)) + ">"
+							changed = true
+						}
+					}
+					out = append(out, f)
+					continue
+				}
+				if !isPlainNumber(name) {
+					if n, resolved := EvalCountOK(h, c, c.SVars[name]); resolved {
+						if n < 0 {
+							n = 0
+						}
+						f = "PayEnergy<" + strconv.Itoa(int(n)) + ">"
+						changed = true
+					}
+				}
+				out = append(out, f)
+				continue
+			}
+			if m := payLifeXToken.FindStringSubmatch(f); m != nil {
+				if n, resolved := EvalCountOK(h, c, c.SVars["X"]); resolved && n >= 0 {
+					f = "PayLife<" + strconv.Itoa(int(n)) + ">"
+					changed = true
+				}
+			}
+			out = append(out, f)
+		}
+		if changed {
+			return strings.Join(out, " ")
+		}
 	}
-	n, resolved := EvalCountOK(h, c, body)
-	if !resolved {
-		return raw
+	return raw
+}
+
+// payEnergyToken matches the PayEnergy<...> cost token whose amount may name
+// an SVar (Aether Spike's "PayEnergy<N>"); X and numerics are parsed
+// elsewhere (the announced-X channel, the literal).
+var payEnergyToken = regexp.MustCompile(`^PayEnergy<([^>]*)>$`)
+
+// payLifeXToken matches the announced PayLife<X> life token (Wand of Ith,
+// Essence Vortex): the amount is the SVar:X body, folded above when the
+// resolution's table resolves it and at the pay sites' face route otherwise.
+var payLifeXToken = regexp.MustCompile(`^PayLife<X>$`)
+
+// definedCostToken matches Forge's DefinedCost_<Defined>[_<Modifier>] and
+// DefinedSACost_<Defined> tokens; Modifier is Minus<N>/Plus<N>.
+var definedCostToken = regexp.MustCompile(`^(DefinedSACost|DefinedCost)_([A-Za-z]+)(?:_(Minus|Plus)([0-9]+))?$`)
+
+// isPlainNumber reports whether s is a non-negative decimal integer.
+func isPlainNumber(s string) bool {
+	if s == "" {
+		return false
+	}
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+// unlessDefinedCost renders a DefinedCost token's amount. m is
+// definedCostToken's match: m[1] the head (DefinedCost or DefinedSACost),
+// m[2] the defined role, m[3]/m[4] an optional Minus/Plus modifier. The
+// amount of a DefinedCost_ is the named card's mana VALUE as one generic
+// amount; a DefinedSACost_ renders the named spell's whole mana COST string
+// (colours included — Ice Cave's "pay that spell's mana cost"). A role the
+// resolution cannot bind reports ok=false and the token passes through raw.
+func unlessDefinedCost(h Host, c *Ctx, m []string) (string, bool) {
+	g := h.Game()
+	if g == nil {
+		return "", false
+	}
+	mv := func(o *state.Object) (string, bool) {
+		if o == nil || o.Face() == nil {
+			return "", false
+		}
+		return "{" + strconv.FormatInt(int64(o.Face().ManaValue()), 10) + "}", true
+	}
+	obj := func(ts []state.Target) *state.Object {
+		for _, t := range ts {
+			if !t.IsPlayer && t.Obj != 0 {
+				if o := g.Obj(t.Obj); o != nil {
+					return o
+				}
+			}
+		}
+		return nil
+	}
+	if m[1] == "DefinedSACost" {
+		// The triggering SPELL ABILITY's mana cost (Ice Cave): the trigger's
+		// own role binding is the stack-legal wrapper, the Remembered fallback
+		// the cast spell — the same two bindings Defined$ TriggeredSpellAbility
+		// resolves through.
+		var o *state.Object
+		if c.TriggerAbility != 0 {
+			o = g.Obj(c.TriggerAbility)
+		} else {
+			o = obj(c.Remembered)
+		}
+		if o == nil || o.Face() == nil || strings.TrimSpace(o.Face().ManaCost) == "" {
+			return "", false
+		}
+		return strings.Join(strings.Fields(o.Face().ManaCost), " "), true
+	}
+	switch m[2] {
+	case "Self":
+		s, ok := mv(g.Obj(c.Source))
+		if !ok {
+			return "", false
+		}
+		return applyUnlessCostModifier(s, m[3], m[4]), true
+	case "ChosenCard":
+		s, ok := mv(obj(resolutionChosenCards(g, c)))
+		if !ok {
+			return "", false
+		}
+		return applyUnlessCostModifier(s, m[3], m[4]), true
+	case "Remembered":
+		s, ok := mv(obj(c.Remembered))
+		if !ok {
+			return "", false
+		}
+		return applyUnlessCostModifier(s, m[3], m[4]), true
+	}
+	return "", false
+}
+
+// applyUnlessCostModifier applies a DefinedCost_ suffix's Minus<N>/Plus<N>
+// modifier (Flash's DefinedCost_Remembered_Minus2, "pay its mana value minus
+// 2") to a resolved {N} generic amount. A negative result clamps to zero.
+func applyUnlessCostModifier(shown, op, arg string) string {
+	if op == "" {
+		return shown
+	}
+	n, err := strconv.Atoi(strings.Trim(shown, "{}"))
+	if err != nil {
+		return shown
+	}
+	d, err2 := strconv.Atoi(arg)
+	if err2 != nil {
+		return shown
+	}
+	if op == "Minus" {
+		n -= d
+	} else {
+		n += d
 	}
 	if n < 0 {
 		n = 0
 	}
-	return "{" + strconv.Itoa(int(n)) + "}"
+	return "{" + strconv.Itoa(n) + "}"
 }
 
 // unlessProceed reports whether the effect's body should run for this pass,
@@ -114,6 +334,9 @@ func UnlessCostResolved(h Host, c *Ctx, sa *cards.SA) string {
 // false.
 func unlessProceed(h Host, c *Ctx, sa *cards.SA) (bool, bool) {
 	cost := UnlessCostResolved(h, c, sa)
+	if sa.API == "GainControl" {
+		println("DEBUG gate cost=", cost, "ntargets=", len(c.Targets), "sv=", c.SVars != nil)
+	}
 	if strings.TrimSpace(sa.Params["UnlessCost"]) == "" {
 		return true, false
 	}

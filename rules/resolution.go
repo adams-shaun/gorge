@@ -1296,6 +1296,11 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	// resolveTop's ability branch does it: the trigger object was never
 	// paid an X, so the causing event's card supplies the value.
 	ctx.X = o.X
+	// CR 601.2b/107.3i: the stack object's own X — an announced, possibly
+	// zero payment — binds through the suspension exactly as the value does,
+	// so an UnlessCost$ X on a zero-X cast resolves to {0} at the resumed
+	// gate instead of staying a raw unpriceable token.
+	ctx.XAnnounced = stackXAnnounced(o)
 	if rp.replacement {
 		// fx44: this suspended frame is a ReplaceWith$ body, so restore the
 		// replacement context applyReplacements seeded for it. Ctx.Replaced is
@@ -1330,6 +1335,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	// cast-time value, not this payment's.
 	if rp.tapPaidX != 0 {
 		ctx.X = rp.tapPaidX
+		ctx.XAnnounced = true
 	}
 	// The trigger-cost window's X fold (the {X}/{PayLife<X>} announcement:
 	// Elenda and Azor, Vizkopa Confessor, Necrodominance): the announced or
@@ -1337,6 +1343,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	// Count$xPaid / NumCards$ X / TokenPower$ X reads this payment.
 	if rp.winPaidX != 0 {
 		ctx.X = rp.winPaidX
+		ctx.XAnnounced = true
 	}
 	var svars map[string]string
 	if o.Ability != nil {
@@ -1700,13 +1707,17 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				// and the counterspell stays inert. An unpriceable cost must
 				// decline, never resolve at zero. This is the conservative
 				// correct behaviour: a cleared counter is closer to the card
-				// than a no-op. The real fix (M4) is cost-grammar work — a
-				// value for X from CastInfo/ModeChosen or an SVar folded into
-				// Generic via WithX before payment. ParseUnlessCost is the
-				// strict parser: every token must be a mana symbol, a fixed
-				// PayLife<N>, or a Sac/Discard/SubCounter/Draw/Reveal component;
-				// X, Y, DamageYou<N>, PayEnergy<N>, Return<...>, ExileFromGrave<...>,
-				// Behold<...>, tapXType<...>, LifeTotalHalfUp, DefinedCost_* and every other
+				// than a no-op. The named dynamic shapes close against the
+				// resolution context: the announced-X binding (CR 601.2b,
+				// including an announced zero), the resolvable SVar bodies (the
+				// Counter/CopySpellAbility folds and every other API), the
+				// DefinedCost_/DefinedSACost_ card-anchored mana values, the
+				// energy parts (PayEnergy<N>/<X>, charged from the payer's
+				// counters), the Return<N/Spec> choice parts (the payer's pick,
+				// the beginUnlessPayment continuation) and LifeTotalHalfUp (the
+				// payer's own life, folded at the gate and the charge).
+				// ParseUnlessCost is still the strict parser: ExileFromGrave<...>,
+				// Behold<...>, tapXType<...>, CopyCost, and every remaining
 				// dynamic or unmodelled token declines here rather than
 				// ParseCost's flat {1} substitution buying it for one generic.
 				// The ask is still posed to the payer (the answer is recorded by
@@ -1716,8 +1727,9 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				// while never letting an empty pool satisfy it.
 				ctx.UnlessPay = "decline"
 			} else if len(chosen) > 0 && chosen[0].Index == 0 && e.unlessCostPayable(chosen[0].Player, rawUnlessCost, ctx, rp.obj) {
-				if len(paid.Sac) > 0 || len(paid.Discard) > 0 || len(paid.Reveal) > 0 || len(paid.RevealChosen) > 0 {
-					// Sacrifice, discard and reveal are choice-bearing costs.
+				if len(paid.Sac) > 0 || len(paid.Discard) > 0 || len(paid.Reveal) > 0 || len(paid.RevealChosen) > 0 || len(paid.Return) > 0 {
+					// Sacrifice, discard, reveal and return are choice-bearing
+					// costs.
 					// Park this resume before any mutation and let the payer
 					// select every component; finishUnlessPayment re-enters
 					// with unlessPay set, so this arm never charges it twice.
