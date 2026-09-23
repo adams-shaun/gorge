@@ -16,6 +16,15 @@ the next pass. I completed the integration against the current main tip with
 `git merge main` — the branch already carries merge commits, so a merge is the
 right operation (a rebase would rewrite the reviewed fix's history).
 
+Because `main` is a LIVE, moving target (other agent branches merge into it
+concurrently), it advanced again during this pass: the first merge commit
+(`71123e48`, against main `835074e5`) was immediately followed by a second
+`git merge main` (`b5a6f07a`, against main `06f2a294`, the Corrupted
+poison-readers merge), which auto-merged with NO conflicts (5 files:
+`effects/context.go`, `effects/count.go`, `effects/filter.go`,
+`effects/playercount_statebacked_test.go`, new `rules/corrupted_poison_readers_test.go`).
+`main` is now an ancestor of HEAD.
+
 ## Conflicts and resolutions
 
 `git merge main` reported two content conflicts; `AGENTS.md` and every code path
@@ -119,9 +128,34 @@ $ go test ./rules -run 'TestExchangeLife|ExchangeLifeVariant' -count=1
 ok  	github.com/adams-shaun/gorge/rules	0.827s
 ```
 
-The corpus-backed assertions ran for real (0.59s / 0.13s, not the ~0s a
+The corpus-backed assertions ran for real (0.58s / 0.12s, not the ~0s a
 skipped corpus test reports). `gofmt -l internal/testutil/agentsdoc_test.go`
 produced no output. No golden (`heads_test.go`) was touched.
+
+After the second merge (main `06f2a294`) the same ratchets were re-run against
+the final tree:
+
+```text
+$ go test ./internal/testutil -run 'TestKnownApproximation' -count=1
+ok  	github.com/adams-shaun/gorge/internal/testutil	0.002s
+
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' -count=1 -v
+--- PASS: TestEveryRepoDeckIsFullySupported (0.58s)
+--- PASS: TestEveryRepoDeckCountHeadResolves (0.00s)
+--- PASS: TestEveryDispatchedTriggerModeHasAMatcher (0.00s)
+--- PASS: TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched (0.00s)
+--- PASS: TestEveryRepoDeckParamsAreRead (0.12s)
+PASS
+ok  	github.com/adams-shaun/gorge/rules	0.737s
+
+# branch fix still green after both merges:
+$ go test ./rules -run 'TestExchangeLife|ExchangeLifeVariant' -count=1
+ok  	github.com/adams-shaun/gorge/rules	0.650s
+```
+
+The merged `AGENTS.md` still measures 35 data rows with constant 35 after the
+second merge (main's Corrupted work added no Known-approximations row and
+deleted none).
 
 ## Issues
 
