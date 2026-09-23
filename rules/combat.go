@@ -1095,6 +1095,20 @@ func (e *Engine) validateBlockers(d *decision.Decision, in decision.Intent) erro
 			}
 		}
 	}
+	// CR 509.1c: obey the maximum possible number of blocking requirements.
+	// Requirements are matched to distinct attackers because each creature
+	// can block only one attacker. A declaration must satisfy that maximum.
+	required := e.mustBlockAssignments(d.Player)
+	want := len(required)
+	got := 0
+	for _, o := range chosen {
+		if _, ok := required[o.Obj]; ok {
+			got++
+		}
+	}
+	if got < want {
+		return fmt.Errorf("declaration satisfies %d of %d possible blocking requirements", got, want)
+	}
 	checked := make(map[state.ObjID]bool, len(byAttacker))
 	for _, o := range chosen {
 		if checked[o.Attacker] {
@@ -1109,6 +1123,63 @@ func (e *Engine) validateBlockers(d *decision.Decision, in decision.Intent) erro
 		}
 	}
 	return nil
+}
+
+// mustBlockAssignments returns a deterministic maximum matching of creatures
+// required to block to attacking creatures. The result maps each required
+// blocker to the attacker it should block; unassignable requirements are
+// omitted, as CR 509.1c requires obeying the maximum possible number.
+func (e *Engine) mustBlockAssignments(defender state.PlayerID) map[state.ObjID]state.ObjID {
+	attackers := e.blockAttackers(defender)
+	var required []state.ObjID
+	matches := func(spec string, source state.ObjID, controller state.PlayerID, id state.ObjID) bool {
+		return spec == "" || e.matchesSpec(spec, id, e.specCtx(source, controller))
+	}
+	for _, id := range e.G.Zone(state.ZBattlefield, defender) {
+		if !e.IsCreature(id) {
+			continue
+		}
+		req := false
+		for _, sv := range e.activeStatics("MustBlock") {
+			if matches(sv.Params["ValidCreature"], sv.Source, sv.Controller, id) {
+				req = true
+				break
+			}
+		}
+		if !req {
+			for _, ce := range e.active() {
+				if ce.Restriction == "MustBlock" && e.restrictionApplies(ce, id) {
+					req = true
+					break
+				}
+			}
+		}
+		if req {
+			required = append(required, id)
+		}
+	}
+	assignment := make(map[state.ObjID]state.ObjID)
+	owner := make(map[state.ObjID]state.ObjID)
+	var visit func(state.ObjID, map[state.ObjID]bool) bool
+	visit = func(blocker state.ObjID, seen map[state.ObjID]bool) bool {
+		for _, attacker := range attackers {
+			if seen[attacker] || !e.canBlock(blocker, attacker) {
+				continue
+			}
+			seen[attacker] = true
+			previous := owner[attacker]
+			if previous == 0 || visit(previous, seen) {
+				assignment[blocker] = attacker
+				owner[attacker] = blocker
+				return true
+			}
+		}
+		return false
+	}
+	for _, blocker := range required {
+		visit(blocker, make(map[state.ObjID]bool))
+	}
+	return assignment
 }
 
 // validateMinMaxBlockers enforces CR 509.1a's MinMaxBlocker bounds on ONE
@@ -1274,6 +1345,7 @@ func (e *Engine) askBlockers() {
 			}
 		}
 		var opts []decision.Option
+		requiredPairs := e.mustBlockAssignments(defender)
 		for _, bid := range e.G.Zone(state.ZBattlefield, defender) {
 			for _, aid := range e.blockAttackers(defender) {
 				if minImpossible[aid] || !e.canBlock(bid, aid) {
@@ -1293,7 +1365,7 @@ func (e *Engine) askBlockers() {
 				opt := decision.Option{Index: len(opts), Kind: "block",
 					Label: e.G.Obj(bid).Face().Name + " blocks " + e.G.Obj(aid).Face().Name,
 					Obj:   bid, Attacker: aid, Player: defender,
-					Group: fmt.Sprintf("blocker:%d", bid)}
+					Group: fmt.Sprintf("blocker:%d", bid), Required: requiredPairs[bid] == aid}
 				if b, ok := bounds[aid]; ok {
 					opt.MinBlockers, opt.MaxBlockers = b[0], b[1]
 				}
