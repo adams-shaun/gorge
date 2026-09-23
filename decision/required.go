@@ -76,18 +76,23 @@ func (d *Decision) requiredCore() []int {
 
 // RequiredQuota is how many distinct Required Objs a valid answer must
 // include: the most the decision's MaxSum budget and Max ceiling can carry,
-// cheapest Required option per Obj first. 0 when no option is Required.
+// cheapest Required option per Obj first. KBlockers uses the whole legal
+// blocking-team solver instead. 0 when no duty is present.
 func (d *Decision) RequiredQuota() int {
+	if d.Kind == KBlockers {
+		return d.blockRequiredQuota()
+	}
 	return len(d.requiredCore())
 }
 
-// RequiredChosen counts the distinct Objs among the chosen options that
-// carry a Required option. Out-of-range indices are ignored.
+// RequiredChosen counts the distinct required Objs chosen. KBlockers also
+// counts alternate MustBlock candidate pairs, not just the one highlighted
+// Required on the wire. Out-of-range indices are ignored.
 func (d *Decision) RequiredChosen(choices []int) int {
 	seen := make(map[state.ObjID]bool, len(choices)) // membership only.
 	n := 0
 	for _, c := range choices {
-		if c < 0 || c >= len(d.Options) || !d.Options[c].Required {
+		if c < 0 || c >= len(d.Options) || (!d.Options[c].Required && (d.Kind != KBlockers || !d.Options[c].BlockMust)) {
 			continue
 		}
 		if obj := d.Options[c].Obj; !seen[obj] {
@@ -113,6 +118,15 @@ func (d *Decision) RequiredChosen(choices []int) int {
 // Neither step can lower the count of Required Objs, so the rebuilt answer
 // keeps the quota.
 func (d *Decision) FitRequired(choices []int) []int {
+	if d.Kind == KBlockers && d.hasRequiredBlocks() {
+		core := d.blockRequiredCore()
+		// An already legal preferred declaration retains its damage-order
+		// choice. Otherwise the same legal team that sets the quota repairs it.
+		if d.blockAnswerLegal(choices) && d.RequiredChosen(choices) >= d.RequiredQuota() {
+			return choices
+		}
+		return core
+	}
 	sum := 0
 	for _, c := range choices {
 		if c >= 0 && c < len(d.Options) {
