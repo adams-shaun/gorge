@@ -997,12 +997,12 @@ type Ctx struct {
 	// resolution's SubAbility$ chain (task alltargeted1): Forge asks every
 	// targeting SA in the whole chain BEFORE cost payment (CR 601.2c), so
 	// the engine pre-asks them in the cast flow and the resolution must
-	// consume the answers instead of re-posing the asks mid-resolution. The
+	// use the answers instead of re-posing the asks mid-resolution. The
 	// map is keyed by the sub SA's Line (the same matching convention the
-	// OfferedSA marker uses); chosenTargetsFor consumes an entry once by
-	// deleting it -- the map is the ENGINE's own record (Engine.castSubTargets)
-	// aliased here, so the deletion is the consume-once and replay re-derives
-	// it identically. Nil for every resolution whose cast pre-asked nothing
+	// OfferedSA marker uses). It belongs to Engine.castSubTargets and remains
+	// until the stack object leaves: a suspended body can re-enter with a new
+	// Ctx and must still see its earlier target answer. Replay re-derives the
+	// record identically. Nil for every resolution whose cast pre-asked nothing
 	// (triggers, copies, modal spells -- their targeting machinery is
 	// unchanged).
 	SubPreAsk map[string][]state.Target

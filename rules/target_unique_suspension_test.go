@@ -65,10 +65,10 @@ func TestTargetUniqueSurvivesADifferentAskKindBetweenRiders(t *testing.T) {
 	addMana(t, e, 0, "C")
 	castFirst(t, e, "cast")
 
-	// Rider 1's TargetUnique$ ask: both players, pick seat 0.
+	// Rider 1's cast-time TargetUnique$ ask: both players, pick seat 0.
 	d := passPriorityUntilNonPriority(t, e)
-	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "tgts" {
-		t.Fatalf("first rider ask = %+v, want KChoose tgts", d)
+	if d == nil || d.Kind != decision.KTarget || d.ResumeKind != "cast_sub" {
+		t.Fatalf("first rider ask = %+v, want KTarget cast_sub", d)
 	}
 	first := pendingPlayerIDs(t, e)
 	if !first[0] || !first[1] {
@@ -76,10 +76,19 @@ func TestTargetUniqueSurvivesADifferentAskKindBetweenRiders(t *testing.T) {
 	}
 	submitChoices(t, e, 0)
 
-	// The intervening DIG ask: a different ask kind, the suspension under
-	// test. Its presence is the test's own precondition -- without it the
-	// carrier does not exercise the gap at all.
-	dig := e.Pending()
+	// The third rider is now asked at announcement too, before Dig resolves.
+	d3 := e.Pending()
+	if d3 == nil || d3.Kind != decision.KTarget || d3.ResumeKind != "cast_sub" {
+		t.Fatalf("third rider ask = %+v, want KTarget cast_sub", d3)
+	}
+	third := pendingPlayerIDs(t, e)
+	if third[0] || !third[1] {
+		t.Fatalf("third rider must offer only the other player: %+v", d3.Options)
+	}
+	submitChoices(t, e, 0)
+
+	// The intervening DIG ask now occurs during resolution.
+	dig := passPriorityUntilNonPriority(t, e)
 	if dig == nil || dig.Kind != decision.KChoose || dig.ResumeKind != "dig" {
 		t.Fatalf("intervening ask = %+v, want the Dig KChoose (resume kind \"dig\")", dig)
 	}
@@ -95,20 +104,7 @@ func TestTargetUniqueSurvivesADifferentAskKindBetweenRiders(t *testing.T) {
 		submitArrange(t, e, arr, nil)
 	}
 
-	// Rider 3's ask must still exclude seat 0, chosen by rider 1 BEFORE the
-	// Dig's suspension.
-	d3 := e.Pending()
-	if d3 == nil || d3.Kind != decision.KChoose || d3.ResumeKind != "tgts" {
-		t.Fatalf("third rider ask = %+v, want KChoose tgts", d3)
-	}
-	third := pendingPlayerIDs(t, e)
-	if third[0] {
-		t.Fatalf("third rider re-offers seat 0: the intervening Dig dropped the accumulator: %+v", d3.Options)
-	}
-	if !third[1] {
-		t.Fatalf("third rider offers no legal different player: %+v", d3.Options)
-	}
-	submitChoices(t, e, 0)
+	// The answered target must not be re-asked after Dig suspends.
 	passUntilStackEmpty(t, e, 30)
 	if len(e.G.Stack) != 0 {
 		t.Fatalf("stack not empty after resolution: %d", len(e.G.Stack))
@@ -136,32 +132,31 @@ func TestTargetUniqueSurvivesAScryBetweenRiders(t *testing.T) {
 	castFirst(t, e, "cast")
 
 	d := passPriorityUntilNonPriority(t, e)
-	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "tgts" {
-		t.Fatalf("first rider ask = %+v, want KChoose tgts", d)
+	if d == nil || d.Kind != decision.KTarget || d.ResumeKind != "cast_sub" {
+		t.Fatalf("first rider ask = %+v, want KTarget cast_sub", d)
 	}
 	if !pendingPlayerIDs(t, e)[0] || !pendingPlayerIDs(t, e)[1] {
 		t.Fatalf("precondition: first rider should offer BOTH differing players: %+v", d.Options)
 	}
 	submitChoices(t, e, 0)
 
-	arrange := e.Pending()
+	d3 := e.Pending()
+	if d3 == nil || d3.Kind != decision.KTarget || d3.ResumeKind != "cast_sub" {
+		t.Fatalf("third rider ask = %+v, want KTarget cast_sub", d3)
+	}
+	third := pendingPlayerIDs(t, e)
+	if third[0] || !third[1] {
+		t.Fatalf("third rider must offer only the other player: %+v", d3.Options)
+	}
+	submitChoices(t, e, 0)
+
+	arrange := passPriorityUntilNonPriority(t, e)
 	if arrange == nil || arrange.Kind != decision.KArrange {
 		t.Fatalf("intervening ask = %+v, want the Scry KArrange", arrange)
 	}
 	submitArrange(t, e, arrange, nil)
 
-	d3 := e.Pending()
-	if d3 == nil || d3.Kind != decision.KChoose || d3.ResumeKind != "tgts" {
-		t.Fatalf("third rider ask = %+v, want KChoose tgts", d3)
-	}
-	third := pendingPlayerIDs(t, e)
-	if third[0] {
-		t.Fatalf("third rider re-offers seat 0: the intervening Scry dropped the accumulator: %+v", d3.Options)
-	}
-	if !third[1] {
-		t.Fatalf("third rider offers no legal different player: %+v", d3.Options)
-	}
-	submitChoices(t, e, 0)
+	// The answered target must not be re-asked after Scry suspends.
 	passUntilStackEmpty(t, e, 30)
 	if len(e.G.Stack) != 0 {
 		t.Fatalf("stack not empty after resolution: %d", len(e.G.Stack))

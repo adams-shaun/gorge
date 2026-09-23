@@ -6422,7 +6422,11 @@ func (e *Engine) subTargetAsk(pc *pendingCast) bool {
 				root = e.castStageSA(pc, o, f)
 			}
 		}
-		pc.subAsks = e.collectSubTargetPreAsks(root)
+		// Fuse halves use separate target slices and resolution frames; a
+		// stage-0 chain walk here cannot attribute the other half's subs.
+		if pc.mode != "fuse" {
+			pc.subAsks = e.collectSubTargetPreAsks(root)
+		}
 		pc.subAns = make([][]state.Target, len(pc.subAsks))
 	}
 	for pc.subStage < len(pc.subAsks) {
@@ -6433,18 +6437,16 @@ func (e *Engine) subTargetAsk(pc *pendingCast) bool {
 		}
 		candidates := e.legalTargetCandidates(pc.player, pc.card, excludeSelf, sub)
 		if effects.TargetUniqueRequested(sub) {
-			chosenSet := map[state.ObjID]bool{}
-			for _, t := range pc.targets {
-				chosenSet[t.Obj] = true
-			}
-			for _, ts := range pc.subAns {
-				for _, t := range ts {
-					chosenSet[t.Obj] = true
+			chosen := append([]state.Target(nil), pc.targets...)
+			for i := 0; i < pc.subStage; i++ {
+				if effects.TargetUniqueRequested(pc.subAsks[i]) {
+					chosen = append(chosen, pc.subAns[i]...)
 				}
 			}
 			filtered := candidates[:0]
 			for _, cand := range candidates {
-				if !chosenSet[cand.obj] {
+				t := state.Target{Obj: cand.obj, Player: cand.player, IsPlayer: cand.kind == "player"}
+				if len(effects.TargetUniqueFilter(sub, []state.Target{t}, chosen)) != 0 {
 					filtered = append(filtered, cand)
 				}
 			}

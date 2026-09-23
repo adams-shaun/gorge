@@ -83,17 +83,16 @@ func chosenTargetsFor(h Host, c *Ctx, sa *cards.SA, atRoot bool) ([]state.Target
 	if c.SubPreAsk != nil {
 		// The cast-time pre-ask's answer for exactly this sub (alltargeted1):
 		// Forge chose the whole chain's targets before payment (CR 601.2c), so
-		// the resolution consumes the recorded set instead of re-posing the ask
-		// here. The delete is the consume-once (the map is Engine.castSubTargets
-		// aliased through the Ctx, so replay, which re-derives the record at
-		// cast commit, consumes it at the same dispatch); a TargetUnique$ sub
+		// the resolution uses the recorded set instead of re-posing the ask
+		// here. Keep the answer until the stack object leaves: a suspended body
+		// re-enters with a fresh Ctx and must see the same chosen targets (e.g.
+		// MoveCounter's counter-kind pick). A TargetUnique$ sub
 		// feeds the same later-ask exclusion accumulator the answered path
 		// below does. An EMPTY recorded set is a real answer (a Min-0 chain
 		// sub elected zero, or no candidate existed at cast time): it must
-		// still consume the line, or the re-entered walk would pose the
+		// still use the empty answer, or the re-entered walk would pose the
 		// mid-resolution ask after all.
 		if ts, ok := c.SubPreAsk[sa.Line]; ok {
-			delete(c.SubPreAsk, sa.Line)
 			if TargetUniqueRequested(sa) {
 				c.TargetsUnique = append(c.TargetsUnique, ts...)
 			}

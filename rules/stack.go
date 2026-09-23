@@ -3346,8 +3346,8 @@ func (e *Engine) ensureLeftTheStack(id state.ObjID, to state.Zone, why string) {
 // whose qualifier the filter cannot evaluate was never offered and is
 // rejected here too, fail closed.
 // recheckCastSubTargets uses the same legality judge as the root target at
-// resolution. Only unanswered chain entries remain in the map: a resumed
-// resolution may have consumed earlier subs before parking on a decision.
+// resolution. Answers remain in the map through suspended re-entries, so a
+// body resumed after an unrelated choice still uses its announced target.
 // Preserve an answered-empty entry as a non-nil slice so the effects walk
 // does not mistake it for an outstanding mid-resolution ask.
 func (e *Engine) recheckCastSubTargets(id state.ObjID, root *cards.SA, controller state.PlayerID, source state.ObjID) (chosen, legal int) {
