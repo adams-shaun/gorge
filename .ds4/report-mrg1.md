@@ -454,9 +454,33 @@ seat (shared-git rule), so the integration was done as `git merge main`.
 
 All runs in this worktree with the real `.cards` corpus symlink present.
 
-- `git merge main --no-edit`: conflicts in `.ds4/report-mrg1.md` and
-  `internal/testutil/agentsdoc_test.go`; `AGENTS.md` auto-merged.
-- `go test ./internal/testutil -run 'TestKnownApproximation'` → `ok`.
-- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'` → `ok`.
+- `git merge main --no-edit`:
+  ```
+  Auto-merging .ds4/report-mrg1.md
+  CONFLICT (content): Merge conflict in .ds4/report-mrg1.md
+  Auto-merging AGENTS.md
+  Auto-merging internal/testutil/agentsdoc_test.go
+  CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go
+  Automatic merge failed; fix conflicts and then commit the result.
+  ```
+  (`git status --short` → `UU .ds4/report-mrg1.md`,
+  `UU internal/testutil/agentsdoc_test.go`; AGENTS.md + all engine files
+  auto-merged, including this branch's `rules/legal.go` cast-offer changes and
+  main's `effects/zone.go` / `view/*` limited-look changes.)
+- Merged AGENTS.md table measured: `awk '/^## Known approximations/,/^##
+  Trigger-relative/' AGENTS.md | grep -c '^| '` → **71** — exact match with the
+  constant, no slack either way.
+- `go test ./internal/testutil -run 'TestKnownApproximation'`:
+  ```
+  ok  github.com/adams-shaun/gorge/internal/testutil  0.001s
+  ```
+- Ratchets + this branch's cast-offer suites:
+  `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|CastOffer|CastTarget|CastBound|CastLiveness'`
+  → `ok  github.com/adams-shaun/gorge/rules  0.735s`.
+- `go test ./rules -run 'TestHeads$'` → `ok ... 2.012s` (main's limited-look
+  change did not move a head golden).
+- Behaviour goldens: `go test ./internal/archtest/` → `ok ... 2.804s`;
+  `go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/` →
+  `ok ... 1.055s` (split did not move).
 
-No engine code was conflicted.
+No engine code was conflicted; the merge is purely integration.
