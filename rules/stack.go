@@ -955,7 +955,13 @@ func targetZones(sa *cards.SA) []state.Zone {
 	// A stack-targeting TargetType$ adds the stack even when no TgtZone$ is
 	// present (the counterspell shape) and even alongside a TgtZone$
 	// Battlefield for a spell-or-permanent effect (TgtZone$ Stack,Battlefield).
-	if targetsStackObjects(sa.Params["TargetType"]) {
+	// When TargetType$ is absent, ValidTgts$ can name the stack object kind
+	// itself (for example, `ValidTgts$ Spell`). Only infer that route without
+	// an explicit TgtZone$: card-type specs such as `ValidTgts$ Instant` with
+	// `TgtZone$ Graveyard` describe cards in that named zone, not stack
+	// objects.
+	if targetsStackObjects(sa.Params["TargetType"]) ||
+		(sa.Params["TgtZone"] == "" && targetsStackObjects(sa.Params["ValidTgts"])) {
 		zones = appendUniqueZone(zones, state.ZStack)
 	}
 	if len(zones) == 0 {
@@ -1022,15 +1028,14 @@ func appendUniqueZone(zones []state.Zone, z state.Zone) []state.Zone {
 	return append(zones, z)
 }
 
-// targetsStackObjects reports whether a Forge TargetType$ value names a
-// target that lives on the stack: a spell (Spell/Instant/Sorcery), or an
-// activated/triggered/spell-ability object. The base token precedes any "."
-// qualifier (Spell.singleTarget, Instant.singleTarget, ...).
-func targetsStackObjects(tt string) bool {
-	for _, t := range strings.Split(tt, ",") {
-		base, _, _ := strings.Cut(strings.TrimSpace(t), ".")
-		switch base {
-		case "Spell", "Instant", "Sorcery", "Activated", "Triggered", "SpellAbility":
+// targetsStackObjects reports whether a Forge TargetType$ or ValidTgts$
+// value names a target that lives on the stack: a spell (Spell/Instant/
+// Sorcery), or an activated/triggered/spell-ability object. The shared state
+// parser keeps this census aligned with stack target-kind legality, including
+// Forge's Ability alias.
+func targetsStackObjects(spec string) bool {
+	for _, token := range strings.Split(spec, ",") {
+		if _, ok := state.StackKindTokenOf(strings.TrimSpace(token)); ok {
 			return true
 		}
 	}
