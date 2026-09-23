@@ -1506,13 +1506,19 @@ func (e *Engine) offerSacXMods(p state.PlayerID, id state.ObjID, ability bool, b
 	if !costAnnouncesSacX(base) {
 		return costMods{}, false
 	}
+	// Every announced Sac part pays the SAME X. Like xAsk's candidate cap,
+	// the smallest candidate pool bounds a settleable announcement; the
+	// largest would admit an X that another part cannot sacrifice.
 	maxX := int32(0)
+	boundSet := false
 	for _, part := range base.Sac {
 		if !part.Announced {
 			continue
 		}
-		if n := int32(len(e.sacrificeCostCandidates(p, id, part, ability))); n > maxX {
+		n := int32(len(e.sacrificeCostCandidates(p, id, part, ability)))
+		if !boundSet || n < maxX {
 			maxX = n
+			boundSet = true
 		}
 	}
 	if maxX <= 0 {
