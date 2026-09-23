@@ -847,7 +847,11 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	2: "19a4893657e5d549",
+	// 2 seats moved to a867ac1768ab4993 (autonomous orchestrator): resolving agent-20260920T070405Z-7fec3b8b (trig:SearchedLibrary — "whenever an opponent searches their library" trigger mod)
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	2: "a867ac1768ab4993",
 	// 4 seats moved to c232a4aca592e0f8 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
@@ -1010,7 +1014,11 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	4: "acce7d850cfb176a",
+	// 4 seats moved to 2114abdd282628ca (autonomous orchestrator): resolving agent-20260920T070405Z-7fec3b8b (trig:SearchedLibrary — "whenever an opponent searches their library" trigger mod)
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	4: "2114abdd282628ca",
 	// 6 seats moved to c8c36b87e598c090 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
