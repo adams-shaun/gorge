@@ -54,6 +54,10 @@ type Host interface {
 	// unreplaced event returns the single token it minted (empty when nothing
 	// was created).
 	EmitTokenCreate(events.Event) []state.ObjID
+	// Scry proposes one scry instruction before any library is looked at. The
+	// rules engine applies R:Event$ Scry, records the surviving instruction
+	// for triggers and returns its final count (or false if replaced entirely).
+	Scry(player state.PlayerID, source state.ObjID, count int32) (int32, bool)
 	// EmitDamage emits a Damage event and returns the event that actually
 	// landed after replacement effects. A prevention returns a non-Damage
 	// result; an amount-changing replacement returns Damage with the applied
