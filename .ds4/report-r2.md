@@ -1,3 +1,107 @@
+# Report — r2 (agent-20260918T195920Z-2fd3b568) — Loamcrafter Faun `TriggerRemembered$Amount`
+
+**Historical reconciliation round (before the sol1 review).** The ticket's
+code work and tests were committed along with the t1 report, preserved at
+`.ds4/report-t1-2fd3b568.md`; the shared `.ds4/report-t1.md` was restored
+to main's content. The branch was rebased onto main. This report was the only
+*new change in that reconciliation round*, NOT the only change in the branch
+relative to main. The branch also carries `effects/count.go`,
+`effects/immediate.go`, `effects/count_triggerremembered_test.go`,
+`rules/loamcrafter_faun_test.go`, and the t1 report. The ChosenCardStrict r2
+report below is preserved. The prior claim that `main...HEAD` contained
+only this report was wrong; the sol1 report documents the full branch diff.
+
+## What changed and why (per file)
+
+- `.ds4/report-t1-2fd3b568.md` (new, commit `4a786d45`): this ticket's t1
+  report, preserved at a unique path (same resolution as `83d640d5` and
+  `b82aef05`) instead of clobbering the shared `report-t1.md` main tracks.
+  Full content: the capture-excluded `TriggerRemembered` mapping, the
+  Loamcrafter Faun end-to-end pin, the fails-without-the-fix proof, and the
+  merged-sibling mapping verdict (plain landed; corrected here).
+- `.ds4/report-t1.md`: restored to the committed (main) version — the
+  DestroyAll.Zone report is preserved, this ticket's content no longer
+  clobbers it.
+- Code (rebased onto main, no conflicts): `448e89ab` =
+  `effects/count.go` (TriggerRemembered → `rememberedExcludingCapture`, the
+  one shared helper also used by `effImmediateTrigger`; Spawner>
+  re-anchoring nils the consumed capture), `effects/immediate.go` (parent
+  computation routed through the helper), `effects/count_triggerremembered_test.go`
+  (real chain-ctx fixture: Captured = ETB'd source, Remembered = source +
+  chain objects), `rules/loamcrafter_faun_test.go` (end-to-end: discard N
+  lands → one return ask Max exactly N → named permanents to hand;
+  empty discard = silent no-op with the chain registered). `41b7e422` pins
+  the exotic verdicts: `CastTotalManaSpent` and `CardManaCostLKI` modelled,
+  `GreatestCardManaCost` and `CardTypes` fail-closed.
+
+## Rebase outcome (the round's blocking finding)
+
+At the time of this report, `git rebase main` was clean, replaying three
+commits (the Convoked / Imprint regions of `effects/count.go` were disjoint).
+The then-current SHAs were `448e89ab` (fix), `41b7e422` (tests),
+`4a786d45` (docs), rebased from `32ae38bc`/`bcf02231`/`f3ba0672`.
+A subsequent controller-ordered rebase for sol1 replayed four commits;
+current SHAs and base are recorded in `.ds4/report-sol1.md`.
+
+## Gate commands and their real output (historical, on the r2 base)
+
+Environment: `.cards` symlink present at the worktree root
+(`.cards -> /home/sadams/projects/gorge/.cards`); `go test ./rules` at 36.2s
+confirmed a real corpus run, not a skipped one. At that time the branch was
+`main` + 3 commits (`git log --oneline -4`: 4a786d45, 41b7e422,
+448e89ab, 0f94cca6=then-main). Current-base gates are in the sol1 report.
+
+Done means #3 (targeted pins):
+```
+$ go test -run 'TestLoamcrafterFaun|TestTriggerRemembered|TestRefProperty|TestImmediateTrigger|TestForumFilibuster|TestSpeedYoungAvenger' ./effects ./rules
+ok  	github.com/adams-shaun/gorge/effects	0.727s
+ok  	github.com/adams-shaun/gorge/rules	0.645s
+```
+
+Done means #4 (affected packages, once):
+```
+$ go test ./effects ./rules
+ok  	github.com/adams-shaun/gorge/effects	2.579s
+ok  	github.com/adams-shaun/gorge/rules	36.184s
+```
+
+Done means #5 (format/vet):
+```
+$ gofmt -l effects/count.go effects/immediate.go effects/count_triggerremembered_test.go rules/loamcrafter_faun_test.go
+(no output)
+$ go vet ./effects ./rules
+(no output)
+```
+
+Behaviour goldens outside `rules/` (run once, before DONE):
+```
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.243s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.249s
+```
+The botbench win split did not move; no golden re-pin needed. `go build ./...`
+clean (exit 0).
+
+## Deviations from the brief
+
+None beyond those already recorded in the t1 report (brief's 4-exotic list
+was really 2; the end-to-end pin cannot discriminate the mapping — the unit
+test is the arbiter). The t1 round's deviation "did not rebase" is now
+closed: the rebase was completed this round, cleanly.
+
+## Issues (defects found, not fixed)
+
+Unchanged from the t1 report (re-listed for the ledger):
+- `IsTriggerRemembered` filter predicate unimplemented (61 corpus files);
+  delayed triggers registered with it never match (Blessed Defiance).
+- `TriggerRemembered$GreatestCardManaCost` and `TriggerRemembered$CardTypes`
+  stay fail-closed (2 carriers); `CardTypes` would be a shared
+  `evalRefProperty` addition; `GreatestCardManaCost` rides ticket `e27469dd`.
+
+
+---
+
 # Report — r2 (agent-20260918T233200Z-f7c5b4f1) — pred:hasABasicLandType
 
 Ticket: `pred:hasABasicLandType` — the "land card with a basic land type"
