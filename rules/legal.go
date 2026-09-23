@@ -1510,6 +1510,31 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				}
 			}
 		}
+		// Foretell (CR 702.126a): the special action pays {2} and exiles the
+		// card from the hand FACE DOWN -- never the keyword's own colon
+		// parameter, which prices the LATER cast. The keyword read is DERIVED
+		// (printed K:Foretell line plus a layer-6 AddKeyword$ Foretell grant --
+		// Dream Devourer's "each nonland card in your hand without foretell has
+		// foretell"), so a granted hand card gets the same {2} action; the
+		// granted card's later cast prices through foretellCost's
+		// printed-cost-less-{2} fallback, which IS the granted foretell cost
+		// ("its foretell cost is equal to its mana cost reduced by {2}").
+		// "During your turn" is the timing gate (deliberately NO
+		// instant/sorcery-speed check, unlike Suspend -- CR 702.126a's action
+		// text names only the turn, and a special action needs only priority,
+		// never the ability to cast an instant), widened by a granted
+		// `AddKeyword$ Foretell on any player's turn` player keyword (Cosmos
+		// Charger). The block sits BEFORE the front-face timing gate: the
+		// action's timing is its own turn window, never the card's cast
+		// timing -- a creature with foretell is offered the action on any
+		// step of its controller's turn (with a stack, in an upkeep), and
+		// under the any-turn grant on any step of anyone's turn.
+		// castRestricted/castSuppressed above still bound the offer.
+		if _, ok := e.derivedKeywordParam(id, "Foretell"); ok &&
+			(e.G.Active == p || e.playerForetellsAnyTurn(p)) &&
+			offerCastable(p, id, Cost{Generic: 2}, foretellScope(), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast", Label: "Foretell " + f.Name, Obj: id, Mode: "foretell"})
+		}
 		if !e.spellTimingOK(p, id, f, sorcery) {
 			// MayFlashCost (Forge's K:MayFlashCost, CR 702.8): when the ordinary
 			// timing gate fails, a face printed with the keyword is NOT skipped
@@ -1788,8 +1813,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			if offerCastable(p, id, offer, spellScope("suspend"), false) {
 				out = append(out, decision.Option{Index: len(out), Kind: "cast", Label: "Suspend " + f.Name, Obj: id, Mode: "suspend"})
 			}
-		}
-		// Plot (CR 701.34a): the alternative ACTION pays the K: line's colon
+		} // Plot (CR 701.34a): the alternative ACTION pays the K: line's colon
 		// parameter and exiles the card with the plotted designation -- NO
 		// counters (the K:Plot token is the COST {generic}+{colour}, never a
 		// counter count). "Plot only as a sorcery" is the engine's own
@@ -1802,17 +1826,6 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			offerCastable(p, id, ParseCost(raw), spellScope("plot"), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Plot " + f.Name, Obj: id, Mode: "plot"})
-		}
-		// Foretell (CR 702.126a): the special action pays {2} and exiles the
-		// card from the hand FACE DOWN -- never the keyword's own colon
-		// parameter, which prices the LATER cast. "During your turn" is the
-		// only timing gate (deliberately NO instant/sorcery-speed check,
-		// unlike Suspend); the hand walk's own castRestricted/castSuppressed
-		// and spellTimingOK continues bound the offer, the same window the
-		// Suspend offer above inherits.
-		if _, ok := f.KeywordParam("Foretell"); ok && e.G.Active == p &&
-			offerCastable(p, id, Cost{Generic: 2}, foretellScope(), false) {
-			out = append(out, decision.Option{Index: len(out), Kind: "cast", Label: "Foretell " + f.Name, Obj: id, Mode: "foretell"})
 		}
 	}
 

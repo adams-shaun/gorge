@@ -1,22 +1,78 @@
-# Merge conflict resolution mrg1 — wt/cli-20260922T225138Z-e21c29e8
+# Merge conflict resolution: mrg1 round 3 (branch wt/cli-20260922T225138Z-e21c29e8, main at c12e10ef)
 
-## State and integration
+## Starting state
 
-The reported rebase/merge had already been completed before this pass began: `git status` was clean and HEAD was the report commit `d43a0d55`, whose parent is merge commit `2b884e5b`. That merge commit has parents `bb61fe22` (reviewed branch) and `e53c80a2` (main). No rebase or merge remained in progress, so there was no operation to continue.
+The worktree was CLEAN, HEAD = `7a83891e` (`docs: record mrg1 verification`),
+whose merge commit `2b884e5b` had already integrated main@`e53c80a2`. No
+rebase/merge was in flight — the daemon's failed rebase (conflict applying
+`f68b9396`, "Rebasing (1/7)") and its merge fallback had both been rolled
+back before this dispatch, so the operation was redone from scratch as
+`git merge main` (rebase is forbidden in this worktree; merge is the
+established integration shape here).
 
-The reported source conflict in `internal/testutil/agentsdoc_test.go` is resolved in the merged tree: `knownApproximationRows` is 76. The merged `AGENTS.md` carries both sides' approximation-row deletions, and the branch fix and main's changes are retained. Main's affinity-related changes in `effects/count.go`, `effects/filter.go`, and `rules/affinity_affinity_test.go` remain; the branch's cast-target-minima changes in `rules/cast.go`, `rules/legal.go`, and associated tests remain. No conflict markers remain in the reported source conflict file.
+Main had advanced past the previous integration point by the sibling
+tickets' work: `0679b1cd` (foretell predicates / Cosmos Charger /
+effect-delivered MayPlay), the stack target option kind commits
+(`0a23564e`/`578affca`/`8782f1e8`), and their merges
+(`98dcf594`, `f14b56a3`, `51e249b0`, `c12e10ef`).
 
-The `.ds4/report-mrg1.md` conflict was already resolved in the merge result and contained prior-round history. This report update documents the current verification. No source changes were needed in this pass.
+## Conflicted files and resolution
 
-## Commands and output
+1. **`.ds4/report-mrg1.md`** — the ONLY conflict. Both sides carried their
+   own prior-round report text (this branch's round-2 report vs the sibling
+   ticket cli-20260922T225138Z-c4106938's round-2 report, which reached this
+   file via main's `b6e82601`/`51e249b0`). Both prior narratives describe
+   rounds that are now history; per the report-path contract this file is
+   replaced with THIS round's report (the text you are reading).
+2. **`AGENTS.md`** — auto-merged, no textual conflict. Verified via
+   `internal/testutil` ratchet (below): merged table measures 73 data rows
+   and `knownApproximationRows = 73`, exactly main's round-2 resolution —
+   both sides' row closures retained, neither raised.
+3. **`rules/legal.go`** — auto-merged, no textual conflict. Main's heavy
+   rework (foretell/MayPlay grant work) plus this branch's target-minima
+   census coexist; the branch's tests (`cast_target_census_test.go`,
+   `cast_offer_pairwise_test.go`, `cast_liveness_test.go`) pass against the
+   merged `legal.go`.
+4. **`internal/testutil/agentsdoc_test.go`** — auto-merged at 73 (matching
+   the merged AGENTS.md table); ratchet green.
 
-- `git status --short --branch; git status`: `wt/cli-20260922T225138Z-e21c29e8`, clean at start.
-- `git log --oneline --decorate -8; git rev-parse main; git merge-base HEAD main`: HEAD was `d43a0d55` (`docs: record mrg1 conflict resolution`); `main` was `84cb68b9`; merge-base was `e53c80a2`.
-- `git show -s --format='commit %H%nparents %P%nsubject %s' HEAD`: `d43a0d55f5b8e648c36f5aeef45483e95ae35edf`, parent `2b884e5b67128fb37f19cdcb8903ab675aa05e2c`.
-- `[ -e .cards ] && echo '.cards present'`: `.cards present`.
-- `grep -n '<<<<<<<\\|=======\\|>>>>>>>' .ds4/report-mrg1.md internal/testutil/agentsdoc_test.go || true`: no conflict markers.
-- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|CastTarget'`: `ok github.com/adams-shaun/gorge/rules 0.778s`.
+All other main-side changes (`effects/filter.go`, `effects/misc.go`,
+`rules/mayplay.go`, `rules/playerkeywords.go`, `rules/stack.go`,
+`state/continuous.go`, `rules/foretell_grant_test.go`,
+`rules/paramcensus_test.go`, `rules/stack_target_option_kind_test.go`,
+`cmd/botbench/actioncoverage.go`) auto-merged and were retained unmodified.
+
+## Commands run and output
+
+```
+git merge main
+  -> AGENTS.md, rules/legal.go auto-merged; .ds4/report-mrg1.md CONFLICT (only)
+go test ./internal/testutil -run 'TestKnownApproximation' 2>&1 | tail -3
+  -> ok  github.com/adams-shaun/gorge/internal/testutil   (knownApproximationRows = 73)
+go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|CastTarget|CastOffer'
+  -> ok  github.com/adams-shaun/gorge/rules 0.827s
+go test ./internal/archtest/ 2>&1 | tail -3
+  -> ok  github.com/adams-shaun/gorge/internal/archtest 3.042s
+go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ 2>&1 | tail -3
+  -> ok  github.com/adams-shaun/gorge/cmd/botbench 1.074s
+gofmt -l rules/legal.go rules/stack.go rules/cast.go internal/testutil/agentsdoc_test.go
+  -> (no output, clean)
+```
+
+`.cards` was present in the worktree (real corpus), so the rules run was not
+a vacuous skip.
+
+## Ratchet cross-check after the merge
+
+This branch registers no new trigger `Mode$` matcher and closes no
+`knownUnsupported` / `knownUnsupportedParams` / `knownUnmodelledCountHeads`
+entry that main does not already carry, so no ratchet table needed fixing as
+part of the merge — confirmed by the green rules ratchet run above and the
+green `internal/testutil` agentsdoc ratchet.
 
 ## Issues
 
-None found during this integration check. The merge was complete before this pass; no conflict-resolution uncertainty remains.
+None found beyond the resolved conflict itself. No engine behaviour changed
+in this integration beyond what both reviewed sides already carried
+(botbench byte-identical pin still holds, so the merge introduced no
+behaviour drift a repo deck exercises).
