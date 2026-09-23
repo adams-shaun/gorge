@@ -765,3 +765,68 @@ referred object carries no cast spend. A vacuous setup fails loudly.
 ## Commit
 
 `a62d152c` — `fix(effects): resolve the <Ref>$<Property> CardNumColors and LifeTotal count heads`
+
+---
+
+# Report — Vote.StoreVoteNum
+
+Implemented fixed-choice `StoreVoteNum$` outcomes and pinned Fateful Tempest against the real corpus.
+
+- `effects/misc.go`: fixed-list Vote now uses a shared outcome resolver. Without `StoreVoteNum$`, it preserves the prior winner/tie behavior. With `StoreVoteNum$ True`, each choice body runs with its own `VoteNum` binding in a private copy of the source SVar table; this avoids mutating the card face's shared SVar map and lets each body consume its tally.
+- `rules/fateful_tempest_vote_test.go`: added an end-to-end real-corpus test with two votes for each option. It verifies two Mountains are milled and two exiled, proving both SVar bodies read their own count, and checks replay.
+
+`.cards/` was present as a symlink to `/home/sadams/projects/gorge/.cards`; the corpus test did not skip. The measured `StoreVoteNum` prevalence is **13 files**, matching the brief. The worktree was clean before the required `git rebase main`, which reported up to date.
+
+## Verification
+
+Targeted real-corpus regression:
+
+```text
+$ go test -run '^TestFatefulTempestStoresEachOptionVoteCount$' ./rules/ > .ds4/scratch/t.log 2>&1; rc=$?; tail -40 .ds4/scratch/t.log; exit $rc
+ok   github.com/adams-shaun/gorge/rules  0.603s
+```
+
+Architecture golden:
+
+```text
+$ go test ./internal/archtest/ 2>&1 | tail -15
+ok   github.com/adams-shaun/gorge/internal/archtest  3.864s
+```
+
+Constructed-default golden:
+
+```text
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ 2>&1 | tail -5
+ok   github.com/adams-shaun/gorge/cmd/botbench  1.364s
+```
+
+Formatting and generated types:
+
+```text
+$ gofmt -l effects/misc.go rules/fateful_tempest_vote_test.go; go run ./cmd/gentypes -check
+[no output; exit 0]
+```
+
+Diff check and corpus measurement:
+
+```text
+$ git diff --check; grep -rlE 'StoreVoteNum' .cards/cardsfolder | wc -l
+13
+```
+
+## Fails without the fix
+
+Copied `effects/misc.go` to `.ds4/scratch/misc.go.fixed`, disabled only the `StoreVoteNum$` branch in `resolveVoteOutcomes`, and ran the new test. It failed on the first observable tally-dependent effect; restored the source from the copy and verified byte identity with `cmp` (`cmp=0`).
+
+```text
+$ go test -run '^TestFatefulTempestStoresEachOptionVoteCount$' ./rules/ > .ds4/scratch/t-no-fix.log 2>&1; rc=$?; tail -30 .ds4/scratch/t-no-fix.log; test $rc -ne 0
+--- FAIL: TestFatefulTempestStoresEachOptionVoteCount (0.59s)
+    fateful_tempest_vote_test.go:90: precondition/result: two past votes must mill two Mountains, got 0
+FAIL
+FAIL	github.com/adams-shaun/gorge/rules	0.608s
+FAIL
+```
+
+## Issues
+
+The existing no-host R-9 fallback still resolves a Vote decision with the deterministic first ballot option; changing that host-degradation behavior was outside this StoreVoteNum task. No new CR-lane finding or Known approximations row was added.
