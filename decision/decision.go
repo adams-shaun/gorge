@@ -384,6 +384,17 @@ type Decision struct {
 	// the one reader; false (the zero) omits the field, so every existing
 	// decision serialises byte-identically.
 	Budgeted bool `json:"budgeted,omitempty"`
+	// GroupLimit caps how many options ONE Group may contribute to an answer:
+	// the sum of the picked options sharing a Group must not exceed it. It is
+	// the per-type pick count of Forge's EACH multi-type search grammar
+	// ("EACH Forest & Plains" with ChangeNum$ 2 finds two Forests and two
+	// Plainses), where one Group is one listed type and its cap is ChangeNum --
+	// a cap the single-pick exclusivity rule cannot express. 0 or 1 reads as
+	// the ordinary at-most-one-per-Group rule, so every existing decision
+	// serialises byte-identically and validates unchanged. Validate is the
+	// rule's one home; FitRequired and botpolicy's Clamp derive the same cap
+	// from GroupCap, never a second copy.
+	GroupLimit int `json:"groupLimit,omitempty"`
 	// Repeatable relaxes Validate's no-duplicate-index rule: when true the
 	// SAME option index may be chosen more than once in one answer. It is
 	// set only by a modal (Charm) decision whose SA carries
@@ -540,6 +551,17 @@ func New(player state.PlayerID, kind Kind, prompt string, min, max int, options 
 // disagree about whether a budget exists.
 func (d *Decision) HasBudget() bool { return d.MaxSum > 0 || d.Budgeted }
 
+// GroupCap is the effective per-Group selection cap the wire enforces:
+// GroupLimit when it raises one, else the ordinary at-most-one-per-Group
+// rule. The single reader behind Validate, FitRequired and botpolicy's
+// repair paths, so the cap cannot drift between them.
+func (d *Decision) GroupCap() int {
+	if d.GroupLimit > 1 {
+		return d.GroupLimit
+	}
+	return 1
+}
+
 // Intent is a client's answer.
 type Intent struct {
 	Seq     uint64         `json:"seq"`
@@ -561,6 +583,8 @@ func (d *Decision) Validate(in Intent) error {
 	}
 	seen := make(map[int]bool, len(in.Choices))
 	seenGroups := make(map[string]int, len(in.Choices))
+	groupCount := make(map[string]int, len(in.Choices))
+	limit := d.GroupCap()
 	var controller state.PlayerID
 	haveController := false
 	if d.TargetsWithSameController {
@@ -589,10 +613,20 @@ func (d *Decision) Validate(in Intent) error {
 		// general wire contract, not a combat rule -- the group field says
 		// nothing about what its members are, only that they are exclusive.
 		if g := d.Options[c].Group; g != "" {
-			if first, ok := seenGroups[g]; ok {
-				return fmt.Errorf("choices %d and %d are mutually exclusive (group %q)", first, c, g)
+			// The per-Group cap: at most GroupCap options of one Group may be
+			// selected together. At the default cap of 1 this is the historical
+			// mutual-exclusion rule with its historical message; a raised cap
+			// (EACH's per-type ChangeNum) reports the count it refused.
+			if groupCount[g] >= limit {
+				if limit == 1 {
+					return fmt.Errorf("choices %d and %d are mutually exclusive (group %q)", seenGroups[g], c, g)
+				}
+				return fmt.Errorf("choice %d exceeds the per-group limit of %d (group %q)", c, limit, g)
 			}
-			seenGroups[g] = c
+			if groupCount[g] == 0 {
+				seenGroups[g] = c
+			}
+			groupCount[g]++
 		}
 	}
 	// The cumulative-budget rule (Decision.MaxSum): the chosen options'

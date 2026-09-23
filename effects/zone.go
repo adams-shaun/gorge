@@ -1477,6 +1477,9 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 	// function's callers (whole-hand, owner-selected, random) because a
 	// hand move has no on-battlefield candidates to mis-read.
 	spec = permanentCardSpec(spec)
+	// The per-type groups an EACH ChangeType asks for, computed once: the
+	// sub-specs are a property of the SA, not of the hand owner.
+	eachSubs, isEach := eachAlternatives(spec)
 	g := h.Game()
 	// fx42 scoping: capture and clear the answered pick (and the cursor that
 	// binds it to the owner that asked) BEFORE anything else, so a nested
@@ -1587,7 +1590,48 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 				Text: "cannot determine whether the markerless hand move is optional; no hand card moves"})
 			return
 		}
-		if int32(len(eligible)) <= n && !optional {
+		// The per-type pick structure (each1's object-path fix): an EACH hand
+		// move is one move of EACH listed type, never a flat count over the
+		// union -- Michelangelo Improvisers' "EACH Creature & Land" must be
+		// able to move a creature AND a land, not one card from the union. The
+		// candidates join the FIRST sub-spec that matches them
+		// (EachTypeGroups), so a card matching two listed qualities is offered
+		// once, in one Group, and picking it cannot block the other type's
+		// pick; per-type ChangeNum$ rides Decision.GroupLimit when it is above
+		// 1. AtRandom$ and the all-matching perOwner shapes keep their flat
+		// walks (measured-absent with EACH; the count semantics are their own).
+		structured := isEach && !random && !count.perOwner
+		var eachGroups [][]state.ObjID
+		var eachPerType int32
+		var ceiling int
+		if structured {
+			eachPerType = n
+			if eachPerType < 1 {
+				eachPerType = 1
+			}
+			eachGroups = EachTypeGroups(g, eachSubs, eligible, c.SpecContext(c.Controller))
+			for _, ids := range eachGroups {
+				k := int32(len(ids))
+				if k > eachPerType {
+					k = eachPerType
+				}
+				ceiling += int(k)
+			}
+			if !optional && ceiling == len(eligible) {
+				// A required structured move with no selection alternative: every
+				// group's pool fits its per-type count, so the only legal answer
+				// takes all of eligible -- the same deterministic take-all the
+				// flat shape takes below, in the same (hand) order.
+				for _, id := range eligible {
+					settleHandMove(id, owner)
+					moved = append(moved, id)
+				}
+				handLibraryTail(h, g, sa, c.Source, owner, moved, to)
+				scheduleAtEOT(h, c, sa, moved)
+				continue
+			}
+		}
+		if !structured && int32(len(eligible)) <= n && !optional {
 			// A required move with no possible nonempty selection alternative
 			// takes every eligible card deterministically. An OPTIONAL move
 			// must still ask here: declining is a distinct, legal answer even
@@ -1628,6 +1672,24 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options),
 				Kind: "hand_move", Label: name, Obj: id, Player: owner})
 		}
+		if structured {
+			// Replace the flat range and option list with the per-type one: the
+			// ceiling (each group's min(perType, size) summed) bounds the ask,
+			// a required move demands it whole, and one option per candidate
+			// carries its group's ordinal. The flat loop above has already
+			// appended the union options -- rebuild from scratch.
+			d.Min = 0
+			d.Max = 0
+			d.Options = nil
+			if !optional {
+				d.Min = ceiling
+			}
+			d.Max = ceiling
+			if eachPerType > 1 {
+				d.GroupLimit = int(eachPerType)
+			}
+			eachStructuredOptions(g, d, eachGroups, eachPerType, false, owner, "hand_move")
+		}
 		// The shared ask boundary (effects.Ask): a ChangeNum$ 0 pick over a
 		// nonempty eligible hand is Min == Max == 0 -- the empty-answer-only
 		// shape -- so it is never posted; AskEmpty resolves silently through
@@ -1644,9 +1706,25 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: chooser,
 				Text: "moves the first matching card(s) from hand (no engine host to ask)"})
 		}
-		for k := int32(0); k < n && int(k) < len(eligible); k++ {
-			settleHandMove(eligible[k], owner)
-			moved = append(moved, eligible[k])
+		if structured {
+			// The structured stand-in: each group's first perType candidates, in
+			// group order -- the exact take the bot's group-aware fill
+			// re-derives, and the per-type mirror of the flat first-n take.
+			for _, ids := range eachGroups {
+				k := eachPerType
+				if int32(len(ids)) < k {
+					k = int32(len(ids))
+				}
+				for _, id := range ids[:k] {
+					settleHandMove(id, owner)
+					moved = append(moved, id)
+				}
+			}
+		} else {
+			for k := int32(0); k < n && int(k) < len(eligible); k++ {
+				settleHandMove(eligible[k], owner)
+				moved = append(moved, eligible[k])
+			}
 		}
 		handLibraryTail(h, g, sa, c.Source, owner, moved, to)
 		scheduleAtEOT(h, c, sa, moved)
@@ -2166,21 +2244,32 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 		// (the DifferentNames fetchList filter) enforces there. The apply side
 		// dedupes a host that bypassed the wire (applyLibrarySearch).
 		differentNames := strings.EqualFold(strings.TrimSpace(sa.Params["DifferentNames"]), "True")
-		// Forge's EACH multi-type search grammar ("EACH Forest & Plains"): with
-		// every per-type cap at most 1 -- every corpus carrier -- the pick is
-		// structured, not a flat count: one option per eligible card, the
-		// type's ordinal in Option.Group, one decision whose Max is the number
-		// of listed types that have at least one eligible card. The Group
-		// exclusivity contract (decision.Decision.Validate) enforces at-most-one
-		// per Group on the wire, which IS one pick per type; the ordinary
-		// "search" resume arm carries the ordered picks, and applyLibrarySearch
-		// re-checks each against the union matcher, so no new Ctx field and no
-		// resume change. Min stays 0: the spec states a quality, so the
-		// fail-to-find allowance (CR 701.23b) is kept -- a listed type with no
-		// eligible card simply contributes no options and no Group, and its
-		// pick is the one the player cannot make.
+		// Forge's EACH multi-type search grammar ("EACH Forest & Plains"): the
+		// pick is per-type, never a flat count over the union. One option per
+		// eligible card, the sub-spec's ordinal in Option.Group, per-type
+		// ChangeNum$ as Decision.GroupLimit when it is above 1 (each listed
+		// type contributes up to that many), and the candidates partitioned by
+		// EachTypeGroups so a card matching two listed qualities is offered
+		// once and picking it can never block the other group's pick. Min: a
+		// spec that states a quality -- every corpus carrier -- keeps
+		// CR 701.23b's fail-to-find allowance (a listed type with no eligible
+		// card simply contributes no options and no Group, and its pick is the
+		// one the player cannot make); a quantity-only EACH (measured-absent)
+		// keeps CR 701.23d's mandatory-find reading per type, forced to each
+		// group's achievable count. The Group exclusivity contract
+		// (decision.Decision.Validate) plus GroupLimit enforce the per-type cap
+		// on the wire; the ordinary "search" resume arm carries the ordered
+		// picks, and applyLibrarySearch re-checks each against the union
+		// matcher, so no new Ctx field and no resume change. The budget is NOT
+		// enforced on the structured branch (its options carry no Value, so a
+		// MaxSum the wire advertises would be a cap Validate sums to 0 over --
+		// meaningless, and misleading to a consumer). Clear it: 0 corpus
+		// carriers combine EACH with WithTotalCMC$, and a future one needs
+		// per-type budget mechanics designed, not a silent half-read.
 		eachSubs, isEach := eachAlternatives(spec)
-		eachStructured := isEach && max <= 1 && SearchStatesQuality(rawSpec)
+		eachStructured := isEach
+		var eachGroups [][]state.ObjID
+		var eachPerType int32
 		d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
 			Min: int(min), Max: int(max), MaxSum: int(budget), Source: c.Source,
 			ResumeKind: "search", ResumeSA: sa, ResumeTarget: targetIndex,
@@ -2197,47 +2286,27 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 			ResumeRemembered: copyTargets(c.Remembered),
 			Prompt:           prompt}
 		if eachStructured {
-			groups := 0
-			sc := c.SpecContext(c.Controller)
-			for ti, sub := range eachSubs {
-				var typeIDs []state.ObjID
-				for _, id := range lib {
-					if MatchesSpecCtx(g, sub, id, sc) {
-						typeIDs = append(typeIDs, id)
-					}
-				}
-				if len(typeIDs) == 0 {
-					continue
-				}
-				for _, id := range typeIDs {
-					name := "a card"
-					if o := g.Obj(id); o != nil && o.Face() != nil && !noLooking {
-						name = o.Face().Name
-					}
-					d.Options = append(d.Options, decision.Option{Index: len(d.Options),
-						Kind: "search", Label: name, Obj: id, Player: owner,
-						Group: strconv.Itoa(ti)})
-				}
-				groups++
+			eachPerType = max
+			if eachPerType < 1 {
+				eachPerType = 1
 			}
-			d.Min, d.Max = 0, groups
+			if eachPerType > 1 {
+				d.GroupLimit = int(eachPerType)
+			}
+			eachGroups = EachTypeGroups(g, eachSubs, eligible, c.SpecContext(c.Controller))
+			d.Min = 0
+			d.Max = eachStructuredOptions(g, d, eachGroups, eachPerType, noLooking, owner, "search")
+			if !SearchStatesQuality(rawSpec) {
+				d.Min = d.Max
+			}
 			d.Prompt = "Search a library: choose one card of each listed type"
-			// The budget is NOT enforced on the structured branch (its options
+			// The budget is NOT enforced on the structured branch: its options
 			// carry no Value, so a MaxSum the wire advertises would be a cap
 			// Validate sums to 0 over -- meaningless, and misleading to a
-			// consumer). Clear it: 0 corpus carriers combine EACH with
-			// WithTotalCMC$, and a future one needs per-type budget mechanics
-			// designed, not a silent half-read.
+			// consumer. Clear it (the Each-with-budget mechanics are designed
+			// when a carrier exists, not half-read).
 			d.MaxSum = 0
 		} else {
-			if isEach {
-				// A measured-absent shape kept loud rather than silently wrong:
-				// a per-type ChangeNum$ above 1 (or a quantity-only EACH spec)
-				// keeps the ordinary flat-count path over the union -- its
-				// candidates are correct, its pick structure is not one-per-type.
-				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-					Text: "EACH ChangeType with per-type count above 1 resolves as a flat count"})
-			}
 			for _, id := range budgetEligible {
 				name := "a card"
 				var cardName string
@@ -2296,7 +2365,33 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 		// the same stand-in silently (no Note): skipping the ask is the correct
 		// resolution, not a degradation.
 		var picked []state.ObjID
-		if !SearchStatesQuality(rawSpec) {
+		if eachStructured {
+			// The structured stand-in: a stated-quality EACH's fail-to-find
+			// (picked stays nil, CR 701.23b); a quantity-only EACH takes each
+			// group's first perType candidates in group order -- the per-type
+			// mirror of the flat first-Min take, and the exact take the bot's
+			// group-aware fill re-derives. (A quantity-only EACH is
+			// measured-absent; the arm exists so the structure never silently
+			// degrades to the flat union take.)
+			if !SearchStatesQuality(rawSpec) {
+				for _, ids := range eachGroups {
+					n := eachPerType
+					if int32(len(ids)) < n {
+						n = int32(len(ids))
+					}
+					picked = append(picked, ids[:n]...)
+				}
+			}
+			if oc == AskNoHost {
+				if SearchStatesQuality(rawSpec) {
+					h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: chooser,
+						Text: "finds no card (no engine host to ask)"})
+				} else {
+					h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: chooser,
+						Text: "finds " + strconv.Itoa(len(picked)) + " card(s) (no engine host to ask)"})
+				}
+			}
+		} else if !SearchStatesQuality(rawSpec) {
 			n := int(min)
 			if n > len(greedy) {
 				n = len(greedy)
@@ -2960,6 +3055,9 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 	if !zoneIn(originZones, state.ZBattlefield) {
 		spec = permanentCardSpec(spec)
 	}
+	// The per-type groups an EACH ChangeType asks for, computed once: the
+	// sub-specs are a property of the SA, not of the fetch player.
+	eachSubs, isEach := eachAlternatives(spec)
 	max := Num(h, c, sa, "ChangeNum", 1)
 	if max < 0 {
 		max = 0
@@ -3132,19 +3230,49 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 		if hasBudget && d.Min > len(greedy) {
 			d.Min = len(greedy)
 		}
-		for _, id := range budgetEligible {
-			name := "a card"
-			if o := h.Game().Obj(id); o != nil && o.Face() != nil && !noLooking {
-				name = o.Face().Name
+		var eachGroups [][]state.ObjID
+		var eachPerType int32
+		if isEach {
+			// The per-type pick structure (each1's object-path fix): an EACH
+			// public-origin pick is one pick of EACH listed type, never a flat
+			// count over the union. The candidates join the FIRST sub-spec that
+			// matches them (EachTypeGroups), so a card matching two listed
+			// qualities is offered once, in one Group, and picking it cannot
+			// block the other type's pick; per-type ChangeNum$ rides
+			// Decision.GroupLimit when it is above 1. The budget is NOT enforced
+			// on the structured branch (its options carry no Value; a MaxSum the
+			// wire advertises would be a cap Validate sums to 0 over): clear it,
+			// as the hidden-library search's structured branch does -- 0 corpus
+			// carriers combine the two.
+			eachPerType = m
+			if eachPerType < 1 {
+				eachPerType = 1
 			}
-			opt := decision.Option{Index: len(d.Options),
-				Kind: "hidden_pick", Label: name, Obj: id, Player: owner}
-			// Only a budget pick carries a Value: Option.Value is omitempty, so
-			// a non-budget pick's option list serialises byte-identically.
-			if hasBudget {
-				opt.Value = manaValueOf(h.Game(), id)
+			if eachPerType > 1 {
+				d.GroupLimit = int(eachPerType)
 			}
-			d.Options = append(d.Options, opt)
+			eachGroups = EachTypeGroups(h.Game(), eachSubs, eligible, c.SpecContext(c.Controller))
+			d.Min = 0
+			d.Max = eachStructuredOptions(h.Game(), d, eachGroups, eachPerType, noLooking, owner, "hidden_pick")
+			if mandatory {
+				d.Min = d.Max
+			}
+			d.MaxSum = 0
+		} else {
+			for _, id := range budgetEligible {
+				name := "a card"
+				if o := h.Game().Obj(id); o != nil && o.Face() != nil && !noLooking {
+					name = o.Face().Name
+				}
+				opt := decision.Option{Index: len(d.Options),
+					Kind: "hidden_pick", Label: name, Obj: id, Player: owner}
+				// Only a budget pick carries a Value: Option.Value is omitempty, so
+				// a non-budget pick's option list serialises byte-identically.
+				if hasBudget {
+					opt.Value = manaValueOf(h.Game(), id)
+				}
+				d.Options = append(d.Options, opt)
+			}
 		}
 		oc := Ask(h, d)
 		if oc == AskAsked {
@@ -3158,7 +3286,19 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 		// (no corpus card carries DifferentNames$ beside WithTotalCMC$, so the
 		// two stand-ins never compete).
 		var picked []state.ObjID
-		if differentNamesEnabled(sa) && !hasBudget {
+		if isEach {
+			// The structured stand-in: each group's first perType candidates, in
+			// group order -- the exact take the bot's group-aware fill
+			// re-derives. R-9 plays "you may" as "do", deterministically, per
+			// type, exactly as the flat stand-in plays it over the union.
+			for _, ids := range eachGroups {
+				n := eachPerType
+				if int32(len(ids)) < n {
+					n = int32(len(ids))
+				}
+				picked = append(picked, ids[:n]...)
+			}
+		} else if differentNamesEnabled(sa) && !hasBudget {
 			seen := make(map[string]bool, m)
 			for _, id := range eligible {
 				if len(picked) >= int(m) {

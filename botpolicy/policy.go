@@ -622,8 +622,24 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 					}
 				}
 			} else {
-				for j := 0; j < len(d.Options) && j < d.Max; j++ {
-					in.Choices = append(in.Choices, d.Options[j].Index)
+				// A per-type EACH ask (an option Group is one listed type, capped
+				// at d.groupLimit picks) needs a Group-aware fill: a blind first-Max
+				// run would spend the whole Max inside the FIRST Group and hand
+				// back an intent the per-Group cap rejects (a bot livelock). For
+				// ungrouped options -- every ask that routed here before -- the
+				// count map never fires and the fill is the historical first-Max
+				// take, byte-identical.
+				groups := make(map[string]int)
+				limit := d.GroupCap()
+				for j := 0; j < len(d.Options) && len(in.Choices) < d.Max; j++ {
+					o := d.Options[j]
+					if o.Group != "" && groups[o.Group] >= limit {
+						continue
+					}
+					if o.Group != "" {
+						groups[o.Group]++
+					}
+					in.Choices = append(in.Choices, o.Index)
 				}
 			}
 		case "move_counter":
@@ -732,15 +748,21 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 				in.Choices = []int{d.Options[0].Index}
 				break
 			}
-			groups := make(map[string]bool)
+			// groups counts picks per Group against d.GroupCap() -- the same
+			// cap Decision.Validate enforces -- so an EACH search's per-type
+			// ChangeNum (each type contributes up to that many) is filled per
+			// type, in option order, and the answer stays legal by construction.
+			// At the default cap of 1 this is the historical one-per-Group fill.
+			groups := make(map[string]int)
+			limit := d.GroupCap()
 			for _, o := range d.Options {
 				if len(in.Choices) >= d.Max {
 					break
 				}
-				if o.Group == "" || groups[o.Group] {
+				if o.Group == "" || groups[o.Group] >= limit {
 					continue
 				}
-				groups[o.Group] = true
+				groups[o.Group]++
 				in.Choices = append(in.Choices, o.Index)
 			}
 		default: // yes/no (yes is first), name, type, number: the first offer
@@ -981,13 +1003,19 @@ func Clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 	}
 	if len(in.Choices) < min {
 		have := make(map[int]bool, len(in.Choices)) // membership only -- never ranged.
-		groups := make(map[string]bool)             // an option Group already represented.
-		sum := 0                                    // running MaxSum budget over the chosen set.
+		// groups counts picked options per Group against d.GroupCap() -- the
+		// same cap Decision.Validate enforces -- so a top-up can never hand
+		// back an intent Validate rejects. At the default cap of 1 a nonzero
+		// count is the historical boolean, so every limit-free top-up is
+		// byte-identical.
+		groups := make(map[string]int) // picked options per Group.
+		sum := 0                       // running MaxSum budget over the chosen set.
+		limit := d.GroupCap()
 		for _, c := range in.Choices {
 			have[c] = true
 			if c >= 0 && c < len(d.Options) {
 				if d.Options[c].Group != "" {
-					groups[d.Options[c].Group] = true
+					groups[d.Options[c].Group]++
 				}
 				sum += d.Options[c].Value
 			}
@@ -1022,19 +1050,19 @@ func Clamp(d *decision.Decision, in decision.Intent) decision.Intent {
 			if have[o.Index] {
 				continue
 			}
-			// Two options sharing one non-empty Group are mutually exclusive
-			// (Decision.Validate's general rule): topping up with a second
-			// same-group option would hand back an intent Validate rejects --
+			// Options sharing one non-empty Group may contribute at most
+			// groupLimit picks (Decision.Validate's general rule): topping up
+			// past a Group's cap would hand back an intent Validate rejects --
 			// an answer the engine cannot accept and clamp cannot repair, so
-			// the group is skipped the way a duplicate index is.
-			if o.Group != "" && groups[o.Group] {
+			// the capped Group is skipped the way a duplicate index is.
+			if o.Group != "" && groups[o.Group] >= limit {
 				continue
 			}
 			if !fits(o) || (d.TargetsWithSameController && haveTargetController && o.Controller != targetController) {
 				continue
 			}
 			if o.Group != "" {
-				groups[o.Group] = true
+				groups[o.Group]++
 			}
 			add(o)
 		}
