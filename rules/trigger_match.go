@@ -1085,6 +1085,24 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					continue
 				}
 				key := triggerKey{Source: id, Idx: ti, Face: fc.faceIdx}
+				// CR 508.1: declaring attackers is ONE turn-based action. The
+				// engine emits one DeclareAttackers event per defending player,
+				// but a BATCH "whenever you attack" trigger is ONE triggering
+				// condition for the whole declaration, so latch it to the
+				// (Turn, CombatsThisTurn) stamp of the declare step -- exactly
+				// the way AttackerUnblockedOnce latches to one combat. The
+				// stamp is committed at the queue point below, not here: the
+				// gates between must be able to reject the line without
+				// consuming the latch. Per-defender shapes
+				// (AttackersDeclaredOneTarget, or AttackersDeclared carrying
+				// AttackedTarget$) are never stamped and keep firing per
+				// defender.
+				if attackersDeclaredBatch(t) {
+					stamp := combatFires{Turn: e.G.Turn, Combat: e.G.CombatsThisTurn}
+					if e.attackersDeclaredFired[key] == stamp {
+						continue // already fired this declare step.
+					}
+				}
 				if e.triggerFireCount == nil {
 					e.triggerFireCount = map[triggerKey]int32{}
 				}
@@ -1231,6 +1249,12 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				// match the per-turn ActivationLimit$ rejects must keep its other
 				// game use for the next turn.
 				e.reserveTriggerLimits(t, key)
+				if attackersDeclaredBatch(t) {
+					if e.attackersDeclaredFired == nil {
+						e.attackersDeclaredFired = map[triggerKey]combatFires{}
+					}
+					e.attackersDeclaredFired[key] = combatFires{Turn: e.G.Turn, Combat: e.G.CombatsThisTurn}
+				}
 				// CR 603.3a/603.10a: a leaves-the-battlefield ability's source
 				// is controlled by whoever controlled it as it left, not by the
 				// owner the move has since reset it to (a stolen creature's own
@@ -1263,8 +1287,8 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					Ctx: effects.Ctx{
 						Source:         id,
 						Controller:     controller,
-						Remembered:     triggerRemembered(ev, id),
-						Captured:       triggerRemembered(ev, id),
+						Remembered:     e.triggerRememberedFor(t, ev, id),
+						Captured:       e.triggerRememberedFor(t, ev, id),
 						LKI:            objLKI,
 						LKIPower:       lkiPower,
 						LKIToughness:   lkiToughness,
@@ -1567,6 +1591,27 @@ func triggerRemembered(ev events.Event, source state.ObjID) []state.Target {
 		return []state.Target{{Obj: ev.Obj}}
 	}
 	return []state.Target{{Obj: source}}
+}
+
+// triggerRememberedFor is triggerRemembered with the one mode-aware override a
+// BATCH trig:AttackersDeclared line needs: because the declaration is one
+// turn-based action (CR 508.1) whose events are grouped per defender, a batch
+// "whenever you attack" trigger's Remembered -- and so Defined$
+// TriggeredAttackers, which effects/context.go resolves from it -- must name
+// EVERY declared attacker, not just the defenders of the event that happened
+// to latch the trigger. Engine.declaredAttackers is that whole set; an empty
+// scratch (a direct synthetic emit) falls through to the ordinary event
+// shapes. Every other mode, and every per-defender attack trigger, is
+// unchanged.
+func (e *Engine) triggerRememberedFor(t cards.Trigger, ev events.Event, source state.ObjID) []state.Target {
+	if ev.Kind == events.DeclareAttackers && attackersDeclaredBatch(t) && len(e.declaredAttackers) > 0 {
+		out := make([]state.Target, 0, len(e.declaredAttackers)+1)
+		for _, id := range e.declaredAttackers {
+			out = append(out, state.Target{Obj: id})
+		}
+		return append(out, state.Target{Player: ev.Player, IsPlayer: true})
+	}
+	return triggerRemembered(ev, source)
 }
 
 // trigMatcher answers whether one trigger fires for ev. lki is the event's LKI
