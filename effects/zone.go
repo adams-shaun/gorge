@@ -669,14 +669,17 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		}
 		applyFaceDownMarker(h, sa, c, &ev, to)
 		fromZone := o.Zone
+		// A Transformed$ True entry flips to the back face BEFORE the MoveZone
+		// is folded, so events.Apply's Move grants CR 306.5b loyalty for the
+		// face the permanent enters with. See applyTransformed.
+		if to == state.ZBattlefield {
+			applyTransformed(h, c, sa, o.ID)
+		}
 		h.Emit(ev)
 		moved = append(moved, o.ID)
 		exiledWithAssociation(h, c, o.ID, to)
 		if to == state.ZExile {
 			recordExileReturn(h, c, sa, o.ID, fromZone, to)
-		}
-		if to == state.ZBattlefield {
-			applyTransformed(h, c, sa, o.ID)
 		}
 		// RememberLKI$ True (Reanimate's "creature card" whose mana value the
 		// chained lose-life SVar reads, RememberedLKI$CardManaCost) joins the
@@ -1001,9 +1004,17 @@ func applyGainControl(h Host, c *Ctx, sa *cards.SA, id state.ObjID) {
 // effect says so) — the Ojer Axonil death trigger's "return it to the
 // battlefield tapped and transformed", the Kytheon/Kumano "return it
 // transformed" returns. The flip is the one FlipFace event effSetState
-// emits, to the face AFTER the one the card carries out of its zone, so
-// replay folds move-then-flip in the same order live does. A card with fewer
-// than two faces is not a transform and is left alone.
+// emits, to the face AFTER the one the card carries out of its zone.
+//
+// Callers emit this BEFORE the MoveZone, while the card is still in its
+// origin zone, so events.Apply's Move sees the face the permanent actually
+// enters with. That matters when the back face is a planeswalker: CR 306.5b
+// grants loyalty counters on the ENTRY face, and Move reads o.Face(). Flipping
+// after the move (the old order) granted nothing, so the walker entered at 0
+// loyalty and rules/sba.go killed it. Flip-then-move is the same order the
+// modal-land play path uses (rules/legal.go) and the order the CR 712.4d
+// land-back test pins. A card with fewer than two faces is not a transform
+// and is left alone.
 func applyTransformed(h Host, c *Ctx, sa *cards.SA, id state.ObjID) {
 	if !strings.EqualFold(strings.TrimSpace(sa.Params["Transformed"]), "True") {
 		return
@@ -1113,6 +1124,12 @@ func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, 
 		ev.Player = player
 	}
 	applyFaceDownMarker(h, sa, c, &ev, to)
+	// A Transformed$ True entry flips to the back face BEFORE the MoveZone is
+	// folded, so events.Apply's Move grants CR 306.5b loyalty for the face the
+	// permanent enters with. See applyTransformed.
+	if to == state.ZBattlefield {
+		applyTransformed(h, c, sa, id)
+	}
 	h.Emit(ev)
 	if to == state.ZExile {
 		recordExileReturn(h, c, sa, id, from, to)
@@ -1142,7 +1159,6 @@ func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, 
 	// keeps its owner.
 	if to == state.ZBattlefield {
 		applyGainControl(h, c, sa, id)
-		applyTransformed(h, c, sa, id)
 		// Tapped$ True (CR 110.5's entry state) for the hand-origin movers:
 		// the same "entered tapped" Tap the object path, the library search's
 		// library-origin branch and the Dig windows emit. Gated on the hand
