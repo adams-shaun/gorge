@@ -248,3 +248,53 @@ Commands and results:
 - `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`: `ok` (0.742s).
 
 No engine code was conflicted.
+
+## Section 5 — worktree cli-20260922T225139Z-30adfed9 (ticket cli-20260922T225139Z-30adfed9, limited-look/spectator closure)
+
+Two integration rounds landed on this branch.
+
+Round 1 (before this dispatch): the branch merged main at `efd2ff45` (merge commit
+`6b9a83d9`, resolution constant 76 for that round's table) and recorded its
+report here. Main has since advanced 22 commits to `00147db0`, so the branch was
+behind again and the daemon's gate kept failing on the stale integration.
+
+Round 2 (this dispatch): started from a clean tree on
+`wt/cli-20260922T225139Z-30adfed9` at `c9f084d8`; no rebase/merge was in flight
+(the daemon's failed rebase had been rolled back). Ran `git merge main` to
+integrate main at `00147db0`.
+
+- Conflicts: `.ds4/report-mrg1.md` (both sides edit this shared report) and
+  `internal/testutil/agentsdoc_test.go` (the `knownApproximationRows` constant:
+  branch said 76, main said 72). `AGENTS.md` auto-merged — it retains all of
+  main's row closures AND this branch's deletion of the "No LIMITED-look
+  grammar" row (grep finds 0 occurrences in the merged file).
+- `internal/testutil/agentsdoc_test.go`: resolved to **71** — the merged
+  table's measured data rows (awk count over the `## Known approximations`
+  section: 72 lines starting `| ` including the header row = 71 data rows;
+  main's 72 less the branch's one row deletion).
+- `.ds4/report-mrg1.md`: resolved as the union — main's multi-section ledger
+  kept verbatim, this section appended.
+- No engine code was conflicted; the merge is purely integration.
+
+Commands and output (all in this worktree, `.cards` symlink present):
+
+```
+go test ./internal/testutil -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort'
+ok  github.com/adams-shaun/gorge/internal/testutil  0.001s
+
+go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|TestHeads'
+ok  github.com/adams-shaun/gorge/rules  1.818s
+
+go test ./rules -run 'TestEveryRepoDeckIsFullySupported$|TestHeads$|TestEveryRepoDeckParamsAreRead$' -v   # skip check
+--- PASS: TestEveryRepoDeckIsFullySupported (0.57s)
+--- PASS: TestEveryRepoDeckParamsAreRead (0.13s)
+--- PASS: TestHeads (1.20s)      # no SKIPs; corpus-backed runs are real
+
+go test ./internal/archtest/
+ok  github.com/adams-shaun/gorge/internal/archtest  2.926s
+
+go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  github.com/adams-shaun/gorge/cmd/botbench  1.049s
+```
+
+No uncertainties remain.

@@ -19,9 +19,9 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	// 72 = the merged table's measured data rows after main's stack-option-kind
-	// closure removed one additional row.
-	knownApproximationRows = 72
+	// 71 = the merged table's measured data rows: main's 72 closures less the
+	// limited-look / spectator-search row this branch deletes.
+	knownApproximationRows = 71
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.
