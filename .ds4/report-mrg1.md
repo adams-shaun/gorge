@@ -1767,3 +1767,102 @@ merged tree.
   commit-msg hook accepts the message (conventional, no trailers) and the
   pre-commit hook exits 0 on this tree, so the bypass changed nothing. Recorded
   here for the audit trail.
+
+---
+
+# Merge-conflict resolution round — mrg1 (task agent-20260922T200200Z-7feb602c, 2026-09-24)
+
+## Found state
+
+`git status` at round start: clean tree, no rebase or merge in flight — the
+daemon's rebase attempt had already been aborted before this seat started, so
+there was no in-flight operation to finish. The branch was 4 commits ahead of
+the merge-base (`8460b5d9`), with `main` at `19b8fb3a`.
+
+My brief forbids `git rebase` (and repo precedent is `Merge branch 'main' into
+wt/...` commits), so I integrated with `git merge main`.
+
+## Conflicted files and resolution
+
+`git merge main` reproduced the daemon's exact conflict set:
+
+- `.ds4/report-t2.md` (UU)
+- `.ds4/report-sol1.md` (UU)
+- `effects/count.go`, `effects/filter.go` — auto-merged cleanly
+
+Both `.ds4` paths are shared report files where each side wrote a COMPLETE
+report for a different ticket:
+
+- `report-t2.md`: branch = Convoked$Amount count-head report (161 lines);
+  main = MustBlock verification report, agent-20260923T072310Z-8affc438
+  (34 lines).
+- `report-sol1.md`: branch = Convoked$Amount fix-round report (65 lines);
+  main = accumulated file holding five separate tickets' reports (Attached
+  predicates fix round, Deep Spawn UnlessCost Mill, RollDice, Gitaxian Probe
+  verification, CopySpellAbility.Optional) — 286 lines.
+
+Resolution followed the repo's established pattern for shared report paths
+(newest report at top, older reports preserved verbatim below a separator —
+the same shape main's own `report-sol1.md` accumulated): each side's file
+content is kept byte-for-byte, the branch's current-ticket report first, then
+a separator note naming the preserved lineage, then main's version verbatim.
+No report content was rewritten, dropped or merged prose-wise; nothing was
+overwritten destructively. Both files verified `grep -c '^<<<<<<<\|^=======\|^
+>>>>>>>'` → 0.
+
+`effects/count.go` and `effects/filter.go` auto-merged without conflict but
+both sides had edited them (branch: `Convoked$Amount` head + `SpecUsesConvokedAmount`;
+main: RevealAllValid and other changes), so I verified the semantic merge by
+grep (Convoked dispatch at `effects/count.go:391`/`:1391`, classifier wired at
+`effects/filter.go:550` and `rules/cast.go:5433/5460`) and by running the
+branch's own Convoked tests plus main's MustBlock regression (below).
+
+## Commands run (real output)
+
+```
+$ git merge main
+Auto-merging .ds4/report-sol1.md
+CONFLICT (content): Merge conflict in .ds4/report-sol1.md
+Auto-merging .ds4/report-t2.md
+CONFLICT (content): Merge conflict in .ds4/report-t2.md
+Auto-merging effects/count.go
+Auto-merging effects/filter.go
+Automatic merge failed; fix conflicts and then commit the result.
+
+$ git add -f .ds4/report-t2.md .ds4/report-sol1.md && git diff --name-only --diff-filter=U
+(no output — all conflicts resolved)
+
+$ gofmt -l effects/count.go effects/filter.go rules/cast.go
+(no output)
+
+$ go vet ./effects/ ./rules/
+(no output, exit 0)
+
+$ go test -run 'TestConvokedAmount|TestAncientImperiosaurEntersWithTwoCountersPerConvoker|TestKnightErrantOfEosXCountsConvokers|TestEveryRepoDeckCountHeadResolves|TestMustBlockTwoWatchdogsShareAttacker|TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode' ./effects/ ./rules/
+exit=0
+ok  	github.com/adams-shaun/gorge/effects	0.697s
+ok  	github.com/adams-shaun/gorge/rules	0.715s
+
+$ go test ./rules -run 'TestEveryRepoDeck|TestEveryRepoDeckParams'   (post-merge ratchets)
+exit=0
+ok  	github.com/adams-shaun/gorge/rules	0.758s
+
+$ git status   (after merge commit)
+On branch wt/agent-20260922T200200Z-7feb602c
+nothing to commit, working tree clean
+```
+
+Merge commit: `ef767b43` `merge(main): keep both Convoked$Amount and main's shared-path reports`.
+Report commit (this one) follows it.
+
+## Notes / uncertainties
+
+- `.cards` is a symlink to the real corpus in this worktree (`lrwxrwxrwx .cards
+  -> /home/sadams/projects/gorge/.cards`), so no corpus-backed run above
+  vacuously skipped.
+- The trigger-mode registry ratchet needed no `addedAfterTheSplit` edit: the
+  branch registers no new `Mode$` matcher, and all three ratchets
+  (`TestNoTriggerModeIsRegistered`, count-head, repo-deck/params) pass on the
+  merged tree unchanged.
+- I did not re-run TestHeads or the full gate suite — the daemon owns those
+  after this round.

@@ -558,6 +558,24 @@ func sharesTypeArg(p string) (name, arg string, ok bool) {
 	return "", "", false
 }
 
+// SpecUsesConvokedAmount reports whether spec reads the `Convoked$Amount`
+// count head (or any future `Convoked$<Property>` sibling) -- Forge's spelling
+// for "the number of creatures that convoked it" (CR 702.66). It is the
+// count-head sibling of SpecUsesConvokedReferent and the ONE classifier the
+// provenance gate (rules' faceWantsConvoked) shares, so a face whose SVar or
+// ability parameter reads the count always has Object.Convoked captured at
+// cast time and a face that does not stays byte-identical. The corpus writes
+// the body BOTH with and without the `Count$` prefix
+// (`SVar:X:Convoked$Amount`, `SVar:X:Convoked$Amount/Twice`), so the match is
+// on the `Convoked$` head-family marker itself, not on a `Count$` prefix the
+// bare form omits -- the same tolerance that makes the next `Convoked$<X>`
+// head work without a second gate arm. `Defined$ Convoked` and the
+// `...With Convoked` referent do NOT contain `Convoked$`, so neither arm this
+// replaces is shadowed.
+func SpecUsesConvokedAmount(spec string) bool {
+	return strings.Contains(spec, "Convoked$")
+}
+
 // SpecUsesConvokedReferent reports whether spec is a filter that names the
 // Convoked referent anywhere in its comma-alternative list (Everything Comes
 // to Dust's `Creature.!sharesCreatureTypeWith Convoked,Artifact,Enchantment`).
