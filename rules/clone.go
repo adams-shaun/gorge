@@ -279,6 +279,19 @@ func (e *Engine) Clone() *Engine {
 			c.triggerEffectFrames[id] = ef
 		}
 	}
+	if e.triggerLines != nil {
+		c.triggerLines = make(map[state.ObjID]cards.Trigger, len(e.triggerLines))
+		for id, line := range e.triggerLines {
+			if line.Params != nil {
+				params := make(map[string]string, len(line.Params))
+				for key, value := range line.Params {
+					params[key] = value
+				}
+				line.Params = params
+			}
+			c.triggerLines[id] = line
+		}
+	}
 	if e.triggerLKI != nil {
 		c.triggerLKI = make(map[state.ObjID]triggerObjectLKI, len(e.triggerLKI))
 		for id, lki := range e.triggerLKI {

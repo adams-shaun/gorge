@@ -2395,6 +2395,12 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		if ef, ok := e.triggerEffectFrames[ev.Obj]; ok {
 			e.triggerEffectFrames[copyID] = ef
 		}
+		if line, ok := e.triggerLines[ev.Obj]; ok {
+			if e.triggerLines == nil {
+				e.triggerLines = make(map[state.ObjID]cards.Trigger)
+			}
+			e.triggerLines[copyID] = line
+		}
 		if lki, ok := e.triggerLKI[ev.Obj]; ok {
 			if e.triggerLKI == nil {
 				e.triggerLKI = make(map[state.ObjID]triggerObjectLKI)
@@ -2437,6 +2443,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	if ev.Kind == events.MoveZone && ev.From == state.ZStack && ev.To != state.ZStack {
 		delete(e.triggerContexts, ev.Obj)
 		delete(e.triggerEffectFrames, ev.Obj)
+		delete(e.triggerLines, ev.Obj)
 		delete(e.triggerLKI, ev.Obj)
 		delete(e.sacrificedLKI, ev.Obj)
 		delete(e.fuseTargets, ev.Obj)
