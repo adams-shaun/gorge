@@ -6174,7 +6174,18 @@ func (e *Engine) targetAsk() bool {
 	// mode while omitting another.
 	if pc.targetStage == 0 && !pc.isAbility() && f != nil {
 		if root := f.SpellAbility(); root != nil {
-			if e.askCharmModeTargets(pc.player, pc.card, f.SVars, root, o.ChosenModes) {
+			choices := strings.Split(root.Params["Choices"], ",")
+			if status, _ := effects.CharmCrossModeShape(f.SVars, choices); status == effects.CharmUniqueSupported {
+				var tbms []*cards.SA
+				for _, name := range o.ChosenModes {
+					if sub := cards.ResolveSVar(f.SVars, name); sub != nil && strings.TrimSpace(sub.Params["ValidTgts"]) != "" {
+						tbms = append(tbms, sub)
+					}
+				}
+				if len(tbms) >= 2 && e.askCrossModeCharmTargets(pc.player, pc.card, tbms) {
+					return true
+				}
+			} else if e.askCharmModeTargets(pc.player, pc.card, f.SVars, root, o.ChosenModes) {
 				return true
 			}
 		}

@@ -1918,7 +1918,6 @@ func (e *Engine) askCrossModeCharmTargets(p state.PlayerID, source state.ObjID, 
 		}
 		d.Options = append(d.Options, o)
 	}
-	e.drainAwaitsTarget = true
 	e.ask(d)
 	return true
 }
