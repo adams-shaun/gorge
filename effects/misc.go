@@ -627,8 +627,8 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			}
 			h.AddContinuous(ce)
 			registered = true
-		case "ReduceCost", "RaiseCost", "SetCost", "AlternativeCost":
-			// An Effect-delivered cost-modifier static (task
+		case "ReduceCost", "RaiseCost", "SetCost", "AlternativeCost", "ManaConvert":
+			// An Effect-delivered cost-modifier or ManaConvert static (task
 			// param:api:Effect.ForgetOnCast; Marshland Bloodcaster's "Rather
 			// than pay the mana cost of the next spell you cast this turn, you
 			// may pay life equal to that spell's mana value", plus the 11
@@ -643,7 +643,8 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// line carrying a scoping parameter this build does not evaluate
 			// must not register blanket -- it is reported unimplemented
 			// instead (the permissive direction for a grant).
-			if !CostStaticParamsReadable(params) {
+			if (mode == "ManaConvert" && !ManaConvertParamsReadable(params)) ||
+				(mode != "ManaConvert" && !CostStaticParamsReadable(params)) {
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
@@ -684,6 +685,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				ForgetCounter:    forgetCounter,
 				ForgetOnCast:     forgetOnCast,
 				CostStaticMode:   mode,
+				CostStaticSVars:  c.SVars,
 				CostStaticParams: params,
 				ChosenNumber:     chosenNumber,
 			}
@@ -1374,6 +1376,25 @@ func CanAttackDefenderGrantParamsReadable(params map[string]string) bool {
 	return true
 }
 
+// ManaConvertParamsReadable is the deliberately narrow whitelist for an
+// Effect-delivered ManaConvert static. Unknown qualifiers fail closed rather
+// than granting a conversion with a scope the payment path cannot evaluate.
+// AffectedZone$ is admitted because the real corpus carrier (Abstruse
+// Appropriation's `ManaConvert | ValidCard$ Card.IsRemembered | ValidSA$
+// Spell.MayPlaySource | AffectedZone$ Exile`) names the zone the remembered
+// card is cast FROM; rules/mana_convert.go enforces that scope against the
+// cast's origin zone, so admitting it here is not a blanket grant.
+func ManaConvertParamsReadable(params map[string]string) bool {
+	for k := range params {
+		switch k {
+		case "Mode", "ValidCard", "ValidSA", "ValidPlayer", "ManaConversion", "Optional", "EffectZone", "AffectedZone", "Description", "SpellDescription":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
 // CostStaticParamsReadable is the parameter whitelist an Effect-delivered
 // cost-modifier static (Mode$ ReduceCost/RaiseCost/SetCost/AlternativeCost
 // behind an AB$ Effect's StaticAbilities$ entry, task
@@ -1860,31 +1881,18 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 			Text: "registers a delayed trigger with no Execute"})
 		return
 	}
-	// RememberObjects$ (Flickerwisp's and Necropotence's RememberedLKI)
-	// names what the delayed trigger remembers when it fires. The
-	// registration below ALWAYS captures the resolving chain's Remembered --
-	// which is exactly what RememberedLKI means (the parent effect's captured
-	// set, e.g. the exiled permanent RememberChanged$ put there) -- so the
-	// read confirms the corpus's dominant value and changes nothing for it.
-	// Every other value resolves through the Defined grammar (Targeted,
-	// TriggeredAttackerLKICopy, the " & " joins, ...) and unions into the
-	// same captured set, so a delayed trigger whose parent chain did not
-	// remember its subjects still learns them; an unresolvable value is loud
-	// rather than silently dropped.
+	// An absent RememberObjects$ (and the bare RememberedLKI spelling) keeps
+	// the resolving chain's capture. Any other recognised value REPLACES that
+	// capture, including with an empty set: the delayed body acts on the
+	// objects its own parameter names, not also on the card/player that led to
+	// this chain (Kharasha Foothills and Shredder, Shadow Master). An unknown
+	// value is loud and preserves the historical chain-capture fallback.
+	remembered := c.Remembered
+	replacedRemembered := false
 	if spec := strings.TrimSpace(sa.Params["RememberObjects"]); spec != "" && spec != "RememberedLKI" {
 		if ts, known := knownDefinedTargets(h, c, spec); known {
-			for _, t := range ts {
-				dup := false
-				for _, have := range c.Remembered {
-					if have == t {
-						dup = true
-						break
-					}
-				}
-				if !dup {
-					c.Remembered = append(c.Remembered, t)
-				}
-			}
+			remembered = copyTargets(ts)
+			replacedRemembered = true
 		} else {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "unmodelled DelayedTrigger RememberObjects$ " + spec})
@@ -1923,8 +1931,7 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 	// the Warrior tokens and never the creature that merely triggered. The
 	// default (absent) keeps the whole-chain capture every earlier
 	// registration had, byte for byte.
-	remembered := c.Remembered
-	if strings.EqualFold(strings.TrimSpace(sa.Params["RememberChain"]), "False") {
+	if !replacedRemembered && strings.EqualFold(strings.TrimSpace(sa.Params["RememberChain"]), "False") {
 		chain := make([]state.Target, 0, len(c.Remembered))
 		for _, t := range c.Remembered {
 			captured := false
@@ -3399,13 +3406,12 @@ func effRestartGame(h Host, c *Ctx, sa *cards.SA) {
 // unclamped negative would drop the pool below zero instead of doing
 // nothing.
 //
-// Two things are folded in on top of that. "Any"/"Combo Any" resolves to
-// colourless rather than asking (a real choice awaits the milestone that
-// makes every R-9 stand-in real; the real ask lives in rules, on both the
-// activation path and the CR 605.3b triggered-mana path, which rewrite
-// Produced to a single chosen colour before this primitive ever runs). A dual-producing ability such as "Add {R}{R}" is
-// walked one symbol at a time rather than split on whitespace, since
-// Produced$ carries no spaces of its own.
+// A resolution-time host now gets the same CR 106.6 colour choice as the
+// activation path. A host without a decision channel keeps the R-9 fallback:
+// Any becomes colourless and an unasked Combo list retains its old full-listed
+// output. A dual-producing ability such as "Add {R}{R}" is walked one symbol
+// at a time rather than split on whitespace, since Produced$ carries no spaces
+// of its own.
 //
 // The one thing this primitive must NEVER do is walk a value it does not
 // understand. A "Combo R G" reaches effMana from a path with no colour
@@ -3470,19 +3476,122 @@ func effReplaceMana(_ Host, c *Ctx, sa *cards.SA) {
 
 var manaRuneNormalizer = strings.NewReplacer("{", "", "}", "", " ", "")
 
+var manaChoiceColours = []string{"W", "U", "B", "R", "G"}
+
+func validManaChoice(s string) bool {
+	return len(s) == 1 && strings.ContainsRune("WUBRG", rune(s[0]))
+}
+
+// substituteManaChosen replaces the source's as-enters colour in a raw
+// Produced$ value.  This is deliberately local to effects: the activation
+// path has its own equivalent in rules, while a triggered or nested Mana
+// effect reaches effMana without passing through that activation code.
+func substituteManaChosen(produced, chosen string) string {
+	if !validManaChoice(chosen) {
+		return produced
+	}
+	if produced == "ComboChosen" {
+		return "Combo " + chosen
+	}
+	parts := strings.Fields(produced)
+	for i, part := range parts {
+		if part == "Chosen" || part == "ChosenColor" {
+			parts[i] = chosen
+		}
+	}
+	return strings.Join(parts, " ")
+}
+
+// askManaChoice gives a resolution-time Mana effect the same colour-choice
+// boundary as an activated mana ability. A Combo's Amount$ is an allocation:
+// each selected option is one unit, allowing {U}{R} from Combo Any Amount 2.
+// A false Ask is the R-9 no-host path: Any remains the historical colourless
+// fallback and a raw Combo list remains the historical full-listed-colours
+// fallback. A real host gets a KChoose and rules carries the answer back in
+// Ctx.ManaChoice or Ctx.ManaChoices.
+func askManaChoice(h Host, c *Ctx, sa *cards.SA, produced string) (string, bool) {
+	var colours []string
+	switch produced {
+	case "Any", "Combo Any":
+		colours = manaChoiceColours
+	default:
+		if parsed, ok := ComboColours(produced); ok && len(parsed) > 1 {
+			colours = parsed
+		}
+	}
+	if len(colours) <= 1 {
+		return produced, false
+	}
+	amount := Num(h, c, sa, "Amount", 1)
+	allocation := strings.HasPrefix(produced, "Combo ") && amount > 1
+	if amount <= 0 {
+		return produced, false
+	}
+	min, max := 1, 1
+	if allocation {
+		min, max = int(amount), int(amount)
+	}
+	chooser := c.Controller
+	if recipients := ManaRecipients(h, c, sa); len(recipients) == 1 {
+		chooser = recipients[0]
+	}
+	d := &decision.Decision{Player: chooser, Kind: decision.KChoose, Min: min, Max: max,
+		Source: c.Source, ResumeKind: "mana_color", ResumeSA: sa,
+		Prompt: "Choose a color for the mana"}
+	for unit := 0; unit < max; unit++ {
+		for _, colour := range colours {
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "mana",
+				Label: "Add " + colour, Obj: c.Source, Player: chooser})
+		}
+	}
+	if Ask(h, d) == AskAsked {
+		return produced, true
+	}
+	return produced, false
+}
+
 func effMana(h Host, c *Ctx, sa *cards.SA) {
 	produced := strings.TrimSpace(sa.Params["Produced"])
-	if produced == "" || produced == "Any" || produced == "Combo Any" {
+	// A resumed Combo allocation supplies one concrete symbol per unit.
+	// Consume it before walking the SA so the same choice is not posed again;
+	// its units carry Amount 1 below rather than being multiplied again.
+	allocation := len(c.ManaChoices) > 0
+	if allocation {
+		produced = strings.Join(c.ManaChoices, "")
+		c.ManaChoices = nil
+		// A resumed colour ask supplies one concrete symbol. Consume the answer
+		// before walking the SA so the same choice is not posed again on re-entry.
+	} else if validManaChoice(c.ManaChoice) {
+		produced = c.ManaChoice
+		c.ManaChoice = ""
+	} else if o := h.Game().Obj(c.Source); o != nil {
+		// Chosen is normally stamped by an as-enters ChooseColor event.  A
+		// triggered/nested Mana effect does not pass through rules' activation
+		// substitution, so read that same event-backed value here.
+		produced = substituteManaChosen(produced, o.ChosenColor)
+	}
+	if produced == "Any" || produced == "Combo Any" {
+		if _, asked := askManaChoice(h, c, sa, produced); asked {
+			return
+		}
+		if produced == "Any" || produced == "Combo Any" {
+			// R-9: an effects host without a decision channel retains the
+			// historical deterministic colourless result.
+			produced = "C"
+		}
+	} else if _, ok := ComboColours(produced); ok {
+		if _, asked := askManaChoice(h, c, sa, produced); asked {
+			return
+		}
+	}
+	if produced == "" {
 		produced = "C"
 	}
-	// A "Combo" head lists every colour the production may be taken in (CR
-	// 107.5-style "any combination"). Forge asks for the combination; this
-	// executor still degenerates to the FULL amount in EVERY listed colour --
-	// the documented stand-in (the colour-choice ask is the M4 mana-choice
-	// milestone) -- but that must not be the hard "unhandled Produced$" no-op
-	// it was: Burnt Offering's Produced$ Combo B R added NOTHING. Chosen/
-	// ComboChosen shapes (a remembered or chosen colour) still fail loudly --
-	// they have no degenerate reading.
+	// A Combo head is a colour choice, not a request to add every named
+	// colour.  A host that could not ask has already taken the R-9 fallback;
+	// a resumed answer has been rewritten to one plain symbol above.  Leave a
+	// raw Combo list intact here only for the no-host fallback below.
+	//
 	// Special LastNotedType (Jeweled Amulet: "Add one mana of CARDNAME's
 	// last noted type"): the production resolves to the colour the source's
 	// last RememberCostMana$ activation paid with (events.Choose's
@@ -3538,6 +3647,9 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	amt := Num(h, c, sa, "Amount", 1)
+	if allocation {
+		amt = 1
+	}
 	if amt < 0 {
 		amt = 0
 	}
@@ -3656,7 +3768,25 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	for _, p := range ManaRecipients(h, c, sa) {
+		var emitted [256]bool
 		for _, r := range runes {
+			// An allocation records one rune per selected unit. Coalesce equal
+			// selections into the same ManaAdd batch (four selected W units are
+			// one Amount:4 W batch), retaining provenance/restriction semantics
+			// while a split U/R still emits one batch for each colour.
+			if allocation && emitted[byte(r)] {
+				continue
+			}
+			emitted[byte(r)] = true
+			unitAmount := amt
+			if allocation {
+				unitAmount = 0
+				for _, selected := range runes {
+					if selected == r {
+						unitAmount++
+					}
+				}
+			}
 			counter := string(r)
 			switch {
 			case tag != "":
@@ -3665,7 +3795,7 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 				counter = "S" + counter
 			}
 			ev := events.Event{Kind: events.ManaAdd, Player: p,
-				Counter: counter, Amount: amt}
+				Counter: counter, Amount: unitAmount}
 			if noCounter != "" {
 				ev.Text = events.ManaRestrictionTextNC(restriction, c.Source, noCounter)
 			} else if restriction != "" {

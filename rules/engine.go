@@ -103,6 +103,15 @@ type triggerObjectLKI struct {
 	ptValid          bool
 }
 
+// counterAddedThisTurn is engine-only provenance for positive object counter
+// placements. The snapshot is captured before events.Apply mutates the object.
+type counterAddedThisTurn struct {
+	actor  state.PlayerID
+	kind   string
+	amount int32
+	object state.Object
+}
+
 type Engine struct {
 	G            *state.Game
 	L            *events.Log
@@ -125,7 +134,8 @@ type Engine struct {
 	// cache-advance site below). It carries only damage that LANDED and only
 	// damage to a PLAYER; the object branch of runCombatAssignments records
 	// nothing. See effects.Host's CombatDamageToPlayersThisTurn.
-	combatHitsThisTurn []effects.CombatDamageHit
+	combatHitsThisTurn  []effects.CombatDamageHit
+	counterAddsThisTurn []counterAddedThisTurn
 
 	// format is the construction format New was configured with (Config.
 	// Format). It is the explicit gate the Commander rules (the tax, CR
@@ -456,6 +466,15 @@ type Engine struct {
 	// before a chained TokenOwner$ TargetedController resolves). Transient
 	// scratch: rebuilt identically by replay, nil outside a chain.
 	resolvingTargetControllerLKI map[state.ObjID]state.PlayerID
+	// resolvingFlipMemory is the coin-flip memory of the Resolve chain whose
+	// effect is CURRENTLY running, published by effects.Resolve (and by
+	// effFlipCoin when it lazily allocates the memory) through the optional
+	// Host.SetResolutionFlipMemory seam and restored on return. Ask captures it
+	// onto the pending resumePoint, so a resumed continuation re-attaches the
+	// SAME pointer and a chained Defined$ FlippedTails / Wins reader keeps
+	// every flip performed before the suspension. Transient scratch: rebuilt
+	// identically by replay, nil outside a chain or before any flip.
+	resolvingFlipMemory *effects.FlipMemory
 	// villainousRemembered is the victim of the VillainousChoice whose chosen
 	// body is CURRENTLY resolving, kept as ambient engine state for the
 	// duration of that body's effects.Resolve — the fusedResolving pattern.
@@ -693,6 +712,14 @@ type Engine struct {
 	// for its name and creature type.
 	attachedChoice   *attachedChoice
 	attachedApplying bool
+	// tokenChoice parks a CreateToken replacement plan while the chosen-copy
+	// body (Type$ ReplaceToken | TokenScript$ Chosen -- Esix, Moonlit
+	// Meditation, Mirrormind Crown) asks its controller which creature to
+	// copy. Same discipline as siegeMove/attachedChoice: the plan's mints are
+	// emitted only after the answered election is applied, so the log's
+	// CopyToken events carry the choice and a log-only replay re-derives the
+	// mints. Clone-copied (clone.go).
+	tokenChoice *tokenChoiceState
 	// suspendedCasts is the mandatory "cast it if able" trigger created when
 	// a real suspended card loses its final TIME counter. IDs are appended in
 	// exile order and consumed before priority; it is plain replayable engine
@@ -722,7 +749,11 @@ type Engine struct {
 	echo *echoFlow
 
 	// wardMana holds a CR 702.21a mana-payment window while a Ward trigger
-	// is resolving. It is plain data so Clone preserves the suspended choice.
+	// is resolving, and (one shared owner, ruling T21-e) the same CR 601.2g
+	// window for a mid-resolution UnlessCost$ (the `unless_pay` resume arm),
+	// so a payer with an untapped source -- and a stat:ManaConvert conversion
+	// -- can pay a cost its floating pool cannot cover. It is plain data so
+	// Clone preserves the suspended choice.
 	wardMana *wardManaPayment
 
 	// attackPay holds the declare-attackers attack-cost payment window
@@ -1729,6 +1760,24 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	}
 	departingSource, departingSourceLifelink, departingSourceController := e.captureSourceLifelinkLKI(ev)
 	stackLen := len(e.G.Stack)
+	// Record only the final event after replacement selection. The object
+	// snapshot must precede Apply, and unknown adder provenance is not a
+	// match for either You or Player. The engine's own status markers (the
+	// regeneration Shield, the Deathtouched lethal mark) ride a positive
+	// CounterChange but are not counters a player PUT -- and a resolving
+	// deathtouch damage ability has an actionCause, so without the marker
+	// exclusion its emitted mark would be attributed to that controller and
+	// make Count$CountersAddedThisTurn <Any> You Creature spuriously true.
+	// The same exclusion rules/replacement.go's doubler gate keeps.
+	if ev.Kind == events.CounterChange && ev.Amount > 0 && !state.InternalCounterMarker(ev.Counter) {
+		if actor, ok := e.inFlightCounterAdder(); ok {
+			if o := e.G.Obj(ev.Obj); o != nil {
+				e.counterAddsThisTurn = append(e.counterAddsThisTurn, counterAddedThisTurn{
+					actor: actor, kind: ev.Counter, amount: ev.Amount, object: o.CloneDeep(),
+				})
+			}
+		}
+	}
 	stored := events.Emit(e.G, e.L, ev)
 	// CR 702.90b (kw:Infect): the counters/poison an infect source's damage
 	// is dealt in the form of are placed HERE, as real events emitted
@@ -1763,6 +1812,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	// captured during the turn that just ended is no longer "this turn".
 	if stored.Kind == events.TurnChange {
 		e.combatHitsThisTurn = nil
+		e.counterAddsThisTurn = nil
 	}
 	e.loop.observe(stored)
 	// setname.go: keep the layer-3 rename table the filter tier reads in step

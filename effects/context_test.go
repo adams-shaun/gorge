@@ -100,7 +100,11 @@ type fakeHost struct {
 	// point; the double fakes the same shape for the Repeat loop's
 	// between-iteration suspension break). Zero value keeps the historical
 	// constant-false read every other effects test relies on.
-	suspendAfterAsk      bool
+	suspendAfterAsk bool
+	// flipRests records every SuspendFlipRest call, so the effects-level
+	// FlipUntilYouLose$ resume test can assert the loop cursor was reported
+	// rather than the loop being abandoned.
+	flipRests            []FlipRest
 	repeatOptionalNext   int32
 	repeatOptionalCalled bool
 	askCount             int
@@ -265,7 +269,8 @@ func (h *fakeHost) LifeGainedThisTurn(_ state.PlayerID) int32 { return 0 }
 
 // CountersRemovedThisTurn has no event log here; the double reports zero
 // (the same conservative no-op as LifeLostThisTurn).
-func (h *fakeHost) CountersRemovedThisTurn(_ state.PlayerID, _ string) int32 { return 0 }
+func (h *fakeHost) CountersRemovedThisTurn(_ state.PlayerID, _ string) int32                { return 0 }
+func (h *fakeHost) CountersAddedThisTurn(_ string, _ string, _ string, _ SpecContext) int32 { return 0 }
 
 // CombatDamageToPlayersThisTurn reports the h.combatHits slice the
 // effects-level PlayerCountDefinedRegistered tests configure.
@@ -464,6 +469,9 @@ func (h *fakeHost) SuspendCharmRest(*cards.SA, []string) {}
 // SuspendVillainousRest is a no-op for the same reason as
 // SuspendContinuation.
 func (h *fakeHost) SuspendVillainousRest(*cards.SA, VillainousRest) {}
+func (h *fakeHost) SuspendFlipRest(_ *cards.SA, rest FlipRest) {
+	h.flipRests = append(h.flipRests, rest)
+}
 
 // SetDamageSource records the published damage source on the double (the
 // last value wins) and returns the previous one, mirroring the engine's

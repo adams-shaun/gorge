@@ -151,11 +151,11 @@ export interface Printing {
    * colour string: "Any"/"Combo Any", a listed "Combo X Y" choice, or a
    * "Chosen"/"Special" word (any token the symbol grammar cannot read). Such a
    * source is conditional in the card script, so a policy must not treat it as
-   * a dependable colour fixer. Colour carries only what a plain token names:
-   * the colour letters the token lists (one each for "R G", two for "RR"),
-   * never a phantom count for the words themselves -- an unrecognised token
-   * such as "Chosen" or "ColorIdentity" claims no mana at all (ProducedCounts),
-   * matching effMana's fail-closed executor convention.
+   * a dependable colour fixer. Colour carries what a plain token names (one each
+   * for "R G", two for "RR") and the real alternatives of a choice token. It
+   * never counts letters of script words as phantom mana: Chosen is represented
+   * by all five possible colours because its source-specific choice is not
+   * available to this source-free parser.
    */
 export interface ManaProduction {
   colour: [number, number, number, number, number, number];
@@ -259,8 +259,9 @@ export interface CardView {
    * Produces is what this card's mana abilities add to the pool when a
    * tap-for-mana activation runs them, derived from the compiled abilities
    * (cards.Face.ManaProduction) rather than land subtypes: a basic land's
-   * intrinsic {W}, a dual's {W}{U}, an "add any colour" source's resolved
-   * colourless, a colourless rock's {C}{C}. nil when the card has no mana
+   * intrinsic {W}, a dual's {W}{U}, an "add any colour" source's five
+   * colour alternatives (one unit each, flagged Any -- the colour is chosen
+   * when it is tapped, CR 106.1b), a colourless rock's {C}{C}. nil when the card has no mana
    * ability at all, so a creature or a spell never pays for the six-entry
    * array on the wire. It is a projected characteristic like ManaCost and
    * Keywords -- a mana ability's production is a card fact every seat sees,
@@ -516,6 +517,11 @@ export interface Option {
   label: string;
   obj?: number;
   /**
+   * Counter identifies the counter kind for wildcard counter-removal costs.
+   * It is omitted for choices that do not select a counter kind.
+   */
+  counter?: string;
+  /**
    * Player is always emitted because 0 is a valid seat (0-indexed), unlike
    * Obj where 0 means "no object".
    */
@@ -651,14 +657,30 @@ export interface Option {
    */
 export interface DamageEffect {
   /**
-   * Amount is a nonnegative literal, or nil (JSON null) if absent, dynamic,
-   * invalid or outside the supported literal range. In particular X and
-   * SVar expressions stay unknown even if the engine could evaluate them.
-   * A known zero is a non-nil pointer to 0. There is deliberately no numeric
-   * default: Go consumers must check nil before dereferencing; wire consumers
-   * must check null before arithmetic. This is not a lethal-damage claim.
+   * Amount is the nonnegative literal or context-resolved amount at the
+   * point the target decision is posed, or nil (JSON null) if it is absent,
+   * unresolvable, invalid or outside the supported range. X and SVar
+   * expressions are evaluated when the announced/resolving context supplies
+   * their value. A known zero is a non-nil pointer to 0. There is deliberately
+   * no numeric default: Go consumers must check nil before dereferencing; wire
+   * consumers must check null before arithmetic. This is not a lethal-damage
+   * claim.
    */
   amount: number | null;
+}
+
+  /**
+   * RemovalEffect is a conservative classification of an active removal SA.
+   * It describes the scripted operation, not whether the target will actually
+   * leave at resolution (replacement effects, conditions and legality remain
+   * outside a targeting decision). Kind is one of destroy, sacrifice, exile,
+   * bounce, graveyard, library or command; Destination is populated for the
+   * ChangeZone family and repeats its normalized destination for clients that
+   * want the zone rather than the operation.
+   */
+export interface RemovalEffect {
+  kind: string;
+  destination?: string;
 }
 
   /**
@@ -676,6 +698,12 @@ export interface TargetEffect {
    * other abilities cannot deal damage.
    */
   damage?: DamageEffect | null;
+  /**
+   * Removal classifies the active SA's direct zone-removal shape. It is
+   * absent for an unknown API, a non-removal destination, or a ChangeZone
+   * whose destination this vocabulary does not model.
+   */
+  removal?: RemovalEffect | null;
 }
 
   /**

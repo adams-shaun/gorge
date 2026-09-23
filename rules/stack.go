@@ -635,7 +635,19 @@ func (e *Engine) restrictValidTermMatches(p state.PlayerID, d paymentDescriptor,
 // resolveMana path (and every game without a converter on the board)
 // byte-identical.
 func (e *Engine) paymentConv(p state.PlayerID, id state.ObjID, ability bool) *manaConv {
-	conv := e.manaConversion(p, id, ability)
+	mandatory, optional := e.manaConversionParts(p, id, ability)
+	conv := mandatory
+	// During an Optional$ ManaConvert cast, the offer-side path uses the union
+	// until the election is answered. Thereafter the selected arm is the only
+	// one allowed to widen payment; this keeps target affordability, the mana
+	// window and the actual charge on one answer.
+	if e.cast != nil && e.cast.card == id && e.cast.manaConvertDone {
+		if e.cast.manaConvertUse {
+			mergeManaConv(&conv, optional)
+		}
+	} else {
+		mergeManaConv(&conv, optional)
+	}
 	if conv.empty() {
 		return nil
 	}
@@ -1134,25 +1146,172 @@ func (e *Engine) protectionSource(source state.ObjID) state.ObjID {
 	return source
 }
 
-// describeTargetEffect is intentionally independent of game state and host.
-// Only literal damage is known: evaluating Num here would collapse unresolved
-// SVars to zero and would mistake a current X/count for a resolution forecast.
-func describeTargetEffect(sa *cards.SA) *decision.TargetEffect {
+// describeTargetEffect is the context-aware target payload builder. The
+// target ask is CR 601.2c's choice among legal targets, so a dynamic amount
+// must be evaluated in the same announced/cast context the eventual effect
+// will use -- never guessed from a zero-value Num read.
+func (e *Engine) describeTargetEffect(p state.PlayerID, source state.ObjID, sa *cards.SA, x int32) *decision.TargetEffect {
 	if sa == nil {
 		return nil
 	}
 	out := &decision.TargetEffect{API: sa.API}
+	if x == 0 {
+		if o := e.G.Obj(source); o != nil {
+			x = o.X
+		}
+	}
+	if removal := targetRemoval(sa); removal != nil {
+		out.Removal = removal
+	}
 	switch sa.API {
 	case "DealDamage", "DamageAll":
 		out.Damage = &decision.DamageEffect{}
-		// Fixed-width parsing is architecture-independent and safely representable
-		// by the wire's JavaScript number. Negative/overflow/missing stay unknown.
-		if n, err := strconv.ParseInt(sa.Params["NumDmg"], 10, 32); err == nil && n >= 0 {
-			amount := int(n)
-			out.Damage.Amount = &amount
+		// A missing amount remains null even though the effect implementation
+		// has a defensive runtime default. A literal or a resolvable X/SVar is
+		// the amount the client and bot can actually reason about at this ask.
+		if amount, ok := e.targetDamageAmount(p, source, sa, x); ok && amount >= 0 {
+			n := int(amount)
+			out.Damage.Amount = &n
 		}
 	}
 	return out
+}
+
+// targetDamageAmount evaluates NumDmg with a verdict. effects.NumResolved is
+// intentionally a broad numeric reader for effect sites that degrade an
+// unmodelled SVar to zero; a decision payload must not turn that degradation
+// into a claimed damage amount, so SVar bodies use EvalCountOK here.
+func (e *Engine) targetDamageAmount(p state.PlayerID, source state.ObjID, sa *cards.SA, x int32) (int32, bool) {
+	ctx, ok := e.targetBoundCtx(p, source)
+	if !ok {
+		ctx = &effects.Ctx{Source: source, Controller: p}
+		if o := e.G.Obj(source); o != nil && o.Face() != nil {
+			effects.SetSVars(ctx, o.Face().SVars)
+		}
+	}
+	ctx.X = x
+	raw, present := sa.Params["NumDmg"]
+	if !present {
+		return 0, false
+	}
+	raw = strings.TrimSpace(raw)
+	if n, err := strconv.ParseInt(raw, 10, 32); err == nil {
+		return int32(n), true
+	}
+	sign := int32(1)
+	if len(raw) > 1 && (raw[0] == '+' || raw[0] == '-') {
+		if raw[0] == '-' {
+			sign = -1
+		}
+		raw = raw[1:]
+	}
+	if ctx.SVars != nil {
+		if body, found := ctx.SVars[raw]; found {
+			// A body reading the target reference family has no value at this
+			// ask: the unbound evaluation is the empty target set's sum, and
+			// publishing it would claim a false zero (Kiku's Shadow's
+			// SVar:X:Targeted$CardPower against a legal 5/5 deals 5, not 0).
+			if e.amountDependsOnPendingTarget(ctx, p, source, sa, body) {
+				return 0, false
+			}
+			n, resolved := effects.EvalCountOK(e, ctx, body)
+			return sign * n, resolved
+		}
+	}
+	// A direct helper/test ask without a source object has no announced or
+	// resolving context in which a dynamic value could be known. Keep it null
+	// rather than turning the evaluator's zero fallback into a claim.
+	if source == 0 {
+		return 0, false
+	}
+	if raw == "X" {
+		return sign * ctx.X, true
+	}
+	// Inline Count$/ref-property bodies are valid direct numeric parameters.
+	// The evaluator supplies the unknown verdict instead of collapsing them to
+	// zero. This also covers published trigger/result values when their body is
+	// supported by the effects count grammar. The same pending-target probe
+	// guards this branch: an inline Targeted$ body is exactly as unvalued at
+	// the ask as an SVar one.
+	if e.amountDependsOnPendingTarget(ctx, p, source, sa, raw) {
+		return 0, false
+	}
+	n, resolved := effects.EvalCountOK(e, ctx, raw)
+	return sign * n, resolved
+}
+
+// amountDependsOnPendingTarget reports whether a NumDmg body's value moves
+// with WHICH target the answering player is about to choose. The target ask
+// is CR 601.2c's choice among legal candidates, so a body reading the target
+// reference family (Targeted$CardPower, TargetedPlayer$Valid..., their
+// Parent/This/All spellings) has NO value yet: its unbound evaluation is the
+// empty target set's sum, and EvalCountOK rightly treats an empty set as a
+// legitimate count -- which is precisely why the payload cannot take that 0
+// as a nominal amount. The verdict is derived from evaluation, not from a
+// hand-built token list, so a future target-reading head is covered without
+// this site learning about it: bind each legal candidate as the body's ONLY
+// target and compare against the unbound read. Any disagreement means the
+// pending choice moves the amount, and no scalar may be published (null --
+// "unknown" -- is the honest payload). A body that agrees with its unbound
+// read under every candidate (Count$YourLifeTotal, Count$xPaid) is genuinely
+// target-independent and stays publishable; a target-dependent sum over a
+// multi-target ask also disagrees (any single binding differs from the empty
+// sum whenever the value is nonzero), so a plural selection cannot smuggle a
+// single-binding value through either. The census is the same
+// legalTargetCandidates walk askTarget poses its options from, so the probe
+// never sees a candidate the ask cannot offer. Cost: one extra census plus
+// len(candidates) evaluations per posed damage ask -- decision posing, not a
+// hot path.
+func (e *Engine) amountDependsOnPendingTarget(ctx *effects.Ctx, p state.PlayerID, source state.ObjID, sa *cards.SA, body string) bool {
+	base, _ := effects.EvalCountOK(e, ctx, body)
+	for _, cand := range e.legalTargetCandidates(p, source, source, sa) {
+		// Ctx is threaded by pointer through the evaluator; the probe binds
+		// targets on a value copy and never touches the caller's context.
+		probe := *ctx
+		if cand.kind == "player" {
+			probe.Targets = []state.Target{{Player: cand.player, IsPlayer: true}}
+		} else {
+			probe.Targets = []state.Target{{Obj: cand.obj}}
+		}
+		if v, _ := effects.EvalCountOK(e, &probe, body); v != base {
+			return true
+		}
+	}
+	return false
+}
+
+// targetRemoval classifies only APIs and destinations whose direct meaning is
+// known. In particular, an unfamiliar API is never inferred to be removal
+// from a label or parameter spelling.
+func targetRemoval(sa *cards.SA) *decision.RemovalEffect {
+	if sa == nil {
+		return nil
+	}
+	switch sa.API {
+	case "Destroy", "DestroyAll":
+		return &decision.RemovalEffect{Kind: "destroy"}
+	case "Sacrifice", "SacrificeAll":
+		return &decision.RemovalEffect{Kind: "sacrifice"}
+	case "ChangeZone", "ChangeZoneAll":
+		destination := strings.ToLower(strings.TrimSpace(sa.Params["Destination"]))
+		kind := destination
+		switch destination {
+		case "exile":
+			kind = "exile"
+		case "hand":
+			kind = "bounce"
+		case "graveyard":
+			kind = "graveyard"
+		case "library":
+			kind = "library"
+		case "command":
+			kind = "command"
+		default:
+			return nil
+		}
+		return &decision.RemovalEffect{Kind: kind, Destination: destination}
+	}
+	return nil
 }
 
 type targetCandidate struct {
@@ -1286,6 +1445,16 @@ func (e *Engine) candidatesFor(p state.PlayerID, source, excludeSelf state.ObjID
 	sc := e.targetSpecContext(specSrc, excludeSelf, p)
 	zones := targetZones(sa)
 	var out []targetCandidate
+	// Resolve the source ONCE for the whole census -- for an ability this is
+	// the Source permanent, not the Face-less stack object. Every protection
+	// test below is guarded on the candidate's zone, because a permanent's
+	// static ability functions only on the battlefield (CR 604.3), so a
+	// printed protection does not withhold a target sitting in the
+	// Graveyard/Hand/Exile that a TgtZone$ spec is asking about. The PLAYER
+	// candidates below read it too (hexproof from a quality resolves the
+	// same source); the player-side shroud and hexproof grants carry no zone
+	// gate -- a player is always in play.
+	protSrc := e.protectionSource(source)
 	// Players are offered only alongside the default battlefield search and
 	// only when the spec actually names a seat. A spec that routes elsewhere
 	// (TgtZone$ Graveyard/Hand/Exile) targets objects only -- never a player.
@@ -1299,20 +1468,22 @@ func (e *Engine) candidatesFor(p state.PlayerID, source, excludeSelf state.ObjID
 	// alternatives whose base is not a player base, so a mixed
 	// `Creature,Opponent` spec keeps the object half and matches only the
 	// player half's seats.
+	// CR 702.18 (player shroud) and CR 702.11 (player hexproof): a seat a
+	// live `Affected$ You | AddKeyword$` static grants those keywords is
+	// withheld here exactly as a permanent carrying them is withheld in the
+	// object arm below -- the grant is read off the same layer walk, through
+	// playerKeywords (rules/playerkeywords.go). Only the targeting arm
+	// consults them; the affected census (targeting=false) does not, the
+	// same split the permanent shroud gate applies.
 	if len(zones) == 1 && zones[0] == state.ZBattlefield {
 		for _, q := range e.G.AliveFrom(0) {
-			if e.playerTargetSpecMatches(sc, spec, q, p, specSrc) {
+			if e.playerTargetSpecMatches(sc, spec, q, p, specSrc) &&
+				(!targeting || !e.playerShroudBlocksTarget(q)) &&
+				(!targeting || !e.playerHexproofBlocksTarget(q, p, protSrc)) {
 				out = append(out, targetCandidate{kind: "player", player: q})
 			}
 		}
 	}
-	// Resolve the source ONCE for the whole census -- for an ability this is
-	// the Source permanent, not the Face-less stack object. Every protection
-	// test below is guarded on the candidate's zone, because a permanent's
-	// static ability functions only on the battlefield (CR 604.3), so a
-	// printed protection does not withhold a target sitting in the
-	// Graveyard/Hand/Exile that a TgtZone$ spec is asking about.
-	protSrc := e.protectionSource(source)
 	for _, z := range zones {
 		if z == state.ZStack {
 			// The stack is a single, shared sequence, not a per-seat zone, so
@@ -1527,7 +1698,7 @@ func (e *Engine) askCrossModeCharmTargets(p state.PlayerID, source state.ObjID, 
 	}
 	d := &decision.Decision{Player: p, Kind: decision.KTarget, Min: k, Max: k,
 		Prompt: fmt.Sprintf("Choose %d targets: one for each mode, each a different player", k),
-		Source: source, TargetEffect: describeTargetEffect(sub)}
+		Source: source, TargetEffect: e.describeTargetEffect(p, source, sub, 0)}
 	for _, candidate := range candidates {
 		o := decision.Option{Index: len(d.Options), Kind: candidate.kind,
 			Label: e.targetOptionLabel(candidate), Obj: candidate.obj, Player: candidate.player}
@@ -1953,7 +2124,7 @@ func (e *Engine) AskCopyTargets() bool {
 	}
 	d := &decision.Decision{Player: controller, Kind: decision.KTarget, Min: min, Max: max,
 		Prompt: "Choose a new target for the copy", Source: o.ID,
-		ResumeKind: "copy_targets", ResumeSA: sa, TargetEffect: describeTargetEffect(sa)}
+		ResumeKind: "copy_targets", ResumeSA: sa, TargetEffect: e.describeTargetEffect(controller, o.ID, sa, o.X)}
 	for _, candidate := range ordered {
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: candidate.kind,
 			Label: e.targetOptionLabel(candidate), Obj: candidate.obj, Player: candidate.player,
@@ -1999,7 +2170,7 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 	min, max, sameCapacity, sameController := e.sameControllerTargetBounds(sa, candidates, min, max)
 	d := &decision.Decision{Player: p, Kind: decision.KTarget, Min: min, Max: max,
 		Prompt: "Choose a target for " + e.targetName(source),
-		Source: source, TargetEffect: describeTargetEffect(sa),
+		Source: source, TargetEffect: e.describeTargetEffect(p, source, sa, 0),
 		TargetsWithSameController: sameController, ResumeSA: sa}
 	for _, candidate := range candidates {
 		// targetOptionLabel tolerates the Face-less ability object a
@@ -2924,8 +3095,17 @@ func (e *Engine) legalTargets(targets []state.Target, sa *cards.SA, zones []stat
 	sc.Resolving = true
 	for _, t := range targets {
 		if t.IsPlayer {
+			// CR 702.18 / CR 702.11 for players: a target that GAINED player
+			// shroud or (opponent-only) hexproof between placement and
+			// resolution is dropped here, exactly as the object arm below
+			// drops a permanent that gained them -- the same judge the offer
+			// (candidatesFor's player loop) applies, so offer and recheck
+			// cannot disagree (the one-definition rule). Players have no zone:
+			// no CR 604.3 gate is consulted on the player arm.
 			if int(t.Player) < len(e.G.Players) && !e.G.Players[t.Player].Lost &&
-				e.playerTargetSpecMatches(sc, spec, t.Player, you, source) {
+				e.playerTargetSpecMatches(sc, spec, t.Player, you, source) &&
+				!e.playerShroudBlocksTarget(t.Player) &&
+				!e.playerHexproofBlocksTarget(t.Player, you, e.protectionSource(source)) {
 				legal = append(legal, t)
 			}
 			continue
@@ -3189,6 +3369,23 @@ func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exc
 	// chain call (their castProvenanceAdmits strip is event-local and
 	// stateless).
 	saTokens := castSaTokensIn(spec)
+	// Flag tokens (CastSa Spell.Mayhem) read the cast's pay-time CastInfo
+	// flags rather than a spend bucket: the backward walk records each
+	// object's most recent CastInfo flags (latest-first, first write wins)
+	// and the push consumes its own cast's entry, so a re-cast object's
+	// older cast never inherits the newer cast's flags — the per-event
+	// mirror of castSaAdmits' latest-cast read. A plain cast emits no
+	// pay-time CastInfo at all, so a missing entry reads as no flags.
+	wantFlags := false
+	for _, tok := range saTokens {
+		if tok.flag != 0 {
+			wantFlags = true
+		}
+	}
+	var castFlags map[state.ObjID]uint64
+	if wantFlags {
+		castFlags = make(map[state.ObjID]uint64)
+	}
 	// The in-flight cast's own grant walk (queueCascadeTriggers' scratch,
 	// rules/cascade.go) counts PRIOR casts only: the Affected$ half of the
 	// same static evaluates the current cast's own qualification, and the
@@ -3207,6 +3404,13 @@ func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exc
 			break
 		}
 		switch ev.Kind {
+		case events.CastInfo:
+			if wantFlags {
+				if _, seen := castFlags[ev.Obj]; !seen {
+					castFlags[ev.Obj] = events.FlagsFrom(ev.Counter)
+				}
+			}
+			continue
 		case events.ManaAdd:
 			if useAcc && ev.Amount < 0 && int(ev.Player) < len(buckets) {
 				buckets[ev.Player].spent += -ev.Amount
@@ -3233,6 +3437,15 @@ func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exc
 		}
 		// The push itself proves a cast exists: the window's ok read.
 		facts.ok = true
+		// This cast's own pay-time CastInfo flags (see wantFlags above): the
+		// entry recorded at the CastInfo the backward walk already passed —
+		// the payment runs after the push, so its CastInfo sits BELOW the
+		// push in log order — is exactly this cast's.
+		var evFlags uint64
+		if wantFlags {
+			evFlags = castFlags[ev.Obj]
+			delete(castFlags, ev.Obj)
+		}
 		if skipObj != 0 && ev.Obj == skipObj {
 			continue
 		}
@@ -3246,7 +3459,7 @@ func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exc
 		alive := true
 		for _, tok := range saTokens {
 			var held bool
-			if matchSpec, held = admitProvenanceAlternatives(matchSpec, tok.token, castSaTokenHolds(tok, facts)); !held {
+			if matchSpec, held = admitProvenanceAlternatives(matchSpec, tok.token, castSaTokenHolds(tok, facts, evFlags)); !held {
 				alive = false
 				break
 			}
@@ -3506,6 +3719,22 @@ func (e *Engine) CountersRemovedThisTurn(p state.PlayerID, kind string) int32 {
 			strings.EqualFold(ev.Counter, kind) {
 			n += -ev.Amount
 		}
+	}
+	return n
+}
+
+// CountersAddedThisTurn is the rules-side backing for the three-part
+// Count$CountersAddedThisTurn head. It deliberately uses the pre-event
+// snapshot retained by emit rather than the live object.
+func (e *Engine) CountersAddedThisTurn(kind, actorSpec, objectSpec string, sc effects.SpecContext) int32 {
+	var n int32
+	for _, add := range e.counterAddsThisTurn {
+		if !strings.EqualFold(kind, "Any") && !strings.EqualFold(add.kind, kind) ||
+			!effects.MatchesPlayerSpec(e.G, actorSpec, add.actor, sc.You) ||
+			!effects.MatchesObjectCtx(e.G, objectSpec, &add.object, sc) {
+			continue
+		}
+		n += add.amount
 	}
 	return n
 }
@@ -3809,8 +4038,11 @@ func (e *Engine) payUnlessCost(p state.PlayerID, cost Cost, ctx *effects.Ctx, st
 		drawers[i] = players
 	}
 	// Everything is affordable: charge mana/life through ordinary events,
-	// then apply the synchronous counter components, then the draws.
-	if !e.payMana(p, cost) {
+	// then apply the synchronous counter components, then the draws. The
+	// resolving object is the payment subject, so its ManaConvert statics
+	// (including EffectZone$ Command and Effect-delivered grants) apply here
+	// under the same conversion read used by cast offers.
+	if !e.payManaConv(p, cost, e.paymentConv(p, stackObj, false)) {
 		return false
 	}
 	for _, d := range drains {

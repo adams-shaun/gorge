@@ -1328,8 +1328,31 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 			return
 		}
 	}
+	// ClearRememberedBeforeLoop$ applies after selecting the subjects but only
+	// on the first pass: a resumed iteration must retain what prior iterations
+	// remembered. Thus RepeatPlayers$ Remembered can form its subject set while
+	// the body starts without the temporary chooser bindings.
+	if firstPass && strings.EqualFold(strings.TrimSpace(sa.Params["ClearRememberedBeforeLoop"]), "True") {
+		c.Remembered = nil
+	}
 	if batched && firstPass && batcher != nil {
 		batcher.BeginDamageBatch()
+	}
+	// ClearRememberedBeforeLoop$ True (Forge's RepeatEachEffect: "clear the
+	// host's remembered list before the loop"): drop the resolving spell or
+	// ability's accumulated Remembered before the FIRST iteration body runs,
+	// so a chain's earlier remembered players/cards do not leak into the
+	// loop's iterations. Corpus carriers: Seize the Spotlight (clear the
+	// GenericChoice's remembered choosers before walking the notated players),
+	// Master of Ceremonies, Enter the Dungeon, Shahrazad. It is applied ONCE,
+	// on the first pass only: a resume after a mid-loop suspension must keep
+	// what the completed iterations remembered. It is applied AFTER the
+	// subject selector resolves, so `RepeatPlayers$ Remembered` (a real
+	// selector in the corpus) still sees the remembered set it names -- the
+	// clear is a loop-hygiene bound on the iteration bodies, not on the
+	// loop's own subject derivation.
+	if firstPass && strings.EqualFold(strings.TrimSpace(sa.Params["ClearRememberedBeforeLoop"]), "True") {
+		c.Remembered = nil
 	}
 	for i := start; i < len(subjects); i++ {
 		t := subjects[i]
@@ -1357,6 +1380,26 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 			cc.VotePublishedSet = true
 		}
 		Resolve(h, &cc, sub)
+		// A loop body runs on a Ctx copy. Its first FlipCoin may allocate
+		// the shared memory lazily, so retain that pointer on the outer Ctx
+		// before copying the next iteration or returning through a suspension.
+		// Mana Clash's post-loop FlippedTails reader must see every player's
+		// FlipClash result, not a fresh per-iteration list.
+		if c.FlipMemory == nil && cc.FlipMemory != nil {
+			c.FlipMemory = cc.FlipMemory
+			// Resolve published cc.FlipMemory (nil on entry) for the
+			// iteration and its defer restored that nil on the way out, so
+			// retaining the pointer on the outer Ctx is not enough: the
+			// engine's published slot must be re-pointed too. Without this,
+			// an ask posed AFTER the loop -- the enclosing RepeatEach's own
+			// SubAbility$ -- captures nil onto its resume point, and the
+			// fresh Ctx the answer rebuilds loses every flip the loop
+			// recorded before a later Defined$ FlippedHeads/FlippedTails
+			// reader runs.
+			if fh, ok := h.(flipMemoryHost); ok {
+				fh.SetResolutionFlipMemory(c.FlipMemory)
+			}
+		}
 		if h.Suspended() {
 			h.SuspendRepeat(RepeatSuspension{
 				RepeatCursor: RepeatCursor{SA: sa, Subjects: copyTargets(subjects), Next: i + 1},

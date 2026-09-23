@@ -48,12 +48,12 @@ import (
 // tap-for-mana offer gate does not exclude one either (it checks only
 // Tapped), and AvailableMana is intentionally consistent with the offer set
 // the seat actually acts through rather than silently diverging from it.
-// Like `Cards`' production, a Produced$ of "Any"/"Combo Any" resolves to the
-// colourless the executor emits (effects/misc.go effMana) and carried into
-// state.Mana's colourless slot -- the colour the engine does not model -- and
-// CardView.Produces remains a per-face capability summary (it can list the
-// alternatives a card has), while AvailableMana is deliberately stricter: it
-// reports only the fixed mana that can be added together right now.
+// Like `Cards`' production, a Produced$ of "Any"/"Combo Any" reports all
+// five possible colours and no colourless unit. AvailableMana is an aggregate
+// capability vector, not a claim that one tap supplies all five units: the
+// activation path still asks which one the player takes. CardView.Produces
+// and AvailableMana therefore share the same real alternatives, while the
+// pool event records only the selected colour.
 func (e *Engine) AvailableMana(p state.PlayerID) state.Mana {
 	var out state.Mana
 	for _, id := range e.G.Zone(state.ZBattlefield, p) {
@@ -71,11 +71,12 @@ func (e *Engine) AvailableMana(p state.PlayerID) state.Mana {
 				free = append(free, ma)
 			}
 		}
-		// Tapping this permanent selects one ability. No state.Mana vector can
-		// say "one U or one R" without asserting a colour that is not fixed,
-		// so omit a multi-choice source from this conservative aggregate.
+		// Tapping this permanent selects one ability. A single Any ability can
+		// report its five alternatives through ProducedCounts; a permanent with
+		// several distinct abilities is omitted because the vector cannot encode
+		// which ability the tap will select.
 		if len(free) == 1 {
-			addAvailable(&out, free[0])
+			addAvailable(&out, free[0], e.chosenProducedColour(id))
 		}
 	}
 	return out
@@ -216,18 +217,36 @@ func manaAdd(a, b state.Mana) state.Mana {
 
 // addAvailable folds one free-to-tap mana ability into an available-mana
 // accumulator through cards.ProducedCounts -- the ONE Produced$ parse the
-// per-face projection (cards.ManaiProduction.add) and this aggregate share,
-// so the two agree by construction: blank / "Any" / "Combo Any" becomes one
-// colourless (the executor's effMana resolution), a plain symbol token adds
-// its listed colours ("Combo B R" one B and one R, "RR" two red), and an
-// unrecognised token ("Chosen", "ColorIdentity", a "Special ..." word)
-// claims no mana at all -- never the phantom colourless a rune walk of the
-// word itself used to count. The amount comes from Amount$ with the
+// per-face projection (cards.ManaProduction.add) and this aggregate share,
+// so the two agree by construction: blank becomes one colourless,
+// Any/Combo Any expose their possible WUBRG colours, a plain
+// symbol token adds its listed colours ("Combo B R" one B and one R, "RR"
+// two red), and an unrecognised token ("ColorIdentity", a "Special ..."
+// word) claims no mana at all -- never the phantom colourless a rune walk of
+// the word itself used to count. The amount comes from Amount$ with the
 // executor's default of 1 and the T14-f negative clamp; an Indeterminate
 // amount ("X", "Y", a Count$, "Sacrificed$...") resolves to zero,
 // contributing nothing.
-func addAvailable(m *state.Mana, ma *cards.SA) {
-	counts, _ := cards.ProducedCounts(ma.Params["Produced"])
+//
+// chosen is the source's recorded as-enters colour (state.Object.ChosenColor,
+// a single WUBRG letter or "") and is substituted into a "Chosen"/"Combo <C>
+// Chosen" production BEFORE the parse (substituteChosenProduced, the same
+// read the activation path performs). Without it a "Combo R Chosen" permanent
+// whose recorded colour is G would be advertised as all five colours, when it
+// can currently produce only R or G. ProducedCounts itself still reports the
+// five-colour superset for a bare "Chosen" because it has no source object;
+// the substitution here is what supplies the source-aware answer.
+func addAvailable(m *state.Mana, ma *cards.SA, chosen string) {
+	raw := strings.TrimSpace(ma.Params["Produced"])
+	produced := substituteChosenProduced(raw, chosen)
+	// ProducedCounts intentionally has no source and therefore exposes the
+	// WUBRG superset for a raw Chosen token. This source-aware projection has
+	// one: without its recorded as-enters choice the activation fails closed,
+	// so it must advertise nothing rather than that hypothetical superset.
+	if producedNeedsChosen(raw) && produced == raw {
+		return
+	}
+	counts, _ := cards.ProducedCounts(produced)
 	amt := availableAmount(ma)
 	for i, n := range counts {
 		m[state.ManaIndex(cards.ManaSymbol(i))] += n * amt

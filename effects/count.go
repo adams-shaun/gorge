@@ -1353,6 +1353,15 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		// passes a ctx whose Remembered is already the capture-excluded set, so
 		// this head needs no special case of its own. Five corpus
 		// ImmediateTrigger lines and 38 files elsewhere carry it.
+		//
+		// A DB$ FlipCoin RememberNumber$ publication takes precedence: Forge's
+		// FlipCoinEffect writes the flip's rememberedNumber (Yusri's "If you
+		// won five flips this way" gates Count$RememberedNumber), and the flip
+		// resolves in the SAME chain the reader runs, so the remembered number
+		// is the flip count, not the remembered-object count.
+		if c.FlipMemory != nil && c.FlipMemory.RememberNumberKind != "" {
+			return c.FlipMemory.RememberNumber, true
+		}
 		return int32(len(c.Remembered)), true
 	case "RememberedSize":
 		// Forge's RememberedSize is the HOST CARD's remembered list -- the
@@ -1419,6 +1428,36 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			return 0, true
 		}
 		return h.LifeGainedThisTurn(c.Controller), true
+	case "YouDrewThisTurn":
+		// The number of cards the controller DREW this turn — Elenda and
+		// Azor's `SVar:Y:Count$YouDrewThisTurn` feeding `TokenAmount$ Y`
+		// ("create a number of 1/1 black Vampire Knight creature tokens with
+		// lifelink equal to the number of cards you've drawn this turn") and
+		// the 29-carrier raw corpus family behind it. The same log fold the
+		// PlayerCount$CardsDrawn property reads (Host.CardsDrawnThisTurn,
+		// rules' bridge for the Smuggler's Share family), so the head and
+		// the property can never drift apart; derived from the event log —
+		// every events.Draw since the last TurnChange, the opening deal
+		// naturally invisible behind turn one's own TurnChange — so a replay
+		// derives the same count.
+		if c.Controller < 0 {
+			return 0, true
+		}
+		return h.CardsDrawnThisTurn(c.Controller), true
+	case "CountersAddedThisTurn":
+		// Count$CountersAddedThisTurn <KIND> <Player> <ObjectSpec>.
+		// Keep malformed or unsupported shapes unresolvable: CheckSVar
+		// distinguishes that from an evaluated zero.
+		parts := strings.Fields(arg)
+		if len(parts) == 3 && c.Controller >= 0 && countersAddedThisTurnArgsKnown(parts[0], parts[1], parts[2]) {
+			// The measured grammar needs only You and Source: Card.Self and
+			// Card.EffectSource resolve from Source, while the other forms are
+			// object/player predicates. Do not pass c.SpecContext here: handing
+			// its resolution slices through the Host interface makes c escape,
+			// allocating on the Derived hot path.
+			sc := SpecContext{You: c.Controller, Source: c.Source}
+			return h.CountersAddedThisTurn(parts[0], parts[1], parts[2], sc), true
+		}
 	case "CountersRemovedThisTurn":
 		// Count$CountersRemovedThisTurn <KIND> <Player> — the number of counters
 		// of KIND the named players have PAID or LOST this turn (Creative
@@ -2335,6 +2374,25 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		return f.n, true
 	}
 	return 0, false
+}
+
+// countersAddedThisTurnArgsKnown accepts the complete measured grammar for
+// Count$CountersAddedThisTurn. Unlike the ordinary filter parser, this count
+// head cannot safely treat an unknown field as a filter that matches nothing:
+// CheckSVar distinguishes that evaluated zero from an unresolvable Count$.
+// Keep this narrow until a corpus carrier establishes another spelling.
+func countersAddedThisTurnArgsKnown(kind, actor, object string) bool {
+	if !strings.EqualFold(kind, "Any") && !strings.EqualFold(kind, "P1P1") && !strings.EqualFold(kind, "LORE") {
+		return false
+	}
+	if actor != "You" && actor != "Player" {
+		return false
+	}
+	switch object {
+	case "Creature", "Creature.YouCtrl", "Permanent.YouCtrl", "Card.Self", "Card.EffectSource":
+		return true
+	}
+	return false
 }
 
 // playerSpecBaseKnown reports whether spec's base word (the text before the

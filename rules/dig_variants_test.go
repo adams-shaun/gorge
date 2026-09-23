@@ -215,8 +215,10 @@ func TestDigNoRevealKeepsTheWindowPrivate(t *testing.T) {
 // TestDigForceRevealRevealsTheTakenCard is Ancient Stirrings's shape on the
 // ask path: five colorless cards in the window make the optional take a real
 // KChoose, and the answered card is revealed publicly (ForceRevealToController$)
-// before its Secret move, while the rest of the window stays exactly where
-// it was -- the window itself was never revealed.
+// before its Secret move, while the window itself was never revealed and the
+// untaken cards go to the library's BOTTOM in their existing relative order
+// (the default remainder destination; the drain answers the ordered-bottom
+// ask in the offered order).
 func TestDigForceRevealRevealsTheTakenCard(t *testing.T) {
 	e, cfg, id := newFixtureDeck(t, 4113, digForceRevealSrc)
 	libBefore := digReorder(t, e, "Mountain")
@@ -247,9 +249,10 @@ func TestDigForceRevealRevealsTheTakenCard(t *testing.T) {
 	if len(libAfter) != len(libBefore)-1 {
 		t.Fatalf("library size %d, want %d", len(libAfter), len(libBefore)-1)
 	}
+	base := len(libAfter) - len(wantRest)
 	for i, oid := range wantRest {
-		if libAfter[i] != oid {
-			t.Fatalf("library[%d] = %v, want %v (the untaken cards stay on top in order)", i, libAfter[i], oid)
+		if libAfter[base+i] != oid {
+			t.Fatalf("library bottom[%d] = %v, want %v (the untaken cards went to the bottom in order)", i, libAfter[base+i], oid)
 		}
 	}
 	replayCheck(t, e, cfg)

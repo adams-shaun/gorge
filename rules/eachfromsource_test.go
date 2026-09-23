@@ -295,6 +295,27 @@ func TestBlueLoyalRaptorEnteringDinosaurCarriesHisKinds(t *testing.T) {
 	dino := card(t, "Name:Arriving Dinosaur\nTypes:Creature Dinosaur\nPT:3/3\nOracle:x\n")
 	e, cfg := tokenReplGame(t, 457, blue, dino)
 	blueID := moveSeededCard(t, e, 0, blue, state.ZBattlefield)
+	// Blue's Partner-with ETB must settle before this fixture tests its
+	// replacement. Owen is absent, so target the controller; its no-candidate
+	// search resolves without an additional decision. Leaving the trigger
+	// pending would make the generic drain below encounter its target ask.
+	if !e.putTriggersOnStack() {
+		t.Fatal("Blue Partner-with ETB did not enter the trigger drain")
+	}
+	targetAsk := e.Pending()
+	if targetAsk == nil || targetAsk.Kind != decision.KTarget {
+		t.Fatalf("Blue Partner-with ETB decision = %+v, want target player", targetAsk)
+	}
+	self := -1
+	for _, o := range targetAsk.Options {
+		if o.Kind == "player" && o.Player == 0 {
+			self = o.Index
+		}
+	}
+	if self < 0 {
+		t.Fatalf("Blue Partner-with ETB offers no controller target: %+v", targetAsk.Options)
+	}
+	submitChoices(t, e, self)
 	passUntilStackEmpty(t, e, 20)
 	e.emit(events.Event{Kind: events.CounterChange, Obj: blueID, Counter: "P1P1", Amount: 2})
 	e.emit(events.Event{Kind: events.CounterChange, Obj: blueID, Counter: "CHARGE", Amount: 1})

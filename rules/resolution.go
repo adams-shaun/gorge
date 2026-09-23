@@ -48,7 +48,8 @@ import (
 // decision's answer resumes ("modes" for a Charm modal pick, "unless_pay"
 // for a CopySpellAbility may-pay, "discard" for a mid-resolution discard
 // choice, "search" for a hidden-library KChoose, "dig" for a Dig
-// look-and-take pick, "connive" for a Connive discard election, and "" for a pure outer
+// look-and-take pick, "dig_arrange" for a Dig's ordered-bottom KArrange,
+// "connive" for a Connive discard election, and "" for a pure outer
 // continuation that carries no answer),
 // which stack object's resolution is paused, and the exact sub-ability
 // whose effect asked — or, for an outer continuation, the sub-ability to
@@ -154,6 +155,16 @@ type resumePoint struct {
 	villainousVictims []state.Target
 	villainousIndex   int
 	villainousChoice  string
+	// flipCursor is the DB$ FlipCoin loop position a kind "flip_rest" frame
+	// re-enters with (the remaining flips a per-flip sub-ability's nested ask
+	// left unrun).
+	flipCursor effects.FlipRest
+	// flipMemory is the resolving chain's shared coin-flip memory at the ask
+	// (Engine.resolvingFlipMemory, published by effects.Resolve). The resume
+	// rebuilds a fresh Ctx, so it must re-attach this same pointer or a chained
+	// Defined$ FlippedTails / Wins reader loses every flip performed before the
+	// suspension (Goblin Assassin's per-loser sacrifice ask is the live shape).
+	flipMemory *effects.FlipMemory
 	// villainousRemembered is the VICTIM of the VillainousChoice whose chosen
 	// body is resolving, carried on every ask the body's chain poses (the
 	// ambient binding Engine.villainousRemembered captures into Ask). The
@@ -330,6 +341,12 @@ type contFrame struct {
 	villainousRest    bool
 	villainousVictims []state.Target
 	villainousIndex   int
+	// flipRest marks a frame that re-enters a DB$ FlipCoin's own SA (not
+	// sa.Sub) with the flip cursor below, continuing the flips a per-flip
+	// sub-ability's nested ask left unrun. The reported sa IS the FlipCoin SA,
+	// so sa.Sub would resume the wrong chain.
+	flipRest   bool
+	flipCursor effects.FlipRest
 }
 
 // Ask implements effects.Host.Ask (rules' side of the interface, and the
@@ -434,7 +451,8 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 		// the pending frame so a resumed continuation (which rebuilds its Ctx
 		// from objects whose live controllers may already have been reset to
 		// their owners) still sees the CR 608.2h last-known controller.
-		targetControllerLKI: effects.CloneTargetControllerLKI(e.resolvingTargetControllerLKI)}
+		targetControllerLKI: effects.CloneTargetControllerLKI(e.resolvingTargetControllerLKI),
+		flipMemory:          e.resolvingFlipMemory}
 	return true
 }
 
@@ -447,6 +465,18 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 // the resume pass re-enters the chain with nothing suspended and walks the
 // rest of it exactly once.
 //
+// SetResolutionFlipMemory implements effects' flipMemoryHost (an optional
+// seam, so the effects test doubles need no method): effects.Resolve publishes
+// the resolving chain's shared coin-flip memory around the whole walk and
+// restores the enclosing value on return, and effFlipCoin re-publishes when it
+// lazily allocates that memory. Returns the previous value for the defer
+// restore. Engine-transient scratch like resolvingTargetControllerLKI.
+func (e *Engine) SetResolutionFlipMemory(m *effects.FlipMemory) *effects.FlipMemory {
+	prev := e.resolvingFlipMemory
+	e.resolvingFlipMemory = m
+	return prev
+}
+
 // SetResolutionTargetControllerLKI implements
 // effects.Host.SetResolutionTargetControllerLKI: effects.Resolve publishes
 // the target-controller snapshot of the chain it is about to walk, and
@@ -585,6 +615,30 @@ func (e *Engine) SuspendVillainousRest(sa *cards.SA, rest effects.VillainousRest
 	e.contChain = append(e.contChain, contFrame{sa: sa, villainousRest: true,
 		villainousVictims: append([]state.Target(nil), rest.Victims...),
 		villainousIndex:   rest.Next})
+	e.repeatReported = sa
+}
+
+// SuspendFlipRest implements effects.Host.SuspendFlipRest: a DB$ FlipCoin
+// loop suspended inside a per-flip sub-ability's mid-resolution ask
+// (FlipUntilYouLose$ or Amount$ > 1) with flips still owed. The frame
+// re-enters the FlipCoin SA ITSELF (not sa.Sub) with Ctx.FlipRest restored
+// once the answered ask's own chain completes, so the remaining flips run
+// rather than being abandoned. Setting repeatReported to the FlipCoin SA
+// suppresses the enclosing Resolve loop's own SuspendContinuation report of
+// the same SA (the SuspendCharmRest convention: this frame re-enters the
+// primitive itself, so a second frame would re-run its Sub chain).
+func (e *Engine) SuspendFlipRest(sa *cards.SA, rest effects.FlipRest) {
+	if e.resume == nil {
+		return
+	}
+	e.contChain = append(e.contChain, contFrame{sa: sa, flipRest: true,
+		flipCursor: effects.FlipRest{
+			Players:     append([]state.PlayerID(nil), rest.Players...),
+			PlayerIndex: rest.PlayerIndex,
+			Iter:        rest.Iter,
+			Amount:      rest.Amount,
+			UntilLose:   rest.UntilLose,
+		}})
 	e.repeatReported = sa
 }
 
@@ -1033,7 +1087,13 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// arm below may rebind ctx.Source to the replacement's host;
 		// ResolvingObj stays rp.obj -- the wrapper whose resolution this
 		// frame is.
-		ResolvingObj: rp.obj, EffectFrame: rp.effectFrame}
+		ResolvingObj: rp.obj, EffectFrame: rp.effectFrame,
+		// The shared coin-flip memory the chain had at the ask. Re-attached so
+		// a chained Defined$ FlippedTails / Wins reader keeps the flips
+		// performed before the suspension (Goblin Assassin's per-loser
+		// sacrifice asks once after the flips; without this the second loser's
+		// read saw an empty set and never sacrificed).
+		FlipMemory: rp.flipMemory}
 	if rp.kind == "repeat_optional" {
 		ctx.RepeatOptional = &effects.RepeatOptionalContinuation{
 			Continue: len(chosen) > 0 && chosen[0].Kind == "yes",
@@ -1336,6 +1396,23 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				ctx.DrawUptoCount = rp.uptoCount
 				ctx.DrawUptoAnswered = true
 			}
+		case "mana_color":
+			// A resolution-time Mana effect asked for one colour, or an
+			// allocation of Combo's produced units. The answer is carried in
+			// ordinary KChoose labels and consumed by effMana on re-entry; no
+			// event kind is needed because the resulting ManaAdd is the
+			// replayable state mutation.
+			for _, option := range chosen {
+				colour := strings.TrimSpace(strings.TrimPrefix(option.Label, "Add "))
+				if len(colour) != 1 || !strings.Contains("WUBRG", colour) {
+					continue
+				}
+				if len(chosen) == 1 {
+					ctx.ManaChoice = colour
+				} else {
+					ctx.ManaChoices = append(ctx.ManaChoices, colour)
+				}
+			}
 		case "repeat":
 			// A RepeatEach loop re-entered after one of its iterations
 			// suspended: no answer, just the cursor (CR 608.2c).
@@ -1466,6 +1543,17 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 					e.beginUnlessPayment(chosen[0].Player, paid, ctx, rp.obj, rp)
 					return
 				}
+				// CR 601.2g: a mana-only unless cost gives the payer the same
+				// chance to activate mana abilities before the charge as a cast
+				// or a Ward does, so a converted colour (stat:ManaConvert) can be
+				// produced by tapping. The window only opens when the pool
+				// (under the payment's conversion) cannot already pay and an
+				// untapped source exists; otherwise the charge below is
+				// unchanged.
+				if e.unlessManaWindowNeeded(chosen[0].Player, paid, rp.obj) {
+					e.askUnlessWardMana(chosen[0].Player, paid, rp)
+					return
+				}
 				if e.payUnlessCost(chosen[0].Player, paid, ctx, rp.obj) {
 					ctx.UnlessPay = "pay"
 				} else if paid.hasManaPayment() && len(e.windowManaUnits(chosen[0].Player)) > 0 {
@@ -1520,6 +1608,10 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			if e.answerWardMana(rp, chosen, ctx) {
 				return
 			}
+		case "unless_mana":
+			if e.answerWardMana(rp, chosen, ctx) {
+				return
+			}
 		case "ward_alt":
 			// The Discard<...>:<mana> Ward alternative can choose its mana
 			// half even when it is not already floating; it receives the same
@@ -1530,7 +1622,8 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				if e.payMana(chosen[0].Player, cost) {
 					ctx.UnlessPay = "pay"
 				} else if cost.hasManaPayment() && e.hasUntappedManaSource(chosen[0].Player) {
-					e.askWardMana(rp, chosen[0].Player, cost)
+					e.askWardMana(rp, &wardManaPayment{payer: chosen[0].Player, cost: cost,
+						resumeKind: "ward_mana", prompt: "Activate mana abilities to pay Ward"})
 					return
 				} else {
 					ctx.UnlessPay = "decline"
@@ -1579,6 +1672,19 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// ChooseType below poses its own ask.
 			if len(chosen) > 0 {
 				ctx.ChosenType = chosen[0].Label
+			}
+		case "manareflected":
+			// A standalone AB$ ManaReflected colour ask (the mid-resolution
+			// choice effManaReflected poses when a DB$/SP$ body reflecting
+			// several colours resolves outside the mana-activation path) was
+			// answered. The option Label ("Add W") carries the picked colour;
+			// the re-entered effManaReflected consumes and clears it and emits
+			// the answered ManaAdd, so a nested ManaReflected poses its own ask.
+			// An empty answer (malformed -- the ask is Min 1/Max 1 over a set of
+			// two or more) leaves the field empty, and the effect's re-entry
+			// degrades to its deterministic first candidate.
+			if len(chosen) > 0 {
+				ctx.ManaReflectedColor = chosen[0].Label
 			}
 		case "taporuntap":
 			// A TapOrUntap's tap-vs-untap election (api:TapOrUntap, Merrow
@@ -1729,6 +1835,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 			}
 			ctx.SearchDone = true
+			ctx.LibraryTarget = rp.target
 		case "search_mayshuffle":
 			// A ChangeZone search carrying ShuffleNonMandatory$ True (Path to
 			// Exile, Stoneforge Mystic, Boggart Harbinger) asked its searcher
@@ -1747,6 +1854,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				ctx.SearchShuffle = "yes"
 			}
 			ctx.SearchShuffleMoved = append([]state.ObjID(nil), rp.moved...)
+			ctx.LibraryTarget = rp.target
 		case "attach_optional":
 			// An Optional$ True Attach's yes/no election (Ajani's Chosen's
 			// "you may attach it to the token") was answered. The answer is a
@@ -2152,14 +2260,26 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			}
 			ctx.HiddenPickDone = true
 			ctx.HiddenPickTarget = rp.target
-		case "arrange":
+		case "arrange", "dig_arrange":
 			// Ruling J0: rules' handleArrange already applied the answered
 			// arrangement and emitted the LibraryOrder event before calling
 			// resumeResolution, so the re-entered effect needs only to know
 			// not to re-ask -- the arrangement lives on the LibraryOrder
 			// event, not on Ctx, so this is a done-marker rather than an
-			// answer the effect re-reads.
+			// answer the effect re-reads. A Dig additionally carries the
+			// asking target's index (ArrangeTarget, only on its own
+			// "dig_arrange" continuation), because its walk must keep the
+			// deterministic processing of the LATER Defined$ targets on the
+			// arrange re-entry instead of dropping them.
 			ctx.Arrange = true
+			if rp.kind == "dig_arrange" {
+				ctx.ArrangeTarget = rp.target
+			}
+			// The shared per-player cursor every multi-library walk (search,
+			// arrange, scry/surveil) reads to resume at the NEXT library; a
+			// Dig's own arrange continuation additionally carries
+			// ArrangeTarget so effDig's walk skips through it.
+			ctx.LibraryTarget = rp.target
 		case "arrange_mayshuffle":
 			// A RearrangeTopOfLibrary carrying MayShuffle$ True (Ponder) asked
 			// "you may shuffle?" on its arrange re-entry pass. The effect
@@ -2174,6 +2294,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// owner (the arranging player the ask was posed to).
 			ctx.Arrange = true
 			ctx.MayShuffle = "no"
+			ctx.LibraryTarget = rp.target
 			if len(chosen) > 0 && chosen[0].Kind == "yes" {
 				ctx.MayShuffle = "yes"
 				order := append([]state.ObjID(nil), e.G.Zone(state.ZLibrary, rp.player)...)
@@ -2482,6 +2603,16 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			ctx.Modes = nil
 			ctx.VillainousVictims = append([]state.Target(nil), rp.villainousVictims...)
 			ctx.VillainousIndex = rp.villainousIndex
+		case "flip_rest":
+			// A DB$ FlipCoin loop's per-flip sub-ability suspended on its own
+			// mid-resolution ask (Mirror March's copy choice, say) and that
+			// ask's chain has completed. Re-enter effFlipCoin with the flip
+			// cursor restored so the remaining flips run. Ctx.Modes is
+			// cleared for the same reason as villainous_rest: this frame
+			// carries no answered mode.
+			ctx.Modes = nil
+			cursor := rp.flipCursor
+			ctx.FlipRest = &cursor
 		case "optional":
 			// CR 603.5: the decider answered yes to applying this optional
 			// triggered ability's effect. The answer is a yes/no, not a mode
@@ -2825,6 +2956,17 @@ func (e *Engine) buildContinuationChain(frames []contFrame, obj state.ObjID, tai
 		if e.resume != nil {
 			f.targetControllerLKI = effects.CloneTargetControllerLKI(e.resume.targetControllerLKI)
 		}
+		// The same-resolution flip memory (Engine.Ask captured it off
+		// Engine.resolvingFlipMemory onto the pending point): a continuation
+		// frame of the same resolution carries the same shared pointer, so a
+		// resumed FlipCoin cursor re-entry (the "flip_rest" frame) and any
+		// chained Defined$ FlippedHeads / FlippedTails / Count$RememberedNumber
+		// reader in a later frame still see the flips performed before the
+		// suspension. The memory is mutated in place (effects.flipRecord), so a
+		// pointer copy — never a value clone — keeps every frame live.
+		if e.resume != nil {
+			f.flipMemory = e.resume.flipMemory
+		}
 		if e.replacingEvent != nil && e.replacingEvent.Kind == events.Damage {
 			f.replacementTarget = state.Target{Obj: e.replacingEvent.Obj}
 			if e.replacingEvent.Obj == 0 {
@@ -2845,6 +2987,12 @@ func (e *Engine) buildContinuationChain(frames []contFrame, obj state.ObjID, tai
 			f.kind, f.sa = "villainous_rest", sa
 			f.villainousVictims = append([]state.Target(nil), cf.villainousVictims...)
 			f.villainousIndex = cf.villainousIndex
+		} else if cf.flipRest {
+			// The FlipCoin re-enters ITSELF (rp.sa = the FlipCoin SA, not
+			// sa.Sub — a FlipCoin body has no SubAbility$ chain of its own to
+			// resume) with the flip cursor restored.
+			f.kind, f.sa = "flip_rest", sa
+			f.flipCursor = cf.flipCursor
 		} else if cf.repeat != nil {
 			f.kind, f.sa, f.repeat = "repeat", sa, cf.repeat
 			if cf.repeat.optional {
