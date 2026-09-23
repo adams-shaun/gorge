@@ -278,6 +278,11 @@ type Engine struct {
 	// storage before sorting; neither buffer may alias a clone's scratch.
 	staticContinuous []ContinuousEffect
 	staticEpoch      int
+	// staticVersion/staticObjs are continuousVersion and len(e.G.Objs) at the
+	// last staticEffects build: layerInertSince's reuse across a run of
+	// layer-inert events (layercache.go) additionally requires both unchanged.
+	staticVersion int
+	staticObjs    int
 
 	// staticQueueBuf is staticEffects' AddStaticAbility$ work queue's reused
 	// backing array: truncated to zero at every scan, grown only when a
@@ -308,6 +313,9 @@ type Engine struct {
 	activeEpoch   int
 	activeVersion int
 	activeDepth   int
+	// activeObjs is len(e.G.Objs) at the last active() build, read only by
+	// the layer-inert reuse (layercache.go).
+	activeObjs int
 	// goadProbe is the static-goad derivation's re-entry guard (staticgoad1):
 	// staticallyGoaded matches each candidate's Affected$ spec through
 	// matchesSpec, and a spec that itself consults the IsGoaded predicate
