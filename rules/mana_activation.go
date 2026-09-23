@@ -1025,6 +1025,8 @@ func (e *Engine) commitManaDiscard() {
 		e.choosing = chooseNone
 		return
 	}
+	// Only a decision posed BY this payment defers the mana effect below.
+	posedBefore := e.pending != nil
 	for _, id := range md.discards {
 		e.emit(events.DiscardCost(id))
 	}
@@ -1047,8 +1049,61 @@ func (e *Engine) commitManaDiscard() {
 	}
 	e.manaDiscardActivation = nil
 	e.choosing = chooseNone
+	if !posedBefore && e.pending != nil {
+		// Paying the cost posed a decision: a sacrificed (or discarded,
+		// or exiled) commander's CR 903.9 move is parked and its owner is
+		// being asked. Resolving the mana effect now would pose its colour
+		// choice ON TOP of that ask -- overwriting it, so the parked move
+		// is never emitted, the commander stays on the battlefield and the
+		// same cost can be "paid" again for free forever (the botbench
+		// Phyrexian Altar + Rakdos, the Muscle livelock). The effect waits
+		// for the answer instead; Submit resumes it (resumeManaAfterCost).
+		e.manaAfterCost = &manaAfterCost{player: md.player, source: md.source, ability: md.ability,
+			cast: md.cast, cumulative: md.cumulative, triggers: manaTriggers,
+			sacs: append([]state.ObjID(nil), md.sacs...), gained: md.gained}
+		return
+	}
 	e.resolveManaEffect(md.player, md.source, md.ability, md.cast, md.cumulative, manaTriggers, md.sacs, md.gained)
 	e.continueManaPaymentWindow(md.cumulative)
+}
+
+// manaAfterCost parks a paid mana ability's effect while a decision its cost
+// payment posed is outstanding (see Engine.manaAfterCost).
+type manaAfterCost struct {
+	player     state.PlayerID
+	source     state.ObjID
+	ability    *cards.SA
+	cast       bool
+	cumulative bool
+	triggers   []pendingTrigger
+	sacs       []state.ObjID
+	gained     gainedManaRef
+}
+
+// resumeManaAfterCost resolves the parked mana effect once the decision its
+// cost payment posed has been answered, then continues whatever flow the
+// activation belonged to -- the same tail the mana-cost choose arms run
+// (handleChoose's chooseManaSacrifice case): Ward's payment window, an
+// unless-cost payment, or the cast being paid for. A priority-window
+// activation has no tail; Advance grants priority as usual.
+func (e *Engine) resumeManaAfterCost() {
+	r := e.manaAfterCost
+	e.manaAfterCost = nil
+	e.resolveManaEffect(r.player, r.source, r.ability, r.cast, r.cumulative, r.triggers, r.sacs, r.gained)
+	if r.cumulative && e.choosing == chooseNone {
+		e.paymentWindowAsk()
+	}
+	if e.pending != nil || e.choosing == chooseManaColor || e.choosing == chooseManaDiscard ||
+		e.choosing == chooseManaExile || e.choosing == chooseManaSacrifice {
+		return
+	}
+	if e.wardMana != nil {
+		e.continueWardMana()
+	} else if e.unlessPayment != nil {
+		e.advanceUnlessPayment()
+	} else if r.cast {
+		e.continueCast()
+	}
 }
 
 // answerManaDiscard records one ordinary discard part and continues payment.
