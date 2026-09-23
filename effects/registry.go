@@ -636,6 +636,12 @@ type RepeatCursor struct {
 	Next     int
 	Last     []state.Target
 	HasLast  bool
+	// Election marks a cursor parked on a RepeatEach
+	// RepeatOptionalForEachPlayer$ election rather than on a completed body.
+	// Next is the subject whose offer was posed; the answer rides
+	// Ctx.RepeatEachOptional on re-entry (Accept false skips that subject's
+	// body and continues at Next+1).
+	Election bool
 }
 
 // RepeatSuspension is what effRepeatEach reports when an iteration asks.
@@ -741,6 +747,18 @@ type RepeatOptionalContinuation struct {
 	AskElection bool
 }
 
+// RepeatEachOptionalContinuation is the scoped answer of one subject's
+// RepeatOptionalForEachPlayer$ election, carried only by the resolving Ctx
+// across the mid-resolution ask (rules transports it; it is never event
+// state). Next is the subject index whose offer was answered. Accept runs
+// that subject's body; a false skips it and continues at Next+1. The subject
+// list itself rides the RepeatSuspension/RepeatCursor, exactly as a body
+// suspension's does, so the loop never re-derives its subjects mid-flight.
+type RepeatEachOptionalContinuation struct {
+	Next   int32
+	Accept bool
+}
+
 type Ctx struct {
 	TriggerContext
 	Source     state.ObjID
@@ -808,6 +826,12 @@ type Ctx struct {
 	// RepeatOptional is set only when a RepeatOptional$ answer is being
 	// resumed. A nil value means this is the first pass through the Repeat.
 	RepeatOptional *RepeatOptionalContinuation
+	// RepeatEachOptional is set only when a RepeatEach
+	// RepeatOptionalForEachPlayer$ election is being resumed. A nil value
+	// means no per-subject election answer is in flight. It is distinct from
+	// RepeatOptional: that is the Repeat do/while's own open-ended election,
+	// this is one subject's yes/no offer inside a RepeatEach loop.
+	RepeatEachOptional *RepeatEachOptionalContinuation
 	// TargetsOffered marks that the resolution's OWN ValidTgts$ targeting was
 	// already offered at announcement (rules' resolveTop sets it on both the
 	// ability and the spell branch, exactly for the SA the placement ask
