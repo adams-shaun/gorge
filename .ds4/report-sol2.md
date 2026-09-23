@@ -1,7 +1,6 @@
-# Emerge — current ticket report
+Current ticket (Emerge) report; unrelated prior reports are preserved below.
 
-This ticket’s report follows; earlier unrelated workstream reports are preserved in the appendix.
-
+# Emerge alternative cast — sol2
 
 Commit: `746c4129` (`fix(rules): price emerge by chosen sacrifice and isolate its reduction`). `.cards` was present as a symlink to the actual corpus, so the corpus tests did not skip. Re-measured 15 `K:Emerge` corpus files and 0 repo-deck files naming Elder Deep-Fiend.
 
@@ -78,6 +77,7 @@ No additional defects found beyond the three reviewed findings. Printed Emerge c
 
 ## Preserved prior workstream reports (unrelated)
 
+# Dismantle target-counter LKI — sol2 report
 
 ## Findings resolved
 
