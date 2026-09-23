@@ -792,7 +792,10 @@ func init() {
 	// at-or-above N fires nothing (no second crossing), and a later threshold
 	// (Muerra's expend 8 beside its expend 4) crosses independently in the
 	// same payment. Player$ You is the only selector the corpus writes (13
-	// lines): any other Player$ value fails closed.
+	// lines), but the matcher reads the shared player-spec grammar so an
+	// explicit Opponent/Player selector is honoured; an ABSENT Player$ keeps
+	// the historical You-only reading (the trigger's controller must be the
+	// payer), and an unresolvable selector fails closed.
 	registerTrigMatcher((*Engine).manaExpendMatches, "ManaExpend")
 }
 
@@ -811,20 +814,49 @@ func (e *Engine) manaExpendMatches(t cards.Trigger, source state.ObjID, ev event
 	if ev.Kind != events.CastInfo || events.FlagsFrom(ev.Counter)&state.FlagManaExpendCast == 0 {
 		return false
 	}
-	// Player$ You: the expending player must be the trigger's controller.
-	if p := strings.TrimSpace(t.Params["Player"]); p != "" && !strings.EqualFold(p, "You") {
+	ctrl := e.controllerOf(source)
+	if int(ev.Player) >= len(e.G.Players) {
 		return false
 	}
-	if e.controllerOf(source) != ev.Player || int(ev.Player) >= len(e.G.Players) {
+	// An omitted Player$ means the trigger's own controller (Forge's default
+	// for the "whenever YOU expend" family), not "any player". Match the
+	// selector through the shared player-spec grammar either way: explicit
+	// Player$ Opponent/Player forms resolve here, and an absent one is spelled
+	// as You so the controller check is not skipped.
+	player := strings.TrimSpace(t.Params["Player"])
+	if player == "" {
+		player = "You"
+	}
+	if !effects.MatchesPlayerSpecCtx(e.G, player, ev.Player, ctrl, effects.PlayerSpecCtx{Source: source}) {
 		return false
 	}
-	n, err := strconv.Atoi(strings.TrimSpace(t.Params["Amount"]))
-	if err != nil || n <= 0 {
+	n, ok := e.manaExpendAmount(source, t.Params["Amount"], ctrl)
+	if !ok || n <= 0 {
 		// An unreadable or non-positive Amount$ is a threshold this engine
 		// cannot evaluate: fail closed, never fire wide.
 		return false
 	}
 	total := e.manaExpendTotal(ev.Player)
 	prev := total - ev.Amount
-	return prev < int32(n) && total >= int32(n)
+	return prev < n && total >= n
+}
+
+// manaExpendAmount resolves a literal, source SVar, or inline Count$ amount.
+// EvalCountOK preserves the distinction between an understood zero and an
+// expression this engine cannot read; both remain no-fire thresholds here.
+func (e *Engine) manaExpendAmount(source state.ObjID, raw string, controller state.PlayerID) (int32, bool) {
+	raw = strings.TrimSpace(raw)
+	if n, err := strconv.ParseInt(raw, 10, 32); err == nil {
+		return int32(n), true
+	}
+	obj := e.G.Obj(source)
+	if obj == nil || obj.Face() == nil {
+		return 0, false
+	}
+	svars := obj.Face().SVars
+	if body, ok := svars[raw]; ok {
+		raw = body
+	}
+	ctx := &effects.Ctx{Source: source, Controller: controller, SVars: svars}
+	return effects.EvalCountOK(e, ctx, raw)
 }
