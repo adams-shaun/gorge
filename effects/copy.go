@@ -42,17 +42,18 @@ func init() {
 func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
 	// Optional$ True (Sevinne's Reclamation's "if this spell was cast from a
-	// graveyard, you may copy this spell", and the corpus's wider may-copy
-	// family) makes the copy itself a may effect: the resolving player is
-	// asked a yes/no before any copy is made, and a decline makes none. The
-	// answered election rides Ctx.CopyOpt (the same runtime-continuation
-	// class as AttachOpt), consumed and cleared here so a nested
-	// CopySpellAbility poses its own ask (fx42 scoping). An absent key leaves
-	// the historical unconditional copy. A host that cannot ask (an
-	// effects-package double, fuzz) keeps the deterministic pre-ask
-	// behaviour -- the copy is made -- the same R-9 fallback the other
-	// yes/no asks carry (the ask's bracket is Min == Max == 1, so Clamp and
-	// the bot answer option 0 = yes).
+	// graveyard, you may copy this spell", the corpus's wider may-copy
+	// family, and the Optional$+UnlessCost$ carriers Wandering Archaic and
+	// Chain of Silence) makes the copy itself a may effect: the copy's
+	// controller is asked a yes/no before any copy is made, and a decline
+	// makes none. The answered election rides Ctx.CopyOpt (the same
+	// runtime-continuation class as AttachOpt), consumed and cleared here so
+	// a nested CopySpellAbility poses its own ask (fx42 scoping). An absent
+	// key leaves the historical unconditional copy. A host that cannot ask
+	// (an effects-package double, fuzz) keeps the deterministic pre-ask
+	// behaviour -- the copy is made -- the no-host stand-in the election's
+	// own branch implements below (the ask's bracket is Min == Max == 1, so
+	// Clamp and the bot answer option 0 = yes).
 	copyOpt := c.CopyOpt
 	c.CopyOpt = ""
 	// Resolve which spell to copy. For a trigger the remembered entry is the
@@ -144,43 +145,6 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 
-	// Optional$ True: pose the may-copy election once the copy is known to be
-	// possible (a resolvable, still-on-stack spell), so a fizzled copy clause
-	// asks nothing. A decline ("no") returns without emitting any StackCopy;
-	// an answered "yes" falls through to the ordinary copy path. A first
-	// pass (copyOpt == "") with a host that cannot ask falls through to the
-	// unconditional copy, the R-9 stand-in documented above.
-	//
-	// An SA that ALSO carries UnlessCost$ (Wandering Archaic, the Chain of
-	// Silence/Acid/Smog cycle) already has its copy election: the shared
-	// unless gate poses that pay/decline and its orientation decides the body
-	// (effects/unless.go's unlessProceed, called by Resolve before this
-	// dispatch). Posing a second yes/no on top would put a mandatory-looking
-	// ask before the pay offer and invert or duplicate the unless decision,
-	// so the optional read is scoped to SAs with no UnlessCost$ -- the pure
-	// may-copy family (Sevinne's Reclamation, Parnesse, Curse of Echoes, the
-	// rest named in the ticket's census).
-	if strings.EqualFold(strings.TrimSpace(sa.Params["Optional"]), "True") &&
-		strings.TrimSpace(sa.Params["UnlessCost"]) == "" {
-		switch copyOpt {
-		case "yes":
-			// Answered yes: fall through to the copy below.
-		case "no":
-			return
-		default:
-			d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
-				Source: c.Source, ResumeKind: "copy_optional", ResumeSA: sa,
-				ResumeRemembered: copyTargets(c.Remembered),
-				Prompt:           "Copy it?",
-				Options: []decision.Option{
-					{Index: 0, Kind: "yes", Label: "Yes — copy", Player: c.Controller},
-					{Index: 1, Kind: "no", Label: "No", Player: c.Controller},
-				}}
-			_ = Ask(h, d)
-			return
-		}
-	}
-
 	// Controller$ (Chain Lightning's "If the player does, they may copy this
 	// spell" -- CR 707.10's copy-ownership half): the copy belongs to the
 	// player the parameter names, not the resolving controller. The target-
@@ -188,11 +152,64 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 	// shared c.Targets a Parent copy inherits); an unknown selector keeps
 	// the historical resolving-controller default rather than inventing a
 	// binding (measured corpus: only the TargetedOrController spelling
-	// reaches a registered copy on a measured path).
+	// reaches a registered copy on a measured path). Resolved BEFORE the
+	// Optional$ election below, because on the corpus's combined carriers
+	// (Wandering Archaic's Controller$ You, Chain of Silence's Controller$
+	// TargetedController) the may-copy election is the addressed player's,
+	// not the resolving controller's.
 	controller := c.Controller
 	if spec := strings.TrimSpace(sa.Params["Controller"]); spec != "" {
 		if p, ok := copyControllerFor(g, c, spec); ok {
 			controller = p
+		}
+	}
+
+	// Optional$ True (Sevinne's Reclamation's "you may copy this spell", the
+	// corpus's wider may-copy family, and the Optional$+UnlessCost$ carriers
+	// Wandering Archaic and Chain of Silence): pose the may-copy election once
+	// the copy is known to be possible (a resolvable, still-on-stack spell),
+	// so a fizzled copy clause asks nothing. A decline ("no") returns without
+	// emitting any StackCopy; an answered "yes" falls through to the ordinary
+	// copy path.
+	//
+	// An SA that ALSO carries UnlessCost$ composes SEQUENTIALLY, not
+	// exclusively: the shared unless gate (effects/unless.go's unlessProceed,
+	// called by Resolve before this dispatch) resolves its pay/decline first,
+	// and its orientation decides only whether this BODY runs at all --
+	// Wandering Archaic's unswitched "they may pay {2}. If they don't, you may
+	// copy" runs the body on the DECLINE, Chain of Silence's UnlessSwitched$
+	// "may sacrifice a land. If the player does, they may copy" runs it on the
+	// PAY. By the time this dispatch runs the unless question is fully
+	// answered -- a body ask suspends with Host.SuspendUnless's marker, so the
+	// answered re-entry consumes it and never re-poses the pay ask -- so the
+	// may-copy election is the SECOND ask in Forge's own sequence: posing it
+	// duplicates nothing and inverts nothing (the round-1 read that scoped
+	// this arm to UnlessCost$-free SAs was wrong, findings-r2).
+	if strings.EqualFold(strings.TrimSpace(sa.Params["Optional"]), "True") {
+		switch copyOpt {
+		case "yes":
+			// Answered yes: fall through to the copy below.
+		case "no":
+			return
+		default:
+			d := &decision.Decision{Player: controller, Kind: decision.KChoose, Min: 1, Max: 1,
+				Source: c.Source, ResumeKind: "copy_optional", ResumeSA: sa,
+				ResumeRemembered: copyTargets(c.Remembered),
+				Prompt:           "Copy it?",
+				Options: []decision.Option{
+					{Index: 0, Kind: "yes", Label: "Yes — copy", Player: controller},
+					{Index: 1, Kind: "no", Label: "No", Player: controller},
+				}}
+			if Ask(h, d) == AskAsked {
+				// The election was posted and suspended the resolution; the
+				// answered copy_optional re-entry (rules' resume arm) carries
+				// Ctx.CopyOpt back into this same SA.
+				return
+			}
+			// AskNoHost (an effects-package double, a fuzz run) and AskEmpty
+			// (unreachable with a two-option Min-1 ask) keep the deterministic
+			// pre-ask stand-in the doc comment above records: the copy is made.
+			// Fall through to the copy below.
 		}
 	}
 	// IgnoreFreeze$ True (Ulalek, Fused Atrocity's copy trigger; Forge's
