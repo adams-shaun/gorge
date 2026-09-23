@@ -3496,10 +3496,12 @@ func substituteManaChosen(produced, chosen string) string {
 }
 
 // askManaChoice gives a resolution-time Mana effect the same colour-choice
-// boundary as an activated mana ability.  A false Ask is the R-9 no-host
-// path: Any remains the historical colourless fallback and a raw Combo list
-// remains the historical full-listed-colours fallback.  A real host gets a
-// KChoose and the answer is carried back in Ctx.ManaChoice by rules.
+// boundary as an activated mana ability. A Combo's Amount$ is an allocation:
+// each selected option is one unit, allowing {U}{R} from Combo Any Amount 2.
+// A false Ask is the R-9 no-host path: Any remains the historical colourless
+// fallback and a raw Combo list remains the historical full-listed-colours
+// fallback. A real host gets a KChoose and rules carries the answer back in
+// Ctx.ManaChoice or Ctx.ManaChoices.
 func askManaChoice(h Host, c *Ctx, sa *cards.SA, produced string) (string, bool) {
 	var colours []string
 	switch produced {
@@ -3513,16 +3515,27 @@ func askManaChoice(h Host, c *Ctx, sa *cards.SA, produced string) (string, bool)
 	if len(colours) <= 1 {
 		return produced, false
 	}
+	amount := Num(h, c, sa, "Amount", 1)
+	allocation := strings.HasPrefix(produced, "Combo ") && amount > 1
+	if amount <= 0 {
+		return produced, false
+	}
+	min, max := 1, 1
+	if allocation {
+		min, max = int(amount), int(amount)
+	}
 	chooser := c.Controller
 	if recipients := ManaRecipients(h, c, sa); len(recipients) == 1 {
 		chooser = recipients[0]
 	}
-	d := &decision.Decision{Player: chooser, Kind: decision.KChoose, Min: 1, Max: 1,
+	d := &decision.Decision{Player: chooser, Kind: decision.KChoose, Min: min, Max: max,
 		Source: c.Source, ResumeKind: "mana_color", ResumeSA: sa,
 		Prompt: "Choose a color for the mana"}
-	for i, colour := range colours {
-		d.Options = append(d.Options, decision.Option{Index: i, Kind: "mana",
-			Label: "Add " + colour, Obj: c.Source, Player: chooser})
+	for unit := 0; unit < max; unit++ {
+		for _, colour := range colours {
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "mana",
+				Label: "Add " + colour, Obj: c.Source, Player: chooser})
+		}
 	}
 	if Ask(h, d) == AskAsked {
 		return produced, true
@@ -3532,9 +3545,16 @@ func askManaChoice(h Host, c *Ctx, sa *cards.SA, produced string) (string, bool)
 
 func effMana(h Host, c *Ctx, sa *cards.SA) {
 	produced := strings.TrimSpace(sa.Params["Produced"])
-	// A resumed colour ask supplies one concrete symbol.  Consume the answer
-	// before walking the SA so the same choice is not posed again on re-entry.
-	if validManaChoice(c.ManaChoice) {
+	// A resumed Combo allocation supplies one concrete symbol per unit.
+	// Consume it before walking the SA so the same choice is not posed again;
+	// its units carry Amount 1 below rather than being multiplied again.
+	allocation := len(c.ManaChoices) > 0
+	if allocation {
+		produced = strings.Join(c.ManaChoices, "")
+		c.ManaChoices = nil
+		// A resumed colour ask supplies one concrete symbol. Consume the answer
+		// before walking the SA so the same choice is not posed again on re-entry.
+	} else if validManaChoice(c.ManaChoice) {
 		produced = c.ManaChoice
 		c.ManaChoice = ""
 	} else if o := h.Game().Obj(c.Source); o != nil {
@@ -3620,6 +3640,9 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	amt := Num(h, c, sa, "Amount", 1)
+	if allocation {
+		amt = 1
+	}
 	if amt < 0 {
 		amt = 0
 	}
@@ -3738,7 +3761,25 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	for _, p := range ManaRecipients(h, c, sa) {
+		var emitted [256]bool
 		for _, r := range runes {
+			// An allocation records one rune per selected unit. Coalesce equal
+			// selections into the same ManaAdd batch (four selected W units are
+			// one Amount:4 W batch), retaining provenance/restriction semantics
+			// while a split U/R still emits one batch for each colour.
+			if allocation && emitted[byte(r)] {
+				continue
+			}
+			emitted[byte(r)] = true
+			unitAmount := amt
+			if allocation {
+				unitAmount = 0
+				for _, selected := range runes {
+					if selected == r {
+						unitAmount++
+					}
+				}
+			}
 			counter := string(r)
 			switch {
 			case tag != "":
@@ -3747,7 +3788,7 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 				counter = "S" + counter
 			}
 			ev := events.Event{Kind: events.ManaAdd, Player: p,
-				Counter: counter, Amount: amt}
+				Counter: counter, Amount: unitAmount}
 			if noCounter != "" {
 				ev.Text = events.ManaRestrictionTextNC(restriction, c.Source, noCounter)
 			} else if restriction != "" {

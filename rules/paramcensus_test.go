@@ -149,7 +149,7 @@ var baseBuckets = map[string]bucket{
 	// Convoked provenance gate reads -- the same cards.SA parameter map
 	// every bSA entry covers.
 	"a": bSA, "targetSA": bSA, "SA": bSA, "Ability": bSA, "With": bSA,
-	"head": bSA, "ma": bSA, "pt.SA": bSA,
+	"head": bSA, "ma": bSA, "mana": bSA, "original": bSA, "pt.SA": bSA,
 	// rsub is runPreventionShieldRider's rewritten copy of the
 	// PreventionSubAbility$ rider (a shallow copy of a fresh ResolveSVar
 	// parse, whose NumDmg$/Defined$ the shield application binds): a
@@ -1324,19 +1324,24 @@ var apiSpecificRulesSA = map[string][]string{
 	"Engine.manaActivationGateHolds": {"Mana"},
 	"Engine.emitManaTap":             {"Mana"},
 	"Engine.isTriggeredManaAbility":  {"Mana"},
-	"triggeredManaColourChoice":      {"Mana"},
+	// askTriggeredManaColor reads the first resolved Mana sub-ability's
+	// Amount$/Produced$ to build its allocation; that local is bSA but this
+	// path only ever reaches api:Mana.
+	"Engine.askTriggeredManaColor": {"Mana"},
+	"Engine.askManaColor":          {"Mana"},
+	"triggeredManaColourChoice":    {"Mana"},
 	// rewriteChosenMana (rules/mana_activation.go) executes only inside
 	// resolveTriggeredManaAbilities, so its Produced$ read belongs to
 	// api:Mana alone -- left in the generic union it would mask every
 	// other API's unread Produced$.
-	"Engine.rewriteChosenMana":     {"Mana"},
-	"Engine.resolveManaAbilityRef": {"Mana"},
-	"Engine.resolveManaEffect":     {"Mana"},
-	"manaColourPrompt":             {"Mana"},
-	"Engine.AvailableMana":         {"Mana"},
-	"addAvailable":                 {"Mana"},
-	"availableAmount":              {"Mana"},
-	"activatedMatchesValidSA":      {"Mana"},
+	"Engine.rewriteChosenMana":             {"Mana"},
+	"Engine.resolveManaAbilityRefOriginal": {"Mana"},
+	"Engine.resolveManaEffect":             {"Mana"},
+	"manaColourPrompt":                     {"Mana"},
+	"Engine.AvailableMana":                 {"Mana"},
+	"addAvailable":                         {"Mana"},
+	"availableAmount":                      {"Mana"},
+	"activatedMatchesValidSA":              {"Mana"},
 	// The attack-prop payment window's affordability input
 	// (rules/attack_cost.go attackManaSources): it walks the payer's
 	// battlefield and reads each window-usable mana ability's Produced$

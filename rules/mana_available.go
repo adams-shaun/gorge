@@ -118,7 +118,15 @@ func manaFreeCost(c Cost) bool {
 // five-colour superset for a bare "Chosen" because it has no source object;
 // the substitution here is what supplies the source-aware answer.
 func addAvailable(m *state.Mana, ma *cards.SA, chosen string) {
-	produced := substituteChosenProduced(strings.TrimSpace(ma.Params["Produced"]), chosen)
+	raw := strings.TrimSpace(ma.Params["Produced"])
+	produced := substituteChosenProduced(raw, chosen)
+	// ProducedCounts intentionally has no source and therefore exposes the
+	// WUBRG superset for a raw Chosen token. This source-aware projection has
+	// one: without its recorded as-enters choice the activation fails closed,
+	// so it must advertise nothing rather than that hypothetical superset.
+	if producedNeedsChosen(raw) && produced == raw {
+		return
+	}
 	counts, _ := cards.ProducedCounts(produced)
 	amt := availableAmount(ma)
 	for i, n := range counts {

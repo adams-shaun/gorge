@@ -5,9 +5,8 @@ package rules
 // combination of {B} and/or {R}, where X is the sacrificed creature's mana
 // value"). The amount resolves through Num's SVar fallback -- SVar:X is
 // Sacrificed$CardManaCost, which reads the LKI snapshot of what the cost
-// sacrificed (Ctx.Sacrificed) -- so the amount is pinned here on the real
-// corpus card. The Combo colour choice is answered with the first offered
-// colour so these tests continue to isolate the amount calculation.
+// sacrificed (Ctx.Sacrificed) -- so the amount and its all-black Combo
+// allocation are pinned here on the real corpus card.
 
 import (
 	"testing"
@@ -52,10 +51,22 @@ func TestBurntOfferingAmountIsTheSacrificedCreatureManaValue(t *testing.T) {
 	}
 	submitChoices(t, e, ds.Options[0].Index)
 	colour := passUntilNonPriority(t, e, 20)
-	if colour.Kind != decision.KChoose || colour.ResumeKind != "mana_color" {
-		t.Fatalf("Burnt Offering did not ask for its Combo colour: %+v", colour)
+	if colour.Kind != decision.KChoose || colour.ResumeKind != "mana_color" || colour.Min != 4 || colour.Max != 4 {
+		t.Fatalf("Burnt Offering did not ask for its four-unit Combo allocation: %+v", colour)
 	}
-	submitChoices(t, e, colour.Options[0].Index)
+	// The colour list repeats B/R once per unit. Choose every B option to
+	// isolate the sacrificed-card amount while still submitting a legal
+	// allocation.
+	var black []int
+	for _, option := range colour.Options {
+		if option.Label == "Add B" {
+			black = append(black, option.Index)
+		}
+	}
+	if len(black) != 4 {
+		t.Fatalf("Burnt Offering black allocation options = %+v, want four", colour.Options)
+	}
+	submitChoices(t, e, black...)
 	passUntilStackEmpty(t, e, 20)
 	if e.G.Obj(creature).Zone != state.ZGraveyard {
 		t.Fatalf("creature zone=%s, want graveyard (the cost)", e.G.Obj(creature).Zone)

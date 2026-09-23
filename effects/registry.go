@@ -1333,6 +1333,10 @@ type Ctx struct {
 	// body (ReplaceType$ Any, ReplaceColor$ Chosen, ReplaceMana$ Any).
 	// Rules parks the ManaAdd and supplies this on resume.
 	ManaChoice string
+	// ManaChoices is the allocation chosen for Produced$ Combo with Amount$ >
+	// 1. Each entry is one W/U/B/R/G unit; effMana consumes it with Amount 1
+	// so a split such as U,R produces one of each rather than doubling both.
+	ManaChoices []string
 	// HandMove is the answered Origin$ Hand ChangeZone selection.
 	HandMove     []state.ObjID
 	HandMoveDone bool

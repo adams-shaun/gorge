@@ -185,11 +185,24 @@ func leaveCombatWithNoBlockers(t *testing.T, e *Engine) {
 				t.Fatalf("submit %s: %v", d.Kind, err)
 			}
 		case decision.KChoose, decision.KModes:
-			// Klauth's real Combo Any trigger now asks for its colour. The
-			// deterministic test answer selects the first WUBRG option, so the
-			// persistent Spell batch below must be white, not the old C fallback.
-			if d.Kind == decision.KChoose && d.Options[0].Kind == "mana" && d.Options[0].Label != "Add W" {
-				t.Fatalf("Klauth mana choice first option = %+v, want Add W", d.Options[0])
+			// Klauth's real Combo Any trigger allocates every produced unit.
+			// Pick every W option, preserving the test's all-white restricted
+			// batch while submitting the exact allocation the decision requires.
+			if d.Kind == decision.KChoose && d.Options[0].Kind == "mana" {
+				if d.Options[0].Label != "Add W" {
+					t.Fatalf("Klauth mana choice first option = %+v, want Add W", d.Options[0])
+				}
+				var white []int
+				for _, option := range d.Options {
+					if option.Label == "Add W" {
+						white = append(white, option.Index)
+					}
+				}
+				if len(white) != d.Min {
+					t.Fatalf("Klauth white allocation = %+v, want %d W options", d.Options, d.Min)
+				}
+				submitChoices(t, e, white...)
+				break
 			}
 			submitChoices(t, e, d.Options[0].Index)
 		default:
