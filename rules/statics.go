@@ -2824,10 +2824,12 @@ func altCostLabel(name string, i int) string {
 // object is not in contributes nothing. A static with no ValidCard$
 // contributes nothing rather than matching everything -- a Panharmonicon
 // static that does not say WHAT it doubles is a script defect this build
-// will not paper over by doubling every trigger on the board. Params this
-// build cannot evaluate (IsPresent/PresentCompare, Condition, ValidTurned --
-// there is no TurnFaceUp event) fail closed: the static does not double,
-// never over-applies.
+// will not paper over by doubling every trigger on the board. ValidTurned$
+// (Panoptic Projektor's "if turning a face-down permanent face up ...", the
+// corpus's one carrier) scopes the permanent that was turned up, matched
+// against the turn-up event's own object. Params this build cannot evaluate
+// (IsPresent/PresentCompare, Condition) fail closed: the static does not
+// double, never over-applies.
 func (e *Engine) panharmoniconEchoes(observer *Engine, src state.ObjID, ev events.Event) int {
 	g := observer.G
 	o := g.Obj(src)
@@ -2933,6 +2935,19 @@ func (e *Engine) panharmoniconEchoes(observer *Engine, src state.ObjID, ev event
 		if sv.Params["CombatDamage"] == "True" && !(ev.Kind == events.Damage && e.combatDamaging) {
 			continue
 		}
+		if spec := sv.Params["ValidTurned"]; spec != "" {
+			// ValidTurned$ scopes the permanent that was turned face up
+			// (Panoptic Projektor: "if turning a face-down permanent face up
+			// causes ..."). It is a PAIR with ValidMode$ TurnFaceUp, and the
+			// turned object is the turn-up event's own Obj -- distinct from
+			// ValidCard$, which scopes the trigger's source. An event with no
+			// turned permanent carries nothing the clause can match, so a
+			// non-turn-up event fails closed rather than doubling.
+			if ev.Kind != events.TurnFaceUp || ev.Obj == 0 ||
+				!observer.matchesSpecFrom(spec, ev.Obj, sv.Controller, sv.Source) {
+				continue
+			}
+		}
 		spec := sv.Params["ValidCard"]
 		if spec == "" {
 			continue
@@ -2975,6 +2990,12 @@ func panharmoniconModes(ev events.Event) []string {
 			return []string{"LifeGained"}
 		}
 		return []string{"LifeLost"}
+	case events.TurnFaceUp:
+		// The turn-up marker (CR 708.6/702.36e). Only ValidMode$
+		// TurnFaceUp statics -- Panoptic Projektor's "if turning a face-down
+		// permanent face up causes a triggered ability ... to trigger" --
+		// serve this family.
+		return []string{"TurnFaceUp"}
 	default:
 		return nil
 	}
