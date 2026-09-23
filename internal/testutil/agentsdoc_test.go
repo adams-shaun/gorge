@@ -24,7 +24,9 @@ const (
 	// deletion (Effect-delivered NumLoyaltyAct, cli-20260923T060000Z-pw-numloyaltyact)
 	// and main's (ct1) deletion (mid-resolution ChooseType/ChooseNumber asks,
 	// cli-20260923T060000Z-choose-number) are disjoint closures of the base's 23.
-	knownApproximationRows = 21
+	// cli-20260923T060000Z-trig-attackerblocked then deleted the four-mode
+	// trigger row (21 -> 20), its four sub-shapes having all landed.
+	knownApproximationRows = 20
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.
