@@ -696,11 +696,13 @@ func TestOviyaRealScriptFilteredHandPutBack(t *testing.T) {
 	}
 }
 
-// TestHERBIEScoutUnitTappedPutBackEmitsNote runs the real compiled H.E.R.B.I.E.
-// Scout Unit hand mover. Tapped entry is not yet event-backed for hidden-hand
-// moves, so the required loud fallback records the narrowing immediately
-// before moving the selected land rather than silently entering it untapped.
-func TestHERBIEScoutUnitTappedPutBackEmitsNote(t *testing.T) {
+// TestHERBIEScoutUnitHandMoveEntersTapped runs the real compiled H.E.R.B.I.E.
+// Scout Unit hand mover. Tapped$ True on a hand-origin ChangeZone is now a
+// real entry state (the shared settle emits the same "entered tapped" Tap
+// every other mover emits), so the land enters TAPPED and the old
+// "not implemented" fallback Note is gone -- this test pins the retirement in
+// both directions.
+func TestHERBIEScoutUnitHandMoveEntersTapped(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	card, ok := reg.Lookup("H.E.R.B.I.E. Scout Unit")
 	if !ok {
@@ -719,15 +721,25 @@ func TestHERBIEScoutUnitTappedPutBackEmitsNote(t *testing.T) {
 	h.g = g
 	Resolve(h, &Ctx{Source: source.ID, Controller: 0,
 		HandMove: []state.ObjID{land.ID}, HandMoveDone: true}, db)
-	if land.Zone != state.ZBattlefield || land.Tapped {
-		t.Fatalf("land = zone %s tapped %v, want the documented untapped battlefield fallback", land.Zone, land.Tapped)
+	if land.Zone != state.ZBattlefield || !land.Tapped {
+		t.Fatalf("land = zone %s tapped %v, want it on the battlefield TAPPED", land.Zone, land.Tapped)
 	}
+	taps := 0
 	for _, ev := range h.log {
 		if ev.Kind == events.Note && strings.Contains(ev.Text, "Tapped$ True on a hand ChangeZone is not implemented") {
-			return
+			t.Fatalf("the retired hand Tapped$ fallback Note is back: %+v", ev)
+		}
+		if ev.Kind == events.Tap && ev.Obj == land.ID {
+			taps++
 		}
 	}
-	t.Fatalf("Tapped$ True hand move emitted no unsupported-shape Note: %+v", h.log)
+	if taps != 1 {
+		t.Fatalf("hand move logged %d entry Taps for the land, want exactly 1: %+v", taps, h.log)
+	}
+	// The land carries no Attacking$ rider, so nothing marks it attacking.
+	if land.IsAttacking {
+		t.Fatalf("land entered attacking without an Attacking$ rider: %+v", land)
+	}
 }
 
 // TestVolrathsDungeonRealScriptMarkerlessPutBackIsRequired proves that

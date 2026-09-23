@@ -34,6 +34,7 @@
 package rules
 
 import (
+	"sort"
 	"strconv"
 	"strings"
 
@@ -155,6 +156,16 @@ type resumePoint struct {
 	villainousVictims []state.Target
 	villainousIndex   int
 	villainousChoice  string
+	// flipCursor is the DB$ FlipCoin loop position a kind "flip_rest" frame
+	// re-enters with (the remaining flips a per-flip sub-ability's nested ask
+	// left unrun).
+	flipCursor effects.FlipRest
+	// flipMemory is the resolving chain's shared coin-flip memory at the ask
+	// (Engine.resolvingFlipMemory, published by effects.Resolve). The resume
+	// rebuilds a fresh Ctx, so it must re-attach this same pointer or a chained
+	// Defined$ FlippedTails / Wins reader loses every flip performed before the
+	// suspension (Goblin Assassin's per-loser sacrifice ask is the live shape).
+	flipMemory *effects.FlipMemory
 	// villainousRemembered is the VICTIM of the VillainousChoice whose chosen
 	// body is resolving, carried on every ask the body's chain poses (the
 	// ambient binding Engine.villainousRemembered captures into Ask). The
@@ -331,6 +342,12 @@ type contFrame struct {
 	villainousRest    bool
 	villainousVictims []state.Target
 	villainousIndex   int
+	// flipRest marks a frame that re-enters a DB$ FlipCoin's own SA (not
+	// sa.Sub) with the flip cursor below, continuing the flips a per-flip
+	// sub-ability's nested ask left unrun. The reported sa IS the FlipCoin SA,
+	// so sa.Sub would resume the wrong chain.
+	flipRest   bool
+	flipCursor effects.FlipRest
 }
 
 // Ask implements effects.Host.Ask (rules' side of the interface, and the
@@ -435,7 +452,8 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 		// the pending frame so a resumed continuation (which rebuilds its Ctx
 		// from objects whose live controllers may already have been reset to
 		// their owners) still sees the CR 608.2h last-known controller.
-		targetControllerLKI: effects.CloneTargetControllerLKI(e.resolvingTargetControllerLKI)}
+		targetControllerLKI: effects.CloneTargetControllerLKI(e.resolvingTargetControllerLKI),
+		flipMemory:          e.resolvingFlipMemory}
 	return true
 }
 
@@ -448,6 +466,18 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 // the resume pass re-enters the chain with nothing suspended and walks the
 // rest of it exactly once.
 //
+// SetResolutionFlipMemory implements effects' flipMemoryHost (an optional
+// seam, so the effects test doubles need no method): effects.Resolve publishes
+// the resolving chain's shared coin-flip memory around the whole walk and
+// restores the enclosing value on return, and effFlipCoin re-publishes when it
+// lazily allocates that memory. Returns the previous value for the defer
+// restore. Engine-transient scratch like resolvingTargetControllerLKI.
+func (e *Engine) SetResolutionFlipMemory(m *effects.FlipMemory) *effects.FlipMemory {
+	prev := e.resolvingFlipMemory
+	e.resolvingFlipMemory = m
+	return prev
+}
+
 // SetResolutionTargetControllerLKI implements
 // effects.Host.SetResolutionTargetControllerLKI: effects.Resolve publishes
 // the target-controller snapshot of the chain it is about to walk, and
@@ -589,6 +619,30 @@ func (e *Engine) SuspendVillainousRest(sa *cards.SA, rest effects.VillainousRest
 	e.repeatReported = sa
 }
 
+// SuspendFlipRest implements effects.Host.SuspendFlipRest: a DB$ FlipCoin
+// loop suspended inside a per-flip sub-ability's mid-resolution ask
+// (FlipUntilYouLose$ or Amount$ > 1) with flips still owed. The frame
+// re-enters the FlipCoin SA ITSELF (not sa.Sub) with Ctx.FlipRest restored
+// once the answered ask's own chain completes, so the remaining flips run
+// rather than being abandoned. Setting repeatReported to the FlipCoin SA
+// suppresses the enclosing Resolve loop's own SuspendContinuation report of
+// the same SA (the SuspendCharmRest convention: this frame re-enters the
+// primitive itself, so a second frame would re-run its Sub chain).
+func (e *Engine) SuspendFlipRest(sa *cards.SA, rest effects.FlipRest) {
+	if e.resume == nil {
+		return
+	}
+	e.contChain = append(e.contChain, contFrame{sa: sa, flipRest: true,
+		flipCursor: effects.FlipRest{
+			Players:     append([]state.PlayerID(nil), rest.Players...),
+			PlayerIndex: rest.PlayerIndex,
+			Iter:        rest.Iter,
+			Amount:      rest.Amount,
+			UntilLose:   rest.UntilLose,
+		}})
+	e.repeatReported = sa
+}
+
 // moveCounterPending is one MoveCounter resolution's answered asks, stored
 // under the resolving stack object's id (Engine.moveCounterAsk) so a later
 // resume round of the SAME SA can re-seed them into its fresh Ctx. A
@@ -668,6 +722,103 @@ func (e *Engine) seedMoveCounterAsk(obj state.ObjID, ctx *effects.Ctx) {
 	if !ctx.MoveCounterNDone && p.nSet {
 		ctx.MoveCounterN, ctx.MoveCounterNDone = p.n, true
 	}
+}
+
+// recordTargetsPick stores one answered generic ValidTgts$ pre-ask under the
+// resolving stack object and this exact SA's Line, so a LATER suspension of
+// the same SA re-seeds it instead of re-posing the ask (the general form of
+// the movecounter1 fix; see Engine.targetsPickAsk). A nil SA -- a resume
+// point with no sub-ability -- records nothing: there is nothing to key on.
+func (e *Engine) recordTargetsPick(obj state.ObjID, sa *cards.SA, targets []state.Target) {
+	if sa == nil {
+		return
+	}
+	if e.targetsPickAsk == nil {
+		e.targetsPickAsk = make(map[state.ObjID]map[string][]state.Target)
+	}
+	byLine := e.targetsPickAsk[obj]
+	if byLine == nil {
+		byLine = make(map[string][]state.Target)
+		e.targetsPickAsk[obj] = byLine
+	}
+	byLine[sa.Line] = append([]state.Target(nil), targets...)
+}
+
+// seedTargetsPick re-seeds a fresh resume Ctx with the pre-ask answer an
+// EARLIER round of this same SA's resolution already recorded. The current
+// round's own arm is authoritative: a just-answered "tgts" set has
+// TargetsPickDone already true and is left alone. An empty recorded answer
+// (a Min-0 pre-ask the player declined) is re-seeded just the same -- the
+// done marker, not the set, is what stops the re-pose.
+func (e *Engine) seedTargetsPick(obj state.ObjID, sa *cards.SA, ctx *effects.Ctx) {
+	if sa == nil || ctx.TargetsPickDone {
+		return
+	}
+	byLine := e.targetsPickAsk[obj]
+	if byLine == nil {
+		return
+	}
+	picked, ok := byLine[sa.Line]
+	if !ok {
+		return
+	}
+	ctx.TargetsPick = append([]state.Target(nil), picked...)
+	ctx.TargetsPickDone = true
+}
+
+// forgetTargetsPick drops one SA's recorded pre-ask answer once that SA's
+// resolution has completed without suspending, so a later re-entry of the
+// same body (a Repeat loop, a second activation of the same object) poses
+// its own ask. Only this SA's entry goes: a sibling frame of the same stack
+// object still carrying its own answer keeps it.
+func (e *Engine) forgetTargetsPick(obj state.ObjID, sa *cards.SA) {
+	if sa == nil {
+		return
+	}
+	byLine := e.targetsPickAsk[obj]
+	if byLine == nil {
+		return
+	}
+	delete(byLine, sa.Line)
+	if len(byLine) == 0 {
+		delete(e.targetsPickAsk, obj)
+	}
+}
+
+// aorEntry returns (creating if needed) the answered-kind cursor for a
+// resolving AddOrRemoveCounter stack object.
+func (e *Engine) aorEntry(obj state.ObjID) map[string]bool {
+	if e.aorAsk == nil {
+		e.aorAsk = make(map[state.ObjID]map[string]bool)
+	}
+	set := e.aorAsk[obj]
+	if set == nil {
+		set = make(map[string]bool)
+		e.aorAsk[obj] = set
+	}
+	return set
+}
+
+// seedAorAsk fills a fresh resume Ctx with the kinds this AddOrRemoveCounter
+// resolution has already answered an election for — INCLUDING the current
+// round's own answer, which the "aor_elect" arm recorded before this runs
+// (the map is therefore always a superset of the walk's own skip guards; the
+// walk also skips the current kind by the AorElect/AorKind pair, so double
+// coverage is harmless). This is what keeps an EachExistingCounter$ walk
+// from re-asking an already-answered PUT kind, whose counter count is still
+// positive and therefore still enumerates (counterchoice1 — the
+// movecounter1 livelock's exact class).
+func (e *Engine) seedAorAsk(obj state.ObjID, ctx *effects.Ctx) {
+	set := e.aorAsk[obj]
+	if set == nil {
+		return
+	}
+	kinds := make([]string, 0, len(set))
+	for k := range set {
+		kinds = append(kinds, k)
+	}
+	sort.Strings(kinds) // deterministic: map iteration order never reaches a Ctx
+	ctx.AorAnswered = kinds
 }
 
 // handleModes applies an answered KModes decision. ResumeKind and the trigger
@@ -910,6 +1061,89 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 	e.resumeResolution(rp, chosen)
 }
 
+// resumeETBEntry is the resolution-owned continuation for an as-enters
+// choice. Keeping the e.resume write here preserves the structural invariant
+// that only resolution machinery consumes a suspended frame.
+func (e *Engine) resumeETBEntry(chosen []decision.Option) {
+	// handleChoose owns clearing e.resume; this continuation only consumes the
+	// parked entry, keeping the archtest's single ownership rule intact.
+	if e.etbMove == nil || len(chosen) != 1 {
+		e.etbMove = nil
+		e.etbNext = 0
+		e.choosing = chooseNone
+		return
+	}
+	move := *e.etbMove
+	opt := chosen[0]
+	switch opt.Kind {
+	case "name":
+		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "name", Text: opt.Label})
+	case "type":
+		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "type", Text: opt.Label})
+	case "number":
+		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "number", Amount: int32(opt.Amount)})
+	case "color":
+		if letter := etbColourLetter(opt.Label); letter != "" {
+			e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "color", Text: letter})
+		}
+	case "riot":
+		choice := "haste"
+		if opt.Index == 0 {
+			choice = "counter"
+		}
+		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "riot", Text: choice})
+	case "unleash":
+		choice := "plain"
+		if opt.Index == 0 {
+			choice = "counter"
+		}
+		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "unleash", Text: choice})
+	case "clone":
+		// The ETB-copy election (K:ETBReplacement:Copy). The chosen template
+		// rides the event's IDs; the decline ("Enter as itself") carries no
+		// object, so the fold records an answered-but-empty choice and the
+		// ETBReplacement body -- effects' effClone, reached at the re-emitted
+		// move below -- leaves the object entering as itself.
+		ids := []state.ObjID(nil)
+		if opt.Obj != 0 {
+			ids = []state.ObjID{opt.Obj}
+		}
+		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "clone", IDs: ids})
+	}
+	e.choosing = chooseNone
+	e.emit(move)
+	// The answered entry has been re-emitted: if it was a land play and the
+	// entry was fully replaced (or replaced again after another as-enters
+	// answer), settle the land play here rather than leaving the continuation
+	// armed for an unrelated later entry to consume.
+	e.settleLandPlayIfDone(move.Obj)
+}
+
+// continueAfterETBEntry hands an as-enters entry choice's answer back to the
+// resolution that entry interrupted. Engine.Ask parks the resolving object on
+// every mid-resolution ask, and applyETBChoiceReplacement's ask is posed from
+// inside emit, so the frame it parks is whatever effect was moving the object
+// onto the battlefield (a reanimation, a blink, Retether's mass Aura return).
+// resumeETBEntry has already completed the entry itself, so the frame resumes
+// with no answer: its recorded continuation (rp.outer) runs and the stack
+// object is finished, instead of being left on the stack for resolveTop to
+// resolve a second time.
+//
+// Three shapes deliberately continue nothing, because no interrupted stack
+// resolution exists to finish: a direct frame (a land play or any other entry
+// posed with an empty stack), a frame whose object is the ENTERING object
+// itself (a permanent spell's own stack->battlefield move -- resolveTop's tail
+// already moved it), and a frame whose object has since left the stack.
+func (e *Engine) continueAfterETBEntry(rp *resumePoint) {
+	if rp == nil || rp.direct || rp.obj == 0 || e.pending != nil {
+		return
+	}
+	if o := e.G.Obj(rp.obj); o == nil || o.Zone != state.ZStack {
+		return
+	}
+	e.resumeResolution(rp, nil)
+}
+
 // resumeResolution re-enters a suspended resolution with its answer. It
 // rebuilds the same Ctx resolveTop built for the object on its first pass
 // (Source/Controller/Targets/Remembered and the SVar table are all
@@ -1034,7 +1268,13 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// arm below may rebind ctx.Source to the replacement's host;
 		// ResolvingObj stays rp.obj -- the wrapper whose resolution this
 		// frame is.
-		ResolvingObj: rp.obj, EffectFrame: rp.effectFrame}
+		ResolvingObj: rp.obj, EffectFrame: rp.effectFrame,
+		// The shared coin-flip memory the chain had at the ask. Re-attached so
+		// a chained Defined$ FlippedTails / Wins reader keeps the flips
+		// performed before the suspension (Goblin Assassin's per-loser
+		// sacrifice asks once after the flips; without this the second loser's
+		// read saw an empty set and never sacrificed).
+		FlipMemory: rp.flipMemory}
 	if rp.kind == "repeat_optional" {
 		ctx.RepeatOptional = &effects.RepeatOptionalContinuation{
 			Continue: len(chosen) > 0 && chosen[0].Kind == "yes",
@@ -1336,6 +1576,23 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				ctx.DrawUptoIdx = int32(rp.uptoIdx)
 				ctx.DrawUptoCount = rp.uptoCount
 				ctx.DrawUptoAnswered = true
+			}
+		case "mana_color":
+			// A resolution-time Mana effect asked for one colour, or an
+			// allocation of Combo's produced units. The answer is carried in
+			// ordinary KChoose labels and consumed by effMana on re-entry; no
+			// event kind is needed because the resulting ManaAdd is the
+			// replayable state mutation.
+			for _, option := range chosen {
+				colour := strings.TrimSpace(strings.TrimPrefix(option.Label, "Add "))
+				if len(colour) != 1 || !strings.Contains("WUBRG", colour) {
+					continue
+				}
+				if len(chosen) == 1 {
+					ctx.ManaChoice = colour
+				} else {
+					ctx.ManaChoices = append(ctx.ManaChoices, colour)
+				}
 			}
 		case "repeat":
 			// A RepeatEach loop re-entered after one of its iterations
@@ -1748,6 +2005,12 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			if rp.sa != nil && rp.sa.API == "MoveCounter" {
 				e.moveCounterEntry(rp.obj).targets = append([]state.Target(nil), ctx.TargetsPick...)
 			}
+			// Every OTHER API records through the general cursor: the body
+			// this answer is about to run may itself suspend (Kozilek's
+			// Command's Scry poses its KArrange), and the resume after THAT
+			// rebuilds the Ctx from scratch. Without the record the pre-ask
+			// fires again and the two asks alternate forever.
+			e.recordTargetsPick(rp.obj, rp.sa, ctx.TargetsPick)
 		case "search":
 			// A hidden-library KChoose answer is an ordered subset. Preserve
 			// that order for ChangeZone's MoveZone sequence, and set a separate
@@ -2105,6 +2368,40 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			if rp.sa != nil && rp.sa.API == "MoveCounter" {
 				p := e.moveCounterEntry(rp.obj)
 				p.n, p.nSet = ctx.MoveCounterN, true
+			}
+		case "aor_elect":
+			// An AddOrRemoveCounter add/remove election was answered
+			// (counterchoice1). The election's kind is parsed out of the
+			// answer's own option encoding ("aor_remove:<kind>"/
+			// "aor_put:<kind>"), so the fresh Ctx carries everything the
+			// re-entered walk needs without a second transport. A malformed
+			// answer elects the deterministic first option (remove), the same
+			// conservative read every KChoose arm takes. The answered kind is
+			// ALSO recorded on the pending state (the moveCounterAsk
+			// discipline): this round's re-entry may suspend again on the next
+			// kind's election, and that later re-entry must not re-ask an
+			// already-answered PUT kind (its counter count is still positive,
+			// so the kinds enumeration still lists it).
+			ctx.AorDone = true
+			ctx.AorElect, ctx.AorKind = "remove", ""
+			if len(chosen) > 0 {
+				if chosen[0].Kind == "aor_skip" {
+					// The combined absent-kind election has one skip option,
+					// unlike the per-kind form's aor_skip:<kind>.
+					ctx.AorElect = "skip"
+				} else {
+					if strings.HasPrefix(chosen[0].Kind, "aor_put:") {
+						ctx.AorElect = "put"
+					} else if strings.HasPrefix(chosen[0].Kind, "aor_skip:") {
+						ctx.AorElect = "skip"
+					}
+					if _, k, found := strings.Cut(chosen[0].Kind, ":"); found {
+						ctx.AorKind = k
+					}
+				}
+			}
+			if rp.sa != nil && rp.sa.API == "AddOrRemoveCounter" && ctx.AorKind != "" {
+				e.aorEntry(rp.obj)[ctx.AorKind] = true
 			}
 		case "blight":
 			// A Blight's per-player KChoose (CR 701.60: the blighting player
@@ -2527,6 +2824,16 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			ctx.Modes = nil
 			ctx.VillainousVictims = append([]state.Target(nil), rp.villainousVictims...)
 			ctx.VillainousIndex = rp.villainousIndex
+		case "flip_rest":
+			// A DB$ FlipCoin loop's per-flip sub-ability suspended on its own
+			// mid-resolution ask (Mirror March's copy choice, say) and that
+			// ask's chain has completed. Re-enter effFlipCoin with the flip
+			// cursor restored so the remaining flips run. Ctx.Modes is
+			// cleared for the same reason as villainous_rest: this frame
+			// carries no answered mode.
+			ctx.Modes = nil
+			cursor := rp.flipCursor
+			ctx.FlipRest = &cursor
 		case "optional":
 			// CR 603.5: the decider answered yes to applying this optional
 			// triggered ability's effect. The answer is a yes/no, not a mode
@@ -2634,9 +2941,18 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		if rp.sa.API == "MoveCounter" {
 			e.seedMoveCounterAsk(rp.obj, ctx)
 		}
+		if rp.sa.API == "AddOrRemoveCounter" {
+			e.seedAorAsk(rp.obj, ctx)
+		}
 		if rp.sa.API == "PutCounter" {
 			e.seedCounterTypeAsk(rp.obj, rp.sa, ctx)
 		}
+		// The general form of the three seeds above: an answered generic
+		// ValidTgts$ pre-ask for THIS SA, recorded by the "tgts" arm on an
+		// earlier round of this same resolution. Runs last so a cursor one of
+		// the API-specific seeds already set (MoveCounter writes both) wins,
+		// and it never overwrites the current round's own answer.
+		e.seedTargetsPick(rp.obj, rp.sa, ctx)
 		// A frame of a fused half's resolution re-enters here: restore the
 		// half's own target binding as the AMBIENT resolving target for the
 		// whole of this re-entry (its root or sub-ability, and every frame
@@ -2684,8 +3000,21 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// suspended): its pending state is spent.
 			delete(e.moveCounterAsk, rp.obj)
 		}
+		if rp.sa.API == "AddOrRemoveCounter" && e.resume == nil {
+			// The AddOrRemoveCounter resolution completed this round (nothing
+			// suspended): its pending state is spent -- delete it so a stale
+			// entry can never seed a later resolution of the same object (the
+			// moveCounterAsk discipline).
+			delete(e.aorAsk, rp.obj)
+		}
 		if rp.sa.API == "PutCounter" && e.resume == nil {
 			delete(e.counterTypeAsk, rp.obj)
+		}
+		if e.resume == nil {
+			// This SA's resolution completed this round (nothing suspended),
+			// so its recorded pre-ask answer is spent -- drop it so a later
+			// re-entry of the same body asks afresh.
+			e.forgetTargetsPick(rp.obj, rp.sa)
 		}
 		if e.resume != nil {
 			// The re-entry posed a nested mid-resolution ask. The new
@@ -2705,11 +3034,14 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			e.resume.outer = e.buildContinuationChain(e.contChain, rp.obj, rp.outer)
 			return
 		}
-	} else if !parkedDraws && rp.kind != "replacement" && rp.fuseAlt == nil {
+	} else if !parkedDraws && rp.kind != "replacement" && rp.kind != "etb" && rp.fuseAlt == nil {
 		// A resume with no sub-ability recorded: normally reachable only from
-		// a hand-built Ask (every real asking primitive sets ResumeSA). Two
+		// a hand-built Ask (every real asking primitive sets ResumeSA). Three
 		// deliberate exceptions need no Note either: a parked GainLife→Draw
-		// frame whose answer was applied above, and a replacement-order
+		// frame whose answer was applied above, an as-enters entry choice
+		// (resumeETBEntry has already re-emitted the entry this frame was
+		// parked on, so the continuation likewise begins at rp.outer), and a
+		// replacement-order
 		// decision — the intercepted event has already completed, and the
 		// continuation begins at rp.outer rather than re-running the effect
 		// that proposed it. The resolution still finishes — the object leaves
@@ -2722,6 +3054,12 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// An Updated ETB replacement has already completed the spell's move.
 		// Its answer resumes only the replacement body; there is no stack
 		// object to finish or priority round to create here.
+		//
+		// The suspended body may equally have been a fully-replaced entry that
+		// never puts the land on the battlefield: this re-entry posed no new
+		// ask (the nested-ask branch above returns), so the entry is done
+		// either way and the land play settles here.
+		e.settleLandPlayIfDone(rp.replaced)
 		return
 	}
 	if rp.outer != nil { // No nested ask this pass and the frame itself completed: continue
@@ -2870,6 +3208,17 @@ func (e *Engine) buildContinuationChain(frames []contFrame, obj state.ObjID, tai
 		if e.resume != nil {
 			f.targetControllerLKI = effects.CloneTargetControllerLKI(e.resume.targetControllerLKI)
 		}
+		// The same-resolution flip memory (Engine.Ask captured it off
+		// Engine.resolvingFlipMemory onto the pending point): a continuation
+		// frame of the same resolution carries the same shared pointer, so a
+		// resumed FlipCoin cursor re-entry (the "flip_rest" frame) and any
+		// chained Defined$ FlippedHeads / FlippedTails / Count$RememberedNumber
+		// reader in a later frame still see the flips performed before the
+		// suspension. The memory is mutated in place (effects.flipRecord), so a
+		// pointer copy — never a value clone — keeps every frame live.
+		if e.resume != nil {
+			f.flipMemory = e.resume.flipMemory
+		}
 		if e.replacingEvent != nil && e.replacingEvent.Kind == events.Damage {
 			f.replacementTarget = state.Target{Obj: e.replacingEvent.Obj}
 			if e.replacingEvent.Obj == 0 {
@@ -2890,6 +3239,12 @@ func (e *Engine) buildContinuationChain(frames []contFrame, obj state.ObjID, tai
 			f.kind, f.sa = "villainous_rest", sa
 			f.villainousVictims = append([]state.Target(nil), cf.villainousVictims...)
 			f.villainousIndex = cf.villainousIndex
+		} else if cf.flipRest {
+			// The FlipCoin re-enters ITSELF (rp.sa = the FlipCoin SA, not
+			// sa.Sub — a FlipCoin body has no SubAbility$ chain of its own to
+			// resume) with the flip cursor restored.
+			f.kind, f.sa = "flip_rest", sa
+			f.flipCursor = cf.flipCursor
 		} else if cf.repeat != nil {
 			f.kind, f.sa, f.repeat = "repeat", sa, cf.repeat
 			if cf.repeat.optional {
@@ -3040,6 +3395,11 @@ func (e *Engine) moveResolvedOffStack(o *state.Object) {
 	id := o.ID
 	if f := o.Face(); f != nil && f.IsPermanent() {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZBattlefield})
+		// An as-enters choice parks this move through the mid-resolution ask
+		// path. Keep the object on the stack until the answer re-emits it.
+		if e.pending != nil || e.resume != nil {
+			return
+		}
 		e.ensureLeftTheStack(id, spellRestZone(o), "an ETB replacement fully replaced this "+
 			"permanent's entry to the battlefield without moving it anywhere; sent to its "+
 			"resting zone instead of re-resolving forever")

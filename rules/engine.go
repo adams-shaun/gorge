@@ -466,6 +466,15 @@ type Engine struct {
 	// before a chained TokenOwner$ TargetedController resolves). Transient
 	// scratch: rebuilt identically by replay, nil outside a chain.
 	resolvingTargetControllerLKI map[state.ObjID]state.PlayerID
+	// resolvingFlipMemory is the coin-flip memory of the Resolve chain whose
+	// effect is CURRENTLY running, published by effects.Resolve (and by
+	// effFlipCoin when it lazily allocates the memory) through the optional
+	// Host.SetResolutionFlipMemory seam and restored on return. Ask captures it
+	// onto the pending resumePoint, so a resumed continuation re-attaches the
+	// SAME pointer and a chained Defined$ FlippedTails / Wins reader keeps
+	// every flip performed before the suspension. Transient scratch: rebuilt
+	// identically by replay, nil outside a chain or before any flip.
+	resolvingFlipMemory *effects.FlipMemory
 	// villainousRemembered is the victim of the VillainousChoice whose chosen
 	// body is CURRENTLY resolving, kept as ambient engine state for the
 	// duration of that body's effects.Resolve — the fusedResolving pattern.
@@ -541,9 +550,46 @@ type Engine struct {
 	// no event carries it. Never nil-checked on read outside recordAsk
 	// (which lazy-inits).
 	moveCounterAsk map[state.ObjID]*moveCounterPending
+	// aorAsk carries an AddOrRemoveCounter resolution's ANSWERED per-kind
+	// elections across the later suspensions of the same SA (the
+	// moveCounterAsk discipline — counterchoice1). An EachExistingCounter$
+	// walk (Dramatist's Puppet, Quarry Hauler) asks one add/remove election
+	// per counter kind; every resume builds a fresh Ctx, so without this map
+	// an already-answered PUT kind (whose counter count is still positive and
+	// therefore still enumerates) would be re-asked forever. rules/
+	// resolution.go's "aor_elect" arm records the answered kind here and the
+	// re-entry seeds it into Ctx.AorAnswered; the entry is deleted when the
+	// resolution completes. Decision-derived engine scratch, in the
+	// moveCounterAsk discipline: replay re-submits the recorded Intents
+	// through the same arms, so the map re-derives identically and no event
+	// carries it.
+	aorAsk map[state.ObjID]map[string]bool
 	// counterTypeAsk carries per-recipient comma-list PutCounter answers across
 	// suspensions. It is replay-derived engine scratch, never game state.
 	counterTypeAsk map[state.ObjID]*counterTypePending
+	// targetsPickAsk carries an ANSWERED generic ValidTgts$ pre-ask (the
+	// mvts1 "tgts" arm) across a LATER suspension of the same SA, for every
+	// API -- the general form of the moveCounterAsk cursor above, which
+	// solved exactly this for MoveCounter alone. chosenTargetsFor CONSUMES
+	// Ctx.TargetsPick before dispatching the body (fx42 scoping, so a nested
+	// SA cannot inherit it), and every resume builds a FRESH Ctx; so if the
+	// body then suspends on an ask of its own, the next resume re-enters the
+	// SA from its top with no answer, re-poses the pre-ask, and the two asks
+	// alternate forever. Kozilek's Command is the live carrier: its Charm
+	// picks DBScry alongside another targeting mode, so the stack object's
+	// one undivided target list is not DBScry's player, the pre-ask fires at
+	// resolution, and the Scry's own KArrange is the second ask that loops
+	// (arrange -> tgts -> arrange ...). Keyed by resolving stack object and
+	// then by the SA's Line -- ResolveSVar parses fresh on every call, so
+	// pointer identity never holds across a resume, the same matching
+	// convention charmModeTarget and chosenTargetsFor's OfferedSA check use.
+	// The per-SA key keeps one sub's answer off another sub's ask, and the
+	// entry is deleted when THAT SA's resolution completes so a later
+	// re-entry (a Repeat loop) asks afresh. Decision-derived engine scratch
+	// in the moveCounterAsk discipline: replay re-submits the recorded
+	// Intents through the same arm, so the map re-derives identically and no
+	// event carries it.
+	targetsPickAsk map[state.ObjID]map[string][]state.Target
 	// orderedTriggers is how many LEADING entries of pendingTriggers have
 	// already had their order settled by an answered KTriggerOrder decision
 	// (or, for a lone trigger, by there being nothing to decide). It is the
@@ -683,6 +729,19 @@ type Engine struct {
 	// cast holds the in-progress cast-flow state while choosing ==
 	// chooseCast (Task 9, rules/cast.go). Nil whenever no cast is mid-flow.
 	cast *pendingCast
+	// etbMove parks a battlefield entry while its as-enters choice is answered
+	// through the mid-resolution decision path. etbNext is the ordinal of the
+	// next choice on that entry; both are plain data so a clone at the decision
+	// boundary preserves the entry exactly.
+	etbMove *events.Event
+	etbNext int
+	// etbLandPlay identifies the land whose LandPlayed event must wait for its
+	// final battlefield entry. A replacement can suspend and later re-emit the
+	// move, so the object id is needed to avoid consuming this continuation on
+	// a different move the replacement body emits first.
+	etbLandPlay   bool
+	etbLandObj    state.ObjID
+	etbLandPlayer state.PlayerID
 	// riotMove parks a non-cast battlefield entry while its controller makes
 	// Riot's as-enters choice. The event is emitted only after Choose records
 	// the answer, so every entry path reaches events.Move with RiotChoice set.
@@ -1750,6 +1809,12 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		}
 	}
 	departingSource, departingSourceLifelink, departingSourceController := e.captureSourceLifelinkLKI(ev)
+	timeBefore := int32(0)
+	if ev.Kind == events.CounterChange && ev.Amount < 0 && ev.Counter == "TIME" {
+		if o := e.G.Obj(ev.Obj); o != nil {
+			timeBefore = o.Counter("TIME")
+		}
+	}
 	stackLen := len(e.G.Stack)
 	// Record only the final event after replacement selection. The object
 	// snapshot must precede Apply, and unknown adder provenance is not a
@@ -1770,6 +1835,20 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		}
 	}
 	stored := events.Emit(e.G, e.L, ev)
+	if ev.Kind == events.CounterChange && ev.Amount < 0 && ev.Counter == "TIME" && timeBefore > 0 {
+		// CR 702.62a/b (counterchoice1): the LAST time counter leaving a
+		// suspended card by ANY route — the upkeep tick or a Clockspinning/
+		// Amy-Pond-style removal mid-resolution — queues CR 702.62a's may-cast
+		// offer; startSuspendedCast drains the queue at the next step(). The
+		// ONE home replaces the upkeep tick's own append (which was the only
+		// emitter before): a counter removed mid-resolution used to strand a
+		// zero-TIME card in exile forever, because the tick skips a card
+		// already at zero and nothing else ever re-offered the cast.
+		if o := e.G.Obj(ev.Obj); o != nil && o.Zone == state.ZExile &&
+			(o.CastFlags&state.FlagSuspend != 0 || o.SuspendGranted) && o.Counter("TIME") == 0 {
+			e.suspendedCasts = append(e.suspendedCasts, ev.Obj)
+		}
+	}
 	// CR 702.90b (kw:Infect): the counters/poison an infect source's damage
 	// is dealt in the form of are placed HERE, as real events emitted
 	// through this same emit -- so the repl:AddCounter class (a Winding
@@ -2002,6 +2081,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// wanted set), this registers the transfers the live scan newly
 		// wants. Both are no-ops unless such a static is in play.
 		e.reconcileControlStatics()
+	}
+	if stored.Kind == events.MoveZone && stored.To == state.ZBattlefield {
+		e.finishLandPlay(stored.Obj)
 	}
 	return stored
 }

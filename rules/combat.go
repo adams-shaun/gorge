@@ -2427,19 +2427,18 @@ func (e *Engine) cleanupBody() {
 
 // chooseCleanup is the chooseFor the pending KChoose discard decision belongs
 // to (engine.go): it lets handleChoose route the answer to discardCleanup
-// rather than to a cast/etb/miracle flow or the no-flow Note fallback. It
-// extends the chooseFor enum in its own file, the same pattern Tasks 12 and
-// 18 used for chooseETB and chooseMiracle. iota+4 is pairwise distinct from
-// the shared package set chooseCast=1 / chooseETB=2 / chooseMiracle=3 (cast.
-// go); the exact numbers only need to differ, never to be adjacent.
+// rather than to a cast/miracle flow or the no-flow Note fallback. It
+// extends the chooseFor enum in its own file; iota+4 is pairwise distinct from
+// the shared package set chooseCast=1 / chooseMiracle=2 (cast.go). The exact
+// numbers only need to differ, never to be adjacent.
 const chooseCleanup chooseFor = iota + 4
 
 // chooseDamageDivision is the chooseFor for the combat damage step's
 // controller damage-division decision (CR 510.1c, Task jj-cmb F40): it lets
 // handleChoose route the KChoose answer to handleDamageDivision (combat.go)
-// rather than to a cast/etb flow or the no-flow Note fallback. Like
+// rather than to a cast/miracle flow or the no-flow Note fallback. Like
 // chooseCleanup, it extends the chooseFor enum in combat.go; iota+5 is
-// pairwise distinct from the shared package set (cast=1 / etb=2 / miracle=3 /
+// pairwise distinct from the shared package set (cast=1 / miracle=2 /
 // cleanup=4), and the exact numbers only need to differ.
 const chooseDamageDivision chooseFor = iota + 5
 

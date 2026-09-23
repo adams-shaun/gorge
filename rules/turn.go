@@ -75,9 +75,10 @@ func (e *Engine) finishEnteredStep() {
 				continue
 			}
 			e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "TIME", Amount: -1})
-			if o.Counter("TIME") == 0 {
-				e.suspendedCasts = append(e.suspendedCasts, id)
-			}
+			// The final-counter cast queue is fed by Engine.emit's own
+			// CounterChange hook (CR 702.62a/b — the one home every remover
+			// shares); no append here, or a tick-to-zero card would be queued
+			// twice and its may-cast offer re-posed after a decline.
 		}
 		if e.startSuspendedCast() {
 			return
@@ -1030,6 +1031,32 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		e.handleStation(e.stationing, chosen)
 		return
 	}
+	if e.choosing == chooseETBEntry {
+		// The entry-boundary ask was posed from inside emit (replacement.go's
+		// applyETBChoiceReplacement), so Engine.Ask parked whatever resolution
+		// that entry interrupted on this very decision. Take that frame BEFORE
+		// re-emitting the entry and hand it back afterwards: dropping it leaves
+		// the interrupted spell on the stack with nothing to finish it, and
+		// resolveTop then resolves it again from the top -- unbounded for an
+		// effect that re-selects the same card (Retether returning an Aura the
+		// CR 704.5m SBA sweeps straight back into the graveyard).
+		rp := e.resume
+		e.resume = nil
+		e.resumeETBEntry(chosen)
+		if e.resume != nil {
+			// The re-emitted entry asked again (a second as-enters choice on
+			// the same object, or a replacement body of its own). Chain the
+			// interrupted resolution behind the new frame so it still runs
+			// once the inner question is answered, exactly as a nested
+			// mid-resolution ask chains its outer continuation.
+			if rp != nil && e.resume.outer == nil {
+				e.resume.outer = rp
+			}
+			return
+		}
+		e.continueAfterETBEntry(rp)
+		return
+	}
 	// Every KChoose carrying a resume point is a mid-resolution effect ask,
 	// regardless of its ResumeKind (search, dig, imprint, untap selection,
 	// reveal-optional, defined-library-optional, ward windows, hand_move,
@@ -1201,21 +1228,6 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// resume: the offer comes from the turn structure, never from inside
 		// one, so e.drainAwaitsTarget is necessarily false here.
 		e.suspendCastAnswer(chosen)
-	case chooseETB:
-		// Task 12: an "as this enters" choice was answered. Record it on the
-		// card (etbAnswer, via a Choose event), then continue the flow -- the
-		// cast flow's next (or remaining) etb choice, then commitCast; for a
-		// land, commitCast moves it onto the battlefield. The drain resume is
-		// the same shape as the chooseCast case, for the same reason (a
-		// miracle cast whose own card also carried an as-enters choice would
-		// have paused here mid-drain).
-		e.etbAnswer(d, chosen)
-		e.continueCast()
-		if e.drainAwaitsTarget && e.Pending() == nil {
-			e.drainAwaitsTarget = false
-			e.resumeTriggerDrain()
-			return
-		}
 	case chooseCleanup:
 		// Task D1 (CR 514.1): the cleanup-step discard decision was answered.
 		// discardCleanup moves the chosen cards hand -> graveyard, runs the
