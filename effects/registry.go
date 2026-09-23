@@ -718,6 +718,16 @@ type Ctx struct {
 	// into rules. An effects test double whose Host does not implement
 	// nameTableHost leaves it nil and reads the printed face.
 	EffectiveNames []ObjectName
+	// EffectiveTypes is the layer-4 derived type table (AddTypes$,
+	// AddAllCreatureTypes$, RemoveCardTypes$, the CR 708.5 face-down set) in
+	// force on the battlefield, published alongside EffectiveNames and bound
+	// onto every SpecContext (*Ctx).SpecContext builds. It is immutable DATA
+	// -- the same shape SpecContext.DerivedTypes already uses -- so a
+	// resolving effect's target offer, Count$Valid census or other filter
+	// sees a type a continuous effect granted, without a pointer from
+	// state.Game into rules. An effects test double whose Host does not
+	// implement typeTableHost leaves it nil and reads the printed face.
+	EffectiveTypes []ObjectTypes
 	Targets        []state.Target
 	// ModeTargets carries the target groups selected for a distinct modal
 	// Charm. Each entry is in target-bearing mode order; nil means the
@@ -2062,6 +2072,18 @@ type nameTableHost interface {
 	EffectiveNames() []ObjectName
 }
 
+// typeTableHost is implemented by the rules engine to publish its current
+// layer-4 derived type table (CR 613.1d/613.1c) as immutable data, alongside
+// the rename table. Resolve reads it once at the top of every walk and binds
+// it on the resolving Ctx, so every filter call a resolving effect makes
+// through (*Ctx).SpecContext -- and every direct Ctx.EffectiveTypes read --
+// agrees with rules' layer walk instead of the printed face. Optional, like
+// nameTableHost, so the effects test doubles stay small and a double with no
+// derived types reads the printed face.
+type typeTableHost interface {
+	EffectiveTypes() []ObjectTypes
+}
+
 func Resolve(h Host, c *Ctx, sa *cards.SA) {
 	// Publish this walk's Effect-created registration frame (set by rules'
 	// seedEffectReplCtx on an api:Effect replacement's body Ctx) for the whole
@@ -2103,6 +2125,14 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 			// published by an earlier rules engine leak into this walk.
 			c.EffectiveNames = nil
 		}
+		// The layer-4 derived type table, the type counterpart of the rename
+		// table above: a resolving effect's ordinary filter reads it so a
+		// target offer/Count$Valid agrees with the layer walk.
+		if th, ok := h.(typeTableHost); ok {
+			c.EffectiveTypes = th.EffectiveTypes()
+		} else {
+			c.EffectiveTypes = nil
+		}
 		c.numericRHS = c.X != 0 || len(c.SVars) > 0
 		// Capture target controllers before the first effect can move a target.
 		// Keep an existing map on re-entry: it is the earlier battlefield state,
@@ -2143,6 +2173,9 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 		// Resolve entry, so the next body's filters see the current snapshot.
 		if nh, ok := h.(nameTableHost); ok {
 			c.EffectiveNames = nh.EffectiveNames()
+		}
+		if th, ok := h.(typeTableHost); ok {
+			c.EffectiveTypes = th.EffectiveTypes()
 		}
 		// Condition* gate (task fb-3f1cc033): a sub whose supported condition
 		// is evaluated and not met is skipped and the chain continues — the

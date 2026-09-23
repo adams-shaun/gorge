@@ -197,6 +197,18 @@ type pendingCast struct {
 	escalateSet   bool
 	escalateDone  bool
 
+	// striveParam is the raw Strive keyword parameter (CR 702.52, "this
+	// spell costs <cost> more for each target beyond the first"). Strive
+	// rides the plain cast (no separate option): the payment count is the
+	// chosen target count minus one, known only after CR 601.2c, so
+	// repriceForTargets folds it into pc.cost there and striveUnits tracks
+	// how many payments are already priced (the ownReduce delta shape),
+	// making the fold idempotent across repriceForTargets' re-entries.
+	// Plain data, so Clone copies it like the escalate fields above.
+	striveParam string
+	striveSet   bool
+	striveUnits int32
+
 	// Mutate (CR 702.140b): mutateTop is the answered over/under placement
 	// choice and mutatePlaceDone marks the one ask already posed. Plain data,
 	// so Clone copies them like the replicate/multikick fields above.
@@ -2157,6 +2169,15 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// mode-blind.
 	if s, ok := f.KeywordParam("Escalate"); ok && strings.TrimSpace(s) != "" {
 		e.cast.escalateParam, e.cast.escalateSet = s, true
+	}
+
+	// Strive (CR 702.52, "this spell costs <cost> more for each target
+	// beyond the first"): the same raw-parameter capture as Escalate. Strive
+	// rides the plain cast (no separate option exists): the CR 601.2c target
+	// answer's chosen count is what prices it, so repriceForTargets folds it
+	// into pc.cost once the targets are known.
+	if s, ok := f.KeywordParam("Strive"); ok && strings.TrimSpace(s) != "" {
+		e.cast.striveParam, e.cast.striveSet = s, true
 	}
 
 	// kw:MayFlashSac (CR 702.8): capture the rider's condition now, before
@@ -4816,6 +4837,14 @@ func (e *Engine) repriceForTargets(pc *pendingCast) {
 	if o == nil || o.Face() == nil {
 		return
 	}
+	// Strive (CR 702.52a): the per-extra-target additional cost is priced
+	// here, the same post-601.2c pre-601.2h seam the modifier refresh below
+	// owns, because the payment count (targets minus one) exists only once
+	// the target answer is in. Spell-only: an activated ability's face
+	// carries no Strive and pc.targets means something else on that path.
+	if !pc.isAbility() && pc.striveSet {
+		e.foldStriveCost(pc, o.Face())
+	}
 	scope := spellScope(pc.mode)
 	if ab := e.pcAbility(pc); ab != nil {
 		scope = abilityScope(ab)
@@ -4836,6 +4865,44 @@ func (e *Engine) repriceForTargets(pc *pendingCast) {
 		}
 	}
 	pc.mods = e.costModifiersForTargets(pc.player, pc.card, scope, pc.targets)
+}
+
+// foldStriveCost prices the Strive keyword's per-extra-target additional
+// cost (CR 702.52, "this spell costs <cost> more for each target beyond the
+// first") into pc.cost now that CR 601.2c's answer is known. The count is
+// len(pc.targets)-1; striveUnits records how many payments are already
+// folded, so a re-entry (a sub-ask answer re-runs repriceForTargets, the
+// ownReduce delta shape) is an exact delta and never double-charges. An
+// unpriceable parameter (ParseCost's degraded Unknown tokens) is a loud
+// Note and no charge (the escalate convention), never a fabricated generic.
+// Targets only grow across the flow's re-entries, so a shrinking want is
+// unreachable; it is clamped to no-op rather than refunded.
+func (e *Engine) foldStriveCost(pc *pendingCast, f *cards.Face) {
+	// A stale proposal whose face no longer carries the keyword charges
+	// nothing rather than reading the last captured parameter blindly.
+	if _, ok := f.KeywordParam("Strive"); !ok {
+		return
+	}
+	want := int32(len(pc.targets)) - 1
+	if want < 0 {
+		want = 0
+	}
+	if want == pc.striveUnits {
+		return
+	}
+	sc := ParseCost(pc.striveParam)
+	if len(sc.Unknown) > 0 {
+		if want > pc.striveUnits {
+			e.emit(events.Event{Kind: events.Note, Player: pc.player, Obj: pc.card,
+				Text: "strive cost unpriceable; casting without the strive charge"})
+		}
+		pc.striveUnits = want
+		return
+	}
+	for i := pc.striveUnits; i < want; i++ {
+		pc.cost = pc.cost.Plus(sc)
+	}
+	pc.striveUnits = want
 }
 
 // targetDependentCostMayPay is targetAsk's pre-payment exception: before a
@@ -8367,6 +8434,16 @@ func init() {
 		// never offered. All 9 corpus carriers parse (7 plain mana,
 		// tapXType<1/Creature> and Discard<1/Card>).
 		"kw:Escalate",
+		// kw:Strive: CR 702.52, the mandatory additional cost "this spell
+		// costs <cost> more for each target beyond the first" -- read directly
+		// off the K: line by beginCast's capture (no keyword expansion; the
+		// plain cast is the only way in) and priced by repriceForTargets once
+		// the CR 601.2c target answer is in, folded into pc.cost so the mana
+		// window and the payment charge the composed total. The per-extra
+		// count is delta-tracked on pendingCast.striveUnits, so the fold is
+		// idempotent across repriceForTargets' re-entries. Proof:
+		// rules/strive_test.go.
+		"kw:Strive",
 		// kw:Escape: CR 702.135, the graveyard cast with its exile cost, read
 		// off the K: line by derivedKeywordParam and gated in legal.go's
 		// cast walk -- proved by TestUnderworldBreachGrantsEscapeAndTheEscape
