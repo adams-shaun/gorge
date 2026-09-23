@@ -3546,3 +3546,22 @@ merged content. Set `knownApproximationRows = 34` with a comment recording the m
 None new — integration only. The only non-merge-commit edit is the ratchet constant and
 its comment; the register shrinks 38 → 34 in the merged state, with all four closures
 preserved. No engine behaviour was changed by the resolution itself.
+
+### Resolver re-confirmation (2026-09-23)
+
+This fresh resolver invocation found no active rebase/merge and a clean tree;
+the reported conflict had already been resolved and committed as `362e54d0`,
+with its report commit `6dc57239`. `122a388c` (the main tip named in that
+integration record) is an ancestor of HEAD. The shared `main` ref has since
+advanced to `a347d4130`; this re-confirmation did not start a second integration
+because the dispatched conflict was the already-completed integration at
+`122a388c`.
+
+- `git status`: `On branch wt/cli-20260922T225142Z-9630515c`; nothing to commit,
+  working tree clean.
+- `ls .cards | head`: `cards.lock`, `cardsfolder`, `ir.gob.gz`, `ir.v4.gob.gz`,
+  `tokenscripts` (corpus present).
+- `go test ./internal/testutil -run 'TestKnownApproximation'`:
+  `ok github.com/adams-shaun/gorge/internal/testutil 0.001s`.
+- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`:
+  `ok github.com/adams-shaun/gorge/rules 0.866s`.
