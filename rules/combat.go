@@ -398,6 +398,17 @@ func (e *Engine) canBlock(blocker, attacker state.ObjID) bool {
 	if e.HasKeyword(attacker, "Flying") && !e.HasKeyword(blocker, "Flying") && !e.HasKeyword(blocker, "Reach") {
 		return false
 	}
+	// CR 702.14: a creature with landwalk can't be blocked as long as the
+	// defending player controls a land of the specified type. Unlike Shadow
+	// or Horsemanship, this is not a blocker-keyword comparison at all: the
+	// gate reads the DEFENDER's controlled lands, via the same real
+	// characteristic filter (land subtypes, supertypes, nonBasic) the rest of
+	// the engine uses. Attacker-keyed and per-pair; checked here where every
+	// other can't-block rule lives so the ask's options and the validator's
+	// recompute share one oracle.
+	if e.landwalkEvades(attacker) {
+		return false
+	}
 	// CR 702.110a: a creature with skulk can't be blocked by creatures with
 	// greater power. Attacker-keyed and per-pair like Fear/Shadow; DERIVED
 	// power, never printed PT (a +1/+1'd or pumped blocker's real power is
@@ -411,6 +422,76 @@ func (e *Engine) canBlock(blocker, attacker state.ObjID) bool {
 		return false
 	}
 	return true
+}
+
+// landwalkSpec returns the land filter a single keyword line names when that
+// line is a `Landwalk` keyword, and false for any other keyword. Forge spells
+// the parameter as the filter over the defending player's lands that makes the
+// creature unblockable (`Landwalk:Island`, `Landwalk:Swamp.Snow`,
+// `Landwalk:Land.Legendary`, `Landwalk:Land.nonBasic`, `Landwalk:Desert`). A
+// second colon introduces the human-readable description Forge carries
+// (`Landwalk:Land.Snow:snow Land`) and is NOT part of the spec; a line with no
+// parameter yields the empty spec, which the caller treats as no evasion
+// rather than as a universal one.
+func landwalkSpec(k string) (string, bool) {
+	if !strings.EqualFold(cardsKeywordHead(k), "Landwalk") {
+		return "", false
+	}
+	i := strings.IndexByte(k, ':')
+	if i < 0 {
+		return "", true
+	}
+	spec := k[i+1:]
+	if j := strings.IndexByte(spec, ':'); j >= 0 {
+		spec = spec[:j]
+	}
+	return strings.TrimSpace(spec), true
+}
+
+// landwalkEvades reports whether attacker carries a Landwalk keyword whose
+// land filter matches at least one land the defending player controls
+// (CR 702.14). The defending player is the seat the attacker was declared
+// against (state.Object.Attacking, which canBlock already pairs the blocker to).
+//
+// The filter is evaluated with the engine's ordinary land characteristics --
+// layer-4 derived types and supertypes, so a type-changing effect (Yavimaya,
+// Cradle of Growth making every land a Forest) is honoured, not the printed
+// name alone. Matching goes through effects.MatchesSpecCtx: the parameter is a
+// complete Forge filter spec, whose base carries the land subtype (`Island`,
+// `Swamp.Snow`) or `Land` with a supertype/qualifier predicate
+// (`Land.Legendary`, `Land.nonBasic`, `Land.Snow`). The SpecContext binds the
+// layer-4 derived-type table the way every other live-object rules read does
+// (see specCtx in statics.go), so a granted land type matches too. An empty or
+// unrecognised parameter fails CLOSED -- the spec matches no land, so the
+// creature stays ordinarily blockable rather than becoming universally
+// unblockable. Walk order is the defender's deterministic battlefield zone
+// slice, never a map.
+func (e *Engine) landwalkEvades(attacker state.ObjID) bool {
+	a := e.G.Obj(attacker)
+	if a == nil {
+		return false
+	}
+	defender := a.Attacking
+	// Keep the layer-4 table in step with the board before reading it (a
+	// direct AddObject placement in a fixture emits nothing, so the epoch guard
+	// inside would otherwise stay a stale cache hit). Gated so a match with no
+	// type-changing carrier pays one branch.
+	if e.layer4InPool {
+		e.refreshDerivedTypes()
+	}
+	sc := effects.SpecContext{You: defender, Source: attacker, DerivedTypes: e.layer4Types}
+	for _, k := range e.Derived(attacker).Keywords {
+		spec, isLandwalk := landwalkSpec(k)
+		if !isLandwalk || spec == "" {
+			continue
+		}
+		for _, land := range e.G.Zone(state.ZBattlefield, defender) {
+			if effects.MatchesSpecCtx(e.G, spec, land, sc) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // askAttackers builds a KAttackers decision, one option per (attacker,
@@ -2954,6 +3035,12 @@ func init() {
 		"kw:Infect", "kw:Wither",
 		"kw:Flash", "kw:Indestructible", "kw:Devoid", "kw:Defender", "kw:Menace",
 		"kw:Fear", "kw:Shadow", "kw:Horsemanship", "kw:Skulk",
+		// kw:Landwalk (CR 702.14): a walker can't be blocked while the
+		// defending player controls a land of the named type. The family is
+		// read directly in canBlock/landwalkEvades against the defender's
+		// controlled lands, including the nonbasic/legendary/snow qualifier
+		// forms the corpus spells. Proof test: TestLandwalkEvadesDefenderLands.
+		"kw:Landwalk",
 		// kw:Toxic (CR 702.164) is a static ability rules reads directly, the
 		// way it reads Deathtouch/Lifelink: the poison instruction rides the
 		// player branch of runCombatAssignments, reading the N off the
