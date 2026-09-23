@@ -216,7 +216,7 @@ func (e *Engine) blockPayAnswer(d *decision.Decision, in decision.Intent) {
 	if len(chosen) == 1 {
 		for _, s := range e.attackManaSources(st.player) {
 			if s.id == chosen[0].Obj {
-				e.resolveManaAbilityRef(st.player, s.id, s.ma, s.gained, false, false, false)
+				e.resolveManaAbilityRefOriginal(st.player, s.id, s.ma, s.original, s.gained, false, false, false)
 				break
 			}
 		}
@@ -241,17 +241,16 @@ func (e *Engine) blockPayAnswer(d *decision.Decision, in decision.Intent) {
 // may tap, with the units its single free mana ability produces.
 type attackManaSource struct {
 	id state.ObjID
-	// ma is the EXACT ability resolveManaAbilityRef will resolve -- the
-	// source's single free window-usable mana ability, with a choice-shaped
-	// Produced$ already pinned to one concrete colour -- so the activation
-	// poses no chooseMana or colour sub-ask and adds exactly units.
+	// ma is the EXACT ability the window resolves, with a choice-shaped
+	// Produced$ already pinned to one concrete colour so the activation poses
+	// no colour sub-ask and adds exactly units.
 	ma *cards.SA
-	// gained is ma's gained-ability identity, captured BEFORE the Produced$
-	// rewrite above: gainedManaRefFor matches on the ORIGINAL compiled
-	// pointer, so re-deriving it from the rewritten copy would lose a granted
-	// ability's identity (the SVar face its Amount$ resolves against, and the
-	// ActivationLimit marker). Same reason answerManaActivation threads a
-	// precomputed ref into resolveManaAbilityRef.
+	// original is the source pile's compiled ability. ma can be an immutable
+	// Produced$ rewrite, but activation-limit markers must retain original's
+	// pile identity.
+	original *cards.SA
+	// gained is the ability's gained-ability identity, captured from original
+	// before a Produced$ rewrite.
 	gained gainedManaRef
 	units  int32
 }
@@ -303,7 +302,19 @@ func (e *Engine) attackManaSources(p state.PlayerID) []attackManaSource {
 		if amt <= 0 {
 			continue
 		}
-		counts, choice := cards.ProducedCounts(ma.Params["Produced"])
+		// Chosen is an as-enters read. Substitute it before parsing so a
+		// Combo R Chosen land recorded as G has only R/G slots, never the
+		// raw parser's source-agnostic WUBRG superset. Without a valid record
+		// it cannot produce a colour and stays out of this payment window.
+		produced := strings.TrimSpace(ma.Params["Produced"])
+		if producedNeedsChosen(produced) {
+			chosen := e.chosenProducedColour(id)
+			if chosen == "" {
+				continue
+			}
+			produced = substituteChosenProduced(produced, chosen)
+		}
+		counts, choice := cards.ProducedCounts(produced)
 		units := int32(0)
 		if choice {
 			// A choice-shaped production produces exactly ONE unit of mana
@@ -343,10 +354,10 @@ func (e *Engine) attackManaSources(p state.PlayerID) []attackManaSource {
 			// and poses no sub-ask. The gained identity is captured before the
 			// rewrite, which changes the SA pointer.
 			gained := e.gainedManaRefFor(p, id, ma)
-			out = append(out, attackManaSource{id: id, ma: withProduced(ma, ma, oneColourProduced(counts)), gained: gained, units: units})
+			out = append(out, attackManaSource{id: id, ma: withProduced(ma, ma, oneColourProduced(counts)), original: ma, gained: gained, units: units})
 			continue
 		}
-		out = append(out, attackManaSource{id: id, ma: ma, units: units})
+		out = append(out, attackManaSource{id: id, ma: ma, original: ma, gained: e.gainedManaRefFor(p, id, ma), units: units})
 	}
 	return out
 }
@@ -357,6 +368,18 @@ func (e *Engine) attackManaSources(p state.PlayerID) []attackManaSource {
 // R-9) and colourless only when no colour is on offer, so a blank ability's
 // one colourless unit round-trips to "C". The caller has already established
 // at least one non-zero slot.
+// producedNeedsChosen reports whether a Produced$ grammar token needs the
+// source's recorded as-enters colour before it can be priced.
+func producedNeedsChosen(produced string) bool {
+	for _, tok := range strings.Fields(produced) {
+		switch strings.Trim(tok, "{}") {
+		case "Chosen", "ChosenColor", "ComboChosen":
+			return true
+		}
+	}
+	return false
+}
+
 func oneColourProduced(counts [6]int32) string {
 	for i := range counts {
 		if counts[i] > 0 {
@@ -571,7 +594,7 @@ func (e *Engine) attackPayAnswer(d *decision.Decision, in decision.Intent) {
 			if s.id != chosen[0].Obj {
 				continue
 			}
-			e.resolveManaAbilityRef(st.player, s.id, s.ma, s.gained, false, false, false)
+			e.resolveManaAbilityRefOriginal(st.player, s.id, s.ma, s.original, s.gained, false, false, false)
 			break
 		}
 	}

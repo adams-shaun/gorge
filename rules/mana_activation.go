@@ -1227,6 +1227,14 @@ func (e *Engine) gainedManaRefFor(p state.PlayerID, source state.ObjID, sa *card
 // resolveManaAbilityRef is resolveManaAbility with the gained identity
 // already known (answerManaActivation captured it before rewriting the SA).
 func (e *Engine) resolveManaAbilityRef(p state.PlayerID, source state.ObjID, ma *cards.SA, gained gainedManaRef, cast, payment, interactive bool) {
+	e.resolveManaAbilityRefOriginal(p, source, ma, ma, gained, cast, payment, interactive)
+}
+
+// resolveManaAbilityRefOriginal resolves ma while retaining original's printed
+// identity for activation-limit markers. Colour choices rewrite ma's Produced$
+// on an immutable copy, but the limit census is keyed to the compiled ability
+// in the source pile, not that copy.
+func (e *Engine) resolveManaAbilityRefOriginal(p state.PlayerID, source state.ObjID, ma, original *cards.SA, gained gainedManaRef, cast, payment, interactive bool) {
 	if !e.manaAbilityPayable(p, source, ma) {
 		return
 	}
@@ -1245,12 +1253,13 @@ func (e *Engine) resolveManaAbilityRef(p state.PlayerID, source state.ObjID, ma 
 	// attribution, so an ability that carries EITHER limit records its
 	// activation here (events.ManaActivate's own comment). Emitted only for a
 	// limit-bearing ability so no existing game's log shape changes.
-	if _, limited := ma.Params["ActivationLimit"]; limited || ma.Params["GameActivationLimit"] != "" {
+	if _, limited := original.Params["ActivationLimit"]; limited || original.Params["GameActivationLimit"] != "" {
 		// The flat pile index (top face first, then under-cards) is the SAME
 		// identity availableManaAbilitiesUsing's limit gate checks, so an
 		// under-card mana ability's census cannot be counted against a
-		// top-face ability.
-		if idx, _, found := pileAbilityRefOf(e.G.Obj(source), ma); found {
+		// top-face ability. original keeps that identity when ma is a
+		// colour-pinned immutable copy.
+		if idx, _, found := pileAbilityRefOf(e.G.Obj(source), original); found {
 			e.emit(events.Event{Kind: events.ManaActivate, Player: p, Obj: source, Amount: int32(idx)})
 		}
 	}
@@ -1665,7 +1674,7 @@ func (e *Engine) answerManaActivation(chosen []decision.Option) bool {
 				// top-level abilities; granted and static-granted ones
 				// come from ResolveSVar bodies), so head == target copies
 				// the whole Sub chain with Produced$ rewritten.
-				e.resolveManaAbilityRef(ma.player, ma.source, withProduced(ab, ab, color), gained, ma.cast, ma.cumulative, true)
+				e.resolveManaAbilityRefOriginal(ma.player, ma.source, withProduced(ab, ab, color), ab, gained, ma.cast, ma.cumulative, true)
 				return ma.cast
 			}
 		}

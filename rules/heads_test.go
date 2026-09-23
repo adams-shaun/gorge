@@ -989,7 +989,12 @@ var acceptanceHeads = map[int]string{
 	// change sets present the measured head is e7cffb892a152493 -- each cause was
 	// measured on its own side above; both are bot-visible stream changes in
 	// the same golden games, so the merged head is neither side's value.
-	4: "e7cffb892a152493",
+	// Resolution-time mana colour choice (cli-20260922T225137Z-c670f42d): 4
+	// seats moves to 049bd58a7b940fbc. Mana effects that previously recorded
+	// the R-9 colourless ManaAdd.Counter now ask and record the bot's selected
+	// WUBRG counter; that intentional event payload change is the first stream
+	// difference and changes the downstream deterministic game.
+	4: "049bd58a7b940fbc",
 	// 6 seats moved to c8c36b87e598c090 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
@@ -1253,7 +1258,12 @@ var acceptanceHeads = map[int]string{
 	// and the recorded ask label is the sole first difference; the bot's
 	// later trajectory follows from the changed log. Attributed by the same
 	// scratch revert, which returns this head to b14f1fc52a6835ed.
-	8: "7c9dbf608ada58b3",
+	// Resolution-time mana colour choice (cli-20260922T225137Z-c670f42d): 8
+	// seats moves to 8657a61fc80a8576. The real colour decision replaces the
+	// former colourless ManaAdd.Counter stand-in; its selected WUBRG counter
+	// is an intentional event payload difference and changes the deterministic
+	// downstream game.
+	8: "8657a61fc80a8576",
 }
 
 func TestHeads(t *testing.T) {

@@ -151,11 +151,11 @@ export interface Printing {
    * colour string: "Any"/"Combo Any", a listed "Combo X Y" choice, or a
    * "Chosen"/"Special" word (any token the symbol grammar cannot read). Such a
    * source is conditional in the card script, so a policy must not treat it as
-   * a dependable colour fixer. Colour carries only what a plain token names:
-   * the colour letters the token lists (one each for "R G", two for "RR"),
-   * never a phantom count for the words themselves -- an unrecognised token
-   * such as "Chosen" or "ColorIdentity" claims no mana at all (ProducedCounts),
-   * matching effMana's fail-closed executor convention.
+   * a dependable colour fixer. Colour carries what a plain token names (one each
+   * for "R G", two for "RR") and the real alternatives of a choice token. It
+   * never counts letters of script words as phantom mana: Chosen is represented
+   * by all five possible colours because its source-specific choice is not
+   * available to this source-free parser.
    */
 export interface ManaProduction {
   colour: [number, number, number, number, number, number];
