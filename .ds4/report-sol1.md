@@ -677,3 +677,66 @@ The true-gate case depends on the same exemption insertion as the five Council t
 ## Issues
 
 No outstanding defect identified in this ticket; no new ticket or Known-approximations row added. The sol1 finding was report-file integration, not an engine failure.
+
+---
+
+# replcensus1 — ReplaceDamage census-token fix round (agent-20260919T055356Z-504b1359)
+
+STATUS: DONE. Rebased this worktree onto `main` before continuing; the working tree was clean, so no preliminary commit was needed. `.cards` was already present as a symlink to `/home/sadams/projects/gorge/.cards`.
+
+## Changes and finding resolution
+
+- `rules/replacement.go` (existing implementation commit `6fcf1fcd`): registers only the `api:ReplaceDamage` census token in `RegisterNonAPI`, with a comment pointing to `applyReplaceDamageBody`, which already handles the replacement inline. No prevention behavior changed and no dead effects handler was added.
+- `rules/replacedamage_registration_test.go` (same commit): pins `effects.Supported()` and a real Heart-Shaped Herb corpus carrier's primitive and Unsupported result. These assertions fail without the registration, not merely when the corpus card is absent.
+- `.ds4/report-t1.md` (this fix round): **MAJOR finding fixed**. The prior report commit inadvertently deleted 1,941 lines of other tickets' report history. Restored the entire 2,162-line `main` version byte-for-byte and appended this ticket's 172-line round-1 report. `git diff main -- .ds4/report-t1.md` now shows insertions only, after the old final line. No unrelated historical record was removed. `.ds4/report-t2.md` remains an append-only 207-line change; `.ds4/report-sol1.md` is append-only too.
+
+No heads/ratchet movement is expected from this registration; `rules/heads_test.go` and `rules/acceptance_test.go` were not edited. Neither was run here (daemon gates). The botbench byte-identity gate passed. Deviation from the original brief: tests live in a new file rather than `rules/coverage_test.go`, per dispatch's later explicit new-test-file rule. `make report` was not run, as directed.
+
+## Gates (actual output on rebased tree)
+
+`go test -v -run 'TestReplaceDamage|TestDamageReplacementSupportedBodyFamilies|TestBattletideAlchemist|TestThunderstaff|TestSpiderPunk' ./rules/ > .ds4/scratch/sol1-rules.log 2>&1` (exit 0; output excerpt):
+
+```text
+=== RUN   TestReplaceDamagePrimitiveIsRegistered
+--- PASS: TestReplaceDamagePrimitiveIsRegistered (0.00s)
+=== RUN   TestReplaceDamageCarrierHasNoGap
+--- PASS: TestReplaceDamageCarrierHasNoGap (0.61s)
+--- PASS: TestBattletideAlchemistAsksItsControllerAndPreventsClerics (0.00s)
+--- PASS: TestThunderstaffPreventsExactlyItsAmount (0.00s)
+--- PASS: TestSpiderPunkStopsReplaceDamagePreventionBodies (0.00s)
+--- PASS: TestDamageReplacementSupportedBodyFamilies (0.00s)
+PASS
+ok  	github.com/adams-shaun/gorge/rules	0.654s
+```
+
+`go test ./internal/archtest/ > .ds4/scratch/sol1-arch.log 2>&1` (exit 0):
+
+```text
+ok  	github.com/adams-shaun/gorge/internal/archtest	4.487s
+```
+
+`go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ > .ds4/scratch/sol1-botbench.log 2>&1` (exit 0):
+
+```text
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.514s
+```
+
+`gofmt -l rules/replacement.go rules/replacedamage_registration_test.go` and `git diff --check`: no output.
+
+## Fails without the fix
+
+Copied `rules/replacement.go` to `.ds4/scratch/sol1-replacement.go.saved`, removed **only** its registration/comment, ran `go test -run 'TestReplaceDamage' ./rules/ > .ds4/scratch/sol1-without-fix.log 2>&1` (exit 1), restored the original file and verified with `cmp` (`RESTORED BYTE-IDENTICAL`):
+
+```text
+--- FAIL: TestReplaceDamagePrimitiveIsRegistered (0.00s)
+    replacedamage_registration_test.go:21: effects.Supported() is missing "api:ReplaceDamage"
+--- FAIL: TestReplaceDamageCarrierHasNoGap (0.68s)
+    replacedamage_registration_test.go:38: Heart-Shaped Herb still reports api:ReplaceDamage unsupported: [api:ReplaceDamage]
+FAIL
+FAIL	github.com/adams-shaun/gorge/rules	0.693s
+FAIL
+```
+
+## Issues
+
+No new defects found. The five carriers with additional real gaps (`api:StoreSVar`, `api:Abandon`, `api:ControlPlayer`/`api:DamageResolve`/`api:SetLife`) remain outside this census-only ticket; no new CR-lane issue identified.
