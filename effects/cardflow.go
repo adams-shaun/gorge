@@ -2894,6 +2894,8 @@ func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, n int32, kind, verb string,
 	if c.Arrange {
 		start = c.LibraryTarget + 1
 		c.Arrange = false
+	} else if c.ScryReplacement {
+		start = c.LibraryTarget
 	}
 	if n < 0 {
 		n = 0
@@ -2934,13 +2936,19 @@ func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, n int32, kind, verb string,
 			k += extraOf(p)
 		}
 		if verb == "Scry" {
-			// CR 614.4: a "would scry" replacement applies BEFORE any card is
-			// looked at. Host.Scry applies R:Event$ Scry to the proposed
-			// instruction and returns its final count, or proceed=false when a
-			// replacement replaced the whole scry (Eligeth draws instead) -- in
-			// which case nothing is looked at and no arrangement is posed.
-			var proceed bool
-			k, proceed = h.Scry(p, c.Source, k)
+			// The order choice parks the proposal before inspecting the library.
+			// On re-entry consume its result once rather than replacing it again.
+			proceed := true
+			if c.ScryReplacement && c.LibraryTarget == targetIndex {
+				k, proceed = c.ScryCount, c.ScryProceed
+				c.ScryReplacement = false
+			} else {
+				var pending bool
+				k, proceed, pending = h.Scry(p, c.Source, k, sa, targetIndex)
+				if pending {
+					return
+				}
+			}
 			if !proceed {
 				continue
 			}

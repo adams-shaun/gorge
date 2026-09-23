@@ -985,6 +985,10 @@ type Engine struct {
 	// competitions. Plain value entries are deep-copied by
 	// Clone, so every in-flight event survives an intent boundary.
 	replChoices []replChoice
+	// Synchronous Scry proposal's continuation identity (never carried across
+	// a decision: the parked resume point owns its SA and target).
+	scrySA     *cards.SA
+	scryTarget int
 	// untapResume is set only around one Untap emission from finishUntapStep.
 	// If that event parks an Untap replacement choice, it moves into the queue.
 	untapResume *untapStep

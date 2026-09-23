@@ -181,7 +181,7 @@ type Host interface {
 	// Rules-implemented because replacement matching lives in the rules tier;
 	// the effects test double reports (count, true) unchanged (no engine to
 	// consult).
-	Scry(p state.PlayerID, source state.ObjID, count int32) (int32, bool)
+	Scry(p state.PlayerID, source state.ObjID, count int32, sa *cards.SA, target int) (countAfter int32, proceed, pending bool)
 	// RememberExploitedLKI publishes the last-known-information snapshot of
 	// one creature a resolving exploit ability just sacrificed (CR 702.58a).
 	// The events.Exploit marker names the exploited creature by id, but Move
@@ -1558,6 +1558,12 @@ type Ctx struct {
 	// applied by the rules handler, unlike Modes/UnlessPay/Discard where the
 	// effect re-reads the answer -- so the field is only a done-marker.
 	Arrange bool
+	// ScryReplacement is the completed CR 616 order choice for this target.
+	// Its count/proceed result is consumed once on re-entry, without proposing
+	// the same instruction a second time.
+	ScryReplacement bool
+	ScryCount       int32
+	ScryProceed     bool
 	// ArrangeTarget is the Defined$-target index whose arrange was the one
 	// answered, carried only for a Dig (whose effDig walks several Defined$
 	// targets and must keep the deterministic processing for the ones after

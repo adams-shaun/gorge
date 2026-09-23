@@ -259,8 +259,8 @@ func (h *fakeHost) ExploreReplaced(explorer state.ObjID) bool { return false }
 // Scry has no replacement registry to consult here, the same discipline as
 // ExploreReplaced above: the double reports the instruction unchanged so an
 // effects-level scry test keeps the base count.
-func (h *fakeHost) Scry(p state.PlayerID, source state.ObjID, count int32) (int32, bool) {
-	return count, true
+func (h *fakeHost) Scry(p state.PlayerID, source state.ObjID, count int32, sa *cards.SA, target int) (int32, bool, bool) {
+	return count, true, false
 }
 
 // RememberExploitedLKI records the snapshot so an effects-level test can see
