@@ -1812,11 +1812,12 @@ func charmTargetSlots(svars map[string]string, root *cards.SA, modes []string) [
 // modes, Decision.Validate therefore requires exactly one target from every
 // mode's own candidate set. The explicit single-target shape is intentional:
 // it is the independently-targeted Charm family and leaves multi-target and
-// repeatable declarations on their existing paths.
-func (e *Engine) askCharmModeTargets(p state.PlayerID, source state.ObjID, svars map[string]string, root *cards.SA, modes []string) bool {
+// repeatable declarations on their existing paths. infeasible means a mandatory
+// mode has no legal target: callers must not fall back to the first-mode ask.
+func (e *Engine) askCharmModeTargets(p state.PlayerID, source state.ObjID, svars map[string]string, root *cards.SA, modes []string) (asked, infeasible bool) {
 	slots := charmTargetSlots(svars, root, modes)
 	if len(slots) < 2 {
-		return false
+		return false, false
 	}
 	choices := strings.Split(root.Params["Choices"], ",")
 	if status, _ := effects.CharmCrossModeShape(svars, choices); status != effects.CharmUniqueNone {
@@ -1824,7 +1825,7 @@ func (e *Engine) askCharmModeTargets(p state.PlayerID, source state.ObjID, svars
 		// contract (one target per mode AND one different player per target).
 		// Leave it to its dedicated ask path rather than weakening that
 		// constraint.
-		return false
+		return false, false
 	}
 	type slot struct {
 		name string
@@ -1836,12 +1837,12 @@ func (e *Engine) askCharmModeTargets(p state.PlayerID, source state.ObjID, svars
 		sa := cards.ResolveSVar(svars, name)
 		min, max := e.resolvedTargetBounds(p, source, sa, 0)
 		if min != 1 || max != 1 {
-			return false
+			return false, false
 		}
 		cs := e.legalTargetCandidates(p, source, source, sa)
-		// Keep an empty mode group in the combined mandatory declaration.
-		// Returning false here would let callers fall back to the legacy
-		// first-mode ask, incorrectly permitting a cast with a missing target.
+		if len(cs) == 0 {
+			return false, true
+		}
 		all = append(all, slot{name: name, sa: sa, cs: cs})
 	}
 	d := &decision.Decision{Player: p, Kind: decision.KTarget, Min: len(all), Max: len(all),
@@ -1856,7 +1857,7 @@ func (e *Engine) askCharmModeTargets(p state.PlayerID, source state.ObjID, svars
 		}
 	}
 	e.ask(d)
-	return true
+	return true, false
 }
 
 // charmTargetGroups partitions a combined Charm target answer by its

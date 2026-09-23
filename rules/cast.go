@@ -6185,8 +6185,15 @@ func (e *Engine) targetAsk() bool {
 				if len(tbms) >= 2 && e.askCrossModeCharmTargets(pc.player, pc.card, tbms) {
 					return true
 				}
-			} else if e.askCharmModeTargets(pc.player, pc.card, f.SVars, root, o.ChosenModes) {
-				return true
+			} else {
+				asked, infeasible := e.askCharmModeTargets(pc.player, pc.card, f.SVars, root, o.ChosenModes)
+				if infeasible {
+					e.abortCast(pc, "cast aborted: no legal modal target", true)
+					return true
+				}
+				if asked {
+					return true
+				}
 			}
 		}
 	}
