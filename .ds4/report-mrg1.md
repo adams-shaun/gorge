@@ -237,7 +237,6 @@ so the botbench 20-game split did not move.
 
 ## Issues
 
-<<<<<<< HEAD
 None found in this scope. The merge introduced no new engine behaviour of
 its own; both sides' reviewed changes were preserved.
 
