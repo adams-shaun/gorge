@@ -25,11 +25,19 @@ func kwTypeCycling(f *Face, i int, k, head, param string, has func(kind, line st
 	typeSpec = strings.TrimSpace(typeSpec)
 	cost, _, _ := strings.Cut(rest, ":")
 	cost = strings.TrimSpace(cost)
-	sa, _ := parseSA("", "AB$ ChangeZone | Cost$ "+cost+" Discard<1/CARDNAME> | ActivationZone$ Hand | Origin$ Library | Destination$ Hand | ChangeType$ "+typeSpec+" | ChangeNum$ 1 | Keyword$ TypeCycling | SpellDescription$ "+typeSpec+"cycling "+cost)
-	if sa != nil {
+	if sa := typeCyclingAbilitySA(typeSpec, cost); sa != nil {
 		sa.Params["KeywordLine"] = k
 		f.Abilities = append(f.Abilities, sa)
 	}
+}
+
+// typeCyclingAbilitySA builds the typed-cycling ability body (CR 702.28d)
+// the printed K:TypeCycling line expands to. It is shared by the printed
+// expansion (kwTypeCycling) and the granted route
+// (GrantedCyclingAbility) so the two constructions cannot drift.
+func typeCyclingAbilitySA(typeSpec, cost string) *SA {
+	sa, _ := parseSA("", "AB$ ChangeZone | Cost$ "+cost+" Discard<1/CARDNAME> | ActivationZone$ Hand | Origin$ Library | Destination$ Hand | ChangeType$ "+typeSpec+" | ChangeNum$ 1 | Keyword$ TypeCycling | SpellDescription$ "+typeSpec+"cycling "+cost)
+	return sa
 }
 
 func init() { registerKeyword(kwTypeCycling, "TypeCycling") }

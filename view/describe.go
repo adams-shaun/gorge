@@ -611,6 +611,12 @@ func Describe(g *state.Game, ev events.Event) string {
 		// A has-all-abilities-of activated ability went on the stack (Forge's
 		// GainsAbilitiesOf$): Obj is the minted stack object.
 		return obj(g, ev.Obj) + " activates (gained)"
+	case events.KeywordAbilityPush:
+		// A keyword-granted activated ability went on the stack (a layer-6
+		// AddKeyword$ Cycling grant, CR 613.1f): the same "activates"
+		// phrasing the other grant pushes use -- the resolving ability's own
+		// line carries what it does.
+		return obj(g, ev.Obj) + " activates (keyword-granted)"
 	case events.GainedTriggerPush:
 		// A has-all-abilities-of triggered ability went on the stack (Forge's
 		// GainsTriggerAbsOf$): the same "triggers" phrasing the other grant

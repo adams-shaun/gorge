@@ -94,6 +94,17 @@ type pendingCast struct {
 	grantSource state.ObjID
 	grantSVar   string
 
+	// grantKeyword anchors a KEYWORD-GRANTED activation (CR 613.1f, the
+	// layer-6 AddKeyword$ Cycling/TypeCycling route): the body is synthesized
+	// from the derived keyword line the option carries ("Cycling:1 U",
+	// "TypeCycling:Sliver:3") -- neither a face index nor an SVar name anchors
+	// it, since a granted keyword lives in no face's SVar table. pcAbility
+	// re-derives the identical SA from the line at every read site (a pure
+	// function of the string, so replay-safe), and payCast's ability branch
+	// mints through events.KeywordAbilityPush, whose Counter carries the same
+	// line. Empty means not a keyword grant. Plain data, so Clone carries it.
+	grantKeyword string
+
 	// gainedFrom / gainedIdx anchor a HAS-ALL-ABILITIES-OF activation
 	// (Forge's GainsAbilitiesOf$, rules/activation's gained branch): the body
 	// is a compiled SA on a FOREIGN card's face, so gainedFrom is that card's
@@ -4854,7 +4865,7 @@ func (c Cost) announcePip(i int) []pipAlt {
 // ability arms (no spell legality recheck, no cast trigger, the ability
 // payment/mint branch, no modes ask) instead of the spell ones.
 func (pc *pendingCast) isAbility() bool {
-	return pc.ability >= 0 || pc.grantSVar != "" || pc.gainedFrom != 0
+	return pc.ability >= 0 || pc.grantSVar != "" || pc.gainedFrom != 0 || pc.grantKeyword != ""
 }
 
 // pcAbility resolves the proposal's ability body. A printed activation reads
@@ -4866,6 +4877,14 @@ func (pc *pendingCast) isAbility() bool {
 // grantor's face no longer names -- a stale proposal) resolves to nil and the
 // caller degrades the way a stale option always has.
 func (e *Engine) pcAbility(pc *pendingCast) *cards.SA {
+	if pc.grantKeyword != "" {
+		// A keyword-granted body (CR 613.1f, the AddKeyword$ Cycling/TypeCycling
+		// route): synthesized from the derived keyword line, a pure function of
+		// the string -- no state read, so every read site and a replay re-derive
+		// the identical SA. A line no synthesizer can model resolves nil and the
+		// caller degrades the way a stale option always has.
+		return cards.GrantedCyclingAbility(pc.grantKeyword)
+	}
 	if pc.gainedFrom != 0 {
 		// A has-all-abilities-of body: the SA is the named foreign face's
 		// own compiled ability at gainedIdx. A card that left the scoped zone
@@ -7966,15 +7985,18 @@ func (e *Engine) payCast() {
 		// AbilityPush mints the ability object onto the stack AFTER the cost
 		// settles, so an aborted activation leaves no stack object behind
 		// (CR 733.1). handleTarget records the chosen targets onto it. A
-		// GRANTED activation (task grantcost1) mints through the SAME two
-		// events beginGrantedActivation always minted -- the delayed-shape
-		// DelayedPush for a self-grant (Counter carries the SVar name; the
-		// ^uint32(0) registration id matches nothing) and GrantAbilityPush for
-		// a cross-object grant (IDs[0] carries the grantor; the minted
-		// ability's Source is the recipient) -- so resolution reads the
-		// SVar-anchored body exactly as it always has, while every cost part
-		// above (sacrifice, discard, counter, energy, draw, ...) is now paid
-		// by the shared flow too.
+		// GRANTED activation (task grantcost1) mints through the SAME three
+		// events beginGrantedActivation/beginKeywordGrantedActivation mint --
+		// the delayed-shape DelayedPush for a self-grant (Counter carries the
+		// SVar name; the ^uint32(0) registration id matches nothing) and
+		// GrantAbilityPush for a cross-object grant (IDs[0] carries the
+		// grantor; the minted ability's Source is the recipient) -- so
+		// resolution reads the SVar-anchored body exactly as it always has,
+		// while every cost part above (sacrifice, discard, counter, energy,
+		// draw, ...) is now paid by the shared flow too. A KEYWORD-GRANTED
+		// activation (the AddKeyword$ Cycling route, CR 613.1f) mints through
+		// KeywordAbilityPush, whose Counter carries the derived keyword line
+		// the body is synthesized from.
 		if pc.gainedFrom != 0 {
 			e.emit(events.Event{Kind: events.GainedAbilityPush, Player: pc.player, Obj: pc.card,
 				Amount: int32(pc.gainedIdx), IDs: []state.ObjID{pc.gainedFrom}})
@@ -7986,6 +8008,9 @@ func (e *Engine) payCast() {
 				e.emit(events.Event{Kind: events.GrantAbilityPush, Player: pc.player, Obj: pc.card,
 					Counter: pc.grantSVar, IDs: []state.ObjID{pc.grantSource}})
 			}
+		} else if pc.grantKeyword != "" {
+			e.emit(events.Event{Kind: events.KeywordAbilityPush, Player: pc.player,
+				Obj: pc.card, Counter: pc.grantKeyword})
 		} else {
 			e.emit(events.Event{Kind: events.AbilityPush, Obj: pc.card, Player: pc.player, Amount: int32(pc.ability)})
 		}

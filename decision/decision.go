@@ -275,6 +275,17 @@ type Option struct {
 	// stale name degrades to a no-op. omitempty: only granted options carry
 	// it.
 	SVar string `json:"svar,omitempty"`
+	// Keyword anchors an "ability" option whose body a DERIVED keyword line
+	// grants (CR 613.1f): a layer-6 `AddKeyword$ Cycling:1 U` /
+	// `AddKeyword$ TypeCycling:Sliver:3` static (Tectonic Reformation,
+	// Rhet-Tomb Mystic, Jo Grant, Homing Sliver) gives a hand card a cycling
+	// ability no printed face carries, so neither the Ability index nor the
+	// SVar name anchors it -- the option carries the keyword line itself
+	// ("Cycling:1 U"), which beginActivation synthesizes the ability body
+	// from, exactly the SVar-anchor shape with the line standing in for the
+	// name. omitempty: only keyword-granted options carry it, so every
+	// existing option list serialises byte-identically.
+	Keyword string `json:"keyword,omitempty"`
 	// Cost is the activation cost of a priority-window "activate" option whose
 	// mana ability costs MORE than a bare tap, in the same whitespace-delimited
 	// Forge notation AbilityCosts uses (rules/mana.go's formatCost over
