@@ -33,9 +33,39 @@ func TestScryReplacementOrderChoiceAndResume(t *testing.T) {
 				t.Fatalf("precondition: library %d cards, want 5", n)
 			}
 			beforeHand, beforeLib := len(e.G.Zone(state.ZHand, 0)), len(e.G.Zone(state.ZLibrary, 0))
-			d := castFixture(t, e, id, -1)
+			cast := e.Pending()
+			castIdx := -1
+			for _, opt := range cast.Options {
+				if opt.Kind == "cast" && opt.Obj == id {
+					castIdx = opt.Index
+				}
+			}
+			if castIdx < 0 {
+				t.Fatalf("precondition: Scry spell not castable: %+v", cast)
+			}
+			submitChoices(t, e, castIdx)
+			// Stop at the resolution boundary rather than driving priority into
+			// cleanup. Without the order choice the spell resolves directly;
+			// continuing into discard would mask the missing choice with an
+			// unrelated decision.
+			for i := 0; i < 8 && len(e.G.Stack) > 0 && e.Pending() != nil && e.Pending().Kind == decision.KPriority; i++ {
+				pass := -1
+				for _, opt := range e.Pending().Options {
+					if opt.Kind == "pass" {
+						pass = opt.Index
+					}
+				}
+				if pass < 0 {
+					t.Fatal("no pass at priority while Scry spell is on stack")
+				}
+				submitChoices(t, e, pass)
+			}
+			d := e.Pending()
 			if d == nil || d.Kind != decision.KReplacement || d.Player != 0 || len(d.Options) != 2 || e.G.Obj(id).Zone != state.ZStack {
-				t.Fatalf("precondition: expected seat 0's suspended replacement choice over two active sources, got %v", d)
+				if d == nil {
+					t.Fatalf("missing affected-player Scry replacement-order choice: no pending decision; spell zone=%v", e.G.Obj(id).Zone)
+				}
+				t.Fatalf("missing affected-player Scry replacement-order choice: pending=%s options=%d spell zone=%v", d.Kind, len(d.Options), e.G.Obj(id).Zone)
 			}
 			idx := -1
 			for _, opt := range d.Options {

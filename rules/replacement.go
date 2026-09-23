@@ -5522,6 +5522,19 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 		if next.Kind == events.Scry {
 			next, _ = e.continueScryReplacements(next, rc.cands, rc.applied, d.ResumeSA, d.ResumeTarget)
 		}
+		// A remaining Draw-instead body may suspend on Dredge too (e.g.
+		// Kenessos selected first, then Eligeth). Keep that draw's fresh
+		// resume point and chain the original Scry continuation AFTER it;
+		// overwriting it with rp would answer Dredge as a Scry order choice.
+		// A re-posed Scry order ask instead uses the original frame below.
+		if e.resume != nil && (len(e.replChoices) == 0 || e.replChoices[0].kind != replChoiceScry) {
+			if rp != nil {
+				rp.scryProceed = false
+				e.resume.outer = rp
+			}
+			e.triggerBefore = before
+			return
+		}
 		// A re-pose used the same SA/target; retain the ORIGINAL frame rather
 		// than the bookkeeping frame Ask may have created for its next ask.
 		e.resume = rp
