@@ -56,8 +56,6 @@ func effTwoPiles(h Host, c *Ctx, sa *cards.SA) {
 
 	for _, p := range []struct{ name, value string }{
 		{"DefinedPiles", sa.Params["DefinedPiles"]},
-		{"Zone", sa.Params["Zone"]},
-		{"FaceDown", sa.Params["FaceDown"]},
 		{"LeftRightPile", sa.Params["LeftRightPile"]},
 	} {
 		if v := strings.TrimSpace(p.value); v != "" {
@@ -67,9 +65,21 @@ func effTwoPiles(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	spec := strings.TrimSpace(sa.Params["DefinedCards"])
+	if spec == "" {
+		if v := strings.TrimSpace(sa.Params["Zone"]); v != "" {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "unimplemented TwoPiles shape: Zone$ " + v})
+			return
+		}
+	}
 	if spec != "Remembered" && spec != "Targeted" {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "unimplemented TwoPiles shape: DefinedCards$ " + spec})
+		return
+	}
+	if v := strings.TrimSpace(sa.Params["FaceDown"]); v != "" && !strings.EqualFold(v, "One") {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "unimplemented TwoPiles shape: FaceDown$ " + v})
 		return
 	}
 	// The pile bodies must be SVar names on the resolving face: the core
