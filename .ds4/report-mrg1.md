@@ -3531,3 +3531,20 @@ ok  	github.com/adams-shaun/gorge/cmd/botbench	1.161s
 No new unfixed defect found — this was integration only. The merged register
 closes BOTH rows: `(chosencopy1)` by this branch's fix and `(blockprop1)` by
 main. No engine behaviour was changed by the resolution itself.
+
+### Note — main advanced during this seat (do not chase)
+
+The dispatched conflict named `main` at `122a388c`; that was the `MERGE_HEAD`
+this round integrated, and `122a388c` IS now an ancestor of this branch. While
+the round was in progress `main` advanced again to `9f384719` (sibling ticket
+`cli-20260922T225143Z-4b0bde0d`, the `api:ExchangeLifeVariant` row closure).
+
+A read-only `git merge-tree` (no refs touched) shows a further integration of
+`9f384719` would conflict in the SAME two files — `internal/testutil/agentsdoc_test.go`
+(comment text only; both sides already carry `knownApproximationRows = 34`)
+and `.ds4/report-mrg1.md` (the archive). That is the daemon's next integration
+round, not this seat's: chasing a moving tip would mean re-resolving the same
+comment each time main moves. When it is integrated, re-measure the merged
+`AGENTS.md` table with the test's algorithm before setting the constant —
+`9f384719` closes a third register row (`ExchangeLifeVariant`) in addition to
+this branch's `(chosencopy1)` and main's `(blockprop1)`.
