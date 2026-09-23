@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -239,9 +240,9 @@ func TestCascadeSelfExileTriggerEndsGrantAfterOneCast(t *testing.T) {
 	}
 	// TARDIS's real Attacks trigger requires an animated vehicle (Crew is
 	// outside this engine slice), and its Time Lord condition is not yet in
-	// the filter grammar. Queue the actual corpus Trigger entry, omitting only
-	// that unsupported gate, so its real Trigger SVar, Effect body and grant
-	// registration execute; no script text or ability context is synthesized.
+	// the filter grammar. Resolve the actual corpus trigger's Effect body,
+	// bypassing only those unavailable attack/condition gates. Copy the
+	// trigger and its Params so the shared parsed corpus is never modified.
 	face := e.G.Obj(tardis).Face()
 	triggerIdx := -1
 	for i, tr := range face.Triggers {
@@ -255,8 +256,16 @@ func TestCascadeSelfExileTriggerEndsGrantAfterOneCast(t *testing.T) {
 	if triggerIdx < 0 {
 		t.Fatal("precondition: real TARDIS face has no Attacks trigger")
 	}
-	delete(face.Triggers[triggerIdx].Params, "IsPresent")
-	e.pushTrigger(pendingTrigger{Source: tardis, Controller: 0, Idx: triggerIdx, SA: face.Triggers[triggerIdx].Effect})
+	trigger := face.Triggers[triggerIdx]
+	trigger.Params = make(map[string]string, len(face.Triggers[triggerIdx].Params))
+	for k, v := range face.Triggers[triggerIdx].Params {
+		trigger.Params[k] = v
+	}
+	if trigger.Params["IsPresent"] == "" {
+		t.Fatal("precondition: TARDIS trigger has no IsPresent gate to bypass")
+	}
+	delete(trigger.Params, "IsPresent")
+	effects.Resolve(e, &effects.Ctx{Source: tardis, Controller: 0, SVars: face.SVars}, trigger.Effect)
 	d := passUntilNonPriority(t, e, 40)
 	if d != nil && d.ResumeKind == "planeswalk_optional" {
 		submitChoices(t, e, d.Options[1].Index) // no planar deck in this engine
