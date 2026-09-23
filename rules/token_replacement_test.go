@@ -336,18 +336,26 @@ func TestHalvingSeasonRoundsOpponentTokensDownToZero(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestTokenReplacementOptionalDeclines stands in the brief's documented
-// decline contract: Flitwing Lyev (Optional$ True, Type$ ReplaceToken)
-// does not apply without a chooser, so the token is created verbatim.
+// TestTokenReplacementOptionalDeclines pins the DECLINE answer of the
+// Optional$ True election Flitwing Lyev poses (task tokrepl1 replaced the
+// old silent decline with a real KChoose): the decline option leaves the
+// token created verbatim. The accept arm and the ask itself are pinned in
+// token_replacement_standins_test.go.
 func TestTokenReplacementOptionalDeclines(t *testing.T) {
-	lyev := tokenReplCorpusCard(t, "Flitwing Lyev, Detective")
+	lyev := tokenReplCorpusCard(t, "Flitwing, Lyev Detective")
 	maker := cardByName(t, tokenForgeSrc("c_a_treasure_sac"))
 	e, cfg := tokenReplGame(t, 71, lyev, maker)
 	moveSeededCard(t, e, 0, lyev, state.ZBattlefield)
 	m := moveSeededCard(t, e, 0, maker, state.ZBattlefield)
-	activateTokenForge(t, e, m)
+	addMana(t, e, 0, "")
+	submitChoices(t, e, abilityOption(t, e, m, 0).Index)
+	d := drainToChooseOrEmpty(t, e)
+	if d == nil || d.Kind != decision.KChoose || len(d.Options) != 2 || d.Options[0].Kind != "decline" {
+		t.Fatalf("no parked Optional election with a decline option: %+v", d)
+	}
+	submitChoices(t, e, d.Options[0].Index)
 	if got := countTokensNamedOnSeat(t, e, 0, "Treasure Token"); got != 1 {
-		t.Fatalf("an Optional$ True replacement must decline: got %d Treasure Tokens, want 1", got)
+		t.Fatalf("a declined Optional$ True replacement must leave the token: got %d Treasure Tokens, want 1", got)
 	}
 	if got := countTokensNamedOnSeat(t, e, 0, "Clue Token"); got != 0 {
 		t.Fatalf("the declined replacement applied anyway: %d Clue Tokens", got)
