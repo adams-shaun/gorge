@@ -522,16 +522,20 @@ type Host interface {
 	// SuspendContinuation next; the host drops that report, because the loop
 	// frame re-enters the RepeatEach itself and so walks its Sub.
 	SuspendRepeat(RepeatSuspension)
-	// SuspendCharmRest reports that a cross-mode TargetUnique Charm's mode
-	// loop (effCharm's re-entry) suspended mid-mode with chosen modes still
-	// to run: sa is the Charm's own SA and rest the remaining chosen mode
-	// names in execution order. The host records a continuation that
-	// re-enters the Charm with Ctx.Modes = rest once the answered ask's own
-	// chain completes — the remaining modes must not run while the
-	// suspension is live. The Resolve loop enclosing the Charm reports that
-	// same SA through SuspendContinuation next; the host drops that report
-	// (the charm frame re-enters the Charm itself), which is why the reporter
-	// marks it the way SuspendRepeat marks a RepeatEach.
+	// SuspendCharmRest reports that a Charm's mode loop (effCharm's generic
+	// loop, charmDistinctTargetRun or charmCrossModeRun) suspended mid-mode:
+	// sa is the Charm's own SA and rest the remaining chosen mode names in
+	// execution order (EMPTY when the suspended mode was the last chosen
+	// one). The host records a continuation that re-enters the Charm with
+	// Ctx.Modes = rest once the answered ask's own chain completes — the
+	// remaining modes must not run while the suspension is live. An empty
+	// rest still reports, so the Charm re-enters (running no further mode)
+	// and walks its own Sub rather than the enclosing loop recording a plain
+	// continuation at a nil Sub that degrades to a no-sub-ability Note. The
+	// Resolve loop enclosing the Charm reports that same SA through
+	// SuspendContinuation next; the host drops that report (the charm frame
+	// re-enters the Charm itself), which is why the reporter marks it the way
+	// SuspendRepeat marks a RepeatEach.
 	SuspendCharmRest(sa *cards.SA, rest []string)
 	// SuspendVillainousRest reports that a VillainousChoice's chosen body
 	// suspended on a nested mid-resolution ask (for example Damocles Base's
