@@ -1889,4 +1889,5 @@ Commands and results:
 - `go test ./internal/testutil -run 'TestKnownApproximation' -v` → both `TestKnownApproximationsOnlyShrinks` and `TestKnownApproximationRowsAreShort` passed; `ok github.com/adams-shaun/gorge/internal/testutil 0.001s`.
 - `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' -v` → all five selected ratchets passed; `TestEveryRepoDeckIsFullySupported` reported 4 of 916 distinct cards unsupported and `TestEveryRepoDeckParamsAreRead` reported 29 of 916 cards with unread parameters; package `ok github.com/adams-shaun/gorge/rules 0.767s`.
 - The table parser counted 35 data rows; `.cards` is present.
-- `git diff --check` found one extra blank line at EOF in this report; it was removed. Conflict-marker scan will be confirmed after staging.
+- `git diff --check` found one extra blank line at EOF in this report; it was removed. The post-resolution conflict-marker scan over `AGENTS.md`, `internal/testutil/agentsdoc_test.go`, and this report produced no matches.
+- `GIT_EDITOR=true git merge --continue` created merge commit `b5ca56b5` (parents `7a9985bd` and `835074e5`); `git status --short --branch` showed a clean tree. Main advanced again to `e9dfbe9c` during validation; this merge integrates the `835074e5` tip that was current when the operation began.
