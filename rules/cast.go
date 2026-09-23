@@ -1028,6 +1028,43 @@ func (e *Engine) castable(p state.PlayerID, id state.ObjID, cost Cost, ability b
 	return e.nonManaCastable(p, id, cost, ability)
 }
 
+// countCandPayable reports whether a repeatable-additional-cost count walk's
+// candidate -- the base composed cost plus N payments of the keyword's own
+// cost -- is payable right now. The walk runs at CR 601.2b, before the CR
+// 601.2f modifiers have been folded into pc.cost, so pricing the RAW
+// candidate through castable skipped every RaiseCost/ReduceCost static: a
+// Baral ("Instant and sorcery spells you cast cost {1} less") offered one
+// fewer replicate payment than the pool could actually pay. This composes
+// the candidate through manaToPay -- the SAME CR 601.2f/903.8 composition
+// the payment will charge -- then makes the Convoke/Harmonize/Improvise
+// reduction the later announcement can still make (convokeCountCredit),
+// takes the Delve credit, and runs the ordinary mana gate; the non-mana
+// parts go through nonManaCastable exactly as castable's tail does. Because
+// the candidate is priced at its real charge, the bound can never offer a
+// count the payment cannot settle.
+func (e *Engine) countCandPayable(pc *pendingCast, cand Cost) bool {
+	mana := e.countComposedCost(pc, cand)
+	mana.Generic -= e.delveCredit(pc.player, pc.card, mana.Generic)
+	if !e.costPayable(pc.player, pc.card, false, mana) {
+		return false
+	}
+	return e.nonManaCastable(pc.player, pc.card, cand, false)
+}
+
+// countComposedCost is the CR 601.2f/903.8 composition of a count walk's
+// candidate with the Convoke/Harmonize/Improvise reduction the caster can
+// still announce folded in. It is manaToPay for the candidate cost (the same
+// modifier snapshot, announced-X re-pricing and commander tax the payment
+// uses), so the bound and the charge can never disagree about a ReduceCost
+// static, and then convokeCountCredit for the announcement the later
+// convokeAsk can make against that composed total.
+func (e *Engine) countComposedCost(pc *pendingCast, cand Cost) Cost {
+	tmp := *pc
+	tmp.cost = cand
+	m := e.manaToPay(&tmp)
+	return e.convokeCountCredit(pc, m)
+}
+
 // castablePriced is castable priced against an EXPLICIT pool instead of the
 // seat's restriction-adjusted floating one. Its only caller is the
 // potential-action walk (rules/legal.go legalActionsPriced's affordable, and
@@ -3280,7 +3317,7 @@ func (e *Engine) replicateAsk() bool {
 		// every real replicate resource (mana, energy, life, tap/sac
 		// candidates) is finite and breaks the loop naturally.
 		next := cand.Plus(rc)
-		if !e.castable(pc.player, pc.card, next, false) {
+		if !e.countCandPayable(pc, next) {
 			break
 		}
 		cand = next
@@ -3338,7 +3375,7 @@ func (e *Engine) multikickAsk() bool {
 		// every real multikicker resource is finite and breaks the loop
 		// naturally (the replicateAsk comment).
 		next := cand.Plus(mk)
-		if !e.castable(pc.player, pc.card, next, false) {
+		if !e.countCandPayable(pc, next) {
 			break
 		}
 		cand = next
@@ -3393,7 +3430,7 @@ func (e *Engine) squadAsk() bool {
 		// is finite and breaks the loop naturally (the replicateAsk
 		// comment).
 		next := cand.Plus(sc)
-		if !e.castable(pc.player, pc.card, next, false) {
+		if !e.countCandPayable(pc, next) {
 			break
 		}
 		cand = next
@@ -5299,6 +5336,130 @@ func (e *Engine) applyConvoke(pc *pendingCast, m Cost) Cost {
 		if m.Generic < 0 {
 			m.Generic = 0
 		}
+	}
+	return m
+}
+
+// convokeCountCredit reduces composed cost m by the largest payment the
+// caster's permanents can actually make through Convoke (CR 702.51),
+// Harmonize (CR 702.46) or Improvise (CR 702.66) right now. It exists so a
+// repeatable-cost count walk posed BEFORE the contributions are announced
+// (replicateAsk and its multikicker/squad siblings) can see the mana a
+// later Convoke announcement will free: without it the walk priced the cost
+// against the pool alone and offered fewer payments than the board could
+// pay. The assignment built here is the one convokeAsk then offers: a
+// maximum matching covers as many coloured pips as distinct
+// colour-eligible creatures allow, and every remaining eligible permanent
+// takes one generic (a Harmonize permanent its power, per CR 702.46a). Both
+// convokeAsk and this helper read the SAME composed total, so the payment
+// the announcement is validated against (convokeAbsorbs's m) is the one
+// priced here. A cast carrying none of the three keywords -- every
+// pre-Convoke-replicate game -- returns m unchanged, so no game lacking one
+// moves.
+func (e *Engine) convokeCountCredit(pc *pendingCast, m Cost) Cost {
+	isConvoke := e.hasCastConvoke(pc.card)
+	isHarmonize := pc.mode == "harmonize"
+	isImprovise := e.hasCastImprovise(pc.card)
+	if !isConvoke && !isHarmonize && !isImprovise {
+		return m
+	}
+	// candidate is one untapped permanent the announcement could tap, with
+	// the payments it may make. A Convoke creature taps for a colour pip it
+	// has or one generic; a Harmonize creature taps for its power in generic;
+	// an Improvise artifact taps for one generic.
+	type candidate struct {
+		colors  string
+		power   int32
+		convoke bool
+		generic bool // may pay one generic (Convoke creature or Improvise artifact)
+	}
+	var cands []candidate
+	for _, id := range e.G.Zone(state.ZBattlefield, pc.player) {
+		o := e.G.Obj(id)
+		if o == nil || o.Tapped || o.Face() == nil || o.BestowedAttached() ||
+			o.ReconfiguredAttached() || e.convokeCommitted(pc, id) {
+			continue
+		}
+		c := candidate{}
+		if o.EffectiveIsCreature() {
+			if isConvoke {
+				c.colors = e.objColors(o)
+			}
+			if isHarmonize {
+				if p := e.Derived(id).Power; p > 0 {
+					c.power = p
+				}
+			}
+		}
+		if isConvoke && o.EffectiveIsCreature() {
+			c.convoke = true
+			c.generic = true
+		}
+		if isImprovise && o.EffectiveIsArtifact() {
+			c.generic = true
+		}
+		if c.convoke || c.power > 0 || c.generic {
+			cands = append(cands, c)
+		}
+	}
+	if len(cands) == 0 {
+		return m
+	}
+	// Maximum bipartite matching of coloured pips to colour-eligible Convoke
+	// creatures. The graph is tiny (at most five pip slots and the cast's
+	// untapped creatures), so the classic augmenting-path walk is exact; any
+	// maximal assignment here is a real announcement, and covering a pip frees
+	// exactly one generic for the pool, so maximizing coloured coverage first
+	// never costs generic units that could have been covered anyway.
+	assign := make([]int, len(cands)) // cands index -> coloured slot, -1 unused
+	for i := range assign {
+		assign[i] = -1
+	}
+	var matchedCand func(slot int, seen []bool) bool
+	matchedCand = func(slot int, seen []bool) bool {
+		for i := range cands {
+			if seen[i] || !cands[i].convoke || !strings.Contains(cands[i].colors, manaLetters[slot]) {
+				continue
+			}
+			seen[i] = true
+			if assign[i] == -1 || matchedCand(assign[i], seen) {
+				assign[i] = slot
+				return true
+			}
+		}
+		return false
+	}
+	coveredPips := [6]int32{}
+	// A Convoke creature taps for one mana of a colour it is (CR 702.51a),
+	// so only the five coloured slots are matchable; {C} is never a
+	// creature colour and the pool pays it.
+	for slot := 0; slot < 5; slot++ {
+		for n := int32(0); n < m.Colored[slot]; n++ {
+			seen := make([]bool, len(cands))
+			if matchedCand(slot, seen) {
+				coveredPips[slot]++
+			}
+		}
+	}
+	for slot := range m.Colored {
+		m.Colored[slot] -= coveredPips[slot]
+	}
+	// Every permanent not already paying a coloured pip takes one generic: a
+	// Harmonize creature its power, a Convoke creature or Improvise artifact
+	// one. Stop once the generic requirement is gone (each contribution must
+	// reduce something, or the announcement is rejected).
+	for i, c := range cands {
+		if assign[i] >= 0 || m.Generic <= 0 {
+			continue
+		}
+		reduce := int32(1)
+		if c.power > 0 {
+			reduce = c.power
+		}
+		if reduce > m.Generic {
+			reduce = m.Generic
+		}
+		m.Generic -= reduce
 	}
 	return m
 }
