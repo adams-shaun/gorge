@@ -216,6 +216,20 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 		if !ok || t.Mode != dt.EventMode {
 			continue
 		}
+		// Match a recurring Effect as its registration owner, not as the
+		// controller of the card that created it. A shallow observer keeps
+		// controller-relative predicates (including nested spec matching and
+		// referent capture) scoped to this registration without changing the
+		// actual source object or the live game's state.
+		observer := e
+		if dt.EffectRepeat {
+			scoped := *e
+			scoped.effectMatchSource = dt.Source
+			scoped.effectMatchController = dt.Controller
+			scoped.effectMatchRemembered = dt.Remembered
+			scoped.effectMatchOverride = true
+			observer = &scoped
+		}
 		// referentsArg is the LKI snapshot handed to triggerReferents. The
 		// SpellCast arm deliberately passes nil (the spell object itself is
 		// the referent source), exactly as it did before the ChangesZone arm
@@ -240,7 +254,7 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 				}
 				delete(t.Params, "ValidPlayer")
 			}
-			if !e.becomeMonarchMatches(t, dt.Source, ev) {
+			if !observer.becomeMonarchMatches(t, dt.Source, ev) {
 				continue
 			}
 			referentsArg = nil
@@ -258,7 +272,7 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 				}
 				delete(t.Params, "Destination")
 			}
-			if !e.zoneChangeMatches(t, dt.Source, ev, lki) {
+			if !observer.zoneChangeMatches(t, dt.Source, ev, lki) {
 				continue
 			}
 			referentsArg = lki
@@ -270,13 +284,13 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 			// from reaching a matcher that assumes its own event shape.
 			fn := trigMatchers[t.Mode]
 			if fn == nil || !triggerModeEvents(t.Mode).allows(ev.Kind) ||
-				!fn(e, t, dt.Source, ev, lki) {
+				!fn(observer, t, dt.Source, ev, lki) {
 				continue
 			}
 		} else if !e.eventDelayedSpellCastMatches(t, dt, ev) {
 			continue
 		}
-		if dt.EventMode != "BecomeMonarch" && !e.triggerConditionHoldsAs(t, dt.Source, dt.Controller) {
+		if dt.EventMode != "BecomeMonarch" && !observer.triggerConditionHoldsAs(t, dt.Source, dt.Controller) {
 			continue
 		}
 		sa := cards.ResolveSVar(src.Face().SVars, dt.Execute)
@@ -292,7 +306,7 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 				}
 				return triggerRemembered(ev, dt.Source)
 			}(),
-			referents: e.triggerReferents(t, dt.Source, ev, referentsArg),
+			referents: observer.triggerReferents(t, dt.Source, ev, referentsArg),
 			svars:     src.Face().SVars,
 			static:    strings.TrimSpace(t.Params["Static"]) != "",
 		})

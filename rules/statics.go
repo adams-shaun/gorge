@@ -321,7 +321,7 @@ func (e *Engine) specCtxSVars(source state.ObjID, you state.PlayerID, svars map[
 	if e.compiledText != nil {
 		predicates = e.compiledText.predicates
 	}
-	return effects.SpecContext{
+	sc := effects.SpecContext{
 		You:               you,
 		Source:            source,
 		PredicatePrograms: predicates,
@@ -353,6 +353,13 @@ func (e *Engine) specCtxSVars(source state.ObjID, you state.PlayerID, svars map[
 			return 0, false
 		},
 	}
+	// A recurring Effect's matcher reads the registration's captured objects,
+	// not the creating card's (possibly unrelated) event-backed memory. The
+	// override exists only on the read-only observer for that registration.
+	if e.effectMatchOverride && source == e.effectMatchSource {
+		sc.Remembered = e.effectMatchRemembered
+	}
+	return sc
 }
 
 // staticSpecCtx is the SpecContext a staticView's spec match resolves against:

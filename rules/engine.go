@@ -384,6 +384,14 @@ type Engine struct {
 	// triggerBefore is the immutable pre-departure board for an SBA death
 	// batch. Scoped to its emission/resumption, never carried as live state.
 	triggerBefore *triggerSnapshot
+	// A shallow read-only observer of a recurring Effect trigger overrides
+	// controllerOf for its creating source. The Effect's controller is the
+	// registration's owner, even when its source card belongs to another seat.
+	// Only the observer sets this; live Engine and Game state are unchanged.
+	effectMatchSource     state.ObjID
+	effectMatchController state.PlayerID
+	effectMatchRemembered []state.Target
+	effectMatchOverride   bool
 	// lifeLossBatch holds the events in one simultaneous life-loss operation.
 	// It is scoped to one synchronous effect/combat pass, so it is always nil
 	// at an intent boundary and does not need log encoding or Clone state.

@@ -658,6 +658,9 @@ func (e *Engine) forEachObject(fn func(id state.ObjID)) {
 // (stale data, a malformed trigger source) degrades to seat 0 rather than
 // panicking.
 func (e *Engine) controllerOf(id state.ObjID) state.PlayerID {
+	if e.effectMatchOverride && id == e.effectMatchSource {
+		return e.effectMatchController
+	}
 	if o := e.G.Obj(id); o != nil {
 		return o.Controller
 	}
