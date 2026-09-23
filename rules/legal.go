@@ -971,23 +971,18 @@ func (e *Engine) targetSAAvailable(p state.PlayerID, id, excludeSelf state.ObjID
 		strings.EqualFold(strings.TrimSpace(sa.Params["TargetMax"]), "X")) {
 		return true
 	}
-	min, max := e.resolvedTargetBounds(p, id, sa, x)
+	// OneEach is one target per represented controller. Its minimum is at
+	// most the candidate count by definition; the ask computes the actual
+	// groups after announcement. Do not call oneEachTargetBounds here: its
+	// distinct-controller capacity and cap on Max are pairwise SET constraints,
+	// not count feasibility. In particular a literal Min 2 with two candidates
+	// under ONE controller must remain offered (Run Away Together) so the
+	// post-push target ask owns the CR 733.1 reversal.
+	if targetControllerExclusive(sa) && strings.EqualFold(strings.TrimSpace(sa.Params["TargetMin"]), "OneEach") {
+		return true
+	}
+	min, _ := e.resolvedTargetBounds(p, id, sa, x)
 	candidates := e.legalTargetCandidates(p, id, excludeSelf, sa)
-	// oneEachTargetBounds is kept for its TargetMin$ OneEach respell -- that is
-	// a COUNT read ("for each player" means one per represented player), so
-	// the census honours it. The pairwise SET constraints are deliberately NOT
-	// applied to this census: oneEachTargetBounds' exclusive distinct count and
-	// sameControllerTargetBounds' group capacity are properties of the chosen
-	// COMBINATION, not of the candidate population, and their failure mode is
-	// the post-push abort the ask sites own (cast.go's targetAsk and stack.go's
-	// askTarget compare TargetMin$ against the distinct-controller count / group
-	// capacity and abort, CR 601.2c via CR 733.1 with the F05-2 suppression
-	// discipline; TestRunAwayTogetherMandatoryTwoSameControllerAbortsCast and
-	// TestBarrinsSpiteSameControllerCapacity pin that the offer survives so the
-	// abort fires). Withholding on the pairwise shape here would pre-empt those
-	// pinned failure modes and suppress a cast whose constraint a later play
-	// (a creature entering under a different controller) can still satisfy.
-	min, max, _, _ = e.oneEachTargetBounds(sa, candidates, min, max)
 	if min == 0 {
 		return true
 	}

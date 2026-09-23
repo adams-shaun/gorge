@@ -7,6 +7,39 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
+// The real corpus card must pass the offer-time COUNT check even though its
+// distinct-controller capacity cannot satisfy the post-push pairwise ask.
+func TestCastOfferCensusRunAwayTogetherDefersControllerCapacity(t *testing.T) {
+	e, spell, bears := runAwayTogetherEngine(t, []state.PlayerID{1, 1})
+	o := e.G.Obj(spell)
+	if o == nil || o.Zone != state.ZHand || o.Face() == nil || len(bears) != 2 {
+		t.Fatalf("precondition: Run Away Together must be in hand with two bears: spell %+v, bears %v", o, bears)
+	}
+	sa := o.Face().SpellAbility()
+	if sa == nil || sa.Params["TargetMin"] != "2" || sa.Params["TargetsWithDifferentControllers"] != "True" {
+		t.Fatalf("precondition: Run Away Together lost mandatory pairwise targets: %+v", sa)
+	}
+	candidates := e.legalTargetCandidates(0, spell, spell, sa)
+	_, _, _, distinct := e.oneEachTargetBounds(sa, candidates, 2, 2)
+	if len(candidates) != 2 || distinct != 1 || candidates[0].obj == candidates[1].obj {
+		t.Fatalf("precondition: need two different candidates but only one controller: candidates %+v, distinct %d", candidates, distinct)
+	}
+	var cast *decision.Option
+	for _, opt := range castOptions(t, e) {
+		if opt.Obj == spell {
+			choice := opt
+			cast = &choice
+		}
+	}
+	if cast == nil {
+		t.Fatal("Run Away Together withheld: candidate count meets Min 2; controller capacity belongs to the post-push ask")
+	}
+	submitChoices(t, e, cast.Index)
+	if !hasNote(e, "cast aborted: no legal target") || e.G.Obj(spell).Zone != state.ZHand {
+		t.Fatalf("expected CR 733.1 reversal: zone %v, abort note present %v", e.G.Obj(spell).Zone, hasNote(e, "cast aborted: no legal target"))
+	}
+}
+
 // pairwiseCensusSrc is a mandatory TargetMin$ 2 | TargetMax$ 2
 // TargetsWithSameController$ spell. Its two legal candidates below are split
 // across controllers, so the candidate COUNT reaches the minimum while the
