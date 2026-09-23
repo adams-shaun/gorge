@@ -9,6 +9,14 @@ import (
 const (
 	discardText     = "discarded"
 	discardCostText = "discarded as a cost"
+
+	// ReturnCostText is the canonical zone-change marker for a permanent
+	// returned to its owner's hand as a COST (Forge CostReturn.doPayment's
+	// moveToHand; Return<N/Spec> tokens). Cost provenance is distinct so the
+	// ConditionDefined$ Returned group (Wonderscape Sage) can enumerate
+	// exactly the permanents this activation's own cost returned, the way
+	// IsDiscardCost enumerates a cost discard.
+	ReturnCostText = "returned to hand as a cost"
 )
 
 // CountersRemainMove marks a battlefield departure whose source has a
@@ -93,6 +101,19 @@ func IsDiscard(ev Event) bool {
 // IsDiscardCost reports whether ev records the cost form of a discard.
 func IsDiscardCost(ev Event) bool {
 	return ev.Kind == MoveZone && ev.From == state.ZHand && ev.Text == discardCostText
+}
+
+// ReturnCost returns the canonical zone-change event for a permanent returned
+// to its owner's hand as a cost (Forge CostReturn.doPayment's moveToHand).
+// Every producer uses it so the return-cost provenance the ConditionDefined$
+// Returned group reads and the Return<N/Spec> payment agree on one marker.
+func ReturnCost(obj state.ObjID, from state.Zone) Event {
+	return Event{Kind: MoveZone, Obj: obj, From: from, To: state.ZHand, Text: ReturnCostText}
+}
+
+// IsReturnCost reports whether ev records the cost form of a return to hand.
+func IsReturnCost(ev Event) bool {
+	return ev.Kind == MoveZone && ev.To == state.ZHand && ev.Text == ReturnCostText
 }
 
 const sacrificeText = "sacrificed"

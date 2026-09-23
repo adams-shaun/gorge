@@ -1302,6 +1302,15 @@ const (
 	wordNotDefinedTargeted
 	wordOpponentCtrl
 	wordChosenColor
+	// wordHasNonBasicLandType is Forge's Card.hasANonBasicLandType: the object
+	// is a LAND that has at least one land type outside CR 205.3i's five
+	// basic land types (Desert, Gate, Locus, Urza's, Cave, ...). It is NOT
+	// "is a nonbasic land" -- the Basic supertype is irrelevant (a Wastes is
+	// a basic land with no land type and must NOT match; a Desert is a
+	// nonbasic land and must match). The type vocabulary comes from
+	// chooseNonbasicLandTypes so this predicate and the Nonbasic Land choose
+	// cannot drift (the structural sharing the basic-land sibling used).
+	wordHasNonBasicLandType
 )
 
 // wordPredicate classifies a bare predicate word. key is the WUBRG letter for
@@ -1449,6 +1458,14 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordBlockingSource, ""
 	case "blockedBySource":
 		return wordBlockedBySource, ""
+	// Forge's Card.hasANonBasicLandType (the corpus's
+	// `Land.hasANonBasicLandType` qualifier; Wonderscape Sage's
+	// ConditionPresent gate). The bare word is classified here so the matcher
+	// and the UnknownPredicates census share one recogniser; the `Land.` base
+	// the corpus spells it under is the union spelling (the body re-checks
+	// Land anyway, so a bare `Card.hasANonBasicLandType` stays correct too).
+	case "hasANonBasicLandType":
+		return wordHasNonBasicLandType, ""
 	}
 	if targetReferent(p) {
 		return wordTargetedPlayerCtrl, ""
@@ -1839,6 +1856,25 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// files); recognizing the bare word closes the census without
 		// widening any existing spelling.
 		return o.Controller != sc.You
+	case wordHasNonBasicLandType:
+		// Forge's hasANonBasicLandType: a land with at least one land type
+		// outside CR 205.3i's five basic land types, read through hasTypeCtx so
+		// the layer-derived type list and Changeling agree with every other
+		// type read. "Nonbasic land type" is a SUBTYPE test, not the Basic
+		// supertype and not the negation of hasABasicLandType: a Wastes (basic,
+		// no land type) has no nonbasic land type and does not match, while a
+		// Desert or Gate (both nonbasic land types) does. A non-land with a
+		// granted land type is excluded by the Land test, exactly as Forge's
+		// Card.hasANonBasicLandType requires the Land card type.
+		if !hasTypeCtx(o, "Land", sc) {
+			return false
+		}
+		for _, t := range chooseNonbasicLandTypes {
+			if hasTypeCtx(o, t, sc) {
+				return true
+			}
+		}
+		return false
 	case wordSameName:
 		// Forge CardProperty "sameName": card.sharesNameWith(source). The
 		// referent is SpecContext.Source as MatchesObjectCtx rewrote it: the

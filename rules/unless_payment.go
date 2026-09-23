@@ -488,7 +488,7 @@ func (e *Engine) advanceUnlessPayment() {
 	// emits for a Return cost part.
 	for _, id := range u.returns {
 		if o := e.G.Obj(id); o != nil {
-			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZHand, Text: "returned to hand as a cost"})
+			e.emit(events.ReturnCost(id, o.Zone))
 		}
 	}
 	src := u.ctx.Source

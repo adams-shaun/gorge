@@ -259,6 +259,14 @@ type Host interface {
 	// channel (Moria Scavenger). Empty when the window holds none; a
 	// replay derives the same answer from the same log.
 	DiscardedInWindow(obj state.ObjID) []state.ObjID
+	// ReturnedInWindow reports the object ids of the COST returns
+	// (events.IsReturnCost) recorded in the activation window of the
+	// resolving object obj — the permanents obj's own Return<N/Spec> cost
+	// parts moved to their owner's hand, read off the event log the same way
+	// DiscardedInWindow reads cost discards. The ConditionDefined$ Returned
+	// group's channel (Wonderscape Sage). Empty when the window holds none;
+	// a replay derives the same answer from the same log.
+	ReturnedInWindow(obj state.ObjID) []state.ObjID
 	// WasCastFromHand reports whether card obj's LATEST cast came from a
 	// hand — ANY caster's hand — the bare wasCastFromYourHand filter family's
 	// backing (task castprov3: the "from anywhere other than your hand"
