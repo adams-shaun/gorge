@@ -319,6 +319,15 @@ func TestNecromancyOffSorceryCastSacrificesItselfAtCleanup(t *testing.T) {
 	if o := e.G.Obj(id); o.Zone != state.ZBattlefield {
 		t.Fatalf("Necromancy zone %s, want battlefield after resolving", o.Zone)
 	}
+	// Precondition for the LTB assertions below: the reanimate chain really
+	// ran -- the bear is under our control on the battlefield and the Aura is
+	// attached to it, so the delayed TrigSacrifice registration exists.
+	if b := e.G.Obj(bear); b.Zone != state.ZBattlefield || b.Controller != 0 {
+		t.Fatalf("bear zone %s controller %d, want battlefield under seat 0 (the reanimation never ran)", b.Zone, b.Controller)
+	}
+	if o := e.G.Obj(id); o.AttachedTo != bear {
+		t.Fatalf("Necromancy AttachedTo %d, want %d (the Aurify attach never ran)", o.AttachedTo, bear)
+	}
 	if !sawMayFlashSacFlag(e, id) {
 		t.Fatal("off-sorcery Necromancy cast did not stamp FlagMayFlashSac")
 	}
@@ -326,7 +335,7 @@ func TestNecromancyOffSorceryCastSacrificesItselfAtCleanup(t *testing.T) {
 		t.Fatal("off-sorcery Necromancy cast did not register the cleanup sacrifice")
 	}
 
-	driveToStep(t, e, e.G.Turn+1, 1, state.StepMain1)
+	driveToStepAnsweringOrder(t, e, e.G.Turn+1, 1, state.StepMain1)
 	if o := e.G.Obj(id); o.Zone != state.ZGraveyard {
 		t.Fatalf("Necromancy zone %s after cleanup, want graveyard (the rider sacrifices the permanent it became)", o.Zone)
 	}
@@ -334,6 +343,64 @@ func TestNecromancyOffSorceryCastSacrificesItselfAtCleanup(t *testing.T) {
 		t.Fatalf("Necromancy sacrifice emitted at step %v (found=%v), want StepCleanup (CR 514.3)", s, ok)
 	}
 	replayCheck(t, e, cfg)
+}
+
+// driveToStepAnsweringOrder is driveToStep for a board whose leave-battlefield
+// moment poses a trigger_order ask. Necromancy's cleanup sacrifice fires the
+// registered DBDelay delayed trigger ("that creature's controller sacrifices
+// it") in the same window as the card's own printed Static$-True DBCleanup
+// trigger, and the controller is asked to order the simultaneous pair (CR
+// 603.3) -- an ask driveToStep, which only answers priority passes and
+// cleanup discards, cannot answer. The order submitted is the queue's own
+// order (an identity permutation), which is a legal answer; the drain's
+// existing semantics settle the rest.
+func driveToStepAnsweringOrder(t *testing.T, e *Engine, turn int32, active state.PlayerID, step state.Step) {
+	t.Helper()
+	for i := 0; i < 4000; i++ {
+		if e.G.Turn == turn && e.G.Active == active && e.G.Step == step {
+			return
+		}
+		if e.G.Over {
+			t.Fatalf("game ended before reaching turn %d seat %d step %s", turn, active, step)
+		}
+		if answerIfDiscard(t, e) {
+			continue
+		}
+		d := e.Pending()
+		if d == nil {
+			t.Fatalf("no pending decision while driving to turn %d seat %d step %s", turn, active, step)
+		}
+		switch d.Kind {
+		case decision.KTriggerOrder:
+			idxs := make([]int, 0, d.Min)
+			for j := 0; j < d.Min && j < len(d.Options); j++ {
+				idxs = append(idxs, d.Options[j].Index)
+			}
+			if len(idxs) != d.Min {
+				t.Fatalf("trigger_order with %d options, want %d: %+v", len(d.Options), d.Min, d)
+			}
+			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: idxs}); err != nil {
+				t.Fatalf("submit trigger order: %v", err)
+			}
+		case decision.KPriority:
+			idx := -1
+			for _, o := range d.Options {
+				if o.Kind == "pass" {
+					idx = o.Index
+				}
+			}
+			if idx < 0 {
+				t.Fatalf("priority decision with no pass option: %+v", d)
+			}
+			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
+				t.Fatalf("submit: %v", err)
+			}
+		default:
+			t.Fatalf("non-priority decision %+v encountered while driving to turn %d seat %d step %s",
+				d, turn, active, step)
+		}
+	}
+	t.Fatalf("did not reach turn %d seat %d step %s within the budget", turn, active, step)
 }
 
 // TestNecromancySorceryCastIsNotSacrificed is the corpus negative half the
