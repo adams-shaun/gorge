@@ -115,6 +115,10 @@ func TestTriggerEventInterestMapping(t *testing.T) {
 			// InterestAllows fails open for them before this mapping is even
 			// consulted.
 			want = cards.TriggerInterestAny
+		case events.Scry:
+			// Scry is not currently a trigger-interest class, so it retains
+			// the conservative catch-all mapping.
+			want = cards.TriggerInterestAny
 		case events.Surveil:
 			// The same Investigate shape (trig-surveil): the surveil marker is
 			// trigger-relevant (trig:Surveil matches it through the full

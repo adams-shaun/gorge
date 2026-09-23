@@ -809,6 +809,23 @@ const (
 	// following every prior Kind's own append-only precedent, so no earlier
 	// ordinal, hash chain or golden replay is affected.
 	KeywordAbilityPush
+	// Scry records one completed scry instruction's final partition
+	// (CR 701.18, task scrybottom): Player is the scrying seat and Obj the
+	// resolving source permanent (0 for a source-less body); Amount is the
+	// number of cards the player actually chose to put on the BOTTOM of
+	// their library (0 when every looked-at card was kept on top). It is an
+	// Apply no-op marker, exactly like Surveil/Discover: the scry's own
+	// state change (the KArrange answer's LibraryOrder) is its own event
+	// that follows this one, and the record is what trig:Scry matches. It is
+	// emitted by rules' handleArrange AFTER the KArrange answer is known --
+	// never at the look -- so a "whenever you choose to put one or more
+	// cards on the bottom" trigger (The Temporal Anchor's `ToBottom$ True`)
+	// sees the count actually bottomed rather than the number looked at, and
+	// fires not at all when the answer bottomed none. Appended after
+	// KeywordAbilityPush, following every prior Kind's own append-only
+	// precedent, so no earlier ordinal, hash chain or golden replay is
+	// affected.
+	Scry
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -819,7 +836,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(KeywordAbilityPush) + 1
+	NumKinds = int(Scry) + 1
 )
 
 // mergedTriggerShift is the width MergedTriggerPush's Amount gives the
@@ -953,7 +970,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"x_change", "note_number", "extra_phase", "copy_token", "exert", "planar_roll", "explore", "combat_retarget", "ring_tempts_you", "ring_emblem_push", "grant_ability_push", "investigate", "blessing_change", "clone_permanent", "mutate", "merged_trigger_push",
 	"discover", "seek", "connive", "enlist", "exploit", "alter_attribute",
 	"gained_ability_push", "gained_trigger_push", "surveil", "unattached", "player_noted", "player_note_cleared",
-	"delayed_remove", "turn_face_up", "searched_library", "keyword_ability_push"}
+	"delayed_remove", "turn_face_up", "searched_library", "keyword_ability_push", "scry"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {
