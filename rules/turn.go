@@ -1199,21 +1199,6 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// resume: the offer comes from the turn structure, never from inside
 		// one, so e.drainAwaitsTarget is necessarily false here.
 		e.suspendCastAnswer(chosen)
-	case chooseETB:
-		// Task 12: an "as this enters" choice was answered. Record it on the
-		// card (etbAnswer, via a Choose event), then continue the flow -- the
-		// cast flow's next (or remaining) etb choice, then commitCast; for a
-		// land, commitCast moves it onto the battlefield. The drain resume is
-		// the same shape as the chooseCast case, for the same reason (a
-		// miracle cast whose own card also carried an as-enters choice would
-		// have paused here mid-drain).
-		e.etbAnswer(d, chosen)
-		e.continueCast()
-		if e.drainAwaitsTarget && e.Pending() == nil {
-			e.drainAwaitsTarget = false
-			e.resumeTriggerDrain()
-			return
-		}
 	case chooseCleanup:
 		// Task D1 (CR 514.1): the cleanup-step discard decision was answered.
 		// discardCleanup moves the chosen cards hand -> graveyard, runs the

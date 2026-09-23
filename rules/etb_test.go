@@ -165,12 +165,11 @@ func TestChaliceCountersSpellsOfTheChargedManaValue(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestSanctumPrelateNumberIsChosenAtCastAndRestrictsCasting pins the cast-time
-// as-enters number choice: Prelate asks it during its own cast flow (before
-// it is on the stack, recorded with a Choose event on the card), and its
-// CantBeCast static (cmcEQChosen, resolved through specCtx) then forbids the
-// chosen conversion value afterwards.
-func TestSanctumPrelateNumberIsChosenAtCastAndRestrictsCasting(t *testing.T) {
+// TestSanctumPrelateNumberIsChosenAtEntryAndRestrictsCasting pins the
+// entry-boundary number choice: Prelate asks as it enters, and its CantBeCast
+// static (cmcEQChosen, resolved through specCtx) then forbids the chosen
+// conversion value afterwards.
+func TestSanctumPrelateNumberIsChosenAtEntryAndRestrictsCasting(t *testing.T) {
 	prelate := "Name:Prelate\nManaCost:1 W W\nTypes:Creature Human Cleric\nPT:2/2\nK:ETBReplacement:Other:ChooseNumber\n" +
 		"SVar:ChooseNumber:DB$ ChooseNumber | Defined$ You | SpellDescription$ As CARDNAME enters, choose a number.\n" +
 		"S:Mode$ CantBeCast | ValidCard$ Card.nonCreature+cmcEQChosen | Description$ x\nOracle:x\n"
@@ -205,11 +204,11 @@ func TestSanctumPrelateNumberIsChosenAtCastAndRestrictsCasting(t *testing.T) {
 }
 
 // TestNeedleNamesACardAndCavernChoosesAType covers the name and type ETB
-// choices end to end: Needle's as-enters name pick is offered at cast time
-// (with a battlefield candidate present), recorded as ChosenName, and the
-// named card's ability is then suppressed by the CantBeActivated static;
-// Cavern of Souls (a land) picks a creature type through play_land's own
-// one-stage flow and enters the battlefield with it recorded.
+// choices end to end: Needle's as-enters name pick is offered at its entry
+// boundary (with a battlefield candidate present), recorded as ChosenName,
+// and the named card's ability is then suppressed by the CantBeActivated
+// static; Cavern of Souls (a land) picks a creature type at its entry boundary
+// and enters the battlefield with it recorded.
 func TestNeedleNamesACardAndCavernChoosesAType(t *testing.T) {
 	needle := "Name:Needle\nManaCost:1\nTypes:Artifact\nK:ETBReplacement:Other:DBNameCard\n" +
 		"SVar:DBNameCard:DB$ NameCard | Defined$ You | SpellDescription$ x\n" +

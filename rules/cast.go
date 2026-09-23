@@ -22,7 +22,7 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
-// chooseCast, chooseETB and chooseMiracle extend chooseFor (rules/engine.go
+// chooseCast and chooseMiracle extend chooseFor (rules/engine.go
 // declares chooseNone = iota, the only value Task 8 needed). iota+1 here
 // keeps every value distinct from chooseNone without redeclaring it --
 // nothing outside this package compares chooseFor values, so the exact
@@ -30,10 +30,8 @@ import (
 // file's block.
 const (
 	chooseCast chooseFor = iota + 1
-	chooseETB
 	chooseMiracle
-	// chooseETBEntry is the resolution-time counterpart of chooseETB. It is
-	// distinct because chooseETB remains the legacy cast-flow helper.
+	// chooseETBEntry marks an entry-boundary as-enters choice.
 	chooseETBEntry chooseFor = 32
 	// chooseRiot is deliberately outside the independently extended
 	// chooseCleanup/chooseMana ranges in combat.go and mana_activation.go.
@@ -363,32 +361,6 @@ type pendingCast struct {
 	// progress, so the count must come back across the push (F05-2). Nil when
 	// no cast push is in flight.
 	preAborts map[state.ObjID]int32
-
-	// Task 12: the card's "as this enters" choices (one per ETBReplacement
-	// Repl whose ReplaceWith$ is NameCard/ChooseType/ChooseNumber). Each is
-	// asked in order while choosing == chooseETB; etbIdx is the next
-	// unsettled one, so the continuation survives the chooseAnswer round trip
-	// (answer -> etbAnswer increments etbIdx -> continueCast re-enters
-	// etbAsk). Plain data, so a Clone copies it like the fields above.
-	etbs   []etbChoice
-	etbIdx int
-
-	// etbChosen records whether THIS proposal actually emitted an "as this
-	// enters" Choose event, and the object's choice fields as they were
-	// immediately before the first one (captured in etbAnswer, before it
-	// records the answered choice). An aborted proposal (CR 733.1) must
-	// return the object to the moment before it was proposed, so abortCast
-	// emits reverse Choose events restoring these captured values -- but ONLY
-	// when a choice was recorded during this proposal (a spell that never
-	// chose anything emits nothing, so no chain head moves for it). Capturing
-	// all three fields at the first answer means a card with several etb
-	// choices restores the true pre-proposal state, not the state after the
-	// first answer.
-	etbChosen bool
-	etbName   string
-	etbType   string
-	etbNumber int32
-	etbColor  string
 
 	// altAddParts are the alternative parts of the card's
 	// AlternateAdditionalCost keyword ("As an additional cost to cast this
@@ -2359,9 +2331,6 @@ func (e *Engine) continueCast() {
 	if e.moveGraveAsk() {
 		return
 	}
-	if e.etbAsk() {
-		return
-	}
 	// Suspend does not put a spell on the stack: its alternate action pays
 	// the keyword cost and exiles the card with time counters. Targets are
 	// chosen only when its later free cast is announced.
@@ -4154,75 +4123,6 @@ func (e *Engine) discardAsk() bool {
 	return false
 }
 
-// collectETBChoices walks pc.card's printed replacement lines and, for every
-// ETBReplacement Repl whose ReplaceWith$ resolves to a NameCard/ChooseType/
-// ChooseNumber/ChooseColor ability, adds one etbChoice with its pre-built
-// option list.
-// The list (not just the kind) is captured up front so the offered option and
-// the recorded choice always agree, and so the choice is the same whether it
-// is asked here (cast flow) or once the object has moved (a land's
-// play_land). Nothing is asked and no choice is recorded for an etbCounter
-// replacement (its ReplaceWith$ is PutCounter) -- those need only Ctx.X, not
-// a player decision.
-// collectETBChoices is the cast-path fast path. Entries that do not pass
-// through a pending cast (reanimation, blink, or a direct ChangeZone) are
-// caught by applyRiotReplacement in replacement.go before their MoveZone is
-// logged, so Riot is never limited to spells cast normally.
-func (e *Engine) collectETBChoices(you state.PlayerID) {
-	pc := e.cast
-	if pc == nil {
-		return
-	}
-	o := e.G.Obj(pc.card)
-	if o == nil {
-		return
-	}
-	f := o.Face()
-	if f == nil {
-		return
-	}
-	if f.HasKeyword("Riot") {
-		pc.etbs = append(pc.etbs, etbChoice{kind: "riot", options: []decision.Option{
-			{Index: 0, Kind: "riot", Label: "Enter with a +1/+1 counter"},
-			{Index: 1, Kind: "riot", Label: "Gain haste"},
-		}})
-	}
-	// kw:Unleash (CR 702.86): the same as-enters may, two options (take the
-	// +1/+1 counter or enter without). The non-cast entry paths are caught
-	// by applyUnleashReplacement (rules/unleash.go), the Riot precedent.
-	if f.HasKeyword("Unleash") {
-		pc.etbs = append(pc.etbs, etbChoice{kind: "unleash", options: unleashOptions(pc.card, pc.player)})
-	}
-	for i := range f.Repls {
-		r := &f.Repls[i]
-		if r.Params["Keyword"] != "ETBReplacement" || r.With == nil {
-			continue
-		}
-		kind := etbChoiceKind(r.With.API)
-		if kind == "" {
-			continue
-		}
-		pc.etbs = append(pc.etbs, etbChoice{
-			kind: kind,
-			options: e.etbOptions(you, pc.card, kind,
-				r.With.Params["ValidCards"],
-				// ValidDescription$ is Forge prompt text, not a second filter;
-				// effects.NameChoices reads it only as a safety fallback when
-				// ValidCards$ is absent (see NameChoices' doc).
-				r.With.Params["ValidDescription"],
-				// Type$ (Herald's Horn, Urza's Incubator, Roaming Throne, Three
-				// Tree City) names the category the choice ranges over. The
-				// option list below builds it; a category this build cannot
-				// enumerate is recorded loudly at resolution time by
-				// effects.effChooseType, never silently.
-				r.With.Params["Type"],
-				// Exclude$ (Black Dragon Gate, the five Thriving lands) names
-				// colours the choice must NOT offer, comma-separated.
-				r.With.Params["Exclude"]),
-		})
-	}
-}
-
 func etbChoiceKind(api string) string {
 	switch api {
 	case "NameCard":
@@ -4288,15 +4188,15 @@ func (e *Engine) entryETBChoice(ev events.Event, ordinal int) (etbChoice, bool) 
 // etbColourLabels pairs the WUBRG letter the Choose event records with the
 // option label the client shows, in fixed WUBRG order -- the same order every
 // colour choice in this build offers (askManaColor, triggeredManaColourChoice,
-// commanderIdentityColours). etbOptions and etbAnswer both read it, so the
-// option offered and the letter recorded always agree.
+// commanderIdentityColours). etbOptions and resumeETBEntry both read it, so
+// the option offered and the letter recorded always agree.
 var etbColourLabels = []struct{ letter, name string }{
 	{"W", "White"}, {"U", "Blue"}, {"B", "Black"}, {"R", "Red"}, {"G", "Green"},
 }
 
 // etbColourLetter maps an option label (or already-a-letter) back to the
-// WUBRG letter the event records; "" when the label is neither (an etbAnswer
-// caller only sees options etbOptions built, so the guard is defensive).
+// WUBRG letter the event records; "" when the label is neither (the entry
+// continuation only sees options etbOptions built, so the guard is defensive).
 func etbColourLetter(name string) string {
 	for _, cl := range etbColourLabels {
 		if strings.EqualFold(name, cl.name) || strings.EqualFold(name, cl.letter) {
@@ -4307,11 +4207,11 @@ func etbColourLetter(name string) string {
 }
 
 // etbOptions builds the option list for one "as this enters" choice. It is a
-// total list-pick -- every collectETBChoices borrower guaranteed at least one
+// total list-pick -- every entryETBChoice caller is guaranteed at least one
 // legal option (a name is anything on the board/hand/yard, a type falls back
 // to "Human", a number is always 0..12) -- so no etb decision can ever be
 // handed out with zero options, and nothing asks an empty choice (R-9's
-// totality rule; see the Options here and the Min/Max 1 in etbAsk).
+// totality rule; see the Options here and the entry decision's Min/Max 1).
 //
 // Option list order is deterministic: names and types are sorted strings
 // (never from a map), numbers are ascending.
@@ -4480,25 +4380,6 @@ func (e *Engine) TypeChoices(chooser state.PlayerID, category string) []decision
 		return nil
 	}
 	return e.creatureTypeOptions(chooser)
-}
-
-// etbAsk asks the next unsettled "as this enters" choice (pc.etbs[pc.etbIdx]),
-// one at a time. Runs until every choice is settled; once none remain it
-// returns false and continueCast falls through to commitCast. Every choice is
-// a single-pick of its full option list, so Min==Max==1; a real option is
-// always present, so the cast cannot strand on an unanswerable decision.
-func (e *Engine) etbAsk() bool {
-	pc := e.cast
-	if pc == nil || pc.etbIdx >= len(pc.etbs) {
-		return false
-	}
-	ch := pc.etbs[pc.etbIdx]
-	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
-		Prompt: "Choose" + etbChoicePrompt(ch.kind), Source: pc.card}
-	d.Options = append(d.Options, ch.options...)
-	e.choosing = chooseETB
-	e.ask(d)
-	return true
 }
 
 // etbChoicePrompt names the kind of an "as this enters" choice for a client
@@ -5570,56 +5451,6 @@ func (e *Engine) manaAsk() bool {
 	e.choosing = chooseCast
 	e.ask(d)
 	return true
-}
-
-// etbAnswer records one answered "as this enters" choice onto the card as a
-// Choose event, before the object is put on the stack (or, for a land, before
-// it moves to the battlefield), so the recorded value survives replay exactly
-// as the player chose it. The value rides on Option.Label (name/type/colour)
-// or Option.Amount (number), not the choice index.
-func (e *Engine) etbAnswer(d *decision.Decision, chosen []decision.Option) {
-	pc := e.cast
-	if pc == nil || len(chosen) != 1 {
-		return
-	}
-	opt := chosen[0]
-	// CR 733.1: an aborted proposal must undo the as-enters choice. Capture
-	// the object's choice fields as they were IMMEDIATELY BEFORE this answer
-	// records one (the first answer of a multi-choice card sees the true
-	// pre-proposal state), so abortCast can emit reverse Choose events
-	// restoring them. Mark etbChosen once, so the capture is not overwritten
-	// by a later answer and so a spell that never chose asks for no restore.
-	if !pc.etbChosen {
-		if o := e.G.Obj(pc.card); o != nil {
-			pc.etbName, pc.etbType, pc.etbNumber, pc.etbColor = o.ChosenName, o.ChosenType, o.ChosenNumber, o.ChosenColor
-		}
-		pc.etbChosen = true
-	}
-	switch opt.Kind {
-	case "name":
-		e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "name", Text: opt.Label})
-	case "type":
-		e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "type", Text: opt.Label})
-	case "number":
-		e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "number", Amount: int32(opt.Amount)})
-	case "color":
-		if letter := etbColourLetter(opt.Label); letter != "" {
-			e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "color", Text: letter})
-		}
-	case "riot":
-		choice := "haste"
-		if opt.Index == 0 {
-			choice = "counter"
-		}
-		e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "riot", Text: choice})
-	case "unleash":
-		choice := "plain"
-		if opt.Index == 0 {
-			choice = "counter"
-		}
-		e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "unleash", Text: choice})
-	}
-	pc.etbIdx++
 }
 
 // castAnswer records a chooseCast answer into the flow, keyed off which
@@ -7280,30 +7111,6 @@ func (e *Engine) abortCast(pc *pendingCast, text string, suppress bool) {
 	if pc.faceBefore != nil {
 		if o := e.G.Obj(pc.card); o != nil && o.FaceIdx != *pc.faceBefore {
 			e.emit(events.Event{Kind: events.FlipFace, Obj: pc.card, Amount: int32(*pc.faceBefore)})
-		}
-	}
-	// CR 733.1: the game returns to the moment before the spell or ability was
-	// proposed, so an as-enters choice recorded during the proposal must be
-	// undone too (Sanctum Prelate's ChosenNumber otherwise survives a mana
-	// abort while every other resource is restored). Emit reverse Choose
-	// events restoring the captured pre-proposal values, but ONLY for the
-	// fields a choice actually changed and ONLY when a choice was recorded
-	// (etbChosen): a spell that never chose emits nothing here, so no chain
-	// head moves for the choiceless abort sites.
-	if pc.etbChosen {
-		if o := e.G.Obj(pc.card); o != nil {
-			if o.ChosenName != pc.etbName {
-				e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "name", Text: pc.etbName})
-			}
-			if o.ChosenType != pc.etbType {
-				e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "type", Text: pc.etbType})
-			}
-			if o.ChosenNumber != pc.etbNumber {
-				e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "number", Amount: pc.etbNumber})
-			}
-			if o.ChosenColor != pc.etbColor {
-				e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "color", Text: pc.etbColor})
-			}
 		}
 	}
 	// CR 733.1 applies identically to a mode announced during the proposal.

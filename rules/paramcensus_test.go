@@ -1374,13 +1374,6 @@ var apiSpecificRulesSA = map[string][]string{
 	// them carries a param only another case reads, and Play's genuinely
 	// unread RememberPlayed$ stays unmasked (no case reads it).
 	"Engine.resumeResolution": {"Counter", "CopySpellAbility", "Play"},
-	// The cast-offer ETB-choice walk (rules/cast.go collectETBChoices): it
-	// reads the ReplaceWith$ body's ValidCards$/Type$/Exclude$ for the
-	// NameCard / ChooseType / ChooseNumber / ChooseColor "as this enters"
-	// choices -- the etbChoiceKind switch dispatches on exactly those four
-	// apis, so the reads belong to them alone and must not join the generic
-	// rules union.
-	"Engine.collectETBChoices": {"NameCard", "ChooseType", "ChooseNumber", "ChooseColor"},
 	// The ward payment path: only the Ward keyword's expanded trigger
 	// reaches these (resumeResolution dispatches on rp.sa.API == "Ward"),
 	// so their UnlessCost$ reads belong to api:Ward alone -- left in the
@@ -1583,13 +1576,11 @@ var handRoots = struct {
 		"Engine.registerOpeningEffectTriggers", "Engine.checkEventDelayedTriggers"},
 	// applyReplacements is the replacement pipeline's root beside
 	// replacementMatches, whose `r.Event != "Moved"` early return scopes every
-	// r.Params read in it to repl:Moved. collectETBChoices reads the
-	// ETBReplacement repl's Keyword$ at cast-offer time. handleReplacement is
-	// the parked-repl-choice decision handler (it resumes the parked phase
+	// r.Params read in it to repl:Moved. handleReplacement is the
+	// parked-repl-choice decision handler (it resumes the parked phase
 	// machinery and reads the parked repl's Optional$ directly), reached
 	// through the decision resume path rather than the pipeline.
-	repl: []string{"Engine.applyReplacements", "Engine.collectETBChoices",
-		"Engine.handleReplacement"},
+	repl: []string{"Engine.applyReplacements", "Engine.handleReplacement"},
 }
 
 // derivedReads is the per-primitive read set the scan attributes.
@@ -2068,8 +2059,8 @@ func (s *scan) reachFromRoots(b bucket, fn string) bool {
 // nothing downstream needs to re-derive the difference. Both tags are
 // consumed structurally: the KeywordLine tag IS the idempotence check in
 // cards/keywords.go's `has` closure (the T:/R:/A: lookups at the top of
-// expandKeywords), and rules/cast.go's collectETBChoices reads the Keyword
-// tag ("ETBReplacement") to find an ETB replacement's target options. They
+// expandKeywords), and rules/cast.go's entryETBChoice reads the Keyword tag
+// ("ETBReplacement") to find an ETB replacement's target options. They
 // are therefore never a per-primitive script parameter and are never
 // measured.
 var structuralKeys = func() map[string]map[string]bool {
