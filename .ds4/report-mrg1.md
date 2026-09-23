@@ -1793,6 +1793,132 @@ head/ratchet movement; no Known-approximations row touched.
 
 ---
 
+# Merge-conflict resolution — fb-20260923T020152Z-694613d1 (mrg1)
+
+## Entry state
+
+`git status` on arrival: **clean, no rebase or merge in flight** on branch
+`wt/fb-20260923T020152Z-694613d1` at `d14c376f` (docs) on `a1d21db9`
+(`fix(web): keep the attacker picker open across selections`). The daemon's
+rebase onto main had been aborted, so this seat re-ran the integration as a
+`git merge main` (the standing no-`git rebase` rule). Merge-base `f2e9c8d5`;
+main tip `b3523eab`; main 41 commits ahead, branch 2 ahead.
+
+## Conflicted file: `.ds4/report-sol1.md` (the only one)
+
+All other files (including main's many new rules/effects test files, AGENTS.md
+ratchet-table change, and `internal/testutil/agentsdoc_test.go`) auto-merged.
+
+Three-way shape of the one conflict (base 172 lines, ours 279, main 286):
+
+- **base**: the Deep Spawn UnlessCost Mill sol1 review-response report.
+- **ours (branch)**: the same shared sections (Deep Spawn, RollDice, Gitaxian
+  Probe) **plus the branch's unique `# Task fb-20260923T020152Z — attacker
+  radial picker` report appended** under a `---` divider (the +107 of
+  `d14c376f`).
+- **main**: the same shared sections **plus two unique reports of its own**:
+  `# Attached predicates — agent-20260922T210645Z-27e19c88` (inserted at the
+  top) and `# CopySpellAbility.Optional — sol1 rebase and report-conflict
+  resolution` (at the tail).
+
+Verified mechanically before resolving: ours' lines 1–173 (the shared Deep
+Spawn / RollDice / Gitaxian Probe sections) appear in main's version as a
+**byte-contiguous run**, so the only branch-unique content is ours lines
+174–279 (the attacker-picker report) and the two main-only sections.
+
+## Resolution
+
+Both sides' intent composes; nothing contradicts. Resolved file = **main's
+full version (286 lines) + ours' lines 174–279 (the `---` divider and the
+branch's attacker radial picker report) appended**. Result: 393 lines. A
+programmatic check confirmed every non-blank line of BOTH index stages
+(`:2:` and `:3:`) is present in the resolved file (0 missing per side) and no
+`<<<<<<<`/`=======`/`>>>>>>>` markers remain. No report text was edited.
+
+## Operation completed
+
+```
+$ git merge main
+Auto-merging .ds4/report-sol1.md
+CONFLICT (content): Merge conflict in .ds4/report-sol1.md
+Automatic merge failed; fix conflicts and then commit the result.
+$ git add -f .ds4/report-sol1.md && git commit --no-edit
+7f90dfef Merge branch 'main' into wt/fb-20260923T020152Z-694613d1
+$ git status --short          # clean
+$ git merge-base --is-ancestor main HEAD   # pass
+```
+
+Merge commit `7f90dfef`, tree clean, main is an ancestor.
+
+## Checks
+
+- `.cards` present (symlink to `/home/sadams/projects/gorge/.cards`) — real
+  corpus, not a vacuous skip.
+- `web/node_modules/.package-lock.json` present (hardlink copy carried over),
+  so the branch's web fix could be exercised.
+- Required post-merge ratchets:
+  `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`
+  → `ok github.com/adams-shaun/gorge/rules 1.100s` (exit 0).
+- Branch-fix sanity (branch's only code is web; main touched no web file):
+  `npm test -- --run src/components/CardMenu.test.ts` → `Test Files 1 passed
+  (1) / Tests 6 passed (6)`.
+- The conflicted file is docs-only (`.ds4/report-sol1.md`); there is no Go
+  package over it to test beyond the ratchet sweep above.
+
+## Notes / unsure about
+
+- None of substance. The conflict was the recurring report-accumulator
+  collision; both unique sides were preserved verbatim. The branch registers
+  no new `Mode$` matcher and closes no `knownUnsupported` /
+  `knownUnsupportedParams` / `knownUnmodelledCountHeads` entry, so no ratchet
+  table entry needed an `addedAfterTheSplit` listing or a removal; the
+  ratchet sweep passed unchanged.
+
+## Issues
+
+None found. The only conflict was the shared report accumulator; no engine or
+web code conflicted, and the merged main content (Backup, Attached
+predicates, CopySpellAbility.Optional, RevealAllValid) arrived with its own
+reports already in place.
+
+## Verification in this resolver session
+
+The entry tree was already clean and the prior merge operation was complete:
+`7f90dfef` has parents `d14c376f` and `b3523eab`; the report commit was
+`28160e61`. The dispatch's rebase transcript named `.ds4/report-sol1.md`,
+while the completed merge's recorded unmerged path was `.ds4/report-sol1.md`
+(the fallback transcript's `.ds4/report-mrg1.md` collision did not remain in
+the completed merge). Kept the completed merge intact rather than starting a
+second integration. At verification time `main` had advanced to `19b8fb3a`,
+so that newer tip is not an ancestor; the completed integration is against
+`b3523eab` and is not being chased as a moving target.
+
+`.cards` resolves to `/home/sadams/projects/gorge/.cards`.
+
+Commands run in this session:
+
+```text
+$ git status --short --branch
+## wt/fb-20260923T020152Z-694613d1
+
+$ git merge-base --is-ancestor b3523eab HEAD; echo $?
+0
+
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok   github.com/adams-shaun/gorge/rules  0.953s
+
+$ cd web && npm_config_cache=/tmp/gorge-fb-20260923T020152Z-npm-cache npx vitest run src/components/CardMenu.test.ts
+Test Files 1 passed (1)
+Tests 6 passed (6)
+```
+
+Vitest also printed the existing Svelte `anchorProp` initial-value warning in
+`ResolvedCard.svelte:97`; tests passed. The branch registers no new trigger
+mode and closes no ratchet entry. The final tree is clean after committing this
+verification record.
+
+---
+
 # Merge-conflict resolution — mrg1
 
 ## Conflict and resolution
@@ -2037,6 +2163,59 @@ per-branch rewrites of the shared `report-mrg1.md` accumulator collide on
 every integration; the union convention keeps everything, but a main-side
 decision to stop rewriting it would end the repeat conflicts.
 ---
+# Merge-conflict resolution — fb-20260923T020152Z-694613d1 (current main)
+
+## Entry state and integration
+
+The worktree was clean on `wt/fb-20260923T020152Z-694613d1`; no merge or
+rebase was in progress. The prior merge (`7f90dfef`) integrated the then-current
+main, but the current `main` tip had advanced and was not an ancestor of HEAD.
+Following the repository rule against rebasing, I merged current `main`. Main's
+source/test changes auto-merged; only `.ds4/report-mrg1.md` conflicted.
+
+## Conflict and resolution
+
+`.ds4/report-mrg1.md` is a report accumulator. The branch side carried the
+fb-20260923T020152Z attacker-picker merge history and verification report.
+Main's side carried independent mrg1 reports, including the Dismantle /
+targeted-counter-LKI round. These are distinct historical records, not
+contradictory content. I preserved both sides verbatim, retaining the branch
+section first and appending main's section after a `---` divider, then added
+this resolution record. No production-code conflict required manual changes;
+main's source/test changes remain as auto-merged. No other files were manually
+edited.
+
+## Commands and results
+
+```text
+$ git status --short --branch
+## wt/fb-20260923T020152Z-694613d1
+
+$ git merge --no-edit main
+Auto-merging .ds4/report-mrg1.md
+CONFLICT (content): Merge conflict in .ds4/report-mrg1.md
+Automatic merge failed; fix conflicts and then commit the result.
+
+$ grep -nE '^(<<<<<<<|=======|>>>>>>>)' .ds4/report-mrg1.md
+(no output after resolution)
+
+$ git diff --check
+(no output; exit 0)
+
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok   github.com/adams-shaun/gorge/rules 0.814s
+
+$ cd web && npm_config_cache=/tmp/gorge-fb-20260923T020152Z-npm-cache npx vitest run src/components/CardMenu.test.ts
+Test Files 1 passed (1)
+Tests 6 passed (6)
+(existing Svelte anchorProp warning in ResolvedCard.svelte:97)
+```
+
+The ratchets passed; this branch adds no trigger matcher and closes no ratchet
+entry. The mounted attacker-picker regression also passed. No uncertainty
+remains about the report conflict. No additional issue was found.
+
+---
 
 # Merge-conflict resolution round — mrg1 (task agent-20260922T200200Z-7feb602c, 2026-09-24)
 
@@ -2272,3 +2451,86 @@ cast is barred by CR 107.3b, rather than an unclosed engine defect.
 ## Issues
 
 - No new defect found; the only conflict was independent accumulator content.
+---
+# Merge-conflict resolution — mrg1 (task fb-20260923T020152Z-694613d1, 2026-09-23)
+
+## Entry state and operation
+
+`git status` on arrival: **clean, no rebase or merge in flight** on branch
+`wt/fb-20260923T020152Z-694613d1` at merge commit `30e1f14c`. That merge
+integrated the `b3523eab`-era main; current `main` had since advanced to
+`2305812c` and was NOT an ancestor of HEAD. Per the standing no-`git rebase`
+rule (and the repo's merge convention), I completed the integration with
+`git merge main`.
+
+## Conflicted files, both sides, resolution
+
+Two content conflicts, both report accumulators. No production or test file
+conflicted; the branch's web fix (`a1d21db9`) and main's engine work
+(`Convoked$Amount`, Imprint, ChangeZone) auto-merged.
+
+### `.ds4/report-mrg1.md`
+
+- **ours (`:2`, 1949 lines):** the base accumulator plus this branch's two
+  earlier mrg1 records (the `fb-20260923T020152Z` integration report and the
+  "current main" verification record).
+- **theirs / main (`:3`, 1868 lines):** the base accumulator plus the
+  `agent-20260922T200200Z-7feb602c` (Convoked$Amount) merge-round report
+  appended at the tail.
+- Neither side contains the other's unique report (`grep -c` for each title
+  in the opposite side = 0). Resolution: **union**, ours first, then a `---`
+  divider, then main's section verbatim. No report text edited or dropped
+  (programmatic check: 0 non-blank lines missing per side).
+
+### `.ds4/report-sol1.md`
+
+- **ours (`:2`, 393 lines):** main's 71-line `Convoked$Amount` report prepend
+  + the shared base + this branch's 107-line attacker-picker report appended.
+- **theirs / main (`:3`, 392 lines):** the same 71-line prepend + the same
+  base + the `agent-20260923T113045Z-aa7f7a4e` (Teapot Slinger) report
+  appended.
+- The only true divergence is the per-branch tail report. Resolution:
+  **union** — upstream content (the Convoked prepend and shared base), then
+  ours' attacker-picker report, then a `---` divider, then main's Teapot
+  report verbatim. 0 non-blank lines missing per side.
+
+No conflict markers remain in either file (the only line matching
+`^>>>>>>>` is pre-existing prose inside main's `agent-20260922T200200Z`
+report, not a marker).
+
+## Commands and results
+
+```text
+$ git merge main --no-edit
+Auto-merging .ds4/report-mrg1.md
+CONFLICT (content): Merge conflict in .ds4/report-mrg1.md
+Auto-merging .ds4/report-sol1.md
+CONFLICT (content): Merge conflict in .ds4/report-sol1.md
+Automatic merge failed; fix conflicts and then commit the result.
+
+$ python3 (union splice + per-side non-blank line preservation check)
+mrg1: ours-missing=0 theirs-missing=0
+sol1: ours-missing=0 theirs-missing=0
+
+$ grep -nE '^(<<<<<<< HEAD|=======$|>>>>>>> main)' .ds4/report-mrg1.md .ds4/report-sol1.md
+(no output; exit 1)
+```
+
+## Notes / unsure about
+
+- `.cards` was present as a symlink to `/home/sadams/projects/gorge/.cards`,
+  so the post-merge ratchet run is corpus-backed, not vacuous.
+- `report-mrg1.md` contains a pre-existing prose line beginning with
+  `>>>>>>>`' inside the `agent-20260922T200200Z` report; it is not a conflict
+  marker and was preserved verbatim.
+- The daemon's rebase transcript named `d14c376f` as the conflicting commit;
+  the branch had already been rebased/merged in prior rounds, so the actual
+  remaining operation was a fresh merge of current `main`, which is what was
+  completed here. This matches the working-method clause "finish the
+  operation that actually remains".
+
+## Issues
+
+None new. The conflicts were confined to tracked report accumulators; no
+engine or web behaviour was ambiguous. The branch closes no Known-approximations
+row and registers no new trigger `Mode$` matcher.
