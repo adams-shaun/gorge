@@ -609,11 +609,14 @@ func (e *Engine) ownReduceCost(p state.PlayerID, id state.ObjID, ab *cards.SA, t
 // isLoyaltyAbility reports whether ab is a planeswalker loyalty ability
 // (CR 606): it carries the Planeswalker$ parameter (case-insensitive -- three
 // corpus lines spell it "true"), or its parsed Cost$ contains an
-// AddCounter/SubCounter part of the LOYALTY kind. The OR is load-bearing: the
-// dynamic [-X] costs (SubCounter<X/LOYALTY>, 20 raw lines) do not parse into a
-// SubCounter part (ParseCost keeps the unrecognised-token fallback for them),
-// so only the parameter identifies those; conversely the param covers every
-// fixed [+N]/[-N] shape, 966 of the 970 raw ability lines carrying it.
+// AddCounter/SubCounter part of the LOYALTY kind. The OR is load-bearing on
+// the cost side: the dynamic [-X] form SubCounter<X/LOYALTY> (20 raw lines)
+// parses into an announced SubCounter part of the LOYALTY kind (see
+// rules/mana.go's subCounterCost), so the cost alone still identifies it even
+// if a hypothetical carrier omitted the parameter; the param additionally
+// covers every fixed [+N]/[-N] shape (978 raw lines, 977 carrying the
+// parameter) as well as the 20 dynamic [-X] lines, every one of which carries
+// it.
 func isLoyaltyAbility(ab *cards.SA) bool {
 	return isLoyaltyAbilityCost(ab, ParseCost(ab.Params["Cost"]))
 }
