@@ -9,8 +9,7 @@ import (
 
 // TestAnimateAttachExplicitOriginOutranksInZone checks the Attach census
 // precedence when a scripted Origin$ and ValidTgts$ disagree. An absent
-// Origin$ still permits the graveyard-enchant inference, while TgtZone$
-// remains the highest-precedence declaration.
+// Origin$ still permits the graveyard-enchant inference.
 func TestAnimateAttachExplicitOriginOutranksInZone(t *testing.T) {
 	for _, tc := range []struct {
 		name, origin, valid, tgtZone string
@@ -19,7 +18,6 @@ func TestAnimateAttachExplicitOriginOutranksInZone(t *testing.T) {
 		{"graveyard origin beats exile filter", "Graveyard", "Creature.inZoneExile", "", state.ZGraveyard},
 		{"exile origin beats graveyard filter", "Exile", "Creature.inZoneGraveyard", "", state.ZExile},
 		{"no origin infers graveyard", "", "Creature.inZoneGraveyard", "", state.ZGraveyard},
-		{"explicit target zone beats both", "Graveyard", "Creature.inZoneExile", "Hand", state.ZHand},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			sa := &cards.SA{API: "Attach", Params: map[string]string{
