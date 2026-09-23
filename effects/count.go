@@ -1441,6 +1441,22 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			return int32(len(h.ObjectColors(o))), true
 		}
 		return 0, true
+	case "CardNumAttacksThisTurn":
+		// Forge's Count$CardNumAttacksThisTurn: how many times THIS object has
+		// attacked this turn (Moraug, Fury of Akoum's "+1/+0 for each time it
+		// has attacked this turn"). state.Object.AttacksThisTurn is the
+		// event-folded per-object tally -- events.Apply increments it on each
+		// DeclareAttackers and TurnChange resets it -- so the read is
+		// deterministic and replay-stable. c.Source is the object the count
+		// anchors on: for the AffectedX static that is the recipient creature
+		// (rules.staticAmountOn binds the affected id), and for an ordinary
+		// SVar body it is the resolving source. A missing source reads a
+		// legitimate zero -- the modelled-head convention, NOT the
+		// unresolvable verdict.
+		if o := g.Obj(c.Source); o != nil {
+			return o.AttacksThisTurn, true
+		}
+		return 0, true
 	case "xPaid":
 		// CR 107.3i: the {X} paid for the resolving spell or ability. On a
 		// TRIGGER of a permanent that was cast for {X} the ability object's
