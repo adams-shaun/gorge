@@ -516,7 +516,15 @@ type Object struct {
 	// Combat-only.
 	IsAttacking bool
 	Attacking   PlayerID
-	BlockedBy   []ObjID
+	// AttackingBattle is the CR 310.7 battle this creature is attacking, or 0
+	// when it attacks a player. Attacking still names the battle's PROTECTOR
+	// (the player who blocks and whose seat the attack is scoped to), so the
+	// two fields together carry the whole defender: a player defender leaves
+	// AttackingBattle zero, a battle defender sets it to the battle's ObjID.
+	// Set by events.Apply's DeclareAttackers case from the event's Obj (the
+	// battle id for a battle attack) and cleared wherever IsAttacking is.
+	AttackingBattle ObjID
+	BlockedBy       []ObjID
 	// EncoreAttackTurn/Defender record "attacks that opponent this turn if
 	// able" on an encore token. Zero Turn means no requirement; turns begin
 	// at 1, so the zero value is unambiguous.
