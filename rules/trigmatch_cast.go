@@ -249,7 +249,7 @@ func (e *Engine) targetMatchesTargetsValid(spec string, tgt state.Target, source
 // spellAbilityCastSpellMatches is the SPELL half of Mode$ SpellAbilityCast
 // ("whenever you cast a spell or activate an ability ..."): a PutOnStack
 // event, evaluated with the spell-side parameters the corpus carriers
-// write. Mode$ AbilityCast stays AbilityPush-only -- its oracle text is
+// write. Mode$ AbilityCast stays activation-only -- its oracle text is
 // "whenever you activate an ability" -- so the mode split at the bottom of
 // this file routes the two events by mode, not by event kind.
 //
@@ -363,14 +363,14 @@ func (e *Engine) spellAbilityCastSpellValidSA(obj *state.Object, validSA string,
 }
 
 // spellAbilityCastMatches is Mode$ SpellAbilityCast's dispatcher (the
-// spell-or-activate union): an AbilityPush event routes to the activation
-// arm, a PutOnStack to the spell arm (spellAbilityCastSpellMatches). A named
+// spell-or-activate union): an AbilityPush or KeywordAbilityPush event routes
+// to the activation arm, a PutOnStack to the spell arm. A named
 // method, not an inline func literal, so the param census (the rot guard)
 // attributes both arms' trigger-param reads to this mode through the one
 // dispatch function.
 func (e *Engine) spellAbilityCastMatches(t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
 	switch ev.Kind {
-	case events.AbilityPush:
+	case events.AbilityPush, events.KeywordAbilityPush:
 		return e.abilityCastMatches(t, source, ev)
 	case events.PutOnStack:
 		return e.spellAbilityCastSpellMatches(t, source, ev)
@@ -379,9 +379,9 @@ func (e *Engine) spellAbilityCastMatches(t cards.Trigger, source state.ObjID, ev
 }
 
 // abilityCastMatches implements Mode$ AbilityCast and Mode$ SpellAbilityCast
-// against an AbilityPush event -- the moment an activated ability is put on
-// the stack (rules/cast.go's commitCast). This is the COMPLETED boundary: an
-// AbilityPush is emitted only once the activation's cost is fully paid and
+// against an AbilityPush or KeywordAbilityPush event -- the moment an
+// activated ability is put on the stack. This is the COMPLETED boundary:
+// the push is emitted only once the activation's cost is fully paid and
 // the ability object is minted, so a trigger firing here is never observing a
 // provisional or abandoned activation. (F15: there was no such arm at all, so
 // Rings of Brighthearth's "Whenever you activate an ability, if it isn't a
@@ -389,10 +389,11 @@ func (e *Engine) spellAbilityCastMatches(t cards.Trigger, source state.ObjID, ev
 //
 // ValidActivatingPlayer$ and ValidSA$ narrow the activation the trigger
 // observes, in the same two params the corpus spells them with. A source
-// permanent whose face has no Abilities at the recorded index (stale data) is
-// a no-op, never a panic.
+// card whose face has no Abilities at the recorded index (stale data) is
+// a no-op, never a panic. A keyword line without a synthesizable ability
+// also fails closed.
 func (e *Engine) abilityCastMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
-	if ev.Kind != events.AbilityPush {
+	if ev.Kind != events.AbilityPush && ev.Kind != events.KeywordAbilityPush {
 		return false
 	}
 	obj := e.G.Obj(ev.Obj)
@@ -416,6 +417,17 @@ func (e *Engine) abilityCastMatches(t cards.Trigger, source state.ObjID, ev even
 	// pile TOP's printed cost (a wrong-wide pass whenever the top card's cost
 	// carried {X}). A plain permanent's flat index is unchanged.
 	pa, havePa := obj.PileAbilityAt(int(ev.Amount))
+	var ab *cards.SA
+	if ev.Kind == events.KeywordAbilityPush {
+		// Counter is the replayable derived keyword line used by Apply to
+		// mint the stack body's SA. Amount is not a printed-ability index.
+		ab = cards.GrantedCyclingAbility(ev.Counter)
+		if ab == nil {
+			return false
+		}
+	} else if havePa {
+		ab = pa.SA
+	}
 	// ValidCard$ scopes AbilityCast to the permanent whose ability was
 	// activated. It is distinct from the trigger source: Avalanche of Sector
 	// 7's Artifact restriction must reject an ability from a non-artifact.
@@ -425,15 +437,12 @@ func (e *Engine) abilityCastMatches(t cards.Trigger, source state.ObjID, ev even
 		}
 	}
 	if v, ok := t.Params["ValidSA"]; ok {
-		if !havePa {
-			return false
-		}
-		if !abilityCastValidSA(pa.SA, v, obj.Controller, ctrl) {
+		if ab == nil || !abilityCastValidSA(ab, v, obj.Controller, ctrl) {
 			return false
 		}
 	}
 	if v, ok := t.Params["ValidSAonCard"]; ok {
-		if !havePa || !abilityCastValidSA(pa.SA, v, ev.Player, obj.Controller) {
+		if ab == nil || !abilityCastValidSA(ab, v, ev.Player, obj.Controller) {
 			return false
 		}
 	}
@@ -456,13 +465,8 @@ func (e *Engine) abilityCastMatches(t cards.Trigger, source state.ObjID, ev even
 	if !e.targetShapeMatches(t, tgts, source, ctrl) {
 		return false
 	}
-	// HasXManaCost$ True: the activation cost must contain {X}. The ability
-	// at the recorded index (the same bounds check ValidSA$ uses); a stale
-	// index fails closed through the nil ab below.
-	var ab *cards.SA
-	if havePa {
-		ab = pa.SA
-	}
+	// HasXManaCost$ reads the same body as ValidSA$: a printed pile index
+	// or the keyword line that Apply used to mint the granted ability.
 	if !hasXManaCostGate(t.Params, "", ab) {
 		return false
 	}
@@ -772,10 +776,10 @@ func init() {
 		return e.spellCopyMatches(t, source, ev)
 	}, "SpellCopy")
 	// The activation-cast family, split (targetsvalid1): Mode$ AbilityCast is
-	// "whenever you activate an ability" -- an AbilityPush event only, never a
-	// spell cast -- while Mode$ SpellAbilityCast is Forge's "spell or activate
-	// an ability" union and fires on BOTH events: an AbilityPush through the
-	// activation arm, a PutOnStack through the spell arm
+	// "whenever you activate an ability" -- AbilityPush or KeywordAbilityPush,
+	// never a spell cast -- while Mode$ SpellAbilityCast is Forge's "spell or
+	// activate an ability" union: both push kinds take the activation arm, and
+	// PutOnStack takes the spell arm
 	// (spellAbilityCastSpellMatches). triggerModeEvents and the compiled
 	// triggerInterestForMode mirror this split.
 	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {

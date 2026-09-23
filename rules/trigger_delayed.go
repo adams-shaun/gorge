@@ -286,8 +286,9 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 		// registration -- and touches no object and no state.Game field, so
 		// nothing here reaches an event. It is cleared immediately before
 		// each registration's own matching (so a `continue` cannot leak one
-		// registration's scope into the next) and again before the firing
-		// pass below, which resolves with no scope at all.
+		// registration's scope into the next) and once more after the
+		// matching loop, before the removal and firing passes below, which
+		// resolve with no scope at all.
 		e.clearEffectMatchScope()
 		if dt.EffectRepeat {
 			e.effectMatchSource = dt.Source
@@ -405,6 +406,17 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 			static:     strings.TrimSpace(t.Params["Static"]) != "",
 		})
 	}
+	// The LAST registration the loop processed leaves its scope armed
+	// (clearEffectMatchScope runs before each registration's own matching, so
+	// nothing clears the final one -- and a registration that hit one of the
+	// early `continue`s above never reached it at all). Left armed, the scope
+	// leaks past this function: the NEXT matching walk's controllerOf and the
+	// trigmatch_zone look-back guard consult effectMatchControllerFor precisely
+	// because it is only true inside a registration's matching, so a printed
+	// controller-relative trigger would read this registration's virtual
+	// controller instead of its own source's state. Clear here, so emit
+	// returns with no scope and both passes below resolve with no scope at all.
+	e.clearEffectMatchScope()
 	for _, id := range remove {
 		e.emit(events.Event{Kind: events.DelayedRemove, Amount: int32(id)})
 	}

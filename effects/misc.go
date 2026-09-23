@@ -786,7 +786,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
 			}
-		case "CantTarget", "CantRegenerate", "CantPreventDamage", "CantAttack", "CantSacrifice", "CantPutCounter", "CantBlockBy", "CanAttackDefender", "UnspentMana", "CantBlockUnless", "MustBlock":
+		case "CantTarget", "CantRegenerate", "CantPreventDamage", "CantAttack", "CantSacrifice", "CantPutCounter", "CantBlockBy", "CanAttackDefender", "UnspentMana", "CantBlockUnless", "MustBlock", "NumLoyaltyAct":
 			// A COMPOUND IsRemembered spec (Card.IsRemembered+Creature) resolves
 			// faithfully through the general filter now that it implements
 			// IsRemembered (rules/layers.go restrictionApplies consults the
@@ -832,6 +832,20 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				break
 			}
 			if mode == "UnspentMana" && !UnspentManaParamsReadable(params) {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
+				registered = true
+				break
+			}
+			if mode == "NumLoyaltyAct" && !NumLoyaltyActParamsReadable(params) {
+				// An Effect-delivered NumLoyaltyAct body (Kaito, Dancing
+				// Shadow's PWTwice, Comet, Stellar Pup's LoyaltyAbs, Urza
+				// Assembles the Titans' PWTwice) registers as a continuous
+				// restriction rules' loyaltyAbilityLimit reads alongside the
+				// printed S: route. A body carrying a scoping term this build
+				// does not evaluate must not register blanket -- it reports
+				// unimplemented instead (the shipped-statics convention every
+				// other whitelist arm here keeps).
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
@@ -1398,6 +1412,25 @@ func goadStaticGrantReadable(params map[string]string) bool {
 	for key := range params {
 		switch key {
 		case "Mode", "Affected", "Description", "Goad":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// NumLoyaltyActParamsReadable reports whether an Effect-delivered
+// Mode$ NumLoyaltyAct static body is entirely readable: the line's selector
+// (ValidCard$), its two grant parameters (Twice$ True, Additional$ N) and
+// the display text are the only keys this build evaluates. OnlySourceAbs$
+// True is accepted as source-scoping already implied by the corpus's
+// `ValidCard$ Card.EffectSource` selector (Comet, Stellar Pup's LoyaltyAbs).
+// Any other key is a condition gate or scoping term this build does not
+// evaluate, so the caller fails closed to its honest unimplemented Note.
+func NumLoyaltyActParamsReadable(params map[string]string) bool {
+	for key := range params {
+		switch key {
+		case "Mode", "ValidCard", "Twice", "Additional", "OnlySourceAbs", "Description":
 		default:
 			return false
 		}
@@ -2118,7 +2151,7 @@ func CanAttackDefenderParamsReadable(params map[string]string) bool {
 // restriction a turn early, the wrong-wide direction.
 func absentDurationMeansThisTurn(mode string) bool {
 	switch mode {
-	case "CantPutCounter", "CantBlockBy", "CanAttackDefender":
+	case "CantPutCounter", "CantBlockBy", "CanAttackDefender", "NumLoyaltyAct":
 		return true
 	}
 	return false

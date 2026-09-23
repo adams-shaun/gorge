@@ -1,3 +1,60 @@
+# Round record — merge resolver, worktree cli-20260923T060000Z-pw-numloyaltyact, 2026-09-23
+
+## Entry state
+
+`git status` found the tree CLEAN at the branch's completed earlier merge
+`33f1af28` (fix `c9938967` reads Effect-delivered `NumLoyaltyAct` in
+`loyaltyAbilityLimit` + that merge); no rebase or merge in flight. `main` had
+since advanced 12 commits to `c5669fdf` (choose-number, ct1 closure lineage),
+so this round ran the integration itself: `git merge main --no-edit`.
+
+## Conflicts and resolution
+
+Auto-merged: `AGENTS.md` (this branch's `(pw1)` deletion and main's landed
+closures compose; 0 `(pw1)` occurrences remain), `rules/cast.go`,
+`effects/choose.go`, `rules/resolution.go` and the rest. ONE content conflict:
+
+- **`internal/testutil/agentsdoc_test.go`** — the `knownApproximationRows`
+  constant and comment. Merge base `2acd1d4d` measured **23** data rows; the
+  branch deleted `(pw1)` (→22), main deleted `(ct1)` (→22) — both constants
+  stale for the merge. The merged `AGENTS.md` measures **21** data rows
+  (verified with `approximationRows()`'s own counting rule). Resolution:
+  `knownApproximationRows = 21` with a comment naming both disjoint closures.
+
+The branch's fix survived the auto-merge: `NumLoyaltyAct` reads remain in
+`rules/legal.go` (`loyaltyAbilityLimit` static accumulator) and
+`effects/misc.go` (`effEffect` + `NumLoyaltyActParamsReadable`).
+
+## Commands and output
+
+```text
+git status                              # clean at 33f1af28, nothing in flight
+git rev-list --count HEAD..main         # 12
+git merge main --no-edit
+  Auto-merging AGENTS.md / internal/testutil/agentsdoc_test.go ...
+  CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go
+row counts: base 2acd1d4d = 23, branch 33f1af28 = 22 (pw1 gone),
+            main c5669fdf = 22 (ct1 gone), merged AGENTS.md = 21
+.gcards check: .cards is the real symlink to /home/sadams/projects/gorge/.cards
+gofmt -l internal/testutil/agentsdoc_test.go   # clean
+go test ./internal/testutil -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort' -v
+  --- PASS: TestKnownApproximationsOnlyShrinks (0.00s)
+  --- PASS: TestKnownApproximationRowsAreShort (0.00s)
+go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|NumLoyaltyAct|Loyalty' -v
+  46 PASS, 0 FAIL, 0 SKIP (incl. the trigger-mode registry ratchets,
+  TestEveryRepoDeckIsFullySupported / TestEveryRepoDeckParamsAreRead, the
+  CountHead ratchet and the loyalty/NumLoyaltyAct suite) — ok rules 0.804s
+git commit --no-edit -> 02b39858 Merge branch 'main' into wt/cli-20260923T060000Z-pw-numloyaltyact
+git status -> clean; main (c5669fdf) is an ancestor of the branch
+```
+
+## Issues
+
+None new. Integration only; the merged state closes `(pw1)` (this branch) plus
+main-side `(ct1)` and its lineage's closures, measured at 21 data rows.
+
+---
+
 # Merge-conflict resolution — task cli-20260923T060000Z-choose-number
 
 ## Entry state and operation

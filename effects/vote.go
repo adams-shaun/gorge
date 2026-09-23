@@ -356,7 +356,17 @@ func voteCountFor(c *Ctx, subject state.Target) (int, bool) {
 	if c == nil {
 		return 0, false
 	}
-	for _, vc := range c.VoteCounts {
+	return VoteCountForTarget(c.VoteCounts, subject)
+}
+
+// VoteCountForTarget resolves a subject's tally out of a published
+// Ctx.VoteCounts table. It is the ONE home for the subject match, shared by
+// voteCountFor's per-iteration binding and rules' rebuilt-Ctx restoration of a
+// suspended AmountFromVotes$ loop (the tally is a prior chain link, so a
+// resume restores the table and re-derives the scalar from it). ok=false when
+// the table holds no entry for the subject.
+func VoteCountForTarget(counts []VoteCount, subject state.Target) (int, bool) {
+	for _, vc := range counts {
 		if vc.Subject == subject {
 			return vc.Count, true
 		}
