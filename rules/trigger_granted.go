@@ -409,7 +409,7 @@ func (e *Engine) checkGrantedMentorTriggers(observer *Engine, id state.ObjID, o 
 		}
 		if e.triggerFireCount[key] < maxTriggerFires {
 			e.triggerFireCount[key]++
-			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{Source: id, Controller: o.Controller, Idx: -1, SA: t.Effect,
+			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{Source: id, Controller: o.Controller, Idx: -1, Mentor: true, SA: t.Effect,
 				Ctx: effects.Ctx{Source: id, Controller: o.Controller, Remembered: triggerRemembered(ev, id), LKI: objLKI,
 					TriggerContext: observer.triggerReferents(t, id, ev, objLKI)}})
 		}
