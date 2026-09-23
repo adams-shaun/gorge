@@ -1042,7 +1042,11 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// with the election's answer as a bogus continuation and drop the
 		// election unanswered.
 		e.choosing = chooseNone
-		e.tokenReplAnswer(chosen)
+		if rp := e.tokenReplAnswer(chosen); rp != nil && e.pending == nil &&
+			len(e.replChoices) == 0 && e.resume == rp {
+			e.resume = nil
+			e.resumeResolution(rp, nil)
+		}
 		return
 	}
 	if e.choosing == chooseETBEntry {
@@ -1231,7 +1235,11 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// answer either rewrites the parked plan to copies of the chosen
 		// creature or skips the match (a decline), and the flow then runs the
 		// plan's remaining replacement matches before the mints are emitted.
-		e.tokenReplAnswer(chosen)
+		if rp := e.tokenReplAnswer(chosen); rp != nil && e.pending == nil &&
+			len(e.replChoices) == 0 && e.resume == rp {
+			e.resume = nil
+			e.resumeResolution(rp, nil)
+		}
 	case chooseOpening:
 		e.handleOpening(d, in)
 	case chooseSuspendCast:

@@ -354,8 +354,6 @@ func TestResumeStateOwnedOnlyByTheResolutionMachinery(t *testing.T) {
 		"(*Engine).resumeResolution":                       "the re-entry point: links the new pending point's outer continuation up to the frame it is re-entering (rules/resolution.go)",
 		"(*Engine).releasePendingDecisionOfDepartedPlayer": "CR 800.4f: a departed player's outstanding ask is released with an empty answer (rules/sba.go)",
 		"(*Engine).lifeReplacementDraw":                    "the GainLife→Draw replacement's suspension-aware draw loop: parks the remaining card count on the Ask-installed Dredge resume point so the answered dredge re-drives the rest instead of posing a second ask over the outstanding one (rules/replacement.go)",
-		"(*Engine).tokenReplAnswer":                        "the chosen-copy CreateToken election answer: clears then re-enters the CR 616.1 order competition's suspension record once the answered plan has settled (rules/replacement.go)",
-		"(*Engine).resumeParkedResolution":                 "the replacement answer tail: clears then re-enters the order competition's parked resolution once the queue drains, or drops the pose's own cast-window record whose work completed synchronously in the answer (rules/replacement.go)",
 	}
 	writers := resumeFieldWriters(t)
 

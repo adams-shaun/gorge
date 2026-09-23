@@ -1945,13 +1945,13 @@ func (e *Engine) poseChosenTokenReplacement(ev events.Event, matches []replMatch
 // chooseTokenReplace case of handleChoose): the answered option either
 // rewrites the plan to copies of the chosen creature or skips the match (the
 // decline), and the flow then drives the plan's remaining matches.
-func (e *Engine) tokenReplAnswer(chosen []decision.Option) {
+func (e *Engine) tokenReplAnswer(chosen []decision.Option) *resumePoint {
 	st := e.tokenChoice
 	e.tokenChoice = nil
 	e.choosing = chooseNone
 	if st == nil {
 		e.emit(events.Event{Kind: events.Note, Text: "token copy choice answered with no replacement pending"})
-		return
+		return nil
 	}
 	if len(chosen) != 1 || chosen[0].Index == st.declineIdx {
 		// The decline (or a malformed answer, treated as one): the match is
@@ -1966,20 +1966,11 @@ func (e *Engine) tokenReplAnswer(chosen []decision.Option) {
 	}
 	plan, parked := e.driveTokenReplacements(st.ev, st.matches, st.plan, st.next)
 	if parked {
-		return
+		return nil
 	}
 	e.emitTokenPlan(st.ev, plan)
-	// The election was posed inside the CR 616.1 answer that was applying its
-	// competition: the plan has settled, so the competition's suspension
-	// record resumes now -- the same tail discipline handleReplacement's
-	// answer applies (resolveTop would otherwise abandon the resolution and
-	// re-resolve it every pass).
-	if st.parkedResume != nil && e.pending == nil && len(e.replChoices) == 0 &&
-		e.resume == st.parkedResume {
-		e.resume = nil
-		e.resumeResolution(st.parkedResume, nil)
-	}
 	e.askNextReplacementChoice()
+	return st.parkedResume
 }
 
 // emitTokenPlan settles the parked plan after every match has been applied
@@ -4889,7 +4880,18 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 		}
 		e.damaging, e.combatDamaging, e.dmgSrcOverride = damaging, combat, override
 		e.triggerBefore = before
-		e.resumeParkedResolution(rc, rp)
+		if e.pending == nil && len(e.replChoices) == 0 {
+			if rc.inResolution {
+				if e.resume == rp {
+					e.resume = nil
+					e.resumeResolution(rp, nil)
+				} else if e.resume != nil && e.resume.outer == nil {
+					e.resume.outer = rp
+				}
+			} else if rc.resumeAtPose != nil && e.resume == rc.resumeAtPose {
+				e.resume = nil
+			}
+		}
 		e.askNextReplacementChoice()
 		return
 	}
@@ -4978,8 +4980,6 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 			return
 		}
 		m := rc.cands[rc.applicable[chosen[0].Index]]
-		if b := m.repl.With; b != nil {
-		}
 		rest := dropReplMatch(rc.cands, m)
 		var plan []tokenPlanMint
 		var parked bool
@@ -5050,8 +5050,13 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 	// handler, never here. A nested ask the chosen replacement's own body
 	// posed has already replaced e.resume: chain rp behind it as its outer so
 	// it still runs once that inner question settles (fx34's discipline).
-	if rc.inResolution {
-		e.resumeParkedResolution(rc, rp)
+	if rc.inResolution && e.pending == nil && len(e.replChoices) == 0 {
+		if e.resume == rp {
+			e.resume = nil
+			e.resumeResolution(rp, nil)
+		} else if e.resume != nil && e.resume.outer == nil {
+			e.resume.outer = rp
+		}
 	} else if rc.resumeAtPose != nil && e.resume == rc.resumeAtPose &&
 		e.pending == nil && len(e.replChoices) == 0 {
 		// The pose's own Engine.Ask record, from a cast window or turn
@@ -5065,30 +5070,6 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 		e.resume = nil
 	}
 	e.askNextReplacementChoice()
-}
-
-// resumeParkedResolution finishes a competition's answer tail: if the
-// answered competition arose while a stack resolution was in flight, resume
-// that resolution once the whole queue has drained -- the discipline the
-// damage branch applies inline. See replChoice.inResolution's comment.
-func (e *Engine) resumeParkedResolution(rc replChoice, rp *resumePoint) {
-	if e.pending != nil || len(e.replChoices) > 0 {
-		return
-	}
-	if rc.inResolution {
-		if e.resume == rp {
-			e.resume = nil
-			e.resumeResolution(rp, nil)
-		} else if e.resume != nil && e.resume.outer == nil {
-			e.resume.outer = rp
-		}
-		return
-	}
-	// See the shared tail's stale-frame drop for why the pose's own record
-	// must not survive the answer.
-	if rc.resumeAtPose != nil && e.resume == rc.resumeAtPose {
-		e.resume = nil
-	}
 }
 
 // askNextReplacementChoice hands over to either an ordinary replacement
