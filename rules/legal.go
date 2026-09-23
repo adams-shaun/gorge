@@ -801,19 +801,45 @@ func (e *Engine) loyaltyActivationsThisTurn(id state.ObjID) int {
 // the limit alone. The ValidCard$ match resolves against the static's own source
 // and controller (e.specCtx), exactly as castRestricted and abilityRestricted
 // resolve theirs.
+//
+// Both delivery routes are read (task pw-numloyaltyact): a printed S: line
+// (activeStatics' APNAP walk) and an Effect-delivered one -- Kaito, Dancing
+// Shadow's PWTwice, Comet, Stellar Pup's LoyaltyAbs and Urza Assembles the
+// Titans' PWTwice register a NumLoyaltyAct registry entry (effects' effEffect),
+// read here in registry order. A granted line's own Remembered set is bound
+// for the `Card.IsRemembered` spelling, exactly as staticGoadLines binds it
+// for Goad. Both routes share one accumulator so neither can drift from the
+// other's Twice/Additional combination rule.
 func (e *Engine) loyaltyAbilityLimit(id state.ObjID) int {
 	twice := false
 	additional := 0
-	for _, sv := range e.activeStatics("NumLoyaltyAct") {
-		if !e.matchesSpec(sv.Params["ValidCard"], id, e.specCtx(sv.Source, sv.Controller)) {
-			continue
+	// apply folds one live NumLoyaltyAct line into the accumulator. The
+	// ValidCard$ spec is matched against the permanent with the static's own
+	// source, controller and remembered set bound (the same binding
+	// restrictionApplies and goadLineMatches use).
+	apply := func(params map[string]string, source state.ObjID, controller state.PlayerID, remembered []state.ObjID) {
+		sc := e.specCtx(source, controller)
+		for _, r := range remembered {
+			sc.Remembered = append(sc.Remembered, state.Target{Obj: r})
 		}
-		if sv.Params["Twice"] == "True" {
+		if !e.matchesSpec(params["ValidCard"], id, sc) {
+			return
+		}
+		if params["Twice"] == "True" {
 			twice = true
 		}
-		if raw, ok := sv.Params["Additional"]; ok {
+		if raw, ok := params["Additional"]; ok {
 			additional += int(parseAmount(raw, 0))
 		}
+	}
+	for _, sv := range e.activeStatics("NumLoyaltyAct") {
+		apply(sv.Params, sv.Source, sv.Controller, nil)
+	}
+	for _, ce := range e.active() {
+		if ce.Restriction != "NumLoyaltyAct" {
+			continue
+		}
+		apply(ce.RestrictParams, ce.Source, ce.Controller, ce.Remembered)
 	}
 	base := 1
 	if twice {
