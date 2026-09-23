@@ -81,7 +81,7 @@ func TestCR601RecheckAfterXAndLegalTarget(t *testing.T) {
 			}
 			targetSeq := d.Seq
 			t.Logf("MEASURED Power Sink X=%d target seq %d: pendingCast=%t pool=%v queued triggers=%d", x, targetSeq, e.cast != nil, e.G.Players[0].Pool, len(e.pendingTriggers))
-			crAbortAnswer(t, e, "Power Sink", crAbortOption(t, e, "Power Sink", "permanent", target))
+			crAbortAnswer(t, e, "Power Sink", crAbortOption(t, e, "Power Sink", "spell", target))
 			chosen := false
 			for _, ev := range e.L.Events[start:] {
 				if ev.Kind == events.TargetsChosen && ev.Obj == id && slices.Contains(ev.IDs, target) {

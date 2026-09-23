@@ -213,7 +213,7 @@ func TestOptionalDeciderAskResolvesTheNamedDecider(t *testing.T) {
 	if d == nil || d.Kind != decision.KTarget {
 		t.Fatalf("expected the spell target ask, got %+v", d)
 	}
-	tgt := viviOption(d, "permanent", opt)
+	tgt := viviOption(d, "spell", opt)
 	if tgt == nil {
 		t.Fatalf("no Opt stack option: %+v", d.Options)
 	}
