@@ -4260,13 +4260,15 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 	// lifelink-granting Equipment and its bearer must not make the bearer's
 	// own lifelink LKI depend on battlefield order.
 	var victims []state.ObjID
+	sc := c.SpecContext(c.Controller)
+	sc.CombatDamageHits = h.CombatDamageToPlayersThisTurn()
 	for _, p := range g.AliveFrom(0) {
 		ids := append([]state.ObjID(nil), g.Zone(state.ZBattlefield, p)...)
 		for _, id := range ids {
 			if h.HasKeyword(id, "Indestructible") {
 				continue
 			}
-			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+			if MatchesSpecCtx(g, spec, id, sc) {
 				victims = append(victims, id)
 			}
 		}

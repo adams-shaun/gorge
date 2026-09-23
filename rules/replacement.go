@@ -1667,12 +1667,13 @@ func (e *Engine) resumeUpdatedComposition(rc replChoice, selected int) {
 // changed event. The final plan is emitted directly through events.Emit
 // (+ observe + checkTriggers per mint, the composeUpdatedReplacements
 // pattern), which BYPASSES applyReplacements: no mint can re-match, so a
-// doubler can never loop on its own output. The CR 616.1 order competition
-// among non-commuting bodies is real (see driveTokenReplacements); the
-// family's OTHER stand-ins remain (an Optional$ True R: line declining with
-// no ask, Type$ ReplaceController, an unpriceable Amount$, riders landing on
-// the first mint only) — no repo deck carries any of this family, so no
-// golden game exercises one.
+// doubler can never loop on its own output. The deviation from CR 616.1 is
+// deliberate (the CR 616.1 order choice for competing CreateToken
+// replacements is a follow-up ticket, not this build): competing CreateToken
+// replacements apply in
+// scan order, NOT through a posed KReplacement order choice (non-commuting
+// compositions are reachable in Commander, but no repo deck carries any of
+// this family, so no golden game exercises one).
 func (e *Engine) continueCreateTokenReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
 	plan, parked := e.driveTokenReplacements(ev, matches, []tokenPlanMint{{script: ev.Text}}, 0)
 	if parked {
@@ -1682,7 +1683,7 @@ func (e *Engine) continueCreateTokenReplacements(ev events.Event, matches []repl
 		// resume, the siegeMove/attachedChoice discipline.
 		return ev, true
 	}
-	if len(plan) == 1 && plan[0].copyOf == 0 && plan[0].script == ev.Text {
+	if len(plan) == 1 && plan[0].copyOf == 0 && plan[0].script == ev.Text && !plan[0].hasController {
 		// No replacement changed the plan: the ordinary emit path logs the
 		// original event untouched (with its full LKI/trigger treatment).
 		return ev, false
@@ -1704,6 +1705,24 @@ func (e *Engine) continueCreateTokenReplacements(ev events.Event, matches []repl
 type tokenPlanMint struct {
 	script string
 	copyOf state.ObjID
+	// controller, when hasController is set, is the player the mint enters
+	// under (a Type$ ReplaceController body's NewController$ -- Crafty
+	// Cutpurse's "created under your control instead"). The zero value leaves
+	// the mint under the original event's player; PlayerID 0 is a real seat,
+	// so the flag, not the value, is the sentinel.
+	controller    state.PlayerID
+	hasController bool
+}
+
+// tokenMintPlayer is the player one plan mint enters under: its own
+// ReplaceController answer when it carries one, else the original event's
+// creator. Every mint site and the per-mint re-match read this ONE helper so
+// a controller rewrite can never drift between the emit and the recheck.
+func tokenMintPlayer(mint tokenPlanMint, ev events.Event) state.PlayerID {
+	if mint.hasController {
+		return mint.controller
+	}
+	return ev.Player
 }
 
 // tokenReplApplies reports whether the drive would apply m at all: a body
@@ -1807,6 +1826,11 @@ type tokenChoiceState struct {
 	// election's answer tail resumes it once the plan has settled, exactly
 	// as handleReplacement's tail would have.
 	parkedResume *resumePoint
+	// plainOptional marks an Optional$ True replacement with no copy source to
+	// choose (Type$ Amount/AddToken/ReplaceToken): the election is a bare
+	// apply/decline, and option declineIdx declines it while any other answer
+	// applies the match.
+	plainOptional bool
 }
 
 // driveTokenReplacements applies matches[from:] to the plan, in the
@@ -1826,16 +1850,14 @@ func (e *Engine) driveTokenReplacements(ev events.Event, matches []replMatch, pl
 		chosenShape := strings.EqualFold(strings.TrimSpace(body.Params["TokenScript"]), "Chosen") ||
 			strings.TrimSpace(body.Params["ValidChoices"]) != ""
 		if !chosenShape && strings.EqualFold(m.repl.Params["Optional"], "True") {
-			// The deterministic decline stand-in (the optional no-ask paths'
-			// contract): a "may" replacement with no chooser applies as if
-			// declined, the event stands verbatim. The chosen-copy bodies below
-			// DO pose their election and so never take this arm.
-			continue
-		}
-		typ := strings.TrimSpace(body.Params["Type"])
-		if typ == "ReplaceController" {
-			e.emit(events.Event{Kind: events.Note, Obj: m.id, Player: ev.Player,
-				Text: "ReplaceToken Type$ ReplaceController is not implemented; the token is created unchanged"})
+			// A "may" replacement with no copy source to point at: pose the
+			// bare apply/decline election. The chosen-copy bodies below pose
+			// their own election and so never take this arm.
+			var parked bool
+			plan, parked = e.posePlainOptionalTokenReplacement(ev, matches, plan, i, m)
+			if parked {
+				return plan, true
+			}
 			continue
 		}
 		// CR 616.1's order competition: two or more applicable matches from
@@ -1941,6 +1963,35 @@ func (e *Engine) poseChosenTokenReplacement(ev events.Event, matches []replMatch
 	return plan, true
 }
 
+// posePlainOptionalTokenReplacement handles ONE Optional$ True
+// ReplaceToken body with no copy source to point at (Flitwing Lyev,
+// Detective: "if you would create one or more tokens, you may create that
+// many Clue tokens instead"). The controlling player's election is one
+// KChoose over a bare apply/decline pair, with the decline FIRST so
+// botpolicy's KChoose default arm (first offer) never wrongly applies a may
+// -- the same replicate/exert convention poseChosenTokenReplacement uses.
+// The ask is parked on e.tokenChoice and the flow resumes through
+// tokenReplAnswer (the chosen-copy path's own resume).
+func (e *Engine) posePlainOptionalTokenReplacement(ev events.Event, matches []replMatch, plan []tokenPlanMint, idx int, m replMatch) ([]tokenPlanMint, bool) {
+	if e.tokenChoice != nil || e.pending != nil || e.resume != nil {
+		e.emit(events.Event{Kind: events.Note, Obj: m.id, Player: ev.Player,
+			Text: "an optional ReplaceToken election cannot ask while another decision is pending; the replacement is declined"})
+		return plan, false
+	}
+	you := e.controllerOf(m.id)
+	opts := []decision.Option{
+		{Index: 0, Kind: "decline", Label: "create the tokens as they would have been"},
+		{Index: 1, Kind: "apply", Label: "apply this replacement"},
+	}
+	e.tokenChoice = &tokenChoiceState{ev: ev, matches: matches, plan: plan,
+		next: idx + 1, match: m, declineIdx: 0, plainOptional: true}
+	d := &decision.Decision{Player: you, Kind: decision.KChoose, Min: 1, Max: 1,
+		Source: m.id, Prompt: "You may apply this token replacement effect: apply it?", Options: opts}
+	e.choosing = chooseTokenReplace
+	e.ask(d)
+	return plan, true
+}
+
 // tokenReplAnswer resumes the parked chosen-copy replacement (the
 // chooseTokenReplace case of handleChoose): the answered option either
 // rewrites the plan to copies of the chosen creature or skips the match (the
@@ -1953,7 +2004,13 @@ func (e *Engine) tokenReplAnswer(chosen []decision.Option) *resumePoint {
 		e.emit(events.Event{Kind: events.Note, Text: "token copy choice answered with no replacement pending"})
 		return nil
 	}
-	if len(chosen) != 1 || chosen[0].Index == st.declineIdx {
+	if st.plainOptional {
+		// A bare Optional$ election: any non-decline answer applies the
+		// match itself; the decline skips it and the remaining matches run.
+		if len(chosen) == 1 && chosen[0].Index != st.declineIdx {
+			st.plan = e.applyTokenReplacementToPlan(st.ev, st.plan, st.match)
+		}
+	} else if len(chosen) != 1 || chosen[0].Index == st.declineIdx {
 		// The decline (or a malformed answer, treated as one): the match is
 		// skipped, the event's remaining replacements still run.
 	} else if o := e.G.Obj(chosen[0].Obj); o != nil && o.Zone == state.ZBattlefield {
@@ -1980,7 +2037,7 @@ func (e *Engine) tokenReplAnswer(chosen []decision.Option) *resumePoint {
 // empty plan is the rounded-to-zero Note, and each mint rides the
 // continueCreateTokenReplacements tail's discipline.
 func (e *Engine) emitTokenPlan(ev events.Event, plan []tokenPlanMint) {
-	if len(plan) == 1 && plan[0].copyOf == 0 && plan[0].script == ev.Text {
+	if len(plan) == 1 && plan[0].copyOf == 0 && plan[0].script == ev.Text && !plan[0].hasController {
 		saved := e.applyingReplacement
 		e.applyingReplacement = true
 		e.emit(ev)
@@ -2005,11 +2062,15 @@ func (e *Engine) emitTokenPlanMints(ev events.Event, plan []tokenPlanMint) event
 	var last events.Event
 	for _, mint := range plan {
 		if mint.copyOf != 0 {
-			last = e.emitChosenCopyToken(ev, mint.copyOf)
+			last = e.emitChosenCopyToken(ev, mint.copyOf, tokenMintPlayer(mint, ev))
 			continue
 		}
-		mintEv := events.Event{Kind: events.TokenCreate, Player: ev.Player, Text: mint.script}
+		mintEv := events.Event{Kind: events.TokenCreate, Player: tokenMintPlayer(mint, ev), Text: mint.script}
+		want := e.G.NextID
 		stored := events.Emit(e.G, e.L, mintEv)
+		if e.tokenMintSink != nil && e.G.Obj(want) != nil {
+			*e.tokenMintSink = append(*e.tokenMintSink, want)
+		}
 		e.loop.observe(stored)
 		e.checkTriggers(stored, nil, 0, 0, false)
 		last = stored
@@ -2020,11 +2081,14 @@ func (e *Engine) emitTokenPlanMints(ev events.Event, plan []tokenPlanMint) event
 // emitChosenCopyToken mints one copy of a battlefield creature: the CopyToken
 // mint predicted by id (the effToken/effMyriad prediction pattern), then the
 // genuine MoveZone that puts it on the battlefield.
-func (e *Engine) emitChosenCopyToken(ev events.Event, src state.ObjID) events.Event {
+func (e *Engine) emitChosenCopyToken(ev events.Event, src state.ObjID, player state.PlayerID) events.Event {
 	want := e.G.NextID
-	stored := e.emit(events.Event{Kind: events.CopyToken, Obj: src, Player: ev.Player})
+	stored := e.emit(events.Event{Kind: events.CopyToken, Obj: src, Player: player})
 	if e.G.Obj(want) == nil {
 		return stored
+	}
+	if e.tokenMintSink != nil {
+		*e.tokenMintSink = append(*e.tokenMintSink, want)
 	}
 	return e.emit(events.Event{Kind: events.MoveZone, Obj: want,
 		From: state.ZLibrary, To: state.ZBattlefield})
@@ -2521,7 +2585,7 @@ func (e *Engine) applyTokenReplacementToPlan(ev events.Event, plan []tokenPlanMi
 		// mint stands and N extra mints of the named script join it.
 		n := int32(1)
 		if raw := strings.TrimSpace(body.Params["Amount"]); raw != "" {
-			v, ok := tokenReplaceCount(raw)
+			v, ok := e.tokenReplacementAmount(m, ev, raw, 1)
 			if !ok || v < 0 {
 				e.emit(events.Event{Kind: events.Note, Obj: m.id, Player: ev.Player,
 					Text: "ReplaceToken Amount$ " + raw + " is not implemented; the token is created unchanged"})
@@ -2539,10 +2603,34 @@ func (e *Engine) applyTokenReplacementToPlan(ev events.Event, plan []tokenPlanMi
 			if e.tokenReplacementMatchesMint(ev, m, mint) {
 				for i := int32(0); i < n; i++ {
 					for _, s := range extra {
-						out = append(out, tokenPlanMint{script: s})
+						out = append(out, tokenPlanMint{script: s, controller: mint.controller, hasController: mint.hasController})
 					}
 				}
 			}
+		}
+		return out
+	case "ReplaceController":
+		// "... is created under <NewController$>'s control instead" (Crafty
+		// Cutpurse). The new controller is resolved through the ordinary
+		// Defined$ player grammar against the replacement source -- `You` is
+		// the source's controller, so an opponent's token creation becomes
+		// the source controller's -- and every matched mint carries it. A
+		// controller the grammar cannot resolve fails closed: the Note names
+		// it and the mint is left with its original creator rather than
+		// guessed onto a seat.
+		p, ok := e.tokenNewController(m, ev)
+		if !ok {
+			e.emit(events.Event{Kind: events.Note, Obj: m.id, Player: ev.Player,
+				Text: "ReplaceToken NewController$ " + strings.TrimSpace(body.Params["NewController"]) + " is not implemented; the token is created unchanged"})
+			return plan
+		}
+		out := make([]tokenPlanMint, 0, len(plan))
+		for _, mint := range plan {
+			if e.tokenReplacementMatchesMint(ev, m, mint) {
+				mint.controller = p
+				mint.hasController = true
+			}
+			out = append(out, mint)
 		}
 		return out
 	default:
@@ -2553,7 +2641,7 @@ func (e *Engine) applyTokenReplacementToPlan(ev events.Event, plan []tokenPlanMi
 		if raw == "" {
 			raw = "Twice"
 		}
-		n, ok := tokenReplaceCount(raw)
+		n, ok := e.tokenReplacementAmount(m, ev, raw, 1)
 		if !ok || n < 0 {
 			e.emit(events.Event{Kind: events.Note, Obj: m.id, Player: ev.Player,
 				Text: "ReplaceToken Amount$ " + raw + " is not implemented; the token is created unchanged"})
@@ -2573,8 +2661,9 @@ func (e *Engine) applyTokenReplacementToPlan(ev events.Event, plan []tokenPlanMi
 			}
 			// n == 0 (HalfDown against this engine's one-token events): the
 			// matched mint is not created. A halving composed AFTER a
-			// multiplier applies per mint rather than to the plan total — the
-			// documented composition approximation (see AGENTS.md).
+			// multiplier applies per mint rather than to the plan total — a
+			// deliberate scan-order composition approximation, tracked with
+			// the CR 616.1 order-choice follow-up.
 		}
 		return out
 	}
@@ -2587,7 +2676,7 @@ func (e *Engine) applyTokenReplacementToPlan(ev events.Event, plan []tokenPlanMi
 // copy mint (Divine Visitation after Esix rewrites each copy that is still a
 // creature token).
 func (e *Engine) tokenReplacementMatchesMint(ev events.Event, m replMatch, mint tokenPlanMint) bool {
-	mintEv := events.Event{Kind: events.TokenCreate, Player: ev.Player, Text: mint.script}
+	mintEv := events.Event{Kind: events.TokenCreate, Player: tokenMintPlayer(mint, ev), Text: mint.script}
 	// A copy mint's would-be token is the copied object's printed face, not a
 	// token-script registry key (CR 706.2), so BOTH the matcher's ValidToken$
 	// read and the ValidCard$ read below must see that snapshot -- one helper,
@@ -2661,6 +2750,42 @@ func tokenReplaceCount(raw string) (int32, bool) {
 		strings.HasPrefix(raw, "Plus."), strings.HasPrefix(raw, "Minus."),
 		strings.HasPrefix(raw, "Times."):
 		return replCountOp(1, raw), true
+	}
+	return 0, false
+}
+
+// tokenReplacementAmount resolves a ReplaceToken body's Amount$: the literal
+// and op-word grammar of tokenReplaceCount first, then the shared numeric
+// grammar (effects.NumResolved) so an SVar body or inline Count$ amount
+// resolves too -- `Amount$ X` with `X:ReplaceCount$CounterNum/Twice` reads as
+// the doubler the corpus's own ReplaceCounter bodies already express. base is
+// the single-mint ReplaceCount base. An unpriceable value reports not-ok and
+// the match is dropped with a loud Note, never read as zero.
+func (e *Engine) tokenReplacementAmount(m replMatch, ev events.Event, raw string, base int32) (int32, bool) {
+	if n, ok := tokenReplaceCount(raw); ok {
+		return n, true
+	}
+	ctx := e.replCtx(m, ev)
+	ctx.ReplacementAmount = base
+	return effects.NumResolved(e, ctx, m.repl.With, "Amount", base)
+}
+
+// tokenNewController resolves a Type$ ReplaceController body's NewController$
+// value through the ordinary Defined$ player grammar against the replacement
+// source (replCtx binds the source's controller, so `You` -- the corpus's
+// only spelling, Crafty Cutpurse -- is that controller). An absent,
+// unrecognised, or playerless selector reports not-ok and the match is
+// skipped with a loud Note, never guessed onto a seat.
+func (e *Engine) tokenNewController(m replMatch, ev events.Event) (state.PlayerID, bool) {
+	raw := strings.TrimSpace(m.repl.With.Params["NewController"])
+	if raw == "" {
+		return 0, false
+	}
+	sub := &cards.SA{Params: map[string]string{"Defined": raw}}
+	for _, t := range effects.Defined(e, e.replCtx(m, ev), sub) {
+		if t.IsPlayer {
+			return t.Player, true
+		}
 	}
 	return 0, false
 }
@@ -3647,7 +3772,13 @@ func (e *Engine) tokenSnapshot(ev events.Event) *state.Object {
 	if def == nil {
 		return nil
 	}
-	return &state.Object{Card: def, IsToken: true, Owner: ev.Player, Controller: ev.Player}
+	// Zone is the battlefield: the would-be token is being created ONTO the
+	// battlefield, and a `ValidToken$ Permanent...` gate (Flitwing Lyev's
+	// `Permanent.YouCtrl`) reads matchesBase's battlefield requirement for
+	// the bare Permanent base. Leaving the zero (library) value made that
+	// spelling fail closed and the replacement never apply.
+	return &state.Object{Card: def, IsToken: true, Owner: ev.Player, Controller: ev.Player,
+		Zone: state.ZBattlefield}
 }
 
 // chosenCopySnapshot is the ValidCard$ re-check's read-side snapshot of a
@@ -3660,7 +3791,7 @@ func (e *Engine) chosenCopySnapshot(src state.ObjID, player state.PlayerID) *sta
 		return nil
 	}
 	return &state.Object{Card: o.Card, FaceIdx: o.FaceIdx, IsToken: true,
-		Owner: player, Controller: player}
+		Owner: player, Controller: player, Zone: state.ZBattlefield}
 }
 
 // phaseStep maps a Forge Phase$ value on a BeginPhase replacement onto the
