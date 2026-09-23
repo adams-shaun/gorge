@@ -328,6 +328,10 @@ type repeatCursor struct {
 	last     []state.Target
 	hasLast  bool
 	optional bool
+	// election marks a RepeatEach frame parked on a per-subject
+	// RepeatOptionalForEachPlayer$ offer: next is the subject whose election
+	// was posed, and the answer rides Ctx.RepeatEachOptional on re-entry.
+	election bool
 }
 
 // fusedRest is a fuse-rest continuation's captured remainder (CR 702.101b):
@@ -640,7 +644,7 @@ func (e *Engine) SuspendRepeat(s effects.RepeatSuspension) {
 	}
 	e.contChain = append(e.contChain, contFrame{
 		sa:          s.SA,
-		repeat:      &repeatCursor{subjects: append([]state.Target(nil), s.Subjects...), next: s.Next},
+		repeat:      &repeatCursor{subjects: append([]state.Target(nil), s.Subjects...), next: s.Next, election: s.Election},
 		bound:       true,
 		remembered:  append([]state.Target(nil), s.Outer...),
 		voteCounts:  cloneVoteCounts(votes),
@@ -1835,6 +1839,34 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			if cur := rp.repeat; cur != nil {
 				ctx.Repeat = &effects.RepeatCursor{SA: rp.sa, Subjects: cur.subjects, Next: cur.next,
 					Last: cur.last, HasLast: cur.hasLast}
+			}
+		case "repeat_each_optional":
+			// A RepeatEach RepeatOptionalForEachPlayer$ election was answered.
+			// Its loop frame is rp.outer (SuspendRepeat parked it with Election
+			// set); consume it here so the loop is re-entered exactly once, at
+			// the OFFERED subject, rather than a second time through the outer
+			// recursion. The loop's own accumulated Remembered (the frame's
+			// loopRemembered, i.e. the suspension's Outer) replaces the
+			// iteration Body SuspendRepeat bound to this head, so the re-entered
+			// loop continues from the same bindings the first pass had. The
+			// answer itself rides Ctx.RepeatEachOptional: effects runs subject
+			// Next's body on a yes and skips it on a no.
+			if lf := rp.outer; lf != nil && lf.kind == "repeat" && lf.repeat != nil && lf.repeat.election {
+				ctx.Repeat = &effects.RepeatCursor{SA: rp.sa,
+					Subjects: append([]state.Target(nil), lf.repeat.subjects...),
+					Next:     lf.repeat.next, Last: lf.repeat.last, HasLast: lf.repeat.hasLast}
+				ctx.RepeatEachOptional = &effects.RepeatEachOptionalContinuation{
+					Next:   int32(lf.repeat.next),
+					Accept: len(chosen) > 0 && chosen[0].Kind == "yes",
+				}
+				if lf.loopBound {
+					rp.loopBound = true
+					rp.loopRemembered = append([]state.Target(nil), lf.loopRemembered...)
+				}
+				if lf.voteCounts != nil {
+					rp.voteCounts = cloneVoteCounts(lf.voteCounts)
+				}
+				rp.outer = lf.outer
 			}
 		case "repeat_optional_loop":
 			if cur := rp.repeat; cur != nil {

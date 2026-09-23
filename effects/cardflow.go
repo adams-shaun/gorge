@@ -1241,6 +1241,11 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				ev.Amount = int32(c.Source)
 			}
 			h.Emit(ev)
+			if strings.EqualFold(strings.TrimSpace(sa.Params["Imprint"]), "True") && c.Source != 0 {
+				if moved := g.Obj(id); moved != nil && moved.Zone == dest && !moved.IsToken {
+					h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: []state.ObjID{id}})
+				}
+			}
 			digRemember(c, sa, id)
 			if tapped && dest == state.ZBattlefield {
 				h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: p, Text: "entered tapped"})

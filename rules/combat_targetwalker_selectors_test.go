@@ -41,7 +41,21 @@ func TestCantAttackWalkerControlledByCardOwner(t *testing.T) {
 	if clause != "Planeswalker.ControlledBy Player.CardOwner" {
 		t.Fatalf("precondition: corpus walker clause = %q", clause)
 	}
-	id := onBoardCard(t, e, 0, x)
+	// activeStatics scans an on-board card's OWN face statics, and Xantcha's
+	// real CantAttack line carries BOTH target halves. At the corpus level the
+	// player half is now enforced (see TestCantAttackPlayerCardOwner), so
+	// leaving it live would make the walker half unobservable here. Place a
+	// copy of Xantcha whose printed statics are stripped, so the manual
+	// walker-only restriction below is the sole CantAttack source and every
+	// assertion tests the walker half alone. The clause itself is still the
+	// corpus's exact text (asserted above).
+	isolated := *x
+	sharedFaces := append([]*cards.Face(nil), x.Faces...)
+	stripped := *x.Faces[0]
+	stripped.Statics = nil
+	sharedFaces[0] = &stripped
+	isolated.Faces = sharedFaces
+	id := onBoardCard(t, e, 0, &isolated)
 	e.emit(events.Event{Kind: events.ControlChange, Obj: id, Player: 1})
 	if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield || o.Owner != 0 || o.Controller != 1 {
 		t.Fatalf("precondition: Xantcha must be owned by 0 and controlled by 1: %+v", o)
