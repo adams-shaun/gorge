@@ -96,9 +96,11 @@ func TestDelverWithALandOnTopAndARevealDeclinedDoesNotTransform(t *testing.T) {
 // TestDelverRevealAskCarriesTheTopCardOnlyToThePeekingSeat is round-2
 // finding 1's pin: the may-reveal decision must tell the deciding seat WHAT
 // it is deciding over (the library is not projected to that seat, and the
-// public Note exists only after "yes"), and that payload must reach ONLY
-// the peeking seat — view.project attaches a decision to no viewer whose
-// seat is not Decision.Player, not even an Omniscient spectator.
+// public Note exists only after "yes"), and that payload must reach no SEAT
+// other than the peeking one — view.project attaches a decision to no viewer
+// whose seat is not Decision.Player. (Since the spectator-decision contract,
+// approx row 33, an Omniscient spectator additionally carries a read-only
+// copy of the pending ask; it is not a seat.)
 func TestDelverRevealAskCarriesTheTopCardOnlyToThePeekingSeat(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e, _, d := delverFixture(t, reg, "Mountain")
@@ -126,8 +128,8 @@ func TestDelverRevealAskCarriesTheTopCardOnlyToThePeekingSeat(t *testing.T) {
 			t.Fatalf("%s carries the reveal ask — the payload must reach the peeking seat alone", other.what)
 		}
 	}
-	if v := view.ProjectFor(e.G, e, view.NoSeat, view.Omniscient, d); v.Decision != nil {
-		t.Fatal("an Omniscient spectator's view carries the reveal ask")
+	if v := view.ProjectFor(e.G, e, view.NoSeat, view.Omniscient, d); v.Decision == nil {
+		t.Fatal("an Omniscient spectator's view lost the reveal ask")
 	}
 }
 

@@ -994,7 +994,15 @@ var acceptanceHeads = map[int]string{
 	// the R-9 colourless ManaAdd.Counter now ask and record the bot's selected
 	// WUBRG counter; that intentional event payload change is the first stream
 	// difference and changes the downstream deterministic game.
-	4: "049bd58a7b940fbc",
+	// dig1 Optional$ closure (cli-20260922T225139Z-230e9834): 4 seats moves to
+	// 20028059e8c88ec3. An Optional$ True Dig window whose eligible count fits
+	// ChangeNum$ no longer silently takes: it poses the "you may" KChoose
+	// (CR 701.15/601.2). Sole mover in the golden decks: Matter Reshaper's
+	// death trigger (eldrazi-stompy, seat 2's deck at 4 seats) -- the only
+	// Dig carrier in the four 4-seat decks, a one-card Optional$ window that
+	// previously took silently. Measured cause: reverting ONLY effDig's
+	// optionalChoice hunk in a scratch copy restores all four goldens.
+	4: "20028059e8c88ec3",
 	// 6 seats moved to c8c36b87e598c090 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither

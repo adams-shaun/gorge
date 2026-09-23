@@ -3145,11 +3145,9 @@ func (e *Engine) castModeAsk() bool {
 	for _, name := range choices {
 		name = strings.TrimSpace(name)
 		sub := cards.ResolveSVar(f.SVars, name)
-		if sub != nil && sub.Params["ValidTgts"] != "" {
-			min, _ := e.resolvedTargetBounds(pc.player, pc.card, sub, pc.x)
-			if len(e.legalTargetCandidates(pc.player, pc.card, pc.card, sub)) < min {
-				continue
-			}
+		if sub != nil && sub.Params["ValidTgts"] != "" &&
+			!e.targetSAAvailable(pc.player, pc.card, pc.card, sub, pc.x, false) {
+			continue
 		}
 		// CR 601.2b/702.171b: a Spree/Tiered mode's own ModeCost$ is an
 		// additional cost charged per chosen mode. A mode whose cost cannot be

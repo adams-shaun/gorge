@@ -130,10 +130,12 @@ type resumePoint struct {
 	// moved before its may-shuffle confirm suspended, ridden on the ask via
 	// Decision.ResumeMoved: the re-entry's LibraryPosition$ placement needs
 	// the list the suspension lost. Nil for every other ask.
-	moved       []state.ObjID
-	choices     []state.Target
-	chosenValid bool
-	remembered  []state.Target
+	moved            []state.ObjID
+	choices          []state.Target
+	chosenValid      bool
+	remembered       []state.Target
+	digUntilMove     string
+	digUntilMoveDone bool
 	// unlessPay is set only after a nested non-mana unless-cost payment has
 	// completed. It prevents the resumed `unless_pay` arm from charging that
 	// payment a second time.
@@ -433,6 +435,7 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 		direct: direct, rolls: d.Rolls,
 		choices:     append([]state.Target(nil), d.ResumeChoices...),
 		chosenValid: d.ResumeChosenValid, remembered: append([]state.Target(nil), d.ResumeRemembered...),
+		digUntilMove: d.ResumeDigUntilMove, digUntilMoveDone: d.ResumeDigUntilMoveDone,
 		moved:   append([]state.ObjID(nil), d.ResumeMoved...),
 		uptoIdx: d.ResumeUptoIdx, uptoCount: d.ResumeUptoCount,
 		villainousVictims:       append([]state.Target(nil), d.ResumeVillainousVictims...),
@@ -1347,6 +1350,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// leaves, so both a later sub and a suspended body can use theirs).
 		SubPreAsk: e.castSubTargets[rp.obj],
 		Chosen:    append([]state.Target(nil), rp.choices...), ChosenValid: rp.chosenValid,
+		DigUntilMove: rp.digUntilMove, DigUntilMoveDone: rp.digUntilMoveDone,
 		VillainousVictims: append([]state.Target(nil), rp.villainousVictims...),
 		VillainousIndex:   rp.villainousIndex,
 		ChoiceTarget:      rp.target,
@@ -2348,6 +2352,14 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				ctx.DigUntilMove = "yes"
 			}
 			ctx.DigUntilMoveDone = true
+		case "diguntil_aura":
+			// CR 303.4f: an Aura entering without being cast chooses a
+			// permanent to enchant. The option's object is revalidated by
+			// effDigUntil against the current eligible bearer list.
+			if len(chosen) > 0 {
+				ctx.DigUntilAuraBearer = chosen[0].Obj
+			}
+			ctx.DigUntilAuraDone = true
 		case "counter_dist":
 			// A DividedAsYouChoose$ PutCounter distribution pick was answered
 			// (Vastwood Hydra): the chooser picked which of the Choices$

@@ -29,32 +29,32 @@ provider = "deepinfra"
 model = "deepseek-ai/DeepSeek-V4.1-Flash"
 thinking = "high"
 # 2026-09-22 (operator): spill to luna when DeepSeek has no free slot.
-fallback = ["openai-codex/gpt-5.6-luna"]
+fallback = ["openai-codex/gpt-6-luna"]
 
 [seats.escalated]
-# 2026-09-22 (operator): "escalate terra". DeepSeek-high was the top rung and
-# no stronger than the terra reviewer: the 15:08Z batch parked at sol2 with a
-# fresh MAJOR every round. terra's [caps.models] ceiling is shared with the
-# reviewer and triage seats.
+# 2026-09-22 (operator): "escalate terra" -> gpt-6-sol. DeepSeek-high was the top
+# rung and no stronger than the codex reviewer: the 15:08Z batch parked at sol2
+# with a fresh MAJOR every round. Escalation now runs gpt-6-sol (its own
+# [caps.models] ceiling); reviewer and triage share the gpt-6-luna ceiling.
 provider = "openai-codex"
-model = "gpt-5.6-terra"
+model = "gpt-6-sol"
 thinking = "high"
 
-# 2026-09-22 (operator): reviewer back on GPT terra (Codex plan verified live
-# with a one-prompt probe). Implementer roles stay on DeepSeek.
+# 2026-09-22 (operator): reviewer back on a GPT codex seat, now gpt-6-luna
+# (Codex plan verified live with a one-prompt probe). Implementers stay DeepSeek.
 [seats.reviewer]
 provider = "openai-codex"
-model = "gpt-5.6-terra"
+model = "gpt-6-luna"
 thinking = "medium"
 
 # What an overrides.json entry may switch each role to (design §12.10); the
 # daemon re-checks every override against this list. Astra is never listed
 # 2026-09-22 (operator): triage has its own seat (agentctl b20353a); it
 # falls back to local, then overflow, when this seat is full or cut off.
-# terra's [caps.models] ceiling is shared with the reviewer seat.
+# gpt-6-luna's [caps.models] ceiling is shared with the reviewer seat.
 [seats.triage]
 provider = "openai-codex"
-model = "gpt-5.6-terra"
+model = "gpt-6-luna"
 thinking = "medium"
 
 # (config.py:49-50). The reviewer list is design §13.2's example.
@@ -63,10 +63,10 @@ local = ["bm-llms-glm/glm-5.3-flash"]
 # overflow = ["openai-codex/gpt-5.6-terra"]
 # escalated = ["openai-codex/gpt-5.6-terra", "openai-codex/gpt-5.6-sol"]
 # reviewer = ["openai-codex/gpt-5.6-terra", "openai-codex/gpt-5.6-sol", "bm-llms-glm/glm-5.3-flash"]
-overflow = ["deepinfra/deepseek-ai/DeepSeek-V4.1-Flash", "openai-codex/gpt-5.6-luna"]
-escalated = ["openai-codex/gpt-5.6-terra", "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash"]
-reviewer = ["openai-codex/gpt-5.6-terra", "openai-codex/gpt-5.6-sol", "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash", "bm-llms-glm/glm-5.3-flash"]
-triage = ["openai-codex/gpt-5.6-terra", "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash", "bm-llms-glm/glm-5.3-flash"]
+overflow = ["deepinfra/deepseek-ai/DeepSeek-V4.1-Flash", "openai-codex/gpt-6-luna"]
+escalated = ["openai-codex/gpt-6-sol", "openai-codex/gpt-6-luna", "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash"]
+reviewer = ["openai-codex/gpt-6-luna", "openai-codex/gpt-6-sol", "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash", "bm-llms-glm/glm-5.3-flash"]
+triage = ["openai-codex/gpt-6-luna", "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash", "bm-llms-glm/glm-5.3-flash"]
 
 # config.py:64-65, 73, 79, 99-100, 119; daemon.py:308.
 [policy]
@@ -123,7 +123,7 @@ poll_seconds = 10
 local = 2
 # 2026-09-22 (operator): the paid pool is sized to hold every per-model cap
 # below at once; [caps.models] does the real bounding, so one paid provider
-# can no longer fill the pool and push terra reviews onto the local seat.
+# can no longer fill the pool and push codex reviews onto the local seat.
 # Raised to 12 with luna (4) joining the per-model caps.
 paid = 12
 max_minutes = 75
@@ -131,9 +131,9 @@ max_minutes = 75
 [caps.models]
 "bm-llms-glm/glm-5.3-flash" = 2
 "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash" = 4
-"openai-codex/gpt-5.6-terra" = 4
-# 2026-09-22 (operator): luna overflow seats capped at 4.
-"openai-codex/gpt-5.6-luna" = 4
+"openai-codex/gpt-6-sol" = 4
+# 2026-09-22 (operator): luna seats (overflow spill, reviewer, triage) capped at 4.
+"openai-codex/gpt-6-luna" = 4
 
 # config.py:21-22.
 [dispatch]
@@ -221,6 +221,31 @@ name = "smoke"
 cmd = ["flock", "{orch_dir}/smoke.lock", "bash", "scripts/smoke.sh"]
 timeout = 1200
 applies_diff_touches = "web/"
+
+# Bookkeeping gate failures go to the REVIEWER seat in mechanical-fix mode
+# (agentctl spec docs/superpowers/specs/2026-09-23-tiered-dispatch-design.md
+# §2): a post-rebase gate run whose EVERY failing `--- FAIL:` block matches one
+# of these patterns is a census/ratchet/golden edit, not a defect. The reviewer
+# makes the edit the test names, commits, and the gate re-runs; the round is not
+# counted against the ladder. Patterns are measured from the gate logs of
+# 2026-09-22, when 14 of 21 gate failures were this class and eight tickets
+# parked on them. `all` blocks must match: a run mixing a census failure with a
+# real test goes to the ordinary ladder. A run where a census test PANICS is
+# deliberately not covered (the three 20:05-21:26Z runs): a panic can never be
+# classified as bookkeeping. max_rounds = 0 turns the lane off.
+[mechanical]
+max_rounds = 2
+patterns = [
+  "paramcensus rot guard",
+  "which is not in knownUnsupportedParams -- new gap",
+  "param census: [0-9]+ of [0-9]+ distinct repo-deck cards carry",
+  "still over-suppresses this API's gap",
+  "Known-approximations rows exceed the [0-9]+-byte Stand-in cap",
+  "registered but not expanded before the split",
+  "kind [A-Za-z_]+ interest = [0-9]+, want [0-9]+",
+  "teacher output moved: digest",
+  "sampler output moved: digest",
+]
 
 # daemon.py:869-921; git_ops.py:205-216.
 [landing]

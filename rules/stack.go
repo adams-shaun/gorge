@@ -1089,6 +1089,22 @@ const (
 
 func (e *Engine) stackObjKind(o *state.Object) stackObjKind { return state.StackKindOf(e.G, o) }
 
+// stackTargetOptionKind maps the engine's stack-object classifier to the
+// public target-option kind. Keep this aligned with view.StackView.Kind so a
+// stack target is not mislabeled as a battlefield permanent on the wire.
+func stackTargetOptionKind(k stackObjKind) string {
+	switch k {
+	case stackSpell:
+		return "spell"
+	case stackTriggered:
+		return "trigger"
+	case stackActivated:
+		return "ability"
+	default:
+		return "spell"
+	}
+}
+
 // targetTypeToken is state.StackKindToken: one comma-separated TargetType$
 // token -- which stack object kinds its base admits, the controller qualifier
 // read off the qualifiers after the base ("YouCtrl" -- controller must be the
@@ -1614,7 +1630,7 @@ func (e *Engine) candidatesFor(p state.PlayerID, source, excludeSelf state.ObjID
 					continue
 				}
 				if e.matchesSpec(tspec, oid, sc) {
-					out = append(out, targetCandidate{kind: "permanent", obj: oid, player: o.Controller})
+					out = append(out, targetCandidate{kind: stackTargetOptionKind(e.stackObjKind(o)), obj: oid, player: o.Controller})
 				}
 			}
 			continue
