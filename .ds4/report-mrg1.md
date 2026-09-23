@@ -1,22 +1,25 @@
 # Merge conflict resolution — mrg1
 
-## Conflict: `internal/testutil/agentsdoc_test.go`
+## Result
 
-- **Branch side:** the approved cascade fix had deleted the `cascade1` approximation row and set `knownApproximationRows = 40`, documenting that branch's deletion.
-- **Main side:** the token-replacement change had deleted a different row and also had a 40-row count, documenting main's accumulated row deletions.
-- **Resolution:** retained both table deletions (the merged `AGENTS.md` has neither `cascade1` nor `tokrepl1`) and set the count to 39, the actual merged table size. The comment names both deletions. No engine behavior was changed as part of conflict resolution.
+Merged `main` into `wt/cli-20260922T225142Z-171edf8c`. The worktree started clean with no in-flight operation. The daemon's reported rebase conflict was reproduced using `git merge main`; the merge conflicted only in `internal/testutil/agentsdoc_test.go`.
 
-No other file was conflicted. Main's non-conflicting changes were retained.
+## Conflict — `internal/testutil/agentsdoc_test.go`
 
-## Commands and results
+Both sides set `knownApproximationRows = 38` and preserve the table ratchet. The branch comment said the count preserved main's deletions and this branch's bestow1 deletion. Main's comment listed the closure history, including its cascade and token-replacement closures and this branch's maxpower1 closure. These explanations are compatible, not competing behavior.
 
-- `git status --short --branch` — clean before starting the merge; branch `wt/cli-20260922T225140Z-9e382c75`.
-- `git merge main` — began the merge; auto-merged `AGENTS.md` and the non-conflicting main changes; reported a content conflict only in `internal/testutil/agentsdoc_test.go`.
-- `python3` row-count check against merged `AGENTS.md` — `rows: 39`, `cascade1: False`, `token-replacement: False`.
-- `go test -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort' ./internal/testutil/` — `ok github.com/adams-shaun/gorge/internal/testutil 0.002s`.
-- `.cards` check — present.
-- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'` — `ok github.com/adams-shaun/gorge/rules 1.004s`.
+Resolution: retained main's closure-history comment, and added that this branch's bestow1 deletion is also included. Kept the shared count at 38. The resulting targeted ratchet tests pass.
+
+The merge also brought in main's already-integrated files (including the AGENTS.md deletion and rules changes/tests); they were not hand-edited as part of resolving this conflict.
+
+## Commands and output
+
+- `git status --short --branch && git status` — `## wt/cli-20260922T225142Z-171edf8c`; clean before starting, no operation in progress.
+- `git merge main` — `Auto-merging AGENTS.md`; `Auto-merging internal/testutil/agentsdoc_test.go`; `CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go`; automatic merge failed.
+- Checked `.cards` — present.
+- `go test -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort' ./internal/testutil/` — `ok github.com/adams-shaun/gorge/internal/testutil 0.001s`.
+- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'` — `ok github.com/adams-shaun/gorge/rules 0.814s`.
 
 ## Issues
 
-No new engine issue was investigated or found during this integration-only resolution. The cascade ticket's remaining deviations and follow-up tickets are recorded in its existing ticket report; the cascade approximation row itself is deleted as intended.
+No new unfixed issue was found while resolving the conflict. No uncertainty remains about the conflicting comment/count; both sides agree on the ratchet value, and the focused ratchets passed.
