@@ -5125,7 +5125,7 @@ func init() {
 	effects.RegisterNonAPI("kw:etbCounter", "kw:ETBReplacement", "kw:Devour", "kw:Ravenous", "kw:Bloodthirst",
 		"repl:Untap", "repl:BeginPhase", "repl:Transform", "repl:ProduceMana",
 		"repl:GainLife", "repl:LifeReduced", "repl:DamageDone", "repl:Counter",
-		"repl:CreateToken", "repl:RollPlanarDice", "repl:Explore", "api:ReplaceToken",
+		"repl:CreateToken", "repl:RollPlanarDice", "repl:Explore", "repl:Attached", "api:ReplaceToken",
 		"repl:AddCounter", "api:ReplaceCounter")
 }
 
