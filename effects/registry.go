@@ -747,7 +747,10 @@ type Ctx struct {
 	// state.Game into rules. An effects test double whose Host does not
 	// implement typeTableHost leaves it nil and reads the printed face.
 	EffectiveTypes []ObjectTypes
-	Targets        []state.Target
+	// TargetableObjects is a rules-built immutable legality snapshot for the
+	// triggering spell, used by CanBeTargetedByTriggeredSpellAbility.
+	TargetableObjects []state.ObjID
+	Targets           []state.Target
 	// ModeTargets carries the target groups selected for a distinct modal
 	// Charm. Each entry is in target-bearing mode order; nil means the
 	// historical single-target-list path, including repeatable modes.
@@ -2121,6 +2124,10 @@ type typeTableHost interface {
 	EffectiveTypes() []ObjectTypes
 }
 
+type targetableObjectsHost interface {
+	TargetableObjects(triggerCard state.ObjID) []state.ObjID
+}
+
 func Resolve(h Host, c *Ctx, sa *cards.SA) {
 	// Publish this walk's Effect-created registration frame (set by rules'
 	// seedEffectReplCtx on an api:Effect replacement's body Ctx) for the whole
@@ -2170,6 +2177,11 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 		} else {
 			c.EffectiveTypes = nil
 		}
+		if th, ok := h.(targetableObjectsHost); ok {
+			c.TargetableObjects = th.TargetableObjects(c.TriggerCard)
+		} else {
+			c.TargetableObjects = nil
+		}
 		c.numericRHS = c.X != 0 || len(c.SVars) > 0
 		// Capture target controllers before the first effect can move a target.
 		// Keep an existing map on re-entry: it is the earlier battlefield state,
@@ -2213,6 +2225,9 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 		}
 		if th, ok := h.(typeTableHost); ok {
 			c.EffectiveTypes = th.EffectiveTypes()
+		}
+		if th, ok := h.(targetableObjectsHost); ok {
+			c.TargetableObjects = th.TargetableObjects(c.TriggerCard)
 		}
 		// Condition* gate (task fb-3f1cc033): a sub whose supported condition
 		// is evaluated and not met is skipped and the chain continues — the
