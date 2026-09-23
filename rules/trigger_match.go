@@ -680,13 +680,17 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object,
 		// event modes continue to read the live board, not an obsolete state.
 		observer := &Engine{G: e.triggerBefore.game, L: e.L,
 			continuous: e.triggerBefore.continuous, continuousVersion: e.continuousVersion,
-			setNameInPool: e.setNameInPool}
+			setNameInPool: e.setNameInPool, layer4InPool: e.layer4InPool}
 		// The observer reads the PRE-departure board from its own Game clone,
-		// so it derives its own layer-3 rename table (setname.go) rather than
-		// inheriting the live engine's: a name filter here must see the
-		// snapshot's names, not the post-departure ones.
+		// so it derives its own layer-3 rename and layer-4 derived-type tables
+		// (setname.go, layer4types.go) rather than inheriting the live
+		// engine's: a name or type filter here must see the snapshot's
+		// characteristics, not the post-departure ones.
 		if observer.setNameInPool {
 			observer.refreshRenames()
+		}
+		if observer.layer4InPool {
+			observer.refreshDerivedTypes()
 		}
 		obj := observer.G.Obj(ev.Obj)
 		var power, toughness int32

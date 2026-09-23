@@ -2707,14 +2707,40 @@ func hasTypeCtx(o *state.Object, t string, sc SpecContext) bool {
 	// resolver. Any call made through a SpecContext field makes escape
 	// analysis leak the whole context to the heap on every hot-path
 	// construction (the statics/action hotspot pins measure exactly that),
-	// while a slice field is read-only and allocation-free.
+	// while a slice field is read-only and allocation-free. It is checked
+	// first because it is the layer walk's OWN types-so-far list, which can
+	// differ from the published table mid-walk.
 	for _, x := range sc.ExtraTypes {
 		if strings.EqualFold(x, t) {
 			return true
 		}
 	}
-	// hasType keeps intrinsic CDAs such as Changeling available without
-	// materialising hundreds of creature subtypes into the derived slice.
+	// When the layer walk bound a types-so-far list, it is authoritative and
+	// the pre-existing printed-face/Changeling fallback below is kept verbatim.
+	// The published table is not consulted in that case: it may carry a type a
+	// LATER effect grants, which would break the walk's ordering (rules/layers.go
+	// clears sc.DerivedTypes for the same reason, but this guard keeps the
+	// contract even for a caller that sets ExtraTypes without clearing it).
+	if sc.ExtraTypes != nil {
+		return hasType(o, t)
+	}
+	// Outside the walk a published layer-4 entry makes the object's DERIVED
+	// type list authoritative for type words: it already carries the printed
+	// types the effect kept (rules' typeCharacteristics folds them in), so a
+	// RemoveCardTypes$ cannot be resurrected by a fallback to the printed face,
+	// while a granted word (a static's AddTypes$, AddAllCreatureTypes$) is
+	// found exactly as the layer walk finds it. Only the intrinsic CDAs the
+	// list deliberately does not materialise (Changeling's keyword, Mistform
+	// Ultimus's AddAllCreatureTypes$ CDA) are added back on this path.
+	if types, ok := derivedTypesFor(o, sc); ok {
+		for _, x := range types {
+			if strings.EqualFold(x, t) {
+				return true
+			}
+		}
+		return intrinsicCDAType(o, t)
+	}
+	// No derived entry: the printed face plus intrinsic CDAs, as before.
 	return hasType(o, t)
 }
 
@@ -2724,6 +2750,20 @@ func hasTypeCtx(o *state.Object, t string, sc SpecContext) bool {
 // respectively spell, plane, and planeswalker subtypes, not types Changeling
 // grants.
 func changelingType(t string) bool { return CreatureTypeWords(t) }
+
+// intrinsicCDAType is hasType's intrinsic type-defining-ability branch on its
+// own (Changeling's keyword, and the characteristic-defining
+// AddAllCreatureTypes$ True static -- Mistform Ultimus). A layer-4 derived type
+// list deliberately never materialises these subtypes, so hasTypeCtx must still
+// answer them when the published table is authoritative for the object; the
+// positive vocabulary keeps a non-creature word out.
+func intrinsicCDAType(o *state.Object, t string) bool {
+	f := o.Face()
+	if f == nil {
+		return false
+	}
+	return (f.HasKeyword("Changeling") || f.AllCreatureTypesCDA()) && changelingType(t)
+}
 
 func isBlocking(g *state.Game, id state.ObjID) bool {
 	for i := range g.Objs {
@@ -3159,12 +3199,38 @@ type SpecContext struct {
 	// overwhelmingly common board), so the linear scan below is cheaper than
 	// building a map.
 	EffectiveNames []ObjectName
+	// DerivedTypes optionally supplies the layer-4 derived type list (CR
+	// 613.1d/613.1c -- AddTypes$, RemoveCardTypes$, AddAllCreatureTypes$, a
+	// face-down CR 708.5 set) for objects on the battlefield, keyed by id. It
+	// is what makes the ORDINARY filter grammar -- target offer and legality,
+	// cost sites, Count$Valid, CantTarget specs -- see a type a continuous
+	// effect granted, exactly as ExtraTypes makes the layer walk see it.
+	//
+	// It is an immutable value slice, deliberately not a callable resolver and
+	// never a back-pointer into rules: a call made through a SpecContext field
+	// makes escape analysis leak the whole context (its Resolve closure
+	// included) to the heap on every hot-path construction, and a slice built
+	// from one game can never read another game's board. Entries are only ever
+	// the objects whose derived list differs from the printed face (nil on the
+	// overwhelmingly common board), so the linear scan below is cheaper than
+	// building a map.
+	DerivedTypes []ObjectTypes
 }
 
 // ObjectName binds one object to its layer-3 derived name.
 type ObjectName struct {
 	ID   state.ObjID
 	Name string
+}
+
+// ObjectTypes binds one object to its layer-4 derived type list (CR
+// 613.1d/613.1c). The list is the SAME shape rules' layer walk builds and
+// Derived carries -- printed types (or the CR 708.5 face-down set) plus every
+// granted/removed word -- so the ordinary filter grammar and the layer walk
+// cannot disagree about an object's types.
+type ObjectTypes struct {
+	ID    state.ObjID
+	Types []string
 }
 
 // hasEffectiveName reports whether the context binds a layer-3 name for o.
@@ -3195,6 +3261,36 @@ func matchesEffectiveName(o *state.Object, name string, sc SpecContext) bool {
 		}
 	}
 	return false
+}
+
+// hasDerivedTypeEntry reports whether sc binds a layer-4 derived type list for
+// o. The compiled predicate sidecar reads the printed face (matchesCompiledBase
+// and matchesCompiledTerm call hasType directly), so a spec that names a
+// granted type must be answered by the textual oracle instead -- the same
+// discipline the layer walk and hasEffectiveName keep. It answers a BOOLEAN
+// and never returns the list, so escape analysis does not summarise the whole
+// context as leaking (the EffectiveNames contract above).
+func hasDerivedTypeEntry(o *state.Object, sc SpecContext) bool {
+	_, ok := derivedTypesFor(o, sc)
+	return ok
+}
+
+// derivedTypesFor returns the layer-4 derived type list sc binds for o. It is a
+// plain field read of immutable DATA, the same shape hasEffectiveName keeps:
+// copying a slice header out of a struct field is what an inlineable caller
+// does, not what leaks a context. It never hands back a callable and never
+// reaches rules, so an effects call answered here depends on the event fold
+// alone.
+func derivedTypesFor(o *state.Object, sc SpecContext) ([]string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	for _, d := range sc.DerivedTypes {
+		if d.ID == o.ID {
+			return d.Types, true
+		}
+	}
+	return nil, false
 }
 
 // triggeredSpellTargetSA derives the target-declaring SA of a stack spell
@@ -3239,12 +3335,13 @@ func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContex
 	if o == nil {
 		return false
 	}
-	// A renamed object must be answered by the textual oracle: the compiled
-	// program path reads the printed face and cannot see EffectiveNames, so a
-	// compiled `named<X>` would silently miss the layer-3 name. The same
+	// A renamed or layer-4-altered object must be answered by the textual
+	// oracle: the compiled program path reads the printed face and cannot see
+	// EffectiveNames or DerivedTypes, so a compiled `named<X>` or a compiled
+	// Goblin type test would silently miss the derived characteristic. The same
 	// discipline the layer walk keeps for ExtraTypes (rules/layers.go), scoped
-	// here to the one object that actually carries a rename.
-	if ps := sc.PredicatePrograms; ps != nil && !hasEffectiveName(o, sc) {
+	// here to the one object that actually carries a change.
+	if ps := sc.PredicatePrograms; ps != nil && !hasEffectiveName(o, sc) && !hasDerivedTypeEntry(o, sc) {
 		switch ps.Evaluate(spec, g, o, sc) {
 		case PredicateYes:
 			return true

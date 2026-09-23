@@ -115,6 +115,9 @@ func (e *Engine) continuousChanged() {
 	if e.setNameInPool {
 		e.refreshRenames()
 	}
+	if e.layer4InPool {
+		e.refreshDerivedTypes()
+	}
 }
 
 // anySetNameActive reports whether any active continuous effect sets a name.
@@ -129,10 +132,15 @@ func (e *Engine) anySetNameActive() bool {
 	return false
 }
 
-// withNames binds the current renames on a SpecContext built outside
-// specCtxSVars, so every rules-built context agrees with the layer walk.
+// withNames binds the current layer-3 renames AND the layer-4 derived types on
+// a SpecContext built outside specCtxSVars, so every hand-built rules context
+// agrees with the layer walk. It is the ONE seam for those literals -- cast
+// legality, cost sites, may-play, replacement, the target offer -- so a new
+// such context cannot silently miss a layer table the way one more site of
+// this ticket's class would.
 func (e *Engine) withNames(sc effects.SpecContext) effects.SpecContext {
 	sc.EffectiveNames = e.renames
+	sc.DerivedTypes = e.layer4Types
 	return sc
 }
 

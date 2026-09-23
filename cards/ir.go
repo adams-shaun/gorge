@@ -1,5 +1,7 @@
 package cards
 
+import "strings"
+
 // SA is a spell ability, activated ability, static ability or drawback: the
 // "SP$ / AB$ / DB$ / ST$ <API> | Param$ value | ..." construct that carries
 // almost all card behaviour in the Forge corpus.
@@ -136,6 +138,100 @@ func (c *Card) SetsName() bool {
 		}
 		for _, st := range f.Statics {
 			if _, ok := st.Params["SetName"]; ok {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// layer4TypeParams are the Forge parameter names that make a continuous
+// effect or an Animate-family effect change an object's TYPES (CR 613.1d /
+// 613.1c). They are the keys rules/layers.go branches on when it builds an
+// LType ContinuousEffect, plus the Animate API's own Types$ rider.
+var layer4TypeParams = map[string]bool{
+	"AddType":                true,
+	"AddTypes":               true,
+	"AddAllCreatureTypes":    true,
+	"RemoveCardTypes":        true,
+	"RemoveCreatureTypes":    true,
+	"RemoveLegendary":        true,
+	"RemoveAllAbilities":     true,
+	"CharacteristicDefining": true,
+	"Types":                  true,
+}
+
+// ChangesTypes reports whether any face prints a layer-4 type-changing effect:
+// a `S:Mode$ Continuous` static carrying one of layer4TypeParams, an Animate /
+// AnimateAll ability (whose `Types$`/`RemoveCardTypes$` riders the layers walk
+// folds into an LType effect), or any SVar body that reaches one. It is the
+// layer-4 counterpart of SetsName: a card-data question the rules engine asks
+// ONCE, at genesis, over the match's card pool, so a match whose pool has no
+// such carrier skips maintaining its derived-type table entirely
+// (rules/layer4types.go). A card outside the pool can never register one of
+// these effects.
+//
+// It is deliberately a SUPERSET probe: it scans static params, ability params
+// (SP/AB/DB) and the raw SVar bodies, so an Effect/Trigger body that names its
+// real work in an SVar (a `StaticAbilities$ X` whose X is a `S:...AddTypes$`
+// line, an `Execute$ Y` trigger) is still recognised. A false positive costs
+// only the refresh's own anyLayer4Active short-circuit; a false negative would
+// silently miss the derived type at a target offer.
+func (c *Card) ChangesTypes() bool {
+	if c == nil {
+		return false
+	}
+	for _, f := range c.Faces {
+		if f == nil {
+			continue
+		}
+		for _, st := range f.Statics {
+			for k := range st.Params {
+				if layer4TypeParams[k] {
+					return true
+				}
+			}
+		}
+		for _, a := range f.Abilities {
+			if saChangesTypes(a) {
+				return true
+			}
+		}
+		for _, t := range f.Triggers {
+			if saChangesTypes(t.Effect) {
+				return true
+			}
+		}
+		for _, r := range f.Repls {
+			if saChangesTypes(r.With) {
+				return true
+			}
+		}
+		for _, body := range f.SVars {
+			if strings.Contains(body, "Animate") {
+				return true
+			}
+			for k := range layer4TypeParams {
+				if strings.Contains(body, k+"$") {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// saChangesTypes reports whether an ability (or any of its SubAbility chain)
+// is an Animate-family effect or carries a layer-4 type parameter. The API
+// spellings are the two the corpus uses: Animate (a single target) and
+// AnimateAll (a ValidCards$ set).
+func saChangesTypes(a *SA) bool {
+	for ; a != nil; a = a.Sub {
+		if a.API == "Animate" || a.API == "AnimateAll" {
+			return true
+		}
+		for k := range a.Params {
+			if layer4TypeParams[k] {
 				return true
 			}
 		}
