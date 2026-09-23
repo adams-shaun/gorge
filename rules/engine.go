@@ -319,10 +319,25 @@ type Engine struct {
 	renameEpoch    int
 	renameVersion  int
 	renameBuilding bool
+	// derivedTypes is the layer-4 derived type table (layer4types.go) the
+	// effects tier's ordinary type filters read through SpecContext.
+	// DerivedTypes. Exactly the shape (and rationale) of renames above: a
+	// field refreshed after each emitted event under active()'s key, gated on
+	// layer4InPool, and bound by a plain field read so specCtxSVars stays
+	// inlinable. Clone copies the table and its key fields.
+	layer4Types   []effects.ObjectTypes
+	typesEpoch    int
+	typesVersion  int
+	typesObjs     int
+	typesBuilding bool
 	// setNameInPool is a genesis-time fact: does any card this match can put
 	// on the battlefield print a SetName$ static? False for almost every
 	// match, which reduces the per-event refresh to one predictable branch.
 	setNameInPool bool
+	// layer4InPool is the same genesis-time fact for a layer-4 type-changing
+	// effect (cards.ChangesTypes). False for most matches, which reduces the
+	// per-event refresh to one predictable branch.
+	layer4InPool bool
 	// continuousVersion is bumped by every direct mutation of e.continuous
 	// (layers.go's AddContinuous and EndOfTurnCleanup). It stands in for the
 	// events a board change would signal through the log head: while
@@ -1446,6 +1461,7 @@ func newWithRNG(cfg Config, random *rng) *Engine {
 	}
 	e.G.Tokens = cfg.Tokens
 	e.setNameInPool = poolHasSetNameStatic(cfg)
+	e.layer4InPool = poolHasLayer4Static(cfg)
 	e.G.NameUniverse = cfg.NameUniverse
 	e.G.NameUniverseNames = append([]string(nil), cfg.NameUniverseNames...)
 	if len(e.G.NameUniverseNames) == 0 && len(cfg.NameUniverse) > 0 {
@@ -1951,6 +1967,12 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	// branch.
 	if e.setNameInPool {
 		e.refreshRenames()
+	}
+	// layer4types.go: keep the layer-4 derived-type table the filter tier reads
+	// in step with the board. Gated so a match with no type-changing carrier
+	// pays one branch.
+	if e.layer4InPool {
+		e.refreshDerivedTypes()
 	}
 	if ev.Kind == events.StackCopy && len(e.G.Stack) > stackLen {
 		copyID := e.G.Stack[len(e.G.Stack)-1]
