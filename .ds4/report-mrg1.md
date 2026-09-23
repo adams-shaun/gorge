@@ -1,51 +1,34 @@
-# Merge conflict resolution: mrg1 (round 4 — branch wt/cli-20260922T225138Z-7a41baa0, main at db82645a)
+# Merge-conflict resolution report — mrg1
 
-## Starting state
+## Conflicted file
 
-The worktree was clean, HEAD = `f58f1440` (this branch's round-1 merge of
-main@c2596487). `main` had since advanced to `db82645a` (the dynamic unless-cost
-grammar, its round-3 report, and the 636f892f merge). The branch's approved fix
-commits (`cc65f39f` infer stack zone from ValidTgts spell, `070f673d` keep
-origin-implied zone over ValidTgts stack inference, `c0a5a86c` preselected
-counter targets offered) are NOT on main; main independently landed
-`ffae51a54` (origin-implied target zone + a new `ValidTgts$ Spell` latent-footgun
-approximation row) AFTER the branch's fix.
+- `internal/testutil/agentsdoc_test.go`: the branch removed one Known approximations row and lowered `knownApproximationRows` from 88 to 87. Main had independently removed ten rows and set the constant to 77. Resolved by retaining both sides' changes: the merged `AGENTS.md` contains both sets of row deletions, and the constant is 76. This preserves the delete-only ratchet at the combined table size; no behaviour or test logic changed.
 
-Re-ran the integration as `git merge main` from the branch (rebase is forbidden
-here; prior rounds of this same integration were landed as merges on main too).
+The conflict-free merge changes in `AGENTS.md`, `effects/count.go`, and `effects/filter.go` were retained as merged. Branch fix continues to count affinity keyword permanents.
 
-## Conflicted files and resolution
+## Commands and output
 
-1. **`AGENTS.md`** (one conflict block at the ValidTgts/UnlessCost/TargetType
-   table region):
-   - HEAD side: the `UnlessCost$` mana-window row and the old `TargetType$
-     qualifiers` row (both as of main@c2596487, which this branch had already
-     merged in round 1).
-   - main side: the new `ValidTgts$ Spell ... latent footgun` row — main's
-     `ffae51a54` deleted the UnlessCost row (the dynamic unless-cost grammar
-     landed: e7d5bcec/e3372a23) and the TargetType row (b89e7869), then re-added
-     the ValidTgts row recording the footgun the branch's reviewed fix CLOSES.
-   - Resolution: took main's side for the UnlessCost/TargetType deletions (main
-     carries later, deliberate closures of both), then DELETED the `ValidTgts$
-     Spell` row as well: in the merged tree `targetZones` DOES infer the stack
-     from a bare `ValidTgts$ Spell` (branch fix `cc65f39f`/`070f673d`, kept by
-     the auto-merge), so main's row was false against the merged behaviour.
-     Merged `AGENTS.md` now differs from main by exactly that one row deletion.
-2. **`internal/testutil/agentsdoc_test.go`**: auto-merge took main's constant 78
-   (= main's measured 78 data rows). After the row deletion above, lowered to
-   **77** = the merged table's measured row count (verified: 78 data rows at
-   main, minus 1). The register never rises.
-3. **`.ds4/report-mrg1.md`**: both sides were prior rounds' reports (round 1 on
-   this branch, round 3 on main). Replaced with THIS report per the
-   report-path contract (prior rounds were each superseded in place).
-4. **`rules/stack.go`**: auto-merged with NO textual conflict. The merged result
-   keeps the branch's reviewed implementation (origin-implied zone outranks;
-   bare `ValidTgts$ Spell` targets the stack; `targetsStackObjects` via
-   `state.StackKindTokenOf`, which still exists in the merged
-   `state/stackkind.go`) plus main's later unless-cost changes. Verified
-   `go build ./state ./rules` clean. `rules/stack_target_zones_test.go`
-   (branch's regression, added by cc65f39f) survives main's independent
-   deletion of the same-named file at its base.
+- `git status --short --branch`
+  ```
+  ## wt/cli-20260922T225141Z-d9f9a1a7
+  ```
+- `git merge main`
+  ```
+  Auto-merging AGENTS.md
+  Auto-merging effects/count.go
+  Auto-merging effects/filter.go
+  Auto-merging internal/testutil/agentsdoc_test.go
+  CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go
+  Automatic merge failed; fix conflicts and then commit the result.
+  ```
+- `go test ./internal/testutil/ -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort'`
+  ```
+  ok   github.com/adams-shaun/gorge/internal/testutil 0.001s
+  ```
+- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`
+  ```
+  ok   github.com/adams-shaun/gorge/rules 0.751s
+  ```
 
 All other main-side changes (`effects/unless.go`, `effects/registry.go`,
 `rules/unless_payment.go`, `rules/mana*.go`, `rules/resolution.go`, the
@@ -202,3 +185,56 @@ key for the param census`.
 
 - None new. The census rot guard did its job: a dynamic Params key that the
   census cannot attribute is now a literal-key read.
+
+---
+
+# Merge round: branch wt/cli-20260922T225138Z-e21c29e8 at bb61fe22 vs main at e53c80a2
+
+## State found
+
+`git status` at start: clean, nothing in flight — the daemon's failed rebase and
+its merge fallback had both been aborted, leaving the branch at `bb61fe22`.
+Integration redone with `git merge main`; merge base `efd2ff45`; main was 3
+commits ahead (the affinity-fix lineage, tip `e53c80a2`).
+
+## Conflict
+
+Exactly ONE file conflicted: `.ds4/report-mrg1.md` itself (the tracked report
+file). Everything else auto-merged:
+
+- `AGENTS.md`: main removed the `K:Affinity:Affinity` row (closed by its fix)
+  and added the cast-offer-census row; the branch's earlier deletions kept.
+- `internal/testutil/agentsdoc_test.go`: `knownApproximationRows` now `76`
+  (matches the merged table; verified by test below).
+- `effects/count.go` + `effects/filter.go` + `rules/affinity_affinity_test.go`:
+  main's affinity fix (filter base `Affinity` = "a permanent with affinity",
+  CR 702.41), auto-merged unmodified.
+
+The `.ds4/report-mrg1.md` conflict was between the branch's full prior-round
+report text (HEAD side) and main's one-line tail (`No unresolved uncertainty.`,
+the end of main's own refresh). Resolved by keeping the branch's fuller content
+— it is a superset — and appending this round's section; main's trailing
+one-liner is subsumed (there is no unresolved uncertainty here either).
+
+## Commands and output
+
+- `[ -e .cards ]` — present (symlink to the real corpus; none of the runs below
+  are corpus-missing skips).
+- `git merge main` — conflict in `.ds4/report-mrg1.md` only (output pasted
+  above in the daemon capture; AGENTS.md, effects/count.go, effects/filter.go,
+  rules/affinity_affinity_test.go, internal/testutil/agentsdoc_test.go
+  auto-merged).
+- `go test ./internal/testutil -run 'TestKnownApproximation'`
+  → `ok github.com/adams-shaun/gorge/internal/testutil 0.001s`
+- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|TestAffinity'`
+  → `ok github.com/adams-shaun/gorge/rules 0.817s` (ratchets + main's new
+  affinity suite)
+- `go test ./internal/archtest/`
+  → `ok github.com/adams-shaun/gorge/internal/archtest 3.332s`
+- `go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/`
+  → `ok github.com/adams-shaun/gorge/cmd/botbench 1.275s` (split unmoved)
+- `gofmt -l` on the merged .go files — clean.
+
+## Issues
+
+- None found. No new defects surfaced during integration.
