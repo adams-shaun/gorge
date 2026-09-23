@@ -1,3 +1,90 @@
+# Merge-conflict resolution report — mrg1 (agent-20260923T073156Z-d6f8c32b)
+
+## Outcome
+
+Branch `wt/agent-20260923T073156Z-d6f8c32b` (the reviewed CR-legal cascade
+free-cast fix) is now integrated with `main`. Because the daemon had already
+aborted both its rebase attempt and its merge fallback before this seat
+started, a fresh `git merge main` was performed and the single conflicted file
+was resolved.
+
+Merge commit: `de376741`. `git status` clean afterwards.
+
+## Conflicted file and resolution
+
+One file conflicted: `.ds4/report-sol1.md`. This is a shared multi-report
+accumulation point.
+
+- **HEAD (branch)**: commit `0f9dcb58` had replaced the whole file (which at
+  the branch base `cb8bf4d7` held only the Gitaxian Probe report) with the
+  cascade report `# Cascade free cast — CR 702.85a / CR 107.3b`.
+- **main**: keeps the accumulated reports (Attached predicates, Deep Spawn
+  UnlessCost Mill, RollDice) and RESTORED the Gitaxian Probe report at the end
+  (labelled "# Second report stored at this shared path (from main)") — a
+  later, deliberate anti-overwrite change on the same lines.
+- **Resolution**: main's accumulated 228-line version kept byte-for-byte; the
+  branch's cascade report appended verbatim at the end under a `---` separator
+  with the same pointer-line convention main already uses ("# Second report
+  stored at this shared path (from branch): Cascade free cast — CR 702.85a /
+  CR 107.3b"). Both intents preserved; no report deleted or edited.
+- No other file was touched by the resolution (the merge's other ~70 staged
+  paths are main's and the branch's own committed changes, auto-merged).
+- No code file was conflicted and none was edited, so no engine behaviour can
+  have moved from the resolution itself.
+
+## Entry state
+
+`git status` on entry: clean, NO rebase or merge in flight (`rebase-merge`,
+`rebase-apply`, `MERGE_HEAD` all absent). Reflog showed
+`rebase (abort): returning to refs/heads/wt/agent-20260923T073156Z-d6f8c32b`
+at `HEAD@{1}` — the daemon had aborted both its rebase (conflict at `0f9dcb58`
+on `.ds4/report-sol1.md`) and its merge fallback. So this was a fresh
+integration, not the completion of an in-flight operation.
+
+## Commands run (real output)
+
+```
+$ git merge main -m "Merge branch 'main' into wt/agent-20260923T073156Z-d6f8c32b"
+Auto-merging .ds4/report-sol1.md
+CONFLICT (content): Merge conflict in .ds4/report-sol1.md
+Automatic merge failed; fix conflicts and then commit the result.
+$ git add -f .ds4/report-sol1.md && git commit -m "Merge branch 'main' into wt/agent-20260923T073156Z-d6f8c32b"
+[wt/agent-20260923T073156Z-d6f8c32b de376741] Merge branch 'main' into wt/agent-20260923T073156Z-d6f8c32b
+$ git status --short
+(clean)
+```
+
+Post-merge gates (each run once, log captured; `.cards` present as a symlink
+to the real corpus, so nothing skipped):
+
+```
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.287s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.492s
+$ go test -run 'TestCascadeFreeCastAnnouncesNoX|TestCascadeXSpellUsesAnnouncedManaValue' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.644s
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  	github.com/adams-shaun/gorge/rules	0.814s
+```
+
+Ratchets green: no new trigger mode to register, no `knownUnsupported` /
+`knownUnsupportedParams` / `knownUnmodelledCountHeads` entry to remove, and
+the botbench golden did not move.
+
+## Report preservation
+
+`.ds4/report-mrg1.md` itself held the prior round's resolution report
+(agent-20260920T074357Z-b9ac41c2), preserved by main. This round's report is
+prepended above it with a separator; the historical report is untouched below.
+
+## Issues
+
+No engine defect found in this integration round (docs-only resolution). No
+head/ratchet movement; no Known-approximations row touched.
+
+---
+
 # Merge-conflict resolution report — mrg1 (agent-20260922T210645Z-27e19c88)
 
 ## Entry state and operation
