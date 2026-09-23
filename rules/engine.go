@@ -782,6 +782,21 @@ type Engine struct {
 	damageBatchDepth int
 	damageBatchIdx   map[damageBatchKey]int
 	damageBatchLog   []damageBatchEntry
+	// zoneBatch (RepeatEach's ChangeZoneTable$ True): the zone changes every
+	// loop iteration's body causes are ONE ChangesZoneAll batch, presented
+	// once after the loop completes. Same shape as the damage batch above:
+	// the open bracket is engine memory (no event schema change; a replay
+	// folds the same events through the same loop brackets and re-derives
+	// the same entries), the entries record the queued trigger line's index
+	// and the deduplicated moved set closeZoneBatch patches into the queued
+	// trigger's Remembered/Captured plural capture. Never opened across a
+	// drain, for the same reason as the damage batch. Outside a
+	// ChangeZoneTable loop the bracket is never open, so the per-move
+	// batch-of-one reading is untouched.
+	zoneBatchOpen  bool
+	zoneBatchDepth int
+	zoneBatchIdx   map[zoneBatchKey]int
+	zoneBatchLog   []zoneBatchEntry
 	// phaseUnknownNoted memoizes the Phase$ specs whose names this engine has
 	// already reported as unresolvable (rules.trigger_match.go's phaseMatches
 	// reporting), so one spec emits exactly one Note per game no matter how
