@@ -371,3 +371,92 @@ passes on the merged tree — no re-pin needed.
 ### Issues
 
 None found beyond the resolved conflict itself.
+
+---
+
+## Section 7 — worktree cli-20260922T225139Z-30adfed9 (ticket cli-20260922T225139Z-30adfed9, limited-look/spectator closure; kept from main's side of the conflict)
+
+Two integration rounds landed on this branch.
+
+Round 1 (before this dispatch): the branch merged main at `efd2ff45` (merge commit
+`6b9a83d9`, resolution constant 76 for that round's table) and recorded its
+report here. Main has since advanced 22 commits to `00147db0`, so the branch was
+behind again and the daemon's gate kept failing on the stale integration.
+
+Round 2 (this dispatch): started from a clean tree on
+`wt/cli-20260922T225139Z-30adfed9` at `c9f084d8`; no rebase/merge was in flight
+(the daemon's failed rebase had been rolled back). Ran `git merge main` to
+integrate main at `00147db0`.
+
+- Conflicts: `.ds4/report-mrg1.md` (both sides edit this shared report) and
+  `internal/testutil/agentsdoc_test.go` (the `knownApproximationRows` constant:
+  branch said 76, main said 72). `AGENTS.md` auto-merged — it retains all of
+  main's row closures AND this branch's deletion of the "No LIMITED-look
+  grammar" row (grep finds 0 occurrences in the merged file).
+- `internal/testutil/agentsdoc_test.go`: resolved to **71** — the merged
+  table's measured data rows (awk count over the `## Known approximations`
+  section: 72 lines starting `| ` including the header row = 71 data rows;
+  main's 72 less the branch's one row deletion).
+- `.ds4/report-mrg1.md`: resolved as the union — main's multi-section ledger
+  kept verbatim, this section appended.
+- No engine code was conflicted; the merge is purely integration.
+
+Commands and output (all in this worktree, `.cards` symlink present):
+
+```
+go test ./internal/testutil -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort'
+ok  github.com/adams-shaun/gorge/internal/testutil  0.001s
+
+go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|TestHeads'
+ok  github.com/adams-shaun/gorge/rules  1.818s
+
+go test ./rules -run 'TestEveryRepoDeckIsFullySupported$|TestHeads$|TestEveryRepoDeckParamsAreRead$' -v   # skip check
+--- PASS: TestEveryRepoDeckIsFullySupported (0.57s)
+--- PASS: TestEveryRepoDeckParamsAreRead (0.13s)
+--- PASS: TestHeads (1.20s)      # no SKIPs; corpus-backed runs are real
+
+go test ./internal/archtest/
+ok  github.com/adams-shaun/gorge/internal/archtest  2.926s
+
+go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  github.com/adams-shaun/gorge/cmd/botbench  1.049s
+```
+
+No uncertainties remain.
+
+---
+
+## Section 8 — this merge (main's limited-look integration into wt/cli-20260922T225138Z-e21c29e8)
+
+### Starting state
+
+The tree was CLEAN at `7bdae92f`; the daemon's rebase onto main and its merge
+fallback had both been rolled back (the two conflicts described in
+`.ds4/merge-conflict-mrg1.md`), so no operation was in flight. Main had
+advanced past `00147db0` with the limited-look/spectator-search closure from
+the sibling ticket (`30adfed9`, merge `ae220e74`). Rebase is forbidden in this
+seat (shared-git rule), so the integration was done as `git merge main`.
+
+### Conflicted files and how each side's intent was kept
+
+- `internal/testutil/agentsdoc_test.go`: both sides carried the VALUE 71
+  (HEAD's previous merge had already lowered it); only the comment text
+  differed. Took main's comment verbatim — it is the accurate description of
+  the merged table (main's 72 closures less the limited-look/spectator-search
+  row deleted by the sibling branch).
+- `.ds4/report-mrg1.md`: both kept — HEAD's Sections 5–6 verbatim, main's
+  section appended as Section 7 (heading renumbered to avoid a duplicate
+  "Section 5"), this round as Section 8.
+- `AGENTS.md` auto-merged; verified the merged table measures exactly 71 data
+  rows, matching the constant, with both sides' row deletions present.
+
+### Commands and output
+
+All runs in this worktree with the real `.cards` corpus symlink present.
+
+- `git merge main --no-edit`: conflicts in `.ds4/report-mrg1.md` and
+  `internal/testutil/agentsdoc_test.go`; `AGENTS.md` auto-merged.
+- `go test ./internal/testutil -run 'TestKnownApproximation'` → `ok`.
+- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'` → `ok`.
+
+No engine code was conflicted.
