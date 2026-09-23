@@ -1,420 +1,49 @@
-# Merge-conflict resolution report — mrg1
+# Merge resolution report — cli-20260922T225140Z-677ee477
 
-This report preserves earlier merge-resolver reports in Sections 1–5. This
-section records verification of the current merge commit for
-`wt/cli-20260922T225139Z-244016f9`.
+## Operation and conflicts
 
-## Current merge verification
+- Initial `git status --short --branch`: `## wt/cli-20260922T225140Z-677ee477`; working tree clean, no operation in progress.
+- Ran `git merge main`. It stopped with one content conflict: `internal/testutil/agentsdoc_test.go`. `AGENTS.md` and the other main-side changes merged automatically.
+- In the conflict, this branch had `knownApproximationRows = 55`; main had `57`. The branch's `AGENTS.md` had already removed the `(ft1)` bot-target approximation row. Main's changes remove the `(setname1)` row. The merge result preserves both closures (and main's code/tests), so I kept the `(ft1)` deletion, retained the `(setname1)` deletion, measured the merged table at 54 data rows, and resolved the constant to 54. Main's `57` did not describe the actual merged table.
+- No other file had conflict markers. There were no unresolved behavioral choices.
 
-The conflict dispatch described a failed rebase on `b67c4d3d` and fallback
-merge. At inspection, the worktree was already clean at merge commit
-`af9fe768` (`Merge branch 'main' into wt/cli-20260922T225139Z-244016f9`),
-with parents `eb3dfd2e` (approved branch changes) and `00147db0` (main-side
-Dig closure). No rebase or merge remained in progress. The merge commit records
-conflicts in `AGENTS.md` and `internal/testutil/agentsdoc_test.go`; the earlier
-report section records how those were resolved. The `AGENTS.md` DigUntil row
-was deleted while preserving main's separate deletion, and the approximation
-row count is 71. `decision/decision.go` and `effects/cardflow.go` merged with
-both sides' changes. No conflict markers remain.
+## Commands and outputs
 
-## Commands and output
-
-- `git status --short --branch; git status`:
-  ```
-  ## wt/cli-20260922T225139Z-244016f9
-  On branch wt/cli-20260922T225139Z-244016f9
-  nothing to commit, working tree clean
-  ```
-- `git show --stat --oneline HEAD` confirmed merge commit `af9fe768` and its
-  conflict paths.
-- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' 2>&1 | tail -30`:
-  ```
-  ok   github.com/adams-shaun/gorge/rules 0.750s
-  ```
-
-The requested ratchets passed. No uncertainty remains about conflict
-resolution; the merge operation was already completed before this verification
-seat started.
-No unresolved conflict or uncertainty remains.
-
----
-
-## Section 2 — main-side report (ticket cli-20260922T225141Z-8d166e9c), arrived with the 2026-09-23 merge of main
-
-# Merge-conflict resolution report — mrg1 (ticket cli-20260922T225141Z-8d166e9c)
-
----
-
-# Merge conflict resolution: mrg1 round 2 (branch wt/cli-20260922T225138Z-c4106938, main at 84cb68b9)
-
-
-## Starting state
-
-The worktree was CLEAN, HEAD = `f14b56a3` (round 1's merge of main@e53c80a2,
-status DONE), with no rebase/merge in flight — the daemon's failed rebase had
-been rolled back, so the conflict dispatch was against a state that no longer
-existed. `main` had since advanced by one ticket: `0679b1cd` (the
-withForetell/withoutForetell + Cosmos Charger + effect-delivered MayPlay
-closure, merged to main via `98dcf594`/`84cb68b9` of the sibling ticket
-cli-20260922T225141Z-8d166e9c).
-
-
-## Conflicts and resolution
-
----
-
-Rebase is forbidden in this worktree (shared-`git` seat rule), and merge is
-the established integration shape here, so the integration was done as
-`git merge main`.
-
-
-## Conflicted files and resolution
-
-1. **`internal/testutil/agentsdoc_test.go`** — one conflict hunk: this branch's
-   explanatory comment above `knownApproximationRows` (main never had it; both
-   sides set the constant to 74). Resolved to **73**, the merged table's
-   measured data-row count (74 on each side; the merge deletes main's
-   foretell row — closed in `0679b1cd` — on top of this branch's
-   stack-option-kind closure). Comment updated to state the new measurement.
-   Never raised. `knownOversizeRows` stayed 8 on both sides (merged table
-   measures 6 oversize rows — shrinkage only). gofmt clean.
-2. **`.ds4/report-mrg1.md`** — this tracked report file carried each side's
-   prior-round report (ours from round 1, main's from the sibling ticket).
-   Replaced with THIS round's report per the report-path contract.
-3. **`AGENTS.md`** — auto-merged with NO textual conflict. Verified the merged
-   table with the test's own parsing algorithm: **73 data rows**, both closed
-   rows absent (this branch's "A spell on the stack is offered with
-   `Option.Kind` \"permanent\"…" row and main's foretell row), and
-   `git diff main -- AGENTS.md` shows exactly this branch's one row deletion.
-
-All other main-side changes (`effects/filter.go`, `effects/misc.go`,
-`rules/legal.go`, `rules/mayplay.go`, `rules/playerkeywords.go`,
-`state/continuous.go`, `rules/foretell_grant_test.go`,
-`rules/paramcensus_test.go`) auto-merged and were retained unmodified — this
-branch never touched those files.
-
-## Ratchet cross-check after the merge
-
-The brief's ratchet command list plus the agentsdoc ratchet itself. No ratchet
-table needed fixing: this branch registers no new trigger `Mode$` matcher, and
-main's foretell closure already removed its own `knownUnsupportedParams`
-entries together with its AGENTS.md row; the merged tree's `knownUnsupported`
-/ `knownUnsupportedParams` / `knownUnmodelledCountHeads` tables are otherwise
-untouched by either side.
-
-## Commands run and output
-
-```
-git merge main
-  -> AGENTS.md auto-merged; .ds4/report-mrg1.md CONFLICT;
-     internal/testutil/agentsdoc_test.go CONFLICT
-python3 (the test's own parsing algorithm) on merged AGENTS.md
-  -> data rows: 73; oversize: 6
-
-go test ./internal/testutil -run 'TestKnownApproximation' 2>&1 | tail -3
-  -> ok  github.com/adams-shaun/gorge/internal/testutil
-go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' 2>&1 | tail -3
-  -> ok  github.com/adams-shaun/gorge/rules
-go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ 2>&1 | tail -3
-  -> ok  github.com/adams-shaun/gorge/cmd/botbench
-go test ./internal/archtest/ 2>&1 | tail -3
-  -> ok  github.com/adams-shaun/gorge/internal/archtest
-gofmt -l internal/testutil/agentsdoc_test.go
-  -> (no output, clean)
-```
-
-## Result
-
-Merge commit with the default merge message; working tree clean after.
-
-## Issues
-
-
----
-
-## Section 3 — this merge (main 84cb68b9 into wt/cli-20260922T225139Z-230e9834)
-
-### Starting state
-
-The daemon's rebase of this branch onto main had conflicted
-(`internal/testutil/agentsdoc_test.go` and `effects/...` hunks) and its merge
-fallback had conflicted on `.ds4/report-mrg1.md`; both attempts were rolled back
-before this seat started — `git status` showed a CLEAN tree at merge commit
-`614a3bd9` ("Merge main: resolve approximation row count conflict"), which had
-already integrated main up to `e53c80a2`. Main had since advanced 4 commits
-(`0679b1cd` → `84cb68b9`, the foretell/Cosmos Charger/MayPlay ticket and its merge
-chain). So the in-flight operation to finish was a fresh `git merge main`.
-
-### Conflicted files and how each side's intent was kept
-
-Only ONE file conflicted: `.ds4/report-mrg1.md`.
-
-- **HEAD:** the branch-side resolver's report for THIS ticket's earlier merge
-  (`614a3bd9`), which had set `knownApproximationRows` to 74 for the dig1 deletion.
-- **main:** the OTHER ticket's (cli-20260922T225141Z-8d166e9c) merge report, which
-  had set the same constant to 74 for the foretell-row deletion on its own tree.
-- **Resolution:** both are legitimate reports for the one shared tracked path, so
-  BOTH are kept — this file now carries both sections (Section 1 = HEAD's, Section 2
-  = main's) plus this Section 3. No content was dropped.
-
-`AGENTS.md` auto-merged cleanly: it now carries BOTH sides' row deletions — the
-branch's `dig1` row (this ticket) AND main's `ft1` foretell row — so the merged table
-measures **73 data rows** while the constant on BOTH sides says 74. As in both prior
-merges, the constant was lowered to the measured merged value in this merge commit:
-`knownApproximationRows = 74 → 73` in `internal/testutil/agentsdoc_test.go`. The
-test now passes with no slack in either direction.
-
-### Golden-head check (rules/heads_test.go)
-
-`rules/heads_test.go` auto-merged but needed verification: both sides had history
-with the 4-seat golden. The mana-colour ticket's `049bd58a7b940fbc` re-pin was
-already an ancestor of HEAD (merged via `614a3bd9`); the branch's dig fix re-pinned
-4 seats to `20028059e8c88ec3` on top of it, and main's foretell ticket did not move
-that entry. The merge correctly keeps the branch's `20028059e8c88ec3`, and
-`TestHeads` PASSES on the merged tree — so the branch-side value stands and no
-re-pin was needed.
-
-### Commands and output
-
-- `git status` (before) → clean tree on `wt/cli-20260922T225139Z-230e9834` at `614a3bd9`.
-- `git rev-list --count HEAD..main` → 4.
-- `git merge main --no-commit --no-ff` →
-  ```
-  Auto-merging .ds4/report-mrg1.md
-  CONFLICT (content): Merge conflict in .ds4/report-mrg1.md
-  Auto-merging AGENTS.md
-  Automatic merge failed; fix conflicts and then commit the result.
-  ```
-  (all engine files auto-merged; `git status --short` → `UU .ds4/report-mrg1.md`)
-- Merged-table row count (test's own counting method, python): merged AGENTS.md =
-  73 data rows; HEAD = 74 (dig1 deleted); main = 74 (ft1 deleted, dig1 still
-  present on main); base rows differ per side as the two sections above record.
-- Edit `internal/testutil/agentsdoc_test.go`: `knownApproximationRows` 74 → 73.
-- `go test ./internal/testutil/ -run 'TestKnownApproximation' -v` →
-  ```
-  --- PASS: TestKnownApproximationsOnlyShrinks
-  --- PASS: TestKnownApproximationRowsAreShort
-  ok  github.com/adams-shaun/gorge/internal/testutil  0.001s
-  ```
-  (exact match — no "table is down to" slack log)
-- `go test ./rules -run 'TestHeads$' -v | tail` → `--- PASS: TestHeads (2.08s)`.
-- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeckIsFullySupported|TestEveryRepoDeckParamsAreRead|CountHead' -v` → all PASS (TestEveryRepoDeckIsFullySupported 0.63s, TestEveryRepoDeckParamsAreRead 0.13s, both trigger-mode registry tests PASS, TestEveryRepoDeckCountHeadResolves PASS), `ok github.com/adams-shaun/gorge/rules 0.799s`.
-- Branch-fix sanity (the dig ticket's own suites on the merged tree):
-  `go test ./effects -run 'Dig'` → ok; `go test ./rules -run 'Dig'` → ok;
-  `go test ./rules -run 'Foretell|MayPlay'` (main's new suites) → ok.
-- Behaviour goldens: `go test ./internal/archtest/` → ok; `go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/` → ok (split did not move).
-- `.cards` present (real corpus symlink, `ir.gob.gz` resolves) — runs are real, not vacuous skips.
-
-### Notes / uncertainties
-
-- The only judgement call was the heads golden: because `TestHeads` passes
-  unchanged on the merged tree with the branch's `20028059e8c88ec3` value, no
-  attribution or re-pin was needed.
-- The merged engine code combines the branch's dig fix with main's foretell/MayPlay
-  changes to `effects/misc.go`, `effects/filter.go`, `rules/legal.go`,
-  `rules/mayplay.go`, `rules/playerkeywords.go`, `state/continuous.go`; the dig,
-  foretell and golden suites above all pass on the combination.
-- No new trigger `Mode$` matcher and no new unmodelled count head came in from
-  either side, so the registry ratchets needed no table edits beyond the row-count
-  constant.
-
----
-
-None found beyond the resolved conflict itself.
-
-
----
-
-## Section 4 — current merge (main c12e10ef)
-
-The worktree was clean at `2bae6903`; the reported daemon operation was no longer
-in flight. Started `git merge main --no-commit --no-ff` to integrate the current
-main tip. It conflicted in this report and `internal/testutil/agentsdoc_test.go`;
-`AGENTS.md` auto-merged. Kept the pre-existing report sections from both sides,
-including their distinct ticket histories, and retained the existing stack-option
-kind closure report. The agentsdoc conflict's main-side comment documented 73
-rows; the combined `AGENTS.md` measures 72 rows, so the constant is 72.
-
-Commands and results:
-- `git status --short --branch` before merge: clean on this branch.
-- `git merge main --no-commit --no-ff`: conflicts in this report and
-  `internal/testutil/agentsdoc_test.go`; `AGENTS.md` auto-merged.
-- `go test ./internal/testutil -run 'TestKnownApproximation'`: `ok` (0.001s).
-- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`: `ok` (0.742s).
-
-No engine code was conflicted.
-
----
-
-## Section 5 — previous round on this branch (ticket cli-20260922T225138Z-e21c29e8, merge d8fb30c6 of main c12e10ef)
-
-# Merge-conflict resolution: mrg1
-
-## Starting state
-
-The worktree was clean on `wt/cli-20260922T225138Z-e21c29e8`, with no rebase or merge in progress. HEAD was `d8fb30c6`, a merge commit integrating `main`; the failed daemon operation described in `.ds4/merge-conflict-mrg1.md` had already been resolved and committed in this worktree. The committed merge includes the conflict resolution for `internal/testutil/agentsdoc_test.go`, and the prior merge report records the resolution of the fallback conflict in `.ds4/report-mrg1.md`. No conflict markers remain in `internal/testutil/agentsdoc_test.go`.
-
-## Conflicted files and resolution
-
-- `internal/testutil/agentsdoc_test.go`: reported as a content conflict while replaying `f68b9396`. The committed resolution sets `knownApproximationRows = 73`, agreeing with the merged `AGENTS.md` table. The existing focused ratchet test passed.
-- `.ds4/report-mrg1.md`: the merge fallback reported conflicting report histories. It is now replaced with this round's report, preserving the required durable account of the completed integration.
-- `AGENTS.md` and `rules/legal.go`: the daemon reported automatic merges, not conflicts. They are present in the already-committed merge.
-
-No new engine changes were made in this resolver session. The merge operation was already complete at entry, so there was no rebase/merge command to continue.
-
-## Commands and output
+`git status --short --branch && git status`
 
 ```text
-git status --short --branch
-## wt/cli-20260922T225138Z-e21c29e8
-(clean)
-
-git log --oneline --decorate -10
-... d8fb30c6 Merge branch 'main' into wt/cli-20260922T225138Z-e21c29e8
-
-git grep -n -E '<<<<<<<|>>>>>>>' -- internal/testutil/agentsdoc_test.go
-(no matches)
-
-[ -e .cards ] && echo '.cards present'
-.cards present
-
-go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|CastTarget|CastOffer'
-ok   github.com/adams-shaun/gorge/rules 0.740s
+## wt/cli-20260922T225140Z-677ee477
+On branch wt/cli-20260922T225140Z-677ee477
+nothing to commit, working tree clean
 ```
 
-The worktree has the real `.cards` corpus, so this was not a corpus-omitted run.
+`git merge main`
 
-## Ratchets and concerns
-
-The requested rules ratchets and target-offer tests passed. The merged approximation count is 73. No uncertainty remains about the conflict resolution itself; the merge commit predates this resolver session, and this session only updated the durable report.
-
-## Issues
-
-None found.
-
----
-
-## Section 6 — this merge (main 00147db0 into wt/cli-20260922T225138Z-e21c29e8)
-
-### Starting state
-
-The tree was CLEAN at `3f71fd81`; the reflog showed the daemon had attempted the
-rebase onto main four times (22:29–22:35) and rolled each one back, so no
-operation was in flight. Main had advanced 6 commits since the branch's last
-merge (`d8fb30c6`): the dig1 closure (`b43ab0a9` + its heads re-pin `f4c04e2f`)
-and its merge chain up to `00147db0`. Rebase is forbidden in this seat
-(shared-`git` rule), so the integration was done as `git merge main`.
-
-### Conflicted files and how each side's intent was kept
-
-Only ONE file conflicted: `.ds4/report-mrg1.md` (the shared append-log of
-resolver reports). AGENTS.md, `internal/testutil/agentsdoc_test.go`,
-`rules/heads_test.go`, `rules/legal.go`, `rules/cast.go` and all engine files
-auto-merged.
-
-- **HEAD:** this ticket's previous-round report (merge `d8fb30c6` of main
-  `c12e10ef`).
-- **main:** the accumulated resolver-report log (Sections 1–4, tickets
-  230e9834 / 8d166e9c / c4106938).
-- **Resolution:** BOTH kept per the file's own convention — main's Sections
-  1–4 verbatim, HEAD's report preserved as Section 5, and this round's
-  account as Section 6. No content dropped.
-
-`internal/testutil/agentsdoc_test.go` auto-merged to main's constant (72), but
-the merged table measures **71 rows**: both sides deleted one row each from the
-72-row base — this branch's row 24 (the CR 601.2c cast-offer census row,
-`castTargetsAvailable`) and main's dig1 row. The constant was lowered to 71 in
-this merge commit; the ratchet now matches exactly with no slack either way.
-Verified the merged AGENTS.md carries BOTH deletions: `grep -c 'cast-offer
-census'` → 0 (branch's row gone), main's dig1 row gone while the separate
-`(diguntil1)` row correctly remains.
-
-`rules/heads_test.go`: main's dig ticket re-pinned the 4-seat golden; this
-branch never touched it, so the auto-merge keeps main's pin, and `TestHeads`
-passes on the merged tree — no re-pin needed.
-
-### Commands and output
-
-- `.cards` present (real corpus symlink, `ir.gob.gz` resolves) — runs are real.
-- `git merge main --no-edit`:
-  ```
-  Auto-merging .ds4/report-mrg1.md
-  CONFLICT (content): Merge conflict in .ds4/report-mrg1.md
-  Auto-merging AGENTS.md
-  Automatic merge failed; fix conflicts and then commit the result.
-  ```
-  (`git status --short` → `UU .ds4/report-mrg1.md` only)
-- `go test ./internal/testutil/ -run 'TestKnownApproximation' -v` (after 72 → 71):
-  ```
-  --- PASS: TestKnownApproximationsOnlyShrinks
-  --- PASS: TestKnownApproximationRowsAreShort
-  ok  github.com/adams-shaun/gorge/internal/testutil  0.001s
-  ```
-  (exact match — no slack log)
-- Ratchets + this ticket's cast-offer suites:
-  `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|CastOffer|CastTarget|CastBound|CastLiveness' -v`
-  → all PASS (`TestEveryRepoDeckIsFullySupported` 0.58s,
-  `TestEveryRepoDeckParamsAreRead` 0.13s, both trigger-registry tests PASS,
-  all cast-offer census suites PASS), `ok github.com/adams-shaun/gorge/rules 0.780s`.
-- `go test ./rules -run 'TestHeads$|Dig'` → ok (1.847s);
-  `go test ./effects -run 'Dig'` → ok (0.597s) — main's dig closure intact.
-- Behaviour goldens: `go test ./internal/archtest/` → ok (3.035s);
-  `go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/` → ok
-  (1.060s, split did not move).
-- `gofmt -l` on the touched Go files → clean; `go run ./cmd/gentypes -check` → clean.
-
-### Issues
-
-None found beyond the resolved conflict itself.
-
----
-
-## Section 7 — worktree cli-20260922T225139Z-30adfed9 (ticket cli-20260922T225139Z-30adfed9, limited-look/spectator closure; kept from main's side of the conflict)
-
-Two integration rounds landed on this branch.
-
-Round 1 (before this dispatch): the branch merged main at `efd2ff45` (merge commit
-`6b9a83d9`, resolution constant 76 for that round's table) and recorded its
-report here. Main has since advanced 22 commits to `00147db0`, so the branch was
-behind again and the daemon's gate kept failing on the stale integration.
-
-Round 2 (this dispatch): started from a clean tree on
-`wt/cli-20260922T225139Z-30adfed9` at `c9f084d8`; no rebase/merge was in flight
-(the daemon's failed rebase had been rolled back). Ran `git merge main` to
-integrate main at `00147db0`.
-
-- Conflicts: `.ds4/report-mrg1.md` (both sides edit this shared report) and
-  `internal/testutil/agentsdoc_test.go` (the `knownApproximationRows` constant:
-  branch said 76, main said 72). `AGENTS.md` auto-merged — it retains all of
-  main's row closures AND this branch's deletion of the "No LIMITED-look
-  grammar" row (grep finds 0 occurrences in the merged file).
-- `internal/testutil/agentsdoc_test.go`: resolved to **71** — the merged
-  table's measured data rows (awk count over the `## Known approximations`
-  section: 72 lines starting `| ` including the header row = 71 data rows;
-  main's 72 less the branch's one row deletion).
-- `.ds4/report-mrg1.md`: resolved as the union — main's multi-section ledger
-  kept verbatim, this section appended.
-- No engine code was conflicted; the merge is purely integration.
-
-Commands and output (all in this worktree, `.cards` symlink present):
-
+```text
+Auto-merging AGENTS.md
+Auto-merging internal/testutil/agentsdoc_test.go
+CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go
+Automatic merge failed; fix conflicts and then commit the result.
 ```
-go test ./internal/testutil -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort'
+
+Resolved and staged `AGENTS.md` plus `internal/testutil/agentsdoc_test.go`, then ran `GIT_EDITOR=true git merge --continue`:
+
+```text
+[wt/cli-20260922T225140Z-677ee477 a70c4483] Merge branch 'main' into wt/cli-20260922T225140Z-677ee477
+```
+
+`.cards` check: `.cards present`.
+
+`go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`
+
+```text
+ok  github.com/adams-shaun/gorge/rules  0.770s
+```
+
+`go test ./internal/testutil -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort'`
+
+```text
 ok  github.com/adams-shaun/gorge/internal/testutil  0.001s
-
-go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|TestHeads'
-ok  github.com/adams-shaun/gorge/rules  1.818s
-
-go test ./rules -run 'TestEveryRepoDeckIsFullySupported$|TestHeads$|TestEveryRepoDeckParamsAreRead$' -v   # skip check
---- PASS: TestEveryRepoDeckIsFullySupported (0.57s)
---- PASS: TestEveryRepoDeckParamsAreRead (0.13s)
---- PASS: TestHeads (1.20s)      # no SKIPs; corpus-backed runs are real
-
-go test ./internal/archtest/
-ok  github.com/adams-shaun/gorge/internal/archtest  2.926s
-
-go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
-ok  github.com/adams-shaun/gorge/cmd/botbench  1.049s
 ```
 
 No uncertainties remain.
@@ -735,3 +364,57 @@ ok   github.com/adams-shaun/gorge/rules 0.820s
 ```
 
 No uncertainties remain about the reported conflict or its completed resolution.
+
+
+---
+
+## Current merge resolution — main `9016c22c`
+
+The prior resolver report above is preserved. Main had advanced beyond the branch's earlier merge (`4bd357c1`), so this merge integrates current main; no rebase was in progress.
+
+### Conflicts and resolution
+
+- `internal/testutil/agentsdoc_test.go`: branch recorded 55 rows after its `non<X>` closure plus the two Scry/Surveil deletions. Main carries additional approximation-row deletions; after the combined disjoint deletions, the merged table measures 53. Updated the constant to 53. The merged table preserves main's and the branch's row removals.
+- `.ds4/report-mrg1.md`: this is a shared accumulated report. Kept the branch's existing report history and main's trailing verification line (which refers to its own worktree) and added this round's resolution report; no history discarded.
+- `AGENTS.md` auto-merged. All other main changes are retained; no engine-code conflict required manual resolution.
+
+### Commands and output
+
+- `git status --short --branch` before merge: clean on `wt/cli-20260922T225140Z-b686e452`.
+- `git merge main --no-edit`:
+  ```
+  Auto-merging .ds4/report-mrg1.md
+  CONFLICT (content): Merge conflict in .ds4/report-mrg1.md
+  Auto-merging AGENTS.md
+  Auto-merging internal/testutil/agentsdoc_test.go
+  CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go
+  Automatic merge failed; fix conflicts and then commit the result.
+  ```
+- Merged approximation count: **53** (`awk` over the merged `AGENTS.md` table); the test's measured count agrees.
+- `go test ./internal/testutil -run 'TestKnownApproximation' -v`:
+  ```
+  === RUN   TestKnownApproximationsOnlyShrink
+  --- PASS: TestKnownApproximationsOnlyShrink (0.00s)
+  === RUN   TestKnownApproximationRowsAreShort
+  --- PASS: TestKnownApproximationRowsAreShort (0.00s)
+  PASS
+  ok   github.com/adams-shaun/gorge/internal/testutil  0.002s
+  ```
+- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`:
+  ```
+  ok   github.com/adams-shaun/gorge/rules  0.780s
+  ```
+- `gofmt -l internal/testutil/agentsdoc_test.go`, `git diff --check`, and a conflict-marker grep over the resolved report and Go file: no output.
+
+- `git commit --no-edit` created merge commit `8eab585f` (parents: pre-merge branch `1b04c7c9`, main `9016c22c`).
+- Final `git status --short --branch`:
+  ```
+  ## wt/cli-20260922T225140Z-b686e452
+  ```
+  `git merge-base --is-ancestor main HEAD` succeeded.
+
+No unresolved conflict or uncertainty remains.
+
+---
+
+Final check from main's side of the report conflict: `git status --short --branch` returned only `## wt/cli-20260922T225140Z-677ee477` (clean), HEAD `a70c4483`; its own merged approximation table measured 54 data rows.

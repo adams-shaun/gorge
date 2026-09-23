@@ -3578,7 +3578,7 @@ func effCardVote(h Host, c *Ctx, sa *cards.SA, ballot string) {
 	var options []state.ObjID
 	for i := range g.Players {
 		for _, id := range g.Zone(state.ZBattlefield, state.PlayerID(i)) {
-			if o := g.Obj(id); o != nil && MatchesSpecFrom(g, ballot, id, c.Controller, c.Source) {
+			if o := g.Obj(id); o != nil && c.MatchSpec(g, ballot, id, c.Controller) {
 				options = append(options, id)
 			}
 		}
@@ -4214,7 +4214,7 @@ func eachColorAmongValid(h Host, c *Ctx, spec string) string {
 	var mask ColorMask
 	for _, p := range g.AliveFrom(0) {
 		for _, id := range g.Zone(state.ZBattlefield, p) {
-			if MatchesSpecFrom(g, spec, id, c.Controller, c.Source) {
+			if c.MatchSpec(g, spec, id, c.Controller) {
 				mask |= ColorMaskOf(g.Obj(id))
 			}
 		}

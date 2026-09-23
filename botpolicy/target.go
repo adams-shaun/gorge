@@ -132,7 +132,7 @@ const (
 // the one place an unknown is resolved to "no".
 func (b Board) effectDamage(d *decision.Decision) (int32, bool) {
 	te := d.TargetEffect
-	if te == nil || te.Damage == nil || te.Damage.Amount == nil {
+	if te == nil || (te.API != "DealDamage" && te.API != "DamageAll") || te.Damage == nil || te.Damage.Amount == nil || *te.Damage.Amount < 0 {
 		return 0, false
 	}
 	return int32(*te.Damage.Amount), true
@@ -155,16 +155,135 @@ func (b Board) mayKillMe(me state.PlayerID, c Creature) bool {
 	return c.Power >= life
 }
 
-// hasSpareMana reports whether the deciding seat can afford to spend a
-// removal spell on pure value (tier 3). The one sound, readable fact is
-// unspent floating mana in the pool: if the pool already holds mana the
-// cast did not spend, that mana is spare. (The brief's other half -- an
-// untapped source beyond what the rest of the turn needs -- is not carried
-// on the Board: the mana producers in b.Cards carry no Tapped field, so
-// the policy cannot prove a source is untapped, and per the unknown-is-no
-// rule it therefore never assumes one.)
+// hasSpareMana is conservative: a value burn is only promoted when spending
+// ANY single available pool unit or source still leaves enough mana to pay
+// each cheapest instant-speed spell. A total-mana surplus alone cannot
+// protect a coloured instant (one Island and one Forest cannot guarantee
+// that a one-mana removal leaves the Island untouched). Only untapped basic
+// lands with one fixed, literal production colour are counted: the Board's
+// production summary cannot promise that a nonbasic/ability's activation
+// conditions or its alternative colours will be available at this window.
 func (b Board) hasSpareMana() bool {
-	return b.Pool.Total() > 0
+	available := b.Pool
+	var sources []state.Mana
+	for _, c := range b.Cards {
+		if !c.OnBattlefield || !c.Basic || c.Tapped || c.Produces.Any || c.Produces.Indeterminate {
+			continue
+		}
+		var source state.Mana
+		colours := 0
+		for i, n := range c.Produces.Colour {
+			if n > 0 {
+				colours++
+				source[i] = n
+			}
+		}
+		if colours != 1 {
+			continue // alternative activations are not simultaneous mana
+		}
+		for i, n := range source {
+			available[i] += n
+		}
+		sources = append(sources, source)
+	}
+	if available.Total() == 0 {
+		return false
+	}
+	// No instant-speed reserve: any dependable mana is spare.
+	minCost := int32(-1)
+	var reserves []Card
+	for id, c := range b.Cards {
+		if !c.Castable || !c.InstantSpeed || c.CMC <= 0 {
+			continue
+		}
+		cost := b.castCost(id, c)
+		if minCost < 0 || cost < minCost {
+			minCost, reserves = cost, nil
+		}
+		if cost == minCost {
+			reserves = append(reserves, c)
+		}
+	}
+	if minCost < 0 {
+		return true
+	}
+	pays := func(m state.Mana) bool {
+		if m.Total() < minCost {
+			return false
+		}
+		for _, c := range reserves {
+			for i, need := range colourPips(c.ManaCost) {
+				if m[i] < need {
+					return false
+				}
+			}
+		}
+		return true
+	}
+	if !pays(available) {
+		return false
+	}
+	// Spending from a pool slot or tapping one source may consume the
+	// reserve's only matching colour (or the whole multi-mana activation).
+	for i, n := range b.Pool {
+		if n > 0 {
+			left := available
+			left[i]--
+			if !pays(left) {
+				return false
+			}
+		}
+	}
+	for _, source := range sources {
+		left := available
+		for i, n := range source {
+			left[i] -= n
+		}
+		if !pays(left) {
+			return false
+		}
+	}
+	return true
+}
+
+func (b Board) removalRanker(me state.PlayerID, effect *decision.TargetEffect) func(decision.Option) targetRank {
+	return func(o decision.Option) targetRank {
+		r := b.rankOption(o, me)
+		if r.ours {
+			return r
+		}
+		if effect.API == "Counter" {
+			for _, s := range b.Stack {
+				if s.ID == o.Obj && s.IsSpell && s.Controller != me {
+					return targetRank{score: tierValue + s.CMC, idx: o.Index}
+				}
+			}
+			return r
+		}
+		if o.Kind == "player" {
+			return r
+		}
+		value := r.score
+		if c, ok := b.Cards[o.Obj]; ok && value == 0 {
+			value = c.CMC * 3
+		}
+		if value == 0 {
+			return r
+		}
+		bonus := int32(0)
+		switch effect.Removal.Kind {
+		case "exile", "command":
+			bonus = 30
+		case "library":
+			bonus = 20
+		case "graveyard", "destroy", "sacrifice":
+			bonus = 10
+		case "bounce":
+			bonus = 5
+		}
+		r.score = tierValue + value + bonus
+		return r
+	}
 }
 
 // effectRanker returns the KTarget ranking for a decision whose effect is a
@@ -342,6 +461,8 @@ func (b Board) chooseTargets(d *decision.Decision) []int {
 	var rank func(decision.Option) targetRank
 	if dmg, ok := b.effectDamage(d); ok {
 		rank = b.effectRanker(me, dmg)
+	} else if d.TargetEffect != nil && (d.TargetEffect.API == "Counter" || d.TargetEffect.Removal != nil) {
+		rank = b.removalRanker(me, d.TargetEffect)
 	} else {
 		rank = func(o decision.Option) targetRank { return b.rankOption(o, me) }
 	}

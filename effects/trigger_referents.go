@@ -393,7 +393,11 @@ func matchTargetedPlayerCtrl(g *state.Game, o *state.Object, sc SpecContext) (bo
 // independent of trigger provenance.
 func (c *Ctx) SpecContext(you state.PlayerID) SpecContext {
 	sc := SpecContext{You: you, Source: c.Source, TriggerContext: c.TriggerContext,
-		ResolutionTargets: c.Targets, Remembered: c.Remembered, Chosen: c.Chosen, ChosenValid: c.ChosenValid, Resolving: true}
+		ResolutionTargets: c.Targets, Remembered: c.Remembered, Chosen: c.Chosen, ChosenValid: c.ChosenValid, Resolving: true,
+		// The layer-3 rename table rules published at Resolve entry, so a
+		// resolving effect's name filter agrees with the layer walk. A field
+		// copy of immutable data: no callable, no back-pointer.
+		EffectiveNames: c.EffectiveNames}
 	// Numeric-RHS resolution for a resolution-time filter spec, in priority
 	// order:
 	//
@@ -434,6 +438,16 @@ func (c *Ctx) SpecContext(you state.PlayerID) SpecContext {
 		}
 	}
 	return sc
+}
+
+// MatchSpec evaluates a resolution-time filter with the chain's layer-3
+// rename table bound: MatchesSpecFrom's grammar (You/Source only, no
+// numeric-RHS resolver) PLUS Ctx.EffectiveNames, so a resolving effect's
+// filter agrees with rules' layer walk. Prefer this over a bare
+// MatchesSpecFrom inside an effect body -- the bare form carries no renames
+// and reads the printed face.
+func (c *Ctx) MatchSpec(g *state.Game, spec string, id state.ObjID, you state.PlayerID) bool {
+	return MatchesSpecCtx(g, spec, id, SpecContext{You: you, Source: c.Source, EffectiveNames: c.EffectiveNames})
 }
 
 // resolveNumericRHS is the numeric-RHS resolver the gate in (*Ctx).SpecContext

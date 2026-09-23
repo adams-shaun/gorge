@@ -88,7 +88,7 @@ func ManaReflectedCandidates(h Host, c *Ctx, sa *cards.SA) []string {
 		g := h.Game()
 		for _, p := range g.AliveFrom(0) {
 			for _, id := range g.Zone(state.ZBattlefield, p) {
-				if MatchesSpecFrom(g, spec, id, c.Controller, c.Source) {
+				if c.MatchSpec(g, spec, id, c.Controller) {
 					objs = append(objs, id)
 				}
 			}

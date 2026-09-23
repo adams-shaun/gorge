@@ -1497,7 +1497,7 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			// object/player predicates. Do not pass c.SpecContext here: handing
 			// its resolution slices through the Host interface makes c escape,
 			// allocating on the Derived hot path.
-			sc := SpecContext{You: c.Controller, Source: c.Source}
+			sc := SpecContext{You: c.Controller, Source: c.Source, EffectiveNames: c.EffectiveNames}
 			return h.CountersAddedThisTurn(parts[0], parts[1], parts[2], sc), true
 		}
 	case "CountersRemovedThisTurn":
