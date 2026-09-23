@@ -869,9 +869,22 @@ func effEachDamage(h Host, c *Ctx, sa *cards.SA) {
 			return out
 		}
 		if spec := strings.TrimSpace(sa.Params["DefinedDamagers"]); spec != "" {
-			return battlefield(eachDamagerTargets(h, c, spec))
+			if unknown := eachDamagerUnknownPredicates(spec); len(unknown) > 0 {
+				eachDamageNote(h, c, "unresolved EachDamage damager predicate in "+spec)
+				return nil
+			}
+			ts, recognized := eachDamagerTargets(h, c, spec)
+			if !recognized {
+				eachDamageNote(h, c, "unresolved EachDamage damager selector "+spec)
+				return nil
+			}
+			return battlefield(ts)
 		}
 		if spec := strings.TrimSpace(sa.Params["ValidCards"]); spec != "" {
+			if unknown := UnknownPredicates(spec); len(unknown) > 0 {
+				eachDamageNote(h, c, "unresolved EachDamage damager predicate in "+spec)
+				return nil
+			}
 			var out []state.ObjID
 			for _, p := range g.AliveFrom(0) {
 				for _, id := range g.Zone(state.ZBattlefield, p) {
@@ -903,14 +916,21 @@ func effEachDamage(h Host, c *Ctx, sa *cards.SA) {
 			} else if c.OfferedSA != nil && sa.Line == c.OfferedSA.Line {
 				recipients = copyTargets(c.Targets)
 			} else {
+				eachDamageNote(h, c, "EachDamage ValidTgts$ has no answered recipient targets")
 				return
 			}
 		} else {
+			eachDamageNote(h, c, "EachDamage has no supported recipient selector")
+			return
+		}
+		if len(recipients) == 0 {
+			eachDamageNote(h, c, "EachDamage resolved no recipient targets")
 			return
 		}
 	}
 
 	h.BeginDamageBatch()
+	unresolvedAmountNoted := false
 	for _, d := range damagers {
 		o := h.Game().Obj(d)
 		if o == nil || o.Zone != state.ZBattlefield {
@@ -921,7 +941,18 @@ func effEachDamage(h Host, c *Ctx, sa *cards.SA) {
 		// damager; the resolution's SVar table is kept so an SVar-named
 		// amount (Nissa's Judgment's NumDmg$ X) still resolves.
 		pc := &Ctx{Source: d, Controller: o.Controller, SVars: c.SVars}
-		n := Num(h, pc, sa, "NumDmg", 1)
+		n, amountResolved := NumResolved(h, pc, sa, "NumDmg", 1)
+		if !amountResolved {
+			if _, present := sa.Params["NumDmg"]; !present {
+				n = 1
+			} else {
+				n = 0
+				if !unresolvedAmountNoted {
+					eachDamageNote(h, c, "unresolved EachDamage NumDmg$")
+					unresolvedAmountNoted = true
+				}
+			}
+		}
 		if n < 0 {
 			n = 0
 		}
@@ -953,6 +984,20 @@ func effEachDamage(h Host, c *Ctx, sa *cards.SA) {
 	h.EndDamageBatch()
 }
 
+func eachDamageNote(h Host, c *Ctx, text string) {
+	h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller, Text: text})
+}
+
+// eachDamagerUnknownPredicates reports unsupported filter predicates embedded
+// in a DefinedDamagers$ filter, without treating an unsupported selector name
+// as an ordinary filter predicate.
+func eachDamagerUnknownPredicates(spec string) []string {
+	if strings.HasPrefix(strings.TrimSpace(spec), "Valid ") {
+		return UnknownPredicates(strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(spec), "Valid ")))
+	}
+	return nil
+}
+
 // eachDamagerTargets resolves a DefinedDamagers$ value to concrete targets,
 // failing closed (nil) on a spec this grammar does not model -- the same
 // contract damage.go's DamageSource$ and ValidPlayers$ resolutions keep.
@@ -963,13 +1008,13 @@ func effEachDamage(h Host, c *Ctx, sa *cards.SA) {
 // the corpus writes on an EachDamage (friendly_rivalry's
 // "Targeted.YouCtrl") narrows the named set through the one qualifier this
 // grammar reads -- YouCtrl, the resolving controller.
-func eachDamagerTargets(h Host, c *Ctx, spec string) []state.Target {
+func eachDamagerTargets(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	spec = strings.TrimSpace(spec)
 	if spec == "" {
-		return nil
+		return nil, false
 	}
 	if ts, ok := knownDefinedTargets(h, c, spec); ok {
-		return ts
+		return ts, true
 	}
 	if base, filt, ok := strings.Cut(spec, " "); ok && base == "Valid" {
 		filt = strings.TrimSpace(filt)
@@ -982,7 +1027,7 @@ func eachDamagerTargets(h Host, c *Ctx, spec string) []state.Target {
 				}
 			}
 		}
-		return out
+		return out, true
 	}
 	if base, qual, ok := strings.Cut(spec, "."); ok && qual == "YouCtrl" {
 		if ts, known := knownDefinedTargets(h, c, base); known {
@@ -998,8 +1043,8 @@ func eachDamagerTargets(h Host, c *Ctx, spec string) []state.Target {
 					out = append(out, t)
 				}
 			}
-			return out
+			return out, true
 		}
 	}
-	return nil
+	return nil, false
 }

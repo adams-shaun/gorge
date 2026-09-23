@@ -306,6 +306,24 @@ func passUntilStackEmpty(t *testing.T, e *Engine, limit int) int {
 				}
 				continue
 			}
+			if d.Kind == decision.KReplacement {
+				// A CR 616.1 order competition over a non-commuting replacement
+				// pair parked mid-drain (the AddCounter Plus/Twice and the
+				// CreateToken multiplier/rewriter compositions): these drains were
+				// written around the pre-choice engine, whose scan order applied
+				// every candidate without asking, so answer option 0 -- the scan
+				// order's own first candidate, exactly the board the assertions
+				// were written against. A test that wants a different order
+				// answers the ask itself before draining
+				// (replacement_order_test.go).
+				if len(d.Options) == 0 {
+					t.Fatalf("replacement order ask with no option to take: %+v", d)
+				}
+				if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{d.Options[0].Index}}); err != nil {
+					t.Fatalf("submit replacement order first option: %v", err)
+				}
+				continue
+			}
 			t.Fatalf("non-priority decision %+v while draining the stack", d)
 		}
 		idx := -1

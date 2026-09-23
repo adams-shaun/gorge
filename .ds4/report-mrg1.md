@@ -1,110 +1,106 @@
 # Merge-conflict resolution — task cli-20260922T225140Z-c661fa12
 
-## Starting state
+## Situation found
 
-`git status` found the tree CLEAN — no rebase or merge in flight. The daemon's
-earlier attempt (rebase, then a merge fallback, both conflicting per
-`.ds4/merge-conflict-mrg1.md`) had been fully aborted before this seat
-started; branch tip was `63c07260` ("fix(rules): carry layer-4 derived types
-into the ordinary filter grammar") on top of merge-base `c472a88f`. Main had
-advanced since (`0104252d` tip: the pc1 closure and the 6a16cd8c merge).
+`git status` was CLEAN on entry, no rebase or merge in flight, but the branch
+was NOT yet integrated with the current main:
 
-I redid the integration as a **merge of `main` into the branch** (`git merge
-main` — `git rebase` is forbidden in a seat), which reproduced exactly the
-conflict set the daemon saw: `AGENTS.md` content-conflicted;
-`effects/filter.go`, `rules/clone.go`, `rules/engine.go`, `rules/layers.go`,
-`rules/statics.go` auto-merged.
+- branch tip `17ca3a16` — a merge of the reviewed fix `63c07260` with the OLD
+  main `0104252d`, committed by the PRIOR resolver round (its report is what
+  occupied this file before; the daemon had tracked it).
+- `main` had since advanced to `e6a2a84d` (the CR 616.1 replacement-order
+  work: `4dfb4d74`, `5b8e6e62`, `7a45ef9a`; the EachDamage closure `49a2fde8`,
+  `0c7e5ce9`; merges `38d1a4b0`, `a57b96e6`).
+- reflog confirmed the daemon's rebase onto `e6a2a84d` had been started and
+  **aborted**, leaving `17ca3a16` with `e6a2a84d` NOT an ancestor.
 
-## Conflicted file: AGENTS.md (one hunk)
+So the integration owed was a merge of the CURRENT main `e6a2a84d` into the
+branch. `git rebase` is forbidden in a seat, so I used `git merge main`, the
+same method the prior round used.
 
-Both sides touched the same slot in the "Known approximations" table — each
-had DELETED a different row that the other kept:
+## Conflicted file: `.ds4/report-mrg1.md` (only content conflict)
 
-- **branch side** deleted the **"Layer-4 type grants reach only the layer
-  walk"** row — that IS the reviewed fix `63c07260` itself (commit message:
-  "Closes the AGENTS.md 'Layer-4 type grants reach only the layer walk' row.
-  The row is deleted and knownApproximationRows is lowered to match."), with
-  `rules/layer4types.go` + `SpecContext.DerivedTypes` + tests.
-- **main side** deleted the **(pc1)** row ("A positive predicate word that is
-  neither a type word nor `Colorless`/`MultiColor` fails closed…") — closed by
-  `179a3de1` "feat(effects): implement pc1 context-bound object predicates"
-  (`ExiledWithSource`, `wasDealtDamageThisTurn`, `IsImprinted`,
-  `NotDefinedTargeted`, `DefenderCtrl`, `Opponent` predicates).
+`git merge main` auto-merged all code and `AGENTS.md`, and conflicted ONLY on
+this scratch report file — because each resolver round had previously
+committed its own version of it (the branch's `17ca3a16` carried the prior
+round's report; main's `e6a2a84d` carried a different ticket's report,
+`62421b89`'s). Neither side is source of truth: the file records a resolution
+that has already happened. **Resolution:** replaced it wholesale with THIS
+round's report.
 
-**Resolution:** delete BOTH rows — each deletion is a legitimate closure and
-the register is delete-only. Merged table measured with the ratchet test's own
-line logic (`## Known approximations` … next `## `, lines starting `| `, minus
-header):
+## Auto-merged files — verification of both sides' intent
 
-| ref | rows | constant |
-|---|---|---|
-| base `c472a88f` | 51 | 51 |
-| main | 49 (deleted fx20, legend-rule, pc1; added the KReplacement-order row) | 50 (lags one — allowed) |
-| branch `63c07260` | 50 (deleted layer-4) | 50 |
-| merged | **48** | set to **48** |
+The merge auto-merged without markers:
 
-## internal/testutil/agentsdoc_test.go (auto-merged, then adjusted)
+- `AGENTS.md` — main's side deleted the `(each1)` row (`49a2fde8` closed it)
+  and the two CR 616.1 replacement-order rows (`4dfb4d74` closed them) and
+  added the CR 704.5j legend-rule row; the branch's side had already deleted
+  the "Layer-4 type grants reach only the layer walk" row (that IS the fix
+  `63c07260`). Both sets of deletions survive, the legend-rule row is kept.
+  Verified: `(pc1)`, `(each1)`, `all-Updated`, `Layer-4 type grants` all
+  absent; `704.5j legend rule` present.
+- `rules/engine.go` — main's `askNextReplacementChoice` drain in `Submit`
+  (line 2560) AND the branch's `layer4InPool`/`layer4Types` fields
+  (lines 328/340) both present.
+- `rules/paramcensus_test.go` — main's own correction (drops the stale
+  `Engine.applyAddCounterBody`/`applyAddCounterReplacements` entries and adds
+  `Engine.counterReplaceOp`) survives; no stale-entry failure.
+- `effects/filter.go` — the branch's `SpecContext.DerivedTypes` (lines 3186,
+  3257) and the published-table guard over main's pc1 predicates compose.
+- `rules/clone.go`, `rules/layers.go`, `rules/statics.go` — branch layer-4
+  additions, no contradiction.
 
-Both sides changed the same line `51`→`50`, so git auto-merged it to 50 — but
-that describes neither merged state: the merged table measures **48** rows
-(51 − fx20 − legend − pc1 − layer-4 + KReplacement-order row). Set
-`knownApproximationRows = 48`. `knownOversizeRows` (8) and `standInCellLimit`
-(600) identical on all sides, untouched. Method mirrors main's own
-integration precedent `4dcef2ea` ("lowered to 51 after ft1 closure — the
-merged table measures 51 rows, confirmed by the ratchet's own count").
+## `internal/testutil/agentsdoc_test.go` — constant lowered to the measured count
 
-## Auto-merged code files — semantic sanity check
+The auto-merge kept the branch's `knownApproximationRows = 48`, but the merged
+table is smaller: main deleted `(each1)` + the two replacement rows (3) and
+added the legend-rule row (1); the branch deleted layer-4 (1). Measured with
+the test's own line logic (`## Known approximations` … next `## `, `| ` lines,
+minus header):
 
-`git diff main -- effects/filter.go rules/layers.go rules/statics.go
-rules/clone.go rules/engine.go` showed ONLY the branch's layer-4 additions
-(the `SpecContext.DerivedTypes` slice field, the `hasTypeCtx` published-table
-arm with the walk's `ExtraTypes`-authoritative guard, `matchesWithChars`
-clearing `sc.DerivedTypes`, the `layer4InPool`/`layer4Types` engine fields
-and Clone copy) — `git diff main --stat` over the whole tree equals the
-branch commit's own 17-file stat. The reverse check confirmed main's pc1
-predicates (`wordPredicate`'s context-bound kinds, `ExiledWithSource`,
-`IsImprinted`, …) are present in the merged tree. The two sides' shared
-surface (`effects/filter.go`'s compiled-predicate bypass now gated on
-`!hasEffectiveName(o, sc) && !hasDerivedTypeEntry(o, sc)`) composed cleanly.
+| ref | rows |
+|---|---|
+| base `0104252d` | 49 |
+| branch `17ca3a16` | 48 (deleted layer-4) |
+| main `e6a2a84d` | 47 (deleted each1 + two replacement rows; added legend-rule) |
+| merged | **46** (49 − layer-4 − each1 − 2 replacement + legend-rule) |
+
+Set `knownApproximationRows = 46` in the same commit. The test fails only on
+GROWTH and merely logs on shrinkage, so 48 would not have failed — but it would
+have been a stale ratchet and the test itself asks for the measured count
+(same method as main's precedent `4dcef2ea`).
 
 ## Commands run and output
 
-- `git merge main` → `CONFLICT (content): Merge conflict in AGENTS.md`; the
-  five code files auto-merged (same set as the daemon's log).
-- `git status --short` after staging → no UU left.
 - `.cards` check: **present** (real symlink → `/home/sadams/projects/gorge/.cards`),
-  so the corpus-backed runs below were real, not vacuous skips.
-- `go test ./internal/testutil/ -run 'TestKnownApproximations' -v` →
-  `--- PASS: TestKnownApproximationsOnlyShrinks (0.00s)` / `ok`.
-- Post-merge ratchets + the branch's own layer-4 tests:
+  so the corpus-backed ratchets were real, not vacuous skips.
+- `git merge main` → `CONFLICT (content): Merge conflict in .ds4/report-mrg1.md`;
+  `AGENTS.md` and `rules/engine.go` auto-merged; 14 files total.
+- `go test ./internal/testutil/ -run 'TestKnownApproximations' -v`
+  → `--- PASS: TestKnownApproximationsOnlyShrinks (0.00s)` / `ok`.
+- Post-merge ratchets:
+  `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`
+  → `ok github.com/adams-shaun/gorge/rules 0.797s`.
+- Branch fix still green: `go test ./rules -run 'TestLayer4'`
+  → `ok github.com/adams-shaun/gorge/rules 0.626s`.
+- main's closures still green:
+  `go test ./effects -run 'TestPlayerSpecFx20Grammar|TestUnknownPredicates'`
+  → `ok github.com/adams-shaun/gorge/effects 0.005s`.
+- Final combined run on the committed merge `4cc5c20a`:
+  `go test ./internal/testutil/ -run 'TestKnownApproximations'` → `ok 0.001s`;
   `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|TestLayer4'`
-  → `ok github.com/adams-shaun/gorge/rules 0.875s`. (0.875 s matches the
-  verified non-vacuous 0.894 s run of the same set recorded in the prior
-  round's report; `.cards` present.)
-- `go test ./effects -run 'TestPlayerSpecFx20Grammar|TestUnknownPredicates'`
-  → `ok github.com/adams-shaun/gorge/effects 0.006s` (main's fx20 closure
-  still passes on the merged tree).
-- Behaviour goldens (the branch's fix is an engine-behaviour change main has
-  never gated, so both were checked cheaply before committing):
-  - `go test ./internal/archtest/` → `ok 3.221s`
-  - `go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/` →
-    `ok 1.017s` — the pinned split did NOT move.
-- `gofmt -l` on the touched Go file (`internal/testutil/agentsdoc_test.go`)
-  and the auto-merged ones → no output.
+  → `ok github.com/adams-shaun/gorge/rules 0.793s`.
 
 ## Uncertainties / notes
 
-- I set the register constant to the measured merged count (48) rather than
-  either side's 50; main's own 50 already lagged its 49-row table by one.
-  TestKnownApproximationsOnlyShrinks passes with 48 and prompts to lower, so
-  48 is the value the ratchet itself asks for.
-- The merge commit includes this report file. The version the daemon had
-  staged in `.ds4/` was a STALE copy of ticket 6a16cd8c's round-1 report
-  (different task); it is replaced by this record. Nothing of value is lost —
-  that round's record is committed in its own history on main.
-- No engine behaviour beyond the approved fix `63c07260` was introduced: the
-  resolution itself touched only AGENTS.md, the register constant, and this
-  report.
+- The only content conflict was this report file; the resolution there is a
+  wholesale replacement, which is the correct behaviour for a scratch record.
+- No engine behaviour beyond the reviewed fix `63c07260` was introduced; the
+  resolution itself touched only `AGENTS.md` (main's own delete/add, preserved
+  by auto-merge), the register constant, and this report.
+- `git diff --stat main` equals the branch's own fix stat (17 code/doc files +
+  the constant + this report), confirming no unintended main content was
+  dropped or duplicated.
 
 ## Issues
 
