@@ -1,3 +1,46 @@
+# Report — DestroyAll.Zone
+
+Implemented and committed as `67b6fc8c` (`fix(effects): honor DestroyAll Zone parameter`).
+
+## Changes
+
+- `effects/zone.go`: `effDestroyAll` now reads `Zone$`, defaults to `Battlefield`, and fails closed for an unknown zone word. Victim collection, zone recheck, and the `MoveZone` event use the selected zone. Battlefield-only indestructibility, regeneration, Umbra Armor, and batch departure handling remain limited to the battlefield.
+- `effects/destroyall_zone_test.go`: added an end-to-end primitive test proving an Instant in an opponent's exile moves to the graveyard, while a matching card outside that zone and a nonmatching battlefield creature remain in place.
+
+The worktree already had `.cards` as a symlink to `/home/sadams/projects/gorge/.cards`; corpus-backed tests were not skipped. The supplied prevalence claim held: `/usr/bin/grep -rlE 'DB\\$ DestroyAll.*Zone\\$' .cards/cardsfolder | wc -l` returned `1`.
+
+## Verification
+
+- `go test -run '^TestDestroyAllUsesNamedZone$' ./effects/`
+  ```
+  ok  github.com/adams-shaun/gorge/effects  0.002s
+  ```
+- Proved the new test fails without the fix by temporarily restoring battlefield-only zone selection and restoring `effects/zone.go` byte-identically afterward (`cmp` passed):
+  ```
+  --- FAIL: TestDestroyAllUsesNamedZone (0.00s)
+      destroyall_zone_test.go:22: named-zone card moved to exile, want graveyard
+  FAIL
+  FAIL github.com/adams-shaun/gorge/effects 0.002s
+  FAIL
+  ```
+- `go test -run '^TestEveryRepoDeckParamsAreRead$' ./rules/`
+  ```
+  ok  github.com/adams-shaun/gorge/rules  0.756s
+  ```
+- `go test ./internal/archtest/ 2>&1 | tail -15`
+  ```
+  ok  github.com/adams-shaun/gorge/internal/archtest  3.915s
+  ```
+- `go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ 2>&1 | tail -5`
+  ```
+  ok  github.com/adams-shaun/gorge/cmd/botbench  1.398s
+  ```
+- `go run ./cmd/gentypes -check` passed (no output); `gofmt -l effects/zone.go effects/destroyall_zone_test.go` returned no files; `git diff --check` passed.
+
+## Issues
+
+None found outside the brief's scope. The parameter census test passed; no ratchet table change was needed in this worktree.
+
 # Task rv1 — `RevealAllValid$` unread: reveal every matching hand card
 
 ## What changed and why
