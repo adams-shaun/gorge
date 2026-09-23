@@ -4374,6 +4374,14 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 	if spec == "" {
 		spec = "Permanent"
 	}
+	zone := state.ZBattlefield
+	if raw := strings.TrimSpace(sa.Params["Zone"]); raw != "" {
+		var ok bool
+		zone, ok = ParseZoneWord(raw)
+		if !ok {
+			return
+		}
+	}
 	g := h.Game()
 	remember := strings.EqualFold(strings.TrimSpace(sa.Params["RememberDestroyed"]), "True")
 	// One pre-batch victim list across every player, then ONE departure
@@ -4387,9 +4395,9 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 	sc := c.SpecContext(c.Controller)
 	sc.CombatDamageHits = h.CombatDamageToPlayersThisTurn()
 	for _, p := range g.AliveFrom(0) {
-		ids := append([]state.ObjID(nil), g.Zone(state.ZBattlefield, p)...)
+		ids := append([]state.ObjID(nil), g.Zone(zone, p)...)
 		for _, id := range ids {
-			if h.HasKeyword(id, "Indestructible") {
+			if zone == state.ZBattlefield && h.HasKeyword(id, "Indestructible") {
 				continue
 			}
 			if MatchesSpecCtx(g, spec, id, sc) {
@@ -4397,24 +4405,26 @@ func effDestroyAll(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 	}
-	if len(victims) > 0 {
+	if len(victims) > 0 && zone == state.ZBattlefield {
 		h.BatchDepartures(victims)
 		defer h.EndBatchDepartures()
 	}
 	for _, id := range victims {
-		if g.Obj(id) == nil || g.Obj(id).Zone != state.ZBattlefield {
+		if g.Obj(id) == nil || g.Obj(id).Zone != zone {
 			continue
 		}
-		// NoRegen$ != "True", not == "": see effDestroy's note above.
-		if sa.Params["NoRegen"] != "True" && ReplaceDestruction(h, id) {
-			continue
-		}
-		// Umbra armor after the shield: see effDestroy's note.
-		if ReplaceUmbraArmor(h, id) {
-			continue
+		if zone == state.ZBattlefield {
+			// NoRegen$ != "True", not == "": see effDestroy's note above.
+			if sa.Params["NoRegen"] != "True" && ReplaceDestruction(h, id) {
+				continue
+			}
+			// Umbra armor after the shield: see effDestroy's note.
+			if ReplaceUmbraArmor(h, id) {
+				continue
+			}
 		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
-			From: state.ZBattlefield, To: state.ZGraveyard, Text: "destroyed"})
+			From: zone, To: state.ZGraveyard, Text: "destroyed"})
 		if remember {
 			// Forge's RememberDestroyed$ adds only cards that actually
 			// reached the graveyard; a move replacement may redirect it.
