@@ -489,6 +489,16 @@ func TestEtchedHostConditionRemovesDefenseFromAnOppProtectedBattle(t *testing.T)
 	if got := bo.Counter("DEFENSE"); got != 7 {
 		t.Fatalf("precondition: battle defense = %d, want the printed 7", got)
 	}
+	// Invasion's ETB library search finds no instant or sorcery in this
+	// mountain-only fixture. It now asks whether to shuffle even when nothing
+	// was found; decline before driving to main1 to cast the Host.
+	searchShuffle := passUntilNonPriority(t, e, 60)
+	if searchShuffle.Kind != decision.KChoose || searchShuffle.ResumeKind != "search_mayshuffle" ||
+		searchShuffle.Player != 0 || len(searchShuffle.Options) != 2 || searchShuffle.Options[1].Kind != "no" {
+		t.Fatalf("Invasion's empty-search shuffle confirm = %+v", searchShuffle)
+	}
+	submitChoices(t, e, searchShuffle.Options[1].Index)
+	passUntilStackEmpty(t, e, 60)
 	hostID, _ := findSeededCard(t, e, 0, "Etched Host Doombringer")
 	addMana(t, e, 0, "BBBBB")
 	castFromPriority(t, e, hostID)
