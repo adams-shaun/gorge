@@ -956,7 +956,7 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 			// the chained Destroy cleared the live counters. The trigger
 			// snapshot (lki) has already substituted its own object above and
 			// stays authoritative.
-			if !lki {
+			if !lki && ref == "Targeted" {
 				if cs, ok := targetCountersLKI(c, t.Obj, o); ok {
 					oc := *o
 					oc.Counters = cs

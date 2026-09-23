@@ -565,10 +565,12 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 		// still holds after the chained Destroy moved the target to the
 		// graveyard. Only the counter field is substituted; every other
 		// characteristic is read live (or via Ctx.LKI for a trigger).
-		if cs, ok := targetCountersLKI(c, t.Obj, o); ok {
-			oc := *o
-			oc.Counters = cs
-			o = &oc
+		if defined == "Targeted" {
+			if cs, ok := targetCountersLKI(c, t.Obj, o); ok {
+				oc := *o
+				oc.Counters = cs
+				o = &oc
+			}
 		}
 		if present == "" {
 			count++
