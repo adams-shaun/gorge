@@ -1339,6 +1339,19 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 		ctx.CloneChoiceValid = o.ETBCloneChoiceValid
 		ctx.CloneChoice = o.ETBCloneChoice
 	}
+	// The as-enters colour-choice body (K:ETBReplacement:Other:ChooseColor)
+	// marks itself: the entry machinery (applyETBChoiceReplacement ->
+	// resumeETBEntry) already posed the entry ask and recorded the answer on
+	// the entering object before this body runs at the re-emitted move, so
+	// effChooseColor keeps the historical no-op for THIS invocation rather
+	// than posing a second ask (task cli-20260923T060000Z-choose-color; the
+	// flag is what keeps a FRESH resolution-time ask after an earlier
+	// ChooseColor's answer askable -- the stale-source-state guard cannot be
+	// unconditional). The effect consumes the flag, so a nested ChooseColor
+	// in the same chain poses its own fresh ask.
+	if o != nil && m.repl != nil && m.repl.Params["Keyword"] == "ETBReplacement" && m.repl.With != nil && m.repl.With.API == "ChooseColor" {
+		ctx.ETBColorRecorded = true
+	}
 	e.seedEffectReplCtx(ctx, m)
 	return ctx
 }

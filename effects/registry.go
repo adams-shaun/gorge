@@ -1638,6 +1638,35 @@ type Ctx struct {
 	// consumes and clears it at the top of its walk (the fx42 scoping
 	// discipline), so a nested ChooseType cannot inherit the outer answer.
 	ChosenType string
+	// ChosenColor is the answered mid-resolution ChooseColor pick (task
+	// cli-20260923T060000Z-choose-color): the option Label (the full colour
+	// name, e.g. "Black") the chooser picked out of the fixed WUBRG list,
+	// set by rules' "choosecolor" resume arm before the suspended
+	// sub-ability is re-run. effChooseColor's re-entry consumes and clears
+	// it and emits the one Choose event the deterministic fallback would
+	// have emitted, with the answered colour's WUBRG letter, so the
+	// downstream o.ChosenColor readers see exactly the shape they already
+	// read. A valid answer is never empty (the option list is total -- the
+	// last-resort degenerate pick is always offerable), so non-empty IS the
+	// answered marker, and the asking effect consumes and clears it at the
+	// top of its walk (the fx42 scoping discipline), so a nested
+	// ChooseColor cannot inherit the outer answer.
+	ChosenColor string
+	// ETBColorRecorded marks the ONE ChooseColor invocation that must not
+	// ask: the as-enters ENTRY-choice body (K:ETBReplacement:Other:
+	// ChooseColor). The entry machinery (rules' applyETBChoiceReplacement ->
+	// resumeETBEntry) already posed the entry ask and recorded the answer on
+	// the entering object before this body runs at the re-emitted MoveZone,
+	// so rules' replCtx flags that invocation and effChooseColor keeps the
+	// historical no-op for it alone. Without the flag an unconditional
+	// o.ChosenColor guard also suppressed a FRESH resolution-time ask after
+	// an earlier ChooseColor had set the field (a second sequential SA in
+	// one resolution, or an ability activation on an already-chosen
+	// permanent) -- the stale-source-state bug the same ticket's review
+	// named. Consumed and cleared by the effect (the fx42 scoping
+	// discipline), so a nested ChooseColor deeper in the same chain poses
+	// its own fresh ask.
+	ETBColorRecorded bool
 	// ManaReflectedColor is the answered mid-resolution AB$ ManaReflected
 	// colour pick: the option Label ("Add W") the chooser picked, set by
 	// rules' "manareflected" resume arm before the suspended sub-ability is
