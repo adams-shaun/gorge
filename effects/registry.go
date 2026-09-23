@@ -132,7 +132,10 @@ type Host interface {
 	// never taken. forCost (vc-static1) is the call site's provenance: the
 	// cost-driven Sac-cost walks pass true, the effect-driven paths (this
 	// package's callers) false, so a static's ForCost$/ValidCause$ scoping can
-	// read the split. Implemented by rules.Engine (rules/layers.go); the
+	// read the split. The rules-side cost walks call the engine's cause-aware
+	// sacrificeBlockedForCost instead (task cantsac1), which carries the
+	// pending cast/activation so a cost-path ValidCause$ can be evaluated.
+	// Implemented by rules.Engine (rules/layers.go); the
 	// effects test double reports false (no engine to consult).
 	SacrificeBlocked(id state.ObjID, forCost bool) bool
 	// SurveilLookExtra reports the additional cards a surveil performed by
