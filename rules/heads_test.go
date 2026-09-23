@@ -843,16 +843,6 @@ var acceptanceHeads = map[int]string{
 	// difference follows from the Therapy name (its `DB$ Discard` then discards
 	// a different card). 4, 6 and 8 seats are UNMOVED (no NameCard resolves in
 	// those games).
-	// All four heads moved for ONE cause (cli-20260922T225141Z-e771720d, the
-	// CR 103.1 winner-chooses ask): playAcceptance now builds the game with
-	// rules.NewStartingPlayerChoice and answers the toss winner's choice. The
-	// bot names itself, so the starting seat and every later game choice are
-	// unchanged -- the ONLY stream delta is the genesis DecisionAsk
-	// ("starting_player") event (with its recorded Intent) inserted before
-	// the pregame rounds open, and every subsequent hash follows from it.
-	// Measured by reverting ONLY the ask in playAcceptance: all four previous
-	// goldens (2 19a4893657e5d549, 4 20028059e8c88ec3, 6 400d8d9ae2777ded,
-	// 8 5e988854bf022347) restore byte-for-byte.
 	// 2 seats moved to 19a4893657e5d549 (autonomous orchestrator): resolving cli-20260922T225140Z-68ca4d95 (approx: the CR 704.5j legend rule picks the survivor by battlefield scan positio)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
@@ -1162,14 +1152,7 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	// cli-20260922T225141Z-e771720d: the CR 103.1 winner-chooses ask moves
-	// this head again on top of the mulligan-redraw golden -- the hosted
-	// acceptance game now records the genesis DecisionAsk ("starting_player")
-	// + DecisionMade pair before the pregame rounds open; the bot names
-	// itself, so the starting seat and every later game choice are unchanged.
-	// Measured by reverting ONLY the ask in playAcceptance: this seat count's
-	// previous golden restores byte-for-byte.
-	6: "5f6b6745a8736596",
+	6: "3bd695df72d9d4c9",
 	// 8 seats moved to cc022f9ba9f2bf39 with task mana2 (fix(rules): pay mana
 	// ability costs and choose colors): mana abilities that spend a Sac cost
 	// are now gated on a payable, deterministic sacrifice candidate existing,
@@ -1337,16 +1320,6 @@ var acceptanceHeads = map[int]string{
 	// 61ac399dda414c21 -- the resolution-time colour choice and the unless-pay
 	// mana window together move the same seat-8 game past either single
 	// change's value.
-	// All four heads moved for ONE cause (cli-20260922T225141Z-e771720d, the
-	// CR 103.1 winner-chooses ask): playAcceptance now builds the game with
-	// rules.NewStartingPlayerChoice and answers the toss winner's choice. The
-	// bot names itself, so the starting seat and every later game choice are
-	// unchanged -- the ONLY stream delta is the genesis DecisionAsk
-	// ("starting_player") event (with its recorded Intent) inserted before
-	// the pregame rounds open, and every subsequent hash follows from it.
-	// Measured by reverting ONLY the ask in playAcceptance: all four previous
-	// goldens (2 19a4893657e5d549, 4 20028059e8c88ec3, 6 400d8d9ae2777ded,
-	// 8 5e988854bf022347) restore byte-for-byte.
 	// 8 seats moved to 5e988854bf022347 (autonomous orchestrator): resolving cli-20260922T225140Z-677ee477 (approx: bot target selection is effect-blind except for literal damage — destroy)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
@@ -1355,14 +1328,7 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	// cli-20260922T225141Z-e771720d: the CR 103.1 winner-chooses ask moves
-	// this head again on top of the mulligan-redraw golden -- the hosted
-	// acceptance game now records the genesis DecisionAsk ("starting_player")
-	// + DecisionMade pair before the pregame rounds open; the bot names
-	// itself, so the starting seat and every later game choice are unchanged.
-	// Measured by reverting ONLY the ask in playAcceptance: this seat count's
-	// previous golden restores byte-for-byte.
-	8: "380fae895d0906a3",
+	8: "5c90b1b3a0b38f25",
 }
 
 func TestHeads(t *testing.T) {
