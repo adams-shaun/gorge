@@ -243,13 +243,24 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 
-	// NoteCardsFor$ records player notation through an event so a later
-	// Player.NotedFor<label> selector survives replay. Defined$ identifies the
+	// ClearNotedCardsFor$ clears the requested player labels from its Defined$
+	// player set. The event fold keeps a later resolution and a replay from
+	// retaining a previous choice (Master of Ceremonies changes these labels
+	// every upkeep).
+	for _, label := range splitTrimList(sa.Params["ClearNotedCardsFor"]) {
+		for _, t := range Defined(h, c, sa) {
+			if t.IsPlayer && playerHasNote(h.Game(), t.Player, label) {
+				h.Emit(events.Event{Kind: events.PlayerNoteCleared, Player: t.Player, Text: label})
+			}
+		}
+	}
+
+	// NoteCards$ Self is the player-notation form: Defined$ identifies the
 	// noted players (Seize the Spotlight binds its chooser as Remembered); with
-	// no Defined$ Forge notes the resolving controller. NoteCards$ names the
-	// card half of the family, whose Card.NotedFor<label> reader is separate.
-	if label := strings.TrimSpace(sa.Params["NoteCardsFor"]); label != "" {
-		_ = strings.TrimSpace(sa.Params["NoteCards"])
+	// no Defined$ it notes the resolving controller. Remembered and
+	// TriggeredSource are card notation forms, whose Card.NotedFor<label>
+	// reader remains separate.
+	if label := strings.TrimSpace(sa.Params["NoteCardsFor"]); label != "" && strings.TrimSpace(sa.Params["NoteCards"]) == "Self" {
 		noted := false
 		for _, t := range Defined(h, c, sa) {
 			if !t.IsPlayer {
