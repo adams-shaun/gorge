@@ -122,9 +122,13 @@ const (
 	// append-only precedent: no assigned value moves, so an existing compiled
 	// cache stays valid.
 	APIAlterAttribute APICode = 78
+	// Appended after AlterAttribute (task api-winsgame), following the enum's
+	// own append-only precedent: no assigned value moves, so an existing
+	// compiled cache stays valid.
+	APIWinsGame APICode = 79
 
 	// APICodeCount includes the zero/unknown slot and sizes dense dispatch.
-	APICodeCount = 79
+	APICodeCount = 80
 )
 
 // APICodeForName returns the stable opcode for an engine-owned effect API.
@@ -141,6 +145,8 @@ func APICodeForName(api string) APICode {
 		return APIAnimateAll
 	case "AlterAttribute":
 		return APIAlterAttribute
+	case "WinsGame":
+		return APIWinsGame
 	case "Attach":
 		return APIAttach
 	case "BecomeMonarch":
