@@ -337,6 +337,12 @@ type resumePoint struct {
 	// on a Dredge ask (CR 702.55) mid-replacement, and the answered dredge
 	// re-drives the rest from this cursor. Zero for every other frame.
 	lifeDraws int32
+	// deferredAsk / deferredResume make a kind "deferred_ask" frame: a
+	// mid-resolution ask that arrived while an earlier ask of the same pass
+	// was still pending (Engine.Ask). Reaching the frame poses deferredAsk
+	// and parks on deferredResume (with this frame's outer as its outer).
+	deferredAsk    *decision.Decision
+	deferredResume *resumePoint
 }
 
 // repeatCursor is the loop position a kind "repeat" frame re-enters with.
@@ -391,6 +397,15 @@ type contFrame struct {
 	villainousRest    bool
 	villainousVictims []state.Target
 	villainousIndex   int
+	// deferredAsk marks a frame carrying a mid-resolution ask posed while an
+	// earlier ask of the same pass was still pending (Engine.Ask). It becomes
+	// a "deferred_ask" resume frame that poses deferredAsk and parks on
+	// deferredResume when the chain reaches it. deferredClaimed records that
+	// the asking loop's own SuspendContinuation report was already dropped
+	// (the deferred frame re-enters sa itself and walks sa.Sub).
+	deferredAsk     *decision.Decision
+	deferredResume  *resumePoint
+	deferredClaimed bool
 	// genericChoiceRest marks a frame that re-enters a multi-player
 	// api:GenericChoice's own SA (not sa.Sub) with the chooser cursor below,
 	// continuing with the choosers a chosen body's nested ask left unasked.
@@ -435,7 +450,44 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 	if kind == "" {
 		kind = "modes"
 	}
+	if e.resume != nil && e.pending != nil && e.contChainOwners > 0 {
+		// A SECOND mid-resolution ask while an earlier one of the same
+		// resolution pass is still unanswered: the first ask was posed from
+		// inside a move the asking effect made (a ReplaceWith$ body -- a
+		// shock land's "you may pay 2 life" -- suspends the resolution, but
+		// the effect that moved the land keeps running its own body: the
+		// search reaches its may-shuffle confirm, a mass return moves the
+		// next shock land). Posing it now would overwrite the pending
+		// decision (Engine.ask's guard). Defer it instead: the fully built
+		// resume point rides a "deferred_ask" continuation frame appended to
+		// this pass's contChain, so it is posed exactly when the answered
+		// earlier frame (and every continuation reported before this ask)
+		// has run, and before the continuations the enclosing loops report
+		// after it. The asking caller sees an ordinary suspended ask.
+		rp := e.buildAskResume(d, obj, direct, kind)
+		e.contChain = append(e.contChain, contFrame{sa: d.ResumeSA, deferredAsk: d, deferredResume: rp})
+		e.lastDeferred = rp
+		e.askCount++
+		return true
+	}
 	e.ask(d)
+	e.resume = e.buildAskResume(d, obj, direct, kind)
+	e.lastDeferred = nil
+	e.askCount++
+	return true
+}
+
+// AskCount implements effects' optional askCounter seam: the number of
+// mid-resolution asks this engine has taken (posed or deferred). effects.
+// Resolve's UnlessCost$ gate compares it across the gate, because a gate ask
+// deferred behind an already-suspended resolution leaves Suspended()
+// unchanged. Engine scratch, never logged.
+func (e *Engine) AskCount() uint64 { return e.askCount }
+
+// buildAskResume builds the resume point of the mid-resolution ask d from
+// the engine's ambient resolution state at the moment the ask is posed (or
+// deferred). See Engine.Ask.
+func (e *Engine) buildAskResume(d *decision.Decision, obj state.ObjID, direct bool, kind string) *resumePoint {
 	var replacementTarget state.Target
 	var replacementAmount int32
 	if e.replacingEvent != nil && e.replacingEvent.Kind == events.Damage {
@@ -486,7 +538,7 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 			obj = d.Source
 		}
 	}
-	e.resume = &resumePoint{kind: kind, obj: obj, sa: d.ResumeSA, replSource: replSource,
+	return &resumePoint{kind: kind, obj: obj, sa: d.ResumeSA, replSource: replSource,
 		replacement: e.applyingReplacement, replaced: e.replReplaced, action: e.replAction,
 		replacedPlayer:    e.replReplacedPlayer,
 		replacementTarget: replacementTarget, replacementSource: e.protectionSource(e.damaging),
@@ -523,7 +575,6 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 		targetControllerLKI: effects.CloneTargetControllerLKI(e.resolvingTargetControllerLKI),
 		targetCountersLKI:   resolutionTargetCounters(e.resolutionCtx),
 		flipMemory:          e.resolvingFlipMemory}
-	return true
 }
 
 // Suspended implements effects.Host.Suspended: the resolution is suspended
@@ -665,8 +716,17 @@ func (e *Engine) SuspendUnless(sa *cards.SA, paid bool) {
 	if paid {
 		marker = "resolved-pay"
 	}
-	if e.resume != nil && e.resume.sa == sa {
-		e.resume.unlessResolved = marker
+	if e.resume == nil {
+		return
+	}
+	// The most recent ask owns the marker: a DEFERRED one (Engine.Ask) when
+	// this pass deferred one after the pending ask was posed.
+	target := e.resume
+	if e.lastDeferred != nil {
+		target = e.lastDeferred
+	}
+	if target.sa == sa {
+		target.unlessResolved = marker
 	}
 }
 
@@ -689,6 +749,17 @@ func (e *Engine) Suspended() bool {
 func (e *Engine) SuspendContinuation(sa *cards.SA) {
 	if e.resume == nil {
 		return
+	}
+	for i := len(e.contChain) - 1; i >= 0; i-- {
+		if cf := &e.contChain[i]; cf.deferredAsk != nil && !cf.deferredClaimed && cf.sa == sa {
+			// The loop that posed a DEFERRED ask (Engine.Ask): the deferred
+			// frame re-enters sa itself and walks sa.Sub, so this loop's own
+			// continuation is dropped exactly as the pending ask's is below.
+			// Checked first: two copies of one card share their SA pointers,
+			// so a second shock land's body loop also matches e.resume.sa.
+			cf.deferredClaimed = true
+			return
+		}
 	}
 	if sa == e.resume.sa {
 		return // this loop is the one that asked; its own re-entry walks sa.Sub.
@@ -1406,6 +1477,17 @@ func (e *Engine) continueAfterETBEntry(rp *resumePoint) {
 // continuation it carries have all completed — the fully-resolved object
 // goes where resolveTop's own tail would have sent it.
 func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
+	if rp.kind == "deferred_ask" {
+		// A deferred second ask (Engine.Ask): everything chained before it
+		// has run, so pose it now and park on the resume point captured when
+		// it was asked. Its answer continues at this frame's outer.
+		inner := rp.deferredResume
+		inner.outer = rp.outer
+		e.lastDeferred = nil
+		e.ask(rp.deferredAsk)
+		e.resume = inner
+		return
+	}
 	if rp.kind == "copy_targets" {
 		e.resume = nil
 		if rp.obj != 0 {
@@ -3534,7 +3616,9 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			e.windowPaidX = savedWinX
 			e.villainousRemembered, e.villainousRememberedSet = savedVill, savedVillSet
 		}()
+		e.contChainOwners++
 		effects.Resolve(e, ctx, rp.sa)
+		e.contChainOwners--
 		e.replReplaced, e.replAction, e.replReplacedPlayer = 0, "", state.Target{}
 		e.applyingReplacement = savedReplacement
 		e.damaging = 0
@@ -3781,7 +3865,12 @@ func (e *Engine) buildContinuationChain(frames []contFrame, obj state.ObjID, tai
 			f.replacementAmount = e.replacingEvent.Amount
 			f.replacementSource = e.protectionSource(e.damaging)
 		}
-		if cf.charmRest != nil {
+		if cf.deferredAsk != nil {
+			// A deferred second ask (Engine.Ask): its own resume point was
+			// fully built when it was asked; this frame only poses it.
+			f = &resumePoint{kind: "deferred_ask", obj: obj,
+				deferredAsk: cf.deferredAsk, deferredResume: cf.deferredResume}
+		} else if cf.charmRest != nil {
 			// The Charm re-enters ITSELF (rp.sa = the Charm SA, not sa.Sub — a
 			// Charm body has no SubAbility$ chain of its own to resume) with
 			// Ctx.Modes = the remaining chosen modes.

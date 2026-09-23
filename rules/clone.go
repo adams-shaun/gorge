@@ -939,6 +939,13 @@ func cloneResume(rp *resumePoint) *resumePoint {
 		cur.last = append([]state.Target(nil), rp.repeat.last...)
 		cp.repeat = &cur
 	}
+	// A deferred second ask (Engine.Ask) rides its own decision and resume
+	// point; the frame re-links deferredResume.outer when posed, so the clone
+	// must own both.
+	if rp.deferredAsk != nil {
+		cp.deferredAsk = cloneDecision(rp.deferredAsk)
+	}
+	cp.deferredResume = cloneResume(rp.deferredResume)
 	cp.outer = cloneResume(rp.outer)
 	return &cp
 }

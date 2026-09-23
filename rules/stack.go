@@ -3404,7 +3404,9 @@ func (e *Engine) resolveTop() {
 		e.damaging = o.Source
 		e.contChain = e.contChain[:0]
 		e.repeatReported = nil
+		e.contChainOwners++
 		effects.Resolve(e, ctx, o.Ability)
+		e.contChainOwners--
 		e.damaging = 0
 		if e.resume != nil {
 			// A placement-announced modal ability can reach a nested ask during
@@ -3584,7 +3586,9 @@ func (e *Engine) resolveTop() {
 		ctx.Modes = o.ChosenModes
 		e.contChain = e.contChain[:0]
 		e.repeatReported = nil
+		e.contChainOwners++
 		effects.Resolve(e, ctx, sa)
+		e.contChainOwners--
 		e.damaging = 0
 		if e.resume != nil {
 			// The cast-announced outer mode may itself contain an asking effect.
