@@ -971,6 +971,19 @@ const (
 	wordActivePlayerCtrl
 	wordTopLibrary
 	wordHasCounters
+	// Forge's isSuspended: the card sits in exile carrying the Suspend
+	// action's cast provenance (state.FlagSuspend, set by the suspend
+	// alternate-cast action's own CastInfo). The game/state-aware family --
+	// needs the object's zone and cast flags -- classified here so matcher
+	// and UnknownPredicates agree. The corpus spells it Card.suspended
+	// (Clockspinning's and Jhoira's Timebug's TgtZone$ Exile targets, Amy
+	// Pond's Choices$ card election).
+	wordSuspended
+	// Forge's OppProtect: the object is a battle whose CR 310.10 protector
+	// is an opponent of the evaluating controller (SpecContext's You). The
+	// protector state lives on the battle object itself (state.Object
+	// .Protector, recorded through the Choose "protector" event).
+	wordOppProtect
 	wordHistoric
 	wordIsCommander
 	wordBlockingSource
@@ -1169,6 +1182,10 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordRingBearer, ""
 	case "HasCounters":
 		return wordHasCounters, ""
+	case "suspended":
+		return wordSuspended, ""
+	case "OppProtect":
+		return wordOppProtect, ""
 	case "Historic":
 		return wordHistoric, ""
 	case "IsCommander":
@@ -1364,6 +1381,25 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// (state/object.go), so a permanent whose counters were all removed
 		// still carries a zero-count entry and must not match.
 		return hasCounters(o.Counters)
+	case wordSuspended:
+		// Forge's isSuspended: the card is in exile carrying the Suspend
+		// action's cast provenance. Time counters are deliberately NOT part
+		// of the read: a suspended card whose counters were all removed by a
+		// Clockspinning-style effect (or whose cast offer was declined) is
+		// still the "suspended card" the corpus's specs name, and a
+		// Clockspinning may put a time counter back on it.
+		return o.Zone == state.ZExile && o.CastFlags&state.FlagSuspend != 0
+	case wordOppProtect:
+		// Forge's OppProtect: the object is a battle whose CR 310.10
+		// protector is an opponent of the evaluating controller (sc.You).
+		// No protector chosen yet never matches; a protector that is the
+		// evaluating controller itself (their own battle after a control
+		// change) never matches.
+		if !o.ProtectorValid || o.Zone != state.ZBattlefield {
+			return false
+		}
+		return int(o.Protector) >= 0 && int(o.Protector) < len(g.Players) &&
+			o.Protector != sc.You && !g.Players[o.Protector].Lost
 	case wordHistoric:
 		// Forge's Historic: artifact, legendary, or Saga (the reminder text
 		// on the Historic keyword).
@@ -3667,6 +3703,78 @@ func possessionPredicate(p string) bool {
 	case "YouOwn", "YouCtrl", "YouControl", "YourControl", "YouControlled",
 		"OppOwn", "OppCtrl", "OpponentOwns", "OpponentControls":
 		return true
+	}
+	return false
+}
+
+// SpecNeedsResolver reports whether spec carries a numeric predicate whose
+// right-hand side is not a literal integer -- "cmcLEY", "powerGEX",
+// "counters_EQX_P1P1" -- the shape numericPred hands to SpecContext.Resolve.
+//
+// A caller with no resolver (MatchesSpec/MatchesSpecFrom, whose noResolve
+// path is documented above) gets "recognised shape, never matches" for every
+// such predicate, so the spec silently admits NOTHING rather than failing
+// loudly. This function is how such a caller tells that empty answer apart
+// from a genuinely empty match set: rules' ETB-copy whitelist withholds the
+// election entirely for a selector this reports true for, instead of offering
+// a list that can only ever be empty (Mockingbird's
+// "Choices$ Creature.Other+cmcLEY", whose Y is Count$CastTotalManaSpent).
+//
+// The walk mirrors UnknownPredicates' -- EACH split, alternatives, '+'
+// conjuncts, a leading '!' stripped -- so the two censuses see the same token
+// set. The literal-RHS shapes numericPred resolves without a resolver
+// (powerLTtoughness and its mirrors) are NOT reported.
+func SpecNeedsResolver(spec string) bool {
+	if subs, ok := eachAlternatives(spec); ok {
+		for _, sub := range subs {
+			if SpecNeedsResolver(sub) {
+				return true
+			}
+		}
+		return false
+	}
+	for alt := range filterAlternatives(spec) {
+		_, rest, _ := strings.Cut(strings.TrimSpace(alt), ".")
+		for p := range strings.SplitSeq(rest, "+") {
+			if p == "" {
+				continue
+			}
+			if predicateNeedsResolver(strings.TrimPrefix(p, "!")) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// predicateNeedsResolver is the per-token half of SpecNeedsResolver. It
+// recognises exactly the two numericPred branches that fall back to
+// SpecContext.Resolve when their right-hand side is not a literal integer.
+func predicateNeedsResolver(name string) bool {
+	if rest, ok := strings.CutPrefix(name, "counters_"); ok {
+		if len(rest) < 4 {
+			return false
+		}
+		numStr, kind, okSplit := strings.Cut(rest[2:], "_")
+		if !okSplit || kind == "" {
+			return false
+		}
+		_, err := strconv.Atoi(numStr)
+		return err != nil
+	}
+	for _, field := range [...]string{"power", "toughness", "cmc"} {
+		rest, ok := strings.CutPrefix(name, field)
+		if !ok || len(rest) < 3 {
+			continue
+		}
+		numStr := rest[2:]
+		// The characteristic-vs-characteristic shapes need no resolver.
+		if (field == "power" || field == "toughness") &&
+			(numStr == "power" || numStr == "toughness" || numStr == "Power" || numStr == "Toughness") {
+			return false
+		}
+		_, err := strconv.Atoi(numStr)
+		return err != nil
 	}
 	return false
 }

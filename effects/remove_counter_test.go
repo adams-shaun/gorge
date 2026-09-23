@@ -174,11 +174,15 @@ func TestRemoveCounterExoticShapesStayLoud(t *testing.T) {
 	if len(h.log) != before+1 || h.log[len(h.log)-1].Kind != events.Note {
 		t.Fatalf("expected exactly one Note for the exotic shape, got %+v", h.log[before:])
 	}
-	// The second loud family: Choices$ (a mid-resolution pick).
+	// Choices$ is now a real card election. fakeHost cannot pose its ask, so
+	// the R-9 fallback takes the first eligible object and removes one.
 	Resolve(h, &Ctx{Controller: 0, Source: ids["myBear"]},
 		sa(t, "DB$ RemoveCounter | Choices$ Creature.YouCtrl+counters_GE1_P1P1 | CounterType$ P1P1 | CounterNum$ 1"))
-	if got := g.Obj(ids["myBear"]).Counter("P1P1"); got != 2 {
-		t.Fatalf("Choices$ moved counters, want untouched at 2")
+	if got := g.Obj(ids["myBear"]).Counter("P1P1"); got != 1 {
+		t.Fatalf("Choices$ fallback left %d counters, want 1", got)
+	}
+	if len(h.log) != before+2 || h.log[len(h.log)-1].Kind != events.CounterChange {
+		t.Fatalf("Choices$ fallback did not emit one CounterChange: %+v", h.log[before:])
 	}
 }
 

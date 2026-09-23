@@ -136,6 +136,12 @@ func (e *Engine) Clone() *Engine {
 		renameVersion: e.renameVersion,
 		setNameInPool: e.setNameInPool,
 	}
+	if e.etbMove != nil {
+		ev := *e.etbMove
+		c.etbMove = &ev
+	}
+	c.etbNext = e.etbNext
+	c.etbLandPlay, c.etbLandObj, c.etbLandPlayer = e.etbLandPlay, e.etbLandObj, e.etbLandPlayer
 	if e.riotMove != nil {
 		ev := *e.riotMove
 		c.riotMove = &ev
@@ -273,6 +279,67 @@ func (e *Engine) Clone() *Engine {
 				cp[i] = append([]state.Target(nil), sl...)
 			}
 			c.fuseTargets[id] = cp
+		}
+	}
+	// moveCounterAsk / aorAsk (resolution.go, the movecounter1/counterchoice1
+	// discipline): the two decision-derived answer cursors keyed by the
+	// resolving stack object. Both are written by the resume arms and read by
+	// seedMoveCounter/seedAorAsk on every fresh re-entry Ctx, so a clone taken
+	// while one of these resolutions is suspended (the pending mid-resolution
+	// ask IS the intent boundary) must carry the answered entries forward or
+	// the clone re-asks an already-answered kind and the decision/event stream
+	// diverges from the original's. Both are the cast/pendingTriggers class:
+	// deep-copied, including the inner maps and pointed-to pendings, never
+	// shared.
+	if e.moveCounterAsk != nil {
+		c.moveCounterAsk = make(map[state.ObjID]*moveCounterPending, len(e.moveCounterAsk))
+		for id, p := range e.moveCounterAsk {
+			cp := *p
+			cp.targets = append([]state.Target(nil), p.targets...)
+			c.moveCounterAsk[id] = &cp
+		}
+	}
+	// targetsPickAsk (resolution.go, the general form of the same
+	// discipline): the answered generic ValidTgts$ pre-ask per resolving
+	// stack object and SA Line. Same reason as the two above -- a clone taken
+	// while such a resolution is suspended must carry the answer or the clone
+	// re-poses the pre-ask and diverges. Deep-copied to the inner map and the
+	// target slices; nothing is shared.
+	if e.targetsPickAsk != nil {
+		c.targetsPickAsk = make(map[state.ObjID]map[string][]state.Target, len(e.targetsPickAsk))
+		for id, byLine := range e.targetsPickAsk {
+			inner := make(map[string][]state.Target, len(byLine))
+			for line, ts := range byLine {
+				inner[line] = append([]state.Target(nil), ts...)
+			}
+			c.targetsPickAsk[id] = inner
+		}
+	}
+	if e.aorAsk != nil {
+		c.aorAsk = make(map[state.ObjID]map[string]bool, len(e.aorAsk))
+		for id, set := range e.aorAsk {
+			inner := make(map[string]bool, len(set))
+			for k, v := range set {
+				inner[k] = v
+			}
+			c.aorAsk[id] = inner
+		}
+	}
+	if e.copyTargetStage != nil {
+		c.copyTargetStage = make(map[state.ObjID]int, len(e.copyTargetStage))
+		for id, stage := range e.copyTargetStage {
+			c.copyTargetStage[id] = stage
+		}
+	}
+	if e.copyAnswerTargets != nil {
+		c.copyAnswerTargets = make(map[state.ObjID][][]decision.Option, len(e.copyAnswerTargets))
+		for id, stages := range e.copyAnswerTargets {
+			cp := make([][]decision.Option, len(stages))
+			for i, sl := range stages {
+				cp[i] = append([]decision.Option(nil), sl...)
+			}
+			c.copyAnswerTargets[id] = cp
+
 		}
 	}
 	if e.exploitedLKI != nil {

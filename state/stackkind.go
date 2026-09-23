@@ -1,6 +1,9 @@
 package state
 
-import "strings"
+import (
+	"strconv"
+	"strings"
+)
 
 // StackObjKind classifies one stack object for stack-spec legality (the
 // TargetType$ grammar and Defined$ ValidStack's kind tokens): a card object
@@ -13,10 +16,11 @@ import "strings"
 // rather than copied from either list -- and a delayed trigger IS a
 // triggered ability (CR 603.7), so that branch counts as triggered. When the
 // source or its face is gone the split is unknowable and the object counts
-// as activated (the view's own "ability" verdict), which keeps a
-// Triggered-only counter from firing on an object no evidence ties to a
-// trigger; a broad Activated,Triggered/SpellAbility counter still reaches
-// it. Pointer identity is sound for the membership tests: every mint copies
+// as activated (the view's own "ability" verdict) only for legacy or
+// manually-constructed objects without a stamped kind. Event-minted stack
+// objects carry the CR kind through source disappearance, so a
+// Triggered-only counter still reaches a triggered ability. Pointer identity
+// is sound for the membership tests: every mint copies
 // the parsed slice's pointer (TriggerPush/AbilityPush), StackCopy re-copies
 // it, and ResolveSVar always parses a fresh SA, so a delayed trigger's
 // Ability can never alias a face-list entry.
@@ -28,6 +32,12 @@ import "strings"
 // both consumers (rules delegates to this function). The view's StackView.Kind
 // keeps its own TriggerOf call.
 func StackKindOf(g *Game, o *Object) StackObjKind {
+	if o == nil {
+		return StackKindActivated
+	}
+	if o.StackKindKnown {
+		return o.StackKind
+	}
 	if o.Face() != nil {
 		return StackKindSpell
 	}
@@ -68,19 +78,25 @@ const (
 // `Instant,Sorcery,Triggered`) and the Spell qualifiers "Instant"/"Sorcery"
 // (Sister of Silence's `Spell.Instant,Spell.Sorcery,Activated,Triggered`)
 // restrict the Spell kind to instant/sorcery CARD objects -- a creature
-// spell is not admitted. Any OTHER qualifier (singleTarget, numTargets GE1,
-// ...) is NOT read -- the token admits its full kind set with no
-// restriction, the same widening the AGENTS.md TargetType$ row records. A
+// spell is not admitted. This parser also records the TargetType$ qualifiers
+// whose live characteristic and target-count checks belong to rules. A
 // Defined$ ValidStack spec may carry ValidStack-only qualifiers (Other,
 // sharesNameWith); those are NOT read here -- its consumer parses them
 // alongside and must NOT treat their presence as unknown, so the two
 // grammars share this struct and each reads the qualifiers it knows.
 type StackKindToken struct {
-	Kinds       [3]bool // indexed by StackObjKind; only lookups, never ranged
-	InstantOnly bool    // the StackKindSpell kind admits only Instant cards
-	SorceryOnly bool    // the StackKindSpell kind admits only Sorcery cards
-	YouCtrl     bool
-	OppCtrl     bool
+	Kinds        [3]bool // indexed by StackObjKind; only lookups, never ranged
+	InstantOnly  bool    // the StackKindSpell kind admits only Instant cards
+	SorceryOnly  bool    // the StackKindSpell kind admits only Sorcery cards
+	YouCtrl      bool
+	OppCtrl      bool
+	YouDontCtrl  bool
+	SingleTarget bool
+	NumTargetsOp string
+	NumTargets   int
+	NonCreature  bool
+	Colorless    bool
+	Legendary    bool
 }
 
 // StackKindTokenOf parses ONE comma-separated token of a stack spec. ok is
@@ -120,16 +136,40 @@ func StackKindTokenOf(t string) (StackKindToken, bool) {
 	default:
 		return tok, false // a non-stack token never contributes a stack kind
 	}
-	for _, q := range strings.Split(rest, ".") {
-		switch strings.TrimSpace(q) {
-		case "YouCtrl":
-			tok.YouCtrl = true
-		case "OppCtrl":
-			tok.OppCtrl = true
-		case "Instant": // Sister of Silence's Spell.Instant shape
-			tok.InstantOnly = true
-		case "Sorcery":
-			tok.SorceryOnly = true
+	for _, part := range strings.Split(rest, ".") {
+		for _, q := range strings.Split(strings.TrimSpace(part), "+") {
+			switch strings.TrimSpace(q) {
+			case "YouCtrl":
+				tok.YouCtrl = true
+			case "OppCtrl":
+				tok.OppCtrl = true
+			case "YouDontCtrl":
+				tok.YouDontCtrl = true
+			case "singleTarget":
+				tok.SingleTarget = true
+			case "nonCreature":
+				tok.NonCreature = true
+			case "Colorless":
+				tok.Colorless = true
+			case "Legendary":
+				tok.Legendary = true
+			case "Instant": // Sister of Silence's Spell.Instant shape
+				tok.InstantOnly = true
+			case "Sorcery":
+				tok.SorceryOnly = true
+			default:
+				fields := strings.Fields(strings.TrimSpace(q))
+				if len(fields) != 2 || fields[0] != "numTargets" || len(fields[1]) < 3 {
+					continue
+				}
+				switch fields[1][:2] {
+				case "EQ", "NE", "GE", "GT", "LE", "LT":
+					op := fields[1][:2]
+					if n, err := strconv.Atoi(fields[1][2:]); err == nil {
+						tok.NumTargetsOp, tok.NumTargets = op, n
+					}
+				}
+			}
 		}
 	}
 	return tok, true
@@ -189,6 +229,12 @@ func StackKindAdmits(toks []StackKindToken, k StackObjKind, o *Object, controlle
 			continue
 		}
 		if tok.OppCtrl {
+			if controller == you {
+				continue
+			}
+			return true
+		}
+		if tok.YouDontCtrl {
 			if controller == you {
 				continue
 			}

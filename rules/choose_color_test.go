@@ -68,22 +68,8 @@ func TestUtopiaSprawlChoosesAColorAndAddsTheChosenMana(t *testing.T) {
 	submitChoices(t, e, idx)
 
 	d = e.Pending()
-	if d == nil || d.Kind != decision.KChoose || d.Options[0].Kind != "color" || len(d.Options) != 5 {
-		t.Fatalf("colour choice %+v", d)
-	}
-	for i, want := range []string{"White", "Blue", "Black", "Red", "Green"} {
-		if d.Options[i].Label != want {
-			t.Fatalf("option %d label %q, want %q (WUBRG order)", i, d.Options[i].Label, want)
-		}
-	}
-	submitChoices(t, e, 4) // Green
-	if got := e.G.Obj(sprawl).ChosenColor; got != "G" {
-		t.Fatalf("ChosenColor = %q, want G (recorded pre-target)", got)
-	}
-
-	d = e.Pending()
 	if d == nil || d.Kind != decision.KTarget {
-		t.Fatalf("expected the aura's target ask after the colour ask, got %+v", d)
+		t.Fatalf("expected the aura's target ask before entry, got %+v", d)
 	}
 	tgt := -1
 	for _, o := range d.Options {
@@ -95,6 +81,19 @@ func TestUtopiaSprawlChoosesAColorAndAddsTheChosenMana(t *testing.T) {
 		t.Fatalf("Forest not offered as the aura target: %+v", d.Options)
 	}
 	submitChoices(t, e, tgt)
+	d = passUntilNonPriority(t, e, 20)
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "etb" || d.Options[0].Kind != "color" || len(d.Options) != 5 {
+		t.Fatalf("colour choice at entry %+v", d)
+	}
+	for i, want := range []string{"White", "Blue", "Black", "Red", "Green"} {
+		if d.Options[i].Label != want {
+			t.Fatalf("option %d label %q, want %q (WUBRG order)", i, d.Options[i].Label, want)
+		}
+	}
+	submitChoices(t, e, 4) // Green
+	if got := e.G.Obj(sprawl).ChosenColor; got != "G" {
+		t.Fatalf("ChosenColor = %q, want G (recorded at entry)", got)
+	}
 	passUntilStackEmpty(t, e, 20)
 
 	o := e.G.Obj(sprawl)
@@ -106,7 +105,11 @@ func TestUtopiaSprawlChoosesAColorAndAddsTheChosenMana(t *testing.T) {
 	}
 
 	// Tap the enchanted Forest for mana: its own {G} plus the Sprawl's extra
-	// chosen-colour {G}.
+	// chosen-colour {G}. Re-establish the legal active-player priority marker
+	// before the helper re-asks the funded window.
+	e.pending = nil
+	e.emit(events.Event{Kind: events.Priority, Player: 0})
+	e.askPriority(0)
 	addMana(t, e, 0, "")
 	mana, ok := findManaAbilityOption(e, forest, 0)
 	if !ok {
@@ -132,8 +135,8 @@ func TestQuirionElvesChosenManaFollowsTheETBChoice(t *testing.T) {
 
 	addMana(t, e, 0, "GG")
 	castFirst(t, e, "cast")
-	d := e.Pending()
-	if d == nil || d.Kind != decision.KChoose || d.Options[0].Kind != "color" || len(d.Options) != 5 {
+	d := passUntilNonPriority(t, e, 40)
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "etb" || d.Options[0].Kind != "color" || len(d.Options) != 5 {
 		t.Fatalf("colour choice %+v", d)
 	}
 	submitChoices(t, e, 2) // Black
@@ -143,7 +146,12 @@ func TestQuirionElvesChosenManaFollowsTheETBChoice(t *testing.T) {
 	}
 
 	// Activate the second mana ability ({T}: Add one mana of the chosen
-	// color). The priority "activate" option opens the stage-1 ability wheel;
+	// color). Re-establish the legal active-player priority marker after the
+	// resolution-time ask.
+	e.pending = nil
+	e.emit(events.Event{Kind: events.Priority, Player: 0})
+	e.askPriority(0)
+	// The priority "activate" option opens the stage-1 ability wheel;
 	// the Chosen ability is Ability index 1 ("Add chosen color").
 	addMana(t, e, 0, "")
 	mana, ok := findManaAbilityOption(e, elves, 0)
@@ -200,38 +208,18 @@ func TestChooseColorRecordsTheAnswerAndAbortsRestoreIt(t *testing.T) {
 	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: e.G.Obj(id).Zone, To: state.ZHand})
 	e.pending = nil
 	e.Advance()
-	// Direct proposal (the cr733 spell_mana_after_choice shape): the offer
-	// gate refuses an unpayable cast, so the abort is reached by beginCast --
-	// the real insufficient-mana abort site, with pool and battlefield both
-	// empty. {G}{G} cannot be paid from nothing.
+	// The unpayable proposal is rejected before the permanent would enter.
+	// Under CR 614.12 there is consequently no colour election and no choice
+	// to undo; the card and its pre-proposal characteristics remain untouched.
 	e.pending = nil
 	e.beginCast(0, decision.Option{Kind: "cast", Obj: id})
-	d := e.Pending()
-	if d == nil || d.Kind != decision.KChoose || d.Options[0].Kind != "color" || len(d.Options) != 5 {
-		t.Fatalf("colour choice %+v", d)
+	if o := e.G.Obj(id); o.Zone != state.ZHand || o.ChosenColor != "" {
+		t.Fatalf("Jewel after rejected proposal: zone=%s color=%q", o.Zone, o.ChosenColor)
 	}
-	submitChoices(t, e, 4) // Green
-	// The answer and the abort happen within the same submit (the mana stage
-	// runs synchronously after the choice), so the observable outcome is the
-	// restored state -- the two-event log below is what proves the answer was
-	// recorded first and the abort then reversed it.
-	e.Advance()
-	if o := e.G.Obj(id); o.Zone != state.ZHand {
-		t.Fatalf("Jewel zone after abort = %s, want ZHand", o.Zone)
-	}
-	if got := e.G.Obj(id).ChosenColor; got != "" {
-		t.Fatalf("ChosenColor = %q after the abort, want restored to empty", got)
-	}
-	// The restore is event-backed: exactly one reverse Choose "color" event
-	// carrying the captured pre-proposal value (""), after the forward one.
-	var colorEvents []string
 	for _, ev := range e.L.Events {
 		if ev.Kind == events.Choose && ev.Obj == id && ev.Counter == "color" {
-			colorEvents = append(colorEvents, ev.Text)
+			t.Fatal("an as-enters color was recorded before the permanent could enter")
 		}
-	}
-	if len(colorEvents) != 2 || colorEvents[0] != "G" || colorEvents[1] != "" {
-		t.Fatalf("Choose color events %q, want [G, \"\"] (answer then restore)", colorEvents)
 	}
 	replayCheck(t, e, cfg)
 }

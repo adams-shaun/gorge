@@ -33,6 +33,11 @@ type unlessPayment struct {
 	// two parts — and the settled picks are announced with one public Note
 	// (the same event the cast flow's emitChoiceCosts emits).
 	reveals []state.ObjID
+	// returns holds the Return<N/Spec> picks (the cumulative-upkeep family's
+	// "return a non-Lair land"): a permanent matching the spec returned to
+	// its OWNER's hand (Forge CostReturn.moveToHand), one choice-bearing part
+	// exactly like a sacrifice.
+	returns []state.ObjID
 }
 
 func cloneUnlessCtx(in effects.Ctx) effects.Ctx {
@@ -147,10 +152,20 @@ func (e *Engine) unlessCostPayable(p state.PlayerID, raw string, ctx *effects.Ct
 	if !ok {
 		return false
 	}
+	cost, ok = e.unlessFoldDynamic(p, cost, ctx)
+	if !ok {
+		return false
+	}
 	if ctx == nil {
 		ctx = &effects.Ctx{Controller: p}
 	}
 	if !e.unlessComponentsPayable(p, cost, ctx, stackObj) {
+		return false
+	}
+	if !e.unlessEnergyAffordable(p, cost, ctx) {
+		// An energy part is never mana: resolveMana ignores it, so the
+		// payable checks below would silently pass an energy the payer cannot
+		// cover. Forge CostPayEnergy.canPay reads the same counter total.
 		return false
 	}
 	player := e.G.Players[p]
@@ -168,6 +183,56 @@ func (e *Engine) unlessCostPayable(p state.PlayerID, raw string, ctx *effects.Ct
 	}
 	return e.unlessManaReachable(p, cost, player.Pool, player.Snow, player.TypedMana, player.Life,
 		e.paymentConv(p, stackObj, false), e.windowManaUnits(p))
+}
+
+// unlessFoldDynamic folds the unless cost's DYNAMIC life tokens to concrete
+// Life charges against the payer's CURRENT life total, so the offer gate and
+// both charge sites (payUnlessCost, advanceUnlessPayment) price the same
+// resolved cost. LifeTotalHalfUp (Temporal Extortion) is half the payer's
+// life rounded up and unpayable at zero life; an announced PayLife<X> that
+// the string resolver could not fold (no resolvable SVar:X body) cannot be
+// priced here either — fail closed, the strict-parser convention.
+func (e *Engine) unlessFoldDynamic(p state.PlayerID, cost Cost, ctx *effects.Ctx) (Cost, bool) {
+	out := cost
+	if cost.LifeHalfUp {
+		life := e.G.Players[p].Life
+		if life <= 0 {
+			return cost, false
+		}
+		out.Life = addClampedGeneric(out.Life, int64((life+1)/2))
+		out.LifeHalfUp = false
+	}
+	if len(cost.LifeX) > 0 {
+		if ctx == nil || !ctx.XAnnounced {
+			return cost, false
+		}
+		for range cost.LifeX {
+			out.Life = addClampedGeneric(out.Life, int64(ctx.X))
+		}
+		out.LifeX = nil
+	}
+	return out, true
+}
+
+// unlessEnergyAffordable reports whether the payer's energy counter total
+// covers the cost's energy parts (CR 118.2d, Forge CostPayEnergy.canPay): a
+// fixed part spends its N, the dynamic X part the RESOLVING ability's
+// announced X — an X part with no announced X is unaffordable, never free.
+// resolveMana ignores energy parts, so this check is the ONLY thing keeping
+// an energy cost from being offered (and charged) for free.
+func (e *Engine) unlessEnergyAffordable(p state.PlayerID, cost Cost, ctx *effects.Ctx) bool {
+	total := int32(0)
+	for _, part := range cost.Energy {
+		if part.Spec == "X" {
+			if ctx == nil || !ctx.XAnnounced {
+				return false
+			}
+			total += ctx.X
+			continue
+		}
+		total += part.N
+	}
+	return total == 0 || e.G.Players[p].Counter("ENERGY") >= total
 }
 
 // unlessComponentsPayable checks every non-mana part of an unless cost for
@@ -204,6 +269,7 @@ func (e *Engine) unlessChoiceComponentsPayable(p state.PlayerID, cost Cost, ctx 
 	add(state.ZBattlefield, "sacrifice", cost.Sac)
 	add(state.ZHand, "discard", cost.Discard)
 	add(state.ZHand, "revealcost", cost.Reveal)
+	add(state.ZBattlefield, "returncost", cost.Return)
 	if len(subs) == 0 {
 		return true
 	}
@@ -255,6 +321,15 @@ func (e *Engine) unlessDrawsResolvable(p state.PlayerID, cost Cost, ctx *effects
 // so neither this path nor a future sibling can fall back to a
 // first-in-zone-order pick.
 func (e *Engine) beginUnlessPayment(payer state.PlayerID, cost Cost, ctx *effects.Ctx, stackObj state.ObjID, rp *resumePoint) {
+	// Fold the dynamic life tokens once, at continuation start: the offer
+	// gate folded the same amounts against the same payer read, and the
+	// charge below prices exactly this folded cost.
+	cost, ok := e.unlessFoldDynamic(payer, cost, ctx)
+	if !ok {
+		e.unlessPayment = &unlessPayment{payer: payer, ctx: cloneUnlessCtx(*ctx), stackObj: stackObj, rp: rp}
+		e.finishUnlessPayment(false)
+		return
+	}
 	e.unlessPayment = &unlessPayment{payer: payer, cost: cost, ctx: cloneUnlessCtx(*ctx), stackObj: stackObj, rp: rp}
 	e.advanceUnlessPayment()
 }
@@ -265,22 +340,24 @@ func (e *Engine) beginUnlessPayment(payer state.PlayerID, cost Cost, ctx *effect
 // "revealcost" is the cast flow's own reveal-cost string (rules/cast.go), so
 // a client sees the same vocabulary for both paths.
 func unlessPartAt(cost Cost, i int) (CostPart, state.Zone, string) {
-	nSac, nDisc := len(cost.Sac), len(cost.Discard)
+	nSac, nDisc, nRev := len(cost.Sac), len(cost.Discard), len(cost.Reveal)
 	switch {
 	case i < nSac:
 		return cost.Sac[i], state.ZBattlefield, "sacrifice"
 	case i < nSac+nDisc:
 		return cost.Discard[i-nSac], state.ZHand, "discard"
-	default:
+	case i < nSac+nDisc+nRev:
 		return cost.Reveal[i-nSac-nDisc], state.ZHand, "revealcost"
+	default:
+		return cost.Return[i-nSac-nDisc-nRev], state.ZBattlefield, "returncost"
 	}
 }
 
 // paymentPartCount is the flat count of the choice-bearing components
-// (Sac, Discard, Reveal) the continuation walks before it settles the
-// synchronous ones.
+// (Sac, Discard, Reveal, Return) the continuation walks before it settles
+// the synchronous ones.
 func (u *unlessPayment) paymentPartCount() int {
-	return len(u.cost.Sac) + len(u.cost.Discard) + len(u.cost.Reveal)
+	return len(u.cost.Sac) + len(u.cost.Discard) + len(u.cost.Reveal) + len(u.cost.Return)
 }
 
 func (e *Engine) advanceUnlessPayment() {
@@ -324,6 +401,9 @@ func (e *Engine) advanceUnlessPayment() {
 		if kind == "revealcost" {
 			prompt = fmt.Sprintf("Choose %d card(s) to reveal to pay the cost", part.N)
 		}
+		if kind == "returncost" {
+			prompt = fmt.Sprintf("Return %d permanent(s) to their owner's hand to pay the cost", part.N)
+		}
 		d := &decision.Decision{Player: u.payer, Kind: decision.KChoose,
 			Min: int(part.N), Max: int(part.N), Source: u.ctx.Source,
 			ResumeKind: "unless_cost",
@@ -364,6 +444,19 @@ func (e *Engine) advanceUnlessPayment() {
 		e.finishUnlessPayment(false)
 		return
 	}
+	// Energy parts (PayEnergy<N>/<X>): the same shared charging site the cast
+	// flow uses, one PlayerCounterChange per part. The offer gate proved the
+	// total affordable; a state change since the choices is still guarded by
+	// the same read.
+	if !e.unlessEnergyAffordable(u.payer, u.cost, &u.ctx) {
+		e.finishUnlessPayment(false)
+		return
+	}
+	x := int32(0)
+	if u.ctx.XAnnounced {
+		x = u.ctx.X
+	}
+	e.chargeEnergyCost(u.payer, u.cost, x)
 	// The settled reveal picks are announced exactly like the cast flow's
 	// emitChoiceCosts announces them: one public Note carrying the revealed
 	// ids (the cards STAY in hand), emitted only on the paid path. The
@@ -389,6 +482,14 @@ func (e *Engine) advanceUnlessPayment() {
 	}
 	for _, id := range u.discards {
 		e.emit(events.Discard(id, u.payer))
+	}
+	// Return parts: each chosen permanent moves to its OWNER's hand (Forge
+	// CostReturn.moveToHand), the same event shape the cast flow's settle
+	// emits for a Return cost part.
+	for _, id := range u.returns {
+		if o := e.G.Obj(id); o != nil {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZHand, Text: "returned to hand as a cost"})
+		}
 	}
 	src := u.ctx.Source
 	if o := e.G.Obj(u.stackObj); o != nil && o.Ability != nil {
@@ -539,10 +640,11 @@ func (e *Engine) unlessPaymentCandidates(u *unlessPayment, zone state.Zone, kind
 	// removes an already-impossible candidate. Revealed cards are NOT
 	// removed from the hand, which is exactly why they need the explicit
 	// exclusion.
-	used := make([]state.ObjID, 0, len(u.sacs)+len(u.discards)+len(u.reveals))
+	used := make([]state.ObjID, 0, len(u.sacs)+len(u.discards)+len(u.reveals)+len(u.returns))
 	used = append(used, u.sacs...)
 	used = append(used, u.discards...)
 	used = append(used, u.reveals...)
+	used = append(used, u.returns...)
 	return e.unlessCandidatesFor(u.payer, u.ctx, zone, kind, part, used)
 }
 
@@ -552,6 +654,8 @@ func (e *Engine) recordUnlessPaymentPick(u *unlessPayment, kind string, ids []st
 		u.sacs = append(u.sacs, ids...)
 	case "revealcost":
 		u.reveals = append(u.reveals, ids...)
+	case "returncost":
+		u.returns = append(u.returns, ids...)
 	default:
 		u.discards = append(u.discards, ids...)
 	}

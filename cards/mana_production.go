@@ -22,11 +22,11 @@ import (
 // colour string: "Any"/"Combo Any", a listed "Combo X Y" choice, or a
 // "Chosen"/"Special" word (any token the symbol grammar cannot read). Such a
 // source is conditional in the card script, so a policy must not treat it as
-// a dependable colour fixer. Colour carries only what a plain token names:
-// the colour letters the token lists (one each for "R G", two for "RR"),
-// never a phantom count for the words themselves -- an unrecognised token
-// such as "Chosen" or "ColorIdentity" claims no mana at all (ProducedCounts),
-// matching effMana's fail-closed executor convention.
+// a dependable colour fixer. Colour carries what a plain token names (one each
+// for "R G", two for "RR") and the real alternatives of a choice token. It
+// never counts letters of script words as phantom mana: Chosen is represented
+// by all five possible colours because its source-specific choice is not
+// available to this source-free parser.
 type ManaProduction struct {
 	Colour [6]int32 `json:"colour"`
 	Any    bool     `json:"any"`
@@ -129,20 +129,19 @@ func ManaSymbol(i int) byte {
 //
 // The grammar, deliberately narrow and fail-closed (the effMana convention):
 //
-//   - blank, exactly "Any", or exactly "Combo Any" is one colourless plus
-//     any (the executor's own resolution for those shapes);
+//   - blank is one colourless; exactly "Any" or exactly "Combo Any" is one
+//     possible unit in each of the five colours plus any (the executor asks
+//     for that colour when a decision-capable host is present);
 //   - braces are stripped, the value is split on whitespace, and a leading
 //     literal "Combo" token is dropped (it names a choice, not a symbol);
 //     a Combo-prefixed value is a script-level CHOICE among its tokens, so
-//     it is flagged any however well-formed its tokens are -- this keeps
-//     Any's documented meaning ("not a plain colour string"), so
-//     DistinctColours and every consumer built on the flag keep the exact
-//     values they had before the phantom-count fix;
+//     it is flagged any however well-formed its tokens are;
 //   - every remaining token either consists solely of the symbols WUBRGC
 //     -- each of its runes then adds one unit of its slot, so "RR" is two
 //     red and "R G" is one red and one green -- or it names a script-level
-//     choice ("Chosen", "ColorIdentity", a "Special ..." word) and claims
-//     NO mana at all while setting any. A token is rejected whole: a word
+//     choice ("Chosen", "ColorIdentity", a "Special ..." word). Chosen
+//     exposes all five possible colours; the other unmodelled words claim no
+//     mana while setting any. A token is rejected whole: a word
 //     that merely CONTAINS a symbol letter ("ColorIdentity" contains "C")
 //     is not a symbol and must not be walked, or the phantom is back.
 //
@@ -152,8 +151,14 @@ func ManaSymbol(i int) byte {
 // the count is not the collector's problem.
 func ProducedCounts(produced string) (counts [6]int32, any bool) {
 	raw := strings.TrimSpace(produced)
-	if raw == "" || raw == "Any" || raw == "Combo Any" {
+	if raw == "" {
 		counts[5] = 1
+		return counts, true
+	}
+	if raw == "Any" || raw == "Combo Any" || raw == "Chosen" || raw == "ComboChosen" {
+		for i := 0; i < 5; i++ {
+			counts[i] = 1
+		}
 		return counts, true
 	}
 	tokens := strings.Fields(producedBraces.Replace(raw))
@@ -167,6 +172,17 @@ func ProducedCounts(produced string) (counts [6]int32, any bool) {
 		return counts, true
 	}
 	for _, tok := range tokens {
+		if tok == "Chosen" || tok == "ChosenColor" {
+			// ProducedCounts has no source object from which to read the
+			// already-recorded choice.  The real possibilities are therefore
+			// the five colours; the activation/effect paths substitute the
+			// source's ChosenColor before resolving a concrete unit.
+			for i := 0; i < 5; i++ {
+				counts[i] = 1
+			}
+			any = true
+			continue
+		}
 		if strings.Trim(tok, manaSymbols) != "" {
 			any = true
 			continue
@@ -194,12 +210,11 @@ func ProducedCounts(produced string) (counts [6]int32, any bool) {
 var producedBraces = strings.NewReplacer("{", "", "}", "")
 
 // add folds one mana ability's production into the collector. It mirrors
-// effMana's honest conventions: blank / "Any" / "Combo Any" become one C,
-// a plain symbol token adds its listed colours, and an unrecognised token
-// ("Chosen", "ColorIdentity", a "Special ..." word) claims no mana at all
-// while flagging Any, because its script-level choice is not modelled. The
-// counts come from ProducedCounts, the one parse the available-mana
-// projection in rules reuses.
+// effMana's conventions: blank becomes one C, Any/Combo Any and Chosen expose
+// their possible WUBRG colours, a plain symbol token adds its listed colours,
+// and an unrecognised token (ColorIdentity or a Special word) claims no mana
+// while flagging Any. The counts come from ProducedCounts, the one parse the
+// available-mana projection in rules reuses.
 func (mp *ManaProduction) add(a *SA) {
 	amt, known := manaAbilityAmount(a)
 	if !known {

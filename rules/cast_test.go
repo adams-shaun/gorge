@@ -460,7 +460,7 @@ func TestFlashbackedSpellCounteredGoesToExile(t *testing.T) {
 		t.Fatalf("therapy %s, want stack", e.G.Obj(therapy).Zone)
 	}
 	// Counter it with a hand-built Counter effect against the stack object.
-	effects.Resolve(e, &effects.Ctx{Controller: 1, Targets: []state.Target{{Obj: therapy}}},
+	effects.Resolve(e, &effects.Ctx{Controller: 1, Targets: []state.Target{{Obj: therapy}}, TargetsOffered: true},
 		card(t, "Name:Counterspell\nManaCost:U U\nTypes:Instant\nA:SP$ Counter | ValidTgts$ Spell\nOracle:x\n").Faces[0].SpellAbility())
 	if e.G.Obj(therapy).Zone != state.ZExile {
 		t.Fatalf("countered flashbacked spell went to %s, want exile", e.G.Obj(therapy).Zone)

@@ -92,7 +92,7 @@ func TestAftermathCounteredGoesToExile(t *testing.T) {
 		t.Fatalf("after paying: zone %s flags %+v", o.Zone, o.CastFlags)
 	}
 	// Counter it with a hand-built Counter effect against the stack object.
-	effects.Resolve(e, &effects.Ctx{Controller: 1, Targets: []state.Target{{Obj: dusk}}},
+	effects.Resolve(e, &effects.Ctx{Controller: 1, Targets: []state.Target{{Obj: dusk}}, TargetsOffered: true},
 		card(t, "Name:Counterspell\nManaCost:U U\nTypes:Instant\nA:SP$ Counter | ValidTgts$ Spell\nOracle:x\n").Faces[0].SpellAbility())
 	if e.G.Obj(dusk).Zone != state.ZExile {
 		t.Fatalf("countered aftermath spell went to %s, want exile", e.G.Obj(dusk).Zone)

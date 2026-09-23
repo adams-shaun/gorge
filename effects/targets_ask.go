@@ -85,11 +85,11 @@ func chosenTargetsFor(h Host, c *Ctx, sa *cards.SA, atRoot bool) ([]state.Target
 		c.TargetsPickDone, c.TargetsPick = false, nil
 		// Record this ask's answer so a LATER TargetUnique$ ask in the SAME
 		// Resolve walk excludes it too (Know Evil's three chained DB$ Effect
-		// "up to one target opponent" riders). A later suspension rides the
-		// accumulator onward (Decision.ResumeTargetsUnique), so an earlier
-		// pick survives a fresh resume Ctx; ask kinds outside this tail (a
-		// Charm's mode election) still lose it, the documented conservative
-		// edge.
+		// "up to one target opponent" riders). The accumulator is also
+		// stamped onto EVERY decision the ask boundary poses (Engine.Ask
+		// reads the live Ctx too), so it survives a suspension of ANY kind --
+		// a Charm mode election, a ward pay window, a dig/scry/arrange ask --
+		// as well as the next rider's own ask.
 		if TargetUniqueRequested(sa) {
 			c.TargetsUnique = append(c.TargetsUnique, ans...)
 		}
@@ -239,13 +239,14 @@ func poseTargetsAsk(h Host, c *Ctx, sa *cards.SA, chooser state.PlayerID,
 		Min: int(min), Max: int(max), Source: c.Source,
 		ResumeKind: resumeKind, ResumeSA: sa,
 		ResumeRemembered: copyTargets(c.Remembered), Prompt: prompt}
-	// The TargetUnique accumulator rides EVERY ask this tail poses (not only
-	// TargetUnique$ ones): any intervening suspension between two TargetUnique$
-	// riders -- a plain target ask, a ChangeZone's player pick -- would
-	// otherwise drop the earlier picks at the resumed Ctx's rebuild. The ride
-	// is inert on a resumed SA that carries no TargetUnique$ (nothing reads
-	// Ctx.TargetsUnique but the shared filter). Copied as a fresh slice -- the
-	// walk may append to it after this ask is parked.
+	// The TargetUnique accumulator rides EVERY ask through the ask boundary
+	// (Engine.Ask stamps the live chain Ctx's accumulator onto any decision
+	// that did not already carry one, which is what makes it survive a
+	// suspension of ANY kind -- a Charm mode election, a ward pay window, a
+	// dig/scry/arrange ask). The explicit stamp here is belt and braces for a
+	// host that does not publish the chain Ctx (an effects-package test
+	// double). Copied as a fresh slice -- the walk may append to it after this
+	// ask is parked.
 	if len(c.TargetsUnique) > 0 {
 		d.ResumeTargetsUnique = copyTargets(c.TargetsUnique)
 	}

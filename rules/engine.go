@@ -429,10 +429,28 @@ type Engine struct {
 	// overlaps (Turn // Burn's Creature vs Any). Engine-only scratch like
 	// sacrificedLKI: rebuilt by replay because payCast re-executes, cloned
 	// with the engine at intent boundaries, removed with the stack object.
-	// A stack COPY of a fused spell has no entry (it inherits the flat list,
-	// not the scratch), and resolveFused's spec re-derivation is its
-	// fallback for exactly that shape.
+	// StackCopy inherits this split alongside its flat targets when available;
+	// resolveFused uses its spec fallback only for copies without provenance.
 	fuseTargets map[state.ObjID][][]state.Target
+	// copyTargetStage tracks the in-progress per-declaration copy-target
+	// election (CR 707.10c), keyed on the copying stack object: the value is
+	// the index of the NEXT declaration AskCopyTargets must ask. The
+	// TargetsChosen fold clears Object.CopyMayChooseTarget after the FIRST
+	// declaration's answer, so this scratch is what carries the election
+	// across the stage that follows -- a fused copy's second half, exactly as
+	// the cast's pendingCast.targetStage carries it for a cast. Engine-only
+	// scratch like fuseTargets: rebuilt by replay (the ask re-executes on the
+	// re-entered resolveTop), cloned with the engine, and removed with the
+	// stack object so a later object reusing the id never reads a stale stage.
+	copyTargetStage map[state.ObjID]int
+	// copyAnswerTargets accumulates a multi-declaration copy-target election's
+	// PER-DECLARATION answers until every declaration has been asked, at which
+	// point the flattened list is recorded in one replace. Recording each
+	// stage as it arrives would replace (or duplicate) the flat list mid-
+	// election and lose a later declaration's inherited keep-current slots.
+	// Engine-only scratch, rebuilt by replay, cloned with the engine, removed
+	// with the stack object.
+	copyAnswerTargets map[state.ObjID][][]decision.Option
 	// fusedResolving is the target slice of the fused half whose resolution is
 	// CURRENTLY running (rules/split.go's runFusedHalves), set around the
 	// whole of that half's effects.Resolve -- the half's root SA and every
@@ -466,6 +484,27 @@ type Engine struct {
 	// before a chained TokenOwner$ TargetedController resolves). Transient
 	// scratch: rebuilt identically by replay, nil outside a chain.
 	resolvingTargetControllerLKI map[state.ObjID]state.PlayerID
+	// resolutionCtx is the live Ctx of the Resolve chain whose effect is
+	// CURRENTLY running, published by effects.Resolve through the optional
+	// resolutionCtxHost interface around the whole chain and restored on
+	// return. It is the one home of the chain's in-flight TargetUnique$
+	// accumulator: Engine.Ask reads resolutionCtx.TargetsUnique and stamps it
+	// onto every decision whose own resume state did not carry it, so an
+	// intervening ask of ANY kind (a modal election, a ward pay, a
+	// dig/scry/arrange pick) preserves the picks earlier TargetUnique$ riders
+	// chose at the resumed Ctx's rebuild. Transient scratch: rebuilt
+	// identically by replay, nil outside a chain (combat, mulligan and other
+	// non-resolution asks).
+	resolutionCtx *effects.Ctx
+	// resolvingFlipMemory is the coin-flip memory of the Resolve chain whose
+	// effect is CURRENTLY running, published by effects.Resolve (and by
+	// effFlipCoin when it lazily allocates the memory) through the optional
+	// Host.SetResolutionFlipMemory seam and restored on return. Ask captures it
+	// onto the pending resumePoint, so a resumed continuation re-attaches the
+	// SAME pointer and a chained Defined$ FlippedTails / Wins reader keeps
+	// every flip performed before the suspension. Transient scratch: rebuilt
+	// identically by replay, nil outside a chain or before any flip.
+	resolvingFlipMemory *effects.FlipMemory
 	// villainousRemembered is the victim of the VillainousChoice whose chosen
 	// body is CURRENTLY resolving, kept as ambient engine state for the
 	// duration of that body's effects.Resolve — the fusedResolving pattern.
@@ -541,9 +580,46 @@ type Engine struct {
 	// no event carries it. Never nil-checked on read outside recordAsk
 	// (which lazy-inits).
 	moveCounterAsk map[state.ObjID]*moveCounterPending
+	// aorAsk carries an AddOrRemoveCounter resolution's ANSWERED per-kind
+	// elections across the later suspensions of the same SA (the
+	// moveCounterAsk discipline — counterchoice1). An EachExistingCounter$
+	// walk (Dramatist's Puppet, Quarry Hauler) asks one add/remove election
+	// per counter kind; every resume builds a fresh Ctx, so without this map
+	// an already-answered PUT kind (whose counter count is still positive and
+	// therefore still enumerates) would be re-asked forever. rules/
+	// resolution.go's "aor_elect" arm records the answered kind here and the
+	// re-entry seeds it into Ctx.AorAnswered; the entry is deleted when the
+	// resolution completes. Decision-derived engine scratch, in the
+	// moveCounterAsk discipline: replay re-submits the recorded Intents
+	// through the same arms, so the map re-derives identically and no event
+	// carries it.
+	aorAsk map[state.ObjID]map[string]bool
 	// counterTypeAsk carries per-recipient comma-list PutCounter answers across
 	// suspensions. It is replay-derived engine scratch, never game state.
 	counterTypeAsk map[state.ObjID]*counterTypePending
+	// targetsPickAsk carries an ANSWERED generic ValidTgts$ pre-ask (the
+	// mvts1 "tgts" arm) across a LATER suspension of the same SA, for every
+	// API -- the general form of the moveCounterAsk cursor above, which
+	// solved exactly this for MoveCounter alone. chosenTargetsFor CONSUMES
+	// Ctx.TargetsPick before dispatching the body (fx42 scoping, so a nested
+	// SA cannot inherit it), and every resume builds a FRESH Ctx; so if the
+	// body then suspends on an ask of its own, the next resume re-enters the
+	// SA from its top with no answer, re-poses the pre-ask, and the two asks
+	// alternate forever. Kozilek's Command is the live carrier: its Charm
+	// picks DBScry alongside another targeting mode, so the stack object's
+	// one undivided target list is not DBScry's player, the pre-ask fires at
+	// resolution, and the Scry's own KArrange is the second ask that loops
+	// (arrange -> tgts -> arrange ...). Keyed by resolving stack object and
+	// then by the SA's Line -- ResolveSVar parses fresh on every call, so
+	// pointer identity never holds across a resume, the same matching
+	// convention charmModeTarget and chosenTargetsFor's OfferedSA check use.
+	// The per-SA key keeps one sub's answer off another sub's ask, and the
+	// entry is deleted when THAT SA's resolution completes so a later
+	// re-entry (a Repeat loop) asks afresh. Decision-derived engine scratch
+	// in the moveCounterAsk discipline: replay re-submits the recorded
+	// Intents through the same arm, so the map re-derives identically and no
+	// event carries it.
+	targetsPickAsk map[state.ObjID]map[string][]state.Target
 	// orderedTriggers is how many LEADING entries of pendingTriggers have
 	// already had their order settled by an answered KTriggerOrder decision
 	// (or, for a lone trigger, by there being nothing to decide). It is the
@@ -683,6 +759,19 @@ type Engine struct {
 	// cast holds the in-progress cast-flow state while choosing ==
 	// chooseCast (Task 9, rules/cast.go). Nil whenever no cast is mid-flow.
 	cast *pendingCast
+	// etbMove parks a battlefield entry while its as-enters choice is answered
+	// through the mid-resolution decision path. etbNext is the ordinal of the
+	// next choice on that entry; both are plain data so a clone at the decision
+	// boundary preserves the entry exactly.
+	etbMove *events.Event
+	etbNext int
+	// etbLandPlay identifies the land whose LandPlayed event must wait for its
+	// final battlefield entry. A replacement can suspend and later re-emit the
+	// move, so the object id is needed to avoid consuming this continuation on
+	// a different move the replacement body emits first.
+	etbLandPlay   bool
+	etbLandObj    state.ObjID
+	etbLandPlayer state.PlayerID
 	// riotMove parks a non-cast battlefield entry while its controller makes
 	// Riot's as-enters choice. The event is emitted only after Choose records
 	// the answer, so every entry path reaches events.Move with RiotChoice set.
@@ -1750,6 +1839,12 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		}
 	}
 	departingSource, departingSourceLifelink, departingSourceController := e.captureSourceLifelinkLKI(ev)
+	timeBefore := int32(0)
+	if ev.Kind == events.CounterChange && ev.Amount < 0 && ev.Counter == "TIME" {
+		if o := e.G.Obj(ev.Obj); o != nil {
+			timeBefore = o.Counter("TIME")
+		}
+	}
 	stackLen := len(e.G.Stack)
 	// Record only the final event after replacement selection. The object
 	// snapshot must precede Apply, and unknown adder provenance is not a
@@ -1770,6 +1865,20 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		}
 	}
 	stored := events.Emit(e.G, e.L, ev)
+	if ev.Kind == events.CounterChange && ev.Amount < 0 && ev.Counter == "TIME" && timeBefore > 0 {
+		// CR 702.62a/b (counterchoice1): the LAST time counter leaving a
+		// suspended card by ANY route — the upkeep tick or a Clockspinning/
+		// Amy-Pond-style removal mid-resolution — queues CR 702.62a's may-cast
+		// offer; startSuspendedCast drains the queue at the next step(). The
+		// ONE home replaces the upkeep tick's own append (which was the only
+		// emitter before): a counter removed mid-resolution used to strand a
+		// zero-TIME card in exile forever, because the tick skips a card
+		// already at zero and nothing else ever re-offered the cast.
+		if o := e.G.Obj(ev.Obj); o != nil && o.Zone == state.ZExile &&
+			(o.CastFlags&state.FlagSuspend != 0 || o.SuspendGranted) && o.Counter("TIME") == 0 {
+			e.suspendedCasts = append(e.suspendedCasts, ev.Obj)
+		}
+	}
 	// CR 702.90b (kw:Infect): the counters/poison an infect source's damage
 	// is dealt in the form of are placed HERE, as real events emitted
 	// through this same emit -- so the repl:AddCounter class (a Winding
@@ -1814,6 +1923,19 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	}
 	if ev.Kind == events.StackCopy && len(e.G.Stack) > stackLen {
 		copyID := e.G.Stack[len(e.G.Stack)-1]
+		// StackCopy inherits the flat targets in events.Apply; preserve the
+		// cast-time declaration split too. Current legality cannot reconstruct
+		// which half owned an inherited target after the board has changed.
+		if stages, ok := e.fuseTargets[ev.Obj]; ok && len(ev.IDs) == 0 {
+			if e.fuseTargets == nil {
+				e.fuseTargets = make(map[state.ObjID][][]state.Target)
+			}
+			cp := make([][]state.Target, len(stages))
+			for i, targets := range stages {
+				cp[i] = append([]state.Target(nil), targets...)
+			}
+			e.fuseTargets[copyID] = cp
+		}
 		if tc, ok := e.triggerContexts[ev.Obj]; ok {
 			e.triggerContexts[copyID] = tc
 		}
@@ -1861,6 +1983,8 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		delete(e.triggerLKI, ev.Obj)
 		delete(e.sacrificedLKI, ev.Obj)
 		delete(e.fuseTargets, ev.Obj)
+		delete(e.copyTargetStage, ev.Obj)
+		delete(e.copyAnswerTargets, ev.Obj)
 		delete(e.sourceLifelinkLKI, ev.Obj)
 		delete(e.sourceControllerLKI, ev.Obj)
 		delete(e.damageSourceLKI, ev.Obj)
@@ -2002,6 +2126,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// wanted set), this registers the transfers the live scan newly
 		// wants. Both are no-ops unless such a static is in play.
 		e.reconcileControlStatics()
+	}
+	if stored.Kind == events.MoveZone && stored.To == state.ZBattlefield {
+		e.finishLandPlay(stored.Obj)
 	}
 	return stored
 }
