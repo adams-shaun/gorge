@@ -1076,8 +1076,21 @@ func (e *Engine) validateAttackDeclaration(d *decision.Decision, in decision.Int
 func (e *Engine) validateBlockers(d *decision.Decision, in decision.Intent) error {
 	seen := make(map[state.ObjID]bool, len(in.Choices))
 	chosen := d.Chosen(in)
-	budget := e.blockManaBudget(d.Player)
-	charged := int32(0)
+	// The whole-declaration charge, priced by the same blockPairCharge the
+	// offer list and the payment use, checked against the same
+	// blockChargeAffordable read: mana within the budget (Decision.MaxSum
+	// publishes it too), life within the payer's total, and every tap
+	// obligation payable by distinct permanents once the declaration's own
+	// committed blockers are set aside.
+	charge := e.blockChargeOf(chosen)
+	if !charge.zero() && !e.blockChargeAffordable(d.Player, charge, chosenBlockers(chosen)) {
+		need := int32(0)
+		for _, t := range charge.taps {
+			need += t.n
+		}
+		return fmt.Errorf("declaration's block charge ({%d} mana, %d life, %d taps) exceeds what the defender can pay",
+			charge.mana, charge.life, need)
+	}
 	byAttacker := make(map[state.ObjID]int, len(chosen))
 	for _, o := range chosen {
 		if seen[o.Obj] {
@@ -1085,15 +1098,6 @@ func (e *Engine) validateBlockers(d *decision.Decision, in decision.Intent) erro
 		}
 		seen[o.Obj] = true
 		byAttacker[o.Attacker]++
-		price := e.blockPairCharge(o.Obj, o.Attacker)
-		if price > 0 {
-			// The option list and MaxSum normally enforce this; retain the
-			// rules-side belt for hand-built or stale decisions.
-			charged += price
-			if charged > budget {
-				return fmt.Errorf("declaration's block cost {%d} exceeds the affordable {%d}", charged, budget)
-			}
-		}
 	}
 	checked := make(map[state.ObjID]bool, len(byAttacker))
 	for _, o := range chosen {
@@ -1279,8 +1283,14 @@ func (e *Engine) askBlockers() {
 				if minImpossible[aid] || !e.canBlock(bid, aid) {
 					continue
 				}
-				price := e.blockPairCharge(bid, aid)
-				if price > 0 && e.blockManaBudget(defender) < price {
+				charge := e.blockPairCharge(bid, aid)
+				// The offer gate: a pair is offered only when the defender can
+				// pay its full composite charge individually (mana, life, taps
+				// -- with the blocker itself set aside, since declaring it
+				// commits it to blocking). The same read validates the whole
+				// declaration and gates the payment, so the three cannot
+				// disagree about what is payable.
+				if !charge.zero() && !e.blockChargeAffordable(defender, charge, map[state.ObjID]bool{bid: true}) {
 					continue
 				}
 				// Group is the exclusivity marker on the wire: every option
@@ -1297,10 +1307,24 @@ func (e *Engine) askBlockers() {
 				if b, ok := bounds[aid]; ok {
 					opt.MinBlockers, opt.MaxBlockers = b[0], b[1]
 				}
-				if price > 0 {
-					opt.Label += fmt.Sprintf(" (pay {%d})", price)
+				// The charge components ride the option for rules-ignorant
+				// clients: Value the mana (the MaxSum budget's currency),
+				// CostLife the life component, CostTaps the total tap
+				// obligation.
+				if charge.mana > 0 {
+					opt.Label += fmt.Sprintf(" (pay {%d})", charge.mana)
 				}
-				opt.Value = int(price)
+				if charge.life > 0 {
+					opt.Label += fmt.Sprintf(", pay %d life", charge.life)
+				}
+				for _, t := range charge.taps {
+					opt.Label += fmt.Sprintf(", tap %d", t.n)
+				}
+				opt.Value = int(charge.mana)
+				opt.CostLife = int(charge.life)
+				for _, t := range charge.taps {
+					opt.CostTaps += int(t.n)
+				}
 				opts = append(opts, opt)
 			}
 		}
@@ -1366,18 +1390,16 @@ func (e *Engine) blockAttackers(defender state.PlayerID) []state.ObjID {
 // next defender, which is what decides when the step moves to combat damage.
 func (e *Engine) handleBlockers(d *decision.Decision, in decision.Intent) {
 	chosen := d.Chosen(in)
-	charge := int32(0)
-	for _, opt := range chosen {
-		charge += e.blockPairCharge(opt.Obj, opt.Attacker)
-	}
-	if charge > e.G.Players[d.Player].Pool.Total() {
+	charge := e.blockChargeOf(chosen)
+	if charge.mana > e.G.Players[d.Player].Pool.Total() {
 		if e.startBlockPay(chosen, d.Player, charge) {
 			return
 		}
 	}
-	if charge > 0 {
-		e.payMana(d.Player, Cost{Generic: charge})
+	if charge.mana > 0 {
+		e.payMana(d.Player, Cost{Generic: charge.mana})
 	}
+	e.payBlockExtras(d.Player, charge, e.blockTapPlan(d.Player, charge, chosenBlockers(chosen)))
 	pairs := make([][2]state.ObjID, 0, len(chosen))
 	for _, opt := range chosen {
 		pairs = append(pairs, [2]state.ObjID{opt.Attacker, opt.Obj})

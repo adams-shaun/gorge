@@ -418,7 +418,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		// match on a rejected bot intent. Every policy's answer therefore
 		// goes through this one guard, which drops any pair that would leave
 		// its attacker's count outside the published bounds.
-		in.Choices = legalBlockChoices(d, in.Choices)
+		in.Choices = legalBlockChoices(b, d, in.Choices)
 		return Clamp(d, in)
 
 	case decision.KTriggerOrder:

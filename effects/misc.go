@@ -707,7 +707,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
 			}
-		case "CantTarget", "CantRegenerate", "CantPreventDamage", "CantAttack", "CantSacrifice", "CantPutCounter", "CantBlockBy", "CanAttackDefender", "UnspentMana":
+		case "CantTarget", "CantRegenerate", "CantPreventDamage", "CantAttack", "CantSacrifice", "CantPutCounter", "CantBlockBy", "CanAttackDefender", "UnspentMana", "CantBlockUnless":
 			// A COMPOUND IsRemembered spec (Card.IsRemembered+Creature) resolves
 			// faithfully through the general filter now that it implements
 			// IsRemembered (rules/layers.go restrictionApplies consults the
@@ -741,6 +741,12 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				break
 			}
 			if mode == "CantBlockBy" && !CantBlockByRestrictionParamsReadable(params) {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
+				registered = true
+				break
+			}
+			if mode == "CantBlockUnless" && !CantBlockUnlessRestrictionParamsReadable(params) {
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
@@ -790,12 +796,19 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				UntilEOT:       ceUntilEOT,
 				Restriction:    mode,
 				RestrictParams: params,
-				ImprintOnHost:  imprintOnHost,
-				Remembered:     remembered,
-				Duration:       dur,
-				ForgetOnMoved:  forgetOn,
-				ExileOnMoved:   exileOn,
-				ForgetCounter:  forgetCounter,
+				// The body's own SVar table (a CantBlockUnless Cost$ naming an
+				// SVar on the granting face -- War Cadence's XChosen) and the
+				// frozen SetChosenNumber$ binding (Count$ChosenNumber). Read only
+				// by the block-prop consultation (rules' blockPairCharge); every
+				// other restriction consumer ignores both fields.
+				RestrictSVars: c.SVars,
+				ChosenNumber:  chosenNumber,
+				ImprintOnHost: imprintOnHost,
+				Remembered:    remembered,
+				Duration:      dur,
+				ForgetOnMoved: forgetOn,
+				ExileOnMoved:  exileOn,
+				ForgetCounter: forgetCounter,
 			}
 			if mode == "CantAttack" || mode == "CantSacrifice" {
 				// The player half of the remembered capture: Call for Aid's
@@ -1507,6 +1520,30 @@ func MustAttackParamsReadableForRules(params map[string]string) bool {
 		case "Mode", "ValidCreature", "MustAttack", "Description", "Secondary",
 			"IsPresent", "IsPresent2", "PresentCompare", "PresentZone",
 			"CheckSVar", "SVarCompare", "Condition", "ClassBand":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// CantBlockUnlessRestrictionParamsReadable is the parameter whitelist a
+// CantBlockUnless static must pass before this build enforces it -- used by
+// BOTH delivery routes that can register one (effEffect's restriction case
+// and registerAnimateStaticAbilities' staticAbilities$ grant), so the two
+// paths cannot disagree about what is readable. The readable parameters are
+// the mode, the two combat specs the block-prop reader resolves (ValidCard$
+// against the blocker, Attacker$ against the attacker), the Cost$ the reader
+// prices (rules' blockUnlessCharge), the gate parameters the shared
+// continuousGateHolds grammar evaluates, and display text. A static carrying
+// any other parameter names a condition or scoping this build does not
+// evaluate -- enforcing it blanket would OVER-restrict, the permissive
+// direction for a restriction -- so it is skipped/reported instead.
+func CantBlockUnlessRestrictionParamsReadable(params map[string]string) bool {
+	for k := range params {
+		switch k {
+		case "Mode", "ValidCard", "Attacker", "Cost", "Description", "Secondary",
+			"IsPresent", "IsPresent2", "CheckSVar", "SVarCompare", "Condition":
 		default:
 			return false
 		}
