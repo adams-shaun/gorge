@@ -439,6 +439,19 @@ func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 	if each != nil {
 		groups = len(each)
 	}
+	// WithTotalPower$ is a cumulative power budget over the picked cards
+	// (Slaughter the Strong's "each player chooses any number of creatures
+	// with total power 4 or less"): a card whose own power exceeds the
+	// budget can never be picked, and the running sum of one chooser's picks
+	// must not exceed it either. The cap is PER CHOOSER -- each player answers
+	// their own KChoose decision and the budget rides that decision
+	// (Decision.MaxSum, the same wire contract Dig's WithTotalCMC$ uses), so
+	// one player's picks never spend another's budget. Absent the param (the
+	// corpus default) hasBudget is false and every read below is a no-op, so
+	// a budget-less ChooseCard behaves byte-identically. Present but
+	// unresolvable degrades to budget 0 -- NumResolved's documented
+	// convention, "the card does nothing" -- and picks nothing.
+	budget, hasBudget := NumResolved(h, c, sa, "WithTotalPower", 0)
 	// The walk is chooser-major, group-minor: every chooser picks from ALL
 	// groups before the next chooser starts, groups in ChooseEach$ order —
 	// Forge's ChooseCardEffect loop shape. With ChooseEach$ the resume cursor
@@ -477,6 +490,21 @@ func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 		if each != nil {
 			choices = chooseEachPool(h.Game(), c, choices, chooser, each[i%groups])
 		}
+		// A card whose own power exceeds the budget can never be picked,
+		// however few are taken (effDig's `affordable` rule): narrow the pool
+		// to the individually affordable cards before the bounds clamp. A
+		// pool this leaves empty resolves silently through the ordinary
+		// empty-decision guard below -- the budgeted equivalent of Choices$
+		// matching nothing.
+		if hasBudget {
+			affordable := make([]state.Target, 0, len(choices))
+			for _, t := range choices {
+				if chooseCardPower(h, t.Obj) <= int(budget) {
+					affordable = append(affordable, t)
+				}
+			}
+			choices = affordable
+		}
 		// With ChooseEach$ the shared Amount$/MinAmount$/Mandatory$ bounds are
 		// PER GROUP (revival_experiment's Amount$ 1 | MinAmount$ 0: "up to one
 		// card of that type"), so one answer re-enters per group through the
@@ -492,26 +520,100 @@ func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 		if min > max {
 			min = max
 		}
+		// greedy is the deterministic forced take under the budget: walk the
+		// affordable pool in its deterministic filter order and take each
+		// card only while the running power sum still fits. It is the exact
+		// take the no-host fallback below applies (effDig's forced greedy-take
+		// shape), and what a mandatory Min is lowered to when the budget
+		// cannot pay for it -- a mandatory ask whose Min exceeds the greedy
+		// affordable count would have NO legal answer (Decision.Validate's
+		// Min floor against the MaxSum cap) and livelock the seat.
+		greedy := choices
+		if hasBudget {
+			greedy = budgetGreedyTake(h, choices, max, int(budget))
+			if min > len(greedy) {
+				min = len(greedy)
+			}
+		}
 		if each == nil && strings.EqualFold(sa.Params["AtRandom"], "True") {
 			choiceRecord(h, c, sa, randomChoices(h, choices, max), false)
 			continue
 		}
 		d := &decision.Decision{Player: chooser, Kind: decision.KChoose, Source: c.Source, Min: min, Max: max, ResumeKind: "choice", ResumeSA: sa, ResumeTarget: i, ResumeChoices: append([]state.Target(nil), c.Chosen...), ResumeChosenValid: c.ChosenValid, ResumeRemembered: append([]state.Target(nil), c.Remembered...), Prompt: sa.Params["ChoiceTitle"]}
+		if hasBudget {
+			d.MaxSum, d.Budgeted = int(budget), true
+		}
 		for j, t := range choices {
-			d.Options = append(d.Options, decision.Option{Index: j, Kind: "card", Obj: t.Obj, Player: chooser})
+			opt := decision.Option{Index: j, Kind: "card", Obj: t.Obj, Player: chooser}
+			// Only a budget ask carries a Value: Option.Value is omitempty,
+			// and setting it budget-less would put a "value" field on the wire
+			// for every offered card although MaxSum is 0 and nothing reads it.
+			if hasBudget {
+				opt.Value = chooseCardPower(h, t.Obj)
+			}
+			d.Options = append(d.Options, opt)
 		}
 		if d.Prompt == "" {
 			d.Prompt = "Choose card"
+		}
+		if hasBudget {
+			d.Prompt += " (total power " + strconv.Itoa(int(budget)) + " or less)"
 		}
 		if Ask(h, d) == AskAsked {
 			return
 		}
 		recorded := choices[:min]
+		if hasBudget {
+			recorded = greedy
+		}
 		choiceRecord(h, c, sa, recorded, false)
 		if reveal {
 			emitChosenReveal(h, chooser, recorded)
 		}
 	}
+}
+
+// chooseCardPower is the offered card's current power -- the WithTotalPower$
+// budget's per-card price. On a battlefield permanent it reads the rules'
+// derived characteristics through Host.Power (the same read
+// effects/count.go's refPower shares); away from the battlefield (a library
+// or graveyard pool) it falls back to face power plus P1P1 minus M1M1
+// counters, refPower's LKI-compatible fallback.
+func chooseCardPower(h Host, id state.ObjID) int {
+	o := h.Game().Obj(id)
+	if o == nil {
+		return 0
+	}
+	if o.Zone == state.ZBattlefield {
+		return int(h.Power(id))
+	}
+	f := o.Face()
+	if f == nil {
+		return 0
+	}
+	return int(f.Power()) + int(o.Counter("P1P1")) - int(o.Counter("M1M1"))
+}
+
+// budgetGreedyTake is the deterministic forced take under a WithTotalPower$
+// cumulative budget: walk the affordable pool in its given order and take
+// each card only while the running power sum still fits the cap, up to max
+// picks. The no-host fallback applies exactly this take, so a suspension
+// cannot change which cards a budgeted pick keeps.
+func budgetGreedyTake(h Host, pool []state.Target, max, budget int) []state.Target {
+	out := make([]state.Target, 0, len(pool))
+	running := 0
+	for _, t := range pool {
+		if len(out) >= max {
+			break
+		}
+		p := chooseCardPower(h, t.Obj)
+		if running+p > budget {
+			continue
+		}
+		running += p
+		out = append(out, t)
+	}
+	return out
 }
 
 // sourceChoices is ChooseSource's candidate pool: every damage SOURCE the
@@ -1348,6 +1450,19 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 	// closes it when the loop completes, so the bracket is balanced however
 	// many resumes interleave.
 	batched := strings.EqualFold(strings.TrimSpace(sa.Params["DamageMap"]), "True")
+	// ChangeZoneTable$ True (Forge's RepeatEachEffect CardZoneTable -- 47
+	// corpus carrier files): the zone changes every iteration's body causes
+	// are accumulated and reach Mode$ ChangesZoneAll ONCE, after the loop
+	// completes, as one "one or more" batch; Mode$ ChangesZone keeps firing
+	// per move. The seam is the zone twin of the damage bracket above:
+	// opened around the whole loop on the first pass, closed after the last
+	// iteration, events unchanged -- same order, same objects -- so a game
+	// with no ChangesZoneAll observer in the window replays exactly as
+	// before. Opened only on the first pass: a mid-loop suspension leaves
+	// the engine's open batch intact across the resume, and the re-entry
+	// pass closes it when the loop completes, so the bracket is balanced
+	// however many resumes interleave.
+	zoneTable := strings.EqualFold(strings.TrimSpace(sa.Params["ChangeZoneTable"]), "True")
 	// AmountFromVotes$ True (task votepb1: Mob Verdict, Círdan the Shipwright,
 	// Trap the Trespassers): before each body runs, bind the reserved name
 	// "Votes" to the CURRENT loop subject's tally from the most recent
@@ -1366,6 +1481,16 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 		EndDamageBatch()
 	}); ok {
 		batcher = b
+	}
+	var zoneBatcher interface {
+		BeginZoneBatch()
+		EndZoneBatch()
+	}
+	if z, ok := h.(interface {
+		BeginZoneBatch()
+		EndZoneBatch()
+	}); ok {
+		zoneBatcher = z
 	}
 	firstPass := true
 	if cur := c.Repeat; cur != nil && cur.SA == sa {
@@ -1408,6 +1533,9 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 	}
 	if batched && firstPass && batcher != nil {
 		batcher.BeginDamageBatch()
+	}
+	if zoneTable && firstPass && zoneBatcher != nil {
+		zoneBatcher.BeginZoneBatch()
 	}
 	// ClearRememberedBeforeLoop$ True (Forge's RepeatEachEffect: "clear the
 	// host's remembered list before the loop"): drop the resolving spell or
@@ -1495,6 +1623,11 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 		// open/close conditions agree); every pass that suspends mid-loop
 		// returns before this line and leaves the bracket to a later pass.
 		batcher.EndDamageBatch()
+	}
+	if zoneTable && zoneBatcher != nil {
+		// The loop completed: close the zone batch the FIRST pass opened
+		// (same reasoning as the damage batch above).
+		zoneBatcher.EndZoneBatch()
 	}
 }
 

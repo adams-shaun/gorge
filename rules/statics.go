@@ -214,6 +214,20 @@ func (e *Engine) activeStatics(mode string) []staticView {
 	return out
 }
 
+// countersRemainApplies reports whether the departing permanent itself has
+// an active CountersRemain static. Static lines are read through the canonical
+// activeStatics walk so EffectZone, merged-face and face-down rules stay
+// consistent with the other static consumers.
+func (e *Engine) countersRemainApplies(id state.ObjID) bool {
+	for _, sv := range e.activeStatics("CountersRemain") {
+		spec := sv.Params["ValidCard"]
+		if spec != "" && e.matchesSpec(spec, id, e.staticSpecCtx(sv)) {
+			return true
+		}
+	}
+	return false
+}
+
 // SurveilLookExtra reports the additional cards a surveil performed by player
 // p looks at, from the battlefield statics with Mode$ SurveilNum whose
 // ValidPlayer$ admits p (Enhanced Surveillance's "You may look at an
@@ -2650,7 +2664,7 @@ func init() {
 		// Effect-delivered SVar form (an AB$ Effect | StaticAbilities$
 		// CombatDamageToughness body) is the same Effect-registration gap
 		// AssignCombatDamageAsUnblocked carries and stays ledgered.
-		"stat:CombatDamageToughness")
+		"stat:CombatDamageToughness", "stat:CountersRemain")
 }
 
 // asUnblockedStaticMatches reports whether any battlefield

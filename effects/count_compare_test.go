@@ -192,12 +192,11 @@ func TestPlayerCountPropertyYouHasPropertyActive(t *testing.T) {
 		t.Errorf("controller not active: head = (%d, %v), want (0, true)", got, ok)
 	}
 
-	// Every other property on the You group, and every other group, stays
-	// unresolvable (0, false) -- fail closed, not a fake zero.
+	// This unsupported You-group property and the other player-count groups
+	// stay unresolvable (0, false) -- fail closed, not a fake zero.
 	h.g.Active = 0
 	for _, head := range []string{
-		"PlayerCountPropertyYou$LifeLostThisTurn",
-		"PlayerCountPropertyYou$LandsPlayed",
+		"PlayerCountPropertyYou$AttractionsVisitedThisTurn",
 		"PlayerCountPropertyOpponent$HasPropertyActive",
 		"PlayerCountPropertywithAtLeast2MoreLandsThanYou$Amount",
 	} {

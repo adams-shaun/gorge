@@ -1974,20 +1974,15 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		return playerCountDefinedRegistered(h, g, c, g.AliveFrom(0), rest, arg)
 	}
 
-	// PlayerCountPropertyYou$<Property> — resolvable members of Forge's
-	// PlayerCountProperty<group>$<Property> family (86 raw corpus
-	// files carry the family; the two HasPropertyActive files are Starting
-	// Town and Hylda's Crown of Winter). HasPropertyActive reads 1 when the
-	// RESOLVING controller is the active player, else 0 — Starting Town's
+	// PlayerCountPropertyYou$<Property> — the supported members of Forge's
+	// PlayerCountProperty<group>$<Property> family. HasPropertyActive reads 1
+	// when the resolving controller is active, else 0 — Starting Town's
 	// ETB gate reads SVar:Y:PlayerCountPropertyYou$HasPropertyActive and
 	// feeds Count$Compare Y GE1.Z.4, so X is YourTurns on your turn and 4
-	// off it, tapped only when X > 3. Every OTHER property on this group,
-	// and every other group's property (a state qualifier this count path
-	// carries no machinery to evaluate), reports (0, false) — the same
-	// fail-closed unresolvable verdict the general PlayerCount dispatch
-	// above documents, so a gate over one degrades per its caller's
-	// documented direction rather than enforcing a fake zero.
-	// CardsDiscardedThisTurn is the second resolvable member (trigcost2).
+	// off it, tapped only when X > 3. The per-turn properties below read the
+	// existing replay-derived host tallies or the event-backed LandsPlayed
+	// state. Unsupported properties and all other group spellings retain the
+	// fail-closed unresolvable verdict.
 	if rest, ok := strings.CutPrefix(head, "PlayerCountPropertyYou$"); ok {
 		switch strings.TrimSpace(rest) {
 		case "HasPropertyActive":
@@ -2008,6 +2003,13 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			// the fail-closed verdict below — no group machinery here prices
 			// them, and a fake zero is worse.
 			return h.CardsDiscardedThisTurn(c.Controller), true
+		case "LifeLostThisTurn":
+			return h.LifeLostThisTurn(c.Controller), true
+		case "LandsPlayed":
+			if c.Controller < 0 || int(c.Controller) >= len(g.Players) {
+				return 0, false
+			}
+			return g.Players[c.Controller].LandsPlayed, true
 		case "RingTemptedYou":
 			// The resolving controller's own "the Ring has tempted you" count
 			// (CR 701.54a, folded by events.Apply's RingTemptsYou case): what
