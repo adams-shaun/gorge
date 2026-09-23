@@ -5000,6 +5000,10 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 		return nil
 	}
 	pl := e.G.Players[pc.player]
+	// Only a root-target-dependent own reduction needs a proven window
+	// reachability check. Other activations retain their existing mana-window
+	// offer semantics (including sources this static probe cannot price).
+	targetDiscount := pc.isAbility() && pc.ownReduce > e.ownReduceCost(pc.player, pc.card, e.pcAbility(pc), nil, nil, pc.abilityMerged)
 	out := make([]targetCandidate, 0, len(candidates))
 	for _, candidate := range candidates {
 		target := state.Target{Obj: candidate.obj}
@@ -5090,8 +5094,27 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 		// (convokeAbsorbs), so the fold is the payment's own arithmetic,
 		// probed, never charged.
 		convoked := e.applyConvoke(pc, cost)
-		if e.manaFeasibleDescriptor(pc.player, paymentForCast(pc, convoked), convoked, costMods{}, 0, 0, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}) ||
-			(cost.hasManaPayment() && e.hasUntappedManaSource(pc.player)) {
+		pay := paymentForCast(pc, convoked)
+		if e.manaFeasibleDescriptor(pc.player, pay, convoked, costMods{}, 0, 0, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}) {
+			out = append(out, candidate)
+			continue
+		}
+		if !cost.hasManaPayment() {
+			continue
+		}
+		if targetDiscount {
+			// A best-target discount can make this option affordable before
+			// choosing targets while a weaker target is not. An arbitrary
+			// untapped source is not proof that the 601.2g window can cover
+			// the difference. Probe the window's concrete free productions,
+			// one alternative per source, instead of offering a target whose
+			// activation will abort at payment (CR 601.2h).
+			av := e.manaAvailableFor(pc.player, pay)
+			if e.unlessManaReachable(pc.player, convoked, av.pool, pl.Snow, av.typed, pl.Life,
+				e.paymentConv(pc.player, pay.id, pay.class == paymentActivated), e.windowManaUnits(pc.player)) {
+				out = append(out, candidate)
+			}
+		} else if e.hasUntappedManaSource(pc.player) {
 			out = append(out, candidate)
 		}
 	}
@@ -7101,22 +7124,15 @@ func (e *Engine) graveyardManaValue(p state.PlayerID, ids []state.ObjID) int32 {
 }
 
 // finishTargetedCast is the completion tail every cast-flow target answer
-// converges on once no post-target ask is outstanding: the ability arm pays
-// and THEN records the root targets (its stack object is minted by payCast's
-// AbilityPush); the spell arm pays (its targets were already recorded before
-// the park). The tail carries the CR 117.3c priority discipline the root arm
+// converges on once no post-target ask is outstanding. payCast records an
+// ability's root targets once its stack object is minted (possibly after a
+// mana window); a spell's targets were already recorded before the park.
+// The tail carries the CR 117.3c priority discipline the root arm
 // always owned: the caster keeps priority only once no announcement decision
 // is outstanding, and a trigger drain parked on the target ask resumes
 // through its own continuation.
 func (e *Engine) finishTargetedCast(pc *pendingCast, player state.PlayerID) {
-	if pc.isAbility() {
-		e.payCast()
-		if pc.stackObj != 0 && pc.rootOpts != nil {
-			e.recordChosenTargets(pc.stackObj, pc.rootOpts, false)
-		}
-	} else {
-		e.payCast()
-	}
+	e.payCast()
 	if e.drainAwaitsTarget {
 		e.drainAwaitsTarget = false
 		e.resumeTriggerDrain()
@@ -7580,8 +7596,8 @@ func (e *Engine) payCast() {
 		// recorded; what differs from a spell here is the cost's remaining
 		// non-mana parts. Pay mana, then each Tap (a Tap event), each
 		// SubCounter part (a CounterChange of -N), and every chosen sacrifice.
-		// The ability object was already minted by pushCast; targets are
-		// recorded onto it by handleTarget.
+		// The ability object is minted after payment below; answered targets
+		// are recorded onto it after AbilityPush, including a window resume.
 		mana := e.manaToPay(pc)
 		// The descriptor carries the announced-X marker (the ability's own
 		// {X} cost was folded), so a CostContainsX batch sees this activation
@@ -7801,6 +7817,13 @@ func (e *Engine) payCast() {
 			// its own ability still deals damage in the granted form.
 			e.captureNamedDamageSourceLKI(pc.stackObj, pc.card, sourceKeywordLKI, sourceControllerLKI)
 			break
+		}
+		// A target answer can suspend payment in the 601.2g mana window.
+		// Record it only once the ability object actually exists, on either
+		// the immediate pay path or a resumed payCast; finishTargetedCast
+		// cannot do so if the window has not minted the stack object yet.
+		if pc.stackObj != 0 && pc.rootOpts != nil {
+			e.recordChosenTargets(pc.stackObj, pc.rootOpts, false)
 		}
 		e.cast, e.choosing = nil, chooseNone
 		return
