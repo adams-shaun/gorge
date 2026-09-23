@@ -343,7 +343,97 @@ func TestOriginGraveyardAbilityTargetsGraveyardLand(t *testing.T) {
 	}
 }
 
-// TestTargetZonesChangeZoneOriginTable pins the origin-derived fallback's
+// volcanicVisionShapeSrc mirrors Volcanic Vision's target shape: an
+// object-targeted ChangeZone with an exact Origin$ Graveyard, no TgtZone$,
+// and a ValidTgts$ whose card-type bases (Instant/Sorcery) are also stack
+// object kinds. Inferring the stack from that base bypasses the origin-implied
+// graveyard route and makes the fetch inert. Nothing is copied from the
+// corpus file.
+const volcanicVisionShapeSrc = "Name:Vision Shape\nManaCost:1 B\nTypes:Sorcery\n" +
+	"A:SP$ ChangeZone | Origin$ Graveyard | Destination$ Hand | " +
+	"ValidTgts$ Instant.YouCtrl,Sorcery.YouCtrl | " +
+	"TgtPrompt$ Select target instant or sorcery card in your graveyard | " +
+	"SpellDescription$ Return target instant or sorcery card from your graveyard to your hand.\nOracle:x\n"
+
+// TestOriginGraveyardInstantSorceryTargetsGraveyard is the Volcanic Vision
+// regression the prior ValidTgts$ inference broke: with Origin$ Graveyard and
+// no TgtZone$, an `Instant.YouCtrl,Sorcery.YouCtrl` target must be offered the
+// graveyard instant card and must NOT be offered a spell sitting on the stack
+// (whose base token also names a stack kind). It fails on a tree that lets the
+// ValidTgts$ inference outrank the origin-implied zone, and fails again if the
+// origin route is removed entirely.
+func TestOriginGraveyardInstantSorceryTargetsGraveyard(t *testing.T) {
+	visionSrc := volcanicVisionShapeSrc
+	instSrc := "Name:Shock\nManaCost:R\nTypes:Instant\nOracle:x\n"
+	bearSrc := "Name:Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
+	e := handEngine(t, card(t, visionSrc), card(t, bearSrc))
+
+	// The eligible instant card sits in seat 0's graveyard; a creature spell
+	// is put on the stack so a stack-searching implementation has a live
+	// candidate to (wrongly) offer.
+	grave := e.G.AddObject(card(t, instSrc), 0)
+	grave.Zone = state.ZGraveyard
+	e.G.SetZone(state.ZGraveyard, 0, []state.ObjID{grave.ID})
+
+	var visionID, bearID state.ObjID
+	for _, id := range e.G.Zone(state.ZHand, 0) {
+		switch e.G.Obj(id).Face().Name {
+		case "Vision Shape":
+			visionID = id
+		case "Bear":
+			bearID = id
+		}
+	}
+	if visionID == 0 || bearID == 0 {
+		t.Fatalf("fixture hand missing cards: vision=%d bear=%d", visionID, bearID)
+	}
+	sa := e.G.Obj(visionID).Face().Abilities[0]
+	if sa.Params["TgtZone"] != "" || sa.Params["TargetType"] != "" {
+		t.Fatalf("fixture no longer has the unqualified target shape: params=%v", sa.Params)
+	}
+	// Precondition the assertion depends on: the graveyard and stack routes
+	// are actually distinct for this spec, and the graveyard card is where
+	// the Origin$ names.
+	if grave.Zone != state.ZGraveyard {
+		t.Fatalf("graveyard precondition lost: card is in %s", grave.Zone)
+	}
+
+	e.G.Players[0].Pool[state.MB] = 5
+	e.G.Players[0].Pool[state.MG] = 5
+	e.askPriority(0)
+
+	// Put the creature spell on the stack first, then cast Vision Shape.
+	submitChoices(t, e, passToCast(t, e, bearID))
+	if len(e.G.Stack) != 1 || e.G.Obj(e.G.Stack[0]).Zone != state.ZStack {
+		t.Fatalf("stack-spell precondition failed: stack=%v", e.G.Stack)
+	}
+	bearOnStack := e.G.Stack[0]
+
+	submitChoices(t, e, passToCast(t, e, visionID))
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("expected a target decision, got %+v", d)
+	}
+	graveIdx := -1
+	for _, o := range d.Options {
+		if o.Obj == bearOnStack {
+			t.Fatalf("stack spell %d offered for an Origin$ Graveyard fetch: %+v", bearOnStack, d.Options)
+		}
+		if o.Obj == grave.ID {
+			graveIdx = o.Index
+		}
+	}
+	if graveIdx < 0 {
+		t.Fatalf("graveyard instant %d not offered among %+v", grave.ID, d.Options)
+	}
+
+	submitChoices(t, e, graveIdx)
+	passUntilStackEmpty(t, e, 8)
+	if z := e.G.Obj(grave.ID).Zone; z != state.ZHand {
+		t.Fatalf("chosen graveyard instant ended in %s, want hand (fetch was inert)", z)
+	}
+}
+
 // exact boundaries at the targetZones unit level: the Wrenn shape derives
 // the graveyard, an explicit TgtZone$ stays authoritative over Origin$, and
 // every shape the fix deliberately does NOT establish (Any/All, unknown or
@@ -357,6 +447,7 @@ func TestTargetZonesChangeZoneOriginTable(t *testing.T) {
 		want []state.Zone
 	}{
 		{"wrenn-shaped origin-only graveyard", "A:AB$ ChangeZone | Origin$ Graveyard | Destination$ Hand | TargetMin$ 0 | TargetMax$ 1 | ValidTgts$ Land.YouOwn", []state.Zone{state.ZGraveyard}},
+		{"origin graveyard outranks a card-type ValidTgts$ base", "A:SP$ ChangeZone | Origin$ Graveyard | Destination$ Hand | ValidTgts$ Instant.YouCtrl,Sorcery.YouCtrl", []state.Zone{state.ZGraveyard}},
 		{"explicit TgtZone$ Graveyard stays authoritative", "A:AB$ ChangeZone | TgtZone$ Graveyard | Origin$ Graveyard | Destination$ Hand | ValidTgts$ Card", []state.Zone{state.ZGraveyard}},
 		{"explicit TgtZone$ Battlefield wins over Origin$ Graveyard", "A:AB$ ChangeZone | TgtZone$ Battlefield | Origin$ Graveyard | Destination$ Hand | ValidTgts$ Card", []state.Zone{state.ZBattlefield}},
 		{"player-targeted keeps the existing player-target route", "A:AB$ ChangeZone | Origin$ Graveyard | Destination$ Hand | ValidTgts$ Player", []state.Zone{state.ZBattlefield}},

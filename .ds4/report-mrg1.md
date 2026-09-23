@@ -1,69 +1,114 @@
-# Merge conflict resolution: mrg1 (round 3 — branch wt/cli-20260922T225138Z-636f892f, main at c2596487)
+# Merge conflict resolution: mrg1 (round 4 — branch wt/cli-20260922T225138Z-7a41baa0, main at db82645a)
 
 ## Starting state
 
-`git status` found **no operation in flight** (clean tree, HEAD `e3372a23`): the daemon's
-rebase (`e7d5bcec` onto main) and its merge fallback had both been aborted, leaving the
-conflicts unresolved. Merge-base of HEAD and main was `d43b4915`; main had advanced to
-`c2596487` (22 commits: Count$Compare thresholds, TargetType qualifiers, TargetUnique
-accumulator, effCharm Suspended guard, Exile/Discard/Return cost verbs, ChooseEach$,
-stack-kind un-stamp — each closing its Known-approximations row).
+The worktree was clean, HEAD = `f58f1440` (this branch's round-1 merge of
+main@c2596487). `main` had since advanced to `db82645a` (the dynamic unless-cost
+grammar, its round-3 report, and the 636f892f merge). The branch's approved fix
+commits (`cc65f39f` infer stack zone from ValidTgts spell, `070f673d` keep
+origin-implied zone over ValidTgts stack inference, `c0a5a86c` preselected
+counter targets offered) are NOT on main; main independently landed
+`ffae51a54` (origin-implied target zone + a new `ValidTgts$ Spell` latent-footgun
+approximation row) AFTER the branch's fix.
 
-Re-ran the integration as `git merge main` from the branch (rebase is forbidden here;
-main's own history shows prior rounds of this same merge were landed as merges too).
+Re-ran the integration as `git merge main` from the branch (rebase is forbidden
+here; prior rounds of this same integration were landed as merges on main too).
 
 ## Conflicted files and resolution
 
-Both conflicts were the frozen Known-approximations register, where the two sides deleted
-**disjoint** rows from the same region:
+1. **`AGENTS.md`** (one conflict block at the ValidTgts/UnlessCost/TargetType
+   table region):
+   - HEAD side: the `UnlessCost$` mana-window row and the old `TargetType$
+     qualifiers` row (both as of main@c2596487, which this branch had already
+     merged in round 1).
+   - main side: the new `ValidTgts$ Spell ... latent footgun` row — main's
+     `ffae51a54` deleted the UnlessCost row (the dynamic unless-cost grammar
+     landed: e7d5bcec/e3372a23) and the TargetType row (b89e7869), then re-added
+     the ValidTgts row recording the footgun the branch's reviewed fix CLOSES.
+   - Resolution: took main's side for the UnlessCost/TargetType deletions (main
+     carries later, deliberate closures of both), then DELETED the `ValidTgts$
+     Spell` row as well: in the merged tree `targetZones` DOES infer the stack
+     from a bare `ValidTgts$ Spell` (branch fix `cc65f39f`/`070f673d`, kept by
+     the auto-merge), so main's row was false against the merged behaviour.
+     Merged `AGENTS.md` now differs from main by exactly that one row deletion.
+2. **`internal/testutil/agentsdoc_test.go`**: auto-merge took main's constant 78
+   (= main's measured 78 data rows). After the row deletion above, lowered to
+   **77** = the merged table's measured row count (verified: 78 data rows at
+   main, minus 1). The register never rises.
+3. **`.ds4/report-mrg1.md`**: both sides were prior rounds' reports (round 1 on
+   this branch, round 3 on main). Replaced with THIS report per the
+   report-path contract (prior rounds were each superseded in place).
+4. **`rules/stack.go`**: auto-merged with NO textual conflict. The merged result
+   keeps the branch's reviewed implementation (origin-implied zone outranks;
+   bare `ValidTgts$ Spell` targets the stack; `targetsStackObjects` via
+   `state.StackKindTokenOf`, which still exists in the merged
+   `state/stackkind.go`) plus main's later unless-cost changes. Verified
+   `go build ./state ./rules` clean. `rules/stack_target_zones_test.go`
+   (branch's regression, added by cc65f39f) survives main's independent
+   deletion of the same-named file at its base.
 
-1. **`AGENTS.md`** (one conflict block, lines 217–224):
-   - HEAD (branch) side: kept the `effCharm` Suspended-guard, `TargetUnique$`,
-     sacrifice-CARDNAME/cost-verbs and `TargetType$` rows — main deleted all four
-     (commits 1eb845f5, 506e7167, b3fd6a77, b89e7869).
-   - main side: kept the `UnlessCost$` row — the branch deleted it (e7d5bcec/e3372a23,
-     the dynamic unless-cost grammar fix).
-   - Resolution: **all five rows removed** — the merged table carries both sides'
-     deletions. `Count$Compare`'s deletion (41ae0e4a/c64c792f) auto-merged cleanly at its
-     own location. Verified with `git diff main -- AGENTS.md`: exactly one line differs,
-     the UnlessCost row's deletion. Measured merged table: **78 data rows**.
-2. **`internal/testutil/agentsdoc_test.go`**: HEAD `knownApproximationRows = 83`, main
-   `= 80` (main's own table measured 79 — main's constant was off by one, on the safe
-   side). The merged constant must equal the merged table: **78** (84 at the merge-base
-   minus the branch's 1 row minus main's 5 rows). Set to 78; the register is never raised.
-
-Nothing else conflicted; `effects/registry.go`, `rules/resolution.go`, `rules/stack.go`
-auto-merged and were verified by the test runs below.
+All other main-side changes (`effects/unless.go`, `effects/registry.go`,
+`rules/unless_payment.go`, `rules/mana*.go`, `rules/resolution.go`, the
+`unless_*_test.go` suites) auto-merged and were retained unmodified.
 
 ## Commands run and output
 
 ```
-go build ./... && go vet ./rules ./effects ./internal/testutil   -> clean
-go test -run 'TestKnownApproximations|TestKnownOversize' ./internal/testutil/
-  -> ok  0.001s
-go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
-  -> ok  0.732s   (-v confirms all 5 ran and PASSED; 0 SKIPs; .cards symlink present)
-go test ./rules -run 'Unless|TestCharm|TargetType|TargetUnique|CostVerbs|ChooseEach'
-  -> ok  0.746s   (both sides' new suites over the auto-merged files)
-go test ./effects -run 'Charm|Compare|ChooseEach'
-  -> ok  0.602s
-go test ./events ./state   -> ok 5.428s / ok 0.014s
-go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/  -> ok (byte-identical, unmoved)
-go test ./internal/archtest/   -> ok
-git commit --no-edit   -> c5589975 "Merge branch 'main' into wt/cli-20260922T225138Z-636f892f"; tree clean
+git merge main
+  -> Auto-merging .ds4/report-mrg1.md CONFLICT; AGENTS.md CONFLICT; rules/stack.go auto-merged
+go build ./state ./rules                      -> clean
+go test ./internal/testutil -run TestKnownApproximations   (see below)
+go test ./rules -run '<ratchets + targeted suites>'        (see below)
+go test ./internal/archtest/                  (see below)
+go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/  (see below)
+git commit (default merge message)
 ```
+
+Full pasted outputs (corpus present via the `.cards` symlink, so none of these
+are corpus-missing skips):
+
+```
+go test ./internal/testutil -run 'TestKnownApproximations|TestKnownOversize'
+  -> ok  github.com/adams-shaun/gorge/internal/testutil 0.001s
+
+go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|\
+  TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|TestValidTgtsSpellWithoutTargetTypeSearchesStack|\
+  TestTargetTypeSpellOffersOnlyStackObjectsAndCounters|TestCounterspellWithOnlyItselfOnStackFizzles|\
+  TestTgtZoneGraveyardTargetOfferedAndResolves|TestOriginGraveyardAbilityTargetsGraveyardLand|\
+  TestOriginGraveyardInstantSorceryTargetsGraveyard|TestTargetZonesChangeZoneOriginTable|\
+  TestTargetTypeQualifiersReadAllNamedQualifiers|TestTriggeredTargetTypeKeepsKindAfterSourceLeaves|\
+  Unless|TestPreselected'
+  -> ok  github.com/adams-shaun/gorge/rules 1.015s   (all ratchets + both sides' targeted suites)
+
+go test ./effects -run 'Unless|Charm|Compare|ChooseEach'
+  -> ok  github.com/adams-shaun/gorge/effects 0.682s
+
+go test ./internal/archtest/
+  -> ok  github.com/adams-shaun/gorge/internal/archtest 3.142s
+
+go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+  -> ok  github.com/adams-shaun/gorge/cmd/botbench 1.072s   (byte-identical, unmoved)
+
+gofmt -l <changed .go files>  -> clean
+```
+
+After the commit: `git merge-base --is-ancestor main HEAD` -> MAIN-CONTAINED;
+`git diff main --stat` shows exactly the branch's fix (rules/stack.go +31,
+its two test files, agentsdoc constant 77, the .ds4 report).
 
 ## Notes / uncertainties
 
-- The constant 78 is one lower than main's 80 because main's own constant over-counted
-  its table by one (79 rows measured at `main`). Shrinkage-only, so safe.
-- Main tracks `.ds4/report-mrg1.md` (its round-2 report); this file replaces it per the
-  report-path contract, committed as a separate `docs:` commit like prior rounds.
-- One transient slip during resolution (a lost backtick on the `ValidTgts$ Spell` row in
-  AGENTS.md) was caught and fixed before staging; final diff vs main is exactly the one
-  row deletion.
+- The ValidTgts row deletion is the one judgement call: main recorded the row at
+  `ffae51a54` (21:40), three minutes after this branch's last fix commit
+  (21:37), without containing that fix. The row's own text calls the behaviour a
+  "latent footgun"; the reviewed fix removes exactly that behaviour while
+  PRESERVING main's newer origin-implied-zone route (it outranks the inference,
+  per `070f673d`). If the gate disagrees, the alternative is restoring the row
+  and reverting the inference — a behaviour call for the controller, flagged
+  here.
+- Main tracks `.ds4/report-mrg1.md`; this file replaces the round-3 report in
+  the merge commit, as prior rounds did.
 
 ## Issues
 
-None found. No new defects surfaced during integration; both sides' tests and the
-ratchets pass against the merged tree.
+None found. No new defects surfaced during integration.

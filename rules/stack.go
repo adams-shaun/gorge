@@ -983,8 +983,22 @@ func targetZones(sa *cards.SA) []state.Zone {
 		zones = appendUniqueZone(zones, state.ZStack)
 	}
 	if len(zones) == 0 {
+		// An Origin$ that names exactly one concrete zone is a zone
+		// declaration in its own right and OUTRANKS the ValidTgts$
+		// inference below: `Origin$ Graveyard | ValidTgts$ Instant.YouCtrl,
+		// Sorcery.YouCtrl` (Volcanic Vision) names instant/sorcery CARDS in
+		// the graveyard, and inferring the stack from the base token would
+		// replace the graveyard route with a stack one and make the fetch
+		// inert (the finding this closes). With no explicit TgtZone$ and no
+		// Origin$ declaration, a ValidTgts$ whose own token names a stack
+		// object kind (for example, `ValidTgts$ Spell`) targets the stack;
+		// the TgtZone$ guard keeps an explicit `TgtZone$ Graveyard |
+		// ValidTgts$ Instant` (a card in a named zone, not a stack object)
+		// off this route.
 		if z, ok := originImpliedTargetZone(sa); ok {
 			zones = []state.Zone{z}
+		} else if sa.Params["TgtZone"] == "" && targetsStackObjects(sa.Params["ValidTgts"]) {
+			zones = []state.Zone{state.ZStack}
 		} else {
 			zones = []state.Zone{state.ZBattlefield}
 		}
@@ -1046,15 +1060,14 @@ func appendUniqueZone(zones []state.Zone, z state.Zone) []state.Zone {
 	return append(zones, z)
 }
 
-// targetsStackObjects reports whether a Forge TargetType$ value names a
-// target that lives on the stack: a spell (Spell/Instant/Sorcery), or an
-// activated/triggered/spell-ability object. The base token precedes any "."
-// qualifier (Spell.singleTarget, Instant.singleTarget, ...).
-func targetsStackObjects(tt string) bool {
-	for _, t := range strings.Split(tt, ",") {
-		base, _, _ := strings.Cut(strings.TrimSpace(t), ".")
-		switch base {
-		case "Spell", "Instant", "Sorcery", "Activated", "Triggered", "SpellAbility":
+// targetsStackObjects reports whether a Forge TargetType$ or ValidTgts$
+// value names a target that lives on the stack: a spell (Spell/Instant/
+// Sorcery), or an activated/triggered/spell-ability object. The shared state
+// parser keeps this census aligned with stack target-kind legality, including
+// Forge's Ability alias.
+func targetsStackObjects(spec string) bool {
+	for _, token := range strings.Split(spec, ",") {
+		if _, ok := state.StackKindTokenOf(strings.TrimSpace(token)); ok {
 			return true
 		}
 	}
