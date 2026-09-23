@@ -19,10 +19,12 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	// 44 at the rebase base (main's own closures: non<X>, NameCard, the battle
-	// protector, pc1/each1/CR 616.1, layer-4 filter grammar); this branch's
-	// attackprop1 closure deletes one more.
-	knownApproximationRows = 43
+	// The merged table measures 41 rows. Each side deleted disjoint rows and
+	// the merge keeps every deletion: this branch's attackprop1 closure
+	// (89c77778) and main's Phase$ First Strike Damage closure and
+	// mulligan-redraw-deferral closure (measured 2026-09-23: merge base 44,
+	// branch 43, main 42, merged 41).
+	knownApproximationRows = 41
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.

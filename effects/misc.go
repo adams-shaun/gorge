@@ -276,6 +276,12 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	remembered := effectRemembered(h, c, sa)
+	if imprintOnHost && len(remembered) > 0 {
+		// ImprintOnHost$ retains the objects captured by this Effect on its
+		// host card. Keep the association event-backed so replay and later
+		// Defined$ Imprinted reads observe the same imprint.
+		h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: append([]state.ObjID(nil), remembered...)})
+	}
 	// SetChosenNumber$ binds the Effect's number ONCE, here at creation,
 	// against THIS resolution's own context: the trigger-time board (Torgal's
 	// Count$Valid Dog.YouCtrl,Wolf.YouCtrl, Communal Brewing's
@@ -707,7 +713,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
 			}
-		case "CantTarget", "CantRegenerate", "CantPreventDamage", "CantAttack", "CantSacrifice", "CantPutCounter", "CantBlockBy", "CanAttackDefender", "UnspentMana":
+		case "CantTarget", "CantRegenerate", "CantPreventDamage", "CantAttack", "CantSacrifice", "CantPutCounter", "CantBlockBy", "CanAttackDefender", "UnspentMana", "MustBlock":
 			// A COMPOUND IsRemembered spec (Card.IsRemembered+Creature) resolves
 			// faithfully through the general filter now that it implements
 			// IsRemembered (rules/layers.go restrictionApplies consults the
@@ -1950,14 +1956,32 @@ func hasChosenPlayers(ts []state.Target) bool {
 // it just advances to the next face, wrapping to 0, which is correct for the
 // overwhelmingly common two-face case and a no-op for anything with fewer
 // than two faces (a token, or a single-faced card).
+//
+// Mode$ TurnFaceUp is the one exception: it is not a face change at all but
+// CR 708.6's reveal of a face-down battlefield permanent's printed face, so
+// it emits events.TurnFaceUp (which clears the face-down marker in Apply)
+// instead of a FlipFace. This is the effect-driven turn-up the corpus's
+// `AB$ SetState | Mode$ TurnFaceUp` lines carry (Woolly Loxodon and its 22
+// siblings); a non-face-down permanent is left alone, matching the marker's
+// own battlefield gate.
 func effSetState(h Host, c *Ctx, sa *cards.SA) {
 	mode := sa.Params["Mode"]
+	turnUp := strings.EqualFold(strings.TrimSpace(mode), "TurnFaceUp")
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
 		}
 		o := h.Game().Obj(t.Obj)
-		if o == nil || o.Card == nil || len(o.Card.Faces) < 2 {
+		if o == nil {
+			continue
+		}
+		if turnUp {
+			if o.Card != nil && o.Zone == state.ZBattlefield && o.FaceDown {
+				h.Emit(events.Event{Kind: events.TurnFaceUp, Obj: o.ID})
+			}
+			continue
+		}
+		if o.Card == nil || len(o.Card.Faces) < 2 {
 			continue
 		}
 		next := (int(o.FaceIdx) + 1) % len(o.Card.Faces)
@@ -2001,6 +2025,13 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 func effCounter(h Host, c *Ctx, sa *cards.SA) {
 	remember := strings.EqualFold(strings.TrimSpace(sa.Params["RememberCountered"]), "True") ||
 		strings.EqualFold(strings.TrimSpace(sa.Params["RememberCounteredSA"]), "True")
+	// RememberCounteredCMC$ (task counter-cmc): remember each countered
+	// spell's mana VALUE -- Electrosiphon's "an amount of {E} equal to its
+	// mana value", Overwhelming Intellect's draw family (14 corpus carriers,
+	// every one reading it back through SVar:X:Count$RememberedNumber). The
+	// number lands on the Ctx channel above; an ABILITY has no mana value
+	// and contributes nothing.
+	rememberCMC := strings.EqualFold(strings.TrimSpace(sa.Params["RememberCounteredCMC"]), "True")
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
@@ -2075,6 +2106,12 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 		if remember {
 			c.Remembered = append(c.Remembered, state.Target{Obj: o.ID})
 			eventRemember(h, c, o.ID)
+		}
+		if rememberCMC {
+			if f := o.Face(); f != nil {
+				c.RememberedCMC += f.Cmc()
+			}
+			c.RememberedCMCBound = true
 		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID,
 			From: state.ZStack, To: to, Text: "countered"})

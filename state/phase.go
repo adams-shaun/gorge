@@ -17,12 +17,13 @@ import "strings"
 // substring parsers (phaseMatches's Contains and delayedPhaseStep's switch)
 // are the defect class this file replaces.
 //
-// The one deliberate narrowing versus Forge's own model: Forge has a separate
+// The remaining narrowing versus Forge's own model: Forge has a separate
 // COMBAT_FIRST_STRIKE_DAMAGE step, which gorge's turn does not model (the
 // engine has a single combat-damage step). `First Strike Damage` therefore
-// maps to StepCombatDamage -- the step Forge's behaviour degrades to on a
-// game where no creature has first strike, which is the only game this
-// engine can represent. Documented in AGENTS.md's known approximations.
+// maps to StepCombatDamage; rules/trigmatch_misc.go gates that mapping on a
+// first/double striker being present, but cannot distinguish the first-strike
+// step from the later regular-damage step. The combat trigger still fires only
+// once at the engine's single step boundary.
 
 // StepSet is a bitmask over the twelve steps a turn walks. Zero is the empty
 // set, never a step value: the zero Step is StepUntap, so consumers must go

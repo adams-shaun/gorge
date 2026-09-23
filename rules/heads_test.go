@@ -1006,7 +1006,11 @@ var acceptanceHeads = map[int]string{
 	// Dig carrier in the four 4-seat decks, a one-card Optional$ window that
 	// previously took silently. Measured cause: reverting ONLY effDig's
 	// optionalChoice hunk in a scratch copy restores all four goldens.
-	4: "20028059e8c88ec3",
+	// 4 seats moved to acce7d850cfb176a (autonomous orchestrator): resolving cli-20260922T225141Z-48972afc (approx: a mulligan's REDRAW resolves immediately, interleaved with the rest of t)
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	4: "acce7d850cfb176a",
 	// 6 seats moved to c8c36b87e598c090 (autonomous orchestrator): resolving fb-20260914T033246Z-3f1cc033 (delver of secrets was played, but I was not prompted ... "you MAY reveal"... ...)
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
@@ -1136,7 +1140,11 @@ var acceptanceHeads = map[int]string{
 	// before too: in the neutralised stream each recorded pay attempt fails
 	// and the spell is countered anyway, so events 1397 and 1672 onward are
 	// identical.
-	6: "400d8d9ae2777ded",
+	// 6 seats moved to 3bd695df72d9d4c9 (autonomous orchestrator): resolving cli-20260922T225141Z-48972afc (approx: a mulligan's REDRAW resolves immediately, interleaved with the rest of t)
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	6: "3bd695df72d9d4c9",
 	// 8 seats moved to cc022f9ba9f2bf39 with task mana2 (fix(rules): pay mana
 	// ability costs and choose colors): mana abilities that spend a Sac cost
 	// are now gated on a payable, deterministic sacrifice candidate existing,
@@ -1308,7 +1316,11 @@ var acceptanceHeads = map[int]string{
 	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
 	// the same proxy this repo has used by hand for every head move -- neither
 	// check is sensitive to bot-choice quality, only engine correctness.
-	8: "5e988854bf022347",
+	// 8 seats moved to 5c90b1b3a0b38f25 (autonomous orchestrator): resolving cli-20260922T225141Z-48972afc (approx: a mulligan's REDRAW resolves immediately, interleaved with the rest of t)
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	8: "5c90b1b3a0b38f25",
 }
 
 func TestHeads(t *testing.T) {

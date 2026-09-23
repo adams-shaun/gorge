@@ -346,6 +346,15 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// allTriggerEvents default keeps a Mutates-only face's mask narrow
 		// for every other kind.
 		return 0
+	case "TurnFaceUp":
+		// CR 708.6/702.36e: the turn-up marker events.TurnFaceUp (task
+		// agent-20260919T183249Z-0fb8ed97). Its ordinal is past the 64-bit
+		// mask's reach -- the Mutates/Investigated shape -- so a mask bit is
+		// not encodable and allows() fails open for it, gated by the full
+		// matcher (turnFaceUpMatches). Returning 0 here rather than the
+		// allTriggerEvents default keeps a TurnFaceUp-only face's mask narrow
+		// for every other kind.
+		return 0
 	case "TokenCreated", "TokenCreatedOnce":
 		return 1 << events.TokenCreate
 	case "Drawn":
