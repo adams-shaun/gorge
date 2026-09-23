@@ -116,6 +116,19 @@ func (b Board) chooseLowest(d *decision.Decision, worth func(state.ObjID) int32)
 // TestEffectOptionalDeciderElectionIsPosedAtResolution drives both branches
 // with explicit answers); the fuzz gate exercises the decline.
 
+// declineOptional is shared by the production and legacy bot drivers: neither
+// unattended driver may accept a "you may" trigger on the seat's behalf. The
+// option's index, not its position, is the answer that Decision.Validate reads.
+// If no decline is offered, Clamp handles the fallback as for any other ask.
+func declineOptional(d *decision.Decision) []int {
+	for _, o := range d.Options {
+		if o.Kind == "no" {
+			return []int{o.Index}
+		}
+	}
+	return nil
+}
+
 // chooseDiscard keeps cheap plays over expensive ones, without the cast rule's
 // blanket creature premium. Basic positively identifies basic lands; zero-CMC
 // noncreatures are conservatively land-like (also protects free artifacts).

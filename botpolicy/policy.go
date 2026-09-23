@@ -463,14 +463,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		// asker of this kind; when it is absent the branch contributes
 		// nothing and clamp's last-resort answer applies. Consumes no rng:
 		// the same game state always answers the same way.
-		if len(d.Options) > 0 {
-			for _, o := range d.Options {
-				if o.Kind == "no" {
-					in.Choices = []int{o.Index}
-					break
-				}
-			}
-		}
+		in.Choices = declineOptional(d)
 		return Clamp(d, in)
 
 	case decision.KCommanderZone:
