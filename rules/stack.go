@@ -3136,7 +3136,7 @@ func (e *Engine) resolveTop() {
 			// AttackedPlayerWithMostLife) be re-checked with the defender the
 			// trigger queued against, which no current state can re-derive.
 			tc := e.triggerContexts[id]
-			if !e.triggerResolvingCheckHolds(t, o.Source, &tc) {
+			if !e.triggerResolvingCheckHolds(t, o.Source, o.Controller, &tc) {
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
 					From: state.ZStack, To: state.ZExile, Text: "fizzled: intervening-if no longer holds"})
 				e.ensureLeftTheStack(id, state.ZExile, "a replacement fully discarded this "+
