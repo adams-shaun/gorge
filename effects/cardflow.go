@@ -2239,6 +2239,30 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 		if wholeHand || int32(len(pool)) < n {
 			n = int32(len(pool))
 		}
+		if rav := strings.TrimSpace(sa.Params["RevealAllValid"]); rav != "" {
+			// RevealAllValid$ (Break Expectations' Card.cmcGE2+
+			// TargetedPlayerCtrl, Mind Spike's Card.nonLand+nonCreature+
+			// TargetedPlayerCtrl): the reveal covers EVERY card in the pool
+			// matching the spec — "Target player reveals all cards with mana
+			// value 2 or greater in their hand" — so the spec narrows the
+			// pool and the count becomes the whole matching set. Pre-fix the
+			// spec was never fed to the filter, so the reveal took pool[:1],
+			// the FIRST card of the whole hand whether or not it matched. An
+			// unresolvable spec matches nothing (the fail-closed convention
+			// RevealType$ and RevealValid$ already apply above), so the
+			// n == 0 skip below cleanly emits no Note and captures no
+			// RememberRevealed$; this is also the arm that keeps the
+			// revealer's own pick off the walk (the `pickable` gate reads the
+			// same parameter).
+			filtered := make([]state.ObjID, 0, len(pool))
+			for _, id := range pool {
+				if MatchesSpecCtx(g, rav, id, c.SpecContext(c.Controller)) {
+					filtered = append(filtered, id)
+				}
+			}
+			pool = filtered
+			n = int32(len(pool))
+		}
 		// A hand reveal is a CHOICE when the eligible pool holds strictly more
 		// cards than the answer must show. Forge asks the pool's owner which
 		// cards to reveal -- Infernal Tutor's "Reveal a card from your hand"
