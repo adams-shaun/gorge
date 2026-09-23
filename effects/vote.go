@@ -17,9 +17,10 @@ import (
 // api:FlipCoin's FlipCoinNote/FlipNoteResult pair serves for
 // trig:FlippedCoin (rules/trigger_match.go's flippedCoinMatches).
 //
-// Encoding (no events.Event schema change). The carrier must carry the RAW
-// BALLOTS, not a pre-split: the two List$ referent sets are relative to the
-// TRIGGER SOURCE'S CONTROLLER, which is unknowable when the vote resolves
+// Encoding (no events.Event schema change). A public vote carrier carries raw
+// ballots; a secret carrier contains only the completion marker, while the
+// synchronous trigger matcher receives private ballots. The two List$ sets
+// are relative to the TRIGGER SOURCE'S CONTROLLER, unknowable when the vote resolves
 // (the vote's caster and the carrier permanent's controller are frequently
 // different seats in multiplayer). So Player is the vote's caster (for the
 // transcript), Obj the resolving vote spell, and Pairs one entry per voter:
@@ -154,10 +155,27 @@ func battlefieldHasVoteTrigger(g *state.Game) bool {
 	return false
 }
 
-// emitVoteFinished proposes the canonical vote-finished Note for one
-// resolution's raw ballots, behind the battlefieldHasVoteTrigger gate.
-func emitVoteFinished(h Host, c *Ctx, ballots []VoteBallot, ballotExisted bool) {
+// privateVoteEmitter supplies the trigger matcher with secret ballots during
+// the synchronous emission, without storing them in the public event stream.
+// The answer is replay-derived from the recorded private voter intents.
+type privateVoteEmitter interface {
+	EmitSecretVoteFinished(events.Event, []VoteBallot)
+}
+
+// emitVoteFinished proposes the canonical vote-finished Note for one ballot.
+func emitVoteFinished(h Host, c *Ctx, ballots []VoteBallot, ballotExisted, secretly bool) {
 	if !battlefieldHasVoteTrigger(h.Game()) {
+		return
+	}
+	if secretly {
+		// No raw ballot may enter events.Event: log readers see the same
+		// completion marker, but only the synchronous trigger scan sees picks.
+		public := VoteFinishedNote(c.Controller, c.Source, nil, ballotExisted)
+		if private, ok := h.(privateVoteEmitter); ok {
+			private.EmitSecretVoteFinished(public, ballots)
+		} else {
+			h.Emit(public)
+		}
 		return
 	}
 	h.Emit(VoteFinishedNote(c.Controller, c.Source, ballots, ballotExisted))
@@ -183,13 +201,10 @@ func emitVoteFinished(h Host, c *Ctx, ballots []VoteBallot, ballotExisted bool) 
 // option list casts no vote at all (Forge's `if (voteOpts.isEmpty()) continue;`),
 // recorded as a zero Target so the picks stay aligned with the voter list.
 //
-// SECRECY: the ballot is secret by nature -- view.project attaches a pending
-// decision to its own Decision.Player only, so no other seat ever sees the
-// ask -- and the reveal is deferred: the per-voter "votes for <name>" Notes
-// are emitted after EVERY voter has answered (Forge's `if (secret)
-// notifyOfValue(...)` after the voting loop), never as each answer lands. The
-// canonical vote-finished carrier (emitVoteFinished) is emitted last, as it is
-// for the other two shapes.
+// SECRECY: the pending decision belongs only to its voter; Secretly$ ballots
+// never emit per-voter Notes, and their completion marker carries no picks.
+// Nonsecret ballots emit Notes after everyone has answered. The canonical
+// vote-finished carrier (emitVoteFinished) is emitted last.
 //
 // The tally is published behind StoreVoteNum$ True, the parameter Forge
 // requires before it stores VoteNum<SVar>s; an AmountFromVotes$ RepeatEach on
@@ -245,24 +260,25 @@ func effPlayerVote(h Host, c *Ctx, sa *cards.SA) {
 	}
 	c.VotePicks, c.VoteTarget, c.VoteDone, c.VoteAnswer = nil, 0, false, nil
 
-	// Reveal, once everyone has voted. The label is the ballot entry's
-	// identity (the seat's deck Name, the same event-text identity every
-	// other chain Note carries; F3 keeps the display PlayerName out).
+	// Nonsecret ballots publish the entry's deck identity once everyone has
+	// voted. Secret ballots keep their answers private even after completion.
 	ballots := make([]VoteBallot, len(voters))
 	for k, t := range voters {
 		voter := PlayerOf(h, c, t)
 		pick := ballotPickIndex(universe, picks, k)
-		label := "nothing"
-		if pick >= 0 {
-			label = votePlayerLabel(g, universe[pick])
+		if !strings.EqualFold(strings.TrimSpace(sa.Params["Secretly"]), "True") {
+			label := "nothing"
+			if pick >= 0 {
+				label = votePlayerLabel(g, universe[pick])
+			}
+			h.Emit(events.Event{Kind: events.Note, Player: voter, Text: "votes for " + label})
 		}
-		h.Emit(events.Event{Kind: events.Note, Player: voter, Text: "votes for " + label})
 		ballots[k] = VoteBallot{Player: voter, Pick: pick}
 	}
 	if strings.EqualFold(strings.TrimSpace(sa.Params["StoreVoteNum"]), "True") {
 		publishVoteCounts(c, voteCountsForPlayers(universe, picks))
 	}
-	emitVoteFinished(h, c, ballots, len(universe) > 0)
+	emitVoteFinished(h, c, ballots, len(universe) > 0, strings.EqualFold(strings.TrimSpace(sa.Params["Secretly"]), "True"))
 }
 
 // playerBallotOptions is the ballot entry list one voter may pick from: the
