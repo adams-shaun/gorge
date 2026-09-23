@@ -662,3 +662,44 @@ The test command was run with output captured in `.ds4/scratch/mrg1-final.log`. 
 ## Issues
 
 None found in this conflict-resolution pass.
+
+
+---
+
+## Additional rebased report
+
+# Merge-conflict resolution report — mrg1
+
+## Integration state
+
+On entry, `git status` showed a clean tree on `wt/cli-20260922T225139Z-205fd0ae`, at merge commit `04ecdf2a`. The described rebase/merge had already been completed; no operation was in flight and no unmerged paths remained. I did not start a second integration. The merge combines main and the approved branch changes.
+
+## Conflicted files and resolution
+
+- `internal/testutil/agentsdoc_test.go`: retained the merged count `knownApproximationRows = 72`, accounting for the branch's hidden-origin row deletion and main's stack-spell `Option.Kind` row deletion.
+- `.ds4/report-mrg1.md`: this tracked report had conflicted in the fallback merge and was already resolved; updated here with this session's verification.
+- `AGENTS.md`: auto-merged. The branch's hidden-origin approximation row is deleted; main's changes are retained.
+- `effects/zone.go`: merged implementation retains the branch's compound-origin fetch-player behavior together with main's changes. No conflict markers or unmerged paths remain.
+
+## Commands and results
+
+```text
+git status --short --branch
+## wt/cli-20260922T225139Z-205fd0ae
+
+ls .cards | head
+cards.lock
+cardsfolder
+ir.gob.gz
+ir.v4.gob.gz
+tokenscripts
+
+go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' 2>&1
+ok   github.com/adams-shaun/gorge/rules  0.796s
+```
+
+The corpus is present, so corpus-dependent ratchets were not skipped. The integration commit was already present on entry; this report update is committed separately.
+
+## Issues
+
+None found in this conflict-resolution pass.
