@@ -2153,6 +2153,22 @@ func Apply(g *state.Game, e Event) {
 					Params: map[string]string{"Defined": "Self", "NumCopies": "Count$OffspringPaid",
 						"SetPower": "1", "SetToughness": "1"}}
 			}
+			// A granted Mentor (rules.pushTrigger's __kwMentorGranted payload)
+			// has no SVar either: rebuilt structurally into the same
+			// DB$ PutCounter | ValidTgts$ Creature.attacking | Mentor$ True
+			// targeted body the printed K:Mentor expansion carries
+			// (cards/kw_mentor.go), so the live game and the replay mint
+			// identical objects from the event text alone. The "Granted"
+			// suffix keeps the payload from aliasing the "__kwMentor" SVar a
+			// printed bare K:Mentor line mints (the Exploit/Offspring rule).
+			// The Mentor$ marker rides the params, so rules' mentorAdmits reads
+			// it at both the target offer and the CR 608.2b recheck either way.
+			if _, ok := strings.CutPrefix(e.Counter, "__kwMentorGranted"); ok {
+				sa = &cards.SA{Kind: "DB", API: "PutCounter",
+					Params: map[string]string{"ValidTgts": "Creature.attacking",
+						"TgtPrompt": "Select target attacking creature with lesser power",
+						"Mentor":    "True", "CounterType": "P1P1", "CounterNum": "1"}}
+			}
 		}
 		if sa == nil {
 			break

@@ -220,19 +220,19 @@ func TestPreeminentCaptainSoldierEntersAttacking(t *testing.T) {
 // the graveyard TAPPED and ATTACKING, it is blockable, and its blocked
 // damage kills it against the blocker.
 //
-// It stands in for the brief's named Alesha coverage, which is unreachable
-// through a pre-existing, unrelated gap: her trigger's Cost$ WB WB is
-// decline-only at the triggered-cost window. Re-measured at this commit with
-// two untapped white sources on her controller's battlefield, the window asks
-// `Alesha, Who Smiles at Death - pay W/B W/B?` with exactly ONE option,
-// `trigger_cost_decline/Do not pay`, so her ChangeZone body never resolves and
-// no assertion about its entry rider is possible here. That gap is filed as
-// agent-20260922T232740Z-cf0357bb (hybrid mana at triggered-cost windows) and
-// is not this ticket's scope. Thunderkin Awakener, the other object-path
-// carrier, is blocked the same way by its ValidTgts$ ...toughnessLTX SVar-X
-// comparison resolving no target (agent-20260922T221917Z-aa93a144).
-// Yore-Tiller carries the same inlined object-loop move with a literal spec
-// and no cost, so the path under test is identical.
+// It stands in for the brief's named Alesha coverage. That coverage was
+// unreachable through a gap since closed by agent-20260922T232740Z-cf0357bb:
+// her trigger's Cost$ WB WB used to be decline-only at the triggered-cost
+// window (Cost.Priceable() rejected the hybrid pips and no announcement ask
+// existed). The window now poses the CR 601.2b pip election and pays the
+// resolved cost; rules/alesha_hybrid_trigger_test.go drives that real card
+// end to end. This test keeps the cost-free Yore-Tiller carrier because it
+// isolates the graveyard object path itself from any cost window.
+// Thunderkin Awakener, the other object-path carrier, is blocked the same way
+// by its ValidTgts$ ...toughnessLTX SVar-X comparison resolving no target
+// (agent-20260922T221917Z-aa93a144). Yore-Tiller carries the same inlined
+// object-loop move with a literal spec and no cost, so the path under test is
+// identical.
 func TestYoreTillerNephilimReturnsCreatureTappedAndAttacking(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e, cfg := combatTriggerBoard(t, reg, []string{"Yore-Tiller Nephilim"},
