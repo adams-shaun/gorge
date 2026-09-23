@@ -136,7 +136,7 @@ func (e *Engine) attackPairCharge(id state.ObjID, defender state.PlayerID) int32
 		if !e.matchesSpec(spec, id, e.specCtxSVars(sv.Source, sv.Controller, sv.SVars)) {
 			continue
 		}
-		if !restrictionPlayerTargetMatches(e.G, sv.Params["Target"], defender, sv.Controller, nil) {
+		if !restrictionPlayerTargetMatches(e.G, sv.Params["Target"], defender, sv.Controller, sv.Source, nil) {
 			continue
 		}
 		n, ok := e.attackUnlessPrice(sv, id)
