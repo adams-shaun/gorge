@@ -168,7 +168,8 @@ func (e *Engine) beginWardPayment(rp *resumePoint, ctx *effects.Ctx) (paid, aske
 	if !cost.hasManaPayment() || !e.hasUntappedManaSource(payer) {
 		return false, false
 	}
-	e.askWardMana(rp, payer, cost)
+	e.askWardMana(rp, &wardManaPayment{payer: payer, cost: cost, resumeKind: "ward_mana",
+		prompt: "Activate mana abilities to pay Ward"})
 	return false, true
 }
 
@@ -362,19 +363,36 @@ type wardManaPayment struct {
 	replacement bool
 	replaced    state.ObjID
 	before      *triggerSnapshot
+
+	// resumeKind is the decision's own resume kind ("ward_mana" for a Ward
+	// payment, "unless_mana" for a mid-resolution UnlessCost$). prompt is the
+	// window's prompt. Both let the ONE mana-window owner below serve both
+	// callers without duplicating the resume-state writes (ruling T21-e).
+	resumeKind string
+	prompt     string
+	// unless marks the mid-resolution UnlessCost$ window: Done charges the
+	// cost through payUnlessCost (with the resolving object's ManaConvert
+	// conversion) and sets ctx.UnlessNext, rather than Ward's plain payMana.
+	unless bool
+	// target is the unless arm's payer cursor (rp.target), threaded so the
+	// resumed arm attributes the answer to the same payer.
+	target int
 }
 
 // askWardMana offers every usable mana source plus Done. Unlike an ordinary
 // cast window, Done remains useful even after the last source is tapped: it
-// lets the player pay the now-floating mana or decline.
-func (e *Engine) askWardMana(rp *resumePoint, payer state.PlayerID, cost Cost) {
-	wm := &wardManaPayment{payer: payer, cost: cost, obj: rp.obj, sa: rp.sa,
-		outer: rp.outer, replacement: rp.replacement, replaced: rp.replaced, before: rp.before}
+// lets the player pay the now-floating mana or decline. It is the ONE owner
+// of the mid-resolution mana-window resume-state writes (ruling T21-e); the
+// unless-cost window (rules/unless_mana.go) delegates here rather than
+// writing e.resume itself.
+func (e *Engine) askWardMana(rp *resumePoint, wm *wardManaPayment) {
+	wm.obj, wm.sa = rp.obj, rp.sa
+	wm.outer, wm.replacement, wm.replaced, wm.before = rp.outer, rp.replacement, rp.replaced, rp.before
 	e.wardMana = wm
-	d := &decision.Decision{Player: payer, Kind: decision.KChoose, Min: 1, Max: 1,
-		Prompt: "Activate mana abilities to pay Ward", ResumeKind: "ward_mana", ResumeSA: rp.sa}
-	for _, id := range e.G.Zone(state.ZBattlefield, payer) {
-		if e.untappedManaSource(payer, id) {
+	d := &decision.Decision{Player: wm.payer, Kind: decision.KChoose, Min: 1, Max: 1,
+		Prompt: wm.prompt, ResumeKind: wm.resumeKind, ResumeSA: rp.sa, ResumeTarget: wm.target}
+	for _, id := range e.G.Zone(state.ZBattlefield, wm.payer) {
+		if e.untappedManaSource(wm.payer, id) {
 			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "activate", Obj: id,
 				Label: "Tap " + e.G.Obj(id).Face().Name + " for mana"})
 		}
@@ -382,29 +400,33 @@ func (e *Engine) askWardMana(rp *resumePoint, payer state.PlayerID, cost Cost) {
 	d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "done", Label: "Done"})
 	e.Ask(d)
 	// Ask sees the correct stack object but this payment window began while a
-	// prior Ward frame was resuming, so preserve that frame's continuation and
+	// prior frame was resuming, so preserve that frame's continuation and
 	// replacement snapshot explicitly.
 	e.resume.outer = wm.outer
 	e.resume.replacement = wm.replacement
 	e.resume.replaced = wm.replaced
 	e.resume.before = wm.before
+	e.resume.target = wm.target
 }
 
 // continueWardMana reopens the payment window after one mana ability has
 // resolved, including abilities that required their own ability/colour/discard
-// decision.
+// decision. It serves both the Ward and the unless-cost windows, because both
+// store their state on e.wardMana.
 func (e *Engine) continueWardMana() {
 	wm := e.wardMana
 	if wm == nil {
 		return
 	}
+	cp := *wm
 	e.askWardMana(&resumePoint{obj: wm.obj, sa: wm.sa, outer: wm.outer,
-		replacement: wm.replacement, replaced: wm.replaced, before: wm.before}, wm.payer, wm.cost)
+		replacement: wm.replacement, replaced: wm.replaced, before: wm.before}, &cp)
 }
 
 // answerWardMana applies Done or activates the chosen source. It returns true
 // when a new decision was installed and the current resolution must remain
-// suspended; otherwise it sets ctx.UnlessPay for effWard's normal re-entry.
+// suspended; otherwise it sets ctx.UnlessPay for the asking SA's normal
+// re-entry (effWard for Ward, the unless gate for an UnlessCost$).
 func (e *Engine) answerWardMana(rp *resumePoint, chosen []decision.Option, ctx *effects.Ctx) bool {
 	wm := e.wardMana
 	if wm == nil || wm.obj != rp.obj || wm.sa != rp.sa || len(chosen) != 1 {
@@ -413,7 +435,14 @@ func (e *Engine) answerWardMana(rp *resumePoint, chosen []decision.Option, ctx *
 	}
 	if chosen[0].Kind == "done" {
 		e.wardMana = nil
-		if e.payMana(wm.payer, wm.cost) {
+		var paid bool
+		if wm.unless {
+			paid = e.payUnlessCost(wm.payer, wm.cost, ctx, wm.obj)
+			ctx.UnlessNext = rp.target
+		} else {
+			paid = e.payMana(wm.payer, wm.cost)
+		}
+		if paid {
 			ctx.UnlessPay = "pay"
 		} else {
 			ctx.UnlessPay = "decline"

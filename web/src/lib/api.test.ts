@@ -53,9 +53,11 @@ describe('api urls', () => {
     fetchMock.mockReset();
     fetchMock.mockResolvedValueOnce({ ok: true, status: 204 });
     await postUndo('t1', 3, ctx);
-    expect(fetchMock).toHaveBeenLastCalledWith('/api/tables/t1/matches/3/undo', {
+    // objectContaining, not a literal: every state-channel request also
+    // carries the abort signal that bounds it (STATE_TIMEOUT in ./api).
+    expect(fetchMock).toHaveBeenLastCalledWith('/api/tables/t1/matches/3/undo', expect.objectContaining({
       method: 'POST', headers: { Authorization: 'Bearer tok-abc' },
-    });
+    }));
 
     fetchMock.mockResolvedValueOnce({ ok: false, status: 409, json: async () => ({ code: 'conflict', message: 'nothing to undo' }) });
     await expect(postUndo('t1', 3, ctx)).rejects.toMatchObject({ status: 409, code: 'conflict', message: 'nothing to undo' });
@@ -149,5 +151,50 @@ describe('createGame (Task ui11)', () => {
     fetchMock.mockReset();
     fetchMock.mockResolvedValueOnce({ ok: false, status: 404, json: async () => ({ code: 'not_found', message: 'play-vs-bot games are not enabled on this server' }) });
     await expect(createGame({ format: 'constructed' })).rejects.toMatchObject({ status: 404, code: 'not_found' });
+  });
+});
+
+describe('state-channel request deadline', () => {
+  // A request that never settles used to wedge the client permanently:
+  // refreshLive's `inflight` latch and the seat panel's `busy` flag are both
+  // released in a `finally`, so an unsettled promise pins them for the life of
+  // the page — the board stops repainting and the 1s /pending poll, gated on
+  // !busy, stops firing. The panel then reads "<step> — waiting for <player>"
+  // until the player reloads. Every state-channel call must abandon the socket
+  // instead.
+  afterEach(() => { vi.useRealTimers(); });
+
+  const neverSettles = () => {
+    fetchMock.mockReset();
+    fetchMock.mockImplementationOnce((_url: string, init: RequestInit) => new Promise((_resolve, reject) => {
+      init.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+    }));
+  };
+
+  it('aborts a GET that never answers and rejects as a timeout', async () => {
+    vi.useFakeTimers();
+    neverSettles();
+    const pending = fetchPending('t1', 3, ctx);
+    const assertion = expect(pending).rejects.toMatchObject({ status: 0, code: 'timeout' });
+    await vi.advanceTimersByTimeAsync(10_000);
+    await assertion;
+  });
+
+  it('aborts an intent POST that never answers, so the seat panel releases its busy lock', async () => {
+    vi.useFakeTimers();
+    neverSettles();
+    const intent: Intent = { seq: 4, player: 2, choices: [0] };
+    const posted = postIntent('t1', 3, intent, ctx);
+    const assertion = expect(posted).rejects.toMatchObject({ status: 0, code: 'timeout' });
+    await vi.advanceTimersByTimeAsync(10_000);
+    await assertion;
+  });
+
+  it('leaves a request that answers in time untouched', async () => {
+    vi.useFakeTimers();
+    fetchMock.mockReset();
+    const pending = { seq: 4, player: 2, kind: 'priority', prompt: 'p', min: 1, max: 1, options: [] };
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => pending });
+    await expect(fetchPending('t1', 3, ctx)).resolves.toEqual(pending);
   });
 });

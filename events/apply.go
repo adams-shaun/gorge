@@ -290,12 +290,12 @@ func Apply(g *state.Game, e Event) {
 		}
 
 	case TokenAttacks:
-		// A token that entered tapped and attacking (Mobilize, Kari Zev's
-		// monkey: the TokenAttacking$ True rider). Unlike MyriadCopy -- which
-		// MINTS a copy of the source card and flags IsMyriad, which
-		// MyriadCleanup exiles at end of combat -- this marks an
-		// ALREADY-MINTED battlefield token: Obj is the token, Player its
-		// controller and IDs[0] the defender it attacks. The object must
+		// A permanent that entered tapped and attacking (TokenAttacking$ or a
+		// move body's Attacking$ True rider). Unlike MyriadCopy -- which MINTS
+		// a copy of the source card and flags IsMyriad, which MyriadCleanup
+		// exiles at end of combat -- this marks an ALREADY-EXISTING battlefield
+		// object: Obj is the permanent, Player its controller and IDs[0] the
+		// defender it attacks. The object must
 		// still be on the battlefield and both players valid; anything else
 		// (a gone token, a fuzz event) is a no-op.
 		if o := g.Obj(e.Obj); o != nil && o.Zone == state.ZBattlefield &&
@@ -1626,6 +1626,45 @@ func Apply(g *state.Game, e Event) {
 		if o := g.Obj(e.Obj); o != nil {
 			o.NotedNumber = e.Amount
 		}
+
+	case PlayerNoted:
+		// A DB$ Pump body noted a label onto a player (NoteCards$ <defined>
+		// | NoteCardsFor$ <label> -- Seize the Spotlight, Master of
+		// Ceremonies). Player is the seat and Text the label; the note is
+		// read back by the shared player filter's `Player.NotedFor<label>`
+		// qualifier. Appending is idempotent (a re-note of the same label
+		// does not duplicate it) and preserves first-note order, so a
+		// log-only replay rebuilds the exact slice. An empty label or an
+		// out-of-range seat writes nothing rather than a ghost note.
+		if e.Text == "" || int(e.Player) >= len(g.Players) {
+			break
+		}
+		p := &g.Players[e.Player]
+		seen := false
+		for _, n := range p.Notes {
+			if n == e.Text {
+				seen = true
+				break
+			}
+		}
+		if !seen {
+			p.Notes = append(p.Notes, e.Text)
+		}
+
+	case PlayerNoteCleared:
+		// ClearNotedCardsFor$ removes exactly one label. Retaining the remaining
+		// order makes the event fold deterministic and replay-equivalent.
+		if e.Text == "" || int(e.Player) >= len(g.Players) {
+			break
+		}
+		p := &g.Players[e.Player]
+		out := p.Notes[:0]
+		for _, label := range p.Notes {
+			if label != e.Text {
+				out = append(out, label)
+			}
+		}
+		p.Notes = out
 
 	case Choose:
 		if o := g.Obj(e.Obj); o != nil {

@@ -281,16 +281,40 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	case "FlippedHeads", "FlippedTails":
 		// Forge's RememberResult$ flip-result memory: DB$ FlipCoin |
 		// RememberResult$ True, then a chained sub reading Defined$
-		// FlippedHeads/FlippedTails (Goblin Assassin's tails sacrifice is the
-		// live carrier). This build does not persist the per-flip results the
-		// flag names — the flips run (effFlipCoin), the memory does not
-		// survive a suspension-bearing chain re-entry — so the reader resolves
-		// to the EMPTY set (ok=true, fail closed to nobody) rather than
-		// Defined's source fallback, which would act on the flipping ability's
-		// own source.
-		return nil, true
+		// FlippedHeads/FlippedTails (Goblin Assassin's tails sacrifice and
+		// Mana Clash's ValidPlayers$ FlippedTails damage are the live
+		// carriers). When RememberResult$ is True, effFlipCoin appends every
+		// flip to Ctx.FlipMemory.Results, so the reader returns the real
+		// flippers of that side rather than the empty set. A resolution with no
+		// remembered result resolves to the empty set,
+		// ok=true (fail closed to nobody, the pre-existing convention).
+		wantHeads := spec == "FlippedHeads"
+		var out []state.Target
+		seen := make(map[state.PlayerID]bool)
+		var results []FlipResult
+		if c.FlipMemory != nil {
+			results = c.FlipMemory.Results
+		}
+		for _, fr := range results {
+			if fr.Heads != wantHeads || seen[fr.Player] {
+				continue
+			}
+			seen[fr.Player] = true
+			out = append(out, state.Target{Player: fr.Player, IsPlayer: true})
+		}
+		return out, true
 	case "Remembered":
 		return copyTargets(c.Remembered), true
+	case "ImprintedLKI":
+		// Forge's LKI spelling of the imprint pile, distinct from the bare
+		// "Imprinted" case below: the SOURCE's persistent imprint association,
+		// deliberately NOT the RepeatEach subject binding "Imprinted" takes --
+		// a delayed trigger registering after a RepeatEach loop must see every
+		// token/card imprinted across the whole loop (Kharasha Foothills,
+		// Shredder, Shadow Master's RememberObjects$ ImprintedLKI DelTrig),
+		// not the last iteration's subject. All five corpus DelTrig carriers
+		// read it exactly this way.
+		return imprintPileTargets(g, c), true
 	case "Imprinted", "ImprintedController":
 		// Two populations share the spelling. Inside a RepeatEach iteration
 		// (this build's own binding) Forge's UseImprinted$ names the loop's
@@ -322,37 +346,7 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		if spec == "ImprintedController" {
 			return nil, true
 		}
-		if o := g.Obj(c.Source); o != nil {
-			out := make([]state.Target, 0, len(o.Imprinted)+len(o.ImprintTokens))
-			for _, id := range o.Imprinted {
-				// Imprint links an exiled card only while the linked card remains
-				// in exile (CR 607.2a); its persistent ID cannot follow it later.
-				if linked := g.Obj(id); linked != nil && linked.Zone == state.ZExile {
-					out = append(out, state.Target{Obj: id})
-				}
-			}
-			// ImprintTokens$ True names the created TOKENS (Forge's
-			// imprintedCards written by TokenEffect): they are battlefield
-			// permanents, so they resolve while they exist -- the exiled-card
-			// zone filter above must not apply to them.
-			for _, id := range o.ImprintTokens {
-				if g.Obj(id) != nil {
-					out = append(out, state.Target{Obj: id})
-				}
-			}
-			// SeekFound (ImprintFound$ True) names cards the seek moved to a
-			// HAND: Forge's continuation reads imprintedCards without a zone
-			// filter, so these resolve wherever they currently sit. Kept in
-			// its own list so the CR 607.2a exile-only rule above still holds
-			// for the ordinary Imprinted association.
-			for _, id := range o.SeekFound {
-				if g.Obj(id) != nil {
-					out = append(out, state.Target{Obj: id})
-				}
-			}
-			return out, true
-		}
-		return nil, true
+		return imprintPileTargets(g, c), true
 	case "ChosenCard", "ChosenPlayer":
 		// ChooseCard/ChoosePlayer bind the current resolution's most recent
 		// choice here. This is deliberately distinct from Remembered: Forge
@@ -867,6 +861,44 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 // through after the objects. Deterministic (slices in order, no map range
 // reaches a caller's output) and allocation-only: it writes no state and
 // emits no event.
+//
+// imprintPileTargets resolves the SOURCE's persistent imprint association
+// (state.Object.Imprinted + ImprintTokens): the exiled cards -- Imprint links
+// an exiled card only while the linked card remains in exile (CR 607.2a); its
+// persistent ID cannot follow it later -- plus the minted tokens an
+// ImprintTokens$ True effect recorded. The tokens are battlefield permanents,
+// so they resolve while they exist -- the exiled-card zone filter must not
+// apply to them. One home shared by the "Imprinted" (non-RepeatSubject arm)
+// and "ImprintedLKI" definedSpec cases, so the two spellings read one pile.
+func imprintPileTargets(g *state.Game, c *Ctx) []state.Target {
+	o := g.Obj(c.Source)
+	if o == nil {
+		return nil
+	}
+	out := make([]state.Target, 0, len(o.Imprinted)+len(o.ImprintTokens))
+	for _, id := range o.Imprinted {
+		if linked := g.Obj(id); linked != nil && linked.Zone == state.ZExile {
+			out = append(out, state.Target{Obj: id})
+		}
+	}
+	for _, id := range o.ImprintTokens {
+		if g.Obj(id) != nil {
+			out = append(out, state.Target{Obj: id})
+		}
+	}
+	// SeekFound (ImprintFound$ True) names cards the seek moved to a HAND:
+	// Forge's continuation reads imprintedCards without a zone filter, so these
+	// resolve wherever they currently sit. Kept in its own list so the CR
+	// 607.2a exile-only rule above still holds for the ordinary Imprinted
+	// association.
+	for _, id := range o.SeekFound {
+		if g.Obj(id) != nil {
+			out = append(out, state.Target{Obj: id})
+		}
+	}
+	return out
+}
+
 func rememberedWithSource(h Host, c *Ctx) []state.Target {
 	out := make([]state.Target, 0, len(c.Remembered))
 	seen := make(map[state.ObjID]bool, len(c.Remembered))

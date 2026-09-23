@@ -67,6 +67,65 @@ describe('SeatPanelState', () => {
     expect(postIntentMock).toHaveBeenLastCalledWith('t1', 1, { seq: 9, player: 0, choices: [1] }, ctx);
   });
 
+  // Regression (the freeze seen on the live demo): the panel held a
+  // trigger_order ask while the server was asking this same seat to choose a
+  // target. view.decision is embedded ONLY at the exact head seq, and the
+  // effect that reads it re-runs only when a NEW view object is assigned, so
+  // once the view stopped updating nothing replaced the stale ask -- and the
+  // /pending poll that would have was gated on an EMPTY panel. The poll now
+  // runs with a decision on screen, so a stale ask must be replaced by the
+  // one the server is actually asking.
+  it('replaces a decision the server has already moved past', async () => {
+    const p = new SeatPanelState('t1', 1, ctx);
+    const stale = priority(5, [cast(0), pass(1), concede(2)]);
+    p.adoptView(stale);
+    expect(p.pending?.seq).toBe(5);
+
+    // No adoptView from here: the view has stopped updating, which is exactly
+    // the condition that made this permanent.
+    fetchPendingMock.mockResolvedValue(priority(9, [cast(0), pass(1), concede(2)]));
+    await p.refreshPending();
+    await settle(() => p.pending?.seq === 9);
+    expect(p.pending?.seq).toBe(9);
+  });
+
+  // The counterpart guarantee that makes polling-while-displayed safe: a poll
+  // returning the SAME ask must not disturb a pick in progress.
+  it('a poll returning the displayed ask leaves an in-progress pick alone', async () => {
+    const p = new SeatPanelState('t1', 1, ctx);
+    const d = priority(5, [cast(0), pass(1), concede(2)]);
+    p.adoptView(d);
+    p.setPicked([0]);
+    expect(p.picked).toEqual([0]);
+
+    fetchPendingMock.mockResolvedValue(priority(5, [cast(0), pass(1), concede(2)]));
+    await p.refreshPending();
+    await drain();
+    expect(p.pending?.seq).toBe(5);
+    expect(p.picked).toEqual([0]);
+  });
+
+  // The poll's gate itself. It used to be "only when the panel has nothing to
+  // answer", which is what made a stale ask permanent -- see shouldPoll.
+  it('polls while a decision is displayed, and holds off only while an intent is in flight', async () => {
+    const p = new SeatPanelState('t1', 1, ctx);
+    expect(p.shouldPoll).toBe(true); // empty panel, as before
+
+    p.adoptView(priority(5, [cast(0), pass(1), concede(2)]));
+    expect(p.pending?.seq).toBe(5);
+    expect(p.shouldPoll).toBe(true); // a displayed ask must NOT switch the poll off
+
+    let release = (): void => {};
+    postIntentMock.mockImplementationOnce(() => new Promise<void>((r) => { release = r; }));
+    p.click(1);
+    await settle(() => p.busy);
+    expect(p.shouldPoll).toBe(false); // this panel's own post owns the ask
+
+    release();
+    await settle(() => !p.busy);
+    expect(p.shouldPoll).toBe(true);
+  });
+
   // The poll must not re-open a decision this seat already answered: while the
   // server still reports the answered ask, /pending returns it again.
   it('a poll that returns the decision just answered does not re-open it', async () => {

@@ -283,7 +283,7 @@ type combatFires struct {
 // modes, so no trigger of another mode that fired before stops firing or
 // fires less often.
 var actionTriggerModes = map[string]bool{
-	"AttackersDeclaredOneTarget": true, "AttackersDeclared": true, "Sacrificed": true, "Discarded": true,
+	"AttackersDeclaredOneTarget": true, "AttackersDeclared": true, "AttackerUnblocked": true, "Sacrificed": true, "Discarded": true,
 	"CommitCrime": true, "Taps": true, "TapsForMana": true,
 	// DamagePreventedOnce joins them for the same reason: it is an event mode
 	// registered from the start (rules/trigger_match.go's
@@ -1763,7 +1763,7 @@ func init() {
 
 	effects.RegisterNonAPI(
 		"trig:ChangesZone", "trig:ChangesZoneAll", "trig:SpellCast", "trig:Attacks", "trig:AttackersDeclaredOneTarget",
-		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:AttackerBlockedByCreature", "trig:AttackerUnblockedOnce", "trig:Blocks", "trig:Cycled", "trig:CounterAdded", "trig:CounterAddedOnce", "trig:CounterRemoved", "trig:CounterRemovedOnce", "trig:CounterPlayerAddedAll",
+		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:AttackerBlockedByCreature", "trig:AttackerUnblocked", "trig:AttackerUnblockedOnce", "trig:Blocks", "trig:Cycled", "trig:CounterAdded", "trig:CounterAddedOnce", "trig:CounterRemoved", "trig:CounterRemovedOnce", "trig:CounterPlayerAddedAll",
 		"trig:Sacrificed", "trig:Discarded", "trig:CommitCrime", "trig:Taps", "trig:TapsForMana",
 		"trig:ClassLevelGained", "trig:BecomeMonstrous",
 		"trig:TokenCreated", "trig:TokenCreatedOnce",
@@ -1849,9 +1849,11 @@ func init() {
 		//     CR 903.13c named-pair alias, and CR 903.4-style commander
 		//     eligibility): the engine already seats and casts commanders
 		//     per Config -- partnerPairOK -> deck.IsPartnerPair checks the
-		//     mutual named pair -- and nothing in play reads them, so the
-		//     registrations assert the corpus shape is understood, not that
-		//     play rules exist for it.
+		//     mutual named pair -- so the registrations assert the corpus
+		//     shape is understood. kw:Partner with ALSO prints real rules
+		//     text (CR 702.128's ETB may-search for the named partner), which
+		//     cards/kw_partner_with.go expands into an ordinary trigger; the
+		//     bare kw:Partner line and "kw:CARDNAME..." remain play-free.
 		"trig:UnlockDoor", "kw:Station", "kw:Chapter", "kw:Start your engines",
 		"stat:Panharmonicon", "kw:Partner", "kw:Partner with",
 		"kw:CARDNAME can be your commander.",

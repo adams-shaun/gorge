@@ -38,6 +38,19 @@ export class MatchState {
   constructor(readonly table: string, readonly seat?: SeatCtx) {}
 
   apply(f: Frame) {
+    // An overflow frame is the server saying it DROPPED frames for this
+    // session: Session.push never blocks, so a burst that outruns the SSE
+    // writer discards frames, marks the session overflowed and closes it
+    // (host/session.go, host/httpapi/sse.go). The dropped frames can include
+    // the decision frame that is this client's ONLY repaint edge during play,
+    // so ignoring this — as the client did — leaves the board frozen on the
+    // last painted view until the player reloads. It carries no table (it
+    // describes the session, not a match), so it is handled before the table
+    // guard below and refetches rather than trusting what we hold.
+    if (f.t === 'overflow') {
+      this.resync();
+      return;
+    }
     if (f.table !== this.table) return;
     switch (f.t) {
       case 'match_start':
@@ -184,6 +197,30 @@ export class MatchState {
     finally {
       this.inflight = false;
       if (this.again) { this.again = false; void this.refreshLive(); }
+    }
+  }
+
+  /**
+   * resync refetches everything the stream may have dropped. It is the
+   * recovery edge for an overflow frame: the client cannot know WHICH frames
+   * were discarded, so it trusts nothing it holds and re-reads the view (and,
+   * for a seat, the transcript from the top) at the server's current head.
+   * A paused DVR keeps its cursor — the player is reading history, and the
+   * live tail they return to is fetched then.
+   *
+   * This is the EARLY repaint, not the authoritative one: the view is refetched
+   * at the head we know, which an overflow may itself have left behind. The
+   * server closes an overflowed session, so the browser's reconnect brings a
+   * fresh snapshot carrying the true head and that repaints exactly. What this
+   * buys is the case where the reconnect is slow or its re-subscribe fails —
+   * the difference between a stale board and a frozen one.
+   */
+  resync() {
+    if (this.match === null || !this.dvr.live) return;
+    void this.refreshLive();
+    if (this.seat) {
+      this.seatSince = 0;
+      void this.backfillEvents(0);
     }
   }
 

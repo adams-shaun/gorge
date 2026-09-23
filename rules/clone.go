@@ -157,6 +157,14 @@ func (e *Engine) Clone() *Engine {
 		c.attachedChoice = &ac
 	}
 	c.attachedApplying = e.attachedApplying
+	if e.tokenChoice != nil {
+		tc := *e.tokenChoice
+		// plan is the slice the resume mutates in place; matches is read-only
+		// after the park (the repl pointers are immutable face entries), so
+		// only the plan is re-allocated.
+		tc.plan = append([]tokenPlanMint(nil), e.tokenChoice.plan...)
+		c.tokenChoice = &tc
+	}
 	if e.pending != nil {
 		d := *e.pending
 		d.Options = append([]decision.Option(nil), e.pending.Options...)
@@ -563,7 +571,7 @@ func (e *Engine) Clone() *Engine {
 		pc.delve = append([]state.ObjID(nil), e.cast.delve...)
 		pc.sacs = append([]state.ObjID(nil), e.cast.sacs...)
 		pc.discards = append([]state.ObjID(nil), e.cast.discards...)
-		pc.subCtrs = append([]state.ObjID(nil), e.cast.subCtrs...)
+		pc.subCounterPays = append([]subCounterPay(nil), e.cast.subCounterPays...)
 		pc.exiles = append([]state.ObjID(nil), e.cast.exiles...)
 		pc.returns = append([]state.ObjID(nil), e.cast.returns...)
 		pc.moveGraves = append([]state.ObjID(nil), e.cast.moveGraves...)
@@ -575,6 +583,13 @@ func (e *Engine) Clone() *Engine {
 		pc.preModes = append([]string(nil), e.cast.preModes...)
 		pc.preSuppress = cloneSuppressed(e.cast.preSuppress)
 		pc.preAborts = cloneAbortCounts(e.cast.preAborts)
+		if e.cast.mayPlayRemembered != nil {
+			m := make(map[state.ObjID][]state.ObjID, len(e.cast.mayPlayRemembered))
+			for k, v := range e.cast.mayPlayRemembered {
+				m[k] = append([]state.ObjID(nil), v...)
+			}
+			pc.mayPlayRemembered = m
+		}
 		c.cast = &pc
 		// The held-back cast trigger (CR 601.2i, cast.go): a clone taken at an
 		// intent boundary while a cast is suspended (its target/choose decision

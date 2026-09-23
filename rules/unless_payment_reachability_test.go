@@ -142,6 +142,14 @@ func TestCounterUnlessCostManaLeakTapsRealManaSources(t *testing.T) {
 		}
 		submitChoices(t, e, chosen)
 	}
+	// Every selected Island reopens the unless window. Complete it explicitly
+	// once the third source has produced the {3}; the generic drain only
+	// handles priority decisions and must not silently choose this payment.
+	d := e.Pending()
+	if d == nil || d.ResumeKind != "unless_mana" || len(d.Options) != 1 || d.Options[0].Kind != "done" {
+		t.Fatalf("expected the final unless_mana Done window, got %+v", d)
+	}
+	submitChoices(t, e, d.Options[0].Index)
 	passUntilStackEmpty(t, e, 20)
 	if e.G.Obj(bearID).Zone != state.ZBattlefield {
 		t.Fatalf("Mana Leak paid from tapped lands but bear zone = %s", e.G.Obj(bearID).Zone)

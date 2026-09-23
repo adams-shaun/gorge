@@ -466,6 +466,15 @@ type Engine struct {
 	// before a chained TokenOwner$ TargetedController resolves). Transient
 	// scratch: rebuilt identically by replay, nil outside a chain.
 	resolvingTargetControllerLKI map[state.ObjID]state.PlayerID
+	// resolvingFlipMemory is the coin-flip memory of the Resolve chain whose
+	// effect is CURRENTLY running, published by effects.Resolve (and by
+	// effFlipCoin when it lazily allocates the memory) through the optional
+	// Host.SetResolutionFlipMemory seam and restored on return. Ask captures it
+	// onto the pending resumePoint, so a resumed continuation re-attaches the
+	// SAME pointer and a chained Defined$ FlippedTails / Wins reader keeps
+	// every flip performed before the suspension. Transient scratch: rebuilt
+	// identically by replay, nil outside a chain or before any flip.
+	resolvingFlipMemory *effects.FlipMemory
 	// villainousRemembered is the victim of the VillainousChoice whose chosen
 	// body is CURRENTLY resolving, kept as ambient engine state for the
 	// duration of that body's effects.Resolve — the fusedResolving pattern.
@@ -703,6 +712,14 @@ type Engine struct {
 	// for its name and creature type.
 	attachedChoice   *attachedChoice
 	attachedApplying bool
+	// tokenChoice parks a CreateToken replacement plan while the chosen-copy
+	// body (Type$ ReplaceToken | TokenScript$ Chosen -- Esix, Moonlit
+	// Meditation, Mirrormind Crown) asks its controller which creature to
+	// copy. Same discipline as siegeMove/attachedChoice: the plan's mints are
+	// emitted only after the answered election is applied, so the log's
+	// CopyToken events carry the choice and a log-only replay re-derives the
+	// mints. Clone-copied (clone.go).
+	tokenChoice *tokenChoiceState
 	// suspendedCasts is the mandatory "cast it if able" trigger created when
 	// a real suspended card loses its final TIME counter. IDs are appended in
 	// exile order and consumed before priority; it is plain replayable engine
@@ -732,7 +749,11 @@ type Engine struct {
 	echo *echoFlow
 
 	// wardMana holds a CR 702.21a mana-payment window while a Ward trigger
-	// is resolving. It is plain data so Clone preserves the suspended choice.
+	// is resolving, and (one shared owner, ruling T21-e) the same CR 601.2g
+	// window for a mid-resolution UnlessCost$ (the `unless_pay` resume arm),
+	// so a payer with an untapped source -- and a stat:ManaConvert conversion
+	// -- can pay a cost its floating pool cannot cover. It is plain data so
+	// Clone preserves the suspended choice.
 	wardMana *wardManaPayment
 
 	// attackPay holds the declare-attackers attack-cost payment window
