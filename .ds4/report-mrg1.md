@@ -654,3 +654,26 @@ ok   github.com/adams-shaun/gorge/rules 0.783s
 
 No conflict markers remain in the affected Go file. No engine behavior or ratchet
 entries changed, and there are no additional issues or uncertainties.
+
+### Fresh resolver verification
+
+On this dispatch, the worktree was already clean at `f76e75ad`, following merge
+commit `4bd357c1`; there was no rebase or merge operation in progress. The
+conflict resolution and its report were already committed. `.cards` is present.
+
+Commands and output from this verification:
+
+```text
+go test ./internal/testutil -run 'TestKnownApproximation' -v
+=== RUN   TestKnownApproximationsOnlyShrinks
+--- PASS: TestKnownApproximationsOnlyShrinks (0.00s)
+=== RUN   TestKnownApproximationRowsAreShort
+--- PASS: TestKnownApproximationRowsAreShort (0.00s)
+PASS
+ok   github.com/adams-shaun/gorge/internal/testutil  0.001s
+
+go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok   github.com/adams-shaun/gorge/rules  0.813s
+```
+
+The merged table and constant remain 55. No further conflict or uncertainty.
