@@ -1,7 +1,6 @@
 package rules
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -98,13 +97,11 @@ func TestVanishingTidewalkerDynamicCountUpkeepAndLastCounter(t *testing.T) {
 // outOfTimeEngine puts the REAL corpus Out of Time -- the other bare
 // K:Vanishing carrier -- on seat 0's battlefield with `creatures` real
 // Grizzly Bears already on that battlefield, each TAPPED, and resolves Out of
-// Time's own printed enters trigger. That trigger untaps the creatures
-// (DB$ UntapAll), phases them out while remembering each (DB$ Phases with
-// RememberAffected$ True -- the phase-out itself degrades to a loud Note;
-// see effects/phases.go and the report), and places a TIME counter on Out of
-// Time for each remembered creature (DB$ PutCounter, X = Count$RememberedSize).
-// The returned count is therefore the card's OWN dynamic count -- never a
-// Vanishing-synthesized or test-injected number.
+// Time's own printed enters trigger. Phasing is not implemented, so the
+// fixture records affected creatures as remembered through Choose events
+// before resolving the trigger. Its printed DB$ PutCounter then reads
+// Count$RememberedSize from that event-backed list. This tests the real
+// count expression and Vanishing clock, NOT phase-out or phase-in.
 func outOfTimeEngine(t *testing.T, creatures int) (*Engine, state.ObjID, []state.ObjID) {
 	t.Helper()
 	reg := testutil.CorpusRegistry(t)
@@ -141,9 +138,17 @@ func outOfTimeEngine(t *testing.T, creatures int) (*Engine, state.ObjID, []state
 	if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield {
 		t.Fatalf("precondition: Out of Time is not on battlefield: %+v", o)
 	}
-	// Resolve the PRINTED enters trigger -- untap, phase out + remember,
-	// count. This is the dynamic acquisition the seeded variant below cannot
-	// exercise.
+	// The unimplemented Phases effect cannot remember or hide permanents.
+	// Model ONLY its affected-set capture for this test; leave Phases on the
+	// loud unimplemented path rather than claiming general phasing support.
+	for _, bid := range bears {
+		e.emit(events.Event{Kind: events.Choose, Obj: id, Counter: "remembered", IDs: []state.ObjID{bid}})
+	}
+	if got := len(e.G.Obj(id).Remembered); got != creatures {
+		t.Fatalf("precondition: remembered count = %d, want %d affected creatures", got, creatures)
+	}
+	// Resolve the real PRINTED enters trigger: untap, unsupported Phases,
+	// Effect, then DBPutCounter reading the remembered source list.
 	e.putTriggersOnStack()
 	if len(e.G.Stack) != 1 {
 		t.Fatalf("Out of Time's entry queued %d stack objects, want exactly its printed enters trigger", len(e.G.Stack))
@@ -160,25 +165,29 @@ func outOfTimeEngine(t *testing.T, creatures int) (*Engine, state.ObjID, []state
 
 // TestVanishingOutOfTimeDynamicCountUpkeepAndLastCounter is the brief's
 // integration case: the real corpus Out of Time acquires its TIME counters
-// through its OWN printed count mechanism (its enters trigger counts the
-// creatures it phased out, via RememberedSize -- nothing is injected and the
-// bare Vanishing expansion synthesizes nothing), the controller's Vanishing
+// through its OWN printed Count$RememberedSize mechanism (the fixture
+// event-captures affected creatures because Phases is unimplemented;
+// no TIME counters are injected), the controller's Vanishing
 // upkeep removes one of that dynamic count, and reaching zero queues the
 // last-counter sacrifice.
 func TestVanishingOutOfTimeDynamicCountUpkeepAndLastCounter(t *testing.T) {
 	e, id, bears := outOfTimeEngine(t, 2)
 	if got := e.G.Obj(id).Counter("TIME"); got != 2 {
-		t.Fatalf("precondition: Out of Time entered with %d TIME counters, want 2 from its own printed count (2 creatures phased out)", got)
+		t.Fatalf("precondition: Out of Time entered with %d TIME counters, want 2 from its printed count (2 creatures captured in fixture)", got)
 	}
 	if got := e.G.Obj(id).Counter("TIME"); got == 0 {
 		t.Fatal("precondition: dynamic count must be positive before the clock runs")
 	}
-	// The count step is the registered Phases primitive, not the
-	// unimplemented-API fallback: no such note may appear in the log.
+	// The unsupported phase-out remains loud; this test does not mistake
+	// event-captured count inputs for a working Phases implementation.
+	var unsupported bool
 	for _, ev := range e.L.Events {
-		if ev.Kind == events.Note && strings.Contains(ev.Text, "unimplemented API Phases") {
-			t.Fatalf("the printed count step ran unimplemented: %q", ev.Text)
+		if ev.Kind == events.Note && ev.Text == "unimplemented API Phases" {
+			unsupported = true
 		}
+	}
+	if !unsupported {
+		t.Fatal("precondition: Phases fallback was not exercised")
 	}
 
 	// The controller's upkeep queues the Vanishing removal trigger; removal
@@ -214,11 +223,11 @@ func TestVanishingOutOfTimeDynamicCountUpkeepAndLastCounter(t *testing.T) {
 	if z := e.G.Obj(id).Zone; z != state.ZGraveyard {
 		t.Fatalf("after resolving last-counter trigger zone = %s, want graveyard", z)
 	}
-	// End-state parity with a real game: the creatures Out of Time phased out
-	// this way come back when it leaves, and here they never left.
+	// The fixture did not phase the creatures out; the fallback leaves them
+	// on the battlefield throughout.
 	for _, bid := range bears {
 		if o := e.G.Obj(bid); o == nil || o.Zone != state.ZBattlefield {
-			t.Fatalf("bear %d left the battlefield: %+v (phase-in end state parity broken)", bid, o)
+			t.Fatalf("bear %d left the battlefield despite unsupported phasing: %+v", bid, o)
 		}
 	}
 }
