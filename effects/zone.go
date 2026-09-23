@@ -1172,6 +1172,24 @@ func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, 
 	if to == state.ZExile {
 		recordExileReturn(h, c, sa, id, from, to)
 	}
+	// Imprint$ True on the shared settle path (Dakra Mystic's DBPutRevealed:
+	// `Defined$ Remembered | Origin$ Library | Destination$ Graveyard |
+	// Imprint$ True`): Forge records every card a ChangeZone moved in the
+	// source's persistent imprintedCards association, whatever the
+	// destination, and a later `Defined$ Imprinted` sub reads it back
+	// (Dakra's follow-up draw is gated `ConditionDefined$ Imprinted ...
+	// EQ0`). The card joins the source's association through the ordinary
+	// events.Imprint association, so replay folds it. Confirmed by the
+	// object's post-move zone: a skipped candidate is never imprinted, and a
+	// token never is. This is the one settle path every movement route
+	// shares; the two inlined movers that predate it (the object-target loop
+	// and applyLibrarySearch's library-origin branch) keep their own
+	// collection and do not call through here, so nothing is recorded twice.
+	if strings.EqualFold(strings.TrimSpace(sa.Params["Imprint"]), "True") && c.Source != 0 {
+		if o := h.Game().Obj(id); o != nil && o.Zone == to && !o.IsToken {
+			h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: []state.ObjID{id}})
+		}
+	}
 	// RememberLKI$ True (the corpus's 77 ChangeZone lines -- Reanimate's
 	// "creature card" whose mana value the chained lose-life SVar reads,
 	// RememberedLKI$CardManaCost) joins the moved object to the ability's
