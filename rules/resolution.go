@@ -1031,13 +1031,11 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 			// target a different player" rule, enforced on the wire — and the
 			// answers attribute to the target-bearing modes positionally in
 			// chosen-mode order (ask order == chosen order == replay order).
-			// Every other shape keeps the historical one-undivided-list
-			// narrowing: only the FIRST target-bearing mode's targets are
-			// asked, and the resolution's modes share them (the same narrowing
-			// the spell-side Charm carries). The answer lands on the stack
-			// object through handleTarget's ordinary record, and the
-			// resolution's effToken (TokenOwner$ ThisTargetedPlayer) and
-			// friends read it as c.Targets.
+			// Distinct single-target modes use their own grouped options and
+			// target bindings. Other declarations keep their legacy ask path.
+			// The answer lands on the stack object through handleTarget's
+			// ordinary record; effToken (TokenOwner$ ThisTargetedPlayer) and
+			// friends read the mode's own c.Targets.
 			if so != nil && so.Ability != nil {
 				if src := e.G.Obj(so.Source); src != nil && src.Face() != nil {
 					svars := src.Face().SVars
@@ -1054,6 +1052,7 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 					}
 					status, why := effects.CharmCrossModeShape(svars, choices)
 					if status == effects.CharmUniqueSupported && len(tbms) >= 2 {
+						e.drainAwaitsTarget = true
 						if e.askCrossModeCharmTargets(in.Player, id, tbms) {
 							return
 						}
@@ -1064,6 +1063,24 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 					} else if status == effects.CharmUniqueUnsupported {
 						e.emit(events.Event{Kind: events.Note, Obj: id,
 							Text: "cross-mode TargetUnique$ Charm shape unimplemented: " + why})
+					} else if len(tbms) >= 2 {
+						asked, infeasible := e.askCharmModeTargets(in.Player, id, svars, so.Ability, names)
+						if infeasible {
+							// CR 603.3c: a triggered ability whose announced modes
+							// cannot all acquire mandatory targets cannot resolve.
+							// Remove it instead of posing an unanswerable decision
+							// or silently targeting only the first mode.
+							e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack,
+								To: state.ZExile, Text: "countered: no legal modal targets"})
+							e.ensureLeftTheStack(id, state.ZExile, "a replacement discarded an untargetable modal ability's move")
+							e.drainAwaitsTarget = false
+							e.resumeTriggerDrain()
+							return
+						}
+						if asked {
+							e.drainAwaitsTarget = true
+							return
+						}
 					}
 					for _, sub := range tbms {
 						e.drainAwaitsTarget = true
@@ -1348,8 +1365,13 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// alltargeted1: a re-entered walk keeps consuming the cast flow's
 		// pre-asked sub-ability target answers (kept until the stack object
 		// leaves, so both a later sub and a suspended body can use theirs).
-		SubPreAsk: e.castSubTargets[rp.obj],
-		Chosen:    append([]state.Target(nil), rp.choices...), ChosenValid: rp.chosenValid,
+		// A modal root is excluded from the pre-ask whole
+		// (collectSubTargetPreAsks), so this map is empty exactly where
+		// ModeTargets carries the per-mode groups instead: the two bindings
+		// are disjoint by construction, never competing for one chain.
+		SubPreAsk:   e.castSubTargets[rp.obj],
+		ModeTargets: cloneCharmTargetGroups(e.charmTargets[rp.obj]),
+		Chosen:      append([]state.Target(nil), rp.choices...), ChosenValid: rp.chosenValid,
 		DigUntilMove: rp.digUntilMove, DigUntilMoveDone: rp.digUntilMoveDone,
 		VillainousVictims: append([]state.Target(nil), rp.villainousVictims...),
 		VillainousIndex:   rp.villainousIndex,

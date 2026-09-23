@@ -432,12 +432,10 @@ func charmTwoSeatDeck(t *testing.T, seed uint64, protagonist string) (*Engine, C
 	return e, cfg
 }
 
-// TestNonTargetUniqueCharmKeepsTheSharedTargetNarrowing pins the byte-identical
-// boundary: a two-target-bearing-mode charm with NO TargetUnique$ (the 406-SVA
-// population, Kolaghan's Command's class) keeps the historical narrowing — the
-// placement asks only the FIRST target-bearing mode's targets (Min == Max ==
-// 1), and one target list is what every chosen mode reads.
-func TestNonTargetUniqueCharmKeepsTheSharedTargetNarrowing(t *testing.T) {
+// TestNonTargetUniqueCharmUsesDistinctModeTargets covers the ordinary
+// two-target-bearing-mode Charm shape (the 406-SVA population, Kolaghan's
+// Command's class): each selected mode gets its own target slot.
+func TestNonTargetUniqueCharmUsesDistinctModeTargets(t *testing.T) {
 	charm := "Name:Cmd\nManaCost:B\nTypes:Instant\n" +
 		"A:SP$ Charm | CharmNum$ 2 | Choices$ MLife,MDrain\n" +
 		"SVar:MLife:DB$ LoseLife | ValidTgts$ Player | LifeAmount$ 2 | SpellDescription$ Target player loses 2 life.\n" +
@@ -454,17 +452,13 @@ func TestNonTargetUniqueCharmKeepsTheSharedTargetNarrowing(t *testing.T) {
 	}
 	submitChoices(t, e, 0, 1) // both modes
 	d = e.Pending()
-	if d == nil || d.Kind != decision.KTarget || d.Min != 1 || d.Max != 1 {
-		t.Fatalf("pending = %+v, want the historical single-target ask for the FIRST mode only", d)
+	if d == nil || d.Kind != decision.KTarget || d.Min != 2 || d.Max != 2 {
+		t.Fatalf("pending = %+v, want one target slot for each selected mode", d)
 	}
-	for _, o := range d.Options {
-		if o.Group != "" {
-			t.Fatalf("option %+v carries a Group: the combined family ask leaked into a non-TargetUnique charm", o)
-		}
+	if d.Options[0].Group == "" || d.Options[0].Group == d.Options[2].Group {
+		t.Fatalf("mode target groups = %q and %q, want distinct per-mode groups", d.Options[0].Group, d.Options[2].Group)
 	}
-	submitChoices(t, e, d.Options[0].Index)
+	submitChoices(t, e, d.Options[0].Index, d.Options[2].Index)
 	passUntilStackEmpty(t, e, 20)
-	// Both modes ran on the ONE shared target (the historical narrowing, not
-	// a per-mode split).
 	replayCheck(t, e, cfg)
 }

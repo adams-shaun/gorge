@@ -41,6 +41,44 @@ import (
 // there is no per-trigger gate here at all, only a defensive belt-and-
 // braces check against a future emit change that might one day pass a
 // mismatched lki.
+// collectExpiredDelayedTriggers removes promises that cannot fire after a
+// new turn begins, even if no matching phase or event occurs again. A source,
+// controller or Execute that disappeared is likewise collected. Removal is
+// logged so replay folds the same registration set.
+func (e *Engine) collectExpiredDelayedTriggers() {
+	var remove []uint32
+	for _, dt := range e.G.Delayed {
+		if (dt.MaxTurn > 0 && e.G.Turn > dt.MaxTurn) || !e.delayedRegistrationLive(&dt) {
+			remove = append(remove, dt.ID)
+		}
+	}
+	for _, id := range remove {
+		e.emit(events.Event{Kind: events.DelayedRemove, Amount: int32(id)})
+	}
+}
+
+func (e *Engine) delayedRegistrationLive(dt *state.DelayedTrigger) bool {
+	if int(dt.Controller) >= len(e.G.Players) || e.G.Players[dt.Controller].Lost {
+		return false
+	}
+	src := e.G.Obj(dt.Source)
+	if src == nil || src.Face() == nil || cards.ResolveSVar(src.Face().SVars, dt.Execute) == nil {
+		return false
+	}
+	if dt.EventMode != "" {
+		if dt.Trigger == "" {
+			return false
+		}
+		raw := dt.Trigger
+		if !strings.HasPrefix(raw, "Mode$") {
+			raw = src.Face().SVars[raw]
+		}
+		t, ok := cards.ParseTriggerLine(raw)
+		return ok && t.Mode == dt.EventMode
+	}
+	return true
+}
+
 // checkDelayedTriggers queues a pending trigger for every delayed-trigger
 // registration (state.Game.Delayed) registered to fire on the step just
 // entered. It runs from checkTriggers after a StepChange event, alongside
@@ -60,10 +98,15 @@ import (
 // the drain never re-fires the same registration on a later occurrence of
 // the phase.
 func (e *Engine) checkDelayedTriggers(ev events.Event) {
+	var remove []uint32
 	for i := range e.G.Delayed {
 		dt := &e.G.Delayed[i]
 		if dt.EventMode != "" {
 			continue // an event-matched registration fires on its event, never a step
+		}
+		if (dt.MaxTurn > 0 && e.G.Turn > dt.MaxTurn) || !e.delayedRegistrationLive(dt) {
+			remove = append(remove, dt.ID)
+			continue
 		}
 		if dt.Phase != ev.Step {
 			continue
@@ -77,13 +120,8 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 		if dt.MinTurn > 0 && e.G.Turn < dt.MinTurn {
 			continue
 		}
-		// The MaxTurn mirror (ThisTurn$ True, Mistrise Village): a
-		// registration whose expiry turn has passed never fires. The entry
-		// is skipped, not removed -- removal would need its own event for a
-		// replay to fold, and an expired one-shot is inert either way.
-		if dt.MaxTurn > 0 && e.G.Turn > dt.MaxTurn {
-			continue
-		}
+		// Expiry is collected on TurnChange, including when this phase is
+		// skipped entirely; see collectExpiredDelayedTriggers.
 		// ValidPlayer$ (Necropotence's "at the beginning of YOUR next end
 		// step"): the registering DelayedTrigger SA's ValidPlayer$ filter,
 		// carried on the registration and evaluated at the phase occurrence
@@ -104,18 +142,22 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 			continue
 		}
 		if int(dt.Controller) >= len(e.G.Players) || e.G.Players[dt.Controller].Lost {
+			remove = append(remove, dt.ID)
 			continue
 		}
 		src := e.G.Obj(dt.Source)
 		if src == nil {
+			remove = append(remove, dt.ID)
 			continue
 		}
 		f := src.Face()
 		if f == nil {
+			remove = append(remove, dt.ID)
 			continue
 		}
 		sa := cards.ResolveSVar(f.SVars, dt.Execute)
 		if sa == nil {
+			remove = append(remove, dt.ID)
 			continue
 		}
 		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
@@ -130,8 +172,16 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 				Controller: dt.Controller,
 				Remembered: append([]state.Target(nil), dt.Remembered...),
 				Captured:   append([]state.Target(nil), dt.Remembered...),
+				// A phase registration has no firing event, so its capture
+				// is both Remembered and the DelayTriggerRemembered referent.
+				TriggerContext: effects.TriggerContext{
+					DelayedRemembered: append([]state.Target(nil), dt.Remembered...),
+				},
 			},
 		})
+	}
+	for _, id := range remove {
+		e.emit(events.Event{Kind: events.DelayedRemove, Amount: int32(id)})
 	}
 }
 
@@ -172,25 +222,31 @@ type delayedSpellCastFire struct {
 
 func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 	var fires []delayedSpellCastFire
+	var remove []uint32
 	for i := range e.G.Delayed {
 		dt := &e.G.Delayed[i]
 		// The event-matched modes: SpellCast (a spell's PutOnStack) and
 		// ChangesZone (a move, the Earthbend return promise). A Mode$ Phase
 		// registration carries no EventMode at all and is owned by
 		// checkDelayedTriggers at its phase occurrence.
-		if dt.EventMode != "SpellCast" && dt.EventMode != "ChangesZone" && dt.EventMode != "BecomeMonarch" {
+		if dt.EventMode != "SpellCast" && dt.EventMode != "ChangesZone" &&
+			dt.EventMode != "ChangesController" && dt.EventMode != "DamageDone" &&
+			dt.EventMode != "AttackersDeclared" && dt.EventMode != "BecomeMonarch" {
 			continue
 		}
-		// The ThisTurn$ mirror: a registration whose expiry turn has passed
-		// never fires (see checkDelayedTriggers; skipped, never removed).
+		// TurnChange collects expired registrations before another event can
+		// match; keep this guard for callers presenting a later event directly.
 		if dt.MaxTurn > 0 && e.G.Turn > dt.MaxTurn {
+			remove = append(remove, dt.ID)
 			continue
 		}
 		if int(dt.Controller) >= len(e.G.Players) || e.G.Players[dt.Controller].Lost {
+			remove = append(remove, dt.ID)
 			continue
 		}
 		src := e.G.Obj(dt.Source)
 		if src == nil || src.Face() == nil || dt.Trigger == "" {
+			remove = append(remove, dt.ID)
 			continue
 		}
 		// The stored trigger body: a SVar NAME (the keyword-expansion shape
@@ -207,6 +263,12 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 		}
 		t, ok := cards.ParseTriggerLine(raw)
 		if !ok || t.Mode != dt.EventMode {
+			remove = append(remove, dt.ID)
+			continue
+		}
+		sa := cards.ResolveSVar(src.Face().SVars, dt.Execute)
+		if sa == nil {
+			remove = append(remove, dt.ID)
 			continue
 		}
 		// referentsArg is the LKI snapshot handed to triggerReferents. The
@@ -254,30 +316,56 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 			if !e.zoneChangeMatches(t, dt.Source, ev, lki) {
 				continue
 			}
+			if vp := strings.TrimSpace(t.Params["ValidPlayer"]); vp != "" {
+				p, ok := e.delayedEventPlayer(t, ev, lki)
+				if !ok || !effects.MatchesPlayerSpec(e.G, vp, p, dt.Controller) {
+					continue
+				}
+			}
 			referentsArg = lki
-		} else if !e.eventDelayedSpellCastMatches(t, dt, ev) {
-			continue
+		} else {
+			if vp := strings.TrimSpace(t.Params["ValidPlayer"]); vp != "" {
+				p, ok := e.delayedEventPlayer(t, ev, lki)
+				if !ok || !effects.MatchesPlayerSpec(e.G, vp, p, dt.Controller) {
+					continue
+				}
+			}
+			if !e.delayedEventMatches(t, dt, ev, lki) {
+				continue
+			}
 		}
 		if dt.EventMode != "BecomeMonarch" && !e.triggerConditionHoldsAs(t, dt.Source, dt.Controller) {
 			continue
 		}
-		sa := cards.ResolveSVar(src.Face().SVars, dt.Execute)
-		if sa == nil {
-			continue
+		refs := e.triggerReferents(t, dt.Source, ev, referentsArg)
+		refs.DelayedObject = ev.Obj
+		// The REGISTRATION's capture rides its own referent field, never
+		// Ctx.Remembered: an event-matched registration's Remembered is the
+		// firing event's object, exactly what triggerRemembered seeds a
+		// printed trigger of the same mode with, because the Execute bodies
+		// read it through the ordinary Triggered* spellings (Chancellor of
+		// the Annex's Defined$ TriggeredSpellAbility is the cast spell, not
+		// whatever the Effect captured when it registered). Only
+		// DelayTriggerRemembered names the registration's own set.
+		remembered := triggerRemembered(ev, dt.Source)
+		if dt.EventMode == "BecomeMonarch" {
+			// Palace Jailer's exile promise: nothing on a MonarchChange
+			// names the exiled card, so the registration's capture IS the
+			// referent this body resolves.
+			remembered = append([]state.Target(nil), dt.Remembered...)
 		}
+		refs.DelayedRemembered = append([]state.Target(nil), dt.Remembered...)
 		fires = append(fires, delayedSpellCastFire{
-			dt: *dt,
-			sa: sa,
-			remembered: func() []state.Target {
-				if dt.EventMode == "BecomeMonarch" {
-					return append([]state.Target(nil), dt.Remembered...)
-				}
-				return triggerRemembered(ev, dt.Source)
-			}(),
-			referents: e.triggerReferents(t, dt.Source, ev, referentsArg),
-			svars:     src.Face().SVars,
-			static:    strings.TrimSpace(t.Params["Static"]) != "",
+			dt:         *dt,
+			sa:         sa,
+			remembered: remembered,
+			referents:  refs,
+			svars:      src.Face().SVars,
+			static:     strings.TrimSpace(t.Params["Static"]) != "",
 		})
+	}
+	for _, id := range remove {
+		e.emit(events.Event{Kind: events.DelayedRemove, Amount: int32(id)})
 	}
 	// The firing pass runs over the collected copies, never the live slice:
 	// a static fire's synchronous emit consumes its registration (splice) and
@@ -327,6 +415,70 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 			},
 		})
 	}
+}
+
+// delayedEventMatches dispatches the existing trigger matchers for an event
+// delayed registration. Keeping this on the ordinary matcher helpers makes a
+// delayed body and a printed T: line agree on zone, damage and attack filters.
+func (e *Engine) delayedEventMatches(t cards.Trigger, dt *state.DelayedTrigger, ev events.Event, lki *state.Object) bool {
+	switch t.Mode {
+	case "SpellCast":
+		return e.eventDelayedSpellCastMatches(t, dt, ev)
+	case "ChangesController":
+		return e.delayedChangesControllerMatches(t, dt, ev, lki)
+	case "DamageDone":
+		return e.damageMatches(t, dt.Source, ev)
+	case "AttackersDeclared":
+		return e.attackersDeclaredOneTargetMatches(t, dt.Source, ev)
+	default:
+		return false
+	}
+}
+
+// delayedEventPlayer supplies the player named by a delayed ValidPlayer$ gate.
+// Event modes use the event's natural actor/recipient, while a zone or control
+// change uses the pre-event controller captured in LKI.
+func (e *Engine) delayedEventPlayer(t cards.Trigger, ev events.Event, lki *state.Object) (state.PlayerID, bool) {
+	switch t.Mode {
+	case "ChangesZone", "ChangesController":
+		if lki != nil {
+			return lki.Controller, true
+		}
+		if o := e.G.Obj(ev.Obj); o != nil {
+			return o.Controller, true
+		}
+	case "SpellCast":
+		return ev.Player, int(ev.Player) < len(e.G.Players)
+	case "DamageDone":
+		if ev.Obj == 0 {
+			return ev.Player, int(ev.Player) < len(e.G.Players)
+		}
+		if src := e.damageEventSource(); src != 0 {
+			return e.controllerOf(src), true
+		}
+	case "AttackersDeclared":
+		if len(ev.IDs) > 0 {
+			return e.controllerOf(ev.IDs[0]), true
+		}
+	}
+	return 0, false
+}
+
+func (e *Engine) delayedChangesControllerMatches(t cards.Trigger, dt *state.DelayedTrigger, ev events.Event, lki *state.Object) bool {
+	if ev.Kind != events.ControlChange || lki == nil || lki.Controller == ev.Player {
+		return false
+	}
+	ctrl := dt.Controller
+	if v := t.Params["ValidCard"]; v != "" && !effects.MatchesObjectCtx(e.G, v, lki, e.specCtx(dt.Source, ctrl)) {
+		return false
+	}
+	if v := t.Params["ValidOriginalController"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, lki.Controller, ctrl) {
+		return false
+	}
+	if v := t.Params["ValidNewController"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+		return false
+	}
+	return true
 }
 
 // eventDelayedSpellCastMatches is the event-matched registration's validity

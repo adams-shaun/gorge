@@ -560,6 +560,8 @@ func Describe(g *state.Game, ev events.Event) string {
 			s += " (" + itoa(int64(total)) + " total; 21 is lethal)"
 		}
 		return s
+	case events.DelayedRemove:
+		return "delayed trigger registration removed"
 	case events.DelayedRegister:
 		// A delayed trigger being registered (CR 603.7, dt1): Obj is the
 		// source that created it, Text the phase it waits for. The line says

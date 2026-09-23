@@ -707,6 +707,10 @@ type Ctx struct {
 	// NameChoice carries a mid-resolution NameCard answer across re-entry.
 	NameChoice string
 	Targets    []state.Target
+	// ModeTargets carries the target groups selected for a distinct modal
+	// Charm. Each entry is in target-bearing mode order; nil means the
+	// historical single-target-list path, including repeatable modes.
+	ModeTargets [][]state.Target
 	// TargetControllerLKI captures each object target's controller at the
 	// start of resolution. A target may leave the battlefield before a
 	// chained TokenOwner$ TargetedController is evaluated; events.Apply then

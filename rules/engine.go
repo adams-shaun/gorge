@@ -466,6 +466,10 @@ type Engine struct {
 	// removed when the stack object leaves the stack. A stack COPY of the
 	// spell has no entry and falls back to the mid-resolution asking path.
 	castSubTargets map[state.ObjID]map[string][]state.Target
+	// charmTargets maps a modal stack object to the selected distinct modes'
+	// target groups, in target-bearing mode order. It is engine scratch like
+	// fuseTargets: the cast/placement target answer rebuilds it during replay.
+	charmTargets map[state.ObjID][][]state.Target
 	// fusedResolving is the target slice of the fused half whose resolution is
 	// CURRENTLY running (rules/split.go's runFusedHalves), set around the
 	// whole of that half's effects.Resolve -- the half's root SA and every
@@ -1843,7 +1847,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	var lkiPower, lkiToughness int32
 	var lkiPTValid bool
 	switch ev.Kind {
-	case events.MoveZone, events.Draw, events.PutOnStack:
+	case events.MoveZone, events.Draw, events.PutOnStack, events.ControlChange:
 		if o := e.G.Obj(ev.Obj); o != nil {
 			cp := o.CloneDeep()
 			lki = &cp
@@ -2001,6 +2005,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		delete(e.copyTargetStage, ev.Obj)
 		delete(e.copyAnswerTargets, ev.Obj)
 		delete(e.castSubTargets, ev.Obj)
+		delete(e.charmTargets, ev.Obj)
 		delete(e.sourceLifelinkLKI, ev.Obj)
 		delete(e.sourceControllerLKI, ev.Obj)
 		delete(e.damageSourceLKI, ev.Obj)
