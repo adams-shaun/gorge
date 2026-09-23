@@ -3020,3 +3020,27 @@ main's `49a2fde8`, maxpower1 by main's `8d83f028`).
   register deletion. Engine code merged from main (`8d83f028`) is reviewed
   upstream and untouched here.
 
+
+## Verification (round 8)
+
+`.cards` was present (symlink to the main checkout's corpus), so no corpus
+test skipped vacuously. Real output, in order:
+
+- `go test -run 'TestKnownApproximations' ./internal/testutil/` →
+  `ok github.com/adams-shaun/gorge/internal/testutil 0.001s` (after the
+  constant was corrected to 37; the first attempt at 36 FAILED with
+  "has 37 rows", which is what surfaced the trailing ExchangeLifeVariant row
+  the section-level counter reads past a blank line).
+- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`
+  → `ok github.com/adams-shaun/gorge/rules 0.809s`; the `-v` rerun shows
+  5 top-level RUNs (TestEveryRepoDeckIsFullySupported,
+  TestEveryRepoDeckCountHeadResolves, TestEveryRepoDeckParamsAreRead, and the
+  two registry/dispatch ratchets), zero FAIL, zero SKIP.
+- `go test ./rules -run 'Block|CantBlockUnless|TargetMax|MaxTotalTargetPower'`
+  → `ok ... 0.732s` (this branch's blockprop fix and main's TargetMax work
+  both green together).
+- `go test ./internal/archtest/` → `ok ... 2.344s`.
+- `go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/` →
+  `ok ... 1.024s` (20-game pinned split unmoved by the integration).
+
+Final state: `d1815beb` is the merge commit; `git status` clean.
