@@ -155,6 +155,43 @@ func Apply(g *state.Game, e Event) {
 		// Pure marker for one completed library search; all resulting card
 		// moves and the shuffle have their own events.
 
+	case KeywordAbilityPush:
+		// A keyword-GRANTED activated ability (CR 613.1f): the mint mirrors
+		// AbilityPush (Ruling T20-a) so a log-only replay creates the same
+		// object a live game did, but the body is not a face index -- it is
+		// SYNTHESIZED from the derived keyword line Counter carries
+		// ("Cycling:1 U", "TypeCycling:Sliver:3"), exactly the synthesis the
+		// offer loop and pcAbility re-derive, so live game and replay mint the
+		// identical ability. Obj is the activating card and the minted
+		// object's Source (`Defined$ Self`/`CARDNAME` names it); no
+		// registration is consumed, a grant lives exactly as long as its
+		// granting static. A line no synthesizer can model, an invalid
+		// controller or a missing source mints nothing (the totality stance
+		// every case here takes).
+		if !validPlayer(g, e.Player) {
+			break
+		}
+		src := g.Obj(e.Obj)
+		if src == nil {
+			break
+		}
+		sa := cards.GrantedCyclingAbility(e.Counter)
+		if sa == nil {
+			break
+		}
+		// AbilityPush's per-source activation census, same condition: only a
+		// battlefield activation counts (a cycling activation is from the
+		// hand, so this is the mirror rather than a live increment).
+		if src.Zone == state.ZBattlefield {
+			src.ActivatedThisTurn++
+		}
+		o := g.AddObject(nil, e.Player)
+		Move(g, o.ID, state.ZLibrary, state.ZStack)
+		o.Ability = sa
+		o.StackKind, o.StackKindKnown = state.StackKindActivated, true
+		o.Source = e.Obj
+		o.Remembered = rememberedFrom(e.IDs)
+
 	case Discover, Seek, Surveil:
 		// The discover (CR 701.57), seek (task trigdisc1) and surveil
 		// (CR 701.42, task trig-surveil) records are pure markers, exactly

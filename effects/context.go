@@ -344,8 +344,20 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			return []state.Target{{Obj: c.RepeatSubject.Obj}}, true
 		}
 		if spec == "ImprintedController" {
+			// Outside a repeat iteration Forge's ImprintedController has no
+			// object whose controller to take: the CR 607.2a pile is the OBJECT
+			// spelling's read (the tail of this case), not this one's.
 			return nil, true
 		}
+		// The CR 607.2a exile gate holds for EVERY ordinary Defined$ caller --
+		// including an empty read: an imprint association naming a battlefield
+		// object is not in the pile (CR 607.2a links only while the card stays
+		// in exile), and no fallback may reintroduce it here. The consumers
+		// that need Forge's ungated getImprintedCards read keep their own
+		// scoped raw read: damage.go's damageSourceSpecTargets (which falls
+		// back to rawImprintTargets on exactly this empty set) and count.go's
+		// refTargets Imprinted case. Do not widen this one -- the regression
+		// TestDefinedImprintedKeepsTheExileGate pins it.
 		return imprintPileTargets(g, c), true
 	case "RememberedCard":
 		// Forge's RememberedCard names the resolution's remembered CARD entries
@@ -427,6 +439,19 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// choice yields nothing, so the body acts on nobody rather than
 		// inventing a seat.
 		return controllersOf(g, ChosenTargets(g, c)), true
+	case "CardController":
+		// Forge's CardController (AbilityUtils.getDefinedPlayers): the
+		// ANCHORING card's controller -- the resolving context's source. The
+		// corpus spellings: aura barbs' RelativeTarget$ pairing (each
+		// enchantment damages its own controller -- emitFromEachSource's
+		// per-source ctx anchors Source on the damage source), Xantcha,
+		// Sleeper Agent's "Xantcha's controller loses 2 life", Traumatic
+		// Prank's animated creature's "deals 1 damage to you". A detached
+		// source (the object gone) yields nothing, never a guessed seat.
+		if o := g.Obj(c.Source); o != nil {
+			return []state.Target{{Player: o.Controller, IsPlayer: true}}, true
+		}
+		return nil, true
 	case "Targeted", "ParentTarget", "ParentTargeted", "ThisTargetedCard":
 		return copyTargets(c.Targets), true
 	case "TriggeredAttackers":

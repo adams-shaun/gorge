@@ -268,10 +268,16 @@ func TestEchoShahOfNaarIsleFreePay(t *testing.T) {
 func TestEchoUnresolvableCostStaysLoud(t *testing.T) {
 	e, hellion := echoEntryEngine(t, "Volcano Hellion", 0)
 	// The ETB trigger's chain (ChooseNumber -> DB$ DealDamage | ValidTgts$
-	// Creature) poses its DealDamage sub's own target ask on the way (task
-	// mvts1: the sub was never placement-covered; the ChooseNumber ahead of
-	// it is the engine's deterministic stand-in and asks nothing). Answer it
-	// so the drive below reaches the echo upkeep.
+	// Creature) now asks for a number before the sub's target ask. Answer 0,
+	// the former deterministic fallback, to keep this test about echo costs.
+	number := passUntilAsk(t, e)
+	if number == nil || number.Kind != decision.KChoose || number.ResumeKind != "choosenumber" || number.Source != hellion {
+		t.Fatalf("ETB ask = %+v, want the Hellion's ChooseNumber ask", number)
+	}
+	if len(number.Options) == 0 || number.Options[0].Kind != "number" || number.Options[0].Amount != 0 {
+		t.Fatalf("Hellion's number ask does not offer 0 first: %+v", number.Options)
+	}
+	submitChoices(t, e, number.Options[0].Index)
 	etb := passUntilAsk(t, e)
 	if etb == nil || etb.Kind != decision.KChoose || etb.ResumeKind != "tgts" || etb.Source != hellion {
 		t.Fatalf("ETB ask = %+v, want the DealDamage sub's tgts KChoose for the Hellion", etb)
