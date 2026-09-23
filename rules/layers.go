@@ -1349,6 +1349,13 @@ func (e *Engine) AddContinuous(ce ContinuousEffect) {
 	if ce.SetName != "" {
 		e.setNameInPool = true
 	}
+	// A REGISTERED layer-4 type effect (an Effect-delivered Animate, an
+	// activated manland animation -- neither has a printed static for the
+	// genesis pool probe to find) arms the derived-type table for the rest of
+	// the match; see rules/layer4types.go.
+	if ce.Layer == LType {
+		e.layer4InPool = true
+	}
 	// Bump the cache version: active() (below) caches its sorted effect list
 	// on (log head, continuousVersion), and this is the write that changes
 	// e.continuous. The ClockTick above moved the log head too, but naming
@@ -2293,6 +2300,14 @@ func (e *Engine) matchesWithChars(ce ContinuousEffect, id state.ObjID, types, ke
 	sc.AsStack = atStack != 0
 	sc.ExtraTypes = types
 	sc.ExtraKeywords = keywords
+	// The walk's types-so-far list above is authoritative for this match, so
+	// the published layer-4 table (layer4types.go's DerivedTypes, bound by
+	// specCtx) must not be consulted as a fallback: it may carry a type a
+	// LATER effect grants, which would break the walk's own layer/timestamp
+	// ordering. This is the same deferral the PredicatePrograms clear below
+	// practises, and it leaves the walk's printed-face/Changeling fallback
+	// (hasTypeCtx -> hasType) exactly as it was.
+	sc.DerivedTypes = nil
 	// An Effect-delivered grant's Affected$ spec may name the objects the
 	// Effect remembered (`Affected$ Permanent.IsRemembered`, energybending's
 	// "lands you control gain all basic land types"). The restriction walk

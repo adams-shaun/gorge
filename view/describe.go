@@ -83,6 +83,9 @@ func Describe(g *state.Game, ev events.Event) string {
 	case events.BlessingChange:
 		// CR 702.131: the one-way latch -- folded state always shows it set.
 		return player(g, ev.Player) + " gets the city's blessing"
+	case events.TurnFaceUp:
+		// CR 708.6: Obj is the permanent that revealed its printed face.
+		return obj(g, ev.Obj) + " is turned face up"
 	case events.RingTemptsYou:
 		// CR 701.54: the temptation and the designation it made. A bearer of
 		// 0 is CR 701.54d's impossible-choice shape (no creature controlled):
