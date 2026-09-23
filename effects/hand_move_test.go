@@ -828,15 +828,9 @@ func TestLostHoursUnsupportedLibraryPositionEmitsNote(t *testing.T) {
 	}
 }
 
-// TestKastralMixedHandOriginEmitsNote pins the unsupported mixed-origin
-// chooser's loud fallback on the real corpus Kastral script. Its optional
-// Bird picker spans Hand and Graveyard, so neither exact hidden-origin walker
-// can make an option list without losing the origin of each card. The
-// source-default object path still cannot select either Bird, but it now emits
-// one replay-visible Note instead of silently resolving as it did before rv2b
-// sol3. Every explicit multi-zone Origin$ containing Hand shares the parsed
-// mixedOriginIncludesHand guard, not a card-name list.
-func TestKastralMixedHandOriginEmitsNote(t *testing.T) {
+// Kastral's optional Bird picker must offer both hand and graveyard cards in
+// one search, without falling back to the old mixed-origin Note.
+func TestKastralMixedHandOriginOffersBothZones(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	kastral, ok := reg.Lookup("Kastral, the Windcrested")
 	if !ok {
@@ -858,16 +852,22 @@ func TestKastralMixedHandOriginEmitsNote(t *testing.T) {
 
 	h := &askHost{}
 	h.g = g
+	if handBird.Zone == graveBird.Zone || handBird.ID == graveBird.ID {
+		t.Fatal("hand and graveyard candidates must differ")
+	}
 	Resolve(h, &Ctx{Source: source.ID, Controller: 0}, db)
-	if h.asked != nil {
-		t.Fatalf("unsupported mixed origin posed a partial chooser: %+v", h.asked)
+	if h.asked == nil || h.asked.ResumeKind != "search" {
+		t.Fatalf("mixed-origin search = %+v", h.asked)
+	}
+	seen := map[state.ObjID]bool{}
+	for _, opt := range h.asked.Options {
+		seen[opt.Obj] = true
+	}
+	if !seen[handBird.ID] || !seen[graveBird.ID] {
+		t.Fatalf("mixed-origin options = %+v, want both Birds", h.asked.Options)
 	}
 	if handBird.Zone != state.ZHand || graveBird.Zone != state.ZGraveyard {
-		t.Fatalf("mixed-origin fallback moved cards: hand=%s grave=%s", handBird.Zone, graveBird.Zone)
-	}
-	if len(h.log) != 1 || h.log[0].Kind != events.Note ||
-		!strings.Contains(h.log[0].Text, "mixed ChangeZone Origin$ Hand,Graveyard") {
-		t.Fatalf("log = %+v, want one explicit mixed-origin Note", h.log)
+		t.Fatalf("search moved cards before an answer: hand=%s grave=%s", handBird.Zone, graveBird.Zone)
 	}
 }
 
