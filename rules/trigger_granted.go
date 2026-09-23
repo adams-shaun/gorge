@@ -640,7 +640,19 @@ func (e *Engine) checkGrantedWardTriggers(observer *Engine, id state.ObjID, o *s
 // only a battlefield-origin ChangesZone trigger, the live pass only the
 // rest -- a gate the first gains round omitted, which queued a gained "dies"
 // trigger once per pass and fired it twice.
-func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []ContinuousEffect, id state.ObjID, o *state.Object, ev events.Event, objLKI *state.Object, lkiPower, lkiToughness int32, lkiPTValid, split, leaving bool) {
+//
+// statics is the event's PREFILTERED grant list (grantedTriggerStaticsFor):
+// only the active statics carrying a granted trigger whose Mode$ can observe
+// this event's kind, in active()'s order. The prefilter is exact, not a
+// heuristic: triggerMatches' first gate is the same triggerModeEvents mask,
+// and every check the loops below run before it (Affected$ match, the batch
+// and look-back gates, the state-trigger latch, the Execute$ link) is a pure
+// read, so a static the prefilter drops could only ever have reached
+// triggerMatches to be rejected there -- dropping it queues nothing less.
+func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*ContinuousEffect, id state.ObjID, o *state.Object, ev events.Event, objLKI *state.Object, lkiPower, lkiToughness int32, lkiPTValid, split, leaving bool) {
+	if len(statics) == 0 {
+		return
+	}
 	// A has-all-abilities-of trigger (Forge's GainsTriggerAbsOf$, task
 	// gains1): the recipient gains every triggered ability of each named
 	// foreign card's face. The matching discipline is an ordinary trigger's --
@@ -653,8 +665,7 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []Con
 	// already holds its Effect pointer, so the live queue and a replay mint
 	// the identical body. The walk is a read over the memoised static slice
 	// and the foreign faces' own deterministic Triggers order, never a map.
-	for i := range statics {
-		ce := &statics[i]
+	for _, ce := range statics {
 		// The TRIGGERED half only (Forge's GainsTriggerAbsOf$): a static that
 		// names GainsAbilitiesOf$ alone never fires the foreign card's
 		// triggers, because that parameter grants activated abilities and its
@@ -738,8 +749,7 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []Con
 	// finishing pass must not re-check it -- the old blanket guard silenced
 	// every granted trigger for the WHOLE batch including its finishing
 	// pass, so a combat-damage DamageDone grant could never fire at all).
-	for i := range statics {
-		ce := &statics[i]
+	for _, ce := range statics {
 		if ce.AddTrigger == nil {
 			continue
 		}
@@ -809,6 +819,46 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []Con
 			},
 		})
 	}
+}
+
+// grantedTriggerStaticsFor returns, in active()'s order, pointers to the
+// statics whose granted triggers (GainedTriggerFaces with a linked Effect, or
+// AddTrigger) include at least one Mode$ whose triggerModeEvents mask admits
+// kind. checkFaceTriggers computes it ONCE per event walk instead of running
+// every grant's Affected$ spec match for every object in every zone on every
+// event; see checkGrantedStaticTriggersUsing for why the drop is exact. buf is
+// reused as the result's backing array (it may be nil). The pointers alias
+// the memoised active() slice, which is stable for the whole walk (matching
+// neither emits nor mutates continuous effects).
+func grantedTriggerStaticsFor(statics []ContinuousEffect, kind events.Kind, buf []*ContinuousEffect) []*ContinuousEffect {
+	out := buf[:0]
+	for i := range statics {
+		ce := &statics[i]
+		if grantedTriggerStaticObserves(ce, kind) {
+			out = append(out, ce)
+		}
+	}
+	return out
+}
+
+// grantedTriggerStaticObserves reports whether any trigger ce grants could
+// pass triggerMatches' leading event-kind gate for kind.
+func grantedTriggerStaticObserves(ce *ContinuousEffect, kind events.Kind) bool {
+	if ce.AddTrigger != nil && triggerModeEvents(ce.AddTrigger.Mode).allows(kind) {
+		return true
+	}
+	for _, gf := range ce.GainedTriggerFaces {
+		if gf.Face == nil {
+			continue
+		}
+		for ti := range gf.Face.Triggers {
+			t := &gf.Face.Triggers[ti]
+			if t.Effect != nil && triggerModeEvents(t.Mode).allows(kind) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // grantedTriggerExecute mirrors events.Apply's GrantTriggerPush resolution
@@ -884,8 +934,20 @@ type triggerCastAlt struct {
 // invoked for every object the event visits, so reject everything but a
 // battlefield object on a step change before any derived-characteristics
 // read.
+// cumulativeUpkeepPhase is the synthesized cumulative-upkeep trigger's
+// Phase$ value, shared by the trigger and its early step gate.
+const cumulativeUpkeepPhase = "Upkeep"
+
 func (e *Engine) checkGrantedCumulativeUpkeepTriggers(observer *Engine, id state.ObjID, o *state.Object, f *cards.Face, ev events.Event, objLKI *state.Object) {
 	if ev.Kind != events.StepChange || o.Zone != state.ZBattlefield {
+		return
+	}
+	// The synthesized trigger's Phase$ Upkeep gate (triggerMatches' phaseGate,
+	// the same parsed spec on the same observer) hoisted above the
+	// derived-keyword read: on every other step change the trigger cannot
+	// match, and grantedCumulativeCosts is a pure read, so skipping it there
+	// queues nothing less.
+	if p := observer.parsedPhaseSpec(cumulativeUpkeepPhase); !p.valid || !p.set.Has(observer.G.Step) {
 		return
 	}
 	costs := observer.grantedCumulativeCosts(id, f)
@@ -893,7 +955,7 @@ func (e *Engine) checkGrantedCumulativeUpkeepTriggers(observer *Engine, id state
 		return
 	}
 	t := cards.Trigger{Mode: "Phase", Params: map[string]string{
-		"Mode": "Phase", "Phase": "Upkeep", "ValidPlayer": "You", "TriggerZones": "Battlefield",
+		"Mode": "Phase", "Phase": cumulativeUpkeepPhase, "ValidPlayer": "You", "TriggerZones": "Battlefield",
 	}}
 	if !observer.triggerMatches(t, id, ev, objLKI) {
 		return
