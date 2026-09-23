@@ -1237,3 +1237,198 @@ full gates cover the auto-merged Vanishing changes.
 
 None found during this integration. No unresolved engine behavior was
 introduced or discovered.
+
+# Merge-conflict resolution — mrg1 (agent-20260922T191943Z-4ffa25b7)
+
+## State found
+
+`git status` was **clean**, on branch `wt/agent-20260922T191943Z-4ffa25b7`, with
+**no rebase/merge in flight** (no `rebase-merge`/`rebase-apply`/`MERGE_HEAD`, no
+conflict markers anywhere). The daemon's failure note described a *previous*
+integration attempt; a prior mrg1 run had left the branch with two merge commits
+(`afe37d17`, `0f37bf40`) already integrating main up to `f2e9c8d5`. Main had
+since moved on by four commits:
+
+```
+5c84527e merge(agent-20260918T230554Z-74976c7c): kw:Backup ...
+5b7f6231 docs(backup): record the r2 report without touching prior round reports
+c8b97fb0 docs(backup): task report for the Backup keyword (CR 702.70)
+7caad9fb feat(rules): implement the Backup keyword (CR 702.70)
+```
+
+`git rev-list --left-right --count HEAD...main` = `11 4`, and `main` was NOT an
+ancestor of HEAD — so the operation to complete was a fresh merge of current
+`main` into the branch, not a rebase --continue.
+
+## Command run
+
+```
+git merge main --no-edit
+```
+
+Result:
+
+```
+Auto-merging .ds4/report-t1.md
+CONFLICT (content): Merge conflict in .ds4/report-t1.md
+Automatic merge failed; fix conflicts and then commit the result.
+```
+
+Auto-merged (no conflict): `cards/kw_backup.go` (new), `cards/kw_registry_test.go`,
+`rules/backup_test.go` (new), `.ds4/report-r2.md`. Note this differs from the
+daemon's rebase report, which named `AGENTS.md` and `internal/testutil/agentsdoc_test.go`
+as conflicting: those two files had already been reconciled by the prior merge
+commit `0f37bf40`, so this merge's base for them was already main's version and
+they auto-merged cleanly (they are not in the merge's staged diff at all).
+
+## The one conflict — `.ds4/report-t1.md`
+
+`.ds4` is gitignored but this report file is tracked (force-added in an earlier
+round), so it participates in merges.
+
+Structure (`git show :1/:2/:3:.ds4/report-t1.md`):
+
+- **base (`:1`)** — 1645 lines, beginning `# fb-20260923T005857Z-c1a24352 —
+  Count$ResolvedThisTurn (Sephiroth transform) ...`
+- **ours / HEAD (`:2`)** — 1799 lines = base **+ a 154-line prepend**:
+  `# Task rv1 — \`RevealAllValid$\` unread: reveal every matching hand card ...`
+  (this ticket's round report).
+- **theirs / main (`:3`)** — 1797 lines = base **+ a 152-line prepend**:
+  `# Report — task agent-20260918T230554Z-74976c7c (kw:Backup) ...`.
+
+Both sides are pure additive prepends of an independent report to the top of the
+same shared report file; nothing in either side contradicts or supersedes the
+other. `diff` of each side against the base showed only that side's own prepend,
+byte-for-byte, with the remainder identical.
+
+**Resolution: keep both reports.** Removed the three marker lines only
+(`<<<<<<< HEAD` at 1, `=======` at 156, `>>>>>>> main` at 309), concatenating our
+report first, then main's, then the shared base tail. No text from either side
+was dropped, reordered within a side, or rewritten.
+
+Verification after edit:
+
+- `grep -n '<<<<<<<\|=======\|>>>>>>>' .ds4/report-t1.md` → no markers.
+- `grep -n '^# ' .ds4/report-t1.md` → both `# Task rv1 — RevealAllValid…` (line 1)
+  and `# Report — task agent-20260918T230554Z-74976c7c (kw:Backup)` (line 155)
+  present, followed by the original `# fb-20260923T005857Z-c1a24352 …` (line 307)
+  and the rest of the file unchanged.
+
+Staged with `git add .ds4/report-t1.md` (the file is already tracked; the
+gitignore hint is about the untracked siblings in `.ds4/` and did not block it —
+`git status` then showed `M  .ds4/report-t1.md`, no `UU`).
+
+## Completed operation
+
+```
+git commit --no-edit
+[wt/agent-20260922T191943Z-4ffa25b7 9e24b4a9] Merge branch 'main' into wt/agent-20260922T191943Z-4ffa25b7
+```
+
+Default merge message (carrying the `# Conflicts: .ds4/report-t1.md` block) —
+unchanged, as instructed. No trailer (gorge rule).
+
+Final state: `git status` = clean; `git merge-base --is-ancestor main HEAD` = YES
+(main fully integrated); no conflict markers; branch 12 ahead of the old base.
+
+## Merge side-effects checked
+
+- `internal/testutil/agentsdoc_test.go` — the `knownApproximationRows` constant is
+  **18** and the comment above it already documents the four disjoint closures this
+  merge carries (rv1's `RevealAllValid$` row, main's scrybottom row, main's
+  four-mode trigger row, main's rv2b row). AGENTS.md contains **no**
+  `RevealAllValid` row (the ticket deleted it), and the constant matches the
+  measured table — both agentsdoc ratchets pass. No edit needed.
+- `effects/cardflow.go` — the ticket's fix is present (`RevealAllValid$` pool
+  narrowing at line 2270; `pickable` gate at 2314-2315 untouched). Auto-merged
+  cleanly.
+
+## Commands and output
+
+```
+$ git status
+On branch wt/agent-20260922T191943Z-4ffa25b7
+nothing to commit, working tree clean
+
+$ git merge main --no-edit
+Auto-merging .ds4/report-t1.md
+CONFLICT (content): Merge conflict in .ds4/report-t1.md
+Automatic merge failed; fix conflicts and then commit the result.
+
+$ git commit --no-edit
+[wt/agent-20260922T191943Z-4ffa25b7 9e24b4a9] Merge branch 'main' into wt/agent-20260922T191943Z-4ffa25b7
+
+$ git status && git merge-base --is-ancestor main HEAD && echo YES
+On branch wt/agent-20260922T191943Z-4ffa25b7
+nothing to commit, working tree clean
+YES
+```
+
+Ratchets (post-merge, required):
+
+```
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  github.com/adams-shaun/gorge/rules  0.743s
+
+$ go test -v ./rules -run '<same pattern>'   # confirm none skipped
+--- PASS: TestEveryRepoDeckIsFullySupported (0.59s)
+--- PASS: TestEveryRepoDeckCountHeadResolves (0.00s)
+--- PASS: TestEveryRepoDeckParamsAreRead (0.13s)
+--- PASS: TestEveryDispatchedTriggerModeHasAMatcher (0.00s)
+--- PASS: TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched (0.00s)
+```
+
+Conflicted-file package (the fix under merge):
+
+```
+$ go test -run 'TestRevealAllValid' ./effects/
+ok  github.com/adams-shaun/gorge/effects  0.598s
+```
+
+Supporting gates:
+
+```
+$ go build ./...
+BUILD EXIT 0
+$ go test ./internal/archtest/
+ok  github.com/adams-shaun/gorge/internal/archtest  3.779s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  github.com/adams-shaun/gorge/cmd/botbench  1.322s
+$ go test -v -run 'TestKnownApproximation' ./internal/testutil/
+--- PASS: TestKnownApproximationsOnlyShrinks (0.00s)
+--- PASS: TestKnownApproximationRowsAreShort (0.00s)
+```
+
+`.cards` was present in this worktree as a symlink to
+`/home/sadams/projects/gorge/.cards`; the ratchet run executed real corpus tests
+(`TestEveryRepoDeckIsFullySupported` 0.59s), so the green is not a skip-vacuous
+run.
+
+## Deviations from the brief
+
+- The brief assumed a rebase was in flight. It was not — the tree was clean and
+  a prior mrg1 had left merge commits. I completed the integration as a merge of
+  current `main`, which is the operation that actually remained. Per gorge
+  context and the working-method clause ("finish the in-flight operation you
+  find rather than starting a new one"), no rebase was started.
+- The conflicting file set differed from the daemon's rebase report:
+  `AGENTS.md` and `internal/testutil/agentsdoc_test.go` did not conflict here
+  (already reconciled by merge `0f37bf40`); this merge's sole conflict was
+  `.ds4/report-t1.md`, and `cards/kw_backup.go`,
+  `cards/kw_registry_test.go`, `rules/backup_test.go`, `.ds4/report-r2.md`
+  auto-merged.
+
+## Open concerns / Issues
+
+- No new defect found in the conflicted region or the merge as a whole.
+- The merge is a merge commit, so the branch tip is not a single linear series;
+  the daemon's squash/gate path should treat `9e24b4a9` as the integration tip
+  (same shape as the prior `0f37bf40`). Flagging only because the daemon log
+  shows repeated mrg1 re-dispatches on this ticket.
+- `AlreadyRevealed$` remains unread in the Go tree (noted by the rv1 report;
+  cosmetic no-op today). Already an open item in the branch report's `## Issues`,
+  not caused by this merge.
+
+STATUS=DONE
+COMMITS=9e24b4a9
+TESTS=go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' -> ok (5 tests, none skipped); go test -run 'TestRevealAllValid' ./effects/ -> ok; archtest -> ok; botbench TestConstructedDefaultIsByteIdentical -> ok; go build ./... -> ok
