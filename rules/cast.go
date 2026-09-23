@@ -2030,8 +2030,20 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		// only a hand-built option) falls back to the empty cost rather than
 		// charging the printed mana cost.
 		head := map[string]string{"evoked": "Evoke", "dashed": "Dash",
-			"overloaded": "Overload", "warped": "Warp", "madness": "Madness",
-			"bestowed": "Bestow"}[opt.Mode]
+			"overloaded": "Overload", "warped": "Warp", "madness": "Madness"}[opt.Mode]
+		if opt.Mode == "bestowed" {
+			// Bestow goes through the ONE resolver the offer gate used
+			// (rules/bestow.go's bestowCost: the colon cut and the Unknown
+			// withhold), so the charge and the offer can never disagree about
+			// what a bestowed cast costs -- a raw ParseCost here would price
+			// hypnotic_siren's ":GainControl" suffix as a phantom generic.
+			if bc, ok := bestowCost(f); ok {
+				cost = bc
+			} else {
+				cost = Cost{}
+			}
+			break
+		}
 		if mc, ok := f.KeywordParam(head); ok {
 			cost = ParseCost(mc)
 		} else {

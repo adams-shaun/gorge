@@ -211,10 +211,10 @@ func TestLegalBlockChoicesDropsIllegalCounts(t *testing.T) {
 		{Index: 1, Kind: "block", Obj: 102, Attacker: 201, MinBlockers: 3},
 		{Index: 2, Kind: "block", Obj: 103, Attacker: 201, MinBlockers: 3},
 	}}
-	if got := legalBlockChoices(d, []int{0, 1}); len(got) != 0 {
+	if got := legalBlockChoices(Board{}, d, []int{0, 1}); len(got) != 0 {
 		t.Fatalf("a Min 3 attacker with two chosen blockers kept %v, want none", got)
 	}
-	if got := legalBlockChoices(d, []int{0, 1, 2}); len(got) != 3 {
+	if got := legalBlockChoices(Board{}, d, []int{0, 1, 2}); len(got) != 3 {
 		t.Fatalf("a legal Min 3 team was trimmed to %v", got)
 	}
 
@@ -223,10 +223,10 @@ func TestLegalBlockChoicesDropsIllegalCounts(t *testing.T) {
 		{Index: 1, Kind: "block", Obj: 102, Attacker: 201, MaxBlockers: 1},
 		{Index: 2, Kind: "block", Obj: 103, Attacker: 201, MaxBlockers: 1},
 	}}
-	if got := legalBlockChoices(max, []int{0, 1, 2}); len(got) != 1 || got[0] != 0 {
+	if got := legalBlockChoices(Board{}, max, []int{0, 1, 2}); len(got) != 1 || got[0] != 0 {
 		t.Fatalf("a Max 1 attacker kept %v, want exactly the first pair [0]", got)
 	}
-	if got := legalBlockChoices(max, []int{2}); len(got) != 1 || got[0] != 2 {
+	if got := legalBlockChoices(Board{}, max, []int{2}); len(got) != 1 || got[0] != 2 {
 		t.Fatalf("a legal single Max 1 block was altered: %v", got)
 	}
 
