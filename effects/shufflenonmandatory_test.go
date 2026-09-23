@@ -148,15 +148,11 @@ func TestObjectPathShuffleMandatoryShufflesWithoutFlag(t *testing.T) {
 	if o := ah.g.Obj(gy); o == nil || o.Zone != state.ZLibrary {
 		t.Fatalf("after the move: card zone = %v, want library", o)
 	}
-}
 
-// TestObjectPathNoShuffleParameterStaysSilent is the guard against
-// over-reaching: a Graveyard -> Library "put it on top of your library" move
-// with NO Shuffle$ parameter must keep its existing no-shuffle behaviour, so
-// the object-path tail reads only the explicit flag.
-func TestObjectPathNoShuffleParameterStaysSilent(t *testing.T) {
-	ah, ctx, gy := shuffleTailBoard(t)
-	s := sa(t, "DB$ ChangeZone | Origin$ Graveyard | Destination$ Library | ValidTgts$ Card.YouOwn | LibraryPosition$ 0")
+	// Guard against over-reaching: a separate Graveyard -> Library "put it
+	// on top" move with NO Shuffle$ must still leave the library unshuffled.
+	ah, ctx, gy = shuffleTailBoard(t)
+	s = sa(t, "DB$ ChangeZone | Origin$ Graveyard | Destination$ Library | ValidTgts$ Card.YouOwn | LibraryPosition$ 0")
 
 	if o := ah.g.Obj(gy); o == nil || o.Zone != state.ZGraveyard {
 		t.Fatalf("precondition: graveyard card zone = %v, want graveyard", o)
@@ -191,7 +187,11 @@ func TestSearchShuffleTailFailToFindAsks(t *testing.T) {
 			ctx := &Ctx{Source: src.ID, Controller: 0}
 			s := sa(t, "DB$ ChangeZone | Origin$ Library | Destination$ Hand | ChangeType$ Card.namedNothing | ShuffleNonMandatory$ True")
 
-			// The fail-to-find shape: nothing moved.
+			// The fail-to-find shape is real: no card can be moved from
+			// this empty library, but the search still owes a shuffle.
+			if got := len(ah.g.Zone(state.ZLibrary, 0)); got != 0 {
+				t.Fatalf("precondition: library holds %d cards, want 0", got)
+			}
 			if searchShuffleTail(ah, ctx, s, 0, nil, state.ZHand) != true {
 				t.Fatalf("fail-to-find tail returned false, want the suspended confirm")
 			}
