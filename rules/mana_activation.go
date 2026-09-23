@@ -866,6 +866,7 @@ func (e *Engine) commitManaDiscard() {
 				To: state.ZExile, Text: "exiled as a mana ability cost"})
 		}
 	}
+	e.payMillCost(md.player, md.cost.Mill)
 	var manaTriggers []pendingTrigger
 	if md.cost.Tap {
 		manaTriggers = e.emitManaTap(md.player, md.source, md.ability)
@@ -1280,22 +1281,7 @@ func (e *Engine) resolveManaAbilityRef(p state.PlayerID, source state.ObjID, ma 
 	if !e.payManaConvFor(p, source, true, cost, e.paymentConv(p, source, true)) {
 		return
 	}
-	// Mill costs are paid before the mana ability resolves. A mill instruction
-	// moves all remaining cards when its count exceeds the library size, so the
-	// snapshot clamps to the available top-first prefix while still recording
-	// each card as a real zone-change event.
-	if total, ok := millCostTotal(cost.Mill); ok && total > 0 {
-		lib := e.G.Zone(state.ZLibrary, p)
-		if int64(len(lib)) < total {
-			total = int64(len(lib))
-		}
-		// Snapshot the ids before emitting: each MoveZone mutates the library
-		// the slice was read from.
-		ids := append([]state.ObjID(nil), lib[:total]...)
-		for _, id := range ids {
-			e.emit(events.Event{Kind: events.MoveZone, Obj: id, Player: p, From: state.ZLibrary, To: state.ZGraveyard, Text: "mill cost"})
-		}
-	}
+	e.payMillCost(p, cost.Mill)
 	var manaTriggers []pendingTrigger
 	if cost.Tap {
 		manaTriggers = e.emitManaTap(p, source, ma)
