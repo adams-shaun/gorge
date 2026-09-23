@@ -243,6 +243,8 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// fall to the allTriggerEvents default) keeps a Discover/SeekAll-only
 		// face's mask narrow for every other kind.
 		return 0
+	case "Scry":
+		return 0
 	case "Surveil":
 		// The Surveil marker's ordinal (79, task trig-surveil) is past the
 		// 64-bit mask's reach, the Discover/SeekAll shape: a mask bit is not

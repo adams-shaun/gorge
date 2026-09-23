@@ -2944,6 +2944,8 @@ func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, n int32, kind, verb string,
 		}
 		if markSurveil {
 			h.Emit(events.Event{Kind: events.Surveil, Player: p, Obj: c.Source})
+		} else if verb == "Scry" {
+			h.Emit(events.Event{Kind: events.Scry, Player: p, Obj: c.Source})
 		}
 		lib := zoneOf(g, state.ZLibrary, p)
 		k := n
