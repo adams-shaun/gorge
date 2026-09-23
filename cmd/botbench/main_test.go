@@ -709,7 +709,11 @@ func TestConstructedDefaultIsByteIdentical(t *testing.T) {
 	// (its oracle; pinned by rules/rescue_pepper_potts_test.go) instead of on
 	// every resolution, including a bounced plain creature or no target at
 	// all, where the gate used to fail open (reverting effects/conditions.go
-	// returns 6/14; the fix reproduces 5/15 deterministically).
+	// returns 6/14; the fix reproduces 5/15 deterministically). The Any-mana
+	// projection change in cards/mana_production.go then re-measured this
+	// same pair from 6/14 to 5/15: the bot can now see an untapped Any source
+	// as a real WUBRG alternative instead of the old colourless stand-in, so
+	// its tap choice changes in one game (reverting that file reproduces 6/14).
 	//
 	// The 6/14 was re-measured to 7/13 by the api:ManaReflected collector fix
 	// (ticket cli-20260922T225137Z): cards.ManaProduction now folds a face's
@@ -726,7 +730,11 @@ func TestConstructedDefaultIsByteIdentical(t *testing.T) {
 	// illegal lone block onto a Menace attacker and the engine rejected the
 	// intent, aborting the bench at HEAD seed 22 and at this change's seed 18;
 	// see legacySeat.Decide.)
-	const wantSeat0, wantSeat1 = 7, 13
+	// MERGE (Any-mana projection x ManaReflected collector, both present):
+	// measured at the merged tip as 6/14 -- neither parent's value (5/15 with
+	// the projection change alone, 7/13 with the collector fix alone); the two
+	// cards/mana_production.go changes interact on the shared bench pair.
+	const wantSeat0, wantSeat1 = 6, 14
 	if seat0, seat1 := atoi(m[8]), atoi(m[9]); seat0 != wantSeat0 || seat1 != wantSeat1 {
 		t.Errorf("constructed default split = %d/%d, want %d/%d (%s vs %s at seed 0, games 20)", seat0, seat1, wantSeat0, wantSeat1, testutil.RepoDeckNames()[0], testutil.RepoDeckNames()[1])
 	}

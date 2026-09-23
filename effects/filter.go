@@ -363,6 +363,13 @@ func init() {
 	predicates["EquippedBy"] = attachedBy
 	predicates["EnchantedBy"] = attachedBy
 	predicates["AttachedBy"] = attachedBy
+	// FortifiedBy: the same "attached to" relation spelled for Fortifications
+	// (CR 702.67) -- the candidate is the land the Fortification source is
+	// attached to (C.A.M.P.'s TapsForMana ValidCard$ Card.FortifiedBy,
+	// Darksteel Garrison's Affected$/ValidCard$ Land.FortifiedBy). The source
+	// side is spelled through the identical AttachedTo field an Equip or Aura
+	// ride sets, so attachedBy serves all four spellings.
+	predicates["FortifiedBy"] = attachedBy
 	// CanEnchantEquippedBy: the candidate card could legally be attached to
 	// the creature the resolving source attaches to -- Mantle of the
 	// Ancients' "return ... Aura and/or Equipment cards that could be
@@ -1152,13 +1159,18 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordCastProvenance, p
 	// The card-level CastSa property tokens (task castsa-provenance): the
 	// four mana-spend spellings the payment path's tagged ManaAdd encoding
-	// answers. Recognised here (the census no longer reports them unknown)
-	// but evaluated by rules' castSaAdmits, which strips them before the
-	// filter runs; wordMatches' body fails closed. The unmodelled spellings
-	// (CastSa Spell.MayPlaySource / Warp / Mayhem / ManaFromArtifact) stay
-	// unknown and fail closed everywhere.
+	// answers, plus the cast-flag spelling Spell.Mayhem (state.FlagMayhem,
+	// stamped by modeFlags' "mayhem" case) — recognized here (the census no
+	// longer reports them unknown) but evaluated by the provenance strips
+	// (rules' castSaAdmits and the per-event walk in spellsCastThisTurn-
+	// Matching; effects/conditions.go's castSaAdmitsFilter for the
+	// ConditionPresent gates), which remove the token before the filter
+	// runs; wordMatches' body fails closed. The still-unmodelled spellings
+	// (CastSa Spell.MayPlaySource / Warp / ManaFromArtifact) stay unknown
+	// and fail closed everywhere.
 	case "CastSa Spell.ManaFromTreasure", "CastSa Spell.ManaFromCave",
-		"CastSa Spell.ManaFromDesert", "CastSa Spell.ManaSpent EQ0":
+		"CastSa Spell.ManaFromDesert", "CastSa Spell.ManaSpent EQ0",
+		"CastSa Spell.Mayhem":
 		return wordCastProvenance, p
 	case "ActivePlayerCtrl":
 		return wordActivePlayerCtrl, ""

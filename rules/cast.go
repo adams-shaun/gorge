@@ -51,6 +51,13 @@ const (
 	// chooseEnlist / chooseAttackPay / chooseUnleash, each defined relative
 	// to a neighbour, and 40 is chooseUntap.
 	chooseAttached chooseFor = 30
+	// chooseTokenReplace is the chosen-copy CreateToken replacement's
+	// election (rules/replacement.go's poseChosenTokenReplacement park:
+	// Esix/Moonlit/Mirrormind's `Type$ ReplaceToken | TokenScript$ Chosen`).
+	// Originally 31 (next free after chooseAttached); the merged package
+	// gave 31 to chooseManaSacrifice, so 43 is the next free value after
+	// chooseManaConvert (42).
+	chooseTokenReplace chooseFor = 43
 	// chooseManaConvert is the cast-time election for an Optional$ ManaConvert
 	// static. It is deliberately separate from the mana-source window: the
 	// player chooses whether to use the permission before targets and payment.
@@ -1362,6 +1369,33 @@ func (e *Engine) drawCostCard(p state.PlayerID) {
 		From: state.ZLibrary, To: state.ZHand, Secret: true})
 }
 
+// payMillCost settles every Mill<N> cost component: the payer mills the SUM
+// of the parts' requirements from the top of their own library, one real
+// MoveZone event per card in deterministic top-first order. No choice is
+// involved, so nothing is asked. A mill instruction moves all remaining cards
+// when its count exceeds the library size, so the snapshot clamps to the
+// available prefix.
+func (e *Engine) payMillCost(p state.PlayerID, parts []CostPart) {
+	total, ok := millCostTotal(parts)
+	if !ok || total <= 0 {
+		return
+	}
+	lib := e.G.Zone(state.ZLibrary, p)
+	if int64(len(lib)) < total {
+		total = int64(len(lib))
+	}
+	// Snapshot the ids before emitting: each MoveZone mutates the library
+	// the slice was read from.
+	ids := append([]state.ObjID(nil), lib[:total]...)
+	for _, id := range ids {
+		e.emit(events.Event{Kind: events.MoveZone, Obj: id, Player: p, From: state.ZLibrary, To: state.ZGraveyard, Text: "mill cost"})
+	}
+}
+
+func (e *Engine) payMillCostParts(pc *pendingCast) {
+	e.payMillCost(pc.player, pc.cost.Mill)
+}
+
 // payDrawCostParts settles every Draw cost component of a cast or activation
 // payment: one ordinary draw per card of the part's count, for the drawer the
 // part's spec names. The count is the literal N, or -- for the dynamic
@@ -1595,7 +1629,9 @@ func (e *Engine) spellsCastThisTurn(p state.PlayerID) int {
 //
 // The mana part of a Cost$ is deliberately NOT folded: it RESTATES the printed
 // mana cost rather than adding to it, so re-adding it would double charge.
-// Only Life/Sac/Discard/SubCounter/Tap are additional.
+// Every OTHER component -- Life/Sac/Discard/SubCounter/Tap, and the whole
+// non-mana family including Exile, MoveToGrave, Reveal, Energy, Draw, LifeX,
+// DamageYou and Mill -- is additional and is concatenated below.
 func withSpellAbilityExtras(f *cards.Face, cost Cost) Cost {
 	sa := f.SpellAbility()
 	if sa == nil {
@@ -1651,6 +1687,9 @@ func withSpellAbilityExtras(f *cards.Face, cost Cost) Cost {
 	}
 	if len(extra.DamageYou) > 0 {
 		cost.DamageYou = append(append([]CostPart(nil), cost.DamageYou...), extra.DamageYou...)
+	}
+	if len(extra.Mill) > 0 {
+		cost.Mill = append(append([]CostPart(nil), cost.Mill...), extra.Mill...)
 	}
 	cost.Forage = cost.Forage || extra.Forage
 	cost.Tap = cost.Tap || extra.Tap
@@ -1930,6 +1969,22 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 			"bestowed": "Bestow"}[opt.Mode]
 		if mc, ok := f.KeywordParam(head); ok {
 			cost = ParseCost(mc)
+		} else {
+			cost = Cost{}
+		}
+	case "mayhem":
+		// Mayhem (the Doom Prevails keyword): a graveyard cast paying the
+		// mayhem cost in place of the mana cost -- the alternative-cost
+		// substitution family, the Miracle shape. The discard-this-turn
+		// provenance gate is the OFFER's gate (legal.go's graveyard walk via
+		// mayhemDiscardedThisTurn); the charge only re-reads the cost through
+		// the same helper, so offer and charge cannot drift, and a stale
+		// option whose keyword is gone falls back to the empty cost like the
+		// family above. The mode's flag (state.FlagMayhem) is the whole of
+		// what the cast records: Sandman's Quicksand's Card.CastSa
+		// Spell.Mayhem condition reads it; there is no exile tail to gate.
+		if mc, ok := e.mayhemCastCost(id); ok {
+			cost = mc
 		} else {
 			cost = Cost{}
 		}
@@ -5968,6 +6023,15 @@ func modeFlags(mode string) string {
 	// branch does not share this switch.
 	case "foretell_cast":
 		return events.FlagsString(state.FlagForetold)
+	// Mayhem (the Doom Prevails keyword): the flag is the provenance the
+	// Card.CastSa Spell.Mayhem condition reads (Sandman's Quicksand's "if
+	// this spell's mayhem cost was paid" split), through the CastSa
+	// provenance strip (rules/cast_provenance.go's castSaAdmits and the
+	// per-event walk in spellsCastThisTurnMatching, effects/conditions.go's
+	// conditionMet). Mayhem has no exile tail, so the flag is the whole of
+	// what the cast records.
+	case "mayhem":
+		return events.FlagsString(state.FlagMayhem)
 	// Bestow (CR 702.114a): the flag is the provenance the resolution
 	// reader (resolveTop) uses to substitute the synthesized Aura attach
 	// spell, and what keeps a bestowed cast distinguishable on the wire.
@@ -6689,6 +6753,9 @@ func (e *Engine) payCast() {
 		for _, part := range pc.cost.DamageYou {
 			e.payDamageCost(pc.player, part.N, pc.card)
 		}
+		// Mill cost parts (Mill<N>): the payer mills the summed requirement
+		// from the top of their library as part of the payment.
+		e.payMillCostParts(pc)
 		// Draw cost parts (Draw<N/Spec>): the payer draws N, as one ordinary
 		// Draw event per card (an empty library's loss is the SBA's). The
 		// dredge replacement is NOT posed here -- the cast-flow payment stage
@@ -6875,6 +6942,8 @@ func (e *Engine) payCast() {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZGraveyard, Text: "moved to its owner's graveyard as a cost"})
 		}
 	}
+	// Mill cost parts (see the ability branch above for the why).
+	e.payMillCostParts(pc)
 	// Energy cost parts (see the ability branch above for the why).
 	e.chargeEnergyCost(pc.player, pc.cost, pc.x)
 	// Announced PayLife<X>, DamageYou<N> and Draw<N/Spec> cost parts (see the

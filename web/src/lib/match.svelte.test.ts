@@ -443,3 +443,34 @@ describe('MatchState rewind', () => {
     expect(m.view).toEqual(view(5));
   });
 });
+
+describe('overflow recovery', () => {
+  // Session.push never blocks: a burst that outruns the SSE writer drops
+  // frames, marks the session overflowed and closes it (host/session.go,
+  // host/httpapi/sse.go). The dropped frames can include the decision frame,
+  // which is this client's only repaint edge during play, so a client that
+  // ignores the overflow frame -- as it used to -- holds its last painted
+  // board until the player reloads.
+  it('refetches the view and the seat transcript when the server reports dropped frames', async () => {
+    fetchViewMock.mockReset();
+    fetchEventsMock.mockReset();
+    fetchViewMock.mockResolvedValue(view(7));
+    fetchEventsMock.mockResolvedValue([] as EventBody[]);
+
+    const m = new MatchState('t1', { seat: 0, token: 'tok' });
+    m.apply({ v: 1, t: 'snapshot', table: 't1', match: 1, seq: 0, body: { view: view(1), turn_starts: [0], head: 5, seats } });
+    await Promise.resolve();
+    fetchViewMock.mockClear();
+    fetchEventsMock.mockClear();
+
+    // The overflow frame describes the SESSION, not a match, so it carries no
+    // table and must be handled before the table guard drops it.
+    m.apply({ v: 1, t: 'overflow', seq: 0, body: { dropped: 12 } } as never);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(fetchViewMock).toHaveBeenCalled();
+    expect(fetchEventsMock).toHaveBeenCalled();
+  });
+
+});

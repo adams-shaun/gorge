@@ -104,11 +104,27 @@
     // the first real game played through this client.
     //
     // A seat is one person clicking, so a slow poll costs nothing and makes
-    // the stream an optimisation rather than a dependency. It only fires when
-    // the panel believes it has nothing to answer, so a decision on screen is
-    // never refetched out from under the user.
+    // the stream an optimisation rather than a dependency.
+    //
+    // It polls whether or not a decision is on screen. Gating it on an empty
+    // panel left the worse half of the same failure open: a decision the
+    // server has already moved past stays on screen forever. view.decision is
+    // the only other source, it is embedded ONLY at the exact head seq
+    // (host/viewat.go: a view one seq either side carries none), and the
+    // effect that reads it re-runs only when a NEW view object is assigned —
+    // so once the view stops updating, nothing clears the stale ask and the
+    // poll that would replace it was the very thing switched off. Measured on
+    // the live demo: the panel held a trigger_order ask while the server was
+    // asking the same seat to choose a target.
+    //
+    // Refetching cannot take a decision out from under the player: adopt()
+    // ignores an answer for the seq already displayed, so an in-progress pick
+    // survives, and only a genuinely different seq (or a 409, meaning the
+    // server asks this seat nothing) replaces it. `busy` still holds the poll
+    // off while this panel's own intent is in flight, so a post and a poll
+    // cannot race to define the current ask.
     const t = setInterval(() => {
-      if (logic.pending === null && !logic.busy) void logic.refreshPending();
+      if (logic.shouldPoll) void logic.refreshPending();
     }, 1000);
     return () => {
       clearInterval(t);

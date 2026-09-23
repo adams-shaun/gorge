@@ -151,11 +151,11 @@ export interface Printing {
    * colour string: "Any"/"Combo Any", a listed "Combo X Y" choice, or a
    * "Chosen"/"Special" word (any token the symbol grammar cannot read). Such a
    * source is conditional in the card script, so a policy must not treat it as
-   * a dependable colour fixer. Colour carries only what a plain token names:
-   * the colour letters the token lists (one each for "R G", two for "RR"),
-   * never a phantom count for the words themselves -- an unrecognised token
-   * such as "Chosen" or "ColorIdentity" claims no mana at all (ProducedCounts),
-   * matching effMana's fail-closed executor convention.
+   * a dependable colour fixer. Colour carries what a plain token names (one each
+   * for "R G", two for "RR") and the real alternatives of a choice token. It
+   * never counts letters of script words as phantom mana: Chosen is represented
+   * by all five possible colours because its source-specific choice is not
+   * available to this source-free parser.
    */
 export interface ManaProduction {
   colour: [number, number, number, number, number, number];
@@ -259,8 +259,9 @@ export interface CardView {
    * Produces is what this card's mana abilities add to the pool when a
    * tap-for-mana activation runs them, derived from the compiled abilities
    * (cards.Face.ManaProduction) rather than land subtypes: a basic land's
-   * intrinsic {W}, a dual's {W}{U}, an "add any colour" source's resolved
-   * colourless, a colourless rock's {C}{C}. nil when the card has no mana
+   * intrinsic {W}, a dual's {W}{U}, an "add any colour" source's five
+   * colour alternatives (one unit each, flagged Any -- the colour is chosen
+   * when it is tapped, CR 106.1b), a colourless rock's {C}{C}. nil when the card has no mana
    * ability at all, so a creature or a spell never pays for the six-entry
    * array on the wire. It is a projected characteristic like ManaCost and
    * Keywords -- a mana ability's production is a card fact every seat sees,

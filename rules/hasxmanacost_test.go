@@ -158,6 +158,37 @@ func drainTriggerAsks(t *testing.T, e *Engine, limit int) {
 			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: idx}); err != nil {
 				t.Fatalf("submit trigger order: %v", err)
 			}
+		case decision.KChoose:
+			// Non-mana resolution choices retain the helper's deterministic
+			// first-option answer.
+			if len(d.Options) == 0 || d.Options[0].Kind != "mana" {
+				if len(d.Options) == 0 {
+					t.Fatalf("choose decision has no options: %+v", d)
+				}
+				if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{d.Options[0].Index}}); err != nil {
+					t.Fatalf("submit choose: %v", err)
+				}
+				goto next
+			}
+			// A triggered Combo mana effect allocates one distinct option per
+			// produced unit. Take the first colour for every unit rather than
+			// submitting the old single-choice answer.
+			idx := make([]int, 0, d.Min)
+			for _, o := range d.Options {
+				if o.Kind != "mana" {
+					t.Fatalf("mixed mana choice options: %+v", d.Options)
+				}
+				if len(idx) == d.Min {
+					break
+				}
+				idx = append(idx, o.Index)
+			}
+			if len(idx) != d.Min {
+				t.Fatalf("mana allocation has %d options, need %d: %+v", len(idx), d.Min, d.Options)
+			}
+			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: idx}); err != nil {
+				t.Fatalf("submit mana allocation: %v", err)
+			}
 		default:
 			// trigger_optional and any other single-choice resolution ask:
 			// take the first option.

@@ -1445,6 +1445,16 @@ func (e *Engine) candidatesFor(p state.PlayerID, source, excludeSelf state.ObjID
 	sc := e.targetSpecContext(specSrc, excludeSelf, p)
 	zones := targetZones(sa)
 	var out []targetCandidate
+	// Resolve the source ONCE for the whole census -- for an ability this is
+	// the Source permanent, not the Face-less stack object. Every protection
+	// test below is guarded on the candidate's zone, because a permanent's
+	// static ability functions only on the battlefield (CR 604.3), so a
+	// printed protection does not withhold a target sitting in the
+	// Graveyard/Hand/Exile that a TgtZone$ spec is asking about. The PLAYER
+	// candidates below read it too (hexproof from a quality resolves the
+	// same source); the player-side shroud and hexproof grants carry no zone
+	// gate -- a player is always in play.
+	protSrc := e.protectionSource(source)
 	// Players are offered only alongside the default battlefield search and
 	// only when the spec actually names a seat. A spec that routes elsewhere
 	// (TgtZone$ Graveyard/Hand/Exile) targets objects only -- never a player.
@@ -1458,20 +1468,22 @@ func (e *Engine) candidatesFor(p state.PlayerID, source, excludeSelf state.ObjID
 	// alternatives whose base is not a player base, so a mixed
 	// `Creature,Opponent` spec keeps the object half and matches only the
 	// player half's seats.
+	// CR 702.18 (player shroud) and CR 702.11 (player hexproof): a seat a
+	// live `Affected$ You | AddKeyword$` static grants those keywords is
+	// withheld here exactly as a permanent carrying them is withheld in the
+	// object arm below -- the grant is read off the same layer walk, through
+	// playerKeywords (rules/playerkeywords.go). Only the targeting arm
+	// consults them; the affected census (targeting=false) does not, the
+	// same split the permanent shroud gate applies.
 	if len(zones) == 1 && zones[0] == state.ZBattlefield {
 		for _, q := range e.G.AliveFrom(0) {
-			if e.playerTargetSpecMatches(sc, spec, q, p, specSrc) {
+			if e.playerTargetSpecMatches(sc, spec, q, p, specSrc) &&
+				(!targeting || !e.playerShroudBlocksTarget(q)) &&
+				(!targeting || !e.playerHexproofBlocksTarget(q, p, protSrc)) {
 				out = append(out, targetCandidate{kind: "player", player: q})
 			}
 		}
 	}
-	// Resolve the source ONCE for the whole census -- for an ability this is
-	// the Source permanent, not the Face-less stack object. Every protection
-	// test below is guarded on the candidate's zone, because a permanent's
-	// static ability functions only on the battlefield (CR 604.3), so a
-	// printed protection does not withhold a target sitting in the
-	// Graveyard/Hand/Exile that a TgtZone$ spec is asking about.
-	protSrc := e.protectionSource(source)
 	for _, z := range zones {
 		if z == state.ZStack {
 			// The stack is a single, shared sequence, not a per-seat zone, so
@@ -3083,8 +3095,17 @@ func (e *Engine) legalTargets(targets []state.Target, sa *cards.SA, zones []stat
 	sc.Resolving = true
 	for _, t := range targets {
 		if t.IsPlayer {
+			// CR 702.18 / CR 702.11 for players: a target that GAINED player
+			// shroud or (opponent-only) hexproof between placement and
+			// resolution is dropped here, exactly as the object arm below
+			// drops a permanent that gained them -- the same judge the offer
+			// (candidatesFor's player loop) applies, so offer and recheck
+			// cannot disagree (the one-definition rule). Players have no zone:
+			// no CR 604.3 gate is consulted on the player arm.
 			if int(t.Player) < len(e.G.Players) && !e.G.Players[t.Player].Lost &&
-				e.playerTargetSpecMatches(sc, spec, t.Player, you, source) {
+				e.playerTargetSpecMatches(sc, spec, t.Player, you, source) &&
+				!e.playerShroudBlocksTarget(t.Player) &&
+				!e.playerHexproofBlocksTarget(t.Player, you, e.protectionSource(source)) {
 				legal = append(legal, t)
 			}
 			continue
@@ -3348,6 +3369,23 @@ func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exc
 	// chain call (their castProvenanceAdmits strip is event-local and
 	// stateless).
 	saTokens := castSaTokensIn(spec)
+	// Flag tokens (CastSa Spell.Mayhem) read the cast's pay-time CastInfo
+	// flags rather than a spend bucket: the backward walk records each
+	// object's most recent CastInfo flags (latest-first, first write wins)
+	// and the push consumes its own cast's entry, so a re-cast object's
+	// older cast never inherits the newer cast's flags — the per-event
+	// mirror of castSaAdmits' latest-cast read. A plain cast emits no
+	// pay-time CastInfo at all, so a missing entry reads as no flags.
+	wantFlags := false
+	for _, tok := range saTokens {
+		if tok.flag != 0 {
+			wantFlags = true
+		}
+	}
+	var castFlags map[state.ObjID]uint64
+	if wantFlags {
+		castFlags = make(map[state.ObjID]uint64)
+	}
 	// The in-flight cast's own grant walk (queueCascadeTriggers' scratch,
 	// rules/cascade.go) counts PRIOR casts only: the Affected$ half of the
 	// same static evaluates the current cast's own qualification, and the
@@ -3366,6 +3404,13 @@ func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exc
 			break
 		}
 		switch ev.Kind {
+		case events.CastInfo:
+			if wantFlags {
+				if _, seen := castFlags[ev.Obj]; !seen {
+					castFlags[ev.Obj] = events.FlagsFrom(ev.Counter)
+				}
+			}
+			continue
 		case events.ManaAdd:
 			if useAcc && ev.Amount < 0 && int(ev.Player) < len(buckets) {
 				buckets[ev.Player].spent += -ev.Amount
@@ -3392,6 +3437,15 @@ func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exc
 		}
 		// The push itself proves a cast exists: the window's ok read.
 		facts.ok = true
+		// This cast's own pay-time CastInfo flags (see wantFlags above): the
+		// entry recorded at the CastInfo the backward walk already passed —
+		// the payment runs after the push, so its CastInfo sits BELOW the
+		// push in log order — is exactly this cast's.
+		var evFlags uint64
+		if wantFlags {
+			evFlags = castFlags[ev.Obj]
+			delete(castFlags, ev.Obj)
+		}
 		if skipObj != 0 && ev.Obj == skipObj {
 			continue
 		}
@@ -3405,7 +3459,7 @@ func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exc
 		alive := true
 		for _, tok := range saTokens {
 			var held bool
-			if matchSpec, held = admitProvenanceAlternatives(matchSpec, tok.token, castSaTokenHolds(tok, facts)); !held {
+			if matchSpec, held = admitProvenanceAlternatives(matchSpec, tok.token, castSaTokenHolds(tok, facts, evFlags)); !held {
 				alive = false
 				break
 			}

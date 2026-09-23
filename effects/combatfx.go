@@ -243,6 +243,18 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 
+	// ClearNotedCardsFor$ clears the requested player labels from its Defined$
+	// player set. The event fold keeps a later resolution and a replay from
+	// retaining a previous choice (Master of Ceremonies changes these labels
+	// every upkeep).
+	for _, label := range splitTrimList(sa.Params["ClearNotedCardsFor"]) {
+		for _, t := range Defined(h, c, sa) {
+			if t.IsPlayer && playerHasNote(h.Game(), t.Player, label) {
+				h.Emit(events.Event{Kind: events.PlayerNoteCleared, Player: t.Player, Text: label})
+			}
+		}
+	}
+
 	// NoteCards$ <defined> + NoteCardsFor$ <label> (Forge's NoteCardsEffect):
 	// the body records a player-notation that a later resolution reads through
 	// the shared player filter's `Player.NotedFor<label>` qualifier. Corpus
@@ -251,16 +263,17 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 	// Explorer. The noted SEAT is the resolution's Defined set (a remembered
 	// chooser, `Defined$ Player`, or `Defined$ Player.!IsRemembered`); Forge's
 	// NoteCardsEffect notes the CURRENT player when Defined$ is absent, which
-	// here is the resolving controller. NoteCards$ itself (Self/Remembered)
-	// names the noted CARD and is read only to keep the parameter census
-	// honest: the card-notation half (`Card.NotedFor<label>` at
-	// ChooseCard/Play/ChangeType sites) is a separate family and is NOT
-	// implemented here. The note lands through its own event so a log-only
-	// replay rebuilds state.Player.Notes exactly; the pump body then runs
-	// unchanged (a `Defined$ Remembered` chooser is a player entry, skipped by
-	// the object walk below).
-	if label := strings.TrimSpace(sa.Params["NoteCardsFor"]); label != "" {
-		_ = strings.TrimSpace(sa.Params["NoteCards"])
+	// here is the resolving controller. NoteCards$ itself names the noted
+	// thing, and only its `Self` form is a PLAYER notation: every corpus
+	// player carrier carries `NoteCards$ Self`, while `Remembered`/
+	// `TriggeredSource` (Volatile Chimera, Caller of the Untamed, Arcane
+	// Savant, Maelstrom Archangel Avatar) are the card-notation half
+	// (`Card.NotedFor<label>` at ChooseCard/Play/ChangeType sites), a separate
+	// family that must NOT write a player label. The note lands through its
+	// own event so a log-only replay rebuilds state.Player.Notes exactly; the
+	// pump body then runs unchanged (a `Defined$ Remembered` chooser is a
+	// player entry, skipped by the object walk below).
+	if label := strings.TrimSpace(sa.Params["NoteCardsFor"]); label != "" && strings.TrimSpace(sa.Params["NoteCards"]) == "Self" {
 		spec := strings.TrimSpace(sa.Params["Defined"])
 		noted := false
 		for _, t := range Defined(h, c, sa) {
