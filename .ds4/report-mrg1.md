@@ -1248,3 +1248,37 @@ e0fd7d9c (battle-protector botpolicy 57cd1863/a04571b1, NameCard lists
 ## Issues
 
 None beyond the resolved conflicts.
+
+## Round-3 record — re-dispatch verification (this seat, 2026-09-23)
+
+The round-2 resolver was cut off after committing the merge but before its
+completion status was recorded (`status-merge-mrg1.cutoff.json` shows
+`status: DONE`, `report_written: false`). This re-dispatch verified the round-2
+state rather than redoing it:
+
+- `git status` on entry: tree CLEAN at `1249aca0`, no rebase/merge in flight;
+  `acc7878d` (the branch fix) and main @ `e0fd7d9c` both contained; no conflict
+  markers anywhere in tracked files.
+- The round-2 record above (Operation + Issues, ending "None beyond the
+  resolved conflicts") documents the `1249aca0` resolution; `AGENTS.md`
+  auto-merged with the union of the three row deletions and no
+  First-Strike/NameCard/non<X> rows remain (grep: only the provenance comment
+  mentions the closure in `internal/testutil/agentsdoc_test.go`).
+- Ratchet re-run (same commands the round-2 brief mandates, all exit 0):
+  `go test ./internal/testutil -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort'` → ok 0.001s;
+  `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'` → ok 0.886s.
+  `.cards` symlink present (→ /home/sadams/projects/gorge/.cards), so the run
+  is not a vacuous skip.
+- Behaviour goldens: `go test ./internal/archtest/` → ok 5.233s;
+  `go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/` → ok
+  1.310s (pinned split unchanged). `gofmt -l` on the conflicted file: clean.
+
+Note for the next round: main has since advanced past `e0fd7d9c` to `2040e5d9`
+(kw:Strive, the Worthy filter predicate, layer-4 static-grammar closure, a CI
+docs refresh). That integration is NOT part of this round's mrg1 conflict and
+was not started here; the daemon should dispatch it as its own merge round.
+
+## Issues
+
+None new. The round-2 record's `## Issues` stands (none beyond the resolved
+conflicts).
