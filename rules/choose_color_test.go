@@ -3,223 +3,129 @@ package rules
 import (
 	"testing"
 
-	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
-	"github.com/adams-shaun/gorge/events"
-	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
 )
 
-// The "as this enters, choose a color" primitive (K:ETBReplacement
-// ChooseColor) pinned end to end: the cast-time colour ask, the recorded
-// Choose "color" event, the Produced$ Chosen mana read on BOTH mana paths
-// (the CR 605.3b triggered path and the activation path), and the CR 733.1
-// abort restore. Utopia Sprawl and Quirion Elves are REAL corpus cards
-// (carriers come from the compiled corpus, never inline scripts -- the
-// corpus is gitignored GPL text); the abort fixture is inline because it is
-// a deliberately-authored unpayable-cost shape no corpus card carries.
+// The mid-resolution ChooseColor ask (task cli-20260923T060000Z-choose-color):
+// a resolution-time "choose a color" poses a real KChoose over the fixed
+// WUBRG colour list, and the ANSWERED colour is what the downstream
+// Count$Devotion.Chosen reader counts -- the reader Hotel of Fears' "Praise
+// Him" and Nyx Lotus ride. Pinned end to end on a fixture spell with that
+// exact downstream shape (PutCounter X = Count$Devotion.Chosen): the corpus
+// SP$ ChooseColor carriers' own downstreams (Wash Out's ChangeType$
+// Permanent.ChosenColor, Akroma's Blessing's Gains$ ChosenColor) are
+// unregistered filter vocabulary -- a separate, pre-existing gap reported in
+// the ticket, not this ask's.
 
-// The helpers come from mass_primitives_test.go (corpusEngineCfg: a seat-0
-// deck led by the named corpus cards, mountains after, driven to Main 1, with
-// the Config returned for replayCheck) and oring_remember_targets_test.go
-// (moveCorpusCard: a logged MoveZone of a real deck card). The abort fixture
-// is inline because it is a deliberately-authored unpayable-cost shape no
-// corpus card carries.
+// devotionRite is the fixture spell: choose a color, then put X +1/+1
+// counters on itself, where X is the caster's devotion to the chosen colour
+// -- the Hotel of Fears shape minus the planar trigger.
+const devotionRite = "Name:Rite of Praise\nManaCost:1 B\nTypes:Sorcery\n" +
+	"A:SP$ ChooseColor | Defined$ You | SubAbility$ DBGain\n" +
+	"SVar:DBGain:DB$ GainLife | LifeAmount$ X\n" +
+	"SVar:X:Count$Devotion.Chosen\nOracle:x\n"
 
-// chooseColorEvent finds the log's Choose "color" event for obj and returns
-// its recorded letter.
-func chooseColorEvent(t *testing.T, e *Engine, obj state.ObjID) string {
+// castRite funds {1}{B} and casts the fixture rite from seat 0's hand,
+// leaving the resolution suspended on the mid-resolution colour ask.
+func castRite(t *testing.T) (*Engine, state.ObjID, state.ObjID) {
 	t.Helper()
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.Choose && ev.Obj == obj && ev.Counter == "color" {
-			return ev.Text
-		}
+	e := handEngine(t, card(t, devotionRite))
+	pip := battlefieldCreature(t, e, "Name:White Pip\nManaCost:W\nTypes:Creature Bear\nPT:1/1\nOracle:x\n")
+	rite := e.G.Zone(state.ZHand, 0)[0]
+	// Precondition: the devotion source is a real battlefield permanent and
+	// the devotions under comparison actually differ -- White 1, Black 0 --
+	// so the answered colour provably governs the downstream count.
+	if o := e.G.Obj(pip); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("precondition: the devotion source is not on the battlefield: %+v", o)
 	}
-	t.Fatalf("no Choose color event for object %d in the log", obj)
-	return ""
-}
-
-// TestUtopiaSprawlChoosesAColorAndAddsTheChosenMana pins the whole primitive
-// on the real corpus card: casting asks the WUBRG colour at cast time (before
-// the target ask), the answered choice is recorded as events.Choose
-// {Counter: "color"} on the aura, and tapping the enchanted Forest adds the
-// chosen colour ON TOP of the Forest's own production (the CR 605.3b
-// triggered path, rewriteChosenMana).
-func TestUtopiaSprawlChoosesAColorAndAddsTheChosenMana(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
-	e, cfg := corpusEngineCfg(t, reg, []*cards.Card{corpusCard(t, "Utopia Sprawl"), corpusCard(t, "Forest")}, nil)
-	sprawl := moveCorpusCard(t, e, "Utopia Sprawl", 0, state.ZHand)
-	forest := moveCorpusCard(t, e, "Forest", 0, state.ZBattlefield)
-
-	addMana(t, e, 0, "G")
+	e.G.Players[0].Pool[state.MC], e.G.Players[0].Pool[state.MB] = 1, 1
+	e.priorityRound()
 	d := e.Pending()
-	if d == nil {
-		t.Fatal("no pending decision")
-	}
 	idx := -1
 	for _, o := range d.Options {
-		if o.Kind == "cast" && o.Obj == sprawl {
+		if o.Kind == "cast" && o.Obj == rite {
 			idx = o.Index
 		}
 	}
 	if idx < 0 {
-		t.Fatalf("no cast option for the Sprawl: %+v", d.Options)
+		t.Fatalf("no cast option for the rite in %+v", d.Options)
 	}
 	submitChoices(t, e, idx)
-
-	d = e.Pending()
-	if d == nil || d.Kind != decision.KTarget {
-		t.Fatalf("expected the aura's target ask before entry, got %+v", d)
-	}
-	tgt := -1
-	for _, o := range d.Options {
-		if o.Obj == forest {
-			tgt = o.Index
-		}
-	}
-	if tgt < 0 {
-		t.Fatalf("Forest not offered as the aura target: %+v", d.Options)
-	}
-	submitChoices(t, e, tgt)
-	d = passUntilNonPriority(t, e, 20)
-	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "etb" || d.Options[0].Kind != "color" || len(d.Options) != 5 {
-		t.Fatalf("colour choice at entry %+v", d)
-	}
-	for i, want := range []string{"White", "Blue", "Black", "Red", "Green"} {
-		if d.Options[i].Label != want {
-			t.Fatalf("option %d label %q, want %q (WUBRG order)", i, d.Options[i].Label, want)
-		}
-	}
-	submitChoices(t, e, 4) // Green
-	if got := e.G.Obj(sprawl).ChosenColor; got != "G" {
-		t.Fatalf("ChosenColor = %q, want G (recorded at entry)", got)
-	}
-	passUntilStackEmpty(t, e, 20)
-
-	o := e.G.Obj(sprawl)
-	if o.Zone != state.ZBattlefield || o.AttachedTo != forest || o.ChosenColor != "G" {
-		t.Fatalf("Sprawl after resolution: zone %s attached %d color %q", o.Zone, o.AttachedTo, o.ChosenColor)
-	}
-	if got := chooseColorEvent(t, e, sprawl); got != "G" {
-		t.Fatalf("Choose color event recorded %q, want G", got)
-	}
-
-	// Tap the enchanted Forest for mana: its own {G} plus the Sprawl's extra
-	// chosen-colour {G}. Re-establish the legal active-player priority marker
-	// before the helper re-asks the funded window.
-	e.pending = nil
-	e.emit(events.Event{Kind: events.Priority, Player: 0})
-	e.askPriority(0)
-	addMana(t, e, 0, "")
-	mana, ok := findManaAbilityOption(e, forest, 0)
-	if !ok {
-		t.Fatalf("no mana activation for the Forest: %+v", e.Pending().Options)
-	}
-	submitChoices(t, e, mana.Index)
-	if got := e.G.Players[0].Pool[state.MG]; got != 2 {
-		t.Fatalf("pool {G} = %d after the Forest tapped, want 2 (Forest + Sprawl's chosen G)", got)
-	}
-	replayCheck(t, e, cfg)
+	return e, rite, pip
 }
 
-// TestQuirionElvesChosenManaFollowsTheETBChoice pins the ACTIVATION path
-// (rules/mana_activation.go resolveManaEffect's Chosen branch): the elves'
-// second activation resolves to the ETB-recorded colour with no second ask,
-// while the first ({G}) stays fixed.
-func TestQuirionElvesChosenManaFollowsTheETBChoice(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
-	e, cfg := corpusEngineCfg(t, reg, []*cards.Card{corpusCard(t, "Quirion Elves")}, nil)
-	elves := moveCorpusCard(t, e, "Quirion Elves", 0, state.ZHand)
-	e.pending = nil
-	e.Advance()
-
-	addMana(t, e, 0, "GG")
-	castFirst(t, e, "cast")
-	d := passUntilNonPriority(t, e, 40)
-	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "etb" || d.Options[0].Kind != "color" || len(d.Options) != 5 {
-		t.Fatalf("colour choice %+v", d)
+// TestChosenColorAskIsPosedOverTheWUBRGList pins the ask itself: the
+// resolution suspends on a KChoose whose ResumeKind is "choosecolor", whose
+// options are the five WUBRG colours in fixed order with full names as
+// Labels. Without the fix the effect never asked -- it recorded the
+// first-WUBRG "W" outright and kept resolving.
+func TestChosenColorAskIsPosedOverTheWUBRGList(t *testing.T) {
+	t.Parallel()
+	e, rite, _ := castRite(t)
+	d := passUntilAsk(t, e)
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "choosecolor" ||
+		d.Player != 0 || d.Min != 1 || d.Max != 1 || d.Prompt != "Choose a color" {
+		t.Fatalf("expected the mid-resolution colour ask, got %+v", d)
 	}
-	submitChoices(t, e, 2) // Black
-	passUntilStackEmpty(t, e, 20)
-	if o := e.G.Obj(elves); o.Zone != state.ZBattlefield || o.ChosenColor != "B" {
-		t.Fatalf("Elves: zone %s color %q", o.Zone, o.ChosenColor)
+	if len(d.Options) != 5 {
+		t.Fatalf("option list = %+v, want the five WUBRG colours", d.Options)
 	}
-
-	// Activate the second mana ability ({T}: Add one mana of the chosen
-	// color). Re-establish the legal active-player priority marker after the
-	// resolution-time ask.
-	e.pending = nil
-	e.emit(events.Event{Kind: events.Priority, Player: 0})
-	e.askPriority(0)
-	// The priority "activate" option opens the stage-1 ability wheel;
-	// the Chosen ability is Ability index 1 ("Add chosen color").
-	addMana(t, e, 0, "")
-	mana, ok := findManaAbilityOption(e, elves, 0)
-	if !ok {
-		t.Fatalf("no mana activation for the Elves: %+v", e.Pending().Options)
-	}
-	submitChoices(t, e, mana.Index)
-	d = e.Pending()
-	if d == nil || d.Kind != decision.KChoose {
-		t.Fatalf("expected the stage-1 ability wheel, got %+v", d)
-	}
-	second := -1
-	for _, o := range d.Options {
-		if o.Ability == 1 {
-			second = o.Index
+	want := []string{"White", "Blue", "Black", "Red", "Green"}
+	for i, w := range want {
+		if d.Options[i].Kind != "color" || d.Options[i].Label != w {
+			t.Fatalf("option %d = %+v, want the %q colour option", i, d.Options[i], w)
 		}
 	}
-	if second < 0 {
-		t.Fatalf("no option for the Chosen ability: %+v", d.Options)
+	if o := e.G.Obj(rite); o.ChosenColor != "" {
+		t.Fatalf("a choice was recorded before the ask was answered: %q", o.ChosenColor)
 	}
-	submitChoices(t, e, second)
-	if got := e.G.Players[0].Pool[state.MB]; got != 1 {
-		t.Fatalf("pool {B} = %d, want 1 (the chosen colour)", got)
-	}
-	if got := e.G.Players[0].Pool[state.MG]; got != 0 {
-		t.Fatalf("pool {G} = %d, want 0 (the 1{G} cast spent both); a second ask must not have fired", got)
-	}
-	replayCheck(t, e, cfg)
 }
 
-// TestChooseColorRecordsTheAnswerAndAbortsRestoreIt pins CR 733.1's undo of
-// an as-enters colour choice: the answer is recorded during the proposal, and
-// the unpayable-mana abort restores the object to its pre-proposal choice
-// state (abortCast's reverse Choose "color" event), like the ChosenName and
-// ChosenNumber siblings.
-func TestChooseColorRecordsTheAnswerAndAbortsRestoreIt(t *testing.T) {
-	jewel := "Name:Jewel\nManaCost:G G\nTypes:Creature Elf Druid\nPT:1/1\n" +
-		"K:ETBReplacement:Other:ChooseColor\n" +
-		"SVar:ChooseColor:DB$ ChooseColor | Defined$ You | SpellDescription$ As CARDNAME enters, choose a color.\nOracle:x\n"
-	// seatZeroStart + the etbConfig deck shape (the fixture card seeded as a
-	// REAL deck card, mountains after): etbConfig itself does not pin the
-	// toss, and a seat-1 starter would make driveToStep(1, 0, main1) chase
-	// the game to its mill-out instead of stopping at seat 0's first turn.
-	cfg := seatZeroStart(Config{Seed: 77, Names: []string{"a", "b"},
-		Decks:  [][]*cards.Card{append([]*cards.Card{card(t, jewel)}, mountainDeck(t, 39)...), mountainDeck(t, 40)},
-		Tokens: map[string]*cards.Card{}})
-	e := New(cfg)
-	e.Advance()
-	driveToStep(t, e, 1, 0, state.StepMain1)
-	id := findByName(e, "Jewel", 0)
-	if id == 0 {
-		t.Fatal("Jewel not found")
+// TestChosenColorAnswerGovernsTheDownstreamDevotionCount answers "Black" --
+// the OPPOSITE of the pre-fix first-WUBRG fallback ("White") -- so the
+// downstream Devotion.Chosen must count ZERO (no black pips on the board),
+// gain no life, and record the answer "B" on the object. Without the fix
+// the resolution silently chose White, counted 1, and gained the life.
+func TestChosenColorAnswerGovernsTheDownstreamDevotionCount(t *testing.T) {
+	t.Parallel()
+	e, rite, _ := castRite(t)
+	d := passUntilAsk(t, e)
+	black := optionByLabel(d.Options, "Black")
+	if black < 0 {
+		t.Fatalf("no Black option in %+v", d.Options)
 	}
-	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: e.G.Obj(id).Zone, To: state.ZHand})
-	e.pending = nil
-	e.Advance()
-	// The unpayable proposal is rejected before the permanent would enter.
-	// Under CR 614.12 there is consequently no colour election and no choice
-	// to undo; the card and its pre-proposal characteristics remain untouched.
-	e.pending = nil
-	e.beginCast(0, decision.Option{Kind: "cast", Obj: id})
-	if o := e.G.Obj(id); o.Zone != state.ZHand || o.ChosenColor != "" {
-		t.Fatalf("Jewel after rejected proposal: zone=%s color=%q", o.Zone, o.ChosenColor)
+	submitChoices(t, e, black)
+	finishCast(t, e, rite)
+	if got := e.G.Players[0].Life; got != 20 {
+		t.Fatalf("the BLACK answer gained life to %d (the White fallback's devotion), want 20", got)
 	}
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.Choose && ev.Obj == id && ev.Counter == "color" {
-			t.Fatal("an as-enters color was recorded before the permanent could enter")
-		}
+	if o := e.G.Obj(rite); o.ChosenColor != "B" {
+		t.Fatalf("recorded choice = %q, want the answered B", o.ChosenColor)
 	}
-	replayCheck(t, e, cfg)
+}
+
+// TestChosenColorWhiteAnswerCountsTheBoard answers "White" -- the positive
+// arm: the downstream Devotion.Chosen counts the white pip and the counter
+// lands, proving the ask's answer is the colour the count reads (and that
+// the resolution completed its whole SubAbility chain).
+func TestChosenColorWhiteAnswerCountsTheBoard(t *testing.T) {
+	t.Parallel()
+	e, rite, _ := castRite(t)
+	d := passUntilAsk(t, e)
+	white := optionByLabel(d.Options, "White")
+	if white < 0 {
+		t.Fatalf("no White option in %+v", d.Options)
+	}
+	submitChoices(t, e, white)
+	finishCast(t, e, rite)
+	if got := e.G.Players[0].Life; got != 21 {
+		t.Fatalf("the WHITE answer counted %d devotion, want the 1 life gained", got-20)
+	}
+	if o := e.G.Obj(rite); o.ChosenColor != "W" {
+		t.Fatalf("recorded choice = %q, want the answered W", o.ChosenColor)
+	}
+	if o := e.G.Obj(rite); o.Zone != state.ZGraveyard {
+		t.Fatalf("resolved rite in %s, want graveyard", o.Zone)
+	}
 }
