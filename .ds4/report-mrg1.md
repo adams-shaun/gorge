@@ -698,7 +698,12 @@ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMo
 ok   github.com/adams-shaun/gorge/rules  0.796s
 ```
 
-The corpus is present, so corpus-dependent ratchets were not skipped. The integration commit was already present on entry; this report update is committed separately.
+The corpus is present, so corpus-dependent ratchets were not skipped. The integration commit was already present on entry; this report update is committed separately. I also ran the focused test for the compound-origin behavior:
+
+```text
+go test ./effects -run 'TestMemoryLeakCompoundFetchPlayerChoosesFromBothZones$' 2>&1 | tail -30
+ok   github.com/adams-shaun/gorge/effects  0.594s
+```
 
 ## Issues
 
