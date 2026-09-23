@@ -5,6 +5,7 @@ import (
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -24,6 +25,22 @@ import (
 // Every test asserts its own precondition (the replacement source is a
 // battlefield permanent, the maker is where the ability is read, the two
 // outcomes under comparison differ) so a vacuous setup fails loudly.
+
+// handPriorityToSeat1 passes priority until the pending decision is seat 1's,
+// the APNAP hand-off the opponent maker's activation needs (the existing
+// addMana+passPriorityOnce flow assumes a fresh round from seat 0; after a
+// stack drain the holder varies, so hand off conditionally).
+func handPriorityToSeat1(t *testing.T, e *Engine) {
+	t.Helper()
+	for i := 0; i < 4; i++ {
+		d := e.Pending()
+		if d != nil && d.Kind == decision.KPriority && d.Player == 1 {
+			return
+		}
+		passPriorityOnce(t, e)
+	}
+	t.Fatalf("priority never reached seat 1 (pending %+v)", e.Pending())
+}
 
 // tokenControllerReplSrc is an authored printed ReplaceController carrier:
 // while it is on the battlefield, every creature token created by ANY player
@@ -191,6 +208,92 @@ func TestTokenReplacementRidersLandOnEveryExtra(t *testing.T) {
 		if !o.Tapped {
 			t.Fatalf("mint %d of 2 is not tapped (the rider must land on every extra)", i)
 		}
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestCraftyCutpurseRedirectsOpponentTokens is the corpus carrier end-to-end:
+// Crafty Cutpurse enters (its own ChangesZone trigger resolves the TrigEffect
+// chain), which registers the Effect-delivered CreateToken replacement
+// (ReplacementEffects$ OppCreatEnters, body DB$ ReplaceToken |
+// Type$ ReplaceController | NewController$ You) in effects/misc.go's live
+// class -- the registration this test's fix adds. A token the OPPONENT then
+// creates enters under Cutpurse's controller's control instead.
+func TestCraftyCutpurseRedirectsOpponentTokens(t *testing.T) {
+	cutpurse := tokenReplCorpusCard(t, "Crafty Cutpurse")
+	maker := cardByName(t, tokenForgeSrc("g_1_1_squirrel"))
+	e, cfg := tokenReplGameSeats(t, 139, []*cards.Card{cutpurse}, []*cards.Card{maker})
+	cutID := moveSeededCard(t, e, 0, cutpurse, state.ZBattlefield)
+	if o := e.G.Obj(cutID); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("precondition: Crafty Cutpurse is not a battlefield permanent: %+v", o)
+	}
+	m := moveSeededCard(t, e, 1, maker, state.ZBattlefield)
+	// Resolve Cutpurse's "when it enters" trigger first: the trigger goes on
+	// the stack on the next engine step, and draining the stack resolves it,
+	// executing the TrigEffect chain that registers the replacement. Only
+	// after that registration is outstanding do we let the opponent mint.
+	addMana(t, e, 0, "")
+	passUntilStackEmpty(t, e, 20)
+	if got := countTokensNamedOnSeat(t, e, 0, "Squirrel Token"); got != 0 {
+		t.Fatalf("draining Cutpurse's entry trigger minted %d tokens; nothing should exist yet", got)
+	}
+	// Preconditions the redirect depends on: seat 1 owns the maker's ability.
+	if o := e.G.Obj(m); o == nil || o.Controller != 1 {
+		t.Fatalf("precondition: the token maker is not seat 1's: %+v", o)
+	}
+	handPriorityToSeat1(t, e)
+	addMana(t, e, 0, "")
+	submitChoices(t, e, abilityOption(t, e, m, 0).Index)
+	passUntilStackEmpty(t, e, 20)
+	if got := countTokensNamedOnSeat(t, e, 0, "Squirrel Token"); got != 1 {
+		t.Fatalf("Cutpurse did not redirect the opponent's token: %d Squirrel Tokens on seat 0, want 1", got)
+	}
+	if got := countTokensNamedOnSeat(t, e, 1, "Squirrel Token"); got != 0 {
+		t.Fatalf("the token stayed under its creator: %d tokens on seat 1", got)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestCraftyCutpurseRegistrationExpiresAfterTheTurn pins the registration's
+// LIFETIME, the other half of the effect-delivered shape: the effect's
+// duration is "this turn" (no Duration$ on the SVar), so it survives its own
+// source leaving the battlefield (a departure mid-turn does not end it --
+// Forge's Effect entity is turn-scoped, not presence-scoped) and expires at
+// the cleanup that ends the turn. On the NEXT turn the opponent's token is
+// NOT redirected.
+func TestCraftyCutpurseRegistrationExpiresAfterTheTurn(t *testing.T) {
+	cutpurse := tokenReplCorpusCard(t, "Crafty Cutpurse")
+	maker := cardByName(t, tokenForgeSrc("g_1_1_squirrel"))
+	e, cfg := tokenReplGameSeats(t, 149, []*cards.Card{cutpurse}, []*cards.Card{maker})
+	cutID := moveSeededCard(t, e, 0, cutpurse, state.ZBattlefield)
+	if o := e.G.Obj(cutID); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("precondition: Crafty Cutpurse is not a battlefield permanent: %+v", o)
+	}
+	m := moveSeededCard(t, e, 1, maker, state.ZBattlefield)
+	addMana(t, e, 0, "")
+	passUntilStackEmpty(t, e, 20)
+	if got := countTokensNamedOnSeat(t, e, 0, "Squirrel Token"); got != 0 {
+		t.Fatalf("draining Cutpurse's entry trigger minted %d tokens; nothing should exist yet", got)
+	}
+	// Cutpurse leaves mid-turn (the logged move is its own departure).
+	e.emit(events.Event{Kind: events.MoveZone, Obj: cutID, From: state.ZBattlefield, To: state.ZGraveyard})
+	e.pending = nil
+	e.Advance()
+	if o := e.G.Obj(cutID); o != nil && o.Zone == state.ZBattlefield {
+		t.Fatalf("precondition: Cutpurse never left the battlefield")
+	}
+	// Cross to seat 1's turn: seat 0's cleanup ended the "this turn" effect.
+	driveToTurn(t, e, e.G.Turn+1, 1)
+	addMana(t, e, 1, "")
+	submitChoices(t, e, abilityOption(t, e, m, 0).Index)
+	passUntilStackEmpty(t, e, 20)
+	got1 := countTokensNamedOnSeat(t, e, 1, "Squirrel Token")
+	got0 := countTokensNamedOnSeat(t, e, 0, "Squirrel Token")
+	if got1 != 1 {
+		t.Fatalf("after the effect's turn ended, the opponent's token did not stay theirs: %d on seat 1 (seat 0: %d), want 1", got1, got0)
+	}
+	if got0 != 0 {
+		t.Fatalf("the expired Cutpurse effect still redirected: %d tokens on seat 0", got0)
 	}
 	replayCheck(t, e, cfg)
 }
