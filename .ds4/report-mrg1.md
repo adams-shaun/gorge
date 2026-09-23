@@ -533,3 +533,95 @@ None found in the conflict resolution itself. One note: main's own
 `agentsdoc_test.go` comment claimed 71 while main's table already held 70
 rows (it accounted for only one of its two deletions); the merged-tree
 constant 69 supersedes both comments.
+
+
+---
+
+## Rebased branch report (cli-20260922T225139Z-205fd0ae)
+
+# Merge-conflict resolution report — mrg1 (ticket cli-20260922T225139Z-205fd0ae)
+
+## Starting state
+
+`git status` showed a CLEAN tree on `wt/cli-20260922T225139Z-205fd0ae` at branch commit
+87655042 ("test(effects): pin real Eladamri chosen-object path beside compound fetch";
+HEAD chain 17944f03 → 6ffc4544 → 87655042). No `.git/MERGE_HEAD`, `rebase-merge` or
+`rebase-apply` present — the daemon's failed integration had been rolled back. I
+performed the integration as a **merge of main** (merge, not rebase — this repo's rules
+forbid `git rebase`, and main's history shows merge is the established integration shape
+for wt branches).
+
+`.cards` was present as the correct symlink to `/home/sadams/projects/gorge/.cards` —
+no corpus-skip risk in any run below.
+
+## Conflicted file
+
+One file: `internal/testutil/agentsdoc_test.go`, a single hunk on the
+`knownApproximationRows` constant:
+
+- **HEAD (branch 87655042):** `knownApproximationRows = 75` — the branch deleted the
+  "Hidden-origin searches / `Origin$ Sideboard`" row from AGENTS.md (auto-merged
+  cleanly into my merge) and lowered the constant 76 → 75.
+- **main:** `knownApproximationRows = 74` — main deleted the "(ft1)
+  withForetell/withoutForetell … MayPlay" row (auto-merged cleanly) and lowered the
+  constant to 74.
+
+The two sides deleted DIFFERENT rows, so the auto-merged AGENTS.md legitimately keeps
+both deletions.
+
+## Resolution
+
+Measured the merged AGENTS.md table with the test's own row algorithm (collect `^| `
+lines under `## Known approximations` until the next `## `, drop the header row):
+
+- merge-base e53c80a2: 75 data rows (its constant 76 was already stale by one)
+- merged AGENTS.md: **73 data rows**, 6 oversize rows (≤ `knownOversizeRows` 8, no change)
+
+Both deletions survive → 75 − 2 = 73. Set `knownApproximationRows = 73`, which
+preserves BOTH sides' intent and makes the constant exactly match the table (no slack,
+no false failure). `knownOversizeRows` untouched. No other file or test logic touched;
+nothing was "improved" beyond the conflict.
+
+Verified both deletions really are in the merged table (diff of the table section
+base→branch shows the Hidden-origin row removed; base→main shows the (ft1) row removed;
+the auto-merge kept both).
+
+## Commands and results
+
+```
+git merge main --no-edit
+  → CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go
+  (everything else auto-merged, including AGENTS.md and .ds4/report-mrg1.md)
+```
+
+- `go test -run 'TestKnownApproximation' ./internal/testutil/` → `ok … 0.001s`
+- `git add internal/testutil/agentsdoc_test.go && git commit --no-edit`
+  → merge commit `fe2e7587`; `git status` clean afterwards.
+- Ratchets required after a main merge:
+  `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`
+  → `ok github.com/adams-shaun/gorge/rules 0.757s` (exit 0).
+- Verified non-vacuous: `go test ./rules -run 'TestEveryRepoDeckIsFullySupported$|TestNoTriggerModeIsRegistered' -v`
+  → `--- PASS: TestEveryRepoDeckIsFullySupported (0.71s)` and
+  `--- PASS: TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched`, 0 SKIPs
+  (with `.cards` present).
+- Behaviour goldens (system-notes check, ~5 s total):
+  `go test ./internal/archtest/` → `ok … 3.907s`;
+  `go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/` → `ok … 1.214s`.
+
+## Issues
+
+None new. The only conflict was the row-count constant; both sides' row deletions were
+integrated rather than either side's number being taken blindly (both constants on the
+table were wrong for the merged tree — main's 74 would have left the register one row
+too loose, HEAD's 75 two rows too loose; only a Logf either way, but the constant
+should match the merged table).
+
+## Notes / unsure-about
+
+- This report file (`.ds4/report-mrg1.md`) is TRACKED in the branch despite
+  `.git/info/exclude` — a previous ticket's report (for
+  cli-20260922T225141Z-8d166e9c) was committed somewhere in this branch's ancestry and
+  the merge auto-merged it. I overwrote it with this report per the brief and committed
+  it; that is the only post-merge commit.
+- No head/ratchet golden moved due to my resolution: the constant change reflects rows
+  both sides had already deleted and had already lowered their constants for.
