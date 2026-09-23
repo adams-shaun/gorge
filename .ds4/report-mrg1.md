@@ -1,50 +1,22 @@
 # Merge conflict resolution — mrg1
 
-## Result
+## Conflict: `internal/testutil/agentsdoc_test.go`
 
-Integrated `main` into `wt/cli-20260922T225141Z-22391c4d` with merge commit
-`00d48a32`. The branch's reviewed token-replacement work and main's changes are
-both retained. The only conflicted source file was
-`internal/testutil/agentsdoc_test.go`.
+- **Branch side:** the approved cascade fix had deleted the `cascade1` approximation row and set `knownApproximationRows = 40`, documenting that branch's deletion.
+- **Main side:** the token-replacement change had deleted a different row and also had a 40-row count, documenting main's accumulated row deletions.
+- **Resolution:** retained both table deletions (the merged `AGENTS.md` has neither `cascade1` nor `tokrepl1`) and set the count to 39, the actual merged table size. The comment names both deletions. No engine behavior was changed as part of conflict resolution.
 
-## Conflict resolution
+No other file was conflicted. Main's non-conflicting changes were retained.
 
-### `internal/testutil/agentsdoc_test.go`
+## Commands and results
 
-- The branch side recorded the table count and closures for its token-replacement
-  approximation deletion (and its prior mulligan-redraw closure).
-- Main's side recorded the same constant but a different set of main-side
-  closures, including First-Strike Damage and the layer-4 filter grammar.
-- Kept both sides' intent in the explanatory history and set
-  `knownApproximationRows` to 40, the current data-row count in the merged
-  `AGENTS.md` after retaining the branch's `(tokrepl1)` deletion and main's
-  deletions. The table ratchet test passed at that value.
-
-The conflicted file was staged and the merge completed. Other main changes were
-automatically integrated. `.ds4/report-mrg1.md` arrived in the merge from a
-sibling integration report; this file is the report path required by this
-work item, so it was replaced with this integration's report.
-
-## Commands and output
-
-- `git status --short --branch; git rev-parse --show-toplevel; git log -5 --oneline --decorate`:
-  clean at start on `wt/cli-20260922T225141Z-22391c4d`, at `f89770be`.
-- `git merge --no-edit main`:
-  `CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go`;
-  merge otherwise auto-merged.
-- `git diff --check`: no output (passed).
-- `.cards` check: present as a symlink to `/home/sadams/projects/gorge/.cards`.
-- `git -c core.editor=true merge --continue`:
-  `[wt/cli-20260922T225141Z-22391c4d 00d48a32] Merge branch 'main' into wt/cli-20260922T225141Z-22391c4d`.
-- `go test -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort' ./internal/testutil/`:
-  `ok github.com/adams-shaun/gorge/internal/testutil 0.001s`.
-- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`:
-  `ok github.com/adams-shaun/gorge/rules 0.792s`.
-- Final tree status before writing this report: clean after merge commit.
+- `git status --short --branch` — clean before starting the merge; branch `wt/cli-20260922T225140Z-9e382c75`.
+- `git merge main` — began the merge; auto-merged `AGENTS.md` and the non-conflicting main changes; reported a content conflict only in `internal/testutil/agentsdoc_test.go`.
+- `python3` row-count check against merged `AGENTS.md` — `rows: 39`, `cascade1: False`, `token-replacement: False`.
+- `go test -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort' ./internal/testutil/` — `ok github.com/adams-shaun/gorge/internal/testutil 0.002s`.
+- `.cards` check — present.
+- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'` — `ok github.com/adams-shaun/gorge/rules 1.004s`.
 
 ## Issues
 
-No new unfixed issue was found while resolving the merge. The token-replacement
-implementation's out-of-scope remainder is recorded in the branch's ticket
-report/commit history; this conflict resolution did not alter engine behavior
-outside retaining main's changes.
+No new engine issue was investigated or found during this integration-only resolution. The cascade ticket's remaining deviations and follow-up tickets are recorded in its existing ticket report; the cascade approximation row itself is deleted as intended.

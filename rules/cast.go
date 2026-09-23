@@ -2322,6 +2322,23 @@ func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost boo
 		e.continueCast()
 		return
 	}
+	// CR 601.3: a player can begin to cast a spell only if a rule or effect
+	// allows it and no rule or effect prohibits it. The ordinary cast OFFER
+	// runs that prohibition gate (castRestricted -- the CantBeCast family:
+	// Teferi's "only any time they could cast a sorcery", Void Winnower's
+	// even-mana lockout, a card's own "you can't cast this spell unless
+	// ..."). A Play effect begins its cast WITHOUT passing the offer walk,
+	// so the free-cast routes (cascade and Discover's election, an impulse
+	// "you may play it") would otherwise cast a prohibited card for free.
+	// Refuse here with a Note; the card stays in the zone the Play found it
+	// in (cascade's chained tail then bottoms it). A play that cannot name
+	// a castable card is not an error -- CR 601.3 simply withholds the
+	// cast, and the Play's answer is consumed either way.
+	if e.castRestricted(p, id) {
+		e.emit(events.Event{Kind: events.Note, Player: p, Obj: id,
+			Text: "the play cannot cast a restricted card"})
+		return
+	}
 	cost := e.rawBaseCost(p, id)
 	if withoutManaCost {
 		cost = Cost{}
