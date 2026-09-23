@@ -811,6 +811,41 @@ func sharesAllCardTypesWithOther(g *state.Game, o *state.Object, sc SpecContext,
 	return false
 }
 
+// faceIsTheChosenType reports whether the object's face carries the
+// "CARDNAME is the chosen type in addition to its other types" static
+// (Titan of Littjara, Adaptive Automaton, Metallic Mimic, Roaming Throne,
+// Multiversal Passage, Thran Portal): a Continuous static whose Affected$
+// names the host itself and whose AddType$/AddTypes$ value is the
+// ChosenType indirection. For such a referent the recorded "as this
+// enters" choice counts among its creature types in a
+// sharesCreatureTypeWith read: the grant is materialised only inside the
+// layer walk (rules' resolveChosenTypes against the host's recorded
+// choice), which a count or target filter evaluation never runs, so the
+// probe reads the static's own shape instead. A referent with no recorded
+// choice grants nothing — the same fail-closed direction the layer walk
+// takes.
+func faceIsTheChosenType(r *state.Object) bool {
+	if r == nil || r.Face() == nil || r.ChosenType == "" {
+		return false
+	}
+	for _, st := range r.Face().Statics {
+		if st.Mode != "Continuous" || !strings.Contains(st.Params["Affected"], "Self") {
+			continue
+		}
+		for _, v := range strings.Split(st.Params["AddType"], ",") {
+			if strings.TrimSpace(v) == "ChosenType" {
+				return true
+			}
+		}
+		for _, v := range strings.Split(st.Params["AddTypes"], ",") {
+			if strings.TrimSpace(v) == "ChosenType" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // sharesCreatureTypeWith reports whether o shares at least one CREATURE
 // subtype with any object the referent names (Forge
 // Card.sharesCreatureTypeWith: an intersection over the creature subtypes —
@@ -818,8 +853,10 @@ func sharesAllCardTypesWithOther(g *state.Game, o *state.Object, sc SpecContext,
 // The candidate's subtypes are read context-aware (hasTypeCtx: layer grants
 // and Changeling reach it); the referent's own subtypes are read from its
 // live face exactly like sharesCardTypeWith's card-type read (hasType,
-// which handles Changeling on the referent's side too). An unbound referent
-// matches nothing — fail closed, never widened.
+// which handles Changeling on the referent's side too) — plus the chosen
+// type when the face's own "is the chosen type" static grants it
+// (faceIsTheChosenType: Titan of Littjara's Illusion-Bear read below).
+// An unbound referent matches nothing — fail closed, never widened.
 func sharesCreatureTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref string) bool {
 	for _, t := range sharesTypeReferents(g, sc, ref) {
 		if t.IsPlayer {
@@ -836,6 +873,15 @@ func sharesCreatureTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref 
 			if hasTypeCtx(o, word, sc) && hasType(r, word) {
 				return true
 			}
+		}
+		// The chosen-type grant: the recorded choice is one of the
+		// referent's creature types exactly as the layer walk materialises
+		// it. The printed-face hasType above cannot see the grant (it lives
+		// in rules' layer-4 emission, not on Face().Types), so this read is
+		// the grant's own — and CreatureTypeWords keeps a non-creature
+		// recorded choice (a ChooseType over another category) out.
+		if w := r.ChosenType; w != "" && CreatureTypeWords(w) && faceIsTheChosenType(r) && hasTypeCtx(o, w, sc) {
+			return true
 		}
 	}
 	return false
@@ -1256,6 +1302,15 @@ const (
 	wordNotDefinedTargeted
 	wordOpponentCtrl
 	wordChosenColor
+	// wordHasBasicLandType is Forge's Card.hasABasicLandType: the object is a
+	// LAND that has at least one of CR 205.3i's five basic land types
+	// (Plains, Island, Swamp, Mountain, Forest). It is NOT "has the Basic
+	// supertype": a Wastes is a basic land with no basic land type and must
+	// NOT match (CR 205.3i is explicit, and every corpus carrier's reminder
+	// text says "a land card with a basic land type"). The five words come
+	// from chooseBasicLandTypes so this predicate and the Basic Land choose
+	// cannot drift.
+	wordHasBasicLandType
 )
 
 // wordPredicate classifies a bare predicate word. key is the WUBRG letter for
@@ -1403,6 +1458,13 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordBlockingSource, ""
 	case "blockedBySource":
 		return wordBlockedBySource, ""
+	// Forge's Card.hasABasicLandType (the corpus's `Land.hasABasicLandType`
+	// qualifier). The bare word is classified here so the matcher and the
+	// UnknownPredicates census share one recogniser; the `Land.` base the
+	// corpus spells it under is the union spelling (the body re-checks Land
+	// anyway, so a bare `Card.hasABasicLandType` stays correct too).
+	case "hasABasicLandType":
+		return wordHasBasicLandType, ""
 	}
 	if targetReferent(p) {
 		return wordTargetedPlayerCtrl, ""
@@ -1422,6 +1484,18 @@ func wordPredicate(p string) (wordKind, string) {
 	// Permanent.YouCtrl) stays wordUnknown and fails closed.
 	if arg, ok := attachedToArg(p); ok {
 		return wordAttachedTo, arg
+	}
+	// The BARE form "sharesCreatureTypeWith" (no space, no referent — the
+	// whole token survives the spec splitter exactly like the two-token
+	// form): the SOURCE itself is the shared referent, Forge's unqualified
+	// reading in a source-anchored filter. The two corpus carriers are Titan
+	// of Littjara's `SVar:X:Count$Valid Creature.YouCtrl+Other+
+	// sharesCreatureTypeWith` (the Draw<X/You> cost's X) and Plane-Merge
+	// Elf's Kinfall (`ValidCard$ Creature.YouCtrl+sharesCreatureTypeWith`).
+	// The bare card-type siblings have no corpus carrier and stay unknown —
+	// fail closed.
+	if p == "sharesCreatureTypeWith" {
+		return wordSharesCreatureType, "Self"
 	}
 	if name, arg, ok := sharesTypeArg(p); ok {
 		switch name {
@@ -1781,6 +1855,22 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// files); recognizing the bare word closes the census without
 		// widening any existing spelling.
 		return o.Controller != sc.You
+	case wordHasBasicLandType:
+		// Forge's hasABasicLandType: a land with one of the five basic land
+		// types (CR 205.3i), read through hasTypeCtx so the layer-derived type
+		// list and Changeling agree with every other type read. A Wastes is a
+		// basic land with NO basic land type and does not match; a non-land
+		// with a granted land type is excluded by the Land test, exactly as
+		// Forge's Card.hasABasicLandType requires the Land card type.
+		if !hasTypeCtx(o, "Land", sc) {
+			return false
+		}
+		for _, t := range chooseBasicLandTypes {
+			if hasTypeCtx(o, t, sc) {
+				return true
+			}
+		}
+		return false
 	case wordSameName:
 		// Forge CardProperty "sameName": card.sharesNameWith(source). The
 		// referent is SpecContext.Source as MatchesObjectCtx rewrote it: the

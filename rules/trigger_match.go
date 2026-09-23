@@ -295,6 +295,19 @@ type zoneBatchEntry struct {
 	moved []state.Target
 }
 
+// millBatchEntry records one MilledAll trigger line already queued inside the
+// open mill batch: the pendingTriggers index it queued at (the queue is
+// append-only while a batch is open) plus the number of cards this line's
+// ValidCard$ matched and their deduplicated set. closeMillBatch patches the
+// count into the queued trigger's TriggerAmount (the TriggerCount$Amount
+// head) and the set into its Remembered/Captured plural capture.
+type millBatchEntry struct {
+	key    triggerKey
+	idx    int
+	amount int32
+	milled []state.Target
+}
+
 // turnFires is one T: line's trigger count within the turn it last
 // triggered (Engine.triggerTurnFires).
 type turnFires struct {
@@ -407,6 +420,16 @@ var actionTriggerModes = map[string]bool{
 	// FirstTime$ (Whispering Snitch's "for the first time each turn")
 	// through the shared firstMarkerThisTurn log scan.
 	"Surveil": true,
+	// Milled/MilledAll join them for the same reason: both are event modes
+	// registered from the start (milledMatches over events.Mill, task
+	// trig-milled), so the trigger-level parameters Forge scopes to every
+	// event mode apply from day one -- ActivationLimit$ (Mirelurk Queen's
+	// "This ability triggers only once each turn" on its MilledAll line),
+	// PlayerTurn$ and an unevaluable CheckDefinedPlayer$ predicate failing
+	// closed. MilledAll's once-per-turn cadence is its own batch latch (the
+	// mill entry), not this map; the map only makes ActivationLimit$ count
+	// the batch's single queue slot.
+	"Milled": true, "MilledAll": true,
 }
 
 // triggerGameLimitFor parses a trigger's GameActivationLimit$ param (the
@@ -1315,6 +1338,43 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					// Fall through: the trigger queues now; closeZoneBatch patches
 					// its plural capture to the batch's moved set.
 				}
+				// MilledAll inside an open mill batch (one api:Mill resolution,
+				// effects/cardflow.go's effMill) is the mill twin of the
+				// ChangesZoneAll latch above: the batch's milled cards reach the
+				// trigger ONCE, not once per card, so it fires ONCE for the whole
+				// mill action if at least one matching card was milled. The latch
+				// keys on the trigger line ALONE (DamageAll's shape); the first
+				// matching milled card queues the single instance and every later
+				// matching card accumulates into the entry's COUNT, which
+				// closeMillBatch patches into the queued trigger's TriggerAmount
+				// (the TriggerCount$Amount head The Wise Mothman's X and
+				// Screeching Scorchbeast's "that many" read). Only cards this
+				// line's ValidCard$ matched are counted, exactly as DamageAll
+				// only accumulates matching pairs. No batch open (a mill that is
+				// not an api:Mill, e.g. a cost mill) means every mill is its own
+				// batch-of-one and the per-event referent below already carries
+				// count 1.
+				if t.Mode == "MilledAll" && e.millBatchOpen {
+					if e.millBatchIdx == nil {
+						e.millBatchIdx = map[triggerKey]int{}
+					}
+					if entIdx, ok := e.millBatchIdx[key]; ok {
+						ent := &e.millBatchLog[entIdx]
+						ent.amount++
+						if ev.Obj != 0 {
+							ent.milled = batchAppendTarget(ent.milled, state.Target{Obj: ev.Obj})
+						}
+						continue // already queued once for this mill action.
+					}
+					ent := millBatchEntry{key: key, idx: len(e.pendingTriggers), amount: 1}
+					if ev.Obj != 0 {
+						ent.milled = batchAppendTarget(ent.milled, state.Target{Obj: ev.Obj})
+					}
+					e.millBatchIdx[key] = len(e.millBatchLog)
+					e.millBatchLog = append(e.millBatchLog, ent)
+					// Fall through: the trigger queues now; closeMillBatch patches
+					// its count and plural capture to the mill action's totals.
+				}
 				// RolledDie's Number$ N ("your third die each turn"): gated
 				// LAST, at the queue point, so a speculative matcher call or a
 				// later-rejected trigger never advances the count. Keyed by the
@@ -1630,6 +1690,62 @@ func (e *Engine) EndDamageBatch()   { e.closeDamageBatch() }
 // openZoneBatch/closeZoneBatch.
 func (e *Engine) BeginZoneBatch() { e.openZoneBatch() }
 func (e *Engine) EndZoneBatch()   { e.closeZoneBatch() }
+
+// BeginMillBatch/EndMillBatch are effects.Host's mill-batch bracket (effects/
+// cardflow.go's effMill opens them around one api:Mill resolution): the mill
+// MoveZone events emitted until the matching EndMillBatch are one mill action
+// for the Mode$ MilledAll latch. Reentrant brackets nest by depth so an inner
+// mill cannot close its caller's batch early.
+func (e *Engine) BeginMillBatch() { e.openMillBatch() }
+func (e *Engine) EndMillBatch()   { e.closeMillBatch() }
+
+// openMillBatch opens a mill batch: the mill MoveZone events emitted until
+// the matching closeMillBatch are one mill action for Mode$ MilledAll.
+func (e *Engine) openMillBatch() {
+	if e.millBatchDepth == 0 {
+		e.millBatchOpen = true
+		e.millBatchIdx = nil
+		e.millBatchLog = nil
+	}
+	e.millBatchDepth++
+}
+
+// closeMillBatch closes the open mill batch: every entry's queued trigger
+// gets its TriggerAmount patched to the count of matching cards and its
+// Remembered/Captured plural capture to their set, then the bookkeeping is
+// dropped. The latch lives entirely inside the open batch -- entries are the
+// latch, and closing clears them -- so nothing persists between mills. The
+// pendingTriggers index is re-checked against the trigger it was recorded for
+// before patching (same guard as closeZoneBatch/closeDamageBatch: a trigger
+// whose Execute$ never resolved queued nothing).
+func (e *Engine) closeMillBatch() {
+	if e.millBatchDepth == 0 {
+		return
+	}
+	e.millBatchDepth--
+	if e.millBatchDepth != 0 {
+		return
+	}
+	e.millBatchOpen = false
+	for _, ent := range e.millBatchLog {
+		if ent.idx >= len(e.pendingTriggers) {
+			continue
+		}
+		for i := ent.idx; i < len(e.pendingTriggers); i++ {
+			pt := &e.pendingTriggers[i]
+			if pt.Source != ent.key.Source || pt.Idx != ent.key.Idx {
+				break
+			}
+			pt.Ctx.TriggerContext.TriggerAmount = ent.amount
+			if len(ent.milled) > 0 {
+				pt.Ctx.Remembered = append([]state.Target(nil), ent.milled...)
+				pt.Ctx.Captured = append([]state.Target(nil), ent.milled...)
+			}
+		}
+	}
+	e.millBatchIdx = nil
+	e.millBatchLog = nil
+}
 
 // openZoneBatch opens a zone batch: the zone-change events (MoveZone,
 // Draw, PutOnStack -- the kinds zoneChangeMatches consults) emitted until

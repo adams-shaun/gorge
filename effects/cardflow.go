@@ -937,6 +937,22 @@ func effMill(h Host, c *Ctx, sa *cards.SA) {
 	}
 	remember := strings.EqualFold(sa.Params["RememberMilled"], "True")
 	show := strings.EqualFold(strings.TrimSpace(sa.Params["ShowMilledCards"]), "True")
+	// One api:Mill resolution is ONE mill action (Forge's one Mill call),
+	// so the Mode$ MilledAll batch ("whenever one or more cards are
+	// milled") must fire once for the whole call, not once per milled card.
+	// The bracket is opened here and closed after every acting player's
+	// moves; the per-card Mode$ Milled trigger needs no batch and fires on
+	// each MoveZone exactly as before. The bracket is a type assertion, the
+	// zoneBatch bracket's shape (effects/choose_control.go's zoneBatcher),
+	// so a host double without it simply fires MilledAll per card rather
+	// than failing to compile.
+	if b, ok := h.(interface {
+		BeginMillBatch()
+		EndMillBatch()
+	}); ok {
+		b.BeginMillBatch()
+		defer b.EndMillBatch()
+	}
 	g := h.Game()
 	for _, t := range actingPlayers(h, c, sa) {
 		p := t
@@ -947,8 +963,7 @@ func effMill(h Host, c *Ctx, sa *cards.SA) {
 				break
 			}
 			id := lib[0]
-			h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
-				From: state.ZLibrary, To: state.ZGraveyard, Player: p})
+			h.Emit(events.Mill(id, p))
 			if remember {
 				rememberMilled(h, c, id)
 			}
@@ -2894,6 +2909,8 @@ func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, n int32, kind, verb string,
 	if c.Arrange {
 		start = c.LibraryTarget + 1
 		c.Arrange = false
+	} else if c.ScryReplacement {
+		start = c.LibraryTarget
 	}
 	if n < 0 {
 		n = 0
@@ -2932,6 +2949,24 @@ func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, n int32, kind, verb string,
 		k := n
 		if extraOf != nil {
 			k += extraOf(p)
+		}
+		if verb == "Scry" {
+			// The order choice parks the proposal before inspecting the library.
+			// On re-entry consume its result once rather than replacing it again.
+			proceed := true
+			if c.ScryReplacement && c.LibraryTarget == targetIndex {
+				k, proceed = c.ScryCount, c.ScryProceed
+				c.ScryReplacement = false
+			} else {
+				var pending bool
+				k, proceed, pending = h.Scry(p, c.Source, k, sa, targetIndex)
+				if pending {
+					return
+				}
+			}
+			if !proceed {
+				continue
+			}
 		}
 		if k < 0 {
 			k = 0

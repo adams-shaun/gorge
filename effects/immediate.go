@@ -85,17 +85,10 @@ func effImmediateTrigger(h Host, c *Ctx, sa *cards.SA) {
 			Text: "ImmediateTrigger with no resolvable Execute$ " + execName})
 		return
 	}
-	// The parent remembered set minus the trigger's own event capture.
-	var parent []state.Target
-	captured := map[state.Target]bool{}
-	for _, t := range c.Captured {
-		captured[t] = true
-	}
-	for _, t := range c.Remembered {
-		if !captured[t] {
-			parent = append(parent, t)
-		}
-	}
+	// The parent remembered set minus the trigger's own event capture, via the
+	// shared helper refTargets' TriggerRemembered case also uses (so the two
+	// cannot disagree about what Forge's host list holds).
+	parent := rememberedExcludingCapture(h, c)
 	// TriggerAmount$ against the capture-excluded ctx, so the Remembered$-
 	// anchored count heads see exactly what the script remembered.
 	amountCtx := *c
