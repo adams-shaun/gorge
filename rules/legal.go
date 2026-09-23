@@ -1566,6 +1566,29 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 	offerCastable := func(p state.PlayerID, id state.ObjID, base Cost, scope costScope, ability bool) bool {
 		return e.offerCastableUsing(costStatics.get(), p, id, base, scope, ability, hyp)
 	}
+	// offerCastableAsFace is offerCastable for an alternate-face cast route
+	// (adventure_alt, adventure_recast, room_alt, split_alt, aftermath):
+	// beginCast flips the object to `face` before pricing, so the gate prices
+	// with the object showing that face too (faceprobe.go) -- otherwise a
+	// modifier reading the card's characteristics (Thalia's
+	// Card.nonCreature) matches the wrong face and an unpayable cast is
+	// offered, reversed and re-offered forever. The walk's cached statics are
+	// fetched BEFORE the probe (a lazy first collection inside it would cache
+	// the probed face for the rest of the walk) and re-collected inside it
+	// only when either face carries a cost-modifier static of its own.
+	offerCastableAsFace := func(p state.PlayerID, id state.ObjID, face *cards.Face, base Cost, scope costScope) bool {
+		statics := costStatics.get()
+		var cur *cards.Face
+		if o := e.G.Obj(id); o != nil {
+			cur = o.Face()
+		}
+		return e.offerAsFace(id, face, func() bool {
+			if faceHasCostStatics(cur) || faceHasCostStatics(face) {
+				statics = e.collectCostStatics()
+			}
+			return e.offerCastableUsing(statics, p, id, base, scope, false, hyp)
+		})
+	}
 	// affordable is the composed-cost gate the two direct e.castable sites of
 	// the walk use (the may-play and escape walks price an already-composed
 	// cost, so they cannot re-run the modifier composition offerCastable
@@ -1633,7 +1656,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		if sf := splitAlternateCastFace(o); sf != nil {
 			instant := sf.IsInstant() || e.HasKeyword(id, "Flash") || e.castWithFlash(p, id)
 			if (instant || sorcery) && e.splitCastTargetsAvailable(p, id, sf) {
-				if offerCastable(p, id, withSpellAbilityExtras(sf, e.parseCost(sf.ManaCost)), spellScope(""), false) {
+				if offerCastableAsFace(p, id, sf, withSpellAbilityExtras(sf, e.parseCost(sf.ManaCost)), spellScope("")) {
 					out = append(out, decision.Option{Index: len(out), Kind: "cast",
 						Label: "Cast " + sf.Name, Obj: id, Mode: "split_alt"})
 				}
@@ -1655,7 +1678,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		if int(o.FaceIdx) == 0 {
 			if af := adventureSpellFace(o); af != nil && e.spellTimingOK(p, id, af, sorcery) &&
 				e.castTargetsAvailable(p, id, af.SpellAbility()) {
-				if offerCastable(p, id, withSpellAbilityExtras(af, ParseCost(af.ManaCost)), spellScope(""), false) {
+				if offerCastableAsFace(p, id, af, withSpellAbilityExtras(af, ParseCost(af.ManaCost)), spellScope("")) {
 					out = append(out, decision.Option{Index: len(out), Kind: "cast",
 						Label: "Cast " + af.Name, Obj: id, Mode: "adventure_alt"})
 				}
@@ -1764,7 +1787,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		if rf := roomAlternateCastFace(o); rf != nil {
 			instant := rf.IsInstant() || e.HasKeyword(id, "Flash")
 			if (instant || sorcery) && e.castTargetsAvailable(p, id, rf.SpellAbility()) {
-				if offerCastable(p, id, withSpellAbilityExtras(rf, e.parseCost(rf.ManaCost)), spellScope(""), false) {
+				if offerCastableAsFace(p, id, rf, withSpellAbilityExtras(rf, e.parseCost(rf.ManaCost)), spellScope("")) {
 					out = append(out, decision.Option{Index: len(out), Kind: "cast",
 						Label: "Cast " + rf.Name, Obj: id, Mode: "room_alt"})
 				}
@@ -2239,7 +2262,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		if !e.castTargetsAvailable(p, id, af.SpellAbility()) {
 			continue
 		}
-		if offerCastable(p, id, withSpellAbilityExtras(af, ParseCost(af.ManaCost)), spellScope(""), false) {
+		if offerCastableAsFace(p, id, af, withSpellAbilityExtras(af, ParseCost(af.ManaCost)), spellScope("")) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + af.Name + " (aftermath)", Obj: id, Mode: "aftermath"})
 		}
@@ -2432,7 +2455,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			!castRestricted(p, id) && !e.castSuppressed(p, id) {
 			front := o.Card.Faces[0]
 			if e.spellTimingOK(p, id, front, sorcery) && e.castTargetsAvailable(p, id, front.SpellAbility()) &&
-				offerCastable(p, id, ParseCost(front.ManaCost), spellScope(""), false) {
+				offerCastableAsFace(p, id, front, ParseCost(front.ManaCost), spellScope("")) {
 				out = append(out, decision.Option{Index: len(out), Kind: "cast",
 					Label: "Cast " + front.Name + " (from adventure zone)", Obj: id, Mode: "adventure_recast"})
 			}

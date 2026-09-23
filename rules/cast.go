@@ -1872,6 +1872,12 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		return
 	}
 	from := o.Zone
+	// The no-progress suppression state as it stood before this proposal.
+	// The alternate-face routes below flip the card (a FlipFace is a
+	// state-changing event to emit's suppression-clearing rule), but that
+	// flip is part of the provisional proposal: an aborted cast flips it
+	// back (CR 733.1). See emitProposalFlip.
+	preSuppress, preAborts := e.suppressedCast, e.castAborts
 	var faceBefore *uint8
 	if opt.Mode == "room_alt" {
 		if roomAlternateCastFace(o) == nil {
@@ -1879,7 +1885,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		}
 		before := o.FaceIdx
 		faceBefore = &before
-		e.emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: int32(1 - int(before))})
+		e.emitProposalFlip(id, before, preSuppress, preAborts)
 	}
 	// CR 714: the same flip mechanism serves the Adventure faces. From the
 	// hand the cast flips to the Adventure spell face (adventure_alt); from
@@ -1894,7 +1900,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		}
 		before := o.FaceIdx
 		faceBefore = &before
-		e.emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: int32(1 - int(before))})
+		e.emitProposalFlip(id, before, preSuppress, preAborts)
 	}
 	if opt.Mode == "adventure_recast" {
 		if o.Zone != state.ZExile || adventureSpellFace(o) == nil || o.Face() != o.Card.Faces[1] {
@@ -1902,7 +1908,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		}
 		before := o.FaceIdx
 		faceBefore = &before
-		e.emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: int32(1 - int(before))})
+		e.emitProposalFlip(id, before, preSuppress, preAborts)
 	}
 	// CR 702.85a: the Aftermath half -- the alternate face of a Split card --
 	// is cast only from its owner's graveyard. From the graveyard the cast
@@ -1918,7 +1924,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		}
 		before := o.FaceIdx
 		faceBefore = &before
-		e.emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: int32(1 - int(before))})
+		e.emitProposalFlip(id, before, preSuppress, preAborts)
 	}
 	// CR 709.4: the alternate half of a non-Room split card (mode split_alt)
 	// is cast from hand exactly like a Room door or an Adventure spell face:
@@ -1931,7 +1937,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		}
 		before := o.FaceIdx
 		faceBefore = &before
-		e.emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: int32(1 - int(before))})
+		e.emitProposalFlip(id, before, preSuppress, preAborts)
 	}
 	// CR 310.11: the defeated battle's owner casts it TRANSFORMED (mode
 	// defeat_cast). The exiled battle is its front face; one FlipFace to the
@@ -1949,7 +1955,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		}
 		before := o.FaceIdx
 		faceBefore = &before
-		e.emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: int32(1 - int(before))})
+		e.emitProposalFlip(id, before, preSuppress, preAborts)
 	}
 	f := o.Face()
 	if f == nil {
@@ -9063,4 +9069,23 @@ func init() {
 		// keyword expansion: the K:Plot line is read directly. Proof:
 		// rules/plot_test.go.
 		"kw:Plot")
+}
+
+// emitProposalFlip records the FlipFace an alternate-face cast proposal
+// (room_alt, adventure_alt, adventure_recast, aftermath, split_alt,
+// defeat_cast) makes before its ordinary cast transaction, WITHOUT letting
+// that flip count as game progress. emit clears the held-out no-progress
+// state (suppressedCast/castAborts) on every state-changing event; the flip
+// is one, but it is net no progress when the proposal is then reversed
+// (abortCast flips the card back). Left cleared, pushCast captured the
+// already-emptied maps as the proposal's pre-push state, so abortCast's
+// F05-2 count restarted at zero on every attempt and the SECOND identical
+// no-progress abort never held the option out: an Adventure cast the offer
+// priced as payable but the flipped face could not pay was reversed and
+// re-offered forever (the botbench flip_face livelock). Restoring the maps
+// the proposal began with keeps the count across attempts; a cast that goes
+// on to reach the stack clears them at its PutOnStack as before.
+func (e *Engine) emitProposalFlip(id state.ObjID, before uint8, preSuppress map[state.ObjID]bool, preAborts map[state.ObjID]int32) {
+	e.emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: int32(1 - int(before))})
+	e.suppressedCast, e.castAborts = preSuppress, preAborts
 }
