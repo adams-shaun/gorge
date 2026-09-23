@@ -5145,3 +5145,32 @@ green with the merged tables untouched.
 - No new defect found during this resolution; the resolution changed no
   engine behaviour (the only manual edit is the register constant + its
   comment in `internal/testutil/agentsdoc_test.go`).
+
+---
+
+## Current dispatch confirmation — cli-20260923T060000Z-pw-combatdamage
+
+The reported merge operation was already completed on arrival: `HEAD` is merge
+commit `1104bc92d` with parents `b1e08c0a` (reviewed planeswalker fix) and
+`5129c9a7` (main at the time of integration). The tree had no active rebase or
+merge and was clean. Thus I did not start or repeat an integration. The current
+`main` ref has advanced beyond `5129c9a7` since that merge; this confirmation
+only completes and verifies the dispatched conflict-resolution operation, not a
+new merge against a later main tip.
+
+The original per-file conflict decisions and the branch/main intent are
+recorded in the report above for `events/apply.go`, `rules/attack_cost.go`,
+`rules/combat.go` and `state/object.go`; the semantically intertwined
+`decision/decision.go` and `web/src/protocol.ts` auto-merges are also described
+there. No unresolved paths remain.
+
+Commands run in this confirmation:
+
+- `git status --short --branch` → `## wt/cli-20260923T060000Z-pw-combatdamage` (clean).
+- `git diff --name-only --diff-filter=U` → empty.
+- `.cards` existence check → `.cards present`.
+- `go test -run 'TestCreatureCanAttackPlaneswalker|TestCombatDamageToPlaneswalker|TestBattle|TestAttackers|TestGoad|TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' ./rules/` → `ok github.com/adams-shaun/gorge/rules 0.847s`.
+
+This targeted pass covers the reviewed planeswalker behavior and the required
+post-merge ratchets; all passed. No uncertainty remains about the conflict
+resolution.
