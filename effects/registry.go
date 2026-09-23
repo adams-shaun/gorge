@@ -40,6 +40,9 @@ type Host interface {
 	// Emit (which routes through events.Apply), which is what keeps the event
 	// log a complete description of the match.
 	Game() *state.Game
+	// ObjectColors returns the object's live layer-5 colours when it is on the
+	// battlefield, and its face/CDA colours in other zones.
+	ObjectColors(*state.Object) string
 	Emit(events.Event)
 	// EmitDamage emits a Damage event and returns the event that actually
 	// landed after replacement effects. A prevention returns a non-Damage
@@ -314,6 +317,9 @@ type Host interface {
 	// permanent losing counters) are NOT folded here — the head's object-spec
 	// form is a separate, unimplemented shape.
 	CountersRemovedThisTurn(p state.PlayerID, kind string) int32
+	// CountersAddedThisTurn sums final positive object-counter placements this
+	// turn matching the count head's kind, actor and object specifications.
+	CountersAddedThisTurn(kind, actorSpec, objectSpec string, sc SpecContext) int32
 	// CombatDamageToPlayersThisTurn reports every instance of combat damage
 	// dealt to a PLAYER so far this turn, in assignment order. It is the
 	// PlayerCountDefinedRegistered$HasPropertywasDealtCombatDamageThisTurnBy
@@ -432,6 +438,18 @@ type Host interface {
 	// Dig's search). paid is the outcome the suspended pass resolved; the
 	// re-entry pass consumes the recorded marker instead of asking again.
 	SuspendUnless(sa *cards.SA, paid bool)
+	// SetResolutionTargetControllerLKI publishes the target-controller LKI
+	// captured at the start of a Resolve chain to the host, and returns the
+	// value it replaced so the caller can restore it (rules' Ask copies the
+	// published map onto the pending resumePoint). A target may leave the
+	// battlefield before a chained TokenOwner$ TargetedController runs;
+	// events.Apply resets a departed object's live Controller to Owner, so a
+	// resumed continuation -- which rebuilds its Ctx from the stack object's
+	// targets -- needs the controller snapshot, not the live object. The
+	// publish/restore bracket is what scopes it to the innermost running
+	// chain: a nested Resolve with a different Ctx restores the outer map on
+	// return. An effects-package test double may keep the no-op form.
+	SetResolutionTargetControllerLKI(map[state.ObjID]state.PlayerID) map[state.ObjID]state.PlayerID
 	// Suspended reports whether the resolution is currently suspended on a
 	// mid-resolution ask — Ask returned true and set the host's resume state,
 	// which has not yet been cleared by the answer arriving. effects.Resolve
@@ -474,6 +492,10 @@ type Host interface {
 	// Counter replacement effects are rules, not a MoveZone replacement: they
 	// stop Counter before it emits the move off the stack.
 	CounterAllowed(target, cause state.ObjID) bool
+	// SuspendRepeatOptional reports that a RepeatOptional$ body suspended at
+	// a mid-resolution ask. The host must re-enter the repeat after the body
+	// answer completes, preserving the next-iteration cursor.
+	SuspendRepeatOptional(sa *cards.SA, next int32)
 	// SuspendRepeat reports that one iteration of a RepeatEach loop suspended
 	// at a mid-resolution ask. The host must bind the suspended iteration's
 	// Remembered to the pending ask (and to the iteration's own continuation
@@ -494,6 +516,18 @@ type Host interface {
 	// (the charm frame re-enters the Charm itself), which is why the reporter
 	// marks it the way SuspendRepeat marks a RepeatEach.
 	SuspendCharmRest(sa *cards.SA, rest []string)
+	// SuspendVillainousRest reports that a VillainousChoice's chosen body
+	// suspended on a nested mid-resolution ask (for example Damocles Base's
+	// DBSac sacrifice picker) with victims still to process. sa is the
+	// VillainousChoice's own SA and rest carries the ordered Defined$ victim
+	// list plus the index of the NEXT victim to ask. The host records a
+	// continuation that re-enters the VillainousChoice with that cursor once
+	// the answered ask's own chain completes, so the remaining victims are
+	// still asked rather than dropped. The Resolve loop enclosing the
+	// VillainousChoice reports the same SA through SuspendContinuation next;
+	// the host drops that report (the villainous frame re-enters the
+	// primitive itself), the SuspendCharmRest convention.
+	SuspendVillainousRest(sa *cards.SA, rest VillainousRest)
 	// SetDamageSource overrides the in-flight damage source for the Damage
 	// events the caller is about to emit: the provenance rules' emit-side
 	// protection check (CR 702.16d) and DamageDone trigger matching read
@@ -578,6 +612,18 @@ type RepeatSuspension struct {
 	ChosenValid bool
 }
 
+// VillainousRest is a VillainousChoice's continuation once its chosen body
+// has completed: Victims is the ordered Defined$ player set and Next is the
+// index of the victim still to ask (the completed victim's index + 1). The
+// host re-enters the VillainousChoice primitive with that cursor, so a body
+// that suspended on its own nested ask does not strand the remaining
+// victims. Plain data, so the host can carry it on its own continuation
+// frame and replay re-derives it identically.
+type VillainousRest struct {
+	Victims []state.Target
+	Next    int
+}
+
 // DamageSourceLKI is the pre-departure damage provenance of one object.
 // It remains separate from Ctx's own-source fields because DamageSource$ may
 // name an object distinct from the resolving spell or ability's source.
@@ -593,6 +639,7 @@ type RepeatSuspension struct {
 type DamageSourceLKI struct {
 	Lifelink   bool
 	Infect     bool
+	Wither     bool
 	Deathtouch bool
 	Controller state.PlayerID
 }
@@ -606,12 +653,42 @@ type EffectFrame struct {
 	Stamp  uint32
 }
 
+// RepeatOptionalContinuation is the scoped continuation for RepeatOptional$.
+// It is carried only by the resolving Ctx; rules transports it across a
+// mid-resolution ask and it is never event state.
+//
+// It represents two DISTINCT resume states, never conflated (fx42):
+//   - Continue false: the player answered "no" and the loop stops.
+//   - Continue true, AskElection false: a completed election was answered
+//     "yes", so the next body to run is iteration Next -- no further
+//     election is owed for it.
+//   - Continue true, AskElection true: a body of iteration Next-1 completed
+//     after its own suspension (a body ask), so the do/while election owed
+//     for iteration Next has NOT been posed yet and must be asked before
+//     that iteration's body runs.
+type RepeatOptionalContinuation struct {
+	Continue    bool
+	Next        int32
+	AskElection bool
+}
+
 type Ctx struct {
 	TriggerContext
 	Source     state.ObjID
 	Controller state.PlayerID
+	// NameChoice carries a mid-resolution NameCard answer across re-entry.
+	NameChoice string
 	Targets    []state.Target
-	Remembered []state.Target
+	// TargetControllerLKI captures each object target's controller at the
+	// start of resolution. A target may leave the battlefield before a
+	// chained TokenOwner$ TargetedController is evaluated; events.Apply then
+	// resets its live Controller to Owner, so the live object is no longer the
+	// CR 608.2h last-known controller.
+	TargetControllerLKI map[state.ObjID]state.PlayerID
+	Remembered          []state.Target
+	// RepeatOptional is set only when a RepeatOptional$ answer is being
+	// resumed. A nil value means this is the first pass through the Repeat.
+	RepeatOptional *RepeatOptionalContinuation
 	// TargetsOffered marks that the resolution's OWN ValidTgts$ targeting was
 	// already offered at announcement (rules' resolveTop sets it on both the
 	// ability and the spell branch, exactly for the SA the placement ask
@@ -839,6 +916,11 @@ type Ctx struct {
 	// empty optional choice from its first pass.
 	Choice     []state.Target
 	ChoiceDone bool
+	// CopyPermanentChoice is the selected source for the one supported
+	// CopyPermanent Choices$/Chooser$ shape. It is deliberately separate
+	// from Choice so nested choices cannot consume it.
+	CopyPermanentChoice     state.ObjID
+	CopyPermanentChoiceDone bool
 	// TargetsPick is the answered target set of the generic ValidTgts$
 	// pre-ask (chosenTargetsFor, posed inside effects.Resolve's dispatch
 	// loop for a sub the placement/announcement ask never covered -- the
@@ -895,15 +977,26 @@ type Ctx struct {
 	// carries the iteration's Remembered. Zero outside a loop iteration, and
 	// the Imprinted/ImprintedController selectors fail closed on zero.
 	RepeatSubject state.Target
+	// VillainousVictims is the ordered Defined$ player set for a
+	// VillainousChoice. The index advances only after the current victim's
+	// chosen body has completed.
+	VillainousVictims []state.Target
+	VillainousIndex   int
 	// Sacrifice is an Annihilator sacrifice answer on re-entry.
 	Sacrifice []state.ObjID
 	// Search is the answered hidden-library KChoose selection on a re-entered
 	// ChangeZone resolution. SearchDone distinguishes "answered with no cards"
 	// from the first pass; Search preserves the player's answer order. The
 	// asking effect consumes and clears both before continuing, so a nested
-	// search cannot inherit the outer answer.
+	// search cannot inherit the outer answer. LibraryTarget binds the answer
+	// to the exact owner in a multi-library walk.
 	Search     []state.ObjID
 	SearchDone bool
+	// LibraryTarget is the index in the deterministic per-library target list
+	// whose answer is being resumed. Search, KArrange and their follow-up
+	// confirms share this cursor so a suspended walk continues with the next
+	// library instead of restarting at the first one.
+	LibraryTarget int
 	// SearchShuffle is the answered ShuffleNonMandatory$ may-shuffle confirm
 	// ("yes"/"no") on a re-entered ChangeZone search; SearchShuffleMoved
 	// carries the objects the search's first pass moved, so the re-entry can
@@ -947,6 +1040,23 @@ type Ctx struct {
 	// is consumed and cleared at the re-entry's top (fx42 scoping), so a
 	// nested PutCounter poses its own ask.
 	PutOpt string
+	// CounterKind is the answered kind for a comma-separated PutCounter list.
+	// CounterKindDone distinguishes an answered first-option fallback from the
+	// first pass; CounterKinds carries a ChooseDifferent$ multi-answer.
+	CounterKind      string
+	CounterKindDone  bool
+	CounterKinds     []string
+	CounterKindsDone bool
+	// CounterKindAnswers is the replay-derived per-recipient answer table
+	// rules seeds for CounterTypePerDefined$; effPutCounter consumes it at
+	// entry so a nested PutCounter cannot inherit it.
+	CounterKindAnswers     []string
+	CounterKindAnswerIndex int
+	CounterKindAnswerSet   bool
+	// PlaneswalkOpt is the answered Optional$ True "you may planeswalk"
+	// election. It is resolution-local so a nested Planeswalk cannot inherit
+	// an outer answer.
+	PlaneswalkOpt string
 	// Extort is the answered optional {W/B} payment on a re-entered Extort
 	// resolution (M2d-2): "pay" means the caster agreed to pay and the drain
 	// runs; anything else ("decline", first pass with a host that cannot ask)
@@ -985,8 +1095,8 @@ type Ctx struct {
 	// "answered (possibly with no cards)" from the first pass, and DigTarget
 	// identifies the Defined$ target whose library posed that ask. Re-entry
 	// skips earlier targets (already processed before suspension), applies the
-	// answer at DigTarget, then preserves the former deterministic processing
-	// for later targets until per-library chained asks exist. The asking effect
+	// answer at DigTarget, then continues with a fresh ask for each later
+	// library. The asking effect
 	// consumes and clears all three fields at the top of its own walk (the fx42
 	// scoping discipline), so a nested Dig cannot inherit the outer answer.
 	Dig       []state.ObjID
@@ -1194,12 +1304,22 @@ type Ctx struct {
 	// mid-resolution resolution (Ruling J0): true once rules' handleArrange
 	// has applied the answered arrangement and emitted the LibraryOrder
 	// event, so effRearrangeTopOfLibrary's re-entry lets the resolution
-	// continue (the chained SubAbility$ runs) instead of re-asking. False on
+	// continue (the chained SubAbility$ runs) instead of re-asking. The
+	// LibraryTarget cursor identifies which library's arrangement completed.
+	// False on
 	// the first pass, where the effect poses the ask. The arrangement itself
 	// lives on the LibraryOrder event, not on Ctx -- the answer shape is
 	// applied by the rules handler, unlike Modes/UnlessPay/Discard where the
 	// effect re-reads the answer -- so the field is only a done-marker.
 	Arrange bool
+	// ArrangeTarget is the Defined$-target index whose arrange was the one
+	// answered, carried only for a Dig (whose effDig walks several Defined$
+	// targets and must keep the deterministic processing for the ones after
+	// the asker on the arrange re-entry; the other arrange consumers are
+	// single-target). The re-entered effDig consumes and clears it together
+	// with Arrange (fx42 scoping). Zero is a legitimate index -- the marker
+	// is Arrange, never this field alone.
+	ArrangeTarget int
 	// MayShuffle is the answered may-shuffle ask a RearrangeTopOfLibrary
 	// carrying MayShuffle$ True (Ponder's "You may shuffle.") poses after its
 	// KArrange was applied: "yes" means the player shuffled (rules'
@@ -1294,6 +1414,44 @@ type Ctx struct {
 	// RevealOptional$ peek in the same walk poses its own ask (fx42
 	// scoping).
 	RevealOpt string
+	// RevealOptTarget is the Defined$ target index whose reveal_optional
+	// yes/no was answered (the decision's ResumeTarget), the same per-target
+	// cursor LookAckTarget and RevealPickTarget carry. Meaningful only while
+	// RevealOpt is non-empty: targets before the cursor were fully processed
+	// on the pass that suspended and are skipped, the cursor target consumes
+	// the answer, and every LATER optional reveal in the walk poses its own
+	// yes/no. Without it a reveal_optional resolving over several Defined$
+	// players answered for target 0 and then either silently applied that
+	// same yes/no to every later target (a non-pickable reveal) or left the
+	// later target's ask unposed (a pickable one), because neither a yes nor
+	// a no can be attributed to a target it was never asked of. Consumed and
+	// cleared with RevealOpt.
+	RevealOptTarget int
+	// RevealPick is the answered mid-resolution hand-reveal pick (task
+	// infernaltutor1): the ids of the hand cards the revealing player chose
+	// to reveal. A hand reveal whose eligible pool is strictly larger than
+	// the count it must show (Infernal Tutor's "Reveal a card from your
+	// hand", or an AnyNumber$/Optional$ miss) is a CHOICE Forge poses to the
+	// pool's owner; effReveal poses it as a KChoose with ResumeKind
+	// "reveal_pick" and this field carries the answer back. Non-nil means
+	// answered (a legitimate empty answer is a non-nil zero-length slice,
+	// exactly the Ctx.Discard convention), so an empty answer ("reveal
+	// none") is distinguishable from a first pass. effReveal consumes and
+	// clears it at the top of its own walk so a nested reveal poses its own
+	// ask (fx42 scoping).
+	RevealPick []state.ObjID
+	// RevealPickTarget is the Defined$ target index whose reveal_pick was
+	// answered (the decision's ResumeTarget), the same per-target cursor
+	// LookAckTarget carries. Meaningful only while RevealPick is non-nil:
+	// targets before the cursor were fully processed on the pass that
+	// suspended and are skipped, the cursor target consumes the answer, and
+	// every LATER pickable reveal in the walk poses its own ask. Without it,
+	// a pickable reveal resolving over several Defined$ players applied the
+	// first player's answer to every subsequent player's distinct hand —
+	// none of those ids can occur in another hand, so n became 0 and no
+	// later player was asked or revealed. Consumed and cleared with
+	// RevealPick.
+	RevealPickTarget int
 	// ChosenType is the answered mid-resolution ChooseType pick (task ct1):
 	// the creature type the chooser picked out of the TypeChoices list, set
 	// by rules' "choosetype" resume arm before the suspended sub-ability is
@@ -1305,6 +1463,15 @@ type Ctx struct {
 	// consumes and clears it at the top of its walk (the fx42 scoping
 	// discipline), so a nested ChooseType cannot inherit the outer answer.
 	ChosenType string
+	// ManaReflectedColor is the answered mid-resolution AB$ ManaReflected
+	// colour pick: the option Label ("Add W") the chooser picked, set by
+	// rules' "manareflected" resume arm before the suspended sub-ability is
+	// re-run. effManaReflected's re-entry consumes and clears it, accepts the
+	// colour only when the resolution still offers it, and emits the one
+	// ManaAdd the deterministic fallback would have emitted. Empty on the
+	// first pass, where the effect poses the ask (or, on a host that cannot
+	// answer, the R-9 stand-in).
+	ManaReflectedColor string
 	// LookAck is the answered bare-look "Continue" ack (lookack, task
 	// fb-20260917T232325Z-35cfca4b): the looker acknowledged the private
 	// look a NoReveal$ / mandatory-Look$ Reveal-family effect is about to
@@ -1664,11 +1831,73 @@ func RegisterNonAPI(prefixed ...string) {
 
 const maxChain = 32
 
+// CloneTargetControllerLKI returns an independent copy of a target-controller
+// LKI map threaded across a suspension (rules' resumePoint). The map is treated
+// as immutable once captured -- Resolve never mutates a non-nil one -- so a
+// shared reference would be safe, but an explicit copy keeps a cloned engine's
+// pending frame from ever aliasing another's.
+func CloneTargetControllerLKI(m map[state.ObjID]state.PlayerID) map[state.ObjID]state.PlayerID {
+	if m == nil {
+		return nil
+	}
+	out := make(map[state.ObjID]state.PlayerID, len(m))
+	for id, controller := range m {
+		out[id] = controller
+	}
+	return out
+}
+
 // Resolve runs an ability and every sub-ability chained beneath it.
+// effectFrameHost is implemented by the rules engine to publish the Effect
+// registration identity a resolution is currently running under, so an ask
+// posed from anywhere inside that body (Host.Ask) captures it onto the
+// decision's resume state and the resumed walk keeps the same registration
+// bound. It is optional so the effects test doubles stay small.
+type effectFrameHost interface {
+	GetCurrentEffectFrame() EffectFrame
+	SetCurrentEffectFrame(EffectFrame)
+}
+
 func Resolve(h Host, c *Ctx, sa *cards.SA) {
+	// Publish this walk's Effect-created registration frame (set by rules'
+	// seedEffectReplCtx on an api:Effect replacement's body Ctx) for the whole
+	// of the walk, restoring the enclosing value on exit so nested walks and
+	// sub-ability chains keep the outer binding. Only a non-zero frame is
+	// published: an inner body resolved with its own zero-valued Ctx (a
+	// `` &cc `` copy that did not carry the frame) must inherit the enclosing
+	// Effect rather than erase it, which is what a body reached through the
+	// Effect's own chain needs.
+	if fh, ok := h.(effectFrameHost); ok {
+		previous := fh.GetCurrentEffectFrame()
+		if c != nil && c.EffectFrame.Source != 0 {
+			fh.SetCurrentEffectFrame(c.EffectFrame)
+		}
+		defer fh.SetCurrentEffectFrame(previous)
+	}
 	if c != nil {
 		c.Host = h
 		c.numericRHS = c.X != 0 || len(c.SVars) > 0
+		// Capture target controllers before the first effect can move a target.
+		// Keep an existing map on re-entry: it is the earlier battlefield state,
+		// not the current (possibly reset) object, that TokenOwner needs.
+		if c.TargetControllerLKI == nil {
+			c.TargetControllerLKI = make(map[state.ObjID]state.PlayerID)
+			for _, target := range c.Targets {
+				if target.IsPlayer {
+					continue
+				}
+				if object := h.Game().Obj(target.Obj); object != nil {
+					c.TargetControllerLKI[target.Obj] = object.Controller
+				}
+			}
+		}
+		// Publish the snapshot to the host for the whole of this chain, so an
+		// ask posed by any of its effects (or a nested Resolve that inherits
+		// the same Ctx) carries it onto the resumePoint. Restored on return:
+		// the map belongs to THIS chain, and an enclosing chain must not see
+		// it after a nested one has finished.
+		prev := h.SetResolutionTargetControllerLKI(c.TargetControllerLKI)
+		defer h.SetResolutionTargetControllerLKI(prev)
 	}
 	reg := registry.load()
 	for d := 0; sa != nil && d < maxChain; d, sa = d+1, sa.Sub {

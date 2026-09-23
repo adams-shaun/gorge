@@ -8,6 +8,18 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
+func cloneCounterAddsThisTurn(in []counterAddedThisTurn) []counterAddedThisTurn {
+	if in == nil {
+		return nil
+	}
+	out := make([]counterAddedThisTurn, len(in))
+	for i, v := range in {
+		out[i] = v
+		out[i].object = v.object.CloneDeep()
+	}
+	return out
+}
+
 // Clone deep-copies the engine: game, log, RNG position, the pending
 // decision, continuous effects, the pending-trigger queue and the trigger
 // bookkeeping maps. The copy and the original then evolve independently —
@@ -31,6 +43,7 @@ func (e *Engine) Clone() *Engine {
 		// value slice, copied like turnsTaken so an undo/DVR clone owns its
 		// own ledger.
 		combatHitsThisTurn:  append([]effects.CombatDamageHit(nil), e.combatHitsThisTurn...),
+		counterAddsThisTurn: cloneCounterAddsThisTurn(e.counterAddsThisTurn),
 		format:              e.format,
 		rng:                 e.rng.clone(),
 		orderedTriggers:     e.orderedTriggers,
@@ -111,6 +124,17 @@ func (e *Engine) Clone() *Engine {
 		// worth carrying, so a fresh watcher over the same thresholds is a
 		// faithful copy.
 		loop: newLivelockWatcherFromGuard(e.loop.guard),
+		// setname.go's layer-3 rename table and its genesis-time gate. The
+		// clone's board is identical at the clone boundary, so the table is
+		// carried with its (epoch, version) key rather than rebuilt -- but as
+		// a fresh slice, never the original's backing array, so the two
+		// engines' next refreshes cannot write over each other. This is what
+		// keeps a clone's name filters reading the CLONE's board once the two
+		// diverge (setname_filter_scope_test.go).
+		renames:       append([]effects.ObjectName(nil), e.renames...),
+		renameEpoch:   e.renameEpoch,
+		renameVersion: e.renameVersion,
+		setNameInPool: e.setNameInPool,
 	}
 	if e.riotMove != nil {
 		ev := *e.riotMove
@@ -128,6 +152,11 @@ func (e *Engine) Clone() *Engine {
 		r := *e.untapResume
 		c.untapResume = &r
 	}
+	if e.attachedChoice != nil {
+		ac := *e.attachedChoice
+		c.attachedChoice = &ac
+	}
+	c.attachedApplying = e.attachedApplying
 	if e.pending != nil {
 		d := *e.pending
 		d.Options = append([]decision.Option(nil), e.pending.Options...)
@@ -135,6 +164,8 @@ func (e *Engine) Clone() *Engine {
 		d.ResumeChoices = append([]state.Target(nil), e.pending.ResumeChoices...)
 		d.ResumeChosenValid = e.pending.ResumeChosenValid
 		d.ResumeRemembered = append([]state.Target(nil), e.pending.ResumeRemembered...)
+		d.ResumeVillainousVictims = append([]state.Target(nil), e.pending.ResumeVillainousVictims...)
+		d.ResumeVillainousIndex = e.pending.ResumeVillainousIndex
 		d.ResumeTargetsUnique = append([]state.Target(nil), e.pending.ResumeTargetsUnique...)
 		c.pending = &d
 	}
@@ -150,12 +181,25 @@ func (e *Engine) Clone() *Engine {
 		c.resume = cloneResume(e.resume)
 	}
 	c.controlGrants = append([]controlGrant(nil), e.controlGrants...)
+	if e.counterTypeAsk != nil {
+		c.counterTypeAsk = make(map[state.ObjID]*counterTypePending, len(e.counterTypeAsk))
+		for id, p := range e.counterTypeAsk {
+			if p == nil {
+				continue
+			}
+			c.counterTypeAsk[id] = &counterTypePending{sa: p.sa, answers: append([]string(nil), p.answers...)}
+		}
+	}
 	// The per-turn ManaExpend tally (engine scratch, rules/cast.go): a clone
 	// taken at an intent boundary must resume mid-turn with the original's
 	// cumulative spend, or a crossing measured after the clone would see a
 	// reset tally. Copied as a plain value slice plus its turn stamp.
 	c.manaExpended = append([]int32(nil), e.manaExpended...)
 	c.manaExpendedTurn = e.manaExpendedTurn
+	// The in-flight Resolve chain's target-controller snapshot (engine
+	// scratch, published by effects.Resolve): nil at an intent boundary, but
+	// copied as a plain map when present so the clone owns its own storage.
+	c.resolvingTargetControllerLKI = effects.CloneTargetControllerLKI(e.resolvingTargetControllerLKI)
 	if e.continuous != nil {
 		c.continuous = make([]ContinuousEffect, len(e.continuous))
 		for i, ce := range e.continuous {
@@ -285,7 +329,18 @@ func (e *Engine) Clone() *Engine {
 				c.damageBatchIdx[k] = v
 			}
 		}
-		c.damageBatchLog = append([]damageBatchEntry(nil), e.damageBatchLog...)
+		// Deep-copy the DamageAll batch sets: a shared backing array under two
+		// engines' appends must never leak an entry across a clone boundary.
+		c.damageBatchLog = make([]damageBatchEntry, len(e.damageBatchLog))
+		for i, ent := range e.damageBatchLog {
+			c.damageBatchLog[i] = ent
+			if len(ent.sources) > 0 {
+				c.damageBatchLog[i].sources = append([]state.ObjID(nil), ent.sources...)
+			}
+			if len(ent.targets) > 0 {
+				c.damageBatchLog[i].targets = append([]state.Target(nil), ent.targets...)
+			}
+		}
 	}
 	if e.phaseUnknownNoted != nil {
 		c.phaseUnknownNoted = make(map[string]bool, len(e.phaseUnknownNoted))
@@ -301,6 +356,12 @@ func (e *Engine) Clone() *Engine {
 		c.triggerTurnFires = make(map[triggerKey]turnFires, len(e.triggerTurnFires))
 		for k, v := range e.triggerTurnFires {
 			c.triggerTurnFires[k] = v
+		}
+	}
+	if e.triggerGameFires != nil {
+		c.triggerGameFires = make(map[triggerKey]int32, len(e.triggerGameFires))
+		for k, v := range e.triggerGameFires {
+			c.triggerGameFires[k] = v
 		}
 	}
 	if e.unblockedOnceFired != nil {
@@ -499,6 +560,10 @@ func (e *Engine) Clone() *Engine {
 		ap := *e.attackPay
 		c.attackPay = &ap
 	}
+	if e.blockPay != nil {
+		bp := *e.blockPay
+		c.blockPay = &bp
+	}
 	if e.cast != nil {
 		pc := *e.cast
 		pc.cost.Sac = append([]CostPart(nil), e.cast.cost.Sac...)
@@ -526,7 +591,7 @@ func (e *Engine) Clone() *Engine {
 		pc.delve = append([]state.ObjID(nil), e.cast.delve...)
 		pc.sacs = append([]state.ObjID(nil), e.cast.sacs...)
 		pc.discards = append([]state.ObjID(nil), e.cast.discards...)
-		pc.subCtrs = append([]state.ObjID(nil), e.cast.subCtrs...)
+		pc.subCounterPays = append([]subCounterPay(nil), e.cast.subCounterPays...)
 		pc.exiles = append([]state.ObjID(nil), e.cast.exiles...)
 		pc.returns = append([]state.ObjID(nil), e.cast.returns...)
 		pc.moveGraves = append([]state.ObjID(nil), e.cast.moveGraves...)
@@ -538,6 +603,13 @@ func (e *Engine) Clone() *Engine {
 		pc.preModes = append([]string(nil), e.cast.preModes...)
 		pc.preSuppress = cloneSuppressed(e.cast.preSuppress)
 		pc.preAborts = cloneAbortCounts(e.cast.preAborts)
+		if e.cast.mayPlayRemembered != nil {
+			m := make(map[state.ObjID][]state.ObjID, len(e.cast.mayPlayRemembered))
+			for k, v := range e.cast.mayPlayRemembered {
+				m[k] = append([]state.ObjID(nil), v...)
+			}
+			pc.mayPlayRemembered = m
+		}
 		c.cast = &pc
 		// The held-back cast trigger (CR 601.2i, cast.go): a clone taken at an
 		// intent boundary while a cast is suspended (its target/choose decision
@@ -645,6 +717,13 @@ func clonePendingTriggers(src []pendingTrigger) []pendingTrigger {
 	for i, pt := range src {
 		pt.Ctx.Targets = append([]state.Target(nil), pt.Ctx.Targets...)
 		pt.Ctx.Remembered = append([]state.Target(nil), pt.Ctx.Remembered...)
+		if pt.Ctx.TargetControllerLKI != nil {
+			m := make(map[state.ObjID]state.PlayerID, len(pt.Ctx.TargetControllerLKI))
+			for id, controller := range pt.Ctx.TargetControllerLKI {
+				m[id] = controller
+			}
+			pt.Ctx.TargetControllerLKI = m
+		}
 		if pt.Ctx.SVars != nil {
 			m := make(map[string]string, len(pt.Ctx.SVars))
 			for k, v := range pt.Ctx.SVars {
@@ -704,7 +783,17 @@ func cloneResume(rp *resumePoint) *resumePoint {
 	cp.chosenValid = rp.chosenValid
 	cp.remembered = append([]state.Target(nil), rp.remembered...)
 	cp.loopRemembered = append([]state.Target(nil), rp.loopRemembered...)
+	// The pre-move controller snapshot is immutable once captured, but a clone
+	// must not share the original's map storage: an explicit copy keeps the
+	// two engines' pending frames independent.
+	cp.targetControllerLKI = effects.CloneTargetControllerLKI(rp.targetControllerLKI)
 	cp.targetsUnique = append([]state.Target(nil), rp.targetsUnique...)
+	// The VillainousChoice cursor and victim binding are sliced values the
+	// resumed Ctx re-binds, so the clone owns its own copies instead of
+	// sharing backing arrays with the original (the same discipline every
+	// other slice here follows).
+	cp.villainousVictims = append([]state.Target(nil), rp.villainousVictims...)
+	cp.villainousRemembered = append([]state.Target(nil), rp.villainousRemembered...)
 	if rp.repeat != nil {
 		cur := *rp.repeat
 		cur.subjects = append([]state.Target(nil), rp.repeat.subjects...)

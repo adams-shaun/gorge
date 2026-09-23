@@ -516,7 +516,7 @@ var kindRows = map[string][]string{
 		"cumulative_action_grave", "mana", "pay_life",
 	},
 	string(decision.KReplacement): {"replacement", "mana", "apply", "decline", "skip_replacement"},
-	string(decision.KArrange):     {"bottom", "graveyard", "exile", "hand"},
+	string(decision.KArrange):     {"bottom", "graveyard", "exile", "hand", "dig_bottom"},
 }
 
 // coverageRow is one (kind, option-kind) tally for the report.

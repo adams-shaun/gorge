@@ -76,13 +76,21 @@ type ContinuousEffect struct {
 	AddKeywords            []string
 	AddTypes               []string
 
+	// SetName is a layer-3 name overwrite (SetName$), resolved by rules' layer walk.
+	SetName string
+
 	// AddPowerExpr preserves a static P/T parameter that must be evaluated
 	// against its source each time characteristics are derived (for example
 	// +X or -X). An empty expression retains the already-resolved numeric
 	// field. Written only by rules' static scanner; the numeric fields above
 	// stay the API for resolution-created effects.
 	AddPowerExpr, AddToughnessExpr string
-	SetPowerExpr, SetToughnessExpr string
+	// AddPowerAffected and AddToughnessAffected mark the Forge AffectedX
+	// convention: only those expressions re-anchor their count source on the
+	// object receiving the pump. Other named expressions keep their grantor
+	// source (for example, Mace of the Valiant's counter count).
+	AddPowerAffected, AddToughnessAffected bool
+	SetPowerExpr, SetToughnessExpr         string
 	// SetPowerPresent and SetToughnessPresent distinguish an omitted setter
 	// from an explicit zero on a static that sets only one characteristic.
 	SetPowerPresent, SetToughnessPresent bool
@@ -498,6 +506,10 @@ type ContinuousEffect struct {
 	// that delivers no cost static. Engine-runtime only, rebuilt by
 	// re-execution on replay like every other continuous-effect field.
 	CostStaticMode string
+
+	// CostStaticSVars is the SVar table that owned an Effect-delivered static.
+	// Nil means the source object's current face supplies the table.
+	CostStaticSVars map[string]string
 
 	// CostStaticParams carries the static line's own parameter map (the
 	// parseStaticLine output effEffect whitelisted through

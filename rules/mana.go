@@ -393,6 +393,11 @@ var payLifeXCost = regexp.MustCompile(`^PayLife<X>$`)
 // dropped) is subsumed by this one.
 var subCounterCost = regexp.MustCompile(`^SubCounter<(X|\d+)/([^/>]+)(?:/([^/>]+))?(?:/([^>]*))?>$`)
 
+// removeAnyCounterCost is Forge's named spelling for a counter-removal cost.
+// Despite the name, the second field is the counter kind (often Any), while
+// the third field restricts the permanent the counters come from.
+var removeAnyCounterCost = regexp.MustCompile(`^RemoveAnyCounter<(X|\d+)/([^/>]+)(?:/([^/>]+))?(?:/([^>]*))?>$`)
+
 // damageYouCost matches Forge's DamageYou<N> token -- the payer takes N
 // damage from the source as the payment (Forge CostDamage). The corpus's
 // only shape is an UnlessCost$ (Vexing Devil's "have it deal 4 damage to
@@ -508,6 +513,29 @@ func ParseCost(s string) Cost {
 					continue
 				}
 				c.Life = addClampedGeneric(c.Life, n)
+				continue
+			}
+			if m := removeAnyCounterCost.FindStringSubmatch(sym); m != nil {
+				// RemoveAnyCounter is the same payment component as SubCounter;
+				// its distinct head is Forge's spelling for the counter-choice
+				// family. Keep the target filter and display description intact.
+				kind := strings.ReplaceAll(m[2], ";", ",")
+				target, desc := "", m[3]
+				if t := m[3]; t != "" && !strings.ContainsAny(t, " \t") {
+					target, desc = t, m[4]
+				}
+				target = strings.ReplaceAll(target, ";", ",")
+				if m[1] == "X" {
+					c.SubCounter = append(c.SubCounter, CostPart{Spec: kind, Target: target, Announced: true, Desc: desc})
+					continue
+				}
+				n, err := strconv.ParseInt(m[1], 10, 64)
+				if err != nil || n < 0 || n > int64(math.MaxInt32) {
+					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
+					continue
+				}
+				c.SubCounter = append(c.SubCounter, CostPart{N: int32(n), Spec: kind, Target: target, Desc: desc})
 				continue
 			}
 			if m := subCounterCost.FindStringSubmatch(sym); m != nil {
@@ -1184,7 +1212,7 @@ func (e *Engine) offerCostForUsing(statics costStaticViews, p state.PlayerID, id
 // both the per-face enumeration and the composed castable check.
 func (e *Engine) composedOfferCost(p state.PlayerID, id state.ObjID, base Cost, mods costMods, scope costScope) Cost {
 	c := mods.apply(base)
-	if scope.kind != "Ability" {
+	if scope.kind != "Ability" && scope.kind != "Foretell" {
 		c = e.commanderTaxFor(p, id, c)
 	}
 	return c
@@ -1290,6 +1318,17 @@ func (e *Engine) fixLifeXCost(p state.PlayerID, id state.ObjID, c Cost) (Cost, b
 // the source face, the SVar, or the body is unavailable -- the cost is
 // unpayable (the fail-closed direction), never a silent zero draw.
 func (e *Engine) drawCostCount(id state.ObjID, you state.PlayerID, part CostPart) (int32, bool) {
+	return e.drawCostCountTrig(id, you, part, nil)
+}
+
+// drawCostCountTrig is drawCostCount with an optional fire-time trigger
+// context seeded into the evaluation: the triggered-cost window's dynamic
+// Draw<X/Spec> part (Hordewing Skaab's "draw cards equal to the number of
+// opponents dealt damage this way", SVar:X:TriggeredPlayersTargets$Amount)
+// reads the DAMAGE BATCH the triggering event captured, which the bare
+// cast-flow context carries nothing of. A nil context is the ordinary
+// cast/activation read, unchanged.
+func (e *Engine) drawCostCountTrig(id state.ObjID, you state.PlayerID, part CostPart, tcx *effects.TriggerContext) (int32, bool) {
 	if part.Dyn == "" {
 		return part.N, true
 	}
@@ -1302,6 +1341,9 @@ func (e *Engine) drawCostCount(id state.ObjID, you state.PlayerID, part CostPart
 		return 0, false
 	}
 	ctx := &effects.Ctx{Source: id, Controller: you, SVars: o.Face().SVars}
+	if tcx != nil {
+		ctx.TriggerContext = *tcx
+	}
 	n, resolvable := effects.EvalCountOK(e, ctx, body)
 	if !resolvable || n < 0 {
 		return 0, false
@@ -1330,7 +1372,7 @@ func (e *Engine) offerCastableUsing(statics costStaticViews, p state.PlayerID, i
 	}
 	mods := e.costModifiersWithTargetsUsing(statics, p, id, scope, nil, false)
 	tax := int32(0)
-	if scope.kind != "Ability" {
+	if scope.kind != "Ability" && scope.kind != "Foretell" {
 		tax = e.commanderTaxAmount(p, id)
 	}
 	delve := int32(0)
@@ -2544,9 +2586,9 @@ func (e *Engine) payerGrantsMayPlayRider(p state.PlayerID, id state.ObjID, rider
 		if !all && !slices.Contains(zones, o.Zone) {
 			continue
 		}
-		sc := effects.SpecContext{You: ce.Controller, Source: ce.Source,
-			Remembered: rememberedTargets(ce.Remembered), Resolving: true}
-		if effects.MatchesSpecCtx(e.G, ce.Affects, id, sc) {
+		sc := e.withNames(effects.SpecContext{You: ce.Controller, Source: ce.Source,
+			Remembered: rememberedTargets(ce.Remembered), Resolving: true})
+		if e.matchesSpec(ce.Affects, id, sc) {
 			return true
 		}
 	}

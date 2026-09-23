@@ -23,10 +23,15 @@ import (
 // FeedbackMatch is match.json's content: the sidecar of the table's current
 // match — the same fields host/persist.go persists, in the same shape —
 // plus DeckCards, the deck CONTENTS (card name per card, in deck order,
-// one list per seat). The sidecar's Decks names deck FILES, which a deploy
-// can change under an old snapshot; DeckCards is what a replay is actually
-// built from, so the snapshot never depends on the deck files still
-// existing. The fields mirror sidecar's on purpose: a test pins that the
+// one list per seat), and Sideboards, the sideboard CONTENTS the same way
+// (card name per card, in sideboard order, one list per seat; a seat with
+// no sideboard carries nil). Sideboards are genesis configuration exactly
+// like Decks — the engine mints their objects before the first event — so a
+// replay rebuilt from match.json alone needs them recorded here, or the
+// genesis object IDs shift and the replayed match diverges at the first
+// shuffle. Like DeckCards, the list is what a replay is actually built
+// from, so the snapshot never depends on the deck files still existing.
+// The fields mirror sidecar's on purpose: a test pins that the
 // two marshal the same keys, so the snapshot cannot drift from the
 // persisted shape without failing.
 type FeedbackMatch struct {
@@ -38,6 +43,7 @@ type FeedbackMatch struct {
 	PlayerNames  []string            `json:"player_names,omitempty"`
 	Decks        []string            `json:"decks"`
 	DeckCards    [][]string          `json:"deck_cards"`
+	Sideboards   [][]string          `json:"sideboards,omitempty"`
 	Spectator    string              `json:"spectator"`
 	State        string              `json:"state"`
 	Result       string              `json:"result,omitempty"`
@@ -51,6 +57,25 @@ type FeedbackMatch struct {
 	StartingLife int32               `json:"starting_life,omitempty"`
 	Commanders   [][]int             `json:"commanders,omitempty"`
 	BotPolicy    string              `json:"bot_policy"`
+
+	// NameUniverse and NameUniverseNames mirror the sidecar's fields of the
+	// same names, and for the same reason the deck contents and the token
+	// scripts are here: a name-card universe is a match MODE, not data the
+	// log can recover. A match played with one poses NameCard asks the
+	// legacy no-universe path never poses, so a replay rebuilt from
+	// match.json alone with the mode missing finds no decision pending at
+	// the recorded intent and refuses. NameUniverseNames is the immutable
+	// sorted label list that match actually offered, so a corpus addition
+	// or rename after the report was filed cannot renumber a recorded
+	// numeric name choice. A capture from a pre-feature match carries
+	// neither field, which reads back as the legacy path (R-8.4).
+	NameUniverse bool `json:"name_universe,omitempty"`
+	// NameUniverseNames is stripped from a COMMITTED fixture (it is ~24k
+	// entries, half a megabyte per fixture): the committed shape keeps only
+	// the mode bit and the replay re-derives the list from the live corpus,
+	// diverging on a corpus pin move exactly the way a token-stripped
+	// fixture does, and saying so.
+	NameUniverseNames []string `json:"name_universe_names,omitempty"`
 
 	// Tokens carries the raw token scripts — keyed by file stem, the exact
 	// spelling a card's TokenScript$ parameter uses — behind the match's
@@ -183,6 +208,17 @@ func (r *Registry) SnapshotForFeedback(id TableID, seat *state.PlayerID) (Feedba
 		}
 		deckCards[i] = names
 	}
+	var sideboardCards [][]string
+	if len(m.cfg.Sideboards) > 0 {
+		sideboardCards = make([][]string, len(m.cfg.Sideboards))
+		for i, sb := range m.cfg.Sideboards {
+			names := make([]string, len(sb))
+			for j, c := range sb {
+				names[j] = c.Faces[0].Name
+			}
+			sideboardCards[i] = names
+		}
+	}
 	// Game facts as of the same instant the log was copied: the log's tail
 	// burst is complete and the game state is the state those events left,
 	// so Turn/Step/Priority/Active describe exactly the prefix recorded
@@ -224,7 +260,7 @@ func (r *Registry) SnapshotForFeedback(id TableID, seat *state.PlayerID) (Feedba
 	tokens, tokensUnread := tokenScripts(cfg)
 
 	snap := FeedbackSnapshot{
-		Match: feedbackMatch(sc, deckCards, tokens, tokensUnread),
+		Match: feedbackMatch(sc, deckCards, sideboardCards, tokens, tokensUnread),
 		Log: FeedbackLog{
 			Log:         *l,
 			Head:        l.Head(),
@@ -247,15 +283,20 @@ func (r *Registry) SnapshotForFeedback(id TableID, seat *state.PlayerID) (Feedba
 }
 
 // feedbackMatch copies the sidecar's fields into the exported FeedbackMatch
-// and attaches the deck contents and the token scripts.
-func feedbackMatch(sc sidecar, deckCards [][]string, tokens map[string]string, tokensUnread []string) FeedbackMatch {
+// and attaches the deck contents, the sideboard contents and the token
+// scripts.
+func feedbackMatch(sc sidecar, deckCards [][]string, sideboards [][]string,
+	tokens map[string]string, tokensUnread []string) FeedbackMatch {
 	return FeedbackMatch{
 		Table: sc.Table, Match: sc.Match, Seed: sc.Seed, Seats: sc.Seats, Names: sc.Names,
-		PlayerNames: sc.PlayerNames, Decks: sc.Decks, DeckCards: deckCards, Spectator: sc.Spectator,
-		State: sc.State, Result: sc.Result, Winner: sc.Winner, Head: sc.Head, Events: sc.Events,
+		PlayerNames: sc.PlayerNames, Decks: sc.Decks, DeckCards: deckCards, Sideboards: sideboards,
+		Spectator: sc.Spectator,
+		State:     sc.State, Result: sc.Result, Winner: sc.Winner, Head: sc.Head, Events: sc.Events,
 		Turns: sc.Turns, Reason: sc.Reason, Mulligans: sc.Mulligans, Format: sc.Format,
 		StartingLife: sc.StartingLife, Commanders: sc.Commanders, BotPolicy: sc.BotPolicy,
-		Tokens: tokens, TokensUnread: tokensUnread,
+		NameUniverse:      sc.NameUniverse,
+		NameUniverseNames: append([]string(nil), sc.NameUniverseNames...),
+		Tokens:            tokens, TokensUnread: tokensUnread,
 	}
 }
 

@@ -85,9 +85,11 @@ refuse_if_sandboxed() {
 }
 
 start_demo_if_down() {
+  # Deliberately does NOT deploy: the demo is the operator's to (re)start by
+  # hand with `make deploy-demo` (a deploy aborts every in-flight vs-bot
+  # game). This only reports, so a missing demo is visible in the log.
   if ! demo_up; then
-    log "demo server down, starting it"
-    make deploy-demo >>"$STATE/demo-deploy.log" 2>&1
+    log "demo server down; start it by hand: make deploy-demo"
   fi
 }
 

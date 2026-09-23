@@ -1,0 +1,89 @@
+# Engine contracts (not approximations)
+
+These are deliberate, decided behaviours of the gorge engine. None of them is
+a defect and none of them is owed to a milestone. They lived in AGENTS.md's
+"Known approximations" table, which is a CLOSING REGISTER of real debt; a
+contract sitting in that table made the table look longer than the debt is
+and invited a ticket that would have been wrong to write.
+
+If one of these ever stops being true, change it here, in the same commit as
+the code.
+
+## R-9: the no-ask host degradation contract
+
+A host that cannot answer a decision — the fuzzer, a test harness, a seat
+that has left — must never wedge the engine. Every asking primitive
+therefore carries a deterministic fallback that completes the resolution.
+The fallback is the CONTRACT, not a stand-in for a missing ask: the ask
+itself is real for a host that can answer. The named fallbacks are:
+
+- `Charm` takes its first mode and records a Note
+  (`effects/misc.go`, `effCharm`'s fallback).
+- An exact-`Origin$ Library` `ChangeZone` takes the deterministic
+  first-`Min` pick (a quantity-only search) or fails to find (a
+  stated-quality search) — `effects/zone.go`
+  (`effSearchLibrary`, `applyLibrarySearch`).
+- `Scry`/`Surveil` keep every card on top in its existing order (Scry's
+  pile B empty, Surveil's graveyard pile empty), recorded as one
+  `events.LibraryOrder` — `effects/cardflow.go` (`effLookAndArrange`).
+- `RearrangeTopOfLibrary` keeps the existing order (pile A = the offered
+  options in offered order) — `effects/cardflow.go`
+  (`effRearrangeTopOfLibrary`), `rules/arrange.go` (`handleArrange`).
+- `api:TimeTravel` declines every add/remove election —
+  `effects/time_travel.go` (`effTimeTravel`).
+- Fixed `Choices$` and `VoteCard$` ballots take the first option —
+  `effects/vote.go`.
+- Any decision kind with no bot-policy arm of its own takes option 0
+  through `botpolicy`'s clamp fallback (`botpolicy/policy.go`, `Decide`).
+  Where that produces a BAD but legal play rather than merely a neutral one,
+  it is real debt and carries a ticket; the clamp itself is the contract.
+
+## api:TimeTravel is implemented, not approximated
+
+Every repetition re-enumerates the affected objects (owned suspended exile
+cards, then the controller's battlefield permanents with a TIME counter) in
+zone order and poses one `KChoose` add/remove/skip election per object,
+`Amount$` repetitions deep. Each ask rides an immutable snapshot
+(`Decision.ResumeObjects`) with its cursor and repetition in `ResumeTarget`
+and `ResumeRound`, so an answer that drops a counter cannot shift the next
+object's cursor. `effects/time_travel.go`, `rules/resolution.go` (the
+`time_travel` resume arm). The only stand-in is R-9 above.
+
+## ActivationLimit$ is enforced for every shape the corpus carries
+
+`resolveActivationLimit` (`rules/legal.go`) reports `ok=false` for a value
+that is neither a literal, an SVar reference nor an inline `Count$`, and
+`activationLimitReached` then does not enforce. The compiled corpus carries
+no such shape, so this is unreachable. It becomes debt only if a future
+corpus pin introduces one — the census would surface it.
+
+## A Class level's granted body depends on its own primitive
+
+`cards/kw_class.go` (`addLevelGate`) and `rules/class_level.go`
+(`classBandGateHolds`) implement the level machinery. A level whose
+`AddStaticAbility$`/`AddTrigger$`/`AddReplacementEffect$` names an
+unimplemented mode or effect is exactly as dead as that primitive, and the
+debt belongs to that primitive's own ticket, not to Class.
+
+One decision to honour: a `ClassBand$` band must NOT be folded into
+`IsPresent$`/`IsPresent2$`. The trigger gate reads those as a UNION and a
+granted replacement reads no `IsPresent2$` at all, so folding silently
+widens the gate.
+
+## Regeneration
+
+A permanent with an unused this-turn Shield replaces lethal damage and
+`Destroy`/`DestroyAll` through the destruction-replacement path: consume the
+shield, clear damage, tap, remove from combat. Shields expire at cleanup.
+`NoRegen$` and the Effect-registered `Mode$ CantRegenerate` restriction are
+honoured. `effects/regeneration.go`, `effects/zone.go`, `rules/sba.go`,
+`rules/combat.go`.
+
+## The board clock's round number is exact
+
+`view.RoundOf` folds the ordered event stream, anchored on the starting
+player and tracking eliminations, so an elimination alone never moves the
+round. Every log-bearing caller (host fan-out, `viewAt`, the seat view,
+mtgsim, botbench, keywordbench) uses it; `roundOf` is only the snapshot
+fallback. It never touches engine state. Revisit if a same-seat repeat turn
+(`AddTurn`) ever lands.

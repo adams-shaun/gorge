@@ -310,7 +310,14 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 			n, ok3 = v, true
 		}
 		if hasOp {
-			n = applyCountOp(n, op)
+			// The op goes through applyCountOpOperand, not the numeric-only
+			// applyCountOp: Forge names SVar operands here too (Alrund's
+			// SVar$X/Plus.Y chains two count heads -- 86 corpus files carry
+			// the shape), and the numeric-only read silently DROPPED such an
+			// operand (the unknown-op fallthrough keeps the base value). A
+			// non-numeric, non-SVar operand still falls through to
+			// applyCountOp unchanged.
+			n = applyCountOpOperand(h, c, n, op, depth)
 		}
 		return n, ok3
 	}
@@ -365,10 +372,35 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 		if clamped, isLimit := countDistinctLimitMax(strings.TrimSpace(body), op, n); isLimit {
 			n = clamped
 		} else {
-			n = applyCountOp(n, op)
+			n = applyCountOpOperand(h, c, n, op, depth)
 		}
 	}
 	return n, ok2
+}
+
+// applyCountOpOperand applies a Count$ arithmetic suffix. Besides numeric
+// operands such as Plus.1, Forge uses SVar names (for example
+// Plus.DragonControlled). Resolve those names in the current face's SVar
+// table before applying the existing saturating arithmetic.
+func applyCountOpOperand(h Host, c *Ctx, n int32, op string, depth int) int32 {
+	for _, prefix := range []string{"Plus.", "Minus.", "Times."} {
+		operand, ok := strings.CutPrefix(op, prefix)
+		if !ok {
+			continue
+		}
+		operand = strings.TrimSpace(operand)
+		if _, err := strconv.Atoi(operand); err == nil {
+			return applyCountOp(n, op)
+		}
+		if c != nil && c.SVars != nil {
+			if body, exists := c.SVars[operand]; exists {
+				value, _ := evalCountExprOK(h, c, body, depth+1)
+				return applyCountOp(n, prefix+strconv.FormatInt(int64(value), 10))
+			}
+		}
+		return applyCountOp(n, op)
+	}
+	return applyCountOp(n, op)
 }
 
 // countDistinctLimitMax answers whether op is a LimitMax.<n> clamp on a
@@ -591,6 +623,31 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 			return []state.Target{{Obj: c.TriggerAbility}}, true
 		}
 		return c.Remembered, true
+	case "CastSA":
+		// The cast spell ability (Graven Archfiend's ETB gate
+		// "CastSA>Count$OptionalGenericCostPaid.1.0"): the cast spell's own
+		// object. For the corpus shape -- an ETB trigger of the permanent the
+		// cast spell became -- the ctx source IS that object (the
+		// stack->battlefield move preserves the id, and the pay-time CastInfo
+		// folded the paid provenance onto it), so binding the ctx source is
+		// exactly the binding the indirection needs; a copy of the spell is a
+		// distinct object and reads its own (unpaid) provenance.
+		//
+		// CastSA names THIS source's own cast. When the trigger context names
+		// a DIFFERENT cast spell (a SpellCast trigger firing on another card's
+		// cast), that referent is TriggeredSpellAbility, not CastSA -- this
+		// source was not the card being cast, so the ref is unbound. Every
+		// corpus CastSA carrier is self-referential (SpellCast ValidCard$
+		// Card.Self, a self ChangesZone ETB, or a bare CheckSVar$/replacement
+		// ctx with no trigger referent), so no real shape regresses; the
+		// alternative reading silently bound an unrelated cast spell's X.
+		if c.TriggerCard != 0 && c.TriggerCard != c.Source {
+			return nil, false
+		}
+		if c.Source != 0 {
+			return []state.Target{{Obj: c.Source}}, true
+		}
+		return nil, false
 	case "Remembered":
 		// Forge's plain Remembered$ form reads the executing ability's shared
 		// host-card remembered list: the ctx walk's set UNIONED with the
@@ -630,7 +687,7 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 //
 // The per-object answers mirror evalCountBody's own source-anchored heads:
 // CardPower/CardToughness read the face plus marked P1P1 counters
-// ( battlefield layer output for a battlefield object; a graveyard object's
+// (battlefield layer output for a battlefield object; a graveyard object's
 // face), CardManaCost the face's converted cost, CardCounters.<KIND> one
 // counter kind, Valid the count of referenced objects matching a card spec
 // (unknown predicates fail closed inside the matcher, so an unreadable
@@ -823,8 +880,9 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 // applyCountOp like every other head. A property this build does not
 // model (StartingLife, DomainPlayer, CardsDrawn, ...) or a ref
 // outside the two names plus the vote-carrier ref
-// TriggeredPlayersOpponentVotedDiff (trig:Vote; its only property is
-// Amount) returns false, and the caller degrades to zero
+// TriggeredPlayersOpponentVotedDiff (trig:Vote) and the DamageAll batch
+// ref TriggeredPlayersTargets (trig:DamageAll; both refs' only property
+// is Amount) returns false, and the caller degrades to zero
 // exactly as evalRefProperty's default always did. CardsDiscardedThisTurn
 // is the one optional head the brief allowed in: the shared Host predicate
 // already existed.
@@ -853,6 +911,19 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 		}
 	default:
 		return 0, false
+	case "TriggeredPlayersTargets":
+		// The batch's matching TARGET PLAYERS (trig:DamageAll): Malcolm
+		// Keen-Eyed Navigator's and Hordewing Skaab's SVar:X reads the count
+		// of opponents the damage batch dealt damage to ("create a Treasure
+		// token for each opponent dealt damage" / "draw cards equal to the
+		// number of opponents dealt damage this way"). The capture is the
+		// fire-time batch target set, filtered to its player entries in
+		// first-seen order; Amount is the count of those players.
+		for _, t := range c.TriggerDamageTargets {
+			if t.IsPlayer {
+				ts = append(ts, state.Target{Player: t.Player, IsPlayer: true})
+			}
+		}
 	}
 	prop, op, hasOp := strings.Cut(prop, "/")
 	prop = strings.TrimSpace(prop)
@@ -861,8 +932,14 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 	// (Erestor's SVar:X, the scry size). Confine the head to it here, so the
 	// ref cannot silently inherit LifeTotal/CardsInHand/Valid... sums that
 	// belong to TargetedPlayer/ThisTargetedPlayer -- the contract the
-	// evalPlayerRefProperty doc states.
+	// evalPlayerRefProperty doc states. TriggeredPlayersTargets (the
+	// DamageAll batch ref) takes the same confinement: its only modelled
+	// property is Amount, so a future property on it fails closed to zero
+	// instead of silently reading the batch players' current zone sizes.
 	if ref == "TriggeredPlayersOpponentVotedDiff" && prop != "Amount" {
+		return 0, false
+	}
+	if ref == "TriggeredPlayersTargets" && prop != "Amount" {
 		return 0, false
 	}
 	g := h.Game()
@@ -887,6 +964,8 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 			n += h.DamageTakenThisTurn(p)
 		case prop == "CardsDiscardedThisTurn":
 			n += h.CardsDiscardedThisTurn(p)
+		case prop == "TotalCommanderCastFromCommandZone":
+			n += h.CommanderCastsFromCommandZone(p)
 		case prop == "Counters.Poison":
 			for _, pc := range g.Players[p].Counters {
 				if pc.Kind == "POISON" {
@@ -901,7 +980,7 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 					n++
 				}
 			}
-		case prop == "Amount" && ref == "TriggeredPlayersOpponentVotedDiff":
+		case prop == "Amount" && (ref == "TriggeredPlayersOpponentVotedDiff" || ref == "TriggeredPlayersTargets"):
 			n++
 		default:
 			// The Valid head and its countZone family: "Valid <spec>",
@@ -957,7 +1036,7 @@ func refToughness(h Host, o *state.Object, snapshot bool) int32 {
 // anchor moved to ONE specific object: a shallow Ctx copy keeps the resolving
 // ability's SVar table, controller and remembered set, but `Source` -- what
 // the source-anchored heads (CardPower, CardToughness, CardManaCost,
-// CardManaCost) read -- becomes obj. This is what a
+// CardNumColors) read -- becomes obj. This is what a
 // `CounterNumPerDefined$` parameter needs: the count is evaluated per
 // AFFECTED object (Canopy Gargantuan's "equal to that creature's toughness"),
 // not once for the resolving source. An expression whose head the evaluator
@@ -1010,10 +1089,26 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	}
 	head, arg, _ := strings.Cut(body, " ")
 	arg = strings.TrimSpace(arg)
+	if arg == "" {
+		// ONLY OptionalGenericCostPaid's space-less dotted <paid>.<unpaid>
+		// argument is split here. Every other dotted head (CardCounters.CHARGE,
+		// Kicked.4.0, Foretold.1.0, ...) is parsed WHOLE by its own downstream
+		// CutPrefix arm, so a generic split would truncate the head to its
+		// first segment and bypass that arm -- Count$CardCounters.CHARGE would
+		// reach the bare-CardCounters fallthrough as an unresolved zero.
+		if rest, ok := strings.CutPrefix(head, "OptionalGenericCostPaid."); ok {
+			head, arg = "OptionalGenericCostPaid", strings.TrimSpace(rest)
+		}
+	}
 
 	switch head {
 	case "Compare":
 		return evalCompare(h, c, arg, depth), true
+	case "CardNumColors":
+		if o := g.Obj(c.Source); o != nil {
+			return int32(len(h.ObjectColors(o))), true
+		}
+		return 0, true
 	case "xPaid":
 		// CR 107.3i: the {X} paid for the resolving spell or ability. On a
 		// TRIGGER of a permanent that was cast for {X} the ability object's
@@ -1052,6 +1147,22 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			return o.SquadPaid, true
 		}
 		return 0, true
+	case "OptionalGenericCostPaid":
+		// OptionalCost's paid/unpaid branches are a boolean cast provenance.
+		// The CastSA indirection has already bound c.Source to the cast object.
+		parts := strings.Split(strings.TrimSpace(arg), ".")
+		if len(parts) < 2 {
+			return 0, false
+		}
+		paid, ok1 := strconv.ParseInt(strings.TrimSpace(parts[0]), 10, 32)
+		unpaid, ok2 := strconv.ParseInt(strings.TrimSpace(parts[1]), 10, 32)
+		if ok1 != nil || ok2 != nil {
+			return 0, false
+		}
+		if o := g.Obj(c.Source); o != nil && o.OptionalCostPaid {
+			return int32(paid), true
+		}
+		return int32(unpaid), true
 	case "OffspringPaid":
 		// CR 702.175a: whether the resolving spell's cast paid the optional
 		// Offspring additional cost ("You may pay an additional [cost] as you
@@ -1252,6 +1363,11 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		// carries a trigger's captured event object, which is NOT part of
 		// Forge's host list (the same exclusion iterationBase applies). A
 		// resolution with no source object falls back to the ctx list.
+		// RememberRevealed$ is one of the riders that fills this list: effReveal
+		// writes BOTH halves (the rememberMilled discipline), so the source
+		// read serves it too -- a ctx-first preference here would double-count
+		// on every trigger resolution (Mind Maggots: ctx = the trigger's event
+		// capture + its own RememberDiscarded$ entries).
 		if o := g.Obj(c.Source); o != nil {
 			return int32(len(o.Remembered)), true
 		}
@@ -1303,6 +1419,36 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			return 0, true
 		}
 		return h.LifeGainedThisTurn(c.Controller), true
+	case "YouDrewThisTurn":
+		// The number of cards the controller DREW this turn — Elenda and
+		// Azor's `SVar:Y:Count$YouDrewThisTurn` feeding `TokenAmount$ Y`
+		// ("create a number of 1/1 black Vampire Knight creature tokens with
+		// lifelink equal to the number of cards you've drawn this turn") and
+		// the 29-carrier raw corpus family behind it. The same log fold the
+		// PlayerCount$CardsDrawn property reads (Host.CardsDrawnThisTurn,
+		// rules' bridge for the Smuggler's Share family), so the head and
+		// the property can never drift apart; derived from the event log —
+		// every events.Draw since the last TurnChange, the opening deal
+		// naturally invisible behind turn one's own TurnChange — so a replay
+		// derives the same count.
+		if c.Controller < 0 {
+			return 0, true
+		}
+		return h.CardsDrawnThisTurn(c.Controller), true
+	case "CountersAddedThisTurn":
+		// Count$CountersAddedThisTurn <KIND> <Player> <ObjectSpec>.
+		// Keep malformed or unsupported shapes unresolvable: CheckSVar
+		// distinguishes that from an evaluated zero.
+		parts := strings.Fields(arg)
+		if len(parts) == 3 && c.Controller >= 0 && countersAddedThisTurnArgsKnown(parts[0], parts[1], parts[2]) {
+			// The measured grammar needs only You and Source: Card.Self and
+			// Card.EffectSource resolve from Source, while the other forms are
+			// object/player predicates. Do not pass c.SpecContext here: handing
+			// its resolution slices through the Host interface makes c escape,
+			// allocating on the Derived hot path.
+			sc := SpecContext{You: c.Controller, Source: c.Source}
+			return h.CountersAddedThisTurn(parts[0], parts[1], parts[2], sc), true
+		}
 	case "CountersRemovedThisTurn":
 		// Count$CountersRemovedThisTurn <KIND> <Player> — the number of counters
 		// of KIND the named players have PAID or LOST this turn (Creative
@@ -1438,6 +1584,9 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		if n, ok2 := hasPropertyLostLifeCount(h, g.AliveFrom(0), rest); ok2 {
 			return n, true
 		}
+		if n, ok2 := hasPropertyStateBacked(h, g, c, g.AliveFrom(0), rest, arg); ok2 {
+			return n, true
+		}
 		if n, ok2 := playerCountCondition(h, g, c, g.AliveFrom(0), rest, arg); ok2 {
 			return n, true
 		}
@@ -1459,6 +1608,9 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		// HasPropertywasDealtCombatDamageThisTurnBy carriers on this group
 		// (Blitzball's legendary creature, Estinien Varlineau's
 		// Card.Self,Dragon) resolve through the same code.
+		if n, ok2 := hasPropertyStateBacked(h, g, c, opponentGroup(g, c), rest, arg); ok2 {
+			return n, true
+		}
 		return playerCountDefinedRegistered(h, g, c, opponentGroup(g, c), rest, arg)
 	}
 	if rest, ok := strings.CutPrefix(head, "PlayerCountOpponents$"); ok {
@@ -1469,6 +1621,9 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			return n, true
 		}
 		if n, ok2 := hasPropertyLostLifeCount(h, opponentGroup(g, c), rest); ok2 {
+			return n, true
+		}
+		if n, ok2 := hasPropertyStateBacked(h, g, c, opponentGroup(g, c), rest, arg); ok2 {
 			return n, true
 		}
 		if n, ok2 := playerCountCondition(h, g, c, opponentGroup(g, c), rest, arg); ok2 {
@@ -2212,6 +2367,25 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	return 0, false
 }
 
+// countersAddedThisTurnArgsKnown accepts the complete measured grammar for
+// Count$CountersAddedThisTurn. Unlike the ordinary filter parser, this count
+// head cannot safely treat an unknown field as a filter that matches nothing:
+// CheckSVar distinguishes that evaluated zero from an unresolvable Count$.
+// Keep this narrow until a corpus carrier establishes another spelling.
+func countersAddedThisTurnArgsKnown(kind, actor, object string) bool {
+	if !strings.EqualFold(kind, "Any") && !strings.EqualFold(kind, "P1P1") && !strings.EqualFold(kind, "LORE") {
+		return false
+	}
+	if actor != "You" && actor != "Player" {
+		return false
+	}
+	switch object {
+	case "Creature", "Creature.YouCtrl", "Permanent.YouCtrl", "Card.Self", "Card.EffectSource":
+		return true
+	}
+	return false
+}
+
 // playerSpecBaseKnown reports whether spec's base word (the text before the
 // first qualifier separator) is one of the player-spec bases MatchesPlayerSpec
 // resolves (You/Opponent/Other/Player/Any, matched case-insensitively). It is
@@ -2487,6 +2661,126 @@ func playerCountDefinedRegistered(h Host, g *state.Game, c *Ctx, group []state.P
 	// reaches a zone-count extreme here); only the two LifeLostThisTurn
 	// extremes route into playerCountExtreme, above.
 	return 0, false
+}
+
+// hasPropertyStateBacked answers the narrowly supported player-state
+// HasProperty heads on the three ordinary living-player groups. Zone counts
+// are evaluated from each member's perspective, so You/YouOwn selectors refer
+// to that member rather than the resolving controller.
+func hasPropertyStateBacked(h Host, g *state.Game, c *Ctx, group []state.PlayerID, prop, arg string) (int32, bool) {
+	base, op, hasOp := strings.Cut(strings.TrimSpace(prop), "/")
+	base = strings.TrimSpace(base)
+	if strings.TrimSpace(arg) != "" {
+		return 0, false
+	}
+
+	var qualifies func(state.PlayerID) bool
+	switch {
+	case base == "HasPropertyisMonarch":
+		qualifies = func(p state.PlayerID) bool { return g.IsMonarch(p) }
+	case base == "HasPropertywasDealtDamageThisTurn":
+		qualifies = func(p state.PlayerID) bool { return h.DamageTakenThisTurn(p) > 0 }
+	case base == "HasPropertywasDealtCombatDamageThisTurn":
+		hits := h.CombatDamageToPlayersThisTurn()
+		qualifies = func(p state.PlayerID) bool {
+			for _, hit := range hits {
+				if hit.Player == p {
+					return true
+				}
+			}
+			return false
+		}
+	default:
+		zone := state.Zone(0)
+		prefix := ""
+		switch {
+		case strings.HasPrefix(base, "HasPropertyHasCardsInHand_"):
+			zone, prefix = state.ZHand, "HasPropertyHasCardsInHand_"
+		case strings.HasPrefix(base, "HasPropertyHasCardsInGraveyard_"):
+			zone, prefix = state.ZGraveyard, "HasPropertyHasCardsInGraveyard_"
+		default:
+			return 0, false
+		}
+		tail := strings.TrimPrefix(base, prefix)
+		i := strings.LastIndexByte(tail, '_')
+		if i <= 0 || i == len(tail)-1 {
+			return 0, false
+		}
+		spec, cmp := tail[:i], tail[i+1:]
+		parsedOp, threshold, ok := parseCountCompare(cmp)
+		if !ok || (parsedOp != "GE" && parsedOp != "GT" && parsedOp != "LE") {
+			return 0, false
+		}
+		// An unread card spec fails CLOSED before any member is evaluated:
+		// the zone matcher reports only a match boolean, so an unrecognized
+		// predicate (Card.NoSuchPredicate) or base (NoSuchBase) would match
+		// nothing, read as a fabricated count of zero and return (0, true) --
+		// a condition gate would then enforce a zero that no rule stated.
+		// unreadZoneSpec validates through the same classifiers the matcher
+		// itself walks (UnknownPredicates, the census's shared base/predicate
+		// vocabulary), so a spec the matcher would silently zero out here
+		// reads unresolvable instead.
+		if unreadZoneSpec(spec) {
+			return 0, false
+		}
+		qualifies = func(p state.PlayerID) bool {
+			var cards int32
+			for _, id := range g.Zone(zone, p) {
+				if matchesZoneSpecCtx(g, spec, id, c.SpecContext(p), zone) {
+					cards++
+				}
+			}
+			return countOpHolds(parsedOp, threshold, cards)
+		}
+	}
+	n := hasPropertyCount(group, qualifies)
+	if hasOp {
+		n = applyCountOp(n, op)
+	}
+	return n, true
+}
+
+// unreadZoneSpec reports whether a zone-count HasProperty's card spec is
+// unread — malformed, an unknown base word, or carrying a predicate no part
+// of the filter recognises. It is the object-free validation mirror of
+// matchesZoneSpecCtx: that matcher answers only a match boolean, so the sole
+// classifier shared with it is the UnknownPredicates census plus the base
+// vocabulary matchesBase dispatches on (its special bases, the CR 205.1
+// card-type words, and the creature-subtype words hasTypeCtx reads).
+// Anything outside that vocabulary fails closed here, so the count head can
+// never turn an unread spec into a fabricated zero.
+func unreadZoneSpec(spec string) bool {
+	spec = strings.TrimSpace(spec)
+	if spec == "" {
+		return true
+	}
+	// Comma alternatives are validated per alternative — the base of the
+	// WHOLE spec is only the first alternative's (Mysterious Stranger's
+	// `Instant,Sorcery` is two valid bases, not one unknown one).
+	for alt := range filterAlternatives(spec) {
+		alt = strings.TrimSpace(alt)
+		if alt == "" {
+			continue
+		}
+		base, _, _ := strings.Cut(alt, ".")
+		base = strings.TrimSpace(base)
+		if neg := strings.TrimPrefix(base, "non"); neg != base {
+			base = strings.TrimSpace(neg)
+		}
+		if base == "" {
+			return true
+		}
+		switch base {
+		case "Any", "Card", "Permanent", "PermanentCard", "Spell", "SpellAbility", "CARDNAME":
+			// matchesBase's own special bases (and the CARDNAME base
+			// matchesZoneSpecCtx binds to the resolving source).
+		default:
+			if !cardTypeWords[base] && !CreatureTypeWords(base) {
+				return true
+			}
+		}
+	}
+	return len(UnknownPredicates(spec)) != 0
 }
 
 // hasPropertyLostLifeCount answers PlayerCount*$HasPropertyLostLifeThisTurn

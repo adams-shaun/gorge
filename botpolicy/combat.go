@@ -289,6 +289,67 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 			}
 		}
 	}
+	// The public battlefield census (vote_card1): every OTHER player's
+	// battlefield permanents — public information under CR 400.2, and
+	// exactly the objects a ballot offers a voter (VoteCard$'s Council's
+	// Judgment filter names only permanents the caster does not control) —
+	// filled with the same WORTH facts the viewer's own battlefield walk
+	// fills above (Creature/Power/Toughness/CMC/Basic/ManaCost, what
+	// cardWorth prices), so a card ballot's bot policy prices an offered
+	// opponent permanent instead of reading the zero Card{} it got when
+	// b.Cards held the deciding seat's own zones alone.
+	//
+	// The seat-relative facts stay ZERO on a foreign entry: OnBattlefield,
+	// Produces, Tapped, Castable, Activated, InstantSpeed and AttachedTo
+	// are the deciding seat's OWN-board facts (cast.go's land-drop greedy
+	// and reserve hold the invariant that every OnBattlefield/Castable
+	// entry is a source the seat itself controls — producibleMana and
+	// availableColours would otherwise count an opponent's lands as the
+	// seat's own mana), and a foreign permanent must never inflate them.
+	for i := range g.Players {
+		p := &g.Players[i]
+		if p.ID == me {
+			continue
+		}
+		for _, id := range g.Zone(state.ZBattlefield, p.ID) {
+			o := g.Obj(id)
+			if o == nil || o.Face() == nil || o.Ephemeral() {
+				continue
+			}
+			if o.FaceDown {
+				// CR 708.5 redaction parity: another seat's facedown
+				// permanent projects as a stripped CardView (ID, Controller,
+				// Owner, nothing printed), so the view half's fillZone lands
+				// a zero-fact entry for it and this half writes the same
+				// entry, never a printed-face fact the voter cannot see.
+				b.Cards[id] = Card{}
+				continue
+			}
+			var power, toughness int32
+			if cr, seen := b.Creatures[id]; seen {
+				// The public creature census above (the ZBattlefield pass that
+				// walks every seat) already queried this object's combined
+				// characteristics; reuse them rather than querying the same
+				// object twice (TestBoardFromGameUsesCombinedCharacteristicsOncePerObject
+				// pins one combined query per projected object).
+				power, toughness = cr.Power, cr.Toughness
+			} else if hasCombined {
+				power, toughness, _ = combined.Characteristics(id)
+			} else {
+				power = ch.Power(id)
+				toughness = ch.Toughness(id)
+			}
+			f := o.Face()
+			b.Cards[id] = Card{
+				Creature:  f.IsCreature(),
+				Power:     power,
+				CMC:       CmcOf(f.ManaCost),
+				Basic:     hasTypeWord(f.Types, "Basic"),
+				ManaCost:  f.ManaCost,
+				Toughness: toughness,
+			}
+		}
+	}
 	return *b
 }
 

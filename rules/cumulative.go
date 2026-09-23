@@ -171,6 +171,13 @@ func scaleCost(c Cost, n int32) Cost {
 		out.Colored[i] = c.Colored[i] * n
 	}
 	out.Generic, out.Life = c.Generic*n, c.Life*n
+	// CR 702.24a / CR 107.4h: the upkeep cost is paid once per age counter, so a
+	// {S} pip must count once per counter too. Snow is a first-class cost
+	// component (rules/mana.go's ParseCost), not a generic substitute, so it is
+	// scaled like the mana it is -- without this a snow cumulative upkeep's
+	// requirement vanished at the second age counter and the permanent could be
+	// kept for free.
+	out.Snow = c.Snow * n
 	for i := int32(0); i < n; i++ {
 		out.Hybrid = append(out.Hybrid, c.Hybrid...)
 		out.Phyrexian = append(out.Phyrexian, c.Phyrexian...)
@@ -433,7 +440,12 @@ func (e *Engine) paymentWindowAsk() {
 }
 
 func (e *Engine) paymentManaAsk(player state.PlayerID, source state.ObjID, amount Cost, windowDone bool, prompt string, flow chooseFor) bool {
-	if windowDone || !amount.Priceable() || e.costPayable(player, source, false, amount) {
+	return e.paymentManaAskClass(player, source, amount, windowDone, prompt, flow, paymentOther)
+}
+
+func (e *Engine) paymentManaAskClass(player state.PlayerID, source state.ObjID, amount Cost, windowDone bool, prompt string, flow chooseFor, class paymentClass) bool {
+	rider := pipRider{anyColor: e.payerGrantsIgnoreColor(player, source), anyType: e.payerGrantsIgnoreType(player, source)}
+	if windowDone || !amount.Priceable() || e.costPayableClass(player, paymentDescriptor{id: source, class: class, cost: &amount}, rider, amount) {
 		return false
 	}
 	var sources []state.ObjID
@@ -466,15 +478,15 @@ func (e *Engine) cumulativePaymentAsk() {
 		e.finishCumulative()
 		return
 	}
-	if cu.action == nil && e.paymentManaAsk(cu.player, cu.source, cu.amount, cu.windowDone,
-		"Activate mana abilities to pay cumulative upkeep", chooseCumulative) {
+	if cu.action == nil && e.paymentManaAskClass(cu.player, cu.source, cu.amount, cu.windowDone,
+		"Activate mana abilities to pay cumulative upkeep", chooseCumulative, paymentCumulativeUpkeep) {
 		return
 	}
 	age := strconv.FormatInt(int64(o.Counter("AGE")), 10)
 	var opts []decision.Option
 	payable := cu.action != nil && e.cumulativeActionPayable(cu)
 	if cu.action == nil {
-		payable = cu.amount.Priceable() && e.costPayable(cu.player, cu.source, false, cu.amount)
+		payable = cu.amount.Priceable() && e.costPayableClass(cu.player, paymentDescriptor{id: cu.source, class: paymentCumulativeUpkeep, cost: &cu.amount}, pipRider{anyColor: e.payerGrantsIgnoreColor(cu.player, cu.source), anyType: e.payerGrantsIgnoreType(cu.player, cu.source)}, cu.amount)
 	}
 	if payable {
 		opts = append(opts, decision.Option{Index: 0, Kind: "cumulative_pay", Obj: cu.source,
@@ -498,7 +510,7 @@ func (e *Engine) cumulativeObjects(cu *cumulativeUpkeep, zone state.Zone, spec s
 	}
 	for _, p := range players {
 		for _, id := range e.G.Zone(zone, p) {
-			if effects.MatchesSpecFrom(e.G, spec, id, cu.player, cu.source) {
+			if e.matchesSpecFrom(spec, id, cu.player, cu.source) {
 				out = append(out, id)
 			}
 		}
@@ -666,11 +678,20 @@ func (e *Engine) continueCumulativeAction() {
 // unresolvable (fail closed, the ParseUnlessCost hard-decline convention).
 func (e *Engine) triggeredCostDrawCounts(tc *triggeredEffectCost) ([]int32, bool) {
 	out := make([]int32, len(tc.amount.Draw))
+	// The window parks a TRIGGER body, so a dynamic Draw<X/Spec> part's SVar
+	// can name a trigger referent (Hordewing Skaab's
+	// TriggeredPlayersTargets$Amount): seed the fire-time capture exactly
+	// like evalTriggerCostFixedX does, else the count fails closed and the
+	// window offers decline only.
+	var tcx *effects.TriggerContext
+	if t, ok := e.triggerContexts[tc.resume.obj]; ok {
+		tcx = &t
+	}
 	for i, part := range tc.amount.Draw {
 		if _, ok := castFlowDrawPlayer(part.Spec, tc.player); !ok {
 			return nil, false
 		}
-		n, ok := e.drawCostCount(tc.source, tc.player, part)
+		n, ok := e.drawCostCountTrig(tc.source, tc.player, part, tcx)
 		if !ok {
 			return nil, false
 		}
@@ -935,7 +956,7 @@ func (e *Engine) triggeredCostComponentsPayable(tc *triggeredEffectCost) bool {
 	if mana.hasManaPayment() || mana.Life > 0 || mana.Snow > 0 ||
 		len(mana.Hybrid) > 0 || len(mana.Phyrexian) > 0 ||
 		len(mana.Twobrid) > 0 || len(mana.HybridPhyrexian) > 0 {
-		if !e.costPayable(tc.player, tc.source, false, mana) {
+		if !e.costPayableOther(tc.player, tc.source, mana) {
 			return false
 		}
 	}
@@ -1033,7 +1054,7 @@ func (e *Engine) cumulativeAnswer(chosen []decision.Option) {
 			e.continueCumulativeAction()
 			return
 		}
-		if e.payManaConv(cu.player, cu.amount, e.paymentConv(cu.player, cu.source, false)) {
+		if e.payManaCumulative(cu.player, cu.source, cu.amount, e.paymentConv(cu.player, cu.source, false)) {
 			e.finishCumulative()
 			return
 		}
@@ -1316,7 +1337,7 @@ func (e *Engine) triggeredMandatoryCandidatesWith(tc *triggeredEffectCost, idx i
 	// cost spec naming a trigger referent (Card.TriggeredNewCard -- the
 	// "you may exile it" family) resolves the card the triggering event
 	// captured. A zero context is the filter's fail-closed default.
-	sc := effects.SpecContext{You: tc.player, Source: tc.source, TriggerContext: tc.trig}
+	sc := e.withNames(effects.SpecContext{You: tc.player, Source: tc.source, TriggerContext: tc.trig})
 	var out []state.ObjID
 	for _, id := range e.G.Zone(zone, tc.player) {
 		if used[id] {
@@ -1325,7 +1346,7 @@ func (e *Engine) triggeredMandatoryCandidatesWith(tc *triggeredEffectCost, idx i
 		if isSac && e.SacrificeBlocked(id, true) {
 			continue
 		}
-		if effects.MatchesSpecCtx(e.G, spec, id, sc) {
+		if e.matchesSpec(spec, id, sc) {
 			out = append(out, id)
 		}
 	}

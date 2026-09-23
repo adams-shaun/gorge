@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -206,9 +207,10 @@ func TestUnlessRevealFurycalmSnarlPayEntersUntapped(t *testing.T) {
 	}
 }
 
-// TestUnlessRevealDeclineEntersTapped is leaf 2: a decline (or a pay with no
-// matching card in hand) must keep today's behaviour exactly — the land
-// enters tapped and no reveal Note is emitted.
+// TestUnlessRevealDeclineEntersTapped is leaf 2: with no matching card in
+// hand the Reveal<i> component is unsatisfiable, so the offer gate no longer
+// poses the Pay branch at all (it used to offer it and then decline). The
+// sole option is the decline and the land enters tapped with no reveal Note.
 func TestUnlessRevealDeclineEntersTapped(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	for _, tc := range []struct {
@@ -227,11 +229,16 @@ func TestUnlessRevealDeclineEntersTapped(t *testing.T) {
 			if ask == nil {
 				t.Fatal("no unless-pay ask posed for the entering Primal Beyond")
 			}
-			if tc.embed {
-				submitChoices(t, e, ask.Options[0].Index) // pay: no eligible card to reveal
-			} else {
-				submitChoices(t, e, ask.Options[1].Index) // decline
+			// Precondition: nothing is left in hand to reveal, so the Pay
+			// branch must not be offered; the decline is the only option
+			// whether the test meant to decline or to try an impossible pay.
+			if len(e.G.Zone(state.ZHand, 0)) != 0 {
+				t.Fatalf("hand precondition failed: %d cards", len(e.G.Zone(state.ZHand, 0)))
 			}
+			if len(ask.Options) != 1 {
+				t.Fatalf("unpayable Reveal Pay offered anyway: %+v", ask.Options)
+			}
+			submitChoices(t, e, ask.Options[0].Index) // decline
 			o := e.G.Obj(land)
 			if o == nil || o.Zone != state.ZBattlefield {
 				t.Fatalf("Primal Beyond zone = %+v, want battlefield (it still enters)", o)
@@ -251,7 +258,7 @@ func TestUnlessRevealDeclineEntersTapped(t *testing.T) {
 // UnlessPayer$ You | UnlessSwitched$ True | LifeAmount$ 2) by seeding the
 // ordinary stack events — the same harness driveKurokiTrig uses, since the
 // engine's Phase$ matcher cannot reach the trigger text naturally here.
-func drivePriestTrigger(t *testing.T) (*Engine, state.ObjID) {
+func drivePriestTrigger(t *testing.T, dinos int) (*Engine, state.ObjID) {
 	t.Helper()
 	reg := testutil.CorpusRegistry(t)
 	e := stealEngine(t, 743)
@@ -259,6 +266,17 @@ func drivePriestTrigger(t *testing.T) (*Engine, state.ObjID) {
 	sa := cards.ResolveSVar(e.G.Obj(priest).Face().SVars, "ABGainLife")
 	if sa == nil || sa.Params["UnlessCost"] != "Reveal<1/Creature.Dinosaur>" || sa.Params["UnlessPayer"] != "You" || sa.Params["UnlessSwitched"] != "True" {
 		t.Fatalf("Priest ABGainLife = %+v, want the switched reveal shape", sa)
+	}
+	// Seed the reveal candidates BEFORE the ask is posed: the option list is
+	// built at pose time from the hand, so a card injected afterwards would
+	// not (and should not) change what was offered.
+	dinoNames := []string{"Rexy", "Brutus", "Cera"}
+	for i := 0; i < dinos; i++ {
+		name := dinoNames[i%len(dinoNames)]
+		dino := card(t, fmt.Sprintf("Name:%s\nTypes:Creature Dinosaur\nPT:3/3\nOracle:x\n", name))
+		o := e.G.AddObject(dino, 0)
+		o.Zone = state.ZHand
+		e.G.SetZone(state.ZHand, 0, append(e.G.Zone(state.ZHand, 0), o.ID))
 	}
 	e.emit(events.Event{Kind: events.TriggerPush, Obj: priest, Player: 0, Amount: 0})
 	e.resolveTop()
@@ -278,13 +296,7 @@ func drivePriestTrigger(t *testing.T) (*Engine, state.ObjID) {
 // the real KChoose; the chosen one is revealed publicly (one Note, both cards
 // stay in hand) and the priest's 2 life land.
 func TestUnlessRevealPriestSwitchedPayGainsLife(t *testing.T) {
-	e, priest := drivePriestTrigger(t)
-	for _, name := range []string{"Rexy", "Brutus"} {
-		dino := card(t, "Name:"+name+"\nTypes:Creature Dinosaur\nPT:3/3\nOracle:x\n")
-		o := e.G.AddObject(dino, 0)
-		o.Zone = state.ZHand
-		e.G.SetZone(state.ZHand, 0, append(e.G.Zone(state.ZHand, 0), o.ID))
-	}
+	e, priest := drivePriestTrigger(t, 2)
 	before := e.G.Players[0].Life
 	answerUnlessPay(t, e, true)
 
@@ -324,11 +336,7 @@ func TestUnlessRevealPriestSwitchedPayGainsLife(t *testing.T) {
 // TestUnlessRevealPriestSwitchedDeclineRunsNoBody is the mirror: a decline on
 // the switched carrier runs NO body — no life change, no reveal.
 func TestUnlessRevealPriestSwitchedDeclineRunsNoBody(t *testing.T) {
-	e, _ := drivePriestTrigger(t)
-	dino := card(t, "Name:Rexy\nTypes:Creature Dinosaur\nPT:3/3\nOracle:x\n")
-	o := e.G.AddObject(dino, 0)
-	o.Zone = state.ZHand
-	e.G.SetZone(state.ZHand, 0, append(e.G.Zone(state.ZHand, 0), o.ID))
+	e, _ := drivePriestTrigger(t, 1)
 	before := e.G.Players[0].Life
 	answerUnlessPay(t, e, false)
 	if got := e.G.Players[0].Life; got != before {

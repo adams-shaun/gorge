@@ -26,10 +26,27 @@ type TableID string
 // (deck.File.CommanderIndex, validated by deck.ValidateCommander), so the
 // host never guesses which card a deck means by its commander.
 type Deck struct {
-	Name  string
-	Cards []*cards.Card
+	Name      string
+	Cards     []*cards.Card
+	Sideboard []*cards.Card
 
 	Commanders []int
+}
+
+// sideboardConfig collapses a per-seat sideboard list to nil unless at least
+// one seat actually carries cards. A table whose decks have no sideboard
+// must keep rules.Config.Sideboards nil: a non-nil slice of empty seats
+// marshals as [null,...] in the feedback capture and breaks the byte-shape
+// of a sideboard-less match.json (FeedbackMatch's `sideboards,omitempty`
+// only omits a nil slice). Every site that builds a Config from loaded
+// decks goes through here, so the next one cannot reintroduce the shape.
+func sideboardConfig(sb [][]*cards.Card) [][]*cards.Card {
+	for _, s := range sb {
+		if len(s) > 0 {
+			return sb
+		}
+	}
+	return nil
 }
 
 // Format is a table's construction format, named on the wire like a

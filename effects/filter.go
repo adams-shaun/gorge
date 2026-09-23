@@ -48,7 +48,19 @@ var predicates = map[string]predFn{
 	"OppCtrl": func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool {
 		return o.Controller != you
 	},
-	"YouOwn":    func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool { return o.Owner == you },
+	"YouOwn": func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool { return o.Owner == you },
+	"foretold": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o.CastFlags&state.FlagForetold != 0
+	},
+	// tokenCreated is Forge's zone-entry provenance predicate. In the
+	// Count$ThisTurnEntered_* specs that use it, a token's IsToken marker is
+	// the exact per-object meaning: tokens that leave cease to exist, and the
+	// entry list is cleared at TurnChange. A resolving creature-spell copy
+	// that enters the battlefield is also a token under CR 707.10g, so it
+	// correctly matches through the same marker.
+	"tokenCreated": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o.IsToken
+	},
 	"OppOwn":    func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool { return o.Owner != you },
 	"Self":      func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool { return o.ID == src },
 	"Other":     func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool { return o.ID != src },
@@ -143,9 +155,13 @@ var predicates = map[string]predFn{
 	"surged": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.CastFlags&state.FlagSurged != 0
 	},
+	// The context-free entry: a caller with no SpecContext compares printed
+	// names. matchPositive evaluates NamedCard through namePredicate below
+	// before reaching this map, so every context-aware call sees the layer-3
+	// name instead -- the same split typePredicate keeps for ExtraTypes.
 	"NamedCard": func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
 		s := g.Obj(src)
-		return s != nil && s.ChosenName != "" && sharesName(o, s.ChosenName)
+		return s != nil && s.ChosenName != "" && sharesName(o, s.ChosenName, SpecContext{})
 	},
 	"ChosenType": func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
 		s := g.Obj(src)
@@ -182,6 +198,20 @@ var predicates = map[string]predFn{
 	// replacement ValidCard$ specs. A card never escape-cast never matches.
 	"escaped": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.CastFlags&state.FlagEscaped != 0
+	},
+	// Suspend capability and status are intentionally separate. A card has
+	// suspend when it is printed with K:Suspend or received the event-backed
+	// grant; it is suspended only while that capability card is exiled with a
+	// positive TIME counter.
+	"withSuspend": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o != nil && (o.SuspendGranted || (o.Face() != nil && o.Face().HasKeyword("Suspend")))
+	},
+	"withoutSuspend": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o == nil || !(o.SuspendGranted || (o.Face() != nil && o.Face().HasKeyword("Suspend")))
+	},
+	"suspended": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o != nil && o.Zone == state.ZExile && o.Counter("TIME") > 0 &&
+			(o.SuspendGranted || (o.CastFlags&state.FlagSuspend) != 0 || (o.Face() != nil && o.Face().HasKeyword("Suspend")))
 	},
 	// wasCastFromGraveyard is the CastFlags provenance of a GRAVEYARD-ORIGIN
 	// cast (CR 601.2b): any of FlagFlashback, FlagHarmonize or FlagEscaped.
@@ -474,7 +504,8 @@ func hasAttachmentOfKind(g *state.Game, id state.ObjID, kind string) bool {
 
 // sharesTypeArg splits the space-bearing two-token predicates
 // "sharesCardTypeWith <X>", "sharesCreatureTypeWith <X>" and
-// "sharesAllCardTypesWithOther <X>" and classifies their shared referent. The referent is a resolution-time object list: the
+// "sharesAllCardTypesWithOther <X>", and
+// "sharesCardTypeWithOther <X>" and classifies their shared referent. The referent is a resolution-time object list: the
 // remembered set (RememberedCard — its first card entry, Braids's "a
 // permanent that shares a card type with it" — Remembered, RememberedLKI),
 // the triggering card (TriggeredCard/TriggeredCardLKICopy, Heirloom
@@ -488,7 +519,7 @@ func hasAttachmentOfKind(g *state.Game, id state.ObjID, kind string) bool {
 func sharesTypeArg(p string) (name, arg string, ok bool) {
 	name, arg, ok = strings.Cut(p, " ")
 	if !ok || (name != "sharesCardTypeWith" && name != "sharesCreatureTypeWith" &&
-		name != "sharesAllCardTypesWithOther") {
+		name != "sharesCardTypeWithOther" && name != "sharesAllCardTypesWithOther") {
 		return "", "", false
 	}
 	arg = strings.TrimSpace(arg)
@@ -592,6 +623,39 @@ func sharesCardTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref stri
 		}
 		r := g.Obj(t.Obj)
 		if r == nil {
+			continue
+		}
+		for _, cardType := range oTypes {
+			if hasType(r, cardType) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// sharesCardTypeWithOther reports whether o shares at least one CARD type
+// with an OTHER object the referent names. It is the intersection sibling of
+// sharesAllCardTypesWithOther: only the candidate identity exclusion differs
+// from sharesCardTypeWith.
+func sharesCardTypeWithOther(g *state.Game, o *state.Object, sc SpecContext, ref string) bool {
+	var oTypes []string
+	if f := o.Face(); f != nil {
+		for _, x := range f.Types {
+			if cardTypeWords[x] {
+				oTypes = append(oTypes, x)
+			}
+		}
+	}
+	if len(oTypes) == 0 {
+		return false
+	}
+	for _, t := range sharesTypeReferents(g, sc, ref) {
+		if t.IsPlayer {
+			continue
+		}
+		r := g.Obj(t.Obj)
+		if r == nil || r.ID == o.ID {
 			continue
 		}
 		for _, cardType := range oTypes {
@@ -896,6 +960,9 @@ const (
 	// The creature-subtype twin "sharesCreatureTypeWith <X>": same referent
 	// switch, the intersection is over creature subtypes (Heirloom Blade).
 	wordSharesCreatureType
+	// "sharesCardTypeWithOther <X>": the card-type intersection, excluding
+	// the candidate itself (The Tale of Tamiyo's mill gate).
+	wordSharesCardTypeOther
 	// "sharesAllCardTypesWithOther <X>": same referent switch, but the
 	// candidate must share EVERY one of its card types with some OTHER
 	// object the referent names (Demonic Covenant's "two cards that share
@@ -1096,6 +1163,8 @@ func wordPredicate(p string) (wordKind, string) {
 		switch name {
 		case "sharesCreatureTypeWith":
 			return wordSharesCreatureType, arg
+		case "sharesCardTypeWithOther":
+			return wordSharesCardTypeOther, arg
 		case "sharesAllCardTypesWithOther":
 			return wordSharesAllCardTypes, arg
 		}
@@ -1159,6 +1228,8 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 	switch kind {
 	case wordSharesCardType:
 		return sharesCardTypeWith(g, o, sc, key)
+	case wordSharesCardTypeOther:
+		return sharesCardTypeWithOther(g, o, sc, key)
 	case wordSharesCreatureType:
 		return sharesCreatureTypeWith(g, o, sc, key)
 	case wordSharesAllCardTypes:
@@ -1345,13 +1416,13 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		return o.EnteredThisTurn && o.EnteredFrom == zoneWords[key]
 	case wordNamed:
 		// Forge CardProperty "named<X>": card.sharesNameWith the argument.
-		return sharesName(o, key)
+		return sharesName(o, key, sc)
 	case wordNotnamed:
 		// Forge implements no notnamed predicate and the corpus carries
 		// none (measured); this engine gives the token the negation
 		// semantics its shape implies rather than the always-true trap an
 		// unrecognised-but-plausible token could be mistaken for.
-		return !sharesName(o, key)
+		return !sharesName(o, key, sc)
 	case wordSameName:
 		// Forge CardProperty "sameName": card.sharesNameWith(source). The
 		// referent is SpecContext.Source as MatchesObjectCtx rewrote it: the
@@ -1365,7 +1436,7 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		if sc.Source == 0 {
 			return false
 		}
-		return sharesNameWithObject(o, g.Obj(sc.Source))
+		return sharesNameWithObject(o, g.Obj(sc.Source), sc)
 	case wordAttachedTo:
 		// Forge's AttachedTo <X>: this object (an Aura or Equipment) is
 		// attached to something, and the permanent it is attached to (its
@@ -1773,6 +1844,10 @@ func startsFilterAlternative(s string) bool {
 // face it had while transformed. On the battlefield and stack every layout
 // uses its selected face. Empty names are omitted; an ability object (Card
 // nil) has no name.
+// A layer-3 name (SetName$, CR 613.1d) OVERRIDES everything below, split
+// halves included, and is handled by sharesName/sharesNameWithObject before
+// they reach here -- see hasEffectiveName for why it cannot be folded into
+// this function's return value.
 func nameCharacteristics(o *state.Object) []string {
 	if o == nil || o.Card == nil {
 		return nil
@@ -1797,11 +1872,30 @@ func nameCharacteristics(o *state.Object) []string {
 	return []string{f.Name}
 }
 
+// namePredicate evaluates the name-comparison predicates that must read the
+// layer-3 effective name rather than the printed face. ok is false for every
+// other token, which then falls through to the ordinary predicate map.
+func namePredicate(p string, g *state.Game, o *state.Object, sc SpecContext) (bool, bool) {
+	if p != "NamedCard" {
+		return false, false
+	}
+	s := g.Obj(sc.Source)
+	return s != nil && s.ChosenName != "" && sharesName(o, s.ChosenName, sc), true
+}
+
 // sharesName reports whether o's name characteristics include name -- Forge
 // Card.sharesNameWith(String). An empty name never matches.
-func sharesName(o *state.Object, name string) bool {
+func sharesName(o *state.Object, name string, sc SpecContext) bool {
 	if name == "" {
 		return false
+	}
+	// Applicability and timestamp order live in rules' layer walk, which hands
+	// the result down as the EffectiveNames value slice; the filter tier never
+	// re-derives them (a battlefield scan cannot see Affected$ applicability, a
+	// conditional SetName$, or timestamp order between two competing effects).
+	// A caller with no rules-supplied context reads the printed name.
+	if hasEffectiveName(o, sc) {
+		return matchesEffectiveName(o, name, sc)
 	}
 	for _, n := range nameCharacteristics(o) {
 		if n == name {
@@ -1815,9 +1909,20 @@ func sharesName(o *state.Object, name string) bool {
 // common -- Forge Card.sharesNameWith(Card), which compares the full name
 // sets of BOTH cards. A split source in a library or graveyard therefore
 // shares a name with a card named for either of its halves (CR 709.4).
-func sharesNameWithObject(o, src *state.Object) bool {
+func sharesNameWithObject(o, src *state.Object, sc SpecContext) bool {
+	if hasEffectiveName(src, sc) {
+		// The renamed source has exactly one name characteristic. The bound
+		// string is passed straight into sharesName, never returned, so the
+		// context's content still does not escape.
+		for _, n := range sc.EffectiveNames {
+			if n.ID == src.ID {
+				return sharesName(o, n.Name, sc)
+			}
+		}
+		return false
+	}
 	for _, n := range nameCharacteristics(src) {
-		if sharesName(o, n) {
+		if sharesName(o, n, sc) {
 			return true
 		}
 	}
@@ -2174,6 +2279,12 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 			has = !has
 		}
 		return has, true
+	}
+	// Name predicates must use the layer-3 derived name when rules supplies
+	// one, for the same reason type predicates must use the derived type
+	// list: the predicates map's legacy function carries no SpecContext.
+	if result, ok := namePredicate(p, g, o, sc); ok {
+		return result, true
 	}
 	if fn, ok := predicates[p]; ok {
 		return fn(g, o, sc.You, sc.Source), true
@@ -2744,6 +2855,57 @@ type SpecContext struct {
 	// (kw:Flanking's blocker check, Cavalry Master's `withFlanking` lord).
 	// nil keeps the object-alone read (printed face plus counters).
 	ExtraKeywords []string
+	// EffectiveNames optionally supplies the layer-3 derived names (SetName$,
+	// CR 613.1d) in force on the battlefield -- rules' layer walk computes
+	// them and binds the result on every SpecContext it builds. Ordinary
+	// filter callers leave it nil and fall back to the printed face name
+	// above. Like ExtraTypes it is a plain value slice and deliberately not a
+	// callable resolver: a call made through a SpecContext field makes escape
+	// analysis leak the whole context (its Resolve closure included) to the
+	// heap on every hot-path construction. It is also NOT a back-pointer into
+	// rules: the slice is an immutable snapshot, so a context built from one
+	// game can never read another game's board.
+	//
+	// Entries are only ever the renamed objects (a handful at most, nil on the
+	// overwhelmingly common board), so the linear scan below is cheaper than
+	// building a map.
+	EffectiveNames []ObjectName
+}
+
+// ObjectName binds one object to its layer-3 derived name.
+type ObjectName struct {
+	ID   state.ObjID
+	Name string
+}
+
+// hasEffectiveName reports whether the context binds a layer-3 name for o.
+//
+// Every read of EffectiveNames answers a BOOLEAN and never returns one of its
+// strings to a caller. That is load-bearing: a function that returns a string
+// sourced from a SpecContext field makes escape analysis summarise the whole
+// context's content as leaking, which forces the caller's *Ctx (and the
+// Resolve closure over it) to the heap on every hot-path construction --
+// exactly what TestEvalCountValidZoneScanIsAllocationFree pins against.
+func hasEffectiveName(o *state.Object, sc SpecContext) bool {
+	if o == nil {
+		return false
+	}
+	for _, n := range sc.EffectiveNames {
+		if n.ID == o.ID {
+			return n.Name != ""
+		}
+	}
+	return false
+}
+
+// matchesEffectiveName reports whether o's bound layer-3 name is name.
+func matchesEffectiveName(o *state.Object, name string, sc SpecContext) bool {
+	for _, n := range sc.EffectiveNames {
+		if n.ID == o.ID {
+			return n.Name != "" && n.Name == name
+		}
+	}
+	return false
 }
 
 // triggeredSpellTargetSA derives the target-declaring SA of a stack spell
@@ -2788,7 +2950,12 @@ func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContex
 	if o == nil {
 		return false
 	}
-	if ps := sc.PredicatePrograms; ps != nil {
+	// A renamed object must be answered by the textual oracle: the compiled
+	// program path reads the printed face and cannot see EffectiveNames, so a
+	// compiled `named<X>` would silently miss the layer-3 name. The same
+	// discipline the layer walk keeps for ExtraTypes (rules/layers.go), scoped
+	// here to the one object that actually carries a rename.
+	if ps := sc.PredicatePrograms; ps != nil && !hasEffectiveName(o, sc) {
 		switch ps.Evaluate(spec, g, o, sc) {
 		case PredicateYes:
 			return true
@@ -3175,6 +3342,12 @@ func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, 
 			if p == g.Active {
 				return true
 			}
+		case "NonActive":
+			// NonActive is the complement of Active, evaluated after the
+			// Player/You/Opponent/Other base has matched.
+			if p != g.Active {
+				return true
+			}
 		case "isMonarch":
 			// CR 716.2's monarch designation, on the Player/Any base only:
 			// the state-local qualifier a control static's GainControl$
@@ -3186,12 +3359,49 @@ func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, 
 				return true
 			}
 		default:
+			// Player.NotedFor<label> (Forge's PlayerProperty.NotedFor): the
+			// seat qualifies when its event-backed note set names <label>.
+			// The label is written by a DB$ Pump body's NoteCardsFor$
+			// parameter (effects.effPump -> events.PlayerNoted), so the read
+			// reaches the shared player filter every consumer already uses --
+			// RepeatEach's RepeatPlayers$, Defined$ on Draw/Discard/ChangeZone,
+			// the Continuous statics' Affected$ and a Count$ head alike. The
+			// Player/Any base is required (a qualified You.NotedForX fails
+			// closed, like every other qualifier here), the label is matched
+			// EXACTLY (case-sensitive, as Forge's string set is), and an
+			// out-of-range seat fails closed.
+			if base == "Player" || base == "Any" {
+				if label, is := strings.CutPrefix(qualifier, "NotedFor"); is && label != "" {
+					if int(p) < len(g.Players) && playerHasNote(g, p, label) {
+						return true
+					}
+					continue
+				}
+			}
 			if int(p) < len(g.Players) {
 				op, n, ok := splitPlayerCompare(qualifier)
 				if ok && playerCompare(g.Players[p].Life, op, n) {
 					return true
 				}
 			}
+		}
+	}
+	return false
+}
+
+// playerHasNote reports whether the seat's event-backed player-notation set
+// names label. The note set is state.Player.Notes, written only by
+// events.Apply's PlayerNoted case (a DB$ Pump body's NoteCardsFor$), so a
+// live game and a log-only replay answer identically. An out-of-range seat
+// fails closed. There is no map range here (the slice is walked in its
+// append order), so the result is deterministic.
+func playerHasNote(g *state.Game, p state.PlayerID, label string) bool {
+	if int(p) >= len(g.Players) {
+		return false
+	}
+	for _, n := range g.Players[p].Notes {
+		if n == label {
+			return true
 		}
 	}
 	return false

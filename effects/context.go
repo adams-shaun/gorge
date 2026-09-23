@@ -36,6 +36,31 @@ var zoneValidPrefixes = []struct {
 // Resolve, so a caller that filters the returned slice in place (the ordinary
 // out := s[:0]; for range append(out, ...) idiom) must not be able to corrupt
 // state a later effect in the same Sub chain still relies on.
+// GainedFacesOfDefined resolves Forge's GainsAbilitiesOfDefined$ dynamic set
+// into the foreign faces consumed by the activated-ability grant path. It is
+// shared by printed statics and Effect-delivered statics so both routes use
+// Defined's object-reference semantics and preserve its deterministic order.
+func GainedFacesOfDefined(h Host, c *Ctx, spec string) []state.GainedFace {
+	if c == nil || strings.TrimSpace(spec) == "" {
+		return nil
+	}
+	sa := &cards.SA{Params: map[string]string{"Defined": strings.TrimSpace(spec)}}
+	var out []state.GainedFace
+	seen := make(map[state.ObjID]bool)
+	for _, t := range Defined(h, c, sa) {
+		if t.IsPlayer || t.Obj == 0 || seen[t.Obj] {
+			continue
+		}
+		o := h.Game().Obj(t.Obj)
+		if o == nil || o.Face() == nil {
+			continue
+		}
+		seen[t.Obj] = true
+		out = append(out, state.GainedFace{Obj: t.Obj, Face: o.Face()})
+	}
+	return out
+}
+
 func Defined(h Host, c *Ctx, sa *cards.SA) []state.Target {
 	if ts, ok := knownDefinedTargets(h, c, sa.Params["Defined"]); ok {
 		return ts
@@ -266,6 +291,16 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		return nil, true
 	case "Remembered":
 		return copyTargets(c.Remembered), true
+	case "ImprintedLKI":
+		// Forge's LKI spelling of the imprint pile, distinct from the bare
+		// "Imprinted" case below: the SOURCE's persistent imprint association,
+		// deliberately NOT the RepeatEach subject binding "Imprinted" takes --
+		// a delayed trigger registering after a RepeatEach loop must see every
+		// token/card imprinted across the whole loop (Kharasha Foothills,
+		// Shredder, Shadow Master's RememberObjects$ ImprintedLKI DelTrig),
+		// not the last iteration's subject. All five corpus DelTrig carriers
+		// read it exactly this way.
+		return imprintPileTargets(g, c), true
 	case "Imprinted", "ImprintedController":
 		// Two populations share the spelling. Inside a RepeatEach iteration
 		// (this build's own binding) Forge's UseImprinted$ names the loop's
@@ -297,18 +332,7 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		if spec == "ImprintedController" {
 			return nil, true
 		}
-		if o := g.Obj(c.Source); o != nil {
-			out := make([]state.Target, 0, len(o.Imprinted))
-			for _, id := range o.Imprinted {
-				// Imprint links an exiled card only while the linked card remains
-				// in exile (CR 607.2a); its persistent ID cannot follow it later.
-				if linked := g.Obj(id); linked != nil && linked.Zone == state.ZExile {
-					out = append(out, state.Target{Obj: id})
-				}
-			}
-			return out, true
-		}
-		return nil, true
+		return imprintPileTargets(g, c), true
 	case "ChosenCard", "ChosenPlayer":
 		// ChooseCard/ChoosePlayer bind the current resolution's most recent
 		// choice here. This is deliberately distinct from Remembered: Forge
@@ -507,6 +531,37 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			return []state.Target{{Player: o.Controller, IsPlayer: true}}, true
 		}
 		return nil, true
+	case "TriggeredTargets":
+		// The batch's matching TARGET set (trig:DamageAll): Breeches, Brazen
+		// Plunderer's "exile the top card of each of those opponents'
+		// libraries" reads Defined$ TriggeredTargets -- every target the
+		// batch's matching Damage events named, players and objects both, in
+		// first-seen order. An absent set falls back to the singleton
+		// TriggeredTarget semantics (the same role-absent convention).
+		if len(c.TriggerDamageTargets) > 0 {
+			return copyTargets(c.TriggerDamageTargets), true
+		}
+		return definedSpec(h, c, "TriggeredTarget")
+	case "TriggeredSourcesController":
+		// The controllers of the batch's matching SOURCE set (trig:DamageAll):
+		// Nelly Borca's "you and the controller of those creatures each draw a
+		// card" reads Defined$ TriggeredSourcesController & You. Controllers
+		// are read live at resolution (the singular spelling's read) and
+		// deduplicated in first-seen source order; a controller whose source
+		// object is gone contributes nothing. An absent set falls back to the
+		// singular TriggeredSourceController semantics.
+		if len(c.TriggerDamageSources) > 0 {
+			var out []state.Target
+			seen := map[state.PlayerID]bool{}
+			for _, id := range c.TriggerDamageSources {
+				if o := g.Obj(id); o != nil && !seen[o.Controller] {
+					seen[o.Controller] = true
+					out = append(out, state.Target{Player: o.Controller, IsPlayer: true})
+				}
+			}
+			return out, true
+		}
+		return definedSpec(h, c, "TriggeredSourceController")
 	case "Convoked":
 		// CR 702.66's "each creature that convoked it" (task connive1): the
 		// creatures the caster tapped to help pay for the resolving spell's
@@ -792,6 +847,44 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 // through after the objects. Deterministic (slices in order, no map range
 // reaches a caller's output) and allocation-only: it writes no state and
 // emits no event.
+//
+// imprintPileTargets resolves the SOURCE's persistent imprint association
+// (state.Object.Imprinted + ImprintTokens): the exiled cards -- Imprint links
+// an exiled card only while the linked card remains in exile (CR 607.2a); its
+// persistent ID cannot follow it later -- plus the minted tokens an
+// ImprintTokens$ True effect recorded. The tokens are battlefield permanents,
+// so they resolve while they exist -- the exiled-card zone filter must not
+// apply to them. One home shared by the "Imprinted" (non-RepeatSubject arm)
+// and "ImprintedLKI" definedSpec cases, so the two spellings read one pile.
+func imprintPileTargets(g *state.Game, c *Ctx) []state.Target {
+	o := g.Obj(c.Source)
+	if o == nil {
+		return nil
+	}
+	out := make([]state.Target, 0, len(o.Imprinted)+len(o.ImprintTokens))
+	for _, id := range o.Imprinted {
+		if linked := g.Obj(id); linked != nil && linked.Zone == state.ZExile {
+			out = append(out, state.Target{Obj: id})
+		}
+	}
+	for _, id := range o.ImprintTokens {
+		if g.Obj(id) != nil {
+			out = append(out, state.Target{Obj: id})
+		}
+	}
+	// SeekFound (ImprintFound$ True) names cards the seek moved to a HAND:
+	// Forge's continuation reads imprintedCards without a zone filter, so these
+	// resolve wherever they currently sit. Kept in its own list so the CR
+	// 607.2a exile-only rule above still holds for the ordinary Imprinted
+	// association.
+	for _, id := range o.SeekFound {
+		if g.Obj(id) != nil {
+			out = append(out, state.Target{Obj: id})
+		}
+	}
+	return out
+}
+
 func rememberedWithSource(h Host, c *Ctx) []state.Target {
 	out := make([]state.Target, 0, len(c.Remembered))
 	seen := make(map[state.ObjID]bool, len(c.Remembered))
