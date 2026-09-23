@@ -281,6 +281,7 @@ type pendingCast struct {
 	// so Clone carries them like sacs/sacPart.
 	emerge     bool
 	emergeDone bool
+	emergeSac  state.ObjID
 
 	discards    []state.ObjID
 	discardPart int
@@ -2227,8 +2228,8 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		// gone falls back to the empty cost like the keyword family above, and
 		// without the Sac part the cast is an ordinary (over-charged) emerge;
 		// the offer gate only ever routes here with the keyword present.
-		if ec, ok := emergeCost(f); ok {
-			cost = ec.Plus(Cost{Sac: []CostPart{emergeSacrificePart()}})
+		if ec, ok := emergeBase(f); ok {
+			cost = ec
 		} else {
 			cost = Cost{}
 		}
@@ -4365,7 +4366,7 @@ func (e *Engine) sacAsk() bool {
 					break
 				}
 			}
-			if !already {
+			if !already && (!pc.emerge || pc.sacPart != 0 || e.emergeSacPayable(pc, oid)) {
 				candidates = append(candidates, oid)
 			}
 		}
@@ -6476,6 +6477,9 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 			pc.delve = append(pc.delve, o.Obj)
 		}
 	case "sacrifice":
+		if pc.emerge && pc.sacPart == 0 && len(chosen) == 1 {
+			pc.emergeSac = chosen[0].Obj
+		}
 		for _, o := range chosen {
 			pc.sacs = append(pc.sacs, o.Obj)
 		}

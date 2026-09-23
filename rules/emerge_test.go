@@ -177,7 +177,7 @@ func TestEmergeCastReductionExceedsGenericKeepsColored(t *testing.T) {
 		t.Fatalf("Emerge Colossus mana value %d, want 10", mv)
 	}
 	// The offer price itself: generic floored at zero, both blue pips intact.
-	if ec, ok := e.emergeOfferCost(0, deep, dface.Face()); !ok || ec.Generic != 0 ||
+	if ec, ok := e.emergeOfferCost(0, deep, dface.Face(), func(Cost) bool { return true }); !ok || ec.Generic != 0 ||
 		ec.Colored[state.MU] != 2 {
 		t.Fatalf("emerge offer cost %+v (ok=%v), want {U}{U} with the generic floored to 0", ec, ok)
 	}

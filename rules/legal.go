@@ -1912,14 +1912,12 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		// a creature AND the cost is reduced by its mana value -- so it does
 		// not ride the keyword family above. emergeOfferCost composes the
 		// printed K:Emerge cost with the mandatory Sac<1/Creature> part,
-		// reduced by the largest mana value among the caster's sacrificeable
-		// creatures (the best case: the offer exists whenever some legal
-		// sacrifice makes the cast payable). The chosen creature is settled by
-		// sacAsk, and applyEmergeReduction re-prices pc.cost to it. A face
-		// whose emerge cost ParseCost cannot model is withheld (emerged,
-		// false): the plain cast stays offered, never an incorrect emerge.
-		if ec, ok := e.emergeOfferCost(p, id, f); ok && targetsAvailable &&
-			offerCastable(p, id, ec, spellScope("emerged"), false) {
+		// priced separately for each sacrifice candidate. sacAsk permits only
+		// candidates whose own reduced cost remains payable. Unsupported printed
+		// cost shapes are withheld; the plain cast remains unaffected.
+		if _, ok := e.emergeOfferCost(p, id, f, func(c Cost) bool {
+			return offerCastable(p, id, c, spellScope("emerged"), false)
+		}); ok && targetsAvailable {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (emerged)", Obj: id, Mode: "emerged"})
 		}

@@ -12,15 +12,10 @@
 //
 //   - emergeCost resolves the printed K:Emerge parameter to a Cost, cutting
 //     Forge's colon-suffixed metadata (`K:Emerge:5 B B:Artifact`) and
-//     withholding any token ParseCost cannot model or an {X}, the
-//     bestowCost/mayflashExtraCost fail-closed convention.
-//   - emergeOfferCost prices the offer: the emerge cost composed with the
-//     mandatory `Sac<1/Creature>` additional cost, reduced by the LARGEST
-//     mana value among the caster's sacrificeable creatures. That is the
-//     best case the player can reach, so the offer is present whenever some
-//     legal sacrifice makes the cast payable; the actual chosen creature is
-//     settled by the ordinary Sac machinery and the reduction is re-applied
-//     to the cost the player actually chose (applyEmergeReduction).
+//     withholding every cost shape beyond generic and coloured mana.
+//   - emergeOfferCost checks the reduced cost for each sacrifice candidate.
+//     sacAsk permits only candidates whose own reduced payment is payable,
+//     so an offer cannot turn into an unpayable choice.
 //   - the offer (rules/legal.go's hand walk) adds the "emerged" cast mode,
 //     and beginCast's "emerged" arm charges the emerge cost plus the Sac part.
 //   - sacAsk applies the chosen creature's mana value as a reduction exactly
@@ -46,10 +41,9 @@ func init() {
 // emergeCost resolves the printed K:Emerge parameter to the base emerge cost.
 // Forge's parameter may carry a colon-suffixed metadata tail
 // (`K:Emerge:5 B B:Artifact`), the bestow/mutate colon shape, so everything
-// from the first colon is dropped before parsing. An absent keyword, a token
-// ParseCost reports as Unknown, and any {X} all withhold (ok=false): each
-// would otherwise charge a cost that is not the card's, and a withheld emerge
-// simply leaves the plain cast offered.
+// from the first colon is dropped before parsing. Only space-separated generic
+// and WUBRGC tokens are admitted; every other parsed component (including
+// non-mana, hybrid, snow and life) is withheld rather than partially priced.
 func emergeCost(f *cards.Face) (Cost, bool) {
 	if f == nil {
 		return Cost{}, false
@@ -65,8 +59,27 @@ func emergeCost(f *cards.Face) (Cost, bool) {
 	if s == "" {
 		return Cost{}, false
 	}
+	// Validate the input grammar, not just Unknown: ParseCost understands
+	// many real cost parts that Emerge's generic-only reduction does not.
+	for _, token := range strings.Fields(s) {
+		if len(token) == 1 && strings.ContainsAny(token, "WUBRGC") {
+			continue
+		}
+		for _, ch := range token {
+			if ch < '0' || ch > '9' {
+				return Cost{}, false
+			}
+		}
+	}
 	c := ParseCost(s)
-	if len(c.Unknown) > 0 || c.X > 0 {
+	if len(c.Unknown) > 0 || c.X > 0 || c.Life != 0 || c.Snow != 0 || c.Tap ||
+		len(c.Hybrid) != 0 || len(c.Phyrexian) != 0 || len(c.Twobrid) != 0 || len(c.HybridPhyrexian) != 0 ||
+		len(c.Sac) != 0 || len(c.Discard) != 0 || len(c.SubCounter) != 0 || len(c.AddCounter) != 0 ||
+		len(c.Exile) != 0 || len(c.Reveal) != 0 || len(c.RevealChosen) != 0 || len(c.Behold) != 0 ||
+		len(c.TapPermanent) != 0 || len(c.Blight) != 0 || c.Forage || len(c.Draw) != 0 ||
+		len(c.Energy) != 0 || len(c.LifeX) != 0 || c.LifeHalfUp || len(c.DamageYou) != 0 ||
+		len(c.Return) != 0 || len(c.PutToLib) != 0 || len(c.MoveToGrave) != 0 || len(c.Mill) != 0 ||
+		len(c.Evidence) != 0 || len(c.RollDice) != 0 {
 		return Cost{}, false
 	}
 	return c, true
@@ -80,37 +93,61 @@ func emergeSacrificePart() CostPart {
 	return CostPart{N: 1, Spec: "Creature"}
 }
 
-// emergeOfferCost prices the emerge offer for id: the emerge cost composed
-// with the mandatory creature sacrifice, reduced by the largest mana value
-// among the caster's sacrificeable creatures. ok=false when the face prints
-// no priced emerge cost or no creature can pay the sacrifice; the caller then
-// withholds the option rather than offering an incorrect payment.
-func (e *Engine) emergeOfferCost(p state.PlayerID, id state.ObjID, f *cards.Face) (Cost, bool) {
+// emergeBase is shared by offer and payment. The additional creature is the
+// FIRST Sac part, even when the spell's own SpellAbility prints another cost.
+func emergeBase(f *cards.Face) (Cost, bool) {
 	base, ok := emergeCost(f)
 	if !ok {
 		return Cost{}, false
 	}
-	part := emergeSacrificePart()
-	candidates := e.sacrificeCostCandidates(p, id, part, false)
-	if len(candidates) == 0 {
+	base.Sac = append(base.Sac, emergeSacrificePart())
+	return withSpellAbilityExtras(f, base), true
+}
+
+// emergeCandidateCost applies ONLY the mandatory Emerge creature's mana value.
+func (e *Engine) emergeCandidateCost(base Cost, oid state.ObjID) Cost {
+	o := e.G.Obj(oid)
+	if o == nil || o.Face() == nil {
+		return base
+	}
+	return reduceGeneric(base, o.Face().ManaValue())
+}
+
+// emergeOfferCost checks each candidate against the caller's actual (or
+// hypothetical) pool. A best-case price alone must not authorize a smaller
+// creature whose own payment is unaffordable. The payment ask repeats this
+// candidate-specific constraint against the live pool.
+func (e *Engine) emergeOfferCost(p state.PlayerID, id state.ObjID, f *cards.Face, payable func(Cost) bool) (Cost, bool) {
+	base, ok := emergeBase(f)
+	if !ok {
 		return Cost{}, false
 	}
 	best := int32(-1)
-	for _, oid := range candidates {
+	var priced Cost
+	for _, oid := range e.sacrificeCostCandidates(p, id, emergeSacrificePart(), false) {
 		o := e.G.Obj(oid)
 		if o == nil || o.Face() == nil {
 			continue
 		}
-		if mv := o.Face().ManaValue(); mv > best {
-			best = mv
+		candidate := e.emergeCandidateCost(base, oid)
+		if payable(candidate) && o.Face().ManaValue() > best {
+			best, priced = o.Face().ManaValue(), candidate
 		}
 	}
-	if best < 0 {
-		return Cost{}, false
+	return priced, best >= 0
+}
+
+// At the sacrifice ask use the same modifier and pool feasibility as the
+// offer, but the pending cast's captured modifiers (the card is on the stack
+// now). Only mana varies by candidate; the common non-mana parts were checked
+// at the offer and are settled independently by sacAsk.
+func (e *Engine) emergeSacPayable(pc *pendingCast, oid state.ObjID) bool {
+	candidate := e.emergeCandidateCost(pc.cost, oid)
+	delve := int32(0)
+	if e.HasKeyword(pc.card, "Delve") {
+		delve = int32(len(e.G.Zone(state.ZGraveyard, pc.player)))
 	}
-	base = reduceGeneric(base, best)
-	base.Sac = append(base.Sac, part)
-	return base, true
+	return e.manaFeasiblePriced(pc.player, pc.card, false, candidate, pc.mods, pc.taxGeneric, delve, nil)
 }
 
 // applyEmergeReduction folds the actual chosen sacrifice's mana value into the
@@ -124,15 +161,7 @@ func (e *Engine) applyEmergeReduction(pc *pendingCast) {
 	if !pc.emerge || pc.emergeDone {
 		return
 	}
-	n := int32(0)
-	for _, oid := range pc.sacs {
-		o := e.G.Obj(oid)
-		if o == nil || o.Face() == nil {
-			continue
-		}
-		n += o.Face().ManaValue()
-	}
-	pc.cost = reduceGeneric(pc.cost, n)
+	pc.cost = e.emergeCandidateCost(pc.cost, pc.emergeSac)
 	pc.emergeDone = true
 }
 
@@ -140,10 +169,9 @@ func (e *Engine) applyEmergeReduction(pc *pendingCast) {
 // zero. A mana-value reduction (CR 702.118a's Emerge, like CR 118.7's
 // cost-reduction effects generally) can only reduce the generic amount of a
 // cost: the coloured pips are requirements the spell still carries, so
-// {5}{U}{U} reduced by mana value 10 is {U}{U}, never zero. Coloured pips,
-// hybrid and Phyrexian pips and every non-mana part are left untouched (the
-// measured corpus's 15 K:Emerge lines are all plain generic+coloured, and a
-// hybrid/Phyrexian face is not reducible generic either).
+// {5}{U}{U} reduced by mana value 10 is {U}{U}, never zero. Coloured pips
+// and non-mana parts are left untouched. Unsupported printed Emerge cost shapes
+// are withheld by emergeCost before this reducer can be reached.
 func reduceGeneric(c Cost, n int32) Cost {
 	if n <= 0 {
 		return c
