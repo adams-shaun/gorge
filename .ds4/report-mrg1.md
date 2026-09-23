@@ -1,3 +1,111 @@
+# Merge conflict resolution — static Goad integration
+
+## Starting state and operation
+
+Arrival was a clean tree on `wt/cli-20260922T225142Z-885d3d75` at `8f4f265cd`, with no merge/rebase in progress. That commit already integrated main through `62ae4746`; current `main` (`2341274c6` at merge start) was not an ancestor. The reported rebase had not left an operation in progress, so I completed integration using the merge fallback:
+
+```text
+git merge --no-edit main
+Auto-merging .ds4/report-mrg1.md
+CONFLICT (content): Merge conflict in .ds4/report-mrg1.md
+Auto-merging AGENTS.md
+CONFLICT (content): Merge conflict in AGENTS.md
+Auto-merging effects/filter.go
+Auto-merging effects/registry.go
+CONFLICT (content): Merge conflict in effects/registry.go
+Auto-merging effects/trigger_referents.go
+CONFLICT (content): Merge conflict in effects/trigger_referents.go
+Auto-merging internal/testutil/agentsdoc_test.go
+CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go
+Auto-merging rules/paramcensus_test.go
+Automatic merge failed; fix conflicts and then commit the result.
+```
+
+## Conflicts and resolutions
+
+- `AGENTS.md`: branch retains its `ap1` row while main's side had the `staticgoad1` row. The reviewed branch fix closes staticgoad1, so that row remains deleted; main's other register changes are retained. The merged table was measured directly at **31 data rows**.
+- `effects/registry.go`: combined branch's `StaticGoads` context field, `goadTableHost`/Goaded-parameter detection and publication with main's `TargetableObjects` field, host interface, and publication. Both values are refreshed at Resolve entry and at each SA boundary; absence clears the value to prevent stale-context leakage.
+- `effects/trigger_referents.go`: `SpecContext` now carries both `StaticGoads` and `TargetableObjects`.
+- `internal/testutil/agentsdoc_test.go`: set `knownApproximationRows = 31`, matching the merged AGENTS.md measured with the test's row-count rule, rather than using either stale side comment.
+- `.ds4/report-mrg1.md`: this file is an accumulated report archive. Preserved both conflict sides verbatim after this round's report below; no prior archive content was discarded.
+
+The non-conflicting changes, including `effects/filter.go` and `rules/paramcensus_test.go`, remain as auto-merged. No other files were intentionally changed.
+
+## Checks
+
+- `[ -e .cards ] && echo '.cards present'` → `.cards present` (corpus available; no corpus-backed false-green).
+- Merged approximation table measurement → `approximation rows: 31`.
+- `git diff --check` → no output (clean).
+- `go test ./internal/testutil/ -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort'` → `ok github.com/adams-shaun/gorge/internal/testutil 0.001s`.
+- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|TestEffectGrantedGoad|TestCloneGrantedGoad|TestStaticGoad'` → `ok github.com/adams-shaun/gorge/rules 1.076s`.
+- `gofmt -w effects/registry.go effects/trigger_referents.go internal/testutil/agentsdoc_test.go`; subsequent `gofmt -l` returned no paths.
+
+## Issues
+
+No new unfixed issue identified during conflict resolution. No new trigger mode is registered by this change; no `addedAfterTheSplit` adjustment is indicated. No golden was modified.
+
+## Completion
+
+- `GIT_EDITOR=true git merge --continue` → `[wt/cli-20260922T225142Z-885d3d75 c85b1900] Merge branch 'main' into wt/cli-20260922T225142Z-885d3d75`.
+- `git merge-base --is-ancestor main HEAD` → exit 0.
+- `git status --short --branch` → `## wt/cli-20260922T225142Z-885d3d75` (clean).
+- `git diff --check HEAD^ HEAD` → clean.
+
+## Archived conflict-side report — branch version
+
+# mrg1 conflict resolution report
+
+## Conflict
+
+Only `internal/testutil/agentsdoc_test.go` was conflicted. The branch side had `knownApproximationRows = 34` with a note that it was measured after rebase. Main's side said its auto-merged `AGENTS.md` had 32 rows, including several main-side closures, plus the branch's `(choosesource1)` deletion, and set the constant to 32. I retained the merged table count but measured the actual merged `AGENTS.md`: 31 approximation data rows. The conflict resolution therefore sets `knownApproximationRows = 31`; this retains main's table changes and the branch's row deletion while accurately matching the merged table.
+
+The post-merge ratchet also exposed unclassified Goad static parameter-recognition reads in `rules/paramcensus_test.go`. I classified the helper's parsed SVar map as non-card Params and its `saMentionsGoaded` range as recognition rather than consumption, with comments. This was needed for the required post-merge ratchets to pass.
+
+## Commands and output
+
+- `git status --short --branch && git rev-parse --show-toplevel && git log -1 --oneline --decorate && git status`
+  ```
+  ## wt/cli-20260922T225142Z-885d3d75
+  /home/sadams/projects/gorge/.worktrees/cli-20260922T225142Z-885d3d75
+  e0f7658d3 (HEAD -> wt/cli-20260922T225142Z-885d3d75) fix(rules): preserve static goad in trigger LKI
+  On branch wt/cli-20260922T225142Z-885d3d75
+  nothing to commit, working tree clean
+  ```
+- `git merge --no-edit main`
+  ```
+  Auto-merging AGENTS.md
+  Auto-merging effects/filter.go
+  Auto-merging effects/misc.go
+  Auto-merging effects/registry.go
+  Auto-merging internal/testutil/agentsdoc_test.go
+  CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go
+  Auto-merging rules/cast.go
+  Auto-merging rules/engine.go
+  Automatic merge failed; fix conflicts and then commit the result.
+  ```
+- `python3` count of `AGENTS.md` approximation rows: `approximation data rows: 31`.
+- `ls .cards | head`: corpus present (`cards.lock`, `cardsfolder`, `ir.gob.gz`, `ir.v4.gob.gz`, `tokenscripts`).
+- `go test ./internal/testutil/ -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort'`
+  ```
+  ok   github.com/adams-shaun/gorge/internal/testutil  0.001s
+  ```
+- First required ratchet run, `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`, failed in `TestEveryRepoDeckParamsAreRead`: seven findings for the new Goad helpers' `params` map and `saMentionsGoaded` range. I added the corresponding explicit census classifications.
+- Rerun of that same required ratchet command after classification:
+  ```
+  ok   github.com/adams-shaun/gorge/rules  0.808s
+  ```
+
+## Issues
+
+No engine behavior defect found during this integration. The only issue uncovered was the param-census classification noted above; it is fixed here. No additional CR-lane test issue identified.
+
+## Completion
+
+The merged approximation count is 31, not either stale conflict-side count. No uncertainty remains. The merge commit includes the conflict resolution and required ratchet classification.
+
+
+## Archived conflict-side report — main version
+
 # Merge resolution report — cli-20260922T225143Z-bc326d39
 
 ---

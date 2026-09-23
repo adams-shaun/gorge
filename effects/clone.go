@@ -254,6 +254,26 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 			unread = append(unread, key+"$ "+v)
 		}
 	}
+	// AddStaticAbilities$ (staticgoad1, Mocking Doppelganger's FamilyTease):
+	// each named SVar body that is an entirely readable Goad$ True static is
+	// registered per become object below; a member this build cannot carry
+	// (an unresolvable name, a non-Goad body, a body with a condition gate
+	// or extra grant parameter) lands in the same loud Note the other unread
+	// riders share rather than registering a half-read static. The gate is
+	// the ONE goadStaticGrantReadable helper effEffect's StaticAbilities$
+	// arm and rules' etbCloneWhitelist value check also call, so the three
+	// delivery routes cannot disagree about what a supported grant is.
+	var grantedGoads []map[string]string
+	for _, name := range strings.FieldsFunc(sa.Params["AddStaticAbilities"], func(r rune) bool {
+		return r == ',' || r == ' ' || r == '\t' || r == '\n'
+	}) {
+		mode, params := parseStaticLine(c.SVars, name)
+		if mode == "Continuous" && goadStaticGrantReadable(params) {
+			grantedGoads = append(grantedGoads, params)
+			continue
+		}
+		unread = append(unread, "AddStaticAbilities$ "+name)
+	}
 	// The `!cloneDone` guard the first cut carried here was WRONG: with a
 	// real host the initial pass always returns at the Ask above, so these
 	// diagnostics can only ever fire on the ANSWERED-YES re-entry (the
@@ -335,6 +355,25 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 				SetPowerPresent: setPowerPresent, SetToughnessPresent: setToughPresent,
 				StaticSet: true})
 		}
+		// The granted Goad$ statics (staticgoad1): each registers as a
+		// Restriction ("Goad") read by rules' staticGoaders beside the printed
+		// S: route, its Affected$ spec resolved against the become object
+		// (Mocking Doppelganger's `Creature.sameName+Other` shares the copy's
+		// name) and its controller the clone's own. Lifetime is the clone
+		// modifier's own (the source-leaves rule on the become object --
+		// active() drops the unit the moment it leaves the battlefield, CR
+		// 400.7 -- plus the clone's UntilEOT/UntilTurn when the body named
+		// one), so the goad ends exactly when the copy does.
+		for _, params := range grantedGoads {
+			h.AddContinuous(state.ContinuousEffect{
+				Source: b.Obj, Controller: c.Controller,
+				Restriction:    "Goad",
+				RestrictParams: params,
+				Duration:       dur,
+				UntilEOT:       untilEOT,
+				UntilTurn:      untilTurn,
+			})
+		}
 		// The layer-1 LCopy MARKER owns the copy's lifetime. It is always
 		// registered (even when no modifier effect is), so rules' clone
 		// sweep has exactly one owner per copy to expire and can drop the
@@ -357,10 +396,14 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 // but does not act on. Each present one lands in the single combined
 // loud Note per clone call so the parameter census stays honest; measured
 // corpus populations at FORGE_REF:
-// AddTriggers$ 3, AddStaticAbilities$ 1, AddAbilities$ 1, SetCreatureTypes$ 1,
+// AddTriggers$ 3, AddAbilities$ 1, SetCreatureTypes$ 1,
 // RemoveSubTypes$ 1, NonLegendary$ 6, AddSVars$ (read only through
 // GainThisAbility's merged SVar table) 9, AttachedTo$/CopyFromChosenName$/
 // CloneZone$/FaceDown$ the remaining singletons.
+// AddStaticAbilities$ (Mocking Doppelganger's FamilyTease) is READ for the
+// Goad$ True static grant this build carries (staticgoad1) and stays in this
+// list's territory only for a member whose named body is not an entirely
+// readable Goad line — those land in the same loud Note.
 // IntoPlayTapped$ is in this list deliberately. It means "the copy ENTERS
 // tapped", which only has a referent on the ETB-replacement route (Vesuva,
 // Echoing Deeps, Callidus Assassin -- every measured carrier is an
@@ -370,7 +413,7 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 // parameter, so it is recorded and inert until the ETB-copy ticket lands and
 // can read it against real entry provenance.
 var cloneUnreadModifiers = []string{
-	"AddTriggers", "AddStaticAbilities", "AddAbilities", "AddSVars",
+	"AddTriggers", "AddAbilities", "AddSVars",
 	"SetCreatureTypes", "RemoveSubTypes", "NonLegendary", "AttachedTo",
 	"CopyFromChosenName", "CloneZone", "FaceDown", "KeepFacedown",
 	"IntoPlayTapped",

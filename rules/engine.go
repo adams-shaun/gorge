@@ -308,6 +308,15 @@ type Engine struct {
 	activeEpoch   int
 	activeVersion int
 	activeDepth   int
+	// goadProbe is the static-goad derivation's re-entry guard (staticgoad1):
+	// staticallyGoaded matches each candidate's Affected$ spec through
+	// matchesSpec, and a spec that itself consults the IsGoaded predicate
+	// would derive the set again — an infinite walk. While the counter is
+	// above zero the IsGoaded binding in matchesSpec stands down and the
+	// predicate answers the event-backed half alone, so a (hypothetical)
+	// IsGoaded-conditioned goad static degrades instead of looping. Never
+	// cloned (clone.go copies none of the derivation caches).
+	goadProbe int
 	// renames is the layer-3 rename table (setname.go) the effects tier's
 	// name filters read through SpecContext.EffectiveNames. It is refreshed
 	// after each emitted event, under active()'s own (epoch, version) key,

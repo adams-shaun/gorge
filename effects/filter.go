@@ -140,16 +140,6 @@ var predicates = map[string]predFn{
 	"IsMonstrous": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.Monstrous
 	},
-	// IsGoaded is CR 701.38's goaded condition (Hot Pursuit's
-	// "GainControl | AllValid$ Creature.IsGoaded,Creature.IsSuspected").
-	// It reads the event-backed goad list ONLY: a statically goaded creature
-	// (a Goad$ True continuous static, the Shiny Impetus shape) is invisible
-	// here -- open issue agent-20260919T203859Z-269892c3. Expired
-	// relationships are pruned by the same folds that prune the list
-	// (pruneGoads / expireTurnGoads), so the predicate reads live state.
-	"IsGoaded": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
-		return len(o.Goads) > 0
-	},
 	"kicked": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.CastFlags&state.FlagKicked != 0
 	},
@@ -1751,6 +1741,13 @@ func nonPredicate(p string) (kind wordKind, key string, ok bool) {
 // whether a word is recognised. An unrecognised word is "the engine does not
 // know", never "true" -- that is the fail-closed contract.
 func positiveRecognised(p string) bool {
+	// IsGoaded is evaluated by matchPositive against SpecContext (the map's
+	// legacy predFn signature carries no SpecContext), so it is listed here
+	// like IsRemembered/EffectSource to keep the matcher and the
+	// UnknownPredicates census in agreement.
+	if p == "IsGoaded" {
+		return true
+	}
 	if p == "IsRemembered" || p == "EffectSource" || p == "token$DifferentCardNames" || strings.HasPrefix(p, "greatestPower") {
 		// EffectSource is matched by matchPositive against SpecContext.Source;
 		// listing it here keeps the matcher and the UnknownPredicates census
@@ -1850,6 +1847,46 @@ func filterAlternatives(spec string) iter.Seq[string] {
 // split, task castprov1) must split alternatives EXACTLY as the filter does,
 // so the two cannot disagree about where a comma is a boundary.
 func FilterAlternatives(spec string) iter.Seq[string] { return filterAlternatives(spec) }
+
+// SpecReadsKeywords reports whether the spec consults the walk's derived
+// KEYWORD list when a caller binds SpecContext.ExtraKeywords -- i.e. whether
+// applying another layer-6 effect could change what the spec matches (the
+// CR 613.8 dependency test). Exactly two shapes read it: a
+// `with<Keyword>`/`without<Keyword>` predicate (keywordPredicates, matched
+// by the same exact token lookup the evaluator uses) and the Affinity base,
+// whose context-aware match reads ExtraKeywords directly. rules' layer walk
+// (cli-20260923T060000Z-layers-dep613) uses this to detect CR 613.6
+// dependencies among layer-6 effects without paying for a full spec match
+// per candidate pair; a spec that reads no keyword can never gain or lose
+// its match to a keyword grant, so it always keeps timestamp order.
+func SpecReadsKeywords(spec string) bool {
+	// Fast path: every keyword predicate spells out `with`, and the Affinity
+	// base carries `ffinity` (case-insensitive shapes are capitalised in
+	// practice, so the lowercase probe stays cheap); anything else is a
+	// single reject on the hot walk.
+	if !strings.Contains(spec, "with") && !strings.Contains(spec, "ffinity") {
+		return false
+	}
+	for alt := range filterAlternatives(spec) {
+		alt = strings.TrimSpace(alt)
+		if alt == "" {
+			continue
+		}
+		base, rest, _ := strings.Cut(alt, ".")
+		if strings.EqualFold(base, "Affinity") {
+			return true
+		}
+		for p := range strings.SplitSeq(rest, "+") {
+			if p == "" {
+				continue
+			}
+			if _, ok := keywordPredicates[p]; ok {
+				return true
+			}
+		}
+	}
+	return false
+}
 
 // StripPredicateToken removes the EXACT predicate token from ONE filter
 // alternative's "+" chain, returning the stripped alternative and whether
@@ -2359,6 +2396,25 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		// the MustAttack requirement matcher); with no source bound it
 		// fails closed, exactly as the unknown word did.
 		return sc.Source != 0 && o.ID == sc.Source, true
+	}
+	if p == "IsGoaded" {
+		// CR 701.38's goaded condition (Hot Pursuit's
+		// "GainControl | AllValid$ Creature.IsGoaded,Creature.IsSuspected",
+		// Vengeful Ancestor's ValidCard$ trigger, Bothersome Quasit's
+		// CantBlock static). Two bindings UNION, the same shape IsRemembered
+		// keeps: the event-backed relationship list o.Goads (expired
+		// relationships are pruned by the same folds that prune the list --
+		// pruneGoads / expireTurnGoads), and SpecContext.StaticGoads -- the
+		// live Goad$ True static route (a printed Shiny Impetus static and an
+		// AddStaticAbilities$/StaticAbilities$ granted one alike) that the
+		// engine's rules tier derives on demand and the caller binds. A
+		// context with no binding answers the event-backed half only, exactly
+		// the pre-staticgoad1 read; a bound context never needs a rules
+		// pointer for it (immutable data, the DerivedTypes seam).
+		if len(o.Goads) > 0 {
+			return true, true
+		}
+		return sc.StaticGoads[o.ID], true
 	}
 	if p == "IsRemembered" {
 		// Forge's IsRemembered (CardProperty "IsRemembered" ->
@@ -3210,6 +3266,16 @@ type SpecContext struct {
 	// caller with the layer walk in hand can gate on a granted keyword
 	// (kw:Flanking's blocker check, Cavalry Master's `withFlanking` lord).
 	// nil keeps the object-alone read (printed face plus counters).
+	//
+	// StaticGoads is the per-board complement: the set of battlefield ids a
+	// live Goad$ True static currently goads (printed S: statics and
+	// AddStaticAbilities$/StaticAbilities$ granted ones alike), derived by
+	// the engine's rules tier and bound by the caller that holds it. The
+	// IsGoaded predicate unions it with the event-backed o.Goads list; a nil
+	// map keeps the object-alone read (the same no-binding convention
+	// Remembered keeps). Immutable data bound per evaluation, never a
+	// callable: the same escape-analysis rationale as EffectiveNames.
+	StaticGoads   map[state.ObjID]bool
 	ExtraKeywords []string
 	// TargetableObjects is the rules tier's immutable snapshot of objects this
 	// triggered spell can currently target under full rules legality.
