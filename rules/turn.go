@@ -1034,6 +1034,24 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		e.handleStation(e.stationing, chosen)
 		return
 	}
+	if e.choosing == chooseTokenReplace {
+		// The chosen-copy CreateToken election (poseChosenTokenReplacement):
+		// dispatch it before the mid-resolution resume arm below. The election
+		// can be posed inside the CR 616.1 answer that was applying its own
+		// order competition (pending nil, the competition's suspension record
+		// still on e.resume): that record is the competition's, remembered on
+		// the election's own state, and tokenReplAnswer's tail resumes it once
+		// the plan has settled -- the resume arm here would instead consume it
+		// with the election's answer as a bogus continuation and drop the
+		// election unanswered.
+		e.choosing = chooseNone
+		if rp := e.tokenReplAnswer(chosen); rp != nil && e.pending == nil &&
+			len(e.replChoices) == 0 && e.resume == rp {
+			e.resume = nil
+			e.resumeResolution(rp, nil)
+		}
+		return
+	}
 	if e.choosing == chooseETBEntry {
 		// The entry-boundary ask was posed from inside emit (replacement.go's
 		// applyETBChoiceReplacement), so Engine.Ask parked whatever resolution
@@ -1229,7 +1247,11 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// answer either rewrites the parked plan to copies of the chosen
 		// creature or skips the match (a decline), and the flow then runs the
 		// plan's remaining replacement matches before the mints are emitted.
-		e.tokenReplAnswer(chosen)
+		if rp := e.tokenReplAnswer(chosen); rp != nil && e.pending == nil &&
+			len(e.replChoices) == 0 && e.resume == rp {
+			e.resume = nil
+			e.resumeResolution(rp, nil)
+		}
 	case chooseOpening:
 		e.handleOpening(d, in)
 	case chooseSuspendCast:

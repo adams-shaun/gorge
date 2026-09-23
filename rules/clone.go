@@ -135,6 +135,17 @@ func (e *Engine) Clone() *Engine {
 		renameEpoch:   e.renameEpoch,
 		renameVersion: e.renameVersion,
 		setNameInPool: e.setNameInPool,
+		// layer4types.go's layer-4 derived-type table and its genesis-time
+		// gate, carried with its (epoch, version) key for the same reason: the
+		// clone's board is identical at the clone boundary, and a fresh slice
+		// (never the original's backing array) keeps the two engines' next
+		// refreshes from writing over each other, so a clone's type filters
+		// read the CLONE's board once the two diverge.
+		layer4Types:  append([]effects.ObjectTypes(nil), e.layer4Types...),
+		typesEpoch:   e.typesEpoch,
+		typesVersion: e.typesVersion,
+		typesObjs:    e.typesObjs,
+		layer4InPool: e.layer4InPool,
 	}
 	if e.etbMove != nil {
 		ev := *e.etbMove

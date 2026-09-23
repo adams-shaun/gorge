@@ -338,6 +338,11 @@ func (e *Engine) specCtxSVars(source state.ObjID, you state.PlayerID, svars map[
 		// call here breaks this constructor's inlining and heap-allocates the
 		// Resolve closure on every hot-path construction.
 		EffectiveNames: e.renames,
+		// layer4types.go's layer-4 derived type table. The same field-read
+		// discipline as EffectiveNames above: it makes the ordinary filter
+		// grammar (target offer, cost site, Count$Valid, CantTarget) see a
+		// type a continuous effect granted.
+		DerivedTypes: e.layer4Types,
 		Resolve: func(name string) (int32, bool) {
 			o := e.G.Obj(source)
 			if o == nil {

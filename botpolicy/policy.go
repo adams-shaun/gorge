@@ -517,6 +517,20 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			break
 		}
 		switch d.Options[0].Kind {
+		case "protector":
+			// CR 310.10 protector. The protector is the opponent the battle
+			// will be attacked by/for, so prefer the opponent closest to
+			// losing; ties retain the offered (seat) order, making the choice
+			// deterministic. Board.Life carries every player's life (both
+			// adapters fill it), so this reads the same totals whichever host
+			// asks.
+			best := 0
+			for i := 1; i < len(d.Options); i++ {
+				if b.Life[d.Options[i].Player] < b.Life[d.Options[best].Player] {
+					best = i
+				}
+			}
+			in.Choices = []int{d.Options[best].Index}
 		case "vote_card":
 			// A card ballot is a political vote: remove the opponent's most
 			// valuable offered permanent, not merely the first one. Council's
