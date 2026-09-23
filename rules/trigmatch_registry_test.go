@@ -144,6 +144,14 @@ var addedAfterTheSplit = []string{
 	// trig:Untaps (Key to the City): it matches the existing events.Untap
 	// event although the old switch had no such mode.
 	"Untaps",
+	// task scrybottom: "Whenever you choose to put one or more cards on the
+	// bottom of your library while scrying, ..." (CR 701.18; The Temporal
+	// Anchor, the corpus's one `ToBottom$ True` carrier at the pin -- 20
+	// files carry `T:Mode$ Scry`). It matches the events.Scry marker Kind
+	// appended for it, which rules' handleArrange emits only once the
+	// KArrange answer is known (the count actually put on the bottom), so
+	// no pre-split switch arm could have dispatched it.
+	"Scry",
 }
 
 func allRegisteredModeNames() []string {
