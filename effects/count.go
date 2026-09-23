@@ -700,7 +700,16 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 		"TriggeredNewCardLKICopy",
 		"TriggeredAttacker", "TriggeredAttackerLKICopy",
 		"TriggeredTargetLKICopy", "DelayTriggerRemembered",
-		"DelayTriggerRememberedLKI", "RememberedLKI":
+		"DelayTriggerRememberedLKI", "TriggerRemembered", "RememberedLKI":
+		// TriggerRemembered (task triggerremembered1) is Forge's name for the
+		// trigger's own RememberObjects$ capture, the same set this engine
+		// threads through Ctx.Remembered at resolution -- the members the
+		// corpus writes (Amount/CardPower/CardToughness/CardManaCost/
+		// CardManaCostLKI/CardCounters.*/CardTypes) then read through the one
+		// property switch below. Every carrier is an ImmediateTrigger chain
+		// whose instance Ctx.Remembered is exactly the introspected set
+		// (Loamcrafter Faun's discarded lands, Cemetery Desecrator's exiled
+		// card), so the ref binds the same slot as TriggeredCard's.
 		return c.Remembered, true
 	case "TriggeredExploited":
 		// The exploited creature (CR 702.58c's "that creature"): the Exploit
