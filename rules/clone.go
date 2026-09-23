@@ -232,6 +232,7 @@ func (e *Engine) Clone() *Engine {
 		c.continuous = make([]ContinuousEffect, len(e.continuous))
 		for i, ce := range e.continuous {
 			ce.AddKeywords = append([]string(nil), ce.AddKeywords...)
+			ce.RemoveKeywords = append([]string(nil), ce.RemoveKeywords...)
 			ce.AddTypes = append([]string(nil), ce.AddTypes...)
 			if ce.RestrictParams != nil {
 				m := make(map[string]string, len(ce.RestrictParams))

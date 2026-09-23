@@ -981,27 +981,66 @@ func targetZones(sa *cards.SA) []state.Zone {
 		zones = appendUniqueZone(zones, state.ZStack)
 	}
 	if len(zones) == 0 {
-		// An Origin$ that names exactly one concrete zone is a zone
-		// declaration in its own right and OUTRANKS the ValidTgts$
-		// inference below: `Origin$ Graveyard | ValidTgts$ Instant.YouCtrl,
-		// Sorcery.YouCtrl` (Volcanic Vision) names instant/sorcery CARDS in
-		// the graveyard, and inferring the stack from the base token would
-		// replace the graveyard route with a stack one and make the fetch
-		// inert (the finding this closes). With no explicit TgtZone$ and no
-		// Origin$ declaration, a ValidTgts$ whose own token names a stack
-		// object kind (for example, `ValidTgts$ Spell`) targets the stack;
-		// the TgtZone$ guard keeps an explicit `TgtZone$ Graveyard |
-		// ValidTgts$ Instant` (a card in a named zone, not a stack object)
-		// off this route.
-		if z, ok := originImpliedTargetZone(sa); ok {
-			zones = []state.Zone{z}
-		} else if sa.Params["TgtZone"] == "" && targetsStackObjects(sa.Params["ValidTgts"]) {
-			zones = []state.Zone{state.ZStack}
-		} else {
-			zones = []state.Zone{state.ZBattlefield}
+		// The graveyard-enchant Aura family (Animate Dead, Dance of the Dead;
+		// Spellweaver Volute for instants) casts its kw:Enchant attach spell
+		// (`SP$ Attach | ValidTgts$ Creature.inZoneGraveyard`, no TgtZone$, API
+		// Attach -- not ChangeZone, so the Origin$ route below cannot fire) and
+		// the default battlefield census offered no candidate and withheld the
+		// cast entirely. The inZone<X> words in the comma-split ValidTgts$
+		// alternatives name the census zones directly. Deliberately narrow, the
+		// same shape as the fb-20260916 Origin$ precedent below: Attach-only,
+		// inZone-words-only -- every other API keeps its existing zone
+		// resolution, so the ~37 corpus specs carrying non-battlefield inZone<X>
+		// outside this API are untouched.
+		if sa.API == "Attach" {
+			if zs, ok := attachValidTgtsZones(sa.Params["ValidTgts"]); ok {
+				zones = zs
+			}
+		}
+		if len(zones) == 0 {
+			// An Origin$ that names exactly one concrete zone is a zone
+			// declaration in its own right and OUTRANKS the ValidTgts$
+			// inference below: `Origin$ Graveyard | ValidTgts$ Instant.YouCtrl,
+			// Sorcery.YouCtrl` (Volcanic Vision) names instant/sorcery CARDS in
+			// the graveyard, and inferring the stack from the base token would
+			// replace the graveyard route with a stack one and make the fetch
+			// inert (the finding this closes). With no explicit TgtZone$ and no
+			// Origin$ declaration, a ValidTgts$ whose own token names a stack
+			// object kind (for example, `ValidTgts$ Spell`) targets the stack;
+			// the TgtZone$ guard keeps an explicit `TgtZone$ Graveyard |
+			// ValidTgts$ Instant` (a card in a named zone, not a stack object)
+			// off this route.
+			if z, ok := originImpliedTargetZone(sa); ok {
+				zones = []state.Zone{z}
+			} else if sa.Params["TgtZone"] == "" && targetsStackObjects(sa.Params["ValidTgts"]) {
+				zones = []state.Zone{state.ZStack}
+			} else {
+				zones = []state.Zone{state.ZBattlefield}
+			}
 		}
 	}
 	return zones
+}
+
+// attachValidTgtsZones is targetZones' Attach-scoped zone inference: the
+// zones the comma-split ValidTgts$ alternatives' inZone<X> words name (the
+// same word classifier the filter tier's wordInZone uses). It reports false
+// when no alternative names a zone, leaving targetZones' existing fallbacks
+// (stack kinds, then the battlefield default) in charge.
+func attachValidTgtsZones(spec string) ([]state.Zone, bool) {
+	var zones []state.Zone
+	for _, alt := range strings.Split(spec, ",") {
+		for _, word := range strings.Split(alt, ".") {
+			z, has := strings.CutPrefix(strings.TrimSpace(word), "inZone")
+			if !has {
+				continue
+			}
+			if zn, ok := effects.ParseZoneWord(z); ok {
+				zones = appendUniqueZone(zones, zn)
+			}
+		}
+	}
+	return zones, len(zones) > 0
 }
 
 // originImpliedTargetZone reports the implicit target zone for a ChangeZone
