@@ -1380,6 +1380,26 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 			cc.VotePublishedSet = true
 		}
 		Resolve(h, &cc, sub)
+		// A loop body runs on a Ctx copy. Its first FlipCoin may allocate
+		// the shared memory lazily, so retain that pointer on the outer Ctx
+		// before copying the next iteration or returning through a suspension.
+		// Mana Clash's post-loop FlippedTails reader must see every player's
+		// FlipClash result, not a fresh per-iteration list.
+		if c.FlipMemory == nil && cc.FlipMemory != nil {
+			c.FlipMemory = cc.FlipMemory
+			// Resolve published cc.FlipMemory (nil on entry) for the
+			// iteration and its defer restored that nil on the way out, so
+			// retaining the pointer on the outer Ctx is not enough: the
+			// engine's published slot must be re-pointed too. Without this,
+			// an ask posed AFTER the loop -- the enclosing RepeatEach's own
+			// SubAbility$ -- captures nil onto its resume point, and the
+			// fresh Ctx the answer rebuilds loses every flip the loop
+			// recorded before a later Defined$ FlippedHeads/FlippedTails
+			// reader runs.
+			if fh, ok := h.(flipMemoryHost); ok {
+				fh.SetResolutionFlipMemory(c.FlipMemory)
+			}
+		}
 		if h.Suspended() {
 			h.SuspendRepeat(RepeatSuspension{
 				RepeatCursor: RepeatCursor{SA: sa, Subjects: copyTargets(subjects), Next: i + 1},

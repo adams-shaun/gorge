@@ -1353,6 +1353,15 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		// passes a ctx whose Remembered is already the capture-excluded set, so
 		// this head needs no special case of its own. Five corpus
 		// ImmediateTrigger lines and 38 files elsewhere carry it.
+		//
+		// A DB$ FlipCoin RememberNumber$ publication takes precedence: Forge's
+		// FlipCoinEffect writes the flip's rememberedNumber (Yusri's "If you
+		// won five flips this way" gates Count$RememberedNumber), and the flip
+		// resolves in the SAME chain the reader runs, so the remembered number
+		// is the flip count, not the remembered-object count.
+		if c.FlipMemory != nil && c.FlipMemory.RememberNumberKind != "" {
+			return c.FlipMemory.RememberNumber, true
+		}
 		return int32(len(c.Remembered)), true
 	case "RememberedSize":
 		// Forge's RememberedSize is the HOST CARD's remembered list -- the

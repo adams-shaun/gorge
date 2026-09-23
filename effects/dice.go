@@ -600,6 +600,19 @@ func runtimePublished(c *Ctx, name string) (int32, bool) {
 	if c.VotePublishedSet && name == "Votes" {
 		return c.VotePublished, true
 	}
+	// A DB$ FlipCoin's per-flip Wins/Losses SVars (Forge's FlipCoinEffect: 1
+	// to the side the current flip landed on, 0 to the other), read back by a
+	// per-flip WinSubAbility$ (Goblin Traprunner's TokenAmount$ Wins, Crazed
+	// Firecat's CounterNum$ Wins, Mirror March's NumCopies$ Wins, Mutalith's
+	// NumCards$ Wins) and Yusri's SVar$Losses body.
+	if c.FlipMemory != nil && c.FlipMemory.Set {
+		switch name {
+		case "Wins":
+			return c.FlipMemory.CurWin, true
+		case "Losses":
+			return c.FlipMemory.CurLoss, true
+		}
+	}
 	if c.LastRollName != "" && c.LastRollName == name {
 		return c.LastRoll, true
 	}
