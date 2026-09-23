@@ -143,3 +143,43 @@ statics) — the golden holds byte-identically. Merge commit `88bcca38`, parents
 
 None new in round 3 — integration only; the engine changes merged in from main are the cascade
 branch's own reviewed work. See round-1/2 notes above for the earlier state.
+
+## Round 4 — current main integration
+
+The worktree was clean at entry; the earlier recorded integration was clean, but `main` had
+advanced beyond that merge. Integrated the then-current `main` with `git merge main --no-edit`.
+The merge reported content conflicts in this report and `internal/testutil/agentsdoc_test.go`;
+`AGENTS.md` and the rules changes auto-merged.
+
+- `internal/testutil/agentsdoc_test.go`: both versions set the ratchet to 38 but had different
+  history comments. Kept the measured value 38 and updated the concise comment to include this
+  branch's `(attackprop1)` closure and main's `(maxpower1)` closure; all earlier closures remain
+  represented by the merged `AGENTS.md`.
+- `.ds4/report-mrg1.md`: both reports described different merge histories. Kept this worktree's
+  existing report and added this round's record rather than replacing its history.
+
+`AGENTS.md` automatically merged the branch's attack-prop row deletion with main's newer
+(maxpower1) deletion. No engine-code conflict required manual resolution.
+
+## Round-4 commands and verification
+
+
+The merged `AGENTS.md` table has 38 lines including the header, i.e. **37 data rows** as counted
+by `approximationRows`; the conflicted constant had been 38 and was therefore lowered to 37.
+The five closed markers `(attackprop1)`, `(maxpower1)`, `(cascade1)`, `(tokrepl1)` and the
+Replicate row are absent. `.cards` was present (`cards.lock`, `cardsfolder`, IR files and token
+scripts), so the rules checks did not corpus-skip.
+
+```text
+python3 row count → table rows including header: 38; data rows: 37
+python3 marker checks → attackprop1 False; maxpower1 False; cascade1 False; tokrepl1 False; Replicate False
+ls .cards | head -5 → cards.lock, cardsfolder, ir.gob.gz, ir.v4.gob.gz, tokenscripts
+
+go test ./internal/testutil -run 'TestKnownApproximation' -count=1
+ok   github.com/adams-shaun/gorge/internal/testutil  0.001s
+
+go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok   github.com/adams-shaun/gorge/rules  0.774s
+```
+
+No uncertainty remains in the resolved count: 37 is the data-row count used by the test helper.

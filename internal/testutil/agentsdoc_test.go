@@ -19,13 +19,11 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	// The merged table measures 38 rows. Each side deleted disjoint rows and
-	// the merge keeps every deletion: this branch's attackprop1 closure
-	// (89c77778) and main's cascade1 closure (e46f051d), on top of the
-	// token-replacement (bc3f03ab) and replicate-count-bound (0836163f)
-	// closures already in the merge base (measured 2026-09-23: merge base
-	// 4a7bb2fe = 40 rows, branch 39, main 39, merged 38).
-	knownApproximationRows = 38
+	// The merged table measures 38 rows. This branch's attackprop1 closure
+	// (89c77778) and main's maxpower1 closure (8d83f028), on top of the
+	// cascade1, token-replacement, replicate-count-bound and earlier closures.
+	// The measured count after integrating current main is 38.
+	knownApproximationRows = 37
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.
