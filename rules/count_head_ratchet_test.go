@@ -50,10 +50,6 @@ var knownUnmodelledCountHeads = map[string][]string{
 	// per-opponent combat-damage extreme the damage-tally machinery does not
 	// expose yet.
 	"Count$MaxOppDamageThisTurn": {"Spinerock Knoll"},
-	// Forge's Count$YourStartingLife (Righteous Valkyrie's "X = your
-	// starting life total + 7" drain): the Config starting life is not
-	// plumbed through the Host yet.
-	"Count$YourStartingLife/Plus.7": {"Righteous Valkyrie"},
 	// Forge's Count$ResolvedThisTurn (Nissa, Resurgent Animist's and Tannuk's
 	// landfall/floodgates): a per-ability-resolution tally with no event
 	// trail yet.
