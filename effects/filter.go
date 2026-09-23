@@ -2644,7 +2644,13 @@ func hasType(o *state.Object, t string) bool {
 	// (state.Object.BestowedAttached); the layer walk sees the same switch
 	// through rules/layers.go's bestowedTypeSwitch, and hasTypeCtx inherits
 	// this gate through the hasType call below.
-	if o.BestowedAttached() {
+	//
+	// CR 702.114c: a card cast with its bestow ability is an Aura SPELL, not a
+	// creature spell -- the same switch one zone earlier, derived from the
+	// stack zone and the pay-time FlagBestowed provenance
+	// (state.Object.BestowedAuraSpell). This is what keeps a bestowed cast
+	// from firing "whenever you cast a creature spell" triggers.
+	if o.BestowedAttached() || o.BestowedAuraSpell() {
 		if strings.EqualFold(t, "Aura") {
 			return true
 		}

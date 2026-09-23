@@ -155,6 +155,9 @@ var baseBuckets = map[string]bucket{
 	// every bSA entry covers.
 	"a": bSA, "targetSA": bSA, "SA": bSA, "Ability": bSA, "With": bSA,
 	"head": bSA, "ma": bSA, "mana": bSA, "original": bSA, "pt.SA": bSA,
+	// spell.Ability is the stack object's resolved *cards.SA, checked before
+	// falling back to its printed face in TargetableObjects.
+	"spell.Ability": bSA,
 	// rsub is runPreventionShieldRider's rewritten copy of the
 	// PreventionSubAbility$ rider (a shallow copy of a fresh ResolveSVar
 	// parse, whose NumDmg$/Defined$ the shield application binds): a

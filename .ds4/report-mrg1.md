@@ -2,71 +2,60 @@
 
 ## Result
 
-Integrated current `main` (`4cdffbc1`) into `wt/cli-20260922T225142Z-0ab0cb60`.
-The reviewed `8d83f028` fix (`MaxTotalTargetPower$` offset bound + cross-mode
-Charm cap read) and main's new commits (land-type statics `0fbc2d10`, cascade
-closures `e46f051d`/`fd…`) are both retained. Two content conflicts:
+Merged `main` into `wt/cli-20260922T225142Z-e9128096`. The merge initially conflicted in `internal/testutil/agentsdoc_test.go`; resolved it, applied the table count matching the auto-merged `AGENTS.md`, and completed the merge. Added the missing `spell.Ability` census classification required by the requested post-merge ratchet.
 
-- `internal/testutil/agentsdoc_test.go` — the approximation-row ratchet constant.
-- `.ds4/report-mrg1.md` — a tracked per-merge report artifact (this file).
+## Entry state and conflict
 
-## Background: an earlier merge commit already existed
+Initial `git status` reported a clean tree on `wt/cli-20260922T225142Z-e9128096` at reviewed commit `6c86af9b`; no rebase or merge was in progress. Ran `git merge main`, which conflicted only in `internal/testutil/agentsdoc_test.go`. `AGENTS.md` and `effects/filter.go` auto-merged.
 
-`HEAD` was already `a4fe169d`, a merge of main **as of `4a7bb2fe`** into
-`8d83f028`, produced by a prior mrg1 run that the daemon set aside
-(`.ds4/status-merge-mrg1.cutoff.json`, history line "merge resolver mrg1 name
-was held by an already-finished run; set it aside, relaunching fresh"). The
-daemon's fresh integration attempt rebased onto current `main`, conflicted on
-`8d83f028`, then aborted (`git reflog`: `rebase (abort): returning to …`). So
-the branch still did NOT contain main's newer commits; this run merged current
-`main` (`4cdffbc1`) to complete the integration.
+The conflict was over `knownApproximationRows` and its explanatory comment. The branch had removed the `CanBeTargetedByTriggeredSpellAbility` approximation row; main had independently updated/deleted approximation rows. I kept both sides' table changes and measured the auto-merged table using the same `| ` row parsing and header removal as the test: **35 data rows**. Set the constant to 35 and replaced both stale comments with a concise note reflecting that merged measurement. `knownOversizeRows` remains unchanged.
 
-## Conflict 1 — `internal/testutil/agentsdoc_test.go`
+No code conflict occurred in `effects/filter.go`; its main and branch changes were auto-merged. The merge also brought main's changes to `AGENTS.md`, `effects/count.go`, `rules/attack_cost.go`, `rules/bestow.go`, `rules/cast.go`, `rules/count_head_ratchet_test.go`, `rules/layers.go`, `rules/legal.go`, `state/object.go`, and associated tests. These were merge results, not hand-edited conflict resolutions.
 
-Both sides only differ in the explanatory comment above the constant; but the
-constant's value was wrong for this merge on BOTH sides.
+## Ratchet follow-up
 
-- **Branch side (HEAD):** the merged table measured **39** rows and documented
-  main's earlier closures plus this branch's `maxpower1` closure.
-- **Main side:** also **39** rows, documenting "this branch's cascade1 deletion
-  and main's token-replacement deletion".
-- **Measured truth after merging current main:** the merged `AGENTS.md` has
-  **38** data rows. Main's cascade work (`e46f051d`) deletes `(cascade1)`, and
-  this branch's reviewed fix deletes `(maxpower1)`; both deleted rows are
-  absent from the merged table. Each side's 39 counted only its own merge
-  (each side still carried the other side's row).
-
-Resolution: keep the branch's fuller closure-history comment, extend it to name
-main's `cascade1` deletion, and set `knownApproximationRows = 38` — the
-measured count. Verified with a row count over the merged `AGENTS.md`
-(`data rows: 38`) and
-`go test -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort' ./internal/testutil/` → `ok`.
-
-## Conflict 2 — `.ds4/report-mrg1.md`
-
-This file is a tracked merge-report artifact that collides on every branch
-(its on-main and on-branch versions document different tickets' merges;
-`git log main -- .ds4/report-mrg1.md` shows repeated `docs(merge)` commits).
-Resolved by replacing the conflicted content with this report for the current
-merge.
+The first requested post-merge rules ratchet run failed because the branch's new `rules/triggered_target_legality.go` reads `spell.Ability.Params`, and main's parameter-census rot guard had not classified that selector base. Added `spell.Ability` to `rules/paramcensus_test.go`'s `baseBuckets` as `bSA`, with a comment identifying it as the stack object's resolved `*cards.SA`. This is the type-justified census entry required by the new rules-side code.
 
 ## Commands and output
 
-- `git status` — clean, no operation in progress; HEAD `a4fe169d`, main `4cdffbc1`.
-- `git reflog -15` — showed the prior merge commit, then the fresh run's
-  `rebase (start): checkout main` → `rebase (abort)` → `reset: moving to HEAD`,
-  i.e. the fresh integration was aborted and never landed.
-- `git merge main` — `CONFLICT (content): Merge conflict in .ds4/report-mrg1.md`
-  and `internal/testutil/agentsdoc_test.go`; other changes auto-merged.
-- Row count of merged `AGENTS.md` (python3 over the `## Known approximations`
-  section) — `merged AGENTS.md data rows: 38`.
-- `gofmt -l internal/testutil/agentsdoc_test.go` — no output (clean).
-- `go test -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort' ./internal/testutil/` —
-  `ok github.com/adams-shaun/gorge/internal/testutil 0.017s`.
+```text
+git status --short --branch && git status
+## wt/cli-20260922T225142Z-e9128096
+On branch wt/cli-20260922T225142Z-e9128096
+nothing to commit, working tree clean
+
+git merge main
+Auto-merging AGENTS.md
+Auto-merging effects/filter.go
+Auto-merging internal/testutil/agentsdoc_test.go
+CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go
+Automatic merge failed; fix conflicts and then commit the result.
+
+# Measured merged Known approximations data rows
+Known approximations data rows: 35
+
+# .cards check
+lrwxrwxrwx ... .cards -> /home/sadams/projects/gorge/.cards
+
+go test ./internal/testutil -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort'
+ok   github.com/adams-shaun/gorge/internal/testutil  0.002s
+
+go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+--- FAIL: TestEveryRepoDeckParamsAreRead (0.12s)
+    paramcensus_test.go:2743: paramcensus rot guard: 1 findings:
+        paramcensus: 1 unclassified Params reads (the census cannot rot):
+        triggered_target_legality.go:20:24: unclassified Params base "spell.Ability" -- add it to baseBuckets with a type justification
+FAIL
+FAIL    github.com/adams-shaun/gorge/rules  0.759s
+FAIL
+
+# After adding the verified spell.Ability -> bSA census classification:
+go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok   github.com/adams-shaun/gorge/rules  0.755s
+```
+
+The failing first ratchet run is recorded above; the same ratchet command passed after the census classification. `.cards` was present as the shared-corpus symlink, so the rules check was not a vacuous corpus-skipped run.
 
 ## Issues
 
-No new unfixed issue was found while resolving the merge; the integration
-introduced no engine-code change. The `knownApproximationRows` comment drift
-between branches is cosmetic noise from the tracked per-merge report artifact;
-no action needed.
+No unresolved merge issue. The initial ratchet failure was resolved by adding the missing, type-justified census bucket; the separate `UnlessCost$` grammar remainder remains tracked by the related ticket cited in the issue brief.

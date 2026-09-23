@@ -1,6 +1,8 @@
 package rules
 
 import (
+	"strings"
+
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/effects"
 )
@@ -27,21 +29,32 @@ import (
 // bestowCost resolves the Bestow keyword's alternative cost (CR 702.114a,
 // Forge's K:Bestow:<cost>), the replicateCost shape: the cost is paid
 // INSTEAD of the printed mana cost. A cost carrying a token ParseCost
-// cannot model is withheld rather than charged as degraded generic mana --
-// and so is one carrying {X} (nyxborn_hydra's "X G G"): the announced-X
-// machinery exists, but no bestowed-X cast is proven end to end, so the
-// offer stays withheld per the replicate fail-closed convention. The three
-// exotic carriers (nyxborn_hydra, detectives_phoenix, hypnotic_siren --
-// whose ":GainControl" suffix is Forge metadata for its unregistered
-// GainControl static, not cost text) therefore never offer the bestowed
-// cast.
+// cannot model is withheld rather than charged as degraded generic mana (the
+// replicate fail-closed convention).
+//
+// Two shapes are priced rather than withheld:
+//
+//   - An {X} cost (nyxborn_hydra's "X G G") announces X through the ordinary
+//     cast-time X machinery, exactly as a printed {X} mana cost does
+//     (CR 601.2b): bestowCost no longer withholds on Cost.X.
+//   - CollectEvidence<N> (detectives_phoenix's "R CollectEvidence<6>") is a
+//     real modelled cost part (rules/mana.go's evidenceCost), settled by the
+//     shared CollectEvidence payment stage, so ParseCost no longer reports it
+//     as Unknown.
+//
+// The keyword parameter is occasionally followed by Forge's trailing fields;
+// only the first colon-free field is the cost (hypnotic_siren's
+// "5 U U:GainControl", where ":GainControl" is Forge metadata for the card's
+// own S:Mode$ Continuous GainControl$ static, not cost text). This is the
+// same colon cut mutateCost practices.
 func bestowCost(f *cards.Face) (Cost, bool) {
 	s, ok := f.KeywordParam("Bestow")
 	if !ok {
 		return Cost{}, false
 	}
-	c := ParseCost(s)
-	if len(c.Unknown) > 0 || c.X > 0 {
+	cost, _, _ := strings.Cut(s, ":")
+	c := ParseCost(strings.TrimSpace(cost))
+	if len(c.Unknown) > 0 {
 		return Cost{}, false
 	}
 	return c, true
