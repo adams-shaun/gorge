@@ -101,7 +101,7 @@ func TestMustBlockAlternateAffordableRequirement(t *testing.T) {
 	flying := onBoardCard(t, e, 1, card(t, "Name:Flying Attack\nTypes:Creature Bird\nPT:2/2\nK:Flying\nOracle:x\n"))
 	attackSeat0(t, e, ground, flying)
 	floatMana(t, e, 0, "RR")
-	if e.G.Obj(first).Zone != state.ZBattlefield || e.G.Obj(second).Zone != state.ZBattlefield || e.blockManaBudget(0) != 2 || e.blockPairCharge(first, ground) != 2 || e.blockPairCharge(second, flying) != 2 || e.canBlock(first, flying) {
+	if e.G.Obj(first).Zone != state.ZBattlefield || e.G.Obj(second).Zone != state.ZBattlefield || e.blockManaBudget(0) != 2 || e.blockPairCharge(first, ground).mana != 2 || e.blockPairCharge(second, flying).mana != 2 || e.canBlock(first, flying) {
 		t.Fatal("precondition: two distinct, individually affordable {2} duties and only {2} total")
 	}
 	d := askBlockersFresh(t, e)

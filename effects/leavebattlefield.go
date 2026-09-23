@@ -81,7 +81,17 @@ func registerAnimateStaticAbilities(h Host, c *Ctx, id state.ObjID, names []stri
 				Text: "Animate staticAbilities$ " + name + " has no static body; ignored"})
 			continue
 		}
-		if mode != "CantSacrifice" || !CantSacrificeRestrictionParamsReadable(params) {
+		if mode != "CantSacrifice" && mode != "CantBlockUnless" {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "Animate staticAbilities$ " + name + " mode " + mode + " is not implemented; ignored"})
+			continue
+		}
+		if mode == "CantSacrifice" && !CantSacrificeRestrictionParamsReadable(params) {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "Animate staticAbilities$ " + name + " mode " + mode + " is not implemented; ignored"})
+			continue
+		}
+		if mode == "CantBlockUnless" && !CantBlockUnlessRestrictionParamsReadable(params) {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "Animate staticAbilities$ " + name + " mode " + mode + " is not implemented; ignored"})
 			continue
@@ -94,6 +104,11 @@ func registerAnimateStaticAbilities(h Host, c *Ctx, id state.ObjID, names []stri
 			UntilEOT: !permanent && !IsNextTurnDuration(dur), Duration: dur, Permanent: permanent,
 			ExileOnMoved: exileOn, Remembered: remembered,
 			Restriction: mode, RestrictParams: params,
+			// The granting face's SVar table: a delivered CantBlockUnless body's
+			// Cost$ may name an SVar on it (Whipgrass Entangler's
+			// WhipgrassClericNum), which rules' block-prop consultation resolves
+			// exactly as a printed static's face table is resolved.
+			RestrictSVars: c.SVars,
 		})
 	}
 }

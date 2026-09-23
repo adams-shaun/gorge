@@ -392,21 +392,63 @@ func blockSaved(a Creature, picks []int, d *decision.Decision, b Board) int32 {
 	return absorbed
 }
 
-// legalBlockChoices drops any chosen (blocker, attacker) pair that would leave
-// its attacker's block count outside the CR 509.1a MinMaxBlocker bounds the
-// engine published on the offered options (Option.MinBlockers/MaxBlockers).
-// The per-pair option list cannot express a whole-declaration count
-// constraint, and the engine REJECTS an illegal count -- a rejected bot intent
-// crashes the match -- so every KBlockers policy routes its answer through
-// this one guard rather than each learning the restriction.
+// legalBlockChoices drops any chosen (blocker, attacker) pair that would
+// leave its attacker's block count outside the CR 509.1a MinMaxBlocker
+// bounds the engine published on the offered options
+// (Option.MinBlockers/MaxBlockers), and any pair whose block charge the
+// defender cannot pay (CR 509.1b's blocking costs, published on the option
+// as Value/mana against MaxSum, CostLife/life against the defender's life
+// total, and CostTaps/tap obligations). The per-pair option list cannot
+// express a whole-declaration constraint, and the engine REJECTS an illegal
+// count or an unpayable charge -- a rejected bot intent crashes the match --
+// so every KBlockers policy routes its answer through this one guard rather
+// than each learning the restriction.
 //
 // An attacker whose chosen count falls below Min has ALL its chosen blocks
 // dropped: 0 is always legal for Min$ (the attacker is simply unblocked), and
 // a partial team is not. A count above Max is trimmed to Max, keeping the
 // earliest-declared pairs (the engine reads declaration order for CR 510.1c
-// damage assignment). Output order is the input order, so the guard consumes
-// no randomness and never ranges a map into the result.
-func legalBlockChoices(d *decision.Decision, choices []int) []int {
+// damage assignment). A tap-costed option is dropped outright: the policy
+// sees only the obligation count, never the eligible-permanent pool the
+// engine's deterministic tap plan resolves, and leaving the attacker
+// unblocked is always legal (CR 509.1a -- blocking is never mandatory).
+// Output order is the input order, so the guard consumes no randomness and
+// never ranges a map into the result.
+func legalBlockChoices(b Board, d *decision.Decision, choices []int) []int {
+	if len(choices) == 0 {
+		return choices
+	}
+	// Affordability pre-filter (CR 509.1b), in input order: a pair whose
+	// charge would push the running mana over MaxSum or the running life
+	// over the defender's total is dropped, earliest kept -- the same
+	// earliest-kept convention the Max trim below uses. MaxSum == 0 means no
+	// mana budget was published (no mana-priced option was offered), so the
+	// mana term is skipped.
+	affordable := make([]int, 0, len(choices))
+	spentMana, spentLife := 0, int32(0)
+	defenderLife := b.Life[d.Player]
+	for _, ci := range choices {
+		if ci < 0 || ci >= len(d.Options) {
+			affordable = append(affordable, ci)
+			continue
+		}
+		o := &d.Options[ci]
+		if o.CostTaps > 0 {
+			continue
+		}
+		if d.MaxSum > 0 && spentMana+o.Value > d.MaxSum {
+			continue
+		}
+		if o.CostLife > 0 {
+			if spentLife+int32(o.CostLife) > defenderLife {
+				continue
+			}
+			spentLife += int32(o.CostLife)
+		}
+		spentMana += o.Value
+		affordable = append(affordable, ci)
+	}
+	choices = affordable
 	if len(choices) == 0 {
 		return choices
 	}

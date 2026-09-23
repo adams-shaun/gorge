@@ -19,12 +19,14 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	// The merged table measures 36 rows. Both sides deleted one row from the
-	// 38-row merge base, and the deletions are disjoint: this branch closed
-	// (bestow1) and main closed (attackprop1), so the merged AGENTS.md carries
-	// 38 - 2 = 36 data rows. Measured against the auto-merged table, not
-	// inherited from either conflicted comment (HEAD said 38, main said 37).
-	knownApproximationRows = 36
+	// The merged table measures 35 rows (measured against the auto-merged
+	// table, not inherited from either conflicted comment, which both said 36
+	// for their own pre-merge states). The merge base (main 827ca863) carried
+	// 37 rows; the deletions are two ADJACENT rows, which is why git conflicted:
+	// this branch closed the CantBlockUnless (blockprop1) row (6e77a1e8) and
+	// main's bestow ticket closed (bestow1) (0b9ae217), so the merged register
+	// keeps neither: 37 - 2 = 35.
+	knownApproximationRows = 35
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.
