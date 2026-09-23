@@ -4409,9 +4409,18 @@ func (e *Engine) entryETBChoice(ev events.Event, ordinal int) (etbChoice, bool) 
 			if kind == "copy" {
 				selector = r.With.Params["Choices"]
 			}
-			opts := e.etbOptions(you, o.ID, kind,
-				r.With.Params["ValidCards"], selector,
-				r.With.Params["Type"], r.With.Params["Exclude"], r.With.Params["ChooseFromList"])
+			var opts []decision.Option
+			if kind == "type" {
+				// The type ask is category-aware (task ct1): a Type$ Basic Land
+				// or Card or Planeswalker ranges over that category's real list,
+				// exactly the list the mid-resolution ChooseType ask builds
+				// (effects/type_choices.go), so the two asks cannot disagree.
+				opts = e.typeChoiceOptions(you, o.ID, r.With.Params)
+			} else {
+				opts = e.etbOptions(you, o.ID, kind,
+					r.With.Params["ValidCards"], selector,
+					r.With.Params["Type"], r.With.Params["Exclude"], r.With.Params["ChooseFromList"])
+			}
 			if kind == "copy" {
 				// ":Optional" on the keyword line is the "you MAY have it
 				// enter as a copy" half; an empty template list also needs
@@ -4541,9 +4550,14 @@ func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCar
 		}
 		return out
 	case "type":
-		// The shared creature-type enumeration (creatureTypeOptions); the
-		// comment there is the read.
-		return e.creatureTypeOptions(you)
+		// The shared, category-aware enumeration; a caller that reaches here
+		// with a non-creature category (a body that did not go through
+		// entryETBChoice's category dispatch) still gets the real list, never a
+		// creature-type list. This arm carries no ValidTypes$/InvalidTypes$
+		// (the positional slots above are ValidCards$/Exclude$, different
+		// params); the ETB dispatch passes the whole parameter map to
+		// typeChoiceOptions instead.
+		return e.typeChoiceOptions(you, card, map[string]string{"Type": typeCategory})
 	default: // "number"
 		out := make([]decision.Option, 0, 13)
 		for i := 0; i <= 12; i++ {
@@ -4643,12 +4657,44 @@ func (e *Engine) creatureTypeOptions(you state.PlayerID) []decision.Option {
 	return out
 }
 
+// typeChoiceOptions builds the option list for one ChooseType Type$ category
+// (task ct1), the ONE builder both the as-enters ask (entryETBChoice's "type"
+// dispatch) and etbOptions' "type" arm use. A creature (or absent) category
+// keeps the owner-scoped creatureTypeOptions; the context-scoped Shared
+// category reads the entering object's own exiled-with set; every other
+// enumerable category reads effects.TypeChoiceLabels' static list. A category
+// that yields no list (an unresolvable context, or one this build still
+// cannot name) falls back to the creature list so the ask is never emptied --
+// the totality rule every as-enters ask lives by.
+func (e *Engine) typeChoiceOptions(you state.PlayerID, source state.ObjID, params map[string]string) []decision.Option {
+	cat := strings.TrimSpace(params["Type"])
+	if cat == "" || strings.EqualFold(cat, "Creature") {
+		return e.creatureTypeOptions(you)
+	}
+	var labels []string
+	if strings.EqualFold(cat, "Shared") {
+		labels = effects.SharedTypeLabels(e.G, source)
+	} else {
+		labels = effects.TypeChoiceLabels(cat, params["ValidTypes"], params["InvalidTypes"])
+	}
+	if len(labels) == 0 {
+		return e.creatureTypeOptions(you)
+	}
+	out := make([]decision.Option, 0, len(labels))
+	for _, label := range labels {
+		out = append(out, decision.Option{Index: len(out), Kind: "type", Label: label})
+	}
+	return out
+}
+
 // TypeChoices implements effects.Host.TypeChoices (task ct1): the option list
-// a mid-resolution ChooseType ask offers its chooser — the SAME enumeration
-// the cast-time "type" arm builds, so the two lists can never disagree. A
-// category this build cannot enumerate yields nil; the asking effect never
-// asks for one (it records the loud Note and the deterministic fallback), so
-// nil is unreachable through the ask path.
+// a mid-resolution ChooseType ask offers its chooser. Only the creature
+// category reaches this Host method now -- the creature list is owner-scoped
+// and lives here, while effects/type_choices.go builds the non-creature
+// categories (and Shared/ CreatureInTargetedDeck from the resolving effect's
+// own context) directly. An absent or "Creature" category returns the shared
+// creatureTypeOptions; any other category yields nil, which the asking effect
+// no longer reaches (it answers those categories itself).
 func (e *Engine) TypeChoices(chooser state.PlayerID, category string) []decision.Option {
 	if category != "" && !strings.EqualFold(category, "Creature") {
 		return nil
