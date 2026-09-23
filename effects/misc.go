@@ -445,6 +445,28 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				grant.ImprintOnHost = imprintOnHost
 				h.AddContinuous(grant)
 				registered = true
+			} else if grant, ok := mayPlayFreeGrantFromLine(params); ok {
+				// The FREE-cast may-play grant delivered by an Effect SA (Dauthi
+				// Voidwalker's "you may play it this turn without paying its mana
+				// cost", Idol of Endurance, Nicol Bolas, God-Pharaoh): the same
+				// registration shape the plain grant above uses, with the
+				// MayPlayWithoutManaCost$ True rider carried as the MayPlayFree
+				// field rules' grant walk reads for the free half. The shared
+				// MayPlayFreeStaticParams whitelist keeps this path honest the
+				// same way: a rider this build does not read fails closed here
+				// too. The lifetime fields are exactly the plain grant's.
+				grant.Source = c.Source
+				grant.Controller = c.Controller
+				grant.Name = effectName
+				grant.UntilEOT = effectUntilEOT(h, c.Source, rawDur)
+				grant.Remembered = remembered
+				grant.Duration = dur
+				grant.ForgetOnMoved = forgetOn
+				grant.ExileOnMoved = exileOn
+				grant.ForgetCounter = forgetCounter
+				grant.ImprintOnHost = imprintOnHost
+				h.AddContinuous(grant)
+				registered = true
 			} else if kws, affected, zone, ok := cascadeKeywordGrantFromLine(params); ok {
 				// AddKeyword$ Cascade (task cascade1): the Effect-delivered
 				// cascade grant (TARDIS's GrantCascade, Dark Apostle's, Bigger
@@ -879,6 +901,31 @@ func mayPlayGrantFromLine(params map[string]string) (state.ContinuousEffect, boo
 	}, true
 }
 
+// mayPlayFreeGrantFromLine builds the FREE-cast may-play ContinuousEffect
+// from one parsed static line: MayPlay$ True plus MayPlayWithoutManaCost$
+// True (the "you may cast/play it this turn without paying its mana cost"
+// shape -- Dauthi Voidwalker, Idol of Endurance, Nicol Bolas, God-Pharaoh,
+// Fire Lord Ozai). ok=false is the fail-closed grant: nothing is registered
+// rather than a half-read grant going live. The value rides a separate
+// ContinuousEffect flag (MayPlayFree) because the printed-S: battlefield
+// route's grant entries carry no free read -- the free-cast MayPlay static
+// CHANGES what the cast costs, and the field is consumed exactly where the
+// plain grant's cost is (rules/mayplay.go's mayPlayGrant).
+func mayPlayFreeGrantFromLine(params map[string]string) (state.ContinuousEffect, bool) {
+	limit, playerTurn, ok := MayPlayFreeStaticParams(params)
+	if !ok {
+		return state.ContinuousEffect{}, false
+	}
+	return state.ContinuousEffect{
+		Affects:           params["Affected"],
+		AffectedZone:      strings.TrimSpace(params["AffectedZone"]),
+		MayPlay:           true,
+		MayPlayFree:       true,
+		MayPlayLimit:      limit,
+		MayPlayPlayerTurn: playerTurn,
+	}, true
+}
+
 // MayPlayStaticParams reports whether a Mode$ Continuous static body (an S:
 // line or an SVar static an Effect SA registers) carries the may-play grant
 // this build implements, and resolves its readable riders. The
@@ -887,22 +934,61 @@ func mayPlayGrantFromLine(params map[string]string) (state.ContinuousEffect, boo
 // MayPlayIgnoreType$ (mana as any type -- Rakdos, the Muscle's rider: the
 // colour widening plus {C} pips payable by any colour), MayPlayLimit$ (an
 // integer once-per-turn cap) and Condition$ PlayerTurn
-// ("during each of your turns", the Kess/Karador family) are read. Anything
-// else -- MayPlayWithoutManaCost$/MayPlayText$ (they change what the cast IS,
-// not just where it may come from), a Condition$ whose value is not
-// PlayerTurn, a ValidAfterStack$/Secondary$ qualifier (it changes when the
-// grant lives), or a MayPlayLimit$ value that is not a non-negative integer
-// -- fails closed:
+// ("during each of your turns", the Kess/Karador family) are read.
+// MayPlayWithoutManaCost$ is the FREE-cast shape, read by its own whitelist
+// (MayPlayFreeStaticParams below), never by this one. Anything else --
+// MayPlayText$ (it changes what the cast IS, not just where it may come
+// from), a Condition$ whose value is not PlayerTurn, a
+// ValidAfterStack$/Secondary$ qualifier (it changes when the grant lives),
+// or a MayPlayLimit$ value that is not a non-negative integer -- fails
+// closed:
 func MayPlayStaticParams(params map[string]string) (ignoreColor, ignoreType bool, limit int32, playerTurn bool, ok bool) {
 	v, okv := params["MayPlay"]
 	if !okv || !strings.EqualFold(strings.TrimSpace(v), "True") {
 		return false, false, 0, false, false
 	}
+	ignoreColor, ignoreType, limit, playerTurn, ok = mayPlayParams(params, false)
+	return ignoreColor, ignoreType, limit, playerTurn, ok
+}
+
+// MayPlayFreeStaticParams reports whether a Mode$ Continuous static body
+// carries the FREE-cast may-play grant: MayPlay$ True plus
+// MayPlayWithoutManaCost$ True. The free rider changes what the cast costs
+// (the mana part is free, CR 118.9), so the PLAIN whitelist above keeps
+// refusing it -- the two grants must never be conflated. Everything else is
+// the same grammar, read through the ONE shared key scan (mayPlayParams),
+// so a rider the plain path rejects is rejected here too: MayPlayText$, a
+// Condition$ whose value is not PlayerTurn, a ValidAfterStack$/Secondary$
+// qualifier, a MayPlayLimit$ value that is not a non-negative integer, a
+// MayPlayPlayer$/IgnoreColor/IgnoreType value (the free shape carries none
+// of them in the corpus -- the key scan still rejects them) -- all fail
+// closed. MayPlayDontGrantZonePermissions$ cannot co-occur meaningfully
+// with WithoutManaCost$ (a DontGrant static only exempts costs); the scan
+// rejects it, and MayPlayAltManaCost$/RaiseCost$ likewise -- the free cast
+// cannot also carry an alternative cost this registration path cannot
+// charge.
+func MayPlayFreeStaticParams(params map[string]string) (limit int32, playerTurn bool, ok bool) {
+	if !strings.EqualFold(strings.TrimSpace(params["MayPlayWithoutManaCost"]), "True") {
+		return 0, false, false
+	}
+	_, _, limit, playerTurn, ok = mayPlayParams(params, true)
+	return limit, playerTurn, ok
+}
+
+// mayPlayParams is the ONE parameter scan MayPlayStaticParams and
+// MayPlayFreeStaticParams share. allowFree widens the key whitelist by
+// exactly MayPlayWithoutManaCost$ (the caller has already required it to be
+// True); every other unknown key fails closed.
+func mayPlayParams(params map[string]string, allowFree bool) (ignoreColor, ignoreType bool, limit int32, playerTurn bool, ok bool) {
 	for key := range params {
 		switch key {
 		case "Mode", "MayPlay", "MayPlayIgnoreColor", "MayPlayIgnoreType",
 			"MayPlayLimit", "Condition", "Affected", "AffectedZone", "Description", "EffectZone":
 			// The keys the implemented grant (and only it) carries.
+		case "MayPlayWithoutManaCost":
+			if !allowFree {
+				return false, false, 0, false, false
+			}
 		default:
 			return false, false, 0, false, false
 		}

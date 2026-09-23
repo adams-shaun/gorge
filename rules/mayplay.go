@@ -37,6 +37,13 @@ import (
 //     Affected$ qualifiers (YouOwn, YouCtrl) resolve against that
 //     controller, and a static worded for its controller must never hand the
 //     permission to an opponent walking their own zones.
+//   - an EFFECT-delivered grant: the ContinuousEffect a `DB$ Effect`
+//     MayPlayWithoutManaCost$ static leaves behind (Dauthi Voidwalker,
+//     Idol of Endurance). Its free-cast flag rides the MayPlayFree field
+//     the effects-side registration set, and only the free shape joins
+//     ok -- a plain effect-delivered grant is consumed by the spell-cast
+//     walk's own effect arm (mayPlayEffectGrantsCast), never here (see
+//     mayPlayGrant's effect-arm comment).
 //
 // ok and free are collected independently over the WHOLE scan, not from the
 // first hit, because Forge splits the two roles across statics:
@@ -83,6 +90,23 @@ func (e *Engine) mayPlayGrant(p state.PlayerID, id state.ObjID) (free, ok bool) 
 		if grants {
 			ok = true
 		}
+	}
+	// (c) Effect-delivered grants: the ContinuousEffect a `DB$ Effect`
+	// "you may play that card this turn (without paying its mana cost)"
+	// leaves behind. The FREE-cast shape (MayPlayWithoutManaCost$ True,
+	// Dauthi Voidwalker, Idol of Endurance) rides the MayPlayFree field
+	// the effects-side registration set; its free read joins the two
+	// static sources above so the offer walk (legal.go's may-play spell
+	// walk) and beginCast's may-play case agree on all three sources
+	// through this ONE function. Only the free shape widens ok here: a
+	// PLAIN effect-delivered grant is consumed by the spell-cast walk's
+	// own effect arm (mayPlayEffectGrantsCast), and the zones it covers
+	// are already enumerated there -- adding it to ok would widen the
+	// land/library scans of mayPlayLandIds beyond the zone set those
+	// walks deliberately cover.
+	if effectFree, covered := e.mayPlayEffectFree(p, o); covered && effectFree {
+		free = true
+		ok = true
 	}
 	return free, ok
 }
@@ -620,6 +644,48 @@ func (e *Engine) mayPlayKinds(p state.PlayerID, id state.ObjID) (plain, mutate b
 		plain = true
 	}
 	return plain, mutate
+}
+
+// mayPlayEffectFree reports whether an active EFFECT-delivered FREE-cast
+// may-play grant (a ContinuousEffect with MayPlay and MayPlayFree set -- the
+// MayPlayWithoutManaCost$ True shape) covers card o for player p right now.
+// It is the free-cast sibling of mayPlayEffectGrantsCast and runs the SAME
+// gates in the same order -- controller, the Condition$ PlayerTurn rider,
+// the MayPlayLimit$ cap, the parsed AffectedZone$, and the Affects spec with
+// the delivering effect's Remembered set loaded -- so a card the offer walk
+// enumerated is never then classified as ungranted or un-free. Only the
+// public zones that walk covers (graveyard, exile) can match; the library
+// self-grant is a static, never an effect.
+func (e *Engine) mayPlayEffectFree(p state.PlayerID, o *state.Object) (free, covered bool) {
+	if o.Zone != state.ZGraveyard && o.Zone != state.ZExile {
+		return false, false
+	}
+	limited := e.mayPlaysThisTurn(p)
+	for _, ce := range e.active() {
+		if !ce.MayPlay || !ce.MayPlayFree || ce.Controller != p {
+			continue
+		}
+		if ce.MayPlayPlayerTurn && e.G.Active != p {
+			continue
+		}
+		if ce.MayPlayLimit > 0 && int32(limited) >= ce.MayPlayLimit {
+			continue
+		}
+		zones, all, ok := effects.ParseZones(ce.AffectedZone)
+		if !ok && !all {
+			continue
+		}
+		if !all && !slices.Contains(zones, o.Zone) {
+			continue
+		}
+		sc := e.withNames(effects.SpecContext{You: ce.Controller, Source: ce.Source,
+			Remembered: rememberedTargets(ce.Remembered), Resolving: true})
+		if !e.matchesSpec(ce.Affects, o.ID, sc) {
+			continue
+		}
+		return true, true
+	}
+	return false, false
 }
 
 // mayPlayEffectGrantsCast reports whether an active EFFECT-delivered may-play

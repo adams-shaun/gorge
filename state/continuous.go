@@ -366,6 +366,18 @@ type ContinuousEffect struct {
 	// live turn, never a mutable field.
 	MayPlayPlayerTurn bool
 
+	// MayPlayFree marks the grant's MayPlayWithoutManaCost$ True rider (the
+	// free-cast may-play family: Dauthi Voidwalker's "you may play it this
+	// turn without paying its mana cost", Idol of Endurance, Nicol Bolas,
+	// God-Pharaoh): the mana part of the granted play is free while
+	// non-mana additional costs still apply (CR 118.9). Registered only
+	// from the Effect-delivery path (a DB$ Effect's StaticAbilities$ SVar
+	// static); the printed-S: battlefield route keeps MayPlayStaticParams'
+	// free refusal because its entries carry no free flag and the printed
+	// route's free read lives in mayPlayStatic. Set only together with
+	// MayPlay.
+	MayPlayFree bool
+
 	// AddTrigger is a static-grant's triggered ability (AddTrigger$ on a
 	// Mode$ Continuous static, e.g. Hearthhull's "STATION 8+ Whenever you
 	// sacrifice a land"): the SVar-parsed trigger (cards.ParseTriggerLine

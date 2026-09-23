@@ -1090,6 +1090,19 @@ var stringMapParams = map[string]string{
 	// built from one SVar static line -- the same SVar-body shape
 	// compoundRememberedSpec reads.
 	"effects:mayPlayGrantFromLine:params": "keys of a parseStaticLine-built static line (an SVar body), not a card Params map",
+	// effects/misc.go mayPlayFreeGrantFromLine: the same parseStaticLine-built
+	// SVar static line, the FREE-cast MayPlay grant arm's whitelist (the
+	// MayPlayWithoutManaCost$ True shape).
+	"effects:mayPlayFreeGrantFromLine:params": "keys of a parseStaticLine-built static line (an SVar body), not a card Params map",
+	// effects/misc.go MayPlayFreeStaticParams: the same static-line map -- the
+	// free-cast shape's own whitelist, shared grammar with MayPlayStaticParams.
+	"effects:MayPlayFreeStaticParams:params": "keys of a static may-play line (S: or parseStaticLine-built), not a card Params map",
+	// effects/misc.go mayPlayParams: the ONE key-scan both MayPlay whitelists
+	// delegate to (the key-range loop plus the four rider reads). Its reads
+	// are also made -- and genuinely attributed -- by rules/mayplay.go's
+	// mayPlayStatic on the static family, so skipping the effects-side
+	// attribution masks nothing.
+	"effects:mayPlayParams:params": "shared key-scan of a static may-play line (S: or parseStaticLine-built), not a card Params map",
 	// effects/misc.go cascadeKeywordGrantFromLine: params is the same
 	// parseStaticLine-built SVar static line (the AddKeyword$ Cascade grant
 	// arm's whitelist); its dynamic gate-key loop (Condition/CheckSVar/...) is
