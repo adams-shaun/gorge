@@ -229,6 +229,64 @@ No new defect identified. Without the missing feedback capture the original live
 
 ---
 
+# CopySpellAbility.Optional — sol1 rebase and report-conflict resolution
+
+## Finding resolved
+
+The MAJOR in `.ds4/findings-sol1.md` was a destructive overwrite of an unrelated ticket's `.ds4/report-t1.md`. Rebased onto `main` as directed and resolved both report conflicts by retaining **main's exact versions** of `.ds4/report-t1.md` and `.ds4/report-r2.md`; `cmp` verified both byte-for-byte against `main`. The CopySpellAbility reports from earlier rounds are preserved in the branch's historical commits; this ticket's current report is this section of `.ds4/report-sol1.md`, appended without replacing the other tickets' existing content at that path. No Go changes were needed in this review round. The prior findings (no-host AskOutcome and Optional+UnlessCost composition) were already fixed in `8054eb71` (rebased SHA), as confirmed by the reviewer and the focused tests below. No other MAJOR was raised.
+
+## Implementation already committed
+
+- `effects/copy.go`, `effects/registry.go`: Optional$ True asks the copy controller for a yes/no through `copy_optional`, pauses only on `AskAsked`, resumes with the chosen answer, and composes AFTER the shared UnlessCost gate. A no-host ask preserves the historical copy.
+- `rules/resolution.go`: returns the election answer through the existing mid-resolution resume machinery.
+- `rules/copy_spell_ability_optional_test.go`, `rules/copy_optional_unless_test.go`, `effects/copy_optional_no_host_test.go`, `effects/copy_test.go`: real-corpus Sevinne accept/decline, no-host fallback, switched and unswitched UnlessCost composition. `rules/was_cast_from_zone_test.go` answers Sevinne's newly-real election; `effects/context_test.go` updates the test double's comment.
+- `.cards` is present as a symlink to the real corpus. Prior measurement found 11 corpus files with CopySpellAbility and Optional$; no known-approximations row, chain-head golden, or acceptance ratchet was changed.
+
+## Gates on rebased branch (exact commands and real output)
+
+```
+$ go test -run 'TestCopySpellAbilityOptional|TestCopySpellAbilityUnswitchedShapePayingStopsTheCopies|TestOptionalUnless|TestSevinnesReclamationMayCopyElection' ./rules/ ./effects/ > .ds4/scratch/copy-sol1-focused.log 2>&1; rc=$?; tail -30 .ds4/scratch/copy-sol1-focused.log; echo focused_exit=$rc
+ok   github.com/adams-shaun/gorge/rules 0.663s
+ok   github.com/adams-shaun/gorge/effects 0.624s
+focused_exit=0
+
+$ go test ./internal/archtest/ > .ds4/scratch/copy-sol1-arch.log 2>&1; rc=$?; tail -15 .ds4/scratch/copy-sol1-arch.log; echo arch_exit=$rc
+ok   github.com/adams-shaun/gorge/internal/archtest 3.538s
+arch_exit=0
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ > .ds4/scratch/copy-sol1-bot.log 2>&1; rc=$?; tail -5 .ds4/scratch/copy-sol1-bot.log; echo bot_exit=$rc
+ok   github.com/adams-shaun/gorge/cmd/botbench 1.391s
+bot_exit=0
+
+$ gofmt -l effects/copy.go effects/copy_optional_no_host_test.go effects/context_test.go effects/copy_test.go effects/registry.go rules/copy_optional_unless_test.go rules/copy_spell_ability_optional_test.go rules/resolution.go rules/was_cast_from_zone_test.go
+(no output)
+$ go run ./cmd/gentypes -check; echo gentypes_exit=$?
+gentypes_exit=0
+$ cmp .ds4/report-t1.md <(git show main:.ds4/report-t1.md) && echo report_t1_matches_main
+report_t1_matches_main
+$ cmp .ds4/report-r2.md <(git show main:.ds4/report-r2.md) && echo report_r2_matches_main
+report_r2_matches_main
+```
+
+## Fails without the fix
+
+No new tests or Go edits in this round. Previous rounds proved the tests fail with the corresponding production hunks removed and restored the files byte-identically. Recorded failing output (from the original round-1/round-2 reports):
+
+```
+--- FAIL: TestSevinnesReclamationMayCopyElectionDeclineMakesNoCopy (0.59s)
+    copy_spell_ability_optional_test.go:178: expected the Optional$ True may-copy election (KChoose copy_optional), got ... Kind:target ... ResumeKind:copy_targets ...
+--- FAIL: TestCopySpellAbilityOptionalNoHostMakesTheCopy (0.00s)
+    copy_optional_no_host_test.go:33: 0 StackCopy events on a no-host election, want 1 (the R-9 stand-in makes the copy)
+--- FAIL: TestOptionalUnlessCopyDeclinePosesElectionToCopyController (0.00s)
+    copy_optional_unless_test.go:163: expected the may-copy election (KChoose copy_optional) after the declined gate, got ... priority ...
+```
+
+## Issues
+
+Existing, separate issue: a copied Sevinne's Reclamation inherits graveyard-cast flags in `events/apply.go`'s `StackCopy`, so `effects/filter.go`'s `wasCastFromGraveyard` can admit the copy's conditional copy clause even though the copy was not cast (CR 707.10). Earlier measurement: 29 corpus files mention `wasCastFromGraveyard`, six use `ConditionPresent$ Card.wasCastFromGraveyard`. Already filed in `.ds4/new-tickets/copy-inherits-cast-provenance.md`; not expanded in this ticket. No new defect found during the report-conflict fix.
+
+---
+
 # Second report stored at this shared path (from branch): Cascade free cast — CR 702.85a / CR 107.3b
 
 # Cascade free cast — CR 702.85a / CR 107.3b
