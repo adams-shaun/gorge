@@ -185,19 +185,13 @@ func (e *Engine) Clone() *Engine {
 		c.tokenChoice = &tc
 	}
 	if e.pending != nil {
-		d := *e.pending
-		d.Options = append([]decision.Option(nil), e.pending.Options...)
-		d.ResumeModes = append([]string(nil), e.pending.ResumeModes...)
-		d.ResumeChoices = append([]state.Target(nil), e.pending.ResumeChoices...)
-		d.ResumeChosenValid = e.pending.ResumeChosenValid
-		d.ResumeRemembered = append([]state.Target(nil), e.pending.ResumeRemembered...)
-		d.ResumeVillainousVictims = append([]state.Target(nil), e.pending.ResumeVillainousVictims...)
-		d.ResumeVillainousIndex = e.pending.ResumeVillainousIndex
-		d.ResumeGenericChoosers = append([]state.Target(nil), e.pending.ResumeGenericChoosers...)
-		d.ResumeGenericChooserIndex = e.pending.ResumeGenericChooserIndex
-		d.ResumeTargetsUnique = append([]state.Target(nil), e.pending.ResumeTargetsUnique...)
-		d.ResumeDigPrimary = append([]state.ObjID(nil), e.pending.ResumeDigPrimary...)
-		c.pending = &d
+		c.pending = cloneDecision(e.pending)
+	}
+	if e.deferredAsks != nil {
+		c.deferredAsks = make([]*decision.Decision, len(e.deferredAsks))
+		for i, d := range e.deferredAsks {
+			c.deferredAsks[i] = cloneDecision(d)
+		}
 	}
 	if e.resume != nil {
 		// Plain value data (kind/obj plus a *cards.SA into the shared
@@ -947,4 +941,22 @@ func cloneResume(rp *resumePoint) *resumePoint {
 	}
 	cp.outer = cloneResume(rp.outer)
 	return &cp
+}
+
+// cloneDecision deep-copies a posed (or deferred) decision's slices, so a
+// clone's answer path never writes through to the original's.
+func cloneDecision(p *decision.Decision) *decision.Decision {
+	d := *p
+	d.Options = append([]decision.Option(nil), p.Options...)
+	d.ResumeModes = append([]string(nil), p.ResumeModes...)
+	d.ResumeChoices = append([]state.Target(nil), p.ResumeChoices...)
+	d.ResumeChosenValid = p.ResumeChosenValid
+	d.ResumeRemembered = append([]state.Target(nil), p.ResumeRemembered...)
+	d.ResumeVillainousVictims = append([]state.Target(nil), p.ResumeVillainousVictims...)
+	d.ResumeVillainousIndex = p.ResumeVillainousIndex
+	d.ResumeGenericChoosers = append([]state.Target(nil), p.ResumeGenericChoosers...)
+	d.ResumeGenericChooserIndex = p.ResumeGenericChooserIndex
+	d.ResumeTargetsUnique = append([]state.Target(nil), p.ResumeTargetsUnique...)
+	d.ResumeDigPrimary = append([]state.ObjID(nil), p.ResumeDigPrimary...)
+	return &d
 }

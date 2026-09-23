@@ -960,6 +960,11 @@ type Engine struct {
 	// lands; Submit resumes it once nothing is pending (resumeManaAfterCost).
 	// Plain data, deep-copied by Clone like its siblings.
 	manaAfterCost *manaAfterCost
+	// deferredAsks holds decisions posed while a CR 903.9 commander-zone
+	// choice was pending (see ask): they are posed in order, one at a time,
+	// once nothing is pending (drainDeferredAsks, from Submit). Deep-copied
+	// by Clone like pending.
+	deferredAsks []*decision.Decision
 	// unlessPayment carries an in-progress non-mana unless-cost payment. It
 	// keeps the enclosing resolution suspended while the payer chooses the
 	// sacrifice/discard objects that pay it.
@@ -2585,6 +2590,22 @@ func (e *Engine) SetCurrentEffectFrame(frame effects.EffectFrame) {
 }
 
 func (e *Engine) ask(d *decision.Decision) {
+	// CR 903.9 ordering: a commander's zone change parked mid-chain asks its
+	// owner at once (parkCommanderZoneMove), but the chain that parked it
+	// keeps running -- Path to Exile's exile parks Rakdos, then the same
+	// resolution's "its controller may search" poses its own choice. Posing
+	// that choice here would OVERWRITE the unanswered commander-zone ask: the
+	// parked move is never emitted, the commander stays on the battlefield,
+	// and every later park of it is dropped by the queue's dedup (the
+	// botbench Phyrexian Altar livelock, seed 9702). The later ask instead
+	// waits behind the owner's answer and is posed by Submit once that
+	// answer has been applied (drainDeferredAsks). Only a DIFFERENT decision
+	// is deferred: a second commander-zone park never reaches ask while one
+	// is pending (parkCommanderZoneMove queues it on cmdZone).
+	if e.pending != nil && e.pending.Kind == decision.KCommanderZone && d.Kind != decision.KCommanderZone {
+		e.deferredAsks = append(e.deferredAsks, d)
+		return
+	}
 	e.searchControlRedirect(d)
 	// Empty-answer-only tripwire (the class the Squadron Hawk fail-to-find
 	// search wedged): a decision whose ONLY legal answer is the empty one
@@ -2660,6 +2681,22 @@ func (e *Engine) ask(d *decision.Decision) {
 	e.pending = d
 }
 
+// drainDeferredAsks poses the front decision ask deferred behind a
+// commander-zone choice, once nothing is pending. A deferred decision is
+// posed through ask exactly as it would have been, so its DecisionAsk event,
+// Seq and any search-control redirect reflect the moment it is actually put
+// to a seat.
+func (e *Engine) drainDeferredAsks() {
+	for e.pending == nil && len(e.deferredAsks) > 0 {
+		d := e.deferredAsks[0]
+		e.deferredAsks = e.deferredAsks[1:]
+		if len(e.deferredAsks) == 0 {
+			e.deferredAsks = nil
+		}
+		e.ask(d)
+	}
+}
+
 // Advance runs engine work until a decision is required or the game ends.
 func (e *Engine) Advance() {
 	for !e.G.Over && e.pending == nil {
@@ -2726,6 +2763,10 @@ func (e *Engine) Submit(in decision.Intent) error {
 		Text: fmt.Sprintf("%s:%v", d.Kind, in.Choices)})
 	e.pending = nil
 	e.handle(d, in)
+	// A decision posed while a commander-zone choice was outstanding waited
+	// behind it (ask's CR 903.9 arm); pose it now that the answer landed,
+	// before anything below can treat the engine as idle and advance.
+	e.drainDeferredAsks()
 	// A mana ability whose cost payment posed a decision (the CR 903.9
 	// commander-zone choice for a sacrificed commander) resolves its mana
 	// effect once that decision -- and any it handed on to -- is answered.
