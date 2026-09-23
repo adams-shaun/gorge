@@ -5615,15 +5615,21 @@ func abilityParamsUseConvoked(params map[string]string) bool {
 }
 
 // faceWantsConverge is the heads-safety gate for the pay-time converge
-// CastInfo: it reports whether the face carries a Count$Converge SVar body.
-// Without it a count>0-only gate would stamp a CastInfo onto EVERY
-// multicolour cast and move the chain heads; with it, no game that casts no
-// converge card changes an event (measured: no repo-deck card carries
-// Count$Converge, so TestHeads stays put). K:Sunburst's keyword expansion
-// (its own ledger entry) is the planned second consumer of this seam.
+// CastInfo: it reports whether the face carries a Count$Converge SVar body
+// or the printed Sunburst keyword. Without it a count>0-only gate would stamp
+// a CastInfo onto EVERY multicolour cast and move the chain heads; with it,
+// no game that casts no converge card changes an event (measured: no repo-deck
+// card carries Count$Converge or Sunburst, so TestHeads stays put). Sunburst
+// is the second consumer of this seam (CR 702.47): its whole meaning is the
+// converge count put as counters on entry (rules/replacement.go's
+// sunburstEntryMatch), and the count must be captured at pay time because the
+// Animate-granted shape can deliver the keyword only after payment.
 func faceWantsConverge(f *cards.Face) bool {
 	if f == nil {
 		return false
+	}
+	if f.HasKeyword("Sunburst") {
+		return true
 	}
 	for _, v := range f.SVars {
 		if body, ok := strings.CutPrefix(v, "Count$"); ok && strings.EqualFold(strings.TrimSpace(body), "Converge") {
@@ -5850,6 +5856,32 @@ func (e *Engine) triggeredConvergeReaderOut() bool {
 				if strings.Contains(strings.ToLower(v), "triggeredcard$converge") {
 					return true
 				}
+			}
+		}
+	}
+	return false
+}
+
+// sunburstGrantOut is the converge capture gate's third arm (the
+// triggeredConvergeReaderOut shape): it reports whether any alive player's
+// battlefield holds a permanent whose face BODY grants sunburst to a spell --
+// Solar Array's and Lux Artillery's `DB$ Animate | Keywords$ Sunburst`
+// (task kw:Sunburst). The Animate grant lands on the spell AFTER payment (a
+// SpellCast trigger resolving while the spell is on the stack), so the
+// printed-keyword arm of faceWantsConverge cannot see it at pay time; this
+// board scan arms the capture so the entering permanent reads its colours.
+// Pure read over the deterministic seat/zone walk, so replay re-runs payCast
+// and derives the same scan.
+func (e *Engine) sunburstGrantOut() bool {
+	g := e.G
+	for _, p := range g.AliveFrom(0) {
+		for _, id := range g.Zone(state.ZBattlefield, p) {
+			o := g.Obj(id)
+			if o == nil || o.Face() == nil {
+				continue
+			}
+			if o.Face().Mentions("Sunburst") {
+				return true
 			}
 		}
 	}
@@ -8381,7 +8413,7 @@ func (e *Engine) payCast() {
 		e.abortCast(pc, "cast aborted: cost no longer payable", true)
 		return
 	}
-	if f := e.G.Obj(pc.card).Face(); faceWantsConverge(f) || e.triggeredConvergeReaderOut() {
+	if f := e.G.Obj(pc.card).Face(); faceWantsConverge(f) || e.triggeredConvergeReaderOut() || e.sunburstGrantOut() {
 		pc.convergeOn = true
 		pc.converge = convergeColours(spentMana)
 	}

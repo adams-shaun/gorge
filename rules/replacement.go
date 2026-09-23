@@ -143,6 +143,55 @@ func (e *Engine) bloodthirstEntryMatch(ev events.Event) *replMatch {
 	return &replMatch{id: ev.Obj, repl: r}
 }
 
+// sunburstEntryMatch builds the synthetic Moved replacement a permanent with
+// sunburst enters by (CR 702.47: "This object enters with a +1/+1 counter on
+// it for each color of mana spent to cast it. If it isn't a creature, it
+// instead enters with that many charge counters on it.").
+//
+// The keyword is read from the entering object's DERIVED keyword list
+// (derivedKeywordParam), exactly as bloodthirstEntryMatch reads its own: a
+// printed `K:Sunburst` and a layer-6 `DB$ Animate | Keywords$ Sunburst` grant
+// (Solar Array, Lux Artillery) are ONE identical shape, so the grant path --
+// which a cards-side K: expansion could never see -- is covered by the same
+// read. The counter KIND follows Forge's own Sunburst expansion
+// (CardFactoryUtil: `host.isCreature() ? P1P1 : CHARGE`), decided from the
+// entering object's PRINTED face (CR 702.47a's "if it isn't a creature" is
+// evaluated on the card's own types, ignoring type-changing effects), so a
+// creature gets +1/+1 counters and an artifact gets charge counters.
+//
+// The count is the existing CR 107.4f converge head: the number of DISTINCT
+// colours spent to cast the spell, carried on the object as ConvergeColours
+// by the pay-time FlagConverged CastInfo (rules/cast.go's faceWantsConverge
+// gate, widened to cover sunburst's cast faces). An inline Count body keeps
+// this a one-line body with no SVar minted on the face.
+func (e *Engine) sunburstEntryMatch(ev events.Event) *replMatch {
+	if _, ok := e.derivedKeywordParam(ev.Obj, "Sunburst"); !ok {
+		return nil
+	}
+	o := e.G.Obj(ev.Obj)
+	if o == nil || o.Face() == nil {
+		return nil
+	}
+	kind := "CHARGE"
+	if o.Face().IsCreature() {
+		kind = "P1P1"
+	}
+	body := &cards.SA{Kind: "DB", API: "PutCounter", Params: map[string]string{
+		"Defined":     "Self",
+		"CounterType": kind,
+		"CounterNum":  "Count$Converge",
+		"ETB":         "True",
+	}}
+	r := &cards.Repl{Event: "Moved", Params: map[string]string{
+		"Destination":       "Battlefield",
+		"ValidCard":         "Card.Self",
+		"ReplacementResult": "Updated",
+		"Keyword":           "Sunburst",
+		"KeywordLine":       "Sunburst",
+	}, With: body}
+	return &replMatch{id: ev.Obj, repl: r}
+}
+
 func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool) {
 	if ev.Kind == events.Attach && e.attachedApplying {
 		return ev, false
@@ -293,6 +342,13 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	// result; it only fixes the scan order.
 	if ev.Kind == events.MoveZone && ev.To == state.ZBattlefield {
 		if m := e.bloodthirstEntryMatch(ev); m != nil && e.replacementMatches(*m.repl, m.id, ev) {
+			matches = append(matches, *m)
+		}
+		// kw:Sunburst (CR 702.47): the entering permanent's own sunburst --
+		// printed or layer-6 granted -- is another Updated entry replacement,
+		// collected after the face-Repl scan for the same deterministic
+		// composition reason bloodthirst's is.
+		if m := e.sunburstEntryMatch(ev); m != nil && e.replacementMatches(*m.repl, m.id, ev) {
 			matches = append(matches, *m)
 		}
 	}
@@ -6540,7 +6596,7 @@ func init() {
 	// expansion exists: bloodthirst is a static ability whose whole meaning
 	// is an entry-time conditional counter put, which is exactly what the
 	// synthetic Repl below expresses.
-	effects.RegisterNonAPI("kw:etbCounter", "kw:ETBReplacement", "kw:Devour", "kw:Ravenous", "kw:Bloodthirst",
+	effects.RegisterNonAPI("kw:etbCounter", "kw:ETBReplacement", "kw:Devour", "kw:Ravenous", "kw:Bloodthirst", "kw:Sunburst",
 		"repl:Untap", "repl:BeginPhase", "repl:Transform", "repl:ProduceMana",
 		"repl:GainLife", "repl:LifeReduced", "repl:DamageDone", "repl:Counter",
 		"repl:CreateToken", "repl:RollPlanarDice", "repl:Explore", "repl:Attached", "repl:Scry", "api:ReplaceToken",
