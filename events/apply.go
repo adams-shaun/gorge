@@ -788,12 +788,16 @@ func Apply(g *state.Game, e Event) {
 		// 2/2 creature. Cloak shares the face-down entry with a second Counter
 		// value; only the cloak marker sets Cloaked, the state rules/layers.go
 		// and trigger_match.go read for the ward {2}.
+		moveCounter, countersRemain := CountersRemainMovePayload(e.Counter)
+		if !countersRemain {
+			moveCounter = e.Counter
+		}
 		setType, fdPower, fdTough, fdHasPT, manifesting := "", int32(0), int32(0), false, false
 		if e.Kind == MoveZone && e.To == state.ZBattlefield {
-			if e.Counter == CloakEntryCounter {
+			if moveCounter == CloakEntryCounter {
 				manifesting = true
 			} else {
-				setType, fdPower, fdTough, fdHasPT, manifesting = FaceDownEntryFields(e.Counter)
+				setType, fdPower, fdTough, fdHasPT, manifesting = FaceDownEntryFields(moveCounter)
 			}
 		}
 		if manifesting {
@@ -806,14 +810,18 @@ func Apply(g *state.Game, e Event) {
 				o.FaceDownHasPT = fdHasPT
 			}
 		}
-		Move(g, e.Obj, e.From, e.To)
+		if e.Kind == MoveZone && countersRemain {
+			MoveCountersRemain(g, e.Obj, e.From, e.To)
+		} else {
+			Move(g, e.Obj, e.From, e.To)
+		}
 		if o := g.Obj(e.Obj); o != nil {
 			if e.To == state.ZStack && o.Face() != nil {
 				o.StackKind, o.StackKindKnown = state.StackKindSpell, true
 			}
 
 			if e.To == state.ZExile {
-				switch e.Counter {
+				switch moveCounter {
 				case "exiled_with_face_down", "exiled_with_face_down_foretold":
 					// Hideaway's face-down exile (CR 702.75): the exiling source
 					// rides in Amount, and FaceDown is state so a later projection
@@ -822,7 +830,7 @@ func Apply(g *state.Game, e Event) {
 					// object's cast flags.
 					o.ExiledWith = state.ObjID(e.Amount)
 					o.FaceDown = true
-					if e.Counter == "exiled_with_face_down_foretold" {
+					if moveCounter == "exiled_with_face_down_foretold" {
 						o.CastFlags |= state.FlagForetold
 					}
 				case "face_down":
@@ -2879,6 +2887,16 @@ func ringEmblemAbility(level int) *cards.SA {
 // removed from that zone and appended again, so it ends up at the end of the
 // zone's order. That is deterministic and matches every other move.
 func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
+	move(g, id, from, to, false)
+}
+
+// MoveCountersRemain folds a move whose departing permanent has the
+// CountersRemain static. The marker is carried by the logged MoveZone event.
+func MoveCountersRemain(g *state.Game, id state.ObjID, from, to state.Zone) {
+	move(g, id, from, to, true)
+}
+
+func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain bool) {
 	o := g.Obj(id)
 	if o == nil || !o.Zone.Valid() || !to.Valid() {
 		return
@@ -3168,7 +3186,9 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		o.IsAttacking = false
 		o.AttackingBattle = 0
 		o.BlockedBy = nil
-		o.Counters = nil
+		if !countersRemain || to == state.ZHand || to == state.ZLibrary {
+			o.Counters = nil
+		}
 		o.IntrinsicKeywords = nil
 		o.ExiledWith = 0
 		o.FaceDown = false

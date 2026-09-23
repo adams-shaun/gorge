@@ -2701,10 +2701,13 @@ var knownUnsupportedParams = map[string][]string{
 	// a real per-target "draw up to N" ask (task mordorparams1,
 	// effects/cardflow.go effDraw's upto branch, rules' draw_upto resume
 	// arm) — pinned by TestArcaneDenialSlowtripDrawsUpToTwo.
-	"Arcane Denial":               {"param:api:Counter.RememberTargets"},
-	"Avengers Quinjet":            {"param:api:ChangeZone.ValidTgtsDesc"},
-	"Acclaimed Contender":         {"param:api:Dig.RestRandomOrder"},
-	"Adeline, Resplendent Cathar": {"param:api:RepeatEach.ChangeZoneTable"},
+	"Arcane Denial":       {"param:api:Counter.RememberTargets"},
+	"Avengers Quinjet":    {"param:api:ChangeZone.ValidTgtsDesc"},
+	"Acclaimed Contender": {"param:api:Dig.RestRandomOrder"},
+	// Adeline, Resplendent Cathar's param:api:RepeatEach.ChangeZoneTable entry
+	// was deleted when the parameter became read (task agent-20260922T090929Z-
+	// 07378594): effRepeatEach opens the zone batch the parameter asks for, so
+	// the census now sees it read.
 	// Captain Marvel, Apex Avenger's param:api:PutCounter.Placer label was
 	// deleted when the bare-Choices$ PutCounter pick read Placer$ (task
 	// vow1, effects/counters.go putCounterChoose) -- the static scan now

@@ -19,18 +19,17 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	// The merged AGENTS.md measures 19 data rows (task scrybottom deleted the
-	// `T:Mode$ Scry`/`R:Event$ Scry` row, whose "whenever you scry" trigger
-	// half this task closes; the still-unclosed `R:Event$ Scry` replacement
-	// half is recorded in the commit message and the task report rather than
-	// a new row). The history includes the ct1 deletion on this branch and
-	// main's landed closures, including hidden-library ChangeZone,
-	// castfilter1/2, kw:Flanking, battle1 and eqcm1; this merge keeps both
-	// disjoint deletions: main's (pw1) closure (Effect-delivered
-	// NumLoyaltyAct, cli-20260923T060000Z-pw-numloyaltyact) and this branch's
-	// (rv2b) closure (damage-source / valid-players / count-heads,
-	// cli-20260923T060000Z-rv2b-countheads).
-	knownApproximationRows = 19
+	// The merged AGENTS.md measures 18 data rows (measured with
+	// approximationRows() against the merged AGENTS.md). This merge keeps
+	// three disjoint closures alongside the prior deletions: task scrybottom's
+	// `T:Mode$ Scry`/`R:Event$ Scry` row (whose "whenever you scry" trigger
+	// half is closed here; the still-unclosed `R:Event$ Scry` replacement half
+	// is recorded in the commit message and the task report rather than a new
+	// row), main's four-mode trigger row
+	// (cli-20260923T060000Z-trig-attackerblocked), and main's rv2b
+	// damage-source / valid-players / count-heads row
+	// (cli-20260923T060000Z-rv2b-countheads).
+	knownApproximationRows = 18
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.

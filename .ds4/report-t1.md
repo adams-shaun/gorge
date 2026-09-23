@@ -1,6 +1,399 @@
-# Report — api:Attach Optional$ / Yuffie object-choice attach
+# Report — stat:CountersRemain
+
+Implemented `S:Mode$ CountersRemain` for the two corpus carriers. The worktree was rebased onto `main` before implementation (it reported up to date), and `.cards` was already present. Measured prevalence: 2 files, `Me, the Immortal` and `Skullbriar, the Walking Grave`.
+
+## What changed
+
+- `rules/statics.go`: registered `stat:CountersRemain`; added `countersRemainApplies`, using the canonical active-static walk and `ValidCard$` filter (missing filters fail closed).
+- `rules/engine.go`: tags a final, replacement-adjusted battlefield departure when its own active static matches, except moves to hand/library.
+- `events/actions.go`, `events/apply.go`: carries the preservation marker in the existing MoveZone `Counter` payload while retaining any existing payload; replay decodes it and preserves counters during the Move fold. Ordinary moves and moves to hand/library still clear counters. No event kind/field or encoding changed.
+- `rules/counters_remain_test.go`: real-corpus test on Me, the Immortal; asserts static/preconditions, adds counters, moves to exile and back to the battlefield, then verifies a hand move clears them.
+
+## Gates and measurements
+
+Corpus check:
+
+```text
+$ grep -rlE '^S:Mode\$ CountersRemain' .cards/cardsfolder | sort
+.cards/cardsfolder/m/me_the_immortal.txt
+.cards/cardsfolder/s/skullbriar_the_walking_grave.txt
+$ grep -rlE '^S:Mode\$ CountersRemain' .cards/cardsfolder | wc -l
+2
+```
+
+Targeted test:
+
+```text
+$ go test -run 'TestCountersRemainPreservesCountersExceptHandAndLibrary$' ./rules/
+ok  github.com/adams-shaun/gorge/rules  0.593s
+```
+
+The test was also run before the final guard-only refinement:
+
+```text
+$ go test -run 'TestCountersRemainPreservesCountersExceptHandAndLibrary$' ./rules/
+ok  github.com/adams-shaun/gorge/rules  0.595s
+```
+
+`make report` (first run rebuilt the stale IR cache):
+
+```text
+CGO_ENABLED=0 go build -o bin/forgec ./cmd/forgec
+bin/forgec report -dir .cards
+forgec: IR cache unusable (IR cache version 3, want 5 — run `make compile-cards`); compiling fresh from cardsfolder
+corpus: 95f04e8a04c8925fa97cb226fc3341cabcc90a53 @ 95f04e8a04c8925fa97cb226fc3341cabcc90a53 (GPL-3.0, 33669 files)
+cards: 33667  playable: 29738 (88.3%)
+tokens: 839
+```
+The primitive is registered and report completed against the full corpus.
+
+Required behaviour goldens:
+
+```text
+$ go test ./internal/archtest/
+ok  github.com/adams-shaun/gorge/internal/archtest  3.574s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  github.com/adams-shaun/gorge/cmd/botbench  1.333s
+```
+
+Formatting/type check and whitespace:
+
+```text
+$ gofmt -l events/actions.go events/apply.go rules/engine.go rules/statics.go rules/counters_remain_test.go
+(no output)
+$ go run ./cmd/gentypes -check
+(no output, exit 0)
+$ git diff --check
+(no output, exit 0)
+```
+
+## Fails without the fix
+
+Copied `rules/engine.go` to `.ds4/scratch/`, removed the event-tagging hunk, and ran the targeted test. It failed on the actual exile move. Restored the file and verified it byte-identically with `cmp`.
+
+```text
+$ go test -run 'TestCountersRemainPreservesCountersExceptHandAndLibrary$' ./rules/
+--- FAIL: TestCountersRemainPreservesCountersExceptHandAndLibrary (0.58s)
+    counters_remain_test.go:28: P1P1 counters after battlefield-to-exile move = 0, want 2
+FAIL
+FAIL  github.com/adams-shaun/gorge/rules  0.593s
+FAIL
+RESTORED_BYTE_IDENTICAL
+```
+
+## Issues
+
+No additional unfixed defects found in this scope. No AGENTS.md approximation row was present for this primitive to delete. No CR-lane test was added: the requested behaviour is directly pinned by the real-carrier engine test.
+
+Commit: `c1b64881 feat(rules): preserve counters for CountersRemain statics`
+
+---
+
+# Report — TriggerController$ on ChangesZone
 
 ## Changes
+
+- `rules/trigger_match.go`: when a `ChangesZone`/`ChangesZoneAll` trigger explicitly names `TriggerController$ TriggeredCardController`, the queued ability's controller (and matching `Ctx.Controller`) now comes from the moved permanent's LKI on a battlefield departure. This keeps APNAP grouping, stack control and resolution under that controller, without changing default trigger controller behavior or interpreting other selector values.
+- `rules/trigger_controller_test.go`: added a focused integration test using an inline watcher script. A seat-1 watcher sees a creature stolen by seat 0 die; it asserts the creature is on the battlefield before departure, the two controllers differ, its live controller has reset to its owner after moving, the pending/stack trigger belongs to seat 0 rather than the watcher, and resolution affects only seat 0.
+
+The parser/read census needed no special table change. The ordinary `t.Params["TriggerController"]` access is included by the static trigger-parameter census; `TestEveryRepoDeckParamsAreRead` passes with no new unsupported entry. GNU grep measured 42 corpus files with `TriggerController$`.
+
+A direct Junji corpus test was not added: Junji's trigger is on the same card that dies, so the existing default leaves-the-battlefield LKI controller path already assigns it to the departing card's last controller. Such a test would pass with this fix reverted and violate the required fail-without-fix proof. The new inline watcher test isolates and proves the selector's distinct behavior. Junji's compiled script is present in `.cards`.
+
+## Fails without the fix
+
+Saved the fixed production file, removed only the new controller-selection hunk, ran the focused test, and restored the file byte-identically (`cmp` exit 0):
+
+```text
+go test -run '^TestChangesZoneTriggeredCardControllerUsesDepartingCardLKI$' ./rules/
+--- FAIL: TestChangesZoneTriggeredCardControllerUsesDepartingCardLKI (0.00s)
+    trigger_controller_test.go:32: trigger controller = 1, want departing card's last controller seat 0 (witness controller is seat 1)
+FAIL
+FAIL github.com/adams-shaun/gorge/rules 0.003s
+```
+
+## Gates and output
+
+Corpus present: `.cards` is a symlink to `/home/sadams/projects/gorge/.cards`.
+
+```text
+/usr/bin/grep -rlE 'TriggerController\\$' .cards/cardsfolder | wc -l
+42
+
+gofmt -l rules/trigger_match.go rules/trigger_controller_test.go
+[no output]
+go run ./cmd/gentypes -check
+[no output]
+
+go test -run 'TestChangesZoneTriggeredCardControllerUsesDepartingCardLKI|TestEveryRepoDeckParamsAreRead' ./rules/
+ok github.com/adams-shaun/gorge/rules 0.750s
+
+go test ./internal/archtest/
+ok github.com/adams-shaun/gorge/internal/archtest 3.489s
+
+go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok github.com/adams-shaun/gorge/cmd/botbench 1.334s
+
+git diff --check
+[no output]
+```
+
+Botbench split remains byte-identical; no golden update was needed. No Known-approximations row is closed by this change.
+
+## Issues
+
+No unfixed behavior identified within the requested `TriggeredCardController` selector for battlefield departures. Other `TriggerController$` spellings and ChangesZone events that are not battlefield departures remain outside this implementation's scope; the selector is intentionally limited to the substantiated form and event/LKI boundary.
+
+---
+
+# Reports merged in from main (integration of main into wt/agent-20260919T194848Z-9bc258a5)
+
+# Report — cli-20260923T060000Z-trig-attackerblocked
+
+---
+
+# Report — api:Attach Optional$ / Yuffie object-choice attach
+
+## Summary
+
+Closed the ticket's one sub-shape: `Mode$ AttackerBlocked` (and its sibling
+`Mode$ AttackerBlockedByCreature`) now fire `AddTrigger$`-granted instances, not
+only printed face triggers. Because the row's other three sub-shapes
+(AttackersDeclared, Cycled, CounterAdded) had all landed on this base, this
+commit also deletes the "Four trigger modes carry limits" row from AGENTS.md and
+lowers `knownApproximationRows` 21 → 20.
+
+Commit: `76014dd4`
+
+## Workspace facts used
+
+- `.cards` was already a symlink in the worktree (`ls -la .cards` →
+  `.cards -> /home/sadams/projects/gorge/.cards`); corpus-backed tests really
+  ran (the new tests parse real corpus cards, and a missing corpus would have
+  `t.Fatalf`'d on the parse). No skips.
+- Sibling landing check on the branch: `git log --oneline` shows
+  `b5f1a0d9 merge(...trig-attackersdeclared)`, `c37f9f03 merge(...trig-cycled)`,
+  `db800365 merge(...trig-counteradded)`. All three sub-shapes are on the base,
+  so the row deletion is authorised.
+
+## What changed, per file
+
+### `rules/trigmatch_combat.go`
+
+The root cause: `AttackerBlocked` and `AttackerBlockedByCreature` are dedicated
+hooks, not `trigMatchers` entries (`rules/trigmatch_combat.go`'s `init()` does
+not register them). The ordinary granted-trigger walk
+(`checkGrantedStaticTriggersUsing`) queues a grant only after
+`triggerMatches(...)` returns true, and `triggerMatches` returns false when
+`trigMatchers[t.Mode] == nil`. So every `AddTrigger$` grant of these two modes
+was rejected and never fired.
+
+- Extracted the per-trigger queue body of `checkAttackerBlockedTriggers` into a
+  new shared helper `queueAttackerBlockedTrigger(t, source, controller, idx,
+  granted, grantor, ev)`. Printed triggers and granted instances now share the
+  zone/phase gates, the read-only-then-reserve limit discipline, the two
+  `ValidCard$`/`ValidBlocker$` candidate walks and the reference capture. The
+  helper carries `Granted`/`Grantor`/`Execute` onto the `pendingTrigger` so
+  `pushTrigger` routes it through `events.GrantTriggerPush` (the replayable-grant
+  path) and `events.Apply` rebuilds the `Execute$` body from the grantor's SVar
+  table. This is exactly the `queueAttackerUnblockedTrigger` /
+  `checkGrantedAttackerUnblockedTriggers` shape already used for the sibling
+  `AttackerUnblocked` mode.
+- Added `checkGrantedAttackerBlockedTriggers(ev)`, called from
+  `checkAttackerBlockedTriggers` after the printed walk. It iterates the
+  deterministic `e.active()` slice, selects live grants whose
+  `ce.AddTrigger.Mode` is one of the two modes, resolves the grantor
+  (`ce.Source`, or `ce.TriggerGrantor` for the Animate route), links the body
+  with `grantedTriggerExecute`, and for each object matching `ce.Affects` queues
+  through the same helper with `idx = -1` and the grant provenance. A grant
+  whose body cannot be resolved queues nothing (the live==replay gate).
+- The extracted helper adds an early `t.Effect == nil` return. The printed path
+  previously broke out of the candidate walk on a nil effect; behaviour is
+  identical (nothing queued, no limit consumed).
+
+`attackerBlockedCandidates` itself was already correct (it reads `ValidCard$`
+against each attacker) and needed no change; the fix is that granted instances
+now reach it.
+
+### `rules/attacker_blocked_grants_test.go` (new)
+
+Two tests, both driven by real corpus cards:
+
+- `TestGrantedAttackerBlockedByCreaturePumps` — Retaliation
+  (`AddTrigger$ TrigBlocked`, `Mode$ AttackerBlockedByCreature | ValidCard$
+  Card.Self | ValidBlocker$ Creature`). A granted 2/2 becomes blocked and pumps
+  to 3/3.
+- `TestGrantedAttackerBlockedDraws` — Stormsurge Kraken
+  (`AddTrigger$ TrigBlocked`, `Mode$ AttackerBlocked | ValidCard$ Card.Self`,
+  `OptionalDecider$ You` draw two). The Kraken, with a commander in play so the
+  Lieutenant static is live, becomes blocked and draws two.
+
+Each asserts its own preconditions: the recipient is on the battlefield; the
+compared values differ (2/2 → 3/3; hand 0 → 2); the recipient prints NO
+become-blocked trigger (so the path under test is the granted one, not a
+printed line); and `GrantTriggerPush == 1` (the granted handler actually ran).
+The Kraken test also asserts the static is live via 7/7 (printed 5/5 + granted
+2/2), so the `IsPresent$`-gated grant is proven before the block. Both build a
+`Clone()` and compare in the Retaliation case (the granted body is an SVar
+resolved from the grantor's table during Apply).
+
+### `AGENTS.md`
+
+Deleted the row (found by its text):
+
+> Four trigger modes carry limits. ... **AttackerBlocked** misses
+> `AddTrigger$`-granted instances. | `rules/trigger_match.go` (...) | M4 (...)
+
+No new row, no other row touched.
+
+### `internal/testutil/agentsdoc_test.go`
+
+`knownApproximationRows` 21 → 20, with a comment noting this ticket's deletion.
+
+## Gates run (real output pasted)
+
+Environment: `.cards` symlink present; `GOFLAGS=-p=2` and `GOMEMLIMIT` left at
+their defaults; no `-p`/`-parallel` override.
+
+Targeted tests (the brief's one gated command plus the fix's siblings):
+
+```
+$ go test -count=1 -run 'TestGrantedAttackerBlocked' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.007s
+```
+
+```
+$ go test -run 'Afflict|Flanking|AttackerBlocked|AttackerUnblocked|AttackerUnblockedOnce|BlocksTrigger|BlockerDeclaration|MinMaxBlocker|MustBlock|Menace' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.793s
+```
+
+Ratchets that a merge with main newly enforces:
+
+```
+$ go test -run 'TestParamCensus|TestEveryRepoDeckParamsAreRead|TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched|TestEveryDispatchedTriggerModeHasAMatcher' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	1.035s
+```
+
+```
+$ go test -run 'TestKnownApproximation|TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort' ./internal/testutil/
+ok  	github.com/adams-shaun/gorge/internal/testutil	0.001s
+```
+
+Behaviour goldens outside `rules/` (run once, before DONE):
+
+```
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.637s
+```
+
+```
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.305s
+```
+
+```
+$ gofmt -l rules/trigmatch_combat.go rules/attacker_blocked_grants_test.go internal/testutil/agentsdoc_test.go
+(no output)
+$ go build ./...
+(no output)
+$ go run ./cmd/gentypes -check
+(no output)
+```
+
+## Fails without the fix
+
+Restored the pre-fix `rules/trigmatch_combat.go` (saved to
+`.ds4/scratch/trigmatch_combat.go.orig`), ran the new tests, then restored the
+fixed file byte-identically (`cmp` against `.ds4/scratch/trigmatch_combat.go.fixed`
+printed `RESTORED_BYTE_IDENTICAL`):
+
+```
+$ go test -run 'TestGrantedAttackerBlocked' ./rules/
+--- FAIL: TestGrantedAttackerBlockedByCreaturePumps (0.00s)
+    attacker_blocked_grants_test.go:58: Retaliation granted AttackerBlockedByCreature GrantTriggerPush events = 0, want 1
+--- FAIL: TestGrantedAttackerBlockedDraws (0.00s)
+    attacker_blocked_grants_test.go:117: Stormsurge Kraken granted AttackerBlocked GrantTriggerPush events = 0, want 1
+FAIL
+FAIL	github.com/adams-shaun/gorge/rules	0.006s
+FAIL
+```
+
+Both fail at the granted-handler assertion, i.e. with the fix reverted the
+granted walk does not exist and no `GrantTriggerPush` is emitted.
+
+## Head / ratchet movement
+
+None measured:
+
+- `TestConstructedDefaultIsByteIdentical` (`cmd/botbench`) passed unchanged, so
+  the 20-game bot win split did not move → **no botbench re-pin**.
+- Confirmed no repo-deck card carries any of the three affected corpus carriers:
+  `grep -rl 'Stormsurge Kraken'|'Retaliation'|'Mirror Shield'` over
+  `internal/testutil/decks/` returns nothing, so `TestHeads` and the deck
+  acceptance/replay goldens cannot move from this change.
+- No `knownUnsupported`, `knownUnsupportedParams`, `knownUnmodelledCountHeads`
+  or `registeredModes` entry changed; the four ratchet scans above pass.
+- No new `Mode$` was registered (the two modes stay dedicated hooks), so the
+  registry ratchet is untouched.
+- No `events.Kind` change; the granted instance uses the existing
+  `GrantTriggerPush` path.
+
+## Structural fix (not the instance)
+
+The brief names "expand the granted triggers … so a granted instance is a
+candidate like a printed one". I chose the shared-helper shape: one
+`queueAttackerBlockedTrigger` that both the printed walk and the granted walk
+call, and one granted walk that selects grants by MODE (not by a hard-coded
+list of cards or by parsing printed faces). The next sibling carrier of either
+mode is covered automatically — any live `AddTrigger$` whose `Mode$` is
+`AttackerBlocked`/`AttackerBlockedByCreature` flows through the same path, and
+the two modes cannot drift in gates/referents because they share the helper.
+A corpus carrier list is deliberately not encoded.
+
+I did NOT touch the AttackersDeclared, Cycled or CounterAdded code (sibling
+sub-shapes, out of scope).
+
+## Deviations from the brief
+
+None. The brief's `## Workspace facts`/row quote differ slightly from the actual
+AGENTS.md text ("per declare step" vs actual wording); I deleted the row by its
+actual text.
+
+## Open concerns / caveats
+
+1. `rules/paramcensus_test.go`'s comment above the `trig:` read-root list still
+   says a granted trigger of ANY mode "matches through triggerMatches' own
+   dispatch". That was already false for these two dedicated-hook modes and is
+   the very defect fixed here; the granted half now lives in
+   `checkGrantedAttackerBlockedTriggers`. Comment-only drift; the census tests
+   pass. I left it unchanged to stay inside the brief.
+2. Mirror Shield's `AddTrigger$ TrigBlocks & TrigBecomeBlocked` still does not
+   fire — but for a DIFFERENT, pre-existing reason (the `&`-joined multi-name
+   value is never split, so no grant registers at all). Filed as a new ticket;
+   see `## Issues`.
+
+## Issues
+
+- **`AddTrigger$` with `&`-joined SVar names never registers** (out of scope;
+  filed as `.ds4/new-tickets/addtrigger-multiname-ampersand.md`,
+  Priority 2). `rules/layers.go` (`staticEffects`, AddTrigger branch) looks up
+  the WHOLE `st.Params["AddTrigger"]` string in `fc.SVars`; `cards/parse.go`
+  does not split a parameter value on `&`. Measured: 5 corpus files use the
+  shape (`mirror_shield`, `veterans_armaments`, `astrologians_planisphere`,
+  `candlekeep_sage`, `noble_heritage`); a throwaway test confirmed Mirror Shield
+  registers **0** AddTrigger grants. This is the multi-name grammar shared by
+  every granted mode, not the AttackerBlocked sub-shape this ticket closed
+  (which is about making a REGISTERED grant fire). Fixing it changes granted
+  behaviour for all modes, so it is a separate ticket.
+- **`paramcensus_test.go` stale comment** (comment-only): the `trig:` read-root
+  preamble claims all granted triggers dispatch through `triggerMatches`; the
+  two become-blocked modes now have a dedicated granted walk. See concern 1.
+- No CR-lane test was added or is proposed. The defect is a trigger-dispatch
+  gap, not a CR-rule conformance gap, and the ticket brief asked for a card-level
+  test only.
+
+---
 
 - `effects/attach.go`: Generalized destination validation to accept the actual object being attached, rather than always using the resolving source. For a `Choices$` object-side pool, each candidate is now checked against its possible destinations; the offered candidates are restricted to attachable objects and the destination list saved over suspension is the intersection valid for every offered object. This fixes Yuffie's real `Choices$ Equipment.YouCtrl | Defined$ Self` ETB: formerly the resolver treated Yuffie as the attached object, filtered Yuffie itself as an illegal self-destination, and emitted `cannot attach: no legal target` without posing the optional election. The existing Optional$ ask/decline flow had already landed in commit `744f665c`; this change corrects the Choices$ candidate/destination interaction surfaced by this card.
 - `rules/yuffie_attach_optional_test.go`: Added a real-corpus Yuffie ETB integration test. It confirms the Equipment is offered in a Min-0/Max-1 choice, the preceding gain-control rider resolves, and declining produces no Attach event and leaves the Equipment unattached. The test also replay-checks the resulting event stream.
@@ -22,6 +415,22 @@ Saved `effects/attach.go` to `.ds4/scratch/attach.go.fixed`, then temporarily ch
     yuffie_attach_optional_test.go:91: Yuffie's ETB never posed its Optional$ attach choice; events=[...]
 FAIL
 ```
+
+# Report: PlayerCountPropertyYou per-turn counts
+
+## Changes
+
+- `effects/count.go`: resolves `SacrificedThisTurn`, `CardsDiscardedThisTurn`, `LifeLostThisTurn`, and `LandsPlayed` for the `PlayerCountPropertyYou$` head. The event-backed tallies are attributed to the resolving controller; `LandsPlayed` reads the event-mutated per-player state and invalid controller indices remain unresolved. Other property/group spellings remain fail-closed.
+- `effects/registry.go`, `rules/stack.go`: added the Host bridge for `SacrificesThisTurn`, folded from sacrifice events since the latest `TurnChange`.
+- `effects/context_test.go`, `effects/playercount_property_you_test.go`: fake-host setup and a new effects regression asserting all four supported properties resolve to distinct nonzero controller-0 values and controller-1 values (including its real zero land count).
+- `effects/count_compare_test.go`: changed the former unsupported-property assertions to retain only unsupported forms.
+- `rules/sacrifices_this_turn_test.go`: new test checks owner attribution for each of two battlefield sacrifice candidates and the `TurnChange` reset.
+
+The structural approach uses the existing replay-derived host event folds for sacrifice, discard, and life loss, plus the existing event-updated `LandsPlayed` state; no parallel effects-side event interpretation was introduced. This covers future cards using these exact You-group properties.
+
+The Evendo Brushrazer end-to-end may-play assertion is deferred exactly as the brief conditions it: `Card.ExiledWithSource` does not have a working matcher in this branch, so fixing this count alone would not enable the card. The new effects test pins the previously unresolved count behavior; the deck ratchet and full Evendo gate were not changed.
+
+Corpus measurements from `.cards/`: the You-group frequencies include 17 `SacrificedThisTurn`, 17 `CardsDiscardedThisTurn`, 15 `HasPropertyBeenAttackedThisCombat`, 6 `LifeLostThisTurn`, 5 `OpponentsAttackedThisCombat`, 4 `AttractionsVisitedThisTurn`, 3 `LandsPlayed`, and 3 `DamageThisTurn` occurrences. Literal `Card.ExiledWithSource` appears in 100 script files (`grep -rlE`), rather than the brief's stated 72; this is a raw-text match count, not a claim that all 100 have the identical Affected context.
 
 The recorded events included `cannot attach: no legal target` after the gain-control rider, confirming the setup reached the actual Yuffie trigger and failed specifically at attachment destination validation.
 
@@ -523,3 +932,140 @@ referred object carries no cast spend. A vacuous setup fails loudly.
 ## Commit
 
 `a62d152c` — `fix(effects): resolve the <Ref>$<Property> CardNumColors and LifeTotal count heads`
+
+---
+
+# Report — Vote.StoreVoteNum
+
+Implemented fixed-choice `StoreVoteNum$` outcomes and pinned Fateful Tempest against the real corpus.
+
+- `effects/misc.go`: fixed-list Vote now uses a shared outcome resolver. Without `StoreVoteNum$`, it preserves the prior winner/tie behavior. With `StoreVoteNum$ True`, each choice body runs with its own `VoteNum` binding in a private copy of the source SVar table; this avoids mutating the card face's shared SVar map and lets each body consume its tally.
+- `rules/fateful_tempest_vote_test.go`: added an end-to-end real-corpus test with two votes for each option. It verifies two Mountains are milled and two exiled, proving both SVar bodies read their own count, and checks replay.
+
+`.cards/` was present as a symlink to `/home/sadams/projects/gorge/.cards`; the corpus test did not skip. The measured `StoreVoteNum` prevalence is **13 files**, matching the brief. The worktree was clean before the required `git rebase main`, which reported up to date.
+
+## Verification
+
+Targeted real-corpus regression:
+
+```text
+$ go test -run '^TestFatefulTempestStoresEachOptionVoteCount$' ./rules/ > .ds4/scratch/t.log 2>&1; rc=$?; tail -40 .ds4/scratch/t.log; exit $rc
+ok   github.com/adams-shaun/gorge/rules  0.603s
+```
+
+Architecture golden:
+
+```text
+$ go test ./internal/archtest/ 2>&1 | tail -15
+ok   github.com/adams-shaun/gorge/internal/archtest  3.864s
+```
+
+Constructed-default golden:
+
+```text
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ 2>&1 | tail -5
+ok   github.com/adams-shaun/gorge/cmd/botbench  1.364s
+```
+
+Formatting and generated types:
+
+```text
+$ gofmt -l effects/misc.go rules/fateful_tempest_vote_test.go; go run ./cmd/gentypes -check
+[no output; exit 0]
+```
+
+Diff check and corpus measurement:
+
+```text
+$ git diff --check; grep -rlE 'StoreVoteNum' .cards/cardsfolder | wc -l
+13
+```
+
+## Fails without the fix
+
+Copied `effects/misc.go` to `.ds4/scratch/misc.go.fixed`, disabled only the `StoreVoteNum$` branch in `resolveVoteOutcomes`, and ran the new test. It failed on the first observable tally-dependent effect; restored the source from the copy and verified byte identity with `cmp` (`cmp=0`).
+
+```text
+$ go test -run '^TestFatefulTempestStoresEachOptionVoteCount$' ./rules/ > .ds4/scratch/t-no-fix.log 2>&1; rc=$?; tail -30 .ds4/scratch/t-no-fix.log; test $rc -ne 0
+--- FAIL: TestFatefulTempestStoresEachOptionVoteCount (0.59s)
+    fateful_tempest_vote_test.go:90: precondition/result: two past votes must mill two Mountains, got 0
+FAIL
+FAIL	github.com/adams-shaun/gorge/rules	0.608s
+FAIL
+```
+
+## Issues
+
+The existing no-host R-9 fallback still resolves a Vote decision with the deterministic first ballot option; changing that host-degradation behavior was outside this StoreVoteNum task. No new CR-lane finding or Known approximations row was added.
+
+`.cards` existed as `/home/sadams/projects/gorge/.cards` (resolved target `/home/sadams/projects/gorge/.cards`).
+
+- `git status --short && git log -1 --oneline && git rebase main`
+  ```text
+  c5669fdf merge(cli-20260923T060000Z-choose-number): approx: effChooseNumber never asks mid-resolution and always chooses 0
+  Current branch wt/agent-20260918T233200Z-b598c141 is up to date.
+  ```
+- `go test -run 'TestPlayerCountPropertyYou' ./effects/`
+  ```text
+  ok   github.com/adams-shaun/gorge/effects  0.003s
+  ```
+- `go test -run '^TestSacrificesThisTurnCountsOwnedPermanentsAndResets$' ./rules/`
+  ```text
+  ok   github.com/adams-shaun/gorge/rules  0.003s
+  ```
+- `go test ./internal/archtest/`
+  ```text
+  ok   github.com/adams-shaun/gorge/internal/archtest  3.478s
+  ```
+- `go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/`
+  ```text
+  ok   github.com/adams-shaun/gorge/cmd/botbench  1.281s
+  ```
+- `go run ./cmd/gentypes -check`: passed, no output.
+- `gofmt -l effects/count.go effects/registry.go effects/context_test.go effects/count_compare_test.go effects/playercount_property_you_test.go rules/stack.go rules/sacrifices_this_turn_test.go`: passed, no output.
+- `git diff --check`: passed, no output.
+
+## Fails without the fix
+
+For each new test, I copied its non-test implementation file to `.ds4/scratch`, removed the implementation, ran the targeted test, restored the file from the copy, and confirmed it byte-identical with `cmp`.
+
+- Effects test, with the four dispatch cases removed from `effects/count.go`:
+  ```text
+  exit=1
+  --- FAIL: TestPlayerCountPropertyYouPerTurnLedgerCounts (0.00s)
+      playercount_property_you_test.go:29: SacrificedThisTurn = (0, false), want (1, true)
+      playercount_property_you_test.go:29: LifeLostThisTurn = (0, false), want (3, true)
+      playercount_property_you_test.go:29: LandsPlayed = (0, false), want (2, true)
+      playercount_property_you_test.go:47: controller 1 SacrificedThisTurn = (0, false), want (3, true)
+      playercount_property_you_test.go:47: controller 1 LifeLostThisTurn = (0, false), want (7, true)
+      playercount_property_you_test.go:47: controller 1 LandsPlayed = (0, false), want (0, true)
+  FAIL
+  ```
+  (The pre-existing `CardsDiscardedThisTurn` dispatch remained in place, so its assertion correctly continued to pass.)
+- Rules test, with `Engine.SacrificesThisTurn` removed from `rules/stack.go`:
+  ```text
+  # github.com/adams-shaun/gorge/rules [github.com/adams-shaun/gorge/rules.test]
+  rules/attack_cost.go:106:30: cannot use e (variable of type *Engine) as effects.Host value in argument to effects.EvalCountOK: *Engine does not implement effects.Host (missing method SacrificesThisTurn)
+  rules/attack_cost.go:109:30: cannot use e (variable of type *Engine) as effects.Host value in argument to effects.EvalCountOK: *Engine does not implement effects.Host (missing method SacrificesThisTurn)
+  rules/attack_cost.go:205:32: cannot use e (variable of type *Engine) as effects.Host value in argument to effects.EvalCountOK: *Engine does not implement effects.Host (missing method SacrificesThisTurn)
+  rules/attack_cost.go:212:33: cannot use e (variable of type *Engine) as effects.Host value in argument to effects.EvalCountOK: *Engine does not implement effects.Host (missing method SacrificesThisTurn)
+  rules/cast.go:3248:35: cannot use e (variable of type *Engine) as effects.Host value in argument to effects.CharmRandomChosen: *Engine does not implement effects.Host (missing method SacrificesThisTurn)
+  rules/cast.go:3304:37: cannot use e (variable of type *Engine) as effects.Host value in argument to effects.CharmEligibleModes: *Engine does not implement effects.Host (missing method SacrificesThisTurn)
+  rules/cast.go:3305:46: cannot use e (variable of type *Engine) as effects.Host value in argument to effects.CharmModeBounds: *Engine does not implement effects.Host (missing method SacrificesThisTurn)
+  rules/cast.go:7286:35: cannot use e (variable of type *Engine) as effects.Host value in argument to effects.EvalCountOK: *Engine does not implement effects.Host (missing method SacrificesThisTurn)
+  rules/control.go:107:35: cannot use e (variable of type *Engine) as effects.Host value in argument to effects.ControlGrantEnded: *Engine does not implement effects.Host (missing method SacrificesThisTurn)
+  rules/control_static.go:194:32: cannot use e (variable of type *Engine) as effects.Host value in argument to effects.ControlGrantEnded: *Engine does not implement effects.Host (missing method SacrificesThisTurn)
+  rules/control_static.go:194:32: too many errors
+  FAIL	github.com/adams-shaun/gorge/rules [build failed]
+  FAIL
+  ```
+
+## Issues
+
+- Sacrifice events do not carry an actor/player field. `rules/stack.go` therefore attributes `SacrificesThisTurn` by the permanent's owner; this is replay-stable but does not distinguish a permanent sacrificed by a different controller. The event shape or a separate provenance mechanism would be needed for exact actor attribution. Report this limitation for follow-up; the known-approximation register was not changed.
+- The full Evendo Brushrazer may-play path remains inert because `Affected$ Card.ExiledWithSource` is not handled here. Raw `Card.ExiledWithSource` text occurs in 100 `.cards/cardsfolder` scripts; this ticket does not implement that predicate, add the Evendo static-gate test, or move the deck ratchet.
+- The remaining unimplemented `PlayerCountPropertyYou$` shapes include `HasPropertyBeenAttackedThisCombat` (15 occurrences), `OpponentsAttackedThisCombat` (5), `AttractionsVisitedThisTurn` (4), and `DamageThisTurn` (3), plus the rarer `Valid` (2), `OpponentsAttackedThisTurn` (2), `LifeLostLastTurn` (2), `SacrificedPermanentTypesThisTurn` (1), `PlaneswalkedToThisTurn` (1), `HasPropertyNotedForBattleUgin` (1), `HasPropertyNotedForBattleBolas` (1), `HasPropertyMaxSpeed` (1), `ExploredThisTurn` (1), `DomainPlayer` (1), `DamageToOppsThisTurn` (1), and `BeenDealtCombatDamageSinceLastTurn` (1). Combat-history and other state-specific semantics were outside this ticket.
+
+## Commit
+
+`66ae9f21 fix(count): resolve per-turn player property counts`
