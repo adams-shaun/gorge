@@ -4698,3 +4698,69 @@ confirmation, so the daemon's next gate would otherwise conflict again.
 None new — integration only; no engine behaviour change by the resolution itself
 (main's chosensource1/life-exchange/infect-LKI fixes arrive reviewed from their own
 tickets).
+
+---
+
+## Round 12b — integration of main at `739aeca7` (merge commit `4a9e1acd`, this worktree, 2026-09-23)
+
+### Situation found
+
+The tree was CLEAN at `4117e21c` (the round-12 merge of main at `62ae4746`,
+already resolved and committed by the prior seat, with its record appended
+here); nothing in flight. `main` had advanced again to `739aeca7` — the
+`9630515c` addphase ticket (`ef38de87`, closing the `(ap1)` row) landed on
+main via `03671196`/`739aeca7` after that round — so a fresh integration was
+owed. `.cards` present (shared-corpus symlink).
+
+### The merge
+
+`git merge main --no-edit` → exactly two content conflicts; all engine source
+(including `effects/addphase.go`, `events/apply.go`, `rules/addphase_*.go`)
+auto-merged:
+
+- `internal/testutil/agentsdoc_test.go` — only the `knownApproximationRows`
+  comment/constant. Both sides' constants said 31, each for its own pre-merge
+  tree: HEAD's comment described the round-12 merge (base `122a388c` 35, four
+  closures); main's comment described the `9630515c` sibling-worktree merge.
+  The auto-merged AGENTS.md measures **30 data rows** with the test's own
+  algorithm (base `122a388c` 35 − 5 disjoint deletions: this branch's
+  `(chosencopy1)` closure `6c86af9b`, plus main's `(choosesource1)`
+  `71f376c3`, `api:ExchangeLifeVariant` `4b0bde0d`/`b5f51b7d`,
+  `(kw:Infect)` `bc326d39`/`56f98b13` and `(ap1)` `ef38de87`). Resolution
+  sets `knownApproximationRows = 30` with that lineage in the comment.
+  Merged table measures 4 oversize rows (unchanged set:
+  RevealAllValid/combatrestriction1/kw:MayFlashSac/kw:Flanking), so
+  `knownOversizeRows` stays 8.
+- `.ds4/report-mrg1.md` — append-only archive; two conflict regions, both the
+  same shape as every prior round (both sides appended their round-11 and
+  round-12 records at the same tail point). Resolved by keeping BOTH sides
+  verbatim and deleting only the six marker lines; no archive content dropped.
+
+### Commands and output
+
+```text
+git status            # arrival: clean at 4117e21c, nothing in flight
+git merge main --no-edit
+  CONFLICT: .ds4/report-mrg1.md, internal/testutil/agentsdoc_test.go
+  (AGENTS.md and all engine source auto-merged)
+row counts (test's algorithm): base 122a388c = 35, HEAD = 31, main = 31, merged = 30
+gofmt -l internal/testutil/agentsdoc_test.go   → clean
+go test ./internal/testutil -run 'TestKnownApproximation' -v
+  → TestKnownApproximationsOnlyShrinks PASS, TestKnownApproximationRowsAreShort PASS
+git add AGENTS.md internal/testutil/agentsdoc_test.go && git add -f .ds4/report-mrg1.md
+git commit --no-edit  →  4a9e1acd Merge branch 'main' into wt/cli-20260922T225142Z-e9128096
+git status            # clean; git merge-base --is-ancestor main HEAD → exit 0
+
+go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+  → ok github.com/adams-shaun/gorge/rules 0.768s
+```
+
+No new trigger `Mode$` matcher was registered by the merged delta, so no
+`addedAfterTheSplit` entry was needed.
+
+## Issues
+
+None new — integration only. The merged register shrinks 35 → 30 with all five
+closures preserved (this branch's `(chosencopy1)` plus main's four). No engine
+behaviour was changed by the resolution itself; the addphase feature arriving
+from main is main's own gated change.
