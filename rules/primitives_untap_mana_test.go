@@ -857,12 +857,24 @@ func TestTriggerBodyCostDeclineOnlyOnMandatoryTrigger(t *testing.T) {
 	}
 }
 
+// TestManaVaultTriggerChargesItsRealCost pins the pool-coverability gate at a
+// plain-mana triggered cost: with {4} actually in the pool the window offers
+// the pay election and the charge untaps the vault and drains the pool. (The
+// old offer-then-fail shape -- pay offered over an empty pool and declined at
+// the charge -- was closed by the pool-coverability gate
+// triggeredCostManaHalfPayable, ticket agent-20260922T232740Z-cf0357bb: an
+// unpayable window is decline-only now, and the unpayable direction is
+// pinned by TestMonstrosityOfTheLakeUnpayableIsDeclinedAtSettle and
+// TestAleshaHybridTriggerWillNotPayUnpayable.)
 func TestManaVaultTriggerChargesItsRealCost(t *testing.T) {
 	e := handEngine(t)
 	vault := onBoard(t, e, 0, "Name:Mana Vault\nManaCost:1\nTypes:Artifact\n"+
 		"T:Mode$ Phase | Phase$ Upkeep | ValidPlayer$ You | OptionalDecider$ You | Execute$ TrigUntap\n"+
 		"SVar:TrigUntap:AB$ Untap | Cost$ 4 | Defined$ Self\nOracle:x\n")
 	e.emit(events.Event{Kind: events.Tap, Obj: vault})
+	// The pool covers the announced {4} exactly: the precondition the pay
+	// offer (and the charge below) depends on.
+	e.emit(events.Event{Kind: events.ManaAdd, Player: 0, Counter: "C", Amount: 4})
 	e.emit(events.Event{Kind: events.StepChange, Step: state.StepUpkeep})
 	e.putTriggersOnStack()
 	e.resolveTop()
@@ -877,8 +889,11 @@ func TestManaVaultTriggerChargesItsRealCost(t *testing.T) {
 	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
 		t.Fatal(err)
 	}
-	if !e.G.Obj(vault).Tapped {
-		t.Fatal("Mana Vault untapped although its {4} payment failed")
+	if e.G.Obj(vault).Tapped {
+		t.Fatal("Mana Vault stayed tapped although its {4} was paid from the pool")
+	}
+	if got := e.G.Players[0].Pool.Total(); got != 0 {
+		t.Fatalf("pool after the paid {4} = %d, want 0", got)
 	}
 }
 

@@ -1317,6 +1317,75 @@ func (e *Engine) grantedAbilities(p state.PlayerID, id state.ObjID) []grantedAbi
 }
 
 // gainsValidAbilitiesAdmits reports whether the gained activated ability ab is
+
+// grantedCyclingLines returns the DERIVED cycling keyword lines
+// (cards.KeywordHead "Cycling" or "TypeCycling") id carries right now that no
+// compiled face of its pile already expands. A printed K: line is expanded at
+// link time into the pile's own abilities (the pile walk offers that one); a
+// layer-6 AddKeyword$ grant (CR 613.1f -- Tectonic Reformation, Rhet-Tomb
+// Mystic, Jo Grant, Homing Sliver) exists only in the derived keyword list and
+// needs the synthesis the offer's keyword-cycling block runs. Coverage is
+// decided against the pile's compiled facts in both directions -- a face whose
+// own keyword list holds the line (the expansion the link built, or one the
+// printed-A:-line guard suppressed) and a compiled ability tagged
+// KeywordLine = the line -- so a card that both prints and is granted the same
+// line is offered once. Duplicate derived entries (two identical grants)
+// collapse to one; distinct lines (Cycling:2 and Cycling:R) each offer, the
+// way two distinct printed K:Cycling lines would. Deterministic: Derived's
+// slice order, dedup by first occurrence -- no map range reaches the list.
+func (e *Engine) grantedCyclingLines(id state.ObjID) []string {
+	var out []string
+	for _, k := range e.Derived(id).Keywords {
+		switch cards.KeywordHead(k) {
+		case "Cycling", "TypeCycling":
+		default:
+			continue
+		}
+		dup := false
+		for _, have := range out {
+			if strings.EqualFold(have, k) {
+				dup = true
+				break
+			}
+		}
+		if dup || e.printedCyclingCovered(id, k) || cards.GrantedCyclingAbility(k) == nil {
+			continue
+		}
+		out = append(out, k)
+	}
+	return out
+}
+
+// printedCyclingCovered reports whether a compiled face of id's pile already
+// carries the cycling keyword line -- either as a keyword entry of its own
+// (the printed K: line the link expanded, or one the printed-A:-line guard
+// suppressed) or as a compiled ability tagged KeywordLine = line. A stale
+// object reads covered (withhold), the offer walk's degradation direction.
+func (e *Engine) printedCyclingCovered(id state.ObjID, line string) bool {
+	o := e.G.Obj(id)
+	if o == nil {
+		return true
+	}
+	for i := 0; i < o.PileFaceCount(); i++ {
+		pf, ok := o.PileFaceAt(i)
+		if !ok || pf.Face == nil {
+			continue
+		}
+		for _, k := range pf.Face.Keywords {
+			if strings.EqualFold(k, line) {
+				return true
+			}
+		}
+		for _, ab := range pf.Face.Abilities {
+			if strings.EqualFold(ab.Params["KeywordLine"], line) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// gainsValidAbilitiesAdmits reports whether the gained activated ability ab is
 // inside the granting static's GainsValidAbilities$ filter. The filter is
 // comma alternatives, each `Activated` plus optional dot qualifiers, and an
 // ABSENT filter admits everything. The corpus vocabulary (measured over the
@@ -2677,6 +2746,49 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 						Label: abFace.Name + ": " + ab.Params["SpellDescription"] + " (alternate cost)",
 						Obj:   id, Ability: i, AltCostIndex: 1, Grant: e.abilityGrant(id, ab)})
 				}
+			}
+			// Keyword-granted cycling (CR 613.1f): a layer-6 AddKeyword$
+			// Cycling/TypeCycling grant (Tectonic Reformation, Rhet-Tomb Mystic,
+			// Jo Grant, Homing Sliver) gives a hand card a cycling ability NO
+			// printed face carries, so the pile walk above never offers it.
+			// Synthesize the same body the printed expansion builds
+			// (cards.GrantedCyclingAbility) and offer it through the same gates,
+			// anchored on the derived keyword line beginActivation resolves --
+			// exactly the SVar-anchor shape with the line standing in for the
+			// name. A line the printed face (or a pile under-card) already
+			// expands is skipped -- the printed offer exists -- and a shape the
+			// synthesizer cannot model is skipped whole (fail closed). The
+			// synthesized body carries no SorcerySpeed$/Tap/Loyalty/CheckSVar$
+			// rider and no ReduceCost$ (its Discard-only cost is the whole
+			// non-mana half), so the pile walk's rider gates have no twin here;
+			// the offer gate prices the discard's satisfiability exactly as the
+			// printed cycling offer does.
+			for _, line := range e.grantedCyclingLines(id) {
+				ab := cards.GrantedCyclingAbility(line)
+				if ab == nil || !abilityZoneOK(ab, z) {
+					continue
+				}
+				if abilityRestricted(p, id, ab) || e.castSuppressed(p, id) {
+					continue
+				}
+				if e.activationLimitBlocked(p, id, ab, -1, line, 0) {
+					continue
+				}
+				cost := e.parseCost(ab.Params["Cost"])
+				if n := e.ownReduceCostOffer(p, id, ab, 0); n > 0 && cost.Generic >= n {
+					cost.Generic -= n
+				} else if n > 0 {
+					cost.Generic = 0
+				}
+				if !offerCastable(p, id, cost, abilityScope(ab), true) {
+					continue
+				}
+				if !e.abilityTargetsAvailable(p, id, ab) {
+					continue
+				}
+				out = append(out, decision.Option{Index: len(out), Kind: "ability",
+					Label: f.Name + ": " + ab.Params["SpellDescription"], Obj: id,
+					Ability: -1, Keyword: line})
 			}
 		}
 	}

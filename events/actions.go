@@ -1,11 +1,47 @@
 package events
 
-import "github.com/adams-shaun/gorge/state"
+import (
+	"strings"
+
+	"github.com/adams-shaun/gorge/state"
+)
 
 const (
 	discardText     = "discarded"
 	discardCostText = "discarded as a cost"
 )
+
+// cyclingDiscardPrefix marks the Counter field of a discard-as-cost event paid
+// for a CYCLING ability (CR 702.29). Counter is unused on a hand->graveyard
+// MoveZone (the face-down/cloak entry and exile markers are read only for a
+// battlefield or exile destination), so it is the one free payload slot on the
+// existing event. The prefix keeps the tag from colliding with any Counter
+// value a non-cycling discard could ever carry.
+const cyclingDiscardPrefix = "cycling:"
+
+// DiscardCostCycling returns the discard-as-cost event for a card discarded as
+// the cost of the cycling ability named by keyword (Forge's K:Cycling ->
+// "Cycling", K:TypeCycling -> "TypeCycling"). The ability's name is the
+// provenance the discard carries: a Mode$ Cycled trigger matches THIS, not the
+// discarded card's printed face, so an ability granted in a layer fires it
+// while an unrelated cost discard of a card that merely prints Cycling does
+// not (CR 702.29d; CR 603.2's event requirement).
+func DiscardCostCycling(obj state.ObjID, keyword string) Event {
+	ev := DiscardCost(obj)
+	ev.Counter = cyclingDiscardPrefix + keyword
+	return ev
+}
+
+// IsCyclingDiscard reports whether ev is a discard-as-cost event paid for a
+// cycling ability, returning the ability keyword that named it. It is false
+// for every other discard, including an ordinary cost discard of a card whose
+// printed face carries Cycling.
+func IsCyclingDiscard(ev Event) (string, bool) {
+	if !IsDiscardCost(ev) || !strings.HasPrefix(ev.Counter, cyclingDiscardPrefix) {
+		return "", false
+	}
+	return strings.TrimPrefix(ev.Counter, cyclingDiscardPrefix), true
+}
 
 // Discard returns the canonical zone-change event for a discard effect or
 // cleanup discard. Keeping the action marker here means every producer and
@@ -62,13 +98,25 @@ func IsSacrifice(ev Event) bool {
 // ActionMarker returns the action marker a zone change carries when it is a
 // sacrifice or a discard, and "" for every other event. A replacement that
 // substitutes a different move for such an event records this marker so the
-// substituted move can carry it (see CarryAction).
+// substituted move can carry it (see CarryAction). A cycling cost discard's
+// provenance (its Counter = "cycling:<keyword>") is appended after a NUL, so
+// CarryAction can restore it: CR 614.6 keeps the substituted move the same
+// action, cycling cause included.
 func ActionMarker(ev Event) string {
 	if IsSacrifice(ev) || IsDiscard(ev) {
+		if ev.Counter != "" {
+			return ev.Text + actionCauseSep + ev.Counter
+		}
 		return ev.Text
 	}
 	return ""
 }
+
+// actionCauseSep separates an action marker from the cause payload ActionMarker
+// appends. A NUL can never appear in a marker literal ("sacrificed",
+// "discarded", "discarded as a cost") or in a cycling Counter, so the split is
+// unambiguous.
+const actionCauseSep = "\x00"
 
 // CarryAction re-labels the move a replacement substituted for an action
 // event. CR 614.6: the replaced event never happens, but the modified event
@@ -79,6 +127,10 @@ func ActionMarker(ev Event) string {
 // no marker of its own, so a later move of the same object by the same
 // replacement body stays an ordinary zone change.
 func CarryAction(marker string, obj state.ObjID, ev Event) Event {
+	cause := ""
+	if i := strings.IndexByte(marker, actionCauseSep[0]); i >= 0 {
+		marker, cause = marker[:i], marker[i+1:]
+	}
 	if marker == "" || obj == 0 || ev.Kind != MoveZone || ev.Obj != obj || ev.Text != "" {
 		return ev
 	}
@@ -95,5 +147,8 @@ func CarryAction(marker string, obj state.ObjID, ev Event) Event {
 		return ev
 	}
 	ev.Text = marker
+	if cause != "" && ev.Counter == "" {
+		ev.Counter = cause
+	}
 	return ev
 }
