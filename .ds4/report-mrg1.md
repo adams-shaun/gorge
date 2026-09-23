@@ -772,3 +772,98 @@ $ gofmt -l effects/choose_control.go   # no output
 - `effects/choose_control.go` and the other auto-merged code files were NOT
   hand-checked beyond the merge succeeding; the daemon's full gate run covers
   them.
+
+---
+
+# Merge-conflict resolution — task agent-20260918T222614Z-5b138b5e (kw:Vanishing, second integration)
+
+## Entry state and operation
+
+`git status` on arrival was CLEAN — no rebase or merge in flight; the daemon's
+failed rebase and merge-fallback attempt had both been aborted before this seat
+started. Branch `wt/agent-20260918T222614Z-5b138b5e` was 6 commits ahead of
+merge-base `f3953a37`, and `main` (`c947f5c8`) was 87 commits ahead. The
+dispatch named two conflicted files (`.ds4/report-t1.md`, `.ds4/report-mrg1.md`),
+which the reported rebase/merge-fallback transcripts match. Per the standing
+"never `git rebase`" rule the integration was done as `git merge main`, which
+reproduced exactly those two conflicts; everything else (including
+`cards/kw_registry_test.go` and `AGENTS.md`) auto-merged.
+
+## What each side wanted
+
+- `.ds4/report-t1.md` (append accumulator; base 832 lines, ours 1236, main 1565):
+  - main: prepended the fb-20260923T005857Z Sephiroth `Count$ResolvedThisTurn`
+    report at the top and appended the rpteachopt1
+    (`RepeatEach` / `RepeatOptionalForEachPlayer$`) report at the tail.
+  - branch (ours): appended the `# Vanishing implementation report` at the tail.
+  - Both sides also carry the shared stat:CountersRemain /
+    TriggerController$/NonRememberedController reports — common content.
+- `.ds4/report-mrg1.md` (base 338, ours 656, main 115):
+  - ours: the accumulator — the b9ac41c2 mrg1 report + all six prior merge
+    reports (the whole base) + the Vanishing mrg1 report appended.
+  - main: REPLACED the file with only the agent-20260922T194522Z-d7f24b09
+    (rpteachopt1) resolution report.
+
+## Resolution
+
+No engine code was conflicted; both files are docs-only accumulators whose
+sides compose rather than contradict.
+
+- `report-t1.md`: main's side kept in full (Sephiroth report at top, rpteachopt1
+  at tail) with the branch's Vanishing report inserted between the shared
+  NonRememberedController report and rpteachopt1, joined by the file's `---`
+  section convention. Result: 1645 lines, 14 report headings.
+- `report-mrg1.md`: the branch's full accumulator kept, main's d7f24b09 report
+  appended after a `---` divider. Result: 774 lines, 12 report headings.
+
+A programmatic check confirmed every non-blank line of BOTH stage-2 and stage-3
+blobs is present in each resolved file (0 missing per side, per file), and no
+conflict markers remain.
+
+## Commands and output
+
+```
+$ git status                                  # clean, no in-flight op
+$ git merge main
+Auto-merging .ds4/report-mrg1.md
+CONFLICT (content): Merge conflict in .ds4/report-mrg1.md
+Auto-merging .ds4/report-t1.md
+CONFLICT (content): Merge conflict in .ds4/report-t1.md
+$ # resolved both files as above; git add -f-free (paths are tracked)
+$ git commit --no-edit   -> 0fc1657d  (Merge branch 'main' into wt/...)
+$ git merge-base --is-ancestor main HEAD   -> pass
+$ git status --porcelain -> clean
+```
+
+Post-merge ratchet sweep required by the brief (`.cards` PRESENT as the symlink
+to the real corpus — 0.76s, a corpus-backed run, not a vacuous skip):
+
+```
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  	github.com/adams-shaun/gorge/rules	0.760s
+```
+
+The branch registers no new `Mode$` matcher and closes no ratchet row, and no
+ratchet table moved on either side, so no `addedAfterTheSplit` entry or table
+removal was needed. Branch-fix sanity after the merge:
+
+```
+$ go test ./rules -run 'Vanishing'   -> ok  github.com/adams-shaun/gorge/rules  0.608s
+$ go test ./cards -run 'Vanishing'   -> ok  github.com/adams-shaun/gorge/cards  0.001s
+```
+
+## Unsure about
+
+- `main:.ds4/report-mrg1.md` replaced the accumulator with a single report; I
+  treated that as the seat overwriting rather than a deliberate deletion (the
+  same judgement the d7f24b09 report itself recorded for report-t1.md), and
+  preserved the accumulator. Nothing is lost either way: main's report is
+  appended intact and ours' history stays.
+- Only report files conflicted; `effects/choose_control.go` and the other
+  auto-merged code files were not hand-audited beyond the merge succeeding —
+  the daemon's full gate run covers them.
+
+## Issues
+
+None new. No engine defect surfaced in either side's content; no CR-lane
+finding to report.
