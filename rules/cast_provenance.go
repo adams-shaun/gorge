@@ -321,10 +321,14 @@ func (e *Engine) castProvenanceAdmitsWindow(spec string, objID state.ObjID, you 
 //     four spellings are implemented here.
 //
 //   - the cast-mode/permission flags the pay-time CastInfo carries:
-//     Spell.Mayhem (state.FlagMayhem) and Spell.MayPlaySource
-//     (state.FlagMayPlay) read the cast's own CastFlags rather than a spend
-//     window. The independent flags let sibling predicates share this event
-//     transport without changing the event format.
+//     Spell.Mayhem (state.FlagMayhem), Spell.MayPlaySource
+//     (state.FlagMayPlay) and Spell.Warp (state.FlagWarped) read the cast's
+//     own CastFlags rather than a spend window. The independent flags let
+//     sibling predicates share this event transport without changing the
+//     event format. Spell.Warp is the warp alternative cast's provenance
+//     (task mayplay-warp): modeFlags' "warped" case stamps it, and its
+//     corpus carrier is Full Bore's `ConditionPresent$ Card.CastSa
+//     Spell.Warp`.
 //
 // Like every provenance family the token is split OUT of the spec text at
 // the rules-side match sites and the remainder matched by the ordinary
@@ -349,6 +353,7 @@ var castSaTokens = []castSaToken{
 	{token: "CastSa Spell.ManaSpent EQ0", tag: -1},
 	{token: "CastSa Spell.Mayhem", tag: -1, flag: state.FlagMayhem},
 	{token: "CastSa Spell.MayPlaySource", tag: -1, flag: state.FlagMayPlay},
+	{token: "CastSa Spell.Warp", tag: -1, flag: state.FlagWarped},
 }
 
 // castSpendFacts is one cast's spend window: the total and per-tag mana the

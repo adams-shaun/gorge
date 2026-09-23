@@ -532,13 +532,14 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 	// The bare spelling is a SUBSTRING of the ByYou token, so a ByYou spec
 	// must not route to the bare helper — the ByYou branch owns it.
 	hasBareHand := !hasHandToken && strings.Contains(present, "wasCastFromYourHand")
-	// The card-level CastSa Spell.Mayhem flag token (task mayhem: Sandman's
-	// Quicksand's "if this spell's mayhem cost was paid" split) is evaluated
-	// per member off the cast's CastFlags provenance, the same split the
-	// hand families take. The spend spellings of the CastSa family stay
+	// The card-level CastSa flag tokens (task mayhem: Sandman's
+	// Quicksand's "if this spell's mayhem cost was paid" split; task
+	// mayplay-warp: Full Bore's Card.CastSa Spell.Warp) are evaluated per
+	// member off the cast's CastFlags provenance, the same split the hand
+	// families take. The spend spellings of the CastSa family stay
 	// fail-closed here (no strip; wordMatches never matches them) — the
 	// documented convention above.
-	hasCastSaMayhem := strings.Contains(present, "CastSa Spell.Mayhem")
+	hasCastSaFlagTok := hasCastSaFlag(present)
 	if present != "" {
 		check := present
 		if hasHandToken || hasBareHand {
@@ -577,7 +578,7 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 			}
 			memberSpec = s
 		}
-		if hasCastSaMayhem {
+		if hasCastSaFlagTok {
 			s, ok := castSaAdmitsFilter(h, memberSpec, t.Obj)
 			if !ok {
 				continue
@@ -871,29 +872,70 @@ func castFromHandAnyAdmitsFilter(h Host, spec string, objID state.ObjID) (string
 	return admitProvenanceAlternativesFilter(spec, "wasCastFromYourHand", holds)
 }
 
-// castSaAdmitsFilter evaluates the card-level CastSa Spell.Mayhem flag
-// token (task mayhem: Sandman's Quicksand's `ConditionPresent$ Card.!
-// CastSa Spell.Mayhem` / `Card.CastSa Spell.Mayhem` split) against ONE
-// object through the Host's game read — the effects-side twin of rules'
-// castSaAdmits (which runs the same strip at the rules-side match sites
-// where the Engine is in scope). holds reads the object's LATEST cast's
-// CastFlags: the pay-time CastInfo REPLACES the set (events.Apply's
-// CastInfo case), so a re-cast object cannot inherit an older cast's
-// flags. A copy was never cast (CR 707.10) and carries no provenance bit
-// (state.CastProvenanceFlags strips it at the copy), so it reads false —
-// the same IsCopy guard the hand helpers take. Both spellings of the
-// token (positive and !-negated) are handled; the spend spellings of the
-// CastSa family stay fail-closed here, the documented convention.
+// castSaFlagTokens is the effects-side list of the CastSa flag spellings
+// whose truth rides the cast's pay-time CastInfo CastFlags (state.FlagMayhem,
+// state.FlagMayPlay, state.FlagWarped). It mirrors the flag entries of
+// rules' castSaTokens (effects cannot import rules); a new flag spelling
+// must be added to BOTH tables, and the census recognition in
+// filter.go's wordKind switch is the third site. The loop in
+// castSaAdmitsFilter and the hasCastSaFlag gate in the ConditionPresent
+// walk both read this one table, so the next flag spelling cannot be
+// handled by one read and missed by the other.
+var castSaFlagTokens = []struct {
+	token string
+	flag  uint64
+}{
+	{token: "CastSa Spell.Mayhem", flag: state.FlagMayhem},
+	{token: "CastSa Spell.MayPlaySource", flag: state.FlagMayPlay},
+	{token: "CastSa Spell.Warp", flag: state.FlagWarped},
+}
+
+// hasCastSaFlag reports whether spec carries ANY flag spelling, the cheap
+// gate the ConditionPresent walk uses before calling castSaAdmitsFilter.
+func hasCastSaFlag(spec string) bool {
+	for _, t := range castSaFlagTokens {
+		if strings.Contains(spec, t.token) {
+			return true
+		}
+	}
+	return false
+}
+
+// castSaAdmitsFilter evaluates the card-level CastSa flag tokens (task
+// mayhem: Sandman's Quicksand's `ConditionPresent$ Card.!
+// CastSa Spell.Mayhem` / `Card.CastSa Spell.Mayhem` split; task
+// mayplay-warp: Full Bore's `ConditionPresent$ Card.CastSa Spell.Warp`)
+// against ONE object through the Host's game read — the effects-side twin
+// of rules' castSaAdmits (which runs the same strip at the rules-side match
+// sites where the Engine is in scope). holds reads the object's LATEST
+// cast's CastFlags: the pay-time CastInfo REPLACES the set (events.Apply's
+// CastInfo case), so a re-cast object cannot inherit an older cast's flags.
+// A copy was never cast (CR 707.10) and carries no provenance bit for the
+// flags state.CastProvenanceFlags strips at the copy; FlagWarped is
+// deliberately NOT in that set (a warp cast's alternative cost is a choice
+// the copy rules carry), so a warp copy reads true — the same ruling the
+// FlagWarped entry hook takes. Both spellings of each token (positive and
+// !-negated) are handled; the spend spellings of the CastSa family stay
+// fail-closed here, the documented convention.
 func castSaAdmitsFilter(h Host, spec string, objID state.ObjID) (string, bool) {
-	const pred = "CastSa Spell.Mayhem"
-	if !strings.Contains(spec, pred) {
-		return spec, true
+	var flags uint64
+	flagsRead := false
+	for _, t := range castSaFlagTokens {
+		if !strings.Contains(spec, t.token) {
+			continue
+		}
+		if !flagsRead {
+			if o := h.Game().Obj(objID); o != nil && !o.IsCopy {
+				flags = o.CastFlags
+			}
+			flagsRead = true
+		}
+		var ok bool
+		if spec, ok = admitProvenanceAlternativesFilter(spec, t.token, flags&t.flag != 0); !ok {
+			return "", false
+		}
 	}
-	holds := false
-	if o := h.Game().Obj(objID); o != nil && !o.IsCopy {
-		holds = o.CastFlags&state.FlagMayhem != 0
-	}
-	return admitProvenanceAlternativesFilter(spec, pred, holds)
+	return spec, true
 }
 
 // stripWasCastFromHandToken removes both spellings of the
