@@ -3170,3 +3170,151 @@ ok   github.com/adams-shaun/gorge/rules  0.774s
 ```
 
 No uncertainty remains in the resolved count: 37 is the data-row count used by the test helper.
+
+---
+
+## Round 9 — merge-conflict resolution (2026-09-23, dispatcher mrg1)
+
+### Situation found
+
+The worktree was CLEAN at entry (`git status` clean, no rebase/merge in
+flight) at `f8d7f44f`, the round-8 docs record. `main` had advanced past the
+round-8 integration base `08a1d59a` to `e142295d`. `git merge-base --is-ancestor
+main HEAD` exited 1. The dispatch's quoted rebase conflict (1/10 on `6e77a1e8`)
+was stale — that rebase had been rolled back; the daemon's merge fallback is
+the operation to finish, so I ran `git merge main --no-edit` against
+`e142295d`.
+
+Main's new work since round 8 was the sibling attack-prop ticket
+(`wt/cli-20260922T225141Z-462eca2e`, tip merge `e142295d`): commits
+`89c77778` ("widen the attack-prop mana window and price per attacker") and
+`1c3df172` ("the attack/block prop window resolves the tap alternative the
+payer selected"), plus a `precondition: blockPairCharge = %d, want 2` line in
+`attackprop_altselect_test.go:121`.
+
+### Conflicts and resolution
+
+`git merge main --no-edit` (against `e142295d`) produced four content
+conflicts plus two auto-added files:
+
+```
+CONFLICT (content): Merge conflict in .ds4/report-mrg1.md
+CONFLICT (content): Merge conflict in AGENTS.md
+CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go
+CONFLICT (content): Merge conflict in rules/attack_cost.go
+A  rules/attackprop_altselect_test.go
+A  rules/attackprop_window_test.go
+```
+
+**`rules/attack_cost.go`** — two hunks. Both sides reworked the SAME
+block-prop plumbing from a different angle:
+
+- HEAD (`6e77a1e8`, the reviewed fix) replaced the mana-only `int32` block
+  charge with the composite `blockCharge` (mana + life + tap obligations) and
+  its `blockUnlessCharge` / `blockTapPlan` / `blockChargeAffordable` /
+  `payBlockExtras` support, and delivered `AddStaticAbilities$` statics.
+- main (`1c3df172`) rewrote the block pay window to resolve the EXACT tap
+  alternative the payer selected (`blockPayWindow.sources []attackManaSource`
+  + `paySourceForAnswer`) and changed `attackUnlessPrice` to take an
+  `attacker` argument.
+
+Resolution: kept HEAD's composite machinery (it is the reviewed fix) and
+merged main's source-identity into it, so both intents hold:
+
+1. `blockPairCharge`'s delivered-static loop kept HEAD's composite
+   `blockUnlessCharge(sv)` (richer than main's `attackUnlessPrice(sv, 0)`; the
+   branch's `blockUnlessCharge` prices the non-mana components main's row was
+   still skipping).
+2. `blockPayWindow` now carries BOTH HEAD's `charge blockCharge` + frozen
+   `taps []state.ObjID` AND main's `sources []attackManaSource`. The
+   auto-merged `startBlockPay` / `askNextBlockPay` / `blockPayAnswer` already
+   used `charge.mana`, `st.taps`, `paySourceForAnswer(st.sources, …)` and the
+   `s.prod` label, so only the struct field set needed merging.
+3. `attackprop_altselect_test.go:121` calls `e.blockPairCharge(qal, bear)` and
+   compares to `2`; the branch's `blockPairCharge` returns `blockCharge`. This
+   is a forced consequence of the reviewed signature change, so it was
+   updated to `.mana` — the same read the branch's own block tests use
+   (`block_prop_test.go`, `block_prop_nonmana_test.go`, `mustblock_*_test.go`
+   all read `.mana`/`.life`/`.taps` off the composite).
+
+**`AGENTS.md`** — one hunk. Both sides deleted a DIFFERENT `Known
+approximations` row from the merge base (which carried both):
+
+- HEAD deleted `(blockprop1)` (the branch closed the CantBlockUnless
+  approximation).
+- main deleted `(attackprop1)` (its attack-prop work closed that row).
+
+Delete-only register: both deletions are valid and disjoint, so the resolution
+keeps NEITHER row. Measured with the test helper's own counter (`^\| ` lines
+between `## Known approximations` and the next `## `, header dropped): merge
+base `08a1d59a` = 38 rows, HEAD = 37, main = 37, merged = **36**.
+
+**`internal/testutil/agentsdoc_test.go`** — the `knownApproximationRows`
+ratchet. HEAD's comment claimed 37 and main's constant also said 37; neither
+had integrated the other's deletion. Both comments were rewrites (not
+contradictions), so I wrote one merged comment recording both closures and set
+the constant to the measured **36**. `TestKnownApproximationsOnlyShrinks`
+passes at 36.
+
+**`.ds4/report-mrg1.md`** — a report artifact, not code. Per the established
+archive convention, kept this worktree's accumulated report lineage and
+preserved main's sibling-ticket report (`462eca2e`) as a clearly-delimited
+section rather than discarding either history.
+
+### Second integration (current main)
+
+While the first merge was in flight, `main` moved again, from `e142295d` to
+`827ca863` (the sibling devthr ticket: `1e32c0e0` "resolve YourStartingLife
+Count head", touching `effects/count.go`, a new
+`effects/your_starting_life_test.go`, and removing the `YourStartingLife`
+entry from `rules/count_head_ratchet_test.go`). That delta is disjoint from
+this branch's conflict areas, so `git merge main --no-edit` merged cleanly
+(`a789e0e0`). `main` is now an ancestor of HEAD.
+
+Note: the target branch moved twice inside one dispatch window; rounds 1–8 of
+this file record the same churn. The full gate run after DONE is the arbiter.
+
+### Commands run (real output)
+
+```text
+git merge-base --is-ancestor main HEAD   → exit 1 at entry (main e142295d), exit 0 after a789e0e0
+git merge main --no-edit                 → 4 conflicts (above)
+# row measurement with the test's own counter:
+#   merge base 08a1d59a = 38 data rows; HEAD = 37; main = 37; merged = 36
+gofmt -l rules/attack_cost.go internal/testutil/agentsdoc_test.go   → (empty)
+go build ./...                            → exit 0
+go vet ./rules/                           → exit 0
+go test ./internal/testutil -run 'TestKnownApproximation' -count=1
+  ok  github.com/adams-shaun/gorge/internal/testutil  0.001s
+go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+  ok  github.com/adams-shaun/gorge/rules  0.772s
+go test ./rules -run 'TestBlockProp|TestAttackProp|TestCantBlockUnless|TargetMax|MaxTotalTargetPower'
+  ok  github.com/adams-shaun/gorge/rules  0.772s
+go test ./effects -run 'TestYourStartingLife|TestCount'
+  ok  github.com/adams-shaun/gorge/effects  0.646s
+go test ./internal/archtest/              → ok  github.com/adams-shaun/gorge/internal/archtest  3.111s
+go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+  ok  github.com/adams-shaun/gorge/cmd/botbench  1.066s   (20-game pinned split unmoved)
+```
+
+`.cards` was present (symlink to the shared corpus: `cards.lock`,
+`cardsfolder`, `ir.gob.gz`), so no corpus-backed test skipped vacuously.
+
+### Merge commits
+
+- `7c4ee058` — `Merge branch 'main' into wt/cli-20260922T225142Z-1d4558a1`
+  (parents `f8d7f44f` + `e142295d`), the conflict resolution.
+- `a789e0e0` — second, conflict-free integration of current main
+  (`827ca863`).
+
+### Issues
+
+None new. This was integration only. The two approximations whose rows the
+merge base carried are both now closed by the respective sides
+(`(blockprop1)` by this branch, `(attackprop1)` by main) and both rows are
+deleted from the register. No engine behaviour was changed by the resolution
+itself; the only non-conflict edit was the forced `.mana` read in
+`attackprop_altselect_test.go`, which is a signature-adaptation, not a
+behaviour change.
+
+No defect found while resolving this merge that needs a new CR-lane test.
