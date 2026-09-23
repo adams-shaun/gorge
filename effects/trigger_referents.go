@@ -116,6 +116,22 @@ type TriggerContext struct {
 	// Zero is both a valid count and the value for a triggering card whose
 	// cast carried none.
 	TriggerConverge int32
+	// TriggerManaSpent snapshots the CR 601.2h / 106.12 TOTAL mana actually
+	// spent to cast TriggerCard when this trigger matched (rules/
+	// trigger_referents' capture beside TriggerPaidX/TriggerConverge, read by
+	// evalRefProperty's CastTotalManaSpent property). TriggerManaSnowSpent and
+	// TriggerManaTyped carry the per-producer breakdown the filtered
+	// `TriggeredCard$CastTotalManaSpent <Type>` spelling selects (the
+	// ManaSnowSpent / Treasure / Cave / Desert captures the plain head reads,
+	// in state.TypedManaTags order). The same trigger-time binding rule as
+	// TriggerConverge applies: the mana was spent when the spell was cast, so
+	// a spell that has left the stack (countered, or resolved onto the
+	// battlefield) before the trigger resolves must not read the zeroed live
+	// fields -- these snapshots survive to resolution. Zero is both a valid
+	// spend and the value for a triggering card whose cast carried none.
+	TriggerManaSpent     int32
+	TriggerManaSnowSpent int32
+	TriggerManaTyped     [3]int32
 	// TriggerBlocker is the BLOCKING creature of the DeclareBlockers pair a
 	// Mode$ Blocks trigger fired for (rules/trigger_match.go's
 	// checkBlocksTriggers). A Blocks trigger's Remembered carries the pair's

@@ -579,6 +579,14 @@ func TestCrashedMatchFeedbackCaptureStillTrims(t *testing.T) {
 // defence remains rules/reforge_the_soul_wheel_test.go, and a future diff
 // against 2238 → 2112 is the seed re-measure at 4987fe2e plus this
 // re-record, not a discard-shape change.
+//
+// trig:SearchedLibrary re-record (2026-09-23): the completed-library-search
+// marker (events.SearchedLibrary, emitted by effects/applyLibrarySearch) is
+// one new event in this game's stream — Cultivate's search at the burst —
+// so the pre-marker capture diverged at event 173 (recorded shuffle,
+// replayed the new marker). Re-recorded via TestGenerateOvershootCapture
+// (REPRO_REGEN_FIXTURE=1): 2113 events (2112 + the one marker), 378 intents
+// (the overshootIntents shape unchanged), head 3a31833838e13145.
 const committedCaptureRel = "../cmd/repro/testdata/feedback/20260915T094418Z-e484f1db"
 
 // requireCommittedCapture skips when the worktree has no .cards/ corpus:
@@ -610,8 +618,8 @@ func TestCommittedOvershootCaptureReplaysToTheParkedAsk(t *testing.T) {
 	if err != nil {
 		t.Fatalf("feedback.Load: %v", err)
 	}
-	if n := len(l.Events); n != 2112 {
-		t.Fatalf("capture carries %d events, want the full 2112-event stream (re-recorded)", n)
+	if n := len(l.Events); n != 2113 {
+		t.Fatalf("capture carries %d events, want the full 2113-event stream (re-recorded)", n)
 	}
 	e, err := replay.Replay(l, cfg)
 	if err != nil {

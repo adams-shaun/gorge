@@ -2367,8 +2367,11 @@ func (e *Engine) matchesWithTypes(ce ContinuousEffect, id state.ObjID, types []s
 // is CR 613.6 dependency order (abilityDependencyOrder below), so a lord
 // whose gate reads a keyword another layer-6 effect grants is applied after
 // that grant regardless of timestamps -- the Cavalry Master-over-a-Sidewinder
-// Sliver case. The layer-7 P/T walk (derivedScalarFrom) still binds no
-// keyword list at all, which is the narrowing that remains.
+// Sliver case. The layer-7 P/T walk binds the SAME finished list (CR 613
+// orders layer 6 strictly before layer 7, so the walk's final keyword list
+// is what a layer-7 applicability gate reads): Windstorm Drake's
+// `Creature.withFlying+Other+YouCtrl` +1/+0 over a creature an earlier
+// layer-6 effect granted flying is the measured case.
 func (e *Engine) matchesWithChars(ce ContinuousEffect, id state.ObjID, types, keywords []string, atStack state.Zone) bool {
 	// The cast-provenance qualifiers (castprov1/2/3 — the_twelfth_doctor's
 	// `Affected$ Card.YouCtrl+!wasCastFromYourHand`, quandrix_the_proof's
@@ -2428,11 +2431,15 @@ func (e *Engine) matchesWithChars(ce ContinuousEffect, id state.ObjID, types, ke
 // never builds the keyword/type slices Derived carries, and its effect list
 // comes from active()'s cached, buffer-reused build. Its P/T is identical to
 // what the full Derived computes because it first derives layer-4 types and
-// hands them to every filter used by a layer-7 effect. Layer-6 keywords
-// cannot affect P/T applicability in the supported grammar; layer-4 changes
-// can, and typeCharacteristics below is deliberately shared rather than
-// skipped. This remains a saving because the keyword slice itself is not
-// needed for scalar reads.
+// hands them to every filter used by a layer-7 effect. A layer-6 KEYWORD
+// grant can affect P/T applicability (an `Affected$ ...+with<Keyword>`
+// pump like Windstorm Drake's), so when any layer-7 effect's Affected$
+// spec actually reads the keyword list the walk delegates to derivedWith --
+// the one place that builds the finished layer-6 list exactly -- instead
+// of duplicating the keyword-evolution logic. The probe is a cheap
+// strings.Contains short-circuit per layer-7 effect, so boards without a
+// keyword-gated pump keep the old no-keyword-slice cost; layer-4 type
+// changes are handled by typeCharacteristics below regardless.
 
 func (e *Engine) derivedScalar(id state.ObjID) (power, toughness int32) {
 	o := e.G.Obj(id)
@@ -2440,10 +2447,23 @@ func (e *Engine) derivedScalar(id state.ObjID) (power, toughness int32) {
 		return 0, 0
 	}
 	f := o.Face()
-	return e.derivedScalarFrom(id, o, f, e.active())
+	active := e.active()
+	for i := range active {
+		if ce := &active[i]; ce.Layer == LPT && effects.SpecReadsKeywords(ce.Affects) {
+			d := e.derivedWith(id, 0)
+			return d.Power, d.Toughness
+		}
+	}
+	return e.derivedScalarFrom(id, o, f, active, nil)
 }
 
-func (e *Engine) derivedScalarFrom(id state.ObjID, o *state.Object, f *cards.Face, active []ContinuousEffect) (power, toughness int32) {
+// derivedScalarFrom is the layer-7 P/T walk proper. kw is the object's
+// FINISHED layer-6 keyword list (printed, intrinsic, marker-counter, status
+// and every applied layer-6 grant) bound through matchesWithChars the way
+// the layer-6 walk binds its own keywords-so-far list -- a nil kw means no
+// caller needed the list, which matchesWithChars reads as the printed-face
+// fallback exactly as before the binding existed.
+func (e *Engine) derivedScalarFrom(id state.ObjID, o *state.Object, f *cards.Face, active []ContinuousEffect, kw []string) (power, toughness int32) {
 	if o != nil && o.FaceDown && o.Zone == state.ZBattlefield {
 		// CR 708.5's base: a face-down battlefield permanent is a 2/2
 		// creature; its printed P/T and any printed characteristic-defining
@@ -2485,7 +2505,12 @@ func (e *Engine) derivedScalarFrom(id state.ObjID, o *state.Object, f *cards.Fac
 		if ce.Layer != LPT {
 			continue
 		}
-		if !e.matchesWithTypes(ce, id, types, 0) {
+		// kw is the FINISHED layer-6 keyword list bound by the caller (see
+		// derivedScalarFrom): a layer-7 pump gated on a granted keyword
+		// (`Affected$ ...+withFlying`) must see the grant CR 613 ordered
+		// below it. matchesWithChars reads a nil list as the printed-face
+		// fallback, so a caller that did not build one is unchanged.
+		if !e.matchesWithChars(ce, id, types, kw, 0) {
 			continue
 		}
 		switch ce.Sub {
@@ -2696,9 +2721,10 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 		// keywords, IntrinsicKeywords, marker-counter grants and every
 		// layer-6 grant applied so far), bound exactly as ty is: an
 		// `Affected$ ...+with<Keyword>` lord must see a keyword an earlier
-		// effect granted. derivedScalarFrom's layer-7 walk deliberately
-		// binds no keyword list -- it never builds one, and the supported
-		// P/T grammar has no keyword-gated applicability.
+		// effect granted. At the walk's end the FINISHED list is what
+		// derivedScalarFrom's layer-7 walk binds -- CR 613 orders layer 6
+		// strictly before layer 7, so the P/T applicability gate reads the
+		// completed grant stream (Windstorm Drake over Levitation).
 		if !e.matchesWithChars(ce, id, ty, kw, atStack) {
 			continue
 		}
@@ -2785,7 +2811,7 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 	// scalar walk stashes Y and restores X's on the way out).
 	prevStashID, prevStashColors, prevStashSet := e.derivingColorsID, e.derivingColors, e.derivingColorsSet
 	e.derivingColorsSet, e.derivingColorsID, e.derivingColors = true, id, colors
-	power, toughness := e.derivedScalarFrom(id, o, f, active)
+	power, toughness := e.derivedScalarFrom(id, o, f, active, kw)
 	e.derivingColorsSet, e.derivingColorsID, e.derivingColors = prevStashSet, prevStashID, prevStashColors
 	e.derivedDepth--
 	return Derived{Power: power, Toughness: toughness, Keywords: kw, Types: ty, Name: name, Colors: colors}
@@ -3213,9 +3239,89 @@ func (e *Engine) restrictionActorMatches(ce ContinuousEffect, actor state.Player
 // callers (the cast/activation/mana/ward/unless Sac-cost candidate walks)
 // pass true, the effect-driven ones (effSacrifice, effSacrificeAll) false. A
 // face static's ForCost$/ValidCause$ scoping reads the split: ForCost$ False
-// lines never restrict a cost sacrifice, and ValidCause$ lines are evaluated
-// only on the effect path, where actionCause() names the resolving wrapper.
+// lines never restrict a cost sacrifice, ForCost$ True lines restrict only a
+// cost sacrifice, and ValidCause$ is evaluated against the cause appropriate
+// to the path -- actionCause() (the resolving wrapper) on the effect path,
+// the pending cast/activation on the cost path (causeCostAdmits, task
+// cantsac1).
 func (e *Engine) SacrificeBlocked(id state.ObjID, forCost bool) bool {
+	return e.sacrificeBlocked(id, forCost, costCauseNone)
+}
+
+// sacrificeBlockedForCost is the cost path's entry point (task cantsac1):
+// the rules-side Sac-cost walks (cast/activation, mana ability, ward,
+// unless, the cumulative-upkeep/echo Sac arm and the Cost$ Mandatory
+// trigger-cost window) know what the sacrifice is paying for, so they call
+// this with the cost's own cause (the semantics table on costCause) instead
+// of the effects.Host method. causeCostAdmits reads it, so a `ForCost$ True
+// | ValidCause$ Spell,Activated` static (angel_of_jubilation,
+// yasharn_implacable_earth) blocks a cast/activation cost sacrifice it
+// should, leaves an effect's sacrifice alone and scopes past a ward, unless
+// or upkeep payment, whose demand is a trigger or a resolution election.
+func (e *Engine) sacrificeBlockedForCost(id state.ObjID, cause costCause) bool {
+	return e.sacrificeBlocked(id, true, cause)
+}
+
+// costCause names what a COST-path sacrifice is being paid for, the cost-side
+// counterpart of causeSpecAdmits' actionCause(). A cost has no resolving
+// object to attribute: an activated ability's costs are paid BEFORE its stack
+// object exists (cast.go pushCast's pc.isAbility() early return), so the
+// stack top would name whatever unrelated object was already there -- the
+// exact misattribution discardCauseAdmits guards against. The pending act of
+// casting/activating is therefore the only honest cause where one is pending,
+// and the defined semantics per cost site (cantsac1 r2) are:
+//
+//	spell-cast cost component -> costCauseSpell
+//	activated-ability cost component, mana abilities included -> costCauseActivated
+//	ward cost (CR 702.22: the ward trigger demands the payment) -> costCauseTriggered
+//	cumulative-upkeep payment and the Cost$ Mandatory trigger-cost window
+//	(CR 702.25a: the upkeep/resolving trigger demands the payment) -> costCauseTriggered
+//	unless payment (paid during a resolving ability to elect its outcome --
+//	a resolution-election payment, never a cast or activation cost) -> costCauseResolution
+//
+// costCauseNone is no cost context at all: the effect path (the effects.Host
+// method, forCost false) and a caller with nothing pending. causeCostAdmits
+// reads Spell, Activated and Triggered; Resolution is inadmissible by every
+// readable base, so a ValidCause$ line fails closed at an unless site (the
+// permissive direction) instead of blocking a payment the resolving ability
+// did not demand as its cast/activation cost. Every corpus ForCost$ True
+// carrier is `ValidCause$ Spell,Activated` (angel_of_jubilation,
+// yasharn_implacable_earth), so a ward, unless or upkeep payment is correctly
+// OUTSIDE its scope: Angel stops sacrificing "to cast spells or activate
+// abilities", and none of those three payments is one.
+type costCause uint8
+
+const (
+	costCauseNone       costCause = iota // no cost context (the effect path)
+	costCauseSpell                       // a component of casting a spell
+	costCauseActivated                   // a component of activating an ability
+	costCauseTriggered                   // a payment a triggered ability demands (ward, upkeep)
+	costCauseResolution                  // an unless payment made during a resolving ability
+)
+
+// costCauseForPendingCast classifies the in-flight proposal pc. A nil pc (no
+// cast in flight) is costCauseNone.
+func costCauseForPendingCast(pc *pendingCast) costCause {
+	if pc == nil {
+		return costCauseNone
+	}
+	if pc.isAbility() {
+		return costCauseActivated
+	}
+	return costCauseSpell
+}
+
+// costCauseForAbility is the offer gate's variant (cast.go nonManaCastable):
+// castable prices a HYPOTHETICAL cast with no pendingCast, so the caller's
+// own ability bit is the provenance.
+func costCauseForAbility(ability bool) costCause {
+	if ability {
+		return costCauseActivated
+	}
+	return costCauseSpell
+}
+
+func (e *Engine) sacrificeBlocked(id state.ObjID, forCost bool, cause costCause) bool {
 	for _, ce := range e.active() {
 		if ce.Restriction != "CantSacrifice" {
 			continue
@@ -3228,30 +3334,33 @@ func (e *Engine) SacrificeBlocked(id state.ObjID, forCost bool) bool {
 		if !effects.CantSacrificeRestrictionParamsReadable(sv.Params) {
 			continue
 		}
-		// vc-static1: the cause-scoping parameters, evaluated before the
+		// cantsac1: the cause-scoping parameters, evaluated before the
 		// ValidCard match so an unevaluable shape stays skipped (the
 		// permissive direction) instead of blanket-blocking. ForCost$ True
-		// restricts only COST sacrifices, and the cost call sites' provenance
-		// (the pending cast/activation identity, not actionCause) is not
-		// modelled, so those lines stay skipped whole -- recorded in the
-		// combatrestriction1 row of AGENTS.md with its two carriers
-		// (angel_of_jubilation, yasharn_implacable_earth).
+		// restricts only COST sacrifices; ForCost$ False never restricts one.
 		switch sv.Params["ForCost"] {
 		case "True":
-			continue
+			if !forCost {
+				continue
+			}
 		case "False":
 			if forCost {
 				continue
 			}
 		}
 		// ValidCause$ names the kind of spell/ability that must be causing
-		// the sacrifice. Only the effect-driven call sites (forCost false)
-		// have a meaningful actionCause; a cost sacrifice has none, and a
-		// ValidCause spec (a Spell/Activated/Triggered kind) can never name a
-		// cost anyway, so a cost site skips these lines the same way -- the
-		// permissive, oracle-correct direction either way.
+		// the sacrifice. The effect path (forCost false) has a real
+		// resolving wrapper, so actionCause() evaluates it (causeSpecAdmits).
+		// The cost path has none, so it evaluates the pending cast/activation
+		// identity instead (causeCostAdmits) -- a cost sacrifice is caused by
+		// the spell being cast or the ability being activated, never by the
+		// object already on the stack.
 		if spec := sv.Params["ValidCause"]; spec != "" {
-			if forCost || !e.causeSpecAdmits(spec, sv.Source) {
+			if forCost {
+				if !causeCostAdmits(spec, cause) {
+					continue
+				}
+			} else if !e.causeSpecAdmits(spec, sv.Source) {
 				continue
 			}
 		}
@@ -3386,7 +3495,7 @@ func (e *Engine) attackBlocked(id state.ObjID, defender state.PlayerID) bool {
 		if !e.restrictionApplies(ce, id) {
 			continue
 		}
-		if !restrictionPlayerTargetMatches(e.G, ce.RestrictParams["Target"], defender, ce.Controller, ce.RememberedPlayers) {
+		if !restrictionPlayerTargetMatches(e.G, ce.RestrictParams["Target"], defender, ce.Controller, ce.Source, ce.RememberedPlayers) {
 			continue
 		}
 		return true
@@ -3403,7 +3512,7 @@ func (e *Engine) attackBlocked(id state.ObjID, defender state.PlayerID) bool {
 		if spec == "" || !e.matchesSpec(spec, id, e.specCtx(sv.Source, sv.Controller)) {
 			continue
 		}
-		if !restrictionPlayerTargetMatches(e.G, sv.Params["Target"], defender, sv.Controller, nil) {
+		if !restrictionPlayerTargetMatches(e.G, sv.Params["Target"], defender, sv.Controller, sv.Source, nil) {
 			continue
 		}
 		return true
@@ -3412,13 +3521,10 @@ func (e *Engine) attackBlocked(id state.ObjID, defender state.PlayerID) bool {
 }
 
 // restrictionPlayerTargetMatches resolves a CantAttack restriction's Target$
-// player spec (the defender-side scoping: "can't attack THAT player") against
-// the defender under attack. The corpus spells it as a comma-separated list of
-// player specs ("You,Planeswalker.YouCtrl" — this build has no
-// planeswalker-attack path, so a walker clause is a player spec that matches
-// nobody and the You half carries the read); any part matching blocks the
-// pair. An absent Target$ applies to every defender.
-func restrictionPlayerTargetMatches(g *state.Game, spec string, defender, controller state.PlayerID, rememberedPlayers []state.PlayerID) bool {
+// list against the defender. Player specs match the defending player; a
+// Planeswalker.<player-spec> clause matches a qualifying planeswalker that
+// defender controls. An absent Target$ applies to every defender.
+func restrictionPlayerTargetMatches(g *state.Game, spec string, defender, controller state.PlayerID, source state.ObjID, rememberedPlayers []state.PlayerID) bool {
 	spec = strings.TrimSpace(spec)
 	if spec == "" {
 		return true
@@ -3428,7 +3534,53 @@ func restrictionPlayerTargetMatches(g *state.Game, spec string, defender, contro
 		if part == "" {
 			continue
 		}
-		if restrictionPlayerSpecMatches(g, part, defender, controller, rememberedPlayers) {
+		if restrictionPlayerSpecMatches(g, part, defender, controller, rememberedPlayers) ||
+			restrictionPlaneswalkerTargetMatches(g, part, defender, controller, source, rememberedPlayers) {
+			return true
+		}
+	}
+	return false
+}
+
+// restrictionPlaneswalkerTargetMatches reads one Planeswalker.<player-spec>
+// entry in a restriction's Target$ list, scoped to a planeswalker controlled
+// by the defender.
+func restrictionPlaneswalkerTargetMatches(g *state.Game, spec string, defender, controller state.PlayerID, source state.ObjID, rememberedPlayers []state.PlayerID) bool {
+	parts := strings.SplitN(strings.TrimSpace(spec), ".", 2)
+	if len(parts) != 2 || !strings.EqualFold(strings.TrimSpace(parts[0]), "Planeswalker") {
+		return false
+	}
+	selector := strings.TrimSpace(parts[1])
+	for _, id := range g.Zone(state.ZBattlefield, defender) {
+		o := g.Obj(id)
+		if o == nil || o.Zone != state.ZBattlefield || !faceHasType(o, "Planeswalker") || o.Controller != defender {
+			continue
+		}
+		// Forge's common Target$ form is Planeswalker.YouCtrl. Other
+		// controller selectors are evaluated against the restriction source.
+		matches := false
+		switch strings.ToLower(selector) {
+		case "youctrl":
+			matches = defender == controller
+		case "oppctrl":
+			matches = defender != controller
+		case "controlledby player.cardowner":
+			// Xantcha's owner, not its current controller (which may be an opponent).
+			if src := g.Obj(source); src != nil {
+				matches = defender == src.Owner
+			}
+		case "rememberedplayerctrl", "controlledby remembered":
+			// Effect registrations capture the named players at resolution time.
+			for _, p := range rememberedPlayers {
+				if p == defender {
+					matches = true
+					break
+				}
+			}
+		default:
+			matches = restrictionPlayerSpecMatches(g, selector, defender, controller, rememberedPlayers)
+		}
+		if matches {
 			return true
 		}
 	}

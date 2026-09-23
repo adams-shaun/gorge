@@ -151,6 +151,10 @@ func Apply(g *state.Game, e Event) {
 		// this one, and the record is what trig:Investigated matches. Player
 		// is the investigating seat, Obj the resolving source permanent.
 
+	case SearchedLibrary:
+		// Pure marker for one completed library search; all resulting card
+		// moves and the shuffle have their own events.
+
 	case Discover, Seek, Surveil:
 		// The discover (CR 701.57), seek (task trigdisc1) and surveil
 		// (CR 701.42, task trig-surveil) records are pure markers, exactly
@@ -1321,10 +1325,10 @@ func Apply(g *state.Game, e Event) {
 			if o := g.Obj(id); o != nil {
 				o.IsAttacking = true
 				o.Attacking = e.Player
-				// CR 310.7: a battle attack carries the battle in Obj, so the
-				// attacker records which permanent it is attacking. A player
-				// attack leaves Obj zero and the field stays zero -- the same
-				// discriminator a Numeric TargetChosen pair uses.
+				// CR 310.7/CR 508.1: a battle or planeswalker attack carries that
+				// permanent in Obj, so the attacker records which permanent it is
+				// attacking. A player attack leaves Obj zero and the field stays
+				// zero -- the same discriminator a Numeric TargetChosen pair uses.
 				o.AttackingBattle = e.Obj
 				o.AttacksThisTurn++
 			}

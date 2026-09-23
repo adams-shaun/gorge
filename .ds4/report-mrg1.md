@@ -1,82 +1,97 @@
-# Merge-conflict resolution — cli-20260923T060000Z-ctms-tag
+# Round record — merge resolver, this worktree (ticket cli-20260923T060000Z-hlcz-imprint), 2026-09-23
 
-## State found
+## Entry state
 
-`git status` was CLEAN — no rebase or merge was in flight (the daemon's failed
-attempt had rolled back). The branch carried the two approved commits
-(`d1c2d6f2` fix + `17c1c42d` review-proof) on top of base `62ae4746`; main
-(`b88ad124`) was ahead. I reproduced the integration with `git merge main`,
-which hit exactly the one conflict the daemon saw (`effects/misc.go`), resolved
-it, and committed the merge as `c0dccbed`.
+`git status` found the tree CLEAN at the completed merge `519f86ff` (branch fix
+`417cb9aa` + main `e1829bf9`): no rebase or merge in flight. The dispatch's
+conflict set (`effects/zone.go`, `internal/testutil/agentsdoc_test.go`) was
+already resolved there — verified, not redone:
 
-## Conflicted file: effects/misc.go (one hunk, in `effMana`)
+- `effects/zone.go` keeps the branch's `Imprint$` retention in
+  `applyLibrarySearch` (the `var imprinted []state.ObjID` accumulation and the
+  post-move-zone-guarded batched `events.Imprint`), which main's side never
+  carried; main's changes to other zone movers are untouched.
+- `internal/testutil/agentsdoc_test.go` read `knownApproximationRows = 27`,
+  matching the merged AGENTS.md (27 data rows) — the base-2341274c 30 minus
+  this branch's hidden-library ChangeZone row deletion and main's `mtsp1`/
+  `battle1` deletions (staticgoad1→ap1 was a net-zero swap).
+- `417cb9aa` and `e1829bf9` were both ancestors; tree clean.
 
-What each side wanted:
+## Second integration — main advanced to `fac07856` mid-round
 
-- **Branch (d1c2d6f2, reviewed fix):** replaced the inline snow/typed-mana tag
-  read (walk `state.TypedManaTags` over the source face's types) with the one
-  shared helper `tag, snow := ManaProducerTag(h, c.Source)` — the point of the
-  fix is that effMana, effManaReflected and rules/cumulative.go's AddMana all
-  read the tag through ONE helper. The branch kept the base's old
-  `TriggersWhenSpent$` comment block ("UNRESTRICTED provenance batch …
-  restriction encoding wins").
-- **Main (82d3ba68 "fix(rules): fire mana-spent riders on ability
-  activations"):** kept the inline block byte-for-byte but replaced that same
-  old `TriggersWhenSpent$` comment with a newer one ("retained alongside any
-  spend restriction … the spend path dispatches the named rider after the
-  payment completes"). Main's real change in that commit is rules-side
-  (rules/cast.go, rules/stack.go — SpellAbilityCast riders, ability-activation
-  capture); those files merged cleanly.
+While verifying, `main` had moved `e1829bf9` → `fac07856` (the
+`cli-20260923T060000Z-ctms-refhead` ticket: TriggeredCard$CastTotalManaSpent
+reads the cast spend, deleting the `(castfilter1/2)` register row, plus the
+layers-pt7kw `(kw:Flanking)` deletion already in its lineage). The integration
+owed to main's tip was completed as `git merge main --no-edit`:
 
-Resolution — both intents are independent and compatible:
+- `AGENTS.md` and `effects/zone.go` auto-merged — verified both intents
+  survive: the branch's `Imprint$` fix AND main's flip-before-move
+  `applyTransformed` reordering (CR 306.5b entry-face loyalty) are both
+  present in the merged mover.
+- ONE content conflict: `internal/testutil/agentsdoc_test.go` — the
+  `knownApproximationRows` constant and its comment. Base `e1829bf9` measured
+  28 data rows; the branch deleted the hidden-library ChangeZone row (28→27),
+  main deleted `(castfilter1/2)` and `(kw:Flanking)` (28→26); the merged
+  AGENTS.md measures **25** — verified with the test's own counting rule.
+  Neither side's constant was right for the merge. Resolution:
+  `knownApproximationRows = 25` with a comment naming all three disjoint
+  closures.
 
-- Kept the **branch's** `tag, snow := ManaProducerTag(h, c.Source)`: the
-  reviewed fix, load-bearing for the cleanly-merged companions
-  (`effects/mana_reflected.go:265`, `rules/cumulative.go:612`,
-  `state/ids.go`). Dropping it would have broken the fix's own tests.
-- Kept **main's** newer `TriggersWhenSpent$` comment verbatim: it is main's
-  later deliberate change to those lines, and the code below the conflict
-  (`provenanceOnly := triggersWhenSpent != "" && restriction == "" &&
-  noCounter == ""`) is identical on both sides, so the comment is the only
-  divergence there.
+## Commands and output
 
-The inline main-side block was deleted as part of the resolution — it is the
-code the reviewed fix deliberately extracted into the helper, not an
-independent main change (verified: `git show 62ae4746:effects/misc.go` shows
-the base already had it, and the 62ae4746→main diff never touches it).
+```text
+git status                              # clean at 519f86ff, nothing in flight
+git merge-base --is-ancestor main HEAD  # e1829bf9 yes; fac07856 NO
+git merge main --no-edit
+  Auto-merging AGENTS.md
+  Auto-merging effects/zone.go
+  Auto-merging internal/testutil/agentsdoc_test.go
+  CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go
+row counts: base e1829bf9 = 28, HEAD = 27, main = 26, merged = 25
+gofmt -l internal/testutil/agentsdoc_test.go effects/zone.go   # clean
+go test ./internal/testutil -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort' -v
+  --- PASS: TestKnownApproximationsOnlyShrinks (0.00s)
+  --- PASS: TestKnownApproximationRowsAreShort (0.00s)
+  ok  github.com/adams-shaun/gorge/internal/testutil 0.002s
+go test ./effects -run 'TestLibrarySearchExileImprintIsRetained|TestLibrarySearchNonExileImprintIsRetained' -v
+  --- PASS: TestLibrarySearchExileImprintIsRetained (0.68s)
+  --- PASS: TestLibrarySearchNonExileImprintIsRetained (0.00s)
+  ok  github.com/adams-shaun/gorge/effects 0.695s
+go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+  ok  github.com/adams-shaun/gorge/rules 0.819s
+git add internal/testutil/agentsdoc_test.go && git commit --no-edit
+  -> 5e6e0760 Merge branch 'main' into wt/cli-20260923T060000Z-hlcz-imprint
+git status -> clean; main (fac07856) is now an ancestor of the branch
+```
 
-## Commands run (real output)
-
-- `git merge main` → `CONFLICT (content): Merge conflict in effects/misc.go`
-  (the only conflicted file; `git diff --name-only --diff-filter=U` listed
-  just it).
-- `gofmt -l effects/misc.go` → clean; `go build ./effects/ ./rules/` → clean;
-  no conflict markers remain.
-- `git commit --no-edit` → merge `c0dccbed`; `git status --short` → clean.
-- Ratchets (brief's command, widened with the branch's own new tests):
-  `go test ./rules -run 'TestManaReflectedProducerTagsItsSourceType|TestCumulativeUpkeepAddManaTagsItsSourceType|TestCastTotalManaSpentGrammarCountsModelledAndFailsClosed|TestManaReflectedCaveSourceTagsItsReflectedMana|TestManaReflectedAttributionIsTheAbilitySourceNotTheReflectedSet|TestProducedShapeTagsItsSourceNotTheReflectedLand|TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeckIsFullySupported|TestEveryRepoDeckParamsAreRead|CountHead'`
-  → `ok github.com/adams-shaun/gorge/rules 0.857s`. Corpus was present
-  (`.cards` symlink found at worktree creation): cross-checked by running
-  `TestEveryRepoDeckIsFullySupported -v`, which read **979 distinct repo-deck
-  cards** and reports "4 of 979 … not fully supported" PASS — that standing is
-  main's merged state (the deck set grew since the AGENTS.md 3-of-791 note),
-  not something this resolution moved.
-- `go test ./effects/` → `ok … 2.694s` (the edited package, once).
-- Behaviour goldens: `go test ./internal/archtest/` → `ok … 4.264s`;
-  `go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/` →
-  `ok … 1.279s` — the pinned bot split did NOT move, so the merge changed no
-  repo-deck behaviour the bench exercises.
-
-## Unsure about / notes
-
-- Main's newer comment says TriggersWhenSpent is "retained alongside any spend
-  restriction", but the shared `provenanceOnly` line still requires
-  `restriction == ""` — the comment slightly overstates the code, on MAIN's
-  side, unchanged by me (integration, not redesign).
-- No registry/ratchet table edits were needed: the branch registers no new
-  `Mode$` matcher and closes no ratchet row (its commit message explicitly
-  leaves the castfilter1/2 AGENTS.md row to the sibling ctms-refhead ticket).
+`.cards` is the real symlink to `/home/sadams/projects/gorge/.cards` — the
+rules ratchet run (0.819s) is real, not a vacuous corpus-skipped pass.
 
 ## Issues
 
-None new. The merge itself surfaced no defect.
+None new. Integration only; the merged state closes the hidden-library
+ChangeZone register row (this ticket) plus main-side `(castfilter1/2)` and
+`(kw:Flanking)` closures, measured at 25 data rows.
+
+---
+
+# Merge resolution report — mrg1
+
+## Conflict
+
+- `internal/testutil/agentsdoc_test.go`: main's side included the later `kw:Flanking` and `battle1` row deletions and set `knownApproximationRows` to 27; the reviewed branch also removed the `(castfilter1/2)` row and had the older constant 28. Kept all of main's updates and the branch's CTMS ref-head deletion, set the constant to 26, and updated the explanatory comment to describe the merged deletions. Measured the merged `AGENTS.md` table at 26 data rows before resolving. No other conflicted files.
+- The merge auto-merged `AGENTS.md` and `rules/cast.go`, preserving both sides' changes; no manual changes were needed there.
+
+## Commands and results
+
+- `git status --short --branch; git status` before integration: `## wt/cli-20260923T060000Z-ctms-refhead`; clean, no operation in progress.
+- `git merge main`: initially failed with a content conflict only in `internal/testutil/agentsdoc_test.go` (expected conflict); other files auto-merged.
+- Counted rows from the staged merged `AGENTS.md`: `staged AGENTS data rows: 26`.
+- `.cards` check: present as a symlink to `/home/sadams/projects/gorge/.cards`.
+- `go test -run 'TestTriggeredCardCastTotalManaSpent|TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' ./rules/`: `ok github.com/adams-shaun/gorge/rules 0.981s` (exit 0).
+- `go test -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort' ./internal/testutil/`: `ok github.com/adams-shaun/gorge/internal/testutil 0.001s` (exit 0).
+
+## Uncertainty / concerns
+
+None. Both requested ratchet groups and the conflict-specific CTMS tests passed.

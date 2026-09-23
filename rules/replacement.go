@@ -3334,16 +3334,16 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 		// which for a replacement is its live state, since a replacement runs
 		// ahead of the Move it intercepts. The same filter grammar as ValidCard,
 		// evaluated with MatchesObjectCtx (the LKI-form matcher) so the object is
-		// matched by value. Unknown predicates fail closed (filter.go's contract),
-		// so a gate this build cannot evaluate -- e.g. Forge's may-play-from-
-		// graveyard provenance spec "Card.CastSa Spell.MayPlaySource" on the
-		// Eelectrocute/Glimpse the Cosmos family, where the engine has no
-		// cast-from-graveyard path at all -- NEVER admits the replacement: the
-		// conservative direction, since an ordinary hand-origin cast of such a
-		// card must still finish in the graveyard.
+		// matched by value. CastSa qualifiers are evaluated from the paid cast's
+		// CastInfo before the remaining card spec is matched, just as at the
+		// other rules-side provenance sites.
 		if v, ok := r.Params["ValidLKI"]; ok {
 			mo := e.G.Obj(ev.Obj)
-			if mo == nil || !effects.MatchesObjectCtx(e.G, v, mo, e.rememberedSpecContext(you, source, remembered)) {
+			if mo == nil {
+				return false
+			}
+			spec, admitted := e.castSaAdmits(v, ev.Obj)
+			if !admitted || !effects.MatchesObjectCtx(e.G, spec, mo, e.rememberedSpecContext(you, source, remembered)) {
 				return false
 			}
 		}
