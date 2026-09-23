@@ -199,7 +199,7 @@ func (e *Engine) counterPlayerAddedAllMatches(t cards.Trigger, source state.ObjI
 				continue
 			}
 			if ev.Kind == events.CounterChange {
-				if effects.MatchesSpecFrom(e.G, alt, ev.Obj, you, source) {
+				if e.matchesSpecFrom(alt, ev.Obj, you, source) {
 					matched = true
 					break
 				}

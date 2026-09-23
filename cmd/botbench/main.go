@@ -126,6 +126,7 @@ import (
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/rules"
 	"github.com/adams-shaun/gorge/seat"
+	"github.com/adams-shaun/gorge/state"
 	"github.com/adams-shaun/gorge/view"
 )
 
@@ -257,7 +258,59 @@ type legacySeat struct {
 }
 
 func (s *legacySeat) Decide(_ context.Context, v view.View, d decision.Decision) (decision.Intent, error) {
-	return botpolicy.LegacyDecide(botpolicy.Board{IsMain: v.Phase == "main1" || v.Phase == "main2"}, &d, s.r), nil
+	in := botpolicy.LegacyDecide(botpolicy.Board{IsMain: v.Phase == "main1" || v.Phase == "main2"}, &d, s.r)
+	in.Choices = legacyMenaceLegal(v, &d, in.Choices)
+	return in, nil
+}
+
+// legacyMenaceLegal drops any single-blocker declaration the frozen legacy
+// policy's per-option coin leaves on a Menace attacker. LegacyDecide is
+// deliberately fact-free (it reads only IsMain), so it cannot see that an
+// attacker has Menace and can coin exactly one blocker onto it -- an intent
+// the engine's validateBlockers REJECTS, aborting the whole bench. Measured
+// at HEAD with no other change: `botbench -a bot -b legacy` aborts at seed
+// 22, intent 216, "attacker 9 with menace must be blocked by at least two
+// creatures". The guard enforces exactly the one whole-declaration
+// constraint a fact-free policy cannot know, and it runs AFTER LegacyDecide
+// has consumed its rng exactly as before, so the frozen policy body and its
+// random stream are untouched -- only the single illegal declaration is
+// withheld (the attacker is left unblocked, which CR 509.1a always allows).
+// Menace facts come from the attacker's projected derived keywords, the same
+// list the production policy reads.
+func legacyMenaceLegal(v view.View, d *decision.Decision, choices []int) []int {
+	if d == nil || d.Kind != decision.KBlockers || len(choices) == 0 {
+		return choices
+	}
+	menace := make(map[state.ObjID]bool)
+	for _, p := range v.Players {
+		for _, cv := range p.Battlefield {
+			for _, k := range cv.Keywords {
+				if strings.EqualFold(cards.KeywordHead(k), "Menace") {
+					menace[cv.ID] = true
+				}
+			}
+		}
+	}
+	if len(menace) == 0 {
+		return choices
+	}
+	count := make(map[state.ObjID]int, len(choices))
+	for _, ci := range choices {
+		if ci >= 0 && ci < len(d.Options) {
+			count[d.Options[ci].Attacker]++
+		}
+	}
+	out := make([]int, 0, len(choices))
+	for _, ci := range choices {
+		if ci >= 0 && ci < len(d.Options) {
+			atk := d.Options[ci].Attacker
+			if menace[atk] && count[atk] == 1 {
+				continue // a lone block on a Menace attacker is an illegal declaration
+			}
+		}
+		out = append(out, ci)
+	}
+	return out
 }
 
 // gameSeed returns the seed game i of a run at base seed b plays. The
@@ -1676,6 +1729,7 @@ func runMatrixTraced(baseSeed uint64, games, seats int, aName, bName, dir, forma
 		cfg := buildGameConfig(seed, []string{pd.a, pd.b},
 			[][]*cards.Card{deckByName[pd.a], deckByName[pd.b]}, commanders, commander)
 		cfg.Tokens = reg.Tokens
+		cfg.NameUniverse = reg.Cards
 		if traces == nil {
 			return playMatch(cfg, pols, botSeats, maxTurns, maxIntents, collect, cov)
 		}
@@ -1875,6 +1929,7 @@ func run(baseSeed uint64, games, seats, rotate, workers int, aName, bName, dir s
 		}
 		cfg := buildGameConfig(s, seated, decks, commanders, commander)
 		cfg.Tokens = reg.Tokens
+		cfg.NameUniverse = reg.Cards
 		return playMatch(cfg, pols, botSeats, maxTurns, maxIntents, collect, cov)
 	}
 	if workers <= 0 {

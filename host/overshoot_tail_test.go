@@ -104,7 +104,8 @@ func parkedOvershootMatch(t *testing.T, dir string) (*Registry, *table, *match, 
 		// tokens, so a token-starved live capture replays differently
 		// (Note vs a real token_create) the moment it is reloaded --
 		// discovered regenerating fb-20260915T094418Z's committed fixture.
-		Tokens: testutil.CorpusRegistry(t).Tokens,
+		Tokens:       testutil.CorpusRegistry(t).Tokens,
+		NameUniverse: testutil.CorpusRegistry(t).Cards,
 		Seats: func(names []string, seed uint64) []seat.Seat {
 			// defaultSeats' exact bots: seed ^ slot+1. Written from the
 			// match goroutine before the first park signals; the test never
@@ -422,10 +423,11 @@ func TestArchivedParkedTailMatchLoadsAfterRestart(t *testing.T) {
 	r.Close() // the restart's kill: the live match gets its terminal transition
 
 	r2, err := New(Options{
-		LoadDeck: commanderDeckLoader(t),
-		Tokens:   testutil.CorpusRegistry(t).Tokens,
-		Sleep:    func(time.Duration, <-chan struct{}) {},
-		Dir:      dir,
+		LoadDeck:     commanderDeckLoader(t),
+		Tokens:       testutil.CorpusRegistry(t).Tokens,
+		NameUniverse: testutil.CorpusRegistry(t).Cards,
+		Sleep:        func(time.Duration, <-chan struct{}) {},
+		Dir:          dir,
 	})
 	if err != nil {
 		t.Fatalf("restarting on %s: %v", dir, err)

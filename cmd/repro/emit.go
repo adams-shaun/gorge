@@ -41,6 +41,15 @@ func writeCommittedMatch(raw []byte, id string) ([]byte, error) {
 		delete(doc, "tokens")
 	}
 	delete(doc, "tokens_unread")
+	// `name_universe_names` is the whole corpus's sorted card-name list
+	// (~24k entries, ~500 KB): far too large to commit once per fixture. It
+	// is dropped here the way the token text is, and for the same replay
+	// contract — the `name_universe` MODE bit stays, so the fixture still
+	// replays with a universe, and feedback.config() re-derives the label
+	// list from the live corpus. A corpus pin move can therefore renumber a
+	// recorded name choice in a committed fixture, which surfaces as the
+	// documented DIVERGED, exactly as a stale report does.
+	delete(doc, "name_universe_names")
 	out, err := json.MarshalIndent(doc, "", "  ")
 	if err != nil {
 		return nil, fmt.Errorf("repro: re-marshal match.json: %w", err)

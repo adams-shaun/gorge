@@ -18,6 +18,93 @@ func init() {
 	Register("Sacrifice", effSacrifice)
 	Register("Manifest", effManifest)
 	Register("Cloak", effCloak)
+	Register("Seek", effSeek)
+}
+
+// effSeek implements Alchemy's random library-to-hand seek. Unlike a hidden
+// library search, seek neither reveals nor shuffles: it samples the eligible
+// pool without replacement using the host's seeded RNG.
+func effSeek(h Host, c *Ctx, sa *cards.SA) {
+	g := h.Game()
+	players := Defined(h, c, sa)
+	if sa.Params["Defined"] == "" {
+		players = []state.Target{{Player: c.Controller, IsPlayer: true}}
+	}
+	for _, target := range players {
+		if !target.IsPlayer || int(target.Player) >= len(g.Players) {
+			continue
+		}
+		owner := target.Player
+		pool := zoneOf(g, state.ZLibrary, owner)
+		if raw := strings.TrimSpace(sa.Params["DefinedCards"]); raw != "" {
+			if raw != "Top_10_OfLibrary" {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "Seek withholds DefinedCards$ " + raw + "; no cards moved"})
+				continue
+			}
+			if len(pool) > 10 {
+				pool = pool[:10]
+			}
+		}
+
+		spec := strings.TrimSpace(sa.Params["Type"])
+		if spec == "" {
+			spec = "Card"
+		}
+		types := strings.Split(strings.TrimSpace(sa.Params["Types"]), ",")
+		if strings.TrimSpace(sa.Params["Types"]) == "" {
+			types = []string{spec}
+		}
+		selected := make([]state.ObjID, 0)
+		used := make(map[state.ObjID]bool)
+		for _, typeSpec := range types {
+			typeSpec = permanentCardSpec(strings.TrimSpace(typeSpec))
+			eligible := make([]state.ObjID, 0, len(pool))
+			for _, id := range pool {
+				if used[id] || !MatchesSpecCtx(g, typeSpec, id, c.SpecContext(c.Controller)) {
+					continue
+				}
+				eligible = append(eligible, id)
+			}
+			n := int32(1)
+			if len(types) == 1 {
+				n = Num(h, c, sa, "Num", 1)
+			}
+			if n < 0 {
+				n = 0
+			}
+			if n > int32(len(eligible)) {
+				n = int32(len(eligible))
+			}
+			for i := int32(0); i < n; i++ {
+				j := h.Rand(len(eligible))
+				id := eligible[j]
+				selected = append(selected, id)
+				used[id] = true
+				eligible = append(eligible[:j], eligible[j+1:]...)
+			}
+		}
+		if len(selected) == 0 {
+			continue
+		}
+		for _, id := range selected {
+			h.Emit(moveZoneEvent(c, id, state.ZLibrary, state.ZHand))
+			if strings.EqualFold(strings.TrimSpace(sa.Params["RememberFound"]), "True") {
+				c.Remembered = append(c.Remembered, state.Target{Obj: id})
+				eventRemember(h, c, id)
+			}
+		}
+		if strings.EqualFold(strings.TrimSpace(sa.Params["ImprintFound"]), "True") && c.Source != 0 {
+			// ImprintFound$ is Forge's seek imprint (SeekEffect writes
+			// imprintedCards). It rides the separate SeekFound list -- not the
+			// ordinary Imprinted one -- because the found cards sit in a hand
+			// at continuation time, where `Defined$ Imprinted`'s CR 607.2a
+			// exiled-only reader would hide them; a chained Origin$ Hand body
+			// (Spawning Pod, Gitrog, Kardum, Puppet Raiser) reads them here.
+			h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: append([]state.ObjID(nil), selected...), Text: "seek-found"})
+		}
+		h.Emit(events.Event{Kind: events.Seek, Player: owner, Obj: c.Source})
+	}
 }
 
 // ParseZone maps a Forge zone name to a state.Zone. Unknown names resolve to
@@ -2647,6 +2734,12 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 	if spec == "" {
 		spec = "Card"
 	}
+	// Away from the battlefield, Forge's Permanent base means a permanent
+	// card. Hidden graveyard/exile picks share the library search's rule;
+	// without it Winter's remembered permanent is never eligible for DBReturn.
+	if !zoneIn(originZones, state.ZBattlefield) {
+		spec = permanentCardSpec(spec)
+	}
 	max := Num(h, c, sa, "ChangeNum", 1)
 	if max < 0 {
 		max = 0
@@ -2688,6 +2781,11 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 			settleChangeZoneMoveAs(h, c, sa, id, o.Zone, to, withKind, withAmt, o.Owner, true)
 			moved = append(moved, id)
 			if strings.EqualFold(sa.Params["RememberChanged"], "True") {
+				// Keep the resolution-local set with the event-backed source
+				// memory: a linked SubAbility (Winter's DBReturn) reads the
+				// former through IsRemembered, while later effects read the
+				// latter from the source object's Choose events.
+				c.Remembered = append(c.Remembered, state.Target{Obj: id})
 				eventRemember(h, c, id)
 			}
 			eventForgetChanged(h, c, sa, id)
@@ -2774,6 +2872,14 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 			continue
 		}
 		if done && i == cursor {
+			if raw, ok := totalCardTypesRequirement(sa); ok {
+				need, err := strconv.Atoi(raw)
+				if err != nil || need < 0 || !totalCardTypesSatisfied(h.Game(), ans, need) {
+					h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: owner,
+						Text: "hidden pick fails WithTotalCardTypes$ requirement"})
+					continue
+				}
+			}
 			apply(owner, ans)
 			continue
 		}
@@ -2966,6 +3072,40 @@ func trimSharedLandTypes(g *state.Game, chosen []state.ObjID) []state.ObjID {
 	return out
 }
 
+// totalCardTypesRequirement reads the constraint from the ChangeZone node
+// that owns this hidden pick. ResumeSA preserves that node across an answer;
+// a linked sub-ability's parameter must not constrain its parent pick.
+func totalCardTypesRequirement(sa *cards.SA) (string, bool) {
+	if sa == nil {
+		return "", false
+	}
+	raw := strings.TrimSpace(sa.Params["WithTotalCardTypes"])
+	return raw, raw != ""
+}
+
+// totalCardTypesSatisfied is the hidden-search constraint used by
+// WithTotalCardTypes$. Card types are the ordinary spell types, including
+// Kindred and Battle; supertypes and creature subtypes in Face.Types do not count.
+func totalCardTypesSatisfied(g *state.Game, ids []state.ObjID, need int) bool {
+	if need <= 0 {
+		return true
+	}
+	seen := make(map[string]bool, len(ids))
+	for _, id := range ids {
+		o := g.Obj(id)
+		if o == nil || o.Face() == nil {
+			continue
+		}
+		for _, typ := range o.Face().Types {
+			switch typ {
+			case "Artifact", "Battle", "Creature", "Enchantment", "Instant", "Kindred", "Land", "Planeswalker", "Sorcery":
+				seen[typ] = true
+			}
+		}
+	}
+	return len(seen) >= need
+}
+
 func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to state.Zone, chosen []state.ObjID, zones []state.Zone) {
 	// The search-control/replacement boundary (Opposition Agent's class):
 	// the moves this function emits are the moves OF A SEARCH, and the host
@@ -2987,7 +3127,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 	// Recheck the answer with the same hidden-zone meaning used to build the
 	// option list: a library Permanent is a permanent card.
 	spec = permanentCardSpec(spec)
-	// DifferentNames$ True (Realms Uncharted): the options carried one Group
+	// DifferentNames$ True (Realms Uncharted): the options carried a Group
 	// per card name, so a validated wire answer cannot repeat a name. A host
 	// that bypassed the wire (bot clamp top-up, a direct resume) is deduped
 	// here deterministically -- first per name in answer order -- so the
@@ -3020,6 +3160,28 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 	// everything kept before it.
 	if strings.EqualFold(strings.TrimSpace(sa.Params["ShareLandType"]), "True") {
 		chosen = trimSharedLandTypes(g, chosen)
+	}
+	// WithTotalCardTypes$ constrains the complete hidden pick, rather than
+	// each option independently. Decision.Validate cannot inspect card
+	// characteristics, so enforce the same constraint at the resolution
+	// boundary as a conservative host-bypass guard: an underspecified answer
+	// finds nothing and cannot feed the ChangeZone rider. This check follows
+	// the other set-level trims so those cannot invalidate the guarantee.
+	if raw, hasTotalCardTypes := totalCardTypesRequirement(sa); hasTotalCardTypes {
+		// This parameter is a literal card-type cardinality in the Forge
+		// grammar (Winter uses 4). Parse it directly so the hidden-search
+		// continuation cannot lose the literal when it rebuilds its Ctx.
+		literal, parseErr := strconv.Atoi(raw)
+		need, ok := int32(literal), parseErr == nil
+		if !ok || need < 0 {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: owner,
+				Text: "WithTotalCardTypes$ cannot be resolved; hidden pick fails closed"})
+			chosen = nil
+		} else if !totalCardTypesSatisfied(g, chosen, int(need)) {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: owner,
+				Text: "hidden pick fails WithTotalCardTypes$ requirement"})
+			chosen = nil
+		}
 	}
 	moved := make([]state.ObjID, 0, len(chosen))
 	for _, id := range chosen {

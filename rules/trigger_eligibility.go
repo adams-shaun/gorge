@@ -169,7 +169,7 @@ func triggerModeEvents(mode string) triggerEventMask {
 		return 1<<events.AbilityPush | 1<<events.PutOnStack
 	case "Attacks", "AttackersDeclaredOneTarget", "AttackersDeclared":
 		return 1 << events.DeclareAttackers
-	case "AttackerBlocked", "AttackerBlockedByCreature", "AttackerUnblockedOnce", "Blocks":
+	case "AttackerBlocked", "AttackerBlockedByCreature", "AttackerUnblocked", "AttackerUnblockedOnce", "Blocks":
 		return 1 << events.DeclareBlockers
 	case "Sacrificed", "Discarded", "LandPlayed":
 		return 1 << events.MoveZone
@@ -352,7 +352,7 @@ func triggerModeEvents(mode string) triggerEventMask {
 
 func grantedKeywordTriggerEvent(kind events.Kind) bool {
 	return kind == events.TargetsChosen || kind == events.DeclareAttackers || kind == events.DeclareBlockers ||
-		kind == events.PutOnStack || kind == events.MoveZone
+		kind == events.PutOnStack || kind == events.MoveZone || kind == events.StepChange
 }
 
 func triggerMaskForFace(f *cards.Face) triggerEventMask {

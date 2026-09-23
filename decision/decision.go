@@ -108,7 +108,10 @@ const (
 	// pile B's destination -- "bottom", "graveyard", "exile", "hand" -- so
 	// a rules-ignorant client can say "the ones you pick stay on top in the
 	// order you pick them; the rest go to <destination>" without learning a
-	// rule.
+	// rule. The two all-to-bottom kinds -- "hideaway_bottom" (CR 702.75a)
+	// and "dig_bottom" (Dig's default remainder) -- deviate: Min == Max ==
+	// N, every offered card goes to the BOTTOM, and the ANSWER order is the
+	// bottom order.
 	//
 	// DIRECTION, which is silent if a client gets it backwards (and which
 	// KTriggerOrder's own comment phrases the same way): pile A index 0 is
@@ -144,6 +147,9 @@ type Option struct {
 	Kind  string      `json:"kind"`
 	Label string      `json:"label"`
 	Obj   state.ObjID `json:"obj,omitempty"`
+	// Counter identifies the counter kind for wildcard counter-removal costs.
+	// It is omitted for choices that do not select a counter kind.
+	Counter string `json:"counter,omitempty"`
 	// Player is always emitted because 0 is a valid seat (0-indexed), unlike
 	// Obj where 0 means "no object".
 	Player state.PlayerID `json:"player"`
@@ -174,6 +180,10 @@ type Option struct {
 	// list serialises byte-identically.
 	MinBlockers int `json:"min_blockers,omitempty"`
 	MaxBlockers int `json:"max_blockers,omitempty"`
+	// Controller is the server-side controller key for target options. It is
+	// deliberately not serialized: TargetSameController uses it to make the
+	// legal-answer rule available to the generic validator and bot repair.
+	Controller state.PlayerID `json:"-"`
 	// Group is an exclusivity marker: two options carrying the SAME non-empty
 	// Group are mutually exclusive, and at most one of them may be selected
 	// in a single answer. The whole contract is that sentence -- it says
@@ -373,6 +383,10 @@ type Decision struct {
 	// specific object (priority, mulligan, trigger order) carry no field and
 	// today's payloads are unchanged for them.
 	Source state.ObjID `json:"source,omitempty"`
+	// TargetsWithSameController marks a target decision whose selected options
+	// must all have one Controller. It is server-side metadata, so the wire
+	// payload remains unchanged while Validate and bot repair share the rule.
+	TargetsWithSameController bool `json:"-"`
 	// TargetEffect is host-independent targeting context. It is absent on
 	// other decision kinds and on older servers; absent means unknown.
 	TargetEffect *TargetEffect `json:"target_effect,omitempty"`
@@ -443,6 +457,8 @@ type Decision struct {
 	// compile and loses the round. Runtime continuation state, never client
 	// input, the same class as ResumeMoved.
 	ResumeRound int `json:"-"`
+	// ResumeRepeatNext is the completed-iteration cursor for RepeatOptional$.
+	ResumeRepeatNext int32 `json:"-"`
 	// ResumeUptoIdx/ResumeUptoCount ride an Upto$ Draw's in-flight per-target
 	// state across a Dredge ask parked inside that target's answered batch
 	// (Arcane Denial's "may draw up to two"): the re-entering upto branch
@@ -518,6 +534,21 @@ func (d *Decision) Validate(in Intent) error {
 	}
 	seen := make(map[int]bool, len(in.Choices))
 	seenGroups := make(map[string]int, len(in.Choices))
+	var controller state.PlayerID
+	haveController := false
+	if d.TargetsWithSameController {
+		for _, c := range in.Choices {
+			if c < 0 || c >= len(d.Options) {
+				continue
+			}
+			got := d.Options[c].Controller
+			if !haveController {
+				controller, haveController = got, true
+			} else if got != controller {
+				return fmt.Errorf("choices do not share one controller")
+			}
+		}
+	}
 	for _, c := range in.Choices {
 		if c < 0 || c >= len(d.Options) {
 			return fmt.Errorf("choice %d out of range (%d options)", c, len(d.Options))

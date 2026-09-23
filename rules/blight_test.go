@@ -393,15 +393,21 @@ func TestBlightChaosSpewerUnlessGate(t *testing.T) {
 	}
 
 	// Decline: blight 2 over the controlled creatures (Spewer + Bear is two:
-	// the ask is posed, answered below).
+	// the ask is posed, answered below). The payer floats {2} so BOTH
+	// branches are offered -- the unless gate suppresses an unreachable pay,
+	// and this seat's pool alone covers {2}.
 	e2, _ := blightEngine(t, reg, 2, "Chaos Spewer")
 	spewer2 := blightMove(t, e2, 0, "Chaos Spewer", state.ZBattlefield)
 	bear2 := blightMove(t, e2, 0, "Grizzly Bears", state.ZBattlefield)
+	addMana(t, e2, 0, "CC")
 	effects.Resolve(e2, &effects.Ctx{Source: spewer2, Controller: 0,
 		SVars: searchCorpusCard(t, reg, "Chaos Spewer").Faces[0].SVars}, trig)
 	d2 := e2.Pending()
 	if d2 == nil || d2.ResumeKind != "unless_pay" {
 		t.Fatalf("pending %+v, want the unless-pay offer", d2)
+	}
+	if len(d2.Options) != 2 {
+		t.Fatalf("payable {2} should offer pay and decline: %+v", d2.Options)
 	}
 	submitChoices(t, e2, d2.Options[1].Index) // decline
 	// The body runs on a decline: blight 2 over the controlled creatures —

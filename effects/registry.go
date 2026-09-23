@@ -40,6 +40,9 @@ type Host interface {
 	// Emit (which routes through events.Apply), which is what keeps the event
 	// log a complete description of the match.
 	Game() *state.Game
+	// ObjectColors returns the object's live layer-5 colours when it is on the
+	// battlefield, and its face/CDA colours in other zones.
+	ObjectColors(*state.Object) string
 	Emit(events.Event)
 	// EmitDamage emits a Damage event and returns the event that actually
 	// landed after replacement effects. A prevention returns a non-Damage
@@ -314,6 +317,9 @@ type Host interface {
 	// permanent losing counters) are NOT folded here — the head's object-spec
 	// form is a separate, unimplemented shape.
 	CountersRemovedThisTurn(p state.PlayerID, kind string) int32
+	// CountersAddedThisTurn sums final positive object-counter placements this
+	// turn matching the count head's kind, actor and object specifications.
+	CountersAddedThisTurn(kind, actorSpec, objectSpec string, sc SpecContext) int32
 	// CombatDamageToPlayersThisTurn reports every instance of combat damage
 	// dealt to a PLAYER so far this turn, in assignment order. It is the
 	// PlayerCountDefinedRegistered$HasPropertywasDealtCombatDamageThisTurnBy
@@ -486,6 +492,10 @@ type Host interface {
 	// Counter replacement effects are rules, not a MoveZone replacement: they
 	// stop Counter before it emits the move off the stack.
 	CounterAllowed(target, cause state.ObjID) bool
+	// SuspendRepeatOptional reports that a RepeatOptional$ body suspended at
+	// a mid-resolution ask. The host must re-enter the repeat after the body
+	// answer completes, preserving the next-iteration cursor.
+	SuspendRepeatOptional(sa *cards.SA, next int32)
 	// SuspendRepeat reports that one iteration of a RepeatEach loop suspended
 	// at a mid-resolution ask. The host must bind the suspended iteration's
 	// Remembered to the pending ask (and to the iteration's own continuation
@@ -629,6 +639,7 @@ type VillainousRest struct {
 type DamageSourceLKI struct {
 	Lifelink   bool
 	Infect     bool
+	Wither     bool
 	Deathtouch bool
 	Controller state.PlayerID
 }
@@ -642,10 +653,31 @@ type EffectFrame struct {
 	Stamp  uint32
 }
 
+// RepeatOptionalContinuation is the scoped continuation for RepeatOptional$.
+// It is carried only by the resolving Ctx; rules transports it across a
+// mid-resolution ask and it is never event state.
+//
+// It represents two DISTINCT resume states, never conflated (fx42):
+//   - Continue false: the player answered "no" and the loop stops.
+//   - Continue true, AskElection false: a completed election was answered
+//     "yes", so the next body to run is iteration Next -- no further
+//     election is owed for it.
+//   - Continue true, AskElection true: a body of iteration Next-1 completed
+//     after its own suspension (a body ask), so the do/while election owed
+//     for iteration Next has NOT been posed yet and must be asked before
+//     that iteration's body runs.
+type RepeatOptionalContinuation struct {
+	Continue    bool
+	Next        int32
+	AskElection bool
+}
+
 type Ctx struct {
 	TriggerContext
 	Source     state.ObjID
 	Controller state.PlayerID
+	// NameChoice carries a mid-resolution NameCard answer across re-entry.
+	NameChoice string
 	Targets    []state.Target
 	// TargetControllerLKI captures each object target's controller at the
 	// start of resolution. A target may leave the battlefield before a
@@ -654,6 +686,9 @@ type Ctx struct {
 	// CR 608.2h last-known controller.
 	TargetControllerLKI map[state.ObjID]state.PlayerID
 	Remembered          []state.Target
+	// RepeatOptional is set only when a RepeatOptional$ answer is being
+	// resumed. A nil value means this is the first pass through the Repeat.
+	RepeatOptional *RepeatOptionalContinuation
 	// TargetsOffered marks that the resolution's OWN ValidTgts$ targeting was
 	// already offered at announcement (rules' resolveTop sets it on both the
 	// ability and the spell branch, exactly for the SA the placement ask
@@ -881,6 +916,11 @@ type Ctx struct {
 	// empty optional choice from its first pass.
 	Choice     []state.Target
 	ChoiceDone bool
+	// CopyPermanentChoice is the selected source for the one supported
+	// CopyPermanent Choices$/Chooser$ shape. It is deliberately separate
+	// from Choice so nested choices cannot consume it.
+	CopyPermanentChoice     state.ObjID
+	CopyPermanentChoiceDone bool
 	// TargetsPick is the answered target set of the generic ValidTgts$
 	// pre-ask (chosenTargetsFor, posed inside effects.Resolve's dispatch
 	// loop for a sub the placement/announcement ask never covered -- the
@@ -994,6 +1034,19 @@ type Ctx struct {
 	// is consumed and cleared at the re-entry's top (fx42 scoping), so a
 	// nested PutCounter poses its own ask.
 	PutOpt string
+	// CounterKind is the answered kind for a comma-separated PutCounter list.
+	// CounterKindDone distinguishes an answered first-option fallback from the
+	// first pass; CounterKinds carries a ChooseDifferent$ multi-answer.
+	CounterKind      string
+	CounterKindDone  bool
+	CounterKinds     []string
+	CounterKindsDone bool
+	// CounterKindAnswers is the replay-derived per-recipient answer table
+	// rules seeds for CounterTypePerDefined$; effPutCounter consumes it at
+	// entry so a nested PutCounter cannot inherit it.
+	CounterKindAnswers     []string
+	CounterKindAnswerIndex int
+	CounterKindAnswerSet   bool
 	// PlaneswalkOpt is the answered Optional$ True "you may planeswalk"
 	// election. It is resolution-local so a nested Planeswalk cannot inherit
 	// an outer answer.
@@ -1231,6 +1284,14 @@ type Ctx struct {
 	// applied by the rules handler, unlike Modes/UnlessPay/Discard where the
 	// effect re-reads the answer -- so the field is only a done-marker.
 	Arrange bool
+	// ArrangeTarget is the Defined$-target index whose arrange was the one
+	// answered, carried only for a Dig (whose effDig walks several Defined$
+	// targets and must keep the deterministic processing for the ones after
+	// the asker on the arrange re-entry; the other arrange consumers are
+	// single-target). The re-entered effDig consumes and clears it together
+	// with Arrange (fx42 scoping). Zero is a legitimate index -- the marker
+	// is Arrange, never this field alone.
+	ArrangeTarget int
 	// MayShuffle is the answered may-shuffle ask a RearrangeTopOfLibrary
 	// carrying MayShuffle$ True (Ponder's "You may shuffle.") poses after its
 	// KArrange was applied: "yes" means the player shuffled (rules'
@@ -1325,6 +1386,44 @@ type Ctx struct {
 	// RevealOptional$ peek in the same walk poses its own ask (fx42
 	// scoping).
 	RevealOpt string
+	// RevealOptTarget is the Defined$ target index whose reveal_optional
+	// yes/no was answered (the decision's ResumeTarget), the same per-target
+	// cursor LookAckTarget and RevealPickTarget carry. Meaningful only while
+	// RevealOpt is non-empty: targets before the cursor were fully processed
+	// on the pass that suspended and are skipped, the cursor target consumes
+	// the answer, and every LATER optional reveal in the walk poses its own
+	// yes/no. Without it a reveal_optional resolving over several Defined$
+	// players answered for target 0 and then either silently applied that
+	// same yes/no to every later target (a non-pickable reveal) or left the
+	// later target's ask unposed (a pickable one), because neither a yes nor
+	// a no can be attributed to a target it was never asked of. Consumed and
+	// cleared with RevealOpt.
+	RevealOptTarget int
+	// RevealPick is the answered mid-resolution hand-reveal pick (task
+	// infernaltutor1): the ids of the hand cards the revealing player chose
+	// to reveal. A hand reveal whose eligible pool is strictly larger than
+	// the count it must show (Infernal Tutor's "Reveal a card from your
+	// hand", or an AnyNumber$/Optional$ miss) is a CHOICE Forge poses to the
+	// pool's owner; effReveal poses it as a KChoose with ResumeKind
+	// "reveal_pick" and this field carries the answer back. Non-nil means
+	// answered (a legitimate empty answer is a non-nil zero-length slice,
+	// exactly the Ctx.Discard convention), so an empty answer ("reveal
+	// none") is distinguishable from a first pass. effReveal consumes and
+	// clears it at the top of its own walk so a nested reveal poses its own
+	// ask (fx42 scoping).
+	RevealPick []state.ObjID
+	// RevealPickTarget is the Defined$ target index whose reveal_pick was
+	// answered (the decision's ResumeTarget), the same per-target cursor
+	// LookAckTarget carries. Meaningful only while RevealPick is non-nil:
+	// targets before the cursor were fully processed on the pass that
+	// suspended and are skipped, the cursor target consumes the answer, and
+	// every LATER pickable reveal in the walk poses its own ask. Without it,
+	// a pickable reveal resolving over several Defined$ players applied the
+	// first player's answer to every subsequent player's distinct hand —
+	// none of those ids can occur in another hand, so n became 0 and no
+	// later player was asked or revealed. Consumed and cleared with
+	// RevealPick.
+	RevealPickTarget int
 	// ChosenType is the answered mid-resolution ChooseType pick (task ct1):
 	// the creature type the chooser picked out of the TypeChoices list, set
 	// by rules' "choosetype" resume arm before the suspended sub-ability is
@@ -1336,6 +1435,15 @@ type Ctx struct {
 	// consumes and clears it at the top of its walk (the fx42 scoping
 	// discipline), so a nested ChooseType cannot inherit the outer answer.
 	ChosenType string
+	// ManaReflectedColor is the answered mid-resolution AB$ ManaReflected
+	// colour pick: the option Label ("Add W") the chooser picked, set by
+	// rules' "manareflected" resume arm before the suspended sub-ability is
+	// re-run. effManaReflected's re-entry consumes and clears it, accepts the
+	// colour only when the resolution still offers it, and emits the one
+	// ManaAdd the deterministic fallback would have emitted. Empty on the
+	// first pass, where the effect poses the ask (or, on a host that cannot
+	// answer, the R-9 stand-in).
+	ManaReflectedColor string
 	// LookAck is the answered bare-look "Continue" ack (lookack, task
 	// fb-20260917T232325Z-35cfca4b): the looker acknowledged the private
 	// look a NoReveal$ / mandatory-Look$ Reveal-family effect is about to

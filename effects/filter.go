@@ -52,6 +52,15 @@ var predicates = map[string]predFn{
 	"foretold": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.CastFlags&state.FlagForetold != 0
 	},
+	// tokenCreated is Forge's zone-entry provenance predicate. In the
+	// Count$ThisTurnEntered_* specs that use it, a token's IsToken marker is
+	// the exact per-object meaning: tokens that leave cease to exist, and the
+	// entry list is cleared at TurnChange. A resolving creature-spell copy
+	// that enters the battlefield is also a token under CR 707.10g, so it
+	// correctly matches through the same marker.
+	"tokenCreated": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o.IsToken
+	},
 	"OppOwn":    func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool { return o.Owner != you },
 	"Self":      func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool { return o.ID == src },
 	"Other":     func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool { return o.ID != src },

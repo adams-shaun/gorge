@@ -65,6 +65,10 @@ type pendingTrigger struct {
 	// resolves from the source's SVar table).
 	Delayed   bool
 	DelayedID uint32
+	// MonarchDraw is the CR 724.2a beginning-of-end-step triggered draw.
+	// It is represented as a real stack ability through the existing delayed
+	// push event, rather than as an immediate turn action.
+	MonarchDraw bool
 	// Merged marks a mutated pile's under-card trigger (CR 702.140d): like
 	// a delayed trigger its Ability is the Execute$ SVar-named body, but the
 	// push must resolve that name against the UNDER-CARD's own face, never
@@ -175,6 +179,22 @@ type pendingTrigger struct {
 	// Defined$ TriggeredBlockerLKICopy reads at resolution. Idx and SA are
 	// unset for it.
 	Flanking bool
+	// Cumulative is a GRANTED cumulative-upkeep cost (CR 702.24 via a layer-6
+	// AddKeyword$ Cumulative upkeep:<cost> -- Breath of Dreams, Mana Chains,
+	// Decomposition -- or an A:AB$ Pump's KW$ Cumulative upkeep:<cost> --
+	// Balduvian Shaman, Dreams of the Dead): the Ward/Afflict/Flanking shape.
+	// A permanent granted the keyword has no printed K:Cumulative upkeep
+	// expansion trigger to carry the beginning-of-upkeep age-counter and
+	// pay/sacrifice window, so checkGrantedCumulativeUpkeepTriggers
+	// synthesizes the ordinary Phase trigger and the drain pushes a
+	// KeywordTriggerPush whose __kwCumulativeUpkeepGranted:<cost> payload
+	// events.Apply rebuilds into the same DB$ CumulativeUpkeep | Cost$ <cost>
+	// ability the printed K:Cumulative upkeep expansion carries. The field is
+	// the parsed-out upkeep COST text (the display suffix after a second colon
+	// stripped, exactly as cards/kw_cumulativeupkeep.go strips it). Idx and SA
+	// are unset for it; unlike Ward/Afflict it carries no Ctx roles (the
+	// trigger reads only the permanent and its controller).
+	Cumulative string
 	// RingEmblem is one of the Ring emblem's four level abilities (CR
 	// 701.54c), queued by checkRingEmblemTriggers. The emblem has no face
 	// and no object in any zone, so like Ward/Afflict this entry carries
@@ -263,7 +283,7 @@ type combatFires struct {
 // modes, so no trigger of another mode that fired before stops firing or
 // fires less often.
 var actionTriggerModes = map[string]bool{
-	"AttackersDeclaredOneTarget": true, "AttackersDeclared": true, "Sacrificed": true, "Discarded": true,
+	"AttackersDeclaredOneTarget": true, "AttackersDeclared": true, "AttackerUnblocked": true, "Sacrificed": true, "Discarded": true,
 	"CommitCrime": true, "Taps": true, "TapsForMana": true,
 	// DamagePreventedOnce joins them for the same reason: it is an event mode
 	// registered from the start (rules/trigger_match.go's
@@ -674,7 +694,7 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object,
 		e.checkFaceTriggers(observer, ev, obj, power, toughness, valid, true, true)
 	}
 	e.checkFaceTriggers(e, ev, lki, lkiPower, lkiToughness, lkiPTValid, batch, false)
-	if ev.Kind == events.PutOnStack || ev.Kind == events.MoveZone {
+	if ev.Kind == events.PutOnStack || ev.Kind == events.MoveZone || ev.Kind == events.MonarchChange {
 		e.checkEventDelayedTriggers(ev, lki)
 	}
 	// Sagas (kw:Chapter): a lore counter's chapter ability queues off the
@@ -833,7 +853,7 @@ func (e *Engine) checkExertTriggers(ev events.Event) {
 			continue
 		}
 		if vc := sv.Params["ValidCard"]; vc != "" &&
-			!effects.MatchesSpecFrom(e.G, vc, ev.Obj, o.Controller, sv.Source) {
+			!e.matchesSpecFrom(vc, ev.Obj, o.Controller, sv.Source) {
 			continue
 		}
 		exec := sv.Params["Trigger"]
@@ -952,6 +972,8 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				case events.MoveZone:
 					e.checkGrantedExploitTriggers(observer, id, o, f, ev, objLKI)
 					e.checkGrantedOffspringTriggers(observer, id, o, f, ev, objLKI)
+				case events.StepChange:
+					e.checkGrantedCumulativeUpkeepTriggers(observer, id, o, f, ev, objLKI)
 				}
 			}
 			e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid, split, leaving)
@@ -1262,7 +1284,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				// the copy again: the copy is not an event). Panharmonicon's own
 				// trigger is excluded by the spec's Other predicate, which is
 				// relative to the Panharmonicon permanent itself.
-				for k := 0; k < e.panharmoniconEchoes(observer.G, id, ev); k++ {
+				for k := 0; k < e.panharmoniconEchoes(observer, id, ev); k++ {
 					e.pendingTriggers = append(e.pendingTriggers, pt)
 				}
 			}
@@ -1296,6 +1318,11 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		// trigger carrying the training grant) -- the early-return path above
 		// reaches this object through checkGrantedTrainingTriggers's own call.
 		e.checkGrantedTrainingTriggers(observer, id, o, f, ev, objLKI)
+		// A granted cumulative upkeep must fire at the beginning of the
+		// controller's upkeep even when the object's own printed triggers are
+		// live for this step change -- the same both-paths rule Afflict,
+		// Conspire, Exploit, Offspring and Training follow.
+		e.checkGrantedCumulativeUpkeepTriggers(observer, id, o, f, ev, objLKI)
 	})
 	for _, n := range phaseNotes {
 		e.emit(events.Event{Kind: events.Note, Obj: n.id,
@@ -1736,7 +1763,7 @@ func init() {
 
 	effects.RegisterNonAPI(
 		"trig:ChangesZone", "trig:ChangesZoneAll", "trig:SpellCast", "trig:Attacks", "trig:AttackersDeclaredOneTarget",
-		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:AttackerBlockedByCreature", "trig:AttackerUnblockedOnce", "trig:Blocks", "trig:Cycled", "trig:CounterAdded", "trig:CounterAddedOnce", "trig:CounterRemoved", "trig:CounterRemovedOnce", "trig:CounterPlayerAddedAll",
+		"trig:AttackersDeclared", "trig:AttackerBlocked", "trig:AttackerBlockedByCreature", "trig:AttackerUnblocked", "trig:AttackerUnblockedOnce", "trig:Blocks", "trig:Cycled", "trig:CounterAdded", "trig:CounterAddedOnce", "trig:CounterRemoved", "trig:CounterRemovedOnce", "trig:CounterPlayerAddedAll",
 		"trig:Sacrificed", "trig:Discarded", "trig:CommitCrime", "trig:Taps", "trig:TapsForMana",
 		"trig:ClassLevelGained", "trig:BecomeMonstrous",
 		"trig:TokenCreated", "trig:TokenCreatedOnce",
