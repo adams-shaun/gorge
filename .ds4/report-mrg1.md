@@ -3679,7 +3679,7 @@ Merged AGENTS.md Known approximations data rows: 34
  ok   github.com/adams-shaun/gorge/rules  0.772s
 ```
 
-The corpus symlink `.cards` is present. The ratchet checks passed. No engine behaviour was changed during this conflict resolution. Main is now integrated in merge commit (recorded after completion below).
+The corpus symlink `.cards` is present. The ratchet checks passed. No engine behaviour was changed during this conflict resolution. Main is integrated in merge commit `2428b899`; the worktree was clean immediately after completion.
 
 ## Issues
 
