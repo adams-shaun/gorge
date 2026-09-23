@@ -43,6 +43,14 @@ type cumulativeUpkeep struct {
 	costLabel  string
 	windowDone bool
 
+	// pips carries the flexible-pip payment announcement (CR 601.2b/107.4e-f)
+	// for this window, exactly as triggeredEffectCost.pips does:
+	// pipAnnounceAsk asks each of the cost's announcement pips, fold folds the
+	// elected faces into the cost the pay gate prices and the pay arm charges,
+	// and the answer arm advances through the shared accumulator. A value
+	// struct, so a clone carries it.
+	pips pipAnnounce
+
 	// actionRemaining counts repeated action payments still to make. Most
 	// action costs ask once per age counter; object sacrifices/discards ask
 	// for the full scaled set at once, while PutCardToLibFromSameGrave uses
@@ -96,22 +104,15 @@ type triggeredEffectCost struct {
 	// reservation list the other components keep) so the settle can emit the
 	// owner's-graveyard moves the picks name.
 	moveGraves []state.ObjID
-	// payIdx / payColor / payLife / payGeneric carry the flexible-pip payment
-	// announcement (CR 601.2b/107.4e-f) for this window: Alesha's `Cost$
-	// WB WB` and the other announcement-pip trigger costs. triggeredCostPipAsk
-	// walks the cost's combined announcement-pip list (Cost.annPipCount, the
-	// same order and alternatives the cast flow's manaAsk offers, via the one
-	// shared Cost.announcePip) one decision at a time; payIdx is the next
-	// unsettled pip, payColor accumulates the coloured faces the announced
-	// pips chose, payLife the life a Phyrexian face paid with two life, and
-	// payGeneric the generic a monocolour hybrid pip paid with its generic
-	// face. announcedCost folds them back into the cost the gates price and
-	// the pay arm charges. Plain data (a value array and scalars), so the
-	// window clone copies it without a deep-copy rule.
-	payIdx     int
-	payColor   state.Mana
-	payLife    int32
-	payGeneric int32
+	// pips carries this window's flexible-pip payment announcement (CR
+	// 601.2b/107.4e-f) -- Alesha's `Cost$ WB WB` and the other
+	// announcement-pip trigger costs. pipAnnounceAsk walks the cost's
+	// combined announcement-pip list (Cost.annPipCount, the same order and
+	// alternatives the cast flow's manaAsk offers, via the one shared
+	// Cost.announcePip) one decision at a time; announcedCost folds the
+	// elected faces back into the cost the gates price and the pay arm
+	// charges. It is a value struct, so the window clone carries it.
+	pips pipAnnounce
 	// xPaid is the X this window's cost carried after the X fold: the
 	// payer's announced value (the choose-X ask) or the face SVar:X's fixed
 	// resolved value. It rides the resume point (rp.winPaidX) into the body
@@ -496,7 +497,12 @@ func (e *Engine) cumulativePaymentAsk() {
 		e.finishCumulative()
 		return
 	}
-	if cu.action == nil && e.paymentManaAskClass(cu.player, cu.source, cu.amount, cu.windowDone,
+	announced := cu.pips.fold(cu.amount)
+	if cu.action == nil && e.pipAnnounceAsk(cu.player, cu.source, cu.amount, &cu.pips,
+		cu.costLabel, chooseCumulative) {
+		return
+	}
+	if cu.action == nil && e.paymentManaAskClass(cu.player, cu.source, announced, cu.windowDone,
 		"Activate mana abilities to pay cumulative upkeep", chooseCumulative, paymentCumulativeUpkeep) {
 		return
 	}
@@ -504,7 +510,7 @@ func (e *Engine) cumulativePaymentAsk() {
 	var opts []decision.Option
 	payable := cu.action != nil && e.cumulativeActionPayable(cu)
 	if cu.action == nil {
-		payable = cu.amount.Priceable() && e.costPayableClass(cu.player, paymentDescriptor{id: cu.source, class: paymentCumulativeUpkeep, cost: &cu.amount}, pipRider{anyColor: e.payerGrantsIgnoreColor(cu.player, cu.source), anyType: e.payerGrantsIgnoreType(cu.player, cu.source)}, cu.amount)
+		payable = announced.Priceable() && e.costPayableClass(cu.player, paymentDescriptor{id: cu.source, class: paymentCumulativeUpkeep, cost: &announced}, pipRider{anyColor: e.payerGrantsIgnoreColor(cu.player, cu.source), anyType: e.payerGrantsIgnoreType(cu.player, cu.source)}, announced)
 	}
 	if payable {
 		opts = append(opts, decision.Option{Index: 0, Kind: "cumulative_pay", Obj: cu.source,
@@ -890,30 +896,134 @@ func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
 	return true
 }
 
-// announcedCost is the window's cost with every announcement pip -- a
-// two-colour hybrid, a monocolour hybrid, a Phyrexian pip or a
-// hybrid-Phyrexian pip, in Cost.announcePip order -- replaced by the face the
-// payer elected in triggeredCostPipAsk: the chosen colour is folded into
-// Colored, a monocolour hybrid's generic face into Generic, a Phyrexian
-// face's two life into Life. It is the triggered-cost window's exact
+// pipAnnounce carries the flexible-pip payment announcement (CR 601.2b /
+// 107.4e-f) every announcement-pip window shares. idx is the next unsettled
+// pip; color accumulates the coloured faces the announced pips chose, life
+// the life a Phyrexian face paid with two life, and generic the generic a
+// monocolour hybrid pip paid with its generic face. Plain data
+// (a value array and scalars), so a window clone copies it without a
+// deep-copy rule.
+//
+// It is embedded by every window that carries a cost with announcement pips
+// -- triggeredEffectCost, echoFlow and cumulativeUpkeep -- so the fold, the
+// ask and the answer-advance exist once. announcedCost's contract is the
+// reason a shared home is required rather than three copies: the payability
+// gate, the mana window and the pay arm must all price and charge the SAME
+// resolved cost, so all three windows fold through this one method.
+type pipAnnounce struct {
+	idx     int
+	color   state.Mana
+	life    int32
+	generic int32
+}
+
+// fold returns c with every announcement pip -- a two-colour hybrid, a
+// monocolour hybrid, a Phyrexian pip or a hybrid-Phyrexian pip, in
+// Cost.announcePip order -- replaced by the face the payer elected: the
+// chosen colour is folded into Colored, a monocolour hybrid's generic face
+// into Generic, a Phyrexian face's two life into Life. It is the window
 // counterpart of pendingCast.resolvedMana (the cast flow's one folded-cost
 // home), so the payability gate, the mana window and the pay arm all price
 // and charge the SAME resolved cost and can never disagree. Before any pip is
 // announced the accumulator lists are empty and the four pip lists are still
 // present, so a cost with no announcement pip is returned byte-identical to
-// amount -- every non-hybrid window is unchanged.
-func (tc *triggeredEffectCost) announcedCost() Cost {
-	m := tc.amount
+// c -- every non-hybrid window is unchanged.
+func (pa *pipAnnounce) fold(c Cost) Cost {
+	m := c
 	m.Hybrid = nil
 	m.Phyrexian = nil
 	m.Twobrid = nil
 	m.HybridPhyrexian = nil
-	for i := range tc.payColor {
-		m.Colored[i] += tc.payColor[i]
+	for i := range pa.color {
+		m.Colored[i] += pa.color[i]
 	}
-	m.Generic = addClampedGeneric(m.Generic, int64(tc.payGeneric))
-	m.Life = addClampedGeneric(m.Life, int64(tc.payLife))
+	m.Generic = addClampedGeneric(m.Generic, int64(pa.generic))
+	m.Life = addClampedGeneric(m.Life, int64(pa.life))
 	return m
+}
+
+// accept consumes one pay_*/pay_life/pay_generic answer, recording the face
+// the payer elected and advancing to the next pip. It reports whether the
+// option Kind was an announcement answer (false leaves the caller's own arm
+// to handle it). The option Kinds are the cast flow's own (castAnswer's
+// pay_W family), so every window and the cast flow answer the same way and a
+// replay records the same choice shape.
+func (pa *pipAnnounce) accept(kind string, amount int) bool {
+	switch kind {
+	case "pay_W", "pay_U", "pay_B", "pay_R", "pay_G", "pay_C":
+		pa.color[state.ManaIndex(kind[len("pay_"):][0])]++
+	case "pay_life":
+		pa.life += 2
+	case "pay_generic":
+		pa.generic += int32(amount)
+	default:
+		return false
+	}
+	pa.idx++
+	return true
+}
+
+// pipAnnounceAsk poses the CR 601.2b announcement for the next unsettled
+// announcement pip of amount (Cost.annPipCount / Cost.announcePip -- the ONE
+// shared alternative source the cast flow's manaAsk also reads, so the faces
+// offered here and the faces the cast flow offers can never drift). It runs
+// BEFORE the window's mana ask, exactly as manaAsk runs before a cast's
+// payment, so the payer fixes each pip's face and the window then prices and
+// charges that resolved cost (fold). Every face is offered without a pool
+// pre-filter: an announcement is a CR 601.2b choice, not a solvency claim --
+// an announced face the pool and untapped sources cannot actually cover ends
+// in the decline-only pay ask, never a wedge. It returns true once it has
+// asked (and therefore suspended).
+func (e *Engine) pipAnnounceAsk(player state.PlayerID, source state.ObjID, amount Cost, pa *pipAnnounce, costLabel string, flow chooseFor) bool {
+	if pa.idx >= amount.annPipCount() {
+		return false
+	}
+	alts := amount.announcePip(pa.idx)
+	name := "triggered ability"
+	if o := e.G.Obj(source); o != nil && o.Face() != nil {
+		name = o.Face().Name
+	}
+	d := &decision.Decision{Player: player, Kind: decision.KChoose, Min: 1, Max: 1,
+		Prompt: "Choose how to pay a mana symbol of " + name + " — " + costLabel,
+		Source: source}
+	seen := map[byte]bool{}
+	seenGeneric := false
+	for _, alt := range alts {
+		switch {
+		case alt.color != 0:
+			if seen[alt.color] {
+				continue
+			}
+			seen[alt.color] = true
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+				Kind: "pay_" + string(alt.color), Label: "Pay " + string(alt.color), Amount: 1})
+		case alt.generic > 0:
+			if seenGeneric {
+				continue
+			}
+			seenGeneric = true
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+				Kind: "pay_generic", Label: fmt.Sprintf("Pay %d generic", alt.generic), Amount: int(alt.generic)})
+		case alt.life > 0:
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+				Kind: "pay_life", Label: "Pay 2 life", Amount: 2})
+		}
+	}
+	if len(d.Options) == 0 {
+		// announcePip never returns an empty alternative list (every pip shape
+		// has at least one face), so this is unreachable for a real cost; the
+		// guard keeps a malformed one from posing an empty decision.
+		return false
+	}
+	e.choosing = flow
+	e.ask(d)
+	return true
+}
+
+// announcedCost is the window's cost folded through its shared pip
+// announcement accumulator (see pipAnnounce.fold).
+func (tc *triggeredEffectCost) announcedCost() Cost {
+	return tc.pips.fold(tc.amount)
 }
 
 // triggeredCostPayable reports whether the window's "pay" election is
@@ -1067,56 +1177,13 @@ func (e *Engine) triggeredCostComponentsPayable(tc *triggeredEffectCost) bool {
 // source the cast flow's manaAsk also reads, so the faces offered here and the
 // faces the cast flow offers can never drift). It runs BEFORE the mana window,
 // exactly as manaAsk runs before a cast's payment, so the payer fixes each
-// pip's face and the window then prices and charges that resolved cost
-// (announcedCost). Every face is offered without a pool pre-filter: an
-// announcement is a CR 601.2b choice, not a solvency claim -- an announced
-// face the pool and untapped sources cannot actually cover ends in the
-// decline-only pay ask below, never a wedge. It returns true once it has asked
-// (and therefore suspended).
+// triggeredCostPipAsk poses the CR 601.2b announcement for the next unsettled
+// announcement pip of this window's cost, through the shared pipAnnounceAsk
+// (every window that carries an announcement-pip cost uses it, so the faces
+// offered here and at the cast flow can never drift). It returns true once it
+// has asked (and therefore suspended).
 func (e *Engine) triggeredCostPipAsk(tc *triggeredEffectCost) bool {
-	if tc.payIdx >= tc.amount.annPipCount() {
-		return false
-	}
-	alts := tc.amount.announcePip(tc.payIdx)
-	name := "triggered ability"
-	if o := e.G.Obj(tc.source); o != nil && o.Face() != nil {
-		name = o.Face().Name
-	}
-	d := &decision.Decision{Player: tc.player, Kind: decision.KChoose, Min: 1, Max: 1,
-		Prompt: "Choose how to pay a mana symbol of " + name + " — " + tc.costLabel,
-		Source: tc.source}
-	seen := map[byte]bool{}
-	seenGeneric := false
-	for _, alt := range alts {
-		switch {
-		case alt.color != 0:
-			if seen[alt.color] {
-				continue
-			}
-			seen[alt.color] = true
-			d.Options = append(d.Options, decision.Option{Index: len(d.Options),
-				Kind: "pay_" + string(alt.color), Label: "Pay " + string(alt.color), Amount: 1})
-		case alt.generic > 0:
-			if seenGeneric {
-				continue
-			}
-			seenGeneric = true
-			d.Options = append(d.Options, decision.Option{Index: len(d.Options),
-				Kind: "pay_generic", Label: fmt.Sprintf("Pay %d generic", alt.generic), Amount: int(alt.generic)})
-		case alt.life > 0:
-			d.Options = append(d.Options, decision.Option{Index: len(d.Options),
-				Kind: "pay_life", Label: "Pay 2 life", Amount: 2})
-		}
-	}
-	if len(d.Options) == 0 {
-		// announcePip never returns an empty alternative list (every pip shape
-		// has at least one face), so this is unreachable for a real cost; the
-		// guard keeps a malformed one from posing an empty decision.
-		return false
-	}
-	e.choosing = chooseTriggeredCost
-	e.ask(d)
-	return true
+	return e.pipAnnounceAsk(tc.player, tc.source, tc.amount, &tc.pips, tc.costLabel, chooseTriggeredCost)
 }
 
 func (e *Engine) triggeredCostPaymentAsk() {
@@ -1204,6 +1271,10 @@ func (e *Engine) cumulativeAnswer(chosen []decision.Option) {
 		return
 	}
 	e.choosing = chooseNone
+	if cu.pips.accept(chosen[0].Kind, chosen[0].Amount) {
+		e.cumulativePaymentAsk()
+		return
+	}
 	switch chosen[0].Kind {
 	case "activate":
 		e.activatePaymentMana(cu.player, chosen[0].Obj)
@@ -1217,7 +1288,9 @@ func (e *Engine) cumulativeAnswer(chosen []decision.Option) {
 			e.continueCumulativeAction()
 			return
 		}
-		if e.payManaCumulative(cu.player, cu.source, cu.amount, e.paymentConv(cu.player, cu.source, false)) {
+		announced := cu.pips.fold(cu.amount)
+		if announced.Priceable() &&
+			e.payManaCumulative(cu.player, cu.source, announced, e.paymentConv(cu.player, cu.source, false)) {
 			e.finishCumulative()
 			return
 		}
@@ -1334,29 +1407,19 @@ func (e *Engine) triggeredCostAnswer(chosen []decision.Option) {
 		tc.xPaid = x
 		e.triggeredCostPaymentAsk()
 		return
-	case "pay_W", "pay_U", "pay_B", "pay_R", "pay_G", "pay_C":
-		// A hybrid, twobrid or Phyrexian pip paid with pool mana: record which
-		// colour face was elected and advance to the next pip. The option Kind
-		// is the cast flow's own (castAnswer's pay_W family), so the two windows
-		// answer the same way and a replay records the same choice shape.
+	case "pay_W", "pay_U", "pay_B", "pay_R", "pay_G", "pay_C", "pay_life", "pay_generic":
+		// A flexible-pip announcement answer (the cast flow's own pay_W
+		// family): record the face the payer elected and advance to the next
+		// pip, then re-open the payment ask. A hybrid, twobrid or Phyrexian
+		// pip paid with pool mana, a Phyrexian face paid with two life, and a
+		// monocolour hybrid's generic face all share the one accumulator
+		// (pipAnnounce.accept), so this window, Echo and cumulative upkeep
+		// answer identically and a replay records the same choice shape.
+		var amount int
 		if len(chosen) > 0 {
-			tc.payColor[state.ManaIndex(chosen[0].Kind[len("pay_")])]++
+			amount = chosen[0].Amount
 		}
-		tc.payIdx++
-		e.triggeredCostPaymentAsk()
-		return
-	case "pay_life":
-		// A Phyrexian face (plain or hybrid) paid with two life.
-		tc.payLife += 2
-		tc.payIdx++
-		e.triggeredCostPaymentAsk()
-		return
-	case "pay_generic":
-		// A monocolour hybrid pip paid with its generic face.
-		if len(chosen) > 0 {
-			tc.payGeneric += int32(chosen[0].Amount)
-		}
-		tc.payIdx++
+		tc.pips.accept(chosen[0].Kind, amount)
 		e.triggeredCostPaymentAsk()
 		return
 	}
