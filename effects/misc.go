@@ -276,6 +276,12 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	remembered := effectRemembered(h, c, sa)
+	if imprintOnHost && len(remembered) > 0 {
+		// ImprintOnHost$ retains the objects captured by this Effect on its
+		// host card. Keep the association event-backed so replay and later
+		// Defined$ Imprinted reads observe the same imprint.
+		h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: append([]state.ObjID(nil), remembered...)})
+	}
 	// SetChosenNumber$ binds the Effect's number ONCE, here at creation,
 	// against THIS resolution's own context: the trigger-time board (Torgal's
 	// Count$Valid Dog.YouCtrl,Wolf.YouCtrl, Communal Brewing's
