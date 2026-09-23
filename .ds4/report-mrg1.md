@@ -1,6 +1,6 @@
 # Merge conflict resolution report — cli-20260922T225141Z-462eca2e
 
-## Result
+## Conflict: `internal/testutil/agentsdoc_test.go`
 
 Two integration rounds are recorded here.
 
@@ -78,3 +78,41 @@ ok  github.com/adams-shaun/gorge/cmd/botbench  0.994s
 None new. The merge introduced no engine change of its own; the branch's attack-prop fix
 (`89c77778`, `1c3df172`) and main's closures compose cleanly. The conflicted ratchet constant was
 measured, not guessed.
+
+## Round 3 (this commit)
+
+Main moved again after round 2 (tip `4cdffbc1`: the sibling cascade branch
+`wt/cli-20260922T225140Z-9e382c75` and the land-type-statics import landed). Integrated with
+`git merge main`. Conflicts: two, the same pair as before.
+
+- `internal/testutil/agentsdoc_test.go` — the ratchet constant once more. Both sides said 39,
+  but for disjoint reasons: HEAD = 39 (round-2 merge, carrying this branch's `attackprop1`
+  deletion plus main's `tokrepl1`/Replicate deletions), main = 39 (its own copy inherited the
+  cascade branch's `cascade1` deletion and the token-replacement deletion, and still carries
+  `attackprop1`). Merge base `4a7bb2fe` = 40 rows carrying BOTH `attackprop1` and `cascade1`
+  and neither `tokrepl1` nor Replicate. The merged `AGENTS.md` (auto-merged) measured with the
+  same awk counter the test uses: **38 test rows**, containing none of the four deleted rows.
+  Disjoint deletions compose, so resolved to `knownApproximationRows = 38`.
+- `.ds4/report-mrg1.md` — main's copy was the cascade worktree's integration report (landed on
+  main via `4cdffbc1`), not a contradiction. Kept this worktree's lineage and appended this
+  round-3 section.
+
+`AGENTS.md` auto-merged; verified the merged table carries none of `attackprop1`, `cascade1`,
+`tokrepl1`, Replicate, and still carries the untouched rows (`(rv2b)`, `(bestow1)` spot-checked).
+
+## Round-3 commands
+
+```text
+git log 4a7bb2fe..main --oneline → 11 newer main commits (tip 4cdffbc1)
+git merge main --no-edit
+  Auto-merging .ds4/report-mrg1.md
+  CONFLICT (content): Merge conflict in .ds4/report-mrg1.md
+  Auto-merging AGENTS.md
+  Auto-merging internal/testutil/agentsdoc_test.go
+  CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go
+# row measurements (awk between '## Known approximations' and next '## '):
+#   merge base 4a7bb2fe: 40 rows (attackprop1 AND cascade1 both present)
+#   merged worktree AGENTS.md: 39 table lines / 38 test rows, none of the four deleted markers
+git add internal/testutil/agentsdoc_test.go .ds4/report-mrg1.md
+GIT_EDITOR=true git merge --continue
+```
