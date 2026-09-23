@@ -3430,6 +3430,12 @@ func TestParseCostReportsUnmodelledCostTokens(t *testing.T) {
 		// as a SubCounter removal), the announced SubCounter and DamageYou.
 		{"1 Exile<1/CARDNAME>", nil},
 		{"Draw<1/You>", nil},
+		// The dynamic-amount Draw<X/Spec> form (Champion of Wits, Titan of
+		// Littjara and 7 more: Cost$ Draw<X/You> with a card-level SVar:X
+		// body) is now MODELLED too -- ParseCost records it as a Draw part
+		// with Dyn naming the source SVar, resolved at payment, so no
+		// generic mana is substituted and no cost:Draw label is reported.
+		{"Draw<X/You>", nil},
 		{"SubCounter<X/LOYALTY>", nil},
 		{"DamageYou<4>", nil},
 		// The PutCardToLibFrom<Zone> family (the printed activation costs of
