@@ -1353,7 +1353,23 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
 		return
 	}
+	// A chain can park between two pre-asked subs. Recheck the stored
+	// answers against the live board before the resumed effects walk uses
+	// them; the first pass in resolveTop already checked those reached earlier.
+	if o.Ability != nil {
+		e.recheckCastSubTargets(rp.obj, o.Ability, o.Controller, o.Source)
+	} else if f := o.Face(); f != nil {
+		e.recheckCastSubTargets(rp.obj, f.SpellAbility(), o.Controller, rp.obj)
+	}
 	ctx := &effects.Ctx{Source: rp.obj, Controller: o.Controller, NameChoice: rp.name, Targets: o.Targets,
+		// alltargeted1: a re-entered walk keeps consuming the cast flow's
+		// pre-asked sub-ability target answers (kept until the stack object
+		// leaves, so both a later sub and a suspended body can use theirs).
+		// A modal root is excluded from the pre-ask whole
+		// (collectSubTargetPreAsks), so this map is empty exactly where
+		// ModeTargets carries the per-mode groups instead: the two bindings
+		// are disjoint by construction, never competing for one chain.
+		SubPreAsk:   e.castSubTargets[rp.obj],
 		ModeTargets: cloneCharmTargetGroups(e.charmTargets[rp.obj]),
 		Chosen:      append([]state.Target(nil), rp.choices...), ChosenValid: rp.chosenValid,
 		DigUntilMove: rp.digUntilMove, DigUntilMoveDone: rp.digUntilMoveDone,

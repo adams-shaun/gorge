@@ -80,6 +80,25 @@ func chosenTargetsFor(h Host, c *Ctx, sa *cards.SA, atRoot bool) ([]state.Target
 	if sa.CompiledAPI() == cards.APIChangeZone || sa.API == "ChangeZone" {
 		return nil, false
 	}
+	if c.SubPreAsk != nil {
+		// The cast-time pre-ask's answer for exactly this sub (alltargeted1):
+		// Forge chose the whole chain's targets before payment (CR 601.2c), so
+		// the resolution uses the recorded set instead of re-posing the ask
+		// here. Keep the answer until the stack object leaves: a suspended body
+		// re-enters with a fresh Ctx and must see the same chosen targets (e.g.
+		// MoveCounter's counter-kind pick). A TargetUnique$ sub
+		// feeds the same later-ask exclusion accumulator the answered path
+		// below does. An EMPTY recorded set is a real answer (a Min-0 chain
+		// sub elected zero, or no candidate existed at cast time): it must
+		// still use the empty answer, or the re-entered walk would pose the
+		// mid-resolution ask after all.
+		if ts, ok := c.SubPreAsk[sa.Line]; ok {
+			if TargetUniqueRequested(sa) {
+				c.TargetsUnique = append(c.TargetsUnique, ts...)
+			}
+			return ts, true
+		}
+	}
 	if c.TargetsPickDone {
 		ans := c.TargetsPick
 		c.TargetsPickDone, c.TargetsPick = false, nil
@@ -162,6 +181,13 @@ func chosenTargetsFor(h Host, c *Ctx, sa *cards.SA, atRoot bool) ([]state.Target
 // head before its first `.`; `TargetedController` and friends are NOT in
 // the set (they are derived referents this engine resolves through its own
 // machinery, measured corpus-unreachable at the reachable dispatch sites).
+// DefinedIsTargetReuse is the exported form of definedIsTargetReuse, for
+// rules' cast-time sub-ask collector (alltargeted1) to apply the same
+// inclusion rule the mid-resolution path applies.
+func DefinedIsTargetReuse(defined string) bool {
+	return definedIsTargetReuse(defined)
+}
+
 func definedIsTargetReuse(defined string) bool {
 	for _, tok := range strings.Split(defined, ",") {
 		tok = strings.TrimSpace(tok)

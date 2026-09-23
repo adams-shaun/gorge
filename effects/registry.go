@@ -997,6 +997,28 @@ type Ctx struct {
 	// point those referents at the sub's OWN answer instead of the outer
 	// target the script meant.
 	PickedTargets []state.Target
+	// SubPreAsk carries the CAST-time pre-asked target answers for this
+	// resolution's SubAbility$ chain (task alltargeted1): Forge asks every
+	// targeting SA in the whole chain BEFORE cost payment (CR 601.2c), so
+	// the engine pre-asks them in the cast flow and the resolution must
+	// use the answers instead of re-posing the asks mid-resolution. The
+	// map is keyed by the sub SA's Line (the same matching convention the
+	// OfferedSA marker uses). It belongs to Engine.castSubTargets and remains
+	// until the stack object leaves: a suspended body can re-enter with a new
+	// Ctx and must still see its earlier target answer. Replay re-derives the
+	// record identically. Nil for every resolution whose cast pre-asked nothing
+	// (triggers, copies, modal spells -- their targeting machinery is
+	// unchanged).
+	SubPreAsk map[string][]state.Target
+	// AllTargets is the whole root/sub-ability target UNION Forge's
+	// AllTargeted$ count ref names (task alltargeted1), threaded by the
+	// cost-evaluation sites that read it before payment (ownReduceCost's
+	// CR 601.2c reprice, the CollectEvidence amount resolution). Ctx.Targets
+	// stays the resolving SA's OWN targets so Targeted/ParentTarget keep
+	// their meanings; refTargets' AllTargeted case reads this when it is
+	// non-nil and falls back to Ctx.Targets otherwise (a chain with no sub
+	// targets unions to exactly the root's own set).
+	AllTargets []state.Target
 	// ChoiceTarget is the index of the per-player chooser currently being
 	// resumed. It keeps multi-player ChooseCard/ChoosePlayer asks from
 	// returning to the first chooser after every answer.

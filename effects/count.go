@@ -607,14 +607,21 @@ func evalRememberedOK(h Host, c *Ctx, body string) (int32, bool) {
 // exactly as evalRefProperty's default always did.
 func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 	switch ref {
-	case "Targeted", "ParentTarget", "ParentTargeted", "ThisTargetedCard", "AllTargeted":
+	case "Targeted", "ParentTarget", "ParentTargeted", "ThisTargetedCard":
+		return c.Targets, true
+	case "AllTargeted":
 		// AllTargeted (task alltargeted1) is Forge's UNION of every targeting
-		// SA's targets down the root ability's sub-ability chain; the only
-		// binding this engine carries is the resolving SA's own chosen
-		// targets, so the faithful-as-available reading is Ctx.Targets -- the
-		// same list "Targeted" names. A sub-targeting chain (Wayta, Trainer
-		// Prodigy's fight) therefore still reads 0 here; recorded in
-		// AGENTS.md's Known approximations.
+		// SA's targets down the root ability's sub-ability chain. The cast
+		// flow pre-asks the whole chain's targets before payment (CR 601.2c)
+		// and threads the union through Ctx.AllTargets at the cost-evaluation
+		// sites that read it (ownReduceCost's reprice, the CollectEvidence
+		// amount resolution); a caller that did not bind one -- a resolution-
+		// time read, where no corpus line carries the ref -- keeps the
+		// faithful-as-available Ctx.Targets binding, which for a chain with
+		// no sub targets IS the union.
+		if c.AllTargets != nil {
+			return c.AllTargets, true
+		}
 		return c.Targets, true
 	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCard",
 		"TriggeredNewCardLKICopy",
@@ -711,9 +718,9 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 
 // evalRefProperty resolves one "<Ref>$<Property>[...][/Op]" count body over
 // the objects a target reference names. Refs: Targeted/ParentTarget/
-// ThisTargetedCard/AllTargeted name the resolving ability's chosen targets
-// (AllTargeted is Forge's whole-chain union; see refTargets for the
-// available-binding narrowing);
+// ThisTargetedCard name the resolving ability's chosen targets, AllTargeted
+// the whole root/sub-ability chain union (Ctx.AllTargets when the cost site
+// bound it, Ctx.Targets otherwise; see refTargets);
 // TriggeredCard (and its LKI spellings) and TriggeredAttacker name the
 // objects the firing trigger remembered; Remembered is the plain form. A
 // property this build does not model (or a body with no $ at all -- every
