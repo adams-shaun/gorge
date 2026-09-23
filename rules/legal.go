@@ -2159,7 +2159,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			!e.castTargetsAvailable(p, id, f.SpellAbility()) {
 			continue
 		}
-		if offerCastable(p, id, mc, spellScope("mayhem"), false) {
+		if offerCastable(p, id, withSpellAbilityExtras(f, mc), spellScope("mayhem"), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (mayhem)", Obj: id, Mode: "mayhem"})
 		}

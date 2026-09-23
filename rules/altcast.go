@@ -405,11 +405,26 @@ func (e *Engine) warpRecastAvailable(id state.ObjID) bool {
 // list, so a continuous-effect grant would count exactly where a printed
 // K:Mayhem line does.
 func (e *Engine) mayhemCastCost(id state.ObjID) (Cost, bool) {
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil {
+		return Cost{}, false
+	}
 	raw, ok := e.derivedKeywordParam(id, "Mayhem")
 	if !ok || strings.TrimSpace(raw) == "" {
 		return Cost{}, false
 	}
-	c := ParseCost(raw)
+	// Norman Osborn, Green Goblin grants Mayhem:CardManaCost. Expand that
+	// Forge placeholder before parsing, exactly as escapeCost does for
+	// Underworld Breach's granted Escape cost.
+	var toks []string
+	for _, tok := range strings.Fields(raw) {
+		if strings.EqualFold(tok, "CardManaCost") {
+			toks = append(toks, strings.Fields(o.Face().ManaCost)...)
+			continue
+		}
+		toks = append(toks, tok)
+	}
+	c := ParseCost(strings.Join(toks, " "))
 	if len(c.Unknown) > 0 || c.X > 0 {
 		return Cost{}, false
 	}
