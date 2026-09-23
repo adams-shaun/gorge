@@ -19,10 +19,9 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	// 73 = the merged table's measured data rows (74 on each side of the
-	// merge, minus the foretell/Cosmos Charger/MayPlay row main closed in
-	// 0679b1cd on top of this branch's stack-option-kind closure).
-	knownApproximationRows = 73
+	// 72 = the merged table's measured data rows after main's stack-option-kind
+	// closure removed one additional row.
+	knownApproximationRows = 71
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.
