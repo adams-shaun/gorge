@@ -675,6 +675,30 @@ func (e *Engine) costPayableClass(p state.PlayerID, d paymentDescriptor, rider p
 	return ok
 }
 
+// stackXAnnounced reports whether the stack object's cast or activation
+// genuinely announced an X (CR 601.2b/107.3i), possibly zero: a nonzero
+// recorded value, or the face/ability cost carrying an announce-bearing X
+// part (the shared costAnnouncesX census: a printed {X}, an announced
+// PayLife<X> or SubCounter<X/Kind>, a dynamic PayEnergy<X> or tapXType<X>).
+// A trigger that was never paid an X is NOT announced, even though
+// triggerPaidX rebinds a nonzero value for its own readers -- an UnlessCost$
+// X on such a body stays unbound, which the conservative direction is.
+func stackXAnnounced(o *state.Object) bool {
+	if o == nil {
+		return false
+	}
+	if o.X != 0 {
+		return true
+	}
+	if o.Face() != nil && costAnnouncesX(ParseCost(o.Face().ManaCost)) {
+		return true
+	}
+	if o.Ability != nil {
+		return costAnnouncesX(ParseCost(o.Ability.Params["Cost"]))
+	}
+	return false
+}
+
 // costPayableOther is the offer-side partner of context-free payMana and
 // payManaConv windows. A cost paid outside casting or activating an ability
 // must not borrow spell- or activation-restricted mana merely because its
@@ -2809,6 +2833,7 @@ func (e *Engine) resolveTop() {
 		// trigger fired on (a cast/magecraft trigger), which triggerPaidX
 		// reads off the causing event's card.
 		ctx.X = o.X
+		ctx.XAnnounced = stackXAnnounced(o) || ctx.X != 0
 		if ctx.X == 0 {
 			ctx.X = e.triggerPaidX(id, o)
 		}
@@ -2988,6 +3013,7 @@ func (e *Engine) resolveTop() {
 		// body does nothing -- Entreat the Angels resolved to the graveyard
 		// having created zero Angels.
 		ctx.X = o.X
+		ctx.XAnnounced = stackXAnnounced(o)
 		// Same as the ability branch: carry the sacrifice LKI (engine-keyed)
 		// onto resolution so Sacrificed$<Property> heads resolve against what
 		// this spell sacrificed.
@@ -4033,19 +4059,31 @@ func targetsPermanents(spec string) bool {
 }
 
 // payUnlessCost charges the non-choice subset of a mid-resolution
-// UnlessCost$ to payer p. Sacrifice, discard and reveal components are
-// deliberately refused here: beginUnlessPayment owns every such component
+// UnlessCost$ to payer p. Sacrifice, discard, reveal and return components
+// are deliberately refused here: beginUnlessPayment owns every such component
 // and gathers the payer's selected objects before it calls payMana. Keeping
 // this guard makes a future caller unable to silently revive the old
 // first-in-zone-order stand-in. Fixed mana/life, SubCounter and Draw
 // components remain synchronous: a Draw<N/Spec> pays by drawing N cards for
 // the player(s) the spec names (default the payer), resolved through the
-// same Ctx roles the UnlessPayer$ grammar reads.
+// same Ctx roles the UnlessPayer$ grammar reads. The dynamic life folds
+// (LifeTotalHalfUp, an announced PayLife<X>) and the energy parts (fixed and
+// announced-X PayEnergy) charge here too, under the same offer gate's reads
+// (unlessFoldDynamic / unlessEnergyAffordable), so the gate and the charge
+// can never disagree.
 func (e *Engine) payUnlessCost(p state.PlayerID, cost Cost, ctx *effects.Ctx, stackObj state.ObjID) bool {
-	if len(cost.Sac) != 0 || len(cost.Discard) != 0 || len(cost.Reveal) != 0 || len(cost.RevealChosen) != 0 {
+	if len(cost.Sac) != 0 || len(cost.Discard) != 0 || len(cost.Reveal) != 0 || len(cost.RevealChosen) != 0 || len(cost.Return) != 0 {
 		return false
 	}
 	if int(p) < 0 || int(p) >= len(e.G.Players) {
+		return false
+	}
+	folded, ok := e.unlessFoldDynamic(p, cost, ctx)
+	if !ok {
+		return false
+	}
+	cost = folded
+	if !e.unlessEnergyAffordable(p, cost, ctx) {
 		return false
 	}
 	g := e.G
@@ -4101,6 +4139,14 @@ func (e *Engine) payUnlessCost(p state.PlayerID, cost Cost, ctx *effects.Ctx, st
 	if !e.payManaConv(p, cost, e.paymentConv(p, stackObj, false)) {
 		return false
 	}
+	// The energy parts charge through the ONE shared site (CR 118.2d); the
+	// offer gate proved the total affordable and the fold above proved every
+	// dynamic part bound, so the charge cannot half-apply.
+	x := int32(0)
+	if ctx != nil && ctx.XAnnounced {
+		x = ctx.X
+	}
+	e.chargeEnergyCost(p, cost, x)
 	for _, d := range drains {
 		e.emit(events.Event{Kind: events.CounterChange, Obj: d.obj, Counter: d.kind, Amount: -d.n})
 	}

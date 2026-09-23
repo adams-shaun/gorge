@@ -815,6 +815,13 @@ type Ctx struct {
 	// Both are bound by the rules package when it builds the context.
 	SVars map[string]string
 	X     int32
+	// XAnnounced marks that X above IS a real CR 601.2b/107.3i announcement
+	// (the resolving spell or ability paid a {X} cost, possibly zero), set by
+	// the rules package at the same sites that bind X from the stack object's
+	// CastInfo. Without it an announced-zero X is indistinguishable from
+	// never-announced, and an UnlessCost$ X on a zero-X cast (Power Sink
+	// announced 0) would stay an unpriceable raw token instead of {0}.
+	XAnnounced bool
 	// TimesKicked is the pending cast's settled multikicker payment count
 	// (CR 702.43), seeded by rules' targetBoundCtx when the spell's OWN
 	// announcement ask resolves a Count$TimesKicked bound BEFORE payment has
