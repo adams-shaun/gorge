@@ -2747,8 +2747,13 @@ convention.
 
 ### `internal/testutil/agentsdoc_test.go`
 
-See the round-5 `knownApproximationRows` record appended below this file's
-owner section. Resolved against the measured merged `AGENTS.md` table.
+Both sides had edited `knownApproximationRows`: HEAD said 41, main said 40. The
+merged `AGENTS.md` (auto-merged, both sides' row deletions applied) measures
+**40 data rows** using the test's own `approximationRows()` algorithm (lines
+with prefix `| ` between `## Known approximations` and the next `## `, header
+row dropped). Resolved to **40** with a comment naming both sides' closures —
+this is exact (neither side's slack retained) and preserves both sides' row
+deletions.
 
 ### Preserved main-side report record (sibling `22391c4d`)
 
@@ -2765,6 +2770,25 @@ owner section. Resolved against the measured merged `AGENTS.md` table.
   `Auto-merging .ds4/report-mrg1.md / CONFLICT (content): Merge conflict in .ds4/report-mrg1.md`
   `Auto-merging AGENTS.md / Auto-merging effects/misc.go / Auto-merging internal/testutil/agentsdoc_test.go / CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go`
   `Automatic merge failed; fix conflicts and then commit the result.`
+- Row count (test's own algorithm) over merged `AGENTS.md` → 40 data rows.
+- `git add internal/testutil/agentsdoc_test.go; git add -f .ds4/report-mrg1.md`,
+  then `git -c core.editor=true commit --no-edit`:
+  `[wt/cli-20260922T225142Z-1d4558a1 18da36e9] Merge branch 'main' into wt/cli-20260922T225142Z-1d4558a1`.
+- `git merge-base --is-ancestor main HEAD`: exit 0 (main `4a7bb2fe` is now an
+  ancestor); final `git status`: clean.
+- `.cards` check: present, symlink to `/home/sadams/projects/gorge/.cards` (the
+  rules run took 1.193s+, not the ~0s of a vacuous corpus-less run).
+- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`:
+  `ok github.com/adams-shaun/gorge/rules 1.193s`.
+- `go test ./internal/testutil -run 'TestKnownApproximation'`:
+  `ok github.com/adams-shaun/gorge/internal/testutil 0.001s`.
+- `go test ./rules -run 'Block|CantBlockUnless|TestHeads'`:
+  `ok github.com/adams-shaun/gorge/rules 2.054s` (heads unmoved).
+- `go test ./internal/archtest/`:
+  `ok github.com/adams-shaun/gorge/internal/archtest 3.028s`.
+- `go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/`:
+  `ok github.com/adams-shaun/gorge/cmd/botbench 0.994s` (20-game split unmoved).
+- `gofmt -l internal/testutil/agentsdoc_test.go`: clean; `git diff --check`: no output.
 
 ### Issues
 
