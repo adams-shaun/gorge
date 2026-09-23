@@ -125,6 +125,18 @@ func (h *fakeHost) Emit(e events.Event) {
 	events.Apply(h.g, e)
 }
 
+// EmitTokenCreate mirrors rules.Engine's: the effects double has no token
+// replacement pipeline, so the emit creates at most the one token the event
+// names and that id is the whole return.
+func (h *fakeHost) EmitTokenCreate(e events.Event) []state.ObjID {
+	want := h.g.NextID
+	h.Emit(e)
+	if h.g.Obj(want) == nil {
+		return nil
+	}
+	return []state.ObjID{want}
+}
+
 // EmitTap has no trigger matcher to hand the tapper and entry provenance to,
 // so the double records the same plain Tap event the engine logs.
 func (h *fakeHost) EmitTap(obj state.ObjID, _ state.PlayerID, _ bool) {
