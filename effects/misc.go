@@ -1572,6 +1572,212 @@ func CantRestrictionParamsReadable(params map[string]string) bool {
 	return true
 }
 
+// CantAttackParamsReadableForRules is the FACE S:-line whitelist for a
+// CantAttack static: the shared CantRestrictionParamsReadable core EXTENDED by
+// exactly the conditional parameter family rules' attackBlocked reads --
+// UnlessDefender$ (through effects.UnlessDefenderHolds) and CheckSVar$ /
+// SVarCompare$ / Condition$ (through the shared rules-side gate evaluator,
+// rules/layers.go continuousGateHolds). It lives here, beside
+// CantRestrictionParamsReadable and mirrors MustAttackParamsReadableForRules
+// below, so the face whitelist and the gate evaluators cannot drift apart
+// unseen. Measured over the corpus's 271 `Mode$ CantAttack` files: 63 raw
+// lines carry this family, and NONE of them pairs it with the other
+// continuous-gate keys (IsPresent$/PresentCompare$/PresentZone$/ClassBand$),
+// so those keys stay off this list -- a line carrying only them is still
+// skipped whole, unchanged. The Effect-delivered registration gate (effEffect,
+// which keeps the narrower CantRestrictionParamsReadable for BOTH modes)
+// cannot share this list: its continuous path reads neither evaluator, so a
+// gate-bearing body must not register blanket -- a gated "can't attack" would
+// become unconditional, over-restricting, and could leave a MustAttack
+// creature with no legal pair. A static carrying any OTHER parameter
+// (ValidCause$, ForCost$, ValidSA$, Cost$, ...) still fails the whitelist and
+// is skipped whole, the deliberate permissive direction. Iterating the params
+// map only yields a boolean, so map order never reaches an
+// event/option/view -- determinism is preserved.
+func CantAttackParamsReadableForRules(params map[string]string) bool {
+	for k := range params {
+		switch k {
+		case "Mode", "ValidCard", "Target", "Description", "Secondary",
+			"CheckSVar", "SVarCompare", "Condition", "UnlessDefender":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// UnlessDefenderHolds evaluates a CantAttack static's UnlessDefender$ predicate
+// (Forge StaticAbilityCantAttackBlock: `unlessDefender.hasProperty(type,
+// hostCard.getController(), hostCard, stAb)`, where the defending player is the
+// subject and You is the static's controller). It reports whether the SHORT
+// predicate on the defending player holds; a CantAttack static is bypassed (the
+// creature may attack) exactly when it does. The grammar is Forge's
+// PlayerProperty conditional family, the subset the corpus spells, and every
+// unsupported property FAILS CLOSED (returns false) so the restriction is
+// enforced rather than silently dropped -- the same deny direction every other
+// unread static gate takes. A leading `!` negates the whole predicate.
+//
+// Supported properties:
+//
+//   - `controls<objSpec>[_<cmp><n>]`: the defender controls at least one (or,
+//     with a trailing count token, the compared number of) battlefield object
+//     matching objSpec as an object filter. The comma in a spec such as
+//     `controlsEnchantment,Permanent.enchanted` is part of the OBJECT spec
+//     (Forge's getValidCards list), never a predicate separator.
+//   - `hasFewer<Type>sIn<Play|Yard>ThanYou`: the defender controls (or holds in
+//     its graveyard) strictly fewer objects of that type than You.
+//   - `HasCardsIn<zone>_<type>_<cmp><n>`: the defender's named zone holds the
+//     compared number of cards of that type (`Card` counts every card).
+//   - `IsPoisoned`: the defender has a poison counter.
+//   - `isMonarch`: the defender is the monarch (CR 716.2).
+//
+// source is the static's source object (the object-spec matcher's Source
+// binding) and you is the static's controller. The evaluation is a pure read:
+// no event, no state write, and the battlefield/zone walks are the engine's
+// one deterministic scan order.
+func UnlessDefenderHolds(g *state.Game, spec string, defender, you state.PlayerID, source state.ObjID) bool {
+	spec = strings.TrimSpace(spec)
+	if spec == "" {
+		return true
+	}
+	neg := strings.HasPrefix(spec, "!")
+	if neg {
+		spec = strings.TrimSpace(spec[1:])
+	}
+	holds := unlessDefenderProperty(g, spec, defender, you, source)
+	if neg {
+		return !holds
+	}
+	return holds
+}
+
+// unlessDefenderProperty evaluates ONE UnlessDefender$ property (no `!`). An
+// unknown property returns false: the restriction is enforced, the permissive
+// direction for a restriction whose condition this build cannot read.
+func unlessDefenderProperty(g *state.Game, property string, defender, you state.PlayerID, source state.ObjID) bool {
+	if int(defender) >= len(g.Players) {
+		return false
+	}
+	switch {
+	case property == "isMonarch":
+		return g.IsMonarch(defender)
+	case property == "IsPoisoned":
+		return g.Players[defender].Counter("Poison") > 0
+	case strings.HasPrefix(property, "controls"):
+		// The object spec is everything after "controls"; an optional trailing
+		// `_<cmp><n>` narrows an existential read to a count compare.
+		objSpec, op, want, counted := splitCountCompare(strings.TrimSpace(property[len("controls"):]))
+		if objSpec == "" {
+			return false
+		}
+		sc := SpecContext{You: you, Source: source}
+		n := int32(0)
+		for _, id := range g.Zone(state.ZBattlefield, defender) {
+			if MatchesObjectCtx(g, objSpec, g.Obj(id), sc) {
+				n++
+			}
+		}
+		if !counted {
+			return n > 0
+		}
+		return playerCompare(n, op, want)
+	case strings.HasPrefix(property, "HasCardsIn"):
+		// HasCardsIn[zone]_[type]_[comparator]
+		parts := strings.Split(strings.TrimPrefix(property, "HasCardsIn"), "_")
+		if len(parts) != 3 {
+			return false
+		}
+		z, ok := unlessDefenderZone(parts[0])
+		if !ok {
+			return false
+		}
+		op, want, ok := unlessDefenderCompare(parts[2])
+		if !ok {
+			return false
+		}
+		return playerCompare(unlessDefenderTypeCount(g, z, defender, parts[1]), op, want)
+	case strings.HasPrefix(property, "hasFewer"):
+		// hasFewer[Type]sIn[Play|Yard]ThanYou
+		if int(you) >= len(g.Players) {
+			return false
+		}
+		body := strings.TrimPrefix(property, "hasFewer")
+		i := strings.Index(body, "sIn")
+		if i < 0 {
+			return false
+		}
+		cardType, tail := body[:i], body[i+len("sIn"):]
+		if cardType == "" {
+			return false
+		}
+		z := state.ZBattlefield
+		switch {
+		case strings.HasPrefix(tail, "PlayThan"):
+		case strings.HasPrefix(tail, "YardThan"):
+			z = state.ZGraveyard
+		default:
+			return false
+		}
+		return unlessDefenderTypeCount(g, z, defender, cardType) < unlessDefenderTypeCount(g, z, you, cardType)
+	}
+	return false
+}
+
+// unlessDefenderZone maps a Forge zone word in a HasCardsIn property to a
+// state zone, failing closed on any zone this build cannot name.
+func unlessDefenderZone(word string) (state.Zone, bool) {
+	switch word {
+	case "Battlefield":
+		return state.ZBattlefield, true
+	case "Graveyard":
+		return state.ZGraveyard, true
+	case "Hand":
+		return state.ZHand, true
+	case "Library":
+		return state.ZLibrary, true
+	case "Exile":
+		return state.ZExile, true
+	}
+	return 0, false
+}
+
+// unlessDefenderCompare parses a Forge comparator token ("GE7") into an
+// operator and a threshold.
+func unlessDefenderCompare(tok string) (string, int32, bool) {
+	if len(tok) < 3 {
+		return "", 0, false
+	}
+	op := tok[:2]
+	switch op {
+	case "GE", "GT", "EQ", "LE", "LT":
+	default:
+		return "", 0, false
+	}
+	n, err := strconv.ParseInt(tok[2:], 10, 32)
+	if err != nil {
+		return "", 0, false
+	}
+	return op, int32(n), true
+}
+
+// unlessDefenderTypeCount counts objects of a Forge type word in a player's
+// zone. `Card`/`Any` is the universal type (every object counts), matching
+// CardLists.getType's treatment of the base card type; any other word rides
+// the shared hasType predicate.
+func unlessDefenderTypeCount(g *state.Game, z state.Zone, p state.PlayerID, cardType string) int32 {
+	n := int32(0)
+	for _, id := range g.Zone(z, p) {
+		o := g.Obj(id)
+		if o == nil {
+			continue
+		}
+		if strings.EqualFold(cardType, "Card") || strings.EqualFold(cardType, "Any") || hasType(o, cardType) {
+			n++
+		}
+	}
+	return n
+}
+
 // CantBlockByRestrictionParamsReadable is the parameter whitelist an
 // Effect-registered CantBlockBy static must pass before this build enforces
 // it (task cbb1; the same discipline CantRestrictionParamsReadable enforces
