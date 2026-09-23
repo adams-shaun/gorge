@@ -142,14 +142,19 @@ var baseBuckets = map[string]bucket{
 	// ResolvedLimit$ (the per-turn resolution cap's increment eligibility).
 	"rt": bTrig,
 	"s":  bStat, "st": bStat, "sv": bStat,
-	"r": bRepl, "repl": bRepl, "m.repl": bRepl, "c.repl": bRepl,
+	// pst.Static is manaConversionParts' PileStaticAt element (state.PileStatic
+	// -- the merged-under-card static walk): its Static is a cards.Static whose
+	// Params (EffectZone$) is the same static parameter map every bStat entry
+	// covers.
+	"pst.Static": bStat,
+	"r":          bRepl, "repl": bRepl, "m.repl": bRepl, "c.repl": bRepl,
 	"sa": bSA, "ab": bSA, "sub": bSA, "cp": bSA, "copy": bSA,
 	// a is faceWantsConvoked's compiled-ability walk (the face's Abilities
 	// slice): each element is a *cards.SA whose Defined$ parameter the
 	// Convoked provenance gate reads -- the same cards.SA parameter map
 	// every bSA entry covers.
 	"a": bSA, "targetSA": bSA, "SA": bSA, "Ability": bSA, "With": bSA,
-	"head": bSA, "ma": bSA, "pt.SA": bSA,
+	"head": bSA, "ma": bSA, "mana": bSA, "original": bSA, "pt.SA": bSA,
 	// rsub is runPreventionShieldRider's rewritten copy of the
 	// PreventionSubAbility$ rider (a shallow copy of a fresh ResolveSVar
 	// parse, whose NumDmg$/Defined$ the shield application binds): a
@@ -1324,19 +1329,24 @@ var apiSpecificRulesSA = map[string][]string{
 	"Engine.manaActivationGateHolds": {"Mana"},
 	"Engine.emitManaTap":             {"Mana"},
 	"Engine.isTriggeredManaAbility":  {"Mana"},
-	"triggeredManaColourChoice":      {"Mana"},
+	// askTriggeredManaColor reads the first resolved Mana sub-ability's
+	// Amount$/Produced$ to build its allocation; that local is bSA but this
+	// path only ever reaches api:Mana.
+	"Engine.askTriggeredManaColor": {"Mana"},
+	"Engine.askManaColor":          {"Mana"},
+	"triggeredManaColourChoice":    {"Mana"},
 	// rewriteChosenMana (rules/mana_activation.go) executes only inside
 	// resolveTriggeredManaAbilities, so its Produced$ read belongs to
 	// api:Mana alone -- left in the generic union it would mask every
 	// other API's unread Produced$.
-	"Engine.rewriteChosenMana":     {"Mana"},
-	"Engine.resolveManaAbilityRef": {"Mana"},
-	"Engine.resolveManaEffect":     {"Mana"},
-	"manaColourPrompt":             {"Mana"},
-	"Engine.AvailableMana":         {"Mana"},
-	"addAvailable":                 {"Mana"},
-	"availableAmount":              {"Mana"},
-	"activatedMatchesValidSA":      {"Mana"},
+	"Engine.rewriteChosenMana":             {"Mana"},
+	"Engine.resolveManaAbilityRefOriginal": {"Mana"},
+	"Engine.resolveManaEffect":             {"Mana"},
+	"manaColourPrompt":                     {"Mana"},
+	"Engine.AvailableMana":                 {"Mana"},
+	"addAvailable":                         {"Mana"},
+	"availableAmount":                      {"Mana"},
+	"activatedMatchesValidSA":              {"Mana"},
 	// The attack-prop and unless-cost payment windows' affordability input
 	// (rules/mana_available.go windowManaUnits, called by
 	// rules/attack_cost.go attackManaSources and
@@ -1348,6 +1358,16 @@ var apiSpecificRulesSA = map[string][]string{
 	// alone -- left in the generic union they would mask every other
 	// API's unread Produced$ (measured: api:Sacrifice/api:DealDamage).
 	"Engine.windowManaUnits": {"Mana"},
+	// The attack-prop payment window's choice-shaped membership
+	// (rules/attack_cost.go attackChoiceManaSources): it walks the payer's
+	// battlefield and reads each window-usable mana ability's Produced$ (plus
+	// Cost$/RestrictValid$) to decide whether an "Any"/"Combo"/"Chosen"
+	// source can pay a generic attack tax, and pins the colour it will be
+	// tapped for. Like windowManaUnits above it only ever inspects api:Mana
+	// abilities (availableManaAbilitiesForWindow), so its reads belong to
+	// api:Mana alone -- left in the generic union they mask every other API's
+	// unread Produced$ (measured: api:Sacrifice/api:DealDamage).
+	"Engine.attackChoiceManaSources": {"Mana"},
 	// The Charm mode paths: the CR 601.2b cast-time modes ask (castModeAsk),
 	// the per-mode target declaration (modalTargetSA), the resume-side mode
 	// decisions/labels, and the modal-trigger placement ask (CharmNum$).
@@ -1401,9 +1421,13 @@ var apiSpecificRulesSA = map[string][]string{
 	// by definition a DB$ ReplaceToken SA, so the Type$/Amount$/TokenScript$/
 	// ValidChoices$ reads belong to api:ReplaceToken alone -- left in the
 	// generic union they would mask every other API's unread Amount$
-	// (measured: api:ChangeZone).
-	"Engine.continueCreateTokenReplacements": {"ReplaceToken"},
-	"Engine.applyTokenReplacementToPlan":     {"ReplaceToken"},
+	// (measured: api:ChangeZone). The dispatcher's SA-param reads live in
+	// driveTokenReplacements and poseChosenTokenReplacement since the
+	// chosen-copy election (Esix/Moonlit/Mirrormind) moved them out of
+	// continueCreateTokenReplacements.
+	"Engine.driveTokenReplacements":      {"ReplaceToken"},
+	"Engine.poseChosenTokenReplacement":  {"ReplaceToken"},
+	"Engine.applyTokenReplacementToPlan": {"ReplaceToken"},
 }
 
 // apiSpecificRulesStat is the stat-bucket twin of apiSpecificRulesSA: it
@@ -2197,18 +2221,39 @@ var (
 	censusOnce  sync.Once
 	censusBase  censusResult
 	censusReads *derivedReads
+	// censusGuardErrs carries the rot-guard findings out of the memoised
+	// Once (nil when the guard passed). No t.Fatal-family call may run
+	// inside censusOnce.Do: a Fatalf never returns, but go1.24+'s
+	// `defer o.done.Store(true)` marks the once done on the Goexit anyway,
+	// so censusReads would stay nil and every later census test in the
+	// binary would nil-deref -- the SIGSEGV in
+	// TestParamCensusAttributesSpecialisedRulesPaths that this gate round's
+	// rot finding produced (failGuard Fatalfs inside the Once). The corpus
+	// Skip is hoisted out the same way (a missing .cards/ CorpusRegistry
+	// inside the Once would poison the memo identically), and the Fatalf
+	// runs here, after Do returns normally, so every census test fails with
+	// the real findings instead of a panic in an unrelated one.
+	censusGuardErrs []string
 )
 
 func measureParamCensus(t *testing.T, drop map[string]map[string]bool) (censusResult, *derivedReads) {
 	t.Helper()
 	if drop == nil {
+		// Per-test corpus decision FIRST: a missing .cards/ skips THIS test
+		// here, before the Once, instead of skipping from inside it.
+		testutil.CorpusRegistry(t)
 		censusOnce.Do(func() {
 			s := scanPackages(t)
 			s.rotGuard(t)
-			s.failGuard(t)
+			censusGuardErrs = s.guardErrs
 			censusReads = s.derived()
 			censusBase = walkRepoDeckCensus(t, censusReads, nil)
 		})
+		if len(censusGuardErrs) > 0 {
+			sort.Strings(censusGuardErrs)
+			t.Fatalf("paramcensus rot guard: %d findings:\n%s",
+				len(censusGuardErrs), strings.Join(censusGuardErrs, "\n"))
+		}
 		return censusBase, censusReads
 	}
 	s := scanPackages(t)
@@ -2545,9 +2590,8 @@ var knownUnsupportedParams = map[string][]string{
 	// Klin, Ambitious Augmenter, Zack Fair). Heroic Sacrifice's own carrier
 	// path (its delayed trigger, Mode$ ChangesZone) stays unimplemented and
 	// the card's OTHER labels above are untouched.
-	"Heroic Sacrifice":           {"param:api:Effect.ValidTgtsDesc", "param:api:PutCounter.ValidTgtsDesc", "param:api:ReplaceEffect.VarType"},
-	"Iron Man, Armored Avenger":  {"param:api:PutCounter.ValidTgtsDesc"},
-	"Jocasta, Automaton Avenger": {"param:api:ChangeZone.Attacking"},
+	"Heroic Sacrifice":          {"param:api:Effect.ValidTgtsDesc", "param:api:PutCounter.ValidTgtsDesc", "param:api:ReplaceEffect.VarType"},
+	"Iron Man, Armored Avenger": {"param:api:PutCounter.ValidTgtsDesc"},
 	// (Love on the Battlefield's param:trig:AttackersDeclared.NoResolvingCheck
 	// row retired when the NoResolvingCheck$ read landed: the resolution-time
 	// CR 603.4 recheck skips a trigger carrying the param

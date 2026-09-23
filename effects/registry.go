@@ -528,6 +528,16 @@ type Host interface {
 	// the host drops that report (the villainous frame re-enters the
 	// primitive itself), the SuspendCharmRest convention.
 	SuspendVillainousRest(sa *cards.SA, rest VillainousRest)
+	// SuspendFlipRest reports that a DB$ FlipCoin loop suspended inside a
+	// per-flip sub-ability (FlipUntilYouLose$ or Amount$ > 1) with flips still
+	// owed. rest carries the flip cursor: the flippers not yet processed and
+	// the current flipper's next iteration. The host records a continuation
+	// that re-enters the FlipCoin SA itself with Ctx.FlipRest = rest once the
+	// answered ask's own chain completes, so the loop resumes rather than
+	// abandoning the remaining flips. The Resolve loop enclosing the FlipCoin
+	// reports that same SA through SuspendContinuation next; the host drops
+	// that report, the SuspendCharmRest convention.
+	SuspendFlipRest(sa *cards.SA, rest FlipRest)
 	// SetDamageSource overrides the in-flight damage source for the Damage
 	// events the caller is about to emit: the provenance rules' emit-side
 	// protection check (CR 702.16d) and DamageDone trigger matching read
@@ -610,6 +620,24 @@ type RepeatSuspension struct {
 	Outer       []state.Target
 	Chosen      []state.Target
 	ChosenValid bool
+}
+
+// FlipRest is a DB$ FlipCoin loop's continuation once a per-flip sub-ability
+// suspended on its own mid-resolution ask (FlipUntilYouLose$ or Amount$ > 1).
+// The host re-enters the FlipCoin primitive with this cursor so the remaining
+// flips run rather than being abandoned. Plain data, so the host can carry it
+// on its own continuation frame and replay re-derives it identically.
+type FlipRest struct {
+	// Players is the flipper set and PlayerIndex the index of the flipper
+	// whose loop is in progress. Iter is the next iteration for that flipper
+	// (the number already flipped); Amount is the loop bound for a
+	// non-until-lose flip and UntilLose whether the loop runs until the first
+	// tail.
+	Players     []state.PlayerID
+	PlayerIndex int
+	Iter        int32
+	Amount      int32
+	UntilLose   bool
 }
 
 // VillainousRest is a VillainousChoice's continuation once its chosen body
@@ -1352,6 +1380,10 @@ type Ctx struct {
 	// body (ReplaceType$ Any, ReplaceColor$ Chosen, ReplaceMana$ Any).
 	// Rules parks the ManaAdd and supplies this on resume.
 	ManaChoice string
+	// ManaChoices is the allocation chosen for Produced$ Combo with Amount$ >
+	// 1. Each entry is one W/U/B/R/G unit; effMana consumes it with Amount 1
+	// so a split such as U,R produces one of each rather than doubling both.
+	ManaChoices []string
 	// HandMove is the answered Origin$ Hand ChangeZone selection.
 	HandMove     []state.ObjID
 	HandMoveDone bool
@@ -1625,6 +1657,23 @@ type Ctx struct {
 	// table is never shadowed outside one loop body.
 	VotePublished    int32
 	VotePublishedSet bool
+	// FlipMemory is this resolution's coin-flip memory (nil until a flip
+	// happens). It is a POINTER so a Ctx copy -- a RepeatEach iteration's
+	// cc := *c, or the fresh Ctx a resume rebuilds -- shares the SAME memory:
+	// flips performed before a suspension or in a loop iteration stay visible
+	// to the chained reader. effFlipCoin lazily allocates it and mutates it in
+	// place (never replacing the pointer), so the value rules' Ask captured
+	// onto the pending resume point stays live. The cumulative-upkeep FlipCoin
+	// cost action (rules/cumulative.go) does not go through effFlipCoin and so
+	// does not populate it (see AGENTS.md).
+	FlipMemory *FlipMemory
+	// FlipRest is the resume cursor of a DB$ FlipCoin loop re-entered after a
+	// per-flip sub-ability suspended (FlipUntilYouLose$ or Amount$ > 1). rules'
+	// resumeResolution sets it from the continuation frame before re-running
+	// the FlipCoin SA; effFlipCoin consumes and clears it at the top of its own
+	// walk (the fx42 scoping discipline), so a nested FlipCoin poses its own
+	// loop. Nil on every ordinary first pass.
+	FlipRest *FlipRest
 }
 
 // VoteCount is one ballot subject's tally (see Ctx.VoteCounts).
@@ -1639,6 +1688,38 @@ type VoteCount struct {
 type RollPub struct {
 	Name  string
 	Value int32
+}
+
+// FlipResult is one coin flip a resolution performed (see FlipMemory.Results).
+// Player is the flipper, Heads the outcome (Forge's heads = win, tails = lose).
+type FlipResult struct {
+	Player state.PlayerID
+	Heads  bool
+}
+
+// FlipMemory is a resolution's coin-flip memory. It is held by POINTER on the
+// resolving Ctx so that a Ctx copy (a RepeatEach iteration's cc := *c, or the
+// fresh Ctx a resume rebuilds) shares the SAME memory: a flip the iteration or
+// the pre-suspension pass performed stays visible to the loop's chained
+// SubAbility$ and to the resumed walk. A nil *FlipMemory means this resolution
+// has performed no flip.
+type FlipMemory struct {
+	// Results is every RememberResult$ True flip of this resolution's chain,
+	// in flip order, the source of Defined$ FlippedHeads/FlippedTails.
+	Results []FlipResult
+	// CurWin/CurLoss are the per-flip Wins/Losses SVars Forge's FlipCoinEffect
+	// publishes (1 to the side the current flip landed on, 0 to the other), so
+	// a per-flip WinSubAbility$'s NumCards$ Wins / TokenAmount$ Wins /
+	// CounterNum$ Wins is 1 per winning flip. Set is the presence gate.
+	CurWin  int32
+	CurLoss int32
+	Set     bool
+	// RememberNumber/RememberNumberKind are the CUMULATIVE tally of the side
+	// RememberNumber$ names (Forge's rememberedNumber, which
+	// Count$RememberedNumber reads -- distinct from the per-flip Wins/Losses
+	// SVars above).
+	RememberNumber     int32
+	RememberNumberKind string
 }
 
 type Effect func(h Host, c *Ctx, sa *cards.SA)
@@ -1838,6 +1919,16 @@ type effectFrameHost interface {
 	SetCurrentEffectFrame(EffectFrame)
 }
 
+// flipMemoryHost is implemented by the rules engine to publish the resolving
+// chain's shared coin-flip memory (Ctx.FlipMemory) for the whole of the walk,
+// so an ask posed from inside the chain (Host.Ask) can capture the pointer
+// onto the pending resume point and re-attach it to the fresh Ctx a resume
+// rebuilds. Optional, like effectFrameHost, so the effects test doubles need
+// no method. effFlipCoin re-publishes whenever it lazily allocates the memory.
+type flipMemoryHost interface {
+	SetResolutionFlipMemory(*FlipMemory) *FlipMemory
+}
+
 func Resolve(h Host, c *Ctx, sa *cards.SA) {
 	// Publish this walk's Effect-created registration frame (set by rules'
 	// seedEffectReplCtx on an api:Effect replacement's body Ctx) for the whole
@@ -1853,6 +1944,17 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 			fh.SetCurrentEffectFrame(c.EffectFrame)
 		}
 		defer fh.SetCurrentEffectFrame(previous)
+	}
+	// Publish the chain's shared coin-flip memory for the whole walk (and
+	// restore the enclosing value on return), so an ask inside the chain can
+	// capture the pointer. nil when the chain has performed no flip yet; an
+	// effect that allocates the memory (effFlipCoin) re-publishes through the
+	// same seam.
+	if c != nil {
+		if fh, ok := h.(flipMemoryHost); ok {
+			previous := fh.SetResolutionFlipMemory(c.FlipMemory)
+			defer fh.SetResolutionFlipMemory(previous)
+		}
 	}
 	if c != nil {
 		c.Host = h

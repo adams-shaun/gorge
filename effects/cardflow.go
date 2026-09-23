@@ -1046,6 +1046,10 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 		c.ArrangeTarget = 0
 	}
 	g := h.Game()
+	// One classification for the whole Dig call, before the target walk: a
+	// degrading Attacking$ rider is one Note per dig, not one per taken card
+	// (nor one per Defined$ library).
+	rider := classifyAttackingEntry(c, sa, dest)
 	for targetIndex, t := range Defined(h, c, sa) {
 		p := PlayerOf(h, c, t)
 		lib := zoneOf(g, state.ZLibrary, p)
@@ -1081,6 +1085,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			if tapped && dest == state.ZBattlefield {
 				h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: p, Text: "entered tapped"})
 			}
+			rider.apply(h, c, id, p, dest)
 			// StaticEffect$ on a battlefield take (Arbiter of the Ideal's
 			// "put it onto the battlefield ... it's an enchantment"): the same
 			// rider registration every ChangeZone mover applies.
@@ -1619,6 +1624,12 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 	if raw := strings.TrimSpace(sa.Params["OptionalNoDestination"]); raw != "" {
 		declineDest = ParseZone(raw)
 	}
+	// One classification for the whole DigUntil call, before the player walk.
+	// The rider is only ever delivered on a battlefield entry (apply gates on
+	// the destination it is handed), so it is classified against that zone
+	// rather than against either of the two destinations the walk picks
+	// between.
+	rider := classifyAttackingEntry(c, sa, state.ZBattlefield)
 	for _, t := range targets {
 		p := PlayerOf(h, c, t)
 		lib := zoneOf(g, state.ZLibrary, p)
@@ -1697,6 +1708,7 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 					if tapped {
 						h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: p, Text: "entered tapped"})
 					}
+					rider.apply(h, c, id, p, dest)
 					if gainControl {
 						h.Emit(events.Event{Kind: events.ControlChange, Obj: id, Player: c.Controller})
 					}

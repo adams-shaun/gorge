@@ -2770,6 +2770,19 @@ func (e *Engine) IsCreature(id state.ObjID) bool {
 	return false
 }
 
+// IsLand reads the current layer-derived type list -- IsCreature's twin for
+// the CR 704.5n Fortification legality SBA: a bearer that LOST its Land type
+// to a layer-4 static is no longer a legal Fortification bearer, and one that
+// gained a type (an animated manland) still is.
+func (e *Engine) IsLand(id state.ObjID) bool {
+	for _, typ := range e.Derived(id).Types {
+		if typ == "Land" {
+			return true
+		}
+	}
+	return false
+}
+
 // Colors is the object's current layer-5 colour set as WUBRG letters (see
 // Derived.Colors); "" is a colourless object. Every rules-side colour read
 // about a live object goes through this (objColors below for callers that

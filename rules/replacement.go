@@ -1500,35 +1500,14 @@ func (e *Engine) composeUpdatedReplacements(ev events.Event, matches []replMatch
 // compositions are reachable in Commander, but no repo deck carries any of
 // this family, so no golden game exercises one).
 func (e *Engine) continueCreateTokenReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
-	plan := []string{ev.Text}
-	for _, m := range matches {
-		body := m.repl.With
-		if body == nil || body.API != "ReplaceToken" {
-			// A body this dispatcher does not read leaves the plan untouched;
-			// the mint stands (the fail-safe direction).
-			continue
-		}
-		if strings.EqualFold(m.repl.Params["Optional"], "True") {
-			// The deterministic decline stand-in (the optional no-ask paths'
-			// contract): a "may" replacement with no chooser applies as if
-			// declined, the event stands verbatim.
-			continue
-		}
-		typ := strings.TrimSpace(body.Params["Type"])
-		if typ == "ReplaceController" {
-			e.emit(events.Event{Kind: events.Note, Obj: m.id, Player: ev.Player,
-				Text: "ReplaceToken Type$ ReplaceController is not implemented; the token is created unchanged"})
-			continue
-		}
-		if strings.EqualFold(strings.TrimSpace(body.Params["TokenScript"]), "Chosen") ||
-			strings.TrimSpace(body.Params["ValidChoices"]) != "" {
-			e.emit(events.Event{Kind: events.Note, Obj: m.id, Player: ev.Player,
-				Text: "ReplaceToken ValidChoices (TokenScript$ Chosen) is not implemented; the token is created unchanged"})
-			continue
-		}
-		plan = e.applyTokenReplacementToPlan(ev, plan, m)
+	plan, parked := e.driveTokenReplacements(ev, matches, []tokenPlanMint{{script: ev.Text}}, 0)
+	if parked {
+		// The chosen-copy body's election is outstanding: the whole plan is
+		// parked on e.tokenChoice and the mints are emitted from its resume
+		// (tokenReplAnswer), the siegeMove/attachedChoice discipline.
+		return ev, true
 	}
-	if len(plan) == 1 && plan[0] == ev.Text {
+	if len(plan) == 1 && plan[0].copyOf == 0 && plan[0].script == ev.Text {
 		// No replacement changed the plan: the ordinary emit path logs the
 		// original event untouched (with its full LKI/trigger treatment).
 		return ev, false
@@ -1540,15 +1519,254 @@ func (e *Engine) continueCreateTokenReplacements(ev events.Event, matches []repl
 			Text: "no tokens created (replacement effect rounded the creation down to zero)"})
 		return ev, true
 	}
+	last := e.emitTokenPlanMints(ev, plan)
+	return last, true
+}
+
+// tokenPlanMint is one planned mint of a CreateToken replacement plan: an
+// ordinary scripted token (script) or a copy of a battlefield permanent
+// (copyOf -- the chosen-copy body's TokenScript$ Chosen shape).
+type tokenPlanMint struct {
+	script string
+	copyOf state.ObjID
+}
+
+// tokenChoiceState is the parked chosen-copy replacement's continuation: the
+// original event, the full match list, the plan as rewritten so far, the
+// cursor of the next unapplied match, the match the outstanding election
+// belongs to and the decline option's index (negative when the body is not
+// Optional -- a decline is then not an offered answer).
+type tokenChoiceState struct {
+	ev         events.Event
+	matches    []replMatch
+	plan       []tokenPlanMint
+	next       int
+	match      replMatch
+	declineIdx int
+}
+
+// driveTokenReplacements applies matches[from:] to the plan, in the
+// dispatcher's deterministic scan order, parking (with e.tokenChoice
+// populated) at the first chosen-copy match whose election must be asked.
+// A nil/unchanged plan rides out as the caller's signal that the original
+// event stands.
+func (e *Engine) driveTokenReplacements(ev events.Event, matches []replMatch, plan []tokenPlanMint, from int) ([]tokenPlanMint, bool) {
+	for i := from; i < len(matches); i++ {
+		m := matches[i]
+		body := m.repl.With
+		if body == nil || body.API != "ReplaceToken" {
+			// A body this dispatcher does not read leaves the plan untouched;
+			// the mint stands (the fail-safe direction).
+			continue
+		}
+		chosenShape := strings.EqualFold(strings.TrimSpace(body.Params["TokenScript"]), "Chosen") ||
+			strings.TrimSpace(body.Params["ValidChoices"]) != ""
+		if !chosenShape && strings.EqualFold(m.repl.Params["Optional"], "True") {
+			// The deterministic decline stand-in (the optional no-ask paths'
+			// contract): a "may" replacement with no chooser applies as if
+			// declined, the event stands verbatim. The chosen-copy bodies below
+			// DO pose their election and so never take this arm.
+			continue
+		}
+		typ := strings.TrimSpace(body.Params["Type"])
+		if typ == "ReplaceController" {
+			e.emit(events.Event{Kind: events.Note, Obj: m.id, Player: ev.Player,
+				Text: "ReplaceToken Type$ ReplaceController is not implemented; the token is created unchanged"})
+			continue
+		}
+		if chosenShape {
+			var parked bool
+			plan, parked = e.poseChosenTokenReplacement(ev, matches, plan, i, m)
+			if parked {
+				return plan, true
+			}
+			continue
+		}
+		plan = e.applyTokenReplacementToPlan(ev, plan, m)
+	}
+	return plan, false
+}
+
+// poseChosenTokenReplacement handles ONE Type$ ReplaceToken body whose copy
+// source is a player choice (ValidChoices$ <spec> / TokenScript$ Chosen --
+// the measured population is exactly Esix, Fractal Bloom, Moonlit Meditation
+// and Mirrormind Crown). The controller's election is one KChoose over the
+// permanents the spec matches (deterministic battlefield scan order), with a
+// decline option FIRST when the R: line carries Optional$ True -- the
+// replicate/exert convention, so botpolicy's KChoose default arm (first
+// offer) declines a may and never wrongly replaces. On accept every mint the
+// body gates onto becomes a copy of the chosen creature; on decline the match
+// is skipped and the plan's remaining matches still run (declining one
+// CR 616.1 competitor never declines the others). No eligible permanent is
+// the forced decline (nobody could answer differently -- the strict-supersets
+// convention), and a second concurrent decision keeps the loud stand-in
+// rather than overwrite an outstanding ask.
+func (e *Engine) poseChosenTokenReplacement(ev events.Event, matches []replMatch, plan []tokenPlanMint, idx int, m replMatch) ([]tokenPlanMint, bool) {
+	you := e.controllerOf(m.id)
+	cands := e.tokenChosenCandidates(strings.TrimSpace(m.repl.With.Params["ValidChoices"]), m.id, you)
+	optional := strings.EqualFold(m.repl.Params["Optional"], "True")
+	if len(cands) == 0 {
+		return plan, false
+	}
+	if !optional && len(cands) == 1 {
+		return e.applyChosenToPlan(ev, m, plan, cands[0]), false
+	}
+	if e.tokenChoice != nil || e.pending != nil || e.resume != nil {
+		e.emit(events.Event{Kind: events.Note, Obj: m.id, Player: ev.Player,
+			Text: "ReplaceToken ValidChoices (TokenScript$ Chosen) cannot ask while another decision is pending; the token is created unchanged"})
+		return plan, false
+	}
+	opts := make([]decision.Option, 0, len(cands)+1)
+	declineIdx := -1
+	if optional {
+		opts = append(opts, decision.Option{Index: 0, Kind: "decline",
+			Label: "create the tokens as they would have been"})
+		declineIdx = 0
+	}
+	for i, id := range cands {
+		label := ""
+		if o := e.G.Obj(id); o != nil && o.Face() != nil {
+			label = o.Face().Name
+		}
+		opts = append(opts, decision.Option{Index: declineIdx + 1 + i, Kind: "creature", Label: label, Obj: id})
+	}
+	e.tokenChoice = &tokenChoiceState{ev: ev, matches: matches, plan: plan,
+		next: idx + 1, match: m, declineIdx: declineIdx}
+	prompt := "Choose a creature to copy"
+	if optional {
+		prompt = "You may instead create tokens that are copies of a creature: choose one, or decline"
+	}
+	d := &decision.Decision{Player: you, Kind: decision.KChoose, Min: 1, Max: 1,
+		Source: m.id, Prompt: prompt, Options: opts}
+	e.choosing = chooseTokenReplace
+	e.ask(d)
+	return plan, true
+}
+
+// tokenReplAnswer resumes the parked chosen-copy replacement (the
+// chooseTokenReplace case of handleChoose): the answered option either
+// rewrites the plan to copies of the chosen creature or skips the match (the
+// decline), and the flow then drives the plan's remaining matches.
+func (e *Engine) tokenReplAnswer(chosen []decision.Option) {
+	st := e.tokenChoice
+	e.tokenChoice = nil
+	e.choosing = chooseNone
+	if st == nil {
+		e.emit(events.Event{Kind: events.Note, Text: "token copy choice answered with no replacement pending"})
+		return
+	}
+	if len(chosen) != 1 || chosen[0].Index == st.declineIdx {
+		// The decline (or a malformed answer, treated as one): the match is
+		// skipped, the event's remaining replacements still run.
+	} else if o := e.G.Obj(chosen[0].Obj); o != nil && o.Zone == state.ZBattlefield {
+		st.plan = e.applyChosenToPlan(st.ev, st.match, st.plan, chosen[0].Obj)
+	} else {
+		// The chosen creature vanished between the ask and the answer: one
+		// loud Note and the match is skipped, never a mint of nothing.
+		e.emit(events.Event{Kind: events.Note, Obj: st.match.id, Player: st.ev.Player,
+			Text: "the chosen creature is no longer on the battlefield; the token is created unchanged"})
+	}
+	plan, parked := e.driveTokenReplacements(st.ev, st.matches, st.plan, st.next)
+	if parked {
+		return
+	}
+	e.emitTokenPlan(st.ev, plan)
+}
+
+// emitTokenPlan settles the parked plan after every match has been applied
+// or declined. An unchanged plan re-emits the original event verbatim under
+// the applyingReplacement guard (the finishParkedPhase convention -- asking
+// the ordinary path to re-collect would re-pose the declined elections), the
+// empty plan is the rounded-to-zero Note, and each mint rides the
+// continueCreateTokenReplacements tail's discipline.
+func (e *Engine) emitTokenPlan(ev events.Event, plan []tokenPlanMint) {
+	if len(plan) == 1 && plan[0].copyOf == 0 && plan[0].script == ev.Text {
+		saved := e.applyingReplacement
+		e.applyingReplacement = true
+		e.emit(ev)
+		e.applyingReplacement = saved
+		return
+	}
+	if len(plan) == 0 {
+		e.emit(events.Event{Kind: events.Note, Obj: 0, Player: ev.Player,
+			Text: "no tokens created (replacement effect rounded the creation down to zero)"})
+		return
+	}
+	e.emitTokenPlanMints(ev, plan)
+}
+
+// emitTokenPlanMints logs the final plan: one TokenCreate per scripted mint
+// through the raw events.Emit tail (which BYPASSES applyReplacements, so no
+// doubler can loop on its own output), one CopyToken + genuine MoveZone per
+// copy mint (the DB$ CopyPermanent mint shape -- the entry stays a
+// ChangesZone-matchable event every "a creature enters" trigger observes,
+// and the MoveZone rides the ordinary entry machinery a real copy gets).
+func (e *Engine) emitTokenPlanMints(ev events.Event, plan []tokenPlanMint) events.Event {
 	var last events.Event
-	for _, script := range plan {
-		mint := events.Event{Kind: events.TokenCreate, Player: ev.Player, Text: script}
-		stored := events.Emit(e.G, e.L, mint)
+	for _, mint := range plan {
+		if mint.copyOf != 0 {
+			last = e.emitChosenCopyToken(ev, mint.copyOf)
+			continue
+		}
+		mintEv := events.Event{Kind: events.TokenCreate, Player: ev.Player, Text: mint.script}
+		stored := events.Emit(e.G, e.L, mintEv)
 		e.loop.observe(stored)
 		e.checkTriggers(stored, nil, 0, 0, false)
 		last = stored
 	}
-	return last, true
+	return last
+}
+
+// emitChosenCopyToken mints one copy of a battlefield creature: the CopyToken
+// mint predicted by id (the effToken/effMyriad prediction pattern), then the
+// genuine MoveZone that puts it on the battlefield.
+func (e *Engine) emitChosenCopyToken(ev events.Event, src state.ObjID) events.Event {
+	want := e.G.NextID
+	stored := e.emit(events.Event{Kind: events.CopyToken, Obj: src, Player: ev.Player})
+	if e.G.Obj(want) == nil {
+		return stored
+	}
+	return e.emit(events.Event{Kind: events.MoveZone, Obj: want,
+		From: state.ZLibrary, To: state.ZBattlefield})
+}
+
+// tokenChosenCandidates resolves one chosen-copy body's ValidChoices$ spec
+// against the battlefield: every permanent, any controller's (deterministic
+// AliveFrom/zone order), the spec matches, with the replacement's source as
+// the filter's referent -- Esix's `Creature.Other` excludes Esix itself and
+// Moonlit's `Card.EnchantedBy` reaches exactly the enchanted permanent. An
+// unmatchable spec fails closed to the empty set (the forced decline).
+func (e *Engine) tokenChosenCandidates(spec string, source state.ObjID, you state.PlayerID) []state.ObjID {
+	var out []state.ObjID
+	sc := e.specCtx(source, you)
+	for _, p := range e.G.AliveFrom(0) {
+		for _, id := range e.G.Zone(state.ZBattlefield, p) {
+			o := e.G.Obj(id)
+			if o == nil {
+				continue
+			}
+			if effects.MatchesObjectCtx(e.G, spec, o, sc) {
+				out = append(out, id)
+			}
+		}
+	}
+	return out
+}
+
+// applyChosenToPlan rewrites every mint ONE chosen-copy match gates onto a
+// copy of the chosen creature -- one election covers the whole creation
+// event ("choose a creature ... and create that many tokens that are copies
+// of that creature").
+func (e *Engine) applyChosenToPlan(ev events.Event, m replMatch, plan []tokenPlanMint, chosen state.ObjID) []tokenPlanMint {
+	out := make([]tokenPlanMint, 0, len(plan))
+	for _, mint := range plan {
+		if e.tokenReplacementMatchesMint(ev, m, mint) {
+			out = append(out, tokenPlanMint{copyOf: chosen})
+		} else {
+			out = append(out, mint)
+		}
+	}
+	return out
 }
 
 // applyAddCounterReplacements rewrites a CounterChange/PlayerCounterChange
@@ -1794,7 +2012,7 @@ func (e *Engine) continuePlanarRollReplacements(ev events.Event, matches []replM
 
 // applyTokenReplacementToPlan transforms the plan by ONE match, per mint,
 // with the match's own ValidToken$ re-checked against each mint's script.
-func (e *Engine) applyTokenReplacementToPlan(ev events.Event, plan []string, m replMatch) []string {
+func (e *Engine) applyTokenReplacementToPlan(ev events.Event, plan []tokenPlanMint, m replMatch) []tokenPlanMint {
 	body := m.repl.With
 	switch strings.TrimSpace(body.Params["Type"]) {
 	case "ReplaceToken":
@@ -1806,10 +2024,12 @@ func (e *Engine) applyTokenReplacementToPlan(ev events.Event, plan []string, m r
 		if len(scripts) == 0 {
 			return plan
 		}
-		out := make([]string, 0, len(plan)*len(scripts))
+		out := make([]tokenPlanMint, 0, len(plan)*len(scripts))
 		for _, mint := range plan {
 			if e.tokenReplacementMatchesMint(ev, m, mint) {
-				out = append(out, scripts...)
+				for _, s := range scripts {
+					out = append(out, tokenPlanMint{script: s})
+				}
 			} else {
 				out = append(out, mint)
 			}
@@ -1832,12 +2052,14 @@ func (e *Engine) applyTokenReplacementToPlan(ev events.Event, plan []string, m r
 		if len(extra) == 0 {
 			return plan
 		}
-		out := make([]string, 0, len(plan)+int(n)*len(extra))
+		out := make([]tokenPlanMint, 0, len(plan)+int(n)*len(extra))
 		for _, mint := range plan {
 			out = append(out, mint)
 			if e.tokenReplacementMatchesMint(ev, m, mint) {
 				for i := int32(0); i < n; i++ {
-					out = append(out, extra...)
+					for _, s := range extra {
+						out = append(out, tokenPlanMint{script: s})
+					}
 				}
 			}
 		}
@@ -1856,7 +2078,7 @@ func (e *Engine) applyTokenReplacementToPlan(ev events.Event, plan []string, m r
 				Text: "ReplaceToken Amount$ " + raw + " is not implemented; the token is created unchanged"})
 			return plan
 		}
-		out := make([]string, 0, len(plan)*int(n)+1)
+		out := make([]tokenPlanMint, 0, len(plan)*int(n)+1)
 		for _, mint := range plan {
 			if !e.tokenReplacementMatchesMint(ev, m, mint) {
 				out = append(out, mint)
@@ -1878,11 +2100,18 @@ func (e *Engine) applyTokenReplacementToPlan(ev events.Event, plan []string, m r
 }
 
 // tokenReplacementMatchesMint re-checks ONE replacement against ONE plan
-// mint (a would-be TokenCreate event over the mint's script). The body's
-// own ValidCard$ (stridehangar_automaton's redundant artifact gate) joins
-// the gate when present.
-func (e *Engine) tokenReplacementMatchesMint(ev events.Event, m replMatch, script string) bool {
-	mint := events.Event{Kind: events.TokenCreate, Player: ev.Player, Text: script}
+// mint: a scripted mint rides its script, a copy mint (copyOf) rides the
+// copied object's printed face -- the would-be token's characteristics are
+// the copy source's (CR 706.2), which is what lets a later match re-check a
+// copy mint (Divine Visitation after Esix rewrites each copy that is still a
+// creature token).
+func (e *Engine) tokenReplacementMatchesMint(ev events.Event, m replMatch, mint tokenPlanMint) bool {
+	mintEv := events.Event{Kind: events.TokenCreate, Player: ev.Player, Text: mint.script}
+	// A copy mint's would-be token is the copied object's printed face, not a
+	// token-script registry key (CR 706.2), so BOTH the matcher's ValidToken$
+	// read and the ValidCard$ read below must see that snapshot -- one helper,
+	// never two derivations that can drift (the mint-snapshot class).
+	tok := e.mintSnapshot(mintEv, mint)
 	// The recheck uses the same matcher class the initial collection used:
 	// an effect-created match re-matches through the remembered-scoped effect
 	// matcher, a printed match through the ordinary one -- never the ungated
@@ -1892,15 +2121,14 @@ func (e *Engine) tokenReplacementMatchesMint(ev events.Event, m replMatch, scrip
 	// collection admitted, the same discipline remainingDamageReplacements
 	// and counterReplacementMatchesAll follow.
 	if m.key != "" {
-		if !e.replacementMatchesEffectCreated(*m.repl, m.id, mint, m.remembered, m.rememberedPlayers) {
+		if !e.replacementMatchesEffectCreatedToken(*m.repl, m.id, mintEv, m.remembered, m.rememberedPlayers, tok) {
 			return false
 		}
-	} else if !e.replacementMatches(*m.repl, m.id, mint) {
+	} else if !e.replacementMatchesToken(*m.repl, m.id, mintEv, tok) {
 		return false
 	}
 	if m.repl.With != nil {
 		if v := strings.TrimSpace(m.repl.With.Params["ValidCard"]); v != "" {
-			tok := e.tokenSnapshot(mint)
 			if tok == nil {
 				return false
 			}
@@ -2275,7 +2503,7 @@ func (e *Engine) replacementMatchesRemembered(r cards.Repl, source state.ObjID, 
 	if !e.activeZonesGateOK(r, source, ev) {
 		return false
 	}
-	return e.replacementMatchesRememberedUngated(r, source, ev, remembered, rememberedPlayers)
+	return e.replacementMatchesRememberedUngated(r, source, ev, remembered, rememberedPlayers, nil)
 }
 
 // activeZonesGateOK is the ActiveZones$ zone gate the PRINTED replacement
@@ -2329,13 +2557,26 @@ func (e *Engine) activeZonesGateOK(r cards.Repl, source state.ObjID, ev events.E
 // — gating on the source's zone would permanently silence every one of them
 // (task wildgrowth1). active() still ends the effect on its own lifetime.
 func (e *Engine) replacementMatchesEffectCreated(r cards.Repl, source state.ObjID, ev events.Event, remembered []state.ObjID, rememberedPlayers []state.PlayerID) bool {
-	return e.replacementMatchesRememberedUngated(r, source, ev, remembered, rememberedPlayers)
+	return e.replacementMatchesRememberedUngated(r, source, ev, remembered, rememberedPlayers, nil)
+}
+
+// replacementMatchesToken / replacementMatchesEffectCreatedToken are the
+// mint-recheck entry points: tokenOverride overrides what the ValidToken$
+// matcher reads as the would-be token (a copy plan mint's snapshot, CR
+// 706.2). Only tokenReplacementMatchesMint calls them; every other caller
+// passes nil and the matcher builds the snapshot from the event's script.
+func (e *Engine) replacementMatchesToken(r cards.Repl, source state.ObjID, ev events.Event, tokenOverride *state.Object) bool {
+	return e.replacementMatchesRememberedUngated(r, source, ev, nil, nil, tokenOverride)
+}
+
+func (e *Engine) replacementMatchesEffectCreatedToken(r cards.Repl, source state.ObjID, ev events.Event, remembered []state.ObjID, rememberedPlayers []state.PlayerID, tokenOverride *state.Object) bool {
+	return e.replacementMatchesRememberedUngated(r, source, ev, remembered, rememberedPlayers, tokenOverride)
 }
 
 // replacementMatchesRememberedUngated is replacementMatchesRemembered's
-// predicate body without the ActiveZones$ gate; only the two wrappers above
+// predicate body without the ActiveZones$ gate; only the wrappers above
 // reach it.
-func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.ObjID, ev events.Event, remembered []state.ObjID, rememberedPlayers []state.PlayerID) bool {
+func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.ObjID, ev events.Event, remembered []state.ObjID, rememberedPlayers []state.PlayerID, tokenOverride *state.Object) bool {
 	you := e.controllerOf(source)
 	switch r.Event {
 	case "Attached":
@@ -2715,7 +2956,10 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 		// Divine Visitation's "creature tokens under YOUR control" must read.
 		// An unknown token key fails closed to no match.
 		if v, ok := r.Params["ValidToken"]; ok {
-			tok := e.tokenSnapshot(ev)
+			tok := tokenOverride
+			if tok == nil {
+				tok = e.tokenSnapshot(ev)
+			}
 			if tok == nil || !effects.MatchesObjectCtx(e.G, v, tok,
 				e.rememberedSpecContext(you, source, remembered)) {
 				return false
@@ -2857,6 +3101,19 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 	return false
 }
 
+// mintSnapshot builds the would-be token a plan mint creates: the token
+// script the event names, or -- for a copy mint -- the copied object's
+// printed face as a never-added-to-the-game token (CR 706.2, the
+// chosenCopySnapshot discipline). Both the ValidToken$ matcher read and the
+// ValidCard$ re-check route through this one helper so a copy mint can never
+// be rechecked as an empty script again.
+func (e *Engine) mintSnapshot(mintEv events.Event, mint tokenPlanMint) *state.Object {
+	if mint.copyOf != 0 {
+		return e.chosenCopySnapshot(mint.copyOf, mintEv.Player)
+	}
+	return e.tokenSnapshot(mintEv)
+}
+
 // tokenSnapshot builds the would-be token a TokenCreate event would mint,
 // as a shallow read-side object for ValidToken$ matching. Never added to
 // the game — a value snapshot like StackCopy's discipline. A nil return
@@ -2867,6 +3124,19 @@ func (e *Engine) tokenSnapshot(ev events.Event) *state.Object {
 		return nil
 	}
 	return &state.Object{Card: def, IsToken: true, Owner: ev.Player, Controller: ev.Player}
+}
+
+// chosenCopySnapshot is the ValidCard$ re-check's read-side snapshot of a
+// COPY plan mint: the copied object's printed face as a never-added-to-
+// the-game token (the tokenSnapshot discipline). A vanished source
+// snapshots nothing (fail closed).
+func (e *Engine) chosenCopySnapshot(src state.ObjID, player state.PlayerID) *state.Object {
+	o := e.G.Obj(src)
+	if o == nil || o.Card == nil {
+		return nil
+	}
+	return &state.Object{Card: o.Card, FaceIdx: o.FaceIdx, IsToken: true,
+		Owner: player, Controller: player}
 }
 
 // phaseStep maps a Forge Phase$ value on a BeginPhase replacement onto the

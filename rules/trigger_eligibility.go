@@ -86,6 +86,7 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.BlessingChange, events.ClonePermanent,
 		events.Mutate, events.MergedTriggerPush,
 		events.Enlist, events.AlterAttribute, events.Unattached, events.PlayerNoted,
+		events.PlayerNoteCleared,
 		events.GainedAbilityPush, events.GainedTriggerPush:
 		// AlterAttribute (alterattr1) is the same shape past the bound as
 		// Enlist: the suspected designation (CR 702.157) is a status no
@@ -115,6 +116,18 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		// object -- the GrantAbilityPush/GrantTriggerPush shape, and like
 		// those two past the bound so both classifiers fail open anyway.
 		// Naming them keeps the audit complete if the bound ever widens.
+		//
+		// PlayerNoted and PlayerNoteCleared are the two halves of the same
+		// player-notation bookkeeping (NoteCardsFor$ writes a label,
+		// ClearNotedCardsFor$ removes one): the label is read back by the
+		// `Player.NotedFor<X>` filter predicate at a later resolution, never
+		// by a trigger mode -- no T: line in the corpus fires on a note being
+		// written or cleared. Both ordinals (83, 84) sit past
+		// triggerMaskKindBits, so both classifiers fail open before this map
+		// is consulted; naming the clear half alongside the write half keeps
+		// the audit complete if the bound ever widens, and keeps it out of
+		// the catch-all default that would otherwise run a full trigger scan
+		// on every cleared label.
 		return 0
 	case events.Attach:
 		return cards.TriggerInterestAttach

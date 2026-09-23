@@ -62,6 +62,9 @@ var expandedHeads = []string{
 	// kw-partner-with). The deck-construction designation half of the keyword
 	// is read by deck.IsPartnerPair and is unchanged.
 	"Partner with",
+	// Fortify (CR 702.67): analogous to Equip but targets lands; it was added
+	// after the split by kw-fortify and therefore belongs in this registry.
+	"Fortify",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {

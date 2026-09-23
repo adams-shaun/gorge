@@ -300,6 +300,13 @@ const (
 	// FlagCompleated marks the pay-time CastInfo carrying life paid for a
 	// printed K:Compleated planeswalker's Phyrexian symbols.
 	FlagCompleated
+	// FlagMayhem marks a cast paid for with the card's K:Mayhem alternative
+	// cost (the Doom Prevails "may cast this card from your graveyard for
+	// <cost> if you discarded it this turn" keyword): the flag is the
+	// provenance the Card.CastSa Spell.Mayhem condition reads (Sandman's
+	// Quicksand's "if this spell's mayhem cost was paid" split). Appended
+	// per the enum's own append-only precedent.
+	FlagMayhem
 )
 
 // CastProvenanceFlags is the ONE home for the CastFlags bits whose reader
@@ -310,14 +317,19 @@ const (
 // clears IsCopy, and rules/altcast.go's entry hook would otherwise read the
 // inherited bit and hand a never-cast token the obligation.
 //
-// Only FlagMayFlashSac is in the set, deliberately. The three sibling bits
+// FlagMayFlashSac and FlagMayhem are in the set. FlagMayhem's reader is
+// Sandman's Quicksand's Card.CastSa Spell.Mayhem condition -- "if this
+// spell's mayhem cost was PAID" is a statement about the cast, so a copy
+// (never cast) must not inherit it.
+//
+// The three sibling bits
 // that entry hook also reads -- FlagEvoked, FlagDashed, FlagWarped -- are
 // conditioned on an alternative COST having been paid, which is a choice
 // made as the spell was cast and which the copy rules do carry for the
 // comparable cases (the copied-kicker precedent), so changing them is a
 // separate ruling with its own corpus measurement. Add a bit here only when
 // its reader's condition is the cast itself.
-const CastProvenanceFlags = FlagMayFlashSac
+const CastProvenanceFlags = FlagMayFlashSac | FlagMayhem
 
 // ExilesLeavingStack reports whether a cast carrying these flags is a
 // keyword cast whose card is exiled as it leaves the stack, whichever way it

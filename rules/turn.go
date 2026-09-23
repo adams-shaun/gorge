@@ -1210,6 +1210,13 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		e.siegeMove = nil
 		e.choosing = chooseNone
 		e.emit(move)
+	case chooseTokenReplace:
+		// The chosen-copy CreateToken replacement's election (rules/
+		// replacement.go's poseChosenTokenReplacement park) was answered: the
+		// answer either rewrites the parked plan to copies of the chosen
+		// creature or skips the match (a decline), and the flow then runs the
+		// plan's remaining replacement matches before the mints are emitted.
+		e.tokenReplAnswer(chosen)
 	case chooseOpening:
 		e.handleOpening(d, in)
 	case chooseSuspendCast:
