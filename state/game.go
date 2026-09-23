@@ -556,6 +556,16 @@ func (g *Game) Clone() *Game {
 			c.ExtraTurns[p] = n
 		}
 	}
+	// ResolvedThisTurn is incremented in place by events.Apply's Resolve case,
+	// so a clone must own its own map -- sharing the live one's backing map
+	// would let a clone's resolution corrupt the original's per-ability tally
+	// (the same rule as ExtraTurns above and every other in-place slice/map).
+	if g.ResolvedThisTurn != nil {
+		c.ResolvedThisTurn = make(map[string]int32, len(g.ResolvedThisTurn))
+		for k, n := range g.ResolvedThisTurn {
+			c.ResolvedThisTurn[k] = n
+		}
+	}
 	c.ExtraTurnQueue = append([]ExtraTurn(nil), g.ExtraTurnQueue...)
 	c.ExtraPhases = append([]ExtraPhase(nil), g.ExtraPhases...)
 	return &c
