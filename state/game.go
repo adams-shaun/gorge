@@ -157,7 +157,10 @@ type ExtraTurn struct {
 // at FollowedBy (default AfterStep+1, the phase that would naturally have
 // followed the splice point -- Forge AddPhaseEffect's default followedBy, so
 // an extra Beginning spliced after Main2 resumes at the end step, never back
-// into Main1). RangeEnd is derived from Entry, never stored twice in events.
+// into Main1). RangeEnd is derived from Entry, except when the grant's
+// ExtraPhase$ value names a multi-step phase whose range is not the entry's
+// default -- then the +1 event carries the last step in its RANGEEND rider
+// (events.ExtraPhaseRiders) and the fold stores it.
 // Every field is folded from the ExtraPhase event (grant +1 / consume -1 /
 // complete -2), cloned in Clone, and the whole queue clears at TurnChange --
 // an extra phase is spliced into the CURRENT turn only and never survives

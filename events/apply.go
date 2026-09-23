@@ -563,11 +563,19 @@ func Apply(g *state.Game, e Event) {
 			if !entry.Valid() {
 				break
 			}
+			riders := DecodeExtraPhaseRiders(e.Text)
+			// The extra phase's range: Entry's own by default, overridden by a
+			// multi-step ExtraPhase$ grant's RANGEEND rider (a whole named
+			// phase; only taken when it does not walk BACKWARD past the entry).
+			rangeEnd := state.ExtraPhaseRangeEnd(entry)
+			if riders.HasRangeEnd && riders.RangeEnd >= entry {
+				rangeEnd = riders.RangeEnd
+			}
 			ep := state.ExtraPhase{
 				Player:    e.Player,
 				AfterStep: e.Step,
 				Entry:     entry,
-				RangeEnd:  state.ExtraPhaseRangeEnd(entry),
+				RangeEnd:  rangeEnd,
 				Execute:   e.Counter,
 				Source:    e.Obj,
 			}
@@ -576,7 +584,6 @@ func Apply(g *state.Game, e Event) {
 					ep.HasFollowedBy, ep.FollowedBy = true, fb
 				}
 			}
-			riders := DecodeExtraPhaseRiders(e.Text)
 			ep.HasDelayedPhase, ep.DelayedPhase = riders.HasDelayedPhase, riders.DelayedPhase
 			ep.ValidPlayer = riders.ValidPlayer
 			for n := int32(0); n < e.Amount; n++ {

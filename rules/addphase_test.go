@@ -78,9 +78,10 @@ func TestAureliaExtraCombatSplicesASecondCombat(t *testing.T) {
 	aurelia := moveByName(t, e, 0, "Aurelia, the Warleader", state.ZBattlefield)
 	// Aurelia has haste (CR 302.6), so the combat runs in the game's very
 	// first turn -- which is also why this test must drive every later turn
-	// with attacks DECLINED: the FirstAttack$ gate on her trigger is unread
-	// (see the report), and a bot that attacks every combat would fight one
-	// extra combat per combat until the opponent died, never reaching turn 3.
+	// with attacks DECLINED: the FirstAttack$ gate makes her trigger fire
+	// only on each turn's FIRST attack, but the extra combats she grants
+	// would still multiply under a bot that attacks every combat, never
+	// reaching turn 3.
 	driveToStep(t, e, e.G.Turn, e.G.Active, state.StepDeclareAttackers)
 	passToKind(t, e, decision.KAttackers)
 	submitAttackersOnly(t, e, aurelia)
