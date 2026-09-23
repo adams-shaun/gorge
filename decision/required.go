@@ -129,7 +129,13 @@ func (d *Decision) FitRequired(choices []int) []int {
 	sum = 0
 	slotOf := make(map[state.ObjID]int, len(out)) // Obj -> position in out.
 	have := make(map[int]bool, len(out)+len(choices))
-	groups := make(map[string]bool)
+	// groups counts the picked options per Group against GroupCap() -- the
+	// same cap Decision.Validate enforces, so a repaired answer can never be
+	// one Validate rejects. At the default cap of 1 a nonzero count is the
+	// historical boolean "already represented", so every limit-free decision
+	// repairs byte-identically.
+	limit := d.GroupCap()
+	groups := make(map[string]int)
 	objTaken := make(map[state.ObjID]bool, len(out)) // membership only.
 	for i, c := range out {
 		objTaken[d.Options[c].Obj] = true
@@ -137,7 +143,7 @@ func (d *Decision) FitRequired(choices []int) []int {
 		slotOf[d.Options[c].Obj] = i
 		have[c] = true
 		if g := d.Options[c].Group; g != "" {
-			groups[g] = true
+			groups[g]++
 		}
 	}
 	requiredObj := make(map[state.ObjID]bool)
@@ -155,18 +161,18 @@ func (d *Decision) FitRequired(choices []int) []int {
 		if requiredObj[o.Obj] {
 			if slot, ok := slotOf[o.Obj]; ok {
 				old := &d.Options[out[slot]]
-				if (o.Group != "" && o.Group != old.Group && groups[o.Group]) || !fits(o.Value-old.Value) {
+				if (o.Group != "" && o.Group != old.Group && groups[o.Group] >= limit) || !fits(o.Value-old.Value) {
 					continue
 				}
 				sum += o.Value - old.Value
 				delete(have, out[slot])
 				if old.Group != "" {
-					delete(groups, old.Group)
+					groups[old.Group]--
 				}
 				out[slot] = c
 				have[c] = true
 				if o.Group != "" {
-					groups[o.Group] = true
+					groups[o.Group]++
 				}
 				continue
 			}
@@ -180,7 +186,7 @@ func (d *Decision) FitRequired(choices []int) []int {
 		if d.Kind == KAttackers && objTaken[o.Obj] {
 			continue
 		}
-		if (o.Group != "" && groups[o.Group]) || !fits(o.Value) {
+		if (o.Group != "" && groups[o.Group] >= limit) || !fits(o.Value) {
 			continue
 		}
 		sum += o.Value
@@ -188,7 +194,7 @@ func (d *Decision) FitRequired(choices []int) []int {
 		have[c] = true
 		objTaken[o.Obj] = true
 		if o.Group != "" {
-			groups[o.Group] = true
+			groups[o.Group]++
 		}
 		if requiredObj[o.Obj] {
 			slotOf[o.Obj] = len(out) - 1
@@ -218,7 +224,7 @@ func (d *Decision) FitRequired(choices []int) []int {
 				break
 			}
 			o := &d.Options[c]
-			if (o.Group != "" && groups[o.Group]) || (d.Kind == KAttackers && objTaken[o.Obj]) {
+			if (o.Group != "" && groups[o.Group] >= limit) || (d.Kind == KAttackers && objTaken[o.Obj]) {
 				continue
 			}
 			sum += o.Value
@@ -226,7 +232,7 @@ func (d *Decision) FitRequired(choices []int) []int {
 			have[c] = true
 			objTaken[o.Obj] = true
 			if o.Group != "" {
-				groups[o.Group] = true
+				groups[o.Group]++
 			}
 		}
 	}

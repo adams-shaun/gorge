@@ -3328,7 +3328,9 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 			if i < len(picks) && picks[i].Obj > 0 && int(picks[i].Obj-1) < len(choices) {
 				label = choices[picks[i].Obj-1]
 			}
-			h.Emit(events.Event{Kind: events.Note, Player: PlayerOf(h, c, t), Text: "votes for " + label})
+			if !strings.EqualFold(strings.TrimSpace(sa.Params["Secretly"]), "True") {
+				h.Emit(events.Event{Kind: events.Note, Player: PlayerOf(h, c, t), Text: "votes for " + label})
+			}
 		}
 		counts := make([]int, len(choices))
 		for _, p := range picks {
@@ -3350,7 +3352,7 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 		for i, t := range voters {
 			ballots[i] = VoteBallot{Player: PlayerOf(h, c, t), Pick: int(picks[i].Obj) - 1}
 		}
-		emitVoteFinished(h, c, ballots, len(choices) > 0)
+		emitVoteFinished(h, c, ballots, len(choices) > 0, strings.EqualFold(strings.TrimSpace(sa.Params["Secretly"]), "True"))
 		return
 	}
 	// Ctx.Votes is the answered per-voter choice list (a real per-player
@@ -3381,7 +3383,9 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 			counts[choice]++
 			picks[i] = choice
 		}
-		h.Emit(events.Event{Kind: events.Note, Player: PlayerOf(h, c, t), Text: "votes for " + label})
+		if !strings.EqualFold(strings.TrimSpace(sa.Params["Secretly"]), "True") {
+			h.Emit(events.Event{Kind: events.Note, Player: PlayerOf(h, c, t), Text: "votes for " + label})
+		}
 	}
 	if len(choices) > 0 && len(voters) > 0 {
 		// The winner is the option with the most votes (ties: the first such
@@ -3413,7 +3417,7 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 	for i, t := range voters {
 		ballots[i] = VoteBallot{Player: PlayerOf(h, c, t), Pick: picks[i]}
 	}
-	emitVoteFinished(h, c, ballots, len(choices) > 0)
+	emitVoteFinished(h, c, ballots, len(choices) > 0, strings.EqualFold(strings.TrimSpace(sa.Params["Secretly"]), "True"))
 }
 
 // askFixedVote poses one private KChoose per voter. The answer is encoded as
@@ -3433,9 +3437,17 @@ func askFixedVote(h Host, c *Ctx, sa *cards.SA, choices []string, voters []state
 	}
 	for ; i < len(voters); i++ {
 		voter := PlayerOf(h, c, voters[i])
+		min := 1
+		if strings.EqualFold(strings.TrimSpace(sa.Params["UpTo"]), "True") {
+			min = 0
+		}
+		prompt := strings.TrimSpace(sa.Params["VoteMessage"])
+		if prompt == "" {
+			prompt = "Vote for an option"
+		}
 		d := &decision.Decision{Player: voter, Kind: decision.KChoose, Source: c.Source,
-			Min: 1, Max: 1, ResumeKind: "vote", ResumeSA: sa, ResumeTarget: i,
-			ResumeChoices: append([]state.Target(nil), picks...), Prompt: "Vote for an option"}
+			Min: min, Max: 1, ResumeKind: "vote", ResumeSA: sa, ResumeTarget: i,
+			ResumeChoices: append([]state.Target(nil), picks...), Prompt: prompt}
 		for j, name := range choices {
 			d.Options = append(d.Options, decision.Option{Index: j, Kind: "vote", Label: name, Obj: state.ObjID(j + 1)})
 		}
@@ -3517,8 +3529,16 @@ func askCardVote(h Host, c *Ctx, sa *cards.SA, options []state.ObjID, voters []s
 	}
 	for ; i < len(voters); i++ {
 		voter := PlayerOf(h, c, voters[i])
-		d := &decision.Decision{Player: voter, Kind: decision.KChoose, Source: c.Source, Min: 1, Max: 1,
-			ResumeKind: "vote", ResumeSA: sa, ResumeTarget: i, ResumeChoices: append([]state.Target(nil), picks...), Prompt: "Vote for a permanent"}
+		min := 1
+		if strings.EqualFold(strings.TrimSpace(sa.Params["UpTo"]), "True") {
+			min = 0
+		}
+		prompt := strings.TrimSpace(sa.Params["VoteMessage"])
+		if prompt == "" {
+			prompt = "Vote for a permanent"
+		}
+		d := &decision.Decision{Player: voter, Kind: decision.KChoose, Source: c.Source, Min: min, Max: 1,
+			ResumeKind: "vote", ResumeSA: sa, ResumeTarget: i, ResumeChoices: append([]state.Target(nil), picks...), Prompt: prompt}
 		for j, id := range options {
 			label := "permanent"
 			var controller state.PlayerID
@@ -3601,7 +3621,9 @@ func effCardVote(h Host, c *Ctx, sa *cards.SA, ballot string) {
 				max = counts[id]
 			}
 		}
-		h.Emit(events.Event{Kind: events.Note, Player: PlayerOf(h, c, t), Text: "votes for " + label})
+		if !strings.EqualFold(strings.TrimSpace(sa.Params["Secretly"]), "True") {
+			h.Emit(events.Event{Kind: events.Note, Player: PlayerOf(h, c, t), Text: "votes for " + label})
+		}
 	}
 	// The card ballot's per-subject tally, for the chained AmountFromVotes$
 	// reader (task votepb1): one entry per ballot permanent, published behind
@@ -3669,7 +3691,7 @@ func effCardVote(h Host, c *Ctx, sa *cards.SA, ballot string) {
 	for i, t := range voters {
 		ballots[i] = VoteBallot{Player: PlayerOf(h, c, t), Pick: picks[i]}
 	}
-	emitVoteFinished(h, c, ballots, len(options) > 0)
+	emitVoteFinished(h, c, ballots, len(options) > 0, strings.EqualFold(strings.TrimSpace(sa.Params["Secretly"]), "True"))
 }
 
 // effBecomeMonarch records the game-level designation as an event so a

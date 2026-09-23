@@ -110,11 +110,17 @@ export function pickOption(d: Decision, index: number, picked: number[]): number
   if (at >= 0) return picked.filter((i) => i !== index);
   const g = opt.group;
   if (g) {
-    const existing = picked.find((i) => optionAt(d, i)?.group === g);
-    if (existing !== undefined) {
-      // Replace: drop the old group member, keep the rest's click order,
+    // The per-Group cap: groupLimit raises the exclusivity marker from "at
+    // most one" to "at most N" (Decision.GroupLimit, Forge's EACH per-type
+    // ChangeNum). At the default cap the group is already represented, so
+    // the pick REPLACES that member; above it the pick appends until the
+    // cap is full, then replaces the oldest member.
+    const cap = d.groupLimit && d.groupLimit > 1 ? d.groupLimit : 1;
+    const members = picked.filter((i) => optionAt(d, i)?.group === g);
+    if (members.length >= cap) {
+      // Replace: drop the oldest group member, keep the rest's click order,
       // and put the freshly picked option at the end.
-      return picked.filter((i) => i !== existing).concat(index);
+      return picked.filter((i) => i !== members[0]).concat(index);
     }
   }
   return [...picked, index];

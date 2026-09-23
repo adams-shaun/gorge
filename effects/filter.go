@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -1852,6 +1853,65 @@ func eachAlternatives(spec string) ([]string, bool) {
 		subs = append(subs, p)
 	}
 	return subs, true
+}
+
+// EachTypeGroups partitions an ordered candidate list among the sub-specs of
+// an EACH ChangeType spec (eachAlternatives): each candidate joins the FIRST
+// sub-spec that matches it, in sub-spec order, so a card matching two listed
+// qualities (Conflux's multicolour cards under "EACH Card.White & Card.Blue
+// & ...") is offered ONCE, in one Group, and picking it can never block the
+// other type's pick. A candidate matching no sub-spec cannot occur when the
+// list was filtered by the union matcher (matchesObjectText's EACH arm) but
+// is dropped here all the same. Group ti's members keep the candidate list's
+// order; a sub-spec with no candidate keeps a nil slot. Deterministic: no
+// map iteration reaches the result. The three pickers that pose an EACH ask
+// (the hidden-library search, the public-origin hidden pick and the hand
+// move -- effects/zone.go) all build their option structure through this one
+// helper, so their per-type pick structure cannot drift.
+func EachTypeGroups(g *state.Game, subs []string, ids []state.ObjID, sc SpecContext) [][]state.ObjID {
+	out := make([][]state.ObjID, len(subs))
+	for _, id := range ids {
+		for ti, sub := range subs {
+			if MatchesSpecCtx(g, sub, id, sc) {
+				out[ti] = append(out[ti], id)
+				break
+			}
+		}
+	}
+	return out
+}
+
+// eachStructuredOptions fills d with an EACH ask's per-type option
+// structure: one option per candidate of every nonempty group (groups in
+// sub-spec order, members in candidate order), the sub-spec's ordinal in
+// Option.Group, and returns the achievable pick ceiling -- each group's
+// min(perType, size) summed, the largest answer the per-Group cap admits.
+// The caller sets d.Max to it (a ceiling the option list cannot exceed) and
+// carries perType in Decision.GroupLimit when it is above 1. noLooking hides
+// card names (the library search's NoLooking$ gate); kind is the option Kind
+// the walker's resume arm reads.
+func eachStructuredOptions(g *state.Game, d *decision.Decision, groups [][]state.ObjID,
+	perType int32, noLooking bool, owner state.PlayerID, kind string) int {
+	ceiling := 0
+	for ti, ids := range groups {
+		if len(ids) == 0 || perType == 0 {
+			continue
+		}
+		take := len(ids)
+		if int(perType) < take {
+			take = int(perType)
+		}
+		for _, id := range ids {
+			name := "a card"
+			if o := g.Obj(id); o != nil && o.Face() != nil && !noLooking {
+				name = o.Face().Name
+			}
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+				Kind: kind, Label: name, Obj: id, Player: owner, Group: strconv.Itoa(ti)})
+		}
+		ceiling += take
+	}
+	return ceiling
 }
 
 // rawNameComma reports whether the comma after left belongs to the last
