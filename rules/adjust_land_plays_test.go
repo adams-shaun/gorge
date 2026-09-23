@@ -71,6 +71,21 @@ func handCard(e *Engine, c *cards.Card, p state.PlayerID) state.ObjID {
 	return o.ID
 }
 
+// answerReplacementOrderAsk answers one pending CR 616.1 order ask with
+// option 0 -- the deterministic scan order the pre-choice engine composed
+// in -- so harnesses written around that behavior keep it verbatim. Tests
+// that assert the ORDER-dependence answer deliberately instead.
+func answerReplacementOrderAsk(t *testing.T, e *Engine) {
+	t.Helper()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KReplacement {
+		return
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
+		t.Fatalf("answer replacement order ask: %v", err)
+	}
+}
+
 // playOneLand submits the play_land option for id at the current priority
 // decision and returns whether one was found and played.
 func playOneLand(t *testing.T, e *Engine, p state.PlayerID, id state.ObjID) bool {
@@ -91,7 +106,10 @@ func playOneLand(t *testing.T, e *Engine, p state.PlayerID, id state.ObjID) bool
 	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: p, Choices: []int{idx}}); err != nil {
 		t.Fatalf("submit play_land: %v", err)
 	}
-	e.priorityRound()
+	answerReplacementOrderAsk(t, e)
+	if e.Pending() == nil {
+		e.priorityRound()
+	}
 	return true
 }
 

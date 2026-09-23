@@ -46,6 +46,19 @@ func TestSBABatchUsesPreDepartureBoard(t *testing.T) {
 					"SVar:Exile:DB$ ChangeZone | Defined$ ReplacedCard | Origin$ Battlefield | Destination$ Exile\nOracle:x\n")
 			}
 			e.checkStateBased()
+			if shape == "legend rule" {
+				// The CR 704.5j duplicate set now asks its controller which member
+				// to keep, so the batch does not settle inside checkStateBased.
+				// Answer it (keep the battlefield-order first; both members are
+				// lethally damaged, so the kept one still takes its lethal path)
+				// and the answer's own SBA re-scan applies the parked batch under
+				// the pre-batch board -- the LKI these assertions pin.
+				d := e.Pending()
+				if d == nil || d.Kind != decision.KChoose {
+					t.Fatalf("legend rule did not ask its controller which duplicate to keep (pending %+v)", d)
+				}
+				submitKeep(t, e, d, 0)
+			}
 			want := 4
 			if shape == "regenerated" {
 				want = 2 // both sources observe b; a never died
@@ -69,8 +82,14 @@ func TestSBABatchUsesPreDepartureBoard(t *testing.T) {
 				seen[key] = true
 			}
 			if want > 0 {
-				if !e.putTriggersOnStack() || e.Pending().Kind != decision.KTriggerOrder {
-					t.Fatal("simultaneous triggers did not ask their controller for order")
+				if shape != "legend rule" {
+					if !e.putTriggersOnStack() || e.Pending().Kind != decision.KTriggerOrder {
+						t.Fatal("simultaneous triggers did not ask their controller for order")
+					}
+				} else if e.Pending() == nil || e.Pending().Kind != decision.KTriggerOrder {
+					// The legend answer's Advance already drained the queue to the
+					// order ask; re-draining would re-pose it.
+					t.Fatalf("legend batch settled, want a pending trigger-order ask, got %+v", e.Pending())
 				}
 				d := e.Pending()
 				n := want
