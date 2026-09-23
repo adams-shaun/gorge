@@ -2,6 +2,7 @@ package botpolicy
 
 import (
 	"sort"
+	"strings"
 
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/state"
@@ -132,7 +133,7 @@ const (
 // the one place an unknown is resolved to "no".
 func (b Board) effectDamage(d *decision.Decision) (int32, bool) {
 	te := d.TargetEffect
-	if te == nil || te.Damage == nil || te.Damage.Amount == nil {
+	if te == nil || (te.API != "DealDamage" && te.API != "DamageAll") || te.Damage == nil || te.Damage.Amount == nil || *te.Damage.Amount < 0 {
 		return 0, false
 	}
 	return int32(*te.Damage.Amount), true
@@ -164,7 +165,39 @@ func (b Board) mayKillMe(me state.PlayerID, c Creature) bool {
 // the policy cannot prove a source is untapped, and per the unknown-is-no
 // rule it therefore never assumes one.)
 func (b Board) hasSpareMana() bool {
-	return b.Pool.Total() > 0
+	if b.Pool.Total() > 0 {
+		return true
+	}
+	for _, c := range b.Cards {
+		if !c.OnBattlefield || c.Tapped {
+			continue
+		}
+		for _, n := range c.Produces.Colour {
+			if n > 0 {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func removalAPI(api string) bool {
+	switch strings.ToLower(api) {
+	case "destroy", "counter", "changezone", "sacrifice":
+		return true
+	default:
+		return false
+	}
+}
+
+func (b Board) removalRanker(me state.PlayerID) func(decision.Option) targetRank {
+	return func(o decision.Option) targetRank {
+		r := b.rankOption(o, me)
+		if !r.ours && o.Kind != "player" && r.score > 0 {
+			r.score += tierValue
+		}
+		return r
+	}
 }
 
 // effectRanker returns the KTarget ranking for a decision whose effect is a
@@ -342,6 +375,8 @@ func (b Board) chooseTargets(d *decision.Decision) []int {
 	var rank func(decision.Option) targetRank
 	if dmg, ok := b.effectDamage(d); ok {
 		rank = b.effectRanker(me, dmg)
+	} else if d.TargetEffect != nil && d.TargetEffect.Removal != nil && removalAPI(d.TargetEffect.API) {
+		rank = b.removalRanker(me)
 	} else {
 		rank = func(o decision.Option) targetRank { return b.rankOption(o, me) }
 	}
