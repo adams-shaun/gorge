@@ -1792,7 +1792,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// zero-TIME card in exile forever, because the tick skips a card
 		// already at zero and nothing else ever re-offered the cast.
 		if o := e.G.Obj(ev.Obj); o != nil && o.Zone == state.ZExile &&
-			o.CastFlags&state.FlagSuspend != 0 && o.Counter("TIME") == 0 {
+			(o.CastFlags&state.FlagSuspend != 0 || o.SuspendGranted) && o.Counter("TIME") == 0 {
 			e.suspendedCasts = append(e.suspendedCasts, ev.Obj)
 		}
 	}
