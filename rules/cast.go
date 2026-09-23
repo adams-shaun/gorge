@@ -5004,6 +5004,38 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 	// reachability check. Other activations retain their existing mana-window
 	// offer semantics (including sources this static probe cannot price).
 	targetDiscount := pc.isAbility() && pc.ownReduce > e.ownReduceCost(pc.player, pc.card, e.pcAbility(pc), nil, nil, pc.abilityMerged)
+	var windowUnits []windowManaUnit
+	if targetDiscount {
+		windowUnits = e.windowManaUnits(pc.player)
+		// The payment window can also tap a choice-shaped source (Any,
+		// Combo, Chosen). The shared fixed-production census omits these
+		// because an unless-pay window cannot pose their colour sub-ask;
+		// cast payment can. Add each possible single-colour production as
+		// an alternative of the SAME permanent, never as another tap.
+		for _, source := range e.attackChoiceManaSources(pc.player) {
+			produced := substituteChosenProduced(source.original.Params["Produced"], e.chosenProducedColour(source.id))
+			counts, _ := cards.ProducedCounts(produced)
+			idx := -1
+			for i := range windowUnits {
+				if windowUnits[i].id == source.id {
+					idx = i
+					break
+				}
+			}
+			if idx == -1 {
+				windowUnits = append(windowUnits, windowManaUnit{id: source.id})
+				idx = len(windowUnits) - 1
+			}
+			for colour, n := range counts {
+				if n == 0 {
+					continue
+				}
+				var single [6]int32
+				single[colour] = 1
+				windowUnits[idx].alts = append(windowUnits[idx].alts, windowManaAlt{counts: single, amt: source.units})
+			}
+		}
+	}
 	out := make([]targetCandidate, 0, len(candidates))
 	for _, candidate := range candidates {
 		target := state.Target{Obj: candidate.obj}
@@ -5111,7 +5143,7 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 			// activation will abort at payment (CR 601.2h).
 			av := e.manaAvailableFor(pc.player, pay)
 			if e.unlessManaReachable(pc.player, convoked, av.pool, pl.Snow, av.typed, pl.Life,
-				e.paymentConv(pc.player, pay.id, pay.class == paymentActivated), e.windowManaUnits(pc.player)) {
+				e.paymentConv(pc.player, pay.id, pay.class == paymentActivated), windowUnits) {
 				out = append(out, candidate)
 			}
 		} else if e.hasUntappedManaSource(pc.player) {
