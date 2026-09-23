@@ -1,3 +1,76 @@
+# Merge-conflict resolution — wt/agent-20260919T055356Z-504b1359 (mrg1), round 3 (2026-09-23)
+
+## State found
+
+The daemon's rebase onto main had conflicted (`rules/replacement.go`, applying
+`6fcf1fcd`) and its merge fallback had also conflicted and been aborted:
+`git status` was **clean** on `wt/agent-20260919T055356Z-504b1359` at `79ed2a60`,
+no rebase/merge in flight. main had advanced to `b493bc15`; merge-base
+`767f3dd4`. `.cards` present (symlink to `/home/sadams/projects/gorge/.cards`).
+
+Key observation: `git log 767f3dd4..main -- rules/replacement.go` is EMPTY —
+main has not touched `rules/replacement.go` since the branch's previous merge
+(`79ed2a60`), so the rebase conflict was an artifact of replaying `6fcf1fcd`
+against the branch's ORIGINAL fork point (the same collision the previous merge
+already resolved). I completed the daemon's merge fallback (`git merge main`),
+which conflicted only in the two accumulated `.ds4/` report files.
+
+## Conflicted files and resolution
+
+### `rules/replacement.go` — auto-merged, verified
+
+Both tokens present in the merged `init()`: `"repl:Scry"` (main, line 6459) and
+`"api:ReplaceDamage"` + comment (branch fix `6fcf1fcd`, line 6465).
+`git diff main --stat -- rules/ effects/` = exactly the branch's 7-line fix
+(+ `replacedamage_registration_test.go`); nothing else diverges.
+
+### `.ds4/report-mrg1.md` — union
+
+HEAD side: the branch's round-1 title line + a 3-line "Issues" paragraph.
+main side: 3375 lines of accumulated mrg1 report history + a rewritten Issues
+paragraph + an appended `agent-20260918T195920Z-2fd3b568` re-run report. The
+109-line middle (the round-1 report body incl. `bfa400d8` merge record) is
+COMMON to both sides. Resolution: HEAD's title preserved at top with a lineage
+note, main's history verbatim, common middle verbatim, then BOTH Issues
+paragraphs (branch's first, main's after), main's appended report verbatim.
+
+### `.ds4/report-t2.md` — union
+
+HEAD side (207 lines): the branch's `replcensus1`/`api:ReplaceDamage` round-t2
+report ending with the "Prior report content preserved verbatim below" lineage
+heading. main side (44 lines): the `agent-20260922T201246Z-000e743d` fix-round
+report. The 477-line tail (the `4b5f8950` round-t2 report and older history) is
+COMMON. Resolution: branch report, `---`, main report, `---`, lineage heading,
+common tail verbatim. No report content dropped on either side.
+
+## Gates run (real output)
+
+```text
+$ go build ./rules/ ./effects/            # clean, no output
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  	github.com/adams-shaun/gorge/rules	0.755s          (exit 0; -v re-read: 10 RUN, 0 SKIP, 0 FAIL)
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.251s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.193s
+```
+
+No head/ratchet golden moved; `rules/heads_test.go` and the
+`knownUnsupported`/`knownUnsupportedParams` tables untouched — the branch's
+`api:ReplaceDamage` registration only REMOVES a census gap, and the ratchet
+suite passes at main's current tables.
+
+## Issues
+
+None new from the integration. Standing observation (also noted by earlier
+rounds): per-branch prepends to the shared `.ds4/report-*.md` accumulators
+conflict on every integration; the union convention keeps everything but costs
+a round each time. Also: `.ds4` is in `.gitignore` yet these report files are
+tracked, so plain `git add` refuses them (`-f` on the exact paths was needed) —
+a controller-side note could save the next seat a failed `git add`.
+
+---
+
 # Merge-conflict resolution — wt/agent-20260919T055356Z-504b1359 (mrg1)
 
 (main-side accumulated mrg1 report history follows verbatim; this branch's
