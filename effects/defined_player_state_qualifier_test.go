@@ -88,7 +88,6 @@ func TestDefinedPlayerStateQualifierUnmodelledSpellingsActOnNobody(t *testing.T)
 		"Player.EnchantedBy",
 		"Player.NotedForDiscard",
 		"Player.TappedLandForManaThisTurn",
-		"Player.lifeEQX",
 	} {
 		ts, ok := definedSpec(h, c, spec)
 		if !ok {

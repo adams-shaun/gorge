@@ -189,3 +189,43 @@ byte-identical against the merge base), so no side's intent was overridden.
 None new. Integration only; the merged state closes `(manaexpend1)` (branch)
 plus main-side `(battle1)`, hlcz-imprint, `(castfilter1/2)` and `(kw:Flanking)`
 closures, measured at 24 data rows.
+
+
+---
+
+# Merge-conflict resolution — mrg1
+
+## Conflict
+
+- `rules/trigmatch_combat.go` — branch `2a3078f7` added an SVar-bearing `effects.Ctx` and used `MatchesPlayerSpecWithSVars` for `AttackingPlayer` and `AttackedTarget`, so symbolic life thresholds resolve using the trigger source's face SVars. Main added whole-declaration attacker selection for `AttackersDeclared` batch triggers, using `e.declaredAttackers` when available. These changes are compatible.
+- `effects/filter.go` was auto-merged without a conflict; it retains the branch's life-threshold SVar resolver alongside main's changes.
+
+## Resolution
+
+Kept main's `ids` selection and `attacker := e.controllerOf(ids[0])`, then retained the branch's SVar-bearing context and used `MatchesPlayerSpecWithSVars` for both player-spec checks. The existing `ValidAttackers` and amount checks continue to use `ids`, preserving main's whole-declaration behavior.
+
+## Commands and output
+
+- Initial `git status --short --branch`: `## wt/agent-20260920T070405Z-c8f8e7b4` (clean; no operation was in flight).
+- `git merge main`:
+  ```
+  Auto-merging effects/filter.go
+  Auto-merging rules/trigmatch_combat.go
+  CONFLICT (content): Merge conflict in rules/trigmatch_combat.go
+  Automatic merge failed; fix conflicts and then commit the result.
+  ```
+- Confirmed `.cards` present.
+- `git diff --check`: no output (passed).
+- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|TestBreenaAttackTriggerReadsLifeGTX|TestLifeThresholdSVar'`:
+  ```
+  ok   github.com/adams-shaun/gorge/rules 0.831s
+  ```
+
+No uncertainty remains in the conflict resolution. No unrelated code was edited.
+
+## Issues
+
+No new issues found during this merge-only resolution; no conflict-related behavior was left unresolved.
+
+- `git merge --continue` initially could not launch the configured editor because stdin is non-interactive; `GIT_EDITOR=true git merge --continue` then completed the merge using the default message.
+- Final `git status --short --branch` after the merge commit showed only this report file modified; the report is being committed separately.

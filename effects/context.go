@@ -838,7 +838,7 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			if base == "Opponent" && p == c.Controller {
 				continue
 			}
-			if MatchesPlayerSpecFrom(g, spec, p, c.Controller, c.Source) {
+			if MatchesPlayerSpecWithSVars(h, c, spec, p, c.Controller) {
 				out = append(out, state.Target{Player: p, IsPlayer: true})
 			}
 		}

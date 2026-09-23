@@ -651,7 +651,7 @@ func effChoosePlayer(h Host, c *Ctx, sa *cards.SA) {
 	var targeted map[state.PlayerID]bool
 	if _, ok := sa.Params["ValidTgts"]; ok && sa.Params["Choices"] == "" {
 		for _, t := range c.Targets {
-			if t.IsPlayer && int(t.Player) < len(g.Players) && MatchesPlayerSpec(g, spec, t.Player, c.Controller) {
+			if t.IsPlayer && int(t.Player) < len(g.Players) && MatchesPlayerSpecWithSVars(h, c, spec, t.Player, c.Controller) {
 				if targeted == nil {
 					targeted = map[state.PlayerID]bool{}
 				}
@@ -679,7 +679,7 @@ func effChoosePlayer(h Host, c *Ctx, sa *cards.SA) {
 				if seen {
 					continue
 				}
-			} else if !MatchesPlayerSpecFrom(g, spec, p, choosers[i], c.Source) {
+			} else if !MatchesPlayerSpecWithSVars(h, c, spec, p, choosers[i]) {
 				// The source is passed so a compound Choices$ spec whose clauses
 				// read the choosing object's own choice state resolves:
 				// Territorial Hellkite's `Player.Opponent+!IsRemembered` (an
@@ -875,7 +875,7 @@ func controlPlayer(h Host, c *Ctx, sa *cards.SA) (state.PlayerID, bool) {
 		// filter (MatchesPlayerSpecFrom), so this walk cannot disagree with
 		// a trigger restriction or attack declaration using the same spec.
 		for _, p := range g.AliveFrom(0) {
-			if MatchesPlayerSpecFrom(g, v, p, c.Controller, c.Source) {
+			if MatchesPlayerSpecWithSVars(h, c, v, p, c.Controller) {
 				return p, true
 			}
 		}
@@ -1249,7 +1249,7 @@ func repeatPlayers(h Host, c *Ctx, spec string) ([]state.PlayerID, bool) {
 		// for which the engine has state. Unknown qualifiers fail closed and
 		// are reported rather than silently broadening the loop.
 		for _, p := range h.Game().AliveFrom(c.Controller) {
-			if MatchesPlayerSpecFrom(h.Game(), spec, p, c.Controller, c.Source) {
+			if MatchesPlayerSpecWithSVars(h, c, spec, p, c.Controller) {
 				selected[p] = true
 			}
 		}

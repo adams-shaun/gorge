@@ -1792,6 +1792,9 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		}
 		return playerCountDefinedRegistered(h, g, c, opponentGroup(g, c), rest, arg)
 	}
+	if head == "OppGreatestLifeTotal" {
+		return lifeExtreme(g, opponentGroup(g, c), "HighestLifeTotal")
+	}
 	if rest, ok := strings.CutPrefix(head, "PlayerCountOpponents$"); ok {
 		if n, ok2 := playerGroupCount(opponentGroup(g, c), rest); ok2 {
 			return n, true
