@@ -162,6 +162,20 @@ func TestManaRecipientsPlainRememberedExcludesCardControllers(t *testing.T) {
 	wantPlayers(t, ManaRecipients(h, c, sa), []state.PlayerID{2}, "ManaRecipients(Remembered)")
 }
 
+// TestHandMoveOwnersPlainRememberedKeepsRememberedPlayer pins the hidden-hand
+// owner walk: a remembered PLAYER is a legitimate owner and must survive the
+// set even when a remembered card coexists (previously the fail-closed guard
+// dropped it).
+func TestHandMoveOwnersPlainRememberedKeepsRememberedPlayer(t *testing.T) {
+	h, c, _ := mixedRememberedHost(t)
+	sa := &cards.SA{Params: map[string]string{"Defined": "Remembered"}}
+	owners, ok := handMoveOwners(h, c, sa)
+	if !ok {
+		t.Fatal("handMoveOwners(Remembered) failed closed, want the remembered player")
+	}
+	wantPlayers(t, owners, []state.PlayerID{2}, "handMoveOwners(Remembered)")
+}
+
 // TestChooserPlayerPlainRememberedExcludesCardControllers pins the hidden-hand
 // Chooser$ resolver: `Chooser$ Remembered` must name the remembered player,
 // not the remembered card's controller.
