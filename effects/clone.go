@@ -439,7 +439,7 @@ func cloneETBTemplateLegal(g *state.Game, c *Ctx, sa *cards.SA) bool {
 	if !strings.Contains(spec, ".") && !strings.HasPrefix(spec, "Card") {
 		spec = "Card." + spec
 	}
-	return MatchesSpecFrom(g, spec, c.CloneChoice, c.Controller, c.Source)
+	return c.MatchSpec(g, spec, c.CloneChoice, c.Controller)
 }
 
 // cloneChoiceSource resolves a Choices$ <filter> pick to the first eligible
