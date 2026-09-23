@@ -80,6 +80,136 @@ type Face struct {
 
 	compiledCatalog *CompiledCatalog
 	compiledID      FaceID
+
+	// typeStatics* is the layer-4 static probe StaticsMayChangeTypes answers
+	// from (see there). typeStaticsFirst/typeStaticsLen record the Statics
+	// slice the probe was computed over, so a face whose Statics was appended
+	// to after derive (a later keyword link, a struct copy that grew its
+	// list) reads as "unknown" -- the conservative answer -- instead of a
+	// stale "no". Not serialized, like every derived value above.
+	typeStaticsFirst *Static
+	typeStaticsLen   int
+	// typeStaticsBound is set once the probe below has been computed over
+	// the recorded slice; typeStaticsBF/typeStaticsOffBF say whether any
+	// static could emit a type change from the battlefield / from any other
+	// zone.
+	typeStaticsBound bool
+	typeStaticsBF    bool
+	typeStaticsOffBF bool
+	// contStaticsOffBF: some Continuous static could pass rules' source-zone
+	// gate off the battlefield (see ContinuousStaticsMayFunctionOffBattlefield).
+	contStaticsOffBF bool
+}
+
+// typeStaticParams are the static parameter keys whose presence can make
+// rules' staticEffects emit a layer-4 (LType) ContinuousEffect: the three
+// AddType branch keys, plus AddStaticAbility$, whose granted inner static is
+// read from an SVar body and so is conservatively treated as possibly one.
+var typeStaticParams = [...]string{"AddType", "AddTypes", "AddAllCreatureTypes", "AddStaticAbility"}
+
+// staticMayChangeTypes reports whether one static carries a typeStaticParams
+// key, and whether it could function OFF the battlefield. The off-battlefield
+// half over-approximates rules' zone gate (staticZoneAdmits ||
+// stackSelfStaticOK): with no EffectZone$ and no ExcludeZone$ a static is
+// battlefield-only, unless it is the stack-self shape (PresentZone$ naming
+// Stack, or AffectedZone$ Stack). An AddStaticAbility$ grant's inner static
+// is only reached once the OUTER static passed that same gate, so the outer
+// static's zone keys decide for it too.
+func staticMayChangeTypes(st *Static) (has, offBF bool) {
+	if st.Mode != "Continuous" {
+		// rules' staticEffects skips a non-Continuous static (and so any
+		// AddStaticAbility$ grant it carries) before any emission.
+		return false, false
+	}
+	for _, k := range typeStaticParams {
+		if _, ok := st.Params[k]; ok {
+			has = true
+			break
+		}
+	}
+	if !has {
+		return false, false
+	}
+	return true, staticMayFunctionOffBattlefield(st)
+}
+
+// staticMayFunctionOffBattlefield over-approximates rules' Continuous source
+// zone gate (staticZoneAdmits || stackSelfStaticOK) for a source NOT on the
+// battlefield: with no EffectZone$ and no ExcludeZone$ key, staticZoneAdmits
+// admits only the battlefield, and stackSelfStaticOK needs PresentZone$
+// naming Stack or AffectedZone$ Stack.
+func staticMayFunctionOffBattlefield(st *Static) bool {
+	_, ez := st.Params["EffectZone"]
+	_, xz := st.Params["ExcludeZone"]
+	return ez || xz || strings.Contains(st.Params["PresentZone"], "Stack") || st.Params["AffectedZone"] == "Stack"
+}
+
+// deriveTypeStatics binds the layer-4 static probe to the face's current
+// Statics slice.
+func (f *Face) deriveTypeStatics() {
+	f.typeStaticsFirst, f.typeStaticsLen = nil, 0
+	f.typeStaticsBound, f.typeStaticsBF, f.typeStaticsOffBF, f.contStaticsOffBF = false, false, false, false
+	if len(f.Statics) == 0 {
+		return
+	}
+	for i := range f.Statics {
+		st := &f.Statics[i]
+		has, off := staticMayChangeTypes(st)
+		f.typeStaticsBF = f.typeStaticsBF || has
+		f.typeStaticsOffBF = f.typeStaticsOffBF || off
+		if st.Mode == "Continuous" && staticMayFunctionOffBattlefield(st) {
+			f.contStaticsOffBF = true
+		}
+	}
+	f.typeStaticsFirst, f.typeStaticsLen, f.typeStaticsBound = &f.Statics[0], len(f.Statics), true
+}
+
+// StaticsMayChangeTypes reports whether any of the face's own statics could
+// make rules' continuous-static scan emit a layer-4 type-changing effect
+// (AddType$/AddTypes$/AddAllCreatureTypes$, or an AddStaticAbility$ grant
+// whose inner static might) while the face's object sits on the battlefield
+// (onBattlefield) or in some other zone. It is CONSERVATIVE: false is
+// returned only for a face with no statics at all, or one whose probe was
+// derived over exactly the Statics slice it still carries and found no such
+// static for that zone class. A face never derived (a test literal, a
+// runtime-built face) or whose Statics changed since derive answers true.
+// rules' anyLayer4Active uses it to skip rebuilding the whole
+// continuous-effect list after an event when no object can be carrying a
+// live layer-4 static.
+func (f *Face) StaticsMayChangeTypes(onBattlefield bool) bool {
+	if f == nil || len(f.Statics) == 0 {
+		return false
+	}
+	if !f.typeStaticsCurrent() {
+		return true
+	}
+	if onBattlefield {
+		return f.typeStaticsBF
+	}
+	return f.typeStaticsOffBF
+}
+
+// typeStaticsCurrent reports whether the derived static probe was computed
+// over exactly the Statics slice the face carries now.
+func (f *Face) typeStaticsCurrent() bool {
+	return f.typeStaticsBound && f.typeStaticsLen == len(f.Statics) && f.typeStaticsFirst == &f.Statics[0]
+}
+
+// ContinuousStaticsMayFunctionOffBattlefield reports whether any of the face's
+// Mode$ Continuous statics could pass rules' source-zone gate while its object
+// is in a zone other than the battlefield (an EffectZone$ or ExcludeZone$
+// key, or the stack-self PresentZone$/AffectedZone$ Stack shape). rules'
+// staticEffects skips an off-battlefield object whose face answers false: no
+// static on it could emit. CONSERVATIVE like StaticsMayChangeTypes -- an
+// unbound or stale probe answers true.
+func (f *Face) ContinuousStaticsMayFunctionOffBattlefield() bool {
+	if f == nil || len(f.Statics) == 0 {
+		return false
+	}
+	if !f.typeStaticsCurrent() {
+		return true
+	}
+	return f.contStaticsOffBF
 }
 
 func (f *Face) CompiledID() FaceID {

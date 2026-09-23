@@ -278,6 +278,11 @@ type Engine struct {
 	// storage before sorting; neither buffer may alias a clone's scratch.
 	staticContinuous []ContinuousEffect
 	staticEpoch      int
+	// staticVersion/staticObjs are continuousVersion and len(e.G.Objs) at the
+	// last staticEffects build: layerInertSince's reuse across a run of
+	// layer-inert events (layercache.go) additionally requires both unchanged.
+	staticVersion int
+	staticObjs    int
 
 	// staticQueueBuf is staticEffects' AddStaticAbility$ work queue's reused
 	// backing array: truncated to zero at every scan, grown only when a
@@ -308,6 +313,9 @@ type Engine struct {
 	activeEpoch   int
 	activeVersion int
 	activeDepth   int
+	// activeObjs is len(e.G.Objs) at the last active() build, read only by
+	// the layer-inert reuse (layercache.go).
+	activeObjs int
 	// goadProbe is the static-goad derivation's re-entry guard (staticgoad1):
 	// staticallyGoaded matches each candidate's Affected$ spec through
 	// matchesSpec, and a spec that itself consults the IsGoaded predicate
@@ -886,6 +894,21 @@ type Engine struct {
 	// suspends again, and nil whenever no re-entry is in flight — so a Clone
 	// need not carry it (the same resolution re-derives the same chain).
 	contChain []contFrame
+	// contChainOwners counts the resolution passes in flight whose contChain
+	// will be drained into the pending resume chain when they suspend (the
+	// initial stack passes, a fused half, a resumeResolution re-entry). A
+	// second mid-resolution ask is deferred onto contChain (Engine.Ask) only
+	// while one is, so a deferred ask can never be stranded on a chain nobody
+	// consumes; outside one the overwrite guard in Engine.ask still fires.
+	// Transient, zero between intents.
+	contChainOwners int
+	// askCount counts the mid-resolution asks Engine.Ask took, posed or
+	// deferred (effects' askCounter seam). Transient scratch, never logged.
+	askCount uint64
+	// lastDeferred is the resume point of the most recent DEFERRED ask of the
+	// running pass (nil once a posed ask follows it), so SuspendUnless marks
+	// the ask that was actually just taken. Transient scratch.
+	lastDeferred *resumePoint
 	// resolvingObj is the stack object whose resolution is running (resolveTop
 	// or a resumed resolution), kept through its final move off the stack so
 	// an entry replacement that asks can tell whether it interrupted that

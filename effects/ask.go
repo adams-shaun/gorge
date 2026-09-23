@@ -71,3 +71,21 @@ func Ask(h Host, d *decision.Decision) AskOutcome {
 	}
 	return AskNoHost
 }
+
+// askCounter is the optional host seam counting the mid-resolution asks the
+// host has taken, posed or deferred. rules' Engine may DEFER a second ask
+// posed while an earlier ask of the same resolution pass is still pending
+// (it rides the resume chain and is posed once the earlier one resolves), so
+// Suspended() alone cannot tell a caller that its own ask was taken.
+type askCounter interface {
+	AskCount() uint64
+}
+
+// askCount is h's ask count, or 0 for a host without the seam (whose asks
+// are always visible through Suspended()).
+func askCount(h Host) uint64 {
+	if ac, ok := h.(askCounter); ok {
+		return ac.AskCount()
+	}
+	return 0
+}

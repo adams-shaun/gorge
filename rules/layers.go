@@ -81,11 +81,17 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 					continue
 				}
 				onBattlefield := z == state.ZBattlefield
-				if !onBattlefield && len(f.Statics) == 0 {
+				if !onBattlefield && !f.ContinuousStaticsMayFunctionOffBattlefield() {
 					// Off the battlefield only the object's own face is walked
 					// (an unlocked Room face and a mutated pile's under-cards
 					// are battlefield-only, below), so a face printing no
-					// statics emits nothing. Most of every library is this.
+					// statics emits nothing -- most of every library is this --
+					// and neither does one none of whose Continuous statics can
+					// pass the source-zone gate below off the battlefield (the
+					// face's derived probe; see cards.Face.
+					// ContinuousStaticsMayFunctionOffBattlefield). Every such
+					// static would be skipped at the Mode or zone check before
+					// emitting or queueing anything.
 					continue
 				}
 				if onBattlefield && e.faceDownPrintedHides(o) {
@@ -1978,6 +1984,33 @@ func isCombatStep(s state.Step) bool {
 	return s >= state.StepBeginCombat && s <= state.StepEndCombat
 }
 
+// continuousLive is active()'s duration-honouring filter over one registered
+// effect (see active()): whether it still exists right now. It is the one
+// predicate active() and anyLayer4Active's registered-effect check share, so
+// the two cannot disagree about which registered effects are live.
+func (e *Engine) continuousLive(ce *ContinuousEffect) bool {
+	if ce.Permanent {
+		return true
+	}
+	if strings.EqualFold(strings.TrimSpace(ce.Duration), "untilendofcombat") {
+		return isCombatStep(e.G.Step)
+	}
+	if ce.UntilEOT {
+		return true
+	}
+	if ce.UntilTurn != 0 {
+		// A turn-boundary effect outlives its source (a one-shot spell is
+		// already gone) and is active through its own expiry turn, dropped
+		// only by EndOfTurnCleanup when e.G.Turn reaches UntilTurn. Keep it
+		// while the current turn is at or before that boundary; the
+		// `<=` is the guard that keeps an effect from lingering if a
+		// cleanup were ever skipped.
+		return e.G.Turn <= ce.UntilTurn
+	}
+	o := e.G.Obj(ce.Source)
+	return o != nil && o.Zone == state.ZBattlefield
+}
+
 // active returns the effects that still exist, sorted into CR 613 order:
 // layer, then sublayer, then timestamp. Ties within a (layer, sublayer,
 // timestamp) triple — two effects created in the same AddContinuous batch
@@ -2001,8 +2034,20 @@ func (e *Engine) active() []ContinuousEffect {
 	if e.activeEpoch == len(e.L.Events) && e.activeVersion == e.continuousVersion {
 		return e.activeBuf
 	}
+	// Layer-inert reuse (layercache.go): the log moved only by events whose
+	// Apply writes nothing active() reads, and neither e.continuous nor the
+	// object table moved, so the cached list is still the answer. Only a
+	// depth-1 call adopts it (a re-entrant build never owns activeBuf).
+	if e.activeDepth == 1 && e.activeVersion == e.continuousVersion && e.activeObjs == len(e.G.Objs) && e.layerInertSince(e.activeEpoch) {
+		if layerInertVerify {
+			e.verifyInertActive()
+		}
+		e.activeEpoch = len(e.L.Events)
+		return e.activeBuf
+	}
 	e.activeEpoch = len(e.L.Events)
 	e.activeVersion = e.continuousVersion
+	e.activeObjs = len(e.G.Objs)
 	buf := e.activeBuf[:0]
 	if e.activeDepth > 1 {
 		// Re-entrant (a nested Derived mid-rebuild): own a private list rather
@@ -2019,37 +2064,10 @@ func (e *Engine) active() []ContinuousEffect {
 	// moment play moves past end combat. These take precedence over the
 	// UntilEOT/source-leaves rules below, which model the other two
 	// lifetimes.
-	for _, ce := range e.continuous {
-		if ce.Permanent {
-			buf = append(buf, ce)
-			continue
+	for i := range e.continuous {
+		if e.continuousLive(&e.continuous[i]) {
+			buf = append(buf, e.continuous[i])
 		}
-		if strings.EqualFold(strings.TrimSpace(ce.Duration), "untilendofcombat") {
-			if isCombatStep(e.G.Step) {
-				buf = append(buf, ce)
-			}
-			continue
-		}
-		if ce.UntilEOT {
-			buf = append(buf, ce)
-			continue
-		}
-		if ce.UntilTurn != 0 {
-			// A turn-boundary effect outlives its source (a one-shot spell is
-			// already gone) and is active through its own expiry turn, dropped
-			// only by EndOfTurnCleanup when e.G.Turn reaches UntilTurn. Keep it
-			// while the current turn is at or before that boundary; the
-			// `<=` is the guard that keeps an effect from lingering if a
-			// cleanup were ever skipped.
-			if e.G.Turn <= ce.UntilTurn {
-				buf = append(buf, ce)
-			}
-			continue
-		}
-		if o := e.G.Obj(ce.Source); o == nil || o.Zone != state.ZBattlefield {
-			continue
-		}
-		buf = append(buf, ce)
 	}
 	// The static-derived effects come from the memoized scan (see
 	// Engine.staticContinuous): refreshed once per emitted event, not per
@@ -2058,10 +2076,7 @@ func (e *Engine) active() []ContinuousEffect {
 	// subset of the rebuild condition that leaves the battlefield permanent
 	// set, and therefore the static memo, untouched — so the two are checked
 	// independently exactly as before.
-	if e.staticEpoch != len(e.L.Events) {
-		e.staticEpoch = len(e.L.Events)
-		e.staticContinuous = e.staticEffects(e.staticContinuous)
-	}
+	e.refreshStaticContinuous()
 	buf = append(buf, e.staticContinuous...)
 	slices.SortStableFunc(buf, func(a, b ContinuousEffect) int {
 		if a.Layer != b.Layer {
