@@ -3,6 +3,7 @@ package rules
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -61,14 +62,28 @@ func TestErdwalIlluminatorSecondInvestigateThisTurnDoesNotFire(t *testing.T) {
 	martha := tokenReplCorpusCard(t, "Martha Jones")
 	e, cfg := tokenReplGame(t, 78, erdwal, martha, martha)
 	moveSeededCard(t, e, 0, erdwal, state.ZBattlefield)
-	moveSeededCard(t, e, 0, martha, state.ZBattlefield)
+	firstMartha := moveSeededCard(t, e, 0, martha, state.ZBattlefield)
 	addMana(t, e, 0, "")
 	investigateDrain(t, e)
 	if got := countTokensNamedOnSeat(t, e, 0, "Clue Token"); got != 2 {
 		t.Fatalf("first Martha investigate + Erdwal's extra left %d Clue tokens, want 2", got)
 	}
-	// The second Martha copy: another investigate in the same turn.
-	moveSeededCard(t, e, 0, martha, state.ZBattlefield)
+	// The second Martha copy: another investigate in the same turn. Martha
+	// Jones is legendary, so answer the real CR 704.5j choice before passing
+	// priority to resolve the second copy's ETB trigger.
+	secondMartha := moveSeededCard(t, e, 0, martha, state.ZBattlefield)
+	if firstMartha == secondMartha || e.G.Obj(firstMartha).Zone != state.ZBattlefield ||
+		e.G.Obj(secondMartha).Zone != state.ZBattlefield {
+		t.Fatalf("fixture: two distinct Martha Jones copies must be on the battlefield")
+	}
+	e.checkStateBased()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || len(d.Options) != 2 ||
+		d.Options[0].Kind != "keep" || d.Options[1].Kind != "keep" ||
+		d.Options[0].Obj != firstMartha || d.Options[1].Obj != secondMartha {
+		t.Fatalf("two battlefield Martha Jones copies must pose a legend choice: %+v", d)
+	}
+	submitChoices(t, e, 0)
 	addMana(t, e, 0, "")
 	investigateDrain(t, e)
 	if got := countTokensNamedOnSeat(t, e, 0, "Clue Token"); got != 3 {
