@@ -101,14 +101,14 @@ func TestTargetCounterRanksOpponentSpellByValueFromCorpus(t *testing.T) {
 
 func TestTargetSpareManaRequiresUsableSurplus(t *testing.T) {
 	b := Board{Cards: map[state.ObjID]Card{
-		1: {OnBattlefield: true, Produces: manaProductionForTest()},
+		1: {OnBattlefield: true, Basic: true, Produces: manaProductionForTest()},
 		2: {Castable: true, InstantSpeed: true, CMC: 2},
 	}}
 	if b.hasSpareMana() {
 		t.Fatal("one source is not surplus to the two-mana instant reserve")
 	}
-	b.Cards[3] = Card{OnBattlefield: true, Produces: manaProductionForTest()}
-	b.Cards[4] = Card{OnBattlefield: true, Produces: manaProductionForTest()}
+	b.Cards[3] = Card{OnBattlefield: true, Basic: true, Produces: manaProductionForTest()}
+	b.Cards[4] = Card{OnBattlefield: true, Basic: true, Produces: manaProductionForTest()}
 	if !b.hasSpareMana() {
 		t.Fatal("three usable mana sources exceed the two-mana reserve")
 	}

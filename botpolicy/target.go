@@ -155,29 +155,95 @@ func (b Board) mayKillMe(me state.PlayerID, c Creature) bool {
 	return c.Power >= life
 }
 
-// hasSpareMana reports whether the deciding seat has guaranteed mana beyond
-// its cheapest instant-speed reserve. It counts floating mana plus the
-// maximum literal production of each known, untapped battlefield source;
-// conditional-colour and indeterminate-amount sources are not assumed usable.
-// The reserve prevents a source from being called spare when it is the only
-// available mana for an instant the seat can cast.
+// hasSpareMana is conservative: a value burn is only promoted when spending
+// ANY single available pool unit or source still leaves enough mana to pay
+// each cheapest instant-speed spell. A total-mana surplus alone cannot
+// protect a coloured instant (one Island and one Forest cannot guarantee
+// that a one-mana removal leaves the Island untouched). Only untapped basic
+// lands with one fixed, literal production colour are counted: the Board's
+// production summary cannot promise that a nonbasic/ability's activation
+// conditions or its alternative colours will be available at this window.
 func (b Board) hasSpareMana() bool {
-	available := b.Pool.Total()
+	available := b.Pool
+	var sources []state.Mana
 	for _, c := range b.Cards {
-		if !c.OnBattlefield || c.Tapped || c.Produces.Any || c.Produces.Indeterminate {
+		if !c.OnBattlefield || !c.Basic || c.Tapped || c.Produces.Any || c.Produces.Indeterminate {
 			continue
 		}
-		// Colour entries describe alternatives as well as simultaneous
-		// production. Count only the largest guaranteed single activation.
-		var source int32
-		for _, n := range c.Produces.Colour {
-			if n > source {
-				source = n
+		var source state.Mana
+		colours := 0
+		for i, n := range c.Produces.Colour {
+			if n > 0 {
+				colours++
+				source[i] = n
 			}
 		}
-		available += source
+		if colours != 1 {
+			continue // alternative activations are not simultaneous mana
+		}
+		for i, n := range source {
+			available[i] += n
+		}
+		sources = append(sources, source)
 	}
-	return available > b.reserve()
+	if available.Total() == 0 {
+		return false
+	}
+	// No instant-speed reserve: any dependable mana is spare.
+	minCost := int32(-1)
+	var reserves []Card
+	for id, c := range b.Cards {
+		if !c.Castable || !c.InstantSpeed || c.CMC <= 0 {
+			continue
+		}
+		cost := b.castCost(id, c)
+		if minCost < 0 || cost < minCost {
+			minCost, reserves = cost, nil
+		}
+		if cost == minCost {
+			reserves = append(reserves, c)
+		}
+	}
+	if minCost < 0 {
+		return true
+	}
+	pays := func(m state.Mana) bool {
+		if m.Total() < minCost {
+			return false
+		}
+		for _, c := range reserves {
+			for i, need := range colourPips(c.ManaCost) {
+				if m[i] < need {
+					return false
+				}
+			}
+		}
+		return true
+	}
+	if !pays(available) {
+		return false
+	}
+	// Spending from a pool slot or tapping one source may consume the
+	// reserve's only matching colour (or the whole multi-mana activation).
+	for i, n := range b.Pool {
+		if n > 0 {
+			left := available
+			left[i]--
+			if !pays(left) {
+				return false
+			}
+		}
+	}
+	for _, source := range sources {
+		left := available
+		for i, n := range source {
+			left[i] -= n
+		}
+		if !pays(left) {
+			return false
+		}
+	}
+	return true
 }
 
 func (b Board) removalRanker(me state.PlayerID, effect *decision.TargetEffect) func(decision.Option) targetRank {
