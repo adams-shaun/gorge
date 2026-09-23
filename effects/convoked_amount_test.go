@@ -107,9 +107,8 @@ func TestConvokedAmountEmptyAndAbsentAreEvaluatedZero(t *testing.T) {
 
 	// Present source, empty provenance: a plain cast.
 	c := &Ctx{Source: src.ID, Controller: 0, SVars: map[string]string{"X": "Convoked$Amount"}}
-	amount := sa(t, "SP$ Dig | Amount$ X")
-	if got := Num(h, c, amount, "Amount", -1); got != 0 {
-		t.Fatalf("empty provenance = %d, want 0", got)
+	if got, ok := EvalCountOK(h, c, "Convoked$Amount"); !ok || got != 0 {
+		t.Fatalf("empty provenance = (%d,%v), want (0,true)", got, ok)
 	}
 
 	// Absent source: no object at the id.
@@ -117,8 +116,13 @@ func TestConvokedAmountEmptyAndAbsentAreEvaluatedZero(t *testing.T) {
 	if g.Obj(c.Source) != nil {
 		t.Fatalf("fixture precondition: source %d exists", c.Source)
 	}
-	if got := Num(h, c, amount, "Amount", -1); got != 0 {
-		t.Fatalf("absent source = %d, want 0", got)
+	if got, ok := EvalCountOK(h, c, "Convoked$Amount"); !ok || got != 0 {
+		t.Fatalf("absent source = (%d,%v), want (0,true)", got, ok)
+	}
+	for _, body := range []string{"Convoked$Amount/Unmodelled", "Count$Convoked$Amount/Unmodelled"} {
+		if got, ok := EvalCountOK(h, c, body); ok {
+			t.Fatalf("unknown operator %q = (%d,%v), want unresolved", body, got, ok)
+		}
 	}
 
 	// An unknown property fails closed (the unresolvable verdict), so the

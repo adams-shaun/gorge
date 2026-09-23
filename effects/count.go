@@ -388,6 +388,9 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 		return 0, false
 	}
 	body, op, hasOp := strings.Cut(body, "/")
+	if hasOp && strings.TrimSpace(body) == "Convoked$Amount" && !validConvokedCountOp(op) {
+		return 0, false
+	}
 	n, ok2 := evalCountBody(h, c, strings.TrimSpace(body), depth)
 	if hasOp {
 		if clamped, isLimit := countDistinctLimitMax(strings.TrimSpace(body), op, n); isLimit {
@@ -1374,7 +1377,7 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	// second Twice arm -- keeps ONE composition path for the op.
 	if rest, ok := strings.CutPrefix(head, "Convoked$"); ok {
 		name, op, hasOp := strings.Cut(rest, "/")
-		if strings.TrimSpace(name) != "Amount" {
+		if strings.TrimSpace(name) != "Amount" || hasOp && !validConvokedCountOp(op) {
 			return 0, false
 		}
 		n := int32(0)
@@ -4019,6 +4022,24 @@ func hasSubtype(o *state.Object, sub string) bool {
 		}
 		if match {
 			return true
+		}
+	}
+	return false
+}
+
+// validConvokedCountOp keeps this newly modelled head from treating a typo or
+// unimplemented operator as a successful read of the base amount. Other
+// heads retain their existing operator fallback; the two corpus carriers
+// need only the bare value and /Twice.
+func validConvokedCountOp(op string) bool {
+	switch op {
+	case "Twice", "Thrice", "HalfDown", "HalfUp", "Negative":
+		return true
+	}
+	for _, prefix := range []string{"Plus.", "Minus.", "NMinus.", "Times.", "Divide.", "DivideEvenly.", "DivideEvenlyUp.", "DivideEvenlyDown."} {
+		if operand, ok := strings.CutPrefix(op, prefix); ok {
+			n, err := strconv.Atoi(operand)
+			return err == nil && (!strings.HasPrefix(prefix, "Divide") || n > 0)
 		}
 	}
 	return false

@@ -7,6 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/effects"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -105,9 +106,10 @@ func castWithConvokeAt(t *testing.T, e *Engine, spell state.ObjID, mana string, 
 // composition end-to-end: two creatures convoke the cast, so the ETB places
 // FOUR +1/+1 counters (two each), not zero (the reported bug) and not two.
 func TestAncientImperiosaurEntersWithTwoCountersPerConvoker(t *testing.T) {
-	e, _ := convokedCorpusEngine(t, []string{"Ancient Imperiosaur", "Grizzly Bears", "Grizzly Bears"})
+	e, _ := convokedCorpusEngine(t, []string{"Ancient Imperiosaur", "Grizzly Bears", "Grizzly Bears", "Grizzly Bears"})
 	bearA := conniveMoveTo(t, e, 0, "Grizzly Bears", state.ZBattlefield)
-	bearB := conniveMoveTo(t, e, 0, "Grizzly Bears", state.ZBattlefield)
+	bearB := conniveMoveTo(t, e, 0, "Grizzly Bears", state.ZBattlefield, bearA)
+	other := conniveMoveTo(t, e, 0, "Grizzly Bears", state.ZBattlefield, bearA, bearB)
 	if bearA == bearB {
 		t.Fatalf("fixture precondition: two distinct bears required")
 	}
@@ -123,8 +125,11 @@ func TestAncientImperiosaurEntersWithTwoCountersPerConvoker(t *testing.T) {
 	}
 	// Precondition the assertion depends on: the convoked set really carried
 	// two creatures (otherwise a 0 or 4 reading could be confused).
-	if len(o.Convoked) != 2 {
-		t.Fatalf("precondition: Object.Convoked = %v, want 2 creatures", o.Convoked)
+	if len(o.Convoked) != 2 || !containsID(o.Convoked, bearA) || !containsID(o.Convoked, bearB) || containsID(o.Convoked, other) {
+		t.Fatalf("precondition: cast captured exactly the two chosen convokers, got %v; nonconvoker %d", o.Convoked, other)
+	}
+	if third := e.G.Obj(other); third == nil || third.Zone != state.ZBattlefield || third.Tapped {
+		t.Fatalf("precondition: nonconvoker must remain untapped on battlefield: %+v", third)
 	}
 	if got := o.Counter("P1P1"); got != 4 {
 		t.Fatalf("Ancient Imperiosaur P1P1 counters = %d, want 4 (2 convokers x /Twice)", got)
@@ -135,10 +140,37 @@ func TestAncientImperiosaurEntersWithTwoCountersPerConvoker(t *testing.T) {
 // resolved permanent's preserved Object.Convoked makes the card's own
 // `SVar:X:Convoked$Amount` read the number of convoking creatures.
 func TestKnightErrantOfEosXCountsConvokers(t *testing.T) {
-	e, _ := convokedCorpusEngine(t, []string{"Knight-Errant of Eos", "Grizzly Bears", "Grizzly Bears"})
+	e, _ := convokedCorpusEngine(t, []string{"Knight-Errant of Eos", "Grizzly Bears", "Grizzly Bears", "Grizzly Bears", "Ornithopter", "Hill Giant", "Serra Angel"})
 	bearA := conniveMoveTo(t, e, 0, "Grizzly Bears", state.ZBattlefield)
-	bearB := conniveMoveTo(t, e, 0, "Grizzly Bears", state.ZBattlefield)
+	bearB := conniveMoveTo(t, e, 0, "Grizzly Bears", state.ZBattlefield, bearA)
 	spell := conniveMoveTo(t, e, 0, "Knight-Errant of Eos", state.ZHand)
+	// Order a six-card Dig window with MV 0, 2, 4 and 5. Only the
+	// zero- and two-drops qualify at X=2; at the broken X=0 only the
+	// Ornithopter qualifies. Keep all movements and ordering replay-visible.
+	window := []state.ObjID{
+		conniveMoveTo(t, e, 0, "Ornithopter", state.ZLibrary),
+		conniveMoveTo(t, e, 0, "Grizzly Bears", state.ZLibrary, bearA, bearB),
+		conniveMoveTo(t, e, 0, "Hill Giant", state.ZLibrary),
+		conniveMoveTo(t, e, 0, "Serra Angel", state.ZLibrary),
+	}
+	lib := e.G.Zone(state.ZLibrary, 0)
+	ordered := append([]state.ObjID(nil), window...)
+	for _, id := range lib {
+		if !containsID(window, id) {
+			ordered = append(ordered, id)
+		}
+	}
+	if len(ordered) != len(lib) {
+		t.Fatalf("precondition: window cards must all be in library: %v vs %v", window, lib)
+	}
+	e.emit(events.Event{Kind: events.LibraryOrder, Player: 0, IDs: ordered})
+	for i, id := range window {
+		if o := e.G.Obj(id); o == nil || o.Zone != state.ZLibrary {
+			t.Fatalf("precondition: window object %d must be in library: %+v", id, o)
+		} else if want := []int32{0, 2, 4, 5}[i]; o.Face().ManaValue() != want {
+			t.Fatalf("precondition: window card %d MV = %d, want %d", id, o.Face().ManaValue(), want)
+		}
+	}
 	// 4W = 5 mana; two white convoke contributions cover two of it.
 	castWithConvokeAt(t, e, spell, "WWWWW", bearA, bearB)
 
@@ -146,15 +178,50 @@ func TestKnightErrantOfEosXCountsConvokers(t *testing.T) {
 	if o := e.G.Obj(spell); o == nil || len(o.Convoked) != 2 {
 		t.Fatalf("precondition: Object.Convoked on the stack = %+v, want 2", o)
 	}
-	ctx := &effects.Ctx{Source: spell, Controller: 0}
-	if got, ok := effects.EvalCountOK(e, ctx, "Convoked$Amount"); !ok || got != 2 {
-		t.Fatalf("stack Count$Convoked$Amount = (%d,%v), want (2,true)", got, ok)
+	// Resolve the cast and its ETB until the actual Dig ask, not a
+	// post-resolution count read (which cannot prove the filter used X).
+	for n := 0; n < 30; n++ {
+		d := e.Pending()
+		if d != nil && d.Kind == decision.KChoose && d.ResumeKind == "dig" {
+			if d.Source != spell || d.Min != 0 || d.Max != 2 {
+				t.Fatalf("Knight Dig decision = %+v, want optional 0..2 from Knight", d)
+			}
+			eligible := map[state.ObjID]bool{}
+			for _, opt := range d.Options {
+				eligible[opt.Obj] = true
+			}
+			if len(eligible) != 2 || !eligible[window[0]] || !eligible[window[1]] || eligible[window[2]] || eligible[window[3]] {
+				t.Fatalf("Dig offered %v, want only MV 0 and MV 2 (%d, %d)", eligible, window[0], window[1])
+			}
+			for _, opt := range d.Options {
+				if opt.Obj == window[1] {
+					submitChoices(t, e, opt.Index) // take the MV-2 bear, impossible at X=0
+					goto answeredDig
+				}
+			}
+			t.Fatal("MV-2 Dig option missing")
+		}
+		if d == nil || d.Kind != decision.KPriority {
+			t.Fatalf("before Knight Dig, unexpected decision: %+v", d)
+		}
+		for _, opt := range d.Options {
+			if opt.Kind == "pass" {
+				submitChoices(t, e, opt.Index)
+				goto nextDecision
+			}
+		}
+		t.Fatalf("no pass option before Knight Dig: %+v", d)
+	nextDecision:
 	}
+	t.Fatal("Knight Dig never offered a choice")
+answeredDig:
 	passUntilStackEmpty(t, e, 30)
-
 	o := e.G.Obj(spell)
 	if o == nil || o.Zone != state.ZBattlefield {
 		t.Fatalf("Knight-Errant of Eos zone = %+v, want battlefield", o)
+	}
+	if picked := e.G.Obj(window[1]); picked == nil || picked.Zone != state.ZHand {
+		t.Fatalf("precondition: answered Dig pick must land in hand: %+v", picked)
 	}
 	// The provenance survives the stack->battlefield move: the ETB Dig's X
 	// (the card's own SVar X body) reads 2 off the resolved permanent.
@@ -165,7 +232,7 @@ func TestKnightErrantOfEosXCountsConvokers(t *testing.T) {
 	if body == "" {
 		t.Fatalf("precondition: Knight-Errant SVar X absent")
 	}
-	ctx = &effects.Ctx{Source: spell, Controller: 0}
+	ctx := &effects.Ctx{Source: spell, Controller: 0}
 	if got, ok := effects.EvalCountOK(e, ctx, body); !ok || got != 2 {
 		t.Fatalf("SVar X (%q) off the resolved permanent = (%d,%v), want (2,true)", body, got, ok)
 	}
