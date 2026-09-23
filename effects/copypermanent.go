@@ -50,8 +50,9 @@ func init() { Register("CopyPermanent", effCopyPermanent) }
 // copy: "exile/sacrifice it at the beginning of the next end step"), AtEOT$
 // ExileCombat (the CopyTokenExileCombat bit: the copy is flagged IsMyriad and
 // the existing MyriadCleanup sweep exiles it at end of combat), and
-// Controller$ You/Targeted*/Remembered*/TriggeredCardController/Opponent.
-// Any other Controller$ or AtEOT$ value is one loud Note per call.
+// Controller$ You/Targeted*/Remembered*/TriggeredCardController/Opponent and
+// the per-player NonRememberedController families. Any other Controller$ or
+// AtEOT$ value is one loud Note per call.
 func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
 
@@ -444,6 +445,8 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 
 	// Controller$ of the copy.
 	owner := c.Controller
+	var owners []state.PlayerID
+	multiOwner := false
 	switch strings.TrimSpace(sa.Params["Controller"]) {
 	case "", "You":
 	case "Targeted", "TargetedController", "TargetedPlayer":
@@ -465,12 +468,23 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 				break
 			}
 		}
+	case "NonRememberedController", "OppNonRememberedController":
+		multiOwner = true
+		ts, _ := definedSpec(h, c, strings.TrimSpace(sa.Params["Controller"]))
+		for _, t := range ts {
+			if t.IsPlayer {
+				owners = append(owners, t.Player)
+			}
+		}
 	default:
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
 			Text: "Controller$ " + strings.TrimSpace(sa.Params["Controller"]) +
 				" is not implemented; the copy is controlled by the resolving controller"})
 	}
 
+	if !multiOwner {
+		owners = []state.PlayerID{owner}
+	}
 	remember := strings.EqualFold(strings.TrimSpace(sa.Params["RememberTokens"]), "True")
 	var amount int32
 	if tapped {
@@ -583,8 +597,19 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 				" does not resolve; the copy does not gain it"})
 	}
 
+	type copyDestination struct {
+		owner  state.PlayerID
+		target state.Target
+	}
+	var destinations []copyDestination
+	for _, owner := range owners {
+		for _, target := range targets {
+			destinations = append(destinations, copyDestination{owner: owner, target: target})
+		}
+	}
 	var minted []state.ObjID
-	for _, t := range targets {
+	for _, destination := range destinations {
+		owner, t := destination.owner, destination.target
 		if t.IsPlayer {
 			continue
 		}

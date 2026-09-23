@@ -533,12 +533,28 @@ func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, sa *car
 		}
 	}
 	permanent, untilEOT := durationTiming(sa.Params["Duration"])
+	// The move-driven lifetime of a Duration$ Permanent pump: when the pumped
+	// object leaves the zone it was pumped in, the grant ends (CR 400.7 -- it
+	// is a new object on return), via the same ExileOnMoved$/Remembered pair
+	// effectMoveSweep reads. Non-permanent durations keep their existing
+	// cleanup/combat lifetimes and take no sweep.
+	var exileOn string
+	var remembered []state.ObjID
+	if permanent {
+		if o := h.Game().Obj(id); o != nil {
+			if w := ZoneWord(o.Zone); w != "" {
+				exileOn = w
+				remembered = []state.ObjID{id}
+			}
+		}
+	}
 	if att != 0 || def != 0 {
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LPT, Sub: state.SubModify,
 			AddPower: att, AddToughness: def,
 			Duration: sa.Params["Duration"], Permanent: permanent, UntilEOT: untilEOT,
+			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: zone,
 		})
 	}
@@ -547,6 +563,7 @@ func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, sa *car
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LAbilities, AddKeywords: kws,
 			Duration: sa.Params["Duration"], Permanent: permanent, UntilEOT: untilEOT,
+			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: zone,
 		})
 	}
@@ -815,6 +832,19 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 	if ag.endOnLeave || strings.EqualFold(ag.leaveExile, "Exile") {
 		exileOn = "Battlefield"
 		remembered = []state.ObjID{id}
+	} else if ag.permanent {
+		// Duration$ Permanent without a rider: the grant still ends when the
+		// animated object leaves the zone it was granted in (CR 400.7 -- the
+		// returned object is a new one, so a bounced-and-re-entered land comes
+		// back a plain land, not a re-activated animation). The sweep zone is
+		// the object's CURRENT zone at grant time, not hardcoded battlefield:
+		// Forge's own Animate targets a graveyard card as often as a permanent.
+		if o := h.Game().Obj(id); o != nil {
+			if w := ZoneWord(o.Zone); w != "" {
+				exileOn = w
+				remembered = []state.ObjID{id}
+			}
+		}
 	}
 	if ag.hasPower || ag.hasTough {
 		h.AddContinuous(state.ContinuousEffect{
