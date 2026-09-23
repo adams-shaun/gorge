@@ -136,7 +136,7 @@ func (e *Engine) attackPairCharge(id state.ObjID, defender state.PlayerID) int32
 		if !e.matchesSpec(spec, id, e.specCtxSVars(sv.Source, sv.Controller, sv.SVars)) {
 			continue
 		}
-		if !restrictionPlayerTargetMatches(e.G, sv.Params["Target"], defender, sv.Controller, nil) {
+		if !restrictionPlayerTargetMatches(e.G, sv.Params["Target"], defender, sv.Controller, sv.Source, nil) {
 			continue
 		}
 		n, ok := e.attackUnlessPrice(sv, id)
@@ -778,10 +778,14 @@ type attackOffer struct {
 	id    state.ObjID
 	def   state.PlayerID
 	price int32
-	// battle is the CR 310.7 battle being attacked, or 0 for a player attack.
-	// def is the battle's protector for a battle attack (it is what blocks and
-	// what every player-scoped restriction reads), so the two fields together
-	// are the whole defender.
+	// battle is the non-player permanent being attacked -- a CR 310.7 battle
+	// or a planeswalker (CR 508.1) -- or 0 for a player attack. def is the
+	// permanent's seat for a permanent attack (a battle's protector, or the
+	// planeswalker's controller; it is what blocks and what every
+	// player-scoped restriction reads), so the two fields together are the
+	// whole defender. Despite the historical field name, the value covers both
+	// permanent kinds; the recipient's face decides the damage conversion
+	// (defense counters vs loyalty) in events.Apply's Damage fold.
 	battle state.ObjID
 }
 
@@ -847,14 +851,15 @@ func (e *Engine) attackOffers() []attackOffer {
 		}
 	}
 	for _, d := range defenders {
+		var walkerTargets []state.ObjID
+		for _, wid := range e.G.Zone(state.ZBattlefield, d) {
+			o := e.G.Obj(wid)
+			if o != nil && !o.FaceDown && o.Face() != nil && o.Face().IsPlaneswalker() {
+				walkerTargets = append(walkerTargets, wid)
+			}
+		}
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
-			if !e.canAttackPair(id, d) {
-				continue
-			}
-			if !e.goadMayAttack(id, d) {
-				continue
-			}
-			if e.attackBlocked(id, d) {
+			if !e.canAttackPair(id, d) || !e.goadMayAttack(id, d) || e.attackBlocked(id, d) {
 				continue
 			}
 			price := e.attackPairCharge(id, d)
@@ -862,6 +867,14 @@ func (e *Engine) attackOffers() []attackOffer {
 				continue
 			}
 			out = append(out, attackOffer{id: id, def: d, price: price})
+			// CR 508.1: a planeswalker on d's battlefield is a legal defender
+			// for d's opponents, offered in addition to the player themselves
+			// (defender-major: the player's own pair block, then its
+			// planeswalkers). The walk happens in the planeswalker's
+			// controller's zone order, and d IS that controller here.
+			for _, wid := range walkerTargets {
+				out = append(out, attackOffer{id: id, def: d, battle: wid, price: price})
+			}
 		}
 		// This protector's battles, immediately after the protector's own
 		// pair block (defender-major: one defender slot at a time).
@@ -941,15 +954,22 @@ func (e *Engine) battleDefenders(p state.PlayerID) []battleTarget {
 	return out
 }
 
-// canAttackBattle reports whether p may declare an attack at battle id under
-// CR 310.7, reading the same battleDefenders list attackOffers enumerates.
-// A battle the active player protects, a protectorless battle, or a battle
-// that has left the battlefield is not attackable.
+// canAttackBattle reports whether p may declare an attack at a non-player
+// permanent id -- a CR 310.7 battle or a planeswalker (CR 508.1) -- reading
+// the same eligibility attacks enumerates: a battle comes from battleDefenders
+// (a battle the active player protects, a protectorless battle, or a battle
+// that has left the battlefield is not attackable), and a planeswalker is one
+// on p's opponent's battlefield, face up (a face-down permanent is a vanilla
+// 2/2 creature, CR 708.5).
 func (e *Engine) canAttackBattle(id state.ObjID, p state.PlayerID) bool {
 	for _, b := range e.battleDefenders(p) {
 		if b.id == id {
 			return true
 		}
+	}
+	o := e.G.Obj(id)
+	if o != nil && !o.FaceDown && o.Zone == state.ZBattlefield && o.Face() != nil && o.Face().IsPlaneswalker() {
+		return o.Controller != p
 	}
 	return false
 }
