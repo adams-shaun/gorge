@@ -1605,6 +1605,33 @@ export class SeatPanelState {
    * preset. A one-shot run is not a resume path: startRun refuses to arm
    * while the pause holds.
    */
+  /**
+   * shouldPoll is the /pending poll's gate, here rather than in the component
+   * so the rule is testable and stated once.
+   *
+   * It is deliberately NOT "only when the panel has nothing to answer". That
+   * rule left the worse half of the failure it was written for wide open: a
+   * decision the server has already moved past stays on screen forever,
+   * because view.decision — the only other source — is embedded ONLY at the
+   * exact head seq, and the effect reading it re-runs only when a new view
+   * object is assigned. Once the view stops updating, the stale ask is never
+   * cleared and the poll that would replace it is the very thing switched
+   * off. Measured on the live demo: the panel held a trigger_order ask while
+   * the server was asking this seat to choose a target.
+   *
+   * Polling with a decision displayed cannot take one out from under the
+   * player: adopt() ignores an answer for the seq already shown, so a pick in
+   * progress survives, and only a different seq (or a 409, meaning the server
+   * asks this seat nothing) replaces it.
+   *
+   * `busy` still holds it off, so this panel's own in-flight intent and a
+   * poll cannot race to define the current ask. That wait is bounded by the
+   * intent request's own deadline (STATE_TIMEOUT in ./api).
+   */
+  get shouldPoll(): boolean {
+    return !this.busy;
+  }
+
   rewind() {
     this.begin();
     this.machinePaused = true;

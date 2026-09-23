@@ -104,13 +104,17 @@ func TestMetallicMimicChosenTypeOtherFilter(t *testing.T) {
 	})
 }
 
-// chooseETBType answers the cast-time "as this enters" creature-type ask
-// (etbAsk's "type" arm) with the option labelled want, failing loudly if the
-// pending decision is not that ask or the label is not offered.
+// chooseETBType answers the entry-boundary "as this enters" creature-type
+// ask with the option labelled want, failing loudly if the pending decision is
+// not that ask or the label is not offered.
 func chooseETBType(t *testing.T, e *Engine, want string) {
 	t.Helper()
 	d := e.Pending()
-	if d == nil || d.Kind != decision.KChoose || len(d.Options) == 0 || d.Options[0].Kind != "type" {
+	if d == nil {
+		e.resolveTop()
+		d = e.Pending()
+	}
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "etb" || len(d.Options) == 0 || d.Options[0].Kind != "type" {
 		t.Fatalf("expected the as-enters type ask, got %+v", d)
 	}
 	for _, o := range d.Options {

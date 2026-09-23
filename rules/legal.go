@@ -2803,16 +2803,9 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 			e.emit(events.Event{Kind: events.FlipFace, Obj: opt.Obj, Amount: 1})
 		}
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.Priority, Amount: 0})
-		// Task 12: a land with an "as this enters" choice (an
-		// ETBReplacement whose ReplaceWith$ is NameCard/ChooseType/
-		// ChooseNumber, e.g. Cavern of Souls) goes through the same
-		// one-stage cast flow a spell does -- collect the choice, ask it via
-		// chooseETB, record it with a Choose event, then continueCast's
-		// payCast moves the land and logs the play. A land with none keeps
-		// the original direct path (no pendingCast, no flow), so ordinary
-		// lands are untouched. Both paths share the same continuation
-		// machinery: etbAnswer/continueCast/commitCast below, never a
-		// parallel one.
+		// A land play uses the ordinary pending cast flow so payCast can put
+		// LandPlayed after its MoveZone entry boundary. The MoveZone replacement
+		// owns any "as this enters" choice, like every other entry path.
 		//
 		// The source zone is the object's CURRENT zone, not hardcoded to the
 		// hand: since the MayPlay grants (rules/mayplay.go) the play_land
@@ -2826,16 +2819,7 @@ func (e *Engine) handlePriority(d *decision.Decision, in decision.Intent) {
 		if o := e.G.Obj(opt.Obj); o != nil {
 			from = o.Zone
 		}
-		pc := &pendingCast{player: in.Player, card: opt.Obj, from: from, mode: "land", ability: -1}
-		e.cast = pc
-		e.collectETBChoices(in.Player)
-		if len(pc.etbs) == 0 {
-			e.cast = nil
-			e.emit(events.Event{Kind: events.MoveZone, Obj: opt.Obj,
-				From: from, To: state.ZBattlefield})
-			e.emit(events.Event{Kind: events.LandPlayed, Player: in.Player})
-			return
-		}
+		e.cast = &pendingCast{player: in.Player, card: opt.Obj, from: from, mode: "land", ability: -1}
 		e.continueCast()
 
 	case "activate":

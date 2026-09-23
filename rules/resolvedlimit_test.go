@@ -224,7 +224,8 @@ func TestResolvedLimitMixedLineOtherTriggerDoesNotConsume(t *testing.T) {
 	src := onBoardCard(t, e, 0, crucible)
 
 	// Line 1 (mandatory, no ResolvedLimit$): Main1 begins, the mana trigger
-	// queues and resolves (DB$ Mana adds to the pool; nothing asks).
+	// queues and resolves. Its Combo Any allocation is answered by
+	// drainTriggerAsks.
 	e.emit(events.Event{Kind: events.StepChange, Step: state.StepMain1})
 	if len(e.pendingTriggers) == 0 {
 		t.Fatal("Cosmic Crucible's Main1 trigger did not queue")

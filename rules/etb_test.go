@@ -165,12 +165,11 @@ func TestChaliceCountersSpellsOfTheChargedManaValue(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestSanctumPrelateNumberIsChosenAtCastAndRestrictsCasting pins the cast-time
-// as-enters number choice: Prelate asks it during its own cast flow (before
-// it is on the stack, recorded with a Choose event on the card), and its
-// CantBeCast static (cmcEQChosen, resolved through specCtx) then forbids the
-// chosen conversion value afterwards.
-func TestSanctumPrelateNumberIsChosenAtCastAndRestrictsCasting(t *testing.T) {
+// TestSanctumPrelateNumberIsChosenAtEntryAndRestrictsCasting pins the
+// entry-boundary number choice: Prelate asks as it enters, and its CantBeCast
+// static (cmcEQChosen, resolved through specCtx) then forbids the chosen
+// conversion value afterwards.
+func TestSanctumPrelateNumberIsChosenAtEntryAndRestrictsCasting(t *testing.T) {
 	prelate := "Name:Prelate\nManaCost:1 W W\nTypes:Creature Human Cleric\nPT:2/2\nK:ETBReplacement:Other:ChooseNumber\n" +
 		"SVar:ChooseNumber:DB$ ChooseNumber | Defined$ You | SpellDescription$ As CARDNAME enters, choose a number.\n" +
 		"S:Mode$ CantBeCast | ValidCard$ Card.nonCreature+cmcEQChosen | Description$ x\nOracle:x\n"
@@ -179,8 +178,8 @@ func TestSanctumPrelateNumberIsChosenAtCastAndRestrictsCasting(t *testing.T) {
 	pr := find("Prelate", 0)
 	addMana(t, e, 0, "WWW")
 	castFirst(t, e, "cast")
-	d := e.Pending()
-	if d == nil || d.Kind != decision.KChoose || d.Options[0].Kind != "number" || len(d.Options) != 13 {
+	d := passUntilNonPriority(t, e, 40)
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "etb" || d.Options[0].Kind != "number" || len(d.Options) != 13 {
 		t.Fatalf("number choice %+v", d)
 	}
 	submitChoices(t, e, 1) // choose 1
@@ -189,6 +188,11 @@ func TestSanctumPrelateNumberIsChosenAtCastAndRestrictsCasting(t *testing.T) {
 	}
 	passUntilStackEmpty(t, e, 20)
 	b := addToHand(t, e, 1, bolt)
+	// Re-establish the legal active-player priority marker before setting up
+	// the non-active caster handoff.
+	e.pending = nil
+	e.emit(events.Event{Kind: events.Priority, Player: 0})
+	e.askPriority(0)
 	passToPlayerOne(t, e)
 	addMana(t, e, 1, "R")
 	for _, o := range e.Pending().Options {
@@ -200,11 +204,11 @@ func TestSanctumPrelateNumberIsChosenAtCastAndRestrictsCasting(t *testing.T) {
 }
 
 // TestNeedleNamesACardAndCavernChoosesAType covers the name and type ETB
-// choices end to end: Needle's as-enters name pick is offered at cast time
-// (with a battlefield candidate present), recorded as ChosenName, and the
-// named card's ability is then suppressed by the CantBeActivated static;
-// Cavern of Souls (a land) picks a creature type through play_land's own
-// one-stage flow and enters the battlefield with it recorded.
+// choices end to end: Needle's as-enters name pick is offered at its entry
+// boundary (with a battlefield candidate present), recorded as ChosenName,
+// and the named card's ability is then suppressed by the CantBeActivated
+// static; Cavern of Souls (a land) picks a creature type at its entry boundary
+// and enters the battlefield with it recorded.
 func TestNeedleNamesACardAndCavernChoosesAType(t *testing.T) {
 	needle := "Name:Needle\nManaCost:1\nTypes:Artifact\nK:ETBReplacement:Other:DBNameCard\n" +
 		"SVar:DBNameCard:DB$ NameCard | Defined$ You | SpellDescription$ x\n" +
@@ -216,8 +220,8 @@ func TestNeedleNamesACardAndCavernChoosesAType(t *testing.T) {
 	e.emit(events.Event{Kind: events.CounterChange, Obj: b, Counter: "P1P1", Amount: 2})
 	addMana(t, e, 0, "G")
 	castFirst(t, e, "cast")
-	d := e.Pending()
-	if d == nil || d.Kind != decision.KChoose || d.Options[0].Kind != "name" {
+	d := passUntilNonPriority(t, e, 40)
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "etb" || d.Options[0].Kind != "name" {
 		t.Fatalf("name choice %+v", d)
 	}
 	idx := -1
@@ -234,6 +238,11 @@ func TestNeedleNamesACardAndCavernChoosesAType(t *testing.T) {
 	if e.G.Obj(n).ChosenName != "Ballista" {
 		t.Fatal("name not recorded")
 	}
+	// Re-establish the legal active-player priority marker before setting up
+	// the non-active caster handoff.
+	e.pending = nil
+	e.emit(events.Event{Kind: events.Priority, Player: 0})
+	e.askPriority(0)
 	passToPlayerOne(t, e)
 	if _, ok := findManaAbilityOption(e, b, 0); ok {
 		t.Fatal("the named card's ability was offered")

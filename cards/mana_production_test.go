@@ -65,24 +65,21 @@ func TestManaProductionAmount(t *testing.T) {
 	}
 }
 
-// TestManaProductionAnyIsHonest is the conservative projection the brief
-// demands. "Produced$ Any" means the card can add one mana of any colour,
-// but this engine's executor (effects/misc.go's effMana) resolves it to
-// colourless -- the only choice it can actually make. The projection must
-// NOT assert a coloured pip the pool will never receive: it reports the
-// colourless amount the pool reliably gets AND flags Any so a policy knows
-// the coloured side is a stand-in, not a real any-colour source.
+// TestManaProductionAnyIsHonest projects the real alternatives of
+// "Produced$ Any": one possible unit in each WUBRG slot, with Any marking
+// that the source supplies one of those alternatives rather than all five.
 func TestManaProductionAnyIsHonest(t *testing.T) {
 	mp := mpOf(t, "Name:Cavern\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ Any | Oracle:x\n")
-	if mp.Colour[5] != 1 {
-		t.Errorf("Any production = %v, want one colourless (what the engine emits)", mp.Colour)
+	want := [6]int32{1, 1, 1, 1, 1, 0}
+	if mp.Colour != want {
+		t.Errorf("Any production = %v, want all five real colour alternatives", mp.Colour)
 	}
 	if !mp.Any {
 		t.Error("Any production must be flagged as flexible/conditional")
 	}
 	for i := 0; i < 5; i++ {
-		if mp.ProducesColour(i) {
-			t.Errorf("Any production must not assert a coloured pip %d the engine will not produce", i)
+		if !mp.ProducesColour(i) {
+			t.Errorf("Any production must report producible colour %d", i)
 		}
 	}
 }
@@ -124,8 +121,8 @@ func TestProducedCounts(t *testing.T) {
 		any  bool
 	}{
 		{"blank defaults to one colourless and a flag", "", [6]int32{0, 0, 0, 0, 0, 1}, true},
-		{"Any keeps its executor resolution", "Any", [6]int32{0, 0, 0, 0, 0, 1}, true},
-		{"Combo Any keeps its executor resolution", "Combo Any", [6]int32{0, 0, 0, 0, 0, 1}, true},
+		{"Any reports every possible colour", "Any", [6]int32{1, 1, 1, 1, 1, 0}, true},
+		{"Combo Any reports every possible colour", "Combo Any", [6]int32{1, 1, 1, 1, 1, 0}, true},
 		{"plain colour", "B", [6]int32{0, 0, 1, 0, 0, 0}, false},
 		{"same-symbol token counts two", "RR", [6]int32{0, 0, 0, 2, 0, 0}, false},
 		{"space-separated tokens survive", "R G", [6]int32{0, 0, 0, 1, 1, 0}, false},
@@ -137,7 +134,7 @@ func TestProducedCounts(t *testing.T) {
 		{"Combo triple", "Combo W U B", [6]int32{1, 1, 1, 0, 0, 0}, true},
 		{"ColorIdentity claims nothing", "Combo ColorIdentity", [6]int32{}, true},
 		{"ColorID claims nothing", "Combo ColorID", [6]int32{}, true},
-		{"Chosen claims nothing", "Combo R Chosen", [6]int32{0, 0, 0, 1, 0, 0}, true},
+		{"Chosen reports every possible colour", "Combo R Chosen", [6]int32{1, 1, 1, 1, 1, 0}, true},
 		{"Special word claims nothing", "Special EachColorAmong_ExiledWith", [6]int32{}, true},
 		{"a token containing a letter is rejected whole", "Combo NotedColors", [6]int32{}, true},
 	}
