@@ -6381,6 +6381,97 @@ func (e *Engine) collectSubTargetPreAsks(root *cards.SA) []*cards.SA {
 	return out
 }
 
+// castCostReadsAllTargeted reports whether this cast's COST depends on the
+// AllTargeted$ union over the root/sub-ability chain (alltargeted1), which is
+// the only reason the cast flow pre-asks the chain's targets: CR 601.2b/601.2f
+// determine the cost AFTER targets are chosen, so a cost head naming
+// AllTargeted$ cannot be evaluated until the sub targets exist.
+//
+// Two cost sites can carry such a head: the root SA's own ReduceCost$ (Wayta,
+// Trainer Prodigy's `ReduceCost$ X` -> `Count$Compare Y EQ2.2.0` ->
+// `Y:AllTargeted$Valid Creature.YouCtrl`) and a dynamic
+// CollectEvidence<NAME> amount (Urgent Necropsy's `X:AllTargeted$CardManaCost`).
+// Both are resolved through the source's SVar table, so the scan expands SVar
+// references transitively (bounded, so a cyclic table cannot spin). Raft
+// Security Officer carries the third corpus AllTargeted$ line but has no
+// sub-ability, so the gate holds and collectSubTargetPreAsks finds nothing.
+func (e *Engine) castCostReadsAllTargeted(pc *pendingCast, ab *cards.SA) bool {
+	if ab == nil {
+		return false
+	}
+	reduce := strings.TrimSpace(ab.Params["ReduceCost"])
+	var dyn []string
+	for _, part := range pc.cost.Evidence {
+		if part.Dyn != "" {
+			dyn = append(dyn, part.Dyn)
+		}
+	}
+	if reduce == "" && len(dyn) == 0 {
+		return false
+	}
+	svars := e.castStageSVars(pc)
+	if bodyReadsAllTargeted(reduce, svars, 0) {
+		return true
+	}
+	for _, name := range dyn {
+		if bodyReadsAllTargeted(name, svars, 0) {
+			return true
+		}
+	}
+	return false
+}
+
+// castStageSVars returns the SVar table the cast's cost heads resolve
+// against: an activation reads the merged pile's table, a spell its face's.
+// The same split evidenceAmount and ownReduceCost apply.
+func (e *Engine) castStageSVars(pc *pendingCast) map[string]string {
+	o := e.G.Obj(pc.card)
+	if o == nil {
+		return nil
+	}
+	if pc.isAbility() {
+		return e.pileSVars(pc.card, pc.abilityMerged)
+	}
+	if f := o.Face(); f != nil {
+		return f.SVars
+	}
+	return nil
+}
+
+// bodyReadsAllTargeted reports whether v, or any SVar body it reaches, names
+// the AllTargeted$ reference. v is either a literal count body or an SVar
+// name; every identifier-shaped word in an expanded body is followed too
+// (Wayta's Count$Compare names its Y operand as a bare word). depth bounds
+// the walk so a self- or mutually-referential SVar table terminates. The scan
+// walks a SLICE of words and only LOOKS UP svars, so no map iteration order
+// can reach the result.
+func bodyReadsAllTargeted(v string, svars map[string]string, depth int) bool {
+	v = strings.TrimSpace(v)
+	if v == "" || depth > 4 {
+		return false
+	}
+	if strings.Contains(v, "AllTargeted") {
+		return true
+	}
+	if len(svars) == 0 {
+		return false
+	}
+	if b, ok := svars[v]; ok && bodyReadsAllTargeted(b, svars, depth+1) {
+		return true
+	}
+	for _, w := range strings.FieldsFunc(v, func(r rune) bool {
+		return !(r >= 'a' && r <= 'z') && !(r >= 'A' && r <= 'Z') && !(r >= '0' && r <= '9') && r != '_'
+	}) {
+		if w == v {
+			continue
+		}
+		if b, ok := svars[w]; ok && bodyReadsAllTargeted(b, svars, depth+1) {
+			return true
+		}
+	}
+	return false
+}
+
 // postTargetAsks poses the next outstanding CR 601.2c announcement ask AFTER
 // the root target stage: the sub-ability chain pre-ask first (alltargeted1),
 // then the CollectEvidence amount ask (whose X reads the union the sub
@@ -6422,7 +6513,17 @@ func (e *Engine) subTargetAsk(pc *pendingCast) bool {
 		}
 		// Fuse halves use separate target slices and resolution frames; a
 		// stage-0 chain walk here cannot attribute the other half's subs.
-		if pc.mode != "fuse" {
+		//
+		// alltargeted1 SCOPE GATE: the chain pre-ask runs ONLY for a cast
+		// whose own COST reads the AllTargeted$ union (castCostReadsAllTargeted
+		// -- Wayta's ReduceCost$ and Urgent Necropsy's CollectEvidence<X>, the
+		// whole corpus carrier set). General CR 601.2c sub-ability
+		// pre-announcement for every chain is a separate, far wider change
+		// (it moves the decision sequence of every spell with a targeting
+		// sub-ability, and with it the chain heads and golden replays); it is
+		// ticket agent-20260920T104356Z-c898602e's, not this row's. Outside
+		// the gate a sub keeps its mid-resolution ask exactly as before.
+		if pc.mode != "fuse" && e.castCostReadsAllTargeted(pc, root) {
 			pc.subAsks = e.collectSubTargetPreAsks(root)
 		}
 		pc.subAns = make([][]state.Target, len(pc.subAsks))

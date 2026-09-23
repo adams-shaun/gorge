@@ -236,7 +236,7 @@ func TestWeaponRackAbilityIsOfferedAndMovesACounter(t *testing.T) {
 // TestNestingGroundsSubTargetReceivesTheMove drives the real Nesting
 // Grounds: the {1},{T} root is a Pump whose target is the ORIGIN (Source$
 // ParentTarget) and whose DBMove sub carries its own ValidTgts$ -- the shape
-// the cast-time chained target pre-ask asks. The sub's OWN chosen target (the second
+// the generic mvts1 pre-ask asks. The sub's OWN chosen target (the second
 // bear) must be the destination, never the root's target (the PickedTargets
 // convention): with the pre-fix code the -1 and +1 both landed on the root's
 // target and cancelled (land 1->1, bear 0->0).
@@ -285,11 +285,11 @@ func TestNestingGroundsSubTargetReceivesTheMove(t *testing.T) {
 	}
 	submitChoices(t, e, root)
 
-	// The sub DBMove's own ValidTgts$ is announced before payment: the
+	// The sub DBMove's own ValidTgts$ pre-ask (ResumeKind "tgts"): the
 	// second bear.
 	kd := passUntilNonPriority(t, e, 60)
-	if kd == nil || kd.Kind != decision.KTarget || kd.ResumeKind != "cast_sub" {
-		t.Fatalf("decision = %+v, want the sub's cast-time target ask", kd)
+	if kd == nil || kd.Kind != decision.KChoose || kd.ResumeKind != "tgts" {
+		t.Fatalf("decision = %+v, want the sub's tgts pre-ask", kd)
 	}
 	sub := -1
 	for _, o := range kd.Options {
@@ -316,10 +316,9 @@ func TestNestingGroundsSubTargetReceivesTheMove(t *testing.T) {
 // livelock fix end to end: a MoveCounter sub with its OWN ValidTgts$ AND a
 // CounterType$ Any kind pick (Nesting Grounds' DBMove, an origin holding two
 // kinds) must drain -- before the fix the answered kind was lost to the
-// re-entry's fresh Ctx, the old tgts pre-ask re-fired, and the two asks
+// re-entry's fresh Ctx, the tgts pre-ask re-fired, and the two asks
 // alternated forever (measured by the reviewer: move_counter_kind:38,
-// tgts:39 over 80 drive steps, the stack never drained). The cast-time
-// answer must likewise survive the kind-pick continuation.
+// tgts:39 over 80 drive steps, the stack never drained).
 func TestNestingGroundsAnyKindWithOwnTargetDrains(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
@@ -359,8 +358,8 @@ func TestNestingGroundsAnyKindWithOwnTargetDrains(t *testing.T) {
 	submitChoices(t, e, root)
 
 	kd := passUntilNonPriority(t, e, 60)
-	if kd == nil || kd.Kind != decision.KTarget || kd.ResumeKind != "cast_sub" {
-		t.Fatalf("decision = %+v, want the sub's cast-time target ask", kd)
+	if kd == nil || kd.Kind != decision.KChoose || kd.ResumeKind != "tgts" {
+		t.Fatalf("decision = %+v, want the sub's tgts pre-ask", kd)
 	}
 	sub := -1
 	for _, o := range kd.Options {
@@ -371,7 +370,7 @@ func TestNestingGroundsAnyKindWithOwnTargetDrains(t *testing.T) {
 	submitChoices(t, e, sub)
 
 	// The CounterType$ Any kind pick, posed by the sub's body AFTER the
-	// cast-time target answer. Pick the SECOND offered kind (CHARGE) to prove the
+	// target answer. Pick the SECOND offered kind (CHARGE) to prove the
 	// answer is honoured on the re-entry that follows it.
 	kk := passUntilNonPriority(t, e, 60)
 	if kk == nil || kk.Kind != decision.KChoose || kk.ResumeKind != "move_counter_kind" {

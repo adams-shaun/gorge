@@ -406,3 +406,37 @@ func TestUrgentNecropsyCollectsEvidenceOnTheTargetUnion(t *testing.T) {
 		replayCheck(t, e, cfg)
 	})
 }
+
+// TestBodyReadsAllTargetedScopeGate pins the alltargeted1 SCOPE GATE: the
+// cast flow pre-asks a chain's sub-ability targets only when the cast's own
+// cost head reaches the AllTargeted$ ref, so every other chain keeps its
+// mid-resolution ask (the general CR 601.2c pre-announcement is a separate
+// ticket). The bodies are the real corpus spellings.
+func TestBodyReadsAllTargetedScopeGate(t *testing.T) {
+	// Wayta's ReduceCost$ X -> Count$Compare Y EQ2.2.0 -> Y:AllTargeted$...
+	wayta := map[string]string{
+		"X": "Count$Compare Y EQ2.2.0",
+		"Y": "AllTargeted$Valid Creature.YouCtrl",
+	}
+	if !bodyReadsAllTargeted("X", wayta, 0) {
+		t.Fatal("Wayta's ReduceCost$ X must reach AllTargeted$ through its Count$Compare operand")
+	}
+	// Urgent Necropsy's CollectEvidence<X> names the ref directly.
+	if !bodyReadsAllTargeted("X", map[string]string{"X": "AllTargeted$CardManaCost"}, 0) {
+		t.Fatal("a direct AllTargeted$ SVar body must be seen")
+	}
+	// A reduction with no AllTargeted$ anywhere leaves the chain alone.
+	if bodyReadsAllTargeted("X", map[string]string{
+		"X": "Count$Compare Y EQ2.2.0",
+		"Y": "Count$Valid Creature.YouCtrl",
+	}, 0) {
+		t.Fatal("a reduction that never names AllTargeted$ must not arm the pre-ask")
+	}
+	if bodyReadsAllTargeted("", map[string]string{"X": "AllTargeted$CardManaCost"}, 0) {
+		t.Fatal("an empty cost head must not arm the pre-ask")
+	}
+	// A cyclic SVar table terminates rather than spinning.
+	if bodyReadsAllTargeted("X", map[string]string{"X": "Count$Compare Y EQ1.1.0", "Y": "X"}, 0) {
+		t.Fatal("a cyclic table must terminate false, not report a read")
+	}
+}
