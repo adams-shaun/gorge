@@ -1332,15 +1332,6 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 	} else if len(cost.SubCounter) > 0 || cost.Tap {
 		return false
 	}
-	// Mill cost parts (Mill<N>): the payer mills N cards from their own
-	// library as part of the payment. No choice is involved, so the gate only
-	// needs the library to cover the SUM of every Mill part -- all parts draw
-	// from the same library in sequence. The shared libraryCoversMill helper
-	// is the one pricing site, so the mana-ability gate and this ordinary
-	// cast/activation gate can never disagree about a composed Mill cost.
-	if !libraryCoversMill(e.G, p, cost.Mill) {
-		return false
-	}
 	return true
 }
 
@@ -1375,9 +1366,8 @@ func (e *Engine) drawCostCard(p state.PlayerID) {
 // activation payment: the payer mills the SUM of the parts' requirements
 // from the top of their own library, one real MoveZone event per card in
 // deterministic top-first order. No choice is involved, so nothing is asked.
-// nonManaCastable already proved the library covers the total, so a short
-// library here is an impossible defensive case -- and it must NOT return
-// part-way, or the cast would resolve having paid only some of its cost.
+// A mill instruction moves all remaining cards when its count exceeds the
+// library size, so the snapshot clamps to the available prefix.
 func (e *Engine) payMillCostParts(pc *pendingCast) {
 	total, ok := millCostTotal(pc.cost.Mill)
 	if !ok || total <= 0 {
