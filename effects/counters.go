@@ -1545,14 +1545,32 @@ func dedupeKinds(kinds []string) []string {
 
 // removeCounterChoose runs the bare-Choices$ RemoveCounter card-election arm
 // (counterchoice1; 10 raw corpus RemoveCounter lines carry Choices$). The
-// CHOOSER (the resolving controller; every carrier) picks ChoiceNum$-exact
-// (default 1; ChoiceOptional$ True lowers the min to 0) objects out of the
+// CHOOSER (the resolving controller; every carrier) picks objects out of the
 // Choices$ pool in ChoiceZone$ (default the battlefield; Amy Pond's and Mari
 // the Killing Quill's triggers name Exile), and EACH chosen object loses
 // CounterNum$ counters of CounterType$ (the shared Num grammar — Amy Pond's
 // CounterNum$ X is the triggering damage amount). The answer re-enters
 // through the shared "counter_pick" resume arm (Ctx.CounterPick), consumed
 // and cleared by effRemoveCounter at its top (fx42).
+//
+// How many objects: ChoiceNum$-exact (default 1; Amy Pond, Mari the Killing
+// Quill) unless ChoiceOptional$ True is present, which is Forge's "each of
+// ANY number" — both reachable carriers (Garnet, Princess of Alexandria's
+// "remove a lore counter from each of any number of Sagas you control" and
+// Chandra, Legacy of Fire's [0] over "any number of permanents you control")
+// pair it with NO ChoiceNum$, so the bound is 0..len(eligible) and a two-Saga
+// board really can take BOTH. ChoiceOptional$ True WITH an explicit
+// ChoiceNum$ reads as up-to-N (0..ChoiceNum$); no corpus line carries that
+// pair today, so that branch is corpus-unreachable.
+//
+// RememberAmount$ True is the removed-COUNT transport (Garnet's
+// SVar:X:Count$RememberedNumber payoff, Chandra's Z, Dyadrine, Synthesis
+// Amalgam's DBDraw/DBToken ConditionCheckSVar$ Z): the chosen object's id is
+// appended to Ctx.Remembered ONCE PER COUNTER REMOVED, exactly the encoding
+// effMoveCounter's own RememberAmount$ rider uses, so Count$RememberedNumber
+// reads the truthful total across every chosen object. It is orthogonal to
+// RememberRemoved$, which writes the event-backed host list instead; a line
+// carrying both gets both.
 //
 // The ask gate is the strict-supersets rule (a decision nobody could answer
 // differently is never emitted): zero eligible objects acts on nothing, an
@@ -1622,7 +1640,14 @@ func removeCounterChoose(h Host, c *Ctx, sa *cards.SA, ans []state.ObjID, done b
 	}
 	minv, maxv := exact, exact
 	if strings.EqualFold(strings.TrimSpace(sa.Params["ChoiceOptional"]), "True") {
+		// Forge's "each of any number": Min 0, and — with no explicit
+		// ChoiceNum$ bounding it (both reachable carriers) — Max the whole
+		// eligible pool, so Garnet's two Sagas can BOTH be chosen. An
+		// explicit ChoiceNum$ alongside it keeps its own Max (up-to-N).
 		minv = 0
+		if strings.TrimSpace(sa.Params["ChoiceNum"]) == "" {
+			maxv = int32(len(eligible))
+		}
 	}
 	if maxv > int32(len(eligible)) {
 		maxv = int32(len(eligible))
@@ -1667,9 +1692,15 @@ func removeCounterChoose(h Host, c *Ctx, sa *cards.SA, ans []state.ObjID, done b
 // removeCounterPickApply removes num counters of kind from each live chosen
 // object (a chosen object that left the choice zone while the decision was
 // outstanding takes nothing — the same staleness stance putCounterPickApply
-// takes), honouring the RememberRemoved$ rider through the shared helper.
+// takes), honouring the RememberRemoved$ rider through the shared helper and
+// the RememberAmount$ rider through Ctx.Remembered (the effMoveCounter
+// encoding: the object's id once per counter removed, so the chained
+// Count$RememberedNumber payoff — Garnet's X, Chandra's Z, Dyadrine's
+// ConditionCheckSVar$ Z — reads the real total).
 func removeCounterPickApply(h Host, c *Ctx, sa *cards.SA, zone state.Zone, kind string, num int32, picks []state.ObjID) {
 	g := h.Game()
+	rememberAmount := strings.EqualFold(strings.TrimSpace(sa.Params["RememberAmount"]), "True")
+	var amountIDs []state.ObjID
 	for _, id := range picks {
 		o := g.Obj(id)
 		if o == nil || o.Zone != zone {
@@ -1685,6 +1716,12 @@ func removeCounterPickApply(h Host, c *Ctx, sa *cards.SA, zone state.Zone, kind 
 		}
 		h.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: kind, Amount: -removed})
 		rememberRemoved(h, c, sa, id, removed)
+		for i := int32(0); i < removed; i++ {
+			amountIDs = append(amountIDs, id)
+		}
+	}
+	if rememberAmount && len(amountIDs) > 0 {
+		c.Remembered = append(c.Remembered, objTargets(amountIDs)...)
 	}
 }
 
