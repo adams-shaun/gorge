@@ -2826,3 +2826,116 @@ convention preserved every line of both sides. Same standing controller note
 as prior rounds: the per-branch rewrites of the shared `report-mrg1.md` /
 `report-sol1.md` accumulators collide on every integration; a main-side
 decision to stop rewriting them would end the repeat conflicts.
+
+---
+
+# Merge-conflict resolution — mrg1 (task agent-20260918T231813Z-2ff69b35, round 4, 2026-09-23)
+
+## Entry state and operation
+
+`git status` on arrival: **clean tree, no rebase or merge in flight** on
+`wt/agent-20260918T231813Z-2ff69b35` at tip `c06c7fd6`. The daemon's conflict
+notice described a rebase/merge that had already been completed by earlier
+rounds (`5001974f` was a prior merge of main), but current `main` had advanced
+past `ab2d4b63` (11 commits, up to `0f94cca6`) and was NOT an ancestor of HEAD.
+Per the standing no-`git rebase` rule and the repo's merge convention, the
+remaining integration was completed with `git merge main`.
+
+## Conflicted files, both sides, resolution
+
+Two content conflicts, both tracked `.ds4` report accumulators. **No
+production, test, web or config file conflicted** — main's `AGENTS.md`,
+`internal/testutil/agentsdoc_test.go`, `rules/sba.go`,
+`rules/cascade_resulting_mv_test.go` and `rules/ignorelegendrule_test.go`
+auto-merged cleanly and are staged as merged.
+
+### `.ds4/report-mrg1.md` — four conflict regions (UU)
+
+The shared mrg1 accumulator. Ours (HEAD) carries this branch's round-2 and
+round-3 records; main carries the `agent-20260923T073156Z-d6f8c32b` fourth- and
+fifth-integration-round records. Each region is an independent per-branch tail
+append landing at the same accumulator position, with no contradiction.
+**Resolution: union per region** — ours' block verbatim, a `---` divider, then
+main's block verbatim. Marker offsets 2319/2371/2406, 2412/2464/2562,
+2648/2694/2748, 2755/2793/2828.
+
+Verification (per-side non-blank line preservation against the `:2`/`:3` merge
+stages): `ours-missing=0`, `theirs-missing=0`. Marker grep:
+`grep -nE '^(<<<<<<< HEAD|=======|>>>>>>> main)$'` → 0 hits.
+
+### `.ds4/report-sol1.md` — one conflict region (UU)
+
+One region at 361/411/473. Ours inserted the "cost-draw1 … sol1
+reconciliation" section; main inserted the "Branch report: Cascade free cast —
+CR 702.85a / CR 107.3b" section. Both are additive at the tail with the
+"Task fb-20260923T020152Z — attacker radial picker" section as common suffix.
+**Resolution: union** — ours verbatim, `---`, main verbatim.
+
+Verification: `theirs-missing=0`, `ours-missing=1`. The single "missing" ours
+line is the original `# Teapot Slinger / Convoke expend-4 — verification
+report` heading, which this branch had **deliberately relabeled** in a prior
+round to `# Main-side report: Teapot Slinger / Convoke expend-4 — verification
+report` (body byte-identical on both sides). The deliberate relabel is kept;
+this is not content loss, and matches the round-5 report's own note.
+
+### `.ds4/report-r2.md`
+
+Auto-merged (staged `M`, no markers). No edit needed.
+
+## Commands run (real output)
+
+```text
+$ git merge main
+Auto-merging .ds4/report-mrg1.md
+CONFLICT (content): Merge conflict in .ds4/report-mrg1.md
+Auto-merging .ds4/report-sol1.md
+CONFLICT (content): Merge conflict in .ds4/report-sol1.md
+Automatic merge failed; fix conflicts and then commit the result.
+
+$ python3 (union splice per region) -> mrg1 2828 lines, sol1 679 lines
+$ grep -nE '^(<<<<<<< HEAD|=======|>>>>>>> main)$' .ds4/report-mrg1.md .ds4/report-sol1.md
+(no output; 0 markers)
+$ python3 (per-side non-blank line preservation vs :2/:3)
+ours-mrg1: missing 0; theirs-mrg1: missing 0
+ours-sol1: missing 1 (the deliberately relabeled Teapot heading); theirs-sol1: missing 0
+
+$ git add -f .ds4/report-mrg1.md .ds4/report-sol1.md
+$ git commit --no-edit
+[wt/agent-20260918T231813Z-2ff69b35 2d9ae7ce] Merge branch 'main' into wt/agent-20260918T231813Z-2ff69b35
+
+$ git merge-base --is-ancestor main HEAD && echo MAIN_INTEGRATED=YES
+MAIN_INTEGRATED=YES
+$ git status --short --branch
+## wt/agent-20260918T231813Z-2ff69b35          (clean)
+
+$ ls -ld .cards
+lrwxrwxrwx .cards -> /home/sadams/projects/gorge/.cards   (real corpus — no vacuous skip)
+
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  	github.com/adams-shaun/gorge/rules	0.796s
+
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.673s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.622s
+```
+
+## Notes / unsure about
+
+- `git add` refused the tracked-but-gitignored `.ds4` reports; `-f` is correct
+  (the files were already tracked and merge stages existed).
+- The one "missing" ours line in `report-sol1.md` is a known deliberate
+  relabel, not a splice defect; see above.
+- No ratchet table edit was needed after merging main: neither side registers
+  a new trigger `Mode$` matcher nor closes a `knownUnsupported` /
+  `knownUnsupportedParams` / `knownUnmodelledCountHeads` entry, and the
+  botbench golden did not move. All three ratchet/golden commands pass above.
+- No engine or web behaviour is changed by this resolution; the only edits are
+  to the two tracked report accumulators.
+
+## Issues
+
+None new. The recurring friction is unchanged: per-branch tail appends to the
+shared `report-mrg1.md` / `report-sol1.md` accumulators conflict on every
+integration, and the union convention keeps everything.
