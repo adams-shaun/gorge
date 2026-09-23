@@ -1,3 +1,90 @@
+# Merge-conflict resolution report — mrg1, round 2 (agent-20260923T073156Z-d6f8c32b)
+
+## Why a second round
+
+Round 1 (report below) integrated main `935cefc4` as merge `de376741`. Main
+then moved to `0eb36fbd` (21 commits: the `RevealAllValid$` fix
+`3a8dc712`/`582a564c`, `CopySpellAbility.Optional` `d8a987be`, four-mode
+trigger row closures `2786ed95`, and their report/doc commits), the daemon's
+rebase of this branch onto `0eb36fbd` failed at `0f9dcb58`
+(`.ds4/report-sol1.md`) and its merge fallback conflicted on
+`.ds4/report-mrg1.md` and `.ds4/report-sol1.md` before aborting. This seat
+entered with a clean tree, nothing in flight, and performed a fresh
+`git merge main` against `0eb36fbd`.
+
+## Conflicted files and resolutions
+
+Both conflicts are `.ds4` report accumulators; no source file conflicted.
+
+**`.ds4/report-sol1.md`** — the first 231 lines are byte-identical on both
+sides (`diff` of `head -231` of each stage → identical: Attached predicates,
+Deep Spawn UnlessCost Mill, RollDice, Gitaxian Probe). Each side appended a
+DIFFERENT new report at the same tail position: the branch its Cascade report
+(lines 232–292 of `:2`), main its `CopySpellAbility.Optional` rebase report
+(lines 232–286 of `:3`). Resolution: main's full 286-line version kept
+byte-for-byte, the branch's Cascade section appended after a `---` divider
+under the file's own pointer-line convention. 350 lines; both reports intact.
+
+**`.ds4/report-mrg1.md`** — `:1` (base) = the 50-line 210645Z-era report blob
+`72b5b4f8`; `:2` (ours) = that base with this branch's round-1 report (87
+lines) on top; `:3` (main) = the 1618-line accumulated mrg1 history, which
+already contains the base blob's content byte-for-byte (verified
+`diff <(base) <(sed -n 1438,1487p :3)` → identical) and does NOT contain this
+branch's round-1 report (`grep -c 073156Z :3` = 0). Resolution: main's full
+1618-line file kept byte-for-byte, the branch's round-1 report appended (it
+ends with its own `---` separator). 1706 lines; nothing from either side
+dropped or rewritten.
+
+No conflict markers remain in either file. No engine code was touched by the
+resolution; all code paths on both sides auto-merged.
+
+## Commands and output
+
+```
+$ git merge main -m "Merge branch 'main' into wt/agent-20260923T073156Z-d6f8c32b"
+Auto-merging .ds4/report-mrg1.md
+CONFLICT (content): Merge conflict in .ds4/report-mrg1.md
+Auto-merging .ds4/report-sol1.md
+CONFLICT (content): Merge conflict in .ds4/report-sol1.md
+Automatic merge failed; fix conflicts and then commit the result.
+$ git add -f .ds4/report-mrg1.md .ds4/report-sol1.md && git commit --no-edit
+[wt/agent-20260923T073156Z-d6f8c32b fc027b1a] Merge branch 'main' into wt/agent-20260923T073156Z-d6f8c32b
+$ git rev-parse HEAD^2        # -> 0eb36fbd (main tip fully integrated)
+$ git status --short          # clean
+```
+
+Post-merge gates (`.cards` present as a symlink to the real corpus):
+
+```
+$ go test ./internal/archtest/                                    -> ok (5.924s)
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ -> ok (1.213s)
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+                                                                  -> ok (0.782s)
+$ go test -run 'TestCascadeFreeCastAnnouncesNoX|TestCascadeXSpellUsesAnnouncedManaValue' ./rules/
+                                                                  -> ok (0.629s)
+$ go test -run 'TestRevealAllValid|TestCopySpellAbilityOptional' ./effects/
+                                                                  -> ok (0.592s)
+$ go test -run 'TestKnownApproximation' ./internal/testutil/      -> ok
+```
+
+Ratchets green after the merge: no new trigger `Mode$` to register, no
+`knownUnsupported` / `knownUnsupportedParams` / `knownUnmodelledCountHeads`
+entry to remove (this branch registers none and closes none), the
+approximations register and the botbench golden did not move, and the branch's
+cascade fix still passes on the merged tree.
+
+## Issues
+
+No new defect found; the only conflicts were independent report content at a
+shared accumulator tail. Same standing note as round 1: repeated re-dispatch
+of mrg1 on this ticket is driven by main advancing between rounds (both rounds
+lost no content — the accumulator union preserved every report).
+
+STATUS=DONE
+COMMITS=fc027b1a
+TESTS=archtest ok; botbench TestConstructedDefaultIsByteIdentical ok; rules ratchets (TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead) ok; cascade tests ok; RevealAllValid/CopySpellAbilityOptional ok; agentsdoc ok
+
+---
 # Merge-conflict resolution report — mrg1 (task agent-20260920T074357Z-b9ac41c2)
 
 ## Outcome
