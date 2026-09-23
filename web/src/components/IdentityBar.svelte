@@ -167,7 +167,7 @@
     </span>
   </div>
   <div class="mana-row" data-mana-row>
-    <ManaPool pool={player.pool} available={player.available} />
+    <ManaPool pool={player.pool} available={player.available} poolRestrictions={player.pool_restrictions} />
   </div>
 
   {#if tileOptions}

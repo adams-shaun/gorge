@@ -1,87 +1,83 @@
-# Round record — merge resolver, worktree cli-20260923T060000Z-pw-numloyaltyact, 2026-09-23
+# Merge-conflict resolution — agent-20260920T070405Z-eea92966
 
-## Entry state
+## Operation and state found
 
-`git status` found the tree CLEAN at the branch's completed earlier merge
-`33f1af28` (fix `c9938967` reads Effect-delivered `NumLoyaltyAct` in
-`loyaltyAbilityLimit` + that merge); no rebase or merge in flight. `main` had
-since advanced 12 commits to `c5669fdf` (choose-number, ct1 closure lineage),
-so this round ran the integration itself: `git merge main --no-edit`.
+`git status` on this worktree showed a clean tree on
+`wt/agent-20260920T070405Z-eea92966` at `55da5292`; no rebase or merge was in
+progress (the daemon's failed rebase and its merge-fallback attempt had both
+been aborted before this seat started). `main` was 39 commits ahead
+(`bf627f79` tip); the branch carried the three CountersRemain commits
+(`c1b64881`, `a31fb345`, `55da5292`) on top of merge-base `f670560c`. Per the
+brief's ground rules (a seat never runs `git rebase`), the pending
+integration was completed as a merge: `git merge main`.
 
-## Conflicts and resolution
+## Conflicted files and resolution
 
-Auto-merged: `AGENTS.md` (this branch's `(pw1)` deletion and main's landed
-closures compose; 0 `(pw1)` occurrences remain), `rules/cast.go`,
-`effects/choose.go`, `rules/resolution.go` and the rest. ONE content conflict:
+**`.ds4/report-t1.md`** — the only content conflict. The branch side is the
+complete task report for this branch ("Report — stat:CountersRemain", 89
+lines, ending at `Commit: c1b64881 feat(rules): preserve counters for
+CountersRemain statics`); main's side is the shared accumulated report file
+(979 lines: the TriggerController$ report, the merged-reports block,
+Yuffie, PlayerCountPropertyYou, the fb-20260922T145544Z report, the
+rv2b-countheads report, and Vote.StoreVoteNum — ending at
+`66ae9f21 fix(count): resolve per-turn player property counts`). Neither
+side supersedes the other, and main's version does not contain the branch's
+report at all. Resolution keeps both intents in full, following the precedent
+of the earlier fb-20260922T145544Z mrg1 resolution recorded in this same
+file: the branch's CountersRemain report first, then a `---` divider matching
+main's own section-separator style, then main's full 979-line accumulation
+unmodified (1071 lines total). Both versions were taken byte-for-byte from
+the index stages (`git cat-file -p :2:` / `:3:`); no report text was edited.
 
-- **`internal/testutil/agentsdoc_test.go`** — the `knownApproximationRows`
-  constant and comment. Merge base `2acd1d4d` measured **23** data rows; the
-  branch deleted `(pw1)` (→22), main deleted `(ct1)` (→22) — both constants
-  stale for the merge. The merged `AGENTS.md` measures **21** data rows
-  (verified with `approximationRows()`'s own counting rule). Resolution:
-  `knownApproximationRows = 21` with a comment naming both disjoint closures.
+**`events/apply.go`** — auto-merged (it conflicted only in the daemon's
+rebase, whose fallback merge shows the same auto-merge). Verified by reading
+the merged diff against the merge base: the branch's CountersRemain payload
+plumbing (`CountersRemainMovePayload` gate, `MoveCountersRemain` fold) and
+main's `__kwMentorGranted` granted-Mentor payload reconstruct at independent
+sites in `Apply` with no overlapping hunks; `strings` is already imported.
+No manual source edit was needed or made.
 
-The branch's fix survived the auto-merge: `NumLoyaltyAct` reads remain in
-`rules/legal.go` (`loyaltyAbilityLimit` static accumulator) and
-`effects/misc.go` (`effEffect` + `NumLoyaltyActParamsReadable`).
+All other files (rules/*, effects/*, cards/*, AGENTS.md, docs, the other
+tracked `.ds4` reports) auto-merged without conflict.
 
 ## Commands and output
 
-```text
-git status                              # clean at 33f1af28, nothing in flight
-git rev-list --count HEAD..main         # 12
-git merge main --no-edit
-  Auto-merging AGENTS.md / internal/testutil/agentsdoc_test.go ...
-  CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go
-row counts: base 2acd1d4d = 23, branch 33f1af28 = 22 (pw1 gone),
-            main c5669fdf = 22 (ct1 gone), merged AGENTS.md = 21
-.gcards check: .cards is the real symlink to /home/sadams/projects/gorge/.cards
-gofmt -l internal/testutil/agentsdoc_test.go   # clean
-go test ./internal/testutil -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort' -v
-  --- PASS: TestKnownApproximationsOnlyShrinks (0.00s)
-  --- PASS: TestKnownApproximationRowsAreShort (0.00s)
-go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|NumLoyaltyAct|Loyalty' -v
-  46 PASS, 0 FAIL, 0 SKIP (incl. the trigger-mode registry ratchets,
-  TestEveryRepoDeckIsFullySupported / TestEveryRepoDeckParamsAreRead, the
-  CountHead ratchet and the loyalty/NumLoyaltyAct suite) — ok rules 0.804s
-git commit --no-edit -> 02b39858 Merge branch 'main' into wt/cli-20260923T060000Z-pw-numloyaltyact
-git status -> clean; main (c5669fdf) is an ancestor of the branch
-```
+- `git add .ds4/report-t1.md` — unmerged path cleared (git noted `.ds4/` is
+  in `.gitignore`; the file is tracked in HEAD, so the add is legitimate).
+- `git diff --cached --check` — no output (exit 0); no conflict markers
+  remain (`grep -nE '^(<<<<<<<|=======|>>>>>>>)' .ds4/report-t1.md` — none).
+- `.cards` present as a symlink to `/home/sadams/projects/gorge/.cards`
+  (found, not created), so no run below is a vacuous skip.
+- `go test -run 'TestCountersRemainPreservesCountersExceptHandAndLibrary$' ./rules/`
+  → `ok github.com/adams-shaun/gorge/rules 1.012s` (the branch fix survives
+  main's changes).
+- `go test ./events/` → `ok github.com/adams-shaun/gorge/events 5.020s`
+  (the auto-merged shared file compiles and its replay/apply suite passes).
+- Post-merge ratchets, `go test ./rules -run
+  'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`
+  → `ok github.com/adams-shaun/gorge/rules 0.793s`. No ratchet entry moved:
+  the branch registers no new trigger `Mode$` and closes no
+  `knownUnsupported`/`knownUnsupportedParams`/`knownUnmodelledCountHeads`
+  entry, so no table edit was required.
+- Behaviour goldens: `go test ./internal/archtest/` → ok (4.374s);
+  `go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/` → ok
+  (1.371s, pinned split unchanged). `gofmt -l` on the merged engine files —
+  no output.
+- `git commit --no-edit` → `c177bb41 Merge branch 'main' into
+  wt/agent-20260920T070405Z-eea92966` (default merge message). `git status`
+  clean; `git rev-list --count HEAD..main` = 0.
+
+## Unsures
+
+- git printed its "paths are ignored" notice when adding the tracked
+  `.ds4/report-t1.md`; the add nevertheless resolved the unmerged entry, and
+  the committed merge contains the resolved file (verified in the staged
+  diff and the merge commit).
+- The stale `report-mrg1.md` found in this worktree's `.ds4/` belonged to a
+  different branch's resolution (fb-20260922T145544Z); it was replaced by
+  this report, as the brief names exactly this path for this task's report.
 
 ## Issues
 
-None new. Integration only; the merged state closes `(pw1)` (this branch) plus
-main-side `(ct1)` and its lineage's closures, measured at 21 data rows.
-
----
-
-# Merge-conflict resolution — task cli-20260923T060000Z-choose-number
-
-## Entry state and operation
-
-The worktree was clean at `27c913888` before integration; no rebase or merge was in flight. `main` had advanced beyond the branch's earlier merge, so I ran `git merge main`. It stopped on content conflicts in `.ds4/report-mrg1.md` and `internal/testutil/agentsdoc_test.go`.
-
-## Conflicts and resolution
-
-- `internal/testutil/agentsdoc_test.go`: the branch count/comment reflected 25 rows at an earlier main tip; current main's side reflected 23. Kept both sides' row deletions, measured the auto-merged `AGENTS.md` table using the test's counting rule (22 data rows), and set `knownApproximationRows = 22`. The comment records the ct1 closure and main's landed closures.
-- `.ds4/report-mrg1.md`: the branch contained an earlier report for this choose-number task; main's version was a report for an unrelated ticket/worktree. Replaced both conflict sides with this report of the current integration.
-- `AGENTS.md`, `rules/cast.go`, and other files from main auto-merged; retained those changes. No unrelated conflict resolution edits were made.
-
-## Commands and results
-
-- `git status --short --branch && git status` — initially clean on `wt/cli-20260923T060000Z-choose-number`.
-- `git merge main` — conflicts in `.ds4/report-mrg1.md` and `internal/testutil/agentsdoc_test.go`; other changes auto-merged.
-- Python count of the merged `AGENTS.md` Known approximations table — 22 data rows.
-- `ls .cards | head` — corpus present (`cards.lock`, `cardsfolder`, `ir.gob.gz`, `ir.v4.gob.gz`, `tokenscripts`).
-- `go test -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|TestChosenNumber|TestKnownApproximation' ./rules ./internal/testutil`:
-  ```
-  ok   github.com/adams-shaun/gorge/rules 0.820s
-  ok   github.com/adams-shaun/gorge/internal/testutil 0.002s
-  ```
-- `git add internal/testutil/agentsdoc_test.go && git add -f .ds4/report-mrg1.md && git diff --check && git diff --cached --check` — passed. (`.ds4` is ignored, so the report required `git add -f`.)
-- `GIT_EDITOR=true git merge --continue` — completed as `6bd4bf07` (`Merge branch 'main' into wt/cli-20260923T060000Z-choose-number`).
-- `git status --short --branch` — clean; `git merge-base --is-ancestor main HEAD` — passed (`main_ancestor=0`).
-
-## Issues / uncertainty
-
-No uncertainty remains. The current merge includes main's ratchets and the ChooseNumber row deletion; the merged row count matches the ratchet constant.
+None found in this scope. The merge introduced no new engine behaviour of
+its own; both sides' reviewed changes were preserved.

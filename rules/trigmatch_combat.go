@@ -475,7 +475,6 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 	if ev.Kind != events.DeclareBlockers {
 		return
 	}
-	pt := func(p state.PlayerID) state.Target { return state.Target{Player: p, IsPlayer: true} }
 	e.forEachObject(func(id state.ObjID) {
 		o := e.G.Obj(id)
 		if o == nil {
@@ -502,109 +501,180 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 			if t.Mode != "AttackerBlocked" && t.Mode != "AttackerBlockedByCreature" {
 				continue
 			}
-			if !e.zoneGate(t, id, ev) || !e.phaseGate(t) {
-				continue
-			}
-			key := triggerKey{Source: id, Idx: ti}
-			if e.triggerFireCount == nil {
-				e.triggerFireCount = map[triggerKey]int32{}
-			}
-			if e.triggerFireCount[key] >= maxTriggerFires {
-				continue // cascade bound: see maxTriggerFires.
-			}
-			if !e.triggerGameActivationLimitAllows(t, key) {
-				continue // GameActivationLimit$: already triggered enough this game.
-			}
-			if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
-				continue
-			}
-			// The two limit gates above are READ-ONLY: a DeclareBlockers event
-			// whose pairs match nothing (or whose Effect body is nil) queues
-			// nothing and must not consume a use of either limit. The counts
-			// commit below, at the first instance actually appended.
-			reserved := false
-			reserve := func() {
-				if reserved {
-					return
-				}
-				reserved = true
-				e.reserveTriggerLimits(t, key)
-			}
-			if t.Mode == "AttackerBlockedByCreature" {
-				// CR 702.25a: one instance per (attacker, non-flanking blocker)
-				// pair; the trigger's controller is the ATTACKER's controller,
-				// which the Source/Controller pair already are (the source is
-				// the flanking attacker itself). A kw:Flanking marker fires its
-				// trigger once per DERIVED flanking instance (CR 702.25b), so a
-				// creature with a printed instances plus a granted one --
-				// Cavalry Master's lord -- debuffs a blocker twice; a marker
-				// whose keyword has since been removed fires not at all.
-				instances := 1
-				if isFlankingMarker(t) {
-					instances = e.flankingInstances(id)
-				}
-				for _, pr := range e.attackerBlockedByPairCandidates(t, id, ev) {
-					if t.Effect == nil {
-						break
-					}
-					bid := pr[1]
-					for i := 0; i < instances; i++ {
-						if e.triggerFireCount[key] >= maxTriggerFires {
-							break
-						}
-						reserve()
-						e.triggerFireCount[key]++
-						e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
-							Source:     id,
-							Controller: o.Controller,
-							Idx:        ti,
-							SA:         t.Effect,
-							Ctx: effects.Ctx{
-								Source:     id,
-								Controller: o.Controller,
-								Remembered: []state.Target{{Obj: bid}},
-								Captured:   []state.Target{{Obj: bid}},
-								TriggerContext: effects.TriggerContext{
-									TriggerCard:   bid,
-									TriggerSource: pr[0],
-								},
-							},
-						})
-					}
-				}
-				continue
-			}
-			for _, aid := range e.attackerBlockedCandidates(t, id, ev) {
-				if t.Effect == nil {
+			e.queueAttackerBlockedTrigger(t, id, o.Controller, ti, false, 0, ev)
+		}
+	})
+	e.checkGrantedAttackerBlockedTriggers(ev)
+}
+
+// queueAttackerBlockedTrigger queues the instances one become-blocked trigger
+// fires for a DeclareBlockers event. Printed triggers and AddTrigger$-GRANTED
+// ones share this helper so their zone/phase gates, referent capture and
+// limit discipline cannot drift apart (queueAttackerUnblockedTrigger's
+// precedent). t.Mode is either Mode$ AttackerBlocked (one instance per
+// DISTINCT matching blocked attacker) or Mode$ AttackerBlockedByCreature (one
+// instance per matching (attacker, blocker) pair). source is the permanent
+// carrying the trigger (its own face for a printed line, the AFFECTED
+// recipient for a grant) and idx is its face Triggers index, or -1 for a
+// grant. granted/grantor/Execute carry the GrantTriggerPush provenance a
+// granted instance needs and are left zero for a printed one.
+func (e *Engine) queueAttackerBlockedTrigger(t cards.Trigger, source state.ObjID, controller state.PlayerID, idx int, granted bool, grantor state.ObjID, ev events.Event) {
+	if t.Mode != "AttackerBlocked" && t.Mode != "AttackerBlockedByCreature" {
+		return
+	}
+	// t.Effect is nil for a printed trigger with no body; the queue gate below
+	// keeps the pre-existing behaviour (nothing queued, no limit consumed).
+	if t.Effect == nil {
+		return
+	}
+	if !e.zoneGate(t, source, ev) || !e.phaseGate(t) {
+		return
+	}
+	key := triggerKey{Source: source, Idx: idx}
+	if e.triggerFireCount == nil {
+		e.triggerFireCount = map[triggerKey]int32{}
+	}
+	if e.triggerFireCount[key] >= maxTriggerFires {
+		return // cascade bound: see maxTriggerFires.
+	}
+	if !e.triggerGameActivationLimitAllows(t, key) {
+		return // GameActivationLimit$: already triggered enough this game.
+	}
+	if actionTriggerModes[t.Mode] && !e.triggerActivationLimitAllows(t, key) {
+		return
+	}
+	// The two limit gates above are READ-ONLY: a DeclareBlockers event whose
+	// pairs match nothing queues nothing and must not consume a use of either
+	// limit. The counts commit below, at the first instance actually appended.
+	reserved := false
+	reserve := func() {
+		if reserved {
+			return
+		}
+		reserved = true
+		e.reserveTriggerLimits(t, key)
+	}
+	pt := func(p state.PlayerID) state.Target { return state.Target{Player: p, IsPlayer: true} }
+	if t.Mode == "AttackerBlockedByCreature" {
+		// CR 702.25a: one instance per (attacker, non-flanking blocker) pair;
+		// the trigger's controller is the ATTACKER's controller, which the
+		// Source/Controller pair already are (the source is the flanking
+		// attacker itself). A kw:Flanking marker fires its trigger once per
+		// DERIVED flanking instance (CR 702.25b), so a creature with a printed
+		// instance plus a granted one -- Cavalry Master's lord -- debuffs a
+		// blocker twice; a marker whose keyword has since been removed fires
+		// not at all. A granted instance has no printed marker, so its derived
+		// flanking instances are its own to fire (any Keyword$ Flanking param
+		// on the grant is not consulted: the grant itself is the instance).
+		instances := 1
+		if isFlankingMarker(t) {
+			instances = e.flankingInstances(source)
+		}
+		for _, pr := range e.attackerBlockedByPairCandidates(t, source, ev) {
+			bid := pr[1]
+			for i := 0; i < instances; i++ {
+				if e.triggerFireCount[key] >= maxTriggerFires {
 					break
-				}
-				defender := pt(0)
-				if ao := e.G.Obj(aid); ao != nil {
-					defender = pt(ao.Attacking)
 				}
 				reserve()
 				e.triggerFireCount[key]++
 				e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
-					Source:     id,
-					Controller: o.Controller,
-					Idx:        ti,
+					Source:     source,
+					Controller: controller,
+					Idx:        idx,
 					SA:         t.Effect,
+					Granted:    granted,
+					Grantor:    grantor,
+					Execute:    t.Params["Execute"],
 					Ctx: effects.Ctx{
-						Source:     id,
-						Controller: o.Controller,
-						Remembered: []state.Target{{Obj: aid}},
-						Captured:   []state.Target{{Obj: aid}},
+						Source:     source,
+						Controller: controller,
+						Remembered: []state.Target{{Obj: bid}},
+						Captured:   []state.Target{{Obj: bid}},
 						TriggerContext: effects.TriggerContext{
-							TriggerCard:     aid,
-							TriggerSource:   aid,
-							AttackingPlayer: pt(e.controllerOf(aid)),
-							DefendingPlayer: defender,
+							TriggerCard:   bid,
+							TriggerSource: pr[0],
 						},
 					},
 				})
 			}
 		}
-	})
+		return
+	}
+	for _, aid := range e.attackerBlockedCandidates(t, source, ev) {
+		defender := pt(0)
+		if ao := e.G.Obj(aid); ao != nil {
+			defender = pt(ao.Attacking)
+		}
+		reserve()
+		e.triggerFireCount[key]++
+		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+			Source:     source,
+			Controller: controller,
+			Idx:        idx,
+			SA:         t.Effect,
+			Granted:    granted,
+			Grantor:    grantor,
+			Execute:    t.Params["Execute"],
+			Ctx: effects.Ctx{
+				Source:     source,
+				Controller: controller,
+				Remembered: []state.Target{{Obj: aid}},
+				Captured:   []state.Target{{Obj: aid}},
+				TriggerContext: effects.TriggerContext{
+					TriggerCard:     aid,
+					TriggerSource:   aid,
+					AttackingPlayer: pt(e.controllerOf(aid)),
+					DefendingPlayer: defender,
+				},
+			},
+		})
+	}
+}
+
+// checkGrantedAttackerBlockedTriggers is the AddTrigger$ half of the
+// become-blocked walk. The ordinary granted-trigger event matcher
+// (checkGrantedStaticTriggersUsing) cannot dispatch these two modes: neither
+// has an entry in trigMatchers (they are dedicated hooks), so triggerMatches
+// rejects every DeclareBlockers event for them and a granted instance would
+// never fire. Instead each live grant whose Mode$ is AttackerBlocked or
+// AttackerBlockedByCreature queues through the same per-instance helper a
+// printed trigger uses, preserving its grantor so GrantTriggerPush can
+// rebuild the Execute$ body during replay (checkGrantedAttackerUnblockedTriggers'
+// precedent). Stormsurge Kraken, Retaliation and Mirror Shield are the
+// corpus carriers.
+func (e *Engine) checkGrantedAttackerBlockedTriggers(ev events.Event) {
+	for _, ce := range e.active() {
+		if ce.AddTrigger == nil {
+			continue
+		}
+		if ce.AddTrigger.Mode != "AttackerBlocked" && ce.AddTrigger.Mode != "AttackerBlockedByCreature" {
+			continue
+		}
+		grantorID := ce.Source
+		if ce.TriggerGrantor != 0 {
+			grantorID = ce.TriggerGrantor
+		}
+		grantor := e.G.Obj(grantorID)
+		if grantor == nil || grantor.Face() == nil {
+			continue
+		}
+		t := *ce.AddTrigger
+		t.Effect = grantedTriggerExecute(grantor, t.Params["Execute"])
+		if t.Effect == nil {
+			continue
+		}
+		e.forEachObject(func(id state.ObjID) {
+			o := e.G.Obj(id)
+			if o == nil || o.Face() == nil {
+				return
+			}
+			if !e.matchesSpecFrom(ce.Affects, id, ce.Controller, ce.Source) {
+				return
+			}
+			e.queueAttackerBlockedTrigger(t, id, o.Controller, -1, true, grantorID, ev)
+		})
+	}
 }
 
 // checkAttackerUnblockedTriggers queues one Mode$ AttackerUnblocked instance

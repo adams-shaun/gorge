@@ -202,6 +202,22 @@ type PlayerView struct {
 	// distinction it keeps against Available (which carries omitempty and is
 	// absent when nothing is available).
 	Pool map[string]int32 `json:"pool"`
+	// PoolRestrictions annotates Pool: one entry per batch of floating mana
+	// whose producing ability carried a RestrictValid$ spend limit, naming
+	// the colour, the amount and a human-readable spend text. It exists
+	// because Pool alone renders a bare spendable-looking chip for mana a
+	// cast may in fact refuse (Cavern of Souls' {B} that pays only for a
+	// creature spell of the chosen type), leaving the seat unable to learn
+	// why no cast was offered. Like Pool it is public information -- the
+	// restriction is derived from a public battlefield permanent's own
+	// ability (CR 106.4a/106.4b), so it is projected for every seat under
+	// every visibility. It carries omitempty: a seat holding no restricted
+	// mana is absent, never a JSON null, so every view without a restriction
+	// serialises byte-identically to before this field existed (the
+	// Available convention). A batch whose Valid is empty -- an
+	// AddsNoCounter$-only batch, which imposes no spend limit -- is omitted:
+	// this field names spend restrictions, and such a batch has none.
+	PoolRestrictions []PoolRestrictionView `json:"pool_restrictions,omitempty"`
 	// PotentialActions is this seat's "what could I still do after tapping
 	// out" projection, filled ONLY for the viewer's own seat (the walk reads
 	// the seat's own hand, command zone and graveyard -- a CR 400.2 hidden
@@ -258,6 +274,18 @@ type PlayerView struct {
 	// taken no commander damage (omitempty: absence is zero), so a
 	// Constructed game never pays for a per-player empty map.
 	CmdDamage map[state.ObjID]int32 `json:"cmd_damage,omitempty"`
+}
+
+// PoolRestrictionView is one restricted floating-mana batch as the wire
+// sees it: the produced symbol verbatim (a bare WUBRGC letter, an "S<colour>"
+// snow unit or a "<Tag><colour>" typed unit, exactly ManaRestriction.Color),
+// the unit count, and Text -- a sentence naming what the mana may be spent
+// on, or the raw Valid$ string when the formatter does not recognise the
+// shape (an honest floor).
+type PoolRestrictionView struct {
+	Color  string `json:"color"`
+	Amount int32  `json:"amount"`
+	Text   string `json:"text"`
 }
 
 // Printing is the identity a client resolves an image by: the exact face
@@ -557,6 +585,7 @@ func project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decisio
 		// only Hand stays gated on "is this the viewer's own seat" (CR 400.2
 		// names hand as a hidden zone).
 		pv.Pool = poolView(p.Pool)
+		pv.PoolRestrictions = poolRestrictions(g, p.RestrictedMana)
 		if p.ID == viewer {
 			pv.Hand = cardViews(g, ch, g.Zone(state.ZHand, p.ID), true, p.ID, viewer, false)
 		}

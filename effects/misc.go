@@ -3383,10 +3383,11 @@ func charmCrossModeRun(h Host, c *Ctx, sa *cards.SA, names []string) bool {
 			// remaining modes resume through SuspendCharmRest's continuation
 			// once the answer lands — never while the suspension is live (the
 			// historical loop ran them immediately, before the answered mode
-			// had even completed).
-			if rest := names[i+1:]; len(rest) > 0 {
-				h.SuspendCharmRest(sa, rest)
-			}
+			// had even completed). An empty rest (this was the last mode) is
+			// still reported, so the Charm re-enters and walks its own Sub
+			// instead of the enclosing loop recording a plain continuation
+			// that resumes at a nil Sub and emits a false degradation Note.
+			h.SuspendCharmRest(sa, names[i+1:])
 			return true
 		}
 	}
@@ -3524,9 +3525,7 @@ func charmDistinctTargetRun(h Host, c *Ctx, sa *cards.SA, names []string) bool {
 		c.Targets, c.OfferedSA, c.TargetsOffered = savedTargets, savedOffered, savedMarker
 		c.CharmModeScope, c.CharmModeSA = savedScope, savedScopeSA
 		if h.Suspended() {
-			if rest := names[i+1:]; len(rest) > 0 {
-				h.SuspendCharmRest(sa, rest)
-			}
+			h.SuspendCharmRest(sa, names[i+1:])
 			return true
 		}
 	}
@@ -3631,10 +3630,12 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 				// remaining modes while a decision is pending (Engine.ask
 				// panics on the overwrite). Report the rest as a charm-rest
 				// continuation, the same report the cross-mode runner makes,
-				// so they run once the answer lands.
-				if rest := names[i+1:]; len(rest) > 0 {
-					h.SuspendCharmRest(sa, rest)
-				}
+				// so they run once the answer lands. An empty rest (this was
+				// the LAST mode) is reported too, so the Charm re-enters to
+				// walk its own Sub instead of the enclosing loop recording a
+				// plain continuation that degrades to a false no-sub-ability
+				// Note.
+				h.SuspendCharmRest(sa, names[i+1:])
 				return
 			}
 		}
@@ -3841,15 +3842,8 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 				counts[p.Obj-1]++
 			}
 		}
-		best, tied := voteWinner(counts)
 		if len(choices) > 0 && len(voters) > 0 {
-			name := choices[best]
-			if tied && strings.TrimSpace(sa.Params["VoteTiedAbility"]) != "" {
-				name = strings.TrimSpace(sa.Params["VoteTiedAbility"])
-			}
-			if sub := cards.ResolveSVar(c.SVars, name); sub != nil {
-				Resolve(h, c, sub)
-			}
+			resolveVoteOutcomes(h, c, sa, choices, counts)
 		}
 		ballots := make([]VoteBallot, len(voters))
 		for i, t := range voters {
@@ -3891,19 +3885,7 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	if len(choices) > 0 && len(voters) > 0 {
-		// The winner is the option with the most votes (ties: the first such
-		// option). When the top count is shared, VoteTiedAbility$ runs instead
-		// for the shapes that spell one (the Path cycle's DBChaos).
-		best, tied := voteWinner(counts)
-		name := choices[best]
-		if tied {
-			if alt := strings.TrimSpace(sa.Params["VoteTiedAbility"]); alt != "" {
-				name = alt
-			}
-		}
-		if sub := cards.ResolveSVar(c.SVars, name); sub != nil {
-			Resolve(h, c, sub)
-		}
+		resolveVoteOutcomes(h, c, sa, choices, counts)
 	}
 	// The canonical vote-finished carrier (trig:Vote, effects/vote.go):
 	// emitted AFTER the winning outcome resolved -- the vote (outcome
@@ -3921,6 +3903,44 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 		ballots[i] = VoteBallot{Player: t, Pick: picks[i]}
 	}
 	emitVoteFinished(h, c, ballots, len(choices) > 0, strings.EqualFold(strings.TrimSpace(sa.Params["Secretly"]), "True"))
+}
+
+// resolveVoteOutcomes executes the winning option normally. StoreVoteNum$ is
+// the multi-outcome form: publish each option's tally as VoteNum in a private
+// copy of the source SVar table, then resolve every option body so its numeric
+// effects consume that option's count (including zero).
+func resolveVoteOutcomes(h Host, c *Ctx, sa *cards.SA, choices []string, counts []int) {
+	if strings.EqualFold(strings.TrimSpace(sa.Params["StoreVoteNum"]), "True") {
+		for i, name := range choices {
+			count := 0
+			if i < len(counts) {
+				count = counts[i]
+			}
+			svars := make(map[string]string, len(c.SVars)+1)
+			for key, body := range c.SVars {
+				svars[key] = body
+			}
+			// Forge reuses the SVar name VoteNum for each outcome body, binding
+			// that option's tally while resolving it.
+			svars["VoteNum"] = "Number$" + strconv.Itoa(count)
+			cc := *c
+			cc.SVars = svars
+			if sub := cards.ResolveSVar(cc.SVars, name); sub != nil {
+				Resolve(h, &cc, sub)
+			}
+		}
+		return
+	}
+	best, tied := voteWinner(counts)
+	name := choices[best]
+	if tied {
+		if alt := strings.TrimSpace(sa.Params["VoteTiedAbility"]); alt != "" {
+			name = alt
+		}
+	}
+	if sub := cards.ResolveSVar(c.SVars, name); sub != nil {
+		Resolve(h, c, sub)
+	}
 }
 
 // askFixedVote poses one private KChoose per voter. The answer is encoded as
