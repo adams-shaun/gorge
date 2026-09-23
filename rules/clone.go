@@ -323,6 +323,8 @@ func (e *Engine) Clone() *Engine {
 				inner[k] = v
 			}
 			c.aorAsk[id] = inner
+		}
+	}
 	if e.copyTargetStage != nil {
 		c.copyTargetStage = make(map[state.ObjID]int, len(e.copyTargetStage))
 		for id, stage := range e.copyTargetStage {
