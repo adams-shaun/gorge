@@ -19,12 +19,13 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	// The merged table currently measures 39 rows. This branch closes the
+	// The merged table currently measures 37 rows. This branch closes the
 	// transactional life-exchange approximation; main's history includes the
 	// First-Strike Damage, layer-4 filter-grammar, mulligan-redraw,
-	// replicate-count-bound, token-replacement and combat-history closures,
-	// plus earlier pc1/each1/CR 616.1 closures.
-	knownApproximationRows = 39
+	// replicate-count-bound, token-replacement and combat-history closures, the
+	// cascade1 (e46f051d) and maxpower1 (8d83f028) closures, plus earlier
+	// pc1/each1/CR 616.1 closures.
+	knownApproximationRows = 37
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.

@@ -37,6 +37,7 @@ func (e *Engine) Clone() *Engine {
 		G:               e.G.Clone(),
 		L:               e.L.Clone(),
 		compiledText:    e.compiledText,
+		landTypeWords:   e.landTypeWords,
 		turnsTaken:      append([]int32(nil), e.turnsTaken...),
 		turnsTakenEpoch: e.turnsTakenEpoch,
 		// combatHitsThisTurn (the per-turn combat-damage ledger): a plain

@@ -113,9 +113,10 @@ type counterAddedThisTurn struct {
 }
 
 type Engine struct {
-	G            *state.Game
-	L            *events.Log
-	compiledText *compiledText
+	G             *state.Game
+	L             *events.Log
+	compiledText  *compiledText
+	landTypeWords []string
 
 	// turnsTaken caches the TurnChange census used by Count$TurnsThisGame.
 	// turnsTakenEpoch is the log length represented by the cache; emit advances
@@ -1465,15 +1466,16 @@ func newWithRNG(cfg Config, random *rng) *Engine {
 		}
 	}
 	e := &Engine{
-		G:            state.NewGameLife(cfg.Names, life, initialObjects),
-		L:            events.NewLog(cfg.Seed),
-		format:       cfg.Format,
-		rng:          random,
-		loop:         newLivelockWatcher(cfg.LoopGuard),
-		turnsTaken:   make([]int32, len(cfg.Names)),
-		compiledText: newCompiledText(cfg),
-		mulligans:    cfg.Mulligans,
-		startingLife: life,
+		G:             state.NewGameLife(cfg.Names, life, initialObjects),
+		L:             events.NewLog(cfg.Seed),
+		format:        cfg.Format,
+		rng:           random,
+		loop:          newLivelockWatcher(cfg.LoopGuard),
+		turnsTaken:    make([]int32, len(cfg.Names)),
+		compiledText:  newCompiledText(cfg),
+		landTypeWords: corpusLandTypeWords(cfg.NameUniverse),
+		mulligans:     cfg.Mulligans,
+		startingLife:  life,
 		// The per-turn ManaExpend tally (rules/cast.go) starts empty; payCast
 		// stamps and resets it lazily on e.G.Turn.
 		manaExpended: make([]int32, len(cfg.Names)),
