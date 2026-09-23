@@ -157,6 +157,14 @@ func (e *Engine) Clone() *Engine {
 		c.attachedChoice = &ac
 	}
 	c.attachedApplying = e.attachedApplying
+	if e.tokenChoice != nil {
+		tc := *e.tokenChoice
+		// plan is the slice the resume mutates in place; matches is read-only
+		// after the park (the repl pointers are immutable face entries), so
+		// only the plan is re-allocated.
+		tc.plan = append([]tokenPlanMint(nil), e.tokenChoice.plan...)
+		c.tokenChoice = &tc
+	}
 	if e.pending != nil {
 		d := *e.pending
 		d.Options = append([]decision.Option(nil), e.pending.Options...)

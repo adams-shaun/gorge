@@ -703,6 +703,14 @@ type Engine struct {
 	// for its name and creature type.
 	attachedChoice   *attachedChoice
 	attachedApplying bool
+	// tokenChoice parks a CreateToken replacement plan while the chosen-copy
+	// body (Type$ ReplaceToken | TokenScript$ Chosen -- Esix, Moonlit
+	// Meditation, Mirrormind Crown) asks its controller which creature to
+	// copy. Same discipline as siegeMove/attachedChoice: the plan's mints are
+	// emitted only after the answered election is applied, so the log's
+	// CopyToken events carry the choice and a log-only replay re-derives the
+	// mints. Clone-copied (clone.go).
+	tokenChoice *tokenChoiceState
 	// suspendedCasts is the mandatory "cast it if able" trigger created when
 	// a real suspended card loses its final TIME counter. IDs are appended in
 	// exile order and consumed before priority; it is plain replayable engine
