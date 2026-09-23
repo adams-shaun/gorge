@@ -641,10 +641,12 @@ func (e *Engine) manaAbilityPayablePool(p state.PlayerID, source state.ObjID, ma
 	if !ok {
 		return false
 	}
-	for _, part := range cost.Mill {
-		if part.N < 0 || len(e.G.Zone(state.ZLibrary, p)) < int(part.N) {
-			return false
-		}
+	// Mill costs are priced as a SUM: every Mill<N> part draws from the same
+	// library in sequence, so a composed Mill<1> Mill<1> needs two cards, not
+	// one (the shared libraryCoversMill helper, which the ordinary cast /
+	// activation gate in nonManaCastable also uses).
+	if !libraryCoversMill(e.G, p, cost.Mill) {
+		return false
 	}
 	return true
 }
@@ -1287,14 +1289,20 @@ func (e *Engine) resolveManaAbilityRef(p state.PlayerID, source state.ObjID, ma 
 	}
 	// Mill costs are paid before the mana ability resolves. The library slice
 	// is ordered top-first, so moving its prefix preserves deterministic mill
-	// order and records each card as a real zone-change event.
-	for _, part := range cost.Mill {
-		for i := 0; i < int(part.N); i++ {
-			lib := e.G.Zone(state.ZLibrary, p)
-			if len(lib) == 0 {
-				return
-			}
-			id := lib[0]
+	// order and records each card as a real zone-change event. The offer gate
+	// (manaAbilityPayablePool's summed libraryCoversMill) already proved the
+	// library covers every part's total, so an over-short library here is an
+	// impossible defensive case -- and it must NOT return part-way, or the
+	// ability would resolve having milled only some of its cost.
+	if total, ok := millCostTotal(cost.Mill); ok && total > 0 {
+		lib := e.G.Zone(state.ZLibrary, p)
+		if int64(len(lib)) < total {
+			total = int64(len(lib))
+		}
+		// Snapshot the ids before emitting: each MoveZone mutates the library
+		// the slice was read from.
+		ids := append([]state.ObjID(nil), lib[:total]...)
+		for _, id := range ids {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id, Player: p, From: state.ZLibrary, To: state.ZGraveyard, Text: "mill cost"})
 		}
 	}

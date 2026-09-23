@@ -369,6 +369,35 @@ var exileBattlefieldCost = regexp.MustCompile(`^Exile<(\d+)/([^/>]+)(?:/([^>]*))
 var exiledMoveToGraveCost = regexp.MustCompile(`^ExiledMoveToGrave<(\d+)/([^/>]+)(?:/([^>]*))?>$`)
 var millCost = regexp.MustCompile(`^Mill<(\d+)>$`)
 
+// millCostTotal returns the total number of cards every Mill<N> cost
+// component requires (0 when there is no Mill part). The total is int64 so
+// the sum of arbitrary parts cannot overflow int on a 32-bit build; ok is
+// false for a negative requirement, which can never be paid.
+func millCostTotal(parts []CostPart) (int64, bool) {
+	var total int64
+	for _, part := range parts {
+		if part.N < 0 {
+			return 0, false
+		}
+		total += int64(part.N)
+	}
+	return total, true
+}
+
+// libraryCoversMill reports whether p's library holds at least the SUM of
+// every Mill<N> cost component's requirement. The parts all draw from the
+// same library and are paid in sequence, so they must be priced together: a
+// composed cost such as Mill<1> Mill<1> with one card in the library is NOT
+// payable, and checking the parts one at a time against the full library
+// would over-offer it. A negative part fails closed.
+func libraryCoversMill(g *state.Game, p state.PlayerID, parts []CostPart) bool {
+	total, ok := millCostTotal(parts)
+	if !ok {
+		return false
+	}
+	return int64(len(g.Zone(state.ZLibrary, p))) >= total
+}
+
 // payLifeXCost matches Forge's announced life payment PayLife<X> (Toxic
 // Deluge's "pay X life", Necrodominance's end-step body): the cast announces
 // X like a printed {X} and the settle pays that much life, so the value is
