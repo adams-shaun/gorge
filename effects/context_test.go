@@ -508,6 +508,10 @@ func (h *fakeHost) SuspendCharmRest(*cards.SA, []string) {}
 // SuspendVillainousRest is a no-op for the same reason as
 // SuspendContinuation.
 func (h *fakeHost) SuspendVillainousRest(*cards.SA, VillainousRest) {}
+
+// SuspendGenericChoiceRest is a no-op for the same reason as
+// SuspendContinuation.
+func (h *fakeHost) SuspendGenericChoiceRest(*cards.SA, GenericChoiceRest) {}
 func (h *fakeHost) SuspendFlipRest(_ *cards.SA, rest FlipRest) {
 	h.flipRests = append(h.flipRests, rest)
 }
