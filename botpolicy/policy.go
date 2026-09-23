@@ -168,7 +168,8 @@ type Commander struct {
 }
 
 // StackEntry is one object on the stack, the plain-data shape of a
-// StackView the policy can read without importing view (Ruling F7).
+// StackView the policy can read without importing view (Ruling F7). CMC is
+// carried for target ranking, so a counter can prefer a more valuable spell.
 // IsSpell is true for a spell object (a card cast onto the stack, which a
 // counter can target) and false for an ability object (minted by a
 // TriggerPush/AbilityPush — Face-less; the engine's target census skips
@@ -182,6 +183,7 @@ type StackEntry struct {
 	ID         state.ObjID
 	Controller state.PlayerID
 	IsSpell    bool
+	CMC        int32
 }
 
 // closesClock reports whether an unblocked swing from the creature id —

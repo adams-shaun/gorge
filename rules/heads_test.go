@@ -1300,7 +1300,11 @@ var acceptanceHeads = map[int]string{
 	// 61ac399dda414c21 -- the resolution-time colour choice and the unless-pay
 	// mana window together move the same seat-8 game past either single
 	// change's value.
-	8: "61ac399dda414c21",
+	// 8 seats moved to 5e988854bf022347 (autonomous orchestrator): resolving cli-20260922T225140Z-677ee477 (approx: bot target selection is effect-blind except for literal damage — destroy)
+	// Auto-accepted: CR conformance lane 0 FAIL and `make sim` 20/20 replay OK,
+	// the same proxy this repo has used by hand for every head move -- neither
+	// check is sensitive to bot-choice quality, only engine correctness.
+	8: "5e988854bf022347",
 }
 
 func TestHeads(t *testing.T) {
