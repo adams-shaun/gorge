@@ -362,3 +362,57 @@ func TestDiscardChooseModeMultiTargetCursorDoesNotStall(t *testing.T) {
 	}
 }
 
+// TestDiscardDefinedAppliesTheRememberRiders pins the Mode$ Defined arm on the
+// SHARED discard-and-remember path every other mode uses. DefinedCards$ names
+// the cards (Breathstealer's Crypt's "that player discards it"), and because
+// the arm routes through discardAndRemember it applies RememberDiscarded$ and
+// RememberDiscardingPlayers$ per card -- both the resolution's Ctx.Remembered
+// set and the source object's event-backed remembered list. Emitting
+// events.Discard directly, as the arm used to, moves the card but records
+// neither, so a chained "for each card discarded this way" reads nothing.
+func TestDiscardDefinedAppliesTheRememberRiders(t *testing.T) {
+	ah, ctx, ids := discardBoard(t, creature(t, "Frog"), creature(t, "Bird"), creature(t, "Cat"))
+	s := sa(t, "SP$ Discard | ValidTgts$ Player | Mode$ Defined | DefinedCards$ Remembered"+
+		" | RememberDiscarded$ True | RememberDiscardingPlayers$ True")
+	// The named cards are deliberately NOT the front of hand, so a front-card
+	// discard could not pass, and there are two of them, so a stale hand slice
+	// would show up as a skipped second card.
+	ctx.Remembered = []state.Target{{Obj: ids[1]}, {Obj: ids[2]}}
+	if ah.g.Zone(state.ZHand, 1)[0] != ids[0] {
+		t.Fatal("precondition: the hand's front card is not frog — the named-card assertions would not discriminate")
+	}
+
+	effDiscard(ah, ctx, s)
+
+	for _, want := range []state.ObjID{ids[1], ids[2]} {
+		if !inZone(ah.g, state.ZGraveyard, 1, want) {
+			t.Fatalf("the DefinedCards$ card %d was not discarded", want)
+		}
+	}
+	if !inZone(ah.g, state.ZHand, 1, ids[0]) {
+		t.Fatal("the un-named front card (frog) was discarded — Defined ignored DefinedCards$")
+	}
+	// RememberDiscarded$: both halves. Ctx.Remembered already held the two
+	// named cards, so the discriminating half is the event-backed one the
+	// source object carries.
+	var remembered []state.ObjID
+	for _, ev := range ah.log {
+		if ev.Kind == events.Choose && ev.Counter == "remembered" && ev.Obj == ctx.Source {
+			remembered = append(remembered, ev.IDs...)
+		}
+	}
+	if len(remembered) != 2 || remembered[0] != ids[1] || remembered[1] != ids[2] {
+		t.Fatalf("RememberDiscarded$ recorded %v, want the two discarded cards %v — the Defined arm bypassed discardAndRemember",
+			remembered, []state.ObjID{ids[1], ids[2]})
+	}
+	// RememberDiscardingPlayers$: the discarding player joins the set once.
+	seen := 0
+	for _, tg := range ctx.Remembered {
+		if tg.IsPlayer && tg.Player == 1 {
+			seen++
+		}
+	}
+	if seen != 1 {
+		t.Fatalf("RememberDiscardingPlayers$ recorded the discarder %d time(s), want exactly 1", seen)
+	}
+}

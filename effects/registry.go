@@ -711,6 +711,17 @@ type Ctx struct {
 	// Charm. Each entry is in target-bearing mode order; nil means the
 	// historical single-target-list path, including repeatable modes.
 	ModeTargets [][]state.Target
+	// CharmModeScope is the ONE mode's target group a distinct modal Charm
+	// scoped Ctx.Targets to while it dispatches that mode, plus the mode's own
+	// SA. charmDistinctTargetRun narrows Ctx.Targets per mode, but a mode that
+	// SUSPENDS on a mid-resolution ask re-enters through resumeResolution,
+	// which rebuilds Ctx.Targets from the stack object's WHOLE flat list --
+	// both modes' targets. A walking primitive then sees one acting target per
+	// mode and runs itself once per mode (a Collective Brutality discard asks
+	// twice). Engine.Ask captures this onto the pending frame and the resume
+	// re-binds it, the same shape rp.fusedTargets uses for a fused half.
+	CharmModeScope []state.Target
+	CharmModeSA    *cards.SA
 	// TargetControllerLKI captures each object target's controller at the
 	// start of resolution. A target may leave the battlefield before a
 	// chained TokenOwner$ TargetedController is evaluated; events.Apply then

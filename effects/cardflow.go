@@ -864,11 +864,18 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 					if t.IsPlayer {
 						continue
 					}
-					for _, id := range hand {
-						if id == t.Obj {
-							h.Emit(events.Discard(id, p))
-							break
-						}
+					// Re-read the hand per named card: events.remove
+					// rebuilds the zone slice, so the captured one goes
+					// stale the moment this arm discards anything, and a
+					// DefinedCards$ list naming two cards would test the
+					// second against a hand that still shows the first.
+					// The move goes through discardAndRemember so a
+					// Defined discard applies RememberDiscarded$ /
+					// RememberDiscardingPlayers$ exactly like every other
+					// mode -- emitting events.Discard directly here would
+					// silently drop both riders.
+					if containsID(zoneOf(g, state.ZHand, p), t.Obj) {
+						discardAndRemember(h, c, riders, t.Obj, p)
 					}
 				}
 				break

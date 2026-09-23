@@ -243,6 +243,16 @@ type resumePoint struct {
 	// re-execution on replay.
 	fusedTargets    []state.Target
 	fusedTargetsSet bool
+
+	// charmModeScope is the one mode's target group a distinct modal Charm
+	// had narrowed Ctx.Targets to when this ask was posed, with the mode's
+	// own SA (effects.Ctx.CharmModeScope). The resume rebuilds Ctx.Targets
+	// from the stack object's WHOLE flat list, which for a per-mode Charm is
+	// every mode's targets; re-binding the narrowed group keeps a resumed
+	// walking primitive (Discard's per-target walk) on its own mode's target
+	// instead of running once per mode. The fusedTargets shape, per mode.
+	charmModeScope []state.Target
+	charmModeSA    *cards.SA
 	// fusedSVars is the resolving fused half's own SVar table (the ALTERNATE
 	// half's when Blood is the frame), captured with fusedTargets. A fused
 	// spell keeps FaceIdx 0, so the generic resume would rebuild the FRONT
@@ -445,6 +455,8 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 		targetsUnique:           e.targetsUniqueRide(d),
 		fusedTargets:            append([]state.Target(nil), e.fusedResolving...),
 		fusedTargetsSet:         e.fusedResolvingSet,
+		charmModeScope:          e.charmModeScope(),
+		charmModeSA:             e.charmModeScopeSA(),
 		fusedSVars:              e.fusedResolvingSVars,
 		winPaidX:                e.windowPaidX,
 		timeTravelObjects:       append([]state.ObjID(nil), d.ResumeObjects...),
@@ -1620,6 +1632,20 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	// under the generic ValidTgts$ pre-ask.
 	if offeredSA := offeredTargetSA(o, svars); offeredSA != nil {
 		ctx.OfferedSA = offeredSA
+	}
+	// A per-mode Charm's mode suspended on its own mid-resolution ask. The
+	// generic bind above gave ctx.Targets the stack object's whole flat list
+	// -- every selected mode's targets -- so the resumed mode would walk all
+	// of them. Re-bind the narrowed group Ask captured, and restore the mode
+	// SA as the covered targeting so the pre-ask does not re-pose it.
+	if len(rp.charmModeScope) > 0 {
+		ctx.Targets = append([]state.Target(nil), rp.charmModeScope...)
+		ctx.CharmModeScope = ctx.Targets
+		ctx.CharmModeSA = rp.charmModeSA
+		if rp.charmModeSA != nil {
+			ctx.OfferedSA = rp.charmModeSA
+			ctx.TargetsOffered = true
+		}
 	}
 	// A fused half's own mid-resolution ask re-enters here. The generic ctx
 	// above binds Targets from the stack object's WHOLE flat target list, and
@@ -3622,4 +3648,21 @@ func (e *Engine) bindLoopFrames(remembered []state.Target) {
 			e.contChain[i].bound, e.contChain[i].remembered = true, snap
 		}
 	}
+}
+
+// charmModeScope and charmModeScopeSA read the per-mode Charm narrowing off
+// the live resolution Ctx at ask time (effects.Ctx.CharmModeScope). Nil
+// whenever the resolution is not inside a distinct modal Charm's mode.
+func (e *Engine) charmModeScope() []state.Target {
+	if e.resolutionCtx == nil {
+		return nil
+	}
+	return append([]state.Target(nil), e.resolutionCtx.CharmModeScope...)
+}
+
+func (e *Engine) charmModeScopeSA() *cards.SA {
+	if e.resolutionCtx == nil {
+		return nil
+	}
+	return e.resolutionCtx.CharmModeSA
 }
