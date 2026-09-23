@@ -19,9 +19,12 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	// 71 = the merged table's measured data rows: main's 72 closures less the
-	// limited-look / spectator-search row this branch deletes.
-	knownApproximationRows = 71
+	// 69 = the merged table's measured data rows: the base table held 72, and
+	// the union of deletions removed three -- this branch's DigUntil Aura bearer
+	// choice deleted the (diguntil1) row, main's limited-look / spectator-search
+	// closure deleted one row, and main's CR 601.2c cast-offer-census closure
+	// deleted another.
+	knownApproximationRows = 69
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.

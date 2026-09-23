@@ -1152,6 +1152,12 @@ type Ctx struct {
 	// discipline), so a nested DigUntil cannot inherit the outer answer.
 	DigUntilMove     string
 	DigUntilMoveDone bool
+	// DigUntilAuraBearer is the selected bearer for a non-cast Aura entering
+	// from DigUntil. DigUntilAuraDone distinguishes an answered bearer choice
+	// from the first pass; both are consumed at the top of the effect so a
+	// nested DigUntil cannot inherit the outer answer.
+	DigUntilAuraBearer state.ObjID
+	DigUntilAuraDone   bool
 	// Clone is the answered DB$ Clone Optional$ True may-copy election
 	// (ticket api-clone-trigger-copy; Sarkhan Soul Aflame's "you may have
 	// Sarkhan, Soul Aflame become a copy of it"): "yes" performs the copy,
