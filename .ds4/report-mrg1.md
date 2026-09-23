@@ -65,3 +65,14 @@ Commands and results:
 - `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'` — `ok github.com/adams-shaun/gorge/rules 0.855s`.
 
 Uncertainty: none. Main's three independent row deletions plus this branch's one deletion account for the combined count of 83.
+
+## Post-merge gate runs (measured, this round)
+
+- `go test ./internal/testutil/ -run 'TestKnownApproximations'` — `ok github.com/adams-shaun/gorge/internal/testutil 0.001s`, exit 0.
+- `go test ./effects/ -run 'TestCharmModeLoopStopsAtAMidModeSuspension|TestCountCompare'` — `ok github.com/adams-shaun/gorge/effects 0.006s`, exit 0 (the branch's pinned Charm suspension test still passes against main's merged code).
+- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'` — `ok github.com/adams-shaun/gorge/rules 0.799s`, exit 0. `.cards` symlink verified present (→ /home/sadams/projects/gorge/.cards), so this is not a vacuous skip.
+- `go test ./internal/archtest/` — `ok ... 4.383s`, exit 0.
+- `go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/` — `ok ... 1.169s`, exit 0 (pinned split unmoved).
+- Merge commit: `f7f8a412 Merge branch 'main' into wt/cli-20260922T225138Z-a850f8be`; working tree clean after it.
+
+No heads_test or golden edit was made. No uncertainty remains.
