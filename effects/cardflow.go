@@ -1832,8 +1832,8 @@ func digUntilParamValue(sa *cards.SA, key string) string {
 }
 
 // auraEntryBearer resolves a non-cast battlefield entry's Aura bearer: the
-// first permanent in the entering controller's battlefield zone order that
-// satisfies the face's Enchant keyword spec (or any permanent when the face
+// first permanent in seat order, then battlefield order, that satisfies the
+// face's Enchant keyword spec (or any permanent when the face
 // carries no Enchant keyword — nothing in the corpus prints one, the same
 // convention rules/attach.go's auraStillMatchesEnchant uses). aura is false
 // when the face is not an Aura (no attach needed); aura && bearer == 0
@@ -1869,12 +1869,14 @@ func auraEntryBearers(g *state.Game, id state.ObjID, p state.PlayerID) ([]state.
 	}
 	spec = strings.TrimSpace(spec)
 	var bearers []state.ObjID
-	for _, bid := range g.Zone(state.ZBattlefield, p) {
-		if bid == id {
-			continue
-		}
-		if MatchesSpecFrom(g, spec, bid, p, id) {
-			bearers = append(bearers, bid)
+	for seat := range g.Players {
+		for _, bid := range g.Zone(state.ZBattlefield, state.PlayerID(seat)) {
+			if bid == id {
+				continue
+			}
+			if MatchesSpecFrom(g, spec, bid, p, id) {
+				bearers = append(bearers, bid)
+			}
 		}
 	}
 	return bearers, true
