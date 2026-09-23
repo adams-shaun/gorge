@@ -1087,6 +1087,10 @@ func (s *scan) bucketOf(t *testing.T, fset *token.FileSet, pos token.Pos, base, 
 // each entry is "pkg:func:param" with its justification. Anything not listed
 // here AND not called with a `.Params`/alias argument fails the rot guard.
 var stringMapParams = map[string]string{
+	// ETB choice option builders receive the source ability's selector map;
+	// the map is forwarded to type-choice enumeration, not consumed as card
+	// Params by the census.
+	"rules:Engine.typeChoiceOptions:params": "ETB type-choice selector map, not a card Params map",
 	// effects/misc.go parseStaticLine: svars is the face's SVars table (a
 	// cards.SA's SVar: bodies), read by NAME to fetch a static line -- not a
 	// card Params map.
