@@ -373,8 +373,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 			sa.Params["ValidTgts"] == ""
 		if !originAll && !zoneIn(originZones, state.ZBattlefield) &&
 			(altPresent || len(originZones) == 1 || noObjectSelector) &&
-			(zoneIn(originZones, state.ZLibrary) || zoneIn(originZones, state.ZSideboard) ||
-				(noObjectSelector && len(originZones) > 1)) {
+			(zoneIn(originZones, state.ZLibrary) || zoneIn(originZones, state.ZSideboard)) {
 			// Forge treats a Defined$ that resolves to objects in a hidden
 			// library as the already-selected fetch list, not as the owner of a
 			// fresh whole-library search. This is structural rather than keyed to
@@ -3458,7 +3457,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 	// reach a schedule call placed after it -- the moved cards and their
 	// registrations are already game state by then.
 	scheduleAtEOT(h, c, sa, moved)
-	if zoneIn(zones, state.ZLibrary) && searchShuffleTail(h, c, sa, owner, moved, to) {
+	if searchShuffleTail(h, c, sa, owner, moved, to) {
 		return true // the may-shuffle confirm suspended the resolution
 	}
 	return false
