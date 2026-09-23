@@ -370,6 +370,52 @@ func (e *Engine) checkGrantedTrainingTriggers(observer *Engine, id state.ObjID, 
 	}
 }
 
+// checkGrantedMentorTriggers synthesizes Mentor's ordinary attack trigger
+// (CR 702.134) for a creature that currently HAS the keyword but does not
+// print it: a layer-6 grant (Aegis of the Legion's "Equipped creature ...
+// has mentor", Nyxborn Unicorn's Bestow aura) gives the creature the same
+// rules text as a printed keyword, and the printed K:Mentor expansion
+// (cards/kw_mentor.go) only covers printed lines. The synthesized trigger
+// reuses the printed shape exactly (Mode$ Attacks, ValidCard$ Card.Self, the
+// targeted P1P1 PutCounter body carrying the Mentor$ marker), so it is
+// byte-identical to the printed path: the target offer/recheck restriction
+// is read by rules' mentorAdmits either way. It skips the object entirely
+// when its printed face already carries Mentor, so a creature printing the
+// keyword and also granted it fires once (the Dethrone dedup). Read-only
+// derived characteristics; granting stays in the continuous-effect system.
+// Like the Afflict/Conspire/Training walks it runs on BOTH the early-return
+// and the live printed-trigger paths, so a granted creature with its own
+// triggers still mentors.
+func (e *Engine) checkGrantedMentorTriggers(observer *Engine, id state.ObjID, o *state.Object, f *cards.Face, ev events.Event, objLKI *state.Object) {
+	// The synthesized trigger is Attacks + ValidCard$ Card.Self, so only an
+	// object this declaration names as an attacker can match it. Apply that
+	// gate before deriving characteristics for every object in every zone.
+	if ev.Kind != events.DeclareAttackers || !slices.Contains(ev.IDs, id) {
+		return
+	}
+	if !e.HasKeyword(id, "Mentor") || f.HasKeyword("Mentor") {
+		return
+	}
+	t := cards.Trigger{Mode: "Attacks", Params: map[string]string{
+		"Mode": "Attacks", "ValidCard": "Card.Self",
+	}, Effect: &cards.SA{Kind: "DB", API: "PutCounter", Params: map[string]string{
+		"ValidTgts": "Creature.attacking", "TgtPrompt": "Select target attacking creature with lesser power",
+		"Mentor": "True", "CounterType": "P1P1", "CounterNum": "1",
+	}}}
+	if observer.triggerMatches(t, id, ev, objLKI) {
+		key := triggerKey{Source: id, Idx: -1}
+		if e.triggerFireCount == nil {
+			e.triggerFireCount = map[triggerKey]int32{}
+		}
+		if e.triggerFireCount[key] < maxTriggerFires {
+			e.triggerFireCount[key]++
+			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{Source: id, Controller: o.Controller, Idx: -1, SA: t.Effect,
+				Ctx: effects.Ctx{Source: id, Controller: o.Controller, Remembered: triggerRemembered(ev, id), LKI: objLKI,
+					TriggerContext: observer.triggerReferents(t, id, ev, objLKI)}})
+		}
+	}
+}
+
 // checkGrantedAfflictTriggers synthesizes Afflict's become-blocked trigger
 // (CR 702.130) for a creature that currently HAS the keyword but does not
 // print it: a keyword granted in layer 6 (Lost Monarch of Ifnir's
