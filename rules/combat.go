@@ -1203,11 +1203,9 @@ func (e *Engine) admissiblePair(scope *blockPairScope, defender state.PlayerID, 
 // blocker to the attacker it should block; unassignable requirements are
 // omitted, as CR 509.1c requires obeying the maximum possible number. The
 // matching runs over the same admissible pairs the offer builds (see
-// admissiblePair), not over canBlock alone: a requirement whose only pair is
-// suppressed by the offer -- an impossible Min$ bound or an unaffordable
-// block price -- contributes nothing to the maximum, or a declaration
-// satisfying every offered requirement would be rejected for a block nobody
-// could have made.
+// admissiblePair), not over canBlock alone. When pairs are priced, the maximum
+// is also bounded by the defender's WHOLE declaration budget: individually
+// affordable pairs cannot all be required if their combined price is not.
 func (e *Engine) mustBlockAssignments(defender state.PlayerID) map[state.ObjID]state.ObjID {
 	return e.mustBlockAssignmentsIn(e.blockPairScopeFor(defender), defender)
 }
@@ -1243,26 +1241,88 @@ func (e *Engine) mustBlockAssignmentsIn(scope blockPairScope, defender state.Pla
 			required = append(required, id)
 		}
 	}
-	assignment := make(map[state.ObjID]state.ObjID)
-	owner := make(map[state.ObjID]state.ObjID)
-	var visit func(state.ObjID, map[state.ObjID]bool) bool
-	visit = func(blocker state.ObjID, seen map[state.ObjID]bool) bool {
-		for _, attacker := range scope.attackers {
-			if seen[attacker] || !e.admissiblePair(&scope, defender, blocker, attacker) {
-				continue
-			}
-			seen[attacker] = true
-			previous := owner[attacker]
-			if previous == 0 || visit(previous, seen) {
-				assignment[blocker] = attacker
-				owner[attacker] = blocker
-				return true
+	return e.budgetedBlockMatching(&scope, defender, required)
+}
+
+// budgetedBlockMatching computes a minimum-price matching at each cardinality.
+// Each augmenting path may reassign previous blockers via reverse edges: simply
+// stopping an ordinary maximum matching when its running price exceeds the
+// budget could miss a cheaper assignment of the same size. All edge and path
+// scans are slice-ordered; ties never depend on map iteration.
+func (e *Engine) budgetedBlockMatching(scope *blockPairScope, defender state.PlayerID, required []state.ObjID) map[state.ObjID]state.ObjID {
+	type edge struct{ to, rev, cap, cost int }
+	nb, na := len(required), len(scope.attackers)
+	source, sink := 0, 1+nb+na
+	graph := make([][]edge, sink+1)
+	add := func(from, to, cost int) {
+		graph[from] = append(graph[from], edge{to: to, rev: len(graph[to]), cap: 1, cost: cost})
+		graph[to] = append(graph[to], edge{to: from, rev: len(graph[from]) - 1, cost: -cost})
+	}
+	for i, blocker := range required {
+		add(source, 1+i, 0)
+		for j, attacker := range scope.attackers {
+			if e.admissiblePair(scope, defender, blocker, attacker) {
+				add(1+i, 1+nb+j, int(e.blockPairCharge(blocker, attacker)))
 			}
 		}
-		return false
 	}
-	for _, blocker := range required {
-		visit(blocker, make(map[state.ObjID]bool))
+	for j := range scope.attackers {
+		add(1+nb+j, sink, 0)
+	}
+	// Bellman-Ford handles the negative reverse edges in the residual graph.
+	// A shortest augmenting path produces the least expensive matching at the
+	// next cardinality, so the first unaffordable path is the maximum count.
+	budget := int64(e.blockManaBudget(defender))
+	spent := int64(0)
+	for {
+		const infinity = int64(^uint64(0) >> 2)
+		dist := make([]int64, len(graph))
+		prevNode := make([]int, len(graph))
+		prevEdge := make([]int, len(graph))
+		for i := range dist {
+			dist[i] = infinity
+			prevNode[i] = -1
+		}
+		dist[source] = 0
+		for pass := 0; pass < len(graph)-1; pass++ {
+			changed := false
+			for from := range graph {
+				if dist[from] == infinity {
+					continue
+				}
+				for k, arc := range graph[from] {
+					if arc.cap == 0 || dist[from]+int64(arc.cost) >= dist[arc.to] {
+						continue
+					}
+					dist[arc.to] = dist[from] + int64(arc.cost)
+					prevNode[arc.to], prevEdge[arc.to] = from, k
+					changed = true
+				}
+			}
+			if !changed {
+				break
+			}
+		}
+		if prevNode[sink] < 0 || spent+dist[sink] > budget {
+			break
+		}
+		spent += dist[sink]
+		for node := sink; node != source; {
+			from, k := prevNode[node], prevEdge[node]
+			arc := &graph[from][k]
+			arc.cap--
+			graph[node][arc.rev].cap++
+			node = from
+		}
+	}
+	assignment := make(map[state.ObjID]state.ObjID)
+	for i, blocker := range required {
+		for _, arc := range graph[1+i] {
+			if arc.to > nb && arc.to < sink && arc.cap == 0 {
+				assignment[blocker] = scope.attackers[arc.to-1-nb]
+				break
+			}
+		}
 	}
 	return assignment
 }
