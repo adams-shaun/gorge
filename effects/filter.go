@@ -2981,9 +2981,46 @@ func matchPredicate(g *state.Game, p string, o *state.Object, sc SpecContext) (r
 // available; this fallback remains deliberately useful to effects, which sits
 // below rules and cannot import the layer engine.
 func hasType(o *state.Object, t string) bool {
+	d, f := hasTypePrinted(o, t)
+	if d != typeUndecided {
+		return d == typeYes
+	}
+	// Intrinsic type-defining abilities, answered in every zone (CR 613.4a):
+	// Changeling's keyword and the characteristic-defining
+	// AddAllCreatureTypes$ True static (Mistform Ultimus). Both go through
+	// the positive subtype vocabulary, so a non-creature word (Arcane,
+	// Alara, Ajani) can never leak, and neither materialises subtypes into
+	// the derived type list.
+	return (f.HasKeyword("Changeling") || f.AllCreatureTypesCDA()) && changelingType(t)
+}
+
+// hasTypeSub is hasType with changelingType(t) supplied precomputed as sub
+// (the compiled filter form classifies its type words once). Every function
+// involved is pure, so reading sub first only skips the keyword probe for a
+// word no Changeling can grant.
+func hasTypeSub(o *state.Object, t string, sub bool) bool {
+	d, f := hasTypePrinted(o, t)
+	if d != typeUndecided {
+		return d == typeYes
+	}
+	return sub && (f.HasKeyword("Changeling") || f.AllCreatureTypesCDA())
+}
+
+type typeDecision uint8
+
+const (
+	typeUndecided typeDecision = iota
+	typeYes
+	typeNo
+)
+
+// hasTypePrinted is hasType up to (not including) its intrinsic-CDA tail:
+// the bestow/reconfigure switches and the printed type line. Undecided means
+// the answer is the CDA tail's, read off the returned face.
+func hasTypePrinted(o *state.Object, t string) (typeDecision, *cards.Face) {
 	f := o.Face()
 	if f == nil {
-		return false
+		return typeNo, nil
 	}
 	// CR 702.114e: a bestowed card attached to a creature is an Aura, not a
 	// creature, in every filter read (Count$Valid, target offer, cost
@@ -2999,10 +3036,10 @@ func hasType(o *state.Object, t string) bool {
 	// from firing "whenever you cast a creature spell" triggers.
 	if o.BestowedAttached() || o.BestowedAuraSpell() {
 		if strings.EqualFold(t, "Aura") {
-			return true
+			return typeYes, f
 		}
 		if strings.EqualFold(t, "Creature") {
-			return false
+			return typeNo, f
 		}
 	}
 	// CR 702.150c: a Reconfigure card attached to a creature is not a
@@ -3012,21 +3049,15 @@ func hasType(o *state.Object, t string) bool {
 	// printed face's own types and the attached form keeps them.
 	if o.ReconfiguredAttached() && !(o.FaceDown && o.Zone == state.ZBattlefield) {
 		if strings.EqualFold(t, "Creature") {
-			return false
+			return typeNo, f
 		}
 	}
 	for _, x := range f.Types {
 		if strings.EqualFold(x, t) {
-			return true
+			return typeYes, f
 		}
 	}
-	// Intrinsic type-defining abilities, answered in every zone (CR 613.4a):
-	// Changeling's keyword and the characteristic-defining
-	// AddAllCreatureTypes$ True static (Mistform Ultimus). Both go through
-	// the positive subtype vocabulary, so a non-creature word (Arcane,
-	// Alara, Ajani) can never leak, and neither materialises subtypes into
-	// the derived type list.
-	return (f.HasKeyword("Changeling") || f.AllCreatureTypesCDA()) && changelingType(t)
+	return typeUndecided, f
 }
 
 // typePredicate handles the legacy predicate-map entries whose meaning is a
@@ -3113,6 +3144,36 @@ func hasTypeCtx(o *state.Object, t string, sc SpecContext) bool {
 	}
 	// No derived entry: the printed face plus intrinsic CDAs, as before.
 	return hasType(o, t)
+}
+
+// hasTypeCtxSub is hasTypeCtx with changelingType(t) precomputed as sub: the
+// same reads in the same order, the intrinsic-CDA tails taking sub.
+func hasTypeCtxSub(o *state.Object, t string, sub bool, sc *SpecContext) bool {
+	for _, x := range sc.ExtraTypes {
+		if strings.EqualFold(x, t) {
+			return true
+		}
+	}
+	if sc.ExtraTypes != nil {
+		return hasTypeSub(o, t, sub)
+	}
+	for _, d := range sc.DerivedTypes {
+		if d.ID != o.ID {
+			continue
+		}
+		// derivedTypesFor's first entry for o is authoritative.
+		for _, x := range d.Types {
+			if strings.EqualFold(x, t) {
+				return true
+			}
+		}
+		if !sub {
+			return false
+		}
+		f := o.Face()
+		return f != nil && (f.HasKeyword("Changeling") || f.AllCreatureTypesCDA())
+	}
+	return hasTypeSub(o, t, sub)
 }
 
 // changelingType reports whether t is an actual creature subtype. This uses
@@ -3728,6 +3789,13 @@ func triggeredSpellTargetSA(spell *state.Object) *cards.SA {
 // that has left the stack (CR 707.10h: a copy that changes zones ceases to
 // exist) never matches anything regardless of spec.
 func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContext) bool {
+	return matchesObjectPtr(g, spec, o, &sc)
+}
+
+// matchesObjectPtr is MatchesObjectCtx with the context passed by pointer:
+// SpecContext is large, and the per-object hot path must not copy it at
+// every call level.
+func matchesObjectPtr(g *state.Game, spec string, o *state.Object, sc *SpecContext) bool {
 	if o == nil {
 		return false
 	}
@@ -3737,15 +3805,15 @@ func MatchesObjectCtx(g *state.Game, spec string, o *state.Object, sc SpecContex
 	// Goblin type test would silently miss the derived characteristic. The same
 	// discipline the layer walk keeps for ExtraTypes (rules/layers.go), scoped
 	// here to the one object that actually carries a change.
-	if ps := sc.PredicatePrograms; ps != nil && !hasEffectiveName(o, sc) && !hasDerivedTypeEntry(o, sc) {
-		switch ps.Evaluate(spec, g, o, sc) {
+	if ps := sc.PredicatePrograms; ps != nil && !hasEffectiveName(o, *sc) && !hasDerivedTypeEntry(o, *sc) {
+		switch ps.evaluate(spec, g, o, sc) {
 		case PredicateYes:
 			return true
 		case PredicateNo:
 			return false
 		}
 	}
-	return matchesObjectText(g, spec, o, sc)
+	return compiledMatch(compiledSpecFor(spec), g, o, sc)
 }
 
 // matchesObjectText is the original textual filter evaluator. It remains the
@@ -3857,7 +3925,7 @@ func MatchesSpecCtx(g *state.Game, spec string, id state.ObjID, sc SpecContext) 
 	if o == nil {
 		return false
 	}
-	return MatchesObjectCtx(g, spec, o, sc)
+	return matchesObjectPtr(g, spec, o, &sc)
 }
 
 // matchesZoneSpecCtx matches a filter over a known zone. Forge's Permanent
@@ -3884,8 +3952,15 @@ func matchesZoneSpecCtx(g *state.Game, spec string, id state.ObjID, sc SpecConte
 		return false
 	}
 	if zone == state.ZBattlefield {
-		return MatchesObjectCtx(g, spec, o, sc)
+		return matchesObjectPtr(g, spec, o, &sc)
 	}
+	return compiledMatchZone(compiledSpecFor(spec), g, o, &sc, zone)
+}
+
+// matchesZoneSpecText is matchesZoneSpecCtx's textual oracle for a
+// non-battlefield zone (the IsCopy rejection already applied): the reference
+// the compiled matchZone is held equal to.
+func matchesZoneSpecText(g *state.Game, spec string, o *state.Object, sc SpecContext, zone state.Zone) bool {
 	// filterAlternatives, not a raw comma split: a Count$Valid<Zone>
 	// Card.named<Name> argument may carry its printed comma.
 	for alt := range filterAlternatives(spec) {
