@@ -61,11 +61,41 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 	cloneAns := c.Clone
 	cloneDone := c.CloneDone
 	c.Clone, c.CloneDone = "", false
+	if c.CloneETB {
+		// The ETB election is answered before the move. A decline is a real
+		// answer, not the deterministic Choices$ fallback.
+		if !c.CloneChoiceValid {
+			// No recorded election: a non-cast entry (reanimation, blink,
+			// ChangeZone) of any carrier, or a cast whose body the ETB
+			// whitelist declined (an out-of-scope rider -- Vesuva's
+			// IntoPlayTapped$, Cursed Mirror's Duration$). Those paths keep
+			// the loud unimplemented-API fallback they had before the ETB
+			// route existed -- the copy is never silently dropped (the
+			// etbclone1 scope boundary).
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "unimplemented API " + sa.API})
+			return
+		}
+		if c.CloneChoice == 0 {
+			return
+		}
+		// The election was made while the spell was announced, but a player
+		// may respond before it resolves. Recheck both battlefield presence
+		// and the body selector now: the chosen creature may have left, or
+		// changed controller and no longer satisfy Choices$ Creature.OppCtrl.
+		// An invalidated optional template means the entering object simply
+		// enters as itself, never as a copy of an object from a former zone.
+		if !cloneETBTemplateLegal(g, c, sa) {
+			return
+		}
+	}
 
 	// Copy SOURCE.
 	var source []state.Target
 	spec := strings.TrimSpace(sa.Params["Defined"])
 	switch {
+	case c.CloneETB:
+		source = []state.Target{{Obj: c.CloneChoice}}
 	case spec != "":
 		ts, ok := knownDefinedTargets(h, c, spec)
 		if !ok {
@@ -160,7 +190,7 @@ func effClone(h Host, c *Ctx, sa *cards.SA) {
 	// keeps the deterministic take stand-in the pre-election build shipped,
 	// byte-identical (the same convention the optional-discard family
 	// records) -- a "may" that cannot ask never wedges.
-	if strings.EqualFold(strings.TrimSpace(sa.Params["Optional"]), "True") {
+	if !c.CloneETB && strings.EqualFold(strings.TrimSpace(sa.Params["Optional"]), "True") {
 		if !cloneDone {
 			prompt := "You may have a permanent become a copy?"
 			if ob := g.Obj(pairs[0].become.Obj); ob != nil && ob.Face() != nil {
@@ -361,6 +391,9 @@ func cloneParamValue(sa *cards.SA, key string) string {
 // ability's own source object) -- "this permanent becomes a copy". The
 // named forms reuse the same Defined$ referent grammar the source half uses.
 func cloneBecome(h Host, c *Ctx, sa *cards.SA) ([]state.Target, bool) {
+	if c.CloneBecomeValid {
+		return []state.Target{{Obj: c.CloneBecome}}, true
+	}
 	spec := strings.TrimSpace(sa.Params["CloneTarget"])
 	if spec == "" {
 		if c.Source == 0 {
@@ -378,6 +411,35 @@ func cloneBecome(h Host, c *Ctx, sa *cards.SA) ([]state.Target, bool) {
 		return battlefieldValidTargets(h, c, strings.TrimSpace(rest)), true
 	}
 	return knownDefinedTargets(h, c, spec)
+}
+
+// cloneETBTemplateLegal revalidates the recorded ETB-copy template at
+// replacement resolution. ETB choices are announced before the spell moves to
+// the stack, so the cast-time option list is not sufficient: priority can
+// remove the chosen object or change its controller before this replacement
+// applies. Its selector normalization and MatchSpecFrom arguments deliberately
+// mirror rules' etbOptions copy arm, keeping eligibility in the same filter
+// grammar at announcement and resolution.
+//
+// Both sites match through MatchesSpecFrom, which has NO SVar resolver, so a
+// selector carrying a resolver-dependent predicate (Mockingbird's cmcLEY)
+// would answer "never matches" here as well as at announcement. That is not
+// papered over: rules' etbCloneWhitelist refuses such a body outright
+// (SpecNeedsResolver), so no election is ever recorded for one and this
+// revalidation only ever sees selectors the no-resolver matcher can decide.
+func cloneETBTemplateLegal(g *state.Game, c *Ctx, sa *cards.SA) bool {
+	o := g.Obj(c.CloneChoice)
+	if o == nil || o.Zone != state.ZBattlefield || o.Face() == nil {
+		return false
+	}
+	spec := strings.TrimSpace(sa.Params["Choices"])
+	if spec == "" {
+		spec = "Creature.Other"
+	}
+	if !strings.Contains(spec, ".") && !strings.HasPrefix(spec, "Card") {
+		spec = "Card." + spec
+	}
+	return MatchesSpecFrom(g, spec, c.CloneChoice, c.Controller, c.Source)
 }
 
 // cloneChoiceSource resolves a Choices$ <filter> pick to the first eligible

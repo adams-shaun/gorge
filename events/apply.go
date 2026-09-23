@@ -290,12 +290,12 @@ func Apply(g *state.Game, e Event) {
 		}
 
 	case TokenAttacks:
-		// A token that entered tapped and attacking (Mobilize, Kari Zev's
-		// monkey: the TokenAttacking$ True rider). Unlike MyriadCopy -- which
-		// MINTS a copy of the source card and flags IsMyriad, which
-		// MyriadCleanup exiles at end of combat -- this marks an
-		// ALREADY-MINTED battlefield token: Obj is the token, Player its
-		// controller and IDs[0] the defender it attacks. The object must
+		// A permanent that entered tapped and attacking (TokenAttacking$ or a
+		// move body's Attacking$ True rider). Unlike MyriadCopy -- which MINTS
+		// a copy of the source card and flags IsMyriad, which MyriadCleanup
+		// exiles at end of combat -- this marks an ALREADY-EXISTING battlefield
+		// object: Obj is the permanent, Player its controller and IDs[0] the
+		// defender it attacks. The object must
 		// still be on the battlefield and both players valid; anything else
 		// (a gone token, a fuzz event) is a no-op.
 		if o := g.Obj(e.Obj); o != nil && o.Zone == state.ZBattlefield &&
@@ -692,6 +692,7 @@ func Apply(g *state.Game, e Event) {
 		o := g.AddObject(nil, e.Player)
 		Move(g, o.ID, state.ZLibrary, state.ZStack)
 		o.Ability = sa
+		o.StackKind, o.StackKindKnown = state.StackKindTriggered, true
 		// The emblem is not an object, so there is no Source to carry: the
 		// hand-built bodies read only their controller (Defined$ You /
 		// Opponent) and the live Ring-bearer designation
@@ -757,6 +758,10 @@ func Apply(g *state.Game, e Event) {
 		}
 		Move(g, e.Obj, e.From, e.To)
 		if o := g.Obj(e.Obj); o != nil {
+			if e.To == state.ZStack && o.Face() != nil {
+				o.StackKind, o.StackKindKnown = state.StackKindSpell, true
+			}
+
 			if e.To == state.ZExile {
 				switch e.Counter {
 				case "exiled_with_face_down", "exiled_with_face_down_foretold":
@@ -1478,6 +1483,7 @@ func Apply(g *state.Game, e Event) {
 		} else {
 			o.Ability = f.Triggers[e.Amount].Effect
 		}
+		o.StackKind, o.StackKindKnown = state.StackKindTriggered, true
 		o.Source = e.Obj
 		// FL-41: an id in IDs is either a real object (the ordinary case)
 		// or a player reference (state.PlayerRef, rules.pushTrigger) --
@@ -1683,6 +1689,12 @@ func Apply(g *state.Game, e Event) {
 				o.UntapChoice = e.Text
 			case "unleash":
 				o.UnleashChoice = e.Text
+			case "clone":
+				o.ETBCloneChoiceValid = true
+				o.ETBCloneChoice = 0
+				if len(e.IDs) > 0 {
+					o.ETBCloneChoice = e.IDs[0]
+				}
 			case state.ModeChoiceCounterPrefix + state.ModeScopeThisTurn:
 				// ChoiceRestriction$ (task charm-choice-restriction): one Charm
 				// mode pick, named in Text, keyed ThisTurn. The entry is pruned
@@ -2065,6 +2077,7 @@ func Apply(g *state.Game, e Event) {
 		o := g.AddObject(nil, e.Player)
 		Move(g, o.ID, state.ZLibrary, state.ZStack)
 		o.Ability = sa
+		o.StackKind, o.StackKindKnown = state.StackKindTriggered, true
 		o.Source = e.Obj
 		o.SourceIncarnation = incarnation
 		if conspire || demonstrate || flanking {
@@ -2089,6 +2102,7 @@ func Apply(g *state.Game, e Event) {
 		// is the engine's one mutation path, so it does not get to rely on
 		// that happening to remain true.
 		card, faceIdx, ability, source := src.Card, src.FaceIdx, src.Ability, src.Source
+		stackKind, stackKindKnown := src.StackKind, src.StackKindKnown
 		// A copy of a HAS-ALL-ABILITIES-OF wrapper keeps the minted foreign-face
 		// provenance (r3): the copy resolves the same compiled SA, so it reads
 		// the same owning face.
@@ -2107,6 +2121,9 @@ func Apply(g *state.Game, e Event) {
 		// the stack.
 		targets := append([]state.Target(nil), src.Targets...)
 		remembered := append([]state.Target(nil), src.Remembered...)
+		// Mode announcements are copiable characteristics (CR 707.10): a
+		// modal copy must resolve the same chosen modes, not ask for new ones.
+		chosenModes := append([]string(nil), src.ChosenModes...)
 		// A DefinedTarget$ copy names its own targets (the StackCopy doc): the
 		// event's IDs replace the inherited list with object targets. The
 		// ids are not re-validated here beyond existence -- the copy's own CR
@@ -2124,9 +2141,11 @@ func Apply(g *state.Game, e Event) {
 		o := g.AddObject(card, e.Player)
 		Move(g, o.ID, state.ZLibrary, state.ZStack)
 		o.FaceIdx, o.Ability, o.Source = faceIdx, ability, source
+		o.StackKind, o.StackKindKnown = stackKind, stackKindKnown
 		o.GainedFace = gainedFace
 		o.Targets = targets
 		o.Remembered = remembered
+		o.ChosenModes = chosenModes
 		o.X, o.CastFlags, o.IsCopy = x, castFlags, true
 		// CR 707.10c: Amount is the creating CopySpellAbility's
 		// MayChooseTarget$ discriminator (1 = true). It rides the event so the
@@ -2198,6 +2217,7 @@ func Apply(g *state.Game, e Event) {
 		o := g.AddObject(nil, e.Player)
 		Move(g, o.ID, state.ZLibrary, state.ZStack)
 		o.Ability = pa.SA
+		o.StackKind, o.StackKindKnown = state.StackKindActivated, true
 		o.Source = e.Obj
 		// Same PlayerRef decode as TriggerPush above (FL-41): an activated
 		// ability can remember a player the same way a trigger can, so the
@@ -2360,6 +2380,7 @@ func Apply(g *state.Game, e Event) {
 		o := g.AddObject(nil, e.Player)
 		Move(g, o.ID, state.ZLibrary, state.ZStack)
 		o.Ability = sa
+		o.StackKind, o.StackKindKnown = state.StackKindTriggered, true
 		o.Source = e.Obj
 		if registration != nil && registration.TrackSource {
 			o.SourceIncarnation = incarnation
@@ -2410,6 +2431,7 @@ func Apply(g *state.Game, e Event) {
 		o := g.AddObject(nil, e.Player)
 		Move(g, o.ID, state.ZLibrary, state.ZStack)
 		o.Ability = sa
+		o.StackKind, o.StackKindKnown = state.StackKindTriggered, true
 		o.Source = e.Obj
 		o.Remembered = rememberedFrom(e.IDs)
 
@@ -2457,6 +2479,7 @@ func Apply(g *state.Game, e Event) {
 		o := g.AddObject(nil, e.Player)
 		Move(g, o.ID, state.ZLibrary, state.ZStack)
 		o.Ability = sa
+		o.StackKind, o.StackKindKnown = state.StackKindTriggered, true
 		o.Source = e.Obj
 		o.Remembered = rememberedFrom(e.IDs)
 
@@ -2494,6 +2517,7 @@ func Apply(g *state.Game, e Event) {
 		o := g.AddObject(nil, e.Player)
 		Move(g, o.ID, state.ZLibrary, state.ZStack)
 		o.Ability = sa
+		o.StackKind, o.StackKindKnown = state.StackKindActivated, true
 		o.Source = e.Obj
 
 	case GainedAbilityPush:
@@ -2533,6 +2557,7 @@ func Apply(g *state.Game, e Event) {
 		o := g.AddObject(nil, e.Player)
 		Move(g, o.ID, state.ZLibrary, state.ZStack)
 		o.Ability = sa
+		o.StackKind, o.StackKindKnown = state.StackKindActivated, true
 		o.Source = e.Obj
 		// The wrapper carries its foreign-face provenance on itself (r3):
 		// the granting static can END between this push and the resolution --
@@ -2585,6 +2610,7 @@ func Apply(g *state.Game, e Event) {
 		o := g.AddObject(nil, e.Player)
 		Move(g, o.ID, state.ZLibrary, state.ZStack)
 		o.Ability = sa
+		o.StackKind, o.StackKindKnown = state.StackKindTriggered, true
 		o.Source = e.Obj
 		// The same foreign-face provenance the GainedAbilityPush mint stamps
 		// (r3): the foreign face's own SVar table, OptionalDecider$ gate,
@@ -2862,6 +2888,19 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 	if to != state.ZBattlefield && to != state.ZStack {
 		o.Controller = o.Owner
 	}
+	// The stamped stack kind (state.StackKindKnown) is a property of STACK
+	// MEMBERSHIP, not of the card: every mint stamps it when its event mints
+	// the stack object (MoveZone's Spell entry, TriggerPush/AbilityPush and
+	// their siblings), so an ability object keeps its kind after its source
+	// has left (CR 113.7a) -- and leaving the stack (a CR 733.1 reversal's
+	// MoveZone, a resolution, a counter) un-stamps it, so the restored object
+	// is byte-identical with its pre-push state and the legacy re-derivation
+	// in state.StackKindOf applies again. Inside the fold for the same reason
+	// the Controller reset above is: no rules/ or effects/ caller can mint a
+	// leaving-the-stack move that skips it.
+	if wasStack && to != state.ZStack {
+		o.StackKind, o.StackKindKnown = state.StackKindSpell, false
+	}
 	// A zone change is the single source of zone-entry provenance. Capture
 	// the actual old zone (not Event.From, which Move deliberately treats as
 	// advisory) so replay and a live game derive identical ThisTurnEntered*
@@ -3065,6 +3104,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.CompleatedLifePaid = 0
 			o.NotedNumber = 0
 			o.ChosenName, o.ChosenType, o.ChosenNumber, o.ChosenColor = "", "", 0, ""
+			o.ETBCloneChoice, o.ETBCloneChoiceValid = 0, false
 			o.Protector, o.ProtectorValid = 0, false
 			o.LastNotedMana = ""
 			o.Chosen = nil

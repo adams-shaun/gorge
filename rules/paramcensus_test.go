@@ -154,7 +154,7 @@ var baseBuckets = map[string]bucket{
 	// Convoked provenance gate reads -- the same cards.SA parameter map
 	// every bSA entry covers.
 	"a": bSA, "targetSA": bSA, "SA": bSA, "Ability": bSA, "With": bSA,
-	"head": bSA, "ma": bSA, "pt.SA": bSA,
+	"head": bSA, "ma": bSA, "mana": bSA, "original": bSA, "pt.SA": bSA,
 	// rsub is runPreventionShieldRider's rewritten copy of the
 	// PreventionSubAbility$ rider (a shallow copy of a fresh ResolveSVar
 	// parse, whose NumDmg$/Defined$ the shield application binds): a
@@ -1342,19 +1342,24 @@ var apiSpecificRulesSA = map[string][]string{
 	"Engine.manaActivationGateHolds": {"Mana"},
 	"Engine.emitManaTap":             {"Mana"},
 	"Engine.isTriggeredManaAbility":  {"Mana"},
-	"triggeredManaColourChoice":      {"Mana"},
+	// askTriggeredManaColor reads the first resolved Mana sub-ability's
+	// Amount$/Produced$ to build its allocation; that local is bSA but this
+	// path only ever reaches api:Mana.
+	"Engine.askTriggeredManaColor": {"Mana"},
+	"Engine.askManaColor":          {"Mana"},
+	"triggeredManaColourChoice":    {"Mana"},
 	// rewriteChosenMana (rules/mana_activation.go) executes only inside
 	// resolveTriggeredManaAbilities, so its Produced$ read belongs to
 	// api:Mana alone -- left in the generic union it would mask every
 	// other API's unread Produced$.
-	"Engine.rewriteChosenMana":     {"Mana"},
-	"Engine.resolveManaAbilityRef": {"Mana"},
-	"Engine.resolveManaEffect":     {"Mana"},
-	"manaColourPrompt":             {"Mana"},
-	"Engine.AvailableMana":         {"Mana"},
-	"addAvailable":                 {"Mana"},
-	"availableAmount":              {"Mana"},
-	"activatedMatchesValidSA":      {"Mana"},
+	"Engine.rewriteChosenMana":             {"Mana"},
+	"Engine.resolveManaAbilityRefOriginal": {"Mana"},
+	"Engine.resolveManaEffect":             {"Mana"},
+	"manaColourPrompt":                     {"Mana"},
+	"Engine.AvailableMana":                 {"Mana"},
+	"addAvailable":                         {"Mana"},
+	"availableAmount":                      {"Mana"},
+	"activatedMatchesValidSA":              {"Mana"},
 	// The attack-prop and unless-cost payment windows' affordability input
 	// (rules/mana_available.go windowManaUnits, called by
 	// rules/attack_cost.go attackManaSources and
@@ -1366,6 +1371,16 @@ var apiSpecificRulesSA = map[string][]string{
 	// alone -- left in the generic union they would mask every other
 	// API's unread Produced$ (measured: api:Sacrifice/api:DealDamage).
 	"Engine.windowManaUnits": {"Mana"},
+	// The attack-prop payment window's choice-shaped membership
+	// (rules/attack_cost.go attackChoiceManaSources): it walks the payer's
+	// battlefield and reads each window-usable mana ability's Produced$ (plus
+	// Cost$/RestrictValid$) to decide whether an "Any"/"Combo"/"Chosen"
+	// source can pay a generic attack tax, and pins the colour it will be
+	// tapped for. Like windowManaUnits above it only ever inspects api:Mana
+	// abilities (availableManaAbilitiesForWindow), so its reads belong to
+	// api:Mana alone -- left in the generic union they mask every other API's
+	// unread Produced$ (measured: api:Sacrifice/api:DealDamage).
+	"Engine.attackChoiceManaSources": {"Mana"},
 	// The Charm mode paths: the CR 601.2b cast-time modes ask (castModeAsk),
 	// the per-mode target declaration (modalTargetSA), the resume-side mode
 	// decisions/labels, and the modal-trigger placement ask (CharmNum$).
@@ -1392,13 +1407,6 @@ var apiSpecificRulesSA = map[string][]string{
 	// them carries a param only another case reads, and Play's genuinely
 	// unread RememberPlayed$ stays unmasked (no case reads it).
 	"Engine.resumeResolution": {"Counter", "CopySpellAbility", "Play"},
-	// The cast-offer ETB-choice walk (rules/cast.go collectETBChoices): it
-	// reads the ReplaceWith$ body's ValidCards$/Type$/Exclude$ for the
-	// NameCard / ChooseType / ChooseNumber / ChooseColor "as this enters"
-	// choices -- the etbChoiceKind switch dispatches on exactly those four
-	// apis, so the reads belong to them alone and must not join the generic
-	// rules union.
-	"Engine.collectETBChoices": {"NameCard", "ChooseType", "ChooseNumber", "ChooseColor"},
 	// The ward payment path: only the Ward keyword's expanded trigger
 	// reaches these (resumeResolution dispatches on rp.sa.API == "Ward"),
 	// so their UnlessCost$ reads belong to api:Ward alone -- left in the
@@ -1605,13 +1613,11 @@ var handRoots = struct {
 		"Engine.registerOpeningEffectTriggers", "Engine.checkEventDelayedTriggers"},
 	// applyReplacements is the replacement pipeline's root beside
 	// replacementMatches, whose `r.Event != "Moved"` early return scopes every
-	// r.Params read in it to repl:Moved. collectETBChoices reads the
-	// ETBReplacement repl's Keyword$ at cast-offer time. handleReplacement is
-	// the parked-repl-choice decision handler (it resumes the parked phase
+	// r.Params read in it to repl:Moved. handleReplacement is the
+	// parked-repl-choice decision handler (it resumes the parked phase
 	// machinery and reads the parked repl's Optional$ directly), reached
 	// through the decision resume path rather than the pipeline.
-	repl: []string{"Engine.applyReplacements", "Engine.collectETBChoices",
-		"Engine.handleReplacement"},
+	repl: []string{"Engine.applyReplacements", "Engine.handleReplacement"},
 }
 
 // derivedReads is the per-primitive read set the scan attributes.
@@ -2090,8 +2096,8 @@ func (s *scan) reachFromRoots(b bucket, fn string) bool {
 // nothing downstream needs to re-derive the difference. Both tags are
 // consumed structurally: the KeywordLine tag IS the idempotence check in
 // cards/keywords.go's `has` closure (the T:/R:/A: lookups at the top of
-// expandKeywords), and rules/cast.go's collectETBChoices reads the Keyword
-// tag ("ETBReplacement") to find an ETB replacement's target options. They
+// expandKeywords), and rules/cast.go's entryETBChoice reads the Keyword tag
+// ("ETBReplacement") to find an ETB replacement's target options. They
 // are therefore never a per-primitive script parameter and are never
 // measured.
 var structuralKeys = func() map[string]map[string]bool {
@@ -2597,9 +2603,8 @@ var knownUnsupportedParams = map[string][]string{
 	// Klin, Ambitious Augmenter, Zack Fair). Heroic Sacrifice's own carrier
 	// path (its delayed trigger, Mode$ ChangesZone) stays unimplemented and
 	// the card's OTHER labels above are untouched.
-	"Heroic Sacrifice":           {"param:api:Effect.ValidTgtsDesc", "param:api:PutCounter.ValidTgtsDesc", "param:api:ReplaceEffect.VarType"},
-	"Iron Man, Armored Avenger":  {"param:api:PutCounter.ValidTgtsDesc"},
-	"Jocasta, Automaton Avenger": {"param:api:ChangeZone.Attacking"},
+	"Heroic Sacrifice":          {"param:api:Effect.ValidTgtsDesc", "param:api:PutCounter.ValidTgtsDesc", "param:api:ReplaceEffect.VarType"},
+	"Iron Man, Armored Avenger": {"param:api:PutCounter.ValidTgtsDesc"},
 	// (Love on the Battlefield's param:trig:AttackersDeclared.NoResolvingCheck
 	// row retired when the NoResolvingCheck$ read landed: the resolution-time
 	// CR 603.4 recheck skips a trigger carrying the param

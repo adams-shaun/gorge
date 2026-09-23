@@ -33,9 +33,9 @@ func castCorpusCardToBattlefield(t *testing.T, e *Engine, p state.PlayerID, name
 	e.pending = nil
 	e.Advance()
 	castFirst(t, e, "cast")
-	d := e.Pending()
-	if d == nil || d.Kind != decision.KChoose || len(d.Options) != 5 || d.Options[0].Kind != "color" {
-		t.Fatalf("%s: expected the as-enters colour ask, got %+v", name, d)
+	d := passUntilNonPriority(t, e, 40)
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "etb" || len(d.Options) != 5 || d.Options[0].Kind != "color" {
+		t.Fatalf("%s: expected the entry colour ask, got %+v", name, d)
 	}
 	submitChoices(t, e, colour)
 	passUntilStackEmpty(t, e, 40)
@@ -127,13 +127,8 @@ func TestShimmerwildsGrowthRecoloursTheEnchantedLand(t *testing.T) {
 	e.Advance()
 	castFirst(t, e, "cast")
 	d := e.Pending()
-	if d == nil || d.Kind != decision.KChoose || len(d.Options) != 5 || d.Options[0].Kind != "color" {
-		t.Fatalf("expected the aura's as-enters colour ask, got %+v", d)
-	}
-	submitChoices(t, e, 0) // White
-	d = e.Pending()
 	if d == nil || d.Kind != decision.KTarget {
-		t.Fatalf("expected the aura's target ask, got %+v", d)
+		t.Fatalf("expected the aura's target ask before entry, got %+v", d)
 	}
 	tgt := -1
 	for _, o := range d.Options {
@@ -145,6 +140,11 @@ func TestShimmerwildsGrowthRecoloursTheEnchantedLand(t *testing.T) {
 		t.Fatalf("Forest not offered as the aura target: %+v", d.Options)
 	}
 	submitChoices(t, e, tgt)
+	d = passUntilNonPriority(t, e, 40)
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "etb" || len(d.Options) != 5 || d.Options[0].Kind != "color" {
+		t.Fatalf("expected the aura's entry colour ask, got %+v", d)
+	}
+	submitChoices(t, e, 0) // White
 	passUntilStackEmpty(t, e, 40)
 	if o := e.G.Obj(id); o.Zone != state.ZBattlefield || o.AttachedTo != forest || o.ChosenColor != "W" {
 		t.Fatalf("Shimmerwilds Growth: zone %s attached %d chosen %q", o.Zone, o.AttachedTo, o.ChosenColor)

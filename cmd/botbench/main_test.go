@@ -672,7 +672,7 @@ func TestConstructedDefaultIsByteIdentical(t *testing.T) {
 	if m == nil {
 		t.Fatalf("summary block missing:\n%s", buf.String())
 	}
-	// Seat 0 wins: 6, seat 1 wins: 14 at this fixed seed, for the default
+	// Seat 0 wins: 5, seat 1 wins: 15 at this fixed seed, for the default
 	// pair avengers-assemble:death-n-taxes (the first two sorted repo decks
 	// at the 2026-09-17 avengers-assemble import; the prior 16/4 belonged to
 	// death-n-taxes:dimir-tempo). This is a command golden, not a claim about
@@ -709,7 +709,11 @@ func TestConstructedDefaultIsByteIdentical(t *testing.T) {
 	// (its oracle; pinned by rules/rescue_pepper_potts_test.go) instead of on
 	// every resolution, including a bounced plain creature or no target at
 	// all, where the gate used to fail open (reverting effects/conditions.go
-	// returns 6/14; the fix reproduces 5/15 deterministically).
+	// returns 6/14; the fix reproduces 5/15 deterministically). The Any-mana
+	// projection change in cards/mana_production.go then re-measured this
+	// same pair from 6/14 to 5/15: the bot can now see an untapped Any source
+	// as a real WUBRG alternative instead of the old colourless stand-in, so
+	// its tap choice changes in one game (reverting that file reproduces 6/14).
 	//
 	// The 6/14 was re-measured to 7/13 by the api:ManaReflected collector fix
 	// (ticket cli-20260922T225137Z): cards.ManaProduction now folds a face's
@@ -726,9 +730,25 @@ func TestConstructedDefaultIsByteIdentical(t *testing.T) {
 	// illegal lone block onto a Menace attacker and the engine rejected the
 	// intent, aborting the bench at HEAD seed 22 and at this change's seed 18;
 	// see legacySeat.Decide.)
-	const wantSeat0, wantSeat1 = 7, 13
+	//
+	// MERGE (Any-mana projection x ManaReflected collector, both present):
+	// measured at that merged tip as 6/14 -- neither parent's value (5/15 with
+	// the projection change alone, 7/13 with the collector fix alone); the two
+	// cards/mana_production.go changes interact on the shared bench pair.
+	//
+	// The CR 614.12 move of ETBReplacement choices from cast announcement to
+	// the entry boundary (this branch) independently changes one
+	// avengers-assemble game, and so does its follow-up fix for an
+	// entry-boundary ask posed from inside a resolving effect: dropping the
+	// resolution's parked continuation (rules/turn.go's chooseETBEntry arm)
+	// used to leave the interrupted spell on the stack for resolveTop to
+	// resolve a second time. Measured at THIS merged tip (both mana changes
+	// plus the entry-boundary migration and its continuation fix): still 6/14
+	// -- the entry-boundary work moves no game once the Any-projection and
+	// ManaReflected changes are both present, so main's value stands.
+	const wantSeat0, wantSeat1 = 6, 14
 	if seat0, seat1 := atoi(m[8]), atoi(m[9]); seat0 != wantSeat0 || seat1 != wantSeat1 {
-		t.Errorf("constructed default split = %d/%d, want %d/%d (%s vs %s at seed 0, games 20)", seat0, seat1, wantSeat0, wantSeat1, testutil.RepoDeckNames()[0], testutil.RepoDeckNames()[1])
+		t.Errorf("constructed default split = %d/%d, want %d/%d after the CR 614.12 ETB entry-choice timing and api:ManaReflected collector fixes (%s vs %s at seed 0, games 20)", seat0, seat1, wantSeat0, wantSeat1, testutil.RepoDeckNames()[0], testutil.RepoDeckNames()[1])
 	}
 	if strings.Contains(buf.String(), "STALLED") {
 		t.Errorf("constructed default (no stalls) must not print a stall line")

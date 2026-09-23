@@ -79,11 +79,11 @@ func (r gainedManaRef) svars(fallback map[string]string) map[string]string {
 }
 
 // manaColorActivation holds an already-paid mana ability while its controller
-// chooses the colour that Produced$ Any (or Combo Any) will add. triggers is
-// the CR 605.3b triggered-mana batch still to resolve after the answer. When
-// trigger is non-nil the choice belongs to that triggered mana ability instead
-// (ability is then the Mana sub-ability in its chain, and player the player
-// receiving the mana).
+// chooses the colour that Produced$ Any will add, or allocates every unit of a
+// Produced$ Combo. triggers is the CR 605.3b triggered-mana batch still to
+// resolve after the answer. When trigger is non-nil the choice belongs to that
+// triggered mana ability instead (ability is then the Mana sub-ability in its
+// chain, and player the player receiving the mana).
 type manaColorActivation struct {
 	player     state.PlayerID
 	source     state.ObjID
@@ -93,6 +93,8 @@ type manaColorActivation struct {
 	triggers   []pendingTrigger
 	trigger    *pendingTrigger
 	gained     gainedManaRef
+	sacs       []state.ObjID
+	allocation bool
 }
 
 // manaDiscardActivation holds a synchronous mana ability while its discard
@@ -1078,14 +1080,22 @@ func (e *Engine) askTriggeredManaColor(pt pendingTrigger, rest []pendingTrigger,
 	if ps := effects.ManaRecipients(e, &pt.Ctx, mana); len(ps) > 0 {
 		chooser = ps[0]
 	}
-	d := &decision.Decision{Player: chooser, Kind: decision.KChoose, Min: 1, Max: 1,
+	amount := effects.Num(e, &pt.Ctx, mana, "Amount", 1)
+	allocation := strings.HasPrefix(strings.TrimSpace(mana.Params["Produced"]), "Combo ") && amount > 1
+	min, max := 1, 1
+	if allocation {
+		min, max = int(amount), int(amount)
+	}
+	d := &decision.Decision{Player: chooser, Kind: decision.KChoose, Min: min, Max: max,
 		Prompt: manaColourPrompt(mana), Source: pt.Source}
-	for i, color := range colours {
-		d.Options = append(d.Options, decision.Option{Index: i, Kind: "mana", Obj: pt.Source, Label: "Add " + color})
+	for unit := 0; unit < max; unit++ {
+		for _, color := range colours {
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "mana", Obj: pt.Source, Label: "Add " + color})
+		}
 	}
 	parked := pt
 	e.manaColorActivation = &manaColorActivation{player: chooser, source: pt.Source, ability: mana,
-		cast: cast, triggers: rest, trigger: &parked}
+		cast: cast, triggers: rest, trigger: &parked, allocation: allocation}
 	e.choosing = chooseManaColor
 	e.ask(d)
 	return true
@@ -1114,19 +1124,33 @@ func triggeredManaColourChoice(sa *cards.SA) (*cards.SA, []string) {
 // Produced$ rewritten to the chosen colour. Corpus SAs are shared immutable
 // data, so the rewrite never touches them.
 func withProduced(head, target *cards.SA, produced string) *cards.SA {
+	return withManaProduction(head, target, produced, "")
+}
+
+// withManaAllocation records a resolved Combo allocation as one concrete
+// symbol per selected unit and prevents effMana from multiplying that string
+// by the original Amount$ again.
+func withManaAllocation(head, target *cards.SA, produced string) *cards.SA {
+	return withManaProduction(head, target, produced, "1")
+}
+
+func withManaProduction(head, target *cards.SA, produced, amount string) *cards.SA {
 	if head == nil {
 		return nil
 	}
 	cp := *head
 	if head == target {
-		cp.Params = make(map[string]string, len(head.Params))
+		cp.Params = make(map[string]string, len(head.Params)+1)
 		for k, v := range head.Params {
 			cp.Params[k] = v
 		}
 		cp.Params["Produced"] = produced
+		if amount != "" {
+			cp.Params["Amount"] = amount
+		}
 		return &cp
 	}
-	cp.Sub = withProduced(head.Sub, target, produced)
+	cp.Sub = withManaProduction(head.Sub, target, produced, amount)
 	return &cp
 }
 
@@ -1150,11 +1174,11 @@ func substituteChosenProduced(produced, chosen string) string {
 		return produced
 	}
 	trimmed := strings.TrimSpace(produced)
-	if trimmed == "Chosen" {
+	if trimmed == "Chosen" || trimmed == "ChosenColor" || trimmed == "ComboChosen" {
 		return chosen
 	}
 	toks := strings.Fields(trimmed)
-	if len(toks) >= 2 && toks[0] == "Combo" && toks[len(toks)-1] == "Chosen" {
+	if len(toks) >= 2 && toks[0] == "Combo" && (toks[len(toks)-1] == "Chosen" || toks[len(toks)-1] == "ChosenColor") {
 		toks[len(toks)-1] = chosen
 		// The recorded colour can equal a fixed letter ("Combo R Chosen" with
 		// R recorded): dedup so the value stays "Combo R" -- a decision nobody
@@ -1232,6 +1256,14 @@ func (e *Engine) gainedManaRefFor(p state.PlayerID, source state.ObjID, sa *card
 // resolveManaAbilityRef is resolveManaAbility with the gained identity
 // already known (answerManaActivation captured it before rewriting the SA).
 func (e *Engine) resolveManaAbilityRef(p state.PlayerID, source state.ObjID, ma *cards.SA, gained gainedManaRef, cast, payment, interactive bool) {
+	e.resolveManaAbilityRefOriginal(p, source, ma, ma, gained, cast, payment, interactive)
+}
+
+// resolveManaAbilityRefOriginal resolves ma while retaining original's printed
+// identity for activation-limit markers. Colour choices rewrite ma's Produced$
+// on an immutable copy, but the limit census is keyed to the compiled ability
+// in the source pile, not that copy.
+func (e *Engine) resolveManaAbilityRefOriginal(p state.PlayerID, source state.ObjID, ma, original *cards.SA, gained gainedManaRef, cast, payment, interactive bool) {
 	if !e.manaAbilityPayable(p, source, ma) {
 		return
 	}
@@ -1250,12 +1282,13 @@ func (e *Engine) resolveManaAbilityRef(p state.PlayerID, source state.ObjID, ma 
 	// attribution, so an ability that carries EITHER limit records its
 	// activation here (events.ManaActivate's own comment). Emitted only for a
 	// limit-bearing ability so no existing game's log shape changes.
-	if _, limited := ma.Params["ActivationLimit"]; limited || ma.Params["GameActivationLimit"] != "" {
+	if _, limited := original.Params["ActivationLimit"]; limited || original.Params["GameActivationLimit"] != "" {
 		// The flat pile index (top face first, then under-cards) is the SAME
 		// identity availableManaAbilitiesUsing's limit gate checks, so an
 		// under-card mana ability's census cannot be counted against a
-		// top-face ability.
-		if idx, _, found := pileAbilityRefOf(e.G.Obj(source), ma); found {
+		// top-face ability. original keeps that identity when ma is a
+		// colour-pinned immutable copy.
+		if idx, _, found := pileAbilityRefOf(e.G.Obj(source), original); found {
 			e.emit(events.Event{Kind: events.ManaActivate, Player: p, Obj: source, Amount: int32(idx)})
 		}
 	}
@@ -1343,18 +1376,19 @@ func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *car
 		case 0:
 			e.emit(events.Event{Kind: events.Note, Obj: source, Text: "ManaReflected found no mana to reflect"})
 		case 1:
-			e.resolveManaEffectColor(p, source, ma, cols[0], gained)
+			e.resolveManaEffectColor(p, source, ma, cols[0], gained, sacs)
 			e.resolveTriggeredManaAbilities(triggers, cast)
 			if cumulative && e.choosing == chooseNone {
 				e.paymentWindowAsk()
 			}
 		default:
-			e.askManaColor(p, source, ma, cast, cumulative, triggers, cols, gained)
+			e.askManaColor(p, source, ma, cast, cumulative, triggers, cols, gained, 1, sacs)
 		}
 		return
 	}
 	if produced == "Any" || produced == "Combo Any" {
-		e.askManaColor(p, source, ma, cast, cumulative, triggers, []string{"W", "U", "B", "R", "G"}, gained)
+		e.askManaColor(p, source, ma, cast, cumulative, triggers, []string{"W", "U", "B", "R", "G"}, gained,
+			e.manaEffectAmount(p, source, ma, sacs, gained), sacs)
 		return
 	}
 	// A "Combo <colours>" shape is "add one of these", not "add each of
@@ -1373,14 +1407,15 @@ func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *car
 	// one-option stage-2 ask.
 	if colours, ok := effects.ComboColours(produced); ok {
 		if len(colours) == 1 {
-			e.resolveManaEffectColor(p, source, ma, colours[0], gained)
+			e.resolveManaEffectColor(p, source, ma, colours[0], gained, sacs)
 			e.resolveTriggeredManaAbilities(triggers, cast)
 			if cumulative && e.choosing == chooseNone {
 				e.paymentWindowAsk()
 			}
 			return
 		}
-		e.askManaColor(p, source, ma, cast, cumulative, triggers, colours, gained)
+		e.askManaColor(p, source, ma, cast, cumulative, triggers, colours, gained,
+			e.manaEffectAmount(p, source, ma, sacs, gained), sacs)
 		return
 	}
 	// "ColorIdentity" (Command Tower, Arcane Signet: "Add one mana of any
@@ -1398,7 +1433,7 @@ func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *car
 		cols := e.commanderIdentityColours(p)
 		switch len(cols) {
 		case 1:
-			e.resolveManaEffectColor(p, source, ma, cols[0], gained)
+			e.resolveManaEffectColor(p, source, ma, cols[0], gained, sacs)
 			e.resolveTriggeredManaAbilities(triggers, cast)
 			if cumulative && e.choosing == chooseNone {
 				e.paymentWindowAsk()
@@ -1406,13 +1441,14 @@ func (e *Engine) resolveManaEffect(p state.PlayerID, source state.ObjID, ma *car
 			return
 		default:
 			if len(cols) > 1 {
-				e.askManaColor(p, source, ma, cast, cumulative, triggers, cols, gained)
+				e.askManaColor(p, source, ma, cast, cumulative, triggers, cols, gained,
+					e.manaEffectAmount(p, source, ma, sacs, gained), sacs)
 				return
 			}
 			// 0 colours: fall through to the fail-closed resolve below.
 		}
 	}
-	e.resolveManaEffectColor(p, source, ma, produced, gained)
+	e.resolveManaEffectColor(p, source, ma, produced, gained, sacs)
 	e.resolveTriggeredManaAbilities(triggers, cast)
 	if cumulative && e.choosing == chooseNone {
 		e.paymentWindowAsk()
@@ -1474,10 +1510,10 @@ func (e *Engine) answerManaUnless(chosen []decision.Option) bool {
 	paid := false
 	if len(chosen) == 1 && chosen[0].Index == 0 {
 		if cost, ok := ParseUnlessCost(m.ability.Params["UnlessCost"]); ok {
-			if len(cost.Sac) > 0 || len(cost.Discard) > 0 || len(cost.Reveal) > 0 || len(cost.RevealChosen) > 0 {
-				// Activated mana stays off stack, but a sacrifice/discard/reveal
-				// in its unless cost is still a real payer choice. The payment
-				// continuation returns through finishManaUnlessPayment.
+			if len(cost.Sac) > 0 || len(cost.Discard) > 0 || len(cost.Reveal) > 0 || len(cost.RevealChosen) > 0 || len(cost.Return) > 0 {
+				// Activated mana stays off stack, but a sacrifice/discard/return/
+				// reveal in its unless cost is still a real payer choice. The
+				// payment continuation returns through finishManaUnlessPayment.
 				e.beginUnlessPayment(payer, cost, &effects.Ctx{Source: m.source, Controller: m.player}, m.source, nil)
 				return m.cast
 			}
@@ -1521,35 +1557,39 @@ func (e *Engine) finishManaUnlessPayment(paid bool) {
 }
 
 // askManaColor poses the colour choice for a Produced value that names a
-// fixed set (the five colours for Any/Combo Any, or the named colours of a
-// "Combo <colours>" shape) and pauses until it is answered.
-func (e *Engine) askManaColor(p state.PlayerID, source state.ObjID, ma *cards.SA, cast, cumulative bool, triggers []pendingTrigger, colours []string, gained gainedManaRef) {
-	d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
-		Prompt: manaColourPrompt(ma), Source: source}
-	for i, color := range colours {
-		d.Options = append(d.Options, decision.Option{Index: i, Kind: "mana", Obj: source, Label: "Add " + color})
+// fixed set. Any selects one colour for the whole Amount$; Combo allocates
+// one option per mana unit, so Combo Any Amount 2 can select U then R.
+func (e *Engine) askManaColor(p state.PlayerID, source state.ObjID, ma *cards.SA, cast, cumulative bool, triggers []pendingTrigger, colours []string, gained gainedManaRef, amount int32, sacs []state.ObjID) {
+	allocation := strings.HasPrefix(strings.TrimSpace(ma.Params["Produced"]), "Combo ") && amount > 1
+	min, max := 1, 1
+	if allocation {
+		min, max = int(amount), int(amount)
 	}
-	e.manaColorActivation = &manaColorActivation{player: p, source: source, ability: ma, cast: cast, cumulative: cumulative, triggers: triggers, gained: gained}
+	d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: min, Max: max,
+		Prompt: manaColourPrompt(ma), Source: source}
+	for unit := 0; unit < max; unit++ {
+		for _, color := range colours {
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "mana", Obj: source, Label: "Add " + color})
+		}
+	}
+	e.manaColorActivation = &manaColorActivation{player: p, source: source, ability: ma, cast: cast, cumulative: cumulative, triggers: triggers, gained: gained, sacs: append([]state.ObjID(nil), sacs...), allocation: allocation}
 	e.choosing = chooseManaColor
 	e.ask(d)
 }
 
 // manaColourPrompt names the amount of mana the ability adds when the script
 // carries an EXPLICIT, positive literal Amount$, so a player choosing the
-// colour of "Add three mana of any one color" (Lion's Eye Diamond) sees the
-// whole deal instead of a bare "Choose a colour of mana" that reads like the
-// card only offered one colour of mana. Every other shape keeps the generic
-// prompt: an absent Amount$ (the prompt must not invent "1" for the pool that
-// effMana will actually resolve — the brief's boundary is explicit-literal
-// only), a non-literal amount (X, Y, an SVar or inline Count$ expression) the
-// ask site cannot price, and a non-positive literal — a wrong number in the
-// prompt is worse than no number. The "any one color" wording is kept
-// verbatim from the oracle shape (Produced$ Any / Combo Any, CR 107.4) so the
-// player sees that the ONE choice covers all of the mana; a restricted
-// "Combo <colours>" shape is not "any" colour, so its prompt only names the
-// amount; a ColorIdentity shape names the commander-identity restriction so
-// the player knows WHY the offer is narrower than five colours (the oracle
-// wording, "any color in your commander's color identity", kept verbatim).
+// colour of "Add three mana of any one color" (Lion's Eye Diamond), or every
+// unit of a Combo allocation, sees the whole deal instead of a bare "Choose a
+// colour of mana" that reads like the card only offered one colour of mana.
+// Every other shape keeps the generic prompt: an absent Amount$ (the prompt
+// must not invent "1" for the pool that effMana will actually resolve), a
+// non-literal amount (X, Y, an SVar or inline Count$ expression) the ask site
+// cannot price, and a non-positive literal. The wording distinguishes
+// Produced$ Any (one colour covers every unit) from Combo Any (the selected
+// units may be split); a restricted "Combo <colours>" shape is not "any"
+// colour, so its prompt only names the amount; a ColorIdentity shape names
+// the commander-identity restriction.
 func manaColourPrompt(ma *cards.SA) string {
 	generic := "Choose a colour of mana"
 	shape := strings.TrimSpace(ma.Params["Produced"])
@@ -1573,14 +1613,38 @@ func manaColourPrompt(ma *cards.SA) string {
 	switch {
 	case identity:
 		return fmt.Sprintf("Add %d mana of any color in your commander's color identity — choose the colour", n)
-	case shape == "Any" || shape == "Combo Any":
+	case shape == "Any":
 		return fmt.Sprintf("Add %d mana of any one color — choose the colour", n)
+	case shape == "Combo Any":
+		return fmt.Sprintf("Add %d mana in any combination of colors — choose the colours", n)
+	case strings.HasPrefix(shape, "Combo "):
+		return fmt.Sprintf("Add %d mana — choose the colours", n)
 	default:
 		return fmt.Sprintf("Add %d mana — choose the colour", n)
 	}
 }
 
-func (e *Engine) resolveManaEffectColor(p state.PlayerID, source state.ObjID, ma *cards.SA, produced string, gained gainedManaRef) {
+// manaEffectAmount resolves the production amount in the same source and
+// sacrifice context effMana will receive. Combo's allocation must use this
+// value before posing its decision, including an SVar such as Burnt Offering.
+func (e *Engine) manaEffectAmount(p state.PlayerID, source state.ObjID, ma *cards.SA, sacs []state.ObjID, gained gainedManaRef) int32 {
+	o := e.G.Obj(source)
+	if o == nil || o.Face() == nil {
+		return 0
+	}
+	ctx := &effects.Ctx{Source: source, Controller: p}
+	for _, id := range sacs {
+		ctx.Sacrificed = append(ctx.Sacrificed, state.SacrificedInfoOf(e.G, id))
+	}
+	effects.SetSVars(ctx, gained.svars(o.Face().SVars))
+	amount := effects.Num(e, ctx, ma, "Amount", 1)
+	if amount < 0 {
+		return 0
+	}
+	return amount
+}
+
+func (e *Engine) resolveManaEffectColor(p state.PlayerID, source state.ObjID, ma *cards.SA, produced string, gained gainedManaRef, sacs []state.ObjID) {
 	o := e.G.Obj(source)
 	if o == nil || o.Face() == nil {
 		return
@@ -1613,16 +1677,25 @@ func (e *Engine) answerManaColor(chosen []decision.Option) bool {
 	ma := e.manaColorActivation
 	e.manaColorActivation = nil
 	e.choosing = chooseNone
-	if ma == nil || len(chosen) != 1 {
+	if ma == nil || len(chosen) == 0 || (!ma.allocation && len(chosen) != 1) {
 		return false
 	}
-	color := strings.TrimPrefix(chosen[0].Label, "Add ")
-	if len(color) != 1 || !strings.Contains("WUBRGC", color) {
-		return ma.cast
+	var symbols strings.Builder
+	for _, option := range chosen {
+		color := strings.TrimPrefix(option.Label, "Add ")
+		if len(color) != 1 || !strings.Contains("WUBRGC", color) {
+			return ma.cast
+		}
+		symbols.WriteString(color)
 	}
+	produced := symbols.String()
 	if ma.trigger != nil {
 		pt := *ma.trigger
-		pt.SA = withProduced(pt.SA, ma.ability, color)
+		if ma.allocation {
+			pt.SA = withManaAllocation(pt.SA, ma.ability, produced)
+		} else {
+			pt.SA = withProduced(pt.SA, ma.ability, produced)
+		}
 		// A later colour-choice Mana sub-ability in the same chain asks in
 		// turn; otherwise the ability resolves and the batch continues.
 		if e.askTriggeredManaColor(pt, ma.triggers, ma.cast) {
@@ -1632,7 +1705,11 @@ func (e *Engine) answerManaColor(chosen []decision.Option) bool {
 		e.resolveTriggeredManaAbilities(ma.triggers, ma.cast)
 		return ma.cast
 	}
-	e.resolveManaEffectColor(ma.player, ma.source, ma.ability, color, ma.gained)
+	ability := ma.ability
+	if ma.allocation {
+		ability = withManaAllocation(ma.ability, ma.ability, produced)
+	}
+	e.resolveManaEffectColor(ma.player, ma.source, ability, produced, ma.gained, ma.sacs)
 	e.resolveTriggeredManaAbilities(ma.triggers, ma.cast)
 	if ma.cumulative && e.choosing == chooseNone {
 		e.paymentWindowAsk()
@@ -1671,7 +1748,7 @@ func (e *Engine) answerManaActivation(chosen []decision.Option) bool {
 				// top-level abilities; granted and static-granted ones
 				// come from ResolveSVar bodies), so head == target copies
 				// the whole Sub chain with Produced$ rewritten.
-				e.resolveManaAbilityRef(ma.player, ma.source, withProduced(ab, ab, color), gained, ma.cast, ma.cumulative, true)
+				e.resolveManaAbilityRefOriginal(ma.player, ma.source, withProduced(ab, ab, color), ab, gained, ma.cast, ma.cumulative, true)
 				return ma.cast
 			}
 		}

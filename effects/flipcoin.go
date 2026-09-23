@@ -71,23 +71,95 @@ func flipperPlayers(h Host, c *Ctx, sa *cards.SA) (players []state.Target, named
 	return playersOf(ts), true
 }
 
-// rememberFlags names every present flip-memory parameter (Forge's per-flip
-// result/wins/loser memory a chained sub reads back). ONE list, so the
-// loud-note gate can never name some memory flags and silently drop others —
-// the sibling-completeness fix for the RememberLoser$ omission. Order is
-// fixed (not map range) so the Note text is deterministic and replayable.
-func rememberFlags(sa *cards.SA) []string {
-	var out []string
-	if sa.Params["RememberResult"] != "" {
-		out = append(out, "RememberResult$")
+// flipRememberKind normalises a RememberNumber$ value to the sided tally it
+// names: "Wins"/"Losses" (case-insensitive). ok=false for a value this build
+// does not model, so the caller can be loud about it rather than silently
+// counting the wrong side.
+func flipRememberKind(v string) (string, bool) {
+	switch {
+	case strings.EqualFold(v, "Wins"):
+		return "Wins", true
+	case strings.EqualFold(v, "Losses"):
+		return "Losses", true
+	default:
+		return "", false
 	}
-	if sa.Params["RememberNumber"] != "" {
-		out = append(out, "RememberNumber$")
+}
+
+// flipRecord appends one flip to the resolution's flip memory (Ctx.FlipMemory,
+// allocated lazily) and publishes the per-flip Wins/Losses SVars plus the
+// cumulative RememberNumber$ tally. The memory is a shared pointer mutated in
+// place, so a Ctx copy (a RepeatEach iteration, a resume rebuild) and the
+// pointer rules' Ask captured onto a pending resume point all see the flip.
+// player is the flipper and win the outcome (heads = win); rememberResult
+// controls the separate RememberResult$ result list, while rememberKind is the
+// normalised RememberNumber$ side (empty means no number was remembered).
+func flipRecord(h Host, c *Ctx, player state.PlayerID, win, rememberResult bool, rememberKind string) {
+	m := c.FlipMemory
+	if m == nil {
+		m = &FlipMemory{}
+		c.FlipMemory = m
+		// Re-publish through the optional seam so an ask later in this chain
+		// captures the allocated pointer onto its resume point.
+		if fh, ok := h.(flipMemoryHost); ok {
+			fh.SetResolutionFlipMemory(m)
+		}
 	}
-	if sa.Params["RememberLoser"] != "" {
-		out = append(out, "RememberLoser$")
+	if rememberResult {
+		m.Results = append(m.Results, FlipResult{Player: player, Heads: win})
 	}
-	return out
+	m.Set = true
+	m.CurWin, m.CurLoss = 0, 0
+	if win {
+		m.CurWin = 1
+	} else {
+		m.CurLoss = 1
+	}
+	if rememberKind != "" {
+		m.RememberNumberKind = rememberKind
+		if (rememberKind == "Wins") == win {
+			m.RememberNumber++
+		}
+	}
+}
+
+// forEachPlayerFlippers resolves a FlipCoin ForEachPlayer$ group to the
+// players who each flip once. "Opponent" (Mutalith Vortex Beast) is every
+// living opponent of the resolving controller; "True"/"Player"/"All" is
+// every living player; any other value is resolved through the shared
+// knownDefinedTargets resolver, and a present-but-unresolvable spec names
+// nobody (ok=false, fail closed). Every group enumerates in the SAME
+// controller-relative AliveFrom(c.Controller) order the shared defined
+// resolvers use (definedSpec's "Opponent" and "Player" cases), so a
+// ForEachPlayer$ spelling can never disagree with the same spelling under
+// Defined$ — in a 3+ seat game whose controller is not seat 0, the flips (and
+// the deterministic RNG outcomes bound to them) follow the controller's turn
+// order, not seat number order.
+func forEachPlayerFlippers(h Host, c *Ctx, spec string) ([]state.PlayerID, bool) {
+	g := h.Game()
+	switch strings.ToLower(strings.TrimSpace(spec)) {
+	case "opponent", "opponents":
+		var out []state.PlayerID
+		for _, p := range g.AliveFrom(c.Controller) {
+			if p != c.Controller {
+				out = append(out, p)
+			}
+		}
+		return out, true
+	case "true", "player", "players", "all":
+		return g.AliveFrom(c.Controller), true
+	}
+	ts, ok := knownDefinedTargets(h, c, spec)
+	if !ok {
+		return nil, false
+	}
+	var ids []state.PlayerID
+	for _, t := range playersOf(ts) {
+		if t.IsPlayer {
+			ids = append(ids, t.Player)
+		}
+	}
+	return ids, true
 }
 
 // effFlipCoin implements DB$/SP$/AB$ FlipCoin (82 corpus files): flip a coin
@@ -113,47 +185,32 @@ func rememberFlags(sa *cards.SA) []string {
 //     resolver (flipperPlayers). Absent, the resolving controller flips; a
 //     present spec that resolves to no player (or an unmodelled selector)
 //     flips nothing — the effLosesGame fail-closed convention.
+//   - ForEachPlayer$ (one corpus line: Mutalith Vortex Beast's "flip a coin
+//     for each opponent"): the flipper set is the named group — "Opponent"
+//     is every living opponent of the resolving controller, resolved through
+//     forEachPlayerFlippers. Each flipper flips once per iteration and the
+//     chained sub sees Ctx.Remembered = that flipper, so the lose branch's
+//     Defined$ Remembered deals "to that player".
+//   - RememberResult$ True (Goblin Assassin, Mana Clash): every flip is
+//     appended to Ctx.FlipMemory.Results, so a chained Defined$ FlippedHeads
+//     / FlippedTails (and ValidPlayers$ of the same spelling) resolves to the
+//     real flippers of that side. Absent or False leaves that result list
+//     empty; the independent per-flip Wins/Losses publication still occurs.
+//   - RememberNumber$ Wins/Losses (Goblin Traprunner, Yusri): the sided tally
+//     is published (Ctx.FlipWins/FlipLosses) for a chained bare "Wins"/"Losses"
+//     parameter and for Count$RememberedNumber. An unrecognised value is loud
+//     and counts wins, matching the Wins default.
+//   - RememberLoser$ True (Unleash the Flux): the losers are remembered as
+//     player targets (Ctx.Remembered).
 //   - FlipUntilYouLose$ True (5 corpus lines: Okaun, Zndrsplt, Toothy and
 //     Zndrsplt, Crazed Firecat, Mirror March): flip until the first tails,
 //     running the win branch per winning flip and the lose branch once on
-//     the losing flip. Cheap as a loop, so it is implemented, not noted.
-//     Narrowing (corpus-unreachable): if a WIN branch suspends on an ask the
-//     whole loop is abandoned rather than resumed, because the resume
-//     re-enters the asking branch SA, not this primitive (the same class as
-//     the Amount$ > 1 + suspension drop; no until-lose carrier has an asking
-//     win branch).
-//
-// Unread, each loud when present (never silent): ForEachPlayer$ (one corpus
-// line — one flip instead of one per opponent), and the flip memory a later
-// sub reads back — RememberResult$ (2 lines) / RememberNumber$ (2) /
-// RememberLoser$ (1: Unleash the Flux's Repeat gates on the loser being you,
-// so with the memory dropped that loop never repeats — a named narrowing,
-// not a silent one). The flips still run; only the memory does not persist,
-// and the chained reader degrades through definedSpec's FlippedHeads/
-// FlippedTails fail-closed cases.
+//     the losing flip. A win branch that suspends on an ask does NOT abandon
+//     the loop: the remaining cursor rides SuspendFlipRest and the host
+//     re-enters this primitive once the answered ask's chain completes.
 func effFlipCoin(h Host, c *Ctx, sa *cards.SA) {
-	flippers, named := flipperPlayers(h, c, sa)
-	if len(flippers) == 0 {
-		if named {
-			return
-		}
-		flippers = []state.Target{{Player: c.Controller, IsPlayer: true}}
-	}
-	if sa.Params["ForEachPlayer"] != "" {
-		// One corpus line (an opponent-shaped "each opponent flips"); until a
-		// per-player flip ask exists this resolves one flip, loudly.
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-			Text: "FlipCoin ForEachPlayer$ unread: one flip instead of one per player"})
-	}
-	if remember := rememberFlags(sa); len(remember) > 0 {
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-			Text: "FlipCoin " + strings.Join(remember, "/") + " unread: result memory not recorded"})
-	}
+	g := h.Game()
 	untilLose := strings.EqualFold(sa.Params["FlipUntilYouLose"], "True")
-	amount := Num(h, c, sa, "Amount", 1)
-	if amount < 1 {
-		amount = 1
-	}
 	winName := strings.TrimSpace(sa.Params["WinSubAbility"])
 	if winName == "" {
 		winName = strings.TrimSpace(sa.Params["HeadsSubAbility"])
@@ -162,14 +219,80 @@ func effFlipCoin(h Host, c *Ctx, sa *cards.SA) {
 	if loseName == "" {
 		loseName = strings.TrimSpace(sa.Params["TailsSubAbility"])
 	}
-	g := h.Game()
-	for _, t := range flippers {
-		if int(t.Player) < 0 || int(t.Player) >= len(g.Players) || g.Players[t.Player].Lost {
+	rememberLoser := strings.EqualFold(sa.Params["RememberLoser"], "True")
+	rememberResult := strings.EqualFold(sa.Params["RememberResult"], "True")
+	forEach := strings.TrimSpace(sa.Params["ForEachPlayer"]) != ""
+	rememberKind := ""
+	if raw := strings.TrimSpace(sa.Params["RememberNumber"]); raw != "" {
+		if k, ok := flipRememberKind(raw); ok {
+			rememberKind = k
+		} else {
+			rememberKind = "Wins"
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "FlipCoin RememberNumber$ " + raw + " unread: counting wins"})
+		}
+	}
+
+	// Resume cursor (fx-style scoping): consumed and cleared here, so a
+	// nested FlipCoin poses its own loop.
+	rest := c.FlipRest
+	c.FlipRest = nil
+
+	var players []state.PlayerID
+	var playerIndex int
+	var iter int32
+	amount := int32(1)
+	if rest != nil {
+		players, playerIndex, iter = rest.Players, rest.PlayerIndex, rest.Iter
+		amount, untilLose = rest.Amount, rest.UntilLose
+	} else {
+		if spec := strings.TrimSpace(sa.Params["ForEachPlayer"]); forEach {
+			ps, ok := forEachPlayerFlippers(h, c, spec)
+			if !ok {
+				return // present but unresolvable: fail closed, nobody flips
+			}
+			players = ps
+		} else {
+			flippers, named := flipperPlayers(h, c, sa)
+			if len(flippers) == 0 {
+				if named {
+					return
+				}
+				flippers = []state.Target{{Player: c.Controller, IsPlayer: true}}
+			}
+			for _, t := range flippers {
+				if t.IsPlayer {
+					players = append(players, t.Player)
+				}
+			}
+		}
+		amount = Num(h, c, sa, "Amount", 1)
+		if amount < 1 {
+			amount = 1
+		}
+	}
+
+	for pi := playerIndex; pi < len(players); pi++ {
+		p := players[pi]
+		if int(p) < 0 || int(p) >= len(g.Players) || g.Players[p].Lost {
 			continue
 		}
-		for i := int32(0); untilLose || i < amount; i++ {
+		start := int32(0)
+		if pi == playerIndex {
+			start = iter
+		}
+		for i := start; untilLose || i < amount; i++ {
 			win := h.Rand(2) == 0
-			h.Emit(FlipCoinNote(c.Source, t.Player, win))
+			h.Emit(FlipCoinNote(c.Source, p, win))
+			flipRecord(h, c, p, win, rememberResult, rememberKind)
+			if forEach || rememberLoser {
+				// The per-player loop binds the current flipper for the chained
+				// sub; RememberLoser$ remembers only the losing flipper, so a win
+				// with no per-player loop leaves Remembered untouched.
+				if forEach || !win {
+					c.Remembered = []state.Target{{Player: p, IsPlayer: true}}
+				}
+			}
 			name := loseName
 			if win {
 				name = winName
@@ -177,6 +300,30 @@ func effFlipCoin(h Host, c *Ctx, sa *cards.SA) {
 			if name != "" && c.SVars != nil {
 				Resolve(h, c, cards.ResolveSVar(c.SVars, name))
 				if h.Suspended() {
+					// Only a suspension with flips still owed needs a cursor. A
+					// losing flip of an until-lose loop ends it, and the last
+					// iteration of an Amount$ loop is the last; if no later
+					// flipper remains, there is nothing to resume and the host
+					// gets no frame (the pre-existing shape for a terminal
+					// suspension).
+					moreIter := (untilLose && win) || (!untilLose && i+1 < amount)
+					nextPlayer, nextIter := pi, i+1
+					if untilLose && !win {
+						// A losing until-lose flip finishes this player's loop. If
+						// its lose branch asked, resume at the NEXT ForEachPlayer$
+						// flipper, not at this player with Iter+1 (untilLose would
+						// otherwise ignore that bound and flip the loser again).
+						nextPlayer, nextIter = pi+1, 0
+					}
+					if moreIter || pi+1 < len(players) {
+						h.SuspendFlipRest(sa, FlipRest{
+							Players:     append([]state.PlayerID(nil), players...),
+							PlayerIndex: nextPlayer,
+							Iter:        nextIter,
+							Amount:      amount,
+							UntilLose:   untilLose,
+						})
+					}
 					return
 				}
 			}

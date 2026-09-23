@@ -9,10 +9,11 @@ import (
 
 // Tests for the Count$Compare head in evalCountBody. The grammar is
 // `Compare <Name> <OP><threshold>.<ifTrue>.<ifFalse>`: <Name> resolves the
-// compared value (SVar body, else inline expression), the threshold is a
-// plain integer, and each branch is an integer literal or an SVar name.
-// Shapes with no parseable threshold (GEMePlus.3.2, LTZ.2.0) and
-// argument-less forms (Count$Compare TronCheck) fail closed to zero.
+// compared value (SVar body, else inline expression), the threshold and the
+// branches are each an operand (integer literal, SVar name, or inline
+// expression). Argument-less forms (Count$Compare TronCheck) fail closed to
+// zero; the two non-literal-threshold shapes (GEMePlus.3.2, LTZ.2.0) are
+// covered by count_compare_threshold_test.go.
 
 // addGraveyardSpell mints a spell fixture into seat 0's graveyard, the way
 // filter_test.go's board() places its myInstant/mySorcery.
@@ -128,16 +129,16 @@ func TestCompareHeadMissingSVarDegradesToZero(t *testing.T) {
 func TestCompareHeadExoticFormsFailClosed(t *testing.T) {
 	h, c := fixtureHost(t)
 	c.SVars = map[string]string{
-		// The corpus's no-parseable-threshold singletons and argument-less
-		// forms must keep degrading to zero -- no invented semantics.
+		// The corpus's argument-less forms and the compare-head-with-no-
+		// argument shapes must keep degrading to zero -- no invented
+		// semantics. (The two non-literal-threshold forms GEMePlus.3.2 and
+		// LTZ.2.0 now EVALUATE; see count_compare_threshold_test.go.)
 		"MePlus": "SVar$Me/Plus.4",
 		"Z":      "Count$ValidHand Card.YouOwn",
 	}
 	cases := []string{
-		"Count$Compare Opp GEMePlus.3.2", // teachings_of_the_archaics
-		"Count$Compare Y LTZ.2.0",        // anchor_to_reality
-		"Count$Compare TronCheck",        // argument-less
-		"Count$Compare W",                // argument-less
+		"Count$Compare TronCheck", // argument-less
+		"Count$Compare W",         // argument-less
 		"Count$Compare ReplacedCard$CardManaCost",
 		"Count$Compare", // bare head, no argument at all
 	}

@@ -375,7 +375,7 @@ func TestCavernOfSoulsChosenCreatureSpellCantBeCountered(t *testing.T) {
 	}
 	submitChoices(t, e, play.Index)
 	d := e.Pending()
-	if d == nil || d.Kind != decision.KChoose || d.Options[0].Kind != "type" {
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "etb" || d.Options[0].Kind != "type" {
 		t.Fatalf("type choice = %+v", d)
 	}
 	submitChoices(t, e, d.Options[0].Index)
@@ -428,7 +428,7 @@ func TestCavernOfSoulsChosenCreatureSpellCantBeCountered(t *testing.T) {
 	// Counter effect is resolved directly (the established cast_test.go
 	// pattern — TestFlashbackedSpellCounteredGoesToExile) against the stack
 	// object, Controller 1.
-	effects.Resolve(e, &effects.Ctx{Controller: 1, Targets: []state.Target{{Obj: gruntID}}},
+	effects.Resolve(e, &effects.Ctx{Controller: 1, Targets: []state.Target{{Obj: gruntID}}, TargetsOffered: true},
 		card(t, counter).Faces[0].SpellAbility())
 	passUntilStackEmpty(t, e, 20)
 	if o := e.G.Obj(gruntID); o.Zone != state.ZBattlefield {
@@ -450,7 +450,7 @@ func TestCavernOfSoulsChosenCreatureSpellCantBeCountered(t *testing.T) {
 	g2 := find2("Grunt", 0)
 	addMana(t, e2, 0, "C")
 	castFirst(t, e2, "cast")
-	effects.Resolve(e2, &effects.Ctx{Controller: 1, Targets: []state.Target{{Obj: g2}}},
+	effects.Resolve(e2, &effects.Ctx{Controller: 1, Targets: []state.Target{{Obj: g2}}, TargetsOffered: true},
 		card(t, counter).Faces[0].SpellAbility())
 	passUntilStackEmpty(t, e2, 20)
 	if o := e2.G.Obj(g2); o.Zone != state.ZGraveyard {
@@ -483,8 +483,8 @@ func TestAdaptiveAutomatonIsTheChosenType(t *testing.T) {
 	putCreature(t, e, 0, gob)
 	addMana(t, e, 0, "CCC")
 	castFirst(t, e, "cast")
-	d := e.Pending()
-	if d == nil || d.Kind != decision.KChoose || d.Options[0].Kind != "type" {
+	d := passUntilNonPriority(t, e, 40)
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "etb" || d.Options[0].Kind != "type" {
 		t.Fatalf("type choice = %+v", d)
 	}
 	idx := -1

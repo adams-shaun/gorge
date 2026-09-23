@@ -348,8 +348,9 @@ type CardView struct {
 	// Produces is what this card's mana abilities add to the pool when a
 	// tap-for-mana activation runs them, derived from the compiled abilities
 	// (cards.Face.ManaProduction) rather than land subtypes: a basic land's
-	// intrinsic {W}, a dual's {W}{U}, an "add any colour" source's resolved
-	// colourless, a colourless rock's {C}{C}. nil when the card has no mana
+	// intrinsic {W}, a dual's {W}{U}, an "add any colour" source's five
+	// colour alternatives (one unit each, flagged Any -- the colour is chosen
+	// when it is tapped, CR 106.1b), a colourless rock's {C}{C}. nil when the card has no mana
 	// ability at all, so a creature or a spell never pays for the six-entry
 	// array on the wire. It is a projected characteristic like ManaCost and
 	// Keywords -- a mana ability's production is a card fact every seat sees,

@@ -139,9 +139,20 @@ func classifyCounterUnlessSVarLines(t *testing.T, reg *cards.Registry) []string 
 // counterUnlessSVarCensus is the golden: every Counter SA in the compiled
 // corpus whose UnlessCost$ names a face SVar, one row per LINE, with the
 // verdict the shared fold gives it. Measured 2026-09-22 at FORGE_REF
-// 95f04e8a: 53 lines across 41 cards, 49 folded to a concrete amount and 4
+// 95f04e8a: 53 lines across 41 cards, 50 folded to a concrete amount and 3
 // still hard declines because their bodies (Count$Party/Plus, Count$Domain,
-// Number$/Plus.Y, Count$Teamwork) are outside the shared evaluator.
+// Count$Teamwork) are outside the shared evaluator.
+//
+// Re-measured 2026-09-23 (task api:Poison): Rune Snag's
+// `SVar:Z:Number$2/Plus.Y` MOVED from `decline` to `resolves:{2}`. That is
+// this diff's doing and is attributed here: `evalCountExprOK` grew the
+// literal `Number$<int>` arm (the Vraska, Betrayal's Sting differential
+// `SVar:Difference:Number$9/Minus.X` needs it), so Rune Snag's body is now
+// evaluable and its unless-cost prices the correct {2} plus {2} per Rune
+// Snag in a graveyard -- with none in any graveyard, {2}. The old `decline`
+// row was a fail-closed verdict on an unevaluable body, not a rules
+// judgement, so the movement is a fix rather than a regression. It is the
+// only row in this census the `Number$` arm moved.
 //
 // A card-NAME census cannot defend this population: ten cards carry the same
 // Counter body twice (once printed, once through the SVar the SubAbility
@@ -190,7 +201,7 @@ var counterUnlessSVarCensus = []string{
 	"Rethink#0|ability0|UnlessCost$X => resolves:{3}",
 	"Rites of Refusal#0|ability0.sub1|UnlessCost$Y => resolves:{3}",
 	"Rites of Refusal#0|svar[DBCounter]|UnlessCost$Y => resolves:{3}",
-	"Rune Snag#0|ability0|UnlessCost$Z => decline",
+	"Rune Snag#0|ability0|UnlessCost$Z => resolves:{2}",
 	"Scent of Brine#0|ability0.sub1|UnlessCost$ScentOfBrineX => resolves:{1}",
 	"Scent of Brine#0|svar[DBScentOfBrineCounter]|UnlessCost$ScentOfBrineX => resolves:{1}",
 	"Spectral Denial#0|ability0|UnlessCost$X => resolves:{2}",
