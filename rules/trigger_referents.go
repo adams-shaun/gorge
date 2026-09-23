@@ -68,11 +68,16 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		if o := e.G.Obj(e.inFlightDamageSource()); o != nil && o.IsAttacking {
 			c.DefendingPlayer = player(o.Attacking)
 		}
-	case "CounterAddedOnce":
+	case "CounterAdded", "CounterAddedOnce":
 		// The batch size the body reads as TriggerCount$Amount (Simic
-		// Ascendancy's "put that many growth counters"): one CounterChange
+		// Ascendancy's "put that many growth counters" on CounterAddedOnce,
+		// and the same read on a plain CounterAdded line): one CounterChange
 		// event carries the whole placement batch in Amount, and ev.Obj is
-		// the permanent the counters landed on.
+		// the permanent the counters landed on. Both modes are dispatched by
+		// the same matcher (counterAddedMatches), so both must bind the same
+		// batch role -- the crossing gate is the matcher's job, the amount the
+		// body reads is this one, and a plain CounterAdded trigger that reads
+		// "that many" had nothing to read before this case named it.
 		c.TriggerCard = ev.Obj
 		c.TriggerAmount = ev.Amount
 	case "CounterPlayerAddedAll":
