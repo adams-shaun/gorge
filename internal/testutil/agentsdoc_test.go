@@ -19,13 +19,14 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	// The merged table measures 41 rows. This branch's CantBlockUnless
-	// closure (6e77a1e8), main's First-Strike Damage closure (acc7878d) and
-	// main's replicate-count-bound closure (0836163f) join the main-side
-	// layer-4 (63c07260), mulligan-redraw (7c4182ff), non<X> (d56e404f),
-	// NameCard (78d3b764), battle-protector (f76f59fd), and earlier
-	// pc1/each1/CR 616.1 closures.
-	knownApproximationRows = 41
+	// The merged table currently measures 40 rows. This includes this branch's
+	// CantBlockUnless closure (6e77a1e8) and token-replacement closure, main's
+	// First-Strike Damage closure (acc7878d), layer-4 filter-grammar closure
+	// (63c07260), mulligan-redraw-deferral closure (7c4182ff), non<X> closure
+	// (d56e404f), NameCard ChooseFromList$/AtRandom$ closure (78d3b764),
+	// battle-protector closure (f76f59fd), and earlier pc1/each1/CR 616.1
+	// closures.
+	knownApproximationRows = 40
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.

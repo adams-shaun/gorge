@@ -75,15 +75,10 @@ func init() { Register("Token", effToken) }
 // Ironfoot and 5 more corpus carriers, all `DB$ Token` shapes) takes the SAME
 // branch. Forge's own distinction is original-token-vs-post-replacement
 // mint, and in this build that distinction collapses in favour of the flag:
-// every mint this call proposes IS an original token, because the per-emitted
-// event `want` capture runs before any token replacement could rewrite it and
-// replacement EXTRA mints get no riders at all (the tokrepl1 contract --
-// Academy Manufactor remembers only its first mint). One documented
-// divergence stays: under a Type$ ReplaceToken rewrite (Divine Visitation)
-// `g.Obj(want)` is the REPLACED mint, so the remembered object is the
-// replaced token, not the token the script named. All 8 carriers are plain
-// `DB$ Token` lines with no `R:` replacement in reach (measured at the
-// corpus pin), so the divergence is corpus-unreachable today.
+// every mint this call proposes IS an original token, and EmitTokenCreate
+// hands back every mint the event actually created, so each is remembered.
+// All 8 carriers are plain `DB$ Token` lines with no `R:` replacement in
+// reach (measured at the corpus pin), so the collapse is corpus-inert today.
 // tokenOwnerPlayers resolves a TokenOwner$ value through the ordinary
 // Defined$ player-selector grammar (definedSpec), the one resolver every
 // player-valued parameter in this package reads. Player entries pass
@@ -409,11 +404,9 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 	// resolve is loud (one Note for the whole call, never per mint) and the
 	// set is skipped -- the token enters WITHOUT the counters, the honest
 	// degrade that for a 0/0 script means the zero-toughness SBA sweeps it
-	// visibly rather than a silent wrong count. The minted-object guard is
-	// the same g.Obj(want) identity check the other riders read: under a
-	// token replacement the counters land on the first mint only, the
-	// tokrepl1 extra-mints-get-no-riders contract this file's
-	// RememberTokens$ doc already records.
+	// visibly rather than a silent wrong count. The riders below run once per
+	// mint EmitTokenCreate returned, so a CreateToken replacement's extras
+	// each enter with the counters too -- not just the first mint.
 	withKind := strings.TrimSpace(sa.Params["WithCountersType"])
 	var withAmt int32
 	var withOK bool
@@ -487,72 +480,96 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 		}
 		for _, owner := range owners {
 			for i := int32(0); i < n; i++ {
-				// want is the ID the new object will get if TokenCreate's own
-				// Apply case actually mints one (state.Game.AddObject assigns
-				// NextID, then increments it) -- a direct, positive identity
-				// check, rather than inferring a mint happened from g.Objs
-				// having grown by watching its length before and after.
+				// want is the ID the new object gets if TokenCreate's own Apply
+				// case actually mints one (state.Game.AddObject assigns NextID,
+				// then increments it) -- a direct, positive identity check,
+				// rather than inferring a mint happened from g.Objs having grown
+				// by watching its length before and after. EmitTokenCreate
+				// returns EVERY object the emit created: an ordinary emit the
+				// single mint, a CreateToken replacement the whole rewritten
+				// plan (Divine Visitation's angel, Doubling Season's pair, Xorn's
+				// original-plus-one), so each rider below lands on every mint the
+				// resolution actually produced -- not just the first.
 				want := g.NextID
-				h.Emit(events.Event{Kind: events.TokenCreate, Player: owner, Text: key})
-				if len(tokenMemory) > 0 && g.Obj(want) != nil {
-					ids := make([]state.ObjID, 0, len(tokenMemory))
-					for _, t := range tokenMemory {
-						if t.IsPlayer {
-							ids = append(ids, state.PlayerRef(t.Player))
-						} else if t.Obj != 0 {
-							ids = append(ids, t.Obj)
+				mints := h.EmitTokenCreate(events.Event{Kind: events.TokenCreate, Player: owner, Text: key})
+				if len(mints) == 0 {
+					// Nothing landed (an unknown key or a plan rounded down to
+					// zero): keep the single predicted id so the g.Obj guards
+					// below no-op exactly as before and no rider fires.
+					mints = []state.ObjID{want}
+				}
+				for _, want := range mints {
+					if g.Obj(want) == nil {
+						continue
+					}
+					// A CreateToken replacement may have put this mint under a
+					// controller other than the original creator (Crafty Cutpurse);
+					// the Tap/TokenAttacks provenance reads the object's real
+					// controller, which for the ordinary path is owner.
+					mintOwner := owner
+					if o := g.Obj(want); o != nil {
+						mintOwner = o.Controller
+					}
+					if len(tokenMemory) > 0 {
+						ids := make([]state.ObjID, 0, len(tokenMemory))
+						for _, t := range tokenMemory {
+							if t.IsPlayer {
+								ids = append(ids, state.PlayerRef(t.Player))
+							} else if t.Obj != 0 {
+								ids = append(ids, t.Obj)
+							}
+						}
+						if len(ids) > 0 {
+							h.Emit(events.Event{Kind: events.Choose, Obj: want, Counter: "remembered", IDs: ids})
 						}
 					}
-					if len(ids) > 0 {
-						h.Emit(events.Event{Kind: events.Choose, Obj: want, Counter: "remembered", IDs: ids})
+					if remember {
+						c.Remembered = append(c.Remembered, state.Target{Obj: want})
+						eventRemember(h, c, want)
 					}
-				}
-				if remember && g.Obj(want) != nil {
-					c.Remembered = append(c.Remembered, state.Target{Obj: want})
-					eventRemember(h, c, want)
-				}
-				if withOK && g.Obj(want) != nil {
-					h.Emit(events.Event{Kind: events.CounterChange, Obj: want, Counter: withKind, Amount: withAmt})
-				}
-				if tapped && g.Obj(want) != nil {
-					h.Emit(events.Event{Kind: events.Tap, Obj: want, Player: owner, Text: "entered tapped"})
-				}
-				if attackCtx && g.Obj(want) != nil {
-					h.Emit(events.Event{Kind: events.TokenAttacks, Obj: want, Player: owner,
-						IDs: []state.ObjID{state.ObjID(attackDefender)}, Text: "entered attacking"})
-				}
-				if (hasPow || hasTgh) && g.Obj(want) != nil && g.Obj(want).Face() != nil {
-					// The absent side keeps the token script's printed value. Every
-					// corpus script a dynamic side rides (u_x_x_illusion, ...) is a
-					// characteristic-defining */* whose printed read is 0, so both
-					// sides are effectively always named together.
-					pow, tgh := int32(g.Obj(want).Face().Power()), int32(g.Obj(want).Face().Toughness())
-					if hasPow {
-						pow = setPow
+					if withOK {
+						h.Emit(events.Event{Kind: events.CounterChange, Obj: want, Counter: withKind, Amount: withAmt})
 					}
-					if hasTgh {
-						tgh = setTgh
+					if tapped {
+						h.Emit(events.Event{Kind: events.Tap, Obj: want, Player: mintOwner, Text: "entered tapped"})
 					}
-					h.AddContinuous(state.ContinuousEffect{
-						Source:       want,
-						Controller:   owner,
-						Affects:      "Card.Self",
-						Layer:        state.LPT,
-						Sub:          state.SubSet,
-						SetPower:     pow,
-						SetToughness: tgh,
-						HasSet:       true,
-						Permanent:    true,
-					})
+					if attackCtx {
+						h.Emit(events.Event{Kind: events.TokenAttacks, Obj: want, Player: mintOwner,
+							IDs: []state.ObjID{state.ObjID(attackDefender)}, Text: "entered attacking"})
+					}
+					if (hasPow || hasTgh) && g.Obj(want).Face() != nil {
+						// The absent side keeps the token script's printed value. Every
+						// corpus script a dynamic side rides (u_x_x_illusion, ...) is a
+						// characteristic-defining */* whose printed read is 0, so both
+						// sides are effectively always named together.
+						pow, tgh := int32(g.Obj(want).Face().Power()), int32(g.Obj(want).Face().Toughness())
+						if hasPow {
+							pow = setPow
+						}
+						if hasTgh {
+							tgh = setTgh
+						}
+						h.AddContinuous(state.ContinuousEffect{
+							Source:       want,
+							Controller:   mintOwner,
+							Affects:      "Card.Self",
+							Layer:        state.LPT,
+							Sub:          state.SubSet,
+							SetPower:     pow,
+							SetToughness: tgh,
+							HasSet:       true,
+							Permanent:    true,
+						})
+					}
+					if attachTo != 0 && g.Obj(attachTo) != nil {
+						emitAttach(h, want, attachTo)
+					}
+					// AtEOT$ (Valduk, Zektar Shrine Expedition: "exile those tokens at
+					// the beginning of the next end step"): remember the predicted mint
+					// id (the CopyPermanent pattern); the shared reader schedules the
+					// whole minted set in one call after the loop.
+					minted = append(minted, want)
 				}
-				if attachTo != 0 && g.Obj(want) != nil && g.Obj(attachTo) != nil {
-					emitAttach(h, want, attachTo)
-				}
-				// AtEOT$ (Valduk, Zektar Shrine Expedition: "exile those tokens at
-				// the beginning of the next end step"): remember the predicted mint
-				// id (the CopyPermanent pattern); the shared reader schedules the
-				// whole minted set in one call after the loop.
-				minted = append(minted, want)
 			}
 		}
 	}

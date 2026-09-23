@@ -2580,33 +2580,45 @@ The following 77-line report is the sibling ticket `cli-20260922T225141Z-5641f97
 
 ## Result
 
-Integrated `main` (`1be022ebce54f7adc60a491e961dd7808e84e971`) into `wt/cli-20260922T225141Z-5641f97b` with a merge commit. The requested branch fix `0836163f` is retained. No code outside the reported merge was authored.
+Integrated `main` into `wt/cli-20260922T225141Z-22391c4d` with merge commit
+`00d48a32`. The branch's reviewed token-replacement work and main's changes are
+both retained. The only conflicted source file was
+`internal/testutil/agentsdoc_test.go`.
 
-## Conflict
+## Conflict resolution
 
 ### `internal/testutil/agentsdoc_test.go`
 
-- Branch side changed `knownApproximationRows` from 50 to 49 when its repeatable-cost approximation row was deleted.
-- Main side had its own approximation closures and declared 43 rows in its explanatory comment and constant.
-- The merged `AGENTS.md` contains main's deletions plus the branch's repeatable-cost row deletion. Counting the actual merged table gives 42 data rows, so resolved the constant to 42 and described the combined result. This preserves both sides' intended ratchet updates.
+- The branch side recorded the table count and closures for its token-replacement
+  approximation deletion (and its prior mulligan-redraw closure).
+- Main's side recorded the same constant but a different set of main-side
+  closures, including First-Strike Damage and the layer-4 filter grammar.
+- Kept both sides' intent in the explanatory history and set
+  `knownApproximationRows` to 40, the current data-row count in the merged
+  `AGENTS.md` after retaining the branch's `(tokrepl1)` deletion and main's
+  deletions. The table ratchet test passed at that value.
 
-`AGENTS.md` and `rules/cast.go` auto-merged without conflict. Main's changes to the remaining files were incorporated by the merge; no further conflict resolution was needed.
+The conflicted file was staged and the merge completed. Other main changes were
+automatically integrated. `.ds4/report-mrg1.md` arrived in the merge from a
+sibling integration report; this file is the report path required by this
+work item, so it was replaced with this integration's report.
 
 ## Commands and output
 
-- `git status --short --branch; git status`:
-  `## wt/cli-20260922T225141Z-5641f97b`; clean before integration.
-- `git merge main`:
-  `CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go`; `AGENTS.md` and `rules/cast.go` auto-merged.
-- Counted the data rows in the merged `AGENTS.md`: **42**; main's table before the branch-only deletion had 43.
+- `git status --short --branch; git rev-parse --show-toplevel; git log -5 --oneline --decorate`:
+  clean at start on `wt/cli-20260922T225141Z-22391c4d`, at `f89770be`.
+- `git merge --no-edit main`:
+  `CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go`;
+  merge otherwise auto-merged.
 - `git diff --check`: no output (passed).
-- `.cards` check: `.cards exists`.
-- `go test ./internal/testutil -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort'`:
-  `ok github.com/adams-shaun/gorge/internal/testutil 0.004s`
-- `go test ./rules -run 'TestReplicateCountBound|TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`:
-  `ok github.com/adams-shaun/gorge/rules 0.777s`
-
-The requested post-merge trigger/deck/parameter/count-head ratchets and the branch's repeatable-cost tests passed. No uncertainty remains.
+- `.cards` check: present as a symlink to `/home/sadams/projects/gorge/.cards`.
+- `git -c core.editor=true merge --continue`:
+  `[wt/cli-20260922T225141Z-22391c4d 00d48a32] Merge branch 'main' into wt/cli-20260922T225141Z-22391c4d`.
+- `go test -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort' ./internal/testutil/`:
+  `ok github.com/adams-shaun/gorge/internal/testutil 0.001s`.
+- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`:
+  `ok github.com/adams-shaun/gorge/rules 0.792s`.
+- Final tree status before writing this report: clean after merge commit.
 
 ## Issues
 
@@ -2714,3 +2726,48 @@ No new engine issue found. Carried note from the sibling's report (unchanged, ou
 this conflict): `legal.go`'s `offerCastable` remains pool-only, so a replicate option
 can be withheld when only convoke would fund it (documented in `0836163f`'s commit
 message).
+
+---
+
+## Round 5 — main at 4a7bb2fe (2026-09-23)
+
+Main advanced from `fead1e59` to `4a7bb2fe`: the sibling ticket
+`cli-20260922T225141Z-22391c4d` merged (token-replacement `Optional$` ask,
+`Type$ ReplaceController`, `Amount$` and per-mint riders — commits `bc3f03ab`,
+`f89770be`, `799ac002`), plus sibling `agent-20260919T203859Z-269892c3`'s
+filter combat-history predicates (`IsGoaded`, controller-dealt-combat-damage).
+Ran `git merge main --no-edit` on this branch; two conflicts:
+
+### `.ds4/report-mrg1.md`
+
+The same canonical-path collision as rounds 2 and 4: main's copy carries the
+sibling ticket's report tail. Kept this ticket's archive (stages 2–4) and
+preserved main's side verbatim under the header below, per the established
+convention.
+
+### `internal/testutil/agentsdoc_test.go`
+
+See the round-5 `knownApproximationRows` record appended below this file's
+owner section. Resolved against the measured merged `AGENTS.md` table.
+
+### Preserved main-side report record (sibling `22391c4d`)
+
+> No new unfixed issue was found while resolving the merge. The token-replacement
+> implementation's out-of-scope remainder is recorded in the branch's ticket
+> report/commit history; this conflict resolution did not alter engine behavior
+> outside retaining main's changes.
+
+### Commands and outputs
+
+- `git status` on arrival: clean at `895da057`, nothing in flight (prior round's
+  rebase was aborted by the daemon).
+- `git merge main --no-edit`:
+  `Auto-merging .ds4/report-mrg1.md / CONFLICT (content): Merge conflict in .ds4/report-mrg1.md`
+  `Auto-merging AGENTS.md / Auto-merging effects/misc.go / Auto-merging internal/testutil/agentsdoc_test.go / CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go`
+  `Automatic merge failed; fix conflicts and then commit the result.`
+
+### Issues
+
+No new engine issue found in this round. The carried note stands: `legal.go`'s
+`offerCastable` remains pool-only, so a replicate option can be withheld when
+only convoke would fund it (documented in `0836163f`'s commit message).

@@ -459,9 +459,16 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// communal_brewing, wildgrowth_archaic, task wildgrowth1): the
 		// Updated-shaped MoveZone dispatch already applies the original move,
 		// fires entry triggers, then runs the body, and effPutCounter handles
-		// ETB$ True on the entered object. Every OTHER Moved body (the
+		// ETB$ True on the entered object. Event$ CreateToken with a ReplaceToken
+		// body is the third live class (Crafty Cutpurse's Type$ ReplaceController
+		// OppCreatEnters, Kaya, Geist Hunter's Type$ Amount doubler): the token
+		// replacement path (rules/replacement.go's continueCreateTokenReplacements)
+		// collects Effect-created matches through the same replMatch shape and
+		// re-checks each body's ValidToken$ per plan mint, so a registered
+		// ReplaceToken body is fully resolved there and no replaced mint is lost.
+		// Every OTHER Moved body (the
 		// destination-changing ChangeZone/Tap/Clone family, 44 measured
-		// files) and every Draw/ProduceMana/CreateToken body keeps its loud
+		// files) and every Draw/ProduceMana body keeps its loud
 		// Note: a half-modelled Replaced-result could LOSE the moved object.
 		// The effect's own capture state rides every live registration:
 		// Remembered (the trigger's RememberObjects$ card, what the body's
@@ -471,7 +478,8 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// without it the effect would upgrade EVERY later creature cast this
 		// turn), and the frozen SetChosenNumber$ binding.
 		if body != "" && (event == "DamageDone" ||
-			(event == "Moved" && replacementBodyAPI(body) == "PutCounter")) {
+			(event == "Moved" && replacementBodyAPI(body) == "PutCounter") ||
+			(event == "CreateToken" && replacementBodyAPI(body) == "ReplaceToken")) {
 			h.AddContinuous(state.ContinuousEffect{
 				Source: c.Source, Controller: c.Controller,
 				UntilEOT: effectUntilEOT(h, c.Source, rawDur), Duration: dur,
