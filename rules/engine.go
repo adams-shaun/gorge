@@ -1994,6 +1994,15 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		if o := e.G.Obj(ev.Obj); o != nil {
 			defenseBefore = o.Counter("DEFENSE")
 		}
+		// CR 608.2b/h departure boundary: this is the last moment a departing
+		// target of the resolving chain still carries the counters the
+		// look-back reads, so refresh the chain's Ctx.TargetCountersLKI HERE --
+		// after the replacement pass settled the final move, before events.Apply
+		// clears the counters. A chained effect that added or removed counters
+		// earlier in the same resolution must be read as it was immediately
+		// before the zone change, not as the resolution-start snapshot
+		// (effects.Resolve's entry capture) recorded it.
+		e.snapshotDepartingTargetCounters(ev.Obj)
 	}
 	stackLen := len(e.G.Stack)
 	// Record only the final event after replacement selection. The object

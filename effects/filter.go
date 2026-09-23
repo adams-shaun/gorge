@@ -333,6 +333,17 @@ func init() {
 	// StrictlyOther is Forge's other spelling of the same "not the source"
 	// test Other already implements.
 	predicates["StrictlyOther"] = predicates["Other"]
+	// StrictlySelf is the mirror spelling of the same source-identity read:
+	// the candidate is exactly the spec source object itself, read live. The
+	// measured carriers are trigger gates on the source card itself -- 35
+	// `IsPresent$ Card.StrictlySelf` (the graveyard-reanimate family's
+	// "if it's on the battlefield" presence gate: Animate Dead, Dance of the
+	// Dead, Necromancy, Genesis, ...) and 4 `ValidCard$ Card.StrictlySelf` --
+	// where the live id read is the whole meaning. The 3
+	// `ValidSA$ Spell.ManaFromCard.StrictlySelf` spellcast-provenance
+	// carriers stay fail closed on their own unread ManaFromCard word, so
+	// this alias cannot reach them.
+	predicates["StrictlySelf"] = predicates["Self"]
 	// EffectSource is the Effect-delivered spelling of Self: the effect's own
 	// source object (Card.EffectSource in a StaticAbilities$ body's
 	// ValidCard$). The spec is evaluated with src = the registered effect's
@@ -545,6 +556,24 @@ func sharesTypeArg(p string) (name, arg string, ok bool) {
 		return name, arg, true
 	}
 	return "", "", false
+}
+
+// SpecUsesConvokedAmount reports whether spec reads the `Convoked$Amount`
+// count head (or any future `Convoked$<Property>` sibling) -- Forge's spelling
+// for "the number of creatures that convoked it" (CR 702.66). It is the
+// count-head sibling of SpecUsesConvokedReferent and the ONE classifier the
+// provenance gate (rules' faceWantsConvoked) shares, so a face whose SVar or
+// ability parameter reads the count always has Object.Convoked captured at
+// cast time and a face that does not stays byte-identical. The corpus writes
+// the body BOTH with and without the `Count$` prefix
+// (`SVar:X:Convoked$Amount`, `SVar:X:Convoked$Amount/Twice`), so the match is
+// on the `Convoked$` head-family marker itself, not on a `Count$` prefix the
+// bare form omits -- the same tolerance that makes the next `Convoked$<X>`
+// head work without a second gate arm. `Defined$ Convoked` and the
+// `...With Convoked` referent do NOT contain `Convoked$`, so neither arm this
+// replaces is shadowed.
+func SpecUsesConvokedAmount(spec string) bool {
+	return strings.Contains(spec, "Convoked$")
 }
 
 // SpecUsesConvokedReferent reports whether spec is a filter that names the
