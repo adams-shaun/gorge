@@ -72,6 +72,61 @@ func TestMemoryLeakCompoundFetchPlayerChoosesFromBothZones(t *testing.T) {
 	if got := h.g.Obj(hand.ID).Zone; got != state.ZHand {
 		t.Fatalf("unchosen hand card zone = %v, want hand", got)
 	}
+	assertEladamriChosenCardMovesFromEitherOrigin(t)
+}
+
+// Eladamri's real ChooseCard ability has already picked one card before its
+// ChangeZone sub runs. Both possible origin zones must admit that exact card,
+// without a second (unrestricted) hidden search.
+func assertEladamriChosenCardMovesFromEitherOrigin(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	card, ok := reg.Lookup("Eladamri, Korvecdal")
+	if !ok {
+		t.Fatal("corpus missing Eladamri, Korvecdal")
+	}
+	var move *cards.SA
+	for _, ability := range card.Faces[0].Abilities {
+		if ability.API == "ChooseCard" && ability.Sub != nil &&
+			ability.Sub.Params["Origin"] == "Library,Hand" && ability.Sub.Params["Defined"] == "ChosenCard" {
+			move = ability.Sub
+			break
+		}
+	}
+	if move == nil {
+		t.Fatal("corpus pin moved: Eladamri's ChooseCard sub missing")
+	}
+	for _, zone := range []state.Zone{state.ZHand, state.ZLibrary} {
+		t.Run(zone.String(), func(t *testing.T) {
+			h := &askHost{}
+			h.g = state.NewGame(names(2))
+			source := h.g.AddObject(card, 0)
+			source.Zone = state.ZBattlefield
+			chosen := h.g.AddObject(mkCard(t, "Name:Chosen Elf\nTypes:Creature Elf\nPT:2/2\nOracle:x\n"), 0)
+			chosen.Zone = zone
+			distractor := h.g.AddObject(mkCard(t, "Name:Library Elf\nTypes:Creature Elf\nPT:2/2\nOracle:x\n"), 0)
+			distractor.Zone = state.ZLibrary
+			h.g.SetZone(zone, 0, []state.ObjID{chosen.ID})
+			if zone == state.ZLibrary {
+				h.g.SetZone(zone, 0, []state.ObjID{chosen.ID, distractor.ID})
+			} else {
+				h.g.SetZone(state.ZLibrary, 0, []state.ObjID{distractor.ID})
+			}
+			if chosen.Zone != zone || chosen.ID == distractor.ID || distractor.Zone != state.ZLibrary {
+				t.Fatal("Eladamri candidates not in distinct chosen/distractor positions")
+			}
+			c := &Ctx{Source: source.ID, Controller: 0, Chosen: []state.Target{{Obj: chosen.ID}}, ChosenValid: true}
+			effChangeZone(h, c, move)
+			if h.asked != nil {
+				t.Fatalf("second, unrestricted choice: %+v", h.asked)
+			}
+			if got := h.g.Obj(chosen.ID).Zone; got != state.ZBattlefield {
+				t.Fatalf("chosen card zone = %v, want battlefield", got)
+			}
+			if got := h.g.Obj(distractor.ID).Zone; got != state.ZLibrary {
+				t.Fatalf("distractor zone = %v, want library", got)
+			}
+		})
+	}
 }
 
 // Player-valued Defined$ and ValidTgts$ selectors share the same fetch
