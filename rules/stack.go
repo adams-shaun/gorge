@@ -2684,9 +2684,14 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 				}
 				e.payCast()
 			} else {
+				pc.rootOpts = append([]decision.Option(nil), ordered...)
 				e.payCast()
 				if pc.stackObj != 0 {
 					e.recordChosenTargets(pc.stackObj, ordered, false)
+					e.cast = pc
+					e.fireManaSpentTriggers(events.Event{Kind: events.AbilityPush, Obj: pc.card,
+						Player: pc.player, Amount: int32(pc.ability)}, nil)
+					e.cast = nil
 				}
 			}
 		} else {

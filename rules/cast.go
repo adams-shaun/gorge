@@ -7071,10 +7071,12 @@ func (e *Engine) finishTargetedCast(pc *pendingCast, player state.PlayerID) {
 		// payCast closes the proposal after creating the stack object. Keep its
 		// completed target bindings available while the deferred spend rider
 		// matches, then close it again before control returns to the host.
-		e.cast = pc
-		e.fireManaSpentTriggers(events.Event{Kind: events.AbilityPush, Obj: pc.card,
-			Player: pc.player, Amount: int32(pc.ability)}, nil)
-		e.cast = nil
+		if pc.stackObj != 0 {
+			e.cast = pc
+			e.fireManaSpentTriggers(events.Event{Kind: events.AbilityPush, Obj: pc.card,
+				Player: pc.player, Amount: int32(pc.ability)}, nil)
+			e.cast = nil
+		}
 	} else {
 		e.payCast()
 	}
@@ -7763,6 +7765,12 @@ func (e *Engine) payCast() {
 			e.captureNamedDamageSourceLKI(pc.stackObj, pc.card, sourceKeywordLKI, sourceControllerLKI)
 			break
 		}
+		if pc.rootOpts == nil {
+			// No target-recording continuation: dispatch at the completed
+			// AbilityPush boundary while the spent-source capture is still live.
+			e.fireManaSpentTriggers(events.Event{Kind: events.AbilityPush, Obj: pc.card,
+				Player: pc.player, Amount: int32(pc.ability)}, nil)
+		}
 		e.cast, e.choosing = nil, chooseNone
 		return
 	}
@@ -8189,7 +8197,9 @@ func (e *Engine) payCast() {
 		castLKI = e.deferredPushLKI
 	}
 	e.fireDeferredCastTrigger()
-	e.fireManaSpentTriggers(castEv, castLKI)
+	if castEv.Kind == events.PutOnStack {
+		e.fireManaSpentTriggers(castEv, castLKI)
+	}
 	// Cascade (CR 702.85, task cascade1): one cast trigger per Cascade
 	// instance, queued AFTER the ordinary cast triggers (deterministic
 	// append; the drain's APNAP ordering places them). The queue emits
