@@ -103,4 +103,3 @@ The previous report in this file documented a conflict on another task branch an
 - `.cards` was present as a symlink to `/home/sadams/projects/gorge/.cards`.
 
 No unresolved merge conflict remains. Note: the issue history records a prior full module gate failure in `TestCR704NoLifeSBAInsideSmallpoxDiscard`; this merge-resolution pass did not rerun or address that unrelated engine failure.
-
