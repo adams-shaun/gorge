@@ -1,67 +1,51 @@
-# trig:SearchedLibrary implementation report
+# RollDice cost implementation report
 
 ## Changes
 
-- `events/event.go`, `events/apply.go`: appended `SearchedLibrary` after the existing final event kind and made it an Apply no-op marker. Existing event ordinals remain unchanged.
-- `effects/zone.go`: `applyLibrarySearch` emits one marker per completed searched library, including searches with no eligible card. It is distinct from card movement, so ordinary library moves cannot masquerade as searches.
-- `rules/trigmatch_cards.go`, `rules/trigger_eligibility.go`, `rules/trigger_match.go`: implemented and registered `Mode$ SearchedLibrary`, matching the marker's searched player and source card against `ValidPlayer$` and `ValidCard$`. Added the trigger's non-API support registration.
-- `rules/trigmatch_registry_test.go`, `rules/trigger_eligibility_test.go`: joined the post-split matcher ratchet and event eligibility matrix.
-- `rules/searched_library_trigger_test.go`: added an end-to-end test using Evolving Wilds to perform a real search and River Song as the opponent's trigger source; it asserts both are correctly situated, exactly one marker and trigger push occur, and the game replays.
+- `rules/mana.go`: added a `Cost.RollDice` part and narrow `RollDice<N/Sides/XVar>` parser. The supported `X` form is recorded as `N`, `Spec` (sides), and `Dyn`; malformed/unsupported instances degrade to one generic mana and `Unknown: [RollDice]`.
+- `rules/cast.go`: ability payment now uses the seeded engine RNG for each cost die, emits the canonical `effects.DieRollNote`, and binds the last result to `pc.x` before the ability's existing pay-time `CastInfo`.
+- `rules/rolldice_cost_test.go`: added parser/malformed-input checks and a real Clay Golem end-to-end pin. It confirms the object starts as an unmarked battlefield permanent, resolves a d8 cost roll, gains the matching counters and Monstrous mark, and pushes its BecomeMonstrous trigger. The test checks the canonical per-die Note directly as the cost-side `RolledDie`/`RolledDieOnce` trigger encoding rather than staging a second carrier.
+- `rules/monstrosity_test.go`: removed the now-false zero-amount Clay Golem pin; its replacement is the end-to-end test above.
 
-Structural choice: the trigger keys off a dedicated logged marker emitted by the shared library-search completion function, not search-specific card MoveZone records. This covers the existing and future library-search callers uniformly and avoids false positives from ordinary card movement.
-
-The corpus prevalence premise held: `grep -Rln 'Mode\$ SearchedLibrary' .cards/cardsfolder | wc -l` returned `4`.
-
-## Verification
-
-Corpus was present in this worktree (`.cards` existed; corpus-dependent test did not skip).
-
-- `go test -run 'TestRiverSongOpponentSearchFiresOnce$|TestTriggerEligibilityEventMatrix$|TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched$' ./rules/`
-
-  ```text
-  ok   github.com/adams-shaun/gorge/rules  0.632s
-  ```
-
-- `make report`
-
-  ```text
-  corpus: 95f04e8a04c8925fa97cb226fc3341cabcc90a53 @ 95f04e8a04c8925fa97cb226fc3341cabcc90a53 (GPL-3.0, 33669 files)
-  cards: 33667  playable: 29673 (88.1%)
-  tokens: 839
-  ```
-
-  The report no longer lists `trig:SearchedLibrary` among missing primitives. `forgec` rebuilt the IR because the ignored cache was older than the current IR version, then reported from the corpus.
-
-- `go test ./internal/archtest/`
-
-  ```text
-  ok   github.com/adams-shaun/gorge/internal/archtest  3.339s
-  ```
-
-- `go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/`
-
-  ```text
-  ok   github.com/adams-shaun/gorge/cmd/botbench  1.157s
-  ```
-
-- `gofmt -l <changed Go files>`: no output.
-- `go run ./cmd/gentypes -check`: exit 0, no output.
-- `git diff --check`: exit 0, no output.
+`.cards` was present in this worktree. Re-measured corpus prevalence: `/usr/bin/grep -rlE 'Cost\\$[^|]*RollDice' .cards/cardsfolder` found exactly one card, `Clay Golem`.
 
 ## Fails without the fix
 
-Saved `effects/zone.go`, removed only the SearchedLibrary marker emission, ran the regression, then restored the file and verified it byte-identically with `cmp`.
-
-Command: `go test -run '^TestRiverSongOpponentSearchFiresOnce$' ./rules/`
+Saved `rules/mana.go`, temporarily removed only its RollDice parser branch (leaving the field/payment code intact), ran the Clay Golem test, then restored and `cmp`-verified the file. Output:
 
 ```text
---- FAIL: TestRiverSongOpponentSearchFiresOnce (0.88s)
-    searched_library_trigger_test.go:44: completed Evolving Wilds search emitted 0 SearchedLibrary markers, want 1
+without_fix_exit=1 restore_cmp=0
+--- FAIL: TestClayGolemRollDiceCostAndMonstrosity (0.00s)
+    rolldice_cost_test.go:15: RollDice cost parse = {Colored:[0 0 0 0 0 0] Generic:7 Life:0 X:0 Hybrid:[] Phyrexian:[] Twobrid:[] HybridPhyrexian:[] Snow:0 Tap:false Sac:[] Discard:[] SubCounter:[] AddCounter:[] Exile:[] Reveal:[] RevealChosen:[] Behold:[] TapPermanent:[] Blight:[] Forage:false Draw:[] Energy:[] LifeX:[] LifeHalfUp:false DamageYou:[] Return:[] PutToLib:[] MoveToGrave:[] Mill:[] Evidence:[] RollDice:[] Unknown:[RollDice]}, want {6} and one modelled roll
 FAIL
-FAIL github.com/adams-shaun/gorge/rules 0.909s
+FAIL    github.com/adams-shaun/gorge/rules    0.002s
 FAIL
+```
+
+## Verification
+
+Targeted suite (only the brief's permitted targeted command):
+
+```text
+$ go test -run 'TestClayGolem|TestMonstrosity|TestRolledDie' ./rules/
+ok  github.com/adams-shaun/gorge/rules  0.645s
+```
+
+Required gates:
+
+```text
+$ go test ./internal/archtest/
+ok  github.com/adams-shaun/gorge/internal/archtest  3.660s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  github.com/adams-shaun/gorge/cmd/botbench  1.366s
+
+$ gofmt -l rules/mana.go rules/cast.go rules/rolldice_cost_test.go rules/monstrosity_test.go
+[no output]
+$ go run ./cmd/gentypes -check
+[no output]
 ```
 
 ## Issues
 
-None found outside the requested trigger implementation; no unaddressed deviations.
+No additional defects found or left open in the requested cost-token scope. The cost-side roll uses the existing canonical roll Note, so existing `RolledDie` and `RolledDieOnce` matching consumes it without new trigger registration.
