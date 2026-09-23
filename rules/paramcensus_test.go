@@ -142,7 +142,12 @@ var baseBuckets = map[string]bucket{
 	// ResolvedLimit$ (the per-turn resolution cap's increment eligibility).
 	"rt": bTrig,
 	"s":  bStat, "st": bStat, "sv": bStat,
-	"r": bRepl, "repl": bRepl, "m.repl": bRepl, "c.repl": bRepl,
+	// pst.Static is manaConversionParts' PileStaticAt element (state.PileStatic
+	// -- the merged-under-card static walk): its Static is a cards.Static whose
+	// Params (EffectZone$) is the same static parameter map every bStat entry
+	// covers.
+	"pst.Static": bStat,
+	"r":          bRepl, "repl": bRepl, "m.repl": bRepl, "c.repl": bRepl,
 	"sa": bSA, "ab": bSA, "sub": bSA, "cp": bSA, "copy": bSA,
 	// a is faceWantsConvoked's compiled-ability walk (the face's Abilities
 	// slice): each element is a *cards.SA whose Defined$ parameter the
@@ -2206,18 +2211,39 @@ var (
 	censusOnce  sync.Once
 	censusBase  censusResult
 	censusReads *derivedReads
+	// censusGuardErrs carries the rot-guard findings out of the memoised
+	// Once (nil when the guard passed). No t.Fatal-family call may run
+	// inside censusOnce.Do: a Fatalf never returns, but go1.24+'s
+	// `defer o.done.Store(true)` marks the once done on the Goexit anyway,
+	// so censusReads would stay nil and every later census test in the
+	// binary would nil-deref -- the SIGSEGV in
+	// TestParamCensusAttributesSpecialisedRulesPaths that this gate round's
+	// rot finding produced (failGuard Fatalfs inside the Once). The corpus
+	// Skip is hoisted out the same way (a missing .cards/ CorpusRegistry
+	// inside the Once would poison the memo identically), and the Fatalf
+	// runs here, after Do returns normally, so every census test fails with
+	// the real findings instead of a panic in an unrelated one.
+	censusGuardErrs []string
 )
 
 func measureParamCensus(t *testing.T, drop map[string]map[string]bool) (censusResult, *derivedReads) {
 	t.Helper()
 	if drop == nil {
+		// Per-test corpus decision FIRST: a missing .cards/ skips THIS test
+		// here, before the Once, instead of skipping from inside it.
+		testutil.CorpusRegistry(t)
 		censusOnce.Do(func() {
 			s := scanPackages(t)
 			s.rotGuard(t)
-			s.failGuard(t)
+			censusGuardErrs = s.guardErrs
 			censusReads = s.derived()
 			censusBase = walkRepoDeckCensus(t, censusReads, nil)
 		})
+		if len(censusGuardErrs) > 0 {
+			sort.Strings(censusGuardErrs)
+			t.Fatalf("paramcensus rot guard: %d findings:\n%s",
+				len(censusGuardErrs), strings.Join(censusGuardErrs, "\n"))
+		}
 		return censusBase, censusReads
 	}
 	s := scanPackages(t)

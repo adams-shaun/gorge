@@ -575,6 +575,13 @@ func (e *Engine) Clone() *Engine {
 		pc.preModes = append([]string(nil), e.cast.preModes...)
 		pc.preSuppress = cloneSuppressed(e.cast.preSuppress)
 		pc.preAborts = cloneAbortCounts(e.cast.preAborts)
+		if e.cast.mayPlayRemembered != nil {
+			m := make(map[state.ObjID][]state.ObjID, len(e.cast.mayPlayRemembered))
+			for k, v := range e.cast.mayPlayRemembered {
+				m[k] = append([]state.ObjID(nil), v...)
+			}
+			pc.mayPlayRemembered = m
+		}
 		c.cast = &pc
 		// The held-back cast trigger (CR 601.2i, cast.go): a clone taken at an
 		// intent boundary while a cast is suspended (its target/choose decision

@@ -51,6 +51,10 @@ const (
 	// chooseEnlist / chooseAttackPay / chooseUnleash, each defined relative
 	// to a neighbour, and 40 is chooseUntap.
 	chooseAttached chooseFor = 30
+	// chooseManaConvert is the cast-time election for an Optional$ ManaConvert
+	// static. It is deliberately separate from the mana-source window: the
+	// player chooses whether to use the permission before targets and payment.
+	chooseManaConvert chooseFor = 42
 )
 
 // pendingCast is the cast flow's own state, live only between beginCast and
@@ -111,6 +115,15 @@ type pendingCast struct {
 	// Muscle): the same recorded-at-beginCast discipline as mayPlayIgnore,
 	// threading "mana of any type" through the same window and payment.
 	mayPlayIgnoreType bool
+	// mayPlayRemembered records, at beginCast, the remembered-object bindings
+	// of the ManaConvert continuous effects that matched this card WHILE it
+	// was still in the granted zone, keyed by effect source. A may-play
+	// grant's own ForgetOnMoved$ clears that binding the instant the card is
+	// put on the stack (CR 601.2a), but the paired ManaConvert's
+	// ValidCard$ Card.IsRemembered must keep resolving through the cost
+	// payment (CR 601.2h) -- the same recorded-at-beginCast discipline as
+	// mayPlayIgnore, and for the same reason. Nil for every ordinary cast.
+	mayPlayRemembered map[state.ObjID][]state.ObjID
 
 	// replaceGraveyard is the Play SA's ReplaceGraveyard$ Exile rider
 	// (task replplay1): the played spell must not rest in the graveyard —
@@ -285,6 +298,11 @@ type pendingCast struct {
 	// windowDone is set when the 601.2g mana window was answered "done", so
 	// payCast proceeds straight to payment instead of re-offering it.
 	windowDone bool
+	// manaConvertDone records the Optional$ ManaConvert election. Before the
+	// election, feasibility uses the union so the cast remains offerable; after
+	// it, paymentConv uses only the selected optional contribution.
+	manaConvertDone bool
+	manaConvertUse  bool
 	// modesDone is set once a modal spell's CR 601.2b mode question has been
 	// posed. modeChosen says its answer was recorded during this proposal;
 	// preModes is the object's value immediately before that answer, so
@@ -1344,6 +1362,33 @@ func (e *Engine) drawCostCard(p state.PlayerID) {
 		From: state.ZLibrary, To: state.ZHand, Secret: true})
 }
 
+// payMillCost settles every Mill<N> cost component: the payer mills the SUM
+// of the parts' requirements from the top of their own library, one real
+// MoveZone event per card in deterministic top-first order. No choice is
+// involved, so nothing is asked. A mill instruction moves all remaining cards
+// when its count exceeds the library size, so the snapshot clamps to the
+// available prefix.
+func (e *Engine) payMillCost(p state.PlayerID, parts []CostPart) {
+	total, ok := millCostTotal(parts)
+	if !ok || total <= 0 {
+		return
+	}
+	lib := e.G.Zone(state.ZLibrary, p)
+	if int64(len(lib)) < total {
+		total = int64(len(lib))
+	}
+	// Snapshot the ids before emitting: each MoveZone mutates the library
+	// the slice was read from.
+	ids := append([]state.ObjID(nil), lib[:total]...)
+	for _, id := range ids {
+		e.emit(events.Event{Kind: events.MoveZone, Obj: id, Player: p, From: state.ZLibrary, To: state.ZGraveyard, Text: "mill cost"})
+	}
+}
+
+func (e *Engine) payMillCostParts(pc *pendingCast) {
+	e.payMillCost(pc.player, pc.cost.Mill)
+}
+
 // payDrawCostParts settles every Draw cost component of a cast or activation
 // payment: one ordinary draw per card of the part's count, for the drawer the
 // part's spec names. The count is the literal N, or -- for the dynamic
@@ -1577,7 +1622,9 @@ func (e *Engine) spellsCastThisTurn(p state.PlayerID) int {
 //
 // The mana part of a Cost$ is deliberately NOT folded: it RESTATES the printed
 // mana cost rather than adding to it, so re-adding it would double charge.
-// Only Life/Sac/Discard/SubCounter/Tap are additional.
+// Every OTHER component -- Life/Sac/Discard/SubCounter/Tap, and the whole
+// non-mana family including Exile, MoveToGrave, Reveal, Energy, Draw, LifeX,
+// DamageYou and Mill -- is additional and is concatenated below.
 func withSpellAbilityExtras(f *cards.Face, cost Cost) Cost {
 	sa := f.SpellAbility()
 	if sa == nil {
@@ -1633,6 +1680,9 @@ func withSpellAbilityExtras(f *cards.Face, cost Cost) Cost {
 	}
 	if len(extra.DamageYou) > 0 {
 		cost.DamageYou = append(append([]CostPart(nil), cost.DamageYou...), extra.DamageYou...)
+	}
+	if len(extra.Mill) > 0 {
+		cost.Mill = append(append([]CostPart(nil), cost.Mill...), extra.Mill...)
 	}
 	cost.Forage = cost.Forage || extra.Forage
 	cost.Tap = cost.Tap || extra.Tap
@@ -2120,6 +2170,7 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	if opt.Mode == "mayplay" {
 		e.cast.mayPlayIgnore = e.payerGrantsIgnoreColor(p, id)
 		e.cast.mayPlayIgnoreType = e.payerGrantsIgnoreType(p, id)
+		e.cast.mayPlayRemembered = e.mayPlayManaConvertRemembered(p, id)
 	}
 	e.collectETBChoices(p)
 	e.continueCast()
@@ -2441,6 +2492,12 @@ func (e *Engine) continueCast() {
 	// half of a hybrid, whether a Phyrexian pip is paid with life -- before
 	// targets (601.2c) and payment (601.2h). Runs as one decision per pip.
 	if e.manaAsk() {
+		return
+	}
+	// An Optional$ ManaConvert permission is a real CR 601.2 choice. It is
+	// asked after pip announcements, before targets, and the selected arm is
+	// then used consistently by target affordability and final payment.
+	if e.manaConvertAsk() {
 		return
 	}
 	// CR 601.2c: choose targets, now that the object is on the stack. An SA
@@ -4849,23 +4906,48 @@ func costAnnouncesPaidX(c Cost) bool {
 // paymentMana applies announced Convoke/Harmonize contributions to the
 // already-formed total. A stale answer can never make a requirement negative.
 // faceWantsConvoked reports whether the cast's face could have a reader of
-// Defined$ Convoked: an SVar body naming the selector (Lethal Scheme's
-// DBConnive, Venerated Loxodon's and Zephyr Singer's TrigPutCounterAll --
-// all three corpus carriers live in SVar bodies) or a compiled ability whose
-// Defined$ parameter names it directly. The scan is the faceWantsConverge
-// string-scan shape, one level wider (abilities), so a printed
-// `DB$ ... | Defined$ Convoked` ability line is caught too.
+// the Convoked provenance: an SVar body or ability parameter naming the
+// `Defined$ Convoked` selector (Lethal Scheme's DBConnive, Venerated
+// Loxodon's and Zephyr Singer's TrigPutCounterAll) or a filter that names the
+// `Convoked` referent of the sharesCardTypeWith/sharesCreatureTypeWith family
+// (Everything Comes to Dust's ChangeType$ `...sharesCreatureTypeWith
+// Convoked...`). The string scan is the faceWantsConverge shape; the
+// shares-referent half goes through effects.SpecUsesConvokedReferent, the
+// SAME classifier the matcher uses, so the provenance gate can never drift
+// from who reads Convoked.
 func faceWantsConvoked(f *cards.Face) bool {
 	if f == nil {
 		return false
 	}
 	for _, v := range f.SVars {
-		if strings.Contains(v, "Defined$ Convoked") {
+		if strings.Contains(v, "Defined$ Convoked") || effects.SpecUsesConvokedReferent(v) {
 			return true
 		}
 	}
 	for _, a := range f.Abilities {
 		if strings.EqualFold(strings.TrimSpace(a.Params["Defined"]), "Convoked") {
+			return true
+		}
+		if abilityParamsUseConvoked(a.Params) {
+			return true
+		}
+	}
+	return false
+}
+
+// abilityParamsUseConvoked is the ability half of faceWantsConvoked: a
+// whole-map VALUE scan -- it reads no specific Params key, only every value,
+// the same shape the SVar loop above reads f.SVars with -- so it takes the
+// map as a plain map[string]string parameter (the paramcensus scanner's
+// helper-passed-map form, with no key indexed and therefore no key read the
+// census would attribute). Keeping it a value scan is the point: the
+// share-family referent can ride any spec-bearing parameter, and a key
+// whitelist here would silently miss the next one -- exactly the silent gap
+// (sharesCreatureTypeWith Convoked classifying wordUnknown) this ticket
+// fixed.
+func abilityParamsUseConvoked(params map[string]string) bool {
+	for _, v := range params {
+		if effects.SpecUsesConvokedReferent(v) {
 			return true
 		}
 	}
@@ -5590,6 +5672,31 @@ func (e *Engine) etbAnswer(d *decision.Decision, chosen []decision.Option) {
 	pc.etbIdx++
 }
 
+// manaConvertAsk poses the Optional$ ManaConvert election once for this
+// proposal. A mandatory conversion remains automatic; an optional conversion
+// is offered even when the ordinary pool already pays, because declining is a
+// meaningful player choice and the grant may matter to a later repricing.
+func (e *Engine) manaConvertAsk() bool {
+	pc := e.cast
+	if pc == nil || pc.manaConvertDone {
+		return false
+	}
+	_, optional := e.manaConversionParts(pc.player, pc.card, pc.isAbility())
+	if optional.empty() {
+		pc.manaConvertDone = true
+		return false
+	}
+	pc.manaConvertDone = true
+	e.choosing = chooseCast
+	e.ask(&decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
+		Prompt: "Use optional mana conversion?", Source: pc.card,
+		Options: []decision.Option{
+			{Index: 0, Kind: "manaconvert", Label: "Use mana conversion", Obj: pc.card, Player: pc.player},
+			{Index: 1, Kind: "manaconvert", Label: "Don't use mana conversion", Obj: pc.card, Player: pc.player},
+		}})
+	return true
+}
+
 // castAnswer records a chooseCast answer into the flow, keyed off which
 // stage asked it (every option in one decision shares a Kind). A mana-window
 // decision (CR 601.2g) is the exception: it offers both "activate" and
@@ -5613,6 +5720,11 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 		kind = chosen[0].Kind
 	}
 	switch kind {
+	case "manaconvert":
+		// Option 0 is the affirmative election. The decision is deliberately
+		// positional rather than label-based so a translated label cannot alter
+		// the payment semantics.
+		pc.manaConvertUse = len(chosen) > 0 && chosen[0].Index == 0
 	case "x":
 		if len(chosen) > 0 {
 			// The value rides on Option.Amount, not Option.Index: xAsk is the
@@ -6634,6 +6746,9 @@ func (e *Engine) payCast() {
 		for _, part := range pc.cost.DamageYou {
 			e.payDamageCost(pc.player, part.N, pc.card)
 		}
+		// Mill cost parts (Mill<N>): the payer mills the summed requirement
+		// from the top of their library as part of the payment.
+		e.payMillCostParts(pc)
 		// Draw cost parts (Draw<N/Spec>): the payer draws N, as one ordinary
 		// Draw event per card (an empty library's loss is the SBA's). The
 		// dredge replacement is NOT posed here -- the cast-flow payment stage
@@ -6820,6 +6935,8 @@ func (e *Engine) payCast() {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZGraveyard, Text: "moved to its owner's graveyard as a cost"})
 		}
 	}
+	// Mill cost parts (see the ability branch above for the why).
+	e.payMillCostParts(pc)
 	// Energy cost parts (see the ability branch above for the why).
 	e.chargeEnergyCost(pc.player, pc.cost, pc.x)
 	// Announced PayLife<X>, DamageYou<N> and Draw<N/Spec> cost parts (see the

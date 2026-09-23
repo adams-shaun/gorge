@@ -105,6 +105,29 @@ func TestCounterDazePaysFromRealDualLand(t *testing.T) {
 		t.Fatalf("the window omitted the untapped dual land: %+v", d.Options)
 	}
 	submitChoices(t, e, tapIdx)
+	// Volcanic Island has two mana abilities, so choosing its source opens the
+	// normal mana-ability choice. Choose its {U} alternative, then finish the
+	// enclosing unless window with Done.
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KChoose || d.Source != id {
+		t.Fatalf("expected Volcanic Island's mana-ability choice, got %+v", d)
+	}
+	blue := -1
+	for _, opt := range d.Options {
+		if opt.Kind == "mana" && opt.Label == "Add U" {
+			blue = opt.Index
+			break
+		}
+	}
+	if blue < 0 {
+		t.Fatalf("Volcanic Island did not offer its {U} ability: %+v", d.Options)
+	}
+	submitChoices(t, e, blue)
+	d = e.Pending()
+	if d == nil || d.ResumeKind != "unless_mana" || len(d.Options) != 1 || d.Options[0].Kind != "done" {
+		t.Fatalf("expected final unless_mana Done window, got %+v", d)
+	}
+	submitChoices(t, e, d.Options[0].Index)
 
 	passUntilStackEmpty(t, e, 20)
 	if z := e.G.Obj(bearID).Zone; z != state.ZBattlefield {

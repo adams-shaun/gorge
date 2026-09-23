@@ -635,7 +635,19 @@ func (e *Engine) restrictValidTermMatches(p state.PlayerID, d paymentDescriptor,
 // resolveMana path (and every game without a converter on the board)
 // byte-identical.
 func (e *Engine) paymentConv(p state.PlayerID, id state.ObjID, ability bool) *manaConv {
-	conv := e.manaConversion(p, id, ability)
+	mandatory, optional := e.manaConversionParts(p, id, ability)
+	conv := mandatory
+	// During an Optional$ ManaConvert cast, the offer-side path uses the union
+	// until the election is answered. Thereafter the selected arm is the only
+	// one allowed to widen payment; this keeps target affordability, the mana
+	// window and the actual charge on one answer.
+	if e.cast != nil && e.cast.card == id && e.cast.manaConvertDone {
+		if e.cast.manaConvertUse {
+			mergeManaConv(&conv, optional)
+		}
+	} else {
+		mergeManaConv(&conv, optional)
+	}
 	if conv.empty() {
 		return nil
 	}
@@ -4005,8 +4017,11 @@ func (e *Engine) payUnlessCost(p state.PlayerID, cost Cost, ctx *effects.Ctx, st
 		drawers[i] = players
 	}
 	// Everything is affordable: charge mana/life through ordinary events,
-	// then apply the synchronous counter components, then the draws.
-	if !e.payMana(p, cost) {
+	// then apply the synchronous counter components, then the draws. The
+	// resolving object is the payment subject, so its ManaConvert statics
+	// (including EffectZone$ Command and Effect-delivered grants) apply here
+	// under the same conversion read used by cast offers.
+	if !e.payManaConv(p, cost, e.paymentConv(p, stackObj, false)) {
 		return false
 	}
 	for _, d := range drains {
