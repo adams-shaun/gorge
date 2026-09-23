@@ -2608,7 +2608,8 @@ func (c Cost) Pay(p state.Mana) (state.Mana, bool) {
 // {1} — this parser is total and strict: every token must be a mana symbol
 // (a WUBRGC letter or a numeric generic), a fixed PayLife<N>, a PayEnergy<N>
 // or PayEnergy<X> energy part, a Return<N/Spec> component, the
-// LifeTotalHalfUp token, a Sac<N/Spec>, Discard<N/Spec>, SubCounter<N/Kind>,
+// LifeTotalHalfUp token, a fixed Mill<N> component, a Sac<N/Spec>,
+// Discard<N/Spec>, SubCounter<N/Kind>,
 // Draw<N/Spec> or Reveal<N/Spec> component, or the Mandatory marker.
 // Anything else — an unfolded X/Y/Z (UnlessCostResolved folds an announced X
 // and resolvable SVar bodies first; an unbound X never prices here),
@@ -2734,6 +2735,24 @@ func ParseUnlessCost(s string) (Cost, bool) {
 					return Cost{}, false
 				}
 				c.Reveal = append(c.Reveal, CostPart{N: int32(n), Spec: strings.ReplaceAll(m[3], ";", ","), Desc: m[4]})
+				continue
+			}
+			// A fixed Mill<N> is the choice-free mill-keep cost (Deep Spawn's
+			// "sacrifice CARDNAME unless you mill two cards", the only corpus
+			// UnlessCost$ carrying it). It parses through the SAME millCost
+			// grammar as the ordinary cast/activation Cost$ Mill<N> and, per
+			// CR 701.13a, is payable at ANY library size -- the payer mills
+			// every remaining card when fewer than N remain, so zero cards is
+			// not an unpayable cost. payUnlessCost settles it through the
+			// shared payMillCost, so the two payment sites cannot diverge.
+			// A dynamic or malformed spelling (Mill<X>, Mill<>, a prose head)
+			// never matches here and stays a hard decline.
+			if m := millCost.FindStringSubmatch(sym); m != nil {
+				n, err := strconv.ParseInt(m[1], 10, 64)
+				if err != nil || n < 0 || n > int64(math.MaxInt32) {
+					return Cost{}, false
+				}
+				c.Mill = append(c.Mill, CostPart{N: int32(n)})
 				continue
 			}
 			// RevealChosen<Player>/<Type> is the no-ask designation reveal
