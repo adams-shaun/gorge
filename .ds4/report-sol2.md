@@ -1,4 +1,83 @@
-# Dismantle target-counter LKI — sol2 report
+# Emerge — current ticket report
+
+This ticket’s report follows; earlier unrelated workstream reports are preserved in the appendix.
+
+
+Commit: `746c4129` (`fix(rules): price emerge by chosen sacrifice and isolate its reduction`). `.cards` was present as a symlink to the actual corpus, so the corpus tests did not skip. Re-measured 15 `K:Emerge` corpus files and 0 repo-deck files naming Elder Deep-Fiend.
+
+## Findings resolved
+
+- **Unsupported cost components:** `rules/emerge.go` now admits only whitespace-delimited generic and WUBRGC printed Emerge tokens, rejects every other parsed `Cost` field and `Unknown`. `TestEmergeWithholdsUnsupportedCostShapes` exercises hybrid, Phyrexian, twobrid, snow, PayLife, Sac, Draw, X, malformed braces, a skipped marker and an unknown token, and accepts the real colon-suffixed corpus shape. No unrelated cost grammar is registered.
+- **Best-case offer vs actual sacrifice:** `rules/emerge.go`, `rules/legal.go`, `rules/cast.go` price each eligible sacrifice against the offer's real or hypothetical mana pool; at the sacrifice ask, feasibility is checked against the pending cast's captured modifiers and live pool. `TestEmergeSacrificeAskPricesEachCreature` proves the smaller sacrifice is NOT offered with only enough mana for the large one, then casts and verifies zones, mana and replay. All answers at that ask use the same candidate predicate, so this covers every sibling candidate rather than checking one named creature.
+- **Extra sacrifices contributing to reduction:** `pendingCast.emergeSac` records only the mandatory Emerge part's chosen object. `emergeBase` includes printed SpellAbility non-mana extras in both offer and charge. `TestEmergeAdditionalSacDoesNotIncreaseReduction` chooses mana-value-1 Emerge fuel and sacrifices mana-value-10 fuel for the additional cost: the charge is {2}{U}, leaving one colorless mana; both sacrifices go to the graveyard and replay agrees. The printed mana part of the SpellAbility is not duplicated.
+- `rules/emerge_test.go` adjusts the existing floor-price assertion to supply an unconditional pricing callback; its separate actual-pool offer test remains unchanged. The real Elder Deep-Fiend payment/replay test and floor test pass. No AGENTS.md row closed or grown, no acceptance table or golden altered. The `kw:Emerge` registration remains in `rules/emerge.go` from the original implementation.
+
+## Fails without the fix
+
+Copied each changed production file to `.ds4/scratch`, reverted the specific hunk in the real file, ran the test, restored with `cp` and verified `cmp` (`restored-byte-identical` each time). Actual failure output:
+
+```
+$ go test -run '^TestEmergeSacrificeAskPricesEachCreature$' ./rules/
+--- FAIL: TestEmergeSacrificeAskPricesEachCreature (0.62s)
+    emerge_pricing_test.go:42: sacrifice choices: large=true small=true; want true false
+FAIL
+FAIL github.com/adams-shaun/gorge/rules 0.627s
+exit=1
+restored-byte-identical
+
+$ go test -run '^TestEmergeAdditionalSacDoesNotIncreaseReduction$' ./rules/
+--- FAIL: TestEmergeAdditionalSacDoesNotIncreaseReduction (0.61s)
+    emerge_pricing_test.go:150: additional sacrifice charged wrong reduction: spell=battlefield small=graveyard big=graveyard pool=[0 0 0 0 0 3]
+FAIL
+FAIL github.com/adams-shaun/gorge/rules 0.619s
+exit=1
+restored-byte-identical
+
+$ go test -run '^TestEmergeWithholdsUnsupportedCostShapes$' ./rules/
+--- FAIL: TestEmergeWithholdsUnsupportedCostShapes (0.00s)
+    --- FAIL: TestEmergeWithholdsUnsupportedCostShapes/5_Mandatory (0.00s)
+        emerge_pricing_test.go:162: unsupported emerge cost "5 Mandatory" accepted as {Colored:[0 0 0 0 0 0] Generic:5 Life:0 X:0 Hybrid:[] Phyrexian:[] Twobrid:[] HybridPhyrexian:[] Snow:0 Tap:false Sac:[] Discard:[] SubCounter:[] AddCounter:[] Exile:[] Reveal:[] RevealChosen:[] Behold:[] TapPermanent:[] Blight:[] Forage:false Draw:[] Energy:[] LifeX:[] LifeHalfUp:false DamageYou:[] Return:[] PutToLib:[] MoveToGrave:[] Mill:[] Evidence:[] RollDice:[] Unknown:[]}
+    --- FAIL: TestEmergeWithholdsUnsupportedCostShapes/5_{U (0.00s)
+        emerge_pricing_test.go:162: unsupported emerge cost "5 {U" accepted as {Colored:[0 1 0 0 0 0] Generic:5 Life:0 X:0 Hybrid:[] Phyrexian:[] Twobrid:[] HybridPhyrexian:[] Snow:0 Tap:false Sac:[] Discard:[] SubCounter:[] AddCounter:[] Exile:[] Reveal:[] RevealChosen:[] Behold:[] TapPermanent:[] Blight:[] Forage:false Draw:[] Energy:[] LifeX:[] LifeHalfUp:false DamageYou:[] Return:[] PutToLib:[] MoveToGrave:[] Mill:[] Evidence:[] RollDice:[] Unknown:[]}
+FAIL
+FAIL github.com/adams-shaun/gorge/rules 0.003s
+exit=1
+restored-byte-identical
+```
+
+## Gates (exact commands and outputs)
+
+```
+$ go test -run 'TestEmergeCastPaysReducedCost|TestEveryRepoDeckIsFullySupported' ./rules/
+ok  github.com/adams-shaun/gorge/rules 0.734s
+exit=0
+$ go test -run 'TestEmergeCastPaysReducedCost|TestEmergeSacrificeAskPricesEachCreature|TestEmergeAdditionalSacDoesNotIncreaseReduction|TestEmergeWithholdsUnsupportedCostShapes|TestEmergeCastReductionExceedsGenericKeepsColored|TestEveryRepoDeckIsFullySupported' ./rules/
+ok  github.com/adams-shaun/gorge/rules 0.761s
+target_exit=0
+$ go test ./internal/archtest/
+ok  github.com/adams-shaun/gorge/internal/archtest 2.603s
+arch_exit=0
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  github.com/adams-shaun/gorge/cmd/botbench 1.304s
+bot_exit=0
+$ gofmt -l rules/emerge.go rules/cast.go rules/legal.go rules/emerge_test.go rules/emerge_pricing_test.go
+(no output)
+$ go run ./cmd/gentypes -check
+(no output; gentypes_exit=0)
+$ git diff --check
+(no output)
+```
+
+No golden movement in the named botbench check; the acceptance ratchet passed with no table edit. `TestHeads`/the full module are daemon gates, not run in the implementer seat.
+
+## Issues
+
+No additional defects found beyond the three reviewed findings. Printed Emerge costs outside generic + coloured are intentionally withheld; 15 of 15 measured corpus Emerge cards use the admitted plain shape. No Known-approximations row added.
+
+---
+
+## Preserved prior workstream reports (unrelated)
+
 
 ## Findings resolved
 
