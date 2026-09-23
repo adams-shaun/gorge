@@ -2003,8 +2003,6 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			// the fail-closed verdict below — no group machinery here prices
 			// them, and a fake zero is worse.
 			return h.CardsDiscardedThisTurn(c.Controller), true
-		case "SacrificedThisTurn":
-			return h.SacrificesThisTurn(c.Controller), true
 		case "LifeLostThisTurn":
 			return h.LifeLostThisTurn(c.Controller), true
 		case "LandsPlayed":

@@ -366,7 +366,6 @@ type Host interface {
 	// owner there — a cost discard is paid from the payer's own hand (CR
 	// 118.2a), so the owner is the discarder.
 	CardsDiscardedThisTurn(p state.PlayerID) int32
-	SacrificesThisTurn(p state.PlayerID) int32
 	// CardsDrawnThisTurn reports how many cards player p DREW this turn —
 	// every events.Draw naming p since the last TurnChange, derived from the
 	// event log so a replay derives the same number. This is the

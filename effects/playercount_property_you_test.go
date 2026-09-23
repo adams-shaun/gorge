@@ -12,13 +12,11 @@ func TestPlayerCountPropertyYouPerTurnLedgerCounts(t *testing.T) {
 	h.g.Players[0].LandsPlayed = 2
 	h.lifeLost = map[state.PlayerID]int32{0: 3, 1: 7}
 	h.discarded = map[state.PlayerID]int32{0: 2, 1: 4}
-	h.sacrifices = map[state.PlayerID]int32{0: 1, 1: 3}
 
 	cases := []struct {
 		property string
 		want     int32
 	}{
-		{"SacrificedThisTurn", 1},
 		{"CardsDiscardedThisTurn", 2},
 		{"LifeLostThisTurn", 3},
 		{"LandsPlayed", 2},
@@ -37,7 +35,6 @@ func TestPlayerCountPropertyYouPerTurnLedgerCounts(t *testing.T) {
 		property string
 		want     int32
 	}{
-		{"SacrificedThisTurn", 3},
 		{"CardsDiscardedThisTurn", 4},
 		{"LifeLostThisTurn", 7},
 		{"LandsPlayed", 0},
@@ -46,5 +43,12 @@ func TestPlayerCountPropertyYouPerTurnLedgerCounts(t *testing.T) {
 		if !ok || got != tc.want {
 			t.Errorf("controller 1 %s = (%d, %v), want (%d, true)", tc.property, got, ok, tc.want)
 		}
+	}
+
+	// The sacrifice event stream has no actor provenance. Do not resolve this
+	// count from the permanent's owner or controller; either can differ from
+	// the player who performed the sacrifice.
+	if got, ok := EvalCountOK(h, c, "PlayerCountPropertyYou$SacrificedThisTurn"); ok || got != 0 {
+		t.Errorf("SacrificedThisTurn = (%d, %v), want unresolved (0, false) without actor provenance", got, ok)
 	}
 }
