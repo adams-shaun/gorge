@@ -1955,6 +1955,15 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 		if !zoneIn(zones, state.ZLibrary) {
 			lib = nil
 		}
+		lookWindow := searchLibraryWindow(h, c, sa, lib)
+		if len(lookWindow) < len(lib) && !strings.EqualFold(strings.TrimSpace(sa.Params["NoLooking"]), "True") {
+			if strings.EqualFold(strings.TrimSpace(sa.Params["Reveal"]), "True") {
+				h.Emit(events.Event{Kind: events.Note, Player: owner, IDs: append([]state.ObjID(nil), lookWindow...)})
+			} else {
+				emitLook(h, []state.PlayerID{searchChooser(h, c, sa)}, state.ZLibrary, lookWindow,
+					"looks at the top of the library")
+			}
+		}
 		if shufflePending && targetIndex == shuffleTarget {
 			c.SearchShuffle = shuffleAnswer
 			// Restore the answered tail just long enough for the shared helper
@@ -1990,7 +1999,7 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 		// is load-bearing for determinism.
 		eligible := make([]state.ObjID, 0, len(lib))
 		seen := make(map[state.ObjID]bool, len(lib))
-		for _, id := range lib {
+		for _, id := range lookWindow {
 			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 				eligible = append(eligible, id)
 				seen[id] = true
@@ -2767,6 +2776,26 @@ func searchChooser(h Host, c *Ctx, sa *cards.SA) state.PlayerID {
 	return c.Controller
 }
 
+// searchLibraryWindow applies Forge's limited-look bound to a library search.
+// MaxRevealed$ is the number of cards the search may inspect from the top of
+// the library; public-origin alternatives remain outside this window. Keeping
+// this helper shared by option construction and answer revalidation prevents a
+// host that bypasses Decision.Validate from selecting a card below the look.
+func searchLibraryWindow(h Host, c *Ctx, sa *cards.SA, lib []state.ObjID) []state.ObjID {
+	raw, present := sa.Params["MaxRevealed"]
+	if !present || strings.TrimSpace(raw) == "" || len(lib) == 0 {
+		return lib
+	}
+	limit := Num(h, c, sa, "MaxRevealed", 0)
+	if limit < 0 {
+		limit = 0
+	}
+	if limit > int32(len(lib)) {
+		limit = int32(len(lib))
+	}
+	return lib[:limit]
+}
+
 // hiddenPickPlayers resolves whose cards the hidden-origin pick offers, the
 // pick's analogue of searchPlayers: DefinedPlayer$ through the shared
 // selector grammar first, then the targeted PLAYERS (Forge's
@@ -3297,6 +3326,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 			chosen = nil
 		}
 	}
+	window := searchLibraryWindow(h, c, sa, zoneOf(g, state.ZLibrary, owner))
 	moved := make([]state.ObjID, 0, len(chosen))
 	// One classification for this search's whole mover loop: both branches
 	// below (the public-origin settle and the library-origin direct emit)
@@ -3305,6 +3335,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 	for _, id := range chosen {
 		o := g.Obj(id)
 		if o == nil || o.Owner != owner || !zoneIn(zones, o.Zone) ||
+			(o.Zone == state.ZLibrary && !containsID(window, id)) ||
 			!MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 			continue
 		}

@@ -157,9 +157,12 @@ func TestProjectForOmniscientShowsEveryHandAndPoolButNoLibraryOrder(t *testing.T
 		}
 	}
 	// The View type has no library list at all; this pins that no field
-	// was added that could carry one.
-	if v.Decision != nil {
-		t.Fatal("omniscient spectator carries a seat's decision")
+	// was added that could carry one. The pending decision (if one is
+	// pending) reaches the omniscient viewer only as a read-only COPY
+	// since the spectator-decision contract (approx row 33) — never the
+	// engine's live pointer.
+	if pend := e.Pending(); v.Decision != nil && pend != nil && v.Decision == pend {
+		t.Fatal("omniscient spectator aliases the engine's pending decision")
 	}
 }
 

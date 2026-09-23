@@ -144,9 +144,12 @@ func TestMobVerdictPlayerBallotDamageAndDrawPerVote(t *testing.T) {
 		if len(d.Options) != 3 {
 			t.Fatalf("ask %d offered %d options, want the 3 other seats", i, len(d.Options))
 		}
-		// The ballot is SECRET: only the voter's own projected view carries the
-		// pending decision -- another seat and an omniscient spectator see
-		// nothing (the rider the search-decision privacy contract also keeps).
+		// The ballot is SECRET: only the voter's own projected view carries
+		// the pending decision -- another seat sees nothing, and the vote
+		// content itself stays hidden by construction (deferred Notes,
+		// asserted below). The omniscient spectator carries a read-only COPY
+		// of the pending ask since the spectator-decision contract
+		// (approx row 33) -- it shows the ballot's shape, never a vote.
 		// The option labels are the ballot entries' F3-safe seat identities.
 		for _, o := range d.Options {
 			if o.Label != e.G.Players[o.Player].Name {
@@ -157,8 +160,9 @@ func TestMobVerdictPlayerBallotDamageAndDrawPerVote(t *testing.T) {
 		if other := view.Project(e.G, e, (voter+1)%4, d); other.Decision != nil {
 			t.Fatalf("voter %d's secret ballot leaked to seat %d: %+v", i, (voter+1)%4, other.Decision)
 		}
-		if omniscient := view.ProjectFor(e.G, e, view.NoSeat, view.Omniscient, d); omniscient.Decision != nil {
-			t.Fatalf("voter %d's secret ballot leaked to the omniscient spectator: %+v", i, omniscient.Decision)
+		if omniscient := view.ProjectFor(e.G, e, view.NoSeat, view.Omniscient, d); omniscient.Decision == nil ||
+			len(omniscient.Decision.Options) != len(d.Options) {
+			t.Fatalf("voter %d's pending ballot missing from the omniscient spectator's read-only copy: %+v", i, omniscient.Decision)
 		}
 		submitChoices(t, e, d.Options[wantPick[i]].Index)
 		// The reveal is DEFERRED: no "votes for" Note exists until the LAST
