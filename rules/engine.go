@@ -1928,6 +1928,15 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// gets logged, not the emit caller's copy.
 		ev = replaced
 	}
+	// CountersRemain is a departure property of the battlefield object. Tag the
+	// final, replacement-adjusted MoveZone so events.Apply and replay preserve
+	// the counters in the same fold. Hand and library remain explicit reset
+	// destinations per the static's rules text.
+	if ev.Kind == events.MoveZone && ev.To != state.ZHand && ev.To != state.ZLibrary {
+		if o := e.G.Obj(ev.Obj); o != nil && o.Zone == state.ZBattlefield && e.countersRemainApplies(ev.Obj) {
+			ev.Counter = events.MarkCountersRemainMove(ev.Counter)
+		}
+	}
 	// DamageDone may rewrite the recipient through ReplaceEvent, while an
 	// ordinary hit still needs its initial recipient form classified. Do this
 	// after the complete replacement pass so both paths share one rule.

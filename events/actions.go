@@ -11,6 +11,23 @@ const (
 	discardCostText = "discarded as a cost"
 )
 
+// CountersRemainMove marks a battlefield departure whose source has a
+// CountersRemain static. It uses MoveZone's otherwise-unused Counter payload
+// so replay folds the same counter-preserving move without a new event field.
+const CountersRemainMove = "counters-remain:"
+
+// MarkCountersRemainMove preserves an existing MoveZone Counter payload while
+// tagging the move for deterministic replay.
+func MarkCountersRemainMove(counter string) string {
+	return CountersRemainMove + counter
+}
+
+// CountersRemainMovePayload removes the tag and reports whether it was set.
+func CountersRemainMovePayload(counter string) (string, bool) {
+	payload, ok := strings.CutPrefix(counter, CountersRemainMove)
+	return payload, ok
+}
+
 // cyclingDiscardPrefix marks the Counter field of a discard-as-cost event paid
 // for a CYCLING ability (CR 702.29). Counter is unused on a hand->graveyard
 // MoveZone (the face-down/cloak entry and exile markers are read only for a
