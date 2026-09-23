@@ -72,6 +72,7 @@ package rules
 import (
 	"fmt"
 	"go/ast"
+	"go/format"
 	"go/parser"
 	"go/token"
 	"os"
@@ -982,6 +983,12 @@ func (s *scan) scanRangeWhitelist(t *testing.T, fset *token.FileSet, fi *fnInfo,
 		if pkg == "effects" && fname == "saMentionsGoaded" {
 			return
 		}
+		// emitFromEachSource copies the rider parameters while deliberately
+		// omitting DamageSource, which is resolved once by its caller. This
+		// filtered copy is not a parameter consumer.
+		if pkg == "effects" && fname == "emitFromEachSource" && damageSourceRiderCopy(rs, keyIdent.Name) {
+			return
+		}
 		// A copy loop (`for k, v := range src.Params { dst.Params[k] = v }`)
 		// is not a read: every use of the key sits in a write-position index.
 		if rangeKeyIsWriteOnly(rs, keyIdent.Name, writes) {
@@ -994,6 +1001,26 @@ func (s *scan) scanRangeWhitelist(t *testing.T, fset *token.FileSet, fi *fnInfo,
 	for _, k := range keys {
 		s.addRead(fi, b, k)
 	}
+}
+
+// damageSourceRiderCopy accepts only emitFromEachSource's filtered rider
+// copy: it omits the already-resolved DamageSource key and writes every
+// other key/value into saRider.Params.
+func damageSourceRiderCopy(rs *ast.RangeStmt, key string) bool {
+	if len(rs.Body.List) != 2 {
+		return false
+	}
+	if key != "k" {
+		return false
+	}
+	// Keep this classification tied to the intentional exclusion and copy
+	// destination; changes to the loop must be reviewed as parameter reads.
+	var body strings.Builder
+	for _, stmt := range rs.Body.List {
+		_ = format.Node(&body, token.NewFileSet(), stmt)
+	}
+	return strings.Contains(body.String(), `if k == "DamageSource"`) &&
+		strings.Contains(body.String(), "saRider.Params[k] = v")
 }
 
 // digUntilWithheldRange accepts only the two DigUntil key-gathering loops.
@@ -1465,7 +1492,7 @@ var apiSpecificRulesSA = map[string][]string{
 	// abilities (availableManaAbilitiesForWindow), so its reads belong to
 	// api:Mana alone -- left in the generic union they mask every other API's
 	// unread Produced$ (measured: api:Sacrifice/api:DealDamage).
-	"Engine.attackChoiceManaSources":   {"Mana"},
+	"Engine.attackChoiceManaSources": {"Mana"},
 	// affordableTargetCandidates folds choice-shaped mana sources into the
 	// targeted-equip payment-window reachability probe; its Produced$ read is
 	// over api:Mana sources only, not over the activated ability being priced.
