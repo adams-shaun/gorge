@@ -94,15 +94,16 @@ type Host interface {
 	// TriggerModeSupported keeps Effect-created trigger registrations honest:
 	// an unknown Mode$ cannot masquerade as an armed, inert promise.
 	TriggerModeSupported(mode string) bool
-	// TypeChoices returns the creature-type option list a mid-resolution
-	// ChooseType ask offers its chooser (task ct1) — the SAME list the
-	// cast-time "as this enters" type ask builds (rules/etbOptions' "type"
-	// arm, which this method's rules implementation calls), so the two asks
-	// and the no-ask fallback can never disagree about what a creature-type
-	// choice ranges over. A category this build cannot enumerate (Basic
-	// Land, Card, ...) yields nil: the asking primitive never asks for one
-	// (it records the loud Note and the deterministic fallback), so nil is
-	// unreachable through the ask path.
+	// TypeChoices returns the owner-scoped CREATURE-type option list a
+	// ChooseType ask offers its chooser for an absent Type$ or Type$ Creature
+	// (task ct1) — the SAME list the cast-time "as this enters" type ask
+	// builds (rules/etbOptions' "type" arm), so the two asks and the no-ask
+	// fallback can never disagree about what a creature-type choice ranges
+	// over. The other categories (Basic Land, Card, Land, Planeswalker,
+	// Shared, CreatureInTargetedDeck) no longer reach this method: the asking
+	// primitive builds their option lists from immutable game state itself
+	// (effects/type_choices.go), and an absent or non-creature category here
+	// still yields nil as a defensive guard.
 	TypeChoices(chooser state.PlayerID, category string) []decision.Option
 	// RegisterControl records one GainControl effect with the lifetime its
 	// LoseControl$ names (CR 611.2b "for as long as", CR 514.2 end of turn),
@@ -131,7 +132,10 @@ type Host interface {
 	// never taken. forCost (vc-static1) is the call site's provenance: the
 	// cost-driven Sac-cost walks pass true, the effect-driven paths (this
 	// package's callers) false, so a static's ForCost$/ValidCause$ scoping can
-	// read the split. Implemented by rules.Engine (rules/layers.go); the
+	// read the split. The rules-side cost walks call the engine's cause-aware
+	// sacrificeBlockedForCost instead (task cantsac1), which carries the
+	// pending cast/activation so a cost-path ValidCause$ can be evaluated.
+	// Implemented by rules.Engine (rules/layers.go); the
 	// effects test double reports false (no engine to consult).
 	SacrificeBlocked(id state.ObjID, forCost bool) bool
 	// SurveilLookExtra reports the additional cards a surveil performed by
@@ -747,7 +751,13 @@ type Ctx struct {
 	// state.Game into rules. An effects test double whose Host does not
 	// implement typeTableHost leaves it nil and reads the printed face.
 	EffectiveTypes []ObjectTypes
-	Targets        []state.Target
+	// StaticGoads is the live static-goad table (staticgoad1), published by
+	// rules for resolution-time IsGoaded filters.
+	StaticGoads map[state.ObjID]bool
+	// TargetableObjects is a rules-built immutable legality snapshot for the
+	// triggering spell, used by CanBeTargetedByTriggeredSpellAbility.
+	TargetableObjects []state.ObjID
+	Targets           []state.Target
 	// ModeTargets carries the target groups selected for a distinct modal
 	// Charm. Each entry is in target-bearing mode order; nil means the
 	// historical single-target-list path, including repeatable modes.
@@ -1631,6 +1641,35 @@ type Ctx struct {
 	// consumes and clears it at the top of its walk (the fx42 scoping
 	// discipline), so a nested ChooseType cannot inherit the outer answer.
 	ChosenType string
+	// ChosenColor is the answered mid-resolution ChooseColor pick (task
+	// cli-20260923T060000Z-choose-color): the option Label (the full colour
+	// name, e.g. "Black") the chooser picked out of the fixed WUBRG list,
+	// set by rules' "choosecolor" resume arm before the suspended
+	// sub-ability is re-run. effChooseColor's re-entry consumes and clears
+	// it and emits the one Choose event the deterministic fallback would
+	// have emitted, with the answered colour's WUBRG letter, so the
+	// downstream o.ChosenColor readers see exactly the shape they already
+	// read. A valid answer is never empty (the option list is total -- the
+	// last-resort degenerate pick is always offerable), so non-empty IS the
+	// answered marker, and the asking effect consumes and clears it at the
+	// top of its walk (the fx42 scoping discipline), so a nested
+	// ChooseColor cannot inherit the outer answer.
+	ChosenColor string
+	// ETBColorRecorded marks the ONE ChooseColor invocation that must not
+	// ask: the as-enters ENTRY-choice body (K:ETBReplacement:Other:
+	// ChooseColor). The entry machinery (rules' applyETBChoiceReplacement ->
+	// resumeETBEntry) already posed the entry ask and recorded the answer on
+	// the entering object before this body runs at the re-emitted MoveZone,
+	// so rules' replCtx flags that invocation and effChooseColor keeps the
+	// historical no-op for it alone. Without the flag an unconditional
+	// o.ChosenColor guard also suppressed a FRESH resolution-time ask after
+	// an earlier ChooseColor had set the field (a second sequential SA in
+	// one resolution, or an ability activation on an already-chosen
+	// permanent) -- the stale-source-state bug the same ticket's review
+	// named. Consumed and cleared by the effect (the fx42 scoping
+	// discipline), so a nested ChooseColor deeper in the same chain poses
+	// its own fresh ask.
+	ETBColorRecorded bool
 	// ManaReflectedColor is the answered mid-resolution AB$ ManaReflected
 	// colour pick: the option Label ("Add W") the chooser picked, set by
 	// rules' "manareflected" resume arm before the suspended sub-ability is
@@ -2121,6 +2160,24 @@ type typeTableHost interface {
 	EffectiveTypes() []ObjectTypes
 }
 
+// goadTableHost publishes rules' live static-goad table for resolving filters.
+type goadTableHost interface {
+	StaticallyGoaded() map[state.ObjID]bool
+}
+
+func saMentionsGoaded(sa *cards.SA) bool {
+	for _, v := range sa.Params {
+		if strings.Contains(v, "IsGoaded") {
+			return true
+		}
+	}
+	return false
+}
+
+type targetableObjectsHost interface {
+	TargetableObjects(triggerCard state.ObjID) []state.ObjID
+}
+
 func Resolve(h Host, c *Ctx, sa *cards.SA) {
 	// Publish this walk's Effect-created registration frame (set by rules'
 	// seedEffectReplCtx on an api:Effect replacement's body Ctx) for the whole
@@ -2170,6 +2227,16 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 		} else {
 			c.EffectiveTypes = nil
 		}
+		if gh, ok := h.(goadTableHost); ok && sa != nil && saMentionsGoaded(sa) {
+			c.StaticGoads = gh.StaticallyGoaded()
+		} else {
+			c.StaticGoads = nil
+		}
+		if th, ok := h.(targetableObjectsHost); ok {
+			c.TargetableObjects = th.TargetableObjects(c.TriggerCard)
+		} else {
+			c.TargetableObjects = nil
+		}
 		c.numericRHS = c.X != 0 || len(c.SVars) > 0
 		// Capture target controllers before the first effect can move a target.
 		// Keep an existing map on re-entry: it is the earlier battlefield state,
@@ -2213,6 +2280,16 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 		}
 		if th, ok := h.(typeTableHost); ok {
 			c.EffectiveTypes = th.EffectiveTypes()
+		}
+		if gh, ok := h.(goadTableHost); ok && saMentionsGoaded(sa) {
+			c.StaticGoads = gh.StaticallyGoaded()
+		} else {
+			c.StaticGoads = nil
+		}
+		if th, ok := h.(targetableObjectsHost); ok {
+			c.TargetableObjects = th.TargetableObjects(c.TriggerCard)
+		} else {
+			c.TargetableObjects = nil
 		}
 		// Condition* gate (task fb-3f1cc033): a sub whose supported condition
 		// is evaluated and not met is skipped and the chain continues — the

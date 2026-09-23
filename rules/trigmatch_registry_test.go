@@ -137,6 +137,9 @@ var addedAfterTheSplit = []string{
 	// Mode$ TurnFaceUp arm emits it), so no pre-split switch arm could have
 	// dispatched it.
 	"TurnFaceUp",
+	// trig:Untaps (Key to the City): it matches the existing events.Untap
+	// event although the old switch had no such mode.
+	"Untaps",
 }
 
 func allRegisteredModeNames() []string {

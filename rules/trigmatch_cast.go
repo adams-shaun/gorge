@@ -440,23 +440,18 @@ func (e *Engine) abilityCastMatches(t cards.Trigger, source state.ObjID, ev even
 	// The target-shape params (targetsvalid1), the activation arm: ertha_jo's
 	// "Whenever you activate an ability that targets a creature or player".
 	//
-	// TIMING (round-2 review MAJOR): this match runs synchronously inside
-	// payCast's AbilityPush emit -- BEFORE handleTarget's ability branch
-	// records the chosen targets onto the minted object via TargetsChosen --
-	// and ev.Obj is the SOURCE permanent, whose own Targets is always empty.
-	// Reading the stack object here made both params permanently silent on
-	// this arm (measured probe: an AbilityCast trigger with TargetsValid$
-	// queued 0 where the param-less shape queued 1). The match must read the
-	// ACTIVATION's chosen targets, which payCast holds on the pending cast
-	// (pc.targets, the targetOptions of the answered ask): the target ask
-	// completes before any cost is paid (CR 601.2c targets-before-costs), so
-	// pc.targets is the completed list exactly at this emit. A pending cast
-	// that is not this printed-ability activation (or none -- a synthetic
-	// push) falls back to the source object's Targets, the honest empty read
-	// that fails a TargetsValid$ gate the way a target-less activation must.
+	// AbilityPush's ordinary trigger scan runs before handleTarget records
+	// targets, so while the cast flow is live use its answered target list.
+	// TriggersWhenSpent dispatches after finishTargetedCast records those
+	// targets; at that point read the minted ability stack object's event-backed
+	// Targets rather than the source permanent's (unrelated) target list.
 	tgts := obj.Targets
 	if pc := e.cast; pc != nil && pc.isAbility() && pc.card == ev.Obj {
 		tgts = pc.targets
+	} else if stack := e.abilityCastStackObject(ev.Obj); stack != 0 {
+		if stackObj := e.G.Obj(stack); stackObj != nil {
+			tgts = stackObj.Targets
+		}
 	}
 	if !e.targetShapeMatches(t, tgts, source, ctrl) {
 		return false
@@ -797,7 +792,10 @@ func init() {
 	// at-or-above N fires nothing (no second crossing), and a later threshold
 	// (Muerra's expend 8 beside its expend 4) crosses independently in the
 	// same payment. Player$ You is the only selector the corpus writes (13
-	// lines): any other Player$ value fails closed.
+	// lines), but the matcher reads the shared player-spec grammar so an
+	// explicit Opponent/Player selector is honoured; an ABSENT Player$ keeps
+	// the historical You-only reading (the trigger's controller must be the
+	// payer), and an unresolvable selector fails closed.
 	registerTrigMatcher((*Engine).manaExpendMatches, "ManaExpend")
 }
 
@@ -816,20 +814,49 @@ func (e *Engine) manaExpendMatches(t cards.Trigger, source state.ObjID, ev event
 	if ev.Kind != events.CastInfo || events.FlagsFrom(ev.Counter)&state.FlagManaExpendCast == 0 {
 		return false
 	}
-	// Player$ You: the expending player must be the trigger's controller.
-	if p := strings.TrimSpace(t.Params["Player"]); p != "" && !strings.EqualFold(p, "You") {
+	ctrl := e.controllerOf(source)
+	if int(ev.Player) >= len(e.G.Players) {
 		return false
 	}
-	if e.controllerOf(source) != ev.Player || int(ev.Player) >= len(e.G.Players) {
+	// An omitted Player$ means the trigger's own controller (Forge's default
+	// for the "whenever YOU expend" family), not "any player". Match the
+	// selector through the shared player-spec grammar either way: explicit
+	// Player$ Opponent/Player forms resolve here, and an absent one is spelled
+	// as You so the controller check is not skipped.
+	player := strings.TrimSpace(t.Params["Player"])
+	if player == "" {
+		player = "You"
+	}
+	if !effects.MatchesPlayerSpecCtx(e.G, player, ev.Player, ctrl, effects.PlayerSpecCtx{Source: source}) {
 		return false
 	}
-	n, err := strconv.Atoi(strings.TrimSpace(t.Params["Amount"]))
-	if err != nil || n <= 0 {
+	n, ok := e.manaExpendAmount(source, t.Params["Amount"], ctrl)
+	if !ok || n <= 0 {
 		// An unreadable or non-positive Amount$ is a threshold this engine
 		// cannot evaluate: fail closed, never fire wide.
 		return false
 	}
 	total := e.manaExpendTotal(ev.Player)
 	prev := total - ev.Amount
-	return prev < int32(n) && total >= int32(n)
+	return prev < n && total >= n
+}
+
+// manaExpendAmount resolves a literal, source SVar, or inline Count$ amount.
+// EvalCountOK preserves the distinction between an understood zero and an
+// expression this engine cannot read; both remain no-fire thresholds here.
+func (e *Engine) manaExpendAmount(source state.ObjID, raw string, controller state.PlayerID) (int32, bool) {
+	raw = strings.TrimSpace(raw)
+	if n, err := strconv.ParseInt(raw, 10, 32); err == nil {
+		return int32(n), true
+	}
+	obj := e.G.Obj(source)
+	if obj == nil || obj.Face() == nil {
+		return 0, false
+	}
+	svars := obj.Face().SVars
+	if body, ok := svars[raw]; ok {
+		raw = body
+	}
+	ctx := &effects.Ctx{Source: source, Controller: controller, SVars: svars}
+	return effects.EvalCountOK(e, ctx, raw)
 }

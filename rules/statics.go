@@ -315,6 +315,21 @@ func (e *Engine) matchesSpec(spec string, id state.ObjID, sc effects.SpecContext
 		if o := e.G.Obj(id); o != nil {
 			sc.ExtraKeywords = e.Derived(id).Keywords
 		}
+		// The IsGoaded predicate's static route (staticgoad1): a spec that
+		// consults IsGoaded binds the live static-goad table, so EVERY
+		// rules-side read (trigger ValidCard$/ValidSource$, a CantBlock
+		// static's ValidCard$, Count$Valid through the rules seam) sees a
+		// printed or granted Goad$ static, not the event-backed list alone.
+		// The goadProbe guard keeps a goad line's own Affected$ match from
+		// re-deriving the set (an IsGoaded-conditioned Affected$ would loop);
+		// mid-layer-scan specs keep the event-backed read, the same stand-down
+		// the ExtraKeywords consult above takes. INLINED, not routed through
+		// bindStaticGoads: the helper call moves this hot matcher past its
+		// inlining budget and heap-allocates the context on every candidate
+		// (TestLegalActionsReusesActionStaticMembership's pin).
+		if e.goadProbe == 0 && strings.Contains(spec, "IsGoaded") {
+			sc.StaticGoads = e.staticallyGoaded()
+		}
 	}
 	return effects.MatchesSpecCtx(e.G, spec, id, sc)
 }

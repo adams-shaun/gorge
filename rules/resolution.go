@@ -2049,6 +2049,22 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			if len(chosen) > 0 {
 				ctx.ChosenType = chosen[0].Label
 			}
+		case "choosecolor":
+			// A mid-resolution ChooseColor ask (task
+			// cli-20260923T060000Z-choose-color: SP$/AB$/DB$ ChooseColor
+			// resolving outside the cast-time "as this enters" choice -- Wash
+			// Out's "Return all permanents of the color of your choice") was
+			// answered. The chosen option is the cast-time ask's own "color"
+			// wire shape, so the Label IS the full colour name the chooser
+			// picked. The re-entered effChooseColor emits the one Choose event
+			// the fallback emits, with the answered colour's WUBRG letter, so
+			// events.Apply records o.ChosenColor exactly the way every
+			// downstream reader (Card.ChosenColor filters, devotion) already
+			// reads. The effect consumes and clears the field (fx42 scoping),
+			// so a nested ChooseColor below poses its own ask.
+			if len(chosen) > 0 {
+				ctx.ChosenColor = chosen[0].Label
+			}
 		case "manareflected":
 			// A standalone AB$ ManaReflected colour ask (the mid-resolution
 			// choice effManaReflected poses when a DB$/SP$ body reflecting
