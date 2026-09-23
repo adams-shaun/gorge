@@ -1,42 +1,54 @@
-# Report — Mill<N> cost verification
+# Report — TriggerController$ on ChangesZone
 
-No code changes were needed. The existing regression and composed/short-library coverage already establish the requested behavior; the report's implementation commits are present in current history. `.cards/` was present as a symlink resolving to `/home/sadams/projects/gorge/.cards`, so corpus-backed tests were not skipped.
+## Changes
 
-`rules/mill_cost_test.go:TestMillikinMillCostMovesTopLibraryCardBeforeMana` uses the real corpus Millikin and checks the ability parses as API `Mana` with exactly `Mill<1>`, confirms the top library card is in the library, and proves it moves to the graveyard and mana is produced. It also rejects the unimplemented-Mill Note path. `rules/mill_cost_composed_test.go` covers composed and ordinary spell/ability payments; `rules/mill_cost_short_library_test.go` covers the empty-library case. The repo-deck parameter census is clean for the current `knownUnsupportedParams` table; no allowlist change is warranted.
+- `rules/trigger_match.go`: when a `ChangesZone`/`ChangesZoneAll` trigger explicitly names `TriggerController$ TriggeredCardController`, the queued ability's controller (and matching `Ctx.Controller`) now comes from the moved permanent's LKI on a battlefield departure. This keeps APNAP grouping, stack control and resolution under that controller, without changing default trigger controller behavior or interpreting other selector values.
+- `rules/trigger_controller_test.go`: added a focused integration test using an inline watcher script. A seat-1 watcher sees a creature stolen by seat 0 die; it asserts the creature is on the battlefield before departure, the two controllers differ, its live controller has reset to its owner after moving, the pending/stack trigger belongs to seat 0 rather than the watcher, and resolution affects only seat 0.
 
-## Verification
+The parser/read census needed no special table change. The ordinary `t.Params["TriggerController"]` access is included by the static trigger-parameter census; `TestEveryRepoDeckParamsAreRead` passes with no new unsupported entry. GNU grep measured 42 corpus files with `TriggerController$`.
 
-- Targeted regression and census:
+A direct Junji corpus test was not added: Junji's trigger is on the same card that dies, so the existing default leaves-the-battlefield LKI controller path already assigns it to the departing card's last controller. Such a test would pass with this fix reverted and violate the required fail-without-fix proof. The new inline watcher test isolates and proves the selector's distinct behavior. Junji's compiled script is present in `.cards`.
 
-  ```text
-  $ go test -run 'TestMillikinMillCostMovesTopLibraryCardBeforeMana|TestEveryRepoDeckParamsAreRead' ./rules/ > .ds4/scratch/mill-targeted.log 2>&1; rc=$?; tail -30 .ds4/scratch/mill-targeted.log; exit $rc
-  ok   github.com/adams-shaun/gorge/rules  0.770s
-  ```
+## Fails without the fix
 
-- Architecture gate:
+Saved the fixed production file, removed only the new controller-selection hunk, ran the focused test, and restored the file byte-identically (`cmp` exit 0):
 
-  ```text
-  $ go test ./internal/archtest/ 2>&1 | tail -15
-  ok   github.com/adams-shaun/gorge/internal/archtest  4.141s
-  ```
+```text
+go test -run '^TestChangesZoneTriggeredCardControllerUsesDepartingCardLKI$' ./rules/
+--- FAIL: TestChangesZoneTriggeredCardControllerUsesDepartingCardLKI (0.00s)
+    trigger_controller_test.go:32: trigger controller = 1, want departing card's last controller seat 0 (witness controller is seat 1)
+FAIL
+FAIL github.com/adams-shaun/gorge/rules 0.003s
+```
 
-- Constructed default golden:
+## Gates and output
 
-  ```text
-  $ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ 2>&1 | tail -5
-  ok   github.com/adams-shaun/gorge/cmd/botbench  1.350s
-  ```
+Corpus present: `.cards` is a symlink to `/home/sadams/projects/gorge/.cards`.
 
-- Generated types:
+```text
+/usr/bin/grep -rlE 'TriggerController\\$' .cards/cardsfolder | wc -l
+42
 
-  ```text
-  $ go run ./cmd/gentypes -check
-  [no output; exit 0]
-  ```
+gofmt -l rules/trigger_match.go rules/trigger_controller_test.go
+[no output]
+go run ./cmd/gentypes -check
+[no output]
 
-- `gofmt -l <changed files>`: not applicable; there are no changed files.
-- No new test was added, so no failure-with-fix-removed demonstration is applicable.
+go test -run 'TestChangesZoneTriggeredCardControllerUsesDepartingCardLKI|TestEveryRepoDeckParamsAreRead' ./rules/
+ok github.com/adams-shaun/gorge/rules 0.750s
+
+go test ./internal/archtest/
+ok github.com/adams-shaun/gorge/internal/archtest 3.489s
+
+go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok github.com/adams-shaun/gorge/cmd/botbench 1.334s
+
+git diff --check
+[no output]
+```
+
+Botbench split remains byte-identical; no golden update was needed. No Known-approximations row is closed by this change.
 
 ## Issues
 
-None found within scope. The reported behavior is already fixed and pinned by `33eed7fa`, `74043a77`, and `4480d00e`. No Known approximations row or census entry was changed. No commit was created because the working tree has no code changes.
+No unfixed behavior identified within the requested `TriggeredCardController` selector for battlefield departures. Other `TriggerController$` spellings and ChangesZone events that are not battlefield departures remain outside this implementation's scope; the selector is intentionally limited to the substantiated form and event/LKI boundary.
