@@ -1497,10 +1497,10 @@ var apiSpecificRulesSA = map[string][]string{
 	// definition a DB$ ReplaceCounter SA, so its Amount$ read belongs to
 	// api:ReplaceCounter alone (the same shape the token dispatch above
 	// scopes); left in the generic union it would mark Amount$ read for
-	// every other API (measured: api:ChangeZone).
-	"Engine.counterReplaceOp":            {"ReplaceCounter"},
-	"Engine.applyAddCounterReplacements": {"ReplaceCounter"},
-	"Engine.applyAddCounterBody":         {"ReplaceCounter"},
+	// every other API (measured: api:ChangeZone). Only counterReplaceOp
+	// reads the body parameters now; the two application functions consume
+	// its priced result.
+	"Engine.counterReplaceOp": {"ReplaceCounter"},
 	"tokenReplacementsCommute":           {"ReplaceToken"},
 	"tokenReplApplies":                   {"ReplaceToken"},
 }
