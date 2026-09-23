@@ -10,7 +10,7 @@ package rules
 // and a layer-6 `DB$ Animate | Keywords$ Sunburst` grant (Solar Array, Lux
 // Artillery) are ONE shape. The count is the existing CR 107.4f converge head
 // fed by the pay-time FlagConverged CastInfo (rules/cast.go's faceWantsConverge
-// gate, widened to cover sunburst faces; sunburstGrantOut is the second arm
+// gate, widened to cover sunburst faces; sunburstGrantOut is the additional arm
 // for the grant-delivered case). Every corpus carrier here is loaded from the
 // REAL registry -- the scripts are GPL and never committed.
 
