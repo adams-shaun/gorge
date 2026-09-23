@@ -1359,6 +1359,21 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		if stripped, prop, ok2 := stripCastSaSourceAggregate(rest); ok2 {
 			return aggregateCastProperty(h, h.EachSpellCastThisTurnMatching(c.Controller, stripped, c.Source), prop)
 		}
+		// The COUNT-level `$<Property>` suffix (rootha_mastering_the_moment's
+		// `Instant.YouCtrl,Sorcery.YouCtrl$GreatestCardManaCost` and
+		// april_oneil_hacktivist's `Card.YouCtrl$CardTypes`): the matching
+		// casts' objects, the property folded over them instead of counting
+		// them one each. This is the SAME `$Property` precedent as the zone
+		// head (Count$Valid <spec>$GreatestCardManaCost), but on the
+		// cast-count branch. The peel runs AFTER the two CastSaSource arms so
+		// it can never steal the predicate-token `$` of an argumented
+		// `!CastSaSource$<Property>` (call_forth_the_tempest), and it fires
+		// ONLY when the segment after the last `$` is in the admitted
+		// vocabulary -- an unadmitted suffix keeps the byte-identical
+		// whole-token read below.
+		if stripped, prop, ok3 := stripCastSourceAggregate(rest); ok3 {
+			return aggregateCastSourceProperty(h, h.EachSpellCastThisTurnMatching(c.Controller, stripped, c.Source), prop)
+		}
 		return int32(h.SpellsCastThisTurnMatching(c.Controller, rest)), true
 	}
 	head, arg, _ := strings.Cut(body, " ")
@@ -4210,6 +4225,71 @@ func SetSVars(c *Ctx, sv map[string]string) {
 		copied[k] = v
 	}
 	c.SVars = copied
+}
+
+// stripCastSourceAggregate peels the COUNT-level trailing `$<Property>`
+// suffix off a Count$ThisTurnCast_<spec> body (the third argument form,
+// task: ThisTurnCast extreme suffix), returning the peeled spec and the
+// property. It fires ONLY when the segment after the LAST `$` is in the
+// admitted vocabulary -- the four extreme reductions (isExtremeProperty)
+// plus CardTypes -- so every other suffix keeps the pre-existing whole-token
+// fail-closed read byte-identically. The peel happens at the END of the
+// whole body because Forge attaches the property to the count, not to the
+// last comma alternative: Rootha's `Instant.YouCtrl,Sorcery.YouCtrl$X`
+// means "the greatest X among instant AND sorcery spells", and peeling the
+// suffix before the comma split leaves both alternatives real predicates.
+func stripCastSourceAggregate(spec string) (rest, prop string, ok bool) {
+	i := strings.LastIndexByte(spec, '$')
+	if i < 0 {
+		return "", "", false
+	}
+	p := spec[i+1:]
+	if !isExtremeProperty(p) && p != "CardTypes" {
+		return "", "", false
+	}
+	return spec[:i], p, true
+}
+
+// aggregateCastSourceProperty folds a property over the matching casts'
+// objects for the COUNT-level trailing `$<Property>` suffix. CardTypes
+// counts the DISTINCT card types among the matching casts' faces (April
+// O'Neil's "draw a card for each card type among spells you've cast this
+// turn"), the zone head's distinct-set read; the extreme reductions take the
+// max (or min, for Least) via extremePropertyValue, with zero matches
+// yielding 0 rather than a sentinel (the zone fix's seen-guard convention).
+// Both folds are order-insensitive, so the match order never reaches an
+// event or a view.
+func aggregateCastSourceProperty(h Host, ids []state.ObjID, prop string) (int32, bool) {
+	g := h.Game()
+	if prop == "CardTypes" {
+		seen := make(map[string]bool)
+		for _, id := range ids {
+			o := g.Obj(id)
+			if o == nil || o.Face() == nil {
+				continue
+			}
+			for _, typ := range o.Face().Types {
+				if cardTypeWords[typ] {
+					seen[typ] = true
+				}
+			}
+		}
+		return int32(len(seen)), true
+	}
+	least := isLeastProperty(prop)
+	var best int32
+	seenAny := false
+	for _, id := range ids {
+		o := g.Obj(id)
+		if o == nil || o.Face() == nil {
+			continue
+		}
+		v := extremePropertyValue(h, o, prop)
+		if !seenAny || (least && v < best) || (!least && v > best) {
+			best, seenAny = v, true
+		}
+	}
+	return best, true
 }
 
 // aggregateCastProperty sums one numeric property over the matching casts'
