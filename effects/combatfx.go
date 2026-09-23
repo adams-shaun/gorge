@@ -991,7 +991,7 @@ func effAnimateAll(h Host, c *Ctx, sa *cards.SA) {
 }
 
 func effProtection(h Host, c *Ctx, sa *cards.SA) {
-	gains := resolveGains(sa.Params["Gains"], sa.Params["Choices"])
+	gains := resolveGains(sa.Params["Gains"], sa.Params["Choices"], h.Game().Obj(c.Source))
 	if gains == "" {
 		return
 	}
@@ -1012,15 +1012,31 @@ func effProtection(h Host, c *Ctx, sa *cards.SA) {
 }
 
 // resolveGains turns Protection's Gains$ parameter into a concrete quality
-// string ("red", "artifacts", ...). Gains$ Choice (Mother of Runes: "Gains$
-// Choice | Choices$ AnyColor") names no chooser this build has -- a real
-// player choice is Task 20's job, the same simplification effCharm and
-// effVote already apply to Choices$ elsewhere in this package -- so it
-// resolves deterministically instead of asking: AnyColor (the only Choices$
-// value this corpus uses here) becomes white, the fixed first-of-WUBRG
-// default; anything else takes the first comma-separated entry, matching
-// effCharm/effVote's own "first choice" convention.
-func resolveGains(gains, choices string) string {
+// string ("red", "artifacts", ...). ChosenColor reads the resolving source's
+// event-folded answer and fails closed when it is absent or unreadable. Gains$
+// Choice (Mother of Runes: "Gains$ Choice | Choices$ AnyColor") still has no
+// chooser in this build, so it keeps the deterministic AnyColor/first-choice
+// fallback used by effCharm and effVote.
+func resolveGains(gains, choices string, source *state.Object) string {
+	if strings.EqualFold(gains, "ChosenColor") {
+		if source == nil {
+			return ""
+		}
+		switch colourLetter(source.ChosenColor) {
+		case 'W':
+			return "white"
+		case 'U':
+			return "blue"
+		case 'B':
+			return "black"
+		case 'R':
+			return "red"
+		case 'G':
+			return "green"
+		default:
+			return ""
+		}
+	}
 	if !strings.EqualFold(gains, "Choice") {
 		return gains
 	}
