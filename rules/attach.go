@@ -22,9 +22,15 @@ import (
 //   - CR 704.5m, "an Aura attached to nothing": an Aura on the battlefield
 //     with AttachedTo == 0 goes to the graveyard. (An Equipment is allowed to
 //     sit unattached, so the "attached to nothing" wording is Aura-only.)
-//   - CR 704.5n, "an Equipment attached to something invalid": an Equipment
-//     whose bearer is now a non-creature is detached (an Attach with no IDs),
-//     and so is one whose bearer left the battlefield entirely.
+//   - CR 704.5n, "an Equipment or Fortification attached to something
+//     illegal": an Equipment whose bearer is now a non-creature is detached
+//     (an Attach with no IDs), and so is one whose bearer left the
+//     battlefield entirely; a Fortification whose bearer is no longer a land
+//     detaches the same way (CR 702.67b's "attached to a nonland permanent
+//     becomes unattached"). The land test reads the CURRENT derived type
+//     list, not the printed face: a Darksteel Mutation-shaped layer-4 static
+//     that strips the Land card type ends the attachment just as a printed
+//     nonland bearer would.
 //   - "anything attached to an object that left the battlefield": the same
 //     detached-for-Equipment, destroyed-Aura handling CR 704.5m's own
 //     "attached to nothing" already gives the Aura (once its bearer left,
@@ -104,6 +110,18 @@ func (e *Engine) attachmentSBAs() bool {
 					IDs:  []state.ObjID{o.AttachedTo},
 					Text: "Equipment bearer is no longer a creature"})
 				changed = true
+				continue
+			}
+			if isFortification(o) && !e.IsLand(bearer.ID) {
+				// CR 704.5n's Fortification half (CR 702.67b): the bearer is no
+				// longer a land, so the Fortification detaches and stays on the
+				// battlefield. The read is the DERIVED type list -- a bearer that
+				// lost its Land type to a layer-4 static is as illegal as one
+				// printed without it.
+				e.emit(events.Event{Kind: events.Unattached, Obj: id,
+					IDs:  []state.ObjID{o.AttachedTo},
+					Text: "Fortification bearer is no longer a land"})
+				changed = true
 			}
 		}
 	}
@@ -135,6 +153,9 @@ func isAura(o *state.Object) bool { return hasType(o, "Aura") }
 
 // isEquipment reports whether a permanent has the Equipment subtype.
 func isEquipment(o *state.Object) bool { return hasType(o, "Equipment") }
+
+// isFortification reports whether a permanent has the Fortification subtype.
+func isFortification(o *state.Object) bool { return hasType(o, "Fortification") }
 
 // isRole reports whether a permanent has the Role subtype. The nine
 // `.cards/tokenscripts/role_*.txt` scripts each print
