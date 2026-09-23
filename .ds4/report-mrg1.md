@@ -21,6 +21,9 @@ The worktree was clean at `27c913888` before integration; no rebase or merge was
   ok   github.com/adams-shaun/gorge/rules 0.820s
   ok   github.com/adams-shaun/gorge/internal/testutil 0.002s
   ```
+- `git add internal/testutil/agentsdoc_test.go && git add -f .ds4/report-mrg1.md && git diff --check && git diff --cached --check` — passed. (`.ds4` is ignored, so the report required `git add -f`.)
+- `GIT_EDITOR=true git merge --continue` — completed as `6bd4bf07` (`Merge branch 'main' into wt/cli-20260923T060000Z-choose-number`).
+- `git status --short --branch` — clean; `git merge-base --is-ancestor main HEAD` — passed (`main_ancestor=0`).
 
 ## Issues / uncertainty
 
