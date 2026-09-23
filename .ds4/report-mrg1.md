@@ -3253,3 +3253,119 @@ ok  	github.com/adams-shaun/gorge/cmd/botbench	1.622s
 None new. The recurring friction is unchanged: per-branch tail appends to the
 shared `report-mrg1.md` / `report-sol1.md` accumulators conflict on every
 integration, and the union convention keeps everything.
+
+---
+
+# Merge-conflict resolution — mrg1 (agent-20260918T195920Z-2fd3b568), re-run 2026-09-23
+
+## State found
+
+`git status` was clean on `wt/agent-20260918T195920Z-2fd3b568` at `77fc6dc4`
+(the prior mrg1 report commit on top of the branch's earlier merge
+`e2e35952`). No rebase or merge was in flight — the reflog showed the daemon's
+`git rebase main` had started and then `--abort`ed, and its merge fallback had
+aborted too. `.cards` was present (symlink to `/home/sadams/projects/gorge/.cards`).
+merge-base `cb0f4079`; main at `30a271af`. Branch carried 7 commits vs main
+(the TriggerRemembered fix `dd58b67f` + exotic verdicts `8da12fb5` + four doc
+commits + the older merge `e2e35952` + mrg1 report `77fc6dc4`).
+
+## Operation completed
+
+`git merge main --no-edit` (the daemon's own declared fallback shape, and the
+form the branch history already uses). One content conflict; every other path
+auto-merged.
+
+## Conflicted file: `.ds4/report-r2.md` (the ONLY conflict)
+
+Both sides prepend a distinct ticket's r2 report to the top of this shared,
+tracked accumulator file:
+
+- **ours (branch `77fc6dc4`)**: prepended the Loamcrafter
+  `TriggerRemembered$Amount` r2 report (first 104 lines).
+- **theirs (main)**: prepended the `pred:hasABasicLandType` r2 report plus its
+  "Prior r2 report (ChosenCardStrict) … preserved verbatim below" divider (first
+  118 lines).
+
+The two prepends are textually disjoint. Verified deterministically before
+composing the union:
+
+```
+base = git merge-base HEAD main                      -> cb0f4079
+tail -n 349 ours.md  | cmp - base.md                 -> identical (exit 0)
+tail -n 349 theirs.md | cmp - base.md                -> identical (exit 0)
+```
+
+i.e. the merge-base version is an **exact suffix of both sides**, so the
+conflict is two pure prepends and the correct union is
+`ours_prefix ++ theirs_prefix ++ base`, with no line dropped from either.
+
+## Resolution
+
+Built the union deterministically (not by trusting the fuzzy conflict markers)
+as `head -n 104 ours ++ head -n 118 theirs ++ base` = 571 lines; each of the
+three `# Report — r2 …` headers appears exactly once; the file tail matches the
+base tail byte for byte; zero conflict markers remain. Staged and verified
+against the merge result:
+
+```
+cmp staged.md union.md    -> byte-identical (exit 0)
+git diff --name-only -U   -> (no unmerged paths)
+```
+
+Both intents kept (branch's Loamcrafter report AND main's hasABasicLandType
+report), plus the common ChosenCardStrict history exactly once.
+
+## Commands run and output
+
+```
+$ git merge main --no-edit
+Auto-merging .ds4/report-r2.md
+CONFLICT (content): Merge conflict in .ds4/report-r2.md
+
+$ git commit --no-edit
+[wt/agent-20260918T195920Z-2fd3b568 ce3fee6d] Merge branch 'main' into wt/agent-20260918T195920Z-2fd3b568
+$ git status                      -> working tree clean
+$ git merge-base --is-ancestor main HEAD    -> YES (exit 0)
+```
+
+## Post-merge ratchets and goldens (main brought real code: hasABasicLandType)
+
+`.cards` present, so these are real corpus runs, not skipped ones.
+
+```
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  github.com/adams-shaun/gorge/rules  0.786s
+  (the 5 matched tests all ran and PASS: TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched,
+   TestEveryDispatchedTriggerModeHasAMatcher, TestEveryRepoDeckIsFullySupported (0.66s),
+   TestEveryRepoDeckParamsAreRead, TestEveryRepoDeckCountHeadResolves)
+
+$ go test -run 'TestLoamcrafterFaun|TestTriggerRemembered|TestRefProperty|TestImmediateTrigger|TestForumFilibuster|TestSpeedYoungAvenger|TestHasABasicLandType|TestSproutingGoblin' ./effects ./rules
+ok  github.com/adams-shaun/gorge/effects  0.682s
+ok  github.com/adams-shaun/gorge/rules    0.740s
+
+$ go test ./internal/archtest/
+ok  github.com/adams-shaun/gorge/internal/archtest  4.283s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  github.com/adams-shaun/gorge/cmd/botbench  1.521s   (split did NOT move)
+```
+
+No ratchet table edit was needed: neither side registers a new trigger `Mode$`
+matcher nor closes a `knownUnsupported` / `knownUnsupportedParams` /
+`knownUnmodelledCountHeads` entry, and the botbench golden did not move.
+
+## Notes / unsure about
+
+- `git add .ds4/report-r2.md` prints a `.ds4`-is-gitignored hint but the path
+  is tracked and was staged correctly (verified `:0:` blob == union, exit 0).
+  The stray exit-1 from the trailing `.ds4` directory glob is cosmetic.
+- Only the two `report-r2.md` intents needed a merge decision; every code path
+  merged cleanly and was not hand-edited.
+- No engine behaviour changed by this resolution; the only edit is to the
+  tracked report accumulator.
+
+## Issues
+
+None new from the integration. The recurring friction is the same one the
+prior section names: per-branch prepends to the shared `.ds4/report-r2.md`
+accumulator conflict on every integration; the deterministic
+`ours ++ theirs ++ base` union resolves it without data loss.
