@@ -5430,7 +5430,7 @@ func faceWantsConvoked(f *cards.Face) bool {
 		return false
 	}
 	for _, v := range f.SVars {
-		if strings.Contains(v, "Defined$ Convoked") || effects.SpecUsesConvokedReferent(v) {
+		if strings.Contains(v, "Defined$ Convoked") || effects.SpecUsesConvokedReferent(v) || effects.SpecUsesConvokedAmount(v) {
 			return true
 		}
 	}
@@ -5457,7 +5457,7 @@ func faceWantsConvoked(f *cards.Face) bool {
 // fixed.
 func abilityParamsUseConvoked(params map[string]string) bool {
 	for _, v := range params {
-		if effects.SpecUsesConvokedReferent(v) {
+		if effects.SpecUsesConvokedReferent(v) || effects.SpecUsesConvokedAmount(v) {
 			return true
 		}
 	}

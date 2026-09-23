@@ -58,6 +58,47 @@ func Attachable(g *state.Game, obj state.ObjID, target state.ObjID) bool {
 	return true
 }
 
+// attachSpecAdmitsOffBattlefield is effAttach's CR 704.5m counterpart for the
+// graveyard-enchant Aura family (Animate Dead, Dance of the Dead): the
+// attaching object's current enchant spec -- at cast time the printed face,
+// because the Aura is still on the stack and layer-6 grants live rules-side --
+// admits an off-battlefield bearer exactly when the spec matches the bearer
+// AND carries an inZone<X> word whose X names the bearer's current zone. The
+// zone word is mandatory: MatchesSpecFrom's bare type words are zone-blind
+// (spec `Creature` matches a graveyard bear), so without it every Aura would
+// be attachable to every zone. An attaching object with no Enchant keyword
+// (Equip's kw:Equip expansion, Living Weapon) fails closed to the
+// battlefield-only rule.
+func attachSpecAdmitsOffBattlefield(g *state.Game, attachObj state.ObjID, tg *state.Object, controller state.PlayerID) bool {
+	o := g.Obj(attachObj)
+	if o == nil || o.Face() == nil || tg == nil {
+		return false
+	}
+	param, ok := o.Face().KeywordParam("Enchant")
+	if !ok || strings.TrimSpace(param) == "" {
+		return false
+	}
+	spec, _, _ := strings.Cut(param, ":")
+	spec = strings.TrimSpace(spec)
+	if spec == "" {
+		return false
+	}
+	zoneNamed := false
+	for _, word := range strings.Split(spec, ".") {
+		z, has := strings.CutPrefix(word, "inZone")
+		if !has {
+			continue
+		}
+		if zn, known := ParseZoneWord(z); known && zn == tg.Zone {
+			zoneNamed = true
+		}
+	}
+	if !zoneNamed {
+		return false
+	}
+	return MatchesSpecFrom(g, spec, tg.ID, controller, attachObj)
+}
+
 // effAttach implements "Attach": it fastens obj (Object$ Self by default --
 // Aura's SP$ Attach is cast with Object$ Self so the STILL-ON-THE-STACK aura
 // is the object being attached, Living Weapon's SVar is also Object$ Self
@@ -184,10 +225,20 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 				continue
 			}
 			tg := h.Game().Obj(target)
-			if tg == nil || tg.Zone != state.ZBattlefield {
+			if tg == nil {
 				continue
 			}
-			if !Attachable(h.Game(), attachObj, target) {
+			if tg.Zone != state.ZBattlefield {
+				// The graveyard-enchant Aura family (Animate Dead, Dance of the
+				// Dead): the attaching object's CURRENT enchant spec (at cast
+				// time the printed face -- the Aura is still on the stack, so
+				// no rules-side layer read is available here) zone-positively
+				// admits an off-battlefield bearer. Equip and every non-Aura
+				// attach keep the battlefield-only rule and the Note refusal.
+				if !attachSpecAdmitsOffBattlefield(h.Game(), attachObj, tg, c.Controller) {
+					continue
+				}
+			} else if !Attachable(h.Game(), attachObj, target) {
 				continue
 			}
 			out = append(out, t)
