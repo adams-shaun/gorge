@@ -567,6 +567,29 @@ type Engine struct {
 	// counterTypeAsk carries per-recipient comma-list PutCounter answers across
 	// suspensions. It is replay-derived engine scratch, never game state.
 	counterTypeAsk map[state.ObjID]*counterTypePending
+	// targetsPickAsk carries an ANSWERED generic ValidTgts$ pre-ask (the
+	// mvts1 "tgts" arm) across a LATER suspension of the same SA, for every
+	// API -- the general form of the moveCounterAsk cursor above, which
+	// solved exactly this for MoveCounter alone. chosenTargetsFor CONSUMES
+	// Ctx.TargetsPick before dispatching the body (fx42 scoping, so a nested
+	// SA cannot inherit it), and every resume builds a FRESH Ctx; so if the
+	// body then suspends on an ask of its own, the next resume re-enters the
+	// SA from its top with no answer, re-poses the pre-ask, and the two asks
+	// alternate forever. Kozilek's Command is the live carrier: its Charm
+	// picks DBScry alongside another targeting mode, so the stack object's
+	// one undivided target list is not DBScry's player, the pre-ask fires at
+	// resolution, and the Scry's own KArrange is the second ask that loops
+	// (arrange -> tgts -> arrange ...). Keyed by resolving stack object and
+	// then by the SA's Line -- ResolveSVar parses fresh on every call, so
+	// pointer identity never holds across a resume, the same matching
+	// convention charmModeTarget and chosenTargetsFor's OfferedSA check use.
+	// The per-SA key keeps one sub's answer off another sub's ask, and the
+	// entry is deleted when THAT SA's resolution completes so a later
+	// re-entry (a Repeat loop) asks afresh. Decision-derived engine scratch
+	// in the moveCounterAsk discipline: replay re-submits the recorded
+	// Intents through the same arm, so the map re-derives identically and no
+	// event carries it.
+	targetsPickAsk map[state.ObjID]map[string][]state.Target
 	// orderedTriggers is how many LEADING entries of pendingTriggers have
 	// already had their order settled by an answered KTriggerOrder decision
 	// (or, for a lone trigger, by there being nothing to decide). It is the

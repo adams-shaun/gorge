@@ -48,12 +48,14 @@ func swampMosquitoFixture(t *testing.T) (*Engine, state.ObjID) {
 // TestSwampMosquitoUnblockedAttackPoisonsDefender drives a real unblocked
 // attack to declare-blockers round completion and proves the queued trigger
 // carries the defending player as its captured role, then resolves the body
-// against that captured seat. Swamp Mosquito's own body is DB$ Poison, whose
-// primitive is not registered in this build, so resolution is observed as the
-// "unimplemented API Poison" Note the body emits -- which is exactly what
-// proves the trigger resolved and reached its Execute body; the poison counter
-// itself stays put because the primitive is missing (see the report's Issues).
-// The blocked negative case queues nothing and emits no such Note.
+// against that captured seat. Swamp Mosquito's body is
+// `DB$ Poison | Defined$ TriggeredDefendingPlayer | Num$ 1`, and since
+// api:Poison is registered (task poison) the resolution is observed directly
+// as seat 1's POISON counter going 0 -> 1 -- the real effect, not the
+// "unimplemented API Poison" Note this leaf used as a stand-in while the
+// primitive was missing. The Note must now be ABSENT, which is asserted, so
+// this leaf also fails if the registration is reverted. The blocked negative
+// case queues nothing and places no counter.
 func TestSwampMosquitoUnblockedAttackPoisonsDefender(t *testing.T) {
 	e, mosquito := swampMosquitoFixture(t)
 
@@ -95,12 +97,15 @@ func TestSwampMosquitoUnblockedAttackPoisonsDefender(t *testing.T) {
 		if len(eng.G.Stack) != 1 {
 			t.Fatalf("stack = %d, want exactly one AttackerUnblocked trigger", len(eng.G.Stack))
 		}
-		if hasNote(eng, "unimplemented API Poison") {
-			t.Fatal("poison body ran before the trigger resolved")
+		if got := eng.G.Players[1].Counter("POISON"); got != 0 {
+			t.Fatalf("poison body ran before the trigger resolved: seat 1 has %d poison", got)
 		}
 		eng.resolveTop()
-		if !hasNote(eng, "unimplemented API Poison") {
-			t.Fatal("trigger resolution never reached Swamp Mosquito's DB$ Poison body")
+		if got := eng.G.Players[1].Counter("POISON"); got != 1 {
+			t.Fatalf("seat 1 poison after resolution = %d, want 1 (TriggeredDefendingPlayer gets Num$ 1)", got)
+		}
+		if hasNote(eng, "unimplemented API Poison") {
+			t.Fatal("api:Poison resolved through the unregistered fallback Note, not the registered handler")
 		}
 	}
 	if !reflect.DeepEqual(e.L.Events, clone.L.Events) {
@@ -130,19 +135,17 @@ func TestSwampMosquitoUnblockedAttackPoisonsDefender(t *testing.T) {
 	if len(eb.G.Stack) != 0 {
 		t.Fatalf("a blocked attack left %d stack entries, want 0", len(eb.G.Stack))
 	}
-	if hasNote(eb, "unimplemented API Poison") {
-		t.Fatal("blocked attack reached the poison body")
+	if got := eb.G.Players[1].Counter("POISON"); got != 0 {
+		t.Fatalf("blocked attack reached the poison body: seat 1 has %d poison", got)
 	}
 }
 
 // TestKeeperOfTresserhornUnblockedAttackDrainsDefender proves the mode's
-// captured defending-player role observably drives a resolved body. Swamp
-// Mosquito's own DB$ Poison primitive is unregistered in this build, so its
-// resolution can only be seen as the unimplemented-API Note; Keeper of
-// Tresserhorn carries the same ValidCard$ Card.Self shape with an implemented
-// body -- DB$ LoseLife | Defined$ TriggeredDefendingPlayer | LifeAmount$ 2 --
-// so seat 1's life drops by exactly 2, and only after the queued trigger
-// resolves.
+// captured defending-player role observably drives a resolved body through a
+// SECOND primitive, so the role capture is not pinned on api:Poison alone.
+// Keeper of Tresserhorn carries the same ValidCard$ Card.Self shape with
+// DB$ LoseLife | Defined$ TriggeredDefendingPlayer | LifeAmount$ 2, so seat
+// 1's life drops by exactly 2, and only after the queued trigger resolves.
 func TestKeeperOfTresserhornUnblockedAttackDrainsDefender(t *testing.T) {
 	e := combatEngine(t)
 	keeper := onBoardCard(t, e, 0, unblockedCorpusCard(t, "k/keeper_of_tresserhorn.txt"))
