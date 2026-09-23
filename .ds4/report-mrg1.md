@@ -95,3 +95,97 @@ ChangeZone register row (this ticket) plus main-side `(castfilter1/2)` and
 ## Uncertainty / concerns
 
 None. Both requested ratchet groups and the conflict-specific CTMS tests passed.
+
+---
+
+# Merge resolution report — mrg1 (wt/cli-20260923T060000Z-manaexp-nonpool), 2026-09-23
+
+## Entry state
+
+`git status` found the tree CLEAN at branch tip `e7f775f6` (the convoke
+ManaExpend fix: `b6d47f8b fix(rules): count Convoke mana for ManaExpend` +
+`e7f775f6 test(rules): assert Convoke expend trigger resolves after decision
+drain`). No rebase or merge in flight, no prior partial resolution — this
+resolver ran the integration itself.
+
+## Integration
+
+`git merge main` (main at `f2599d19`). Auto-merged: AGENTS.md regions outside
+the conflict, `rules/cast.go`, `rules/heads_test.go`, and ~60 other files from
+main's lineage (hlcz-imprint, ctms-refhead, layers-pt7kw merges plus their
+closure commits). TWO content conflicts:
+
+1. **`AGENTS.md`** — the `(battle1)` / `(manaexpend1)` adjacent rows at one
+   insertion point:
+   - Base `e9ed29f0` carried BOTH rows (verified: `git show e9ed29f0:AGENTS.md`
+     lines 236-237, and the `(manaexpend1)` row text is byte-identical
+     base-vs-main — main did NOT touch that row's lines).
+   - The branch DELETED `(manaexpend1)` (b6d47f8b: ManaExpend now counts
+     convoke contributions alongside pool mana — the row's own "Removed by"
+     condition met) and kept `(battle1)`.
+   - Main DELETED `(battle1)` (b732b382: the CR 310.11 defeated battle is
+     exiled and its owner may cast it transformed) and kept `(manaexpend1)`.
+   - **Resolution: keep NEITHER row** — both closures are deliberate,
+     disjoint, and reviewed; the merged table goes `(api:Clone)` →
+     `(devthr1)` directly. Measured the merged table at **24 data rows**
+     with the test's own `approximationRows()` rule (base 29 − 5 disjoint
+     closures: manaexpend1 [branch], battle1, hlcz-imprint hidden-library
+     ChangeZone row, castfilter1/2, kw:Flanking [main]).
+
+2. **`internal/testutil/agentsdoc_test.go`** — the `knownApproximationRows`
+   constant and comment: branch said 28, main said 25, neither right for the
+   merge. Resolution: `knownApproximationRows = 24` with a merged comment
+   naming all five disjoint closures and their commits/tickets.
+
+## Risky auto-merge verified
+
+`rules/cast.go` was auto-merged between main's 5390d8b3 (expend tally became
+engine scratch; `payCast` folds every paid cast unconditionally) and the
+branch's convoke change. The merged `payCast` computes
+`manaSpentTotal(spentMana) + convokeManaSpent(pc.convoke)` — both intents
+compose; `convokePayment` gained the `countsMana` field the branch's fix adds,
+and `convokeManaSpent` survives the merge. Confirmed by both sides' tests
+passing together (below).
+
+## Commands and output
+
+```text
+git status            # clean at e7f775f6, nothing in flight
+git merge main
+  Auto-merging AGENTS.md        Auto-merging internal/testutil/agentsdoc_test.go
+  Auto-merging rules/cast.go
+  CONFLICT (content): Merge conflict in AGENTS.md
+  CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go
+awk row-count of merged AGENTS.md -> 24
+git diff --check      # no leftover markers after resolution
+git add AGENTS.md internal/testutil/agentsdoc_test.go
+go test ./internal/testutil/
+  ok  github.com/adams-shaun/gorge/internal/testutil 1.266s
+go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|ManaExpend|Convoke'
+  ok  github.com/adams-shaun/gorge/rules 0.776s
+  (verified non-vacuous with -v: 22 RUNs, all PASS — incl.
+   TestEveryRepoDeckIsFullySupported, TestEveryRepoDeckParamsAreRead,
+   TestTeapotSlingerManaExpendCountsConvoke, and the branch's convoke tests)
+go test ./rules -run 'TestTeapotSlinger'   # main's expend tests on the merged cast.go
+  ok  github.com/adams-shaun/gorge/rules 0.584s
+gofmt -l <changed files>   # clean; go run ./cmd/gentypes -check clean
+git commit --no-edit -> b0937567 Merge branch 'main' into wt/cli-20260923T060000Z-manaexp-nonpool
+git status            # clean; main (f2599d19) is an ancestor of the branch
+```
+
+`.cards` is the real symlink to `/home/sadams/projects/gorge/.cards` — the
+rules runs are real, not vacuous corpus-skipped passes.
+
+## Uncertainty / concerns
+
+None. The only judgement call was deleting BOTH conflicting AGENTS.md rows;
+that follows from each row's deletion being a reviewed closure on its own side
+(main never modified the `(manaexpend1)` lines the branch deleted, and the
+branch never modified the `(battle1)` lines main deleted — verified
+byte-identical against the merge base), so no side's intent was overridden.
+
+## Issues
+
+None new. Integration only; the merged state closes `(manaexpend1)` (branch)
+plus main-side `(battle1)`, hlcz-imprint, `(castfilter1/2)` and `(kw:Flanking)`
+closures, measured at 24 data rows.
