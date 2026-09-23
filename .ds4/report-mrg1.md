@@ -3766,3 +3766,96 @@ green. No acceptance-table / Known-approximations row change.
 No unresolved defect found in this round. The integration was a report-file
 merge only; the Emerge implementation and its tests are unchanged from the
 reviewed fix (`29de0b65`, `14563e8d`, `6afea940`).
+
+---
+
+# Merge-conflict resolution report — mrg1 (task agent-20260918T225913Z-5db23024), Emerge branch main-integration round
+
+## Entry state and operation
+
+`git status` on arrival: **clean, no rebase or merge in flight** at `ed3a21dc`
+on `wt/agent-20260918T225913Z-5db23024` — the daemon had aborted both its
+rebase and its merge fallback before this seat started. The branch carried the
+reviewed Emerge fix (8 commits: `29de0b65` feat, `14563e8d` + `6afea940`
+fixes, tests and report commits) on base `767f3dd4`; `main` had advanced to
+`b493bc15`. Repo convention (`git rebase` is forbidden in a seat) and the
+daemon's own fallback shape both say merge: ran `git merge main`.
+
+`.cards` was present as a symlink to `/home/sadams/projects/gorge/.cards`
+(found, not created) — the ratchet run below is corpus-backed.
+
+## Conflicted files and resolution
+
+One content conflict, `.ds4/report-mrg1.md`; everything else auto-merged
+(including `.ds4/report-sol1.md`, which the daemon's transcript had named —
+it merged cleanly this round). Index stages: base `:1:` 114 lines
+(the truncated bbfff2fb-era blob), ours `:2:` 165 lines (this branch's own
+Emerge mrg1 report — preserved below in this file), theirs `:3:` 3600 lines
+(main's full accumulated report history).
+
+- **ours** replaced the base with this ticket's Emerge mrg1 report.
+- **theirs** restored/extended the full accumulated history (base is not a
+  prefix of either side; both diverged independently). It contains ZERO
+  occurrences of the branch's report id (`grep -c '225913Z-5db23024' :3:` = 0),
+  so nothing of ours is duplicated or already present.
+- **Resolution: union.** theirs verbatim (3600 lines) + a `---` divider +
+  ours verbatim (165 lines) = 3768 lines. Programmatic check: both sides
+  preserved byte-for-byte (`theirs in res` / `ours in res` → True),
+  `grep -nE '^(<<<<<<< |=======$|>>>>>>> )'` → no matches (the pre-existing
+  prose line `>>>>>>>' → 0` inside the 200200Z report is not a marker and was
+  left verbatim). No engine, test, table or golden file was touched by the
+  resolution; the merge's other 11 paths are main's reviewed changes arriving
+  intact, and the branch's `rules/emerge*.go` / `rules/cast.go` /
+  `rules/legal.go` diffs vs main are unchanged from the reviewed fix.
+
+## Completing the operation
+
+```
+$ git add -f .ds4/report-mrg1.md        # .ds4 is gitignored; file is tracked
+$ git commit --no-edit
+[wt/agent-20260918T225913Z-5db23024 686c292b] Merge branch 'main' into wt/agent-20260918T225913Z-5db23024
+$ git status --short                    → clean
+$ git merge-base --is-ancestor main HEAD → MAIN-IS-ANCESTOR
+```
+
+## Post-merge ratchets and goldens (real output)
+
+```
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  	github.com/adams-shaun/gorge/rules	0.793s            (exit 0)
+$ go test -run 'TestEmerge' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.603s            (exit 0)
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.209s     (exit 0)
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.812s         (exit 0 — split did NOT move)
+```
+
+No head or ratchet movement: `rules/heads_test.go` untouched, the branch
+registers no new `Mode$` matcher (kw:Emerge is a casting option via
+`effects.RegisterNonAPI`, not a trigger mode) and closes no
+`knownUnsupported` / `knownUnsupportedParams` / `knownUnmodelledCountHeads`
+entry, so no ratchet table needed editing.
+
+## Deviations / unsure about
+
+- The previous round's report (ours) claimed a completed rebase onto
+  `767f3dd4`; that rebase WAS completed (the branch was linear onto it), so
+  this round's remaining operation was the fresh merge of the newer `main` —
+  the same situation prior rounds recorded. No contradiction.
+- This round's report is appended to the accumulator rather than replacing
+  it, per the file's own union convention and the destructive-replace
+  anti-pattern the accumulator documents.
+
+## Issues
+
+None new. The conflict was confined to the tracked report accumulator; main's
+engine changes auto-merged and all goldens/ratchets pass unmodified. Standing
+observation (already documented by prior rounds, not re-filed as new): the
+shared `.ds4/report-*.md` accumulators conflict on nearly every integration
+because each seat writes at the same paths; the union convention keeps all
+content but costs a round each time.
+
+STATUS=DONE
+COMMITS=686c292b
+TESTS=go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' → ok 0.793s; go test -run 'TestEmerge' ./rules/ → ok 0.603s; go test ./internal/archtest/ → ok 3.209s; go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ → ok 1.812s
