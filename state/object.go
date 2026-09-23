@@ -498,7 +498,13 @@ type Object struct {
 	Ability           *cards.SA
 	Source            ObjID
 	SourceIncarnation uint32
-	Targets           []Target
+	// StackKind is stamped when an event mints this stack object. It is
+	// deliberately carried on the object rather than re-derived from Source:
+	// CR 113.7a still identifies an ability after its source has left or
+	// changed faces.
+	StackKind      StackObjKind
+	StackKindKnown bool
+	Targets        []Target
 	// Remembered carries a triggered ability's Ctx.Remembered from the
 	// moment it was queued (rules.checkTriggers) through to resolution. An
 	// ability object has no Face (Ruling F3) and therefore no card-script

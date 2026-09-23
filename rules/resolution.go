@@ -439,7 +439,7 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 		villainousIndex:         d.ResumeVillainousIndex,
 		villainousRemembered:    append([]state.Target(nil), e.villainousRemembered...),
 		villainousRememberedSet: e.villainousRememberedSet,
-		targetsUnique:           append([]state.Target(nil), d.ResumeTargetsUnique...),
+		targetsUnique:           e.targetsUniqueRide(d),
 		fusedTargets:            append([]state.Target(nil), e.fusedResolving...),
 		fusedTargetsSet:         e.fusedResolvingSet,
 		fusedSVars:              e.fusedResolvingSVars,
@@ -489,6 +489,38 @@ func (e *Engine) SetResolutionTargetControllerLKI(m map[state.ObjID]state.Player
 	prev := e.resolvingTargetControllerLKI
 	e.resolvingTargetControllerLKI = m
 	return prev
+}
+
+// SetResolutionCtx implements effects.Host's optional resolutionCtxHost
+// interface: effects.Resolve publishes the live Ctx of the chain it is about
+// to walk, and restores the previous value on return, so the scratch holds
+// exactly the innermost running chain's Ctx. Engine.Ask consumes it as the
+// fallback source of the chain's TargetUnique$ accumulator. Writes engine
+// scratch, never e.resume, so it is not a writer of the resume state the
+// archtest guards.
+func (e *Engine) SetResolutionCtx(c *effects.Ctx) *effects.Ctx {
+	prev := e.resolutionCtx
+	e.resolutionCtx = c
+	return prev
+}
+
+// targetsUniqueRide is the TargetUnique$ accumulator a decision resumes with:
+// the accumulator the asking site already stamped onto the decision when it
+// carried one, else the LIVE accumulator of the Resolve chain currently
+// running (published through SetResolutionCtx). It is the one home of the
+// ride, so an ask of ANY kind -- a modal election, a ward pay, a
+// dig/scry/arrange pick -- parked between two TargetUnique$ riders preserves
+// the picks earlier riders chose, rather than only the shared target pre-ask
+// and the unless gate that stamped it explicitly. Nil outside a chain (a
+// combat or mulligan ask), where there is no accumulator to carry.
+func (e *Engine) targetsUniqueRide(d *decision.Decision) []state.Target {
+	if len(d.ResumeTargetsUnique) > 0 {
+		return append([]state.Target(nil), d.ResumeTargetsUnique...)
+	}
+	if e.resolutionCtx == nil {
+		return nil
+	}
+	return append([]state.Target(nil), e.resolutionCtx.TargetsUnique...)
 }
 
 // SuspendUnless implements effects.Host.SuspendUnless: the unless-cost
@@ -1159,7 +1191,61 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	if rp.kind == "copy_targets" {
 		e.resume = nil
 		if rp.obj != 0 {
-			e.recordChosenTargets(rp.obj, chosen, false)
+			// A multi-declaration copy (a fused half, a modal declaration) is
+			// asked once per declaration. Each answer is ACCUMULATED here and
+			// the whole flat list is recorded ONCE, after the LAST
+			// declaration -- recording the first stage's answer immediately
+			// would REPLACE o.Targets and destroy the later declarations'
+			// inherited keep-current slots. copyTargetStage[obj] is the NEXT
+			// stage, so the stage just answered is one less.
+			stage := e.copyTargetStage[rp.obj] - 1
+			if stage < 0 {
+				stage = 0
+			}
+			if e.copyAnswerTargets == nil {
+				e.copyAnswerTargets = make(map[state.ObjID][][]decision.Option)
+			}
+			ans := e.copyAnswerTargets[rp.obj]
+			for len(ans) <= stage {
+				ans = append(ans, nil)
+			}
+			ans[stage] = append(ans[stage][:0], chosen...)
+			e.copyAnswerTargets[rp.obj] = ans
+			// More declarations still owe an ask: re-enter resolveTop, whose
+			// AskCopyTargets guard reads copyTargetStage and poses the next
+			// one. Nothing is recorded yet.
+			decls := e.copyTargetDeclarations(e.G.Obj(rp.obj))
+			if e.copyTargetStage[rp.obj] < len(decls) {
+				e.resolveTop()
+				return
+			}
+			// Every declaration answered: record the flattened list in
+			// declaration order (option 0 replaces, the rest append) and
+			// publish the per-declaration split for a fused copy, so
+			// resolveFused hands each half exactly the targets chosen FOR it
+			// (the same split a cast publishes at payment).
+			flat := make([]decision.Option, 0, len(chosen))
+			stages := make([][]state.Target, len(ans))
+			for i, sl := range ans {
+				flat = append(flat, sl...)
+				stages[i] = targetOptions(sl)
+			}
+			if len(flat) == 0 {
+				flat = chosen
+			}
+			e.recordChosenTargets(rp.obj, flat, false)
+			if o := e.G.Obj(rp.obj); o != nil && o.CastFlags&state.FlagFused != 0 {
+				if ff, _ := fusedSplitFaces(o); ff != nil {
+					if sa := ff.SpellAbility(); sa == nil || strings.TrimSpace(sa.Params["ValidTgts"]) == "" {
+						stages = append([][]state.Target{nil}, stages...)
+					}
+				}
+				if e.fuseTargets == nil {
+					e.fuseTargets = make(map[state.ObjID][][]state.Target)
+				}
+				e.fuseTargets[rp.obj] = stages
+			}
+			delete(e.copyAnswerTargets, rp.obj)
 		}
 		e.resolveTop()
 		return
@@ -1275,6 +1361,16 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// sacrifice asks once after the flips; without this the second loser's
 		// read saw an empty set and never sacrificed).
 		FlipMemory: rp.flipMemory}
+	// Publish this rebuilt Ctx for the whole of the resumed resolution (the
+	// same restore-on-return bracket effects.Resolve uses), so an ask posed
+	// from RULES machinery before the effects.Resolve re-entry -- the Ward
+	// pay window's beginWardPayment, a charm-mode continuation -- carries the
+	// chain's TargetUnique$ accumulator (restored from rp.targetsUnique
+	// above) onto its own resume point instead of dropping it. The nested
+	// effects.Resolve re-publishes the same Ctx and restores to this value on
+	// return, so the LIFO restore order is exact.
+	prevCtx := e.SetResolutionCtx(ctx)
+	defer e.SetResolutionCtx(prevCtx)
 	if rp.kind == "repeat_optional" {
 		ctx.RepeatOptional = &effects.RepeatOptionalContinuation{
 			Continue: len(chosen) > 0 && chosen[0].Kind == "yes",
@@ -1296,6 +1392,11 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	// resolveTop's ability branch does it: the trigger object was never
 	// paid an X, so the causing event's card supplies the value.
 	ctx.X = o.X
+	// CR 601.2b/107.3i: the stack object's own X — an announced, possibly
+	// zero payment — binds through the suspension exactly as the value does,
+	// so an UnlessCost$ X on a zero-X cast resolves to {0} at the resumed
+	// gate instead of staying a raw unpriceable token.
+	ctx.XAnnounced = stackXAnnounced(o)
 	if rp.replacement {
 		// fx44: this suspended frame is a ReplaceWith$ body, so restore the
 		// replacement context applyReplacements seeded for it. Ctx.Replaced is
@@ -1330,6 +1431,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	// cast-time value, not this payment's.
 	if rp.tapPaidX != 0 {
 		ctx.X = rp.tapPaidX
+		ctx.XAnnounced = true
 	}
 	// The trigger-cost window's X fold (the {X}/{PayLife<X>} announcement:
 	// Elenda and Azor, Vizkopa Confessor, Necrodominance): the announced or
@@ -1337,6 +1439,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	// Count$xPaid / NumCards$ X / TokenPower$ X reads this payment.
 	if rp.winPaidX != 0 {
 		ctx.X = rp.winPaidX
+		ctx.XAnnounced = true
 	}
 	var svars map[string]string
 	if o.Ability != nil {
@@ -1700,13 +1803,17 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				// and the counterspell stays inert. An unpriceable cost must
 				// decline, never resolve at zero. This is the conservative
 				// correct behaviour: a cleared counter is closer to the card
-				// than a no-op. The real fix (M4) is cost-grammar work — a
-				// value for X from CastInfo/ModeChosen or an SVar folded into
-				// Generic via WithX before payment. ParseUnlessCost is the
-				// strict parser: every token must be a mana symbol, a fixed
-				// PayLife<N>, or a Sac/Discard/SubCounter/Draw/Reveal component;
-				// X, Y, DamageYou<N>, PayEnergy<N>, Return<...>, ExileFromGrave<...>,
-				// Behold<...>, tapXType<...>, LifeTotalHalfUp, DefinedCost_* and every other
+				// than a no-op. The named dynamic shapes close against the
+				// resolution context: the announced-X binding (CR 601.2b,
+				// including an announced zero), the resolvable SVar bodies (the
+				// Counter/CopySpellAbility folds and every other API), the
+				// DefinedCost_/DefinedSACost_ card-anchored mana values, the
+				// energy parts (PayEnergy<N>/<X>, charged from the payer's
+				// counters), the Return<N/Spec> choice parts (the payer's pick,
+				// the beginUnlessPayment continuation) and LifeTotalHalfUp (the
+				// payer's own life, folded at the gate and the charge).
+				// ParseUnlessCost is still the strict parser: ExileFromGrave<...>,
+				// Behold<...>, tapXType<...>, CopyCost, and every remaining
 				// dynamic or unmodelled token declines here rather than
 				// ParseCost's flat {1} substitution buying it for one generic.
 				// The ask is still posed to the payer (the answer is recorded by
@@ -1716,8 +1823,9 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				// while never letting an empty pool satisfy it.
 				ctx.UnlessPay = "decline"
 			} else if len(chosen) > 0 && chosen[0].Index == 0 && e.unlessCostPayable(chosen[0].Player, rawUnlessCost, ctx, rp.obj) {
-				if len(paid.Sac) > 0 || len(paid.Discard) > 0 || len(paid.Reveal) > 0 || len(paid.RevealChosen) > 0 {
-					// Sacrifice, discard and reveal are choice-bearing costs.
+				if len(paid.Sac) > 0 || len(paid.Discard) > 0 || len(paid.Reveal) > 0 || len(paid.RevealChosen) > 0 || len(paid.Return) > 0 {
+					// Sacrifice, discard, reveal and return are choice-bearing
+					// costs.
 					// Park this resume before any mutation and let the payer
 					// select every component; finishUnlessPayment re-enters
 					// with unlessPay set, so this arm never charges it twice.

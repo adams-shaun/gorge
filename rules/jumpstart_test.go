@@ -204,7 +204,7 @@ func TestJumpstartedSpellCounteredGoesToExile(t *testing.T) {
 	}
 	// Counter it with a hand-built Counter effect against the stack object --
 	// the same shape TestFlashbackedSpellCounteredGoesToExile uses.
-	effects.Resolve(e, &effects.Ctx{Controller: 1, Targets: []state.Target{{Obj: cardID}}},
+	effects.Resolve(e, &effects.Ctx{Controller: 1, Targets: []state.Target{{Obj: cardID}}, TargetsOffered: true},
 		card(t, "Name:Counterspell\nManaCost:U U\nTypes:Instant\nA:SP$ Counter | ValidTgts$ Spell\nOracle:x\n").Faces[0].SpellAbility())
 	if got := e.G.Obj(cardID).Zone; got != state.ZExile {
 		t.Fatalf("countered jump-started spell went to %v, want exile", got)
