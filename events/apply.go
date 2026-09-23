@@ -2274,6 +2274,10 @@ func Apply(g *state.Game, e Event) {
 		// name, so every already-logged registration decodes exactly as
 		// before (VP ungated; MaxTurn zero).
 		text := e.Text
+		effectRepeat := strings.HasSuffix(text, "|EF")
+		if effectRepeat {
+			text = strings.TrimSuffix(text, "|EF")
+		}
 		vp := ""
 		if i := strings.LastIndex(text, "|VP="); i >= 0 {
 			vp = text[i+4:]
@@ -2288,7 +2292,7 @@ func Apply(g *state.Game, e Event) {
 		}
 		mode, trigger := "", ""
 		if i := strings.Index(text, ":"); i > 0 &&
-			(text[:i] == "SpellCast" || text[:i] == "ChangesZone" || text[:i] == "BecomeMonarch") {
+			(effectRepeat || text[:i] == "SpellCast" || text[:i] == "ChangesZone" || text[:i] == "BecomeMonarch") {
 			mode, trigger = text[:i], text[i+1:]
 		}
 		g.Delayed = append(g.Delayed, state.DelayedTrigger{
@@ -2304,6 +2308,7 @@ func Apply(g *state.Game, e Event) {
 			TrackSource:       track,
 			EventMode:         mode,
 			Trigger:           trigger,
+			EffectRepeat:      effectRepeat,
 			ValidPlayer:       vp,
 		})
 		g.DelayedNext++
@@ -2338,7 +2343,9 @@ func Apply(g *state.Game, e Event) {
 				if g.Delayed[i].ID == uint32(e.Amount) {
 					dt := g.Delayed[i]
 					registration = &dt
-					g.Delayed = append(g.Delayed[:i], g.Delayed[i+1:]...)
+					if !dt.EffectRepeat {
+						g.Delayed = append(g.Delayed[:i], g.Delayed[i+1:]...)
+					}
 					break
 				}
 			}

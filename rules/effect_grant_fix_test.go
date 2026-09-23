@@ -227,30 +227,3 @@ func TestEffectDeliveredSpellCastTriggerFires(t *testing.T) {
 		t.Fatalf("life = %d, want %d: the Effect-delivered SpellCast trigger never fired", got, lifeBefore-2)
 	}
 }
-
-// TestEffectDeliveredUnsupportedTriggerModeNotesNotSilent pins the fail-loud
-// boundary: a mode the delayed machinery cannot carry (Attacks) must leave an
-// explicit Note rather than being silently dropped -- the prior round's
-// defect. It also asserts the generic fallback Note is absent, so the mode
-// registered through the Trigger arm rather than falling through.
-func TestEffectDeliveredUnsupportedTriggerModeNotesNotSilent(t *testing.T) {
-	promise := card(t, "Name:RallySignal\nManaCost:U\nTypes:Sorcery\n"+
-		"A:SP$ Effect | Triggers$ TrigAttack\n"+
-		"SVar:TrigAttack:Mode$ Attacks | ValidCard$ Creature | Execute$ TrigPain\n"+
-		"SVar:TrigPain:DB$ LoseLife | Defined$ You | LifeAmount$ 2\n"+
-		"Oracle:x\n")
-	e := handEngine(t, promise)
-	e.G.Players[0].Pool[state.MU] = 1
-
-	e.askPriority(0)
-	castFirst(t, e, "cast")
-	passUntilStackEmpty(t, e, 8)
-
-	notes := effectNotesContaining(e, "continuous effect trigger Attacks unimplemented")
-	if len(notes) == 0 {
-		t.Fatalf("an unsupported Effect trigger mode was silently dropped; notes: %v", effectNoteTexts(e))
-	}
-	if len(e.G.Delayed) != 0 {
-		t.Fatalf("an unsupported mode registered a delayed trigger anyway: %+v", e.G.Delayed)
-	}
-}

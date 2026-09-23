@@ -383,6 +383,9 @@ type DelayedTrigger struct {
 	// field ("<Mode>:<Trigger>") because the event gains no fields.
 	EventMode string
 	Trigger   string
+	// EffectRepeat marks a turn-scoped api:Effect trigger. Unlike a CR 603.7
+	// one-shot promise, its registration survives each firing until MaxTurn.
+	EffectRepeat bool
 	// ValidPlayer is the registering DelayedTrigger SA's ValidPlayer$ value
 	// when it has one (Necropotence's "You": "put that card into your hand
 	// at the beginning of YOUR next end step"). The rules-side delayed

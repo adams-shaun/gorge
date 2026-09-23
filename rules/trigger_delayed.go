@@ -19,6 +19,13 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
+// TriggerModeSupported reports the SAME dispatch table the live trigger scan
+// uses. Effect registration refuses unknown modes rather than storing an inert
+// registration that would make the card appear supported.
+func (e *Engine) TriggerModeSupported(mode string) bool {
+	return trigMatchers[mode] != nil
+}
+
 // checkTriggers is called from emit after every event. It walks every
 // object once (forEachObject) and, for each cards.Trigger on that object's
 // face, asks triggerMatches whether this event satisfies it. A match
@@ -178,7 +185,7 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 		// ChangesZone (a move, the Earthbend return promise). A Mode$ Phase
 		// registration carries no EventMode at all and is owned by
 		// checkDelayedTriggers at its phase occurrence.
-		if dt.EventMode != "SpellCast" && dt.EventMode != "ChangesZone" && dt.EventMode != "BecomeMonarch" {
+		if !dt.EffectRepeat && dt.EventMode != "SpellCast" && dt.EventMode != "ChangesZone" && dt.EventMode != "BecomeMonarch" {
 			continue
 		}
 		// The ThisTurn$ mirror: a registration whose expiry turn has passed
@@ -255,6 +262,17 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 				continue
 			}
 			referentsArg = lki
+		} else if dt.EffectRepeat {
+			// The Effect object is represented by its registration, not by a
+			// battlefield face. Dispatch through the ordinary mode matcher but
+			// skip the printed-face zone gate (the creating spell may already
+			// be in the graveyard). The event mask prevents a mismatched event
+			// from reaching a matcher that assumes its own event shape.
+			fn := trigMatchers[t.Mode]
+			if fn == nil || !triggerModeEvents(t.Mode).allows(ev.Kind) ||
+				!fn(e, t, dt.Source, ev, lki) {
+				continue
+			}
 		} else if !e.eventDelayedSpellCastMatches(t, dt, ev) {
 			continue
 		}

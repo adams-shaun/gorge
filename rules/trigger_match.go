@@ -694,9 +694,9 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object,
 		e.checkFaceTriggers(observer, ev, obj, power, toughness, valid, true, true)
 	}
 	e.checkFaceTriggers(e, ev, lki, lkiPower, lkiToughness, lkiPTValid, batch, false)
-	if ev.Kind == events.PutOnStack || ev.Kind == events.MoveZone || ev.Kind == events.MonarchChange {
-		e.checkEventDelayedTriggers(ev, lki)
-	}
+	// An Effect-created trigger may name any registered event mode (damage,
+	// attacks, taps, etc.), not only the three one-shot delayed modes.
+	e.checkEventDelayedTriggers(ev, lki)
 	// Sagas (kw:Chapter): a lore counter's chapter ability queues off the
 	// two events that place lore counters -- the battlefield-entry Move
 	// (whose own grant is already folded into the live counter the check

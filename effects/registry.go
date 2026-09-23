@@ -81,6 +81,9 @@ type Host interface {
 	// continuous-effect registry; the effects test double scans its own
 	// recorded slice.
 	ContinuousNamed(controller state.PlayerID, name string) bool
+	// TriggerModeSupported keeps Effect-created trigger registrations honest:
+	// an unknown Mode$ cannot masquerade as an armed, inert promise.
+	TriggerModeSupported(mode string) bool
 	// TypeChoices returns the creature-type option list a mid-resolution
 	// ChooseType ask offers its chooser (task ct1) — the SAME list the
 	// cast-time "as this enters" type ask builds (rules/etbOptions' "type"

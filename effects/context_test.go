@@ -179,6 +179,7 @@ func (h *fakeHost) ContinuousNamed(controller state.PlayerID, name string) bool 
 	}
 	return false
 }
+func (h *fakeHost) TriggerModeSupported(mode string) bool { return false }
 func (h *fakeHost) RegisterControl(gr ControlGrant) {
 	h.controls = append(h.controls, gr)
 }

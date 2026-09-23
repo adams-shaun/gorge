@@ -398,8 +398,18 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				IDs: encodeRemembered(c.Remembered), Text: text})
 			registered = true
 		default:
-			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-				Text: "continuous effect trigger " + tr.Mode + " unimplemented"})
+			if !h.TriggerModeSupported(tr.Mode) {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "continuous effect trigger " + tr.Mode + " unimplemented"})
+				registered = true
+				continue
+			}
+			// All event modes share the trigger registry's matcher. The |EF
+			// marker distinguishes this recurring Effect grant from a one-shot
+			// DelayedTrigger and makes its mode self-describing for replay.
+			h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
+				Player: c.Controller, Step: h.Game().Step, Counter: exec,
+				IDs: encodeRemembered(c.Remembered), Text: tr.Mode + ":" + name + expiry + "|EF"})
 			registered = true
 		}
 	}
