@@ -3432,3 +3432,49 @@ code conflict.
 No new unfixed defect found. No uncertainty remains about the ratchet value:
 36 is the measured data-row count of the merged `AGENTS.md`, and neither
 conflicted comment matched it.
+
+---
+
+# Round 10 — integration of main at 835074e5 (merge commit cc1ff692)
+
+Entry state: tree clean at `08a95dff` (round 9); `main` had advanced from
+`827ca863` to `835074e5` (the sibling bestow ticket `cli-20260922T225142Z-171edf8c`:
+`0b9ae217` prices and offers the three exotic bestow costs and makes a bestowed
+spell an Aura spell; `976ae1ee` removes its non-regression evidence test; three
+merge commits). `git merge main --no-edit` conflicted in three files:
+
+- `AGENTS.md` — the two sides deleted two ADJACENT rows of the frozen register:
+  this branch closed `(blockprop1)` (6e77a1e8), main's bestow ticket closed
+  `(bestow1)`. Resolution keeps NEITHER row. Measured data rows: merge base
+  827ca863 = 37, HEAD = 36, main = 36, merged = 35.
+- `internal/testutil/agentsdoc_test.go` — both conflicted comments said 36 for
+  their own pre-merge states; resolution sets `knownApproximationRows = 35`
+  with a comment recording the measured base 37 − 2 = 35.
+- `.ds4/report-mrg1.md` — kept this ticket's full lineage (`--ours`), appended
+  main's current report (the bestow-merge round, 104 lines) as a delimited
+  preserved section per the archive convention.
+
+Verification (all real output in `.ds4/scratch/r*.log`):
+
+```text
+go test ./internal/testutil -run 'TestKnownApproximation'   → ok 0.001s (constant 35 holds)
+go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+                                                            → ok 0.784s
+go test ./rules -run 'TestBlockProp|TestAttackProp|TestCantBlockUnless|Bestow|Block'
+                                                            → ok 0.887s
+go test ./effects -run 'TestYourStartingLife|TestCount'     → ok 0.931s
+go test ./internal/archtest/                                → ok 4.471s
+go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+                                                            → ok 1.304s (20-game pinned split unmoved)
+go build ./...                                              → exit 0
+```
+
+`.cards` present (symlink: `cards.lock`, `cardsfolder`, `ir.gob.gz`) — no
+vacuous skips. `git merge-base --is-ancestor main HEAD` → exit 0. No new
+trigger mode registered by the merged delta (no `addedAfterTheSplit` entry
+needed); no engine behaviour change from the resolution itself.
+
+## Issues
+
+None new — integration only. The merged state closes BOTH register rows:
+`(blockprop1)` by this branch and `(bestow1)` by main's bestow ticket.
