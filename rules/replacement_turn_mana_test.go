@@ -260,6 +260,12 @@ func TestSephirothTransformRunsTheDestinationFaceReplacement(t *testing.T) {
 	if sa == nil {
 		t.Fatal("corpus Sephiroth carries no DBTransform SVar")
 	}
+	// DBTransform's ConditionCheckSVar$ X reads Count$ResolvedThisTurn, so
+	// this leaf is reached only on the FOURTH resolution of the turn. Present
+	// that context -- the tally a fourth real resolution would have folded
+	// (events.Apply's Resolve case) -- rather than zero, which the gate now
+	// correctly reads as "not yet" and skips the flip.
+	e.G.ResolvedThisTurn = map[string]int32{events.ResolvedAbilityKey(seph, sa): 4}
 	e.resolveAbility(seph, 0, nil, sa, o.Face().SVars)
 
 	if e.G.Obj(seph).FaceIdx != 1 {

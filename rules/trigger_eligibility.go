@@ -237,6 +237,15 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// default keeps a Surveil-only face's mask narrow for every other
 		// kind.
 		return 0
+	case "Scry":
+		// The Scry marker's ordinal is past the 64-bit mask's reach, the
+		// Surveil/Discover shape: a mask bit is not encodable and allows()
+		// fails open for every kind at or past triggerMaskKindBits, so the
+		// mode is admitted through that fail-open path and gated by the full
+		// matcher (scryMatches). Naming the mode here rather than letting it
+		// fall to the allTriggerEvents default keeps a Scry-only face's mask
+		// narrow for every other kind.
+		return 0
 	case "Exploited":
 		// The Exploit marker's ordinal is past the 64-bit mask's reach, the
 		// Investigated/Discover shape: a mask bit is not encodable and

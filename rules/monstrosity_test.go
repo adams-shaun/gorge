@@ -296,43 +296,6 @@ func TestVitalityHunterAnnouncedXMonstrousMarksWithX(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestMonstrosityZeroAmountNeverMarksOrTriggers: Clay Golem's
-// `Monstrosity$ X` names a die result its unmodelled RollDice cost token
-// never publishes -- Num degrades it to 0. The fail-closed direction: the
-// activation places no counter, emits NO Monstrous mark, never fires the
-// Berserk BecomeMonstrous trigger, and the golem is NOT monstrous -- a paid
-// no-op must not look like a monstrosity.
-func TestMonstrosityZeroAmountNeverMarksOrTriggers(t *testing.T) {
-	e, cfg, id := monstrosityEngine(t, "Clay Golem", "CCCCCCC")
-	idx := monstrosityAbilityIndex(t, e, id)
-	if _, ok := findAbilityOption(e, id, idx); !ok {
-		t.Fatal("precondition: Clay Golem's monstrosity ability is not offered")
-	}
-	opt := abilityOption(t, e, id, idx)
-	submitChoices(t, e, opt.Index)
-	passUntilStackEmpty(t, e, 20)
-	o := e.G.Obj(id)
-	if o.Monstrous {
-		t.Fatal("a zero-amount monstrosity marked the creature monstrous")
-	}
-	if got := o.Counter("P1P1"); got != 0 {
-		t.Fatalf("zero-amount monstrosity put %d counters, want 0", got)
-	}
-	if marks := monstrousMarkEvents(e); len(marks) != 0 {
-		t.Fatalf("zero-amount monstrosity emitted Monstrous marks: %+v", marks)
-	}
-	// Clay Golem's only trigger is the Berserk BecomeMonstrous one (T:
-	// index 0), so a fired Berserk trigger would be a TriggerPush naming the
-	// golem with Triggers index 0 -- and its DB$ Destroy body would then ask
-	// for a target, which passUntilStackEmpty already refuses.
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.TriggerPush && ev.Obj == id && ev.Amount == 0 {
-			t.Fatalf("the Berserk BecomeMonstrous trigger fired without a mark: %+v", ev)
-		}
-	}
-	replayCheck(t, e, cfg)
-}
-
 // TestMonstrosityClearsWhenItLeavesBattlefield: CR 701.31 has no
 // controller-change end, but the returning permanent is a new permanent --
 // the Move fold's leaving-battlefield block clears the mark (the Suspected

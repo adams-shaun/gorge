@@ -15,7 +15,7 @@ import (
 // head dropping out of the table is a keyword that silently stops expanding --
 // no test would otherwise fail, the carrier just quietly loses its ability.
 var expandedHeads = []string{
-	"etbCounter", "Devour", "ETBReplacement",
+	"etbCounter", "Devour", "ETBReplacement", "Vanishing",
 	"Undying", "Persist", "Evolve", "Exalted", "Dethrone", "Afflict",
 	"Flanking", "Hideaway", "Prowess", "Extort", "Soulbond", "Myriad",
 	"Annihilator", "Ward", "Storm", "Gravestorm", "Replicate", "Conspire",
@@ -67,6 +67,11 @@ var expandedHeads = []string{
 	// kw-partner-with). The deck-construction designation half of the keyword
 	// is read by deck.IsPartnerPair and is unchanged.
 	"Partner with",
+	// Backup (CR 702.70, task kw-backup): a ChangesZone ETB trigger whose
+	// body is a targeted PutCounter chained to a grant built from the named
+	// SVar, gated on the target being another creature. Added after the
+	// split; the pre-split switch never had it.
+	"Backup",
 	// Fortify (CR 702.67): analogous to Equip but targets lands; it was added
 	// after the split by kw-fortify and therefore belongs in this registry.
 	"Fortify",

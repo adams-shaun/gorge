@@ -107,8 +107,12 @@ type fakeHost struct {
 	flipRests            []FlipRest
 	repeatOptionalNext   int32
 	repeatOptionalCalled bool
-	askCount             int
-	askResult            bool
+	// repeatSuspensions records every SuspendRepeat call, so the effects-level
+	// RepeatEach RepeatOptionalForEachPlayer$ test can assert the per-subject
+	// election parked the loop cursor with Election set and the offered index.
+	repeatSuspensions []RepeatSuspension
+	askCount          int
+	askResult         bool
 	// lastAsk is the most recent decision handed to Ask, so an effects-level
 	// test can assert the election's ResumeRepeatNext (the two distinct
 	// RepeatOptional resume states) without an engine.
@@ -483,8 +487,12 @@ func (h *fakeHost) SuspendRepeatOptional(_ *cards.SA, next int32) {
 	h.repeatOptionalNext = next
 }
 
-// SuspendRepeat is a no-op for the same reason as SuspendContinuation.
-func (h *fakeHost) SuspendRepeat(RepeatSuspension) {}
+// SuspendRepeat records the loop cursor the RepeatEach reported (the
+// effects-level ReadRepeatEach tests assert the election's own cursor) and is
+// otherwise inert: an effects-package test double never really resumes.
+func (h *fakeHost) SuspendRepeat(s RepeatSuspension) {
+	h.repeatSuspensions = append(h.repeatSuspensions, s)
+}
 
 // SuspendCharmRest is a no-op for the same reason as SuspendContinuation.
 func (h *fakeHost) SuspendCharmRest(*cards.SA, []string) {}
