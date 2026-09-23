@@ -13,14 +13,11 @@ import (
 
 // This file pins Battles (CR 310) end to end on real corpus cards: a Battle
 // Siege enters with defense counters equal to its printed Defense (CR
-// 310.6/310.8, the entry grant in events.Apply's Move), a battle whose
-// defense counters reach 0 is put into its owner's graveyard by a
-// state-based action (CR 704.5h, rules/sba.go's battleZeroDefense), and a
-// Battle Siege entering poses the CR 310.10 protector choice and records the
-// chosen opponent through a Choose "protector" event. Attacking a battle and
-// the flip-on-defeat behaviour (CR 310.11) are deliberately out of scope:
-// they need an object-defender combat/decision schema this build does not
-// have.
+// 310.6/310.8, the entry grant in events.Apply's Move), a Battle Siege
+// entering poses the CR 310.10 protector choice and records the chosen
+// opponent through a Choose "protector" event. The zero-defense defeat
+// (exile by the SBA plus the CR 310.11 transformed-cast offer) is pinned in
+// rules/battle_defeated_test.go.
 //
 // Invasion of Tolvada is the canonical carrier (Defense:5, Types:Battle
 // Siege); it is in no repo deck, so these games never touch the golden heads.
@@ -90,25 +87,6 @@ func TestBattleEntersWithPrintedDefense(t *testing.T) {
 	if f := o.Face(); f == nil || !f.IsBattle() {
 		t.Fatal("battle face is not recognised as a Battle")
 	}
-}
-
-// TestBattleZeroDefenseGoesToGraveyard is CR 704.5h: a battle with no
-// defense counters is put into its owner's graveyard by a state-based
-// action, exactly the shape planeswalkerZeroLoyalty handles zero loyalty.
-func TestBattleZeroDefenseGoesToGraveyard(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
-	e, _, id := battleBoard(t, reg, "Invasion of Tolvada")
-	// Remove the printed counters through the ordinary counter-change event,
-	// then run a state-based pass.
-	e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "DEFENSE", Amount: -5})
-	e.checkStateBased()
-	for _, ev := range e.L.Events {
-		if ev.Kind == events.MoveZone && ev.Obj == id && ev.From == state.ZBattlefield &&
-			ev.To == state.ZGraveyard {
-			return
-		}
-	}
-	t.Fatal("battle at 0 defense was not moved to its owner's graveyard by the SBA")
 }
 
 // TestSiegeEntryPosesProtectorChoice pins CR 310.10: a Battle Siege entering
@@ -372,7 +350,7 @@ func TestBattlePathReplaysExactly(t *testing.T) {
 		t.Fatal("battle entry, protector choice and zero-defense SBA do not replay exactly from the events")
 	}
 	ro := replayed.Obj(id)
-	if ro == nil || ro.Zone != state.ZGraveyard || ro.Counter("DEFENSE") != 0 {
-		t.Fatalf("replayed battle zone %v defense %d, want graveyard at 0", ro, ro.Counter("DEFENSE"))
+	if ro == nil || ro.Zone != state.ZExile || ro.Counter("DEFENSE") != 0 {
+		t.Fatalf("replayed battle zone %v defense %d, want exile at 0", ro, ro.Counter("DEFENSE"))
 	}
 }

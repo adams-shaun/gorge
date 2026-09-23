@@ -1325,10 +1325,10 @@ func Apply(g *state.Game, e Event) {
 			if o := g.Obj(id); o != nil {
 				o.IsAttacking = true
 				o.Attacking = e.Player
-				// CR 310.7: a battle attack carries the battle in Obj, so the
-				// attacker records which permanent it is attacking. A player
-				// attack leaves Obj zero and the field stays zero -- the same
-				// discriminator a Numeric TargetChosen pair uses.
+				// CR 310.7/CR 508.1: a battle or planeswalker attack carries that
+				// permanent in Obj, so the attacker records which permanent it is
+				// attacking. A player attack leaves Obj zero and the field stays
+				// zero -- the same discriminator a Numeric TargetChosen pair uses.
 				o.AttackingBattle = e.Obj
 				o.AttacksThisTurn++
 			}

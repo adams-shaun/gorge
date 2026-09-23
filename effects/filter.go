@@ -1100,6 +1100,7 @@ const (
 	wordDefenderCtrl
 	wordNotDefinedTargeted
 	wordOpponentCtrl
+	wordChosenColor
 )
 
 // wordPredicate classifies a bare predicate word. key is the WUBRG letter for
@@ -1179,6 +1180,8 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordMonoColor, ""
 	case "Worthy":
 		return wordWorthy, ""
+	case "ChosenColor":
+		return wordChosenColor, ""
 	case "wasCast":
 		return wordWasCast, ""
 	case "CopiedSpell":
@@ -1342,6 +1345,16 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		return sharesAllCardTypesWithOther(g, o, sc, key)
 	case wordColor:
 		return strings.Contains(ColorsOf(o), key)
+	case wordChosenColor:
+		if source == 0 {
+			return false
+		}
+		src := g.Obj(source)
+		if src == nil {
+			return false
+		}
+		chosen := colourLetter(src.ChosenColor)
+		return chosen != 0 && strings.Contains(ColorsOf(o), string(chosen))
 	case wordType:
 		return hasTypeCtx(o, key, sc)
 	case wordColorless:
@@ -1695,7 +1708,7 @@ func contextPredicateBound(kind wordKind, sc SpecContext) bool {
 		return sc.Resolving
 	case wordDefenderCtrl:
 		return sc.DefendingPlayer.IsPlayer
-	case wordImprinted:
+	case wordImprinted, wordChosenColor:
 		return sc.Source != 0
 	}
 	return true
@@ -2651,6 +2664,12 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		// unstripped caller, which is not entitled to a provenance answer.
 		if kind == wordCastProvenance {
 			return false, false
+		}
+		if kind == wordChosenColor {
+			src := g.Obj(sc.Source)
+			if src == nil || colourLetter(src.ChosenColor) == 0 {
+				return false, false
+			}
 		}
 		// The pc1 context-bound classifiers (NotDefinedTargeted, DefenderCtrl,
 		// IsImprinted) are likewise recognised so the census reports them, but
