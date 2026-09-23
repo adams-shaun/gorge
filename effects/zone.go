@@ -613,6 +613,10 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	// RememberChanged$ and some do not, so the moved set is collected here
 	// rather than read back out of Remembered).
 	var moved []state.ObjID
+	// The Attacking$ entry rider is classified ONCE for the whole call, before
+	// the mover loop: its degrades are one Note per ChangeZone, not one per
+	// moved object.
+	rider := classifyAttackingEntry(c, sa, to)
 	for _, t := range targets {
 		if t.IsPlayer {
 			continue
@@ -716,6 +720,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		if to == state.ZBattlefield && strings.EqualFold(sa.Params["Tapped"], "True") {
 			h.Emit(events.Event{Kind: events.Tap, Obj: o.ID, Player: c.Controller, Text: "entered tapped"})
 		}
+		rider.apply(h, c, o.ID, c.Controller, to)
 		// StaticEffect$ on the inlined object path: the same rider the shared
 		// settle path applies for every other mover (the main loop deliberately
 		// predates settleChangeZoneMoveAs and is not routed through it).
@@ -857,8 +862,8 @@ func applyFaceDownMarker(h Host, sa *cards.SA, c *Ctx, ev *events.Event, to stat
 // a counter-bearing destination (battlefield or exile -- counterDestination).
 // Keeping the object path and the hand-choice path on this one helper means
 // the two cannot drift apart on any of the three.
-func settleChangeZoneMove(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, to state.Zone, withKind string, withAmt int32) {
-	settleChangeZoneMoveAs(h, c, sa, id, from, to, withKind, withAmt, 0, false)
+func settleChangeZoneMove(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, to state.Zone, withKind string, withAmt int32, rider *attackingEntry) {
+	settleChangeZoneMoveAs(h, c, sa, id, from, to, withKind, withAmt, 0, false, rider)
 }
 
 // settleChangeZoneMoveAs is the one settle path every ChangeZone mover shares
@@ -874,10 +879,11 @@ func settleChangeZoneMove(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, to
 // counters when the move lands on a counter-bearing destination (battlefield
 // or exile -- counterDestination). Keeping the object path and the hand-choice
 // path on this one helper means the two cannot drift apart on any of the
-// three. Tapped$ True is event-backed for the hidden
-// library paths, but not for a card entering from hand; before every such
-// move this common path makes the narrowing replay-visible rather than
-// silently entering the card untapped.
+// three. Tapped$ True is event-backed for EVERY shape through this path:
+// this settle's own tail emits the hand-origin entry Tap (the object path,
+// the library search's library-origin branch and the Dig windows carry their
+// own), so no card this helper moves onto the battlefield silently enters
+// untapped.
 //
 // The exiled-with association and the RememberChanged$ event-backed rider
 // (eventRemember) are NOT done here: they are scoped to the two ORIGINAL
@@ -965,15 +971,83 @@ func applyTransformed(h Host, c *Ctx, sa *cards.SA, id state.ObjID) {
 	h.Emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: int32(next), Text: "Transformed"})
 }
 
-func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, to state.Zone, withKind string, withAmt int32, player state.PlayerID, hasPlayer bool) {
-	if from == state.ZHand && to == state.ZBattlefield && strings.EqualFold(sa.Params["Tapped"], "True") {
-		notePlayer := c.Controller
-		if hasPlayer {
-			notePlayer = player
-		}
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: notePlayer,
-			Text: "Tapped$ True on a hand ChangeZone is not implemented; the card enters untapped"})
+// attackingEntryKind is what a move body's `Attacking$` rider resolved to for
+// one call: see attackingEntry.
+type attackingEntryKind uint8
+
+const (
+	attackingEntryNone        attackingEntryKind = iota // no rider, or a non-battlefield destination
+	attackingEntryAttacks                               // literal True with a bound trigger defender
+	attackingEntryNoDefender                            // literal True, but no defender in context
+	attackingEntryUnsupported                           // a selector form (Remembered, TriggeredDefender, ...)
+)
+
+// attackingEntry is ONE move call's classification of its `Attacking$` entry
+// rider (Alesha's "tapped and attacking" graveyard return, Preeminent
+// Captain's Soldier, the Dig "onto the battlefield attacking" family).
+//
+// The rider is a property of the EFFECT, not of each card the effect moves, so
+// every mover classifies it ONCE before its loop and the loop then applies only
+// the derived entry state. That is what keeps the degrades honest: a call with
+// no defending player in context, or one carrying a selector form this build
+// does not model, emits exactly ONE deterministic loud Note for the whole call
+// -- never one per moved object, which is what a multi-object ChangeZone or a
+// Dig window would otherwise produce. It mirrors effects/token.go's
+// TokenAttacking$ read, whose single-mint shape gets that for free.
+type attackingEntry struct {
+	kind     attackingEntryKind
+	defender state.PlayerID
+	note     string
+	noted    bool
+}
+
+func classifyAttackingEntry(c *Ctx, sa *cards.SA, to state.Zone) attackingEntry {
+	if to != state.ZBattlefield {
+		return attackingEntry{}
 	}
+	attack := strings.TrimSpace(sa.Params["Attacking"])
+	if attack == "" {
+		return attackingEntry{}
+	}
+	if strings.EqualFold(attack, "True") {
+		if c.DefendingPlayer.IsPlayer {
+			return attackingEntry{kind: attackingEntryAttacks, defender: c.DefendingPlayer.Player}
+		}
+		return attackingEntry{kind: attackingEntryNoDefender,
+			note: "Attacking$ with no defending player in context; the permanent enters tapped but does not attack"}
+	}
+	return attackingEntry{kind: attackingEntryUnsupported,
+		note: "Attacking$ " + attack + " is not implemented; the permanent enters but does not attack"}
+}
+
+// apply delivers the classified entry state for one moved object. A nil
+// receiver is the "no rider" case every non-hoisting caller can pass.
+func (a *attackingEntry) apply(h Host, c *Ctx, id state.ObjID, player state.PlayerID, to state.Zone) {
+	if a == nil || a.kind == attackingEntryNone || to != state.ZBattlefield {
+		return
+	}
+	if a.kind == attackingEntryAttacks {
+		h.Emit(events.Event{Kind: events.TokenAttacks, Obj: id, Player: player,
+			IDs: []state.ObjID{state.ObjID(a.defender)}, Text: "entered attacking"})
+		return
+	}
+	if a.kind == attackingEntryNoDefender {
+		// An "enters attacking" object must enter TAPPED even when the
+		// trigger context cannot identify a defender. Keep that entry state
+		// while degrading only the attack assignment; callers that already
+		// emitted their Tapped$ entry event do not get a duplicate Tap.
+		if o := h.Game().Obj(id); o != nil && !o.Tapped {
+			h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: player, Text: "entered tapped"})
+		}
+	}
+	if a.noted {
+		return
+	}
+	a.noted = true
+	h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller, Text: a.note})
+}
+
+func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, to state.Zone, withKind string, withAmt int32, player state.PlayerID, hasPlayer bool, rider *attackingEntry) {
 	ev := moveZoneEvent(c, id, from, to)
 	if strings.EqualFold(sa.Params["RememberLKI"], "True") {
 		if o := h.Game().Obj(id); o != nil {
@@ -1024,6 +1098,16 @@ func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, id state.ObjID, from, 
 	if to == state.ZBattlefield {
 		applyGainControl(h, c, sa, id)
 		applyTransformed(h, c, sa, id)
+		// Tapped$ True (CR 110.5's entry state) for the hand-origin movers:
+		// the same "entered tapped" Tap the object path, the library search's
+		// library-origin branch and the Dig windows emit. Gated on the hand
+		// origin because this helper's OTHER callers (the hidden pick, the
+		// library search's alternative-origin branch) emit their own Tap after
+		// the call and a second one here would double-emit.
+		if from == state.ZHand && strings.EqualFold(sa.Params["Tapped"], "True") {
+			h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: player, Text: "entered tapped"})
+		}
+		rider.apply(h, c, id, player, to)
 		// StaticEffect$ <name> (the "return it ... It's a Spirit Detective"
 		// rider): the named Continuous static registers onto the moved card
 		// once its move and entry riders are settled. A no-op on every SA
@@ -1375,12 +1459,13 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 	// hand's OWNER as its Player (a hidden-zone move of another player's
 	// card -- the same attribution the library search's move carries),
 	// while the whole-hand shape keeps its historical event shape
-	// (eventPlayer false, the r1 golden contract). settleChangeZoneMoveAs is
-	// also the one loud Tapped$ True fallback for every hand-origin mover, so
-	// concrete Defined$ objects and future hand-owner selectors cannot silently
-	// miss the unsupported entry state.
+	// (eventPlayer false, the r1 golden contract). settleChangeZoneMoveAs's
+	// tail is also the one Tapped$ True entry-state emitter for every
+	// hand-origin mover, so concrete Defined$ objects and future hand-owner
+	// selectors cannot silently miss the tapped entry.
+	rider := classifyAttackingEntry(c, sa, to)
 	settleHandMove := func(id state.ObjID, owner state.PlayerID) {
-		settleChangeZoneMoveAs(h, c, sa, id, state.ZHand, to, withKind, withAmt, owner, eventPlayer)
+		settleChangeZoneMoveAs(h, c, sa, id, state.ZHand, to, withKind, withAmt, owner, eventPlayer, &rider)
 	}
 	for i, owner := range owners {
 		hand := zoneOf(g, state.ZHand, owner)
@@ -2325,6 +2410,7 @@ func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, to state.Zone) bool
 	// scheduled by ONE call after the loop (one Note per call, never per
 	// owner).
 	var ateotMoved []state.ObjID
+	rider := classifyAttackingEntry(c, sa, to)
 	for i := range fetches {
 		f := &fetches[i]
 		moved := make([]state.ObjID, 0, len(f.ids))
@@ -2335,7 +2421,7 @@ func moveDefinedLibraryObjects(h Host, c *Ctx, sa *cards.SA, to state.Zone) bool
 			if o == nil || o.Zone != state.ZLibrary || o.Owner != f.owner {
 				continue
 			}
-			settleChangeZoneMove(h, c, sa, id, state.ZLibrary, to, withKind, withAmt)
+			settleChangeZoneMove(h, c, sa, id, state.ZLibrary, to, withKind, withAmt, &rider)
 			eventForgetChanged(h, c, sa, id)
 			moved = append(moved, id)
 			ateotMoved = append(ateotMoved, id)
@@ -2790,6 +2876,7 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 	if budget < 0 {
 		budget = 0
 	}
+	rider := classifyAttackingEntry(c, sa, to)
 	apply := func(owner state.PlayerID, ids []state.ObjID) []state.ObjID {
 		g := h.Game()
 		moved := make([]state.ObjID, 0, len(ids))
@@ -2801,7 +2888,7 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 				!MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 				continue
 			}
-			settleChangeZoneMoveAs(h, c, sa, id, o.Zone, to, withKind, withAmt, o.Owner, true)
+			settleChangeZoneMoveAs(h, c, sa, id, o.Zone, to, withKind, withAmt, o.Owner, true, &rider)
 			moved = append(moved, id)
 			if strings.EqualFold(sa.Params["RememberChanged"], "True") {
 				// Keep the resolution-local set with the event-backed source
@@ -3211,6 +3298,10 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 		}
 	}
 	moved := make([]state.ObjID, 0, len(chosen))
+	// One classification for this search's whole mover loop: both branches
+	// below (the public-origin settle and the library-origin direct emit)
+	// share it, so a degrading rider is one Note per search, not one per card.
+	rider := classifyAttackingEntry(c, sa, to)
 	for _, id := range chosen {
 		o := g.Obj(id)
 		if o == nil || o.Owner != owner || !zoneIn(zones, o.Zone) ||
@@ -3230,7 +3321,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 				withKind = sa.Params["WithCountersType"]
 				withAmt = withCounterAmount(h, c, sa)
 			}
-			settleChangeZoneMoveAs(h, c, sa, id, o.Zone, to, withKind, withAmt, owner, true)
+			settleChangeZoneMoveAs(h, c, sa, id, o.Zone, to, withKind, withAmt, owner, true, &rider)
 			// AttachedTo$ on an alternative-zone pick (Boonweaver Giant's "put
 			// it onto the battlefield attached to CARDNAME", Runed Crown, Arachnus
 			// Web): the same rider the library branch below applies -- without it
@@ -3303,6 +3394,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 			// while replay folds the same tapped state.
 			h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: owner, Text: "entered tapped"})
 		}
+		rider.apply(h, c, id, owner, to)
 		// StaticEffect$ on the library-origin branch: the same rider the
 		// shared settle path applied for the alternative-origin branch above.
 		if to == state.ZBattlefield {
@@ -3623,6 +3715,7 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 	// The Dig/RestRandomOrder$/RevealRandomOrder$ variants are their own rows
 	// and are not touched here.
 	randomOrder := strings.EqualFold(strings.TrimSpace(sa.Params["RandomOrder"]), "True")
+	rider := classifyAttackingEntry(c, sa, to)
 	emitMove := func(id state.ObjID, z state.Zone, p state.PlayerID) {
 		h.Emit(moveZoneEvent(c, id, z, to))
 		moved = append(moved, id)
@@ -3634,6 +3727,7 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 		if to == state.ZBattlefield && strings.EqualFold(strings.TrimSpace(sa.Params["Tapped"]), "True") {
 			h.Emit(events.Event{Kind: events.Tap, Obj: id, Player: p, Text: "entered tapped"})
 		}
+		rider.apply(h, c, id, p, to)
 		if to == state.ZExile {
 			recordExileReturn(h, c, sa, id, z, to)
 		}
