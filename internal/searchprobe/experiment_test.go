@@ -108,7 +108,11 @@ func TestExperimentReportsNoEligibleRoot(t *testing.T) {
 		}
 	}
 	setup := PublicGame{Names: names, Decks: decks, Tokens: reg.Tokens}
-	got := RunExperiment(setup, ExperimentOptions{Seed: 10307, SampleSeed: 54321, Attempts: 4, Worlds: 4, MaxSubmits: 5000})
+	// The seed only has to name a game with no eligible root; which seeds do
+	// is a property of how the bots play, so it is re-pinned whenever engine
+	// behaviour moves a decision (here: as-enters choices are now asked at the
+	// entry boundary, which gives seed 10307 an eligible cast root at 309).
+	got := RunExperiment(setup, ExperimentOptions{Seed: 10141, SampleSeed: 54321, Attempts: 4, Worlds: 4, MaxSubmits: 5000})
 	if got.Error != "" || !got.BaselineReplay || got.RootAt != -1 {
 		t.Fatalf("no-root experiment: error=%q replay=%v root=%d", got.Error, got.BaselineReplay, got.RootAt)
 	}

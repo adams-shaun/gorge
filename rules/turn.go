@@ -1031,8 +1031,29 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		return
 	}
 	if e.choosing == chooseETBEntry {
+		// The entry-boundary ask was posed from inside emit (replacement.go's
+		// applyETBChoiceReplacement), so Engine.Ask parked whatever resolution
+		// that entry interrupted on this very decision. Take that frame BEFORE
+		// re-emitting the entry and hand it back afterwards: dropping it leaves
+		// the interrupted spell on the stack with nothing to finish it, and
+		// resolveTop then resolves it again from the top -- unbounded for an
+		// effect that re-selects the same card (Retether returning an Aura the
+		// CR 704.5m SBA sweeps straight back into the graveyard).
+		rp := e.resume
 		e.resume = nil
 		e.resumeETBEntry(chosen)
+		if e.resume != nil {
+			// The re-emitted entry asked again (a second as-enters choice on
+			// the same object, or a replacement body of its own). Chain the
+			// interrupted resolution behind the new frame so it still runs
+			// once the inner question is answered, exactly as a nested
+			// mid-resolution ask chains its outer continuation.
+			if rp != nil && e.resume.outer == nil {
+				e.resume.outer = rp
+			}
+			return
+		}
+		e.continueAfterETBEntry(rp)
 		return
 	}
 	// Every KChoose carrying a resume point is a mid-resolution effect ask,

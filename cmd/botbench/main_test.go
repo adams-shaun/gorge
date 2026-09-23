@@ -732,8 +732,16 @@ func TestConstructedDefaultIsByteIdentical(t *testing.T) {
 	// avengers-assemble game (Prelate/Mimic-style entry asks; on the
 	// branch's pre-merge base it moved 6/14 -> 5/15). Merged with the
 	// api:ManaReflected collector fix (which alone moved 6/14 -> 7/13),
-	// the combined measurement is 6/14 deterministically.
-	const wantSeat0, wantSeat1 = 6, 14
+	// that combination measured 6/14.
+	//
+	// Re-measured to 7/13 by this branch's own follow-up: an entry-boundary
+	// ask posed from inside a resolving effect used to DROP the resolution's
+	// parked continuation (rules/turn.go's chooseETBEntry arm), so the
+	// interrupted spell stayed on the stack and resolveTop resolved it a
+	// second time. Handing the frame back (continueAfterETBEntry) makes such
+	// a spell resolve once, which moves one avengers-assemble game back to
+	// the 7/13 the api:ManaReflected collector fix alone measures.
+	const wantSeat0, wantSeat1 = 7, 13
 	if seat0, seat1 := atoi(m[8]), atoi(m[9]); seat0 != wantSeat0 || seat1 != wantSeat1 {
 		t.Errorf("constructed default split = %d/%d, want %d/%d after the CR 614.12 ETB entry-choice timing and api:ManaReflected collector fixes (%s vs %s at seed 0, games 20)", seat0, seat1, wantSeat0, wantSeat1, testutil.RepoDeckNames()[0], testutil.RepoDeckNames()[1])
 	}
