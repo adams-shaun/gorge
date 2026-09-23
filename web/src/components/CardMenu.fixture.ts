@@ -115,3 +115,21 @@ mount(CardTile, {
     },
   },
 });
+
+// fb-20260923T020152Z: the declare-attackers wheel. Attacker options are
+// SELECTIONS in a still-pending multi-pick decision (SeatPanelState.click
+// toggles them into `picked` and posts nothing), so clicking one must post
+// its own wire index and leave the wheel open for the next attacker. A third
+// attacker is present so a test can also prove the wheel still SURVIVES a
+// successful pick rather than merely being re-opened.
+mount(CardTile, {
+  target: document.querySelector('#attackers')!,
+  props: {
+    card: card(16, 'Grizzly Bears', 'Creature'),
+    tileOptions: tile([
+      { index: 40, kind: 'attacker', label: 'Attack with Grizzly Bears at Ari', obj: 16, player: 1 },
+      { index: 41, kind: 'attacker', label: 'Attack with Grizzly Bears at Bo', obj: 16, player: 2 },
+      { index: 42, kind: 'attacker', label: 'Attack with Grizzly Bears at Cy', obj: 16, player: 3 },
+    ]),
+  },
+});

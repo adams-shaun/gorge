@@ -14,10 +14,14 @@ func kwVanishing(f *Face, i int, k, head, param string, has func(kind, line stri
 	// ordinary replacement/trigger pipelines, so counter changes, priority
 	// and response windows remain replayable.
 	n, _, _ := strings.Cut(param, ":")
-	if n == "" {
-		return // Bare K:Vanishing has no counter count and is outside this expansion's script shape.
-	}
-	if !has("R", k) {
+	// A bare K:Vanishing carries no fixed counter count, so the numeric ETB
+	// replacement below must be skipped -- but the upkeep removal and
+	// last-counter sacrifice are parameter-independent and still required.
+	// A bare card supplies its own counter placement (Out of Time's entered
+	// trigger counts phased-out creatures; Tidewalker's etbCounter supplies
+	// an X). Guarding the return on the whole expander would suppress those
+	// two triggers entirely.
+	if n != "" && !has("R", k) {
 		sv := "__kwVanishing" + strconv.Itoa(i)
 		f.setSVar(sv, "DB$ PutCounter | Defined$ Self | CounterType$ TIME | CounterNum$ "+n+" | ETB$ True")
 		p := parseParams("Event$ Moved | Destination$ Battlefield | ValidCard$ Card.Self | ReplacementResult$ Updated | ReplaceWith$ " + sv +

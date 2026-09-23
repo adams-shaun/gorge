@@ -275,6 +275,14 @@ type resumePoint struct {
 	// pre-destruction controller). Immutable once captured, cloned with the
 	// frame. Nil when the resolution has no object targets.
 	targetControllerLKI map[state.ObjID]state.PlayerID
+	// targetCountersLKI is the counters half of the same snapshot: the
+	// counters each object target had at the start of the resolution, carried
+	// by Ask onto the pending frame so a resumed continuation -- whose Ctx is
+	// rebuilt from the live objects, already stripped of counters by a
+	// completed Destroy -- still reads the CR 608.2b/h look-back value
+	// (Dismantle's DBPutCounter). Immutable once captured, cloned with the
+	// frame. Nil when the resolution has no countered object targets.
+	targetCountersLKI map[state.ObjID][]state.Counter
 	// rolls is the per-die results of the RollDice ask whose answer this
 	// point resumes (effects/dice.go's ChosenSVar$/OtherSVar$ choose-one-
 	// result shape, the Endeavor cycle): the asking first pass carried them
@@ -489,6 +497,7 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 		// from objects whose live controllers may already have been reset to
 		// their owners) still sees the CR 608.2h last-known controller.
 		targetControllerLKI: effects.CloneTargetControllerLKI(e.resolvingTargetControllerLKI),
+		targetCountersLKI:   resolutionTargetCounters(e.resolutionCtx),
 		flipMemory:          e.resolvingFlipMemory}
 	return true
 }
@@ -538,6 +547,67 @@ func (e *Engine) SetResolutionCtx(c *effects.Ctx) *effects.Ctx {
 	prev := e.resolutionCtx
 	e.resolutionCtx = c
 	return prev
+}
+
+// resolutionTargetCounters is the target-counters snapshot a pending ask
+// carries onto its resume point: the live Resolve chain's snapshot (published
+// through SetResolutionCtx), cloned so the frame owns its storage. Nil outside
+// a chain (a combat or mulligan ask) or when the chain captured none.
+func resolutionTargetCounters(c *effects.Ctx) map[state.ObjID][]state.Counter {
+	if c == nil {
+		return nil
+	}
+	return effects.CloneTargetCountersLKI(c.TargetCountersLKI)
+}
+
+// snapshotDepartingTargetCounters refreshes the resolving chain's target-
+// counters look-back (Ctx.TargetCountersLKI) at the DEPARTURE boundary, the
+// authoritative capture point for the CR 608.2b/h read: oid is about to leave
+// the battlefield (its MoveZone is in flight, pre-Apply), so if it is an
+// object target of the published chain Ctx its counters are captured NOW --
+// immediately before events.Apply's Move fold clears them -- overwriting
+// effects.Resolve's resolution-start snapshot. A chain that changed the
+// target's counters earlier in the same resolution (Dismantle-style destroy
+// preceded by a counter swing) must look back to the counters as they were at
+// the zone change, not to the stale entry capture. An object that departs
+// with no counters drops its entry, so the read fails closed to the live
+// (already-cleared) zero. Non-targets are never captured: the look-back is
+// read only through the chain's target groups.
+func (e *Engine) snapshotDepartingTargetCounters(oid state.ObjID) {
+	c := e.resolutionCtx
+	if c == nil {
+		return
+	}
+	targeted := false
+	for _, t := range c.Targets {
+		if !t.IsPlayer && t.Obj == oid {
+			targeted = true
+			break
+		}
+	}
+	if !targeted && c.PickedTargets != nil {
+		for _, t := range c.PickedTargets {
+			if !t.IsPlayer && t.Obj == oid {
+				targeted = true
+				break
+			}
+		}
+	}
+	if !targeted {
+		return
+	}
+	o := e.G.Obj(oid)
+	if o == nil || o.Zone != state.ZBattlefield {
+		return
+	}
+	if len(o.Counters) == 0 {
+		delete(c.TargetCountersLKI, oid)
+		return
+	}
+	if c.TargetCountersLKI == nil {
+		c.TargetCountersLKI = make(map[state.ObjID][]state.Counter)
+	}
+	c.TargetCountersLKI[oid] = append([]state.Counter(nil), o.Counters...)
 }
 
 // targetsUniqueRide is the TargetUnique$ accumulator a decision resumes with:
@@ -1454,6 +1524,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// narrowed (a fused half's slice, a Charm mode's target) still
 		// resolves the entries it names.
 		TargetControllerLKI: effects.CloneTargetControllerLKI(rp.targetControllerLKI),
+		TargetCountersLKI:   effects.CloneTargetCountersLKI(rp.targetCountersLKI),
 		// The resolving stack-object wrapper, same anchor resolveTop's
 		// branches set: a SUSPENDED-then-resumed ability (Ulalek's pay ask is
 		// exactly such a suspension) keeps the ValidStack otherAbility
@@ -3583,6 +3654,7 @@ func (e *Engine) buildContinuationChain(frames []contFrame, obj state.ObjID, tai
 		// same chain's published map).
 		if e.resume != nil {
 			f.targetControllerLKI = effects.CloneTargetControllerLKI(e.resume.targetControllerLKI)
+			f.targetCountersLKI = effects.CloneTargetCountersLKI(e.resume.targetCountersLKI)
 		}
 		// The same-resolution flip memory (Engine.Ask captured it off
 		// Engine.resolvingFlipMemory onto the pending point): a continuation

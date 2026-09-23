@@ -333,6 +333,17 @@ func init() {
 	// StrictlyOther is Forge's other spelling of the same "not the source"
 	// test Other already implements.
 	predicates["StrictlyOther"] = predicates["Other"]
+	// StrictlySelf is the mirror spelling of the same source-identity read:
+	// the candidate is exactly the spec source object itself, read live. The
+	// measured carriers are trigger gates on the source card itself -- 35
+	// `IsPresent$ Card.StrictlySelf` (the graveyard-reanimate family's
+	// "if it's on the battlefield" presence gate: Animate Dead, Dance of the
+	// Dead, Necromancy, Genesis, ...) and 4 `ValidCard$ Card.StrictlySelf` --
+	// where the live id read is the whole meaning. The 3
+	// `ValidSA$ Spell.ManaFromCard.StrictlySelf` spellcast-provenance
+	// carriers stay fail closed on their own unread ManaFromCard word, so
+	// this alias cannot reach them.
+	predicates["StrictlySelf"] = predicates["Self"]
 	// EffectSource is the Effect-delivered spelling of Self: the effect's own
 	// source object (Card.EffectSource in a StaticAbilities$ body's
 	// ValidCard$). The spec is evaluated with src = the registered effect's
@@ -545,6 +556,24 @@ func sharesTypeArg(p string) (name, arg string, ok bool) {
 		return name, arg, true
 	}
 	return "", "", false
+}
+
+// SpecUsesConvokedAmount reports whether spec reads the `Convoked$Amount`
+// count head (or any future `Convoked$<Property>` sibling) -- Forge's spelling
+// for "the number of creatures that convoked it" (CR 702.66). It is the
+// count-head sibling of SpecUsesConvokedReferent and the ONE classifier the
+// provenance gate (rules' faceWantsConvoked) shares, so a face whose SVar or
+// ability parameter reads the count always has Object.Convoked captured at
+// cast time and a face that does not stays byte-identical. The corpus writes
+// the body BOTH with and without the `Count$` prefix
+// (`SVar:X:Convoked$Amount`, `SVar:X:Convoked$Amount/Twice`), so the match is
+// on the `Convoked$` head-family marker itself, not on a `Count$` prefix the
+// bare form omits -- the same tolerance that makes the next `Convoked$<X>`
+// head work without a second gate arm. `Defined$ Convoked` and the
+// `...With Convoked` referent do NOT contain `Convoked$`, so neither arm this
+// replaces is shadowed.
+func SpecUsesConvokedAmount(spec string) bool {
+	return strings.Contains(spec, "Convoked$")
 }
 
 // SpecUsesConvokedReferent reports whether spec is a filter that names the
@@ -782,6 +811,41 @@ func sharesAllCardTypesWithOther(g *state.Game, o *state.Object, sc SpecContext,
 	return false
 }
 
+// faceIsTheChosenType reports whether the object's face carries the
+// "CARDNAME is the chosen type in addition to its other types" static
+// (Titan of Littjara, Adaptive Automaton, Metallic Mimic, Roaming Throne,
+// Multiversal Passage, Thran Portal): a Continuous static whose Affected$
+// names the host itself and whose AddType$/AddTypes$ value is the
+// ChosenType indirection. For such a referent the recorded "as this
+// enters" choice counts among its creature types in a
+// sharesCreatureTypeWith read: the grant is materialised only inside the
+// layer walk (rules' resolveChosenTypes against the host's recorded
+// choice), which a count or target filter evaluation never runs, so the
+// probe reads the static's own shape instead. A referent with no recorded
+// choice grants nothing — the same fail-closed direction the layer walk
+// takes.
+func faceIsTheChosenType(r *state.Object) bool {
+	if r == nil || r.Face() == nil || r.ChosenType == "" {
+		return false
+	}
+	for _, st := range r.Face().Statics {
+		if st.Mode != "Continuous" || !strings.Contains(st.Params["Affected"], "Self") {
+			continue
+		}
+		for _, v := range strings.Split(st.Params["AddType"], ",") {
+			if strings.TrimSpace(v) == "ChosenType" {
+				return true
+			}
+		}
+		for _, v := range strings.Split(st.Params["AddTypes"], ",") {
+			if strings.TrimSpace(v) == "ChosenType" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // sharesCreatureTypeWith reports whether o shares at least one CREATURE
 // subtype with any object the referent names (Forge
 // Card.sharesCreatureTypeWith: an intersection over the creature subtypes —
@@ -789,8 +853,10 @@ func sharesAllCardTypesWithOther(g *state.Game, o *state.Object, sc SpecContext,
 // The candidate's subtypes are read context-aware (hasTypeCtx: layer grants
 // and Changeling reach it); the referent's own subtypes are read from its
 // live face exactly like sharesCardTypeWith's card-type read (hasType,
-// which handles Changeling on the referent's side too). An unbound referent
-// matches nothing — fail closed, never widened.
+// which handles Changeling on the referent's side too) — plus the chosen
+// type when the face's own "is the chosen type" static grants it
+// (faceIsTheChosenType: Titan of Littjara's Illusion-Bear read below).
+// An unbound referent matches nothing — fail closed, never widened.
 func sharesCreatureTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref string) bool {
 	for _, t := range sharesTypeReferents(g, sc, ref) {
 		if t.IsPlayer {
@@ -807,6 +873,15 @@ func sharesCreatureTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref 
 			if hasTypeCtx(o, word, sc) && hasType(r, word) {
 				return true
 			}
+		}
+		// The chosen-type grant: the recorded choice is one of the
+		// referent's creature types exactly as the layer walk materialises
+		// it. The printed-face hasType above cannot see the grant (it lives
+		// in rules' layer-4 emission, not on Face().Types), so this read is
+		// the grant's own — and CreatureTypeWords keeps a non-creature
+		// recorded choice (a ChooseType over another category) out.
+		if w := r.ChosenType; w != "" && CreatureTypeWords(w) && faceIsTheChosenType(r) && hasTypeCtx(o, w, sc) {
+			return true
 		}
 	}
 	return false
@@ -1393,6 +1468,18 @@ func wordPredicate(p string) (wordKind, string) {
 	// Permanent.YouCtrl) stays wordUnknown and fails closed.
 	if arg, ok := attachedToArg(p); ok {
 		return wordAttachedTo, arg
+	}
+	// The BARE form "sharesCreatureTypeWith" (no space, no referent — the
+	// whole token survives the spec splitter exactly like the two-token
+	// form): the SOURCE itself is the shared referent, Forge's unqualified
+	// reading in a source-anchored filter. The two corpus carriers are Titan
+	// of Littjara's `SVar:X:Count$Valid Creature.YouCtrl+Other+
+	// sharesCreatureTypeWith` (the Draw<X/You> cost's X) and Plane-Merge
+	// Elf's Kinfall (`ValidCard$ Creature.YouCtrl+sharesCreatureTypeWith`).
+	// The bare card-type siblings have no corpus carrier and stay unknown —
+	// fail closed.
+	if p == "sharesCreatureTypeWith" {
+		return wordSharesCreatureType, "Self"
 	}
 	if name, arg, ok := sharesTypeArg(p); ok {
 		switch name {
