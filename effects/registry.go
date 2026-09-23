@@ -549,6 +549,18 @@ type Host interface {
 	// the host drops that report (the villainous frame re-enters the
 	// primitive itself), the SuspendCharmRest convention.
 	SuspendVillainousRest(sa *cards.SA, rest VillainousRest)
+	// SuspendGenericChoiceRest reports that a multi-player api:GenericChoice's
+	// chosen body suspended on a nested mid-resolution ask with choosers still
+	// to ask. sa is the GenericChoice's own SA and rest carries the ordered
+	// Defined$ chooser list plus the index of the NEXT chooser to ask. The
+	// host records a continuation that re-enters the GenericChoice with that
+	// cursor once the answered ask's own chain completes, so the remaining
+	// choosers are still asked and their chosen bodies run rather than being
+	// dropped. The Resolve loop enclosing the GenericChoice reports the same
+	// SA through SuspendContinuation next; the host drops that report (the
+	// GenericChoice frame re-enters the primitive itself), the
+	// SuspendCharmRest convention.
+	SuspendGenericChoiceRest(sa *cards.SA, rest GenericChoiceRest)
 	// SuspendFlipRest reports that a DB$ FlipCoin loop suspended inside a
 	// per-flip sub-ability (FlipUntilYouLose$ or Amount$ > 1) with flips still
 	// owed. rest carries the flip cursor: the flippers not yet processed and
@@ -697,6 +709,19 @@ type FlipRest struct {
 type VillainousRest struct {
 	Victims []state.Target
 	Next    int
+}
+
+// GenericChoiceRest is a multi-player api:GenericChoice's continuation after
+// one chooser's chosen body suspended on a nested mid-resolution ask.
+// Choosers is the ordered Defined$ player set and Next is the index of the
+// chooser still to ask (the completed chooser's index + 1). The host re-enters
+// the GenericChoice primitive with that cursor, so a body that suspended on its
+// own nested ask does not strand the remaining choosers. Plain data, so the
+// host can carry it on its own continuation frame and replay re-derives it
+// identically.
+type GenericChoiceRest struct {
+	Choosers []state.Target
+	Next     int
 }
 
 // DamageSourceLKI is the pre-departure damage provenance of one object.
@@ -1204,6 +1229,15 @@ type Ctx struct {
 	// chosen body has completed.
 	VillainousVictims []state.Target
 	VillainousIndex   int
+	// GenericChoosers is the ordered Defined$ player set for a multi-player
+	// api:GenericChoice resolution (each opponent chooses one of the same
+	// Choices$), and GenericChooserIndex is the index of the chooser being
+	// asked. The index advances only after the current chooser's chosen body
+	// has completed, so the remaining choosers are asked once the body's own
+	// nested ask (if any) finishes. Nil outside the per-player path, which
+	// keeps the single-controller Charm/GenericChoice ask unchanged.
+	GenericChoosers     []state.Target
+	GenericChooserIndex int
 	// Sacrifice is an Annihilator sacrifice answer on re-entry.
 	Sacrifice []state.ObjID
 	// Search is the answered hidden-library KChoose selection on a re-entered
