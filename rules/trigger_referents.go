@@ -160,6 +160,20 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		c.TriggerActivator = player(e.tapActor(ev))
 	case "ChangesZone", "LandPlayed":
 		c.TriggerCard = ev.Obj
+	case "Milled", "MilledAll":
+		// The milled card is ev.Obj (what ValidCard$ matched) and the player
+		// whose library was milled is ev.Player (what ValidPlayer$ matched),
+		// so TriggerPlayer names whose mill this was. One milled card is one
+		// event, so TriggerAmount is 1 per event; the MilledAll batch close
+		// overrides it with the batch's matching-card count (the
+		// TriggerCount$Amount head The Wise Mothman's X and Screeching
+		// Scorchbeast's "that many tokens" read).
+		c.TriggerCard = ev.Obj
+		c.TriggerPlayer = player(ev.Player)
+		c.TriggerAmount = 1
+		if ev.Amount > 0 {
+			c.TriggerAmount = ev.Amount
+		}
 	case "Drawn":
 		c.TriggerCard = ev.Obj
 		c.TriggerPlayer = player(ev.Player)
