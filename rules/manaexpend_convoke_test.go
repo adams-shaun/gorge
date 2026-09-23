@@ -63,7 +63,7 @@ func TestTeapotSlingerManaExpendCountsConvoke(t *testing.T) {
 		t.Fatalf("test precondition: corpus Convoke payment did not complete (asked=%v, zone=%s)", askedConvoke, e.G.Obj(favor.ID).Zone)
 	}
 	if !e.G.Obj(creature.ID).Tapped {
-		t.Fatalf("test precondition: selected Convoke creature was not tapped (payments=%+v)", e.cast.convoke)
+		t.Fatal("test precondition: selected Convoke creature was not tapped")
 	}
 	got := manaExpendedOf(e, 0)
 	if got != 4 || got == 3 {
@@ -79,13 +79,23 @@ func TestTeapotSlingerManaExpendCountsConvoke(t *testing.T) {
 	if wake == nil || wake.Amount != 1 {
 		t.Fatalf("test precondition: expected one Convoke mana in the pay-time wake event, got %+v", wake)
 	}
-	matched := false
-	for _, trigger := range e.G.Obj(teapot).Face().Triggers {
-		if e.manaExpendMatches(trigger, teapot, *wake, nil) {
-			matched = true
-		}
+	// Submit drives Advance, which drains the matched trigger onto the stack
+	// before returning: pendingTriggers is empty by design at this boundary.
+	if len(e.pendingTriggers) != 0 || len(e.G.Stack) != 2 {
+		t.Fatalf("Convoke crossing did not place exactly one trigger above the spell: pending=%d stack=%v", len(e.pendingTriggers), e.G.Stack)
 	}
-	if !matched {
-		t.Fatalf("the real expend-4 crossing did not match Teapot Slinger's trigger: %+v", *wake)
+	top := e.G.Obj(e.G.Stack[len(e.G.Stack)-1])
+	if top == nil || top.Source != teapot || top.Ability == nil || top.Zone != state.ZStack {
+		t.Fatalf("top is not Teapot Slinger's expend trigger: %+v", top)
+	}
+	if life := e.G.Players[1].Life; life != 20 {
+		t.Fatalf("test precondition: opponent life before resolution = %d, want 20", life)
+	}
+	e.resolveTop()
+	if life := e.G.Players[1].Life; life != 18 {
+		t.Fatalf("Convoke expend-4 trigger left opponent at %d life, want 18", life)
+	}
+	if life := e.G.Players[0].Life; life != 20 {
+		t.Fatalf("Convoke expend-4 trigger changed caster life to %d, want 20", life)
 	}
 }
