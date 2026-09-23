@@ -316,6 +316,15 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	//     effect MANDATORILY, the opposite of the card text, so it notes.
 	//   - a body with no Execute$ has nothing to resolve.
 	for _, name := range strings.Fields(sa.Params["Triggers"]) {
+		// Delayed promises only encode a turn ceiling. Never let an explicit
+		// longer Effect lifetime silently turn into a permanent promise.
+		if !effectTriggerThisTurnDuration(rawDur) || forgetOn != "" || exileOn != "" ||
+			forgetCounter != "" || forgetOnCast != "" || imprintOnHost {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "unmodelled Effect trigger lifetime (Duration$ " + rawDur + "; not registered)"})
+			registered = true
+			continue
+		}
 		raw := ""
 		if o := h.Game().Obj(c.Source); o != nil && o.Face() != nil {
 			raw = o.Face().SVars[name]
@@ -340,25 +349,26 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			registered = true
 			continue
 		}
+		// The Effect's own this-turn lifetime bounds ALL registered modes,
+		// not merely those with a ThisTurn$ rider on the trigger body.
+		if v := strings.TrimSpace(tr.Params["ThisTurn"]); v != "" && !strings.EqualFold(v, "True") {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "unmodelled Effect trigger ThisTurn$ " + v + " (not registered)"})
+			registered = true
+			continue
+		}
+		expiry := "|TT=" + strconv.Itoa(int(h.Game().Turn))
 		switch tr.Mode {
 		case "BecomeMonarch":
 			h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 				Player: c.Controller, Step: h.Game().Step, Counter: exec,
-				IDs: encodeRemembered(c.Remembered), Text: "BecomeMonarch:" + name})
+				IDs: encodeRemembered(c.Remembered), Text: "BecomeMonarch:" + name + expiry})
 			registered = true
 		case "SpellCast", "ChangesZone":
-			// The event-matched shape: the decode in events.Apply splits
-			// "<Mode>:<trigger SVar name>" and rules re-parses the named body
-			// at fire time against the source's own SVar table (the two routes
-			// cannot disagree). ThisTurn$ True bounds a one-shot to the
-			// registering turn, the same |TT= tail the DelayedTrigger SA emits.
-			text := tr.Mode + ":" + name
-			if strings.EqualFold(strings.TrimSpace(tr.Params["ThisTurn"]), "True") {
-				text += "|TT=" + strconv.Itoa(int(h.Game().Turn))
-			}
+			// Fire-time match re-parses the named body on the source face.
 			h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 				Player: c.Controller, Step: h.Game().Step, Counter: exec,
-				IDs: encodeRemembered(c.Remembered), Text: text})
+				IDs: encodeRemembered(c.Remembered), Text: tr.Mode + ":" + name + expiry})
 			registered = true
 		case "Phase":
 			// A phase promise fires at the FIRST listed step still ahead
@@ -379,7 +389,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				registered = true
 				continue
 			}
-			text := tr.Params["Phase"]
+			text := tr.Params["Phase"] + expiry
 			if vp := strings.TrimSpace(tr.Params["ValidPlayer"]); vp != "" {
 				text += "|VP=" + vp
 			}
@@ -596,7 +606,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				}
 				h.AddContinuous(ce)
 				registered = true
-			} else if g, affects, gok := parseStaticEffectGrant(params, false); gok {
+			} else if g, affects, gok := parseStaticEffectGrant(params, false); gok && effectStaticGrantReadable(params, g) {
 				// The general Mode$ Continuous case: a layer grant
 				// (AddKeyword$/AddType$/AddPower$/SetColor$/RemoveAllAbilities$
 				// and the rest of the parser's vocabulary) delivered by an
@@ -630,10 +640,6 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					ChosenNumber:  chosenNumber,
 				}
 				if registerStaticEffectGrant(h, c, c.Source, affects, g, lt) {
-					if len(g.unread) > 0 {
-						h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-							Text: "continuous effect " + mode + " unread: " + strings.Join(g.unread, "/")})
-					}
 					registered = true
 				} else {
 					// The body carried only parameters this build does not read
@@ -1690,6 +1696,17 @@ func replacementBodyAPI(body string) string {
 		return ""
 	}
 	return strings.TrimSpace(api)
+}
+
+// Delayed registrations can express a turn ceiling, but not a continuous
+// Effect's source-relative or next-turn lifetime. Reject those forms rather
+// than register a promise that can fire after the Effect expires.
+func effectTriggerThisTurnDuration(dur string) bool {
+	switch strings.ToLower(strings.TrimSpace(dur)) {
+	case "", "eot", "endofturn", "untilendofturn", "end of turn", "this turn":
+		return true
+	}
+	return false
 }
 
 // effectUntilEOT decides expiry for an Effect registration: a one-shot spell

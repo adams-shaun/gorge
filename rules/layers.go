@@ -220,8 +220,8 @@ func (e *Engine) staticEffects(dst []ContinuousEffect) []ContinuousEffect {
 							pt.Layer, pt.Sub = LPT, SubModify
 							pt.AddPowerExpr = st.Params["AddPower"]
 							pt.AddToughnessExpr = st.Params["AddToughness"]
-							pt.AddPowerAffected = affectedXStaticAmount(pt.AddPowerExpr)
-							pt.AddToughnessAffected = affectedXStaticAmount(pt.AddToughnessExpr)
+							pt.AddPowerAffected = effects.AffectedXStaticAmount(pt.AddPowerExpr)
+							pt.AddToughnessAffected = effects.AffectedXStaticAmount(pt.AddToughnessExpr)
 							out = append(out, pt)
 						}
 						if hasStat(st, "AddKeyword") {
@@ -1117,18 +1117,6 @@ func mayPlayGrant(st cards.Static) bool {
 func hasStat(st cards.Static, key string) bool {
 	_, ok := st.Params[key]
 	return ok
-}
-
-// affectedXStaticAmount identifies Forge's per-affected-object static P/T
-// convention. A leading sign is the amount direction, not part of the SVar
-// name (the same grammar effects.Num resolves), so Toxrill's -AffectedX is
-// also per affected creature. Every other expression remains grantor-anchored.
-func affectedXStaticAmount(expr string) bool {
-	expr = strings.TrimSpace(expr)
-	if len(expr) > 1 && (expr[0] == '+' || expr[0] == '-') {
-		expr = expr[1:]
-	}
-	return expr == "AffectedX"
 }
 
 // staticAmount evaluates a static's P/T parameter at derivation time. It

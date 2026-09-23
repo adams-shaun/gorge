@@ -150,11 +150,11 @@ func parseStaticEffectGrant(params map[string]string, rememberedAsSelf bool) (st
 	}
 	if _, has := params["AddPower"]; has {
 		g.addPowerExpr, g.hasAddPower = strings.TrimSpace(params["AddPower"]), true
-		g.addPowerAffected = staticAddPTAffected(g.addPowerExpr)
+		g.addPowerAffected = AffectedXStaticAmount(g.addPowerExpr)
 	}
 	if _, has := params["AddToughness"]; has {
 		g.addToughExpr, g.hasAddTough = strings.TrimSpace(params["AddToughness"]), true
-		g.addToughAffected = staticAddPTAffected(g.addToughExpr)
+		g.addToughAffected = AffectedXStaticAmount(g.addToughExpr)
 	}
 	g.duration = strings.TrimSpace(params["Duration"])
 	g.affectedZone = strings.TrimSpace(params["AffectedZone"])
@@ -206,6 +206,28 @@ func parseStaticEffectGrant(params map[string]string, rememberedAsSelf bool) (st
 		}
 	}
 	return g, affects, true
+}
+
+// effectStaticGrantReadable rejects a partial Effect-delivered static. The
+// StaticEffect$ move rider retains its historical Note-and-subset contract;
+// an Effect with an unread condition or additional grant must not silently
+// turn that condition into an unconditional layer modification.
+func effectStaticGrantReadable(params map[string]string, g staticGrant) bool {
+	if len(g.unread) != 0 {
+		return false
+	}
+	for key := range params {
+		switch key {
+		case "Mode", "Affected", "AffectedZone", "Description", "AddTypes", "AddType",
+			"AddAllCreatureTypes", "RemoveCreatureTypes", "RemoveCardTypes",
+			"AddColor", "AddColors", "SetColor", "SetColors", "AddKeyword",
+			"AddAbility", "AddAbilities", "RemoveAllAbilities", "SetPower",
+			"SetToughness", "AddPower", "AddToughness":
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 // applyStaticEffect registers the StaticEffect$ rider of a ChangeZone move
@@ -466,14 +488,11 @@ func registerStaticEffectGrant(h Host, c *Ctx, id state.ObjID, affects string, g
 	return registered
 }
 
-// staticAddPTAffected is the Forge AffectedX convention on an additive P/T
-// parameter: only an expression naming AffectedX re-anchors its count on the
-// object receiving the pump. It mirrors rules' affectedXStaticAmount, the
-// predicate the printed-static scanner uses to set the same flag, so the two
-// registration routes classify a body identically. (No Effect-delivered
-// Continuous carrier in the corpus writes AffectedX today; the parity is
-// kept so the next one cannot diverge.)
-func staticAddPTAffected(expr string) bool {
+// AffectedXStaticAmount is the shared per-affected-object convention for
+// printed statics and Effect-delivered grants. Num strips exactly one leading
+// sign before resolving an SVar name; other SVar names and inline count
+// expressions remain anchored on the grantor on both routes.
+func AffectedXStaticAmount(expr string) bool {
 	expr = strings.TrimSpace(expr)
 	if len(expr) > 1 && (expr[0] == '+' || expr[0] == '-') {
 		expr = expr[1:]
