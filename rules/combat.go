@@ -1125,12 +1125,97 @@ func (e *Engine) validateBlockers(d *decision.Decision, in decision.Intent) erro
 	return nil
 }
 
+// blockPairScope is the per-defender pair admissibility ONE declare-blockers
+// ask derives and every consumer of its pair set shares: the attacking
+// creatures, the attackers an impossible CR 509.1a block-count bound rules
+// out (minImpossible -- every non-empty declaration naming one is illegal,
+// so its pairs are never offered), and the [min,max] hint each offered
+// option publishes. The maps are membership/read only, never ranged, so the
+// option order stays the pre-existing blocker/attacker order.
+type blockPairScope struct {
+	attackers     []state.ObjID
+	minImpossible map[state.ObjID]bool
+	bounds        map[state.ObjID][2]int
+}
+
+// blockPairScopeFor derives the scope for one defender's declare-blockers
+// ask: a pure read, deterministic (blockAttackers is the battlefield scan).
+func (e *Engine) blockPairScopeFor(defender state.PlayerID) blockPairScope {
+	scope := blockPairScope{
+		attackers:     e.blockAttackers(defender),
+		minImpossible: make(map[state.ObjID]bool),
+		bounds:        make(map[state.ObjID][2]int),
+	}
+	for _, aid := range scope.attackers {
+		min, max, minOK, maxOK, all := e.minMaxBlockerBounds(aid)
+		var b [2]int
+		if minOK {
+			b[0] = min
+		}
+		if maxOK {
+			b[1] = max
+		}
+		if all {
+			// Min$ All: a blocking declaration must be EVERY creature the
+			// defender controls (an unblocked declaration stays legal). If
+			// any of them cannot block, no blocking declaration is possible
+			// at all, so the attacker's pairs are not offered; otherwise
+			// the bounds publish the required all-team and a client unable
+			// to field it drops the block.
+			required := e.defenderCreatureCount(defender)
+			if e.legalBlockerCount(aid, defender) < required {
+				scope.minImpossible[aid] = true
+			} else {
+				b = [2]int{required, required}
+			}
+		} else if minOK && e.legalBlockerCount(aid, defender) < min {
+			scope.minImpossible[aid] = true
+		}
+		if b[0] != 0 || b[1] != 0 {
+			scope.bounds[aid] = b
+		}
+	}
+	return scope
+}
+
+// admissiblePair reports whether the declare-blockers offer actually offers
+// the (blocker, attacker) pair: canBlock, the attacker not ruled out by an
+// impossible block-count bound, and a per-pair price the defender can pay.
+// This is the ONE oracle of declarability: askBlockers' option build, the
+// MustBlock requirement matcher (mustBlockAssignmentsIn) and, through it,
+// validateBlockers all read it, so a requirement can never be counted on a
+// pair no client could have declared.
+func (e *Engine) admissiblePair(scope *blockPairScope, defender state.PlayerID, blocker, attacker state.ObjID) bool {
+	if scope.minImpossible[attacker] {
+		return false
+	}
+	if !e.canBlock(blocker, attacker) {
+		return false
+	}
+	if price := e.blockPairCharge(blocker, attacker); price > 0 && e.blockManaBudget(defender) < price {
+		return false
+	}
+	return true
+}
+
 // mustBlockAssignments returns a deterministic maximum matching of creatures
 // required to block to attacking creatures. The result maps each required
 // blocker to the attacker it should block; unassignable requirements are
-// omitted, as CR 509.1c requires obeying the maximum possible number.
+// omitted, as CR 509.1c requires obeying the maximum possible number. The
+// matching runs over the same admissible pairs the offer builds (see
+// admissiblePair), not over canBlock alone: a requirement whose only pair is
+// suppressed by the offer -- an impossible Min$ bound or an unaffordable
+// block price -- contributes nothing to the maximum, or a declaration
+// satisfying every offered requirement would be rejected for a block nobody
+// could have made.
 func (e *Engine) mustBlockAssignments(defender state.PlayerID) map[state.ObjID]state.ObjID {
-	attackers := e.blockAttackers(defender)
+	return e.mustBlockAssignmentsIn(e.blockPairScopeFor(defender), defender)
+}
+
+// mustBlockAssignmentsIn is mustBlockAssignments over an already-derived
+// scope, so the ask that also builds options from it computes the pair set
+// once.
+func (e *Engine) mustBlockAssignmentsIn(scope blockPairScope, defender state.PlayerID) map[state.ObjID]state.ObjID {
 	var required []state.ObjID
 	matches := func(spec string, source state.ObjID, controller state.PlayerID, id state.ObjID) bool {
 		return spec == "" || e.matchesSpec(spec, id, e.specCtx(source, controller))
@@ -1162,8 +1247,8 @@ func (e *Engine) mustBlockAssignments(defender state.PlayerID) map[state.ObjID]s
 	owner := make(map[state.ObjID]state.ObjID)
 	var visit func(state.ObjID, map[state.ObjID]bool) bool
 	visit = func(blocker state.ObjID, seen map[state.ObjID]bool) bool {
-		for _, attacker := range attackers {
-			if seen[attacker] || !e.canBlock(blocker, attacker) {
+		for _, attacker := range scope.attackers {
+			if seen[attacker] || !e.admissiblePair(&scope, defender, blocker, attacker) {
 				continue
 			}
 			seen[attacker] = true
@@ -1305,56 +1390,22 @@ func (e *Engine) askBlockers() {
 	br := &e.blockerRound
 	for br.cursor < len(br.order) {
 		defender := br.order[br.cursor]
-		// The CR 509.1a block-count bounds each attacker is subject to, in
-		// one walk: minImpossible records a Min$ the defender cannot meet
-		// (every non-empty declaration is illegal, so only the forced empty
-		// declaration can include the attacker and its pairs are not
-		// offered); bounds carries the [min,max] hint every offered option
-		// publishes on the wire. Both maps are membership/read only, never
-		// ranged, so the option order below stays the pre-existing
-		// blocker/attacker order.
-		minImpossible := make(map[state.ObjID]bool)
-		bounds := make(map[state.ObjID][2]int)
-		for _, aid := range e.blockAttackers(defender) {
-			min, max, minOK, maxOK, all := e.minMaxBlockerBounds(aid)
-			var b [2]int
-			if minOK {
-				b[0] = min
-			}
-			if maxOK {
-				b[1] = max
-			}
-			if all {
-				// Min$ All: a blocking declaration must be EVERY creature
-				// the defender controls (an unblocked declaration stays
-				// legal). If any of them cannot block, no blocking
-				// declaration is possible at all, so the attacker's pairs
-				// are not offered; otherwise the bounds publish the required
-				// all-team and a client unable to field it drops the block.
-				required := e.defenderCreatureCount(defender)
-				if e.legalBlockerCount(aid, defender) < required {
-					minImpossible[aid] = true
-				} else {
-					b = [2]int{required, required}
-				}
-			} else if minOK && e.legalBlockerCount(aid, defender) < min {
-				minImpossible[aid] = true
-			}
-			if b[0] != 0 || b[1] != 0 {
-				bounds[aid] = b
-			}
-		}
+		// The per-defender pair scope, derived once: minImpossible records a
+		// Min$ the defender cannot meet (every non-empty declaration is
+		// illegal, so only the forced empty declaration can include the
+		// attacker and its pairs are not offered); bounds carries the
+		// [min,max] hint every offered option publishes on the wire. The
+		// requirement matcher runs over the SAME scope, so its maximum is
+		// counted on exactly the pairs the offer below makes declarable.
+		scope := e.blockPairScopeFor(defender)
 		var opts []decision.Option
-		requiredPairs := e.mustBlockAssignments(defender)
+		requiredPairs := e.mustBlockAssignmentsIn(scope, defender)
 		for _, bid := range e.G.Zone(state.ZBattlefield, defender) {
-			for _, aid := range e.blockAttackers(defender) {
-				if minImpossible[aid] || !e.canBlock(bid, aid) {
+			for _, aid := range scope.attackers {
+				if !e.admissiblePair(&scope, defender, bid, aid) {
 					continue
 				}
 				price := e.blockPairCharge(bid, aid)
-				if price > 0 && e.blockManaBudget(defender) < price {
-					continue
-				}
 				// Group is the exclusivity marker on the wire: every option
 				// naming this same blocker shares one Group, so the two
 				// (blocker, attacker) pairs for that blocker are mutually
@@ -1366,7 +1417,7 @@ func (e *Engine) askBlockers() {
 					Label: e.G.Obj(bid).Face().Name + " blocks " + e.G.Obj(aid).Face().Name,
 					Obj:   bid, Attacker: aid, Player: defender,
 					Group: fmt.Sprintf("blocker:%d", bid), Required: requiredPairs[bid] == aid}
-				if b, ok := bounds[aid]; ok {
+				if b, ok := scope.bounds[aid]; ok {
 					opt.MinBlockers, opt.MaxBlockers = b[0], b[1]
 				}
 				if price > 0 {
