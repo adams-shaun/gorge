@@ -439,6 +439,10 @@ type Decision struct {
 	ResumeChoices     []state.Target `json:"-"`
 	ResumeChosenValid bool           `json:"-"`
 	ResumeRemembered  []state.Target `json:"-"`
+	// ResumeDigUntilMove carries an earlier OptionalFoundMove$ answer through
+	// a nested DigUntil Aura-bearer ask. It is runtime continuation state only.
+	ResumeDigUntilMove     string `json:"-"`
+	ResumeDigUntilMoveDone bool   `json:"-"`
 	// ResumeTargetsUnique carries the TargetUnique$ accumulator of the
 	// resolution that posed this ask (Ctx.TargetsUnique at suspension time):
 	// the resume rebuilds a fresh Ctx, which without the ride loses every

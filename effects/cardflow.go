@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"sort"
 	"strconv"
 	"strings"
 
@@ -1523,19 +1524,17 @@ func digDestPhrase(dest state.Zone) string {
 // ControlChange event). A found card with an AURA face put onto the
 // battlefield gets the CR 303.4f non-cast-entry attach, degraded to the
 // deterministic stand-in: the first permanent in the controller's
-// battlefield zone order that satisfies the Enchant keyword's own spec (the
-// same read rules/attach.go's auraStillMatchesEnchant does; effects keeps
-// its own copy — it must not import rules). With NO eligible bearer the
-// Aura stays in the library (CR 303.4f's remain-in-current-zone) rather
-// than entering unattached and dying to the CR 704.5m SBA. Riders withheld with ONE loud Note naming each and
-// the core move still running: Amount$ non-literal (X/MassX/VoteNum/Y —
-// amount 1 then; literal 1..5 ARE honoured as "keep revealing until N
-// matches"), DigZone$ (only Library is a real zone — the PlanarDeck
-// carriers scan no zone at all and move nothing), NoMoveFound$ /
-// FoundLibraryPosition$ (the found card stays where it is), Shuffle$ /
-// ShuffleCondition$ (the revealed rest go to RevealedDestination$ in
-// existing order instead of shuffling in), ImprintFound$ /
-// ImprintRevealed$ (no imprint association is recorded).
+// battlefield zone order that satisfies the Enchant keyword's own spec. If
+// more than one permanent qualifies, the controller chooses the bearer; a
+// sole candidate is taken without an answer. With NO eligible bearer the Aura
+// stays in the library (CR 303.4f's remain-in-current-zone) rather than
+// entering unattached and dying to the CR 704.5m SBA. Riders withheld with
+// one loud Note per parameter and the core move still running: Amount$
+// non-literal (X/MassX/VoteNum/Y — amount 1 then; literal 1..5 ARE honoured
+// as "keep revealing until N matches"), DigZone$, NoMoveFound$ /
+// FoundLibraryPosition$, Shuffle$ / ShuffleCondition$, Imprint*$ and
+// NoneFound*$. RevealRandomOrder$ remains a deterministic existing-order
+// stand-in because ambient randomness is forbidden.
 func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 	spec := sa.Params["Valid"]
 	if spec == "" {
@@ -1567,20 +1566,37 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 			withheld = append(withheld, "Amount$ "+raw)
 		}
 	}
-	// The params that keep the FOUND card where it is: NoMoveFound$ True is
-	// the card's own instruction, and the FoundLibraryPosition$ carriers are
-	// all position "0" — already on top — so the no-move read is the
-	// behaviour the card names, with the loud Note saying the primitive is
-	// not the full param.
-	noMoveFound := false
-	for _, key := range []string{"NoMoveFound", "FoundLibraryPosition"} {
+	// These parameters are deliberately not interpreted yet. In particular,
+	// NoMoveFound$ and FoundLibraryPosition$ must not suppress the ordinary
+	// found-card move merely because their full placement grammar is absent.
+	for _, key := range []string{"DigZone", "NoMoveFound", "FoundLibraryPosition", "Shuffle", "ShuffleCondition"} {
 		if v := digUntilParamValue(sa, key); v != "" {
 			withheld = append(withheld, key+"$ "+v)
-			noMoveFound = true
 		}
 	}
-	// Purely inert riders: one loud Note, the move proceeds without them.
-	for _, key := range []string{"Shuffle", "ShuffleCondition", "ImprintFound", "ImprintRevealed"} {
+	var imprintKeys []string
+	for key := range sa.Params {
+		if strings.HasPrefix(key, "Imprint") {
+			imprintKeys = append(imprintKeys, key)
+		}
+	}
+	sort.Strings(imprintKeys)
+	for _, key := range imprintKeys {
+		if v := digUntilParamValue(sa, key); v != "" {
+			withheld = append(withheld, key+"$ "+v)
+		}
+	}
+	// NoneFound* is a family (Tunnel Vision carries Destination and
+	// LibraryPosition variants). Read its keys in sorted order so Note event
+	// order is deterministic even though SA.Params is a map.
+	var noneFoundKeys []string
+	for key := range sa.Params {
+		if strings.HasPrefix(key, "NoneFound") {
+			noneFoundKeys = append(noneFoundKeys, key)
+		}
+	}
+	sort.Strings(noneFoundKeys)
+	for _, key := range noneFoundKeys {
 		if v := digUntilParamValue(sa, key); v != "" {
 			withheld = append(withheld, key+"$ "+v)
 		}
@@ -1592,14 +1608,19 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 	// the withheld-params Note.
 	moveAns := c.DigUntilMove
 	moveDone := c.DigUntilMoveDone
+	auraBearer := c.DigUntilAuraBearer
+	auraDone := c.DigUntilAuraDone
 	c.DigUntilMove, c.DigUntilMoveDone = "", false
+	c.DigUntilAuraBearer, c.DigUntilAuraDone = 0, false
 	if moveAns == "" {
 		moveAns = "no"
 	}
 	g := h.Game()
-	if !moveDone && len(withheld) > 0 {
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-			Text: "DigUntil withholds " + strings.Join(withheld, ", ") + "; the core move runs without it"})
+	if !moveDone && !auraDone {
+		for _, param := range withheld {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "DigUntil withholds " + param + "; the core move runs without it"})
+		}
 	}
 	targets := Defined(h, c, sa)
 	if sa.Params["Defined"] == "" && sa.Params["ValidTgts"] == "" {
@@ -1609,13 +1630,9 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 		// source is the resolving permanent, not a player.
 		targets = []state.Target{{Player: c.Controller, IsPlayer: true}}
 	}
-	if digZone := strings.TrimSpace(sa.Params["DigZone"]); digZone != "" && !strings.EqualFold(digZone, "Library") {
-		// The PlanarDeck carriers (4): planes are unimplemented engine-wide
-		// and there is no planar-deck zone to scan. Loud, and nothing moves.
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-			Text: "DigUntil DigZone$ " + digZone + " is not implemented; no cards are revealed or moved"})
-		return
-	}
+	// DigZone$ is withheld above. The ordinary library scan remains the
+	// deterministic core move even for the PlanarDeck carriers; their full
+	// planar-zone semantics are outside this primitive.
 	// declineDest is where the found card goes when the optional move is
 	// declined: OptionalNoDestination$ when the SA carries one, else the
 	// revealed pile (the corpus oracles' "put all cards revealed this way
@@ -1649,7 +1666,7 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 		// The reveal is PUBLIC (the same non-Secret ids-Note effDig's Reveal$
 		// arm emits), recorded before the ask, once per resolution -- a
 		// re-entry after the optional-move answer must not reveal again.
-		if !moveDone {
+		if !moveDone && !auraDone {
 			h.Emit(events.Event{Kind: events.Note, Player: p, IDs: revealed})
 		}
 		if optionalMove && !moveDone {
@@ -1683,7 +1700,7 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 		foundJoinedRevealed := false
-		if !noMoveFound && len(found) > 0 {
+		if len(found) > 0 {
 			dest := foundDest
 			if optionalMove && moveAns != "yes" {
 				dest = declineDest
@@ -1697,6 +1714,40 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 					// remain-in-current-zone) instead of entering unattached and
 					// dying to the CR 704.5m SBA.
 					bearer, isAuraFace := auraEntryBearer(g, id, p)
+					if isAuraFace {
+						bearers, _ := auraEntryBearers(g, id, p)
+						switch {
+						case auraDone:
+							// The answered bearer is revalidated against the
+							// current battlefield before it is used.
+							bearer = 0
+							for _, candidate := range bearers {
+								if candidate == auraBearer {
+									bearer = candidate
+									break
+								}
+							}
+							auraDone = false
+						case len(bearers) == 0:
+							bearer = 0
+						case len(bearers) == 1:
+							bearer = bearers[0]
+						default:
+							d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
+								Source: c.Source, ResumeKind: "diguntil_aura", ResumeSA: sa,
+								ResumeDigUntilMove: moveAns, ResumeDigUntilMoveDone: moveDone,
+								Prompt: "Choose a permanent for the revealed Aura to enchant"}
+							for i, candidate := range bearers {
+								d.Options = append(d.Options, decision.Option{Index: i, Kind: "card", Obj: candidate, Player: p})
+							}
+							if Ask(h, d) == AskAsked {
+								return
+							}
+							// R-9: a host without an answer takes the
+							// deterministic first candidate.
+							bearer = bearers[0]
+						}
+					}
 					if isAuraFace && bearer == 0 {
 						h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: p,
 							Text: "no permanent the revealed Aura can enchant; it stays in the library (CR 303.4f)"})
@@ -1713,8 +1764,8 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 						h.Emit(events.Event{Kind: events.ControlChange, Obj: id, Player: c.Controller})
 					}
 					if bearer != 0 {
-						// The CR 303.4f attach, degraded to the deterministic
-						// stand-in documented above (the bearer the scan picked).
+						// CR 303.4f: the selected permanent is the Aura's
+						// chosen bearer on this non-cast battlefield entry.
 						emitAttach(h, id, bearer)
 					}
 					// StaticEffect$ on a DigUntil battlefield take: the same
@@ -1790,9 +1841,17 @@ func digUntilParamValue(sa *cards.SA, key string) string {
 // is the shared MatchesSpecFrom, so a compound spec (Enchant:
 // Creature.YouCtrl) evaluates exactly like an attach-time legality check.
 func auraEntryBearer(g *state.Game, id state.ObjID, p state.PlayerID) (state.ObjID, bool) {
+	bearers, isAura := auraEntryBearers(g, id, p)
+	if len(bearers) > 0 {
+		return bearers[0], true
+	}
+	return 0, isAura
+}
+
+func auraEntryBearers(g *state.Game, id state.ObjID, p state.PlayerID) ([]state.ObjID, bool) {
 	o := g.Obj(id)
 	if o == nil || o.Face() == nil {
-		return 0, false
+		return nil, false
 	}
 	isAura := false
 	for _, t := range o.Face().Types {
@@ -1802,22 +1861,23 @@ func auraEntryBearer(g *state.Game, id state.ObjID, p state.PlayerID) (state.Obj
 		}
 	}
 	if !isAura {
-		return 0, false
+		return nil, false
 	}
 	spec := "Permanent"
 	if param, ok := o.Face().KeywordParam("Enchant"); ok && strings.TrimSpace(param) != "" {
 		spec, _, _ = strings.Cut(param, ":")
 	}
 	spec = strings.TrimSpace(spec)
+	var bearers []state.ObjID
 	for _, bid := range g.Zone(state.ZBattlefield, p) {
 		if bid == id {
 			continue
 		}
 		if MatchesSpecFrom(g, spec, bid, p, id) {
-			return bid, true
+			bearers = append(bearers, bid)
 		}
 	}
-	return 0, true
+	return bearers, true
 }
 
 // effReveal backs Reveal, RevealHand and PeekAndReveal, which the brief
