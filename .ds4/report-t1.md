@@ -14,10 +14,10 @@ Implemented `S:Mode$ CountersRemain` for the two corpus carriers. The worktree w
 Corpus check:
 
 ```text
-$ grep -rlE '^S:Mode\\$ CountersRemain' .cards/cardsfolder | sort
+$ grep -rlE '^S:Mode\$ CountersRemain' .cards/cardsfolder | sort
 .cards/cardsfolder/m/me_the_immortal.txt
 .cards/cardsfolder/s/skullbriar_the_walking_grave.txt
-$ grep -rlE '^S:Mode\\$ CountersRemain' .cards/cardsfolder | wc -l
+$ grep -rlE '^S:Mode\$ CountersRemain' .cards/cardsfolder | wc -l
 2
 ```
 
