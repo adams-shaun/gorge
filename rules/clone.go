@@ -323,6 +323,8 @@ func (e *Engine) Clone() *Engine {
 				inner[k] = v
 			}
 			c.aorAsk[id] = inner
+		}
+	}
 	if e.castSubTargets != nil {
 		c.castSubTargets = make(map[state.ObjID]map[string][]state.Target, len(e.castSubTargets))
 		for id, lines := range e.castSubTargets {

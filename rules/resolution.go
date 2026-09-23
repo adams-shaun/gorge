@@ -1333,6 +1333,14 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
 		return
 	}
+	// A chain can park between two pre-asked subs. Recheck the remaining
+	// answers against the live board before the resumed effects walk consumes
+	// them; the first pass in resolveTop already checked those reached earlier.
+	if o.Ability != nil {
+		e.recheckCastSubTargets(rp.obj, o.Ability, o.Controller, o.Source)
+	} else if f := o.Face(); f != nil {
+		e.recheckCastSubTargets(rp.obj, f.SpellAbility(), o.Controller, rp.obj)
+	}
 	ctx := &effects.Ctx{Source: rp.obj, Controller: o.Controller, NameChoice: rp.name, Targets: o.Targets,
 		// alltargeted1: a re-entered walk keeps consuming the cast flow's
 		// pre-asked sub-ability target answers (the map shrinks as

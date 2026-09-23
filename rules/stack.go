@@ -2776,6 +2776,7 @@ func (e *Engine) resolveTop() {
 		// 608.2b's "spell or ability" covers this shape too if a later
 		// task ever gives a triggered ability a player-chosen target.
 		targets := o.Targets
+		subChosen, subLegal := e.recheckCastSubTargets(id, o.Ability, o.Controller, o.Source)
 		// Fix round 2 (re-review N1): the gate is `spec != ""` -- "this
 		// ability declares a targeting requirement" -- not `len(targets) > 0`
 		// -- "this ability happens to have targets right now". The old form
@@ -2788,7 +2789,7 @@ func (e *Engine) resolveTop() {
 		// targetMin(o.Ability)==0 && len(targets)==0 is the exemption.
 		if spec := o.Ability.Params["ValidTgts"]; spec != "" && !(e.resolvedTargetMin(o.Controller, id, o.Ability, 0) == 0 && len(targets) == 0) {
 			legal := e.legalTargets(targets, o.Ability, targetZones(o.Ability), o.Controller, o.Source, id)
-			if len(legal) == 0 {
+			if len(legal) == 0 && subLegal == 0 {
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
 					From: state.ZStack, To: state.ZExile, Text: "fizzled: no legal targets remain"})
 				e.ensureLeftTheStack(id, state.ZExile, "a replacement fully discarded this "+
@@ -2797,6 +2798,12 @@ func (e *Engine) resolveTop() {
 				return
 			}
 			targets = legal
+		}
+		if len(targets) == 0 && subChosen > 0 && subLegal == 0 {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id,
+				From: state.ZStack, To: state.ZExile, Text: "fizzled: no legal targets remain"})
+			e.ensureLeftTheStack(id, state.ZExile, "all cast-time sub targets became illegal")
+			return
 		}
 		// CR 608.2m: a resolved ability just ceases to exist rather than
 		// moving to a card zone. This build has no "ceases to exist" zone,
@@ -3122,6 +3129,7 @@ func (e *Engine) resolveTop() {
 			}
 		}
 	}
+	subChosen, subLegal := e.recheckCastSubTargets(id, sa, o.Controller, id)
 	if sa != nil && !overloaded {
 		// A modal spell's target declaration lives on its announced mode SVar,
 		// not the outer Charm SA. Use the same selected declaration targetAsk
@@ -3143,7 +3151,7 @@ func (e *Engine) resolveTop() {
 		// untargeted-with-Min-0 spell resolves rather than fizzling.
 		if spec := targetSA.Params["ValidTgts"]; spec != "" && !(e.resolvedTargetMin(o.Controller, id, targetSA, 0) == 0 && len(targets) == 0) {
 			legal := e.legalTargets(targets, targetSA, targetZones(targetSA), o.Controller, id, id)
-			if len(legal) == 0 {
+			if len(legal) == 0 && subLegal == 0 {
 				// CR 608.2b: every target became illegal. This spell does
 				// not resolve -- no Resolve event, no script runs -- it goes
 				// straight to its normal resting place, the same zone it
@@ -3163,6 +3171,13 @@ func (e *Engine) resolveTop() {
 			}
 			targets = legal
 		}
+	}
+	if len(targets) == 0 && subChosen > 0 && subLegal == 0 {
+		rest := spellFizzleZone(o)
+		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: rest,
+			Text: "fizzled: no legal targets remain"})
+		e.ensureLeftTheStack(id, rest, "all cast-time sub targets became illegal")
+		return
 	}
 	e.emit(events.Event{Kind: events.Resolve, Obj: id, Text: f.Name})
 	// Ascend (CR 702.131a, the non-permanent case): an instant/sorcery with
@@ -3330,6 +3345,32 @@ func (e *Engine) ensureLeftTheStack(id state.ObjID, to state.Zone, why string) {
 // offer and recheck cannot disagree (the one-definition rule). A target
 // whose qualifier the filter cannot evaluate was never offered and is
 // rejected here too, fail closed.
+// recheckCastSubTargets uses the same legality judge as the root target at
+// resolution. Only unanswered chain entries remain in the map: a resumed
+// resolution may have consumed earlier subs before parking on a decision.
+// Preserve an answered-empty entry as a non-nil slice so the effects walk
+// does not mistake it for an outstanding mid-resolution ask.
+func (e *Engine) recheckCastSubTargets(id state.ObjID, root *cards.SA, controller state.PlayerID, source state.ObjID) (chosen, legal int) {
+	answers := e.castSubTargets[id]
+	if len(answers) == 0 {
+		return 0, 0
+	}
+	for _, sa := range e.collectSubTargetPreAsks(root) {
+		ts, ok := answers[sa.Line]
+		if !ok {
+			continue
+		}
+		chosen += len(ts)
+		kept := e.legalTargets(ts, sa, targetZones(sa), controller, source, id)
+		legal += len(kept)
+		if kept == nil {
+			kept = []state.Target{}
+		}
+		answers[sa.Line] = kept
+	}
+	return chosen, legal
+}
+
 func (e *Engine) legalTargets(targets []state.Target, sa *cards.SA, zones []state.Zone, you state.PlayerID, source state.ObjID, self state.ObjID) []state.Target {
 	spec := ""
 	if sa != nil {
