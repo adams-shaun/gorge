@@ -1539,6 +1539,10 @@ func aftermathAlternateFace(o *state.Object) *cards.Face {
 // It is a pure read: no event is emitted, no state field is written, and the
 // hypothetical pool lives only in local copies, so replay is untouched.
 func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decision.Option {
+	// The walk is a pure read, so every Derived it makes is memoized for the
+	// walk's duration (rules/derivedmemo.go).
+	e.beginDerivedMemo()
+	defer e.endDerivedMemo()
 	var out []decision.Option
 	add := func(kind, label string, obj state.ObjID) {
 		out = append(out, decision.Option{Index: len(out), Kind: kind, Label: label, Obj: obj})
