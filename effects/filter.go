@@ -1848,6 +1848,46 @@ func filterAlternatives(spec string) iter.Seq[string] {
 // so the two cannot disagree about where a comma is a boundary.
 func FilterAlternatives(spec string) iter.Seq[string] { return filterAlternatives(spec) }
 
+// SpecReadsKeywords reports whether the spec consults the walk's derived
+// KEYWORD list when a caller binds SpecContext.ExtraKeywords -- i.e. whether
+// applying another layer-6 effect could change what the spec matches (the
+// CR 613.8 dependency test). Exactly two shapes read it: a
+// `with<Keyword>`/`without<Keyword>` predicate (keywordPredicates, matched
+// by the same exact token lookup the evaluator uses) and the Affinity base,
+// whose context-aware match reads ExtraKeywords directly. rules' layer walk
+// (cli-20260923T060000Z-layers-dep613) uses this to detect CR 613.6
+// dependencies among layer-6 effects without paying for a full spec match
+// per candidate pair; a spec that reads no keyword can never gain or lose
+// its match to a keyword grant, so it always keeps timestamp order.
+func SpecReadsKeywords(spec string) bool {
+	// Fast path: every keyword predicate spells out `with`, and the Affinity
+	// base carries `ffinity` (case-insensitive shapes are capitalised in
+	// practice, so the lowercase probe stays cheap); anything else is a
+	// single reject on the hot walk.
+	if !strings.Contains(spec, "with") && !strings.Contains(spec, "ffinity") {
+		return false
+	}
+	for alt := range filterAlternatives(spec) {
+		alt = strings.TrimSpace(alt)
+		if alt == "" {
+			continue
+		}
+		base, rest, _ := strings.Cut(alt, ".")
+		if strings.EqualFold(base, "Affinity") {
+			return true
+		}
+		for p := range strings.SplitSeq(rest, "+") {
+			if p == "" {
+				continue
+			}
+			if _, ok := keywordPredicates[p]; ok {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // StripPredicateToken removes the EXACT predicate token from ONE filter
 // alternative's "+" chain, returning the stripped alternative and whether
 // the token was present. The token argument is the exact predicate text to
