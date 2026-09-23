@@ -58,6 +58,15 @@ func (e *Engine) tapsMatches(t cards.Trigger, source state.ObjID, ev events.Even
 	return e.eventCardAndPlayerMatch(t, source, ev.Obj, actor)
 }
 
+// untapsMatches observes a real Untap event for the permanent that became
+// untapped. Unlike Taps, Untap carries no tapper or mana-activation provenance.
+func (e *Engine) untapsMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if ev.Kind != events.Untap || ev.Obj == 0 {
+		return false
+	}
+	return e.eventCardAndPlayerMatch(t, source, ev.Obj, e.controllerOf(ev.Obj))
+}
+
 // tapIsEntryState reports whether a Tap event only gives a permanent the
 // tapped state it enters with: a library search's Tapped$ True entry (marked
 // in the replayed payload) or an ETB$ True replacement body (marked in
@@ -119,4 +128,7 @@ func init() {
 	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
 		return e.tapsMatches(t, source, ev, true)
 	}, "TapsForMana")
+	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
+		return e.untapsMatches(t, source, ev)
+	}, "Untaps")
 }
