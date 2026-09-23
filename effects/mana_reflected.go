@@ -248,11 +248,24 @@ func effManaReflected(h Host, c *Ctx, sa *cards.SA) {
 		amount = 0
 	}
 	restriction := strings.TrimSpace(sa.Params["RestrictValid"])
+	// Producer-type provenance: a reflected mana unit is produced by THIS
+	// ability's source permanent, so the same Treasure/Cave/Desert/Snow tag
+	// effMana stamps rides its ManaAdd counter too (Cactus Preserve's Desert
+	// reflection, task ctms). Read ONCE per resolution -- the source cannot
+	// change across the colour branches.
+	tag, snow := ManaProducerTag(h, c.Source)
 	manaAdd := func(player state.PlayerID, color string) {
 		if amount == 0 {
 			return
 		}
-		ev := events.Event{Kind: events.ManaAdd, Player: player, Counter: color, Amount: amount}
+		counter := color
+		switch {
+		case tag != "":
+			counter = tag + color
+		case snow:
+			counter = "S" + color
+		}
+		ev := events.Event{Kind: events.ManaAdd, Player: player, Counter: counter, Amount: amount}
 		if restriction != "" {
 			ev.Text = events.ManaRestrictionText(restriction, 0)
 		}

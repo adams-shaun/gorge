@@ -4126,6 +4126,38 @@ func askManaChoice(h Host, c *Ctx, sa *cards.SA, produced string) (string, bool)
 	return produced, false
 }
 
+// ManaProducerTag reads the producer-type provenance a positive mana
+// production carries: the Treasure/Cave/Desert tag word (state.TypedManaTags
+// order) when the producing permanent prints one of those types, else
+// snow=true when it prints the Snow supertype, else neither. It is the ONE
+// home for the tag read, shared by EVERY positive ManaAdd producer (the
+// acted AB$ Mana ability in effMana, the AB$ ManaReflected body in
+// effManaReflected -- both the activated ability's resolution and a
+// standalone DB$ ManaReflected -- and the cumulative-upkeep AddMana action
+// in rules/cumulative.go), so a producer type can never be
+// tagged on one path and missed on another. The Snow/typed combination is
+// unmeasured at the corpus pin (no producer prints both): a typed tag wins
+// the single Counter encoding, exactly as it did before this helper existed.
+func ManaProducerTag(h Host, source state.ObjID) (tag string, snow bool) {
+	o := h.Game().Obj(source)
+	if o == nil || o.Face() == nil {
+		return "", false
+	}
+	for _, tagWord := range state.TypedManaTags {
+		for _, t := range o.Face().Types {
+			if t == tagWord {
+				return tagWord, false
+			}
+		}
+	}
+	for _, t := range o.Face().Types {
+		if t == "Snow" {
+			return "", true
+		}
+	}
+	return "", false
+}
+
 func effMana(h Host, c *Ctx, sa *cards.SA) {
 	produced := strings.TrimSpace(sa.Params["Produced"])
 	// A resumed Combo allocation supplies one concrete symbol per unit.
@@ -4298,29 +4330,7 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 	// several (measured: no corpus producer carries two); no corpus producer
 	// is both Snow and typed, and the tagged form takes the Counter (one
 	// encoding per unit) — the combination is unmeasured.
-	snow := false
-	tag := ""
-	if o := h.Game().Obj(c.Source); o != nil && o.Face() != nil {
-		for _, tagWord := range state.TypedManaTags {
-			for _, t := range o.Face().Types {
-				if t == tagWord {
-					tag = tagWord
-					break
-				}
-			}
-			if tag != "" {
-				break
-			}
-		}
-		if tag == "" {
-			for _, t := range o.Face().Types {
-				if t == "Snow" {
-					snow = true
-					break
-				}
-			}
-		}
-	}
+	tag, snow := ManaProducerTag(h, c.Source)
 	// TriggersWhenSpent$ <SVar> (Path of Ancestry, Lapis Orb of Dragonkind,
 	// Study Hall: "when that mana is spent to cast ..., ..."): the produced
 	// mana must be attributable to THIS source at spend time, so the add

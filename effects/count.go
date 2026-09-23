@@ -1311,13 +1311,15 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 				return o.ManaSpent, true
 			case "Snow":
 				return o.ManaSnowSpent, true
-			case "Treasure":
-				return o.ManaTreasureSpent, true
-			case "Cave":
-				return o.ManaCaveSpent, true
-			case "Desert":
-				return o.ManaDesertSpent, true
 			default:
+				// The typed tags are the SAME table the producer-side tagging
+				// reads (state.TypedManaTags), so a modelled type counts and a
+				// type the pool cannot tag stays the fail-closed 0.
+				for i, tagWord := range state.TypedManaTags {
+					if arg == tagWord {
+						return o.TypedManaSpentByTag(i), true
+					}
+				}
 				return 0, true
 			}
 		}
