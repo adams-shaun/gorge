@@ -173,12 +173,18 @@ func TestSquadronHawkSearchWithNoHawksResolvesSilently(t *testing.T) {
 	}
 	start := len(e.L.Events)
 	submitChoices(t, e, 0) // accept the trigger; the empty search is direct
-	if e.G.Over || e.Suspended() {
-		t.Fatalf("game wedged: over=%v suspended=%v", e.G.Over, e.Suspended())
+	if e.G.Over {
+		t.Fatalf("game wedged: over=%v", e.G.Over)
 	}
-	if d := e.Pending(); d != nil && d.Kind == decision.KChoose {
-		t.Fatalf("empty library search published KChoose: %+v", d)
+	// searchmay1: the fail-to-find shape now poses the may-shuffle confirm --
+	// the search still owes its mandatory shuffle (CR 701.23b), and the
+	// confirm is what may spare it. Accept it, so the pinned "shuffles once"
+	// below still counts the shuffle this test was written around.
+	if d := e.Pending(); d != nil && d.Kind == decision.KChoose && d.ResumeKind == "search" {
+		t.Fatalf("empty library search published a search KChoose: %+v", d)
 	}
+	msYes, _ := mayShuffleConfirm(t, e, 0)
+	submitChoices(t, e, msYes)
 	moves, shuffles := 0, 0
 	for _, ev := range e.L.Events[start:] {
 		if ev.Kind == events.MoveZone && ev.From == state.ZLibrary {

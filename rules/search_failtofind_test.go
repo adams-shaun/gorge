@@ -51,10 +51,11 @@ func TestSquadronHawkFailToFindResolvesWithoutAsking(t *testing.T) {
 	// Drive the accepted trigger's resolution. The ONE assertion that is the
 	// bug: no search KChoose may ever pend. Before the fix the very next
 	// pending decision was the Min 0 / Max 0 wedge; after it the search
-	// resolves silently and the game moves on -- the loop passes priority
-	// windows until any NON-priority decision appears (a later turn-based
-	// ask, e.g. a cleanup discard: the game got past the search) or the
-	// search's own KChoose appears (the wedge, a failure).
+	// resolves silently and the game moves on. searchmay1 adds the
+	// ShuffleNonMandatory$ may-shuffle confirm the fail-to-find shape now
+	// poses (the search still shuffles, CR 701.23b): that is a real two-option
+	// ask, not the empty-answer wedge, so it is answered with "yes --
+	// shuffle" and the drive continues. Only a `search` KChoose is the wedge.
 	searchAsked := false
 	for i := 0; i < 40 && !e.G.Over; i++ {
 		d := e.Pending()
@@ -65,8 +66,23 @@ func TestSquadronHawkFailToFindResolvesWithoutAsking(t *testing.T) {
 			searchAsked = true
 			break
 		}
+		if d.Kind == decision.KChoose && d.ResumeKind == "search_mayshuffle" {
+			yesIdx := -1
+			for _, o := range d.Options {
+				if o.Kind == "yes" {
+					yesIdx = o.Index
+				}
+			}
+			if yesIdx < 0 {
+				t.Fatalf("may-shuffle confirm carries no yes option: %+v", d)
+			}
+			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{yesIdx}}); err != nil {
+				t.Fatalf("submit the may-shuffle confirm: %v", err)
+			}
+			continue
+		}
 		if d.Kind != decision.KPriority {
-			break // the game moved past the trigger without asking
+			break // the game moved past the trigger without asking a search
 		}
 		idx := -1
 		for _, o := range d.Options {
