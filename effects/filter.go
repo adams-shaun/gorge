@@ -4118,21 +4118,84 @@ func playerHasMost(g *state.Game, p state.PlayerID, kind string) bool {
 	return count(p) == best
 }
 
-// splitPlayerCompare accepts Forge's lifeGE1/lifeLT7 player qualifiers.
+// splitPlayerCompare accepts Forge's literal lifeGE1/lifeLT7 qualifiers.
 func splitPlayerCompare(s string) (string, int32, bool) {
-	if !strings.HasPrefix(s, "life") || len(s) < len("lifeGE0") {
+	op, rhs, ok := splitPlayerCompareToken(s)
+	if !ok {
 		return "", 0, false
 	}
-	op := s[4:6]
-	n, err := strconv.ParseInt(s[6:], 10, 32)
+	n, err := strconv.ParseInt(rhs, 10, 32)
 	if err != nil {
 		return "", 0, false
 	}
+	return op, int32(n), true
+}
+
+func splitPlayerCompareToken(s string) (string, string, bool) {
+	if !strings.HasPrefix(s, "life") || len(s) < len("lifeGE0") {
+		return "", "", false
+	}
+	op := s[4:6]
 	switch op {
 	case "GE", "GT", "EQ", "LE", "LT":
-		return op, int32(n), true
+		return op, s[6:], true
 	}
-	return "", 0, false
+	return "", "", false
+}
+
+// MatchesPlayerSpecWithSVars resolves symbolic life-comparison thresholds in
+// the asking ability's SVar table, then delegates all other grammar to the
+// shared player matcher. Unknown count bodies fail closed for that alternative.
+func MatchesPlayerSpecWithSVars(h Host, c *Ctx, spec string, p, you state.PlayerID) bool {
+	if h == nil || c == nil {
+		return false
+	}
+	for _, alt := range strings.Split(spec, ",") {
+		clauses := strings.Split(strings.TrimSpace(alt), "+")
+		resolved := true
+		for i, clause := range clauses {
+			neg := strings.HasPrefix(clause, "!")
+			plain := strings.TrimPrefix(clause, "!")
+			base, qualifier, hasDot := strings.Cut(plain, ".")
+			if !hasDot {
+				base, qualifier = "Player", plain
+			}
+			if base != "Player" && base != "Opponent" && base != "Other" && base != "You" {
+				continue
+			}
+			op, rhs, ok := splitPlayerCompareToken(qualifier)
+			if !ok {
+				continue
+			}
+			if _, err := strconv.ParseInt(rhs, 10, 32); err == nil {
+				continue
+			}
+			body, found := c.SVars[rhs]
+			if !found {
+				if o := h.Game().Obj(c.Source); o != nil && o.Face() != nil {
+					body, found = o.Face().SVars[rhs]
+				}
+			}
+			if !found {
+				resolved = false
+				break
+			}
+			threshold, ok := EvalCountOK(h, c, body)
+			if !ok {
+				resolved = false
+				break
+			}
+			prefix := ""
+			if neg {
+				prefix = "!"
+			}
+			clauses[i] = prefix + base + ".life" + op + strconv.FormatInt(int64(threshold), 10)
+		}
+		if resolved && MatchesPlayerSpecFrom(h.Game(), strings.Join(clauses, "+"), p, you, c.Source) {
+			return true
+		}
+	}
+	return false
 }
 
 // playerEnchantedController returns the controller of the permanent this

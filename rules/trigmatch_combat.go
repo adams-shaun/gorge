@@ -222,10 +222,14 @@ func (e *Engine) attackersDeclaredOneTargetMatches(t cards.Trigger, source state
 	}
 	ctrl := e.controllerOf(source)
 	attacker := e.controllerOf(ev.IDs[0])
-	if v := t.Params["AttackingPlayer"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, attacker, ctrl) {
+	ctx := &effects.Ctx{Source: source, Controller: ctrl}
+	if src := e.G.Obj(source); src != nil && src.Face() != nil {
+		ctx.SVars = src.Face().SVars
+	}
+	if v := t.Params["AttackingPlayer"]; v != "" && !effects.MatchesPlayerSpecWithSVars(e, ctx, v, attacker, ctrl) {
 		return false
 	}
-	if v := t.Params["AttackedTarget"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+	if v := t.Params["AttackedTarget"]; v != "" && !effects.MatchesPlayerSpecWithSVars(e, ctx, v, ev.Player, ctrl) {
 		return false
 	}
 	matches := 0
