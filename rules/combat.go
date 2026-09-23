@@ -946,23 +946,33 @@ func (e *Engine) goadMayAttack(id state.ObjID, defender state.PlayerID) bool {
 	return true
 }
 
-// staticGoaders returns the controllers of every live Mode$ Continuous
-// static with Goad$ True whose Affected$ spec matches o (CR 701.38b: a goad's
-// goader is the permanent's controller, so a static goad's goader is the
-// static's own controller). The static is a requirement, not a layer effect:
-// like every other S: restriction read by activeStatics it is re-derived on
-// demand from the current board (rebuilding on replay), so the goad ends when
-// the source leaves the battlefield, moves to another bearer, or an "as long
-// as" gate flips -- no lifetime bookkeeping. The Affected$ default is
-// Card.Self, mirroring staticEffects, so a Goad$ line without Affected$
-// fails closed to its own source rather than to every creature.
-//
-// Only the literal "True" is honoured; any other Goad$ value fails closed.
-// A granted static (AddStaticAbility$/StaticAbilities$ delivered by Clone or
-// Effect) is deliberately NOT expanded here -- those three corpus cards
-// (Mocking Doppelganger, Hot Pursuit, Immortal Obligation) stay un-goaded.
-func (e *Engine) staticGoaders(o *state.Object) []state.PlayerID {
-	var out []state.PlayerID
+// staticGoadLine is one live Goad$ True static: a printed S: line on a
+// battlefield permanent (activeStatics' walk) or a granted one — the
+// DB$ Effect StaticAbilities$ registrations (Hot Pursuit's IsGoaded body,
+// Immortal Obligation's Static) and the DB$ Clone AddStaticAbilities$ grant
+// (Mocking Doppelganger's FamilyTease) effEffect/effClone register into the
+// continuous registry. The Affected$ spec is matched against the BEARER; a
+// granted line carries its Effect's Remembered set for the
+// `Creature.IsRemembered` spelling.
+type staticGoadLine struct {
+	source     state.ObjID
+	controller state.PlayerID
+	spec       string
+	remembered []state.ObjID
+}
+
+// staticGoadLines collects every live Goad$ True static, both delivery
+// routes, in one deterministic pass: printed statics in activeStatics' APNAP
+// order, then the continuous registry's Goad restrictions in registry order.
+// The goad is a requirement, not a layer effect: like every other S:
+// restriction read by activeStatics it is re-derived on demand from the
+// current board (rebuilding on replay), so the goad ends when the source
+// leaves the battlefield, moves to another bearer, or an "as long as" gate
+// flips -- no lifetime bookkeeping. A granted static's lifetime is the
+// registration's own (the registry machinery expires it), so this reader
+// needs none.
+func (e *Engine) staticGoadLines() []staticGoadLine {
+	var out []staticGoadLine
 	for _, sv := range e.activeStatics("Continuous") {
 		if !strings.EqualFold(strings.TrimSpace(sv.Params["Goad"]), "True") {
 			continue
@@ -971,12 +981,95 @@ func (e *Engine) staticGoaders(o *state.Object) []state.PlayerID {
 		if spec == "" {
 			spec = "Card.Self"
 		}
-		if !e.matchesSpec(spec, o.ID, e.specCtx(sv.Source, sv.Controller)) {
+		out = append(out, staticGoadLine{source: sv.Source, controller: sv.Controller, spec: spec})
+	}
+	for _, ce := range e.active() {
+		if ce.Restriction != "Goad" {
 			continue
 		}
-		out = append(out, sv.Controller)
+		spec := strings.TrimSpace(ce.RestrictParams["Affected"])
+		if spec == "" {
+			spec = "Card.Self"
+		}
+		out = append(out, staticGoadLine{source: ce.Source, controller: ce.Controller,
+			spec: spec, remembered: ce.Remembered})
 	}
 	return out
+}
+
+// goadLineMatches reports whether one live Goad$ True static goads o: its
+// Affected$ spec matched with the static's own source, controller and
+// remembered set bound (the Affected$ default is Card.Self, mirroring
+// staticEffects, so a Goad$ line without Affected$ fails closed to its own
+// source rather than to every creature). The goadProbe bracket keeps an
+// IsGoaded-conditioned Affected$ spec from re-entering the derivation (see
+// the engine field).
+func (e *Engine) goadLineMatches(l staticGoadLine, o *state.Object) bool {
+	if o == nil {
+		return false
+	}
+	sc := e.specCtx(l.source, l.controller)
+	for _, r := range l.remembered {
+		sc.Remembered = append(sc.Remembered, state.Target{Obj: r})
+	}
+	e.goadProbe++
+	defer func() { e.goadProbe-- }()
+	return e.matchesSpec(l.spec, o.ID, sc)
+}
+
+// staticGoaders returns the controllers of every live Goad$ True static
+// whose Affected$ spec matches o (CR 701.38b: a goad's goader is the
+// permanent's controller, so a static goad's goader is the static's own
+// controller), printed or granted alike.
+func (e *Engine) staticGoaders(o *state.Object) []state.PlayerID {
+	var out []state.PlayerID
+	for _, l := range e.staticGoadLines() {
+		if e.goadLineMatches(l, o) {
+			out = append(out, l.controller)
+		}
+	}
+	return out
+}
+
+// staticallyGoaded derives the static-goad SET the effects tier's IsGoaded
+// predicate reads (SpecContext.StaticGoads, published through the
+// goadTableHost seam and bound in matchesSpec): every battlefield object any
+// live Goad$ True static currently goads, printed or granted. One board walk,
+// AliveFrom(0) order, so the table is deterministic; nil when no goad static
+// is live, which keeps the per-Resolve publication free for every board
+// without one.
+func (e *Engine) staticallyGoaded() map[state.ObjID]bool {
+	lines := e.staticGoadLines()
+	if len(lines) == 0 {
+		return nil
+	}
+	out := map[state.ObjID]bool{}
+	for _, p := range e.G.AliveFrom(0) {
+		for _, id := range e.G.Zone(state.ZBattlefield, p) {
+			o := e.G.Obj(id)
+			if o == nil {
+				continue
+			}
+			for _, l := range lines {
+				if e.goadLineMatches(l, o) {
+					out[id] = true
+					break
+				}
+			}
+		}
+	}
+	return out
+}
+
+// StaticallyGoaded is the goadTableHost half (staticgoad1): effects.Resolve
+// binds this table on the resolving Ctx when a body's filter consults the
+// IsGoaded predicate, so a resolving effect's IsGoaded read agrees with the
+// combat requirement's staticGoaders derivation instead of seeing the
+// event-backed goad list alone. A value-map read, never a live engine
+// pointer: effects answer the filter without a back-pointer on state.Game,
+// and a cloned game cannot read another game's board.
+func (e *Engine) StaticallyGoaded() map[state.ObjID]bool {
+	return e.staticallyGoaded()
 }
 
 func (e *Engine) hasActiveGoad(o *state.Object) bool {

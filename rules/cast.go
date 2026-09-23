@@ -4391,7 +4391,7 @@ func (e *Engine) entryETBChoice(ev events.Event, ordinal int) (etbChoice, bool) 
 		// dropping an exception rider is worse than retaining today's loud
 		// unimplemented-API fallback. A body outside the whitelist is not a
 		// choice at all, so it is skipped before the ordinal is counted.
-		if kind == "copy" && !etbCloneWhitelist(r.With) {
+		if kind == "copy" && !etbCloneWhitelist(r.With, o.Face().SVars) {
 			continue
 		}
 		if seen == ordinal {
@@ -4684,12 +4684,13 @@ func etbChoicePrompt(kind string) string {
 // parameter keeps today's loud unimplemented-API fallback (the etbclone1
 // scope boundary); rules/etb_clone_whitelist_census_test.go pins the
 // classified population bidirectionally.
-func etbCloneWhitelist(sa *cards.SA) bool {
+func etbCloneWhitelist(sa *cards.SA, svars map[string]string) bool {
 	for k := range sa.Params {
 		switch k {
-		case "Choices", "AddKeywords", "AddTypes", "SpellDescription":
-			// supported: the copy-template selector and the CR 707.9e
-			// copy modifiers, both applied by effClone's modifier walk.
+		case "Choices", "AddKeywords", "AddTypes", "SpellDescription", "AddStaticAbilities":
+			// supported: the copy-template selector, the CR 707.9e
+			// copy modifiers, and (staticgoad1) the granted Goad$ static
+			// effClone registers -- value-checked below.
 		default:
 			return false
 		}
@@ -4721,6 +4722,20 @@ func etbCloneWhitelist(sa *cards.SA) bool {
 	}
 	for _, kw := range cards.SplitKeywordList(sa.Params["AddKeywords"]) {
 		if strings.ContainsAny(cards.KeywordHead(kw), " \t") {
+			return false
+		}
+	}
+	// AddStaticAbilities$ (staticgoad1, Mocking Doppelganger's FamilyTease):
+	// every named member must resolve to an entirely readable Goad$ True
+	// static — the same gate effClone's registration and effEffect's
+	// StaticAbilities$ arm call — or the copy election would silently drop
+	// the exception, the exact failure this whitelist exists to prevent. An
+	// unresolvable member name fails closed the same way.
+	for _, name := range strings.FieldsFunc(sa.Params["AddStaticAbilities"], func(r rune) bool {
+		return r == ',' || r == ' ' || r == '\t' || r == '\n'
+	}) {
+		mode, params := effects.ParseStaticLine(svars, name)
+		if mode != "Continuous" || !effects.GoadStaticGrantReadable(params) {
 			return false
 		}
 	}

@@ -140,16 +140,6 @@ var predicates = map[string]predFn{
 	"IsMonstrous": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.Monstrous
 	},
-	// IsGoaded is CR 701.38's goaded condition (Hot Pursuit's
-	// "GainControl | AllValid$ Creature.IsGoaded,Creature.IsSuspected").
-	// It reads the event-backed goad list ONLY: a statically goaded creature
-	// (a Goad$ True continuous static, the Shiny Impetus shape) is invisible
-	// here -- open issue agent-20260919T203859Z-269892c3. Expired
-	// relationships are pruned by the same folds that prune the list
-	// (pruneGoads / expireTurnGoads), so the predicate reads live state.
-	"IsGoaded": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
-		return len(o.Goads) > 0
-	},
 	"kicked": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.CastFlags&state.FlagKicked != 0
 	},
@@ -1751,6 +1741,13 @@ func nonPredicate(p string) (kind wordKind, key string, ok bool) {
 // whether a word is recognised. An unrecognised word is "the engine does not
 // know", never "true" -- that is the fail-closed contract.
 func positiveRecognised(p string) bool {
+	// IsGoaded is evaluated by matchPositive against SpecContext (the map's
+	// legacy predFn signature carries no SpecContext), so it is listed here
+	// like IsRemembered/EffectSource to keep the matcher and the
+	// UnknownPredicates census in agreement.
+	if p == "IsGoaded" {
+		return true
+	}
 	if p == "IsRemembered" || p == "EffectSource" || p == "token$DifferentCardNames" || strings.HasPrefix(p, "greatestPower") {
 		// EffectSource is matched by matchPositive against SpecContext.Source;
 		// listing it here keeps the matcher and the UnknownPredicates census
@@ -2363,6 +2360,25 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		// the MustAttack requirement matcher); with no source bound it
 		// fails closed, exactly as the unknown word did.
 		return sc.Source != 0 && o.ID == sc.Source, true
+	}
+	if p == "IsGoaded" {
+		// CR 701.38's goaded condition (Hot Pursuit's
+		// "GainControl | AllValid$ Creature.IsGoaded,Creature.IsSuspected",
+		// Vengeful Ancestor's ValidCard$ trigger, Bothersome Quasit's
+		// CantBlock static). Two bindings UNION, the same shape IsRemembered
+		// keeps: the event-backed relationship list o.Goads (expired
+		// relationships are pruned by the same folds that prune the list --
+		// pruneGoads / expireTurnGoads), and SpecContext.StaticGoads -- the
+		// live Goad$ True static route (a printed Shiny Impetus static and an
+		// AddStaticAbilities$/StaticAbilities$ granted one alike) that the
+		// engine's rules tier derives on demand and the caller binds. A
+		// context with no binding answers the event-backed half only, exactly
+		// the pre-staticgoad1 read; a bound context never needs a rules
+		// pointer for it (immutable data, the DerivedTypes seam).
+		if len(o.Goads) > 0 {
+			return true, true
+		}
+		return sc.StaticGoads[o.ID], true
 	}
 	if p == "IsRemembered" {
 		// Forge's IsRemembered (CardProperty "IsRemembered" ->
@@ -3214,6 +3230,16 @@ type SpecContext struct {
 	// caller with the layer walk in hand can gate on a granted keyword
 	// (kw:Flanking's blocker check, Cavalry Master's `withFlanking` lord).
 	// nil keeps the object-alone read (printed face plus counters).
+	//
+	// StaticGoads is the per-board complement: the set of battlefield ids a
+	// live Goad$ True static currently goads (printed S: statics and
+	// AddStaticAbilities$/StaticAbilities$ granted ones alike), derived by
+	// the engine's rules tier and bound by the caller that holds it. The
+	// IsGoaded predicate unions it with the event-backed o.Goads list; a nil
+	// map keeps the object-alone read (the same no-binding convention
+	// Remembered keeps). Immutable data bound per evaluation, never a
+	// callable: the same escape-analysis rationale as EffectiveNames.
+	StaticGoads   map[state.ObjID]bool
 	ExtraKeywords []string
 	// EffectiveNames optionally supplies the layer-3 derived names (SetName$,
 	// CR 613.1d) in force on the battlefield -- rules' layer walk computes

@@ -694,6 +694,38 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				}
 				h.AddContinuous(ce)
 				registered = true
+			} else if goadStaticGrantReadable(params) {
+				// A Goad$ True static delivered by the Effect (staticgoad1:
+				// Hot Pursuit's IsGoaded body, Immortal Obligation's Static --
+				// `Mode$ Continuous | Affected$ Creature.IsRemembered |
+				// Goad$ True`). Registered into the continuous registry as a
+				// Restriction ("Goad") the same shape the MustAttack and
+				// CanAttackDefender requirement grants use, so rules'
+				// staticGoaders -- the reader BOTH routes share -- matches its
+				// Affected$ spec against the registered Remembered set exactly
+				// like the layer walk binds one. The line must be entirely
+				// readable (Goad$ literal True, no condition gate, no extra
+				// grant parameter) or it falls through to the honest
+				// unimplemented Note below rather than registering a half-read
+				// goad. Lifetime is the Effect's own: UntilHostLeavesPlay is the
+				// source-leaves rule for a battlefield source (effectUntilEOT
+				// returns false for it, and active() drops the unit when Hot
+				// Pursuit leaves), an explicit EOT spelling or a one-shot
+				// source keeps the ordinary UntilEOT read.
+				h.AddContinuous(state.ContinuousEffect{
+					Source: c.Source, Controller: c.Controller,
+					Restriction:    "Goad",
+					RestrictParams: params,
+					Name:           effectName,
+					UntilEOT:       effectUntilEOT(h, c.Source, rawDur),
+					Duration:       dur,
+					Remembered:     remembered,
+					ForgetOnMoved:  forgetOn,
+					ExileOnMoved:   exileOn,
+					ForgetCounter:  forgetCounter,
+					ImprintOnHost:  imprintOnHost,
+				})
+				registered = true
 			} else if g, affects, gok := parseStaticEffectGrant(params, false); gok && effectStaticGrantReadable(params, g) {
 				// The general Mode$ Continuous case: a layer grant
 				// (AddKeyword$/AddType$/AddPower$/SetColor$/RemoveAllAbilities$
@@ -1316,6 +1348,48 @@ func parseStaticLine(svars map[string]string, name string) (string, staticLinePa
 		}
 	}
 	return mode, params
+}
+
+// ParseStaticLine is the exported form of parseStaticLine: rules reads a
+// granted static's SVar body for the whitelist gates that must agree with
+// the registration path (staticgoad1's etbCloneWhitelist AddStaticAbilities$
+// value check), so the two cannot disagree about the body grammar. One
+// parser, two tiers.
+func ParseStaticLine(svars map[string]string, name string) (string, map[string]string) {
+	mode, params := parseStaticLine(svars, name)
+	return mode, params
+}
+
+// goadStaticGrantReadable reports whether a Mode$ Continuous static body is
+// an entirely readable Goad$ True line: the literal True (any other value —
+// Forge's Yes spellings included — is unmodelled), and NO parameter outside
+// the display/selector whitelist. A body carrying a condition gate
+// (CheckSVar$, IsPresent$) or an additional grant parameter must not
+// register blanket — it fails closed to the caller's honest unimplemented
+// Note (the shipped-statics convention the EffEffect whitelist arms keep).
+// The same gate drives the DB$ Clone AddStaticAbilities$ route (effClone)
+// and rules' ETB-clone whitelist value check (rules/cast.go), so all three
+// delivery paths agree on what a readable goad grant is.
+func goadStaticGrantReadable(params map[string]string) bool {
+	if !strings.EqualFold(strings.TrimSpace(params["Goad"]), "True") {
+		return false
+	}
+	for key := range params {
+		switch key {
+		case "Mode", "Affected", "Description", "Goad":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// GoadStaticGrantReadable is the exported form of goadStaticGrantReadable:
+// rules' etbCloneWhitelist value check (staticgoad1) reads a granted
+// AddStaticAbilities$ body through it, so the ETB offer and the effClone
+// registration cannot disagree about what a supported goad grant is.
+func GoadStaticGrantReadable(params map[string]string) bool {
+	return goadStaticGrantReadable(params)
 }
 
 // effectRemembered resolves RememberObjects$ into the concrete object ids the

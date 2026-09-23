@@ -74,7 +74,14 @@ func (e *Engine) zoneChangeMatches(t cards.Trigger, source state.ObjID, ev event
 		// before (task castprov1).
 		if ev.Obj != 0 && lki != nil && (source == ev.Obj || leftBattlefield(ev)) {
 			spec, ok := e.castProvenanceAdmits(v, lki.ID, ctrl)
-			if !ok || !effects.MatchesObjectCtx(e.G, spec, lki, e.specCtx(source, ctrl)) {
+			// The IsGoaded static route (staticgoad1), bound inline the same
+			// shape matchesSpec keeps (this LKI reader runs per zone-change
+			// event, so the context must not escape through a helper call).
+			sc := e.specCtx(source, ctrl)
+			if e.goadProbe == 0 && strings.Contains(spec, "IsGoaded") {
+				sc.StaticGoads = e.staticallyGoaded()
+			}
+			if !ok || !effects.MatchesObjectCtx(e.G, spec, lki, sc) {
 				return false
 			}
 		} else {
@@ -274,7 +281,13 @@ func (e *Engine) sacrificedMatches(t cards.Trigger, source state.ObjID, ev event
 		// A sacrificed permanent is already in its destination zone when
 		// triggers are checked. Its validity -- especially bare Permanent --
 		// is a last-known-information question at the moment it was sacrificed.
-		if lki == nil || !effects.MatchesObjectCtx(e.G, v, lki, e.specCtx(source, ctrl)) {
+		// The IsGoaded static route (staticgoad1) is bound inline, the same
+		// shape matchesSpec keeps.
+		sc := e.specCtx(source, ctrl)
+		if e.goadProbe == 0 && strings.Contains(v, "IsGoaded") {
+			sc.StaticGoads = e.staticallyGoaded()
+		}
+		if lki == nil || !effects.MatchesObjectCtx(e.G, v, lki, sc) {
 			return false
 		}
 	}
