@@ -363,6 +363,13 @@ func init() {
 	predicates["EquippedBy"] = attachedBy
 	predicates["EnchantedBy"] = attachedBy
 	predicates["AttachedBy"] = attachedBy
+	// FortifiedBy: the same "attached to" relation spelled for Fortifications
+	// (CR 702.67) -- the candidate is the land the Fortification source is
+	// attached to (C.A.M.P.'s TapsForMana ValidCard$ Card.FortifiedBy,
+	// Darksteel Garrison's Affected$/ValidCard$ Land.FortifiedBy). The source
+	// side is spelled through the identical AttachedTo field an Equip or Aura
+	// ride sets, so attachedBy serves all four spellings.
+	predicates["FortifiedBy"] = attachedBy
 	// CanEnchantEquippedBy: the candidate card could legally be attached to
 	// the creature the resolving source attaches to -- Mantle of the
 	// Ancients' "return ... Aura and/or Equipment cards that could be

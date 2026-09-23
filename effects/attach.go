@@ -16,7 +16,7 @@ func init() {
 	// mints a token, remembers it and chains the Attach above -- so it is
 	// supported by the same code paths and must be registered here or the
 	// report's coverage still counts every carrier as missing a primitive.
-	RegisterNonAPI("kw:Equip", "kw:Enchant", "kw:Living Weapon", "kw:For Mirrodin", "kw:Reconfigure")
+	RegisterNonAPI("kw:Equip", "kw:Enchant", "kw:Living Weapon", "kw:For Mirrodin", "kw:Reconfigure", "kw:Fortify")
 }
 
 // emitAttach publishes "obj becomes attached to bearer" as events.Attach,
