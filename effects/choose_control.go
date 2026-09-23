@@ -1479,6 +1479,11 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 				Outer:        copyTargets(c.Remembered),
 				Chosen:       copyTargets(c.Chosen),
 				ChosenValid:  c.ChosenValid,
+				// The tally rides the suspension so the re-entered body and the
+				// loop's remaining iterations re-derive "Votes" after the fresh
+				// Ctx a resume rebuilds (the vote is a PRIOR chain link, so the
+				// table cannot be re-derived from the resumed SA).
+				VoteCounts: append([]VoteCount(nil), c.VoteCounts...),
 			})
 			return
 		}

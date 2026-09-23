@@ -646,6 +646,17 @@ type RepeatSuspension struct {
 	Outer       []state.Target
 	Chosen      []state.Target
 	ChosenValid bool
+	// VoteCounts is a deep copy of the outer resolution's Ctx.VoteCounts at
+	// the moment an AmountFromVotes$ iteration suspended. The tally is
+	// resolution-local (the api:Vote that built it is a prior chain link), so
+	// the fresh Ctx a resume rebuilds would otherwise lose it and every
+	// frame that re-derives "Votes" would read an unbound/zero value. The
+	// host carries this snapshot on the same continuation frame as the loop
+	// cursor, so both the suspended iteration's own body and the still-owed
+	// later iterations re-bind the right per-subject tally. Nil when the
+	// loop's resolution never published a tally (an ordinary RepeatEach, or
+	// one on a vote without StoreVoteNum$), preserving the unbound read.
+	VoteCounts []VoteCount
 }
 
 // FlipRest is a DB$ FlipCoin loop's continuation once a per-flip sub-ability
