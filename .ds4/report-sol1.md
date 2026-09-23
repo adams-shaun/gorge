@@ -355,3 +355,38 @@ No new tests or Go edits in this round. Previous rounds proved the tests fail wi
 ## Issues
 
 Existing, separate issue: a copied Sevinne's Reclamation inherits graveyard-cast flags in `events/apply.go`'s `StackCopy`, so `effects/filter.go`'s `wasCastFromGraveyard` can admit the copy's conditional copy clause even though the copy was not cast (CR 707.10). Earlier measurement: 29 corpus files mention `wasCastFromGraveyard`, six use `ConditionPresent$ Card.wasCastFromGraveyard`. Already filed in `.ds4/new-tickets/copy-inherits-cast-provenance.md`; not expanded in this ticket. No new defect found during the report-conflict fix.
+
+---
+
+# Teapot Slinger / Convoke expend-4 — verification report (agent-20260923T113045Z-aa7f7a4e)
+
+## Outcome and review finding
+
+Verification only; no Go source, production code, tests, events, allowlists, or goldens changed. `rules/manaexpend_convoke_test.go::TestTeapotSlingerManaExpendCountsConvoke` already asserts the real corpus Crowd's Favor Convoke payment raises the expend total from 3 to 4, the pay-time wake carries one Convoke mana, the trigger is on top of the two-object stack after `Submit` drains `pendingTriggers`, and resolving it changes opponent life from 20 to 18. Its preconditions check Teapot Slinger on the battlefield, the spell in hand, the pool empty, the helper tapped, and opponent life 20 before resolution. Empty `pendingTriggers` after the driven boundary is expected, not evidence of a missed trigger. No new test was warranted.
+
+The MAJOR review finding in `.ds4/findings-sol1.md` was destructive replacement of unrelated history: commits `f7374f16` and `d9de731a` had overwritten `.ds4/report-t1.md` and `.ds4/report-t2.md`. Restored both byte-for-byte from their respective commit parents without using checkout. Preserved all earlier content of this designated `.ds4/report-sol1.md`; this task's report is appended here, not in another task's historical report. The previous t1/t2 reports' claims about overwriting historical artifacts are superseded by this correction.
+
+`.cards` was already a symlink to `/home/sadams/projects/gorge/.cards`, with `ir.gob.gz` present (not a vacuous corpus skip). No head/ratchet movement or split re-pin; no other deviation from the verification-only brief.
+
+## Gates (exact commands and output)
+
+```text
+$ go test -run '^TestTeapotSlingerManaExpendCountsConvoke$' ./rules/ 2>&1 | tee .ds4/scratch/sol1-convoke.log | tail -30
+ok  	github.com/adams-shaun/gorge/rules	(cached)
+$ go test ./internal/archtest/ 2>&1 | tee .ds4/scratch/sol1-arch.log | tail -15
+ok  	github.com/adams-shaun/gorge/internal/archtest	(cached)
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ 2>&1 | tee .ds4/scratch/sol1-bot.log | tail -5
+ok  	github.com/adams-shaun/gorge/cmd/botbench	(cached)
+$ git show f7374f16^:.ds4/report-t1.md | cmp - .ds4/report-t1.md && git show d9de731a^:.ds4/report-t2.md | cmp - .ds4/report-t2.md
+(no output; both match)
+```
+
+The focused test was also run uncached in the earlier t2 round on this unchanged source (`ok ... 0.637s`); prior t1 negative check modified only the test expectation and observed actual opponent life 18 before byte-identical restoration.
+
+## Fails without the fix
+
+No new test or production fix: `e7f775f6` already pins the queue drain and resolution. The former matcher-only check did not demonstrate a production bug, and no production-fix-revert failure is claimed. Prior t1 negative check confirmed the existing resolution assertion is meaningful (actual opponent life 18 versus a temporarily altered expected 20); the original test was restored.
+
+## Issues
+
+None found. The reported empty queue is correct after `Advance` drains it; the stack and resolved life are the relevant observations.
