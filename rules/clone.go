@@ -193,6 +193,8 @@ func (e *Engine) Clone() *Engine {
 		d.ResumeRemembered = append([]state.Target(nil), e.pending.ResumeRemembered...)
 		d.ResumeVillainousVictims = append([]state.Target(nil), e.pending.ResumeVillainousVictims...)
 		d.ResumeVillainousIndex = e.pending.ResumeVillainousIndex
+		d.ResumeGenericChoosers = append([]state.Target(nil), e.pending.ResumeGenericChoosers...)
+		d.ResumeGenericChooserIndex = e.pending.ResumeGenericChooserIndex
 		d.ResumeTargetsUnique = append([]state.Target(nil), e.pending.ResumeTargetsUnique...)
 		d.ResumeDigPrimary = append([]state.ObjID(nil), e.pending.ResumeDigPrimary...)
 		c.pending = &d
@@ -928,6 +930,9 @@ func cloneResume(rp *resumePoint) *resumePoint {
 	// other slice here follows).
 	cp.villainousVictims = append([]state.Target(nil), rp.villainousVictims...)
 	cp.villainousRemembered = append([]state.Target(nil), rp.villainousRemembered...)
+	// The multi-player GenericChoice chooser cursor is likewise a sliced value
+	// the resumed Ctx re-binds; the clone owns its own copy.
+	cp.genericChoosers = append([]state.Target(nil), rp.genericChoosers...)
 	if rp.repeat != nil {
 		cur := *rp.repeat
 		cur.subjects = append([]state.Target(nil), rp.repeat.subjects...)

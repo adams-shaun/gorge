@@ -137,6 +137,35 @@ CardManaCostLKI files: 56
 SpellTargeted$CardManaCostLKI files: 4
 nonliteral RHS ValidTgts lines: 138
 LKI property forms: 58 $CardManaCostLKI   (nothing else)
+# Report — task agent-20260922T201246Z-000e743d (fix round t2)
+
+## Review finding disposition
+
+- [MAJOR] `.ds4/report-t1.md` was replaced, deleting accumulated unrelated
+  report history — **FIXED**. Restored the complete parent-version history and
+  prepended a short pointer to this round's report. No prior report content was
+  deleted. `.ds4/report-t2.md` likewise receives this round's report at the top
+  while preserving its existing history below.
+
+No production code or tests changed. The t1 verification remains valid: the
+multi-ability payment-window fix is already present in `bbc863e1`, and existing
+unless-window regression tests cover the reported behavior. The previous report
+is retained below verbatim in `.ds4/report-t1.md`; the detailed t1 evidence is
+also in the preserved body of `.ds4/report-t2.md`.
+
+`.cards` is present as a symlink to `/home/sadams/projects/gorge/.cards`.
+
+## Gates run (real output)
+
+```text
+$ go test -run 'TestUnlessCostPayableRealDualLandAlternatives|TestCounterDazePaysFromRealDualLand' ./rules/
+ok   github.com/adams-shaun/gorge/rules  0.641s
+
+$ go test ./internal/archtest/
+ok   github.com/adams-shaun/gorge/internal/archtest  (cached)
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok   github.com/adams-shaun/gorge/cmd/botbench  (cached)
 ```
 
 ## Fails without the fix
@@ -248,6 +277,14 @@ No AGENTS.md "Known approximations" row was present for this shape, so none was
 deleted and `knownApproximationRows` is unchanged.
 
 Commit: `a2789eee fix(rules): resolve trigger target X from source SVar`
+Not applicable in this round: no test or production hunk was added or changed.
+The existing tests' failing-without-fix evidence is preserved in the t1 report
+below in `.ds4/report-t2.md`.
+
+## Issues
+
+None newly found or left unfixed. No botbench split, chain head, ratchet,
+production behavior, or test behavior changed in this report-history repair.
 
 ---
 
