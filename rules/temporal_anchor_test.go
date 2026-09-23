@@ -53,6 +53,21 @@ func libraryExiled(e *Engine, p state.PlayerID) []state.ObjID {
 	return out
 }
 
+// anchorTriggerPushes counts the Anchor's own triggered abilities that
+// reached the stack (TriggerPush, whose Obj is the pushed trigger's source
+// permanent). It is the direct "did the trigger fire" observable, stronger
+// than an effect trace: a ToBottom$ True trigger whose ScryBottom resolved
+// to a zero-card Dig would move nothing yet still be a wrongful firing.
+func anchorTriggerPushes(e *Engine, anchorID state.ObjID) int {
+	n := 0
+	for _, ev := range e.L.Events {
+		if ev.Kind == events.TriggerPush && ev.Obj == anchorID {
+			n++
+		}
+	}
+	return n
+}
+
 // driveToScryArrange drives seat 0's real upkeep (the Anchor's Phase
 // trigger) through to the KArrange the Scry 2 poses, answering every
 // priority/combat/trigger-order ask on the way. It returns the pending
@@ -167,8 +182,14 @@ func TestTemporalAnchorScryBottomTrigger(t *testing.T) {
 			t.Fatalf("completed Scry marker Player = %d, want 0 (the scrying seat)", marks[0].Player)
 		}
 
-		// No ToBottom$ True trigger: nothing was exiled, and the library is
-		// untouched (every card kept on top in offered order).
+		// No ToBottom$ True trigger: nothing was exiled, the library is
+		// untouched (every card kept on top in offered order), and -- the
+		// direct observable -- the Anchor pushed only its own upkeep Phase
+		// trigger, never a second ScryBottom one. A zero-count Dig is a no-op
+		// too, so the push count is what catches a wrongful firing.
+		if n := anchorTriggerPushes(e, anchorID); n != 1 {
+			t.Fatalf("The Temporal Anchor pushed %d triggered abilities, want 1 (its upkeep Phase scry; 2 = the ToBottom$ True trigger fired on a bottom-less scry)", n)
+		}
 		if got := libraryExiled(e, 0); len(got) != 0 {
 			t.Fatalf("seat 0 exiled %v after a bottom-less scry, want nothing (the trigger fired with no cards bottomed)", got)
 		}
@@ -222,6 +243,11 @@ func TestTemporalAnchorScryBottomTrigger(t *testing.T) {
 		}
 		if marks[0].Amount != 1 {
 			t.Fatalf("completed Scry marker Amount = %d, want 1 (the number actually BOTTOMED, not the %d looked at)", marks[0].Amount, d.Max)
+		}
+		// Exactly one ToBottom$ True trigger fired: the upkeep Phase push plus
+		// the ScryBottom one, and no more.
+		if n := anchorTriggerPushes(e, anchorID); n != 2 {
+			t.Fatalf("The Temporal Anchor pushed %d triggered abilities after bottoming one card, want 2 (upkeep Phase + exactly one ScryBottom; 3+ = the trigger fired per looked-at card)", n)
 		}
 
 		passUntilStackEmpty(t, e, 60)
