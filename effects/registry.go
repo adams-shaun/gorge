@@ -168,6 +168,20 @@ type Host interface {
 	// emit path skips replacement application there, and the body's own
 	// explores are fresh events).
 	ExploreReplaced(explorer state.ObjID) bool
+	// Scry proposes one scry instruction BEFORE any card of the player's
+	// library is looked at (CR 614.4: an R:Event$ Scry replacement applies to
+	// the scry action itself), so the proposed count can be adjusted
+	// (Kenessos, Priest of Thassa: "scry that many cards plus one") or the
+	// whole instruction replaced (Eligeth, Crossroads Augur: "draw that many
+	// cards instead"). It returns the surviving instruction's count and
+	// proceed=false when a replacement replaced the scry whole -- the caller
+	// must then look at and arrange NOTHING. The proposal is never logged;
+	// the completed scry's own events.Scry record (carrying the number of
+	// cards actually put on the bottom) is emitted later by the rules tier.
+	// Rules-implemented because replacement matching lives in the rules tier;
+	// the effects test double reports (count, true) unchanged (no engine to
+	// consult).
+	Scry(p state.PlayerID, source state.ObjID, count int32) (int32, bool)
 	// RememberExploitedLKI publishes the last-known-information snapshot of
 	// one creature a resolving exploit ability just sacrificed (CR 702.58a).
 	// The events.Exploit marker names the exploited creature by id, but Move

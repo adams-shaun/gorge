@@ -318,6 +318,14 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	if ev.Kind == events.ManaAdd {
 		return e.continueManaReplacements(ev, manaCandidates, nil, false, e.manaFromTap, e.manaProducer)
 	}
+	if ev.Kind == events.Scry {
+		// The scry instruction boundary (CR 614.4): the proposal is held, not
+		// logged, so continueScryReplacements owns the whole return -- it
+		// rewrites the held instruction's count in place (handled=true, event
+		// still a Scry) or replaces it whole (handled=true, zero event), so
+		// the generic single-match/CR-616.1 path below must never see it.
+		return e.continueScryReplacements(ev, matches)
+	}
 	if ev.Kind == events.PlanarRoll {
 		// The planar-dice class (Ichor Elixir) and the bare roll BOTH run
 		// here: even with no replacement matching, the roll itself is the
@@ -930,6 +938,11 @@ func replacementEvent(ev events.Event) (string, bool) {
 		return "CreateToken", true
 	case events.Explore:
 		return "Explore", true
+	case events.Scry:
+		// The scry instruction boundary. Only the synthetic PROPOSAL
+		// (Engine.Scry) reaches the collection; the completed record is
+		// emitted through emitScryRecord, outside the replacement pass.
+		return "Scry", true
 	case events.PlanarRoll:
 		return "RollPlanarDice", true
 	case events.CounterChange, events.PlayerCounterChange:
@@ -2532,6 +2545,152 @@ func (e *Engine) ExploreReplaced(explorer state.ObjID) bool {
 	_, handled := e.applyReplacements(events.Event{Kind: events.Explore, Obj: explorer, Player: o.Controller})
 	return handled
 }
+
+// Scry is the effects.Host hook effects/cardflow.go's effLookAndArrange
+// consults at the scry instruction boundary, BEFORE any card of the player's
+// library is looked at (CR 614.4: an R:Event$ Scry replacement applies to the
+// scry action itself). It builds the synthetic instruction PROPOSAL, applies
+// every matching R:Event$ Scry replacement to it, and returns the surviving
+// instruction's count. proceed is false when a replacement replaced the scry
+// whole (Eligeth, Crossroads Augur: "draw that many cards instead") -- the
+// caller must then look at and arrange nothing.
+//
+// The proposal is NEVER logged; it exists only to give the replacement
+// matcher a held event. The completed scry's own events.Scry record is
+// emitted later, by handleArrange, carrying the number of cards actually put
+// on the bottom (the count trig:Scry's ToBottom$ gate reads) and outside the
+// replacement pass, because a finished action is nothing left to replace.
+// That split is why the same events.Scry kind serves two roles: a proposal is
+// never emitted, a record is never matched (emitScryRecord).
+func (e *Engine) Scry(p state.PlayerID, source state.ObjID, count int32) (int32, bool) {
+	if count < 0 {
+		count = 0
+	}
+	if e.applyingReplacement {
+		// Inside another replacement's own resolution no further replacement
+		// applies (the emit guard's rule); the instruction stands.
+		return count, true
+	}
+	ev, handled := e.applyReplacements(events.Event{Kind: events.Scry, Player: p, Obj: source, Amount: count})
+	if !handled {
+		return count, true // no replacement matched
+	}
+	if ev.Kind != events.Scry {
+		return 0, false // replaced whole: nothing is looked at
+	}
+	return ev.Amount, true
+}
+
+// continueScryReplacements applies the collected R:Event$ Scry matches to the
+// held instruction proposal. Two corpus shapes:
+//
+//   - DB$ ReplaceEffect | VarName$ Num (Kenessos, Priest of Thassa): the
+//     proposed count is rewritten in place ("scry that many cards plus
+//     one"), the instruction survives and the caller arranges the new count;
+//   - DB$ Draw | Defined$ You | NumCards$ <that many> (Eligeth, Crossroads
+//     Augur): the whole scry is replaced by a draw and the instruction is
+//     consumed -- returned as a zero event so the caller (Scry, above) sees
+//     proceed=false and never looks at a library.
+//
+// Every count expression is evaluated against the HELD instruction's own
+// count through the ReplaceCount$Num grammar only the replacement context has
+// (scryReplacementCount), never a global Count read. An unmodelled body emits
+// the loud unimplemented Note and leaves the instruction intact -- the
+// conservative direction, never a silent whole-scry drop.
+//
+// SIMULTANEOUS matches (Kenessos and Eligeth both on the battlefield) apply in
+// deterministic scan order, the same no-CR-616.1-order-choice stand-in the
+// CreateToken and Explore paths document: a count rewrite followed by a Draw
+// replaces the whole scry with the RW-adjusted count, while a Draw reached
+// first consumes the instruction and stops. The corpus carries no competing
+// pair; the exact remaining deviation is recorded in the task report and the
+// commit message, never in the frozen Known-approximations table.
+func (e *Engine) continueScryReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
+	for _, m := range matches {
+		// CR 616.1e: the recheck uses the same matcher class the collection
+		// used -- an Effect-created match is never re-gated on ActiveZones$.
+		matched := false
+		if m.key != "" {
+			matched = e.replacementMatchesEffectCreated(*m.repl, m.id, ev, m.remembered, m.rememberedPlayers)
+		} else {
+			matched = e.replacementMatches(*m.repl, m.id, ev)
+		}
+		if !matched || m.repl.With == nil {
+			continue
+		}
+		with := m.repl.With
+		ctx := e.replCtx(m, ev)
+		switch with.API {
+		case "ReplaceEffect":
+			if with.Params["VarName"] != "Num" {
+				break
+			}
+			if n, ok := e.scryReplacementCount(ctx, with.Params["VarValue"], ev.Amount); ok {
+				ev.Amount = n
+				continue
+			}
+		case "Draw":
+			// "Instead": the draw must be the scrying player's own
+			// (Defined$ You, or absent = the controller). Any other Defined$
+			// is unmodelled and fails loud below rather than drawing for the
+			// wrong seat.
+			if d := strings.TrimSpace(with.Params["Defined"]); d != "" && !strings.EqualFold(d, "You") {
+				break
+			}
+			if n, ok := e.scryReplacementCount(ctx, with.Params["NumCards"], ev.Amount); ok {
+				e.lifeReplacementDraw(ev.Player, n)
+				return events.Event{}, true
+			}
+		}
+		e.emit(events.Event{Kind: events.Note, Obj: m.id,
+			Text: "unimplemented Scry replacement"})
+	}
+	return ev, true
+}
+
+// scryReplacementCount resolves a Scry replacement body's count expression
+// against the held instruction's own count. Forge writes "that many" in terms
+// of the held event as ReplaceCount$Num (Kenessos' SVar X ->
+// ReplaceCount$Num/Plus.1; Eligeth's NumCards$ X -> ReplaceCount$Num), a
+// grammar only the replacement context carries -- the ordinary Count$
+// evaluator does not know it. A plain literal or Count$ body falls through to
+// the shared evaluator, so a future `NumCards$ 2` shape works unchanged.
+func (e *Engine) scryReplacementCount(ctx *effects.Ctx, raw string, base int32) (int32, bool) {
+	expr := strings.TrimSpace(raw)
+	if ctx.SVars != nil {
+		if body, ok := ctx.SVars[expr]; ok {
+			expr = strings.TrimSpace(body)
+		}
+	}
+	if expr == "ReplaceCount$Num" {
+		return base, true
+	}
+	if op, ok := strings.CutPrefix(expr, "ReplaceCount$Num/"); ok {
+		return replCountOp(base, op), true
+	}
+	if strings.HasPrefix(expr, "ReplaceCount$") {
+		// A held-event field other than the instruction's own count is not
+		// bindable here; fail closed rather than guess.
+		return 0, false
+	}
+	return effects.EvalCountOK(e, ctx, expr)
+}
+
+// emitScryRecord logs a completed scry instruction's events.Scry record
+// OUTSIDE the replacement pass: the record is a finished action's marker, so
+// no R:Event$ Scry replacement can apply to it (CR 614.4's window is before
+// the action). It still folds and queues triggers normally, so a Mode$ Scry
+// trigger fires from exactly this record. Called from handleArrange for the
+// Scry verb only (a plain RearrangeTopOfLibrary shares the Option.Kind but
+// must record nothing), carrying the number of cards actually put on the
+// bottom -- the count trig:Scry's ToBottom$ gate reads.
+func (e *Engine) emitScryRecord(ev events.Event) {
+	saved := e.applyingReplacement
+	e.applyingReplacement = true
+	e.emit(ev)
+	e.applyingReplacement = saved
+}
+
 func (e *Engine) continuePlanarRollReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
 	for _, m := range matches {
 		// CR 616.1e: the recheck uses the same matcher class the collection
@@ -3712,6 +3871,24 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 		}
 		if v, ok := r.Params["ValidExplorer"]; ok &&
 			!e.matchesSpecFrom(v, ev.Obj, you, source) {
+			return false
+		}
+		return e.replacementConditionHolds(r, source, you)
+	case "Scry":
+		// The scry replacement (R:Event$ Scry, task scryrepl — Kenessos,
+		// Priest of Thassa; Eligeth, Crossroads Augur). The event is the
+		// synthetic instruction PROPOSAL effects' effLookAndArrange builds
+		// before looking (there is no printed-forge "Scry" event); ValidPlayer$
+		// names the scrying seat, matched with the replacement source's
+		// controller as You exactly like every other player-spec gate here.
+		// The completed events.Scry record (the bottom-card marker trig:Scry
+		// matches) is emitted OUTSIDE the replacement pass, so it can never
+		// reach this case.
+		if ev.Kind != events.Scry {
+			return false
+		}
+		if v, ok := r.Params["ValidPlayer"]; ok &&
+			!effects.MatchesPlayerSpec(e.G, v, ev.Player, you) {
 			return false
 		}
 		return e.replacementConditionHolds(r, source, you)
@@ -6164,7 +6341,7 @@ func init() {
 	effects.RegisterNonAPI("kw:etbCounter", "kw:ETBReplacement", "kw:Devour", "kw:Ravenous", "kw:Bloodthirst",
 		"repl:Untap", "repl:BeginPhase", "repl:Transform", "repl:ProduceMana",
 		"repl:GainLife", "repl:LifeReduced", "repl:DamageDone", "repl:Counter",
-		"repl:CreateToken", "repl:RollPlanarDice", "repl:Explore", "repl:Attached", "api:ReplaceToken",
+		"repl:CreateToken", "repl:RollPlanarDice", "repl:Explore", "repl:Attached", "repl:Scry", "api:ReplaceToken",
 		"repl:AddCounter", "api:ReplaceCounter")
 }
 
