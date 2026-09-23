@@ -78,7 +78,11 @@ const (
 	// cards a Dig look-and-take moves from the top DigNum$ window to
 	// DestinationZone$, Min 0 when Optional$ True else ChangeNum, one option
 	// per ELIGIBLE card in library order), "name"/"type"/"number" (an "as this
-	// enters" choice), "yes"/"no" (a may-cast such as Miracle).
+	// enters" choice), "yes"/"no" (a may-cast such as Miracle), "keep" (the
+	// CR 704.5j legend rule's survivor pick, posed from a state-based-action
+	// pass: one "keep" option per same-named legendary permanent under the
+	// asking controller, in battlefield order; the unchosen ones go to their
+	// owners' graveyards).
 	// The wire shape is the same as every other decision; only the vocabulary
 	// of Option.Kind is new.
 	KChoose Kind = "choose"

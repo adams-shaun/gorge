@@ -45,6 +45,19 @@ K:Partner
 Oracle:x
 `
 
+// tinyCmdSrc2 is tinyCmdSrc under a DIFFERENT name: a test that fields TWO
+// commanders for one player must give them different names (the m33
+// convention, commander_damage_test.go) -- two identically-named legendaries
+// under one controller is a board CR 704.5j forbids, and the legend rule's
+// controller choice would be asked before any sweep of this test's own.
+const tinyCmdSrc2 = `Name:Tiny Two
+ManaCost:0
+Types:Legendary Creature Bear
+PT:1/1
+K:Partner
+Oracle:x
+`
+
 // cmdZoneGame builds a two-seat Commander game with the given per-seat
 // commander card sources (delegating to the shared commanderGame, which parks
 // each configured commander in the command zone at genesis), positioned so
@@ -397,7 +410,7 @@ func TestNonCommanderCreatureIsNeverAsked(t *testing.T) {
 // re-runs between the two answers from re-parking the second commander
 // (the no-progress failure shape).
 func TestTwoCommandersParkedAtOnceAreAskedOneAtATime(t *testing.T) {
-	e, _ := cmdZoneGame(t, [][]string{{tinyCmdSrc, tinyCmdSrc}, {}})
+	e, _ := cmdZoneGame(t, [][]string{{tinyCmdSrc, tinyCmdSrc2}, {}})
 	cmds := append([]state.ObjID(nil), e.G.Zone(state.ZCommand, 0)...)
 	a, b := cmds[0], cmds[1]
 	fieldCommanderByID(t, e, a)

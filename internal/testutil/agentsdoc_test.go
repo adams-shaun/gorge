@@ -19,9 +19,12 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	// The merged table measures 50 rows: the branch's non<X> closure plus
-	// main's replacement-order, multikick and mutate bot-arm closures.
-	knownApproximationRows = 50
+	// The merged table measures 49 rows: the branch's non<X> closure, main's
+	// legend-choice closure, and main's replacement-order/multikick/mutate
+	// bot-arm closures (main's merge cf3e3784 had re-carried the stale
+	// KReplacement bot-fallback row on top of the real arm 87d13658 added --
+	// not resurrected here).
+	knownApproximationRows = 49
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.

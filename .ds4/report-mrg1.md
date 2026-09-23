@@ -1,48 +1,3 @@
-# Merge-conflict resolution — task cli-20260922T225140Z-8b855197 (fresh relaunch)
-
-## Situation found
-
-`git status` on entry: clean tree on `wt/cli-20260922T225140Z-8b855197` at
-`739472a5`. The reflog showed the daemon's integration attempts — four
-`rebase (start): checkout main` each ending in `rebase (abort)` — leaving no
-in-flight operation. `main` had advanced past the previous resolver's base
-(`f7357075`) to `4357caf3` with three new commits:
-
-- `f43df9fc` fix(rules): let a resolving effect's name filter read SetName$ renames
-- `cb6b0007` fix(effects): refresh SetName snapshots between abilities
-- `4357caf3` merge(cli-20260922T225140Z-72e1251c): approx: layer-3 SetName$ row closure
-
-The branch carried 4 commits (the reviewed fix + 3 follow-ups, including the
-`739472a5` removal of the obsolete multikicker decline assertion that had
-failed the earlier gate run).
-
-I re-ran `git rebase main`.
-
-## Conflicted files
-
-### `internal/testutil/agentsdoc_test.go` (the only conflict)
-
-Both sides edited the same single line — the `knownApproximationRows`
-constant.
-
-- **Main side**: `knownApproximationRows = 57` (main's own table has 55 rows —
-  the constant is loose by 2 on main, a pre-existing looseness inherited from
-  the base constant).
-- **Branch side**: `knownApproximationRows = 53` (the previous resolver's
-  exact-count resolution of this same conflict at the older main base).
-
-**Resolution: `knownApproximationRows = 52`.** The counted row count of the
-merged AGENTS.md is authoritative, and both sides' deletions are disjoint and
-coexist (verified below):
-
-- merged table = **52 rows** (branch's 53 minus main's 1 newly deleted
-  SetName row — exactly the "lower by the number of rows your change deletes"
-  arithmetic from the branch's truthful 53).
-- 52 makes the constant exact; the test then passes with no "table is down to
-  N" looseness log.
-
-### `AGENTS.md` — auto-merged, no conflict
-
 Git auto-merged: main deleted the `SetName` row (1 region), the branch
 deleted its 3 rows (different regions). Verified on the resolved file:
 
@@ -724,3 +679,81 @@ returned only `## wt/cli-20260922T225140Z-b686e452`; `git merge-base
 `cmd/botbench`'s `TestConstructedDefaultIsByteIdentical` both pass; the
 approximation register and every merge-ratchet test pass with the merged table
 at 50 rows.
+
+---
+
+## Main-side tail kept from the conflict
+
+No uncertainty remained in the conflict resolution. No non-conflict files were manually changed.
+
+---
+
+## Section — this merge (main cf3e3784 into wt/cli-20260922T225140Z-b686e452)
+
+### Starting state
+
+`git status` was CLEAN on `wt/cli-20260922T225140Z-b686e452` at `411fd2b0` (the
+branch's previous merge of main); the dispatch's rebase and its merge fallback
+had both been rolled back, so no operation was in flight. Main had advanced
+8 commits to `cf3e3784` (the CR 704.5j legend-choice closure `74870371` + its
+heads re-pin `da0a323b`, and the merge resolution `cf3e3784`). Rebase is
+forbidden in this seat, so the integration was done as `git merge main`.
+
+### Conflicted files and how each side's intent was kept
+
+1. **`AGENTS.md`** — one conflict hunk inside the Known approximations table.
+   Measured with the test's own row-extraction logic: base `c472a88f` = 51 data
+   rows, HEAD = 50, main = 51. Per-row (grep counts on `git show <ref>:AGENTS.md`):
+   - **legend row** (`The CR 704.5j legend rule keeps the first duplicate…`):
+     base 1, HEAD 1, main 0 — main's legend ticket CLOSED it (the rule now asks
+     the duplicate set's controller; remainder recorded in `74870371`'s commit
+     message). Kept main's deletion.
+   - **`non<X>` row**: base 1, HEAD 0, main 1 — this branch's reviewed fix
+     `d56e404f` CLOSED it (all three named shapes were already handled or are
+     now handled and test-pinned). Kept the branch's deletion; main's copy was
+     stale.
+   - **`KReplacement` bot-fallback row** (present only on main's side of the
+     hunk): NOT resurrected. It says "there is no policy arm of its own", but
+     `87d13658` — an ancestor of BOTH sides — deleted this exact row when it
+     added the real `chooseReplacementOrder` arm, which is byte-identical in
+     `botpolicy/policy.go` on both trees (verified: `git diff HEAD main --
+     botpolicy/policy.go` is empty). The row was re-carried by main's own merge
+     resolution `cf3e3784` in error; keeping it would leave a false row in the
+     frozen register (a re-add is GROWTH).
+   Resolution: the hunk collapses to nothing — merged table measures **49**
+   data rows (51 − branch's `non<X>` − main's legend), a strict shrink.
+2. **`internal/testutil/agentsdoc_test.go`** — auto-merged to 50; lowered to
+   **49** with a comment naming the two real closures and the stale row.
+3. **`.ds4/report-mrg1.md`** — HEAD's accumulated report vs main's one-line
+   tail. BOTH kept (main's tail under its own heading), this section appended.
+
+No engine code conflicted: main's `rules/sba.go` legend changes,
+`rules/heads_test.go` re-pin and the rest auto-merged.
+
+### Commands and output
+
+- `.cards` present (real corpus symlink) — runs are real, not vacuous skips.
+- `git merge main --no-edit` → conflicts in `.ds4/report-mrg1.md` and
+  `AGENTS.md`; `internal/testutil/agentsdoc_test.go` auto-merged.
+- Merged-table measurement (python replication of `approximationRows`): 49.
+- `go test ./internal/testutil -run 'TestKnownApproximation' -v` →
+  `--- PASS: TestKnownApproximationsOnlyShrinks`, `--- PASS:
+  TestKnownApproximationRowsAreShort`, `ok ... 0.001s` (exact match, no slack).
+- Ratchets + goldens:
+  `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|TestHeads$'`
+  → `ok github.com/adams-shaun/gorge/rules 1.845s` (heads golden passes with
+  main's legend re-pin merged in — no further head moved).
+- Branch-fix sanity: `go test ./effects -run 'NonPredicate|NonCopied|NonColorless|NonChosen'`
+  → `ok ... 0.641s`.
+- Main-side sanity: `go test ./rules -run 'Legend'` → `ok ... 0.694s`.
+- Behaviour goldens: `go test ./internal/archtest/` → `ok ... 3.506s`;
+  `go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/` →
+  `ok ... 0.991s` (split did not move).
+- `gofmt -l internal/testutil/agentsdoc_test.go` → clean; no conflict markers
+  remain in any tracked file.
+
+### Issues
+
+None found beyond the resolved conflict itself. One note recorded above: main's
+`cf3e3784` merge resolution resurrected the stale `KReplacement` bot-fallback
+row; the merged tree drops it rather than carrying a false row forward.
