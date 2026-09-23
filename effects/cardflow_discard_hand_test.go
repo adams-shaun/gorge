@@ -97,32 +97,37 @@ func TestDiscardHandRememberDiscardedRiderAppliesPerCard(t *testing.T) {
 }
 
 // TestDiscardHandOptionalStandInTakesWholeHandWithNote pins the Optional$
-// True stand-in (will_of_the_jeskai, ruin_grinder, raphaels_technique, snort,
-// sail_into_the_west): the whole hand is discarded (the deterministic
-// no-host take) and one Note records why the richer may-discard election did
-// not run. A real election is M4 follow-up work.
-func TestDiscardHandOptionalStandInTakesWholeHandWithNote(t *testing.T) {
+// True (will_of_the_jeskai, ruin_grapher, raphaels_technique, snort,
+// sail_into_the_west): with an ASKABLE host the may-discard election is now
+// a real per-player yes/no (this ticket's change); the old stand-in shape —
+// take the whole hand with one Note — is what the NO-HOST path resolves
+// (TestDiscardHandOptionalNoHostTakesTheDiscard).
+func TestDiscardHandOptionalWithAskableHostPosesTheElection(t *testing.T) {
 	ah, c, ids := discardBoard(t, creature(t, "Frog"), creature(t, "Bird"))
 	s := sa(t, "SP$ Discard | ValidTgts$ Player | Mode$ Hand | Optional$ True")
 
 	effDiscard(ah, c, s)
 
-	if ah.asked != nil {
-		t.Fatal("Optional$ Mode$ Hand asked a decision (stand-in must not)")
+	if ah.asked == nil {
+		t.Fatal("Optional$ Mode$ Hand posed no election (the may-discard ask is the point)")
 	}
+	if ah.asked.Player != 1 {
+		t.Fatalf("election posed to seat %d, want the discarding target seat 1", ah.asked.Player)
+	}
+	// Nothing has moved yet: the whole hand waits on the election.
 	for i, id := range ids {
-		if !inZone(ah.g, state.ZGraveyard, 1, id) {
-			t.Fatalf("hand card %d was not discarded by the stand-in", i)
+		if !inZone(ah.g, state.ZHand, 1, id) {
+			t.Fatalf("hand card %d left the hand before the election was answered", i)
 		}
 	}
-	notes := 0
-	for _, ev := range ah.log {
-		if ev.Kind == events.Note && ev.Text == "may discard resolved as discard (no engine host to ask)" {
-			notes++
+	// The decline answer discards nothing.
+	c.DiscardVote = "no"
+	c.DiscardTarget = 0
+	effDiscard(ah, c, s)
+	for i, id := range ids {
+		if !inZone(ah.g, state.ZHand, 1, id) {
+			t.Fatalf("hand card %d was discarded despite a DECLINED election", i)
 		}
-	}
-	if notes != 1 {
-		t.Fatalf("stand-in Notes = %d, want exactly 1", notes)
 	}
 }
 

@@ -3002,6 +3002,7 @@ func charmDistinctTargetRun(h Host, c *Ctx, sa *cards.SA, names []string) bool {
 			continue
 		}
 		savedTargets, savedOffered, savedMarker := c.Targets, c.OfferedSA, c.TargetsOffered
+		savedScope, savedScopeSA := c.CharmModeScope, c.CharmModeSA
 		if strings.TrimSpace(sub.Params["ValidTgts"]) != "" {
 			if offset >= len(c.ModeTargets) {
 				return false
@@ -3009,10 +3010,16 @@ func charmDistinctTargetRun(h Host, c *Ctx, sa *cards.SA, names []string) bool {
 			c.Targets = c.ModeTargets[offset]
 			c.OfferedSA = sub
 			c.TargetsOffered = true
+			// Publish the narrowed group so a mid-resolution ask posed
+			// anywhere under this mode re-enters scoped to it instead of to
+			// the stack object's whole flat list (Ctx.CharmModeScope).
+			c.CharmModeScope = c.Targets
+			c.CharmModeSA = sub
 			offset++
 		}
 		Resolve(h, c, sub)
 		c.Targets, c.OfferedSA, c.TargetsOffered = savedTargets, savedOffered, savedMarker
+		c.CharmModeScope, c.CharmModeSA = savedScope, savedScopeSA
 		if h.Suspended() {
 			if rest := names[i+1:]; len(rest) > 0 {
 				h.SuspendCharmRest(sa, rest)
