@@ -19,13 +19,18 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	// The merged table measures 31 data rows: the merge base (122a388c)
-	// carried 35; this branch's fix deleted the CanBeTargetedByTriggeredSpellAbility
-	// (chosencopy1) row, and main deleted the (choosesource1) one-shot-Effect row
-	// plus the api:ExchangeLifeVariant and (kw:Infect) rows. The merged register
-	// keeps none of the four: 35 - 4 = 31. Both sides' pre-merge comments
-	// described stale snapshots of their own earlier merges.
-	knownApproximationRows = 31
+	// The auto-merged AGENTS.md measures 30 data rows (measured with
+	// approximationRows() against the merged AGENTS.md, not inherited from
+	// either side's comment — HEAD's round-12 merge said 31 and main's
+	// 9630515c merge said 31, each for its own pre-merge tree). The merge
+	// base (122a388c) carried 35; the five deletions are disjoint: this
+	// branch closed the (chosencopy1) CanBeTargetedByTriggeredSpellAbility
+	// row (6c86af9b), and main closed (choosesource1) (71f376c3 one-shot-
+	// Effect closure), api:ExchangeLifeVariant (4b0bde0d, b5f51b7d), the
+	// kw:Infect damage-cost-LKI row (bc326d39, 56f98b13) and the (ap1)
+	// AddPhase row (ef38de87), so the merged register keeps none of the
+	// five: 35 - 5 = 30.
+	knownApproximationRows = 30
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.

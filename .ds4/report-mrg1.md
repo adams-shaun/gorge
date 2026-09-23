@@ -4151,6 +4151,90 @@ information from either side was dropped.
 
 <!-- main-side report, kept verbatim -->
 
+# Round 11 — integration of main at 122a388c (this worktree, ticket cli-20260922T225142Z-9630515c)
+
+Entry state: tree CLEAN at `ef38de87` (this branch's tip: the addphase ticket closing the
+`(ap1)` row), no rebase or merge in flight. `main` had advanced to `122a388c`. Ran
+`git merge main --no-edit`; two content conflicts, everything else auto-merged:
+
+```
+Auto-merging AGENTS.md
+CONFLICT (content): Merge conflict in AGENTS.md
+Auto-merging internal/testutil/agentsdoc_test.go
+CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go
+```
+
+`.ds4/report-mrg1.md` auto-merged cleanly this round (no conflict).
+
+### Measured ground truth (the register's own `| `-line counter, header dropped)
+
+| tree | data rows | delta vs merge base `08a1d59a` (38) |
+|---|---|---|
+| HEAD (this branch) | 37 | deleted `(ap1)` |
+| main | 35 | deleted `(attackprop1)`, `(blockprop1)`, `(bestow1)` |
+| merged | **34** | 38 − 4 disjoint deletions |
+
+Row-id diff of the merged table against main's set: identical except the `ap1` row
+(this branch's deletion) — no stale resurrection this round.
+
+### `AGENTS.md`
+
+Both sides deleted disjoint rows of the frozen register from the same region, which is why
+git conflicted. Resolution keeps NEITHER side's block: all four rows are removed
+(38 − 4 = 34). Verified none of `ap1`, `attackprop1`, `blockprop1`, `bestow1` remains.
+
+### `internal/testutil/agentsdoc_test.go`
+
+HEAD said 37, main said 35 — each accurate for its own pre-merge tree, neither matching the
+merged content. Set `knownApproximationRows = 34` with a comment recording the measurement
+(base 38, four disjoint closures). `knownOversizeRows` untouched by both sides, stays 8.
+
+### Commands and real output
+
+- `git status` on arrival: clean at `ef38de87`; `main` tip `122a388c` not an ancestor.
+- `git merge main --no-edit` → the two conflicts above; `.ds4/report-mrg1.md`,
+  `rules/*`, `effects/*`, `cards/*`, `botpolicy/*`, `decision/*` all auto-merged.
+- `gofmt -l internal/testutil/agentsdoc_test.go` → clean.
+- `go test ./internal/testutil -run 'TestKnownApproximation' -v` →
+  `TestKnownApproximationsOnlyShrinks PASS`, `TestKnownApproximationRowsAreShort PASS`,
+  `ok ... 0.001s` (constant 34 = measured 34).
+- `git add AGENTS.md internal/testutil/agentsdoc_test.go && git commit --no-edit` →
+  merge commit `362e54d0` ("Merge branch 'main' into wt/cli-20260922T225142Z-9630515c").
+- `git merge-base --is-ancestor main HEAD` → exit 0; `git status --short --branch` →
+  `## wt/cli-20260922T225142Z-9630515c` clean.
+- Post-merge ratchets:
+  `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`
+  → `ok github.com/adams-shaun/gorge/rules 0.775s` (5 top-level ratchets; no new
+  `Mode$` matcher registered by the merged delta, no `addedAfterTheSplit` entry needed).
+- `go test ./rules -run 'TestHeads|AddPhase|ExtraPhase'` →
+  `ok github.com/adams-shaun/gorge/rules 1.804s` (chain heads unmoved; this branch's
+  addphase behaviour still green on the merged tree).
+- `.cards` present (symlink to the shared corpus), so no vacuous corpus-less run.
+
+### Issues
+
+None new — integration only. The only non-merge-commit edit is the ratchet constant and
+its comment; the register shrinks 38 → 34 in the merged state, with all four closures
+preserved. No engine behaviour was changed by the resolution itself.
+
+### Resolver re-confirmation (2026-09-23)
+
+This fresh resolver invocation found no active rebase/merge and a clean tree;
+the reported conflict had already been resolved and committed as `362e54d0`,
+with its report commit `6dc57239`. `122a388c` (the main tip named in that
+integration record) is an ancestor of HEAD. The shared `main` ref has since
+advanced to `a347d4130`; this re-confirmation did not start a second integration
+because the dispatched conflict was the already-completed integration at
+`122a388c`.
+
+- `git status`: `On branch wt/cli-20260922T225142Z-9630515c`; nothing to commit,
+  working tree clean.
+- `ls .cards | head`: `cards.lock`, `cardsfolder`, `ir.gob.gz`, `ir.v4.gob.gz`,
+  `tokenscripts` (corpus present).
+- `go test ./internal/testutil -run 'TestKnownApproximation'`:
+  `ok github.com/adams-shaun/gorge/internal/testutil 0.001s`.
+- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`:
+  `ok github.com/adams-shaun/gorge/rules 0.866s`.
 ## Current integration round — main at 122a388c (2026-09-23)
 
 The prior merge commit was clean, but main advanced from 06f2a294 to 122a388c. `git merge-base --is-ancestor main HEAD` showed main was not yet integrated, so I merged the current main tip. The merge conflicted in `.ds4/report-mrg1.md` and `internal/testutil/agentsdoc_test.go`; `AGENTS.md` and engine source auto-merged.
@@ -4526,3 +4610,91 @@ None new — integration only. The merged state closes BOTH conflicted register
 rows: `(chosencopy1)` by this branch's Feather/target-legality fix and
 `(choosesource1)` by main's one-shot-Effect ticket, on top of main's
 `api:ExchangeLifeVariant` and `(kw:Infect)` closures already carried in.
+# Round 12 — integration of main at 62ae4746 (this worktree, ticket cli-20260922T225142Z-9630515c)
+
+## Situation found
+
+Entry state: tree CLEAN at `bbcd6c84`, no rebase or merge in flight (the daemon had
+aborted its `rebase onto main` attempt — the dispatch's "Rebasing (1/3)" text). The
+round-11 dispatch had already been resolved and confirmed, but `main` had advanced
+again since: `122a388c` → `62ae4746` (the `71f376c3` one-shot-Effect/choosesource1
+ticket, plus `bc326d39` infect-LKI and `4b0bde0d` life-exchange merges), committed
+09:48:27Z, and the daemon re-dispatched this resolver at 09:48:37Z. A fresh
+integration was genuinely owed — unlike round 11's re-confirmation, main's tip was
+new content, not the base of an already-landed merge.
+
+## Resolution
+
+`git merge main --no-edit` → exactly two content conflicts, everything else
+auto-merged (`AGENTS.md` composed the row deletions cleanly this time):
+
+```
+Auto-merging .ds4/report-mrg1.md
+CONFLICT (content): Merge conflict in .ds4/report-mrg1.md
+Auto-merging AGENTS.md
+Auto-merging internal/testutil/agentsdoc_test.go
+CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go
+```
+
+### `internal/testutil/agentsdoc_test.go`
+
+HEAD said 34, main said 32 — each accurate for its own pre-merge tree. MEASURED the
+auto-merged AGENTS.md with the test helper's own rule: **31 data rows**. Lineage:
+merge base `122a388c` carried 35; disjoint deletions compose — this branch deleted
+`(ap1)` (ef38de87); main deleted `(choosesource1)` (71f376c3),
+`api:ExchangeLifeVariant` (4b0bde0d, b5f51b7d) and the `kw:Infect`
+damage-cost-LKI row (bc326d39, 56f98b13): 35 − 4 = 31. Set the constant to
+31 with that lineage in the comment. `knownOversizeRows` untouched (8).
+
+### `.ds4/report-mrg1.md`
+
+Both sides are append-only report ledgers diverging at the same tail point; kept
+BOTH (HEAD's round-11 report, then main's appended sibling-worktree rounds),
+deleting only the three marker lines. No content dropped from either side.
+
+## Commands and output
+
+- `git status` on arrival: clean, nothing in flight; main tip `62ae4746` not an
+  ancestor of HEAD.
+- `git merge main --no-edit` → the two conflicts above.
+- Merged AGENTS.md row count: 31 (awk walk identical to `approximationRows()`).
+- `git add internal/testutil/agentsdoc_test.go && git add -f .ds4/report-mrg1.md`
+  (`.ds4` is gitignored but the file is tracked) `&& git commit --no-edit` →
+  merge commit `03671f96`.
+- `git status`: clean; `git merge-base --is-ancestor main HEAD` → exit 0.
+
+## Verification
+
+`.cards` present (symlink to the shared corpus) — no vacuous run.
+
+```
+$ go test ./internal/testutil -run 'TestKnownApproximation'
+ok  github.com/adams-shaun/gorge/internal/testutil  0.001s
+
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|AddPhase'
+ok  github.com/adams-shaun/gorge/rules  0.747s
+
+$ go test ./internal/archtest/
+ok  github.com/adams-shaun/gorge/internal/archtest  3.374s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  github.com/adams-shaun/gorge/cmd/botbench  1.645s
+```
+
+The botbench 20-game pinned split did not move. Conflict-marker sweep over
+AGENTS.md, the test file and the report ledger: clean. `gofmt -l` clean. The
+branch's addphase fix (ef38de87) is unchanged by the merge
+(`git diff 362e54d0 HEAD -- effects/addphase.go rules/turn.go` → empty).
+
+## Deviations / uncertainties
+
+None material. The only judgement calls: (1) the constant's value — measured, not
+inherited, so no gate can fail on it; (2) integrating the NEW main rather than
+re-confirming the old integration — the main tip post-dated the round-11
+confirmation, so the daemon's next gate would otherwise conflict again.
+
+## Issues
+
+None new — integration only; no engine behaviour change by the resolution itself
+(main's chosensource1/life-exchange/infect-LKI fixes arrive reviewed from their own
+tickets).
