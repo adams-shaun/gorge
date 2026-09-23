@@ -3521,12 +3521,9 @@ func (e *Engine) attackBlocked(id state.ObjID, defender state.PlayerID) bool {
 }
 
 // restrictionPlayerTargetMatches resolves a CantAttack restriction's Target$
-// player spec (the defender-side scoping: "can't attack THAT player") against
-// the defender under attack. The corpus spells it as a comma-separated list of
-// player specs ("You,Planeswalker.YouCtrl" — this build has no
-// planeswalker-attack path, so a walker clause is a player spec that matches
-// nobody and the You half carries the read); any part matching blocks the
-// pair. An absent Target$ applies to every defender.
+// list against the defender. Player specs match the defending player; a
+// Planeswalker.<player-spec> clause matches a qualifying planeswalker that
+// defender controls. An absent Target$ applies to every defender.
 func restrictionPlayerTargetMatches(g *state.Game, spec string, defender, controller state.PlayerID, rememberedPlayers []state.PlayerID) bool {
 	spec = strings.TrimSpace(spec)
 	if spec == "" {
@@ -3537,7 +3534,40 @@ func restrictionPlayerTargetMatches(g *state.Game, spec string, defender, contro
 		if part == "" {
 			continue
 		}
-		if restrictionPlayerSpecMatches(g, part, defender, controller, rememberedPlayers) {
+		if restrictionPlayerSpecMatches(g, part, defender, controller, rememberedPlayers) ||
+			restrictionPlaneswalkerTargetMatches(g, part, defender, controller, rememberedPlayers) {
+			return true
+		}
+	}
+	return false
+}
+
+// restrictionPlaneswalkerTargetMatches reads one Planeswalker.<player-spec>
+// entry in a restriction's Target$ list, scoped to a planeswalker controlled
+// by the defender.
+func restrictionPlaneswalkerTargetMatches(g *state.Game, spec string, defender, controller state.PlayerID, rememberedPlayers []state.PlayerID) bool {
+	parts := strings.SplitN(strings.TrimSpace(spec), ".", 2)
+	if len(parts) != 2 || !strings.EqualFold(strings.TrimSpace(parts[0]), "Planeswalker") {
+		return false
+	}
+	selector := strings.TrimSpace(parts[1])
+	for _, id := range g.Zone(state.ZBattlefield, defender) {
+		o := g.Obj(id)
+		if o == nil || o.Zone != state.ZBattlefield || !faceHasType(o, "Planeswalker") || o.Controller != defender {
+			continue
+		}
+		// Forge's common Target$ form is Planeswalker.YouCtrl. Other
+		// controller selectors are evaluated against the restriction source.
+		matches := false
+		switch strings.ToLower(selector) {
+		case "youctrl":
+			matches = defender == controller
+		case "oppctrl":
+			matches = defender != controller
+		default:
+			matches = restrictionPlayerSpecMatches(g, selector, defender, controller, rememberedPlayers)
+		}
+		if matches {
 			return true
 		}
 	}
