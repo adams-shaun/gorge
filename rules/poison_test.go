@@ -41,6 +41,108 @@ func noUnimplementedPoisonNote(t *testing.T, e *Engine, n0 int) {
 	}
 }
 
+// vraskaUltGame seeds the real Vraska, Betrayal's Sting onto seat 0's
+// battlefield with LOYALTY 9 (the printed 6 plus three added counters, so the
+// [-9] ultimate is payable), drives to seat 0's Main 1 and returns the
+// engine, config and Vraska's object id.
+func vraskaUltGame(t *testing.T, seed uint64) (*Engine, Config, state.ObjID) {
+	t.Helper()
+	vraska := tokenReplCorpusCard(t, "Vraska, Betrayal's Sting")
+	e, cfg := tokenReplGame(t, seed, vraska)
+	id := moveSeededCard(t, e, 0, vraska, state.ZBattlefield)
+	e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "LOYALTY", Amount: 3})
+	if got := e.G.Obj(id).Counter("LOYALTY"); got != 9 {
+		t.Fatalf("precondition: Vraska loyalty = %d, want 9", got)
+	}
+	e.pending = nil
+	e.priorityRound()
+	return e, cfg, id
+}
+
+// activateVraskaUltimate finds the [-9] ability option (face ability index 2
+// on a single-face card), submits it, answers its ValidTgts$ Player ask with
+// `target` and drains the stack through resolution.
+func activateVraskaUltimate(t *testing.T, e *Engine, id state.ObjID, target state.PlayerID) {
+	t.Helper()
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("no priority decision to activate in: %+v", d)
+	}
+	idx := -1
+	for _, o := range d.Options {
+		if o.Kind == "ability" && o.Obj == id && o.Ability == 2 {
+			idx = o.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("Vraska [-9] not offered: %+v", d.Options)
+	}
+	submitChoices(t, e, idx)
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("after activation: %+v, want the target ask", d)
+	}
+	tIdx := -1
+	for _, o := range d.Options {
+		if o.Kind == "player" && o.Player == target {
+			tIdx = o.Index
+		}
+	}
+	if tIdx < 0 {
+		t.Fatalf("seat %d not offered as the ultimate's target: %+v", target, d.Options)
+	}
+	submitChoices(t, e, tIdx)
+	passUntilStackEmpty(t, e, 20)
+}
+
+// TestVraskaBetrayalsStingPoisonDifferential pins the differential end to
+// end: the resolving SA reads SVar:X = TargetedPlayer$Counters.Poison for
+// the printed LT9 gate, and Num$ Difference =
+// Number$9/Minus.X for the amount, so a target at 3 poison gets exactly 6
+// (reaching 9) and a target already at 9 gets none (the gate withholds the
+// placement). The 6 (not 9) value is what proves the operand is LIVE --
+// a coincidental fixed 9 or a dead zero would both fail this leaf.
+func TestVraskaBetrayalsStingPoisonDifferential(t *testing.T) {
+	t.Run("targetAtThreePoisonGetsSix", func(t *testing.T) {
+		e, cfg, id := vraskaUltGame(t, 9301)
+		e.emit(events.Event{Kind: events.PlayerCounterChange, Player: 1, Counter: "POISON", Amount: 3})
+		if got := e.G.Players[1].Counter("POISON"); got != 3 {
+			t.Fatalf("precondition: target poison = %d, want 3", got)
+		}
+		n0 := len(e.L.Events)
+		activateVraskaUltimate(t, e, id, 1)
+		noUnimplementedPoisonNote(t, e, n0)
+		poison := poisonEventsSince(e, n0)
+		if len(poison) != 1 || poison[0].Player != 1 || poison[0].Amount != 6 {
+			t.Fatalf("poison events = %+v, want one Amount-6 placement on seat 1 (9 minus the targeted 3)", poison)
+		}
+		if got := e.G.Players[1].Counter("POISON"); got != 9 {
+			t.Fatalf("target poison after the ultimate = %d, want 9", got)
+		}
+		if e.G.Players[1].Lost {
+			t.Fatal("the target must survive at nine poison")
+		}
+		replayCheck(t, e, cfg)
+	})
+	t.Run("targetAtNineGetsNone", func(t *testing.T) {
+		e, cfg, id := vraskaUltGame(t, 9302)
+		e.emit(events.Event{Kind: events.PlayerCounterChange, Player: 1, Counter: "POISON", Amount: 9})
+		if got := e.G.Players[1].Counter("POISON"); got != 9 {
+			t.Fatalf("precondition: target poison = %d, want 9", got)
+		}
+		n0 := len(e.L.Events)
+		activateVraskaUltimate(t, e, id, 1)
+		noUnimplementedPoisonNote(t, e, n0)
+		if poison := poisonEventsSince(e, n0); len(poison) != 0 {
+			t.Fatalf("poison events = %+v, want none (the printed LT9 gate holds)", poison)
+		}
+		if got := e.G.Players[1].Counter("POISON"); got != 9 {
+			t.Fatalf("target poison after the ultimate = %d, want 9 (no placement)", got)
+		}
+		replayCheck(t, e, cfg)
+	})
+}
+
 // TestLeechesPoisonRemovalMatchesPriorCount pins the inverse carrier end to
 // end: Leeches' SP$ DealDamage reads NumDmg$ X =
 // TargetedPlayer$Counters.Poison for the damage, and its DB$ Poison sub
