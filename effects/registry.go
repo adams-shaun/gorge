@@ -1123,6 +1123,8 @@ type Ctx struct {
 	AttachChoice     []state.ObjID
 	AttachChoiceDone bool
 	AttachDests      []state.ObjID
+	// ScryOpt is the answered Optional$ True Scry election ("yes"/"no").
+	ScryOpt string
 	// PutOpt is the answered Optional$ True put-counter election ("yes"/"no")
 	// on a re-entered PutCounter resolution (Talus Paladin's "you may put a
 	// +1/+1 counter on CARDNAME", Black Widow's "You may put ... If you

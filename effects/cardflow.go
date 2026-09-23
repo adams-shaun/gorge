@@ -2844,6 +2844,26 @@ func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, n int32, kind, verb string,
 		}
 		c.LibraryTarget = targetIndex
 		p := PlayerOf(h, c, t)
+		if !markSurveil && strings.EqualFold(strings.TrimSpace(sa.Params["Optional"]), "True") {
+			opt := c.ScryOpt
+			c.ScryOpt = ""
+			if opt == "" {
+				d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
+					Source: c.Source, ResumeKind: "scry_optional", ResumeSA: sa, ResumeTarget: targetIndex,
+					Prompt: "Scry?", Options: []decision.Option{
+						{Index: 0, Kind: "yes", Label: "Yes", Player: p},
+						{Index: 1, Kind: "no", Label: "No", Player: p},
+					}}
+				if Ask(h, d) != AskNoHost {
+					return
+				}
+				// R-9: an unavailable host deterministically declines an
+				// optional election; never treat an unanswered ask as consent.
+				continue
+			} else if opt != "yes" {
+				continue
+			}
+		}
 		if markSurveil {
 			h.Emit(events.Event{Kind: events.Surveil, Player: p, Obj: c.Source})
 		}

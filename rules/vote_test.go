@@ -114,9 +114,9 @@ func voteTriggerOnStack(e *Engine, carrier state.ObjID) state.ObjID {
 // vote-finished Note queued for carrierID: the trigger is not stacked until
 // a priority round runs, and (target-less) it resolves only once every seat
 // has passed priority over it -- the ordinary CR 117 flow, not a push-time
-// resolution. The drain passes, answers the body's scry KArrange when
-// ScryNum$ offers one, and stops once the trigger object has left the
-// stack. Returns the scry decision observed, nil when none was posed.
+// resolution. The drain passes, accepts any optional scry election, answers
+// the body's KArrange when ScryNum$ offers one, and stops once the trigger
+// object has left the stack. Returns the first scry decision, if any.
 func drainVoteTrigger(t *testing.T, e *Engine, carrierID state.ObjID) *decision.Decision {
 	t.Helper()
 	var scry *decision.Decision
@@ -151,6 +151,11 @@ func drainVoteTrigger(t *testing.T, e *Engine, carrierID state.ObjID) *decision.
 		case d.Kind == decision.KArrange:
 			if scry == nil {
 				scry = d
+			}
+			submitChoices(t, e, 0)
+		case d.Kind == decision.KChoose && d.ResumeKind == "scry_optional":
+			if len(d.Options) != 2 || d.Options[0].Kind != "yes" || d.Options[1].Kind != "no" {
+				t.Fatalf("optional scry election = %+v, want yes/no", d)
 			}
 			submitChoices(t, e, 0)
 		case d.Kind == decision.KPriority:
@@ -237,10 +242,10 @@ func TestErestorVoteFinishedTreasureScryAndDraw(t *testing.T) {
 // TestModelOfUnityScrysTheLikeVotingOpponent is the second carrier: Model of
 // Unity's DB$ Scry | Defined$ TriggeredOpponentVotedSame & You | ScryNum$ 2 |
 // Optional$ True. With the vote split [0,1,0] the same set holds seat 2, so
-// the scry ask goes to the FIRST Defined$ entry (seat 2, two options) -- the
-// documented multi-library stand-in asks only the first library. Control: an
-// all-diff vote [0,1,1] empties the same set, so the ask goes to seat 0
-// (You), still two options -- the compound referent's You half is exact.
+// the first scry election and arrange ask go to seat 2 (two options).
+// Control: an all-diff vote [0,1,1] empties the same set, so the first ask
+// goes to seat 0 (You), still two options -- the compound referent's You
+// half is exact.
 func TestModelOfUnityScrysTheLikeVotingOpponent(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	run := func(votes []int, wantPlayer state.PlayerID) {

@@ -2307,6 +2307,13 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			if len(chosen) > 0 && chosen[0].Kind == "yes" {
 				ctx.PlaneswalkOpt = "yes"
 			}
+		case "scry_optional":
+			ctx.ScryOpt = "no"
+			if len(chosen) > 0 && chosen[0].Kind == "yes" {
+				ctx.ScryOpt = "yes"
+			}
+			ctx.Arrange = true
+			ctx.LibraryTarget = rp.target - 1
 		case "put_optional":
 			// An Optional$ True PutCounter's yes/no election (Talus Paladin's
 			// "you may put a +1/+1 counter on CARDNAME", Black Widow's "You
