@@ -3486,3 +3486,115 @@ the ratchet tables are untouched.
 None introduced or discovered by integration. The conflict was limited to an
 accumulated report file; main's engine/test changes auto-merged and the focused
 checks passed.
+
+---
+
+# Merge-conflict resolution — mrg1 (task agent-20260918T195920Z-2fd3b568), re-run 2026-09-23 (second)
+
+## Entry state and operation
+
+`git status` on arrival: **clean, no rebase or merge in flight** at `312c070a`
+(the branch's own docs commit on top of the prior merge `ce3fee6d`). The
+daemon's rebase had conflicted at `7c054313` (`.ds4/report-r2.md`) and its
+merge fallback had conflicted, then both were aborted before dispatch. But
+`main` had advanced past the prior integration (merge-base `30a271af`; main at
+`767f3dd4`), so the operation that actually remained was a fresh integration:
+`git merge main` (repo convention; `git rebase` is forbidden here).
+
+`.cards` was present as a symlink to `/home/sadams/projects/gorge/.cards`, so
+every run below is corpus-backed, not a vacuous skip.
+
+## Conflicted file, both sides, resolution
+
+One content conflict, in `.ds4/report-mrg1.md` — a tracked report
+accumulator. Everything else (including `effects/count.go`, where main's
+Moraug `Count$CardNumAttacksThisTurn` work meets the branch's
+`TriggerRemembered` fix) auto-merged cleanly and was not hand-edited.
+
+- **ours (HEAD, 3371 lines):** the full accumulator (== merge-base 3171
+  lines) plus an 84-line report prepended at the top (the first 20260918 mrg1
+  round) and a 116-line report appended at the tail (the prior resolution
+  round's `312c070a`). Verified: `diff base.md ours.md` is exactly `0a1,84`
+  and `3171a3256,3371` — two pure appends.
+- **theirs (main, 114 lines):** main's `acba1caa` had **destructively
+  truncated** the accumulator (`3284 ++----` : 81 insertions, 3203 deletions),
+  replacing all prior reports with only the `agent-20260922T234314Z-bbfff2fb`
+  GenericChoice merge report. This is the destructive-replacement anti-pattern
+  the accumulator itself documents correcting on main (commit `701c4289`,
+  "restore main's accumulated report and append the round-2 report").
+- **Resolution: union.** `ours ++ ["", "---", ""] ++ theirs` = 3488 lines —
+  the entire branch accumulator preserved byte-for-byte, then main's unique
+  bbfff2fb report appended verbatim (ours contains zero `bbfff2fb` lines, so
+  nothing of theirs duplicates or conflicts). Programmatic check on the union:
+  `ours-missing=0 theirs-missing=0`, no conflict markers.
+
+No engine, test, table, or golden file was touched by this resolution. The
+merge's other 15 paths are main's own reviewed changes
+(`Count$CardNumAttacksThisTurn`, `Count$ThisTurnCast_` suffixes,
+GenericChoice per-player choosers, AGENTS.md table + ratchet-constant edits)
+arriving intact.
+
+## Commands run (real output)
+
+```text
+$ git merge main --no-edit
+Auto-merging .ds4/report-mrg1.md
+CONFLICT (content): Merge conflict in .ds4/report-mrg1.md
+Auto-merging effects/count.go
+Automatic merge failed; fix conflicts and then commit the result.
+
+$ git show :1:/2:/3:.ds4/report-mrg1.md   → base 3171 / ours 3371 / theirs 114 lines
+$ python3 union splice + preservation check
+ours-missing=0 theirs-missing=0 ; markers: []
+
+$ git add -f .ds4/report-mrg1.md && git commit --no-edit
+[wt/agent-20260918T195920Z-2fd3b568 fb7c9d6d] Merge branch 'main' into wt/agent-20260918T195920Z-2fd3b568
+16 files changed, 1386 insertions(+), 10 deletions(-)   (.ds4/report-mrg1.md +117 = separator + theirs' 114)
+
+$ git status --short        → (clean)
+$ git merge-base --is-ancestor main HEAD → YES
+```
+
+## Post-merge ratchets and goldens (main brought real engine code)
+
+```
+$ gofmt -l effects/count.go effects/misc.go effects/registry.go rules/resolution.go rules/clone.go decision/decision.go
+(no output — clean)
+
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  github.com/adams-shaun/gorge/rules  1.013s            (EXIT=0)
+
+$ go test -run 'TestTriggerRemembered|TestLoamcrafterFaun|TestRefProperty|TestCardNumAttacks|TestThisTurnCast|TestGenericChoice' ./effects
+ok  github.com/adams-shaun/gorge/effects  0.622s          (EXIT=0)
+$ go test -run 'TestTriggerRemembered|TestLoamcrafterFaun|TestRefProperty|TestCardNumAttacks|TestThisTurnCast|TestGenericChoice' ./rules
+ok  github.com/adams-shaun/gorge/rules  0.650s            (EXIT=0)
+
+$ go test ./internal/archtest/
+ok  github.com/adams-shaun/gorge/internal/archtest  3.191s (EXIT=0)
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  github.com/adams-shaun/gorge/cmd/botbench  1.249s      (EXIT=0 — split did NOT move)
+```
+
+The ratchets pass unmodified: main itself closed the
+`Count$CardNumAttacksThisTurn` ratchet row (its own commits carry the
+`knownUnmodelledCountHeads` / AGENTS.md edits), the branch registers no new
+trigger `Mode$` matcher, and the botbench golden did not move.
+
+## Notes / unsure about
+
+- `git add .ds4/report-mrg1.md` needs `-f` (`.ds4` is gitignored) — the path is
+  tracked and was staged correctly (verified by the merge commit's `+117`
+  stat and the preservation check above).
+- Main's truncation of the accumulator is treated as accidental (the
+  anti-pattern main itself corrected once before), not as a deliberate
+  deletion of history; the union is the lossless resolution either way.
+- No other file needed a judgement call; no uncertainty remains.
+
+## Issues
+
+None new from the integration. Standing observations, not new: (1) main-side
+mrg1 sessions keep destructively replacing the shared accumulator instead of
+unioning it — a controller-side note to those seats would stop the churn;
+(2) the per-branch prepend/append to `.ds4/report-*.md` accumulators conflicts
+on every integration; the union convention keeps everything but costs a round
+each time. The branch closes no Known-approximations row.
