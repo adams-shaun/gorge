@@ -442,7 +442,10 @@ func (e *Engine) step() {
 	// The CR 903.9 commander replacement (Task m32) can leave a decision
 	// pending from inside checkStateBased: a state-based action that moves a
 	// commander parks the move and asks its owner, and checkStateBased
-	// returns with that decision outstanding. The step switch below must not
+	// returns with that decision outstanding. The CR 704.5j legend rule
+	// (rules/sba.go) can too: parkLegendChoice parks the batch and asks the
+	// duplicate set's controller in one step, so checkStateBased also returns
+	// with that decision outstanding. The step switch below must not
 	// then run -- askAttackers/priorityRound would hand out a SECOND,
 	// unrelated decision and silently overwrite the parked commander's
 	// (Advance pauses on the first e.pending regardless, so this guard is
@@ -1211,6 +1214,15 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		e.siegeMove = nil
 		e.choosing = chooseNone
 		e.emit(move)
+	case chooseLegend:
+		// The CR 704.5j legend-rule choice (rules/sba.go) was answered.
+		// legendAnswer records the kept permanent and applies the parked batch
+		// -- the pre-batch look-back board it parked, the same single-batch
+		// discipline the ordinary sweep uses. The remaining SBAs, and any
+		// further duplicate set, are the Submit tail's next checkStateBased
+		// pass; there is no drain to resume: the ask comes from the SBA pass,
+		// never from inside a resolution, so e.resume is necessarily nil here.
+		e.legendAnswer(d, in)
 	case chooseTokenReplace:
 		// The chosen-copy CreateToken replacement's election (rules/
 		// replacement.go's poseChosenTokenReplacement park) was answered: the
