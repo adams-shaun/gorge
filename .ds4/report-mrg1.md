@@ -154,3 +154,54 @@ The initial `git status` showed a clean worktree and no active rebase/merge, so 
   ```
 
 No uncertainty remained in the conflict resolution. No non-conflict files were manually changed.
+
+---
+
+## Record 3 — round 2 integration (this seat, 2026-09-23)
+
+### Starting state
+
+`git status` found the tree CLEAN at `d3e21bfa`; no rebase or merge in
+flight (the daemon's second integration attempt was fully aborted before
+dispatch). The branch's merge-base with `main` was `c472a88f` — main had
+moved past the branch's round-1 merge (`9fc45eaf`) with the 68ca4d95
+legend-rule landing (`da0a323b` heads pin + `cf3e3784` merge). I redid the
+integration as `git merge main`.
+
+### Conflicted file: .ds4/report-mrg1.md (the only one)
+
+- **branch side** (`d3e21bfa`): this ticket's round-1 resolution record.
+- **main side** (`08955738`): the 68ca4d95 legend-rule ticket's own
+  resolution record, committed to main.
+- **Resolution:** keep BOTH records verbatim, headed, plus this record 3.
+  `AGENTS.md` and `internal/testutil/agentsdoc_test.go` auto-merged this
+  time: branch deleted the (fx20) row; main swapped the legend row for the
+  `KReplacement` bot-fallback row (row count unchanged). Merged register =
+  50 rows = the constant (verified below). `rules/heads_test.go` was
+  auto-merged from main (2-seat head → `19a4893657e5d549`); the branch
+  never touched it, so no head conflict arose and no golden was edited.
+
+### Commands and output
+
+- `.cards`: present (real symlink) — runs are not vacuous.
+- `git merge main` → `CONFLICT (content): Merge conflict in .ds4/report-mrg1.md`
+  (only unmerged path); resolved with both records kept, `git add -f`
+  (`.ds4` is gitignored for untracked files), `git commit --no-edit` →
+  `bdbdd7cb Merge branch 'main' into wt/cli-20260922T225140Z-6a16cd8c`.
+- `git status --short` → clean.
+- `grep -c 'fx20' AGENTS.md` → `0`; `grep -c 'KReplacement.*clamp fallback' AGENTS.md` → `1`.
+- `go test ./internal/testutil/ -run 'TestKnownApproximations' -v` →
+  `--- PASS: TestKnownApproximationsOnlyShrinks` / `ok`.
+- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`
+  → `ok github.com/adams-shaun/gorge/rules 0.756s`; verbose log
+  (`.ds4/scratch/ratchet.log`) shows all five RUN and PASS, **0 SKIPs**.
+- Behaviour goldens: `go test ./internal/archtest/` → `ok 3.225s`;
+  `go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/` →
+  `ok 1.075s` — the pinned 20-game bot split did NOT move.
+
+### Notes
+
+- The branch registers no new `Mode$` matcher and closed no
+  `knownUnsupported`/`knownUnsupportedParams`/`knownUnmodelledCountHeads`
+  entry, so no ratchet table edit was needed; all pass untouched.
+- Commits: `bdbdd7cb` (merge, conflict resolution) + this docs commit.
