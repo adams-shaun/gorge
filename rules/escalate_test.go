@@ -217,10 +217,8 @@ func TestEscalateOneModeChargesNoExtraCost(t *testing.T) {
 // core: choosing BOTH legal modes of Collective Effort poses the escalate tap
 // ask (Escalate--tap an untapped creature you control, once per mode beyond
 // the first) and payCast taps exactly one of the two fixture creatures. The
-// destroy mode resolves on the shared target (the Ogre); the counter mode's
-// player-targeted sweep receives the creature list and no-ops -- the
-// pre-existing shared-target narrowing for multi-mode Charms
-// (rules/cast.go's modalTargetSA), out of scope here.
+// destroy mode resolves on the Ogre; the counter mode independently targets
+// the opponent (who has no remaining creature to receive its counter).
 func TestEscalateExtraModeTapsAnAdditionalCreature(t *testing.T) {
 	e, cfg := escalateFixture(t, 773, fixEffortN, []string{"Fix Bear", "Fix Cub"}, []string{"Fix Bear", "Fix Cub"}, []string{"Fix Ogre"}, []string{"Fix Ogre"})
 	if !untappedOn(t, e, 0, "Fix Bear") || !untappedOn(t, e, 0, "Fix Cub") {
@@ -249,22 +247,24 @@ func TestEscalateExtraModeTapsAnAdditionalCreature(t *testing.T) {
 		t.Fatalf("Fix Bear not offered as the escalate tap: %+v", d.Options)
 	}
 	submitChoices(t, e, bearIdx)
-	// The target ask (the shared list from the first target-bearing mode,
-	// DBDestroyCreature: the Ogre).
+	// CR 601.2c: each chosen mode has its own target slot.
 	d = e.Pending()
-	if d == nil || d.Kind != decision.KTarget {
-		t.Fatalf("pending = %+v, want the target ask", d)
+	if d == nil || d.Kind != decision.KTarget || d.Min != 2 || d.Max != 2 {
+		t.Fatalf("pending = %+v, want two per-mode targets", d)
 	}
-	ogreIdx := -1
+	ogreIdx, playerIdx := -1, -1
 	for _, o := range d.Options {
-		if o.Obj == ogre {
+		if o.Group == "charm-mode-0" && o.Obj == ogre {
 			ogreIdx = o.Index
 		}
+		if o.Group == "charm-mode-1" && o.Kind == "player" && o.Player == 1 {
+			playerIdx = o.Index
+		}
 	}
-	if ogreIdx < 0 {
-		t.Fatalf("Fix Ogre not offered as a target: %+v", d.Options)
+	if ogreIdx < 0 || playerIdx < 0 || ogreIdx == playerIdx {
+		t.Fatalf("fixture lacks independent Ogre/player targets: %+v", d.Options)
 	}
-	submitChoices(t, e, ogreIdx)
+	submitChoices(t, e, ogreIdx, playerIdx)
 	passUntilStackEmpty(t, e, 20)
 	if got := tappedCountOn(t, e, 0, "Fix Bear"); got != 1 {
 		t.Fatalf("Fix Bear tapped %d times, want exactly 1 (the escalate charge)", got)
@@ -368,9 +368,8 @@ func TestEscalateManaEscalateChargesPerExtraMode(t *testing.T) {
 // TestEscalateDiscardCarrier pins the non-mana Discard escalate on the real
 // Collective Brutality: choosing two modes poses the escalate discard ask
 // (Escalate--Discard a card) before the target ask, the answer leaves the
-// hand, and both modes resolve on the shared opponent target (the
-// RevealYouChoose pick discards the instant from the opponent's hand; the
-// drain moves 2 life).
+// hand, and each mode separately targets the opponent (the RevealYouChoose
+// pick discards the instant from their hand; the drain moves 2 life).
 func TestEscalateDiscardCarrier(t *testing.T) {
 	e, cfg := escalateFixture(t, 779, fixBrutN, []string{"Fix Bear", "Fix Pebble"}, []string{"Fix Bear"}, []string{"Fix Ogre", "Fix Scroll", "Fix Tome"}, []string{"Fix Ogre"})
 	// Guarantee the discardable card in the caster's hand and the eligible
@@ -408,21 +407,26 @@ func TestEscalateDiscardCarrier(t *testing.T) {
 		t.Fatalf("Fix Pebble not offered as the escalate discard: %+v", d.Options)
 	}
 	submitChoices(t, e, pebbleIdx)
-	// The target ask: the shared opponent target.
+	// The two modes both choose seat 1, but through separate target slots.
 	d = e.Pending()
-	if d == nil || d.Kind != decision.KTarget {
-		t.Fatalf("pending = %+v, want the target ask", d)
+	if d == nil || d.Kind != decision.KTarget || d.Min != 2 || d.Max != 2 {
+		t.Fatalf("pending = %+v, want two per-mode target slots", d)
 	}
-	tIdx := -1
+	modeTargets := [2]int{-1, -1}
 	for _, o := range d.Options {
 		if o.Kind == "player" && o.Player == 1 {
-			tIdx = o.Index
+			switch o.Group {
+			case "charm-mode-0":
+				modeTargets[0] = o.Index
+			case "charm-mode-1":
+				modeTargets[1] = o.Index
+			}
 		}
 	}
-	if tIdx < 0 {
-		t.Fatalf("seat 1 not offered as a target: %+v", d.Options)
+	if modeTargets[0] < 0 || modeTargets[1] < 0 || modeTargets[0] == modeTargets[1] {
+		t.Fatalf("seat 1 not offered for both modes: %+v", d.Options)
 	}
-	submitChoices(t, e, tIdx)
+	submitChoices(t, e, modeTargets[0], modeTargets[1])
 	// Both seats pass priority so the spell resolves; DBDiscard's
 	// RevealYouChoose then asks the caster to pick an instant/sorcery from
 	// the opponent's hand (the ask surfaces mid-resolution, after the passes).
