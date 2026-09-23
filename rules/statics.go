@@ -2493,10 +2493,10 @@ func (e *Engine) spellConstraintMatches(scope costScope, id state.ObjID, constra
 		// two-part Kicker's per-part modes (kicked1/kicked2/kickedboth) are
 		// kicked casts too -- a cost static gated on "was this kicked" must
 		// not depend on WHICH part was paid. A multikicked cast (CR 702.43's
-		// kicker variant) is a kicked cast the same way.
-		return scope.mode == "kicked" || scope.mode == "kicked1" ||
-			scope.mode == "kicked2" || scope.mode == "kickedboth" ||
-			scope.mode == "multikicked"
+		// kicker variant) is a kicked cast the same way. Shared with
+		// targetBoundCtx's pre-payment Count$Kicked binding via modeIsKicked
+		// so the two spellings cannot drift.
+		return modeIsKicked(scope.mode)
 	case "Surged":
 		return scope.mode == "surged"
 	case "Miracle":

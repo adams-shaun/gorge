@@ -6582,6 +6582,20 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 	}
 }
 
+// modeIsKicked reports whether a pendingCast.mode names a kicked cast: the
+// single-cost Kicker's "kicked", the and/or Kicker's per-part "kicked1"/
+// "kicked2"/"kickedboth", or a multikicked cast. It is the ONE home of that
+// set, shared by modeFlags (the pay-time flag stamp), spellConstraintMatches'
+// CastStatic match and targetBoundCtx's pre-payment Count$Kicked binding, so
+// the three spellings cannot drift.
+func modeIsKicked(mode string) bool {
+	switch mode {
+	case "kicked", "kicked1", "kicked2", "kickedboth", "multikicked":
+		return true
+	}
+	return false
+}
+
 // modeFlags maps a pendingCast.mode to the CastInfo Counter string
 // (events.FlagsString of the matching CastFlags bit), "" for a plain cast.
 func modeFlags(mode string) string {
@@ -6919,6 +6933,14 @@ func (e *Engine) targetAsk() bool {
 		// with no target decision.
 		return false
 	}
+	if max == 0 {
+		// A dynamic bound RESOLVED to zero (Tear Asunder's kicked main SA:
+		// TargetMin$ X | TargetMax$ X over SVar:X:Count$Kicked.0.1) declares
+		// that this stage takes no targets -- the chained sub does the
+		// work. A Min 0 / Max 0 ask would offer nothing selectable; skip
+		// straight to payCast exactly as the N2 arm above does.
+		return false
+	}
 	// The decision's Source is the object that must not be offered as its own
 	// target (CR 115.5). For a spell that is the card (excluded via
 	// excludeSelf). For an activated ability the object that may not target
@@ -7222,6 +7244,13 @@ func (e *Engine) subTargetAsk(pc *pendingCast) bool {
 			return true
 		}
 		if min == 0 && len(candidates) == 0 {
+			pc.subAns[pc.subStage] = []state.Target{}
+			pc.subStage++
+			continue
+		}
+		if max == 0 {
+			// A dynamic bound RESOLVED to zero: this stage takes no targets,
+			// recorded as an ANSWERED EMPTY set exactly as the N2 arm above.
 			pc.subAns[pc.subStage] = []state.Target{}
 			pc.subStage++
 			continue

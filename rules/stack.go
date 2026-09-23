@@ -834,8 +834,15 @@ func (e *Engine) targetBoundCtx(p state.PlayerID, source state.ObjID) (*effects.
 	// would read 0 off the stack object. When the asking source IS the card
 	// the pending cast is casting, seed the count the ask just settled --
 	// exactly the `x` resolvedTargetBounds threads for a Count$xPaid bound.
-	if pc := e.cast; pc != nil && pc.card == source && pc.multikickSet {
-		ctx.TimesKicked = pc.multikickTimes
+	if pc := e.cast; pc != nil && pc.card == source {
+		if pc.multikickSet {
+			ctx.TimesKicked = pc.multikickTimes
+		}
+		// The CHOSEN cast mode's kicked bit (Tear Asunder's kicked main SA is
+		// TargetMin$ X | TargetMax$ X over SVar:X:Count$Kicked.0.1): the same
+		// pre-payment gap TimesKicked closes, for the FlagKicked half. The
+		// mode was settled when the cast OPTION was picked, before this ask.
+		ctx.PendingKicked = modeIsKicked(pc.mode)
 	}
 	if f := o.Face(); f != nil {
 		ctx.Source = source
@@ -907,15 +914,30 @@ func (e *Engine) resolvedTargetBounds(p state.PlayerID, source state.ObjID, sa *
 			min = int(n)
 		}
 	}
+	resolvedMax := false
 	if v, ok := sa.Params["TargetMax"]; ok && !isLiteralBound(v) {
 		if n, resolved := effects.NumResolved(e, ctx, sa, "TargetMax", 1); resolved {
 			max = int(n)
+			resolvedMax = true
 		}
 	}
 	if min < 0 {
 		min = 1
 	}
-	if max < 1 {
+	if max < 0 {
+		max = 0
+	}
+	// A dynamic bound the grammar RESOLVED is honoured as written, zero
+	// included. The "instead" idiom writes exactly that: Tear Asunder's
+	// kicked main SA is TargetMin$ X | TargetMax$ X over
+	// SVar:X:Count$Kicked.0.1, meaning "target nothing here, the chained sub
+	// (Condition$ Kicked, SVar:Y:Count$Kicked.1.0) does the work". Clamping
+	// that resolved 0 up to 1 asks for an artifact/enchantment the kicked
+	// spell must not exile. Only an UNRESOLVED token -- and a literal, already
+	// clamped by targetBounds -- keep the documented max >= 1 clamp; the
+	// max < min clamp below still lifts a resolved 0 when a genuine minimum
+	// is present (a bare TargetMax$ X announced 0, min defaulting to 1).
+	if !resolvedMax && max < 1 {
 		max = 1
 	}
 	if max < min {
@@ -2615,6 +2637,11 @@ func targetCandidateEqual(t state.Target, c targetCandidate) bool {
 // counts are not rejected by the earlier cast-offer census.
 func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 	min, max := e.resolvedTargetBounds(p, source, sa, 0)
+	if max == 0 {
+		// A dynamic bound RESOLVED to zero: this stage takes no targets, so
+		// pose no ask (the effects-side askTargets has the same max <= 0 arm).
+		return
+	}
 	candidates := e.legalTargetCandidates(p, source, source, sa)
 	// MaxTotalTargetPower$ (Reunion of the House): prune the candidates that
 	// can provably join no legal selection (individually over the cap unless

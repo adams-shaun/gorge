@@ -2134,8 +2134,15 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		return 0, true
 	}
 	// Kicked.<yes>.<no> is <yes> when the source was kicked, else <no>.
+	// A pending cast's announcement ask reads it BEFORE payment stamps the
+	// stack object, so Ctx.PendingKicked (rules' targetBoundCtx binding) is
+	// ORed with the object's FlagKicked; at resolution no pending cast exists
+	// and the object read is authoritative.
 	if rest, ok := strings.CutPrefix(head, "Kicked."); ok {
 		yes, no := splitDot(rest)
+		if c.PendingKicked {
+			return yes, true
+		}
 		if o := g.Obj(c.Source); o != nil && o.CastFlags&state.FlagKicked != 0 {
 			return yes, true
 		}
