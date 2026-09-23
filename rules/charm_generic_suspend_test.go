@@ -95,9 +95,9 @@ func genericCharmAtPick(t *testing.T, seed uint64, m0, m1 int) (*Engine, int32) 
 // drainCharm counts any further hidden graveyard pick and drains the rest of
 // the resolution. It returns the number of EXTRA hidden-pick asks seen (a
 // non-zero count means a mode re-ran) and the number of "no sub-ability
-// recorded" degradation Notes the resume emitted (the guard suppresses the
-// plain continuation report in favour of SuspendCharmRest, so with the guard
-// there are none).
+// recorded" degradation Notes the resume emitted (SuspendCharmRest suppresses
+// the plain continuation report in favour of the Charm re-entry, so neither a
+// non-empty nor an empty remainder emits one).
 func drainCharm(t *testing.T, e *Engine) (extraPicks, degradedResumes int) {
 	t.Helper()
 	for i := 0; i < 30; i++ {
@@ -159,21 +159,33 @@ func TestGenericCharmModesSurviveTheMidModeSuspension(t *testing.T) {
 // pin the row's "ask N times" wording names directly: the OBSERVABLE mode
 // runs first, the SUSPENDING mode second. With the guard, MLife lands once,
 // MReturn's pick suspends, and the answered pick completes the charm without
-// re-running MLife.
+// re-running MLife -- and, because this suspended mode was the LAST chosen
+// one, with no "no sub-ability recorded" degradation Note either (the empty
+// remainder is reported at the Charm level through SuspendCharmRest).
 func TestGenericCharmSuspendsAfterAnEarlierModeAlreadyRan(t *testing.T) {
 	e, lifeBefore := genericCharmAtPick(t, 6412, 1, 0) // MLife, MReturn
 	d := e.Pending()
 	lifeAfterFirstMode := e.G.Players[0].Life
 	// Precondition: MLife ran before the suspension, so the value the
-	// post-resume assertion compares against really did move by 3.
+	// post-resume assertion compares against really did move by 3 (and so the
+	// MLife-ran-once assertion cannot pass vacuously against an unmoved base).
 	if lifeAfterFirstMode != lifeBefore-3 {
 		t.Fatalf("precondition: life after MLife = %d, want %d (one 3-life loss)",
 			lifeAfterFirstMode, lifeBefore-3)
 	}
+	// Precondition: the hidden graveyard pick this test drains is really
+	// pending, so the mode that suspends is the one whose completion the
+	// note-count assertion below covers.
+	if d.ResumeKind != "hidden_pick" {
+		t.Fatalf("precondition: pending = %+v, want the hidden graveyard pick", d)
+	}
 	submitChoices(t, e, d.Options[0].Index)
-	extra, _ := drainCharm(t, e)
+	extra, degraded := drainCharm(t, e)
 	if extra != 0 {
 		t.Fatalf("%d extra hidden graveyard pick(s) after the second mode", extra)
+	}
+	if degraded != 0 {
+		t.Fatalf("%d degradation Note(s): the last-mode suspension must report an empty remainder through SuspendCharmRest", degraded)
 	}
 	if e.G.Players[0].Life != lifeAfterFirstMode {
 		t.Fatalf("seat 0 life moved after the suspending mode completed: %d -> %d, want no MLife re-run",
