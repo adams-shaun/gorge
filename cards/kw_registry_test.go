@@ -68,6 +68,14 @@ var expandedHeads = []string{
 	// Battle cry (CR 702.33): an Attacks trigger whose PumpAll selects other
 	// creatures that are attacking when the trigger resolves.
 	"Battle cry",
+	// The K:Prevent sentence keyword (task prevent-keyword-expansion): a
+	// printed English sentence with no colon, so the head IS the sentence and
+	// the registration is keyed on the three exact sentences the corpus
+	// prints (kw-prevent). Added after the split; the pre-split switch never
+	// expanded any of them.
+	"Prevent all combat damage that would be dealt to CARDNAME.",
+	"Prevent all combat damage that would be dealt to and dealt by CARDNAME.",
+	"Prevent all damage that would be dealt to CARDNAME.",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {
