@@ -162,9 +162,8 @@ func TestMoltenEchoesCopiesEnteringCreatureExilesAtNextEndStep(t *testing.T) {
 	e, cfg := searchEngine(t, reg, "Molten Echoes")
 	molten := searchMoveByName(t, e, "Molten Echoes", state.ZBattlefield)
 
-	// The "as this enters, choose a creature type" ask is the known cast-time
-	// etbAsk approximation: a directly seated Molten Echoes never poses it.
-	// Record the choice the same way the answered ask's Choose event does.
+	// Molten Echoes is seated directly on the battlefield, so it did not pass
+	// through an entry boundary. Seed the choice with its event representation.
 	e.emit(events.Event{Kind: events.Choose, Obj: molten, Counter: "type", Text: "Bear"})
 
 	bear := searchMoveByName(t, e, "Grizzly Bears", state.ZBattlefield)

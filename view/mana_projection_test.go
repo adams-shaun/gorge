@@ -66,11 +66,6 @@ func TestCardViewProjectsManaProduction(t *testing.T) {
 	}
 }
 
-// TestCardViewProjectsAnyConservatively is the honesty requirement at the
-// view layer: an "add any colour" source is projected as the colourless the
-// engine actually resolves plus the Any flag -- never a coloured pip the pool
-// will not receive -- so a client and the policy both see that this source
-// cannot be leaned on for a specific colour.
 func TestCardViewProjectsNonManaAbilityCostsOnlyWhereASeatCanAct(t *testing.T) {
 	g := state.NewGame([]string{"alice", "bob"})
 	gadget := parsedWithIntrinsics(t, "gadget.txt", "Name:Gadget\nManaCost:2\nTypes:Artifact\nA:AB$ Draw | Cost$ 2 T | Oracle:x\nA:AB$ Mana | Cost$ T | Produced$ C | Oracle:x\nA:AB$ Destroy | Cost$ Sac<1/Artifact> | Oracle:x\n")
@@ -112,7 +107,17 @@ func TestCardViewProjectsNonManaAbilityCostsOnlyWhereASeatCanAct(t *testing.T) {
 	}
 }
 
-func TestCardViewProjectsAnyConservatively(t *testing.T) {
+// TestCardViewProjectsAnyAsItsRealAlternatives is the honesty requirement at
+// the view layer, restated for the resolution-time colour choice: an "add any
+// colour" source is projected as the five colours it can really be tapped for
+// plus the Any flag, never as the colourless stand-in the executor used to
+// emit before it asked. The Any flag is what says the five slots are
+// ALTERNATIVES -- one unit, of a colour chosen on activation (CR 106.1b) --
+// so a client and the policy can aim a coloured pip at this source while
+// still knowing its colour is not fixed. The colourless slot must stay empty:
+// the pool never receives a colourless from this source any more, and a
+// phantom colourless there is exactly the claim the old approximation made.
+func TestCardViewProjectsAnyAsItsRealAlternatives(t *testing.T) {
 	g := state.NewGame([]string{"alice", "bob"})
 	cavern := parsedWithIntrinsics(t, "cavern.txt",
 		"Name:Cavern\nManaCost:no cost\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ Any | Oracle:x\n")
@@ -124,11 +129,23 @@ func TestCardViewProjectsAnyConservatively(t *testing.T) {
 		t.Fatalf("Cavern produces = %v, want the Any/conditional flag set", cv.Produces)
 	}
 	for i := 0; i < 5; i++ {
-		if cv.Produces.ProducesColour(i) {
-			t.Errorf("Cavern must not assert a coloured pip %d", i)
+		if !cv.Produces.ProducesColour(i) {
+			t.Errorf("Cavern must offer colour %d as a real alternative", i)
 		}
 	}
-	if cv.Produces.Colour[5] != 1 {
-		t.Errorf("Cavern colourless = %d, want 1 (the colourless the engine resolves)", cv.Produces.Colour[5])
+	if cv.Produces.Colour[5] != 0 {
+		t.Errorf("Cavern colourless = %d, want 0 (the executor asks for a colour, it no longer emits colourless)", cv.Produces.Colour[5])
+	}
+	// The five slots are one unit each: the projection must not inflate the
+	// source into five mana. A plain basic beside it pins the unit scale.
+	plains := parsedWithIntrinsics(t, "plains.txt",
+		"Name:Plains\nManaCost:no cost\nTypes:Basic Land Plains\nOracle:x\n")
+	pid := g.AddObject(plains, 0).ID
+	g.SetZone(state.ZBattlefield, 0, []state.ObjID{oid, pid})
+	both := Project(g, flatChars{g}, 0, nil).Players[0].Battlefield
+	for i := 0; i < 5; i++ {
+		if got, want := both[0].Produces.Colour[i], both[1].Produces.Colour[0]; got != want {
+			t.Errorf("Cavern colour %d = %d, want %d (one unit, the same scale as a Plains' white)", i, got, want)
+		}
 	}
 }

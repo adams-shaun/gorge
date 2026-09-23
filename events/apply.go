@@ -290,12 +290,12 @@ func Apply(g *state.Game, e Event) {
 		}
 
 	case TokenAttacks:
-		// A token that entered tapped and attacking (Mobilize, Kari Zev's
-		// monkey: the TokenAttacking$ True rider). Unlike MyriadCopy -- which
-		// MINTS a copy of the source card and flags IsMyriad, which
-		// MyriadCleanup exiles at end of combat -- this marks an
-		// ALREADY-MINTED battlefield token: Obj is the token, Player its
-		// controller and IDs[0] the defender it attacks. The object must
+		// A permanent that entered tapped and attacking (TokenAttacking$ or a
+		// move body's Attacking$ True rider). Unlike MyriadCopy -- which MINTS
+		// a copy of the source card and flags IsMyriad, which MyriadCleanup
+		// exiles at end of combat -- this marks an ALREADY-EXISTING battlefield
+		// object: Obj is the permanent, Player its controller and IDs[0] the
+		// defender it attacks. The object must
 		// still be on the battlefield and both players valid; anything else
 		// (a gone token, a fuzz event) is a no-op.
 		if o := g.Obj(e.Obj); o != nil && o.Zone == state.ZBattlefield &&
@@ -1683,6 +1683,12 @@ func Apply(g *state.Game, e Event) {
 				o.UntapChoice = e.Text
 			case "unleash":
 				o.UnleashChoice = e.Text
+			case "clone":
+				o.ETBCloneChoiceValid = true
+				o.ETBCloneChoice = 0
+				if len(e.IDs) > 0 {
+					o.ETBCloneChoice = e.IDs[0]
+				}
 			case state.ModeChoiceCounterPrefix + state.ModeScopeThisTurn:
 				// ChoiceRestriction$ (task charm-choice-restriction): one Charm
 				// mode pick, named in Text, keyed ThisTurn. The entry is pruned
@@ -3065,6 +3071,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.CompleatedLifePaid = 0
 			o.NotedNumber = 0
 			o.ChosenName, o.ChosenType, o.ChosenNumber, o.ChosenColor = "", "", 0, ""
+			o.ETBCloneChoice, o.ETBCloneChoiceValid = 0, false
 			o.Protector, o.ProtectorValid = 0, false
 			o.LastNotedMana = ""
 			o.Chosen = nil

@@ -200,14 +200,18 @@ func TestRiotAndHideawayUseRealCorpusCards(t *testing.T) {
 	cfgSpider := seatZeroStart(Config{Seed: 187, Names: []string{"spider", "other"}, Decks: [][]*cards.Card{deck, deck}})
 	e := New(cfgSpider)
 	id := e.G.Objs[0].ID
-	// Drive the real card through the shared as-enters selection machinery.
-	e.cast = &pendingCast{player: 0, card: id, from: state.ZLibrary, ability: -1}
-	e.collectETBChoices(0)
-	if len(e.cast.etbs) != 1 || e.cast.etbs[0].kind != "riot" {
-		t.Fatalf("riot choices: %#v", e.cast.etbs)
+	if got := e.G.Obj(id).Zone; got != state.ZLibrary {
+		t.Fatalf("precondition: Spider-Punk zone = %s, want library", got)
 	}
-	e.etbAnswer(&decision.Decision{}, []decision.Option{e.cast.etbs[0].options[1]})
+	// Drive the real card through the entry-boundary as-enters selection.
 	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZBattlefield})
+	rd := e.Pending()
+	if rd == nil || rd.Kind != decision.KChoose || len(rd.Options) != 2 || rd.Options[1].Kind != "riot" {
+		t.Fatalf("Riot entry choice = %+v, want counter/haste choice", rd)
+	}
+	if err := e.Submit(decision.Intent{Seq: rd.Seq, Player: rd.Player, Choices: []int{rd.Options[1].Index}}); err != nil {
+		t.Fatalf("submit Riot haste choice: %v", err)
+	}
 	if !e.HasKeyword(id, "Haste") || e.G.Obj(id).Counter("P1P1") != 0 {
 		t.Fatal("Riot haste choice was not applied")
 	}
@@ -217,7 +221,7 @@ func TestRiotAndHideawayUseRealCorpusCards(t *testing.T) {
 	rid := eReanimated.G.Objs[0].ID
 	eReanimated.emit(events.Event{Kind: events.MoveZone, Obj: rid, From: state.ZLibrary, To: state.ZGraveyard})
 	eReanimated.emit(events.Event{Kind: events.MoveZone, Obj: rid, From: state.ZGraveyard, To: state.ZBattlefield})
-	rd := eReanimated.Pending()
+	rd = eReanimated.Pending()
 	if rd == nil || rd.Kind != decision.KChoose || len(rd.Options) != 2 {
 		t.Fatalf("non-cast Riot choice = %+v, want counter/haste choice", rd)
 	}

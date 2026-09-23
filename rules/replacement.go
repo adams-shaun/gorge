@@ -200,9 +200,12 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 		e.parkMadnessDiscard(ev)
 		return ev, true
 	}
-	// Riot (CR 702.108) asks its counter-or-haste question as the creature
-	// would enter; parking the move keeps the entry out of the log until the
-	// as-enters choice is recorded next to it.
+	// All card-defined as-enters choices (including Riot and Unleash) are
+	// parked through the shared mid-resolution ETB path below.
+	if e.applyETBChoiceReplacement(ev) {
+		return ev, true
+	}
+	// Defensive legacy Riot fallback.
 	if e.applyRiotReplacement(ev) {
 		return ev, true
 	}
@@ -1329,6 +1332,13 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 	if f != nil {
 		effects.SetSVars(ctx, f.SVars)
 	}
+	if o != nil && m.repl != nil && m.repl.Params["Keyword"] == "ETBReplacement" && m.repl.With != nil && m.repl.With.API == "Clone" {
+		ctx.CloneETB = true
+		ctx.CloneBecome = ev.Obj
+		ctx.CloneBecomeValid = true
+		ctx.CloneChoiceValid = o.ETBCloneChoiceValid
+		ctx.CloneChoice = o.ETBCloneChoice
+	}
 	e.seedEffectReplCtx(ctx, m)
 	return ctx
 }
@@ -1442,6 +1452,9 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 		e.checkTriggers(stored, nil, 0, 0, false)
 		e.finishSourceLifelinkLKI(ev, departing, link, controller)
 		e.runReplaceWith(ctx, ev.Obj, m.repl.With, nil)
+		if e.pending == nil && stored.Kind == events.MoveZone && stored.To == state.ZBattlefield {
+			e.finishLandPlay(stored.Obj)
+		}
 		return stored, true
 	}
 	e.runReplaceWith(ctx, ev.Obj, m.repl.With, &ev)
@@ -1471,6 +1484,9 @@ func (e *Engine) composeUpdatedReplacements(ev events.Event, matches []replMatch
 			continue
 		}
 		e.runReplaceWith(e.replCtx(m, ev), ev.Obj, m.repl.With, nil)
+	}
+	if e.pending == nil && stored.Kind == events.MoveZone && stored.To == state.ZBattlefield {
+		e.finishLandPlay(stored.Obj)
 	}
 	return stored, true
 }
@@ -2206,11 +2222,44 @@ func (e *Engine) resolveReplacementWith(ctx *effects.Ctx, with *cards.SA) {
 	e.damaging = saved
 }
 
-// applyRiotReplacement parks every non-cast battlefield entry of a Riot
-// creature before it happens. Cast flow already records RiotChoice through
-// collectETBChoices, but reanimation/blink/search entries only visit this
-// general MoveZone path. The parked move is emitted after handleChoose logs
-// the choice, making events.Move the single place that applies it.
+// applyETBChoiceReplacement parks an entry before it is folded into the
+// battlefield and asks through the ordinary mid-resolution suspension path.
+// This is the CR 614.12 boundary: the chooser sees the question only when the
+// permanent would enter, whether the move came from a resolving spell, a land
+// play, reanimation or a search. etbMove/etbNext are the only transient
+// continuation state; the answer itself is the existing Choose event.
+func (e *Engine) applyETBChoiceReplacement(ev events.Event) bool {
+	if ev.Kind != events.MoveZone || ev.To != state.ZBattlefield || e.pending != nil ||
+		events.IsFaceDownEntry(ev.Counter) {
+		return false
+	}
+	ordinal := 0
+	if e.etbMove != nil {
+		if e.etbMove.Obj != ev.Obj {
+			return false
+		}
+		ordinal = e.etbNext
+	}
+	choice, ok := e.entryETBChoice(ev, ordinal)
+	if !ok {
+		e.etbMove = nil
+		e.etbNext = 0
+		return false
+	}
+	move := ev
+	e.etbMove = &move
+	e.etbNext = ordinal + 1
+	d := &decision.Decision{Player: e.G.Obj(ev.Obj).Controller, Kind: decision.KChoose,
+		Min: 1, Max: 1, ResumeKind: "etb", Source: ev.Obj,
+		Prompt: "Choose" + etbChoicePrompt(choice.kind), Options: choice.options}
+	e.choosing = chooseETBEntry
+	e.Ask(d)
+	return true
+}
+
+// applyRiotReplacement is retained as a defensive fallback for an entry that
+// bypasses the shared ETB-choice walker. Ordinary entries are handled by
+// applyETBChoiceReplacement above, so this path is not used by normal casts.
 func (e *Engine) applyRiotReplacement(ev events.Event) bool {
 	// A battlefield entry reached while another decision is outstanding must
 	// not overwrite it (the orphaned-pending failure poseLifeReplacementChoice

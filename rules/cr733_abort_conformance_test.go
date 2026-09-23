@@ -250,11 +250,13 @@ func crAbortSites(t *testing.T, sites []string) {
 			case "spell_mana":
 				e.beginCast(0, decision.Option{Kind: "cast", Obj: id})
 			case "spell_mana_after_choice":
+				// The choice now belongs to the entry boundary. This proposal is
+				// rejected before the permanent can enter, so no number decision
+				// may be pending during the CR 733.1 abort probe.
 				e.beginCast(0, decision.Option{Kind: "cast", Obj: id})
-				if d := e.Pending(); d == nil || d.Kind != decision.KChoose || len(d.Options) < 3 || d.Options[2].Kind != "number" || d.Options[2].Amount != 2 {
-					t.Fatalf("CR 733.1 %s seq %d: missing real as-enters number choice", name, start)
+				if d := e.Pending(); d != nil && d.Kind == decision.KChoose && d.ResumeKind == "etb" {
+					t.Fatalf("CR 733.1 %s seq %d: entry choice was posed before entry", name, start)
 				}
-				crAbortAnswer(t, e, name, 2)
 			case "activation_mana":
 				idx := -1
 				for i, ab := range e.G.Obj(id).Face().Abilities {

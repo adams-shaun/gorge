@@ -264,8 +264,8 @@ func TestManaAbilityChoiceOptionsMarkSource(t *testing.T) {
 
 // TestManaColourPromptNamesDeterminateAmount pins the wording table of
 // manaColourPrompt directly: an explicitly present, positive literal Amount$
-// is named, with "any one color" verbatim on the Any shapes so the
-// one-colour choice is visibly the whole deal; an ABSENT Amount$ param (no
+// is named, with "any one color" on the Any shape and the allocation wording
+// on Combo Any; an ABSENT Amount$ param (no
 // amount is invented for it), a non-literal amount (X/Y, an inline Count$
 // body) and a non-positive literal all stay generic.
 func TestManaColourPromptNamesDeterminateAmount(t *testing.T) {
@@ -277,8 +277,8 @@ func TestManaColourPromptNamesDeterminateAmount(t *testing.T) {
 		{"Any", "1", "Add 1 mana of any one color — choose the colour"},
 		{"Any", "", generic},
 		{"", "", generic},
-		{"Combo Any", "2", "Add 2 mana of any one color — choose the colour"},
-		{"Combo R G", "2", "Add 2 mana — choose the colour"},
+		{"Combo Any", "2", "Add 2 mana in any combination of colors — choose the colours"},
+		{"Combo R G", "2", "Add 2 mana — choose the colours"},
 		{"Any", "X", generic},
 		{"Any", "Y", generic},
 		{"Any", "Count$Something", generic},

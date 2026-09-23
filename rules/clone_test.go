@@ -544,3 +544,39 @@ func TestCloneCarriesTheMulliganRound(t *testing.T) {
 		}
 	}
 }
+
+// TestCloneCopiesCounterAskCursors pins the deep copy of the two
+// decision-derived answer cursors (rules/clone.go, the moveCounterAsk /
+// aorAsk discipline): a clone taken while a MoveCounter or
+// AddOrRemoveCounter resolution is suspended on its own mid-resolution ask
+// must carry the answered entries forward AND own its own storage, or the
+// clone re-asks an already-answered kind (the counterchoice1 round-2
+// finding) and its decision stream diverges from the original's.
+func TestCloneCopiesCounterAskCursors(t *testing.T) {
+	names, decks := testutil.SampleDecks(t, 2)
+	e := New(Config{Seed: 5, Names: names, Decks: decks})
+	e.Advance()
+	e.moveCounterAsk = map[state.ObjID]*moveCounterPending{
+		7: {targets: []state.Target{{Player: 1, IsPlayer: true}}, kind: "P1P1", kindSet: true, n: 3, nSet: true},
+	}
+	e.aorAsk = map[state.ObjID]map[string]bool{7: {"P1P1": true}}
+	c := e.Clone()
+	if p := c.moveCounterAsk[7]; p == nil || !p.kindSet || p.kind != "P1P1" || len(p.targets) != 1 {
+		t.Fatalf("clone dropped or mangled the moveCounterAsk cursor: %+v", p)
+	}
+	if set := c.aorAsk[7]; set == nil || !set["P1P1"] {
+		t.Fatalf("clone dropped the aorAsk cursor: %+v", set)
+	}
+	// In-place mutation of the clone's entries must never reach the
+	// original's storage.
+	c.moveCounterAsk[7].targets[0] = state.Target{Obj: 99}
+	c.moveCounterAsk[7].kind = "TIME"
+	c.aorAsk[7]["TIME"] = true
+	delete(c.aorAsk[7], "P1P1")
+	if o := e.moveCounterAsk[7]; o.kind != "P1P1" || o.targets[0].Obj != 0 || o.targets[0].Player != 1 {
+		t.Fatalf("clone shares the moveCounterAsk pending with the original: %+v", o)
+	}
+	if o := e.aorAsk[7]; !o["P1P1"] || o["TIME"] || len(o) != 1 {
+		t.Fatalf("clone shares the aorAsk kind set with the original: %+v", o)
+	}
+}

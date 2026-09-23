@@ -13,15 +13,10 @@ import (
 //
 // The choice half is the Riot precedent (CR 702.108): a Forge construct
 // choice with no card script, so rules reads the K:Unleash keyword directly.
-// The cast path poses it through the shared as-enters machinery
-// (collectETBChoices/etbAsk/etbAnswer, rules/cast.go); every non-cast
-// battlefield entry (reanimation, blink, search, a direct MoveZone) is caught
-// here by applyUnleashReplacement, which parks the move until the answer is
-// logged -- the exact shape applyRiotReplacement (rules/replacement.go)
-// practises, and the answer handler in rules/turn.go's chooseUnleash arm
-// mirrors too. Apply's Move folds the answer ("counter" -> a +1/+1 counter)
-// on battlefield entry (events/apply.go), so every entry path and a log-only
-// replay agree.
+// Every battlefield entry is caught by applyETBChoiceReplacement
+// (rules/replacement.go), which parks the move until the answer is logged.
+// Apply's Move folds the answer ("counter" -> a +1/+1 counter) on battlefield
+// entry (events/apply.go), so every entry path and a log-only replay agree.
 //
 // The can't-block half is read in canBlock (rules/combat.go) beside the
 // Suspected designation -- the blocker-side gate every option and validation
@@ -33,8 +28,7 @@ import (
 const chooseUnleash chooseFor = chooseAttackPay + 1
 
 // unleashOptions are the two answers of the as-enters Unleash choice, in the
-// fixed order the cast path (collectETBChoices) and the non-cast path
-// (applyUnleashReplacement) both offer: index 0 takes the counter, index 1
+// fixed order the entry replacement offers: index 0 takes the counter, index 1
 // declines it. Index 0 is also the deterministic bot/host answer (option 0),
 // which CR 702.86's "you may" permits.
 func unleashOptions(id state.ObjID, p state.PlayerID) []decision.Option {
@@ -44,13 +38,10 @@ func unleashOptions(id state.ObjID, p state.PlayerID) []decision.Option {
 	}
 }
 
-// applyUnleashReplacement parks every non-cast battlefield entry of an
-// Unleash creature before it happens, mirroring applyRiotReplacement. The
-// same overwrite guard applies: never park on an ask while another decision
-// is outstanding, and never re-ask an object whose choice was already
-// recorded (a cast-path entry arrives with UnleashChoice set by the Choose
-// event etbAnswer emitted, so the guard is what keeps the two paths from
-// asking twice). Entries of face-down objects (a manifest or cloak) are
+// applyUnleashReplacement is a defensive fallback for an Unleash entry that
+// bypasses applyETBChoiceReplacement. The same overwrite guard applies: never
+// park on an ask while another decision is outstanding, and never re-ask an
+// object whose choice was already recorded. Entries of face-down objects (a manifest or cloak) are
 // vanilla 2/2 creatures (CR 708.5): the FaceDown state is folded by Apply's
 // Move AFTER this replacement dispatch runs, so o.Face() still exposes the
 // hidden printed face here and the keyword read below would otherwise match

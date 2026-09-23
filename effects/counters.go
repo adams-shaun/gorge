@@ -14,9 +14,11 @@ import (
 
 func init() {
 	Register("PutCounter", effPutCounter)
+	Register("Poison", effPoison)
 	Register("PutCounterAll", effPutCounterAll)
 	Register("RemoveCounterAll", effRemoveCounterAll)
 	Register("RemoveCounter", effRemoveCounter)
+	Register("AddOrRemoveCounter", effAddOrRemoveCounter)
 	Register("MoveCounter", effMoveCounter)
 	Register("MultiplyCounter", effMultiplyCounter)
 	Register("Proliferate", effProliferate)
@@ -123,6 +125,27 @@ func splitCounterKinds(raw string) []string {
 		}
 	}
 	return out
+}
+
+// effPoison applies Forge's Poison effect to player targets. Poison is a
+// player counter, but unlike PutCounter its signed Num$ is intentional:
+// Leeches uses a negative amount to remove the target's existing poison.
+// PlayerCounterChange is the shared event choke point, so replacement effects
+// and the poison-loss SBA observe both placement and removal.
+func effPoison(h Host, c *Ctx, sa *cards.SA) {
+	n := Num(h, c, sa, "Num", 1)
+	g := h.Game()
+	for _, t := range Defined(h, c, sa) {
+		if !t.IsPlayer {
+			continue
+		}
+		p := PlayerOf(h, c, t)
+		if int(p) < 0 || int(p) >= len(g.Players) {
+			continue
+		}
+		h.Emit(events.Event{Kind: events.PlayerCounterChange, Player: p,
+			Counter: "POISON", Amount: n})
+	}
 }
 
 func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
@@ -1385,9 +1408,10 @@ func effRemoveCounterAll(h Host, c *Ctx, sa *cards.SA) {
 //
 // Exotic shapes stay LOUD (the effPutCounterAll exotic pattern -- one Note
 // naming the shape, nothing moves): CounterType$ Any (a choose-which-kind
-// ask), Choices$/ChoiceOptional$ (a mid-resolution pick), UpTo$ (a bounded
-// election), CounterNum$ Any, CounterNumShared$, a TgtZone$ naming anything
-// but the battlefield (the suspended-TIME-counter family), RememberAmount$
+// ask), ChoiceOptional$ without Choices$ (a malformed mid-resolution pick),
+// UpTo$ (a bounded election), CounterNum$ Any, CounterNumShared$, and a
+// TgtZone$ naming anything but the battlefield (the suspended-TIME-counter
+// family), RememberAmount$
 // (a removed NUMBER the remembered list has no honest channel for) and
 // Optional$ (a may-remove election). Registering the API removed the generic
 // "unimplemented API" fallback, so without these notes the shapes would
@@ -1400,12 +1424,27 @@ func effRemoveCounterAll(h Host, c *Ctx, sa *cards.SA) {
 // The note records the skip loudly; nothing moves (removal off-battlefield
 // stays a TgtZone$ task).
 func effRemoveCounter(h Host, c *Ctx, sa *cards.SA) {
+	// fx42 scoping: the answered bare-Choices$ pick rides the SHARED
+	// "counter_pick" arm's fields (Ctx.CounterPick — the same transport
+	// PutCounter's bare pick uses, since the option lists decode identically),
+	// so capture and clear them at the very top, before any exotic check or
+	// nested RemoveCounter in the same chain can see them.
+	pickAns := c.CounterPick
+	pickDone := c.CounterPickDone
+	c.CounterPick, c.CounterPickDone = nil, false
 	var exotic []string
 	if strings.EqualFold(strings.TrimSpace(sa.Params["CounterType"]), "Any") {
 		exotic = append(exotic, "CounterType$ Any")
 	}
-	if strings.TrimSpace(sa.Params["Choices"]) != "" || strings.TrimSpace(sa.Params["ChoiceOptional"]) != "" {
-		exotic = append(exotic, "Choices$")
+	if strings.TrimSpace(sa.Params["Choices"]) != "" {
+		// The card-election arm (counterchoice1): the 10 raw corpus
+		// RemoveCounter lines carrying Choices$. Shapes this arm cannot
+		// express stay loud inside removeCounterChoose.
+		removeCounterChoose(h, c, sa, pickAns, pickDone)
+		return
+	}
+	if strings.TrimSpace(sa.Params["ChoiceOptional"]) != "" {
+		exotic = append(exotic, "ChoiceOptional$")
 	}
 	if strings.TrimSpace(sa.Params["UpTo"]) != "" {
 		exotic = append(exotic, "UpTo$")
@@ -1524,6 +1563,409 @@ func dedupeKinds(kinds []string) []string {
 		out = append(out, k)
 	}
 	return out
+}
+
+// removeCounterChoose runs the bare-Choices$ RemoveCounter card-election arm
+// (counterchoice1; 10 raw corpus RemoveCounter lines carry Choices$). The
+// CHOOSER (the resolving controller; every carrier) picks objects out of the
+// Choices$ pool in ChoiceZone$ (default the battlefield; Amy Pond's and Mari
+// the Killing Quill's triggers name Exile), and EACH chosen object loses
+// CounterNum$ counters of CounterType$ (the shared Num grammar — Amy Pond's
+// CounterNum$ X is the triggering damage amount). The answer re-enters
+// through the shared "counter_pick" resume arm (Ctx.CounterPick), consumed
+// and cleared by effRemoveCounter at its top (fx42).
+//
+// How many objects: ChoiceNum$-exact (default 1; Amy Pond, Mari the Killing
+// Quill) unless ChoiceOptional$ True is present, which is Forge's "each of
+// ANY number" — both reachable carriers (Garnet, Princess of Alexandria's
+// "remove a lore counter from each of any number of Sagas you control" and
+// Chandra, Legacy of Fire's [0] over "any number of permanents you control")
+// pair it with NO ChoiceNum$, so the bound is 0..len(eligible) and a two-Saga
+// board really can take BOTH. ChoiceOptional$ True WITH an explicit
+// ChoiceNum$ reads as up-to-N (0..ChoiceNum$); no corpus line carries that
+// pair today, so that branch is corpus-unreachable.
+//
+// RememberAmount$ True is the removed-COUNT transport (Garnet's
+// SVar:X:Count$RememberedNumber payoff, Chandra's Z, Dyadrine, Synthesis
+// Amalgam's DBDraw/DBToken ConditionCheckSVar$ Z): the chosen object's id is
+// appended to Ctx.Remembered ONCE PER COUNTER REMOVED, exactly the encoding
+// effMoveCounter's own RememberAmount$ rider uses, so Count$RememberedNumber
+// reads the truthful total across every chosen object. It is orthogonal to
+// RememberRemoved$, which writes the event-backed host list instead; a line
+// carrying both gets both.
+//
+// The ask gate is the strict-supersets rule (a decision nobody could answer
+// differently is never emitted): zero eligible objects acts on nothing, an
+// exact count at or above the eligible count takes the deterministic first
+// Max, and everything else — an Optional$ 0..1 over even ONE eligible object
+// — is a real election. The no-host fallback (R-9) and botpolicy's
+// "counter_pick" arm both take the first Max eligible in zone order, so a
+// bot-answered ask emits the same events a silent build would have.
+//
+// Loud-and-unmodelled (one Note naming the shapes, nothing moves — the same
+// exotic discipline the defined path keeps): CounterType$ Any/All (a
+// which-kind pick stacked on the card election), CounterNum$ Any (a
+// how-many-per-card ask), UpTo$/CounterNumShared$ (a divided total), and a
+// ChoiceZone$ naming neither the battlefield nor exile.
+func removeCounterChoose(h Host, c *Ctx, sa *cards.SA, ans []state.ObjID, done bool) {
+	var loud []string
+	kind := strings.TrimSpace(sa.Params["CounterType"])
+	if kind == "" {
+		kind = "P1P1" // the defined path's default kind
+	}
+	if strings.EqualFold(kind, "Any") || strings.EqualFold(kind, "All") {
+		loud = append(loud, "CounterType$ "+kind)
+	}
+	if strings.EqualFold(strings.TrimSpace(sa.Params["CounterNum"]), "Any") {
+		loud = append(loud, "CounterNum$ Any")
+	}
+	if strings.TrimSpace(sa.Params["UpTo"]) != "" {
+		loud = append(loud, "UpTo$")
+	}
+	if strings.TrimSpace(sa.Params["CounterNumShared"]) != "" {
+		loud = append(loud, "CounterNumShared$")
+	}
+	zone := state.ZBattlefield
+	switch strings.TrimSpace(sa.Params["ChoiceZone"]) {
+	case "", "Battlefield":
+	case "Exile":
+		zone = state.ZExile
+	default:
+		loud = append(loud, "ChoiceZone$ "+strings.TrimSpace(sa.Params["ChoiceZone"]))
+	}
+	if len(loud) > 0 {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "unimplemented RemoveCounter choice shape: " + strings.Join(loud, ", ")})
+		return
+	}
+	if done {
+		removeCounterPickApply(h, c, sa, zone, kind, Num(h, c, sa, "CounterNum", 1), ans)
+		return
+	}
+	g := h.Game()
+	spec := strings.TrimSpace(sa.Params["Choices"])
+	var eligible []state.ObjID
+	for _, p := range g.AliveFrom(0) {
+		for _, id := range g.Zone(zone, p) {
+			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+				eligible = append(eligible, id)
+			}
+		}
+	}
+	num := Num(h, c, sa, "CounterNum", 1)
+	if num < 0 {
+		num = 0
+	}
+	exact := Num(h, c, sa, "ChoiceNum", 1)
+	if exact < 0 {
+		exact = 0
+	}
+	minv, maxv := exact, exact
+	if strings.EqualFold(strings.TrimSpace(sa.Params["ChoiceOptional"]), "True") {
+		// Forge's "each of any number": Min 0, and — with no explicit
+		// ChoiceNum$ bounding it (both reachable carriers) — Max the whole
+		// eligible pool, so Garnet's two Sagas can BOTH be chosen. An
+		// explicit ChoiceNum$ alongside it keeps its own Max (up-to-N).
+		minv = 0
+		if strings.TrimSpace(sa.Params["ChoiceNum"]) == "" {
+			maxv = int32(len(eligible))
+		}
+	}
+	if maxv > int32(len(eligible)) {
+		maxv = int32(len(eligible))
+	}
+	if minv > maxv {
+		minv = maxv
+	}
+	fallback := func() {
+		picks := eligible
+		if int32(len(picks)) > maxv {
+			picks = picks[:maxv]
+		}
+		removeCounterPickApply(h, c, sa, zone, kind, num, picks)
+	}
+	if len(eligible) == 0 || (minv == maxv && maxv >= int32(len(eligible))) {
+		// Nothing eligible, or the forced exact set (the strict-supersets
+		// rule): the deterministic act with no ask.
+		fallback()
+		return
+	}
+	d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose,
+		Min:        int(minv),
+		Max:        int(maxv),
+		Source:     c.Source,
+		ResumeKind: "counter_pick",
+		ResumeSA:   sa,
+		Prompt:     "Choose card(s) to remove " + kind + " counters from"}
+	for _, id := range eligible {
+		name := "a card"
+		if o := g.Obj(id); o != nil && o.Face() != nil {
+			name = o.Face().Name
+		}
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+			Kind: "counter_pick", Label: name, Obj: id, Player: c.Controller})
+	}
+	if Ask(h, d) == AskAsked {
+		return // resolution suspended; the answer re-enters with Ctx.CounterPick set.
+	}
+	fallback()
+}
+
+// removeCounterPickApply removes num counters of kind from each live chosen
+// object (a chosen object that left the choice zone while the decision was
+// outstanding takes nothing — the same staleness stance putCounterPickApply
+// takes), honouring the RememberRemoved$ rider through the shared helper and
+// the RememberAmount$ rider through Ctx.Remembered (the effMoveCounter
+// encoding: the object's id once per counter removed, so the chained
+// Count$RememberedNumber payoff — Garnet's X, Chandra's Z, Dyadrine's
+// ConditionCheckSVar$ Z — reads the real total).
+func removeCounterPickApply(h Host, c *Ctx, sa *cards.SA, zone state.Zone, kind string, num int32, picks []state.ObjID) {
+	g := h.Game()
+	rememberAmount := strings.EqualFold(strings.TrimSpace(sa.Params["RememberAmount"]), "True")
+	var amountIDs []state.ObjID
+	for _, id := range picks {
+		o := g.Obj(id)
+		if o == nil || o.Zone != zone {
+			continue
+		}
+		count := o.Counter(kind)
+		removed := num
+		if removed > count {
+			removed = count
+		}
+		if removed <= 0 {
+			continue
+		}
+		h.Emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: kind, Amount: -removed})
+		rememberRemoved(h, c, sa, id, removed)
+		for i := int32(0); i < removed; i++ {
+			amountIDs = append(amountIDs, id)
+		}
+	}
+	if rememberAmount && len(amountIDs) > 0 {
+		c.Remembered = append(c.Remembered, objTargets(amountIDs)...)
+	}
+}
+
+// effAddOrRemoveCounter is Forge's AddOrRemoveCounterEffect (counterchoice1;
+// 11 corpus files): "Choose a counter on target permanent or suspended card.
+// Remove that counter from it or put another of those counters on it" — the
+// add-or-remove election over one target that may live on the battlefield OR
+// in exile (a suspended card; TgtZone$ Battlefield,Exile).
+//
+// Three shapes, split on the corpus's own parameters:
+//
+//  1. RemoveConditionSVar$ (Etched Host Doombringer, Portent Tracker, Shape
+//     of the Wiitigo): the condition picks the arm — count > 0 removes,
+//     otherwise puts. No ask: the condition IS the choice ("if an opponent
+//     protects it, remove ...; otherwise, put ..."). An unresolvable
+//     condition body is one loud Note and nothing moves (fail closed, the
+//     NumResolved verdict — never a degrade-to-zero that silently picked a
+//     branch).
+//  2. A named CounterType$ without a condition (Plague Boiler, Sigurd, Guile,
+//     Jhoira's Timebug, Lavabrink Floodgates): the decider (DefinedPlayer$,
+//     default the resolving controller) answers a real election — remove or
+//     put, with a skip option when Optional$ True (Lavabrink's "that player
+//     may ...").
+//  3. No CounterType$ (Clockspinning) or EachExistingCounter$ True
+//     (Dramatist's Puppet, Quarry Hauler): the kinds the target ACTUALLY
+//     carries are enumerated first — Clockspinning asks ONE combined pick
+//     over (remove|put) × the kinds present (the answered option carries both
+//     halves, "aor_remove:TIME"), EachExistingCounter$ elects for EVERY kind
+//     in sequence — then the same add/remove election runs per kind.
+//
+// Each answered election re-enters through ResumeKind "aor_elect"; the
+// election's kind is parsed out of the answer's own option encoding
+// ("aor_remove:<kind>"), so no ask-to-ask state rides the fresh Ctx. The
+// EachExistingCounter$ per-kind cursor rides rules' aorAsk pending map (the
+// moveCounterAsk discipline), seeded into Ctx.AorAnswered.
+func effAddOrRemoveCounter(h Host, c *Ctx, sa *cards.SA) {
+	elect, akind := c.AorElect, c.AorKind
+	answered := c.AorAnswered
+	c.AorElect, c.AorKind, c.AorAnswered, c.AorDone = "", "", nil, false
+
+	g := h.Game()
+	named := strings.TrimSpace(sa.Params["CounterType"])
+	eachExisting := strings.EqualFold(strings.TrimSpace(sa.Params["EachExistingCounter"]), "True")
+	if eachExisting && named != "" {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "unimplemented AddOrRemoveCounter shape: EachExistingCounter$ with CounterType$ " + named})
+		return
+	}
+	amount := Num(h, c, sa, "CounterNum", 1)
+	if amount < 0 {
+		amount = 0
+	}
+	// The target: Defined$ when present, else the announced ValidTgts$ targets
+	// Ctx.Targets carries (Defined's own fallback — the etched-host Charm mode
+	// named its battle at cast time). The corpus is single-target throughout;
+	// a walk naming several acts on the first under one loud Note (the
+	// deliberate narrowing, corpus-unreachable).
+	var target *state.Object
+	objTargets := 0
+	for _, t := range Defined(h, c, sa) {
+		if t.IsPlayer {
+			continue
+		}
+		if o := g.Obj(t.Obj); o != nil && (o.Zone == state.ZBattlefield || o.Zone == state.ZExile) {
+			objTargets++
+			if target == nil {
+				target = o
+			}
+		}
+	}
+	if target == nil {
+		return // nothing to act on (the defined path's silent skip)
+	}
+	if objTargets > 1 {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "unimplemented AddOrRemoveCounter shape: multiple targets; acted on the first"})
+	}
+	// The condition shape (named kind + RemoveConditionSVar$): no ask.
+	if cond := strings.TrimSpace(sa.Params["RemoveConditionSVar"]); cond != "" && named != "" {
+		n, ok := NumResolved(h, c, sa, "RemoveConditionSVar", 0)
+		if !ok {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "unimplemented AddOrRemoveCounter shape: RemoveConditionSVar$ unresolvable (" + cond + ")"})
+			return
+		}
+		if n > 0 {
+			aorApplyAct(h, c, sa, target, named, "remove", amount)
+		} else {
+			aorApplyAct(h, c, sa, target, named, "put", amount)
+		}
+		return
+	}
+	// The kinds the election walks: the named kind, or the kinds the target
+	// actually carries (positive counts, slice order — never a map walk).
+	kinds := []string{named}
+	if named == "" {
+		kinds = counterKinds("", len(target.Counters),
+			func(i int) string { return target.Counters[i].Kind },
+			func(i int) int32 { return target.Counters[i].N })
+		if len(kinds) == 0 {
+			return // no counter to choose (Clockspinning on a bare card)
+		}
+	}
+	// The decider: DefinedPlayer$ when it resolves (Lavabrink Floodgates'
+	// DefinedPlayer$ TriggeredPlayer — the upkeep player chooses), else the
+	// resolving controller. A chooser is never guessed: an unresolvable
+	// DefinedPlayer$ is one loud Note and nothing moves.
+	decider := c.Controller
+	if spec := strings.TrimSpace(sa.Params["DefinedPlayer"]); spec != "" {
+		ts := Defined(h, c, &cards.SA{Params: map[string]string{"Defined": spec}})
+		if len(ts) == 0 || !ts[0].IsPlayer {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "AddOrRemoveCounter DefinedPlayer$ unresolvable (" + spec + ")"})
+			return
+		}
+		decider = ts[0].Player
+	}
+	// Apply the answered election first (fx42); a skip applies nothing but
+	// still retires the kind (the pending map recorded it).
+	if akind != "" && elect != "" && elect != "skip" {
+		aorApplyAct(h, c, sa, target, akind, elect, amount)
+	}
+	optional := strings.EqualFold(strings.TrimSpace(sa.Params["Optional"]), "True")
+	if !eachExisting && named == "" {
+		if elect != "" {
+			// The answered combined pick was applied above; this re-entry is
+			// done — no second ask, no loop.
+			return
+		}
+		// The absent-kind shape (Clockspinning): ONE combined pick —
+		// (remove|put) × the kinds present — so the answered option carries
+		// both halves of the choice ("aor_remove:TIME") and no ask-to-ask
+		// state needs to survive the round trip. A single-kind target asks
+		// the same 2-option election the named-kind shape does; Optional$
+		// adds the skip option.
+		d := &decision.Decision{Player: decider, Kind: decision.KChoose,
+			Min: 1, Max: 1, Source: c.Source,
+			ResumeKind: "aor_elect", ResumeSA: sa,
+			Prompt: "Choose a counter: remove it, or put another one on it?"}
+		for _, k := range kinds {
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+				Kind: "aor_remove:" + k, Label: "Remove a " + k + " counter", Obj: target.ID, Player: decider})
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+				Kind: "aor_put:" + k, Label: "Put another " + k + " counter on it", Obj: target.ID, Player: decider})
+		}
+		if optional {
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+				Kind: "aor_skip", Label: "Do nothing", Obj: target.ID, Player: decider})
+		}
+		if Ask(h, d) == AskAsked {
+			return // resolution suspended; the answer re-enters with Ctx.AorElect/AorKind set.
+		}
+		// No-host fallback (R-9): the first option — remove the first kind —
+		// the exact mirror of botpolicy's first-option KChoose answer.
+		aorApplyAct(h, c, sa, target, kinds[0], "remove", amount)
+		return
+	}
+	for _, k := range kinds {
+		if containsKind(answered, k) || (elect != "" && k == akind) {
+			continue // already answered (earlier round, or this re-entry above)
+		}
+		d := &decision.Decision{Player: decider, Kind: decision.KChoose,
+			Min: 1, Max: 1, Source: c.Source,
+			ResumeKind: "aor_elect", ResumeSA: sa,
+			Prompt: "Remove a " + k + " counter from it, or put another one on it?"}
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+			Kind: "aor_remove:" + k, Label: "Remove a " + k + " counter", Obj: target.ID, Player: decider})
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+			Kind: "aor_put:" + k, Label: "Put another " + k + " counter on it", Obj: target.ID, Player: decider})
+		if optional {
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+				Kind: "aor_skip:" + k, Label: "Do nothing", Obj: target.ID, Player: decider})
+		}
+		if Ask(h, d) == AskAsked {
+			return // resolution suspended; the answer re-enters with Ctx.AorElect/AorKind set.
+		}
+		// No-host fallback (R-9): the first option — remove — the exact mirror
+		// of botpolicy's first-option KChoose answer.
+		aorApplyAct(h, c, sa, target, k, "remove", amount)
+	}
+}
+
+// aorApplyAct emits one election's CounterChange. Removal clamps to what the
+// object actually carries (state's AddCounter clamps at zero either way; a
+// negative overstatement would misreport) and puts at least one; a zero
+// amount acts on nothing (the zero-batch no-op discipline both siblings
+// follow). RememberRemovedCards$ True (Guile, Sonic Soldier) remembers the
+// card the counter was removed FROM — one Choose "remembered" entry, the
+// consumer (the chained ImmediateTrigger's ConditionDefined$ Remembered gate)
+// reads presence, not count.
+func aorApplyAct(h Host, c *Ctx, sa *cards.SA, o *state.Object, kind, act string, amount int32) {
+	switch act {
+	case "remove":
+		count := o.Counter(kind)
+		removed := amount
+		if removed > count {
+			removed = count
+		}
+		if removed <= 0 {
+			return
+		}
+		h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: kind, Amount: -removed})
+		if strings.EqualFold(strings.TrimSpace(sa.Params["RememberRemovedCards"]), "True") && c.Source != 0 {
+			h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "remembered",
+				IDs: []state.ObjID{o.ID}})
+		}
+	case "put":
+		if amount <= 0 {
+			return
+		}
+		h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: kind, Amount: amount})
+	}
+}
+
+// containsKind reports whether the answered-kind cursor names k.
+func containsKind(kinds []string, k string) bool {
+	for _, have := range kinds {
+		if have == k {
+			return true
+		}
+	}
+	return false
 }
 
 // effMoveCounter implements Forge's MoveCounterEffect: counters of
