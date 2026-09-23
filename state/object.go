@@ -519,13 +519,15 @@ type Object struct {
 	// Combat-only.
 	IsAttacking bool
 	Attacking   PlayerID
-	// AttackingBattle is the CR 310.7 battle this creature is attacking, or 0
-	// when it attacks a player. Attacking still names the battle's PROTECTOR
-	// (the player who blocks and whose seat the attack is scoped to), so the
-	// two fields together carry the whole defender: a player defender leaves
-	// AttackingBattle zero, a battle defender sets it to the battle's ObjID.
-	// Set by events.Apply's DeclareAttackers case from the event's Obj (the
-	// battle id for a battle attack) and cleared wherever IsAttacking is.
+	// AttackingBattle is the non-player permanent this creature is attacking,
+	// or 0 when it attacks a player: a CR 310.7 battle (its ObjID) or a
+	// planeswalker (CR 508.1). Attacking still names the defender's seat -- the
+	// battle's PROTECTOR or the planeswalker's controller (the player who blocks
+	// and whose seat the attack is scoped to) -- so the two fields together
+	// carry the whole defender: a player defender leaves AttackingBattle zero, a
+	// battle or planeswalker defender sets it to that permanent's ObjID. Set by
+	// events.Apply's DeclareAttackers case from the event's Obj and cleared
+	// wherever IsAttacking is.
 	AttackingBattle ObjID
 	BlockedBy       []ObjID
 	// EncoreAttackTurn/Defender record "attacks that opponent this turn if
