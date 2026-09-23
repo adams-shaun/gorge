@@ -201,3 +201,44 @@ func TestSephirothResolvedTallyReplaysExactly(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// TestSephirothResolvedTallyResetsAtTurnChange closes the round-1 review's
+// MINOR: the per-ability resolution tally is a per-turn fact, so TurnChange
+// must clear it — asserted both directly (the map is gone at the boundary)
+// and behaviourally (three resolutions on the FRESH turn leave the face
+// front, where a carried-over count of 1 would have made the first of them
+// the fourth and flipped Sephiroth mid-way).
+func TestSephirothResolvedTallyResetsAtTurnChange(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e := layerEngine(t)
+	sep := onBoardCard(t, e, 0, mustCorpusCard(t, reg, "Sephiroth, Fabled SOLDIER"))
+	if f := e.G.Obj(sep).Face(); f == nil || f.Name != "Sephiroth, Fabled SOLDIER" {
+		t.Fatalf("precondition: Sephiroth face = %v, want the front face", f)
+	}
+
+	// Turn 1: one resolution puts one entry in the tally — the reset below
+	// has something real to clear.
+	resolveSephirothDeath(t, e, reg, sep)
+	if f := e.G.Obj(sep).Face().Name; f != "Sephiroth, Fabled SOLDIER" {
+		t.Fatalf("after one resolution face = %q, want the front face", f)
+	}
+	if len(e.G.ResolvedThisTurn) == 0 {
+		t.Fatal("precondition: one resolution left no ResolvedThisTurn entry to reset")
+	}
+
+	// The turn boundary the engine emits every turn.
+	e.emit(events.Event{Kind: events.TurnChange, Player: 1, Amount: 2})
+	if len(e.G.ResolvedThisTurn) != 0 {
+		t.Fatalf("after TurnChange ResolvedThisTurn = %v, want empty (per-turn tally must reset)", e.G.ResolvedThisTurn)
+	}
+
+	// Fresh turn: the count restarts at 1, so THREE more resolutions stay
+	// below the EQ4 gate and the face holds. If the tally had carried over,
+	// the first of these would have been the fourth and transformed.
+	for i := 1; i <= 3; i++ {
+		resolveSephirothDeath(t, e, reg, sep)
+		if f := e.G.Obj(sep).Face().Name; f != "Sephiroth, Fabled SOLDIER" {
+			t.Fatalf("fresh-turn resolution %d face = %q, want the front face (tally did not reset at the turn boundary)", i, f)
+		}
+	}
+}
