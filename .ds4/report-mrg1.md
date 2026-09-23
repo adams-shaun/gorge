@@ -1,3 +1,87 @@
+# Merge-conflict resolution — agent-20260918T195920Z-2fd3b568 (mrg1)
+
+## State found
+
+The daemon's rebase onto main had conflicted and been aborted, and its merge
+fallback had also conflicted and been aborted: `git status` was clean on
+`wt/agent-20260918T195920Z-2fd3b568` at `216319af`, no rebase/merge in flight,
+merge-base `c4560130`, main at `cb0f4079`. The branch carried 5 commits
+(TriggerRemembered fix + tests + three report commits). `.cards` was present
+(symlink to the real corpus — tests did not skip).
+
+## Conflicted file: `.ds4/report-sol1.md` (the ONLY conflict; `.ds4/report-r2.md` auto-merged)
+
+- **Ours (branch, `216319af`)**: appended a `---`-separated section
+  "# Loamcrafter Faun — sol1 report/diff reconciliation" (with its own
+  `## Issues` bullets about `IsTriggerRemembered` / two exotic ref-property
+  bodies).
+- **Theirs (main, via `f7639f31`)**: appended a `---`-separated section
+  "# Mill-trigger replacement redirection — agent-20260919T183731Z-085022e9"
+  (with its own one-line `## Issues` paragraph).
+- Both sides are pure appends after an identical base ending at
+  "…not an engine failure." — no textual overlap; both intents are kept.
+
+## Resolution
+
+Both sections kept, in order: branch's Loamcrafter section, then main's
+mill-trigger section. Built deterministically (not from the fuzzy conflict
+markers, which had dropped tail lines): verified the merge-base version is an
+exact prefix of BOTH sides (`cmp` exit 0 each), then merged as
+`ours ++ theirs[N+1:]` where N = base line count. Verified no conflict
+markers remain and the committed content equals the intended merge byte
+for byte.
+
+## Commands run and output
+
+```
+git merge main --no-edit
+→ CONFLICT (content): Merge conflict in .ds4/report-sol1.md  (only file)
+base=$(git merge-base HEAD main)                       → c4560130
+head -n $N sol1-ours.md  | cmp - sol1-base.md           → identical (exit 0)
+head -n $N sol1-theirs.md | cmp - sol1-base.md          → identical (exit 0)
+git add .ds4/report-sol1.md && git commit --no-edit
+→ e2e35952 "Merge branch 'main' into wt/agent-20260918T195920Z-2fd3b568"
+git status                                              → working tree clean
+cmp <(git show HEAD:.ds4/report-sol1.md) /tmp/sol1-final.md → identical (exit 0)
+```
+
+## Post-merge ratchets and goldens (merge brought real code: mill redirect, scry replacement, trigmatch changes)
+
+```
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|TestLoamcrafterFaun|TestTriggerRemembered|TestRefProperty'
+ok  github.com/adams-shaun/gorge/rules 0.775s            (exit 0)
+$ go test -run 'TestLoamcrafterFaun|TestTriggerRemembered|TestRefProperty' ./effects
+ok  github.com/adams-shaun/gorge/effects 0.590s          (exit 0)
+$ go test ./internal/archtest/
+ok  github.com/adams-shaun/gorge/internal/archtest 3.274s (exit 0)
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  github.com/adams-shaun/gorge/cmd/botbench 1.225s      (exit 0 — split did NOT move)
+```
+
+No head/ratchet table needed editing: all ratchets pass unmodified on the
+merged tree.
+
+## Notes / unsure about
+
+- `git add .ds4/report-sol1.md` printed a `.ds4`-is-gitignored warning, but the
+  path is tracked and was staged correctly (the merge commit contains the full
+  resolution; verified byte-identical to the intended merge).
+- The merged commit is a merge commit, not a rebase — the daemon's rebase had
+  already been aborted, so a merge was the operation to complete (its own
+  fallback shape). Branch commits are untouched.
+- Branch reports referencing line counts of the sol1 file (e.g. the Loamcrafter
+  section's diff table) describe the branch state before the merge; the merge
+  only appends main's mill section, so no statement in them became false.
+
+## Issues
+
+No new defect found during integration. The Loamcrafter section's standing
+issues (`IsTriggerRemembered` predicate unimplemented, two fail-closed
+`TriggerRemembered$` exotic ref-properties) are carried in the merged report
+file itself; nothing new observed from main's side of the merge.
+
+---
+
 # Merge-conflict resolution report — mrg1 (agent-20260919T062939Z-4b5f8950), current integration
 
 ## Entry and operation
