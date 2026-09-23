@@ -222,6 +222,11 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 		if !ok || t.Mode != dt.EventMode {
 			continue
 		}
+		sa := cards.ResolveSVar(src.Face().SVars, dt.Execute)
+		if sa == nil {
+			remove = append(remove, dt.ID)
+			continue
+		}
 		// referentsArg is the LKI snapshot handed to triggerReferents. The
 		// SpellCast arm deliberately passes nil (the spell object itself is
 		// the referent source), exactly as it did before the ChangesZone arm
@@ -286,11 +291,6 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 			}
 		}
 		if dt.EventMode != "BecomeMonarch" && !e.triggerConditionHoldsAs(t, dt.Source, dt.Controller) {
-			continue
-		}
-		sa := cards.ResolveSVar(src.Face().SVars, dt.Execute)
-		if sa == nil {
-			remove = append(remove, dt.ID)
 			continue
 		}
 		fires = append(fires, delayedSpellCastFire{

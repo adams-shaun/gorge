@@ -1975,7 +1975,7 @@ func delayedTriggerBody(sa *cards.SA) string {
 		"ValidSource", "ValidTarget", "CombatDamage", "ValidAttackers", "ValidAttackersAmount",
 		"AttackingPlayer", "AttackedTarget", "ValidPlayer", "ValidOriginalController",
 		"ValidActivatingPlayer", "PlayerTurn", "ValidSA", "TriggerZones", "ActiveZones",
-		"ThisTurn", "Static"}
+		"ThisTurn", "Static", "IsPresent", "PresentDefined", "PresentCompare", "PresentZone"}
 	parts := []string{"Mode$ " + strings.TrimSpace(sa.Params["Mode"])}
 	for _, key := range keys {
 		if v := strings.TrimSpace(sa.Params[key]); v != "" {
@@ -2027,6 +2027,9 @@ func effDelayedTriggerSpellCast(h Host, c *Ctx, sa *cards.SA) {
 	}
 	if v := strings.TrimSpace(sa.Params["ValidActivatingPlayer"]); v != "" {
 		body += " | ValidActivatingPlayer$ " + v
+	}
+	if v := strings.TrimSpace(sa.Params["ValidPlayer"]); v != "" {
+		body += " | ValidPlayer$ " + v
 	}
 	if v := strings.TrimSpace(sa.Params["PlayerTurn"]); v != "" {
 		body += " | PlayerTurn$ " + v

@@ -46,6 +46,17 @@ func TestDelayedTriggerDeadRegistrationIsCollected(t *testing.T) {
 	}
 }
 
+func TestDelayedTriggerDeadEventRegistrationCollectedBeforeMatch(t *testing.T) {
+	e, src := delayedModeWatcher(t)
+	registerInlineDelayed(t, e, src, "ChangesZone", " | ValidCard$ Creature")
+	e.G.Obj(src).Face().SVars = map[string]string{}
+	other := onBoard(t, e, 1, "Name:Artifact\nTypes:Artifact\nOracle:x\n")
+	e.emit(events.Event{Kind: events.MoveZone, Obj: other, From: state.ZBattlefield, To: state.ZGraveyard})
+	if len(e.G.Delayed) != 0 {
+		t.Fatalf("missing Execute registration survived unmatched event: %+v", e.G.Delayed)
+	}
+}
+
 func TestDelayedTriggerEventModesFire(t *testing.T) {
 	t.Run("ChangesZone", func(t *testing.T) {
 		e, src := delayedModeWatcher(t)
