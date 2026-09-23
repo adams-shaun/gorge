@@ -519,6 +519,54 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				}
 				h.AddContinuous(ce)
 				registered = true
+			} else if g, affects, gok := parseStaticEffectGrant(params, false); gok {
+				// The general Mode$ Continuous case: a layer grant
+				// (AddKeyword$/AddType$/AddPower$/SetColor$/RemoveAllAbilities$
+				// and the rest of the parser's vocabulary) delivered by an
+				// api:Effect reaches the SAME layer walk a printed S: static
+				// feeds, through the SAME builder the StaticEffect$ move rider
+				// uses (registerStaticEffectGrant) -- one layer split, so the two
+				// delivery routes cannot disagree about what a body grants.
+				// Source is the effect's own source, NOT the remembered cards,
+				// and Affected$ rides verbatim: an `Affected$ Card.IsRemembered`
+				// spec is answered by the layer walk against this effect's
+				// registered Remembered set (rules matchesWithChars binds it).
+				//
+				// Lifetime is the EFFECT's, not the body's: the api:Effect line's
+				// rawDur overrides the parser's read of the body's own Duration$
+				// (Forge puts the lifetime on the Effect, and the corpus's
+				// Effect-delivered Continuous bodies carry none), so an
+				// instant/sorcery source or an absent Duration$ keeps the
+				// this-turn default and an explicit Permanent/next-turn spelling
+				// keeps its real boundary through AddContinuous.
+				g.duration = dur
+				g.permanent = strings.EqualFold(strings.TrimSpace(rawDur), "Permanent")
+				g.untilEOT = effectUntilEOT(h, c.Source, rawDur)
+				lt := staticGrantLifetime{
+					Name:          effectName,
+					Remembered:    remembered,
+					ForgetOnMoved: forgetOn,
+					ExileOnMoved:  exileOn,
+					ForgetCounter: forgetCounter,
+					ImprintOnHost: imprintOnHost,
+					ForgetOnCast:  forgetOnCast,
+					ChosenNumber:  chosenNumber,
+				}
+				if registerStaticEffectGrant(h, c, c.Source, affects, g, lt) {
+					if len(g.unread) > 0 {
+						h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+							Text: "continuous effect " + mode + " unread: " + strings.Join(g.unread, "/")})
+					}
+					registered = true
+				} else {
+					// The body carried only parameters this build does not read
+					// (AddHiddenKeyword$, AdjustLandPlays$, ...): nothing registered,
+					// so keep the honest unimplemented Note rather than claim a
+					// grant went live.
+					h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+						Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
+					registered = true
+				}
 			} else if len(params) > 0 {
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})

@@ -84,7 +84,14 @@ func staticEffectTypeList(raw string) []string {
 // colourLetters cannot fully parse fail closed (the Animate Colors$
 // direction): the layer is skipped and the parameter named in unread rather
 // than an empty parse overwriting the card's colours.
-func parseStaticEffectGrant(params map[string]string) (staticGrant, string, bool) {
+// rememberedAsSelf selects how an `Affected$ <base>.IsRemembered` spec is
+// resolved. The StaticEffect$ route (true) already knows the exact moved set,
+// so it rewrites the predicate to `<base>.Self` and registers Source = the
+// moved card. An Effect-delivered grant (false) keeps the spec verbatim and
+// registers Source = the effect's source, because the remembered cards are
+// NOT the source (energybending's `Affected$ Permanent.IsRemembered`); the
+// layer walk binds the registered Remembered set through matchesWithChars.
+func parseStaticEffectGrant(params map[string]string, rememberedAsSelf bool) (staticGrant, string, bool) {
 	var g staticGrant
 	if !strings.EqualFold(strings.TrimSpace(params["Mode"]), "Continuous") {
 		return g, "", false
@@ -150,6 +157,7 @@ func parseStaticEffectGrant(params map[string]string) (staticGrant, string, bool
 	for _, key := range []struct{ name, val string }{
 		{"AddStaticAbility$", params["AddStaticAbility"]},
 		{"AddTrigger$", params["AddTrigger"]},
+		{"AddHiddenKeyword$", params["AddHiddenKeyword"]},
 		{"AddReplacementEffect$", params["AddReplacementEffect"]},
 		{"SetName$", params["SetName"]},
 		{"RemoveSubTypes$", params["RemoveSubTypes"]},
@@ -176,8 +184,10 @@ func parseStaticEffectGrant(params map[string]string) (staticGrant, string, bool
 	// card) and fails closed in the ordinary filter grammar if unreadable.
 	if affects == "" {
 		affects = "Card.Self"
-	} else if base, ok := strings.CutSuffix(strings.ToLower(affects), ".isremembered"); ok && base != "" && !strings.HasSuffix(base, "!") {
-		affects = affects[:len(base)] + ".Self"
+	} else if rememberedAsSelf {
+		if base, ok := strings.CutSuffix(strings.ToLower(affects), ".isremembered"); ok && base != "" && !strings.HasSuffix(base, "!") {
+			affects = affects[:len(base)] + ".Self"
+		}
 	}
 	return g, affects, true
 }
@@ -243,7 +253,7 @@ func applyStaticEffect(h Host, c *Ctx, sa *cards.SA, to state.Zone, moved []stat
 			Text: "StaticEffect$ " + name + " names no SVar body; not registered"})
 		return
 	}
-	g, affects, ok := parseStaticEffectGrant(params)
+	g, affects, ok := parseStaticEffectGrant(params, true)
 	if !ok {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "StaticEffect$ " + name + " body is not a Mode$ Continuous static; not registered"})
@@ -255,15 +265,72 @@ func applyStaticEffect(h Host, c *Ctx, sa *cards.SA, to state.Zone, moved []stat
 			Text: "StaticEffect$ " + name + " unread: " + strings.Join(g.unread, "/")})
 	}
 	for _, id := range moved {
-		registerStaticEffectGrant(h, c, id, affects, g)
+		registerStaticEffectGrant(h, c, id, affects, g, staticGrantLifetime{})
+	}
+}
+
+// staticGrantLifetime carries the registration riders an Effect-delivered
+// grant shares across every layer it touches. registerStaticEffectGrant
+// stamps them on EACH effect it registers, so a multi-layer body's layer-6
+// grant expires and forgets on exactly the same schedule as its layer-4 one
+// (a rider left on only one layer would outlive the effect). The
+// StaticEffect$ ChangeZone route passes the zero value: its lifetime is the
+// body's own Duration$, which the parser already read.
+type staticGrantLifetime struct {
+	Name          string
+	Remembered    []state.ObjID
+	ForgetOnMoved string
+	ExileOnMoved  string
+	ForgetCounter string
+	ImprintOnHost bool
+	ForgetOnCast  string
+	ChosenNumber  int32
+}
+
+// stampGrantLifetime applies lt to one layer's registration. Zero-value
+// fields are left alone so the StaticEffect$ route keeps exactly the fields
+// registerStaticEffectGrant sets itself.
+func stampGrantLifetime(ce *state.ContinuousEffect, lt staticGrantLifetime) {
+	if lt.Name != "" {
+		ce.Name = lt.Name
+	}
+	if lt.Remembered != nil {
+		ce.Remembered = lt.Remembered
+	}
+	if lt.ForgetOnMoved != "" {
+		ce.ForgetOnMoved = lt.ForgetOnMoved
+	}
+	if lt.ExileOnMoved != "" {
+		ce.ExileOnMoved = lt.ExileOnMoved
+	}
+	if lt.ForgetCounter != "" {
+		ce.ForgetCounter = lt.ForgetCounter
+	}
+	if lt.ImprintOnHost {
+		ce.ImprintOnHost = true
+	}
+	if lt.ForgetOnCast != "" {
+		ce.ForgetOnCast = lt.ForgetOnCast
+	}
+	if lt.ChosenNumber != 0 {
+		ce.ChosenNumber = lt.ChosenNumber
 	}
 }
 
 // registerStaticEffectGrant is the one per-card registration path: the same
 // layer split registerAnimateEffects uses, with the static body's expression
 // parameters (SetPower$/SetToughness$ SVar-capable) left for the layer walk
-// to resolve against the grant's own SVar table.
-func registerStaticEffectGrant(h Host, c *Ctx, id state.ObjID, affects string, g staticGrant) {
+// to resolve against the grant's own SVar table. It reports whether it
+// registered anything: a body whose only parameters are unread (an
+// AddHiddenKeyword$-only line) registers nothing, so a caller can fall back
+// to its own honest Note rather than claiming a grant went live.
+func registerStaticEffectGrant(h Host, c *Ctx, id state.ObjID, affects string, g staticGrant, lt staticGrantLifetime) bool {
+	registered := false
+	add := func(ce state.ContinuousEffect) {
+		stampGrantLifetime(&ce, lt)
+		h.AddContinuous(ce)
+		registered = true
+	}
 	// A "ChosenType" element resolves against the moved card's own recorded
 	// "as this enters" choice (the static scanner's resolveChosenTypes
 	// direction); a card with no recorded choice fails closed to no grant
@@ -284,7 +351,7 @@ func registerStaticEffectGrant(h Host, c *Ctx, id state.ObjID, affects string, g
 		}
 	}
 	if len(types) > 0 || g.removeCardTypes || g.removeCreatureTypes || g.allCreatureTypes {
-		h.AddContinuous(state.ContinuousEffect{
+		add(state.ContinuousEffect{
 			Source: id, Affects: affects, Controller: c.Controller,
 			Layer:               state.LType,
 			AddTypes:            types,
@@ -303,7 +370,7 @@ func registerStaticEffectGrant(h Host, c *Ctx, id state.ObjID, affects string, g
 	if len(g.setColors) > 0 {
 		// SetColor$ is the layer-5 overwrite (the scanner's direction): the
 		// moved card's colours are exactly the named set.
-		h.AddContinuous(state.ContinuousEffect{
+		add(state.ContinuousEffect{
 			Source: id, Affects: affects, Controller: c.Controller,
 			Layer:           state.LColor,
 			AddColors:       g.setColors,
@@ -313,7 +380,7 @@ func registerStaticEffectGrant(h Host, c *Ctx, id state.ObjID, affects string, g
 		})
 	}
 	if len(g.addColors) > 0 {
-		h.AddContinuous(state.ContinuousEffect{
+		add(state.ContinuousEffect{
 			Source: id, Affects: affects, Controller: c.Controller,
 			Layer:        state.LColor,
 			AddColors:    g.addColors,
@@ -333,7 +400,7 @@ func registerStaticEffectGrant(h Host, c *Ctx, id state.ObjID, affects string, g
 	// carriers) had the keyword wiped by its own removal (the removal ran at
 	// a LATER timestamp). This mirrors copypermanent.go's single-effect shape.
 	if g.removeAbilities || len(g.addKeywords) > 0 || len(g.abilities) > 0 {
-		h.AddContinuous(state.ContinuousEffect{
+		add(state.ContinuousEffect{
 			Source: id, Affects: affects, Controller: c.Controller,
 			Layer:           state.LAbilities,
 			RemoveAbilities: g.removeAbilities,
@@ -345,7 +412,7 @@ func registerStaticEffectGrant(h Host, c *Ctx, id state.ObjID, affects string, g
 		})
 	}
 	if g.hasPower || g.hasTough {
-		h.AddContinuous(state.ContinuousEffect{
+		add(state.ContinuousEffect{
 			Source: id, Affects: affects, Controller: c.Controller,
 			Layer: state.LPT, Sub: state.SubSet,
 			SetPowerExpr:        g.powerExpr,
@@ -359,4 +426,5 @@ func registerStaticEffectGrant(h Host, c *Ctx, id state.ObjID, affects string, g
 			SVars: c.SVars,
 		})
 	}
+	return registered
 }

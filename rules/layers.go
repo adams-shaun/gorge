@@ -2305,6 +2305,15 @@ func (e *Engine) matchesWithChars(ce ContinuousEffect, id state.ObjID, types, ke
 	sc.AsStack = atStack != 0
 	sc.ExtraTypes = types
 	sc.ExtraKeywords = keywords
+	// An Effect-delivered grant's Affected$ spec may name the objects the
+	// Effect remembered (`Affected$ Permanent.IsRemembered`, energybending's
+	// "lands you control gain all basic land types"). The restriction walk
+	// (restrictionApplies) already binds the registered set; the layer walk
+	// must too, or such an Affected$ would match nobody. Printed statics carry
+	// no Remembered, so this is a no-op for them.
+	for _, r := range ce.Remembered {
+		sc.Remembered = append(sc.Remembered, state.Target{Obj: r})
+	}
 	// The compiled predicate sidecar answers type and colour predicates
 	// against the PRINTED face (effects/compiled_predicate.go's
 	// matchesCompiledBase/matchesCompiledTerm call hasType/ColorsOf), so it
