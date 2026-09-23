@@ -232,6 +232,22 @@ func (a *sbaAttempts) rearm(alive int) {
 // repeatedly-blocked attempt with nobody dying is therefore still tried
 // exactly once per checkStateBased call, as T22-h requires.
 func (e *Engine) checkStateBased() {
+	// A parked CR 704.5j batch whose ask is no longer outstanding re-poses it
+	// before any SBA work: the batch is parked only together with its ask, and
+	// an outstanding ask is the ONE reason the pass below refuses to apply. A
+	// caller that posed its own decision at an unguarded point (the pre-fix
+	// completeCombatPass tail) could displace the ask; without this re-pose the
+	// parked batch would never be answered and -- because the pass below halts
+	// while it is parked -- no state-based action would ever apply again. The
+	// re-pose restores exactly the invariant parkLegendChoice establishes:
+	// parked implies asked. It does not fire while another decision is
+	// outstanding (nothing is re-asked under one); a stale flow marker in
+	// e.choosing is deliberately NOT consulted, because the displaced ask left
+	// e.choosing == chooseLegend behind and askLegendChoice re-sets it anyway.
+	if e.legendBatch != nil && e.pending == nil {
+		e.askLegendChoice()
+		return
+	}
 	stable := false
 	tried := &sbaAttempts{
 		objs:    map[state.ObjID]bool{},
@@ -373,6 +389,29 @@ func (e *Engine) parkLegendChoice(g legendGroup, dead []casualty) {
 		dead:   append([]casualty(nil), dead...),
 		before: e.snapshotTriggerBoard(),
 	}
+	e.askLegendChoice()
+}
+
+// askLegendChoice poses the CR 704.5j choice for the parked batch's duplicate
+// set to its controller, in battlefield scan order (so the deterministic bot's
+// clamp fallback keeps the battlefield-order first -- the survivor the
+// pre-decision build always picked). It is the ONE construction site for the
+// ask, shared by parkLegendChoice (the fresh pose) and checkStateBased's
+// recovery re-pose (a parked batch whose decision was displaced): the two
+// must offer an identical decision, or a recovered ask would accept an answer
+// the original never offered.
+func (e *Engine) askLegendChoice() {
+	g := e.legendBatch.group
+	if int(g.player) < len(e.G.Players) && e.G.Players[g.player].Lost {
+		// CR 800.4a: a player who has left the game makes no choices. The
+		// departed controller's CR 704.5j choice is therefore unexercised and
+		// declines deterministically to the battlefield-order first member --
+		// the same outcome parkCommanderZoneMove gives a departed commander
+		// owner. Applying rather than asking also means a parked batch can
+		// never re-pose to a seat that can no longer answer it.
+		e.applyLegendBatch(g.ids[0])
+		return
+	}
 	opts := make([]decision.Option, len(g.ids))
 	for i, id := range g.ids {
 		opts[i] = decision.Option{Index: i, Kind: "keep", Label: g.name, Obj: id, Player: g.player}
@@ -400,9 +439,9 @@ func (e *Engine) parkLegendChoice(g legendGroup, dead []casualty) {
 // to a Note, the same totality stance as handleCmdZone.
 func (e *Engine) legendAnswer(d *decision.Decision, in decision.Intent) {
 	b := e.legendBatch
-	e.legendBatch = nil
-	e.choosing = chooseNone
 	if b == nil {
+		e.legendBatch = nil
+		e.choosing = chooseNone
 		e.emit(events.Event{Kind: events.Note, Player: in.Player,
 			Text: "legend-rule decision answered with no batch parked"})
 		return
@@ -410,6 +449,30 @@ func (e *Engine) legendAnswer(d *decision.Decision, in decision.Intent) {
 	kept := b.group.ids[0]
 	if chosen := d.Chosen(in); len(chosen) == 1 {
 		kept = chosen[0].Obj
+	}
+	e.applyLegendBatch(kept)
+}
+
+// applyLegendBatch settles the parked CR 704.5j batch with the given member
+// kept: the kept member is recorded through a Choose "legend_keep" event (a
+// log marker, like riot's -- the outcome itself is the MoveZone events below,
+// so a log-only replay reproduces both branches), the parked lethal casualties
+// are applied first with the parked pre-batch board (a KEPT member keeps its
+// lethal-damage destruction path, so a regeneration shield can still save it),
+// and the non-kept members go to their owners' graveyards as legend-rule
+// departures (placement, not destruction -- no regeneration, no destruction
+// replacement). It is the ONE application site, shared by legendAnswer (an
+// answered choice) and askLegendChoice's departed-controller decline (CR
+// 800.4a), so the two paths can never settle a batch differently. The Submit
+// tail's next checkStateBased pass re-runs every SBA on the settled board, so
+// a further duplicate set is parked and asked there and any SBA the moves
+// themselves caused is picked up.
+func (e *Engine) applyLegendBatch(kept state.ObjID) {
+	b := e.legendBatch
+	e.legendBatch = nil
+	e.choosing = chooseNone
+	if b == nil {
+		return
 	}
 	e.emit(events.Event{Kind: events.Choose, Obj: kept,
 		Counter: "legend_keep", Player: b.group.player})
