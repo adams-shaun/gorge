@@ -184,6 +184,8 @@ func triggerModeEvents(mode string) triggerEventMask {
 		return 1 << events.DeclareAttackers
 	case "AttackerBlocked", "AttackerBlockedByCreature", "AttackerUnblocked", "AttackerUnblockedOnce", "Blocks":
 		return 1 << events.DeclareBlockers
+	case "Untaps":
+		return 1 << events.Untap
 	case "Sacrificed", "Discarded", "LandPlayed":
 		return 1 << events.MoveZone
 	case "Cycled":

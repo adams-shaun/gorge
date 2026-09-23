@@ -14,6 +14,7 @@ import (
 func init() {
 	Register("AddTurn", effAddTurn)
 	Register("LosesGame", effLosesGame)
+	Register("WinsGame", effWinsGame)
 	Register("RollDice", effRollDice)
 }
 
@@ -212,6 +213,41 @@ func effLosesGame(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 	h.Emit(events.Event{Kind: events.PlayerLost, Player: player, Text: "lost the game"})
+}
+
+// effWinsGame implements DB$ WinsGame (40 corpus files): the Defined$ player
+// (the resolving ability's controller when the SA names NO Defined$ at all)
+// wins the game right now, CR 104.2a -- the GameOver win shape events.Apply's
+// GameOver case folds (Amount 0 with a valid Player sets Over and Winner).
+// The Text carries the winner's name, exactly as checkGameOver's own win does
+// and view/describe.go renders for a GameOver event.
+//
+// The mirror of effLosesGame above: a PRESENT Defined$ that resolves to no
+// player target acts on NOBODY (the controller default is for the
+// Defined$-less shape only), and a seat that has already lost or a game that
+// has already ended is skipped. WinsGame is the win side of the same
+// CR 104.2a family and shares that fail-closed Defined$ resolution. The
+// gating ConditionCheckSVar$ / ConditionPresent$ keys are consumed by the
+// shared conditionMet gate ahead of the body, not here.
+func effWinsGame(h Host, c *Ctx, sa *cards.SA) {
+	player := c.Controller
+	if sa.Params["Defined"] != "" {
+		found := false
+		for _, t := range Defined(h, c, sa) {
+			if t.IsPlayer {
+				player, found = t.Player, true
+				break
+			}
+		}
+		if !found {
+			return
+		}
+	}
+	g := h.Game()
+	if int(player) < 0 || int(player) >= len(g.Players) || g.Players[player].Lost || g.Over {
+		return
+	}
+	h.Emit(events.Event{Kind: events.GameOver, Player: player, Text: g.Players[player].Name})
 }
 
 // parseDieRanges splits Forge's ResultSubAbilities$ value into its range
