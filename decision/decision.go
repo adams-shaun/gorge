@@ -453,6 +453,12 @@ type Decision struct {
 	// continuation state, never client input, the same class as
 	// ResumeRemembered.
 	ResumeMoved []state.ObjID `json:"-"`
+	// ResumeDigPrimary carries a Dig's primary cards when its remainder's
+	// ordered-bottom ask suspends after those cards were moved to a library.
+	// The arrange handler needs this to place the primary pile on top after it
+	// applies the remainder order; it is runtime continuation state, never
+	// client input.
+	ResumeDigPrimary []state.ObjID `json:"-"`
 	// ResumeObjects carries an ASK's own immutable object snapshot when the
 	// continuation must walk a list the answer can shrink out from under it.
 	// Time Travel (Doctor Who) is the first user: its per-object election

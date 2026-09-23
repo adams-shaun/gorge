@@ -181,6 +181,7 @@ func (e *Engine) Clone() *Engine {
 		d.ResumeVillainousVictims = append([]state.Target(nil), e.pending.ResumeVillainousVictims...)
 		d.ResumeVillainousIndex = e.pending.ResumeVillainousIndex
 		d.ResumeTargetsUnique = append([]state.Target(nil), e.pending.ResumeTargetsUnique...)
+		d.ResumeDigPrimary = append([]state.ObjID(nil), e.pending.ResumeDigPrimary...)
 		c.pending = &d
 	}
 	if e.resume != nil {

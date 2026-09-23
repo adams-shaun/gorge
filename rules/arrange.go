@@ -102,6 +102,33 @@ func (e *Engine) handleArrange(d *decision.Decision, in decision.Intent) {
 	lib := e.G.Zone(state.ZLibrary, d.Player)
 	k := len(d.Options)
 	remainder := lib[k:]
+	if kind == "dig_bottom" && len(d.ResumeDigPrimary) > 0 {
+		// A Dig whose primary destination is the library and whose remainder
+		// asks for an order has already appended the primary pile to the
+		// library. Remove both temporary piles from the live order, then emit
+		// the requested final order as one replay event: primary on top,
+		// untouched cards in their existing order, remainder at the bottom.
+		primary := make(map[state.ObjID]bool, len(d.ResumeDigPrimary))
+		for _, id := range d.ResumeDigPrimary {
+			primary[id] = true
+		}
+		window := make(map[state.ObjID]bool, len(d.Options))
+		for _, o := range d.Options {
+			window[o.Obj] = true
+		}
+		newLib := make([]state.ObjID, 0, len(lib))
+		newLib = append(newLib, d.ResumeDigPrimary...)
+		for _, id := range lib {
+			if !primary[id] && !window[id] {
+				newLib = append(newLib, id)
+			}
+		}
+		newLib = append(newLib, pileA...)
+		e.emit(events.Event{Kind: events.LibraryOrder, Player: d.Player,
+			IDs: newLib, Secret: true})
+		e.resumeResolution(rp, chosen)
+		return
+	}
 	switch kind {
 	case "hideaway_bottom", "dig_bottom":
 		// The all-to-bottom shapes: Hideaway has already moved its one chosen
