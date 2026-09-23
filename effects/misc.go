@@ -1860,31 +1860,18 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 			Text: "registers a delayed trigger with no Execute"})
 		return
 	}
-	// RememberObjects$ (Flickerwisp's and Necropotence's RememberedLKI)
-	// names what the delayed trigger remembers when it fires. The
-	// registration below ALWAYS captures the resolving chain's Remembered --
-	// which is exactly what RememberedLKI means (the parent effect's captured
-	// set, e.g. the exiled permanent RememberChanged$ put there) -- so the
-	// read confirms the corpus's dominant value and changes nothing for it.
-	// Every other value resolves through the Defined grammar (Targeted,
-	// TriggeredAttackerLKICopy, the " & " joins, ...) and unions into the
-	// same captured set, so a delayed trigger whose parent chain did not
-	// remember its subjects still learns them; an unresolvable value is loud
-	// rather than silently dropped.
+	// An absent RememberObjects$ (and the bare RememberedLKI spelling) keeps
+	// the resolving chain's capture. Any other recognised value REPLACES that
+	// capture, including with an empty set: the delayed body acts on the
+	// objects its own parameter names, not also on the card/player that led to
+	// this chain (Kharasha Foothills and Shredder, Shadow Master). An unknown
+	// value is loud and preserves the historical chain-capture fallback.
+	remembered := c.Remembered
+	replacedRemembered := false
 	if spec := strings.TrimSpace(sa.Params["RememberObjects"]); spec != "" && spec != "RememberedLKI" {
 		if ts, known := knownDefinedTargets(h, c, spec); known {
-			for _, t := range ts {
-				dup := false
-				for _, have := range c.Remembered {
-					if have == t {
-						dup = true
-						break
-					}
-				}
-				if !dup {
-					c.Remembered = append(c.Remembered, t)
-				}
-			}
+			remembered = copyTargets(ts)
+			replacedRemembered = true
 		} else {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "unmodelled DelayedTrigger RememberObjects$ " + spec})
@@ -1923,8 +1910,7 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 	// the Warrior tokens and never the creature that merely triggered. The
 	// default (absent) keeps the whole-chain capture every earlier
 	// registration had, byte for byte.
-	remembered := c.Remembered
-	if strings.EqualFold(strings.TrimSpace(sa.Params["RememberChain"]), "False") {
+	if !replacedRemembered && strings.EqualFold(strings.TrimSpace(sa.Params["RememberChain"]), "False") {
 		chain := make([]state.Target, 0, len(c.Remembered))
 		for _, t := range c.Remembered {
 			captured := false
