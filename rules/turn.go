@@ -433,23 +433,26 @@ func (e *Engine) finishStepBoundary(leaving, entering state.Step) {
 // step performs the smallest unit of automatic engine work.
 func (e *Engine) step() {
 	e.checkStateBased()
+	// The CR 903.9 commander replacement (Task m32) can leave a decision
+	// pending from inside checkStateBased: a state-based action that moves a
+	// commander parks the move and asks its owner, and checkStateBased
+	// returns with that decision outstanding. The CR 704.5j legend rule
+	// (rules/sba.go) can too: parkLegendChoice parks the batch and asks the
+	// duplicate set's controller in one step, so checkStateBased also returns
+	// with that decision outstanding. Neither startSuspendedCast below nor the
+	// step switch may then run -- both hand out a SECOND, unrelated decision
+	// and would silently overwrite the parked one (Advance pauses on the first
+	// e.pending regardless, so this guard is what keeps them from clobbering
+	// it). The ordering matters: the guard must precede startSuspendedCast,
+	// which poses the CR 702.62a suspend cast, because that ask is one more
+	// site that can displace a just-posed state-based-action decision.
+	if e.pending != nil {
+		return
+	}
 	if e.startSuspendedCast() {
 		return
 	}
 	if e.G.Over {
-		return
-	}
-	// The CR 903.9 commander replacement (Task m32) can leave a decision
-	// pending from inside checkStateBased: a state-based action that moves a
-	// commander parks the move and asks its owner, and checkStateBased
-	// returns with that decision outstanding. The step switch below must not
-	// then run -- askAttackers/priorityRound would hand out a SECOND,
-	// unrelated decision and silently overwrite the parked commander's
-	// (Advance pauses on the first e.pending regardless, so this guard is
-	// what keeps the switch from clobbering it). Nothing else in the engine
-	// leaves a pending decision after checkStateBased, so the guard is inert
-	// for every pre-existing path.
-	if e.pending != nil {
 		return
 	}
 	// The CR 903.4b commander colour-choice round runs first: its answer must
@@ -1031,6 +1034,24 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		e.handleStation(e.stationing, chosen)
 		return
 	}
+	if e.choosing == chooseTokenReplace {
+		// The chosen-copy CreateToken election (poseChosenTokenReplacement):
+		// dispatch it before the mid-resolution resume arm below. The election
+		// can be posed inside the CR 616.1 answer that was applying its own
+		// order competition (pending nil, the competition's suspension record
+		// still on e.resume): that record is the competition's, remembered on
+		// the election's own state, and tokenReplAnswer's tail resumes it once
+		// the plan has settled -- the resume arm here would instead consume it
+		// with the election's answer as a bogus continuation and drop the
+		// election unanswered.
+		e.choosing = chooseNone
+		if rp := e.tokenReplAnswer(chosen); rp != nil && e.pending == nil &&
+			len(e.replChoices) == 0 && e.resume == rp {
+			e.resume = nil
+			e.resumeResolution(rp, nil)
+		}
+		return
+	}
 	if e.choosing == chooseETBEntry {
 		// The entry-boundary ask was posed from inside emit (replacement.go's
 		// applyETBChoiceReplacement), so Engine.Ask parked whatever resolution
@@ -1211,13 +1232,26 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		e.siegeMove = nil
 		e.choosing = chooseNone
 		e.emit(move)
+	case chooseLegend:
+		// The CR 704.5j legend-rule choice (rules/sba.go) was answered.
+		// legendAnswer records the kept permanent and applies the parked batch
+		// -- the pre-batch look-back board it parked, the same single-batch
+		// discipline the ordinary sweep uses. The remaining SBAs, and any
+		// further duplicate set, are the Submit tail's next checkStateBased
+		// pass; there is no drain to resume: the ask comes from the SBA pass,
+		// never from inside a resolution, so e.resume is necessarily nil here.
+		e.legendAnswer(d, in)
 	case chooseTokenReplace:
 		// The chosen-copy CreateToken replacement's election (rules/
 		// replacement.go's poseChosenTokenReplacement park) was answered: the
 		// answer either rewrites the parked plan to copies of the chosen
 		// creature or skips the match (a decline), and the flow then runs the
 		// plan's remaining replacement matches before the mints are emitted.
-		e.tokenReplAnswer(chosen)
+		if rp := e.tokenReplAnswer(chosen); rp != nil && e.pending == nil &&
+			len(e.replChoices) == 0 && e.resume == rp {
+			e.resume = nil
+			e.resumeResolution(rp, nil)
+		}
 	case chooseOpening:
 		e.handleOpening(d, in)
 	case chooseSuspendCast:
