@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/adams-shaun/gorge/cards"
+	gbench "github.com/adams-shaun/gorge/internal/bench"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/seat"
 )
@@ -218,7 +219,7 @@ func grindOne(baseSeed uint64, d int, name string, deck []*cards.Card, commander
 		g.turns += int64(o.turns)
 		if o.isStalled() {
 			g.stalls++
-			if o.stallOn == "livelock" {
+			if gbench.IsAbort(o.stallOn) {
 				// A livelocked game is recorded against this deck and seed and
 				// the grind continues -- a single stuck game must not hang or
 				// abort the batch -- but the tally feeds the end-of-run error:
@@ -309,7 +310,7 @@ func writeGrindReport(out io.Writer, baseSeed uint64, seconds float64, iters int
 		if r.livelocks > 0 {
 			// After the full report: a livelocked game is an engine bug, and
 			// a zero exit would read as a clean pass to the automated caller.
-			return fmt.Errorf("grind %s: %d game(s) aborted with a livelock (see the LIVELOCK diagnostics above)", r.name, r.livelocks)
+			return fmt.Errorf("grind %s: %d game(s) aborted with a livelock or engine panic (see the LIVELOCK diagnostics above)", r.name, r.livelocks)
 		}
 	}
 	return nil
