@@ -1,82 +1,239 @@
-# Report — playerspec-life-svar-threshold
+# Report — cli-20260923T060000Z-trig-attackerblocked
 
-## Changes
+## Summary
 
-- `effects/filter.go`: Added `MatchesPlayerSpecWithSVars`, which resolves symbolic `life<OP><SVar>` thresholds with `EvalCountOK`, checks the context SVar table before the source face's table, and rewrites a resolved alternative into the existing literal player matcher. Literal comparison grammar is unchanged; unresolved or unmodelled values fail closed. No resolver closure was added to `Ctx`/`PlayerSpecCtx`.
-- `effects/count.go`: Registered `OppGreatestLifeTotal` as the opponents' highest current life through `lifeExtreme`.
-- `effects/choose_control.go`: Applied the SVar-aware matcher in ChoosePlayer's targeted and candidate walks, `controlPlayer`, and `repeatPlayers`.
-- `effects/context.go`: Applied it to the `Defined$ Player.<qualifier>` bridge.
-- `rules/trigmatch_combat.go`: Applied it to both `AttackedTarget$` and `AttackingPlayer$`, binding the trigger source face's SVars and the trigger controller (not the attacker) into the count context.
-- `effects/defined_player_state_qualifier_test.go`: Removed `Player.lifeEQX` from the fail-closed list; its other entries are unchanged.
-- New `effects/player_life_threshold_test.go`: Pins the real compiled `DBChoosePlayer` SA on The Master, Gallifrey's End (the compiled card whose rules text names Make Them Pay), the greatest-opponent count, the Defined bridge, literal/SVar/unresolvable thresholds, and the selected opponent. The brief's stated corpus lookup name `Make Them Pay` is not a registry card name, so the test uses its actual card name.
-- New `rules/player_life_threshold_test.go`: Pins Breena's actual `AttackedTarget$ Opponent.lifeGTX` trigger, with a battlefield source and attacker, differing opponent life totals, then equal opponent life totals.
+Closed the ticket's one sub-shape: `Mode$ AttackerBlocked` (and its sibling
+`Mode$ AttackerBlockedByCreature`) now fire `AddTrigger$`-granted instances, not
+only printed face triggers. Because the row's other three sub-shapes
+(AttackersDeclared, Cycled, CounterAdded) had all landed on this base, this
+commit also deletes the "Four trigger modes carry limits" row from AGENTS.md and
+lowers `knownApproximationRows` 21 → 20.
 
-## Measurements and deviations
+Commit: `76014dd4`
 
-- `.cards` was present as a symlink to `/home/sadams/projects/gorge/.cards` before testing.
-- Re-measured the raw grep prevalence: 7 files hit `life(GE|GT|EQ|LE|LT)[A-Z]`; `great_unclean_one` is the non-player-qualifier count-head cousin, leaving 6 real player-qualifier files as described in the brief.
-- Current `AGENTS.md` has no `MatchesPlayerSpec`/fx20 approximation row (confirmed by searching it), despite the brief asking to edit that row. I did not add a row because AGENTS.md's closing register is frozen and this checkout contains no matching sentence to adjust.
-- The compiled ChoosePlayer SA records the chosen player in `Ctx.Chosen`; it does not set `RememberChosen`, so the test asserts the actual chosen result rather than asserting an unpopulated `Ctx.Remembered` list. The picked seat is still proven to be seat 2, not first candidate seat 1.
-- The required full-package `go test ./effects ./rules` and separate full `TestHeads|TestRepoDeckGamesReplayExactly|TestEveryRepoDeckIsFullySupported` command were not run: the task-agent test-budget instruction limits the seat to the named focused `-run` command. `TestHeads` is included in that focused command. The no-count botbench golden and archtest gates were run as directed.
+## Workspace facts used
+
+- `.cards` was already a symlink in the worktree (`ls -la .cards` →
+  `.cards -> /home/sadams/projects/gorge/.cards`); corpus-backed tests really
+  ran (the new tests parse real corpus cards, and a missing corpus would have
+  `t.Fatalf`'d on the parse). No skips.
+- Sibling landing check on the branch: `git log --oneline` shows
+  `b5f1a0d9 merge(...trig-attackersdeclared)`, `c37f9f03 merge(...trig-cycled)`,
+  `db800365 merge(...trig-counteradded)`. All three sub-shapes are on the base,
+  so the row deletion is authorised.
+
+## What changed, per file
+
+### `rules/trigmatch_combat.go`
+
+The root cause: `AttackerBlocked` and `AttackerBlockedByCreature` are dedicated
+hooks, not `trigMatchers` entries (`rules/trigmatch_combat.go`'s `init()` does
+not register them). The ordinary granted-trigger walk
+(`checkGrantedStaticTriggersUsing`) queues a grant only after
+`triggerMatches(...)` returns true, and `triggerMatches` returns false when
+`trigMatchers[t.Mode] == nil`. So every `AddTrigger$` grant of these two modes
+was rejected and never fired.
+
+- Extracted the per-trigger queue body of `checkAttackerBlockedTriggers` into a
+  new shared helper `queueAttackerBlockedTrigger(t, source, controller, idx,
+  granted, grantor, ev)`. Printed triggers and granted instances now share the
+  zone/phase gates, the read-only-then-reserve limit discipline, the two
+  `ValidCard$`/`ValidBlocker$` candidate walks and the reference capture. The
+  helper carries `Granted`/`Grantor`/`Execute` onto the `pendingTrigger` so
+  `pushTrigger` routes it through `events.GrantTriggerPush` (the replayable-grant
+  path) and `events.Apply` rebuilds the `Execute$` body from the grantor's SVar
+  table. This is exactly the `queueAttackerUnblockedTrigger` /
+  `checkGrantedAttackerUnblockedTriggers` shape already used for the sibling
+  `AttackerUnblocked` mode.
+- Added `checkGrantedAttackerBlockedTriggers(ev)`, called from
+  `checkAttackerBlockedTriggers` after the printed walk. It iterates the
+  deterministic `e.active()` slice, selects live grants whose
+  `ce.AddTrigger.Mode` is one of the two modes, resolves the grantor
+  (`ce.Source`, or `ce.TriggerGrantor` for the Animate route), links the body
+  with `grantedTriggerExecute`, and for each object matching `ce.Affects` queues
+  through the same helper with `idx = -1` and the grant provenance. A grant
+  whose body cannot be resolved queues nothing (the live==replay gate).
+- The extracted helper adds an early `t.Effect == nil` return. The printed path
+  previously broke out of the candidate walk on a nil effect; behaviour is
+  identical (nothing queued, no limit consumed).
+
+`attackerBlockedCandidates` itself was already correct (it reads `ValidCard$`
+against each attacker) and needed no change; the fix is that granted instances
+now reach it.
+
+### `rules/attacker_blocked_grants_test.go` (new)
+
+Two tests, both driven by real corpus cards:
+
+- `TestGrantedAttackerBlockedByCreaturePumps` — Retaliation
+  (`AddTrigger$ TrigBlocked`, `Mode$ AttackerBlockedByCreature | ValidCard$
+  Card.Self | ValidBlocker$ Creature`). A granted 2/2 becomes blocked and pumps
+  to 3/3.
+- `TestGrantedAttackerBlockedDraws` — Stormsurge Kraken
+  (`AddTrigger$ TrigBlocked`, `Mode$ AttackerBlocked | ValidCard$ Card.Self`,
+  `OptionalDecider$ You` draw two). The Kraken, with a commander in play so the
+  Lieutenant static is live, becomes blocked and draws two.
+
+Each asserts its own preconditions: the recipient is on the battlefield; the
+compared values differ (2/2 → 3/3; hand 0 → 2); the recipient prints NO
+become-blocked trigger (so the path under test is the granted one, not a
+printed line); and `GrantTriggerPush == 1` (the granted handler actually ran).
+The Kraken test also asserts the static is live via 7/7 (printed 5/5 + granted
+2/2), so the `IsPresent$`-gated grant is proven before the block. Both build a
+`Clone()` and compare in the Retaliation case (the granted body is an SVar
+resolved from the grantor's table during Apply).
+
+### `AGENTS.md`
+
+Deleted the row (found by its text):
+
+> Four trigger modes carry limits. ... **AttackerBlocked** misses
+> `AddTrigger$`-granted instances. | `rules/trigger_match.go` (...) | M4 (...)
+
+No new row, no other row touched.
+
+### `internal/testutil/agentsdoc_test.go`
+
+`knownApproximationRows` 21 → 20, with a comment noting this ticket's deletion.
+
+## Gates run (real output pasted)
+
+Environment: `.cards` symlink present; `GOFLAGS=-p=2` and `GOMEMLIMIT` left at
+their defaults; no `-p`/`-parallel` override.
+
+Targeted tests (the brief's one gated command plus the fix's siblings):
+
+```
+$ go test -count=1 -run 'TestGrantedAttackerBlocked' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.007s
+```
+
+```
+$ go test -run 'Afflict|Flanking|AttackerBlocked|AttackerUnblocked|AttackerUnblockedOnce|BlocksTrigger|BlockerDeclaration|MinMaxBlocker|MustBlock|Menace' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.793s
+```
+
+Ratchets that a merge with main newly enforces:
+
+```
+$ go test -run 'TestParamCensus|TestEveryRepoDeckParamsAreRead|TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched|TestEveryDispatchedTriggerModeHasAMatcher' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	1.035s
+```
+
+```
+$ go test -run 'TestKnownApproximation|TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort' ./internal/testutil/
+ok  	github.com/adams-shaun/gorge/internal/testutil	0.001s
+```
+
+Behaviour goldens outside `rules/` (run once, before DONE):
+
+```
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.637s
+```
+
+```
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.305s
+```
+
+```
+$ gofmt -l rules/trigmatch_combat.go rules/attacker_blocked_grants_test.go internal/testutil/agentsdoc_test.go
+(no output)
+$ go build ./...
+(no output)
+$ go run ./cmd/gentypes -check
+(no output)
+```
 
 ## Fails without the fix
 
-For the negative proof I saved all affected non-test files, disabled the SVar-aware matcher while leaving the call sites/build intact, removed the `OppGreatestLifeTotal` dispatch, and ran the three new feature tests. The command failed as expected; I restored the saved files and verified them with `cmp`.
+Restored the pre-fix `rules/trigmatch_combat.go` (saved to
+`.ds4/scratch/trigmatch_combat.go.orig`), ran the new tests, then restored the
+fixed file byte-identically (`cmp` against `.ds4/scratch/trigmatch_combat.go.fixed`
+printed `RESTORED_BYTE_IDENTICAL`):
 
-```text
---- FAIL: TestMakeThemPayChoosesTheGreatestLifeOpponent (0.61s)
-    player_life_threshold_test.go:22: Make Them Pay X = 0, false; want greatest opponent life 40, true
---- FAIL: TestLifeThresholdSVar (0.00s)
-    player_life_threshold_test.go:48: lifeGTX failed to match exactly the seat above resolved threshold
+```
+$ go test -run 'TestGrantedAttackerBlocked' ./rules/
+--- FAIL: TestGrantedAttackerBlockedByCreaturePumps (0.00s)
+    attacker_blocked_grants_test.go:58: Retaliation granted AttackerBlockedByCreature GrantTriggerPush events = 0, want 1
+--- FAIL: TestGrantedAttackerBlockedDraws (0.00s)
+    attacker_blocked_grants_test.go:117: Stormsurge Kraken granted AttackerBlocked GrantTriggerPush events = 0, want 1
 FAIL
-FAIL    github.com/adams-shaun/gorge/effects  0.638s
---- FAIL: TestBreenaAttackTriggerReadsLifeGTX (0.62s)
-    player_life_threshold_test.go:49: Breena trigger did not match: params=map[AttackedTarget:Opponent.lifeGTX Execute:TrigDraw Mode:AttackersDeclaredOneTarget TriggerDescription:Whenever a player attacks one of your opponents, if that opponent has more life than another of your opponents, the attacking player draws a card and you put two +1/+1 counters on a creature you control. TriggerZones:Battlefield] sourceSVars=map[DBPutCounter:DB$ PutCounter | Choices$ Creature.YouCtrl | CounterType$ P1P1 | CounterNum$ 2 | ConditionCheckSVar$ PlayerCountDefinedTriggeredAttackedTarget$HasPropertylifeGTX TrigDraw:DB$ Draw | Defined$ AttackingPlayer | SubAbility$ DBPutCounter | ConditionCheckSVar$ PlayerCountDefinedTriggeredAttackedTarget$HasPropertylifeGTX X:PlayerCountOpponents$LowestLifeTotal] threshold=20/true filter=false alive=[0 1 2] ctrl=0 attacked=2 lives=40/20/30
-FAIL
-FAIL    github.com/adams-shaun/gorge/rules  0.664s
+FAIL	github.com/adams-shaun/gorge/rules	0.006s
 FAIL
 ```
 
-## Gates run
+Both fail at the granted-handler assertion, i.e. with the fix reverted the
+granted walk does not exist and no `GrantTriggerPush` is emitted.
 
-Focused required command:
+## Head / ratchet movement
 
-```text
-go test -run 'TestMakeThemPayChoosesTheGreatestLifeOpponent|TestBreenaAttackTriggerReadsLifeGTX|TestLifeThresholdSVar|TestDefinedPlayerStateQualifier|TestChoosePlayer|TestHeads' ./effects ./rules
-ok   github.com/adams-shaun/gorge/effects (cached)
-ok   github.com/adams-shaun/gorge/rules (cached)
-```
+None measured:
 
-Other required gates:
+- `TestConstructedDefaultIsByteIdentical` (`cmd/botbench`) passed unchanged, so
+  the 20-game bot win split did not move → **no botbench re-pin**.
+- Confirmed no repo-deck card carries any of the three affected corpus carriers:
+  `grep -rl 'Stormsurge Kraken'|'Retaliation'|'Mirror Shield'` over
+  `internal/testutil/decks/` returns nothing, so `TestHeads` and the deck
+  acceptance/replay goldens cannot move from this change.
+- No `knownUnsupported`, `knownUnsupportedParams`, `knownUnmodelledCountHeads`
+  or `registeredModes` entry changed; the four ratchet scans above pass.
+- No new `Mode$` was registered (the two modes stay dedicated hooks), so the
+  registry ratchet is untouched.
+- No `events.Kind` change; the granted instance uses the existing
+  `GrantTriggerPush` path.
 
-```text
-go vet ./effects ./rules
-[no output; exit 0]
+## Structural fix (not the instance)
 
-gofmt -l effects/filter.go effects/count.go effects/choose_control.go effects/context.go effects/defined_player_state_qualifier_test.go effects/player_life_threshold_test.go rules/trigmatch_combat.go rules/player_life_threshold_test.go
-[no output; exit 0]
+The brief names "expand the granted triggers … so a granted instance is a
+candidate like a printed one". I chose the shared-helper shape: one
+`queueAttackerBlockedTrigger` that both the printed walk and the granted walk
+call, and one granted walk that selects grants by MODE (not by a hard-coded
+list of cards or by parsing printed faces). The next sibling carrier of either
+mode is covered automatically — any live `AddTrigger$` whose `Mode$` is
+`AttackerBlocked`/`AttackerBlockedByCreature` flows through the same path, and
+the two modes cannot drift in gates/referents because they share the helper.
+A corpus carrier list is deliberately not encoded.
 
-go run ./cmd/gentypes -check
-[no output; exit 0]
+I did NOT touch the AttackersDeclared, Cycled or CounterAdded code (sibling
+sub-shapes, out of scope).
 
-go test -count=1 ./internal/archtest/
-ok   github.com/adams-shaun/gorge/internal/archtest  3.369s
+## Deviations from the brief
 
-go test -count=1 -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
-ok   github.com/adams-shaun/gorge/cmd/botbench  1.193s
-```
+None. The brief's `## Workspace facts`/row quote differ slightly from the actual
+AGENTS.md text ("per declare step" vs actual wording); I deleted the row by its
+actual text.
 
-`TestHeads` passed in the focused command; the botbench default golden passed unchanged. No chain-head, deck-ratchet, or botbench split movement was observed.
+## Open concerns / caveats
+
+1. `rules/paramcensus_test.go`'s comment above the `trig:` read-root list still
+   says a granted trigger of ANY mode "matches through triggerMatches' own
+   dispatch". That was already false for these two dedicated-hook modes and is
+   the very defect fixed here; the granted half now lives in
+   `checkGrantedAttackerBlockedTriggers`. Comment-only drift; the census tests
+   pass. I left it unchanged to stay inside the brief.
+2. Mirror Shield's `AddTrigger$ TrigBlocks & TrigBecomeBlocked` still does not
+   fire — but for a DIFFERENT, pre-existing reason (the `&`-joined multi-name
+   value is never split, so no grant registers at all). Filed as a new ticket;
+   see `## Issues`.
 
 ## Issues
 
-Unfixed out-of-scope issues carried from the brief:
-
-1. `galactus_devourer_of_worlds`'s `MustAttack$ Opponent.lifeEQX` remains inert: no rules/effects reader consumes the defender parameter, and the `MustAttack` static whitelist rejects that extra parameter. The player-filter fix does not address either gap.
-2. `your_inescapable_doom` and `the_mighty_will_fall` scheme triggers remain unreachable because `rules/trigger_match.go`'s `forEachObject` scans `ZLibrary..ZStack`, not `ZCommand`.
-3. `celestial_convergence` remains unsupported: `DB$ WinsGame` is not registered and `PlayerCountPlayers$TiedForHighestLife` is unimplemented.
-4. Make Them Pay's `DB$ VillainousChoice` is still not a registered effect; this change covers its preceding ChoosePlayer only.
-5. Breena's `PlayerCountDefinedTriggeredAttackedTarget$HasPropertylifeGTX` condition head is unimplemented. It fails open under the existing CheckSVar convention; the trigger's `AttackedTarget$` filter is what the new pin verifies.
-6. `great_unclean_one`'s `PlayerCountOpponents$HasPropertylifeLTCount$YourLifeTotal` nested-Count count-head spelling remains unimplemented; it is the separate count-head cousin, not a player qualifier.
-
-The scheme/celestial/Breena/count-head forms are distinct follow-up work and were not changed here.
+- **`AddTrigger$` with `&`-joined SVar names never registers** (out of scope;
+  filed as `.ds4/new-tickets/addtrigger-multiname-ampersand.md`,
+  Priority 2). `rules/layers.go` (`staticEffects`, AddTrigger branch) looks up
+  the WHOLE `st.Params["AddTrigger"]` string in `fc.SVars`; `cards/parse.go`
+  does not split a parameter value on `&`. Measured: 5 corpus files use the
+  shape (`mirror_shield`, `veterans_armaments`, `astrologians_planisphere`,
+  `candlekeep_sage`, `noble_heritage`); a throwaway test confirmed Mirror Shield
+  registers **0** AddTrigger grants. This is the multi-name grammar shared by
+  every granted mode, not the AttackerBlocked sub-shape this ticket closed
+  (which is about making a REGISTERED grant fire). Fixing it changes granted
+  behaviour for all modes, so it is a separate ticket.
+- **`paramcensus_test.go` stale comment** (comment-only): the `trig:` read-root
+  preamble claims all granted triggers dispatch through `triggerMatches`; the
+  two become-blocked modes now have a dedicated granted walk. See concern 1.
+- No CR-lane test was added or is proposed. The defect is a trigger-dispatch
+  gap, not a CR-rule conformance gap, and the ticket brief asked for a card-level
+  test only.
