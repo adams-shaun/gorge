@@ -162,6 +162,15 @@ func TestManaRecipientsPlainRememberedExcludesCardControllers(t *testing.T) {
 	wantPlayers(t, ManaRecipients(h, c, sa), []state.PlayerID{2}, "ManaRecipients(Remembered)")
 }
 
+// TestAllPlayersForPlainRememberedExcludesCardControllers pins the mass
+// tap/untap/damage-all player walk (combatfx allPlayersFor), a sibling
+// player-selection site the same class fix reaches.
+func TestAllPlayersForPlainRememberedExcludesCardControllers(t *testing.T) {
+	h, c, _ := mixedRememberedHost(t)
+	sa := &cards.SA{Params: map[string]string{"Defined": "Remembered"}}
+	wantPlayers(t, allPlayersFor(h, c, sa), []state.PlayerID{2}, "allPlayersFor(Remembered)")
+}
+
 // TestRememberedControllerOwnerControlReferents pins the two control referents
 // definedrem3 added (craterous_stomp / public_execution / winnowing carry
 // `ControlledBy RememberedController`): the remembered card's controller's
