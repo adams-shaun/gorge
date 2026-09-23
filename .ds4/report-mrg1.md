@@ -243,3 +243,108 @@ the branch's own report already records (`PlayerCountRemembered$LifeTotal`
 unread; the remaining `PlayerCountPropertyYou$` shapes) remain documented in
 the appended `report-t1.md` section and are neither introduced nor changed by
 this resolution.
+
+---
+
+# Merge-conflict resolution report — mrg1 (task agent-20260922T120916Z-0a3043f3)
+
+## Outcome
+
+The daemon's rebase of this branch onto main had conflicted on
+`.ds4/report-t1.md` (commit 28295617, "docs: record rolldice cost
+verification"); its merge fallback additionally conflicted on
+`.ds4/report-sol1.md`, with `rules/cast.go` and `rules/mana.go` auto-merging.
+No rebase/merge was in flight when this seat started (`git status` clean on
+`wt/agent-20260922T120916Z-0a3043f3`), so the integration was performed here
+as a merge of `main` into the branch — the same shape the branch's history
+already used (merge commit 32029f5c).
+
+Result: merge commit `5252e33d` ("Merge branch 'main' into
+wt/agent-20260922T120916Z-0a3043f3"), tree clean, no unmerged paths.
+
+## Conflicted files, both sides, resolution
+
+### `.ds4/report-sol1.md` (add/add — the only content conflict)
+
+- **Branch side:** the RollDice cost verification report for THIS ticket
+  (agent-20260922T120916Z-0a3043f3), committed in 14c3bd33 after the earlier
+  round moved it off the shared `report-t1.md` path.
+- **Main side:** the Gitaxian Probe verification report for the unrelated
+  ticket fb-20260923T015847Z-fad49275, which used the same designated
+  round-report path on main.
+- **Resolution:** keep both. Branch report first (verbatim), then a one-line
+  separator heading, then main's report verbatim. Neither side's intent is
+  altered.
+
+### `.ds4/report-t1.md` (auto-merged, verified)
+
+The merge took main's version wholesale (1160 lines, an accumulator of 10+
+reports). The branch's version held the `playerspec-life-svar-threshold`
+report, which the branch's 14c3bd33 had restored "byte-for-byte from main" —
+but main itself has since deliberately overwritten that file (0c067498
+"docs: record Yuffie attach verification", later than the branch's restore).
+The original playerspec report remains on main in history (df247a3f, content
+before 0c067498), so nothing durable is lost and main's later deliberate
+change correctly wins. No manual edit needed; verified no conflict markers.
+
+### `rules/cast.go`, `rules/mana.go` (auto-merged)
+
+Git merged main's changes with the branch's RollDice cost-token work without
+conflict. Verified post-merge that the RollDice parser/payment code survived
+intact: `rules/mana.go` keeps `Cost.RollDice` + `rollDiceCost` (lines 219-222,
+460, 729) and `rules/cast.go` keeps the cost-die payment block (lines
+8072-8076).
+
+## Commands and output
+
+```
+$ git merge main --no-edit
+Auto-merging .ds4/report-sol1.md
+CONFLICT (add/add): Merge conflict in .ds4/report-sol1.md
+Auto-merging rules/cast.go
+Auto-merging rules/mana.go
+Automatic merge failed; fix conflicts and then commit the result.
+```
+
+Sanity checks (run on the merged tree, before the merge commit; same content
+as the committed tree):
+
+```
+$ go test -run 'TestClayGolem|TestMonstrosity|TestRolledDie' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.730s
+
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' -v
+5 tests RUN, 0 SKIP, 0 FAIL; ok github.com/adams-shaun/gorge/rules 0.733s
+```
+
+(5 = TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched,
+TestEveryDispatchedTriggerMode*, TestEveryRepoDeckIsFullySupported,
+TestEveryRepoDeckParamsAreRead, and the CountHead ratchet test; zero skips so
+the corpus-backed ratchets were not vacuous — `.cards` was already present as
+a symlink in this worktree.)
+
+Post-commit: `git status --short --branch` → clean, on
+`wt/agent-20260922T120916Z-0a3043f3`.
+
+## Ratchet state after the merge
+
+No ratchet table entries needed updating: the branch registers no new
+trigger `Mode$` matcher and closes no `knownUnsupported` /
+`knownUnsupportedParams` / `knownUnmodelledCountHeads` entry, so the
+post-merge ratchet run passing green is the expected outcome (the RollDice
+cost parser's OnlyXTicket entries were never in any of those tables).
+
+## Unsure about / notes
+
+- The merge was performed with the default message (no `Ref:` trailer, per
+  gorge convention).
+- `.ds4/report-mrg1.md` itself held a previous task's merge report (brought in
+  via main); this round's report is appended below it rather than replacing
+  it, matching the repo's report-preservation convention.
+- Not run here (daemon gates): full suite, TestHeads, `make sim`, CR
+  conformance, `go vet`.
+
+## Issues
+
+None new. The only conflicts were report-path collisions among unrelated
+tickets' reports; no engine code conflicted.

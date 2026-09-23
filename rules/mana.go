@@ -216,6 +216,10 @@ type Cost struct {
 	// part (fail-open there) and the payment stage aborts (CR 733.1) when
 	// the graveyard cannot reach the resolved total.
 	Evidence []CostPart
+	// RollDice carries RollDice<N/Sides/XVar> free cost components. The payment
+	// rolls each die and publishes its canonical effects.DieRollNote; Dyn names
+	// the ability X binding (currently only X is modelled).
+	RollDice []CostPart
 	// Unknown lists the HEAD (the text before any "<...>") of every cost
 	// token this parse did not model, in order of appearance, deduplicated.
 	// A token lands here exactly when ParseCost could not give it real
@@ -453,6 +457,7 @@ var removeAnyCounterCost = regexp.MustCompile(`^RemoveAnyCounter<(X|\d+)/([^/>]+
 // effects.ParseDamageUnlessCost; this head keeps a plain Cost$ spelling out
 // of Cost.Unknown.
 var damageYouCost = regexp.MustCompile(`^DamageYou<(\d+)(?:/([^>]*))?>$`)
+var rollDiceCost = regexp.MustCompile(`^RollDice<([^>]*)>$`)
 
 var costBraces = strings.NewReplacer("{", " ", "}", " ")
 
@@ -713,6 +718,20 @@ func ParseCost(s string) Cost {
 				// payer's life at the X ask) and the settle pays that much life.
 				// No generic substitution, no Unknown entry.
 				c.LifeX = append(c.LifeX, CostPart{Spec: "X", Announced: true})
+				continue
+			}
+			if m := rollDiceCost.FindStringSubmatch(sym); m != nil {
+				fields := strings.Split(m[1], "/")
+				if len(fields) == 3 && fields[2] == "X" {
+					n, nerr := strconv.ParseInt(fields[0], 10, 32)
+					sides, serr := strconv.ParseInt(fields[1], 10, 32)
+					if nerr == nil && serr == nil && n > 0 && sides > 0 {
+						c.RollDice = append(c.RollDice, CostPart{N: int32(n), Spec: fields[1], Dyn: fields[2]})
+						continue
+					}
+				}
+				c.Generic = addClampedGeneric(c.Generic, 1)
+				c.reportUnknown(sym)
 				continue
 			}
 			if m := damageYouCost.FindStringSubmatch(sym); m != nil {
