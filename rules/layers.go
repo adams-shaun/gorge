@@ -3650,7 +3650,8 @@ func clauseIsCardOwner(clause string) bool {
 }
 
 // playerIsSourceOwner reports whether p owns the restriction source object.
-// An absent or off-zone source fails closed.
+// A source id with no object (the 0 sentinel a source-less caller passes)
+// fails closed.
 func playerIsSourceOwner(g *state.Game, source state.ObjID, p state.PlayerID) bool {
 	o := g.Obj(source)
 	return o != nil && o.Owner == p
