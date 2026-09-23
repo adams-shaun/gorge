@@ -3642,19 +3642,24 @@ func (e *Engine) payUnlessDamageCost(ctx *effects.Ctx, payer state.PlayerID, n i
 	if o := e.G.Obj(source); o != nil && o.Ability != nil && o.Source != 0 {
 		source = o.Source
 	}
+	keywords := e.damageKeywordsOf(source)
+	controller := ctx.Controller
+	if o := e.G.Obj(source); o != nil && o.Zone == state.ZBattlefield {
+		controller = o.Controller
+	} else if lki, ok := ctx.DamageSourceLKI[source]; ok {
+		keywords = damageKeywordLKI{lifelink: lki.Lifelink, infect: lki.Infect,
+			wither: lki.Wither, deathtouch: lki.Deathtouch}
+		controller = lki.Controller
+	}
 	prev := e.SetDamageSource(source)
 	dam := events.Event{Kind: events.Damage, Player: payer, Amount: int32(n)}
-	if e.HasKeyword(source, "Infect") {
+	if keywords.infect {
 		dam.Counter = "infect"
 	}
 	ev := e.emit(dam)
 	e.SetDamageSource(prev)
-	if ev.Kind != events.Damage || !e.HasKeyword(source, "Lifelink") {
+	if ev.Kind != events.Damage || !keywords.lifelink {
 		return
-	}
-	controller := ctx.Controller
-	if o := e.G.Obj(source); o != nil && o.Zone == state.ZBattlefield {
-		controller = o.Controller
 	}
 	e.emit(events.Event{Kind: events.LifeChange, Player: controller, Amount: int32(n)})
 }
