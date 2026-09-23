@@ -1524,3 +1524,178 @@ changes merged cleanly (disjoint files/regions).
 None found during this integration round beyond the resolved conflicts. One
 note: both sides' `knownApproximationRows` comments were each true only for
 their own tip; the merged-tree constant 42 supersedes both.
+
+
+---
+
+## Preserved main-side report (kept verbatim from the merge conflict, main side)
+
+# Merge conflict resolution — mrg1
+
+## Result
+
+Integrated `main` (`1be022ebce54f7adc60a491e961dd7808e84e971`) into `wt/cli-20260922T225141Z-5641f97b` with a merge commit. The requested branch fix `0836163f` is retained. No code outside the reported merge was authored.
+
+## Conflict
+
+### `internal/testutil/agentsdoc_test.go`
+
+- Branch side changed `knownApproximationRows` from 50 to 49 when its repeatable-cost approximation row was deleted.
+- Main side had its own approximation closures and declared 43 rows in its explanatory comment and constant.
+- The merged `AGENTS.md` contains main's deletions plus the branch's repeatable-cost row deletion. Counting the actual merged table gives 42 data rows, so resolved the constant to 42 and described the combined result. This preserves both sides' intended ratchet updates.
+
+`AGENTS.md` and `rules/cast.go` auto-merged without conflict. Main's changes to the remaining files were incorporated by the merge; no further conflict resolution was needed.
+
+## Commands and output
+
+- `git status --short --branch; git status`:
+  `## wt/cli-20260922T225141Z-5641f97b`; clean before integration.
+- `git merge main`:
+  `CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go`; `AGENTS.md` and `rules/cast.go` auto-merged.
+- Counted the data rows in the merged `AGENTS.md`: **42**; main's table before the branch-only deletion had 43.
+- `git diff --check`: no output (passed).
+- `.cards` check: `.cards exists`.
+- `go test ./internal/testutil -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort'`:
+  `ok github.com/adams-shaun/gorge/internal/testutil 0.004s`
+- `go test ./rules -run 'TestReplicateCountBound|TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`:
+  `ok github.com/adams-shaun/gorge/rules 0.777s`
+
+The requested post-merge trigger/deck/parameter/count-head ratchets and the branch's repeatable-cost tests passed. No uncertainty remains.
+
+## Issues
+
+No new unfixed issue was found while resolving this integration conflict. The branch commit's reported replicated-mode offer-gate limitation remains as documented in its commit message: `legal.go`'s `offerCastable` remains pool-only, so a replicate option can be withheld when only convoke would fund it. It was outside the conflict and was not changed here.
+
+## Round 2 — second main integration (2026-09-23 02:40)
+
+After the round-1 merge (`f8bbf659`, main at `1be022eb`) landed, main advanced to
+`edc24484` (the sibling ticket `cli-20260922T225141Z-1b1182e4` merged: MustBlock
+enforcement, `ImprintOnHost$`, `RememberCounteredCMC`, first-strike phase gating).
+Ran `git merge main` again; two conflicts:
+
+### `internal/testutil/agentsdoc_test.go`
+
+Both sides had already resolved `knownApproximationRows` to `42` (main's comment
+lists its closure set: acc7878d, 63c07260, 7c4182ff, d56e404f, 78d3b764,
+f76f59fd and earlier ones; our round-1 comment said the same count). Took main's
+more detailed comment verbatim — the constants agree, only the explanatory text
+differed. Verified by counting the merged `AGENTS.md` table: **42 data rows**,
+matching the constant.
+
+### `.ds4/report-mrg1.md`
+
+Path collision with the sibling ticket `1b1182e4`, whose own `mrg1` report
+(1799 lines) reached main through its merge chain. This file at the canonical
+path is THIS ticket's report; kept ours (as round 1 did) and appended this
+section. Main's copy is the sibling's report and stays in its own merge
+commits (`af2f1648` etc.); nothing else referenced it.
+
+Everything else auto-merged (`AGENTS.md`, `rules/combat.go`, `effects/misc.go`,
+`decision/*`, `state/phase.go`, new tests and sources from main).
+
+### Commands and outputs
+
+- `git merge main`:
+  `Auto-merging .ds4/report-mrg1.md / CONFLICT (content): Merge conflict in .ds4/report-mrg1.md`
+  `Auto-merging AGENTS.md / Auto-merging internal/testutil/agentsdoc_test.go / CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go`
+  `Automatic merge failed; fix conflicts and then commit the result.`
+- Row count: `awk` over merged `AGENTS.md` → 42 data rows.
+- `.cards` check: present (`CARDS_OK`).
+
+### Issues
+
+No new unfixed issue found in this round. The round-1 note stands: `legal.go`'s
+`offerCastable` remains pool-only, so a replicate option can be withheld when
+only convoke would fund it (documented in `0836163f`'s commit message).
+
+---
+
+## Record — current integration round (cli-20260922T225143Z-bc326d39, round 2)
+
+### Starting state and operation
+
+The worktree was CLEAN at `da4e8c78`, the branch's prior merge of main
+`1be022eb`; no rebase or merge was in flight (the daemon's rebase and its
+merge fallback had both been rolled back, and the reflog showed a final
+`reset: moving to HEAD`). `main` had advanced past `1be022eb` to `fead1e59`
+(the cli-20260922T225141Z-5641f97b Replicate count-bound landing, plus the
+MustBlock / `ImprintOnHost$` / `RememberCounteredCMC` / first-strike-phase
+merges from cli-20260922T225141Z-1b1182e4). Rebase is forbidden in this seat,
+so I re-integrated with `git merge main`.
+
+### Conflicts and resolution
+
+1. **`internal/testutil/agentsdoc_test.go`** — only the
+   `knownApproximationRows` comment/constant. HEAD side carried 42; main side
+   carried 42 with a longer comment. Both values were stale for the merged
+   table because the two sides deleted DISJOINT rows:
+   - base `1be022eb` measured **43** data rows;
+   - this branch deleted the `kw:Infect` row (fix `56f98b13`, CR 113.7a
+     last-known characteristics for damage cost keywords at the two cost
+     sites);
+   - main deleted the `Phase$ First Strike Damage` row (fix `acc7878d`,
+     combat-presence gating) and the Replicate count-bound row (fix
+     `0836163f`, the repeatable-cost charge).
+   `43 - 3 = 40`. The auto-merged `AGENTS.md` table measures exactly **40**
+   data rows (the test's own `approximationRows` logic) and all three deleted
+   rows are absent (`grep -c` → 0). Resolved to
+   `knownApproximationRows = 40` with a comment naming all three closures.
+2. **`.ds4/report-mrg1.md`** — the shared accumulated report. HEAD's full
+   report history (1526 lines) and main's report (77 lines, the sibling
+   cli-20260922T225141Z-5641f97b round-2 record) were the two sides. Kept
+   HEAD's complete history verbatim, appended main's copy verbatim under a
+   `## Preserved main-side report` heading, and dropped only the conflict
+   markers; neither historical report was discarded.
+
+`AGENTS.md` auto-merged (all three disjoint row deletions retained). No engine
+code conflicted: main's `decision/*`, `effects/count.go`, `effects/misc.go`,
+`effects/registry.go`, `rules/combat.go`, `rules/trigmatch_misc.go`,
+`state/phase.go` and new tests, together with this branch's `rules/cast.go`
+damage-cost LKI change, merged cleanly (disjoint files/regions).
+
+### Commands and output
+
+- `git merge main --no-edit` →
+  ```
+  Auto-merging .ds4/report-mrg1.md
+  CONFLICT (content): Merge conflict in .ds4/report-mrg1.md
+  Auto-merging AGENTS.md
+  Auto-merging internal/testutil/agentsdoc_test.go
+  CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go
+  Auto-merging rules/cast.go
+  Automatic merge failed; fix conflicts and then commit the result.
+  ```
+- `.cards` present (real symlink to `/home/sadams/projects/gorge/.cards`) —
+  runs are real, not vacuous skips.
+- Merged-table measurement (the test's own counting logic): base `1be022eb` 43
+  data rows; merged tree 40 data rows; `grep -c` on the three deleted rows → 0.
+- `go test ./internal/testutil -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort' -v`:
+  ```
+  === RUN   TestKnownApproximationsOnlyShrinks
+  --- PASS: TestKnownApproximationsOnlyShrinks (0.00s)
+  === RUN   TestKnownApproximationRowsAreShort
+  --- PASS: TestKnownApproximationRowsAreShort (0.00s)
+  PASS
+  ok  	github.com/adams-shaun/gorge/internal/testutil	0.001s
+  ```
+- Required post-merge ratchets,
+  `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' -v`:
+  ```
+  --- PASS: TestEveryRepoDeckIsFullySupported (0.62s)
+  --- PASS: TestEveryRepoDeckCountHeadResolves (0.00s)
+  --- PASS: TestEveryRepoDeckParamsAreRead (0.13s)
+  --- PASS: TestEveryDispatchedTriggerModeHasAMatcher (0.00s)
+  --- PASS: TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched (0.00s)
+  ok  	github.com/adams-shaun/gorge/rules	0.792s
+  ```
+- `gofmt -l internal/testutil/agentsdoc_test.go` → clean; conflict-marker grep
+  over all tracked files → none.
+
+### Issues / uncertainty
+
+No new unfixed issue found during this integration round. The count in the
+inherited main-side comment (and this branch's prior comment) was stale
+because neither side knew about the other's row deletions; the measured 40 is
+authoritative. Note (already recorded by the ticket): `legal.go`'s
+`offerCastable` remains pool-only, so a replicate option can be withheld when
+only convoke would fund it — outside this conflict, unchanged here.
