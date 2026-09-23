@@ -1927,45 +1927,38 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 // permanent via the ChangeZone's RememberChanged$ True, so TrigBounce knows
 // which object to return).
 //
-// Only Mode$ Phase is implemented. The other Mode$ values (ChangesZone,
-// SpellCast, ChangesController, DamageDone, AttackersDeclared) stay the
-// deterministic Note-only recording, so a card that needs one still says
-// what it intended without pretending to have fired.
+// Mode$ Phase and the event-matched delayed modes all use the same
+// registration event. Event-matched bodies are stored inline because a
+// DelayedTrigger SA is not itself an SVar that events.Apply could resolve.
 func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
-	mode := sa.Params["Mode"]
+	mode := strings.TrimSpace(sa.Params["Mode"])
 	if mode == "SpellCast" {
 		effDelayedTriggerSpellCast(h, c, sa)
 		return
 	}
-	if mode != "Phase" {
+	if mode != "Phase" && mode != "ChangesZone" && mode != "ChangesController" &&
+		mode != "DamageDone" && mode != "AttackersDeclared" {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "registers a delayed trigger at " + mode + " (not implemented)"})
 		return
 	}
-	set, unknown := state.ParsePhases(sa.Params["Phase"])
-	if len(unknown) > 0 {
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-			Text: "registers a delayed trigger at unrecognized phase " + sa.Params["Phase"]})
-		return
-	}
-	// One one-shot registration for the FIRST member of the set the game will
-	// still reach (state.EarliestAfter): Forge's delayed trigger is removed
-	// from TriggerHandler.delayedTriggers the moment it fires, so even a
-	// multi-step Phase$ value (`Main1,Main2`, the open `Upkeep->` range) fires
-	// exactly once, at the first listed phase still ahead -- and a single-step
-	// value maps to the very step a registration used to carry, so every
-	// already-working shape is unchanged.
-	step, ok := state.EarliestAfter(set, h.Game().Step)
-	if !ok {
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-			Text: "registers a delayed trigger with no Phase"})
-		return
-	}
-	exec := sa.Params["Execute"]
-	if exec == "" {
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-			Text: "registers a delayed trigger with no Execute"})
-		return
+	var step state.Step
+	if mode == "Phase" {
+		set, unknown := state.ParsePhases(sa.Params["Phase"])
+		if len(unknown) > 0 {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "registers a delayed trigger at unrecognized phase " + sa.Params["Phase"]})
+			return
+		}
+		// Register the first listed phase still ahead; firing consumes the
+		// registration, so a multi-step Phase$ value remains one-shot.
+		var ok bool
+		step, ok = state.EarliestAfter(set, h.Game().Step)
+		if !ok {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "registers a delayed trigger with no Phase"})
+			return
+		}
 	}
 	// An absent RememberObjects$ (and the bare RememberedLKI spelling) keeps
 	// the resolving chain's capture. Any other recognised value REPLACES that
@@ -2033,9 +2026,71 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 		}
 		remembered = chain
 	}
+	if mode != "Phase" {
+		exec := strings.TrimSpace(sa.Params["Execute"])
+		if exec == "" {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "registers a delayed " + mode + " trigger with no Execute"})
+			return
+		}
+		eventText := mode + ":" + delayedTriggerBody(sa)
+		if strings.EqualFold(strings.TrimSpace(sa.Params["ThisTurn"]), "True") {
+			eventText += "|TT=" + strconv.Itoa(int(h.Game().Turn))
+		}
+		h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
+			Player: c.Controller, Step: h.Game().Step, Counter: exec,
+			IDs: encodeRemembered(remembered), Text: eventText})
+		return
+	}
+	exec := strings.TrimSpace(sa.Params["Execute"])
+	if exec == "" {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "registers a delayed trigger with no Execute"})
+		return
+	}
 	h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 		Player: c.Controller, Step: step, Counter: exec, Amount: amount,
 		IDs: encodeRemembered(remembered), Text: text})
+}
+
+// delayedTriggerBody serializes the trigger parameters in a fixed order. A
+// map iteration here would make the event bytes (and therefore replay heads)
+// nondeterministic.
+func delayedTriggerBody(sa *cards.SA) string {
+	// Literal keys at both the read and append sites keep the parameter census
+	// attributable; call order fixes the registration's replay-visible bytes.
+	parts := []string{"Mode$ " + strings.TrimSpace(sa.Params["Mode"])}
+	add := func(prefix, value string) {
+		if v := strings.TrimSpace(value); v != "" {
+			parts = append(parts, prefix+v)
+		}
+	}
+	add("ValidCard$ ", sa.Params["ValidCard"])
+	add("ValidCards$ ", sa.Params["ValidCards"])
+	add("Origin$ ", sa.Params["Origin"])
+	add("Destination$ ", sa.Params["Destination"])
+	add("ExcludedOrigins$ ", sa.Params["ExcludedOrigins"])
+	add("ValidSource$ ", sa.Params["ValidSource"])
+	add("ValidTarget$ ", sa.Params["ValidTarget"])
+	add("CombatDamage$ ", sa.Params["CombatDamage"])
+	add("ValidAttackers$ ", sa.Params["ValidAttackers"])
+	add("ValidAttackersAmount$ ", sa.Params["ValidAttackersAmount"])
+	add("AttackingPlayer$ ", sa.Params["AttackingPlayer"])
+	add("AttackedTarget$ ", sa.Params["AttackedTarget"])
+	add("ValidPlayer$ ", sa.Params["ValidPlayer"])
+	add("ValidOriginalController$ ", sa.Params["ValidOriginalController"])
+	add("ValidActivatingPlayer$ ", sa.Params["ValidActivatingPlayer"])
+	add("PlayerTurn$ ", sa.Params["PlayerTurn"])
+	add("ValidSA$ ", sa.Params["ValidSA"])
+	add("TriggerZones$ ", sa.Params["TriggerZones"])
+	add("ActiveZones$ ", sa.Params["ActiveZones"])
+	add("ThisTurn$ ", sa.Params["ThisTurn"])
+	add("Static$ ", sa.Params["Static"])
+	add("IsPresent$ ", sa.Params["IsPresent"])
+	add("PresentDefined$ ", sa.Params["PresentDefined"])
+	add("PresentCompare$ ", sa.Params["PresentCompare"])
+	add("PresentZone$ ", sa.Params["PresentZone"])
+	return strings.Join(parts, " | ")
 }
 
 // effDelayedTriggerSpellCast registers the event-matched delayed shape: a
@@ -2080,6 +2135,9 @@ func effDelayedTriggerSpellCast(h Host, c *Ctx, sa *cards.SA) {
 	}
 	if v := strings.TrimSpace(sa.Params["ValidActivatingPlayer"]); v != "" {
 		body += " | ValidActivatingPlayer$ " + v
+	}
+	if v := strings.TrimSpace(sa.Params["ValidPlayer"]); v != "" {
+		body += " | ValidPlayer$ " + v
 	}
 	if v := strings.TrimSpace(sa.Params["PlayerTurn"]); v != "" {
 		body += " | PlayerTurn$ " + v
