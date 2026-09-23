@@ -92,83 +92,74 @@ var choosePlaneswalkerTypes = []string{
 // any category this build still cannot name. A nil result tells the asking
 // caller to take its documented fallback, so a list is never silently empty.
 //
-// validTypes/invalidTypes carry the SA's ValidTypes$/InvalidTypes$ comma
-// lists, applied as a filter over the Card vocabulary (Cloud Key's five
-// types, Archon of Valor's Reach's five, Creeping Renaissance's
-// InvalidTypes$ Instant,Sorcery,Kindred). They are read for Card only: the
-// static land/planeswalker lists have no corpus carrier that constrains them.
+// validTypes/invalidTypes carry the SA's comma-separated category filters.
+// They are applied to the category vocabulary before it is offered, including
+// Basic Land's Roots of Life exclusion list. Card additionally expands the
+// corpus's Nonland pseudo-type over the card-type vocabulary.
 func TypeChoiceLabels(category, validTypes, invalidTypes string) []string {
+	var vocabulary []string
 	switch strings.ToLower(strings.TrimSpace(category)) {
 	case "basic land":
-		return append([]string(nil), chooseBasicLandTypes...)
+		vocabulary = chooseBasicLandTypes
 	case "land":
-		return append([]string(nil), chooseLandTypes...)
+		vocabulary = chooseLandTypes
 	case "nonbasic land":
-		return append([]string(nil), chooseNonbasicLandTypes...)
+		vocabulary = chooseNonbasicLandTypes
 	case "card":
-		return filterCardTypeLabels(validTypes, invalidTypes)
+		vocabulary = chooseCardTypes
 	case "planeswalker":
-		return append([]string(nil), choosePlaneswalkerTypes...)
+		vocabulary = choosePlaneswalkerTypes
+	default:
+		return nil
 	}
-	return nil
+	return filterTypeLabels(vocabulary, validTypes, invalidTypes, strings.EqualFold(strings.TrimSpace(category), "card"))
 }
 
-// filterCardTypeLabels applies ValidTypes$/InvalidTypes$ to the card-type
-// vocabulary. An empty ValidTypes$ means the whole vocabulary; a ValidTypes$
-// entry that is not a card type is itself a whole-category filter -- the
-// corpus's `Land,Nonland` (Gollum, Scheming Guide; Jukai Liberator) expands
-// Nonland to every card type except Land. InvalidTypes$ removes entries by
-// name. The result is non-empty whenever the inputs leave any card type
-// standing; the CALLER treats a nil/empty result as "cannot offer this list"
-// and falls back, never as an empty ask (the totality rule the as-enters ask
-// lives by).
-func filterCardTypeLabels(validTypes, invalidTypes string) []string {
-	var out []string
+// filterTypeLabels applies ValidTypes$/InvalidTypes$ to a category's
+// vocabulary. An empty ValidTypes$ means the whole vocabulary. For Card only,
+// the corpus's Land,Nonland form expands Nonland to every card type except
+// Land. Unknown-only ValidTypes$ and filters removing every value fail closed
+// with nil, allowing callers to take their documented no-list fallback rather
+// than offer illegal choices.
+func filterTypeLabels(vocabulary []string, validTypes, invalidTypes string, cardTypes bool) []string {
+	var allowed []string
 	if strings.TrimSpace(validTypes) == "" {
-		out = append(out, chooseCardTypes...)
+		allowed = append(allowed, vocabulary...)
 	} else {
 		for _, v := range splitTypeList(validTypes) {
-			if strings.EqualFold(v, "Nonland") {
-				for _, c := range chooseCardTypes {
+			if cardTypes && strings.EqualFold(v, "Nonland") {
+				for _, c := range vocabulary {
 					if !strings.EqualFold(c, "Land") {
-						out = append(out, c)
+						allowed = append(allowed, c)
 					}
 				}
 				continue
 			}
-			for _, c := range chooseCardTypes {
+			for _, c := range vocabulary {
 				if strings.EqualFold(c, v) {
-					out = append(out, c)
+					allowed = append(allowed, c)
 				}
 			}
 		}
-	}
-	if len(out) == 0 {
-		out = append(out, chooseCardTypes...)
 	}
 	invalid := map[string]bool{}
 	for _, v := range splitTypeList(invalidTypes) {
 		invalid[strings.ToLower(v)] = true
 	}
-	filtered := out[:0]
-	for _, c := range out {
-		if !invalid[strings.ToLower(c)] {
-			filtered = append(filtered, c)
-		}
-	}
-	if len(filtered) == 0 {
-		return nil
-	}
+	out := make([]string, 0, len(allowed))
 	seen := map[string]bool{}
-	dedup := filtered[:0]
-	for _, c := range filtered {
-		if seen[c] {
+	for _, c := range allowed {
+		key := strings.ToLower(c)
+		if invalid[key] || seen[key] {
 			continue
 		}
-		seen[c] = true
-		dedup = append(dedup, c)
+		seen[key] = true
+		out = append(out, c)
 	}
-	return dedup
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }
 
 // splitTypeList splits a comma-separated Forge type list, trimming each
