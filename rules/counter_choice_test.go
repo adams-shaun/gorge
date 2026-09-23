@@ -326,6 +326,32 @@ func amyPondGame(t *testing.T, seed uint64, nSuspended int, time int32) (*Engine
 	if o := e.G.Obj(plain); o.Zone != state.ZExile || o.CastFlags&state.FlagSuspend != 0 {
 		t.Fatalf("plain control copy not exiled un-flagged: %+v", o)
 	}
+	// main's kw:Partner-with expansion (CR 702.128) mints Amy Pond's ETB
+	// may-search trigger ("target player may put Rory into their hand"), so
+	// Amy's battlefield entry now queues a trigger with a ValidTgts$ Player
+	// target ask. Answer it — target seat 0, Amy's controller — and decline
+	// the targeted player's Optional$ may-find (Min 0: submit no choices),
+	// leaving the fixture quiescent exactly as it was before the expansion
+	// landed (Rory Williams is in neither deck, so the decline is forced).
+	d := passUntilNonPriority(t, e, 30)
+	if d.Kind != decision.KTarget {
+		t.Fatalf("Amy Pond's Partner-with ETB did not ask its target player: %+v", d)
+	}
+	p0 := -1
+	for _, o := range d.Options {
+		if o.Kind == "player" && o.Player == 0 {
+			p0 = o.Index
+		}
+	}
+	if p0 < 0 {
+		t.Fatalf("Partner-with target ask offers no player-0 option: %+v", d.Options)
+	}
+	submitChoices(t, e, p0)
+	// The search election itself never asks here: Rory Williams is in
+	// neither deck, so the chosen player's Optional$ ChangeZone fails to
+	// find the stated name and the trigger resolves without a decision (the
+	// CR 701.23b fail-to-find split). Stop on the resumed priority — the
+	// fixture must not pass further and advance the turn.
 	return e, cfg, amyID, suspended
 }
 
