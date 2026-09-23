@@ -26,6 +26,7 @@ package rules
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -347,7 +348,47 @@ func TestVoidChooseNumberPopulationStaysUnresolved(t *testing.T) {
 	bauble := putCreature(t, e, 0, wgBaubleSrc)
 	voidID := find("Void Shape", 0)
 	addMana(t, e, 0, "BBRRRR")
-	castObj(t, e, voidID)
+	// Cast explicitly rather than through castObj: the ChooseNumber body now
+	// suspends mid-resolution. Answer 0 (the old deterministic stand-in) so
+	// this test isolates the unresolved Count$ChosenNumber comparison.
+	if o := e.G.Obj(voidID); o == nil || o.Zone != state.ZHand {
+		t.Fatalf("precondition: Void Shape must be in hand: %+v", o)
+	}
+	d := e.Pending()
+	if d == nil {
+		t.Fatal("no decision pending to cast Void Shape")
+	}
+	cast := -1
+	for _, opt := range d.Options {
+		if opt.Kind == "cast" && opt.Obj == voidID {
+			cast = opt.Index
+		}
+	}
+	if cast < 0 {
+		t.Fatalf("no cast option for Void Shape: %+v", d.Options)
+	}
+	submitChoices(t, e, cast)
+	for i := 0; i < 20; i++ {
+		d = e.Pending()
+		if d == nil {
+			t.Fatal("no decision pending before the number ask")
+		}
+		if d.Kind == decision.KChoose && d.ResumeKind == "choosenumber" {
+			break
+		}
+		if d.Kind != decision.KPriority {
+			t.Fatalf("unexpected decision before the number ask: %+v", d)
+		}
+		passPriorityOnce(t, e)
+	}
+	if d.Kind != decision.KChoose || d.ResumeKind != "choosenumber" {
+		t.Fatalf("Void Shape did not pose its number ask: %+v", d)
+	}
+	if len(d.Options) == 0 || d.Options[0].Kind != "number" || d.Options[0].Amount != 0 {
+		t.Fatalf("number 0 is not the first offered answer: %+v", d.Options)
+	}
+	submitChoices(t, e, d.Options[0].Index)
+	passUntilStackEmpty(t, e, 20)
 	for _, tc := range []struct {
 		name string
 		id   state.ObjID
