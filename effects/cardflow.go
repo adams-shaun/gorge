@@ -1134,6 +1134,19 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 	forceReveal := strings.EqualFold(strings.TrimSpace(sa.Params["ForceRevealToController"]), "True")
 	skipReorder := strings.EqualFold(strings.TrimSpace(sa.Params["SkipReorder"]), "True")
 	tapped := strings.EqualFold(strings.TrimSpace(sa.Params["Tapped"]), "True")
+	// FromBottom$ True (task scrybottom): the Dig window is the BOTTOM DigNum
+	// cards of the library rather than the top. The Temporal Anchor's
+	// "exile that many cards from the bottom of your library" is the corpus
+	// carrier (`/usr/bin/grep -rlE 'FromBottom\$'` = 2 files); everything
+	// after the window (the primary move, the remainder placement) is
+	// unchanged, so a non-FromBottom Dig emits byte-identically.
+	fromBottom := strings.EqualFold(strings.TrimSpace(sa.Params["FromBottom"]), "True")
+	lookText := "looks at the top of the library"
+	lookWhere := "top"
+	if fromBottom {
+		lookText = "looks at the bottom of the library"
+		lookWhere = "bottom"
+	}
 	primaryPos := strings.TrimSpace(sa.Params["LibraryPosition"])
 	dest2Name := strings.TrimSpace(sa.Params["DestinationZone2"])
 	pos2 := strings.TrimSpace(sa.Params["LibraryPosition2"])
@@ -1180,6 +1193,9 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			n = int32(len(lib))
 		}
 		top := append([]state.ObjID(nil), lib[:n]...)
+		if fromBottom {
+			top = append([]state.ObjID(nil), lib[int32(len(lib))-n:]...)
+		}
 		// primaryMoved is the temporary library pile for a primary
 		// DestinationZone$ Library move. It is placed after the remainder has
 		// settled, so the primary LibraryPosition$ cannot be lost to the
@@ -1410,7 +1426,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			if revealWin {
 				h.Emit(events.Event{Kind: events.Note, Player: p, IDs: top})
 			} else {
-				emitLook(h, []state.PlayerID{p}, state.ZLibrary, top, "looks at the top of the library")
+				emitLook(h, []state.PlayerID{p}, state.ZLibrary, top, lookText)
 			}
 			minv := int32(0)
 			if !optional && !anyNum {
@@ -1431,7 +1447,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			if !optional && !anyNum {
 				verb = "put "
 			}
-			prompt := "Look at the top " + strconv.Itoa(int(n)) + " card(s) of your library: " + verb + strconv.Itoa(int(changeNum)) + " matching card(s) into " + digDestPhrase(dest)
+			prompt := "Look at the " + lookWhere + " " + strconv.Itoa(int(n)) + " card(s) of your library: " + verb + strconv.Itoa(int(changeNum)) + " matching card(s) into " + digDestPhrase(dest)
 			if hasBudget {
 				prompt += " (total mana value " + strconv.Itoa(int(budget)) + " or less)"
 			}
@@ -1505,7 +1521,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			// The ordered-bottom ask is coming: the look that authorises it is
 			// recorded here, the same Secret owner's Note the take-ask path
 			// emits before ITS ask (a Reveal$ window is already public).
-			emitLook(h, []state.PlayerID{p}, state.ZLibrary, top, "looks at the top of the library")
+			emitLook(h, []state.PlayerID{p}, state.ZLibrary, top, lookText)
 		}
 		taken := make(map[state.ObjID]bool, len(greedy))
 		for _, id := range greedy {

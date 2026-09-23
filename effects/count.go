@@ -282,9 +282,8 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 	// Ctx.TriggerResult) when the trigger fired
 	// and carried to resolution through the per-stack-instance
 	// triggerContexts map -- never from the live board, and never re-inferred
-	// at resolution. A head this build does not model (ScryNum,
-	// ScryBottom) degrades to zero, exactly as it did before TriggerCount$ was
-	// recognised at all.
+	// at resolution. A head this build does not model (ScryNum) degrades to
+	// zero, exactly as it did before TriggerCount$ was recognised at all.
 	if body, ok := strings.CutPrefix(expr, "TriggerCountMax$"); ok {
 		return evalTriggerCountOK(c, strings.TrimSpace(body), true)
 	}
@@ -539,10 +538,17 @@ func countMostCardName(h Host, c *Ctx, spec string) (int32, bool) {
 // captured at fire time -- Mr. House's BranchConditionSVar$ reads it after
 // the RollDice resolution that produced it has finished). The /Op suffix is
 // applied exactly as applyCountOp does for Count$ and Sacrificed$. An
-// unmodelled head (ScryNum, ScryBottom) degrades to zero. max selects the
+// unmodelled head (ScryNum) degrades to zero. max selects the
 // TriggerCountMax$ prefix's reading: the same heads, but Result answers the
 // highest result in the roll batch (Ctx.TriggerResultMax -- Farideh's "if any
 // of those results was 10 or higher") rather than the batch's reported result.
+//
+// ScryBottom is the completed Scry's own magnitude: events.Scry.Amount, the
+// count the player actually chose to put on the bottom (rules captures it
+// into TriggerAmount, the same fire-time binding every other head reads).
+// The Temporal Anchor's `SVar:X:TriggerCount$ScryBottom` sizes its bottom
+// exile through it. ScryNum -- the number LOOKED at -- remains unmodelled:
+// this build raises no scry marker carrying that number.
 //
 // Result is an EVALUATED head (verdict true) on every trigger, not only a
 // roll trigger: before RolledDie was registered it reported (0, false), so a
@@ -555,7 +561,9 @@ func evalTriggerCountOK(c *Ctx, body string, max bool) (int32, bool) {
 	body, op, hasOp := strings.Cut(body, "/")
 	var n int32
 	switch strings.TrimSpace(body) {
-	case "DamageAmount", "LifeAmount", "Amount":
+	case "DamageAmount", "LifeAmount", "Amount", "ScryBottom":
+		// ScryBottom is the events.Scry marker's Amount (the number put on
+		// the bottom), captured into TriggerAmount by rules for Mode$ Scry.
 		n = c.TriggerAmount
 	case "Result":
 		if max {
@@ -564,10 +572,10 @@ func evalTriggerCountOK(c *Ctx, body string, max bool) (int32, bool) {
 			n = c.TriggerResult
 		}
 	default:
-		// ScryNum and ScryBottom (scry events) are heads whose triggering
-		// events this build does not raise, so they stay zero -- the same
+		// ScryNum (the number LOOKED at) is a head whose triggering number
+		// this build does not carry, so it stays zero -- the same
 		// conservative no-op as before the prefix was recognised. NOT
-		// evaluated: a gate over one of these fails open.
+		// evaluated: a gate over it fails open.
 		return 0, false
 	}
 	if hasOp {
