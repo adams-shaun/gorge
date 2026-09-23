@@ -1404,6 +1404,12 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		if c.FlipMemory != nil && c.FlipMemory.RememberNumberKind != "" {
 			return c.FlipMemory.RememberNumber, true
 		}
+		// A RememberCounteredCMC$ binding takes the same precedence: the
+		// remembered number is the countered spell's mana VALUE (a counter
+		// rider sizes off it), not a count of remembered entries.
+		if c.RememberedCMCBound {
+			return c.RememberedCMC, true
+		}
 		return int32(len(c.Remembered)), true
 	case "RememberedSize":
 		// Forge's RememberedSize is the HOST CARD's remembered list -- the

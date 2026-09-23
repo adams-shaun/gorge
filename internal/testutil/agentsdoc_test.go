@@ -19,13 +19,12 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	// The merged table measures 42 rows: main's closures merged here
-	// (non<X> via d56e404f, NameCard ChooseFromList$/AtRandom$ via 78d3b764,
-	// the battle protector row via f76f59fd, the earlier pc1/each1/CR 616.1
-	// closures, and main's mulligan-redraw deferral via 7c4182ff), plus this
-	// branch's own transactional exchange closure (fix b5f51b7d), which
-	// deletes the "api:ExchangeLifeVariant fails closed" row.
-	knownApproximationRows = 42
+	// The merged table measures 41 rows. The merged history includes this
+	// branch's transactional exchange and First-Strike Damage closures, plus
+	// main's layer-4 filter-grammar and mulligan-redraw closures, non<X>,
+	// NameCard ChooseFromList$/AtRandom$, battle-protector, and earlier
+	// pc1/each1/CR 616.1 closures.
+	knownApproximationRows = 41
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.
