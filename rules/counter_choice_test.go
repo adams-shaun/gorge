@@ -402,7 +402,7 @@ func TestAmyPondRemovesChosenSuspendedCounters(t *testing.T) {
 // to be the only feeder of, which stranded a zero-TIME card in exile forever
 // when the removal came mid-resolution.
 func TestAmyPondFinalCounterOffersSuspendCast(t *testing.T) {
-	e, _, amyID, suspended := amyPondGame(t, 4714, 1, 2)
+	e, cfg, amyID, suspended := amyPondGame(t, 4714, 1, 2)
 	profaneID := suspended[0]
 	// Exactly one SUSPENDED card is eligible (the plain exiled copy is not),
 	// so the election is the strict-supersets deterministic act — the ask
@@ -438,6 +438,7 @@ func TestAmyPondFinalCounterOffersSuspendCast(t *testing.T) {
 		t.Fatalf("suspended card TIME = %d, want 0", got)
 	}
 	assertNoCounterUnimplementedNote(t, e)
+	replayCheck(t, e, cfg)
 }
 
 // TestEtchedHostConditionRemovesDefenseFromAnOppProtectedBattle pins the
@@ -512,19 +513,6 @@ func TestShapeOfTheWiitigoConditionFalsePuts(t *testing.T) {
 	if got := e.G.Obj(bearID).Counter("P1P1"); got != 6 {
 		t.Fatalf("precondition: enchanted bear carries %d P1P1, want the ETB's 6", got)
 	}
-	t.Logf("DBGT turn=%d active=%d step=%d", e.G.Turn, e.G.Active, e.G.Step)
-	t.Cleanup(func() {
-		for i2, ev := range e.L.Events {
-			if ev.Kind.String() == "attach" || (ev.Kind.String() == "move_zone" && ev.Obj == wID) {
-				t.Logf("DBMN %d %v", i2, ev)
-			}
-		}
-		wo := e.G.Obj(wID)
-		t.Logf("DBMN wiitigo zone=%s attachedTo=%d", wo.Zone, wo.AttachedTo)
-		for _, ev := range e.L.Events[len(e.L.Events)-20:] {
-			t.Logf("DBGX %v", ev)
-		}
-	})
 	// Seat 0's next upkeep: the Phase trigger fires, the condition resolves
 	// false, and the PUT arm adds one — no ask anywhere. seat 1's turn
 	// intervenes; its combat decisions are answered with empty declarations

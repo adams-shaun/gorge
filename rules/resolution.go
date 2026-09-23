@@ -1863,13 +1863,19 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			ctx.AorDone = true
 			ctx.AorElect, ctx.AorKind = "remove", ""
 			if len(chosen) > 0 {
-				if strings.HasPrefix(chosen[0].Kind, "aor_put:") {
-					ctx.AorElect = "put"
-				} else if strings.HasPrefix(chosen[0].Kind, "aor_skip:") {
+				if chosen[0].Kind == "aor_skip" {
+					// The combined absent-kind election has one skip option,
+					// unlike the per-kind form's aor_skip:<kind>.
 					ctx.AorElect = "skip"
-				}
-				if _, k, found := strings.Cut(chosen[0].Kind, ":"); found {
-					ctx.AorKind = k
+				} else {
+					if strings.HasPrefix(chosen[0].Kind, "aor_put:") {
+						ctx.AorElect = "put"
+					} else if strings.HasPrefix(chosen[0].Kind, "aor_skip:") {
+						ctx.AorElect = "skip"
+					}
+					if _, k, found := strings.Cut(chosen[0].Kind, ":"); found {
+						ctx.AorKind = k
+					}
 				}
 			}
 			if rp.sa != nil && rp.sa.API == "AddOrRemoveCounter" && ctx.AorKind != "" {

@@ -1257,9 +1257,10 @@ func effRemoveCounterAll(h Host, c *Ctx, sa *cards.SA) {
 //
 // Exotic shapes stay LOUD (the effPutCounterAll exotic pattern -- one Note
 // naming the shape, nothing moves): CounterType$ Any (a choose-which-kind
-// ask), Choices$/ChoiceOptional$ (a mid-resolution pick), UpTo$ (a bounded
-// election), CounterNum$ Any, CounterNumShared$, a TgtZone$ naming anything
-// but the battlefield (the suspended-TIME-counter family), RememberAmount$
+// ask), ChoiceOptional$ without Choices$ (a malformed mid-resolution pick),
+// UpTo$ (a bounded election), CounterNum$ Any, CounterNumShared$, and a
+// TgtZone$ naming anything but the battlefield (the suspended-TIME-counter
+// family), RememberAmount$
 // (a removed NUMBER the remembered list has no honest channel for) and
 // Optional$ (a may-remove election). Registering the API removed the generic
 // "unimplemented API" fallback, so without these notes the shapes would

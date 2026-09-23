@@ -1632,9 +1632,15 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		}
 	}
 	departingSource, departingSourceLifelink, departingSourceController := e.captureSourceLifelinkLKI(ev)
+	timeBefore := int32(0)
+	if ev.Kind == events.CounterChange && ev.Amount < 0 && ev.Counter == "TIME" {
+		if o := e.G.Obj(ev.Obj); o != nil {
+			timeBefore = o.Counter("TIME")
+		}
+	}
 	stackLen := len(e.G.Stack)
 	stored := events.Emit(e.G, e.L, ev)
-	if ev.Kind == events.CounterChange && ev.Amount < 0 && ev.Counter == "TIME" {
+	if ev.Kind == events.CounterChange && ev.Amount < 0 && ev.Counter == "TIME" && timeBefore > 0 {
 		// CR 702.62a/b (counterchoice1): the LAST time counter leaving a
 		// suspended card by ANY route — the upkeep tick or a Clockspinning/
 		// Amy-Pond-style removal mid-resolution — queues CR 702.62a's may-cast
