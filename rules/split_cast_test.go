@@ -5,6 +5,7 @@ import (
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -95,9 +96,10 @@ func TestKillerHalfIsCastable(t *testing.T) {
 
 // TestGallifreyFallsFuseCastsBothHalves pins the brief's second carrier: the
 // fused cast of Gallifrey Falls // No More is offered only at the SUMMED cost
-// ({4}{R}{R} + {2}{W} = {6}{R}{R}{W}) and resolves BOTH halves -- the Falls
-// half's 4 damage kills the 2/2 and its own ReplaceDyingDefined rider exiles
-// it instead of letting it die.
+// ({4}{R}{R} + {2}{W} = {6}{R}{R}{W}) and dispatches BOTH halves: Falls
+// damages the 2/2; No More's currently unimplemented Phases API emits its
+// fallback Note. The Note distinguishes dispatch from silently skipping No
+// More, but does not claim that phasing itself is implemented.
 func TestGallifreyFallsFuseCastsBothHalves(t *testing.T) {
 	reg := searchTestRegistry(t)
 	falls := searchCorpusCard(t, reg, "Gallifrey Falls")
@@ -140,6 +142,10 @@ func TestGallifreyFallsFuseCastsBothHalves(t *testing.T) {
 	if fuse == nil {
 		t.Fatalf("fused offer missing at the summed cost: %+v", castOptions(t, e))
 	}
+	if n := len(e.G.Zone(state.ZBattlefield, 0)); n != 0 {
+		t.Fatalf("precondition: No More's controller has %d battlefield objects, want none", n)
+	}
+	before := len(e.L.Events)
 	submitChoices(t, e, fuse.Index)
 
 	// The Falls half targets nothing; the No More half asks any number of
@@ -150,14 +156,19 @@ func TestGallifreyFallsFuseCastsBothHalves(t *testing.T) {
 	}
 	passUntilStackEmpty(t, e, 20)
 
-	// Both halves resolved: Falls dealt its 4 to the bear and the 2/2 died.
-	// The bear's own exile-instead rider (ReplaceDyingDefined$ Remembered on
-	// the DamageAll) is INERT in this build -- effects/damage.go wires
-	// registerReplaceDying into DealDamage and the damage-exchange path but
-	// NOT into effDamageAll, so a DamageAll's rider never registers (6 corpus
-	// files carry the shape; filed in the round report). The fused-cast pin
-	// here is the offer, the summed cost and both halves running, which the
-	// death itself proves.
+	// Falls dealt its 4 to the bear. Its exile-instead rider on DamageAll
+	// is currently inert, so the bear dies to the graveyard. No More's
+	// Phases API is not implemented: its specific fallback Note proves the
+	// second half was visited after the first, rather than silently skipped.
+	phasesNotes := 0
+	for _, ev := range e.L.Events[before:] {
+		if ev.Kind == events.Note && ev.Text == "unimplemented API Phases" {
+			phasesNotes++
+		}
+	}
+	if phasesNotes != 1 {
+		t.Fatalf("No More dispatch emitted %d Phases fallback notes, want 1", phasesNotes)
+	}
 	if z := e.G.Obj(bearID).Zone; z != state.ZGraveyard {
 		t.Fatalf("fused Falls left the bear at zone=%s, want graveyard (4 damage on a 2/2)", z)
 	}
