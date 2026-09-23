@@ -1908,6 +1908,16 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		}
 	}
 	stored := events.Emit(e.G, e.L, ev)
+	// CR 310.10: every Battle whose recorded protector has just left the game
+	// gets a fresh living opponent as its protector. PlayerLost is the one
+	// funnel every departure passes through (life, poison, an empty-library
+	// draw, a concession), and events.Emit has already marked the seat Lost
+	// by the time this returns, so protectorOpponents reads the departure.
+	// The re-derive emits a Choose "protector" event (it never poses a
+	// decision), so it is safe to run here even mid-resolution.
+	if stored.Kind == events.PlayerLost {
+		e.rechooseDepartedBattleProtector(stored.Player)
+	}
 	if ev.Kind == events.CounterChange && ev.Amount < 0 && ev.Counter == "TIME" && timeBefore > 0 {
 		// CR 702.62a/b (counterchoice1): the LAST time counter leaving a
 		// suspended card by ANY route — the upkeep tick or a Clockspinning/

@@ -4319,7 +4319,7 @@ func (e *Engine) entryETBChoice(ev events.Event, ordinal int) (etbChoice, bool) 
 			}
 			opts := e.etbOptions(you, o.ID, kind,
 				r.With.Params["ValidCards"], selector,
-				r.With.Params["Type"], r.With.Params["Exclude"])
+				r.With.Params["Type"], r.With.Params["Exclude"], r.With.Params["ChooseFromList"])
 			if kind == "copy" {
 				// ":Optional" on the keyword line is the "you MAY have it
 				// enter as a copy" half; an empty template list also needs
@@ -4371,7 +4371,7 @@ func etbColourLetter(name string) string {
 // choices carries the per-kind filter text: Choices$ (the copy-template
 // selector) for the clone slice, ValidDescription$ prompt text for the name
 // kinds. Callers fill it per kind; see collectETBChoices.
-func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCards, choices, typeCategory, exclude string) []decision.Option {
+func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCards, choices, typeCategory, exclude string, chooseFromList ...string) []decision.Option {
 	switch kind {
 	case "color":
 		// Exclude$ tokens (comma-separated, e.g. "black" on Black Dragon
@@ -4438,7 +4438,11 @@ func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCar
 		// the ONE builder the mid-resolution NameCard ask shares, so the two
 		// paths offer the same names. (choices carries ValidDescription$
 		// prompt text here; see collectETBChoices.)
-		names := effects.NameChoices(e.G, validCards, choices)
+		list := ""
+		if len(chooseFromList) > 0 {
+			list = chooseFromList[0]
+		}
+		names := effects.NameChoicesFromList(e.G, validCards, choices, list)
 		out := make([]decision.Option, 0, len(names))
 		for _, n := range names {
 			out = append(out, decision.Option{Index: len(out), Kind: "name", Label: n, Player: you})
