@@ -4261,3 +4261,130 @@ touched were the stale ratchet constants on both sides, and the row-count
 dispute was settled by measuring the merged table (33) rather than adopting
 either side's comment. No new approximation, no golden edit, no engine
 behaviour change.
+
+---
+
+# Merge-conflict resolution — task cli-20260922T225142Z-71f376c3
+
+## Entry state
+
+The worktree entered CLEAN with no rebase or merge in flight. The daemon's
+rebase attempt (`error: could not apply 0597251f ... fix(effects): end the
+one-shot Effect from its Triggers$ body and widen shadow`) had been aborted,
+and its merge fallback had also been aborted before landing — `git status` was
+empty and `git log -1` was the branch tip `0597251f`, with `main` at
+`a347d413` not an ancestor of HEAD. Integration still needed completing. The
+branch already carries merge commits, so a plain merge (not a rebase) is the
+consistent operation.
+
+## Conflicted file
+
+Exactly one real content conflict: **`internal/testutil/agentsdoc_test.go`**,
+in the `knownApproximationRows` constant's comment-and-value block. All other
+files the daemon named (`AGENTS.md`, `effects/filter.go`, `effects/misc.go`,
+`rules/engine.go`, `rules/layers.go`, `rules/stack.go`, `state/continuous.go`)
+auto-merged cleanly.
+
+### What each side wanted
+
+- **Main side (`a347d413`)** asserted `knownApproximationRows = 33`, with a
+  comment saying its own auto-merged AGENTS.md measured 33 data rows and that
+  from the 36-row base it deleted `kw:Infect`, `api:ExchangeLifeVariant`
+  (ticket 4b0bde0d) and `(blockprop1)`.
+- **Branch side (`0597251f`)** asserted `knownApproximationRows = 37`, with a
+  comment written when the branch still measured 38 rows pre-main; the branch
+  commit deleted the `(choosesource1)` row and lowered 38 -> 37.
+
+Both comments were stale snapshots of their own pre-merge table. The merged
+`AGENTS.md` (already auto-merged, the conflict was only in the Go constant)
+measures **32** data rows: main's 33 minus the branch's `(choosesource1)`
+deletion. I measured it with the exact scan the test uses
+(`/^\| /` inside the `## Known approximations` region, minus the header row)
+and also cross-checked main's own table at 33/constant 33, which confirms the
+one-row delta is entirely the branch's deletion.
+
+### Resolution
+
+Kept main's explanatory style, updated to the measured truth:
+`knownApproximationRows = 32`, with a comment naming main's 33-row table, the
+branch's one further deletion, and that both side comments (37 and 33) were
+stale. No other line touched.
+
+## Commands and output
+
+```
+$ awk '/^## Known approximations/{i=1;next} i&&/^## /{i=0} i&&/^\| /{r++} END{print r}' AGENTS.md
+33            # matched lines incl. header -> 32 data rows
+$ awk ... /tmp/main-agents.md
+34            # main's table: 33 data rows (constant 33) -> confirms the delta
+```
+
+```
+$ git merge main --no-edit
+Auto-merging AGENTS.md
+Auto-merging effects/filter.go
+Auto-merging effects/misc.go
+Auto-merging internal/testutil/agentsdoc_test.go
+CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go
+...
+Automatic merge failed; fix conflicts and then commit the result.
+$ go test -run 'TestKnownApproximation' ./internal/testutil/
+ok  github.com/adams-shaun/gorge/internal/testutil  0.001s
+$ GIT_EDITOR=true git commit --no-edit
+[wt/cli-20260922T225142Z-71f376c3 5d0ac9fd] Merge branch 'main' into wt/cli-20260922T225142Z-71f376c3
+$ git status
+nothing to commit, working tree clean
+```
+
+Post-merge verification (all from the merged tree):
+
+```
+$ go build ./...
+exit=0
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  github.com/adams-shaun/gorge/rules  0.977s
+$ go test ./internal/testutil/
+ok  github.com/adams-shaun/gorge/internal/testutil  1.360s
+$ go test ./rules/ -run 'TestEffectTriggerBodySelfExile|TestEffectChainSelfExile' -v
+--- PASS: TestEffectTriggerBodySelfExileEndsTheEffect
+--- PASS: TestEffectTriggerBodySelfExileLeavesPrintedStatics
+--- PASS: TestEffectChainSelfExileEndsTheEffect
+ok  github.com/adams-shaun/gorge/rules  0.018s
+$ go test ./effects/ -run 'TestSourceScopedSelfExile|TestColourSourcePredicates|TestShadowPredicates' -v
+--- PASS: TestSourceScopedSelfExileEndsOnlyEffectRegistrations
+--- PASS: TestColourSourcePredicatesMatch
+--- PASS: TestShadowPredicatesMatch
+ok  github.com/adams-shaun/gorge/effects  0.006s
+$ go test ./internal/archtest/
+ok  github.com/adams-shaun/gorge/internal/archtest  3.308s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  github.com/adams-shaun/gorge/cmd/botbench  1.684s
+```
+
+`.cards` was present as a real symlink (`-> /home/sadams/projects/gorge/.cards`),
+so no corpus-backed run was a vacuous skip; the multi-second runtimes on
+`testutil` and `archtest` corroborate.
+
+## Ratchet movement
+
+No trigger mode is registered by either side of this resolution; no
+`addedAfterTheSplit` entry was needed. The only ratchet touched is the
+`knownApproximationRows` constant, lowered/measured to 32 (the merged table).
+No `knownUnsupported`, `knownUnsupportedParams` or `knownUnmodelledCountHeads`
+entry needed changing: this branch's fix (`0597251f`) closes the
+`(choosesource1)` row (deleted) and touches no repo-deck ratchet entry, and
+main's closures were already reflected on the main side. `TestHeads` was not
+re-run here (daemon-only), but nothing in the resolution changes engine
+behaviour — the conflict was a documentation constant only.
+
+## Deviations from the brief
+
+None. The conflict did not force any change outside
+`internal/testutil/agentsdoc_test.go`.
+
+## Issues
+
+None found in this round. The only defect encountered was the stale ratchet
+constant on each side, resolved by measuring the merged table (32) rather than
+adopting either side's comment. No new approximation, no golden edit, no engine
+behaviour change.
