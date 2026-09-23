@@ -1169,10 +1169,12 @@ The worktree was clean at `d82018e4`; no rebase or merge was in flight. The prio
 
 None about the resolution. The count in the inherited main-side comment was stale relative to the fully auto-merged current table; the measured 44 is authoritative.
 
+The first `git add .ds4/report-mrg1.md ...` attempt refused because `.ds4` is ignored; `git ls-files -v .ds4/report-mrg1.md` confirmed it is a tracked path (`H`), so I staged it with `git add -f` (and staged `internal/testutil/agentsdoc_test.go` normally).
+
 `GIT_EDITOR=true git merge --continue` completed successfully:
 
 ```text
 [wt/cli-20260922T225143Z-bc326d39 7a5b5423] Merge branch 'main' into wt/cli-20260922T225143Z-bc326d39
 ```
 
-Final status after the merge commit: clean.
+I then committed the final report update as `09e5711e` (`docs(merge): record latest mrg1 integration`). Final `git status --short --branch` showed only the branch header, with no changes; `git merge-base --is-ancestor main HEAD` succeeded.
