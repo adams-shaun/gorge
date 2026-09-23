@@ -4230,3 +4230,34 @@ changes to `rules/cast.go` auto-merged.
 - `.cards` check: `[ -e .cards ]` → present (real corpus; runs not vacuous).
 - `go test ./internal/testutil -run 'TestKnownApproximations'` → PASS (below).
 - Post-merge ratchets (2026-09-22 instruction) → PASS (below).
+
+- `go test ./internal/testutil -run 'TestKnownApproximation' -v` →
+  `--- PASS: TestKnownApproximationsOnlyShrinks (0.00s)` /
+  `--- PASS: TestKnownApproximationRowsAreShort (0.00s)` / `ok`.
+- `go test ./rules -run 'TestDamageYouCostUsesSourceDamageKeywordLKI|TestUnlessDamageCostUsesSourceDamageKeywordLKI' -v`
+  (the branch fix's own tests, now composed with main's `rules/cast.go`) →
+  both PASS, `ok github.com/adams-shaun/gorge/rules 0.646s`.
+- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`
+  → `ok github.com/adams-shaun/gorge/rules 0.771s`.
+- `go test ./rules -run 'TestHeads'` → PASS (2.19s) — the golden chain heads
+  reproduce on the merged tree; no head movement.
+- `go test ./rules -run 'TestEveryRepoDeckIsFullySupported|TestRepoDecks'` →
+  `ok github.com/adams-shaun/gorge/rules 1.815s`.
+- `GIT_EDITOR=true git merge --continue` →
+  `[wt/cli-20260922T225143Z-bc326d39 63c8aedf] Merge branch 'main' into wt/cli-20260922T225143Z-bc326d39`;
+  final `git status --short` → empty.
+
+### Verification notes
+
+`.cards` is present (real symlink), so none of the corpus-backed runs was a
+vacuous skip; the multi-second runtimes corroborate. The branch registers no
+new `Mode$` trigger matcher and closes no register row beyond `kw:Infect`
+(deleted), so nothing needed adding to `addedAfterTheSplit` or re-hulling.
+
+## Issues
+
+None found in this round beyond the resolved conflicts: the only defects
+touched were the stale ratchet constants on both sides, and the row-count
+dispute was settled by measuring the merged table (33) rather than adopting
+either side's comment. No new approximation, no golden edit, no engine
+behaviour change.
