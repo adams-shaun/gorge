@@ -1620,6 +1620,30 @@ func sacrificeMatchSpec(spec string) string {
 	return spec
 }
 
+// sacrificeCostCandidates returns, in battlefield scan order, the permanents
+// that can pay one Sac cost part for a cast (ability=false) or an activation
+// (ability=true) of source by p. Every Sac stage derives its candidate list
+// from this one helper -- the X announcement's upper bound (xAsk), the
+// sacrifice settle (sacAsk) and the offer gate's announced-X affordability
+// sweep (offerCastableUsing) -- so the count an offer is priced on, the count
+// the payer may announce, and the count the payment can settle cannot
+// disagree about whether a self-reference or a CantSacrifice block is
+// payable.
+func (e *Engine) sacrificeCostCandidates(p state.PlayerID, source state.ObjID, part CostPart, ability bool) []state.ObjID {
+	matchSpec := sacrificeMatchSpec(part.Spec)
+	cause := costCauseForAbility(ability)
+	var out []state.ObjID
+	for _, oid := range e.G.Zone(state.ZBattlefield, p) {
+		if e.sacrificeBlockedForCost(oid, cause) {
+			continue
+		}
+		if e.matchesSpecFrom(matchSpec, oid, p, source) {
+			out = append(out, oid)
+		}
+	}
+	return out
+}
+
 // discardCandidates returns the still-available cards that can pay one
 // Discard cost part. Random names a selection method rather than a card
 // characteristic, and a Hand spec is Forge's "discard your hand" shape
@@ -3698,16 +3722,7 @@ func (e *Engine) xAsk() bool {
 	// mana/energy X also exists the candidate count caps it from above.
 	for _, part := range pc.cost.Sac {
 		if part.Announced {
-			matchSpec := sacrificeMatchSpec(part.Spec)
-			avail := int32(0)
-			for _, oid := range e.G.Zone(state.ZBattlefield, pc.player) {
-				if e.sacrificeBlockedForCost(oid, costCauseForPendingCast(pc)) {
-					continue
-				}
-				if e.matchesSpecFrom(matchSpec, oid, pc.player, pc.card) {
-					avail++
-				}
-			}
+			avail := int32(len(e.sacrificeCostCandidates(pc.player, pc.card, part, pc.isAbility())))
 			if pc.cost.X == 0 && !energyX && bound > avail {
 				bound = avail
 			} else if avail < bound {
@@ -3796,6 +3811,16 @@ func (e *Engine) xAsk() bool {
 	}
 	var legal []int32
 	maxOld := int32(0)
+	// A cost whose announced X feeds a ReduceCost static (Dargo's Sac<X>
+	// reading Count$xPaid) does NOT price monotonically in x: the total
+	// falls as the reduction grows, so the first unpayable X may be
+	// followed by a payable one. The offer gate's affordability sweep
+	// accepts exactly such an announcement, so xAsk must offer it too --
+	// breaking at the first unpayable x would withhold the only legal
+	// announcement and wedge the fetched cast. Every other announced-X
+	// cost keeps the early break (generic only grows with x, so nothing
+	// past the first unpayable x can be payable).
+	nonMonotonic := costAnnouncesPaidX(pc.cost)
 	for x := min; x <= bound; x++ {
 		wx := e.paymentManaX(pc, x)
 		wx.Generic -= e.delveCredit(pc.player, pc.card, wx.Generic)
@@ -3804,7 +3829,10 @@ func (e *Engine) xAsk() bool {
 		// an X payment here or every X announcement would be unpayable.
 		if !e.costPayableClass(pc.player, paymentForCast(pc, wx),
 			pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}, wx) {
-			break
+			if !nonMonotonic {
+				break
+			}
+			continue
 		}
 		maxOld = x
 		// Every announced contribution must actually reduce this X's cost
@@ -4242,23 +4270,17 @@ func (e *Engine) sacAsk() bool {
 	pc := e.cast
 	for pc.sacPart < len(pc.cost.Sac) {
 		part := pc.cost.Sac[pc.sacPart]
-		matchSpec := sacrificeMatchSpec(part.Spec)
 		var candidates []state.ObjID
-		for _, oid := range e.G.Zone(state.ZBattlefield, pc.player) {
-			if e.sacrificeBlockedForCost(oid, costCauseForPendingCast(pc)) {
-				continue
+		for _, oid := range e.sacrificeCostCandidates(pc.player, pc.card, part, pc.isAbility()) {
+			already := false
+			for _, s := range pc.sacs {
+				if s == oid {
+					already = true
+					break
+				}
 			}
-			if e.matchesSpecFrom(matchSpec, oid, pc.player, pc.card) {
-				already := false
-				for _, s := range pc.sacs {
-					if s == oid {
-						already = true
-						break
-					}
-				}
-				if !already {
-					candidates = append(candidates, oid)
-				}
+			if !already {
+				candidates = append(candidates, oid)
 			}
 		}
 		n := int(part.N)
