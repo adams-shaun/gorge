@@ -48,7 +48,7 @@ func TestMustBlockIgnoresUnaffordableBlockPrice(t *testing.T) {
 	// Preconditions: the static prices the required pair at exactly {3}, the
 	// budget the offer filter reads is empty, and BOTH pairs are blockable
 	// on ability alone -- the price is the only separation.
-	if got := e.blockPairCharge(req, attacker); got != 3 {
+	if got := e.blockPairCharge(req, attacker).mana; got != 3 {
 		t.Fatalf("precondition: blockPairCharge = %d, want 3 (the fixture static must price the pair)", got)
 	}
 	if e.blockManaBudget(0) != 0 {

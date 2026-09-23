@@ -75,7 +75,7 @@ func TestQalSismaBehemothBlockCharge(t *testing.T) {
 
 	// Preconditions: the static prices the pair at exactly {2}, and the pool
 	// (the budget the offer filter reads) really is empty.
-	if got := e.blockPairCharge(qal, bear); got != 2 {
+	if got := e.blockPairCharge(qal, bear).mana; got != 2 {
 		t.Fatalf("precondition: blockPairCharge = %d, want 2 (the static must price)", got)
 	}
 	if e.G.Players[0].Pool.Total() != 0 {
@@ -136,7 +136,7 @@ func TestQalSismaBehemothBlockTapWindow(t *testing.T) {
 
 	// Preconditions: the price is {2}, the pool is empty, and exactly two
 	// one-unit sources stand behind the window.
-	if got := e.blockPairCharge(qal, bear); got != 2 {
+	if got := e.blockPairCharge(qal, bear).mana; got != 2 {
 		t.Fatalf("precondition: blockPairCharge = %d, want 2", got)
 	}
 	if e.G.Players[0].Pool.Total() != 0 || len(e.attackManaSources(0)) != 2 {
@@ -210,10 +210,10 @@ func TestAwesomePresencePricesItsEnchantedAttacker(t *testing.T) {
 	if a := e.G.Obj(aura); a.Zone != state.ZBattlefield || a.AttachedTo != bear {
 		t.Fatalf("precondition: aura zone %s attached %d, want battlefield/%d", a.Zone, a.AttachedTo, bear)
 	}
-	if got := e.blockPairCharge(blocker, bear); got != 3 {
+	if got := e.blockPairCharge(blocker, bear).mana; got != 3 {
 		t.Fatalf("precondition: charge vs the enchanted attacker = %d, want 3 (fix under test)", got)
 	}
-	if got := e.blockPairCharge(blocker, wurm); got != 0 {
+	if got := e.blockPairCharge(blocker, wurm).mana; got != 0 {
 		t.Fatalf("precondition: charge vs the unenchanted attacker = %d, want 0", got)
 	}
 
@@ -270,10 +270,10 @@ func TestHipparionPricesOnlyPowerGE3Attackers(t *testing.T) {
 	attackSeat0(t, e, bear, wurm)
 
 	// Preconditions: the price splits by attacker power (wurm 6 >= 3, bear 0).
-	if got := e.blockPairCharge(hip, wurm); got != 1 {
+	if got := e.blockPairCharge(hip, wurm).mana; got != 1 {
 		t.Fatalf("precondition: charge vs the {6} power attacker = %d, want 1", got)
 	}
-	if got := e.blockPairCharge(hip, bear); got != 0 {
+	if got := e.blockPairCharge(hip, bear).mana; got != 0 {
 		t.Fatalf("precondition: charge vs the {0} power attacker = %d, want 0", got)
 	}
 
@@ -333,10 +333,10 @@ func TestMyrPrototypePricesPerCounter(t *testing.T) {
 	if e.G.Obj(counted).Counter("P1P1") != 2 {
 		t.Fatalf("precondition: counted Prototype has %d P1P1 counters, want 2", e.G.Obj(counted).Counter("P1P1"))
 	}
-	if got, want := e.blockPairCharge(counted, bear), int32(2); got != want {
+	if got, want := e.blockPairCharge(counted, bear).mana, int32(2); got != want {
 		t.Fatalf("precondition: counted Prototype charges %d, want %d (SVar must resolve)", got, want)
 	}
-	if got := e.blockPairCharge(plain, bear); got != 0 {
+	if got := e.blockPairCharge(plain, bear).mana; got != 0 {
 		t.Fatalf("precondition: plain Prototype charges %d, want 0", got)
 	}
 
@@ -400,7 +400,7 @@ func TestCowedByWisdomPricesPerHandCard(t *testing.T) {
 	if hand == 0 {
 		t.Fatal("precondition: the defending seat's hand is empty -- the SVar price would be indistinguishable from free")
 	}
-	if got := e.blockPairCharge(blocker, bear); got != int32(hand) {
+	if got := e.blockPairCharge(blocker, bear).mana; got != int32(hand) {
 		t.Fatalf("precondition: charge = %d, want %d (one per hand card)", got, hand)
 	}
 

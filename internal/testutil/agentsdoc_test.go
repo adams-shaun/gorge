@@ -19,12 +19,13 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	// The merged table measures 35 rows. From the 38-row base, this branch
-	// retains its `kw:Infect` closure and main's (bestow1) and (attackprop1)
-	// closures; all three deletions are disjoint. The auto-merged AGENTS.md
-	// count is authoritative; the conflicted side comments missed different
-	// combinations of these row changes.
-	knownApproximationRows = 35
+	// The auto-merged AGENTS.md measures 33 data rows. From the 36-row merge
+	// base, this branch deletes the kw:Infect row (this ticket's damage-cost-LKI
+	// closure) and main deletes two more (api:ExchangeLifeVariant via ticket
+	// 4b0bde0d, and (blockprop1)); all three deletions are disjoint. The merged
+	// table's count is authoritative; both conflicted side comments (35 and 34)
+	// described stale snapshots of their own pre-merge tables.
+	knownApproximationRows = 33
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.

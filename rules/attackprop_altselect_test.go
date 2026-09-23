@@ -118,7 +118,7 @@ func TestBlockPropPaysTheSelectedAlternative(t *testing.T) {
 	// PRECONDITION: the static prices the pair at exactly {2}, the one land
 	// offers two alternatives with UNEQUAL units, and the pool is empty so
 	// the window is the only route.
-	if got := e.blockPairCharge(qal, bear); got != 2 {
+	if got := e.blockPairCharge(qal, bear).mana; got != 2 {
 		t.Fatalf("precondition: blockPairCharge = %d, want 2", got)
 	}
 	sources := e.attackManaSources(0)

@@ -40,6 +40,13 @@ type staticView struct {
 	// through modAmountX's Ctx instead of the always-zero read an unbound
 	// context gives. Printed statics never carry the head and keep the zero.
 	ChosenNumber int32
+	// chosenNumberBound marks a view whose ChosenNumber IS a real
+	// SetChosenNumber$ binding (the delivered-static route: every
+	// CantBlockUnless registry view carries one, frozen at registration).
+	// It is the Count$ChosenNumber head's verdict in the block charge
+	// resolver's Ctx, the same flag rules' seedEffectReplCtx sets. Printed
+	// statics keep it false.
+	chosenNumberBound bool
 }
 
 // costStaticViews is one ordered snapshot of cost-modifier membership. The

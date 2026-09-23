@@ -584,6 +584,25 @@ export interface Option {
    */
   alt_cost_index?: number;
   /**
+   * CostLife is a block option's non-mana life component (CR 509.1b): the
+   * life the defender pays for declaring this block, beside Value's mana
+   * (the MaxSum budget's currency). A rules-ignorant client sums it
+   * against the defender's life total the same way. omitempty: an
+   * uncharged option emits no field, so every ordinary option list
+   * serialises byte-identically.
+   */
+  cost_life?: number;
+  /**
+   * CostTaps is a block option's total tapXType obligation: how many
+   * permanents declaring this block taps. The engine resolves the exact
+   * permanents deterministically (rules' blockTapPlan), so a client that
+   * cannot see the eligible pool -- the shipped bot policy included --
+   * treats a positive value as an obligation it cannot verify and declines
+   * the option rather than submit a declaration the validator may reject.
+   * omitempty as CostLife.
+   */
+  cost_taps?: number;
+  /**
    * Mode distinguishes a "cast" option's payment kind: "" the card's own
    * cost, "kicked", "surged", "flashback", "miracle" -- what the engine
    * reads in beginCast's switch. A client renders a kicked/surged/

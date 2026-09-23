@@ -164,6 +164,7 @@ type Engine struct {
 	// continuous holds every registered continuous effect, live or expired.
 	// The layer system (layers.go) is the only reader and writer.
 	continuous []ContinuousEffect
+	lifeExchange *lifeExchangeTransaction
 	// controlGrants holds the GainControl effects that can still end (see
 	// rules/control.go). It is engine continuation state only; every take and
 	// return is a ControlChange event, so the log alone rebuilds Game state.

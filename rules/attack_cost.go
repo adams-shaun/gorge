@@ -148,32 +148,279 @@ func (e *Engine) attackPairCharge(id state.ObjID, defender state.PlayerID) int32
 	return total
 }
 
-// blockPairCharge is the per (blocker, attacker) charge from block-prop
-// statics. The two specs are deliberately evaluated against their respective
-// combat objects; an absent ValidCard$ is an UNCONDITIONAL blocker match
-// (Awesome Presence scopes only by Attacker$ and still prices every blocker
-// against its enchanted attacker), and an absent Attacker$ is an
-// unconditional attacker scope.
-func (e *Engine) blockPairCharge(blocker, attacker state.ObjID) int32 {
-	total := int32(0)
+// blockTapReq is one tapXType component of a block charge: tap n untapped
+// permanents matching spec, with the spec resolved relative to the static's
+// source (costCandidates' matchesSpecFrom binding).
+type blockTapReq struct {
+	n      int32
+	spec   string
+	source state.ObjID
+}
+
+// blockCharge is the composite per-(blocker, attacker) block charge: the
+// mana (the flat/Count$/SVar prices, the only component the original
+// mana-only model had), the life a PayLife<N> component charges (CR 118.3),
+// and the tapXType<N/Spec> tap obligations. The components SUM over every
+// matching static, printed or delivered.
+type blockCharge struct {
+	mana int32
+	life int32
+	taps []blockTapReq
+}
+
+func (c blockCharge) zero() bool { return c.mana == 0 && c.life == 0 && len(c.taps) == 0 }
+
+func (c blockCharge) plus(o blockCharge) blockCharge {
+	out := c
+	out.mana += o.mana
+	out.life += o.life
+	out.taps = append(out.taps, o.taps...)
+	return out
+}
+
+// blockUnlessCharge prices one CantBlockUnless static's Cost$ into a
+// composite blockCharge, the block-side sibling of attackUnlessPrice: a
+// literal integer directly; an inline Count$ expression or an SVar name on
+// the static's own face (with the Effect's frozen ChosenNumber binding when
+// the view carries one, so War Cadence's Cost$ XChosen reads
+// Count$ChosenNumber); then the cost-token grammar for the non-mana
+// components -- PayLife<N> is the life component, tapXType<N/Spec> a tap
+// obligation. Anything else -- a dynamic tapXType head (X/Any), a
+// Sac</Return</Phyrexian token, an unresolvable SVar -- returns ok=false and
+// the caller skips the static (the permissive direction).
+func (e *Engine) blockUnlessCharge(sv staticView) (blockCharge, bool) {
+	raw := strings.TrimSpace(sv.Params["Cost"])
+	if raw == "" {
+		return blockCharge{}, false
+	}
+	ctx := &effects.Ctx{Source: sv.Source, Controller: sv.Controller, SVars: sv.SVars,
+		ChosenNumber: sv.ChosenNumber, ChosenNumberBound: sv.chosenNumberBound}
+	if n, err := strconv.Atoi(raw); err == nil {
+		if n <= 0 {
+			return blockCharge{}, false
+		}
+		return blockCharge{mana: int32(n)}, true
+	}
+	if strings.HasPrefix(raw, "Count$") {
+		n, ok := effects.EvalCountOK(e, ctx, raw)
+		if !ok || n <= 0 {
+			return blockCharge{}, false
+		}
+		return blockCharge{mana: n}, true
+	}
+	if body, ok := sv.SVars[raw]; ok {
+		n, ok2 := effects.EvalCountOK(e, ctx, body)
+		if !ok2 || n <= 0 {
+			return blockCharge{}, false
+		}
+		return blockCharge{mana: n}, true
+	}
+	c := e.parseCost(raw)
+	// Only the three components the block reader prices may be present: a
+	// cost token this build models elsewhere but not here (Sac<, Return<,
+	// Blight<, Reveal<, Behold<, Energy, Mill, ...), a coloured/hybrid/
+	// Phyrexian pip, a dynamic tap head, an {X} or a {T} leaves the static
+	// unpriced rather than degrading any of it to a phantom generic.
+	colored := false
+	for _, v := range c.Colored {
+		if v > 0 {
+			colored = true
+		}
+	}
+	if len(c.Unknown) > 0 || c.X > 0 || c.Tap || c.Snow > 0 || c.Forage ||
+		colored || len(c.Hybrid) > 0 || len(c.Phyrexian) > 0 ||
+		len(c.Twobrid) > 0 || len(c.HybridPhyrexian) > 0 ||
+		len(c.Sac) > 0 || len(c.Discard) > 0 || len(c.SubCounter) > 0 ||
+		len(c.AddCounter) > 0 || len(c.Exile) > 0 || len(c.Reveal) > 0 ||
+		len(c.RevealChosen) > 0 || len(c.Behold) > 0 || len(c.Blight) > 0 ||
+		len(c.Draw) > 0 || len(c.Energy) > 0 || len(c.LifeX) > 0 ||
+		len(c.Return) > 0 || len(c.PutToLib) > 0 || len(c.DamageYou) > 0 ||
+		len(c.MoveToGrave) > 0 || len(c.Mill) > 0 {
+		return blockCharge{}, false
+	}
+	var ch blockCharge
+	ch.mana = c.Generic
+	ch.life = c.Life
+	for _, part := range c.TapPermanent {
+		if part.Dyn != "" || part.N <= 0 {
+			return blockCharge{}, false
+		}
+		ch.taps = append(ch.taps, blockTapReq{n: part.N, spec: part.Spec, source: sv.Source})
+	}
+	if ch.zero() {
+		return blockCharge{}, false
+	}
+	return ch, true
+}
+
+// blockStaticMatches evaluates one CantBlockUnless static's two combat
+// specs against their respective combat objects: ValidCard$ against the
+// BLOCKER, Attacker$ against the ATTACKER; an absent spec is unconditional
+// on that half (Awesome Presence scopes only by Attacker$ and still prices
+// every blocker against its enchanted attacker; War Cadence scopes neither
+// and prices every blocker in the game).
+func (e *Engine) blockStaticMatches(sv staticView, sc effects.SpecContext, blocker, attacker state.ObjID) bool {
+	if spec := sv.Params["ValidCard"]; spec != "" && !e.matchesSpec(spec, blocker, sc) {
+		return false
+	}
+	if spec := sv.Params["Attacker"]; spec != "" && !e.matchesSpec(spec, attacker, sc) {
+		return false
+	}
+	return true
+}
+
+// blockPairCharge is the per (blocker, attacker) composite charge from
+// block-prop statics, the sum of every live face static that admits the
+// pair and prices PLUS every delivered one: an Effect's
+// StaticAbilities$ CantBlockUnless registration (War Cadence) and an
+// Animate's staticAbilities$ grant (Whipgrass Entangler) register into the
+// continuous-effect registry with the granting ability's SVar table, and
+// the registry walk below consults them beside the printed statics with the
+// same absent-spec-is-unconditional read. It is a pure read (no event, no
+// state write) and deterministic (both walks are the fixed scans every
+// static consumer shares), so the offer list, the validator, the bot guard
+// and the payer all re-derive the same charge.
+func (e *Engine) blockPairCharge(blocker, attacker state.ObjID) blockCharge {
+	total := blockCharge{}
 	for _, sv := range e.activeStatics("CantBlockUnless") {
 		if !cantAttackUnlessParamsReadable(sv.Params) || !e.continuousGateHolds(sv) {
 			continue
 		}
-		if spec := sv.Params["ValidCard"]; spec != "" && !e.matchesSpec(spec, blocker, e.specCtxSVars(sv.Source, sv.Controller, sv.SVars)) {
+		if !e.blockStaticMatches(sv, e.specCtxSVars(sv.Source, sv.Controller, sv.SVars), blocker, attacker) {
 			continue
 		}
-		if spec := sv.Params["Attacker"]; spec != "" && !e.matchesSpec(spec, attacker, e.specCtxSVars(sv.Source, sv.Controller, sv.SVars)) {
+		if ch, ok := e.blockUnlessCharge(sv); ok {
+			total = total.plus(ch)
+		}
+	}
+	for _, ce := range e.active() {
+		if ce.Restriction != "CantBlockUnless" {
 			continue
 		}
-		// No attacker binding in the block direction: a CantBlockUnless
-		// static has no RememberingAttacker$ carrier, so 0 is passed.
-		n, ok := e.attackUnlessPrice(sv, 0)
-		if ok && n > 0 {
-			total += n
+		sv := staticView{Source: ce.Source, Controller: ce.Controller,
+			Params: ce.RestrictParams, SVars: ce.RestrictSVars,
+			ChosenNumber: ce.ChosenNumber, chosenNumberBound: true}
+		if !cantAttackUnlessParamsReadable(sv.Params) || !e.continuousGateHolds(sv) {
+			continue
+		}
+		sc := e.specCtx(ce.Source, ce.Controller)
+		for _, r := range ce.Remembered {
+			sc.Remembered = append(sc.Remembered, state.Target{Obj: r})
+		}
+		if !e.blockStaticMatches(sv, sc, blocker, attacker) {
+			continue
+		}
+		if ch, ok := e.blockUnlessCharge(sv); ok {
+			total = total.plus(ch)
 		}
 	}
 	return total
+}
+
+// blockChargeOf sums the composite charges of a whole chosen declaration --
+// the one charge derivation validateBlockers and handleBlockers share.
+func (e *Engine) blockChargeOf(chosen []decision.Option) blockCharge {
+	total := blockCharge{}
+	for _, opt := range chosen {
+		total = total.plus(e.blockPairCharge(opt.Obj, opt.Attacker))
+	}
+	return total
+}
+
+// blockTapCandidates lists the payer's untapped permanents that satisfy one
+// tap obligation's spec, minus the given exclusions -- the declaration's own
+// committed blockers, which are "declared as a blocking creature this
+// combat" the moment the declaration lands even though the DeclareBlockers
+// event has not been applied yet (Hollow Warrior's Creature.!blocking).
+func (e *Engine) blockTapCandidates(p state.PlayerID, t blockTapReq, excluded map[state.ObjID]bool) []state.ObjID {
+	cands := e.costCandidates(p, t.source, state.ZBattlefield, t.spec, false, true)
+	out := cands[:0]
+	for _, id := range cands {
+		if excluded[id] {
+			continue
+		}
+		out = append(out, id)
+	}
+	return out
+}
+
+// blockTapPlan reserves the exact permanents a charge's tap obligations
+// take: per requirement in charge order, the first unreserved candidates in
+// zone order (deterministic; R-9 -- the build never asks which permanents
+// to tap, the same no-ask reading every deterministic cost payment takes).
+// A requirement with fewer eligible candidates than n reserves what exists;
+// callers that need the full charge check blockChargeAffordable first.
+func (e *Engine) blockTapPlan(p state.PlayerID, c blockCharge, excluded map[state.ObjID]bool) []state.ObjID {
+	plan := make([]state.ObjID, 0, len(c.taps))
+	for _, t := range c.taps {
+		taken := int32(0)
+		for _, id := range e.blockTapCandidates(p, t, excluded) {
+			if taken >= t.n {
+				break
+			}
+			reserved := false
+			for _, pid := range plan {
+				if pid == id {
+					reserved = true
+					break
+				}
+			}
+			if reserved {
+				continue
+			}
+			plan = append(plan, id)
+			taken++
+		}
+	}
+	return plan
+}
+
+// blockChargeAffordable reports whether the payer can pay every component
+// of the charge: mana within the block budget (blockManaBudget), life
+// within the payer's total (CR 118.3 / 119.4), and enough untapped matching
+// permanents for every tap obligation. excluded holds any permanent the
+// declaration already commits. This is the ONE affordability read: the
+// offer gate (askBlockers), the whole-declaration validator (validateBlockers)
+// and the payment all re-derive from it, so they cannot disagree about what
+// is payable.
+func (e *Engine) blockChargeAffordable(p state.PlayerID, c blockCharge, excluded map[state.ObjID]bool) bool {
+	if e.blockManaBudget(p) < c.mana {
+		return false
+	}
+	if e.G.Players[p].Life < c.life {
+		return false
+	}
+	need := int32(0)
+	for _, t := range c.taps {
+		need += t.n
+	}
+	return int32(len(e.blockTapPlan(p, c, excluded))) >= need
+}
+
+// payBlockExtras settles a completed block charge's non-mana components:
+// one LifeChange per life component (the same event shape payMana's Life
+// part emits, so life-loss replacements see it) and one Tap event per
+// planned permanent (the same event the cast tap costs emit). The order is
+// fixed -- life, then taps -- and both fire only after the charge's mana is
+// covered, so a defensive window strand can never leave a half-paid
+// composite behind.
+func (e *Engine) payBlockExtras(p state.PlayerID, c blockCharge, taps []state.ObjID) {
+	if c.life > 0 {
+		e.emit(events.Event{Kind: events.LifeChange, Player: p, Amount: -c.life})
+	}
+	for _, id := range taps {
+		e.emit(events.Event{Kind: events.Tap, Obj: id, Text: "tapped as a block cost"})
+	}
+}
+
+// chosenBlockers is the set of permanents a declaration commits to blocking;
+// they are excluded from the tap-cost candidate pool.
+func chosenBlockers(chosen []decision.Option) map[state.ObjID]bool {
+	m := make(map[state.ObjID]bool, len(chosen))
+	for _, o := range chosen {
+		m[o.Obj] = true
+	}
+	return m
 }
 
 // blockManaBudget is the defending player's available payment budget. Unlike
@@ -184,7 +431,12 @@ func (e *Engine) blockManaBudget(p state.PlayerID) int32 { return e.attackBudget
 type blockPayWindow struct {
 	chosen []decision.Option
 	player state.PlayerID
-	charge int32
+	charge blockCharge
+	// taps is the tap plan frozen when the window opened, against the board
+	// as it stood -- the mana window's own taps can remove a candidate
+	// (tapping a creature land), so the plan is computed once and paid
+	// verbatim at completion rather than re-derived.
+	taps []state.ObjID
 	// sources is the tap list the CURRENT ask posed, in option order: the
 	// answer resolves its exact entry by the chosen option's Index (see
 	// paySourceForAnswer), the same alternative-identity rule the attack
@@ -192,11 +444,12 @@ type blockPayWindow struct {
 	sources []attackManaSource
 }
 
-func (e *Engine) startBlockPay(chosen []decision.Option, player state.PlayerID, charge int32) bool {
-	if e.blockManaBudget(player) < charge {
+func (e *Engine) startBlockPay(chosen []decision.Option, player state.PlayerID, charge blockCharge) bool {
+	if e.blockManaBudget(player) < charge.mana {
 		return false
 	}
-	e.blockPay = &blockPayWindow{chosen: chosen, player: player, charge: charge}
+	e.blockPay = &blockPayWindow{chosen: chosen, player: player, charge: charge,
+		taps: e.blockTapPlan(player, charge, chosenBlockers(chosen))}
 	e.askNextBlockPay()
 	return true
 }
@@ -206,7 +459,7 @@ func (e *Engine) askNextBlockPay() bool {
 	if st == nil {
 		return false
 	}
-	remaining := st.charge - e.G.Players[st.player].Pool.Total()
+	remaining := st.charge.mana - e.G.Players[st.player].Pool.Total()
 	if remaining <= 0 {
 		return false
 	}
@@ -216,7 +469,7 @@ func (e *Engine) askNextBlockPay() bool {
 	}
 	st.sources = sources
 	d := &decision.Decision{Player: st.player, Kind: decision.KChoose, Min: 1, Max: 1,
-		Prompt: fmt.Sprintf("Pay %d to block -- tap a mana source", st.charge)}
+		Prompt: fmt.Sprintf("Pay %d to block -- tap a mana source", st.charge.mana)}
 	for _, s := range sources {
 		name := "a permanent"
 		if o := e.G.Obj(s.id); o != nil && o.Face() != nil {
@@ -242,8 +495,9 @@ func (e *Engine) blockPayAnswer(d *decision.Decision, in decision.Intent) {
 			e.resolveManaAbilityRefOriginal(st.player, s.id, s.ma, s.original, s.gained, false, false, false)
 		}
 	}
-	if st.charge-e.G.Players[st.player].Pool.Total() <= 0 {
-		e.payMana(st.player, Cost{Generic: st.charge})
+	if st.charge.mana-e.G.Players[st.player].Pool.Total() <= 0 {
+		e.payMana(st.player, Cost{Generic: st.charge.mana})
+		e.payBlockExtras(st.player, st.charge, st.taps)
 		chosenPairs := make([][2]state.ObjID, 0, len(st.chosen))
 		for _, opt := range st.chosen {
 			chosenPairs = append(chosenPairs, [2]state.ObjID{opt.Attacker, opt.Obj})
