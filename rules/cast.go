@@ -1644,6 +1644,55 @@ func (e *Engine) sacrificeCostCandidates(p state.PlayerID, source state.ObjID, p
 	return out
 }
 
+// sacrificeCostAssignable tests whether all Sac parts can be paid with
+// distinct permanents for an announced X. A per-part candidate count is
+// insufficient: two parts can each have X candidates but share every one.
+// Match each required sacrifice to an object, rerouting earlier matches when
+// a later, narrower part needs one of their objects. This is an existence
+// check, not a payment choice; sacAsk still lets the player choose the
+// actual sacrifices in cost-part order.
+func (e *Engine) sacrificeCostAssignable(p state.PlayerID, source state.ObjID, parts []CostPart, ability bool, x int32) bool {
+	candidates := make([][]state.ObjID, len(parts))
+	for i, part := range parts {
+		candidates[i] = e.sacrificeCostCandidates(p, source, part, ability)
+		need := part.N
+		if part.Announced {
+			need = x
+		}
+		if need > int32(len(candidates[i])) {
+			return false
+		}
+	}
+	assigned := make(map[state.ObjID]int)
+	var claim func(int, map[state.ObjID]bool) bool
+	claim = func(i int, seen map[state.ObjID]bool) bool {
+		for _, oid := range candidates[i] {
+			if seen[oid] {
+				continue
+			}
+			seen[oid] = true
+			prev, used := assigned[oid]
+			if !used || claim(prev, seen) {
+				assigned[oid] = i
+				return true
+			}
+		}
+		return false
+	}
+	for i, part := range parts {
+		need := part.N
+		if part.Announced {
+			need = x
+		}
+		for n := int32(0); n < need; n++ {
+			if !claim(i, make(map[state.ObjID]bool)) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 // discardCandidates returns the still-available cards that can pay one
 // Discard cost part. Random names a selection method rather than a card
 // characteristic, and a Hand spec is Forge's "discard your hand" shape
@@ -3822,6 +3871,11 @@ func (e *Engine) xAsk() bool {
 	// past the first unpayable x can be payable).
 	nonMonotonic := costAnnouncesPaidX(pc.cost)
 	for x := min; x <= bound; x++ {
+		// The offer sweep and the announcement must agree on whether the
+		// SAME X can settle every Sac part without reusing an object.
+		if sacX && !e.sacrificeCostAssignable(pc.player, pc.card, pc.cost.Sac, pc.isAbility(), x) {
+			continue
+		}
 		wx := e.paymentManaX(pc, x)
 		wx.Generic -= e.delveCredit(pc.player, pc.card, wx.Generic)
 		// The descriptor carries the announced-X marker: WithX folded this

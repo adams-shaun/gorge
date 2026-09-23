@@ -1506,9 +1506,9 @@ func (e *Engine) offerSacXMods(p state.PlayerID, id state.ObjID, ability bool, b
 	if !costAnnouncesSacX(base) {
 		return costMods{}, false
 	}
-	// Every announced Sac part pays the SAME X. Like xAsk's candidate cap,
-	// the smallest candidate pool bounds a settleable announcement; the
-	// largest would admit an X that another part cannot sacrifice.
+	// Every announced Sac part pays the SAME X. The smallest candidate
+	// pool bounds the search, but overlapping pools may require more
+	// distinct objects than either pool alone can supply.
 	maxX := int32(0)
 	boundSet := false
 	for _, part := range base.Sac {
@@ -1529,6 +1529,9 @@ func (e *Engine) offerSacXMods(p state.PlayerID, id state.ObjID, ability bool, b
 	// raises and floors stay absent (they can only raise the price).
 	targets := e.costPotentialTargets(p, id, scope)
 	for x := int32(1); x <= maxX; x++ {
+		if !e.sacrificeCostAssignable(p, id, base.Sac, ability, x) {
+			continue
+		}
 		announced := base.WithX(x)
 		mods := e.costModifiersWithTargetsXUsing(statics, p, id, scope, nil, false, x)
 		if e.manaFeasiblePriced(p, id, ability, announced, mods, tax, delve, hyp) {
