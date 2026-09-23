@@ -20,11 +20,17 @@ const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
 	// The merged AGENTS.md measures 18 data rows (measured with
-	// approximationRows() against the merged AGENTS.md). This merge keeps
-	// both disjoint closures: main's four-mode trigger row
-	// (cli-20260923T060000Z-trig-attackerblocked) and this branch's rv1
+	// approximationRows() against the merged AGENTS.md). This merge keeps four
+	// disjoint closures alongside the prior deletions: this branch's rv1
 	// RevealAllValid$ closure (effects/cardflow.go effReveal,
-	// agent-20260922T191943Z-4ffa25b7), alongside prior deletions.
+	// agent-20260922T191943Z-4ffa25b7), main's task scrybottom
+	// `T:Mode$ Scry`/`R:Event$ Scry` row (whose "whenever you scry" trigger
+	// half is closed there; the still-unclosed `R:Event$ Scry` replacement
+	// half is recorded in the commit message and the task report rather than
+	// a new row), main's four-mode trigger row
+	// (cli-20260923T060000Z-trig-attackerblocked), and main's rv2b
+	// damage-source / valid-players / count-heads row
+	// (cli-20260923T060000Z-rv2b-countheads).
 	knownApproximationRows = 18
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what

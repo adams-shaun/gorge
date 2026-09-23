@@ -50,14 +50,16 @@ func TestTriggerCountHeadsEmptyTriggerAmountIsZero(t *testing.T) {
 }
 
 // Heads whose triggering events this build does not raise (a scry event's
-// ScryNum/ScryBottom) stay zero -- the conservative same-as-before no-op, not
-// a regression. Result is NO LONGER one of them: it is the RolledDie head
+// ScryNum, the number looked at) stay zero -- the conservative same-as-before
+// no-op, not a regression. ScryBottom is NO LONGER one of them: it is the
+// completed-scry marker's bottom count (TestTriggerCountScryBottomReads...
+// in temporal_anchor_test.go). Result is the RolledDie head
 // (TestTriggerCountResultReadsTheDieRoll below).
 func TestTriggerCountUnmodelledHeadsStayZero(t *testing.T) {
 	h := newHost(t, 2)
 	c := &Ctx{}
 	c.TriggerAmount = 6
-	for _, expr := range []string{"TriggerCount$ScryNum", "TriggerCount$ScryBottom"} {
+	for _, expr := range []string{"TriggerCount$ScryNum"} {
 		if got := EvalCount(h, c, expr); got != 0 {
 			t.Errorf("%s = %d, want 0 (unmodelled head)", expr, got)
 		}

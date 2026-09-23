@@ -237,80 +237,12 @@ so the botbench 20-game split did not move.
 
 ## Issues
 
-None found in this scope. The merge introduced no new engine behaviour of
-its own; both sides' reviewed changes were preserved.
-
----
-
-# Merge-conflict resolution — agent-20260922T191943Z-4ffa25b7 (rv1 RevealAllValid$)
-
-## State and operation
-
-At entry the worktree was clean on `wt/agent-20260922T191943Z-4ffa25b7` at
-`2786ed95` — an earlier integration had already merged main `e8d1d9f9` ("keep
-both disjoint row closures — four-mode triggers (main) and RevealAllValid$
-(rv1); merged register 19 -> 18 rows"), but main had since advanced to
-`b4592552` (the ca8c201c `Defined$ Remembered` merge plus fleet merges). No
-merge/rebase was in flight, so I ran `git merge main` myself.
-
-Source files auto-merged cleanly on the merge route — including
-`effects/cardflow.go`, which had conflicted in the daemon's per-commit rebase
-but merged without conflict here (the branch's `RevealAllValid$` block in
-`effReveal` and main's `CountersRemain`/`Defined$ Remembered` changes touch
-disjoint regions; both retained, verified by grep and by the branch's
-`TestRevealAllValid` regression). `AGENTS.md` and
-`internal/testutil/agentsdoc_test.go` also auto-merged this time (main did not
-move the row table since the earlier merge), and
-`TestKnownApproximationsOnlyShrinks`/`TestKnownApproximationRowsAreShort` pass
-at the merged `knownApproximationRows = 18`.
-
-## Conflict and resolution
-
-- **`.ds4/report-t1.md`** — the accumulating report log. HEAD side: the
-  branch's approved rv1 `RevealAllValid$` report (ending with its STATUS block
-  and `---` divider). Main side: the newer `stat:CountersRemain` report and
-  companions, followed by content shared with HEAD. Kept both sides verbatim,
-  branch report first with main's after the divider that already terminates the
-  HEAD side: the resolution was exactly the deletion of the three conflict
-  marker lines (1231 -> 1228 lines; zero markers remain; `git diff --check`
-  clean). No report text was rewritten.
-
-## Commands and results
-
-```text
-git status                # clean, no merge/rebase in flight
-git merge main            # CONFLICT only in .ds4/report-t1.md; effects/cardflow.go auto-merged
-sed -i markers-out .ds4/report-t1.md   # 0 markers, diff --check clean
-git add .ds4/report-t1.md && git commit --no-edit
-                          # 8014a55d, both parents, tree clean
-
-ls -l .cards              # symlink -> /home/sadams/projects/gorge/.cards (present)
-
-go test ./internal/testutil -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort'
-ok  github.com/adams-shaun/gorge/internal/testutil  0.001s
-
-go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
-ok  github.com/adams-shaun/gorge/rules  0.779s
-
-go test -run 'TestRevealAllValid' ./effects/
-ok  github.com/adams-shaun/gorge/effects  0.640s
-
-gofmt -l effects/cardflow.go internal/testutil/agentsdoc_test.go   # clean
-```
-
-## Result
-
-- Branch `wt/agent-20260922T191943Z-4ffa25b7` at merge commit `8014a55d`;
-  main `b4592552` is an ancestor; tree clean.
-- No head/ratchet movement: the ratchet run passed unchanged; the branch
-  registers no new `Mode$` matcher and closes no `knownUnsupported`/
-  `knownUnsupportedParams`/`knownUnmodelledCountHeads` entry (its row closure
-  was already merged in `2786ed95`).
-- No `Ref:` trailers (gorge rule respected).
-
-## Issues
-
-None found in the merge itself. The conflict was confined to tracked, git-excluded report accumulators; no engine or test behavior was ambiguous. Pre-existing issues the branch's report records (`PlayerCountRemembered$LifeTotal` unread and remaining `PlayerCountPropertyYou$` shapes) remain documented in `report-t1.md` and are neither introduced nor changed by this resolution.
+None found. The conflict was confined to tracked, git-excluded report
+accumulators; no engine or test behavior was ambiguous. Pre-existing issues
+the branch's own report already records (`PlayerCountRemembered$LifeTotal`
+unread; the remaining `PlayerCountPropertyYou$` shapes) remain documented in
+the appended `report-t1.md` section and are neither introduced nor changed by
+this resolution.
 
 ---
 
@@ -354,3 +286,157 @@ those are not present in the operation actually completed here.
 
 No new issues found. The previously documented `PlayerCountRemembered$LifeTotal`
 and remaining `PlayerCountPropertyYou$` shapes are unchanged.
+---
+
+# Merge-conflict resolution report — mrg1 (task agent-20260922T120916Z-0a3043f3)
+
+## Outcome
+
+The daemon's rebase of this branch onto main had conflicted on
+`.ds4/report-t1.md` (commit 28295617, "docs: record rolldice cost
+verification"); its merge fallback additionally conflicted on
+`.ds4/report-sol1.md`, with `rules/cast.go` and `rules/mana.go` auto-merging.
+No rebase/merge was in flight when this seat started (`git status` clean on
+`wt/agent-20260922T120916Z-0a3043f3`), so the integration was performed here
+as a merge of `main` into the branch — the same shape the branch's history
+already used (merge commit 32029f5c).
+
+Result: merge commit `5252e33d` ("Merge branch 'main' into
+wt/agent-20260922T120916Z-0a3043f3"), tree clean, no unmerged paths.
+
+## Conflicted files, both sides, resolution
+
+### `.ds4/report-sol1.md` (add/add — the only content conflict)
+
+- **Branch side:** the RollDice cost verification report for THIS ticket
+  (agent-20260922T120916Z-0a3043f3), committed in 14c3bd33 after the earlier
+  round moved it off the shared `report-t1.md` path.
+- **Main side:** the Gitaxian Probe verification report for the unrelated
+  ticket fb-20260923T015847Z-fad49275, which used the same designated
+  round-report path on main.
+- **Resolution:** keep both. Branch report first (verbatim), then a one-line
+  separator heading, then main's report verbatim. Neither side's intent is
+  altered.
+
+### `.ds4/report-t1.md` (auto-merged, verified)
+
+The merge took main's version wholesale (1160 lines, an accumulator of 10+
+reports). The branch's version held the `playerspec-life-svar-threshold`
+report, which the branch's 14c3bd33 had restored "byte-for-byte from main" —
+but main itself has since deliberately overwritten that file (0c067498
+"docs: record Yuffie attach verification", later than the branch's restore).
+The original playerspec report remains on main in history (df247a3f, content
+before 0c067498), so nothing durable is lost and main's later deliberate
+change correctly wins. No manual edit needed; verified no conflict markers.
+
+### `rules/cast.go`, `rules/mana.go` (auto-merged)
+
+Git merged main's changes with the branch's RollDice cost-token work without
+conflict. Verified post-merge that the RollDice parser/payment code survived
+intact: `rules/mana.go` keeps `Cost.RollDice` + `rollDiceCost` (lines 219-222,
+460, 729) and `rules/cast.go` keeps the cost-die payment block (lines
+8072-8076).
+
+## Commands and output
+
+```
+$ git merge main --no-edit
+Auto-merging .ds4/report-sol1.md
+CONFLICT (add/add): Merge conflict in .ds4/report-sol1.md
+Auto-merging rules/cast.go
+Auto-merging rules/mana.go
+Automatic merge failed; fix conflicts and then commit the result.
+```
+
+Sanity checks (run on the merged tree, before the merge commit; same content
+as the committed tree):
+
+```
+$ go test -run 'TestClayGolem|TestMonstrosity|TestRolledDie' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.730s
+
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' -v
+5 tests RUN, 0 SKIP, 0 FAIL; ok github.com/adams-shaun/gorge/rules 0.733s
+```
+
+(5 = TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched,
+TestEveryDispatchedTriggerMode*, TestEveryRepoDeckIsFullySupported,
+TestEveryRepoDeckParamsAreRead, and the CountHead ratchet test; zero skips so
+the corpus-backed ratchets were not vacuous — `.cards` was already present as
+a symlink in this worktree.)
+
+Post-commit: `git status --short --branch` → clean, on
+`wt/agent-20260922T120916Z-0a3043f3`.
+
+## Ratchet state after the merge
+
+No ratchet table entries needed updating: the branch registers no new
+trigger `Mode$` matcher and closes no `knownUnsupported` /
+`knownUnsupportedParams` / `knownUnmodelledCountHeads` entry, so the
+post-merge ratchet run passing green is the expected outcome (the RollDice
+cost parser's OnlyXTicket entries were never in any of those tables).
+
+## Unsure about / notes
+
+- The merge was performed with the default message (no `Ref:` trailer, per
+  gorge convention).
+- `.ds4/report-mrg1.md` itself held a previous task's merge report (brought in
+  via main); this round's report is appended below it rather than replacing
+  it, matching the repo's report-preservation convention.
+- Not run here (daemon gates): full suite, TestHeads, `make sim`, CR
+  conformance, `go vet`.
+
+## Issues
+
+None new. The only conflicts were report-path collisions among unrelated
+tickets' reports; no engine code conflicted.
+
+---
+
+# Merge-conflict resolution — agent-20260922T191943Z-4ffa25b7 (integration of main b2b49d51)
+
+## State and operation
+
+At entry the worktree was clean at `8f2d377c` (the daemon had aborted both its
+rebase and its merge fallback, so no merge/rebase was in flight). Main was at
+`b2b49d51`, not an ancestor (merge-base `cb8bf4d7`). I ran `git merge main`.
+
+## Conflicted files, both sides, resolution
+
+- **`internal/testutil/agentsdoc_test.go`** — comment-only conflict above
+  `knownApproximationRows` (both sides kept the constant at 18; main deleted
+  three rows — scrybottom `T:Mode$ Scry`, four-mode trigger, rv2b count-heads —
+  and the branch had earlier deleted the rv1 RevealAllValid$ row, whose
+  oversize lowering to `knownOversizeRows = 7` is on both sides). Merged the
+  comment to name all four disjoint closures. Measured merged AGENTS.md: 18
+  data rows, so the constants stand.
+- **`.ds4/report-t1.md`** — accumulator. HEAD prepended the branch's rv1
+  report; main prepended the fb-20260923T005857Z (Count$ResolvedThisTurn /
+  Sephiroth) report; the remainder is shared. Deleted the three marker lines,
+  keeping both sides in order (branch report first) — the same convention as
+  the `8014a55d` resolution. 1535 lines, no markers, `git diff --check` clean.
+- **`.ds4/report-mrg1.md`** — accumulator. HEAD's tail: its "current
+  integration" report (of the previous merge `0ca4f00b`). Main's tail: the
+  base `## Issues` paragraph plus its mrg1 report for
+  agent-20260922T120916Z-0a3043f3. Kept main's version and inserted HEAD's
+  report section before main's final report, then appended this section.
+- Everything else auto-merged: `AGENTS.md` (both sides' row deletions compose
+  to the measured 18), `effects/cardflow.go` (branch's RevealAllValid$ block
+  and main's changes in disjoint regions), plus main's
+  `Count$ResolvedThisTurn`/RollDice/scry/CountersRemain code and tests.
+
+## Commands and results
+
+```
+git status                  # clean at 8f2d377c before merge
+git merge main              # 3 conflicts: report-mrg1.md, report-t1.md, agentsdoc_test.go
+python3 resolutions ...     # marker removal / section splice as described
+git diff --check            # clean on all three
+```
+
+Ratchets and targeted checks (results pasted below in the final message block).
+
+## Issues
+
+None new. The only content conflicts were the report accumulators and a
+comment block; no engine behaviour was ambiguous on either side.

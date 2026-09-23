@@ -302,18 +302,21 @@ func Describe(g *state.Game, ev events.Event) string {
 			s += " " + obj(g, ev.IDs[0])
 		}
 		return s
-	case events.Discover, events.Seek, events.Surveil:
-		// The discover (CR 701.57), seek (task trigdisc1) and surveil
-		// (CR 701.42) records (task trigdisc1) are pure
+	case events.Discover, events.Seek, events.Surveil, events.Scry:
+		// The discover (CR 701.57), seek (task trigdisc1), surveil
+		// (CR 701.42) and scry (CR 701.18, task scrybottom) records are pure
 		// markers: the action's own state changes (the exiles/reveals and the
-		// sought card's move, the surveil's KArrange answer) are their own
-		// lines, so these lines name only the acting seat (Player; Obj is the
-		// source permanent, which may be 0 for a source-less body).
+		// sought card's move, the surveil's or scry's KArrange answer) are
+		// their own lines, so these lines name only the acting seat (Player;
+		// Obj is the source permanent, which may be 0 for a source-less body).
 		if ev.Kind == events.Seek {
 			return player(g, ev.Player) + " seeks"
 		}
 		if ev.Kind == events.Surveil {
 			return player(g, ev.Player) + " surveils"
+		}
+		if ev.Kind == events.Scry {
+			return player(g, ev.Player) + " scries"
 		}
 		return player(g, ev.Player) + " discovers"
 	case events.Connive:
