@@ -661,6 +661,34 @@ func evalRememberedOK(h Host, c *Ctx, body string) (int32, bool) {
 	return 0, false
 }
 
+// rememberedExcludingCapture is the ctx's Remembered list minus its
+// fire-time event capture (Ctx.Captured) -- Forge's host remembered list,
+// which never contains the event object the trigger fired on. The exclusion
+// lives in ONE helper because two callers must agree byte for byte:
+// effImmediateTrigger (which builds each "when you do" instance's ctx from
+// it, so its exclusion and the TriggerRemembered count head's cannot drift)
+// and refTargets' TriggerRemembered case (Loamcrafter Faun's SVar:X:
+// TriggerRemembered$Amount). A no-capture ctx (captured empty) returns the
+// list unchanged; the helper is idempotent -- the instance ctx
+// effImmediateTrigger builds has Captured and Remembered disjoint, so
+// applying it a second time there answers the same set.
+func rememberedExcludingCapture(h Host, c *Ctx) []state.Target {
+	if len(c.Captured) == 0 {
+		return c.Remembered
+	}
+	captured := make(map[state.Target]bool, len(c.Captured))
+	for _, t := range c.Captured {
+		captured[t] = true
+	}
+	var out []state.Target
+	for _, t := range c.Remembered {
+		if !captured[t] {
+			out = append(out, t)
+		}
+	}
+	return out
+}
+
 // refTargets resolves one ref name of the <Ref>$<Property> family into the
 // targets it names. Shared by evalRefProperty and the <Ref>>Count$...>
 // indirection branch in evalCountExprOK, so the two cannot disagree about
@@ -680,6 +708,12 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 		// fails closed here exactly as it did before the arm existed.
 		sc := *c
 		sc.Remembered = copyTargets(c.Captured)
+		// The substitution consumes the capture into Remembered, so a nested
+		// ref that excludes Ctx.Captured (TriggerRemembered) must not be
+		// handed the old capture again and subtract it away. No corpus line
+		// writes Spawner>TriggerRemembered; this keeps the composition correct
+		// structurally (the count head's one-home helper).
+		sc.Captured = nil
 		return refTargets(h, &sc, strings.TrimSpace(inner))
 	}
 	switch ref {
@@ -703,17 +737,27 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 		"TriggeredNewCardLKICopy",
 		"TriggeredAttacker", "TriggeredAttackerLKICopy",
 		"TriggeredTargetLKICopy", "DelayTriggerRemembered",
-		"DelayTriggerRememberedLKI", "TriggerRemembered", "RememberedLKI":
-		// TriggerRemembered (task triggerremembered1) is Forge's name for the
-		// trigger's own RememberObjects$ capture, the same set this engine
-		// threads through Ctx.Remembered at resolution -- the members the
-		// corpus writes (Amount/CardPower/CardToughness/CardManaCost/
-		// CardManaCostLKI/CardCounters.*/CardTypes) then read through the one
-		// property switch below. Every carrier is an ImmediateTrigger chain
-		// whose instance Ctx.Remembered is exactly the introspected set
-		// (Loamcrafter Faun's discarded lands, Cemetery Desecrator's exiled
-		// card), so the ref binds the same slot as TriggeredCard's.
+		"DelayTriggerRememberedLKI", "RememberedLKI":
 		return c.Remembered, true
+	case "TriggerRemembered":
+		// TriggerRemembered (task triggerremembered1) is Forge's name for the
+		// trigger's own RememberObjects$ capture -- the set the resolving
+		// body introspects ("return up to that many"). It is NOT the whole
+		// ctx list: rules seeds a firing trigger's ctx with Remembered =
+		// Captured = the trigger's own event capture, and effImmediateTrigger
+		// hands each "when you do" instance the capture-EXCLUDED parent set.
+		// Bind the exclusion here, at the one place the ref resolves, so a
+		// read that happens at either level -- the ImmediateTrigger's own ctx
+		// (Loamcrafter Faun's TriggerAmount$/a direct Execute read) or an
+		// instance ctx -- answers the chain's remembered set and never the
+		// fire-time capture. A plain Ctx.Remembered read (what the sibling
+		// ticket first landed) overcounts by that capture in the outer ctx;
+		// the helper is idempotent with effImmediateTrigger's own exclusion
+		// (the instance capture is disjoint from its remembered set), so the
+		// instance read is unchanged. The members the corpus writes (Amount/
+		// CardPower/CardToughness/CardManaCost/CardManaCostLKI/
+		// CardCounters.*) read through the one property switch below.
+		return rememberedExcludingCapture(h, c), true
 	case "TriggeredExploited":
 		// The exploited creature (CR 702.58c's "that creature"): the Exploit
 		// marker's triggerReferents case binds ev.IDs[0] to TriggerCard at
