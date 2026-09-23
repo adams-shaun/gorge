@@ -1,113 +1,65 @@
-# RollDice cost implementation report — agent-20260922T120916Z-0a3043f3
+# Convoked$Amount — fix-round report
 
-## Review finding resolved
-
-The previous integration overwrote the tracked `.ds4/report-t1.md` from the unrelated `playerspec-life-svar-threshold` ticket. Restored that report byte-for-byte from `main` (verified with `cmp`); this RollDice report is now stored separately in `.ds4/report-sol1.md`. No engine code changed in this review round. The new report path is force-staged so it remains durable across the merge.
+STATUS: DONE. Commit `88d159e4` (following initial implementation `9e650da1`). `.cards` was present as a symlink to the shared corpus; `/usr/bin/grep -rlE 'Convoked\$Amount' .cards/cardsfolder | wc -l` returned **2**.
 
 ## Changes
 
-- `rules/mana.go`: added a `Cost.RollDice` part and narrow `RollDice<N/Sides/XVar>` parser. The supported `X` form is recorded as `N`, `Spec` (sides), and `Dyn`; malformed/unsupported instances degrade to one generic mana and `Unknown: [RollDice]`.
-- `rules/cast.go`: ability payment now uses the seeded engine RNG for each cost die, emits the canonical `effects.DieRollNote`, and binds the last result to `pc.x` before the ability's existing pay-time `CastInfo`.
-- `rules/rolldice_cost_test.go`: added parser/malformed-input checks and a real Clay Golem end-to-end pin. It confirms the object starts as an unmarked battlefield permanent, resolves a d8 cost roll, gains the matching counters and Monstrous mark, and pushes its BecomeMonstrous trigger. The test checks the canonical per-die Note directly as the cost-side `RolledDie`/`RolledDieOnce` trigger encoding rather than staging a second carrier.
-- `rules/monstrosity_test.go`: removed the now-false zero-amount Clay Golem pin; its replacement is the end-to-end test above.
+- `effects/count.go`: only the new Convoked head rejects unknown/invalid `/Op` suffixes for both bare and `Count$` forms; known operators still compose via the existing arithmetic. No changes to the behavior of other count heads.
+- `effects/convoked_amount_test.go`: assert `(0,true)` for empty and absent provenance and `(0,false)` for unsupported operators (both spellings), rather than losing evaluability through `Num`.
+- `rules/convoked_amount_test.go`: the real cast of Imperiosaur captures exactly two selected bears and excludes a third untapped battlefield bear, then ETB adds four counters. The real Knight ETB Dig is driven to its actual ask with a replay-visible library order and MV 0/2/4/5 fixture preconditions; only 0 and 2 are offered, and the MV-2 bear is selected and reaches hand. The prior post-resolution count assertion remains. This proves the engine consumer, rather than only a manually seeded SVar read.
 
-`.cards` was present in this worktree. Re-measured corpus prevalence: `/usr/bin/grep -rlE 'Cost\\$[^|]*RollDice' .cards/cardsfolder` found exactly one card, `Clay Golem`.
+The structural fix uses `Object.Convoked` already captured by the cast and the existing `/Op` evaluator; no cast-time gating or event changes. No count-head ratchet entry or Known-approximations row corresponded to this head; neither was changed. Botbench split did not move.
 
 ## Fails without the fix
 
-Saved `rules/mana.go`, temporarily removed only its RollDice parser branch (leaving the field/payment code intact), ran the Clay Golem test, then restored and `cmp`-verified the file. Output:
+Copied `effects/count.go` to `.ds4/scratch/count-fixed.go`, replaced it temporarily with `git show 9e650da1^:effects/count.go`, ran `go test -run 'TestConvokedAmount|TestAncientImperiosaurEntersWithTwoCountersPerConvoker|TestKnightErrantOfEosXCountsConvokers' ./effects ./rules`, then restored the exact copy (`cmp` exit 0). Exit 1:
 
-```text
-without_fix_exit=1 restore_cmp=0
---- FAIL: TestClayGolemRollDiceCostAndMonstrosity (0.00s)
-    rolldice_cost_test.go:15: RollDice cost parse = {Colored:[0 0 0 0 0 0] Generic:7 Life:0 X:0 Hybrid:[] Phyrexian:[] Twobrid:[] HybridPhyrexian:[] Snow:0 Tap:false Sac:[] Discard:[] SubCounter:[] AddCounter:[] Exile:[] Reveal:[] RevealChosen:[] Behold:[] TapPermanent:[] Blight:[] Forage:false Draw:[] Energy:[] LifeX:[] LifeHalfUp:false DamageYou:[] Return:[] PutToLib:[] MoveToGrave:[] Mill:[] Evidence:[] RollDice:[] Unknown:[RollDice]}, want {6} and one modelled roll
-FAIL
-FAIL    github.com/adams-shaun/gorge/rules    0.002s
-FAIL
+```
+--- FAIL: TestConvokedAmountReadsTheCorpusHeads (0.59s)
+    convoked_amount_test.go:75: Num Amount$ X (Knight-Errant SVar) = 0, want 2
+--- FAIL: TestConvokedAmountEmptyAndAbsentAreEvaluatedZero (0.00s)
+    convoked_amount_test.go:111: empty provenance = (0,false), want (0,true)
+FAIL github.com/adams-shaun/gorge/effects
+--- FAIL: TestAncientImperiosaurEntersWithTwoCountersPerConvoker (0.57s)
+    convoked_amount_test.go:135: Ancient Imperiosaur P1P1 counters = 0, want 4 (2 convokers x /Twice)
+--- FAIL: TestKnightErrantOfEosXCountsConvokers (0.00s)
+    convoked_amount_test.go:216: Knight Dig never offered a choice
+FAIL github.com/adams-shaun/gorge/rules
 ```
 
-## Verification
+Separately removed just the two operator-validation checks temporarily, ran `go test -run '^TestConvokedAmountEmptyAndAbsentAreEvaluatedZero$' ./effects` and restored the byte-identical copy (`cmp` exit 0). Exit 1:
 
-Targeted suite (only the brief's permitted targeted command):
-
-```text
-$ go test -run 'TestClayGolem|TestMonstrosity|TestRolledDie' ./rules/
-ok  github.com/adams-shaun/gorge/rules  0.645s
+```
+--- FAIL: TestConvokedAmountEmptyAndAbsentAreEvaluatedZero (0.58s)
+    convoked_amount_test.go:124: unknown operator "Convoked$Amount/Unmodelled" = (0,true), want unresolved
+FAIL github.com/adams-shaun/gorge/effects
 ```
 
-Required gates:
+## Gates
 
-```text
-$ go test ./internal/archtest/
-ok  github.com/adams-shaun/gorge/internal/archtest  3.660s
+`go test -run 'TestConvokedAmount|TestAncientImperiosaurEntersWithTwoCountersPerConvoker|TestKnightErrantOfEosXCountsConvokers|TestEveryRepoDeckCountHeadResolves' ./effects ./rules` (exit 0):
 
-$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
-ok  github.com/adams-shaun/gorge/cmd/botbench  1.366s
-
-$ gofmt -l rules/mana.go rules/cast.go rules/rolldice_cost_test.go rules/monstrosity_test.go
-[no output]
-$ go run ./cmd/gentypes -check
-[no output]
+```
+ok   github.com/adams-shaun/gorge/effects (cached)
+ok   github.com/adams-shaun/gorge/rules 0.701s
 ```
 
-## Verification on merged HEAD `32029f5c` after report restoration
+`go test ./internal/archtest/` (exit 0):
 
-```text
-$ go test -run 'TestClayGolem|TestMonstrosity|TestRolledDie' ./rules/ > .ds4/scratch/sol1-rules.log 2>&1; tail -30 .ds4/scratch/sol1-rules.log
-ok  github.com/adams-shaun/gorge/rules (cached)
-$ go test ./internal/archtest/ > .ds4/scratch/sol1-arch.log 2>&1; tail -15 .ds4/scratch/sol1-arch.log
-ok  github.com/adams-shaun/gorge/internal/archtest (cached)
-$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ > .ds4/scratch/sol1-bot.log 2>&1; tail -5 .ds4/scratch/sol1-bot.log
-ok  github.com/adams-shaun/gorge/cmd/botbench (cached)
-$ gofmt -l rules/mana.go rules/cast.go rules/monstrosity_test.go rules/rolldice_cost_test.go
-[no output]
-$ go run ./cmd/gentypes -check
-[no output; exit 0]
-$ cmp .ds4/report-t1.md <(git show main:.ds4/report-t1.md)
-[no output; exit 0]
+```
+ok   github.com/adams-shaun/gorge/internal/archtest 3.086s
 ```
 
-The tests above were redirected to `.ds4/scratch/sol1-{rules,arch,bot}.log` and tailed once, with exit status 0 for each. Prior uncached gate output and the parser-revert proof are retained above from round 1. `.cards` is present as a symlink; no corpus-dependent tests skipped. No known-approximations row names RollDice, so no row or constant changed. No heads/ratchet movement observed; no full suite was run in this seat.
+`go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/` (exit 0):
+
+```
+ok   github.com/adams-shaun/gorge/cmd/botbench 1.191s
+```
+
+`gofmt -l effects/count.go effects/convoked_amount_test.go rules/convoked_amount_test.go` (exit 0): no output.
+`go run ./cmd/gentypes -check` (exit 0): no output.
+`git diff --check` (exit 0): no output.
 
 ## Issues
 
-No additional defects found or left open in the requested cost-token scope. The cost-side roll uses the existing canonical roll Note, so existing `RolledDie` and `RolledDieOnce` matching consumes it without new trigger registration. `XVar` other than `X` intentionally degrades loudly as specified by the brief; supporting arbitrary XVar names would require additional grammar and binding work.
-
----
-
-# Second report stored at this shared path (from main): Gitaxian Probe verification — fb-20260923T015847Z-fad49275
-
-# Gitaxian Probe verification — fb-20260923T015847Z-fad49275
-
-## Conclusion
-
-**Original reported match not reproduced.** No feedback snapshot was supplied, so its exact state and failure point cannot be established. Current real-corpus Probe tests pass and the already-landed fix `868d7c6b` makes `RevealHand` without `NumCards$` reveal the whole hand (`c7f54854` merged the earlier report). No new behavior or test is warranted.
-
-## Prior finding resolution and changes
-
-- **MAJOR (destructive report overwrite):** Restored `.ds4/report-t1.md` byte-for-byte from the parent of `435ea8a2`, preserving the unrelated restricted-mana and count-head records (verified with `git show HEAD^:.ds4/report-t1.md | cmp - .ds4/report-t1.md`). This ticket's report is instead `.ds4/report-sol1.md`, its designated round-specific path. No other historical report was edited.
-- **MINOR (false clean-tree claim):** The overwritten report's claim of a clean working tree was incorrect. The correction is this committed restore and separate report; before this round's edit the working tree was clean *because the overwrite had already been committed*, not because no change was made.
-- No production or test Go files changed. `.cards` was present as a symlink to `/home/sadams/projects/gorge/.cards`, with `ir.gob.gz` available; corpus tests did not vacuously skip.
-
-## Path inspection
-
-`effects/cardflow.go:2072` has `wholeHand := sa.API == "RevealHand" && !hasNum`; `effects/revealhand_test.go` verifies the actual compiled Probe SA has `Look$ True` and no `NumCards$`, and that after the look acknowledgment its secret Note carries all target hand IDs, scoped to the activator. `view/look_redaction_test.go` drives the real card through the engine and checks all IDs, redaction across seats/spectators, transcript names, and replay. `host/fanout.go:eventBodiesFor` calls `view.RedactEventFor` then `view.Describe` on the redacted event; `host/viewat.go` uses the same function for Events/EventsSeat. `web/src/components/Transcript.svelte` takes `e.line`, filters via `visibleLog`, then renders `parseLogLine(e.line)`; `web/src/lib/logfilter.ts` does not hide `note` events. No distinct, reproducible downstream omission was found. This is code-path verification, not a replay of the player's missing snapshot or a live-demo test.
-
-## Gates (exact commands and output)
-
-```
-$ go test -run 'TestGitaxianProbeLookIsAPrivateLookScopedToTheActivator|TestThoughtKnotSeerRevealHandRevealsTheWholeHand' ./effects/ 2>&1 | tail -30
-ok  	github.com/adams-shaun/gorge/effects	(cached)
-$ go test -run 'TestGitaxianProbeLookStaysPrivateFromEveryOtherViewer|TestGitaxianProbeLookDescribeLines|TestGitaxianProbeGameReplaysAndDescribesIdentically' ./view/ 2>&1 | tail -30
-ok  	github.com/adams-shaun/gorge/view	(cached)
-$ go test ./internal/archtest/ 2>&1 | tail -15
-ok  	github.com/adams-shaun/gorge/internal/archtest	(cached)
-$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ 2>&1 | tail -15
-ok  	github.com/adams-shaun/gorge/cmd/botbench	(cached)
-```
-
-No new tests: `## Fails without the fix` and new-test preconditions are inapplicable. No Go files changed: `gofmt -l <changed Go files>` and `go run ./cmd/gentypes -check` are not required. No head, ratchet or Known-approximations row changed.
-
-## Issues
-
-No new defect identified. Without the missing feedback capture the original live game's point of failure remains unverifiable; do not infer that the reported historical symptom did not occur.
+None found outside scope. No ledger entry closed; no CR lane test warranted for this card-specific count head.
