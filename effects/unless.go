@@ -58,24 +58,35 @@ import (
 // price. A value naming an SVar on the resolving face whose body is a
 // RESOLVABLE count expression folds its numeric result into one generic amount
 // "{N}": Feather, Radiant Arbiter's SVar:CopyCost:Count$ChosenSize/Times.2
-// becomes "{4}" for two chosen creatures. The fold is deliberately gated to
-// Counter and CopySpellAbility: Counter is this ticket's X-payable shape (X
-// resolves from captured context, for example Sacrificed$CardPower), while
-// every other API retains its strict, pre-existing grammar until its own
-// unless-cost semantics are implemented. An SVar present but unresolvable
-// also passes through: the ask is still posed and recorded, but it cannot be
-// answered "pay", exactly as before. The same string must reach the ask's label
+// becomes "{4}" for two chosen creatures. The fold applies to every
+// UnlessCost$ API because the shared gate owns the payment; leaving a
+// resolvable SVar opaque on Sacrifice, Tap, or another effect would make the
+// ask and its payment disagree. An SVar present but unresolvable also passes
+// through: the ask is still posed and recorded, but it cannot be answered
+// "pay", exactly as before. The same string must reach the ask's label
 // (unlessProceed) and the payment (rules' unless_pay arm calls this with the
 // resumed ctx), so the offer and the charge can never disagree.
 func UnlessCostResolved(h Host, c *Ctx, sa *cards.SA) string {
+	if sa == nil {
+		return ""
+	}
 	raw := strings.TrimSpace(sa.Params["UnlessCost"])
-	if raw == "" || c == nil || c.SVars == nil || sa == nil {
+	if raw == "" || c == nil {
 		return raw
 	}
-	// The Counter X/SVar shape is the targeted extension of the existing
-	// CopySpellAbility fold. Other APIs retain their strict, pre-existing
-	// grammar until their own unless-cost semantics are implemented.
-	if sa.API != "Counter" && sa.API != "CopySpellAbility" {
+	// CR 601.2b: an X in an UnlessCost$ is the value announced by the
+	// resolving spell or ability. The rules package carries that announcement
+	// through Ctx.X when it rebuilds a suspended resolution. XX is Forge's
+	// spelling for twice the same announced value (Thassa's Intervention).
+	if c.X > 0 {
+		switch raw {
+		case "X":
+			return "{" + strconv.FormatInt(int64(c.X), 10) + "}"
+		case "XX":
+			return "{" + strconv.FormatInt(int64(c.X)*2, 10) + "}"
+		}
+	}
+	if c.SVars == nil {
 		return raw
 	}
 	body, ok := c.SVars[raw]
