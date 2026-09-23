@@ -23,8 +23,12 @@ import (
 // rules' "choosecolor" resume arm and Ctx.ChosenColor), each falling back
 // to its deterministic pick only when the host cannot ask, the option list
 // is empty, or the SA carries a list shape this build cannot ask honestly.
-// ChooseNumber remains a silent fallback (0) -- the sibling stand-in the
-// ledger tracks.
+// ChooseNumber likewise poses a real KChoose over its number list (task
+// cli-20260923T060000Z-choose-number; the suspension re-enters through
+// rules' "choosenumber" resume arm and Ctx.ChosenNumberPick/
+// ChosenNumberAnswered), falling back to the deterministic 0 only when the
+// host cannot ask or it is the as-enters ENTRY-choice body (the entry
+// machinery already asked).
 func init() {
 	Register("ChooseType", effChooseType)
 	Register("ChooseNumber", effChooseNumber)
@@ -219,16 +223,58 @@ func chooseColorOffers(opts []decision.Option, l byte) bool {
 	return false
 }
 
-// effChooseNumber records a number choice. With the source already carrying a
-// non-zero ChosenNumber (the cast-time Choose event set it), it is a no-op;
-// otherwise it records the deterministic fallback 0. The non-zero guard is
-// why a cast-flow choice of x=0 can never be re-asked but also means a
-// legitimate "chosen 0 outside an ETB" is indistinguishable from "never
-// asked" -- both fall back to recording 0, which is the same value anyway, so
-// the ambiguity is unobservable.
+// effChooseNumber records a number choice. With the as-enters ENTRY-choice
+// body flagged (Ctx.ETBNumberRecorded, set by rules' replCtx for the
+// K:ETBReplacement ChooseNumber repl) it is the historical no-op: the entry
+// machinery -- applyETBChoiceReplacement -> resumeETBEntry -- already posed
+// the entry ask and recorded the answer on the entering object before this
+// body runs at the re-emitted move, so no second ask is posed. Any OTHER
+// invocation poses a real mid-resolution KChoose over the number list
+// (NumberChoices, the one home) to the Defined$ player, so the chooser picks;
+// on the re-entry after its own ask was answered it emits the one Choose
+// event the fallback emits, with the answered number (Ctx.ChosenNumberPick
+// plus the ChosenNumberAnswered marker, consumed and cleared -- the fx42
+// scoping convention). A host that cannot ask falls through to the
+// deterministic fallback 0 with no extra Note (R-9), the value the old
+// stand-in always recorded.
+//
+// A number already on the source -- an EARLIER Choose event's answer, from a
+// previous ChooseNumber SA or the entry choice an ability now re-asks -- is
+// NOT this ask's own answer, so it never suppresses a fresh resolution-time
+// ask (the sibling colour ask's stale-source-state rule). The entry body
+// alone is exempted, through the flag rather than through the object's
+// ChosenNumber: a recorded entry answer of 0 is indistinguishable from
+// "never asked" on the object, but the flag is set precisely when the entry
+// machinery recorded one.
 func effChooseNumber(h Host, c *Ctx, sa *cards.SA) {
-	if o := h.Game().Obj(c.Source); o != nil && o.ChosenNumber != 0 {
+	if c.ETBNumberRecorded {
+		// The as-enters ENTRY-choice body: resumeETBEntry already recorded
+		// the answer on the object, so this pass emits nothing (the fx42
+		// consume-and-clear).
+		c.ETBNumberRecorded = false
 		return
+	}
+	if c.ChosenNumberAnswered {
+		// The "choosenumber" resume arm's answer: emit the same Choose event
+		// the fallback emits, with the answered number.
+		c.ChosenNumberAnswered = false
+		n := c.ChosenNumberPick
+		c.ChosenNumberPick = 0
+		h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "number", Amount: n})
+		return
+	}
+	chooser := c.Controller
+	if ts := Defined(h, c, sa); len(ts) > 0 && ts[0].IsPlayer {
+		chooser = ts[0].Player
+	}
+	opts := NumberChoices()
+	if len(opts) > 1 {
+		d := &decision.Decision{Player: chooser, Kind: decision.KChoose, Min: 1, Max: 1,
+			ResumeKind: "choosenumber", ResumeSA: sa, Prompt: "Choose a number", Source: c.Source}
+		d.Options = opts
+		if Ask(h, d) == AskAsked {
+			return
+		}
 	}
 	h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "number", Amount: 0})
 }

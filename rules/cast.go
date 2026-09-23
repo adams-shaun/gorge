@@ -4582,11 +4582,10 @@ func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCar
 		// typeChoiceOptions instead.
 		return e.typeChoiceOptions(you, card, map[string]string{"Type": typeCategory})
 	default: // "number"
-		out := make([]decision.Option, 0, 13)
-		for i := 0; i <= 12; i++ {
-			out = append(out, decision.Option{Index: len(out), Kind: "number", Label: strconv.Itoa(i), Amount: i})
-		}
-		return out
+		// The shared 0..N list (task cli-20260923T060000Z-choose-number:
+		// effects/number_choices.go is the ONE home), so the as-enters ask
+		// and the mid-resolution ChooseNumber ask cannot disagree.
+		return effects.NumberChoices()
 	}
 }
 
