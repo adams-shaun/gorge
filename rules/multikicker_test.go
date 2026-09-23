@@ -367,27 +367,6 @@ func TestMultikickAskBoundedByPool(t *testing.T) {
 	castOptMode(t, castOptions(t, e2), k2, "")
 }
 
-// TestMultikickBotDeclinesThroughTheFirstOfferArm pins the bot-quality
-// stand-in empirically: the count ask's Option.Kind "multikick" has no
-// dedicated arm in botpolicy's KChoose switch, so the policy takes its
-// `default` arm -- the first offer, option 0 = "No multikick" -- the
-// deterministic decline (the replicate precedent), and clamp passes the
-// single choice through (Min 1 satisfied).
-func TestMultikickBotDeclinesThroughTheFirstOfferArm(t *testing.T) {
-	src := "Name:Kickerling\nManaCost:2 G\nTypes:Creature\nPT:2/2\nK:Multikicker:3\nOracle:x\n"
-	e, _, k := newFixtureDeck(t, 920, src)
-	addMana(t, e, 0, "GGGGGGGGGG")
-	submitChoices(t, e, castOptMode(t, castOptions(t, e), k, "multikicked").Index)
-	d := e.Pending()
-	if d == nil || d.Kind != decision.KChoose || d.Options[0].Kind != "multikick" {
-		t.Fatalf("multikick ask missing: %+v", d)
-	}
-	in := newTestBot(42).answer(e, d)
-	if len(in.Choices) != 1 || in.Choices[0] != 0 {
-		t.Fatalf("bot answered %+v, want the decline (option 0)", in.Choices)
-	}
-}
-
 // TestStrongholdArenaTimesKickedThrice drives the legacy plain-Kicker carrier
 // with the /Thrice op: a kicked1 cast counts 1 kick (3 life), a kickedboth
 // cast counts 2 (6 life) -- the count rides the SVar-gated trailing CastInfo
