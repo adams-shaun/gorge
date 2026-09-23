@@ -1,3 +1,119 @@
+# Merge-conflict resolution — agent-20260919T192133Z-f7463cbe
+
+## State found
+
+`git status` at start: clean tree on `wt/agent-20260919T192133Z-f7463cbe`, no
+rebase/merge in flight — the daemon's failed rebase had already been cleaned
+up. The branch was main (`e54228a0`) + 3 commits
+(`7de1a857` retrace test, `9785e5ba` retrace t1 report path, `7cbf188d`
+retrace r2 report). Per the daemon's own fallback pattern, I integrated with
+`git merge main --no-edit`, which reproduced exactly the reported conflict:
+`.ds4/report-r2.md`, nothing else.
+
+## The conflicted file: `.ds4/report-r2.md`
+
+This is the shared r2-report path (tracked despite the `.ds4` exclude, via
+the established `git add -f` convention).
+
+- **Merge-base (stage 1, 263 lines):** the pred:ChosenCardStrict r2 report.
+- **Branch / ours (stage 2, 100 lines):** replaced the whole file with the
+  retrace r2 report (`7cbf188d`, its reviewed convention: shared path carries
+  this ticket's report, prior reports preserved at unique paths —
+  `.ds4/report-r2-triggerremembered.md` is committed on the branch).
+- **Main / theirs (stage 3, 349 lines):** the base UNCHANGED plus a pure
+  APPEND of 86 lines at the end — the trig:Attacks.NoResolvingCheck r2
+  report (`c4a26a51 docs(agent): append round-2 rebase-and-reverify report`).
+  Verified with `git diff <merge-base> main -- .ds4/report-r2.md`: every
+  added line sits after the base's last line; no earlier line touched.
+
+The two sides do not contradict on any line main added — main only appended.
+So the resolution keeps both intents in full:
+
+- top = the branch's retrace r2 report (its "## Issues" text wins, as
+  reviewed);
+- below it = main's appended NoResolvingCheck r2 report, byte-identical to
+  what main added (extracted as stage-3 lines 264–349).
+
+The ChosenCardStrict base content is deliberately not re-inserted into the
+merged file: removing it is the branch's own reviewed change (same
+convention as the TriggerRemembered preservation commit it carries), and the
+base text stays intact in main's history (blob `c4eed1a0`) plus in
+`.ds4/report-mrg1.md`-style preserved paths where later rounds kept them.
+Constructed: `git show :2:.ds4/report-r2.md > .ds4/report-r2.md && git show
+:3:.ds4/report-r2.md | sed -n '264,349p' >> .ds4/report-r2.md`; verified no
+conflict markers remain, head is the retrace report, tail is main's last
+appended line.
+
+No other file was touched; every other auto-merged path (main's trigger,
+vanishing, draw-X, battalion work) came in clean.
+
+## Operation completed
+
+- `git add -f .ds4/report-r2.md` (the `-f` is required by the `.gitignore`
+  exclude on `.ds4`, same as every prior `.ds4` commit).
+- `git commit --no-edit` → merge commit `a721a669 Merge branch 'main' into
+  wt/agent-20260919T192133Z-f7463cbe`.
+- `git status` after: clean.
+
+## Commands run and output
+
+`.cards` was PRESENT (symlink to `/home/sadams/projects/gorge/.cards`) — all
+runs executed, none skipped.
+
+Post-merge ratchets (the brief's "after merging main, run the ratchets"):
+
+```
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  	github.com/adams-shaun/gorge/rules	0.846s   (exit 0)
+```
+
+The branch's own test, post-merge:
+
+```
+$ go test -run 'Retrace' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.644s   (exit 0)
+```
+
+Behaviour goldens:
+
+```
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.454s   (exit 0)
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.278s   (exit 0)
+```
+
+## Issues
+
+None found in this round — this seat did integration only and touched no
+engine code; no ratchet or head movement observed or expected.
+
+## Self-correction during this round (recorded for honesty)
+
+My first report commit (`ed9de57b`) overwrote `.ds4/report-mrg1.md` — which
+main has turned into a newest-first ACCUMULATOR (3171 lines; each resolver
+prepends its report) — with just my report, deleting main's appended entries
+from the tip. That is the same mistake class the r2 conflict embodied, so I
+repaired it in the amended commit: restored main's accumulator content
+verbatim (`git show a721a669:.ds4/report-mrg1.md`), prepended my report plus
+a `---` separator above it, and re-committed. Net diff of the amended commit
+is 105 insertions, 0 deletions; the old accumulator content is untouched.
+
+## Uncertainties
+
+- Whether the merged report file should also re-home the ChosenCardStrict
+  base text at a unique path. I chose not to create a new file (that would
+  be a content decision beyond the conflict); the base report remains
+  recoverable from main's history and from the branch's own preserved-path
+  convention.
+- The merge commit carries git's default message rather than the daemon's
+  `merge(...)` subject prefix; the brief said to complete the operation with
+  the default message, so I left it as committed.
+
+
+---
+
 # Merge-conflict resolution report — mrg1 (agent-20260919T062939Z-4b5f8950), current integration
 
 ## Entry and operation
