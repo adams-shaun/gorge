@@ -12,7 +12,7 @@ import (
 // The two tests below are corpus-audit harnesses, not behaviour tests: they
 // reproduce the measurements that justify the `Permanent` default in
 // effSacrifice and that quantify what a player-targeted sacrifice does not
-// implement (Amount$, Optional$, RememberSacrificed$, ValidCard$). They print
+// implement (Amount$, Optional$, RememberSacrificed$). They print
 // their findings rather than assert them, because the numbers are a property
 // of the corpus pin, not of this package's behaviour: upstream data can move
 // them, and a number that silently fails a build is worse than one a reader

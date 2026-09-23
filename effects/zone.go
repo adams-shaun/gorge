@@ -3926,20 +3926,27 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 	// may be an artifact, a land or a creature -- is empirically false: those
 	// lines carry no Defined$ and no ValidTgts$, so Defined() resolves them
 	// to the SOURCE object (effects/context.go) and they take the object-target
-	// path below, where spec is never consulted at all. Measured at the corpus
-	// pin (for the command, see the sc1b report): of 892 Sacrifice SAs, 328
-	// carry no SacValid$; 327 of those resolve to an object (or an inherited
-	// target) and never reach the default, and exactly one -- Expert-Level
-	// Safe's DB$ Sacrifice | Defined$ You | ValidCard$ Card.Self -- reaches it.
-	// So "Permanent" is a harmless default rather than a correct reading of
-	// the corpus, and no player-targeted line carries SacValid$ Self. (That one
-	// reachable line means its controller hands over whichever permanent sits
-	// first in zone order -- for Expert-Level Safe, "this artifact" -- instead
-	// of the no-op before this fix; see AGENTS.md.)
+	// path below.
+	//
+	// ValidCard$ is the corpus's second narrowing spelling: three Sacrifice
+	// SAs carry `ValidCard$ Card.Self` and no SacValid$. Exactly one of them is
+	// player-targeted -- Expert-Level Safe's
+	// `DB$ Sacrifice | Defined$ You | ValidCard$ Card.Self` -- so before this
+	// read its controller handed over whichever permanent sat first in zone
+	// order (an artifact, a land, anything) rather than "this artifact". The
+	// other two, Departed Deckhand and Dream Strix, carry no Defined$ and no
+	// ValidTgts$, so Defined() resolves them to their own source object and
+	// they take the object-target path below (where that object already IS the
+	// self the spec names). The two spellings never co-occur in the corpus
+	// (measured: 3 ValidCard$ lines, 437 SacValid$ lines, 0 carrying both), so
+	// applying both as a conjunction reads every line exactly once. Card.Self
+	// resolves through SpecContext.Source, so the player-targeted line can only
+	// hand over the source itself.
 	spec := sa.Params["SacValid"]
 	if spec == "" {
 		spec = "Permanent"
 	}
+	validCard := strings.TrimSpace(sa.Params["ValidCard"])
 	// RememberSacrificed$ True drives the task's effect-driven sacrifice
 	// capture: it makes effSacrifice record the LKI snapshot (power,
 	// toughness, mana value) of each object it sacrifices, so a SubAbility$
@@ -4079,6 +4086,7 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 			}
 			ids := append([]state.ObjID(nil), g.Zone(state.ZBattlefield, t.Player)...)
 			eligible := make([]state.ObjID, 0, len(ids))
+			sc := c.SpecContext(t.Player)
 			for _, id := range ids {
 				if h.SacrificeBlocked(id, false) {
 					// A CantSacrifice restriction (Call for Aid) or face static:
@@ -4086,7 +4094,11 @@ func effSacrifice(h Host, c *Ctx, sa *cards.SA) {
 					// offered, never taken (Annihilator rides this same pool).
 					continue
 				}
-				if MatchesSpecCtx(g, spec, id, c.SpecContext(t.Player)) {
+				// ValidCard$, when present, narrows the same pool: a permanent
+				// must match BOTH spellings (they never co-occur, so this is
+				// just SacValid$ and ValidCard$ in turn).
+				if MatchesSpecCtx(g, spec, id, sc) &&
+					(validCard == "" || MatchesSpecCtx(g, validCard, id, sc)) {
 					eligible = append(eligible, id)
 				}
 			}
