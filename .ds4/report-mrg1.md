@@ -2794,3 +2794,110 @@ ratchet set after the merge:
 No further conflict was forced by this round.
 
 No new engine issue was investigated or found during this integration-only resolution. The cascade ticket's remaining deviations and follow-up tickets are recorded in its existing ticket report; the cascade approximation row itself is deleted as intended.
+
+---
+
+## Round 7 — main at 4cdffbc1 (2026-09-23, ticket cli-20260922T225142Z-1d4558a1)
+
+### Situation found
+
+`git status` on arrival: **clean**, no rebase or merge in flight. `git reflog`
+showed the daemon's last action was `rebase (start): checkout main`
+(`4cdffbc1`) immediately followed by `rebase (abort): returning to
+refs/heads/wt/cli-20260922T225142Z-1d4558a1` (`243f01b3`), so the reported
+"rebase conflicted" and "merge fallback conflicted" captures describe attempts
+the daemon then rolled back. The branch was at `243f01b3` (round-6 record),
+whose merge parent integrated main up to `0fbc2d10`. Main had since advanced
+to `4cdffbc1` (sibling `cli-20260922T225140Z-9e382c75`: the cascade closure —
+`Triggers$ ExileEffect` lifetime, CR 601.3 free-cast gate, `{X}` mana value,
+plus the delete-only cascade register edit).
+
+Since no operation was in flight, I started the integration:
+
+```
+git merge main --no-edit
+```
+
+which auto-merged everything except two files:
+
+```
+Auto-merging .ds4/report-mrg1.md
+CONFLICT (content): Merge conflict in .ds4/report-mrg1.md
+Auto-merging AGENTS.md
+Auto-merging effects/misc.go
+Auto-merging internal/testutil/agentsdoc_test.go
+CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go
+```
+
+`AGENTS.md` itself auto-merged cleanly; `effects/cascade.go`,
+`effects/misc.go`, `rules/cast.go` and the new `rules/cascade_approx_test.go`
+all came across from main with no conflict.
+
+### Conflict 1 — `internal/testutil/agentsdoc_test.go` (`knownApproximationRows`)
+
+- **Branch side (`243f01b3`):** `knownApproximationRows = 40`, comment naming
+  this branch's CantBlockUnless (`blockprop1`) deletion plus prior closures.
+- **Main side (`4cdffbc1`):** `knownApproximationRows = 39`, comment naming
+  the cascade1 deletion.
+
+Measured with the test's own `approximationRows()` algorithm against the
+**auto-merged** `AGENTS.md`:
+
+```
+merged AGENTS.md | rows: 39
+branch AGENTS.md | rows: 40
+main   AGENTS.md | rows: 39
+```
+
+The two sides deleted disjoint rows: the branch deleted `(blockprop1)`
+(stat:CantBlockUnless), main deleted `(cascade1)` (cascade). The auto-merged
+table contains **neither** row — `grep -c blockprop1 AGENTS.md` → 0,
+`grep -c cascade1 AGENTS.md` → 0, `grep -c each1 AGENTS.md` → 1 (kept). The
+merged table is therefore 39 rows and BOTH closures are preserved.
+
+**Resolution:** set the constant to **39**, with a comment naming both sides'
+deletions. Both sides' constants were already above their own tables (40 vs
+40 branch / 39 vs 39 main), so 39 is exactly the measured merged count and the
+register stays delete-only.
+
+### Conflict 2 — `.ds4/report-mrg1.md` (report artifact)
+
+This path is shared: the auto-merge pulled in main's copy from the sibling
+cascade ticket while the branch carried this ticket's accumulated round 1–6
+report. Both are documentation, not code, and neither contradicts the other's
+intent. **Resolution:** union — keep both sides' text (removed the markers,
+preserved the branch's rounds 1–6 and maintained main's cascade-ticket issue
+note), then append this Round 7 section. No engine content is involved.
+
+### Commands and measured output
+
+- `git status` on arrival — clean at `243f01b3`; `git reflog` showed the
+  aborted rebase described above; `git log --oneline main ^HEAD` showed the
+  cascade commits (`e46f051d`, `1609ef43`, `ec9738c1`, …) not yet integrated.
+- `.cards` check — symlink present (`cards.lock`, `cardsfolder`,
+  `ir.gob.gz`), so no vacuous corpus-less run.
+- `git merge main --no-edit` — conflicts only in the two files above.
+- Row counts (test's own algorithm): merged 39, branch 40, main 39.
+- `git add -f internal/testutil/agentsdoc_test.go .ds4/report-mrg1.md`
+  (the `-f` is needed because `.ds4` is git-excluded but the file is tracked)
+  then `git commit --no-edit` → merge commit `df9f695f`
+  ("Merge branch 'main' into wt/cli-20260922T225142Z-1d4558a1").
+- `git merge-base --is-ancestor main HEAD` → exit 0 (main `4cdffbc1` is now an
+  ancestor).
+- `go test -count=1 -v -run 'TestKnownApproximation' ./internal/testutil/` →
+  `PASS` both tests, `ok ... 0.001s` (constant 39 = measured 39).
+- Post-merge ratchet set:
+  `go test -count=1 -v ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`
+  → 5 tests RUN, 0 SKIP, all PASS, `ok ... 0.801s`.
+- `go test -count=1 ./rules -run 'Block|CantBlockUnless|TestHeads'` →
+  `ok ... 1.855s` (heads unmoved).
+- `go test ./internal/archtest/` → `ok ... 3.453s`.
+- `go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/` →
+  `ok ... 1.117s` (20-game pinned split unmoved).
+
+### Issues
+
+No new engine issue found in this round. This was integration-only: the only
+code change is the `knownApproximationRows` constant, and the two row
+deletions (blockprop1, cascade1) are already reflected in the merged
+`AGENTS.md`.
