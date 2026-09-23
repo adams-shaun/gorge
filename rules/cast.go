@@ -3199,11 +3199,9 @@ func (e *Engine) castModeAsk() bool {
 	return true
 }
 
-// modalTargetSA returns the target declaration selected by a modal spell.
-// Forge puts a Charm's ValidTgts$ on each Choices$ SVar rather than on the
-// outer Charm SA. This engine has one target list per stack object, so when
-// several chosen modes target independently it can currently carry only the
-// first target-bearing mode; the ordinary one-mode Charm shape is exact.
+// modalTargetSA returns the first target declaration of a modal spell for
+// legacy single-mode and unsupported multi-target paths. Supported distinct
+// modes instead use the per-mode grouped ask in targetAsk.
 func modalTargetSA(f *cards.Face, sa *cards.SA, modes []string) *cards.SA {
 	if sa == nil || sa.Params["ValidTgts"] != "" || sa.API != "Charm" || f == nil {
 		return sa

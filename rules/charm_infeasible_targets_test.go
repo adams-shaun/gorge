@@ -65,26 +65,26 @@ func TestCastDistinctCharmWithEmptyModeTargetCannotAnnounceBoth(t *testing.T) {
 	if o := e.G.Obj(id); o == nil || o.Zone != state.ZHand {
 		t.Fatalf("spell not in hand: %+v", o)
 	}
-	// This fixture has legal player targets, but no creature targets.
-	if len(e.G.Zone(state.ZBattlefield, 0))+len(e.G.Zone(state.ZBattlefield, 1)) != 0 {
-		t.Fatal("fixture unexpectedly has a permanent target")
+	// Both modes are mandatory. The cast-offer census withholds a spell
+	// whose second mode has no legal target, before any mode or target ask.
+	face := e.G.Obj(id).Face()
+	if n := len(e.legalTargetCandidates(0, id, id, cards.ResolveSVar(face.SVars, "PlayerMode"))); n == 0 {
+		t.Fatal("fixture has no legal player target")
+	}
+	if n := len(e.legalTargetCandidates(0, id, id, cards.ResolveSVar(face.SVars, "CreatureMode"))); n != 0 {
+		t.Fatalf("fixture has %d creature targets, want zero", n)
 	}
 	d := e.Pending()
-	idx := -1
-	for _, o := range d.Options {
-		if o.Kind == "cast" && o.Obj == id {
-			idx = o.Index
+	if d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("pending = %+v, want priority", d)
+	}
+	for _, opt := range d.Options {
+		if opt.Kind == "cast" && opt.Obj == id {
+			t.Fatalf("impossible modal cast offered: %+v", opt)
 		}
 	}
-	if idx < 0 {
-		t.Fatalf("no cast proposal offered: %+v", d.Options)
-	}
-	submitChoices(t, e, idx)
-	if d := e.Pending(); d != nil && (d.Kind == decision.KModes || d.Kind == decision.KTarget) {
-		t.Fatalf("impossible modal cast posed a decision: %+v", d)
-	}
 	if e.G.Obj(id).Zone != state.ZHand {
-		t.Fatalf("aborted spell zone=%s, want hand", e.G.Obj(id).Zone)
+		t.Fatalf("withheld spell zone=%s, want hand", e.G.Obj(id).Zone)
 	}
 	replayCheck(t, e, cfg)
 }
