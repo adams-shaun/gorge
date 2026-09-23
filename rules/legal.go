@@ -2575,7 +2575,24 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				if cost.Tap && (o.Tapped || (z == state.ZBattlefield && o.SummonSick && slices.Contains(e.Derived(id).Types, "Creature") && !e.HasKeyword(id, "Haste"))) {
 					continue
 				}
-				if !offerCastable(p, id, cost, abilityScope(ab), true) {
+				// CR 702.6 / CR 601.2f: the ability's own AlternateCost$ rider
+				// (the K:Equip expansion's fourth colon field) is an alternative
+				// cost the activator may pay INSTEAD of the printed one. Offer it
+				// as its own "ability" option, exactly the way the cast walk
+				// offers an AlternativeCost static's cost as its own "cast"
+				// option (AltCostIndex = 1 marks "the alternate cost", 0 the
+				// printed one -- decision.Option.AltCostIndex). The rider is
+				// evaluated INDEPENDENTLY of the printed cost: an equip whose
+				// printed cost is unpayable but whose alternate is payable must
+				// still be offered (that is the whole point of "pay {B}
+				// instead" for Transmogrant's Crown). abilityAlternateCost
+				// fails closed on an unpriceable rider, so no unpayable option
+				// is ever offered, and the ability is withheld only when
+				// NEITHER cost is payable.
+				altCost, hasAlt := e.abilityAlternateCost(ab)
+				printedOK := offerCastable(p, id, cost, abilityScope(ab), true)
+				altOK := hasAlt && offerCastable(p, id, altCost, abilityScope(ab), true)
+				if !printedOK && !altOK {
 					continue
 				}
 				if !e.abilityTargetsAvailable(p, id, ab) {
@@ -2618,9 +2635,16 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				if strings.EqualFold(strings.TrimSpace(ab.Params["Unattach"]), "True") && o.AttachedTo == 0 {
 					continue
 				}
-				out = append(out, decision.Option{Index: len(out), Kind: "ability",
-					Label: abFace.Name + ": " + ab.Params["SpellDescription"], Obj: id, Ability: i,
-					Grant: e.abilityGrant(id, ab)})
+				if printedOK {
+					out = append(out, decision.Option{Index: len(out), Kind: "ability",
+						Label: abFace.Name + ": " + ab.Params["SpellDescription"], Obj: id, Ability: i,
+						Grant: e.abilityGrant(id, ab)})
+				}
+				if altOK {
+					out = append(out, decision.Option{Index: len(out), Kind: "ability",
+						Label: abFace.Name + ": " + ab.Params["SpellDescription"] + " (alternate cost)",
+						Obj:   id, Ability: i, AltCostIndex: 1, Grant: e.abilityGrant(id, ab)})
+				}
 			}
 		}
 	}

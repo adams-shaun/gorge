@@ -219,7 +219,12 @@ type Option struct {
 	// AltCostIndex says which cost a "cast" option pays: 0 is the card's own
 	// (RaiseCost/ReduceCost-adjusted) cost, i+1 is alternativeCosts(p, id)[i]
 	// -- an AlternativeCost static's cost instead -- so a client can show
-	// which of several costs the option pays. omitempty mirrors Obj: an
+	// which of several costs the option pays. An "ability" option uses the
+	// same field for the same purpose: 0 is the ability's printed Cost$, 1 is
+	// its own AlternateCost$ rider (rules/activate.go's abilityAlternateCost,
+	// the K:Equip expansion's fourth colon field), so an equip offering its
+	// alternate cost is distinguishable from the printed-cost option without
+	// parsing the label. omitempty mirrors Obj: an
 	// option paying the card's own cost (the common case, and the default
 	// every other Option literal in the tree relies on) carries no field, so
 	// today's payloads are unchanged for it.

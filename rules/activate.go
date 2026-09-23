@@ -1,6 +1,9 @@
 package rules
 
 import (
+	"strings"
+
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -64,7 +67,22 @@ func (e *Engine) beginActivation(p state.PlayerID, opt decision.Option) {
 	// total by manaToPay when the cost is paid -- the same composition a
 	// spell's cast gets.
 	mods := e.costModifiers(p, opt.Obj, abilityScope(ab))
-	cost, ok := e.fixLifeXCost(p, opt.Obj, e.parseCost(ab.Params["Cost"]))
+	// CR 702.6 / CR 601.2f: an ability whose own SA carries an
+	// AlternateCost$ rider (the K:Equip expansion's fourth colon field --
+	// Transmogrant's Crown's "Equip {2} ... you may pay {B} instead") offers
+	// the activator a choice of costs. AltCostIndex selects it: 1 is the
+	// alternate, 0 the printed Cost$ (the same field the cast walk uses for
+	// an AlternativeCost static's cost). The offer walk (rules/legal.go)
+	// gated the alternate option on exactly this cost being payable, so the
+	// charge and the gate agree; a stale option whose rider vanished falls
+	// back to the printed cost rather than stranding.
+	raw := e.parseCost(ab.Params["Cost"])
+	if opt.AltCostIndex > 0 {
+		if alt, ok := e.abilityAlternateCost(ab); ok {
+			raw = alt
+		}
+	}
+	cost, ok := e.fixLifeXCost(p, opt.Obj, raw)
 	if !ok {
 		// The offer gate (offerCastable's fixLifeXCost conversion) withheld this
 		// ability; a stale option that slips through degrades to a no-op.
@@ -92,6 +110,34 @@ func (e *Engine) beginActivation(p state.PlayerID, opt decision.Option) {
 	e.cast = &pendingCast{player: p, card: opt.Obj, from: o.Zone, ability: opt.Ability,
 		abilityMerged: pa.Merged, cost: cost, mods: mods, ownReduce: own}
 	e.continueCast()
+}
+
+// abilityAlternateCost reads an activated ability's own AlternateCost$ rider:
+// an alternative cost the activator may pay INSTEAD of the printed Cost$ (the
+// K:Equip expansion's fourth colon field, cards/kw_equip.go). The corpus's
+// three carriers are Transmogrant's Crown ("Equip {2} ... pay {B} instead"),
+// Bloodthorn Flail (discard a card instead of {3}) and Gavel of the Righteous
+// (remove a counter from it instead of {3}). The value is a full Forge cost
+// token string parsed by the same ParseCost the printed Cost$ uses, so its
+// non-mana parts (Discard/SubCounter) ride the ordinary payment stages.
+//
+// ok is false when the ability carries no rider, or the rider parses into an
+// unmodelled part (Cost.Unknown non-empty) -- the same fail-closed withholding
+// every alternative-cost reader takes (rules/statics.go's altCostParse), so an
+// unpriceable cost is never offered as an option.
+func (e *Engine) abilityAlternateCost(ab *cards.SA) (Cost, bool) {
+	if ab == nil {
+		return Cost{}, false
+	}
+	raw := strings.TrimSpace(ab.Params["AlternateCost"])
+	if raw == "" {
+		return Cost{}, false
+	}
+	c := e.parseCost(raw)
+	if len(c.Unknown) > 0 {
+		return Cost{}, false
+	}
+	return c, true
 }
 
 // The activated-ability specifics that differ from a spell's commitCast live
