@@ -170,3 +170,110 @@ No new tests: `## Fails without the fix` and new-test preconditions are inapplic
 ## Issues
 
 No new defect identified. Without the missing feedback capture the original live game's point of failure remains unverifiable; do not infer that the reported historical symptom did not occur.
+
+---
+
+# Task fb-20260923T020152Z — attacker radial picker
+
+## Summary
+
+Committed the board UI fix in `a1d21db9` (`fix(web): keep the attacker picker open across selections`). The picker identifies the narrow `attacker` wire-option kind as a selection, keeps it open after that pick, and ignores bubbled clicks originating inside the body-ported picker. The explicit outside-click and Escape dismissals remain intact; ordinary action choices still close explicitly.
+
+## Changes
+
+- `web/src/lib/cardoptions.ts` — added `isSelectionOption`, based only on the option's wire kind (`attacker`). This keeps the behavior narrow and puts the classification in one helper.
+- `web/src/components/OptionPicker.svelte` — closes after ordinary choices but not attacker selections; the window click handler ignores clicks within `[data-option-picker]`, accounting for the portaled wheel's bubbling clicks while preserving outside-click dismissal.
+- `web/src/components/CardMenu.fixture.html` and `web/src/components/CardMenu.fixture.ts` — added a real mounted attacker tile with three distinct wire indices and a recording post callback.
+- `web/src/components/CardMenu.test.ts` — added mounted checks for three successive attacker picks without reopening, plus outside-click and Escape dismissal. The existing ordinary-action mounted test still exercises close/reopen behavior.
+
+Structural approach: classify by the existing wire-option role, not by labels, object identity, or inferred combat state. A later option using the same attacker wire kind follows the same path; unrelated multi-pick kinds are deliberately not widened.
+
+## Fails without the fix
+
+Saved the committed fixed `OptionPicker.svelte`, restored the pre-fix file from `HEAD^`, and ran the mounted suite. The new regression failed because the radial was detached immediately after the first attacker click. Restored the fixed source and verified it byte-identically against the saved copy (`cmp` passed).
+
+Command: `cd web && npm_config_cache=/tmp/gorge-fb-npm-cache npx vitest run src/components/CardMenu.test.ts`
+
+```text
+ RUN  v5.0.0 /home/sadams/projects/gorge/.worktrees/fb-20260923T020152Z-694613d1/web
+
+9:06:30 AM [vite-plugin-svelte] src/components/ResolvedCard.svelte:97:41 This reference only captures the initial value of `anchorProp`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+ ❯ src/components/CardMenu.test.ts (6 tests | 1 failed) 992ms
+   ❯ declaring attackers keeps the radial picker open (fb-20260923T020152Z) (3)
+     × a click on an attacker option posts its wire index and leaves the radial attached for the next attacker 138ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/components/CardMenu.test.ts > declaring attackers keeps the radial picker open (fb-20260923T020152Z) > a click on an attacker option posts its wire index and leaves the radial attached for the next attacker
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/components/CardMenu.test.ts:115:33
+    113|     // anchor after a successful attacker pick (no badge re-open), and…
+    114|     // next attacker posts its own wire index (R-E4-1, never list posi…
+    115|     expect(await wheel.count()).toBe(1);
+       |                                 ^
+    116|     await wheel.locator('button[data-wire-index="41"]').waitFor();
+    117|     await wheel.locator('button[data-wire-index="41"]').click();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 5 passed (6)
+   Start at  09:06:30
+   Duration  2.18s (tests 82%, import 17%, transform 1%)
+```
+
+The tests assert their setup: each dismissal/selection case waits for the expected wire-index button and checks that the picker is attached before interaction; the multi-selection case checks the wheel remains attached after each click and checks the exact posted index sequence.
+
+## Gates run
+
+Corpus and web test dependencies were present (`.cards` exists; `web/node_modules/.bin/vitest` exists). The first bare `npx` attempt could not write npm's shared cache (`EROFS`); setting a worktree-safe cache resolved it. Successful targeted run:
+
+`cd web && npm_config_cache=/tmp/gorge-fb-npm-cache npx vitest run src/components/CardMenu.test.ts`
+
+```text
+ RUN  v5.0.0 /home/sadams/projects/gorge/.worktrees/fb-20260923T020152Z-694613d1/web
+
+9:06:13 AM [vite-plugin-svelte] src/components/ResolvedCard.svelte:97:41 This reference only captures the initial value of `anchorProp`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  09:06:12
+   Duration  2.26s (tests 83%, import 16%, transform 1%)
+```
+
+`go test ./internal/archtest/`
+
+```text
+ok  	github.com/adams-shaun/gorge/internal/archtest	(cached)
+```
+
+`go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/`
+
+```text
+ok  	github.com/adams-shaun/gorge/cmd/botbench	(cached)
+```
+
+## Issues
+
+No additional unfixed defects found. This UI change closes no Known-approximations row and changes no engine behavior; no ledger entry applies. `cmd/botbench` remained byte-identical (test passed).
+
+## Review-round cleanup
+
+The first integration attempt was blocked by unstaged `.ds4/report-t1.md` and
+`.ds4/report-t2.md` rewrites belonging to other tracked reports. Both were
+preserved under `.ds4/scratch/fb-report-{t1,t2}-preserved.md` (ignored), then
+restored byte-for-byte from this branch's HEAD. This task's report is appended
+to the designated `.ds4/report-sol1.md` rather than overwriting or committing
+changes to historical report-t1/report-t2.
+
+The original implementation and targeted gates were run before the code
+commit `a1d21db9`. No implementation changes were needed this round.
