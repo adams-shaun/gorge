@@ -7,6 +7,22 @@ package cards
 import "strings"
 
 func kwEquip(f *Face, i int, k, head, param string, has func(kind, line string) bool) {
+	kwAttachCost(f, i, k, param, has, attachKWCfg{
+		kw: "Equip", defaultTgts: "Creature.YouCtrl", prompt: "Select target creature you control",
+	})
+}
+
+// attachKWCfg is the per-keyword config the shared Attach-cost expander
+// kwAttachCost needs: kw is the keyword name (the Keyword$ tag and the
+// SpellDescription$ head), defaultTgts the ValidTgts$ a line with no
+// restriction field gets, prompt the TgtPrompt$.
+type attachKWCfg struct{ kw, defaultTgts, prompt string }
+
+// kwAttachCost is the Equip-style cost/attachment expansion kw:Equip and
+// kw:Fortify share (CR 702.33 / CR 702.67 -- Fortify is Equip for lands, so
+// cards/kw_fortify.go registers it against this parser with the land-facing
+// defaults).
+func kwAttachCost(f *Face, i int, k, param string, has func(kind, line string) bool, cfg attachKWCfg) {
 	if has("A", k) {
 		return
 	}
@@ -59,11 +75,11 @@ func kwEquip(f *Face, i int, k, head, param string, has func(kind, line string) 
 			restriction = fld
 		}
 	}
-	tgts := "Creature.YouCtrl"
+	tgts := cfg.defaultTgts
 	if restriction != "" {
 		tgts = restriction
 	}
-	saStr := "AB$ Attach | Cost$ " + cost + " | ValidTgts$ " + tgts + " | TgtPrompt$ Select target creature you control | SorcerySpeed$ True | Keyword$ Equip | SpellDescription$ Equip " + cost
+	saStr := "AB$ Attach | Cost$ " + cost + " | ValidTgts$ " + tgts + " | TgtPrompt$ " + cfg.prompt + " | SorcerySpeed$ True | Keyword$ " + cfg.kw + " | SpellDescription$ " + cfg.kw + " " + cost
 	for _, r := range riders {
 		saStr += " | " + r
 	}
