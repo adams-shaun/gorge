@@ -180,6 +180,7 @@ func scaleCost(c Cost, n int32) Cost {
 	out.Snow = c.Snow * n
 	for i := int32(0); i < n; i++ {
 		out.Hybrid = append(out.Hybrid, c.Hybrid...)
+		out.Twobrid = append(out.Twobrid, c.Twobrid...)
 		out.Phyrexian = append(out.Phyrexian, c.Phyrexian...)
 	}
 	out.Tap, out.X = c.Tap, c.X
