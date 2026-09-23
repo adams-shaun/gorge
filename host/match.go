@@ -139,7 +139,7 @@ func (r *Registry) newMatch(t *table, k int) (*match, error) {
 			d.Name = dn
 		}
 		names[i], decks[i], sideboards[i], deckNames[i], cmds[i] = d.Name, d.Cards, d.Sideboard, dn, d.Commanders
-		infos[i] = protocol.SeatInfo{Name: playerNames[i], Deck: d.Name, Colour: protocol.SeatColours[i%len(protocol.SeatColours)]}
+		infos[i] = protocol.SeatInfo{Name: playerNames[i], Deck: d.Name, Colour: protocol.SeatColours[i%len(protocol.SeatColours)], DeckID: deckNames[i]}
 		// Human marks the slots TableConfig.Humans seats with a real person:
 		// the wire signal a client's undo control reads (protocol.SeatInfo's
 		// doc).
