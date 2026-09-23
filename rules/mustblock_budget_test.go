@@ -32,7 +32,7 @@ func TestMustBlockAggregateBudget(t *testing.T) {
 	if !e.canBlock(ground, bear) || e.canBlock(ground, bird) || !e.canBlock(flying, bird) {
 		t.Fatalf("precondition: ground and flying pair abilities do not differ as expected")
 	}
-	if e.blockPairCharge(ground, bear) != 2 || e.blockPairCharge(flying, bird) != 2 || e.blockManaBudget(0) != 2 {
+	if e.blockPairCharge(ground, bear).mana != 2 || e.blockPairCharge(flying, bird).mana != 2 || e.blockManaBudget(0) != 2 {
 		t.Fatalf("precondition: pair prices or aggregate budget wrong")
 	}
 	d := askBlockersFresh(t, e)

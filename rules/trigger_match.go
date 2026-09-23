@@ -1842,6 +1842,9 @@ func init() {
 		// Fabricate's expansion (cards/keywords.go) is a ChangesZone ETB
 		// trigger whose Charm elects counters or Servo tokens.
 		"kw:Fabricate",
+		// Battle cry (CR 702.33) expands to an ordinary Attacks trigger that
+		// pumps the other creatures attacking in the declare-attackers batch.
+		"kw:Battle cry",
 		// Exploit's expansion (cards/kw_exploit.go) is a ChangesZone ETB
 		// trigger whose effect is the optional DB$ Sacrifice -> DB$ Exploit
 		// chain (CR 702.58a). The layer-6 AddKeyword$ Exploit grant (Colonel

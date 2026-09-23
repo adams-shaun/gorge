@@ -237,6 +237,14 @@ type ContinuousEffect struct {
 	// same logic the registered static carries. Map-only, never read by the
 	// layer sorter.
 	RestrictParams map[string]string
+	// RestrictSVars is the SVar table a restriction static's own parameters
+	// resolve against (a CantBlockUnless body's Cost$ naming an SVar on the
+	// granting face: Whipgrass Entangler's WhipgrassClericNum, War Cadence's
+	// XChosen). The printed static route reads the carrying face's table
+	// (staticView.SVars); this is the delivered route's equivalent, captured
+	// from the granting ability's Ctx at registration. Map-only, never read
+	// by the layer sorter. Nil on every restriction that names no SVar.
+	RestrictSVars map[string]string
 	// Name is an Effect's Name$ (Wrenn and Six's "Emblem — Wrenn and Six",
 	// Sephiroth's emblem): the effect's own display name, carried so an Effect
 	// whose Stackable$ is False can ask the registry (rules'

@@ -19,13 +19,11 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	// The merged table measures 35 rows. The 38-row merge base had three rows
-	// deleted on disjoint sides: this branch closed the transactional
-	// life-exchange approximation and main closed (attackprop1) and (bestow1),
-	// so the merged AGENTS.md carries 38 - 3 = 35 data rows. Measured against
-	// the auto-merged table, not inherited from either conflicted comment
-	// (HEAD said 37, main said 36).
-	knownApproximationRows = 35
+	// The auto-merged AGENTS.md measures 34 data rows. Its ExchangeLifeVariant
+	// approximation is deleted by this branch's reviewed fix, and main's
+	// blockprop1 and bestow1 closures remain deleted as well. The two conflicted
+	// comments described earlier 35-row snapshots; use the merged table's count.
+	knownApproximationRows = 34
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.
