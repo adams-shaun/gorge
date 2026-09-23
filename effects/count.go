@@ -2736,6 +2736,8 @@ func hasPropertyStateBacked(h Host, g *state.Game, c *Ctx, group []state.PlayerI
 
 	var qualifies func(state.PlayerID) bool
 	switch {
+	case base == "HasPropertyIsCorrupted":
+		qualifies = func(p state.PlayerID) bool { return playerIsCorrupted(g, p) }
 	case base == "HasPropertyisMonarch":
 		qualifies = func(p state.PlayerID) bool { return g.IsMonarch(p) }
 	case base == "HasPropertywasDealtDamageThisTurn":
@@ -3159,6 +3161,31 @@ func playerCountExtreme(h Host, g *state.Game, c *Ctx, players []state.PlayerID,
 		prop = prop[len("Lowest"):]
 	default:
 		return 0, false
+	}
+	if strings.HasPrefix(prop, "Counters.") {
+		kind := strings.TrimPrefix(prop, "Counters.")
+		if kind != "Poison" {
+			return 0, false
+		}
+		var best int32
+		seen := false
+		for _, p := range players {
+			if int(p) < 0 || int(p) >= len(g.Players) {
+				continue
+			}
+			v := g.Players[p].Counter("POISON")
+			if !seen || (highest && v > best) || (!highest && v < best) {
+				best, seen = v, true
+			}
+		}
+		if !seen {
+			return 0, false
+		}
+		_, op, hasOp := strings.Cut(prop, "/")
+		if hasOp {
+			best = applyCountOp(best, op)
+		}
+		return best, true
 	}
 	if prop == "LifeLostThisTurn" {
 		if c.Controller < 0 || int(c.Controller) >= len(g.Players) {
