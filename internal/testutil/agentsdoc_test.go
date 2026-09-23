@@ -19,7 +19,12 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	knownApproximationRows = 46
+	// The merged table measures 44 rows: the round-1 merge (af2f1648) already
+	// carried the First-Strike Damage closure (this branch's acc7878d) and
+	// main's (pc1)/each1/CR 616.1 closures; this merge adds main's NameCard
+	// ChooseFromList$/AtRandom$ closure (9aee8b00) and the non<X>
+	// nonCopiedSpell closure (d56e404f) on top of it.
+	knownApproximationRows = 44
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.
