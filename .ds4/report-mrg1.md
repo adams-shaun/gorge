@@ -112,3 +112,89 @@ its two test files, agentsdoc constant 77, the .ds4 report).
 ## Issues
 
 None found. No new defects surfaced during integration.
+
+---
+
+## Archived report from stack-option-kind branch before rebase
+
+# Merge report — cli-20260922T225138Z-c4106938
+
+## State found
+
+`git status` was clean — no rebase or merge was in flight (the daemon's rebase and
+merge-fallback attempts had both been aborted). The branch had 3 commits not on main
+(`69f5133e` label stack target options by stack kind, `21aea452` expect stack spell
+target kind, `f3cbec39` seed botbench stack target option kinds); main had advanced
+past the merge-base `3d871f55`. I performed the integration as an explicit
+`git merge main --no-commit`, resolved, and committed.
+
+## Conflicted files
+
+### internal/testutil/agentsdoc_test.go (the only conflict)
+
+One hunk: `knownApproximationRows`. HEAD (branch) said **79**; main said **78**.
+
+What each side wanted:
+- **Branch** (`69f5133e`): deleted 1 row from AGENTS.md's Known-approximations table
+  (the "spell on the stack is offered with `Option.Kind` \"permanent\"" row — the row
+  its own fix closed) and lowered the constant 82 → 79.
+- **Main** (via `e7d5bcec`/`1eb845f5` and the a850f8be/636f892f merges): deleted 3 rows
+  (CopySpellAbility `MayChooseTarget$`, `effCharm` `Suspended()` guard, UnlessCost$
+  mana window) and lowered the constant 82 → 78.
+
+**Resolution:** took the minimum of the two monotonic ratchets, **78**. The merged
+AGENTS.md contains both sides' deletions: I measured the merged table at **76 data
+rows** (merge-base 80, branch −1, main −3), so 78 ≥ 76 and
+`TestKnownApproximationsOnlyShrinks` passes on both sides' intent.
+
+### AGENTS.md (auto-merged, one touch-up)
+
+Git auto-merged it, but the branch's row deletion had left a **stray blank line**
+mid-table (after the `ValidTgts$ Spell` row), which would break markdown table
+continuity for every row below it. Removed the blank line so the branch's row
+deletion is clean in the merged file.
+
+### rules/stack.go — auto-merged by git, no manual edit.
+
+## Commands run (real output)
+
+```
+go test -run 'TestKnownApproximation|TestStackSpellTargetOptionUsesSpellKind|TestTargetTypeSpellOffersOnlyStackObjectsAndCounters|TestCounterspellWithOnlyItselfOnStackFizzles|TestTgtZoneGraveyardTargetOfferedAndResolves|TestOriginGraveyardAbilityTargetsGraveyardLand|TestTargetZonesChangeZoneOriginTable' ./internal/testutil/ ./rules/
+ok  github.com/adams-shaun/gorge/internal/testutil  0.002s
+ok  github.com/adams-shaun/gorge/rules              0.731s
+
+go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' -v
+--- PASS: TestEveryRepoDeckIsFullySupported (0.59s)
+--- PASS: TestEveryRepoDeckCountHeadResolves (0.00s)
+--- PASS: TestEveryDispatchedTriggerModeHasAMatcher (0.00s)
+--- PASS: TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched (0.00s)
+--- PASS: TestEveryRepoDeckParamsAreRead (0.12s)
+ok  github.com/adams-shaun/gorge/rules  0.754s
+
+go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  github.com/adams-shaun/gorge/cmd/botbench  1.082s
+
+go test ./internal/archtest/
+ok  github.com/adams-shaun/gorge/internal/archtest  3.224s
+```
+
+`.cards` was present as a symlink to the main checkout's corpus (`lrwxrwxrwx .cards ->
+/home/sadams/projects/gorge/.cards`), so corpus-backed runs are real, not skipped.
+
+## Notes
+
+- The branch's botbench golden held post-merge without re-pinning — `f3cbec39` had
+  already seeded the stack-target option kinds in `cmd/botbench/actioncoverage.go`,
+  and main's copy-target/unless work does not move the pinned split.
+- No ratchet table entry (`knownUnsupported`, `knownUnsupportedParams`,
+  `knownUnmodelledCountHeads`, `addedAfterTheSplit`) needed touching: all ratchet
+  tests pass as merged.
+
+## Issues
+
+None found during integration; no new defects observed.
+
+## Result
+
+Merge commit `1c99a809` ("Merge branch 'main' into wt/cli-20260922T225138Z-c4106938"),
+default merge message; working tree clean.
