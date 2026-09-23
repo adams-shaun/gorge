@@ -1658,6 +1658,7 @@ func (e *Engine) candidatesFor(p state.PlayerID, source, excludeSelf state.ObjID
 						continue
 					}
 					if e.matchesSpec(tspec, oid, sc) &&
+						e.mentorAdmits(sa, specSrc, oid) &&
 						(!targeting || !(o.Zone == state.ZBattlefield && e.protectedFrom(oid, protSrc))) &&
 						(!targeting || !(o.Zone == state.ZBattlefield && e.shroudBlocksTarget(oid))) &&
 						(!targeting || !(o.Zone == state.ZBattlefield && e.hexproofBlocksTarget(oid, p, protSrc))) &&
@@ -3739,6 +3740,7 @@ func (e *Engine) legalTargets(targets []state.Target, sa *cards.SA, zones []stat
 			// disagree about a spec carrying one.
 			tspec, ok := e.castProvenanceAdmits(targetSpecForZone(spec, o.Zone), t.Obj, you)
 			if ok && e.matchesSpec(tspec, t.Obj, sc) &&
+				e.mentorAdmits(sa, source, t.Obj) &&
 				!(o.Zone == state.ZBattlefield && e.restrictionBlocksTarget(t.Obj, you)) &&
 				!(o.Zone == state.ZBattlefield && e.shroudBlocksTarget(t.Obj)) &&
 				!(o.Zone == state.ZBattlefield && e.hexproofBlocksTarget(t.Obj, you, e.protectionSource(source))) &&

@@ -23,6 +23,7 @@ func TestRegisteredKeywordsAreHonoured(t *testing.T) {
 		"kw:Exalted":        "TestExaltedPumpsALoneAttackerAndProwessPumpsOnNoncreatureSpells",
 		"kw:Dethrone":       "TestDethroneCountsOnlyTheAttackedPlayersLife",
 		"kw:Training":       "TestTrainingCounterOnAttackWithABiggerCreature",
+		"kw:Mentor":         "TestMentorCounterOnLesserPowerAttacker",
 		"kw:Riot":           "TestRiotAndHideawayUseRealCorpusCards",
 		"kw:Hideaway":       "TestRiotAndHideawayUseRealCorpusCards",
 		"kw:Extort":         "TestExtortUsesRealCorpusCard",
