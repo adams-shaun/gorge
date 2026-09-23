@@ -3384,10 +3384,11 @@ func charmCrossModeRun(h Host, c *Ctx, sa *cards.SA, names []string) bool {
 			// remaining modes resume through SuspendCharmRest's continuation
 			// once the answer lands — never while the suspension is live (the
 			// historical loop ran them immediately, before the answered mode
-			// had even completed).
-			if rest := names[i+1:]; len(rest) > 0 {
-				h.SuspendCharmRest(sa, rest)
-			}
+			// had even completed). An empty rest (this was the last mode) is
+			// still reported, so the Charm re-enters and walks its own Sub
+			// instead of the enclosing loop recording a plain continuation
+			// that resumes at a nil Sub and emits a false degradation Note.
+			h.SuspendCharmRest(sa, names[i+1:])
 			return true
 		}
 	}
@@ -3525,9 +3526,7 @@ func charmDistinctTargetRun(h Host, c *Ctx, sa *cards.SA, names []string) bool {
 		c.Targets, c.OfferedSA, c.TargetsOffered = savedTargets, savedOffered, savedMarker
 		c.CharmModeScope, c.CharmModeSA = savedScope, savedScopeSA
 		if h.Suspended() {
-			if rest := names[i+1:]; len(rest) > 0 {
-				h.SuspendCharmRest(sa, rest)
-			}
+			h.SuspendCharmRest(sa, names[i+1:])
 			return true
 		}
 	}
@@ -3632,10 +3631,12 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 				// remaining modes while a decision is pending (Engine.ask
 				// panics on the overwrite). Report the rest as a charm-rest
 				// continuation, the same report the cross-mode runner makes,
-				// so they run once the answer lands.
-				if rest := names[i+1:]; len(rest) > 0 {
-					h.SuspendCharmRest(sa, rest)
-				}
+				// so they run once the answer lands. An empty rest (this was
+				// the LAST mode) is reported too, so the Charm re-enters to
+				// walk its own Sub instead of the enclosing loop recording a
+				// plain continuation that degrades to a false no-sub-ability
+				// Note.
+				h.SuspendCharmRest(sa, names[i+1:])
 				return
 			}
 		}

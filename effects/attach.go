@@ -173,21 +173,21 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	var legalT []state.Target
-	destCandidates := func() []state.Target {
+	destCandidatesFor := func(attachObj state.ObjID) []state.Target {
 		var out []state.Target
 		for _, t := range Defined(h, c, sa) {
 			if t.IsPlayer {
 				continue
 			}
 			target := t.Obj
-			if target == obj {
+			if target == attachObj {
 				continue
 			}
 			tg := h.Game().Obj(target)
 			if tg == nil || tg.Zone != state.ZBattlefield {
 				continue
 			}
-			if !Attachable(h.Game(), obj, target) {
+			if !Attachable(h.Game(), attachObj, target) {
 				continue
 			}
 			out = append(out, t)
@@ -310,9 +310,43 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 			_ = Ask(h, d)
 			return
 		}
-		// Object-side pool (Goldwardens' Gambit, unexpected_request).
+		// Object-side pool (Goldwardens' Gambit, unexpected_request, and
+		// Yuffie, Materia Hunter): each Choices$ object is a possible object
+		// to attach, so destinations must be checked against those candidates,
+		// not against the resolving source. Keep only destinations legal for
+		// every offered object; the chosen candidate can then use the saved
+		// destination list safely after the ask suspends resolution.
 		optional := strings.EqualFold(strings.TrimSpace(sa.Params["Optional"]), "True")
-		legalT = destCandidates()
+		var eligiblePool []state.Target
+		for _, candidate := range pool {
+			candidateDests := destCandidatesFor(candidate.Obj)
+			if len(candidateDests) == 0 {
+				continue
+			}
+			eligiblePool = append(eligiblePool, candidate)
+			if len(eligiblePool) == 1 {
+				legalT = candidateDests
+				continue
+			}
+			var common []state.Target
+			for _, dest := range legalT {
+				for _, candidateDest := range candidateDests {
+					if candidateDest.Obj == dest.Obj {
+						common = append(common, dest)
+						break
+					}
+				}
+			}
+			legalT = common
+		}
+		pool = eligiblePool
+		if len(pool) == 0 {
+			if optional {
+				return
+			}
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "cannot attach: no eligible choice"})
+			return
+		}
 		var legal []state.ObjID
 		for _, t := range legalT {
 			legal = append(legal, t.Obj)
@@ -321,13 +355,6 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 			// The existing refusal convention: no legal destination, no ask
 			// (a decision nobody could answer differently), one Note.
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "cannot attach: no legal target"})
-			return
-		}
-		if len(pool) == 0 {
-			if optional {
-				return
-			}
-			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "cannot attach: no eligible choice"})
 			return
 		}
 		min := 1
@@ -354,7 +381,7 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 	// No Choices$: the destination is the first legal Defined$ target.
-	legalT = destCandidates()
+	legalT = destCandidatesFor(obj)
 	var legal []state.ObjID
 	for _, t := range legalT {
 		legal = append(legal, t.Obj)

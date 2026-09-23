@@ -1,87 +1,139 @@
-# Round record — merge resolver, worktree cli-20260923T060000Z-pw-numloyaltyact, 2026-09-23
+# Merge-conflict resolution — api:Attach Optional$ / Yuffie object-choice attach
 
-## Entry state
+## Entry state and merge
 
-`git status` found the tree CLEAN at the branch's completed earlier merge
-`33f1af28` (fix `c9938967` reads Effect-delivered `NumLoyaltyAct` in
-`loyaltyAbilityLimit` + that merge); no rebase or merge in flight. `main` had
-since advanced 12 commits to `c5669fdf` (choose-number, ct1 closure lineage),
-so this round ran the integration itself: `git merge main --no-edit`.
+The worktree was clean on `wt/agent-20260919T192641Z-91be7ff1` at
+`0c067498e917010b3a749aa681b0790f35354d2d`, with no merge/rebase in flight.
+`main` was at `8c6fdd560c33b2c23d18ed599528504eb95e16cd`. Ran `git merge main`.
+It auto-merged the source changes, but reported one content conflict:
+`.ds4/report-t1.md`.
 
-## Conflicts and resolution
+## Conflict and resolution
 
-Auto-merged: `AGENTS.md` (this branch's `(pw1)` deletion and main's landed
-closures compose; 0 `(pw1)` occurrences remain), `rules/cast.go`,
-`effects/choose.go`, `rules/resolution.go` and the rest. ONE content conflict:
-
-- **`internal/testutil/agentsdoc_test.go`** — the `knownApproximationRows`
-  constant and comment. Merge base `2acd1d4d` measured **23** data rows; the
-  branch deleted `(pw1)` (→22), main deleted `(ct1)` (→22) — both constants
-  stale for the merge. The merged `AGENTS.md` measures **21** data rows
-  (verified with `approximationRows()`'s own counting rule). Resolution:
-  `knownApproximationRows = 21` with a comment naming both disjoint closures.
-
-The branch's fix survived the auto-merge: `NumLoyaltyAct` reads remain in
-`rules/legal.go` (`loyaltyAbilityLimit` static accumulator) and
-`effects/misc.go` (`effEffect` + `NumLoyaltyActParamsReadable`).
-
-## Commands and output
-
-```text
-git status                              # clean at 33f1af28, nothing in flight
-git rev-list --count HEAD..main         # 12
-git merge main --no-edit
-  Auto-merging AGENTS.md / internal/testutil/agentsdoc_test.go ...
-  CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go
-row counts: base 2acd1d4d = 23, branch 33f1af28 = 22 (pw1 gone),
-            main c5669fdf = 22 (ct1 gone), merged AGENTS.md = 21
-.gcards check: .cards is the real symlink to /home/sadams/projects/gorge/.cards
-gofmt -l internal/testutil/agentsdoc_test.go   # clean
-go test ./internal/testutil -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort' -v
-  --- PASS: TestKnownApproximationsOnlyShrinks (0.00s)
-  --- PASS: TestKnownApproximationRowsAreShort (0.00s)
-go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|NumLoyaltyAct|Loyalty' -v
-  46 PASS, 0 FAIL, 0 SKIP (incl. the trigger-mode registry ratchets,
-  TestEveryRepoDeckIsFullySupported / TestEveryRepoDeckParamsAreRead, the
-  CountHead ratchet and the loyalty/NumLoyaltyAct suite) — ok rules 0.804s
-git commit --no-edit -> 02b39858 Merge branch 'main' into wt/cli-20260923T060000Z-pw-numloyaltyact
-git status -> clean; main (c5669fdf) is an ancestor of the branch
-```
-
-## Issues
-
-None new. Integration only; the merged state closes `(pw1)` (this branch) plus
-main-side `(ct1)` and its lineage's closures, measured at 21 data rows.
-
----
-
-# Merge-conflict resolution — task cli-20260923T060000Z-choose-number
-
-## Entry state and operation
-
-The worktree was clean at `27c913888` before integration; no rebase or merge was in flight. `main` had advanced beyond the branch's earlier merge, so I ran `git merge main`. It stopped on content conflicts in `.ds4/report-mrg1.md` and `internal/testutil/agentsdoc_test.go`.
-
-## Conflicts and resolution
-
-- `internal/testutil/agentsdoc_test.go`: the branch count/comment reflected 25 rows at an earlier main tip; current main's side reflected 23. Kept both sides' row deletions, measured the auto-merged `AGENTS.md` table using the test's counting rule (22 data rows), and set `knownApproximationRows = 22`. The comment records the ct1 closure and main's landed closures.
-- `.ds4/report-mrg1.md`: the branch contained an earlier report for this choose-number task; main's version was a report for an unrelated ticket/worktree. Replaced both conflict sides with this report of the current integration.
-- `AGENTS.md`, `rules/cast.go`, and other files from main auto-merged; retained those changes. No unrelated conflict resolution edits were made.
+- **`.ds4/report-t1.md`** — this same ignored-but-tracked report path describes
+  different tickets on each side. The branch side is the approved Yuffie attach
+  implementation report; main's side is an unrelated rv2b count-head report.
+  Kept the branch version as the ticket-specific report, rather than combining
+  unrelated task reports. The main-side code and other files were retained via
+  the normal merge. `.ds4/report-mrg1.md` had an auto-merged prior report; this
+  file replaces it with the current integration record.
 
 ## Commands and results
 
-- `git status --short --branch && git status` — initially clean on `wt/cli-20260923T060000Z-choose-number`.
-- `git merge main` — conflicts in `.ds4/report-mrg1.md` and `internal/testutil/agentsdoc_test.go`; other changes auto-merged.
-- Python count of the merged `AGENTS.md` Known approximations table — 22 data rows.
-- `ls .cards | head` — corpus present (`cards.lock`, `cardsfolder`, `ir.gob.gz`, `ir.v4.gob.gz`, `tokenscripts`).
-- `go test -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|TestChosenNumber|TestKnownApproximation' ./rules ./internal/testutil`:
-  ```
-  ok   github.com/adams-shaun/gorge/rules 0.820s
-  ok   github.com/adams-shaun/gorge/internal/testutil 0.002s
-  ```
-- `git add internal/testutil/agentsdoc_test.go && git add -f .ds4/report-mrg1.md && git diff --check && git diff --cached --check` — passed. (`.ds4` is ignored, so the report required `git add -f`.)
-- `GIT_EDITOR=true git merge --continue` — completed as `6bd4bf07` (`Merge branch 'main' into wt/cli-20260923T060000Z-choose-number`).
-- `git status --short --branch` — clean; `git merge-base --is-ancestor main HEAD` — passed (`main_ancestor=0`).
+```text
+git status --short --branch && git status
+## wt/agent-20260919T192641Z-91be7ff1
+On branch wt/agent-20260919T192641Z-91be7ff1
+nothing to commit, working tree clean
 
-## Issues / uncertainty
+git merge main
+Auto-merging .ds4/report-t1.md
+CONFLICT (content): Merge conflict in .ds4/report-t1.md
+Automatic merge failed; fix conflicts and then commit the result.
 
-No uncertainty remains. The current merge includes main's ratchets and the ChooseNumber row deletion; the merged row count matches the ratchet constant.
+Resolution: git show HEAD:.ds4/report-t1.md > .ds4/report-t1.md
+git add -f .ds4/report-t1.md
+git diff --name-only --diff-filter=U
+(no output)
+git diff --cached --check
+(no output)
+```
+
+Corpus check: `.cards` was present (`cards.lock`, `cardsfolder`, `ir.gob.gz`).
+
+Required merged-main ratchets, combined with the branch's Yuffie regression:
+
+```text
+go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|TestYuffieMayDeclineHerETBAttach'
+ok   github.com/adams-shaun/gorge/rules  1.095s
+```
+
+The command includes all requested main ratchets and the approved branch
+regression test. No uncertainty remains about the report conflict: it was only
+a collision between task-specific documentation, not conflicting code.
+
+---
+
+# Merge-conflict resolution — fb-20260922T145544Z-3e3a67d6
+
+## Operation and resolution
+
+Initial `git status` showed a clean worktree on `wt/fb-20260922T145544Z-3e3a67d6` at `7860ce06`; no merge/rebase was in progress. `main` was at `8c6fdd56`, and the branch/main histories had diverged. Per the task, started `git merge main`.
+
+The merge stopped with one content conflict: **`.ds4/report-t1.md`**. The branch side contains the approved restricted-mana projection report for `fb-20260922T145544Z`; main's side contains the independent `cli-20260923T060000Z-rv2b-countheads` report. These reports describe different work and neither supersedes the other. Kept both complete reports, placing the branch report first and the main report beneath a divider. The report content was taken directly from the two index stages (`git show :2:...` and `git show :3:...`); no report claims were edited.
+
+`web/src/protocol.ts` auto-merged without a conflict. The branch's `PoolRestrictionView` / `pool_restrictions` generated types remain in the merged file, and main's unrelated `Option.keyword` addition is retained. All other main changes auto-merged. No source conflict or engine change was made.
+
+## Checks and completion
+
+- `git diff --cached --check` — no output (passed).
+- `grep -nE '^(<<<<<<<|=======|>>>>>>>)' .ds4/report-t1.md web/src/protocol.ts || true` — no output; no conflict markers remain.
+- `.cards` was present as a symlink to `/home/sadams/projects/gorge/.cards`.
+- `go test -run 'TestRestrictedManaIsProjected|TestCR106ManaPoolIsPublicForEveryPlayer' ./view/ 2>&1 | tail -30`:
+  `ok github.com/adams-shaun/gorge/view 0.003s`
+- Required post-merge ratchets, `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' 2>&1 | tail -30`:
+  `ok github.com/adams-shaun/gorge/rules 0.765s`
+
+The operation is ready to complete with the merge's default message. No judgement call beyond retaining both independent reports; no test or source conflict remains.
+
+---
+
+# Merge-conflict resolution (second round) — merging main 2954978f into wt/agent-20260919T192641Z-91be7ff1
+
+## Entry state and operation
+
+The first integration record above merged main `8c6fdd56`; since then main
+advanced to `2954978f` (the `fb-20260922T145544Z` cavern-of-souls restricted-mana
+projection merge). The daemon's `git rebase main` attempt and its merge fallback
+both conflicted and were rolled back, so I re-ran `git merge main` on the clean
+branch (`git status` showed no merge/rebase in flight; merge-base `8c6fdd56`).
+
+All source files auto-merged cleanly: main's `view/poolrestriction.go`,
+`view/pool_restriction_test.go`, `view/view.go` and `web/` changes (restricted
+mana projection) plus the earlier rv2b count-heads work. The two conflicts were
+both in `.ds4/` reports where each side is a different ticket's report.
+
+## Conflicts and resolution
+
+- **`.ds4/report-t1.md`** — branch side: the approved Yuffie attach
+  implementation report. Main side: the fb restricted-mana projection report
+  followed by the rv2b count-heads report under a "Merged concurrent report"
+  divider. Kept both per the established convention (branch's report first,
+  main's composite beneath a `---` divider), taking each side verbatim from
+  its index stage (`:2:` and `:3:`).
+- **`.ds4/report-mrg1.md`** — branch side: the first-round merge-resolution
+  record (Yuffie merge of `8c6fdd56`). Main side: the fb branch's own
+  merge-resolution record. Kept both verbatim under a divider and appended
+  this record.
+
+No source file was edited; no report text was rewritten.
+
+## Commands and results
+
+```text
+git status                        # clean, no rebase/merge in flight
+git merge main                    # CONFLICT in .ds4/report-t1.md, .ds4/report-mrg1.md
+git show :2:/:3: of both files    # rebuilt both from stages, verbatim, under dividers
+git diff --check                  # clean
+```
+
+Corpus check: `.cards` is present (symlink to `/home/sadams/projects/gorge/.cards`,
+found present, not created).
+
+## Required post-merge ratchets
+
+`go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|TestYuffieMayDeclineHerETBAttach'`
+(see final run output appended below).
+
+Ratchet + Yuffie regression run (real output):
+
+```text
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|TestYuffieMayDeclineHerETBAttach'
+ok  	github.com/adams-shaun/gorge/rules	0.816s
+
+$ go test -run 'TestRestrictedManaIsProjected|TestCR106ManaPoolIsPublicForEveryPlayer' ./view/
+ok  	github.com/adams-shaun/gorge/view	0.003s
+```
+
+Merge commit: `7d1e418e` (default message). Tree clean; `main` (`2954978f`)
+is now an ancestor of the branch. No head/ratchet movement.
