@@ -19,12 +19,13 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	// The merged table measures 34 data rows: the merge base (835074e5)
-	// carried 36, this branch's fix deleted the CanBeTargetedByTriggeredSpellAbility
-	// (chosencopy1) row, and main deleted the stat:CantBlockUnless (blockprop1)
-	// row. The merged register keeps neither: 36 - 2 = 34. Neither side's
-	// pre-merge comment matched the merged count.
-	knownApproximationRows = 34
+	// The merged table measures 31 data rows: the merge base (122a388c)
+	// carried 35; this branch's fix deleted the CanBeTargetedByTriggeredSpellAbility
+	// (chosencopy1) row, and main deleted the (choosesource1) one-shot-Effect row
+	// plus the api:ExchangeLifeVariant and (kw:Infect) rows. The merged register
+	// keeps none of the four: 35 - 4 = 31. Both sides' pre-merge comments
+	// described stale snapshots of their own earlier merges.
+	knownApproximationRows = 31
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.

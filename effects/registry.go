@@ -596,6 +596,15 @@ type Host interface {
 	// never ends anything. rules.Engine implements it as an in-place drop of
 	// its registry; the effects test double drops from its recorded slice.
 	EndEffect(source state.ObjID, stamp uint32)
+	// EndEffectSource ends every Effect-created continuous-effect registration
+	// from the named source -- the source-scoped form of EndEffect the
+	// self-exile idiom run from an Effect's OWN Triggers$ body or the
+	// registering spell's chain uses, where the body has no per-registration
+	// (source, timestamp) identity to name (Ctx.EffectFrame carries the source
+	// with a zero Stamp). Only registrations created by api:Effect are ended
+	// (state.ContinuousEffect.FromEffect); the same source's printed statics
+	// are untouched.
+	EndEffectSource(source state.ObjID)
 	// EndImprintedEffects ends every live continuous-effect registration
 	// that an ImprintOnHost$ True Effect imprinted on the named host card
 	// (state.ContinuousEffect.ImprintOnHost): the analogue of Forge's

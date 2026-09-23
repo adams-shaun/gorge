@@ -847,6 +847,15 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 			// it is behaviourally the absence every Phase delayed trigger
 			// read before.
 			e.triggerContexts[id] = pt.Ctx.TriggerContext
+			// An Effect-created trigger body's source-scoped frame, so the
+			// one-shot self-exile idiom it may run ends the Effect. Mirrors the
+			// static fire arm, which resolves with the frame on its Ctx.
+			if pt.Ctx.EffectFrame.Source != 0 {
+				if e.triggerEffectFrames == nil {
+					e.triggerEffectFrames = make(map[state.ObjID]effects.EffectFrame)
+				}
+				e.triggerEffectFrames[id] = pt.Ctx.EffectFrame
+			}
 			handled := false
 			if pt.SA.Params["Choices"] != "" {
 				handled = e.askTriggerModes(pt.Controller, id, pt.SA)
