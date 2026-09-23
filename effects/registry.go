@@ -794,7 +794,19 @@ type Ctx struct {
 	// resets its live Controller to Owner, so the live object is no longer the
 	// CR 608.2h last-known controller.
 	TargetControllerLKI map[state.ObjID]state.PlayerID
-	Remembered          []state.Target
+	// TargetCountersLKI captures each object target's counters at the start of
+	// resolution, the counter half of the same CR 608.2b/h look-back. A target
+	// destroyed (or otherwise moved) before a chained SubAbility evaluates
+	// `ConditionDefined$ Targeted | ConditionPresent$ Card.HasCounters` or reads
+	// `Targeted$CardCounters.<KIND>` has had its live counters cleared by the
+	// Move fold, so this pre-move snapshot is the only place they survive
+	// (Dismantle's DBPutCounter is the corpus shape). Keyed by target ObjID,
+	// captured alongside TargetControllerLKI and carried across a suspension the
+	// same way (rules' resumePoint). Only battlefield objects carrying at least
+	// one counter are captured: an object already off the battlefield at
+	// resolution start, or with no counters to look back at, needs no entry.
+	TargetCountersLKI map[state.ObjID][]state.Counter
+	Remembered        []state.Target
 	// RepeatOptional is set only when a RepeatOptional$ answer is being
 	// resumed. A nil value means this is the first pass through the Repeat.
 	RepeatOptional *RepeatOptionalContinuation
@@ -2148,6 +2160,21 @@ func CloneTargetControllerLKI(m map[state.ObjID]state.PlayerID) map[state.ObjID]
 	return out
 }
 
+// CloneTargetCountersLKI returns an independent copy of a target-counters LKI
+// map threaded across a suspension (rules' resumePoint). The map is treated as
+// immutable once captured, but an explicit copy -- inner slices included --
+// keeps a cloned engine's pending frame from ever aliasing another's.
+func CloneTargetCountersLKI(m map[state.ObjID][]state.Counter) map[state.ObjID][]state.Counter {
+	if m == nil {
+		return nil
+	}
+	out := make(map[state.ObjID][]state.Counter, len(m))
+	for id, cs := range m {
+		out[id] = append([]state.Counter(nil), cs...)
+	}
+	return out
+}
+
 // Resolve runs an ability and every sub-ability chained beneath it.
 // effectFrameHost is implemented by the rules engine to publish the Effect
 // registration identity a resolution is currently running under, so an ask
@@ -2294,6 +2321,23 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 				}
 				if object := h.Game().Obj(target.Obj); object != nil {
 					c.TargetControllerLKI[target.Obj] = object.Controller
+				}
+			}
+		}
+		// Capture target counters at the same instant, for the same reason: a
+		// target that leaves the battlefield has its live counters cleared by
+		// events.Apply's Move fold, so a chained condition gate or amount read
+		// (Dismantle's `ConditionPresent$ Card.HasCounters` and
+		// `X:Targeted$CardCounters.ALL`) must read the counters from here.
+		if c.TargetCountersLKI == nil {
+			c.TargetCountersLKI = make(map[state.ObjID][]state.Counter)
+			for _, target := range c.Targets {
+				if target.IsPlayer {
+					continue
+				}
+				if object := h.Game().Obj(target.Obj); object != nil &&
+					object.Zone == state.ZBattlefield && len(object.Counters) > 0 {
+					c.TargetCountersLKI[target.Obj] = append([]state.Counter(nil), object.Counters...)
 				}
 			}
 		}

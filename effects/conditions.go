@@ -559,6 +559,17 @@ func conditionMet(h Host, c *Ctx, sa *cards.SA) (met bool, resolved bool) {
 		if o == nil {
 			continue
 		}
+		// CR 608.2b/h look-back: a target that has left the battlefield since
+		// targeting is read with the counters it had there, so Dismantle's
+		// `ConditionDefined$ Targeted | ConditionPresent$ Card.HasCounters`
+		// still holds after the chained Destroy moved the target to the
+		// graveyard. Only the counter field is substituted; every other
+		// characteristic is read live (or via Ctx.LKI for a trigger).
+		if cs, ok := targetCountersLKI(c, t.Obj, o); ok {
+			oc := *o
+			oc.Counters = cs
+			o = &oc
+		}
 		if present == "" {
 			count++
 			continue

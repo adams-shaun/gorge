@@ -636,6 +636,29 @@ func positiveCounters(cs []state.Counter) []state.Counter {
 	return out
 }
 
+// targetCountersLKI answers the counters an OBJECT TARGET should be read as
+// having when it has left the battlefield since targeting: CR 608.2b/h's
+// last-known-information look-back. o is the live object (nil if it no longer
+// exists). While the object is still a battlefield permanent its live
+// counters are authoritative and ok is false; once it has left -- destroyed,
+// sacrificed, exiled, bounced -- Resolve's pre-move snapshot
+// (Ctx.TargetCountersLKI, captured before the first effect can move a target)
+// supplies the counters, and ok is true. A missing entry fails closed to the
+// live read, so a target this chain never captured is unchanged.
+func targetCountersLKI(c *Ctx, id state.ObjID, o *state.Object) ([]state.Counter, bool) {
+	if o != nil && o.Zone == state.ZBattlefield {
+		return nil, false
+	}
+	if c == nil || c.TargetCountersLKI == nil {
+		return nil, false
+	}
+	cs, ok := c.TargetCountersLKI[id]
+	if !ok {
+		return nil, false
+	}
+	return cs, true
+}
+
 // putCounterWouldPlace reports whether the put this SA describes would
 // place at least one counter on a live recipient, mirroring the live-
 // recipient conditions each placement path applies:
