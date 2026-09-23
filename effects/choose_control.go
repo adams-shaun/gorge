@@ -1328,6 +1328,13 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 			return
 		}
 	}
+	// ClearRememberedBeforeLoop$ applies after selecting the subjects but only
+	// on the first pass: a resumed iteration must retain what prior iterations
+	// remembered. Thus RepeatPlayers$ Remembered can form its subject set while
+	// the body starts without the temporary chooser bindings.
+	if firstPass && strings.EqualFold(strings.TrimSpace(sa.Params["ClearRememberedBeforeLoop"]), "True") {
+		c.Remembered = nil
+	}
 	if batched && firstPass && batcher != nil {
 		batcher.BeginDamageBatch()
 	}

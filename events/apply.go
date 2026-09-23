@@ -1651,6 +1651,21 @@ func Apply(g *state.Game, e Event) {
 			p.Notes = append(p.Notes, e.Text)
 		}
 
+	case PlayerNoteCleared:
+		// ClearNotedCardsFor$ removes exactly one label. Retaining the remaining
+		// order makes the event fold deterministic and replay-equivalent.
+		if e.Text == "" || int(e.Player) >= len(g.Players) {
+			break
+		}
+		p := &g.Players[e.Player]
+		out := p.Notes[:0]
+		for _, label := range p.Notes {
+			if label != e.Text {
+				out = append(out, label)
+			}
+		}
+		p.Notes = out
+
 	case Choose:
 		if o := g.Obj(e.Obj); o != nil {
 			switch e.Counter {
