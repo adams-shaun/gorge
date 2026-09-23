@@ -433,26 +433,26 @@ func (e *Engine) finishStepBoundary(leaving, entering state.Step) {
 // step performs the smallest unit of automatic engine work.
 func (e *Engine) step() {
 	e.checkStateBased()
-	if e.startSuspendedCast() {
-		return
-	}
-	if e.G.Over {
-		return
-	}
 	// The CR 903.9 commander replacement (Task m32) can leave a decision
 	// pending from inside checkStateBased: a state-based action that moves a
 	// commander parks the move and asks its owner, and checkStateBased
 	// returns with that decision outstanding. The CR 704.5j legend rule
 	// (rules/sba.go) can too: parkLegendChoice parks the batch and asks the
 	// duplicate set's controller in one step, so checkStateBased also returns
-	// with that decision outstanding. The step switch below must not
-	// then run -- askAttackers/priorityRound would hand out a SECOND,
-	// unrelated decision and silently overwrite the parked commander's
-	// (Advance pauses on the first e.pending regardless, so this guard is
-	// what keeps the switch from clobbering it). Nothing else in the engine
-	// leaves a pending decision after checkStateBased, so the guard is inert
-	// for every pre-existing path.
+	// with that decision outstanding. Neither startSuspendedCast below nor the
+	// step switch may then run -- both hand out a SECOND, unrelated decision
+	// and would silently overwrite the parked one (Advance pauses on the first
+	// e.pending regardless, so this guard is what keeps them from clobbering
+	// it). The ordering matters: the guard must precede startSuspendedCast,
+	// which poses the CR 702.62a suspend cast, because that ask is one more
+	// site that can displace a just-posed state-based-action decision.
 	if e.pending != nil {
+		return
+	}
+	if e.startSuspendedCast() {
+		return
+	}
+	if e.G.Over {
 		return
 	}
 	// The CR 903.4b commander colour-choice round runs first: its answer must
