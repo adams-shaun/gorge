@@ -34,7 +34,14 @@ const (
 	// agent-20260918T232250Z-29aed5d6 deleted the CR 704.5j legend-rule row:
 	// the controller choice landed in 74870371 and the IgnoreLegendRule
 	// exemption (incl. its IsPresent$/PresentCompare$ condition gate) here.
-	knownApproximationRows = 17
+	// agent-20260919T142536Z-0a361fe7 deleted the devthr1 `Count$`-bodies row:
+	// its `CardNumAttacksThisTurn` member is now modelled (effects/count.go
+	// evalCountBody reads state.Object.AttacksThisTurn); the other five bodies
+	// it bundled (MaxOppDamageThisTurn, YourStartingLife, ResolvedThisTurn,
+	// NonCombatDamageThisTurn, ChosenNumber) remain tracked bidirectionally by
+	// rules/count_head_ratchet_test.go's knownUnmodelledCountHeads and are
+	// recorded in that ticket's commit message and report, not a new row.
+	knownApproximationRows = 16
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.
