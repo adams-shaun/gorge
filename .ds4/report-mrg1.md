@@ -31,6 +31,8 @@ The initial `git status --short --branch` was clean on `wt/cli-20260923T060000Z-
   ok   github.com/adams-shaun/gorge/rules 1.144s
   ok   github.com/adams-shaun/gorge/internal/testutil 0.005s
   ```
+- `git diff --check && git diff --cached --check` — no whitespace errors.
+- `GIT_EDITOR=true git merge --continue` — completed as merge commit `22cb4da8` (`Merge branch 'main' into wt/cli-20260923T060000Z-choose-number`). Final `git status --short --branch` printed `## wt/cli-20260923T060000Z-choose-number` (clean); `git merge-base --is-ancestor main HEAD` succeeded.
 
 ## Issues / uncertainty
 
