@@ -260,6 +260,7 @@ func (f *Face) derive() {
 		f.manaProduction.addReflected(a)
 	}
 	f.colourIdentity = f.deriveColourIdentity()
+	f.deriveTypeStatics()
 }
 
 // deriveColourIdentity computes the face's colour identity the way CR 903.4
