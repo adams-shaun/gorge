@@ -490,6 +490,38 @@ func unlessTypeEligible(g *state.Game, c *Ctx, hand []state.ObjID, unless string
 	return out
 }
 
+func discardEligible(g *state.Game, c *Ctx, hand []state.ObjID, valid string) []state.ObjID {
+	out := make([]state.ObjID, 0, len(hand))
+	for _, id := range hand {
+		if MatchesSpecCtx(g, valid, id, c.SpecContext(c.Controller)) {
+			out = append(out, id)
+		}
+	}
+	return out
+}
+
+func discardChooser(c *Ctx, mode string) state.PlayerID {
+	switch mode {
+	case "RevealTgtChoose":
+		for _, t := range c.Targets {
+			if t.IsPlayer { return t.Player }
+		}
+	}
+	return c.Controller
+}
+
+func discardAsk(g *state.Game, c *Ctx, sa *cards.SA, eligible []state.ObjID, chooser state.PlayerID, min, max, target int) *decision.Decision {
+	opts := make([]decision.Option, 0, len(eligible))
+	for _, id := range eligible {
+		name := "a card"
+		if o := g.Obj(id); o != nil && o.Face() != nil { name = o.Face().Name }
+		opts = append(opts, decision.Option{Index: len(opts), Kind: "discard", Label: "Discard " + name, Obj: id, Player: chooser})
+	}
+	return &decision.Decision{Player: chooser, Kind: decision.KModes, Min: min, Max: max, Source: c.Source,
+		ResumeKind: "discard", ResumeSA: sa, ResumeTarget: target,
+		Prompt: "Choose " + strconv.Itoa(min) + ".." + strconv.Itoa(max) + " card(s) to discard", Options: opts}
+}
+
 func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
 	riders := discardRidersOf(sa)
@@ -503,81 +535,86 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 	// the old per-target c.Discard read produced. Ctx.Discard's only reader is
 	// this primitive, so clearing here is safe.
 	answers := c.Discard
+	answerTarget := c.DiscardTarget
+	vote := c.DiscardVote
+	answered := answers != nil
+	voted := vote != ""
 	c.Discard = nil
+	c.DiscardTarget = 0
+	c.DiscardVote = ""
 	mode := sa.Params["Mode"]
 	valid := sa.Params["DiscardValid"]
 	if valid == "" {
 		valid = "Card"
 	}
-	for _, t := range actingPlayers(h, c, sa) {
-		p := PlayerOf(h, c, t)
-		hand := zoneOf(g, state.ZHand, p)
-
-		switch mode {
-		case "RevealYouChoose":
-			// Re-entry: the caster's choice was answered and the continuation
-			// set Ctx.Discard to the chosen object(s). Discard exactly those
-			// that sit in this target's hand — a single-target spell resolves
-			// to one card, and the per-hand filter keeps a stray answer from
-			// moving an object that left the hand meanwhile.
-			if answers != nil {
+	// The four choosing modes share one ask shape: a CHOSER looks at the
+	// discarder's hand and names the cards, then the discarder discards them.
+	// RevealYouChoose/LookYouChoose disclose the hand to the caster;
+	// YouChoose is the caster; RevealTgtChoose is the first target (Rakdos
+	// Augermage: the target opponent chooses out of the caster's revealed
+	// hand). A per-target cursor (answerTarget/targetIndex) keeps each
+	// acting player's answer attached to the target that gave it, so a
+	// multi-target discard asks every target instead of applying target 0's
+	// answer to the rest.
+	chooseMode := mode == "RevealYouChoose" || mode == "LookYouChoose" ||
+		mode == "YouChoose" || mode == "RevealTgtChoose"
+	if chooseMode {
+		chooser := discardChooser(c, mode)
+		for targetIndex, t := range actingPlayers(h, c, sa) {
+			p := PlayerOf(h, c, t)
+			hand := zoneOf(g, state.ZHand, p)
+			if answered && targetIndex < answerTarget {
+				continue // fully processed before a later target's ask
+			}
+			if answered && targetIndex == answerTarget {
+				// Re-entry: the chooser's answer was recorded, so discard
+				// exactly those cards that still sit in this target's hand (a
+				// stray answer must not move an object that left meanwhile).
 				for _, id := range answers {
-					if !containsID(hand, id) {
-						continue
+					if containsID(hand, id) {
+						discardAndRemember(h, c, riders, id, p)
 					}
-					discardAndRemember(h, c, riders, id, p)
 				}
 				continue
 			}
-			// First pass: narrow the target's hand to the cards DiscardValid$
-			// allows, then ask the CASTER which to discard.
-			eligible := make([]state.ObjID, 0, len(hand))
-			for _, id := range hand {
-				if MatchesSpecCtx(g, valid, id, c.SpecContext(c.Controller)) {
-					eligible = append(eligible, id)
-				}
-			}
+			eligible := discardEligible(g, c, hand, valid)
 			if len(eligible) == 0 {
 				continue
 			}
 			askMin, askMax := discardBounds(h, c, sa, len(eligible))
-			opts := make([]decision.Option, 0, len(eligible))
-			for _, id := range eligible {
-				name := "a card"
-				if o := g.Obj(id); o != nil && o.Face() != nil {
-					name = o.Face().Name
-				}
-				opts = append(opts, decision.Option{Index: len(opts), Kind: "discard",
-					Label: "Discard " + name, Obj: id, Player: c.Controller})
-			}
-			d := &decision.Decision{Player: c.Controller, Kind: decision.KModes,
-				Min: askMin, Max: askMax, Source: c.Source,
-				ResumeKind: "discard", ResumeSA: sa,
-				Prompt:  "Choose " + strconv.Itoa(askMin) + ".." + strconv.Itoa(askMax) + " card(s) to discard",
-				Options: opts}
+			d := discardAsk(g, c, sa, eligible, chooser, askMin, askMax, targetIndex)
 			if Ask(h, d) == AskAsked {
 				return // resolution suspended; the answer re-enters with Ctx.Discard set.
 			}
-			// Fuzz/no-engine host: the deterministic front-card stand-in
-			// (R-9), with the Note that records why the richer path did not run.
-			// AskEmpty never reaches here by construction (len(eligible) == 0
-			// continues above and Min is n >= 1), but the shared helper owns the
-			// guard either way.
+			// Fuzz/no-engine host: the deterministic front-of-ELIGIBLE-hand
+			// stand-in (R-9) for the chooser, with the Note that records why
+			// the richer path did not run.
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "discards its first card (no engine host to ask)"})
-			// Kept exactly as it was (ONE card, front of the RAW hand) apart
-			// from the riders, so a no-host run replays as before.
-			if len(hand) > 0 {
-				discardAndRemember(h, c, riders, hand[0], p)
+			for i := 0; i < askMax; i++ {
+				discardAndRemember(h, c, riders, eligible[i], p)
 			}
+		}
+		return
+	}
+	for targetIndex, t := range actingPlayers(h, c, sa) {
+		p := PlayerOf(h, c, t)
+		hand := zoneOf(g, state.ZHand, p)
 
+		switch mode {
 		case "TgtChoose":
 			// Re-entry: the discarding player's choice was answered and the
 			// continuation set Ctx.Discard to the chosen object(s). Discard
 			// exactly those that sit in this target's hand (a per-hand filter
 			// keeps a stray answer from moving an object that left the hand
-			// meanwhile).
-			if answers != nil {
+			// meanwhile). The cursor keeps the answer attached to the target
+			// that gave it: earlier targets were fully processed before a later
+			// target's ask and must not be re-run, and only the cursor target
+			// consumes the answer.
+			if answered && targetIndex < answerTarget {
+				continue
+			}
+			if answered && targetIndex == answerTarget {
 				for _, id := range answers {
 					if !containsID(hand, id) {
 						continue
@@ -633,7 +670,7 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 					}
 					d := &decision.Decision{Player: p, Kind: decision.KModes,
 						Min: 1, Max: 1, Source: c.Source,
-						ResumeKind: "discard", ResumeSA: sa,
+						ResumeKind: "discard", ResumeSA: sa, ResumeTarget: targetIndex,
 						Prompt:  "Discard one " + unlessSpec + " card instead",
 						Options: opts}
 					if Ask(h, d) == AskAsked {
@@ -649,7 +686,7 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 			} else if elected == "" && unlessSpec != "" && len(unlessTypeEligible(g, c, hand, unlessSpec)) > 0 {
 				nOrd := Num(h, c, sa, "NumCards", 1)
 				d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
-					Source: c.Source, ResumeKind: "discard_unless", ResumeSA: sa,
+					Source: c.Source, ResumeKind: "discard_unless", ResumeSA: sa, ResumeTarget: targetIndex,
 					Prompt: "Discard one " + unlessSpec + " card instead of " + strconv.FormatInt(int64(nOrd), 10) + "?",
 					Options: []decision.Option{
 						{Index: 0, Kind: "unless", Label: "Yes — discard one " + unlessSpec, Player: p},
@@ -698,7 +735,7 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 			}
 			d := &decision.Decision{Player: p, Kind: decision.KModes,
 				Min: askMin, Max: askMax, Source: c.Source,
-				ResumeKind: "discard", ResumeSA: sa,
+				ResumeKind: "discard", ResumeSA: sa, ResumeTarget: targetIndex,
 				Prompt:  "Choose " + strconv.Itoa(askMin) + ".." + strconv.Itoa(askMax) + " card(s) to discard",
 				Options: opts}
 			if Ask(h, d) == AskAsked {
@@ -741,13 +778,56 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 			// AnyNumber$, so none is read here.
 			if strings.EqualFold(sa.Params["Optional"], "True") {
 				// "each player MAY discard their hand and draw N" (5 corpus
-				// lines): a real may-discard election is M4 follow-up work; the
-				// deterministic stand-in takes the discard and records why.
+				// lines): a real may-discard election. The answer is a yes/no per
+				// acting player, carried on Ctx.DiscardVote with the per-player
+				// cursor Ctx.DiscardTarget; a declined election discards nothing.
+				if voted && targetIndex < answerTarget {
+					continue // fully processed before a later player's ask
+				}
+				if voted && targetIndex == answerTarget {
+					if vote == "yes" {
+						for _, id := range hand {
+							discardAndRemember(h, c, riders, id, p)
+						}
+					}
+					continue
+				}
+				d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
+					Source: c.Source, ResumeKind: "discard_hand", ResumeSA: sa, ResumeTarget: targetIndex,
+					Prompt: "Discard your hand?",
+					Options: []decision.Option{
+						{Index: 0, Kind: "yes", Label: "Yes — discard your hand", Player: p},
+						{Index: 1, Kind: "no", Label: "No — keep it", Player: p},
+					}}
+				if Ask(h, d) == AskAsked {
+					return // resolution suspended; the answer re-enters with Ctx.DiscardVote set.
+				}
+				// Fuzz/no-engine host: the deterministic stand-in takes the
+				// discard (R-9), with the Note that records why the richer path
+				// did not run.
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 					Text: "may discard resolved as discard (no engine host to ask)"})
 			}
 			for _, id := range hand {
 				discardAndRemember(h, c, riders, id, p)
+			}
+
+		case "Random":
+			// CR 701.8b: a random discard. Forge's DiscardEffect Random mode
+			// picks Aggregates.random(list, numCards) from the DiscardValid$-
+			// filtered hand, so the engine's own seeded RNG chooses the cards
+			// (h.Rand, never an ambient source) without replacement. No seat is
+			// asked and no Note is recorded: the randomness IS the rule, not a
+			// stand-in for a missing ask.
+			eligible := discardEligible(g, c, hand, valid)
+			n := int(Num(h, c, sa, "NumCards", 1))
+			if n > len(eligible) {
+				n = len(eligible)
+			}
+			for i := 0; i < n; i++ {
+				j := h.Rand(len(eligible))
+				discardAndRemember(h, c, riders, eligible[j], p)
+				eligible = append(eligible[:j], eligible[j+1:]...)
 			}
 
 		case "Defined":

@@ -947,6 +947,22 @@ type Ctx struct {
 	// discarder, which is why a plain ObjID is not enough state to rebuild:
 	// the two player roles are re-derived from Ctx on re-entry.
 	Discard []state.ObjID
+	// DiscardTarget is the per-target cursor for a mid-resolution discard
+	// whose asking walk covers several acting players: the index (into the
+	// effect's deterministic acting-player list) of the player whose answer
+	// Discard carries. The answer applies to that target alone and every
+	// LATER target poses its own ask, so a multi-target discard no longer
+	// applies target 0's choice to every other target (which left targets 2..n
+	// unasked). It is the RevealPickTarget cursor's discipline applied to
+	// discards, consumed and cleared with Discard at the top of effDiscard's
+	// walk (fx42 scoping).
+	DiscardTarget int
+	// DiscardVote is the answered "Mode$ Hand | Optional$ True" may-discard
+	// election (a whole-hand wheel's "each player may discard their hand"):
+	// "yes" discards that player's whole hand, "no" (or an empty answer)
+	// declines. It is separate from Discard because the election answers a
+	// yes/no, not an object list; the per-target cursor is DiscardTarget.
+	DiscardVote string
 	// Choice is the selected card(s) or player(s) from ChooseCard,
 	// ChoosePlayer, or ChangeTargets. ChoiceDone distinguishes an answered
 	// empty optional choice from its first pass.
