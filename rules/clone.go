@@ -325,6 +325,23 @@ func (e *Engine) Clone() *Engine {
 			c.aorAsk[id] = inner
 		}
 	}
+	if e.copyTargetStage != nil {
+		c.copyTargetStage = make(map[state.ObjID]int, len(e.copyTargetStage))
+		for id, stage := range e.copyTargetStage {
+			c.copyTargetStage[id] = stage
+		}
+	}
+	if e.copyAnswerTargets != nil {
+		c.copyAnswerTargets = make(map[state.ObjID][][]decision.Option, len(e.copyAnswerTargets))
+		for id, stages := range e.copyAnswerTargets {
+			cp := make([][]decision.Option, len(stages))
+			for i, sl := range stages {
+				cp[i] = append([]decision.Option(nil), sl...)
+			}
+			c.copyAnswerTargets[id] = cp
+
+		}
+	}
 	if e.exploitedLKI != nil {
 		c.exploitedLKI = make(map[state.ObjID]state.SacrificedInfo, len(e.exploitedLKI))
 		for id, info := range e.exploitedLKI {
