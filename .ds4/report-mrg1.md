@@ -1,207 +1,55 @@
-# Merge-conflict resolution — task cli-20260922T225140Z-6a16cd8c
+# Merge-conflict resolution — cli-20260922T225140Z-62421b89
 
-(Record 1 below is this ticket's first integration round, kept from the
-branch side; record 2 is the 68ca4d95 legend-rule ticket's record that main
-carried in via `08955738`. Both are kept verbatim; record 3 is appended by
-the round-2 docs commit.)
+## Situation found
 
-## Starting state
+The worktree was clean on entry at `7a45ef9a` with no in-flight merge or rebase. `main` was at `0104252d2aac00c38b8ee63675239b78dddef2ff`, not an ancestor of the branch. `.cards` was present.
 
-`git status` found the tree CLEAN — no rebase or merge in flight. The
-daemon's earlier attempt (rebase, then a merge fallback, both conflicting per
-`.ds4/merge-conflict-mrg1.md`) had been fully aborted before this seat
-started; branch tip was `ade1f41d` ("test(rules): assert player attachment
-and descend replay folds"). I redid the integration as a **merge of `main`
-into the branch** (`git merge main`), which reproduced exactly the two
-conflicts the daemon saw: `AGENTS.md` and `internal/testutil/agentsdoc_test.go`.
-No other files conflicted.
+Ran `git merge main`. It auto-merged the main changes and reported one conflicted file: `AGENTS.md`.
 
-## Conflicted file 1: AGENTS.md (one hunk)
+## Conflicted file and resolution
 
-Both sides touched the same slot in the "Known approximations" table — each
-had DELETED a different row that the other kept:
+### `AGENTS.md`
 
-- **main side** deleted the **(ft1)** row ("Bot target selection is
-  effect-blind except for a known literal damage amount"). Main closed ft1
-  with real bot-policy arms: `botpolicy/replacement.go`,
-  `botpolicy/target.go` / `botpolicy/combat.go` rewrites, commit
-  `87d13658` "fix(botpolicy): add real arms for replacement order, multikick
-  count and mutate placement" plus `4dcef2ea` which lowered the register
-  constant to 51 "after ft1 closure on main".
-- **branch side** deleted the **(fx20)** row ("`MatchesPlayerSpec` still
-  fails closed on `EnchantedBy` … `counters_` and compound/space forms").
-  The branch closed fx20 with its reviewed commits: `c85c39b7`
-  "feat(effects): resolve Player.EnchantedController,
-  TriggeredDefendingPlayer and counters_", `c3662d98`, `3cbf3e11`
-  "fix(rules): close player-spec grammar with descend and player
-  attachments", `ade1f41d`.
+The branch side had deleted its now-closed approximation row for CR 616.1 replacement ordering; it also carried the CR 704.5j legend-rule approximation. Main's conflicting side contained the old CR 616.1 row and a botpolicy fallback row, as well as the legend-rule row. The branch has implemented both the CR 616.1 order choice and `botpolicy`'s `KReplacement` policy (`botpolicy/policy.go`, `chooseReplacementOrder`), so the two main-side CR 616.1 rows describe behavior no longer present and were not retained. Kept the branch's removal and retained main's still-applicable CR 704.5j legend-rule row. Other main edits to this file, including removal of the closed fx20/pc1 rows, were preserved by the auto-merge.
 
-**Resolution:** delete BOTH rows — each side's deletion is a legitimate
-closure, and the register is delete-only. Verified by counting with the
-test's own row logic (`## Known approximations` … next `## `, lines starting
-`| `, minus header): base `f7357075` = 56 rows, main = 51 (its constant),
-branch = 55 (its constant 57 lags — allowed, the test only fails on growth),
-merged = **50**.
-
-## Conflicted file 2: internal/testutil/agentsdoc_test.go (one hunk)
-
-Only the `knownApproximationRows` constant conflicted: base 58, branch 57
-(fx20 deletion), main 51 (ft1 + earlier main closures).
-
-**Resolution:** `knownApproximationRows = 50` — merged table = 50 rows.
-`knownOversizeRows` (8) and `standInCellLimit` (600) are identical on all
-three sides; no other constant changed.
-
-## Commands run and output
-
-- `git merge main` →
-  `CONFLICT (content): Merge conflict in AGENTS.md`,
-  `CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go`
-  (reproduced the daemon's conflict set).
-- After resolving and `git add`:
-  `git commit --no-edit` →
-  `[wt/cli-20260922T225140Z-6a16cd8c 9fc45eaf] Merge branch 'main' into wt/cli-20260922T225140Z-6a16cd8c`
-- `git status --short` → clean (no conflicts left; only my later report
-  edit, committed separately).
-- `.cards` check: `[ -e .cards ]` → **present** (real symlink; corpus-backed
-  runs are not vacuous).
-- `go test ./internal/testutil/ -run 'TestKnownApproximations' -v` →
-  `--- PASS: TestKnownApproximationsOnlyShrinks (0.00s)` / `ok`.
-- Ratchet pass after the merge (per the 2026-09-22 instruction):
-  `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`
-  → `ok github.com/adams-shaun/gorge/rules 0.894s`. Verified NOT a vacuous
-  skip run: verbose listing shows all five tests RUN and PASS
-  (TestEveryRepoDeckIsFullySupported 0.56s, TestEveryRepoDeckParamsAreRead
-  0.12s, TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched,
-  TestEveryDispatchedTriggerModeHasAMatcher,
-  TestEveryRepoDeckCountHeadResolves) with **0 SKIPs**.
-
-## Post-merge ratchet check (branch-vs-main interaction)
-
-- The branch registers NO new `Mode$` trigger matcher (its diff touches
-  `trigmatch_cast.go`/`trigmatch_combat.go`/`trigmatch_misc.go` only in
-  existing matchers for the player-spec closure), so nothing needed adding
-  to `addedAfterTheSplit`.
-- The branch's new player-spec primitives did not require edits to
-  `knownUnsupported` / `knownUnsupportedParams` / `knownUnmodelledCountHeads`
-  — the ratchet pass above is green with the merged tables untouched.
-
-## Commits
-
-- `9fc45eaf` — Merge branch 'main' into wt/cli-20260922T225140Z-6a16cd8c
-  (conflict resolution; both ft1 and fx20 rows deleted, constant 58→50
-  across base→merged).
-- This report commit (docs only).
-
-## Unsure / notes
-
-- The `.ds4/report-mrg1.md` file is tracked in git despite living under the
-  excluded `.ds4/` path (prior docs commits record it), so main's version
-  auto-merged into the merge commit and this report replaces it as a docs
-  commit to leave the tree clean.
-- I chose merge (matching the daemon's own fallback path) over rebase since
-  no operation was in flight and rebase of 4 commits would re-conflict the
-  same two hunks; the merge preserves both histories verbatim.
-
----
-
-## Record 2 — main's side (68ca4d95 legend-rule ticket, via main commit `08955738`)
-
-# Merge-conflict resolution report — mrg1
-
-## Conflicted files
-
-- `AGENTS.md` — the only unmerged path.
-
-## Resolution
-
-The initial `git status` showed a clean worktree and no active rebase/merge, so I completed integration with the main branch via `git merge main`. That merge conflicted in `AGENTS.md` at the adjacent Known approximations rows.
-
-- The branch side contained the new main-side approximation for the `KReplacement` bot fallback. Main contained the obsolete CR 704.5j legend-rule row, which this reviewed branch closes by adding the controller choice.
-- Kept main's `KReplacement` row and removed the superseded legend-rule row, preserving both current intents. No other conflict markers or unmerged paths remained.
-- Completed the merge as `760578de` (`Merge branch 'main' into wt/cli-20260922T225140Z-68ca4d95`).
+No other file had merge markers. The remaining main changes auto-merged. The required main ratchet run found two stale `apiSpecificRulesSA` entries in `rules/paramcensus_test.go`: `Engine.applyAddCounterBody` and `Engine.applyAddCounterReplacements` consume the priced result and no longer read SA params. Removed those stale classifications, retaining `Engine.counterReplaceOp`, which does read the parameters. This is the ratchet-table correction required for the merged branch; no engine behavior was changed by it.
 
 ## Commands and output
 
-- `git status --short --branch && git status`
-  ```
-  ## wt/cli-20260922T225140Z-68ca4d95
-  On branch wt/cli-20260922T225140Z-68ca4d95
-  nothing to commit, working tree clean
-  ```
-- `git merge main`
-  ```
-  Auto-merging AGENTS.md
-  CONFLICT (content): Merge conflict in AGENTS.md
-  Automatic merge failed; fix conflicts and then commit the result.
-  ```
-- `git add AGENTS.md && GIT_EDITOR=true git merge --continue`
-  ```
-  [wt/cli-20260922T225140Z-68ca4d95 760578de] Merge branch 'main' into wt/cli-20260922T225140Z-68ca4d95
-  ```
-- Corpus check: `.cards` was present.
-- `go test -run 'TestLegendRule' ./rules/`
-  ```
-  ok  github.com/adams-shaun/gorge/rules  0.008s
-  ```
-- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`
-  ```
-  ok  github.com/adams-shaun/gorge/rules  0.759s
-  ```
-- Final `git status --short --branch`
-  ```
-  ## wt/cli-20260922T225140Z-68ca4d95
-  ```
+```text
+$ git status --short --branch && git rev-parse --abbrev-ref HEAD && git diff --name-only --diff-filter=U
+## wt/cli-20260922T225140Z-62421b89
+wt/cli-20260922T225140Z-62421b89
 
-No uncertainty remained in the conflict resolution. No non-conflict files were manually changed.
+$ git rev-parse main
+0104252d2aac00c38b8ee63675239b78dddef2ff
 
----
+$ git merge main
+Auto-merging AGENTS.md
+CONFLICT (content): Merge conflict in AGENTS.md
+Auto-merging rules/engine.go
+Auto-merging rules/turn.go
+Automatic merge failed; fix conflicts and then commit the result.
 
-## Record 3 — round 2 integration (this seat, 2026-09-23)
+$ git add AGENTS.md && go test -run 'TestKnownApproximation' ./internal/testutil/
+ok   github.com/adams-shaun/gorge/internal/testutil  0.001s
 
-### Starting state
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+--- FAIL: TestEveryRepoDeckParamsAreRead (0.15s)
+    paramcensus_test.go:2738: paramcensus rot guard: 2 findings:
+        paramcensus: apiSpecificRulesSA entry "Engine.applyAddCounterBody" no longer reads SA params -- delete the stale entry
+        paramcensus: apiSpecificRulesSA entry "Engine.applyAddCounterReplacements" no longer reads SA params -- delete the stale entry
+FAIL
+github.com/adams-shaun/gorge/rules  0.892s
+FAIL
 
-`git status` found the tree CLEAN at `d3e21bfa`; no rebase or merge in
-flight (the daemon's second integration attempt was fully aborted before
-dispatch). The branch's merge-base with `main` was `c472a88f` — main had
-moved past the branch's round-1 merge (`9fc45eaf`) with the 68ca4d95
-legend-rule landing (`da0a323b` heads pin + `cf3e3784` merge). I redid the
-integration as `git merge main`.
+# Removed the two stale entries from rules/paramcensus_test.go.
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok   github.com/adams-shaun/gorge/rules  0.750s
+```
 
-### Conflicted file: .ds4/report-mrg1.md (the only one)
+`git diff --check` reported no whitespace errors after conflict resolution. The first focused approximation test passed. The first ratchet run exposed the two stale entries above; the rerun passed after removing them. `.cards` existed, so the corpus-dependent ratchets were not vacuous skips.
 
-- **branch side** (`d3e21bfa`): this ticket's round-1 resolution record.
-- **main side** (`08955738`): the 68ca4d95 legend-rule ticket's own
-  resolution record, committed to main.
-- **Resolution:** keep BOTH records verbatim, headed, plus this record 3.
-  `AGENTS.md` and `internal/testutil/agentsdoc_test.go` auto-merged this
-  time: branch deleted the (fx20) row; main swapped the legend row for the
-  `KReplacement` bot-fallback row (row count unchanged). Merged register =
-  50 rows = the constant (verified below). `rules/heads_test.go` was
-  auto-merged from main (2-seat head → `19a4893657e5d549`); the branch
-  never touched it, so no head conflict arose and no golden was edited.
+## Uncertainties / issues
 
-### Commands and output
-
-- `.cards`: present (real symlink) — runs are not vacuous.
-- `git merge main` → `CONFLICT (content): Merge conflict in .ds4/report-mrg1.md`
-  (only unmerged path); resolved with both records kept, `git add -f`
-  (`.ds4` is gitignored for untracked files), `git commit --no-edit` →
-  `bdbdd7cb Merge branch 'main' into wt/cli-20260922T225140Z-6a16cd8c`.
-- `git status --short` → clean.
-- `grep -c 'fx20' AGENTS.md` → `0`; `grep -c 'KReplacement.*clamp fallback' AGENTS.md` → `1`.
-- `go test ./internal/testutil/ -run 'TestKnownApproximations' -v` →
-  `--- PASS: TestKnownApproximationsOnlyShrinks` / `ok`.
-- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`
-  → `ok github.com/adams-shaun/gorge/rules 0.756s`; verbose log
-  (`.ds4/scratch/ratchet.log`) shows all five RUN and PASS, **0 SKIPs**.
-- Behaviour goldens: `go test ./internal/archtest/` → `ok 3.225s`;
-  `go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/` →
-  `ok 1.075s` — the pinned 20-game bot split did NOT move.
-
-### Notes
-
-- The branch registers no new `Mode$` matcher and closed no
-  `knownUnsupported`/`knownUnsupportedParams`/`knownUnmodelledCountHeads`
-  entry, so no ratchet table edit was needed; all pass untouched.
-- Commits: `bdbdd7cb` (merge, conflict resolution) + this docs commit.
+No unresolved conflict or uncertain resolution remains. The replacement-order approximation rows from main were intentionally omitted because the reviewed branch fix and the already-present botpolicy arm close those claims. The unrelated CR 704.5j row remains intact. No engine behavior change or golden edit was made during conflict resolution.

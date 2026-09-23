@@ -29,6 +29,12 @@ func drainToChooseOrEmpty(t *testing.T, e *Engine) *decision.Decision {
 		if d.Kind == decision.KChoose {
 			return d
 		}
+		if d.Kind == decision.KReplacement {
+			// A CR 616.1 order ask parked on the queue: option 0 is the
+			// deterministic scan order the pre-choice engine composed in.
+			submitChoices(t, e, 0)
+			continue
+		}
 		if d.Kind != decision.KPriority {
 			t.Fatalf("unexpected %s decision while draining: %+v", d.Kind, d)
 		}
