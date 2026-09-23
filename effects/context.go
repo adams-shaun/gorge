@@ -344,22 +344,21 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			return []state.Target{{Obj: c.RepeatSubject.Obj}}, true
 		}
 		if spec == "ImprintedController" {
-			// The pile's controllers, the same precedence the object spelling
-			// takes: the CR 607.2a gated pile first, then -- only when that read
-			// came back EMPTY -- the ungated raw read (rawImprintTargets; an
-			// imprint of a non-exile object, Enchanter's Bane's targeted
-			// battlefield enchantment, is still a live association here, exactly
-			// the read Forge's getImprintedCards serves its consumers).
-			pile := imprintPileTargets(g, c)
-			if len(pile) == 0 {
-				pile = rawImprintTargets(g, c)
-			}
-			return controllersOf(g, pile), true
+			// Outside a repeat iteration Forge's ImprintedController has no
+			// object whose controller to take: the CR 607.2a pile is the OBJECT
+			// spelling's read (the tail of this case), not this one's.
+			return nil, true
 		}
-		if pile := imprintPileTargets(g, c); len(pile) > 0 {
-			return pile, true
-		}
-		return rawImprintTargets(g, c), true
+		// The CR 607.2a exile gate holds for EVERY ordinary Defined$ caller --
+		// including an empty read: an imprint association naming a battlefield
+		// object is not in the pile (CR 607.2a links only while the card stays
+		// in exile), and no fallback may reintroduce it here. The consumers
+		// that need Forge's ungated getImprintedCards read keep their own
+		// scoped raw read: damage.go's damageSourceSpecTargets (which falls
+		// back to rawImprintTargets on exactly this empty set) and count.go's
+		// refTargets Imprinted case. Do not widen this one -- the regression
+		// TestDefinedImprintedKeepsTheExileGate pins it.
+		return imprintPileTargets(g, c), true
 	case "RememberedCard":
 		// Forge's RememberedCard names the resolution's remembered CARD entries
 		// in remember order: the ChooseCard answers RememberChosen$ captured
