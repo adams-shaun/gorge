@@ -315,7 +315,8 @@ func TestParseCostPriceable(t *testing.T) {
 // silently substitutes, this one records what the strict gate declines.
 // Chargeable mid-resolution: mana symbols, fixed PayLife<N>, PayEnergy<N>/<X>
 // energy parts (the announced X bound at the pay sites), Return<N/Spec>
-// choice parts, the LifeTotalHalfUp token, and the Sac/Discard/SubCounter/
+// choice parts, the LifeTotalHalfUp token, a fixed Mill<N> (Deep Spawn; CR
+// 701.13a, payable at any library size) and the Sac/Discard/SubCounter/
 // Draw/Reveal components (Sac/Discard/Reveal through the payer-choice
 // continuation). Everything else is a hard decline (a decline-only ask is
 // still posed and recorded), except the Sacrifice arm's DamageYou<N> payment.
@@ -379,7 +380,7 @@ func TestUnlessCostStrictParsePopulation(t *testing.T) {
 		"Chisei, Heart of Oceans", "Circling Vultures", "Circular Logic", "Clash of Wills",
 		"Collective Voyage", "Combustion Man", "Command Bridge", "Concerted Defense", "Condescend",
 		"Countervailing Winds", "Court of Ambition", "Craig Boone, Novac Guard", "Cyclone",
-		"Dazzling Denial", "Deep Spawn", "Dispelling Exhale", "Disruption Aura", "Draco",
+		"Dazzling Denial", "Dispelling Exhale", "Disruption Aura", "Draco",
 		"Dragon's Approach", "Dwarven Driller", "Dwarven Scorcher", "Egon, God of Death",
 		"Elven Passage", "Energy Vortex", "Errant Minion", "Esper Sentinel", "Essence Leak",
 		"Essence Vortex", "Evasive Action", "Excise", "Extravagant Spirit",
