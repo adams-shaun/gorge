@@ -1,14 +1,15 @@
 # Report — r2 (agent-20260918T195920Z-2fd3b568) — Loamcrafter Faun `TriggerRemembered$Amount`
 
-**Reconciliation round.** The ticket's code work is already committed and
-APPROVED: the rebase-blocked t1 report (findings-r2 = "cannot rebase: You
-have unstaged changes") is now committed at its own path
-`.ds4/report-t1-2fd3b568.md` (commit `4a786d45`), the shared
-`.ds4/report-t1.md` was restored to main's DestroyAll.Zone content, and the
-branch was rebased onto main exactly as the controller directive requires.
-This round's only tracked diff is this report's insertion at the top of
-`.ds4/report-r2.md`, preserving the ChosenCardStrict r2 report below it
-without deleting anything.
+**Historical reconciliation round (before the sol1 review).** The ticket's
+code work and tests were committed along with the t1 report, preserved at
+`.ds4/report-t1-2fd3b568.md`; the shared `.ds4/report-t1.md` was restored
+to main's content. The branch was rebased onto main. This report was the only
+*new change in that reconciliation round*, NOT the only change in the branch
+relative to main. The branch also carries `effects/count.go`,
+`effects/immediate.go`, `effects/count_triggerremembered_test.go`,
+`rules/loamcrafter_faun_test.go`, and the t1 report. The ChosenCardStrict r2
+report below is preserved. The prior claim that `main...HEAD` contained
+only this report was wrong; the sol1 report documents the full branch diff.
 
 ## What changed and why (per file)
 
@@ -35,20 +36,20 @@ without deleting anything.
 
 ## Rebase outcome (the round's blocking finding)
 
-`git rebase main` after committing the report: **clean, no conflicts, 3
-commits replayed** (the t1 round's pre-verification that main's Convoked /
-Imprint regions of `effects/count.go` are disjoint from this diff held).
-New SHAs after the rebase: `448e89ab` (fix), `41b7e422` (tests),
-`4a786d45` (docs). Prior SHAs before rebase were `32ae38bc`/`bcf02231`/
-`f3ba0672`.
+At the time of this report, `git rebase main` was clean, replaying three
+commits (the Convoked / Imprint regions of `effects/count.go` were disjoint).
+The then-current SHAs were `448e89ab` (fix), `41b7e422` (tests),
+`4a786d45` (docs), rebased from `32ae38bc`/`bcf02231`/`f3ba0672`.
+A subsequent controller-ordered rebase for sol1 replayed four commits;
+current SHAs and base are recorded in `.ds4/report-sol1.md`.
 
-## Gate commands and their real output (all re-run at the new base)
+## Gate commands and their real output (historical, on the r2 base)
 
 Environment: `.cards` symlink present at the worktree root
 (`.cards -> /home/sadams/projects/gorge/.cards`); `go test ./rules` at 36.2s
-confirms a real corpus run, not a skipped one. Branch is now exactly
-`main` + these 3 commits (`git log --oneline -4`: 4a786d45, 41b7e422,
-448e89ab, 0f94cca6=main).
+confirmed a real corpus run, not a skipped one. At that time the branch was
+`main` + 3 commits (`git log --oneline -4`: 4a786d45, 41b7e422,
+448e89ab, 0f94cca6=then-main). Current-base gates are in the sol1 report.
 
 Done means #3 (targeted pins):
 ```
