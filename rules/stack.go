@@ -955,18 +955,26 @@ func targetZones(sa *cards.SA) []state.Zone {
 	// A stack-targeting TargetType$ adds the stack even when no TgtZone$ is
 	// present (the counterspell shape) and even alongside a TgtZone$
 	// Battlefield for a spell-or-permanent effect (TgtZone$ Stack,Battlefield).
-	// When TargetType$ is absent, ValidTgts$ can name the stack object kind
-	// itself (for example, `ValidTgts$ Spell`). Only infer that route without
-	// an explicit TgtZone$: card-type specs such as `ValidTgts$ Instant` with
-	// `TgtZone$ Graveyard` describe cards in that named zone, not stack
-	// objects.
-	if targetsStackObjects(sa.Params["TargetType"]) ||
-		(sa.Params["TgtZone"] == "" && targetsStackObjects(sa.Params["ValidTgts"])) {
+	if targetsStackObjects(sa.Params["TargetType"]) {
 		zones = appendUniqueZone(zones, state.ZStack)
 	}
 	if len(zones) == 0 {
+		// An Origin$ that names exactly one concrete zone is a zone
+		// declaration in its own right and OUTRANKS the ValidTgts$
+		// inference below: `Origin$ Graveyard | ValidTgts$ Instant.YouCtrl,
+		// Sorcery.YouCtrl` (Volcanic Vision) names instant/sorcery CARDS in
+		// the graveyard, and inferring the stack from the base token would
+		// replace the graveyard route with a stack one and make the fetch
+		// inert (the finding this closes). With no explicit TgtZone$ and no
+		// Origin$ declaration, a ValidTgts$ whose own token names a stack
+		// object kind (for example, `ValidTgts$ Spell`) targets the stack;
+		// the TgtZone$ guard keeps an explicit `TgtZone$ Graveyard |
+		// ValidTgts$ Instant` (a card in a named zone, not a stack object)
+		// off this route.
 		if z, ok := originImpliedTargetZone(sa); ok {
 			zones = []state.Zone{z}
+		} else if sa.Params["TgtZone"] == "" && targetsStackObjects(sa.Params["ValidTgts"]) {
+			zones = []state.Zone{state.ZStack}
 		} else {
 			zones = []state.Zone{state.ZBattlefield}
 		}
