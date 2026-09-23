@@ -118,6 +118,39 @@ func ParseZone(s string) state.Zone {
 	return z
 }
 
+// ZoneWord maps a state.Zone back to the canonical Forge zone word ParseZone
+// reads (ParseZone's exact-match vocabulary). It is the reverse direction the
+// move-driven lifetimes need when the zone is taken from the OBJECT at grant
+// time rather than named by the script: a Duration$ Permanent Animate/Pump
+// grant records its object's current zone in ExileOnMoved so the grant ends
+// when that object leaves the zone it was granted in (CR 400.7 -- a zone
+// change makes it a new object). An out-of-range or unnamed zone yields "",
+// which ParseZone can never match, so the sweep simply never fires -- the
+// honest no-op for a zone this vocabulary does not carry.
+func ZoneWord(z state.Zone) string {
+	switch z {
+	case state.ZHand:
+		return "Hand"
+	case state.ZBattlefield:
+		return "Battlefield"
+	case state.ZLibrary:
+		return "Library"
+	case state.ZGraveyard:
+		return "Graveyard"
+	case state.ZExile:
+		return "Exile"
+	case state.ZStack:
+		return "Stack"
+	case state.ZCommand:
+		return "Command"
+	case state.ZSideboard:
+		return "Sideboard"
+	case state.ZCeased:
+		return "Ceased"
+	}
+	return ""
+}
+
 // ParseZoneWord is parseZone's exported form for callers that must react to
 // an UNKNOWN zone word (fail closed) rather than silently degrading to a
 // graveyard the way ParseZone does: the trigger-side PresentZone$ clause's
@@ -1387,6 +1420,11 @@ func handMoveOwners(h Host, c *Ctx, sa *cards.SA) ([]state.PlayerID, bool) {
 			return nil, false
 		}
 		return searchPlayers(h, c, sa), true
+	}
+	if plainRememberedSelector(sa.Params["Defined"]) {
+		// A remembered PLAYER is a legitimate hand owner; the plain family no
+		// longer drops it just because a remembered CARD coexists in the set.
+		return definedPlayers(h, c, sa), true
 	}
 	// ValidTgts$-alone: Defined's own rule names the chosen targets.
 	owners := make([]state.PlayerID, 0, len(c.Targets))
@@ -2891,34 +2929,11 @@ func searchPlayers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 	if !explicit || strings.TrimSpace(spec) == "" {
 		return []state.PlayerID{c.Controller}
 	}
-
-	var targets []state.Target
-	switch spec {
-	case "RememberedController":
-		for _, t := range c.Remembered {
-			if t.IsPlayer {
-				targets = append(targets, t)
-			} else if o := h.Game().Obj(t.Obj); o != nil {
-				targets = append(targets, state.Target{Player: o.Controller, IsPlayer: true})
-			}
-		}
-	default:
-		// Defined only reads the Defined key, so a tiny temporary SA lets this
-		// helper share its deterministic selector grammar without mutating the
-		// immutable compiled SA.
-		targets = Defined(h, c, &cards.SA{Params: map[string]string{"Defined": spec}})
-	}
-	seen := make(map[state.PlayerID]bool)
-	out := make([]state.PlayerID, 0, len(targets))
-	for _, t := range targets {
-		p := PlayerOf(h, c, t)
-		if int(p) >= len(h.Game().Players) || seen[p] {
-			continue
-		}
-		seen[p] = true
-		out = append(out, p)
-	}
-	return out
+	// definedPlayerIDs shares the deterministic selector grammar and applies
+	// Forge's getDefinedPlayers rule: a remembered CARD contributes a seat
+	// only for the RememberedController/RememberedOwner spellings, never for
+	// the plain Remembered family (Summon: Valefor's per-opponent loop).
+	return definedPlayerIDs(h, c, spec)
 }
 
 // chooserChosenPlayer resolves a `Chooser$ ChosenPlayer` (or its

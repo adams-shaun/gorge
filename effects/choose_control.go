@@ -1182,8 +1182,10 @@ func changeTargetChooser(h Host, c *Ctx, sa *cards.SA) state.PlayerID {
 	if v == "" || v == "You" {
 		return c.Controller
 	}
-	for _, t := range Defined(h, c, &cards.SA{Params: map[string]string{"Defined": v}}) {
-		return PlayerOf(h, c, t)
+	// definedPlayerIDs keeps the plain Remembered family players-only, so a
+	// remembered CARD cannot hand the redirect chooser to its controller.
+	if ps := definedPlayerIDs(h, c, v); len(ps) > 0 {
+		return ps[0]
 	}
 	return c.Controller
 }
