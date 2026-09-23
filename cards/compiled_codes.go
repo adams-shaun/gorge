@@ -408,6 +408,7 @@ const (
 	StaticModeCantGainLife      StaticModeCode = 16
 	StaticModeCantPreventDamage StaticModeCode = 17
 	StaticModeUntapOtherPlayer  StaticModeCode = 18
+	StaticModeOptionalCost      StaticModeCode = 19
 )
 
 func staticModeCode(mode string) StaticModeCode {
@@ -424,6 +425,8 @@ func staticModeCode(mode string) StaticModeCode {
 		return StaticModeReduceCost
 	case "SetCost":
 		return StaticModeSetCost
+	case "OptionalCost":
+		return StaticModeOptionalCost
 	case "AlternativeCost":
 		return StaticModeAlternativeCost
 	case "CastWithFlash":

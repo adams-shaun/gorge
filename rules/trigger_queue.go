@@ -382,6 +382,17 @@ func (e *Engine) takeAnsweredTrigger(d *decision.Decision) (pendingTrigger, bool
 // is recorded, and it is the whole of what a log-only replay needs. No event
 // kind and no Event field was added for Task 27.
 func (e *Engine) pushTrigger(pt pendingTrigger) {
+	if pt.MonarchDraw {
+		// Use DelayedPush's event-sourced stack-object creation. Apply has a
+		// dedicated synthetic body for this engine-owned trigger, so no card
+		// SVar or direct state mutation is needed.
+		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
+			return
+		}
+		e.emit(events.Event{Kind: events.DelayedPush, Obj: pt.Source,
+			Player: pt.Controller, Counter: "__monarch_draw"})
+		return
+	}
 	// Evoke and Madness are mandatory keyword-triggered abilities minted as
 	// genuine stack objects. Madness's cast-or-graveyard choice is made when
 	// that object resolves, not here, so either one may be responded to or
@@ -584,6 +595,27 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 			}
 			e.triggerContexts[id] = pt.Ctx.TriggerContext
 		}
+		e.drainAwaitsTarget = e.Pending() != nil
+		return
+	}
+	// A granted cumulative upkeep (CR 702.24a via a layer-6 AddKeyword$
+	// Cumulative upkeep:<cost> or an A:AB$ Pump's KW$ Cumulative upkeep:<cost>
+	// -- Breath of Dreams, Mana Chains, Decomposition, Balduvian Shaman,
+	// Dreams of the Dead): the Ward/Afflict/Flanking shape. A permanent
+	// granted the keyword has no printed K:Cumulative upkeep expansion
+	// trigger, so the synthesized Phase trigger queues here and its Counter
+	// payload __kwCumulativeUpkeepGranted:<cost> is what events.Apply
+	// rebuilds into the same DB$ CumulativeUpkeep | Cost$ <cost> ability the
+	// printed expansion carries. The trailing colon (and the "Granted"
+	// suffix) keep the payload from aliasing the "__kwCumulativeupkeep:<cost>"
+	// SVar a printed bare K:Cumulative upkeep line mints. The trigger has no
+	// target roles, so no TriggerContext rides along.
+	if pt.Cumulative != "" {
+		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
+			return
+		}
+		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
+			Obj: pt.Source, Counter: "__kwCumulativeUpkeepGranted:" + pt.Cumulative, Text: "cumulative upkeep ability"})
 		e.drainAwaitsTarget = e.Pending() != nil
 		return
 	}

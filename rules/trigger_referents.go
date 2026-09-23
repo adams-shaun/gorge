@@ -133,7 +133,7 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 			if spec == "" && t.Mode == "AttackersDeclared" {
 				spec = t.Params["ValidAttackers"]
 			}
-			if (spec == "" && id == source) || (spec != "" && effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(source, e.controllerOf(source)))) {
+			if (spec == "" && id == source) || (spec != "" && e.matchesSpec(spec, id, e.specCtx(source, e.controllerOf(source)))) {
 				matches++
 				c.TriggerCard = id
 			}
@@ -208,6 +208,11 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		// when a BecomeMonarch matcher accepted the event, so ev.Player is
 		// always that seat here.
 		c.TriggerPlayer = player(ev.Player)
+	case "Discover":
+		// Discover's completed-action marker carries the resolved discover
+		// value in Amount. Curator of Sun's Creation binds it as X through
+		// TriggerCount$Amount for its same-value follow-up discover.
+		c.TriggerAmount = ev.Amount
 	case "Explores":
 		// The explore record's roles (task explore1): TriggerCard is the
 		// EXPLORER (what ValidCard$ matched), the same ChangesZone read.

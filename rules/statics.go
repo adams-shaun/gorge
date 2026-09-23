@@ -47,9 +47,10 @@ type staticView struct {
 // collector walks the game's zones only once. It contains no evaluated
 // applicability, amount, target, X, condition, or final cost.
 type costStaticViews struct {
-	raise  []staticView
-	reduce []staticView
-	set    []staticView
+	raise    []staticView
+	reduce   []staticView
+	set      []staticView
+	optional []staticView
 }
 
 // costStaticSource lazily owns one call-scoped membership snapshot. It is
@@ -293,6 +294,24 @@ func (e *Engine) specCtx(source state.ObjID, you state.PlayerID) effects.SpecCon
 	return e.specCtxSVars(source, you, nil)
 }
 
+// matchesSpec evaluates a live-object filter with its current derived
+// characteristics. The keyword slice is a value snapshot borrowed from the
+// allocation-free Derived path; it is never used for LKI or hypothetical
+// token objects, which go through MatchesObjectCtx and retain printed/counter
+// semantics. Keeping this seam in rules prevents effects from depending on
+// the layer owner while making every live-object rules query layer-aware.
+func (e *Engine) matchesSpec(spec string, id state.ObjID, sc effects.SpecContext) bool {
+	// During the layer scan Derived is already being built; consulting it
+	// again would recurse through active(). The scan's own matchesWithChars
+	// supplies its keywords-so-far snapshot directly.
+	if e.activeDepth == 0 {
+		if o := e.G.Obj(id); o != nil {
+			sc.ExtraKeywords = e.Derived(id).Keywords
+		}
+	}
+	return effects.MatchesSpecCtx(e.G, spec, id, sc)
+}
+
 // specCtxSVars is specCtx with an explicit SVar table: a static carried by a
 // card merged beneath a mutated pile's top resolves its Chosen*/SVar* terms
 // against that under-card's own table. A nil svars falls back to the source
@@ -353,7 +372,18 @@ func (e *Engine) castRestrictedUsing(statics []staticView, p state.PlayerID, id 
 		if !e.actorMatches(sv, "Caster", p) {
 			continue
 		}
-		if !e.restrictionGateHolds(sv, id) || !e.checkSVarHolds(sv) {
+		// The shared continuous gate (rules/layers.go) adds the IsPresent$/
+		// IsPresent2$/PresentCompare$/PresentZone$/CheckSVar$/SVarCompare$
+		// family for the CantBeCast consumer (Blizzard's "as long as the
+		// defending player doesn't control a snow land"). It is wired HERE
+		// and at recheckIllegal only: the other restrictionGateHolds callers
+		// -- CantBeActivated, AssignCombatDamageAsUnblocked,
+		// CombatDamageToughness -- keep their pre-existing gate set, so no
+		// out-of-scope consumer's semantics move with this task. It subsumes
+		// the checkSVarHolds the caller used to run separately, and the
+		// duplicate ClassBand$/Condition$ reads inside restrictionGateHolds
+		// below are pure state reads with identical semantics.
+		if !e.continuousGateHolds(sv) || !e.restrictionGateHolds(sv, id) {
 			continue
 		}
 		spec := sv.Params["ValidCard"]
@@ -374,7 +404,7 @@ func (e *Engine) castRestrictedUsing(statics []staticView, p state.PlayerID, id 
 				spec = s
 			}
 		}
-		if effects.MatchesSpecCtx(e.G, spec, id, e.staticSpecCtx(sv)) {
+		if e.matchesSpec(spec, id, e.staticSpecCtx(sv)) {
 			return true
 		}
 	}
@@ -460,7 +490,7 @@ func (e *Engine) abilityRestrictedUsing(statics []staticView, p state.PlayerID, 
 		if !e.restrictionGateHolds(sv, id) || !e.checkSVarHolds(sv) {
 			continue
 		}
-		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.staticSpecCtx(sv)) {
+		if !e.matchesSpec(sv.Params["ValidCard"], id, e.staticSpecCtx(sv)) {
 			continue
 		}
 		if activatedMatchesValidSA(ab, sv.Params["ValidSA"]) {
@@ -596,7 +626,7 @@ func (e *Engine) castWithFlash(p state.PlayerID, id state.ObjID) bool {
 		if o == nil || o.Face() == nil || !spellMatchesValidSA(o.Face(), sv.Params["ValidSA"], id, sv.Source) {
 			continue
 		}
-		if effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.staticSpecCtx(sv)) {
+		if e.matchesSpec(sv.Params["ValidCard"], id, e.staticSpecCtx(sv)) {
 			return true
 		}
 	}
@@ -702,7 +732,7 @@ func (e *Engine) countStaticPresent(sv staticView, spec string) int {
 	n := 0
 	e.forEachObject(func(id state.ObjID) {
 		o := e.G.Obj(id)
-		if o != nil && o.Zone == want && effects.MatchesSpecCtx(e.G, spec, id, e.staticSpecCtx(sv)) {
+		if o != nil && o.Zone == want && e.matchesSpec(spec, id, e.staticSpecCtx(sv)) {
 			n++
 		}
 	})
@@ -791,7 +821,7 @@ type altCostView struct {
 func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []altCostView {
 	var out []altCostView
 	for _, sv := range e.activeStatics("AlternativeCost") {
-		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.staticSpecCtx(sv)) {
+		if !e.matchesSpec(sv.Params["ValidCard"], id, e.staticSpecCtx(sv)) {
 			continue
 		}
 		if !e.alternativeCostScopeOK(sv.Params, id, sv.Source, p, sv.Controller) {
@@ -823,7 +853,7 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []altCostVie
 		// matches NOTHING, so an unconditional check would silently deny
 		// every ValidCard$-less grant.
 		if spec, ok := sv.Params["ValidCard"]; ok && spec != "" &&
-			!effects.MatchesSpecCtx(e.G, spec, id, e.staticSpecCtx(sv)) {
+			!e.matchesSpec(spec, id, e.staticSpecCtx(sv)) {
 			continue
 		}
 		if !e.alternativeCostScopeOK(sv.Params, id, sv.Source, p, sv.Controller) {
@@ -922,7 +952,7 @@ func (e *Engine) altCostXCandidates(p state.PlayerID, id state.ObjID, alt altCos
 				}
 				return 0, false
 			}})
-			if effects.MatchesSpecCtx(e.G, part.Spec, oid, sc) {
+			if e.matchesSpec(part.Spec, oid, sc) {
 				seen[v] = true
 				vals = append(vals, v)
 			}
@@ -1039,6 +1069,29 @@ func (e *Engine) alternativeCostScopeOK(params map[string]string, id, srcID stat
 // re-evaluate) is not counted -- the missing-match direction for a USED
 // tracking, which widens the discount by at most one cast on a board this
 // build cannot reconstruct, never withholds it.
+func (e *Engine) firstForetellUsed(p state.PlayerID) bool {
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if ev.Kind != events.MoveZone || ev.To != state.ZExile ||
+			ev.Counter != "exiled_with_face_down" || i == 0 {
+			continue
+		}
+		o := e.G.Obj(ev.Obj)
+		if o == nil || o.Owner != p {
+			continue
+		}
+		prev := e.L.Events[i-1]
+		if prev.Kind == events.CastInfo &&
+			events.FlagsFrom(prev.Counter)&state.FlagForetold != 0 {
+			return true
+		}
+	}
+	return false
+}
+
 func (e *Engine) onlyFirstSpellUsed(sv staticView, p state.PlayerID, id state.ObjID) bool {
 	spec := strings.TrimSpace(sv.Params["ValidCard"])
 	for i := len(e.L.Events) - 1; i >= 0; i-- {
@@ -1053,7 +1106,7 @@ func (e *Engine) onlyFirstSpellUsed(sv staticView, p state.PlayerID, id state.Ob
 			return true
 		}
 		if o := e.G.Obj(ev.Obj); o != nil && o.Face() != nil &&
-			effects.MatchesSpecCtx(e.G, spec, ev.Obj, e.staticSpecCtx(sv)) {
+			e.matchesSpec(spec, ev.Obj, e.staticSpecCtx(sv)) {
 			return true
 		}
 	}
@@ -1088,38 +1141,31 @@ func (e *Engine) blockRestricted(blocker, attacker state.ObjID) bool {
 		for _, r := range ce.Remembered {
 			sc.Remembered = append(sc.Remembered, state.Target{Obj: r})
 		}
-		if !effects.MatchesSpecCtx(e.G, atkSpec, attacker, sc) {
+		if !e.matchesSpec(atkSpec, attacker, sc) {
 			continue
 		}
 		blkSpec, ok := ce.RestrictParams["ValidBlocker"]
 		if !ok {
 			return true
 		}
-		if effects.MatchesSpecCtx(e.G, blkSpec, blocker, sc) {
+		if e.matchesSpec(blkSpec, blocker, sc) {
 			return true
 		}
 	}
 	for _, sv := range e.activeStatics("CantBlock") {
-		// Condition$ is evaluated per static (continuousConditionHolds:
-		// the Detective of the Month / Slippery Scoundrel family's
-		// Condition$ Blessing, Cephalid Inkmage's Threshold, Bilbo's
-		// Ring's PlayerTurn). Before this gate the restriction applied
-		// UNCONDITIONALLY (over-permissive); the evaluator's fail-closed
-		// direction (rules/layers.go) keeps an unimplementable condition
-		// denying instead. Only Condition$ is read here, NOT the rest of
-		// continuousGateHolds (IsPresent$/IsPresent2$/CheckSVar$), so an
-		// IsPresent$- or CheckSVar$-gated CantBlock stays unconditional
-		// exactly as before.
-		if !e.continuousConditionHolds(sv) {
+		// The shared continuous gate evaluates Condition$, IsPresent$ and
+		// CheckSVar$ families with the same fail-closed semantics used by
+		// continuous effects.
+		if !e.continuousGateHolds(sv) {
 			continue
 		}
-		if effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], blocker, e.staticSpecCtx(sv)) {
+		if e.matchesSpec(sv.Params["ValidCard"], blocker, e.staticSpecCtx(sv)) {
 			return true
 		}
 	}
 	for _, sv := range e.activeStatics("CantBlockBy") {
-		// The same per-static condition gate as the CantBlock loop above.
-		if !e.continuousConditionHolds(sv) {
+		// Apply the same shared per-static gate as the CantBlock loop above.
+		if !e.continuousGateHolds(sv) {
 			continue
 		}
 		// ValidAttacker$ is Forge's own spelling for the attacker side of a
@@ -1135,14 +1181,14 @@ func (e *Engine) blockRestricted(blocker, attacker state.ObjID) bool {
 		if attackerSpec == "" {
 			attackerSpec = sv.Params["ValidCard"]
 		}
-		if !effects.MatchesSpecCtx(e.G, attackerSpec, attacker, e.staticSpecCtx(sv)) {
+		if !e.matchesSpec(attackerSpec, attacker, e.staticSpecCtx(sv)) {
 			continue
 		}
 		spec, ok := sv.Params["ValidBlocker"]
 		if !ok {
 			return true
 		}
-		if effects.MatchesSpecCtx(e.G, spec, blocker, e.staticSpecCtx(sv)) {
+		if e.matchesSpec(spec, blocker, e.staticSpecCtx(sv)) {
 			return true
 		}
 	}
@@ -1185,11 +1231,11 @@ func (e *Engine) blockRestricted(blocker, attacker state.ObjID) bool {
 			if !remembered {
 				continue
 			}
-		} else if !effects.MatchesSpecCtx(e.G, attackerSpec, attacker, sc) {
+		} else if !e.matchesSpec(attackerSpec, attacker, sc) {
 			continue
 		}
 		if spec, ok := ce.RestrictParams["ValidBlocker"]; ok {
-			if !effects.MatchesSpecCtx(e.G, spec, blocker, sc) {
+			if !e.matchesSpec(spec, blocker, sc) {
 				continue
 			}
 		}
@@ -1246,7 +1292,7 @@ func (e *Engine) minMaxBlockerBounds(attacker state.ObjID) (min, max int, minOK,
 		if !e.continuousGateHolds(sv) {
 			continue
 		}
-		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], attacker, e.staticSpecCtx(sv)) {
+		if !e.matchesSpec(sv.Params["ValidCard"], attacker, e.staticSpecCtx(sv)) {
 			continue
 		}
 		if raw, ok := sv.Params["Min"]; ok {
@@ -1292,6 +1338,7 @@ type costScope struct {
 }
 
 func spellScope(mode string) costScope    { return costScope{kind: "Spell", mode: mode} }
+func foretellScope() costScope            { return costScope{kind: "Foretell", mode: "foretell"} }
 func abilityScope(ab *cards.SA) costScope { return costScope{kind: "Ability", ab: ab} }
 
 // costMod is ONE evaluated ReduceCost static's contribution to a total cost.
@@ -1498,12 +1545,24 @@ func (e *Engine) manaFeasible(p state.PlayerID, id state.ObjID, ability bool, c 
 // grant derived here. Both widen the leaf payable check the same way the
 // payment (resolveManaWith) widens it, so an offered cast, an offered
 // announcement face and the charged total can never disagree on a
-// K'rrik-shaped or MayPlayIgnoreColor$-shaped cost either.
-func (e *Engine) manaFeasibleGrant(p state.PlayerID, id state.ObjID, ability bool, c Cost, mods costMods, taxGeneric, delve int32, rider pipRider) bool {
+// K'rrik-shaped or MayPlayIgnoreColor$-shaped cost either. The descriptor is
+// the caller's: post-announcement costs (pc.resolvedMana and friends) have
+// WithX folded their X into Generic, so they must arrive through
+// paymentForCast — a paymentFor-built descriptor from a folded cost would
+// hide every CostContainsX batch from the target-repricing gates exactly
+// where the offer and the payment both admit it.
+func (e *Engine) manaFeasibleDescriptor(p state.PlayerID, d paymentDescriptor, c Cost, mods costMods, taxGeneric, delve int32, rider pipRider) bool {
 	pl := e.G.Players[p]
-	av := e.manaAvailableFor(p, id, ability)
+	av := e.manaAvailableFor(p, d)
 	return mods.feasibleAny(c, av.pool, pl.Snow, av.typed, pl.Life, taxGeneric, delve,
-		e.payerGrantsPayLifeInsteadOfB(p), rider, e.paymentConv(p, id, ability))
+		e.payerGrantsPayLifeInsteadOfB(p), rider, e.paymentConv(p, d.id, d.class == paymentActivated))
+}
+
+// manaFeasibleGrant prices a RAW (unannounced) cost: the offer-side entry
+// whose cost still carries any unfolded X, so paymentFor's own derivation
+// sets the announced-X marker.
+func (e *Engine) manaFeasibleGrant(p state.PlayerID, id state.ObjID, ability bool, c Cost, mods costMods, taxGeneric, delve int32, rider pipRider) bool {
+	return e.manaFeasibleDescriptor(p, paymentFor(id, ability, c), c, mods, taxGeneric, delve, rider)
 }
 
 // manaFeasiblePool is manaFeasible priced against an EXPLICIT pool instead of
@@ -1526,7 +1585,7 @@ func (e *Engine) manaFeasiblePool(p state.PlayerID, id state.ObjID, ability bool
 // ordinary real-pool gate, hyp non-nil prices the feasibility against the
 // potential walk's hypothetical bound (rules/legal.go legalActionsPriced).
 func (e *Engine) manaFeasiblePriced(p state.PlayerID, id state.ObjID, ability bool, c Cost, mods costMods, taxGeneric, delve int32, hyp *state.Mana) bool {
-	av := e.manaAvailableFor(p, id, ability)
+	av := e.manaAvailableFor(p, paymentFor(id, ability, c))
 	pool, typed := av.pool, av.typed
 	if hyp != nil {
 		pool = *hyp
@@ -1616,6 +1675,8 @@ func (e *Engine) collectCostStatics() costStaticViews {
 				dst = &out.reduce
 			case "SetCost":
 				dst = &out.set
+			case "OptionalCost":
+				dst = &out.optional
 			default:
 				continue
 			}
@@ -2016,6 +2077,26 @@ func (e *Engine) costModifiersWithTargetsUsing(statics costStaticViews, p state.
 	return mods
 }
 
+// optionalCostViews returns self-spell OptionalCost statics in collector order.
+// These are deliberately narrower than the general cost-modifier grammar: the
+// supported corpus shape is an EffectZone$ All self static on the spell face.
+func (e *Engine) optionalCostViews(statics costStaticViews, p state.PlayerID, id state.ObjID) []Cost {
+	var out []Cost
+	for _, sv := range statics.optional {
+		if strings.TrimSpace(sv.Params["ValidSA"]) != "Spell" ||
+			strings.TrimSpace(sv.Params["EffectZone"]) != "All" ||
+			!strings.Contains(sv.Params["ValidCard"], "Card.Self") ||
+			sv.Source != id || !e.costStaticApplies(sv, "OptionalCost", p, id, spellScope(""), nil, false) {
+			continue
+		}
+		c := ParseCost(sv.Params["Cost"])
+		if len(c.Unknown) == 0 {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
 // costStaticApplies runs the gate chain one cost-modifier static must pass
 // before its Amount$ is evaluated and applied. Every unimplementable
 // qualifier denies (never silently over-applies): ValidTarget$ needs the
@@ -2057,9 +2138,13 @@ func (e *Engine) costStaticApplies(sv staticView, mode string, p state.PlayerID,
 			e.costProvenanceSeen = true
 		}
 		spec, ok2 := e.castProvenanceAdmitsPending(spec, id, sv.Controller)
-		if !ok2 || !effects.MatchesSpecCtx(e.G, spec, id, e.staticSpecCtx(sv)) {
+		if !ok2 || !e.matchesSpec(spec, id, e.staticSpecCtx(sv)) {
 			return false
 		}
+	}
+	if first, ok := sv.Params["FirstForetell"]; ok && strings.EqualFold(strings.TrimSpace(first), "True") &&
+		scope.kind == "Foretell" && e.firstForetellUsed(p) {
+		return false
 	}
 	if vs, ok := sv.Params["ValidSpell"]; ok && !e.validSpellMatches(scope, p, id, vs) {
 		return false
@@ -2137,7 +2222,7 @@ func (e *Engine) costTargetsMatch(sv staticView, spec string, targets []state.Ta
 			}
 			continue
 		}
-		if effects.MatchesSpecCtx(e.G, spec, target.Obj, ctx) {
+		if e.matchesSpec(spec, target.Obj, ctx) {
 			return true
 		}
 	}
@@ -2241,7 +2326,7 @@ func (e *Engine) isPresent(spec string, sv staticView) bool {
 	ctx := e.staticSpecCtx(sv)
 	for _, p := range e.G.AliveFrom(0) {
 		for _, oid := range e.G.Zone(state.ZBattlefield, p) {
-			if effects.MatchesSpecCtx(e.G, spec, oid, ctx) {
+			if e.matchesSpec(spec, oid, ctx) {
 				return true
 			}
 		}
@@ -2334,8 +2419,11 @@ func (e *Engine) validSpellMatches(scope costScope, p state.PlayerID, id state.O
 			if e.abilityConstraintMatches(scope, p, id, constraint) {
 				return true
 			}
+		case "Static":
+			if scope.kind == "Foretell" && constraint == "Foretelling" {
+				return true
+			}
 		}
-		// Kind "Static" (and anything else): never matches.
 	}
 	return false
 }
@@ -2476,6 +2564,10 @@ func init() {
 		// price (Nils' RememberingAttacker$) stay unregistered
 		// behaviour-wise and are ledgered in AGENTS.md.
 		"stat:CantAttackUnless",
+		// blockprop1: the CR 509.1b block-prop static. Mana-priceable
+		// face statics are charged per (blocker, attacker); non-mana costs
+		// and Effect/Animate-delivered forms remain permissively skipped.
+		"stat:CantBlockUnless",
 		// canattackdefender1: the CR 702.3b permission static (the inverse of
 		// a restriction: it LIFTS the Defender wall per (attacker, defender)
 		// pair). rules/attack_defender.go attackAllowedThroughDefender is the
@@ -2553,7 +2645,7 @@ func (e *Engine) asUnblockedStaticMatches(id state.ObjID) (matched, mandatory bo
 				continue
 			}
 		}
-		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.staticSpecCtx(sv)) {
+		if !e.matchesSpec(sv.Params["ValidCard"], id, e.staticSpecCtx(sv)) {
 			continue
 		}
 		matched = true
@@ -2646,7 +2738,7 @@ func (e *Engine) combatDamageToughnessMatches(id state.ObjID) bool {
 				continue
 			}
 		}
-		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.staticSpecCtx(sv)) {
+		if !e.matchesSpec(sv.Params["ValidCard"], id, e.staticSpecCtx(sv)) {
 			continue
 		}
 		return true
@@ -2724,7 +2816,8 @@ func altCostLabel(name string, i int) string {
 // build cannot evaluate (IsPresent/PresentCompare, Condition, ValidTurned --
 // there is no TurnFaceUp event) fail closed: the static does not double,
 // never over-applies.
-func (e *Engine) panharmoniconEchoes(g *state.Game, src state.ObjID, ev events.Event) int {
+func (e *Engine) panharmoniconEchoes(observer *Engine, src state.ObjID, ev events.Event) int {
+	g := observer.G
 	o := g.Obj(src)
 	if o == nil {
 		return 0
@@ -2779,7 +2872,7 @@ func (e *Engine) panharmoniconEchoes(g *state.Game, src state.ObjID, ev events.E
 					cause = ev.IDs[0]
 				}
 			}
-			if cause == 0 || !effects.MatchesSpecFrom(g, spec, cause, sv.Controller, sv.Source) {
+			if cause == 0 || !observer.matchesSpecFrom(spec, cause, sv.Controller, sv.Source) {
 				continue
 			}
 		}
@@ -2791,14 +2884,14 @@ func (e *Engine) panharmoniconEchoes(g *state.Game, src state.ObjID, ev events.E
 		}
 		if spec := sv.Params["ValidSource"]; spec != "" {
 			if ev.Kind != events.Damage || e.damaging == 0 ||
-				!effects.MatchesSpecFrom(g, spec, e.damaging, sv.Controller, sv.Source) {
+				!observer.matchesSpecFrom(spec, e.damaging, sv.Controller, sv.Source) {
 				continue
 			}
 		}
 		if spec := sv.Params["ValidTarget"]; spec != "" {
 			switch {
 			case ev.Kind == events.Damage && ev.Obj != 0:
-				if !effects.MatchesSpecFrom(g, spec, ev.Obj, sv.Controller, sv.Source) {
+				if !observer.matchesSpecFrom(spec, ev.Obj, sv.Controller, sv.Source) {
 					continue
 				}
 			case ev.Kind == events.Damage:
@@ -2807,7 +2900,7 @@ func (e *Engine) panharmoniconEchoes(g *state.Game, src state.ObjID, ev events.E
 				}
 			case ev.Kind == events.TargetsChosen:
 				// The BecomesTarget-ed object is the trigger's own source.
-				if !effects.MatchesSpecFrom(g, spec, src, sv.Controller, sv.Source) {
+				if !observer.matchesSpecFrom(spec, src, sv.Controller, sv.Source) {
 					continue
 				}
 			default:
@@ -2832,7 +2925,7 @@ func (e *Engine) panharmoniconEchoes(g *state.Game, src state.ObjID, ev events.E
 		if spec == "" {
 			continue
 		}
-		if effects.MatchesSpecFrom(g, spec, src, sv.Controller, sv.Source) {
+		if observer.matchesSpecFrom(spec, src, sv.Controller, sv.Source) {
 			n++
 		}
 	}

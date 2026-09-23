@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -13,6 +14,8 @@ func init() { Register("ManaReflected", effManaReflected) }
 // manaReflectedOrder is the fixed candidate order. Never a map, so the
 // offered option list and deterministic single-colour pick are stable.
 const manaReflectedOrder = "WUBRGC"
+
+var manaReflectedReplacer = strings.NewReplacer("{", "", "}", "", " ", "")
 
 // ManaReflectedCandidates resolves which mana symbols an "AB$ ManaReflected"
 // ability can add, in the fixed manaReflectedOrder order. Two params drive it:
@@ -133,33 +136,33 @@ func producibleSymbols(o *state.Object) string {
 	if f == nil {
 		return ""
 	}
-	set := map[byte]bool{}
+	var set uint8
 	for _, ma := range f.ManaAbilities() {
 		p := strings.TrimSpace(ma.Params["Produced"])
 		switch {
 		case p == "" || p == "Any" || p == "Combo Any":
 			for _, r := range "WUBRG" {
-				set[byte(r)] = true
+				set |= 1 << uint(strings.IndexRune(manaReflectedOrder, r))
 			}
 			continue
 		}
 		if cols, ok := ComboColours(p); ok {
 			for _, col := range cols {
-				set[col[0]] = true
+				set |= 1 << uint(strings.IndexByte(manaReflectedOrder, col[0]))
 			}
 			continue
 		}
-		runes := strings.NewReplacer("{", "", "}", "", " ", "").Replace(p)
+		runes := manaReflectedReplacer.Replace(p)
 		for _, r := range runes {
-			if strings.ContainsRune("WUBRGC", r) {
-				set[byte(r)] = true
+			if i := strings.IndexRune(manaReflectedOrder, r); i >= 0 {
+				set |= 1 << uint(i)
 			}
 		}
 	}
 	var b strings.Builder
-	for _, c := range "WUBRGC" {
-		if set[byte(c)] {
-			b.WriteByte(byte(c))
+	for i := range manaReflectedOrder {
+		if set&(1<<uint(i)) != 0 {
+			b.WriteByte(manaReflectedOrder[i])
 		}
 	}
 	return b.String()
@@ -280,6 +283,32 @@ func effManaReflected(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 	cols := ManaReflectedCandidates(h, c, sa)
+	// The rules mana-activation path resolves this ability with Produced$
+	// already rewritten to one letter (the guard above), so it never reaches
+	// the ask. Reached standalone -- a DB$/SP$ ManaReflected body resolved on
+	// its own -- a multi-colour set is a REAL mid-resolution colour choice: a
+	// real host is asked, and only a host that cannot answer (or an empty
+	// option list) keeps the deterministic first-candidate stand-in with its
+	// R-9 Note.
+	if answered := c.ManaReflectedColor; answered != "" {
+		// The answered ask's re-entry. Consume and clear the transport (fx42
+		// scoping: a nested ManaReflected below poses its own ask), accept the
+		// colour only when this resolution still offers it, and degrade a
+		// malformed/off-list answer to the first candidate rather than
+		// inventing a colour the candidates never named.
+		c.ManaReflectedColor = ""
+		col := strings.TrimPrefix(answered, "Add ")
+		for _, cand := range cols {
+			if cand == col {
+				manaAdd(recipient, col)
+				return
+			}
+		}
+		if len(cols) > 0 {
+			manaAdd(recipient, cols[0])
+		}
+		return
+	}
 	switch len(cols) {
 	case 0:
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
@@ -287,6 +316,15 @@ func effManaReflected(h Host, c *Ctx, sa *cards.SA) {
 	case 1:
 		manaAdd(recipient, cols[0])
 	default:
+		d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+			ResumeKind: "manareflected", ResumeSA: sa,
+			Prompt: "Choose a colour of mana to reflect", Source: c.Source}
+		for i, col := range cols {
+			d.Options = append(d.Options, decision.Option{Index: i, Kind: "mana", Obj: c.Source, Label: "Add " + col})
+		}
+		if Ask(h, d) == AskAsked {
+			return
+		}
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "chose first reflected colour " + cols[0] + " (no ask possible)"})
 		manaAdd(recipient, cols[0])

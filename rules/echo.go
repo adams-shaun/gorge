@@ -143,7 +143,7 @@ func (e *Engine) echoElectionAsk() {
 	}
 	payable := false
 	if ef.action == nil {
-		payable = ef.amount.Priceable() && e.costPayable(ef.player, ef.source, false, ef.amount)
+		payable = ef.amount.Priceable() && e.costPayableOther(ef.player, ef.source, ef.amount)
 	} else {
 		shim := &cumulativeUpkeep{player: ef.player, source: ef.source,
 			action: ef.action, actionRemaining: 1}

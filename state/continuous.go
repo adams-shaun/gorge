@@ -85,7 +85,12 @@ type ContinuousEffect struct {
 	// field. Written only by rules' static scanner; the numeric fields above
 	// stay the API for resolution-created effects.
 	AddPowerExpr, AddToughnessExpr string
-	SetPowerExpr, SetToughnessExpr string
+	// AddPowerAffected and AddToughnessAffected mark the Forge AffectedX
+	// convention: only those expressions re-anchor their count source on the
+	// object receiving the pump. Other named expressions keep their grantor
+	// source (for example, Mace of the Valiant's counter count).
+	AddPowerAffected, AddToughnessAffected bool
+	SetPowerExpr, SetToughnessExpr         string
 	// SetPowerPresent and SetToughnessPresent distinguish an omitted setter
 	// from an explicit zero on a static that sets only one characteristic.
 	SetPowerPresent, SetToughnessPresent bool

@@ -7,6 +7,7 @@ import (
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -72,11 +73,16 @@ func unpriceableCounterCards(reg *cards.Registry) []string {
 
 // TestUnlessCostUnpriceablePopulation pins the corpus population of Counter
 // SAs whose UnlessCost$ ParseCost cannot price. It is the executable version
-// of the I-5 scope: every one of them must satisfy the same !Priceable()
-// predicate (so no SVar-sourced X, cast-time X or Sac component escapes as a
-// special case), and the set itself is a golden -- a corpus or grammar change
-// that adds or removes an unpriceable unless-cost here is a real scope change
-// that must be understood, not silently absorbed. Measured on the compiled
+// of the I-5 scope, and it reads the RAW parameter: every one of them must
+// satisfy the same !Priceable() predicate (so no SVar-sourced X, cast-time X
+// or Sac component escapes as a special case at the strict-parser level), and
+// the set itself is a golden -- a corpus or grammar change that adds or
+// removes an unpriceable unless-cost here is a real scope change that must be
+// understood, not silently absorbed. NOTE: the resolved-cost fold
+// (effects.UnlessCostResolved) is a separate layer ABOVE this parser, so a
+// card here (Mausoleum Wanderer, Power Sink, Condescend, ...) may still reach
+// the unless-pay ask with a concrete generic amount even though its raw
+// UnlessCost$ stays in this population. Measured on the compiled
 // .cards/ir.gob.gz corpus at FORGE_REF: 29 distinct cards, of which 21 carry
 // UnlessCost$ X (the I-5 population the issue names), 3 a Sac<...> part
 // (Blood Funnel, Brain Gorgers, Mana Vortex), 3 a Discard<...> part
@@ -86,9 +92,8 @@ func unpriceableCounterCards(reg *cards.Registry) []string {
 // mana "paid" it; now it is a real Exile part, Priceable is false, and the
 // unless-pay ask hard-declines, the conservative correct direction), and 1 a
 // DamageYou<4> part (Molten Influence -- the head was ParseCost-unmodelled
-// one-generic until the cost-token family work; ParseUnlessCost always
-// declined it, so the ask-posed-then-declined runtime behaviour is unchanged,
-// only the report now agrees).
+// one-generic until the cost-token family work; the Sacrifice arm is the
+// distinct DamageYou payment path and still offers it).
 // Raw .cards/cardsfolder lines with UnlessCost$ X number the same 21.
 func TestUnlessCostUnpriceablePopulation(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
@@ -179,14 +184,18 @@ func xCounterFixture(t *testing.T, reg *cards.Registry, counter, creature string
 	return e, casterID, creatureID
 }
 
-// TestPowerSinkCastTimeXUnlessPayCannotSucceedFromEmptyPool is the case the
-// old reading of I-5 got wrong: Power Sink's {X} comes from a real cast-time
-// choice (Count$xPaid), so an earlier analysis claimed it was protected. It is
-// not. We choose X = 2 at cast time, drain the payer, then answer the
-// unless_pay ask "pay" -- and because the UnlessCost the payment API must
-// price is still the unpriceable {X} (ParseCost reads "X", it never reads
-// Count$xPaid), the pay cannot succeed and Power Sink must counter the
-// targeted spell rather than resolving inertly.
+// TestPowerSinkCastTimeXUnlessPayCannotSucceedFromEmptyPool pins the
+// empty-pool half: Power Sink's {X} is a real cast-time choice
+// (Count$xPaid), and an EMPTY pool cannot cover whatever the unless-pay arm
+// prices. The resolved-cost fold (effects.UnlessCostResolved) now folds that
+// Count$xPaid into a concrete "{2}" for X=2, so the ask label shows the
+// amount and the charge agrees; with nothing in the pool the payment still
+// fails, so Power Sink counters the targeted spell rather than resolving
+// inertly. It is the case the old reading of I-5 got wrong.
+// Under the unless-pay mana window (cli-20260922T150843Z-daf1bd3e) the offer
+// gate also proves the pay branch REACHABLE before it is offered: this payer
+// has an empty pool and no window-eligible source, so the ask is decline-only
+// and the assertion below pins that shape.
 func TestPowerSinkCastTimeXUnlessPayCannotSucceedFromEmptyPool(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e, _, creatureID := xCounterFixture(t, reg, "Power Sink", "Grizzly Bears", "2")
@@ -198,8 +207,12 @@ func TestPowerSinkCastTimeXUnlessPayCannotSucceedFromEmptyPool(t *testing.T) {
 	if pay == nil {
 		t.Fatal("no unless_pay ask posed for Power Sink")
 	}
-	// The payer says "pay", but the cost is the unpriceable {X}: it must be a
-	// hard decline and the targeted spell is countered, not resolved.
+	// The strict-unpriceable {X} must be a decline-only ask. This assertion
+	// fails if the offer gate admits the impossible Pay option, before the
+	// resolution fallback can hide that error by declining it later.
+	if len(pay.Options) != 1 || pay.Options[0].Kind != "mode" || pay.Options[0].Label != "Don't pay" {
+		t.Fatalf("unpriceable {X} exposed a Pay option: %+v", pay.Options)
+	}
 	submitChoices(t, e, pay.Options[0].Index)
 	passUntilStackEmpty(t, e, 30)
 	if z := e.G.Obj(creatureID).Zone; z != state.ZGraveyard {
@@ -231,15 +244,9 @@ func inDeck(deck []*cards.Card, name string) bool {
 	return false
 }
 
-// TestMausoleumWandererUnlessCostX pin the repo-deck case that makes I-5
-// more than a corpus corner: Mausoleum Wanderer's activated Counter ability
-// carries UnlessCost$ X (X is the Wanderer's power, from an SVar -- the
-// engine never reads it), and the card ships in two of the 12 replay-golden
-// repo decks (mono-blue-tempo, uw-tempo). Its compiled UnlessCost parses to
-// an unpriceable {X}, which the payment API must decline. The ability's own
-// Sac<1/CARDNAME> now matches the source object (cardname_cost_test.go covers
-// that offer/payment path); this test pins the compiled Counter SA and its
-// presence in the repo decks, not its activation.
+// TestMausoleumWandererUnlessCostX pins the real corpus Counter ability and
+// verifies its X unless cost resolves from the captured sacrificed-card LKI.
+// The card ships in the mono-blue-tempo and uw-tempo replay decks.
 func TestMausoleumWandererUnlessCostX(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	wanderer := mustCorpusCard(t, reg, "Mausoleum Wanderer")
@@ -249,7 +256,19 @@ func TestMausoleumWandererUnlessCostX(t *testing.T) {
 		t.Fatalf("Mausoleum Wanderer unless cost = %q, want X", uc)
 	}
 	if ParseCost(uc).Priceable() {
-		t.Fatalf("Mausoleum Wanderer's UnlessCost %q must be unpriceable", uc)
+		t.Fatalf("raw Mausoleum Wanderer UnlessCost %q unexpectedly priceable", uc)
+	}
+	if len(wanderer.Faces) == 0 || wanderer.Faces[0].SVars["X"] != "Sacrificed$CardPower" {
+		t.Fatalf("Mausoleum Wanderer X SVar is not Sacrificed$CardPower: %+v", wanderer.Faces[0].SVars)
+	}
+	e := handEngine(t, wanderer)
+	resolved := effects.UnlessCostResolved(e, &effects.Ctx{SVars: wanderer.Faces[0].SVars,
+		Sacrificed: []state.SacrificedInfo{{Power: 3}}}, counterSA(t, wanderer))
+	if resolved != "{3}" {
+		t.Fatalf("Mausoleum Wanderer resolved unless cost = %q, want {3}", resolved)
+	}
+	if _, ok := ParseUnlessCost(resolved); !ok {
+		t.Fatalf("resolved unless cost %q is not payable", resolved)
 	}
 	for _, deck := range []string{"mono-blue-tempo", "uw-tempo"} {
 		if !inDeck(testutil.RepoDeck(t, reg, deck), "Mausoleum Wanderer") {
@@ -338,8 +357,9 @@ func strictUnpriceableCards(reg *cards.Registry) []string {
 // boundary of the payment grammar this task built: mana symbols, fixed
 // PayLife<N>, and Sac/Discard/SubCounter/Draw/Reveal components are
 // chargeable mid-resolution (Sac/Discard/Reveal through the payer-choice
-// continuation); everything else is a hard decline (the ask is still posed
-// and recorded, but "pay" cannot succeed). A corpus or grammar change that
+// continuation); everything else is a hard decline (a decline-only ask is
+// still posed and recorded), except the Sacrifice arm's DamageYou<N> payment.
+// A corpus or grammar change that
 // adds or removes a name here is a real scope change that must be
 // understood, not silently absorbed.
 func TestUnlessCostStrictParsePopulation(t *testing.T) {

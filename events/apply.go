@@ -365,6 +365,7 @@ func Apply(g *state.Game, e Event) {
 			if e.Text == "clear" {
 				o.Imprinted = nil
 				o.ImprintTokens = nil
+				o.SeekFound = nil
 			} else if e.Text == "forget" {
 				// ForgetImprinted$ (Pump's Chrome Mox body): remove exactly the
 				// named ids from the persistent Imprinted list, keeping the
@@ -388,6 +389,13 @@ func Apply(g *state.Game, e Event) {
 					}
 				}
 				o.ImprintTokens = keptTokens
+				keptFound := make([]state.ObjID, 0, len(o.SeekFound))
+				for _, id := range o.SeekFound {
+					if !drop[id] {
+						keptFound = append(keptFound, id)
+					}
+				}
+				o.SeekFound = keptFound
 			} else {
 				// Text is an in-kind discriminator, not a new Event field:
 				// ImprintCards$ records Forge's imprintedCards list while a
@@ -426,6 +434,13 @@ func Apply(g *state.Game, e Event) {
 						// association `Defined$ Imprinted` resolves while they sit
 						// on the battlefield (state.Object.ImprintTokens).
 						list = &o.ImprintTokens
+					} else if e.Text == "seek-found" {
+						// Seek's ImprintFound$ records the cards it moved to a
+						// hand here; `Defined$ Imprinted` resolves them wherever
+						// they currently sit (state.Object.SeekFound), so the
+						// ordinary Imprinted list's exile-only reader keeps its
+						// CR 607.2a contract.
+						list = &o.SeekFound
 					}
 					for _, id := range e.IDs {
 						if g.Obj(id) != nil {
@@ -744,12 +759,17 @@ func Apply(g *state.Game, e Event) {
 		if o := g.Obj(e.Obj); o != nil {
 			if e.To == state.ZExile {
 				switch e.Counter {
-				case "exiled_with_face_down":
+				case "exiled_with_face_down", "exiled_with_face_down_foretold":
 					// Hideaway's face-down exile (CR 702.75): the exiling source
 					// rides in Amount, and FaceDown is state so a later projection
-					// knows not to reveal the card.
+					// knows not to reveal the card. The foretold variant also
+					// records the designation after Move has reset a battlefield
+					// object's cast flags.
 					o.ExiledWith = state.ObjID(e.Amount)
 					o.FaceDown = true
+					if e.Counter == "exiled_with_face_down_foretold" {
+						o.CastFlags |= state.FlagForetold
+					}
 				case "face_down":
 					// A bare ChangeZone FaceDown$ True exile (Tezzeret's
 					// Reckoning): the card is put into exile face down WITHOUT
@@ -851,6 +871,7 @@ func Apply(g *state.Game, e Event) {
 		// placement exactly like any other. This fold only withholds the
 		// form the counters replace.
 		infect := e.Counter == "infect"
+		wither := e.Counter == "wither+creature"
 		if o := g.Obj(e.Obj); o != nil {
 			// CR 306.8 / 120.3c: damage dealt to a planeswalker permanent
 			// removes that many loyalty counters instead of being marked as
@@ -892,8 +913,9 @@ func Apply(g *state.Game, e Event) {
 			// emitter (or a redirect's fresh event) hands here.
 			creature := e.Counter == "creature" || e.Counter == "infect+creature" ||
 				(o.Face() != nil && o.Face().IsCreature())
-			if e.Counter == "infect+creature" {
-				// CR 702.90b: that many -1/-1 counters instead of marked
+			if e.Counter == "infect+creature" || wither {
+				// Infect and Wither replace marked creature damage with a
+				// separate counter placement emitted by rules after this fold.
 				// damage. They arrive as the separate CounterChange event rules
 				// emitted right after this one. The branch also covers a
 				// rewritten negative amount (cleanup's marked-damage clearing),
@@ -1368,6 +1390,15 @@ func Apply(g *state.Game, e Event) {
 		//   2: append one object target per entry in IDs.
 		//   3: append a single player target, read from Player.
 		if o := g.Obj(e.Obj); o != nil {
+			// CR 707.10c: recording chosen targets on a COPY consumes its
+			// one-shot MayChooseTarget$ election. The only TargetsChosen a copy
+			// can receive is the copy-target ask's own answer (a copy is minted
+			// after its original was cast, so no cast-flow target records onto
+			// it), so this clear cannot swallow an unrelated choice; replay
+			// re-runs the same fold.
+			if o.IsCopy {
+				o.CopyMayChooseTarget = false
+			}
 			switch e.Amount {
 			case 1:
 				if validPlayer(g, e.Player) {
@@ -1515,6 +1546,9 @@ func Apply(g *state.Game, e Event) {
 			if FlagsFrom(e.Counter)&state.FlagOffspringPaid != 0 {
 				o.OffspringPaid = true
 			}
+			if FlagsFrom(e.Counter)&state.FlagOptionalCostPaid != 0 {
+				o.OptionalCostPaid = true
+			}
 			// Convoke (CR 702.66, task connive1) is an ID-LIST fold, not an
 			// amount: the convoked creatures ride the pay-time CastInfo's IDs
 			// whenever the flag is present, whatever other tags ride the same
@@ -1536,6 +1570,8 @@ func Apply(g *state.Game, e Event) {
 			case FlagsFrom(e.Counter)&state.FlagConspired != 0:
 				// bool folded above; the Amount is deliberately unused
 			case FlagsFrom(e.Counter)&state.FlagOffspringPaid != 0:
+				// bool folded above; the Amount is deliberately unused
+			case FlagsFrom(e.Counter)&state.FlagOptionalCostPaid != 0:
 				// bool folded above; the Amount is deliberately unused
 			case FlagsFrom(e.Counter)&state.FlagConvoked != 0:
 				// the convoked id list was folded above; the Amount is
@@ -1589,6 +1625,30 @@ func Apply(g *state.Game, e Event) {
 		// leave-the-battlefield reset clears it with the X/CastFlags window.
 		if o := g.Obj(e.Obj); o != nil {
 			o.NotedNumber = e.Amount
+		}
+
+	case PlayerNoted:
+		// A DB$ Pump body noted a label onto a player (NoteCards$ <defined>
+		// | NoteCardsFor$ <label> -- Seize the Spotlight, Master of
+		// Ceremonies). Player is the seat and Text the label; the note is
+		// read back by the shared player filter's `Player.NotedFor<label>`
+		// qualifier. Appending is idempotent (a re-note of the same label
+		// does not duplicate it) and preserves first-note order, so a
+		// log-only replay rebuilds the exact slice. An empty label or an
+		// out-of-range seat writes nothing rather than a ghost note.
+		if e.Text == "" || int(e.Player) >= len(g.Players) {
+			break
+		}
+		p := &g.Players[e.Player]
+		seen := false
+		for _, n := range p.Notes {
+			if n == e.Text {
+				seen = true
+				break
+			}
+		}
+		if !seen {
+			p.Notes = append(p.Notes, e.Text)
 		}
 
 	case Choose:
@@ -1930,6 +1990,21 @@ func Apply(g *state.Game, e Event) {
 					Params: map[string]string{"Defined": "TriggeredBlockerLKICopy", "NumAtt": "-1", "NumDef": "-1"}}
 				flanking = ok
 			}
+			// A granted cumulative upkeep (rules.pushTrigger's
+			// __kwCumulativeUpkeepGranted:<cost> payload) has no SVar either:
+			// rebuilt structurally into the same DB$ CumulativeUpkeep |
+			// Cost$ <cost> ability the printed K:Cumulative upkeep expansion
+			// carries (cards/kw_cumulativeupkeep.go), so the live game and the
+			// replay mint identical objects from the event text alone. The
+			// "Granted" suffix and the trailing colon keep the payload from
+			// aliasing the "__kw<keyword-line>" SVar a printed bare
+			// K:Cumulative upkeep line mints (the Exploit/Offspring rule).
+			// The cost rides Params["Cost"], which rules' startCumulativeUpkeep
+			// reads at resolution.
+			if rest, ok := strings.CutPrefix(e.Counter, "__kwCumulativeUpkeepGranted:"); ok {
+				sa = &cards.SA{Kind: "DB", API: "CumulativeUpkeep",
+					Params: map[string]string{"Cost": rest, "TriggerDescription": "Cumulative upkeep"}}
+			}
 			// A granted Exploit (rules.pushTrigger's __kwExploitGranted
 			// payload) has no SVar either: rebuilt structurally into the same
 			// DB$ Sacrifice | Optional$ True | SacValid$ Creature |
@@ -2038,6 +2113,13 @@ func Apply(g *state.Game, e Event) {
 		o.Targets = targets
 		o.Remembered = remembered
 		o.X, o.CastFlags, o.IsCopy = x, castFlags, true
+		// CR 707.10c: Amount is the creating CopySpellAbility's
+		// MayChooseTarget$ discriminator (1 = true). It rides the event so the
+		// permission travels with the COPY instance -- an external copier
+		// (Mirari, Cloven Casting, Storm, Replicate) whose SA is not part of
+		// the copied spell's own text still grants the election on replay,
+		// and effects/copy.go never has to reach into rules to ask.
+		o.CopyMayChooseTarget = e.Amount == 1
 
 	case Attach:
 		if o := g.Obj(e.Obj); o != nil {
@@ -2171,7 +2253,7 @@ func Apply(g *state.Game, e Event) {
 		}
 		mode, trigger := "", ""
 		if i := strings.Index(text, ":"); i > 0 &&
-			(text[:i] == "SpellCast" || text[:i] == "ChangesZone") {
+			(text[:i] == "SpellCast" || text[:i] == "ChangesZone" || text[:i] == "BecomeMonarch") {
 			mode, trigger = text[:i], text[i+1:]
 		}
 		g.Delayed = append(g.Delayed, state.DelayedTrigger{
@@ -2204,18 +2286,26 @@ func Apply(g *state.Game, e Event) {
 		if !validPlayer(g, e.Player) {
 			break
 		}
+		// CR 724.2a's monarch draw is the engine's OWN trigger, minted from
+		// a synthetic body with no card registration at all: it must never
+		// consume one. Its event carries Amount zero (no DelayedRegister
+		// ever set it), which would otherwise match registration ID 0 and
+		// delete a bystander's pending delayed trigger.
+		monarchDraw := e.Counter == "__monarch_draw"
 		// Consume the registration first, even when its tracked permanent has
 		// changed incarnation. A stale dash/warp promise expires once; it must
 		// neither act on the returned object nor be retried forever. Ordinary
 		// delayed triggers, including Encore's group cleanup, are independent
 		// of their source and still resolve.
 		var registration *state.DelayedTrigger
-		for i := range g.Delayed {
-			if g.Delayed[i].ID == uint32(e.Amount) {
-				dt := g.Delayed[i]
-				registration = &dt
-				g.Delayed = append(g.Delayed[:i], g.Delayed[i+1:]...)
-				break
+		if !monarchDraw {
+			for i := range g.Delayed {
+				if g.Delayed[i].ID == uint32(e.Amount) {
+					dt := g.Delayed[i]
+					registration = &dt
+					g.Delayed = append(g.Delayed[:i], g.Delayed[i+1:]...)
+					break
+				}
 			}
 		}
 		src := g.Obj(e.Obj)
@@ -2229,7 +2319,14 @@ func Apply(g *state.Game, e Event) {
 		if src.Face() == nil {
 			break
 		}
-		sa := resolveSVarAcrossFaces(src, e.Counter)
+		var sa *cards.SA
+		if monarchDraw {
+			sa = &cards.SA{Kind: "DB", API: "Draw", Params: map[string]string{
+				"Defined": "You", "NumCards": "1",
+			}}
+		} else {
+			sa = resolveSVarAcrossFaces(src, e.Counter)
+		}
 		if sa == nil {
 			break
 		}
@@ -2924,6 +3021,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		if wasBattlefield {
 			o.Imprinted = nil
 			o.ImprintTokens = nil
+			o.SeekFound = nil
 		}
 		// X/CastFlags/Chosen* carry cast-time and choose-time information
 		// forward from the stack onto the permanent it resolves into (an
@@ -2939,6 +3037,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.ReplicateTimes = 0
 			o.SquadPaid = 0
 			o.OffspringPaid = false
+			o.OptionalCostPaid = false
 			o.ConvergeColours = 0
 			o.TimesKicked = 0
 			o.Conspired = false
@@ -2983,6 +3082,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 			o.ReplicateTimes = 0
 			o.SquadPaid = 0
 			o.OffspringPaid = false
+			o.OptionalCostPaid = false
 			o.ConvergeColours = 0
 			o.TimesKicked = 0
 			o.Conspired = false

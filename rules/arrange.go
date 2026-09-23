@@ -37,6 +37,8 @@ import (
 //     This is today's behaviour (RearrangeTopOfLibrary keeps it exactly).
 //   - "bottom": pile B goes to the END of the library, BELOW the untouched
 //     remainder. One events.LibraryOrder carrying pileA + remainder + pileB.
+//     (The all-to-bottom kinds "hideaway_bottom" and "dig_bottom" are the
+//     exception below, not this arm.)
 //   - "graveyard": pile B leaves the library. Emit the events.LibraryOrder
 //     for pileA + remainder FIRST, then one events.MoveZone per pile-B card,
 //     in OFFERED order, From: ZLibrary, To: ZGraveyard. The order is a
@@ -50,8 +52,9 @@ import (
 // `chosen` is handed on to resumeResolution, which re-enters the suspended
 // resolution the way handleModes does -- the engine's one resume mechanism,
 // not a second one. The re-entered effect (effRearrangeTopOfLibrary, or the
-// new effScry/effSurveil) sees Ctx.Arrange set and returns without re-asking,
-// so only the chained SubAbility$ runs. A KArrange answer with no suspended
+// new effScry/effSurveil) sees Ctx.Arrange set, skips the completed library
+// and continues the per-library walk; after the final library only the
+// chained SubAbility$ runs. A KArrange answer with no suspended
 // resolution is only reachable from a hand-built decision, never from a real
 // ask; it degrades with a Note rather than panicking, the same totality
 // stance every handler takes.
@@ -100,10 +103,12 @@ func (e *Engine) handleArrange(d *decision.Decision, in decision.Intent) {
 	k := len(d.Options)
 	remainder := lib[k:]
 	switch kind {
-	case "hideaway_bottom":
-		// Hideaway has already moved its one chosen card to exile before this
-		// ask. Unlike Scry's selected subset, all remaining cards go to the
-		// bottom and their ANSWER order is the bottom order (CR 702.75a).
+	case "hideaway_bottom", "dig_bottom":
+		// The all-to-bottom shapes: Hideaway has already moved its one chosen
+		// card to exile before this ask; Dig's default remainder never had a
+		// take. Unlike Scry's selected subset, all remaining cards go to the
+		// bottom and their ANSWER order is the bottom order
+		// (CR 702.75a / Ancient Stirrings' "in any order").
 		newLib := make([]state.ObjID, 0, len(remainder)+len(pileA))
 		newLib = append(newLib, remainder...)
 		newLib = append(newLib, pileA...)

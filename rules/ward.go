@@ -200,7 +200,7 @@ func (e *Engine) wardPermanents(p state.PlayerID, source state.ObjID, spec strin
 	var out []state.ObjID
 	for _, id := range e.G.Zone(state.ZBattlefield, p) {
 		o := e.G.Obj(id)
-		if o == nil || (untapped && o.Tapped) || !effects.MatchesSpecFrom(e.G, spec, id, p, source) {
+		if o == nil || (untapped && o.Tapped) || !e.matchesSpecFrom(spec, id, p, source) {
 			continue
 		}
 		out = append(out, id)
@@ -317,7 +317,7 @@ func (e *Engine) settleWardPayment(kind string, sa *cards.SA, ctx *effects.Ctx, 
 		for _, id := range ids {
 			valid := slices.Contains(e.G.Zone(zone, payer), id)
 			if kind == "ward_sac" {
-				valid = valid && effects.MatchesSpecFrom(e.G, sacrificeMatchSpec(part.Spec), id, payer, ctx.Source)
+				valid = valid && e.matchesSpecFrom(sacrificeMatchSpec(part.Spec), id, payer, ctx.Source)
 			} else {
 				valid = valid && slices.Contains(e.discardCandidates(payer, ctx.Source, part, false, nil), id)
 			}
