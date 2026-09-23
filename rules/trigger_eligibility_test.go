@@ -137,6 +137,12 @@ func TestTriggerEventInterestMapping(t *testing.T) {
 			// matcher) and past the mask's reach, so the conservative
 			// catch-all is the honest mapping (the Investigate shape).
 			want = cards.TriggerInterestAny
+		case events.SearchedLibrary:
+			// trig-searched-library: the completed-search marker is
+			// trigger-relevant (trig:SearchedLibrary matches it through the
+			// full matcher) and past the mask's reach, so the conservative
+			// catch-all is the honest mapping (the TurnFaceUp shape).
+			want = cards.TriggerInterestAny
 		}
 		if got := eventTriggerInterest(kind); got != want {
 			t.Fatalf("kind %s interest = %x, want %x", kind, got, want)
