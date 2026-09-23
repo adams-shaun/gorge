@@ -267,7 +267,9 @@ func (e *Engine) runFusedHalves(o *state.Object, halves []*cards.Face, sas []*ca
 		savedFused, savedFusedSet := e.fusedResolving, e.fusedResolvingSet
 		savedSVars := e.fusedResolvingSVars
 		e.fusedResolving, e.fusedResolvingSet, e.fusedResolvingSVars = legalByHalf[i], true, hf.SVars
+		e.contChainOwners++
 		effects.Resolve(e, ctx, sa)
+		e.contChainOwners--
 		e.damaging = 0
 		if e.resume != nil {
 			// Suspended mid-half: the resumed frame completes this half through

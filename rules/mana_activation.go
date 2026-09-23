@@ -138,7 +138,12 @@ func (e *Engine) withOffStackMana(act manaColorActivation, run func()) bool {
 	f := &offStackManaFrame{act: act, baseResume: e.resume, baseUnless: e.unlessPayment != nil,
 		baseCumulative: e.cumulative != nil, baseTriggerCost: e.triggerCost != nil}
 	e.offStackMana = f
+	// A mana ability's own chain is not a contChain-draining pass: an ask it
+	// posts must never be deferred onto the enclosing resolution's chain.
+	savedOwners := e.contChainOwners
+	e.contChainOwners = 0
 	run()
+	e.contChainOwners = savedOwners
 	e.offStackMana = saved
 	return f.asked
 }
