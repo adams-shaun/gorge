@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
@@ -274,6 +275,28 @@ func TestMerryWardenOfIsengardBathesArtifactsOncePerTurn(t *testing.T) {
 		[]string{"Merry, Warden of Isengard", "Sol Ring", "Tormod's Crypt", "Mox Amber", "Forest"},
 		[]string{"Sol Ring", "Grizzly Bears", "Forest"})
 	zallEnter(t, e, 0, "Merry, Warden of Isengard")
+	// Merry's Partner-with ETB must settle before the artifact batch. Pippin
+	// is absent from this fixture, so target its controller; the no-candidate
+	// search then resolves without another decision. Otherwise its independent
+	// ETB trigger pollutes the batch trigger count this test is about.
+	if !e.putTriggersOnStack() {
+		t.Fatal("Merry Partner-with ETB did not enter the trigger drain")
+	}
+	targetAsk := e.Pending()
+	if targetAsk == nil || targetAsk.Kind != decision.KTarget {
+		t.Fatalf("Merry Partner-with ETB decision = %+v, want target player", targetAsk)
+	}
+	self := -1
+	for _, o := range targetAsk.Options {
+		if o.Kind == "player" && o.Player == 0 {
+			self = o.Index
+		}
+	}
+	if self < 0 {
+		t.Fatalf("Merry Partner-with ETB offers no controller target: %+v", targetAsk.Options)
+	}
+	submitChoices(t, e, self)
+	zallDrain(t, e)
 
 	// (1) two artifacts entering together -> exactly one token.
 	zallEnter(t, e, 0, "Sol Ring")
