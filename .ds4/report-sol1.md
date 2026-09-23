@@ -837,3 +837,57 @@ $ git diff --check
 ## Issues
 
 No additional defect found in this fix round. Rest in Peace currently emits an unmarked exile move; a replacement preserving `Text: "milled"` is exercised explicitly by the test's second action, so the next such replacement is covered by the same predicate. No CR-lane test requested; this is a card-trigger regression, not a new untracked CR shape.
+
+---
+
+# Graft (CR 702.57) — sol1 merge-resolution report
+
+## Changes and finding resolved
+
+The implementation is committed in `33330eb5`: `cards/kw_graft.go` adds independently idempotent enters-with replacement and optional MoveCounter trigger; `rules/trigger_match.go` registers `kw:Graft`; `cards/kw_registry_test.go` and `rules/keyword_registration_test.go` pin its registrations; `rules/graft_test.go` exercises real-corpus Llanowar Reborn for yes/no and replay. Both branches assert battlefield presence and the one-counter precondition; the trigger's source must be the land. No other product code changed here.
+
+The prior merge/rebase failure in `.ds4/findings-sol1.md` was caused by unstaged changes to shared `.ds4/report-t1.md` and `.ds4/report-t2.md`. Restored both files byte-for-byte from HEAD and merged current `main` with a clean worktree (`cd736171`). Both files AND this accumulated report were preserved byte-for-byte from main through the merge (`git show main:<path> | cmp - <path>` returned 0 for each). This new section is appended only to the designated `.ds4/report-sol1.md`, without replacing earlier reports. `.cards` was already a symlink to the shared corpus. Re-measured: 13 Graft files, values 1:2, 2:4, 3:3, 4:2, 5:1, 6:1; repo decks: 0 matching Graft names. No Known-approximations row, acceptance ratchet or golden changed. `main..HEAD` before this report contained only the five requested Go files.
+
+## Fails without the fix
+
+Copied `cards/kw_graft.go` to `.ds4/scratch/graft-merge-fixed.go`, temporarily disabled its registration, ran `go test -run '^TestLlanowarRebornGraftEntersWithCounterAndMayMoveIt$' ./rules/ > .ds4/scratch/fails.log 2>&1`, then restored the file; `cmp` returned 0. Actual output (exit 1):
+
+```text
+--- FAIL: TestLlanowarRebornGraftEntersWithCounterAndMayMoveIt (0.71s)
+    --- FAIL: TestLlanowarRebornGraftEntersWithCounterAndMayMoveIt/yes (0.00s)
+        graft_test.go:22: Llanowar Reborn P1P1 = 0, want 1 (Graft 1)
+    --- FAIL: TestLlanowarRebornGraftEntersWithCounterAndMayMoveIt/no (0.00s)
+        graft_test.go:22: Llanowar Reborn P1P1 = 0, want 1 (Graft 1)
+FAIL
+FAIL github.com/adams-shaun/gorge/rules 0.720s
+FAIL
+fails_exit=1 restore_cmp=0
+```
+
+## Gates on merged HEAD
+
+Commands below redirected test output to `.ds4/scratch/graft-merge-{rules,cards,arch,bot}.log` then printed tails and exit codes; all completed before the temporary registration-revert proof above, whose restore matched the tested source byte-for-byte.
+
+```text
+$ go test -run 'TestLlanowarRebornGraftEntersWithCounterAndMayMoveIt|TestRegisteredKeywordsAreHonoured' ./rules/
+ok   github.com/adams-shaun/gorge/rules 0.613s
+rules_exit=0
+$ go test -run 'TestEveryExpandedKeywordHasAnExpander|TestNoKeywordIsRegisteredThatTheSwitchNeverExpanded|TestAnUnregisteredKeywordIsNotExpanded' ./cards/
+ok   github.com/adams-shaun/gorge/cards 0.003s
+cards_exit=0
+$ gofmt -l cards/kw_graft.go rules/graft_test.go rules/trigger_match.go cards/kw_registry_test.go rules/keyword_registration_test.go
+(no output)
+$ go run ./cmd/gentypes -check
+gentypes_exit=0
+$ go test ./internal/archtest/
+ok   github.com/adams-shaun/gorge/internal/archtest 3.340s
+arch_exit=0
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok   github.com/adams-shaun/gorge/cmd/botbench 1.224s
+bot_exit=0
+```
+
+## Issues
+
+- `effects/counters.go` (`effMoveCounter`) does not interpret body-level `Optional$ True`; such a move would occur without asking. Corpus measurement: 0 `$ MoveCounter` body lines carrying `Optional`; adjacent trigger context has 8 `OptionalDecider` occurrences. Graft uses the supported trigger election. A CR 702.57 conformance test of body-level Optional could track this if it appears in a future carrier.
+- Layer-6 `AddKeyword$ Graft` grants do not get the printed-keyword expansion; corpus count for `AddKeyword$ Graft`: 0 files. Out of scope. Neither limitation adds a Known-approximations row.
