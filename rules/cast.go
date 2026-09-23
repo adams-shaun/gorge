@@ -5277,15 +5277,69 @@ func faceWantsConverge(f *cards.Face) bool {
 // table reads the TOTAL mana actually spent to cast the spell -- a body
 // naming the Count$CastTotalManaSpent head (Freestrider Commando's
 // SVar:X:Count$CastTotalManaSpent feeding its etbCounter CheckSVar$ gate).
-// The ref-property readers of OTHER casts (TriggeredCard$
-// CastTotalManaSpent and its family) do not read this object field and do
-// not gate the emission -- they stay on the rv2b exotic-heads ledger.
+// A trigger on ANOTHER permanent that reads the cast spell's spend through
+// the ref-property spelling (TriggeredCard$CastTotalManaSpent -- Aberrant
+// Manawurm, Manaform Hellkite, Muse Seeker) is invisible here because the
+// CAST face is an ordinary instant/sorcery; that path is gated by
+// triggeredCastSpendReaderOut below instead.
 func faceWantsCastSpend(f *cards.Face) bool {
 	if f == nil {
 		return false
 	}
 	for _, body := range f.SVars {
 		if strings.Contains(body, "Count$CastTotalManaSpent") {
+			return true
+		}
+	}
+	return false
+}
+
+// triggeredCastSpendReaderOut is the capture gate's second arm (the
+// triggeredConvergeReaderOut shape): it reports whether any alive player's
+// battlefield holds a permanent whose faces read the TRIGGER-relative spend
+// spelling TriggeredCard$CastTotalManaSpent -- a trigger that reads ANOTHER
+// spell's total spend, which faceWantsCastSpend cannot see because the cast
+// face itself is an ordinary instant/sorcery. Only then does the pay-time
+// CastInfo need stamping on a plain cast; a TriggerZones$ Battlefield
+// SpellCast trigger can only exist for casts made while the reader is out, so
+// this scan-at-pay-time gate stamps exactly when the value can be needed and
+// no game without a reader out changes an event (heads stay put: no reader is
+// in any repo deck). Pure read -- the boolean OR over the deterministic
+// seat/zone walk cannot reach an event; replay re-runs payCast and derives the
+// same scan.
+func (e *Engine) triggeredCastSpendReaderOut() bool {
+	g := e.G
+	for _, p := range g.AliveFrom(0) {
+		for _, id := range g.Zone(state.ZBattlefield, p) {
+			if o := g.Obj(id); o != nil && objectReadsTriggeredCastSpend(o) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// objectReadsTriggeredCastSpend reports whether any face the ordinary trigger
+// scan walks for o reads TriggeredCard$CastTotalManaSpent: the cast face, an
+// unlocked Room's alternate face (roomTriggerFaces) and every merged
+// under-card face (triggerFacesWithMerged). The shared face enumeration is
+// what makes this the gate's structural twin of the trigger scan rather than
+// a second, driftable list -- the next such face shape is covered without a
+// new arm. Face.Mentions scans every string the face owns (SVars, keywords,
+// ability params), so an inline parameter spelling is covered too, not just
+// the SVar-table form the corpus uses today.
+func objectReadsTriggeredCastSpend(o *state.Object) bool {
+	f := o.Face()
+	if f == nil {
+		return false
+	}
+	faces, n := roomTriggerFaces(o, f)
+	walk := faces[:n]
+	if len(o.MergedCards) > 0 {
+		walk = triggerFacesWithMerged(o, walk)
+	}
+	for _, fc := range walk {
+		if fc.face != nil && fc.face.Mentions("TriggeredCard$CastTotalManaSpent") {
 			return true
 		}
 	}
@@ -7860,7 +7914,7 @@ func (e *Engine) payCast() {
 		pc.convergeOn = true
 		pc.converge = convergeColours(spentMana)
 	}
-	if f := e.G.Obj(pc.card).Face(); faceWantsCastSpend(f) {
+	if f := e.G.Obj(pc.card).Face(); faceWantsCastSpend(f) || e.triggeredCastSpendReaderOut() {
 		pc.manaSpentOn = true
 		pc.manaSpent = manaSpentTotal(spentMana)
 		pc.manaSpentSnow = manaSpentTotal(spentSnow)

@@ -25,7 +25,7 @@ const (
 	// row for (ap1) (its CR 613.6/static-goad closure plus the AddPhase
 	// approximation), and this branch deleted the (mtsp1) row
 	// (82d3ba68 ability-activation mana-spent riders).
-	knownApproximationRows = 29
+	knownApproximationRows = 28
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.
