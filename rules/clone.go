@@ -299,6 +299,22 @@ func (e *Engine) Clone() *Engine {
 			c.moveCounterAsk[id] = &cp
 		}
 	}
+	// targetsPickAsk (resolution.go, the general form of the same
+	// discipline): the answered generic ValidTgts$ pre-ask per resolving
+	// stack object and SA Line. Same reason as the two above -- a clone taken
+	// while such a resolution is suspended must carry the answer or the clone
+	// re-poses the pre-ask and diverges. Deep-copied to the inner map and the
+	// target slices; nothing is shared.
+	if e.targetsPickAsk != nil {
+		c.targetsPickAsk = make(map[state.ObjID]map[string][]state.Target, len(e.targetsPickAsk))
+		for id, byLine := range e.targetsPickAsk {
+			inner := make(map[string][]state.Target, len(byLine))
+			for line, ts := range byLine {
+				inner[line] = append([]state.Target(nil), ts...)
+			}
+			c.targetsPickAsk[id] = inner
+		}
+	}
 	if e.aorAsk != nil {
 		c.aorAsk = make(map[state.ObjID]map[string]bool, len(e.aorAsk))
 		for id, set := range e.aorAsk {

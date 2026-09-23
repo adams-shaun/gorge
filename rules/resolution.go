@@ -724,6 +724,67 @@ func (e *Engine) seedMoveCounterAsk(obj state.ObjID, ctx *effects.Ctx) {
 	}
 }
 
+// recordTargetsPick stores one answered generic ValidTgts$ pre-ask under the
+// resolving stack object and this exact SA's Line, so a LATER suspension of
+// the same SA re-seeds it instead of re-posing the ask (the general form of
+// the movecounter1 fix; see Engine.targetsPickAsk). A nil SA -- a resume
+// point with no sub-ability -- records nothing: there is nothing to key on.
+func (e *Engine) recordTargetsPick(obj state.ObjID, sa *cards.SA, targets []state.Target) {
+	if sa == nil {
+		return
+	}
+	if e.targetsPickAsk == nil {
+		e.targetsPickAsk = make(map[state.ObjID]map[string][]state.Target)
+	}
+	byLine := e.targetsPickAsk[obj]
+	if byLine == nil {
+		byLine = make(map[string][]state.Target)
+		e.targetsPickAsk[obj] = byLine
+	}
+	byLine[sa.Line] = append([]state.Target(nil), targets...)
+}
+
+// seedTargetsPick re-seeds a fresh resume Ctx with the pre-ask answer an
+// EARLIER round of this same SA's resolution already recorded. The current
+// round's own arm is authoritative: a just-answered "tgts" set has
+// TargetsPickDone already true and is left alone. An empty recorded answer
+// (a Min-0 pre-ask the player declined) is re-seeded just the same -- the
+// done marker, not the set, is what stops the re-pose.
+func (e *Engine) seedTargetsPick(obj state.ObjID, sa *cards.SA, ctx *effects.Ctx) {
+	if sa == nil || ctx.TargetsPickDone {
+		return
+	}
+	byLine := e.targetsPickAsk[obj]
+	if byLine == nil {
+		return
+	}
+	picked, ok := byLine[sa.Line]
+	if !ok {
+		return
+	}
+	ctx.TargetsPick = append([]state.Target(nil), picked...)
+	ctx.TargetsPickDone = true
+}
+
+// forgetTargetsPick drops one SA's recorded pre-ask answer once that SA's
+// resolution has completed without suspending, so a later re-entry of the
+// same body (a Repeat loop, a second activation of the same object) poses
+// its own ask. Only this SA's entry goes: a sibling frame of the same stack
+// object still carrying its own answer keeps it.
+func (e *Engine) forgetTargetsPick(obj state.ObjID, sa *cards.SA) {
+	if sa == nil {
+		return
+	}
+	byLine := e.targetsPickAsk[obj]
+	if byLine == nil {
+		return
+	}
+	delete(byLine, sa.Line)
+	if len(byLine) == 0 {
+		delete(e.targetsPickAsk, obj)
+	}
+}
+
 // aorEntry returns (creating if needed) the answered-kind cursor for a
 // resolving AddOrRemoveCounter stack object.
 func (e *Engine) aorEntry(obj state.ObjID) map[string]bool {
@@ -1933,6 +1994,12 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			if rp.sa != nil && rp.sa.API == "MoveCounter" {
 				e.moveCounterEntry(rp.obj).targets = append([]state.Target(nil), ctx.TargetsPick...)
 			}
+			// Every OTHER API records through the general cursor: the body
+			// this answer is about to run may itself suspend (Kozilek's
+			// Command's Scry poses its KArrange), and the resume after THAT
+			// rebuilds the Ctx from scratch. Without the record the pre-ask
+			// fires again and the two asks alternate forever.
+			e.recordTargetsPick(rp.obj, rp.sa, ctx.TargetsPick)
 		case "search":
 			// A hidden-library KChoose answer is an ordered subset. Preserve
 			// that order for ChangeZone's MoveZone sequence, and set a separate
@@ -2869,6 +2936,12 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		if rp.sa.API == "PutCounter" {
 			e.seedCounterTypeAsk(rp.obj, rp.sa, ctx)
 		}
+		// The general form of the three seeds above: an answered generic
+		// ValidTgts$ pre-ask for THIS SA, recorded by the "tgts" arm on an
+		// earlier round of this same resolution. Runs last so a cursor one of
+		// the API-specific seeds already set (MoveCounter writes both) wins,
+		// and it never overwrites the current round's own answer.
+		e.seedTargetsPick(rp.obj, rp.sa, ctx)
 		// A frame of a fused half's resolution re-enters here: restore the
 		// half's own target binding as the AMBIENT resolving target for the
 		// whole of this re-entry (its root or sub-ability, and every frame
@@ -2925,6 +2998,12 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		}
 		if rp.sa.API == "PutCounter" && e.resume == nil {
 			delete(e.counterTypeAsk, rp.obj)
+		}
+		if e.resume == nil {
+			// This SA's resolution completed this round (nothing suspended),
+			// so its recorded pre-ask answer is spent -- drop it so a later
+			// re-entry of the same body asks afresh.
+			e.forgetTargetsPick(rp.obj, rp.sa)
 		}
 		if e.resume != nil {
 			// The re-entry posed a nested mid-resolution ask. The new
