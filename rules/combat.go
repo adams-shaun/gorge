@@ -1095,17 +1095,11 @@ func (e *Engine) validateBlockers(d *decision.Decision, in decision.Intent) erro
 			}
 		}
 	}
-	// CR 509.1c: obey the maximum possible number of blocking requirements.
-	// Requirements are matched to distinct attackers because each creature
-	// can block only one attacker. A declaration must satisfy that maximum.
-	required := e.mustBlockAssignments(d.Player)
-	want := len(required)
-	got := 0
-	for _, o := range chosen {
-		if _, ok := required[o.Obj]; ok {
-			got++
-		}
-	}
+	// CR 509.1c: the same whole-team maximum used by the client repair.
+	// Min/Max bounds, group exclusivity and total block costs all constrain
+	// which requirements can be satisfied together.
+	want := d.RequiredQuota()
+	got := d.RequiredChosen(in.Choices)
 	if got < want {
 		return fmt.Errorf("declaration satisfies %d of %d possible blocking requirements", got, want)
 	}
@@ -1126,12 +1120,9 @@ func (e *Engine) validateBlockers(d *decision.Decision, in decision.Intent) erro
 }
 
 // blockPairScope is the per-defender pair admissibility ONE declare-blockers
-// ask derives and every consumer of its pair set shares: the attacking
-// creatures, the attackers an impossible CR 509.1a block-count bound rules
-// out (minImpossible -- every non-empty declaration naming one is illegal,
-// so its pairs are never offered), and the [min,max] hint each offered
-// option publishes. The maps are membership/read only, never ranged, so the
-// option order stays the pre-existing blocker/attacker order.
+// ask derives: the attacking creatures, the attackers an impossible CR 509.1a
+// bound rules out, and the [min,max] hint each offered option publishes.
+// The maps are membership/read only; option order stays battlefield order.
 type blockPairScope struct {
 	attackers     []state.ObjID
 	minImpossible map[state.ObjID]bool
@@ -1181,10 +1172,9 @@ func (e *Engine) blockPairScopeFor(defender state.PlayerID) blockPairScope {
 // admissiblePair reports whether the declare-blockers offer actually offers
 // the (blocker, attacker) pair: canBlock, the attacker not ruled out by an
 // impossible block-count bound, and a per-pair price the defender can pay.
-// This is the ONE oracle of declarability: askBlockers' option build, the
-// MustBlock requirement matcher (mustBlockAssignmentsIn) and, through it,
-// validateBlockers all read it, so a requirement can never be counted on a
-// pair no client could have declared.
+// This is the ONE oracle of declarability: askBlockers' option build and
+// its MustBlock team solver read it, so a requirement cannot be counted on a
+// pair no client could declare.
 func (e *Engine) admissiblePair(scope *blockPairScope, defender state.PlayerID, blocker, attacker state.ObjID) bool {
 	if scope.minImpossible[attacker] {
 		return false
@@ -1198,23 +1188,11 @@ func (e *Engine) admissiblePair(scope *blockPairScope, defender state.PlayerID, 
 	return true
 }
 
-// mustBlockAssignments returns a deterministic maximum matching of creatures
-// required to block to attacking creatures. The result maps each required
-// blocker to the attacker it should block; unassignable requirements are
-// omitted, as CR 509.1c requires obeying the maximum possible number. The
-// matching runs over the same admissible pairs the offer builds (see
-// admissiblePair), not over canBlock alone. When pairs are priced, the maximum
-// is also bounded by the defender's WHOLE declaration budget: individually
-// affordable pairs cannot all be required if their combined price is not.
-func (e *Engine) mustBlockAssignments(defender state.PlayerID) map[state.ObjID]state.ObjID {
-	return e.mustBlockAssignmentsIn(e.blockPairScopeFor(defender), defender)
-}
-
-// mustBlockAssignmentsIn is mustBlockAssignments over an already-derived
-// scope, so the ask that also builds options from it computes the pair set
-// once.
-func (e *Engine) mustBlockAssignmentsIn(scope blockPairScope, defender state.PlayerID) map[state.ObjID]state.ObjID {
-	var required []state.ObjID
+// mustBlockCandidates returns every creature with an active blocking duty.
+// The decision's whole-team solver determines which of these duties are
+// actually satisfiable together over the offered pairs (CR 509.1c).
+func (e *Engine) mustBlockCandidates(defender state.PlayerID) map[state.ObjID]bool {
+	required := make(map[state.ObjID]bool)
 	matches := func(spec string, source state.ObjID, controller state.PlayerID, id state.ObjID) bool {
 		return spec == "" || e.matchesSpec(spec, id, e.specCtx(source, controller))
 	}
@@ -1222,109 +1200,23 @@ func (e *Engine) mustBlockAssignmentsIn(scope blockPairScope, defender state.Pla
 		if !e.IsCreature(id) {
 			continue
 		}
-		req := false
 		for _, sv := range e.activeStatics("MustBlock") {
 			if matches(sv.Params["ValidCreature"], sv.Source, sv.Controller, id) {
-				req = true
+				required[id] = true
 				break
 			}
 		}
-		if !req {
-			for _, ce := range e.active() {
-				if ce.Restriction == "MustBlock" && e.restrictionApplies(ce, id) {
-					req = true
-					break
-				}
-			}
+		if required[id] {
+			continue
 		}
-		if req {
-			required = append(required, id)
-		}
-	}
-	return e.budgetedBlockMatching(&scope, defender, required)
-}
-
-// budgetedBlockMatching computes a minimum-price matching at each cardinality.
-// Each augmenting path may reassign previous blockers via reverse edges: simply
-// stopping an ordinary maximum matching when its running price exceeds the
-// budget could miss a cheaper assignment of the same size. All edge and path
-// scans are slice-ordered; ties never depend on map iteration.
-func (e *Engine) budgetedBlockMatching(scope *blockPairScope, defender state.PlayerID, required []state.ObjID) map[state.ObjID]state.ObjID {
-	type edge struct{ to, rev, cap, cost int }
-	nb, na := len(required), len(scope.attackers)
-	source, sink := 0, 1+nb+na
-	graph := make([][]edge, sink+1)
-	add := func(from, to, cost int) {
-		graph[from] = append(graph[from], edge{to: to, rev: len(graph[to]), cap: 1, cost: cost})
-		graph[to] = append(graph[to], edge{to: from, rev: len(graph[from]) - 1, cost: -cost})
-	}
-	for i, blocker := range required {
-		add(source, 1+i, 0)
-		for j, attacker := range scope.attackers {
-			if e.admissiblePair(scope, defender, blocker, attacker) {
-				add(1+i, 1+nb+j, int(e.blockPairCharge(blocker, attacker)))
-			}
-		}
-	}
-	for j := range scope.attackers {
-		add(1+nb+j, sink, 0)
-	}
-	// Bellman-Ford handles the negative reverse edges in the residual graph.
-	// A shortest augmenting path produces the least expensive matching at the
-	// next cardinality, so the first unaffordable path is the maximum count.
-	budget := int64(e.blockManaBudget(defender))
-	spent := int64(0)
-	for {
-		const infinity = int64(^uint64(0) >> 2)
-		dist := make([]int64, len(graph))
-		prevNode := make([]int, len(graph))
-		prevEdge := make([]int, len(graph))
-		for i := range dist {
-			dist[i] = infinity
-			prevNode[i] = -1
-		}
-		dist[source] = 0
-		for pass := 0; pass < len(graph)-1; pass++ {
-			changed := false
-			for from := range graph {
-				if dist[from] == infinity {
-					continue
-				}
-				for k, arc := range graph[from] {
-					if arc.cap == 0 || dist[from]+int64(arc.cost) >= dist[arc.to] {
-						continue
-					}
-					dist[arc.to] = dist[from] + int64(arc.cost)
-					prevNode[arc.to], prevEdge[arc.to] = from, k
-					changed = true
-				}
-			}
-			if !changed {
-				break
-			}
-		}
-		if prevNode[sink] < 0 || spent+dist[sink] > budget {
-			break
-		}
-		spent += dist[sink]
-		for node := sink; node != source; {
-			from, k := prevNode[node], prevEdge[node]
-			arc := &graph[from][k]
-			arc.cap--
-			graph[node][arc.rev].cap++
-			node = from
-		}
-	}
-	assignment := make(map[state.ObjID]state.ObjID)
-	for i, blocker := range required {
-		for _, arc := range graph[1+i] {
-			if arc.to > nb && arc.to < sink && arc.cap == 0 {
-				assignment[blocker] = scope.attackers[arc.to-1-nb]
+		for _, ce := range e.active() {
+			if ce.Restriction == "MustBlock" && e.restrictionApplies(ce, id) {
+				required[id] = true
 				break
 			}
 		}
 	}
-	return assignment
+	return required
 }
 
 // validateMinMaxBlockers enforces CR 509.1a's MinMaxBlocker bounds on ONE
@@ -1459,7 +1351,7 @@ func (e *Engine) askBlockers() {
 		// counted on exactly the pairs the offer below makes declarable.
 		scope := e.blockPairScopeFor(defender)
 		var opts []decision.Option
-		requiredPairs := e.mustBlockAssignmentsIn(scope, defender)
+		requiredBlockers := e.mustBlockCandidates(defender)
 		for _, bid := range e.G.Zone(state.ZBattlefield, defender) {
 			for _, aid := range scope.attackers {
 				if !e.admissiblePair(&scope, defender, bid, aid) {
@@ -1476,9 +1368,15 @@ func (e *Engine) askBlockers() {
 				opt := decision.Option{Index: len(opts), Kind: "block",
 					Label: e.G.Obj(bid).Face().Name + " blocks " + e.G.Obj(aid).Face().Name,
 					Obj:   bid, Attacker: aid, Player: defender,
-					Group: fmt.Sprintf("blocker:%d", bid), Required: requiredPairs[bid] == aid}
+					Group: fmt.Sprintf("blocker:%d", bid), Required: requiredBlockers[bid], BlockMust: requiredBlockers[bid]}
 				if b, ok := scope.bounds[aid]; ok {
 					opt.MinBlockers, opt.MaxBlockers = b[0], b[1]
+				}
+				// Menace is another whole-team minimum. Publish it for a
+				// required block so the shared solver cannot count a lone
+				// required blocker whose declaration would be rejected.
+				if opt.Required && e.HasKeyword(aid, "Menace") && opt.MinBlockers < 2 {
+					opt.MinBlockers = 2
 				}
 				if price > 0 {
 					opt.Label += fmt.Sprintf(" (pay {%d})", price)
@@ -1498,8 +1396,22 @@ func (e *Engine) askBlockers() {
 				break
 			}
 		}
-		e.ask(&decision.Decision{Player: defender, Kind: decision.KBlockers, Min: 0, Max: len(opts),
-			Prompt: fmt.Sprintf("turn %d — declare blockers", e.G.Turn), Options: opts, MaxSum: maxSum})
+		d := &decision.Decision{Player: defender, Kind: decision.KBlockers, Min: 0, Max: len(opts),
+			Prompt: fmt.Sprintf("turn %d — declare blockers", e.G.Turn), Options: opts, MaxSum: maxSum}
+		// First find the maximum legal declaration with every candidate
+		// duty flagged. Publish only the required pairs in that team; the
+		// other members remain optional helpers needed to meet a Min$ bound.
+		team := d.BlockRequiredTeam()
+		selected := make(map[state.ObjID]bool, len(team))
+		for _, ci := range team {
+			if d.Options[ci].BlockMust {
+				selected[d.Options[ci].Obj] = true
+			}
+		}
+		for i := range d.Options {
+			d.Options[i].Required = selected[d.Options[i].Obj]
+		}
+		e.ask(d)
 		return
 	}
 	// If every defender was skipped, no answer emitted a declaration. Record
