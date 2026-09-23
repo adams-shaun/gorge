@@ -4508,6 +4508,63 @@ func etbChoiceKind(api string) string {
 	return ""
 }
 
+// etbPayLifeBound reports whether r's ReplaceWith$ body is the exact
+// "as CARDNAME enters, pay any amount of life" shape -- a `Cost$
+// Mandatory PayLife<X>` body whose face SVar:X is Count$xPaid (the announced
+// value the body stores) -- and, if so, the largest X the payer may announce:
+// the payer's life total, further capped by the body's `XMax$ <SVar>` when it
+// names one that resolves (Nameless Race's Limit: the white permanents plus
+// white cards in opponents' graveyards). A body that is not the exact shape
+// (a fixed PayLife cost, another API, a missing Count$xPaid binding) returns
+// false and keeps the ordinary replacement path.
+func (e *Engine) etbPayLifeBound(o *state.Object, with *cards.SA) (int, bool) {
+	if with == nil || o.Face() == nil {
+		return 0, false
+	}
+	body, present := o.Face().SVars["X"]
+	if !present || !strings.EqualFold(strings.TrimSpace(body), "Count$xPaid") {
+		return 0, false
+	}
+	c := ParseCost(with.Params["Cost"])
+	if len(c.LifeX) == 0 {
+		return 0, false
+	}
+	bound := int(e.G.Players[o.Controller].Life)
+	if bound < 0 {
+		bound = 0
+	}
+	if raw := strings.TrimSpace(with.Params["XMax"]); raw != "" {
+		ctx := &effects.Ctx{Source: o.ID, Controller: o.Controller, SVars: o.Face().SVars}
+		if cap, ok := effects.NumResolved(e, ctx, with, "XMax", 0); ok {
+			if cap < 0 {
+				cap = 0
+			}
+			if int(cap) < bound {
+				bound = int(cap)
+			}
+		}
+	}
+	return bound, true
+}
+
+// etbPayLifeOptions builds the ascending 0..bound option list a
+// "pay any amount of life" entry offers; option 0 is the legal pay-nothing
+// announcement (Oracle: "pay any amount" includes zero). The Kind is the
+// shared "number" kind so the answer records through the same
+// events.Choose fold a ChooseNumber uses, and resumeETBEntry reads the
+// announced X off the option's Amount.
+func etbPayLifeOptions(you state.PlayerID, card state.ObjID, bound int) []decision.Option {
+	out := make([]decision.Option, 0, bound+1)
+	for i := 0; i <= bound; i++ {
+		label := strconv.Itoa(i) + " life"
+		if i == 1 {
+			label = "1 life"
+		}
+		out = append(out, decision.Option{Index: len(out), Kind: "paylife", Label: label, Amount: i, Obj: card, Player: you})
+	}
+	return out
+}
+
 // entryETBChoice returns the ordinal-th choice that must be made for ev's
 // battlefield entry. It is deliberately derived from the same prospective
 // MoveZone event the replacement matcher will later consume: an ActiveZones or
@@ -4538,8 +4595,27 @@ func (e *Engine) entryETBChoice(ev events.Event, ordinal int) (etbChoice, bool) 
 	}
 	for i := range o.Face().Repls {
 		r := &o.Face().Repls[i]
-		if r.Params["Keyword"] != "ETBReplacement" || r.With == nil ||
-			!e.replacementMatches(*r, o.ID, ev) {
+		if r.With == nil || !e.replacementMatches(*r, o.ID, ev) {
+			continue
+		}
+		if r.Params["Keyword"] != "ETBReplacement" {
+			// A non-keyword R:Event$ Moved replacement whose ReplaceWith$ body
+			// carries `Cost$ Mandatory PayLife<X>` (Minion of the Wastes,
+			// Phyrexian Processor, Nameless Race: "as CARDNAME enters, pay any
+			// amount of life"). The payer announces X here, at the entry
+			// boundary, where a suspend-and-resume is possible -- the
+			// replacement body itself runs off the Move fold with no ask
+			// channel (the approximation this closes). Only the exact
+			// Count$xPaid life-announcement shape is offered; anything else
+			// falls through to the ordinary replacement path unchanged.
+			bound, ok := e.etbPayLifeBound(o, r.With)
+			if !ok {
+				continue
+			}
+			if seen == ordinal {
+				return etbChoice{kind: "paylife", options: etbPayLifeOptions(you, o.ID, bound)}, true
+			}
+			seen++
 			continue
 		}
 		kind := etbChoiceKind(r.With.API)
@@ -4871,6 +4947,8 @@ func etbChoicePrompt(kind string) string {
 		return " how this creature enters (with a +1/+1 counter or without)"
 	case "copy":
 		return " a creature to copy"
+	case "paylife":
+		return " how much life to pay"
 	}
 	return " a number"
 }

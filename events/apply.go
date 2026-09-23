@@ -1752,6 +1752,24 @@ func Apply(g *state.Game, e Event) {
 			o.NotedNumber = e.Amount
 		}
 
+	case StoreSVar:
+		// api:StoreSVar wrote one named runtime SVar onto its source (Forge's
+		// sa.setSVar: Minion of the Wastes / Phyrexian Processor's
+		// `Cost$ Mandatory PayLife<X>` body storing the paid life under
+		// LifePaidOnETB). Obj is the object, Text the SVar name and Amount
+		// the resolved value; Object.RuntimeSVars overlays the printed face
+		// table for the CDA and token reads that consume it. An empty name
+		// writes nothing rather than a ghost entry, and events.Move's
+		// leave-the-battlefield reset clears the table with the cast-time
+		// window. The write is a keyed map insert, so map order never
+		// reaches an event.
+		if o := g.Obj(e.Obj); o != nil && e.Text != "" {
+			if o.RuntimeSVars == nil {
+				o.RuntimeSVars = make(map[string]int32)
+			}
+			o.RuntimeSVars[e.Text] = e.Amount
+		}
+
 	case PlayerNoted:
 		// A DB$ Pump body noted a label onto a player (NoteCards$ <defined>
 		// | NoteCardsFor$ <label> -- Seize the Spotlight, Master of
@@ -3274,6 +3292,10 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			o.ManaDesertSpent = 0
 			o.CompleatedLifePaid = 0
 			o.NotedNumber = 0
+			// CR 400.7: the runtime SVar store is the old permanent's, not the
+			// new object's -- a blunk/reanimated StoreSVar carrier starts with
+			// no stored value (the printed default stands).
+			o.RuntimeSVars = nil
 			o.ChosenName, o.ChosenType, o.ChosenNumber, o.ChosenColor = "", "", 0, ""
 			o.ETBCloneChoice, o.ETBCloneChoiceValid = 0, false
 			o.Protector, o.ProtectorValid = 0, false
