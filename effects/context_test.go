@@ -86,7 +86,8 @@ type fakeHost struct {
 	dmgTaken map[state.PlayerID]int32
 	// discarded is the CardsDiscardedThisTurn answer the double reports;
 	// a nil map keeps the pre-existing constant zero.
-	discarded map[state.PlayerID]int32
+	discarded  map[state.PlayerID]int32
+	sacrifices map[state.PlayerID]int32
 	// drawn is the CardsDrawnThisTurn answer the double reports; a nil map
 	// keeps the pre-existing constant zero. The effects-level
 	// PlayerCount$Condition CardsDrawn tests set it.
@@ -306,6 +307,10 @@ func (h *fakeHost) CardsDiscardedThisTurn(p state.PlayerID) int32 {
 		return 0
 	}
 	return h.discarded[p]
+}
+
+func (h *fakeHost) SacrificesThisTurn(p state.PlayerID) int32 {
+	return h.sacrifices[p]
 }
 
 // TurnsTaken has no event log here; the double reports zero.

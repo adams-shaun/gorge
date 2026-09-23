@@ -4459,6 +4459,25 @@ func (e *Engine) CardsDiscardedThisTurn(p state.PlayerID) int32 {
 	return n
 }
 
+// SacrificesThisTurn counts canonical sacrifice moves this turn for the
+// permanent's owner. Sacrifice events carry no actor field, so ownership is
+// the replay-stable player attribution available in the existing event shape.
+func (e *Engine) SacrificesThisTurn(p state.PlayerID) int32 {
+	var n int32
+	for i := len(e.L.Events) - 1; i >= 0; i-- {
+		ev := e.L.Events[i]
+		if ev.Kind == events.TurnChange {
+			break
+		}
+		if events.IsSacrifice(ev) {
+			if o := e.G.Obj(ev.Obj); o != nil && o.Owner == p {
+				n++
+			}
+		}
+	}
+	return n
+}
+
 // CardsDrawnThisTurn satisfies effects.Host's CardsDrawnThisTurn for the
 // PlayerCount<group>$Condition<N> CardsDrawn property (Smuggler's Share's
 // "draw a card for each opponent who drew two or more cards this turn"):
