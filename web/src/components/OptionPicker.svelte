@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Option } from '../protocol';
   import type { TileOptions } from '../lib/cardoptions';
-  import { ACTION_GLYPHS, actionAccessibleLabel, postSingleAction, postTileOption, singleActionIcon, singleTapOptionOf, tileScenario } from '../lib/cardoptions';
+  import { ACTION_GLYPHS, actionAccessibleLabel, postSingleAction, postTileOption, isSelectionOption, singleActionIcon, singleTapOptionOf, tileScenario } from '../lib/cardoptions';
   import {
     placeMenu,
     placeRadial,
@@ -59,14 +59,29 @@
     open = false;
   }
 
-  /** choose posts one option; Ctrl held (holdPriority) skips pass-after-acting for this one cast/ability (prio3). */
+  /** choose posts one option; Ctrl held (holdPriority) skips pass-after-acting for this one cast/ability (prio3).
+   *  A selection option (an attacker declaration, fb-20260923T020152Z) is a
+   *  pick in a still-pending multi-pick decision, so the picker stays open
+   *  for the next pick; an ordinary action posts and closes as before. */
   function choose(option: Option, holdPriority = false): void {
-    close();
+    if (!isSelectionOption(option)) close();
     postTileOption(tileOptions, option, holdPriority);
   }
 
   function onWindowKeydown(event: KeyboardEvent): void {
     if (event.key === 'Escape') close();
+  }
+
+  /** The picker is portaled to document.body, so a click on one of its own
+   *  buttons bubbles to the window handler below. It is an interaction WITH
+   *  the picker, never an outside click, so it must not dismiss: an attacker
+   *  selection already posts without closing, and closing it here would undo
+   *  that (the wheel would flap shut on the same click). Ordinary actions
+   *  still close through choose()'s own explicit close. */
+  function onWindowClick(event: MouseEvent): void {
+    const target = event.target as Element | null;
+    if (target !== null && typeof target.closest === 'function' && target.closest('[data-option-picker]') !== null) return;
+    close();
   }
 
   const viewportWidth = () => typeof window === 'undefined' ? 0 : window.innerWidth;
@@ -119,7 +134,7 @@
   }
 </script>
 
-<svelte:window onkeydown={onWindowKeydown} onclick={close} />
+<svelte:window onkeydown={onWindowKeydown} onclick={onWindowClick} />
 
 <div class="tile-actions">
   {#if tileOptions.list.length === 1 || tapAction !== null}

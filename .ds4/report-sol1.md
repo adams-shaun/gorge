@@ -358,7 +358,177 @@ Existing, separate issue: a copied Sevinne's Reclamation inherits graveyard-cast
 
 ---
 
-# Teapot Slinger / Convoke expend-4 — verification report (agent-20260923T113045Z-aa7f7a4e)
+# Branch report: Cascade free cast — CR 702.85a / CR 107.3b
+
+# Cascade free cast — CR 702.85a / CR 107.3b
+
+## Outcome
+
+The brief's premise is not a legal Magic play: when casting Villainous Wealth *without paying its mana cost*, CR 107.3b fixes its mana-cost X at **0**, not an announced 1. The library scan compares its printed MV 3 with Bloodbraid Elf's on-stack MV 4; the free cast remains MV 3. There is no legal at-or-above-4 free-cast X choice to reject. An earlier attempt on this branch added such an X choice (`a1b718ea`), but review identified the CR violation; `f0ae814e` reverted that code and `cfc32dfd` pinned the legal behavior in `rules/cascade_resulting_mv_test.go`. No new cast-flow restriction is warranted. The source's own announced X remains covered by `TestCascadeXSpellUsesAnnouncedManaValue`.
+
+This round strengthened `rules/cascade_resulting_mv_test.go`: asserts the library card *actually has an X mana-cost symbol*, its printed 3 is exactly one below the source's 4, and both cards are on the stack after the free cast with candidate X=0 and resulting MV strictly below source MV. The pre-existing test in that file checks that no X announcement occurs at any stage of the free cast, that it resolves and is never bottomed, and that replay agrees. I removed its redundant non-X companion (it passed even with the illegal-X change reverted, so it could not serve as a regression for this defect). The card scripts were read from the existing `.cards` symlink, not committed. No Known-approximations row was changed; the existing-order bottom stand-in is unchanged.
+
+The required brief test name `TestCascadeFreeCastXMustRemainBelowCascadeManaValue` is intentionally replaced by `TestCascadeFreeCastAnnouncesNoX`: an X=1 reject test would enforce a choice that the rules do not permit. This is also why there is no separate legal X>=1 boundary test.
+
+## Fails without the fix
+
+Proof: copied `effects/cascade.go`, `rules/cast.go`, `rules/resolution.go`, and `rules/play_cost_test.go` to `.ds4/scratch/cascade-sol1/`; temporarily reinstated the prior illegal-X implementation from `a1b718ea`, ran the legal-case test, restored the four files from their copies and verified `cmp` on every file. Real command output:
+
+```text
+$ go test -run 'TestCascadeFreeCastAnnouncesNoX$' ./rules/
+--- FAIL: TestCascadeFreeCastAnnouncesNoX (0.58s)
+    cascade_resulting_mv_test.go:85: after the election want CR 601.2c's target ask, got &{Seq:78 Player:0 Kind:choose Prompt:Choose a value for X Min:1 Max:1 Options:[{Index:0 Kind:x Label:X = 0 Obj:0 Counter: Player:0 Attacker:0 Battle:0 Required:false BlockMust:false MinBlockers:0 MaxBlockers:0 Controller:0 Group: AltCostIndex:0 CostLife:0 CostTaps:0 Mode: Amount:0 Ability:0 SVar: Keyword: Cost: Grant:<nil> GrantSource:0 GainedSource:0 GainedIdx:0 Value:0} {Index:1 Kind:x Label:X = 1 Obj:0 Counter: Player:0 Attacker:0 Battle:0 Required:false BlockMust:false MinBlockers:0 MaxBlockers:0 Controller:0 Group: AltCostIndex:0 CostLife:0 CostTaps:0 Mode: Amount:1 Ability:0 SVar: Keyword: Cost: Grant:<nil> GrantSource:0 GainedSource:0 GainedIdx:0 Value:0} {Index:2 Kind:x Label:X = 2 Obj:0 Counter: Player:0 Attacker:0 Battle:0 Required:false BlockMust:false MinBlockers:0 MaxBlockers:0 Controller:0 Group: AltCostIndex:0 CostLife:0 CostTaps:0 Mode: Amount:2 Ability:0 SVar: Keyword: Cost: Grant:<nil> GrantSource:0 GainedSource:0 GainedIdx:0 Value:0} {Index:3 Kind:x Label:X = 3 Obj:0 Counter: Player:0 Attacker:0 Battle:0 Required:false BlockMust:false MinBlockers:0 MaxBlockers:0 Controller:0 Group: AltCostIndex:0 CostLife:0 CostTaps:0 Mode: Amount:3 Ability:0 SVar: Keyword: Cost: Grant:<nil> GrantSource:0 GainedSource:0 GainedIdx:0 Value:0} {Index:4 Kind:x Label:X = 4 Obj:0 Counter: Player:0 Attacker:0 Battle:0 Required:false BlockMust:false MinBlockers:0 MaxBlockers:0 Controller:0 Group: AltCostIndex:0 CostLife:0 CostTaps:0 Mode: Amount:4 Ability:0 SVar: Keyword: Cost: Grant:<nil> GrantSource:0 GainedSource:0 GainedIdx:0 Value:0}] MaxSum:0 Budgeted:false GroupLimit:0 Repeatable:false Source:3 TargetsWithSameController:false TargetEffect:<nil> Restable:false ResumeKind: ResumeSA:<nil> ResumeModes:[] ResumeTarget:0 Rolls:[] ResumeChoices:[] ResumeChosenValid:false ResumeRemembered:[] ResumeDigUntilMove: ResumeDigUntilMoveDone:false ResumeTargetsUnique:[] ResumeMoved:[] ResumeDigPrimary:[] ResumeObjects:[] ResumeRound:0 ResumeRepeatNext:0 ResumeUptoIdx:0 ResumeUptoCount:0 ResumeVillainousVictims:[] ResumeVillainousIndex:0}
+FAIL
+FAIL	github.com/adams-shaun/gorge/rules	0.599s
+FAIL
+reverted-fix exit=1; restored files byte-identical
+```
+
+The full unabridged failure is `.ds4/scratch/cascade-sol1/fails.log` (git-excluded). X=1 would make the candidate MV 4, equal to the source; the faulty version wrongly offered that choice at all. This is the only new test retained; it fails with the illegal-X behavior restored.
+
+## Gates (real output)
+
+```text
+$ go test -run 'TestCascadeFreeCastAnnouncesNoX|TestCascadeXSpellUsesAnnouncedManaValue' ./rules/
+ok   github.com/adams-shaun/gorge/rules 0.721s
+
+$ go test ./internal/archtest/
+ok   github.com/adams-shaun/gorge/internal/archtest 1.570s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok   github.com/adams-shaun/gorge/cmd/botbench (cached)
+
+$ gofmt -l rules/cascade_resulting_mv_test.go
+(no output)
+$ go run ./cmd/gentypes -check
+(no output; exit 0)
+$ git diff --check
+(no output)
+```
+
+Botbench golden unchanged (cached result valid for this test-only amendment); no split re-pin or attribution needed. The `.cards` symlink was present and the real-corpus test executed, not skipped. The prior round's proof and gate output are in `.ds4/scratch/cascade-sol1/` and the earlier committed test; the branch history records the reviewed revert explicitly.
+
+## Merge hygiene
+
+Before this round, tracked `.ds4/report-r2.md` and `.ds4/report-t1.md` had uncommitted *unrelated report overwrites*, blocking the controller's rebase/merge (`findings-sol1.md`). Preserved both to `.ds4/scratch/cascade-sol1/report-*-uncommitted.md`, then restored their tracked HEAD content byte-for-byte; neither was staged. Did not rebase, switch branches, or touch shared git settings. Only this task's test and report are being committed.
+
+## Issues
+
+No new out-of-scope defect verified in this round. The brief's X=1 counterexample is ruled out by CR 107.3b, not an outstanding implementation bug. The existing-order cascade bottoming approximation is unchanged. A prior report notes a possible `rules/cast.go:recheckIllegal` mismatch for an X in an *additional cost* on a free cast, but reachability and card prevalence have not been established; no general-X changes are attempted here.
+
+## Commits
+
+`f0ae814e` (review-requested revert of illegal free-cast X choice), `cfc32dfd` (new legal-path regression), `6bcfe1fc` (strict-MV/asserted-X preconditions).
+---
+
+# Task fb-20260923T020152Z — attacker radial picker
+
+## Summary
+
+Committed the board UI fix in `a1d21db9` (`fix(web): keep the attacker picker open across selections`). The picker identifies the narrow `attacker` wire-option kind as a selection, keeps it open after that pick, and ignores bubbled clicks originating inside the body-ported picker. The explicit outside-click and Escape dismissals remain intact; ordinary action choices still close explicitly.
+
+## Changes
+
+- `web/src/lib/cardoptions.ts` — added `isSelectionOption`, based only on the option's wire kind (`attacker`). This keeps the behavior narrow and puts the classification in one helper.
+- `web/src/components/OptionPicker.svelte` — closes after ordinary choices but not attacker selections; the window click handler ignores clicks within `[data-option-picker]`, accounting for the portaled wheel's bubbling clicks while preserving outside-click dismissal.
+- `web/src/components/CardMenu.fixture.html` and `web/src/components/CardMenu.fixture.ts` — added a real mounted attacker tile with three distinct wire indices and a recording post callback.
+- `web/src/components/CardMenu.test.ts` — added mounted checks for three successive attacker picks without reopening, plus outside-click and Escape dismissal. The existing ordinary-action mounted test still exercises close/reopen behavior.
+
+Structural approach: classify by the existing wire-option role, not by labels, object identity, or inferred combat state. A later option using the same attacker wire kind follows the same path; unrelated multi-pick kinds are deliberately not widened.
+
+## Fails without the fix
+
+Saved the committed fixed `OptionPicker.svelte`, restored the pre-fix file from `HEAD^`, and ran the mounted suite. The new regression failed because the radial was detached immediately after the first attacker click. Restored the fixed source and verified it byte-identically against the saved copy (`cmp` passed).
+
+Command: `cd web && npm_config_cache=/tmp/gorge-fb-npm-cache npx vitest run src/components/CardMenu.test.ts`
+
+```text
+ RUN  v5.0.0 /home/sadams/projects/gorge/.worktrees/fb-20260923T020152Z-694613d1/web
+
+9:06:30 AM [vite-plugin-svelte] src/components/ResolvedCard.svelte:97:41 This reference only captures the initial value of `anchorProp`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+ ❯ src/components/CardMenu.test.ts (6 tests | 1 failed) 992ms
+   ❯ declaring attackers keeps the radial picker open (fb-20260923T020152Z) (3)
+     × a click on an attacker option posts its wire index and leaves the radial attached for the next attacker 138ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/components/CardMenu.test.ts > declaring attackers keeps the radial picker open (fb-20260923T020152Z) > a click on an attacker option posts its wire index and leaves the radial attached for the next attacker
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/components/CardMenu.test.ts:115:33
+    113|     // anchor after a successful attacker pick (no badge re-open), and…
+    114|     // next attacker posts its own wire index (R-E4-1, never list posi…
+    115|     expect(await wheel.count()).toBe(1);
+       |                                 ^
+    116|     await wheel.locator('button[data-wire-index="41"]').waitFor();
+    117|     await wheel.locator('button[data-wire-index="41"]').click();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 5 passed (6)
+   Start at  09:06:30
+   Duration  2.18s (tests 82%, import 17%, transform 1%)
+```
+
+The tests assert their setup: each dismissal/selection case waits for the expected wire-index button and checks that the picker is attached before interaction; the multi-selection case checks the wheel remains attached after each click and checks the exact posted index sequence.
+
+## Gates run
+
+Corpus and web test dependencies were present (`.cards` exists; `web/node_modules/.bin/vitest` exists). The first bare `npx` attempt could not write npm's shared cache (`EROFS`); setting a worktree-safe cache resolved it. Successful targeted run:
+
+`cd web && npm_config_cache=/tmp/gorge-fb-npm-cache npx vitest run src/components/CardMenu.test.ts`
+
+```text
+ RUN  v5.0.0 /home/sadams/projects/gorge/.worktrees/fb-20260923T020152Z-694613d1/web
+
+9:06:13 AM [vite-plugin-svelte] src/components/ResolvedCard.svelte:97:41 This reference only captures the initial value of `anchorProp`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  09:06:12
+   Duration  2.26s (tests 83%, import 16%, transform 1%)
+```
+
+`go test ./internal/archtest/`
+
+```text
+ok  	github.com/adams-shaun/gorge/internal/archtest	(cached)
+```
+
+`go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/`
+
+```text
+ok  	github.com/adams-shaun/gorge/cmd/botbench	(cached)
+```
+
+## Issues
+
+No additional unfixed defects found. This UI change closes no Known-approximations row and changes no engine behavior; no ledger entry applies. `cmd/botbench` remained byte-identical (test passed).
+
+## Review-round cleanup
+
+The first integration attempt was blocked by unstaged `.ds4/report-t1.md` and
+`.ds4/report-t2.md` rewrites belonging to other tracked reports. Both were
+preserved under `.ds4/scratch/fb-report-{t1,t2}-preserved.md` (ignored), then
+restored byte-for-byte from this branch's HEAD. This task's report is appended
+to the designated `.ds4/report-sol1.md` rather than overwriting or committing
+changes to historical report-t1/report-t2.
+
+The original implementation and targeted gates were run before the code
+commit `a1d21db9`. No implementation changes were needed this round.
+
+---
+
+# Main-side report: Teapot Slinger / Convoke expend-4 — verification report (agent-20260923T113045Z-aa7f7a4e)
 
 ## Outcome and review finding
 
@@ -390,3 +560,68 @@ No new test or production fix: `e7f775f6` already pins the queue drain and resol
 ## Issues
 
 None found. The reported empty queue is correct after `Advance` drains it; the stack and resolved life are the relevant observations.
+
+---
+
+# IgnoreLegendRule — agent-20260918T232250Z-29aed5d6, sol1 integration
+
+## Changes and review resolution
+
+The implementation in `5b45f3b3` and `39f7dd7d` already delivers the brief: `rules/sba.go` filters the legend-SBA duplicate set with live `IgnoreLegendRule` statics, matching each candidate against the static's own context and honoring `continuousGateHolds` (the shared conditional-static grammar). `rules/ignorelegendrule_test.go` tests Council of Reeds' matching creature pair, a noncreature pair, an opponent's pair, removal of Council and return of the ordinary controller choice, two- and three-copy Brothers Yamazaki condition boundaries, and reproducible event kinds and chain head. The CR 704.5j closing-register row was deleted from `AGENTS.md` and the row bound lowered to 17 in `internal/testutil/agentsdoc_test.go`. No golden was re-pinned.
+
+The sol1 finding was **integration blocked by a dirty `.ds4/report-t2.md`**. Its uncommitted replacement of another task's player-count report was saved to `.ds4/scratch/ignorelegend-report-t2.saved.md` and the original restored from HEAD. The earlier IgnoreLegendRule commit also overwrote an unrelated tracked `.ds4/report-t1.md`: restored it from `main` in `da6067e5` so the merge would not erase unrelated work. With the tree clean, merged current `main` as `c79953ac` without conflict; both historical reports are preserved. This report is appended to the designated `.ds4/report-sol1.md`, leaving its earlier tasks' entries intact.
+
+The fix is structural, not specific to Council: every live static of this mode is collected in canonical order and checked through one gate and its own `ValidCard$` context. Prevalence re-measured at **11** corpus files (`/usr/bin/grep -rl 'Mode$ IgnoreLegendRule' .cards/cardsfolder | wc -l`). `.cards` was already a symlink to the corpus; the real fixtures ran, not skipped.
+
+## Gates after merging main (real outputs)
+
+```text
+$ go test -run 'TestIgnoreLegendRule|TestParamCensusScanIsComplete' ./rules/ > .ds4/scratch/sol1-legend-rules.log 2>&1; tail -30 .ds4/scratch/sol1-legend-rules.log
+ok   github.com/adams-shaun/gorge/rules  0.733s
+$ go test -run 'TestKnownApproximation' ./internal/testutil/ > .ds4/scratch/sol1-legend-doc.log 2>&1; tail -10 .ds4/scratch/sol1-legend-doc.log
+ok   github.com/adams-shaun/gorge/internal/testutil  0.001s
+$ go test ./internal/archtest/ > .ds4/scratch/sol1-legend-arch.log 2>&1; tail -15 .ds4/scratch/sol1-legend-arch.log
+ok   github.com/adams-shaun/gorge/internal/archtest  3.286s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ > .ds4/scratch/sol1-legend-bot.log 2>&1; tail -5 .ds4/scratch/sol1-legend-bot.log
+ok   github.com/adams-shaun/gorge/cmd/botbench  1.194s
+$ gofmt -l rules/sba.go rules/ignorelegendrule_test.go internal/testutil/agentsdoc_test.go
+(no output)
+$ go run ./cmd/gentypes -check
+(no output; exit 0)
+```
+
+All four Go tests exited 0. No head/ratchet or botbench split movement measured; full TestHeads and acceptance were left to the integration gates.
+
+## Fails without the fix
+
+Original production-hunk revert, five Council and scope/replay tests, from `.ds4/scratch/reverted.log` (restored byte-identically in the implementation round):
+
+```text
+--- FAIL: TestIgnoreLegendRuleExemptsMatchingCreatures (0.60s)
+    ignorelegendrule_test.go:104: a decision choose is pending under a live IgnoreLegendRule exemption
+--- FAIL: TestIgnoreLegendRuleDoesNotExemptNoncreatures (0.00s)
+    ignorelegendrule_test.go:148: legend option 0 names obj 82, want 84 (battlefield order)
+--- FAIL: TestIgnoreLegendRuleDoesNotExemptOtherPlayersCreatures (0.00s)
+    ignorelegendrule_test.go:186: legend choice asked seat 0, want the duplicates' controller seat 1
+--- FAIL: TestIgnoreLegendRuleExemptionEndsWhenSourceLeaves (0.00s)
+    ignorelegendrule_test.go:215: a decision choose is pending while the exemption is live
+--- FAIL: TestIgnoreLegendRuleEventStreamIsDeterministic (0.00s)
+    ignorelegendrule_test.go:256: legend option 0 names obj 82, want 84 (battlefield order)
+FAIL
+FAIL github.com/adams-shaun/gorge/rules 0.616s
+```
+
+The round-2 condition-gate revert fails the false-case regression (from `.ds4/scratch/rv-revert.log`), and was restored byte-identically:
+
+```text
+--- FAIL: TestIgnoreLegendRuleHonorsConditionFalse (0.00s)
+    ignorelegendrule_test.go:276: fixture: the false EQ2 gate still exempted permanent 81
+FAIL
+FAIL github.com/adams-shaun/gorge/rules 0.599s
+```
+
+The true-gate case depends on the same exemption insertion as the five Council tests (reverting that insertion gives a duplicate legend choice); the condition-only revert is deliberately a false-case probe. All new tests check battlefield, legendary/name/controller and matching/nonmatching static preconditions before asserting outcomes.
+
+## Issues
+
+No outstanding defect identified in this ticket; no new ticket or Known-approximations row added. The sol1 finding was report-file integration, not an engine failure.
