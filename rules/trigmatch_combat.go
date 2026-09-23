@@ -666,8 +666,18 @@ func (e *Engine) queueAttackerUnblockedTrigger(t cards.Trigger, source state.Obj
 			if a == nil || !a.IsAttacking || len(a.BlockedBy) != 0 {
 				continue
 			}
-			if v := t.Params["ValidCard"]; v != "" && !effects.MatchesSpecCtx(e.G, v, aid, e.specCtx(source, controller)) {
-				continue
+			if v := t.Params["ValidCard"]; v != "" {
+				// The IsGoaded static route (staticgoad1), bound inline -- the
+				// same shape matchesSpec keeps (this walk runs per attacker per
+				// Attacks event, so the context must not escape through a
+				// helper call).
+				sc := e.specCtx(source, controller)
+				if e.goadProbe == 0 && strings.Contains(v, "IsGoaded") {
+					sc.StaticGoads = e.staticallyGoaded()
+				}
+				if !effects.MatchesSpecCtx(e.G, v, aid, sc) {
+					continue
+				}
 			}
 			if v := t.Params["ValidDefender"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, a.Attacking, controller) {
 				continue

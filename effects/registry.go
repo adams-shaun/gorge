@@ -747,6 +747,9 @@ type Ctx struct {
 	// state.Game into rules. An effects test double whose Host does not
 	// implement typeTableHost leaves it nil and reads the printed face.
 	EffectiveTypes []ObjectTypes
+	// StaticGoads is the live static-goad table (staticgoad1), published by
+	// rules for resolution-time IsGoaded filters.
+	StaticGoads map[state.ObjID]bool
 	// TargetableObjects is a rules-built immutable legality snapshot for the
 	// triggering spell, used by CanBeTargetedByTriggeredSpellAbility.
 	TargetableObjects []state.ObjID
@@ -2124,6 +2127,20 @@ type typeTableHost interface {
 	EffectiveTypes() []ObjectTypes
 }
 
+// goadTableHost publishes rules' live static-goad table for resolving filters.
+type goadTableHost interface {
+	StaticallyGoaded() map[state.ObjID]bool
+}
+
+func saMentionsGoaded(sa *cards.SA) bool {
+	for _, v := range sa.Params {
+		if strings.Contains(v, "IsGoaded") {
+			return true
+		}
+	}
+	return false
+}
+
 type targetableObjectsHost interface {
 	TargetableObjects(triggerCard state.ObjID) []state.ObjID
 }
@@ -2177,6 +2194,11 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 		} else {
 			c.EffectiveTypes = nil
 		}
+		if gh, ok := h.(goadTableHost); ok && sa != nil && saMentionsGoaded(sa) {
+			c.StaticGoads = gh.StaticallyGoaded()
+		} else {
+			c.StaticGoads = nil
+		}
 		if th, ok := h.(targetableObjectsHost); ok {
 			c.TargetableObjects = th.TargetableObjects(c.TriggerCard)
 		} else {
@@ -2226,8 +2248,15 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 		if th, ok := h.(typeTableHost); ok {
 			c.EffectiveTypes = th.EffectiveTypes()
 		}
+		if gh, ok := h.(goadTableHost); ok && saMentionsGoaded(sa) {
+			c.StaticGoads = gh.StaticallyGoaded()
+		} else {
+			c.StaticGoads = nil
+		}
 		if th, ok := h.(targetableObjectsHost); ok {
 			c.TargetableObjects = th.TargetableObjects(c.TriggerCard)
+		} else {
+			c.TargetableObjects = nil
 		}
 		// Condition* gate (task fb-3f1cc033): a sub whose supported condition
 		// is evaluated and not met is skipped and the chain continues — the
