@@ -42,12 +42,12 @@ func cascadeIntoWealth(t *testing.T, seed uint64) (*Engine, Config, state.ObjID,
 	if o := e.G.Obj(wealthID); o.Zone != state.ZLibrary {
 		t.Fatalf("precondition: Villainous Wealth in %s, want the library before the cascade scan", o.Zone)
 	}
-	if mv := e.G.Obj(wealthID).Face().Cmc(); mv != 3 {
-		t.Fatalf("precondition: Villainous Wealth printed mana value = %d, want 3 (X counts 0 in the library)", mv)
+	if face := e.G.Obj(wealthID).Face(); face.Cmc() != 3 || ParseCost(face.ManaCost).X != 1 {
+		t.Fatalf("precondition: Villainous Wealth in library has printed mana value %d and cost %q, want 3 with one X symbol", face.Cmc(), face.ManaCost)
 	}
 	elfID := searchMoveByName(t, e, "Bloodbraid Elf", state.ZHand)
-	if mv := e.G.Obj(elfID).Face().Cmc(); mv != 4 {
-		t.Fatalf("precondition: Bloodbraid Elf printed mana value = %d, want 4", mv)
+	if mv := e.G.Obj(elfID).Face().Cmc(); mv != 4 || mv != e.G.Obj(wealthID).Face().Cmc()+1 {
+		t.Fatalf("precondition: cascade source mana value %d must be exactly one above candidate's printed %d", mv, e.G.Obj(wealthID).Face().Cmc())
 	}
 	addMana(t, e, 0, "GGRR")
 	castFixture(t, e, elfID, -1)
@@ -109,6 +109,15 @@ func TestCascadeFreeCastAnnouncesNoX(t *testing.T) {
 			t.Fatalf("ask with no options mid-cast: %+v", d)
 		}
 		submitChoices(t, e, d.Options[0].Index)
+	}
+	// At the priority window after the cast, both spells are on the stack.
+	// The free-cast X is 0 (CR 107.3b), so the strict comparison made in
+	// the library remains true on the resulting spell; X=1 would make it
+	// EQUAL to the source's value, but is not a legal free-cast choice.
+	if candidate, source := e.G.Obj(wealthID), e.G.Obj(elfID); candidate.Zone != state.ZStack || source.Zone != state.ZStack || candidate.X != 0 ||
+		candidate.Face().Cmc()+candidate.X >= source.Face().Cmc()+source.X {
+		t.Fatalf("resulting cast: candidate zone=%s X=%d printedMV=%d; source zone=%s X=%d printedMV=%d; want two stack spells, candidate X=0 and MV < source MV",
+			candidate.Zone, candidate.X, candidate.Face().Cmc(), source.Zone, source.X, source.Face().Cmc())
 	}
 	passUntilStackEmpty(t, e, 60)
 	// The free cast pushed the candidate exactly once and it resolved: the
