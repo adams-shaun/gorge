@@ -7706,7 +7706,9 @@ func (e *Engine) payCast() {
 					Counter: pc.grantSVar, IDs: []state.ObjID{pc.grantSource}})
 			}
 		} else {
-			e.emit(events.Event{Kind: events.AbilityPush, Obj: pc.card, Player: pc.player, Amount: int32(pc.ability)})
+			push := events.Event{Kind: events.AbilityPush, Obj: pc.card, Player: pc.player, Amount: int32(pc.ability)}
+			e.emit(push)
+			e.fireManaSpentTriggers(push, nil)
 		}
 		if len(e.G.Stack) > 0 {
 			pc.stackObj = e.G.Stack[len(e.G.Stack)-1]
@@ -8305,13 +8307,10 @@ func (e *Engine) fireDeferredCastTrigger() {
 }
 
 // fireManaSpentTriggers queues the TriggersWhenSpent$ rider of every mana
-// source whose provenance batch paid for the just-completed SPELL cast (the
-// rider's "when that mana is spent to cast ..." gift: Path of Ancestry's scry
-// 1, Lapis Orb's scry 2, Study Hall's commander scry). The consumed sources
-// were captured by emitRestrictedManaSpend during the payment; castEv is the
-// spell's PutOnStack event and castLKI its look-back snapshot. It queues
-// AFTER fireDeferredCastTrigger's ordinary cast triggers (deterministic
-// append order).
+// source whose provenance batch paid for the just-completed spell cast or
+// activated ability. Sources are captured by emitRestrictedManaSpend; ev is
+// the completed PutOnStack/AbilityPush event. It runs after payment and push,
+// preserving deterministic trigger append order.
 //
 // A rider's SVar is a T:-shaped trigger body (Mode$ SpellCast | ValidCard$ ...
 // | Execute$ ...) that the ordinary trigger scan never walks -- it lives in
@@ -8323,12 +8322,12 @@ func (e *Engine) fireDeferredCastTrigger() {
 // the identical granted-trigger push (events.Apply resolves Execute from the
 // source's SVar table). A source that has left the battlefield, has no face,
 // or names no longer-resolvable body fails closed -- the rider belongs to the
-// permanent. Only Mode$ SpellCast is honoured (sunken_palace's
-// SpellAbilityCast "spell or activate an ability" is out of scope).
+// permanent. SpellCast is spell-only; SpellAbilityCast dispatches on both
+// spell casts and activated abilities.
 func (e *Engine) fireManaSpentTriggers(ev events.Event, lki *state.Object) {
 	sources := e.manaSpentSources
 	e.manaSpentSources = nil
-	if len(sources) == 0 || ev.Kind != events.PutOnStack {
+	if len(sources) == 0 || (ev.Kind != events.PutOnStack && ev.Kind != events.AbilityPush) {
 		return
 	}
 	for _, src := range sources {
@@ -8347,10 +8346,17 @@ func (e *Engine) fireManaSpentTriggers(ev events.Event, lki *state.Object) {
 				continue
 			}
 			t, ok := cards.ParseTriggerLine(body)
-			if !ok || t.Mode != "SpellCast" {
+			if !ok || (t.Mode != "SpellCast" && t.Mode != "SpellAbilityCast") {
 				continue
 			}
-			if !e.zoneGate(t, src, ev) || !e.phaseGate(t) || !e.spellCastEval(t, src, ev) {
+			matches := false
+			switch t.Mode {
+			case "SpellCast":
+				matches = e.spellCastEval(t, src, ev)
+			case "SpellAbilityCast":
+				matches = e.spellAbilityCastMatches(t, src, ev, lki)
+			}
+			if !e.zoneGate(t, src, ev) || !e.phaseGate(t) || !matches {
 				continue
 			}
 			exec := strings.TrimSpace(t.Params["Execute"])
