@@ -284,3 +284,54 @@ No new tests or Go edits in this round. Previous rounds proved the tests fail wi
 ## Issues
 
 Existing, separate issue: a copied Sevinne's Reclamation inherits graveyard-cast flags in `events/apply.go`'s `StackCopy`, so `effects/filter.go`'s `wasCastFromGraveyard` can admit the copy's conditional copy clause even though the copy was not cast (CR 707.10). Earlier measurement: 29 corpus files mention `wasCastFromGraveyard`, six use `ConditionPresent$ Card.wasCastFromGraveyard`. Already filed in `.ds4/new-tickets/copy-inherits-cast-provenance.md`; not expanded in this ticket. No new defect found during the report-conflict fix.
+
+---
+
+# cost-draw1 — agent-20260918T231813Z-2ff69b35, sol1 reconciliation
+
+This section is appended to the existing (unrelated) `.ds4/report-sol1.md` because the reviewer reads this filename. The earlier report above is preserved verbatim. Full cost-draw1 reports are now uniquely named `.ds4/report-cost-draw1-t1.md` and `.ds4/report-cost-draw1-r2.md`.
+
+## Findings addressed / files
+
+- **MAJOR 1 (`.ds4/report-t1.md`):** while rebasing, preserved main's complete unrelated RevealAllValid report in `.ds4/report-t1.md`, relocating my cost-draw1 report to `.ds4/report-cost-draw1-t1.md`. `git diff main -- .ds4/report-t1.md` is empty. No existing report content deleted.
+- **MAJOR 2 (`.ds4/report-r2.md`):** restored main's unrelated Mill<2> report byte-for-byte; moved my r2 cost-draw1 report to `.ds4/report-cost-draw1-r2.md`. `git diff main -- .ds4/report-r2.md` is empty.
+- `effects/filter.go`: removed an accidentally retained, unused exported scratch diagnostic (`DebugFaceIsChosen`). The production chosen-type and bare `sharesCreatureTypeWith` implementation from r2 remains intact.
+- `rules/draw_x_cost_test.go`: three cost tests plus Titan pay/decline positive-count real-corpus pins (the latter two already fixed the prior vacuous-test and duplicate-ask findings, as findings-sol1.md confirms). `rules/paramcensus_test.go`: `Draw<X/You>` census pin. Core `Draw<X/Spec>` parser and payment implementation was already on main (`4909a8f7`); no duplicate implementation added.
+
+## Checks in this round (real output)
+
+`.cards` exists as a symlink to `/home/sadams/projects/gorge/.cards`, so corpus tests ran rather than skipped. Only targeted rules tests were run:
+
+```
+$ go test -run 'TestDrawXCostSVarFoldsAndDraws|TestDrawXUnresolvableWithheld|TestTitanOfLittjaraDrawXCost|TestTitanOfLittjaraDrawXDecline|TestParseCostReportsUnmodelledCostTokens|TestParseUnlessCostDrawComponents|TestDrawCostDrawsThePayer' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.671s
+$ go test ./effects/
+ok  	github.com/adams-shaun/gorge/effects	2.723s
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.685s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.257s
+$ gofmt -l .
+(no output; exit 0)
+$ go vet ./...
+(no output; exit 0)
+$ go run ./cmd/gentypes -check
+(no output; exit 0)
+$ git diff main -- .ds4/report-t1.md .ds4/report-r2.md
+(no output)
+```
+
+`/usr/bin/grep -rlE 'Draw<X/' .cards/cardsfolder | wc -l` yielded `9`. For all nine named carriers (`Titan of Littjara`, `Katara, Waterbending Master`, `Champion of Wits`, `Sanctum of Calm Waters`, `Hordewing Skaab`, `Horrid Shadowspinner`, `Armor Wars`, `Uncover the Moon Letters`, `Bebop, Skull-Crossbones`), `/usr/bin/grep -rl "\"$n\"" internal/testutil/decks/ | wc -l` yielded `0`. No head/ratchet goldens changed; botbench golden passed. Resolution detail: Titan, Champion, Sanctum, Horrid, Bebop resolve; Katara, Hordewing, Uncover have unmodelled X heads; Armor Wars is the unless-cost exception (its body itself resolves). See r2 report for the chosen-type filter's two-corpus-carrier scope and the measured fail-open count-head concern.
+
+## Fails without the fix
+
+No new tests were added this round: prior rounds' recorded scratch-revert failures remain in the preserved unique reports, including `TestTitanOfLittjaraDrawXCost: drawCostCount(Titan) = 0, true; want exactly 1` with the `effects/filter.go` fix removed and `TestParseCostReportsUnmodelledCostTokens: ParseCost("Draw<X/You>").Unknown = [Draw], want []` with the parser removed. Both scratch copies were restored byte-identically in their respective rounds. The current changes only relocate reports and remove unused diagnostic code.
+
+## Deviations / Issues
+
+The rebase and report name conflicts were necessary because several unrelated tracked reports share generic `.ds4/report-*.md` names; both reports are preserved, not replaced. `Draw<X/Spec>` in production uses the existing `CostPart.Dyn` with `drawCostCount` at payment, rather than a new `fixDrawXCost` helper; this was already merged before this agent's work. The test's real-corpus Titan route exercises the merged trigger-cost dependency, not a synthetic priority activation.
+
+- `rules/cumulative.go` / `rules/mana.go`: three X bodies (`Count$YourCountersExperience`, `TriggeredPlayersTargets$Amount`, `TriggeredCard$CastTotalManaSpent`) return `ok=true, n=0` under `effects.EvalCountOK` instead of failing closed; Katara, Hordewing, Uncover can be offered at a wrong zero price. Separate count-head work is needed.
+- `rules/stack.go` `ParseUnlessCost`: Armor Wars' `UnlessCost$ Draw<X/You>` deliberately declines (no X binding on the unless answer). `Count$xPaid` Draw has zero corpus carriers and remains unsupported.
+- `effects/cardflow.go` condition evaluator: Plane-Merge Elf's `ConditionPresent$ Card.sharesCreatureTypeWith` is not evaluated there, despite the bare filter now being classified; separate trigger-condition work needed. `rules/turn.go` `handleChoose` can consume an answer via a stale resume frame if external test code discards a pending decision; the Titan fixture was corrected to answer that decision, so this does not reproduce under normal engine flow.
+- The brief's claim that paying `Draw<0>` means no discard is only true when declining the cost: on payment, the body still runs. No other defects introduced by the report relocation.
