@@ -1,3 +1,118 @@
+# Merge-conflict resolution — agent-20260919T192133Z-f7463cbe (round 2)
+
+## State found
+
+`git status` at start: clean tree on `wt/agent-20260919T192133Z-f7463cbe`, no
+rebase/merge in flight. A PRIOR round had already integrated main once
+(`a721a669 Merge branch 'main' into …`, plus its report commit `2bc3dcee`),
+but main had since advanced 17 commits (`31b837ea..30a271af`). The daemon's
+failed rebase was cleaned up before this seat started.
+
+Branch at start: main-integrated at `31b837ea`, plus 5 commits (the retrace
+test, two report-path commits, the previous merge, and the previous merge
+report). Per the daemon's fallback pattern I integrated with
+`git merge main --no-edit`, which reproduced exactly the reported conflict:
+`.ds4/report-r2.md`, nothing else.
+
+## The conflicted file: `.ds4/report-r2.md`
+
+This is the shared r2-report accumulator (tracked despite the `.ds4` exclude,
+via the established `git add -f` convention). Three stages:
+
+- **Merge-base (stage 1, 349 lines):** the pred:ChosenCardStrict r2 report.
+- **Ours / branch (stage 2, 186 lines):** the retrace r2 report (this ticket,
+  `7cbf188d`) followed by the NoResolvingCheck r2 report that the previous
+  merge (`a721a669`) had appended below it. Two `# Report —` headings.
+- **Main / theirs (stage 3, 467 lines):** the base UNCHANGED plus a pure
+  PREPEND of 118 lines — the pred:hasABasicLandType r2 report
+  (`91253535 docs(hasbasiclandtype): reconcile r2 report, preserve prior r2
+  report`). Verified with `diff`: `0a1,118` (118 added, 0 removed).
+
+The two sides do not contradict on any line main added — main only prepended
+a new ticket report. So the resolution keeps both intents in full, matching
+the convention the previous merge used (branch report first, then main's
+report block):
+
+- top = ours' accumulated file (retrace r2 + NoResolvingCheck r2), unchanged,
+  because that is the branch's reviewed content and the previous merge's
+  deliberate result;
+- below it = main's newly-added 118-line block (the hasABasicLandType report
+  plus its trailing `---` and `# Prior r2 report (…ChosenCardStrict…)`
+  pointer line), byte-identical to what main added.
+
+The ChosenCardStrict base body is deliberately not re-inserted: removing it is
+the branch's own reviewed change (same convention as the previous merge and
+the TriggerRemembered preservation commit), and the base text stays intact in
+main's history.
+
+Constructed:
+`git show :2:.ds4/report-r2.md > .ds4/report-r2.md && git show
+:3:.ds4/report-r2.md | sed -n '1,118p' >> .ds4/report-r2.md`.
+Verified: 304 lines; 0 conflict markers; 145 non-blank ours lines and 96
+non-blank main-added lines all still present (no duplicates dropped).
+
+No other file was touched by the conflict. `git show --stat f625105b` shows
+the merge result touching only `.ds4/report-r2.md` (+118); every other main
+path (scry replacement, hasABasicLandType implementation, docs/coverage)
+auto-merged clean.
+
+## Operation completed
+
+- `git add -f .ds4/report-r2.md` (the `-f` is required by the exclude on
+  `.ds4`, same as every prior `.ds4` commit).
+- `git commit --no-edit` → merge commit
+  `f625105b Merge branch 'main' into wt/agent-20260919T192133Z-f7463cbe`.
+- `git status`: clean; `git merge-base --is-ancestor main HEAD` →
+  `MAIN_INTEGRATED=YES`.
+
+## Commands run and output
+
+`.cards` was PRESENT (symlink to `/home/sadams/projects/gorge/.cards`) — all
+runs executed, none skipped.
+
+Post-merge ratchets (the brief's "after merging main, run the ratchets"):
+
+```
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  	github.com/adams-shaun/gorge/rules	0.833s
+```
+
+The branch's own ticket test, post-merge:
+
+```
+$ go test -run 'Retrace' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.761s
+```
+
+Behaviour goldens:
+
+```
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.997s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.505s
+```
+
+No ratchet table edit was needed: neither side registers a new trigger `Mode$`
+matcher nor closes a `knownUnsupported` / `knownUnsupportedParams` /
+`knownUnmodelledCountHeads` entry, and the botbench golden did not move.
+
+## Notes / unsure about
+
+- Only the shared report accumulator conflicted; the resolution is
+  docs-only, so no engine behaviour, chain head or golden is affected.
+- The merged file ends with main's `# Prior r2 report (…ChosenCardStrict…)
+  — preserved verbatim below` pointer whose referent is not re-inserted (that
+  base text was already dropped by the branch's own reviewed change). The line
+  is kept byte-identical to main's addition rather than edited, to avoid
+  rewriting main's content.
+
+## Issues
+
+None new. The recurring friction is unchanged: per-branch prepends/appends to
+the shared `.ds4/report-r2.md` accumulator conflict on every integration, and
+the union convention keeps every ticket's report.
 # Merge-conflict resolution — agent-20260919T192133Z-f7463cbe
 
 ## State found
