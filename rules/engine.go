@@ -905,6 +905,17 @@ type Engine struct {
 	// clone taken with a decision outstanding carries the same queue. It is
 	// always empty in a non-Commander game: nothing ever parks there.
 	cmdZone []cmdZoneMove
+	// legendBatch is the parked CR 704.5j legend-rule application (rules/
+	// sba.go): the duplicate legendary set whose controller is choosing which
+	// member to keep, the lethal-damage casualties found in the same SBA pass,
+	// and the pre-batch look-back board. Parked and asked atomically by
+	// parkLegendChoice; cleared and applied by legendAnswer. Parked ONLY
+	// together with its ask (the pose is one step), so a clone taken at an
+	// intent boundary either sees the zero value or a batch whose decision is
+	// outstanding -- and must carry the batch, or answering the copied
+	// decision would find nothing parked. Clone deep-copies it (clone.go),
+	// the cmdZone class. Always nil outside an outstanding legend choice.
+	legendBatch *legendBatch
 	// replChoices is the queue of parked replacement choices (see replChoice /
 	// handleReplacement in replacement.go): CR 616.1 ordering for MoveZone,
 	// Untap, ProduceMana and BeginPhase, replacement-time mana-colour choices,

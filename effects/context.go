@@ -911,12 +911,12 @@ func imprintPileTargets(g *state.Game, c *Ctx) []state.Target {
 	}
 	out := make([]state.Target, 0, len(o.Imprinted)+len(o.ImprintTokens))
 	for _, id := range o.Imprinted {
-		if linked := g.Obj(id); linked != nil && linked.Zone == state.ZExile {
+		if imprintAssociationContains(g, o, id) {
 			out = append(out, state.Target{Obj: id})
 		}
 	}
 	for _, id := range o.ImprintTokens {
-		if g.Obj(id) != nil {
+		if imprintAssociationContains(g, o, id) {
 			out = append(out, state.Target{Obj: id})
 		}
 	}
@@ -926,11 +926,41 @@ func imprintPileTargets(g *state.Game, c *Ctx) []state.Target {
 	// 607.2a exile-only rule above still holds for the ordinary Imprinted
 	// association.
 	for _, id := range o.SeekFound {
-		if g.Obj(id) != nil {
+		if imprintAssociationContains(g, o, id) {
 			out = append(out, state.Target{Obj: id})
 		}
 	}
 	return out
+}
+
+// imprintAssociationContains is the shared liveness rule for Defined$ Imprinted
+// and the IsImprinted object predicate. Ordinary imprint links expire when the
+// linked card leaves exile; token and SeekFound associations have their own
+// distinct zone semantics and only require the linked object to exist.
+func imprintAssociationContains(g *state.Game, source *state.Object, id state.ObjID) bool {
+	if source == nil {
+		return false
+	}
+	linked := g.Obj(id)
+	if linked == nil {
+		return false
+	}
+	for _, linkedID := range source.Imprinted {
+		if linkedID == id && linked.Zone == state.ZExile {
+			return true
+		}
+	}
+	for _, linkedID := range source.ImprintTokens {
+		if linkedID == id {
+			return true
+		}
+	}
+	for _, linkedID := range source.SeekFound {
+		if linkedID == id {
+			return true
+		}
+	}
+	return false
 }
 
 func rememberedWithSource(h Host, c *Ctx) []state.Target {

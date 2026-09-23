@@ -2157,10 +2157,14 @@ func Apply(g *state.Game, e Event) {
 
 	case Attach:
 		if o := g.Obj(e.Obj); o != nil {
-			if len(e.IDs) == 0 {
+			switch {
+			case e.Text == "attach to player" && validPlayer(g, e.Player):
 				o.AttachedTo = 0
-			} else if g.Obj(e.IDs[0]) != nil {
-				o.AttachedTo = e.IDs[0]
+				o.AttachedPlayer, o.HasAttachedPlayer = e.Player, true
+			case len(e.IDs) == 0:
+				o.AttachedTo, o.HasAttachedPlayer = 0, false
+			case g.Obj(e.IDs[0]) != nil:
+				o.AttachedTo, o.HasAttachedPlayer = e.IDs[0], false
 			}
 		}
 
@@ -2173,7 +2177,7 @@ func Apply(g *state.Game, e Event) {
 		// bearer, which only the trigger matcher reads -- nothing about the
 		// state fold depends on it.
 		if o := g.Obj(e.Obj); o != nil {
-			o.AttachedTo = 0
+			o.AttachedTo, o.HasAttachedPlayer = 0, false
 		}
 
 	case AbilityPush:
@@ -2934,7 +2938,9 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 	// land, and no corpus head reads the zones that pair touches
 	// (Hand_from_Stack does, and the double entry it sees is the honest
 	// record of the two moves).
-	g.Entered = append(g.Entered, state.ZoneEntry{Obj: id, To: to, From: enteredFrom})
+	permanentCard := !o.IsToken && !o.IsCopy && o.Card != nil && o.Face() != nil && o.Face().IsPermanent()
+	g.Entered = append(g.Entered, state.ZoneEntry{Obj: id, To: to, From: enteredFrom,
+		Owner: o.Owner, PermanentCard: permanentCard})
 	switch to {
 	case state.ZBattlefield:
 		o.SummonSick = true
@@ -3175,7 +3181,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		if wasStack {
 			o.ChosenModes = nil
 		}
-		o.AttachedTo = 0
+		o.AttachedTo, o.HasAttachedPlayer = 0, false
 	}
 }
 

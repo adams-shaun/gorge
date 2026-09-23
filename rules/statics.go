@@ -277,7 +277,7 @@ func (e *Engine) actorMatches(sv staticView, key string, actor state.PlayerID) b
 	if !ok {
 		return true
 	}
-	return effects.MatchesPlayerSpec(e.G, spec, actor, sv.Controller)
+	return effects.MatchesPlayerSpecCtx(e.G, spec, actor, sv.Controller, effects.PlayerSpecCtx{Source: sv.Source})
 }
 
 // specCtx builds the SpecContext a per-source "ValidCard$"/spec match is
