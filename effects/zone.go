@@ -249,6 +249,11 @@ func changeZoneAltDestination(h Host, c *Ctx, sa *cards.SA, primary state.Zone) 
 
 func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	to := changeZoneAltDestination(h, c, sa, ParseZone(sa.Params["Destination"]))
+	// Set only when an explicit multi-zone Origin$ including Hand falls
+	// through the dedicated walkers above to the object path; the diagnostic
+	// for a resolution that ends up moving nothing is emitted after the move
+	// loop, where `moved` knows the truth.
+	mixedOriginNoteFrom := ""
 	var originZones []state.Zone
 	var originAll bool
 	if from, present := sa.Params["Origin"]; present {
@@ -375,12 +380,15 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 			return
 		}
 		// An unbound concrete object selector in a mixed-Hand origin must not
-		// become a free search. Keep its object path, with a diagnostic if no
-		// selected object can be moved.
+		// become a free search. Keep its object path -- the chooser question the
+		// old note here claimed was unimplemented is answered by the search
+		// path above (one private option list across the named origins, per
+		// fetch player's own zones) and by this object path for a Defined$
+		// that already names its objects -- and leave the diagnostic to the
+		// post-move-loop emission, so a resolution whose objects DID move (a
+		// chosen card, a remembered pair) is not slandered by a note.
 		if mixedOriginIncludesHand(originZones, originAll) {
-			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
-				Text: "cannot choose cards from mixed ChangeZone Origin$ " + from +
-					" (an origin-aware hidden-zone chooser is not implemented)"})
+			mixedOriginNoteFrom = from
 		}
 		// A ChangeZone from exactly Hand with no object selector is Forge's
 		// hidden-origin hand put-back: the chooser picks ChangeNum$ cards (a
@@ -468,6 +476,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		withAmt = withCounterAmount(h, c, sa)
 	}
 	targets := Defined(h, c, sa)
+	targetAskPending := false
 	// ValidTgts$ targeting whose ask was never offered: the placement ask
 	// (rules' pushTrigger) reads only the trigger's OWN Execute SA, so a
 	// deeper sub's ValidTgts$ -- the "when you do" family's shape (Forum
@@ -487,6 +496,9 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	// answer differently is never emitted.
 	if ans, ok := changeZoneChosenTargets(h, c, sa); ok {
 		targets = ans
+		// A suspension (nil answer, ok) leaves the chooser pending: the note
+		// below must wait for the answering re-entry, which moves the targets.
+		targetAskPending = ans == nil
 	}
 	// The O-Ring return shape (Journey to Nowhere, Leonin Relic-Warder): the
 	// LEAVE-battlefield trigger's Execute is `DB$ ChangeZone | Defined$
@@ -724,6 +736,17 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	}
 	if len(imprinted) > 0 {
 		h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: imprinted})
+	}
+	// The mixed-Hand diagnostic, now that the pass's truth is known: every
+	// no-selector/player-selector mixed origin was answered by the search
+	// path's chooser above, and a Defined$ naming its objects moves them
+	// through the Origin$-preconditioned loop -- so only a mixed-Hand
+	// resolution that moved nothing AND posed no pending target ask is left
+	// loud (a suspended ask emits on its answering re-entry, which moves).
+	if mixedOriginNoteFrom != "" && len(moved) == 0 && !targetAskPending {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "no object of the mixed ChangeZone Origin$ " + mixedOriginNoteFrom +
+				" resolution was eligible to move"})
 	}
 	// AtEOT$ (Puppeteer Clique's reanimation: "at the beginning of your next
 	// end step, exile it"): schedule the end-step departure for every object
