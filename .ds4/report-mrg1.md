@@ -1101,19 +1101,29 @@ forbidden in this seat).
 branch's `nonCopiedSpell` fix touch different regions). No golden, ratchet
 table or `heads_test.go` was edited.
 
-### Commands and output
+### Commands and output (measured)
 
-- `.cards` present (real symlink) — runs are real, not vacuous skips.
+- `.cards` present (real symlink to `/home/sadams/projects/gorge/.cards`) —
+  runs are real, not vacuous skips.
 - Merged-table count (the test's own awk logic): `rows: 46`.
 - `go test ./internal/testutil/ -run 'TestKnownApproximation' -v` →
-  `--- PASS: TestKnownApproximationsOnlyShrinks`,
-  `--- PASS: TestKnownApproximationRowsAreShort` (see gate log below).
-- Ratchets: `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'` → ok.
-- Branch's non<X> suites: `go test ./effects -run 'NonPredicate|NonCopied|NonColorless|NonChosen'` → ok.
-- Main's new closures' suites (pc1, each1, 616.1 order): ok in rules+effects.
-- Behaviour goldens: `go test ./internal/archtest/` → ok;
-  `go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/` → ok
-  (pinned split measured below — see final gate log appended to this record).
+  `--- PASS: TestKnownApproximationsOnlyShrinks (0.00s)`,
+  `--- PASS: TestKnownApproximationRowsAreShort (0.00s)`,
+  `ok github.com/adams-shaun/gorge/internal/testutil 0.001s`.
+- Ratchets: `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`
+  → `ok github.com/adams-shaun/gorge/rules 0.755s`; spot-verbose rerun of
+  `TestEveryRepoDeckParamsAreRead` shows `--- PASS (0.71s)`, no SKIP.
+- Branch's non<X> suites: `go test ./effects -run 'NonPredicate|NonCopied|NonColorless|NonChosen'`
+  → `ok ... 0.619s`.
+- Main's new closures' suites: `go test ./rules -run 'EachDamage|ReplacementOrder|Legend|PlayerSpec|Imprinted|ContextWord|BangPredicate|ReplacementUpdated|TokenReplaceChosen|FailClosed'`
+  → `ok ... 1.182s`; `go test ./effects -run 'EachDamage|FailClosed|Imprinted|ContextWord|BangPredicate|Condition'`
+  → `ok ... 1.266s`.
+- Behaviour goldens: `go test ./internal/archtest/` → `ok ... 3.937s`;
+  `go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/` →
+  `ok ... 0.972s` (pinned 20-game bot split did NOT move).
+- `gofmt -l internal/testutil/agentsdoc_test.go` → clean.
+- `git status` after the merge commit: clean; `main` (`e6a2a84d`) is now an
+  ancestor of HEAD (merge commit `c53b5e1f`, parents `d396b8ba` + `e6a2a84d`).
 
 ### Notes / uncertainties
 
