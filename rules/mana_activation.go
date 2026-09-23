@@ -225,6 +225,26 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 			manaAbilities = append(manaAbilities, pf.Face.ManaAbilities()...)
 		}
 	}
+	// CR 305.6: basic land types granted in layer 4 carry their intrinsic
+	// mana abilities too. Printed faces already contain their own intrinsics;
+	// append only productions they do not already provide.
+	if !faceDown && len(e.landTypeWords) > 0 {
+		for _, ce := range e.active() {
+			if ce.Layer == LType {
+				produced := make(map[string]bool, len(manaAbilities))
+				for _, ma := range manaAbilities {
+					produced[manaAbilityProduced(ma)] = true
+				}
+				for _, typ := range e.Derived(id).Types {
+					if ma, ok := cards.IntrinsicManaAbility(typ); ok && !produced[manaAbilityProduced(ma)] {
+						manaAbilities = append(manaAbilities, ma)
+						produced[manaAbilityProduced(ma)] = true
+					}
+				}
+				break
+			}
+		}
+	}
 	recipientCtx := &effects.Ctx{Source: id, Controller: p, SVars: f.SVars}
 	abilityRestricted := func(ma *cards.SA) bool {
 		if statics == nil {
@@ -562,6 +582,16 @@ func manaAbilityComboColours(ma *cards.SA, chosen string) ([]string, bool) {
 		return nil, false
 	}
 	return cols, true
+}
+
+// manaAbilityProduced reads a mana ability's Produced$ value. Every caller
+// passes a mana ability (the intrinsic-append dedup inside
+// availableManaAbilitiesUsing's CR 305.6 walk), so the param census
+// attributes the read to api:Mana alone (apiSpecificRulesSA) -- left in the
+// generic union it would mask every other API's unread Produced$ (measured:
+// api:Sacrifice/api:DealDamage).
+func manaAbilityProduced(ma *cards.SA) string {
+	return ma.Params["Produced"]
 }
 
 func manaAbilityLabel(ma *cards.SA, chosen string) string {

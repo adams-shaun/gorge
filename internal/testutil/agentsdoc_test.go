@@ -19,15 +19,15 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	// The merged table measures 40 rows: the two sides deleted DISJOINT rows,
-	// so the merge keeps every closure. Base (main 1be022eb, already merged on
-	// this branch) measured 43 data rows. This branch deleted the `kw:Infect`
+	// The merged table measures 37 rows: the two sides deleted DISJOINT rows,
+	// so the merge keeps every closure. Base (main 90044c3f, already merged on
+	// this branch) measured 41 data rows. This branch deleted the `kw:Infect`
 	// row (fix 56f98b13, which reads CR 113.7a last-known characteristics for
-	// damage cost keywords at the two cost sites); main deleted the
-	// `Phase$ First Strike Damage` row (fix acc7878d, combat-presence gating)
-	// and the Replicate count-bound row (fix 0836163f, the repeatable-cost
-	// charge). 43 - 3 = 40.
-	knownApproximationRows = 40
+	// damage cost keywords at the two cost sites); main deleted the `cascade1`
+	// row (fix 4cdffbc1, cascade timing/free-cast election), the `tokrepl1` row
+	// (the token-replacement stand-ins) and the `maxpower1` row (the
+	// TargetMax$-aware prune with the cross-mode Charm ask). 41 - 4 = 37.
+	knownApproximationRows = 37
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.

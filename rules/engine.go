@@ -113,9 +113,10 @@ type counterAddedThisTurn struct {
 }
 
 type Engine struct {
-	G            *state.Game
-	L            *events.Log
-	compiledText *compiledText
+	G             *state.Game
+	L             *events.Log
+	compiledText  *compiledText
+	landTypeWords []string
 
 	// turnsTaken caches the TurnChange census used by Count$TurnsThisGame.
 	// turnsTakenEpoch is the log length represented by the cache; emit advances
@@ -684,6 +685,12 @@ type Engine struct {
 	// entirely, so a replacement that re-emits a matching event cannot
 	// replace itself again. Task 20.
 	applyingReplacement bool
+	// tokenMintSink, when non-nil, collects every object the TokenCreate event
+	// currently being emitted actually created (EmitTokenCreate). It is a
+	// stack discipline: a nested token creation saves and restores the outer
+	// sink, so the outer effect's rider loop sees only its own mints. Nil on
+	// every ordinary Emit, so no other emit pays for the collection.
+	tokenMintSink *[]state.ObjID
 	// replReplaced is the ev.Obj of the replacement applyReplacements is
 	// currently resolving — the object the replaced event was about. It is
 	// seeded by applyReplacements (Ctx.Replaced = ev.Obj) and read by Ask to
@@ -1458,15 +1465,16 @@ func newWithRNG(cfg Config, random *rng) *Engine {
 		}
 	}
 	e := &Engine{
-		G:            state.NewGameLife(cfg.Names, life, initialObjects),
-		L:            events.NewLog(cfg.Seed),
-		format:       cfg.Format,
-		rng:          random,
-		loop:         newLivelockWatcher(cfg.LoopGuard),
-		turnsTaken:   make([]int32, len(cfg.Names)),
-		compiledText: newCompiledText(cfg),
-		mulligans:    cfg.Mulligans,
-		startingLife: life,
+		G:             state.NewGameLife(cfg.Names, life, initialObjects),
+		L:             events.NewLog(cfg.Seed),
+		format:        cfg.Format,
+		rng:           random,
+		loop:          newLivelockWatcher(cfg.LoopGuard),
+		turnsTaken:    make([]int32, len(cfg.Names)),
+		compiledText:  newCompiledText(cfg),
+		landTypeWords: corpusLandTypeWords(cfg.NameUniverse),
+		mulligans:     cfg.Mulligans,
+		startingLife:  life,
 		// The per-turn ManaExpend tally (rules/cast.go) starts empty; payCast
 		// stamps and resets it lazily on e.G.Turn.
 		manaExpended: make([]int32, len(cfg.Names)),
@@ -1923,6 +1931,10 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			}
 		}
 	}
+	var tokenMintWant state.ObjID
+	if ev.Kind == events.TokenCreate && e.tokenMintSink != nil {
+		tokenMintWant = e.G.NextID
+	}
 	stored := events.Emit(e.G, e.L, ev)
 	// CR 310.10: every Battle whose recorded protector has just left the game
 	// gets a fresh living opponent as its protector. PlayerLost is the one
@@ -1933,6 +1945,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	// decision), so it is safe to run here even mid-resolution.
 	if stored.Kind == events.PlayerLost {
 		e.rechooseDepartedBattleProtector(stored.Player)
+	}
+	if tokenMintWant != 0 && e.G.Obj(tokenMintWant) != nil {
+		*e.tokenMintSink = append(*e.tokenMintSink, tokenMintWant)
 	}
 	if ev.Kind == events.CounterChange && ev.Amount < 0 && ev.Counter == "TIME" && timeBefore > 0 {
 		// CR 702.62a/b (counterchoice1): the LAST time counter leaving a

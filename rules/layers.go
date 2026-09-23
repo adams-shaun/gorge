@@ -2183,12 +2183,68 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 			}
 			ty = kept
 		}
-		ty = append(ty, ce.AddTypes...)
+		ty = appendLandTypes(ty, ce.AddTypes, e.landTypeWords)
 		if ce.AddAllCreatureTypes {
 			ty = appendAllCreatureTypes(ty)
 		}
 	}
 	return reconfigureTypeSwitch(o, bestowedTypeSwitch(o, ty))
+}
+
+// corpusLandTypeWords derives the land-subtype vocabulary from the parsed
+// compiled corpus supplied as the game's NameUniverse. Card and supertype
+// words, plus creature subtypes printed on creature lands, are excluded.
+// Sorting makes the derived layer list deterministic.
+func corpusLandTypeWords(universe []*cards.Card) []string {
+	words := make(map[string]struct{})
+	for _, card := range universe {
+		if card == nil {
+			continue
+		}
+		for _, face := range card.Faces {
+			if face == nil || !slices.ContainsFunc(face.Types, func(t string) bool { return strings.EqualFold(t, "Land") }) {
+				continue
+			}
+			for _, typ := range face.Types {
+				if strings.EqualFold(typ, "Land") || isSupertype(typ) || isCardType(typ) || effects.CreatureTypeWords(typ) {
+					continue
+				}
+				words[typ] = struct{}{}
+			}
+		}
+	}
+	out := make([]string, 0, len(words))
+	for word := range words {
+		out = append(out, word)
+	}
+	slices.Sort(out)
+	return out
+}
+
+func isCardType(t string) bool {
+	for _, word := range cardTypeWords {
+		if strings.EqualFold(t, word) {
+			return true
+		}
+	}
+	return false
+}
+
+// appendLandTypes expands Forge's all-land-type tokens against the parsed
+// corpus vocabulary. Additive types remain in their original order; the
+// vocabulary itself is sorted to keep derived characteristics deterministic.
+func appendLandTypes(types, grants, nonBasic []string) []string {
+	for _, grant := range grants {
+		switch {
+		case strings.EqualFold(grant, "AllBasicLandType"):
+			types = append(types, "Plains", "Island", "Swamp", "Mountain", "Forest")
+		case strings.EqualFold(grant, "AllNonBasicLandType"):
+			types = append(types, nonBasic...)
+		default:
+			types = append(types, grant)
+		}
+	}
+	return types
 }
 
 // appendAllCreatureTypes materialises the layer-4 "all creature types"

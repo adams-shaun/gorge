@@ -2,6 +2,7 @@ package rules
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -1905,6 +1906,16 @@ func (e *Engine) askCrossModeCharmTargets(p state.PlayerID, source state.ObjID, 
 	k := len(tbms)
 	sub := tbms[0]
 	candidates := e.legalTargetCandidates(p, source, source, sub)
+	// MaxTotalTargetPower$ over the cross-mode pool: the same shared cap read
+	// every other target ask uses, so a Charm whose first target-bearing mode
+	// carries the parameter prunes the census that can provably join no legal
+	// selection and rides the running budget on the decision exactly as
+	// askTarget and cast.go's targetAsk do. The family's modes target players
+	// (CharmCrossModeShape requires a player-kind spec), whose Value is 0 and
+	// which are never pruned, so a non-negative cap never rejects the required
+	// one-per-mode answer; the read exists so the ask cannot silently ignore a
+	// cap a caller put on it.
+	candidates, powerCap, powerCapped := e.totalPowerCappedCandidates(candidates, p, source, sub, 0)
 	if len(candidates) < k {
 		return false
 	}
@@ -1917,7 +1928,15 @@ func (e *Engine) askCrossModeCharmTargets(p state.PlayerID, source state.ObjID, 
 		if candidate.kind == "player" {
 			o.Group = "charm-mode-player-" + strconv.Itoa(int(candidate.player))
 		}
+		if powerCapped && candidate.kind != "player" {
+			if co := e.G.Obj(candidate.obj); co != nil && co.Face() != nil {
+				o.Value = int(e.Power(candidate.obj))
+			}
+		}
 		d.Options = append(d.Options, o)
+	}
+	if powerCapped {
+		d.MaxSum, d.Budgeted = powerCap, true
 	}
 	e.ask(d)
 	return true
@@ -2163,13 +2182,15 @@ func (e *Engine) maxTotalTargetPower(p state.PlayerID, source state.ObjID, sa *c
 // save it: no selection containing it can score under the cap unless it
 // takes EVERY other negative candidate on offer, so the prune test is
 // p + otherNeg > cap (otherNeg = the sum of the OTHER candidates' negative
-// powers). The one rule covers every cap, zero and negative included: a
-// cap of 0 keeps a 2-power candidate beside two -1s (2-1-1 = 0), and a
-// negative cap no combination of negatives can reach prunes the whole
-// census. The prune does NOT model TargetMax$ bounding how many negatives
-// one selection may take (both corpus carriers' TargetMax$ is X, every
-// candidate) -- a survivor it keeps may then be unselectable, never the
-// reverse, and Decision.Validate still rejects any over-cap answer.
+// powers). TargetMax$ bounds the offset: a selection containing the
+// candidate under test can take at most maxTargets-1 OTHER things (CR
+// 601.2c), so the offset is the sum of the most negative maxTargets-1
+// candidates, never the whole negative sum. Both corpus carriers' TargetMax$
+// is X (every candidate), where the ceiling is unreachable and the offset is
+// the whole negative sum exactly as before; a lone-target ask (the default
+// TargetMax$ 1) has no offset at all. A survivor the TargetMax$-aware prune
+// keeps is always selectable alongside the negatives it counted, and
+// Decision.Validate still rejects any over-cap answer.
 // The running half -- any combination whose summed power stays within the
 // bound -- is NOT expressible as a per-candidate property, so it is not a
 // filter here: the two ask sites (askTarget below and cast.go's targetAsk)
@@ -2195,12 +2216,11 @@ func (e *Engine) totalPowerCappedCandidates(candidates []targetCandidate, p stat
 	if !ok {
 		return candidates, 0, false
 	}
-	// First pass: every card candidate's DERIVED power, and the maximal
-	// negative offset the census carries (the sum of the negative powers --
-	// the most any selection containing an over-cap candidate can ever
-	// claw back). Player candidates carry no power.
+	// First pass: every card candidate's DERIVED power, plus the census's
+	// negative powers sorted most-negative first (the pool the offset draws
+	// from). Player candidates carry no power.
 	power := make([]int32, len(candidates))
-	negSum := int32(0)
+	var negs []int32
 	for i, c := range candidates {
 		if c.kind == "player" {
 			continue
@@ -2211,8 +2231,18 @@ func (e *Engine) totalPowerCappedCandidates(candidates []targetCandidate, p stat
 		}
 		power[i] = e.Power(c.obj)
 		if power[i] < 0 {
-			negSum += power[i]
+			negs = append(negs, power[i])
 		}
+	}
+	sort.Slice(negs, func(a, b int) bool { return negs[a] < negs[b] })
+	// A selection containing the candidate under test has at most this many
+	// OTHER slots (CR 601.2c), so its offset may draw on at most that many
+	// negative candidates. resolvedTargetBounds clamps max >= 1, so a
+	// lone-target ask (the default) has otherSlots 0 and no offset at all.
+	_, maxTargets := e.resolvedTargetBounds(p, source, sa, x)
+	otherSlots := maxTargets - 1
+	if otherSlots < 0 {
+		otherSlots = 0
 	}
 	out := make([]targetCandidate, 0, len(candidates))
 	for i, c := range candidates {
@@ -2225,28 +2255,53 @@ func (e *Engine) totalPowerCappedCandidates(candidates []targetCandidate, p stat
 			continue
 		}
 		// Prune only a candidate no legal selection can contain: its own
-		// power plus the maximal offset the OTHER candidates can supply (the
-		// sum of their negative powers) still busts the cap. With no
-		// negatives that is the plain p > cap prune; a candidate at or under
-		// the cap is never pruned by it when cap >= 0. The same rule holds
-		// for a cap of zero or less (powers 2,-1,-1 under a cap of 0 total
-		// 0, so the 2 stays), and there it can prune the whole census --
-		// when even every negative candidate together cannot reach a
-		// negative cap, no selection is legal and the ask resolves as
-		// targetless. Whatever survives, taking every negative survivor
-		// alongside it fits, which is what decision.FitRequired's negative
-		// top-up relies on to always reach a valid answer.
+		// power plus the maximal offset the OTHER selectable candidates can
+		// supply (the most negative maxTargets-1 of them) still busts the
+		// cap. With no negatives that is the plain p > cap prune; a candidate
+		// at or under the cap is never pruned by it when cap >= 0. The same
+		// rule holds for a cap of zero or less (powers 2,-1,-1 under a cap of
+		// 0 with maxTargets >= 3 total 0, so the 2 stays; under maxTargets 2
+		// only one -1 fits, 2-1 = 1 > 0, so the 2 is pruned), and it can
+		// prune the whole census. Whatever survives, taking the negatives the
+		// offset counted alongside it fits within both the cap and Max, which
+		// is what decision.FitRequired's negative top-up relies on to always
+		// reach a valid answer.
 		p := power[i]
-		others := negSum
-		if p < 0 {
-			others -= p
-		}
+		others := maxNegativeOffset(negs, otherSlots, p < 0, p)
 		if p+others > int32(capPower) {
 			continue
 		}
 		out = append(out, c)
 	}
 	return out, capPower, true
+}
+
+// maxNegativeOffset is the most a selection of at most `slots` candidates can
+// claw back from `negs` (negative powers sorted most-negative first), skipping
+// one occurrence of skipVal when the candidate under test is itself negative
+// and so already contributes its own power to the sum. A missing skipVal or a
+// non-positive slots yields the plain top-slots sum (0 when slots <= 0). The
+// caller's census is small, so the linear scan per candidate is kept simple
+// rather than prefix-summed.
+func maxNegativeOffset(negs []int32, slots int, skip bool, skipVal int32) int32 {
+	if slots <= 0 {
+		return 0
+	}
+	sum := int32(0)
+	taken := 0
+	skipped := !skip
+	for _, v := range negs {
+		if !skipped && v == skipVal {
+			skipped = true
+			continue
+		}
+		if taken >= slots {
+			break
+		}
+		sum += v
+		taken++
+	}
+	return sum
 }
 
 // AskCopyTargets offers CR 707.10c's new-target choice for the copy on top
@@ -3752,9 +3807,25 @@ func (e *Engine) resolveAbility(source state.ObjID, controller state.PlayerID,
 // (layers.go) and Ask (resolution.go) round out the interface -- HasKeyword
 // already existed for the layer system's own callers before effects.Host
 // grew a method of the same name, and needed no change to satisfy it.
-func (e *Engine) Game() *state.Game                       { return e.G }
-func (e *Engine) ObjectColors(o *state.Object) string     { return e.objColors(o) }
-func (e *Engine) Emit(ev events.Event)                    { e.emit(ev) }
+func (e *Engine) Game() *state.Game                   { return e.G }
+func (e *Engine) ObjectColors(o *state.Object) string { return e.objColors(o) }
+func (e *Engine) Emit(ev events.Event)                { e.emit(ev) }
+
+// EmitTokenCreate emits a token-creation event and returns every object it
+// actually created. A CreateToken replacement may rewrite one would-be token
+// into several mints (Divine Visitation, Doubling Season, Xorn);
+// effects/token.go consults this return so its per-token riders land on
+// EVERY mint, not just the first. The sink is a stack: a nested token
+// creation during this emit saves and restores it, so the outer call returns
+// only its own plan's mints.
+func (e *Engine) EmitTokenCreate(ev events.Event) []state.ObjID {
+	var ids []state.ObjID
+	saved := e.tokenMintSink
+	e.tokenMintSink = &ids
+	e.emit(ev)
+	e.tokenMintSink = saved
+	return ids
+}
 func (e *Engine) EmitDamage(ev events.Event) events.Event { return e.emit(ev) }
 
 // EmitLifeChange reports whether the exact proposed life change was applied.
