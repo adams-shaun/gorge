@@ -1357,6 +1357,14 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 			cc.VotePublishedSet = true
 		}
 		Resolve(h, &cc, sub)
+		// A loop body runs on a Ctx copy. Its first FlipCoin may allocate
+		// the shared memory lazily, so retain that pointer on the outer Ctx
+		// before copying the next iteration or returning through a suspension.
+		// Mana Clash's post-loop FlippedTails reader must see every player's
+		// FlipClash result, not a fresh per-iteration list.
+		if c.FlipMemory == nil && cc.FlipMemory != nil {
+			c.FlipMemory = cc.FlipMemory
+		}
 		if h.Suspended() {
 			h.SuspendRepeat(RepeatSuspension{
 				RepeatCursor: RepeatCursor{SA: sa, Subjects: copyTargets(subjects), Next: i + 1},
