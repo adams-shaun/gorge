@@ -4656,10 +4656,13 @@ func targetsPermanents(spec string) bool {
 // are deliberately refused here: beginUnlessPayment owns every such component
 // and gathers the payer's selected objects before it calls payMana. Keeping
 // this guard makes a future caller unable to silently revive the old
-// first-in-zone-order stand-in. Fixed mana/life, SubCounter and Draw
+// first-in-zone-order stand-in. Fixed mana/life, Mill, SubCounter and Draw
 // components remain synchronous: a Draw<N/Spec> pays by drawing N cards for
 // the player(s) the spec names (default the payer), resolved through the
-// same Ctx roles the UnlessPayer$ grammar reads. The dynamic life folds
+// same Ctx roles the UnlessPayer$ grammar reads, and a Mill<N> mills from
+// the top of the payer's own library through the shared payMillCost (CR
+// 701.13a: every remaining card when fewer than N remain, so any library
+// size is payable). The dynamic life folds
 // (LifeTotalHalfUp, an announced PayLife<X>) and the energy parts (fixed and
 // announced-X PayEnergy) charge here too, under the same offer gate's reads
 // (unlessFoldDynamic / unlessEnergyAffordable), so the gate and the charge
@@ -4740,6 +4743,13 @@ func (e *Engine) payUnlessCost(p state.PlayerID, cost Cost, ctx *effects.Ctx, st
 		x = ctx.X
 	}
 	e.chargeEnergyCost(p, cost, x)
+	// Mill parts (Mill<N>) settle through the ONE shared mill site, after
+	// every payability check above has passed and beside the other charges,
+	// so the ordinary cast/activation cost and an unless cost cannot diverge.
+	// CR 701.13a: the payer mills the SUM of the parts' requirements, taking
+	// every remaining card when the library is short, so this never turns an
+	// empty or short library into an unpayable cost.
+	e.payMillCost(p, cost.Mill)
 	for _, d := range drains {
 		e.emit(events.Event{Kind: events.CounterChange, Obj: d.obj, Counter: d.kind, Amount: -d.n})
 	}
