@@ -19,8 +19,13 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	// Measured after merging main and this branch's closures: 43 data rows.
-	knownApproximationRows = 43
+	// The merged table measures 42 rows: the two sides deleted DISJOINT
+	// rows, so the merge keeps both closures. Main deleted the "mulligan
+	// declaration's REDRAW resolves immediately" row (fix 7c4182ff) and this
+	// branch deleted the `kw:Infect` row (fix 56f98b13, which reads CR
+	// 113.7a last-known characteristics for damage cost keywords at the two
+	// cost sites). Base was 44 rows; 44 - 2 = 42.
+	knownApproximationRows = 42
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.

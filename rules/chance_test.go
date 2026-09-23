@@ -216,10 +216,22 @@ func TestHypotheticalPlannerControlsMulliganShuffle(t *testing.T) {
 	if choice < 0 {
 		t.Fatalf("mulligan option missing: %+v", d)
 	}
+	mulliganer := d.Player
 	if err := e.SubmitHypothetical(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{choice}}); err != nil {
 		t.Fatal(err)
 	}
-	if got := lastShuffle(e.L.Events, d.Player); !reflect.DeepEqual(got, desired) {
+	// The mulligan REDRAW is resolved at the pass boundary, not on the
+	// declaring seat's own submit (CR 103.4/103.5: all mulligans in a
+	// declaration pass happen simultaneously -- see resolveMulliganRedraws).
+	// Keep every remaining seat so the pass completes and the deferred
+	// redraw runs; then the planner's Ordinal-1 callback has produced the
+	// shuffle this test asserts on.
+	for desired == nil {
+		if err := submitPregameKeep(t, e); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if got := lastShuffle(e.L.Events, mulliganer); !reflect.DeepEqual(got, desired) {
 		t.Fatalf("mulligan shuffle=%v want %v", got, desired)
 	}
 }
@@ -372,6 +384,31 @@ func lastShuffle(log []events.Event, player state.PlayerID) []state.ObjID {
 	return nil
 }
 
+// submitPregameKeep answers the pending pregame decision with its "keep"
+// option. A mulligan's REDRAW is resolved at the declaration-pass boundary
+// (CR 103.4/103.5; resolveMulliganRedraws), not on the declaring seat's own
+// submit, so a test that observes the redraw -- its shuffle, its chance
+// consumption, or a chance failure inside it -- must drive the rest of the
+// pass to completion by keeping every remaining declarer.
+func submitPregameKeep(t *testing.T, e *Engine) error {
+	t.Helper()
+	d := e.Pending()
+	if d == nil {
+		t.Fatal("pregame ended before a keep was available")
+	}
+	keep := -1
+	for i, option := range d.Options {
+		if option.Kind == "keep" {
+			keep = i
+			break
+		}
+	}
+	if keep < 0 {
+		t.Fatalf("keep option missing: %+v", d)
+	}
+	return e.SubmitHypothetical(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{keep}})
+}
+
 func TestHypotheticalRejectsMalformedChance(t *testing.T) {
 	for _, tc := range []struct {
 		name string
@@ -418,13 +455,22 @@ func TestHypotheticalReplayAndCloneOwnChanceState(t *testing.T) {
 	if err := clone.SubmitHypothetical(intent); err != nil {
 		t.Fatal(err)
 	}
-	if clone.RNGDraws() <= draws {
-		t.Fatal("mulligan did not consume chance")
-	}
+	// The mulligan redraw is deferred to the pass boundary (CR 103.4/103.5),
+	// so its chance use lands when the rest of the pass keeps, not on the
+	// mulligan submit. e must still be untouched after the clone's submit.
 	if e.L.Head() != head || e.RNGDraws() != draws || len(e.ChanceTranscript()) != int(draws) {
 		t.Fatal("clone changed source log or chance state")
 	}
+	if err := submitPregameKeep(t, clone); err != nil {
+		t.Fatal(err)
+	}
+	if clone.RNGDraws() <= draws {
+		t.Fatal("mulligan did not consume chance")
+	}
 	if err := e.SubmitHypothetical(intent); err != nil {
+		t.Fatal(err)
+	}
+	if err := submitPregameKeep(t, e); err != nil {
 		t.Fatal(err)
 	}
 	if e.L.Head() != clone.L.Head() || !reflect.DeepEqual(e.ChanceTranscript(), clone.ChanceTranscript()) {
@@ -438,6 +484,9 @@ func TestHypotheticalReplayAndCloneOwnChanceState(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := replay.SubmitHypothetical(intent); err != nil {
+		t.Fatal(err)
+	}
+	if err := submitPregameKeep(t, replay); err != nil {
 		t.Fatal(err)
 	}
 	if replay.L.Head() != e.L.Head() || replay.RNGDraws() != e.RNGDraws() {
@@ -474,7 +523,15 @@ func TestHypotheticalSubmitFailurePoisonsOnlyThatBranch(t *testing.T) {
 		t.Fatal("missing mulligan")
 	}
 	in := decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{choice}}
-	if err := e.SubmitHypothetical(in); err == nil || !strings.Contains(err.Error(), "bound") {
+	// The REDRAW that consumes the poisoned draw is deferred to the pass
+	// boundary (CR 103.4/103.5), so the mulligan submit itself succeeds and
+	// the chance failure surfaces when the pass's other declarer keeps --
+	// that submit runs resolveMulliganRedraws, whose shuffle consumes the
+	// invalid draw.
+	if err := e.SubmitHypothetical(in); err != nil {
+		t.Fatal(err)
+	}
+	if err := submitPregameKeep(t, e); err == nil || !strings.Contains(err.Error(), "bound") {
 		t.Fatalf("error = %v", err)
 	}
 	head := e.L.Head()
@@ -485,6 +542,9 @@ func TestHypotheticalSubmitFailurePoisonsOnlyThatBranch(t *testing.T) {
 		t.Fatal("failed branch kept mutating")
 	}
 	if err := base.SubmitHypothetical(in); err != nil {
+		t.Fatal(err)
+	}
+	if err := submitPregameKeep(t, base); err != nil {
 		t.Fatal(err)
 	}
 	if err := New(cfg).SubmitHypothetical(in); err == nil {

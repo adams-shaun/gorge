@@ -1432,6 +1432,21 @@ func Apply(g *state.Game, e Event) {
 			o.FaceIdx = uint8(e.Amount)
 		}
 
+	case TurnFaceUp:
+		// CR 708.6: turning a face-down permanent face up reveals the face it
+		// already had -- no FaceIdx change -- and retires the CR 708.5
+		// face-down characteristic set (the folded FaceDownSetType/Power/
+		// Toughness payload). Gated on the battlefield, the same way
+		// faceDownEffective reads it: a marker stranded on a card that left
+		// the battlefield is not a turn-up.
+		if o := g.Obj(e.Obj); o != nil && o.Zone == state.ZBattlefield && o.FaceDown {
+			o.FaceDown = false
+			o.FaceDownSetType = ""
+			o.FaceDownPower = 0
+			o.FaceDownToughness = 0
+			o.FaceDownHasPT = false
+		}
+
 	case ClockTick:
 		g.Clock++
 
