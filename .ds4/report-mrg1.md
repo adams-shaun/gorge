@@ -705,6 +705,22 @@ go test ./effects -run 'TestMemoryLeakCompoundFetchPlayerChoosesFromBothZones$' 
 ok   github.com/adams-shaun/gorge/effects  0.594s
 ```
 
+## Re-verification pass
+
+The worktree was re-dispatched after the completed merge. Re-ran the checks on entry:
+
+```text
+git status            # clean, on wt/cli-20260922T225139Z-205fd0ae
+grep -n '<<<<<<<|>>>>>>>' AGENTS.md effects/zone.go internal/testutil/agentsdoc_test.go .ds4/report-mrg1.md
+                      # no conflict markers
+git merge-base HEAD main  # c12e10ef = main's tip: main fully merged
+go test ./internal/testutil -run 'TestKnownApproximation'   # ok (rows=72)
+go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'  # ok 0.734s
+go test ./effects -run 'Compound'                            # ok 0.589s
+```
+
+All green; no further resolution needed. No operation was in flight; nothing committed beyond this report note.
+
 ## Issues
 
 None found in this conflict-resolution pass.
