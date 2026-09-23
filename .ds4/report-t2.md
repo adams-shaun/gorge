@@ -1,3 +1,210 @@
+# Task report — replcensus1: `api:ReplaceDamage` census token
+
+Ticket: `agent-20260919T055356Z-504b1359`
+Branch: `wt/agent-20260919T055356Z-504b1359`
+Commits: `ff45b79f` `fix(replacedamage): register api:ReplaceDamage census token`,
+`729e9610` `docs(replacedamage): round-1 task report`
+Rebased onto `main @ f8e330c3`.
+
+## State of the round (read this first)
+
+The implementation for this ticket was already present and committed on this
+branch when the round started (`b5c35e4d` before the rebase; `ff45b79f`
+after). The attached `findings-t2.md` is **not** a review finding: it is the
+recorded output of a failed `git rebase` whose only blocker was an unstaged
+`.ds4/report-t1.md` (an agent artifact, not product code).
+
+This round therefore:
+
+1. Committed the dirty `.ds4/report-t1.md` (my own round-1 report, which had
+   been left unstaged) as `729e9610`.
+2. Ran `git rebase main` per the controller directive. The only conflict was in
+   `.ds4/report-t1.md` (a docs file, not code); resolved keeping both main's
+   accumulated history and my report, completing the rebase. The code commit
+   `ff45b79f` applied cleanly.
+3. Re-ran every gate at the new base (`f8e330c3`, 46 commits ahead of the old
+   base) and re-proved the new tests fail with the registration reverted.
+
+No product code changed this round beyond the already-committed fix. The
+deliverable is the two commits above.
+
+## What changed and why (per file)
+
+### `rules/replacement.go` — the one production change (`ff45b79f`)
+
+Added `"api:ReplaceDamage"` to the `effects.RegisterNonAPI(...)` list inside the
+package `init()`, with a comment naming the inline handler:
+
+```go
+"repl:AddCounter", "api:ReplaceCounter",
+// api:ReplaceDamage is handled inline by applyReplaceDamageBody (this
+// file) via the ReplaceDamage intercept in applyReplacements, never
+// through effects.Resolve/runReplaceWith -- this registration is the
+// census token only; a stub effects.Register handler would be dead code.
+"api:ReplaceDamage")
+```
+
+Root cause (as briefed, verified): `rules/replacement.go`'s `applyReplacements`
+intercepts a `ReplaceWith$` body whose API is `ReplaceDamage` and applies it
+inline through `applyReplaceDamageBody`, so it never reaches
+`effects.Register`; `effects.Supported()` therefore had no `api:ReplaceDamage`
+and the census false-reported the 38 carrier cards as unsupported even though
+prevention works in play. This is a census-token-only registration — no
+behaviour code (`applyReplaceDamageBody`, the intercept) was touched, and no
+stub `effects.Register` handler was added.
+
+**Premap spot-check:** the brief placed the list at `rules/replacement.go:4583`
+with `func init()` at 4545 (main `18644593`). At the round-1 base (`6ec869e5`)
+it was at line 6164 (`func init()` at 6126); at the rebased base (`f8e330c3`) it
+is at line 6165. Line numbers drifted but the anchor (the `RegisterNonAPI` list
+containing `"repl:AddCounter", "api:ReplaceCounter"`) was located and is
+unique. Everything else in the premap held: `effects/registry.go` needed no
+edit, and the four behaviour pins are untouched.
+
+### `rules/replacedamage_registration_test.go` (new test file, `ff45b79f`)
+
+Per the "new tests go in a new file" rule, the pin lives in its own file rather
+than appended to `coverage_test.go`:
+
+- `TestReplaceDamagePrimitiveIsRegistered` — pins
+  `effects.Supported()["api:ReplaceDamage"]`.
+- `TestReplaceDamageCarrierHasNoGap` — loads the real corpus (`sharedCorpus`),
+  finds Heart-Shaped Herb and FIRST asserts its precondition
+  (`herb.Primitives()` contains `api:ReplaceDamage`, failing loudly if the card
+  shape changes), then asserts `reg.Unsupported(herb, effects.Supported())` no
+  longer contains `api:ReplaceDamage`.
+
+Registered in the test binary because package `rules` imports `effects` and
+this test file is in package `rules`; the Ruling W1 cross-binary premise is
+already covered by the pre-existing `TestForgecBinaryImportsRules` (not
+re-checked, per the brief).
+
+## Gates run (real output, at the rebased base `f8e330c3`)
+
+### Targeted gate (Done-means command)
+
+```text
+$ go test -run 'TestReplaceDamage|TestDamageReplacementSupportedBodyFamilies|TestBattletideAlchemist|TestThunderstaff|TestSpiderPunk' ./rules/ > .ds4/scratch/t.log 2>&1; tail -20 .ds4/scratch/t.log
+ok  	github.com/adams-shaun/gorge/rules	0.700s
+```
+
+The 0.70s duration (not ~0.00s) confirms the corpus loaded and the
+corpus-backed carrier assertion actually ran rather than skipping. All four
+pre-existing behaviour pins are included in the `-run` set and pass.
+
+### `go test ./internal/archtest/`
+
+```text
+$ go test ./internal/archtest/ > .ds4/scratch/arch.log 2>&1; tail -5 .ds4/scratch/arch.log
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.985s
+```
+
+No allowlist edits.
+
+### `go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/`
+
+```text
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ > .ds4/scratch/bb.log 2>&1; tail -5 .ds4/scratch/bb.log
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.861s
+```
+
+Byte-identical, as expected: a pure registration emits no event and no repo
+deck carries a carrier, so these two gates run once (not per iteration).
+
+### `gofmt -l` on touched files
+
+```text
+$ gofmt -l rules/replacement.go rules/replacedamage_registration_test.go
+(no output)
+```
+
+## `## Fails without the fix` (re-proved at the rebased base)
+
+Copied `rules/replacement.go` to `.ds4/scratch/replacement.go.bak`, removed only
+the registration hunk (the `api:ReplaceDamage` entry plus its comment),
+re-ran only the new tests:
+
+```text
+$ go test -run 'TestReplaceDamage' ./rules/ > .ds4/scratch/fail.log 2>&1; cat .ds4/scratch/fail.log
+--- FAIL: TestReplaceDamagePrimitiveIsRegistered (0.00s)
+    replacedamage_registration_test.go:21: effects.Supported() is missing "api:ReplaceDamage"
+--- FAIL: TestReplaceDamageCarrierHasNoGap (0.58s)
+    replacedamage_registration_test.go:38: Heart-Shaped Herb still reports api:ReplaceDamage unsupported: [api:ReplaceDamage]
+FAIL
+FAIL	github.com/adams-shaun/gorge/rules	0.590s
+FAIL
+```
+
+Both new tests fail with the registration reverted. `TestReplaceDamageCarrierHasNoGap`
+fails at its postcondition after its precondition (the card's primitive list
+contains `api:ReplaceDamage`) passed — so it is proven non-vacuous: the corpus
+card was found and its primitive present, yet the census gap remained. The
+file was then restored and byte-compared:
+
+```text
+$ cp .ds4/scratch/replacement.go.bak rules/replacement.go
+$ cmp .ds4/scratch/replacement.go.bak rules/replacement.go && echo "RESTORED BYTE-IDENTICAL"
+RESTORED BYTE-IDENTICAL
+$ git status --short
+(empty)
+$ go test -run 'TestReplaceDamage' ./rules/ > .ds4/scratch/restore.log 2>&1; tail -3 .ds4/scratch/restore.log
+ok  	github.com/adams-shaun/gorge/rules	0.728s
+```
+
+Restored green and the working tree is clean.
+
+## Head / ratchet movement
+
+None. `rules/acceptance_test.go` `knownUnsupported` and
+`rules/heads_test.go` are untouched; no repo deck carries any of the 38 carriers
+(confirmed by the empty `git diff` for those files). A registration emits no
+event, so no chain head can move; `cmd/botbench`'s split stayed byte-identical,
+which is the same signal. TestHeads was not run (daemon gate).
+
+## Controller directive: rebase
+
+`git rebase main` was run this round, after committing the dirty
+`.ds4/report-t1.md`. The code commit applied cleanly; the only conflict was
+`.ds4/report-t1.md` (docs; a per-worktree report slot reused across tickets),
+resolved keeping both main's accumulated history and this ticket's report. The
+rebase completed and the branch is based on `main @ f8e330c3`.
+
+## Deviations from the brief
+
+1. **Test lives in a new file, not `rules/coverage_test.go`.** The brief's
+   Done-means says "New test in `rules/coverage_test.go`", but the dispatch's
+   "New tests go in a new file (2026-09-22)" rule and the gorge context require
+   a new `_test.go` file to avoid merge conflicts with sibling tickets. The
+   tests follow the `TestAddCounterReplacementPrimitivesAreRegistered` style
+   exactly and use the same `sharedCorpus` helper. This is the only
+   intentional deviation.
+2. **`git rebase main` was performed this round** (the previous round did not),
+   per the controller directive attached to the brief.
+
+## Workspace facts found
+
+- `.cards` was **present** (symlink to `/home/sadams/projects/gorge/.cards`) at
+  task start and after rebase — the corpus-backed test durations (0.58–0.73s)
+  prove the corpus loaded rather than skipped.
+- The brief's PREMAP line numbers had drifted (4583/4545 → 6165/6126); located
+  by anchor, unique.
+- Branch was clean except the unstaged `.ds4/report-t1.md` the findings named.
+
+## Issues
+
+No new defects found. The five carriers with other real gaps (Divine
+Deflection, Errant Minion, Power Leak — `api:StoreSVar`; Nothing Can Stop Me
+Now — `api:Abandon`; Urza Academy Headmaster —
+`api:ControlPlayer`/`api:DamageResolve`/`api:SetLife`) were scoped out per the
+brief and left untouched. The `api:StoreSVar`/`api:Abandon` gaps are the known
+body-family remainders already tracked by other work, not new findings. The
+`api:ReplaceDamage` registration is a census token; the underlying inline
+handler had no defect.
+
+---
+
+# Prior report content preserved verbatim below (shared/reused `report-t2.md` slot)
+
 # Report — task agent-20260919T062939Z-4b5f8950 (round t2)
 
 **Ticket:** `RepeatOptional$` on `DB$ Repeat` — the may-repeat election is never posed
