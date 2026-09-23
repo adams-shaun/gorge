@@ -339,10 +339,21 @@ type legendBatch struct {
 // the check reads the DERIVED type list (typeCharacteristics), never just the
 // printed face: a non-legendary copy of a legend must not be gathered against
 // its original. Sets with a single member are not duplicates and are dropped.
+// A permanent a live `S:Mode$ IgnoreLegendRule` static exempts (Council of
+// Reeds' "The 'legend rule' doesn't apply to creatures you control") never
+// joins a set at all: exempt members are skipped before grouping, so two
+// exempt permanents form no duplicate set and a set that loses members to an
+// exemption can fall below the two-member threshold and drop entirely.
 // The scan is deterministic (AliveFrom(0) seat order, each battlefield zone a
 // slice, seen keyed on the printed name), so the event stream is reproducible
 // run to run; membership maps are never iterated.
 func (e *Engine) legendGroups() []legendGroup {
+	// The exemption statics are collected once, in activeStatics' canonical
+	// deterministic order, and reused for every candidate; each candidate is
+	// matched with the static's own source/controller context so
+	// `Creature.YouCtrl` is scoped to the static's controller, not the
+	// duplicate set's.
+	exempt := e.activeStatics("IgnoreLegendRule")
 	var all []legendGroup
 	for _, p := range e.G.AliveFrom(0) {
 		seen := make(map[string]int)
@@ -352,6 +363,9 @@ func (e *Engine) legendGroups() []legendGroup {
 				continue
 			}
 			if !legendaryUnderLayers(e, id) {
+				continue
+			}
+			if e.legendRuleExempt(exempt, id) {
 				continue
 			}
 			name := o.Face().Name
@@ -370,6 +384,29 @@ func (e *Engine) legendGroups() []legendGroup {
 		}
 	}
 	return groups
+}
+
+// legendRuleExempt reports whether one of the given live IgnoreLegendRule
+// statics exempts the permanent from CR 704.5j. Each static's `ValidCard$` is
+// evaluated against the candidate with `staticSpecCtx`, so `YouCtrl` and the
+// rest of the player-relative grammar resolve against THAT static's source
+// and controller (Council of Reeds exempts the creatures its own controller
+// controls, not every creature on the board). An absent `ValidCard$` is
+// Forge's "all cards" spelling -- Mirror Gallery's unconditional "The legend
+// rule doesn't apply." -- so it exempts every candidate. statics is passed in
+// already collected (legendGroups calls activeStatics once) to keep the walk
+// to a single deterministic pass.
+func (e *Engine) legendRuleExempt(statics []staticView, id state.ObjID) bool {
+	if len(statics) == 0 {
+		return false
+	}
+	for _, sv := range statics {
+		spec := strings.TrimSpace(sv.Params["ValidCard"])
+		if spec == "" || e.matchesSpec(spec, id, e.staticSpecCtx(sv)) {
+			return true
+		}
+	}
+	return false
 }
 
 // parkLegendChoice parks the whole SBA batch -- the duplicate set, the lethal
