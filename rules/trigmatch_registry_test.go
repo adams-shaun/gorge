@@ -144,6 +144,15 @@ var addedAfterTheSplit = []string{
 	// trig:Untaps (Key to the City): it matches the existing events.Untap
 	// event although the old switch had no such mode.
 	"Untaps",
+	// trig-milled (task agent-20260919T183731Z-085022e9): the two
+	// "whenever ... mills ..." modes (CR 701.17a; glowing_one and
+	// infesting_radroach on Mode$ Milled, the_wise_mothman, mirelurk_queen
+	// and screeching_scorchbeast on Mode$ MilledAll). They match the mill
+	// MoveZone marker events.Mill emits -- the action marker effMill gained
+	// with the mode, the IsDiscard/IsSacrifice discipline -- so no pre-split
+	// switch arm existed for either name and no library->graveyard move
+	// could be told from a mill without the marker.
+	"Milled", "MilledAll",
 	// task scrybottom: "Whenever you choose to put one or more cards on the
 	// bottom of your library while scrying, ..." (CR 701.18; The Temporal
 	// Anchor, the corpus's one `ToBottom$ True` carrier at the pin -- 20

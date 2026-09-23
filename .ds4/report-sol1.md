@@ -680,6 +680,77 @@ No outstanding defect identified in this ticket; no new ticket or Known-approxim
 
 ---
 
+# Mill-trigger replacement redirection — agent-20260919T183731Z-085022e9
+
+## Finding resolved
+
+`events/actions.go:IsMill` now requires a marked *completed* library-to-graveyard move. A replacement redirecting the move to exile (or preventing it) cannot count for `Milled` or `MilledAll`, even if the final move retains the mill marker. `rules/mill_trigger_redirect_test.go` uses the real corpus's Rest in Peace to exile two proposed nonland mills while Glowing One and The Wise Mothman are on the battlefield; neither may queue a trigger or gain life. It also submits a marked library-to-exile replacement result through the event/trigger pipeline, proving provenance alone does not activate either mode, and checks the `IsMill` origin and destination predicates. The original real-card positive tests remain in `rules/mill_trigger_test.go`.
+
+After the controller-directed rebases onto main, `.ds4/report-t1.md` and `.ds4/report-t2.md` were restored byte-for-byte to main's historical contents (`cmp` exit 0 for each); the ticket's earlier reports remain in branch history and this designated report is appended, not substituted for another ticket. `.cards` was present; tests did not skip. No Known-approximations row, head golden or acceptance ratchet was altered. No botbench split moved.
+
+## Fails without the fix
+
+Copied `events/actions.go` to `.ds4/scratch/actions-fixed.go`, restored the pre-fix `HEAD:events/actions.go`, ran `go test -run 'TestMillTriggerRedirectToExileDoesNotCount|TestMillTriggerRequiresCompletedLibraryToGraveyardMove' ./rules/`, then restored from the copy and verified byte identity (`cmp` exit 0). The failing result was:
+
+```
+--- FAIL: TestMillTriggerRedirectToExileDoesNotCount (0.58s)
+    mill_trigger_redirect_test.go:73: provenance-preserving exile move queued 2 mill triggers, want none
+--- FAIL: TestMillTriggerRequiresCompletedLibraryToGraveyardMove (0.00s)
+    mill_trigger_redirect_test.go:91: IsMill(library -> exile) = true, want false
+    mill_trigger_redirect_test.go:91: IsMill(hand -> graveyard) = true, want false
+FAIL
+FAIL github.com/adams-shaun/gorge/rules 0.610s
+FAIL
+reverted_exit=1
+restored_cmp=0
+```
+
+## Gates (exact commands and output)
+
+```
+$ go test -run 'TestMillTrigger' ./rules/
+ok   github.com/adams-shaun/gorge/rules 0.600s
+test_exit=0
+$ go test ./internal/archtest/
+ok   github.com/adams-shaun/gorge/internal/archtest 3.185s
+arch_exit=0
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok   github.com/adams-shaun/gorge/cmd/botbench 1.170s
+bot_exit=0
+$ gofmt -l events/actions.go rules/mill_trigger_redirect_test.go
+(no output)
+$ go run ./cmd/gentypes -check
+(no output; exit 0)
+$ git diff --check
+(no output; exit 0)
+```
+
+Post-rebase confirmation (same commands on rebased main, all exit 0):
+
+```
+$ go test -run 'TestMillTrigger' ./rules/
+ok   github.com/adams-shaun/gorge/rules 0.591s
+rules_exit=0
+$ go test ./internal/archtest/
+ok   github.com/adams-shaun/gorge/internal/archtest 3.558s
+arch_exit=0
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok   github.com/adams-shaun/gorge/cmd/botbench 1.287s
+bot_exit=0
+$ gofmt -l events/actions.go rules/mill_trigger_redirect_test.go
+(no output)
+$ go run ./cmd/gentypes -check
+(no output; exit 0)
+$ git diff --check
+(no output; exit 0)
+```
+
+## Issues
+
+No additional defect found in this fix round. Rest in Peace currently emits an unmarked exile move; a replacement preserving `Text: "milled"` is exercised explicitly by the test's second action, so the next such replacement is covered by the same predicate. No CR-lane test requested; this is a card-trigger regression, not a new untracked CR shape.
+
+---
+
 # replcensus1 — ReplaceDamage census-token fix round (agent-20260919T055356Z-504b1359)
 
 STATUS: DONE. Rebased this worktree onto `main` before continuing; the working tree was clean, so no preliminary commit was needed. `.cards` was already present as a symlink to `/home/sadams/projects/gorge/.cards`.
