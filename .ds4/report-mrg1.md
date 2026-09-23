@@ -3941,3 +3941,65 @@ content but costs a round each time.
 STATUS=DONE
 COMMITS=686c292b
 TESTS=go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' → ok 0.793s; go test -run 'TestEmerge' ./rules/ → ok 0.603s; go test ./internal/archtest/ → ok 3.209s; go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ → ok 1.812s
+
+---
+
+# Merge-conflict resolution — wt/agent-20260919T055356Z-504b1359 (mrg1), round 4 (2026-09-23)
+
+## State found
+
+`git status` was **clean**, no rebase/merge in flight — the daemon had aborted its
+merge fallback again. This is round 4: the branch already merged main in round 3
+(`55e3788d`), and main has since advanced by 11 commits (the Emerge work:
+`29de0b65`…`6a83fb34`, incl. its own mrg1 merge `686c292b`). `git merge main` was
+performed directly; `rules/replacement.go` auto-merged cleanly this round (both
+census tokens verified present: `"repl:Scry"` main, `"api:ReplaceDamage"` branch,
+lines 6459/6465). `.cards` present as a symlink to `/home/sadams/projects/gorge/.cards`.
+
+## Conflicted files
+
+One file only: `.ds4/report-sol1.md` (hunk at lines 843–947). Both sides appended a
+report at the shared tail: HEAD carried the branch's `replcensus1` ReplaceDamage
+census-token fix report; main carried the `agent-20260918T225913Z-5db23024` Emerge
+integration report. Genuine union, no contradiction — both preserved verbatim, HEAD's
+first, `---` separator, then main's, matching the round-3 union precedent. No other
+file conflicted and no non-conflicted file was touched.
+
+## Commands and output
+
+```
+$ git merge main
+Auto-merging .ds4/report-mrg1.md
+Auto-merging .ds4/report-sol1.md
+CONFLICT (content): Merge conflict in .ds4/report-sol1.md
+Automatic merge failed; fix conflicts and then commit the result.
+$ git add -f .ds4/report-sol1.md && git commit --no-edit
+[wt/agent-20260919T055356Z-504b1359 ca08e16a] Merge branch 'main' into wt/agent-20260919T055356Z-504b1359
+$ git status
+nothing to commit, working tree clean
+$ git rev-list --count HEAD..main
+0
+```
+
+Post-merge ratchets (per the 2026-09-22 standing instruction):
+
+```
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  	github.com/adams-shaun/gorge/rules	0.808s
+$ go test -run 'TestReplaceDamage|TestDamageReplacementSupportedBodyFamilies' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.621s
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	2.475s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.234s
+$ go build ./rules/ ./effects/          # clean
+```
+
+No head/ratchet/golden moved; no `addedAfterTheSplit` or `knownUnsupported` table
+edit needed — the Emerge commits on main already carry their own ratchet entries and
+the branch's `api:ReplaceDamage` registration only closes a census gap. Branch merge
+commit: `ca08e16a`.
+
+## Issues
+
+None new.
