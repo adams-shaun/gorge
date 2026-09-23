@@ -3478,3 +3478,71 @@ needed); no engine behaviour change from the resolution itself.
 
 None new — integration only. The merged state closes BOTH register rows:
 `(blockprop1)` by this branch and `(bestow1)` by main's bestow ticket.
+
+---
+
+# Round 11 — integration of main at 122a388c (this worktree, ticket cli-20260922T225142Z-9630515c)
+
+Entry state: tree CLEAN at `ef38de87` (this branch's tip: the addphase ticket closing the
+`(ap1)` row), no rebase or merge in flight. `main` had advanced to `122a388c`. Ran
+`git merge main --no-edit`; two content conflicts, everything else auto-merged:
+
+```
+Auto-merging AGENTS.md
+CONFLICT (content): Merge conflict in AGENTS.md
+Auto-merging internal/testutil/agentsdoc_test.go
+CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go
+```
+
+`.ds4/report-mrg1.md` auto-merged cleanly this round (no conflict).
+
+### Measured ground truth (the register's own `| `-line counter, header dropped)
+
+| tree | data rows | delta vs merge base `08a1d59a` (38) |
+|---|---|---|
+| HEAD (this branch) | 37 | deleted `(ap1)` |
+| main | 35 | deleted `(attackprop1)`, `(blockprop1)`, `(bestow1)` |
+| merged | **34** | 38 − 4 disjoint deletions |
+
+Row-id diff of the merged table against main's set: identical except the `ap1` row
+(this branch's deletion) — no stale resurrection this round.
+
+### `AGENTS.md`
+
+Both sides deleted disjoint rows of the frozen register from the same region, which is why
+git conflicted. Resolution keeps NEITHER side's block: all four rows are removed
+(38 − 4 = 34). Verified none of `ap1`, `attackprop1`, `blockprop1`, `bestow1` remains.
+
+### `internal/testutil/agentsdoc_test.go`
+
+HEAD said 37, main said 35 — each accurate for its own pre-merge tree, neither matching the
+merged content. Set `knownApproximationRows = 34` with a comment recording the measurement
+(base 38, four disjoint closures). `knownOversizeRows` untouched by both sides, stays 8.
+
+### Commands and real output
+
+- `git status` on arrival: clean at `ef38de87`; `main` tip `122a388c` not an ancestor.
+- `git merge main --no-edit` → the two conflicts above; `.ds4/report-mrg1.md`,
+  `rules/*`, `effects/*`, `cards/*`, `botpolicy/*`, `decision/*` all auto-merged.
+- `gofmt -l internal/testutil/agentsdoc_test.go` → clean.
+- `go test ./internal/testutil -run 'TestKnownApproximation' -v` →
+  `TestKnownApproximationsOnlyShrinks PASS`, `TestKnownApproximationRowsAreShort PASS`,
+  `ok ... 0.001s` (constant 34 = measured 34).
+- `git add AGENTS.md internal/testutil/agentsdoc_test.go && git commit --no-edit` →
+  merge commit `362e54d0` ("Merge branch 'main' into wt/cli-20260922T225142Z-9630515c").
+- `git merge-base --is-ancestor main HEAD` → exit 0; `git status --short --branch` →
+  `## wt/cli-20260922T225142Z-9630515c` clean.
+- Post-merge ratchets:
+  `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`
+  → `ok github.com/adams-shaun/gorge/rules 0.775s` (5 top-level ratchets; no new
+  `Mode$` matcher registered by the merged delta, no `addedAfterTheSplit` entry needed).
+- `go test ./rules -run 'TestHeads|AddPhase|ExtraPhase'` →
+  `ok github.com/adams-shaun/gorge/rules 1.804s` (chain heads unmoved; this branch's
+  addphase behaviour still green on the merged tree).
+- `.cards` present (symlink to the shared corpus), so no vacuous corpus-less run.
+
+### Issues
+
+None new — integration only. The only non-merge-commit edit is the ratchet constant and
+its comment; the register shrinks 38 → 34 in the merged state, with all four closures
+preserved. No engine behaviour was changed by the resolution itself.
