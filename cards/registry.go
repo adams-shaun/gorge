@@ -133,29 +133,44 @@ func (r *Registry) Save(path string) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
-	tmp := path + ".tmp"
-	f, err := os.Create(tmp)
+	// A unique temp name: OpenCorpus writes a recompiled cache back, so
+	// parallel processes (go test ./..., botbench fleets) can race to save
+	// the same path, and a shared fixed ".tmp" name would interleave their
+	// writes. Each writes its own file and the rename is atomic.
+	f, err := os.CreateTemp(filepath.Dir(path), filepath.Base(path)+".*.tmp")
 	if err != nil {
 		return err
+	}
+	tmp := f.Name()
+	fail := func(err error) error {
+		f.Close()
+		os.Remove(tmp)
+		return err
+	}
+	// CreateTemp opens 0600; the cache has always been a plain 0644 file.
+	if err := f.Chmod(0o644); err != nil {
+		return fail(err)
 	}
 	zw, err := gzip.NewWriterLevel(f, gzip.BestSpeed)
 	if err != nil {
-		f.Close()
-		return err
+		return fail(err)
 	}
 	if err := gob.NewEncoder(zw).Encode(cacheFile{Version: cacheVersion, Cards: r.Cards, Tokens: r.Tokens}); err != nil {
 		zw.Close()
-		f.Close()
-		return err
+		return fail(err)
 	}
 	if err := zw.Close(); err != nil {
-		f.Close()
-		return err
+		return fail(err)
 	}
 	if err := f.Close(); err != nil {
+		os.Remove(tmp)
 		return err
 	}
-	return os.Rename(tmp, path)
+	if err := os.Rename(tmp, path); err != nil {
+		os.Remove(tmp)
+		return err
+	}
+	return nil
 }
 
 func LoadRegistry(path string) (*Registry, error) {

@@ -29,6 +29,7 @@ import (
 	"context"
 	"fmt"
 	"runtime"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -63,11 +64,14 @@ type Outcome struct {
 	Draw       bool
 	// StallOn names the watchdog that ended the game before it finished:
 	// "" for a completed game, "turns" (the -max-turns cap), "intents" (the
-	// -max-intents cap) or "livelock" (the engine's watcher). A stalled game
+	// -max-intents cap), "livelock" (the engine's watcher) or "panic" (the
+	// engine panicked mid-game; IsAbort covers both engine-bug kinds). A stalled game
 	// is neither a win nor a draw and is excluded from every rate
 	// denominator the caller computes.
 	StallOn string
-	// Livelock carries the watcher's diagnostic for a "livelock" stall.
+	// Livelock carries the diagnostic for an aborted game: the watcher's
+	// cycle for a "livelock" stall, the panic value, seed, intent and stack
+	// for a "panic" stall.
 	Livelock string
 	Turns    int32
 	Intents  int
@@ -81,6 +85,12 @@ type Outcome struct {
 // IsStalled reports whether either watchdog (or the engine's livelock
 // watcher) ended the game early.
 func (o Outcome) IsStalled() bool { return o.StallOn != "" }
+
+// IsAbort reports whether a StallOn kind is an engine-bug abort -- the
+// livelock watcher or a recovered engine panic -- rather than a watchdog cap.
+// Both are recorded against the game and the run continues; callers fail
+// the run at the end, since either is an engine bug, not a slow game.
+func IsAbort(stallOn string) bool { return stallOn == "livelock" || stallOn == "panic" }
 
 // Hooks is the optional per-decision observer PlayGame runs. A zero Hooks
 // records nothing (the fast path a fit's inner loop uses); a caller that
@@ -145,7 +155,11 @@ func PlayGame(cfg rules.Config, seats []seat.Seat, maxTurns, maxIntents int, hoo
 	// *rules.LivelockError. The whole drive loop runs inside one recover: a
 	// livelock converts into a stalled outcome carrying the diagnostic (one
 	// hung game records a stall and the rest of the run keeps going). Any
-	// other panic is re-raised: it is a bug either way.
+	// other engine panic is recorded the same way as a "panic" abort with
+	// its seed, intent and stack: it is a bug either way, but one bad game
+	// must not kill a multi-thousand-game sweep or training run -- the
+	// caller still fails the run at the end (IsAbort).
+	var panicDiag string
 	lle, exitOutcome, exitErr := func() (lle *rules.LivelockError, exitOutcome *Outcome, exitErr error) {
 		defer func() {
 			if r := recover(); r != nil {
@@ -153,7 +167,7 @@ func PlayGame(cfg rules.Config, seats []seat.Seat, maxTurns, maxIntents int, hoo
 					lle = l
 					return
 				}
-				panic(r)
+				panicDiag = fmt.Sprintf("engine panic (seed %d, intent %d): %v\n%s", cfg.Seed, n, r, debug.Stack())
 			}
 		}()
 		for !e.G.Over && e.Pending() != nil && (maxIntents <= 0 || n < maxIntents) {
@@ -249,6 +263,9 @@ func PlayGame(cfg rules.Config, seats []seat.Seat, maxTurns, maxIntents int, hoo
 	}
 	if lle != nil {
 		return finish(Outcome{StallOn: "livelock", Turns: e.G.Turn, Intents: n, Livelock: lle.Error()})
+	}
+	if panicDiag != "" {
+		return finish(Outcome{StallOn: "panic", Turns: e.G.Turn, Intents: n, Livelock: panicDiag})
 	}
 	if exitOutcome != nil {
 		return finish(*exitOutcome)
@@ -672,7 +689,7 @@ func playOnePairWithPool(baseSeed uint64, pos, games int, pd PairDef, a, b SeatC
 			r.Stalls++
 			if kind.StallOn == "intents" {
 				r.StallIntents++
-			} else if kind.StallOn == "livelock" {
+			} else if IsAbort(kind.StallOn) {
 				r.Livelocks++
 				if r.FirstLivelock == "" {
 					r.FirstLivelock = fmt.Sprintf("game %d: %s", g, oc.Livelock)
