@@ -3368,6 +3368,16 @@ func counterKindMatches(restriction, kind string) bool {
 // Consulted at the two (attacker, defender) enforcement points — askAttackers'
 // option filter and validateAttackers — and by mustAttackRequired's
 // attackDutyDischargeable gate (CR 508.1d's "if able").
+//
+// A face static's conditional parameter family is read here (task
+// combatres-cantattack): continuousGateHolds evaluates CheckSVar$/
+// SVarCompare$/Condition$ and UnlessDefenderHolds evaluates UnlessDefender$
+// against the defender (the creature may attack exactly when the defended
+// player satisfies the predicate), so a line carrying them is ENFORCED, not
+// skipped. A static carrying any OTHER parameter still fails
+// CantAttackParamsReadableForRules and is skipped whole -- the deliberate
+// permissive direction, so a gate this build cannot evaluate never becomes
+// an unconditional restriction.
 func (e *Engine) attackBlocked(id state.ObjID, defender state.PlayerID) bool {
 	for _, ce := range e.active() {
 		if ce.Restriction != "CantAttack" {
@@ -3382,7 +3392,11 @@ func (e *Engine) attackBlocked(id state.ObjID, defender state.PlayerID) bool {
 		return true
 	}
 	for _, sv := range e.activeStatics("CantAttack") {
-		if !effects.CantRestrictionParamsReadable(sv.Params) {
+		if !CantAttackParamsReadableForRules(sv.Params) || !e.continuousGateHolds(sv) {
+			continue
+		}
+		if spec := strings.TrimSpace(sv.Params["UnlessDefender"]); spec != "" &&
+			effects.UnlessDefenderHolds(e.G, spec, defender, sv.Controller, sv.Source) {
 			continue
 		}
 		spec := sv.Params["ValidCard"]
