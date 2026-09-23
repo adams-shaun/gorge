@@ -417,6 +417,12 @@ type contFrame struct {
 // (which owns the continuation of the SA it was re-entering) links it once
 // effects.Resolve returns. Always returns true: this engine can always ask.
 func (e *Engine) Ask(d *decision.Decision) bool {
+	// A colour choice posed from inside an off-stack mana resolution (a mana
+	// ability's SubAbility$ Mana | Produced$ Any) has no stack object to park
+	// on: it is carried by the rules-owned mana colour flow instead.
+	if e.askOffStackManaColor(d) {
+		return true
+	}
 	obj := state.ObjID(0)
 	direct := false
 	if n := len(e.G.Stack); n > 0 {
@@ -665,6 +671,9 @@ func (e *Engine) SuspendUnless(sa *cards.SA, paid bool) {
 }
 
 func (e *Engine) Suspended() bool {
+	if f := e.offStackMana; f != nil {
+		return f.suspended(e)
+	}
 	return e.resume != nil || e.unlessPayment != nil || e.cumulative != nil || e.triggerCost != nil
 }
 
