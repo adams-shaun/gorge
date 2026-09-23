@@ -2753,6 +2753,46 @@ func effVillainousChoice(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
+// charmDistinctTargetRun runs a distinct modal Charm with one target group
+// per selected target-bearing mode. ModeTargets is aligned to those modes;
+// non-targeting modes still run with the ordinary shared context.
+func charmDistinctTargetRun(h Host, c *Ctx, sa *cards.SA, names []string) bool {
+	if len(c.ModeTargets) < 2 {
+		return false
+	}
+	offset := 0
+	for _, name := range c.ModesSeen {
+		if sub := cards.ResolveSVar(c.SVars, name); sub != nil && strings.TrimSpace(sub.Params["ValidTgts"]) != "" {
+			offset++
+		}
+	}
+	for i, name := range names {
+		sub := cards.ResolveSVar(c.SVars, name)
+		if sub == nil {
+			continue
+		}
+		savedTargets, savedOffered, savedMarker := c.Targets, c.OfferedSA, c.TargetsOffered
+		if strings.TrimSpace(sub.Params["ValidTgts"]) != "" {
+			if offset >= len(c.ModeTargets) {
+				return false
+			}
+			c.Targets = c.ModeTargets[offset]
+			c.OfferedSA = sub
+			c.TargetsOffered = true
+			offset++
+		}
+		Resolve(h, c, sub)
+		c.Targets, c.OfferedSA, c.TargetsOffered = savedTargets, savedOffered, savedMarker
+		if h.Suspended() {
+			if rest := names[i+1:]; len(rest) > 0 {
+				h.SuspendCharmRest(sa, rest)
+			}
+			return true
+		}
+	}
+	return true
+}
+
 // effCharm runs the selected Choices$ sub-abilities in chosen order.
 // Cast spells (CR 601.2b) and triggered abilities (CR 603.3c) arrive with
 // Ctx.Modes pre-seeded from their earlier announcement. A Charm reached only
@@ -2786,6 +2826,9 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 		// to the Charm that asked for it.
 		names := c.Modes
 		c.Modes = nil
+		if charmDistinctTargetRun(h, c, sa, names) {
+			return
+		}
 		if charmCrossModeRun(h, c, sa, names) {
 			return
 		}

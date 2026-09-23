@@ -1054,6 +1054,7 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 					}
 					status, why := effects.CharmCrossModeShape(svars, choices)
 					if status == effects.CharmUniqueSupported && len(tbms) >= 2 {
+						e.drainAwaitsTarget = true
 						if e.askCrossModeCharmTargets(in.Player, id, tbms) {
 							return
 						}
@@ -1064,6 +1065,11 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 					} else if status == effects.CharmUniqueUnsupported {
 						e.emit(events.Event{Kind: events.Note, Obj: id,
 							Text: "cross-mode TargetUnique$ Charm shape unimplemented: " + why})
+					} else if len(tbms) >= 2 {
+						e.drainAwaitsTarget = true
+						if e.askCharmModeTargets(in.Player, id, svars, so.Ability, names) {
+							return
+						}
 					}
 					for _, sub := range tbms {
 						e.drainAwaitsTarget = true
@@ -1337,7 +1343,8 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		return
 	}
 	ctx := &effects.Ctx{Source: rp.obj, Controller: o.Controller, NameChoice: rp.name, Targets: o.Targets,
-		Chosen: append([]state.Target(nil), rp.choices...), ChosenValid: rp.chosenValid,
+		ModeTargets: cloneCharmTargetGroups(e.charmTargets[rp.obj]),
+		Chosen:      append([]state.Target(nil), rp.choices...), ChosenValid: rp.chosenValid,
 		DigUntilMove: rp.digUntilMove, DigUntilMoveDone: rp.digUntilMoveDone,
 		VillainousVictims: append([]state.Target(nil), rp.villainousVictims...),
 		VillainousIndex:   rp.villainousIndex,

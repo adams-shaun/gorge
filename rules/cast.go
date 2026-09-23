@@ -346,6 +346,12 @@ type pendingCast struct {
 	// misaligns the slices. A Fuse-only field; always empty for every other
 	// cast. Published to Engine.fuseTargets at payment.
 	stageTargets [][]state.Target
+	// charmTargets records one target slice for each distinct target-bearing
+	// mode selected by a modal spell. The stack object's ordinary Targets is
+	// retained as the flat event-sourced view; this scratch preserves the
+	// per-mode bindings for resolution and is rebuilt by the same answer path
+	// during replay.
+	charmTargets [][]state.Target
 
 	// stackObj is the id of the object pushCast placed on the stack (the
 	// spell card itself, or an activated ability's AbilityPush-minted
@@ -6162,6 +6168,17 @@ func (e *Engine) targetAsk() bool {
 	if pc.mode == "overloaded" {
 		return false
 	}
+	// CR 601.2c: distinct modal modes each declare and choose their own
+	// target. The combined decision uses one exclusive Group per mode, so
+	// its exact count cannot be satisfied by choosing two targets for one
+	// mode while omitting another.
+	if pc.targetStage == 0 && !pc.isAbility() && f != nil {
+		if root := f.SpellAbility(); root != nil {
+			if e.askCharmModeTargets(pc.player, pc.card, f.SVars, root, o.ChosenModes) {
+				return true
+			}
+		}
+	}
 	// A ValidTarget$ cost modifier can make this proposal offerable only for
 	// particular targets. Once mana faces are announced, do not put a target
 	// on the menu unless repricing that target can still complete the cast:
@@ -7096,6 +7113,12 @@ func (e *Engine) payCast() {
 			e.fuseTargets = make(map[state.ObjID][][]state.Target)
 		}
 		e.fuseTargets[pc.stackObj] = pc.stageTargets
+	}
+	if len(pc.charmTargets) > 0 {
+		if e.charmTargets == nil {
+			e.charmTargets = make(map[state.ObjID][][]state.Target)
+		}
+		e.charmTargets[pc.stackObj] = pc.charmTargets
 	}
 	// AddsNoCounter$ mana (Cavern of Souls): if the payment just consumed a
 	// batch carrying the can't-be-countered provenance FOR THIS CAST, fold
