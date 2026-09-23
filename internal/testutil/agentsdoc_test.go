@@ -19,11 +19,12 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	// The merged AGENTS.md measures 22 data rows (measured with
+	// The merged AGENTS.md measures 21 data rows (measured with
 	// approximationRows() against the merged AGENTS.md). The history includes
 	// the ct1 deletion on this branch and main's landed closures, including
-	// hidden-library ChangeZone, castfilter1/2, kw:Flanking, battle1 and eqcm1.
-	knownApproximationRows = 22
+	// hidden-library ChangeZone, castfilter1/2, kw:Flanking, battle1, eqcm1
+	// and the rv2b row (damage-source / valid-players / count-heads).
+	knownApproximationRows = 21
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.
