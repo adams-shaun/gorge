@@ -19,12 +19,15 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	// The merged AGENTS.md measures 21 data rows (measured with
-	// approximationRows() against the merged AGENTS.md): this branch's (pw1)
-	// deletion (Effect-delivered NumLoyaltyAct, cli-20260923T060000Z-pw-numloyaltyact)
-	// and main's (ct1) deletion (mid-resolution ChooseType/ChooseNumber asks,
-	// cli-20260923T060000Z-choose-number) are disjoint closures of the base's 23.
-	knownApproximationRows = 21
+	// The merged AGENTS.md measures 20 data rows (measured with
+	// approximationRows() against the merged AGENTS.md). The history includes
+	// the ct1 deletion on this branch and main's landed closures, including
+	// hidden-library ChangeZone, castfilter1/2, kw:Flanking, battle1 and eqcm1;
+	// this merge keeps both disjoint deletions: main's (pw1) closure
+	// (Effect-delivered NumLoyaltyAct, cli-20260923T060000Z-pw-numloyaltyact)
+	// and this branch's (rv2b) closure (damage-source / valid-players /
+	// count-heads, cli-20260923T060000Z-rv2b-countheads).
+	knownApproximationRows = 20
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.
