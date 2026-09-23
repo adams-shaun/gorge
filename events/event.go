@@ -748,6 +748,21 @@ const (
 	// append-only precedent, so no earlier ordinal, hash chain or golden
 	// replay is affected.
 	Unattached
+	// PlayerNoted records a player-notation write (Forge's `NoteCards$
+	// <defined> | NoteCardsFor$ <label>` on a DB$ Pump body -- Seize the
+	// Spotlight's fame/fortune branches, Master of Ceremonies' money/
+	// friends/secrets). Player is the seat the note lands on and Text is the
+	// label; events.Apply appends Text to that seat's state.Player.Notes
+	// (idempotent), which `Player.NotedFor<label>` reads from the shared
+	// player filter. It is a dedicated Kind rather than a Note marker because
+	// the notation is real game state a later resolution reads -- a plain Note
+	// is transcript-only and Apply writes nothing for it, so a log-only replay
+	// could not rebuild the note. The CARD half of the parameter family
+	// (`NoteCards$ Self` read back by `Card.NotedFor<label>`) is a separate
+	// family and does not ride this event. Appended here, after Unattached,
+	// following every prior Kind's own append-only precedent, so no earlier
+	// ordinal, hash chain or golden replay is affected.
+	PlayerNoted
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -758,7 +773,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(Unattached) + 1
+	NumKinds = int(PlayerNoted) + 1
 )
 
 // mergedTriggerShift is the width MergedTriggerPush's Amount gives the
@@ -871,7 +886,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"pair", "myriad_copy", "myriad_cleanup", "grant_trigger_push", "mana_activate", "token_attacks",
 	"x_change", "note_number", "extra_phase", "copy_token", "exert", "planar_roll", "explore", "combat_retarget", "ring_tempts_you", "ring_emblem_push", "grant_ability_push", "investigate", "blessing_change", "clone_permanent", "mutate", "merged_trigger_push",
 	"discover", "seek", "connive", "enlist", "exploit", "alter_attribute",
-	"gained_ability_push", "gained_trigger_push", "surveil", "unattached"}
+	"gained_ability_push", "gained_trigger_push", "surveil", "unattached", "player_noted"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {
@@ -885,6 +900,12 @@ func (k Kind) String() string {
 // Event's encoded union, so it preserves this turn-specific rider without a
 // schema change.
 const ExtraTurnSkipUntapText = "extra turn; skip untap"
+
+// ExtraTurnSkippedText marks a -1 ExtraTurn consumption whose BeginTurn
+// replacement skipped the granted turn. It distinguishes that bookkeeping
+// consumption from one immediately followed by a TurnChange, so the ordinary
+// rotation scan does not mistake the next normal turn for an extra turn.
+const ExtraTurnSkippedText = "extra turn; skipped"
 
 // Event is a state delta. The field set is a flat union so encoding stays
 // allocation-free and an external consumer needs no engine code to read it.
@@ -1185,6 +1206,11 @@ var flagNames = [...]struct {
 	{"mayflashsac", state.FlagMayFlashSac},
 	// Compleated's life-paid amount reduces a planeswalker's entry loyalty.
 	{"compleated", state.FlagCompleated},
+	// The K:Mayhem alternative-cost cast (kw:Mayhem): the flag is the
+	// provenance the Card.CastSa Spell.Mayhem condition reads (Sandman's
+	// Quicksand's "if this spell's mayhem cost was paid" split). Appended
+	// at the end per the table's own ordering rule.
+	{"mayhem", state.FlagMayhem},
 }
 
 // FlagsFrom parses a comma-separated flag list (CastInfo.Counter's shape)

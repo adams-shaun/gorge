@@ -52,6 +52,15 @@ var predicates = map[string]predFn{
 	"foretold": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.CastFlags&state.FlagForetold != 0
 	},
+	// tokenCreated is Forge's zone-entry provenance predicate. In the
+	// Count$ThisTurnEntered_* specs that use it, a token's IsToken marker is
+	// the exact per-object meaning: tokens that leave cease to exist, and the
+	// entry list is cleared at TurnChange. A resolving creature-spell copy
+	// that enters the battlefield is also a token under CR 707.10g, so it
+	// correctly matches through the same marker.
+	"tokenCreated": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o.IsToken
+	},
 	"OppOwn":    func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool { return o.Owner != you },
 	"Self":      func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool { return o.ID == src },
 	"Other":     func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool { return o.ID != src },
@@ -362,6 +371,13 @@ func init() {
 	predicates["EquippedBy"] = attachedBy
 	predicates["EnchantedBy"] = attachedBy
 	predicates["AttachedBy"] = attachedBy
+	// FortifiedBy: the same "attached to" relation spelled for Fortifications
+	// (CR 702.67) -- the candidate is the land the Fortification source is
+	// attached to (C.A.M.P.'s TapsForMana ValidCard$ Card.FortifiedBy,
+	// Darksteel Garrison's Affected$/ValidCard$ Land.FortifiedBy). The source
+	// side is spelled through the identical AttachedTo field an Equip or Aura
+	// ride sets, so attachedBy serves all four spellings.
+	predicates["FortifiedBy"] = attachedBy
 	// CanEnchantEquippedBy: the candidate card could legally be attached to
 	// the creature the resolving source attaches to -- Mantle of the
 	// Ancients' "return ... Aura and/or Equipment cards that could be
@@ -509,7 +525,9 @@ func hasAttachmentOfKind(g *state.Game, id state.ObjID, kind string) bool {
 // permanent that shares a card type with it" — Remembered, RememberedLKI),
 // the triggering card (TriggeredCard/TriggeredCardLKICopy, Heirloom
 // Blade's "a creature card that shares a creature type with it"), the
-// resolution's targets (Targeted), or the source itself (Self). The
+// resolution's targets (Targeted), the source itself (Self), the resolving
+// source's commanders (Commander), or the creatures that convoked the
+// resolving spell (Convoked). The
 // predicate NAME is returned alongside the referent so the dispatch can
 // tell the CARD-type and CREATURE-type readings apart. A referent with no
 // live binding — and any other <X>, including a nested predicate — is
@@ -527,10 +545,33 @@ func sharesTypeArg(p string) (name, arg string, ok bool) {
 	}
 	switch arg {
 	case "RememberedCard", "Remembered", "RememberedLKI", "TriggeredCard",
-		"TriggeredCardLKICopy", "Targeted", "Self", "Commander":
+		"TriggeredCardLKICopy", "Targeted", "Self", "Commander", "Convoked":
 		return name, arg, true
 	}
 	return "", "", false
+}
+
+// SpecUsesConvokedReferent reports whether spec is a filter that names the
+// Convoked referent anywhere in its comma-alternative list (Everything Comes
+// to Dust's `Creature.!sharesCreatureTypeWith Convoked,Artifact,Enchantment`).
+// It is the ONE classifier the provenance gate (rules' faceWantsConvoked) and
+// the matcher (sharesTypeArg -> sharesTypeReferents) share, so a face whose
+// filter reads Convoked always has Object.Convoked captured at cast time and
+// a face that does not stays byte-identical. The walk mirrors
+// UnknownPredicates' token split (comma alternatives, the `.` base separator,
+// the `+` conjunction, a leading `!`), so it recognises exactly the position
+// sharesTypeArg recognises.
+func SpecUsesConvokedReferent(spec string) bool {
+	for alt := range filterAlternatives(spec) {
+		_, rest, _ := strings.Cut(strings.TrimSpace(alt), ".")
+		for p := range strings.SplitSeq(rest, "+") {
+			p = strings.TrimPrefix(p, "!")
+			if _, arg, ok := sharesTypeArg(p); ok && arg == "Convoked" {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // sharesTypeReferents resolves the SHARED referent switch of the
@@ -543,6 +584,24 @@ func sharesTypeArg(p string) (name, arg string, ok bool) {
 func sharesTypeReferents(g *state.Game, sc SpecContext, ref string) []state.Target {
 	var ts []state.Target
 	switch ref {
+	case "Convoked":
+		// CR 702.66's "each creature that convoked it" (Everything Comes to
+		// Dust's `Creature.!sharesCreatureTypeWith Convoked`): the creatures
+		// the caster tapped to help pay for the resolving spell's cast,
+		// carried by the pay-time CastInfo's FlagConvoked IDs into
+		// Object.Convoked -- the SAME provenance the Defined$ Convoked
+		// selector reads, so the two readings of "convoked" can never
+		// disagree. The referent is the resolving source itself (a spell
+		// still on the stack); a source with no convoke, a copy, or a
+		// creature that has since left play contributes nothing -- fail
+		// closed, never widened.
+		if o := g.Obj(sc.Source); o != nil {
+			for _, id := range o.Convoked {
+				if g.Obj(id) != nil {
+					ts = append(ts, state.Target{Obj: id})
+				}
+			}
+		}
 	case "Commander":
 		// Forge's Commander referent: the resolving source's CONTROLLER's
 		// commanders (Path of Ancestry's "a creature spell that shares a
@@ -1095,13 +1154,18 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordCastProvenance, p
 	// The card-level CastSa property tokens (task castsa-provenance): the
 	// four mana-spend spellings the payment path's tagged ManaAdd encoding
-	// answers. Recognised here (the census no longer reports them unknown)
-	// but evaluated by rules' castSaAdmits, which strips them before the
-	// filter runs; wordMatches' body fails closed. The unmodelled spellings
-	// (CastSa Spell.MayPlaySource / Warp / Mayhem / ManaFromArtifact) stay
-	// unknown and fail closed everywhere.
+	// answers, plus the cast-flag spelling Spell.Mayhem (state.FlagMayhem,
+	// stamped by modeFlags' "mayhem" case) — recognized here (the census no
+	// longer reports them unknown) but evaluated by the provenance strips
+	// (rules' castSaAdmits and the per-event walk in spellsCastThisTurn-
+	// Matching; effects/conditions.go's castSaAdmitsFilter for the
+	// ConditionPresent gates), which remove the token before the filter
+	// runs; wordMatches' body fails closed. The still-unmodelled spellings
+	// (CastSa Spell.MayPlaySource / Warp / ManaFromArtifact) stay unknown
+	// and fail closed everywhere.
 	case "CastSa Spell.ManaFromTreasure", "CastSa Spell.ManaFromCave",
-		"CastSa Spell.ManaFromDesert", "CastSa Spell.ManaSpent EQ0":
+		"CastSa Spell.ManaFromDesert", "CastSa Spell.ManaSpent EQ0",
+		"CastSa Spell.Mayhem":
 		return wordCastProvenance, p
 	case "ActivePlayerCtrl":
 		return wordActivePlayerCtrl, ""
@@ -3322,12 +3386,49 @@ func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, 
 				return true
 			}
 		default:
+			// Player.NotedFor<label> (Forge's PlayerProperty.NotedFor): the
+			// seat qualifies when its event-backed note set names <label>.
+			// The label is written by a DB$ Pump body's NoteCardsFor$
+			// parameter (effects.effPump -> events.PlayerNoted), so the read
+			// reaches the shared player filter every consumer already uses --
+			// RepeatEach's RepeatPlayers$, Defined$ on Draw/Discard/ChangeZone,
+			// the Continuous statics' Affected$ and a Count$ head alike. The
+			// Player/Any base is required (a qualified You.NotedForX fails
+			// closed, like every other qualifier here), the label is matched
+			// EXACTLY (case-sensitive, as Forge's string set is), and an
+			// out-of-range seat fails closed.
+			if base == "Player" || base == "Any" {
+				if label, is := strings.CutPrefix(qualifier, "NotedFor"); is && label != "" {
+					if int(p) < len(g.Players) && playerHasNote(g, p, label) {
+						return true
+					}
+					continue
+				}
+			}
 			if int(p) < len(g.Players) {
 				op, n, ok := splitPlayerCompare(qualifier)
 				if ok && playerCompare(g.Players[p].Life, op, n) {
 					return true
 				}
 			}
+		}
+	}
+	return false
+}
+
+// playerHasNote reports whether the seat's event-backed player-notation set
+// names label. The note set is state.Player.Notes, written only by
+// events.Apply's PlayerNoted case (a DB$ Pump body's NoteCardsFor$), so a
+// live game and a log-only replay answer identically. An out-of-range seat
+// fails closed. There is no map range here (the slice is walked in its
+// append order), so the result is deterministic.
+func playerHasNote(g *state.Game, p state.PlayerID, label string) bool {
+	if int(p) >= len(g.Players) {
+		return false
+	}
+	for _, n := range g.Players[p].Notes {
+		if n == label {
+			return true
 		}
 	}
 	return false

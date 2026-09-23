@@ -16,7 +16,7 @@
 //
 // Usage:
 //
-//	GORGE_CR_CONFORMANCE=1 go test -count=1 ./rules -run TestCR -v > lane.txt
+//	go test -count=1 ./rules -run TestCR -v > lane.txt
 //	go run ./cmd/ledger -lane lane.txt -out .ds4/ledger.json
 //
 // -lane may be repeated for lanes in more than one package. -issues defaults to

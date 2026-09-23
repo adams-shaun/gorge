@@ -77,6 +77,11 @@ type Config struct {
 	// events.Apply's TokenCreate case has something to mint from. Replay
 	// must pass the same table a live match's Config did.
 	Tokens map[string]*cards.Card
+	// NameUniverse is the compiled corpus used by NameCard decisions.
+	NameUniverse []*cards.Card
+	// NameUniverseNames pins a persisted match's sorted name list. A live
+	// match leaves it nil and derives it from NameUniverse at genesis.
+	NameUniverseNames []string
 	// LoopGuard, when non-nil, overrides the livelock watcher's thresholds
 	// for this game (rules/livelock.go): how many consecutive events a
 	// repeating cycle must run before the engine aborts with a
@@ -96,6 +101,15 @@ type triggerObjectLKI struct {
 	object           *state.Object
 	power, toughness int32
 	ptValid          bool
+}
+
+// counterAddedThisTurn is engine-only provenance for positive object counter
+// placements. The snapshot is captured before events.Apply mutates the object.
+type counterAddedThisTurn struct {
+	actor  state.PlayerID
+	kind   string
+	amount int32
+	object state.Object
 }
 
 type Engine struct {
@@ -120,7 +134,8 @@ type Engine struct {
 	// cache-advance site below). It carries only damage that LANDED and only
 	// damage to a PLAYER; the object branch of runCombatAssignments records
 	// nothing. See effects.Host's CombatDamageToPlayersThisTurn.
-	combatHitsThisTurn []effects.CombatDamageHit
+	combatHitsThisTurn  []effects.CombatDamageHit
+	counterAddsThisTurn []counterAddedThisTurn
 
 	// format is the construction format New was configured with (Config.
 	// Format). It is the explicit gate the Commander rules (the tax, CR
@@ -353,6 +368,16 @@ type Engine struct {
 	derivedTypes []string
 	derivedDepth int
 
+	// derivingColorsSet/ID/Colors: the finished layer-5 colour answer for the
+	// object whose Derived is mid-build (set by derivedWith before its layer-7
+	// P/T walk, restored on the way out). Colors serves it to a layer-7 pump
+	// expression that counts the object's own colours, instead of re-entering
+	// Derived and recursing forever. Pure per-call scratch exactly like
+	// derivedDepth — Clone copies none of it (clone.go's scratch precedent).
+	derivingColorsSet bool
+	derivingColorsID  state.ObjID
+	derivingColors    string
+
 	// pendingTriggers holds matched triggers not yet placed on the stack.
 	// checkTriggers appends; putTriggersOnStack drains. Task 20 (trigger.go).
 	pendingTriggers []pendingTrigger
@@ -516,6 +541,9 @@ type Engine struct {
 	// no event carries it. Never nil-checked on read outside recordAsk
 	// (which lazy-inits).
 	moveCounterAsk map[state.ObjID]*moveCounterPending
+	// counterTypeAsk carries per-recipient comma-list PutCounter answers across
+	// suspensions. It is replay-derived engine scratch, never game state.
+	counterTypeAsk map[state.ObjID]*counterTypePending
 	// orderedTriggers is how many LEADING entries of pendingTriggers have
 	// already had their order settled by an answered KTriggerOrder decision
 	// (or, for a lone trigger, by there being nothing to decide). It is the
@@ -712,7 +740,11 @@ type Engine struct {
 	echo *echoFlow
 
 	// wardMana holds a CR 702.21a mana-payment window while a Ward trigger
-	// is resolving. It is plain data so Clone preserves the suspended choice.
+	// is resolving, and (one shared owner, ruling T21-e) the same CR 601.2g
+	// window for a mid-resolution UnlessCost$ (the `unless_pay` resume arm),
+	// so a payer with an untapped source -- and a stat:ManaConvert conversion
+	// -- can pay a cost its floating pool cannot cover. It is plain data so
+	// Clone preserves the suspended choice.
 	wardMana *wardManaPayment
 
 	// attackPay holds the declare-attackers attack-cost payment window
@@ -1113,6 +1145,7 @@ func (e *Engine) SetCounterAdder(p state.PlayerID) state.PlayerID {
 type damageKeywordLKI struct {
 	lifelink   bool
 	infect     bool
+	wither     bool
 	deathtouch bool
 }
 
@@ -1120,6 +1153,7 @@ func (e *Engine) damageKeywordsOf(id state.ObjID) damageKeywordLKI {
 	return damageKeywordLKI{
 		lifelink:   e.HasKeyword(id, "Lifelink"),
 		infect:     e.HasKeyword(id, "Infect"),
+		wither:     e.HasKeyword(id, "Wither"),
 		deathtouch: e.HasKeyword(id, "Deathtouch"),
 	}
 }
@@ -1292,6 +1326,11 @@ func newWithRNG(cfg Config, random *rng) *Engine {
 	}
 	e.G.Tokens = cfg.Tokens
 	e.setNameInPool = poolHasSetNameStatic(cfg)
+	e.G.NameUniverse = cfg.NameUniverse
+	e.G.NameUniverseNames = append([]string(nil), cfg.NameUniverseNames...)
+	if len(e.G.NameUniverseNames) == 0 && len(cfg.NameUniverse) > 0 {
+		e.G.NameUniverseNames = effects.NameUniverseNames(cfg.NameUniverse)
+	}
 	e.manaExpendedTurn = e.G.Turn
 	e.format = cfg.Format
 	for i := range e.G.Players {
@@ -1678,6 +1717,13 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// gets logged, not the emit caller's copy.
 		ev = replaced
 	}
+	// DamageDone may rewrite the recipient through ReplaceEvent, while an
+	// ordinary hit still needs its initial recipient form classified. Do this
+	// after the complete replacement pass so both paths share one rule.
+	if ev.Kind == events.Damage {
+		e.recomputeInfectMarker(&ev)
+		e.recomputeWitherMarker(&ev)
+	}
 	// CR 306.8's planeswalker loyalty exchange (and CR 120.3e's exception for
 	// a permanent that is also a creature) is folded directly into this
 	// Damage event by events.Apply below -- AddCounter("LOYALTY", ...) runs
@@ -1705,6 +1751,24 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	}
 	departingSource, departingSourceLifelink, departingSourceController := e.captureSourceLifelinkLKI(ev)
 	stackLen := len(e.G.Stack)
+	// Record only the final event after replacement selection. The object
+	// snapshot must precede Apply, and unknown adder provenance is not a
+	// match for either You or Player. The engine's own status markers (the
+	// regeneration Shield, the Deathtouched lethal mark) ride a positive
+	// CounterChange but are not counters a player PUT -- and a resolving
+	// deathtouch damage ability has an actionCause, so without the marker
+	// exclusion its emitted mark would be attributed to that controller and
+	// make Count$CountersAddedThisTurn <Any> You Creature spuriously true.
+	// The same exclusion rules/replacement.go's doubler gate keeps.
+	if ev.Kind == events.CounterChange && ev.Amount > 0 && !state.InternalCounterMarker(ev.Counter) {
+		if actor, ok := e.inFlightCounterAdder(); ok {
+			if o := e.G.Obj(ev.Obj); o != nil {
+				e.counterAddsThisTurn = append(e.counterAddsThisTurn, counterAddedThisTurn{
+					actor: actor, kind: ev.Counter, amount: ev.Amount, object: o.CloneDeep(),
+				})
+			}
+		}
+	}
 	stored := events.Emit(e.G, e.L, ev)
 	// CR 702.90b (kw:Infect): the counters/poison an infect source's damage
 	// is dealt in the form of are placed HERE, as real events emitted
@@ -1722,6 +1786,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		(stored.Counter == "infect" || stored.Counter == "infect+creature") {
 		e.convertInfectDamage(stored)
 	}
+	if stored.Kind == events.Damage && stored.Amount > 0 && stored.Counter == "wither+creature" {
+		e.convertWitherDamage(stored)
+	}
 	if len(e.turnsTaken) == len(e.G.Players) && e.turnsTakenEpoch == len(e.L.Events)-1 {
 		if stored.Kind == events.TurnChange && int(stored.Player) < len(e.turnsTaken) {
 			e.turnsTaken[stored.Player]++
@@ -1736,6 +1803,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	// captured during the turn that just ended is no longer "this turn".
 	if stored.Kind == events.TurnChange {
 		e.combatHitsThisTurn = nil
+		e.counterAddsThisTurn = nil
 	}
 	e.loop.observe(stored)
 	// setname.go: keep the layer-3 rename table the filter tier reads in step
@@ -2036,7 +2104,7 @@ func (e *Engine) finishSourceLifelinkLKI(ev events.Event, departing bool, kw dam
 
 func damageSourceLKIOf(kw damageKeywordLKI, controller state.PlayerID) effects.DamageSourceLKI {
 	return effects.DamageSourceLKI{Lifelink: kw.lifelink, Infect: kw.infect,
-		Deathtouch: kw.deathtouch, Controller: controller}
+		Wither: kw.wither, Deathtouch: kw.deathtouch, Controller: controller}
 }
 
 func (e *Engine) captureNamedDamageSourceLKI(stack, source state.ObjID, kw damageKeywordLKI, controller state.PlayerID) {
@@ -2279,18 +2347,6 @@ func (e *Engine) Submit(in decision.Intent) error {
 		// survives for a legal (or smaller) answer. Single-card answers are
 		// trivially legal.
 		if err := e.validateSearch(d, in); err != nil {
-			return err
-		}
-	}
-	if d.Kind == decision.KTarget {
-		// TargetsWithSameController$ True (Lodestone Bauble): a target
-		// announcement's answer must name objects that all share one owner —
-		// in a graveyard, the "controller" a card in a graveyard has. The
-		// offered option list spans every player's graveyard, a pairwise
-		// constraint the option shape cannot express, so the answer is
-		// rejected here (the validateSearch preserve-and-reject shape) and
-		// the pending decision survives for a legal (or smaller) answer.
-		if err := e.validateSameControllerTargets(d, in); err != nil {
 			return err
 		}
 	}

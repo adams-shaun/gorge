@@ -93,6 +93,38 @@ func init() { Register("Token", effToken) }
 // know the spelling at all, which is the caller's signal to keep the
 // controller and say so.
 func tokenOwnerPlayers(h Host, c *Ctx, spec string) ([]state.PlayerID, bool) {
+	// These two corpus spellings are player selectors whose qualifier is
+	// specific to TokenOwner. Keep them here rather than widening the general
+	// Defined$ grammar: they are measured residual forms, and both scan alive
+	// seats explicitly so their result is deterministic.
+	if spec == "Player.controlsEnchantment,controlsArtifact" {
+		return tokenOwnersControllingAny(h.Game(), []string{"Enchantment", "Artifact"}), true
+	}
+	if spec == "Player.controlsCreature_EQX" {
+		// Gor Muldrak's X is an SVar body, not a literal. Evaluate that one
+		// TokenOwner-specific read with the verdict-aware count resolver: an
+		// unmodelled X matches nobody rather than becoming a fake zero. Do not
+		// tighten NumResolved's SVar verdict globally; other explicit numeric
+		// parameters deliberately use its zero-value degradation.
+		if c == nil || c.SVars == nil {
+			return nil, true
+		}
+		body, ok := c.SVars["X"]
+		if !ok {
+			return nil, true
+		}
+		threshold, resolved := EvalCountOK(h, c, body)
+		if !resolved {
+			return nil, true
+		}
+		var owners []state.PlayerID
+		for _, p := range h.Game().AliveFrom(0) {
+			if tokenControlledCount(h.Game(), c, p, "Creature") == threshold {
+				owners = append(owners, p)
+			}
+		}
+		return owners, true
+	}
 	// TargetedController is evaluated from the target's LKI. The target may
 	// have been destroyed by the parent SA before this chained Token runs;
 	// events.Apply intentionally resets a departed object's live Controller to
@@ -125,6 +157,45 @@ func tokenOwnerPlayers(h Host, c *Ctx, spec string) ([]state.PlayerID, bool) {
 		}
 	}
 	return out, true
+}
+
+// tokenOwnersControllingAny returns alive players controlling at least one
+// matching permanent. The outer seat walk, rather than object iteration, is
+// the ordering contract for TokenCreate events.
+func tokenOwnersControllingAny(g *state.Game, specs []string) []state.PlayerID {
+	var owners []state.PlayerID
+	for _, p := range g.AliveFrom(0) {
+		if tokenControlledCount(g, nil, p, specs...) > 0 {
+			owners = append(owners, p)
+		}
+	}
+	return owners
+}
+
+// tokenControlledCount counts battlefield permanents controlled by p. The
+// ordinary filter matcher is used so the read has the same type semantics as
+// Count$Valid, while the player walk remains local to this TokenOwner form.
+func tokenControlledCount(g *state.Game, c *Ctx, p state.PlayerID, specs ...string) int32 {
+	var n int32
+	var sc SpecContext
+	if c != nil {
+		sc = c.SpecContext(p)
+	} else {
+		sc.You = p
+	}
+	for _, id := range g.Zone(state.ZBattlefield, p) {
+		o := g.Obj(id)
+		if o == nil || o.Controller != p {
+			continue
+		}
+		for _, spec := range specs {
+			if matchesZoneSpecCtx(g, spec, id, sc, state.ZBattlefield) {
+				n++
+				break
+			}
+		}
+	}
+	return n
 }
 
 // tokenRememberedTargets resolves the set TokenRemembered$ attaches to each

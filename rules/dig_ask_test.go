@@ -113,24 +113,29 @@ func TestDigAskEndToEndSuspendsAndHonoursTheAnswer(t *testing.T) {
 	if len(libAfter) != len(libBefore)-1 {
 		t.Fatalf("library size %d, want %d", len(libAfter), len(libBefore)-1)
 	}
-	// The unpicked window cards keep their existing relative order on top.
+	// The untaken window cards sit at the BOTTOM in their existing relative
+	// order (the ordered-bottom ask was answered in the offered order by the
+	// drain, and the arrange's untouched remainder is everything below the
+	// window); the cards that were below the window stay directly on top.
 	wantRest := make([]state.ObjID, 0, 4)
 	for _, oid := range libBefore[:5] {
 		if oid != picked {
 			wantRest = append(wantRest, oid)
 		}
 	}
+	base := libAfter[:len(libAfter)-len(wantRest)]
 	for i, oid := range wantRest {
-		if libAfter[i] != oid {
-			t.Fatalf("library[%d] = %v, want %v (the rest stay on top in their existing order)", i, libAfter[i], oid)
+		if libAfter[len(base)+i] != oid {
+			t.Fatalf("library bottom[%d] = %v, want %v (the rest went to the bottom in their existing order)", i, libAfter[len(base)+i], oid)
 		}
 	}
 	replayCheck(t, e, cfg)
 }
 
 // TestDigAskDeclineEndToEnd is the Optional-decline leaf through the real
-// engine: answering the ask with NO cards (Min 0) moves nothing, the spell
-// still resolves, and the library is untouched.
+// engine: answering the ask with NO cards (Min 0) takes nothing, the spell
+// still resolves, and the whole window goes to the library's BOTTOM in its
+// existing relative order (the default remainder destination).
 func TestDigAskDeclineEndToEnd(t *testing.T) {
 	e, cfg, id := digFixture(t, 62)
 	libBefore := append([]state.ObjID(nil), e.G.Zone(state.ZLibrary, 0)...)
@@ -144,11 +149,20 @@ func TestDigAskDeclineEndToEnd(t *testing.T) {
 
 	libAfter := e.G.Zone(state.ZLibrary, 0)
 	if len(libAfter) != len(libBefore) {
-		t.Fatalf("library size %d, want %d: a declined take moves nothing", len(libAfter), len(libBefore))
+		t.Fatalf("library size %d, want %d: a declined take moves nothing in or out", len(libAfter), len(libBefore))
 	}
-	for i := range libBefore {
-		if libAfter[i] != libBefore[i] {
-			t.Fatalf("library[%d] = %v, want %v", i, libAfter[i], libBefore[i])
+	// The declined window went to the BOTTOM in its existing relative order
+	// (the default remainder destination; the drain answers the ordered-bottom
+	// ask in the offered order, which is the window's existing order); the
+	// cards that were below the window are now on top, in their order.
+	for i, oid := range libBefore[5:] {
+		if libAfter[i] != oid {
+			t.Fatalf("library[%d] = %v, want %v (the below-window cards surfaced)", i, libAfter[i], oid)
+		}
+	}
+	for i, oid := range libBefore[:5] {
+		if libAfter[len(libBefore)-5+i] != oid {
+			t.Fatalf("library bottom[%d] = %v, want %v (the declined window bottomed in its existing order)", i, libAfter[len(libBefore)-5+i], oid)
 		}
 	}
 	replayCheck(t, e, cfg)

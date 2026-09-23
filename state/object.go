@@ -300,6 +300,13 @@ const (
 	// FlagCompleated marks the pay-time CastInfo carrying life paid for a
 	// printed K:Compleated planeswalker's Phyrexian symbols.
 	FlagCompleated
+	// FlagMayhem marks a cast paid for with the card's K:Mayhem alternative
+	// cost (the Doom Prevails "may cast this card from your graveyard for
+	// <cost> if you discarded it this turn" keyword): the flag is the
+	// provenance the Card.CastSa Spell.Mayhem condition reads (Sandman's
+	// Quicksand's "if this spell's mayhem cost was paid" split). Appended
+	// per the enum's own append-only precedent.
+	FlagMayhem
 )
 
 // CastProvenanceFlags is the ONE home for the CastFlags bits whose reader
@@ -310,14 +317,19 @@ const (
 // clears IsCopy, and rules/altcast.go's entry hook would otherwise read the
 // inherited bit and hand a never-cast token the obligation.
 //
-// Only FlagMayFlashSac is in the set, deliberately. The three sibling bits
+// FlagMayFlashSac and FlagMayhem are in the set. FlagMayhem's reader is
+// Sandman's Quicksand's Card.CastSa Spell.Mayhem condition -- "if this
+// spell's mayhem cost was PAID" is a statement about the cast, so a copy
+// (never cast) must not inherit it.
+//
+// The three sibling bits
 // that entry hook also reads -- FlagEvoked, FlagDashed, FlagWarped -- are
 // conditioned on an alternative COST having been paid, which is a choice
 // made as the spell was cast and which the copy rules do carry for the
 // comparable cases (the copied-kicker precedent), so changing them is a
 // separate ruling with its own corpus measurement. Add a bit here only when
 // its reader's condition is the cast itself.
-const CastProvenanceFlags = FlagMayFlashSac
+const CastProvenanceFlags = FlagMayFlashSac | FlagMayhem
 
 // ExilesLeavingStack reports whether a cast carrying these flags is a
 // keyword cast whose card is exiled as it leaves the stack, whichever way it
@@ -759,6 +771,16 @@ type Object struct {
 	// exile, while a token imprint is a battlefield permanent and must
 	// resolve while it is on the battlefield.
 	ImprintTokens []ObjID
+	// SeekFound holds the cards an Alchemy Seek associated with this object
+	// through ImprintFound$ True. Forge's SeekEffect writes imprintedCards,
+	// but the found cards sit in a HAND at continuation time -- the zone a
+	// chained `Defined$ Imprinted` body (Spawning Pod, Gitrog, Kardum, Puppet
+	// Raiser) immediately moves on -- so the ordinary Imprinted list's CR
+	// 607.2a exiled-only reader would hide them. A separate list keeps the
+	// exile-only Imprinted contract intact while letting the seek-found cards
+	// resolve wherever they currently sit. Event-backed through the Imprint
+	// kind's "seek-found" Text discriminator and cleared by ClearImprinted$.
+	SeekFound []ObjID
 	// ExiledCards holds cards this object exiled through ChangeZone (Forge's
 	// hostCard.exiledCards). The association exists only while the card
 	// remains in exile; events.Move removes it when the card leaves. It is
@@ -844,6 +866,18 @@ type Object struct {
 	IsToken  bool
 	IsCopy   bool
 	IsMyriad bool
+
+	// CopyMayChooseTarget is CR 707.10c's new-target permission for ONE copy
+	// on the stack, carried per copy instance rather than re-derived from the
+	// copied spell's text. It is set true by the StackCopy fold when the
+	// CREATING CopySpellAbility SA declared MayChooseTarget$ True (the event's
+	// Amount discriminator) -- so an external copier (Mirari, Cloven Casting,
+	// a Storm or Replicate copy) that is not part of the copied spell's own
+	// text still grants the election. rules/stack.go's resolveTop asks the
+	// copy's controller exactly once while this is true and records the answer
+	// through TargetsChosen, whose fold clears the flag; a log-only replay
+	// rebuilds set-then-cleared identically.
+	CopyMayChooseTarget bool
 
 	// CopyFace is the CR 613.1a copy-effect basis for a permanent that became a
 	// copy of another (DB$ Clone): while non-nil, Face() returns THIS face
@@ -1142,7 +1176,7 @@ func (o *Object) AddCounter(kind string, n int32) {
 }
 
 // CloneDeep returns a value copy of o whose slice fields (Counters, Targets,
-// Remembered, BlockedBy, Chosen, Goads, ChosenModes) are independently backed, so mutating
+// Remembered, BlockedBy, Chosen, Goads, ChosenModes, SeekFound) are independently backed, so mutating
 // the copy's slices can never alias o's -- everything else (Card, a shared
 // pointer into the immutable compiled corpus, plus every scalar field) is
 // correct as a plain value copy. This is the one definition of "deep-copy an
@@ -1164,6 +1198,7 @@ func (o *Object) CloneDeep() Object {
 	c.IntrinsicKeywords = append([]string(nil), o.IntrinsicKeywords...)
 	c.Imprinted = append([]ObjID(nil), o.Imprinted...)
 	c.ImprintTokens = append([]ObjID(nil), o.ImprintTokens...)
+	c.SeekFound = append([]ObjID(nil), o.SeekFound...)
 	c.ExiledCards = append([]ObjID(nil), o.ExiledCards...)
 	c.ExileReturn = append([]ExileReturnEntry(nil), o.ExileReturn...)
 	c.MergedCards = append([]MergedCard(nil), o.MergedCards...)

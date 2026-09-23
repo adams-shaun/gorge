@@ -51,6 +51,20 @@ type ManaProduction struct {
 	// out of tsgen's jsonName (internal/tsgen/tsgen.go) while the Go field
 	// stays for the two adapters and the policy that reads it.
 	Indeterminate bool `json:"-"`
+	// Reflected reports that at least one mana ability on the face is an
+	// AB$ ManaReflected ability, whose produced colour is computed at
+	// RESOLUTION from the objects its Valid$ selector names
+	// (effects.ManaReflectedCandidates) and is therefore never statically
+	// knowable. Any is also set (the colour is a script-level choice), but
+	// Reflected is the narrower fact a consumer needs when it must
+	// distinguish a reflected source from the corpus's 500+ ordinary "Any"
+	// sources (Cavern of Souls and the rest): a reflected source resolves to
+	// the colour its controller asks for, so a tap gate may aim a needed
+	// coloured pip at it, while an ordinary Any source's behaviour must not
+	// be widened by the same change (ticket cli-20260922T225137Z). It is a
+	// server-only field, like Indeterminate: the bot policy reads it, it
+	// must not ride the human wire (CardView).
+	Reflected bool `json:"-"`
 }
 
 // manaAbilityAmount is the Amount$ a mana ability produces. It returns the
@@ -212,6 +226,28 @@ func (mp *ManaProduction) add(a *SA) {
 // dual with a Plains and an Island half) is covered by the same path as a card
 // whose script spells the ability out.
 func (f *Face) ManaProduction() ManaProduction { return f.manaProduction }
+
+// addReflected folds one AB$ ManaReflected ability into the collector. Such
+// an ability's colours are computed at RESOLUTION from the objects its Valid$
+// selector names (effects.ManaReflectedCandidates), so they are not knowable
+// at load time; the honest per-face summary is the same shape ProducedCounts
+// gives an "Any"/"Combo Any" ability -- a CONDITIONAL colour choice, flagged
+// Any, whose guaranteed amount is folded as one colourless (the executor's
+// own unmodelled-colour convention). Before this the reflected ability was
+// invisible to the collector altogether (Face.ManaAbilities lists only AB$
+// Mana), so a reflected source projected as producing nothing and a bot's
+// tap gate never aimed a coloured pip at it. The amount is read the same way
+// every other ability's is (a blank Amount is 1, an unpriced one contributes
+// nothing and sets Indeterminate).
+func (mp *ManaProduction) addReflected(a *SA) {
+	amt, known := manaAbilityAmount(a)
+	if !known {
+		mp.Indeterminate = true
+	}
+	mp.Any = true
+	mp.Reflected = true
+	mp.Colour[5] += amt
+}
 
 // Distinguishes the five coloured pool slots from colourless: the index of a
 // colour the policy can spend on a coloured pip. Index 5 (colourless) is not a

@@ -99,7 +99,7 @@ func (e *Engine) mayPlayLandIds(p state.PlayerID) []state.ObjID {
 					}
 					sc := e.withNames(effects.SpecContext{You: ce.Controller, Source: ce.Source,
 						Remembered: rememberedTargets(ce.Remembered), Resolving: true})
-					if !effects.MatchesSpecCtx(e.G, ce.Affects, id, sc) {
+					if !e.matchesSpec(ce.Affects, id, sc) {
 						continue
 					}
 					dup := false
@@ -322,7 +322,7 @@ func (e *Engine) mayPlaySpellIds(p state.PlayerID) []state.ObjID {
 					}
 					sc := e.withNames(effects.SpecContext{You: ce.Controller, Source: ce.Source,
 						Remembered: rememberedTargets(ce.Remembered), Resolving: true})
-					if !effects.MatchesSpecCtx(e.G, ce.Affects, id, sc) {
+					if !e.matchesSpec(ce.Affects, id, sc) {
 						continue
 					}
 					consider(z, id)
@@ -753,7 +753,7 @@ func (e *Engine) loyaltyAbilityLimit(id state.ObjID) int {
 	twice := false
 	additional := 0
 	for _, sv := range e.activeStatics("NumLoyaltyAct") {
-		if !effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], id, e.specCtx(sv.Source, sv.Controller)) {
+		if !e.matchesSpec(sv.Params["ValidCard"], id, e.specCtx(sv.Source, sv.Controller)) {
 			continue
 		}
 		if sv.Params["Twice"] == "True" {
@@ -1115,7 +1115,7 @@ func (e *Engine) grantedAbilities(p state.PlayerID, id state.ObjID) []grantedAbi
 		if len(ce.AddAbilities) == 0 && len(ce.GainedFaces) == 0 {
 			continue
 		}
-		if !effects.MatchesSpecFrom(e.G, ce.Affects, id, ce.Controller, ce.Source) {
+		if !e.matchesSpecFrom(ce.Affects, id, ce.Controller, ce.Source) {
 			continue
 		}
 		// A has-all-abilities-of grant (GainsAbilitiesOf$): each named
@@ -2129,6 +2129,39 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		if offerCastable(p, id, withSpellAbilityExtras(f, e.castOfferBase(p, id)).Plus(js), spellScope("jumpstart"), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
 				Label: "Cast " + f.Name + " (jump-start)", Obj: id, Mode: "jumpstart"})
+		}
+	}
+
+	// Mayhem (the Doom Prevails keyword): a card in its owner's graveyard
+	// that was discarded THIS TURN may be cast for its mayhem cost -- a cost
+	// SUBSTITUTION ("cast this card from your graveyard for {4}{R}"), not an
+	// addition, and no post-resolution destination change: the oracle's only
+	// rider is "Timing rules still apply", which spellTimingOK enforces, so
+	// the spell resolves like an ordinary cast. The provenance gate is
+	// log-derived (mayhemDiscardedThisTurn), the same shape the warp-recast
+	// and foretell gates take, so a replayed game derives the same offer;
+	// the cost helper reads the derived keyword list, so a continuous-effect
+	// grant would count. The bare parameterless K:Mayhem is the "play this
+	// card" LAND shape (Oscorp Industries) and is withheld here -- not a
+	// cast. Offer and charge both go through mayhemCastCost, so they cannot
+	// drift.
+	for _, id := range e.G.Zone(state.ZGraveyard, p) {
+		o := e.G.Obj(id)
+		f := o.Face()
+		if f == nil || castRestricted(p, id) || e.castSuppressed(p, id) {
+			continue
+		}
+		mc, ok := e.mayhemCastCost(id)
+		if !ok || !e.mayhemDiscardedThisTurn(p, id) {
+			continue
+		}
+		if !e.spellTimingOK(p, id, f, sorcery) ||
+			!e.castTargetsAvailable(p, id, f.SpellAbility()) {
+			continue
+		}
+		if offerCastable(p, id, withSpellAbilityExtras(f, mc), spellScope("mayhem"), false) {
+			out = append(out, decision.Option{Index: len(out), Kind: "cast",
+				Label: "Cast " + f.Name + " (mayhem)", Obj: id, Mode: "mayhem"})
 		}
 	}
 

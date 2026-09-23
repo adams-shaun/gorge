@@ -142,7 +142,12 @@ var baseBuckets = map[string]bucket{
 	// ResolvedLimit$ (the per-turn resolution cap's increment eligibility).
 	"rt": bTrig,
 	"s":  bStat, "st": bStat, "sv": bStat,
-	"r": bRepl, "repl": bRepl, "m.repl": bRepl, "c.repl": bRepl,
+	// pst.Static is manaConversionParts' PileStaticAt element (state.PileStatic
+	// -- the merged-under-card static walk): its Static is a cards.Static whose
+	// Params (EffectZone$) is the same static parameter map every bStat entry
+	// covers.
+	"pst.Static": bStat,
+	"r":          bRepl, "repl": bRepl, "m.repl": bRepl, "c.repl": bRepl,
 	"sa": bSA, "ab": bSA, "sub": bSA, "cp": bSA, "copy": bSA,
 	// a is faceWantsConvoked's compiled-ability walk (the face's Abilities
 	// slice): each element is a *cards.SA whose Defined$ parameter the
@@ -1337,15 +1342,17 @@ var apiSpecificRulesSA = map[string][]string{
 	"addAvailable":                 {"Mana"},
 	"availableAmount":              {"Mana"},
 	"activatedMatchesValidSA":      {"Mana"},
-	// The attack-prop payment window's affordability input
-	// (rules/attack_cost.go attackManaSources): it walks the payer's
+	// The attack-prop and unless-cost payment windows' affordability input
+	// (rules/mana_available.go windowManaUnits, called by
+	// rules/attack_cost.go attackManaSources and
+	// rules/unless_payment.go unlessManaBudget): it walks the payer's
 	// battlefield and reads each window-usable mana ability's Produced$
 	// (and Amount$, via availableAmount above) to count the units the
 	// window can tap. The walk only ever inspects api:Mana abilities
 	// (availableManaAbilitiesForWindow), so its Reads belong to api:Mana
 	// alone -- left in the generic union they would mask every other
 	// API's unread Produced$ (measured: api:Sacrifice/api:DealDamage).
-	"Engine.attackManaSources": {"Mana"},
+	"Engine.windowManaUnits": {"Mana"},
 	// The Charm mode paths: the CR 601.2b cast-time modes ask (castModeAsk),
 	// the per-mode target declaration (modalTargetSA), the resume-side mode
 	// decisions/labels, and the modal-trigger placement ask (CharmNum$).
@@ -1565,6 +1572,10 @@ var handRoots = struct {
 		// ValidAttackingPlayer$ directly, so the scan needs the explicit root to
 		// attribute those reads.
 		"Engine.checkAttackerUnblockedOnceTriggers",
+		// AttackerUnblocked has the same round-complete dedicated hook, but
+		// queues one instance per matching attacker and reads ValidCard$ /
+		// ValidDefender$ against the attacker and its actual defender.
+		"Engine.checkAttackerUnblockedTriggers",
 		// The static-grant's trigger walk (AddTrigger$): mode-SHARED machinery
 		// like the drain above -- a granted trigger of ANY mode matches through
 		// triggerMatches' own dispatch.
@@ -2200,18 +2211,39 @@ var (
 	censusOnce  sync.Once
 	censusBase  censusResult
 	censusReads *derivedReads
+	// censusGuardErrs carries the rot-guard findings out of the memoised
+	// Once (nil when the guard passed). No t.Fatal-family call may run
+	// inside censusOnce.Do: a Fatalf never returns, but go1.24+'s
+	// `defer o.done.Store(true)` marks the once done on the Goexit anyway,
+	// so censusReads would stay nil and every later census test in the
+	// binary would nil-deref -- the SIGSEGV in
+	// TestParamCensusAttributesSpecialisedRulesPaths that this gate round's
+	// rot finding produced (failGuard Fatalfs inside the Once). The corpus
+	// Skip is hoisted out the same way (a missing .cards/ CorpusRegistry
+	// inside the Once would poison the memo identically), and the Fatalf
+	// runs here, after Do returns normally, so every census test fails with
+	// the real findings instead of a panic in an unrelated one.
+	censusGuardErrs []string
 )
 
 func measureParamCensus(t *testing.T, drop map[string]map[string]bool) (censusResult, *derivedReads) {
 	t.Helper()
 	if drop == nil {
+		// Per-test corpus decision FIRST: a missing .cards/ skips THIS test
+		// here, before the Once, instead of skipping from inside it.
+		testutil.CorpusRegistry(t)
 		censusOnce.Do(func() {
 			s := scanPackages(t)
 			s.rotGuard(t)
-			s.failGuard(t)
+			censusGuardErrs = s.guardErrs
 			censusReads = s.derived()
 			censusBase = walkRepoDeckCensus(t, censusReads, nil)
 		})
+		if len(censusGuardErrs) > 0 {
+			sort.Strings(censusGuardErrs)
+			t.Fatalf("paramcensus rot guard: %d findings:\n%s",
+				len(censusGuardErrs), strings.Join(censusGuardErrs, "\n"))
+		}
 		return censusBase, censusReads
 	}
 	s := scanPackages(t)
@@ -2515,7 +2547,6 @@ func walkRepoDeckCensus(t *testing.T, d *derivedReads, drop map[string]map[strin
 // must be deleted -- so it only ever shrinks, and only when a real read or a
 // real ParseCost model is added.
 var knownUnsupportedParams = map[string][]string{
-	"Ad Nauseam": {"param:api:Repeat.RepeatOptional"},
 	// Arcane Denial's param:api:Draw.Upto entry was deleted when Upto$ read
 	// a real per-target "draw up to N" ask (task mordorparams1,
 	// effects/cardflow.go effDraw's upto branch, rules' draw_upto resume
@@ -2549,7 +2580,7 @@ var knownUnsupportedParams = map[string][]string{
 	// Klin, Ambitious Augmenter, Zack Fair). Heroic Sacrifice's own carrier
 	// path (its delayed trigger, Mode$ ChangesZone) stays unimplemented and
 	// the card's OTHER labels above are untouched.
-	"Heroic Sacrifice":           {"param:api:DelayedTrigger.Destination", "param:api:Effect.ValidTgtsDesc", "param:api:PutCounter.ValidTgtsDesc", "param:api:ReplaceEffect.VarType"},
+	"Heroic Sacrifice":           {"param:api:Effect.ValidTgtsDesc", "param:api:PutCounter.ValidTgtsDesc", "param:api:ReplaceEffect.VarType"},
 	"Iron Man, Armored Avenger":  {"param:api:PutCounter.ValidTgtsDesc"},
 	"Jocasta, Automaton Avenger": {"param:api:ChangeZone.Attacking"},
 	// (Love on the Battlefield's param:trig:AttackersDeclared.NoResolvingCheck
@@ -2561,15 +2592,14 @@ var knownUnsupportedParams = map[string][]string{
 	// no-param control proving the recheck stays live for everyone else.)
 	"Methods of the Mighty":   {"param:api:Destroy.ValidTgtsDesc"},
 	"Mogis, God of Slaughter": {"param:stat:Continuous.RemoveType"},
-	// Opposition Agent, Quicksilver Elemental, Rakdos the Muscle and Sundering
-	// Eruption each carry their stat:Continuous rider on a raw StaticAbilities$
+	// Opposition Agent, Rakdos the Muscle and Sundering Eruption each carry their
+	// stat:Continuous rider on a raw StaticAbilities$
 	// body an Effect names (the census correction below), so these param
 	// labels were invisible before that walk existed. Each label is the same
 	// pre-existing static-scan gap a printed S: line with the same param
 	// reports -- the primitive is registered; only the parameter is unread.
 	"Opposition Agent":        {"param:stat:Continuous.MayPlay.MayPlayIgnoreColor"},
 	"Patriot, Shield Wielder": {"param:api:Pump.ValidTgtsDesc"},
-	"Quicksilver Elemental":   {"param:stat:Continuous.GainsAbilitiesOfDefined"},
 	"Rakdos, the Muscle":      {"param:stat:Continuous.MayPlay.MayPlayIgnoreType"},
 	// (Photon, Mighty Marvel's param:api:Mana.PersistentMana row retired when
 	// the PersistentMana$ read landed — the pm ManaAdd suffix, ManaClear's

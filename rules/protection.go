@@ -221,7 +221,7 @@ func (e *Engine) sourceHasQuality(source state.ObjID, q string) bool {
 	// Parameterised protection qualities are Forge object specs (Artifact,
 	// Creature.God, Card.MultiColor, and so on). Reuse the filter grammar so
 	// every supported type/colour predicate has identical meaning here.
-	if effects.MatchesSpec(e.G, q, source, e.controllerOf(source)) {
+	if e.matchesSpec(q, source, e.specCtx(0, e.controllerOf(source))) {
 		return true
 	}
 	if c := protecColourLetter(q); c != 0 {
@@ -330,7 +330,7 @@ func (e *Engine) cantPreventDamage(damageSource, target state.ObjID) bool {
 				continue
 			}
 			if v := st.Params["ValidSource"]; v != "" &&
-				(damageSource == 0 || !effects.MatchesSpecFrom(e.G, v, damageSource, o.Controller, id)) {
+				(damageSource == 0 || !e.matchesSpecFrom(v, damageSource, o.Controller, id)) {
 				continue
 			}
 			if combat := st.Params["IsCombat"]; (strings.EqualFold(combat, "True") && !e.combatDamaging) ||

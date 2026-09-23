@@ -57,6 +57,14 @@ var expandedHeads = []string{
 	// whose DB$ Demonstrate body asks the may-copy election and the
 	// opponent choice, the copies ordinary StackCopy mints (kw-demonstrate).
 	"Demonstrate",
+	// Partner with (CR 702.128): the ETB may-search for the named partner is
+	// real rules text, not reminder, and no carrier's script prints it (task
+	// kw-partner-with). The deck-construction designation half of the keyword
+	// is read by deck.IsPartnerPair and is unchanged.
+	"Partner with",
+	// Fortify (CR 702.67): analogous to Equip but targets lands; it was added
+	// after the split by kw-fortify and therefore belongs in this registry.
+	"Fortify",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {

@@ -269,6 +269,7 @@ type damageRider struct {
 	amount        int32
 	hasLifelink   bool
 	hasInfect     bool
+	hasWither     bool
 	hasDeathtouch bool
 }
 
@@ -313,6 +314,7 @@ func newDamageRider(h Host, c *Ctx, sa *cards.SA, amount int32) damageRider {
 	}
 	hasLifelink := h.HasKeyword(source, "Lifelink")
 	hasInfect := h.HasKeyword(source, "Infect")
+	hasWither := h.HasKeyword(source, "Wither")
 	hasDeathtouch := h.HasKeyword(source, "Deathtouch")
 	// CR 608.2h: a source that left while this resolution waited uses LKI.
 	// The own-source fields cover the independently resolving ability's own
@@ -332,7 +334,7 @@ func newDamageRider(h Host, c *Ctx, sa *cards.SA, amount int32) damageRider {
 			// source as well as a named DamageSource$ object, so it is the one
 			// home for infect and deathtouch. Lifelink and controller keep the
 			// own-source fields' older precedence below.
-			hasInfect, hasDeathtouch = lki.Infect, lki.Deathtouch
+			hasInfect, hasWither, hasDeathtouch = lki.Infect, lki.Wither, lki.Deathtouch
 		}
 		switch {
 		case source == own && c.SourceLifelinkLKIValid:
@@ -357,7 +359,7 @@ func newDamageRider(h Host, c *Ctx, sa *cards.SA, amount int32) damageRider {
 	}
 	return damageRider{h: h, source: source, controller: controller,
 		amount: amount, hasLifelink: hasLifelink, hasInfect: hasInfect,
-		hasDeathtouch: hasDeathtouch}
+		hasWither: hasWither, hasDeathtouch: hasDeathtouch}
 }
 
 // payLifelinkRider is CR 702.15a's life gain for NON-COMBAT damage: when
@@ -413,6 +415,12 @@ func emitObjectDamage(r damageRider, target state.ObjID) int32 {
 		// infect (e.g. a Grafted Exoskeleton bearer) reads the same, because
 		// Host.HasKeyword reads the derived keyword list.
 		ev.Counter = "infect+creature"
+	} else if r.hasWither {
+		// Keep the source fact on every recipient; Engine.emit recomputes the
+		// recipient half after DamageDone redirects. This is required when a
+		// player hit is redirected onto a creature (and when a creature hit is
+		// redirected away from one).
+		ev.Counter = "wither"
 	} else if creature && o.Face() != nil && o.Face().IsPlaneswalker() && !o.Face().IsCreature() {
 		ev.Counter = "creature"
 	}
@@ -437,6 +445,11 @@ func emitPlayerDamage(r damageRider, target state.PlayerID) {
 		// CR 702.90b: damage from an infect source is dealt to a player in
 		// the form of that many poison counters; the fold converts it.
 		ev.Counter = "infect"
+	} else if r.hasWither {
+		// Keep the source fact even though Wither damage to a player is
+		// ordinary. A DamageDone replacement can redirect this event to a
+		// creature, where Engine.emit recomputes it into counter form.
+		ev.Counter = "wither"
 	}
 	applied := r.h.EmitDamage(ev)
 	dealt := int32(0)
