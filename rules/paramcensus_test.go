@@ -1465,7 +1465,11 @@ var apiSpecificRulesSA = map[string][]string{
 	// abilities (availableManaAbilitiesForWindow), so its reads belong to
 	// api:Mana alone -- left in the generic union they mask every other API's
 	// unread Produced$ (measured: api:Sacrifice/api:DealDamage).
-	"Engine.attackChoiceManaSources": {"Mana"},
+	"Engine.attackChoiceManaSources":   {"Mana"},
+	// affordableTargetCandidates folds choice-shaped mana sources into the
+	// targeted-equip payment-window reachability probe; its Produced$ read is
+	// over api:Mana sources only, not over the activated ability being priced.
+	"Engine.affordableTargetCandidates": {"Mana"},
 	// The Charm mode paths: the CR 601.2b cast-time modes ask (castModeAsk),
 	// the per-mode target declaration (modalTargetSA), the resume-side mode
 	// decisions/labels, and the modal-trigger placement ask (CharmNum$).
