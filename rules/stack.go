@@ -1086,9 +1086,10 @@ func (e *Engine) stackObjKind(o *state.Object) stackObjKind { return state.Stack
 // Spell qualifiers "Instant"/"Sorcery" (Sister of Silence's
 // `Spell.Instant,Spell.Sorcery,Activated,Triggered`) restrict the Spell kind
 // to instant/sorcery CARD objects -- a creature spell is never admitted.
-// Any OTHER qualifier (singleTarget, numTargets GE1, ...) is NOT read -- the
-// token admits its full kind set with no restriction, the same widening the
-// AGENTS.md TargetType$ row records.
+// Target-count, controller and spell-characteristic qualifiers are parsed
+// here as part of the same token. The rules-side matcher supplies the live
+// characteristics and chosen-target count that the lower state package cannot
+// derive.
 type targetTypeToken = state.StackKindToken
 
 // stackTargetKindTokens parses a TargetType$ value into its kind tokens.
@@ -1107,8 +1108,59 @@ func stackTargetKindTokens(tt string) []targetTypeToken { return state.StackKind
 // Sister of Silence's `Spell.Instant,Spell.Sorcery,...`; a Face-less object
 // (never reachable for stackSpell, since StackObjKind only classifies a
 // Face-bearing object as a spell) fails closed.
-func stackKindAdmits(toks []targetTypeToken, k stackObjKind, o *state.Object, controller, you state.PlayerID) bool {
-	return state.StackKindAdmits(toks, k, o, controller, you)
+func (e *Engine) stackKindAdmits(toks []targetTypeToken, k stackObjKind, o *state.Object, controller, you state.PlayerID) bool {
+	for _, tok := range toks {
+		if !state.StackKindAdmits([]state.StackKindToken{tok}, k, o, controller, you) {
+			continue
+		}
+		if tok.SingleTarget && len(o.Targets) != 1 {
+			continue
+		}
+		if tok.NumTargetsOp != "" && !targetCountMatches(len(o.Targets), tok.NumTargetsOp, tok.NumTargets) {
+			continue
+		}
+		if k == stackSpell {
+			if tok.NonCreature && e.IsCreature(o.ID) {
+				continue
+			}
+			if tok.Colorless && e.Colors(o.ID) != "" {
+				continue
+			}
+			if tok.Legendary && !stackHasType(e.Derived(o.ID).Types, "Legendary") {
+				continue
+			}
+		}
+		return true
+	}
+	return false
+}
+
+func stackHasType(types []string, want string) bool {
+	for _, typ := range types {
+		if strings.EqualFold(typ, want) {
+			return true
+		}
+	}
+	return false
+}
+
+func targetCountMatches(count int, op string, want int) bool {
+	switch op {
+	case "EQ":
+		return count == want
+	case "NE":
+		return count != want
+	case "GE":
+		return count >= want
+	case "GT":
+		return count > want
+	case "LE":
+		return count <= want
+	case "LT":
+		return count < want
+	default:
+		return false
+	}
 }
 
 // targetName is the object's name for a target prompt, tolerating the ability
@@ -1535,7 +1587,7 @@ func (e *Engine) candidatesFor(p state.PlayerID, source, excludeSelf state.ObjID
 				if o == nil || (excludeSelf != 0 && oid == excludeSelf) {
 					continue
 				}
-				if !stackKindAdmits(toks, e.stackObjKind(o), o, o.Controller, p) {
+				if !e.stackKindAdmits(toks, e.stackObjKind(o), o, o.Controller, p) {
 					continue
 				}
 				// The cast-provenance split (castprov1/castprov3/wascastfrom):
@@ -3161,6 +3213,10 @@ func (e *Engine) legalTargets(targets []state.Target, sa *cards.SA, zones []stat
 		// left fizzles the whole spell/ability through the existing fizzle
 		// machinery upstream of this recheck.
 		if o := e.G.Obj(t.Obj); o != nil && zoneIn(o.Zone, zones) {
+			if o.Zone == state.ZStack && (sa == nil || !e.stackKindAdmits(
+				stackTargetKindTokens(sa.Params["TargetType"]), e.stackObjKind(o), o, o.Controller, you)) {
+				continue
+			}
 			// The cast-provenance split at the resolution recheck too
 			// (wascastfrom): the token evaluates against the target's cast
 			// log before the ordinary filter, so offer and recheck cannot
