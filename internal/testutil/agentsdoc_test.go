@@ -19,16 +19,13 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	// The merged AGENTS.md measures 19 data rows (measured with
-	// approximationRows() against the merged AGENTS.md). The history includes
-	// the ct1 deletion on this branch, main's landed closures, including
-	// hidden-library ChangeZone, castfilter1/2, kw:Flanking, battle1 and eqcm1,
-	// the rv1 closure of the RevealAllValid$ row (effects/cardflow.go effReveal),
-	// and the merge's two disjoint deletions: main's (pw1) closure
-	// (Effect-delivered NumLoyaltyAct, cli-20260923T060000Z-pw-numloyaltyact)
-	// and this branch's (rv2b) closure (damage-source / valid-players /
-	// count-heads, cli-20260923T060000Z-rv2b-countheads).
-	knownApproximationRows = 19
+	// The merged AGENTS.md measures 18 data rows (measured with
+	// approximationRows() against the merged AGENTS.md). This merge keeps
+	// both disjoint closures: main's four-mode trigger row
+	// (cli-20260923T060000Z-trig-attackerblocked) and this branch's rv1
+	// RevealAllValid$ closure (effects/cardflow.go effReveal,
+	// agent-20260922T191943Z-4ffa25b7), alongside prior deletions.
+	knownApproximationRows = 18
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.
