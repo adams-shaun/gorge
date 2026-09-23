@@ -1,54 +1,257 @@
-# Merge resolution report — cli-20260922T225140Z-677ee477
+# Merge-conflict resolution — task cli-20260922T225140Z-8b855197 (fresh relaunch)
 
-## Operation and conflicts
+## Situation found
 
-- Initial `git status --short --branch`: `## wt/cli-20260922T225140Z-677ee477`; working tree clean, no operation in progress.
-- Ran `git merge main`. It stopped with one content conflict: `internal/testutil/agentsdoc_test.go`. `AGENTS.md` and the other main-side changes merged automatically.
-- In the conflict, this branch had `knownApproximationRows = 55`; main had `57`. The branch's `AGENTS.md` had already removed the `(ft1)` bot-target approximation row. Main's changes remove the `(setname1)` row. The merge result preserves both closures (and main's code/tests), so I kept the `(ft1)` deletion, retained the `(setname1)` deletion, measured the merged table at 54 data rows, and resolved the constant to 54. Main's `57` did not describe the actual merged table.
-- No other file had conflict markers. There were no unresolved behavioral choices.
+`git status` on entry: clean tree on `wt/cli-20260922T225140Z-8b855197` at
+`739472a5`. The reflog showed the daemon's integration attempts — four
+`rebase (start): checkout main` each ending in `rebase (abort)` — leaving no
+in-flight operation. `main` had advanced past the previous resolver's base
+(`f7357075`) to `4357caf3` with three new commits:
+
+- `f43df9fc` fix(rules): let a resolving effect's name filter read SetName$ renames
+- `cb6b0007` fix(effects): refresh SetName snapshots between abilities
+- `4357caf3` merge(cli-20260922T225140Z-72e1251c): approx: layer-3 SetName$ row closure
+
+The branch carried 4 commits (the reviewed fix + 3 follow-ups, including the
+`739472a5` removal of the obsolete multikicker decline assertion that had
+failed the earlier gate run).
+
+I re-ran `git rebase main`.
+
+## Conflicted files
+
+### `internal/testutil/agentsdoc_test.go` (the only conflict)
+
+Both sides edited the same single line — the `knownApproximationRows`
+constant.
+
+- **Main side**: `knownApproximationRows = 57` (main's own table has 55 rows —
+  the constant is loose by 2 on main, a pre-existing looseness inherited from
+  the base constant).
+- **Branch side**: `knownApproximationRows = 53` (the previous resolver's
+  exact-count resolution of this same conflict at the older main base).
+
+**Resolution: `knownApproximationRows = 52`.** The counted row count of the
+merged AGENTS.md is authoritative, and both sides' deletions are disjoint and
+coexist (verified below):
+
+- merged table = **52 rows** (branch's 53 minus main's 1 newly deleted
+  SetName row — exactly the "lower by the number of rows your change deletes"
+  arithmetic from the branch's truthful 53).
+- 52 makes the constant exact; the test then passes with no "table is down to
+  N" looseness log.
+
+### `AGENTS.md` — auto-merged, no conflict
+
+Git auto-merged: main deleted the `SetName` row (1 region), the branch
+deleted its 3 rows (different regions). Verified on the resolved file:
+
+- `KReplacement` order row: absent (0 hits)
+- `multikicker1` row: absent (0 hits)
+- `mutate1` row: absent (0 hits)
+- `SetName` approximation row: absent (0 hits)
+- counted rows: 52
+
+## Commands run (real output)
+
+```
+$ git rebase main
+Rebasing (1/4)Auto-merging AGENTS.md
+Auto-merging internal/testutil/agentsdoc_test.go
+CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go
+error: could not apply 6a7f336b... fix(botpolicy): add real arms ...
+$ git add AGENTS.md internal/testutil/agentsdoc_test.go && GIT_EDITOR=true git rebase --continue
+[detached HEAD cf81eb11] fix(botpolicy): add real arms for replacement order, multikick count and mutate placement
+Rebasing (2/4)Rebasing (3/4)Rebasing (4/4)Successfully rebased and updated refs/heads/wt/cli-20260922T225140Z-8b855197.
+```
+
+Commits 2–4 replayed with no further conflict.
+
+```
+$ git status
+On branch wt/cli-20260922T225140Z-8b855197
+nothing to commit, working tree clean
+
+$ git log --oneline main..HEAD
+f7d099d9 test(rules): remove obsolete multikicker bot decline assertion
+e8c27906 docs: record resolved approximation arms rebase
+a13459fe test(botpolicy): cover approximation arms with corpus cards
+cf81eb11 fix(botpolicy): add real arms for replacement order, multikick count and mutate placement
+```
+
+Row-count check on the resolved AGENTS.md (same logic as the test):
+
+```
+$ awk '/^## Known approximations/{inside=1;next} inside&&/^## /{inside=0} inside&&/^\| /{c++} END{print "rows:", c-1}' AGENTS.md
+rows: 52
+```
+
+Targeted test on the conflicted file's package:
+
+```
+$ go test -v -run 'TestKnownApproximation' ./internal/testutil/
+=== RUN   TestKnownApproximationsOnlyShrinks
+--- PASS: TestKnownApproximationsOnlyShrinks (0.00s)
+=== RUN   TestKnownApproximationRowsAreShort
+--- PASS: TestKnownApproximationRowsAreShort (0.00s)
+PASS
+ok  	github.com/adams-shaun/gorge/internal/testutil	0.001s
+```
+(No "table is down to N" log -> the row count EQUALS the constant 52 exactly.)
+
+Ratchets main newly carries (the brief's command):
+
+```
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  	github.com/adams-shaun/gorge/rules	1.033s
+```
+
+Branch's own tests (changed packages):
+
+```
+$ go test -run 'TestBotReplacementOrderRanksBySourceWorth|TestBotReplacementOrderBypassesSkip|TestBotMultikickPaysTheAffordableMaximum|TestBotMutatePlacesUnder' ./botpolicy/
+ok  	github.com/adams-shaun/gorge/botpolicy	0.004s
+
+$ go test -run 'TestBotPolicyCorpusReplacementOrder|TestBotPolicyCorpusMultikickerPaysMaximum|TestBotPolicyCorpusMutatePlacesUnder' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.634s
+
+$ go test -run 'TestMultikickBotDeclinesThroughTheFirstOfferArm' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.002s [no tests to run]
+```
+(The obsolete decline assertion was removed by the branch's own commit
+`f7d099d9` — that test asserted the pre-fix behaviour the branch replaced;
+its removal is the reviewed fix, and the remaining multikicker tests pass:)
+
+```
+$ go test -run 'TestMultikick' ./rules/
+ok  	github.com/adams-shaun/gorge/rules
+```
+
+`gofmt -l` on the six touched Go files: no output (clean).
+
+`.cards` symlink present (points at `/home/sadams/projects/gorge/.cards`) —
+the corpus-dependent runs above were real, not vacuous skips.
+
+## Final state
+
+- `git status`: on branch `wt/cli-20260922T225140Z-8b855197`, **working tree
+  clean**; no active rebase/merge.
+- `main` (`4357caf3`) is an ancestor of HEAD.
+- Rebased commits: `cf81eb11` (fix), `a13459fe` (test), `e8c27906` (docs),
+  `f7d099d9` (test cleanup).
+- `git diff --stat main..HEAD` = the branch's intended changes plus the
+  previously committed `.ds4/report-mrg1.md` docs commit (prior seat's).
+
+## Uncertainties / notes
+
+- Main's constant (57) is loose against main's own table (55); I resolved to
+  the *counted* 52 rather than delta arithmetic (57 − 3 = 54, or 53 − 1 = 53).
+  The count is what the ratchet compares against; 52 is the exact value that
+  makes the constant truthful and keeps every deleted row's intent.
+- No engine behaviour was changed by the resolution: only the constant, in
+  the direction both sides intended. No goldens or ratchet tables were edited.
+- The `.ds4/report-mrg1.md` rewrite you are reading is committed on the branch
+  (the file is tracked there since `e8c27906`), keeping the tree clean.
+
+## Issues
+
+None found during resolution. The only conflict was the register constant.
+
+---
+
+# Round 3 — rebase onto main @ 9016c22 (fresh relaunch, cli-20260922T225140Z-8b855197)
+
+## Situation found
+
+`git status` on entry: clean tree at `70fd74ad`, no in-flight operation. The
+daemon's rebase attempt (`rebase (start): checkout main` at `9016c22` in the
+reflog) had already been aborted. `main` had advanced past round 2's base
+(`4357caf3`) by the bot-target closure series:
+
+- `1f10a319`/`f2070a6a`/`c73c4314`/`317a1392` botpolicy target ranking fixes
+- `a70c4483` merge, `ebe94f76` heads pin, `9016c22` merge
+
+Ran `git rebase main` again (the operation the daemon itself uses).
+
+## Conflicted files this round
+
+### `internal/testutil/agentsdoc_test.go` (same single line as rounds 1–2)
+
+- **Main side**: `knownApproximationRows = 54` (main's own table after its
+  `(ft1)` row deletion).
+- **Branch side**: `knownApproximationRows = 52` (round 2's exact-count
+  resolution: branch's 3 row deletions + main's SetName deletion).
+
+Both sides' deletions are disjoint and coexist; the merged AGENTS.md
+measured at **51 rows** (verified: `(ft1)`, `(setname1)`, KReplacement-order,
+multikicker1, mutate1 all absent — `/usr/bin/grep -c` = 0 hits).
+
+**Resolution: `knownApproximationRows = 51`** — the measured count of the
+merged table, confirmed by the ratchet itself:
+
+```
+$ go test -v -run 'TestKnownApproximations' ./internal/testutil/   # probe at 52
+    agentsdoc_test.go:89: table is down to 51 rows (constant says 52) -- lower
+    knownApproximationRows to 51 in the same commit that deleted them.
+$ go test -v -run 'TestKnownApproximations' ./internal/testutil/   # after setting 51
+--- PASS: TestKnownApproximationsOnlyShrinks (0.00s)
+```
+
+(no looseness log — the constant equals the counted rows exactly).
+
+### `.ds4/report-mrg1.md` (docs only)
+
+Main's version is task `cli-20260922T225140Z-677ee477`'s merge report (its
+resolver overwrote this shared report path); the branch's version is THIS
+task's report. Took the **branch side** (`git checkout --theirs`) — the file
+is this task's report channel, and both sides are docs-only. This section
+documents the round-3 resolution.
+
+`AGENTS.md` and `botpolicy/policy.go` auto-merged cleanly both rounds.
 
 ## Commands and outputs
 
-`git status --short --branch && git status`
-
-```text
-## wt/cli-20260922T225140Z-677ee477
-On branch wt/cli-20260922T225140Z-677ee477
-nothing to commit, working tree clean
 ```
-
-`git merge main`
-
-```text
-Auto-merging AGENTS.md
+$ git rebase main
+Rebasing (1/5)Auto-merging AGENTS.md
+Auto-merging botpolicy/policy.go
 Auto-merging internal/testutil/agentsdoc_test.go
 CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go
-Automatic merge failed; fix conflicts and then commit the result.
+error: could not apply cf81eb11... fix(botpolicy): add real arms ...
+# resolved constant to 51 (measured), git add, GIT_EDITOR=true git rebase --continue
+Rebasing (2/5)Rebasing (3/5)Auto-merging .ds4/report-mrg1.md
+CONFLICT (content): Merge conflict in .ds4/report-mrg1.md
+error: could not apply e8c27906... docs: record resolved approximation arms rebase
+# took branch side (this task's report), git add -f, GIT_EDITOR=true git rebase --continue
+Rebasing (4/5)Rebasing (5/5)Successfully rebased and updated refs/heads/wt/cli-20260922T225140Z-8b855197.
 ```
 
-Resolved and staged `AGENTS.md` plus `internal/testutil/agentsdoc_test.go`, then ran `GIT_EDITOR=true git merge --continue`:
-
-```text
-[wt/cli-20260922T225140Z-677ee477 a70c4483] Merge branch 'main' into wt/cli-20260922T225140Z-677ee477
+```
+$ git status --short        # clean
+$ git log --oneline main..HEAD
+7ec7db11 docs: record merge-conflict resolution rebase onto main
+bfd3a520 test(rules): remove obsolete multikicker bot decline assertion
+00a7a776 docs: record resolved approximation arms rebase
+04e9f073 test(botpolicy): cover approximation arms with corpus cards
+87d13658 fix(botpolicy): add real arms for replacement order, multikick count and mutate placement
 ```
 
-`.cards` check: `.cards present`.
+Ratchets main newly carries (the round-2 brief's command):
 
-`go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`
-
-```text
-ok  github.com/adams-shaun/gorge/rules  0.770s
+```
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  	github.com/adams-shaun/gorge/rules	0.761s
 ```
 
-`go test ./internal/testutil -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort'`
+Branch's own approximation-arm tests (both sides edited botpolicy; the merge
+is behaviour-neutral for them — these prove the arms still pass on the merged
+tree):
 
-```text
-ok  github.com/adams-shaun/gorge/internal/testutil  0.001s
 ```
-
-No uncertainties remain.
-
----
+$ go test -run 'TestBotReplacementOrderRanksBySourceWorth|TestBotReplacementOrderBypassesSkip|TestBotMultikickPaysTheAffordableMaximum|TestBotMutatePlacesUnder|TestBotPolicyCorpus' ./botpolicy/ ./rules/
+ok  	github.com/adams-shaun/gorge/botpolicy	0.005s
+ok  	github.com/adams-shaun/gorge/rules	0.663s
+```
 
 ## Section 8 — this merge (main's limited-look integration into wt/cli-20260922T225138Z-e21c29e8)
 
@@ -415,6 +618,109 @@ The prior resolver report above is preserved. Main had advanced beyond the branc
 
 No unresolved conflict or uncertainty remains.
 
+Final check from main's side of the report conflict: `git status --short --branch` returned only `## wt/cli-20260922T225140Z-677ee477` (clean), HEAD `a70c4483`; its own merged approximation table measured 54 data rows.
+
 ---
 
-Final check from main's side of the report conflict: `git status --short --branch` returned only `## wt/cli-20260922T225140Z-677ee477` (clean), HEAD `a70c4483`; its own merged approximation table measured 54 data rows.
+## Preserved report from main (task 677ee477's own merge round)
+
+Behaviour golden (main also changed `botpolicy/target.go`):
+
+```
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	0.979s
+```
+
+`gofmt -l` on the touched Go file: no output. `.cards` symlink present
+(→ `/home/sadams/projects/gorge/.cards`), so the corpus-backed runs above
+were real, not vacuous skips.
+
+## Uncertainties / notes
+
+- Same method as round 2: resolved the register constant to the *measured*
+  count of the merged table (51), not either side's stale value. Main's 54
+  and the branch's 52 each described a table that no longer exists after the
+  other side's deletions land.
+- `.ds4/report-mrg1.md` keeps this task's report; main's copy belongs to task
+  677ee477 and is preserved in that task's own history on main.
+- No engine behaviour was changed by the resolution: one constant, docs, and
+  the rebase replay of already-reviewed commits.
+
+## Issues
+
+None found during this round's resolution.
+
+---
+
+## Current merge resolution — main `c472a88f`
+
+The tree was CLEAN at `1701eb73` (branch HEAD); the daemon's rebase onto main
+and its merge fallback had both been rolled back, so no operation was in
+flight. Main had advanced past `9016c22c` (the branch's previous merge base)
+with the replacement-order/multikick/mutate bot-policy arm closures
+(`87d13658`), the `ft1` register-constant lowering (`4dcef2ea`) and a further
+merge (`c472a88f`). Rebase is forbidden in this seat (shared-git rule), so the
+integration was done as `git merge main`.
+
+### Conflicts and resolution
+
+- `internal/testutil/agentsdoc_test.go`: both sides lowered the constant from a
+  different base. Branch recorded 53 (its `non<X>` closure on top of
+  `9016c22c`); main recorded 51 (its three bot-arm closures). The MEASURED
+  count of the auto-merged `AGENTS.md` table is **50** — branch's 53 minus the
+  three rows main deleted (KReplacement clamp fallback, `(multikicker1)`,
+  `(mutate1)`) — so the constant is set to the measurement, 50, with the
+  branch's `non<X>` row deletion preserved.
+- `AGENTS.md`: auto-merged cleanly. Verified the merged table equals main's
+  table minus the branch's `non<X>` row, and nothing else; 50 data rows.
+- `.ds4/report-mrg1.md`: shared accumulated report. Kept the branch's Sections
+  1–8 history verbatim and preserved main's round as a labelled section; no
+  history discarded. This section appended.
+
+### Commands and output
+
+- `git status` before merge: clean on `wt/cli-20260922T225140Z-b686e452`.
+- `git merge main`:
+  ```
+  Auto-merging .ds4/report-mrg1.md
+  CONFLICT (content): Merge conflict in .ds4/report-mrg1.md
+  Auto-merging AGENTS.md
+  Auto-merging internal/testutil/agentsdoc_test.go
+  CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go
+  Automatic merge failed; fix conflicts and then commit the result.
+  ```
+- Merged approximation row count: `50` (awk over the merged `AGENTS.md` table;
+  matches `knownApproximationRows = 50`).
+- `go test ./internal/testutil -run 'TestKnownApproximation' -v`:
+  ```
+  === RUN   TestKnownApproximationsOnlyShrinks
+  --- PASS: TestKnownApproximationsOnlyShrinks (0.00s)
+  === RUN   TestKnownApproximationRowsAreShort
+  --- PASS: TestKnownApproximationRowsAreShort (0.00s)
+  PASS
+  ok  	github.com/adams-shaun/gorge/internal/testutil
+  ```
+- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`:
+  ```
+  ok  	github.com/adams-shaun/gorge/rules
+  ```
+- `go test -run 'TestNonPredicate|TestNonCopiedSpell|TestNonColorless|TestNonChosenCard' ./effects/`:
+  ```
+  ok  	github.com/adams-shaun/gorge/effects
+  ```
+- `gofmt -l internal/testutil/agentsdoc_test.go`, `git diff --check`, and a
+  conflict-marker grep over the resolved report and Go file: no output.
+
+No unresolved conflict or uncertainty remains.
+
+## Issues
+
+None found during this round's resolution.
+
+Final state: `git commit --no-edit` created merge commit `0d70e635` (parents:
+pre-merge branch `1701eb73`, main `c472a88f`). `git status --short --branch`
+returned only `## wt/cli-20260922T225140Z-b686e452`; `git merge-base
+--is-ancestor main HEAD` succeeded. Behaviour goldens `internal/archtest` and
+`cmd/botbench`'s `TestConstructedDefaultIsByteIdentical` both pass; the
+approximation register and every merge-ratchet test pass with the merged table
+at 50 rows.

@@ -19,9 +19,9 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	// The merged table measures 53 rows after the Scry/Surveil, non<X>, and
-	// main-side approximation closures.
-	knownApproximationRows = 53
+	// The merged table measures 50 rows: the branch's non<X> closure plus
+	// main's replacement-order, multikick and mutate bot-arm closures.
+	knownApproximationRows = 50
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.
