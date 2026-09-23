@@ -768,6 +768,11 @@ const (
 	// out of the same state.Player.Notes slice). Appended after PlayerNoted to
 	// preserve every earlier kind ordinal.
 	PlayerNoteCleared
+	// DelayedRemove consumes a delayed-trigger registration that can no longer
+	// resolve (CR 603.7). Amount is the registration ID. It is an event rather
+	// than a direct slice edit so replay folds the same garbage collection.
+	// Appended after PlayerNoteCleared to preserve earlier event ordinals.
+	DelayedRemove
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -778,7 +783,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(PlayerNoteCleared) + 1
+	NumKinds = int(DelayedRemove) + 1
 )
 
 // mergedTriggerShift is the width MergedTriggerPush's Amount gives the

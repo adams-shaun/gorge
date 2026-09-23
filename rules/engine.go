@@ -1828,7 +1828,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	var lkiPower, lkiToughness int32
 	var lkiPTValid bool
 	switch ev.Kind {
-	case events.MoveZone, events.Draw, events.PutOnStack:
+	case events.MoveZone, events.Draw, events.PutOnStack, events.ControlChange:
 		if o := e.G.Obj(ev.Obj); o != nil {
 			cp := o.CloneDeep()
 			lki = &cp
