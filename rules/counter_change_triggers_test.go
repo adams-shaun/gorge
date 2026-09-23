@@ -16,11 +16,10 @@ package rules
 // POSITIVE number.
 //
 // The tests drive events.CounterChange directly (the way the existing
-// counter_removed_trigger_test.go / counteraddedonce_test.go do), because
-// Vanishing -- the engine-side source of a battlefield TIME removal for
-// Regenerations Restored -- is not implemented, and the purpose here is the
-// trigger mode, not the counter source. TestDinosaursTokenPerTimeCounterRemoved
-// additionally asserts the real Suspend upkeep decrement routes through an
+// counter_removed_trigger_test.go / counteraddedonce_test.go do), because the
+// purpose here is the trigger mode, not the Vanishing upkeep counter source.
+// TestDinosaursTokenPerTimeCounterRemoved additionally asserts the real
+// Suspend upkeep decrement routes through an
 // observable CounterChange, so the exile-scoped Dinosaurs trigger can see it.
 
 import (
@@ -199,8 +198,10 @@ func TestRegenerationsRestoredScrysOncePerBatch(t *testing.T) {
 	}
 	lifeBefore := e.G.Players[0].Life
 
-	// Give it a batch of time counters to remove from.
-	e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "TIME", Amount: 3})
+	// Give it four counters so neither removal below reaches zero: at zero,
+	// the separate Vanishing last-counter sacrifice trigger correctly joins
+	// this card's CounterRemovedOnce trigger (tested in vanishing_test.go).
+	e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "TIME", Amount: 4})
 	// That put is not a removal: no CounterRemovedOnce trigger yet.
 	if len(e.pendingTriggers) != 0 {
 		t.Fatalf("a TIME ADD queued %d removal triggers, want 0", len(e.pendingTriggers))
@@ -223,14 +224,18 @@ func TestRegenerationsRestoredScrysOncePerBatch(t *testing.T) {
 	if got := e.G.Players[0].Life; got != lifeBefore+1 {
 		t.Fatalf("life after the CounterRemovedOnce body = %d, want %d (scry 1, gain 1 life)", got, lifeBefore+1)
 	}
-	if got := e.G.Obj(id).Counter("TIME"); got != 1 {
-		t.Fatalf("TIME counters after the -2 batch = %d, want 1", got)
+	if got := e.G.Obj(id).Counter("TIME"); got != 2 {
+		t.Fatalf("TIME counters after the -2 batch = %d, want 2", got)
 	}
 
-	// A second removal batch is a new batch and fires again.
+	// A second removal batch is a new batch and fires again, without
+	// reaching the distinct Vanishing last-counter trigger.
 	e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "TIME", Amount: -1})
+	if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield || o.Counter("TIME") != 1 {
+		t.Fatalf("precondition: second removal must leave one counter on the battlefield: %+v", o)
+	}
 	if len(e.pendingTriggers) != 1 {
-		t.Fatalf("pendingTriggers after the last TIME removal = %d, want 1", len(e.pendingTriggers))
+		t.Fatalf("pendingTriggers after the second TIME removal = %d, want 1", len(e.pendingTriggers))
 	}
 	e.putTriggersOnStack()
 	e.resolveTop()
