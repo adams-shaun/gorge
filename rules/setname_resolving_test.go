@@ -66,3 +66,29 @@ func TestResolvingEffectNameFilterSeesSetNameRename(t *testing.T) {
 		t.Fatalf("control: the never-renamed elf must survive, got %s", got)
 	}
 }
+
+// TestResolvingNameFilterRefreshesBetweenSubAbilities pins the effect-boundary
+// snapshot: a body can remove the SetName source, and the following body must
+// not match the stale name published at Resolve entry.
+func TestResolvingNameFilterRefreshesBetweenSubAbilities(t *testing.T) {
+	t.Parallel()
+	e, bladeID, bearID, _ := setNameScopeBoard(t)
+	equip(t, e, bladeID, bearID)
+	if e.Name(bearID) != "First Name" || e.Name(bearID) == e.G.Obj(bearID).Face().Name {
+		t.Fatalf("precondition: bearer must have a differing effective name, got %q", e.Name(bearID))
+	}
+
+	chain := &cards.SA{API: "ChangeZone", Params: map[string]string{
+		"Defined": "Self", "Origin": "Battlefield", "Destination": "Graveyard",
+	}, Sub: &cards.SA{API: "SacrificeAll", Params: map[string]string{
+		"ValidCards": "Creature.namedFirst_Name",
+	}}}
+	effects.Resolve(e, &effects.Ctx{Source: bladeID, Controller: 0}, chain)
+
+	if got := e.G.Obj(bladeID).Zone; got != state.ZGraveyard {
+		t.Fatalf("precondition body did not move SetName source: blade is in %s", got)
+	}
+	if got := e.G.Obj(bearID).Zone; got != state.ZBattlefield {
+		t.Fatalf("second body used stale effective name and sacrificed the bearer: zone=%s", got)
+	}
+}

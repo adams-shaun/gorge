@@ -2098,6 +2098,10 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 		// here cannot make the resolving context read another game's board.
 		if nh, ok := h.(nameTableHost); ok {
 			c.EffectiveNames = nh.EffectiveNames()
+		} else {
+			// A Ctx may be reused with a different Host. Never let names
+			// published by an earlier rules engine leak into this walk.
+			c.EffectiveNames = nil
 		}
 		c.numericRHS = c.X != 0 || len(c.SVars) > 0
 		// Capture target controllers before the first effect can move a target.
@@ -2134,6 +2138,12 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 	}
 	reg := registry.load()
 	for d := 0; sa != nil && d < maxChain; d, sa = d+1, sa.Sub {
+		// Earlier bodies in this chain may emit events that change the active
+		// layer-3 name effects. Refresh at each body boundary, not only at
+		// Resolve entry, so the next body's filters see the current snapshot.
+		if nh, ok := h.(nameTableHost); ok {
+			c.EffectiveNames = nh.EffectiveNames()
+		}
 		// Condition* gate (task fb-3f1cc033): a sub whose supported condition
 		// is evaluated and not met is skipped and the chain continues — the
 		// per-SA read the corpus's own gated pairs rely on (Gruesome
