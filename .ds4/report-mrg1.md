@@ -3169,3 +3169,58 @@ ok  	github.com/adams-shaun/gorge/cmd/botbench	1.622s
 None new. The recurring friction is unchanged: per-branch tail appends to the
 shared `report-mrg1.md` / `report-sol1.md` accumulators conflict on every
 integration, and the union convention keeps everything.
+
+# Merge-conflict resolution — mrg1
+
+## Initial state and operation status
+
+At entry, `git status --short --branch` showed only
+`## wt/agent-20260918T233200Z-e0817443`; `git status` said the tree was clean.
+There was no `REBASE_HEAD`, `MERGE_HEAD`, unmerged index, or in-flight
+operation to continue. The failed daemon attempt described in the dispatch had
+already been resolved and committed in this worktree. The history includes
+`30a271af Merge remote-tracking branch 'origin/main'` and the subsequent
+report/fix commits, ending at `f20210f6` before this report. I did not start a
+second merge or rebase.
+
+The conflict state that was resolved, as recorded in the dispatch and the
+committed reports, was:
+
+- `.ds4/report-t1.md`: conflict applying `39e7d1b7`; resolved by preserving
+  the task's report insertion and the accumulated reports from main.
+- `.ds4/report-r2.md`: docs-only conflict during fallback integration;
+  resolved by retaining the accumulated main reports and adding this task's
+  report. The report also records `.ds4/report-sol1.md` auto-merging, not
+  conflicting.
+- `effects/count.go` and `effects/registry.go`: auto-merged in fallback, not
+  listed as conflicts. The branch's changes are present.
+
+Both sides' intent was retained: the dynamic-zero TargetMin/TargetMax fix and
+its tests remain in `rules/stack.go`, `rules/cast.go`, `rules/statics.go`,
+`effects/count.go`, `effects/registry.go`, and `rules/targetmax_resolved_zero_test.go`;
+main's accumulated reports were preserved. The subsequent Anthem test changes
+and correction reports also remain in history. No conflict markers are present.
+
+## Verification
+
+`.cards` exists as a symlink to `/home/sadams/projects/gorge/.cards`.
+
+Commands run for this resolution:
+
+```text
+$ git status --short --branch
+## wt/agent-20260918T233200Z-e0817443
+
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok   github.com/adams-shaun/gorge/rules  0.779s
+
+$ go test -run 'Kicked|Count' ./effects/
+ok   github.com/adams-shaun/gorge/effects  2.468s
+
+$ go test -run '^TestMarshalsAnthemPlainCastETBAsksForNothing$|^TestMarshalsAnthemMultikickedETBReturnsKickedCount$' ./rules/
+ok   github.com/adams-shaun/gorge/rules  0.628s
+```
+
+The ratchets and focused conflict-related package tests passed. No unresolved
+conflicts or uncertainties remain. No code change was needed for integration;
+this report records the already-completed resolution and the fresh checks.
