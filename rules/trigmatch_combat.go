@@ -1099,7 +1099,7 @@ func (e *Engine) damagePreventedMatches(t cards.Trigger, source state.ObjID, ev 
 			}
 		} else if !effects.MatchesPlayerSpecCtx(e.G, v, ev.Player, ctrl, effects.PlayerSpecCtx{
 			Source:          source,
-			DefendingPlayer: state.Target{Player: ev.Player, IsPlayer: true},
+			DefendingPlayer: e.damageDefendingPlayer(ev),
 		}) {
 			return false
 		}

@@ -818,8 +818,8 @@ func sharesCreatureTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref 
 // allowlist is exactly YouCtrl — the only measured qualifier (Umbra Mystic's
 // "Aura.AttachedTo Permanent.YouCtrl" grant; 6 occurrences / 5 files). <class>
 // keeps the bare form's object-class / type-word validation, so
-// "Player.EnchantedBy" (the 2 curse occurrences) fails naturally: a player is
-// neither an object class nor a type word. It returns false for any token that
+// a player is neither an object class nor a type word in this OBJECT-side
+// grammar (the player-side EnchantedBy is handled separately). It returns false for any token that
 // is not one of these shapes: a different predicate name, no space, an empty
 // argument, an argument carrying a nested predicate ('+'/','), a dotted
 // qualifier outside the allowlist, a referent needing resolution-time context
@@ -3290,8 +3290,8 @@ func MatchesSpec(g *state.Game, spec string, id state.ObjID, you state.PlayerID)
 }
 
 // MatchesPlayerSpec is the player-side filter: You, Opponent, Player.
-// It recognizes the state-local Active and life comparison qualifiers used by
-// life triggers/replacements; every other qualifier still fails closed.
+// All supported player-state qualifiers share MatchesPlayerSpecCtx; source-
+// dependent properties fail closed when this unbound entry point is used.
 func MatchesPlayerSpec(g *state.Game, spec string, p, you state.PlayerID) bool {
 	return MatchesPlayerSpecCtx(g, spec, p, you, PlayerSpecCtx{})
 }
@@ -3510,6 +3510,16 @@ func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, 
 			if (base == "Player" || base == "Any") && g.IsMonarch(p) {
 				return true
 			}
+		case "EnchantedBy":
+			// An Aura may enchant a player of either seat, independent of
+			// the source of the filter.
+			for i := range g.Objs {
+				o := &g.Objs[i]
+				if o.Zone == state.ZBattlefield && o.HasAttachedPlayer && o.AttachedPlayer == p &&
+					o.Face() != nil && o.Face().IsEnchantment() {
+					return true
+				}
+			}
 		case "EnchantedController":
 			// Player.EnchantedController (Forge PlayerProperty): the seat is
 			// the controller of the permanent this Aura/Equipment source is
@@ -3519,6 +3529,15 @@ func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, 
 			// resolve it through this one clause.
 			if ctrl, ok := playerEnchantedController(g, pc.Source); ok && ctrl == p {
 				return true
+			}
+		case "descended":
+			// CR 700.11: a permanent CARD entered this player's graveyard
+			// this turn from any zone. ZoneEntry captures owner and card type at
+			// the move, and TurnChange clears the ledger on replay as in play.
+			for _, entry := range g.Entered {
+				if entry.To == state.ZGraveyard && entry.Owner == p && entry.PermanentCard {
+					return true
+				}
 			}
 		case "TriggeredDefendingPlayer":
 			// Player.TriggeredDefendingPlayer (Forge PlayerProperty): the
@@ -3745,9 +3764,8 @@ func splitPlayerCompare(s string) (string, int32, bool) {
 // playerEnchantedController returns the controller of the permanent this
 // Aura/Equipment source is attached to, and whether that link exists. A
 // missing source, an unattached source, or a bearer that has left the game
-// fails closed. Aura attachment to a PLAYER (a Curse's "enchant player") is
-// not modelled by this engine -- attach destinations exclude players -- so
-// Player.EnchantedBy stays fail-closed until that representation exists.
+// fails closed. A player-attached Aura has no permanent bearer, so it does
+// not satisfy this distinct EnchantedController property.
 func playerEnchantedController(g *state.Game, source state.ObjID) (state.PlayerID, bool) {
 	o := g.Obj(source)
 	if o == nil || o.AttachedTo == 0 {

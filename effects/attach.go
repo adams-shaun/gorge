@@ -152,6 +152,26 @@ func effAttach(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 	}
+	// An Aura with Enchant:Player attaches to a seat, not a permanent.
+	// The ordinary destination walker below intentionally accepts only
+	// battlefield objects; keep other Attach bodies on that existing path.
+	if sa.Params["Keyword"] == "Enchant" && sa.Params["Object"] == "Self" {
+		if aura := h.Game().Obj(obj); aura != nil && aura.Face() != nil {
+			if param, ok := aura.Face().KeywordParam("Enchant"); ok {
+				spec, _, _ := strings.Cut(param, ":")
+				if spec == "Player" {
+					for _, dest := range Defined(h, c, sa) {
+						if dest.IsPlayer && int(dest.Player) < len(h.Game().Players) && !h.Game().Players[dest.Player].Lost {
+							h.Emit(events.Event{Kind: events.Attach, Obj: obj, Player: dest.Player, Text: "attach to player"})
+							return
+						}
+					}
+					h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Text: "cannot attach: no legal player"})
+					return
+				}
+			}
+		}
+	}
 	var legalT []state.Target
 	destCandidates := func() []state.Target {
 		var out []state.Target
