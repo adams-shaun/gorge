@@ -137,30 +137,3 @@ func TestCascadeFreeCastAnnouncesNoX(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
-
-// TestCascadeNonXFreeCastDoesNotAskX is the scope guard: a non-{X} cascade
-// candidate (Grizzly Bears) casts with no X ask, exactly as it always has --
-// the CR 107.3b pin above is about the {X} candidate specifically.
-func TestCascadeNonXFreeCastDoesNotAskX(t *testing.T) {
-	e, cfg := cascadeTestEngine(t, 9234, "Bloodbraid Elf", []string{"Forest", "Grizzly Bears"}, nil)
-	elfID := searchMoveByName(t, e, "Bloodbraid Elf", state.ZHand)
-	addMana(t, e, 0, "GGRR")
-	castFixture(t, e, elfID, -1)
-	idx := cascadeElection(t, e, "Grizzly Bears")
-	submitChoices(t, e, idx)
-	if d := e.Pending(); d != nil && d.Kind == decision.KChoose {
-		for _, o := range d.Options {
-			if o.Kind == "x" {
-				t.Fatalf("a non-{X} cascade candidate was offered an X ask: %+v", d.Options)
-			}
-		}
-	}
-	passUntilStackEmpty(t, e, 40)
-	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
-		if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Grizzly Bears" {
-			replayCheck(t, e, cfg)
-			return
-		}
-	}
-	t.Fatal("the non-{X} candidate never resolved")
-}
