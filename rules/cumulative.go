@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -95,6 +96,22 @@ type triggeredEffectCost struct {
 	// reservation list the other components keep) so the settle can emit the
 	// owner's-graveyard moves the picks name.
 	moveGraves []state.ObjID
+	// payIdx / payColor / payLife / payGeneric carry the flexible-pip payment
+	// announcement (CR 601.2b/107.4e-f) for this window: Alesha's `Cost$
+	// WB WB` and the other announcement-pip trigger costs. triggeredCostPipAsk
+	// walks the cost's combined announcement-pip list (Cost.annPipCount, the
+	// same order and alternatives the cast flow's manaAsk offers, via the one
+	// shared Cost.announcePip) one decision at a time; payIdx is the next
+	// unsettled pip, payColor accumulates the coloured faces the announced
+	// pips chose, payLife the life a Phyrexian face paid with two life, and
+	// payGeneric the generic a monocolour hybrid pip paid with its generic
+	// face. announcedCost folds them back into the cost the gates price and
+	// the pay arm charges. Plain data (a value array and scalars), so the
+	// window clone copies it without a deep-copy rule.
+	payIdx     int
+	payColor   state.Mana
+	payLife    int32
+	payGeneric int32
 	// xPaid is the X this window's cost carried after the X fold: the
 	// payer's announced value (the choose-X ask) or the face SVar:X's fixed
 	// resolved value. It rides the resume point (rp.winPaidX) into the body
@@ -873,15 +890,43 @@ func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
 	return true
 }
 
+// announcedCost is the window's cost with every announcement pip -- a
+// two-colour hybrid, a monocolour hybrid, a Phyrexian pip or a
+// hybrid-Phyrexian pip, in Cost.announcePip order -- replaced by the face the
+// payer elected in triggeredCostPipAsk: the chosen colour is folded into
+// Colored, a monocolour hybrid's generic face into Generic, a Phyrexian
+// face's two life into Life. It is the triggered-cost window's exact
+// counterpart of pendingCast.resolvedMana (the cast flow's one folded-cost
+// home), so the payability gate, the mana window and the pay arm all price
+// and charge the SAME resolved cost and can never disagree. Before any pip is
+// announced the accumulator lists are empty and the four pip lists are still
+// present, so a cost with no announcement pip is returned byte-identical to
+// amount -- every non-hybrid window is unchanged.
+func (tc *triggeredEffectCost) announcedCost() Cost {
+	m := tc.amount
+	m.Hybrid = nil
+	m.Phyrexian = nil
+	m.Twobrid = nil
+	m.HybridPhyrexian = nil
+	for i := range tc.payColor {
+		m.Colored[i] += tc.payColor[i]
+	}
+	m.Generic = addClampedGeneric(m.Generic, int64(tc.payGeneric))
+	m.Life = addClampedGeneric(m.Life, int64(tc.payLife))
+	return m
+}
+
 // triggeredCostPayable reports whether the window's "pay" election is
 // answerable: the payer's energy pool covers the cost's energy parts, no
 // other unmodelled component rides the cost, and the remaining mana/life (and
 // any Draw/Sac/Exile/Discard components) half is chargeable. It is the ONE
 // home for the ask gate's payable decision, so the offered answers and the
 // pay arm's charge can never disagree (the two energy sites are
-// energyPayable here and chargeEnergyCost there).
+// energyPayable here and chargeEnergyCost there). It prices the ANNOUNCED
+// cost, so a hybrid pip is chargeable exactly when the face the payer elected
+// is (CR 107.4e).
 func (e *Engine) triggeredCostPayable(tc *triggeredEffectCost) bool {
-	amt := tc.amount
+	amt := tc.announcedCost()
 	if !e.energyPayable(tc.player, amt) {
 		return false
 	}
@@ -914,7 +959,7 @@ func (e *Engine) triggeredCostPayable(tc *triggeredEffectCost) bool {
 // ask -- a half-paid commitment is unreachable, and so is the silent skip
 // this gate replaces.
 func (e *Engine) triggeredCostComponentsPayable(tc *triggeredEffectCost) bool {
-	amt := tc.amount
+	amt := tc.announcedCost()
 	if len(amt.Sac)+len(amt.Discard)+len(amt.Exile)+len(amt.MoveToGrave) == 0 {
 		return false
 	}
@@ -994,6 +1039,64 @@ func (e *Engine) triggeredCostComponentsPayable(tc *triggeredEffectCost) bool {
 	return true
 }
 
+// triggeredCostPipAsk poses the CR 601.2b announcement for the next unsettled
+// hybrid, monocolour-hybrid, Phyrexian or hybrid-Phyrexian pip of the window's
+// cost (Cost.annPipCount / Cost.announcePip -- the ONE shared alternative
+// source the cast flow's manaAsk also reads, so the faces offered here and the
+// faces the cast flow offers can never drift). It runs BEFORE the mana window,
+// exactly as manaAsk runs before a cast's payment, so the payer fixes each
+// pip's face and the window then prices and charges that resolved cost
+// (announcedCost). Every face is offered without a pool pre-filter: an
+// announcement is a CR 601.2b choice, not a solvency claim -- an announced
+// face the pool and untapped sources cannot actually cover ends in the
+// decline-only pay ask below, never a wedge. It returns true once it has asked
+// (and therefore suspended).
+func (e *Engine) triggeredCostPipAsk(tc *triggeredEffectCost) bool {
+	if tc.payIdx >= tc.amount.annPipCount() {
+		return false
+	}
+	alts := tc.amount.announcePip(tc.payIdx)
+	name := "triggered ability"
+	if o := e.G.Obj(tc.source); o != nil && o.Face() != nil {
+		name = o.Face().Name
+	}
+	d := &decision.Decision{Player: tc.player, Kind: decision.KChoose, Min: 1, Max: 1,
+		Prompt: "Choose how to pay a mana symbol of " + name + " — " + tc.costLabel,
+		Source: tc.source}
+	seen := map[byte]bool{}
+	seenGeneric := false
+	for _, alt := range alts {
+		switch {
+		case alt.color != 0:
+			if seen[alt.color] {
+				continue
+			}
+			seen[alt.color] = true
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+				Kind: "pay_" + string(alt.color), Label: "Pay " + string(alt.color), Amount: 1})
+		case alt.generic > 0:
+			if seenGeneric {
+				continue
+			}
+			seenGeneric = true
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+				Kind: "pay_generic", Label: fmt.Sprintf("Pay %d generic", alt.generic), Amount: int(alt.generic)})
+		case alt.life > 0:
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+				Kind: "pay_life", Label: "Pay 2 life", Amount: 2})
+		}
+	}
+	if len(d.Options) == 0 {
+		// announcePip never returns an empty alternative list (every pip shape
+		// has at least one face), so this is unreachable for a real cost; the
+		// guard keeps a malformed one from posing an empty decision.
+		return false
+	}
+	e.choosing = chooseTriggeredCost
+	e.ask(d)
+	return true
+}
+
 func (e *Engine) triggeredCostPaymentAsk() {
 	tc := e.triggerCost
 	if tc == nil {
@@ -1031,7 +1134,10 @@ func (e *Engine) triggeredCostPaymentAsk() {
 	if e.triggeredCostXAsk(tc) {
 		return
 	}
-	if e.paymentManaAsk(tc.player, tc.source, tc.amount, tc.windowDone,
+	if e.triggeredCostPipAsk(tc) {
+		return
+	}
+	if e.paymentManaAsk(tc.player, tc.source, tc.announcedCost(), tc.windowDone,
 		"Activate mana abilities to "+tc.costLabel, chooseTriggeredCost) {
 		return
 	}
@@ -1202,10 +1308,40 @@ func (e *Engine) triggeredCostAnswer(chosen []decision.Option) {
 		tc.xPaid = x
 		e.triggeredCostPaymentAsk()
 		return
+	case "pay_W", "pay_U", "pay_B", "pay_R", "pay_G", "pay_C":
+		// A hybrid, twobrid or Phyrexian pip paid with pool mana: record which
+		// colour face was elected and advance to the next pip. The option Kind
+		// is the cast flow's own (castAnswer's pay_W family), so the two windows
+		// answer the same way and a replay records the same choice shape.
+		if len(chosen) > 0 {
+			tc.payColor[state.ManaIndex(chosen[0].Kind[len("pay_")])]++
+		}
+		tc.payIdx++
+		e.triggeredCostPaymentAsk()
+		return
+	case "pay_life":
+		// A Phyrexian face (plain or hybrid) paid with two life.
+		tc.payLife += 2
+		tc.payIdx++
+		e.triggeredCostPaymentAsk()
+		return
+	case "pay_generic":
+		// A monocolour hybrid pip paid with its generic face.
+		if len(chosen) > 0 {
+			tc.payGeneric += int32(chosen[0].Amount)
+		}
+		tc.payIdx++
+		e.triggeredCostPaymentAsk()
+		return
 	}
 	paid := false
 	if chosen[0].Kind == "trigger_cost_pay" {
-		if len(tc.amount.Sac)+len(tc.amount.Discard)+len(tc.amount.Exile)+len(tc.amount.MoveToGrave) > 0 {
+		// The announced cost: every hybrid/Phyrexian pip is folded to the face
+		// the payer elected, so the mana half the gates priced and the pay arm
+		// charges is exactly the cost triggeredCostPayable proved. A cost with
+		// no announcement pip returns amount unchanged.
+		announced := tc.announcedCost()
+		if len(announced.Sac)+len(announced.Discard)+len(announced.Exile)+len(announced.MoveToGrave) > 0 {
 			// The settleable-component cost (trigcost2): the election is
 			// "pay"; walk the components (the mandatory walk's picks -- a
 			// real KChoose where a choice exists, the Hand/Random discard
@@ -1219,17 +1355,17 @@ func (e *Engine) triggeredCostAnswer(chosen []decision.Option) {
 			e.advanceTriggeredMandatory(tc)
 			return
 		}
-		if len(tc.amount.Draw) > 0 {
+		if len(announced.Draw) > 0 {
 			// The Draw-bearing cost: resolve every count (source SVar for the
 			// dynamic form), charge the mana half, then draw. The window's ask
 			// offered "pay" only when this resolution succeeds, so the pay
 			// answer is never a partial payment. Any energy part is charged by
 			// the shared helper beside the mana (payMana ignores Energy).
 			draws, ok := e.triggeredCostDrawCounts(tc)
-			if ok && e.payManaConv(tc.player, tc.amount.withoutEnergy(), e.paymentConv(tc.player, tc.source, false)) {
+			if ok && e.payManaConv(tc.player, announced.withoutEnergy(), e.paymentConv(tc.player, tc.source, false)) {
 				paid = true
 				e.chargeEnergyCost(tc.player, tc.amount, tc.xPaid)
-				for i, part := range tc.amount.Draw {
+				for i, part := range announced.Draw {
 					if drawer, ok := castFlowDrawPlayer(part.Spec, tc.player); ok {
 						for n := int32(0); n < draws[i]; n++ {
 							e.drawCostCard(drawer)
@@ -1242,7 +1378,7 @@ func (e *Engine) triggeredCostAnswer(chosen []decision.Option) {
 			// charged by the shared chargeEnergyCost helper (payMana ignores
 			// Energy). The gate offered "pay" only when both halves were
 			// covered, so a paid answer is never a partial payment.
-			lower := tc.amount.withoutEnergy()
+			lower := announced.withoutEnergy()
 			paid = lower.Priceable() &&
 				e.payManaConv(tc.player, lower, e.paymentConv(tc.player, tc.source, false))
 			if paid {
@@ -1542,7 +1678,7 @@ func (e *Engine) triggeredMandatoryAnswer(chosen []decision.Option) {
 // board that changed under the walk could in principle leave it uncovered,
 // in which case the body is skipped rather than half paid.
 func (e *Engine) settleTriggeredMandatory(tc *triggeredEffectCost) {
-	stripped := tc.amount
+	stripped := tc.announcedCost()
 	stripped.Sac, stripped.Discard, stripped.Exile, stripped.Draw = nil, nil, nil, nil
 	stripped.MoveToGrave = nil
 	if (stripped.hasManaPayment() || stripped.Life > 0) &&
