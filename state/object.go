@@ -968,6 +968,24 @@ func (o *Object) BestowedAttached() bool {
 	return o.AttachedTo != 0 && o.Face() != nil && o.Face().HasKeyword("Bestow")
 }
 
+// BestowedAuraSpell reports whether o is a card printed with Bestow that is
+// currently a bestowed SPELL on the stack (CR 702.114c: a card cast with its
+// bestow ability is an Aura spell with enchant creature, not a creature
+// spell, so it is an Aura and not a Creature to every type read -- including
+// abilities that trigger when a player casts a creature spell). Derived from
+// live state -- the object's zone and the pay-time FlagBestowed provenance --
+// the same derive-don't-store discipline BestowedAttached practises, so every
+// replay and every read site derives the switch identically.
+//
+// Once the spell resolves the object is on the battlefield, so this reads
+// false and the attached switch (BestowedAttached) takes over; an object
+// printed without Bestow, or a bestowed card cast for its plain mana cost
+// (no FlagBestowed), is never a bestowed Aura spell.
+func (o *Object) BestowedAuraSpell() bool {
+	return o.Zone == ZStack && o.CastFlags&FlagBestowed != 0 &&
+		o.Face() != nil && o.Face().HasKeyword("Bestow")
+}
+
 // ReconfiguredAttached reports whether o is a card printed with Reconfigure
 // that is currently attached to a permanent (CR 702.150c: while attached,
 // the permanent is not a creature; unattached it is a creature again).
