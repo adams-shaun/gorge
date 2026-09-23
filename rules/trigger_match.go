@@ -997,8 +997,16 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 	// Granted triggers inspect the same active-static list for every object
 	// this event visits. Matching cannot emit or mutate continuous effects;
 	// phase diagnostics emit only after the walk, so this snapshot is stable
-	// for its full deterministic traversal.
-	grantedStatics := observer.active()
+	// for its full deterministic traversal. It is narrowed ONCE here to the
+	// grants whose trigger Mode$ can observe this event kind (exact: see
+	// checkGrantedStaticTriggersUsing), so the per-object walk never runs an
+	// Affected$ spec match for a grant that cannot fire on this event.
+	var grantedBuf [8]*ContinuousEffect
+	grantedStatics := grantedTriggerStaticsFor(observer.active(), ev.Kind, grantedBuf[:0])
+	// The event's compiled-interest test, hoisted out of the per-object walk:
+	// compiledTriggerInterestAllows(interests, ev.Kind) is exactly
+	// evAll || interests&evMask != 0 (see objectFaceMayTriggerHoisted).
+	evAll, evMask := compiledTriggerInterestEvent(ev.Kind)
 	observer.forEachObject(func(id state.ObjID) {
 		o := observer.G.Obj(id)
 		if o == nil {
@@ -1048,7 +1056,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		// eligible alternate face. Granted Ward is independent of both -- and
 		// so is a static-grant's trigger (AddTrigger$): the granted walk below
 		// runs on BOTH paths, like Ward and Dethrone do.
-		if !o.Unlocked && len(o.MergedCards) == 0 && !e.objectFaceMayTrigger(id, o.FaceIdx, f, ev.Kind) {
+		if !o.Unlocked && len(o.MergedCards) == 0 && !e.objectFaceMayTriggerHoisted(id, o.FaceIdx, f, ev.Kind, evAll, evMask) {
 			if grantedKeywordTriggerEvent(ev.Kind) {
 				switch ev.Kind {
 				case events.TargetsChosen:
@@ -1069,7 +1077,9 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					e.checkGrantedCumulativeUpkeepTriggers(observer, id, o, f, ev, objLKI)
 				}
 			}
-			e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid, split, leaving)
+			if len(grantedStatics) > 0 {
+				e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid, split, leaving)
+			}
 			return
 		}
 		// Enchantment Rooms (rules/rooms.go): an UNLOCKED room's alternate
@@ -1487,7 +1497,9 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				}
 			}
 		}
-		e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid, split, leaving)
+		if len(grantedStatics) > 0 {
+			e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid, split, leaving)
+		}
 		// A granted Afflict must fire even when the object's own printed
 		// triggers are live for this event (a Zombie with its own become-blocked
 		// trigger carrying the Monarch's grant) -- the early-return path above
