@@ -613,3 +613,44 @@ No engine code conflicted: the branch's `effects/filter.go` change and main's
 ### Issues
 
 None found beyond the resolved conflict itself.
+
+---
+
+## Section N+4 — verification in this resolver session
+
+The dispatch arrived after the integration had already been completed: initial
+`git status` was clean at `e262a3a4`, with merge commit `4bd357c1` underneath
+it and no rebase or merge in progress. The merge commit records the sole
+conflict (`internal/testutil/agentsdoc_test.go`); the preceding Section N+3
+records both sides' intended row-count values, the combined AGENTS.md deletions,
+and the resolution to the merged table's measured count of 55. `AGENTS.md`
+auto-merged, retaining the branch's `non<X>` row deletion and main's two
+Scry/Surveil row deletions.
+
+I found a duplicated pair of `knownApproximationRows` explanation comments
+left by the resolution and removed the duplicate; the constant remains 55.
+This was the only additional edit. `.cards` is present in this worktree.
+
+Commands and output:
+
+```text
+git status --short --branch
+## wt/cli-20260922T225140Z-b686e452
+
+[ -e .cards ] && echo '.cards present' || echo '.cards missing'
+.cards present
+
+go test ./internal/testutil -run 'TestKnownApproximation' -v
+=== RUN   TestKnownApproximationsOnlyShrinks
+--- PASS: TestKnownApproximationsOnlyShrinks (0.00s)
+=== RUN   TestKnownApproximationRowsAreShort
+--- PASS: TestKnownApproximationRowsAreShort (0.00s)
+PASS
+ok   github.com/adams-shaun/gorge/internal/testutil 0.001s
+
+go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok   github.com/adams-shaun/gorge/rules 0.783s
+```
+
+No conflict markers remain in the affected Go file. No engine behavior or ratchet
+entries changed, and there are no additional issues or uncertainties.
