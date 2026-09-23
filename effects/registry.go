@@ -719,10 +719,11 @@ type Ctx struct {
 	// two are read together by TargetsAlreadyChosen. A fresh Ctx rebuilt by a
 	// resume re-binds this field from the pending ask's ride (Decision
 	// .ResumeTargetsUnique -> the resume point's targetsUnique), so an
-	// intervening suspension between two riders keeps the earlier picks; ask
-	// kinds that do not go through poseTargetsAsk or poseUnlessAsk (a Charm's
-	// mode election, a ward's pay window) still lose it -- the documented
-	// conservative edge (an ask that over-offers).
+	// intervening suspension between two riders keeps the earlier picks. The
+	// ride is not limited to the two asks that stamp it explicitly: the ask
+	// boundary (rules' Engine.Ask) also reads this live field off the chain
+	// Ctx that Resolve publishes, so a Charm mode election, a ward pay window
+	// or a dig/scry/arrange ask carries the same accumulator.
 	TargetsUnique []state.Target
 	// Captured is the part of Remembered the resolution started with because
 	// its trigger, delayed trigger or replacement put the event's object there
@@ -1838,6 +1839,19 @@ type effectFrameHost interface {
 	SetCurrentEffectFrame(EffectFrame)
 }
 
+// resolutionCtxHost is implemented by the rules engine to publish the Ctx of
+// the Resolve chain that is CURRENTLY running, so the ask boundary can stamp
+// the chain's live TargetUnique$ accumulator onto EVERY decision it poses
+// (Host.Ask copies it onto the decision's resume state, hence onto the
+// pending resumePoint). The accumulator is appended to in place as the walk
+// runs, so a snapshot taken at Resolve entry would be stale; the LIVE pointer
+// is what makes an intervening ask of ANY kind -- a modal election, a ward
+// pay, a dig/scry/arrange pick -- carry the picks earlier TargetUnique$
+// riders chose. It is optional so the effects test doubles stay small.
+type resolutionCtxHost interface {
+	SetResolutionCtx(*Ctx) *Ctx
+}
+
 func Resolve(h Host, c *Ctx, sa *cards.SA) {
 	// Publish this walk's Effect-created registration frame (set by rules'
 	// seedEffectReplCtx on an api:Effect replacement's body Ctx) for the whole
@@ -1878,6 +1892,16 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 		// it after a nested one has finished.
 		prev := h.SetResolutionTargetControllerLKI(c.TargetControllerLKI)
 		defer h.SetResolutionTargetControllerLKI(prev)
+		// Publish the live Ctx for the whole of this chain (the same
+		// restore-on-return bracket), so any ask posed by any of its effects --
+		// or by a nested Resolve that inherits the same Ctx -- carries the
+		// chain's TargetUnique$ accumulator onto its resume state. The
+		// accumulator is appended to in place during the walk, so the host
+		// reads the CURRENT value at ask time, never a stale entry snapshot.
+		if rh, ok := h.(resolutionCtxHost); ok {
+			prevCtx := rh.SetResolutionCtx(c)
+			defer rh.SetResolutionCtx(prevCtx)
+		}
 	}
 	reg := registry.load()
 	for d := 0; sa != nil && d < maxChain; d, sa = d+1, sa.Sub {

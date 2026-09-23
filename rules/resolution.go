@@ -422,7 +422,7 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 		villainousIndex:         d.ResumeVillainousIndex,
 		villainousRemembered:    append([]state.Target(nil), e.villainousRemembered...),
 		villainousRememberedSet: e.villainousRememberedSet,
-		targetsUnique:           append([]state.Target(nil), d.ResumeTargetsUnique...),
+		targetsUnique:           e.targetsUniqueRide(d),
 		fusedTargets:            append([]state.Target(nil), e.fusedResolving...),
 		fusedTargetsSet:         e.fusedResolvingSet,
 		fusedSVars:              e.fusedResolvingSVars,
@@ -459,6 +459,38 @@ func (e *Engine) SetResolutionTargetControllerLKI(m map[state.ObjID]state.Player
 	prev := e.resolvingTargetControllerLKI
 	e.resolvingTargetControllerLKI = m
 	return prev
+}
+
+// SetResolutionCtx implements effects.Host's optional resolutionCtxHost
+// interface: effects.Resolve publishes the live Ctx of the chain it is about
+// to walk, and restores the previous value on return, so the scratch holds
+// exactly the innermost running chain's Ctx. Engine.Ask consumes it as the
+// fallback source of the chain's TargetUnique$ accumulator. Writes engine
+// scratch, never e.resume, so it is not a writer of the resume state the
+// archtest guards.
+func (e *Engine) SetResolutionCtx(c *effects.Ctx) *effects.Ctx {
+	prev := e.resolutionCtx
+	e.resolutionCtx = c
+	return prev
+}
+
+// targetsUniqueRide is the TargetUnique$ accumulator a decision resumes with:
+// the accumulator the asking site already stamped onto the decision when it
+// carried one, else the LIVE accumulator of the Resolve chain currently
+// running (published through SetResolutionCtx). It is the one home of the
+// ride, so an ask of ANY kind -- a modal election, a ward pay, a
+// dig/scry/arrange pick -- parked between two TargetUnique$ riders preserves
+// the picks earlier riders chose, rather than only the shared target pre-ask
+// and the unless gate that stamped it explicitly. Nil outside a chain (a
+// combat or mulligan ask), where there is no accumulator to carry.
+func (e *Engine) targetsUniqueRide(d *decision.Decision) []state.Target {
+	if len(d.ResumeTargetsUnique) > 0 {
+		return append([]state.Target(nil), d.ResumeTargetsUnique...)
+	}
+	if e.resolutionCtx == nil {
+		return nil
+	}
+	return append([]state.Target(nil), e.resolutionCtx.TargetsUnique...)
 }
 
 // SuspendUnless implements effects.Host.SuspendUnless: the unless-cost
@@ -1035,6 +1067,16 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// ResolvingObj stays rp.obj -- the wrapper whose resolution this
 		// frame is.
 		ResolvingObj: rp.obj, EffectFrame: rp.effectFrame}
+	// Publish this rebuilt Ctx for the whole of the resumed resolution (the
+	// same restore-on-return bracket effects.Resolve uses), so an ask posed
+	// from RULES machinery before the effects.Resolve re-entry -- the Ward
+	// pay window's beginWardPayment, a charm-mode continuation -- carries the
+	// chain's TargetUnique$ accumulator (restored from rp.targetsUnique
+	// above) onto its own resume point instead of dropping it. The nested
+	// effects.Resolve re-publishes the same Ctx and restores to this value on
+	// return, so the LIFO restore order is exact.
+	prevCtx := e.SetResolutionCtx(ctx)
+	defer e.SetResolutionCtx(prevCtx)
 	if rp.kind == "repeat_optional" {
 		ctx.RepeatOptional = &effects.RepeatOptionalContinuation{
 			Continue: len(chosen) > 0 && chosen[0].Kind == "yes",
