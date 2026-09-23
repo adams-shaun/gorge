@@ -4692,9 +4692,9 @@ func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCar
 			list = chooseFromList[0]
 		}
 		names := effects.NameChoicesFromList(e.G, validCards, choices, list)
-		out := make([]decision.Option, 0, len(names))
-		for _, n := range names {
-			out = append(out, decision.Option{Index: len(out), Kind: "name", Label: n, Player: you})
+		out := effects.NameOptions(names, you)
+		if out == nil {
+			out = []decision.Option{}
 		}
 		return out
 	case "type":

@@ -448,10 +448,21 @@ func (e *Engine) targetSpecContext(source, stack state.ObjID, you state.PlayerID
 	if e.cast != nil && (e.cast.card == source || e.cast.stackObj == source) {
 		x = e.cast.x
 	}
-	ctx := &effects.Ctx{Source: source, Controller: you, TriggerContext: tcx,
-		Remembered: remembered, SVars: svars, LKI: lki, LKIPower: lkiPower,
-		LKIToughness: lkiToughness, LKIPTValid: lkiPTValid, X: x}
-	ctx.Host = e
+	// The count Ctx is only needed when Resolve evaluates an SVar body, which
+	// most target offers never do; build it on first use (once, and then
+	// reused exactly as the eager one was) instead of heap-allocating a full
+	// Ctx for every target-spec context. Every field it reads is final by
+	// now, so a late build is identical to an eager one.
+	var ctx *effects.Ctx
+	countCtx := func() *effects.Ctx {
+		if ctx == nil {
+			ctx = &effects.Ctx{Source: source, Controller: you, TriggerContext: tcx,
+				Remembered: remembered, SVars: svars, LKI: lki, LKIPower: lkiPower,
+				LKIToughness: lkiToughness, LKIPTValid: lkiPTValid, X: x}
+			ctx.Host = e
+		}
+		return ctx
+	}
 	sc := effects.SpecContext{You: you, Source: source, TriggerContext: tcx,
 		Remembered: remembered,
 		Resolve: func(name string) (int32, bool) {
@@ -465,14 +476,14 @@ func (e *Engine) targetSpecContext(source, stack state.ObjID, you state.PlayerID
 					return x, true
 				}
 				if hasBody {
-					return effects.EvalCountOK(e, ctx, body)
+					return effects.EvalCountOK(e, countCtx(), body)
 				}
 				return x, true
 			}
 			if !hasBody || strings.TrimSpace(body) == "" {
 				return 0, false
 			}
-			return effects.EvalCountOK(e, ctx, body)
+			return effects.EvalCountOK(e, countCtx(), body)
 		}}
 	// The stack object's Remembered and fire-time LKI are bound above, beside
 	// TriggerContext, so placement-time numeric SVars read the same captured
