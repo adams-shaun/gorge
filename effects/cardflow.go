@@ -2854,9 +2854,12 @@ func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, n int32, kind, verb string,
 						{Index: 0, Kind: "yes", Label: "Yes", Player: p},
 						{Index: 1, Kind: "no", Label: "No", Player: p},
 					}}
-				if Ask(h, d) == AskAsked {
+				if Ask(h, d) != AskNoHost {
 					return
 				}
+				// R-9: an unavailable host deterministically declines an
+				// optional election; never treat an unanswered ask as consent.
+				continue
 			} else if opt != "yes" {
 				continue
 			}
