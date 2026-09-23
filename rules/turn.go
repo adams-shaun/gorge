@@ -1285,12 +1285,42 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 			return
 		}
 		ch := e.attachedChoice
-		if ch.stage == 0 {
-			e.emit(events.Event{Kind: events.Choose, Obj: ch.source, Counter: "name", Text: chosen[0].Label})
-			e.askAttachedType()
+		// Dispatch on the body that posed the ask (ch.body), not on the card:
+		// NameCard carries Psychic Paper's two stages, while ChooseCard and
+		// ChooseColor are single-stage. Every arm records through an
+		// event-backed Choose fold and then releases the parked Attach exactly
+		// once through emitAttachedMove.
+		switch ch.body {
+		case "ChooseCard":
+			// Pick-Axe: record the chosen exiled craft card as the Choose
+			// "chosen" fold (state.Object.Chosen), which `Defined$ ChosenCard`
+			// and the replacement gate's object-backed read consume.
+			if chosen[0].Obj != 0 {
+				e.emit(events.Event{Kind: events.Choose, Obj: ch.source, Counter: "chosen", IDs: []state.ObjID{chosen[0].Obj}})
+			}
+		case "ChooseColor":
+			// Sanctuary Blade: record the answered colour's WUBRG letter as
+			// the Choose "color" fold (state.Object.ChosenColor), the shape
+			// every Card.ChosenColor reader already uses.
+			letter := etbColourLetter(chosen[0].Label)
+			if letter == "" {
+				letter = "W"
+			}
+			e.emit(events.Event{Kind: events.Choose, Obj: ch.source, Counter: "color", Text: letter})
+		case "NameCard":
+			if ch.stage == 0 {
+				e.emit(events.Event{Kind: events.Choose, Obj: ch.source, Counter: "name", Text: chosen[0].Label})
+				e.askAttachedType()
+				return
+			}
+			e.emit(events.Event{Kind: events.Choose, Obj: ch.source, Counter: "type", Text: chosen[0].Label})
+		default:
+			// A body with no resume arm is a programming error: the poser and
+			// the resume are declared from the same attachedBodyPoses set.
+			e.attachedChoice = nil
+			e.choosing = chooseNone
 			return
 		}
-		e.emit(events.Event{Kind: events.Choose, Obj: ch.source, Counter: "type", Text: chosen[0].Label})
 		move := ch.move
 		e.attachedChoice = nil
 		e.choosing = chooseNone
