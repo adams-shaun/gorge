@@ -628,22 +628,29 @@ func (e *Engine) SuspendRepeat(s effects.RepeatSuspension) {
 	e.repeatReported = s.SA
 }
 
-// SuspendCharmRest implements effects.Host.SuspendCharmRest: a cross-mode
-// TargetUnique Charm's mode loop suspended mid-mode (effCharm's
-// charmCrossModeRun) with chosen modes still to run. The frame re-enters the
-// Charm SA itself with Ctx.Modes = rest once the answered ask's chain
-// completes; it runs AFTER the inner continuations the suspended mode's own
-// chain reported, which is exactly the append order here. Setting
-// repeatReported to the Charm's SA suppresses the enclosing Resolve loop's
-// own SuspendContinuation report of the same SA (the innermost rule: this
-// frame re-enters the Charm itself, so a second frame would re-run
-// CharmSA.Sub — nil — and degrade to a spurious no-sub-ability Note).
+// SuspendCharmRest implements effects.Host.SuspendCharmRest: a Charm's mode
+// loop suspended mid-mode (effCharm's generic loop, charmDistinctTargetRun or
+// charmCrossModeRun). The frame re-enters the Charm SA itself with Ctx.Modes =
+// rest once the answered ask's chain completes; it runs AFTER the inner
+// continuations the suspended mode's own chain reported, which is exactly the
+// append order here. Setting repeatReported to the Charm's SA suppresses the
+// enclosing Resolve loop's own SuspendContinuation report of the same SA (the
+// innermost rule: this frame re-enters the Charm itself, so a second frame
+// would re-run CharmSA.Sub — nil — and degrade to a spurious no-sub-ability
+// Note).
+//
+// An EMPTY rest (the suspended mode was the LAST chosen one) still reports:
+// it appends the same re-entry frame with a non-nil empty mode list, so the
+// Charm re-enters, runs no further mode, and walks its own Sub — exactly what
+// the suppressed plain continuation would have done, minus the spurious Note
+// (the plain frame resumes at CharmSA.Sub == nil and degrades). Ctx.Modes must
+// stay non-nil so effCharm's re-entry branch is taken rather than its ask.
 func (e *Engine) SuspendCharmRest(sa *cards.SA, rest []string) {
-	if e.resume == nil || len(rest) == 0 {
+	if e.resume == nil {
 		return
 	}
 	e.contChain = append(e.contChain, contFrame{sa: sa,
-		charmRest: append([]string(nil), rest...)})
+		charmRest: append([]string{}, rest...)})
 	e.repeatReported = sa
 }
 
@@ -3050,7 +3057,11 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// o.Ability branch's full ChosenModes seed), effCharm's split
 			// assigns each target-bearing one the last targets of the original
 			// positional assignment, and nothing re-asks.
-			ctx.Modes = append([]string(nil), rp.charmRest...)
+			// Non-nil even when the rest is empty (the last chosen mode
+			// suspended): effCharm's re-entry branch is keyed on Ctx.Modes !=
+			// nil, so an empty but present list runs no mode and resumes the
+			// Charm's own Sub rather than re-posing the mode ask.
+			ctx.Modes = append([]string{}, rp.charmRest...)
 			// CanRepeatModes$ (CR 601.2b): the rest is a suffix of the object's
 			// full ChosenModes (the walk only ever truncates a suffix), so the
 			// names the earlier passes consumed are derivable exactly. Seed
