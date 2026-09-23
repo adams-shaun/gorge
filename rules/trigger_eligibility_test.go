@@ -44,6 +44,7 @@ func TestTriggerEligibilityEventMatrix(t *testing.T) {
 		{"Attached", []events.Kind{events.Attach}},
 		{"Explores", []events.Kind{events.Explore}},
 		{"Investigated", []events.Kind{events.Investigate}},
+		{"SearchedLibrary", []events.Kind{events.SearchedLibrary}},
 		{"Discover", []events.Kind{events.Discover}},
 		{"SeekAll", []events.Kind{events.Seek}},
 		{"Exploited", []events.Kind{events.Exploit}},

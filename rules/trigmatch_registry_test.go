@@ -130,6 +130,10 @@ var addedAfterTheSplit = []string{
 	// logged an empty-IDs events.Attach, so no pre-split switch arm could
 	// have dispatched it.
 	"Unattached",
+	// trig-searched-library: a completed search marker was added because
+	// ordinary library card moves cannot identify a search to the trigger.
+	// The marker Kind is new, so the pre-split switch could not dispatch it.
+	"SearchedLibrary",
 	// TurnFaceUp (task agent-20260919T183249Z-0fb8ed97): "When
 	// [this/that permanent] is turned face up" (CR 708.6 / CR 702.36e;
 	// Printlifter Ooze, Woolly Loxodon and the mode's 125 corpus carriers).

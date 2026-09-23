@@ -3654,6 +3654,12 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 			applyStaticEffect(h, c, sa, to, []state.ObjID{id})
 		}
 	}
+	// Record one completed search per library, including a search that found
+	// no eligible card. This marker is distinct from the searched cards' own
+	// MoveZone events so trig:SearchedLibrary cannot false-fire on ordinary
+	// library movement.
+	h.Emit(events.Event{Kind: events.SearchedLibrary, Obj: c.Source, Player: owner})
+
 	// The search's reveal (hiddenreveal1): Forge's changeHiddenOriginResolve
 	// reveals the moved cards when Reveal$ says so, and ALSO by default when
 	// the search's ChangeType$ states a quality (anything beyond the bare

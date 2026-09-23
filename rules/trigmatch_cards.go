@@ -98,6 +98,25 @@ func (e *Engine) connivesMatches(t cards.Trigger, source state.ObjID, ev events.
 	return e.eventCardAndPlayerMatch(t, source, ev.Obj, ev.Player)
 }
 
+// searchedLibraryMatches handles the four corpus SearchedLibrary carriers.
+// applyLibrarySearch emits one marker per completed searched library, separate
+// from individual card moves, so both empty and successful searches fire once.
+func (e *Engine) searchedLibraryMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
+	if ev.Kind != events.SearchedLibrary {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v := t.Params["ValidCard"]; v != "" && ev.Obj != 0 &&
+		!e.matchesSpec(v, ev.Obj, e.specCtx(source, ctrl)) {
+		return false
+	}
+	if v := t.Params["ValidPlayer"]; v != "" &&
+		!effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+		return false
+	}
+	return true
+}
+
 // investigatedMatches implements the "whenever you investigate" trigger
 // family (Forge Mode$ Investigated, task investtrig1 -- Erdwal Illuminator,
 // Val, Marooned Surveyor; 2 files / 2 raw lines at the corpus pin). The
@@ -717,6 +736,7 @@ func init() {
 	registerTrigMatcher((*Engine).exploresMatches, "Explores")
 	registerTrigMatcher((*Engine).connivesMatches, "Connives")
 	registerTrigMatcher((*Engine).investigatedMatches, "Investigated")
+	registerTrigMatcher((*Engine).searchedLibraryMatches, "SearchedLibrary")
 	registerTrigMatcher((*Engine).discoverMatches, "Discover")
 	registerTrigMatcher((*Engine).seekAllMatches, "SeekAll")
 	registerTrigMatcher((*Engine).surveilMatches, "Surveil")
