@@ -43,17 +43,14 @@ import (
 // evaluates unresolvable to the DISTINCT card faces carrying it (sorted).
 // Measured 2026-09-22 over all 26 repo decks at the devotion/threshold
 // commit: the Devotion/Threshold/DevotionDual families resolved there, these
-// five bodies remain (Count$ResolvedThisTurn was modelled and removed).
+// three bodies remain (Count$ResolvedThisTurn and Count$CardNumAttacksThisTurn
+// were modelled and removed).
 var knownUnmodelledCountHeads = map[string][]string{
 	// Forge's Count$MaxOppDamageThisTurn (Spinerock Knoll's "X = the highest
 	// combat damage an opponent was dealt this turn" hideaway unlock): a
 	// per-opponent combat-damage extreme the damage-tally machinery does not
 	// expose yet.
 	"Count$MaxOppDamageThisTurn": {"Spinerock Knoll"},
-	// Forge's Count$CardNumAttacksThisTurn (Moraug's "X = the number of
-	// times that creature attacked this turn"): per-creature attack history
-	// is not recorded yet.
-	"Count$CardNumAttacksThisTurn": {"Moraug, Fury of Akoum"},
 	// Forge's Count$NonCombatDamageThisTurn <spec> Any (Temple of Power's
 	// "X = noncombat damage you've dealt this turn" payoff): a filtered
 	// non-combat damage tally.

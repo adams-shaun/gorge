@@ -3532,6 +3532,177 @@ func charmDistinctTargetRun(h Host, c *Ctx, sa *cards.SA, names []string) bool {
 	return true
 }
 
+// charmGenericPlayers is the per-Defined$-player api:GenericChoice path: each
+// player the SA's Defined$ names chooses one of the same Choices$ in turn, and
+// each chosen body runs with THAT chooser bound as Ctx.Remembered (the binding
+// Seize the Spotlight's Fame/Fortune bodies read as Defined$ Remembered). The
+// outer SubAbility$ runs once, after every chooser has answered.
+//
+// It returns true when it owns the resolution. It deliberately declines the
+// shapes the existing controller ask already serves correctly:
+//
+//   - a Charm (never defined$-per-player);
+//   - a GenericChoice with no Choices$;
+//   - a GenericChoice whose Defined$ is absent, resolves to exactly the
+//     resolving controller (Defined$ You), or resolves to anything that is
+//     not all players (Defined$ Targeted on a spell's creature, Defined$
+//     Valid <filter>): those keep the existing ask, so this ticket cannot
+//     change an object-defined carrier.
+//
+// A GenericChoice whose Defined$ is one of the PLAYER-role selectors
+// (Opponent / Player / Player.Opponent / Player.Other / You) but resolves to NO
+// players (an unbound TriggeredPlayer, an empty Remembered) does NOT fall back
+// to the controller: the ask would invent a chooser the card never named, so
+// the resolution is a loud no-op instead. Any other selector resolving empty is
+// left to the existing path.
+func charmGenericPlayers(h Host, c *Ctx, sa *cards.SA) bool {
+	if sa.API != "GenericChoice" {
+		return false
+	}
+	choices := strings.Split(sa.Params["Choices"], ",")
+	if len(choices) == 0 {
+		return false
+	}
+	for i := range choices {
+		choices[i] = strings.TrimSpace(choices[i])
+	}
+	// A re-entry for an answered/continued chooser carries the cursor; the SA
+	// may be reached mid-resolution with c.Modes already naming the answer.
+	if c.GenericChoosers != nil {
+		return charmGenericPlayersRun(h, c, sa, choices)
+	}
+	defined := strings.TrimSpace(sa.Params["Defined"])
+	if defined == "" {
+		return false
+	}
+	resolved := Defined(h, c, sa)
+	var players []state.Target
+	for _, t := range resolved {
+		if !t.IsPlayer {
+			// A mixed or object-defined set (Defined$ Targeted, Defined$
+			// Valid <filter>): not the per-player shape, so keep the existing
+			// controller ask untouched.
+			return false
+		}
+		players = append(players, t)
+	}
+	if len(players) == 1 && players[0].Player == c.Controller {
+		// Defined$ You: the existing controller ask is already exact. Leave it
+		// (and its ResumeKind "modes") alone.
+		return false
+	}
+	if len(players) == 0 {
+		if !playerRoleDefined(defined) {
+			// A non-player selector that happened to resolve to nothing: leave
+			// it to the existing path rather than changing its behaviour.
+			return false
+		}
+		// A player-role selector that named no player: asking the controller
+		// would choose for a player the card never named. Record why and do
+		// nothing.
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "GenericChoice Defined$ " + defined + " resolved no players"})
+		return true
+	}
+	c.GenericChoosers = players
+	c.GenericChooserIndex = 0
+	return charmGenericPlayersRun(h, c, sa, choices)
+}
+
+// playerRoleDefined reports whether a GenericChoice Defined$ selector names a
+// PLAYER ROLE (so an empty resolution is a real "no choosers", not an
+// object-definition that must keep the existing path). The qualified
+// Player.Opponent / Player.Other spellings are included, as are the trigger
+// roles that always resolve to a player. Every ambiguous selector (Targeted,
+// TriggeredTarget, ParentTarget, Valid <filter>, Remembered, ...) is NOT, so an
+// empty resolution there keeps the existing path unchanged.
+func playerRoleDefined(defined string) bool {
+	switch defined {
+	case "Opponent", "Player", "Player.Opponent", "Player.Other", "You",
+		"TriggeredPlayer", "TriggeredDefendingPlayer":
+		return true
+	}
+	return false
+}
+
+// charmGenericPlayersRun drives the chooser loop. Ctx.GenericChooserIndex is
+// the chooser still to ask; a non-nil Ctx.Modes is the answer for the chooser
+// at index-1, whose chosen body has not yet run (resumeResolution advanced the
+// index PAST the answered chooser, so running it here and then continuing the
+// loop asks the next chooser exactly once). A nested ask inside a chosen body
+// reports SuspendGenericChoiceRest so the remaining choosers survive it; a
+// nested GenericChoice in that body sees a nil cursor for the body's walk
+// (cleared around Resolve, the fx41 discipline) and resolves its own Defined$
+// rather than inheriting this one.
+func charmGenericPlayersRun(h Host, c *Ctx, sa *cards.SA, choices []string) bool {
+	if c.Modes != nil {
+		names := c.Modes
+		c.Modes = nil
+		for _, name := range names {
+			sub := cards.ResolveSVar(c.SVars, name)
+			if sub == nil {
+				continue
+			}
+			savedChoosers, savedIndex := c.GenericChoosers, c.GenericChooserIndex
+			c.GenericChoosers, c.GenericChooserIndex = nil, 0
+			Resolve(h, c, sub)
+			c.GenericChoosers, c.GenericChooserIndex = savedChoosers, savedIndex
+			if h.Suspended() {
+				// The chosen body posed a nested mid-resolution ask. Record the
+				// cursor so the remaining choosers are still asked once that ask's
+				// chain completes, instead of being stranded.
+				h.SuspendGenericChoiceRest(sa, GenericChoiceRest{
+					Choosers: append([]state.Target(nil), c.GenericChoosers...),
+					Next:     c.GenericChooserIndex})
+				return true
+			}
+		}
+	}
+	for c.GenericChooserIndex < len(c.GenericChoosers) {
+		chooser := c.GenericChoosers[c.GenericChooserIndex]
+		// The chosen body reads Defined$ Remembered as THIS chooser.
+		c.Remembered = []state.Target{chooser}
+		d := &decision.Decision{Player: chooser.Player, Kind: decision.KModes,
+			Min: 1, Max: 1, Source: c.Source, ResumeKind: "generic_players", ResumeSA: sa,
+			ResumeModes:               append([]string(nil), choices...),
+			ResumeRemembered:          append([]state.Target(nil), c.Remembered...),
+			ResumeGenericChoosers:     append([]state.Target(nil), c.GenericChoosers...),
+			ResumeGenericChooserIndex: c.GenericChooserIndex,
+			Prompt:                    "Choose 1 to 1 mode(s)"}
+		for i, name := range choices {
+			label := name
+			if sub := cards.ResolveSVar(c.SVars, name); sub != nil {
+				if desc := strings.TrimSpace(sub.Params["SpellDescription"]); desc != "" {
+					label = desc
+				}
+			}
+			d.Options = append(d.Options, decision.Option{Index: i, Kind: "mode",
+				Label: label, Obj: c.Source, Player: chooser.Player})
+		}
+		if Ask(h, d) == AskAsked {
+			return true
+		}
+		// R-9: an effects-only host has no chooser, so deterministically take
+		// the first option for this chooser and continue to the next.
+		if sub := cards.ResolveSVar(c.SVars, choices[0]); sub != nil {
+			savedChoosers, savedIndex := c.GenericChoosers, c.GenericChooserIndex
+			c.GenericChoosers, c.GenericChooserIndex = nil, 0
+			Resolve(h, c, sub)
+			c.GenericChoosers, c.GenericChooserIndex = savedChoosers, savedIndex
+			if h.Suspended() {
+				// The deterministic body posed its own ask: preserve the cursor
+				// exactly as the answered branch above does.
+				h.SuspendGenericChoiceRest(sa, GenericChoiceRest{
+					Choosers: append([]state.Target(nil), c.GenericChoosers...),
+					Next:     c.GenericChooserIndex + 1})
+				return true
+			}
+		}
+		c.GenericChooserIndex++
+	}
+	return true
+}
+
 // effCharm runs the selected Choices$ sub-abilities in chosen order.
 // Cast spells (CR 601.2b) and triggered abilities (CR 603.3c) arrive with
 // Ctx.Modes pre-seeded from their earlier announcement. A Charm reached only
@@ -3540,6 +3711,9 @@ func charmDistinctTargetRun(h Host, c *Ctx, sa *cards.SA, names []string) bool {
 // first-mode stand-in and records why with a Note.
 func effCharm(h Host, c *Ctx, sa *cards.SA) {
 	if c.SVars == nil {
+		return
+	}
+	if charmGenericPlayers(h, c, sa) {
 		return
 	}
 	choices := strings.Split(sa.Params["Choices"], ",")
