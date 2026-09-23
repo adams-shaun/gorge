@@ -113,6 +113,16 @@ func (e *Engine) stepPregame() {
 		e.askKeepMulligan(i)
 		return
 	}
+	// The declaration pass is complete: every seat has declared once. CR
+	// 103.4/103.5 has all mulligans in a pass happen SIMULTANEOUSLY, so the
+	// redraws resolve now -- after every un-kept seat has declared and before
+	// the next pass asks any of them again -- rather than immediately on that
+	// seat's own declaration. At this instant the un-kept seats are exactly
+	// the seats that mulliganed in this pass (a keep sets kept[i]), so the
+	// walk needs no separate bookkeeping. Decision order and per-seat
+	// observable state are unchanged; only the private redraw events'
+	// interleaving moves.
+	e.resolveMulliganRedraws()
 	// CR 103.5 is ROUND-ROBIN: every un-kept player has declared once before
 	// any player who mulliganed declares again. If this pass has mulliganers,
 	// restart at its first seat; only a pass in which everybody keeps reaches
@@ -220,13 +230,13 @@ func (e *Engine) askBottoming(i int) {
 
 // handleMulligan applies a KMulligan answer. In the keep/mulligan phase (the
 // round's first half, e.mulligan.bottom false) a keep marks the seat kept; a
-// mulligan shuffles the seat's hand back into its library (Shuffle, secret),
-// takes a permitted mulligan and draws a full new hand of seven -- CR 103.4: the
-// bottoming of `taken` cards at the round's end is the entire penalty, never
-// a smaller redraw. Every mutation is an e.emit or drawCard, so the whole
-// round is event-driven and replays byte-for-byte. In the bottoming phase it
-// moves each chosen card to its library bottom and advances the round past
-// this seat.
+// mulligan records the permitted mulligan and leaves the seat un-kept -- CR
+// 103.4's redraw (shuffle the hand back, draw a full new seven, the later
+// bottoming being the entire penalty) is resolved at the END of the pass, by
+// resolveMulliganRedraws, so all mulligans in a pass happen simultaneously. In
+// the bottoming phase it moves each chosen card to its library bottom and
+// advances the round past this seat. Every mutation is an e.emit or drawCard,
+// so the whole round is event-driven and replays byte-for-byte.
 func (e *Engine) handleMulligan(d *decision.Decision, in decision.Intent) {
 	if e.mulligan.bottom {
 		e.handleBottoming(d, in)
@@ -246,7 +256,6 @@ func (e *Engine) handleMulligan(d *decision.Decision, in decision.Intent) {
 			break
 		}
 	}
-	p := d.Player
 	chosen := d.Chosen(in)
 	if len(chosen) > 0 && chosen[0].Kind == "keep" {
 		e.mulligan.kept[i] = true
@@ -254,10 +263,40 @@ func (e *Engine) handleMulligan(d *decision.Decision, in decision.Intent) {
 	}
 	// A mulligan: the seat stays un-kept (it must decide again on a later
 	// PASS, after every other un-kept seat declares once). Advance cursor now;
-	// stepPregame resets it only after the current round has completed. taken
+	// stepPregame resets it only after the current pass has completed. taken
 	// increments first; once it reaches limit the next-pass ask offers keep.
+	// The redraw itself is NOT resolved here -- see the CR 103.4/103.5 note in
+	// stepPregame: it is deferred to resolveMulliganRedraws at the end of the
+	// pass, so every mulligan in the pass happens together.
 	e.mulligan.taken[i]++
 	e.mulligan.cursor++
+}
+
+// resolveMulliganRedraws resolves every redraw owed by the declaration pass
+// that just completed: each un-kept seat -- exactly the seats that mulliganed
+// in this pass -- shuffles its hand back and draws a full new hand of seven.
+// Called by stepPregame once, at the pass boundary, so the redraws are
+// simultaneous (CR 103.4/103.5) instead of interleaved with the pass's
+// remaining keep/mulligan asks. It is deterministic: seats are walked in
+// round order, never over a map.
+func (e *Engine) resolveMulliganRedraws() {
+	m := &e.mulligan
+	for i := range m.seats {
+		if m.kept[i] {
+			continue
+		}
+		e.redrawMulligan(m.seats[i])
+	}
+}
+
+// redrawMulligan shuffles one seat's hand back into its library and draws a
+// full new hand of seven -- CR 103.4: the redraw is a full seven and the
+// later bottoming is the entire penalty. Every mutation is an e.emit or
+// drawCard, so the round stays event-driven and replays byte-for-byte. If the
+// seat decks out mid-redraw (drawCard's own checkStateBased sets Over;
+// reachable only from a hand-made tiny deck) stop drawing: the round respects
+// Over everywhere else and must here too.
+func (e *Engine) redrawMulligan(p state.PlayerID) {
 	for _, id := range e.G.Zone(state.ZHand, p) {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand,
 			To: state.ZLibrary, Player: p, Text: "mulligan"})
@@ -265,12 +304,6 @@ func (e *Engine) handleMulligan(d *decision.Decision, in decision.Intent) {
 	order := append([]state.ObjID(nil), e.G.Zone(state.ZLibrary, p)...)
 	order = e.ShuffleLibrary(p, order)
 	e.emit(events.Event{Kind: events.Shuffle, Player: p, IDs: order, Secret: true})
-	// CR 103.4: a mulligan draws a FULL new hand of seven -- the later
-	// bottoming is the entire penalty, and the redraw is literally the same
-	// loop genesis already runs in New's opening deal. If the seat decks out
-	// mid-redraw (drawCard's own checkStateBased sets Over; reachable only
-	// from a hand-made tiny deck) stop drawing: the round respects Over
-	// everywhere else and must here too.
 	for j := 0; j < openingHand && !e.G.Over; j++ {
 		e.drawCard(p)
 	}
