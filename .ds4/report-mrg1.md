@@ -1,3 +1,92 @@
+# Merge-conflict resolution report — mrg1 (branch wt/cli-20260922T225142Z-1d4558a1, main at 0104252d)
+
+## Situation found
+
+The dispatch described a failed rebase (1/1, conflict in
+`internal/testutil/agentsdoc_test.go`) and a failed merge fallback on commit
+`6e77a1e8` ("feat(rules): price the composite CantBlockUnless block charge and
+admit delivered statics"). On arrival the worktree was CLEAN at `6e77a1e8` with
+no rebase or merge in progress — the daemon had aborted the in-flight
+operation. I therefore performed the integration myself:
+
+```
+git merge main --no-edit
+```
+
+which auto-merged everything except one file:
+
+```
+CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go
+```
+
+## The conflict and its resolution
+
+`internal/testutil/agentsdoc_test.go`, the `knownApproximationRows` ratchet
+constant:
+
+- **Branch side (6e77a1e8):** `knownApproximationRows = 56`. The branch's fix
+  deleted the `(blockprop1)` row (stat:CantBlockUnless) from AGENTS.md —
+  measured: branch AGENTS.md table = 54 rows (base 55), branch constant 56
+  (already 2 above its actual, which the test tolerates since it only fails on
+  growth).
+- **Main side (0104252d):** `knownApproximationRows = 50`. Main deleted six
+  rows; measured main table = 49 rows, constant 50.
+
+The merge auto-resolved AGENTS.md itself (both deletions are disjoint: 7 rows
+deleted from 55 → **48 rows in the merged table**, verified with the exact
+counting logic of `approximationRows()` — lines with prefix `| ` between
+`## Known approximations` and the next `## `, header row dropped).
+
+**Resolution:** set the constant to **48**, the merged table's actual count,
+with a comment naming both sides' deletions. This preserves both sides' intent
+(row deletions from the branch's reviewed fix AND main's closures); the
+constant is lowered, which the register always permits, and it is more
+accurate than either side (both sides' constants were above their actuals, so
+this also removes the pre-existing slack).
+
+`AGENTS.md` itself needed no manual edit — git's auto-merge correctly deleted
+all 7 rows (branch's `(blockprop1)` plus main's six).
+
+## Commands and output
+
+- `git status` (arrival): clean at 6e77a1e8, nothing in flight.
+- `git log --oneline HEAD ^main`: exactly `6e77a1e8` (the reviewed fix) — one
+  branch-side commit to integrate.
+- `git merge main --no-edit`: conflict in `internal/testutil/agentsdoc_test.go`
+  only; everything else auto-merged (AGENTS.md, botpolicy/, decision/,
+  rules/…).
+- Row counts (test's own algorithm): merged AGENTS.md 48, branch 54, main 49,
+  merge base 55.
+- `git add internal/testutil/agentsdoc_test.go && git commit --no-edit` →
+  merge commit `e3aa3074` ("Merge branch 'main' into
+  wt/cli-20260922T225142Z-1d4558a1").
+- `git status` after: clean.
+- `.cards` was already the correct symlink to the main checkout's corpus
+  (verified before any test run — no vacuous green).
+- `go test ./internal/testutil/` → `ok github.com/adams-shaun/gorge/internal/testutil 1.826s`
+  (the ratchet tests: `TestKnownApproximationsOnlyShrinks` and
+  `TestKnownApproximationRowsAreShort` pass at 48/48 and oversize 8).
+- Post-merge ratchets:
+  `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`
+  → `ok github.com/adams-shaun/gorge/rules 0.781s`
+- Behaviour goldens:
+  `go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/` →
+  `ok github.com/adams-shaun/gorge/cmd/botbench 1.074s` (the 20-game pinned
+  split did not move under the merged engine).
+  `go test ./internal/archtest/` → `ok ... 4.011s`.
+- Conflict-marker sweep over the resolved package and AGENTS.md: none.
+
+## Uncertainties
+
+None material. The only judgement call was the constant's exact value; 48
+equals the merged table's measured count and is at-or-below both sides'
+values, so no gate can fail on it.
+
+
+---
+
+# Earlier merge-resolver reports (prior rounds, preserved)
+
 # Merge-conflict resolution — task cli-20260922T225140Z-6a16cd8c
 
 (Record 1 below is this ticket's first integration round, kept from the
