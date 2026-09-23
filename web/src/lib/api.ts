@@ -48,8 +48,47 @@ export const eventsURL = (t: string, k: number, since: number, ctx?: SeatCtx) =>
   return withBase(`/api/tables/${enc(t)}/matches/${k}/events?${q.toString()}`);
 };
 
+// STATE_TIMEOUT bounds every state-channel request: view, events, pending,
+// intent, undo, subscribe. A request that never settles is not merely a slow
+// one. Both of the client's single-flight latches are released in a `finally`
+// — MatchState.refreshLive's `inflight` (web/src/lib/match.svelte.ts) and the
+// seat panel's `busy` (web/src/lib/seatpanel.svelte.ts) — so a promise that
+// never settles pins them for the life of the page: the board stops
+// repainting on every later decision frame, and the 1s /pending poll, gated
+// on `!busy`, stops firing. The panel then sits on its last painted view,
+// reading "<step> — waiting for <player>", while the match goroutine has long
+// since moved on; only a reload clears it. A timeout converts that permanent
+// wedge into one failed request the next frame or poll retries.
+//
+// It is reachable because the browser allows ~6 HTTP/1.1 connections per
+// host and this channel competes for them: web/src/lib/images.ts documents
+// art lookups starving these very requests, and bounds itself at the same
+// 10s for the same reason.
+const STATE_TIMEOUT = 10_000;
+
+/** TIMEOUT_CODE is ApiError.code for a request this client abandoned. The status is 0: no server answered, so no HTTP status describes it. */
+export const TIMEOUT_CODE = 'timeout';
+
+/**
+ * fetchBounded is fetch with a deadline. On expiry it aborts the request —
+ * freeing the socket for the rest of the state channel — and rejects with an
+ * ApiError the ordinary catch paths already handle.
+ */
+async function fetchBounded(path: string, init: RequestInit = {}, ms = STATE_TIMEOUT): Promise<Response> {
+  const control = new AbortController();
+  const timer = setTimeout(() => control.abort(), ms);
+  try {
+    return await fetch(path, { ...init, signal: control.signal });
+  } catch (e) {
+    if (control.signal.aborted) throw new ApiError(0, TIMEOUT_CODE, `request timed out after ${ms}ms`);
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function getJSON<T>(path: string): Promise<T> {
-  const res = await fetch(path, { headers: { Accept: 'application/json' } });
+  const res = await fetchBounded(path, { headers: { Accept: 'application/json' } });
   if (!res.ok) {
     const body = (await res.json().catch(() => ({}))) as Partial<ErrorBody>;
     throw new ApiError(res.status, body.code ?? 'http', body.message ?? res.statusText, body.head);
@@ -58,7 +97,7 @@ export async function getJSON<T>(path: string): Promise<T> {
 }
 
 async function postJSON(path: string, body: unknown): Promise<void> {
-  const res = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const res = await fetchBounded(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   if (!res.ok) {
     const e = (await res.json().catch(() => ({}))) as Partial<ErrorBody>;
     throw new ApiError(res.status, e.code ?? 'http', e.message ?? res.statusText);
@@ -117,7 +156,7 @@ export const fetchPending = (t: string, k: number, ctx: SeatCtx) => getJSON<Deci
 
 /** postIntent answers a decision. It takes no ?seat= (the claim is the fence, FL-99: Authorization: Bearer is the accepted second form), and the intent body's own seq/player/choices are validated server-side. */
 export async function postIntent(t: string, k: number, intent: Intent, ctx: SeatCtx): Promise<void> {
-  const res = await fetch(intentURL(t, k), {
+  const res = await fetchBounded(intentURL(t, k), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ctx.token}` },
     body: JSON.stringify(intent),
@@ -130,7 +169,7 @@ export async function postIntent(t: string, k: number, intent: Intent, ctx: Seat
 
 /** postUndo requests an in-place rewind. The seat claim is the same bearer fence as an intent; the rewind frame confirms when it lands. */
 export async function postUndo(t: string, k: number, ctx: SeatCtx): Promise<void> {
-  const res = await fetch(undoURL(t, k), {
+  const res = await fetchBounded(undoURL(t, k), {
     method: 'POST',
     headers: { Authorization: `Bearer ${ctx.token}` },
   });

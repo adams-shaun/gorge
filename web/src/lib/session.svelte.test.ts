@@ -73,6 +73,31 @@ describe('session', () => {
     expect(subscribeMock).not.toHaveBeenCalledWith('s3', 't1', 'focus');
   });
 
+  it('retries a re-subscribe the server refused, so a lost subscription cannot silently freeze the page', async () => {
+    // A swallowed failure here is invisible and permanent: the SSE stream
+    // stays open and healthy-looking while the server sends this session
+    // nothing for the table, and focus() is idempotent on the focused set, so
+    // no later effect re-fire repairs it. The board then holds its last
+    // painted view -- "<step> -- waiting for <player>" -- until the player
+    // reloads. The likeliest cause is whatever caused the reconnect in the
+    // first place, so the retry is what makes the recovery real.
+    const mod = await import('./session.svelte');
+    const previous = mod.setResubscribeDelay(async () => {});
+    await session.focus('t9');
+    subscribeMock.mockClear();
+    subscribeMock.mockRejectedValueOnce(new Error('network'));   // overview: fails once
+    subscribeMock.mockRejectedValueOnce(new Error('network'));   // t9: fails once
+    emit(hello('s-retry'));
+    await flush();
+    await flush();
+    expect(subscribeMock).toHaveBeenCalledWith('s-retry', '*', 'overview');
+    expect(subscribeMock).toHaveBeenCalledWith('s-retry', 't9', 'focus');
+    // two failed + two retried: without the retry this is 2
+    expect(subscribeMock).toHaveBeenCalledTimes(4);
+    mod.setResubscribeDelay(previous);
+    await session.unfocus('t9');
+  });
+
   it('opens the stream under the base path when the served page sets one', async () => {
     // The session is a module singleton constructed at import time, so a
     // base set after the first import cannot reach the instance the other
