@@ -145,9 +145,8 @@ type attackRequirementSet struct {
 	// player reference): every defender satisfies it.
 	broad bool
 	// goad is set by a live goad (CR 701.38b): the creature must attack a
-	// non-goader when one is available. The goader pairs are already removed
-	// by goadMayAttack, so goad never discriminates among the pairs that DO
-	// survive; it only makes the creature required.
+	// player, preferably a non-goader. goadMayAttack handles the player
+	// preference; satisfiedByOffer excludes battles from satisfying this duty.
 	goad bool
 }
 
@@ -164,23 +163,27 @@ func (s *attackRequirementSet) addNamed(defender state.PlayerID) {
 	s.named[defender]++
 }
 
-// satisfiedBy reports how many NAMED requirements the given defender
-// satisfies. The broad and goad requirements contribute uniformly across
-// every surviving pair, so they are not counted here -- they never decide
-// which defender is maximal.
+// satisfiedBy reports how many NAMED requirements the given player defender
+// satisfies. The broad requirement contributes uniformly across all pairs;
+// goad is scored separately by satisfiedByOffer for player attacks only.
 func (s attackRequirementSet) satisfiedBy(defender state.PlayerID) int {
 	return s.named[defender]
 }
 
 // satisfiedByOffer distinguishes attacking a player from attacking a battle
-// that player protects. CR 508.1d's named-player duty is discharged only by
-// attacking that player; the protector field on a battle offer is not itself
-// the defender of the attack.
+// that player protects. Named-player and goad duties are discharged only by
+// attacking a player; the protector field on a battle offer is not itself
+// the defender of the attack. Goad's non-goader preference is enforced by
+// goadMayAttack when enumerating the legal player pairs.
 func (s attackRequirementSet) satisfiedByOffer(of attackOffer) int {
 	if of.battle != 0 {
 		return 0
 	}
-	return s.satisfiedBy(of.def)
+	n := s.satisfiedBy(of.def)
+	if s.goad {
+		n++
+	}
+	return n
 }
 
 // maxNamed is the greatest number of named requirements any single defender
@@ -917,8 +920,9 @@ func (e *Engine) mustAttackRequired(id state.ObjID) bool {
 // s. It is the "if able" half of CR 508.1d read as a duty, not merely as the
 // existence of some legal pair.
 //
-// A BROAD requirement (an unconditional Mode$ MustAttack) and a goad are
-// discharged by any surviving pair, so one offered pair is enough. A NAMED
+// A BROAD requirement (an unconditional Mode$ MustAttack) is discharged by
+// any surviving pair. A goad requires a surviving PLAYER pair; only then is
+// attacking mandatory. A NAMED
 // requirement names its defender, so only a pair against that player
 // discharges it: when every such pair is gone -- a CantAttack static or
 // restriction scoped to that one defender, a goad restriction, or an
@@ -948,7 +952,7 @@ func (e *Engine) attackDutyDischargeable(id state.ObjID, s attackRequirementSet)
 		}
 		anyPair = true
 	}
-	return anyPair && (s.broad || s.goad)
+	return anyPair && s.broad
 }
 
 // maxAttackers reports the tightest total-attacker ceiling in force from

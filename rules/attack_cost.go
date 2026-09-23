@@ -808,7 +808,8 @@ type attackOffer struct {
 //
 // CR 508.1d's "satisfy as many requirements as possible": once the legal,
 // affordable pairs are known, every pair of a creature that satisfies FEWER
-// named requirements than the creature's best available defender is dropped.
+// player-attack duties (named or goad) than the creature's best available
+// defender is dropped.
 // That is what keeps a named MustAttack$ duty and a goad from cancelling each
 // other out into "the creature attacks nobody": the earlier single-defender
 // filter removed the non-named pairs while goadMayAttack removed the named
@@ -886,7 +887,7 @@ func (e *Engine) attackOffers() []attackOffer {
 			}
 		}
 	}
-	// Best named satisfaction per creature over the pairs that survived.
+	// Best player-attack duty satisfaction per creature over surviving pairs.
 	best := make(map[state.ObjID]int)
 	for _, of := range out {
 		if n := reqs[of.id].satisfiedByOffer(of); n > best[of.id] {
