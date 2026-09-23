@@ -152,6 +152,15 @@ func TestCascadeFreeCastRespectsCantBeCast(t *testing.T) {
 			e.emit(events.Event{Kind: events.LifeChange, Player: 1, Amount: -1})
 		}
 		colossusID := searchMoveByName(t, e, "Maelstrom Colossus", state.ZHand)
+		hasCascade := false
+		for _, kw := range e.G.Obj(colossusID).Face().Keywords {
+			if strings.EqualFold(strings.TrimSpace(kw), "Cascade") {
+				hasCascade = true
+			}
+		}
+		if !hasCascade {
+			t.Fatal("precondition: corpus Maelstrom Colossus face does not carry Cascade")
+		}
 		addMana(t, e, 0, "CCCCCCCC")
 		d := castFixture(t, e, colossusID, -1)
 		if d == nil || d.Kind != decision.KModes || d.ResumeKind != "play" {
@@ -197,20 +206,6 @@ func TestCascadeFreeCastRespectsCantBeCast(t *testing.T) {
 	})
 }
 
-// cascadeRelicSrc is the TARDIS Effect body shape (the one corpus carrier of
-// `Triggers$ ExileEffect`), written inline per the licensing rule: an
-// activated ability whose Effect registers an AddKeyword$ Cascade grant and
-// ends itself on the controller's next SpellCast via the self-exile trigger.
-const cascadeRelicSrc = "Name:Cascade Relic\nManaCost:1\nTypes:Artifact\n" +
-	"A:AB$ Effect | Cost$ 1 | StaticAbilities$ GrantCascade | Triggers$ ExileEffect\n" +
-	"SVar:GrantCascade:Mode$ Continuous | Affected$ Card.YouCtrl | AffectedZone$ Stack | AddKeyword$ Cascade | Description$ The next spell you cast this turn has cascade.\n" +
-	"SVar:ExileEffect:Mode$ SpellCast | EffectZone$ Command | ValidCard$ Card.YouCtrl | Execute$ RemoveEffect | Static$ True\n" +
-	"SVar:RemoveEffect:DB$ ChangeZone | Origin$ Command | Destination$ Exile | Defined$ Self\n" +
-	"Oracle:x\n"
-
-const cascadeProbeSrc = "Name:Cascade Probe\nManaCost:1\nTypes:Sorcery\n" +
-	"A:SP$ GainLife | Defined$ You | LifeAmount$ 1\nOracle:x\n"
-
 // TestCascadeSelfExileTriggerEndsGrantAfterOneCast pins the one-cast
 // precision the row recorded as unread: the Effect's `Triggers$ ExileEffect`
 // (a SpellCast self-exile -- Forge's effect token leaving the Command zone)
@@ -218,21 +213,55 @@ const cascadeProbeSrc = "Name:Cascade Probe\nManaCost:1\nTypes:Sorcery\n" +
 // the one after it does not. Without that read the grant lives its whole
 // duration and every spell that turn cascades.
 func TestCascadeSelfExileTriggerEndsGrantAfterOneCast(t *testing.T) {
-	e := handEngine(t, card(t, cascadeProbeSrc), card(t, cascadeProbeSrc))
-	relic := onBoard(t, e, 0, cascadeRelicSrc)
-	probes := e.G.Zone(state.ZHand, 0)
-	if len(probes) != 2 {
-		t.Fatalf("precondition: %d probe spells in hand, want 2", len(probes))
+	e, _ := cascadeTestEngineFiller(t, 9224, "Night's Whisper", []string{"Forest", "Lightning Bolt"}, []string{"TARDIS", "The Tenth Doctor"}, "Night's Whisper")
+	first := searchMoveByName(t, e, "Night's Whisper", state.ZHand)
+	var second state.ObjID
+	for _, id := range e.G.Zone(state.ZLibrary, 0) {
+		o := e.G.Obj(id)
+		if id != first && o != nil && o.Face() != nil && o.Face().Name == "Night's Whisper" {
+			second = id
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZLibrary, To: state.ZHand})
+			break
+		}
 	}
-	if o := e.G.Obj(relic); o == nil || o.Zone != state.ZBattlefield {
-		t.Fatalf("precondition: cascade relic not on the battlefield: %+v", o)
+	if second == 0 {
+		t.Fatal("precondition: second Night's Whisper not in library")
 	}
-
-	// Activate the relic's Effect ability ({1}).
-	addMana(t, e, 0, "C")
-	opt := effectAbilityOption(t, e, relic)
-	submitChoices(t, e, opt.Index)
-	passUntilStackEmpty(t, e, 20)
+	probes := []state.ObjID{first, second}
+	var tardis state.ObjID
+	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
+		if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "TARDIS" {
+			tardis = id
+		}
+	}
+	if tardis == 0 || e.G.Obj(tardis).Zone != state.ZBattlefield {
+		t.Fatalf("precondition: TARDIS is not on the battlefield: %d", tardis)
+	}
+	// TARDIS's real Attacks trigger requires an animated vehicle (Crew is
+	// outside this engine slice), and its Time Lord condition is not yet in
+	// the filter grammar. Queue the actual corpus Trigger entry, omitting only
+	// that unsupported gate, so its real Trigger SVar, Effect body and grant
+	// registration execute; no script text or ability context is synthesized.
+	face := e.G.Obj(tardis).Face()
+	triggerIdx := -1
+	for i, tr := range face.Triggers {
+		if tr.Mode == "Attacks" {
+			triggerIdx = i
+			if tr.Effect == nil || tr.Effect.API != "Effect" {
+				t.Fatalf("precondition: TARDIS Attacks body = %+v, want Effect", tr.Effect)
+			}
+		}
+	}
+	if triggerIdx < 0 {
+		t.Fatal("precondition: real TARDIS face has no Attacks trigger")
+	}
+	delete(face.Triggers[triggerIdx].Params, "IsPresent")
+	e.pushTrigger(pendingTrigger{Source: tardis, Controller: 0, Idx: triggerIdx, SA: face.Triggers[triggerIdx].Effect})
+	d := passUntilNonPriority(t, e, 40)
+	if d != nil && d.ResumeKind == "planeswalk_optional" {
+		submitChoices(t, e, d.Options[1].Index) // no planar deck in this engine
+	}
+	passUntilStackEmpty(t, e, 40)
 
 	// Precondition: the grant reached the registry AND its cast-driven
 	// lifetime was derived from the ExileEffect trigger's ValidCard$ (a body
@@ -252,7 +281,7 @@ func TestCascadeSelfExileTriggerEndsGrantAfterOneCast(t *testing.T) {
 
 	castProbe := func(id state.ObjID) {
 		t.Helper()
-		addMana(t, e, 0, "C")
+		addMana(t, e, 0, "BB")
 		d := e.Pending()
 		idx := -1
 		for _, o := range d.Options {
@@ -264,11 +293,16 @@ func TestCascadeSelfExileTriggerEndsGrantAfterOneCast(t *testing.T) {
 			t.Fatalf("no cast option for probe %d: %+v", id, d.Options)
 		}
 		submitChoices(t, e, idx)
+		d = passUntilNonPriority(t, e, 40)
+		if d != nil && d.ResumeKind == "play" {
+			_ = cascadeElection(t, e, "Lightning Bolt")
+			submitChoices(t, e) // decline the free cast
+		}
 		passUntilStackEmpty(t, e, 40)
 	}
 
-	// First probe: the granted cascade fires and its trigger resolves (the
-	// library is all lands, so the exile-until finds nothing to offer).
+	// First probe: the granted cascade fires and finds the arranged Lightning
+	// Bolt for its may-cast election; decline it so the probe remains isolated.
 	castProbe(probes[0])
 	if n := cascadeTriggerPushes(e); n != 1 {
 		t.Fatalf("after the first probe %d cascade triggers, want 1 (the grant is live)", n)
