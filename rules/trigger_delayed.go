@@ -431,6 +431,7 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 				Remembered:     f.remembered,
 				Captured:       f.remembered,
 				SVars:          f.svars,
+				EffectFrame:    effectDelayedFrame(dt),
 				TriggerContext: f.referents,
 			}
 			effects.Resolve(e, &ctx, f.sa)
@@ -448,6 +449,14 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 				Controller: dt.Controller,
 				Remembered: f.remembered,
 				Captured:   f.remembered,
+				// An Effect-created trigger body resolves under the Effect's OWN
+				// source-scoped frame, so the one-shot self-exile idiom reached
+				// from it (Kor Dirge's `Triggers$ OutOfSight` ->
+				// `DB$ ChangeZone | Defined$ Self | Origin$ Command |
+				// Destination$ Exile`) ends the registration instead of
+				// lingering for the Effect's whole duration. A plain CR 603.7
+				// promise leaves the frame zero (nothing to end).
+				EffectFrame: effectDelayedFrame(dt),
 				// The same event-provenance capture the ordinary face
 				// SpellCast path takes (triggerReferents' SpellCast case),
 				// so the fired ability resolves TriggeredActivator/
@@ -456,6 +465,19 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 			},
 		})
 	}
+}
+
+// effectDelayedFrame is the source-scoped Effect frame an Effect-created
+// delayed trigger body resolves under: a live registration's source with a
+// zero stamp, meaning "every Effect-created registration from this source"
+// (Host.EndEffectSource). A plain CR 603.7 promise (dt.EffectRepeat false)
+// carries no frame, so the self-exile idiom stays inert for it exactly as it
+// always has.
+func effectDelayedFrame(dt *state.DelayedTrigger) effects.EffectFrame {
+	if dt == nil || !dt.EffectRepeat {
+		return effects.EffectFrame{}
+	}
+	return effects.EffectFrame{Source: dt.Source}
 }
 
 // delayedEventModeHandled names the modes delayedEventMatches evaluates with

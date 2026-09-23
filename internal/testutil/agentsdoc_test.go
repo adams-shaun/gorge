@@ -19,15 +19,17 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	// The merged table measures 34 rows (measured with approximationRows()
-	// against the merged AGENTS.md, not inherited from either conflicted
-	// comment — HEAD's said 37 for its own pre-merge tree and main's said 35
-	// for its own). The merge base (08a1d59a) carried 38; the four deletions
-	// are disjoint: this branch closed the (ap1) AddPhase row (ef38de87), main
-	// closed (attackprop1) (89c77778-class attack-prop work), (blockprop1)
-	// (6e77a1e8) and (bestow1) (0b9ae217), so the merged register keeps none
-	// of the four: 38 - 4 = 34.
-	knownApproximationRows = 34
+	// The auto-merged AGENTS.md measures 31 data rows (measured with
+	// approximationRows() against the merged AGENTS.md, not inherited from
+	// either conflicted comment — HEAD's said 34 and main's said 32, each for
+	// its own pre-merge tree). The merge base (122a388c) carried 35; the four
+	// deletions are disjoint: this branch closed the (ap1) AddPhase row
+	// (ef38de87), main closed (choosesource1) (71f376c3 one-shot-Effect
+	// closure), api:ExchangeLifeVariant (4b0bde0d, b5f51b7d) and the
+	// kw:Infect damage-cost-LKI row (bc326d39, 56f98b13), so the merged
+	// register keeps none of the four: 35 - 4 = 31.
+	knownApproximationRows = 31
+
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.
 	// Measurements, corpus counts, "Pinned by Test..." lists, review-round
