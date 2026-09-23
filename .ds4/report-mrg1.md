@@ -2578,22 +2578,69 @@ The following 77-line report is the sibling ticket `cli-20260922T225141Z-5641f97
 
 # Merge conflict resolution — mrg1
 
-## Conflict: `internal/testutil/agentsdoc_test.go`
+## Result
 
-- **Branch side:** the approved cascade fix had deleted the `cascade1` approximation row and set `knownApproximationRows = 40`, documenting that branch's deletion.
-- **Main side:** the token-replacement change had deleted a different row and also had a 40-row count, documenting main's accumulated row deletions.
-- **Resolution:** retained both table deletions (the merged `AGENTS.md` has neither `cascade1` nor `tokrepl1`) and set the count to 39, the actual merged table size. The comment names both deletions. No engine behavior was changed as part of conflict resolution.
+Integrated current `main` (`4cdffbc1`) into `wt/cli-20260922T225142Z-0ab0cb60`.
+The reviewed `8d83f028` fix (`MaxTotalTargetPower$` offset bound + cross-mode
+Charm cap read) and main's new commits (land-type statics `0fbc2d10`, cascade
+closures `e46f051d`/`fd…`) are both retained. Two content conflicts:
 
-No other file was conflicted. Main's non-conflicting changes were retained.
+- `internal/testutil/agentsdoc_test.go` — the approximation-row ratchet constant.
+- `.ds4/report-mrg1.md` — a tracked per-merge report artifact (this file).
 
-## Commands and results
+## Background: an earlier merge commit already existed
 
-- `git status --short --branch` — clean before starting the merge; branch `wt/cli-20260922T225140Z-9e382c75`.
-- `git merge main` — began the merge; auto-merged `AGENTS.md` and the non-conflicting main changes; reported a content conflict only in `internal/testutil/agentsdoc_test.go`.
-- `python3` row-count check against merged `AGENTS.md` — `rows: 39`, `cascade1: False`, `token-replacement: False`.
-- `go test -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort' ./internal/testutil/` — `ok github.com/adams-shaun/gorge/internal/testutil 0.002s`.
-- `.cards` check — present.
-- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'` — `ok github.com/adams-shaun/gorge/rules 1.004s`.
+`HEAD` was already `a4fe169d`, a merge of main **as of `4a7bb2fe`** into
+`8d83f028`, produced by a prior mrg1 run that the daemon set aside
+(`.ds4/status-merge-mrg1.cutoff.json`, history line "merge resolver mrg1 name
+was held by an already-finished run; set it aside, relaunching fresh"). The
+daemon's fresh integration attempt rebased onto current `main`, conflicted on
+`8d83f028`, then aborted (`git reflog`: `rebase (abort): returning to …`). So
+the branch still did NOT contain main's newer commits; this run merged current
+`main` (`4cdffbc1`) to complete the integration.
+
+## Conflict 1 — `internal/testutil/agentsdoc_test.go`
+
+Both sides only differ in the explanatory comment above the constant; but the
+constant's value was wrong for this merge on BOTH sides.
+
+- **Branch side (HEAD):** the merged table measured **39** rows and documented
+  main's earlier closures plus this branch's `maxpower1` closure.
+- **Main side:** also **39** rows, documenting "this branch's cascade1 deletion
+  and main's token-replacement deletion".
+- **Measured truth after merging current main:** the merged `AGENTS.md` has
+  **38** data rows. Main's cascade work (`e46f051d`) deletes `(cascade1)`, and
+  this branch's reviewed fix deletes `(maxpower1)`; both deleted rows are
+  absent from the merged table. Each side's 39 counted only its own merge
+  (each side still carried the other side's row).
+
+Resolution: keep the branch's fuller closure-history comment, extend it to name
+main's `cascade1` deletion, and set `knownApproximationRows = 38` — the
+measured count. Verified with a row count over the merged `AGENTS.md`
+(`data rows: 38`) and
+`go test -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort' ./internal/testutil/` → `ok`.
+
+## Conflict 2 — `.ds4/report-mrg1.md`
+
+This file is a tracked merge-report artifact that collides on every branch
+(its on-main and on-branch versions document different tickets' merges;
+`git log main -- .ds4/report-mrg1.md` shows repeated `docs(merge)` commits).
+Resolved by replacing the conflicted content with this report for the current
+merge.
+
+## Commands and output
+
+- `git status` — clean, no operation in progress; HEAD `a4fe169d`, main `4cdffbc1`.
+- `git reflog -15` — showed the prior merge commit, then the fresh run's
+  `rebase (start): checkout main` → `rebase (abort)` → `reset: moving to HEAD`,
+  i.e. the fresh integration was aborted and never landed.
+- `git merge main` — `CONFLICT (content): Merge conflict in .ds4/report-mrg1.md`
+  and `internal/testutil/agentsdoc_test.go`; other changes auto-merged.
+- Row count of merged `AGENTS.md` (python3 over the `## Known approximations`
+  section) — `merged AGENTS.md data rows: 38`.
+- `gofmt -l internal/testutil/agentsdoc_test.go` — no output (clean).
+- `go test -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort' ./internal/testutil/` —
+  `ok github.com/adams-shaun/gorge/internal/testutil 0.017s`.
 
 ## Issues
 
@@ -2901,3 +2948,75 @@ No new engine issue found in this round. This was integration-only: the only
 code change is the `knownApproximationRows` constant, and the two row
 deletions (blockprop1, cascade1) are already reflected in the merged
 `AGENTS.md`.
+
+--- (main's side of the round-8 conflict follows) ---
+
+No new unfixed issue was found while resolving the merge; the integration
+introduced no engine-code change. The `knownApproximationRows` comment drift
+between branches is cosmetic noise from the tracked per-merge report artifact;
+no action needed.
+
+(Preserved from main's side of the round-8 conflict: the text above is the
+Issues section carried by main's copy of this report from its integration of
+`cli-20260922T225142Z-0ab0cb60`.)
+
+## Round 8 — main advanced to 08a1d59a (2026-09-23)
+
+After round 7 (`df9f695f`, main at `4cdffbc1`) landed, main advanced to
+`08a1d59a` — the sibling ticket `cli-20260922T225142Z-0ab0cb60` merged
+(`8d83f028`: MaxTotalTargetPower$ offset bounded by TargetMax$, cap read in
+the cross-mode Charm ask). Ran `git merge main`; conflicts:
+
+- `.ds4/report-mrg1.md` — the accumulated Issues section (both sides had
+  appended their own). Resolved by keeping this branch's full history and
+  preserving main's Issues text above.
+- `internal/testutil/agentsdoc_test.go` — `knownApproximationRows`: HEAD said
+  39, main said 38.
+- `AGENTS.md`, `rules/stack.go`, `rules/target_max_power_cap_test.go`
+  auto-merged cleanly.
+
+### The stale each1 row — the substantive finding
+
+Measuring the auto-merged AGENTS.md table with the exact `approximationRows()`
+logic (`| `-prefixed lines between `## Known approximations` and the next
+`## `, header row dropped; note the trailing `api:ExchangeLifeVariant` row
+sits past a blank line and is still counted) gave **38 data rows**. A row-id
+set comparison against main exposed why:
+
+- HEAD's table still carried the `(each1)` row (EachDamage fail-closed),
+  which MAIN had closed in `49a2fde8` ("fix(effects): surface EachDamage
+  fail-closed outcomes", ancestor of the round-7 base `4cdffbc1`). Round 7's
+  merge (`df9f695f`) had kept the branch's stale copy instead of main's
+  deletion — its side of that merge: branch 1 each1, main 0, result 1. The
+  row text on the branch is byte-identical to `49a2fde8^`'s version.
+- main's table still carried `(blockprop1)`; this branch's fix (`6e77a1e8`)
+  deletes it, and the auto-merge had done so correctly.
+
+**Resolution:** deleted the stale `(each1)` row from the merged AGENTS.md
+(delete-only register rule: a row main closed must never be resurrected).
+Merged table is now **37 data rows**; the constant is set to 37 with a
+comment naming the three closures (blockprop1 by this branch, each1 by
+main's `49a2fde8`, maxpower1 by main's `8d83f028`).
+
+## Commands and output (round 8)
+
+- `git merge main` — `CONFLICT (content): Merge conflict in .ds4/report-mrg1.md`,
+  `CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go`;
+  AGENTS.md, rules/stack.go, rules/target_max_power_cap_test.go auto-merged.
+- Row census (test logic, incl. the trailing ExchangeLifeVariant row):
+  HEAD 39 data rows (incl. stale each1, excl. blockprop1), main 38
+  (excl. each1 and maxpower1), auto-merged 38 (incl. stale each1),
+  after the each1 removal **37**.
+- `git show main:AGENTS.md` vs merged row-id sets — only each1 (stale) and
+  blockprop1 (closed here) differed; after the fix the sets match on main's
+  side exactly.
+
+## Issues (round 8)
+
+- The stale `(each1)` resurrection was introduced by an earlier round of THIS
+  branch's integration history (round 7's `df9f695f`-class resolution kept the
+  branch copy over main's `49a2fde8` deletion); no engine defect.
+- No new engine issue found in this round; the only AGENTS.md change is the
+  register deletion. Engine code merged from main (`8d83f028`) is reviewed
+  upstream and untouched here.
+
