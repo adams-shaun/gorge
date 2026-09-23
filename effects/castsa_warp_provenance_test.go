@@ -2,12 +2,13 @@ package effects
 
 // The effects-side CastSa flag-token strip (task mayplay-warp): the
 // ConditionPresent$ Card.CastSa Spell.Warp gate on Full Bore
-// (`.cards/cardsfolder/f/full_bore.txt`) and the sibling Spell.Mayhem /
-// Spell.MayPlaySource gates all route through castSaAdmitsFilter. The
-// brief's premise that Spell.Mayhem fails closed was measured false (it
-// landed with kw:Mayhem); this file pins Spell.Warp's newly added arm and
-// the shared loop that keeps the next flag spelling from being handled at
-// one read and missed at the other.
+// (`.cards/cardsfolder/f/full_bore.txt`) and the Spell.Mayhem gate route
+// through castSaAdmitsFilter. The brief's premise that Spell.Mayhem fails
+// closed was measured false (it landed with kw:Mayhem); this file pins
+// Spell.Warp's newly added arm and the shared loop that keeps the next flag
+// spelling from being handled at one read and missed at the other.
+// Spell.MayPlaySource is the sibling task mayplay-src's predicate and is
+// deliberately NOT part of this table (it stays fail-closed here).
 
 import (
 	"strings"

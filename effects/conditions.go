@@ -874,19 +874,19 @@ func castFromHandAnyAdmitsFilter(h Host, spec string, objID state.ObjID) (string
 
 // castSaFlagTokens is the effects-side list of the CastSa flag spellings
 // whose truth rides the cast's pay-time CastInfo CastFlags (state.FlagMayhem,
-// state.FlagMayPlay, state.FlagWarped). It mirrors the flag entries of
-// rules' castSaTokens (effects cannot import rules); a new flag spelling
-// must be added to BOTH tables, and the census recognition in
-// filter.go's wordKind switch is the third site. The loop in
-// castSaAdmitsFilter and the hasCastSaFlag gate in the ConditionPresent
-// walk both read this one table, so the next flag spelling cannot be
-// handled by one read and missed by the other.
+// state.FlagWarped). It mirrors the flag entries of rules' castSaTokens
+// (effects cannot import rules); a new flag spelling must be added to BOTH
+// tables, and the census recognition in filter.go's wordKind switch is the
+// third site. Spell.MayPlaySource is deliberately NOT here: it is the
+// sibling task mayplay-src's predicate, recorded and read rules-side only.
+// The loop in castSaAdmitsFilter and the hasCastSaFlag gate in the
+// ConditionPresent walk both read this one table, so the next flag spelling
+// cannot be handled by one read and missed by the other.
 var castSaFlagTokens = []struct {
 	token string
 	flag  uint64
 }{
 	{token: "CastSa Spell.Mayhem", flag: state.FlagMayhem},
-	{token: "CastSa Spell.MayPlaySource", flag: state.FlagMayPlay},
 	{token: "CastSa Spell.Warp", flag: state.FlagWarped},
 }
 
@@ -915,8 +915,9 @@ func hasCastSaFlag(spec string) bool {
 // deliberately NOT in that set (a warp cast's alternative cost is a choice
 // the copy rules carry), so a warp copy reads true — the same ruling the
 // FlagWarped entry hook takes. Both spellings of each token (positive and
-// !-negated) are handled; the spend spellings of the CastSa family stay
-// fail-closed here, the documented convention.
+// !-negated) are handled; the spend spellings of the CastSa family and the
+// sibling task mayplay-src's Spell.MayPlaySource stay fail-closed here, the
+// documented convention.
 func castSaAdmitsFilter(h Host, spec string, objID state.ObjID) (string, bool) {
 	var flags uint64
 	flagsRead := false

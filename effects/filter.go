@@ -1196,19 +1196,18 @@ func wordPredicate(p string) (wordKind, string) {
 	// The card-level CastSa property tokens (task castsa-provenance): the
 	// four mana-spend spellings the payment path's tagged ManaAdd encoding
 	// answers, plus the cast-flag spellings Spell.Mayhem (state.FlagMayhem,
-	// stamped by modeFlags' "mayhem" case), Spell.MayPlaySource
-	// (state.FlagMayPlay) and Spell.Warp (state.FlagWarped, modeFlags'
-	// "warped" case) — recognized here (the census no longer reports them
-	// unknown) but evaluated by the provenance strips (rules' castSaAdmits
-	// and the per-event walk in spellsCastThisTurnMatching;
+	// stamped by modeFlags' "mayhem" case) and Spell.Warp (state.FlagWarped,
+	// modeFlags' "warped" case) — recognized here (the census no longer
+	// reports them unknown) but evaluated by the provenance strips (rules'
+	// castSaAdmits and the per-event walk in spellsCastThisTurnMatching;
 	// effects/conditions.go's castSaAdmitsFilter for the ConditionPresent
 	// gates), which remove the token before the filter runs; wordMatches'
 	// body fails closed. The still-unmodelled spellings (CastSa
-	// Spell.ManaFromArtifact) stay unknown and fail closed everywhere.
+	// Spell.MayPlaySource and CastSa Spell.ManaFromArtifact) stay unknown
+	// and fail closed everywhere.
 	case "CastSa Spell.ManaFromTreasure", "CastSa Spell.ManaFromCave",
 		"CastSa Spell.ManaFromDesert", "CastSa Spell.ManaSpent EQ0",
-		"CastSa Spell.Mayhem", "CastSa Spell.MayPlaySource",
-		"CastSa Spell.Warp":
+		"CastSa Spell.Mayhem", "CastSa Spell.Warp":
 		return wordCastProvenance, p
 	case "ActivePlayerCtrl":
 		return wordActivePlayerCtrl, ""
