@@ -1485,3 +1485,134 @@ $ grep -nE '^(<<<<<<<|=======|>>>>>>>)' .ds4/report-sol1.md
 ## Issues and uncertainty
 
 No new engine issue was found during integration. No uncertainty about the code merge: the only conflict was independent report content. The concatenated report retains an earlier historical Gitaxian Probe section as well as main's later Probe report; this is redundant historical documentation, not lost or conflicting implementation content.
+
+---
+
+# Merge-conflict resolution addendum — mrg1 (agent-20260922T191943Z-4ffa25b7), second integration round
+
+## Why a second round
+
+Immediately after the first merge commit (`9e24b4a9`, integrating main
+`5c84527e`) and the report commit, `main` moved again — a sibling ticket
+(`agent-20260922T210645Z-27e19c88`, the `Attached` filter predicate) merged,
+advancing `main` from `5c84527e` to `935cefc4`. The branch was therefore again
+4-behind main (`935cefc4`, `b603182b`, `1f9f933e`, `28b0a7f8`, `6b7f8116`,
+`82db540a`, `53403389`, `60976e28`), a merge was required, and one file
+conflicted.
+
+## Operation
+
+```
+$ git merge main --no-edit
+Auto-merging .ds4/report-mrg1.md
+CONFLICT (content): Merge conflict in .ds4/report-mrg1.md
+Automatic merge failed; fix conflicts and then commit the result.
+```
+
+Auto-merged with no conflict (main's production change plus its tests):
+`effects/filter.go`, `effects/attached_predicate_test.go`,
+`effects/attachedto_ambiguity_test.go`, `effects/attachedto_predicate_test.go`,
+`effects/attachedto_stale_binding_test.go`, `rules/arna_source_filter_test.go`,
+`rules/copypermanent_grants_test.go`, `.ds4/report-sol1.md`,
+`.ds4/report-sol2.md`.
+
+## The conflict — `.ds4/report-mrg1.md` (this seat's own accumulator)
+
+`.ds4` is gitignored but `report-mrg1.md` is tracked, so it merges like source.
+
+Root cause: main's report commit `bfdf9efb` ("docs: record mrg1
+merge-conflict resolution (kw:Vanishing second integration)") rewrote
+`report-mrg1.md` down to a single new 50-line report for *its own* ticket
+(`agent-20260922T210645Z-27e19c88`), i.e. 28 insertions / **847 deletions**
+against the common ancestor — it collapsed the whole accumulated file. Our side
+(`:2`, 1434 lines) preserved that history and appended this ticket's report.
+
+The two sides are not contradictions but independent additions: main adds a new
+report (210645Z) that our copy does not contain (`grep -c '210645Z'` = 0), and
+ours keeps the accumulated history main's commit dropped. Gorge's established
+convention, visible on main itself (`83c134e4 docs: preserve accumulated reports
+alongside Vanishing records`), is to preserve accumulated reports.
+
+**Resolution: union.** Took our full accumulated file (`:2`) and appended main's
+new report (`:3`) as a new section after a `---` divider:
+
+```
+cat /tmp/mrg1-ours.md  > .ds4/report-mrg1.md        # 1434 lines
+printf '\n---\n\n'    >> .ds4/report-mrg1.md
+cat /tmp/mrg1-theirs.md >> .ds4/report-mrg1.md       # +50 lines = 1487
+```
+
+Nothing from either side was dropped or rewritten. Verified:
+
+```
+$ grep -n '^<<<<<<<\|^=======$\|^>>>>>>>' .ds4/report-mrg1.md   # no output
+$ grep -n '^# ' .ds4/report-mrg1.md | tail -3
+1241:# Merge-conflict resolution — mrg1 (agent-20260922T191943Z-4ffa25b7)
+1438:# Merge-conflict resolution report — mrg1 (agent-20260922T210645Z-27e19c88)
+```
+
+Then `git add -f .ds4/report-mrg1.md` (the file is tracked; `.ds4` being ignored
+requires `-f` for a fresh add), and:
+
+```
+$ git commit --no-edit
+[wt/agent-20260922T191943Z-4ffa25b7 49518987] Merge branch 'main' into wt/agent-20260922T191943Z-4ffa25b7
+```
+
+## Final state and gates
+
+```
+$ git status --short          # clean
+$ git merge-base --is-ancestor main HEAD && echo YES
+YES                            # main=935cefc4 fully integrated
+$ go build ./...
+BUILD EXIT 0
+
+$ go test -v ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+--- PASS: TestEveryRepoDeckIsFullySupported (0.62s)
+--- PASS: TestEveryRepoDeckCountHeadResolves (0.00s)
+--- PASS: TestEveryDispatchedTriggerModeHasAMatcher (0.00s)
+--- PASS: TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched (0.00s)
+--- PASS: TestEveryRepoDeckParamsAreRead (0.21s)
+ok  github.com/adams-shaun/gorge/rules  0.881s
+
+$ go test -run 'TestRevealAllValid|TestAttachedPredicate|TestAttachedToContextReferents|TestAttachedToReferentPluralBindingFailsClosed|TestAttachedToStaleReferentFailsClosed|TestAttachedToLiteralPredicate|TestAttachedToTargetedBoundFromContext|TestAttachedToPlayerWordStaysUnknown|TestAttachedToPredicateUnlocksCorpusTargeting' ./effects/
+ok  github.com/adams-shaun/gorge/effects  0.621s
+
+$ go test -run 'TestArnaCopy|TestArnaRealSourceFilterReachesCopyRider|TestStanggRealTriggerCopiesAttachedPermanents' ./rules/
+ok  github.com/adams-shaun/gorge/rules  0.631s
+
+$ go test -run 'TestKnownApproximation' ./internal/testutil/     -> ok
+$ go test ./internal/archtest/                                   -> ok (4.025s)
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ -> ok (1.501s)
+$ go build ./...                                                 -> ok
+```
+
+No ratchet table adjustment was needed: neither side of the merge registers a
+new trigger `Mode$` or closes a `knownUnsupported` / `knownUnsupportedParams` /
+`knownUnmodelledCountHeads` entry, and all five ratchet tests pass on the merged
+tree.
+
+## Branch tip
+
+```
+49518987 Merge branch 'main' into wt/agent-20260922T191943Z-4ffa25b7   (integration tip)
+a058dd96 docs(mrg1): record merge-conflict resolution
+9e24b4a9 Merge branch 'main' into wt/agent-20260922T191943Z-4ffa25b7
+2d78bd6b (superseded by amend) docs(mrg1): ...
+```
+
+`git merge-base --is-ancestor main HEAD` = YES; tree clean; no conflict markers.
+
+## Issues (second round)
+
+- No new defect. The only non-report conflict this round was none — the
+  production `Attached` changes auto-merged and their tests pass.
+- Note for the controller: main's `bfdf9efb` deleted 847 lines of accumulated
+  `report-mrg1.md` history. This merge restored it (union), but any other branch
+  merging main from a base at or before `bfdf9efb` will hit the same conflict. A
+  future main-side cleanup of the accumulator would be worth a ticket.
+
+STATUS=DONE
+COMMITS=a058dd96 49518987
+TESTS=go test -v ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' -> 5 PASS none skipped; go test -run 'TestRevealAllValid|TestAttached*...' ./effects/ -> ok; go test -run 'TestArna*|TestStangg*' ./rules/ -> ok; agentsdoc/archtest/botbench -> ok; go build ./... -> ok
