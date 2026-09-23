@@ -56,6 +56,13 @@ func (e *Engine) offerAsFace(id state.ObjID, face *cards.Face, fn func() bool) b
 	if int(o.FaceIdx) == idx {
 		return fn()
 	}
+	// Bring the log-head-keyed layer caches (active()'s list and the
+	// staticEffects memo under it, the layer-4 type table; layercache.go) up
+	// to date BEFORE the flip: the probe emits nothing, so they are then hits
+	// throughout it, and a first build can never happen inside it and outlive
+	// it carrying the probed face.
+	_ = e.active()
+	e.refreshDerivedTypes()
 	prevFace, prevDepth, prevGen := o.FaceIdx, e.derivedMemoDepth, e.derivedMemoGen
 	o.FaceIdx = uint8(idx)
 	e.derivedMemoDepth = 0
