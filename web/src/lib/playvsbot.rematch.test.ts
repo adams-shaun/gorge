@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { startRematch } from './playvsbot';
+import { rematchDecks, startRematch } from './playvsbot';
 import { setBasePathForTests, withBase } from './basepath';
 
 const fetchMock = vi.fn();
@@ -20,6 +20,34 @@ describe('startRematch (fb-20260922T202722Z)', () => {
       bot_deck: 'b',
       bot_policy: 'bot',
       mulligans: 3,
+    });
+  });
+
+  it('keeps human/bot deck roles when the human occupies seat 1', async () => {
+    const seats = [
+      { name: 'Bot', deck: 'Display bot', colour: '#000', deck_id: 'bot-id' },
+      { name: 'You', deck: 'Display human', colour: '#fff', human: true, deck_id: 'human-id' },
+    ];
+    // Preconditions: inverted two-seat assignment, with distinct exact ids.
+    expect(seats).toHaveLength(2);
+    expect(seats[0].deck_id).not.toBe(seats[1].deck_id);
+    expect(seats[1].human).toBe(true);
+
+    const { humanDeck, botDeck } = rematchDecks(seats, 1);
+    expect({ humanDeck, botDeck }).toEqual({ humanDeck: 'human-id', botDeck: 'bot-id' });
+
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ table: 'g2', match: 1, seed: 99, seat: 0, token: 'tok2', join: '/t/g2' }),
+    });
+    await startRematch('constructed', humanDeck, botDeck, 'bot', 4);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
+      format: 'constructed',
+      human_deck: 'human-id',
+      bot_deck: 'bot-id',
+      bot_policy: 'bot',
+      mulligans: 4,
     });
   });
 

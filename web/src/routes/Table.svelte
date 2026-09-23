@@ -21,7 +21,7 @@
     toneOf,
   } from '../lib/seatpanel.svelte';
   import { optionsByObj, optionsByPlayer, resolveCardFollowUp, type CardOptions } from '../lib/cardoptions';
-  import { startRematch } from '../lib/playvsbot';
+  import { rematchDecks, startRematch } from '../lib/playvsbot';
   import { stuckDecision } from '../lib/prompt';
   import { loadLogShown, saveLogShown, type LogScope } from '../lib/logshown';
   import { safeStorage } from '../lib/storage';
@@ -146,13 +146,13 @@
     restartBusy = true;
     restartError = null;
     try {
-      // Seat 0 is the human and seat 1 the bot (cmd/gorged's createGame
-      // builds Humans: [0] on two seats), so seat 0's deck id is
-      // human_deck and seat 1's is bot_deck.
+      // The human may occupy either seat on a hosted table; preserve deck
+      // roles rather than assuming createGame's usual seat-0 assignment.
+      const { humanDeck, botDeck } = rematchDecks(m.seats, seatCtx!.seat);
       const join = await startRematch(
         tableInfo.format as 'constructed' | 'commander',
-        m.seats[0]?.deck_id ?? '',
-        m.seats[1]?.deck_id ?? '',
+        humanDeck,
+        botDeck,
         tableInfo.bot_policy,
         tableInfo.mulligans,
       );

@@ -1,5 +1,6 @@
 import { createGame, type CreateGame } from './api';
 import { withBase } from './basepath';
+import type { SeatInfo } from '../protocol';
 
 /** The formats the play-vs-bot entry point offers, in the order shown. */
 export const VS_BOT_FORMATS = [
@@ -37,6 +38,12 @@ export async function startPlayVsBot(
     mulligans,
   });
   return withBase(g.join);
+}
+
+/** Return the exact deck ids in human/bot roles, independent of seat order. */
+export function rematchDecks(seats: SeatInfo[], humanSeat: number): { humanDeck: string; botDeck: string } {
+  const botSeat = seats.findIndex((_, index) => index !== humanSeat);
+  return { humanDeck: seats[humanSeat]?.deck_id ?? '', botDeck: seats[botSeat]?.deck_id ?? '' };
 }
 
 /**
