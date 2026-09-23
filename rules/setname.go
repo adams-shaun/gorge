@@ -29,11 +29,16 @@ import (
 // setNameInPool so a match whose cards carry no SetName$ static -- almost every
 // match -- pays one predictable branch per event and nothing else.
 //
-// A filter call that rules did not build -- effects.MatchesSpecFrom from inside
-// a resolving effect, a unit test, a bare *state.Game -- carries no names and
-// reads the printed face. That is the same reach ExtraTypes has (see the
-// "Layer-4 type grants reach only the layer walk" row in AGENTS.md) and it is
-// pinned by TestBareGameNameFilterReadsThePrintedName.
+// A filter call with no rules-built context -- effects.MatchesSpecFrom from
+// code that owns no resolution Ctx (an Aura entry bearer scan), a bare
+// *state.Game, a unit test -- carries no names and reads the printed face.
+// That is the same reach ExtraTypes has (see the "Layer-4 type grants reach
+// only the layer walk" row in AGENTS.md), and it is pinned by
+// TestBareGameNameFilterReadsThePrintedName. Every RESOLVING effect's filter
+// call DOES see the names: rules publishes the table to effects at the top of
+// every effects.Resolve walk (Engine.EffectiveNames), which binds it on the
+// resolving Ctx and propagates it through (*Ctx).SpecContext and Ctx.MatchSpec
+// -- see setName_filter_scope_test.go's resolving-effect probe.
 
 // poolHasSetNameStatic reports whether any card this match can put on the
 // battlefield prints a SetName$ static. Computed once, at genesis, over the
@@ -130,3 +135,15 @@ func (e *Engine) withNames(sc effects.SpecContext) effects.SpecContext {
 	sc.EffectiveNames = e.renames
 	return sc
 }
+
+// EffectiveNames publishes the current layer-3 rename table to the effects
+// tier, which reads it once at the top of every effects.Resolve walk
+// (effects' nameTableHost) and binds it on the resolving Ctx. That is what
+// makes a resolving effect's own filter calls -- the (*Ctx).SpecContext calls
+// effects/zone.go, counter and damage primitives already make, plus the
+// Ctx.MatchSpec sites -- agree with the layer walk instead of reading the
+// printed face. It is a plain value-slice read, never a live engine pointer:
+// effects answer name filters during a resolution without a back-pointer on
+// state.Game, and a cloned game cannot read another game's board. The table is
+// refreshed by emit and continuousChanged, so it is current at Resolve entry.
+func (e *Engine) EffectiveNames() []effects.ObjectName { return e.renames }

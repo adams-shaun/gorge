@@ -709,7 +709,16 @@ type Ctx struct {
 	Controller state.PlayerID
 	// NameChoice carries a mid-resolution NameCard answer across re-entry.
 	NameChoice string
-	Targets    []state.Target
+	// EffectiveNames is the layer-3 rename table (SetName$, CR 613.1d) in force
+	// on the battlefield, published by the resolving Host at the top of every
+	// effects.Resolve walk and bound onto every SpecContext (*Ctx).SpecContext
+	// builds. It is immutable DATA -- the same shape SpecContext.EffectiveNames
+	// already uses -- so a resolving effect's name filter agrees with rules'
+	// layer walk instead of the printed face, without a pointer from state.Game
+	// into rules. An effects test double whose Host does not implement
+	// nameTableHost leaves it nil and reads the printed face.
+	EffectiveNames []ObjectName
+	Targets        []state.Target
 	// ModeTargets carries the target groups selected for a distinct modal
 	// Charm. Each entry is in target-bearing mode order; nil means the
 	// historical single-target-list path, including repeatable modes.
@@ -2042,6 +2051,17 @@ type flipMemoryHost interface {
 	SetResolutionFlipMemory(*FlipMemory) *FlipMemory
 }
 
+// nameTableHost is implemented by the rules engine to publish its current
+// layer-3 rename table (specs SetName$) as immutable data. Resolve reads it
+// once at the top of every walk and binds it on the resolving Ctx, so every
+// filter call a resolving effect makes through (*Ctx).SpecContext -- and
+// every direct Ctx.EffectiveNames read -- agrees with rules' layer walk. It is
+// optional, like effectFrameHost, so the effects test doubles stay small and
+// a double with no rename table reads the printed face.
+type nameTableHost interface {
+	EffectiveNames() []ObjectName
+}
+
 func Resolve(h Host, c *Ctx, sa *cards.SA) {
 	// Publish this walk's Effect-created registration frame (set by rules'
 	// seedEffectReplCtx on an api:Effect replacement's body Ctx) for the whole
@@ -2071,6 +2091,14 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 	}
 	if c != nil {
 		c.Host = h
+		// Publish the current layer-3 rename table for the whole of this walk
+		// (and every sub-ability, which shares this Ctx). A FIELD READ of the
+		// optional host method once per walk, never a call from the hot
+		// specCtxSVars constructor: the table is immutable data, so binding it
+		// here cannot make the resolving context read another game's board.
+		if nh, ok := h.(nameTableHost); ok {
+			c.EffectiveNames = nh.EffectiveNames()
+		}
 		c.numericRHS = c.X != 0 || len(c.SVars) > 0
 		// Capture target controllers before the first effect can move a target.
 		// Keep an existing map on re-entry: it is the earlier battlefield state,

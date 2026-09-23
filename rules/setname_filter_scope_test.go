@@ -117,13 +117,15 @@ func TestClonedGameSetNameIsScopedToItsOwnEngine(t *testing.T) {
 }
 
 // TestBareGameNameFilterReadsThePrintedName pins the documented fallback
-// (rules/setname.go): a filter call that rules did not build -- a bare
-// *state.Game, a state-level Game.Clone, effects.MatchesSpecFrom from inside a
-// resolving effect -- carries no layer-3 names and reads the printed face.
-// This is the same reach SpecContext.ExtraTypes has for layer-4 types. It is
-// pinned rather than papered over: a future change that gives those call sites
-// real names must delete this test deliberately, and a bare game must never
-// silently answer from some other game's engine.
+// (rules/setname.go): a filter call with no rules-built context -- a bare
+// *state.Game, a state-level Game.Clone, effects.MatchesSpecFrom from code
+// that owns no resolution Ctx (an Aura entry bearer scan) -- carries no
+// layer-3 names and reads the printed face. This is the same reach
+// SpecContext.ExtraTypes has for layer-4 types. It is pinned rather than
+// papered over: a bare game must never silently answer from some other game's
+// engine. A RESOLVING effect's own filter call is covered separately
+// (TestResolvingEffectNameFilterSeesSetNameRename) -- rules publishes the table
+// to effects at the top of every effects.Resolve walk, so it reads the rename.
 func TestBareGameNameFilterReadsThePrintedName(t *testing.T) {
 	t.Parallel()
 	e, bladeID, bearID, _ := setNameScopeBoard(t)
