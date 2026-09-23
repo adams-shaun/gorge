@@ -48,6 +48,33 @@ func TestCR704NoLifeSBAInsideSmallpoxDiscard(t *testing.T) {
 		t.Fatalf("CR 704.4 Smallpox seq %d: discard decision has no options", d.Seq)
 	}
 	crAbortAnswer(t, e, "Smallpox", d.Options[0].Index)
+	// Smallpox discards from EACH player. The first answer now suspends at
+	// seat 1's own hand rather than finishing the spell; SBAs must remain
+	// deferred through this second, independent choice as well.
+	d = e.Pending()
+	if d == nil || d.Kind != decision.KModes || d.ResumeKind != "discard" || d.Player != 1 || e.G.Obj(id).Zone != state.ZStack || e.G.Players[1].Lost {
+		t.Fatalf("CR 704.4 Smallpox seq %d: expected seat 1's in-resolution discard while still alive; pending=%+v lost=%v", len(e.L.Events), d, e.G.Players[1].Lost)
+	}
+	if len(d.Options) == 0 {
+		t.Fatal("CR 704.4 Smallpox: seat 1 discard has no options")
+	}
+	// The fixture has three seats; answer any later discard/sacrifice asks
+	// until the entire spell completes. An SBA at any intermediate ask would
+	// eliminate seat 1 too early, whereas checking immediately after seat 1's
+	// discard would incorrectly demand an SBA inside resolution.
+	for i := 0; i < 12 && e.G.Obj(id).Zone == state.ZStack; i++ {
+		if e.G.Players[1].Lost {
+			t.Fatalf("CR 704.4 Smallpox seq %d: seat 1 eliminated during resolution", len(e.L.Events))
+		}
+		if d == nil || d.Kind == decision.KPriority || len(d.Options) == 0 {
+			t.Fatalf("CR 704.4 Smallpox seq %d: cannot finish suspended resolution; pending=%+v", len(e.L.Events), d)
+		}
+		crAbortAnswer(t, e, "Smallpox", d.Options[0].Index)
+		d = e.Pending()
+	}
+	if e.G.Obj(id).Zone == state.ZStack {
+		t.Fatal("CR 704.4 Smallpox: spell never completed after bounded answers")
+	}
 	if !e.G.Players[1].Lost {
 		t.Errorf("CR 704.3/704.5a Smallpox seq %d: seat 1 survived at zero life after spell completion; deferred SBA must run before priority", len(e.L.Events))
 	}
