@@ -1332,6 +1332,13 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 	if f != nil {
 		effects.SetSVars(ctx, f.SVars)
 	}
+	if o != nil && m.repl != nil && m.repl.Params["Keyword"] == "ETBReplacement" && m.repl.With != nil && m.repl.With.API == "Clone" {
+		ctx.CloneETB = true
+		ctx.CloneBecome = ev.Obj
+		ctx.CloneBecomeValid = true
+		ctx.CloneChoiceValid = o.ETBCloneChoiceValid
+		ctx.CloneChoice = o.ETBCloneChoice
+	}
 	e.seedEffectReplCtx(ctx, m)
 	return ctx
 }

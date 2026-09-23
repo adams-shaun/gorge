@@ -731,6 +731,10 @@ type Object struct {
 	// Remembered: Forge uses Player.Chosen for the most recent choice and
 	// Player.IsRemembered for choices explicitly marked RememberChosen$.
 	Chosen []Target
+	// ETBCloneChoice is the event-backed answer to an ETB copy replacement.
+	// Valid distinguishes a decline (zero object) from no election.
+	ETBCloneChoice      ObjID
+	ETBCloneChoiceValid bool
 
 	// ChosenModes carries a modal spell's CR 601.2b announcement or a modal
 	// triggered ability's CR 603.3c placement choice to resolution: the SVar

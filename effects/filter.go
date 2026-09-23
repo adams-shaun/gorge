@@ -3693,6 +3693,78 @@ func possessionPredicate(p string) bool {
 	return false
 }
 
+// SpecNeedsResolver reports whether spec carries a numeric predicate whose
+// right-hand side is not a literal integer -- "cmcLEY", "powerGEX",
+// "counters_EQX_P1P1" -- the shape numericPred hands to SpecContext.Resolve.
+//
+// A caller with no resolver (MatchesSpec/MatchesSpecFrom, whose noResolve
+// path is documented above) gets "recognised shape, never matches" for every
+// such predicate, so the spec silently admits NOTHING rather than failing
+// loudly. This function is how such a caller tells that empty answer apart
+// from a genuinely empty match set: rules' ETB-copy whitelist withholds the
+// election entirely for a selector this reports true for, instead of offering
+// a list that can only ever be empty (Mockingbird's
+// "Choices$ Creature.Other+cmcLEY", whose Y is Count$CastTotalManaSpent).
+//
+// The walk mirrors UnknownPredicates' -- EACH split, alternatives, '+'
+// conjuncts, a leading '!' stripped -- so the two censuses see the same token
+// set. The literal-RHS shapes numericPred resolves without a resolver
+// (powerLTtoughness and its mirrors) are NOT reported.
+func SpecNeedsResolver(spec string) bool {
+	if subs, ok := eachAlternatives(spec); ok {
+		for _, sub := range subs {
+			if SpecNeedsResolver(sub) {
+				return true
+			}
+		}
+		return false
+	}
+	for alt := range filterAlternatives(spec) {
+		_, rest, _ := strings.Cut(strings.TrimSpace(alt), ".")
+		for p := range strings.SplitSeq(rest, "+") {
+			if p == "" {
+				continue
+			}
+			if predicateNeedsResolver(strings.TrimPrefix(p, "!")) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// predicateNeedsResolver is the per-token half of SpecNeedsResolver. It
+// recognises exactly the two numericPred branches that fall back to
+// SpecContext.Resolve when their right-hand side is not a literal integer.
+func predicateNeedsResolver(name string) bool {
+	if rest, ok := strings.CutPrefix(name, "counters_"); ok {
+		if len(rest) < 4 {
+			return false
+		}
+		numStr, kind, okSplit := strings.Cut(rest[2:], "_")
+		if !okSplit || kind == "" {
+			return false
+		}
+		_, err := strconv.Atoi(numStr)
+		return err != nil
+	}
+	for _, field := range [...]string{"power", "toughness", "cmc"} {
+		rest, ok := strings.CutPrefix(name, field)
+		if !ok || len(rest) < 3 {
+			continue
+		}
+		numStr := rest[2:]
+		// The characteristic-vs-characteristic shapes need no resolver.
+		if (field == "power" || field == "toughness") &&
+			(numStr == "power" || numStr == "toughness" || numStr == "Power" || numStr == "Toughness") {
+			return false
+		}
+		_, err := strconv.Atoi(numStr)
+		return err != nil
+	}
+	return false
+}
+
 // UnknownPredicates lists tokens in a spec this build does not implement. The
 // card-validation pass uses it to refuse cards it would otherwise misplay.
 func UnknownPredicates(spec string) []string {

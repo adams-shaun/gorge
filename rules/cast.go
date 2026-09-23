@@ -4213,6 +4213,8 @@ func etbChoiceKind(api string) string {
 		return "number"
 	case "ChooseColor":
 		return "color"
+	case "Clone":
+		return "copy"
 	}
 	return ""
 }
@@ -4255,10 +4257,38 @@ func (e *Engine) entryETBChoice(ev events.Event, ordinal int) (etbChoice, bool) 
 		if kind == "" {
 			continue
 		}
+		// The ETB Clone slice is deliberately narrow: offering a copy while
+		// dropping an exception rider is worse than retaining today's loud
+		// unimplemented-API fallback. A body outside the whitelist is not a
+		// choice at all, so it is skipped before the ordinal is counted.
+		if kind == "copy" && !etbCloneWhitelist(r.With) {
+			continue
+		}
 		if seen == ordinal {
-			return etbChoice{kind: kind, options: e.etbOptions(you, o.ID, kind,
-				r.With.Params["ValidCards"], r.With.Params["ValidDescription"],
-				r.With.Params["Type"], r.With.Params["Exclude"])}, true
+			// The fifth filter slot means different things per kind: Choices$
+			// is the copy-template selector the clone slice reads, while
+			// ValidDescription$ is Forge prompt text for the name kinds, not
+			// a second filter (effects.NameChoices reads it only as a safety
+			// fallback when ValidCards$ is absent).
+			selector := r.With.Params["ValidDescription"]
+			if kind == "copy" {
+				selector = r.With.Params["Choices"]
+			}
+			opts := e.etbOptions(you, o.ID, kind,
+				r.With.Params["ValidCards"], selector,
+				r.With.Params["Type"], r.With.Params["Exclude"])
+			if kind == "copy" {
+				// ":Optional" on the keyword line is the "you MAY have it
+				// enter as a copy" half; an empty template list also needs
+				// the decline, or the ask would have zero options (the
+				// totality rule in etbOptions' doc).
+				optional := strings.Contains(strings.ToLower(r.Params["KeywordLine"]), ":optional")
+				if optional || len(opts) == 0 {
+					opts = append(opts, decision.Option{Index: len(opts), Kind: "clone",
+						Label: "Enter as itself", Player: you})
+				}
+			}
+			return etbChoice{kind: kind, options: opts}, true
 		}
 		seen++
 	}
@@ -4295,7 +4325,10 @@ func etbColourLetter(name string) string {
 //
 // Option list order is deterministic: names and types are sorted strings
 // (never from a map), numbers are ascending.
-func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCards, validDescription, typeCategory, exclude string) []decision.Option {
+// choices carries the per-kind filter text: Choices$ (the copy-template
+// selector) for the clone slice, ValidDescription$ prompt text for the name
+// kinds. Callers fill it per kind; see collectETBChoices.
+func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCards, choices, typeCategory, exclude string) []decision.Option {
 	switch kind {
 	case "color":
 		// Exclude$ tokens (comma-separated, e.g. "black" on Black Dragon
@@ -4325,6 +4358,27 @@ func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCar
 			}
 		}
 		return out
+	case "copy":
+		spec := strings.TrimSpace(choices)
+		if spec == "" {
+			spec = strings.TrimSpace(validCards)
+		}
+		if spec == "" {
+			spec = "Creature.Other"
+		}
+		if !strings.Contains(spec, ".") && !strings.HasPrefix(spec, "Card") {
+			spec = "Card." + spec
+		}
+		out := []decision.Option{}
+		for _, p := range e.G.AliveFrom(0) {
+			for _, id := range e.G.Zone(state.ZBattlefield, p) {
+				o := e.G.Obj(id)
+				if o != nil && o.Face() != nil && effects.MatchesSpecFrom(e.G, spec, id, you, card) {
+					out = append(out, decision.Option{Index: len(out), Kind: "clone", Obj: id, Label: o.Face().Name})
+				}
+			}
+		}
+		return out
 	case "name":
 		// A no-universe Config is a pre-feature match on replay. Its visible
 		// object builder, including the Card.nonLand default and its full
@@ -4339,8 +4393,9 @@ func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCar
 		// both through the SA's own ValidCards$ filter. An omitted
 		// ValidCards$ is intentionally unrestricted. effects.NameChoices is
 		// the ONE builder the mid-resolution NameCard ask shares, so the two
-		// paths offer the same names.
-		names := effects.NameChoices(e.G, validCards, validDescription)
+		// paths offer the same names. (choices carries ValidDescription$
+		// prompt text here; see collectETBChoices.)
+		names := effects.NameChoices(e.G, validCards, choices)
 		out := make([]decision.Option, 0, len(names))
 		for _, n := range names {
 			out = append(out, decision.Option{Index: len(out), Kind: "name", Label: n, Player: you})
@@ -4476,8 +4531,66 @@ func etbChoicePrompt(kind string) string {
 		return " how this creature enters (counter or haste)"
 	case "unleash":
 		return " how this creature enters (with a +1/+1 counter or without)"
+	case "copy":
+		return " a creature to copy"
 	}
 	return " a number"
+}
+
+// etbCloneWhitelist reports whether a DB$ Clone ETB body's rider set is
+// entirely inside the supported scope: Choices$ (the copy-template selector),
+// AddTypes$ and AddKeywords$ (the CR 707.9e copy modifiers) and
+// SpellDescription$. This is a POSITIVE whitelist over the parsed parameter
+// keys -- the param census's case-whitelist range shape -- never a blacklist:
+// an explicit key list cannot keep up with the corpus. The round-1 blacklist
+// missed IntoPlayTapped$ (Vesuva), ChoiceTitle$ (Mirrorhall Mimic),
+// Embalm$-provenance riders (Vizier of Many Faces), AddColors$, RemoveCost$,
+// PumpKeywords$/PumpDuration$ and the AI-hint params, each of which offered a
+// copy that silently dropped the exception. A body carrying any other
+// parameter keeps today's loud unimplemented-API fallback (the etbclone1
+// scope boundary); rules/etb_clone_whitelist_census_test.go pins the
+// classified population bidirectionally.
+func etbCloneWhitelist(sa *cards.SA) bool {
+	for k := range sa.Params {
+		switch k {
+		case "Choices", "AddKeywords", "AddTypes", "SpellDescription":
+			// supported: the copy-template selector and the CR 707.9e
+			// copy modifiers, both applied by effClone's modifier walk.
+		default:
+			return false
+		}
+	}
+	// A supported KEY is not a supported VALUE. Two value shapes inside the
+	// key whitelist are withheld too, because admitting them offered a route
+	// that silently did the wrong thing:
+	//
+	//  - A Choices$ selector carrying a predicate whose right-hand side is an
+	//    SVar rather than a literal (Mockingbird's "Creature.Other+cmcLEY",
+	//    Y = Count$CastTotalManaSpent). Both the option build (etbOptions)
+	//    and the replacement-time revalidation (effects' cloneETBTemplateLegal)
+	//    match through MatchesSpecFrom, which has no resolver, so every such
+	//    predicate answers "recognised shape, never matches": the election
+	//    would offer nothing but the decline at every paid X. Supporting it
+	//    needs the choice deferred past payment with the cast's mana total
+	//    bound as the RHS resolver -- not this task.
+	//  - An AddKeywords$ member whose head is not a single word. Forge's
+	//    conditional modifier grammar rides that space ("IfNew Vanishing:3",
+	//    Flesh Duplicate: vanishing 3 only if the copied creature has no
+	//    vanishing), and effClone installs the raw member as a layer-6
+	//    AddKeywords grant, so cards.KeywordHead would read the head as
+	//    "IfNew Vanishing" -- no conditional test, no vanishing, no entry
+	//    time counters, silently. This is deliberately conservative: it also
+	//    withholds a body whose modifier is a legitimate multi-word keyword
+	//    ("First Strike"), a shape no ETB Clone carrier has today.
+	if effects.SpecNeedsResolver(strings.TrimSpace(sa.Params["Choices"])) {
+		return false
+	}
+	for _, kw := range cards.SplitKeywordList(sa.Params["AddKeywords"]) {
+		if strings.ContainsAny(cards.KeywordHead(kw), " \t") {
+			return false
+		}
+	}
+	return true
 }
 
 // announcePip resolves the i-th announcement pip of a cost's hybrid →

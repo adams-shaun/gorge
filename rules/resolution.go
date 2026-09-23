@@ -1037,6 +1037,17 @@ func (e *Engine) resumeETBEntry(chosen []decision.Option) {
 			choice = "counter"
 		}
 		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "unleash", Text: choice})
+	case "clone":
+		// The ETB-copy election (K:ETBReplacement:Copy). The chosen template
+		// rides the event's IDs; the decline ("Enter as itself") carries no
+		// object, so the fold records an answered-but-empty choice and the
+		// ETBReplacement body -- effects' effClone, reached at the re-emitted
+		// move below -- leaves the object entering as itself.
+		ids := []state.ObjID(nil)
+		if opt.Obj != 0 {
+			ids = []state.ObjID{opt.Obj}
+		}
+		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "clone", IDs: ids})
 	}
 	e.choosing = chooseNone
 	e.emit(move)
