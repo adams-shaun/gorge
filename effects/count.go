@@ -2815,7 +2815,7 @@ func unreadZoneSpec(spec string) bool {
 			return true
 		}
 		switch base {
-		case "Any", "Card", "Permanent", "PermanentCard", "Spell", "SpellAbility", "CARDNAME":
+		case "Any", "Card", "Permanent", "PermanentCard", "Spell", "SpellAbility", "CARDNAME", "Affinity":
 			// matchesBase's own special bases (and the CARDNAME base
 			// matchesZoneSpecCtx binds to the resolving source).
 		default:
