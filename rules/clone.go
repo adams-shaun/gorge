@@ -340,7 +340,8 @@ func (e *Engine) Clone() *Engine {
 				cp[i] = append([]decision.Option(nil), sl...)
 			}
 			c.copyAnswerTargets[id] = cp
-
+		}
+	}
 	if e.charmTargets != nil {
 		c.charmTargets = make(map[state.ObjID][][]state.Target, len(e.charmTargets))
 		for id, groups := range e.charmTargets {
@@ -349,7 +350,6 @@ func (e *Engine) Clone() *Engine {
 				cp[i] = append([]state.Target(nil), group...)
 			}
 			c.charmTargets[id] = cp
-
 		}
 	}
 	if e.exploitedLKI != nil {

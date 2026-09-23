@@ -1839,9 +1839,9 @@ func (e *Engine) askCharmModeTargets(p state.PlayerID, source state.ObjID, svars
 			return false
 		}
 		cs := e.legalTargetCandidates(p, source, source, sa)
-		if len(cs) == 0 {
-			return false
-		}
+		// Keep an empty mode group in the combined mandatory declaration.
+		// Returning false here would let callers fall back to the legacy
+		// first-mode ask, incorrectly permitting a cast with a missing target.
 		all = append(all, slot{name: name, sa: sa, cs: cs})
 	}
 	d := &decision.Decision{Player: p, Kind: decision.KTarget, Min: len(all), Max: len(all),
