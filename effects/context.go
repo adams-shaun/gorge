@@ -347,6 +347,25 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			return nil, true
 		}
 		return imprintPileTargets(g, c), true
+	case "RememberedCard":
+		// Forge's RememberedCard names the resolution's remembered CARD entries
+		// in remember order: the ChooseCard answers RememberChosen$ captured
+		// (Dreams of Steel and Oil's "Exile the chosen cards" -- a mixed-Hand
+		// Origin$ whose two picks must BOTH move), the manifest family's
+		// RememberManifested$ capture (Valgavoth's Onslaught's counters) and
+		// the imprint seeds. The reading matches this package's own
+		// RememberObjects$/RememberSacrificed$ consumers (the misc.go remember
+		// walk, cardflow.go's Atsushi seed): every non-player Ctx.Remembered
+		// entry. Being known here also keeps the fetch-list classifier honest
+		// -- a mixed-Hand Origin$ carrying it stays on the already-answered
+		// object path instead of the source default.
+		var remembered []state.Target
+		for _, t := range c.Remembered {
+			if !t.IsPlayer {
+				remembered = append(remembered, t)
+			}
+		}
+		return remembered, true
 	case "ChosenCard", "ChosenPlayer":
 		// ChooseCard/ChoosePlayer bind the current resolution's most recent
 		// choice here. This is deliberately distinct from Remembered: Forge
