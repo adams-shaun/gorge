@@ -61,7 +61,7 @@ func effInvestigate(h Host, c *Ctx, sa *cards.SA) {
 			Text: "Investigate: Optional$ True not asked; investigates (stand-in)"})
 	}
 	for _, t := range actingPlayers(h, c, sa) {
-		p := PlayerOf(h, c, t)
+		p := t
 		for i := int32(0); i < n; i++ {
 			h.Emit(events.Event{Kind: events.TokenCreate, Player: p, Text: clueTokenKey})
 			// One investigate record per created Clue (CR 701.36a: each
