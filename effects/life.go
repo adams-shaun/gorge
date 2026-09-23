@@ -23,7 +23,7 @@ func effGainLife(h Host, c *Ctx, sa *cards.SA) {
 		n = 0
 	}
 	for _, t := range actingPlayers(h, c, sa) {
-		h.Emit(events.Event{Kind: events.LifeChange, Player: PlayerOf(h, c, t), Amount: n})
+		h.Emit(events.Event{Kind: events.LifeChange, Player: t, Amount: n})
 	}
 }
 
@@ -37,7 +37,7 @@ func effExchangeLifeVariant(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 	target := targets[0]
-	player := PlayerOf(h, c, target)
+	player := target
 	source := h.Game().Obj(c.Source)
 	if source == nil || source.Zone != state.ZBattlefield || source.Face() == nil {
 		return
@@ -93,6 +93,6 @@ func effLoseLife(h Host, c *Ctx, sa *cards.SA) {
 		defer b.EndLifeLossBatch()
 	}
 	for _, t := range actingPlayers(h, c, sa) {
-		h.Emit(events.Event{Kind: events.LifeChange, Player: PlayerOf(h, c, t), Amount: -n})
+		h.Emit(events.Event{Kind: events.LifeChange, Player: t, Amount: -n})
 	}
 }

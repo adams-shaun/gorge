@@ -1,94 +1,115 @@
-# Merge-conflict resolution report — agent-20260918T230554Z-a96f94d7
+# Merge-conflict resolution — agent-20260922T194522Z-d7f24b09
 
-## State found
+## Starting state
 
-`git status` showed a **clean tree, no rebase/merge in flight** — the daemon
-had aborted both its rebase and its merge fallback before this seat started.
-The branch was 2 commits ahead of the merge-base `bad06ce7`:
+`git status` on arrival was CLEAN — no rebase or merge in flight. The
+daemon's `rebase onto main` had already been aborted before this seat
+started, leaving branch `wt/agent-20260922T194522Z-d7f24b09` at `9ed10179`
+(docs: rpteachopt1 report) with two commits ahead of the merge-base
+`3f7fce71` (`a98d1819` feat(effects): honour RepeatOptionalForEachPlayer$ in
+RepeatEach — the reviewed fix — and `9ed10179` its report).
 
-- `9de2af45` fix(effects): publish StoreVoteNum outcomes
-- `4d9c6987` docs: record StoreVoteNum verification
+Per the standing "never `git rebase`" rule, integration was done as a
+`git merge main`, which reproduced the same conflicts the daemon saw
+(`.ds4/report-t1.md` content conflict; `effects/choose_control.go`
+auto-merged cleanly).
 
-I therefore re-ran the integration myself: `git rebase main`.
+## Conflicted file: `.ds4/report-t1.md` (the only one)
 
-## Conflicted files and resolution
+This is the shared rolling report file. Three-way shape (base = merge-base
+version, 590 lines):
 
-Only **one file** conflicted in the rebase: `.ds4/report-t1.md`
-(`effects/misc.go` and the new test applied cleanly on pick 1 — the
-daemon's merge fallback had reported a spurious `effects/misc.go` conflict
-that the rebase did not hit).
+- **base**: reports for api:Attach Optional$ / Yuffie, fb-20260922T145544Z,
+  rv2b-countheads, Vote.StoreVoteNum.
+- **main**: kept all base content and appended ~6 new reports (stat:
+  CountersRemain, TriggerController$ on ChangesZone, trig-attackerblocked,
+  PlayerCountPropertyYou, Vote.StoreVoteNum retained, NonRememberedController
+  selectors) — 1156 lines.
+- **branch (`9ed10179`)**: REPLACED the file with only the rpteachopt1 report
+  (181 lines; the commit's stat is `160 insertions(+), 569 deletions(-)`), so
+  the branch side deleted the other seats' reports that main preserves.
 
-`.ds4/report-t1.md` is the shared accumulating report log. Three versions:
+### What each side wanted
 
-- **base** (`9de2af45`, the fix commit's parent): a 42-line "Mill<N> cost
-  verification" report.
-- **ours / main** (`main` = `7a6a77b7`): 525 lines — Yuffie attach, fb-20260922
-  restricted-mana-projection, and rv2b-countheads reports, separated by `---`.
-- **theirs / branch** (`4d9c6987`): the seat's 62-line "Vote.StoreVoteNum"
-  report **replacing the whole file** (46+/26− vs base).
+- main: keep every prior report and add the new ones.
+- branch: carry the rpteachopt1 report (RepeatEach /
+  RepeatOptionalForEachPlayer$ fix documentation).
 
-Resolution: **keep main's full log in full, append the branch's StoreVoteNum
-report at the end** separated by `---`, matching main's own convention
-(main's latest docs commit on this file merges concurrent reports into one
-growing file). The Mill report that the branch commit's diff deleted was
-already superseded on main (`3b070589`'s rewrite of the file dropped it and
-nothing on main restored it), so no restoration was needed — the branch's
-deletion of it is subsumed by main's later state. Both sides' intent is kept:
-main's accumulated reports and the branch's verified report.
+### Resolution
 
-One text nit kept as-is (historical, from the branch seat): the report's line
-"The worktree was clean before the required `git rebase main`, which reported
-up to date." — it recorded that seat's own pre-submit state.
+The branch's deletion of the four other seats' reports in its docs commit is
+not a deliberate change main contradicts — it reads as the seat overwriting
+the shared file instead of appending, and main is the superset that preserves
+them. Resolution: **main's full version + the branch's rpteachopt1 report
+appended** with the file's `---` section convention:
 
-## Commands run (real output)
-
-```
-$ git rebase main
-... CONFLICT (content): Merge conflict in .ds4/report-t1.md   (pick 2 of 2; pick 1 applied clean)
-$ # rebuilt .ds4/report-t1.md = main's 525 lines + "---" + branch's 62-line report
-$ git add .ds4/report-t1.md && GIT_EDITOR=true git rebase --continue
-[detached HEAD 4f96e2c6] docs: record StoreVoteNum verification
- 1 file changed, 65 insertions(+)
-Successfully rebased and updated refs/heads/wt/agent-20260918T230554Z-a96f94d7.
-$ git status
-On branch wt/agent-20260918T230554Z-a96f94d7
-nothing to commit, working tree clean
+```sh
+{ cat main-version; printf '\n---\n\n'; cat head-version; } > .ds4/report-t1.md
 ```
 
-Sanity checks and ratchets (post-merge, per the 2026-09-22 directive):
+Nothing was dropped from either side: every report in main's version is
+present verbatim, and the branch's full report (What changed and why,
+commands, fails-without-fix, new tests, Issues, Deviations) is appended.
+No conflict markers remain (`grep` verified); file is 1340 lines.
+
+`effects/choose_control.go` auto-merged: main's change (NonRememberedController
+selector resolution in `definedSpec`/`Controller$`) and the branch's change
+(`effRepeatEach` per-subject election, `poseRepeatEachElection`) touch
+different parts of the file; both intents kept, no manual edit needed.
+
+## Commands and output
 
 ```
-$ go test -run '^TestFatefulTempestStoresEachOptionVoteCount$' ./rules/
-ok  github.com/adams-shaun/gorge/rules  0.604s
+$ git status                                     # clean; no in-flight op
+$ git merge main
+Auto-merging .ds4/report-t1.md
+CONFLICT (content): Merge conflict in .ds4/report-t1.md
+Auto-merging effects/choose_control.go
+Automatic merge failed; fix conflicts and then commit the result.
+$ # resolve report-t1.md as above
+$ git commit --no-edit   # concludes the merge -> d58d13ad
 
-$ go test -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeckIsFullySupported$|TestEveryRepoDeckParamsAreRead|CountHead' ./rules/
-ok  github.com/adams-shaun/gorge/rules  0.761s
+## Ratchet check after the merge
 
-$ grep -c '<<<<<<<\|>>>>>>>' effects/misc.go          # 0
-$ gofmt -l effects/misc.go rules/fateful_tempest_vote_test.go   # no output
+Main carries ratchet tests the branch never met. The branch registers no new
+`Mode$` matcher and closes no ratchet table entry, so the tables should hold
+as main has them. `.cards` was PRESENT (symlink), so the corpus-backed tests
+ran rather than skipped.
+
+```
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  github.com/adams-shaun/gorge/rules  0.801s
+
+$ go test -v ./rules -run 'TestEveryRepoDeckIsFullySupported|TestEveryRepoDeckParamsAreRead|TestEveryDispatchedTriggerModeHasAMatcher|TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched|TestEveryRepoDeckCountHeadResolves'
+--- PASS: TestEveryRepoDeckIsFullySupported (0.71s)
+--- PASS: TestEveryDispatchedTriggerModeHasAMatcher (0.00s)
+--- PASS: TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched (0.00s)
+--- PASS: TestEveryRepoDeckParamsAreRead (0.13s)
+--- PASS: TestEveryRepoDeckCountHeadResolves (0.63s)
+ok  github.com/adams-shaun/gorge/rules
 ```
 
-`.cards` was present as a symlink to `/home/sadams/projects/gorge/.cards`
-(found, not created), so corpus-backed tests did not skip.
+No SKIPs (so the corpus-backed deck tests genuinely ran); no table entry
+grew or moved — the branch registers no new `Mode$` matcher and closes no
+ratchet row.
 
-## Result
+Auto-merge sanity on the shared file:
 
-- Branch `wt/agent-20260918T230554Z-a96f94d7` rebased onto main (`7a6a77b7`),
-  tree clean.
-- `main..HEAD`: `d8ab4365` (fix, content-identical to `9de2af45`) and
-  `4f96e2c6` (docs, resolution as above).
-- No golden, ratchet, or heads movement: the ratchet run passed unchanged;
-  the branch registers no new `Mode$` matcher and closes no ratchet row.
-- No `Ref:` trailers anywhere (gorge rule respected).
+```
+$ go test ./effects -run 'TestRepeatEachOptional|TestNonRememberedController|TestPlayerCountPropertyYou'
+ok  github.com/adams-shaun/gorge/effects  0.618s
+$ go test ./rules -run 'TestRepeatEachOptional'
+ok  github.com/adams-shaun/gorge/rules  0.630s
+$ gofmt -l effects/choose_control.go   # no output
+```
 
-## Unsure about
+## Notes / unsure about
 
-- Whether the daemon intended the merge-fallback route (merge commit) rather
-  than the rebase route. I re-ran the rebase it had originally attempted; the
-  resulting branch is linear onto main, which is what its rebase log shows it
-  wanted first.
-
-## Issues
-
-None found. The only conflict was the report log; no engine code was in
-conflict.
+- Whether the branch's deletion of the four prior reports in `9ed10179` was
+  deliberate. I judged it accidental (append-style is the file's convention,
+  main preserves them) and restored them via main's side. If it WAS
+  deliberate, the merge result still loses nothing: the rpteachopt1 report is
+  intact and the other reports remain available on main's history.
+- `effects/choose_control.go` and the other auto-merged code files were NOT
+  hand-checked beyond the merge succeeding; the daemon's full gate run covers
+  them.
