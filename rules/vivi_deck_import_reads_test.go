@@ -700,7 +700,7 @@ func TestMistriseVillageSpellCastPromise(t *testing.T) {
 	}
 	submitChoices(t, e, co.Index)
 	d = e.Pending()
-	ta := viviOption(d, "permanent", optId)
+	ta := viviOption(d, "spell", optId)
 	if ta == nil {
 		t.Fatalf("no stack-target option for the Opt: %+v", d.Options)
 	}

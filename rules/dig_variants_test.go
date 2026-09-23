@@ -335,9 +335,12 @@ func TestDigDestinationZone2SplitsThePiles(t *testing.T) {
 		libBefore := digReorder(t, e, "Digr Bear", "Mountain")
 		bear := libBefore[0]
 
-		if d := digCast(t, e, id, "R", false); d != nil {
-			t.Fatalf("one-card window with exactly ChangeNum eligible must not ask, got %+v", d)
+		d := digCast(t, e, id, "R", true)
+		if d == nil || d.Kind != decision.KChoose || d.Min != 0 || d.Max != 1 {
+			t.Fatalf("one-card optional window = %+v, want the 0..1 may ask", d)
 		}
+		submitChoices(t, e, d.Options[0].Index)
+		passUntilStackEmpty(t, e, 20)
 		if o := e.G.Obj(bear); o == nil || o.Zone != state.ZBattlefield {
 			t.Fatalf("matched card zone = %v, want Battlefield", o)
 		}

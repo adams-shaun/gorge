@@ -217,7 +217,7 @@ func TestCR601TotalCostIncludesModifiers(t *testing.T) {
 					t.Fatalf("CR 601.2c/f %s seq %d: no target ask", name, start)
 				}
 				// The only other stack object is the independently placed Aether Vial.
-				crAbortAnswer(t, e, name, crAbortOption(t, e, name, "permanent", e.G.Stack[0]))
+				crAbortAnswer(t, e, name, crAbortOption(t, e, name, "spell", e.G.Stack[0]))
 			}
 			want := int32(0)
 			if arm == "X_reduction" {

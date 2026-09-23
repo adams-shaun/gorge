@@ -316,18 +316,17 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	//     effect MANDATORILY, the opposite of the card text, so it notes.
 	//   - a body with no Execute$ has nothing to resolve.
 	for _, name := range strings.Fields(sa.Params["Triggers"]) {
-		// Delayed promises only encode a turn ceiling. Never let an explicit
-		// longer Effect lifetime silently turn into a permanent promise.
-		if !effectTriggerThisTurnDuration(rawDur) || forgetOn != "" || exileOn != "" ||
-			forgetCounter != "" || forgetOnCast != "" || imprintOnHost {
-			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-				Text: "unmodelled Effect trigger lifetime (Duration$ " + rawDur + "; not registered)"})
-			registered = true
-			continue
-		}
 		raw := ""
 		if o := h.Game().Obj(c.Source); o != nil && o.Face() != nil {
 			raw = o.Face().SVars[name]
+		}
+		if raw == "" {
+			// The resolving ability's OWN SVar table. A DB$ Effect reached
+			// from a face that is not the object's current one -- Sephiroth,
+			// One-Winged Angel's `R:Event$ Transform | ReplaceWith$ DBEffect`
+			// resolves while the object still shows the front face -- cannot
+			// find its trigger body on Face().SVars at all.
+			raw = c.SVars[name]
 		}
 		tr, ok := cards.ParseTriggerLine(raw)
 		if !ok {
@@ -340,6 +339,27 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		if exec == "" {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "Effect trigger " + name + " names no Execute"})
+			registered = true
+			continue
+		}
+		if tr.Mode == "BecomeMonarch" {
+			// Palace Jailer's one-shot command-zone promise. It is CONSUMED
+			// by its own firing, not retired by a turn ceiling, and its
+			// `Duration$ Permanent | ForgetOnMoved$ Exile` lifetime is
+			// exactly what the promise already means, so the turn-bound
+			// lifetime guard below does not apply to it.
+			h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
+				Player: c.Controller, Step: h.Game().Step, Counter: exec,
+				IDs: encodeRemembered(c.Remembered), Text: "BecomeMonarch:" + name})
+			registered = true
+			continue
+		}
+		// Delayed promises only encode a turn ceiling. Never let an explicit
+		// longer Effect lifetime silently turn into a permanent promise.
+		if !effectTriggerThisTurnDuration(rawDur) || forgetOn != "" || exileOn != "" ||
+			forgetCounter != "" || forgetOnCast != "" || imprintOnHost {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "unmodelled Effect trigger lifetime (Duration$ " + rawDur + "; not registered)"})
 			registered = true
 			continue
 		}
@@ -359,16 +379,16 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		}
 		expiry := "|TT=" + strconv.Itoa(int(h.Game().Turn))
 		switch tr.Mode {
-		case "BecomeMonarch":
-			h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
-				Player: c.Controller, Step: h.Game().Step, Counter: exec,
-				IDs: encodeRemembered(c.Remembered), Text: "BecomeMonarch:" + name + expiry})
-			registered = true
 		case "SpellCast", "ChangesZone":
 			// Fire-time match re-parses the named body on the source face.
+			// An Effect's "whenever you cast a spell" / "whenever a creature
+			// enters" is an ordinary REPEATABLE trigger for the Effect's
+			// lifetime, not a one-shot DelayedTrigger promise, so it carries
+			// |EF like every other Effect-delivered mode: DelayedPush keeps
+			// the registration and the |TT= turn bound retires it.
 			h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 				Player: c.Controller, Step: h.Game().Step, Counter: exec,
-				IDs: encodeRemembered(c.Remembered), Text: tr.Mode + ":" + name + expiry})
+				IDs: encodeRemembered(c.Remembered), Text: tr.Mode + ":" + name + expiry + "|EF"})
 			registered = true
 		case "Phase":
 			// A phase promise fires at the FIRST listed step still ahead
@@ -530,6 +550,28 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				// through a SpecContext that carries this list). The shared
 				// MayPlayStaticParams whitelist keeps both registration paths
 				// honest: a rider this build does not read fails closed here too.
+				grant.Source = c.Source
+				grant.Controller = c.Controller
+				grant.Name = effectName
+				grant.UntilEOT = effectUntilEOT(h, c.Source, rawDur)
+				grant.Remembered = remembered
+				grant.Duration = dur
+				grant.ForgetOnMoved = forgetOn
+				grant.ExileOnMoved = exileOn
+				grant.ForgetCounter = forgetCounter
+				grant.ImprintOnHost = imprintOnHost
+				h.AddContinuous(grant)
+				registered = true
+			} else if grant, ok := mayPlayFreeGrantFromLine(params); ok {
+				// The FREE-cast may-play grant delivered by an Effect SA (Dauthi
+				// Voidwalker's "you may play it this turn without paying its mana
+				// cost", Idol of Endurance, Nicol Bolas, God-Pharaoh): the same
+				// registration shape the plain grant above uses, with the
+				// MayPlayWithoutManaCost$ True rider carried as the MayPlayFree
+				// field rules' grant walk reads for the free half. The shared
+				// MayPlayFreeStaticParams whitelist keeps this path honest the
+				// same way: a rider this build does not read fails closed here
+				// too. The lifetime fields are exactly the plain grant's.
 				grant.Source = c.Source
 				grant.Controller = c.Controller
 				grant.Name = effectName
@@ -1020,6 +1062,31 @@ func mayPlayGrantFromLine(params map[string]string) (state.ContinuousEffect, boo
 	}, true
 }
 
+// mayPlayFreeGrantFromLine builds the FREE-cast may-play ContinuousEffect
+// from one parsed static line: MayPlay$ True plus MayPlayWithoutManaCost$
+// True (the "you may cast/play it this turn without paying its mana cost"
+// shape -- Dauthi Voidwalker, Idol of Endurance, Nicol Bolas, God-Pharaoh,
+// Fire Lord Ozai). ok=false is the fail-closed grant: nothing is registered
+// rather than a half-read grant going live. The value rides a separate
+// ContinuousEffect flag (MayPlayFree) because the printed-S: battlefield
+// route's grant entries carry no free read -- the free-cast MayPlay static
+// CHANGES what the cast costs, and the field is consumed exactly where the
+// plain grant's cost is (rules/mayplay.go's mayPlayGrant).
+func mayPlayFreeGrantFromLine(params map[string]string) (state.ContinuousEffect, bool) {
+	limit, playerTurn, ok := MayPlayFreeStaticParams(params)
+	if !ok {
+		return state.ContinuousEffect{}, false
+	}
+	return state.ContinuousEffect{
+		Affects:           params["Affected"],
+		AffectedZone:      strings.TrimSpace(params["AffectedZone"]),
+		MayPlay:           true,
+		MayPlayFree:       true,
+		MayPlayLimit:      limit,
+		MayPlayPlayerTurn: playerTurn,
+	}, true
+}
+
 // MayPlayStaticParams reports whether a Mode$ Continuous static body (an S:
 // line or an SVar static an Effect SA registers) carries the may-play grant
 // this build implements, and resolves its readable riders. The
@@ -1028,22 +1095,61 @@ func mayPlayGrantFromLine(params map[string]string) (state.ContinuousEffect, boo
 // MayPlayIgnoreType$ (mana as any type -- Rakdos, the Muscle's rider: the
 // colour widening plus {C} pips payable by any colour), MayPlayLimit$ (an
 // integer once-per-turn cap) and Condition$ PlayerTurn
-// ("during each of your turns", the Kess/Karador family) are read. Anything
-// else -- MayPlayWithoutManaCost$/MayPlayText$ (they change what the cast IS,
-// not just where it may come from), a Condition$ whose value is not
-// PlayerTurn, a ValidAfterStack$/Secondary$ qualifier (it changes when the
-// grant lives), or a MayPlayLimit$ value that is not a non-negative integer
-// -- fails closed:
+// ("during each of your turns", the Kess/Karador family) are read.
+// MayPlayWithoutManaCost$ is the FREE-cast shape, read by its own whitelist
+// (MayPlayFreeStaticParams below), never by this one. Anything else --
+// MayPlayText$ (it changes what the cast IS, not just where it may come
+// from), a Condition$ whose value is not PlayerTurn, a
+// ValidAfterStack$/Secondary$ qualifier (it changes when the grant lives),
+// or a MayPlayLimit$ value that is not a non-negative integer -- fails
+// closed:
 func MayPlayStaticParams(params map[string]string) (ignoreColor, ignoreType bool, limit int32, playerTurn bool, ok bool) {
 	v, okv := params["MayPlay"]
 	if !okv || !strings.EqualFold(strings.TrimSpace(v), "True") {
 		return false, false, 0, false, false
 	}
+	ignoreColor, ignoreType, limit, playerTurn, ok = mayPlayParams(params, false)
+	return ignoreColor, ignoreType, limit, playerTurn, ok
+}
+
+// MayPlayFreeStaticParams reports whether a Mode$ Continuous static body
+// carries the FREE-cast may-play grant: MayPlay$ True plus
+// MayPlayWithoutManaCost$ True. The free rider changes what the cast costs
+// (the mana part is free, CR 118.9), so the PLAIN whitelist above keeps
+// refusing it -- the two grants must never be conflated. Everything else is
+// the same grammar, read through the ONE shared key scan (mayPlayParams),
+// so a rider the plain path rejects is rejected here too: MayPlayText$, a
+// Condition$ whose value is not PlayerTurn, a ValidAfterStack$/Secondary$
+// qualifier, a MayPlayLimit$ value that is not a non-negative integer, a
+// MayPlayPlayer$/IgnoreColor/IgnoreType value (the free shape carries none
+// of them in the corpus -- the key scan still rejects them) -- all fail
+// closed. MayPlayDontGrantZonePermissions$ cannot co-occur meaningfully
+// with WithoutManaCost$ (a DontGrant static only exempts costs); the scan
+// rejects it, and MayPlayAltManaCost$/RaiseCost$ likewise -- the free cast
+// cannot also carry an alternative cost this registration path cannot
+// charge.
+func MayPlayFreeStaticParams(params map[string]string) (limit int32, playerTurn bool, ok bool) {
+	if !strings.EqualFold(strings.TrimSpace(params["MayPlayWithoutManaCost"]), "True") {
+		return 0, false, false
+	}
+	_, _, limit, playerTurn, ok = mayPlayParams(params, true)
+	return limit, playerTurn, ok
+}
+
+// mayPlayParams is the ONE parameter scan MayPlayStaticParams and
+// MayPlayFreeStaticParams share. allowFree widens the key whitelist by
+// exactly MayPlayWithoutManaCost$ (the caller has already required it to be
+// True); every other unknown key fails closed.
+func mayPlayParams(params map[string]string, allowFree bool) (ignoreColor, ignoreType bool, limit int32, playerTurn bool, ok bool) {
 	for key := range params {
 		switch key {
 		case "Mode", "MayPlay", "MayPlayIgnoreColor", "MayPlayIgnoreType",
 			"MayPlayLimit", "Condition", "Affected", "AffectedZone", "Description", "EffectZone":
 			// The keys the implemented grant (and only it) carries.
+		case "MayPlayWithoutManaCost":
+			if !allowFree {
+				return false, false, 0, false, false
+			}
 		default:
 			return false, false, 0, false, false
 		}
@@ -1993,45 +2099,38 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 // permanent via the ChangeZone's RememberChanged$ True, so TrigBounce knows
 // which object to return).
 //
-// Only Mode$ Phase is implemented. The other Mode$ values (ChangesZone,
-// SpellCast, ChangesController, DamageDone, AttackersDeclared) stay the
-// deterministic Note-only recording, so a card that needs one still says
-// what it intended without pretending to have fired.
+// Mode$ Phase and the event-matched delayed modes all use the same
+// registration event. Event-matched bodies are stored inline because a
+// DelayedTrigger SA is not itself an SVar that events.Apply could resolve.
 func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
-	mode := sa.Params["Mode"]
+	mode := strings.TrimSpace(sa.Params["Mode"])
 	if mode == "SpellCast" {
 		effDelayedTriggerSpellCast(h, c, sa)
 		return
 	}
-	if mode != "Phase" {
+	if mode != "Phase" && mode != "ChangesZone" && mode != "ChangesController" &&
+		mode != "DamageDone" && mode != "AttackersDeclared" {
 		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 			Text: "registers a delayed trigger at " + mode + " (not implemented)"})
 		return
 	}
-	set, unknown := state.ParsePhases(sa.Params["Phase"])
-	if len(unknown) > 0 {
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-			Text: "registers a delayed trigger at unrecognized phase " + sa.Params["Phase"]})
-		return
-	}
-	// One one-shot registration for the FIRST member of the set the game will
-	// still reach (state.EarliestAfter): Forge's delayed trigger is removed
-	// from TriggerHandler.delayedTriggers the moment it fires, so even a
-	// multi-step Phase$ value (`Main1,Main2`, the open `Upkeep->` range) fires
-	// exactly once, at the first listed phase still ahead -- and a single-step
-	// value maps to the very step a registration used to carry, so every
-	// already-working shape is unchanged.
-	step, ok := state.EarliestAfter(set, h.Game().Step)
-	if !ok {
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-			Text: "registers a delayed trigger with no Phase"})
-		return
-	}
-	exec := sa.Params["Execute"]
-	if exec == "" {
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-			Text: "registers a delayed trigger with no Execute"})
-		return
+	var step state.Step
+	if mode == "Phase" {
+		set, unknown := state.ParsePhases(sa.Params["Phase"])
+		if len(unknown) > 0 {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "registers a delayed trigger at unrecognized phase " + sa.Params["Phase"]})
+			return
+		}
+		// Register the first listed phase still ahead; firing consumes the
+		// registration, so a multi-step Phase$ value remains one-shot.
+		var ok bool
+		step, ok = state.EarliestAfter(set, h.Game().Step)
+		if !ok {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "registers a delayed trigger with no Phase"})
+			return
+		}
 	}
 	// An absent RememberObjects$ (and the bare RememberedLKI spelling) keeps
 	// the resolving chain's capture. Any other recognised value REPLACES that
@@ -2099,9 +2198,71 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 		}
 		remembered = chain
 	}
+	if mode != "Phase" {
+		exec := strings.TrimSpace(sa.Params["Execute"])
+		if exec == "" {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "registers a delayed " + mode + " trigger with no Execute"})
+			return
+		}
+		eventText := mode + ":" + delayedTriggerBody(sa)
+		if strings.EqualFold(strings.TrimSpace(sa.Params["ThisTurn"]), "True") {
+			eventText += "|TT=" + strconv.Itoa(int(h.Game().Turn))
+		}
+		h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
+			Player: c.Controller, Step: h.Game().Step, Counter: exec,
+			IDs: encodeRemembered(remembered), Text: eventText})
+		return
+	}
+	exec := strings.TrimSpace(sa.Params["Execute"])
+	if exec == "" {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "registers a delayed trigger with no Execute"})
+		return
+	}
 	h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 		Player: c.Controller, Step: step, Counter: exec, Amount: amount,
 		IDs: encodeRemembered(remembered), Text: text})
+}
+
+// delayedTriggerBody serializes the trigger parameters in a fixed order. A
+// map iteration here would make the event bytes (and therefore replay heads)
+// nondeterministic.
+func delayedTriggerBody(sa *cards.SA) string {
+	// Literal keys at both the read and append sites keep the parameter census
+	// attributable; call order fixes the registration's replay-visible bytes.
+	parts := []string{"Mode$ " + strings.TrimSpace(sa.Params["Mode"])}
+	add := func(prefix, value string) {
+		if v := strings.TrimSpace(value); v != "" {
+			parts = append(parts, prefix+v)
+		}
+	}
+	add("ValidCard$ ", sa.Params["ValidCard"])
+	add("ValidCards$ ", sa.Params["ValidCards"])
+	add("Origin$ ", sa.Params["Origin"])
+	add("Destination$ ", sa.Params["Destination"])
+	add("ExcludedOrigins$ ", sa.Params["ExcludedOrigins"])
+	add("ValidSource$ ", sa.Params["ValidSource"])
+	add("ValidTarget$ ", sa.Params["ValidTarget"])
+	add("CombatDamage$ ", sa.Params["CombatDamage"])
+	add("ValidAttackers$ ", sa.Params["ValidAttackers"])
+	add("ValidAttackersAmount$ ", sa.Params["ValidAttackersAmount"])
+	add("AttackingPlayer$ ", sa.Params["AttackingPlayer"])
+	add("AttackedTarget$ ", sa.Params["AttackedTarget"])
+	add("ValidPlayer$ ", sa.Params["ValidPlayer"])
+	add("ValidOriginalController$ ", sa.Params["ValidOriginalController"])
+	add("ValidActivatingPlayer$ ", sa.Params["ValidActivatingPlayer"])
+	add("PlayerTurn$ ", sa.Params["PlayerTurn"])
+	add("ValidSA$ ", sa.Params["ValidSA"])
+	add("TriggerZones$ ", sa.Params["TriggerZones"])
+	add("ActiveZones$ ", sa.Params["ActiveZones"])
+	add("ThisTurn$ ", sa.Params["ThisTurn"])
+	add("Static$ ", sa.Params["Static"])
+	add("IsPresent$ ", sa.Params["IsPresent"])
+	add("PresentDefined$ ", sa.Params["PresentDefined"])
+	add("PresentCompare$ ", sa.Params["PresentCompare"])
+	add("PresentZone$ ", sa.Params["PresentZone"])
+	return strings.Join(parts, " | ")
 }
 
 // effDelayedTriggerSpellCast registers the event-matched delayed shape: a
@@ -2146,6 +2307,9 @@ func effDelayedTriggerSpellCast(h Host, c *Ctx, sa *cards.SA) {
 	}
 	if v := strings.TrimSpace(sa.Params["ValidActivatingPlayer"]); v != "" {
 		body += " | ValidActivatingPlayer$ " + v
+	}
+	if v := strings.TrimSpace(sa.Params["ValidPlayer"]); v != "" {
+		body += " | ValidPlayer$ " + v
 	}
 	if v := strings.TrimSpace(sa.Params["PlayerTurn"]); v != "" {
 		body += " | PlayerTurn$ " + v
@@ -2819,6 +2983,46 @@ func effVillainousChoice(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
+// charmDistinctTargetRun runs a distinct modal Charm with one target group
+// per selected target-bearing mode. ModeTargets is aligned to those modes;
+// non-targeting modes still run with the ordinary shared context.
+func charmDistinctTargetRun(h Host, c *Ctx, sa *cards.SA, names []string) bool {
+	if len(c.ModeTargets) < 2 {
+		return false
+	}
+	offset := 0
+	for _, name := range c.ModesSeen {
+		if sub := cards.ResolveSVar(c.SVars, name); sub != nil && strings.TrimSpace(sub.Params["ValidTgts"]) != "" {
+			offset++
+		}
+	}
+	for i, name := range names {
+		sub := cards.ResolveSVar(c.SVars, name)
+		if sub == nil {
+			continue
+		}
+		savedTargets, savedOffered, savedMarker := c.Targets, c.OfferedSA, c.TargetsOffered
+		if strings.TrimSpace(sub.Params["ValidTgts"]) != "" {
+			if offset >= len(c.ModeTargets) {
+				return false
+			}
+			c.Targets = c.ModeTargets[offset]
+			c.OfferedSA = sub
+			c.TargetsOffered = true
+			offset++
+		}
+		Resolve(h, c, sub)
+		c.Targets, c.OfferedSA, c.TargetsOffered = savedTargets, savedOffered, savedMarker
+		if h.Suspended() {
+			if rest := names[i+1:]; len(rest) > 0 {
+				h.SuspendCharmRest(sa, rest)
+			}
+			return true
+		}
+	}
+	return true
+}
+
 // effCharm runs the selected Choices$ sub-abilities in chosen order.
 // Cast spells (CR 601.2b) and triggered abilities (CR 603.3c) arrive with
 // Ctx.Modes pre-seeded from their earlier announcement. A Charm reached only
@@ -2852,6 +3056,9 @@ func effCharm(h Host, c *Ctx, sa *cards.SA) {
 		// to the Charm that asked for it.
 		names := c.Modes
 		c.Modes = nil
+		if charmDistinctTargetRun(h, c, sa, names) {
+			return
+		}
 		if charmCrossModeRun(h, c, sa, names) {
 			return
 		}

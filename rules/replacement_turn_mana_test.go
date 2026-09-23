@@ -265,9 +265,12 @@ func TestSephirothTransformRunsTheDestinationFaceReplacement(t *testing.T) {
 	if e.G.Obj(seph).FaceIdx != 1 {
 		t.Fatalf("Sephiroth face index %d, want 1 -- the replacement augments the flip, never cancels it", e.G.Obj(seph).FaceIdx)
 	}
-	// The destination face's ReplaceWith$ DBEffect resolved: effEffect's
-	// honest stand-in Note for a Triggers$-only effect names the emblem.
-	if !hasNote(e, "registers a continuous effect") {
+	// The destination face's ReplaceWith$ DBEffect resolved. The emblem is a
+	// Triggers$-only Effect with an explicit `Duration$ Permanent`, a
+	// lifetime the turn-bounded delayed registry cannot carry, so effEffect
+	// withholds the registration behind its own loud, specific Note rather
+	// than arming a promise that would outlive the card text it models.
+	if !hasNote(e, "unmodelled Effect trigger lifetime (Duration$ Permanent") {
 		t.Fatal("the Super Nova emblem effect body did not run")
 	}
 	if !hasEvent(e, events.FlipFace, seph) {

@@ -72,7 +72,7 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.FlipFace, events.ClockTick, events.TriggerPush,
 		events.EndCombatReset, events.Choose,
 		events.TokenCreate, events.StackCopy, events.ModeChosen,
-		events.CmdDamage, events.DelayedRegister, events.DelayedPush,
+		events.CmdDamage, events.DelayedRegister, events.DelayedPush, events.DelayedRemove,
 		events.GrantAbilityPush,
 		events.LibraryOrder, events.ExtraTurn, events.DoorUnlock,
 		events.SpeedChange, events.ControlChange,

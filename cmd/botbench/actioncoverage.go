@@ -493,7 +493,7 @@ var kindRows = map[string][]string{
 	// the guard test below covers every kind, so a new option kind a real
 	// run offers fails the test until it is seeded here.
 	string(decision.KPriority):        {"activate", "play_land", "cast", "ability", "pass", "concede", "station", "unlock"},
-	string(decision.KTarget):          {"player", "permanent"},
+	string(decision.KTarget):          {"player", "permanent", "spell", "ability", "trigger"},
 	string(decision.KAttackers):       {"attacker"},
 	string(decision.KBlockers):        {"block"},
 	string(decision.KMulligan):        {"keep", "mulligan", "bottom"},

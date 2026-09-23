@@ -185,6 +185,11 @@ var baseBuckets = map[string]bucket{
 	// modal one. The same cards.SA parameter map, so the same bucket as
 	// o.Ability.
 	"offeredSA": bSA,
+	// root is the modal spell's root SpellAbility -- cast.go's
+	// f.SpellAbility() local and askCharmModeTargets' `root *cards.SA`
+	// parameter -- whose Choices$ the distinct-mode Charm target ask reads.
+	// A *cards.SA parameter map exactly like every other bSA entry.
+	"root": bSA,
 	// hsa is rules/split.go's fusedHalfTargets' per-half root spell ability
 	// (the loop local for halves[i].SpellAbility(), read for the half's
 	// ValidTgts$ spec and targetZones): a *cards.SA parameter map exactly
@@ -899,8 +904,9 @@ func argText(e ast.Expr) string {
 // scanRangeWhitelist handles `for k := range X.Params` shapes (X a selector
 // base or a tracked alias): a range over a Params map whose body switches on
 // the range variable is a READ of the keys named in the case clauses (the
-// whitelist). A range whose body does not match that shape is a rot-guard
-// failure. Derived from the code, not hand-set.
+// whitelist). DigUntil's two withheld-parameter prefix scans are classified
+// separately: recognition followed only by a Note is not a semantic read.
+// Any other range shape is a rot-guard failure.
 func (s *scan) scanRangeWhitelist(t *testing.T, fset *token.FileSet, fi *fnInfo, fname string, rs *ast.RangeStmt, pkg string, writes map[ast.Node]bool) {
 	var base string
 	switch x := rs.X.(type) {
@@ -955,6 +961,12 @@ func (s *scan) scanRangeWhitelist(t *testing.T, fset *token.FileSet, fi *fnInfo,
 		return false
 	})
 	if !switched {
+		// effDigUntil enumerates Imprint* and NoneFound* to emit one loud
+		// Note per withheld key. These are NOT consumed parameters, so do
+		// not add a read for them (including future keys in either family).
+		if pkg == "effects" && fname == "effDigUntil" && digUntilWithheldRange(rs, keyIdent.Name) {
+			return
+		}
 		// A copy loop (`for k, v := range src.Params { dst.Params[k] = v }`)
 		// is not a read: every use of the key sits in a write-position index.
 		if rangeKeyIsWriteOnly(rs, keyIdent.Name, writes) {
@@ -967,6 +979,40 @@ func (s *scan) scanRangeWhitelist(t *testing.T, fset *token.FileSet, fi *fnInfo,
 	for _, k := range keys {
 		s.addRead(fi, b, k)
 	}
+}
+
+// digUntilWithheldRange accepts only the two DigUntil key-gathering loops.
+// A changed prefix or a body that does more than collect keys must be
+// reclassified rather than silently marking an implemented param as unread.
+func digUntilWithheldRange(rs *ast.RangeStmt, key string) bool {
+	if len(rs.Body.List) != 1 {
+		return false
+	}
+	gate, ok := rs.Body.List[0].(*ast.IfStmt)
+	if !ok || gate.Else != nil || len(gate.Body.List) != 1 {
+		return false
+	}
+	call, ok := gate.Cond.(*ast.CallExpr)
+	if !ok || exprText(call.Fun) != "strings.HasPrefix" || len(call.Args) != 2 || exprText(call.Args[0]) != key {
+		return false
+	}
+	prefix, ok := call.Args[1].(*ast.BasicLit)
+	if !ok || prefix.Kind != token.STRING || (prefix.Value != `"Imprint"` && prefix.Value != `"NoneFound"`) {
+		return false
+	}
+	assign, ok := gate.Body.List[0].(*ast.AssignStmt)
+	if !ok || assign.Tok != token.ASSIGN || len(assign.Lhs) != 1 || len(assign.Rhs) != 1 {
+		return false
+	}
+	collected, ok := assign.Lhs[0].(*ast.Ident)
+	if !ok {
+		return false
+	}
+	appendCall, ok := assign.Rhs[0].(*ast.CallExpr)
+	if !ok || exprText(appendCall.Fun) != "append" || len(appendCall.Args) != 2 || exprText(appendCall.Args[0]) != collected.Name || exprText(appendCall.Args[1]) != key {
+		return false
+	}
+	return true
 }
 
 // rangeKeyIsWriteOnly reports whether the range body is a pure Params copy
@@ -1090,6 +1136,19 @@ var stringMapParams = map[string]string{
 	// built from one SVar static line -- the same SVar-body shape
 	// compoundRememberedSpec reads.
 	"effects:mayPlayGrantFromLine:params": "keys of a parseStaticLine-built static line (an SVar body), not a card Params map",
+	// effects/misc.go mayPlayFreeGrantFromLine: the same parseStaticLine-built
+	// SVar static line, the FREE-cast MayPlay grant arm's whitelist (the
+	// MayPlayWithoutManaCost$ True shape).
+	"effects:mayPlayFreeGrantFromLine:params": "keys of a parseStaticLine-built static line (an SVar body), not a card Params map",
+	// effects/misc.go MayPlayFreeStaticParams: the same static-line map -- the
+	// free-cast shape's own whitelist, shared grammar with MayPlayStaticParams.
+	"effects:MayPlayFreeStaticParams:params": "keys of a static may-play line (S: or parseStaticLine-built), not a card Params map",
+	// effects/misc.go mayPlayParams: the ONE key-scan both MayPlay whitelists
+	// delegate to (the key-range loop plus the four rider reads). Its reads
+	// are also made -- and genuinely attributed -- by rules/mayplay.go's
+	// mayPlayStatic on the static family, so skipping the effects-side
+	// attribution masks nothing.
+	"effects:mayPlayParams:params": "shared key-scan of a static may-play line (S: or parseStaticLine-built), not a card Params map",
 	// effects/misc.go cascadeKeywordGrantFromLine: params is the same
 	// parseStaticLine-built SVar static line (the AddKeyword$ Cascade grant
 	// arm's whitelist); its dynamic gate-key loop (Condition/CheckSVar/...) is

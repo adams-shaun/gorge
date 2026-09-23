@@ -439,6 +439,10 @@ type Decision struct {
 	ResumeChoices     []state.Target `json:"-"`
 	ResumeChosenValid bool           `json:"-"`
 	ResumeRemembered  []state.Target `json:"-"`
+	// ResumeDigUntilMove carries an earlier OptionalFoundMove$ answer through
+	// a nested DigUntil Aura-bearer ask. It is runtime continuation state only.
+	ResumeDigUntilMove     string `json:"-"`
+	ResumeDigUntilMoveDone bool   `json:"-"`
 	// ResumeTargetsUnique carries the TargetUnique$ accumulator of the
 	// resolution that posed this ask (Ctx.TargetsUnique at suspension time):
 	// the resume rebuilds a fresh Ctx, which without the ride loses every
@@ -453,6 +457,12 @@ type Decision struct {
 	// continuation state, never client input, the same class as
 	// ResumeRemembered.
 	ResumeMoved []state.ObjID `json:"-"`
+	// ResumeDigPrimary carries a Dig's primary cards when its remainder's
+	// ordered-bottom ask suspends after those cards were moved to a library.
+	// The arrange handler needs this to place the primary pile on top after it
+	// applies the remainder order; it is runtime continuation state, never
+	// client input.
+	ResumeDigPrimary []state.ObjID `json:"-"`
 	// ResumeObjects carries an ASK's own immutable object snapshot when the
 	// continuation must walk a list the answer can shrink out from under it.
 	// Time Travel (Doctor Who) is the first user: its per-object election

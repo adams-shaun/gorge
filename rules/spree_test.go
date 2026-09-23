@@ -132,9 +132,28 @@ func TestRequisitionRaidSpreeChargesEachChosenMode(t *testing.T) {
 				choices = append(choices, modeOptionContaining(t, d, text))
 			}
 			crAbortAnswer(t, e, "Requisition Raid", choices...)
-			// The chosen target-bearing mode's CR 601.2c declaration is answered
-			// once (the modal first-target-bearing-mode shape).
-			crAbortAnswer(t, e, "Requisition Raid", targetOptionFor(t, e, artifact))
+			// Each distinct target-bearing mode declares its own CR 601.2c target.
+			if tc.wantModes == 1 {
+				crAbortAnswer(t, e, "Requisition Raid", targetOptionFor(t, e, artifact))
+			} else {
+				d = e.Pending()
+				if d == nil || d.Kind != decision.KTarget || d.Min != 2 || d.Max != 2 {
+					t.Fatalf("pending = %+v, want two target slots", d)
+				}
+				artIdx, enchantIdx := -1, -1
+				for _, o := range d.Options {
+					if o.Group == "charm-mode-0" && o.Obj == artifact {
+						artIdx = o.Index
+					}
+					if o.Group == "charm-mode-1" && o.Obj == enchantment {
+						enchantIdx = o.Index
+					}
+				}
+				if artIdx < 0 || enchantIdx < 0 || artIdx == enchantIdx {
+					t.Fatalf("fixture lacks separate artifact/enchantment targets: %+v", d.Options)
+				}
+				crAbortAnswer(t, e, "Requisition Raid", artIdx, enchantIdx)
+			}
 
 			if got := e.G.Obj(id).Zone; got != state.ZStack {
 				t.Fatalf("Requisition Raid zone after the cast = %s, want stack", got)
