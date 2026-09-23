@@ -26,6 +26,12 @@ func TestChooseProtectorBotPrefersLowestLife(t *testing.T) {
 	if len(got.Choices) != 1 || got.Choices[0] != 1 {
 		t.Fatalf("bot protector choice = %v, want option 1 (the lower-life opponent)", got.Choices)
 	}
+	// The arm's answer must satisfy the decision's own legal-answer rule --
+	// the one shared Constraint (validate/clamp/arm), so a future tightening
+	// of Validate cannot leave the arm livelocked on a rejected answer.
+	if err := d.Validate(got); err != nil {
+		t.Fatalf("bot answer %v rejected by Decision.Validate: %v", got.Choices, err)
+	}
 }
 
 // TestChooseProtectorBotArmReadsBoardFromGame proves the arm reads real game
@@ -57,5 +63,8 @@ func TestChooseProtectorBotArmReadsBoardFromGame(t *testing.T) {
 	got := Decide(b, d, rand.New(rand.NewPCG(1, 2)))
 	if len(got.Choices) != 1 || got.Choices[0] != 1 {
 		t.Fatalf("bot protector choice from BoardFromGame = %v, want option 1 (seat 2, life 3)", got.Choices)
+	}
+	if err := d.Validate(got); err != nil {
+		t.Fatalf("bot answer %v rejected by Decision.Validate: %v", got.Choices, err)
 	}
 }
