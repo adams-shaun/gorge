@@ -294,3 +294,17 @@ integration as `git merge main`.
   `knownUnsupported`/`knownUnsupportedParams`/`knownUnmodelledCountHeads`
   entry, so no ratchet table edit was needed; all pass untouched.
 - Commits: `bdbdd7cb` (merge, conflict resolution) + this docs commit.
+
+
+## Current dispatch confirmation (2026-09-23)
+
+The dispatch additionally reported an earlier rebase conflict in `AGENTS.md` and `internal/testutil/agentsdoc_test.go`, followed by a merge-fallback conflict in `.ds4/report-mrg1.md` and `AGENTS.md`. Those attempts were not active when this resolver seat began: the branch already contained the completed merge `e3aa3074` and report commit `f3148515`. The actual merge resolution and conflicts are documented above; `AGENTS.md` auto-merged both sides' row deletions, and the only unmerged path in the completed merge was `internal/testutil/agentsdoc_test.go`. No unmerged paths remain.
+
+Reconfirmed in this seat:
+
+- `.cards` exists; corpus-dependent tests are not vacuous.
+- Before this report update, `git status --short --branch` showed only `## wt/cli-20260922T225142Z-1d4558a1`.
+- `git diff --check HEAD^ HEAD` produced no output.
+- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' 2>&1 | tail -30` returned `ok github.com/adams-shaun/gorge/rules 0.756s`.
+
+No code or conflict-resolution changes were needed in this confirmation seat.
