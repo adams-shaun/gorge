@@ -147,6 +147,9 @@ type Option struct {
 	Kind  string      `json:"kind"`
 	Label string      `json:"label"`
 	Obj   state.ObjID `json:"obj,omitempty"`
+	// Counter identifies the counter kind for wildcard counter-removal costs.
+	// It is omitted for choices that do not select a counter kind.
+	Counter string `json:"counter,omitempty"`
 	// Player is always emitted because 0 is a valid seat (0-indexed), unlike
 	// Obj where 0 means "no object".
 	Player state.PlayerID `json:"player"`
