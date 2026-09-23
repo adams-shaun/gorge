@@ -5,13 +5,14 @@
 // measured 2026-09-22), and the sibling `sVars$` grant on an Animate body
 // (the named SVars the animated object carries).
 //
-// The rider's scope is the Animate site only. The remaining four corpus
-// carriers -- two `DB$ Pump` (Moira and Teshar, Dreams of the Dead) and two
-// ChangeZone (Isareth the Awakener, From the Catacombs) -- are split out to a
-// follow-up ticket: the brief authorizes the Animate/Whip shape, and neither
-// the brief nor a controller ruling covers the class-wide expansion. The
-// `LeaveBattlefield$` value is therefore only ever read from an Animate SA
-// here.
+// The rider's scope is the whole promise family: the Animate site (Whip of
+// Erebos, Kheru Lich Lord, Gruesome Encore, Storm Herald), the two `DB$ Pump`
+// carriers (Moira and Teshar, Dreams of the Dead -- registered through Pump's
+// one per-object home, registerPumpEffects, so Pump and PumpAll cannot drift)
+// and the two ChangeZone carriers (Isareth the Awakener, From the Catacombs --
+// registered after the object actually enters the battlefield, on both the
+// inlined object path and settleChangeZoneMoveAs). The `LeaveBattlefield$`
+// value is read from whichever SA resolves at those sites.
 package effects
 
 import (

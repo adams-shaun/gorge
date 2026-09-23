@@ -167,6 +167,20 @@ func (e *Engine) handleArrange(d *decision.Decision, in decision.Intent) {
 		newLib = append(newLib, pileB...)
 		e.emit(events.Event{Kind: events.LibraryOrder, Player: d.Player,
 			IDs: newLib, Secret: true})
+		// A completed Scry records its final bottom pile as the shared
+		// events.Scry marker (task scrybottom). The answer is known here, so
+		// Amount is the number the player actually chose to put on the
+		// bottom -- never the number looked at, and 0 when they kept every
+		// card on top. `triggerCount$ScryBottom` resolves it for The Temporal
+		// Anchor's `DB$ Dig | DigNum$ X`, and the Scry matcher's
+		// `ToBottom$ True` gate reads it. The verb is identified by the
+		// suspended resolution's own SA, NOT by the option Kind: a plain
+		// RearrangeTopOfLibrary (Ponder) shares the "bottom" Kind with an
+		// always-empty pile B and must emit no scry record at all.
+		if rp.sa != nil && rp.sa.API == "Scry" {
+			e.emit(events.Event{Kind: events.Scry, Player: d.Player,
+				Obj: d.Source, Amount: int32(len(pileB))})
+		}
 	case "graveyard":
 		// Ruling J4: pile B leaves the library. The LibraryOrder for
 		// pileA + remainder is emitted FIRST, then one MoveZone per pile-B

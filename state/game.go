@@ -273,6 +273,19 @@ type Game struct {
 	// combat from every combat the first one created (a measured livelock). No
 	// event or behaviour changes for any game without such a condition.
 	CombatsThisTurn int32
+	// ResolvedThisTurn counts, per resolving ability, how many times THAT
+	// ability has resolved this turn, INCLUDING the resolution whose tally is
+	// being read. It backs Forge's Count$ResolvedThisTurn (Sephiroth, Fabled
+	// SOLDIER's "if this is the fourth time this ability has resolved this
+	// turn, transform", Prowl's back face, Victor, Nissa, Tannuk, ...). The
+	// key is events.ResolvedAbilityKey (source ObjID + the root Ability$ body's
+	// content), so two T: lines sharing one Execute$ SVar count into one
+	// tally exactly as the oracle's "this ability" means. It is incremented by
+	// events.Apply's Resolve case -- folded from the existing Resolve event, no
+	// new Kind or field -- and zeroed at TurnChange, the same replay-exact
+	// shape CombatsThisTurn uses, so a log-only replay rebuilds the identical
+	// tally without a new event. Nil until the first resolution of a game.
+	ResolvedThisTurn map[string]int32
 	// Monarch is the current monarch when HasMonarch is true. The presence bit
 	// keeps seat zero distinct from no monarch.
 	Monarch    PlayerID
@@ -541,6 +554,16 @@ func (g *Game) Clone() *Game {
 		c.ExtraTurns = make(map[PlayerID]int, len(g.ExtraTurns))
 		for p, n := range g.ExtraTurns {
 			c.ExtraTurns[p] = n
+		}
+	}
+	// ResolvedThisTurn is incremented in place by events.Apply's Resolve case,
+	// so a clone must own its own map -- sharing the live one's backing map
+	// would let a clone's resolution corrupt the original's per-ability tally
+	// (the same rule as ExtraTurns above and every other in-place slice/map).
+	if g.ResolvedThisTurn != nil {
+		c.ResolvedThisTurn = make(map[string]int32, len(g.ResolvedThisTurn))
+		for k, n := range g.ResolvedThisTurn {
+			c.ResolvedThisTurn[k] = n
 		}
 	}
 	c.ExtraTurnQueue = append([]ExtraTurn(nil), g.ExtraTurnQueue...)
