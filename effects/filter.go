@@ -846,8 +846,8 @@ func attachedToReferent(ref string) (string, bool) {
 // attachedToReferentObjects resolves an attachedToReferent spelling to the
 // live object ids it names in this SpecContext, and reports whether the
 // referent is BOUND. An absent binding (Targeted outside a resolution, or a
-// trigger referent with no remembered object) returns (nil, false) so both
-// the matcher and contextPredicateBound fail closed -- never an invented
+// trigger referent with no remembered object), or a stale object ID, returns
+// (nil, false) so both the matcher and contextPredicateBound fail closed -- never an invented
 // bearer and never an always-true negation. Player-only entries are dropped:
 // state.Object.AttachedTo can only name an object, so a player referent is
 // unrepresentable and admits nothing.
@@ -863,7 +863,10 @@ func attachedToReferent(ref string) (string, bool) {
 // carriers -- Strip Bare, Hubris, Fiery Annihilation's TargetMax$ 1, Arna,
 // Rhuk -- all bind singly; Silence the Believers' Strive is the one plural-
 // capable carrier and fails closed at >= 2 targets rather than guessing).
-func attachedToReferentObjects(sc SpecContext, ref string) ([]state.ObjID, bool) {
+func attachedToReferentObjects(g *state.Game, sc SpecContext, ref string) ([]state.ObjID, bool) {
+	if g == nil {
+		return nil, false
+	}
 	switch ref {
 	case "Targeted", "ParentTarget":
 		// Resolution-only, exactly like the Targeted*/NotDefinedTargeted
@@ -876,6 +879,9 @@ func attachedToReferentObjects(sc SpecContext, ref string) ([]state.ObjID, bool)
 		out := make([]state.ObjID, 0, len(sc.ResolutionTargets))
 		for _, t := range sc.ResolutionTargets {
 			if !t.IsPlayer && t.Obj != 0 {
+				if g.Obj(t.Obj) == nil {
+					return nil, false
+				}
 				out = append(out, t.Obj)
 			}
 		}
@@ -894,6 +900,9 @@ func attachedToReferentObjects(sc SpecContext, ref string) ([]state.ObjID, bool)
 		out := make([]state.ObjID, 0, len(sc.Remembered))
 		for _, t := range sc.Remembered {
 			if !t.IsPlayer && t.Obj != 0 {
+				if g.Obj(t.Obj) == nil {
+					return nil, false
+				}
 				out = append(out, t.Obj)
 			}
 		}
@@ -1779,7 +1788,7 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 			// The referent resolved from SpecContext; contextPredicateBound
 			// already refused an unbound one, so a false here is a real
 			// "attached to something else", never an absence.
-			ids, bound := attachedToReferentObjects(sc, ref)
+			ids, bound := attachedToReferentObjects(g, sc, ref)
 			if !bound {
 				return false
 			}
@@ -1840,7 +1849,7 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 // need only the object and the evaluating controller, both of which are
 // always present. key is the classifier's argument (wordAttachedTo's <ref>),
 // empty for the families that carry none.
-func contextPredicateBound(kind wordKind, key string, sc SpecContext) bool {
+func contextPredicateBound(g *state.Game, kind wordKind, key string, sc SpecContext) bool {
 	switch kind {
 	case wordNotDefinedTargeted:
 		return sc.Resolving
@@ -1850,7 +1859,7 @@ func contextPredicateBound(kind wordKind, key string, sc SpecContext) bool {
 		return sc.Source != 0
 	case wordAttachedTo:
 		if ref, ok := attachedToReferent(key); ok {
-			_, bound := attachedToReferentObjects(sc, ref)
+			_, bound := attachedToReferentObjects(g, sc, ref)
 			return bound
 		}
 	}
@@ -2821,7 +2830,7 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		// well, so it returns unknown (ok=false) rather than a false a
 		// caller could invert into a match -- the same contract
 		// wordCastProvenance keeps.
-		if !contextPredicateBound(kind, key, sc) {
+		if !contextPredicateBound(g, kind, key, sc) {
 			return false, false
 		}
 		return wordMatches(kind, key, g, o, sc), true
