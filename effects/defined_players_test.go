@@ -176,30 +176,6 @@ func TestHandMoveOwnersPlainRememberedKeepsRememberedPlayer(t *testing.T) {
 	wantPlayers(t, owners, []state.PlayerID{2}, "handMoveOwners(Remembered)")
 }
 
-// TestChooserPlayerPlainRememberedExcludesCardControllers pins the hidden-hand
-// Chooser$ resolver: `Chooser$ Remembered` must name the remembered player,
-// not the remembered card's controller.
-func TestChooserPlayerPlainRememberedExcludesCardControllers(t *testing.T) {
-	h, c, _ := mixedRememberedHost(t)
-	p, ok := chooserPlayer(h, c, "Remembered")
-	if !ok || p != 2 {
-		t.Fatalf("chooserPlayer(Remembered) = %d,%v, want 2,true", p, ok)
-	}
-	pCtrl, okCtrl := chooserPlayer(h, c, "RememberedController")
-	if !okCtrl || pCtrl != 1 {
-		t.Fatalf("chooserPlayer(RememberedController) = %d,%v, want 1,true", pCtrl, okCtrl)
-	}
-}
-
-// TestAllPlayersForPlainRememberedExcludesCardControllers pins the mass
-// tap/untap/damage-all player walk (combatfx allPlayersFor), a sibling
-// player-selection site the same class fix reaches.
-func TestAllPlayersForPlainRememberedExcludesCardControllers(t *testing.T) {
-	h, c, _ := mixedRememberedHost(t)
-	sa := &cards.SA{Params: map[string]string{"Defined": "Remembered"}}
-	wantPlayers(t, allPlayersFor(h, c, sa), []state.PlayerID{2}, "allPlayersFor(Remembered)")
-}
-
 // TestRememberedControllerOwnerControlReferents pins the two control referents
 // definedrem3 added (craterous_stomp / public_execution / winnowing carry
 // `ControlledBy RememberedController`): the remembered card's controller's

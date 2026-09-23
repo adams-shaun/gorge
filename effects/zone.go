@@ -2935,11 +2935,6 @@ func chooserPlayer(h Host, c *Ctx, spec string) (state.PlayerID, bool) {
 		if !t.IsPlayer && h.Game().Obj(t.Obj) == nil {
 			continue
 		}
-		if plainRememberedSelector(spec) && !t.IsPlayer {
-			// A remembered CARD contributes no chooser for the plain
-			// Remembered family (Forge's getDefinedPlayers rule).
-			continue
-		}
 		p := PlayerOf(h, c, t)
 		if int(p) < len(h.Game().Players) && !h.Game().Players[p].Lost {
 			return p, true

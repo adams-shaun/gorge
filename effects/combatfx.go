@@ -172,7 +172,8 @@ func allPlayersFor(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 	}
 	seen := map[state.PlayerID]bool{}
 	var out []state.PlayerID
-	for _, p := range definedPlayers(h, c, sa) {
+	for _, t := range Defined(h, c, sa) {
+		p := PlayerOf(h, c, t)
 		if int(p) < len(g.Players) && !seen[p] {
 			seen[p] = true
 			out = append(out, p)
