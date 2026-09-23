@@ -388,6 +388,9 @@ func evalCountExprOK(h Host, c *Ctx, expr string, depth int) (int32, bool) {
 		return 0, false
 	}
 	body, op, hasOp := strings.Cut(body, "/")
+	if hasOp && strings.TrimSpace(body) == "Convoked$Amount" && !validConvokedCountOp(op) {
+		return 0, false
+	}
 	n, ok2 := evalCountBody(h, c, strings.TrimSpace(body), depth)
 	if hasOp {
 		if clamped, isLimit := countDistinctLimitMax(strings.TrimSpace(body), op, n); isLimit {
@@ -1370,6 +1373,43 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		if rest, ok := strings.CutPrefix(head, "OptionalGenericCostPaid."); ok {
 			head, arg = "OptionalGenericCostPaid", strings.TrimSpace(rest)
 		}
+	}
+
+	// Convoked$Amount (CR 702.66): the number of creatures that convoked the
+	// resolving spell's cast -- Forge's own `SVar:X:Convoked$Amount` head.
+	// The count reads the SAME source-object provenance the Defined$ Convoked
+	// selector reads (effects/context.go's definedSpec): the pay-time
+	// CastInfo's FlagConvoked IDs, folded onto Object.Convoked by
+	// events.Apply and preserved across the stack->battlefield move, so the
+	// ETB half of Ancient Imperiosaur and Knight-Errant of Eos reads the same
+	// set the spell on the stack did. A cast with no convoke, an absent
+	// source and a copy all read a legitimate zero (the modelled-head
+	// convention every other cast-provenance count takes, NOT the
+	// unresolvable verdict the fallthrough gives). A creature that left play
+	// after convoking still counts -- CR 702.66 counts the creatures that
+	// CONVOKED, and Object.Convoked holds their ids.
+	//
+	// This is a `<Head>$<Property>` body, so it carries its OWN optional /Op
+	// exactly like PlayerCountHasLost$Amount/Times.10: a
+	// `Count$Convoked$Amount/Twice` gets the suffix peeled upstream by
+	// evalCountExprOK and applied generically, while the corpus's bare
+	// `SVar:X:Convoked$Amount/Twice` (Ancient Imperiosaur's two
+	// counters-per-creature) reaches here with the suffix intact and must
+	// strip it before the exact-name compare. Splitting it here -- not in a
+	// second Twice arm -- keeps ONE composition path for the op.
+	if rest, ok := strings.CutPrefix(head, "Convoked$"); ok {
+		name, op, hasOp := strings.Cut(rest, "/")
+		if strings.TrimSpace(name) != "Amount" || hasOp && !validConvokedCountOp(op) {
+			return 0, false
+		}
+		n := int32(0)
+		if o := g.Obj(c.Source); o != nil {
+			n = int32(len(o.Convoked))
+		}
+		if hasOp {
+			n = applyCountOp(n, op)
+		}
+		return n, true
 	}
 
 	switch head {
@@ -4004,6 +4044,24 @@ func hasSubtype(o *state.Object, sub string) bool {
 		}
 		if match {
 			return true
+		}
+	}
+	return false
+}
+
+// validConvokedCountOp keeps this newly modelled head from treating a typo or
+// unimplemented operator as a successful read of the base amount. Other
+// heads retain their existing operator fallback; the two corpus carriers
+// need only the bare value and /Twice.
+func validConvokedCountOp(op string) bool {
+	switch op {
+	case "Twice", "Thrice", "HalfDown", "HalfUp", "Negative":
+		return true
+	}
+	for _, prefix := range []string{"Plus.", "Minus.", "NMinus.", "Times.", "Divide.", "DivideEvenly.", "DivideEvenlyUp.", "DivideEvenlyDown."} {
+		if operand, ok := strings.CutPrefix(op, prefix); ok {
+			n, err := strconv.Atoi(operand)
+			return err == nil && (!strings.HasPrefix(prefix, "Divide") || n > 0)
 		}
 	}
 	return false
