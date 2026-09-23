@@ -225,6 +225,26 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 			manaAbilities = append(manaAbilities, pf.Face.ManaAbilities()...)
 		}
 	}
+	// CR 305.6: basic land types granted in layer 4 carry their intrinsic
+	// mana abilities too. Printed faces already contain their own intrinsics;
+	// append only productions they do not already provide.
+	if !faceDown && len(e.landTypeWords) > 0 {
+		for _, ce := range e.active() {
+			if ce.Layer == LType {
+				produced := make(map[string]bool, len(manaAbilities))
+				for _, ma := range manaAbilities {
+					produced[ma.Params["Produced"]] = true
+				}
+				for _, typ := range e.Derived(id).Types {
+					if ma, ok := cards.IntrinsicManaAbility(typ); ok && !produced[ma.Params["Produced"]] {
+						manaAbilities = append(manaAbilities, ma)
+						produced[ma.Params["Produced"]] = true
+					}
+				}
+				break
+			}
+		}
+	}
 	recipientCtx := &effects.Ctx{Source: id, Controller: p, SVars: f.SVars}
 	abilityRestricted := func(ma *cards.SA) bool {
 		if statics == nil {
