@@ -394,6 +394,19 @@ func init() {
 		return hasAttachmentOfKind(g, o.ID, "Aura")
 	}
 	predicates["Enchanted"] = predicates["enchanted"]
+	// Attached: Forge's bare `Attached` CardProperty -- the candidate is
+	// itself attached to a permanent. It is the IS-side twin of the
+	// two-token wordAttachedTo below and the ONE-token form of the same
+	// relation: read the candidate's OWN AttachedTo (never the source's,
+	// which is attachedBy/AttachedBy's meaning), requiring the bearer to
+	// still be a live object. The corpus spells it only as a filter
+	// predicate (Count$Valid Equipment.Attached / Aura.Attached, the
+	// ChangeType$ and ValidCards$ families: 22 files), where the base type
+	// word does the object-kind narrowing. An unattached object matches
+	// nothing; a bearer that has left is not an attachment.
+	predicates["Attached"] = func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return objectIsAttached(g, o)
+	}
 	// Soulbond's "PairedWith" and "Paired" predicates (CR 702.103): the
 	// Affected$ spec `Creature.PairedWith` names the creature a source is
 	// paired with, and `Creature.Self+Paired` names the source itself when it
@@ -799,6 +812,80 @@ func sharesCreatureTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref 
 	return false
 }
 
+// objectIsAttached reports whether o is attached to a live object: its own
+// AttachedTo names an object still reachable in the game. It is the shared
+// body of the bare `Attached` predicate and the literal `AttachedTo <X>`
+// matcher, so the two readings of "is attached" can never disagree. A bearer
+// that has left (AttachedTo stale, g.Obj nil) is not an attachment.
+func objectIsAttached(g *state.Game, o *state.Object) bool {
+	if g == nil || o == nil || o.AttachedTo == 0 {
+		return false
+	}
+	return g.Obj(o.AttachedTo) != nil
+}
+
+// attachedToReferent classifies the resolution-time referent forms beyond a
+// literal type/class argument that `AttachedTo <ref>` accepts: the resolving
+// ability's own targets (Targeted, ParentTarget -- effects' Ctx.Targets is
+// the resolution's list, and ParentTarget is the same list here), the card a
+// trigger captured (TriggeredCardLKICopy, read from the same Remembered set
+// effects' Defined$ TriggeredCardLKICopy resolves), and the attacking
+// creature an Attacks trigger captured (TriggeredAttackerLKICopy, the
+// TriggeredAttacker family's Remembered read -- Arna, Skycaptain's real
+// source filter). It returns the canonical spelling and true; any other
+// token (including a nested predicate or an unrecognised referent) is
+// rejected so the classifier and UnknownPredicates stay in agreement.
+func attachedToReferent(ref string) (string, bool) {
+	switch ref {
+	case "Targeted", "ParentTarget", "TriggeredCardLKICopy", "TriggeredAttackerLKICopy":
+		return ref, true
+	}
+	return "", false
+}
+
+// attachedToReferentObjects resolves an attachedToReferent spelling to the
+// live object ids it names in this SpecContext, and reports whether the
+// referent is BOUND. An absent binding (Targeted outside a resolution, or a
+// trigger referent with no remembered object) returns (nil, false) so both
+// the matcher and contextPredicateBound fail closed -- never an invented
+// bearer and never an always-true negation. Player-only entries are dropped:
+// state.Object.AttachedTo can only name an object, so a player referent is
+// unrepresentable and admits nothing.
+func attachedToReferentObjects(sc SpecContext, ref string) ([]state.ObjID, bool) {
+	switch ref {
+	case "Targeted", "ParentTarget":
+		// Resolution-only, exactly like the Targeted*/NotDefinedTargeted
+		// families: SpecContext has ResolutionTargets set only by a
+		// resolving context (effects.Ctx.SpecContext or a legality recheck),
+		// never while a target offer is being built.
+		if !sc.Resolving {
+			return nil, false
+		}
+		out := make([]state.ObjID, 0, len(sc.ResolutionTargets))
+		for _, t := range sc.ResolutionTargets {
+			if !t.IsPlayer && t.Obj != 0 {
+				out = append(out, t.Obj)
+			}
+		}
+		return out, true
+	case "TriggeredCardLKICopy", "TriggeredAttackerLKICopy":
+		// The Remembered set the trigger captured, the same read the
+		// Defined$ selector of the same name makes (effects/context.go). No
+		// remembered OBJECT means the trigger bound nothing: fail closed.
+		out := make([]state.ObjID, 0, len(sc.Remembered))
+		for _, t := range sc.Remembered {
+			if !t.IsPlayer && t.Obj != 0 {
+				out = append(out, t.Obj)
+			}
+		}
+		if len(out) == 0 {
+			return nil, false
+		}
+		return out, true
+	}
+	return nil, false
+}
+
 // attachedToArg splits the space-bearing two-token predicate "AttachedTo <X>"
 // into its argument and reports whether the argument is (a) a single literal
 // type or object class the base grammar (matchesBase) can answer from the
@@ -846,6 +933,14 @@ func attachedToArg(p string) (string, bool) {
 	}
 	if strings.ContainsAny(arg, "+,") {
 		return "", false
+	}
+	// The resolution-time referent forms (Targeted/ParentTarget/triggered
+	// card/attacker): recognised here, resolved against SpecContext by
+	// wordMatches, and refused beneath '!' when their binding is absent
+	// (contextPredicateBound). A referent is not a type word, so it is
+	// checked before the literal type-word fallback.
+	if _, ok := attachedToReferent(arg); ok {
+		return arg, true
 	}
 	switch arg {
 	case "Card", "Permanent", "Spell":
@@ -1643,16 +1738,34 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 	case wordAttachedTo:
 		// Forge's AttachedTo <X>: this object (an Aura or Equipment) is
 		// attached to something, and the permanent it is attached to (its
-		// own AttachedTo id) satisfies the base <X>. An unattached object
-		// (AttachedTo == 0), or one whose attachment is gone, matches
-		// nothing. This is the two-token counterpart of attachedBy, which
-		// reads the SOURCE's AttachedTo to find what the source attaches
-		// to; here we read the candidate object's own AttachedTo. The
-		// dotted two-token "<class>.<qual>" form narrows the attached
-		// object by its qualifier (YouCtrl: attached to a permanent the
-		// spec's you controls -- Umbra Mystic); the key was validated by
-		// attachedToArg, so the re-split here cannot miss.
+		// own AttachedTo id) satisfies the base <X>, OR -- for the
+		// resolution-time referent argument -- is one of the live objects
+		// the referent names (Targeted/ParentTarget/the triggered card or
+		// attacker). An unattached object (AttachedTo == 0), or one whose
+		// attachment is gone, matches nothing. This is the two-token
+		// counterpart of attachedBy, which reads the SOURCE's AttachedTo to
+		// find what the source attaches to; here we read the candidate
+		// object's own AttachedTo. The dotted two-token "<class>.<qual>"
+		// form narrows the attached object by its qualifier (YouCtrl:
+		// attached to a permanent the spec's you controls -- Umbra Mystic);
+		// the key was validated by attachedToArg, so the re-split here
+		// cannot miss.
 		if o.AttachedTo == 0 {
+			return false
+		}
+		if ref, ok := attachedToReferent(key); ok {
+			// The referent resolved from SpecContext; contextPredicateBound
+			// already refused an unbound one, so a false here is a real
+			// "attached to something else", never an absence.
+			ids, bound := attachedToReferentObjects(sc, ref)
+			if !bound {
+				return false
+			}
+			for _, id := range ids {
+				if id == o.AttachedTo {
+					return true
+				}
+			}
 			return false
 		}
 		a := g.Obj(o.AttachedTo)
@@ -1691,18 +1804,21 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 }
 
 // contextPredicateBound reports whether a context-bound classifier word has
-// the binding its body reads. The three pc1 families that read more than the
+// the binding its body reads. The pc1 families that read more than the
 // object alone are NotDefinedTargeted (needs a resolution, so the resolving
 // object's targets exist), DefenderCtrl (needs the combat trigger's captured
 // defending player) and IsImprinted (needs a source whose imprint association
-// is being read). matchPositive consults this before dispatching to
-// wordMatches and returns unknown (ok=false) when the binding is absent, so
-// BOTH the positive and the leading-'!' negated spelling fail closed -- a
-// recognised-but-false body would otherwise let a negated token match every
-// object. The always-bound families (wasDealtDamageThisTurn, Opponent) are
-// not listed: their bodies need only the object and the evaluating
-// controller, both of which are always present.
-func contextPredicateBound(kind wordKind, sc SpecContext) bool {
+// is being read); wordAttachedTo's resolution-time referent argument needs its
+// own binding (a target list or a remembered trigger object). matchPositive
+// consults this before dispatching to wordMatches and returns unknown
+// (ok=false) when the binding is absent, so BOTH the positive and the
+// leading-'!' negated spelling fail closed -- a recognised-but-false body
+// would otherwise let a negated token match every object. The always-bound
+// families (wasDealtDamageThisTurn, Opponent) are not listed: their bodies
+// need only the object and the evaluating controller, both of which are
+// always present. key is the classifier's argument (wordAttachedTo's <ref>),
+// empty for the families that carry none.
+func contextPredicateBound(kind wordKind, key string, sc SpecContext) bool {
 	switch kind {
 	case wordNotDefinedTargeted:
 		return sc.Resolving
@@ -1710,6 +1826,11 @@ func contextPredicateBound(kind wordKind, sc SpecContext) bool {
 		return sc.DefendingPlayer.IsPlayer
 	case wordImprinted, wordChosenColor:
 		return sc.Source != 0
+	case wordAttachedTo:
+		if ref, ok := attachedToReferent(key); ok {
+			_, bound := attachedToReferentObjects(sc, ref)
+			return bound
+		}
 	}
 	return true
 }
@@ -2678,7 +2799,7 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		// well, so it returns unknown (ok=false) rather than a false a
 		// caller could invert into a match -- the same contract
 		// wordCastProvenance keeps.
-		if !contextPredicateBound(kind, sc) {
+		if !contextPredicateBound(kind, key, sc) {
 			return false, false
 		}
 		return wordMatches(kind, key, g, o, sc), true
