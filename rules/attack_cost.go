@@ -889,14 +889,14 @@ func (e *Engine) attackOffers() []attackOffer {
 	// Best named satisfaction per creature over the pairs that survived.
 	best := make(map[state.ObjID]int)
 	for _, of := range out {
-		if n := reqs[of.id].satisfiedBy(of.def); n > best[of.id] {
+		if n := reqs[of.id].satisfiedByOffer(of); n > best[of.id] {
 			best[of.id] = n
 		}
 	}
 	keep := out[:0]
 	for _, of := range out {
 		rs := reqs[of.id]
-		if rs.any() && rs.satisfiedBy(of.def) < best[of.id] {
+		if rs.any() && rs.satisfiedByOffer(of) < best[of.id] {
 			continue
 		}
 		keep = append(keep, of)

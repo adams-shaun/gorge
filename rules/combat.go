@@ -172,6 +172,17 @@ func (s attackRequirementSet) satisfiedBy(defender state.PlayerID) int {
 	return s.named[defender]
 }
 
+// satisfiedByOffer distinguishes attacking a player from attacking a battle
+// that player protects. CR 508.1d's named-player duty is discharged only by
+// attacking that player; the protector field on a battle offer is not itself
+// the defender of the attack.
+func (s attackRequirementSet) satisfiedByOffer(of attackOffer) int {
+	if of.battle != 0 {
+		return 0
+	}
+	return s.satisfiedBy(of.def)
+}
+
 // maxNamed is the greatest number of named requirements any single defender
 // satisfies at once -- the best any offered pair can do against the named
 // half of the requirement set.
@@ -932,7 +943,7 @@ func (e *Engine) attackDutyDischargeable(id state.ObjID, s attackRequirementSet)
 		if of.id != id {
 			continue
 		}
-		if s.satisfiedBy(of.def) > 0 {
+		if s.satisfiedByOffer(of) > 0 {
 			return true
 		}
 		anyPair = true
