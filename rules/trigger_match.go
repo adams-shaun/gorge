@@ -179,6 +179,18 @@ type pendingTrigger struct {
 	// Defined$ TriggeredBlockerLKICopy reads at resolution. Idx and SA are
 	// unset for it.
 	Flanking bool
+	// Mentor is a GRANTED mentor keyword (CR 702.134 via a layer-6
+	// AddKeyword$ Mentor -- Aegis of the Legion's "Equipped creature has
+	// mentor", Nyxborn Unicorn's Bestow aura): the Ward/Afflict/Flanking
+	// shape. A creature granted mentor has no printed K:Mentor trigger to
+	// carry the targeted counter body, so checkGrantedMentorTriggers
+	// synthesizes the ordinary Attacks trigger and the drain pushes a
+	// KeywordTriggerPush whose __kwMentorGranted: payload events.Apply
+	// rebuilds into the same DB$ PutCounter | ValidTgts$ Creature.attacking |
+	// Mentor$ True body the printed expansion carries, then poses that body's
+	// ordinary target ask (unlike Ward/Afflict the body is targeted). Idx and
+	// SA are unset for it.
+	Mentor bool
 	// Cumulative is a GRANTED cumulative-upkeep cost (CR 702.24 via a layer-6
 	// AddKeyword$ Cumulative upkeep:<cost> -- Breath of Dreams, Mana Chains,
 	// Decomposition -- or an A:AB$ Pump's KW$ Cumulative upkeep:<cost> --
@@ -258,6 +270,29 @@ type damageBatchEntry struct {
 	amount  int32
 	sources []state.ObjID
 	targets []state.Target
+}
+
+// zoneBatchKey identifies one ChangesZoneAll trigger line already queued
+// inside an open zone batch. The batch-level zone mode latches per TRIGGER
+// LINE -- the "one or more" reading (Forge RepeatEachEffect's CardZoneTable:
+// the loop's accumulated zone changes reach triggerChangesZoneAll ONCE, so
+// the trigger fires once for the whole table, not once per move).
+type zoneBatchKey struct {
+	triggerKey
+}
+
+// zoneBatchEntry records one ChangesZoneAll line already queued inside the
+// open zone batch: the pendingTriggers index it queued at (the queue is
+// append-only while a batch is open, so the index is stable until batch
+// close) and the batch's moved-object set -- every object this line matched,
+// deduplicated in first-seen order -- which closeZoneBatch patches into the
+// queued trigger's Remembered/Captured, the plural capture the "for each of
+// them" bodies (Defined$ TriggeredObjectLKICopy, RememberedLKI) resolve at
+// resolution.
+type zoneBatchEntry struct {
+	key   triggerKey
+	idx   int
+	moved []state.Target
 }
 
 // turnFires is one T: line's trigger count within the turn it last
@@ -998,6 +1033,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				case events.DeclareAttackers:
 					e.checkGrantedDethroneTriggers(observer, id, o, f, ev, objLKI)
 					e.checkGrantedTrainingTriggers(observer, id, o, f, ev, objLKI)
+					e.checkGrantedMentorTriggers(observer, id, o, f, ev, objLKI)
 				case events.DeclareBlockers:
 					e.checkGrantedAfflictTriggers(id, o, f, ev)
 				case events.PutOnStack:
@@ -1244,6 +1280,41 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 						}
 					}
 				}
+				// ChangesZoneAll inside a RepeatEach ChangeZoneTable$ True loop is
+				// the batch-level zone mode: the loop's accumulated zone changes
+				// reach the trigger ONCE (Forge RepeatEachEffect's CardZoneTable
+				// calling triggerChangesZoneAll after the loop), so it fires ONCE
+				// for the whole batch if at least one matching move happened,
+				// not once per move. The latch keys on the trigger line ALONE
+				// (DamageAll's shape): the first matching move queues the single
+				// instance and every later matching move in the batch accumulates
+				// its object into the entry's deduplicated moved set, which
+				// closeZoneBatch patches into the queued trigger's Remembered/
+				// Captured -- the plural capture the "for each of them" bodies
+				// resolve. No batch open (every ordinary context) means every
+				// zone change is its own batch-of-one: the mode queues per move
+				// exactly as before this gate existed, and Mode$ ChangesZone is
+				// never batch-scoped at all.
+				if t.Mode == "ChangesZoneAll" && e.zoneBatchOpen {
+					if e.zoneBatchIdx == nil {
+						e.zoneBatchIdx = map[zoneBatchKey]int{}
+					}
+					if entIdx, ok := e.zoneBatchIdx[zoneBatchKey{triggerKey: key}]; ok {
+						ent := &e.zoneBatchLog[entIdx]
+						if ev.Obj != 0 {
+							ent.moved = batchAppendTarget(ent.moved, state.Target{Obj: ev.Obj})
+						}
+						continue // already queued once for this batch.
+					}
+					ent := zoneBatchEntry{key: key, idx: len(e.pendingTriggers)}
+					if ev.Obj != 0 {
+						ent.moved = batchAppendTarget(ent.moved, state.Target{Obj: ev.Obj})
+					}
+					e.zoneBatchIdx[zoneBatchKey{triggerKey: key}] = len(e.zoneBatchLog)
+					e.zoneBatchLog = append(e.zoneBatchLog, ent)
+					// Fall through: the trigger queues now; closeZoneBatch patches
+					// its plural capture to the batch's moved set.
+				}
 				// RolledDie's Number$ N ("your third die each turn"): gated
 				// LAST, at the queue point, so a speculative matcher call or a
 				// later-rejected trigger never advances the count. Keyed by the
@@ -1280,6 +1351,15 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				// dies trigger belongs to the player who stole it).
 				controller := o.Controller
 				if objLKI != nil && id == ev.Obj && leftBattlefield(ev) {
+					controller = objLKI.Controller
+				}
+				// TriggerController$ TriggeredCardController assigns the
+				// ChangesZone ability to the controller of the card whose move
+				// caused it. For a permanent leaving the battlefield, use that
+				// event's LKI: the live object has already returned to its owner.
+				if (t.Mode == "ChangesZone" || t.Mode == "ChangesZoneAll") &&
+					t.Params["TriggerController"] == "TriggeredCardController" &&
+					objLKI != nil && leftBattlefield(ev) {
 					controller = objLKI.Controller
 				}
 				// The non-active face of an unlocked Room must be minted through
@@ -1376,6 +1456,10 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		// trigger carrying the training grant) -- the early-return path above
 		// reaches this object through checkGrantedTrainingTriggers's own call.
 		e.checkGrantedTrainingTriggers(observer, id, o, f, ev, objLKI)
+		// A granted Mentor must fire even when the object's own printed
+		// triggers are live for this event -- the same both-paths rule
+		// Afflict, Conspire, Exploit, Offspring and Training follow.
+		e.checkGrantedMentorTriggers(observer, id, o, f, ev, objLKI)
 		// A granted cumulative upkeep must fire at the beginning of the
 		// controller's upkeep even when the object's own printed triggers are
 		// live for this step change -- the same both-paths rule Afflict,
@@ -1539,6 +1623,68 @@ func batchAppendTarget(ts []state.Target, t state.Target) []state.Target {
 // openDamageBatch/closeDamageBatch on the engine. See there.
 func (e *Engine) BeginDamageBatch() { e.openDamageBatch() }
 func (e *Engine) EndDamageBatch()   { e.closeDamageBatch() }
+
+// BeginZoneBatch/EndZoneBatch are the zone twin of the damage bracket above:
+// effects/choose_control.go's effRepeatEach opens them around a whole
+// RepeatEach loop whose ChangeZoneTable$ True asks for the batch. See
+// openZoneBatch/closeZoneBatch.
+func (e *Engine) BeginZoneBatch() { e.openZoneBatch() }
+func (e *Engine) EndZoneBatch()   { e.closeZoneBatch() }
+
+// openZoneBatch opens a zone batch: the zone-change events (MoveZone,
+// Draw, PutOnStack -- the kinds zoneChangeMatches consults) emitted until
+// the matching closeZoneBatch are one simultaneous batch for ChangesZoneAll.
+// Reentrant brackets belong to the same nested-batch discipline as the
+// damage batch: depth makes an inner close consume only its own begin. A
+// ChangeZoneTable loop that suspends mid-body leaves the bracket open
+// across the resume -- the re-entry pass re-enters with the same SA on the
+// same engine and closes it when the loop completes, so the bracket is
+// balanced however many resumes interleave.
+func (e *Engine) openZoneBatch() {
+	if e.zoneBatchDepth == 0 {
+		e.zoneBatchOpen = true
+		e.zoneBatchIdx = nil
+		e.zoneBatchLog = nil
+	}
+	e.zoneBatchDepth++
+}
+
+// closeZoneBatch closes the open zone batch: every entry's queued trigger
+// gets its Remembered/Captured patched to the batch's deduplicated moved set
+// (the plural capture), then the batch bookkeeping is dropped. The latch
+// lives entirely inside the open batch -- entries are the latch, and closing
+// clears them -- so nothing persists between batches. The pendingTriggers
+// index recorded at queue time is re-checked against the trigger it was
+// recorded for before patching (same guard as closeDamageBatch: a trigger
+// whose Execute$ never resolved queued nothing, so a stale index must not
+// patch a stranger).
+func (e *Engine) closeZoneBatch() {
+	if e.zoneBatchDepth == 0 {
+		return
+	}
+	e.zoneBatchDepth--
+	if e.zoneBatchDepth != 0 {
+		return
+	}
+	e.zoneBatchOpen = false
+	for _, ent := range e.zoneBatchLog {
+		if ent.idx >= len(e.pendingTriggers) {
+			continue
+		}
+		for i := ent.idx; i < len(e.pendingTriggers); i++ {
+			pt := &e.pendingTriggers[i]
+			if pt.Source != ent.key.Source || pt.Idx != ent.key.Idx {
+				break
+			}
+			if len(ent.moved) > 0 {
+				pt.Ctx.Remembered = append([]state.Target(nil), ent.moved...)
+				pt.Ctx.Captured = append([]state.Target(nil), ent.moved...)
+			}
+		}
+	}
+	e.zoneBatchIdx = nil
+	e.zoneBatchLog = nil
+}
 
 // triggerRemembered is what a matched trigger's Ctx.Remembered holds: the
 // object the triggering event was actually about (the card that changed
@@ -1886,6 +2032,12 @@ func init() {
 		// attacksMatches (the Dethrone precedent), with a granted-keyword
 		// synthesis (checkGrantedTrainingTriggers) for the layer-6 grant.
 		"kw:Training",
+		// CR 702.134 Mentor: an Attacks trigger (cards/kw_mentor.go) whose
+		// targeted PutCounter body carries the Mentor$ marker, enforced by
+		// mentorAdmits at both the target offer and the recheck, with a
+		// granted-keyword synthesis (checkGrantedMentorTriggers) for the
+		// layer-6 grant.
+		"kw:Mentor",
 		// Task 17: Storm's expansion (cards/keywords.go) is a SpellCast
 		// trigger whose effect is CopySpellAbility -- the expansion existed
 		// since Task 11; registering the keyword here completes its

@@ -44,6 +44,7 @@ func TestTriggerKeywordsExpandWithLinkedEffects(t *testing.T) {
 		"Evolve":            {"K:Evolve", "ChangesZone", "PutCounter"},
 		"Exalted":           {"K:Exalted", "Attacks", "Pump"},
 		"Training":          {"K:Training", "Attacks", "PutCounter"},
+		"Mentor":            {"K:Mentor", "Attacks", "PutCounter"},
 		"Prowess":           {"K:Prowess", "SpellCast", "Pump"},
 		"Storm":             {"K:Storm", "SpellCast", "CopySpellAbility"},
 		"Living Weapon":     {"K:Living Weapon", "ChangesZone", "Token"},
@@ -63,6 +64,17 @@ func TestTriggerKeywordsExpandWithLinkedEffects(t *testing.T) {
 	lw := expanded(t, "Name:B\nManaCost:5\nTypes:Artifact Equipment\nK:Living Weapon\nOracle:x\n")
 	if sub := lw.Triggers[0].Effect.Sub; sub == nil || sub.API != "Attach" || sub.Params["Defined"] != "Remembered" {
 		t.Fatalf("living weapon sub-ability %+v", sub)
+	}
+	// Mentor (CR 702.134): the body is a TARGETED PutCounter on another
+	// attacking creature -- ValidTgts$ Creature.attacking, no Defined$ Self
+	// (Training's shape), one P1P1 counter, and the Mentor$ marker rules'
+	// mentorAdmits reads for the strict lesser-power restriction.
+	m := expanded(t, "Name:M\nManaCost:1\nTypes:Creature\nPT:1/1\nK:Mentor\nOracle:x\n")
+	mb := m.Triggers[0].Effect
+	if mb.Params["ValidTgts"] != "Creature.attacking" || mb.Params["Defined"] != "" ||
+		mb.Params["CounterType"] != "P1P1" || mb.Params["CounterNum"] != "1" ||
+		mb.Params["Mentor"] != "True" {
+		t.Fatalf("mentor body %+v", mb.Params)
 	}
 }
 
