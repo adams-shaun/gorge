@@ -50,11 +50,14 @@ func noResolvingCheck(t cards.Trigger) bool {
 // A nil tc leaves those clauses to their fire-time matcher, so this function
 // is safe to call with no context for a trigger whose mode evaluates them
 // itself (the fire-time general gate passes nil for exactly that reason).
-func (e *Engine) triggerResolvingCheckHolds(t cards.Trigger, source state.ObjID, tc *effects.TriggerContext) bool {
+func (e *Engine) triggerResolvingCheckHolds(t cards.Trigger, source state.ObjID, controller state.PlayerID, tc *effects.TriggerContext) bool {
 	if noResolvingCheck(t) {
 		return true
 	}
-	return e.triggerConditionHoldsCtx(t, source, e.controllerOf(source), tc)
+	// The ability's controller was fixed when it went on the stack. A delayed
+	// Effect can have another owner than its source card; an ordinary trigger's
+	// source can also change control while the ability waits to resolve.
+	return e.triggerConditionHoldsCtx(t, source, controller, tc)
 }
 
 // triggerConditionHolds evaluates the CR 603.4 intervening-if clause (and the
