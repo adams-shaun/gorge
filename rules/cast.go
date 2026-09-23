@@ -7872,6 +7872,23 @@ func (e *Engine) payCast() {
 		for _, id := range pc.sacs {
 			e.emit(events.Sacrifice(id))
 		}
+		// RollDice cost parts are free, engine-driven payment actions. Publish
+		// each die through the same canonical Note as DB$ RollDice so trigger
+		// matching and replay observe the exact seeded result. The final result
+		// is the ability's CR 107.3i X and is stamped onto its stack object below.
+		for _, part := range pc.cost.RollDice {
+			sides, err := strconv.ParseInt(part.Spec, 10, 32)
+			if err != nil || sides <= 0 {
+				continue // ParseCost admits only positive, bounded sides.
+			}
+			for i := int32(0); i < part.N; i++ {
+				result := int32(e.Rand(int(sides)) + 1)
+				e.emit(effects.DieRollNote(pc.card, pc.player, int32(sides), result, result))
+				if part.Dyn == "X" {
+					pc.x = result
+				}
+			}
+		}
 		// AbilityPush mints the ability object onto the stack AFTER the cost
 		// settles, so an aborted activation leaves no stack object behind
 		// (CR 733.1). handleTarget records the chosen targets onto it. A
