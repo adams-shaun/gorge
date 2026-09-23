@@ -664,17 +664,40 @@ auto-merged; the branch did not touch those lines.
   Automatic merge failed; fix conflicts and then commit the result.
   ```
 - Merged-table measurement (test's own awk shape): **43 rows**.
-- `git add .ds4/report-mrg1.md internal/testutil/agentsdoc_test.go &&
-  git commit --no-edit` → the merge commit for this round.
-- `go test ./internal/testutil/ -run 'TestKnownApproximations' -v` → PASS
-  (43/43; see gate log in the session transcript).
+- `git add -f .ds4/report-mrg1.md internal/testutil/agentsdoc_test.go &&
+  git commit --no-edit` → merge commit `a6676454` for this round.
+- `go test ./internal/testutil/ -run 'TestKnownApproximations' -v`:
+  ```
+  === RUN   TestKnownApproximationsOnlyShrinks
+  --- PASS: TestKnownApproximationsOnlyShrinks (0.00s)
+  ok  github.com/adams-shaun/gorge/internal/testutil  0.001s
+  ```
 - Post-merge ratchets:
   `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`
-  → `ok` (see final message for the exact line).
-- Conflict-marker sweep over the two resolved files: none;
-  `git diff --check HEAD` on the merge: clean.
+  → `ok github.com/adams-shaun/gorge/rules 0.800s`.
+- `go test -run 'TestHeads$' ./rules/` →
+  `ok github.com/adams-shaun/gorge/rules 1.825s` — main's re-pinned goldens
+  (`408fdf32`, the 48972afc mulligan movement) hold on the merged tree; the
+  branch's CantBlockUnless fix moves no additional head.
+- Behaviour goldens: `go test ./internal/archtest/` →
+  `ok github.com/adams-shaun/gorge/internal/archtest 3.812s`;
+  `go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/` →
+  `ok github.com/adams-shaun/gorge/cmd/botbench 1.070s` (the pinned 20-game
+  split did not move).
+- `gofmt -l internal/testutil/agentsdoc_test.go` → clean; conflict-marker
+  sweep over the resolved files: none; `git diff --cached --check`: clean.
+- `git status` after: clean at `a6676454`.
 
 ### Uncertainties
 
 None material. The constant judgement call (43 vs 44) was settled by direct
 measurement of the merged table, matching main's value exactly.
+
+### Issues
+
+- No new defects found. Carried from main's 48972afc record: the 2-seat
+  acceptance golden does not exercise the deferred-redraw interleaving (the
+  branch's `rules/mulligan_redraw_order_test.go` covers it directly); the
+  toss-winner-never-chooses AGENTS.md row remains in the table.
+- Nothing deserving a new CR-lane test was observed during this resolution;
+  the resolution changed no engine behaviour.
