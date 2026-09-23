@@ -965,10 +965,11 @@ func (e *Engine) targetSAAvailable(p state.PlayerID, id, excludeSelf state.ObjID
 	// A pending {X} is announced before targets, so a bare X bound cannot be
 	// judged at offer time. Keep that shape offerable and let targetAsk use the
 	// settled value. SVar-backed bounds remain readable now and are checked.
-	for _, key := range []string{"TargetMin", "TargetMax"} {
-		if xPending && strings.EqualFold(strings.TrimSpace(sa.Params[key]), "X") {
-			return true
-		}
+	// Read by literal key: the param census's rot guard rejects a dynamic
+	// Params key that is not a function parameter.
+	if xPending && (strings.EqualFold(strings.TrimSpace(sa.Params["TargetMin"]), "X") ||
+		strings.EqualFold(strings.TrimSpace(sa.Params["TargetMax"]), "X")) {
+		return true
 	}
 	min, max := e.resolvedTargetBounds(p, id, sa, x)
 	candidates := e.legalTargetCandidates(p, id, excludeSelf, sa)
