@@ -1334,7 +1334,12 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		return
 	}
 	ctx := &effects.Ctx{Source: rp.obj, Controller: o.Controller, NameChoice: rp.name, Targets: o.Targets,
-		Chosen: append([]state.Target(nil), rp.choices...), ChosenValid: rp.chosenValid,
+		// alltargeted1: a re-entered walk keeps consuming the cast flow's
+		// pre-asked sub-ability target answers (the map shrinks as
+		// chosenTargetsFor consumes lines, so a later sub's answer survives
+		// an earlier suspension).
+		SubPreAsk: e.castSubTargets[rp.obj],
+		Chosen:    append([]state.Target(nil), rp.choices...), ChosenValid: rp.chosenValid,
 		VillainousVictims: append([]state.Target(nil), rp.villainousVictims...),
 		VillainousIndex:   rp.villainousIndex,
 		ChoiceTarget:      rp.target,

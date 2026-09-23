@@ -451,6 +451,21 @@ type Engine struct {
 	// Engine-only scratch, rebuilt by replay, cloned with the engine, removed
 	// with the stack object.
 	copyAnswerTargets map[state.ObjID][][]decision.Option
+	// castSubTargets carries a cast or activation's CAST-TIME pre-asked
+	// SubAbility$ target answers (task alltargeted1), keyed by the stack
+	// object that will resolve the chain and then by the sub SA's Line.
+	// Forge asks every targeting SA in the chain BEFORE cost payment
+	// (CR 601.2c); the engine pre-asks them in the cast flow (cast.go's
+	// subTargetAsk) and installs the answers here at payment, so the
+	// resolution consumes them (effects' chosenTargetsFor, through
+	// Ctx.SubPreAsk) instead of re-posing the asks mid-resolution. An EMPTY
+	// recorded set is a real answer (a Min-0 sub elected zero or had no
+	// candidate at cast time) and still consumes its line. Engine-only
+	// scratch in the fuseTargets discipline: rebuilt by replay because the
+	// cast flow re-executes, cloned with the engine at intent boundaries,
+	// removed when the stack object leaves the stack. A stack COPY of the
+	// spell has no entry and falls back to the mid-resolution asking path.
+	castSubTargets map[state.ObjID]map[string][]state.Target
 	// fusedResolving is the target slice of the fused half whose resolution is
 	// CURRENTLY running (rules/split.go's runFusedHalves), set around the
 	// whole of that half's effects.Resolve -- the half's root SA and every
@@ -1985,6 +2000,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		delete(e.fuseTargets, ev.Obj)
 		delete(e.copyTargetStage, ev.Obj)
 		delete(e.copyAnswerTargets, ev.Obj)
+		delete(e.castSubTargets, ev.Obj)
 		delete(e.sourceLifelinkLKI, ev.Obj)
 		delete(e.sourceControllerLKI, ev.Obj)
 		delete(e.damageSourceLKI, ev.Obj)

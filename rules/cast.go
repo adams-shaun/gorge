@@ -347,6 +347,38 @@ type pendingCast struct {
 	// cast. Published to Engine.fuseTargets at payment.
 	stageTargets [][]state.Target
 
+	// subAsks / subAns / subStage carry the CAST-TIME pre-ask of the chain's
+	// targeting SubAbility$ bodies (task alltargeted1): Forge asks every
+	// targeting SA in the root ability's whole sub-ability chain BEFORE
+	// cost payment (CR 601.2c), and the answers must (a) feed the
+	// AllTargeted$ cost reads through the union and (b) be consumed by the
+	// resolution instead of being re-asked mid-resolution. subAsks holds the
+	// collected targeting subs in chain order (collected once, lazily, by
+	// subTargetAsk); subAns the answers, indexed like subAsks; subStage the
+	// next unsettled index. rootOpts keeps the ROOT target answer's options
+	// so the ability arm's post-payment recordChosenTargets can run from the
+	// sub-answer tail (the ability object does not exist until payCast's
+	// AbilityPush). Plain data, so a Clone copies them.
+	subAsks      []*cards.SA
+	subAns       [][]state.Target
+	subStage     int
+	subCollected bool
+	rootOpts     []decision.Option
+
+	// evidence / evidenceN / evidenceResolved / evidenceSettled carry the
+	// CollectEvidence<N>/<NAME> cost component (task alltargeted1): the
+	// amount is resolved once the CR 601.2c targets exist (the corpus
+	// carrier's body reads AllTargeted$CardManaCost over the whole target
+	// union), the ask (evidenceAsk) runs after the sub pre-asks, and the
+	// settle (payCast) exiles the chosen cards. evidenceN 0 means "no
+	// evidence owed" (a zero-target cast, or an unresolvable body, which
+	// degrades to 0 like every count head). Plain data, so a Clone copies
+	// it.
+	evidence         []state.ObjID
+	evidenceN        int32
+	evidenceResolved bool
+	evidenceSettled  bool
+
 	// stackObj is the id of the object pushCast placed on the stack (the
 	// spell card itself, or an activated ability's AbilityPush-minted
 	// object). Zero until pushCast runs; handleTarget records the chosen
@@ -1666,6 +1698,9 @@ func withSpellAbilityExtras(f *cards.Face, cost Cost) Cost {
 	if len(extra.Mill) > 0 {
 		cost.Mill = append(append([]CostPart(nil), cost.Mill...), extra.Mill...)
 	}
+	if len(extra.Evidence) > 0 {
+		cost.Evidence = append(append([]CostPart(nil), cost.Evidence...), extra.Evidence...)
+	}
 	cost.Forage = cost.Forage || extra.Forage
 	cost.Tap = cost.Tap || extra.Tap
 	return cost
@@ -2478,8 +2513,14 @@ func (e *Engine) continueCast() {
 	}
 	// CR 601.2c: choose targets, now that the object is on the stack. An SA
 	// with no target (or a zero-minimum one with no legal candidate) asks
-	// nothing and payCast runs directly.
+	// nothing and the flow proceeds to the chain pre-asks and payCast.
 	if e.targetAsk() {
+		return
+	}
+	// alltargeted1: the root had no targets of its own (or none legal), but
+	// the SubAbility$ chain may still declare targeting bodies Forge asks
+	// before payment, and the CollectEvidence amount reads the union.
+	if e.postTargetAsks(e.cast) {
 		return
 	}
 	e.payCast()
@@ -4739,10 +4780,14 @@ func (e *Engine) repriceForTargets(pc *pendingCast) {
 		// Officer's AllTargeted$Valid Creature.powerLE3): beginActivation
 		// folded pc.ownReduce with nil targets (full price at offer time,
 		// fail closed); now the CR 601.2c answer exists, so re-evaluate and
-		// net-adjust the generic by the delta. The net form is idempotent --
-		// a second pass computes delta 0 -- which matters because
-		// repriceForTargets can run again on a mana-window resume.
-		if n := e.ownReduceCost(pc.player, pc.card, ab, pc.targets, pc.abilityMerged); n != pc.ownReduce {
+		// net-adjust the generic by the delta. The Ctx binds BOTH the root's
+		// own targets and the whole-chain union (alltargeted1): the sub-ask
+		// answers are already in hand -- Forge pre-asks the chain before
+		// payment -- so an AllTargeted$ body reads the union, not 0. The net
+		// form is idempotent -- a second pass computes delta 0 -- which
+		// matters because repriceForTargets can run again on a mana-window
+		// resume, and once more per sub-ask answer as the union grows.
+		if n := e.ownReduceCost(pc.player, pc.card, ab, pc.targets, pc.allTargets(), pc.abilityMerged); n != pc.ownReduce {
 			pc.cost.Generic = addClampedGeneric(pc.cost.Generic, int64(pc.ownReduce-n))
 			pc.ownReduce = n
 		}
@@ -5825,6 +5870,15 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 			pc.exiles = append(pc.exiles, o.Obj)
 		}
 		pc.exilePart++
+	case "evidence":
+		// The CollectEvidence payment's chosen graveyard cards (alltargeted1).
+		// The SETTLE validation (total mana value at least the resolved
+		// amount, every card still the payer's) runs in evidenceAsk on the
+		// continueCast re-entry, which re-poses the ask when the answer falls
+		// short -- so a malformed answer never pays a short evidence.
+		for _, o := range chosen {
+			pc.evidence = append(pc.evidence, o.Obj)
+		}
 	case "movetogravecost":
 		for _, o := range chosen {
 			pc.moveGraves = append(pc.moveGraves, o.Obj)
@@ -6278,6 +6332,353 @@ func (e *Engine) targetAsk() bool {
 	return true
 }
 
+// allTargets is Forge's AllTargeted$ union (task alltargeted1): the root
+// cast-time targets followed by every pre-asked sub-ability chain answer in
+// chain order. The cost-evaluation sites that read AllTargeted$ before
+// payment (repriceForTargets, evidenceAsk) thread this through
+// Ctx.AllTargets; a chain with no sub answers unions to exactly the root's
+// own set.
+func (pc *pendingCast) allTargets() []state.Target {
+	if len(pc.subAns) == 0 {
+		return pc.targets
+	}
+	out := append([]state.Target(nil), pc.targets...)
+	for _, ts := range pc.subAns {
+		out = append(out, ts...)
+	}
+	return out
+}
+
+// collectSubTargetPreAsks walks the root SA's SubAbility$ chain in order and
+// returns the bodies whose targeting Forge would pre-ask at cast time
+// (CR 601.2c): a ValidTgts$ declaration, no already-named Defined$ fetch list
+// (target reuse -- with the API$ Fight carve-out, whose SA carries TWO
+// independent target lists and whose ValidTgts$ IS its second ask), and not
+// the ChangeZone family (effChangeZone's own mid-resolution ask owns that
+// shape). The same inclusion rules effects' chosenTargetsFor applies to the
+// mid-resolution path, so a sub asked at resolution today is exactly a sub
+// pre-asked here, and one asked by NEITHER (a Defined$ reuse) stays silent.
+// Deliberately excluded whole: modal (Charm) and CopySpellAbility roots --
+// castModeAsk/AskCopyTargets own their targeting -- and trigger bodies (this
+// walks the cast flow only; a trigger's placement ask timing is CR 603.3c's,
+// not 601.2c's).
+func (e *Engine) collectSubTargetPreAsks(root *cards.SA) []*cards.SA {
+	if root == nil || root.API == "Charm" || root.API == "CopySpellAbility" {
+		return nil
+	}
+	var out []*cards.SA
+	for sa := root.Sub; sa != nil; sa = sa.Sub {
+		if strings.TrimSpace(sa.Params["ValidTgts"]) == "" {
+			continue
+		}
+		defined := strings.TrimSpace(sa.Params["Defined"])
+		if defined != "" && !effects.DefinedIsTargetReuse(defined) && sa.API != "Fight" {
+			continue
+		}
+		if sa.CompiledAPI() == cards.APIChangeZone || sa.API == "ChangeZone" {
+			continue
+		}
+		out = append(out, sa)
+	}
+	return out
+}
+
+// postTargetAsks poses the next outstanding CR 601.2c announcement ask AFTER
+// the root target stage: the sub-ability chain pre-ask first (alltargeted1),
+// then the CollectEvidence amount ask (whose X reads the union the sub
+// answers complete). It returns true when it parked the flow on a decision;
+// false means every post-target stage is settled and the caller pays.
+func (e *Engine) postTargetAsks(pc *pendingCast) bool {
+	// The flow is now past the 601.2c ROOT target stage (answered or not
+	// asked): mark it so a later continueCast re-entry -- the CollectEvidence
+	// answer's own -- does not re-pose the root ask (targetAsk's
+	// passedTarget guard). payCast sets the same flag again; idempotent.
+	pc.passedTarget = true
+	if e.subTargetAsk(pc) {
+		return true
+	}
+	return e.evidenceAsk()
+}
+
+// subTargetAsk poses the next un-answered chain sub's target ask, collecting
+// the chain once (lazily, on the first call after the root stage). The bounds,
+// the CR 115.5 self-exclusion and the option shape mirror targetAsk's; a
+// TargetUnique$ sub excludes every already-chosen target (root answers and
+// earlier sub answers) exactly as the mid-resolution path's accumulator does.
+// A Min-0 sub with no legal candidate is recorded as an ANSWERED EMPTY set
+// (Requirement N2: nobody could answer differently) and the walk advances; a
+// mandatory one aborts the proposal (CR 733.1, the target stage's own rule --
+// nothing has been paid yet). The answers ride the ordinary KTarget flow
+// (handleTarget's cast_sub branch), so replay re-derives them like any other
+// cast-flow answer.
+func (e *Engine) subTargetAsk(pc *pendingCast) bool {
+	if !pc.subCollected {
+		pc.subCollected = true
+		var root *cards.SA
+		if o := e.G.Obj(pc.card); o != nil {
+			if pc.isAbility() {
+				root = e.pcAbility(pc)
+			} else if f := o.Face(); f != nil {
+				root = e.castStageSA(pc, o, f)
+			}
+		}
+		pc.subAsks = e.collectSubTargetPreAsks(root)
+		pc.subAns = make([][]state.Target, len(pc.subAsks))
+	}
+	for pc.subStage < len(pc.subAsks) {
+		sub := pc.subAsks[pc.subStage]
+		var excludeSelf state.ObjID
+		if !pc.isAbility() || sub.API == "Attach" {
+			excludeSelf = pc.card
+		}
+		candidates := e.legalTargetCandidates(pc.player, pc.card, excludeSelf, sub)
+		if effects.TargetUniqueRequested(sub) {
+			chosenSet := map[state.ObjID]bool{}
+			for _, t := range pc.targets {
+				chosenSet[t.Obj] = true
+			}
+			for _, ts := range pc.subAns {
+				for _, t := range ts {
+					chosenSet[t.Obj] = true
+				}
+			}
+			filtered := candidates[:0]
+			for _, cand := range candidates {
+				if !chosenSet[cand.obj] {
+					filtered = append(filtered, cand)
+				}
+			}
+			candidates = filtered
+		}
+		min, max := e.resolvedTargetBounds(pc.player, pc.card, sub, pc.x)
+		if min > 0 && len(candidates) < min {
+			e.abortCast(pc, "cast aborted: no legal target for a chained ability", true)
+			return true
+		}
+		if min == 0 && len(candidates) == 0 {
+			pc.subAns[pc.subStage] = []state.Target{}
+			pc.subStage++
+			continue
+		}
+		d := &decision.Decision{Player: pc.player, Kind: decision.KTarget, Min: min, Max: max,
+			Prompt: "Choose a target for " + e.targetName(pc.card) + "'s chained ability",
+			Source: excludeSelf, ResumeKind: "cast_sub"}
+		for _, candidate := range candidates {
+			label := e.targetOptionLabel(candidate)
+			o := decision.Option{Index: len(d.Options), Kind: candidate.kind,
+				Label: label, Obj: candidate.obj, Player: candidate.player}
+			o.Group = e.targetControllerGroup(sub, candidate)
+			o.Controller = e.candidateControllerSeat(candidate)
+			d.Options = append(d.Options, o)
+		}
+		e.ask(d)
+		return true
+	}
+	return false
+}
+
+// answerCastSubTarget records a cast_sub KTarget answer against the stage it
+// was asked for and re-prices (the union grew, so a target-dependent
+// ReduceCost$ may now apply -- the net form is idempotent, which matters
+// because repriceForTargets already ran on the root answer).
+func (e *Engine) answerCastSubTarget(pc *pendingCast, chosen []decision.Option) {
+	if pc.subStage >= len(pc.subAsks) {
+		return
+	}
+	pc.subAns[pc.subStage] = targetOptions(chosen)
+	pc.subStage++
+	e.repriceForTargets(pc)
+}
+
+// installSubPreAsk publishes the answered sub-ask record onto the stack
+// object that will resolve the chain (spells: pushed by pushCast, so the id
+// exists at payCast entry; abilities: minted by payCast's AbilityPush, so
+// the ability arm installs after it). The record is Engine.castSubTargets;
+// resolution attaches it through Ctx.SubPreAsk and chosenTargetsFor consumes
+// it line by line. Empty slices are real answered-zero records and must
+// install too, or the resolution would re-ask the sub.
+func (e *Engine) installSubPreAsk(pc *pendingCast) {
+	if pc.stackObj == 0 || len(pc.subAsks) == 0 {
+		return
+	}
+	m := make(map[string][]state.Target, len(pc.subAsks))
+	for i, sa := range pc.subAsks {
+		var ts []state.Target
+		if i < len(pc.subAns) {
+			ts = pc.subAns[i]
+		}
+		if ts == nil {
+			ts = []state.Target{}
+		}
+		m[sa.Line] = ts
+	}
+	if e.castSubTargets == nil {
+		e.castSubTargets = make(map[state.ObjID]map[string][]state.Target)
+	}
+	e.castSubTargets[pc.stackObj] = m
+}
+
+// evidenceAsk poses the CollectEvidence payment (alltargeted1): the payer
+// exiles cards from their OWN graveyard whose total mana value reaches the
+// resolved amount (CR 701.30b, the same action the Ward evidence payment
+// performs). The amount is resolved once, here, against the settled target
+// union -- the corpus carrier's SVar reads AllTargeted$CardManaCost, which is
+// exactly why this stage runs after the sub pre-asks. The ask offers the
+// graveyard ordered by mana value DESCENDING (ties by object id, so the
+// order is deterministic) with Min at the greedy minimum card count, so the
+// deterministic bot's first-Min answer always reaches the amount and the
+// settlement validation below never rejects it; a human may pick any
+// combination of at least Min cards. An answer whose total falls short is
+// rejected and the ask re-posed (the same settle-validate shape the Ward
+// evidence payment uses); a graveyard that cannot reach the amount at all
+// aborts the proposal (CR 733.1 -- nothing has been paid yet).
+func (e *Engine) evidenceAsk() bool {
+	pc := e.cast
+	if pc == nil || len(pc.cost.Evidence) == 0 || pc.evidenceSettled {
+		return false
+	}
+	if !pc.evidenceResolved {
+		pc.evidenceN = e.evidenceAmount(pc)
+		pc.evidenceResolved = true
+	}
+	if pc.evidenceN <= 0 {
+		// Nothing owed: a zero-target cast, or a body the count evaluator
+		// cannot resolve (its degrade-to-zero convention -- the evidence is
+		// never silently over-charged).
+		pc.evidenceSettled = true
+		return false
+	}
+	if len(pc.evidence) > 0 {
+		valid := true
+		for _, id := range pc.evidence {
+			if o := e.G.Obj(id); o == nil || o.Zone != state.ZGraveyard || o.Owner != pc.player {
+				valid = false
+				break
+			}
+		}
+		if valid && e.graveyardManaValue(pc.player, pc.evidence) >= pc.evidenceN {
+			pc.evidenceSettled = true
+			return false
+		}
+		pc.evidence = nil
+		e.emit(events.Event{Kind: events.Note, Player: pc.player,
+			Text: "evidence selection's total mana value is too low; choose again"})
+	}
+	var candidates []state.ObjID
+	for _, id := range e.G.Zone(state.ZGraveyard, pc.player) {
+		if o := e.G.Obj(id); o != nil && o.Face() != nil {
+			candidates = append(candidates, id)
+		}
+	}
+	if e.graveyardManaValue(pc.player, candidates) < pc.evidenceN {
+		e.abortCast(pc, "evidence cost no longer payable; cast aborted", true)
+		return true
+	}
+	// Mana value descending, ties by object id: the option order makes the
+	// greedy minimum achievable by the FIRST Min options, which is what both
+	// the deterministic bot's generic KChoose arm and Clamp's top-up take.
+	ids := append([]state.ObjID(nil), candidates...)
+	sort.Slice(ids, func(i, j int) bool {
+		mi, mj := e.G.Obj(ids[i]).Face().Cmc(), e.G.Obj(ids[j]).Face().Cmc()
+		if mi != mj {
+			return mi > mj
+		}
+		return ids[i] < ids[j]
+	})
+	need := pc.evidenceN
+	min := 0
+	for _, id := range ids {
+		if need <= 0 {
+			break
+		}
+		need -= e.G.Obj(id).Face().Cmc()
+		min++
+	}
+	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: min, Max: len(ids),
+		Prompt: "Exile evidence with total mana value " + strconv.Itoa(int(pc.evidenceN)) +
+			" to cast " + e.targetName(pc.card), Source: pc.card}
+	for _, id := range ids {
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "evidence",
+			Obj: id, Label: e.G.Obj(id).Face().Name, Value: int(e.G.Obj(id).Face().Cmc())})
+	}
+	e.choosing = chooseCast
+	e.ask(d)
+	return true
+}
+
+// evidenceAmount resolves the CollectEvidence amount against the settled
+// target union. A literal part prices itself; a named part resolves through
+// the source face's SVar table via effects.EvalCountOK -- the same resolver
+// ownReduceCost uses -- with Ctx.AllTargets bound so an AllTargeted$ body
+// reads the whole chain union. A body the evaluator cannot resolve
+// contributes 0 (the degrade convention); the total is clamped at 0.
+func (e *Engine) evidenceAmount(pc *pendingCast) int32 {
+	o := e.G.Obj(pc.card)
+	if o == nil {
+		return 0
+	}
+	var svars map[string]string
+	if pc.isAbility() {
+		svars = e.pileSVars(pc.card, pc.abilityMerged)
+	} else if f := o.Face(); f != nil {
+		svars = f.SVars
+	}
+	total := int32(0)
+	for _, part := range pc.cost.Evidence {
+		if part.Dyn == "" {
+			total = addClampedGeneric(total, int64(part.N))
+			continue
+		}
+		body, ok := svars[part.Dyn]
+		if !ok {
+			continue
+		}
+		ctx := &effects.Ctx{Source: pc.card, Controller: pc.player, SVars: svars,
+			Targets: pc.targets, AllTargets: pc.allTargets()}
+		if n, ok := effects.EvalCountOK(e, ctx, body); ok && n > 0 {
+			total = addClampedGeneric(total, int64(n))
+		}
+	}
+	return total
+}
+
+// graveyardManaValue sums the mana values of the named cards (the Ward
+// evidence payment's wardManaValue read, over a caller-built list).
+func (e *Engine) graveyardManaValue(p state.PlayerID, ids []state.ObjID) int32 {
+	var n int32
+	for _, id := range ids {
+		if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Owner == p {
+			n = addClampedGeneric(n, int64(o.Face().Cmc()))
+		}
+	}
+	return n
+}
+
+// finishTargetedCast is the completion tail every cast-flow target answer
+// converges on once no post-target ask is outstanding: the ability arm pays
+// and THEN records the root targets (its stack object is minted by payCast's
+// AbilityPush); the spell arm pays (its targets were already recorded before
+// the park). The tail carries the CR 117.3c priority discipline the root arm
+// always owned: the caster keeps priority only once no announcement decision
+// is outstanding, and a trigger drain parked on the target ask resumes
+// through its own continuation.
+func (e *Engine) finishTargetedCast(pc *pendingCast, player state.PlayerID) {
+	if pc.isAbility() {
+		e.payCast()
+		if pc.stackObj != 0 && pc.rootOpts != nil {
+			e.recordChosenTargets(pc.stackObj, pc.rootOpts, false)
+		}
+	} else {
+		e.payCast()
+	}
+	if e.drainAwaitsTarget {
+		e.drainAwaitsTarget = false
+		e.resumeTriggerDrain()
+	} else if e.pending == nil {
+		e.emit(events.Event{Kind: events.Priority, Player: player, Amount: 0})
+	}
+}
+
 // pushCast implements CR 601.2a: the card reaches the stack BEFORE the
 // target choice (601.2c) and payment (601.2h), which is what makes the
 // transaction match the CR's ordered list. The cast trigger (601.2i) is held
@@ -6702,6 +7103,10 @@ func (e *Engine) payCast() {
 	// answered, or the SA has no target), so a mana-window resume through
 	// continueCast must not re-ask for one.
 	pc.passedTarget = true
+	// alltargeted1: for a SPELL the stack object already exists (pushCast),
+	// so the chain's pre-asked sub-ability target answers install here; the
+	// ability arm installs after its AbilityPush mints the object.
+	e.installSubPreAsk(pc)
 	// CR 601.2e: the game checks that the proposed spell can legally be cast,
 	// once every announcement choice (the {X} value) is known. An illegal
 	// proposal is reversed (CR 733.1) -- see recheckIllegal.
@@ -6779,6 +7184,14 @@ func (e *Engine) payCast() {
 		for _, id := range pc.exiles {
 			if o := e.G.Obj(id); o != nil {
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZExile, Text: "exiled as a cost"})
+			}
+		}
+		// CollectEvidence parts (alltargeted1): the evidence chosen at the
+		// evidenceAsk stage leaves the payer's graveyard for exile, the same
+		// action the Ward evidence payment performs.
+		for _, id := range pc.evidence {
+			if o := e.G.Obj(id); o != nil {
+				e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZExile, Text: "collected as evidence"})
 			}
 		}
 		// ExiledMoveToGrave cost parts: each chosen card leaves exile for
@@ -6898,6 +7311,10 @@ func (e *Engine) payCast() {
 		if len(e.G.Stack) > 0 {
 			pc.stackObj = e.G.Stack[len(e.G.Stack)-1]
 		}
+		// alltargeted1: the chain's pre-asked sub-ability target answers are
+		// now bound to the minted ability object, so the resolution consumes
+		// them instead of re-posing the asks mid-resolution.
+		e.installSubPreAsk(pc)
 		// CR 107.3i: record the chosen {X} on the ability stack object, the
 		// same way the spell arm records it on the spell below. The shared
 		// xAsk stage asked and paid it (pc.cost.WithX(pc.x)), but AbilityPush's
@@ -6991,6 +7408,12 @@ func (e *Engine) payCast() {
 	for _, id := range pc.exiles {
 		if o := e.G.Obj(id); o != nil {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZExile, Text: "exiled as a cost"})
+		}
+	}
+	// CollectEvidence parts (alltargeted1; see the ability branch above).
+	for _, id := range pc.evidence {
+		if o := e.G.Obj(id); o != nil {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZExile, Text: "collected as evidence"})
 		}
 	}
 	// ExiledMoveToGrave cost parts (see the ability branch above for the why).

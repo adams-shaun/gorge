@@ -2511,6 +2511,19 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 	// clears them.
 	if e.cast != nil {
 		pc := e.cast
+		// A chained sub-ability's cast-time pre-ask answer (alltargeted1): the
+		// KTarget decision posed by subTargetAsk. Record against the stage it
+		// was asked for (subStage indexes both), re-price (the union grew, so
+		// a target-dependent ReduceCost$ may now apply), then pose the next
+		// outstanding post-target ask or finish the payment.
+		if d.ResumeKind == "cast_sub" {
+			e.answerCastSubTarget(pc, chosen)
+			if e.postTargetAsks(pc) {
+				return
+			}
+			e.finishTargetedCast(pc, in.Player)
+			return
+		}
 		// A Fuse cast may ask targets twice (front, then alternate). Append
 		// rather than replace so the stack object's flat target list carries
 		// both halves, and stageBase records whether an earlier half's
@@ -2539,34 +2552,24 @@ func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 			// cast pays once every target stage is settled.
 			if e.castHasNextTargetStage(pc, e.G.Obj(pc.card)) {
 				pc.targetStage++
-				if !e.targetAsk() {
-					e.payCast()
+				if e.targetAsk() {
+					return
 				}
-			} else {
-				e.payCast()
 			}
 		} else {
-			e.payCast()
-			if pc.stackObj != 0 {
-				e.recordChosenTargets(pc.stackObj, chosen, false)
-			}
+			// The ability object does not exist until payCast's AbilityPush, so
+			// the root answer's options ride pc.rootOpts for the payment tail's
+			// recordChosenTargets; the post-target stages (alltargeted1's sub
+			// pre-asks, the CollectEvidence ask) run BEFORE payment (CR 601.2c).
+			pc.rootOpts = append([]decision.Option(nil), chosen...)
 		}
-		if e.drainAwaitsTarget {
-			e.drainAwaitsTarget = false
-			e.resumeTriggerDrain()
-		} else if e.pending == nil {
-			// CR 117.3c: the caster keeps priority after a completed cast.
-			// payCast can pose a MID-CAST ask (CR 601.2g's mana window, a
-			// cost choice) which leaves the engine parked on that question;
-			// the casting player does not keep priority until the cast has
-			// actually paid every cost and fired its cast trigger, so the
-			// "caster keeps priority" marker is emitted only once no further
-			// announcement decision is outstanding. Emitting it while parked
-			// is the same class of log lie as the pass-branch emit this task
-			// removed: the log would assert the caster held priority at a
-			// moment the engine is waiting on an unanswered question.
-			e.emit(events.Event{Kind: events.Priority, Player: in.Player, Amount: 0})
+		// alltargeted1: the post-target announcement stages -- the chain sub
+		// pre-asks first, then the CollectEvidence ask whose amount reads the
+		// union -- park the same way the root ask did, before any cost is paid.
+		if e.postTargetAsks(pc) {
+			return
 		}
+		e.finishTargetedCast(pc, in.Player)
 		return
 	}
 	e.recordChosenTargets(d.Source, chosen, false)
@@ -2973,7 +2976,10 @@ func (e *Engine) resolveTop() {
 			// exclusion (Ulalek's sub-copy) anchors here, not on Source --
 			// Source is the source permanent (Ruling T20-b), which is not on
 			// the stack and would exclude nothing.
-			ResolvingObj: id}
+			ResolvingObj: id,
+			// alltargeted1: the cast flow's pre-asked SubAbility$ target
+			// answers, consumed line by line by chosenTargetsFor.
+			SubPreAsk: e.castSubTargets[id]}
 		// The SA whose targeting the placement ask actually offered, not
 		// blindly the resolving SA: for a non-modal ability that is the outer
 		// SA's own ValidTgts$ (pushTrigger's askTarget), for a modal one it is
@@ -3168,7 +3174,10 @@ func (e *Engine) resolveTop() {
 	if sa != nil {
 		e.damaging = id
 		ctx := &effects.Ctx{Source: id, Controller: o.Controller, Targets: targets,
-			ResolvingObj: id}
+			ResolvingObj: id,
+			// alltargeted1: the cast flow's pre-asked SubAbility$ target
+			// answers, consumed line by line by chosenTargetsFor.
+			SubPreAsk: e.castSubTargets[id]}
 		// Same marker as the ability branch: the cast-flow target ask
 		// (targetAsk's targetSA) offered exactly this spell's targeting.
 		if targetSA != nil && strings.TrimSpace(targetSA.Params["ValidTgts"]) != "" {

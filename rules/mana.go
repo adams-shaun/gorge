@@ -202,6 +202,20 @@ type Cost struct {
 	MoveToGrave []CostPart
 	// Mill carries Mill<N> cost components paid from the payer's library.
 	Mill []CostPart
+	// Evidence carries CollectEvidence<N> and CollectEvidence<NAME> tokens
+	// (alltargeted1): the payer exiles cards from their OWN graveyard whose
+	// total mana value reaches N or greater (CR 701.30b's collect evidence;
+	// the same action the Ward payment path pays). N is a literal, or a name
+	// (Urgent Necropsy's X) resolved through the source face's SVar table
+	// AFTER the CR 601.2c targets exist -- the corpus carrier's body reads
+	// AllTargeted$CardManaCost over the whole root/sub-ability target union,
+	// so the resolution needs the pre-asked sub-ability targets too. The
+	// payment is the evidenceAsk stage (cast.go), which runs after the
+	// target stages for exactly that reason; at OFFER time the amount is
+	// unknowable, so nonManaCastable deliberately does not gate on this
+	// part (fail-open there) and the payment stage aborts (CR 733.1) when
+	// the graveyard cannot reach the resolved total.
+	Evidence []CostPart
 	// Unknown lists the HEAD (the text before any "<...>") of every cost
 	// token this parse did not model, in order of appearance, deduplicated.
 	// A token lands here exactly when ParseCost could not give it real
@@ -376,6 +390,15 @@ var exileBattlefieldCost = regexp.MustCompile(`^Exile<(\d+)/([^/>]+)(?:/([^>]*))
 var exiledMoveToGraveCost = regexp.MustCompile(`^ExiledMoveToGrave<(\d+)/([^/>]+)(?:/([^>]*))?>$`)
 var millCost = regexp.MustCompile(`^Mill<(\d+)>$`)
 
+// evidenceCost matches the CollectEvidence<N> / CollectEvidence<NAME> cost
+// token (alltargeted1): the evidence-exile additional cost. The captured
+// value is a literal digit string or an SVar name the payment stage resolves
+// (Urgent Necropsy's X, whose body reads AllTargeted$CardManaCost over the
+// whole target union). The Ward payment path intercepts its own literal
+// CollectEvidence<N> spelling (ward.go's wardSpecialCost) before parseCost
+// runs, so this head only prices the plain Cost$ family.
+var evidenceCost = regexp.MustCompile(`^CollectEvidence<([^>]+)>$`)
+
 // millCostTotal returns the total number of cards every Mill<N> cost
 // component requires (0 when there is no Mill part). The total is int64 so
 // the sum of arbitrary parts cannot overflow int on a 32-bit build; ok is
@@ -477,6 +500,18 @@ func ParseCost(s string) Cost {
 		case isHybridPhyrexian(sym):
 			c.HybridPhyrexian = append(c.HybridPhyrexian, hybridPhyrexianPair(sym))
 		default:
+			if m := evidenceCost.FindStringSubmatch(sym); m != nil {
+				// CollectEvidence<N> / CollectEvidence<NAME> (alltargeted1): a
+				// real evidence-exile component, not one phantom generic mana.
+				// A literal N prices directly; a NAME (the dynamic X form) is
+				// resolved by the payment stage against the chosen targets.
+				if n, err := strconv.ParseInt(m[1], 10, 64); err == nil && n >= 0 && n <= int64(math.MaxInt32) {
+					c.Evidence = append(c.Evidence, CostPart{N: int32(n)})
+					continue
+				}
+				c.Evidence = append(c.Evidence, CostPart{Dyn: m[1]})
+				continue
+			}
 			if m := millCost.FindStringSubmatch(sym); m != nil {
 				n, err := strconv.ParseInt(m[1], 10, 64)
 				if err != nil || n < 0 || n > int64(math.MaxInt32) {
@@ -1109,6 +1144,9 @@ func (c Cost) Plus(d Cost) Cost {
 	if len(d.Mill) > 0 {
 		c.Mill = append(append([]CostPart(nil), c.Mill...), d.Mill...)
 	}
+	if len(d.Evidence) > 0 {
+		c.Evidence = append(append([]CostPart(nil), c.Evidence...), d.Evidence...)
+	}
 	if len(d.Reveal) > 0 {
 		c.Reveal = append(append([]CostPart(nil), c.Reveal...), d.Reveal...)
 	}
@@ -1487,7 +1525,7 @@ func (e *Engine) AbilityCosts(p state.PlayerID, id state.ObjID) []string {
 		// The ability's own ReduceCost$ (Otawara's Channel): the same
 		// composition the offer gate and beginActivation's charge apply, so
 		// the decision's displayed cost is the cost the payment will charge.
-		if n := e.ownReduceCost(p, id, ab, nil, 0); n > 0 && cost.Generic >= n {
+		if n := e.ownReduceCost(p, id, ab, nil, nil, 0); n > 0 && cost.Generic >= n {
 			cost.Generic -= n
 		} else if n > 0 {
 			cost.Generic = 0
@@ -1683,6 +1721,13 @@ func costPhrase(c Cost) string {
 	}
 	for _, part := range c.Mill {
 		clauses = append(clauses, "mill "+countPhrase(part.N)+" card"+pluralSuffix(part.N))
+	}
+	for _, part := range c.Evidence {
+		n := countPhrase(part.N)
+		if part.Dyn != "" {
+			n = part.Dyn
+		}
+		clauses = append(clauses, "exile cards with total mana value "+n+" or greater from your graveyard")
 	}
 	for _, part := range c.Reveal {
 		clauses = append(clauses, "reveal "+objectPhrase(part, "card"))

@@ -182,7 +182,7 @@ func (e *Engine) beginGainedActivation(p state.PlayerID, opt decision.Option) {
 	// The gained twin of the printed loop's own ReduceCost$ fold: targets do
 	// not exist yet (CR 601.2c runs later), so a target-dependent body reads
 	// 0 here and repriceForTargets re-runs the evaluation.
-	own := e.ownReduceCost(p, opt.Obj, ab, nil, 0)
+	own := e.ownReduceCost(p, opt.Obj, ab, nil, nil, 0)
 	if own > 0 {
 		if cost.Generic >= own {
 			cost.Generic -= own
@@ -254,7 +254,7 @@ func (e *Engine) beginGrantedActivation(p state.PlayerID, opt decision.Option) {
 	// and the granted offer gate (legal.go's granted arm) prices it against
 	// the recipient's top face too -- offer and activation must charge the
 	// same reduction.
-	own := e.ownReduceCost(p, opt.Obj, ab, nil, 0)
+	own := e.ownReduceCost(p, opt.Obj, ab, nil, nil, 0)
 	if own > 0 {
 		if cost.Generic >= own {
 			cost.Generic -= own

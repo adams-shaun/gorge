@@ -323,6 +323,14 @@ func (e *Engine) Clone() *Engine {
 				inner[k] = v
 			}
 			c.aorAsk[id] = inner
+	if e.castSubTargets != nil {
+		c.castSubTargets = make(map[state.ObjID]map[string][]state.Target, len(e.castSubTargets))
+		for id, lines := range e.castSubTargets {
+			cm := make(map[string][]state.Target, len(lines))
+			for line, ts := range lines {
+				cm[line] = append([]state.Target(nil), ts...)
+			}
+			c.castSubTargets[id] = cm
 		}
 	}
 	if e.copyTargetStage != nil {
@@ -625,6 +633,7 @@ func (e *Engine) Clone() *Engine {
 		pc.cost.Blight = append([]CostPart(nil), e.cast.cost.Blight...)
 		pc.cost.Draw = append([]CostPart(nil), e.cast.cost.Draw...)
 		pc.cost.LifeX = append([]CostPart(nil), e.cast.cost.LifeX...)
+		pc.cost.Evidence = append([]CostPart(nil), e.cast.cost.Evidence...)
 		pc.cost.DamageYou = append([]CostPart(nil), e.cast.cost.DamageYou...)
 		pc.cost.Energy = append([]CostPart(nil), e.cast.cost.Energy...)
 		pc.cost.Return = append([]CostPart(nil), e.cast.cost.Return...)
@@ -647,6 +656,15 @@ func (e *Engine) Clone() *Engine {
 		pc.beholds = append([]state.ObjID(nil), e.cast.beholds...)
 		pc.taps = append([]state.ObjID(nil), e.cast.taps...)
 		pc.blights = append([]state.ObjID(nil), e.cast.blights...)
+		pc.subAsks = append([]*cards.SA(nil), e.cast.subAsks...)
+		if e.cast.subAns != nil {
+			pc.subAns = make([][]state.Target, len(e.cast.subAns))
+			for i, ts := range e.cast.subAns {
+				pc.subAns[i] = append([]state.Target(nil), ts...)
+			}
+		}
+		pc.rootOpts = append([]decision.Option(nil), e.cast.rootOpts...)
+		pc.evidence = append([]state.ObjID(nil), e.cast.evidence...)
 		pc.preModes = append([]string(nil), e.cast.preModes...)
 		pc.preSuppress = cloneSuppressed(e.cast.preSuppress)
 		pc.preAborts = cloneAbortCounts(e.cast.preAborts)
