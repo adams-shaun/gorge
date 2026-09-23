@@ -63,7 +63,12 @@ func TestPlayerSpecBroodrageDescendedFromAnyZone(t *testing.T) {
 	if e.phaseMatches(trig, mycoid, step) {
 		t.Fatal("a nonpermanent card does not cause descent")
 	}
-	e.emit(events.Event{Kind: events.MoveZone, Obj: bear, From: state.ZBattlefield, To: state.ZGraveyard})
+	replayState := e.G.Clone()
+	moveEvent := e.emit(events.Event{Kind: events.MoveZone, Obj: bear, From: state.ZBattlefield, To: state.ZGraveyard})
+	events.Apply(replayState, moveEvent)
+	if !effects.MatchesPlayerSpec(replayState, "You.descended", 0, 0) {
+		t.Fatal("descend provenance must reconstruct by folding the logged move")
+	}
 	if e.G.Obj(bear).Zone != state.ZGraveyard || e.G.Obj(bear).Owner != 0 {
 		t.Fatal("precondition: our permanent card did not enter our graveyard")
 	}
@@ -123,7 +128,13 @@ func TestPlayerSpecCurseEnchantPlayer(t *testing.T) {
 	if !effects.MatchesPlayerSpec(e.G, "Player.EnchantedBy", 1, 0) || effects.MatchesPlayerSpec(e.G, "Player.EnchantedBy", 0, 0) {
 		t.Fatal("EnchantedBy must name only the enchanted player")
 	}
-	e.emit(events.Event{Kind: events.Attach, Obj: id, Player: 0, Text: "attach to player"})
+	replayState := e.G.Clone()
+	attachEvent := e.emit(events.Event{Kind: events.Attach, Obj: id, Player: 0, Text: "attach to player"})
+	events.Apply(replayState, attachEvent)
+	if replayState.Obj(id).AttachedPlayer != e.G.Obj(id).AttachedPlayer ||
+		replayState.Obj(id).HasAttachedPlayer != e.G.Obj(id).HasAttachedPlayer {
+		t.Fatal("player attachment must reconstruct by folding the logged event")
+	}
 	if !effects.MatchesPlayerSpec(e.G, "Player.EnchantedBy", 0, 0) || effects.MatchesPlayerSpec(e.G, "Player.EnchantedBy", 1, 0) {
 		t.Fatal("reattaching to seat zero must not be mistaken for detaching")
 	}
