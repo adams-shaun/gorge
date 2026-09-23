@@ -1894,11 +1894,11 @@ func eachStructuredOptions(g *state.Game, d *decision.Decision, groups [][]state
 	perType int32, noLooking bool, owner state.PlayerID, kind string) int {
 	ceiling := 0
 	for ti, ids := range groups {
-		if len(ids) == 0 {
+		if len(ids) == 0 || perType == 0 {
 			continue
 		}
 		take := len(ids)
-		if perType > 0 && int(perType) < take {
+		if int(perType) < take {
 			take = int(perType)
 		}
 		for _, id := range ids {

@@ -1606,9 +1606,6 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, to state.Zone, owners []st
 		var ceiling int
 		if structured {
 			eachPerType = n
-			if eachPerType < 1 {
-				eachPerType = 1
-			}
 			eachGroups = EachTypeGroups(g, eachSubs, eligible, c.SpecContext(c.Controller))
 			for _, ids := range eachGroups {
 				k := int32(len(ids))
@@ -2287,9 +2284,6 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 			Prompt:           prompt}
 		if eachStructured {
 			eachPerType = max
-			if eachPerType < 1 {
-				eachPerType = 1
-			}
 			if eachPerType > 1 {
 				d.GroupLimit = int(eachPerType)
 			}
@@ -3245,9 +3239,6 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 			// as the hidden-library search's structured branch does -- 0 corpus
 			// carriers combine the two.
 			eachPerType = m
-			if eachPerType < 1 {
-				eachPerType = 1
-			}
 			if eachPerType > 1 {
 				d.GroupLimit = int(eachPerType)
 			}
