@@ -80,27 +80,29 @@ func TestThrivingBluffChosenEqualsFixedResolvesDirectly(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestCitadelGateFallbackRecordsTheExcludedColour pins the documented
-// fallback defect's observable face (NOT fixed here): Citadel Gate's
-// Exclude$ white is unread, so the deterministic fallback records "W" -- the
-// one colour the card's as-enters rider forbids -- and the activation then
-// resolves "Combo W" (single colour, direct, no ask) to that same white.
-func TestCitadelGateFallbackRecordsTheExcludedColour(t *testing.T) {
+// TestCitadelGateFallbackRespectsTheExcludedColour pins the no-host entry
+// fallback on a real corpus card: Exclude$ white makes Blue the first legal
+// colour, rather than the old forbidden White. Its Combo W Chosen activation
+// then offers both distinct pips; the chosen Blue produces blue mana.
+func TestCitadelGateFallbackRespectsTheExcludedColour(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e, cfg := corpusEngineCfg(t, reg, []*cards.Card{corpusCard(t, "Citadel Gate")}, nil)
 	gate := moveCorpusCard(t, e, "Citadel Gate", 0, state.ZBattlefield)
-	if got := e.G.Obj(gate).ChosenColor; got != "W" {
-		t.Fatalf("Citadel Gate ChosenColor = %q, want the fallback W (Exclude$ white unread)", got)
+	if o := e.G.Obj(gate); o.Zone != state.ZBattlefield || o.ChosenColor != "U" {
+		t.Fatalf("Citadel Gate zone=%s ChosenColor=%q, want battlefield and U (Exclude$ white)", o.Zone, o.ChosenColor)
 	}
 	e.emit(events.Event{Kind: events.Untap, Obj: gate})
 	addMana(t, e, 0, "")
 	activateMana(t, e, gate)
-	if d := e.Pending(); d == nil || d.Kind != decision.KPriority {
-		t.Fatalf("single-colour Combo W posed an extra decision: %+v", e.Pending())
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose || len(d.Options) != 2 ||
+		d.Options[0].Label != "Add W" || d.Options[1].Label != "Add U" {
+		t.Fatalf("Combo W Chosen options = %+v, want distinct W and U pips", d)
 	}
+	submitChoices(t, e, manaOption(t, d, "U"))
 	pool := e.G.Players[0].Pool
-	if pool.Total() != 1 || pool[state.MW] != 1 || pool[state.MC] != 0 {
-		t.Fatalf("pool = %v, want exactly one white", pool)
+	if pool.Total() != 1 || pool[state.MU] != 1 || pool[state.MW] != 0 || pool[state.MC] != 0 {
+		t.Fatalf("pool = %v, want exactly one blue", pool)
 	}
 	replayCheck(t, e, cfg)
 }

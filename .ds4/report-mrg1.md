@@ -5174,3 +5174,69 @@ Commands run in this confirmation:
 This targeted pass covers the reviewed planeswalker behavior and the required
 post-merge ratchets; all passed. No uncertainty remains about the conflict
 resolution.
+
+---
+
+# Round 2 — re-integration of main at e28e4131 (2026-09-23)
+
+## State found
+
+`git status` was CLEAN — no rebase or merge was in flight. The reflog showed
+the daemon attempted a rebase onto main four times (05:07, 05:10, 05:11, 05:17)
+and aborted each one; every attempt had moved to a NEWER main tip
+(`e9ed29f0` → `13f75557` → `e28e4131`), because main kept advancing while the
+attempts failed. Round 1's merge (`1104bc92`) had integrated main only as of
+`5129c9a7`, so the branch still needed the `5129c9a7..e28e4131` range
+(cantsac ForCost$, Untaps, WinsGame, PutCounterAll, ChangeZoneAll.ChangeNum,
+K:Prevent, ChooseColor r2, CounterAdded batch, TwoPiles, mana selectors,
+SearchedLibrary).
+
+## Operation
+
+```text
+git merge --no-edit main
+Auto-merging .ds4/report-mrg1.md
+CONFLICT (content): Merge conflict in .ds4/report-mrg1.md
+Auto-merging events/apply.go
+Automatic merge failed; fix conflicts and then commit the result.
+```
+
+ONE text conflict: `.ds4/report-mrg1.md` — this report itself. Both sides
+track a copy: ours (this file, 5176 lines, the resolution record for THIS
+branch) vs main's stale 82-line report left over from the unrelated
+`cli-20260923T060000Z-ctms-tag` ticket. Resolution: OUR side wins in full;
+this section is appended. (Main's `report-t1.md` came in staged as a new file
+from main's side and was left untouched — not a conflicted path.)
+
+`events/apply.go` auto-merged: the only overlap is main's new
+`case SearchedLibrary:` marker comment; the branch's unified
+`AttackingBattle` set/clear sites from round 1 are untouched. Verified by
+reading `git diff HEAD -- events/apply.go`.
+
+## Verification (targeted, per the brief)
+
+```text
+[ -e .cards ] — symlink present → /home/sadams/projects/gorge/.cards
+
+go test ./events/
+  → ok  github.com/adams-shaun/gorge/events  5.639s   (EXIT=0)
+
+go test -run 'TestCreatureCanAttackPlaneswalker|TestCombatDamageToPlaneswalker|TestBattle' ./rules/
+  → ok  github.com/adams-shaun/gorge/rules  0.667s   (EXIT=0)
+     (the branch's planeswalker-combat fix AND main's battle suite, 7 test files)
+
+go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+  → ok  github.com/adams-shaun/gorge/rules  1.261s   (EXIT=0)
+     (re-ran the two deck tests -v to prove they EXECUTED, not skipped:
+      0 SKIPs, real runs — 8 seats: 3196 intents, 14887 events, chain 5c90b1b3a0b38f25;
+      the 1.2s wall time is real, not a vacuous no-.cards run)
+```
+
+No head or ratchet table was edited. `heads_test.go` came in only from
+main's own repin (`be567b96`); the branch changed no engine behaviour in this
+round (pure integration).
+
+## Issues
+
+None found this round. The merge is a pure integration: no new deviation was
+introduced and no approximation row was leaned on.

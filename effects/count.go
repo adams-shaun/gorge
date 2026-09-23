@@ -477,6 +477,56 @@ func countDistinctLimitMax(body, op string, n int32) (int32, bool) {
 	return n, true
 }
 
+// countMostCardName implements Forge's Count$MostCardName <spec>: the
+// greatest number of objects matching <spec> that share one face name, which
+// is the oracle's "N or more <things> with the same name as one another"
+// (Mechanized Production, Endless Atlas, Chrome Replicator, Sceptre of
+// Eternal Glory -- all four corpus carriers name a battlefield spec). The
+// scan is over every alive seat's battlefield, matched through the same
+// zone-aware filter the Count$Valid family uses (matchesZoneSpecCtx), so
+// `Artifact.YouCtrl` / `Land.YouCtrl` / `Permanent.nonLand+!token+YouCtrl`
+// read exactly as they do under Count$Valid. The per-name counts live in a
+// local map read only by key plus a running maximum, so no map iteration
+// order ever reaches an event or a view. A spec this build cannot match
+// (an unknown predicate fails closed inside the matcher) counts zero of every
+// name and so returns 0, the conservative no-op every unmodelled filter
+// takes. An empty spec is NOT evaluated -- the caller's fail-open convention
+// for an unreadable head applies instead of a meaningless zero.
+//
+// The name read is the printed face's Name (o.Face().Name), matching the
+// sibling distinct-name read at the zone-count site (the
+// token$DifferentCardNames set) rather than the layer-3 rename table; the
+// corpus shape is four same-named printed permanents, so the two agree. The
+// zone is the battlefield only, which is what Count$MostCardName's Valid
+// semantics mean in Forge and what all four corpus specs name.
+func countMostCardName(h Host, c *Ctx, spec string) (int32, bool) {
+	spec = strings.TrimSpace(spec)
+	if spec == "" {
+		return 0, false
+	}
+	g := h.Game()
+	specCtx := c.SpecContext(c.Controller)
+	counts := make(map[string]int32)
+	var best int32
+	for _, p := range g.AliveFrom(0) {
+		for _, id := range g.Zone(state.ZBattlefield, p) {
+			if !matchesZoneSpecCtx(g, spec, id, specCtx, state.ZBattlefield) {
+				continue
+			}
+			o := g.Obj(id)
+			if o == nil || o.Face() == nil {
+				continue
+			}
+			name := o.Face().Name
+			counts[name]++
+			if counts[name] > best {
+				best = counts[name]
+			}
+		}
+	}
+	return best, true
+}
+
 // evalTriggerCount resolves a "TriggerCount$<Head>[/Op]" body against the
 // triggering event's magnitude (Ctx.TriggerAmount). The heads this build
 // models -- DamageAmount (damage the event dealt), LifeAmount (life it
@@ -1146,6 +1196,17 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 	switch head {
 	case "Compare":
 		return evalCompare(h, c, arg, depth), true
+	case "MostCardName":
+		// Forge's Count$MostCardName <spec> (task api-winsgame; 4 corpus
+		// carriers -- Mechanized Production, Endless Atlas, Chrome
+		// Replicator, Sceptre of Eternal Glory): the GREATEST number of
+		// battlefield objects matching <spec> that share one face name.
+		// Mechanized Production's "eight or more artifacts with the same
+		// name as one another" is exactly this read over
+		// Artifact.YouCtrl. An empty spec is unresolvable (fail closed),
+		// the same verdict every other argument-taking head gives a
+		// missing argument.
+		return countMostCardName(h, c, arg)
 	case "CardNumColors":
 		if o := g.Obj(c.Source); o != nil {
 			return int32(len(h.ObjectColors(o))), true
@@ -1311,13 +1372,15 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 				return o.ManaSpent, true
 			case "Snow":
 				return o.ManaSnowSpent, true
-			case "Treasure":
-				return o.ManaTreasureSpent, true
-			case "Cave":
-				return o.ManaCaveSpent, true
-			case "Desert":
-				return o.ManaDesertSpent, true
 			default:
+				// The typed tags are the SAME table the producer-side tagging
+				// reads (state.TypedManaTags), so a modelled type counts and a
+				// type the pool cannot tag stays the fail-closed 0.
+				for i, tagWord := range state.TypedManaTags {
+					if arg == tagWord {
+						return o.TypedManaSpentByTag(i), true
+					}
+				}
 				return 0, true
 			}
 		}

@@ -44,6 +44,7 @@ func TestTriggerEligibilityEventMatrix(t *testing.T) {
 		{"Attached", []events.Kind{events.Attach}},
 		{"Explores", []events.Kind{events.Explore}},
 		{"Investigated", []events.Kind{events.Investigate}},
+		{"SearchedLibrary", []events.Kind{events.SearchedLibrary}},
 		{"Discover", []events.Kind{events.Discover}},
 		{"SeekAll", []events.Kind{events.Seek}},
 		{"Exploited", []events.Kind{events.Exploit}},
@@ -135,6 +136,12 @@ func TestTriggerEventInterestMapping(t *testing.T) {
 			// trigger-relevant (trig:TurnFaceUp matches it through the full
 			// matcher) and past the mask's reach, so the conservative
 			// catch-all is the honest mapping (the Investigate shape).
+			want = cards.TriggerInterestAny
+		case events.SearchedLibrary:
+			// trig-searched-library: the completed-search marker is
+			// trigger-relevant (trig:SearchedLibrary matches it through the
+			// full matcher) and past the mask's reach, so the conservative
+			// catch-all is the honest mapping (the TurnFaceUp shape).
 			want = cards.TriggerInterestAny
 		}
 		if got := eventTriggerInterest(kind); got != want {

@@ -184,6 +184,8 @@ func triggerModeEvents(mode string) triggerEventMask {
 		return 1 << events.DeclareAttackers
 	case "AttackerBlocked", "AttackerBlockedByCreature", "AttackerUnblocked", "AttackerUnblockedOnce", "Blocks":
 		return 1 << events.DeclareBlockers
+	case "Untaps":
+		return 1 << events.Untap
 	case "Sacrificed", "Discarded", "LandPlayed":
 		return 1 << events.MoveZone
 	case "Cycled":
@@ -198,6 +200,10 @@ func triggerModeEvents(mode string) triggerEventMask {
 		// mode here (rather than letting it fall to the allTriggerEvents
 		// default) keeps a Connives-only face's mask narrow for every other
 		// kind.
+		return 0
+	case "SearchedLibrary":
+		// This marker is appended beyond the 64-bit trigger-mask range, so
+		// naming it keeps a SearchedLibrary-only face narrow on older Kinds.
 		return 0
 	case "Investigated":
 		// The Kind's ordinal (67) is past the 64-bit mask's reach, the

@@ -3654,6 +3654,12 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 			applyStaticEffect(h, c, sa, to, []state.ObjID{id})
 		}
 	}
+	// Record one completed search per library, including a search that found
+	// no eligible card. This marker is distinct from the searched cards' own
+	// MoveZone events so trig:SearchedLibrary cannot false-fire on ordinary
+	// library movement.
+	h.Emit(events.Event{Kind: events.SearchedLibrary, Obj: c.Source, Player: owner})
+
 	// The search's reveal (hiddenreveal1): Forge's changeHiddenOriginResolve
 	// reveals the moved cards when Reveal$ says so, and ALSO by default when
 	// the search's ChangeType$ states a quality (anything beyond the bare
@@ -3992,6 +3998,22 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 	if spec == "" {
 		spec = "Card"
 	}
+	// ChangeNum$ caps the sweep (expert_level_safe's DBOpenSafe writes "All",
+	// bone_dancer's DBChangeZone writes "1"): an omitted value or "All" moves
+	// every matching card -- the behaviour the primitive always had -- while a
+	// numeric cap (a literal, or an SVar/X reference through Num) moves at
+	// most that many, in the sweep's own scan order (zone-major, seat-minor;
+	// a RandomOrder$ sweep's shuffle picks WHICH candidates sit under the
+	// cap, since the shuffle only sets the move order). A value Num cannot
+	// resolve degrades to 0 by Num's own documented convention -- "the card
+	// did nothing", the fail-closed direction.
+	changeCap := int32(-1) // -1: uncapped
+	if raw := strings.TrimSpace(sa.Params["ChangeNum"]); raw != "" && !strings.EqualFold(raw, "All") {
+		changeCap = Num(h, c, sa, "ChangeNum", 0)
+		if changeCap < 0 {
+			changeCap = 0
+		}
+	}
 	g := h.Game()
 	// LibraryPosition$ (Terminus' "put all creatures on the bottom of their
 	// owners' libraries") and Shuffle$ (Jace, the Mind Sculptor's [-12]
@@ -4125,12 +4147,17 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 			}
 			byOwner[owner] = list
 		}
+	emitLoop:
 		for _, owner := range owners {
 			for _, pm := range byOwner[owner] {
+				if changeCap >= 0 && int32(len(moved)) >= changeCap {
+					break emitLoop
+				}
 				emitMove(pm.id, pm.z, pm.p)
 			}
 		}
 	} else {
+	sweep:
 		for _, z := range from {
 			for qi, p := range players {
 				// Same shared-stack guard as the RandomOrder$ branch: one
@@ -4141,6 +4168,9 @@ func effChangeZoneAll(h Host, c *Ctx, sa *cards.SA) {
 				// Snapshot the zone: emitting move events mutates it underneath us.
 				ids := append([]state.ObjID(nil), g.Zone(z, p)...)
 				for _, id := range ids {
+					if changeCap >= 0 && int32(len(moved)) >= changeCap {
+						break sweep
+					}
 					if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 						emitMove(id, z, p)
 					}
