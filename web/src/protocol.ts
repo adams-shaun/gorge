@@ -740,6 +740,19 @@ export interface Decision {
    */
   budgeted?: boolean;
   /**
+   * GroupLimit caps how many options ONE Group may contribute to an answer:
+   * the sum of the picked options sharing a Group must not exceed it. It is
+   * the per-type pick count of Forge's EACH multi-type search grammar
+   * ("EACH Forest & Plains" with ChangeNum$ 2 finds two Forests and two
+   * Plainses), where one Group is one listed type and its cap is ChangeNum --
+   * a cap the single-pick exclusivity rule cannot express. 0 or 1 reads as
+   * the ordinary at-most-one-per-Group rule, so every existing decision
+   * serialises byte-identically and validates unchanged. Validate is the
+   * rule's one home; FitRequired and botpolicy's Clamp derive the same cap
+   * from GroupCap, never a second copy.
+   */
+  groupLimit?: number;
+  /**
    * Repeatable relaxes Validate's no-duplicate-index rule: when true the
    * SAME option index may be chosen more than once in one answer. It is
    * set only by a modal (Charm) decision whose SA carries
