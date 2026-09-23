@@ -36,9 +36,15 @@ func kwAttachCost(f *Face, i int, k, param string, has func(kind, line string) b
 	// pin -- the split-on-":" is a corpus invariant, not an
 	// assumption to re-litigate per card).
 	// The trailing fields are read, not dropped wholesale:
-	//   - a "ReduceCost$ <v>" / "ActivationLimit$ <v>" field rides the
-	//     minted SA verbatim; rules/legal.go's ownReduceCost and the
-	//     offer loop's ActivationLimit gate already read both params.
+	//   - a "ReduceCost$ <v>" / "ActivationLimit$ <v>" / "AlternateCost$ <v>"
+	//     field rides the minted SA verbatim; rules/legal.go's ownReduceCost
+	//     and the offer loop's ActivationLimit gate already read the first
+	//     two, and rules/activate.go's abilityAlternateCost reads the third
+	//     -- scoped to these minted Equip/Fortify SAs (isAttachCostSA; an
+	//     AB$ line's own AlternateCost$ param is a separate, unmodelled
+	//     feature) (CR 702.6 / CR 601.2f: Transmogrant's Crown's
+	//     "Equip {2} ... you may pay {B} instead" -- an alternative cost
+	//     the activator may pay in place of the printed Equip cost).
 	//   - the FIRST remaining field that is neither a rider nor a
 	//     "Flavor " marker is the target restriction, a real filter
 	//     spec passed through verbatim as ValidTgts$ (comma
@@ -52,9 +58,8 @@ func kwAttachCost(f *Face, i int, k, param string, has func(kind, line string) b
 	//     you're the monarch"); the one-word descs ("Soldier",
 	//     "commander") only ever trail a real restriction, so the
 	//     first-real-field rule already claimed the slot.
-	//   - any other "<Head>$ <value>" field is an unwired rider family
-	//     (AlternateCost$, 4 raw lines) -- dropped, as today, but
-	//     never mistaken for a restriction spec.
+	//   - any other "<Head>$ <value>" field is an unwired rider family --
+	//     dropped, as today, but never mistaken for a restriction spec.
 	fields := strings.Split(param, ":")
 	cost := fields[0]
 	restriction := ""
@@ -66,7 +71,7 @@ func kwAttachCost(f *Face, i int, k, param string, has func(kind, line string) b
 		}
 		head, _, isParam := strings.Cut(fld, " ")
 		if isParam && strings.HasSuffix(head, "$") {
-			if head == "ReduceCost$" || head == "ActivationLimit$" {
+			if head == "ReduceCost$" || head == "ActivationLimit$" || head == "AlternateCost$" {
 				riders = append(riders, fld)
 			}
 			continue

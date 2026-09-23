@@ -3566,6 +3566,12 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 	}
 	window := searchLibraryWindow(h, c, sa, zoneOf(g, state.ZLibrary, owner))
 	moved := make([]state.ObjID, 0, len(chosen))
+	// Imprint$ True records the cards this search actually moved in the
+	// source's persistent imprintedCards association (state.Object.Imprinted),
+	// the same association the object-target path above accumulates and the
+	// same one `Defined$ Imprinted` resolves later. Collected across the loop
+	// and emitted as ONE events.Imprint after it, exactly like that path.
+	var imprinted []state.ObjID
 	// One classification for this search's whole mover loop: both branches
 	// below (the public-origin settle and the library-origin direct emit)
 	// share it, so a degrading rider is one Note per search, not one per card.
@@ -3627,6 +3633,19 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 				h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: []state.ObjID{id}, Text: "exiled-with"})
 			}
 		}
+		// Imprint$ True (Distant Memories, Jace, Architect of Thought's -8,
+		// Grim Reminder): the moved card joins the source's imprintedCards
+		// list whatever the destination -- Forge's ChangeZoneEffect imprints
+		// every card it moved, and the corpus reads the association back with
+		// a later `Defined$ Imprinted` sub-ability. The move is confirmed by
+		// the object's post-move zone before the id is recorded, so a skipped
+		// candidate (an Origin$ miss, an in-flight replacement) is never
+		// imprinted.
+		if strings.EqualFold(strings.TrimSpace(sa.Params["Imprint"]), "True") && c.Source != 0 {
+			if o := g.Obj(id); o != nil && o.Zone == to && !o.IsToken {
+				imprinted = append(imprinted, id)
+			}
+		}
 		moved = append(moved, id)
 		if sa.Params["WithCountersType"] != "" && counterDestination(to) {
 			h.Emit(events.Event{Kind: events.CounterChange, Obj: id,
@@ -3669,6 +3688,13 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 		if to == state.ZBattlefield {
 			applyStaticEffect(h, c, sa, to, []state.ObjID{id})
 		}
+	}
+	// The Imprint$ association, one batched event after the whole mover loop
+	// (the object-target path's own shape above): the source keeps the
+	// moved cards' ids so a later `Defined$ Imprinted` resolves them, and the
+	// association is durable state folded by events.Apply, so replay keeps it.
+	if len(imprinted) > 0 {
+		h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: imprinted})
 	}
 	// Record one completed search per library, including a search that found
 	// no eligible card. This marker is distinct from the searched cards' own

@@ -121,6 +121,25 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 		}
 		c.SVars[excessName] = strconv.Itoa(int(excess))
 	}
+	// A DamageSource$ spec that resolves to SEVERAL objects makes each of
+	// them a separate damager (emitFromEachSource below); a resolved set of
+	// one keeps the single-rider path below byte-identical to what it was.
+	var multiSources []state.ObjID
+	if spec := strings.TrimSpace(sa.Params["DamageSource"]); spec != "" {
+		if ts, ok := damageSourceSpecTargets(h, c, spec); ok {
+			seen := make(map[state.ObjID]bool)
+			for _, t := range ts {
+				if t.IsPlayer || t.Obj == 0 {
+					continue
+				}
+				id := resolveSourceObject(h, t.Obj)
+				if !seen[id] {
+					seen[id] = true
+					multiSources = append(multiSources, id)
+				}
+			}
+		}
+	}
 	// One DealDamage call is ONE damage batch (Forge dealDamage): the events
 	// this loop emits latch the DamageDealtOnce/DamageDoneOnce triggers
 	// together, so a multi-target hit triggers the source's DealtOnce ability
@@ -129,6 +148,10 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 	// one for a Damage event that arrives with none open, so a call this
 	// primitive never brackets (none today) still latches per event.
 	h.BeginDamageBatch()
+	if !divided && emitFromEachSource(h, c, sa, multiSources, n, remember, &dying, bindExcess) {
+		h.EndDamageBatch()
+		return
+	}
 	if divided {
 		type divTarget struct {
 			obj    state.ObjID
@@ -195,6 +218,92 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 	h.EndDamageBatch()
+}
+
+// emitFromEachSource is DealDamage's multi-source arm: a DamageSource$ spec
+// that resolves to SEVERAL objects makes each of them a separate damager over
+// the recipients (Missy's "each artifact creature you control deals 1 damage
+// to that opponent", Judgment of Alexander's "each commander creature you
+// control deals damage equal to its power") -- one rider per source with
+// SetDamageSource published around each one's pass (the lifelink rider,
+// deathtouch mark, protection and the DamageDone triggers all read THAT
+// source), inside the caller's single damage batch, the shape Forge's
+// DamageDealEffect per-source loop builds. RelativeTarget$ True re-resolves
+// the recipients PER SOURCE through Defined$ anchored on that source (aura
+// barbs: each enchantment damages its own controller, each attached Aura the
+// creature it is attached to), with a per-source ctx holding only that
+// source's identity -- the same shape effEachDamage's per-damager Ctx takes;
+// a relative arm whose per-source recipients resolve to nothing contributes
+// that source's nothing (fail closed inside, never a guessed pairing). A
+// source no longer on the battlefield contributes nothing (Forge reads its
+// LKI; the corpus multi-source lines all name live battlefield permanents, so
+// the narrower liveness rule is unreachable there and is recorded in the
+// ticket report). Returns false when the arm did not run -- fewer than two
+// resolvable sources, a shared recipient arm that resolved to nothing, or a
+// DividedAsYouChoose resolution (no corpus line combines the two) -- so the
+// caller falls through to its single-rider path unchanged.
+func emitFromEachSource(h Host, c *Ctx, sa *cards.SA, sources []state.ObjID, n int32,
+	remember bool, dying *[]state.Target, bindExcess func(o *state.Object, lethal, dealt int32)) bool {
+	if len(sources) < 2 {
+		return false
+	}
+	relative := strings.TrimSpace(sa.Params["RelativeTarget"]) != ""
+	var shared []state.Target
+	if !relative {
+		shared = Defined(h, c, sa)
+		if len(shared) == 0 {
+			return false
+		}
+	}
+	// The per-source rider must not re-resolve the DamageSource$ spec (it
+	// would collapse every source onto the first match again), so it reads a
+	// clone of the SA's params without the key.
+	saRider := cards.SA{Line: sa.Line, Params: make(map[string]string, len(sa.Params))}
+	for k, v := range sa.Params {
+		if k == "DamageSource" {
+			continue
+		}
+		saRider.Params[k] = v
+	}
+	emittedAny := false
+	for _, src := range sources {
+		o := h.Game().Obj(src)
+		if o == nil || o.Zone != state.ZBattlefield {
+			continue
+		}
+		pc := &Ctx{Source: src, Controller: o.Controller, SVars: c.SVars}
+		recips := shared
+		if relative {
+			recips = Defined(h, pc, sa)
+			if len(recips) == 0 {
+				continue
+			}
+		}
+		rider := newDamageRider(h, pc, &saRider, n)
+		prev := h.SetDamageSource(rider.source)
+		for _, t := range recips {
+			if t.IsPlayer {
+				emitPlayerDamage(rider, t.Player)
+				emittedAny = true
+				continue
+			}
+			if to := h.Game().Obj(t.Obj); to != nil && to.Zone == state.ZBattlefield {
+				lethal, ok := excessLethal(h, to)
+				dealt := emitObjectDamage(rider, t.Obj)
+				if ok {
+					bindExcess(to, lethal, dealt)
+				}
+				if remember {
+					c.Remembered = append(c.Remembered, state.Target{Obj: t.Obj})
+					eventRemember(h, c, t.Obj)
+				}
+				*dying = append(*dying, state.Target{Obj: t.Obj})
+				emittedAny = true
+			}
+		}
+		h.SetDamageSource(prev)
+	}
+	return emittedAny
 }
 
 // registerReplaceDying implements DealDamage's ReplaceDyingDefined$ <list>
@@ -286,23 +395,110 @@ func resolveSourceObject(h Host, id state.ObjID) state.ObjID {
 	return id
 }
 
+// damageSourceSpecTargets resolves one DamageSource$ spec to the objects the
+// damage is dealt FROM (CR 609.7a provenance). definedSpec first: the
+// spellings every other object reference uses (TriggeredCard, Targeted,
+// ChosenCard, the bare Valid battlefield walk, Imprinted's RepeatEach
+// subject) resolve exactly there, so a damage source cannot disagree with
+// the same spelling's own Defined$ read. Two damage-local extensions follow,
+// both reading the way Forge's getDefinedCards serves this parameter:
+//
+//   - Imprinted whose definedSpec set came back empty re-reads the source's
+//     imprint associations RAW (rawImprintTargets). definedSpec's Defined$
+//     Imprinted keeps its CR 607.2a exile gate for its own callers; Forge's
+//     getImprintedCards has no zone gate, and the corpus's non-repeat
+//     DamageSource$ Imprinted line (Enchanter's Bane) imprints a BATTLEFIELD
+//     permanent, so the gated read would drop the one source the script names.
+//   - Spawner> <inner> is Forge's adjustTriggerContext re-anchor: the rest of
+//     the chain resolves against the resolving ability's TRIGGER's spawning
+//     ability. This build's stand-in for that context is the firing trigger's
+//     own event capture (Ctx.Captured), which a chained ImmediateTrigger's
+//     Execute context no longer carries as Remembered (effImmediateTrigger
+//     hands its instances the capture-excluded parent set). Halana, Kessig
+//     Ranger is the one DamageSource$ user. An inner spec definedSpec does
+//     not know still fails closed.
+//
+// The bool keeps definedSpec's contract: false means this spec names nothing
+// this build models, and the caller fails closed (the damage keeps the
+// resolving source, loudly). true with an EMPTY set is a recognised spelling
+// whose referent is absent -- the caller keeps the resolving source silently,
+// exactly as it does for every recognised-but-absent referent.
+func damageSourceSpecTargets(h Host, c *Ctx, spec string) ([]state.Target, bool) {
+	if ts, ok := definedSpec(h, c, spec); ok {
+		if spec != "Imprinted" || hasObjectTarget(ts) {
+			return ts, true
+		}
+		if raw := rawImprintTargets(h.Game(), c); len(raw) > 0 {
+			return raw, true
+		}
+		return ts, true
+	}
+	if inner, ok := strings.CutPrefix(spec, "Spawner>"); ok {
+		sc := *c
+		sc.Remembered = copyTargets(c.Captured)
+		return definedSpec(h, &sc, strings.TrimSpace(inner))
+	}
+	return nil, false
+}
+
+// hasObjectTarget reports whether the set carries at least one non-player
+// object entry -- the only entries a damage rider can deal from.
+func hasObjectTarget(ts []state.Target) bool {
+	for _, t := range ts {
+		if !t.IsPlayer && t.Obj != 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// rawImprintTargets is the ungated imprint-pile read Forge's
+// getImprintedCards hands its damage-source and count consumers: every object
+// the resolving source's Imprinted/ImprintTokens/SeekFound associations name
+// that still exists, in association order, whatever zone it sits in.
+// definedSpec's Defined$ Imprinted read keeps its CR 607.2a exile gate for
+// its own callers; these readers do not inherit it.
+func rawImprintTargets(g *state.Game, c *Ctx) []state.Target {
+	o := g.Obj(c.Source)
+	if o == nil {
+		return nil
+	}
+	var out []state.Target
+	for _, id := range o.Imprinted {
+		if g.Obj(id) != nil {
+			out = append(out, state.Target{Obj: id})
+		}
+	}
+	for _, id := range o.ImprintTokens {
+		if g.Obj(id) != nil {
+			out = append(out, state.Target{Obj: id})
+		}
+	}
+	for _, id := range o.SeekFound {
+		if g.Obj(id) != nil {
+			out = append(out, state.Target{Obj: id})
+		}
+	}
+	return out
+}
+
 // newDamageRider builds the rider for one resolving DealDamage/DamageAll.
 // The source is DamageSource$ when the script names one -- resolved through
-// the same Defined resolver every other object reference uses (Scourge of
-// Valkas' TriggeredCard, Kiku's Shadow's Targeted), never guessed at the
-// chosen targets when Defined does not recognise the spec -- and the
-// resolving source otherwise. A DamageSource$ the resolver cannot model
-// (EffectSource's LKI provenance, Imprinted, a Valid-card spec) keeps the
-// resolving source: today's behaviour, and the conservative direction --
-// damage from the resolving spell/ability's source, never damage silently
-// attributed to a target. Resolving here, once per resolution, keeps the
-// next rider honest: every keyword read below reads r.source, already
-// resolved, and SetDamageSource publishes the same object.
+// damageSourceSpecTargets, whose definedSpec arm is the same resolver every
+// other object reference uses (Scourge of Valkas' TriggeredCard, Kiku's
+// Shadow's Targeted), never guessed at the chosen targets -- and the
+// resolving source otherwise. A DamageSource$ the resolver genuinely cannot
+// model fails closed LOUDLY: the damage keeps the resolving source (the
+// conservative direction -- damage from the resolving spell/ability's
+// source, never damage silently attributed to a target) and the Note says
+// so in the log. Resolving here, once per resolution, keeps the next rider
+// honest: every keyword read below reads r.source, already resolved, and
+// SetDamageSource publishes the same object.
 func newDamageRider(h Host, c *Ctx, sa *cards.SA, amount int32) damageRider {
 	own := resolveSourceObject(h, c.Source)
 	source := own
 	if spec := strings.TrimSpace(sa.Params["DamageSource"]); spec != "" {
-		if ts, ok := definedSpec(h, c, spec); ok {
+		if ts, ok := damageSourceSpecTargets(h, c, spec); ok {
 			for _, t := range ts {
 				if t.IsPlayer || t.Obj == 0 {
 					continue
@@ -310,6 +506,9 @@ func newDamageRider(h Host, c *Ctx, sa *cards.SA, amount int32) damageRider {
 				source = resolveSourceObject(h, t.Obj)
 				break
 			}
+		} else {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+				Text: "unresolvable DamageSource$ " + spec + "; damage keeps the resolving source"})
 		}
 	}
 	hasLifelink := h.HasKeyword(source, "Lifelink")
@@ -709,9 +908,14 @@ func effDamageAll(h Host, c *Ctx, sa *cards.SA) {
 // the same resolver every other reference uses -- ValidPlayers$ Targeted
 // (players among the chosen targets), Remembered -- while anything else is
 // a PREDICATE over every living player through MatchesPlayerSpec (Player,
-// Player.Opponent, Opponent, You). A spec neither resolves (the
-// OppNonTriggeredTarget / FlippedTails singletons) stays unsupported and
-// damages no player: fail closed, never a guess about who takes the sweep.
+// Player.Opponent, Opponent, You). The dotted `.IsRemembered` spelling
+// (Snort) narrows the two-tier remember set to its base constraint, and the
+// OppNonTriggeredTarget singleton (Kediss, Parapet Thrasher) resolves
+// through its trigger binding. A spec the grammar still does not model
+// (The Fallen's wasDealtDamageThisGameBy compound, whose game-long
+// damage-by-source history no event carries) fails closed AND loud: it
+// damages no player and emits a Note naming the selector, never a silent
+// no-op and never a guess about who takes the sweep.
 func validPlayers(h Host, c *Ctx, spec string) []state.PlayerID {
 	spec = strings.TrimSpace(spec)
 	if spec == "" {
@@ -733,6 +937,50 @@ func validPlayers(h Host, c *Ctx, spec string) []state.PlayerID {
 			return nil
 		}
 		return []state.PlayerID{PlayerOf(h, c, c.Targets[0])}
+	}
+	// The dotted `.IsRemembered` spelling (Snort's ValidPlayers$
+	// Opponent.IsRemembered), BEFORE definedSpec: its trailing player-base
+	// sweep claims any base.Opponent/Player/You/Other spec and evaluates it
+	// through MatchesPlayerSpecFrom, whose IsRemembered qualifier reads only
+	// the source object's PERSISTENT list -- which RememberDiscardingPlayers$
+	// never writes (it records the discarding players in the resolution's
+	// Remembered only) -- so the sweep would answer an empty set and the
+	// whole player half would silently deal no damage. Resolved here instead:
+	// the remember set through definedSpec's Player.IsRemembered read reused
+	// verbatim (the source object's persistent player-remember list wins,
+	// the resolution's Remembered is the fallback), narrowed to the spec's
+	// base constraint (Opponent/You/Other) through the shared player filter.
+	// The Player/Any spellings stay on their existing exact-case path.
+	if base, qual, ok := strings.Cut(spec, "."); ok && qual == "IsRemembered" &&
+		base != "Player" && base != "Any" {
+		ts, _ := definedSpec(h, c, "Player.IsRemembered")
+		var out []state.PlayerID
+		seen := make(map[state.PlayerID]bool)
+		for _, t := range ts {
+			if t.IsPlayer && MatchesPlayerSpec(g, base, t.Player, c.Controller) {
+				out = appendPlayer(out, seen, t.Player)
+			}
+		}
+		return out
+	}
+	// The dotted-claim census, BEFORE definedSpec: its trailing player-base
+	// sweep claims any dotted Player/Any/Opponent/Other/You spec and
+	// evaluates it inside the shared filter, whose unknown clauses match
+	// nobody SILENTLY (its own fail-closed direction). The sweep wants an
+	// unmodelled clause loud instead, so a claim-bound spec with a clause
+	// whose base the player grammar does not name (The Fallen's
+	// "Player.Opponent+wasDealtDamageThisGameBy Self" -- a game-long
+	// damage-by-source history the Damage event carries no source for) is
+	// rejected here with a Note naming the selector. Known-base unknown-
+	// QUALIFIER spellings stay on definedSpec's silent empty-set path: the
+	// qualifier vocabulary is the shared filter's to own, and a parallel
+	// census of it here could only drift from the matcher it mirrors.
+	if base, _, ok := strings.Cut(spec, "."); ok &&
+		(base == "Player" || base == "Any" || base == "Opponent" || base == "Other" || base == "You") {
+		if validPlayersSelectorUnknown(spec) {
+			eachDamageNote(h, c, "unresolved DamageAll ValidPlayers$ "+spec)
+			return nil
+		}
 	}
 	if ts, ok := definedSpec(h, c, spec); ok {
 		var out []state.PlayerID
@@ -762,6 +1010,13 @@ func validPlayers(h Host, c *Ctx, spec string) []state.PlayerID {
 		}
 		return out
 	}
+	// The fall-through census: the same check for a spec no earlier arm
+	// claimed -- a bare unknown selector would silently match nobody; make
+	// it loud instead. Same qualifier exemption as the dotted gate above.
+	if validPlayersSelectorUnknown(spec) {
+		eachDamageNote(h, c, "unresolved DamageAll ValidPlayers$ "+spec)
+		return nil
+	}
 	var out []state.PlayerID
 	for _, p := range g.AliveFrom(0) {
 		if MatchesPlayerSpec(g, spec, p, c.Controller) {
@@ -769,6 +1024,35 @@ func validPlayers(h Host, c *Ctx, spec string) []state.PlayerID {
 		}
 	}
 	return out
+}
+
+// validPlayersSelectorUnknown reports whether a ValidPlayers$ spec carries
+// any clause whose base the shared player filter does not recognise: one of
+// Player/Any/You/Opponent/Other, or one of the bare property spellings the
+// compound grammar reads (matchesPlayerCompoundCtx's own vocabulary). A
+// leading '!' does not change what the base is. Comma alternatives are the
+// filter's own first split, so each is checked separately.
+func validPlayersSelectorUnknown(spec string) bool {
+	knownBase := func(clause string) bool {
+		clause = strings.TrimSpace(strings.TrimPrefix(clause, "!"))
+		if isBarePlayerProperty(clause) {
+			return true
+		}
+		base, _, _ := strings.Cut(clause, ".")
+		switch base {
+		case "Player", "Any", "You", "Opponent", "Other":
+			return true
+		}
+		return false
+	}
+	for alt := range strings.SplitSeq(spec, ",") {
+		for clause := range strings.SplitSeq(alt, "+") {
+			if !knownBase(clause) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // effEachDamage implements "SP$/AB$/DB$ EachDamage" -- the "each creature
