@@ -2411,6 +2411,15 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 				// Scry/Surveil carry.
 			}
 			emitLook(h, []state.PlayerID{c.Controller}, zone, pool[:n], "")
+			if strings.EqualFold(strings.TrimSpace(sa.Params["RememberPeeked"]), "True") {
+				next := make([]state.Target, 0, len(c.Remembered)+int(n))
+				next = append(next, c.Remembered...)
+				for _, id := range pool[:n] {
+					next = append(next, state.Target{Obj: id})
+					eventRemember(h, c, id)
+				}
+				c.Remembered = next
+			}
 			continue
 		}
 		asker := p
