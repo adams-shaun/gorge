@@ -1902,6 +1902,24 @@ export class SeatPanelState {
     this.picked = [...indices];
   }
 
+  /** Submit both ordered piles for a Restable arrange ask; keep the legacy
+   * submit() path for ordinary asks and the inline offered-order answer. */
+  submitArrange(keep: readonly number[], rest: readonly number[]) {
+    const d = this.pending;
+    if (d === null || d.kind !== 'arrange' || !d.restable || d.seq === this.postedSeq || this.busy) return;
+    if (keep.length < d.min || keep.length > d.max || keep.length + rest.length !== d.options.length) return;
+    // The two lists must partition the offered options, as the server's
+    // Decision.Validate requires. Never send a malformed UI answer.
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- local validation scratch, never stored in reactive state
+    const seen = new Set<number>();
+    for (const i of [...keep, ...rest]) {
+      if (!Number.isInteger(i) || seen.has(i) || optionAt(d, i) === undefined) return;
+      seen.add(i);
+    }
+    this.handAnswer();
+    void this.post([...keep], false, [...rest]);
+  }
+
   /** passClick posts only the pass-by-kind option, using its own wire index. */
   passClick() {
     const d = this.pending;
@@ -1957,7 +1975,7 @@ export class SeatPanelState {
     this.submit();
   }
 
-  private async post(choices: number[], holdPriority = false) {
+  private async post(choices: number[], holdPriority = false, rest?: number[]) {
     const d = this.pending;
     if (d === null || this.busy) return;
     this.busy = true;
@@ -1966,7 +1984,7 @@ export class SeatPanelState {
     const options = choices.map((index) => ({ index, kind: d.options.find((option) => option.index === index)?.kind ?? 'unknown' }));
     clientBreadcrumbs.record('intent_sent', { decision_kind: d.kind, seq: d.seq, choices: options });
     try {
-      await postIntent(this.table, this.match, { seq: d.seq, player: d.player, choices } satisfies Intent, this.ctx);
+      await postIntent(this.table, this.match, { seq: d.seq, player: d.player, choices, ...(rest?.length ? { rest } : {}) } satisfies Intent, this.ctx);
       // A rewind (or match boundary) landed while the post was in flight:
       // the response describes a seq space the client discarded. Touch
       // nothing — the restored decision, which can carry the SAME seq, must

@@ -7,9 +7,9 @@ import type { CardView, Decision, Option } from '../protocol';
  * (Min 0, Max N): the picked options in answer order become the keep pile
  * that goes back on top in that order, and the unpicked options go to the
  * destination named by the shared Option.Kind ("bottom", "graveyard") in
- * OFFERED order (rules/arrange.go handleArrange). These helpers derive the
- * keep/pool split and the drag-reorder move; the component only wires them
- * to the DOM.
+ * OFFERED order by default, or in the player's Rest order when offered by
+ * the decision (rules/arrange.go handleArrange). These helpers derive the
+ * initial keep/pool split and the drag-reorder move.
  */
 
 /** arrangeDestination is pile B's destination in the UI's own words, from the shared Option.Kind (the same vocabulary rules/arrange.go switches on). */
@@ -23,7 +23,7 @@ export function arrangeDestination(d: Decision): string {
   }
 }
 
-/** ArrangeSplit is one arrange decision's two piles: keep, in PICKED order (pile A, back on top in this order), and pool, in OFFERED order (pile B, to the destination). */
+/** ArrangeSplit is one arrange decision's two piles, each in its current order. */
 export interface ArrangeSplit {
   keep: Option[];
   pool: Option[];

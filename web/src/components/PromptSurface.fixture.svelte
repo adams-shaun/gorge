@@ -34,7 +34,7 @@
    *    non-discard control, which must keep rendering the generic text list.
    */
 
-  let { case: which = 'initiative' }: { case?: 'initiative' | 'arrange' | 'scry' | 'seqswap' | 'discard1' | 'discard2' | 'charm' } = $props();
+  let { case: which = 'initiative' }: { case?: 'initiative' | 'arrange' | 'scry' | 'surveil' | 'seqswap' | 'discard1' | 'discard2' | 'charm' } = $props();
 
   const seats: SeatInfo[] = [
     { name: 'Ari', deck: 'burn', colour: '#e5484d' },
@@ -64,8 +64,12 @@
     ],
   };
   const scry: Decision = {
-    ...arrange, min: 0,
+    ...arrange, min: 0, restable: true,
     prompt: 'Scry 5: pick the cards to keep on top, in order; the rest go to the bottom of your library',
+  };
+  const surveil: Decision = {
+    ...scry, prompt: 'Surveil 5: put the rest into the graveyard in any order',
+    options: scry.options.map((o) => ({ ...o, kind: 'graveyard' })),
   };
   // Decision B for the seqswap case: a different seq, prompt and option set,
   // so anything decision A left behind is detectable.
@@ -85,7 +89,7 @@
     options: [{ index: 0, kind: 'target', label: 'Target Bo', obj: 3, player: 0 }],
   };
   function initialDecision(): Decision {
-    return which === 'arrange' ? arrange : which === 'scry' ? scry : which === 'seqswap' ? arrange
+    return which === 'arrange' ? arrange : which === 'scry' ? scry : which === 'surveil' ? surveil : which === 'seqswap' ? arrange
       : which === 'discard1' ? discard1 : which === 'discard2' ? discard2 : which === 'charm' ? charm : target;
   }
   // The Thoughtseize shape (effects/cardflow.go's RevealYouChoose branch):
