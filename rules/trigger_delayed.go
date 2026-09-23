@@ -184,6 +184,7 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 				// is both Remembered and the DelayTriggerRemembered referent.
 				TriggerContext: effects.TriggerContext{
 					DelayedRemembered: append([]state.Target(nil), dt.Remembered...),
+					OptionalSpec:      dt.OptionalSpec,
 				},
 			},
 		})
@@ -397,6 +398,12 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 			remembered = append([]state.Target(nil), dt.Remembered...)
 		}
 		refs.DelayedRemembered = append([]state.Target(nil), dt.Remembered...)
+		// The registration's OptionalDecider$ election rides the referent
+		// context to the minted stack object, where resolveTop's CR 603.5
+		// gate poses it. It cannot be recovered from the trigger body for a
+		// Mode$ Phase registration (never re-parsed), so it is carried from
+		// state rather than read from t.Params here.
+		refs.OptionalSpec = dt.OptionalSpec
 		fires = append(fires, delayedSpellCastFire{
 			dt:         *dt,
 			sa:         sa,

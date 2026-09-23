@@ -1384,11 +1384,15 @@ func (e *Engine) StackOptional(id state.ObjID) (optional bool, decider state.Pla
 	if o == nil || o.Ability == nil {
 		return false, 0
 	}
-	t, ok := e.findTriggerForAbility(o.Source, o.Ability)
-	if !ok {
-		return false, 0
+	spec := ""
+	if t, ok := e.findTriggerForAbility(o.Source, o.Ability); ok {
+		spec = t.Params["OptionalDecider"]
+	} else {
+		// An Effect-created delayed trigger: no face T: line, so its
+		// OptionalDecider$ spec rides the registration's referent context
+		// (the same fallback resolveTop's optional gate uses).
+		spec = e.triggerContexts[id].OptionalSpec
 	}
-	spec := t.Params["OptionalDecider"]
 	if spec == "" {
 		return false, 0
 	}

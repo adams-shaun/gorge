@@ -2435,6 +2435,16 @@ func Apply(g *state.Game, e Event) {
 		if effectRepeat {
 			text = strings.TrimSuffix(text, "|EF")
 		}
+		// OptionalDecider$ (an api:Effect Triggers$ body's "you may"
+		// election) rides "|OD=<spec>" the same way ValidPlayer$ and MaxTurn
+		// do. It is stripped before the mode/Trigger split below so the
+		// suffix cannot reach the stored body name; the value never contains
+		// "|", so a single LastIndex is exact.
+		optionalSpec := ""
+		if i := strings.LastIndex(text, "|OD="); i >= 0 {
+			optionalSpec = text[i+4:]
+			text = text[:i]
+		}
 		vp := ""
 		if i := strings.LastIndex(text, "|VP="); i >= 0 {
 			vp = text[i+4:]
@@ -2469,6 +2479,7 @@ func Apply(g *state.Game, e Event) {
 			Trigger:           trigger,
 			EffectRepeat:      effectRepeat,
 			ValidPlayer:       vp,
+			OptionalSpec:      optionalSpec,
 		})
 		g.DelayedNext++
 
