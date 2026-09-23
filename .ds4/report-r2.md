@@ -1,3 +1,176 @@
+# Report — r2 (agent-20260918T233200Z-79b69706) — pred:ChosenCardStrict
+
+Ticket: `pred:ChosenCardStrict` — the `Strict` suffix on the ChosenCard
+predicate is never stripped. **Reconciled fix round.** The brief's work is
+already closed on `main` by two prior merged commits, and this round's only
+change is this report itself, appended to the shared report file **without
+deleting anything**. The t1 diff the r2 review flagged has been dropped from
+the branch; the branch now carries exactly one tracked file change: this
+report's insertion at the top of `.ds4/report-r2.md`.
+
+## Resolution of the r2 findings, each one
+
+### [MAJOR] report-vs-diff reconciliation — RESOLVED
+
+The r2 review was right, and t1's report was wrong about itself. What t1
+actually shipped was a single tracked file change: `.ds4/report-t1.md`
+modified with 135 insertions / **1,930 deletions** — i.e. commit `3b820486`
+overwrote the DestroyAll.Zone ticket's committed report with t1's own text,
+while t1's report text simultaneously claimed `git diff --stat main...HEAD`
+was empty. Both halves of that were mistakes: the empty-diff claim was false,
+and the overwrite destroyed another ticket's durable report.
+
+Fix applied this round, in order:
+
+1. Salvaged t1's report text to `.ds4/scratch/old-report-chosencardstrict.md`
+   (untracked scratch, out of the review path) via
+   `git show 3b820486:.ds4/report-t1.md`.
+2. Ran the controller-ordered rebase (`git rebase main`); the overwrite
+   conflicted with main's current `.ds4/report-t1.md` (DestroyAll.Zone
+   report). Resolved by **dropping the commit entirely**
+   (`git rebase --skip`): the branch no longer carries the 1,930-line
+   removal. `git log --oneline -3` after the rebase starts at main's tip
+   `8cac5583` (merge(agent-20260918T231813Z-ae51a551): param:api:DestroyAll.Zone)
+   and `git status` is clean.
+
+The branch's actual diff is now exactly the insertion of this report above
+the prior r2 report (the TriggerRemembered ticket's, already merged) in
+`.ds4/report-r2.md`. That is reconciled with the actual diff by construction:
+`git diff --stat main...HEAD` after this commit reads
+`.ds4/report-r2.md | <N> ++` — insertions only, zero deletions, and this
+report is the only change.
+
+On the substance: the t1 verdict's premise was measured correct, and this
+round re-measures it on the rebase result (current main tip `8cac5583`),
+not on the stale base — all evidence below is fresh.
+
+### [MINOR] deck-ratchet deviation — CLARIFIED (was under-stated, now stated)
+
+The brief's third Done-means item says "the DECK-side ratchet
+(`rules/acceptance_test.go` `knownUnsupported`) then admits the card". t1
+marked it N/A without flagging it as a deviation; it IS a deviation from the
+brief's letter and here is the clarification:
+
+- The deck census that found this gap was the **World Shaper (eoc commander
+  precon)** deck import measurement, not a repo deck. That precon is NOT
+  imported: `grep -rln 'Eumidian Wastewaker' internal/testutil/decks/`
+  returns nothing (the only `World Shaper` hit in `internal/testutil/decks/`
+  is the *card* World Shaper, a 1× entry in
+  `foundations-tramplesaurus-rex.json` — a different deck, unrelated).
+- `knownUnsupported` (`rules/acceptance_test.go`) is a bidirectional ratchet
+  over the 24 imported repo decks' card sets; a card in no imported deck
+  cannot be admitted to it, so there is no table row for Eumidian Wastewaker
+  and none is needed. `grep -n 'Wastewaker' rules/acceptance_test.go
+  rules/paramcensus_test.go` returns nothing, as expected.
+- The ratchet item is therefore **not applicable rather than satisfied**, for
+  the measured reason above. If the World Shaper precon is imported later,
+  its Eumidian Wastewaker coverage is already proven by the regression test
+  below and no ratchet row will be required.
+
+## Re-verification on current main tip `8cac5583` — the three Done-means items
+
+### 1. Predicate-stripping rule in `effects/filter.go` — PRESENT
+
+`ChosenCardStrict` is classified and matched alongside `ChosenCard`, landed
+by `5898aeeb` (2026-09-21, "feat(effects): implement api:ChooseSource with a
+chosen-source replacement gate"; confirmed an ancestor of main):
+
+```
+$ grep -n 'ChosenCardStrict' effects/filter.go
+1971:	if p == "ChosenCard" || p == "ChosenCardStrict" || p == "nonChosenCard" || p == "RememberedPlayerCtrl" || p == "CanBeTargetedByTriggeredSpellAbility" {
+2468:	if p == "ChosenCard" || p == "ChosenCardStrict" || p == "nonChosenCard" {
+2469:		// Forge's ChosenCard and ChosenCardStrict are one predicate for this
+2475:		// Palm's `Card.ChosenCardStrict,Emblem.ChosenCard`), and every carrier
+```
+
+All compound spellings the brief measured (`Card.ChosenCardStrict`,
+`Creature.ChosenCardStrict`, bare `ChosenCardStrict`) split at the spec layer
+to the predicate `ChosenCardStrict` and route through the same matcher, which
+reads `SpecContext.Chosen` and fails closed when no choice is bound.
+
+### 2. End-to-end regression test — PRESENT, GREEN
+
+`rules/eumidian_wastewaker_test.go` (landed by `f2a55835c`, 2026-09-22, the
+sibling `pred:CanBeSacrificedBy` fix; confirmed an ancestor of main) pins the
+brief's exact end-to-end chain on the real corpus card: choose →
+discard-or-sacrifice → `SacrificeAll | ValidCards$ Card.ChosenCardStrict`
+sacrifices the chosen permanent → `Count$ValidGraveyard Land.ChosenCard`
+draws 2. A second test is the negative control (hand-only chooser resolves
+end to end).
+
+```
+$ go test -run 'TestEumidianWastewaker' ./rules/ > .ds4/scratch/t.log 2>&1; tail -5 .ds4/scratch/t.log
+ok  	github.com/adams-shaun/gorge/rules	0.643s
+```
+
+`.cards` is a symlink to `/home/sadams/projects/gorge/.cards` in this
+worktree, so corpus-backed tests ran, not skipped.
+
+### 3. Deck ratchet — N/A (deviation clarified above)
+
+## Fails without the fix
+
+Proof the predicate is load-bearing for the pinned test (the r2 reviewer's
+break attempt, reproduced independently this round): strip the two
+`ChosenCardStrict` clauses from `effects/filter.go` (predicate becomes
+unknown → fails closed to the empty set) and the test fails at exactly the
+sacrifice assertion; `effects/filter.go` was then restored byte-identically
+(`cmp` against the pre-break copy passed, `git status` clean):
+
+```
+$ go test -run 'TestEumidianWastewaker' ./rules/ 2>&1 | tail -8
+--- FAIL: TestEumidianWastewakerChoosersPickDiscardOrSacrifice (0.65s)
+    eumidian_wastewaker_test.go:261: the chosen permanent was not sacrificed: &{ID:41 ... Zone:battlefield ...}
+FAIL
+FAIL	github.com/adams-shaun/gorge/rules	0.665s
+FAIL
+```
+
+This matches the t1 report's recorded revert test (the reviewer's break
+attempt also reproduced it), and is the exact defect the brief described:
+the sacrifice arm matches nothing and the trigger only ever discards.
+
+## Behaviour goldens (mandatory, run once before reporting)
+
+```
+$ go test ./internal/archtest/ 2>&1 | tail -3
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.983s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ 2>&1 | tail -3
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.599s
+```
+
+## Brief-premise re-measurement (counts were claims; re-measured)
+
+```
+$ /usr/bin/grep -rho '[A-Za-z.]*ChosenCardStrict' .cards/cardsfolder | sort | uniq -c
+     68 Card.ChosenCardStrict
+      3 ChosenCardStrict
+      1 Creature.ChosenCardStrict
+$ /usr/bin/grep -rl 'ChosenCardStrict' .cards/cardsfolder | wc -l
+66
+```
+
+All three of the brief's prevalence claims held exactly (68/3/1 spellings,
+66 files).
+
+## Issues
+
+- No new defect found. The interplay named in the brief (the same trigger's
+  `Permanent.CanBeSacrificedBy` choose arm) was closed by the sibling ticket
+  `f2a55835c`, whose test the Wastewaker file now shares; nothing remains
+  open on this card's trigger chain from what this round measured.
+- Process note for the controller, not a defect: `.ds4/report-t1.md` and
+  `.ds4/report-r2.md` are tracked on main and shared across tickets; a
+  dispatch that names a shared report path invites the overwrite class of
+  mistake t1 made. The suffixed-name convention
+  (`.ds4/report-r2-<slug>.md`) avoids it; this round kept to the dispatch's
+  exact path by prepending and preserving, which is why the diff is
+  insertions only.
+
+---
+
+# (Preserved below: the prior r2 report, agent-20260918T233200Z-4a2fcd44 — TriggerRemembered, already merged at d258009b. Nothing below this line was changed.)
+
 # Report — r2 (agent-20260918T233200Z-4a2fcd44) — rebase resolution
 
 Ticket: `count:TriggerRemembered$<Property>` — the delayed/trigger-remembered
