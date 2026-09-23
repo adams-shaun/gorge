@@ -44,6 +44,13 @@ The non-conflicting changes, including `effects/filter.go` and `rules/paramcensu
 
 No new unfixed issue identified during conflict resolution. No new trigger mode is registered by this change; no `addedAfterTheSplit` adjustment is indicated. No golden was modified.
 
+## Completion
+
+- `GIT_EDITOR=true git merge --continue` → `[wt/cli-20260922T225142Z-885d3d75 c85b1900] Merge branch 'main' into wt/cli-20260922T225142Z-885d3d75`.
+- `git merge-base --is-ancestor main HEAD` → exit 0.
+- `git status --short --branch` → `## wt/cli-20260922T225142Z-885d3d75` (clean).
+- `git diff --check HEAD^ HEAD` → clean.
+
 ## Archived conflict-side report — branch version
 
 # mrg1 conflict resolution report
