@@ -21,9 +21,7 @@ error: Your local changes to the following files would be overwritten by merge:
 Root cause: round t1 wrote its report at the SHARED path `.ds4/report-t1.md`
 and left it uncommitted. Main meanwhile tracks `.ds4/report-t1.md` with a
 different ticket's report (`fb-20260923T005857Z-c1a24352`,
-Count$ResolvedThisTurn), so the merge refused to touch the file. Resolution,
-following the precedent the split-cast round set (see the old r2 report,
-preserved here as `.ds4/report-r2-split-cast.md`):
+Count$ResolvedThisTurn), so the merge refused to touch the file. Resolution:
 
 1. Moved the t1 report to the unique path `.ds4/report-t1-mill-unless.md`
    and restored `.ds4/report-t1.md` to its tracked content
@@ -72,11 +70,9 @@ and the two ~2 s behaviour goldens both pass on the merged tree.
 
 - **Process, not code:** shared report filenames (`.ds4/report-t1.md`,
   `.ds4/report-r2.md`) collide across tickets because main tracks them while
-  concurrent worktrees write their own. The durable convention this and the
-  split-cast round both landed on: every report goes under a ticket-unique
-  path (`report-t1-mill-unless.md`, `report-r2-split-cast.md`); the
-  dispatched shared path holds the CURRENT round's report only. Worth a
-  controller-level rule so future rounds are dispatched with unique report
-  paths up front.
+  concurrent worktrees write their own. Keep historical reports under
+  ticket-unique paths (such as `report-t1-mill-unless.md`) while leaving
+  main's unrelated reports untouched. Worth a controller-level rule so
+  future rounds are dispatched with unique report paths up front.
 - No engine defect was found this round; the merge introduced no conflict and
   no behaviour movement (botbench split unchanged).
