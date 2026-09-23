@@ -151,6 +151,23 @@ type pendingCast struct {
 	// rides pendingCast rather than the shared "play" mode.
 	replaceGraveyard bool
 
+	// cascadeMVLimit (CR 702.85a) is the on-stack mana value of the spell
+	// whose cascade found this candidate: the free cast's resulting mana value
+	// must be STRICTLY less than it. Zero means no cascade bound (every
+	// ordinary cast and every non-cascade Play). It rides the cast because the
+	// library scan compared the candidate at its X=0 printed value while it
+	// sat in the library (CR 202.3b), and the candidate's own announced {X}
+	// can only be compared once xAsk has run -- so recheckIllegal re-applies
+	// the bound at CR 601.2e with the chosen X. Plain data, so Clone carries
+	// it like the other scalars.
+	cascadeMVLimit int
+	// cascadeXAsked marks cascadeXAsk's one ask. It is deliberately separate
+	// from xDone: the ordinary xAsk sets xDone unconditionally on its first
+	// call (even when the cost carries no X), and for a free cast the printed
+	// cost has been replaced by an empty one, so xDone is already true by the
+	// time cascadeXAsk runs.
+	cascadeXAsked bool
+
 	x     int32
 	xDone bool
 	// announceX is the alternative cost's Announce$ variable (the Shoal
@@ -2429,7 +2446,7 @@ func pricePlayCost(f *cards.Face, token string) (Cost, bool) {
 // ReplaceGraveyard$ Exile rider (task replplay1): true stamps the played
 // spell's pay-time CastInfo with state.FlagReplaceGraveyard so the resolution
 // reader exiles it instead of the graveyard.
-func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost bool, playCost string, replaceGraveyard bool) {
+func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost bool, playCost string, replaceGraveyard bool, cascadeMVLimit int) {
 	o := e.G.Obj(id)
 	if o == nil || o.Face() == nil {
 		e.emit(events.Event{Kind: events.Note, Player: p, Text: "Play found no card to play"})
@@ -2507,7 +2524,7 @@ func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost boo
 	cost = converted
 	mods := e.costModifiers(p, id, spellScope(""))
 	e.cast = &pendingCast{player: p, card: id, from: o.Zone, mode: "play", ability: -1,
-		cost: cost, mods: mods, replaceGraveyard: replaceGraveyard}
+		cost: cost, mods: mods, replaceGraveyard: replaceGraveyard, cascadeMVLimit: cascadeMVLimit}
 	e.continueCast()
 }
 
@@ -2702,6 +2719,20 @@ func (e *Engine) continueCast() {
 	// the proposed spell so targetAsk can inspect the selected mode and
 	// resolution can execute it without asking again.
 	if e.castModeAsk() {
+		return
+	}
+	// CR 702.85a / 107.3c: a cascade free cast of a card with {X} in its
+	// printed mana cost still announces X. beginPlay replaced the printed
+	// mana cost with an empty (free) one, so the ordinary xAsk -- which keys
+	// off pc.cost.X -- never fires for it; cascadeXAsk poses the same KChoose
+	// the ordinary X cast would, scoped to the cascade provenance so every
+	// other free cast is untouched. It runs AFTER pushCast deliberately: the
+	// cast was begun from inside a trigger's resolution, and that resolution
+	// finishes (its CascadeBottom tail included) the moment this stage
+	// suspends, so the candidate must already be on the stack for the tail
+	// to skip it. recheckIllegal then enforces the resulting-mana-value
+	// bound once the announced X exists.
+	if e.cascadeXAsk() {
 		return
 	}
 	// CR 601.2b: announce how each hybrid and Phyrexian pip is paid -- which
@@ -3658,6 +3689,46 @@ func (e *Engine) conspireAsk() bool {
 		Prompt: "Choose two creatures to tap for conspire", Source: pc.card}
 	for _, id := range candidates {
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "conspire", Obj: id, Label: e.targetName(id)})
+	}
+	e.choosing = chooseCast
+	e.ask(d)
+	return true
+}
+
+// cascadeXAsk announces the {X} of a cascade free cast. A free-cast Play SA
+// (WithoutManaCost$ True) strips the printed mana cost, so the ordinary xAsk
+// sees no X and never asks; but CR 107.3c still requires the value of X to
+// be announced, and CR 702.85a makes the RESULTING spell's mana value (which
+// counts that X, CR 202.3e) the bound the cascade imposes. Without this ask
+// a cascade candidate with its own {X} could only ever be cast at X=0, and
+// the 702.85a comparison could never be exercised. Only a cast carrying a
+// cascade limit (pc.cascadeMVLimit > 0) and a printed {X} reaches here, so
+// no ordinary cast and no non-cascade free cast changes. The offered range
+// runs 0..bound where bound is the ordinary pool-bound plus the cascade
+// limit, so the first value that violates the strict bound is always
+// offered: CR 601.2e's recheck (recheckIllegal) then reverses such a
+// choice, and the cascade tail bottoms the still-in-exile card.
+func (e *Engine) cascadeXAsk() bool {
+	pc := e.cast
+	if pc == nil || pc.isAbility() || pc.cascadeXAsked || pc.cascadeMVLimit <= 0 {
+		return false
+	}
+	o := e.G.Obj(pc.card)
+	if o == nil || o.Face() == nil || ParseCost(o.Face().ManaCost).X <= 0 {
+		return false
+	}
+	pc.cascadeXAsked = true
+	pool := e.G.Players[pc.player].Pool
+	gy := int32(len(e.G.Zone(state.ZGraveyard, pc.player)))
+	bound := pool.Total() + gy + 1
+	if bound < int32(pc.cascadeMVLimit) {
+		bound = int32(pc.cascadeMVLimit)
+	}
+	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
+		Prompt: "Choose a value for X", Source: pc.card}
+	for x := int32(0); x <= bound; x++ {
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "x",
+			Label: fmt.Sprintf("X = %d", x), Amount: int(x)})
 	}
 	e.choosing = chooseCast
 	e.ask(d)
@@ -7552,6 +7623,29 @@ func (e *Engine) recheckIllegal(pc *pendingCast) bool {
 	mv := printed.CMC()
 	if printed.X > 0 {
 		mv = printed.WithX(pc.x).CMC()
+	}
+	// CR 702.85a: a cascade free cast may be made only if the resulting
+	// spell's mana value is STRICTLY less than the cascade spell's. The exile
+	// scan compared the candidate at its X=0 printed value while it sat in
+	// the library (CR 202.3b); the resulting value depends on the {X}
+	// announced here, so the bound is enforced now that pc.x is known -- an
+	// X at or above the limit reverses the proposal (CR 733.1), and the
+	// cascade tail then bottoms the still-in-exile card. Only a cast carrying
+	// the provenance (cascadeMVLimit > 0, set from the cascade Play SA) is
+	// constrained; every ordinary cast and non-cascade Play keeps limit 0.
+	if pc.cascadeMVLimit > 0 && mv >= int32(pc.cascadeMVLimit) {
+		e.abortCast(pc, "cast aborted: the resulting spell's mana value is not less than the cascade spell's (CR 702.85a)", true)
+		// The cascade trigger's own resolution completed when this proposal
+		// suspended (its CascadeBottom tail skipped the card because it was on
+		// the stack), so nothing else will bottom the now-reversed candidate:
+		// do it here, the same exile->library move the tail emits, so a
+		// rejected X leaves the card on the library bottom exactly as a
+		// declined election does.
+		if o := e.G.Obj(pc.card); o != nil && o.Zone == state.ZExile {
+			e.emit(events.Event{Kind: events.MoveZone, Obj: pc.card, From: state.ZExile,
+				To: state.ZLibrary, Text: "the uncast cascade card is put on the bottom of its owner's library"})
+		}
+		return true
 	}
 	for _, sv := range e.castRestrictionSources(e.activeStatics("CantBeCast"), pc.card) {
 		if !e.actorMatches(sv, "Caster", pc.player) {

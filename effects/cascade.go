@@ -1,6 +1,8 @@
 package effects
 
 import (
+	"strconv"
+
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
@@ -58,12 +60,24 @@ func init() {
 // per-resolution scratch, built here and referenced only by the resolution
 // it is built for (the pending frame's ResumeSA and the continuation chain
 // both point at it, never at a compiled face).
-func cascadePlaySA() *cards.SA {
+//
+// cascadeMV is the cascade spell's on-stack mana value (printed face value
+// plus its announced {X}, CR 202.3b). CR 702.85a permits the free cast only
+// if the RESULTING spell's mana value is strictly less than this; the
+// library scan above already applied that bound at the candidate's X=0
+// printed value, but a candidate with its own {X} cost can announce an X
+// that pushes its resulting value back over the limit. The value rides the
+// Play SA's params (the same per-resolution scratch the rest of the SA is)
+// so rules' play arm can carry it onto the pending cast and recheck it at
+// CR 601.2e, after the announced X exists.
+func cascadePlaySA(cascadeMV int) *cards.SA {
 	play := &cards.SA{Kind: "DB", API: "Play", Params: map[string]string{
 		"Defined":            "Remembered",
 		"WithoutManaCost":    "True",
 		"Optional":           "True",
 		"TriggerDescription": "Cascade",
+		// ParamCascadeSourceMV is the param name rules/resolution.go reads.
+		"CascadeSourceMV": strconv.Itoa(cascadeMV),
 	}}
 	play.Sub = &cards.SA{Kind: "DB", API: "CascadeBottom", Params: map[string]string{}}
 	return play
@@ -135,7 +149,7 @@ func effCascade(h Host, c *Ctx, sa *cards.SA) {
 	// answer's ResumeRemembered ride are the same list). The chained
 	// CascadeBottom bottoms the found card when the election declined it.
 	c.Remembered = []state.Target{{Obj: found}}
-	playSA := cascadePlaySA()
+	playSA := cascadePlaySA(mv)
 	effPlay(h, c, playSA)
 	if !h.Suspended() {
 		// AskNoHost (an effects-package stub host): the deterministic decline

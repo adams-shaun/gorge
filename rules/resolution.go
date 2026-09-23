@@ -2987,6 +2987,17 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// effPlay sees the answer as consumed either way.
 			free := strings.EqualFold(rp.sa.Params["WithoutManaCost"], "True")
 			playCost := strings.TrimSpace(rp.sa.Params["PlayCost"])
+			// CascadeSourceMV$ (CR 702.85a): a cascade free-cast Play carries
+			// the cascade spell's on-stack mana value so the resulting spell's
+			// value can be rechecked against it after the candidate's own {X}
+			// is announced. Absent (or unparseable) means no cascade bound --
+			// every ordinary Play keeps limit 0 and is untouched.
+			cascadeMVLimit := 0
+			if raw := strings.TrimSpace(rp.sa.Params["CascadeSourceMV"]); raw != "" {
+				if n, err := strconv.Atoi(raw); err == nil && n > 0 {
+					cascadeMVLimit = n
+				}
+			}
 			// ReplaceGraveyard$ Exile (task replplay1): the Play SA's own
 			// rider — "if that spell would be put into your graveyard this
 			// turn, exile it instead" — stamps the played spell's pay-time
@@ -3068,7 +3079,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				if o := e.G.Obj(id); o != nil {
 					from = o.Zone
 				}
-				e.beginPlay(player, id, free, playCost, replaceGraveyard)
+				e.beginPlay(player, id, free, playCost, replaceGraveyard, cascadeMVLimit)
 				if imprintPlayed && from.Valid() {
 					if o := e.G.Obj(id); o != nil && o.Zone != from {
 						e.emit(events.Event{Kind: events.Imprint, Obj: ctx.Source,
