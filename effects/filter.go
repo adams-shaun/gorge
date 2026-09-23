@@ -3323,12 +3323,49 @@ func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, 
 				return true
 			}
 		default:
+			// Player.NotedFor<label> (Forge's PlayerProperty.NotedFor): the
+			// seat qualifies when its event-backed note set names <label>.
+			// The label is written by a DB$ Pump body's NoteCardsFor$
+			// parameter (effects.effPump -> events.PlayerNoted), so the read
+			// reaches the shared player filter every consumer already uses --
+			// RepeatEach's RepeatPlayers$, Defined$ on Draw/Discard/ChangeZone,
+			// the Continuous statics' Affected$ and a Count$ head alike. The
+			// Player/Any base is required (a qualified You.NotedForX fails
+			// closed, like every other qualifier here), the label is matched
+			// EXACTLY (case-sensitive, as Forge's string set is), and an
+			// out-of-range seat fails closed.
+			if base == "Player" || base == "Any" {
+				if label, is := strings.CutPrefix(qualifier, "NotedFor"); is && label != "" {
+					if int(p) < len(g.Players) && playerHasNote(g, p, label) {
+						return true
+					}
+					continue
+				}
+			}
 			if int(p) < len(g.Players) {
 				op, n, ok := splitPlayerCompare(qualifier)
 				if ok && playerCompare(g.Players[p].Life, op, n) {
 					return true
 				}
 			}
+		}
+	}
+	return false
+}
+
+// playerHasNote reports whether the seat's event-backed player-notation set
+// names label. The note set is state.Player.Notes, written only by
+// events.Apply's PlayerNoted case (a DB$ Pump body's NoteCardsFor$), so a
+// live game and a log-only replay answer identically. An out-of-range seat
+// fails closed. There is no map range here (the slice is walked in its
+// append order), so the result is deterministic.
+func playerHasNote(g *state.Game, p state.PlayerID, label string) bool {
+	if int(p) >= len(g.Players) {
+		return false
+	}
+	for _, n := range g.Players[p].Notes {
+		if n == label {
+			return true
 		}
 	}
 	return false
