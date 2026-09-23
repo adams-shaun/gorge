@@ -30,6 +30,17 @@ type combinedChars interface {
 	Characteristics(state.ObjID) (power, toughness int32, keywords []string)
 }
 
+// derivedReadScoper is an optional Chars fast path: an implementation that
+// memoizes derived characteristics for the duration of a pure read
+// (*rules.Engine: BeginDerivedReads/EndDerivedReads) lets the board build
+// reuse what the engine derived at this same state -- the priority offer
+// walk the decision was just built from -- instead of recomputing it. The
+// build reads only between the two calls and never mutates the engine.
+type derivedReadScoper interface {
+	BeginDerivedReads()
+	EndDerivedReads()
+}
+
 // Creature is one battlefield creature's combat-relevant facts, in the
 // plain-data shape that keeps the adapter pair in step: the view-shaped
 // half (seat/bot.go's boardFromView) reads Power/Toughness/Keywords off the
@@ -130,6 +141,10 @@ func BoardFromGame(g *state.Game, ch Chars, me state.PlayerID) Board {
 // (pinned by TestBoardOwnership), which is what makes the host's
 // build-under-lock → Decide → reuse-next loop safe.
 func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Board {
+	if sc, ok := ch.(derivedReadScoper); ok {
+		sc.BeginDerivedReads()
+		defer sc.EndDerivedReads()
+	}
 	combined, hasCombined := ch.(combinedChars)
 	clear(b.Creatures)
 	clear(b.Life)

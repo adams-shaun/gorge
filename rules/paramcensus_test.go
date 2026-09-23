@@ -1736,6 +1736,12 @@ var handRoots = struct {
 		// like the drain above -- a granted trigger of ANY mode matches through
 		// triggerMatches' own dispatch.
 		"Engine.checkGrantedStaticTriggers",
+		// The live trigger walk's zone-skip classifier (trigger_zoneskip.go)
+		// re-reads zoneGate's TriggerZones$/ActiveZones$ and the Phase$
+		// diagnostic's spec as pure syntax, mode-shared, to decide which
+		// hidden zones the walk may pass over; the reads that give those
+		// params meaning stay in zoneGate/phaseGate under triggerMatches.
+		"Engine.faceTriggerZones",
 		// The event-matched delayed registrations (Chancellor of the Annex's
 		// opening-hand Mode$ SpellCast shape): the registration re-parses the
 		// stored trigger body, and the firing walker re-evaluates its

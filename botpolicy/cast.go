@@ -168,6 +168,88 @@ var braceForm = strings.NewReplacer("{", " ", "}", " ")
 // generic face (two). A brace-form cost ("{2}{U}{U}") is normalised to the
 // space-separated form first.
 func CmcOf(mc string) int32 {
+	if n, ok := cmcOfPlain(mc); ok {
+		return n
+	}
+	return cmcOfSlow(mc)
+}
+
+// cmcOfPlain is CmcOf's allocation-free path for the ordinary Forge
+// spelling: pure ASCII, no braces. It splits on the ASCII whitespace
+// strings.Fields/TrimSpace split on for such a string and prices each
+// symbol with cmcSymbol, the slow path's own per-symbol rule, so the two
+// agree on every such string (TestCmcOfPlainMatchesSlow). ok is false for
+// anything else, which takes the slow path.
+func cmcOfPlain(mc string) (int32, bool) {
+	for i := 0; i < len(mc); i++ {
+		if c := mc[i]; c >= 0x80 || c == '{' || c == '}' {
+			return 0, false
+		}
+	}
+	mc = strings.TrimSpace(mc)
+	if mc == "" || strings.EqualFold(mc, "no cost") {
+		return 0, true
+	}
+	var n int32
+	for i := 0; i < len(mc); {
+		for i < len(mc) && asciiSpace(mc[i]) {
+			i++
+		}
+		j := i
+		for j < len(mc) && !asciiSpace(mc[j]) {
+			j++
+		}
+		if j > i {
+			n += cmcSymbol(mc[i:j])
+		}
+		i = j
+	}
+	return n, true
+}
+
+func asciiSpace(c byte) bool {
+	return c == ' ' || c == '\t' || c == '\n' || c == '\v' || c == '\f' || c == '\r'
+}
+
+// cmcSymbol prices one mana symbol the way CmcOf always has.
+func cmcSymbol(sym string) int32 {
+	if sym == "X" { // {X} is 0 off the stack
+		return 0
+	}
+	if len(sym) == 1 && strings.ContainsRune("WUBRGC", rune(sym[0])) { // a single coloured/colourless pip
+		return 1
+	}
+	// Atoi can only succeed on an optionally signed digit run; testing that
+	// first spares the error allocation on every hybrid/Phyrexian symbol.
+	if maybeInt(sym) {
+		if v, err := strconv.Atoi(sym); err == nil && v >= 0 {
+			return int32(v)
+		}
+	}
+	if v, ok := twobridManaValue(sym); ok {
+		return v
+	}
+	// Hybrid ("W/U"), Phyrexian ("UP"), and any other symbol: one generic.
+	return 1
+}
+
+func maybeInt(s string) bool {
+	if s != "" && (s[0] == '+' || s[0] == '-') {
+		s = s[1:]
+	}
+	if s == "" {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		if s[i] < '0' || s[i] > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+// cmcOfSlow is CmcOf's general path (brace form, non-ASCII input).
+func cmcOfSlow(mc string) int32 {
 	mc = braceForm.Replace(mc)
 	mc = strings.TrimSpace(mc)
 	if mc == "" || strings.EqualFold(mc, "no cost") {
@@ -213,7 +295,7 @@ func twobridManaValue(sym string) (int32, bool) {
 		}
 		generic, col = sym[:i], sym[i:]
 	}
-	if len(col) != 1 || !strings.ContainsRune("WUBRGC", rune(col[0])) {
+	if len(col) != 1 || !strings.ContainsRune("WUBRGC", rune(col[0])) || !maybeInt(generic) {
 		return 0, false
 	}
 	v, err := strconv.ParseInt(generic, 10, 32)

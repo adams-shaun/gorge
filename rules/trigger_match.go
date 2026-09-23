@@ -1007,7 +1007,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 	// compiledTriggerInterestAllows(interests, ev.Kind) is exactly
 	// evAll || interests&evMask != 0 (see objectFaceMayTriggerHoisted).
 	evAll, evMask := compiledTriggerInterestEvent(ev.Kind)
-	observer.forEachObject(func(id state.ObjID) {
+	visit := func(id state.ObjID) {
 		o := observer.G.Obj(id)
 		if o == nil {
 			return
@@ -1537,7 +1537,16 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		// live for this step change -- the same both-paths rule Afflict,
 		// Conspire, Exploit, Offspring and Training follow.
 		e.checkGrantedCumulativeUpkeepTriggers(observer, id, o, f, ev, objLKI)
-	})
+	}
+	// The live walk skips a hidden zone none of whose objects can act on
+	// any event (rules/trigger_zoneskip.go); the look-back observer and any
+	// event a static-granted trigger observes walk everything.
+	skip := observer == e && len(grantedStatics) == 0
+	var verify func(state.ObjID)
+	if skip && trigZoneSkipVerify {
+		verify = e.trigSkipVerifier(ev, visit, func() int { return len(phaseNotes) })
+	}
+	observer.forEachTriggerObject(ev, skip, visit, verify)
 	for _, n := range phaseNotes {
 		e.emit(events.Event{Kind: events.Note, Obj: n.id,
 			Text: "Phase$ " + n.spec + " names no engine step; the trigger never fires"})
