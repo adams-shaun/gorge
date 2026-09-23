@@ -3655,9 +3655,9 @@ func playerCompare(have int32, op string, want int32) bool {
 // (YouOwn, YouCtrl, ...) and no type/subtype/colour/name restriction. Any
 // alternative whose base names a type/identity other than `Card`/`Any`, or
 // that carries any predicate other than a possession/control word, states a
-// quality. This is a property of the FILTER, deliberately independent of
-// Forge's `Mandatory$` parameter, which is recorded in AGENTS.md as
-// deliberately unread and is a different thing.
+// quality. Forge's `Mandatory$ True` is applied by the hidden-library search
+// as an explicit prohibition on failing to find; it does not change this
+// classification of the filter itself.
 func SearchStatesQuality(spec string) bool {
 	// An EACH spec states a quality when ANY listed sub-spec does -- every
 	// real carrier lists a named type, so an EACH library search keeps

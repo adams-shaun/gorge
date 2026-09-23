@@ -2237,6 +2237,18 @@ func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state
 				d.Options = append(d.Options, opt)
 			}
 		}
+		// Forge Mandatory$ removes the CR 701.23b fail-to-find option: if
+		// eligible cards (or EACH groups) exist, the search must take the
+		// requested number. Apply this after the EACH shape sets its bounds.
+		if strings.EqualFold(strings.TrimSpace(sa.Params["Mandatory"]), "True") {
+			min = max
+			if hasBudget && !eachStructured {
+				// Respect the cumulative budget's feasible deterministic count;
+				// never post a mandatory minimum the budget cannot satisfy.
+				min = int32(len(greedy))
+			}
+		}
+		d.Min = int(min)
 		// The shared ask boundary (effects.Ask) refuses to post a decision whose
 		// only legal answer is the empty one -- with zero eligible cards max
 		// clamps to 0 and a stated-quality search's Min is already 0, so that is
