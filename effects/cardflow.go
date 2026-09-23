@@ -377,14 +377,21 @@ func effDraw(h Host, c *Ctx, sa *cards.SA) {
 //     order, one events.Discard per card, no ask and no Note (a mandatory
 //     line has no choice to record). Forge's DiscardEffect HAND mode
 //     discards the ENTIRE hand and never reads NumCards$ there. The
-//     Optional$ True variant keeps its deterministic stand-in (whole hand +
-//     one Note recording why); a real may-discard election is M4 follow-up
-//     work.
-//   - Mode$ absent / Random / Defined / LookYouChoose / YouChoose /
-//     RevealTgtChoose (the cleanup step, Delve-style costs): still the
-//     deterministic front-of-hand discard NumCards times —
-//     right, because those paths have no player choice to make (or the
-//     approximation is elsewhere), and must not become a question.
+//     Optional$ True variant is a real may-discard election: a per-player
+//     yes/no (Ctx.DiscardVote with the per-player cursor Ctx.DiscardTarget)
+//     whose decline discards nothing.
+//   - Mode$ Random: CR 701.8b's random discard — the engine's own seeded RNG
+//     (h.Rand) picks NumCards$ cards out of the DiscardValid$-filtered hand
+//     without replacement. No seat is asked and no Note is recorded: the
+//     randomness IS the rule, not a stand-in for a missing ask.
+//   - Mode$ Defined: DefinedCards$ names the cards (the Remembered set,
+//     Breathstealer's Crypt); only cards still in the target's hand move.
+//   - Mode$ LookYouChoose / YouChoose / RevealTgtChoose: the same asking
+//     shape as RevealYouChoose — a CHOSER (the caster for Look/You; the
+//     first player target for RevealTgtChoose) names the cards out of the
+//     discarder's hand, a per-target cursor (Ctx.DiscardTarget) attaches
+//     each answer to the target that gave it, and every later target poses
+//     its own ask.
 //
 // DiscardValid$ is a Forge filter spec ("Card.nonLand", "Card.NamedCard"),
 // evaluated with MatchesSpecFrom (the same resolver effDig uses for
@@ -504,7 +511,9 @@ func discardChooser(c *Ctx, mode string) state.PlayerID {
 	switch mode {
 	case "RevealTgtChoose":
 		for _, t := range c.Targets {
-			if t.IsPlayer { return t.Player }
+			if t.IsPlayer {
+				return t.Player
+			}
 		}
 	}
 	return c.Controller
@@ -514,7 +523,9 @@ func discardAsk(g *state.Game, c *Ctx, sa *cards.SA, eligible []state.ObjID, cho
 	opts := make([]decision.Option, 0, len(eligible))
 	for _, id := range eligible {
 		name := "a card"
-		if o := g.Obj(id); o != nil && o.Face() != nil { name = o.Face().Name }
+		if o := g.Obj(id); o != nil && o.Face() != nil {
+			name = o.Face().Name
+		}
 		opts = append(opts, decision.Option{Index: len(opts), Kind: "discard", Label: "Discard " + name, Obj: id, Player: chooser})
 	}
 	return &decision.Decision{Player: chooser, Kind: decision.KModes, Min: min, Max: max, Source: c.Source,

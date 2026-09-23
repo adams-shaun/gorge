@@ -1947,6 +1947,29 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				}
 			}
 			ctx.Discard = ids
+			// The per-target cursor: DiscardTarget is the index (into the
+			// effect's deterministic acting-player list) of the player whose
+			// hand this answer was about, so the re-entered effDiscard applies
+			// it to exactly that target and poses a fresh ask for every later
+			// target (the RevealPickTarget/RevealOptTarget pattern). Without
+			// it, a multi-target TgtChoose answered for target 0 re-asked
+			// target 1 forever — the answer was always consumed at target 0's
+			// cursor (0), whose hand never held target 1's chosen cards.
+			ctx.DiscardTarget = rp.target
+		case "discard_hand":
+			// A "Mode$ Hand | Optional$ True" may-discard election (the
+			// whole-hand wheel's "each player may discard their hand") was
+			// answered: option 0 is yes, anything else — option 1, an empty or
+			// malformed answer — is a decline, the conservative read of an
+			// ambiguous one. The re-entered effDiscard applies the answer to
+			// exactly the acting player this ask was posed for (the cursor)
+			// and poses a fresh election for every later player; a declined
+			// election discards nothing.
+			ctx.DiscardVote = "no"
+			if len(chosen) > 0 && chosen[0].Kind == "yes" {
+				ctx.DiscardVote = "yes"
+			}
+			ctx.DiscardTarget = rp.target
 		case "choosetype":
 			// A mid-resolution ChooseType ask (task ct1: SP$/AB$/DB$ ChooseType
 			// resolving outside the cast-time "as this enters" choice —
