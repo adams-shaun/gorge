@@ -118,3 +118,38 @@ func TestCompoundLibraryAndHandOriginUsesOneUnionChooser(t *testing.T) {
 		}
 	}
 }
+
+// TestCompoundHandAndGraveyardOriginUsesOneUnionChooser covers the
+// non-library mixed-hand form: it must not fall through to the source-default
+// object path merely because Library is absent.
+func TestCompoundHandAndGraveyardOriginUsesOneUnionChooser(t *testing.T) {
+	h := &askHost{}
+	h.g = state.NewGame(names(2))
+	source := h.g.AddObject(mkCard(t, "Name:Source\nTypes:Sorcery\nOracle:x\n"), 0)
+	c := &Ctx{Source: source.ID, Controller: 0}
+	handCard := h.g.AddObject(mkCard(t, "Name:Hand Creature\nTypes:Creature\nPT:3/3\nOracle:x\n"), 0)
+	handCard.Zone = state.ZHand
+	graveyardCard := h.g.AddObject(mkCard(t, "Name:Graveyard Creature\nTypes:Creature\nPT:4/4\nOracle:x\n"), 0)
+	graveyardCard.Zone = state.ZGraveyard
+	h.g.SetZone(state.ZHand, 0, []state.ObjID{handCard.ID})
+	h.g.SetZone(state.ZGraveyard, 0, []state.ObjID{graveyardCard.ID})
+	if handCard.Zone == graveyardCard.Zone || handCard.ID == graveyardCard.ID {
+		t.Fatal("test setup did not create distinct hand and graveyard candidates")
+	}
+
+	effChangeZone(h, c, sa(t, "DB$ ChangeZone | Origin$ Hand,Graveyard | Destination$ Battlefield | ChangeType$ Creature"))
+	if h.asked == nil || h.asked.ResumeKind != "search" || len(h.asked.Options) != 2 {
+		t.Fatalf("decision = %+v, want one search decision with two options", h.asked)
+	}
+	for _, id := range []state.ObjID{handCard.ID, graveyardCard.ID} {
+		found := false
+		for _, option := range h.asked.Options {
+			if option.Obj == id {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatalf("candidate %d absent from union options: %+v", id, h.asked.Options)
+		}
+	}
+}
