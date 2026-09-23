@@ -1706,3 +1706,39 @@ None found. The only conflict was the shared report accumulator; no engine or
 web code conflicted, and the merged main content (Backup, Attached
 predicates, CopySpellAbility.Optional, RevealAllValid) arrived with its own
 reports already in place.
+
+## Verification in this resolver session
+
+The entry tree was already clean and the prior merge operation was complete:
+`7f90dfef` has parents `d14c376f` and `b3523eab`; the report commit was
+`28160e61`. The dispatch's rebase transcript named `.ds4/report-sol1.md`,
+while the completed merge's recorded unmerged path was `.ds4/report-sol1.md`
+(the fallback transcript's `.ds4/report-mrg1.md` collision did not remain in
+the completed merge). Kept the completed merge intact rather than starting a
+second integration. At verification time `main` had advanced to `19b8fb3a`,
+so that newer tip is not an ancestor; the completed integration is against
+`b3523eab` and is not being chased as a moving target.
+
+`.cards` resolves to `/home/sadams/projects/gorge/.cards`.
+
+Commands run in this session:
+
+```text
+$ git status --short --branch
+## wt/fb-20260923T020152Z-694613d1
+
+$ git merge-base --is-ancestor b3523eab HEAD; echo $?
+0
+
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok   github.com/adams-shaun/gorge/rules  0.953s
+
+$ cd web && npm_config_cache=/tmp/gorge-fb-20260923T020152Z-npm-cache npx vitest run src/components/CardMenu.test.ts
+Test Files 1 passed (1)
+Tests 6 passed (6)
+```
+
+Vitest also printed the existing Svelte `anchorProp` initial-value warning in
+`ResolvedCard.svelte:97`; tests passed. The branch registers no new trigger
+mode and closes no ratchet entry. The final tree is clean after committing this
+verification record.
