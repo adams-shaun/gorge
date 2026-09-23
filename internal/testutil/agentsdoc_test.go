@@ -19,7 +19,7 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	// The auto-merged AGENTS.md measures 31 data rows; retain the merged count.
+	// The merged AGENTS.md measures 31 data rows after both sides' changes.
 	knownApproximationRows = 31
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what

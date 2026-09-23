@@ -402,12 +402,8 @@ func (c *Ctx) SpecContext(you state.PlayerID) SpecContext {
 		// resolving effect's ordinary type filter (target offer, Count$Valid,
 		// CantTarget) agrees with the layer walk. Also a field copy of
 		// immutable data.
-		DerivedTypes: c.EffectiveTypes,
-		// The static-goad table rules published alongside both (staticgoad1):
-		// a resolving effect's IsGoaded filter sees the granted and printed
-		// static route. A field copy of immutable data; nil when the walk's
-		// Host published none.
-		StaticGoads: c.StaticGoads}
+		DerivedTypes: c.EffectiveTypes, StaticGoads: c.StaticGoads,
+		TargetableObjects: c.TargetableObjects}
 	// Numeric-RHS resolution for a resolution-time filter spec, in priority
 	// order:
 	//

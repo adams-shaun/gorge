@@ -747,19 +747,13 @@ type Ctx struct {
 	// state.Game into rules. An effects test double whose Host does not
 	// implement typeTableHost leaves it nil and reads the printed face.
 	EffectiveTypes []ObjectTypes
-	// StaticGoads is the live static-goad table (staticgoad1): the ids of
-	// every battlefield object a Goad$ True continuous static currently
-	// goads, printed or granted, derived by the resolving Host's rules tier
-	// and published beside the name/type tables for the whole of the walk.
-	// It is immutable DATA bound onto every SpecContext (*Ctx).SpecContext
-	// builds, so a resolving effect's IsGoaded filter (Hot Pursuit's
-	// GainControl AllValid$, Serene Sleuth's Count$Valid) sees the static
-	// route without a pointer from state.Game into rules. A Host that does
-	// not implement goadTableHost -- and any body whose parameters never
-	// mention IsGoaded -- leaves it nil, and the predicate answers the
-	// event-backed half alone.
+	// StaticGoads is the live static-goad table (staticgoad1), published by
+	// rules for resolution-time IsGoaded filters.
 	StaticGoads map[state.ObjID]bool
-	Targets     []state.Target
+	// TargetableObjects is a rules-built immutable legality snapshot for the
+	// triggering spell, used by CanBeTargetedByTriggeredSpellAbility.
+	TargetableObjects []state.ObjID
+	Targets           []state.Target
 	// ModeTargets carries the target groups selected for a distinct modal
 	// Charm. Each entry is in target-bearing mode order; nil means the
 	// historical single-target-list path, including repeatable modes.
@@ -2133,24 +2127,11 @@ type typeTableHost interface {
 	EffectiveTypes() []ObjectTypes
 }
 
-// goadTableHost is implemented by the rules engine to publish its live
-// static-goad table (staticgoad1) beside the name/type tables. Resolve
-// binds it on the resolving Ctx ONLY when the body's own parameters mention
-// the IsGoaded predicate -- the derivation is a live board walk, not a field
-// read, so every other resolution keeps the plain context it always built --
-// and every filter call that walk makes through (*Ctx).SpecContext agrees
-// with rules' staticGoaders derivation. Optional, like nameTableHost, so
-// the effects test doubles stay small and a double with no table answers the
-// event-backed goad list alone.
+// goadTableHost publishes rules' live static-goad table for resolving filters.
 type goadTableHost interface {
 	StaticallyGoaded() map[state.ObjID]bool
 }
 
-// saMentionsGoaded reports whether the body's own parameter values consult
-// the IsGoaded predicate. The scan is over the SA's inline values only: the
-// corpus writes every IsGoaded filter inline (AllValid$, Num$'s Count$Valid,
-// trigger ValidCard$), and a body reached through an SVar indirection is the
-// GRANT side (a StaticAbilities$ body), never a filter spec.
 func saMentionsGoaded(sa *cards.SA) bool {
 	for _, v := range sa.Params {
 		if strings.Contains(v, "IsGoaded") {
@@ -2158,6 +2139,10 @@ func saMentionsGoaded(sa *cards.SA) bool {
 		}
 	}
 	return false
+}
+
+type targetableObjectsHost interface {
+	TargetableObjects(triggerCard state.ObjID) []state.ObjID
 }
 
 func Resolve(h Host, c *Ctx, sa *cards.SA) {
@@ -2209,17 +2194,15 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 		} else {
 			c.EffectiveTypes = nil
 		}
-		if c != nil {
-			// The static-goad table (staticgoad1), the goad counterpart of the
-			// name/type tables: computed ONLY for a body whose parameters
-			// mention IsGoaded (the derivation is a board walk; every other
-			// resolution must not pay for it), and reset to nil otherwise so a
-			// reused Ctx cannot leak an earlier walk's board into this one.
-			if gh, ok := h.(goadTableHost); ok && sa != nil && saMentionsGoaded(sa) {
-				c.StaticGoads = gh.StaticallyGoaded()
-			} else {
-				c.StaticGoads = nil
-			}
+		if gh, ok := h.(goadTableHost); ok && sa != nil && saMentionsGoaded(sa) {
+			c.StaticGoads = gh.StaticallyGoaded()
+		} else {
+			c.StaticGoads = nil
+		}
+		if th, ok := h.(targetableObjectsHost); ok {
+			c.TargetableObjects = th.TargetableObjects(c.TriggerCard)
+		} else {
+			c.TargetableObjects = nil
 		}
 		c.numericRHS = c.X != 0 || len(c.SVars) > 0
 		// Capture target controllers before the first effect can move a target.
@@ -2265,16 +2248,15 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 		if th, ok := h.(typeTableHost); ok {
 			c.EffectiveTypes = th.EffectiveTypes()
 		}
-		// The static-goad table refreshes at each body boundary like the name
-		// and type tables above, so a body this chain's earlier sub-ability
-		// just granted a goad through (Hot Pursuit's DBEffect) is visible to
-		// a later body's IsGoaded read. Always assigned: a body that does
-		// not mention IsGoaded resets the walk's binding, never leaking an
-		// earlier body's board into a later one.
 		if gh, ok := h.(goadTableHost); ok && saMentionsGoaded(sa) {
 			c.StaticGoads = gh.StaticallyGoaded()
 		} else {
 			c.StaticGoads = nil
+		}
+		if th, ok := h.(targetableObjectsHost); ok {
+			c.TargetableObjects = th.TargetableObjects(c.TriggerCard)
+		} else {
+			c.TargetableObjects = nil
 		}
 		// Condition* gate (task fb-3f1cc033): a sub whose supported condition
 		// is evaluated and not met is skipped and the chain continues — the
