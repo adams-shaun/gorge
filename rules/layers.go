@@ -2596,6 +2596,11 @@ func (e *Engine) derivedScalarFrom(id state.ObjID, o *state.Object, f *cards.Fac
 // load-bearing; derivedDepth guards re-entry the way active()'s activeDepth
 // guards its cache (a nested Derived mid-build gets private owned buffers
 // instead of clobbering the outer build's).
+//
+// Inside a legal-actions walk (legalActionsPriced) a top-level Derived is
+// memoized per object for that walk only (rules/derivedmemo.go); a memo hit's
+// slices are owned by the memo entry rather than the scratch, and the same
+// read-only, do-not-retain discipline applies to them.
 func (e *Engine) Derived(id state.ObjID) Derived {
 	return e.derivedWith(id, 0)
 }
@@ -2616,6 +2621,17 @@ func (e *Engine) Characteristics(id state.ObjID) (power, toughness int32, keywor
 // AffectedZone$ Stack grant against ZStack via this override; everything
 // else reads the live zone.
 func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
+	if atStack == 0 && e.derivedMemoDepth > 0 && e.derivedMemoUsable() {
+		return e.derivedMemoized(id)
+	}
+	return e.derivedCompute(id, atStack)
+}
+
+// derivedCompute is derivedWith's uncached build: the full layer walk, its
+// Keywords/Types aliasing the derivedKW/derivedTypes scratch as documented on
+// Derived. derivedmemo.go's walk-scoped memo calls it on a miss (and on every
+// hit in verify mode) and copies the result into owned storage.
+func (e *Engine) derivedCompute(id state.ObjID, atStack state.Zone) Derived {
 	o := e.G.Obj(id)
 	if o == nil || o.Face() == nil {
 		return Derived{}
