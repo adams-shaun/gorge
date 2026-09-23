@@ -2288,7 +2288,9 @@ func Apply(g *state.Game, e Event) {
 		}
 		mode, trigger := "", ""
 		if i := strings.Index(text, ":"); i > 0 &&
-			(text[:i] == "SpellCast" || text[:i] == "ChangesZone" || text[:i] == "BecomeMonarch") {
+			(text[:i] == "SpellCast" || text[:i] == "ChangesZone" ||
+				text[:i] == "ChangesController" || text[:i] == "DamageDone" ||
+				text[:i] == "AttackersDeclared" || text[:i] == "BecomeMonarch") {
 			mode, trigger = text[:i], text[i+1:]
 		}
 		g.Delayed = append(g.Delayed, state.DelayedTrigger{
@@ -2307,6 +2309,14 @@ func Apply(g *state.Game, e Event) {
 			ValidPlayer:       vp,
 		})
 		g.DelayedNext++
+
+	case DelayedRemove:
+		for i := range g.Delayed {
+			if g.Delayed[i].ID == uint32(e.Amount) {
+				g.Delayed = append(g.Delayed[:i], g.Delayed[i+1:]...)
+				break
+			}
+		}
 
 	case DelayedPush:
 		// Ruling dt1-a: the ability object is minted here, inside Apply, so a

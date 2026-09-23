@@ -152,25 +152,20 @@ func TestDigMandatoryAskMinsAtChangeNum(t *testing.T) {
 // the default remainder STILL moves the untaken card to the bottom -- so this
 // is not the byte-identical pre-dig1 engine: only a window whose remainder
 // cannot move would replay that way.
-func TestDigStaysSilentWhenTheWindowHoldsNoChoice(t *testing.T) {
+func TestDigOptionalAsksEvenWhenTheEligibleSetFitsTheCap(t *testing.T) {
 	h, ids := digAskFixture(t)
-	Resolve(h, &Ctx{Controller: 0},
-		sa(t, "SP$ Dig | Defined$ You | DigNum$ 3 | ChangeNum$ 2 | Optional$ True | ChangeValid$ Land | DestinationZone$ Hand"))
-	if h.asked != nil {
-		t.Fatalf("a decision was posed for a no-choice window: %+v", h.asked)
+	saLine := "SP$ Dig | Defined$ You | DigNum$ 3 | ChangeNum$ 2 | Optional$ True | ChangeValid$ Land | DestinationZone$ Hand | SkipReorder$ True"
+	Resolve(h, &Ctx{Controller: 0}, sa(t, saLine))
+	if h.asked == nil || h.asked.Kind != decision.KChoose || h.asked.Min != 0 || h.asked.Max != 2 {
+		t.Fatalf("decision = %+v, want optional 0..2 take ask", h.asked)
 	}
-	for _, e := range h.log {
-		if e.Kind == events.Note && e.Text == "looks at the top of the library" {
-			t.Fatal("a take-ask look Note was emitted on the no-choice path")
-		}
+	h.asked = nil
+	Resolve(h, &Ctx{Controller: 0, DigDone: true}, sa(t, saLine))
+	if hand := h.g.Zone(state.ZHand, 0); len(hand) != 0 {
+		t.Fatalf("hand = %v, want empty after the optional decline", hand)
 	}
-	if hand := h.g.Zone(state.ZHand, 0); len(hand) != 2 || hand[0] != ids[1] || hand[1] != ids[2] {
-		t.Fatalf("hand = %v, want [%d %d] (both lands, the silent M1 take)", hand, ids[1], ids[2])
-	}
-	// The PRECONDITION the remainder assertion depends on: a card was left
-	// untaken and must have moved off its window position to the bottom.
-	if lib := h.g.Zone(state.ZLibrary, 0); len(lib) != 2 || lib[len(lib)-1] != ids[0] || lib[0] != ids[3] {
-		t.Fatalf("library = %v, want [%d %d] (the untaken Bear moved to the bottom)", lib, ids[3], ids[0])
+	if lib := h.g.Zone(state.ZLibrary, 0); len(lib) != len(ids) || lib[0] != ids[0] || lib[2] != ids[2] {
+		t.Fatalf("library = %v, want the unchanged window after decline", lib)
 	}
 }
 
@@ -353,7 +348,7 @@ func TestDigMultiPlayerResumeKeepsEveryLibrary(t *testing.T) {
 	// Seat 0 has exactly one eligible card, so it completes without asking.
 	// Seats 1 and 2 each have a strict-superset choice.
 	h.g.SetZone(state.ZLibrary, 0, libs[0][:2])
-	effect := sa(t, "SP$ Dig | Defined$ Player | DigNum$ 3 | ChangeNum$ 1 | Optional$ True | ChangeValid$ Land | DestinationZone$ Hand")
+	effect := sa(t, "SP$ Dig | Defined$ Player | DigNum$ 3 | ChangeNum$ 1 | ChangeValid$ Land | DestinationZone$ Hand")
 	Resolve(h, &Ctx{Controller: 0}, effect)
 	if h.asked == nil || h.asked.Player != 1 || h.asked.ResumeTarget != 1 {
 		t.Fatalf("decision = %+v, want seat 1 at Defined$ target index 1", h.asked)
@@ -457,7 +452,7 @@ func TestDigTakeResumeContinuesToLaterLibrary(t *testing.T) {
 	if libs[1][0] == libs[1][1] || libs[2][0] == libs[2][1] {
 		t.Fatal("precondition: the later libraries must hold distinct eligible cards")
 	}
-	effect := sa(t, "SP$ Dig | Defined$ Player | DigNum$ 2 | ChangeNum$ 1 | Optional$ True | ChangeValid$ Land | DestinationZone$ Hand")
+	effect := sa(t, "SP$ Dig | Defined$ Player | DigNum$ 2 | ChangeNum$ 1 | ChangeValid$ Land | DestinationZone$ Hand")
 	Resolve(h, &Ctx{Controller: 0}, effect)
 	if h.asked == nil || h.asked.Player != 1 || h.asked.ResumeTarget != 1 {
 		t.Fatalf("first decision = %+v, want seat 1's take ask at target index 1", h.asked)

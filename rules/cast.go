@@ -346,6 +346,12 @@ type pendingCast struct {
 	// misaligns the slices. A Fuse-only field; always empty for every other
 	// cast. Published to Engine.fuseTargets at payment.
 	stageTargets [][]state.Target
+	// charmTargets records one target slice for each distinct target-bearing
+	// mode selected by a modal spell. The stack object's ordinary Targets is
+	// retained as the flat event-sourced view; this scratch preserves the
+	// per-mode bindings for resolution and is rebuilt by the same answer path
+	// during replay.
+	charmTargets [][]state.Target
 
 	// stackObj is the id of the object pushCast placed on the stack (the
 	// spell card itself, or an activated ability's AbilityPush-minted
@@ -3104,11 +3110,9 @@ func (e *Engine) castModeAsk() bool {
 	for _, name := range choices {
 		name = strings.TrimSpace(name)
 		sub := cards.ResolveSVar(f.SVars, name)
-		if sub != nil && sub.Params["ValidTgts"] != "" {
-			min, _ := e.resolvedTargetBounds(pc.player, pc.card, sub, pc.x)
-			if len(e.legalTargetCandidates(pc.player, pc.card, pc.card, sub)) < min {
-				continue
-			}
+		if sub != nil && sub.Params["ValidTgts"] != "" &&
+			!e.targetSAAvailable(pc.player, pc.card, pc.card, sub, pc.x, false) {
+			continue
 		}
 		// CR 601.2b/702.171b: a Spree/Tiered mode's own ModeCost$ is an
 		// additional cost charged per chosen mode. A mode whose cost cannot be
@@ -3195,11 +3199,9 @@ func (e *Engine) castModeAsk() bool {
 	return true
 }
 
-// modalTargetSA returns the target declaration selected by a modal spell.
-// Forge puts a Charm's ValidTgts$ on each Choices$ SVar rather than on the
-// outer Charm SA. This engine has one target list per stack object, so when
-// several chosen modes target independently it can currently carry only the
-// first target-bearing mode; the ordinary one-mode Charm shape is exact.
+// modalTargetSA returns the first target declaration of a modal spell for
+// legacy single-mode and unsupported multi-target paths. Supported distinct
+// modes instead use the per-mode grouped ask in targetAsk.
 func modalTargetSA(f *cards.Face, sa *cards.SA, modes []string) *cards.SA {
 	if sa == nil || sa.Params["ValidTgts"] != "" || sa.API != "Charm" || f == nil {
 		return sa
@@ -6164,6 +6166,35 @@ func (e *Engine) targetAsk() bool {
 	if pc.mode == "overloaded" {
 		return false
 	}
+	// CR 601.2c: distinct modal modes each declare and choose their own
+	// target. The combined decision uses one exclusive Group per mode, so
+	// its exact count cannot be satisfied by choosing two targets for one
+	// mode while omitting another.
+	if pc.targetStage == 0 && !pc.isAbility() && f != nil {
+		if root := f.SpellAbility(); root != nil {
+			choices := strings.Split(root.Params["Choices"], ",")
+			if status, _ := effects.CharmCrossModeShape(f.SVars, choices); status == effects.CharmUniqueSupported {
+				var tbms []*cards.SA
+				for _, name := range o.ChosenModes {
+					if sub := cards.ResolveSVar(f.SVars, name); sub != nil && strings.TrimSpace(sub.Params["ValidTgts"]) != "" {
+						tbms = append(tbms, sub)
+					}
+				}
+				if len(tbms) >= 2 && e.askCrossModeCharmTargets(pc.player, pc.card, tbms) {
+					return true
+				}
+			} else {
+				asked, infeasible := e.askCharmModeTargets(pc.player, pc.card, f.SVars, root, o.ChosenModes)
+				if infeasible {
+					e.abortCast(pc, "cast aborted: no legal modal target", true)
+					return true
+				}
+				if asked {
+					return true
+				}
+			}
+		}
+	}
 	// A ValidTarget$ cost modifier can make this proposal offerable only for
 	// particular targets. Once mana faces are announced, do not put a target
 	// on the menu unless repricing that target can still complete the cast:
@@ -7098,6 +7129,12 @@ func (e *Engine) payCast() {
 			e.fuseTargets = make(map[state.ObjID][][]state.Target)
 		}
 		e.fuseTargets[pc.stackObj] = pc.stageTargets
+	}
+	if len(pc.charmTargets) > 0 {
+		if e.charmTargets == nil {
+			e.charmTargets = make(map[state.ObjID][][]state.Target)
+		}
+		e.charmTargets[pc.stackObj] = pc.charmTargets
 	}
 	// AddsNoCounter$ mana (Cavern of Souls): if the payment just consumed a
 	// batch carrying the can't-be-countered provenance FOR THIS CAST, fold

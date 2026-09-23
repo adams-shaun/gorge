@@ -76,10 +76,9 @@ const NoSeat state.PlayerID = 255
 // ProjectFor is Project with an explicit visibility. Seat is exactly
 // Project. Public forces the spectator path regardless of viewer. Omniscient
 // projects every seat's hand (the pool is public under CR 106.4a/106.4b and
-// project() already fills it for every seat), but never attaches a decision
-// to any viewer -- project is always called with a nil Decision in this
-// branch, so even the seat d was asked of sees none: an omniscient view is
-// for watching, not acting.
+// project() already fills it for every seat). It also carries a copy of the
+// pending decision for read-only replay/spectate, including private search
+// options; only Public remains decision-free.
 func ProjectFor(g *state.Game, ch Chars, viewer state.PlayerID, vis Visibility, d *decision.Decision) View {
 	switch vis {
 	case Public:
@@ -97,6 +96,7 @@ func ProjectFor(g *state.Game, ch Chars, viewer state.PlayerID, vis Visibility, 
 				v.Players[i].Hand = cardViews(g, ch, g.Zone(state.ZHand, p.ID), false, p.ID, viewer, true)
 			}
 		}
+		v.Decision = copyDecision(d)
 		v.Visibility = vis.String()
 		return v
 	default:

@@ -361,3 +361,4 @@ func TestDiscardChooseModeMultiTargetCursorDoesNotStall(t *testing.T) {
 		t.Fatal("target 1's answer was not applied")
 	}
 }
+

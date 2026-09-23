@@ -430,12 +430,16 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			return []state.Target{{Obj: c.TriggerBearer}}, true
 		}
 		return objectsOf(c.Remembered), true
+	case "TriggeredObject", "TriggeredObjectLKICopy":
+		if c.DelayedObject != 0 {
+			return []state.Target{{Obj: c.DelayedObject}}, true
+		}
+		return objectsOf(c.Remembered), true
 	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCard",
 		"TriggeredNewCardLKICopy",
-		"TriggeredObject", "TriggeredObjectLKICopy",
 		"TriggeredSourceSA", "TriggeredAttacker",
 		"TriggeredAttackerLKICopy",
-		"DelayTriggerRememberedLKI", "RememberedLKI":
+		"RememberedLKI":
 		// M1 does not model LKI copies, new-object identity or the
 		// ability-vs-card distinction separately: every one of these forms
 		// names the same Remembered object entry a trigger captured.
@@ -468,6 +472,14 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			return []state.Target{{Obj: c.TriggerBlocker}}, true
 		}
 		return objectsOf(c.Remembered), true
+	case "DelayTriggerRememberedLKI":
+		// The registration's own capture (objects only, the LKI spelling's
+		// read), with the pre-field fallback to Remembered for a context
+		// built without one.
+		if len(c.DelayedRemembered) > 0 {
+			return objectsOf(c.DelayedRemembered), true
+		}
+		return objectsOf(c.Remembered), true
 	case "DelayTriggerRemembered":
 		// The delayed trigger's remembered set AS-IS, players included (task
 		// mordorparams1): a DelayedTrigger registration that remembered a
@@ -479,6 +491,9 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		// no-oped. Object-remembered registrations are unchanged (the set is
 		// passed through verbatim); the LKI forms above keep the objects-only
 		// read their LKI semantics name.
+		if len(c.DelayedRemembered) > 0 {
+			return copyTargets(c.DelayedRemembered), true
+		}
 		return copyTargets(c.Remembered), true
 	case "TriggeredSpellAbility":
 		// The activation arm (abcopy1): an ability-cast trigger's Remembered
