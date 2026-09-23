@@ -163,7 +163,7 @@ type Engine struct {
 
 	// continuous holds every registered continuous effect, live or expired.
 	// The layer system (layers.go) is the only reader and writer.
-	continuous []ContinuousEffect
+	continuous   []ContinuousEffect
 	lifeExchange *lifeExchangeTransaction
 	// controlGrants holds the GainControl effects that can still end (see
 	// rules/control.go). It is engine continuation state only; every take and
@@ -753,6 +753,19 @@ type Engine struct {
 	// again. The stamp is (Turn, CombatsThisTurn), the event-folded per-turn
 	// combat count, so it uniquely names a combat and needs no reset hook.
 	unblockedOnceFired map[triggerKey]combatFires
+	// attackersDeclaredFired latches a BATCH trig:AttackersDeclared trigger
+	// (Mode$ AttackersDeclared with no per-defender AttackedTarget$) to ONE
+	// fire per declare step (rules.trigger_match.go's checkFaceTriggers;
+	// CR 508.1). The engine emits one DeclareAttackers event per defending
+	// player, but declaring attackers is ONE turn-based action, so a
+	// "whenever you attack" trigger must fire exactly once even when the
+	// attack is split across several defenders. The stamp is the same
+	// (Turn, CombatsThisTurn) pair unblockedOnceFired uses -- one
+	// declare-attackers step per combat -- so it needs no reset hook. The
+	// per-defender shapes (Mode$ AttackersDeclaredOneTarget and any
+	// AttackersDeclared line carrying AttackedTarget$) are never stamped and
+	// keep firing per defender.
+	attackersDeclaredFired map[triggerKey]combatFires
 	// A damage batch is the set of Damage events dealt simultaneously: one
 	// combat-damage pass (rules/combat.go damageStep), or the Damage events
 	// one dealDamage-style effect call deals (effects/damage.go brackets each

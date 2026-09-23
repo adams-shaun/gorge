@@ -204,32 +204,57 @@ func (e *Engine) firstAttackOK(t cards.Trigger, id state.ObjID) bool {
 	return o != nil && o.AttacksThisTurn == 1
 }
 
+// attackersDeclaredBatch reports whether a trig:AttackersDeclared line is the
+// BATCH shape ("whenever you attack" / "whenever one or more creatures
+// attack"): Mode$ AttackersDeclared with no per-defender AttackedTarget$.
+// Only that shape draws its triggering condition from the whole declaration
+// and latches once per declare step; Mode$ AttackersDeclaredOneTarget and an
+// AttackersDeclared line that names an AttackedTarget$ are keyed to one
+// defending player and keep firing once per that defender's event.
+func attackersDeclaredBatch(t cards.Trigger) bool {
+	return t.Mode == "AttackersDeclared" && strings.TrimSpace(t.Params["AttackedTarget"]) == ""
+}
+
 // attackersDeclaredOneTargetMatches implements the "whenever [one or more]
 // creatures attack a player" trigger (Forge Mode$ AttackersDeclaredOneTarget)
 // and, routed to the same matcher, the batch "whenever you attack" trigger
-// (Forge Mode$ AttackersDeclared) -- both read the same per-defender
-// DeclareAttackers event the engine emits, and both admit exactly the same
-// trigger-level parameters (AttackingPlayer$, AttackedTarget$,
-// ValidAttackers$, ValidAttackersAmount$). handleAttackers emits one
-// DeclareAttackers event per defender, so this fires once for each attacked
-// player, not once for every attacker in that group. A batch AttackersDeclared
-// trigger therefore fires once per attacked player on a split attack (one
-// declare step, several events) -- the known limitation recorded in
-// AGENTS.md's approximations table, not silently.
+// (Forge Mode$ AttackersDeclared).
+//
+// The two shapes differ in what one triggering condition is. A OneTarget line
+// (and an AttackersDeclared line carrying AttackedTarget$) is keyed to a
+// defending player: handleAttackers emits one DeclareAttackers event per
+// defender, so it fires once for each attacked player -- correct as it stands.
+// A BATCH line (attackersDeclaredBatch) is keyed to the DECLARATION, which
+// CR 508.1 makes a single turn-based action however many defenders are
+// attacked, so its attacker set and its ValidAttackersAmount$ count are read
+// from the WHOLE declaration (Engine.declaredAttackers, set by finishAttackers
+// before the per-defender events are emitted) rather than from one event's
+// ev.IDs; the once-per-declare-step latch itself lives at the queue point in
+// checkFaceTriggers (Engine.attackersDeclaredFired). A direct synthetic emit
+// with no declaration scratch falls back to ev.IDs, which is the declaration
+// itself in every single-defender case.
 func (e *Engine) attackersDeclaredOneTargetMatches(t cards.Trigger, source state.ObjID, ev events.Event) bool {
 	if ev.Kind != events.DeclareAttackers || len(ev.IDs) == 0 {
 		return false
 	}
 	ctrl := e.controllerOf(source)
-	attacker := e.controllerOf(ev.IDs[0])
-	if v := t.Params["AttackingPlayer"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, attacker, ctrl) {
+	ids := ev.IDs
+	if attackersDeclaredBatch(t) && len(e.declaredAttackers) > 0 {
+		ids = e.declaredAttackers
+	}
+	attacker := e.controllerOf(ids[0])
+	ctx := &effects.Ctx{Source: source, Controller: ctrl}
+	if src := e.G.Obj(source); src != nil && src.Face() != nil {
+		ctx.SVars = src.Face().SVars
+	}
+	if v := t.Params["AttackingPlayer"]; v != "" && !effects.MatchesPlayerSpecWithSVars(e, ctx, v, attacker, ctrl) {
 		return false
 	}
-	if v := t.Params["AttackedTarget"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+	if v := t.Params["AttackedTarget"]; v != "" && !effects.MatchesPlayerSpecWithSVars(e, ctx, v, ev.Player, ctrl) {
 		return false
 	}
 	matches := 0
-	for _, id := range ev.IDs {
+	for _, id := range ids {
 		if v := t.Params["ValidAttackers"]; v == "" || e.matchesSpec(v, id, e.specCtx(source, ctrl)) {
 			matches++
 		}

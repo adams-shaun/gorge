@@ -656,6 +656,21 @@ func evalRememberedOK(h Host, c *Ctx, body string) (int32, bool) {
 // which refs exist. An unknown ref returns false -- the caller fails closed,
 // exactly as evalRefProperty's default always did.
 func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
+	if inner, ok := strings.CutPrefix(ref, "Spawner>"); ok {
+		// Forge's adjustTriggerContext (AbilityUtils): "Spawner>" re-anchors
+		// the rest of the chain on the resolving ability's TRIGGER's spawning
+		// ability. This build's stand-in for that context is the firing
+		// trigger's own event capture (Ctx.Captured), which a chained
+		// ImmediateTrigger's Execute context no longer carries as Remembered
+		// (effImmediateTrigger hands its instances the capture-excluded parent
+		// set). Halana, Kessig Ranger's immediate-trigger chain is the corpus
+		// user (X:Spawner>TriggeredCard$CardPower sizes its DamageSource$
+		// Spawner>... hit); an inner ref this grammar does not know still
+		// fails closed here exactly as it did before the arm existed.
+		sc := *c
+		sc.Remembered = copyTargets(c.Captured)
+		return refTargets(h, &sc, strings.TrimSpace(inner))
+	}
 	switch ref {
 	case "Targeted", "ParentTarget", "ParentTargeted", "ThisTargetedCard":
 		return c.Targets, true
@@ -745,6 +760,25 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 		// host-card remembered list: the ctx walk's set UNIONED with the
 		// source's persistent event-backed list (rememberedWithSource).
 		return rememberedWithSource(h, c), true
+	case "Imprinted":
+		// The imprint reference the <Ref>$<Property> family reads RAW: the
+		// RepeatEach subject first (the same precedence definedSpec's Imprinted
+		// case takes -- the loop's CURRENT subject, Master of the Wild Hunt's
+		// X:Imprinted$CardPower), else the source's imprint associations raw
+		// (Forge's getImprintedCards has no zone gate; the damage-source and
+		// count consumers are not definedSpec's CR 607.2a exile-gated Defined$
+		// readers -- rawImprintTargets carries the rationale). An empty pile is
+		// a legitimate zero, not an unresolvable body.
+		if c.RepeatSubject.Obj != 0 && !c.RepeatSubject.IsPlayer {
+			return []state.Target{{Obj: c.RepeatSubject.Obj}}, true
+		}
+		return rawImprintTargets(h.Game(), c), true
+	case "ChosenCard":
+		// The chosen-card read resolutionChosenCards already serves definedSpec's
+		// ChosenCard case -- the same shared read here keeps a count body from
+		// disagreeing with a Defined$ ChosenCard (Crush Underfoot's
+		// X:ChosenCard$CardPower sizes its DamageSource$ ChosenCard hit).
+		return resolutionChosenCards(h.Game(), c), true
 	case "ExiledWith":
 		// The same defined-targets resolver case effects/context.go's
 		// knownDefinedTargets carries, so a count body over the ref (the
@@ -1791,6 +1825,9 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			return n, true
 		}
 		return playerCountDefinedRegistered(h, g, c, opponentGroup(g, c), rest, arg)
+	}
+	if head == "OppGreatestLifeTotal" {
+		return lifeExtreme(g, opponentGroup(g, c), "HighestLifeTotal")
 	}
 	if rest, ok := strings.CutPrefix(head, "PlayerCountOpponents$"); ok {
 		if n, ok2 := playerGroupCount(opponentGroup(g, c), rest); ok2 {
