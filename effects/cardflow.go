@@ -2943,10 +2943,15 @@ func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, n int32, kind, verb string,
 		}
 		k := n
 		if verb == "Scry" {
-			var proceed bool
-			k, proceed = h.Scry(p, c.Source, k)
-			if !proceed {
-				continue // the replacement performed its own action; do not arrange
+			if c.ScryReady && c.LibraryTarget == targetIndex {
+				k = c.ScryCount
+				c.ScryReady = false
+			} else {
+				var proceed bool
+				k, proceed = h.Scry(p, c.Source, k, sa, targetIndex)
+				if !proceed {
+					continue // the replacement performed its own action, or suspended
+				}
 			}
 		}
 		lib := zoneOf(g, state.ZLibrary, p)
