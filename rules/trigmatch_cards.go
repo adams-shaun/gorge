@@ -20,28 +20,31 @@ import (
 )
 
 // cycledMatches implements the "when you cycle [this card]" trigger (CR
-// 702.78d's cycling trigger, Forge Mode$ Cycled -- Dismantling Wave, 77
+// 702.29d's cycling trigger, Forge Mode$ Cycled -- Dismantling Wave, 77
 // corpus files). The engine's cycle activation discards the card as its
 // cost, so the causing event is that cost discard (events.DiscardCost's
-// canonical hand-to-graveyard move), and the moved card's PRINTED Cycling
-// keyword is what makes a cost discard a cycle: an ordinary discard (a
-// Wheel effect) is not one, and neither is a cycling card discarded as the
-// cost of a different card's ability. The printed-keyword limit is the same
-// one the granted-keyword Dethrone check documents: a card whose cycling is
-// granted in a layer rather than printed never matches. ValidCard$ is
-// matched against the moved card's LKI -- the card is already in its
-// destination zone when triggers are checked, exactly like Sacrificed.
-// The cycler is the moved card's controller: a card in a hand is controlled
-// by its owner, and DiscardCost carries no player field to read instead.
+// canonical hand-to-graveyard move), tagged with the CYCLING ABILITY that
+// paid it (events.DiscardCostCycling). The tag, not the moved card's printed
+// face, is what makes a cost discard a cycle: an ability whose cycling is
+// granted in a layer (Rhet-Tomb Mystic, Tectonic Reformation, Homing Sliver)
+// tags its discard just like a printed K:Cycling, while an ordinary discard
+// (a Wheel effect) -- or a cost discard paid for a different ability --
+// carries no tag and does not match even when the card prints Cycling. The
+// ability's keyword head ("Cycling" / "TypeCycling") travels as the cause,
+// so the event records which named ability was cycled. ValidCard$ is matched
+// against the moved card's LKI -- the card is already in its destination zone
+// when triggers are checked, exactly like Sacrificed. The cycler is the moved
+// card's controller: a card in a hand is controlled by its owner, and
+// DiscardCost carries no player field to read instead.
 func (e *Engine) cycledMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
-	if !events.IsDiscardCost(ev) {
+	if _, ok := events.IsCyclingDiscard(ev); !ok {
 		return false
 	}
 	o := lki
 	if o == nil {
 		o = e.G.Obj(ev.Obj)
 	}
-	if o == nil || o.Face() == nil || !o.Face().HasKeyword("Cycling") {
+	if o == nil {
 		return false
 	}
 	return e.eventCardAndPlayerMatch(t, source, ev.Obj, o.Controller)

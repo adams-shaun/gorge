@@ -793,6 +793,22 @@ const (
 	// search's card moves and shuffle are recorded by their own events.
 	// Appended after TurnFaceUp to preserve all earlier Kind ordinals.
 	SearchedLibrary
+	// KeywordAbilityPush mints the stack object of a keyword-GRANTED activated
+	// ability (CR 613.1f): a layer-6 `AddKeyword$ Cycling:1 U` grant (Tectonic
+	// Reformation, Rhet-Tomb Mystic, Jo Grant, Homing Sliver) gives a hand card
+	// a cycling ability no printed face carries, so its activation cannot be
+	// anchored on a Face().Abilities index (AbilityPush) or an SVar name
+	// (DelayedPush/GrantAbilityPush -- a granted keyword lives in no face's
+	// SVar table). Player is the activator, Obj the activating card (the
+	// minted object's Source, so `Defined$ Self`/`CARDNAME` in the body names
+	// it), and Counter carries the DERIVED keyword line the activation resolved
+	// ("Cycling:1 U", "TypeCycling:Sliver:3") -- Apply re-synthesizes the body
+	// from it, exactly as the offer loop and pendingCast re-derive it, so a
+	// log-only replay creates the identical ability object (the Ruling
+	// T20-a/GainedAbilityPush precedent). Appended after SearchedLibrary,
+	// following every prior Kind's own append-only precedent, so no earlier
+	// ordinal, hash chain or golden replay is affected.
+	KeywordAbilityPush
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -803,7 +819,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(SearchedLibrary) + 1
+	NumKinds = int(KeywordAbilityPush) + 1
 )
 
 // mergedTriggerShift is the width MergedTriggerPush's Amount gives the
@@ -937,7 +953,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"x_change", "note_number", "extra_phase", "copy_token", "exert", "planar_roll", "explore", "combat_retarget", "ring_tempts_you", "ring_emblem_push", "grant_ability_push", "investigate", "blessing_change", "clone_permanent", "mutate", "merged_trigger_push",
 	"discover", "seek", "connive", "enlist", "exploit", "alter_attribute",
 	"gained_ability_push", "gained_trigger_push", "surveil", "unattached", "player_noted", "player_note_cleared",
-	"delayed_remove", "turn_face_up", "searched_library"}
+	"delayed_remove", "turn_face_up", "searched_library", "keyword_ability_push"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

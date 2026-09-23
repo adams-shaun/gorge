@@ -184,7 +184,7 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		// same id and re-runs this capture at the same point -- no event
 		// schema change, the TriggerPaidX/TriggerConverge mechanism). Absent
 		// for PutOnStack: a spell cast's ev.Obj IS the spell object.
-		if ev.Kind == events.AbilityPush {
+		if ev.Kind == events.AbilityPush || ev.Kind == events.KeywordAbilityPush {
 			c.TriggerAbility = e.abilityCastStackObject(ev.Obj)
 		}
 	case "Attached":
@@ -365,7 +365,7 @@ func listAdmits(list, token string) bool {
 // abilityCastStackObject is the fire-time twin of effects.changeXAbilityObject's
 // scan (effects cannot import rules, so the scan is mirrored, not shared): the
 // topmost non-trigger ability wrapper on the stack whose Source is the
-// activating permanent. Called synchronously inside the AbilityPush emit,
+// activating card. Called synchronously inside the activation push emit,
 // when that wrapper is exactly the stack top; 0 when no such wrapper exists
 // (a stale registration) -- the role simply stays absent.
 func (e *Engine) abilityCastStackObject(perm state.ObjID) state.ObjID {

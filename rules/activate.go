@@ -47,6 +47,14 @@ func (e *Engine) beginActivation(p state.PlayerID, opt decision.Option) {
 		e.beginGrantedActivation(p, opt)
 		return
 	}
+	if opt.Keyword != "" {
+		// A keyword-granted activation (CR 613.1f, rules/legal.go's
+		// keyword-cycling offer): the body is synthesized from the derived
+		// keyword line the option anchors -- no face index or SVar name
+		// anchors it, since a granted keyword lives in no face's SVar table.
+		e.beginKeywordGrantedActivation(p, opt)
+		return
+	}
 	f := o.Face()
 	if f == nil {
 		return

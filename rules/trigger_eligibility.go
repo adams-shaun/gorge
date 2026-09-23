@@ -63,7 +63,7 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		return cards.TriggerInterestAttackDeclaration
 	case events.TargetsChosen:
 		return cards.TriggerInterestTargetsChosen
-	case events.AbilityPush:
+	case events.AbilityPush, events.KeywordAbilityPush:
 		return cards.TriggerInterestAbilityPush
 	case events.GameStart, events.Shuffle, events.Untap, events.TurnChange,
 		events.Priority, events.Resolve, events.ManaAdd, events.ManaClear,
@@ -128,6 +128,7 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		// the audit complete if the bound ever widens, and keeps it out of
 		// the catch-all default that would otherwise run a full trigger scan
 		// on every cleared label.
+		//
 		return 0
 	case events.Attach:
 		return cards.TriggerInterestAttach
@@ -174,11 +175,14 @@ func triggerModeEvents(mode string) triggerEventMask {
 	case "SpellCopy":
 		return 1 << events.StackCopy
 	case "AbilityCast":
+		// KeywordAbilityPush lies past this mask's 64-bit bound and fails
+		// open to the matcher, which reads its replayable Counter body.
 		return 1 << events.AbilityPush
 	case "SpellAbilityCast":
 		// The spell-or-activate union (targetsvalid1): the activation arm
-		// matches an AbilityPush, the spell arm a PutOnStack. AbilityCast
-		// stays narrow above -- its oracle text is activation-only.
+		// matches an AbilityPush or KeywordAbilityPush, the spell arm a
+		// PutOnStack. AbilityCast stays narrow above -- its oracle text is
+		// activation-only.
 		return 1<<events.AbilityPush | 1<<events.PutOnStack
 	case "Attacks", "AttackersDeclaredOneTarget", "AttackersDeclared":
 		return 1 << events.DeclareAttackers
