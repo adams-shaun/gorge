@@ -419,6 +419,15 @@ func Project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decisio
 	return ProjectFor(g, ch, viewer, Seat, d)
 }
 
+func copyDecision(d *decision.Decision) *decision.Decision {
+	if d == nil {
+		return nil
+	}
+	cp := *d
+	cp.Options = append([]decision.Option(nil), d.Options...)
+	return &cp
+}
+
 // project is Project's body, shared by every Visibility in ProjectFor.
 func project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decision) View {
 	v := View{Viewer: viewer}
@@ -570,10 +579,9 @@ func project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decisio
 		// A copy, never the engine's own pending pointer (supplement §10):
 		// a Seat (Task 25) holds this View in-process and must not be able
 		// to corrupt the live decision through it.
-		cp := *d
-		cp.Options = append([]decision.Option(nil), d.Options...)
-		v.Decision = &cp
+		v.Decision = copyDecision(d)
 	}
+
 	return v
 }
 

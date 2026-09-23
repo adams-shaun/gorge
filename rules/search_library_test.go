@@ -335,8 +335,8 @@ func TestLibrarySearchOptionsVisibleOnlyToChooser(t *testing.T) {
 		t.Fatalf("opponent received hidden search decision: %+v", opponent.Decision)
 	}
 	omniscient := view.ProjectFor(e.G, e, view.NoSeat, view.Omniscient, d)
-	if omniscient.Decision != nil {
-		t.Fatalf("omniscient spectator received hidden search options: %+v", omniscient.Decision)
+	if omniscient.Decision == nil || len(omniscient.Decision.Options) != len(d.Options) {
+		t.Fatalf("omniscient spectator did not receive search options: %+v", omniscient.Decision)
 	}
 }
 
