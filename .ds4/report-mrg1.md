@@ -2238,3 +2238,94 @@ $ grep -nE '^(<<<<<<< HEAD|=======$|>>>>>>> main)' .ds4/report-mrg1.md .ds4/repo
 None new. The conflicts were confined to tracked report accumulators; no
 engine or web behaviour was ambiguous. The branch closes no Known-approximations
 row and registers no new trigger `Mode$` matcher.
+
+---
+
+# Merge-conflict resolution — mrg1 round 3 (task agent-20260918T231813Z-2ff69b35, 2026-09-23)
+
+## Entry state and operation
+
+`git status` on arrival: **clean, no rebase or merge in flight** at
+`701c4289` — the daemon's conflict notice referred to an integration this
+branch's round 2 had already completed (`f39cda12`), but `main` had since
+advanced 13 commits (`ab2d4b63` was not an ancestor). The actual remaining
+operation was a fresh integration, done as `git merge main` (repo convention;
+`git rebase` is forbidden here).
+
+## Conflicted files, both sides, resolution
+
+Two content conflicts, both tracked `.ds4` report accumulators; **no
+production, test or web file conflicted** (main's `effects/zone.go`,
+DestroyAll test, and the web attacker-picker files auto-merged cleanly).
+
+### `.ds4/report-mrg1.md`
+
+- **ours:** the accumulator plus this branch's round-2 mrg1 record (state
+  found, sol1/filter.go resolution, self-correction of the destructive
+  `2ef68297` report replacement).
+- **theirs (main):** the accumulator plus the `fb-20260923T020152Z`
+  merge-resolution record (its own union splices and checks).
+- Independent appends after common text; neither contains the other's unique
+  section. **Resolution: union** — ours, `---` divider, theirs verbatim.
+
+### `.ds4/report-sol1.md`
+
+- **ours:** the accumulator plus the "cost-draw1 … sol1 reconciliation"
+  section appended by this branch's fix round.
+- **theirs (main):** the accumulator plus the "Task fb-20260923T020152Z —
+  attacker radial picker" section (the Teapot Slinger section after it was
+  already common text, present on both sides via the earlier `f39cda12`
+  merge).
+- **Resolution: union** — ours, `---` divider, theirs verbatim, common tail
+  untouched.
+
+Spliced programmatically; verified 0 non-blank lines missing per side against
+the merge stages (`:2`/`:3`) and 0 conflict markers in both files.
+
+## Commands run (real output)
+
+```
+$ git merge main
+Auto-merging .ds4/report-mrg1.md
+CONFLICT (content): Merge conflict in .ds4/report-mrg1.md
+Auto-merging .ds4/report-sol1.md
+CONFLICT (content): Merge conflict in .ds4/report-sol1.md
+Automatic merge failed; fix conflicts and then commit the result.
+
+$ python3 (union splice) -> mrg1 ours 104 lines / theirs 82; sol1 ours 48 / theirs 104
+$ grep -nE '^(<<<<<<< HEAD|=======$|>>>>>>> main)' .ds4/report-mrg1.md .ds4/report-sol1.md
+(no output; exit 1)
+
+$ python3 (per-side non-blank line preservation vs :2/:3)
+mrg1: ours-missing: 0 theirs-missing: 0
+sol1: ours-missing: 0 theirs-missing: 0
+
+$ git add -f .ds4/report-mrg1.md .ds4/report-sol1.md && git commit --no-edit
+[wt/agent-20260918T231813Z-2ff69b35 5001974f] Merge branch 'main' into wt/agent-20260918T231813Z-2ff69b35
+
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  	github.com/adams-shaun/gorge/rules	0.781s
+
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.746s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.238s
+```
+
+`.cards` present as a symlink to `/home/sadams/projects/gorge/.cards` — the
+ratchet run is corpus-backed, not a vacuous skip. Post-commit `git status`:
+clean.
+
+## Notes / unsure about
+
+- `git add` initially refused the tracked `.ds4` reports (gitignore rule);
+  `-f` was required and correct — the files were already tracked and the
+  merge stages existed for them.
+- No engine behaviour of this branch changed in this round: the only merged
+  content was reports plus main's own already-gated production changes.
+
+## Issues
+
+None new. No golden, head, or ratchet table edited; the branch closes no
+Known-approximations row and registers no new trigger `Mode$` matcher.
