@@ -1,82 +1,37 @@
 # Merge-conflict resolution — task cli-20260923T060000Z-choose-number
 
-(Note: the previous report-mrg1.md at this path belonged to the ctms-tag merge
-seat and was controller-copied worktree context; it is replaced by this report.)
+## State and operation
 
-## State found
+The initial `git status --short --branch` was clean on `wt/cli-20260923T060000Z-choose-number`, with HEAD `ecd0c313d` (`test(rules): answer Void number ask in unresolved-count regression`). No rebase or merge was in flight. The branch already contained earlier main merges, but current `main` had advanced. I ran `git merge main` to integrate the current main tip; it stopped on conflicts in `.ds4/report-mrg1.md` and `internal/testutil/agentsdoc_test.go`.
 
-`git status` was CLEAN — no rebase or merge in flight (the daemon's failed
-rebase had rolled back; reflog confirms `rebase (start): checkout main` at
-05:30:17 followed by `rebase (abort)`). HEAD was the approved fix `be867983`
-("fix(effects): ChooseNumber poses a real mid-resolution number ask (ct1)")
-on top of a merge of an older main (`b39e280d`, merging origin/main at
-`c6814693`); `main` (`7955156e`) was ahead with the battle-defeated,
-pw-combatdamage and equip-reduce integrations. I reproduced the integration
-with `git merge main`, which hit exactly the one conflict the daemon saw
-(`internal/testutil/agentsdoc_test.go`); AGENTS.md, rules/cast.go and the rest
-auto-merged.
+## Conflicted files and resolution
 
-## Conflicted file: internal/testutil/agentsdoc_test.go (one hunk, the
-`knownApproximationRows` comment block; the constant line itself was common
-text and read 28 on both sides)
+### `internal/testutil/agentsdoc_test.go`
 
-What each side wanted:
+- The branch side recorded the `ct1` row deletion for ChooseType/ChooseColor/ChooseNumber and had the row-count constant at 27 for its then-current merged table.
+- Current main included additional landed approximation-row deletions, including `(kw:Flanking)` and `(castfilter1/2)`, and its side recorded a table count of 26. The two constants/comments described different merged bases, so neither value could simply be kept.
+- Kept both sides' deletions. Measured the auto-merged `AGENTS.md` table with the test's row-count algorithm: 25 data rows. Updated the explanatory history to include the `mtsp1`, `kw:Flanking`, `battle1`, `ct1`, and `castfilter1/2` deletions and set `knownApproximationRows = 25`.
 
-- **Branch (`be867983`, reviewed fix):** deleted the (ct1) row from AGENTS.md
-  ("ChooseType/ChooseColor/ChooseNumber mid-resolution asks") and set
-  `knownApproximationRows = 28`, with a comment reciting the history it
-  inherited: base 30, staticgoad1→ap1 swap, mtsp1 deletion, plus its own ct1
-  deletion.
-- **Main (`7955156e`):** deleted the (battle1) row from AGENTS.md
-  (cli-20260923T060000Z-battle-defeated: CR 310.7 defender, combat-damage
-  defense-counter removal, CR 310.11 defeated exile-and-cast, real protector
-  policy) and ALSO set `knownApproximationRows = 28`, with a comment reciting
-  the same inherited history plus its own battle1 deletion.
+### `.ds4/report-mrg1.md`
 
-Both sides' constant of 28 was measured against its OWN AGENTS.md — the
-constants agree numerically only because each deletion is balanced by the
-other branch's state. AGENTS.md auto-merged cleanly (both row deletions
-applied, verified below), so the merged table measures **27** data rows.
-Resolution: kept both sides' comment content merged into one recitation and
-**lowered the constant to 27** (shrinkage, the only allowed direction).
-Measured against the merged AGENTS.md with the test's own algorithm
-(`python` re-implementation of `approximationRows` + `standInCell`):
-27 data rows, 4 oversize rows (≤ `knownOversizeRows` = 8). Verified the
-merged AGENTS.md contains neither the (ct1) nor the (battle1) row and keeps
-(ap1), (mtsp1) gone, (staticgoad1) gone.
+- The branch side contained the prior choose-number resolver's report; current main's copy was a report for an unrelated CTMS-refhead integration and described that other task's branch and tests.
+- Retained the choose-number task context and replaced the stale report body with this resolution report, documenting the current merge and its actual verification. No engine implementation was changed to resolve this documentation conflict.
 
-rules/cast.go and all other auto-merged paths were left untouched by me.
+### Automatically merged files
 
-## Commands run (real output)
+`AGENTS.md`, `rules/cast.go`, and the other auto-merged paths were left as produced by Git. The `ct1` row remains deleted along with main's landed row deletions. No conflict markers remain.
 
-- `git merge main`
-  → `CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go`
-  (AGENTS.md, rules/cast.go auto-merged)
-- `git add internal/testutil/agentsdoc_test.go && git commit --no-edit`
-  → `[wt/cli-20260923T060000Z-choose-number 0d7f0754] Merge branch 'main'
-  into wt/cli-20260923T060000Z-choose-number`; `git status -sb` clean after.
-- `go test -run 'TestKnownApproximations' ./internal/testutil/`
-  → `ok  github.com/adams-shaun/gorge/internal/testutil 0.001s`
-- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|TestChosenNumber'`
-  → `exit=0`, `ok github.com/adams-shaun/gorge/rules 0.827s`; verified with
-  `-v` that all 8 matched tests RAN and PASSED (no FAIL, no SKIP — the corpus
-  symlink `.cards → /home/sadams/projects/gorge/.cards` was present,
-  TestEveryRepoDeckIsFullySupported 0.60s, TestEveryRepoDeckParamsAreRead
-  0.13s are real runs):
-  TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched,
-  TestEveryDispatchedTriggerModeHasAMatcher, TestEveryRepoDeckIsFullySupported,
-  TestEveryRepoDeckCountHeadResolves, TestEveryRepoDeckParamsAreRead,
-  TestChosenNumberAskIsPosedMidResolution,
-  TestChosenNumberAnswerRecordsTheChosenNumber,
-  TestChosenNumberZeroAnswerIsRecorded — all PASS.
-- `gofmt -l internal/testutil/agentsdoc_test.go` → clean.
+## Commands and results
 
-## Issues
+- `git status --short --branch; git rev-parse --show-toplevel; git log -1 --oneline --decorate` — initially clean; worktree root `/home/sadams/projects/gorge/.worktrees/cli-20260923T060000Z-choose-number`; HEAD `ecd0c313d`.
+- `git merge main` — stopped with content conflicts in `.ds4/report-mrg1.md` and `internal/testutil/agentsdoc_test.go`; `AGENTS.md` and `rules/cast.go` auto-merged.
+- Measured merged `AGENTS.md` Known approximations table with Python — `data_rows 25`; `.cards` corpus was present (`cards.lock`, `cardsfolder`, `ir.gob.gz`, `ir.v4.gob.gz`, `tokenscripts`).
+- `go test -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|CountHead|TestChosenNumber|TestKnownApproximation' ./rules ./internal/testutil`:
+  ```
+  ok   github.com/adams-shaun/gorge/rules 1.144s
+  ok   github.com/adams-shaun/gorge/internal/testutil 0.005s
+  ```
 
-None found — integration-only change; no new defect surfaced during the
-merge. The branch's (ct1) deletion and main's (battle1) deletion both
-survived the merge intact.
+## Issues / uncertainty
 
-STATUS=DONE
-COMMITS=0d7f0754
-TESTS=go test ./internal/testutil -run TestKnownApproximations (ok); go test ./rules -run 'ratchets+TestChosenNumber' (ok, 8/8 PASS verified with -v, .cards present)
+No additional issue found. No uncertainty in the resolution: both sets of table deletions are present and the measured row count matches the updated ratchet constant.

@@ -19,18 +19,15 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	// The merged AGENTS.md measures 27 data rows (measured with
+	// The merged AGENTS.md measures 25 data rows (measured with
 	// approximationRows() against the merged AGENTS.md). Base 2341274c
-	// carried 30; main swapped the (staticgoad1) row for (ap1), an earlier
-	// branch deleted the (mtsp1) row (82d3ba68 ability-activation mana-spent
-	// riders), main's cli-20260923T060000Z-battle-defeated deleted the
-	// (battle1) row (the CR 310.7 defender, the combat-damage
-	// defense-counter removal, the CR 310.11 defeated exile-and-cast and
-	// the real protector policy all landed), and
-	// cli-20260923T060000Z-choose-number deleted the (ct1) row (the
-	// ChooseType/ChooseColor/ChooseNumber mid-resolution asks all
-	// landed).
-	knownApproximationRows = 27
+	// carried 30; the merged history includes the (mtsp1) deletion
+	// (82d3ba68 ability-activation mana-spent riders), the (kw:Flanking)
+	// deletion (cli-20260923T060000Z-layers-pt7kw), the (battle1) deletion
+	// (cli-20260923T060000Z-battle-defeated), the (ct1) deletion
+	// (cli-20260923T060000Z-choose-number; all three mid-resolution asks), and
+	// the (castfilter1/2) deletion (TriggeredCard$CastTotalManaSpent ref-head).
+	knownApproximationRows = 25
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.
