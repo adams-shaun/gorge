@@ -353,16 +353,13 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// walker's zone is the hidden-origin search, now spanning every zone
 		// Origin$ plus OriginAlternative$ named (the and/or shapes). The
 		// widened cross-zone shape fires when OriginAlternative$ is present,
-		// and ALSO for a compound DIRECT Origin$ whose chooser must pick FROM
-		// the zones -- no Defined$/DefinedPlayer$/ValidTgts$ naming the
-		// objects or the fetch player -- whenever it names Sideboard (the
-		// "outside the game" zone; the corpus's three such lines are Karn, the
-		// Great Creator's Origin$ Sideboard,Exile, one Eldrazi wish of the
-		// same shape, and one Library,Sideboard wish). A compound Origin$ WITH
-		// a selector keeps its existing dispatcher, so a Defined$-bearing
-		// carrier (Eladamri, Korvecdal) still takes its already-chosen
-		// objects. The
-		// searching player may fail to find a card with the stated quality (Min
+		// and for a direct compound Origin$ with no object or fetch selector.
+		// That includes mixed hidden origins such as Library,Hand: the chooser
+		// must see the union, not fall through to Defined's source default. A
+		// compound Origin$ WITH an object selector keeps its existing dispatcher,
+		// so a Defined$-bearing carrier (Eladamri, Korvecdal) still takes its
+		// already-chosen object; the real union choice happened at ChooseCard.
+		// The searching player may fail to find a card with the stated quality (Min
 		// is always zero), and the answer resumes this same effect before its
 		// SubAbility runs. The exact-Library spelling is the single-zone case of
 		// the same path; the alternatives are PUBLIC zones (Graveyard, Exile,
@@ -374,10 +371,10 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 		// is exposed by offering it by name.
 		noObjectSelector := sa.Params["Defined"] == "" && sa.Params["DefinedPlayer"] == "" &&
 			sa.Params["ValidTgts"] == ""
-		if (zoneIn(originZones, state.ZLibrary) || zoneIn(originZones, state.ZSideboard)) && !originAll &&
-			!zoneIn(originZones, state.ZBattlefield) &&
-			(altPresent || len(originZones) == 1 ||
-				(noObjectSelector && zoneIn(originZones, state.ZSideboard))) {
+		if !originAll && !zoneIn(originZones, state.ZBattlefield) &&
+			(altPresent || len(originZones) == 1 || noObjectSelector) &&
+			(zoneIn(originZones, state.ZLibrary) || zoneIn(originZones, state.ZSideboard) ||
+				(noObjectSelector && len(originZones) > 1)) {
 			// Forge treats a Defined$ that resolves to objects in a hidden
 			// library as the already-selected fetch list, not as the owner of a
 			// fresh whole-library search. This is structural rather than keyed to
@@ -3461,7 +3458,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 	// reach a schedule call placed after it -- the moved cards and their
 	// registrations are already game state by then.
 	scheduleAtEOT(h, c, sa, moved)
-	if searchShuffleTail(h, c, sa, owner, moved, to) {
+	if zoneIn(zones, state.ZLibrary) && searchShuffleTail(h, c, sa, owner, moved, to) {
 		return true // the may-shuffle confirm suspended the resolution
 	}
 	return false
