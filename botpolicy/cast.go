@@ -716,9 +716,13 @@ type castContext struct {
 	// the guaranteed production (Card.Produces) of every untapped mana
 	// source it controls on the battlefield. The Card census only carries
 	// the deciding seat's own zones, so every OnBattlefield entry is the
-	// seat's own permanent. An Any/indeterminate production claims nothing
-	// (its colour slots are 0 — the same fail-closed read availableColours
-	// uses), so only demonstrable mana is counted.
+	// seat's own permanent. An indeterminate production claims nothing (its
+	// colour slots are 0), so an unpriceable amount is never counted. Like
+	// every other read of Card.Produces this is a sum over a CAPABILITY
+	// vector: a source listing several alternatives (a dual's two colours, an
+	// any-colour source's five) contributes one slot per alternative even
+	// though one tap adds one unit, so this feature over-states a
+	// multi-alternative board.
 	producible int32
 	// oppCreatures / ownCreatures are the public battlefield creature counts
 	// on each side of the deciding seat (Creature.Controller vs d.Player).
@@ -798,11 +802,11 @@ func (b Board) colourNeed() [5]int32 {
 // availableColours is the coloured mana the seat can already rely on: the
 // current pool plus the guaranteed production of every source already on the
 // battlefield (OnBattlefield). It is the land-drop greedy's "which colours
-// are already available" side. Only demonstrably-produced colours count: an
-// Any production reports its colourless amount and no colour slot, and an
-// Indeterminate-amount source contributes 0 to every colour slot (detected
-// via Colour, never by reading the Indeterminate flag), so a conditional
-// source never makes a colour look already covered. The candidate lands
+// are already available" side. An any-colour source reports each colour it can
+// really be tapped for (cards.ProducedCounts), so a colour it can fix counts as
+// covered; an Indeterminate-amount source contributes 0 to every colour slot
+// (detected via Colour, never by reading the Indeterminate flag), so a source
+// with no priceable amount never makes a colour look already covered. The candidate lands
 // themselves sit in the hand (OnBattlefield false) and are not counted, so
 // their colour is exactly the marginal value chooseLand scores.
 func (b Board) availableColours() [5]int32 {

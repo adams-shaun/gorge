@@ -1358,6 +1358,16 @@ var apiSpecificRulesSA = map[string][]string{
 	// alone -- left in the generic union they would mask every other
 	// API's unread Produced$ (measured: api:Sacrifice/api:DealDamage).
 	"Engine.windowManaUnits": {"Mana"},
+	// The attack-prop payment window's choice-shaped membership
+	// (rules/attack_cost.go attackChoiceManaSources): it walks the payer's
+	// battlefield and reads each window-usable mana ability's Produced$ (plus
+	// Cost$/RestrictValid$) to decide whether an "Any"/"Combo"/"Chosen"
+	// source can pay a generic attack tax, and pins the colour it will be
+	// tapped for. Like windowManaUnits above it only ever inspects api:Mana
+	// abilities (availableManaAbilitiesForWindow), so its reads belong to
+	// api:Mana alone -- left in the generic union they mask every other API's
+	// unread Produced$ (measured: api:Sacrifice/api:DealDamage).
+	"Engine.attackChoiceManaSources": {"Mana"},
 	// The Charm mode paths: the CR 601.2b cast-time modes ask (castModeAsk),
 	// the per-mode target declaration (modalTargetSA), the resume-side mode
 	// decisions/labels, and the modal-trigger placement ask (CharmNum$).
