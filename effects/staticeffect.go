@@ -55,11 +55,19 @@ type staticGrant struct {
 	removeAbilities     bool
 	powerExpr, toughExp string
 	hasPower, hasTough  bool
-	duration            string
-	untilEOT            bool
-	permanent           bool
-	affectedZone        string
-	unread              []string
+	// addPowerExpr/addToughExpr are the layer-7c ADDITIVE P/T parameters
+	// (AddPower$/AddToughness$), distinct from the layer-7b SET parameters
+	// above. They ride the continuous effect's expression fields so the layer
+	// walk evaluates them (SVar- and Count$-capable) against the grant's own
+	// SVar table, exactly as the printed-static scanner's layer walk does.
+	addPowerExpr, addToughExpr         string
+	hasAddPower, hasAddTough           bool
+	addPowerAffected, addToughAffected bool
+	duration                           string
+	untilEOT                           bool
+	permanent                          bool
+	affectedZone                       string
+	unread                             []string
 }
 
 // staticEffectTypeList parses an additive TYPE parameter: the comma-separated
@@ -139,6 +147,14 @@ func parseStaticEffectGrant(params map[string]string, rememberedAsSelf bool) (st
 	}
 	if _, has := params["SetToughness"]; has {
 		g.toughExp, g.hasTough = strings.TrimSpace(params["SetToughness"]), true
+	}
+	if _, has := params["AddPower"]; has {
+		g.addPowerExpr, g.hasAddPower = strings.TrimSpace(params["AddPower"]), true
+		g.addPowerAffected = staticAddPTAffected(g.addPowerExpr)
+	}
+	if _, has := params["AddToughness"]; has {
+		g.addToughExpr, g.hasAddTough = strings.TrimSpace(params["AddToughness"]), true
+		g.addToughAffected = staticAddPTAffected(g.addToughExpr)
 	}
 	g.duration = strings.TrimSpace(params["Duration"])
 	g.affectedZone = strings.TrimSpace(params["AffectedZone"])
@@ -426,5 +442,41 @@ func registerStaticEffectGrant(h Host, c *Ctx, id state.ObjID, affects string, g
 			SVars: c.SVars,
 		})
 	}
+	// The layer-7c ADDITIVE half (AddPower$/AddToughness$, the +X/+X a lord or
+	// emblem grants). Registering it on the SAME builder is what keeps the two
+	// delivery routes from disagreeing: the printed-static scanner's layer walk
+	// stores the raw expression in AddPowerExpr/AddToughnessExpr and evaluates
+	// it per derivation, so the Effect route does the same rather than
+	// collapsing an SVar/Count$ value to a numeric zero. A body carrying both a
+	// Set and an Add parameter registers both (the scanner emits both), and the
+	// layer order (7b before 7c) applies the add after the set.
+	if g.hasAddPower || g.hasAddTough {
+		add(state.ContinuousEffect{
+			Source: id, Affects: affects, Controller: c.Controller,
+			Layer: state.LPT, Sub: state.SubModify,
+			AddPowerExpr:         g.addPowerExpr,
+			AddToughnessExpr:     g.addToughExpr,
+			AddPowerAffected:     g.addPowerAffected,
+			AddToughnessAffected: g.addToughAffected,
+			AffectedZone:         g.affectedZone,
+			Duration:             g.duration, Permanent: g.permanent, UntilEOT: g.untilEOT,
+			SVars: c.SVars,
+		})
+	}
 	return registered
+}
+
+// staticAddPTAffected is the Forge AffectedX convention on an additive P/T
+// parameter: only an expression naming AffectedX re-anchors its count on the
+// object receiving the pump. It mirrors rules' affectedXStaticAmount, the
+// predicate the printed-static scanner uses to set the same flag, so the two
+// registration routes classify a body identically. (No Effect-delivered
+// Continuous carrier in the corpus writes AffectedX today; the parity is
+// kept so the next one cannot diverge.)
+func staticAddPTAffected(expr string) bool {
+	expr = strings.TrimSpace(expr)
+	if len(expr) > 1 && (expr[0] == '+' || expr[0] == '-') {
+		expr = expr[1:]
+	}
+	return expr == "AffectedX"
 }

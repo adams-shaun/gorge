@@ -295,26 +295,103 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		chosenNumber = n
 	}
 	registered := false
-	// Palace Jailer uses an Effect's Triggers$ as a one-shot event promise.
-	// Register the narrow BecomeMonarch shape through the replayable delayed
-	// trigger path; other Effect trigger modes remain unsupported.
+	// An Effect's Triggers$ list names SVar trigger bodies the Effect arms as
+	// one-shot delayed promises (CR 603.7) -- "until end of turn, whenever a
+	// creature enters, draw a card" (Beck), "whenever a player casts an
+	// instant or sorcery" (Bonus Round). Register every mode the replayable
+	// delayed-trigger machinery resolves -- SpellCast and ChangesZone through
+	// rules.checkEventDelayedTriggers, Phase through checkDelayedTriggers,
+	// plus the Palace Jailer BecomeMonarch shape -- so an Effect-delivered
+	// trigger genuinely reaches the trigger registry instead of a bare Note.
+	//
+	// A body the machinery cannot carry fails LOUDLY rather than registering
+	// something that behaves differently from the card text:
+	//   - a mode with no delayed-event matcher (DamageDone, Attacks,
+	//     TapsForMana, LifeGained, ... -- the bulk of the 31 Effect Triggers$
+	//     carriers) is owned by agent-20260922T193437Z-a964eea4, which adds
+	//     the generic effect-created trigger registration; it is named in the
+	//     Note here, not silently dropped.
+	//   - OptionalDecider$ (Beck's "you may draw a card") needs a "you may"
+	//     ask the delayed push path never poses; registering it would fire the
+	//     effect MANDATORILY, the opposite of the card text, so it notes.
+	//   - a body with no Execute$ has nothing to resolve.
 	for _, name := range strings.Fields(sa.Params["Triggers"]) {
 		raw := ""
 		if o := h.Game().Obj(c.Source); o != nil && o.Face() != nil {
 			raw = o.Face().SVars[name]
 		}
 		tr, ok := cards.ParseTriggerLine(raw)
-		if !ok || tr.Mode != "BecomeMonarch" {
+		if !ok {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "unparseable Effect trigger " + name})
+			registered = true
 			continue
 		}
 		exec := strings.TrimSpace(tr.Params["Execute"])
 		if exec == "" {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "Effect trigger " + name + " names no Execute"})
+			registered = true
 			continue
 		}
-		h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
-			Player: c.Controller, Step: h.Game().Step, Counter: exec,
-			IDs: encodeRemembered(c.Remembered), Text: "BecomeMonarch:" + name})
-		registered = true
+		if v := strings.TrimSpace(tr.Params["OptionalDecider"]); v != "" {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "unmodelled Effect trigger OptionalDecider$ " + v})
+			registered = true
+			continue
+		}
+		switch tr.Mode {
+		case "BecomeMonarch":
+			h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
+				Player: c.Controller, Step: h.Game().Step, Counter: exec,
+				IDs: encodeRemembered(c.Remembered), Text: "BecomeMonarch:" + name})
+			registered = true
+		case "SpellCast", "ChangesZone":
+			// The event-matched shape: the decode in events.Apply splits
+			// "<Mode>:<trigger SVar name>" and rules re-parses the named body
+			// at fire time against the source's own SVar table (the two routes
+			// cannot disagree). ThisTurn$ True bounds a one-shot to the
+			// registering turn, the same |TT= tail the DelayedTrigger SA emits.
+			text := tr.Mode + ":" + name
+			if strings.EqualFold(strings.TrimSpace(tr.Params["ThisTurn"]), "True") {
+				text += "|TT=" + strconv.Itoa(int(h.Game().Turn))
+			}
+			h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
+				Player: c.Controller, Step: h.Game().Step, Counter: exec,
+				IDs: encodeRemembered(c.Remembered), Text: text})
+			registered = true
+		case "Phase":
+			// A phase promise fires at the FIRST listed step still ahead
+			// (state.EarliestAfter), exactly like the DelayedTrigger SA's
+			// multi-step Phase$ reading; ValidPlayer$ rides |VP= so the
+			// phase scan gates on it (Necropotence's "YOUR next end step").
+			set, unknown := state.ParsePhases(tr.Params["Phase"])
+			if len(unknown) > 0 {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "Effect trigger " + name + " at unrecognized phase " + tr.Params["Phase"]})
+				registered = true
+				continue
+			}
+			step, future := state.EarliestAfter(set, h.Game().Step)
+			if !future {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "Effect trigger " + name + " has no future phase"})
+				registered = true
+				continue
+			}
+			text := tr.Params["Phase"]
+			if vp := strings.TrimSpace(tr.Params["ValidPlayer"]); vp != "" {
+				text += "|VP=" + vp
+			}
+			h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
+				Player: c.Controller, Step: step, Counter: exec,
+				IDs: encodeRemembered(c.Remembered), Text: text})
+			registered = true
+		default:
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+				Text: "continuous effect trigger " + tr.Mode + " unimplemented"})
+			registered = true
+		}
 	}
 	// Effect can also create a replacement rather than a layer restriction.
 	// Forge stores its R: body behind an SVar name in ReplacementEffects$.
