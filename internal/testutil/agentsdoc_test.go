@@ -19,9 +19,9 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	// The merged table measures 39 rows after preserving both this branch's
-	// cascade1 deletion and main's token-replacement deletion.
-	knownApproximationRows = 39
+	// The merged table measures 38 rows after preserving the deletions on main
+	// and this branch's bestow1 deletion.
+	knownApproximationRows = 38
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.
