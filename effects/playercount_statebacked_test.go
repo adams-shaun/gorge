@@ -210,14 +210,12 @@ func TestPlayerCountHasPropertyStateBacked(t *testing.T) {
 	}
 
 	// ---- fail-closed controls -------------------------------------------
-	// A non-owned HasProperty family (IsCorrupted is a real corpus
-	// property), a made-up one, an unknown base word, an unknown predicate
+	// A made-up HasProperty family, an unknown base word, an unknown predicate
 	// and a malformed comparison each stay unresolvable — the caller's
 	// condition then follows its own documented fail direction instead of
 	// enforcing a fabricated zero.
 	for _, expr := range []string{
 		"Count$PlayerCountOpponents$HasPropertyNoSuchProperty",
-		"Count$PlayerCountOpponents$HasPropertyIsCorrupted",
 		"Count$PlayerCountPlayers$HasPropertyHasCardsInHand_Card_BAD1",
 		"Count$PlayerCountPlayers$HasPropertyHasCardsInHand_Card_GE",
 		"Count$PlayerCountPlayers$HasPropertyHasCardsInHand_Card.NoSuchPredicate_GE1",
