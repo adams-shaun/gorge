@@ -4764,3 +4764,61 @@ None new — integration only. The merged register shrinks 35 → 30 with all fi
 closures preserved (this branch's `(chosencopy1)` plus main's four). No engine
 behaviour was changed by the resolution itself; the addphase feature arriving
 from main is main's own gated change.
+
+---
+
+# Merge conflict resolution — cli-20260922T225142Z-d7f00625
+
+## Conflict
+
+- `internal/testutil/agentsdoc_test.go`
+  - **Branch side:** kept `knownApproximationRows = 32` with no adjacent explanatory comment.
+  - **Main side:** kept the same value (`32`) and added a comment explaining the merged AGENTS.md row count and the preceding table closures.
+  - **Resolution:** retained main's explanation and the shared value `32`; removed conflict markers. There was no disagreement about the enforced count. The merged AGENTS.md table is authoritative and its count is checked by the focused test.
+
+The other files listed in the daemon's conflict transcript (`AGENTS.md`, `effects/misc.go`, and `rules/stack.go`) merged automatically; I made no manual edits to them. No other file was conflicted.
+
+## Commands and results
+
+- `git status --short --branch && git status`
+  ```
+  ## wt/cli-20260922T225142Z-d7f00625
+  On branch wt/cli-20260922T225142Z-d7f00625
+  nothing to commit, working tree clean
+  ```
+- `git merge main`
+  ```
+  Auto-merging AGENTS.md
+  Auto-merging effects/misc.go
+  Auto-merging internal/testutil/agentsdoc_test.go
+  CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go
+  Auto-merging rules/stack.go
+  Automatic merge failed; fix conflicts and then commit the result.
+  ```
+- `git add internal/testutil/agentsdoc_test.go && git merge --continue` initially could not open the configured editor (`Standard input is not a terminal`; `error: there was a problem with the editor 'editor'`). Retried with `git -c core.editor=true merge --continue`:
+  ```
+  [wt/cli-20260922T225142Z-d7f00625 eb50adee] Merge branch 'main' into wt/cli-20260922T225142Z-d7f00625
+  ```
+- Corpus check: `ls .cards | head`
+  ```
+  cards.lock
+  cardsfolder
+  ir.gob.gz
+  ir.v4.gob.gz
+  tokenscripts
+  ```
+- `go test ./internal/testutil -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort' > .ds4/scratch-mrg1-internal.log 2>&1; rc=$?; tail -20 .ds4/scratch-mrg1-internal.log; exit $rc`
+  ```
+  ok   github.com/adams-shaun/gorge/internal/testutil 0.001s
+  ```
+- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' > .ds4/scratch-mrg1-ratchets.log 2>&1; rc=$?; tail -30 .ds4/scratch-mrg1-ratchets.log; exit $rc`
+  ```
+  ok   github.com/adams-shaun/gorge/rules 1.088s
+  ```
+- Final `git status --short --branch && git log -1 --oneline --decorate && git status --porcelain=v1`
+  ```
+  ## wt/cli-20260922T225142Z-d7f00625
+  eb50adee8 (HEAD -> wt/cli-20260922T225142Z-d7f00625) Merge branch 'main' into wt/cli-20260922T225142Z-d7f00625
+  ```
+
+No uncertainty remains. The merge is complete, both focused checks passed, and the worktree is clean.
