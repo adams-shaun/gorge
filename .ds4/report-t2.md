@@ -1,67 +1,161 @@
-# Report — player-count sacrifice attribution finding
+# Task report — model the `Convoked$Amount` Count head
 
-## Changes
+Ticket: agent-20260922T200200Z-7feb602c
+Commit: `9e650da1` `feat(effects): model the Convoked$Amount Count head`
 
-- `effects/count.go`: removed `SacrificedThisTurn` from the resolved `PlayerCountPropertyYou$` cases. With no replay-stable actor attribution, it now retains the fail-closed `(0, false)` verdict. The other three task properties (`CardsDiscardedThisTurn`, `LifeLostThisTurn`, `LandsPlayed`) remain resolved.
-- `effects/registry.go`, `rules/stack.go`: removed the `Host.SacrificesThisTurn` contract and the owner-attributed event fold. A sacrifice event does not identify the acting player; an object's owner or controller cannot substitute for that actor.
-- `effects/context_test.go`, `effects/playercount_property_you_test.go`: removed the fake sacrifice tally, retained the other per-turn ledger assertions, and added an unresolved-verdict assertion for `SacrificedThisTurn`.
-- `rules/sacrifices_this_turn_test.go`: replaced the old owner-count/reset test with a regression that establishes a battlefield permanent owned by player 1 and controlled by player 0, emits a canonical sacrifice event, and asserts player 0's count remains unresolvable.
+## State of the round (read this first)
 
-This directly addresses the finding: the previous count credited owner rather than the player taking the action. I chose the finding's explicitly permitted conservative path instead of changing the append-only/hash-chained event encoding. Exact actor attribution requires a separately designed replay-stable provenance mechanism.
+The implementation for this ticket was already present and committed on this
+branch when the round started (`9e650da1`, the branch tip). The provided
+`findings-t2.md` is **not** a review finding: it is the recorded output of a
+failed `git rebase`/merge-fallback whose only blocker was an unstaged
+`.ds4/report-t1.md` (an agent artifact, not product code), plus a stale
+`.ds4/report-t2.md` left over from a *different* ticket
+(player-count sacrifice attribution). Neither names a defect in this ticket's
+work.
 
-`.cards` was present in this worktree. I first checked the clean worktree and rebased onto `main` as directed. The rebase conflicted only in the ignored agent report `.ds4/report-t1.md`; I preserved both sides' content and continued successfully.
+This round therefore did NOT rewrite the implementation. It re-verified the
+committed work against every "Done means" item, proved the new tests fail with
+the fix reverted, and restored the working tree to a clean, committed state
+(the dirty `.ds4/report-t1.md` was restored to HEAD; no product file was
+changed). The commit already on the branch satisfies the brief; the evidence
+is below.
 
-## Gates run
+If the controller expected a fresh commit for this round: there is none, by
+design, because the round changed no product code and adding a no-op commit
+would only obscure `9e650da1`. The branch tip is the deliverable.
+
+## What changed and why (per file, as committed in `9e650da1`)
+
+### `effects/count.go`
+Adds the `Convoked$Amount` dispatch to `evalCountBody`, immediately before the
+`switch head`. It reads `g.Obj(c.Source).Convoked` (the same source-object
+provenance `effects/context.go`'s `definedSpec` uses for `Defined$ Convoked`)
+and returns a legitimate `(0, true)` when the source is absent or the
+provenance is empty — a modelled head, never the unresolvable fallthrough.
+
+The head is a `<Head>$<Property>` body, so it carries its **own** optional
+`/Op`: `Count$Convoked$Amount/Twice` gets the suffix peeled upstream by
+`evalCountExprOK` and applied generically, while the corpus's bare
+`SVar:X:Convoked$Amount/Twice` (Ancient Imperiosaur) reaches the arm with the
+suffix intact and strips it here. Both compose through the single shared
+`applyCountOp`, so there is no duplicate `Twice` implementation. An unknown
+`Convoked$<Property>` returns `(0, false)` (fail closed).
+
+### `effects/filter.go`
+Adds `SpecUsesConvokedAmount(spec)`, the count-head sibling of
+`SpecUsesConvokedReferent`. It matches the `Convoked$` head-family marker
+itself (not a `Count$` prefix, which the corpus's bare form omits), so the next
+`Convoked$<Property>` head is covered without a second classifier arm.
+
+### `rules/cast.go`
+`faceWantsConvoked` and `abilityParamsUseConvoked` now also consult
+`SpecUsesConvokedAmount`. This is the necessary provenance gate: without it,
+neither carrier ever emitted the pay-time `FlagConvoked` CastInfo, so
+`Object.Convoked` stayed empty and the reported symptom persisted even with
+the count head modelled. The brief permitted this only if investigation proved
+the gate was missing — it was, and the test below measures it (with the gate
+reverted, `Object.Convoked = []` on the stack).
+
+### Tests (new files, per the "new tests go in a new file" rule)
+- `effects/convoked_amount_test.go` — `TestConvokedAmountReadsTheCorpusHeads`
+  (both real corpus SVar bodies, plain head = 2 and `/Twice` = 4, plus the
+  `Count$`-prefixed spelling composing to 4 not 8) and
+  `TestConvokedAmountEmptyAndAbsentAreEvaluatedZero` (present-empty and absent
+  source both `(0,true)`; unknown property fails closed).
+- `rules/convoked_amount_test.go` — end-to-end
+  `TestAncientImperiosaurEntersWithTwoCountersPerConvoker` (two convokers ⇒ 4
+  `P1P1` counters) and `TestKnightErrantOfEosXCountsConvokers` (X = 2 on the
+  stack and off the resolved permanent), both driving the real convoke
+  announcement through `rules/cast.go`'s `convokeAsk`.
+
+## Gates run (real, non-cached output)
 
 ```text
-$ go test -run '^TestPlayerCountPropertyYouPerTurnLedgerCounts$' ./effects/
-ok   github.com/adams-shaun/gorge/effects  0.002s
+$ go test -count=1 ./internal/archtest/ 2>&1 | tail -2
+ok  	github.com/adams-shaun/gorge/internal/archtest	2.165s
 
-$ go test -run '^TestSacrificedThisTurnRemainsUnresolvedWithoutActorProvenance$' ./rules/
-ok   github.com/adams-shaun/gorge/rules  0.002s
+$ go test -count=1 -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ 2>&1 | tail -2
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.534s
 
-$ go test ./internal/archtest/ 2>&1 | tail -15
-ok   github.com/adams-shaun/gorge/internal/archtest  5.524s
+$ go test -count=1 -run 'TestConvokedAmount|TestAncientImperiosaurEntersWithTwoCountersPerConvoker|TestKnightErrantOfEosXCountsConvokers|TestEveryRepoDeckCountHeadResolves' ./effects/ ./rules/
+ok  	github.com/adams-shaun/gorge/effects	1.211s
+ok  	github.com/adams-shaun/gorge/rules	1.302s
 
-$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ 2>&1 | tail -5
-ok   github.com/adams-shaun/gorge/cmd/botbench  1.836s
-
-$ gofmt -l effects/count.go effects/registry.go effects/context_test.go effects/playercount_property_you_test.go rules/stack.go rules/sacrifices_this_turn_test.go
+$ gofmt -l effects/count.go effects/filter.go effects/convoked_amount_test.go rules/cast.go rules/convoked_amount_test.go
 (no output)
+
 $ go run ./cmd/gentypes -check
-(no output; exit 0)
-$ git diff --check
 (no output; exit 0)
 ```
 
-No botbench split change was observed. `TestHeads` and the deck acceptance ratchet were not run; they are daemon gates, and the original task's Evendo acceptance is still blocked by its separate `Card.ExiledWithSource` matcher.
+No botbench split movement: `TestConstructedDefaultIsByteIdentical` passes on
+its pinned 20-game split (neither carrier appears in the repo decks, and the
+provenance gate only fires for a face whose text contains `Convoked$`). No
+chain-head or ratchet movement was observed; `TestEveryRepoDeckCountHeadResolves`
+is green and the ratchet has no `Convoked` entry to remove (checked:
+`grep -n Convoked rules/count_head_ratchet_test.go` → no match).
+
+Brief premises re-measured (the brief itself asks that counts be treated as
+claims): the corpus census holds exactly:
+
+```text
+$ /usr/bin/grep -rlE 'Convoked\$Amount' .cards/cardsfolder | wc -l
+2
+$ /usr/bin/grep -rlE 'Convoked\$Amount' .cards/cardsfolder
+.cards/cardsfolder/k/knight_errant_of_eos.txt
+.cards/cardsfolder/a/ancient_imperiosaur.txt
+```
+
+The two carriers are exactly the reported ones. `.cards` was present in this
+worktree as a symlink, so every run above exercised the corpus (not a
+skipped/vacuous green).
 
 ## Fails without the fix
 
-For the effects regression, I backed up the changed implementation files, restored the pre-fix `3d081fa4` versions of `effects/count.go`, `effects/registry.go`, and `effects/context_test.go`, and ran the targeted test. I restored the fixed files and verified each with `cmp` (`restore_cmp=0`):
+Production files were backed up to `.ds4/scratch/fixbak/`, the three hunks
+(`effects/count.go` head, `effects/filter.go` classifier, `rules/cast.go` gate
+uses) were removed, and the targeted tests were run; then the files were
+restored from `HEAD` and compared byte-for-byte:
 
 ```text
-$ go test -run '^TestPlayerCountPropertyYouPerTurnLedgerCounts$' ./effects/
---- FAIL: TestPlayerCountPropertyYouPerTurnLedgerCounts (0.00s)
-    playercount_property_you_test.go:52: SacrificedThisTurn = (0, true), want unresolved (0, false) without actor provenance
-FAIL
-FAIL github.com/adams-shaun/gorge/effects 0.002s
-FAIL
+$ cmp effects/count.go  .ds4/scratch/fixbak/count.go  && echo "count cmp=0"
+count cmp=0
+$ cmp effects/filter.go .ds4/scratch/fixbak/filter.go && echo "filter cmp=0"
+filter cmp=0
+$ cmp rules/cast.go     .ds4/scratch/fixbak/cast.go   && echo "cast cmp=0"
+cast cmp=0
 ```
 
-For the owner/controller mismatch regression, I similarly restored the pre-fix `3d081fa4` versions of `effects/count.go`, `effects/registry.go`, `effects/context_test.go`, and `rules/stack.go`, then restored and byte-compared all four fixed files (`restore_cmp=0`):
+The pre-fix run exited non-zero with all three new tests failing at their own
+preconditions (never a vacuous pass):
 
 ```text
-$ go test -run '^TestSacrificedThisTurnRemainsUnresolvedWithoutActorProvenance$' ./rules/
---- FAIL: TestSacrificedThisTurnRemainsUnresolvedWithoutActorProvenance (0.00s)
-    sacrifices_this_turn_test.go:30: player 0 SacrificedThisTurn = (0, true), want unresolved (0, false) without actor provenance
-FAIL
-FAIL github.com/adams-shaun/gorge/rules 0.003s
-FAIL
+$ go test -run 'TestConvokedAmount|TestAncientImperiosaurEntersWithTwoCountersPerConvoker|TestKnightErrantOfEosXCountsConvokers' ./effects/ ./rules/
+--- FAIL: TestConvokedAmountReadsTheCorpusHeads (0.65s)
+    convoked_amount_test.go:75: Num Amount$ X (Knight-Errant SVar) = 0, want 2
+FAIL	github.com/adams-shaun/gorge/effects	0.666s
+--- FAIL: TestAncientImperiosaurEntersWithTwoCountersPerConvoker (0.64s)
+    convoked_amount_test.go:127: precondition: Object.Convoked = [], want 2 creatures
+--- FAIL: TestKnightErrantOfEosXCountsConvokers (0.00s)
+    convoked_amount_test.go:147: precondition: Object.Convoked on the stack = &{... Convoked:[] ...}, want 2
+FAIL	github.com/adams-shaun/gorge/rules	0.682s
 ```
+
+Note that both end-to-end tests fail at the *precondition* that
+`Object.Convoked` actually captured the two creatures — i.e. with the gate
+reverted the test cannot even reach its counter assertion, which is the
+correct loud failure. The effects test fails on the value itself (0 vs 2).
 
 ## Issues
 
-- The original Evendo Brushrazer gate remains inert because `Affected$ Card.ExiledWithSource` is still unmatched; the prior task measured raw text in 100 `.cards/cardsfolder` scripts. Resolving this count alone would not enable the card.
-- `PlayerCountPropertyYou$SacrificedThisTurn` is intentionally unresolved until exact replay-stable actor provenance exists. Other non-HasPropertyActive family members (including combat-history and Attractions properties) also remain unsupported; this round did not expand their semantics.
-- No Known approximations row was changed; the original task did not own a row for this count.
+- None found that this ticket did not fix. The extended provenance classifier
+  `SpecUsesConvokedAmount` matches the whole `Convoked$` head family; the only
+  such token in the corpus today is `Convoked$Amount` (2 files), so the gate's
+  blast radius is measured and bounded to faces that read the count. If a
+  future card writes a `Convoked$<Other>` head, the gate already covers it;
+  the count dispatch will fail closed for the property it does not model —
+  that is intended.
+- No Known-approximations row existed for `Convoked$Amount`, so none was
+  deleted and `knownApproximationRows` is unchanged (checked: AGENTS.md has no
+  `Convoked` row).
