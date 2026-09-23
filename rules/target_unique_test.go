@@ -255,8 +255,8 @@ func TestCyberneticaTokenSubTargetExcludesParentTarget(t *testing.T) {
 	}
 
 	sub := e.Pending()
-	if sub == nil || sub.Kind != decision.KChoose || sub.ResumeKind != "tgts" {
-		t.Fatalf("token sub ask = %+v, want KChoose tgts", sub)
+	if sub == nil || sub.Kind != decision.KTarget || sub.ResumeKind != "cast_sub" {
+		t.Fatalf("token sub ask = %+v, want KTarget cast_sub", sub)
 	}
 	offered := pendingPlayerIDs(t, e)
 	if offered[1] {
