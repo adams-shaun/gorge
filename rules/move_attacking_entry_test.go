@@ -218,12 +218,21 @@ func TestPreeminentCaptainSoldierEntersAttacking(t *testing.T) {
 // TestYoreTillerNephilimReturnsCreatureTappedAndAttacking is the graveyard
 // object path: the attack trigger's ChangeZone returns a creature card from
 // the graveyard TAPPED and ATTACKING, it is blockable, and its blocked
-// damage kills it against the blocker. (The brief's other object-path
-// carriers are unreachable through pre-existing, unrelated gaps: Alesha's
-// Cost$ {W/B}{W/B} is decline-only at the triggered-cost window's Priceable
-// gate, and Thunderkin's ValidTgts$ ...toughnessLTX resolves no target --
-// see the report's Issues; Yore-Tiller carries the same inlined object-loop
-// move with a literal spec and no cost.)
+// damage kills it against the blocker.
+//
+// It stands in for the brief's named Alesha coverage, which is unreachable
+// through a pre-existing, unrelated gap: her trigger's Cost$ WB WB is
+// decline-only at the triggered-cost window. Re-measured at this commit with
+// two untapped white sources on her controller's battlefield, the window asks
+// `Alesha, Who Smiles at Death - pay W/B W/B?` with exactly ONE option,
+// `trigger_cost_decline/Do not pay`, so her ChangeZone body never resolves and
+// no assertion about its entry rider is possible here. That gap is filed as
+// agent-20260922T232740Z-cf0357bb (hybrid mana at triggered-cost windows) and
+// is not this ticket's scope. Thunderkin Awakener, the other object-path
+// carrier, is blocked the same way by its ValidTgts$ ...toughnessLTX SVar-X
+// comparison resolving no target (agent-20260922T221917Z-aa93a144).
+// Yore-Tiller carries the same inlined object-loop move with a literal spec
+// and no cost, so the path under test is identical.
 func TestYoreTillerNephilimReturnsCreatureTappedAndAttacking(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	e, cfg := combatTriggerBoard(t, reg, []string{"Yore-Tiller Nephilim"},

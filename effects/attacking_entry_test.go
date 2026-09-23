@@ -20,7 +20,8 @@ func attackingFixture(t *testing.T) (*fakeHost, *Ctx, state.ObjID) {
 func TestAttackingEntryMarksDefender(t *testing.T) {
 	h, c, id := attackingFixture(t)
 	c.DefendingPlayer = state.Target{IsPlayer: true, Player: 1}
-	applyAttackingEntry(h, c, &cards.SA{Params: map[string]string{"Attacking": "True"}}, id, 0, state.ZBattlefield)
+	rider := classifyAttackingEntry(c, &cards.SA{Params: map[string]string{"Attacking": "True"}}, state.ZBattlefield)
+	rider.apply(h, c, id, 0, state.ZBattlefield)
 	o := h.g.Obj(id)
 	if o == nil || !o.IsAttacking || o.Attacking != 1 {
 		t.Fatalf("object attacking=%v defender=%d, want defender 1", o.IsAttacking, o.Attacking)
@@ -32,7 +33,8 @@ func TestAttackingEntryMarksDefender(t *testing.T) {
 
 func TestAttackingEntryWithoutDefenderDegradesOnce(t *testing.T) {
 	h, c, id := attackingFixture(t)
-	applyAttackingEntry(h, c, &cards.SA{Params: map[string]string{"Attacking": "True"}}, id, 0, state.ZBattlefield)
+	rider := classifyAttackingEntry(c, &cards.SA{Params: map[string]string{"Attacking": "True"}}, state.ZBattlefield)
+	rider.apply(h, c, id, 0, state.ZBattlefield)
 	o := h.g.Obj(id)
 	if o == nil || !o.Tapped || o.IsAttacking {
 		t.Fatalf("object = %+v, want it tapped and not attacking", o)
@@ -51,7 +53,7 @@ func TestAttackingEntryWithoutDefenderDegradesOnce(t *testing.T) {
 // The shared settle path and the movers that route through it: a hand-origin
 // settle emits the tapped entry (the retired loud Note's replacement), and
 // the hidden-pick and Defined-library movers -- both routed through shared
-// code that now calls applyAttackingEntry -- deliver the attacking entry on
+// code that now applies the classified rider -- deliver the attacking entry on
 // top of their own Tap. The fake host cannot ask, so every pick runs through
 // the R-9 deterministic stand-in; the entry rider is what is under test.
 func TestAttackingEntryRidesTheSharedSettleAndMovers(t *testing.T) {
@@ -74,7 +76,7 @@ func TestAttackingEntryRidesTheSharedSettleAndMovers(t *testing.T) {
 	h2, c2 := fixtureHost(t)
 	h2.Emit(events.Event{Kind: events.MoveZone, Obj: 2, From: state.ZBattlefield, To: state.ZHand})
 	settleChangeZoneMoveAs(h2, c2, &cards.SA{Params: map[string]string{"Tapped": "True"}},
-		2, state.ZHand, state.ZBattlefield, "", 0, 1, true)
+		2, state.ZHand, state.ZBattlefield, "", 0, 1, true, nil)
 	if o := h2.g.Obj(2); o == nil || o.Zone != state.ZBattlefield || !o.Tapped || o.IsAttacking {
 		t.Fatalf("hand settle left object = %+v, want battlefield, tapped, NOT attacking", o)
 	}
@@ -93,8 +95,9 @@ func TestAttackingEntryRidesTheSharedSettleAndMovers(t *testing.T) {
 	h3, c3 := fixtureHost(t)
 	c3.DefendingPlayer = state.Target{IsPlayer: true, Player: 1}
 	h3.Emit(events.Event{Kind: events.MoveZone, Obj: 2, From: state.ZBattlefield, To: state.ZHand})
-	settleChangeZoneMoveAs(h3, c3, &cards.SA{Params: map[string]string{"Tapped": "True", "Attacking": "True"}},
-		2, state.ZHand, state.ZBattlefield, "", 0, 1, true)
+	sa3 := &cards.SA{Params: map[string]string{"Tapped": "True", "Attacking": "True"}}
+	rider3 := classifyAttackingEntry(c3, sa3, state.ZBattlefield)
+	settleChangeZoneMoveAs(h3, c3, sa3, 2, state.ZHand, state.ZBattlefield, "", 0, 1, true, &rider3)
 	if o := h3.g.Obj(2); o == nil || !o.Tapped || !o.IsAttacking || o.Attacking != 1 {
 		t.Fatalf("hand settle with Attacking$ left object = %+v, want tapped and attacking 1", o)
 	}
@@ -151,7 +154,8 @@ func countTokenAttacks(h *fakeHost, obj state.ObjID) int {
 
 func TestAttackingEntryNonTrueSelectorDegradesOnce(t *testing.T) {
 	h, c, id := attackingFixture(t)
-	applyAttackingEntry(h, c, &cards.SA{Params: map[string]string{"Attacking": "Remembered"}}, id, 0, state.ZBattlefield)
+	rider := classifyAttackingEntry(c, &cards.SA{Params: map[string]string{"Attacking": "Remembered"}}, state.ZBattlefield)
+	rider.apply(h, c, id, 0, state.ZBattlefield)
 	if h.g.Obj(id).IsAttacking {
 		t.Fatal("unsupported selector made the object attack")
 	}
@@ -160,5 +164,87 @@ func TestAttackingEntryNonTrueSelectorDegradesOnce(t *testing.T) {
 	}
 	if !strings.Contains(h.log[1].Text, "Remembered") {
 		t.Fatalf("Note = %q, want unsupported selector Remembered", h.log[1].Text)
+	}
+}
+
+// countAttackingNotes counts the rider's diagnostic Notes in h's log.
+func countAttackingNotes(h *fakeHost) int {
+	n := 0
+	for _, ev := range h.log {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "Attacking$") {
+			n++
+		}
+	}
+	return n
+}
+
+// The degrade is a property of the CALL, not of each moved object: a sweep
+// that moves two permanents under a rider it cannot deliver emits ONE Note,
+// the same single diagnostic effects/token.go's single-mint read gets for
+// free. Both halves (no defender in context, and an unsupported selector
+// value) are pinned, because both used to emit once per moved object.
+func TestAttackingEntryMultiObjectNoDefenderNotesOnce(t *testing.T) {
+	h, c := fixtureHost(t)
+	for _, id := range []state.ObjID{1, 2} {
+		h.Emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard})
+	}
+	effChangeZoneAll(h, c, &cards.SA{Params: map[string]string{"Origin": "Graveyard",
+		"Destination": "Battlefield", "Attacking": "True"}})
+	for _, id := range []state.ObjID{1, 2} {
+		o := h.g.Obj(id)
+		if o == nil || o.Zone != state.ZBattlefield || !o.Tapped || o.IsAttacking {
+			t.Fatalf("object %d = %+v, want battlefield, tapped, NOT attacking", id, o)
+		}
+	}
+	if notes := countAttackingNotes(h); notes != 1 {
+		t.Fatalf("no-defender Notes = %d over a two-object sweep, want exactly 1; log=%+v", notes, h.log)
+	}
+}
+
+func TestAttackingEntryMultiObjectSelectorNotesOnce(t *testing.T) {
+	h, c := fixtureHost(t)
+	c.DefendingPlayer = state.Target{IsPlayer: true, Player: 1}
+	for _, id := range []state.ObjID{1, 2} {
+		h.Emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZGraveyard})
+	}
+	effChangeZoneAll(h, c, &cards.SA{Params: map[string]string{"Origin": "Graveyard",
+		"Destination": "Battlefield", "Attacking": "Remembered"}})
+	for _, id := range []state.ObjID{1, 2} {
+		if o := h.g.Obj(id); o == nil || o.IsAttacking {
+			t.Fatalf("object %d = %+v, want the unsupported selector to leave it non-attacking", id, o)
+		}
+	}
+	if notes := countAttackingNotes(h); notes != 1 {
+		t.Fatalf("selector Notes = %d over a two-object sweep, want exactly 1; log=%+v", notes, h.log)
+	}
+	for _, ev := range h.log {
+		if ev.Kind == events.Note && strings.Contains(ev.Text, "Attacking$") &&
+			!strings.Contains(ev.Text, "Remembered") {
+			t.Fatalf("Note = %q, want it to name the unsupported selector", ev.Text)
+		}
+	}
+}
+
+// The Dig window shares the classification: a two-card Dig putting both cards
+// onto the battlefield under a defenderless rider is still one Note.
+func TestAttackingEntryDigNoDefenderNotesOnce(t *testing.T) {
+	h, c := fixtureHost(t)
+	card := mkCard(t, "Name:Digged\nTypes:Creature\nPT:1/1\nOracle:x\n")
+	var dug []state.ObjID
+	for i := 0; i < 2; i++ {
+		o := h.g.AddObject(card, 0)
+		dug = append(dug, o.ID)
+		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: o.Zone, To: state.ZLibrary, Player: 0})
+	}
+	effDig(h, c, &cards.SA{Params: map[string]string{"Defined": "You", "DigNum": "2", "ChangeNum": "2",
+		"DestinationZone": "Battlefield", "Attacking": "True"}})
+	for _, id := range dug {
+		o := h.g.Obj(id)
+		if o == nil || o.Zone != state.ZBattlefield || !o.Tapped || o.IsAttacking {
+			t.Fatalf("dug object %d = %+v, want battlefield, tapped, NOT attacking", id, o)
+		}
+	}
+	if notes := countAttackingNotes(h); notes != 1 {
+		t.Fatalf("Dig no-defender Notes = %d over a two-card take, want exactly 1; log=%+v", notes, h.log)
 	}
 }
