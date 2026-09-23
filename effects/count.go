@@ -1350,6 +1350,43 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		}
 	}
 
+	// Convoked$Amount (CR 702.66): the number of creatures that convoked the
+	// resolving spell's cast -- Forge's own `SVar:X:Convoked$Amount` head.
+	// The count reads the SAME source-object provenance the Defined$ Convoked
+	// selector reads (effects/context.go's definedSpec): the pay-time
+	// CastInfo's FlagConvoked IDs, folded onto Object.Convoked by
+	// events.Apply and preserved across the stack->battlefield move, so the
+	// ETB half of Ancient Imperiosaur and Knight-Errant of Eos reads the same
+	// set the spell on the stack did. A cast with no convoke, an absent
+	// source and a copy all read a legitimate zero (the modelled-head
+	// convention every other cast-provenance count takes, NOT the
+	// unresolvable verdict the fallthrough gives). A creature that left play
+	// after convoking still counts -- CR 702.66 counts the creatures that
+	// CONVOKED, and Object.Convoked holds their ids.
+	//
+	// This is a `<Head>$<Property>` body, so it carries its OWN optional /Op
+	// exactly like PlayerCountHasLost$Amount/Times.10: a
+	// `Count$Convoked$Amount/Twice` gets the suffix peeled upstream by
+	// evalCountExprOK and applied generically, while the corpus's bare
+	// `SVar:X:Convoked$Amount/Twice` (Ancient Imperiosaur's two
+	// counters-per-creature) reaches here with the suffix intact and must
+	// strip it before the exact-name compare. Splitting it here -- not in a
+	// second Twice arm -- keeps ONE composition path for the op.
+	if rest, ok := strings.CutPrefix(head, "Convoked$"); ok {
+		name, op, hasOp := strings.Cut(rest, "/")
+		if strings.TrimSpace(name) != "Amount" {
+			return 0, false
+		}
+		n := int32(0)
+		if o := g.Obj(c.Source); o != nil {
+			n = int32(len(o.Convoked))
+		}
+		if hasOp {
+			n = applyCountOp(n, op)
+		}
+		return n, true
+	}
+
 	switch head {
 	case "Compare":
 		return evalCompare(h, c, arg, depth), true
