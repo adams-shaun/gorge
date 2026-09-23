@@ -6,12 +6,9 @@ Round 1's implementation landed as `d62010f2` (five homes, one chain — see its
 commit message; the full per-item evidence is in `.ds4/report-r1.md`).
 Round 2 was dispatched on one failing module gate; this report covers it.
 
-Note on the shared path: this worktree's tracked `.ds4/report-r2.md` held the
-Deep Spawn ticket's merge-resolution round report (ticket
-agent-20260923T002719Z-c0b56143, merged via f65ac023 — the content remains in
-git history). This round's report replaces it here and is additionally kept at
-the ticket-unique path `.ds4/report-r2-animate-dead.md`, per the process note
-the Deep Spawn round itself left in this file.
+The shared `.ds4/report-r2.md` belongs to the Deep Spawn and Backup tickets.
+This ticket's report lives only at `.ds4/report-r2-animate-dead.md`; the
+review-resolution record below confirms the shared report remains untouched.
 
 ## What this round found and fixed
 
@@ -123,6 +120,53 @@ Round 1's own pins all still pass on the round-2 tree (the
 The brief's Done-means items 1–8 were evidenced in `.ds4/report-r1.md` and are
 unchanged by this round (this round touched only a test file's driver and
 assertions).
+
+## Review-resolution round (sol1, rebased on main)
+
+The reviewer found one MAJOR: the earlier docs commit replaced the tracked
+Deep Spawn report at `.ds4/report-r2.md`. Per the controller directive I
+rebased onto main before doing anything else. The implementation and
+Necromancy test commits replayed without conflict; the docs commit conflicted
+only at `.ds4/report-r2.md`. I kept main's full version of that file and
+staged the ticket-unique `.ds4/report-r2-animate-dead.md` instead. The
+rebased docs commit (`167f6e1d`) adds **only** this ticket-unique file:
+`git diff --quiet main -- .ds4/report-r2.md` exits 0. The shared
+`.ds4/report-sol1.md` also contains unrelated tickets' reports and was not
+changed. This is a documentation-only review fix; no Go files were edited
+in this round. `.cards` was present, not a vacuous corpus skip.
+
+### Verification on the rebased tree (real output)
+
+```
+$ go test -run 'TestAnimateDead|TestDanceOfTheDead|TestHeads' ./rules/
+ok   github.com/adams-shaun/gorge/rules  1.896s
+rules_exit=0
+$ go test -run 'TestAnimate' ./effects/
+ok   github.com/adams-shaun/gorge/effects  0.003s
+effects_exit=0
+$ go test -run 'TestNecromancy|TestMayFlashSac' ./rules/
+ok   github.com/adams-shaun/gorge/rules  0.023s
+necro_exit=0
+$ go test ./internal/archtest/
+ok   github.com/adams-shaun/gorge/internal/archtest  3.530s
+arch_exit=0
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok   github.com/adams-shaun/gorge/cmd/botbench  1.725s
+bot_exit=0
+$ gofmt -l effects/animate_removekeywords_test.go effects/attach.go effects/combatfx.go effects/filter.go rules/animate_dead_test.go rules/attach.go rules/clone.go rules/mayflashsac_test.go rules/stack.go
+fmt_exit=0
+$ go vet ./rules ./effects ./state
+vet_exit=0
+$ go run ./cmd/gentypes -check
+gen_exit=0
+$ git diff --quiet main -- .ds4/report-r2.md
+report_r2_matches_main=0
+```
+
+No head or ratchet movement. No new test was added in this docs-only review;
+original mutation proofs remain in `.ds4/report-r1.md` and above under
+"Fails without the fix". The report path is ticket-unique to prevent this
+class of sibling-document deletion on the next merge.
 
 ## Issues
 
