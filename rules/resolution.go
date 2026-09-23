@@ -34,6 +34,7 @@
 package rules
 
 import (
+	"sort"
 	"strconv"
 	"strings"
 
@@ -723,6 +724,42 @@ func (e *Engine) seedMoveCounterAsk(obj state.ObjID, ctx *effects.Ctx) {
 	}
 }
 
+// aorEntry returns (creating if needed) the answered-kind cursor for a
+// resolving AddOrRemoveCounter stack object.
+func (e *Engine) aorEntry(obj state.ObjID) map[string]bool {
+	if e.aorAsk == nil {
+		e.aorAsk = make(map[state.ObjID]map[string]bool)
+	}
+	set := e.aorAsk[obj]
+	if set == nil {
+		set = make(map[string]bool)
+		e.aorAsk[obj] = set
+	}
+	return set
+}
+
+// seedAorAsk fills a fresh resume Ctx with the kinds this AddOrRemoveCounter
+// resolution has already answered an election for — INCLUDING the current
+// round's own answer, which the "aor_elect" arm recorded before this runs
+// (the map is therefore always a superset of the walk's own skip guards; the
+// walk also skips the current kind by the AorElect/AorKind pair, so double
+// coverage is harmless). This is what keeps an EachExistingCounter$ walk
+// from re-asking an already-answered PUT kind, whose counter count is still
+// positive and therefore still enumerates (counterchoice1 — the
+// movecounter1 livelock's exact class).
+func (e *Engine) seedAorAsk(obj state.ObjID, ctx *effects.Ctx) {
+	set := e.aorAsk[obj]
+	if set == nil {
+		return
+	}
+	kinds := make([]string, 0, len(set))
+	for k := range set {
+		kinds = append(kinds, k)
+	}
+	sort.Strings(kinds) // deterministic: map iteration order never reaches a Ctx
+	ctx.AorAnswered = kinds
+}
+
 // handleModes applies an answered KModes decision. ResumeKind and the trigger
 // drain flag distinguish three lifetimes: a modal spell's CR 601.2b cast
 // proposal, a modal trigger's CR 603.3c placement, and an effect suspended in
@@ -961,6 +998,78 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 			modeChoiceNames(d.ResumeSA, chosen, d.ResumeModes))
 	}
 	e.resumeResolution(rp, chosen)
+}
+
+// resumeETBEntry is the resolution-owned continuation for an as-enters
+// choice. Keeping the e.resume write here preserves the structural invariant
+// that only resolution machinery consumes a suspended frame.
+func (e *Engine) resumeETBEntry(chosen []decision.Option) {
+	// handleChoose owns clearing e.resume; this continuation only consumes the
+	// parked entry, keeping the archtest's single ownership rule intact.
+	if e.etbMove == nil || len(chosen) != 1 {
+		e.etbMove = nil
+		e.etbNext = 0
+		e.choosing = chooseNone
+		return
+	}
+	move := *e.etbMove
+	opt := chosen[0]
+	switch opt.Kind {
+	case "name":
+		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "name", Text: opt.Label})
+	case "type":
+		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "type", Text: opt.Label})
+	case "number":
+		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "number", Amount: int32(opt.Amount)})
+	case "color":
+		if letter := etbColourLetter(opt.Label); letter != "" {
+			e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "color", Text: letter})
+		}
+	case "riot":
+		choice := "haste"
+		if opt.Index == 0 {
+			choice = "counter"
+		}
+		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "riot", Text: choice})
+	case "unleash":
+		choice := "plain"
+		if opt.Index == 0 {
+			choice = "counter"
+		}
+		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "unleash", Text: choice})
+	}
+	e.choosing = chooseNone
+	e.emit(move)
+	// The answered entry has been re-emitted: if it was a land play and the
+	// entry was fully replaced (or replaced again after another as-enters
+	// answer), settle the land play here rather than leaving the continuation
+	// armed for an unrelated later entry to consume.
+	e.settleLandPlayIfDone(move.Obj)
+}
+
+// continueAfterETBEntry hands an as-enters entry choice's answer back to the
+// resolution that entry interrupted. Engine.Ask parks the resolving object on
+// every mid-resolution ask, and applyETBChoiceReplacement's ask is posed from
+// inside emit, so the frame it parks is whatever effect was moving the object
+// onto the battlefield (a reanimation, a blink, Retether's mass Aura return).
+// resumeETBEntry has already completed the entry itself, so the frame resumes
+// with no answer: its recorded continuation (rp.outer) runs and the stack
+// object is finished, instead of being left on the stack for resolveTop to
+// resolve a second time.
+//
+// Three shapes deliberately continue nothing, because no interrupted stack
+// resolution exists to finish: a direct frame (a land play or any other entry
+// posed with an empty stack), a frame whose object is the ENTERING object
+// itself (a permanent spell's own stack->battlefield move -- resolveTop's tail
+// already moved it), and a frame whose object has since left the stack.
+func (e *Engine) continueAfterETBEntry(rp *resumePoint) {
+	if rp == nil || rp.direct || rp.obj == 0 || e.pending != nil {
+		return
+	}
+	if o := e.G.Obj(rp.obj); o == nil || o.Zone != state.ZStack {
+		return
+	}
+	e.resumeResolution(rp, nil)
 }
 
 // resumeResolution re-enters a suspended resolution with its answer. It
@@ -2182,6 +2291,40 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 				p := e.moveCounterEntry(rp.obj)
 				p.n, p.nSet = ctx.MoveCounterN, true
 			}
+		case "aor_elect":
+			// An AddOrRemoveCounter add/remove election was answered
+			// (counterchoice1). The election's kind is parsed out of the
+			// answer's own option encoding ("aor_remove:<kind>"/
+			// "aor_put:<kind>"), so the fresh Ctx carries everything the
+			// re-entered walk needs without a second transport. A malformed
+			// answer elects the deterministic first option (remove), the same
+			// conservative read every KChoose arm takes. The answered kind is
+			// ALSO recorded on the pending state (the moveCounterAsk
+			// discipline): this round's re-entry may suspend again on the next
+			// kind's election, and that later re-entry must not re-ask an
+			// already-answered PUT kind (its counter count is still positive,
+			// so the kinds enumeration still lists it).
+			ctx.AorDone = true
+			ctx.AorElect, ctx.AorKind = "remove", ""
+			if len(chosen) > 0 {
+				if chosen[0].Kind == "aor_skip" {
+					// The combined absent-kind election has one skip option,
+					// unlike the per-kind form's aor_skip:<kind>.
+					ctx.AorElect = "skip"
+				} else {
+					if strings.HasPrefix(chosen[0].Kind, "aor_put:") {
+						ctx.AorElect = "put"
+					} else if strings.HasPrefix(chosen[0].Kind, "aor_skip:") {
+						ctx.AorElect = "skip"
+					}
+					if _, k, found := strings.Cut(chosen[0].Kind, ":"); found {
+						ctx.AorKind = k
+					}
+				}
+			}
+			if rp.sa != nil && rp.sa.API == "AddOrRemoveCounter" && ctx.AorKind != "" {
+				e.aorEntry(rp.obj)[ctx.AorKind] = true
+			}
 		case "blight":
 			// A Blight's per-player KChoose (CR 701.60: the blighting player
 			// chooses which of their own creatures takes the −1/−1 counters)
@@ -2720,6 +2863,9 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		if rp.sa.API == "MoveCounter" {
 			e.seedMoveCounterAsk(rp.obj, ctx)
 		}
+		if rp.sa.API == "AddOrRemoveCounter" {
+			e.seedAorAsk(rp.obj, ctx)
+		}
 		if rp.sa.API == "PutCounter" {
 			e.seedCounterTypeAsk(rp.obj, rp.sa, ctx)
 		}
@@ -2770,6 +2916,13 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			// suspended): its pending state is spent.
 			delete(e.moveCounterAsk, rp.obj)
 		}
+		if rp.sa.API == "AddOrRemoveCounter" && e.resume == nil {
+			// The AddOrRemoveCounter resolution completed this round (nothing
+			// suspended): its pending state is spent -- delete it so a stale
+			// entry can never seed a later resolution of the same object (the
+			// moveCounterAsk discipline).
+			delete(e.aorAsk, rp.obj)
+		}
 		if rp.sa.API == "PutCounter" && e.resume == nil {
 			delete(e.counterTypeAsk, rp.obj)
 		}
@@ -2791,11 +2944,14 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			e.resume.outer = e.buildContinuationChain(e.contChain, rp.obj, rp.outer)
 			return
 		}
-	} else if !parkedDraws && rp.kind != "replacement" && rp.fuseAlt == nil {
+	} else if !parkedDraws && rp.kind != "replacement" && rp.kind != "etb" && rp.fuseAlt == nil {
 		// A resume with no sub-ability recorded: normally reachable only from
-		// a hand-built Ask (every real asking primitive sets ResumeSA). Two
+		// a hand-built Ask (every real asking primitive sets ResumeSA). Three
 		// deliberate exceptions need no Note either: a parked GainLife→Draw
-		// frame whose answer was applied above, and a replacement-order
+		// frame whose answer was applied above, an as-enters entry choice
+		// (resumeETBEntry has already re-emitted the entry this frame was
+		// parked on, so the continuation likewise begins at rp.outer), and a
+		// replacement-order
 		// decision — the intercepted event has already completed, and the
 		// continuation begins at rp.outer rather than re-running the effect
 		// that proposed it. The resolution still finishes — the object leaves
@@ -2808,6 +2964,12 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// An Updated ETB replacement has already completed the spell's move.
 		// Its answer resumes only the replacement body; there is no stack
 		// object to finish or priority round to create here.
+		//
+		// The suspended body may equally have been a fully-replaced entry that
+		// never puts the land on the battlefield: this re-entry posed no new
+		// ask (the nested-ask branch above returns), so the entry is done
+		// either way and the land play settles here.
+		e.settleLandPlayIfDone(rp.replaced)
 		return
 	}
 	if rp.outer != nil { // No nested ask this pass and the frame itself completed: continue
@@ -3143,6 +3305,11 @@ func (e *Engine) moveResolvedOffStack(o *state.Object) {
 	id := o.ID
 	if f := o.Face(); f != nil && f.IsPermanent() {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZBattlefield})
+		// An as-enters choice parks this move through the mid-resolution ask
+		// path. Keep the object on the stack until the answer re-emits it.
+		if e.pending != nil || e.resume != nil {
+			return
+		}
 		e.ensureLeftTheStack(id, spellRestZone(o), "an ETB replacement fully replaced this "+
 			"permanent's entry to the battlefield without moving it anywhere; sent to its "+
 			"resting zone instead of re-resolving forever")

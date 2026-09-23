@@ -84,6 +84,27 @@ func attachDrain(t *testing.T, e *Engine, limit int) *decision.Decision {
 				idxs = append(idxs, d.Options[i].Index)
 			}
 			submitChoices(t, e, idxs...)
+		case decision.KChoose:
+			// An "as this enters" choice is now posed at the entry boundary
+			// (the Utopia Sprawl returned by Retether asks for its colour as
+			// it enters attached). The drain takes the first option -- the
+			// deterministic answer the pre-migration cast-time flow recorded
+			// -- so these assertions keep the board they were written against.
+			if d.ResumeKind != "etb" || len(d.Options) == 0 {
+				t.Fatalf("unexpected choose decision while draining: %+v", d)
+			}
+			submitChoices(t, e, d.Options[0].Index)
+		case decision.KTriggerOrder:
+			// The entry-boundary ask splits the mass return into two batches,
+			// so the two identical Divine Favor entry triggers now reach one
+			// order ask instead of being put on the stack one batch each.
+			// Answer in the offered order: identical triggers, so the order is
+			// immaterial to every assertion here.
+			idxs := make([]int, 0, len(d.Options))
+			for _, o := range d.Options {
+				idxs = append(idxs, o.Index)
+			}
+			submitChoices(t, e, idxs...)
 		case decision.KPriority:
 			idx := -1
 			for _, o := range d.Options {

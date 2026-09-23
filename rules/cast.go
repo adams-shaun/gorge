@@ -22,7 +22,7 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
-// chooseCast, chooseETB and chooseMiracle extend chooseFor (rules/engine.go
+// chooseCast and chooseMiracle extend chooseFor (rules/engine.go
 // declares chooseNone = iota, the only value Task 8 needed). iota+1 here
 // keeps every value distinct from chooseNone without redeclaring it --
 // nothing outside this package compares chooseFor values, so the exact
@@ -30,8 +30,9 @@ import (
 // file's block.
 const (
 	chooseCast chooseFor = iota + 1
-	chooseETB
 	chooseMiracle
+	// chooseETBEntry marks an entry-boundary as-enters choice.
+	chooseETBEntry chooseFor = 32
 	// chooseRiot is deliberately outside the independently extended
 	// chooseCleanup/chooseMana ranges in combat.go and mana_activation.go.
 	// It is 20 because the merged package occupies 1 through 18 (cast/etb/
@@ -385,32 +386,6 @@ type pendingCast struct {
 	// progress, so the count must come back across the push (F05-2). Nil when
 	// no cast push is in flight.
 	preAborts map[state.ObjID]int32
-
-	// Task 12: the card's "as this enters" choices (one per ETBReplacement
-	// Repl whose ReplaceWith$ is NameCard/ChooseType/ChooseNumber). Each is
-	// asked in order while choosing == chooseETB; etbIdx is the next
-	// unsettled one, so the continuation survives the chooseAnswer round trip
-	// (answer -> etbAnswer increments etbIdx -> continueCast re-enters
-	// etbAsk). Plain data, so a Clone copies it like the fields above.
-	etbs   []etbChoice
-	etbIdx int
-
-	// etbChosen records whether THIS proposal actually emitted an "as this
-	// enters" Choose event, and the object's choice fields as they were
-	// immediately before the first one (captured in etbAnswer, before it
-	// records the answered choice). An aborted proposal (CR 733.1) must
-	// return the object to the moment before it was proposed, so abortCast
-	// emits reverse Choose events restoring these captured values -- but ONLY
-	// when a choice was recorded during this proposal (a spell that never
-	// chose anything emits nothing, so no chain head moves for it). Capturing
-	// all three fields at the first answer means a card with several etb
-	// choices restores the true pre-proposal state, not the state after the
-	// first answer.
-	etbChosen bool
-	etbName   string
-	etbType   string
-	etbNumber int32
-	etbColor  string
 
 	// altAddParts are the alternative parts of the card's
 	// AlternateAdditionalCost keyword ("As an additional cost to cast this
@@ -2179,7 +2154,6 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		e.cast.mayPlayIgnoreType = e.payerGrantsIgnoreType(p, id)
 		e.cast.mayPlayRemembered = e.mayPlayManaConvertRemembered(p, id)
 	}
-	e.collectETBChoices(p)
 	e.continueCast()
 }
 
@@ -2246,7 +2220,6 @@ func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost boo
 			return
 		}
 		e.cast = &pendingCast{player: p, card: id, from: o.Zone, mode: "land", ability: -1}
-		e.collectETBChoices(p)
 		e.continueCast()
 		return
 	}
@@ -2295,7 +2268,6 @@ func (e *Engine) beginPlay(p state.PlayerID, id state.ObjID, withoutManaCost boo
 	mods := e.costModifiers(p, id, spellScope(""))
 	e.cast = &pendingCast{player: p, card: id, from: o.Zone, mode: "play", ability: -1,
 		cost: cost, mods: mods, replaceGraveyard: replaceGraveyard}
-	e.collectETBChoices(p)
 	e.continueCast()
 }
 
@@ -2431,9 +2403,6 @@ func (e *Engine) continueCast() {
 	// card exiled with Shelob into its owner's graveyard") runs beside the
 	// other non-mana component asks, after the PutToLib ask.
 	if e.moveGraveAsk() {
-		return
-	}
-	if e.etbAsk() {
 		return
 	}
 	// Suspend does not put a spell on the stack: its alternate action pays
@@ -4234,75 +4203,6 @@ func (e *Engine) discardAsk() bool {
 	return false
 }
 
-// collectETBChoices walks pc.card's printed replacement lines and, for every
-// ETBReplacement Repl whose ReplaceWith$ resolves to a NameCard/ChooseType/
-// ChooseNumber/ChooseColor ability, adds one etbChoice with its pre-built
-// option list.
-// The list (not just the kind) is captured up front so the offered option and
-// the recorded choice always agree, and so the choice is the same whether it
-// is asked here (cast flow) or once the object has moved (a land's
-// play_land). Nothing is asked and no choice is recorded for an etbCounter
-// replacement (its ReplaceWith$ is PutCounter) -- those need only Ctx.X, not
-// a player decision.
-// collectETBChoices is the cast-path fast path. Entries that do not pass
-// through a pending cast (reanimation, blink, or a direct ChangeZone) are
-// caught by applyRiotReplacement in replacement.go before their MoveZone is
-// logged, so Riot is never limited to spells cast normally.
-func (e *Engine) collectETBChoices(you state.PlayerID) {
-	pc := e.cast
-	if pc == nil {
-		return
-	}
-	o := e.G.Obj(pc.card)
-	if o == nil {
-		return
-	}
-	f := o.Face()
-	if f == nil {
-		return
-	}
-	if f.HasKeyword("Riot") {
-		pc.etbs = append(pc.etbs, etbChoice{kind: "riot", options: []decision.Option{
-			{Index: 0, Kind: "riot", Label: "Enter with a +1/+1 counter"},
-			{Index: 1, Kind: "riot", Label: "Gain haste"},
-		}})
-	}
-	// kw:Unleash (CR 702.86): the same as-enters may, two options (take the
-	// +1/+1 counter or enter without). The non-cast entry paths are caught
-	// by applyUnleashReplacement (rules/unleash.go), the Riot precedent.
-	if f.HasKeyword("Unleash") {
-		pc.etbs = append(pc.etbs, etbChoice{kind: "unleash", options: unleashOptions(pc.card, pc.player)})
-	}
-	for i := range f.Repls {
-		r := &f.Repls[i]
-		if r.Params["Keyword"] != "ETBReplacement" || r.With == nil {
-			continue
-		}
-		kind := etbChoiceKind(r.With.API)
-		if kind == "" {
-			continue
-		}
-		pc.etbs = append(pc.etbs, etbChoice{
-			kind: kind,
-			options: e.etbOptions(you, pc.card, kind,
-				r.With.Params["ValidCards"],
-				// ValidDescription$ is Forge prompt text, not a second filter;
-				// effects.NameChoices reads it only as a safety fallback when
-				// ValidCards$ is absent (see NameChoices' doc).
-				r.With.Params["ValidDescription"],
-				// Type$ (Herald's Horn, Urza's Incubator, Roaming Throne, Three
-				// Tree City) names the category the choice ranges over. The
-				// option list below builds it; a category this build cannot
-				// enumerate is recorded loudly at resolution time by
-				// effects.effChooseType, never silently.
-				r.With.Params["Type"],
-				// Exclude$ (Black Dragon Gate, the five Thriving lands) names
-				// colours the choice must NOT offer, comma-separated.
-				r.With.Params["Exclude"]),
-		})
-	}
-}
-
 func etbChoiceKind(api string) string {
 	switch api {
 	case "NameCard":
@@ -4317,18 +4217,66 @@ func etbChoiceKind(api string) string {
 	return ""
 }
 
+// entryETBChoice returns the ordinal-th choice that must be made for ev's
+// battlefield entry. It is deliberately derived from the same prospective
+// MoveZone event the replacement matcher will later consume: an ActiveZones or
+// ValidCard gate therefore cannot make the engine ask about a replacement that
+// will not apply. The ordinal lets several choices on one permanent suspend
+// and resume without adding transient state to the event log.
+func (e *Engine) entryETBChoice(ev events.Event, ordinal int) (etbChoice, bool) {
+	o := e.G.Obj(ev.Obj)
+	if o == nil || o.Face() == nil || ev.To != state.ZBattlefield {
+		return etbChoice{}, false
+	}
+	you := o.Controller
+	seen := 0
+	if o.Face().HasKeyword("Riot") {
+		if seen == ordinal {
+			return etbChoice{kind: "riot", options: []decision.Option{
+				{Index: 0, Kind: "riot", Label: "Enter with a +1/+1 counter", Obj: o.ID, Player: you},
+				{Index: 1, Kind: "riot", Label: "Gain haste", Obj: o.ID, Player: you},
+			}}, true
+		}
+		seen++
+	}
+	if o.Face().HasKeyword("Unleash") {
+		if seen == ordinal {
+			return etbChoice{kind: "unleash", options: unleashOptions(o.ID, you)}, true
+		}
+		seen++
+	}
+	for i := range o.Face().Repls {
+		r := &o.Face().Repls[i]
+		if r.Params["Keyword"] != "ETBReplacement" || r.With == nil ||
+			!e.replacementMatches(*r, o.ID, ev) {
+			continue
+		}
+		kind := etbChoiceKind(r.With.API)
+		if kind == "" {
+			continue
+		}
+		if seen == ordinal {
+			return etbChoice{kind: kind, options: e.etbOptions(you, o.ID, kind,
+				r.With.Params["ValidCards"], r.With.Params["ValidDescription"],
+				r.With.Params["Type"], r.With.Params["Exclude"])}, true
+		}
+		seen++
+	}
+	return etbChoice{}, false
+}
+
 // etbColourLabels pairs the WUBRG letter the Choose event records with the
 // option label the client shows, in fixed WUBRG order -- the same order every
 // colour choice in this build offers (askManaColor, triggeredManaColourChoice,
-// commanderIdentityColours). etbOptions and etbAnswer both read it, so the
-// option offered and the letter recorded always agree.
+// commanderIdentityColours). etbOptions and resumeETBEntry both read it, so
+// the option offered and the letter recorded always agree.
 var etbColourLabels = []struct{ letter, name string }{
 	{"W", "White"}, {"U", "Blue"}, {"B", "Black"}, {"R", "Red"}, {"G", "Green"},
 }
 
 // etbColourLetter maps an option label (or already-a-letter) back to the
-// WUBRG letter the event records; "" when the label is neither (an etbAnswer
-// caller only sees options etbOptions built, so the guard is defensive).
+// WUBRG letter the event records; "" when the label is neither (the entry
+// continuation only sees options etbOptions built, so the guard is defensive).
 func etbColourLetter(name string) string {
 	for _, cl := range etbColourLabels {
 		if strings.EqualFold(name, cl.name) || strings.EqualFold(name, cl.letter) {
@@ -4339,11 +4287,11 @@ func etbColourLetter(name string) string {
 }
 
 // etbOptions builds the option list for one "as this enters" choice. It is a
-// total list-pick -- every collectETBChoices borrower guaranteed at least one
+// total list-pick -- every entryETBChoice caller is guaranteed at least one
 // legal option (a name is anything on the board/hand/yard, a type falls back
 // to "Human", a number is always 0..12) -- so no etb decision can ever be
 // handed out with zero options, and nothing asks an empty choice (R-9's
-// totality rule; see the Options here and the Min/Max 1 in etbAsk).
+// totality rule; see the Options here and the entry decision's Min/Max 1).
 //
 // Option list order is deterministic: names and types are sorted strings
 // (never from a map), numbers are ascending.
@@ -4512,25 +4460,6 @@ func (e *Engine) TypeChoices(chooser state.PlayerID, category string) []decision
 		return nil
 	}
 	return e.creatureTypeOptions(chooser)
-}
-
-// etbAsk asks the next unsettled "as this enters" choice (pc.etbs[pc.etbIdx]),
-// one at a time. Runs until every choice is settled; once none remain it
-// returns false and continueCast falls through to commitCast. Every choice is
-// a single-pick of its full option list, so Min==Max==1; a real option is
-// always present, so the cast cannot strand on an unanswerable decision.
-func (e *Engine) etbAsk() bool {
-	pc := e.cast
-	if pc == nil || pc.etbIdx >= len(pc.etbs) {
-		return false
-	}
-	ch := pc.etbs[pc.etbIdx]
-	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
-		Prompt: "Choose" + etbChoicePrompt(ch.kind), Source: pc.card}
-	d.Options = append(d.Options, ch.options...)
-	e.choosing = chooseETB
-	e.ask(d)
-	return true
 }
 
 // etbChoicePrompt names the kind of an "as this enters" choice for a client
@@ -5629,56 +5558,6 @@ func (e *Engine) manaAsk() bool {
 	return true
 }
 
-// etbAnswer records one answered "as this enters" choice onto the card as a
-// Choose event, before the object is put on the stack (or, for a land, before
-// it moves to the battlefield), so the recorded value survives replay exactly
-// as the player chose it. The value rides on Option.Label (name/type/colour)
-// or Option.Amount (number), not the choice index.
-func (e *Engine) etbAnswer(d *decision.Decision, chosen []decision.Option) {
-	pc := e.cast
-	if pc == nil || len(chosen) != 1 {
-		return
-	}
-	opt := chosen[0]
-	// CR 733.1: an aborted proposal must undo the as-enters choice. Capture
-	// the object's choice fields as they were IMMEDIATELY BEFORE this answer
-	// records one (the first answer of a multi-choice card sees the true
-	// pre-proposal state), so abortCast can emit reverse Choose events
-	// restoring them. Mark etbChosen once, so the capture is not overwritten
-	// by a later answer and so a spell that never chose asks for no restore.
-	if !pc.etbChosen {
-		if o := e.G.Obj(pc.card); o != nil {
-			pc.etbName, pc.etbType, pc.etbNumber, pc.etbColor = o.ChosenName, o.ChosenType, o.ChosenNumber, o.ChosenColor
-		}
-		pc.etbChosen = true
-	}
-	switch opt.Kind {
-	case "name":
-		e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "name", Text: opt.Label})
-	case "type":
-		e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "type", Text: opt.Label})
-	case "number":
-		e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "number", Amount: int32(opt.Amount)})
-	case "color":
-		if letter := etbColourLetter(opt.Label); letter != "" {
-			e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "color", Text: letter})
-		}
-	case "riot":
-		choice := "haste"
-		if opt.Index == 0 {
-			choice = "counter"
-		}
-		e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "riot", Text: choice})
-	case "unleash":
-		choice := "plain"
-		if opt.Index == 0 {
-			choice = "counter"
-		}
-		e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "unleash", Text: choice})
-	}
-	pc.etbIdx++
-}
-
 // manaConvertAsk poses the Optional$ ManaConvert election once for this
 // proposal. A mandatory conversion remains automatic; an optional conversion
 // is offered even when the ordinary pool already pays, because declining is a
@@ -6606,6 +6485,68 @@ func revealChosenText(g *state.Game, o *state.Object, spec string) (string, bool
 	return "revealed the chosen creature type: " + o.ChosenType, true
 }
 
+// finishLandPlay logs a land play only after its identified object actually
+// reaches the battlefield. Updated replacement effects fold their MoveZone
+// directly through events.Emit, so both the ordinary emit path and those
+// replacement continuations call this one finalizer.
+func (e *Engine) finishLandPlay(id state.ObjID) {
+	if !e.etbLandPlay || id != e.etbLandObj {
+		return
+	}
+	o := e.G.Obj(id)
+	if o == nil || o.Zone != state.ZBattlefield {
+		return
+	}
+	e.settleLandPlay(id)
+}
+
+// settleLandPlay closes the land play's accounting for id and disarms the
+// continuation, WITHOUT requiring the land to be on the battlefield. Playing a
+// land is a special action that is taken -- and so uses that turn's land play
+// (CR 305.1, CR 505.5b) -- the moment it is announced; a replacement effect
+// that fully replaces the land's battlefield entry (ReplacementResult$
+// Replaced) changes where the land ends up, not whether it was played. Leaving
+// the continuation armed instead would both hand the player a second land play
+// that turn and let a LATER, unrelated entry of the same object consume the
+// stale continuation and log a LandPlayed that belongs to nothing.
+func (e *Engine) settleLandPlay(id state.ObjID) {
+	if !e.etbLandPlay || id != e.etbLandObj {
+		return
+	}
+	p := e.etbLandPlayer
+	e.etbLandPlay = false
+	e.etbLandObj = 0
+	e.emit(events.Event{Kind: events.LandPlayed, Player: p})
+}
+
+// landEntryParked reports whether some engine machinery still holds id's
+// battlefield entry and will re-emit it once an outstanding answer arrives: an
+// as-enters choice parked by applyETBChoiceReplacement (or the riot/unleash/
+// siege fallbacks that park the same way), or a replacement body suspended on a
+// mid-resolution ask. While the entry is parked the land play is not settled --
+// the entry is still in flight and its own completion reaches finishLandPlay.
+func (e *Engine) landEntryParked(id state.ObjID) bool {
+	for _, parked := range [...]*events.Event{e.etbMove, e.riotMove, e.unleashMove, e.siegeMove} {
+		if parked != nil && parked.Obj == id {
+			return true
+		}
+	}
+	return e.resume != nil
+}
+
+// settleLandPlayIfDone is the terminal-path settle: called wherever a land
+// play's battlefield entry has finished being processed, it logs the land play
+// unless the entry is still parked on an outstanding answer. An entry that
+// completed normally already settled through finishLandPlay, so this is a
+// no-op there; it fires exactly for the fully-replaced entry, which never
+// reaches the battlefield at all.
+func (e *Engine) settleLandPlayIfDone(id state.ObjID) {
+	if e.landEntryParked(id) {
+		return
+	}
+	e.settleLandPlay(id)
+}
+
 // payCast implements CR 601.2h (pay all costs) and, for a spell, CR 601.2i
 // (the "when you cast" trigger). It runs after the target choice (601.2c);
 // the object is already on the stack (pushCast). A payment that fails here
@@ -6620,16 +6561,19 @@ func (e *Engine) payCast() {
 		return
 	}
 	if pc.mode == "land" {
-		// Task 12: a land played through the one-stage flow (an "as this
-		// enters" choice, e.g. Cavern of Souls). The choice was already
-		// recorded by etbAnswer; now move it onto the battlefield and log the
-		// land play, exactly the two events handlePriority's no-choice
-		// play_land path emits. Its own MoveZone routes through
-		// applyReplacements, so an ETBReplacement on the land itself (or its
-		// choice already recorded) resolves on entry.
+		// A land's as-enters choice is now asked by the MoveZone replacement
+		// boundary, not during this proposal. Keep LandPlayed behind that
+		// boundary so it is logged only after the answered entry completes.
 		e.cast, e.choosing = nil, chooseNone
-		e.emit(events.Event{Kind: events.MoveZone, Obj: pc.card, From: pc.from, To: state.ZBattlefield})
-		e.emit(events.Event{Kind: events.LandPlayed, Player: pc.player})
+		e.etbLandPlay, e.etbLandObj, e.etbLandPlayer = true, pc.card, pc.player
+		card := pc.card
+		e.emit(events.Event{Kind: events.MoveZone, Obj: card, From: pc.from, To: state.ZBattlefield})
+		// The entry may never have happened: a ReplacementResult$ Replaced
+		// entry replacement discards the move entirely and the land stays in
+		// the zone it was played from. The special action was still taken, so
+		// settle the land play here unless the entry is merely parked on an
+		// as-enters answer (which settles on its own completion).
+		e.settleLandPlayIfDone(card)
 		return
 	}
 	// Publish the counter adder for the whole payment. A counter a COST places
@@ -7380,30 +7324,6 @@ func (e *Engine) abortCast(pc *pendingCast, text string, suppress bool) {
 	if pc.faceBefore != nil {
 		if o := e.G.Obj(pc.card); o != nil && o.FaceIdx != *pc.faceBefore {
 			e.emit(events.Event{Kind: events.FlipFace, Obj: pc.card, Amount: int32(*pc.faceBefore)})
-		}
-	}
-	// CR 733.1: the game returns to the moment before the spell or ability was
-	// proposed, so an as-enters choice recorded during the proposal must be
-	// undone too (Sanctum Prelate's ChosenNumber otherwise survives a mana
-	// abort while every other resource is restored). Emit reverse Choose
-	// events restoring the captured pre-proposal values, but ONLY for the
-	// fields a choice actually changed and ONLY when a choice was recorded
-	// (etbChosen): a spell that never chose emits nothing here, so no chain
-	// head moves for the choiceless abort sites.
-	if pc.etbChosen {
-		if o := e.G.Obj(pc.card); o != nil {
-			if o.ChosenName != pc.etbName {
-				e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "name", Text: pc.etbName})
-			}
-			if o.ChosenType != pc.etbType {
-				e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "type", Text: pc.etbType})
-			}
-			if o.ChosenNumber != pc.etbNumber {
-				e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "number", Amount: pc.etbNumber})
-			}
-			if o.ChosenColor != pc.etbColor {
-				e.emit(events.Event{Kind: events.Choose, Obj: pc.card, Counter: "color", Text: pc.etbColor})
-			}
 		}
 	}
 	// CR 733.1 applies identically to a mode announced during the proposal.
