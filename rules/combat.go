@@ -283,6 +283,22 @@ func MustAttackParamsReadableForRules(params map[string]string) bool {
 	return effects.MustAttackParamsReadableForRules(params)
 }
 
+// CantAttackParamsReadableForRules is the face S:-line half of
+// effects.CantRestrictionParamsReadable, and DELEGATES to
+// effects.CantAttackParamsReadableForRules so the face reader and the
+// whitelist can never diverge on what is enforceable. The face list is the
+// CantRestrictionParamsReadable core EXTENDED by exactly the conditional
+// parameter family attackBlocked reads -- UnlessDefender$ (through
+// effects.UnlessDefenderHolds) and CheckSVar$/SVarCompare$/Condition$
+// (through continuousGateHolds): the face route can evaluate those, the
+// Effect-delivered registration path cannot, so a gate-bearing line is
+// face-readable while the Effect whitelist stays at the core set (a
+// gate-bearing Effect body must not register blanket). The delegation is one
+// whitelist home, not a copy kept in step by hand.
+func CantAttackParamsReadableForRules(params map[string]string) bool {
+	return effects.CantAttackParamsReadableForRules(params)
+}
+
 // requirementDefender resolves a MustAttack$ player reference to the
 // defending player it names, from the requirement registration's own
 // bindings. ChosenPlayer/Player.Chosen reads the source object's event-backed
