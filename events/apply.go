@@ -2884,6 +2884,19 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 	if to != state.ZBattlefield && to != state.ZStack {
 		o.Controller = o.Owner
 	}
+	// The stamped stack kind (state.StackKindKnown) is a property of STACK
+	// MEMBERSHIP, not of the card: every mint stamps it when its event mints
+	// the stack object (MoveZone's Spell entry, TriggerPush/AbilityPush and
+	// their siblings), so an ability object keeps its kind after its source
+	// has left (CR 113.7a) -- and leaving the stack (a CR 733.1 reversal's
+	// MoveZone, a resolution, a counter) un-stamps it, so the restored object
+	// is byte-identical with its pre-push state and the legacy re-derivation
+	// in state.StackKindOf applies again. Inside the fold for the same reason
+	// the Controller reset above is: no rules/ or effects/ caller can mint a
+	// leaving-the-stack move that skips it.
+	if wasStack && to != state.ZStack {
+		o.StackKind, o.StackKindKnown = state.StackKindSpell, false
+	}
 	// A zone change is the single source of zone-entry provenance. Capture
 	// the actual old zone (not Event.From, which Move deliberately treats as
 	// advisory) so replay and a live game derive identical ThisTurnEntered*
