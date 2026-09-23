@@ -144,18 +144,18 @@ func TestChooseTypeChooserFollowsDefined(t *testing.T) {
 	}
 }
 
-// TestChooseTypeNonCreatureCategoryStaysNotePlusFallback pins the boundary:
-// a Type$ category this build cannot enumerate keeps the loud Note and the
-// deterministic creature-type fallback, and never poses a list that cannot
-// answer the question.
-func TestChooseTypeNonCreatureCategoryStaysNotePlusFallback(t *testing.T) {
+// TestChooseTypeUnknownCategoryStaysNotePlusFallback pins the boundary: a
+// Type$ category this build still cannot name (not one of the enumerated
+// categories) keeps the loud Note and a deterministic fallback, and never
+// poses a list that cannot answer the question.
+func TestChooseTypeUnknownCategoryStaysNotePlusFallback(t *testing.T) {
 	h := &chooseTypeHost{}
 	h.g = state.NewGame(names(2))
 	h.typeChoices = nil
 	src := h.g.AddObject(mkCard(t, "Name:Source\nTypes:Land\nOracle:x\n"), 0).ID
-	Resolve(h, &Ctx{Source: src, Controller: 0}, sa(t, "SP$ ChooseType | Defined$ You | Type$ Basic Land"))
+	Resolve(h, &Ctx{Source: src, Controller: 0}, sa(t, "SP$ ChooseType | Defined$ You | Type$ Foo Bar"))
 	if len(h.asks) != 0 {
-		t.Fatalf("a non-creature category posed a decision: %+v", h.asks)
+		t.Fatalf("an unenumerable category posed a decision: %+v", h.asks)
 	}
 	notes := 0
 	for _, e := range h.log {

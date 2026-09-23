@@ -94,15 +94,16 @@ type Host interface {
 	// TriggerModeSupported keeps Effect-created trigger registrations honest:
 	// an unknown Mode$ cannot masquerade as an armed, inert promise.
 	TriggerModeSupported(mode string) bool
-	// TypeChoices returns the creature-type option list a mid-resolution
-	// ChooseType ask offers its chooser (task ct1) — the SAME list the
-	// cast-time "as this enters" type ask builds (rules/etbOptions' "type"
-	// arm, which this method's rules implementation calls), so the two asks
-	// and the no-ask fallback can never disagree about what a creature-type
-	// choice ranges over. A category this build cannot enumerate (Basic
-	// Land, Card, ...) yields nil: the asking primitive never asks for one
-	// (it records the loud Note and the deterministic fallback), so nil is
-	// unreachable through the ask path.
+	// TypeChoices returns the owner-scoped CREATURE-type option list a
+	// ChooseType ask offers its chooser for an absent Type$ or Type$ Creature
+	// (task ct1) — the SAME list the cast-time "as this enters" type ask
+	// builds (rules/etbOptions' "type" arm), so the two asks and the no-ask
+	// fallback can never disagree about what a creature-type choice ranges
+	// over. The other categories (Basic Land, Card, Land, Planeswalker,
+	// Shared, CreatureInTargetedDeck) no longer reach this method: the asking
+	// primitive builds their option lists from immutable game state itself
+	// (effects/type_choices.go), and an absent or non-creature category here
+	// still yields nil as a defensive guard.
 	TypeChoices(chooser state.PlayerID, category string) []decision.Option
 	// RegisterControl records one GainControl effect with the lifetime its
 	// LoseControl$ names (CR 611.2b "for as long as", CR 514.2 end of turn),
