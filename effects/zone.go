@@ -1388,6 +1388,11 @@ func handMoveOwners(h Host, c *Ctx, sa *cards.SA) ([]state.PlayerID, bool) {
 		}
 		return searchPlayers(h, c, sa), true
 	}
+	if plainRememberedSelector(sa.Params["Defined"]) {
+		// A remembered PLAYER is a legitimate hand owner; the plain family no
+		// longer drops it just because a remembered CARD coexists in the set.
+		return definedPlayers(h, c, sa), true
+	}
 	// ValidTgts$-alone: Defined's own rule names the chosen targets.
 	owners := make([]state.PlayerID, 0, len(c.Targets))
 	seen := make(map[state.PlayerID]bool, len(c.Targets))
@@ -2891,34 +2896,11 @@ func searchPlayers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 	if !explicit || strings.TrimSpace(spec) == "" {
 		return []state.PlayerID{c.Controller}
 	}
-
-	var targets []state.Target
-	switch spec {
-	case "RememberedController":
-		for _, t := range c.Remembered {
-			if t.IsPlayer {
-				targets = append(targets, t)
-			} else if o := h.Game().Obj(t.Obj); o != nil {
-				targets = append(targets, state.Target{Player: o.Controller, IsPlayer: true})
-			}
-		}
-	default:
-		// Defined only reads the Defined key, so a tiny temporary SA lets this
-		// helper share its deterministic selector grammar without mutating the
-		// immutable compiled SA.
-		targets = Defined(h, c, &cards.SA{Params: map[string]string{"Defined": spec}})
-	}
-	seen := make(map[state.PlayerID]bool)
-	out := make([]state.PlayerID, 0, len(targets))
-	for _, t := range targets {
-		p := PlayerOf(h, c, t)
-		if int(p) >= len(h.Game().Players) || seen[p] {
-			continue
-		}
-		seen[p] = true
-		out = append(out, p)
-	}
-	return out
+	// definedPlayerIDs shares the deterministic selector grammar and applies
+	// Forge's getDefinedPlayers rule: a remembered CARD contributes a seat
+	// only for the RememberedController/RememberedOwner spellings, never for
+	// the plain Remembered family (Summon: Valefor's per-opponent loop).
+	return definedPlayerIDs(h, c, spec)
 }
 
 // chooserChosenPlayer resolves a `Chooser$ ChosenPlayer` (or its
