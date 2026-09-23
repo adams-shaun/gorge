@@ -4903,6 +4903,29 @@ func (e *Engine) pcAbility(pc *pendingCast) *cards.SA {
 	return e.grantedSAFrom(pc.grantSource, pc.card, pc.grantSVar)
 }
 
+// cyclingKeyword returns the Forge keyword head ("Cycling" or "TypeCycling")
+// when the activation pc's own ability is a cycling ability (CR 702.29), and
+// "" for every other activation. It is the provenance events.DiscardCostCycling
+// records on the cost discard: the discard is a cycle because THIS ability
+// paid for it, whether the cycling is printed (K:Cycling) or granted (a layer's
+// AddKeyword$ Cycling / K:TypeCycling, e.g. Rhet-Tomb Mystic, Tectonic
+// Reformation, Homing Sliver). Resolved through pcAbility, so it names the
+// ability a granted activation actually resolved rather than the card's face.
+// TypeCycling is a variant of cycling (CR 702.29d's "[type]cycling"), so it
+// tags a Mode$ Cycled trigger too.
+func (e *Engine) cyclingKeyword(pc *pendingCast) string {
+	ab := e.pcAbility(pc)
+	if ab == nil {
+		return ""
+	}
+	switch kw := strings.TrimSpace(ab.Params["Keyword"]); kw {
+	case "Cycling", "TypeCycling":
+		return kw
+	default:
+		return ""
+	}
+}
+
 // hybrids, the monocolour hybrids, the Phyrexian pips and the
 // hybrid-Phyrexian pips (snow pips have nothing to announce).
 func (c Cost) annPipCount() int {
@@ -7828,7 +7851,11 @@ func (e *Engine) payCast() {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZGraveyard, To: state.ZExile, Text: "delved"})
 		}
 		for _, id := range pc.discards {
-			e.emit(events.DiscardCost(id))
+			if kw := e.cyclingKeyword(pc); kw != "" {
+				e.emit(events.DiscardCostCycling(id, kw))
+			} else {
+				e.emit(events.DiscardCost(id))
+			}
 		}
 		// Exile cost parts (ExileFromHand/ExileFromGrave): each chosen card
 		// leaves its zone (hand, or the graveyard for a self-reference) for
