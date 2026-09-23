@@ -963,6 +963,89 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 	e.resumeResolution(rp, chosen)
 }
 
+// resumeETBEntry is the resolution-owned continuation for an as-enters
+// choice. Keeping the e.resume write here preserves the structural invariant
+// that only resolution machinery consumes a suspended frame.
+func (e *Engine) resumeETBEntry(chosen []decision.Option) {
+	// handleChoose owns clearing e.resume; this continuation only consumes the
+	// parked entry, keeping the archtest's single ownership rule intact.
+	if e.etbMove == nil || len(chosen) != 1 {
+		e.etbMove = nil
+		e.etbNext = 0
+		e.choosing = chooseNone
+		return
+	}
+	move := *e.etbMove
+	opt := chosen[0]
+	switch opt.Kind {
+	case "name":
+		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "name", Text: opt.Label})
+	case "type":
+		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "type", Text: opt.Label})
+	case "number":
+		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "number", Amount: int32(opt.Amount)})
+	case "color":
+		if letter := etbColourLetter(opt.Label); letter != "" {
+			e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "color", Text: letter})
+		}
+	case "riot":
+		choice := "haste"
+		if opt.Index == 0 {
+			choice = "counter"
+		}
+		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "riot", Text: choice})
+	case "unleash":
+		choice := "plain"
+		if opt.Index == 0 {
+			choice = "counter"
+		}
+		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "unleash", Text: choice})
+	case "clone":
+		// The ETB-copy election (K:ETBReplacement:Copy). The chosen template
+		// rides the event's IDs; the decline ("Enter as itself") carries no
+		// object, so the fold records an answered-but-empty choice and the
+		// ETBReplacement body -- effects' effClone, reached at the re-emitted
+		// move below -- leaves the object entering as itself.
+		ids := []state.ObjID(nil)
+		if opt.Obj != 0 {
+			ids = []state.ObjID{opt.Obj}
+		}
+		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "clone", IDs: ids})
+	}
+	e.choosing = chooseNone
+	e.emit(move)
+	// The answered entry has been re-emitted: if it was a land play and the
+	// entry was fully replaced (or replaced again after another as-enters
+	// answer), settle the land play here rather than leaving the continuation
+	// armed for an unrelated later entry to consume.
+	e.settleLandPlayIfDone(move.Obj)
+}
+
+// continueAfterETBEntry hands an as-enters entry choice's answer back to the
+// resolution that entry interrupted. Engine.Ask parks the resolving object on
+// every mid-resolution ask, and applyETBChoiceReplacement's ask is posed from
+// inside emit, so the frame it parks is whatever effect was moving the object
+// onto the battlefield (a reanimation, a blink, Retether's mass Aura return).
+// resumeETBEntry has already completed the entry itself, so the frame resumes
+// with no answer: its recorded continuation (rp.outer) runs and the stack
+// object is finished, instead of being left on the stack for resolveTop to
+// resolve a second time.
+//
+// Three shapes deliberately continue nothing, because no interrupted stack
+// resolution exists to finish: a direct frame (a land play or any other entry
+// posed with an empty stack), a frame whose object is the ENTERING object
+// itself (a permanent spell's own stack->battlefield move -- resolveTop's tail
+// already moved it), and a frame whose object has since left the stack.
+func (e *Engine) continueAfterETBEntry(rp *resumePoint) {
+	if rp == nil || rp.direct || rp.obj == 0 || e.pending != nil {
+		return
+	}
+	if o := e.G.Obj(rp.obj); o == nil || o.Zone != state.ZStack {
+		return
+	}
+	e.resumeResolution(rp, nil)
+}
+
 // resumeResolution re-enters a suspended resolution with its answer. It
 // rebuilds the same Ctx resolveTop built for the object on its first pass
 // (Source/Controller/Targets/Remembered and the SVar table are all
@@ -2791,11 +2874,14 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			e.resume.outer = e.buildContinuationChain(e.contChain, rp.obj, rp.outer)
 			return
 		}
-	} else if !parkedDraws && rp.kind != "replacement" && rp.fuseAlt == nil {
+	} else if !parkedDraws && rp.kind != "replacement" && rp.kind != "etb" && rp.fuseAlt == nil {
 		// A resume with no sub-ability recorded: normally reachable only from
-		// a hand-built Ask (every real asking primitive sets ResumeSA). Two
+		// a hand-built Ask (every real asking primitive sets ResumeSA). Three
 		// deliberate exceptions need no Note either: a parked GainLife→Draw
-		// frame whose answer was applied above, and a replacement-order
+		// frame whose answer was applied above, an as-enters entry choice
+		// (resumeETBEntry has already re-emitted the entry this frame was
+		// parked on, so the continuation likewise begins at rp.outer), and a
+		// replacement-order
 		// decision — the intercepted event has already completed, and the
 		// continuation begins at rp.outer rather than re-running the effect
 		// that proposed it. The resolution still finishes — the object leaves
@@ -2808,6 +2894,12 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// An Updated ETB replacement has already completed the spell's move.
 		// Its answer resumes only the replacement body; there is no stack
 		// object to finish or priority round to create here.
+		//
+		// The suspended body may equally have been a fully-replaced entry that
+		// never puts the land on the battlefield: this re-entry posed no new
+		// ask (the nested-ask branch above returns), so the entry is done
+		// either way and the land play settles here.
+		e.settleLandPlayIfDone(rp.replaced)
 		return
 	}
 	if rp.outer != nil { // No nested ask this pass and the frame itself completed: continue
@@ -3143,6 +3235,11 @@ func (e *Engine) moveResolvedOffStack(o *state.Object) {
 	id := o.ID
 	if f := o.Face(); f != nil && f.IsPermanent() {
 		e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZStack, To: state.ZBattlefield})
+		// An as-enters choice parks this move through the mid-resolution ask
+		// path. Keep the object on the stack until the answer re-emits it.
+		if e.pending != nil || e.resume != nil {
+			return
+		}
 		e.ensureLeftTheStack(id, spellRestZone(o), "an ETB replacement fully replaced this "+
 			"permanent's entry to the battlefield without moving it anywhere; sent to its "+
 			"resting zone instead of re-resolving forever")

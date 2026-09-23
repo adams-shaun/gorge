@@ -1237,7 +1237,7 @@ func resolveChosenTypes(list []string, o *state.Object) ([]string, bool) {
 // choice (state.Object.ChosenColor, set by the Choose event the ask emitted).
 // It is the layer-5 twin of resolveChosenTypes. A value of "ChosenColor"
 // resolves to the host's recorded colour -- the event records a single WUBRG
-// letter (rules/cast.go etbAnswer), but a full colour word is accepted too so
+// letter (rules/resolution.go resumeETBEntry), but a full colour word is accepted too so
 // the two spellings cannot drift -- and a host with NO recorded choice fails
 // closed: ok=false, the caller emits nothing and the object keeps its printed
 // colours (today's shipped behaviour for the whole family).

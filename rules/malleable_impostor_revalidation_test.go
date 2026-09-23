@@ -9,9 +9,17 @@ import (
 )
 
 // TestMalleableImpostorRevalidatesTemplateAtEntry proves the ETB copy choice
-// is only an announcement, not a frozen permission: response priority may
-// remove the chosen creature or make it stop matching Creature.OppCtrl before
-// Malleable Impostor enters.
+// is only an announcement, not a frozen permission: the chosen creature can
+// stop being a legal template between the moment the option list was built
+// and the moment the replacement body consumes the answer, and the copy must
+// not happen then.
+//
+// After the entry-boundary migration the ask is posed by
+// applyETBChoiceReplacement at the parked MoveZone, so the window this pins is
+// the one the ask itself holds open: the option list is built when the ask is
+// posed, and the board can change (here: directly, as a response would) while
+// the answer is outstanding. The stale option is still on the list and can
+// still be chosen; effects' cloneETBTemplateLegal is what refuses it.
 func TestMalleableImpostorRevalidatesTemplateAtEntry(t *testing.T) {
 	for _, tc := range []struct {
 		name    string
@@ -56,8 +64,9 @@ func TestMalleableImpostorRevalidatesTemplateAtEntry(t *testing.T) {
 			// as-enters election is announced, so the later no-copy result must
 			// come from replacement-time revalidation rather than setup.
 			castMode(t, e, id, "")
+			e.resolveTop()
 			d := e.Pending()
-			if d == nil || d.Kind != decision.KChoose {
+			if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "etb" {
 				t.Fatalf("expected copy choice, got %+v", d)
 			}
 			choice := -1
@@ -69,11 +78,15 @@ func TestMalleableImpostorRevalidatesTemplateAtEntry(t *testing.T) {
 			if choice < 0 {
 				t.Fatalf("opposing template absent from initial choices: %+v", d.Options)
 			}
-			submitChoices(t, e, choice)
-
+			// Invalidate the template while the entry ask is outstanding: the
+			// option list was already built, so the stale template is still
+			// offered and still answerable.
 			tc.respond(e, template.ID)
 			tc.check(t, e, template.ID)
-			finishCast(t, e, id)
+			submitChoices(t, e, choice)
+			if d := e.Pending(); d != nil && d.Kind == decision.KPriority && len(e.G.Stack) > 0 {
+				passUntilStackEmpty(t, e, 60)
+			}
 
 			// The previously chosen template is no longer legal, so the
 			// optional replacement enters as itself. Malleable is printed 0/0,

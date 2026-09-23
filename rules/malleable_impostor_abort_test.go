@@ -8,11 +8,18 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
-// TestMalleableImpostorAbortRestoresCopyChoice pins CR 733.1 for the
-// event-backed ETB copy answer. The first arm distinguishes no prior election
-// from an Optional decline; the second proves a prior selected template is
-// restored by the same replayable Choose event form.
-func TestMalleableImpostorAbortRestoresCopyChoice(t *testing.T) {
+// TestMalleableImpostorAbortLeavesCopyChoiceUntouched pins CR 733.1 for the
+// ETB copy answer after the entry-boundary migration (cli-.../cc1e86f8): the
+// election is posed by applyETBChoiceReplacement when the permanent would
+// ENTER, so a proposal that never gets that far cannot record one, and an
+// abort has nothing to undo. The property this pins is therefore structural
+// -- "the game returns to the moment before the spell was proposed" -- and is
+// asserted the way crAbortSites' spell_mana_after_choice does after the same
+// migration: no entry choice may be pending during the proposal, and the
+// object's recorded copy fields (including one a PRIOR entry recorded) must
+// come out of the abort byte-for-byte as they went in, with no Choose event
+// of the copy kind written by the proposal.
+func TestMalleableImpostorAbortLeavesCopyChoiceUntouched(t *testing.T) {
 	for _, tc := range []struct {
 		name       string
 		priorValid bool
@@ -35,29 +42,14 @@ func TestMalleableImpostorAbortRestoresCopyChoice(t *testing.T) {
 				e.emit(events.Event{Kind: events.Choose, Obj: id, Counter: "clone", IDs: []state.ObjID{prior.ID}})
 			}
 			beforeChoice, beforeValid := e.G.Obj(id).ETBCloneChoice, e.G.Obj(id).ETBCloneChoiceValid
+			beforeEvents := len(e.L.Events)
 
-			// Direct beginCast deliberately exercises the ordinary insufficient-
-			// mana abort after the real ETB answer; the legal-action gate would
-			// withhold this unaffordable cast before its answer can be probed.
+			// Direct beginCast deliberately exercises the ordinary
+			// insufficient-mana abort; the legal-action gate would withhold
+			// this unaffordable cast before the proposal exists at all.
 			castMode(t, e, id, "")
-			d := e.Pending()
-			if d == nil || d.Kind != decision.KChoose {
-				t.Fatalf("expected Malleable Impostor copy choice, got %+v", d)
-			}
-			var selected decision.Option
-			found := false
-			for _, opt := range d.Options {
-				if opt.Kind == "clone" && opt.Obj == picked.ID {
-					selected, found = opt, true
-				}
-			}
-			if !found {
-				t.Fatalf("fixture precondition: copy target %d absent from %+v", picked.ID, d.Options)
-			}
-			e.pending = nil // emulate Submit consuming the ETB decision.
-			e.etbAnswer(d, []decision.Option{selected})
-			if o := e.G.Obj(id); !o.ETBCloneChoiceValid || o.ETBCloneChoice != picked.ID {
-				t.Fatalf("copy answer was not recorded: valid=%t choice=%d, want true/%d", o.ETBCloneChoiceValid, o.ETBCloneChoice, picked.ID)
+			if d := e.Pending(); d != nil && d.Kind == decision.KChoose && d.ResumeKind == "etb" {
+				t.Fatalf("entry choice was posed during the proposal: %+v", d)
 			}
 
 			e.continueCast() // pushes, fails payment, and reaches the normal abortCast path.
@@ -68,18 +60,14 @@ func TestMalleableImpostorAbortRestoresCopyChoice(t *testing.T) {
 			if o.ETBCloneChoiceValid != beforeValid || o.ETBCloneChoice != beforeChoice {
 				t.Fatalf("abort choice = valid=%t choice=%d, want valid=%t choice=%d", o.ETBCloneChoiceValid, o.ETBCloneChoice, beforeValid, beforeChoice)
 			}
-			wantCounter := "clone-clear"
-			if beforeValid {
-				wantCounter = "clone"
-			}
-			foundRestore := false
-			for _, ev := range e.L.Events {
-				if ev.Kind == events.Choose && ev.Obj == id && ev.Counter == wantCounter {
-					foundRestore = true
+			// No copy-kind Choose event may be written by the aborted
+			// proposal in either direction: none is recorded, so none needs
+			// reversing, and a reversal event would itself move the chain
+			// head for a choiceless abort.
+			for _, ev := range e.L.Events[beforeEvents:] {
+				if ev.Kind == events.Choose && ev.Obj == id && ev.Counter == "clone" {
+					t.Fatalf("aborted proposal wrote a copy Choose event: %+v", ev)
 				}
-			}
-			if !foundRestore {
-				t.Fatalf("abort did not emit replayable %q restoration event", wantCounter)
 			}
 		})
 	}

@@ -4,7 +4,6 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
@@ -15,15 +14,21 @@ import (
 // faithfully is withheld, keeping the loud unimplemented-API fallback, rather
 // than offering a copy election that would be empty (Mockingbird) or would
 // silently drop the exception (Flesh Duplicate).
+//
+// Both drive the entry boundary directly (the shape
+// TestETBChoiceIsAskedAtTheEntryBoundary uses): after the entry-boundary
+// migration that is where applyETBChoiceReplacement poses an as-enters
+// election, so "no election is posed there" is the whole property, and a
+// direct MoveZone keeps it independent of any particular cast path.
 
 // TestMockingbirdETBWithheld pins the resolver-dependent selector case.
 // Mockingbird's Choices$ Creature.Other+cmcLEY compares against
 // SVar:Y:Count$CastTotalManaSpent; every matcher on the ETB route
-// (etbOptions at announcement, cloneETBTemplateLegal at replacement time)
-// runs through MatchesSpecFrom, which has no SVar resolver, so the predicate
-// answers "recognised shape, never matches" for every creature. Offering the
-// election would therefore present a list the player can only decline. The
-// carrier is withheld instead.
+// (etbOptions when the ask is posed, cloneETBTemplateLegal when the
+// replacement body consumes the answer) runs through MatchesSpecFrom, which
+// has no SVar resolver, so the predicate answers "recognised shape, never
+// matches" for every creature. Offering the election would present a list the
+// player can only decline. The carrier is withheld instead.
 func TestMockingbirdETBWithheld(t *testing.T) {
 	e := handEngine(t, corpusAlternativeCard(t, "Mockingbird"))
 	bear := e.G.AddObject(corpusAlternativeCard(t, "Grizzly Bears"), 1)
@@ -42,27 +47,16 @@ func TestMockingbirdETBWithheld(t *testing.T) {
 		t.Fatal("precondition: the no-resolver matcher is expected to omit every creature here")
 	}
 
-	e.G.Players[0].Pool[state.MC] = 6
-	e.G.Players[0].Pool[state.MU] = 1
-	castMode(t, e, id, "")
-	for {
-		d := e.Pending()
-		if d == nil || d.Kind == decision.KPriority {
-			break
-		}
-		if d.Kind == decision.KChoose && d.Source == id {
-			for _, o := range d.Options {
-				if o.Kind == "clone" {
-					t.Fatalf("withheld carrier offered the copy election: %+v", d.Options)
-				}
-			}
-		}
-		submitChoices(t, e, d.Options[0].Index)
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZBattlefield})
+	if d := e.Pending(); d != nil {
+		t.Fatalf("withheld carrier posed an entry decision: %+v", d)
 	}
-	finishCast(t, e, id)
 	o := e.G.Obj(id)
-	if o == nil || o.Zone != state.ZBattlefield {
+	if o == nil || o.Zone != state.ZBattlefield || o.Face().Name != "Mockingbird" {
 		t.Fatalf("mockingbird did not enter as itself: %+v", o)
+	}
+	if o.ETBCloneChoiceValid {
+		t.Fatal("withheld carrier recorded a copy election")
 	}
 	if hasEvent(e, events.ClonePermanent, id) {
 		t.Fatal("withheld carrier must not copy")
@@ -85,14 +79,10 @@ func TestFleshDuplicateETBWithheld(t *testing.T) {
 	dread.Zone = state.ZBattlefield
 	e.G.SetZone(state.ZBattlefield, 1, []state.ObjID{dread.ID})
 	id := e.G.Zone(state.ZHand, 0)[0]
-	e.G.Players[0].Pool[state.MU] = 2
-	castMode(t, e, id, "")
-	if d := e.Pending(); d != nil && d.Kind == decision.KChoose && d.Source == id {
-		t.Fatalf("withheld carrier offered the copy election: %+v", d)
-	}
-	finishCast(t, e, id)
-	if d := e.Pending(); d != nil && d.Kind == decision.KPriority {
-		passUntilStackEmpty(t, e, 60)
+
+	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZHand, To: state.ZBattlefield})
+	if d := e.Pending(); d != nil {
+		t.Fatalf("withheld carrier posed an entry decision: %+v", d)
 	}
 	if hasEvent(e, events.ClonePermanent, id) {
 		t.Fatal("withheld carrier must not copy")
@@ -101,8 +91,7 @@ func TestFleshDuplicateETBWithheld(t *testing.T) {
 		t.Fatal("loud Clone fallback note missing from the log")
 	}
 	// It entered as ITSELF: still the printed 0/0 Flesh Duplicate, not the
-	// 6/6 template (an SBA sweep will bin it; this harness asserts the entry,
-	// which is what the withhold is about). Nothing granted the IfNew rider.
+	// 6/6 template. Nothing granted the IfNew rider.
 	o := e.G.Obj(id)
 	if o == nil || o.Zone != state.ZBattlefield || o.Face().Name != "Flesh Duplicate" {
 		t.Fatalf("flesh duplicate did not enter as itself: %+v", o)
@@ -115,9 +104,11 @@ func TestFleshDuplicateETBWithheld(t *testing.T) {
 			t.Fatalf("withheld carrier placed counters: %+v", ev)
 		}
 	}
-	if der := e.Derived(dread.ID); slices.ContainsFunc(der.Keywords, func(k string) bool {
-		return k == "Vanishing:3" || k == "IfNew Vanishing:3"
-	}) {
-		t.Fatalf("template keywords leaked the unimplemented rider: %v", der.Keywords)
+	for _, o := range []state.ObjID{id, dread.ID} {
+		if der := e.Derived(o); slices.ContainsFunc(der.Keywords, func(k string) bool {
+			return k == "Vanishing:3" || k == "IfNew Vanishing:3"
+		}) {
+			t.Fatalf("object %d keywords leaked the unimplemented rider: %v", o, der.Keywords)
+		}
 	}
 }

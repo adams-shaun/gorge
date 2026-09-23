@@ -18,12 +18,14 @@ func TestMirrorImageCopy(t *testing.T) {
 	e.G.Players[0].Pool[state.MC] = 2
 	e.G.Players[0].Pool[state.MU] = 1
 	castMode(t, e, id, "")
-	if d := e.Pending(); d == nil || len(d.Options) < 2 {
+	// The election is posed at the ENTRY boundary (CR 614.12), so the spell
+	// must resolve first; the ask parks the move until it is answered.
+	e.resolveTop()
+	if d := e.Pending(); d == nil || d.ResumeKind != "etb" || len(d.Options) < 2 {
 		t.Fatalf("expected Mirror Image copy choice, got %+v", d)
 	} else {
 		submitChoices(t, e, d.Options[0].Index)
 	}
-	finishCast(t, e, id)
 	if d := e.Derived(id); d.Power != 6 || d.Toughness != 6 {
 		t.Fatalf("Mirror Image copy has %d/%d, want 6/6", d.Power, d.Toughness)
 	}
@@ -45,8 +47,9 @@ func TestMalleableImpostorCopy(t *testing.T) {
 		t.Fatalf("template precondition: dreadmaw is %d/%d, want 6/6", bd.Power, bd.Toughness)
 	}
 	castMode(t, e, id, "")
+	e.resolveTop()
 	d := e.Pending()
-	if d == nil || d.Kind != decision.KChoose {
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "etb" {
 		t.Fatalf("expected ETB copy choice, got %+v", d)
 	}
 	var target, decline = -1, -1
@@ -68,7 +71,6 @@ func TestMalleableImpostorCopy(t *testing.T) {
 		t.Fatalf("decline option not offered: %+v", d.Options)
 	}
 	submitChoices(t, e, target)
-	finishCast(t, e, id)
 	o := e.G.Obj(id)
 	if o == nil || o.Zone != state.ZBattlefield {
 		t.Fatalf("impostor did not enter battlefield: %+v", o)
@@ -104,8 +106,9 @@ func TestMalleableImpostorDecline(t *testing.T) {
 	e.G.Players[0].Pool[state.MC] = 3
 	e.G.Players[0].Pool[state.MU] = 1
 	castMode(t, e, id, "")
+	e.resolveTop()
 	d := e.Pending()
-	if d == nil || d.Kind != decision.KChoose {
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "etb" {
 		t.Fatalf("expected ETB copy choice, got %+v", d)
 	}
 	decline := -1
@@ -118,7 +121,9 @@ func TestMalleableImpostorDecline(t *testing.T) {
 		t.Fatalf("decline option not offered: %+v", d.Options)
 	}
 	submitChoices(t, e, decline)
-	finishCast(t, e, id)
+	if d := e.Pending(); d != nil && d.Kind == decision.KPriority && len(e.G.Stack) > 0 {
+		passUntilStackEmpty(t, e, 60)
+	}
 	if hasEvent(e, events.ClonePermanent, id) {
 		t.Fatal("declined election emitted ClonePermanent")
 	}
