@@ -1,3 +1,157 @@
+# Task rv1 — `RevealAllValid$` unread: reveal every matching hand card
+
+## What changed and why
+
+**`effects/cardflow.go`** (`effReveal`, one new block after the existing
+`RevealValid$` filter and the `n := amt` count resolution, before the pickable
+block): when `RevealAllValid$` is non-empty, filter the pool by the spec with
+`MatchesSpecCtx(g, rav, id, c.SpecContext(c.Controller))` and set
+`n = int32(len(pool))`. Pre-fix the parameter was read ONLY by the `pickable`
+gate, so the spec was never fed to the filter and the emit took `pool[:1]` —
+the FIRST card of the whole hand whether or not it matched. This is the single
+choke point the brief named; the `pickable` gate is untouched.
+
+Everything downstream then works unchanged: `pool[:n]` emits the full matching
+set, `RememberRevealed$` captures all of it, and a zero-match pool hits the
+existing `if n == 0 { continue }` skip — no Note, no capture, the same
+fail-closed convention `RevealType$`/`RevealValid$` already apply.
+
+**`effects/revealallvalid_test.go`** (new file): three tests driving the REAL
+corpus scripts (style: `infernal_tutor_test.go`).
+
+**`AGENTS.md`**: deleted the `RevealAllValid$` Known-approximations row.
+
+**`internal/testutil/agentsdoc_test.go`**: `knownApproximationRows` 20 → 19 and
+`knownOversizeRows` 8 → 7, with the measurement comment updated.
+
+### Brief premise corrections (both re-measured)
+
+1. The brief's expected Break Expectations result `[Bolt, Bears]` for a hand
+   `[Plains, Lightning Bolt, Grizzly Bears]` is **wrong**: Lightning Bolt is
+   `ManaCost:R` → cmc 1, and the spec is `Card.cmcGE2+…`, so Bolt does NOT
+   match. My test uses `[Plains(0), Lightning Bolt(1), Grizzly Bears(2), Hill
+   Giant(4)]` and asserts exactly `[Grizzly Bears, Hill Giant]` in hand order.
+2. The brief said lower `knownApproximationRows` "from 23 to 22". The merged
+   constant measured 20 (and `approximationRows()` counted 20 data rows at
+   HEAD), so I lowered it to 19. I also lowered `knownOversizeRows` 8 → 7: the
+   deleted row's Stand-in cell was 809 bytes (over the 600 cap), and the
+   constant's own doc says "Lower it when you delete one of them". The
+   zero-match test's `n == 0` path is the fail-closed convention; the "assert
+   the handler ran" requirement is satisfied by asserting no Note carries ids
+   (with the fix reverted this same test emits ids `[1]`).
+
+## Gate commands and real output
+
+Targeted run (the brief's permitted invocation):
+
+```
+$ go test -run 'TestRevealAllValid' ./effects/ 2>&1 | tail -5
+ok  	github.com/adams-shaun/gorge/effects	(cached)
+```
+
+Full targeted output on the first uncached pass:
+
+```
+$ go test -run 'TestRevealAllValid' ./effects/ > .ds4/scratch/t.log 2>&1; tail -40 .ds4/scratch/t.log
+ok  	github.com/adams-shaun/gorge/effects	0.619s
+```
+
+Ratchet test (the row deletion):
+
+```
+$ go test -run 'TestKnownApproximation' ./internal/testutil/ 2>&1 | tail -10
+ok  	github.com/adams-shaun/gorge/internal/testutil	0.001s
+```
+
+```
+$ go test ./internal/archtest/ 2>&1 | tail -10
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.402s
+```
+
+```
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ 2>&1 | tail -8
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.262s
+```
+
+```
+$ gofmt -l effects/cardflow.go effects/revealallvalid_test.go internal/testutil/agentsdoc_test.go
+(empty)
+$ go run ./cmd/gentypes -check
+(empty)
+```
+
+`.cards` was **present** in this worktree (symlink to the shared corpus), so
+the corpus-backed tests ran, not skipped.
+
+## Fails without the fix
+
+Saved the fixed `effects/cardflow.go` to `.ds4/scratch/cardflow.go.fixed`,
+removed the new block from the real file, ran the one targeted command, then
+restored byte-identically (`cmp` clean):
+
+```
+$ go test -run 'TestRevealAllValid' ./effects/
+--- FAIL: TestRevealAllValidBreakExpectationsRevealsEveryMatch (0.56s)
+    revealallvalid_test.go:128: reveal ids = [1], want exactly the two cmc>=2 hand cards [3 4]
+--- FAIL: TestRevealAllValidMindSpikeRemembersEveryMatch (0.00s)
+    revealallvalid_test.go:174: reveal ids = [1], want exactly the two matching cards [1 4]
+--- FAIL: TestRevealAllValidZeroMatchSkipsCleanly (0.00s)
+    revealallvalid_test.go:208: a zero-match reveal emitted ids [1], want none
+FAIL
+FAIL	github.com/adams-shaun/gorge/effects	0.574s
+FAIL
+```
+
+`ids = [1]` is the first hand card (Plains) in every case — the exact defect.
+Each test asserts its own precondition (the four cmc values 0/1/2/4 actually
+differ; the creature/land/instant classes actually differ; every zero-match
+hand card is cmc < 2; the object is in the hand zone), so a vacuous setup fails
+loudly.
+
+## Head / ratchet movement
+
+None. None of the 9 `RevealAllValid$` cards is in any repo deck (re-measured:
+`/usr/bin/grep -rl 'RevealAllValid\$' internal/testutil/decks/ | wc -l` → 0),
+so `TestHeads` did not move and `botbench`'s pinned split is unchanged (gate
+above passed with no re-pin). Daemon gates (TestHeads, `make sim`, `go vet`,
+CR conformance) skipped per `gorge-context.md`.
+
+## Issues
+
+- **Residual deviation (round-t1 review MINOR, now disclosed): 3 of the 9
+  `RevealAllValid$` carriers use `TargetedPlayerOwn` in the spec —
+  wingbright_thief, boareskyr_tollkeeper, phantasmal_extraction — and
+  `TargetedPlayerOwn` is NOT a registered matcher word
+  (`effects/filter.go` registers only `TargetedPlayerCtrl`; measured corpus
+  prevalence: `/usr/bin/grep -rlE 'TargetedPlayerOwn' .cards/cardsfolder |
+  wc -l` → 23 files). Those three cards now reveal NOTHING (fail-closed,
+  `n == 0` skip) where pre-fix they revealed one arbitrary card — both wrong,
+  the fail-closed direction is the convention the brief mandates, and none of
+  the 9 is in any repo deck, so no golden moved. Filed for the operator as
+  `.ds4/new-tickets/effects-targeted-player-own-matcher.md` in this worktree.
+- **Comma-union coverage gap (round-t1 review MINOR):** no test drives the one
+  comma-union carrier (Boareskyr Tollkeeper,
+  `Creature.TargetedPlayerOwn,Land.TargetedPlayerOwn`) because both of its
+  alternatives are `TargetedPlayerOwn`, which fails closed until the matcher
+  word is registered (previous bullet). The union plumbing itself is
+  byte-identical to the sibling `RevealValid$`/`RevealType$` blocks; a union
+  test should be added when the `TargetedPlayerOwn` ticket lands.
+- **`AlreadyRevealed$` is unread anywhere in the Go tree** (confirmed: zero
+  grep hits). It appears on the chained ChangeZone of Break Expectations and
+  the 8 siblings. Today the sub re-walks the hand with its own
+  `ChangeType$ …+TargetedPlayerCtrl` filter, so behaviour is correct without
+  it; the flag is a cosmetic no-op. Out of scope per the brief. No CR-lane
+  test needed (not a visible defect).
+- **Lightning Bolt cmc is 1, not ≥2** — a premise error in the filed brief, not
+  a code defect. Noted so a future reader doesn't trust the brief's example.
+- **`RevealAllValid$` on `PeekAndReveal`** has zero corpus lines (verified
+  `Random$`/`Look$`/`Optional$`/`NumCards$`/`PeekAmount$` collisions likewise
+  zero across the 9 cards), so the new block cannot collide with those arms.
+  No issue.
+
+STATUS=DONE
+COMMITS=3a8dc7122025f479d3d84b26325741e0e07c9116
+TESTS=go test -run 'TestRevealAllValid' ./effects/ → ok; TestKnownApproximation* → ok; archtest → ok; botbench TestConstructedDefaultIsByteIdentical → ok; gofmt/gentypes clean
 # Report — task agent-20260918T230554Z-74976c7c (kw:Backup)
 
 ## What changed and why
