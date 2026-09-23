@@ -80,10 +80,10 @@ func TestCantAttackTargetPlaneswalkerController(t *testing.T) {
 	if e.G.Obj(bear1).Controller == walkerObj.Controller {
 		t.Fatal("precondition: attacker and planeswalker controller must differ")
 	}
-	if !restrictionPlayerTargetMatches(e.G, walkerTarget, 0, 0, nil) {
+	if !restrictionPlayerTargetMatches(e.G, walkerTarget, 0, 0, 0, nil) {
 		t.Fatal("Planeswalker.YouCtrl did not match the controller's battlefield planeswalker")
 	}
-	if restrictionPlayerTargetMatches(e.G, walkerTarget, 1, 0, nil) {
+	if restrictionPlayerTargetMatches(e.G, walkerTarget, 1, 0, 0, nil) {
 		t.Fatal("Planeswalker.YouCtrl matched a defender who controls no such planeswalker")
 	}
 

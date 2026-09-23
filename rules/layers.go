@@ -3495,7 +3495,7 @@ func (e *Engine) attackBlocked(id state.ObjID, defender state.PlayerID) bool {
 		if !e.restrictionApplies(ce, id) {
 			continue
 		}
-		if !restrictionPlayerTargetMatches(e.G, ce.RestrictParams["Target"], defender, ce.Controller, ce.RememberedPlayers) {
+		if !restrictionPlayerTargetMatches(e.G, ce.RestrictParams["Target"], defender, ce.Controller, ce.Source, ce.RememberedPlayers) {
 			continue
 		}
 		return true
@@ -3512,7 +3512,7 @@ func (e *Engine) attackBlocked(id state.ObjID, defender state.PlayerID) bool {
 		if spec == "" || !e.matchesSpec(spec, id, e.specCtx(sv.Source, sv.Controller)) {
 			continue
 		}
-		if !restrictionPlayerTargetMatches(e.G, sv.Params["Target"], defender, sv.Controller, nil) {
+		if !restrictionPlayerTargetMatches(e.G, sv.Params["Target"], defender, sv.Controller, sv.Source, nil) {
 			continue
 		}
 		return true
@@ -3524,7 +3524,7 @@ func (e *Engine) attackBlocked(id state.ObjID, defender state.PlayerID) bool {
 // list against the defender. Player specs match the defending player; a
 // Planeswalker.<player-spec> clause matches a qualifying planeswalker that
 // defender controls. An absent Target$ applies to every defender.
-func restrictionPlayerTargetMatches(g *state.Game, spec string, defender, controller state.PlayerID, rememberedPlayers []state.PlayerID) bool {
+func restrictionPlayerTargetMatches(g *state.Game, spec string, defender, controller state.PlayerID, source state.ObjID, rememberedPlayers []state.PlayerID) bool {
 	spec = strings.TrimSpace(spec)
 	if spec == "" {
 		return true
@@ -3535,7 +3535,7 @@ func restrictionPlayerTargetMatches(g *state.Game, spec string, defender, contro
 			continue
 		}
 		if restrictionPlayerSpecMatches(g, part, defender, controller, rememberedPlayers) ||
-			restrictionPlaneswalkerTargetMatches(g, part, defender, controller, rememberedPlayers) {
+			restrictionPlaneswalkerTargetMatches(g, part, defender, controller, source, rememberedPlayers) {
 			return true
 		}
 	}
@@ -3545,7 +3545,7 @@ func restrictionPlayerTargetMatches(g *state.Game, spec string, defender, contro
 // restrictionPlaneswalkerTargetMatches reads one Planeswalker.<player-spec>
 // entry in a restriction's Target$ list, scoped to a planeswalker controlled
 // by the defender.
-func restrictionPlaneswalkerTargetMatches(g *state.Game, spec string, defender, controller state.PlayerID, rememberedPlayers []state.PlayerID) bool {
+func restrictionPlaneswalkerTargetMatches(g *state.Game, spec string, defender, controller state.PlayerID, source state.ObjID, rememberedPlayers []state.PlayerID) bool {
 	parts := strings.SplitN(strings.TrimSpace(spec), ".", 2)
 	if len(parts) != 2 || !strings.EqualFold(strings.TrimSpace(parts[0]), "Planeswalker") {
 		return false
@@ -3564,6 +3564,19 @@ func restrictionPlaneswalkerTargetMatches(g *state.Game, spec string, defender, 
 			matches = defender == controller
 		case "oppctrl":
 			matches = defender != controller
+		case "controlledby player.cardowner":
+			// Xantcha's owner, not its current controller (which may be an opponent).
+			if src := g.Obj(source); src != nil {
+				matches = defender == src.Owner
+			}
+		case "rememberedplayerctrl", "controlledby remembered":
+			// Effect registrations capture the named players at resolution time.
+			for _, p := range rememberedPlayers {
+				if p == defender {
+					matches = true
+					break
+				}
+			}
 		default:
 			matches = restrictionPlayerSpecMatches(g, selector, defender, controller, rememberedPlayers)
 		}
