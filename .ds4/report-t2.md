@@ -1,67 +1,147 @@
-# Report — player-count sacrifice attribution finding
+# Report — Verify and pin: Teapot Slinger / Convoke ManaExpend trigger
 
-## Changes
+Task `agent-20260923T113045Z-aa7f7a4e`. Verification-only brief.
 
-- `effects/count.go`: removed `SacrificedThisTurn` from the resolved `PlayerCountPropertyYou$` cases. With no replay-stable actor attribution, it now retains the fail-closed `(0, false)` verdict. The other three task properties (`CardsDiscardedThisTurn`, `LifeLostThisTurn`, `LandsPlayed`) remain resolved.
-- `effects/registry.go`, `rules/stack.go`: removed the `Host.SacrificesThisTurn` contract and the owner-attributed event fold. A sacrifice event does not identify the acting player; an object's owner or controller cannot substitute for that actor.
-- `effects/context_test.go`, `effects/playercount_property_you_test.go`: removed the fake sacrifice tally, retained the other per-turn ledger assertions, and added an unresolved-verdict assertion for `SacrificedThisTurn`.
-- `rules/sacrifices_this_turn_test.go`: replaced the old owner-count/reset test with a regression that establishes a battlefield permanent owned by player 1 and controlled by player 0, emits a canonical sacrifice event, and asserts player 0's count remains unresolvable.
+## Round t2 note (findings-t2)
 
-This directly addresses the finding: the previous count credited owner rather than the player taking the action. I chose the finding's explicitly permitted conservative path instead of changing the append-only/hash-chained event encoding. Exact actor attribution requires a separately designed replay-stable provenance mechanism.
+Round t1 reported DONE but left the report uncommitted. I verified the
+uncommitted artifact (`.ds4/report-t1.md`) against the brief, confirmed its
+claims against the current tree by re-running every brief-named gate, then
+committed it (staging only that specific path). Nothing in the brief's scope
+was found wrong; the production tree and the existing regression test are
+unmodified. A stale unrelated report (`report-t2.md`, the player-count
+sacrifice task) had been copied into this worktree; this file replaces it as
+the durable report for THIS task.
 
-`.cards` was present in this worktree. I first checked the clean worktree and rebased onto `main` as directed. The rebase conflicted only in the ignored agent report `.ds4/report-t1.md`; I preserved both sides' content and continued successfully.
+## Outcome
 
-## Gates run
+The report's premise is mistaken and the behaviour is already covered at
+current main. **No production change, no new test, no code change of any
+kind.** The existing real-corpus regression test
+`rules/manaexpend_convoke_test.go::TestTeapotSlingerManaExpendCountsConvoke`
+already asserts exactly what the brief asks for: after the Convoke payment
+the matched trigger is drained onto the stack, the trigger sits on top, and
+resolving it takes the opponent 20 → 18.
+
+The brief's "`e.pendingTriggers` is empty" observation is not a missed
+trigger: the completed `Submit` drives `Advance`, which drains pending
+triggers before returning, so an empty `pendingTriggers` at that boundary is
+by design. The test documents this explicitly in its own comment.
+
+## Workspace facts verification
+
+- `.cards` present as a symlink to `/home/sadams/projects/gorge/.cards`
+  (found at worktree creation, not created by me) — so the run below is
+  corpus-backed, not skipped. The ~0.6 s runtime confirms real execution
+  (a skipped corpus run comes in ~ms).
+- Corpus cards exist and are real (spot-checked):
+  `.cards/cardsfolder/t/teapot_slinger.txt` (573 B),
+  `.cards/cardsfolder/c/crowds_favor.txt` (498 B).
+- `e7f775f6` is present and is the last commit touching the test file; it
+  changed only `rules/manaexpend_convoke_test.go` (18+/8−). Production
+  (`b6d47f8b` count, `5390d8b3` carrier-independent) predates it, as briefed.
+- Matcher `manaExpendMatches` (`rules/trigmatch_cast.go` ~806–847) reads the
+  pay-time `FlagManaExpendCast` and the per-turn crossing `prev = total -
+  ev.Amount` against threshold `n`; dispatch is synchronous via `emit`.
+  Matches the brief's map.
+- The brief's stated line range (13–100) for the test held.
+
+## Gate commands and real output
+
+### Targeted test (Done means #1)
+
+Fresh, uncached run on the committed tree:
 
 ```text
-$ go test -run '^TestPlayerCountPropertyYouPerTurnLedgerCounts$' ./effects/
-ok   github.com/adams-shaun/gorge/effects  0.002s
-
-$ go test -run '^TestSacrificedThisTurnRemainsUnresolvedWithoutActorProvenance$' ./rules/
-ok   github.com/adams-shaun/gorge/rules  0.002s
-
-$ go test ./internal/archtest/ 2>&1 | tail -15
-ok   github.com/adams-shaun/gorge/internal/archtest  5.524s
-
-$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ 2>&1 | tail -5
-ok   github.com/adams-shaun/gorge/cmd/botbench  1.836s
-
-$ gofmt -l effects/count.go effects/registry.go effects/context_test.go effects/playercount_property_you_test.go rules/stack.go rules/sacrifices_this_turn_test.go
-(no output)
-$ go run ./cmd/gentypes -check
-(no output; exit 0)
-$ git diff --check
-(no output; exit 0)
+$ go test -count=1 -run '^TestTeapotSlingerManaExpendCountsConvoke$' ./rules/ 2>&1 | tail -5
+ok  	github.com/adams-shaun/gorge/rules	0.637s
 ```
 
-No botbench split change was observed. `TestHeads` and the deck acceptance ratchet were not run; they are daemon gates, and the original task's Evendo acceptance is still blocked by its separate `Card.ExiledWithSource` matcher.
+Cached confirmation earlier in the round also `ok ... 0.597s`. Runtime in the
+corpus-backed range, so the test genuinely executed.
+
+### archtest (Done means #3, no allowlist edits)
+
+```text
+$ go test ./internal/archtest/ 2>&1 | tail -5
+ok  	github.com/adams-shaun/gorge/internal/archtest	(cached)
+```
+
+No allowlist file was touched.
+
+### botbench pinned split (Done means #4)
+
+```text
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ 2>&1 | tail -5
+ok  	github.com/adams-shaun/gorge/cmd/botbench	(cached)
+```
+
+No behaviour change was made, so no split re-pin was needed.
+
+## Non-vacuity evidence for the existing assertion
+
+The brief says not to claim a production-fix-revert failure. I confirmed the
+test's own resolution assertion is load-bearing, so it is not a vacuous green.
+In `.ds4/scratch/` I copied the test, weakened ONLY the final resolution
+assertion (`18` → `20`, i.e. pretend no damage is expected), ran the test, and
+restored the file byte-identically:
+
+```text
+$ cmp .ds4/scratch/manaexp_orig.go rules/manaexpend_convoke_test.go
+RESTORED-IDENTICAL
+
+$ go test -run '^TestTeapotSlingerManaExpendCountsConvoke$' ./rules/   # weakened assertion
+--- FAIL: TestTeapotSlingerManaExpendCountsConvoke (0.68s)
+    manaexpend_convoke_test.go:96: Convoke expend-4 trigger left opponent at 18 life, want 20
+FAIL	github.com/adams-shaun/gorge/rules	0.695s
+FAIL
+```
+
+The message "left opponent at 18 life" is the measured real post-resolution
+life, proving the trigger genuinely resolved and dealt 2 damage — the
+assertion cannot pass with the trigger stuck on the stack or never drained.
+After restore, the targeted test is green again.
+
+The other preconditions in the test are asserted as required by the dispatch
+contract: Teapot Slinger on the battlefield, pool genuinely straddles the
+threshold (`got != 4 || got == 3`), the Convoke creature was really tapped,
+the pay-time wake event carries exactly 1 mana, and opponent life is 20
+before resolution. Values compared genuinely differ (3 prior pool mana vs.
+threshold 4).
 
 ## Fails without the fix
 
-For the effects regression, I backed up the changed implementation files, restored the pre-fix `3d081fa4` versions of `effects/count.go`, `effects/registry.go`, and `effects/context_test.go`, and ran the targeted test. I restored the fixed files and verified each with `cmp` (`restore_cmp=0`):
+No new test and no production fix is proposed for this verification-only
+task. Current main already contains the regression assertions from
+`e7f775f6`; the former matcher-only check did not fail on the described
+behaviour — it simply did not verify queue draining and resolution. Per the
+brief, I do not claim a production-fix-revert failure. The non-vacuity
+evidence above shows the existing resolution assertion itself fails when it
+is weakened, so it is a meaningful regression guard. The targeted test passes
+on the unmodified tree.
 
-```text
-$ go test -run '^TestPlayerCountPropertyYouPerTurnLedgerCounts$' ./effects/
---- FAIL: TestPlayerCountPropertyYouPerTurnLedgerCounts (0.00s)
-    playercount_property_you_test.go:52: SacrificedThisTurn = (0, true), want unresolved (0, false) without actor provenance
-FAIL
-FAIL github.com/adams-shaun/gorge/effects 0.002s
-FAIL
-```
+## Deviations from the brief
 
-For the owner/controller mismatch regression, I similarly restored the pre-fix `3d081fa4` versions of `effects/count.go`, `effects/registry.go`, `effects/context_test.go`, and `rules/stack.go`, then restored and byte-compared all four fixed files (`restore_cmp=0`):
-
-```text
-$ go test -run '^TestSacrificedThisTurnRemainsUnresolvedWithoutActorProvenance$' ./rules/
---- FAIL: TestSacrificedThisTurnRemainsUnresolvedWithoutActorProvenance (0.00s)
-    sacrifices_this_turn_test.go:30: player 0 SacrificedThisTurn = (0, true), want unresolved (0, false) without actor provenance
-FAIL
-FAIL github.com/adams-shaun/gorge/rules 0.003s
-FAIL
-```
+- The brief's "Done means" implies a new test with its own reverted-fix
+  failure output, but its own `## Fails without the fix` section explicitly
+  forbids claiming one for this verification-only task. I followed the
+  brief's explicit instruction: no new test, and the non-vacuity evidence
+  stands in place of a fix-revert failure.
+- Round t1's only uncommitted artifact was `.ds4/report-t1.md`. `.ds4` is
+  listed in `.gitignore`, so the initial `git add .ds4/report-t1.md` was
+  rejected by git's ignored-path advice; the file is nonetheless already
+  tracked at HEAD (tracked files are unaffected by the ignore rule), so
+  staging it directly succeeded. Committed as `f7374f16`.
 
 ## Issues
 
-- The original Evendo Brushrazer gate remains inert because `Affected$ Card.ExiledWithSource` is still unmatched; the prior task measured raw text in 100 `.cards/cardsfolder` scripts. Resolving this count alone would not enable the card.
-- `PlayerCountPropertyYou$SacrificedThisTurn` is intentionally unresolved until exact replay-stable actor provenance exists. Other non-HasPropertyActive family members (including combat-history and Attractions properties) also remain unsupported; this round did not expand their semantics.
-- No Known approximations row was changed; the original task did not own a row for this count.
+None found. The implementation and its end-to-end regression test are sound
+and already in place. The reported symptom ("`pendingTriggers` empty after
+payment therefore trigger missed") is a misreading of the driven boundary —
+the empty field is the correct post-drain state, and the stack assertion in
+the test is the right place to check the trigger reached resolution.
+
+Out-of-scope observation (not a defect in this task, not filed): the brief
+references `.ds4/report-t2.md` as the reviewer's path, while the dispatch's
+own instruction also names it. A stale report from an unrelated task was
+present there; I overwrote it. No CR-lane test is warranted by this round.
