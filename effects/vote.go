@@ -156,11 +156,21 @@ func battlefieldHasVoteTrigger(g *state.Game) bool {
 
 // emitVoteFinished proposes the canonical vote-finished Note for one
 // resolution's raw ballots, behind the battlefieldHasVoteTrigger gate.
-func emitVoteFinished(h Host, c *Ctx, ballots []VoteBallot, ballotExisted bool) {
+func emitVoteFinished(h Host, c *Ctx, ballots []VoteBallot, ballotExisted, secretly bool) {
 	if !battlefieldHasVoteTrigger(h.Game()) {
 		return
 	}
+	// Secret ballots still complete the trigger event, but the raw picks must
+	// not enter the public event log (including its Pairs payload).
+	ballots = voteFinishedBallots(ballots, secretly)
 	h.Emit(VoteFinishedNote(c.Controller, c.Source, ballots, ballotExisted))
+}
+
+func voteFinishedBallots(ballots []VoteBallot, secretly bool) []VoteBallot {
+	if secretly {
+		return nil
+	}
+	return ballots
 }
 
 // effPlayerVote is api:Vote's PLAYER-ballot shape (task votepb1): the third
@@ -262,7 +272,7 @@ func effPlayerVote(h Host, c *Ctx, sa *cards.SA) {
 	if strings.EqualFold(strings.TrimSpace(sa.Params["StoreVoteNum"]), "True") {
 		publishVoteCounts(c, voteCountsForPlayers(universe, picks))
 	}
-	emitVoteFinished(h, c, ballots, len(universe) > 0)
+	emitVoteFinished(h, c, ballots, len(universe) > 0, strings.EqualFold(strings.TrimSpace(sa.Params["Secretly"]), "True"))
 }
 
 // playerBallotOptions is the ballot entry list one voter may pick from: the

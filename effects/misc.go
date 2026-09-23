@@ -3352,7 +3352,7 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 		for i, t := range voters {
 			ballots[i] = VoteBallot{Player: PlayerOf(h, c, t), Pick: int(picks[i].Obj) - 1}
 		}
-		emitVoteFinished(h, c, ballots, len(choices) > 0)
+		emitVoteFinished(h, c, ballots, len(choices) > 0, strings.EqualFold(strings.TrimSpace(sa.Params["Secretly"]), "True"))
 		return
 	}
 	// Ctx.Votes is the answered per-voter choice list (a real per-player
@@ -3417,7 +3417,7 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 	for i, t := range voters {
 		ballots[i] = VoteBallot{Player: PlayerOf(h, c, t), Pick: picks[i]}
 	}
-	emitVoteFinished(h, c, ballots, len(choices) > 0)
+	emitVoteFinished(h, c, ballots, len(choices) > 0, strings.EqualFold(strings.TrimSpace(sa.Params["Secretly"]), "True"))
 }
 
 // askFixedVote poses one private KChoose per voter. The answer is encoded as
@@ -3691,7 +3691,7 @@ func effCardVote(h Host, c *Ctx, sa *cards.SA, ballot string) {
 	for i, t := range voters {
 		ballots[i] = VoteBallot{Player: PlayerOf(h, c, t), Pick: picks[i]}
 	}
-	emitVoteFinished(h, c, ballots, len(options) > 0)
+	emitVoteFinished(h, c, ballots, len(options) > 0, strings.EqualFold(strings.TrimSpace(sa.Params["Secretly"]), "True"))
 }
 
 // effBecomeMonarch records the game-level designation as an event so a
