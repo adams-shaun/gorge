@@ -54,8 +54,10 @@ const (
 	// chooseTokenReplace is the chosen-copy CreateToken replacement's
 	// election (rules/replacement.go's poseChosenTokenReplacement park:
 	// Esix/Moonlit/Mirrormind's `Type$ ReplaceToken | TokenScript$ Chosen`).
-	// 31 is the next free value after chooseAttached (30).
-	chooseTokenReplace chooseFor = 31
+	// Originally 31 (next free after chooseAttached); the merged package
+	// gave 31 to chooseManaSacrifice, so 43 is the next free value after
+	// chooseManaConvert (42).
+	chooseTokenReplace chooseFor = 43
 	// chooseManaConvert is the cast-time election for an Optional$ ManaConvert
 	// static. It is deliberately separate from the mana-source window: the
 	// player chooses whether to use the permission before targets and payment.

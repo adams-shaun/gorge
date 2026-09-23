@@ -1413,9 +1413,13 @@ var apiSpecificRulesSA = map[string][]string{
 	// by definition a DB$ ReplaceToken SA, so the Type$/Amount$/TokenScript$/
 	// ValidChoices$ reads belong to api:ReplaceToken alone -- left in the
 	// generic union they would mask every other API's unread Amount$
-	// (measured: api:ChangeZone).
-	"Engine.continueCreateTokenReplacements": {"ReplaceToken"},
-	"Engine.applyTokenReplacementToPlan":     {"ReplaceToken"},
+	// (measured: api:ChangeZone). The dispatcher's SA-param reads live in
+	// driveTokenReplacements and poseChosenTokenReplacement since the
+	// chosen-copy election (Esix/Moonlit/Mirrormind) moved them out of
+	// continueCreateTokenReplacements.
+	"Engine.driveTokenReplacements":      {"ReplaceToken"},
+	"Engine.poseChosenTokenReplacement":  {"ReplaceToken"},
+	"Engine.applyTokenReplacementToPlan": {"ReplaceToken"},
 }
 
 // apiSpecificRulesStat is the stat-bucket twin of apiSpecificRulesSA: it

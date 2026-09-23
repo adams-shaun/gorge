@@ -85,14 +85,6 @@ var predicates = map[string]predFn{
 	},
 	"blocking": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return isBlocking(g, o.ID) },
 	"token":    func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return o.IsToken },
-	// tokenCreated is Forge's "was created as a token" provenance word, the
-	// same IsToken read the token predicate makes: all 8 corpus carriers are
-	// first-token-this-turn gates of the shape
-	// Count$ThisTurnEntered_Battlefield_Card.tokenCreated+<qualifiers>
-	// (Esix, Moonlit Meditation, Mirrormind Crown, Bennie Bracks, Ellyn
-	// Harbreeze, Idol of Oblivion, Thalisse, Vazi), and an unregistered word
-	// failed the whole count closed to 0 -- the gate never closed.
-	"tokenCreated": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return o.IsToken },
 	"Legendary": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return hasType(o, "Legendary")
 	},
