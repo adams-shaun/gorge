@@ -1052,12 +1052,23 @@ func (e *Engine) damageMatches(t cards.Trigger, source state.ObjID, ev events.Ev
 			}
 		} else if !effects.MatchesPlayerSpecCtx(e.G, v, ev.Player, ctrl, effects.PlayerSpecCtx{
 			Source:          source,
-			DefendingPlayer: state.Target{Player: ev.Player, IsPlayer: true},
+			DefendingPlayer: e.damageDefendingPlayer(ev),
 		}) {
 			return false
 		}
 	}
 	return true
+}
+
+// damageDefendingPlayer binds the combat defending-player role only during
+// the combat damage assignment window and only for player recipients. A Damage
+// event's recipient alone is not evidence of that role: noncombat damage also
+// carries Player, and combat damage may be assigned to a planeswalker.
+func (e *Engine) damageDefendingPlayer(ev events.Event) state.Target {
+	if !e.combatDamaging || ev.Obj != 0 {
+		return state.Target{}
+	}
+	return state.Target{Player: ev.Player, IsPlayer: true}
 }
 
 // damagePreventedMatches implements Mode$ DamagePreventedOnce (task dponce1):
