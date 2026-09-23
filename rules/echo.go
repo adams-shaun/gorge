@@ -47,6 +47,14 @@ type echoFlow struct {
 	costLabel  string
 	windowDone bool
 
+	// pips carries the flexible-pip payment announcement (CR 601.2b/107.4e-f)
+	// for this window, exactly as triggeredEffectCost.pips does: pipAnnounceAsk
+	// asks each of the cost's announcement pips, announced() folds the elected
+	// faces into the cost the pay gate prices and the pay arm charges, and the
+	// answer arm advances through the shared accumulator. A value struct, so a
+	// clone carries it.
+	pips pipAnnounce
+
 	// action carries a non-mana echo cost (Discard<1/Card>, Sac<2/Land>)
 	// parsed by the shared parseCumulativeAction vocabulary; executing it
 	// reuses cumulativeObjects/cumulativeActionPayable against this shim.
@@ -79,6 +87,24 @@ func (e *Engine) echoGateHolds(source state.ObjID) bool {
 	return o.AcqTurn > last || (o.AcqTurn == last && o.AcqStep >= state.StepUpkeep)
 }
 
+// echoAnnounceableCost reports whether a cost Priceable() rejects is still a
+// real echo election because its ONLY unpriceable components are announcement
+// pips the election announces (CR 601.2b). Clearing the four pip lists leaves
+// the remainder, and that remainder must be Priceable -- so a cost that ALSO
+// carries an X, a Tap or a Sac component stays unresolvable and is skipped
+// loudly, exactly as before. A cost with no announcement pip is never
+// announceable here.
+func echoAnnounceableCost(c Cost) bool {
+	if c.annPipCount() == 0 {
+		return false
+	}
+	c.Hybrid = nil
+	c.Phyrexian = nil
+	c.Twobrid = nil
+	c.HybridPhyrexian = nil
+	return c.Priceable()
+}
+
 // startEcho starts resolution of the already-stacked keyword trigger. The
 // election's outcome is not applied before this point: responses and another
 // simultaneous upkeep trigger observe the pre-resolution board, like every
@@ -104,7 +130,7 @@ func (e *Engine) startEcho(stackObj, source state.ObjID, sa *cards.SA) {
 		ef.action = action
 	} else {
 		ef.amount = e.parseCost(label)
-		if !ef.amount.Priceable() {
+		if !ef.amount.Priceable() && !echoAnnounceableCost(ef.amount) {
 			// An unresolvable echo cost (Volcano Hellion's K:Echo:X, whose
 			// SVar prices X at the controller's life total): the election is
 			// the card's contract, so it is skipped LOUDLY, never silently —
@@ -123,10 +149,10 @@ func (e *Engine) startEcho(stackObj, source state.ObjID, sa *cards.SA) {
 }
 
 // echoElectionAsk poses the pay-or-sacrifice election. A plain mana cost
-// opens the shared mana-ability payment window first when the pool cannot
-// pay yet; the pay option is offered only when payable (the
-// cumulativePaymentAsk shape — nobody is ever wedged), the sacrifice option
-// always.
+// announces its flexible pips first (CR 601.2b), then opens the shared
+// mana-ability payment window when the pool cannot pay yet; the pay option is
+// offered only when the ANNOUNCED cost is payable (the cumulativePaymentAsk
+// shape — nobody is ever wedged), the sacrifice option always.
 func (e *Engine) echoElectionAsk() {
 	ef := e.echo
 	if ef == nil {
@@ -137,13 +163,18 @@ func (e *Engine) echoElectionAsk() {
 		e.finishEcho()
 		return
 	}
-	if ef.action == nil && e.paymentManaAsk(ef.player, ef.source, ef.amount, ef.windowDone,
+	if ef.action == nil && e.pipAnnounceAsk(ef.player, ef.source, ef.amount, &ef.pips,
+		ef.costLabel, chooseEcho) {
+		return
+	}
+	announced := ef.pips.fold(ef.amount)
+	if ef.action == nil && e.paymentManaAsk(ef.player, ef.source, announced, ef.windowDone,
 		"Activate mana abilities to pay echo", chooseEcho) {
 		return
 	}
 	payable := false
 	if ef.action == nil {
-		payable = ef.amount.Priceable() && e.costPayableOther(ef.player, ef.source, ef.amount)
+		payable = announced.Priceable() && e.costPayableOther(ef.player, ef.source, announced)
 	} else {
 		shim := &cumulativeUpkeep{player: ef.player, source: ef.source,
 			action: ef.action, actionRemaining: 1}
@@ -171,6 +202,10 @@ func (e *Engine) echoAnswer(chosen []decision.Option) {
 		return
 	}
 	e.choosing = chooseNone
+	if ef.pips.accept(chosen[0].Kind, chosen[0].Amount) {
+		e.echoElectionAsk()
+		return
+	}
 	switch chosen[0].Kind {
 	case "activate":
 		e.activatePaymentMana(ef.player, chosen[0].Obj)
@@ -184,7 +219,9 @@ func (e *Engine) echoAnswer(chosen []decision.Option) {
 			e.echoActionAsk()
 			return
 		}
-		if e.payManaConv(ef.player, ef.amount, e.paymentConv(ef.player, ef.source, false)) {
+		announced := ef.pips.fold(ef.amount)
+		if announced.Priceable() &&
+			e.payManaConv(ef.player, announced, e.paymentConv(ef.player, ef.source, false)) {
 			e.finishEcho()
 			return
 		}

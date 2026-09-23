@@ -797,6 +797,22 @@ type Engine struct {
 	zoneBatchDepth int
 	zoneBatchIdx   map[zoneBatchKey]int
 	zoneBatchLog   []zoneBatchEntry
+	// millBatch (effects' api:Mill): one api:Mill resolution is ONE mill
+	// action, so the Mode$ MilledAll "whenever one or more cards are milled"
+	// trigger fires once for the whole call, not once per milled card. The
+	// damage/zone batches' shape, but keyed by trigger LINE alone (the
+	// DamageAll "one or more" reading): the first matching milled card queues
+	// the single instance and every later matching card accumulates into the
+	// entry's COUNT -- the number of cards milled this way, which the bodies
+	// read through TriggerCount$Amount (The Wise Mothman's X, Screeching
+	// Scorchbeast's "that many tokens"). Only the cards matching THIS line's
+	// ValidCard$ count, exactly as DamageAll only accumulates matching pairs.
+	// Never opened across a drain: pendingTriggers is append-only while the
+	// batch is open, so the recorded index stays valid.
+	millBatchOpen  bool
+	millBatchDepth int
+	millBatchIdx   map[triggerKey]int
+	millBatchLog   []millBatchEntry
 	// phaseUnknownNoted memoizes the Phase$ specs whose names this engine has
 	// already reported as unresolvable (rules.trigger_match.go's phaseMatches
 	// reporting), so one spec emits exactly one Note per game no matter how
@@ -985,6 +1001,10 @@ type Engine struct {
 	// competitions. Plain value entries are deep-copied by
 	// Clone, so every in-flight event survives an intent boundary.
 	replChoices []replChoice
+	// Synchronous Scry proposal's continuation identity (never carried across
+	// a decision: the parked resume point owns its SA and target).
+	scrySA     *cards.SA
+	scryTarget int
 	// untapResume is set only around one Untap emission from finishUntapStep.
 	// If that event parks an Untap replacement choice, it moves into the queue.
 	untapResume *untapStep

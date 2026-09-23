@@ -256,6 +256,13 @@ func (h *fakeHost) SurveilLookExtra(p state.PlayerID) (int32, []int32) { return 
 // registry it cannot answer for.
 func (h *fakeHost) ExploreReplaced(explorer state.ObjID) bool { return false }
 
+// Scry has no replacement registry to consult here, the same discipline as
+// ExploreReplaced above: the double reports the instruction unchanged so an
+// effects-level scry test keeps the base count.
+func (h *fakeHost) Scry(p state.PlayerID, source state.ObjID, count int32, sa *cards.SA, target int) (int32, bool, bool) {
+	return count, true, false
+}
+
 // RememberExploitedLKI records the snapshot so an effects-level test can see
 // what effExploit published (the real engine attaches it to the trig:Exploited
 // pending trigger's LKI; that half is pinned in rules).
@@ -501,6 +508,10 @@ func (h *fakeHost) SuspendCharmRest(*cards.SA, []string) {}
 // SuspendVillainousRest is a no-op for the same reason as
 // SuspendContinuation.
 func (h *fakeHost) SuspendVillainousRest(*cards.SA, VillainousRest) {}
+
+// SuspendGenericChoiceRest is a no-op for the same reason as
+// SuspendContinuation.
+func (h *fakeHost) SuspendGenericChoiceRest(*cards.SA, GenericChoiceRest) {}
 func (h *fakeHost) SuspendFlipRest(_ *cards.SA, rest FlipRest) {
 	h.flipRests = append(h.flipRests, rest)
 }

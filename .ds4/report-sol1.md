@@ -358,6 +358,121 @@ Existing, separate issue: a copied Sevinne's Reclamation inherits graveyard-cast
 
 ---
 
+# cost-draw1 — agent-20260918T231813Z-2ff69b35, sol1 reconciliation
+
+This section is appended to the existing (unrelated) `.ds4/report-sol1.md` because the reviewer reads this filename. The earlier report above is preserved verbatim. Full cost-draw1 reports are now uniquely named `.ds4/report-cost-draw1-t1.md` and `.ds4/report-cost-draw1-r2.md`.
+
+## Findings addressed / files
+
+- **MAJOR 1 (`.ds4/report-t1.md`):** while rebasing, preserved main's complete unrelated RevealAllValid report in `.ds4/report-t1.md`, relocating my cost-draw1 report to `.ds4/report-cost-draw1-t1.md`. `git diff main -- .ds4/report-t1.md` is empty. No existing report content deleted.
+- **MAJOR 2 (`.ds4/report-r2.md`):** restored main's unrelated Mill<2> report byte-for-byte; moved my r2 cost-draw1 report to `.ds4/report-cost-draw1-r2.md`. `git diff main -- .ds4/report-r2.md` is empty.
+- `effects/filter.go`: removed an accidentally retained, unused exported scratch diagnostic (`DebugFaceIsChosen`). The production chosen-type and bare `sharesCreatureTypeWith` implementation from r2 remains intact.
+- `rules/draw_x_cost_test.go`: three cost tests plus Titan pay/decline positive-count real-corpus pins (the latter two already fixed the prior vacuous-test and duplicate-ask findings, as findings-sol1.md confirms). `rules/paramcensus_test.go`: `Draw<X/You>` census pin. Core `Draw<X/Spec>` parser and payment implementation was already on main (`4909a8f7`); no duplicate implementation added.
+
+## Checks in this round (real output)
+
+`.cards` exists as a symlink to `/home/sadams/projects/gorge/.cards`, so corpus tests ran rather than skipped. Only targeted rules tests were run:
+
+```
+$ go test -run 'TestDrawXCostSVarFoldsAndDraws|TestDrawXUnresolvableWithheld|TestTitanOfLittjaraDrawXCost|TestTitanOfLittjaraDrawXDecline|TestParseCostReportsUnmodelledCostTokens|TestParseUnlessCostDrawComponents|TestDrawCostDrawsThePayer' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.671s
+$ go test ./effects/
+ok  	github.com/adams-shaun/gorge/effects	2.723s
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.685s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.257s
+$ gofmt -l .
+(no output; exit 0)
+$ go vet ./...
+(no output; exit 0)
+$ go run ./cmd/gentypes -check
+(no output; exit 0)
+$ git diff main -- .ds4/report-t1.md .ds4/report-r2.md
+(no output)
+```
+
+`/usr/bin/grep -rlE 'Draw<X/' .cards/cardsfolder | wc -l` yielded `9`. For all nine named carriers (`Titan of Littjara`, `Katara, Waterbending Master`, `Champion of Wits`, `Sanctum of Calm Waters`, `Hordewing Skaab`, `Horrid Shadowspinner`, `Armor Wars`, `Uncover the Moon Letters`, `Bebop, Skull-Crossbones`), `/usr/bin/grep -rl "\"$n\"" internal/testutil/decks/ | wc -l` yielded `0`. No head/ratchet goldens changed; botbench golden passed. Resolution detail: Titan, Champion, Sanctum, Horrid, Bebop resolve; Katara, Hordewing, Uncover have unmodelled X heads; Armor Wars is the unless-cost exception (its body itself resolves). See r2 report for the chosen-type filter's two-corpus-carrier scope and the measured fail-open count-head concern.
+
+## Fails without the fix
+
+No new tests were added this round: prior rounds' recorded scratch-revert failures remain in the preserved unique reports, including `TestTitanOfLittjaraDrawXCost: drawCostCount(Titan) = 0, true; want exactly 1` with the `effects/filter.go` fix removed and `TestParseCostReportsUnmodelledCostTokens: ParseCost("Draw<X/You>").Unknown = [Draw], want []` with the parser removed. Both scratch copies were restored byte-identically in their respective rounds. The current changes only relocate reports and remove unused diagnostic code.
+
+## Deviations / Issues
+
+The rebase and report name conflicts were necessary because several unrelated tracked reports share generic `.ds4/report-*.md` names; both reports are preserved, not replaced. `Draw<X/Spec>` in production uses the existing `CostPart.Dyn` with `drawCostCount` at payment, rather than a new `fixDrawXCost` helper; this was already merged before this agent's work. The test's real-corpus Titan route exercises the merged trigger-cost dependency, not a synthetic priority activation.
+
+- `rules/cumulative.go` / `rules/mana.go`: three X bodies (`Count$YourCountersExperience`, `TriggeredPlayersTargets$Amount`, `TriggeredCard$CastTotalManaSpent`) return `ok=true, n=0` under `effects.EvalCountOK` instead of failing closed; Katara, Hordewing, Uncover can be offered at a wrong zero price. Separate count-head work is needed.
+- `rules/stack.go` `ParseUnlessCost`: Armor Wars' `UnlessCost$ Draw<X/You>` deliberately declines (no X binding on the unless answer). `Count$xPaid` Draw has zero corpus carriers and remains unsupported.
+- `effects/cardflow.go` condition evaluator: Plane-Merge Elf's `ConditionPresent$ Card.sharesCreatureTypeWith` is not evaluated there, despite the bare filter now being classified; separate trigger-condition work needed. `rules/turn.go` `handleChoose` can consume an answer via a stale resume frame if external test code discards a pending decision; the Titan fixture was corrected to answer that decision, so this does not reproduce under normal engine flow.
+- The brief's claim that paying `Draw<0>` means no discard is only true when declining the cost: on payment, the body still runs. No other defects introduced by the report relocation.
+
+
+---
+
+# Branch report: Cascade free cast — CR 702.85a / CR 107.3b
+
+# Cascade free cast — CR 702.85a / CR 107.3b
+
+## Outcome
+
+The brief's premise is not a legal Magic play: when casting Villainous Wealth *without paying its mana cost*, CR 107.3b fixes its mana-cost X at **0**, not an announced 1. The library scan compares its printed MV 3 with Bloodbraid Elf's on-stack MV 4; the free cast remains MV 3. There is no legal at-or-above-4 free-cast X choice to reject. An earlier attempt on this branch added such an X choice (`a1b718ea`), but review identified the CR violation; `f0ae814e` reverted that code and `cfc32dfd` pinned the legal behavior in `rules/cascade_resulting_mv_test.go`. No new cast-flow restriction is warranted. The source's own announced X remains covered by `TestCascadeXSpellUsesAnnouncedManaValue`.
+
+This round strengthened `rules/cascade_resulting_mv_test.go`: asserts the library card *actually has an X mana-cost symbol*, its printed 3 is exactly one below the source's 4, and both cards are on the stack after the free cast with candidate X=0 and resulting MV strictly below source MV. The pre-existing test in that file checks that no X announcement occurs at any stage of the free cast, that it resolves and is never bottomed, and that replay agrees. I removed its redundant non-X companion (it passed even with the illegal-X change reverted, so it could not serve as a regression for this defect). The card scripts were read from the existing `.cards` symlink, not committed. No Known-approximations row was changed; the existing-order bottom stand-in is unchanged.
+
+The required brief test name `TestCascadeFreeCastXMustRemainBelowCascadeManaValue` is intentionally replaced by `TestCascadeFreeCastAnnouncesNoX`: an X=1 reject test would enforce a choice that the rules do not permit. This is also why there is no separate legal X>=1 boundary test.
+
+## Fails without the fix
+
+Proof: copied `effects/cascade.go`, `rules/cast.go`, `rules/resolution.go`, and `rules/play_cost_test.go` to `.ds4/scratch/cascade-sol1/`; temporarily reinstated the prior illegal-X implementation from `a1b718ea`, ran the legal-case test, restored the four files from their copies and verified `cmp` on every file. Real command output:
+
+```text
+$ go test -run 'TestCascadeFreeCastAnnouncesNoX$' ./rules/
+--- FAIL: TestCascadeFreeCastAnnouncesNoX (0.58s)
+    cascade_resulting_mv_test.go:85: after the election want CR 601.2c's target ask, got &{Seq:78 Player:0 Kind:choose Prompt:Choose a value for X Min:1 Max:1 Options:[{Index:0 Kind:x Label:X = 0 Obj:0 Counter: Player:0 Attacker:0 Battle:0 Required:false BlockMust:false MinBlockers:0 MaxBlockers:0 Controller:0 Group: AltCostIndex:0 CostLife:0 CostTaps:0 Mode: Amount:0 Ability:0 SVar: Keyword: Cost: Grant:<nil> GrantSource:0 GainedSource:0 GainedIdx:0 Value:0} {Index:1 Kind:x Label:X = 1 Obj:0 Counter: Player:0 Attacker:0 Battle:0 Required:false BlockMust:false MinBlockers:0 MaxBlockers:0 Controller:0 Group: AltCostIndex:0 CostLife:0 CostTaps:0 Mode: Amount:1 Ability:0 SVar: Keyword: Cost: Grant:<nil> GrantSource:0 GainedSource:0 GainedIdx:0 Value:0} {Index:2 Kind:x Label:X = 2 Obj:0 Counter: Player:0 Attacker:0 Battle:0 Required:false BlockMust:false MinBlockers:0 MaxBlockers:0 Controller:0 Group: AltCostIndex:0 CostLife:0 CostTaps:0 Mode: Amount:2 Ability:0 SVar: Keyword: Cost: Grant:<nil> GrantSource:0 GainedSource:0 GainedIdx:0 Value:0} {Index:3 Kind:x Label:X = 3 Obj:0 Counter: Player:0 Attacker:0 Battle:0 Required:false BlockMust:false MinBlockers:0 MaxBlockers:0 Controller:0 Group: AltCostIndex:0 CostLife:0 CostTaps:0 Mode: Amount:3 Ability:0 SVar: Keyword: Cost: Grant:<nil> GrantSource:0 GainedSource:0 GainedIdx:0 Value:0} {Index:4 Kind:x Label:X = 4 Obj:0 Counter: Player:0 Attacker:0 Battle:0 Required:false BlockMust:false MinBlockers:0 MaxBlockers:0 Controller:0 Group: AltCostIndex:0 CostLife:0 CostTaps:0 Mode: Amount:4 Ability:0 SVar: Keyword: Cost: Grant:<nil> GrantSource:0 GainedSource:0 GainedIdx:0 Value:0}] MaxSum:0 Budgeted:false GroupLimit:0 Repeatable:false Source:3 TargetsWithSameController:false TargetEffect:<nil> Restable:false ResumeKind: ResumeSA:<nil> ResumeModes:[] ResumeTarget:0 Rolls:[] ResumeChoices:[] ResumeChosenValid:false ResumeRemembered:[] ResumeDigUntilMove: ResumeDigUntilMoveDone:false ResumeTargetsUnique:[] ResumeMoved:[] ResumeDigPrimary:[] ResumeObjects:[] ResumeRound:0 ResumeRepeatNext:0 ResumeUptoIdx:0 ResumeUptoCount:0 ResumeVillainousVictims:[] ResumeVillainousIndex:0}
+FAIL
+FAIL	github.com/adams-shaun/gorge/rules	0.599s
+FAIL
+reverted-fix exit=1; restored files byte-identical
+```
+
+The full unabridged failure is `.ds4/scratch/cascade-sol1/fails.log` (git-excluded). X=1 would make the candidate MV 4, equal to the source; the faulty version wrongly offered that choice at all. This is the only new test retained; it fails with the illegal-X behavior restored.
+
+## Gates (real output)
+
+```text
+$ go test -run 'TestCascadeFreeCastAnnouncesNoX|TestCascadeXSpellUsesAnnouncedManaValue' ./rules/
+ok   github.com/adams-shaun/gorge/rules 0.721s
+
+$ go test ./internal/archtest/
+ok   github.com/adams-shaun/gorge/internal/archtest 1.570s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok   github.com/adams-shaun/gorge/cmd/botbench (cached)
+
+$ gofmt -l rules/cascade_resulting_mv_test.go
+(no output)
+$ go run ./cmd/gentypes -check
+(no output; exit 0)
+$ git diff --check
+(no output)
+```
+
+Botbench golden unchanged (cached result valid for this test-only amendment); no split re-pin or attribution needed. The `.cards` symlink was present and the real-corpus test executed, not skipped. The prior round's proof and gate output are in `.ds4/scratch/cascade-sol1/` and the earlier committed test; the branch history records the reviewed revert explicitly.
+
+## Merge hygiene
+
+Before this round, tracked `.ds4/report-r2.md` and `.ds4/report-t1.md` had uncommitted *unrelated report overwrites*, blocking the controller's rebase/merge (`findings-sol1.md`). Preserved both to `.ds4/scratch/cascade-sol1/report-*-uncommitted.md`, then restored their tracked HEAD content byte-for-byte; neither was staged. Did not rebase, switch branches, or touch shared git settings. Only this task's test and report are being committed.
+
+## Issues
+
+No new out-of-scope defect verified in this round. The brief's X=1 counterexample is ruled out by CR 107.3b, not an outstanding implementation bug. The existing-order cascade bottoming approximation is unchanged. A prior report notes a possible `rules/cast.go:recheckIllegal` mismatch for an X in an *additional cost* on a free cast, but reachability and card prevalence have not been established; no general-X changes are attempted here.
+
+## Commits
+
+`f0ae814e` (review-requested revert of illegal free-cast X choice), `cfc32dfd` (new legal-path regression), `6bcfe1fc` (strict-MV/asserted-X preconditions).
+---
+
 # Task fb-20260923T020152Z — attacker radial picker
 
 ## Summary
@@ -465,7 +580,7 @@ commit `a1d21db9`. No implementation changes were needed this round.
 
 ---
 
-# Teapot Slinger / Convoke expend-4 — verification report (agent-20260923T113045Z-aa7f7a4e)
+# Main-side report: Teapot Slinger / Convoke expend-4 — verification report (agent-20260923T113045Z-aa7f7a4e)
 
 ## Outcome and review finding
 
@@ -497,3 +612,139 @@ No new test or production fix: `e7f775f6` already pins the queue drain and resol
 ## Issues
 
 None found. The reported empty queue is correct after `Advance` drains it; the stack and resolved life are the relevant observations.
+
+---
+
+# IgnoreLegendRule — agent-20260918T232250Z-29aed5d6, sol1 integration
+
+## Changes and review resolution
+
+The implementation in `5b45f3b3` and `39f7dd7d` already delivers the brief: `rules/sba.go` filters the legend-SBA duplicate set with live `IgnoreLegendRule` statics, matching each candidate against the static's own context and honoring `continuousGateHolds` (the shared conditional-static grammar). `rules/ignorelegendrule_test.go` tests Council of Reeds' matching creature pair, a noncreature pair, an opponent's pair, removal of Council and return of the ordinary controller choice, two- and three-copy Brothers Yamazaki condition boundaries, and reproducible event kinds and chain head. The CR 704.5j closing-register row was deleted from `AGENTS.md` and the row bound lowered to 17 in `internal/testutil/agentsdoc_test.go`. No golden was re-pinned.
+
+The sol1 finding was **integration blocked by a dirty `.ds4/report-t2.md`**. Its uncommitted replacement of another task's player-count report was saved to `.ds4/scratch/ignorelegend-report-t2.saved.md` and the original restored from HEAD. The earlier IgnoreLegendRule commit also overwrote an unrelated tracked `.ds4/report-t1.md`: restored it from `main` in `da6067e5` so the merge would not erase unrelated work. With the tree clean, merged current `main` as `c79953ac` without conflict; both historical reports are preserved. This report is appended to the designated `.ds4/report-sol1.md`, leaving its earlier tasks' entries intact.
+
+The fix is structural, not specific to Council: every live static of this mode is collected in canonical order and checked through one gate and its own `ValidCard$` context. Prevalence re-measured at **11** corpus files (`/usr/bin/grep -rl 'Mode$ IgnoreLegendRule' .cards/cardsfolder | wc -l`). `.cards` was already a symlink to the corpus; the real fixtures ran, not skipped.
+
+## Gates after merging main (real outputs)
+
+```text
+$ go test -run 'TestIgnoreLegendRule|TestParamCensusScanIsComplete' ./rules/ > .ds4/scratch/sol1-legend-rules.log 2>&1; tail -30 .ds4/scratch/sol1-legend-rules.log
+ok   github.com/adams-shaun/gorge/rules  0.733s
+$ go test -run 'TestKnownApproximation' ./internal/testutil/ > .ds4/scratch/sol1-legend-doc.log 2>&1; tail -10 .ds4/scratch/sol1-legend-doc.log
+ok   github.com/adams-shaun/gorge/internal/testutil  0.001s
+$ go test ./internal/archtest/ > .ds4/scratch/sol1-legend-arch.log 2>&1; tail -15 .ds4/scratch/sol1-legend-arch.log
+ok   github.com/adams-shaun/gorge/internal/archtest  3.286s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ > .ds4/scratch/sol1-legend-bot.log 2>&1; tail -5 .ds4/scratch/sol1-legend-bot.log
+ok   github.com/adams-shaun/gorge/cmd/botbench  1.194s
+$ gofmt -l rules/sba.go rules/ignorelegendrule_test.go internal/testutil/agentsdoc_test.go
+(no output)
+$ go run ./cmd/gentypes -check
+(no output; exit 0)
+```
+
+All four Go tests exited 0. No head/ratchet or botbench split movement measured; full TestHeads and acceptance were left to the integration gates.
+
+## Fails without the fix
+
+Original production-hunk revert, five Council and scope/replay tests, from `.ds4/scratch/reverted.log` (restored byte-identically in the implementation round):
+
+```text
+--- FAIL: TestIgnoreLegendRuleExemptsMatchingCreatures (0.60s)
+    ignorelegendrule_test.go:104: a decision choose is pending under a live IgnoreLegendRule exemption
+--- FAIL: TestIgnoreLegendRuleDoesNotExemptNoncreatures (0.00s)
+    ignorelegendrule_test.go:148: legend option 0 names obj 82, want 84 (battlefield order)
+--- FAIL: TestIgnoreLegendRuleDoesNotExemptOtherPlayersCreatures (0.00s)
+    ignorelegendrule_test.go:186: legend choice asked seat 0, want the duplicates' controller seat 1
+--- FAIL: TestIgnoreLegendRuleExemptionEndsWhenSourceLeaves (0.00s)
+    ignorelegendrule_test.go:215: a decision choose is pending while the exemption is live
+--- FAIL: TestIgnoreLegendRuleEventStreamIsDeterministic (0.00s)
+    ignorelegendrule_test.go:256: legend option 0 names obj 82, want 84 (battlefield order)
+FAIL
+FAIL github.com/adams-shaun/gorge/rules 0.616s
+```
+
+The round-2 condition-gate revert fails the false-case regression (from `.ds4/scratch/rv-revert.log`), and was restored byte-identically:
+
+```text
+--- FAIL: TestIgnoreLegendRuleHonorsConditionFalse (0.00s)
+    ignorelegendrule_test.go:276: fixture: the false EQ2 gate still exempted permanent 81
+FAIL
+FAIL github.com/adams-shaun/gorge/rules 0.599s
+```
+
+The true-gate case depends on the same exemption insertion as the five Council tests (reverting that insertion gives a duplicate legend choice); the condition-only revert is deliberately a false-case probe. All new tests check battlefield, legendary/name/controller and matching/nonmatching static preconditions before asserting outcomes.
+
+## Issues
+
+No outstanding defect identified in this ticket; no new ticket or Known-approximations row added. The sol1 finding was report-file integration, not an engine failure.
+
+---
+
+# Mill-trigger replacement redirection — agent-20260919T183731Z-085022e9
+
+## Finding resolved
+
+`events/actions.go:IsMill` now requires a marked *completed* library-to-graveyard move. A replacement redirecting the move to exile (or preventing it) cannot count for `Milled` or `MilledAll`, even if the final move retains the mill marker. `rules/mill_trigger_redirect_test.go` uses the real corpus's Rest in Peace to exile two proposed nonland mills while Glowing One and The Wise Mothman are on the battlefield; neither may queue a trigger or gain life. It also submits a marked library-to-exile replacement result through the event/trigger pipeline, proving provenance alone does not activate either mode, and checks the `IsMill` origin and destination predicates. The original real-card positive tests remain in `rules/mill_trigger_test.go`.
+
+After the controller-directed rebases onto main, `.ds4/report-t1.md` and `.ds4/report-t2.md` were restored byte-for-byte to main's historical contents (`cmp` exit 0 for each); the ticket's earlier reports remain in branch history and this designated report is appended, not substituted for another ticket. `.cards` was present; tests did not skip. No Known-approximations row, head golden or acceptance ratchet was altered. No botbench split moved.
+
+## Fails without the fix
+
+Copied `events/actions.go` to `.ds4/scratch/actions-fixed.go`, restored the pre-fix `HEAD:events/actions.go`, ran `go test -run 'TestMillTriggerRedirectToExileDoesNotCount|TestMillTriggerRequiresCompletedLibraryToGraveyardMove' ./rules/`, then restored from the copy and verified byte identity (`cmp` exit 0). The failing result was:
+
+```
+--- FAIL: TestMillTriggerRedirectToExileDoesNotCount (0.58s)
+    mill_trigger_redirect_test.go:73: provenance-preserving exile move queued 2 mill triggers, want none
+--- FAIL: TestMillTriggerRequiresCompletedLibraryToGraveyardMove (0.00s)
+    mill_trigger_redirect_test.go:91: IsMill(library -> exile) = true, want false
+    mill_trigger_redirect_test.go:91: IsMill(hand -> graveyard) = true, want false
+FAIL
+FAIL github.com/adams-shaun/gorge/rules 0.610s
+FAIL
+reverted_exit=1
+restored_cmp=0
+```
+
+## Gates (exact commands and output)
+
+```
+$ go test -run 'TestMillTrigger' ./rules/
+ok   github.com/adams-shaun/gorge/rules 0.600s
+test_exit=0
+$ go test ./internal/archtest/
+ok   github.com/adams-shaun/gorge/internal/archtest 3.185s
+arch_exit=0
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok   github.com/adams-shaun/gorge/cmd/botbench 1.170s
+bot_exit=0
+$ gofmt -l events/actions.go rules/mill_trigger_redirect_test.go
+(no output)
+$ go run ./cmd/gentypes -check
+(no output; exit 0)
+$ git diff --check
+(no output; exit 0)
+```
+
+Post-rebase confirmation (same commands on rebased main, all exit 0):
+
+```
+$ go test -run 'TestMillTrigger' ./rules/
+ok   github.com/adams-shaun/gorge/rules 0.591s
+rules_exit=0
+$ go test ./internal/archtest/
+ok   github.com/adams-shaun/gorge/internal/archtest 3.558s
+arch_exit=0
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok   github.com/adams-shaun/gorge/cmd/botbench 1.287s
+bot_exit=0
+$ gofmt -l events/actions.go rules/mill_trigger_redirect_test.go
+(no output)
+$ go run ./cmd/gentypes -check
+(no output; exit 0)
+$ git diff --check
+(no output; exit 0)
+```
+
+## Issues
+
+No additional defect found in this fix round. Rest in Peace currently emits an unmarked exile move; a replacement preserving `Text: "milled"` is exercised explicitly by the test's second action, so the next such replacement is covered by the same predicate. No CR-lane test requested; this is a card-trigger regression, not a new untracked CR shape.
