@@ -129,7 +129,7 @@ func TestFlipCoinUntilYouLoseResumesOnSuspendedWinBranch(t *testing.T) {
 
 	h, c := fixtureHost(t)
 	c.SVars = map[string]string{"WinAsk": "DB$ TestFlipSuspendAsk"}
-	Resolve(h, c, sa(t, "DB$ FlipCoin | Flipper$ You | FlipUntilYouLose$ True | WinSubAbility$ WinAsk"))
+	Resolve(h, c, sa(t, "DB$ FlipCoin | Flipper$ You | FlipUntilYouLose$ True | RememberResult$ True | WinSubAbility$ WinAsk"))
 
 	// Precondition: the win branch really ran and really suspended.
 	if h.askCount == 0 {
