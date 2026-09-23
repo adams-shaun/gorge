@@ -178,7 +178,7 @@ func (e *Engine) handleArrange(d *decision.Decision, in decision.Intent) {
 		// RearrangeTopOfLibrary (Ponder) shares the "bottom" Kind with an
 		// always-empty pile B and must emit no scry record at all.
 		if rp.sa != nil && rp.sa.API == "Scry" {
-			e.emit(events.Event{Kind: events.Scry, Player: d.Player,
+			e.emitScryRecord(events.Event{Kind: events.Scry, Player: d.Player,
 				Obj: d.Source, Amount: int32(len(pileB))})
 		}
 	case "graveyard":

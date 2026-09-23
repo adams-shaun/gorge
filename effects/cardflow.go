@@ -2909,6 +2909,8 @@ func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, n int32, kind, verb string,
 	if c.Arrange {
 		start = c.LibraryTarget + 1
 		c.Arrange = false
+	} else if c.ScryReplacement {
+		start = c.LibraryTarget
 	}
 	if n < 0 {
 		n = 0
@@ -2947,6 +2949,24 @@ func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, n int32, kind, verb string,
 		k := n
 		if extraOf != nil {
 			k += extraOf(p)
+		}
+		if verb == "Scry" {
+			// The order choice parks the proposal before inspecting the library.
+			// On re-entry consume its result once rather than replacing it again.
+			proceed := true
+			if c.ScryReplacement && c.LibraryTarget == targetIndex {
+				k, proceed = c.ScryCount, c.ScryProceed
+				c.ScryReplacement = false
+			} else {
+				var pending bool
+				k, proceed, pending = h.Scry(p, c.Source, k, sa, targetIndex)
+				if pending {
+					return
+				}
+			}
+			if !proceed {
+				continue
+			}
 		}
 		if k < 0 {
 			k = 0

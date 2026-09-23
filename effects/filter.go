@@ -1302,6 +1302,15 @@ const (
 	wordNotDefinedTargeted
 	wordOpponentCtrl
 	wordChosenColor
+	// wordHasBasicLandType is Forge's Card.hasABasicLandType: the object is a
+	// LAND that has at least one of CR 205.3i's five basic land types
+	// (Plains, Island, Swamp, Mountain, Forest). It is NOT "has the Basic
+	// supertype": a Wastes is a basic land with no basic land type and must
+	// NOT match (CR 205.3i is explicit, and every corpus carrier's reminder
+	// text says "a land card with a basic land type"). The five words come
+	// from chooseBasicLandTypes so this predicate and the Basic Land choose
+	// cannot drift.
+	wordHasBasicLandType
 )
 
 // wordPredicate classifies a bare predicate word. key is the WUBRG letter for
@@ -1449,6 +1458,13 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordBlockingSource, ""
 	case "blockedBySource":
 		return wordBlockedBySource, ""
+	// Forge's Card.hasABasicLandType (the corpus's `Land.hasABasicLandType`
+	// qualifier). The bare word is classified here so the matcher and the
+	// UnknownPredicates census share one recogniser; the `Land.` base the
+	// corpus spells it under is the union spelling (the body re-checks Land
+	// anyway, so a bare `Card.hasABasicLandType` stays correct too).
+	case "hasABasicLandType":
+		return wordHasBasicLandType, ""
 	}
 	if targetReferent(p) {
 		return wordTargetedPlayerCtrl, ""
@@ -1839,6 +1855,22 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// files); recognizing the bare word closes the census without
 		// widening any existing spelling.
 		return o.Controller != sc.You
+	case wordHasBasicLandType:
+		// Forge's hasABasicLandType: a land with one of the five basic land
+		// types (CR 205.3i), read through hasTypeCtx so the layer-derived type
+		// list and Changeling agree with every other type read. A Wastes is a
+		// basic land with NO basic land type and does not match; a non-land
+		// with a granted land type is excluded by the Land test, exactly as
+		// Forge's Card.hasABasicLandType requires the Land card type.
+		if !hasTypeCtx(o, "Land", sc) {
+			return false
+		}
+		for _, t := range chooseBasicLandTypes {
+			if hasTypeCtx(o, t, sc) {
+				return true
+			}
+		}
+		return false
 	case wordSameName:
 		// Forge CardProperty "sameName": card.sharesNameWith(source). The
 		// referent is SpecContext.Source as MatchesObjectCtx rewrote it: the
