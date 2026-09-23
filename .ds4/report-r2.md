@@ -1,216 +1,159 @@
-# Report — r2 (fix round) — cost-draw1: `Cost$ Draw<X/You>` dynamic Draw cost
+# Report — r2 (agent-20260923T002719Z-c0b56143) — merge resolution
 
-Fix round for the two MAJOR findings in `findings-r2.md`. Base after rebase on
-main: `6f27aa55` (my round-1 test commit replayed on top of current main,
-which already carries the `trig:CostedExecutor` window). Work commit:
-**`dfb0ac7b`**.
+Ticket: `UnlessCost$ Mill<2>` is a hard decline (Deep Spawn always
+sacrificed). The **implementation itself was completed in round t1** — commit
+`01c62856 fix(rules): settle fixed Mill<N> in the mid-resolution UnlessCost
+path` — and its full verification report is preserved in this worktree at
+`.ds4/report-t1-mill-unless.md` (previously uncommitted at
+`.ds4/report-t1.md`).
 
-## Verdict on the findings
+## What this round did
 
-**Both findings traced to the same root — and the duplicate-pay-ask MAJOR
-turned out to be a FIXTURE ARTIFACT, not an engine bug.** Measured proof
-below.
+`findings-r2.md` reported that the rebase/merge onto main failed:
 
-### Finding 2 (repeated pay asks) — root cause measured
-
-The round-1 fixture moved cards with `searchMoveByName`, which ends with
-`e.pending = nil` — wiping whatever ask the entry posed. Post-rebase, Titan's
-entry DOES pose a real ChooseType ask (`rules/resolution.go` `case
-"choosetype"`, the ct1 machinery), and `Engine.Ask`
-(`rules/resolution.go:391`) parked its resume frame on `e.resume`. The wipe
-destroyed only `e.pending`, leaving that stale `choosetype` frame armed.
-Titan's trigger then resolved, the window posed its pay ask
-(`e.choosing = chooseTriggeredCost`), and the ANSWER was hijacked by the
-stale frame: `handleChoose` (`rules/turn.go`) dispatches `e.resume != nil`
-**before** the `e.choosing` switch, so the window's first answer went to
-`resumeResolution(rp kind "choosetype")` — which recorded the decline option's
-label **as Titan's ChosenType** (measured: `ChosenType == "Do not pay"` after
-declining) and left the ability unresolved. Something re-resolved the same
-stack object → second window → second ask. The `e.ask` overwrite guard
-(`rules/engine.go:2590`) only panics when `e.resume` AND `e.pending` are both
-set, so the wiped-pending pose sailed through.
-
-Instrumented evidence (scratch, since removed): at the first pay ask's
-answer, `choosing=16 (chooseTriggeredCost) resume=true` — the mid-resolution
-arm took it; at the second, `resume=false` — the choosing arm took it. In a
-clean harness that ANSWERS the entry ask, the flow is: one `choosetype` ask →
-one `trigger_cost_pay` ask → the discard body. `payAsks=1` measured.
-
-So the fix for the test is to not create the stale frame: the rewritten
-fixture answers Titan's ChooseType ask and asserts exactly one pay election.
-No engine change — the displacement is engine-unreachable (a pending ask
-blocks all engine flow until answered; `Advance` is parked on it), exactly as
-the `e.ask` guard's own comment states.
-
-### Finding 1 (vacuous Titan pin) — two real engine gaps found and fixed
-
-With the entry ask answered "Bear" and a Grizzly Bears on the battlefield,
-`drawCostCount` STILL folded to 0. Two gaps in the shares-type read:
-
-1. **The BARE form `sharesCreatureTypeWith` (no referent argument) was
-   wordUnknown** — `sharesTypeArg` requires the space-separated
-   `<predicate> <referent>` shape, so the token failed closed and the
-   candidate matched nothing. Corpus prevalence (measured,
-   `/usr/bin/grep -rlE 'sharesCreatureTypeWith([<>,]|$)' .cards/cardsfolder`):
-   exactly **2 files** — `titan_of_littjara.txt` and `plane_merge_elf.txt`
-   (Kinfall: `ValidCard$ Creature.YouCtrl+sharesCreatureTypeWith` and
-   `ConditionPresent$ Card.sharesCreatureTypeWith`). Both read the SOURCE,
-   which is Forge's unqualified reading in a source-anchored filter.
-2. **The referent's chosen type was invisible to the read.** Titan's
-   `S:Mode$ Continuous | Affected$ Card.Self | AddType$ ChosenType` static
-   makes Titan BE the chosen type, but that grant is materialised only inside
-   the layer walk (rules' `resolveChosenTypes`); `hasType(r, word)` reads the
-   printed face (`Creature Illusion`) and never sees "Bear".
-
-Fixes in `effects/filter.go` (single-home, in the ONE classifier the matcher
-and `UnknownPredicates` share):
-
-- `wordPredicate` classifies the bare token as
-  `(wordSharesCreatureType, "Self")`. The two-token form is unchanged; the
-  bare card-type siblings (`sharesCardTypeWith` etc.) have no corpus carrier
-  and stay unknown (fail closed).
-- `sharesCreatureTypeWith` additionally probes the referent's recorded choice
-  when its face carries the "is the chosen type in addition to its other
-  types" static (new helper `faceIsTheChosenType`: a `Continuous` static with
-  `Affected$` naming Self and `AddType$`/`AddTypes$` value exactly
-  `ChosenType`). Measured self-grant carriers: Titan of Littjara, Adaptive
-  Automaton, Metallic Mimic, Roaming Throne, Multiversal Passage, Thran
-  Portal. A referent with no recorded choice grants nothing (the layer walk's
-  own fail-closed direction); a non-creature recorded choice is kept out by
-  `CreatureTypeWords`.
-
-## Per-file changes
-
-- `effects/filter.go` — the two fixes above (`wordPredicate` bare-form arm;
-  `faceIsTheChosenType` + the chosen-type referent probe in
-  `sharesCreatureTypeWith`).
-- `rules/draw_x_cost_test.go` — rewritten:
-  - new `cleanMoveByName` (a `searchMoveByName` that does NOT wipe the
-    pending ask) and `titanBearFixture` (Bears on board → Titan enters →
-    ChooseType answered "Bear", with the recorded choice asserted);
-  - `TestTitanOfLittjaraDrawXCost` rewritten: asserts the fold is **exactly
-    1** up front (the vacuous-zero precondition the finding named), asserts
-    exactly ONE pay/decline election whose next ask is the discard body, and
-    that paying draws **exactly 1** Draw event followed by the body's
-    one-card discard;
-  - new `TestTitanOfLittjaraDrawXDecline`: the decline arm on the same
-    configured board — election still posed, no draw, no discard, hand and
-    library unchanged;
-  - the false "the chosen-type machinery is independent of this test's
-    assertions" comment is gone; `TestDrawXCostSVarFoldsAndDraws` (Champion
-    positive control) and `TestDrawXUnresolvableWithheld` are unchanged.
-
-## Gates run (real output)
-
-Targeted gate (the brief's command, extended with the new decline test):
 ```
-$ go test -run 'TestDrawXCostSVarFoldsAndDraws|TestDrawXUnresolvableWithheld|TestTitanOfLittjaraDrawXCost|TestTitanOfLittjaraDrawXDecline|TestParseCostReportsUnmodelledCostTokens|TestParseUnlessCostDrawComponents|TestDrawCostDrawsThePayer' ./rules/
-ok  	github.com/adams-shaun/gorge/rules	0.683s
+error: cannot rebase: You have unstaged changes.
+--- merge fallback ---
+error: Your local changes to the following files would be overwritten by merge:
+	.ds4/report-t1.md
 ```
 
-Fails without the fix (hunks reverted via a scratch copy of
-`effects/filter.go`, file restored byte-identically with `cmp` afterwards):
+Root cause: round t1 wrote its report at the SHARED path `.ds4/report-t1.md`
+and left it uncommitted. Main meanwhile tracks `.ds4/report-t1.md` with a
+different ticket's report (`fb-20260923T005857Z-c1a24352`,
+Count$ResolvedThisTurn), so the merge refused to touch the file. Resolution:
+
+1. Moved the t1 report to the unique path `.ds4/report-t1-mill-unless.md`
+   and restored `.ds4/report-t1.md` to its tracked content
+   (`git restore` — no branch switch, no shared-state change), then
+   committed the new file (`83d640d5`). Main's tracked `report-t1.md`
+   is untouched by this branch, so the merge takes main's version cleanly.
+2. Merged main (`c947f5c8`) into the branch → merge commit `4807a97c`,
+   **clean, no conflicts**. Main's `rules/mana.go` change (the RollDice
+   `ParseCost` token) is in a different function than this ticket's
+   `ParseUnlessCost` hunk; main's `rules/stack.go` change (`offeredTargetSA`,
+   line ~2970) is far from `payUnlessCost`; `rules/unless_unpriceable_test.go`
+   was not modified on main. Verified overlap before merging by diffing
+   `base..main` against my commit's hunks.
+3. Re-ran the brief's gates on the MERGED tree (output below) — all green.
+
+## Gates run on the merged tree (real output)
+
 ```
---- FAIL: TestTitanOfLittjaraDrawXCost (0.61s)
-    draw_x_cost_test.go:183: drawCostCount(Titan) = 0, true; want exactly 1 (the one other Bear sharing the chosen type)
---- FAIL: TestTitanOfLittjaraDrawXDecline (0.00s)
-    draw_x_cost_test.go:251: drawCostCount(Titan) = 0, true; want exactly 1
-FAIL	github.com/adams-shaun/gorge/rules	0.648s
+$ go test -run 'TestDeepSpawnUnlessMillCost|TestUnlessCostStrictParsePopulation' ./rules/ 2>&1 | tail -5
+ok  	github.com/adams-shaun/gorge/rules	0.686s
+
+$ go test ./internal/archtest/ 2>&1 | tail -3
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.965s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ 2>&1 | tail -3
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.259s
 ```
 
-Behaviour goldens (the two ~2 s checks):
-```
-$ go test ./internal/archtest/
-ok  	github.com/adams-shaun/gorge/internal/archtest	3.968s
-$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
-ok  	github.com/adams-shaun/gorge/cmd/botbench	1.212s
-```
+`.cards` was present (symlink to `/home/sadams/projects/gorge/.cards`); the
+0.69s Deep Spawn test ran the corpus, not a skip.
 
-Package touched outside `rules/` (effects — one full run, once):
-```
-$ go test ./effects/
-ok  	github.com/adams-shaun/gorge/effects	2.631s
-```
+## Status of the brief
 
-Lint:
-```
-$ gofmt -l effects/filter.go rules/draw_x_cost_test.go     (no output)
-$ go run ./cmd/gentypes -check                              (clean)
-$ go vet ./...                                              (exit 0)
-```
-
-## Head / ratchet movement
-
-None, with cause: no `Draw<X/…>` carrier and neither bare-form carrier
-(Titan of Littjara, Plane-Merge Elf) is in `internal/testutil/decks/*.json`
-(re-verified each name → 0 hits), so `TestHeads` and
-`knownUnsupported`/`knownUnsupportedParams` cannot move by construction. The
-botbench constructed-default golden is byte-identical (the changed filter
-form is exercised by no repo deck). `heads_test.go` and the ratchet tables
-were not edited.
-
-## Deviations from the brief
-
-- The bare-form filter classification + chosen-type referent read are
-  production changes the brief's scope did not name — they are the minimum
-  the findings demand (the brief's own Done means requires "pay → N Draw
-  events (N = other creatures sharing a type)", which is unimplementable
-  against a filter that reads 0 with the type configured). Blast radius:
-  2 corpus carriers, no repo decks, goldens unchanged.
-- Done means' Titan test is split into `TestTitanOfLittjaraDrawXCost` (pay
-  arm) + `TestTitanOfLittjaraDrawXDecline` (decline arm) — same coverage,
-  one assertion per arm, both failing on the vanilla filter.
-
-## Fails without the fix
-
-See the gate section above: both new Titan tests fail on vanilla
-`effects/filter.go` with `drawCostCount(Titan) = 0, true; want exactly 1`;
-restored file verified byte-identical (`cmp` clean) and the targeted gate
-green again.
+The brief's "Done means" items were all satisfied and verified in round t1
+(see `.ds4/report-t1-mill-unless.md` for the per-item evidence, including the
+"## Fails without the fix" failing-output paste: parser boundary tests, the
+real-corpus end-to-end Pay path, the short/empty-library CR 701.13a halves,
+the population-table update, the revert-and-restore byte-identity proof).
+This round re-verified the whole set still holds after the merge with main.
+The ratchet tables (`knownUnsupported`, `knownUnsupportedParams`,
+`knownUnmodelledCountHeads`) and `TestHeads` are daemon gates, not seat
+gates; nothing in this ticket's change or the merge is expected to move them,
+and the two ~2 s behaviour goldens both pass on the merged tree.
 
 ## Issues
 
-- **Stale-resume hijack class (engine-adjacent, not fixed here).**
-  `handleChoose` (`rules/turn.go`) dispatches `e.resume != nil` before the
-  `e.choosing` switch, so an answered KChoose is consumed by ANY armed resume
-  frame even when a different flow (`e.choosing`) posed the pending ask. In
-  engine flow a pending ask blocks everything, so this is reachable only by a
-  probe that wipes `e.pending` while a mid-resolution ask is outstanding —
-  but the state `e.resume != nil && e.pending == nil` IS a legitimate engine
-  state (the replacement-order flow's park), and a future asker that poses
-  while that park is armed would be hijacked the same way. The `e.ask`
-  overwrite guard deliberately does not cover that shape. Worth a ticket
-  deciding whether `triggeredCostPaymentAsk` (and every `e.ask` caller that
-  is not itself a mid-resolution ask) should assert `e.resume == nil`.
-- **`trigcosted-double-pay-ask.md` (filed last round) should be CLOSED** —
-  its symptom is the fixture artifact measured above, not an engine bug. I
-  cannot edit the ledger; the controller should retire the filed ticket.
-- **`etbreplacement-choosetype-not-run.md` (filed last round) is STALE** —
-  post-rebase, Titan's `K:ETBReplacement:Other:ChooseCT` DOES pose a real
-  ask (`ResumeKind: "choosetype"`, options from the owner's creature types)
-  and the answer records `ChosenType` (asserted in the new fixture). The
-  controller should verify against Cavern of Souls' probe and retire it.
-- **Plane-Merge Elf's Kinfall is still inert on the `ConditionPresent$` half:**
-  effects' own ConditionPresent/ConditionDefined evaluator does not evaluate
-  filter predicates (it runs its sub unconditionally — the known gap in
-  AGENTS.md's castprov1 note), so `ConditionPresent$
-  Card.sharesCreatureTypeWith` never gates `TrigPumpAll`. The bare-form fix
-  makes the token CLASSIFIED (UnknownPredicates silent) but the condition
-  evaluator is a separate walk. The `ValidCard$` half of the same trigger
-  now works. Would need a CR-lane test citing the trigger-condition rule to
-  stop being invisible.
-- **Out-of-scope carriers (unchanged from round 1, restated for the ledger):**
-  `Armor Wars` carries `UnlessCost$ Draw<X/You>` — `ParseUnlessCost`'s
-  hard-decline for Draw is pinned correct by `TestParseUnlessCostDrawComponents`
-  (the unless-pay answer carries no X binding); the three unmodelled X count
-  heads (`Count$YourCountersExperience` — Katara, `TriggeredPlayersTargets$Amount`
-  — Hordewing Skaab, `TriggeredCard$CastTotalManaSpent` — Uncover the Moon
-  Letters) resolve `ok=true, n=0` from `effects.EvalCountOK` — fail-OPEN,
-  opposite `fixLifeXCost`'s fail-closed contract (withheld, not mispriced,
-  only if EvalCountOK learns to refuse them); the `Count$xPaid` announced
-  Draw form has 0 corpus carriers and stays declining.
-- **Ticket-premise note on "if you do" election semantics** (from the brief's
-  scope boundary, confirmed by the pay trace): the pay election IS the
-  may-draw election; paying `Draw<X>` with a folded X of 0 runs the body with
-  zero draws (the outcome a decline gives, plus the body's own events). The
-  ticket's "zero matches … discards nothing" holds only for the decline arm.
+- **Process, not code:** shared report filenames (`.ds4/report-t1.md`,
+  `.ds4/report-r2.md`) collide across tickets because main tracks them while
+  concurrent worktrees write their own. Keep historical reports under
+  ticket-unique paths (such as `report-t1-mill-unless.md`) while leaving
+  main's unrelated reports untouched. Worth a controller-level rule so
+  future rounds are dispatched with unique report paths up front.
+- No engine defect was found this round; the merge introduced no conflict and
+  no behaviour movement (botbench split unchanged).
+
+---
+
+# Report — r2 (agent-20260918T230554Z-74976c7c) — kw:Backup fix round
+
+Ticket: kw:Backup (CR 702.70). The implementation landed in round t1
+(`7caad9fb feat(rules): implement the Backup keyword (CR 702.70)` on the
+rebased branch). `findings-r2.md` carried exactly one MAJOR, about the report
+commit, not the code; this round resolves it and re-verifies everything on
+the rebased tree.
+
+## The MAJOR, and what changed
+
+**[MAJOR] `.ds4/report-t1.md` replaced a 1,156-line accumulated report with
+this ticket's 152-line report.** Resolved by rebase, not by hand-editing
+history: the controller directive required `git rebase main` before
+continuing, and main had itself grown the accumulated file (1,645 lines, 15
+report sections, including the Count$ResolvedThisTurn report). The rebase
+conflicted on exactly this file; the resolution took **main's full 1,645
+lines untouched** and **prepended this ticket's 152-line report** (newest-first,
+matching the file's existing convention). The new docs commit is a pure
+addition:
+
+```
+$ git show --stat HEAD
+ .ds4/report-t1.md | 152 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 152 insertions(+)
+```
+
+No prior report content was removed; the accumulated file is now 1,797 lines
+with all 15 prior sections plus this ticket's on top. The deletion class is
+structurally prevented for this branch: the docs commit no longer rewrites
+main's tracked file at all.
+
+## Gates run on the rebased tree (real output)
+
+Rebase: `git rebase main` — one conflict (`.ds4/report-t1.md`, resolved as
+above), implementation commit `e6c716e1`→`7caad9fb` replayed clean (main's
+Vanishing merge touched no overlapping code).
+
+`.cards` present (symlink to `/home/sadams/projects/gorge/.cards`, verified
+before running).
+
+```
+$ go build ./... && go test -run 'TestGuardianScalelordBackup' ./rules/ 2>&1 | tail -5
+ok  	github.com/adams-shaun/gorge/rules	0.620s
+
+$ go test ./internal/archtest/ 2>&1 | tail -3
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.287s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ 2>&1 | tail -3
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.204s
+```
+
+The 0.62s rules run exercised the real corpus (`.cards` present; the test
+builds a real-corpus Guardian Scalelord table). The reviewer's own break
+attempts in `findings-r2.md` (Memnite other-target, Scalelord self-target,
+granted AttackTrig rider, targeted command) all held — no code change was
+needed this round, so the round-1 "Fails without the fix" proof carries over
+unchanged; the tests were not touched.
+
+## Fails without the fix
+
+No fix-round code change; the only fix is the report restructure above. Its
+"failing before" state is exactly the findings MAJOR: the pre-rebase commit
+`56479b6a` deleted 1,134 lines of prior reports (visible in its stat:
+`130 insertions(+), 1134 deletions(-)`); the rebased commit `c8b97fb0`
+inserts 152 and deletes 0.
+
+## Issues
+
+- **Process, recurring class:** the controller dispatches multiple tickets'
+  round reports at the same tracked paths (`.ds4/report-t1.md`,
+  `.ds4/report-r2.md`). This is the second ticket to collide on
+  `report-t1.md` in two days (the Deep Spawn Mill r2 round hit the same
+  file). Suggest controller-level unique report paths per ticket
+  (`report-<ticket-slug>-r<N>.md`) so no round is ever asked to touch another
+  ticket's tracked report. (Same note as the Deep Spawn r2 report below; not
+  fixed here — it is controller policy, not engine code.)
+- No engine defect found this round. The frozen "Known approximations" table
+  was not touched (kw:Backup was never a row there).

@@ -4668,5 +4668,3 @@ func KnownPredicates() []string {
 	sort.Strings(out)
 	return out
 }
-
-func DebugFaceIsChosen(id state.ObjID, g *state.Game) bool { return faceIsTheChosenType(g.Obj(id)) }
