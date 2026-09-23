@@ -64,3 +64,51 @@ conflict and were left intact.
 No new engine defects found during conflict resolution. The worktree's
 transactional life-exchange fix and main's changes are preserved. The
 approximation ratchet was lowered to the measured merged table count of 41.
+
+## Round 3 — third main integration (2026-09-23 08:44)
+
+After the round-2 merge (`eaeef0b2`, main at `edc24484`) landed, main advanced
+to `fead1e59` (sibling ticket `cli-20260922T225141Z-5641f97b` merged its
+round-1 work: `0836163f fix(rules): price the repeatable-cost count bound at
+the real charge`). Ran `git merge main --no-edit`; one conflict:
+
+### `.ds4/report-mrg1.md`
+
+Same shared-path collision as round 2: main's copy is the sibling ticket
+`5641f97b`'s own `mrg1` report (its rounds 1 and 2, reached through its merge
+chain); this file at the canonical path is THIS ticket's report. Kept ours and
+appended this section, as in both earlier rounds.
+
+### `internal/testutil/agentsdoc_test.go`
+
+Auto-merged to the constant 41 this branch set in round 1 (main's 50->49 and
+42 lineages both reduced to the same line; git kept our 41). Counting the
+merged `AGENTS.md` table gave **40 data rows** — main's replicate-count row
+deletion (`0836163f`) removed one more row on top of the 41 measured in round
+1. Lowered `knownApproximationRows` to 40 and updated the comment to name
+main's replicate-count-bound closure. No row added or grown.
+
+### Other paths
+
+`AGENTS.md` and `rules/cast.go` auto-merged; `rules/replicate_count_bound_test.go`
+came in as a new file. Everything else auto-merged without conflict.
+
+### Commands and outputs
+
+- `git status --short --branch; git status` (before merge):
+  `## wt/cli-20260922T225143Z-4b0bde0d`; clean, no rebase/merge in flight.
+- `git merge main --no-edit`:
+  `Auto-merging .ds4/report-mrg1.md / CONFLICT (content): Merge conflict in .ds4/report-mrg1.md`
+  `Auto-merging AGENTS.md / Automatic merge failed; fix conflicts and then commit the result.`
+  (`AGENTS.md`, `rules/cast.go` auto-merged; `rules/replicate_count_bound_test.go` added.)
+- Row count over merged `AGENTS.md`: 40 data rows (python line count).
+- `.cards` check: present, resolves to `/home/sadams/projects/gorge/.cards`.
+- `go test -run 'TestKnownApproximations' ./internal/testutil/` — see below.
+- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|TestReplicateCountBound'` — see below.
+
+### Issues
+
+No new unfixed issue found in this round. The standing note from main's side is
+absorbed: the `offerCastable` pool-only replicate-offer gate was closed by
+`0836163f` itself (the remaining limitation is documented in its commit
+message), so nothing is carried forward from it here.
