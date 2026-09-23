@@ -48,6 +48,13 @@ import (
 // would empty the ask falls back to the unrestricted universe. That is the
 // totality rule (R-9): a name ask is never posted with zero options.
 func NameChoices(g *state.Game, spec, description string) []string {
+	return NameChoicesFromList(g, spec, description, "")
+}
+
+// NameChoicesFromList applies ChooseFromList$ after the ordinary card filter.
+// The universe snapshot remains authoritative during replay; list order is
+// normalized to the same sorted option order as other name choices.
+func NameChoicesFromList(g *state.Game, spec, description, chooseFromList string, strictFilter ...bool) []string {
 	if g == nil {
 		return nil
 	}
@@ -55,7 +62,8 @@ func NameChoices(g *state.Game, spec, description string) []string {
 		spec = descriptionSpec(description)
 	}
 	if spec == "" {
-		return nameUniverseSnapshot(g.NameUniverse, g.NameUniverseNames)
+		filtered := nameUniverseSnapshot(g.NameUniverse, g.NameUniverseNames)
+		return filterNameList(filtered, chooseFromList)
 	}
 	allowed := nameSet(g.NameUniverseNames)
 	seen := make(map[string]bool)
@@ -78,9 +86,14 @@ func NameChoices(g *state.Game, spec, description string) []string {
 		}
 	}
 	if len(filtered) == 0 {
-		// The filter matched nothing evaluable; keep the ask total.
+		// Ordinary asks retain the totality fallback. Random selection must
+		// never turn an unevaluable/empty filter into an unrestricted lottery.
+		if chooseFromList != "" || (len(strictFilter) > 0 && strictFilter[0]) {
+			return nil
+		}
 		return nameUniverseSnapshot(g.NameUniverse, g.NameUniverseNames)
 	}
+	filtered = filterNameList(filtered, chooseFromList)
 	sort.Strings(filtered)
 	return filtered
 }
@@ -92,6 +105,26 @@ func NameChoices(g *state.Game, spec, description string) []string {
 // never consulted (Forge semantics; see NameChoices). An unrecognised
 // description returns "" (unrestricted), which matches Forge's default and
 // keeps the offer total.
+func filterNameList(names []string, chooseFromList string) []string {
+	if chooseFromList == "" {
+		return names
+	}
+	listed := make(map[string]bool)
+	for _, name := range strings.Split(chooseFromList, ",") {
+		name = strings.TrimSpace(name)
+		if name != "" {
+			listed[name] = true
+		}
+	}
+	selected := make([]string, 0, len(names))
+	for _, name := range names {
+		if listed[name] {
+			selected = append(selected, name)
+		}
+	}
+	return selected
+}
+
 func descriptionSpec(description string) string {
 	switch strings.ToLower(strings.TrimSpace(description)) {
 	case "nonland":
