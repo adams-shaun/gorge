@@ -2363,10 +2363,12 @@ func (e *Engine) matchesWithTypes(ce ContinuousEffect, id state.ObjID, types []s
 //
 // The list is keywords-SO-FAR in the walk's own layer/timestamp order, which
 // is the same reading ExtraTypes gives: a grant whose effect is applied
-// earlier is visible, a later one is not. CR 613.6's dependency reordering is
-// NOT modelled -- with Cavalry Master's effect older than the grant it
-// depends on, the second instance is missed (the conservative direction, and
-// the narrowing AGENTS.md records).
+// earlier is visible, a later one is not. Within layer 6 the sequence itself
+// is CR 613.6 dependency order (abilityDependencyOrder below), so a lord
+// whose gate reads a keyword another layer-6 effect grants is applied after
+// that grant regardless of timestamps -- the Cavalry Master-over-a-Sidewinder
+// Sliver case. The layer-7 P/T walk (derivedScalarFrom) still binds no
+// keyword list at all, which is the narrowing that remains.
 func (e *Engine) matchesWithChars(ce ContinuousEffect, id state.ObjID, types, keywords []string, atStack state.Zone) bool {
 	// The cast-provenance qualifiers (castprov1/2/3 — the_twelfth_doctor's
 	// `Affected$ Card.YouCtrl+!wasCastFromYourHand`, quandrix_the_proof's
@@ -2683,7 +2685,13 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 	if faceDown {
 		col = 0 // CR 708.5: a face-down permanent has no colours
 	}
-	for _, ce := range active {
+	// CR 613.6: within layer 6 the walk applies keyword-gated effects after
+	// the grant they depend on, not in raw timestamp order (see
+	// abilityDependencyOrder). Layers 3/5 keep timestamp order: a SetName or
+	// colour change never gates another layer's match on this corpus, and
+	// layer 4 settled above.
+	seq := e.abilityDependencyOrder(active, id, ty, kw, atStack)
+	for _, ce := range seq {
 		// kw is the walk's keywords-so-far list for THIS object (printed
 		// keywords, IntrinsicKeywords, marker-counter grants and every
 		// layer-6 grant applied so far), bound exactly as ty is: an
@@ -2781,6 +2789,149 @@ func (e *Engine) derivedWith(id state.ObjID, atStack state.Zone) Derived {
 	e.derivingColorsSet, e.derivingColorsID, e.derivingColors = prevStashSet, prevStashID, prevStashColors
 	e.derivedDepth--
 	return Derived{Power: power, Toughness: toughness, Keywords: kw, Types: ty, Name: name, Colors: colors}
+}
+
+// abilityKWAfter applies one layer-6 effect's keyword action to a COPY of
+// the walk's keyword list -- the same three steps the main walk's LAbilities
+// arm performs, in the same order -- so the dependency simulation can test a
+// match against the list as the effect would leave it.
+func abilityKWAfter(ce ContinuousEffect, kw []string) []string {
+	out := append([]string(nil), kw...)
+	if ce.RemoveAbilities {
+		out = out[:0]
+	}
+	if len(ce.RemoveKeywords) > 0 {
+		kept := out[:0]
+		for _, k := range out {
+			if !containsKeywordHead(ce.RemoveKeywords, k) {
+				kept = append(kept, k)
+			}
+		}
+		out = kept
+	}
+	return append(out, ce.AddKeywords...)
+}
+
+// abilityDependencyOrder applies CR 613.6's dependency reordering to the
+// walk's layer-6 (LAbilities) effects. Timestamp order (active()'s sort) is
+// the default, but a layer-6 effect whose Affected$ spec reads the walk's
+// keyword list -- effects.SpecReadsKeywords's `with<Keyword>`/
+// `without<Keyword>` predicates and Affinity base -- is DEPENDENT on any
+// other layer-6 effect whose application would change what it applies to
+// (CR 613.8's test: applying the other would change the match), and CR
+// 613.6 applies a dependent effect after the one it depends on. The measured
+// miss is Cavalry Master's `Creature.Other+withFlanking+YouCtrl` lord that
+// entered BEFORE a Sidewinder Sliver: raw timestamp order evaluated the
+// lord's `withFlanking` against the pre-grant keyword list, the gate failed,
+// and the Sliver's own grant never produced the second instance (CR
+// 702.25b). A negative gate (`without<Keyword>`) is the same dependency
+// pointing the other way: the dependent lord applies after the grant and
+// stops matching the now-empowered object, exactly the Muraganda
+// Petroglyphs ruling's reading. The per-pair test is CR 613.8's own
+// simulation -- B's match with the pre-group keyword list versus that list
+// after A's action -- so a pair whose match does not move keeps timestamp
+// order. Several dependent effects on one dependency apply in timestamp
+// order after it; a dependency cycle falls back to timestamp order (CR
+// 613.6). Everything is deterministic: the selection pass scans candidates
+// in the fixed timestamp-ordered sequence and the simulation reads only
+// fixed lists, so no map iteration reaches an event.
+func (e *Engine) abilityDependencyOrder(active []ContinuousEffect, id state.ObjID, ty, kw []string, atStack state.Zone) []ContinuousEffect {
+	// The layer-6 effects are contiguous in active()'s (layer, timestamp)
+	// sort; only they can act on the walk's keyword list.
+	start := -1
+	for i, ce := range active {
+		if ce.Layer == LAbilities {
+			start = i
+			break
+		}
+	}
+	if start < 0 {
+		return active
+	}
+	end := start
+	for end < len(active) && active[end].Layer == LAbilities {
+		end++
+	}
+	group := active[start:end]
+	var gated, mods []int
+	for gi := range group {
+		ce := &group[gi]
+		if ce.RemoveAbilities || len(ce.RemoveKeywords) > 0 || len(ce.AddKeywords) > 0 {
+			mods = append(mods, gi)
+		}
+		if effects.SpecReadsKeywords(ce.Affects) {
+			gated = append(gated, gi)
+		}
+	}
+	if len(gated) == 0 || len(mods) == 0 {
+		return active
+	}
+	// dep[j] holds the group indices effect j must FOLLOW (its
+	// dependencies), discovered by the CR 613.8 simulation: B's match with
+	// the pre-group keyword list against that list after A's action. The
+	// pre-group list is the right basis because CR 613.8's second step takes
+	// into account what currently applies and what earlier layers already
+	// applied, but not what any other effect in the same layer is doing.
+	dep := make([][]int, len(group))
+	edges := 0
+	for _, gj := range gated {
+		b := group[gj]
+		base := e.matchesWithChars(b, id, ty, kw, atStack)
+		for _, gm := range mods {
+			if gm == gj {
+				continue
+			}
+			after := e.matchesWithChars(b, id, ty, abilityKWAfter(group[gm], kw), atStack)
+			if after != base {
+				dep[gj] = append(dep[gj], gm)
+				edges++
+			}
+		}
+	}
+	if edges == 0 {
+		return active
+	}
+	// Kahn's algorithm over the timestamp-ordered group: repeatedly emit the
+	// timestamp-earliest effect whose dependencies are all emitted, so the
+	// order stays timestamp order wherever dependencies do not bind. If a
+	// pass makes no progress the remaining effects form a dependency cycle,
+	// which CR 613.6 ignores in timestamp order.
+	out := make([]ContinuousEffect, 0, len(active))
+	out = append(out, active[:start]...)
+	done := make([]bool, len(group))
+	remaining := len(group)
+	for remaining > 0 {
+		picked := -1
+		for gi := 0; gi < len(group); gi++ {
+			if done[gi] {
+				continue
+			}
+			ready := true
+			for _, m := range dep[gi] {
+				if !done[m] {
+					ready = false
+					break
+				}
+			}
+			if ready {
+				picked = gi
+				break
+			}
+		}
+		if picked < 0 {
+			for gi := 0; gi < len(group); gi++ {
+				if !done[gi] {
+					picked = gi
+					break
+				}
+			}
+		}
+		done[picked] = true
+		remaining--
+		out = append(out, group[picked])
+	}
+	out = append(out, active[end:]...)
+	return out
 }
 
 // Name returns the current layer-3 name of an object. Callers that render or
