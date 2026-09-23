@@ -97,6 +97,15 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 			c.TriggerTarget = player(ev.Player)
 		}
 		c.TriggerAmount = ev.Amount
+	case "Scry":
+		// The completed-scry marker carries the count of cards the player
+		// actually chose to put on the bottom in Amount, which is the
+		// magnitude the trigger body reads: The Temporal Anchor's
+		// `SVar:X:TriggerCount$ScryBottom` resolves to this value and its
+		// `DB$ Dig | DigNum$ X | FromBottom$ True` exiles that many from the
+		// bottom. It is captured at fire time and carried to resolution, the
+		// same contract TriggerAmount has for every other mode.
+		c.TriggerAmount = ev.Amount
 	case "CounterRemovedOnce":
 		// The removal batch, mirrored: one CounterChange with a negative
 		// Amount carries the whole removal, and the magnitude the causing

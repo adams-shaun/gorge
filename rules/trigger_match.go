@@ -1872,7 +1872,7 @@ func init() {
 		"trig:ManaExpend",
 		"trig:Connives",
 		"trig:Discover", "trig:SeekAll",
-		"trig:Surveil",
+		"trig:Surveil", "trig:Scry",
 		"trig:AbilityCast", "trig:SpellAbilityCast", "trig:Always",
 		// The cast-or-copy pair: SpellCopy matches a copy put on the stack and
 		// SpellCastOrCopy matches either half (magecraft). Both are matched

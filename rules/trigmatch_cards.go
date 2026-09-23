@@ -241,6 +241,39 @@ func (e *Engine) surveilMatches(t cards.Trigger, source state.ObjID, ev events.E
 	return true
 }
 
+// scryMatches implements the "whenever you scry" / "whenever you choose to
+// put one or more cards on the bottom while scrying" family (Forge Mode$
+// Scry, task scrybottom). The causing event is the completed events.Scry
+// record rules' handleArrange emits once the KArrange answer is known (a
+// pure Apply no-op marker): Player is the scrying seat (what ValidPlayer$
+// matches), Obj the resolving source permanent, and Amount the number of
+// cards actually put on the BOTTOM of the library -- 0 when every looked-at
+// card was kept on top. `ToBottom$ True` (The Temporal Anchor, the corpus's
+// one carrier at the pin) is the "one or more" gate: the event fires even
+// for a bottom-less scry, so the matcher, not the emitter, is where the
+// "one or more" is enforced. No other Scry parameter is read here (ScryNum$
+// count bodies stay the separate unmodelled TriggerCount$ScryNum head).
+func (e *Engine) scryMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
+	if ev.Kind != events.Scry {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v := t.Params["ValidCard"]; v != "" && ev.Obj != 0 &&
+		!e.matchesSpec(v, ev.Obj, e.specCtx(source, ctrl)) {
+		return false
+	}
+	if v := t.Params["ValidPlayer"]; v != "" &&
+		!effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+		return false
+	}
+	// "one or more cards": a scry that bottomed none must not fire a
+	// ToBottom$ True trigger, however many cards were looked at.
+	if strings.EqualFold(t.Params["ToBottom"], "True") && ev.Amount <= 0 {
+		return false
+	}
+	return true
+}
+
 // firstMarkerThisTurn is the shared replay-stable log scan behind the
 // FirstTime$ gates over pure marker Kinds: true only when the event being
 // matched is the player's FIRST record of `kind` in the current turn. The
@@ -743,6 +776,7 @@ func init() {
 	registerTrigMatcher((*Engine).discoverMatches, "Discover")
 	registerTrigMatcher((*Engine).seekAllMatches, "SeekAll")
 	registerTrigMatcher((*Engine).surveilMatches, "Surveil")
+	registerTrigMatcher((*Engine).scryMatches, "Scry")
 	registerTrigMatcher(func(e *Engine, t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
 		return e.discardedMatches(t, source, ev)
 	}, "Discarded")
