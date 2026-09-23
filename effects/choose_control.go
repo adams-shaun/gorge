@@ -1364,6 +1364,18 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 		// FlipClash result, not a fresh per-iteration list.
 		if c.FlipMemory == nil && cc.FlipMemory != nil {
 			c.FlipMemory = cc.FlipMemory
+			// Resolve published cc.FlipMemory (nil on entry) for the
+			// iteration and its defer restored that nil on the way out, so
+			// retaining the pointer on the outer Ctx is not enough: the
+			// engine's published slot must be re-pointed too. Without this,
+			// an ask posed AFTER the loop -- the enclosing RepeatEach's own
+			// SubAbility$ -- captures nil onto its resume point, and the
+			// fresh Ctx the answer rebuilds loses every flip the loop
+			// recorded before a later Defined$ FlippedHeads/FlippedTails
+			// reader runs.
+			if fh, ok := h.(flipMemoryHost); ok {
+				fh.SetResolutionFlipMemory(c.FlipMemory)
+			}
 		}
 		if h.Suspended() {
 			h.SuspendRepeat(RepeatSuspension{
