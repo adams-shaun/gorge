@@ -376,6 +376,52 @@ func keepChosenCards(ts []state.Target) []state.Target {
 	return out
 }
 
+// chooseEachGroups parses ChooseEach$: the " & "-separated group specs a
+// ChooseCard with ChooseEach$ picks ONE card from PER GROUP instead of one
+// card total (Tragic Arrogance, Cataclysm: "choose an artifact, a creature,
+// an enchantment, and a planeswalker"). Forge's ChooseCardEffect splits the
+// value on " & "; the special value "Party" (Stick Together) is Forge's
+// party-member expansion — "choose up to one each of Cleric, Rogue, Warrior,
+// and Wizard". Each group is an extra conjunct over the Choices$ pool, so a
+// card can be eligible in several groups (Liliana, Dreadhorde General's
+// Artifact & Creature ...) and be picked once per group it matches.
+func chooseEachGroups(sa *cards.SA) []string {
+	raw := strings.TrimSpace(sa.Params["ChooseEach"])
+	if raw == "" {
+		return nil
+	}
+	if strings.EqualFold(raw, "Party") {
+		return []string{"Cleric", "Rogue", "Warrior", "Wizard"}
+	}
+	var out []string
+	for _, part := range strings.Split(raw, " & ") {
+		if p := strings.TrimSpace(part); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// chooseEachPool narrows one group's candidate pool: the group spec is an
+// additional conjunct over cardChoices' already-filtered pool, evaluated
+// from the same chooser's perspective cardChoices evaluates Choices$ with
+// (Choices$ Card.YouOwn means the chooser's card).
+func chooseEachPool(g *state.Game, c *Ctx, pool []state.Target, chooser state.PlayerID, group string) []state.Target {
+	out := make([]state.Target, 0, len(pool))
+	for _, t := range pool {
+		o := g.Obj(t.Obj)
+		if o == nil {
+			continue
+		}
+		cc := *c
+		cc.Controller = chooser
+		if choiceMatches(g, &cc, group, o) {
+			out = append(out, t)
+		}
+	}
+	return out
+}
+
 func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 	choosers := choiceChoosers(h, c, sa)
 	// Reveal$ True (Planetary Annihilation's "each player chooses six lands
@@ -388,15 +434,27 @@ func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 	// learns the kept set before the next chooser picks. Player entries
 	// (a ChoosePlayer follow-up) reveal nothing: a player is not hidden.
 	reveal := strings.EqualFold(strings.TrimSpace(sa.Params["Reveal"]), "True")
+	each := chooseEachGroups(sa)
+	groups := 1
+	if each != nil {
+		groups = len(each)
+	}
+	// The walk is chooser-major, group-minor: every chooser picks from ALL
+	// groups before the next chooser starts, groups in ChooseEach$ order —
+	// Forge's ChooseCardEffect loop shape. With ChooseEach$ the resume cursor
+	// i is the flat index into that (chooser, group) pair list
+	// (i = chooser*groups + group), so ONE ResumeTarget int carries both
+	// halves across a suspension — the group count comes from the SA itself,
+	// deterministic on re-entry.
 	i := c.ChoiceTarget
 	if c.ChoiceDone {
 		answered := c.Choice
 		choiceRecord(h, c, sa, c.Choice, false)
 		c.ChoiceDone, c.Choice = false, nil
-		// c.ChoiceTarget is the asking chooser's index, so choosers[i] is who
-		// answered this.
-		if reveal && i < len(choosers) {
-			emitChosenReveal(h, choosers[i], answered)
+		// c.ChoiceTarget is the asking pair's flat index, so choosers[i/groups]
+		// is who answered this.
+		if reveal && i/groups < len(choosers) {
+			emitChosenReveal(h, choosers[i/groups], answered)
 		}
 		i++
 	} else if i == 0 && c.Choice == nil {
@@ -412,8 +470,21 @@ func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 		c.Chosen = keepChosenPlayers(c.Chosen)
 	}
 	minBase, maxBase := choiceBounds(h, c, sa, true)
-	for ; i < len(choosers); i++ {
-		choices := cardChoices(h, c, sa, choosers[i])
+	total := len(choosers) * groups
+	for ; i < total; i++ {
+		chooser := choosers[i/groups]
+		choices := cardChoices(h, c, sa, chooser)
+		if each != nil {
+			choices = chooseEachPool(h.Game(), c, choices, chooser, each[i%groups])
+		}
+		// With ChooseEach$ the shared Amount$/MinAmount$/Mandatory$ bounds are
+		// PER GROUP (revival_experiment's Amount$ 1 | MinAmount$ 0: "up to one
+		// card of that type"), so one answer re-enters per group through the
+		// ordinary "choice" resume arm and choiceRecord accumulates each
+		// group's pick. A group whose narrowed pool is empty resolves
+		// silently: Ask's empty-decision guard declines the shape and the
+		// choice below records nothing, exactly like Forge's per-type loop
+		// with no candidate of that type.
 		min, max := minBase, maxBase
 		if max > len(choices) {
 			max = len(choices)
@@ -421,13 +492,13 @@ func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 		if min > max {
 			min = max
 		}
-		if strings.EqualFold(sa.Params["AtRandom"], "True") {
+		if each == nil && strings.EqualFold(sa.Params["AtRandom"], "True") {
 			choiceRecord(h, c, sa, randomChoices(h, choices, max), false)
 			continue
 		}
-		d := &decision.Decision{Player: choosers[i], Kind: decision.KChoose, Source: c.Source, Min: min, Max: max, ResumeKind: "choice", ResumeSA: sa, ResumeTarget: i, ResumeChoices: append([]state.Target(nil), c.Chosen...), ResumeChosenValid: c.ChosenValid, ResumeRemembered: append([]state.Target(nil), c.Remembered...), Prompt: sa.Params["ChoiceTitle"]}
+		d := &decision.Decision{Player: chooser, Kind: decision.KChoose, Source: c.Source, Min: min, Max: max, ResumeKind: "choice", ResumeSA: sa, ResumeTarget: i, ResumeChoices: append([]state.Target(nil), c.Chosen...), ResumeChosenValid: c.ChosenValid, ResumeRemembered: append([]state.Target(nil), c.Remembered...), Prompt: sa.Params["ChoiceTitle"]}
 		for j, t := range choices {
-			d.Options = append(d.Options, decision.Option{Index: j, Kind: "card", Obj: t.Obj, Player: choosers[i]})
+			d.Options = append(d.Options, decision.Option{Index: j, Kind: "card", Obj: t.Obj, Player: chooser})
 		}
 		if d.Prompt == "" {
 			d.Prompt = "Choose card"
@@ -438,7 +509,7 @@ func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 		recorded := choices[:min]
 		choiceRecord(h, c, sa, recorded, false)
 		if reveal {
-			emitChosenReveal(h, choosers[i], recorded)
+			emitChosenReveal(h, chooser, recorded)
 		}
 	}
 }
