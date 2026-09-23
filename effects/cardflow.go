@@ -1829,6 +1829,13 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 	// rather than against either of the two destinations the walk picks
 	// between.
 	rider := classifyAttackingEntry(c, sa, state.ZBattlefield)
+	// RememberFound$ makes the found card(s) the resolution's Remembered set
+	// (Forge's DigUntilEffect.rememberFound), REPLACING whatever the
+	// resolution started with. The trigger's own captured referents are not
+	// lost: they live on in Ctx.Captured, the separate channel the Ctx doc
+	// describes. Accumulate across the multi-player walk and assign once, so
+	// a second player's found cards do not clobber the first's.
+	var digRemembered []state.Target
 	for _, p := range playerIDsFromTargets(h, c, sa.Params["Defined"], targets) {
 		lib := zoneOf(g, state.ZLibrary, p)
 		if len(lib) == 0 {
@@ -1877,7 +1884,7 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 			}
 		case rememberFound:
 			for _, id := range found {
-				c.Remembered = append(c.Remembered, state.Target{Obj: id})
+				digRemembered = append(digRemembered, state.Target{Obj: id})
 			}
 		}
 		foundJoinedRevealed := false
@@ -1998,6 +2005,9 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 			ev.Player, ev.Secret = p, true
 			h.Emit(ev)
 		}
+	}
+	if rememberFound {
+		c.Remembered = digRemembered
 	}
 }
 
