@@ -1616,3 +1616,93 @@ a058dd96 docs(mrg1): record merge-conflict resolution
 STATUS=DONE
 COMMITS=a058dd96 49518987
 TESTS=go test -v ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' -> 5 PASS none skipped; go test -run 'TestRevealAllValid|TestAttached*...' ./effects/ -> ok; go test -run 'TestArna*|TestStangg*' ./rules/ -> ok; agentsdoc/archtest/botbench -> ok; go build ./... -> ok
+
+---
+
+# Merge-conflict resolution — fb-20260923T020152Z-694613d1 (mrg1)
+
+## Entry state
+
+`git status` on arrival: **clean, no rebase or merge in flight** on branch
+`wt/fb-20260923T020152Z-694613d1` at `d14c376f` (docs) on `a1d21db9`
+(`fix(web): keep the attacker picker open across selections`). The daemon's
+rebase onto main had been aborted, so this seat re-ran the integration as a
+`git merge main` (the standing no-`git rebase` rule). Merge-base `f2e9c8d5`;
+main tip `b3523eab`; main 41 commits ahead, branch 2 ahead.
+
+## Conflicted file: `.ds4/report-sol1.md` (the only one)
+
+All other files (including main's many new rules/effects test files, AGENTS.md
+ratchet-table change, and `internal/testutil/agentsdoc_test.go`) auto-merged.
+
+Three-way shape of the one conflict (base 172 lines, ours 279, main 286):
+
+- **base**: the Deep Spawn UnlessCost Mill sol1 review-response report.
+- **ours (branch)**: the same shared sections (Deep Spawn, RollDice, Gitaxian
+  Probe) **plus the branch's unique `# Task fb-20260923T020152Z — attacker
+  radial picker` report appended** under a `---` divider (the +107 of
+  `d14c376f`).
+- **main**: the same shared sections **plus two unique reports of its own**:
+  `# Attached predicates — agent-20260922T210645Z-27e19c88` (inserted at the
+  top) and `# CopySpellAbility.Optional — sol1 rebase and report-conflict
+  resolution` (at the tail).
+
+Verified mechanically before resolving: ours' lines 1–173 (the shared Deep
+Spawn / RollDice / Gitaxian Probe sections) appear in main's version as a
+**byte-contiguous run**, so the only branch-unique content is ours lines
+174–279 (the attacker-picker report) and the two main-only sections.
+
+## Resolution
+
+Both sides' intent composes; nothing contradicts. Resolved file = **main's
+full version (286 lines) + ours' lines 174–279 (the `---` divider and the
+branch's attacker radial picker report) appended**. Result: 393 lines. A
+programmatic check confirmed every non-blank line of BOTH index stages
+(`:2:` and `:3:`) is present in the resolved file (0 missing per side) and no
+`<<<<<<<`/`=======`/`>>>>>>>` markers remain. No report text was edited.
+
+## Operation completed
+
+```
+$ git merge main
+Auto-merging .ds4/report-sol1.md
+CONFLICT (content): Merge conflict in .ds4/report-sol1.md
+Automatic merge failed; fix conflicts and then commit the result.
+$ git add -f .ds4/report-sol1.md && git commit --no-edit
+7f90dfef Merge branch 'main' into wt/fb-20260923T020152Z-694613d1
+$ git status --short          # clean
+$ git merge-base --is-ancestor main HEAD   # pass
+```
+
+Merge commit `7f90dfef`, tree clean, main is an ancestor.
+
+## Checks
+
+- `.cards` present (symlink to `/home/sadams/projects/gorge/.cards`) — real
+  corpus, not a vacuous skip.
+- `web/node_modules/.package-lock.json` present (hardlink copy carried over),
+  so the branch's web fix could be exercised.
+- Required post-merge ratchets:
+  `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`
+  → `ok github.com/adams-shaun/gorge/rules 1.100s` (exit 0).
+- Branch-fix sanity (branch's only code is web; main touched no web file):
+  `npm test -- --run src/components/CardMenu.test.ts` → `Test Files 1 passed
+  (1) / Tests 6 passed (6)`.
+- The conflicted file is docs-only (`.ds4/report-sol1.md`); there is no Go
+  package over it to test beyond the ratchet sweep above.
+
+## Notes / unsure about
+
+- None of substance. The conflict was the recurring report-accumulator
+  collision; both unique sides were preserved verbatim. The branch registers
+  no new `Mode$` matcher and closes no `knownUnsupported` /
+  `knownUnsupportedParams` / `knownUnmodelledCountHeads` entry, so no ratchet
+  table entry needed an `addedAfterTheSplit` listing or a removal; the
+  ratchet sweep passed unchanged.
+
+## Issues
+
+None found. The only conflict was the shared report accumulator; no engine or
+web code conflicted, and the merged main content (Backup, Attached
+predicates, CopySpellAbility.Optional, RevealAllValid) arrived with its own
+reports already in place.
