@@ -1372,7 +1372,12 @@ var apiSpecificRulesSA = map[string][]string{
 	// all run on mana abilities (api:Mana) only.
 	"Engine.manaAbilityPayablePool": {"Mana"},
 	"manaAbilityLabel":              {"Mana"},
-	"manaAbilityComboColours":       {"Mana"},
+	// The intrinsic-append dedup read (rules/mana_activation.go): the CR 305.6
+	// all-land-types walk reads a mana ability's Produced$ ONLY, so left in
+	// the generic union it would mask every other API's unread Produced$
+	// (measured: api:Sacrifice/api:DealDamage).
+	"manaAbilityProduced":     {"Mana"},
+	"manaAbilityComboColours": {"Mana"},
 	// The potential pool's mana-ability readers (rules/potential.go): they
 	// read a mana ability's Produced$/Amount$ ONLY, and PotentialMana is
 	// reachable from the viewer's projection on every priority decision, so
@@ -1500,9 +1505,9 @@ var apiSpecificRulesSA = map[string][]string{
 	// every other API (measured: api:ChangeZone). Only counterReplaceOp
 	// reads the body parameters now; the two application functions consume
 	// its priced result.
-	"Engine.counterReplaceOp": {"ReplaceCounter"},
-	"tokenReplacementsCommute":           {"ReplaceToken"},
-	"tokenReplApplies":                   {"ReplaceToken"},
+	"Engine.counterReplaceOp":  {"ReplaceCounter"},
+	"tokenReplacementsCommute": {"ReplaceToken"},
+	"tokenReplApplies":         {"ReplaceToken"},
 }
 
 // apiSpecificRulesStat is the stat-bucket twin of apiSpecificRulesSA: it
