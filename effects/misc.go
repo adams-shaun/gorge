@@ -2019,6 +2019,13 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 func effCounter(h Host, c *Ctx, sa *cards.SA) {
 	remember := strings.EqualFold(strings.TrimSpace(sa.Params["RememberCountered"]), "True") ||
 		strings.EqualFold(strings.TrimSpace(sa.Params["RememberCounteredSA"]), "True")
+	// RememberCounteredCMC$ (task counter-cmc): remember each countered
+	// spell's mana VALUE -- Electrosiphon's "an amount of {E} equal to its
+	// mana value", Overwhelming Intellect's draw family (14 corpus carriers,
+	// every one reading it back through SVar:X:Count$RememberedNumber). The
+	// number lands on the Ctx channel above; an ABILITY has no mana value
+	// and contributes nothing.
+	rememberCMC := strings.EqualFold(strings.TrimSpace(sa.Params["RememberCounteredCMC"]), "True")
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
@@ -2093,6 +2100,12 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 		if remember {
 			c.Remembered = append(c.Remembered, state.Target{Obj: o.ID})
 			eventRemember(h, c, o.ID)
+		}
+		if rememberCMC {
+			if f := o.Face(); f != nil {
+				c.RememberedCMC += f.Cmc()
+			}
+			c.RememberedCMCBound = true
 		}
 		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID,
 			From: state.ZStack, To: to, Text: "countered"})
