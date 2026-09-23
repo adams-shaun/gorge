@@ -184,6 +184,16 @@ func effWard(h Host, c *Ctx, sa *cards.SA) {
 // spell), an absent Duration$, or carrying an explicit this-turn Duration$ is
 // UntilEOT, dropped at end-of-turn cleanup; an explicit Permanent (and other
 // source-relative durations) persists while its source stays on the battlefield.
+// effectContinuous registers one continuous effect created by the api:Effect
+// primitive, marking it Effect-created (state.ContinuousEffect.FromEffect).
+// The marker is what the source-scoped form of the one-shot self-exile ender
+// (Host.EndEffectSource) keys on, so a printed static of the SAME source is
+// never ended by an Effect's self-exile.
+func effectContinuous(h Host, ce state.ContinuousEffect) {
+	ce.FromEffect = true
+	h.AddContinuous(ce)
+}
+
 func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	rawDur := sa.Params["Duration"]
 	dur := rawDur
@@ -502,7 +512,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		if body != "" && (event == "DamageDone" ||
 			(event == "Moved" && replacementBodyAPI(body) == "PutCounter") ||
 			(event == "CreateToken" && replacementBodyAPI(body) == "ReplaceToken")) {
-			h.AddContinuous(state.ContinuousEffect{
+			effectContinuous(h, state.ContinuousEffect{
 				Source: c.Source, Controller: c.Controller,
 				UntilEOT: effectUntilEOT(h, c.Source, rawDur), Duration: dur,
 				Name:             effectName,
@@ -540,7 +550,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				// default the other shapes keep. An explicit Duration$ wins.
 				untilEOT = true
 			}
-			h.AddContinuous(state.ContinuousEffect{
+			effectContinuous(h, state.ContinuousEffect{
 				Source: c.Source, Controller: c.Controller,
 				UntilEOT: untilEOT, Duration: dur,
 				Name:              effectName,
@@ -575,7 +585,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				ce.ExileOnMoved = exileOn
 				ce.ForgetCounter = forgetCounter
 				ce.ImprintOnHost = imprintOnHost
-				h.AddContinuous(ce)
+				effectContinuous(h, ce)
 				registered = true
 			} else if grant, ok := mayPlayGrantFromLine(params); ok {
 				// A may-play-from-zone grant delivered by an Effect SA (Atsushi's
@@ -596,7 +606,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				grant.ExileOnMoved = exileOn
 				grant.ForgetCounter = forgetCounter
 				grant.ImprintOnHost = imprintOnHost
-				h.AddContinuous(grant)
+				effectContinuous(h, grant)
 				registered = true
 			} else if grant, ok := mayPlayFreeGrantFromLine(params); ok {
 				// The FREE-cast may-play grant delivered by an Effect SA (Dauthi
@@ -618,7 +628,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				grant.ExileOnMoved = exileOn
 				grant.ForgetCounter = forgetCounter
 				grant.ImprintOnHost = imprintOnHost
-				h.AddContinuous(grant)
+				effectContinuous(h, grant)
 				registered = true
 			} else if kws, affected, zone, ok := cascadeKeywordGrantFromLine(params); ok {
 				// AddKeyword$ Cascade (task cascade1): the Effect-delivered
@@ -654,7 +664,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					ForgetCounter: forgetCounter,
 					ForgetOnCast:  forgetOnCast,
 				}
-				h.AddContinuous(ce)
+				effectContinuous(h, ce)
 				registered = true
 			} else if val, affected, zone, ok := setMaxHandSizeGrantFromLine(params); ok {
 				// SetMaxHandSize$ (the Effect-delivered "you have no maximum
@@ -692,7 +702,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					ExileOnMoved:   exileOn,
 					ForgetCounter:  forgetCounter,
 				}
-				h.AddContinuous(ce)
+				effectContinuous(h, ce)
 				registered = true
 			} else if g, affects, gok := parseStaticEffectGrant(params, false); gok && effectStaticGrantReadable(params, g) {
 				// The general Mode$ Continuous case: a layer grant
@@ -726,6 +736,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					ImprintOnHost: imprintOnHost,
 					ForgetOnCast:  forgetOnCast,
 					ChosenNumber:  chosenNumber,
+					FromEffect:    true,
 				}
 				if registerStaticEffectGrant(h, c, c.Source, affects, g, lt) {
 					registered = true
@@ -844,7 +855,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				// silently vanish.
 				ce.RememberedPlayers = effectRememberedPlayers(h, c, sa)
 			}
-			h.AddContinuous(ce)
+			effectContinuous(h, ce)
 			registered = true
 		case "ReduceCost", "RaiseCost", "SetCost", "AlternativeCost", "ManaConvert":
 			// An Effect-delivered cost-modifier or ManaConvert static (task
@@ -908,7 +919,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				CostStaticParams: params,
 				ChosenNumber:     chosenNumber,
 			}
-			h.AddContinuous(ce)
+			effectContinuous(h, ce)
 			registered = true
 		case "MustAttack":
 			// An Effect-delivered per-player attack REQUIREMENT (Forge's
@@ -954,7 +965,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// requirement would never be counted. Same read the adjacent
 			// CantAttack/CantSacrifice case makes.
 			ce.RememberedPlayers = effectRememberedPlayers(h, c, sa)
-			h.AddContinuous(ce)
+			effectContinuous(h, ce)
 			registered = true
 		default:
 			// A resolvable but unsupported mode is reported honestly; an
@@ -980,7 +991,17 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "registers a continuous effect (" + what + ") for " + dur})
 		}
+		return
 	}
+	// The Effect is now a live registration; a self-exile idiom later in the
+	// SAME resolution chain (a `DB$ Effect ... SubAbility$ ... | Origin$
+	// Command | Destination$ Exile`, and every Effect-created delayed trigger
+	// already bound by rules) resolves under this source's Effect identity and
+	// must end it. Stamp zero is the SOURCE-SCOPED frame: the chain has no
+	// per-registration (source, timestamp) identity to name, so the ender drops
+	// every Effect-created registration from the source (Host.EndEffectSource)
+	// while leaving the source's printed statics alone.
+	c.EffectFrame = EffectFrame{Source: c.Source}
 }
 
 // mayPlayGrantFromLine builds the may-play ContinuousEffect from one parsed

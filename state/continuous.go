@@ -63,6 +63,16 @@ type ContinuousEffect struct {
 	Controller PlayerID
 	UntilEOT   bool
 
+	// FromEffect marks a registration created by the api:Effect primitive (the
+	// Ctx-side stand-in for Forge's implicit Command-zone effect object). The
+	// one-shot self-exile idiom (`DB$ ChangeZone | Defined$ Self | Origin$
+	// Command | Destination$ Exile`) ends exactly the source's Effect-created
+	// registrations (rules.Engine.EndEffectSource), so a printed static of the
+	// SAME source -- registered by the layer-5/6 static scan, not by an
+	// Effect -- is never a casualty. Rebuilt by re-execution on replay like
+	// every other continuous-effect field.
+	FromEffect bool
+
 	// SVars is the SVar table of the face that carries this static, so a
 	// deferred expression (AddPowerExpr$ naming an SVar) resolves against the
 	// face that wrote it. nil means the source object's top face -- every

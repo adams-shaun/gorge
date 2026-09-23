@@ -3261,6 +3261,11 @@ func (e *Engine) resolveTop() {
 		// o.Source; this was a one-line inconsistency, not a second design.
 		ctx := &effects.Ctx{Source: o.Source, Controller: o.Controller,
 			Targets: targets, ModeTargets: charmModeTargets, Remembered: o.Remembered, Captured: o.Remembered, TriggerContext: e.triggerContexts[id],
+			// An Effect-created delayed trigger body resolves under the Effect's
+			// source-scoped frame (queued by rules' delayed-trigger fire), so the
+			// one-shot self-exile idiom it may run ends the Effect. Zero for every
+			// ordinary printed trigger.
+			EffectFrame: e.triggerEffectFrames[id],
 			// The resolving stack-object wrapper: ValidStack's otherAbility
 			// exclusion (Ulalek's sub-copy) anchors here, not on Source --
 			// Source is the source permanent (Ruling T20-b), which is not on
