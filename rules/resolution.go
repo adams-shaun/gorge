@@ -2390,6 +2390,19 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			if len(chosen) > 0 && chosen[0].Kind == "yes" {
 				ctx.AttachOpt = "yes"
 			}
+		case "copy_optional":
+			// An Optional$ True CopySpellAbility's may-copy election
+			// (Sevinne's Reclamation's "you may copy this spell", and the
+			// corpus's wider may-copy family) was answered. Option 0 is "yes";
+			// anything else (option 1, an empty or malformed answer) is the
+			// decline -- the conservative read of an ambiguous answer. The
+			// re-entered effCopySpellAbility consumes and clears Ctx.CopyOpt:
+			// "yes" makes the copy through the ordinary path, "no" makes
+			// none and the chained SubAbility$ still runs.
+			ctx.CopyOpt = "no"
+			if len(chosen) > 0 && chosen[0].Kind == "yes" {
+				ctx.CopyOpt = "yes"
+			}
 		case "surveil_look_optional":
 			// The stat:SurveilNum optional "you may look at an additional N
 			// cards each time you surveil" election (Enhanced Surveillance)

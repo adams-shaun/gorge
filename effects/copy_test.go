@@ -204,6 +204,12 @@ func TestCopySpellAbilityUnswitchedShapePayingStopsTheCopies(t *testing.T) {
 	if _, ok := saWA.Params["UnlessSwitched"]; ok {
 		t.Fatalf("Wandering Archaic copy SA unexpectedly carries UnlessSwitched$: %+v", saWA.Params)
 	}
+	// PRECONDITION for the composed-election arm this test pins: the corpus SA
+	// really carries Optional$ True, so the decline path below asks the
+	// may-copy election on top of the resolved unless gate.
+	if !strings.EqualFold(strings.TrimSpace(saWA.Params["Optional"]), "True") {
+		t.Fatalf("Wandering Archaic copy SA unexpectedly lacks Optional$ True: %+v", saWA.Params)
+	}
 	h := &askHost{}
 	h.g = state.NewGame(names(2))
 	// The opponent's instant the trigger remembered (Defined$
@@ -228,17 +234,39 @@ func TestCopySpellAbilityUnswitchedShapePayingStopsTheCopies(t *testing.T) {
 	// Re-entry, pay: on the unswitched shape paying STOPS the copy. The
 	// Resume path re-derives the same Ctx (source/remembered are the trigger's
 	// stack object's), so Remembered is carried here as it would be in the
-	// engine.
+	// engine. The body never runs, so no may-copy election is posed either.
 	Resolve(h, &Ctx{Source: spell.ID, Controller: 0, UnlessPay: "pay",
 		Remembered: []state.Target{{Obj: spell.ID}}}, saWA)
 	if got := copyEvents(&h.fakeHost); got != 0 {
 		t.Fatalf("%d copies made on an unswitched pay, want 0", got)
 	}
-	// Re-entry, decline: the decline IS the copy path.
+	// Re-entry, decline: the decline IS the copy path, but the body's
+	// Optional$ True may-copy election ("you MAY copy that spell") is now
+	// posed on top of the resolved gate -- to the copy's controller
+	// (Controller$ You = the trigger's controller, seat 0), as a KChoose
+	// copy_optional ask. The un-asked re-entry makes no copy.
 	Resolve(h, &Ctx{Source: spell.ID, Controller: 0, UnlessPay: "decline",
 		Remembered: []state.Target{{Obj: spell.ID}}}, saWA)
+	if got := copyEvents(&h.fakeHost); got != 0 {
+		t.Fatalf("%d copies made before the may-copy election was answered, want 0", got)
+	}
+	if h.asked == nil || h.asked.Kind != decision.KChoose || h.asked.ResumeKind != "copy_optional" || h.asked.Player != 0 {
+		t.Fatalf("no may-copy election posed to seat 0: %+v", h.asked)
+	}
+	if len(h.asked.Options) != 2 || h.asked.Options[0].Kind != "yes" || h.asked.Options[1].Kind != "no" {
+		t.Fatalf("election options = %+v, want [yes, no]", h.asked.Options)
+	}
+	// The answered decline arm: CopyOpt "no" makes no copy...
+	Resolve(h, &Ctx{Source: spell.ID, Controller: 0, UnlessPay: "decline", CopyOpt: "no",
+		Remembered: []state.Target{{Obj: spell.ID}}}, saWA)
+	if got := copyEvents(&h.fakeHost); got != 0 {
+		t.Fatalf("%d copies made on an answered election decline, want 0", got)
+	}
+	// ...and the answered accept arm: CopyOpt "yes" makes exactly one.
+	Resolve(h, &Ctx{Source: spell.ID, Controller: 0, UnlessPay: "decline", CopyOpt: "yes",
+		Remembered: []state.Target{{Obj: spell.ID}}}, saWA)
 	if got := copyEvents(&h.fakeHost); got != 1 {
-		t.Fatalf("%d copies made on an unswitched decline, want 1", got)
+		t.Fatalf("%d copies made on an unswitched decline with an accepted may-copy election, want 1", got)
 	}
 }
 

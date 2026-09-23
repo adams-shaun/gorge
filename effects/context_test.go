@@ -437,9 +437,10 @@ func (h *fakeHost) IsCreature(id state.ObjID) bool {
 
 // Ask reports false: an effects-package test double has no engine to drive,
 // so a mid-resolution ask falls back to the primitive's deterministic
-// stand-in (effCharm's first mode, effCopySpellAbility's decline) -- which
-// is exactly today's no-ask behaviour, now with the engines it is a fallback
-// for clearly named (R-9).
+// stand-in (effCharm's first mode, effCopySpellAbility's may-copy election --
+// which MAKES the copy, the documented pre-ask behaviour) -- which is exactly
+// today's no-ask behaviour, now with the engines it is a fallback for clearly
+// named (R-9).
 func (h *fakeHost) Ask(d *decision.Decision) bool { h.askCount++; h.lastAsk = d; return h.askResult }
 
 // TypeChoices serves the double's configured typeChoices list (nil by
