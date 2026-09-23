@@ -429,9 +429,8 @@ type Engine struct {
 	// overlaps (Turn // Burn's Creature vs Any). Engine-only scratch like
 	// sacrificedLKI: rebuilt by replay because payCast re-executes, cloned
 	// with the engine at intent boundaries, removed with the stack object.
-	// A stack COPY of a fused spell has no entry (it inherits the flat list,
-	// not the scratch), and resolveFused's spec re-derivation is its
-	// fallback for exactly that shape.
+	// StackCopy inherits this split alongside its flat targets when available;
+	// resolveFused uses its spec fallback only for copies without provenance.
 	fuseTargets map[state.ObjID][][]state.Target
 	// copyTargetStage tracks the in-progress per-declaration copy-target
 	// election (CR 707.10c), keyed on the copying stack object: the value is
@@ -1924,6 +1923,19 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	}
 	if ev.Kind == events.StackCopy && len(e.G.Stack) > stackLen {
 		copyID := e.G.Stack[len(e.G.Stack)-1]
+		// StackCopy inherits the flat targets in events.Apply; preserve the
+		// cast-time declaration split too. Current legality cannot reconstruct
+		// which half owned an inherited target after the board has changed.
+		if stages, ok := e.fuseTargets[ev.Obj]; ok && len(ev.IDs) == 0 {
+			if e.fuseTargets == nil {
+				e.fuseTargets = make(map[state.ObjID][][]state.Target)
+			}
+			cp := make([][]state.Target, len(stages))
+			for i, targets := range stages {
+				cp[i] = append([]state.Target(nil), targets...)
+			}
+			e.fuseTargets[copyID] = cp
+		}
 		if tc, ok := e.triggerContexts[ev.Obj]; ok {
 			e.triggerContexts[copyID] = tc
 		}

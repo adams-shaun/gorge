@@ -2140,14 +2140,17 @@ func (e *Engine) totalPowerCappedCandidates(candidates []targetCandidate, p stat
 // the resolveTop re-entry does not ask again.
 //
 // A copy whose spell has MORE THAN ONE target DECLARATION -- the two halves
-// of a Fuse cast, or a modal spell whose announcement selected a
-// target-bearing mode -- is asked ONE DECISION PER DECLARATION, in the same
+// of a Fuse cast, or each target-bearing mode of a modal spell -- is asked
+// ONE DECISION PER DECLARATION, in the same
 // order the cast asked them (castStageSA / castHasNextTargetStage), so each
 // declaration is offered its own legal set, its own bounds and its own
 // per-controller Option.Group. The earlier single-list shape flattened every
 // declaration into one pool, so a half's own ValidTgts$ was never applied to
 // its half's choices (a fused Wear // Tear offered only artifacts and never
-// the enchantment the alternate half demands). The in-progress stage is
+// the enchantment the alternate half demands). A copy inherits the cast's
+// announcement and target provenance; an illegal inherited target remains
+// in its original declaration rather than migrating to a later stage. The
+// in-progress stage is
 // tracked in Engine.copyTargetStage keyed on the copy's stack object, so the
 // second-stage ask survives the TargetsChosen fold that clears
 // CopyMayChooseTarget after the first declaration.
@@ -2186,13 +2189,10 @@ func (e *Engine) AskCopyTargets() bool {
 	// decision as Decision.MaxSum over Option.Value (below), exactly as the
 	// cast ask attaches it.
 	candidates, powerCap, powerCapped := e.totalPowerCappedCandidates(candidates, controller, o.ID, sa, o.X)
-	// The inherited targets that belong to THIS declaration are offered first
-	// as keep-current slots. A copy carries only the flat list (a StackCopy
-	// inherits o.Targets, never the per-stage split), so a multi-declaration
-	// copy re-derives the attribution through each declaration's own ValidTgts
-	// spec -- the same fallback resolveFused already uses for a copied fused
-	// spell, with the same disclosed narrowing for a target the declarations'
-	// specs merely overlap.
+	// Keep the original declaration's targets, including ones that have since
+	// become illegal. The StackCopy emission inherits the cast's stage split;
+	// when no split exists, assign flat targets by declaration position, never
+	// by current legality.
 	inherited := e.copyInheritedForDeclaration(o, decls, stage)
 	ordered := make([]targetCandidate, 0, len(candidates)+len(inherited))
 	for _, old := range inherited {
@@ -2271,15 +2271,19 @@ func (e *Engine) AskCopyTargets() bool {
 // copyTargetDeclarations returns the target DECLARATIONS a copy must ask, in
 // cast order. A Fuse copy has two: the front half's spell ability and the
 // alternate half's (split.go's fusedSplitFaces), each with its own ValidTgts$
-// and therefore its own legal set. Every other spell (and an ability) has one:
-// the modal target SA for a chosen-mode spell (modalTargetSA), else the face's
-// own spell ability. A declaration with no ValidTgts$ is dropped, matching the
-// cast's stage skip so a targetless half never misaligns the stages.
+// and therefore its own legal set. For a chosen-mode Charm, each selected
+// target-bearing mode is a separate declaration in chosen order. A declaration
+// with no ValidTgts$ is dropped.
 func (e *Engine) copyTargetDeclarations(o *state.Object) []*cards.SA {
 	if o == nil {
 		return nil
 	}
 	if o.Ability != nil {
+		if src := e.G.Obj(o.Source); src != nil && src.Face() != nil {
+			if modes := copyCharmModes(src.Face(), o.Ability, o.ChosenModes); len(modes) > 0 {
+				return modes
+			}
+		}
 		return []*cards.SA{o.Ability}
 	}
 	f := o.Face()
@@ -2289,12 +2293,16 @@ func (e *Engine) copyTargetDeclarations(o *state.Object) []*cards.SA {
 	if ff, fa := fusedSplitFaces(o); ff != nil && fa != nil {
 		out := make([]*cards.SA, 0, 2)
 		for _, hf := range []*cards.Face{ff, fa} {
-			sa := modalTargetSA(hf, hf.SpellAbility(), o.ChosenModes)
-			if sa != nil && strings.TrimSpace(sa.Params["ValidTgts"]) != "" {
+			if modes := copyCharmModes(hf, hf.SpellAbility(), o.ChosenModes); len(modes) > 0 {
+				out = append(out, modes...)
+			} else if sa := hf.SpellAbility(); sa != nil && strings.TrimSpace(sa.Params["ValidTgts"]) != "" {
 				out = append(out, sa)
 			}
 		}
 		return out
+	}
+	if modes := copyCharmModes(f, f.SpellAbility(), o.ChosenModes); len(modes) > 0 {
+		return modes
 	}
 	sa := modalTargetSA(f, f.SpellAbility(), o.ChosenModes)
 	if sa == nil {
@@ -2303,15 +2311,23 @@ func (e *Engine) copyTargetDeclarations(o *state.Object) []*cards.SA {
 	return []*cards.SA{sa}
 }
 
-// copyInheritedForDeclaration returns the copy's inherited targets that belong
-// to declaration index `stage`. With one declaration every inherited target
-// belongs to it (the single-declaration ask is byte-identical to before). With
-// several, the flat inherited list is attributed through each declaration's own
-// ValidTgts spec in stage order: an inherited target that matches an earlier
-// declaration's spec goes to that declaration, so later declarations are not
-// offered it twice. An inherited target no declaration's spec matches is kept
-// by the LAST declaration, so it is always offered first as a keep-current slot
-// (the CR 707.10c contract: declining lets the copy fizzle).
+func copyCharmModes(f *cards.Face, sa *cards.SA, names []string) []*cards.SA {
+	if f == nil || sa == nil || sa.API != "Charm" || len(names) == 0 || sa.Params["ValidTgts"] != "" {
+		return nil
+	}
+	var out []*cards.SA
+	for _, name := range names {
+		if sub := cards.ResolveSVar(f.SVars, name); sub != nil && strings.TrimSpace(sub.Params["ValidTgts"]) != "" {
+			out = append(out, sub)
+		}
+	}
+	return out
+}
+
+// copyInheritedForDeclaration returns the targets owned by this declaration.
+// Cast-time provenance survives StackCopy in fuseTargets. For copies without
+// provenance, flat targets are divided by declaration bounds in cast order;
+// legality must never be used to infer ownership after the board changes.
 func (e *Engine) copyInheritedForDeclaration(o *state.Object, decls []*cards.SA, stage int) []state.Target {
 	if o == nil || len(o.Targets) == 0 {
 		return nil
@@ -2319,32 +2335,36 @@ func (e *Engine) copyInheritedForDeclaration(o *state.Object, decls []*cards.SA,
 	if len(decls) <= 1 {
 		return o.Targets
 	}
-	out := make([]state.Target, 0, len(o.Targets))
-	for _, t := range o.Targets {
-		owner := -1
-		for i, sa := range decls {
-			if e.inheritedTargetMatchesDeclaration(o, t, sa, targetZones(sa)) {
-				owner = i
-				break
+	if stages, ok := e.fuseTargets[o.ID]; ok {
+		index := stage
+		if ff, _ := fusedSplitFaces(o); ff != nil {
+			if sa := ff.SpellAbility(); sa == nil || strings.TrimSpace(sa.Params["ValidTgts"]) == "" {
+				index++ // the first fused half has no target declaration
 			}
 		}
-		if owner < 0 {
-			owner = len(decls) - 1
+		if index < len(stages) {
+			return stages[index]
 		}
-		if owner == stage {
-			out = append(out, t)
-		}
+		return nil
 	}
-	return out
-}
-
-// inheritedTargetMatchesDeclaration reports whether an inherited target still
-// satisfies declaration sa's own ValidTgts$ spec (through the resolution
-// recheck legalTargets, the one-definition judge every copy target site uses).
-// It is the attribution read for a multi-declaration copy's flat inherited
-// list: the target goes to the first declaration whose spec admits it.
-func (e *Engine) inheritedTargetMatchesDeclaration(o *state.Object, t state.Target, sa *cards.SA, zones []state.Zone) bool {
-	return len(e.legalTargets([]state.Target{t}, sa, zones, o.Controller, o.ID, o.ID)) > 0
+	start := 0
+	for i, sa := range decls {
+		end := len(o.Targets)
+		if i < len(decls)-1 {
+			_, max := e.resolvedTargetBounds(o.Controller, o.ID, sa, o.X)
+			if max < 0 {
+				max = 0
+			}
+			if end > start+max {
+				end = start + max
+			}
+		}
+		if i == stage {
+			return o.Targets[start:end]
+		}
+		start = end
+	}
+	return nil
 }
 
 // stateTargetCandidate converts a recorded state.Target into the option shape

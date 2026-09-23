@@ -2121,6 +2121,9 @@ func Apply(g *state.Game, e Event) {
 		// the stack.
 		targets := append([]state.Target(nil), src.Targets...)
 		remembered := append([]state.Target(nil), src.Remembered...)
+		// Mode announcements are copiable characteristics (CR 707.10): a
+		// modal copy must resolve the same chosen modes, not ask for new ones.
+		chosenModes := append([]string(nil), src.ChosenModes...)
 		// A DefinedTarget$ copy names its own targets (the StackCopy doc): the
 		// event's IDs replace the inherited list with object targets. The
 		// ids are not re-validated here beyond existence -- the copy's own CR
@@ -2142,6 +2145,7 @@ func Apply(g *state.Game, e Event) {
 		o.GainedFace = gainedFace
 		o.Targets = targets
 		o.Remembered = remembered
+		o.ChosenModes = chosenModes
 		o.X, o.CastFlags, o.IsCopy = x, castFlags, true
 		// CR 707.10c: Amount is the creating CopySpellAbility's
 		// MayChooseTarget$ discriminator (1 = true). It rides the event so the

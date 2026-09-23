@@ -1235,6 +1235,11 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			}
 			e.recordChosenTargets(rp.obj, flat, false)
 			if o := e.G.Obj(rp.obj); o != nil && o.CastFlags&state.FlagFused != 0 {
+				if ff, _ := fusedSplitFaces(o); ff != nil {
+					if sa := ff.SpellAbility(); sa == nil || strings.TrimSpace(sa.Params["ValidTgts"]) == "" {
+						stages = append([][]state.Target{nil}, stages...)
+					}
+				}
 				if e.fuseTargets == nil {
 					e.fuseTargets = make(map[state.ObjID][][]state.Target)
 				}
