@@ -621,7 +621,7 @@ func (e *Engine) unlessCandidatesFor(payer state.PlayerID, ctx effects.Ctx, zone
 	sc := ctx.SpecContext(payer)
 	var out []state.ObjID
 	for _, id := range e.G.Zone(zone, payer) {
-		if kind == "sacrifice" && e.SacrificeBlocked(id, true) {
+		if kind == "sacrifice" && e.sacrificeBlockedForCost(id, costCauseNone) {
 			// A CantSacrifice restriction (Call for Aid) or face static: the
 			// permanent cannot pay a sacrifice component.
 			continue

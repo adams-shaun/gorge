@@ -1355,7 +1355,7 @@ func (e *Engine) triggeredMandatoryCandidatesWith(tc *triggeredEffectCost, idx i
 		if used[id] {
 			continue
 		}
-		if isSac && e.SacrificeBlocked(id, true) {
+		if isSac && e.sacrificeBlockedForCost(id, costCauseNone) {
 			continue
 		}
 		if e.matchesSpec(spec, id, sc) {

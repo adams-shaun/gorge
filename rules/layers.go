@@ -3213,9 +3213,66 @@ func (e *Engine) restrictionActorMatches(ce ContinuousEffect, actor state.Player
 // callers (the cast/activation/mana/ward/unless Sac-cost candidate walks)
 // pass true, the effect-driven ones (effSacrifice, effSacrificeAll) false. A
 // face static's ForCost$/ValidCause$ scoping reads the split: ForCost$ False
-// lines never restrict a cost sacrifice, and ValidCause$ lines are evaluated
-// only on the effect path, where actionCause() names the resolving wrapper.
+// lines never restrict a cost sacrifice, ForCost$ True lines restrict only a
+// cost sacrifice, and ValidCause$ is evaluated against the cause appropriate
+// to the path -- actionCause() (the resolving wrapper) on the effect path,
+// the pending cast/activation on the cost path (causeCostAdmits, task
+// cantsac1).
 func (e *Engine) SacrificeBlocked(id state.ObjID, forCost bool) bool {
+	return e.sacrificeBlocked(id, forCost, costCauseNone)
+}
+
+// sacrificeBlockedForCost is the cost path's entry point (task cantsac1):
+// the rules-side Sac-cost walks (cast/activation, mana ability, ward,
+// unless, cumulative upkeep) know what the sacrifice is paying for, so they
+// call this with the cost's own cause instead of the effects.Host method.
+// causeCostAdmits reads it, so a `ForCost$ True | ValidCause$
+// Spell,Activated` static (angel_of_jubilation, yasharn_implacable_earth)
+// blocks a cost sacrifice it should and leaves an effect's sacrifice alone.
+func (e *Engine) sacrificeBlockedForCost(id state.ObjID, cause costCause) bool {
+	return e.sacrificeBlocked(id, true, cause)
+}
+
+// costCause names what a COST-path sacrifice is being paid for, the cost-side
+// counterpart of causeSpecAdmits' actionCause(). A cost has no resolving
+// object to attribute: an activated ability's costs are paid BEFORE its stack
+// object exists (cast.go pushCast's pc.isAbility() early return), so the
+// stack top would name whatever unrelated object was already there -- the
+// exact misattribution discardCauseAdmits guards against. The pending act of
+// casting/activating is therefore the only honest cause, and costCauseNone
+// marks a cost site with no pending cast/activation at all (ward, an unless
+// cost, cumulative upkeep), where a Spell/Activated alternative fails closed.
+type costCause uint8
+
+const (
+	costCauseNone      costCause = iota // no pending cast/activation (ward, unless, upkeep)
+	costCauseSpell                      // casting a spell
+	costCauseActivated                  // activating an ability (including a mana ability)
+)
+
+// costCauseForPendingCast classifies the in-flight proposal pc. A nil pc (no
+// cast in flight) is costCauseNone.
+func costCauseForPendingCast(pc *pendingCast) costCause {
+	if pc == nil {
+		return costCauseNone
+	}
+	if pc.isAbility() {
+		return costCauseActivated
+	}
+	return costCauseSpell
+}
+
+// costCauseForAbility is the offer gate's variant (cast.go nonManaCastable):
+// castable prices a HYPOTHETICAL cast with no pendingCast, so the caller's
+// own ability bit is the provenance.
+func costCauseForAbility(ability bool) costCause {
+	if ability {
+		return costCauseActivated
+	}
+	return costCauseSpell
+}
+
+func (e *Engine) sacrificeBlocked(id state.ObjID, forCost bool, cause costCause) bool {
 	for _, ce := range e.active() {
 		if ce.Restriction != "CantSacrifice" {
 			continue
@@ -3228,30 +3285,33 @@ func (e *Engine) SacrificeBlocked(id state.ObjID, forCost bool) bool {
 		if !effects.CantSacrificeRestrictionParamsReadable(sv.Params) {
 			continue
 		}
-		// vc-static1: the cause-scoping parameters, evaluated before the
+		// cantsac1: the cause-scoping parameters, evaluated before the
 		// ValidCard match so an unevaluable shape stays skipped (the
 		// permissive direction) instead of blanket-blocking. ForCost$ True
-		// restricts only COST sacrifices, and the cost call sites' provenance
-		// (the pending cast/activation identity, not actionCause) is not
-		// modelled, so those lines stay skipped whole -- recorded in the
-		// combatrestriction1 row of AGENTS.md with its two carriers
-		// (angel_of_jubilation, yasharn_implacable_earth).
+		// restricts only COST sacrifices; ForCost$ False never restricts one.
 		switch sv.Params["ForCost"] {
 		case "True":
-			continue
+			if !forCost {
+				continue
+			}
 		case "False":
 			if forCost {
 				continue
 			}
 		}
 		// ValidCause$ names the kind of spell/ability that must be causing
-		// the sacrifice. Only the effect-driven call sites (forCost false)
-		// have a meaningful actionCause; a cost sacrifice has none, and a
-		// ValidCause spec (a Spell/Activated/Triggered kind) can never name a
-		// cost anyway, so a cost site skips these lines the same way -- the
-		// permissive, oracle-correct direction either way.
+		// the sacrifice. The effect path (forCost false) has a real
+		// resolving wrapper, so actionCause() evaluates it (causeSpecAdmits).
+		// The cost path has none, so it evaluates the pending cast/activation
+		// identity instead (causeCostAdmits) -- a cost sacrifice is caused by
+		// the spell being cast or the ability being activated, never by the
+		// object already on the stack.
 		if spec := sv.Params["ValidCause"]; spec != "" {
-			if forCost || !e.causeSpecAdmits(spec, sv.Source) {
+			if forCost {
+				if !causeCostAdmits(spec, cause) {
+					continue
+				}
+			} else if !e.causeSpecAdmits(spec, sv.Source) {
 				continue
 			}
 		}

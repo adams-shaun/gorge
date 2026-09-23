@@ -119,7 +119,7 @@ func (e *Engine) beginWardPayment(rp *resumePoint, ctx *effects.Ctx) (paid, aske
 		// permanent cannot pay the ward's sacrifice component.
 		var sacIDs []state.ObjID
 		for _, id := range ids {
-			if !e.SacrificeBlocked(id, true) {
+			if !e.sacrificeBlockedForCost(id, costCauseNone) {
 				sacIDs = append(sacIDs, id)
 			}
 		}
