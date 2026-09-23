@@ -440,3 +440,30 @@ Ratchets and targeted checks (results pasted below in the final message block).
 
 None new. The only content conflicts were the report accumulators and a
 comment block; no engine behaviour was ambiguous on either side.
+
+---
+
+# Final verification — agent-20260922T191943Z-4ffa25b7
+
+The failed daemon rebase/fallback is no longer in progress in this worktree:
+`git status` was clean at merge commit `4c991146`, which already contains the
+resolution described above. The merge-conflict paths have no conflict markers.
+`.cards` is present as a symlink to the shared corpus.
+
+Post-merge targeted tests and ratchets run for this verification:
+
+```text
+$ go test -run 'TestRevealAllValid|TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort' ./effects/ ./internal/testutil/
+ok   github.com/adams-shaun/gorge/effects        0.664s
+ok   github.com/adams-shaun/gorge/internal/testutil 0.002s
+
+$ go test ./rules/ -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok   github.com/adams-shaun/gorge/rules 0.815s
+
+$ grep -nE '^(<<<<<<<|=======|>>>>>>>)' .ds4/report-mrg1.md .ds4/report-t1.md internal/testutil/agentsdoc_test.go
+(no output)
+```
+
+The existing merge commit completed the integration; no second merge or rebase
+was started. No code conflict required further edits, and no new issue was
+found.
