@@ -584,7 +584,16 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 	if f := c.EffectFrame; f.Source != 0 && f.Source == c.Source && to == state.ZExile && !originAll &&
 		len(originZones) == 1 && originZones[0] == state.ZCommand &&
 		len(targets) == 1 && !targets[0].IsPlayer && targets[0].Obj == c.Source {
-		h.EndEffect(f.Source, f.Stamp)
+		if f.Stamp != 0 {
+			h.EndEffect(f.Source, f.Stamp)
+		} else {
+			// A source-scoped frame (no per-registration stamp): the idiom ran
+			// from an Effect's OWN body -- its Triggers$ body, or the chain of
+			// the spell/ability that registered it -- so end every Effect-created
+			// registration from that source. The ender's FromEffect marker keeps
+			// the source's printed statics out of it.
+			h.EndEffectSource(f.Source)
+		}
 		return
 	}
 	// The ImprintOnHost$ ender (task param:api:Effect.ImprintOnHost): the

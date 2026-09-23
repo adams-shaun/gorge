@@ -160,15 +160,21 @@ type Option struct {
 	// Player is always emitted because 0 is a valid seat (0-indexed), unlike
 	// Obj where 0 means "no object".
 	Player state.PlayerID `json:"player"`
-	// AttackTarget is the planeswalker permanent attacked by an attacker option;
-	// zero means the option attacks Player.
-	AttackTarget state.ObjID `json:"attack_target,omitempty"`
 	// Attacker tells a block option's client which attacker this blocker
 	// would block, so a human can see the pairing an in-process bot already
 	// can (the declare-blockers step is otherwise guessing). omitempty
 	// mirrors Obj: an ObjID of 0 means "no object", so an option that has
 	// no attacker (any non-block option) emits no field.
 	Attacker state.ObjID `json:"attacker,omitempty"`
+	// Battle, on an attacker option, names the non-player permanent being
+	// attacked -- a CR 310.7 battle or a planeswalker -- 0 meaning a player
+	// attack. Obj is the attacking creature and Player is the permanent's seat
+	// (the battle's protector, or the planeswalker's controller), so the pair
+	// alone cannot tell a permanent attack from a player attack by the same
+	// creature; this field is what the engine reads back at declaration time to
+	// record Object.AttackingBattle. omitempty: a player attack emits no field,
+	// so every existing option list serialises byte-identically.
+	Battle state.ObjID `json:"battle,omitempty"`
 	// Required marks an attacker option whose creature MUST attack this
 	// combat (CR 508.1d): a goaded creature (CR 701.38) or one under an
 	// unconditional MustAttack static. A rules-ignorant client needs the

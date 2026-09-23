@@ -184,6 +184,16 @@ func effWard(h Host, c *Ctx, sa *cards.SA) {
 // spell), an absent Duration$, or carrying an explicit this-turn Duration$ is
 // UntilEOT, dropped at end-of-turn cleanup; an explicit Permanent (and other
 // source-relative durations) persists while its source stays on the battlefield.
+// effectContinuous registers one continuous effect created by the api:Effect
+// primitive, marking it Effect-created (state.ContinuousEffect.FromEffect).
+// The marker is what the source-scoped form of the one-shot self-exile ender
+// (Host.EndEffectSource) keys on, so a printed static of the SAME source is
+// never ended by an Effect's self-exile.
+func effectContinuous(h Host, ce state.ContinuousEffect) {
+	ce.FromEffect = true
+	h.AddContinuous(ce)
+}
+
 func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	rawDur := sa.Params["Duration"]
 	dur := rawDur
@@ -502,7 +512,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		if body != "" && (event == "DamageDone" ||
 			(event == "Moved" && replacementBodyAPI(body) == "PutCounter") ||
 			(event == "CreateToken" && replacementBodyAPI(body) == "ReplaceToken")) {
-			h.AddContinuous(state.ContinuousEffect{
+			effectContinuous(h, state.ContinuousEffect{
 				Source: c.Source, Controller: c.Controller,
 				UntilEOT: effectUntilEOT(h, c.Source, rawDur), Duration: dur,
 				Name:             effectName,
@@ -540,7 +550,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				// default the other shapes keep. An explicit Duration$ wins.
 				untilEOT = true
 			}
-			h.AddContinuous(state.ContinuousEffect{
+			effectContinuous(h, state.ContinuousEffect{
 				Source: c.Source, Controller: c.Controller,
 				UntilEOT: untilEOT, Duration: dur,
 				Name:              effectName,
@@ -575,7 +585,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				ce.ExileOnMoved = exileOn
 				ce.ForgetCounter = forgetCounter
 				ce.ImprintOnHost = imprintOnHost
-				h.AddContinuous(ce)
+				effectContinuous(h, ce)
 				registered = true
 			} else if grant, ok := mayPlayGrantFromLine(params); ok {
 				// A may-play-from-zone grant delivered by an Effect SA (Atsushi's
@@ -596,7 +606,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				grant.ExileOnMoved = exileOn
 				grant.ForgetCounter = forgetCounter
 				grant.ImprintOnHost = imprintOnHost
-				h.AddContinuous(grant)
+				effectContinuous(h, grant)
 				registered = true
 			} else if grant, ok := mayPlayFreeGrantFromLine(params); ok {
 				// The FREE-cast may-play grant delivered by an Effect SA (Dauthi
@@ -618,7 +628,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				grant.ExileOnMoved = exileOn
 				grant.ForgetCounter = forgetCounter
 				grant.ImprintOnHost = imprintOnHost
-				h.AddContinuous(grant)
+				effectContinuous(h, grant)
 				registered = true
 			} else if kws, affected, zone, ok := cascadeKeywordGrantFromLine(params); ok {
 				// AddKeyword$ Cascade (task cascade1): the Effect-delivered
@@ -654,7 +664,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					ForgetCounter: forgetCounter,
 					ForgetOnCast:  forgetOnCast,
 				}
-				h.AddContinuous(ce)
+				effectContinuous(h, ce)
 				registered = true
 			} else if val, affected, zone, ok := setMaxHandSizeGrantFromLine(params); ok {
 				// SetMaxHandSize$ (the Effect-delivered "you have no maximum
@@ -692,7 +702,39 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					ExileOnMoved:   exileOn,
 					ForgetCounter:  forgetCounter,
 				}
-				h.AddContinuous(ce)
+				effectContinuous(h, ce)
+				registered = true
+			} else if goadStaticGrantReadable(params) {
+				// A Goad$ True static delivered by the Effect (staticgoad1:
+				// Hot Pursuit's IsGoaded body, Immortal Obligation's Static --
+				// `Mode$ Continuous | Affected$ Creature.IsRemembered |
+				// Goad$ True`). Registered into the continuous registry as a
+				// Restriction ("Goad") the same shape the MustAttack and
+				// CanAttackDefender requirement grants use, so rules'
+				// staticGoaders -- the reader BOTH routes share -- matches its
+				// Affected$ spec against the registered Remembered set exactly
+				// like the layer walk binds one. The line must be entirely
+				// readable (Goad$ literal True, no condition gate, no extra
+				// grant parameter) or it falls through to the honest
+				// unimplemented Note below rather than registering a half-read
+				// goad. Lifetime is the Effect's own: UntilHostLeavesPlay is the
+				// source-leaves rule for a battlefield source (effectUntilEOT
+				// returns false for it, and active() drops the unit when Hot
+				// Pursuit leaves), an explicit EOT spelling or a one-shot
+				// source keeps the ordinary UntilEOT read.
+				h.AddContinuous(state.ContinuousEffect{
+					Source: c.Source, Controller: c.Controller,
+					Restriction:    "Goad",
+					RestrictParams: params,
+					Name:           effectName,
+					UntilEOT:       effectUntilEOT(h, c.Source, rawDur),
+					Duration:       dur,
+					Remembered:     remembered,
+					ForgetOnMoved:  forgetOn,
+					ExileOnMoved:   exileOn,
+					ForgetCounter:  forgetCounter,
+					ImprintOnHost:  imprintOnHost,
+				})
 				registered = true
 			} else if g, affects, gok := parseStaticEffectGrant(params, false); gok && effectStaticGrantReadable(params, g) {
 				// The general Mode$ Continuous case: a layer grant
@@ -726,6 +768,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					ImprintOnHost: imprintOnHost,
 					ForgetOnCast:  forgetOnCast,
 					ChosenNumber:  chosenNumber,
+					FromEffect:    true,
 				}
 				if registerStaticEffectGrant(h, c, c.Source, affects, g, lt) {
 					registered = true
@@ -857,7 +900,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				// silently vanish.
 				ce.RememberedPlayers = effectRememberedPlayers(h, c, sa)
 			}
-			h.AddContinuous(ce)
+			effectContinuous(h, ce)
 			registered = true
 		case "ReduceCost", "RaiseCost", "SetCost", "AlternativeCost", "ManaConvert":
 			// An Effect-delivered cost-modifier or ManaConvert static (task
@@ -921,7 +964,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				CostStaticParams: params,
 				ChosenNumber:     chosenNumber,
 			}
-			h.AddContinuous(ce)
+			effectContinuous(h, ce)
 			registered = true
 		case "MustAttack":
 			// An Effect-delivered per-player attack REQUIREMENT (Forge's
@@ -967,7 +1010,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// requirement would never be counted. Same read the adjacent
 			// CantAttack/CantSacrifice case makes.
 			ce.RememberedPlayers = effectRememberedPlayers(h, c, sa)
-			h.AddContinuous(ce)
+			effectContinuous(h, ce)
 			registered = true
 		default:
 			// A resolvable but unsupported mode is reported honestly; an
@@ -993,7 +1036,17 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "registers a continuous effect (" + what + ") for " + dur})
 		}
+		return
 	}
+	// The Effect is now a live registration; a self-exile idiom later in the
+	// SAME resolution chain (a `DB$ Effect ... SubAbility$ ... | Origin$
+	// Command | Destination$ Exile`, and every Effect-created delayed trigger
+	// already bound by rules) resolves under this source's Effect identity and
+	// must end it. Stamp zero is the SOURCE-SCOPED frame: the chain has no
+	// per-registration (source, timestamp) identity to name, so the ender drops
+	// every Effect-created registration from the source (Host.EndEffectSource)
+	// while leaving the source's printed statics alone.
+	c.EffectFrame = EffectFrame{Source: c.Source}
 }
 
 // mayPlayGrantFromLine builds the may-play ContinuousEffect from one parsed
@@ -1318,6 +1371,48 @@ func parseStaticLine(svars map[string]string, name string) (string, staticLinePa
 	return mode, params
 }
 
+// ParseStaticLine is the exported form of parseStaticLine: rules reads a
+// granted static's SVar body for the whitelist gates that must agree with
+// the registration path (staticgoad1's etbCloneWhitelist AddStaticAbilities$
+// value check), so the two cannot disagree about the body grammar. One
+// parser, two tiers.
+func ParseStaticLine(svars map[string]string, name string) (string, map[string]string) {
+	mode, params := parseStaticLine(svars, name)
+	return mode, params
+}
+
+// goadStaticGrantReadable reports whether a Mode$ Continuous static body is
+// an entirely readable Goad$ True line: the literal True (any other value —
+// Forge's Yes spellings included — is unmodelled), and NO parameter outside
+// the display/selector whitelist. A body carrying a condition gate
+// (CheckSVar$, IsPresent$) or an additional grant parameter must not
+// register blanket — it fails closed to the caller's honest unimplemented
+// Note (the shipped-statics convention the EffEffect whitelist arms keep).
+// The same gate drives the DB$ Clone AddStaticAbilities$ route (effClone)
+// and rules' ETB-clone whitelist value check (rules/cast.go), so all three
+// delivery paths agree on what a readable goad grant is.
+func goadStaticGrantReadable(params map[string]string) bool {
+	if !strings.EqualFold(strings.TrimSpace(params["Goad"]), "True") {
+		return false
+	}
+	for key := range params {
+		switch key {
+		case "Mode", "Affected", "Description", "Goad":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// GoadStaticGrantReadable is the exported form of goadStaticGrantReadable:
+// rules' etbCloneWhitelist value check (staticgoad1) reads a granted
+// AddStaticAbilities$ body through it, so the ETB offer and the effClone
+// registration cannot disagree about what a supported goad grant is.
+func GoadStaticGrantReadable(params map[string]string) bool {
+	return goadStaticGrantReadable(params)
+}
+
 // effectRemembered resolves RememberObjects$ into the concrete object ids the
 // Effect captured. "Targeted"/"ParentTarget" remember the chosen targets;
 // "Remembered" (and creature-flavoured spellings) remember the objects the
@@ -1475,6 +1570,215 @@ func CantRestrictionParamsReadable(params map[string]string) bool {
 		}
 	}
 	return true
+}
+
+// CantAttackParamsReadableForRules is the FACE S:-line whitelist for a
+// CantAttack static: the shared CantRestrictionParamsReadable core EXTENDED by
+// exactly the conditional parameter family rules' attackBlocked reads --
+// UnlessDefender$ (through effects.UnlessDefenderHolds) and CheckSVar$ /
+// SVarCompare$ / Condition$ (through the shared rules-side gate evaluator,
+// rules/layers.go continuousGateHolds). It lives here, beside
+// CantRestrictionParamsReadable and mirrors MustAttackParamsReadableForRules
+// below, so the face whitelist and the gate evaluators cannot drift apart
+// unseen. Measured over the corpus's 271 `Mode$ CantAttack` files: 63 raw
+// lines carry this family, and NONE of them pairs it with the other
+// continuous-gate keys (IsPresent$/PresentCompare$/PresentZone$/ClassBand$),
+// so those keys stay off this list -- a line carrying only them is still
+// skipped whole, unchanged. The Effect-delivered registration gate (effEffect,
+// which keeps the narrower CantRestrictionParamsReadable for BOTH modes)
+// cannot share this list: its continuous path reads neither evaluator, so a
+// gate-bearing body must not register blanket -- a gated "can't attack" would
+// become unconditional, over-restricting, and could leave a MustAttack
+// creature with no legal pair. A static carrying any OTHER parameter
+// (ValidCause$, ForCost$, ValidSA$, Cost$, ...) still fails the whitelist and
+// is skipped whole, the deliberate permissive direction. Iterating the params
+// map only yields a boolean, so map order never reaches an
+// event/option/view -- determinism is preserved.
+func CantAttackParamsReadableForRules(params map[string]string) bool {
+	for k := range params {
+		switch k {
+		case "Mode", "ValidCard", "Target", "Description", "Secondary",
+			"CheckSVar", "SVarCompare", "Condition", "UnlessDefender":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// UnlessDefenderHolds evaluates a CantAttack static's UnlessDefender$ predicate
+// (Forge StaticAbilityCantAttackBlock: `unlessDefender.hasProperty(type,
+// hostCard.getController(), hostCard, stAb)`, where the defending player is the
+// subject and You is the static's controller). It reports whether the SHORT
+// predicate on the defending player holds; a CantAttack static is bypassed (the
+// creature may attack) exactly when it does. The grammar is Forge's
+// PlayerProperty conditional family, the subset the corpus spells, and every
+// unsupported property FAILS CLOSED (returns false) so the restriction is
+// enforced rather than silently dropped -- the same deny direction every other
+// unread static gate takes. A leading `!` negates the whole predicate.
+//
+// Supported properties:
+//
+//   - `controls<objSpec>[_<cmp><n>]`: the defender controls at least one (or,
+//     with a trailing count token, the compared number of) battlefield object
+//     matching objSpec as an object filter. The comma in a spec such as
+//     `controlsEnchantment,Permanent.enchanted` is part of the OBJECT spec
+//     (Forge's getValidCards list), never a predicate separator.
+//   - `hasFewer<Type>sIn<Play|Yard>ThanYou`: the defender controls (or holds in
+//     its graveyard) strictly fewer objects of that type than You.
+//   - `HasCardsIn<zone>_<type>_<cmp><n>`: the defender's named zone holds the
+//     compared number of cards of that type (`Card` counts every card).
+//   - `IsPoisoned`: the defender has a poison counter.
+//   - `isMonarch`: the defender is the monarch (CR 716.2).
+//
+// source is the static's source object (the object-spec matcher's Source
+// binding) and you is the static's controller. The evaluation is a pure read:
+// no event, no state write, and the battlefield/zone walks are the engine's
+// one deterministic scan order.
+func UnlessDefenderHolds(g *state.Game, spec string, defender, you state.PlayerID, source state.ObjID) bool {
+	spec = strings.TrimSpace(spec)
+	if spec == "" {
+		return true
+	}
+	neg := strings.HasPrefix(spec, "!")
+	if neg {
+		spec = strings.TrimSpace(spec[1:])
+	}
+	holds, known := unlessDefenderProperty(g, spec, defender, you, source)
+	if !known {
+		return false
+	}
+	if neg {
+		return !holds
+	}
+	return holds
+}
+
+// unlessDefenderProperty evaluates ONE UnlessDefender$ property (no `!`). An
+// unknown or malformed property returns known=false so a leading `!` cannot
+// turn an unread predicate into permission to attack.
+func unlessDefenderProperty(g *state.Game, property string, defender, you state.PlayerID, source state.ObjID) (holds, known bool) {
+	if int(defender) >= len(g.Players) {
+		return false, false
+	}
+	switch {
+	case property == "isMonarch":
+		return g.IsMonarch(defender), true
+	case property == "IsPoisoned":
+		return g.Players[defender].Counter("Poison") > 0, true
+	case strings.HasPrefix(property, "controls"):
+		// The object spec is everything after "controls"; an optional trailing
+		// `_<cmp><n>` narrows an existential read to a count compare.
+		objSpec, op, want, counted := splitCountCompare(strings.TrimSpace(property[len("controls"):]))
+		if objSpec == "" {
+			return false, false
+		}
+		sc := SpecContext{You: you, Source: source}
+		n := int32(0)
+		for _, id := range g.Zone(state.ZBattlefield, defender) {
+			if MatchesObjectCtx(g, objSpec, g.Obj(id), sc) {
+				n++
+			}
+		}
+		if !counted {
+			return n > 0, true
+		}
+		return playerCompare(n, op, want), true
+	case strings.HasPrefix(property, "HasCardsIn"):
+		// HasCardsIn[zone]_[type]_[comparator]
+		parts := strings.Split(strings.TrimPrefix(property, "HasCardsIn"), "_")
+		if len(parts) != 3 {
+			return false, false
+		}
+		z, ok := unlessDefenderZone(parts[0])
+		if !ok {
+			return false, false
+		}
+		op, want, ok := unlessDefenderCompare(parts[2])
+		if !ok {
+			return false, false
+		}
+		return playerCompare(unlessDefenderTypeCount(g, z, defender, parts[1]), op, want), true
+	case strings.HasPrefix(property, "hasFewer"):
+		// hasFewer[Type]sIn[Play|Yard]ThanYou
+		if int(you) >= len(g.Players) {
+			return false, false
+		}
+		body := strings.TrimPrefix(property, "hasFewer")
+		i := strings.Index(body, "sIn")
+		if i < 0 {
+			return false, false
+		}
+		cardType, tail := body[:i], body[i+len("sIn"):]
+		if cardType == "" {
+			return false, false
+		}
+		z := state.ZBattlefield
+		switch {
+		case strings.HasPrefix(tail, "PlayThan"):
+		case strings.HasPrefix(tail, "YardThan"):
+			z = state.ZGraveyard
+		default:
+			return false, false
+		}
+		return unlessDefenderTypeCount(g, z, defender, cardType) < unlessDefenderTypeCount(g, z, you, cardType), true
+	}
+	return false, false
+}
+
+// unlessDefenderZone maps a Forge zone word in a HasCardsIn property to a
+// state zone, failing closed on any zone this build cannot name.
+func unlessDefenderZone(word string) (state.Zone, bool) {
+	switch word {
+	case "Battlefield":
+		return state.ZBattlefield, true
+	case "Graveyard":
+		return state.ZGraveyard, true
+	case "Hand":
+		return state.ZHand, true
+	case "Library":
+		return state.ZLibrary, true
+	case "Exile":
+		return state.ZExile, true
+	}
+	return 0, false
+}
+
+// unlessDefenderCompare parses a Forge comparator token ("GE7") into an
+// operator and a threshold.
+func unlessDefenderCompare(tok string) (string, int32, bool) {
+	if len(tok) < 3 {
+		return "", 0, false
+	}
+	op := tok[:2]
+	switch op {
+	case "GE", "GT", "EQ", "LE", "LT":
+	default:
+		return "", 0, false
+	}
+	n, err := strconv.ParseInt(tok[2:], 10, 32)
+	if err != nil {
+		return "", 0, false
+	}
+	return op, int32(n), true
+}
+
+// unlessDefenderTypeCount counts objects of a Forge type word in a player's
+// zone. `Card`/`Any` is the universal type (every object counts), matching
+// CardLists.getType's treatment of the base card type; any other word rides
+// the shared hasType predicate.
+func unlessDefenderTypeCount(g *state.Game, z state.Zone, p state.PlayerID, cardType string) int32 {
+	n := int32(0)
+	for _, id := range g.Zone(z, p) {
+		o := g.Obj(id)
+		if o == nil {
+			continue
+		}
+		if strings.EqualFold(cardType, "Card") || strings.EqualFold(cardType, "Any") || hasType(o, cardType) {
+			n++
+		}
+	}
+	return n
 }
 
 // CantBlockByRestrictionParamsReadable is the parameter whitelist an
@@ -4300,28 +4604,12 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 	}
-	// TriggersWhenSpent$ <SVar> (Path of Ancestry, Lapis Orb of Dragonkind,
-	// Study Hall: "when that mana is spent to cast ..., ..."): the produced
-	// mana must be attributable to THIS source at spend time, so the add
-	// rides an UNRESTRICTED provenance batch -- an empty Valid is spendable
-	// anywhere (the Boseiju shape), so payment behaviour is unchanged while
-	// state.ManaRestriction.Source records which permanent's ability produced
-	// it. rules' spend path captures the source and queues the named SVar's
-	// trigger when the batch pays for a SPELL (the rider's "spent to cast"
-	// gate). No corpus carrier pairs the param with a restriction (measured:
-	// 0 of 13); if one ever does, the restriction encoding wins (spendability
-	// is load-bearing) and the provenance is lost with one loud Note rather
-	// than either encoding being silently dropped.
+	// TriggersWhenSpent$ is retained alongside any spend restriction: the
+	// ManaRestriction event encoding carries both the restriction and source
+	// provenance, so spendability and the later trigger attribution compose.
+	// The spend path dispatches the named rider after the payment completes.
 	triggersWhenSpent := strings.TrimSpace(sa.Params["TriggersWhenSpent"])
-	provenanceOnly := false
-	if triggersWhenSpent != "" {
-		if restriction == "" && noCounter == "" {
-			provenanceOnly = true
-		} else {
-			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-				Text: "TriggersWhenSpent$ " + triggersWhenSpent + " rides a restricted mana batch; its source attribution is dropped"})
-		}
-	}
+	provenanceOnly := triggersWhenSpent != "" && restriction == "" && noCounter == ""
 	for _, p := range ManaRecipients(h, c, sa) {
 		var emitted [256]bool
 		for _, r := range runes {

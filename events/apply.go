@@ -563,11 +563,19 @@ func Apply(g *state.Game, e Event) {
 			if !entry.Valid() {
 				break
 			}
+			riders := DecodeExtraPhaseRiders(e.Text)
+			// The extra phase's range: Entry's own by default, overridden by a
+			// multi-step ExtraPhase$ grant's RANGEEND rider (a whole named
+			// phase; only taken when it does not walk BACKWARD past the entry).
+			rangeEnd := state.ExtraPhaseRangeEnd(entry)
+			if riders.HasRangeEnd && riders.RangeEnd >= entry {
+				rangeEnd = riders.RangeEnd
+			}
 			ep := state.ExtraPhase{
 				Player:    e.Player,
 				AfterStep: e.Step,
 				Entry:     entry,
-				RangeEnd:  state.ExtraPhaseRangeEnd(entry),
+				RangeEnd:  rangeEnd,
 				Execute:   e.Counter,
 				Source:    e.Obj,
 			}
@@ -576,7 +584,6 @@ func Apply(g *state.Game, e Event) {
 					ep.HasFollowedBy, ep.FollowedBy = true, fb
 				}
 			}
-			riders := DecodeExtraPhaseRiders(e.Text)
 			ep.HasDelayedPhase, ep.DelayedPhase = riders.HasDelayedPhase, riders.DelayedPhase
 			ep.ValidPlayer = riders.ValidPlayer
 			for n := int32(0); n < e.Amount; n++ {
@@ -893,6 +900,21 @@ func Apply(g *state.Game, e Event) {
 			// nothing -- which is why the walker exchange no longer needs
 			// the bypass it used to travel by.
 			walker := false
+			battle := false
+			if f := o.Face(); f != nil && f.IsBattle() {
+				// CR 310.8a: damage dealt to a battle removes that many defense
+				// counters instead of being marked as damage. The conversion lives
+				// on this one fold, exactly like the planeswalker exchange above,
+				// so combat damage (rules/combat.go) and spell/ability damage
+				// (effects/damage.go) all convert the same way and a log-only
+				// replay re-derives the same defense counters from the same
+				// events. A face-down permanent is a 2/2 creature, not a Battle
+				// (CR 708.5), so it marks damage normally.
+				battle = true
+				if e.Amount > 0 {
+					o.AddCounter("DEFENSE", -e.Amount)
+				}
+			}
 			if f := o.Face(); f != nil && f.IsPlaneswalker() {
 				walker = true
 				// Cleanup represents removal of marked damage with a negative
@@ -927,7 +949,7 @@ func Apply(g *state.Game, e Event) {
 				// which an infect recipient never owes -- it has no marked
 				// damage to clear; its counters survive cleanup (they are not
 				// marked damage).
-			} else if !walker || creature {
+			} else if (!walker && !battle) || creature {
 				o.Damage += e.Amount
 				if o.Damage < 0 {
 					o.Damage = 0
@@ -1299,7 +1321,11 @@ func Apply(g *state.Game, e Event) {
 			if o := g.Obj(id); o != nil {
 				o.IsAttacking = true
 				o.Attacking = e.Player
-				o.AttackingPlaneswalker = e.Obj
+				// CR 310.7/CR 508.1: a battle or planeswalker attack carries that
+				// permanent in Obj, so the attacker records which permanent it is
+				// attacking. A player attack leaves Obj zero and the field stays
+				// zero -- the same discriminator a Numeric TargetChosen pair uses.
+				o.AttackingBattle = e.Obj
 				o.AttacksThisTurn++
 			}
 		}
@@ -1520,7 +1546,7 @@ func Apply(g *state.Game, e Event) {
 			o := &g.Objs[i]
 			if e.Obj == 0 || o.ID == e.Obj {
 				o.IsAttacking = false
-				o.AttackingPlaneswalker = 0
+				o.AttackingBattle = 0
 				o.BlockedBy = nil
 			} else {
 				for j, id := range o.BlockedBy {
@@ -3081,7 +3107,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		o.Tapped = false
 		o.Damage = 0
 		o.IsAttacking = false
-		o.AttackingPlaneswalker = 0
+		o.AttackingBattle = 0
 		o.BlockedBy = nil
 		o.Counters = nil
 		o.IntrinsicKeywords = nil
@@ -3275,7 +3301,7 @@ func changeControl(g *state.Game, o *state.Object, p state.PlayerID) {
 			}
 		}
 		o.IsAttacking = false
-		o.AttackingPlaneswalker = 0
+		o.AttackingBattle = 0
 		o.BlockedBy = nil
 		o.SummonSick = true
 		// kw:Echo's gate stamp (CR 702.35a): a battlefield control change is

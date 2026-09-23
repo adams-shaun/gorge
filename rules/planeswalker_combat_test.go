@@ -20,7 +20,7 @@ func declareAtPlaneswalker(t *testing.T, e *Engine, attacker, pw state.ObjID) {
 	}
 	var chosen []decision.Option
 	for _, opt := range d.Options {
-		if opt.Obj == attacker && opt.AttackTarget == pw {
+		if opt.Obj == attacker && opt.Battle == pw {
 			chosen = append(chosen, opt)
 		}
 	}
@@ -28,7 +28,7 @@ func declareAtPlaneswalker(t *testing.T, e *Engine, attacker, pw state.ObjID) {
 		t.Fatalf("planeswalker attack option count = %d, want 1 (options: %+v)", len(chosen), d.Options)
 	}
 	e.finishAttackers(chosen, 0)
-	if got := e.G.Obj(attacker).AttackingPlaneswalker; got != pw {
+	if got := e.G.Obj(attacker).AttackingBattle; got != pw {
 		t.Fatalf("attacking planeswalker = %d, want %d", got, pw)
 	}
 }

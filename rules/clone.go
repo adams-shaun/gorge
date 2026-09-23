@@ -268,6 +268,12 @@ func (e *Engine) Clone() *Engine {
 			c.triggerContexts[id] = tc
 		}
 	}
+	if e.triggerEffectFrames != nil {
+		c.triggerEffectFrames = make(map[state.ObjID]effects.EffectFrame, len(e.triggerEffectFrames))
+		for id, ef := range e.triggerEffectFrames {
+			c.triggerEffectFrames[id] = ef
+		}
+	}
 	if e.triggerLKI != nil {
 		c.triggerLKI = make(map[state.ObjID]triggerObjectLKI, len(e.triggerLKI))
 		for id, lki := range e.triggerLKI {

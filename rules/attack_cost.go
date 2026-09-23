@@ -775,10 +775,18 @@ func (e *Engine) attackBudget(p state.PlayerID) int32 {
 // attackOffer is one (attacker, defender) pair askAttackers offers, with the
 // mana price attacking that defender charges per creature (0 = free).
 type attackOffer struct {
-	id     state.ObjID
-	def    state.PlayerID
-	defObj state.ObjID
-	price  int32
+	id    state.ObjID
+	def   state.PlayerID
+	price int32
+	// battle is the non-player permanent being attacked -- a CR 310.7 battle
+	// or a planeswalker (CR 508.1) -- or 0 for a player attack. def is the
+	// permanent's seat for a permanent attack (a battle's protector, or the
+	// planeswalker's controller; it is what blocks and what every
+	// player-scoped restriction reads), so the two fields together are the
+	// whole defender. Despite the historical field name, the value covers both
+	// permanent kinds; the recipient's face decides the damage conversion
+	// (defense counters vs loyalty) in events.Apply's Damage fold.
+	battle state.ObjID
 }
 
 // attackOffers builds the offer list askAttackers, attackDutyDischargeable
@@ -804,7 +812,8 @@ type attackOffer struct {
 //
 // CR 508.1d's "satisfy as many requirements as possible": once the legal,
 // affordable pairs are known, every pair of a creature that satisfies FEWER
-// named requirements than the creature's best available defender is dropped.
+// player-attack duties (named or goad) than the creature's best available
+// defender is dropped.
 // That is what keeps a named MustAttack$ duty and a goad from cancelling each
 // other out into "the creature attacks nobody": the earlier single-defender
 // filter removed the non-named pairs while goadMayAttack removed the named
@@ -824,6 +833,14 @@ func (e *Engine) attackOffers() []attackOffer {
 			defenders = append(defenders, q)
 		}
 	}
+	// CR 310.7: a battle a player protects is a legal defender for that
+	// player's opponents, offered in addition to (not instead of) the player
+	// themselves. battleDefenders names each such battle ONCE per (protector,
+	// battle) pair, in a deterministic order: the defender enumeration above
+	// (ascending seat), then each protected player's battle in that player's
+	// battlefield zone order. Only the protector's opponents may attack it, so
+	// the active player is excluded here exactly as it is above.
+	battles := e.battleDefenders(p)
 	// One requirement set per creature, computed once from the board (never
 	// per pair), keyed by ObjID and read by lookup only -- no map iteration
 	// reaches the offer list order.
@@ -836,7 +853,8 @@ func (e *Engine) attackOffers() []attackOffer {
 	for _, d := range defenders {
 		var walkerTargets []state.ObjID
 		for _, wid := range e.G.Zone(state.ZBattlefield, d) {
-			if e.G.Obj(wid).Face() != nil && e.G.Obj(wid).Face().IsPlaneswalker() {
+			o := e.G.Obj(wid)
+			if o != nil && !o.FaceDown && o.Face() != nil && o.Face().IsPlaneswalker() {
 				walkerTargets = append(walkerTargets, wid)
 			}
 		}
@@ -849,27 +867,111 @@ func (e *Engine) attackOffers() []attackOffer {
 				continue
 			}
 			out = append(out, attackOffer{id: id, def: d, price: price})
+			// CR 508.1: a planeswalker on d's battlefield is a legal defender
+			// for d's opponents, offered in addition to the player themselves
+			// (defender-major: the player's own pair block, then its
+			// planeswalkers). The walk happens in the planeswalker's
+			// controller's zone order, and d IS that controller here.
 			for _, wid := range walkerTargets {
-				out = append(out, attackOffer{id: id, def: d, defObj: wid, price: price})
+				out = append(out, attackOffer{id: id, def: d, battle: wid, price: price})
+			}
+		}
+		// This protector's battles, immediately after the protector's own
+		// pair block (defender-major: one defender slot at a time).
+		for _, b := range battles {
+			if b.protector != d {
+				continue
+			}
+			for _, id := range e.G.Zone(state.ZBattlefield, p) {
+				if !e.canAttackPair(id, d) {
+					continue
+				}
+				if !e.goadMayAttack(id, d) {
+					continue
+				}
+				if e.attackBlocked(id, d) {
+					continue
+				}
+				price := e.attackPairCharge(id, d)
+				if price > 0 && budget < price {
+					continue
+				}
+				out = append(out, attackOffer{id: id, def: d, price: price, battle: b.id})
 			}
 		}
 	}
-	// Best named satisfaction per creature over the pairs that survived.
+	// Best player-attack duty satisfaction per creature over surviving pairs.
 	best := make(map[state.ObjID]int)
 	for _, of := range out {
-		if n := reqs[of.id].satisfiedBy(of.def); n > best[of.id] {
+		if n := reqs[of.id].satisfiedByOffer(of); n > best[of.id] {
 			best[of.id] = n
 		}
 	}
 	keep := out[:0]
 	for _, of := range out {
 		rs := reqs[of.id]
-		if rs.any() && rs.satisfiedBy(of.def) < best[of.id] {
+		if rs.any() && rs.satisfiedByOffer(of) < best[of.id] {
 			continue
 		}
 		keep = append(keep, of)
 	}
 	return keep
+}
+
+// battleTarget is one attackable battle and the player who protects it.
+type battleTarget struct {
+	id        state.ObjID
+	protector state.PlayerID
+}
+
+// battleDefenders lists every battle the active player p may attack under
+// CR 310.7: the battle is on the battlefield, is a battle (its printed face,
+// and not face down -- a face-down permanent is a vanilla 2/2 creature, CR
+// 708.5), has a recorded protector whose seat is still in the game, and that
+// protector is not p itself. It is the ONE eligibility home: attackOffers
+// enumerates from it, and canAttackBattle below reads it through this list,
+// so the offer list and the legality guard can never disagree about which
+// battles are attackable. Order is deterministic: protector ascending, then
+// the protector's battlefield zone order (the battle's own controller may
+// differ from its protector, but a battle is only ever offered under the
+// protector's slot, and every controller's battlefield is walked in the
+// ascending seat order attacks already use).
+func (e *Engine) battleDefenders(p state.PlayerID) []battleTarget {
+	var out []battleTarget
+	for _, ctrl := range e.G.AliveFrom(0) {
+		for _, id := range e.G.Zone(state.ZBattlefield, ctrl) {
+			o := e.G.Obj(id)
+			if o == nil || o.FaceDown || o.Face() == nil || !o.Face().IsBattle() {
+				continue
+			}
+			if !o.ProtectorValid || o.Protector == p ||
+				int(o.Protector) >= len(e.G.Players) || e.G.Players[o.Protector].Lost {
+				continue
+			}
+			out = append(out, battleTarget{id: id, protector: o.Protector})
+		}
+	}
+	return out
+}
+
+// canAttackBattle reports whether p may declare an attack at a non-player
+// permanent id -- a CR 310.7 battle or a planeswalker (CR 508.1) -- reading
+// the same eligibility attacks enumerates: a battle comes from battleDefenders
+// (a battle the active player protects, a protectorless battle, or a battle
+// that has left the battlefield is not attackable), and a planeswalker is one
+// on p's opponent's battlefield, face up (a face-down permanent is a vanilla
+// 2/2 creature, CR 708.5).
+func (e *Engine) canAttackBattle(id state.ObjID, p state.PlayerID) bool {
+	for _, b := range e.battleDefenders(p) {
+		if b.id == id {
+			return true
+		}
+	}
+	o := e.G.Obj(id)
+	if o != nil && !o.FaceDown && o.Zone == state.ZBattlefield && o.Face() != nil && o.Face().IsPlaneswalker() {
+		return o.Controller != p
+	}
+	return false
 }
 
 // attackCharge prices a whole declaration: the sum over its chosen pairs.

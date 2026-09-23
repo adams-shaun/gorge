@@ -94,15 +94,16 @@ type Host interface {
 	// TriggerModeSupported keeps Effect-created trigger registrations honest:
 	// an unknown Mode$ cannot masquerade as an armed, inert promise.
 	TriggerModeSupported(mode string) bool
-	// TypeChoices returns the creature-type option list a mid-resolution
-	// ChooseType ask offers its chooser (task ct1) — the SAME list the
-	// cast-time "as this enters" type ask builds (rules/etbOptions' "type"
-	// arm, which this method's rules implementation calls), so the two asks
-	// and the no-ask fallback can never disagree about what a creature-type
-	// choice ranges over. A category this build cannot enumerate (Basic
-	// Land, Card, ...) yields nil: the asking primitive never asks for one
-	// (it records the loud Note and the deterministic fallback), so nil is
-	// unreachable through the ask path.
+	// TypeChoices returns the owner-scoped CREATURE-type option list a
+	// ChooseType ask offers its chooser for an absent Type$ or Type$ Creature
+	// (task ct1) — the SAME list the cast-time "as this enters" type ask
+	// builds (rules/etbOptions' "type" arm), so the two asks and the no-ask
+	// fallback can never disagree about what a creature-type choice ranges
+	// over. The other categories (Basic Land, Card, Land, Planeswalker,
+	// Shared, CreatureInTargetedDeck) no longer reach this method: the asking
+	// primitive builds their option lists from immutable game state itself
+	// (effects/type_choices.go), and an absent or non-creature category here
+	// still yields nil as a defensive guard.
 	TypeChoices(chooser state.PlayerID, category string) []decision.Option
 	// RegisterControl records one GainControl effect with the lifetime its
 	// LoseControl$ names (CR 611.2b "for as long as", CR 514.2 end of turn),
@@ -596,6 +597,15 @@ type Host interface {
 	// never ends anything. rules.Engine implements it as an in-place drop of
 	// its registry; the effects test double drops from its recorded slice.
 	EndEffect(source state.ObjID, stamp uint32)
+	// EndEffectSource ends every Effect-created continuous-effect registration
+	// from the named source -- the source-scoped form of EndEffect the
+	// self-exile idiom run from an Effect's OWN Triggers$ body or the
+	// registering spell's chain uses, where the body has no per-registration
+	// (source, timestamp) identity to name (Ctx.EffectFrame carries the source
+	// with a zero Stamp). Only registrations created by api:Effect are ended
+	// (state.ContinuousEffect.FromEffect); the same source's printed statics
+	// are untouched.
+	EndEffectSource(source state.ObjID)
 	// EndImprintedEffects ends every live continuous-effect registration
 	// that an ImprintOnHost$ True Effect imprinted on the named host card
 	// (state.ContinuousEffect.ImprintOnHost): the analogue of Forge's
@@ -738,7 +748,13 @@ type Ctx struct {
 	// state.Game into rules. An effects test double whose Host does not
 	// implement typeTableHost leaves it nil and reads the printed face.
 	EffectiveTypes []ObjectTypes
-	Targets        []state.Target
+	// StaticGoads is the live static-goad table (staticgoad1), published by
+	// rules for resolution-time IsGoaded filters.
+	StaticGoads map[state.ObjID]bool
+	// TargetableObjects is a rules-built immutable legality snapshot for the
+	// triggering spell, used by CanBeTargetedByTriggeredSpellAbility.
+	TargetableObjects []state.ObjID
+	Targets           []state.Target
 	// ModeTargets carries the target groups selected for a distinct modal
 	// Charm. Each entry is in target-bearing mode order; nil means the
 	// historical single-target-list path, including repeatable modes.
@@ -2112,6 +2128,24 @@ type typeTableHost interface {
 	EffectiveTypes() []ObjectTypes
 }
 
+// goadTableHost publishes rules' live static-goad table for resolving filters.
+type goadTableHost interface {
+	StaticallyGoaded() map[state.ObjID]bool
+}
+
+func saMentionsGoaded(sa *cards.SA) bool {
+	for _, v := range sa.Params {
+		if strings.Contains(v, "IsGoaded") {
+			return true
+		}
+	}
+	return false
+}
+
+type targetableObjectsHost interface {
+	TargetableObjects(triggerCard state.ObjID) []state.ObjID
+}
+
 func Resolve(h Host, c *Ctx, sa *cards.SA) {
 	// Publish this walk's Effect-created registration frame (set by rules'
 	// seedEffectReplCtx on an api:Effect replacement's body Ctx) for the whole
@@ -2161,6 +2195,16 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 		} else {
 			c.EffectiveTypes = nil
 		}
+		if gh, ok := h.(goadTableHost); ok && sa != nil && saMentionsGoaded(sa) {
+			c.StaticGoads = gh.StaticallyGoaded()
+		} else {
+			c.StaticGoads = nil
+		}
+		if th, ok := h.(targetableObjectsHost); ok {
+			c.TargetableObjects = th.TargetableObjects(c.TriggerCard)
+		} else {
+			c.TargetableObjects = nil
+		}
 		c.numericRHS = c.X != 0 || len(c.SVars) > 0
 		// Capture target controllers before the first effect can move a target.
 		// Keep an existing map on re-entry: it is the earlier battlefield state,
@@ -2204,6 +2248,16 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 		}
 		if th, ok := h.(typeTableHost); ok {
 			c.EffectiveTypes = th.EffectiveTypes()
+		}
+		if gh, ok := h.(goadTableHost); ok && saMentionsGoaded(sa) {
+			c.StaticGoads = gh.StaticallyGoaded()
+		} else {
+			c.StaticGoads = nil
+		}
+		if th, ok := h.(targetableObjectsHost); ok {
+			c.TargetableObjects = th.TargetableObjects(c.TriggerCard)
+		} else {
+			c.TargetableObjects = nil
 		}
 		// Condition* gate (task fb-3f1cc033): a sub whose supported condition
 		// is evaluated and not met is skipped and the chain continues — the

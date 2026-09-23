@@ -1555,25 +1555,30 @@ func (e *Engine) putLibPicksOnTop(picks []state.ObjID) {
 // payUnlessDamageCost emits: the Damage event names the payer, the engine's
 // damage-source context names the source, and the same-source lifelink
 // gains the controller the damage (CR 702.16d).
-func (e *Engine) payDamageCost(payer state.PlayerID, n int32, source state.ObjID) {
+func (e *Engine) payDamageCost(payer state.PlayerID, n int32, source state.ObjID, sourceLKI damageKeywordLKI, sourceControllerLKI state.PlayerID) {
 	if n <= 0 {
 		return
 	}
+	liveSource := e.G.Obj(source)
+	keywords := e.damageKeywordsOf(source)
+	controller := payer
+	if liveSource != nil && liveSource.Zone == state.ZBattlefield {
+		controller = liveSource.Controller
+	} else {
+		keywords = sourceLKI
+		controller = sourceControllerLKI
+	}
 	prev := e.SetDamageSource(source)
 	dam := events.Event{Kind: events.Damage, Player: payer, Amount: n}
-	if e.HasKeyword(source, "Infect") {
+	if keywords.infect {
 		// CR 702.90b: even a cost payment is damage dealt by its source, so
 		// an infect source's DamageYou cost pays in counter/poison form.
 		dam.Counter = "infect"
 	}
 	ev := e.emit(dam)
 	e.SetDamageSource(prev)
-	if ev.Kind != events.Damage || !e.HasKeyword(source, "Lifelink") {
+	if ev.Kind != events.Damage || !keywords.lifelink {
 		return
-	}
-	controller := payer
-	if o := e.G.Obj(source); o != nil && o.Zone == state.ZBattlefield {
-		controller = o.Controller
 	}
 	e.emit(events.Event{Kind: events.LifeChange, Player: controller, Amount: n})
 }
@@ -4391,7 +4396,7 @@ func (e *Engine) entryETBChoice(ev events.Event, ordinal int) (etbChoice, bool) 
 		// dropping an exception rider is worse than retaining today's loud
 		// unimplemented-API fallback. A body outside the whitelist is not a
 		// choice at all, so it is skipped before the ordinal is counted.
-		if kind == "copy" && !etbCloneWhitelist(r.With) {
+		if kind == "copy" && !etbCloneWhitelist(r.With, o.Face().SVars) {
 			continue
 		}
 		if seen == ordinal {
@@ -4404,9 +4409,18 @@ func (e *Engine) entryETBChoice(ev events.Event, ordinal int) (etbChoice, bool) 
 			if kind == "copy" {
 				selector = r.With.Params["Choices"]
 			}
-			opts := e.etbOptions(you, o.ID, kind,
-				r.With.Params["ValidCards"], selector,
-				r.With.Params["Type"], r.With.Params["Exclude"], r.With.Params["ChooseFromList"])
+			var opts []decision.Option
+			if kind == "type" {
+				// The type ask is category-aware (task ct1): a Type$ Basic Land
+				// or Card or Planeswalker ranges over that category's real list,
+				// exactly the list the mid-resolution ChooseType ask builds
+				// (effects/type_choices.go), so the two asks cannot disagree.
+				opts = e.typeChoiceOptions(you, o.ID, r.With.Params)
+			} else {
+				opts = e.etbOptions(you, o.ID, kind,
+					r.With.Params["ValidCards"], selector,
+					r.With.Params["Type"], r.With.Params["Exclude"], r.With.Params["ChooseFromList"])
+			}
 			if kind == "copy" {
 				// ":Optional" on the keyword line is the "you MAY have it
 				// enter as a copy" half; an empty template list also needs
@@ -4536,9 +4550,14 @@ func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCar
 		}
 		return out
 	case "type":
-		// The shared creature-type enumeration (creatureTypeOptions); the
-		// comment there is the read.
-		return e.creatureTypeOptions(you)
+		// The shared, category-aware enumeration; a caller that reaches here
+		// with a non-creature category (a body that did not go through
+		// entryETBChoice's category dispatch) still gets the real list, never a
+		// creature-type list. This arm carries no ValidTypes$/InvalidTypes$
+		// (the positional slots above are ValidCards$/Exclude$, different
+		// params); the ETB dispatch passes the whole parameter map to
+		// typeChoiceOptions instead.
+		return e.typeChoiceOptions(you, card, map[string]string{"Type": typeCategory})
 	default: // "number"
 		out := make([]decision.Option, 0, 13)
 		for i := 0; i <= 12; i++ {
@@ -4638,12 +4657,44 @@ func (e *Engine) creatureTypeOptions(you state.PlayerID) []decision.Option {
 	return out
 }
 
+// typeChoiceOptions builds the option list for one ChooseType Type$ category
+// (task ct1), the ONE builder both the as-enters ask (entryETBChoice's "type"
+// dispatch) and etbOptions' "type" arm use. A creature (or absent) category
+// keeps the owner-scoped creatureTypeOptions; the context-scoped Shared
+// category reads the entering object's own exiled-with set; every other
+// enumerable category reads effects.TypeChoiceLabels' static list. A category
+// that yields no list (an unresolvable context, or one this build still
+// cannot name) falls back to the creature list so the ask is never emptied --
+// the totality rule every as-enters ask lives by.
+func (e *Engine) typeChoiceOptions(you state.PlayerID, source state.ObjID, params map[string]string) []decision.Option {
+	cat := strings.TrimSpace(params["Type"])
+	if cat == "" || strings.EqualFold(cat, "Creature") {
+		return e.creatureTypeOptions(you)
+	}
+	var labels []string
+	if strings.EqualFold(cat, "Shared") {
+		labels = effects.SharedTypeLabels(e.G, source)
+	} else {
+		labels = effects.TypeChoiceLabels(cat, params["ValidTypes"], params["InvalidTypes"])
+	}
+	if len(labels) == 0 {
+		return e.creatureTypeOptions(you)
+	}
+	out := make([]decision.Option, 0, len(labels))
+	for _, label := range labels {
+		out = append(out, decision.Option{Index: len(out), Kind: "type", Label: label})
+	}
+	return out
+}
+
 // TypeChoices implements effects.Host.TypeChoices (task ct1): the option list
-// a mid-resolution ChooseType ask offers its chooser — the SAME enumeration
-// the cast-time "type" arm builds, so the two lists can never disagree. A
-// category this build cannot enumerate yields nil; the asking effect never
-// asks for one (it records the loud Note and the deterministic fallback), so
-// nil is unreachable through the ask path.
+// a mid-resolution ChooseType ask offers its chooser. Only the creature
+// category reaches this Host method now -- the creature list is owner-scoped
+// and lives here, while effects/type_choices.go builds the non-creature
+// categories (and Shared/ CreatureInTargetedDeck from the resolving effect's
+// own context) directly. An absent or "Creature" category returns the shared
+// creatureTypeOptions; any other category yields nil, which the asking effect
+// no longer reaches (it answers those categories itself).
 func (e *Engine) TypeChoices(chooser state.PlayerID, category string) []decision.Option {
 	if category != "" && !strings.EqualFold(category, "Creature") {
 		return nil
@@ -4684,12 +4735,13 @@ func etbChoicePrompt(kind string) string {
 // parameter keeps today's loud unimplemented-API fallback (the etbclone1
 // scope boundary); rules/etb_clone_whitelist_census_test.go pins the
 // classified population bidirectionally.
-func etbCloneWhitelist(sa *cards.SA) bool {
+func etbCloneWhitelist(sa *cards.SA, svars map[string]string) bool {
 	for k := range sa.Params {
 		switch k {
-		case "Choices", "AddKeywords", "AddTypes", "SpellDescription":
-			// supported: the copy-template selector and the CR 707.9e
-			// copy modifiers, both applied by effClone's modifier walk.
+		case "Choices", "AddKeywords", "AddTypes", "SpellDescription", "AddStaticAbilities":
+			// supported: the copy-template selector, the CR 707.9e
+			// copy modifiers, and (staticgoad1) the granted Goad$ static
+			// effClone registers -- value-checked below.
 		default:
 			return false
 		}
@@ -4721,6 +4773,20 @@ func etbCloneWhitelist(sa *cards.SA) bool {
 	}
 	for _, kw := range cards.SplitKeywordList(sa.Params["AddKeywords"]) {
 		if strings.ContainsAny(cards.KeywordHead(kw), " \t") {
+			return false
+		}
+	}
+	// AddStaticAbilities$ (staticgoad1, Mocking Doppelganger's FamilyTease):
+	// every named member must resolve to an entirely readable Goad$ True
+	// static — the same gate effClone's registration and effEffect's
+	// StaticAbilities$ arm call — or the copy election would silently drop
+	// the exception, the exact failure this whitelist exists to prevent. An
+	// unresolvable member name fails closed the same way.
+	for _, name := range strings.FieldsFunc(sa.Params["AddStaticAbilities"], func(r rune) bool {
+		return r == ',' || r == ' ' || r == '\t' || r == '\n'
+	}) {
+		mode, params := effects.ParseStaticLine(svars, name)
+		if mode != "Continuous" || !effects.GoadStaticGrantReadable(params) {
 			return false
 		}
 	}
@@ -7063,6 +7129,15 @@ func (e *Engine) finishTargetedCast(pc *pendingCast, player state.PlayerID) {
 		if pc.stackObj != 0 && pc.rootOpts != nil {
 			e.recordChosenTargets(pc.stackObj, pc.rootOpts, false)
 		}
+		// payCast closes the proposal after creating the stack object. Keep its
+		// completed target bindings available while the deferred spend rider
+		// matches, then close it again before control returns to the host.
+		if pc.stackObj != 0 {
+			e.cast = pc
+			e.fireManaSpentTriggers(events.Event{Kind: events.AbilityPush, Obj: pc.card,
+				Player: pc.player, Amount: int32(pc.ability)}, nil)
+			e.cast = nil
+		}
 	} else {
 		e.payCast()
 	}
@@ -7515,15 +7590,15 @@ func (e *Engine) payCast() {
 	if e.manaWindowAsk() {
 		return
 	}
+	// Snapshot the source before any non-mana cost can move it. DamageYou
+	// shares this LKI with resolution-time damage costs when its source has
+	// already left the battlefield; a live source still uses current layers.
+	sourceKeywordLKI := e.damageKeywordsOf(pc.card)
+	sourceControllerLKI := state.PlayerID(0)
+	if sourceObj := e.G.Obj(pc.card); sourceObj != nil {
+		sourceControllerLKI = sourceObj.Controller
+	}
 	if pc.isAbility() {
-		// CR 608.2h: snapshot the source's derived lifelink before any cost can
-		// remove it from the battlefield. AbilityPush is deliberately emitted
-		// only after costs settle, so emit's generic departure capture cannot
-		// see a self-sacrificing ability on the stack yet. Resolution consults
-		// this only if the source is gone; a source that remains in play uses
-		// its live derived state instead.
-		sourceKeywordLKI := e.damageKeywordsOf(pc.card)
-		sourceControllerLKI := e.G.Obj(pc.card).Controller
 		// Task 10: an activated ability. The shared stages above (X, Delve --
 		// never present on an ability --, Sac) have already run and been
 		// recorded; what differs from a spell here is the cost's remaining
@@ -7616,7 +7691,7 @@ func (e *Engine) payCast() {
 		// DamageYou<N> cost parts: the payer takes N damage from the source
 		// (Forge CostDamage; the same event shape payUnlessDamageCost emits).
 		for _, part := range pc.cost.DamageYou {
-			e.payDamageCost(pc.player, part.N, pc.card)
+			e.payDamageCost(pc.player, part.N, pc.card, sourceKeywordLKI, sourceControllerLKI)
 		}
 		// Mill cost parts (Mill<N>): the payer mills the summed requirement
 		// from the top of their library as part of the payment.
@@ -7751,6 +7826,12 @@ func (e *Engine) payCast() {
 			e.captureNamedDamageSourceLKI(pc.stackObj, pc.card, sourceKeywordLKI, sourceControllerLKI)
 			break
 		}
+		if pc.rootOpts == nil {
+			// No target-recording continuation: dispatch at the completed
+			// AbilityPush boundary while the spent-source capture is still live.
+			e.fireManaSpentTriggers(events.Event{Kind: events.AbilityPush, Obj: pc.card,
+				Player: pc.player, Amount: int32(pc.ability)}, nil)
+		}
 		e.cast, e.choosing = nil, chooseNone
 		return
 	}
@@ -7829,7 +7910,7 @@ func (e *Engine) payCast() {
 		}
 	}
 	for _, part := range pc.cost.DamageYou {
-		e.payDamageCost(pc.player, part.N, pc.card)
+		e.payDamageCost(pc.player, part.N, pc.card, sourceKeywordLKI, sourceControllerLKI)
 	}
 	e.payDrawCostParts(pc)
 	// Return cost parts (see the ability branch above for the why).
@@ -8177,7 +8258,9 @@ func (e *Engine) payCast() {
 		castLKI = e.deferredPushLKI
 	}
 	e.fireDeferredCastTrigger()
-	e.fireManaSpentTriggers(castEv, castLKI)
+	if castEv.Kind == events.PutOnStack {
+		e.fireManaSpentTriggers(castEv, castLKI)
+	}
 	// Cascade (CR 702.85, task cascade1): one cast trigger per Cascade
 	// instance, queued AFTER the ordinary cast triggers (deterministic
 	// append; the drain's APNAP ordering places them). The queue emits
@@ -8300,13 +8383,10 @@ func (e *Engine) fireDeferredCastTrigger() {
 }
 
 // fireManaSpentTriggers queues the TriggersWhenSpent$ rider of every mana
-// source whose provenance batch paid for the just-completed SPELL cast (the
-// rider's "when that mana is spent to cast ..." gift: Path of Ancestry's scry
-// 1, Lapis Orb's scry 2, Study Hall's commander scry). The consumed sources
-// were captured by emitRestrictedManaSpend during the payment; castEv is the
-// spell's PutOnStack event and castLKI its look-back snapshot. It queues
-// AFTER fireDeferredCastTrigger's ordinary cast triggers (deterministic
-// append order).
+// source whose provenance batch paid for the just-completed spell cast or
+// activated ability. Sources are captured by emitRestrictedManaSpend; ev is
+// the completed PutOnStack/AbilityPush event. It runs after payment and push,
+// preserving deterministic trigger append order.
 //
 // A rider's SVar is a T:-shaped trigger body (Mode$ SpellCast | ValidCard$ ...
 // | Execute$ ...) that the ordinary trigger scan never walks -- it lives in
@@ -8318,12 +8398,12 @@ func (e *Engine) fireDeferredCastTrigger() {
 // the identical granted-trigger push (events.Apply resolves Execute from the
 // source's SVar table). A source that has left the battlefield, has no face,
 // or names no longer-resolvable body fails closed -- the rider belongs to the
-// permanent. Only Mode$ SpellCast is honoured (sunken_palace's
-// SpellAbilityCast "spell or activate an ability" is out of scope).
+// permanent. SpellCast is spell-only; SpellAbilityCast dispatches on both
+// spell casts and activated abilities.
 func (e *Engine) fireManaSpentTriggers(ev events.Event, lki *state.Object) {
 	sources := e.manaSpentSources
 	e.manaSpentSources = nil
-	if len(sources) == 0 || ev.Kind != events.PutOnStack {
+	if len(sources) == 0 || (ev.Kind != events.PutOnStack && ev.Kind != events.AbilityPush) {
 		return
 	}
 	for _, src := range sources {
@@ -8342,10 +8422,17 @@ func (e *Engine) fireManaSpentTriggers(ev events.Event, lki *state.Object) {
 				continue
 			}
 			t, ok := cards.ParseTriggerLine(body)
-			if !ok || t.Mode != "SpellCast" {
+			if !ok || (t.Mode != "SpellCast" && t.Mode != "SpellAbilityCast") {
 				continue
 			}
-			if !e.zoneGate(t, src, ev) || !e.phaseGate(t) || !e.spellCastEval(t, src, ev) {
+			matches := false
+			switch t.Mode {
+			case "SpellCast":
+				matches = e.spellCastEval(t, src, ev)
+			case "SpellAbilityCast":
+				matches = e.spellAbilityCastMatches(t, src, ev, lki)
+			}
+			if !e.zoneGate(t, src, ev) || !e.phaseGate(t) || !matches {
 				continue
 			}
 			exec := strings.TrimSpace(t.Params["Execute"])
