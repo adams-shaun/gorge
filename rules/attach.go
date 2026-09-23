@@ -98,6 +98,23 @@ func (e *Engine) attachmentSBAs() bool {
 			if bearer == nil || bearer.Zone != state.ZBattlefield {
 				// The bearer left the battlefield: an Equipment detaches
 				// (CR 704.5n), an Aura goes to the graveyard (CR 704.5m).
+				//
+				// The graveyard-enchant family (Animate Dead, Dance of the
+				// Dead) is the measured exception: between the Aura entering
+				// (attached at resolution, while the spell was still on the
+				// stack) and its reanimate trigger resolving, the bearer is
+				// LEGALLY a creature card in a graveyard -- CR 704.5m sweeps
+				// an attachment that is no longer legal, and the Aura's
+				// current enchant spec still admits exactly this bearer here.
+				// The test is deliberately zone-POSITIVE (the spec must match
+				// the bearer AND carry an inZone<X> word whose X names the
+				// bearer's current zone), because MatchesSpecFrom's bare type
+				// words are zone-blind (spec `Creature` matches a graveyard
+				// bear too) and the exemption must never save an ordinary Aura
+				// whose bearer died.
+				if isAura(o) && bearer != nil && e.auraEnchantZoneAdmits(o, bearer) {
+					continue
+				}
 				if isAura(o) {
 					e.emit(events.Event{Kind: events.MoveZone, Obj: id,
 						From: state.ZBattlefield, To: state.ZGraveyard, Text: "attached to an object that left the battlefield"})
@@ -146,20 +163,58 @@ func (e *Engine) attachmentSBAs() bool {
 // Enchant keyword's restriction (the "creature" of K:Enchant:Creature, or the
 // more specific "Creature.YouCtrl" a real card spells; the first field after
 // the colon is the spec, any later fields are the human prompt and dropped).
-// An Aura with no Enchant keyword is treated as still-matching so it is never
-// spuriously destroyed -- nothing in the corpus prints an Aura without one,
-// but an Enchant-less Aura should not be the thing this SBA guesses about.
+// The read is the DERIVED enchant (derivedKeywordParam: printed plus layer-6
+// granted, minus layer-6 removed), not the printed face -- Animate Dead's
+// RemoveKeywords$/Keywords$ pair rewrites the Enchant the SBA must honour, and
+// a printed-only read would sweep the reanimated pair at the very next
+// checkpoint. An Aura with no derived Enchant keyword is treated as
+// still-matching so it is never spuriously destroyed; the intended side effect
+// is that an Aura under a RemoveAbilities effect (Humility) -- which has no
+// derived Enchant at all -- falls into that same still-matching arm, not a
+// sweep. Nothing in the corpus prints an Aura without an Enchant keyword, so
+// the arm only ever covers granted-absent shapes.
 func (e *Engine) auraStillMatchesEnchant(o, bearer *state.Object) bool {
 	f := o.Face()
 	if f == nil {
 		return false
 	}
-	param, ok := f.KeywordParam("Enchant")
+	param, ok := e.derivedKeywordParam(o.ID, "Enchant")
 	if !ok || strings.TrimSpace(param) == "" {
 		return true
 	}
 	spec, _, _ := strings.Cut(param, ":")
 	return e.matchesSpecFrom(strings.TrimSpace(spec), bearer.ID, o.Controller, o.ID)
+}
+
+// auraEnchantZoneAdmits is attachmentSBAs' off-battlefield-bearer exemption
+// test: the Aura's CURRENT (derived) enchant spec matches the bearer AND
+// carries an inZone<X> word whose X names the bearer's current zone. See
+// attachmentSBAs for why the zone word is mandatory (a bare spec is
+// zone-blind and would exempt ordinary dead-bearer Auras too).
+func (e *Engine) auraEnchantZoneAdmits(o, bearer *state.Object) bool {
+	param, ok := e.derivedKeywordParam(o.ID, "Enchant")
+	if !ok || strings.TrimSpace(param) == "" {
+		return false
+	}
+	spec, _, _ := strings.Cut(param, ":")
+	spec = strings.TrimSpace(spec)
+	if spec == "" {
+		return false
+	}
+	zoneNamed := false
+	for _, word := range strings.Split(spec, ".") {
+		z, has := strings.CutPrefix(word, "inZone")
+		if !has {
+			continue
+		}
+		if zn, known := effects.ParseZoneWord(z); known && zn == bearer.Zone {
+			zoneNamed = true
+		}
+	}
+	if !zoneNamed {
+		return false
+	}
+	return e.matchesSpecFrom(spec, bearer.ID, o.Controller, o.ID)
 }
 
 func (e *Engine) playerAuraStillMatchesEnchant(o *state.Object, p state.PlayerID) bool {
