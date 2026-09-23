@@ -150,7 +150,11 @@ func BoardFromGameInto(g *state.Game, ch Chars, me state.PlayerID, b *Board) Boa
 		if o == nil {
 			continue
 		}
-		b.Stack = append(b.Stack, StackEntry{ID: id, Controller: o.Controller, IsSpell: o.Ability == nil})
+		var cmc int32
+		if f := o.Face(); f != nil {
+			cmc = CmcOf(f.ManaCost)
+		}
+		b.Stack = append(b.Stack, StackEntry{ID: id, Controller: o.Controller, IsSpell: o.Ability == nil, CMC: cmc})
 	}
 	b.IsMain = g.Step.IsMain()
 	// The cast scorer's two board-half features (cast.go): FirstMain is the
