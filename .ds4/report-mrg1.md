@@ -47,123 +47,85 @@ No unresolved conflict or uncertainty remains.
 
 # Merge conflict resolution: mrg1 round 2 (branch wt/cli-20260922T225138Z-c4106938, main at 84cb68b9)
 
-# Merge-conflict resolution report — mrg1 (ticket cli-20260922T225140Z-c9271412)
 
 ## Starting state
 
-`git status` showed a CLEAN tree on `wt/cli-20260922T225140Z-c9271412` at the branch
-commit 3c9da13e ("fix(rules): fizzle infeasible distinct Charm target declarations";
-branch series 1aedc150 → 65f6d053 → 11db0cb0 → 3c9da13e), with `main` (00147db0) NOT
-an ancestor — the dispatch log's failed rebase and merge-fallback attempts had already
-been rolled back (no rebase-merge/REBASE_HEAD/MERGE_HEAD in flight). So there was no
-in-flight operation to finish; I performed the integration myself as a **merge of
-main** (merge, not rebase — this repo's standing rule forbids `git rebase`, and main's
-history shows the merge shape is the established integration path for wt branches).
+The worktree was CLEAN, HEAD = `f14b56a3` (round 1's merge of main@e53c80a2,
+status DONE), with no rebase/merge in flight — the daemon's failed rebase had
+been rolled back, so the conflict dispatch was against a state that no longer
+existed. `main` had since advanced by one ticket: `0679b1cd` (the
+withForetell/withoutForetell + Cosmos Charger + effect-delivered MayPlay
+closure, merged to main via `98dcf594`/`84cb68b9` of the sibling ticket
+cli-20260922T225141Z-8d166e9c).
 
-`.cards` was present (real corpus, so corpus-backed tests ran, not skipped).
 
-## Conflicted file — `internal/testutil/agentsdoc_test.go` (only conflict)
+## Conflicts and resolution
 
-Both sides touched the `knownApproximationRows` constant:
+---
 
-- **HEAD (branch):** `knownApproximationRows = 73` — the branch's ticket deleted the
-  Charm row from AGENTS.md's Known-approximations table (auto-merged cleanly) and
-  lowered the constant.
-- **main:** `knownApproximationRows = 72`, comment naming main's stack-option-kind
-  closure ("a spell on the stack is offered with Option.Kind permanent", c12e10ef)
-  plus the Dig closure.
+Rebase is forbidden in this worktree (shared-`git` seat rule), and merge is
+the established integration shape here, so the integration was done as
+`git merge main`.
 
-**Resolution:** measured the MERGED AGENTS.md table with the test's own counting rule
-(all `| ` lines between `## Known approximations` and the next `## `, minus the header
-row): **71 data rows** = 73 (branch measured) − 2 (main's closures since the split).
-Set `knownApproximationRows = 71` with a comment naming both sides' contributions.
-Note: a naive awk that stops at the first blank line undercounts by one, because a
-stray blank line sits between the last two table rows on BOTH branch and main
-(pre-existing in both; the test's region extends past it and counts the
-`api:ExchangeLifeVariant` row after it). The first draft set 70 from that awk; the
-test's own measurement corrected it to 71 — the test itself is the arbiter.
 
-## Semantic (non-textual) conflict — `rules/copy_target_provenance_test.go`
+## Conflicted files and resolution
 
-Git auto-merged main's `copy_target_provenance_test.go` (6246e568, "preserve copy
-target declaration provenance and modal modes") with the branch's charm machinery in
-`rules/stack.go`, but the test then FAILED:
+1. **`internal/testutil/agentsdoc_test.go`** — one conflict hunk: this branch's
+   explanatory comment above `knownApproximationRows` (main never had it; both
+   sides set the constant to 74). Resolved to **73**, the merged table's
+   measured data-row count (74 on each side; the merge deletes main's
+   foretell row — closed in `0679b1cd` — on top of this branch's
+   stack-option-kind closure). Comment updated to state the new measurement.
+   Never raised. `knownOversizeRows` stayed 8 on both sides (merged table
+   measures 6 oversize rows — shrinkage only). gofmt clean.
+2. **`.ds4/report-mrg1.md`** — this tracked report file carried each side's
+   prior-round report (ours from round 1, main's from the sibling ticket).
+   Replaced with THIS round's report per the report-path contract.
+3. **`AGENTS.md`** — auto-merged with NO textual conflict. Verified the merged
+   table with the test's own parsing algorithm: **73 data rows**, both closed
+   rows absent (this branch's "A spell on the stack is offered with
+   `Option.Kind` \"permanent\"…" row and main's foretell row), and
+   `git diff main -- AGENTS.md` shows exactly this branch's one row deletion.
 
-```
---- FAIL: TestCopyCharmAsksEveryChosenTargetMode
-    copy_target_provenance_test.go:124: submit [2]: expected 2..2 choices, got 1
-```
+All other main-side changes (`effects/filter.go`, `effects/misc.go`,
+`rules/legal.go`, `rules/mayplay.go`, `rules/playerkeywords.go`,
+`state/continuous.go`, `rules/foretell_grant_test.go`,
+`rules/paramcensus_test.go`) auto-merged and were retained unmodified — this
+branch never touched those files.
 
-What each side wanted:
+## Ratchet cross-check after the merge
 
-- **main's test:** for Winterflame (`CharmNum$ 2`, two modes, one creature target
-  each) the cast's target ask accepted ONE submitted target (main's pre-branch
-  per-mode/legacy shared-list shape), then the test exercises the COPY
-  (Mirrorpool) path's per-declaration `copy_targets` provenance — the test's real
-  subject.
-- **branch (the reviewed fix, 11db0cb0 + 1aedc150):** a distinct-mode modal cast now
-  poses ONE grouped KTarget decision, Min=2/Max=2, one exclusive group per mode
-  (`charm-mode-0`/`charm-mode-1`) — asserted verbatim by the branch's own
-  `TestDistinctCharmModesKeepTheirOwnTargets`.
+The brief's ratchet command list plus the agentsdoc ratchet itself. No ratchet
+table needed fixing: this branch registers no new trigger `Mode$` matcher, and
+main's foretell closure already removed its own `knownUnsupportedParams`
+entries together with its AGENTS.md row; the merged tree's `knownUnsupported`
+/ `knownUnsupportedParams` / `knownUnmodelledCountHeads` tables are otherwise
+untouched by either side.
 
-Per the ground rules the branch's behaviour is the approved fix and main carries no
-later deliberate change to that ask shape (main's 6246e568 is about the COPY path's
-provenance, not the cast ask's shape), so the branch's ask wins and main's TEST was
-brought up to it: the bear is offered once per mode group, so the cast target ask is
-answered with both options (`found, found2`), keeping every copy-provenance assertion
-downstream unchanged. The full test now passes.
-
-## Rot-guard fix — `rules/paramcensus_test.go`
-
-The ratchet run also flagged the paramcensus rot guard (this appears only after the
-merge, because the branch's charm code is what introduced the reads):
+## Commands run and output
 
 ```
-paramcensus: 2 unclassified Params reads (the census cannot rot):
-cast.go:6179:29:  unclassified Params base "root"
-stack.go:1822:27: unclassified Params base "root"
+git merge main
+  -> AGENTS.md auto-merged; .ds4/report-mrg1.md CONFLICT;
+     internal/testutil/agentsdoc_test.go CONFLICT
+python3 (the test's own parsing algorithm) on merged AGENTS.md
+  -> data rows: 73; oversize: 6
+
+go test ./internal/testutil -run 'TestKnownApproximation' 2>&1 | tail -3
+  -> ok  github.com/adams-shaun/gorge/internal/testutil
+go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' 2>&1 | tail -3
+  -> ok  github.com/adams-shaun/gorge/rules
+go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ 2>&1 | tail -3
+  -> ok  github.com/adams-shaun/gorge/cmd/botbench
+go test ./internal/archtest/ 2>&1 | tail -3
+  -> ok  github.com/adams-shaun/gorge/internal/archtest
+gofmt -l internal/testutil/agentsdoc_test.go
+  -> (no output, clean)
 ```
 
-Both read `root.Params["Choices"]` where `root` is a resolved `*cards.SA`
-(cast.go's `f.SpellAbility()`, the same shape `o.Ability` covers; stack.go's
-`askCharmModeTargets` root parameter). Classified as `"root": bSA` in `baseBuckets`
-with a justification comment. No behaviour change.
+## Result
 
-## Commands run (with real outcomes)
-
-- `git merge main` → `CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go`;
-  AGENTS.md, rules/stack.go, rules/clone.go, rules/heads_test.go, cmd/botbench,
-  effects/* etc. auto-merged.
-- `go test -run 'TestKnownApproximations' ./internal/testutil/` → first FAIL
-  ("lower knownApproximationRows to 71" — corrected the awk-derived 70 to the
-  test-measured 71), then **ok**.
-- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`
-  → first FAIL (paramcensus rot guard above), then **ok** after the baseBuckets entry.
-- `go test ./rules -run 'Charm|TestHeads'` → first FAIL
-  (TestCopyCharmAsksEveryChosenTargetMode), then **ok** after the test update; TestHeads
-  passed both times (no head movement — resolution restored the branch's own reviewed
-  behaviour, and the branch series already carried any re-pin it needed).
-- `go test -run 'Charm' ./effects/` → **ok**.
-- `go test ./internal/archtest/` → **ok**.
-- `go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/` → **ok**
-  (botbench split did NOT move: the repo decks do not exercise the grouped charm ask
-  in a way that changes bot decisions).
-- `gofmt -l` on the three edited files → clean.
-- `git add` + `git commit` (merge) + `git commit --amend --no-edit` to fold the three
-  resolution edits into the merge commit → **167bb13a** "Merge branch 'main' into
-  wt/cli-20260922T225140Z-c9271412" (parents: 3c9da13e branch tip, 00147db0 main tip).
-- `git status --short` → clean.
-
-## Deviations / notes
-
-- I edited `rules/copy_target_provenance_test.go` (a main-side test) — beyond the one
-  textually conflicted file, but this is exactly the "both sides' intent" case: the
-  branch's reviewed ask shape is preserved, main's copy-provenance coverage is
-  preserved, and the daemon's full gate would otherwise fail. The edit only changes how
-  the cast target ask is ANSWERED (both mode-group options instead of one); no
-  assertion about the copy path was weakened.
-- `knownApproximationRows = 71` matches the merged table exactly (no slack); the
-  `knownOversizeRows` constant was outside the conflict region and needed no change.
+Merge commit with the default merge message; working tree clean after.
 
 ## Issues
 
@@ -571,10 +533,3 @@ None found in the conflict resolution itself. One note: main's own
 `agentsdoc_test.go` comment claimed 71 while main's table already held 70
 rows (it accounted for only one of its two deletions); the merged-tree
 constant 69 supersedes both comments.
-- The stray blank line inside the Known-approximations table (between the `kw:Infect`
-  row and the `api:ExchangeLifeVariant` row) exists on both sides' AGENTS.md. Harmless
-  to the test (its region counts past it) but it breaks Markdown table rendering for
-  the last row and it silently breaks naive line-scanners that stop at the first blank
-  (as mine did). A docs ticket could remove it and lower the constant by 1.
-- No other defects found; nothing in the ledger was closed by this merge beyond the
-  branch ticket's own Charm row (AGENTS.md row already deleted by the branch series).
