@@ -1,50 +1,41 @@
-# Merge-conflict resolution report — mrg1 (agent-20260922T210645Z-27e19c88)
-
-## Entry state and operation
-
-`git status --short --branch` showed a clean worktree on `wt/agent-20260922T210645Z-27e19c88`, at `1f9f933e`; no merge or rebase was in flight. The merge base with `main` was `cb8bf4d7`. Per the dispatch, ran `git merge main`.
-
-The merge had one conflicted path: `.ds4/report-sol1.md`. Main's other changes auto-merged; no production source file conflicted. The `.cards` corpus was present as a symlink to `/home/sadams/projects/gorge/.cards`.
+# Merge-conflict resolution — mrg1
 
 ## Conflict and resolution
 
-`.ds4/report-sol1.md` contains reports for separate tasks. The branch side held the approved Attached-predicate implementation and stale-binding regression report, including the earlier Gitaxian Probe text. Main's side held the Deep Spawn `Mill` review response, RollDice verification report, and the Gitaxian Probe report. These intents are independent and do not contradict. I kept both complete sides, separated them with a Markdown divider, and removed only the three merge-marker lines. Thus the Attached report and main's reports are preserved. No source behavior was changed to resolve the conflict. No other path was manually edited.
+Only `.ds4/report-sol2.md` was conflicted (add/add). The branch side contains the Dismantle targeted-counter-LKI sol2 report; main's side contains an Attached-predicates sol2 merge-blocker report. These are independent historical reports that happened to claim the same report path. I preserved both complete reports in that file under separate headings, retaining their findings, gate outputs, and issue notes. No report content was discarded. All other main changes auto-merged; there were no conflicted Go files.
 
-The branch does not register a new trigger mode or close a known-unsupported/parameter/count-head ratchet entry, so no ratchet table adjustment was needed.
+## Commands and results
 
-## Commands and output
-
-```text
-$ git status --short --branch && git rev-parse --abbrev-ref HEAD && git log -1 --oneline
-## wt/agent-20260922T210645Z-27e19c88
-wt/agent-20260922T210645Z-27e19c88
-1f9f933e docs: record Attached predicates merge-blocker resolution
-
-$ git diff --name-only --diff-filter=U
-(no output before starting the merge)
-
+```
+$ git status --short --branch
+## wt/agent-20260922T215327Z-0900a39d
+nothing to commit, working tree clean
 $ git merge main
-Auto-merging .ds4/report-sol1.md
-CONFLICT (content): Merge conflict in .ds4/report-sol1.md
+Auto-merging .ds4/report-sol2.md
+CONFLICT (add/add): Merge conflict in .ds4/report-sol2.md
+Auto-merging effects/count.go
+Auto-merging effects/registry.go
+Auto-merging rules/engine.go
+Auto-merging rules/resolution.go
 Automatic merge failed; fix conflicts and then commit the result.
-
-$ git diff --name-only --diff-filter=U
-.ds4/report-sol1.md
-
-$ [ -e .cards ] && readlink -f .cards
+$ git diff --check
+(no output; exit 0)
+$ git add .ds4/report-sol2.md
+The following paths are ignored by one of your .gitignore files:
+.ds4
+hint: Use -f if you really want to add them.
+$ git add -f .ds4/report-sol2.md && GIT_EDITOR=: git merge --continue
+[wt/agent-20260922T215327Z-0900a39d 08c5dd1a] Merge branch 'main' into wt/agent-20260922T215327Z-0900a39d
+$ test -e .cards && readlink .cards
 /home/sadams/projects/gorge/.cards
-
-$ go test -run 'TestAttachedPredicate|TestAttachedToContextReferents|TestAttachedToReferentPluralBindingFailsClosed|TestAttachedToStaleReferentFailsClosed|TestAttachedToLiteralPredicate|TestAttachedToTargetedBoundFromContext|TestAttachedToPlayerWordStaysUnknown|TestAttachedToPredicateUnlocksCorpusTargeting|TestArnaCopy|TestArnaRealSourceFilterReachesCopyRider|TestStanggRealTriggerCopiesAttachedPermanents' ./effects ./rules/ 2>&1 | tail -30
-ok   github.com/adams-shaun/gorge/effects  0.640s
-ok   github.com/adams-shaun/gorge/rules  0.695s
-
-$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' 2>&1 | tail -30
-ok   github.com/adams-shaun/gorge/rules  0.781s
-
-$ grep -nE '^(<<<<<<<|=======|>>>>>>>)' .ds4/report-sol1.md
-(no output)
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok   github.com/adams-shaun/gorge/rules  0.970s
+$ git status --short --branch
+## wt/agent-20260922T215327Z-0900a39d
 ```
 
-## Issues and uncertainty
+The required post-merge ratchets passed with the real `.cards` corpus available. No behavior conflict or uncertainty remained. Merge commit: `08c5dd1a`; merged main tip: `935cefc4`.
 
-No new engine issue was found during integration. No uncertainty about the code merge: the only conflict was independent report content. The concatenated report retains an earlier historical Gitaxian Probe section as well as main's later Probe report; this is redundant historical documentation, not lost or conflicting implementation content.
+## Issues
+
+No new issues found during conflict resolution. No code conflict required behavior changes.
