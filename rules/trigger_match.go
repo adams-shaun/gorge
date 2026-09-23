@@ -1849,9 +1849,11 @@ func init() {
 		//     CR 903.13c named-pair alias, and CR 903.4-style commander
 		//     eligibility): the engine already seats and casts commanders
 		//     per Config -- partnerPairOK -> deck.IsPartnerPair checks the
-		//     mutual named pair -- and nothing in play reads them, so the
-		//     registrations assert the corpus shape is understood, not that
-		//     play rules exist for it.
+		//     mutual named pair -- so the registrations assert the corpus
+		//     shape is understood. kw:Partner with ALSO prints real rules
+		//     text (CR 702.128's ETB may-search for the named partner), which
+		//     cards/kw_partner_with.go expands into an ordinary trigger; the
+		//     bare kw:Partner line and "kw:CARDNAME..." remain play-free.
 		"trig:UnlockDoor", "kw:Station", "kw:Chapter", "kw:Start your engines",
 		"stat:Panharmonicon", "kw:Partner", "kw:Partner with",
 		"kw:CARDNAME can be your commander.",

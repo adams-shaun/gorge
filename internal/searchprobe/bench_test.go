@@ -279,7 +279,12 @@ func TestTeacherChoiceRealDeckGolden(t *testing.T) {
 	// window), for the same reason and with the same verdict: Index, Values,
 	// Rollouts, Terminal, Capped and the 8/8/8/8 wins split are all unchanged
 	// and only Submits moves, 2891 -> 4054.
-	const want = "dc918f1851cb7df6299310480c8f02dc29fc58cab34210b1c0b6dc01e5c37bb0"
+	// Re-measured by cli-20260922T225137Z-4a79e887 (context-resolved target
+	// effects): captured target actions now carry known dynamic damage rather
+	// than null, changing the sampled worlds and only Submits, 4054 -> 4000.
+	// Index, Values, Rollouts, Terminal, Capped and the 8/8/8/8 wins split are
+	// unchanged; this is not a rollout-side behavior change.
+	const want = "20e9fd4dbecee72b18633c97e41fb4c44d262084b182d58ca5c42d22035e261d"
 	for _, parallelism := range []int{0, 4} {
 		res, err := TeacherChoice(worlds, cands, TeacherOptions{Seed: 99, MaxSubmits: 5000, Parallelism: parallelism})
 		if err != nil {
