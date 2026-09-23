@@ -1100,6 +1100,7 @@ const (
 	wordDefenderCtrl
 	wordNotDefinedTargeted
 	wordOpponentCtrl
+	wordChosenColor
 )
 
 // wordPredicate classifies a bare predicate word. key is the WUBRG letter for
@@ -1179,6 +1180,8 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordMonoColor, ""
 	case "Worthy":
 		return wordWorthy, ""
+	case "ChosenColor":
+		return wordChosenColor, ""
 	case "wasCast":
 		return wordWasCast, ""
 	case "CopiedSpell":
@@ -1195,18 +1198,19 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordCastProvenance, p
 	// The card-level CastSa property tokens (task castsa-provenance): the
 	// four mana-spend spellings the payment path's tagged ManaAdd encoding
-	// answers, plus the cast-flag spelling Spell.Mayhem (state.FlagMayhem,
-	// stamped by modeFlags' "mayhem" case) — recognized here (the census no
-	// longer reports them unknown) but evaluated by the provenance strips
-	// (rules' castSaAdmits and the per-event walk in spellsCastThisTurn-
-	// Matching; effects/conditions.go's castSaAdmitsFilter for the
-	// ConditionPresent gates), which remove the token before the filter
-	// runs; wordMatches' body fails closed. The still-unmodelled spellings
-	// (CastSa Spell.MayPlaySource / Warp / ManaFromArtifact) stay unknown
+	// answers, plus the cast-flag spellings Spell.Mayhem (state.FlagMayhem,
+	// stamped by modeFlags' "mayhem" case) and Spell.Warp (state.FlagWarped,
+	// modeFlags' "warped" case) — recognized here (the census no longer
+	// reports them unknown) but evaluated by the provenance strips (rules'
+	// castSaAdmits and the per-event walk in spellsCastThisTurnMatching;
+	// effects/conditions.go's castSaAdmitsFilter for the ConditionPresent
+	// gates), which remove the token before the filter runs; wordMatches'
+	// body fails closed. The still-unmodelled spellings (CastSa
+	// Spell.MayPlaySource and CastSa Spell.ManaFromArtifact) stay unknown
 	// and fail closed everywhere.
 	case "CastSa Spell.ManaFromTreasure", "CastSa Spell.ManaFromCave",
 		"CastSa Spell.ManaFromDesert", "CastSa Spell.ManaSpent EQ0",
-		"CastSa Spell.Mayhem":
+		"CastSa Spell.Mayhem", "CastSa Spell.Warp":
 		return wordCastProvenance, p
 	case "ActivePlayerCtrl":
 		return wordActivePlayerCtrl, ""
@@ -1341,6 +1345,16 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		return sharesAllCardTypesWithOther(g, o, sc, key)
 	case wordColor:
 		return strings.Contains(ColorsOf(o), key)
+	case wordChosenColor:
+		if source == 0 {
+			return false
+		}
+		src := g.Obj(source)
+		if src == nil {
+			return false
+		}
+		chosen := colourLetter(src.ChosenColor)
+		return chosen != 0 && strings.Contains(ColorsOf(o), string(chosen))
 	case wordType:
 		return hasTypeCtx(o, key, sc)
 	case wordColorless:
@@ -1694,7 +1708,7 @@ func contextPredicateBound(kind wordKind, sc SpecContext) bool {
 		return sc.Resolving
 	case wordDefenderCtrl:
 		return sc.DefendingPlayer.IsPlayer
-	case wordImprinted:
+	case wordImprinted, wordChosenColor:
 		return sc.Source != 0
 	}
 	return true
@@ -2650,6 +2664,12 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		// unstripped caller, which is not entitled to a provenance answer.
 		if kind == wordCastProvenance {
 			return false, false
+		}
+		if kind == wordChosenColor {
+			src := g.Obj(sc.Source)
+			if src == nil || colourLetter(src.ChosenColor) == 0 {
+				return false, false
+			}
 		}
 		// The pc1 context-bound classifiers (NotDefinedTargeted, DefenderCtrl,
 		// IsImprinted) are likewise recognised so the census reports them, but

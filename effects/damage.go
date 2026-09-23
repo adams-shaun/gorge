@@ -709,9 +709,14 @@ func effDamageAll(h Host, c *Ctx, sa *cards.SA) {
 // the same resolver every other reference uses -- ValidPlayers$ Targeted
 // (players among the chosen targets), Remembered -- while anything else is
 // a PREDICATE over every living player through MatchesPlayerSpec (Player,
-// Player.Opponent, Opponent, You). A spec neither resolves (the
-// OppNonTriggeredTarget / FlippedTails singletons) stays unsupported and
-// damages no player: fail closed, never a guess about who takes the sweep.
+// Player.Opponent, Opponent, You). The dotted `.IsRemembered` spelling
+// (Snort) narrows the two-tier remember set to its base constraint, and the
+// OppNonTriggeredTarget singleton (Kediss, Parapet Thrasher) resolves
+// through its trigger binding. A spec the grammar still does not model
+// (The Fallen's wasDealtDamageThisGameBy compound, whose game-long
+// damage-by-source history no event carries) fails closed AND loud: it
+// damages no player and emits a Note naming the selector, never a silent
+// no-op and never a guess about who takes the sweep.
 func validPlayers(h Host, c *Ctx, spec string) []state.PlayerID {
 	spec = strings.TrimSpace(spec)
 	if spec == "" {
@@ -733,6 +738,50 @@ func validPlayers(h Host, c *Ctx, spec string) []state.PlayerID {
 			return nil
 		}
 		return []state.PlayerID{PlayerOf(h, c, c.Targets[0])}
+	}
+	// The dotted `.IsRemembered` spelling (Snort's ValidPlayers$
+	// Opponent.IsRemembered), BEFORE definedSpec: its trailing player-base
+	// sweep claims any base.Opponent/Player/You/Other spec and evaluates it
+	// through MatchesPlayerSpecFrom, whose IsRemembered qualifier reads only
+	// the source object's PERSISTENT list -- which RememberDiscardingPlayers$
+	// never writes (it records the discarding players in the resolution's
+	// Remembered only) -- so the sweep would answer an empty set and the
+	// whole player half would silently deal no damage. Resolved here instead:
+	// the remember set through definedSpec's Player.IsRemembered read reused
+	// verbatim (the source object's persistent player-remember list wins,
+	// the resolution's Remembered is the fallback), narrowed to the spec's
+	// base constraint (Opponent/You/Other) through the shared player filter.
+	// The Player/Any spellings stay on their existing exact-case path.
+	if base, qual, ok := strings.Cut(spec, "."); ok && qual == "IsRemembered" &&
+		base != "Player" && base != "Any" {
+		ts, _ := definedSpec(h, c, "Player.IsRemembered")
+		var out []state.PlayerID
+		seen := make(map[state.PlayerID]bool)
+		for _, t := range ts {
+			if t.IsPlayer && MatchesPlayerSpec(g, base, t.Player, c.Controller) {
+				out = appendPlayer(out, seen, t.Player)
+			}
+		}
+		return out
+	}
+	// The dotted-claim census, BEFORE definedSpec: its trailing player-base
+	// sweep claims any dotted Player/Any/Opponent/Other/You spec and
+	// evaluates it inside the shared filter, whose unknown clauses match
+	// nobody SILENTLY (its own fail-closed direction). The sweep wants an
+	// unmodelled clause loud instead, so a claim-bound spec with a clause
+	// whose base the player grammar does not name (The Fallen's
+	// "Player.Opponent+wasDealtDamageThisGameBy Self" -- a game-long
+	// damage-by-source history the Damage event carries no source for) is
+	// rejected here with a Note naming the selector. Known-base unknown-
+	// QUALIFIER spellings stay on definedSpec's silent empty-set path: the
+	// qualifier vocabulary is the shared filter's to own, and a parallel
+	// census of it here could only drift from the matcher it mirrors.
+	if base, _, ok := strings.Cut(spec, "."); ok &&
+		(base == "Player" || base == "Any" || base == "Opponent" || base == "Other" || base == "You") {
+		if validPlayersSelectorUnknown(spec) {
+			eachDamageNote(h, c, "unresolved DamageAll ValidPlayers$ "+spec)
+			return nil
+		}
 	}
 	if ts, ok := definedSpec(h, c, spec); ok {
 		var out []state.PlayerID
@@ -762,6 +811,13 @@ func validPlayers(h Host, c *Ctx, spec string) []state.PlayerID {
 		}
 		return out
 	}
+	// The fall-through census: the same check for a spec no earlier arm
+	// claimed -- a bare unknown selector would silently match nobody; make
+	// it loud instead. Same qualifier exemption as the dotted gate above.
+	if validPlayersSelectorUnknown(spec) {
+		eachDamageNote(h, c, "unresolved DamageAll ValidPlayers$ "+spec)
+		return nil
+	}
 	var out []state.PlayerID
 	for _, p := range g.AliveFrom(0) {
 		if MatchesPlayerSpec(g, spec, p, c.Controller) {
@@ -769,6 +825,35 @@ func validPlayers(h Host, c *Ctx, spec string) []state.PlayerID {
 		}
 	}
 	return out
+}
+
+// validPlayersSelectorUnknown reports whether a ValidPlayers$ spec carries
+// any clause whose base the shared player filter does not recognise: one of
+// Player/Any/You/Opponent/Other, or one of the bare property spellings the
+// compound grammar reads (matchesPlayerCompoundCtx's own vocabulary). A
+// leading '!' does not change what the base is. Comma alternatives are the
+// filter's own first split, so each is checked separately.
+func validPlayersSelectorUnknown(spec string) bool {
+	knownBase := func(clause string) bool {
+		clause = strings.TrimSpace(strings.TrimPrefix(clause, "!"))
+		if isBarePlayerProperty(clause) {
+			return true
+		}
+		base, _, _ := strings.Cut(clause, ".")
+		switch base {
+		case "Player", "Any", "You", "Opponent", "Other":
+			return true
+		}
+		return false
+	}
+	for alt := range strings.SplitSeq(spec, ",") {
+		for clause := range strings.SplitSeq(alt, "+") {
+			if !knownBase(clause) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // effEachDamage implements "SP$/AB$/DB$ EachDamage" -- the "each creature
