@@ -1,3 +1,309 @@
+# Task rv1 — `RevealAllValid$` unread: reveal every matching hand card
+
+## What changed and why
+
+**`effects/cardflow.go`** (`effReveal`, one new block after the existing
+`RevealValid$` filter and the `n := amt` count resolution, before the pickable
+block): when `RevealAllValid$` is non-empty, filter the pool by the spec with
+`MatchesSpecCtx(g, rav, id, c.SpecContext(c.Controller))` and set
+`n = int32(len(pool))`. Pre-fix the parameter was read ONLY by the `pickable`
+gate, so the spec was never fed to the filter and the emit took `pool[:1]` —
+the FIRST card of the whole hand whether or not it matched. This is the single
+choke point the brief named; the `pickable` gate is untouched.
+
+Everything downstream then works unchanged: `pool[:n]` emits the full matching
+set, `RememberRevealed$` captures all of it, and a zero-match pool hits the
+existing `if n == 0 { continue }` skip — no Note, no capture, the same
+fail-closed convention `RevealType$`/`RevealValid$` already apply.
+
+**`effects/revealallvalid_test.go`** (new file): three tests driving the REAL
+corpus scripts (style: `infernal_tutor_test.go`).
+
+**`AGENTS.md`**: deleted the `RevealAllValid$` Known-approximations row.
+
+**`internal/testutil/agentsdoc_test.go`**: `knownApproximationRows` 20 → 19 and
+`knownOversizeRows` 8 → 7, with the measurement comment updated.
+
+### Brief premise corrections (both re-measured)
+
+1. The brief's expected Break Expectations result `[Bolt, Bears]` for a hand
+   `[Plains, Lightning Bolt, Grizzly Bears]` is **wrong**: Lightning Bolt is
+   `ManaCost:R` → cmc 1, and the spec is `Card.cmcGE2+…`, so Bolt does NOT
+   match. My test uses `[Plains(0), Lightning Bolt(1), Grizzly Bears(2), Hill
+   Giant(4)]` and asserts exactly `[Grizzly Bears, Hill Giant]` in hand order.
+2. The brief said lower `knownApproximationRows` "from 23 to 22". The merged
+   constant measured 20 (and `approximationRows()` counted 20 data rows at
+   HEAD), so I lowered it to 19. I also lowered `knownOversizeRows` 8 → 7: the
+   deleted row's Stand-in cell was 809 bytes (over the 600 cap), and the
+   constant's own doc says "Lower it when you delete one of them". The
+   zero-match test's `n == 0` path is the fail-closed convention; the "assert
+   the handler ran" requirement is satisfied by asserting no Note carries ids
+   (with the fix reverted this same test emits ids `[1]`).
+
+## Gate commands and real output
+
+Targeted run (the brief's permitted invocation):
+
+```
+$ go test -run 'TestRevealAllValid' ./effects/ 2>&1 | tail -5
+ok  	github.com/adams-shaun/gorge/effects	(cached)
+```
+
+Full targeted output on the first uncached pass:
+
+```
+$ go test -run 'TestRevealAllValid' ./effects/ > .ds4/scratch/t.log 2>&1; tail -40 .ds4/scratch/t.log
+ok  	github.com/adams-shaun/gorge/effects	0.619s
+```
+
+Ratchet test (the row deletion):
+
+```
+$ go test -run 'TestKnownApproximation' ./internal/testutil/ 2>&1 | tail -10
+ok  	github.com/adams-shaun/gorge/internal/testutil	0.001s
+```
+
+```
+$ go test ./internal/archtest/ 2>&1 | tail -10
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.402s
+```
+
+```
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ 2>&1 | tail -8
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.262s
+```
+
+```
+$ gofmt -l effects/cardflow.go effects/revealallvalid_test.go internal/testutil/agentsdoc_test.go
+(empty)
+$ go run ./cmd/gentypes -check
+(empty)
+```
+
+`.cards` was **present** in this worktree (symlink to the shared corpus), so
+the corpus-backed tests ran, not skipped.
+
+## Fails without the fix
+
+Saved the fixed `effects/cardflow.go` to `.ds4/scratch/cardflow.go.fixed`,
+removed the new block from the real file, ran the one targeted command, then
+restored byte-identically (`cmp` clean):
+
+```
+$ go test -run 'TestRevealAllValid' ./effects/
+--- FAIL: TestRevealAllValidBreakExpectationsRevealsEveryMatch (0.56s)
+    revealallvalid_test.go:128: reveal ids = [1], want exactly the two cmc>=2 hand cards [3 4]
+--- FAIL: TestRevealAllValidMindSpikeRemembersEveryMatch (0.00s)
+    revealallvalid_test.go:174: reveal ids = [1], want exactly the two matching cards [1 4]
+--- FAIL: TestRevealAllValidZeroMatchSkipsCleanly (0.00s)
+    revealallvalid_test.go:208: a zero-match reveal emitted ids [1], want none
+FAIL
+FAIL	github.com/adams-shaun/gorge/effects	0.574s
+FAIL
+```
+
+`ids = [1]` is the first hand card (Plains) in every case — the exact defect.
+Each test asserts its own precondition (the four cmc values 0/1/2/4 actually
+differ; the creature/land/instant classes actually differ; every zero-match
+hand card is cmc < 2; the object is in the hand zone), so a vacuous setup fails
+loudly.
+
+## Head / ratchet movement
+
+None. None of the 9 `RevealAllValid$` cards is in any repo deck (re-measured:
+`/usr/bin/grep -rl 'RevealAllValid\$' internal/testutil/decks/ | wc -l` → 0),
+so `TestHeads` did not move and `botbench`'s pinned split is unchanged (gate
+above passed with no re-pin). Daemon gates (TestHeads, `make sim`, `go vet`,
+CR conformance) skipped per `gorge-context.md`.
+
+## Issues
+
+- **Residual deviation (round-t1 review MINOR, now disclosed): 3 of the 9
+  `RevealAllValid$` carriers use `TargetedPlayerOwn` in the spec —
+  wingbright_thief, boareskyr_tollkeeper, phantasmal_extraction — and
+  `TargetedPlayerOwn` is NOT a registered matcher word
+  (`effects/filter.go` registers only `TargetedPlayerCtrl`; measured corpus
+  prevalence: `/usr/bin/grep -rlE 'TargetedPlayerOwn' .cards/cardsfolder |
+  wc -l` → 23 files). Those three cards now reveal NOTHING (fail-closed,
+  `n == 0` skip) where pre-fix they revealed one arbitrary card — both wrong,
+  the fail-closed direction is the convention the brief mandates, and none of
+  the 9 is in any repo deck, so no golden moved. Filed for the operator as
+  `.ds4/new-tickets/effects-targeted-player-own-matcher.md` in this worktree.
+- **Comma-union coverage gap (round-t1 review MINOR):** no test drives the one
+  comma-union carrier (Boareskyr Tollkeeper,
+  `Creature.TargetedPlayerOwn,Land.TargetedPlayerOwn`) because both of its
+  alternatives are `TargetedPlayerOwn`, which fails closed until the matcher
+  word is registered (previous bullet). The union plumbing itself is
+  byte-identical to the sibling `RevealValid$`/`RevealType$` blocks; a union
+  test should be added when the `TargetedPlayerOwn` ticket lands.
+- **`AlreadyRevealed$` is unread anywhere in the Go tree** (confirmed: zero
+  grep hits). It appears on the chained ChangeZone of Break Expectations and
+  the 8 siblings. Today the sub re-walks the hand with its own
+  `ChangeType$ …+TargetedPlayerCtrl` filter, so behaviour is correct without
+  it; the flag is a cosmetic no-op. Out of scope per the brief. No CR-lane
+  test needed (not a visible defect).
+- **Lightning Bolt cmc is 1, not ≥2** — a premise error in the filed brief, not
+  a code defect. Noted so a future reader doesn't trust the brief's example.
+- **`RevealAllValid$` on `PeekAndReveal`** has zero corpus lines (verified
+  `Random$`/`Look$`/`Optional$`/`NumCards$`/`PeekAmount$` collisions likewise
+  zero across the 9 cards), so the new block cannot collide with those arms.
+  No issue.
+
+STATUS=DONE
+COMMITS=3a8dc7122025f479d3d84b26325741e0e07c9116
+TESTS=go test -run 'TestRevealAllValid' ./effects/ → ok; TestKnownApproximation* → ok; archtest → ok; botbench TestConstructedDefaultIsByteIdentical → ok; gofmt/gentypes clean
+# Report — task agent-20260918T230554Z-74976c7c (kw:Backup)
+
+## What changed and why
+
+**`cards/kw_backup.go` (new)** — registers a `Backup` keyword expander
+(`registerKeyword(kwBackup, "Backup")`). `K:Backup:<N>:<SVar>` (CR 702.70) now
+expands into:
+
+    T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self
+      | Execute$ __kwBackup<i> | Keyword$ Backup | TriggerDescription$ Backup <N>
+    SVar:__kwBackup<i>:DB$ PutCounter | ValidTgts$ Creature | CounterType$ P1P1
+      | CounterNum$ <N> | SubAbility$ __kwBackupGrant<i>
+    SVar:__kwBackupGrant<i>:<the named SVar's body verbatim>
+      | Defined$ Targeted | ConditionDefined$ Targeted | ConditionPresent$ Creature.Other
+
+Two properties make the verbatim streamed body behave as the keyword rider:
+
+- `Defined$ Targeted` anchors the grant on the PutCounter's own target (the
+  corpus bodies name no `Defined$`; an untargeted sub defaults to the resolving
+  *source*, which would always grant the abilities to the entering creature).
+- `ConditionDefined$ Targeted | ConditionPresent$ Creature.Other` is CR
+  702.70's "if that's **another** creature". Without it a self-target grants the
+  source a duplicate of its own printed abilities — measured: the Scalelord
+  then queues **2** `Mode$ Attacks` triggers (proof below). The `Other`
+  predicate is source-relative (`o.ID != src`), and the `Targeted` condition
+  group is the supported one (`effects/conditions.go`).
+
+The named body is streamed rather than re-implemented, so whatever riders a
+carrier prints (`Keywords$`, `Triggers$`, `staticAbilities$`, `Abilities$`,
+`sVars$`) go through their ordinary parsing. All 26 corpus carriers' bodies are
+`DB$ Animate`/`DB$ Pump` and none names a `Defined$` (measured), so the
+injection is safe; a body that already named one is left untouched.
+
+If a carrier's SVar is missing, the counter trigger is still minted and the
+missing name is left as the `SubAbility$`, so `Link` reports the unresolved
+reference loudly instead of silently dropping the copy.
+
+**`cards/kw_registry_test.go`** — added `"Backup"` to `expandedHeads` with the
+comment naming the ticket. This is required: a head registered but not listed
+fails `TestNoKeywordIsRegisteredThatTheSwitchNeverExpanded`, and a head listed
+without an expander fails `TestEveryExpandedKeywordHasAnExpander`.
+
+**`rules/backup_test.go` (new)** — three real-corpus tests on Guardian
+Scalelord, each asserting its own precondition:
+
+1. `TestGuardianScalelordBackupCountersAndCopiesAbilities` — the cast ETB offers
+   the other creature, puts exactly one +1/+1 counter on it (2/2), grants the
+   copied **Flying**, and leaves the source at 0 counters.
+2. `TestGuardianScalelordBackupCopiesThePrintedTrigger` — Memnite prints **0**
+   triggers (asserted), so the exactly-one `Mode$ Attacks` trigger queued when
+   the backed-up Memnite attacks can only be the copied `AttackTrig`.
+3. `TestGuardianScalelordBackupSelfTargetGrantsNothing` — targeting the source
+   puts the counter but queues exactly **1** attack trigger (the printed one).
+
+## Brief's premise re-measured
+
+- Corpus prevalence `^K:Backup`: **26 files** — held
+  (`/usr/bin/grep -rlE '^K:Backup' .cards/cardsfolder | wc -l` → 26).
+- Guardian Scalelord is not in any repo deck (`internal/testutil/decks/`), so
+  no `knownUnsupported` / `knownUnsupportedParams` ratchet entry moves.
+- `.cards` was already present as a symlink to
+  `/home/sadams/projects/gorge/.cards` (corpus-backed tests really ran; the
+  `rules` run took ~1.0 s for 3 tests, and the `cards` registry run 0.005 s).
+
+## Exact commands and real output
+
+```
+$ go test -run 'TestGuardianScalelordBackup' -v ./rules/
+=== RUN   TestGuardianScalelordBackupCountersAndCopiesAbilities
+--- PASS: TestGuardianScalelordBackupCountersAndCopiesAbilities (1.04s)
+=== RUN   TestGuardianScalelordBackupCopiesThePrintedTrigger
+--- PASS: TestGuardianScalelordBackupCopiesThePrintedTrigger (0.00s)
+=== RUN   TestGuardianScalelordBackupSelfTargetGrantsNothing
+--- PASS: TestGuardianScalelordBackupSelfTargetGrantsNothing (0.00s)
+PASS
+ok  	github.com/adams-shaun/gorge/rules	1.060s
+
+$ go test -run 'TestEveryExpandedKeywordHasAnExpander|TestNoKeywordIsRegisteredThatTheSwitchNeverExpanded|TestAnUnregisteredKeywordIsNotExpanded' ./cards/
+ok  	github.com/adams-shaun/gorge/cards	0.005s
+
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	1.274s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.453s
+
+$ gofmt -l cards/kw_backup.go cards/kw_registry_test.go rules/backup_test.go
+(no output)
+
+$ go run ./cmd/gentypes -check
+(no output)
+```
+
+`go build ./...` and `go vet ./rules/` are clean. No head/ratchet movement.
+
+## Fails without the fix
+
+Each new test was proven non-vacuous by reverting the non-test hunk in place,
+running the one test, and restoring `cards/kw_backup.go` byte-identically
+(`cmp` against a `.ds4/scratch/` copy).
+
+1. **Registration removed** (`func init() { registerKeyword(kwBackup, "Backup") }`
+   deleted) → `TestGuardianScalelordBackupCountersAndCopiesAbilities` FAILS (the
+   ETB ask never arrives; the drain overruns into a later discard):
+   ```
+   --- FAIL: TestGuardianScalelordBackupCountersAndCopiesAbilities (0.60s)
+       backup_test.go:131: unexpected decision &{...Kind:choose...discard...} while draining Backup
+   ```
+
+2. **"Another creature" gate removed** (the `ConditionDefined$ Targeted |
+   ConditionPresent$ Creature.Other` line deleted) →
+   `TestGuardianScalelordBackupSelfTargetGrantsNothing` FAILS:
+   ```
+   --- FAIL: TestGuardianScalelordBackupSelfTargetGrantsNothing (0.63s)
+       backup_test.go:197: Backup self-target queued 2 attack triggers, want exactly 1
+       (the printed trigger); the grant must not duplicate the source's own abilities
+   ```
+
+3. **`Defined$ Targeted` injection removed** →
+   `TestGuardianScalelordBackupCopiesThePrintedTrigger` FAILS:
+   ```
+   --- FAIL: TestGuardianScalelordBackupCopiesThePrintedTrigger (0.70s)
+       backup_test.go:190: the granted rules text queued 0 attack triggers on the
+       target, want 1 (the copied AttackTrig)
+   ```
+
+After each revert the file was restored and `cmp` reported byte-identical.
+
+## Deviations from the brief
+
+None. The `sVars$`/`Abilities$`/`staticAbilities$` riders the companion
+`api-animate-svars` ticket tracks are read through the ordinary `DB$ Animate`
+path; nothing here re-implements them.
+
+## Issues
+
+- **`TriggeredAttacker$CardPower` in a trigger's target filter resolves to 0 at
+  target-offer time.** Discovered while building the self-target test: Guardian
+  Scalelord's printed attack trigger (`ValidTgts$ Permanent.nonLand+cmcLEX+YouOwn`
+  with `SVar:X:TriggeredAttacker$CardPower`) offers **only CMC-0** graveyard
+  cards. Measured on the real corpus: a CMC-2 Grizzly Bears in the graveyard
+  yields no target ask, a CMC-0 Memnite does. The keyword being implemented
+  (Backup) is unaffected; this is the card's own printed trigger, and it is a
+  general trigger-relative numeric-RHS-in-target-offer gap. Corpus prevalence
+  of `TriggeredAttacker$CardPower`: 14 files. Filed as
+  `.ds4/new-tickets/triggered-attacker-cardpower-target-offer.md` (suggested
+  fix site: `effects/count.go` `evalRefProperty`/`refTargets` plus the
+  target-offer `SpecContext` wiring). A CR-lane test citing CR 603.3c (targets
+  chosen as the trigger is put on the stack) would make it visible to the
+  ledger.
+- No other defect found; the frozen "Known approximations" table was not
+  touched.
 # fb-20260923T005857Z-c1a24352 — Count$ResolvedThisTurn (Sephiroth transform)
 
 ## Summary
@@ -1379,6 +1685,86 @@ None found outside the requested selector family; no unaddressed issues.
 ## Commit
 
 `bfca5670 fix(effects): resolve nonremembered controller selectors`
+
+---
+
+# Vanishing implementation report
+
+## Changes
+
+- `cards/kw_vanishing.go`: registered a `Vanishing` expander for the scoped `Vanishing:<N>` form. It adds a battlefield-entry TIME-counter replacement, a controller-upkeep Phase trigger gated on at least one TIME counter, and a separate battlefield `CounterRemoved` trigger gated on the post-removal count being zero. Removal and sacrifice are ordinary triggered effects; bare `K:Vanishing` is deliberately not treated as a count-bearing form.
+- `cards/kw_registry_test.go`: added `Vanishing` to the expander registry ratchet.
+- `cards/kw_vanishing_test.go`: verifies expansion into entry replacement plus the upkeep and last-counter triggers.
+- `rules/vanishing_test.go`: corpus-backed Deep Forest Hermit tests assert battlefield placement and its three entry counters; verify upkeep removal resolves through the stack and the last-counter sacrifice is a separate trigger; check another player's upkeep and zero-counter upkeep do not tick or queue the Vanishing trigger.
+
+`.cards` was present (not skipped). Measured 21 corpus files containing `K:Vanishing`; of those script lines, 19 use `K:Vanishing:<N>` and two are bare `K:Vanishing` (Out of Time and Tidewalker). Repo-deck ratchets and heads were not edited. No Known approximations row was closed or changed.
+
+## Fails without the fix
+
+Copied `cards/kw_vanishing.go` to `.ds4/scratch/kw_vanishing.go.fixed`, removed the production expander, ran the required targeted command, then restored and verified the file byte-identically:
+
+```text
+exit=1
+--- FAIL: TestEveryExpandedKeywordHasAnExpander (0.00s)
+    kw_registry_test.go:84: keyword head "Vanishing" has no registered expander: it silently stops expanding
+--- FAIL: TestVanishingExpansion (0.00s)
+    kw_vanishing_test.go:9: Vanishing entry replacement = [], want ETB placement of 3 TIME counters
+FAIL
+FAIL	github.com/adams-shaun/gorge/cards	0.002s
+--- FAIL: TestVanishingDeepForestHermitUpkeepAndLastCounter (0.58s)
+    vanishing_test.go:38: precondition: Deep Forest Hermit entered with 0 TIME counters, want 3
+--- FAIL: TestVanishingOnlyTriggersOnControllersUpkeepAndNotAtZero (0.00s)
+    vanishing_test.go:75: precondition: Deep Forest Hermit entered with 0 TIME counters, want 3
+FAIL
+FAIL	github.com/adams-shaun/gorge/rules	0.607s
+restored byte-identically
+```
+
+## Verification
+
+Targeted command:
+
+```text
+go test -run 'TestEveryExpandedKeywordHasAnExpander|TestVanishing' ./cards/ ./rules/
+exit=0
+ok  github.com/adams-shaun/gorge/cards  0.002s
+ok  github.com/adams-shaun/gorge/rules  0.619s
+```
+
+Architecture gate:
+
+```text
+go test ./internal/archtest/
+exit=0
+ok  github.com/adams-shaun/gorge/internal/archtest  (cached)
+```
+
+Botbench golden:
+
+```text
+go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+exit=0
+ok  github.com/adams-shaun/gorge/cmd/botbench  1.231s
+```
+
+Formatting/type generation checks:
+
+```text
+gofmt -l cards/kw_vanishing.go cards/kw_vanishing_test.go cards/kw_registry_test.go rules/vanishing_test.go
+(no output)
+go run ./cmd/gentypes -check
+(no output; exit 0)
+```
+
+`git diff --check` passed with no output. No botbench split movement.
+
+## Issues
+
+- Bare `K:Vanishing` appears on 2 corpus cards (Out of Time and Tidewalker). It has no `<N>` count and is outside this ticket's explicitly scoped `Vanishing:<N>` script shape; the expander intentionally returns without inventing behavior for it. A follow-up must define the intended bare-keyword semantics before implementing it.
+
+## Commit
+
+`3f4072f3 feat(cards): implement Vanishing time counters`
 
 ---
 

@@ -76,3 +76,84 @@ and the two ~2 s behaviour goldens both pass on the merged tree.
   future rounds are dispatched with unique report paths up front.
 - No engine defect was found this round; the merge introduced no conflict and
   no behaviour movement (botbench split unchanged).
+
+---
+
+# Report — r2 (agent-20260918T230554Z-74976c7c) — kw:Backup fix round
+
+Ticket: kw:Backup (CR 702.70). The implementation landed in round t1
+(`7caad9fb feat(rules): implement the Backup keyword (CR 702.70)` on the
+rebased branch). `findings-r2.md` carried exactly one MAJOR, about the report
+commit, not the code; this round resolves it and re-verifies everything on
+the rebased tree.
+
+## The MAJOR, and what changed
+
+**[MAJOR] `.ds4/report-t1.md` replaced a 1,156-line accumulated report with
+this ticket's 152-line report.** Resolved by rebase, not by hand-editing
+history: the controller directive required `git rebase main` before
+continuing, and main had itself grown the accumulated file (1,645 lines, 15
+report sections, including the Count$ResolvedThisTurn report). The rebase
+conflicted on exactly this file; the resolution took **main's full 1,645
+lines untouched** and **prepended this ticket's 152-line report** (newest-first,
+matching the file's existing convention). The new docs commit is a pure
+addition:
+
+```
+$ git show --stat HEAD
+ .ds4/report-t1.md | 152 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 152 insertions(+)
+```
+
+No prior report content was removed; the accumulated file is now 1,797 lines
+with all 15 prior sections plus this ticket's on top. The deletion class is
+structurally prevented for this branch: the docs commit no longer rewrites
+main's tracked file at all.
+
+## Gates run on the rebased tree (real output)
+
+Rebase: `git rebase main` — one conflict (`.ds4/report-t1.md`, resolved as
+above), implementation commit `e6c716e1`→`7caad9fb` replayed clean (main's
+Vanishing merge touched no overlapping code).
+
+`.cards` present (symlink to `/home/sadams/projects/gorge/.cards`, verified
+before running).
+
+```
+$ go build ./... && go test -run 'TestGuardianScalelordBackup' ./rules/ 2>&1 | tail -5
+ok  	github.com/adams-shaun/gorge/rules	0.620s
+
+$ go test ./internal/archtest/ 2>&1 | tail -3
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.287s
+
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ 2>&1 | tail -3
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.204s
+```
+
+The 0.62s rules run exercised the real corpus (`.cards` present; the test
+builds a real-corpus Guardian Scalelord table). The reviewer's own break
+attempts in `findings-r2.md` (Memnite other-target, Scalelord self-target,
+granted AttackTrig rider, targeted command) all held — no code change was
+needed this round, so the round-1 "Fails without the fix" proof carries over
+unchanged; the tests were not touched.
+
+## Fails without the fix
+
+No fix-round code change; the only fix is the report restructure above. Its
+"failing before" state is exactly the findings MAJOR: the pre-rebase commit
+`56479b6a` deleted 1,134 lines of prior reports (visible in its stat:
+`130 insertions(+), 1134 deletions(-)`); the rebased commit `c8b97fb0`
+inserts 152 and deletes 0.
+
+## Issues
+
+- **Process, recurring class:** the controller dispatches multiple tickets'
+  round reports at the same tracked paths (`.ds4/report-t1.md`,
+  `.ds4/report-r2.md`). This is the second ticket to collide on
+  `report-t1.md` in two days (the Deep Spawn Mill r2 round hit the same
+  file). Suggest controller-level unique report paths per ticket
+  (`report-<ticket-slug>-r<N>.md`) so no round is ever asked to touch another
+  ticket's tracked report. (Same note as the Deep Spawn r2 report below; not
+  fixed here — it is controller policy, not engine code.)
+- No engine defect found this round. The frozen "Known approximations" table
+  was not touched (kw:Backup was never a row there).

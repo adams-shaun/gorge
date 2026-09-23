@@ -1236,6 +1236,15 @@ type Ctx struct {
 	// and cleared at the re-entry's top (fx42 scoping), so a nested Attach
 	// poses its own ask.
 	AttachOpt string
+	// CopyOpt is the answered Optional$ True CopySpellAbility election
+	// ("yes"/"no") on a re-entered mid-resolution copy (Sevinne's
+	// Reclamation's "if this spell was cast from a graveyard, you may copy
+	// this spell"): "yes" makes the copy through the ordinary path,
+	// anything else declines and no copy is made. It rides the ask (the
+	// same runtime-continuation class as AttachOpt) and is consumed and
+	// cleared at the re-entry's top (fx42 scoping), so a nested
+	// CopySpellAbility poses its own ask.
+	CopyOpt string
 	// AttachChoice is the answered Attach object/destination choice on a
 	// re-entered Attach resolution (Goldwardens' Gambit's "you may attach an
 	// Equipment you control to it", unexpected_request's same shape, Breath of
