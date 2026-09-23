@@ -1080,8 +1080,10 @@ func changeTargetChooser(h Host, c *Ctx, sa *cards.SA) state.PlayerID {
 	if v == "" || v == "You" {
 		return c.Controller
 	}
-	for _, t := range Defined(h, c, &cards.SA{Params: map[string]string{"Defined": v}}) {
-		return PlayerOf(h, c, t)
+	// definedPlayerIDs keeps the plain Remembered family players-only, so a
+	// remembered CARD cannot hand the redirect chooser to its controller.
+	if ps := definedPlayerIDs(h, c, v); len(ps) > 0 {
+		return ps[0]
 	}
 	return c.Controller
 }
@@ -1205,10 +1207,9 @@ func effChangeTargets(h Host, c *Ctx, sa *cards.SA) {
 
 func repeatPlayers(h Host, c *Ctx, spec string) ([]state.PlayerID, bool) {
 	selected := map[state.PlayerID]bool{}
-	add := func(ts []state.Target) {
-		for _, t := range ts {
-			p := PlayerOf(h, c, t)
-			if int(p) >= 0 && int(p) < len(h.Game().Players) && !h.Game().Players[p].Lost {
+	add := func(sel string, ts []state.Target) {
+		for _, p := range playerIDsFromTargets(h, c, sel, ts) {
+			if !h.Game().Players[p].Lost {
 				selected[p] = true
 			}
 		}
@@ -1225,24 +1226,26 @@ func repeatPlayers(h Host, c *Ctx, spec string) ([]state.PlayerID, bool) {
 	case "You", "NonOpponent":
 		selected[c.Controller] = true
 	case "Targeted", "TargetedPlayer", "TargetedController":
-		add(c.Targets)
+		add("", c.Targets)
 	case "TargetedAndYou":
-		add(c.Targets)
+		add("", c.Targets)
 		selected[c.Controller] = true
-	case "Remembered", "RememberedController":
-		add(c.Remembered)
+	case "Remembered":
+		add("Remembered", c.Remembered)
+	case "RememberedController":
+		add("RememberedController", c.Remembered)
 	case "NonTargetedController":
-		add(c.Targets)
+		add("", c.Targets)
 		for _, p := range h.Game().AliveFrom(c.Controller) {
 			selected[p] = !selected[p]
 		}
 	case "OppNonRememberedController":
-		add(c.Remembered)
+		add("RememberedController", c.Remembered)
 		for _, p := range h.Game().AliveFrom(c.Controller) {
 			selected[p] = p != c.Controller && !selected[p]
 		}
 	case ".Chosen,You", "Chosen,You":
-		add(c.Chosen)
+		add("", c.Chosen)
 		selected[c.Controller] = true
 	default:
 		// The shared player filter covers Player.Chosen and other qualifiers

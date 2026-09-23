@@ -239,7 +239,14 @@ func controlReferent(p string) (op, ref string, ok bool) {
 		// Player.IsRemembered", Gluntch's "ControlledBy ChosenPlayer"):
 		// resolution-only, resolved in controlReferentPlayers against the
 		// same remembered/chosen player entries the bare referents read.
-		"Player.IsRemembered", "ChosenPlayer", "Player.Chosen":
+		"Player.IsRemembered", "ChosenPlayer", "Player.Chosen",
+		// definedrem3: the two remembered-object control referents. A remembered
+		// CARD contributes its controller/owner here -- exactly the semantics
+		// `Defined$ RememberedController`/`RememberedOwner` carry -- while the
+		// bare "Remembered" referent above stays players-only. Resolution-only,
+		// like the bare case: the tail maps each remembered target by op
+		// (ControlledBy -> Controller, OwnedBy -> Owner).",
+		"RememberedController", "RememberedOwner":
 		return op, ref, true
 	}
 	return "", "", false
@@ -311,6 +318,16 @@ func controlReferentPlayers(g *state.Game, sc SpecContext, op, ref string) ([]st
 				targets = append(targets, t)
 			}
 		}
+	case "RememberedController", "RememberedOwner":
+		// definedrem3: a remembered CARD contributes its controller (ControlledBy)
+		// or owner (OwnedBy) -- the positive route Forge spells
+		// `ControlledBy RememberedController`. Resolution-only, exactly like the
+		// bare "Remembered" arm: the tail maps each remembered target by op,
+		// keeping remembered PLAYERS as their own seats.
+		if !sc.Resolving {
+			return nil, false
+		}
+		targets = sc.Remembered
 	case "ChosenPlayer", "Player.Chosen":
 		// vow1: the resolution's own ChoosePlayer answer (Gluntch's
 		// "ControlledBy ChosenPlayer"), the same current-resolution set the

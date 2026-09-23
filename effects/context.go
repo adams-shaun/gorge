@@ -1084,6 +1084,62 @@ func plainRememberedSelector(sel string) bool {
 	return !strings.HasSuffix(sel, "Controller") && !strings.HasSuffix(sel, "Owner")
 }
 
+// playerForTarget maps one resolved Defined$ target to a player seat under
+// Forge's getDefinedPlayers/addPlayer rule: for the plain Remembered family
+// (and RememberedPlayer) a remembered CARD contributes NO player, so it is
+// dropped; every other selector still maps an object to its controller (the
+// pre-existing PlayerOf contract -- Targeted, ChosenCardController, ...). The
+// second result is false when the target contributes no player.
+func playerForTarget(h Host, c *Ctx, selector string, t state.Target) (state.PlayerID, bool) {
+	if plainRememberedSelector(selector) && !t.IsPlayer {
+		return 0, false
+	}
+	return PlayerOf(h, c, t), true
+}
+
+// playerIDsFromTargets applies playerForTarget to a resolved target set,
+// deduplicating (keeping first-seen order) and bound-checking the seats. No
+// map range reaches the output order: the seen map is a membership test only.
+func playerIDsFromTargets(h Host, c *Ctx, selector string, ts []state.Target) []state.PlayerID {
+	seen := make(map[state.PlayerID]bool, len(ts))
+	out := make([]state.PlayerID, 0, len(ts))
+	n := len(h.Game().Players)
+	for _, t := range ts {
+		p, ok := playerForTarget(h, c, selector, t)
+		if !ok {
+			continue
+		}
+		if int(p) < 0 || int(p) >= n || seen[p] {
+			continue
+		}
+		seen[p] = true
+		out = append(out, p)
+	}
+	return out
+}
+
+// definedPlayerIDs resolves a Defined$/DefinedPlayer$ selector to player seats
+// with Forge's getDefinedPlayers semantics: a remembered CARD contributes its
+// controller/owner ONLY for the RememberedController/RememberedOwner
+// spellings (which Defined already resolves to players); for the plain
+// Remembered family (and RememberedPlayer) it contributes nothing. For every
+// other selector an object still resolves to its controller (the pre-existing
+// PlayerOf contract -- Targeted, ChosenCardController, ...).
+func definedPlayerIDs(h Host, c *Ctx, selector string) []state.PlayerID {
+	// Key the plain-Remembered rule off the selector SPELLING, not the SA: a
+	// tiny temporary SA shares Defined's deterministic selector grammar
+	// without mutating the immutable compiled SA.
+	return playerIDsFromTargets(h, c, selector,
+		Defined(h, c, &cards.SA{Params: map[string]string{"Defined": selector}}))
+}
+
+// definedPlayers is the SA-level spelling of definedPlayerIDs: it resolves the
+// SA's own Defined$ selector through the full SA (so a ValidTgts$ fallback
+// still applies) with the same plain-Remembered rule.
+func definedPlayers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
+	return playerIDsFromTargets(h, c, sa.Params["Defined"], Defined(h, c, sa))
+}
+
 func playersOf(ts []state.Target) []state.Target {
 	var out []state.Target
 	for _, t := range ts {

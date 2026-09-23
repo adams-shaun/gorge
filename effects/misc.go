@@ -1,7 +1,6 @@
 package effects
 
 import (
-	"slices"
 	"strconv"
 	"strings"
 
@@ -3818,7 +3817,7 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 	choices := voteChoiceNames(sa)
-	voters := Defined(h, c, sa)
+	voters := definedPlayers(h, c, sa)
 	// A live fixed-list ballot uses the same private, per-voter KChoose path as
 	// VotePlayer$. Keep Ctx.Votes as the small direct seam used by unit tests;
 	// real answers travel only through the decision's ResumeChoices.
@@ -3833,7 +3832,7 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 				label = choices[picks[i].Obj-1]
 			}
 			if !strings.EqualFold(strings.TrimSpace(sa.Params["Secretly"]), "True") {
-				h.Emit(events.Event{Kind: events.Note, Player: PlayerOf(h, c, t), Text: "votes for " + label})
+				h.Emit(events.Event{Kind: events.Note, Player: t, Text: "votes for " + label})
 			}
 		}
 		counts := make([]int, len(choices))
@@ -3854,7 +3853,7 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 		}
 		ballots := make([]VoteBallot, len(voters))
 		for i, t := range voters {
-			ballots[i] = VoteBallot{Player: PlayerOf(h, c, t), Pick: int(picks[i].Obj) - 1}
+			ballots[i] = VoteBallot{Player: t, Pick: int(picks[i].Obj) - 1}
 		}
 		emitVoteFinished(h, c, ballots, len(choices) > 0, strings.EqualFold(strings.TrimSpace(sa.Params["Secretly"]), "True"))
 		return
@@ -3888,7 +3887,7 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 			picks[i] = choice
 		}
 		if !strings.EqualFold(strings.TrimSpace(sa.Params["Secretly"]), "True") {
-			h.Emit(events.Event{Kind: events.Note, Player: PlayerOf(h, c, t), Text: "votes for " + label})
+			h.Emit(events.Event{Kind: events.Note, Player: t, Text: "votes for " + label})
 		}
 	}
 	if len(choices) > 0 && len(voters) > 0 {
@@ -3919,7 +3918,7 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 	// which binds neither set.
 	ballots := make([]VoteBallot, len(voters))
 	for i, t := range voters {
-		ballots[i] = VoteBallot{Player: PlayerOf(h, c, t), Pick: picks[i]}
+		ballots[i] = VoteBallot{Player: t, Pick: picks[i]}
 	}
 	emitVoteFinished(h, c, ballots, len(choices) > 0, strings.EqualFold(strings.TrimSpace(sa.Params["Secretly"]), "True"))
 }
@@ -3927,7 +3926,7 @@ func effVote(h Host, c *Ctx, sa *cards.SA) {
 // askFixedVote poses one private KChoose per voter. The answer is encoded as
 // ObjID(index+1), avoiding a second answer channel while keeping ResumeChoices
 // decision-scoped. A host that cannot answer takes option zero (R-9).
-func askFixedVote(h Host, c *Ctx, sa *cards.SA, choices []string, voters []state.Target) ([]state.Target, bool) {
+func askFixedVote(h Host, c *Ctx, sa *cards.SA, choices []string, voters []state.PlayerID) ([]state.Target, bool) {
 	picks := append([]state.Target(nil), c.VotePicks...)
 	i := c.VoteTarget
 	if c.VoteDone {
@@ -3940,7 +3939,7 @@ func askFixedVote(h Host, c *Ctx, sa *cards.SA, choices []string, voters []state
 		i++
 	}
 	for ; i < len(voters); i++ {
-		voter := PlayerOf(h, c, voters[i])
+		voter := voters[i]
 		min := 1
 		if strings.EqualFold(strings.TrimSpace(sa.Params["UpTo"]), "True") {
 			min = 0
@@ -4019,7 +4018,7 @@ func voteChoiceNames(sa *cards.SA) []string {
 // member of the tie -- is remembered for VoteSubAbility$, which runs once
 // at the end (Council's Judgment's "exile each permanent with the most
 // votes or tied for most votes").
-func askCardVote(h Host, c *Ctx, sa *cards.SA, options []state.ObjID, voters []state.Target) ([]state.ObjID, bool) {
+func askCardVote(h Host, c *Ctx, sa *cards.SA, options []state.ObjID, voters []state.PlayerID) ([]state.ObjID, bool) {
 	picks := append([]state.Target(nil), c.VotePicks...)
 	i := c.VoteTarget
 	if c.VoteDone {
@@ -4032,7 +4031,7 @@ func askCardVote(h Host, c *Ctx, sa *cards.SA, options []state.ObjID, voters []s
 		i++
 	}
 	for ; i < len(voters); i++ {
-		voter := PlayerOf(h, c, voters[i])
+		voter := voters[i]
 		min := 1
 		if strings.EqualFold(strings.TrimSpace(sa.Params["UpTo"]), "True") {
 			min = 0
@@ -4089,7 +4088,7 @@ func effCardVote(h Host, c *Ctx, sa *cards.SA, ballot string) {
 	}
 	counts := map[state.ObjID]int{}
 	max := 0
-	voters := Defined(h, c, sa)
+	voters := definedPlayers(h, c, sa)
 	var picks []int
 	if c.Votes != nil {
 		// Direct seam retained for effects tests and replay-independent callers.
@@ -4126,7 +4125,7 @@ func effCardVote(h Host, c *Ctx, sa *cards.SA, ballot string) {
 			}
 		}
 		if !strings.EqualFold(strings.TrimSpace(sa.Params["Secretly"]), "True") {
-			h.Emit(events.Event{Kind: events.Note, Player: PlayerOf(h, c, t), Text: "votes for " + label})
+			h.Emit(events.Event{Kind: events.Note, Player: t, Text: "votes for " + label})
 		}
 	}
 	// The card ballot's per-subject tally, for the chained AmountFromVotes$
@@ -4193,7 +4192,7 @@ func effCardVote(h Host, c *Ctx, sa *cards.SA, ballot string) {
 	// always-fire reading the fixed-list shape takes.
 	ballots := make([]VoteBallot, len(voters))
 	for i, t := range voters {
-		ballots[i] = VoteBallot{Player: PlayerOf(h, c, t), Pick: picks[i]}
+		ballots[i] = VoteBallot{Player: t, Pick: picks[i]}
 	}
 	emitVoteFinished(h, c, ballots, len(options) > 0, strings.EqualFold(strings.TrimSpace(sa.Params["Secretly"]), "True"))
 }
@@ -4733,14 +4732,8 @@ func ManaRecipients(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 	if strings.TrimSpace(sa.Params["Defined"]) == "" {
 		return []state.PlayerID{c.Controller}
 	}
-	g := h.Game()
-	var out []state.PlayerID
-	for _, t := range Defined(h, c, sa) {
-		p := PlayerOf(h, c, t)
-		if int(p) >= len(g.Players) || slices.Contains(out, p) {
-			continue
-		}
-		out = append(out, p)
-	}
-	return out
+	// definedPlayers applies Forge's getDefinedPlayers rule: a remembered CARD
+	// contributes a seat only for the RememberedController/Owner spellings,
+	// never for the plain Remembered family (a RepeatEach loop's subject).
+	return definedPlayers(h, c, sa)
 }
