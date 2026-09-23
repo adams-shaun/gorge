@@ -981,45 +981,78 @@ func targetZones(sa *cards.SA) []state.Zone {
 		zones = appendUniqueZone(zones, state.ZStack)
 	}
 	if len(zones) == 0 {
-		// An Origin$ that names exactly one concrete zone is a zone
-		// declaration in its own right and OUTRANKS the ValidTgts$
-		// inference below: `Origin$ Graveyard | ValidTgts$ Instant.YouCtrl,
-		// Sorcery.YouCtrl` (Volcanic Vision) names instant/sorcery CARDS in
-		// the graveyard, and inferring the stack from the base token would
-		// replace the graveyard route with a stack one and make the fetch
-		// inert (the finding this closes). With no explicit TgtZone$ and no
-		// Origin$ declaration, a ValidTgts$ whose own token names a stack
-		// object kind (for example, `ValidTgts$ Spell`) targets the stack;
-		// the TgtZone$ guard keeps an explicit `TgtZone$ Graveyard |
-		// ValidTgts$ Instant` (a card in a named zone, not a stack object)
-		// off this route.
+		// The graveyard-enchant Aura family (Animate Dead, Dance of the Dead;
+		// Spellweaver Volute for instants) casts its kw:Enchant attach spell
+		// (`SP$ Attach | ValidTgts$ Creature.inZoneGraveyard`, no TgtZone$, API
+		// Attach with no Origin$, so the Origin$ route below cannot fire) and
+		// the default battlefield census offered no candidate and withheld the
+		// cast entirely. The inZone<X> words in the comma-split ValidTgts$
+		// alternatives name the census zones directly. Deliberately narrow, the
+		// same shape as the fb-20260916 Origin$ precedent below: Attach-only,
+		// inZone-words-only -- every other API keeps its existing zone
+		// resolution, so the ~37 corpus specs carrying non-battlefield inZone<X>
+		// outside this API are untouched. An explicit Origin$ outranks this
+		// inference even when the two declarations disagree.
 		if z, ok := originImpliedTargetZone(sa); ok {
 			zones = []state.Zone{z}
-		} else if sa.Params["TgtZone"] == "" && targetsStackObjects(sa.Params["ValidTgts"]) {
-			zones = []state.Zone{state.ZStack}
-		} else {
-			zones = []state.Zone{state.ZBattlefield}
+		} else if sa.API == "Attach" {
+			if zs, ok := attachValidTgtsZones(sa.Params["ValidTgts"]); ok {
+				zones = zs
+			}
+		}
+		if len(zones) == 0 {
+			// Without an explicit zone, a ValidTgts$ stack-object kind
+			// targets the stack; otherwise the battlefield remains the
+			// default. An explicit TgtZone$ whose tokens were unknown must
+			// not silently widen a target back to the stack.
+			if sa.Params["TgtZone"] == "" && targetsStackObjects(sa.Params["ValidTgts"]) {
+				zones = []state.Zone{state.ZStack}
+			} else {
+				zones = []state.Zone{state.ZBattlefield}
+			}
 		}
 	}
 	return zones
 }
 
+// attachValidTgtsZones is targetZones' Attach-scoped zone inference: the
+// zones the comma-split ValidTgts$ alternatives' inZone<X> words name (the
+// same word classifier the filter tier's wordInZone uses). It reports false
+// when no alternative names a zone, leaving targetZones' existing fallbacks
+// (stack kinds, then the battlefield default) in charge.
+func attachValidTgtsZones(spec string) ([]state.Zone, bool) {
+	var zones []state.Zone
+	for _, alt := range strings.Split(spec, ",") {
+		for _, word := range strings.Split(alt, ".") {
+			z, has := strings.CutPrefix(strings.TrimSpace(word), "inZone")
+			if !has {
+				continue
+			}
+			if zn, ok := effects.ParseZoneWord(z); ok {
+				zones = appendUniqueZone(zones, zn)
+			}
+		}
+	}
+	return zones, len(zones) > 0
+}
+
 // originImpliedTargetZone reports the implicit target zone for a ChangeZone
-// whose Origin$ names exactly one concrete zone. Deliberately narrow -- this
-// is established ONLY for the unambiguous public-graveyard object-targeted
-// shape and must not grow into a general origin grammar (Origin$ Hand/
-// Library/Exile carry hidden-information, chooser and mixed-zone semantics
-// this does not establish; Origin$ Hand's mixed multi-zone handling lives in
+// or Attach with an explicit Origin$. For Attach it only arbitrates against
+// an inZone<X> ValidTgts$ inference: a single concrete Origin$ wins over the
+// conflicting inferred zone. ChangeZone remains limited to the established
+// unambiguous public-graveyard object-targeted shape: extending it to
+// Hand/Library/Exile needs hidden-information and mixed-zone semantics that
+// this does not establish (Origin$ Hand's mixed multi-zone handling lives in
 // effects/zone.go). It admits an SA when ALL of these hold:
 //
-//  1. it is API$ ChangeZone;
+//  1. it is API$ ChangeZone, or Attach with inZone<X> ValidTgts$;
 //  2. it has no explicit TgtZone$ (explicit TgtZone$ stays authoritative;
 //     this helper only runs from targetZones' empty fallback, but a TgtZone$
 //     whose tokens were all unknown must not silently fall through to Origin$
 //     either) and no stack-targeting TargetType$;
-//  3. effects.ParseZones parses its Origin$ as exactly the one concrete
-//     state.ZGraveyard -- not Any/All, not an unknown token, not a multi-zone
-//     origin (ParseZones' ok=false on an unknown token fails closed);
+//  3. effects.ParseZones parses its Origin$ as exactly one concrete zone
+//     (Graveyard only for ChangeZone) -- not Any/All, not an unknown token,
+//     not a multi-zone origin (ParseZones' ok=false fails closed);
 //  4. its ValidTgts$ is object-only under the existing targetsPlayers
 //     classifier, so a player-targeted ChangeZone keeps its existing
 //     player-target route untouched.
@@ -1030,7 +1063,12 @@ func targetZones(sa *cards.SA) []state.Zone {
 // chosen graveyard object at resolution.
 func originImpliedTargetZone(sa *cards.SA) (state.Zone, bool) {
 	if sa.API != "ChangeZone" {
-		return 0, false
+		if sa.API != "Attach" {
+			return 0, false
+		}
+		if _, ok := attachValidTgtsZones(sa.Params["ValidTgts"]); !ok {
+			return 0, false
+		}
 	}
 	if sa.Params["TgtZone"] != "" || targetsStackObjects(sa.Params["TargetType"]) {
 		return 0, false
@@ -1039,10 +1077,10 @@ func originImpliedTargetZone(sa *cards.SA) (state.Zone, bool) {
 		return 0, false
 	}
 	zones, all, ok := effects.ParseZones(sa.Params["Origin"])
-	if !ok || all || len(zones) != 1 || zones[0] != state.ZGraveyard {
+	if !ok || all || len(zones) != 1 || (sa.API == "ChangeZone" && zones[0] != state.ZGraveyard) {
 		return 0, false
 	}
-	return state.ZGraveyard, true
+	return zones[0], true
 }
 
 // appendUniqueZone appends z to zones when it is not already present,

@@ -686,6 +686,14 @@ type animateGrant struct {
 	// staticAbilities names SVar Mode$ bodies the animated object gains for
 	// the animation's own lifetime (for example Stilt-Man's CantSacrifice).
 	staticAbilities []string
+	// removeKeywords is the RemoveKeywords$ read (state.ContinuousEffect
+	// .RemoveKeywords, the CopyPermanent site's mechanism): keyword entries
+	// matched by head (cards.KeywordHead) that the animated object LOSES at
+	// layer 6 BEFORE this same grant's Keywords$ apply -- Animate Dead's
+	// "it loses 'enchant creature card in a graveyard'". AnimateAll keeps
+	// the parameter unread: effAnimateAll clears the field and
+	// animateAllUnreadNote still names it.
+	removeKeywords []string
 }
 
 // parseAnimateGrant reads the shared Animate/AnimateAll parameter set. See
@@ -724,6 +732,11 @@ func parseAnimateGrant(h Host, c *Ctx, sa *cards.SA) animateGrant {
 	// Keywords$ is a "&"-separated keyword list (Celestial Colonnade's
 	// "Flying & Vigilance"), the same grammar Pump's KW$ uses.
 	ag.kws = cards.SplitKeywordList(sa.Params["Keywords"])
+	// RemoveKeywords$ (see animateGrant.removeKeywords): split with the same
+	// grammar, applied at layer 6 BEFORE this effect's own AddKeywords
+	// (rules' LAbilities walk), so one DB$ Animate both strips the old
+	// enchant and grants the new one in the same pass.
+	ag.removeKeywords = cards.SplitKeywordList(sa.Params["RemoveKeywords"])
 	// RemoveCreatureTypes$ True strips the object's creature-type subtypes
 	// (Mishra's Factory's land base carries none, but an animated creature or
 	// planeswalker face does) before this animation's own Types$ apply.
@@ -896,10 +909,10 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 			AffectedZone: ag.zone,
 		})
 	}
-	if len(ag.kws) > 0 {
+	if len(ag.kws) > 0 || len(ag.removeKeywords) > 0 {
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
-			Layer: state.LAbilities, AddKeywords: ag.kws,
+			Layer: state.LAbilities, AddKeywords: ag.kws, RemoveKeywords: ag.removeKeywords,
 			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent && !IsNextTurnDuration(ag.duration),
 			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: ag.zone,
@@ -981,6 +994,11 @@ func animateAllUnreadNote(h Host, c *Ctx, sa *cards.SA) {
 // card sits there.
 func effAnimateAll(h Host, c *Ctx, sa *cards.SA) {
 	ag := parseAnimateGrant(h, c, sa)
+	// AnimateAll's RemoveKeywords$ stays unread (out of scope for the
+	// graveyard-enchant ticket that read it on Animate): clear what the
+	// shared parser read so the sweep below cannot apply it behind
+	// animateAllUnreadNote's "not implemented; ignored" note.
+	ag.removeKeywords = nil
 	emitAnimateColorsNotes(h, c, ag, "AnimateAll")
 	emitAnimateTriggersNotes(h, c, ag, "AnimateAll")
 	animateAllUnreadNote(h, c, sa)
