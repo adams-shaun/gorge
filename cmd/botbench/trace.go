@@ -295,6 +295,11 @@ func (g *gameTrace) record(d *decision.Decision, in decision.Intent, b *botpolic
 				r.TargetEffect.Damage.Amount = &n
 			}
 		}
+		if d.TargetEffect.Removal != nil {
+			r.TargetEffect.Removal = &decision.RemovalEffect{
+				Kind: d.TargetEffect.Removal.Kind, Destination: d.TargetEffect.Removal.Destination,
+			}
+		}
 	}
 	for _, o := range d.Options {
 		r.Options = append(r.Options, traceOptionV1{
