@@ -1768,9 +1768,10 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 		// an Aura with enchant creature, so the offer gates on the targets of
 		// the SYNTHESIZED attach SA -- the face has no SP of its own, so the
 		// plain cast's targetsAvailable (from the nil SpellAbility) says
-		// nothing about it. bestowCost withholds the exotic bestow costs (an
-		// {X}, detectives_phoenix's CollectEvidence<6>, hypnotic_siren's
-		// colon-suffixed metadata line), the replicateCost convention.
+		// nothing about it. bestowCost prices every printed shape (an {X}, a
+		// CollectEvidence<N>, and the colon-suffixed metadata line) and
+		// withholds only a cost token ParseCost cannot model at all, the
+		// replicate convention.
 		if ba, ok := bestowCost(f); ok && e.castTargetsAvailable(p, id, bestowedAttachSA()) &&
 			offerCastable(p, id, ba, spellScope("bestowed"), false) {
 			out = append(out, decision.Option{Index: len(out), Kind: "cast",
