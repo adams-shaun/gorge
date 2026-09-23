@@ -1,3 +1,62 @@
+# Deep Spawn UnlessCost Mill — sol1 review response
+
+## Finding resolved
+
+Removed `.ds4/report-r2-split-cast.md`, an unrelated split-cast report
+mistakenly introduced by the merge-resolution report commit. Updated
+`.ds4/report-r2.md` to remove references to it. The Deep Spawn implementation
+is unchanged: `rules/mana.go` strictly accepts fixed `Mill<N>`,
+`rules/stack.go` settles it through `payMillCost` after all checks,
+`rules/deep_spawn_mill_unless_test.go` exercises the real corpus upkeep and
+short/empty libraries, and `rules/unless_unpriceable_test.go` removes Deep
+Spawn from the bidirectional strict-unpriceable census. The full initial
+implementation report, including its proof and verification, is
+`.ds4/report-t1-mill-unless.md`. `.cards` is present as a symlink to the real
+corpus; the initial real-card test ran, not skipped. No Known-approximations
+row was involved, no golden/ratchet was changed, and no engine change was
+made in this review round.
+
+## Gates (this review round; exact commands and output)
+
+```
+$ go test -run 'TestDeepSpawnUnlessMillCost|TestUnlessCostStrictParsePopulation' ./rules/ > .ds4/scratch/sol1-deep-rules.log 2>&1; tail -30 .ds4/scratch/sol1-deep-rules.log
+ok  github.com/adams-shaun/gorge/rules (cached)
+$ go test ./internal/archtest/ > .ds4/scratch/sol1-deep-arch.log 2>&1; tail -30 .ds4/scratch/sol1-deep-arch.log
+ok  github.com/adams-shaun/gorge/internal/archtest (cached)
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ > .ds4/scratch/sol1-deep-botbench.log 2>&1; tail -30 .ds4/scratch/sol1-deep-botbench.log
+ok  github.com/adams-shaun/gorge/cmd/botbench (cached)
+$ gofmt -l rules/mana.go rules/stack.go rules/unless_unpriceable_test.go rules/deep_spawn_mill_unless_test.go
+[no output]
+$ go run ./cmd/gentypes -check
+[no output; exit 0]
+```
+
+## Fails without the fix
+
+Initial round restored `rules/mana.go` and `rules/stack.go` byte-identically
+after temporarily reverting their Mill additions. Its exact targeted test
+failure (full proof in `.ds4/report-t1-mill-unless.md`):
+
+```
+--- FAIL: TestParseUnlessCostMill (0.00s)
+    deep_spawn_mill_unless_test.go:25: ParseUnlessCost(Mill<2>) = !ok, want the fixed mill cost accepted
+--- FAIL: TestDeepSpawnUnlessMillCost (0.62s)
+    deep_spawn_mill_unless_test.go:130: expected a 2-option Pay/Don't pay ask, got [{Index:0 Kind:mode Label:Don't pay Obj:81 ...}]
+--- FAIL: TestDeepSpawnUnlessMillCostShortLibrary (0.00s)
+    deep_spawn_mill_unless_test.go:165: short library exposed 1 options, want the full Pay/Don't pay pair
+--- FAIL: TestDeepSpawnUnlessMillCostEmptyLibrary (0.00s)
+    deep_spawn_mill_unless_test.go:187: empty library exposed 1 options, want the full Pay/Don't pay pair
+FAIL
+FAIL    github.com/adams-shaun/gorge/rules    0.643s
+FAIL
+```
+
+## Issues
+
+No additional unresolved engine defect found in this round.
+
+---
+
 # RollDice cost implementation report — agent-20260922T120916Z-0a3043f3
 
 ## Review finding resolved
