@@ -603,7 +603,18 @@ func (e *Engine) continueCumulativeAction() {
 		cu.actionRemaining = 0
 		e.finishCumulative()
 	case "AddMana":
-		e.emit(events.Event{Kind: events.ManaAdd, Player: cu.player, Counter: a.spec, Amount: int32(total)})
+		// Producer-type provenance: the upkeep mana is produced by the
+		// permanent paying the cumulative cost, so the same
+		// Treasure/Cave/Desert/Snow tag effMana stamps rides this ManaAdd's
+		// Counter (task ctms). Braid of Fire is an Enchantment, so its
+		// corpus shape stays a plain "R"; a typed carrier is tagged.
+		counter := a.spec
+		if tag, snow := effects.ManaProducerTag(e, cu.source); tag != "" {
+			counter = tag + counter
+		} else if snow {
+			counter = "S" + counter
+		}
+		e.emit(events.Event{Kind: events.ManaAdd, Player: cu.player, Counter: counter, Amount: int32(total)})
 		cu.actionRemaining = 0
 		e.finishCumulative()
 	case "FlipCoin":

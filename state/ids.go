@@ -140,6 +140,23 @@ const (
 // map, so the parse order is deterministic).
 var TypedManaTags = [3]string{"Treasure", "Cave", "Desert"}
 
+// TypedManaSpentByTag maps a TypedManaTags index to the carried spent count
+// on an object. It is the ONE mapping the filtered Count$CastTotalManaSpent
+// <Type> head reads, so a type is "modelled" exactly when it appears in
+// TypedManaTags: adding a tag there extends the head automatically, and a
+// type outside the table stays the fail-closed 0.
+func (o *Object) TypedManaSpentByTag(tag int) int32 {
+	switch tag {
+	case TypedTreasure:
+		return o.ManaTreasureSpent
+	case TypedCave:
+		return o.ManaCaveSpent
+	case TypedDesert:
+		return o.ManaDesertSpent
+	}
+	return 0
+}
+
 // TypedManaCounter reports the TypedMana index and pool slot of a
 // "<Tag><colour>" tagged ManaAdd counter (ManaAdd's typed form: "TreasureC",
 // "CaveW", "DesertR"). ok is false for every other counter shape -- a bare
