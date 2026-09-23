@@ -420,6 +420,13 @@ func cloneBecome(h Host, c *Ctx, sa *cards.SA) ([]state.Target, bool) {
 // applies. Its selector normalization and MatchSpecFrom arguments deliberately
 // mirror rules' etbOptions copy arm, keeping eligibility in the same filter
 // grammar at announcement and resolution.
+//
+// Both sites match through MatchesSpecFrom, which has NO SVar resolver, so a
+// selector carrying a resolver-dependent predicate (Mockingbird's cmcLEY)
+// would answer "never matches" here as well as at announcement. That is not
+// papered over: rules' etbCloneWhitelist refuses such a body outright
+// (SpecNeedsResolver), so no election is ever recorded for one and this
+// revalidation only ever sees selectors the no-resolver matcher can decide.
 func cloneETBTemplateLegal(g *state.Game, c *Ctx, sa *cards.SA) bool {
 	o := g.Obj(c.CloneChoice)
 	if o == nil || o.Zone != state.ZBattlefield || o.Face() == nil {

@@ -13,15 +13,17 @@ import (
 // etbCloneCleanNames is the measured set of corpus cards carrying an
 // ETBReplacement:Copy keyword whose DB$ Clone body's parameter set lies
 // entirely inside etbCloneWhitelist's supported scope {Choices$, AddTypes$,
-// AddKeywords$, SpellDescription$}. The pin is bidirectional: a corpus-pin
+// AddKeywords$, SpellDescription$} AND whose values are inside it too (no
+// SVar-resolved selector predicate, no multi-word AddKeywords$ head -- see
+// etbCloneWhitelist). The pin is bidirectional: a corpus-pin
 // bump or a scope change that alters membership fails here and forces a
 // deliberate re-measure, so the supported boundary cannot widen (a new
 // parameter accepted into etbCloneWhitelist) or narrow silently.
 var etbCloneCleanNames = []string{
 	"Clever Impersonator", "Clone", "Copy Artifact", "Copy Enchantment", "Copy Land",
-	"Dack's Duplicate", "Deceptive Frostkite", "Flesh Duplicate", "Glasspool Mimic",
+	"Dack's Duplicate", "Deceptive Frostkite", "Glasspool Mimic",
 	"Jwari Shapeshifter", "Malleable Impostor", "Masterwork of Ingenuity", "Mirror Image",
-	"Mirrormade", "Mockingbird", "Naga Fleshcrafter", "Omni-Changeling",
+	"Mirrormade", "Naga Fleshcrafter", "Omni-Changeling",
 	"Phyrexian Metamorph", "Sakashima's Protege", "Sakashima's Student", "Sculpting Steel",
 	"Stunt Double", "Synth Infiltrator", "Visage Bandit", "Waxen Shapethief",
 }
@@ -76,6 +78,14 @@ func TestETBCloneWhitelistRegressionCarriers(t *testing.T) {
 		// creature, it enters with two additional +1/+1 counters" condition),
 		// so despite its plain Choices$ selector it is out of scope.
 		{"Moritte of the Frost", false},
+		// Supported KEYS, unsupported VALUES (see etbCloneWhitelist):
+		// Mockingbird's Choices$ Creature.Other+cmcLEY needs an SVar
+		// resolver the ETB matchers do not have, and Flesh Duplicate's
+		// AddKeywords$ IfNew Vanishing:3 is a conditional this build cannot
+		// install. Both keep the loud fallback; see
+		// rules/etb_clone_unsupported_riders_test.go for the end-to-end pins.
+		{"Mockingbird", false},
+		{"Flesh Duplicate", false},
 		{"Vesuva", false},               // IntoPlayTapped$ True
 		{"Cursed Mirror", false},        // Duration$ UntilEndOfTurn
 		{"Mirrorhall Mimic", false},     // ChoiceTitle$

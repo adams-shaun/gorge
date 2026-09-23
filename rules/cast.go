@@ -4621,6 +4621,36 @@ func etbCloneWhitelist(sa *cards.SA) bool {
 			return false
 		}
 	}
+	// A supported KEY is not a supported VALUE. Two value shapes inside the
+	// key whitelist are withheld too, because admitting them offered a route
+	// that silently did the wrong thing:
+	//
+	//  - A Choices$ selector carrying a predicate whose right-hand side is an
+	//    SVar rather than a literal (Mockingbird's "Creature.Other+cmcLEY",
+	//    Y = Count$CastTotalManaSpent). Both the option build (etbOptions)
+	//    and the replacement-time revalidation (effects' cloneETBTemplateLegal)
+	//    match through MatchesSpecFrom, which has no resolver, so every such
+	//    predicate answers "recognised shape, never matches": the election
+	//    would offer nothing but the decline at every paid X. Supporting it
+	//    needs the choice deferred past payment with the cast's mana total
+	//    bound as the RHS resolver -- not this task.
+	//  - An AddKeywords$ member whose head is not a single word. Forge's
+	//    conditional modifier grammar rides that space ("IfNew Vanishing:3",
+	//    Flesh Duplicate: vanishing 3 only if the copied creature has no
+	//    vanishing), and effClone installs the raw member as a layer-6
+	//    AddKeywords grant, so cards.KeywordHead would read the head as
+	//    "IfNew Vanishing" -- no conditional test, no vanishing, no entry
+	//    time counters, silently. This is deliberately conservative: it also
+	//    withholds a body whose modifier is a legitimate multi-word keyword
+	//    ("First Strike"), a shape no ETB Clone carrier has today.
+	if effects.SpecNeedsResolver(strings.TrimSpace(sa.Params["Choices"])) {
+		return false
+	}
+	for _, kw := range cards.SplitKeywordList(sa.Params["AddKeywords"]) {
+		if strings.ContainsAny(cards.KeywordHead(kw), " \t") {
+			return false
+		}
+	}
 	return true
 }
 
