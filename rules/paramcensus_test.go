@@ -155,6 +155,12 @@ var baseBuckets = map[string]bucket{
 	// every bSA entry covers.
 	"a": bSA, "targetSA": bSA, "SA": bSA, "Ability": bSA, "With": bSA,
 	"head": bSA, "ma": bSA, "mana": bSA, "original": bSA, "pt.SA": bSA,
+	// source.original is the attack window's choice-shaped mana source's
+	// compiled pile ability (attackManaSource.original, a *cards.SA like the
+	// bare "original" entry): the targeted-equip window probe (cast.go
+	// affordableTargetCandidates) re-prices its Produced$ against the chosen
+	// colour, reading the same SA parameter map every bSA entry covers.
+	"source.original": bSA,
 	// spell.Ability is the stack object's resolved *cards.SA, checked before
 	// falling back to its printed face in TargetableObjects.
 	"spell.Ability": bSA,
@@ -1108,6 +1114,13 @@ var stringMapParams = map[string]string{
 	// cost head reaches the AllTargeted$ count ref (the alltargeted1 scope
 	// gate) -- an SVar-body lookup, not a card Params map.
 	"rules:bodyReadsAllTargeted:svars": "SVars table lookup by SVar name for the AllTargeted$ cost-head scan, not a card Params map",
+	// rules/cast.go bodyReadsRef: the shared transitive SVar walk behind
+	// bodyReadsAllTargeted and bodyReadsRootTarget (the root-target arm of
+	// the equip-reduce window probe). svars is the source face's (or merged
+	// pile's) SVar table, walked by SVar NAME -- an SVar-body lookup, not a
+	// card Params map. Whitelisting the callee also silences the caller
+	// attribution of every site that forwards its own svars into it.
+	"rules:bodyReadsRef:svars": "SVars table lookup by SVar name for the transitive AllTargeted$/Targeted$ ref scan, not a card Params map",
 	// rules/mayplay.go mayPlayGateRejected: params IS a card Params map, but
 	// every key the function indexes is indexed ONLY to fail the MayPlay
 	// static closed (mayPlayUnreadGates + MayPlayPlayer$) -- a fail-closed
@@ -1452,7 +1465,11 @@ var apiSpecificRulesSA = map[string][]string{
 	// abilities (availableManaAbilitiesForWindow), so its reads belong to
 	// api:Mana alone -- left in the generic union they mask every other API's
 	// unread Produced$ (measured: api:Sacrifice/api:DealDamage).
-	"Engine.attackChoiceManaSources": {"Mana"},
+	"Engine.attackChoiceManaSources":   {"Mana"},
+	// affordableTargetCandidates folds choice-shaped mana sources into the
+	// targeted-equip payment-window reachability probe; its Produced$ read is
+	// over api:Mana sources only, not over the activated ability being priced.
+	"Engine.affordableTargetCandidates": {"Mana"},
 	// The Charm mode paths: the CR 601.2b cast-time modes ask (castModeAsk),
 	// the per-mode target declaration (modalTargetSA), the resume-side mode
 	// decisions/labels, and the modal-trigger placement ask (CharmNum$).

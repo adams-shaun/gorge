@@ -606,14 +606,62 @@ func (e *Engine) ownReduceCost(p state.PlayerID, id state.ObjID, ab *cards.SA, t
 	return 0
 }
 
+// ownReduceCostOffer is ownReduceCost's offer-time reading for a body that
+// reads a ROOT target ref (Targeted$CardPower, CR 702.6's equip target). The
+// ability's own targets do not exist until CR 601.2c, so a plain nil-target
+// read is 0 and the offer gate would withhold the ability at FULL price even
+// when a legal target reduces it into reach: Belt of Giant Strength's
+// `Equip {10}` against a 4-power creature costs {6}, and a {6} pool must
+// offer it. This evaluates the body once per legal root target candidate and
+// returns the LARGEST reduction, so the option is offered iff SOME legal
+// CR 601.2c announcement is payable; beginActivation folds the same amount
+// (so the pre-target payability check in continueCast passes) and
+// repriceForTargets then charges the exact amount for the target actually
+// chosen (CR 601.2f, idempotent net-adjust). A body that reads no root target
+// ref keeps the plain nil-target read, unchanged; the AllTargeted$ union is
+// deliberately not consulted here (alltargeted1's sub-ability shape). A
+// property the <Ref>$<Property> family does not model (dragonfire_blade's
+// Targeted$CardNumColors) still evaluates to 0 here, so that card's offer
+// price is unchanged -- only the Ctx binding is in this helper's scope.
+func (e *Engine) ownReduceCostOffer(p state.PlayerID, id state.ObjID, ab *cards.SA, merged int) int32 {
+	best := e.ownReduceCost(p, id, ab, nil, nil, merged)
+	if ab == nil {
+		return best
+	}
+	v := strings.TrimSpace(ab.Params["ReduceCost"])
+	if v == "" {
+		return best
+	}
+	if _, err := strconv.Atoi(v); err == nil {
+		return best
+	}
+	svars := e.pileSVars(id, merged)
+	body := v
+	if b, ok := svars[v]; ok {
+		body = b
+	}
+	if !bodyReadsRootTarget(body, svars, 0) {
+		return best
+	}
+	for _, cand := range e.costPotentialTargets(p, id, abilityScope(ab)) {
+		if n := e.ownReduceCost(p, id, ab, []state.Target{cand}, nil, merged); n > best {
+			best = n
+		}
+	}
+	return best
+}
+
 // isLoyaltyAbility reports whether ab is a planeswalker loyalty ability
 // (CR 606): it carries the Planeswalker$ parameter (case-insensitive -- three
 // corpus lines spell it "true"), or its parsed Cost$ contains an
-// AddCounter/SubCounter part of the LOYALTY kind. The OR is load-bearing: the
-// dynamic [-X] costs (SubCounter<X/LOYALTY>, 20 raw lines) do not parse into a
-// SubCounter part (ParseCost keeps the unrecognised-token fallback for them),
-// so only the parameter identifies those; conversely the param covers every
-// fixed [+N]/[-N] shape, 966 of the 970 raw ability lines carrying it.
+// AddCounter/SubCounter part of the LOYALTY kind. The OR is load-bearing on
+// the cost side: the dynamic [-X] form SubCounter<X/LOYALTY> (20 raw lines)
+// parses into an announced SubCounter part of the LOYALTY kind (see
+// rules/mana.go's subCounterCost), so the cost alone still identifies it even
+// if a hypothetical carrier omitted the parameter; the param additionally
+// covers every fixed [+N]/[-N] shape (978 raw lines, 977 carrying the
+// parameter) as well as the 20 dynamic [-X] lines, every one of which carries
+// it.
 func isLoyaltyAbility(ab *cards.SA) bool {
 	return isLoyaltyAbilityCost(ab, ParseCost(ab.Params["Cost"]))
 }
@@ -2519,7 +2567,10 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				// The ability's own ReduceCost$ (Otawara's Channel): the CR
 				// 601.2f composition the offer gate and beginActivation's
 				// charge share, so an offered cost and the paid one agree.
-				if n := e.ownReduceCost(p, id, ab, nil, nil, pa.Merged); n > 0 && cost.Generic >= n {
+				// ownReduceCostOffer resolves a target-dependent body against
+				// the best legal root target, because the chosen target does
+				// not exist at offer time (belt_of_giant_strength).
+				if n := e.ownReduceCostOffer(p, id, ab, pa.Merged); n > 0 && cost.Generic >= n {
 					cost.Generic -= n
 				} else if n > 0 {
 					cost.Generic = 0
@@ -2632,7 +2683,7 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 			}
 			cost := e.parseCost(ab.Params["Cost"])
 			// The granted twin of the printed loop's own ReduceCost$ fold.
-			if n := e.ownReduceCost(p, id, ab, nil, nil, 0); n > 0 && cost.Generic >= n {
+			if n := e.ownReduceCostOffer(p, id, ab, 0); n > 0 && cost.Generic >= n {
 				cost.Generic -= n
 			} else if n > 0 {
 				cost.Generic = 0

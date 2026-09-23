@@ -535,13 +535,14 @@ export interface Option {
    */
   attacker?: number;
   /**
-   * Battle, on an attacker option, names the CR 310.7 battle being
-   * attacked (0 = attacking a player). Obj is the attacking creature and
-   * Player is the battle's protector, so the pair alone cannot tell a battle
-   * attack from a player attack by the same creature; this field is what the
-   * engine reads back at declaration time to record Object.AttackingBattle.
-   * omitempty: a player attack emits no field, so every existing option list
-   * serialises byte-identically.
+   * Battle, on an attacker option, names the non-player permanent being
+   * attacked -- a CR 310.7 battle or a planeswalker -- 0 meaning a player
+   * attack. Obj is the attacking creature and Player is the permanent's seat
+   * (the battle's protector, or the planeswalker's controller), so the pair
+   * alone cannot tell a permanent attack from a player attack by the same
+   * creature; this field is what the engine reads back at declaration time to
+   * record Object.AttackingBattle. omitempty: a player attack emits no field,
+   * so every existing option list serialises byte-identically.
    */
   battle?: number;
   /**

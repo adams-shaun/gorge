@@ -332,6 +332,16 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 	if card := e.G.Obj(c.TriggerCard); card != nil {
 		c.TriggerPaidX = card.X
 		c.TriggerConverge = card.ConvergeColours
+		// CR 601.2h / 106.12: the mana actually spent to cast the triggering
+		// spell, snapshotted beside the converge colours for the same reason --
+		// a spell that leaves the stack before the trigger resolves (countered,
+		// or resolved onto the battlefield) has the live fields zeroed, so the
+		// TriggeredCard$CastTotalManaSpent ref-head reads this fire-time capture.
+		c.TriggerManaSpent = card.ManaSpent
+		c.TriggerManaSnowSpent = card.ManaSnowSpent
+		for i := range state.TypedManaTags {
+			c.TriggerManaTyped[i] = card.TypedManaSpentByTag(i)
+		}
 	}
 	return c
 }
