@@ -336,3 +336,52 @@ ok   github.com/adams-shaun/gorge/internal/testutil  0.001s
 No golden or ratchet movement. No unresolved uncertainty remains; the supplied
 conflict report described earlier conflict states, while the actual merge had
 only the accumulating report-log conflict.
+
+---
+
+# Merge-conflict resolution — worktree agent-20260919T194848Z-9bc258a5 (TriggerController branch)
+
+## Entry state
+
+`git status` found the tree CLEAN at the branch tip `ef105ca5` (TriggerController fix +
+report); no rebase or merge in flight. `main` had advanced; ran `git merge main --no-edit`.
+
+## Conflicts and resolution
+
+ONE content conflict:
+
+- **`.ds4/report-t1.md`** — this shared report path was committed (`git add -f`, it is
+  git-excluded) by both sides with DIFFERENT task reports: the branch side holds this
+  worktree's `TriggerController$` report; main's side holds concatenated reports from
+  `cli-20260923T060000Z-trig-attackerblocked`, `api:Attach Optional$` (Yuffie) and
+  `StoreVoteNum`. Resolution: kept both intents — branch report first, then main's
+  reports appended under a `# Reports merged in from main` separator. No code involved.
+
+Everything else auto-merged, including `internal/testutil/agentsdoc_test.go`
+(`knownApproximationRows = 19`, unchanged from main since this branch deleted no rows)
+and `AGENTS.md`. Verified the merged table against the constant by running the actual
+ratchet test (an ad-hoc python count of mine was off by one; the test itself passes).
+The branch's fix survived: `rules/trigger_match.go` TriggerController handling intact.
+
+## Commands and output
+
+```text
+git status                       # clean at ef105ca5
+git merge main --no-edit
+  CONFLICT (content): Merge conflict in .ds4/report-t1.md
+  (everything else auto-merged)
+git add -f .ds4/report-t1.md; git diff --check; git diff --cached --check   # clean
+git commit --no-edit -> 0f56e20d Merge branch 'main' into wt/agent-20260919T194848Z-9bc258a5
+[ -e .cards ]                    # real symlink to /home/sadams/projects/gorge/.cards
+go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|TriggerController'
+  ok  github.com/adams-shaun/gorge/rules 0.757s
+go test ./internal/testutil -run 'TestKnownApproximations'
+  ok  github.com/adams-shaun/gorge/internal/testutil 0.001s
+git merge-base --is-ancestor main HEAD   # yes
+git status                            # clean
+```
+
+## Issues
+
+None new. Integration only; no ratchet entries needed updating (no new trigger mode, no
+new unsupported rows on this branch).

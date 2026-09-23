@@ -1295,6 +1295,15 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				if objLKI != nil && id == ev.Obj && leftBattlefield(ev) {
 					controller = objLKI.Controller
 				}
+				// TriggerController$ TriggeredCardController assigns the
+				// ChangesZone ability to the controller of the card whose move
+				// caused it. For a permanent leaving the battlefield, use that
+				// event's LKI: the live object has already returned to its owner.
+				if (t.Mode == "ChangesZone" || t.Mode == "ChangesZoneAll") &&
+					t.Params["TriggerController"] == "TriggeredCardController" &&
+					objLKI != nil && leftBattlefield(ev) {
+					controller = objLKI.Controller
+				}
 				// The non-active face of an unlocked Room must be minted through
 				// the delayed-shape push: TriggerPush re-derives an ability from
 				// the object's active Face(), while the delayed push resolves the
