@@ -52,7 +52,11 @@ func (e *Engine) attackAllowedThroughDefender(id state.ObjID, defender state.Pla
 		if !e.restrictionApplies(ce, id) {
 			continue
 		}
-		if !e.attackedSpecHolds(ce.RestrictParams["ValidAttacked"], defender, ce.Controller, ce.Source, ce.RememberedPlayers) {
+		// The source is deliberately NOT threaded here: the Player.CardOwner
+		// resolution is scoped to CantAttack's Target$ walk (Xantcha). A
+		// CardOwner qualifier in a ValidAttacked$ spec fails closed, exactly
+		// as it did before that fix.
+		if !e.attackedSpecHolds(ce.RestrictParams["ValidAttacked"], defender, ce.Controller, ce.RememberedPlayers) {
 			continue
 		}
 		return true
@@ -71,7 +75,7 @@ func (e *Engine) attackAllowedThroughDefender(id state.ObjID, defender state.Pla
 		if spec == "" || !e.matchesSpec(spec, id, e.specCtx(sv.Source, sv.Controller)) {
 			continue
 		}
-		if !e.attackedSpecHolds(sv.Params["ValidAttacked"], defender, sv.Controller, sv.Source, nil) {
+		if !e.attackedSpecHolds(sv.Params["ValidAttacked"], defender, sv.Controller, nil) {
 			continue
 		}
 		return true
@@ -88,8 +92,10 @@ func (e *Engine) attackAllowedThroughDefender(id state.ObjID, defender state.Pla
 // has no channel for it. Any OTHER part of a spec falls through to the shared
 // restrictionPlayerSpecMatches grammar, so a plain `You`/`Opponent` scoping
 // still resolves; a compound or unknown qualifier fails closed exactly as it
-// would for CantAttack's Target$.
-func (e *Engine) attackedSpecHolds(spec string, defender, you state.PlayerID, source state.ObjID, rememberedPlayers []state.PlayerID) bool {
+// would for CantAttack's Target$. No source is passed to that matcher, so a
+// CardOwner qualifier — which only CantAttack's Target$ walk resolves — fails
+// closed here as it always has.
+func (e *Engine) attackedSpecHolds(spec string, defender, you state.PlayerID, rememberedPlayers []state.PlayerID) bool {
 	spec = strings.TrimSpace(spec)
 	if spec == "" {
 		return true
@@ -110,7 +116,7 @@ func (e *Engine) attackedSpecHolds(spec string, defender, you state.PlayerID, so
 			}
 			continue
 		}
-		if restrictionPlayerSpecMatches(e.G, part, defender, you, source, rememberedPlayers) {
+		if restrictionPlayerSpecMatches(e.G, part, defender, you, 0, rememberedPlayers) {
 			return true
 		}
 	}

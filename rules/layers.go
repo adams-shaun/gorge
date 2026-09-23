@@ -3399,7 +3399,9 @@ func (e *Engine) PutCounterBlocked(kind string, obj state.ObjID, player state.Pl
 		}
 		if playerForm {
 			if spec := strings.TrimSpace(ce.RestrictParams["ValidPlayer"]); spec != "" {
-				if restrictionPlayerSpecMatches(e.G, spec, player, ce.Controller, ce.Source, ce.RememberedPlayers) {
+				// Source 0: Player.CardOwner resolution is scoped to CantAttack's
+				// Target$ walk; a CardOwner qualifier here fails closed, as before.
+				if restrictionPlayerSpecMatches(e.G, spec, player, ce.Controller, 0, ce.RememberedPlayers) {
 					return true
 				}
 				continue
@@ -3433,7 +3435,8 @@ func (e *Engine) PutCounterBlocked(kind string, obj state.ObjID, player state.Pl
 		}
 		if playerForm {
 			if spec := strings.TrimSpace(sv.Params["ValidPlayer"]); spec != "" {
-				if restrictionPlayerSpecMatches(e.G, spec, player, sv.Controller, sv.Source, nil) {
+				// Source 0, same scope rule as the continuous-effect branch above.
+				if restrictionPlayerSpecMatches(e.G, spec, player, sv.Controller, 0, nil) {
 					return true
 				}
 				continue
@@ -3601,7 +3604,10 @@ func restrictionPlaneswalkerTargetMatches(g *state.Game, spec string, defender, 
 // its current controller once the source has changed hands. A face static
 // passes an empty remembered set, so its IsRemembered clauses match nobody
 // (fail closed); a caller with no source (source 0) fails CardOwner closed
-// the same way.
+// the same way. Today only CantAttack's Target$ walk passes a source: the
+// PutCounterBlocked ValidPlayer$ selectors and the CanAttackDefender
+// ValidAttacked$ selector deliberately pass 0, keeping their pre-CardOwner
+// behavior unchanged.
 func restrictionPlayerSpecMatches(g *state.Game, spec string, defender, controller state.PlayerID, source state.ObjID, rememberedPlayers []state.PlayerID) bool {
 	if !strings.Contains(spec, "IsRemembered") && !strings.Contains(spec, "CardOwner") {
 		return effects.MatchesPlayerSpec(g, spec, defender, controller)
