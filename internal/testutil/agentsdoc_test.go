@@ -19,14 +19,12 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	// The merged table currently measures 38 rows. This includes main's
-	// First-Strike Damage closure (acc7878d), layer-4 filter-grammar closure
-	// (63c07260), mulligan-redraw-deferral closure (7c4182ff), non<X> closure
-	// (d56e404f), NameCard ChooseFromList$/AtRandom$ closure (78d3b764),
-	// battle-protector closure (f76f59fd), earlier pc1/each1/CR 616.1 closures,
-	// main's cascade1 closure (e46f051d), main's token-replacement closure,
-	// this branch's maxpower1 closure, and its bestow1 deletion.
-	knownApproximationRows = 38
+	// The merged table measures 36 rows. Both sides deleted one row from the
+	// 38-row merge base, and the deletions are disjoint: this branch closed
+	// (bestow1) and main closed (attackprop1), so the merged AGENTS.md carries
+	// 38 - 2 = 36 data rows. Measured against the auto-merged table, not
+	// inherited from either conflicted comment (HEAD said 38, main said 37).
+	knownApproximationRows = 36
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.
