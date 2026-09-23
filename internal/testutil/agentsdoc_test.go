@@ -19,9 +19,9 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	// The merged AGENTS.md measures 24 data rows (measured with
+	// The merged AGENTS.md measures 23 data rows (measured with
 	// approximationRows() against the merged AGENTS.md). Base e9ed29f0
-	// carried 29 and the five deletions are disjoint: this branch (the
+	// carried 29 and the six deletions are disjoint: this branch (the
 	// convoke fix) deleted (manaexpend1) (ManaExpend now counts convoke
 	// mana alongside pool mana), main's cli-20260923T060000Z-hlcz-imprint
 	// deleted the hidden-library ChangeZone row (the
@@ -30,10 +30,12 @@ const (
 	// deleted (castfilter1/2) (TriggeredCard$CastTotalManaSpent reads the
 	// cast spend), main's cli-20260923T060000Z-layers-pt7kw deleted
 	// (kw:Flanking) (the layer-7 P/T walk binds the finished layer-6
-	// keyword list), and main's CR 310.11 defeated-battle closure deleted
+	// keyword list), main's CR 310.11 defeated-battle closure deleted
 	// (battle1) (the defeated battle is exiled and its owner may cast it
-	// transformed).
-	knownApproximationRows = 24
+	// transformed), and cli-20260923T060000Z-equip-altcost deleted the
+	// (eqcm1) row (its Targeted$ reduction, Worthy predicate and
+	// AlternateCost$ rider sub-shapes all landed).
+	knownApproximationRows = 23
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.
