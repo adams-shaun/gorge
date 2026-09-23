@@ -15,7 +15,7 @@ import (
 // head dropping out of the table is a keyword that silently stops expanding --
 // no test would otherwise fail, the carrier just quietly loses its ability.
 var expandedHeads = []string{
-	"etbCounter", "Devour", "ETBReplacement",
+	"etbCounter", "Devour", "ETBReplacement", "Vanishing",
 	"Undying", "Persist", "Evolve", "Exalted", "Dethrone", "Afflict",
 	"Flanking", "Hideaway", "Prowess", "Extort", "Soulbond", "Myriad",
 	"Annihilator", "Ward", "Storm", "Gravestorm", "Replicate", "Conspire",
