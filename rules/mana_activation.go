@@ -638,7 +638,10 @@ func (e *Engine) manaAbilityPayablePool(p state.PlayerID, source state.ObjID, ma
 		return false
 	}
 	_, ok := e.manaExiles(p, source, cost)
-	return ok
+	if !ok {
+		return false
+	}
+	return true
 }
 
 // manaSacrifices finds enough candidates for each sacrifice cost part. The
@@ -863,6 +866,7 @@ func (e *Engine) commitManaDiscard() {
 				To: state.ZExile, Text: "exiled as a mana ability cost"})
 		}
 	}
+	e.payMillCost(md.player, md.cost.Mill)
 	var manaTriggers []pendingTrigger
 	if md.cost.Tap {
 		manaTriggers = e.emitManaTap(md.player, md.source, md.ability)
@@ -1277,6 +1281,7 @@ func (e *Engine) resolveManaAbilityRef(p state.PlayerID, source state.ObjID, ma 
 	if !e.payManaConvFor(p, source, true, cost, e.paymentConv(p, source, true)) {
 		return
 	}
+	e.payMillCost(p, cost.Mill)
 	var manaTriggers []pendingTrigger
 	if cost.Tap {
 		manaTriggers = e.emitManaTap(p, source, ma)

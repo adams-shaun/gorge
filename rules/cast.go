@@ -1362,6 +1362,33 @@ func (e *Engine) drawCostCard(p state.PlayerID) {
 		From: state.ZLibrary, To: state.ZHand, Secret: true})
 }
 
+// payMillCost settles every Mill<N> cost component: the payer mills the SUM
+// of the parts' requirements from the top of their own library, one real
+// MoveZone event per card in deterministic top-first order. No choice is
+// involved, so nothing is asked. A mill instruction moves all remaining cards
+// when its count exceeds the library size, so the snapshot clamps to the
+// available prefix.
+func (e *Engine) payMillCost(p state.PlayerID, parts []CostPart) {
+	total, ok := millCostTotal(parts)
+	if !ok || total <= 0 {
+		return
+	}
+	lib := e.G.Zone(state.ZLibrary, p)
+	if int64(len(lib)) < total {
+		total = int64(len(lib))
+	}
+	// Snapshot the ids before emitting: each MoveZone mutates the library
+	// the slice was read from.
+	ids := append([]state.ObjID(nil), lib[:total]...)
+	for _, id := range ids {
+		e.emit(events.Event{Kind: events.MoveZone, Obj: id, Player: p, From: state.ZLibrary, To: state.ZGraveyard, Text: "mill cost"})
+	}
+}
+
+func (e *Engine) payMillCostParts(pc *pendingCast) {
+	e.payMillCost(pc.player, pc.cost.Mill)
+}
+
 // payDrawCostParts settles every Draw cost component of a cast or activation
 // payment: one ordinary draw per card of the part's count, for the drawer the
 // part's spec names. The count is the literal N, or -- for the dynamic
@@ -1595,7 +1622,9 @@ func (e *Engine) spellsCastThisTurn(p state.PlayerID) int {
 //
 // The mana part of a Cost$ is deliberately NOT folded: it RESTATES the printed
 // mana cost rather than adding to it, so re-adding it would double charge.
-// Only Life/Sac/Discard/SubCounter/Tap are additional.
+// Every OTHER component -- Life/Sac/Discard/SubCounter/Tap, and the whole
+// non-mana family including Exile, MoveToGrave, Reveal, Energy, Draw, LifeX,
+// DamageYou and Mill -- is additional and is concatenated below.
 func withSpellAbilityExtras(f *cards.Face, cost Cost) Cost {
 	sa := f.SpellAbility()
 	if sa == nil {
@@ -1651,6 +1680,9 @@ func withSpellAbilityExtras(f *cards.Face, cost Cost) Cost {
 	}
 	if len(extra.DamageYou) > 0 {
 		cost.DamageYou = append(append([]CostPart(nil), cost.DamageYou...), extra.DamageYou...)
+	}
+	if len(extra.Mill) > 0 {
+		cost.Mill = append(append([]CostPart(nil), cost.Mill...), extra.Mill...)
 	}
 	cost.Forage = cost.Forage || extra.Forage
 	cost.Tap = cost.Tap || extra.Tap
@@ -6689,6 +6721,9 @@ func (e *Engine) payCast() {
 		for _, part := range pc.cost.DamageYou {
 			e.payDamageCost(pc.player, part.N, pc.card)
 		}
+		// Mill cost parts (Mill<N>): the payer mills the summed requirement
+		// from the top of their library as part of the payment.
+		e.payMillCostParts(pc)
 		// Draw cost parts (Draw<N/Spec>): the payer draws N, as one ordinary
 		// Draw event per card (an empty library's loss is the SBA's). The
 		// dredge replacement is NOT posed here -- the cast-flow payment stage
@@ -6875,6 +6910,8 @@ func (e *Engine) payCast() {
 			e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: o.Zone, To: state.ZGraveyard, Text: "moved to its owner's graveyard as a cost"})
 		}
 	}
+	// Mill cost parts (see the ability branch above for the why).
+	e.payMillCostParts(pc)
 	// Energy cost parts (see the ability branch above for the why).
 	e.chargeEnergyCost(pc.player, pc.cost, pc.x)
 	// Announced PayLife<X>, DamageYou<N> and Draw<N/Spec> cost parts (see the

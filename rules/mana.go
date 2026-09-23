@@ -193,6 +193,8 @@ type Cost struct {
 	// OppOwn and ExiledWithSource predicates, bound to the PAYER and the
 	// ability's source).
 	MoveToGrave []CostPart
+	// Mill carries Mill<N> cost components paid from the payer's library.
+	Mill []CostPart
 	// Unknown lists the HEAD (the text before any "<...>") of every cost
 	// token this parse did not model, in order of appearance, deduplicated.
 	// A token lands here exactly when ParseCost could not give it real
@@ -365,6 +367,22 @@ var exileBattlefieldCost = regexp.MustCompile(`^Exile<(\d+)/([^/>]+)(?:/([^>]*))
 // exactly {2}{B} could not activate Shelob) and the cost's governing action
 // was silently dropped -- a fail-open defect.
 var exiledMoveToGraveCost = regexp.MustCompile(`^ExiledMoveToGrave<(\d+)/([^/>]+)(?:/([^>]*))?>$`)
+var millCost = regexp.MustCompile(`^Mill<(\d+)>$`)
+
+// millCostTotal returns the total number of cards every Mill<N> cost
+// component requires (0 when there is no Mill part). The total is int64 so
+// the sum of arbitrary parts cannot overflow int on a 32-bit build; ok is
+// false for a negative requirement, which can never be paid.
+func millCostTotal(parts []CostPart) (int64, bool) {
+	var total int64
+	for _, part := range parts {
+		if part.N < 0 {
+			return 0, false
+		}
+		total += int64(part.N)
+	}
+	return total, true
+}
 
 // payLifeXCost matches Forge's announced life payment PayLife<X> (Toxic
 // Deluge's "pay X life", Necrodominance's end-step body): the cast announces
@@ -452,6 +470,16 @@ func ParseCost(s string) Cost {
 		case isHybridPhyrexian(sym):
 			c.HybridPhyrexian = append(c.HybridPhyrexian, hybridPhyrexianPair(sym))
 		default:
+			if m := millCost.FindStringSubmatch(sym); m != nil {
+				n, err := strconv.ParseInt(m[1], 10, 64)
+				if err != nil || n < 0 || n > int64(math.MaxInt32) {
+					c.Generic = addClampedGeneric(c.Generic, 1)
+					c.reportUnknown(sym)
+					continue
+				}
+				c.Mill = append(c.Mill, CostPart{N: int32(n)})
+				continue
+			}
 			if m := dynTapCost.FindStringSubmatch(sym); m != nil {
 				// The dynamic tapXType heads (see the regex's doc): a TapPermanent
 				// part whose count the tap election resolves at payment -- "X"
@@ -1071,6 +1099,9 @@ func (c Cost) Plus(d Cost) Cost {
 	if len(d.MoveToGrave) > 0 {
 		c.MoveToGrave = append(append([]CostPart(nil), c.MoveToGrave...), d.MoveToGrave...)
 	}
+	if len(d.Mill) > 0 {
+		c.Mill = append(append([]CostPart(nil), c.Mill...), d.Mill...)
+	}
 	if len(d.Reveal) > 0 {
 		c.Reveal = append(append([]CostPart(nil), c.Reveal...), d.Reveal...)
 	}
@@ -1550,6 +1581,9 @@ func formatCost(c Cost) string {
 	}
 	appendCostParts("Behold", c.Behold)
 	appendCostParts("ExiledMoveToGrave", c.MoveToGrave)
+	for _, part := range c.Mill {
+		parts = append(parts, "Mill<"+strconv.FormatInt(int64(part.N), 10)+">")
+	}
 	appendCostParts("tapXType", c.TapPermanent)
 	for _, part := range c.Blight {
 		parts = append(parts, "Blight<"+strconv.FormatInt(int64(part.N), 10)+">")
@@ -1639,6 +1673,9 @@ func costPhrase(c Cost) string {
 	}
 	for _, part := range c.MoveToGrave {
 		clauses = append(clauses, "put "+objectPhrase(part, "card")+" from exile into its owner's graveyard")
+	}
+	for _, part := range c.Mill {
+		clauses = append(clauses, "mill "+countPhrase(part.N)+" card"+pluralSuffix(part.N))
 	}
 	for _, part := range c.Reveal {
 		clauses = append(clauses, "reveal "+objectPhrase(part, "card"))
@@ -1941,7 +1978,7 @@ func costAnnouncesCastX(c Cost) bool {
 // even though it takes no payment), so a caller using this to skip the
 // cast-flow stages is told the truth.
 func (c Cost) HasNonMana() bool {
-	return c.Life > 0 || c.Tap || len(c.Sac) > 0 || len(c.Discard) > 0 || len(c.SubCounter) > 0 || len(c.AddCounter) > 0 || len(c.Exile) > 0 || len(c.Reveal) > 0 || len(c.RevealChosen) > 0 || len(c.Behold) > 0 || len(c.TapPermanent) > 0 || len(c.Blight) > 0 || c.Forage || len(c.Energy) > 0 || len(c.Return) > 0 || len(c.PutToLib) > 0 || len(c.Draw) > 0 || len(c.LifeX) > 0 || len(c.DamageYou) > 0 || len(c.MoveToGrave) > 0
+	return c.Life > 0 || c.Tap || len(c.Sac) > 0 || len(c.Discard) > 0 || len(c.SubCounter) > 0 || len(c.AddCounter) > 0 || len(c.Exile) > 0 || len(c.Reveal) > 0 || len(c.RevealChosen) > 0 || len(c.Behold) > 0 || len(c.TapPermanent) > 0 || len(c.Blight) > 0 || c.Forage || len(c.Energy) > 0 || len(c.Return) > 0 || len(c.PutToLib) > 0 || len(c.Draw) > 0 || len(c.LifeX) > 0 || len(c.DamageYou) > 0 || len(c.MoveToGrave) > 0 || len(c.Mill) > 0
 }
 
 // Priceable reports whether payMana can actually charge every part of this
@@ -1964,7 +2001,7 @@ func (c Cost) Priceable() bool {
 		len(c.TapPermanent) == 0 && len(c.Blight) == 0 && !c.Forage &&
 		len(c.Hybrid) == 0 && len(c.Phyrexian) == 0 && len(c.Twobrid) == 0 && len(c.HybridPhyrexian) == 0 &&
 		len(c.Energy) == 0 && len(c.Return) == 0 && len(c.PutToLib) == 0 && len(c.LifeX) == 0 && len(c.DamageYou) == 0 &&
-		len(c.MoveToGrave) == 0
+		len(c.MoveToGrave) == 0 && len(c.Mill) == 0
 }
 
 // energyCostTotal returns the fixed energy a cost's PayEnergy<N> parts demand:
