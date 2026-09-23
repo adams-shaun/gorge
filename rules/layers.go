@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/effects"
@@ -2220,11 +2221,56 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 	return reconfigureTypeSwitch(o, bestowedTypeSwitch(o, ty))
 }
 
+// landTypeWordsCache memoises corpusLandTypeWords per universe, keyed by the
+// universe slice's identity (first element address + length). The universe
+// is immutable by contract (state.Game.NameUniverse) and shared by every game
+// an embedder starts from one registry, so the ~24k-card walk runs once per
+// registry instead of once per game. The cached list is shared read-only:
+// its one reader, appendLandTypes, only appends it into another slice.
+// Bounded: dropped wholesale on overflow, which only costs a recomputation.
+var landTypeWordsCache struct {
+	mu sync.Mutex
+	m  map[landTypeWordsKey][]string
+}
+
+type landTypeWordsKey struct {
+	first **cards.Card
+	n     int
+}
+
 // corpusLandTypeWords derives the land-subtype vocabulary from the parsed
 // compiled corpus supplied as the game's NameUniverse. Card and supertype
 // words, plus creature subtypes printed on creature lands, are excluded.
 // Sorting makes the derived layer list deterministic.
 func corpusLandTypeWords(universe []*cards.Card) []string {
+	if len(universe) == 0 {
+		return buildCorpusLandTypeWords(universe)
+	}
+	k := landTypeWordsKey{first: &universe[0], n: len(universe)}
+	landTypeWordsCache.mu.Lock()
+	if out, ok := landTypeWordsCache.m[k]; ok {
+		landTypeWordsCache.mu.Unlock()
+		return out
+	}
+	landTypeWordsCache.mu.Unlock()
+	out := buildCorpusLandTypeWords(universe)
+	out = out[:len(out):len(out)]
+	landTypeWordsCache.mu.Lock()
+	defer landTypeWordsCache.mu.Unlock()
+	if prev, ok := landTypeWordsCache.m[k]; ok {
+		return prev
+	}
+	if len(landTypeWordsCache.m) >= 64 {
+		landTypeWordsCache.m = nil
+	}
+	if landTypeWordsCache.m == nil {
+		landTypeWordsCache.m = make(map[landTypeWordsKey][]string)
+	}
+	landTypeWordsCache.m[k] = out
+	return out
+}
+
+func buildCorpusLandTypeWords(universe []*cards.Card) []string {
 	words := make(map[string]struct{})
 	for _, card := range universe {
 		if card == nil {

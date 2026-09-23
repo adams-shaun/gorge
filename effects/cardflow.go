@@ -3166,9 +3166,7 @@ func effNameCard(h Host, c *Ctx, sa *cards.SA) {
 		}
 		d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
 			Source: c.Source, ResumeKind: "name", ResumeSA: sa, Prompt: "Choose a card name"}
-		for i, name := range names {
-			d.Options = append(d.Options, decision.Option{Index: i, Kind: "name", Label: name, Player: c.Controller})
-		}
+		d.Options = NameOptions(names, c.Controller)
 		if Ask(h, d) == AskAsked {
 			return
 		}
