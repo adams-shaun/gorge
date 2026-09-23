@@ -104,16 +104,16 @@ func TestAttachedToLiteralPredicate(t *testing.T) {
 	}
 }
 
-// TestAttachedToTargetedStillUnknown is the leaf that keeps the scope honest:
-// AttachedTo Targeted (the self-referential resolution-time referent pg1 puts
-// in step 4) must keep failing closed -- it matches nothing and is still
-// reported by UnknownPredicates -- so this work does not silently pretend the
-// referent grammar landed. The dotted qualifier form is no longer in this
-// class: the YouCtrl qualifier is recognised since the umbra-armor task
-// (Umbra Mystic's Affected$ Aura.AttachedTo Permanent.YouCtrl), pinned by
-// TestAttachedToDottedYouCtrlGrammar in rules; the other dotted qualifiers
-// (EnchantedBy and friends) stay unknown and stay pinned there.
-func TestAttachedToTargetedStillUnknown(t *testing.T) {
+// TestAttachedToTargetedBoundFromContext pins the scope boundary the
+// resolution-time referent grammar keeps: `AttachedTo Targeted` and
+// `AttachedTo TriggeredCardLKICopy` are now RECOGNISED (the census no longer
+// reports them), but they still match NOTHING outside the context that binds
+// them -- a direct filter call with no resolution/target or no remembered
+// trigger object is unbound and fails closed (matchPositive ok=false), never
+// a silent false a leading '!' could invert into an always-true match. The
+// positive resolution-context behaviour is pinned by
+// TestAttachedToContextReferents.
+func TestAttachedToTargetedBoundFromContext(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	g := state.NewGame([]string{"you", "them"})
 	bear := corpusObject(t, reg, g, "Grizzly Bears")
@@ -121,17 +121,16 @@ func TestAttachedToTargetedStillUnknown(t *testing.T) {
 	aura.AttachedTo = bear.ID
 
 	for _, spec := range []string{"Aura.AttachedTo Targeted", "Aura.AttachedTo TriggeredCardLKICopy"} {
+		// No binding: matches nothing and is reported UNBOUND, not a false.
 		if MatchesObjectCtx(g, spec, aura, SpecContext{You: 0}) {
-			t.Errorf("%s must match nothing (the referent needs resolution-time context)", spec)
+			t.Errorf("%s must match nothing outside its binding context", spec)
 		}
-	}
-	for spec, want := range map[string]string{
-		"Aura.AttachedTo Targeted":             "AttachedTo Targeted",
-		"Aura.AttachedTo TriggeredCardLKICopy": "AttachedTo TriggeredCardLKICopy",
-	} {
-		un := UnknownPredicates(spec)
-		if len(un) != 1 || un[0] != want {
-			t.Errorf("UnknownPredicates(%q) = %v, want [%s]", spec, un, want)
+		if _, ok := matchPositive(g, spec, aura, SpecContext{You: 0}); ok {
+			t.Errorf("%s outside its binding context must be unbound (ok=false), got bound", spec)
+		}
+		// The grammar is recognised, so the census does not report it.
+		if un := UnknownPredicates(spec); len(un) != 0 {
+			t.Errorf("UnknownPredicates(%q) = %v, want empty (the referent grammar is recognised)", spec, un)
 		}
 	}
 }

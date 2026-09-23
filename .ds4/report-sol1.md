@@ -1,3 +1,59 @@
+# Attached predicates — agent-20260922T210645Z-27e19c88
+
+## Changes and review finding
+
+The earlier commits `60976e28` (bare `Attached`, four context referents, Arna) and `53403389` (real Stangg trigger) implemented the brief; `82db540a` made plural bindings unbound. This fix-round commit `6b7f8116` closes the remaining MAJOR from `findings-sol1.md`: `effects/filter.go` now passes the game through `attachedToReferentObjects` and `contextPredicateBound`, rejecting any nonexistent object ID in a target or remembered binding before evaluating the positive OR its negation. The single-binding, literal/dotted, player-only, and plural paths remain unchanged. `effects/attachedto_stale_binding_test.go` is a new test file: it checks all four referents, missing IDs, mixed live/stale bindings, both polarities, grammar recognition, and battlefield/live-ID preconditions. This uses the shared resolver, so the next context-bound caller cannot forget the liveness check. `.cards` was already symlinked to `/home/sadams/projects/gorge/.cards`; corpus-backed runs did not skip. No Known-approximations row closed; no head golden or ratchet edited.
+
+## Fails without the fix
+
+New test was added before editing `filter.go`; this is the exact pre-fix run (`go test -run 'TestAttachedToStaleReferentFailsClosed' ./effects/`, exit 1):
+
+```
+--- FAIL: TestAttachedToStaleReferentFailsClosed (0.65s)
+    attachedto_stale_binding_test.go:38: AttachedTo Targeted: stale binding returned (true, true), want (false, false)
+    attachedto_stale_binding_test.go:41: Aura.AttachedTo Targeted: stale binding must match nothing
+    attachedto_stale_binding_test.go:38: !AttachedTo Targeted: stale binding returned (false, true), want (false, false)
+    attachedto_stale_binding_test.go:38: AttachedTo ParentTarget: stale binding returned (true, true), want (false, false)
+    attachedto_stale_binding_test.go:41: Aura.AttachedTo ParentTarget: stale binding must match nothing
+    attachedto_stale_binding_test.go:38: !AttachedTo ParentTarget: stale binding returned (false, true), want (false, false)
+    attachedto_stale_binding_test.go:38: AttachedTo TriggeredCardLKICopy: stale binding returned (true, true), want (false, false)
+    attachedto_stale_binding_test.go:41: Aura.AttachedTo TriggeredCardLKICopy: stale binding must match nothing
+    attachedto_stale_binding_test.go:38: !AttachedTo TriggeredCardLKICopy: stale binding returned (false, true), want (false, false)
+    attachedto_stale_binding_test.go:38: AttachedTo TriggeredAttackerLKICopy: stale binding returned (true, true), want (false, false)
+    attachedto_stale_binding_test.go:41: Aura.AttachedTo TriggeredAttackerLKICopy: stale binding must match nothing
+    attachedto_stale_binding_test.go:38: !AttachedTo TriggeredAttackerLKICopy: stale binding returned (false, true), want (false, false)
+FAIL
+FAIL github.com/adams-shaun/gorge/effects 0.662s
+FAIL
+```
+
+Earlier fix-reverted evidence for bare Attached/context referents is in `.ds4/scratch/fails-effects.log` (TestAttachedPredicate / TestAttachedToContextReferents failed); real Arna and Stangg carrier failures are in `.ds4/scratch/fails-rules2.log` (both lacked a Bonesplitter token copy). The plural-binding test's pre-fix failures are documented in the earlier round's report. All files are corpus-backed; carrier tests assert the source is attached, the trigger resolves and the copied object differs from the original.
+
+## Gates run (exact commands, actual output)
+
+```
+$ gofmt -l effects/filter.go effects/attachedto_stale_binding_test.go
+$ go run ./cmd/gentypes -check
+(exit 0, no output)
+$ go test -run 'TestAttachedPredicate|TestAttachedToContextReferents|TestAttachedToReferentPluralBindingFailsClosed|TestAttachedToStaleReferentFailsClosed|TestAttachedToLiteralPredicate|TestAttachedToTargetedBoundFromContext|TestAttachedToPlayerWordStaysUnknown|TestAttachedToPredicateUnlocksCorpusTargeting|TestArnaRealSourceFilterReachesCopyRider|TestStanggRealTriggerCopiesAttachedPermanents' ./effects ./rules/
+ok   github.com/adams-shaun/gorge/effects  0.747s
+ok   github.com/adams-shaun/gorge/rules    0.704s
+$ go test ./internal/archtest/
+ok   github.com/adams-shaun/gorge/internal/archtest (cached)
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok   github.com/adams-shaun/gorge/cmd/botbench 1.248s
+```
+
+## Issues
+
+No new unresolved defect in this fix round. The pre-existing Silence the Believers plural-target limitation is fail-closed by design in `effects/filter.go:attachedToReferentObjects`: at 2+ object targets its `Aura.AttachedTo Targeted` rider does not apply; the earlier commit `82db540a` documents this remainder, rather than enlarging the frozen Known-approximations register. No head/ratchet movement measured; the daemon owns full game/acceptance gates.
+
+---
+
+Historical Gitaxian Probe report preserved verbatim below; it belongs to a separate task and is not a finding of this round.
+
+---
+
 # Deep Spawn UnlessCost Mill — sol1 review response
 
 ## Finding resolved
