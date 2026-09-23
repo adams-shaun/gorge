@@ -179,6 +179,18 @@ type pendingTrigger struct {
 	// Defined$ TriggeredBlockerLKICopy reads at resolution. Idx and SA are
 	// unset for it.
 	Flanking bool
+	// Mentor is a GRANTED mentor keyword (CR 702.134 via a layer-6
+	// AddKeyword$ Mentor -- Aegis of the Legion's "Equipped creature has
+	// mentor", Nyxborn Unicorn's Bestow aura): the Ward/Afflict/Flanking
+	// shape. A creature granted mentor has no printed K:Mentor trigger to
+	// carry the targeted counter body, so checkGrantedMentorTriggers
+	// synthesizes the ordinary Attacks trigger and the drain pushes a
+	// KeywordTriggerPush whose __kwMentorGranted: payload events.Apply
+	// rebuilds into the same DB$ PutCounter | ValidTgts$ Creature.attacking |
+	// Mentor$ True body the printed expansion carries, then poses that body's
+	// ordinary target ask (unlike Ward/Afflict the body is targeted). Idx and
+	// SA are unset for it.
+	Mentor bool
 	// Cumulative is a GRANTED cumulative-upkeep cost (CR 702.24 via a layer-6
 	// AddKeyword$ Cumulative upkeep:<cost> -- Breath of Dreams, Mana Chains,
 	// Decomposition -- or an A:AB$ Pump's KW$ Cumulative upkeep:<cost> --
@@ -998,6 +1010,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				case events.DeclareAttackers:
 					e.checkGrantedDethroneTriggers(observer, id, o, f, ev, objLKI)
 					e.checkGrantedTrainingTriggers(observer, id, o, f, ev, objLKI)
+					e.checkGrantedMentorTriggers(observer, id, o, f, ev, objLKI)
 				case events.DeclareBlockers:
 					e.checkGrantedAfflictTriggers(id, o, f, ev)
 				case events.PutOnStack:
@@ -1282,6 +1295,15 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				if objLKI != nil && id == ev.Obj && leftBattlefield(ev) {
 					controller = objLKI.Controller
 				}
+				// TriggerController$ TriggeredCardController assigns the
+				// ChangesZone ability to the controller of the card whose move
+				// caused it. For a permanent leaving the battlefield, use that
+				// event's LKI: the live object has already returned to its owner.
+				if (t.Mode == "ChangesZone" || t.Mode == "ChangesZoneAll") &&
+					t.Params["TriggerController"] == "TriggeredCardController" &&
+					objLKI != nil && leftBattlefield(ev) {
+					controller = objLKI.Controller
+				}
 				// The non-active face of an unlocked Room must be minted through
 				// the delayed-shape push: TriggerPush re-derives an ability from
 				// the object's active Face(), while the delayed push resolves the
@@ -1376,6 +1398,10 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		// trigger carrying the training grant) -- the early-return path above
 		// reaches this object through checkGrantedTrainingTriggers's own call.
 		e.checkGrantedTrainingTriggers(observer, id, o, f, ev, objLKI)
+		// A granted Mentor must fire even when the object's own printed
+		// triggers are live for this event -- the same both-paths rule
+		// Afflict, Conspire, Exploit, Offspring and Training follow.
+		e.checkGrantedMentorTriggers(observer, id, o, f, ev, objLKI)
 		// A granted cumulative upkeep must fire at the beginning of the
 		// controller's upkeep even when the object's own printed triggers are
 		// live for this step change -- the same both-paths rule Afflict,
@@ -1886,6 +1912,12 @@ func init() {
 		// attacksMatches (the Dethrone precedent), with a granted-keyword
 		// synthesis (checkGrantedTrainingTriggers) for the layer-6 grant.
 		"kw:Training",
+		// CR 702.134 Mentor: an Attacks trigger (cards/kw_mentor.go) whose
+		// targeted PutCounter body carries the Mentor$ marker, enforced by
+		// mentorAdmits at both the target offer and the recheck, with a
+		// granted-keyword synthesis (checkGrantedMentorTriggers) for the
+		// layer-6 grant.
+		"kw:Mentor",
 		// Task 17: Storm's expansion (cards/keywords.go) is a SpellCast
 		// trigger whose effect is CopySpellAbility -- the expansion existed
 		// since Task 11; registering the keyword here completes its
