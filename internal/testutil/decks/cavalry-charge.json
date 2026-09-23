@@ -1,0 +1,345 @@
+{
+  "name": "Cavalry Charge",
+  "format": "commander",
+  "commander": "Sidar Jabari of Zhalfir",
+  "archetype": "knights",
+  "notes": "MOC Cavalry Charge Commander precon; census input from deck.list (2026-09-20).",
+  "cards": [
+    {
+      "name": "Sidar Jabari of Zhalfir",
+      "count": 1
+    },
+    {
+      "name": "Elenda and Azor",
+      "count": 1
+    },
+    {
+      "name": "Exsanguinator Cavalry",
+      "count": 1
+    },
+    {
+      "name": "Ichor Elixir",
+      "count": 1
+    },
+    {
+      "name": "Herald of Hoofbeats",
+      "count": 1
+    },
+    {
+      "name": "Locthwain Lancer",
+      "count": 1
+    },
+    {
+      "name": "Chivalric Alliance",
+      "count": 1
+    },
+    {
+      "name": "Path of the Enigma",
+      "count": 1
+    },
+    {
+      "name": "Vodalian Wave-Knight",
+      "count": 1
+    },
+    {
+      "name": "Conjurer's Mantle",
+      "count": 1
+    },
+    {
+      "name": "Ethersworn Adjudicator",
+      "count": 1
+    },
+    {
+      "name": "Hero of Bladehold",
+      "count": 1
+    },
+    {
+      "name": "Vona, Butcher of Magan",
+      "count": 1
+    },
+    {
+      "name": "Acclaimed Contender",
+      "count": 1
+    },
+    {
+      "name": "Adeline, Resplendent Cathar",
+      "count": 1
+    },
+    {
+      "name": "Aryel, Knight of Windgrace",
+      "count": 1
+    },
+    {
+      "name": "Choked Estuary",
+      "count": 1
+    },
+    {
+      "name": "Exotic Orchard",
+      "count": 1
+    },
+    {
+      "name": "Fell the Mighty",
+      "count": 1
+    },
+    {
+      "name": "Haakon, Stromgald Scourge",
+      "count": 1
+    },
+    {
+      "name": "Josu Vess, Lich Knight",
+      "count": 1
+    },
+    {
+      "name": "Knight Exemplar",
+      "count": 1
+    },
+    {
+      "name": "Knight of the White Orchid",
+      "count": 1
+    },
+    {
+      "name": "Knights' Charge",
+      "count": 1
+    },
+    {
+      "name": "Liliana's Standard Bearer",
+      "count": 1
+    },
+    {
+      "name": "Maul of the Skyclaves",
+      "count": 1
+    },
+    {
+      "name": "Midnight Reaper",
+      "count": 1
+    },
+    {
+      "name": "Murderous Rider // Swift End",
+      "count": 1
+    },
+    {
+      "name": "Painful Truths",
+      "count": 1
+    },
+    {
+      "name": "Port Town",
+      "count": 1
+    },
+    {
+      "name": "Prairie Stream",
+      "count": 1
+    },
+    {
+      "name": "Promise of Loyalty",
+      "count": 1
+    },
+    {
+      "name": "Pull from Tomorrow",
+      "count": 1
+    },
+    {
+      "name": "Shineshadow Snarl",
+      "count": 1
+    },
+    {
+      "name": "Sigiled Sword of Valeron",
+      "count": 1
+    },
+    {
+      "name": "Silverwing Squadron",
+      "count": 1
+    },
+    {
+      "name": "Sunken Hollow",
+      "count": 1
+    },
+    {
+      "name": "Temple of Deceit",
+      "count": 1
+    },
+    {
+      "name": "Temple of Enlightenment",
+      "count": 1
+    },
+    {
+      "name": "Temple of Silence",
+      "count": 1
+    },
+    {
+      "name": "Time Wipe",
+      "count": 1
+    },
+    {
+      "name": "Unbreakable Formation",
+      "count": 1
+    },
+    {
+      "name": "Valiant Knight",
+      "count": 1
+    },
+    {
+      "name": "Vanquisher's Banner",
+      "count": 1
+    },
+    {
+      "name": "Worthy Knight",
+      "count": 1
+    },
+    {
+      "name": "Bojuka Bog",
+      "count": 1
+    },
+    {
+      "name": "Command Tower",
+      "count": 1
+    },
+    {
+      "name": "Commander's Sphere",
+      "count": 1
+    },
+    {
+      "name": "Distant Melody",
+      "count": 1
+    },
+    {
+      "name": "Evolving Wilds",
+      "count": 1
+    },
+    {
+      "name": "Fractured Powerstone",
+      "count": 1
+    },
+    {
+      "name": "Orzhov Signet",
+      "count": 1
+    },
+    {
+      "name": "Path of Ancestry",
+      "count": 1
+    },
+    {
+      "name": "Read the Bones",
+      "count": 1
+    },
+    {
+      "name": "Smitten Swordmaster // Curry Favor",
+      "count": 1
+    },
+    {
+      "name": "Terramorphic Expanse",
+      "count": 1
+    },
+    {
+      "name": "Thriving Heath",
+      "count": 1
+    },
+    {
+      "name": "Thriving Isle",
+      "count": 1
+    },
+    {
+      "name": "Thriving Moor",
+      "count": 1
+    },
+    {
+      "name": "Arcane Sanctum",
+      "count": 1
+    },
+    {
+      "name": "Arcane Signet",
+      "count": 1
+    },
+    {
+      "name": "Arvad the Cursed",
+      "count": 1
+    },
+    {
+      "name": "Corpse Knight",
+      "count": 1
+    },
+    {
+      "name": "Despark",
+      "count": 1
+    },
+    {
+      "name": "Fellwar Stone",
+      "count": 1
+    },
+    {
+      "name": "Foulmire Knight // Profane Insight",
+      "count": 1
+    },
+    {
+      "name": "Herald's Horn",
+      "count": 1
+    },
+    {
+      "name": "Knight of the Last Breath",
+      "count": 1
+    },
+    {
+      "name": "Knights of the Black Rose",
+      "count": 1
+    },
+    {
+      "name": "Mind Stone",
+      "count": 1
+    },
+    {
+      "name": "Myriad Landscape",
+      "count": 1
+    },
+    {
+      "name": "Order of Midnight // Alter Fate",
+      "count": 1
+    },
+    {
+      "name": "Path to Exile",
+      "count": 1
+    },
+    {
+      "name": "Return to Dust",
+      "count": 1
+    },
+    {
+      "name": "Sol Ring",
+      "count": 1
+    },
+    {
+      "name": "Swords to Plowshares",
+      "count": 1
+    },
+    {
+      "name": "Syr Elenora, the Discerning",
+      "count": 1
+    },
+    {
+      "name": "Syr Konrad, the Grim",
+      "count": 1
+    },
+    {
+      "name": "Temple of the False God",
+      "count": 1
+    },
+    {
+      "name": "Wintermoor Commander",
+      "count": 1
+    },
+    {
+      "name": "Xerex Strobe-Knight",
+      "count": 1
+    },
+    {
+      "name": "Plains",
+      "count": 8
+    },
+    {
+      "name": "Island",
+      "count": 6
+    },
+    {
+      "name": "Swamp",
+      "count": 5
+    }
+  ]
+}

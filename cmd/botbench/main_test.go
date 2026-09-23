@@ -736,19 +736,15 @@ func TestConstructedDefaultIsByteIdentical(t *testing.T) {
 	// the projection change alone, 7/13 with the collector fix alone); the two
 	// cards/mana_production.go changes interact on the shared bench pair.
 	//
-	// The CR 614.12 move of ETBReplacement choices from cast announcement to
-	// the entry boundary (this branch) independently changes one
-	// avengers-assemble game, and so does its follow-up fix for an
-	// entry-boundary ask posed from inside a resolving effect: dropping the
-	// resolution's parked continuation (rules/turn.go's chooseETBEntry arm)
-	// used to leave the interrupted spell on the stack for resolveTop to
-	// resolve a second time. Measured at THIS merged tip (both mana changes
-	// plus the entry-boundary migration and its continuation fix): still 6/14
-	// -- the entry-boundary work moves no game once the Any-projection and
-	// ManaReflected changes are both present, so main's value stands.
-	const wantSeat0, wantSeat1 = 6, 14
+	// The MOC Cavalry Charge deck import for Battle cry (agent-20260920T064028Z-e215debd)
+	// changes the sorted default pair to avengers-assemble:cavalry-charge.
+	// Hero of Bladehold contributes its real CR 702.33 Battle cry trigger,
+	// and the new pair measures 7/13. Removing only the deck fixture restores
+	// the previous 6/14 default pair, attributing the movement to adding
+	// Cavalry Charge to the default deck pool.
+	const wantSeat0, wantSeat1 = 7, 13
 	if seat0, seat1 := atoi(m[8]), atoi(m[9]); seat0 != wantSeat0 || seat1 != wantSeat1 {
-		t.Errorf("constructed default split = %d/%d, want %d/%d after the CR 614.12 ETB entry-choice timing and api:ManaReflected collector fixes (%s vs %s at seed 0, games 20)", seat0, seat1, wantSeat0, wantSeat1, testutil.RepoDeckNames()[0], testutil.RepoDeckNames()[1])
+		t.Errorf("constructed default split = %d/%d, want %d/%d after adding Cavalry Charge / Battle cry coverage (%s vs %s at seed 0, games 20)", seat0, seat1, wantSeat0, wantSeat1, testutil.RepoDeckNames()[0], testutil.RepoDeckNames()[1])
 	}
 	if strings.Contains(buf.String(), "STALLED") {
 		t.Errorf("constructed default (no stalls) must not print a stall line")

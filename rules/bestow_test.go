@@ -253,49 +253,7 @@ func TestEidolonOfCountlessBattlesBestowTransition(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// TestBestowExoticCostsWithheld: the three exotic bestow costs stay
-// unoffered -- nyxborn_hydra's {X} (and Detective's Phoenix's
-// CollectEvidence<6>), the replicateCost fail-closed convention -- while the
-// plain casts keep working.
-func TestBestowExoticCostsWithheld(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
-	hydra := mustCorpusCard(t, reg, "Nyxborn Hydra")
-	phoenix := mustCorpusCard(t, reg, "Detective's Phoenix")
-	e, cfg := tokenReplGame(t, 145, hydra, phoenix)
-	hydraID := moveSeededCard(t, e, 0, hydra, state.ZHand)
-	moveSeededCard(t, e, 0, phoenix, state.ZHand)
-	addMana(t, e, 0, "RRG") // both plain casts' pools
-
-	hydraOpt := decision.Option{}
-	for _, o := range castOptions(t, e) {
-		if o.Mode == "bestowed" {
-			t.Fatalf("exotic bestow cost offered a bestowed cast: %+v", o)
-		}
-		if o.Obj == hydraID && o.Mode == "" {
-			hydraOpt = o
-		}
-	}
-	if hydraOpt.Obj == 0 {
-		t.Fatalf("no plain cast option for the hydra: %+v", castOptions(t, e))
-	}
-	// The plain hydra cast still works: announce X = 0, pay {G}, resolve.
-	submitChoices(t, e, hydraOpt.Index)
-	if d := e.Pending(); d == nil || len(d.Options) == 0 || d.Options[0].Kind != "x" {
-		t.Fatalf("want the X announce first, got %+v", d)
-	}
-	idx := -1
-	for _, o := range e.Pending().Options {
-		if o.Label == "X = 0" {
-			idx = o.Index
-		}
-	}
-	if idx < 0 {
-		t.Fatalf("no X = 0 option: %+v", e.Pending().Options)
-	}
-	submitChoices(t, e, idx)
-	passUntilStackEmpty(t, e, 20)
-	if o := e.G.Obj(hydraID); o.Zone != state.ZBattlefield || !e.IsCreature(hydraID) {
-		t.Fatalf("plain hydra cast zone %s, want a battlefield creature", o.Zone)
-	}
-	replayCheck(t, e, cfg)
-}
+// TestBestowExoticCostsAreOfferedAndPaid and the CR 702.114c pin live in
+// rules/bestow_exotic_test.go: the three exotic bestow costs (Nyxborn Hydra's
+// {X}, Detective's Phoenix's CollectEvidence<6>, Hypnotic Siren's
+// colon-suffixed line) are now priced and offered rather than withheld.

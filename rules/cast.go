@@ -1555,25 +1555,30 @@ func (e *Engine) putLibPicksOnTop(picks []state.ObjID) {
 // payUnlessDamageCost emits: the Damage event names the payer, the engine's
 // damage-source context names the source, and the same-source lifelink
 // gains the controller the damage (CR 702.16d).
-func (e *Engine) payDamageCost(payer state.PlayerID, n int32, source state.ObjID) {
+func (e *Engine) payDamageCost(payer state.PlayerID, n int32, source state.ObjID, sourceLKI damageKeywordLKI, sourceControllerLKI state.PlayerID) {
 	if n <= 0 {
 		return
 	}
+	liveSource := e.G.Obj(source)
+	keywords := e.damageKeywordsOf(source)
+	controller := payer
+	if liveSource != nil && liveSource.Zone == state.ZBattlefield {
+		controller = liveSource.Controller
+	} else {
+		keywords = sourceLKI
+		controller = sourceControllerLKI
+	}
 	prev := e.SetDamageSource(source)
 	dam := events.Event{Kind: events.Damage, Player: payer, Amount: n}
-	if e.HasKeyword(source, "Infect") {
+	if keywords.infect {
 		// CR 702.90b: even a cost payment is damage dealt by its source, so
 		// an infect source's DamageYou cost pays in counter/poison form.
 		dam.Counter = "infect"
 	}
 	ev := e.emit(dam)
 	e.SetDamageSource(prev)
-	if ev.Kind != events.Damage || !e.HasKeyword(source, "Lifelink") {
+	if ev.Kind != events.Damage || !keywords.lifelink {
 		return
-	}
-	controller := payer
-	if o := e.G.Obj(source); o != nil && o.Zone == state.ZBattlefield {
-		controller = o.Controller
 	}
 	e.emit(events.Event{Kind: events.LifeChange, Player: controller, Amount: n})
 }
@@ -2030,8 +2035,20 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		// only a hand-built option) falls back to the empty cost rather than
 		// charging the printed mana cost.
 		head := map[string]string{"evoked": "Evoke", "dashed": "Dash",
-			"overloaded": "Overload", "warped": "Warp", "madness": "Madness",
-			"bestowed": "Bestow"}[opt.Mode]
+			"overloaded": "Overload", "warped": "Warp", "madness": "Madness"}[opt.Mode]
+		if opt.Mode == "bestowed" {
+			// Bestow goes through the ONE resolver the offer gate used
+			// (rules/bestow.go's bestowCost: the colon cut and the Unknown
+			// withhold), so the charge and the offer can never disagree about
+			// what a bestowed cast costs -- a raw ParseCost here would price
+			// hypnotic_siren's ":GainControl" suffix as a phantom generic.
+			if bc, ok := bestowCost(f); ok {
+				cost = bc
+			} else {
+				cost = Cost{}
+			}
+			break
+		}
 		if mc, ok := f.KeywordParam(head); ok {
 			cost = ParseCost(mc)
 		} else {
@@ -7503,15 +7520,15 @@ func (e *Engine) payCast() {
 	if e.manaWindowAsk() {
 		return
 	}
+	// Snapshot the source before any non-mana cost can move it. DamageYou
+	// shares this LKI with resolution-time damage costs when its source has
+	// already left the battlefield; a live source still uses current layers.
+	sourceKeywordLKI := e.damageKeywordsOf(pc.card)
+	sourceControllerLKI := state.PlayerID(0)
+	if sourceObj := e.G.Obj(pc.card); sourceObj != nil {
+		sourceControllerLKI = sourceObj.Controller
+	}
 	if pc.isAbility() {
-		// CR 608.2h: snapshot the source's derived lifelink before any cost can
-		// remove it from the battlefield. AbilityPush is deliberately emitted
-		// only after costs settle, so emit's generic departure capture cannot
-		// see a self-sacrificing ability on the stack yet. Resolution consults
-		// this only if the source is gone; a source that remains in play uses
-		// its live derived state instead.
-		sourceKeywordLKI := e.damageKeywordsOf(pc.card)
-		sourceControllerLKI := e.G.Obj(pc.card).Controller
 		// Task 10: an activated ability. The shared stages above (X, Delve --
 		// never present on an ability --, Sac) have already run and been
 		// recorded; what differs from a spell here is the cost's remaining
@@ -7604,7 +7621,7 @@ func (e *Engine) payCast() {
 		// DamageYou<N> cost parts: the payer takes N damage from the source
 		// (Forge CostDamage; the same event shape payUnlessDamageCost emits).
 		for _, part := range pc.cost.DamageYou {
-			e.payDamageCost(pc.player, part.N, pc.card)
+			e.payDamageCost(pc.player, part.N, pc.card, sourceKeywordLKI, sourceControllerLKI)
 		}
 		// Mill cost parts (Mill<N>): the payer mills the summed requirement
 		// from the top of their library as part of the payment.
@@ -7817,7 +7834,7 @@ func (e *Engine) payCast() {
 		}
 	}
 	for _, part := range pc.cost.DamageYou {
-		e.payDamageCost(pc.player, part.N, pc.card)
+		e.payDamageCost(pc.player, part.N, pc.card, sourceKeywordLKI, sourceControllerLKI)
 	}
 	e.payDrawCostParts(pc)
 	// Return cost parts (see the ability branch above for the why).

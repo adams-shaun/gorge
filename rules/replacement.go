@@ -4572,6 +4572,16 @@ const (
 	replChoiceUpdated
 )
 
+type lifeExchangeTransaction struct {
+	source       state.ObjID
+	controller   state.PlayerID
+	oldLife      int32
+	player       state.PlayerID
+	lifeBefore   int32
+	setPower     bool
+	setToughness bool
+}
+
 type replChoice struct {
 	kind         replChoiceKind
 	ev           events.Event
@@ -4594,6 +4604,7 @@ type replChoice struct {
 	// proposed under, restored while the answer emits it so provenance-reading
 	// triggers and protection see the same source.
 	life           bool
+	exchange       *lifeExchangeTransaction
 	appliedRepls   []replMatch
 	damaging       state.ObjID
 	combatDamaging bool
@@ -5060,11 +5071,17 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 		}
 		damaging, combat, override := e.damaging, e.combatDamaging, e.dmgSrcOverride
 		e.damaging, e.combatDamaging, e.dmgSrcOverride = rc.damaging, rc.combatDamaging, rc.dmgSrcOverride
+		priorExchange := e.lifeExchange
+		e.lifeExchange = rc.exchange
 		m := rc.cands[chosen[0].Index]
 		if next, consumed := e.applyLifeReplacement(rc.ev, m); !consumed {
 			applied := append(append([]replMatch(nil), rc.appliedRepls...), m)
 			e.continueLifeReplacements(next, applied)
 		}
+		if rc.exchange != nil && e.pending == nil && len(e.replChoices) == 0 {
+			e.finishLifeExchange(rc.exchange)
+		}
+		e.lifeExchange = priorExchange
 		e.damaging, e.combatDamaging, e.dmgSrcOverride = damaging, combat, override
 		e.triggerBefore = before
 		if e.pending == nil && len(e.replChoices) == 0 {
@@ -5562,6 +5579,7 @@ func (e *Engine) poseLifeReplacementChoice(ev events.Event, cands, applied []rep
 		return false
 	}
 	rc := replChoice{ev: ev, cands: cands, before: e.triggerBefore, life: true,
+		exchange:     e.lifeExchange,
 		appliedRepls: applied, damaging: e.damaging, combatDamaging: e.combatDamaging,
 		dmgSrcOverride: e.dmgSrcOverride, inResolution: e.resolvingObj != 0}
 	if e.pending == nil {

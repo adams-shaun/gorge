@@ -2293,19 +2293,20 @@ func appendAllCreatureTypes(types []string) []string {
 	return types
 }
 
-// bestowedTypeSwitch applies CR 702.114e's type switch to a DERIVED type
-// list: a bestowed card attached to a creature is an Aura, not a creature --
-// the printed "Enchantment Creature" pair loses its Creature half and gains
-// Aura -- and an unattached bestowed card (or anything not bestowed) keeps
-// the list unchanged, returning the SAME slice so the common game stays
-// byte-identical and allocation-free. Derived live state
-// (state.Object.BestowedAttached), never a stored marker, so every replay
-// derives the switch identically. Creature SUBTYPES deliberately stay: the
-// subtype words are inert on an Aura in every filter this engine evaluates
-// (no Aura filter reads "Archon"), and stripping them would widen the diff
-// into every subtype-affected static.
+// bestowedTypeSwitch applies CR 702.114c/e's type switch to a DERIVED type
+// list: a bestowed card is an Aura, not a creature -- while attached to a
+// creature (CR 702.114e, state.Object.BestowedAttached) AND while it is a
+// bestowed spell on the stack (CR 702.114c, state.Object.BestowedAuraSpell).
+// In both cases the printed "Enchantment Creature" pair loses its Creature
+// half and gains Aura -- and an object that is neither keeps the list
+// unchanged, returning the SAME slice so the common game stays byte-identical
+// and allocation-free. Derived live state, never a stored marker, so every
+// replay derives the switch identically. Creature SUBTYPES deliberately stay:
+// the subtype words are inert on an Aura in every filter this engine
+// evaluates (no Aura filter reads "Archon"), and stripping them would widen
+// the diff into every subtype-affected static.
 func bestowedTypeSwitch(o *state.Object, types []string) []string {
-	if !o.BestowedAttached() {
+	if !o.BestowedAttached() && !o.BestowedAuraSpell() {
 		return types
 	}
 	out := make([]string, 0, len(types)+1)
