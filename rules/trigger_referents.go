@@ -409,43 +409,72 @@ func (e *Engine) abilityCastStackObject(perm state.ObjID) state.ObjID {
 // the same permanent cannot inherit one another's bindings. A prospective cast
 // or an ordinary static has no entry and therefore no trigger context.
 //
-// The Resolve hook closes over the in-flight cast/activation proposal: a
-// ValidTgts$ numeric bound naming "X" (Chthonian Nightmare's
-// Creature.YouCtrl+cmcEQX) is evaluated at the announced {X} value once the
-// cast-flow X ask has fixed it (CR 107.3i). Without it the bound could never
-// resolve -- targetSpecContext had no resolver at all -- and an X-targeted
-// ability offered no candidates at either the offer gate or the 601.2c ask.
-// No resolver (or an in-flight cast that is not this source) still answers
-// (0, false), which is numericPred's "recognised shape, unresolvable RHS
-// never matches" — so every non-X name and every no-cast caller behaves
-// exactly as before.
+// Resolve reads numeric bounds from the source face's SVar table. In
+// particular, SVar:X follows the same two-shape contract as resolving
+// effects: Count$xPaid reads the announced/captured X, while another body is
+// evaluated as a fixed count with the trigger's captured Remembered, LKI and
+// TriggerContext. Missing non-X names and unresolvable bodies fail closed;
+// no authored SVar:X retains the ordinary paid/stack X binding.
 func (e *Engine) targetSpecContext(source, stack state.ObjID, you state.PlayerID) effects.SpecContext {
-	sc := effects.SpecContext{You: you, Source: source, TriggerContext: e.triggerContexts[stack],
+	tcx := e.triggerContexts[stack]
+	var remembered []state.Target
+	if o := e.G.Obj(stack); o != nil {
+		remembered = append(remembered, o.Remembered...)
+	}
+	var lki *state.Object
+	var lkiPower, lkiToughness int32
+	var lkiPTValid bool
+	if snapshot, ok := e.triggerLKI[stack]; ok && snapshot.object != nil {
+		lki = snapshot.object
+		lkiPower, lkiToughness, lkiPTValid = snapshot.power, snapshot.toughness, snapshot.ptValid
+	}
+	var svars map[string]string
+	if o := e.G.Obj(source); o != nil && o.Face() != nil {
+		svars = o.Face().SVars
+	}
+	var stackObj *state.Object
+	if o := e.G.Obj(stack); o != nil {
+		stackObj = o
+	}
+	x := int32(0)
+	if stackObj != nil {
+		x = stackObj.X
+		if stackObj.Ability != nil && x == 0 {
+			x = e.triggerPaidX(stack, stackObj)
+		}
+	}
+	ctx := &effects.Ctx{Source: source, Controller: you, TriggerContext: tcx,
+		Remembered: remembered, SVars: svars, LKI: lki, LKIPower: lkiPower,
+		LKIToughness: lkiToughness, LKIPTValid: lkiPTValid, X: x}
+	ctx.Host = e
+	sc := effects.SpecContext{You: you, Source: source, TriggerContext: tcx,
+		Remembered: remembered,
 		Resolve: func(name string) (int32, bool) {
-			if !strings.EqualFold(name, "X") {
+			body, hasBody := svars[name]
+			if strings.EqualFold(name, "X") {
+				// Forge's two-shape SVar:X contract: Count$xPaid means the
+				// causing cast's announced X; every other body is a fixed count
+				// evaluated against the trigger's captured referents. Without an
+				// authored SVar:X, retain the paid/stack X binding.
+				if hasBody && strings.EqualFold(strings.TrimSpace(body), "Count$xPaid") {
+					return x, true
+				}
+				if hasBody {
+					return effects.EvalCountOK(e, ctx, body)
+				}
+				if e.cast != nil && (e.cast.card == source || e.cast.stackObj == source) {
+					return e.cast.x, true
+				}
+				return x, true
+			}
+			if !hasBody || strings.TrimSpace(body) == "" {
 				return 0, false
 			}
-			// In flight: the cast/activation proposal's announced value.
-			if e.cast != nil && (e.cast.card == source || e.cast.stackObj == source) {
-				return e.cast.x, true
-			}
-			// Resolving: the stack object's own recorded {X} (CastInfo's Amount,
-			// CR 107.3m binds X when announced -- an ability resolving after the
-			// cast flow closed still carries it on the stack object).
-			if o := e.G.Obj(stack); o != nil {
-				return o.X, true
-			}
-			return 0, false
+			return effects.EvalCountOK(e, ctx, body)
 		}}
-	// The stack object's Remembered (the trigger-captured set for a
-	// triggered ability) feeds the IsRemembered predicate at offer/placement
-	// time, exactly as the resolution's own Ctx feeds it later -- Forge's
-	// IsRemembered is a property of the host card's remembered list either
-	// way. A cast proposal (stack == the card) and an ability proposal
-	// (stack == 0) carry no remembered set, so this changes nothing for them.
-	if o := e.G.Obj(stack); o != nil {
-		sc.Remembered = append(sc.Remembered, o.Remembered...)
-	}
+	// The stack object's Remembered and fire-time LKI are bound above, beside
+	// TriggerContext, so placement-time numeric SVars read the same captured
+	// referents the resolving Ctx receives later.
 	// withNames binds the layer-3 rename table and the layer-4 derived-type
 	// table (layer4types.go) so the target OFFER sees a granted/removed type,
 	// exactly as the layer walk's own Affected$ match does; without it a
