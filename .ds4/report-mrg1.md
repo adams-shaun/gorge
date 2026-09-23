@@ -1699,3 +1699,33 @@ because neither side knew about the other's row deletions; the measured 40 is
 authoritative. Note (already recorded by the ticket): `legal.go`'s
 `offerCastable` remains pool-only, so a replicate option can be withheld when
 only convoke would fund it — outside this conflict, unchanged here.
+
+### Addendum — second main integration (`90044c3f`)
+
+After the `fead1e59` merge completed as `f46e1167`, `main` had advanced once
+more to `90044c3f` (the `799ac002` filter combat-history predicates, merged
+by agent-20260919T203859Z-269892c3). Merged it cleanly with
+`git merge main --no-edit` (no conflicts):
+
+```
+ effects/filter.go                   |  31 ++++++++-
+ effects/zone.go                     |   4 +-
+ rules/combat_history_filter_test.go | 121 ++++++++++++++++++++++++++++++++++++
+ 3 files changed, 152 insertions(+), 4 deletions(-)
+```
+
+This merge commit is `ca4d847f`. `main` (`90044c3f`) is now an ancestor of the
+branch, and the tree is clean.
+
+Final checks on `ca4d847f`:
+
+- `go test ./internal/testutil -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort'` →
+  `ok github.com/adams-shaun/gorge/internal/testutil 0.001s`
+- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'` →
+  `ok github.com/adams-shaun/gorge/rules 0.741s`
+- `go test ./rules -run 'DamageCost|DamageKeyword|LKI|Infect'` →
+  `ok github.com/adams-shaun/gorge/rules 0.629s`
+- `git grep -l '^<<<<<<<\|^>>>>>>>' HEAD` → no matches; `git status` clean.
+
+The approximation table is unchanged by the second merge, so
+`knownApproximationRows = 40` stands.
