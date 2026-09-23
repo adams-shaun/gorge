@@ -317,7 +317,10 @@ const (
 // clears IsCopy, and rules/altcast.go's entry hook would otherwise read the
 // inherited bit and hand a never-cast token the obligation.
 //
-// FlagMayFlashSac and FlagMayhem are in the set. FlagMayhem's reader is
+// FlagMayFlashSac, FlagMayhem and FlagMayPlay are in the set. FlagMayPlay's
+// reader is the CastSa Spell.MayPlaySource provenance predicate: a copied
+// spell was not cast through a may-play permission.
+// FlagMayhem's reader is
 // Sandman's Quicksand's Card.CastSa Spell.Mayhem condition -- "if this
 // spell's mayhem cost was PAID" is a statement about the cast, so a copy
 // (never cast) must not inherit it.
@@ -329,7 +332,7 @@ const (
 // comparable cases (the copied-kicker precedent), so changing them is a
 // separate ruling with its own corpus measurement. Add a bit here only when
 // its reader's condition is the cast itself.
-const CastProvenanceFlags = FlagMayFlashSac | FlagMayhem
+const CastProvenanceFlags = FlagMayFlashSac | FlagMayhem | FlagMayPlay
 
 // ExilesLeavingStack reports whether a cast carrying these flags is a
 // keyword cast whose card is exiled as it leaves the stack, whichever way it
@@ -516,13 +519,15 @@ type Object struct {
 	// Combat-only.
 	IsAttacking bool
 	Attacking   PlayerID
-	// AttackingBattle is the CR 310.7 battle this creature is attacking, or 0
-	// when it attacks a player. Attacking still names the battle's PROTECTOR
-	// (the player who blocks and whose seat the attack is scoped to), so the
-	// two fields together carry the whole defender: a player defender leaves
-	// AttackingBattle zero, a battle defender sets it to the battle's ObjID.
-	// Set by events.Apply's DeclareAttackers case from the event's Obj (the
-	// battle id for a battle attack) and cleared wherever IsAttacking is.
+	// AttackingBattle is the non-player permanent this creature is attacking,
+	// or 0 when it attacks a player: a CR 310.7 battle (its ObjID) or a
+	// planeswalker (CR 508.1). Attacking still names the defender's seat -- the
+	// battle's PROTECTOR or the planeswalker's controller (the player who blocks
+	// and whose seat the attack is scoped to) -- so the two fields together
+	// carry the whole defender: a player defender leaves AttackingBattle zero, a
+	// battle or planeswalker defender sets it to that permanent's ObjID. Set by
+	// events.Apply's DeclareAttackers case from the event's Obj and cleared
+	// wherever IsAttacking is.
 	AttackingBattle ObjID
 	BlockedBy       []ObjID
 	// EncoreAttackTurn/Defender record "attacks that opponent this turn if

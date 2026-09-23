@@ -19,13 +19,16 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	// The merged AGENTS.md measures 29 data rows (measured with
-	// approximationRows() against the merged AGENTS.md). Base 2341274c
-	// carried 30; the changes are disjoint: main swapped the (staticgoad1)
-	// row for (ap1) (its CR 613.6/static-goad closure plus the AddPhase
-	// approximation), and this branch deleted the (mtsp1) row
-	// (82d3ba68 ability-activation mana-spent riders).
-	knownApproximationRows = 28
+	// The merged AGENTS.md measures 26 data rows (measured with
+	// approximationRows() against the merged AGENTS.md). This branch deleted
+	// the (mtsp1) row
+	// (82d3ba68 ability-activation mana-spent riders), cli-20260923T060000Z-layers-pt7kw
+	// deleted (kw:Flanking) (the layer-7 P/T walk binds the finished layer-6
+	// keyword list), cli-20260923T060000Z-battle-defeated deleted (battle1)
+	// (the CR 310.7 defender, combat-damage defense-counter removal, CR 310.11
+	// defeated exile-and-cast and real protector policy), and this ticket
+	// deleted (castfilter1/2) (TriggeredCard$CastTotalManaSpent ref-head).
+	knownApproximationRows = 26
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.

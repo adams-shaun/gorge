@@ -98,6 +98,25 @@ func (e *Engine) connivesMatches(t cards.Trigger, source state.ObjID, ev events.
 	return e.eventCardAndPlayerMatch(t, source, ev.Obj, ev.Player)
 }
 
+// searchedLibraryMatches handles the four corpus SearchedLibrary carriers.
+// applyLibrarySearch emits one marker per completed searched library, separate
+// from individual card moves, so both empty and successful searches fire once.
+func (e *Engine) searchedLibraryMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
+	if ev.Kind != events.SearchedLibrary {
+		return false
+	}
+	ctrl := e.controllerOf(source)
+	if v := t.Params["ValidCard"]; v != "" && ev.Obj != 0 &&
+		!e.matchesSpec(v, ev.Obj, e.specCtx(source, ctrl)) {
+		return false
+	}
+	if v := t.Params["ValidPlayer"]; v != "" &&
+		!effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+		return false
+	}
+	return true
+}
+
 // investigatedMatches implements the "whenever you investigate" trigger
 // family (Forge Mode$ Investigated, task investtrig1 -- Erdwal Illuminator,
 // Val, Marooned Surveyor; 2 files / 2 raw lines at the corpus pin). The
@@ -615,6 +634,58 @@ func causeSpecQualifiersKnown(alt string) bool {
 	return true
 }
 
+// causeCostAdmits evaluates a CantSacrifice static's ValidCause$ spec on the
+// COST path (task cantsac1) against the pending activation's cause. It is
+// causeSpecAdmits' cost-side sibling and shares its fail-closed discipline,
+// but not its input: a cost payment has no resolving stack object to
+// classify (pushCast pays an ability's costs before its AbilityPush, and a
+// mana ability never reaches the stack at all), so the cause comes from
+// sacrificeBlockedForCost's caller, which knows what the payer is
+// casting/activating.
+//
+// A cost site's cause is the ability the payment is made to (the cantsac1
+// r2 semantics table on costCause): a spell cast (Spell), an ability
+// activation (Activated), a ward or upkeep trigger's demand (Triggered) or
+// an unless resolution election (Resolution). Those four -- None stays
+// inadmissible, a no-cause payment names nothing -- are the readable
+// grammar; every corpus ForCost$ True carrier is a bare `Spell,Activated`
+// (angel_of_jubilation, yasharn_implacable_earth) and therefore scopes to
+// the cast/activation sites only, never to a ward, unless or upkeep
+// payment. A qualified base (Spell.Instant, Spell.OppCtrl) or any other
+// base (SpellAbility, Ability) names a cause this path cannot exactly
+// evaluate, so it fails closed -- the permissive direction for a
+// restriction, and no corpus line is affected.
+func causeCostAdmits(spec string, cause costCause) bool {
+	if cause == costCauseNone || cause == costCauseResolution {
+		return false
+	}
+	for _, alt := range strings.Split(spec, ",") {
+		alt = strings.TrimSpace(alt)
+		if alt == "" {
+			continue
+		}
+		base, rest, _ := strings.Cut(alt, ".")
+		if rest != "" {
+			continue // a qualified cost cause is not modelled (fail closed)
+		}
+		switch base {
+		case "Spell":
+			if cause == costCauseSpell {
+				return true
+			}
+		case "Activated":
+			if cause == costCauseActivated {
+				return true
+			}
+		case "Triggered":
+			if cause == costCauseTriggered {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // exploitedMatches implements Mode$ Exploited (CR 702.58c: "Whenever a
 // creature exploits a creature, ..." -- 24 corpus lines / 24 files at the
 // pin). The causing event is the events.Exploit marker the K:Exploit
@@ -665,6 +736,7 @@ func init() {
 	registerTrigMatcher((*Engine).exploresMatches, "Explores")
 	registerTrigMatcher((*Engine).connivesMatches, "Connives")
 	registerTrigMatcher((*Engine).investigatedMatches, "Investigated")
+	registerTrigMatcher((*Engine).searchedLibraryMatches, "SearchedLibrary")
 	registerTrigMatcher((*Engine).discoverMatches, "Discover")
 	registerTrigMatcher((*Engine).seekAllMatches, "SeekAll")
 	registerTrigMatcher((*Engine).surveilMatches, "Surveil")
