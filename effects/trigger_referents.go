@@ -397,7 +397,12 @@ func (c *Ctx) SpecContext(you state.PlayerID) SpecContext {
 		// The layer-3 rename table rules published at Resolve entry, so a
 		// resolving effect's name filter agrees with the layer walk. A field
 		// copy of immutable data: no callable, no back-pointer.
-		EffectiveNames: c.EffectiveNames}
+		EffectiveNames: c.EffectiveNames,
+		// The layer-4 derived type table rules published alongside it, so a
+		// resolving effect's ordinary type filter (target offer, Count$Valid,
+		// CantTarget) agrees with the layer walk. Also a field copy of
+		// immutable data.
+		DerivedTypes: c.EffectiveTypes}
 	// Numeric-RHS resolution for a resolution-time filter spec, in priority
 	// order:
 	//
@@ -447,7 +452,8 @@ func (c *Ctx) SpecContext(you state.PlayerID) SpecContext {
 // MatchesSpecFrom inside an effect body -- the bare form carries no renames
 // and reads the printed face.
 func (c *Ctx) MatchSpec(g *state.Game, spec string, id state.ObjID, you state.PlayerID) bool {
-	return MatchesSpecCtx(g, spec, id, SpecContext{You: you, Source: c.Source, EffectiveNames: c.EffectiveNames})
+	return MatchesSpecCtx(g, spec, id, SpecContext{You: you, Source: c.Source,
+		EffectiveNames: c.EffectiveNames, DerivedTypes: c.EffectiveTypes})
 }
 
 // resolveNumericRHS is the numeric-RHS resolver the gate in (*Ctx).SpecContext

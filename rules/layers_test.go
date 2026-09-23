@@ -33,6 +33,14 @@ func onBoard(t testing.TB, e *Engine, p state.PlayerID, src string) state.ObjID 
 	// build during genesis, exposing the stale-window this bump closes).
 	e.staticEpoch = -1
 	e.activeEpoch = -1
+	// The placement is eventless, so the layer-4 derived-type table
+	// (layer4types.go) must not stay a stale cache hit for the ordinary filter
+	// grammar either: refresh it now, exactly as an emitted board change
+	// would. Cheap and gated, so the common test board pays one branch.
+	e.typesEpoch = -1
+	if e.layer4InPool {
+		e.refreshDerivedTypes()
+	}
 	return o.ID
 }
 

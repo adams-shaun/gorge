@@ -408,5 +408,10 @@ func (e *Engine) targetSpecContext(source, stack state.ObjID, you state.PlayerID
 	if o := e.G.Obj(stack); o != nil {
 		sc.Remembered = append(sc.Remembered, o.Remembered...)
 	}
+	// withNames binds the layer-3 rename table and the layer-4 derived-type
+	// table (layer4types.go) so the target OFFER sees a granted/removed type,
+	// exactly as the layer walk's own Affected$ match does; without it a
+	// Goblin-killer would not offer a creature a static made a Goblin (the
+	// AGENTS.md row this closes).
 	return e.withNames(sc)
 }
