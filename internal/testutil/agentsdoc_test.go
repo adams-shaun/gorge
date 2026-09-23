@@ -24,8 +24,10 @@ const (
 	// the battle protector row via f76f59fd, and the earlier pc1/each1/CR
 	// 616.1 closures), plus this branch's own mulligan-redraw deferral
 	// (fix 7c4182ff), which deletes the "mulligan declaration's REDRAW
-	// resolves immediately" row.
-	knownApproximationRows = 43
+	// resolves immediately" row; and the maxpower1 row (task
+	// cli-20260922T225142Z-0ab0cb60), which deletes the TargetMax$-unaware
+	// offset bound and the cross-mode Charm ask's unread cap.
+	knownApproximationRows = 42
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.
