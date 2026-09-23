@@ -64,14 +64,33 @@ func resolveSVarAcrossFaces(src *state.Object, name string) *cards.SA {
 
 func Apply(g *state.Game, e Event) {
 	switch e.Kind {
-	case GameStart, DecisionAsk, DecisionMade, Note, Resolve, ModeChosen, ManaActivate:
-		// Markers. Resolve is deliberately inert: the resolving object leaves
-		// the stack through its own MoveZone event, and popping here as well
-		// would drop a second object. ModeChosen is a marker too: rules carries
+	case GameStart, DecisionAsk, DecisionMade, Note, ModeChosen, ManaActivate:
+		// Markers. ModeChosen is a marker too: rules carries
 		// its answer in a cast/trigger cache or suspended-resolution context, so
 		// Apply writes nothing; the log lets replay re-derive the same branch.
 		// ManaActivate is the ActivationLimit$ scan marker (see the Kind's own
 		// comment): the mana itself lands through the nearby ManaAdd events.
+
+	case Resolve:
+		// The resolving object leaves the stack through its own MoveZone event,
+		// so popping here would drop a second object; what the case DOES fold
+		// is the per-ability resolution tally Forge's Count$ResolvedThisTurn
+		// reads. e.Obj is the ability stack-object wrapper, whose Source (the
+		// permanent) and Ability (the root Ability$ body, re-derived from the
+		// TriggerPush/AbilityPush event) together identify "this ability". A
+		// SPELL resolution carries no Ability and no tally target: every corpus
+		// carrier of the head is a triggered or activated ability. Incremented
+		// here, from the existing Resolve event, so a log-only replay rebuilds
+		// the identical tally with no new Kind or field; TurnChange zeroes it.
+		// The increment happens BEFORE the rules side builds the resolving Ctx,
+		// so the count the card reads already includes its own resolution --
+		// Forge's "if this is the FOURTH time" counts the current one.
+		if o := g.Obj(e.Obj); o != nil && o.Ability != nil {
+			if g.ResolvedThisTurn == nil {
+				g.ResolvedThisTurn = make(map[string]int32)
+			}
+			g.ResolvedThisTurn[ResolvedAbilityKey(o.Source, o.Ability)]++
+		}
 
 	case Mutate:
 		// CR 702.140d: a mutate-spell resolution merges the mutating card's
@@ -1114,6 +1133,12 @@ func Apply(g *state.Game, e Event) {
 			// per-turn combat-phase count resets with them.
 			g.ExtraPhases = nil
 			g.CombatsThisTurn = 0
+			// The per-ability resolution tally is a per-turn fact (CR 608.2m
+			// counts resolutions in the turn), so it is dropped at the turn
+			// boundary exactly as CombatsThisTurn is. Clearing (rather than
+			// zeroing entries) keeps the map empty for the overwhelmingly
+			// common game that never resolves a Count$ResolvedThisTurn carrier.
+			g.ResolvedThisTurn = nil
 			// Snapshot the monarch designation as the NEW turn begins, for the
 			// trig:BecomeMonarch BeginTurn$ intervening-if ("if you were the
 			// monarch as the turn began"). Folding it here, from state

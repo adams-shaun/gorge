@@ -747,6 +747,16 @@ type Ctx struct {
 	Controller state.PlayerID
 	// NameChoice carries a mid-resolution NameCard answer across re-entry.
 	NameChoice string
+	// ResolvedThisTurn is how many times the resolving ability has resolved
+	// this turn, INCLUDING the current resolution. The effects layer cannot
+	// import rules, so the tally arrives here as bound data: rules reads it
+	// from state.Game.ResolvedThisTurn (keyed by source + ability body) at
+	// every ability resolution and re-binds it across a mid-resolution ask.
+	// It backs Count$ResolvedThisTurn (Sephiroth's fourth-resolution
+	// transform, Prowl's second, Victor's first/second/third). Zero on a
+	// spell, on a synthetic push, and in any test Ctx that never binds it --
+	// a modelled head reading a legitimate zero.
+	ResolvedThisTurn int32
 	// EffectiveNames is the layer-3 rename table (SetName$, CR 613.1d) in force
 	// on the battlefield, published by the resolving Host at the top of every
 	// effects.Resolve walk and bound onto every SpecContext (*Ctx).SpecContext
