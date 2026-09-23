@@ -1971,41 +1971,39 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 // map iteration here would make the event bytes (and therefore replay heads)
 // nondeterministic.
 func delayedTriggerBody(sa *cards.SA) string {
-	// Explicit Params reads let the parameter census attribute every clause;
-	// the ordered slice keeps the registration event deterministic.
-	clauses := []struct{ key, value string }{
-		{"ValidCard", sa.Params["ValidCard"]},
-		{"ValidCards", sa.Params["ValidCards"]},
-		{"Origin", sa.Params["Origin"]},
-		{"Destination", sa.Params["Destination"]},
-		{"ExcludedOrigins", sa.Params["ExcludedOrigins"]},
-		{"ValidSource", sa.Params["ValidSource"]},
-		{"ValidTarget", sa.Params["ValidTarget"]},
-		{"CombatDamage", sa.Params["CombatDamage"]},
-		{"ValidAttackers", sa.Params["ValidAttackers"]},
-		{"ValidAttackersAmount", sa.Params["ValidAttackersAmount"]},
-		{"AttackingPlayer", sa.Params["AttackingPlayer"]},
-		{"AttackedTarget", sa.Params["AttackedTarget"]},
-		{"ValidPlayer", sa.Params["ValidPlayer"]},
-		{"ValidOriginalController", sa.Params["ValidOriginalController"]},
-		{"ValidActivatingPlayer", sa.Params["ValidActivatingPlayer"]},
-		{"PlayerTurn", sa.Params["PlayerTurn"]},
-		{"ValidSA", sa.Params["ValidSA"]},
-		{"TriggerZones", sa.Params["TriggerZones"]},
-		{"ActiveZones", sa.Params["ActiveZones"]},
-		{"ThisTurn", sa.Params["ThisTurn"]},
-		{"Static", sa.Params["Static"]},
-		{"IsPresent", sa.Params["IsPresent"]},
-		{"PresentDefined", sa.Params["PresentDefined"]},
-		{"PresentCompare", sa.Params["PresentCompare"]},
-		{"PresentZone", sa.Params["PresentZone"]},
-	}
+	// Literal keys at both the read and append sites keep the parameter census
+	// attributable; call order fixes the registration's replay-visible bytes.
 	parts := []string{"Mode$ " + strings.TrimSpace(sa.Params["Mode"])}
-	for _, clause := range clauses {
-		if v := strings.TrimSpace(clause.value); v != "" {
-			parts = append(parts, clause.key+"$ "+v)
+	add := func(prefix, value string) {
+		if v := strings.TrimSpace(value); v != "" {
+			parts = append(parts, prefix+v)
 		}
 	}
+	add("ValidCard$ ", sa.Params["ValidCard"])
+	add("ValidCards$ ", sa.Params["ValidCards"])
+	add("Origin$ ", sa.Params["Origin"])
+	add("Destination$ ", sa.Params["Destination"])
+	add("ExcludedOrigins$ ", sa.Params["ExcludedOrigins"])
+	add("ValidSource$ ", sa.Params["ValidSource"])
+	add("ValidTarget$ ", sa.Params["ValidTarget"])
+	add("CombatDamage$ ", sa.Params["CombatDamage"])
+	add("ValidAttackers$ ", sa.Params["ValidAttackers"])
+	add("ValidAttackersAmount$ ", sa.Params["ValidAttackersAmount"])
+	add("AttackingPlayer$ ", sa.Params["AttackingPlayer"])
+	add("AttackedTarget$ ", sa.Params["AttackedTarget"])
+	add("ValidPlayer$ ", sa.Params["ValidPlayer"])
+	add("ValidOriginalController$ ", sa.Params["ValidOriginalController"])
+	add("ValidActivatingPlayer$ ", sa.Params["ValidActivatingPlayer"])
+	add("PlayerTurn$ ", sa.Params["PlayerTurn"])
+	add("ValidSA$ ", sa.Params["ValidSA"])
+	add("TriggerZones$ ", sa.Params["TriggerZones"])
+	add("ActiveZones$ ", sa.Params["ActiveZones"])
+	add("ThisTurn$ ", sa.Params["ThisTurn"])
+	add("Static$ ", sa.Params["Static"])
+	add("IsPresent$ ", sa.Params["IsPresent"])
+	add("PresentDefined$ ", sa.Params["PresentDefined"])
+	add("PresentCompare$ ", sa.Params["PresentCompare"])
+	add("PresentZone$ ", sa.Params["PresentZone"])
 	return strings.Join(parts, " | ")
 }
 
