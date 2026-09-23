@@ -451,6 +451,10 @@ type Engine struct {
 	// Engine-only scratch, rebuilt by replay, cloned with the engine, removed
 	// with the stack object.
 	copyAnswerTargets map[state.ObjID][][]decision.Option
+	// charmTargets maps a modal stack object to the selected distinct modes'
+	// target groups, in target-bearing mode order. It is engine scratch like
+	// fuseTargets: the cast/placement target answer rebuilds it during replay.
+	charmTargets map[state.ObjID][][]state.Target
 	// fusedResolving is the target slice of the fused half whose resolution is
 	// CURRENTLY running (rules/split.go's runFusedHalves), set around the
 	// whole of that half's effects.Resolve -- the half's root SA and every
@@ -1985,6 +1989,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		delete(e.fuseTargets, ev.Obj)
 		delete(e.copyTargetStage, ev.Obj)
 		delete(e.copyAnswerTargets, ev.Obj)
+		delete(e.charmTargets, ev.Obj)
 		delete(e.sourceLifelinkLKI, ev.Obj)
 		delete(e.sourceControllerLKI, ev.Obj)
 		delete(e.damageSourceLKI, ev.Obj)

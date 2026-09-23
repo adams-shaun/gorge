@@ -340,7 +340,16 @@ func (e *Engine) Clone() *Engine {
 				cp[i] = append([]decision.Option(nil), sl...)
 			}
 			c.copyAnswerTargets[id] = cp
-
+		}
+	}
+	if e.charmTargets != nil {
+		c.charmTargets = make(map[state.ObjID][][]state.Target, len(e.charmTargets))
+		for id, groups := range e.charmTargets {
+			cp := make([][]state.Target, len(groups))
+			for i, group := range groups {
+				cp[i] = append([]state.Target(nil), group...)
+			}
+			c.charmTargets[id] = cp
 		}
 	}
 	if e.exploitedLKI != nil {
@@ -649,6 +658,12 @@ func (e *Engine) Clone() *Engine {
 		pc.taps = append([]state.ObjID(nil), e.cast.taps...)
 		pc.blights = append([]state.ObjID(nil), e.cast.blights...)
 		pc.preModes = append([]string(nil), e.cast.preModes...)
+		if e.cast.charmTargets != nil {
+			pc.charmTargets = make([][]state.Target, len(e.cast.charmTargets))
+			for i, group := range e.cast.charmTargets {
+				pc.charmTargets[i] = append([]state.Target(nil), group...)
+			}
+		}
 		pc.preSuppress = cloneSuppressed(e.cast.preSuppress)
 		pc.preAborts = cloneAbortCounts(e.cast.preAborts)
 		if e.cast.mayPlayRemembered != nil {
@@ -764,6 +779,12 @@ func clonePendingTriggers(src []pendingTrigger) []pendingTrigger {
 	out := make([]pendingTrigger, len(src))
 	for i, pt := range src {
 		pt.Ctx.Targets = append([]state.Target(nil), pt.Ctx.Targets...)
+		if pt.Ctx.ModeTargets != nil {
+			pt.Ctx.ModeTargets = make([][]state.Target, len(pt.Ctx.ModeTargets))
+			for i, group := range pt.Ctx.ModeTargets {
+				pt.Ctx.ModeTargets[i] = append([]state.Target(nil), group...)
+			}
+		}
 		pt.Ctx.Remembered = append([]state.Target(nil), pt.Ctx.Remembered...)
 		if pt.Ctx.TargetControllerLKI != nil {
 			m := make(map[state.ObjID]state.PlayerID, len(pt.Ctx.TargetControllerLKI))

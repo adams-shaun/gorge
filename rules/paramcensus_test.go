@@ -185,6 +185,11 @@ var baseBuckets = map[string]bucket{
 	// modal one. The same cards.SA parameter map, so the same bucket as
 	// o.Ability.
 	"offeredSA": bSA,
+	// root is the modal spell's root SpellAbility -- cast.go's
+	// f.SpellAbility() local and askCharmModeTargets' `root *cards.SA`
+	// parameter -- whose Choices$ the distinct-mode Charm target ask reads.
+	// A *cards.SA parameter map exactly like every other bSA entry.
+	"root": bSA,
 	// hsa is rules/split.go's fusedHalfTargets' per-half root spell ability
 	// (the loop local for halves[i].SpellAbility(), read for the half's
 	// ValidTgts$ spec and targetZones): a *cards.SA parameter map exactly
