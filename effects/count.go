@@ -934,6 +934,18 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 			if f != nil {
 				n += f.Cmc()
 			}
+		case prop == "CardNumColors":
+			// The referenced object's colour count (task rv2b-countheads):
+			// Mana Drain's drain (Lurking Spinecrawler's
+			// TriggeredCard$CardNumColors, Moonveil Regent's and Mana
+			// Cannons' Targeted$CardNumColors), read off the object the ref
+			// names rather than the resolving source the plain
+			// Count$CardNumColors head reads. h.ObjectColors is the SAME read
+			// that head uses -- live layer-5 colours on a battlefield
+			// permanent, the printed face's colours elsewhere (and on the lki
+			// snapshot above, whose Face points at the unchanged card) -- so
+			// the two spellings cannot disagree about one object.
+			n += int32(len(h.ObjectColors(o)))
 		case strings.HasPrefix(prop, "CardCounters."):
 			// ALL is the sum over every kind (the same wildcard the plain
 			// Count$CardCounters.ALL head reads -- Kinsbaile Borderguard's
@@ -1058,6 +1070,17 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 // Count sums over the referenced players the same way evalRefProperty sums
 // over referenced objects.
 //
+// A ref this arm does not special-case (TriggeredTarget, TriggeredPlayer,
+// TriggeredDefendingPlayer, ...) is resolved through effects/context.go's
+// shared definedSpec -- the SAME resolver the body's own Defined$ spelling
+// goes through -- so the ref list is not a hand-maintained duplicate that
+// can miss the next sibling. The LifeTotal head is wired for those refs
+// (task rv2b-countheads: Quietus Spike's and Ebonblade Reaper's
+// TriggeredTarget$LifeTotal/HalfUp); every OTHER property on such a ref
+// still fails closed, so this arm's wider ref set cannot silently widen the
+// player count semantics. An unknown ref or an unmodelled property returns
+// false and the caller degrades to zero.
+//
 // Properties (the heads the 81-file corpus population is dominated by and
 // that are exactly definable today): LifeTotal (the player's current
 // life), CardsInHand/CardsInLibrary/CardsInGraveyard (zone sizes),
@@ -1072,7 +1095,8 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 // LifeLostThisTurn) and Counters.Poison. The /Op suffix applies through
 // applyCountOp like every other head. A property this build does not
 // model (StartingLife, DomainPlayer, CardsDrawn, ...) or a ref
-// outside the two names plus the vote-carrier ref
+// outside the two names, the Defined$-resolved names above, the
+// vote-carrier ref
 // TriggeredPlayersOpponentVotedDiff (trig:Vote) and the DamageAll batch
 // ref TriggeredPlayersTargets (trig:DamageAll; both refs' only property
 // is Amount) returns false, and the caller degrades to zero
@@ -1084,6 +1108,8 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 	if !found || h == nil {
 		return 0, false
 	}
+	prop, op, hasOp := strings.Cut(prop, "/")
+	prop = strings.TrimSpace(prop)
 	var ts []state.Target
 	switch ref {
 	case "TargetedPlayer", "ThisTargetedPlayer":
@@ -1103,7 +1129,31 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 			ts = append(ts, state.Target{Player: p, IsPlayer: true})
 		}
 	default:
-		return 0, false
+		// A ref this arm does not special-case, but the ENGINE's shared
+		// Defined$ resolver already names (TriggeredTarget, TriggeredPlayer,
+		// TriggeredDefendingPlayer, TriggeredCardController, ...): resolve it
+		// through definedSpec -- the SAME resolver the body's own Defined$
+		// spelling goes through -- and keep its player entries, so the ref
+		// list is not a hand-maintained duplicate that can miss the next
+		// sibling. This ticket (rv2b-countheads) wires the LifeTotal head for
+		// those refs (Quietus Spike's / Ebonblade Reaper's
+		// TriggeredTarget$LifeTotal/HalfUp). The property is confined to the
+		// one head the ticket names so the change cannot widen the family's
+		// other player count semantics (CardsInHand, Valid, Counters.Poison,
+		// ...) for refs that used to fail closed; an unknown ref or property
+		// still fails closed to (0, false).
+		if prop != "LifeTotal" {
+			return 0, false
+		}
+		pts, ok := definedSpec(h, c, ref)
+		if !ok {
+			return 0, false
+		}
+		for _, t := range pts {
+			if t.IsPlayer {
+				ts = append(ts, t)
+			}
+		}
 	case "TriggeredPlayersTargets":
 		// The batch's matching TARGET PLAYERS (trig:DamageAll): Malcolm
 		// Keen-Eyed Navigator's and Hordewing Skaab's SVar:X reads the count
@@ -1118,8 +1168,6 @@ func evalPlayerRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 			}
 		}
 	}
-	prop, op, hasOp := strings.Cut(prop, "/")
-	prop = strings.TrimSpace(prop)
 	// TriggeredPlayersOpponentVotedDiff is the canonical vote-finished
 	// carrier's diff set (trig:Vote); its ONLY documented property is Amount
 	// (Erestor's SVar:X, the scry size). Confine the head to it here, so the

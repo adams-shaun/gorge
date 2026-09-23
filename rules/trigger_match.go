@@ -654,12 +654,31 @@ func (e *Engine) forEachObject(fn func(id state.ObjID)) {
 	}
 }
 
+// effectMatchControllerFor reports the recurring-Effect matching overlay's
+// virtual controller for id. The overlay is a read-only matcher scope that
+// makes a registering Effect's trigger read the player the Effect belongs to
+// -- its registration owner -- rather than the controller of the creating
+// card (see checkEventDelayedTriggers). It is true only for the source id the
+// overlay was armed for; every other id takes the ordinary state.Object read.
+//
+// This is the ONE home for that check: every source-controller read must go
+// through it (via controllerOf, or directly where an LKI look-back would
+// otherwise clobber the overlay), so the next consumer cannot re-derive it
+// wrong.
+func (e *Engine) effectMatchControllerFor(id state.ObjID) (state.PlayerID, bool) {
+	if e.effectMatchOverride && id == e.effectMatchSource {
+		return e.effectMatchController, true
+	}
+	return 0, false
+}
+
 // controllerOf is a nil-safe Object.Controller read: a nonexistent ObjID
 // (stale data, a malformed trigger source) degrades to seat 0 rather than
-// panicking.
+// panicking. A recurring-Effect registration's source resolves the Effect's
+// owner instead of the creating card's controller.
 func (e *Engine) controllerOf(id state.ObjID) state.PlayerID {
-	if e.effectMatchOverride && id == e.effectMatchSource {
-		return e.effectMatchController
+	if c, ok := e.effectMatchControllerFor(id); ok {
+		return c
 	}
 	if o := e.G.Obj(id); o != nil {
 		return o.Controller

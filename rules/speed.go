@@ -269,6 +269,57 @@ func (e *Engine) beginGrantedActivation(p state.PlayerID, opt decision.Option) {
 }
 
 // abSVarName returns the SVar table key whose raw body is exactly the line
+
+// beginKeywordGrantedActivation activates a keyword-GRANTED ability (CR
+// 613.1f): the layer-6 AddKeyword$ Cycling/TypeCycling option
+// (rules/legal.go's keyword-cycling offer) anchors the DERIVED keyword line
+// ("Cycling:1 U", "TypeCycling:Sliver:3") rather than a face index or SVar
+// name -- a granted keyword lives in no face's SVar table. The body is
+// synthesized from the line (cards.GrantedCyclingAbility, the same synthesis
+// the offer gate priced), the pendingCast carries the line as its
+// grantKeyword anchor, and payCast's ability branch mints through
+// events.KeywordAbilityPush, whose Counter carries the same line -- so the
+// resolution, the replay and the cycling-provenance tag
+// (rules/cast.go cyclingKeyword over pcAbility) all re-derive the identical
+// body. A stale option (a line no synthesizer can model) degrades to a
+// no-op. The grant itself is NOT re-checked here: the synthesized body is a
+// pure function of the line the option was offered with, the same way an
+// SVar-granted body survives a grantor's exit through grantedSAFrom's
+// fallback, and the CR 601.2e recheck still gates the payment.
+func (e *Engine) beginKeywordGrantedActivation(p state.PlayerID, opt decision.Option) {
+	o := e.G.Obj(opt.Obj)
+	if o == nil || o.Face() == nil {
+		return
+	}
+	ab := cards.GrantedCyclingAbility(opt.Keyword)
+	if ab == nil {
+		return
+	}
+	cost, ok := e.fixLifeXCost(p, opt.Obj, e.parseCost(ab.Params["Cost"]))
+	if !ok {
+		return
+	}
+	// The granted twin of the printed loop's own ReduceCost$ fold: targets do
+	// not exist yet (CR 601.2c runs later), so a target-dependent body reads
+	// 0 here and repriceForTargets re-runs the evaluation. merged 0: the
+	// synthesized body carries no target-dependent SVar of its own -- the
+	// fold is structurally zero for every cycling body and kept only so the
+	// offer gate and this charge share one composition.
+	own := e.ownReduceCost(p, opt.Obj, ab, nil, nil, 0)
+	if own > 0 {
+		if cost.Generic >= own {
+			cost.Generic -= own
+		} else {
+			cost.Generic = 0
+		}
+	}
+	mods := e.costModifiers(p, opt.Obj, abilityScope(ab))
+	e.cast = &pendingCast{player: p, card: opt.Obj, from: o.Zone, ability: -1,
+		grantKeyword: opt.Keyword, cost: cost, mods: mods, ownReduce: own}
+	e.continueCast()
+}
+
+// abSVarName returns the SVar table key whose raw body is exactly the line
 // ab was parsed from, in first-match order over the face's SVar table. The
 // table is a Go map, so this walk sorts the keys first (determinism rule: no
 // map range may reach an option list) -- and the corpus is the guarantee

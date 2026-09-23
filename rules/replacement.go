@@ -2948,10 +2948,43 @@ type attachedChoice struct {
 	move   events.Event
 	source state.ObjID
 	stage  int
+	// body is the replacement body's API (NameCard, ChooseCard, ChooseColor),
+	// so the resume in rules/turn.go dispatches on the primitive that posed
+	// the ask rather than on the card. NameCard carries two stages (name then
+	// the paired creature type); ChooseCard and ChooseColor are single-stage.
+	body string
 }
 
-// applyAttachedReplacement handles the ChooseName replacement on Psychic Paper.
-// It parks the Attach before events.Apply and records both answers on the source.
+// attachedBodyPoses reports whether an Attached replacement body is one this
+// engine can honestly pose. It is the ONE eligibility home: applyAttachedReplacement
+// selects only poseable bodies, and a body whose parameter shape cannot be
+// honored is not selected, so it keeps today's untouched-Attach fallback
+// rather than silently choosing an unrelated object or colour.
+func attachedBodyPoses(sa *cards.SA) bool {
+	if sa == nil {
+		return false
+	}
+	switch sa.API {
+	case "NameCard":
+		return true
+	case "ChooseCard":
+		// The only corpus Attached ChooseCard is Pick-Axe's exiled-craft-card
+		// pick; its pool must be the source's own exile association. Any other
+		// DefinedCards$ role is a different pool this path does not read.
+		return strings.EqualFold(strings.TrimSpace(sa.Params["DefinedCards"]), "ExiledWith")
+	case "ChooseColor":
+		return true
+	default:
+		return false
+	}
+}
+
+// applyAttachedReplacement handles the Attached replacement bodies that pose
+// an election before the Attach applies: Psychic Paper's ChooseName
+// (NameCard), Pick-Axe's exiled-craft-card ChooseCard, and Sanctuary Blade's
+// ChooseColor. It parks the Attach before events.Apply and records the
+// answers on the source; the resume in rules/turn.go releases the parked
+// Attach exactly once through emitAttachedMove.
 func (e *Engine) applyAttachedReplacement(ev events.Event) bool {
 	if e.attachedChoice != nil || e.pending != nil || len(ev.IDs) == 0 {
 		return false
@@ -2968,15 +3001,12 @@ func (e *Engine) applyAttachedReplacement(ev events.Event) bool {
 		}
 		for i := range f.Repls {
 			r := &f.Repls[i]
-			// The name-election primitive is Forge's NameCard (Psychic Paper's
-			// `ReplaceWith$ ChooseName` resolves to an SVar whose body IS
-			// `DB$ NameCard`, so the body's API is NameCard, never the SVar
-			// name). Keying on the API is the structural read: it is the
-			// primitive that poses a name ask, and the parked continuation
-			// below then asks the paired creature type before releasing the
-			// Attach. Every other Attached body (ChooseCard, ChooseColor) keeps
-			// today's untouched-Attach behaviour.
-			if r.Event == "Attached" && r.With != nil && r.With.API == "NameCard" && e.replacementMatches(*r, id, ev) {
+			// Key on the replacement body's own API: `ReplaceWith$ ChooseName`
+			// resolves to an SVar whose body IS `DB$ NameCard` (never the SVar
+			// name), and the siblings are `DB$ ChooseCard` / `DB$ ChooseColor`.
+			// The API is the primitive that poses the ask, so a future card
+			// reusing one of these bodies is covered by the same dispatch.
+			if r.Event == "Attached" && attachedBodyPoses(r.With) && e.replacementMatches(*r, id, ev) {
 				source, repl = id, r
 				return
 			}
@@ -2989,23 +3019,167 @@ func (e *Engine) applyAttachedReplacement(ev events.Event) bool {
 	if o == nil {
 		return false
 	}
-	ch := &attachedChoice{move: ev, source: source}
+	ch := &attachedChoice{move: ev, source: source, body: repl.With.API}
 	e.attachedChoice = ch
+	switch repl.With.API {
+	case "ChooseCard":
+		return e.askAttachedCard(o, repl)
+	case "ChooseColor":
+		return e.askAttachedColor(o, repl)
+	default: // NameCard
+		return e.askAttachedName(o, repl)
+	}
+}
+
+// askAttachedName poses the NameCard body's first stage (the name). It is the
+// extracted Psychic Paper path, unchanged in behaviour.
+func (e *Engine) askAttachedName(o *state.Object, repl *cards.Repl) bool {
+	ch := e.attachedChoice
+	if ch == nil {
+		return false
+	}
 	// ValidDescription$ rides along exactly as it does at the cast-time ETB
 	// site (rules/cast.go): it is Forge prompt text, read by
 	// effects.NameChoices only as a safety fallback when ValidCards$ is absent.
-	opts := e.etbOptions(o.Controller, source, "name", repl.With.Params["ValidCards"], repl.With.Params["ValidDescription"], "", "")
+	opts := e.etbOptions(o.Controller, ch.source, "name", repl.With.Params["ValidCards"], repl.With.Params["ValidDescription"], "", "")
 	if len(opts) <= 1 {
 		if len(opts) == 1 {
-			e.emit(events.Event{Kind: events.Choose, Obj: source, Counter: "name", Text: opts[0].Label})
+			e.emit(events.Event{Kind: events.Choose, Obj: ch.source, Counter: "name", Text: opts[0].Label})
 		}
 		return e.askAttachedType()
 	}
 	d := &decision.Decision{Player: o.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
-		Source: source, Prompt: "Choose a creature card name", Options: opts}
+		Source: ch.source, Prompt: "Choose a creature card name", Options: opts}
 	e.choosing = chooseAttached
 	e.ask(d)
 	return true
+}
+
+// askAttachedCard poses the ChooseCard body's card ask over the pool its
+// DefinedCards$ role names -- Pick-Axe's `DefinedCards$ ExiledWith`, the
+// source's own ChangeZone exile association -- further restricted to the
+// ChoiceZone$ set. The answer is recorded by the resume as the event-backed
+// Choose "chosen" fold on the source (state.Object.Chosen), which is what
+// `Defined$ ChosenCard` reads. A pool with no eligible card records nothing
+// and releases the Attach (a mandatory choice that finds nothing legal is the
+// fail-to-find shape, never a silent pick); a single eligible card is forced
+// and recorded without an ask (the effChooseType strict-superset convention
+// the sibling stages already use).
+func (e *Engine) askAttachedCard(o *state.Object, repl *cards.Repl) bool {
+	ch := e.attachedChoice
+	if ch == nil {
+		return false
+	}
+	opts := e.attachedCardOptions(ch.source, repl)
+	if len(opts) == 1 {
+		e.emit(events.Event{Kind: events.Choose, Obj: ch.source, Counter: "chosen", IDs: []state.ObjID{opts[0].Obj}})
+		e.releaseAttachedChoice()
+		return true
+	}
+	if len(opts) == 0 {
+		e.releaseAttachedChoice()
+		return true
+	}
+	d := &decision.Decision{Player: o.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+		Source: ch.source, Prompt: "Choose an exiled card", Options: opts}
+	e.choosing = chooseAttached
+	e.ask(d)
+	return true
+}
+
+// attachedCardOptions builds the card options a ChooseCard Attached body
+// offers: the source's ExiledWith association, filtered to the ChoiceZone$
+// zones. The pool is read from the event-backed ExiledCards list, never from
+// the shared exile zone, so a card this source did not exile is not offered.
+func (e *Engine) attachedCardOptions(source state.ObjID, repl *cards.Repl) []decision.Option {
+	src := e.G.Obj(source)
+	if src == nil || !strings.EqualFold(strings.TrimSpace(repl.With.Params["DefinedCards"]), "ExiledWith") {
+		return nil
+	}
+	zones := attachedChoiceZones(repl.With.Params["ChoiceZone"])
+	out := make([]decision.Option, 0, len(src.ExiledCards))
+	for _, id := range src.ExiledCards {
+		co := e.G.Obj(id)
+		if co == nil || co.Face() == nil {
+			continue
+		}
+		if zones != nil && !zones[co.Zone] {
+			continue
+		}
+		out = append(out, decision.Option{Index: len(out), Kind: "card", Obj: id, Label: e.Name(id)})
+	}
+	return out
+}
+
+// attachedChoiceZones parses a ChooseCard body's ChoiceZone$ restriction into
+// the zone set it names; a nil result means unrestricted. Unknown zone tokens
+// contribute nothing (fail closed), never a widened pool.
+func attachedChoiceZones(raw string) map[state.Zone]bool {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil
+	}
+	out := map[state.Zone]bool{}
+	for _, z := range strings.Split(raw, ",") {
+		switch strings.TrimSpace(z) {
+		case "Battlefield":
+			out[state.ZBattlefield] = true
+		case "Hand":
+			out[state.ZHand] = true
+		case "Library":
+			out[state.ZLibrary] = true
+		case "Graveyard":
+			out[state.ZGraveyard] = true
+		case "Exile":
+			out[state.ZExile] = true
+		case "Stack":
+			out[state.ZStack] = true
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+// askAttachedColor poses the ChooseColor body's colour ask (Sanctuary Blade's
+// `Defined$ You`). The option list is the same WUBRG list the cast-time
+// as-enters colour ask offers, so the two can never disagree about what a
+// colour choice ranges over. The chooser is the source's controller (the
+// corpus body's `Defined$ You`); the answer is recorded by the resume as the
+// event-backed Choose "color" fold on the source (state.Object.ChosenColor).
+func (e *Engine) askAttachedColor(o *state.Object, repl *cards.Repl) bool {
+	ch := e.attachedChoice
+	if ch == nil {
+		return false
+	}
+	opts := e.etbOptions(o.Controller, ch.source, "color", "", "", "", "")
+	if len(opts) <= 1 {
+		if len(opts) == 1 {
+			e.emit(events.Event{Kind: events.Choose, Obj: ch.source, Counter: "color", Text: etbColourLetter(opts[0].Label)})
+		}
+		e.releaseAttachedChoice()
+		return true
+	}
+	d := &decision.Decision{Player: o.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
+		Source: ch.source, Prompt: "Choose a color", Options: opts}
+	e.choosing = chooseAttached
+	e.ask(d)
+	return true
+}
+
+// releaseAttachedChoice drops the parked Attach continuation and re-emits the
+// stored Attach through emitAttachedMove. It is the ONE release site shared
+// by the no-ask siblings of every body's poser.
+func (e *Engine) releaseAttachedChoice() {
+	ch := e.attachedChoice
+	if ch == nil {
+		return
+	}
+	move := ch.move
+	e.attachedChoice = nil
+	e.choosing = chooseNone
+	e.emitAttachedMove(move)
 }
 
 func (e *Engine) askAttachedType() bool {
