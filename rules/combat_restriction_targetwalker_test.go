@@ -15,16 +15,22 @@ func TestCantAttackTargetPlaneswalkerController(t *testing.T) {
 	if !ok {
 		t.Fatal("corpus missing Vow of Lightning")
 	}
-	var target string
+	var target, walkerTarget string
 	for _, line := range vow.Faces[0].Statics {
 		if line.Mode != "CantAttack" {
 			continue
 		}
 		target = line.Params["Target"]
+		for _, part := range strings.Split(target, ",") {
+			if strings.HasPrefix(strings.TrimSpace(part), "Planeswalker.") {
+				walkerTarget = strings.TrimSpace(part)
+				break
+			}
+		}
 		break
 	}
-	if !strings.Contains(target, "Planeswalker.YouCtrl") {
-		t.Fatalf("precondition: Vow of Lightning Target$ = %q, want its corpus planeswalker clause", target)
+	if walkerTarget != "Planeswalker.YouCtrl" {
+		t.Fatalf("precondition: Vow of Lightning Target$ = %q, want its corpus Planeswalker.YouCtrl clause", target)
 	}
 	walker := card(t, "Name:Target Walker\nTypes:Planeswalker\nPT:0\nOracle:x\n")
 	bear := card(t, staticBearFixture)
@@ -40,10 +46,10 @@ func TestCantAttackTargetPlaneswalkerController(t *testing.T) {
 	if e.G.Obj(bearID).Controller == walkerObj.Controller {
 		t.Fatal("precondition: attacker and planeswalker controller must differ")
 	}
-	if !restrictionPlayerTargetMatches(e.G, "Planeswalker.YouCtrl", walkerObj.Controller, 0, nil) {
+	if !restrictionPlayerTargetMatches(e.G, walkerTarget, walkerObj.Controller, 0, nil) {
 		t.Fatal("Planeswalker.YouCtrl did not match the controller's battlefield planeswalker")
 	}
-	if restrictionPlayerTargetMatches(e.G, "Planeswalker.YouCtrl", 1, 0, nil) {
+	if restrictionPlayerTargetMatches(e.G, walkerTarget, 1, 0, nil) {
 		t.Fatal("Planeswalker.YouCtrl matched a defender who does not control the walker's target")
 	}
 }
