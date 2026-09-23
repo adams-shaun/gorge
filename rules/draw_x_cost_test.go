@@ -3,6 +3,7 @@ package rules
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/cards"
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
@@ -20,12 +21,12 @@ import (
 //
 // These tests pin the three legs the ticket names:
 //
-//   - the parse (no Unknown, no generic mana, one Dyn part) -- also the
-//     param-census row {"Draw<X/You>", nil} in paramcensus_test.go;
 //   - the fold (a resolvable SVar:X resolves to its count) and the
 //     fail-closed withhold (an absent/unresolvable body is not offered);
 //   - the end-to-end real-corpus trigger window on Titan of Littjara, the
-//     ticket's canonical carrier.
+//     ticket's canonical carrier, with the shared creature type actually
+//     configured (the entry ChooseType answered) and the positive exact
+//     draw count asserted.
 //
 // Champion of Wits (SVar:X:Count$CardPower) is the fold's positive control:
 // its body resolves to the permanent's own power. Titan of Littjara
@@ -35,6 +36,66 @@ import (
 
 // drawCostPart is the parsed shape every Draw<X/...> carrier produces.
 func drawCostPart() CostPart { return CostPart{Dyn: "X", Spec: "You"} }
+
+// cleanMoveByName is searchMoveByName without the pending-ask wipe: it emits
+// the zone move and returns whatever non-priority decision the entry posed
+// instead of destroying it. The distinction is load-bearing for any fixture
+// whose entry poses a real mid-resolution ask (Titan of Littjara's ChooseCT):
+// Engine.Ask parks the asking effect's resume frame on e.resume, and wiping
+// only e.pending leaves that frame armed with nothing pending — the next
+// answered KChoose is then hijacked by the stale frame (handleChoose's
+// mid-resolution arm runs before the e.choosing switch), which is exactly the
+// duplicate-pay-ask shape round 1 measured and this round's finding named.
+func cleanMoveByName(t *testing.T, e *Engine, name string, to state.Zone) (state.ObjID, *decision.Decision) {
+	t.Helper()
+	for _, z := range []state.Zone{state.ZHand, state.ZLibrary} {
+		for _, id := range e.G.Zone(z, 0) {
+			o := e.G.Obj(id)
+			if o != nil && o.Face() != nil && o.Face().Name == name {
+				if z != to {
+					e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: z, To: to})
+				}
+				return id, e.Pending()
+			}
+		}
+	}
+	t.Fatalf("corpus fixture %q absent from hand/library", name)
+	return 0, nil
+}
+
+// titanBearFixture builds the shared-type board the card's own text assumes:
+// a Grizzly Bears on the battlefield, then Titan of Littjara entering, whose
+// as-enters ChooseType ask is answered "Bear" — so Titan IS a Bear (its own
+// `AddType$ ChosenType` static) and the one other Bear shares the type.
+// Returns the engine and Titan's object id.
+func titanBearFixture(t *testing.T, reg *cards.Registry) (*Engine, state.ObjID) {
+	t.Helper()
+	e, _ := searchEngine(t, reg, "Titan of Littjara")
+	bears, _ := cleanMoveByName(t, e, "Grizzly Bears", state.ZBattlefield)
+	if bears == 0 {
+		t.Fatal("no Grizzly Bears fixture")
+	}
+	titan, d := cleanMoveByName(t, e, "Titan of Littjara", state.ZBattlefield)
+	if d == nil || d.Kind != decision.KChoose || d.ResumeKind != "choosetype" {
+		t.Fatalf("Titan's entry posed no ChooseType ask: %+v", d)
+	}
+	idx := -1
+	for _, op := range d.Options {
+		if op.Kind == "type" && op.Label == "Bear" {
+			idx = op.Index
+		}
+	}
+	if idx < 0 {
+		t.Fatalf("the ChooseType ask offered no Bear option: %+v", d.Options)
+	}
+	if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
+		t.Fatalf("submit ChooseType Bear: %v", err)
+	}
+	if got := e.G.Obj(titan).ChosenType; got != "Bear" {
+		t.Fatalf("Titan's chosen type = %q, want Bear (the shared-type precondition)", got)
+	}
+	return e, titan
+}
 
 // TestDrawXCostSVarFoldsAndDraws pins the fold: a Draw<X/You> part on a face
 // whose SVar:X resolves yields exactly that count, and the trigger window
@@ -102,27 +163,24 @@ func TestDrawXUnresolvableWithheld(t *testing.T) {
 }
 
 // TestTitanOfLittjaraDrawXCost drives the ticket's canonical carrier end to
-// end through the real trigger window: Titan's ETB trigger executes
-// SVar:TrigDraw (AB$ Discard | Cost$ Draw<X/You>), so the window must pose the
-// pay/decline election, paying must run the discard body, and declining must
-// do neither.
+// end through the real trigger window, with the shared creature type
+// CONFIGURED: Titan enters over a Grizzly Bears, its as-enters ChooseType is
+// answered "Bear", so `SVar:X:Count$Valid
+// Creature.YouCtrl+Other+sharesCreatureTypeWith` folds to exactly 1 (the one
+// other Bear). Paying must draw exactly that one card and then run the
+// `Mode$ TgtChoose` discard; declining must do neither; and the window must
+// pose exactly ONE pay/decline election per trigger (the round-1 pin paid
+// every election it was shown, which masked the duplicate-window shape).
 func TestTitanOfLittjaraDrawXCost(t *testing.T) {
 	reg := searchTestRegistry(t)
-	e, _ := searchEngine(t, reg, "Titan of Littjara")
+	e, titan := titanBearFixture(t, reg)
 
-	// A second creature so the board is not degenerate; the chosen-type
-	// machinery is independent of this test's assertions.
-	searchMoveByName(t, e, "Grizzly Bears", state.ZBattlefield)
-	titan := searchMoveByName(t, e, "Titan of Littjara", state.ZBattlefield)
-
-	// Precondition: Titan is on the battlefield and its trigger names a real
-	// source with the X body this test is about.
-	o := e.G.Obj(titan)
-	if o == nil || o.Face() == nil || !onBattlefield(e, titan) {
-		t.Fatalf("Titan of Littjara is not a live battlefield source")
-	}
-	if body, ok := o.Face().SVars["X"]; !ok || body == "" {
-		t.Fatalf("Titan of Littjara has no SVar:X body; the Draw<X/You> cost cannot resolve")
+	// Precondition: the fold's own verdict on this board is EXACTLY the one
+	// other Bear — a zero here would mean the shared-type read is broken and
+	// every assertion below would pass vacuously.
+	n, ok := e.drawCostCount(titan, 0, drawCostPart())
+	if !ok || n != 1 {
+		t.Fatalf("drawCostCount(Titan) = %d, %v; want exactly 1 (the one other Bear sharing the chosen type)", n, ok)
 	}
 
 	// The ETB trigger must have pushed and posed the cost election. A
@@ -135,8 +193,7 @@ func TestTitanOfLittjaraDrawXCost(t *testing.T) {
 	if d.Source != titan {
 		t.Fatalf("the pay ask's source is %d, want Titan %d", d.Source, titan)
 	}
-	payIdx := -1
-	declineIdx := -1
+	payIdx, declineIdx := -1, -1
 	for _, op := range d.Options {
 		switch op.Kind {
 		case "trigger_cost_pay":
@@ -145,107 +202,73 @@ func TestTitanOfLittjaraDrawXCost(t *testing.T) {
 			declineIdx = op.Index
 		}
 	}
-	if payIdx < 0 {
-		t.Fatalf("Titan's Draw<X/You> cost was not offered as payable: %+v", d.Options)
-	}
-	if declineIdx < 0 {
-		t.Fatalf("Titan's cost ask has no decline option: %+v", d.Options)
+	if payIdx < 0 || declineIdx < 0 {
+		t.Fatalf("Titan's Draw<X/You> cost was not offered as a pay/decline election: %+v", d.Options)
 	}
 
-	// Paying: the window settles the draw (its resolved count may be 0 in this
-	// fixture, which is still a real payment) and then runs the Discard body,
-	// which poses its TgtChoose discard ask.
+	// Paying: the window settles exactly one election's draw and then runs
+	// the Discard body. The very next non-priority ask must be that body's
+	// discard — a second pay ask here is a duplicate cost window (round 1's
+	// finding), a priority ask means the body never ran.
 	mark := len(e.L.Events)
-	payDraws := 0
 	submitChoices(t, e, payIdx)
-	// Answer any residual pay asks (the window may re-pose for a second
-	// trigger instance before the body runs) and require the discard to
-	// arrive exactly once the payment has settled.
-	discardSeen := false
-	for i := 0; i < 8; i++ {
-		next := passUntilNonPriority(t, e, 40)
-		if next == nil {
-			break
-		}
-		if next.Kind == decision.KModes && next.ResumeKind == "discard" {
-			discardSeen = true
-			break
-		}
-		if next.Kind == decision.KChoose {
-			// keep paying
-			idx := -1
-			for _, op := range next.Options {
-				if op.Kind == "trigger_cost_pay" {
-					idx = op.Index
-				}
-			}
-			if idx < 0 {
-				break
-			}
-			submitChoices(t, e, idx)
-			continue
-		}
-		break
+	discard := passUntilNonPriority(t, e, 40)
+	if discard == nil || discard.ResumeKind != "discard" {
+		t.Fatalf("after paying, the next ask is %+v; want the discard body's ask (exactly one payment election per trigger)", discard)
 	}
+	draws := 0
 	for _, ev := range e.L.Events[mark:] {
 		if ev.Kind == events.Draw && ev.Player == 0 {
-			payDraws++
+			draws++
 		}
 	}
-	if !discardSeen {
-		t.Fatalf("paying Titan's Draw<X/You> cost did not run the Discard body")
-	}
-	// The draw count must equal the fold's own verdict, whatever the fixture's
-	// type state makes it -- the pay arm and the gate may not disagree.
-	folded, ok := e.drawCostCount(titan, 0, drawCostPart())
-	if !ok {
-		t.Fatalf("Titan's SVar:X stopped resolving after the payment")
-	}
-	if int32(payDraws) != folded {
-		t.Fatalf("paying Titan's Draw<X/You> drew %d cards, want the folded count %d", payDraws, folded)
+	if draws != 1 {
+		t.Fatalf("paying Titan's Draw<X/You> cost drew %d cards, want exactly the folded count 1", draws)
 	}
 
-	// Declining on a fresh Titan: no draw, no discard, and the trigger window
-	// still posed the election (proving the handler ran rather than the whole
-	// feature being unregistered).
-	reg2 := searchTestRegistry(t)
-	e2, _ := searchEngine(t, reg2, "Titan of Littjara")
-	searchMoveByName(t, e2, "Titan of Littjara", state.ZBattlefield)
-	d2 := passUntilNonPriority(t, e2, 40)
-	if d2 == nil || d2.Kind != decision.KChoose {
-		t.Fatalf("expected a pay ask on the decline fixture, got %+v", d2)
+	// The discard body then discards exactly one card.
+	mark2 := len(e.L.Events)
+	submitChoices(t, e, discard.Options[0].Index)
+	discards := 0
+	for _, ev := range e.L.Events[mark2:] {
+		if events.IsDiscard(ev) && ev.Player == 0 {
+			discards++
+		}
 	}
-	declineIdx2 := -1
-	for _, op := range d2.Options {
+	if discards != 1 {
+		t.Fatalf("the paid body's discard discarded %d cards, want 1", discards)
+	}
+}
+
+// TestTitanOfLittjaraDrawXDecline is the decline arm on the same configured
+// board: the election is still posed (the feature is registered, not
+// unimplemented), and declining leaves the body unrun — no draw, no discard,
+// no hand or library movement.
+func TestTitanOfLittjaraDrawXDecline(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, titan := titanBearFixture(t, reg)
+	if n, ok := e.drawCostCount(titan, 0, drawCostPart()); !ok || n != 1 {
+		t.Fatalf("drawCostCount(Titan) = %d, %v; want exactly 1", n, ok)
+	}
+
+	d := passUntilNonPriority(t, e, 40)
+	if d == nil || d.Kind != decision.KChoose {
+		t.Fatalf("expected Titan's trigger-cost pay ask, got %+v", d)
+	}
+	declineIdx := -1
+	for _, op := range d.Options {
 		if op.Kind == "trigger_cost_decline" {
-			declineIdx2 = op.Index
+			declineIdx = op.Index
 		}
 	}
-	if declineIdx2 < 0 {
-		t.Fatalf("no decline option on the decline fixture: %+v", d2.Options)
+	if declineIdx < 0 {
+		t.Fatalf("no decline option on the decline fixture: %+v", d.Options)
 	}
-	mark2 := len(e2.L.Events)
-	libBefore := len(e2.G.Zone(state.ZLibrary, 0))
-	gyBefore := len(e2.G.Zone(state.ZGraveyard, 0))
-	submitChoices(t, e2, declineIdx2)
-	// Drain any follow-up decline asks; a declined cost leaves no body.
-	for i := 0; i < 4; i++ {
-		next := passUntilNonPriority(t, e2, 40)
-		if next == nil || next.Kind != decision.KChoose {
-			break
-		}
-		idx := -1
-		for _, op := range next.Options {
-			if op.Kind == "trigger_cost_decline" {
-				idx = op.Index
-			}
-		}
-		if idx < 0 {
-			break
-		}
-		submitChoices(t, e2, idx)
-	}
-	for _, ev := range e2.L.Events[mark2:] {
+	mark := len(e.L.Events)
+	libBefore := len(e.G.Zone(state.ZLibrary, 0))
+	handBefore := len(e.G.Zone(state.ZHand, 0))
+	submitChoices(t, e, declineIdx)
+	for _, ev := range e.L.Events[mark:] {
 		if ev.Kind == events.Draw && ev.Player == 0 {
 			t.Fatalf("a declined Draw<X/You> cost drew a card")
 		}
@@ -253,10 +276,10 @@ func TestTitanOfLittjaraDrawXCost(t *testing.T) {
 			t.Fatalf("a declined Draw<X/You> cost still ran the Discard body")
 		}
 	}
-	if got := len(e2.G.Zone(state.ZLibrary, 0)); got != libBefore {
+	if got := len(e.G.Zone(state.ZLibrary, 0)); got != libBefore {
 		t.Fatalf("library = %d after a declined cost, want unchanged %d", got, libBefore)
 	}
-	if got := len(e2.G.Zone(state.ZGraveyard, 0)); got != gyBefore {
-		t.Fatalf("graveyard = %d after a declined cost, want unchanged %d", got, gyBefore)
+	if got := len(e.G.Zone(state.ZHand, 0)); got != handBefore {
+		t.Fatalf("hand = %d after a declined cost, want unchanged %d", got, handBefore)
 	}
 }
