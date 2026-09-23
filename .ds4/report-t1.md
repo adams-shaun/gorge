@@ -195,8 +195,7 @@ CR conformance) skipped per `gorge-context.md`.
 STATUS=DONE
 COMMITS=3a8dc7122025f479d3d84b26325741e0e07c9116
 TESTS=go test -run 'TestRevealAllValid' ./effects/ → ok; TestKnownApproximation* → ok; archtest → ok; botbench TestConstructedDefaultIsByteIdentical → ok; gofmt/gentypes clean
-# Report — task agent-20260918T230554Z-74976c7c (kw:Backup)
-
+# Report — task agent-20260919T183731Z-085022e9 (trig:Milled / trig:MilledAll)
 
 ## Status: DONE
 
@@ -205,8 +204,14 @@ from an ordinary library→graveyard move. `make report` no longer lists either
 primitive as missing; the real-corpus tests on The Wise Mothman (`MilledAll`)
 and Glowing One (`Milled`) pass.
 
-Rebase: `git status` was clean at start (no uncommitted work to preserve), and
-`git log -1` was already `5c84527e` (a merge of main). No rebase was needed.
+Rebase (round 2, controller directive 2026-09-23T03:20:03Z): the only
+uncommitted path was `.ds4/report-t1.md` (a docs slot); committed it, then
+`git rebase main` from `5c84527e` onto `8cac5583` (80 commits). The code
+commit `ae64998d` replayed with NO conflict; the only conflict was the rolling
+`.ds4/report-t1.md`, resolved by keeping both sides (main's DestroyAll/Reveal
+reports then this mill report) and `git add -f`-ing it. All mill tests, both
+behaviour goldens, `make report`, `gofmt` and `gentypes -check` were re-run
+AFTER the rebase and are pasted below.
 
 ## What changed (per file)
 
