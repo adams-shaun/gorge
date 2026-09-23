@@ -1407,6 +1407,15 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		e.recheckCastSubTargets(rp.obj, f.SpellAbility(), o.Controller, rp.obj)
 	}
 	ctx := &effects.Ctx{Source: rp.obj, Controller: o.Controller, NameChoice: rp.name, Targets: o.Targets,
+		// Forge's Count$ResolvedThisTurn: a chain that suspended at a
+		// mid-resolution ask and so re-enters HERE instead of through
+		// resolveTop must keep the tally its first pass read. The Resolve event
+		// was emitted once, so the tally is unchanged across the ask, but a
+		// fresh Ctx defaults the field to zero and a gate would then read the
+		// wrong ordinal (Sephiroth would transform a turn early on the
+		// resumed pass). resolvedAbilityTally is the same read resolveTop's
+		// ability branch makes, in one home.
+		ResolvedThisTurn: e.resolvedAbilityTally(o),
 		// alltargeted1: a re-entered walk keeps consuming the cast flow's
 		// pre-asked sub-ability target answers (kept until the stack object
 		// leaves, so both a later sub and a suspended body can use theirs).

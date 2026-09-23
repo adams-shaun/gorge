@@ -1356,6 +1356,16 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		// the same verdict every other argument-taking head gives a
 		// missing argument.
 		return countMostCardName(h, c, arg)
+	case "ResolvedThisTurn":
+		// Forge's Count$ResolvedThisTurn: how many times the resolving ability
+		// has resolved this turn, the current resolution included ("if this is
+		// the FOURTH time ... transform"). rules binds the per-ability tally
+		// onto Ctx; an unbound Ctx reads a legitimate zero, the same
+		// modelled-head zero every other count gives (NOT the unresolvable
+		// verdict), so the SVar gate fails closed at 0 rather than failing
+		// open and running its sub on the first resolution (the Sephiroth
+		// transform defect this head's absence caused).
+		return c.ResolvedThisTurn, true
 	case "CardNumColors":
 		if o := g.Obj(c.Source); o != nil {
 			return int32(len(h.ObjectColors(o))), true

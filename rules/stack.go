@@ -2969,6 +2969,31 @@ func offeredTargetSA(o *state.Object, svars map[string]string) *cards.SA {
 	return nil
 }
 
+// resolvedAbilityTally is the Count$ResolvedThisTurn read for a resolving
+// stack object: the per-ability tally events.Apply folded on this resolution's
+// Resolve event, keyed by (source permanent, root Ability$ body) content. It is
+// the ONE home resolveTop's ability branch and resumeResolution's Ctx rebuild
+// call, so a suspended-then-resumed chain cannot read a different ordinal than
+// its first pass. Returns 0 for a spell (no Ability) and for a source that has
+// already left, the modelled-head zero the effects case gives.
+func (e *Engine) resolvedAbilityTally(o *state.Object) int32 {
+	if o == nil {
+		return 0
+	}
+	return e.resolvedAbilityTallyFor(o.Source, o.Ability)
+}
+
+// resolvedAbilityTallyFor is resolvedAbilityTally's core, shared with
+// resolveAbility (which resolves an SA directly and so has no stack object to
+// hand it). A nil SA is a spell or a synthetic resolution with no ability
+// identity -- a zero.
+func (e *Engine) resolvedAbilityTallyFor(source state.ObjID, sa *cards.SA) int32 {
+	if sa == nil {
+		return 0
+	}
+	return e.G.ResolvedThisTurn[events.ResolvedAbilityKey(source, sa)]
+}
+
 func (e *Engine) resolveTop() {
 	id := e.G.Stack[len(e.G.Stack)-1]
 	o := e.G.Obj(id)
@@ -3262,6 +3287,11 @@ func (e *Engine) resolveTop() {
 		// o.Source; this was a one-line inconsistency, not a second design.
 		ctx := &effects.Ctx{Source: o.Source, Controller: o.Controller,
 			Targets: targets, ModeTargets: charmModeTargets, Remembered: o.Remembered, Captured: o.Remembered, TriggerContext: e.triggerContexts[id],
+			// Forge's Count$ResolvedThisTurn reads the per-ability tally the
+			// Resolve event's Apply folded: the count INCLUDES this resolution,
+			// because the Resolve event is emitted above before this Ctx is
+			// built (the Sephiroth "if this is the fourth time" gate).
+			ResolvedThisTurn: e.resolvedAbilityTally(o),
 			// An Effect-created delayed trigger body resolves under the Effect's
 			// source-scoped frame (queued by rules' delayed-trigger fire), so the
 			// one-shot self-exile idiom it may run ends the Effect. Zero for every
@@ -3798,6 +3828,12 @@ func zoneIn(z state.Zone, zones []state.Zone) bool {
 func (e *Engine) resolveAbility(source state.ObjID, controller state.PlayerID,
 	targets []state.Target, sa *cards.SA, svars map[string]string) {
 	ctx := &effects.Ctx{Source: source, Controller: controller, Targets: targets}
+	// Forge's Count$ResolvedThisTurn: the same (source, root Ability$ body)
+	// tally resolveTop's ability branch binds, so a DBTransform gated on the
+	// fourth resolution of the turn reads it here too. Zero for a synthetic
+	// direct resolution that never went through the stack (the map carries no
+	// entry for it), the modelled-head zero the effects case gives.
+	ctx.ResolvedThisTurn = e.resolvedAbilityTallyFor(source, sa)
 	// The caller supplies the chosen targets -- the announcement or placement
 	// ask's answer -- so the generic ValidTgts$ pre-ask must not re-pose it
 	// for an SA that declares targets (task mvts1).
