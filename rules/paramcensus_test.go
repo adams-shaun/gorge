@@ -2554,9 +2554,8 @@ var knownUnsupportedParams = map[string][]string{
 	// Klin, Ambitious Augmenter, Zack Fair). Heroic Sacrifice's own carrier
 	// path (its delayed trigger, Mode$ ChangesZone) stays unimplemented and
 	// the card's OTHER labels above are untouched.
-	"Heroic Sacrifice":           {"param:api:DelayedTrigger.Destination", "param:api:Effect.ValidTgtsDesc", "param:api:PutCounter.ValidTgtsDesc", "param:api:ReplaceEffect.VarType"},
-	"Iron Man, Armored Avenger":  {"param:api:PutCounter.ValidTgtsDesc"},
-	"Jocasta, Automaton Avenger": {"param:api:ChangeZone.Attacking"},
+	"Heroic Sacrifice":          {"param:api:DelayedTrigger.Destination", "param:api:Effect.ValidTgtsDesc", "param:api:PutCounter.ValidTgtsDesc", "param:api:ReplaceEffect.VarType"},
+	"Iron Man, Armored Avenger": {"param:api:PutCounter.ValidTgtsDesc"},
 	// (Love on the Battlefield's param:trig:AttackersDeclared.NoResolvingCheck
 	// row retired when the NoResolvingCheck$ read landed: the resolution-time
 	// CR 603.4 recheck skips a trigger carrying the param
