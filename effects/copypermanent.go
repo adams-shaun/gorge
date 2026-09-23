@@ -563,7 +563,27 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 	}
+	// A grant name that does not resolve is one loud Note per call -- the
+	// AddKeywords$ precedent -- never a silent drop.
+	var lostGrants []string
+	for _, raw := range []string{sa.Params["AddTriggers"], sa.Params["AddSVars"], sa.Params["AddAbilities"]} {
+		for _, name := range strings.Split(raw, ",") {
+			name = strings.TrimSpace(name)
+			if name == "" {
+				continue
+			}
+			if _, ok := sourceSVars[name]; !ok {
+				lostGrants = append(lostGrants, name)
+			}
+		}
+	}
+	if len(lostGrants) > 0 {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "CopyPermanent grant " + strings.Join(lostGrants, ", ") +
+				" does not resolve; the copy does not gain it"})
+	}
 
+	var minted []state.ObjID
 	for _, t := range targets {
 		if t.IsPlayer {
 			continue
@@ -616,6 +636,7 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 			}
 			h.Emit(events.Event{Kind: events.MoveZone, Obj: want,
 				From: state.ZLibrary, To: state.ZBattlefield})
+			minted = append(minted, want)
 			if attachTo != 0 {
 				// The shared Attach emission: it publishes Unattached first
 				// when the copy was already attached to a different bearer,
@@ -710,6 +731,22 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 				h.Emit(events.Event{Kind: events.DelayedRegister, Obj: want,
 					Player: owner, Step: state.StepEnd, Counter: "__kwEncoreSacrifice"})
 			}
+		}
+	}
+	// ImprintTokens$ True records the created tokens on the SOURCE, the same
+	// event-backed association api:Token writes (state.Object.ImprintTokens);
+	// the copy path previously skipped it entirely, so a DelTrig reading
+	// RememberObjects$ ImprintedLKI found nothing (Kharasha Foothills,
+	// Shredder, Shadow Master).
+	if strings.EqualFold(strings.TrimSpace(sa.Params["ImprintTokens"]), "True") && c.Source != 0 {
+		ids := make([]state.ObjID, 0, len(minted))
+		for _, id := range minted {
+			if g.Obj(id) != nil {
+				ids = append(ids, id)
+			}
+		}
+		if len(ids) > 0 {
+			h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: ids, Text: "imprint-tokens"})
 		}
 	}
 }
