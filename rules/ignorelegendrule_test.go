@@ -198,6 +198,98 @@ func TestIgnoreLegendRuleDoesNotExemptOtherPlayersCreatures(t *testing.T) {
 	}
 }
 
+// TestIgnoreLegendRuleHonorsConditionTrue: Brothers Yamazaki's exemption is
+// GATED -- `IsPresent$ Permanent.namedBrothers Yamazaki | PresentCompare$
+// EQ2`, "If there are exactly two permanents named Brothers Yamazaki on the
+// battlefield". With exactly two on the battlefield the gate holds and both
+// are exempt, so no duplicate set forms and no choice is posed. The fixture
+// asserts the gate actually evaluates true (not that the walk was empty).
+func TestIgnoreLegendRuleHonorsConditionTrue(t *testing.T) {
+	e := ignoreLegendEngine(t)
+	b1 := onBoardCard(t, e, 0, corpusCard(t, "Brothers Yamazaki"))
+	b2 := onBoardCard(t, e, 0, corpusCard(t, "Brothers Yamazaki"))
+	assertLegendTwinPair(t, e, 0, "Brothers Yamazaki", b1, b2)
+
+	statics := e.activeStatics("IgnoreLegendRule")
+	if len(statics) != 2 {
+		t.Fatalf("fixture: activeStatics(\"IgnoreLegendRule\") = %d entries, want 2 Brothers Yamazaki", len(statics))
+	}
+	// Precondition: the condition is genuinely live for this board -- the
+	// canonical walk has the static, its IsPresent$ parses, PresentCompare$ is
+	// EQ2 and the count is exactly 2. Without that, the "no choice" assertion
+	// below would pass for the wrong reason (a broken/absent gate reads false
+	// and the test then proves the opposite of its name).
+	if got := strings.TrimSpace(statics[0].Params["PresentCompare"]); got != "EQ2" {
+		t.Fatalf("fixture: Brothers Yamazaki PresentCompare$ = %q, want EQ2", got)
+	}
+	if !e.continuousGateHolds(statics[0]) {
+		t.Fatalf("fixture: the EQ2 gate does not hold with exactly two Brothers Yamazaki on the battlefield")
+	}
+	for _, id := range []state.ObjID{b1, b2} {
+		if !e.legendRuleExempt(statics, id) {
+			t.Fatalf("fixture: the live EQ2 exemption did not exempt permanent %d", id)
+		}
+	}
+
+	e.checkStateBased()
+	if d := e.Pending(); d != nil {
+		t.Fatalf("a decision %s is pending although exactly two Brothers Yamazaki meet the EQ2 gate", d.Kind)
+	}
+	if e.legendBatch != nil {
+		t.Fatalf("a legend batch is parked although the EQ2 exemption is live")
+	}
+	for _, id := range []state.ObjID{b1, b2} {
+		if o := e.G.Obj(id); o.Zone != state.ZBattlefield {
+			t.Fatalf("exempt permanent %d left the battlefield for %v", id, o.Zone)
+		}
+	}
+}
+
+// TestIgnoreLegendRuleHonorsConditionFalse is the finding's break case: with
+// THREE Brothers Yamazaki on the battlefield the `PresentCompare$ EQ2` gate is
+// FALSE, so the exemption does NOT apply and the ordinary CR 704.5j choice
+// must be posed. Before the condition gate was wired the static exempted
+// unconditionally, so no choice appeared and all three survived.
+func TestIgnoreLegendRuleHonorsConditionFalse(t *testing.T) {
+	e := ignoreLegendEngine(t)
+	b1 := onBoardCard(t, e, 0, corpusCard(t, "Brothers Yamazaki"))
+	b2 := onBoardCard(t, e, 0, corpusCard(t, "Brothers Yamazaki"))
+	b3 := onBoardCard(t, e, 0, corpusCard(t, "Brothers Yamazaki"))
+	for _, id := range []state.ObjID{b1, b2, b3} {
+		o := e.G.Obj(id)
+		if o == nil || o.Zone != state.ZBattlefield || !o.Face().IsLegendary() || o.Face().Name != "Brothers Yamazaki" {
+			t.Fatalf("fixture: permanent %d is not a legendary Brothers Yamazaki on the battlefield", id)
+		}
+	}
+	statics := e.activeStatics("IgnoreLegendRule")
+	if len(statics) != 3 {
+		t.Fatalf("fixture: activeStatics(\"IgnoreLegendRule\") = %d entries, want 3 Brothers Yamazaki", len(statics))
+	}
+	// Precondition: the EQ2 gate is genuinely FALSE for three copies -- a
+	// vacuous "three copies" (e.g. the gate silently missing) would make the
+	// choice assertion untested.
+	if e.continuousGateHolds(statics[0]) {
+		t.Fatalf("fixture: the EQ2 gate holds with three Brothers Yamazaki on the battlefield -- the false case is not exercised")
+	}
+	for _, id := range []state.ObjID{b1, b2, b3} {
+		if e.legendRuleExempt(statics, id) {
+			t.Fatalf("fixture: the false EQ2 gate still exempted permanent %d", id)
+		}
+	}
+
+	e.checkStateBased()
+	d := legendPending(t, e, 0, b1, b2, b3)
+	submitKeep(t, e, d, 0)
+	if o := e.G.Obj(b1); o.Zone != state.ZBattlefield {
+		t.Fatalf("the kept Yamazaki left the battlefield (zone %v)", o.Zone)
+	}
+	for _, id := range []state.ObjID{b2, b3} {
+		if o := e.G.Obj(id); o.Zone != state.ZGraveyard {
+			t.Fatalf("unexempted duplicate %d is in %v, want its owner's graveyard", id, o.Zone)
+		}
+	}
+}
+
 // TestIgnoreLegendRuleExemptionEndsWhenSourceLeaves: the exemption is live
 // only while its source is. Moving Council of Reeds off the battlefield
 // removes the static (asserted on the canonical walk) and the ordinary CR

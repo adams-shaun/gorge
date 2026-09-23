@@ -29,7 +29,10 @@ const (
 	// (cli-20260923T060000Z-trig-attackerblocked), and main's rv2b
 	// damage-source / valid-players / count-heads row
 	// (cli-20260923T060000Z-rv2b-countheads).
-	knownApproximationRows = 18
+	// agent-20260918T232250Z-29aed5d6 deleted the CR 704.5j legend-rule row:
+	// the controller choice landed in 74870371 and the IgnoreLegendRule
+	// exemption (incl. its IsPresent$/PresentCompare$ condition gate) here.
+	knownApproximationRows = 17
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.

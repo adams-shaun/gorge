@@ -387,20 +387,31 @@ func (e *Engine) legendGroups() []legendGroup {
 }
 
 // legendRuleExempt reports whether one of the given live IgnoreLegendRule
-// statics exempts the permanent from CR 704.5j. Each static's `ValidCard$` is
-// evaluated against the candidate with `staticSpecCtx`, so `YouCtrl` and the
-// rest of the player-relative grammar resolve against THAT static's source
-// and controller (Council of Reeds exempts the creatures its own controller
-// controls, not every creature on the board). An absent `ValidCard$` is
-// Forge's "all cards" spelling -- Mirror Gallery's unconditional "The legend
-// rule doesn't apply." -- so it exempts every candidate. statics is passed in
-// already collected (legendGroups calls activeStatics once) to keep the walk
-// to a single deterministic pass.
+// statics exempts the permanent from CR 704.5j. Each static's own "as long
+// as" gate runs first through the shared continuousGateHolds grammar -- the
+// same IsPresent$/IsPresent2$/PresentCompare$/CheckSVar$/Condition$ evaluator
+// every other static consumer uses -- so a conditional exemption is live only
+// while its condition holds. Brothers Yamazaki and Syr Joshua and Syr Saxon
+// both require EXACTLY two permanents named on the battlefield
+// (`IsPresent$ ... | PresentCompare$ EQ2`), so a third copy must NOT inherit
+// the exemption; without this gate the statics would exempt unconditionally.
+// Then each static's `ValidCard$` is evaluated against the candidate with
+// `staticSpecCtx`, so `YouCtrl` and the rest of the player-relative grammar
+// resolve against THAT static's source and controller (Council of Reeds
+// exempts the creatures its own controller controls, not every creature on
+// the board). An absent `ValidCard$` is Forge's "all cards" spelling --
+// Mirror Gallery's unconditional "The legend rule doesn't apply." -- so it
+// exempts every candidate. statics is passed in already collected
+// (legendGroups calls activeStatics once) to keep the walk to a single
+// deterministic pass.
 func (e *Engine) legendRuleExempt(statics []staticView, id state.ObjID) bool {
 	if len(statics) == 0 {
 		return false
 	}
 	for _, sv := range statics {
+		if !e.continuousGateHolds(sv) {
+			continue
+		}
 		spec := strings.TrimSpace(sv.Params["ValidCard"])
 		if spec == "" || e.matchesSpec(spec, id, e.staticSpecCtx(sv)) {
 			return true
