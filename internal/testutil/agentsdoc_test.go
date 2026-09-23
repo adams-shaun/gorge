@@ -19,19 +19,23 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	// The merged AGENTS.md measures 27 data rows (measured with
-	// approximationRows() against the merged AGENTS.md). Base 2341274c
-	// carried 30; the changes are disjoint: main swapped the (staticgoad1)
-	// row for (ap1) (its CR 613.6/static-goad closure plus the AddPhase
-	// approximation), this branch deleted the (mtsp1) row
-	// (82d3ba68 ability-activation mana-spent riders), this ticket
-	// deleted the (kw:Flanking) row (cli-20260923T060000Z-layers-pt7kw:
-	// the layer-7 P/T walk binds the finished layer-6 keyword list), and
-	// cli-20260923T060000Z-battle-defeated deleted the (battle1) row (the
-	// CR 310.7 defender, the combat-damage defense-counter removal, the
-	// CR 310.11 defeated exile-and-cast and the real protector policy all
-	// landed).
-	knownApproximationRows = 27
+	// The merged AGENTS.md measures 23 data rows (measured with
+	// approximationRows() against the merged AGENTS.md). Base e9ed29f0
+	// carried 29 and the six deletions are disjoint: this branch (the
+	// convoke fix) deleted (manaexpend1) (ManaExpend now counts convoke
+	// mana alongside pool mana), main's cli-20260923T060000Z-hlcz-imprint
+	// deleted the hidden-library ChangeZone row (the
+	// GainControl$/ExileFaceDown$/Imprint$ sub-shapes, closed by its two
+	// siblings and its own Imprint$ fix), main's cli-20260923T060000Z-ctms-refhead
+	// deleted (castfilter1/2) (TriggeredCard$CastTotalManaSpent reads the
+	// cast spend), main's cli-20260923T060000Z-layers-pt7kw deleted
+	// (kw:Flanking) (the layer-7 P/T walk binds the finished layer-6
+	// keyword list), main's CR 310.11 defeated-battle closure deleted
+	// (battle1) (the defeated battle is exiled and its owner may cast it
+	// transformed), and cli-20260923T060000Z-equip-altcost deleted the
+	// (eqcm1) row (its Targeted$ reduction, Worthy predicate and
+	// AlternateCost$ rider sub-shapes all landed).
+	knownApproximationRows = 23
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.

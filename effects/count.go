@@ -766,6 +766,47 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 	}
 }
 
+// castManaSpentTotals is one cast's recorded CR 601.2h / 106.12 spend
+// breakdown: the unfiltered total, the snow-unit part, and the per-producer
+// typed parts in state.TypedManaTags order. The plain Count$CastTotalManaSpent
+// head reads it live off the source Object; the TriggeredCard$CastTotalManaSpent
+// ref-head reads the fire-time snapshot a trigger context carries, so the two
+// forms can never disagree about what one argument selects.
+type castManaSpentTotals struct {
+	total, snow int32
+	typed       [3]int32
+}
+
+// manaSpentTotalsOf reads a cast object's recorded spend breakdown. The typed
+// parts come from Object.TypedManaSpentByTag so adding a tag to
+// state.TypedManaTags extends the head automatically.
+func manaSpentTotalsOf(o *state.Object) castManaSpentTotals {
+	t := castManaSpentTotals{total: o.ManaSpent, snow: o.ManaSnowSpent}
+	for i := range state.TypedManaTags {
+		t.typed[i] = o.TypedManaSpentByTag(i)
+	}
+	return t
+}
+
+// byTag selects the spend a Count$CastTotalManaSpent <Type> argument names:
+// the bare total for an empty arg, the snow part for "Snow", a modelled typed
+// tag for its word, and the fail-closed 0 for anything the pool cannot tag.
+func (t castManaSpentTotals) byTag(arg string) int32 {
+	switch arg {
+	case "":
+		return t.total
+	case "Snow":
+		return t.snow
+	default:
+		for i, tagWord := range state.TypedManaTags {
+			if arg == tagWord {
+				return t.typed[i]
+			}
+		}
+		return 0
+	}
+}
+
 // evalRefProperty resolves one "<Ref>$<Property>[...][/Op]" count body over
 // the objects a target reference names. Refs: Targeted/ParentTarget/
 // ThisTargetedCard name the resolving ability's chosen targets, AllTargeted
@@ -899,6 +940,32 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 				n += c.TriggerConverge
 			} else {
 				n += o.ConvergeColours
+			}
+		case prop == "CastTotalManaSpent" || strings.HasPrefix(prop, "CastTotalManaSpent "):
+			// CR 601.2h / 106.12's payment, the TRIGGER-relative spelling: the
+			// TOTAL mana actually spent to cast the spell the firing trigger is
+			// about (Muse Seeker's "unless five or more mana was spent to cast
+			// that spell", Aetherflux Conduit's energy gain), not the resolving
+			// ability's own cast the plain Count$CastTotalManaSpent head at
+			// evalCountBody reads off c.Source. The argument selects the same
+			// subset that head's <Type> filter does (the bare total, the snow
+			// part, or a modelled producer tag -- state.TypedManaTags), through
+			// the one shared castManaSpentTotals.byTag so the two forms cannot
+			// disagree. Same provenance discipline as Converge and TriggerPaidX:
+			// the spend was stamped on the cast spell by payCast BEFORE the
+			// deferred SpellCast trigger re-walk fired, so a replay derives the
+			// same number; when the read object IS the triggering card the
+			// fire-time snapshot wins over the live fields, because a spell that
+			// has left the stack (countered, or resolved onto the battlefield)
+			// before the trigger resolves has had its ManaSpent/ManaSnowSpent/
+			// typed captures zeroed by the stack->zone move while the mana was
+			// spent regardless (CR 601.2h: the payment is not undone). A copy
+			// of the spell was never cast and reads 0.
+			arg := strings.TrimSpace(strings.TrimPrefix(prop, "CastTotalManaSpent"))
+			if c.TriggerCard != 0 && t.Obj == c.TriggerCard {
+				n += castManaSpentTotals{total: c.TriggerManaSpent, snow: c.TriggerManaSnowSpent, typed: c.TriggerManaTyped}.byTag(arg)
+			} else {
+				n += manaSpentTotalsOf(o).byTag(arg)
 			}
 		default:
 			if diffKind != diffNone {
@@ -1348,10 +1415,11 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		// spell, and in the K:etbCounter ETB replacement the same object after
 		// the stack->battlefield move preserves it -- so a replay derives the
 		// same number; a copy of the spell was never cast and a cheated-in
-		// permanent reads 0. The ref-property readers of OTHER casts
-		// (TriggeredCard$CastTotalManaSpent, evalRefProperty) stay on the
-		// rv2b exotic-heads ledger -- they read a trigger context, not this
-		// field.
+		// permanent reads 0. The ref-property reader of OTHER casts
+		// (TriggeredCard$CastTotalManaSpent, evalRefProperty) reads the
+		// fire-time snapshot a trigger context carries, which payCast stamps
+		// through the same gate's reader-out arm (triggeredCastSpendReaderOut)
+		// when a battlefield permanent reads it.
 		//
 		// The FILTERED form `Count$CastTotalManaSpent <Type>` (tasks
 		// castfilter1/castfilter2) counts only the mana spent whose SOURCE was
@@ -1367,22 +1435,10 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 		// total the head used to return. Every resolved form is a real
 		// per-unit count, not an approximation.
 		if o := g.Obj(c.Source); o != nil {
-			switch arg {
-			case "":
-				return o.ManaSpent, true
-			case "Snow":
-				return o.ManaSnowSpent, true
-			default:
-				// The typed tags are the SAME table the producer-side tagging
-				// reads (state.TypedManaTags), so a modelled type counts and a
-				// type the pool cannot tag stays the fail-closed 0.
-				for i, tagWord := range state.TypedManaTags {
-					if arg == tagWord {
-						return o.TypedManaSpentByTag(i), true
-					}
-				}
-				return 0, true
-			}
+			// The typed tags are the SAME table the producer-side tagging
+			// reads (state.TypedManaTags), so a modelled type counts and a
+			// type the pool cannot tag stays the fail-closed 0.
+			return manaSpentTotalsOf(o).byTag(arg), true
 		}
 		return 0, true
 	case "ChosenNumber":
@@ -1735,6 +1791,9 @@ func evalCountBody(h Host, c *Ctx, body string, depth int) (int32, bool) {
 			return n, true
 		}
 		return playerCountDefinedRegistered(h, g, c, opponentGroup(g, c), rest, arg)
+	}
+	if head == "OppGreatestLifeTotal" {
+		return lifeExtreme(g, opponentGroup(g, c), "HighestLifeTotal")
 	}
 	if rest, ok := strings.CutPrefix(head, "PlayerCountOpponents$"); ok {
 		if n, ok2 := playerGroupCount(opponentGroup(g, c), rest); ok2 {

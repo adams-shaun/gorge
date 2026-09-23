@@ -4006,7 +4006,8 @@ func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exc
 	// chain call (their castProvenanceAdmits strip is event-local and
 	// stateless).
 	saTokens := castSaTokensIn(spec)
-	// Flag tokens (CastSa Spell.Mayhem) read the cast's pay-time CastInfo
+	// Flag tokens (CastSa Spell.Mayhem, Spell.MayPlaySource, Spell.Warp)
+	// read the cast's pay-time CastInfo
 	// flags rather than a spend bucket: the backward walk records each
 	// object's most recent CastInfo flags (latest-first, first write wins)
 	// and the push consumes its own cast's entry, so a re-cast object's
