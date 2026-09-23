@@ -1,207 +1,115 @@
-# Merge-conflict resolution — task cli-20260922T225140Z-6a16cd8c
+# Merge-conflict resolution — task cli-20260922T225140Z-c661fa12
 
-(Record 1 below is this ticket's first integration round, kept from the
-branch side; record 2 is the 68ca4d95 legend-rule ticket's record that main
-carried in via `08955738`. Both are kept verbatim; record 3 is appended by
-the round-2 docs commit.)
+## Situation found
 
-## Starting state
+`git status` was CLEAN on entry (no rebase/merge in flight in this worktree;
+the daemon's rebase attempt had been aborted), and the branch tip
+`47b865e8` already merged main `e6a2a84d` (the PRIOR round's work, recorded in
+the report this file carried). But main had advanced again to `e0fd7d9c`:
 
-`git status` found the tree CLEAN — no rebase or merge in flight. The
-daemon's earlier attempt (rebase, then a merge fallback, both conflicting per
-`.ds4/merge-conflict-mrg1.md`) had been fully aborted before this seat
-started; branch tip was `ade1f41d` ("test(rules): assert player attachment
-and descend replay folds"). I redid the integration as a **merge of `main`
-into the branch** (`git merge main`), which reproduced exactly the two
-conflicts the daemon saw: `AGENTS.md` and `internal/testutil/agentsdoc_test.go`.
-No other files conflicted.
+- `57cd1863`/`a04571b1`/`f76f59fd` — the battle-protector ticket (bot arm,
+  re-derive, `botpolicy/protector_test.go`);
+- `9aee8b00`/`78d3b764` — the NameCard ChooseFromList$/AtRandom$ closure;
+- `d56e404f`/`e0fd7d9c` — the non<X> negation closure (nonColorless,
+  nonChosenCard, nonCopiedSpell now expressed by the generic negation);
+- plus its own main-merge commits (`23400548` etc).
 
-## Conflicted file 1: AGENTS.md (one hunk)
+So the owed integration was a merge of main `e0fd7d9c` into the branch.
+Rebase is forbidden in a seat; the same `git merge main` method as prior
+rounds was used.
 
-Both sides touched the same slot in the "Known approximations" table — each
-had DELETED a different row that the other kept:
+## Conflicted files and resolutions
 
-- **main side** deleted the **(ft1)** row ("Bot target selection is
-  effect-blind except for a known literal damage amount"). Main closed ft1
-  with real bot-policy arms: `botpolicy/replacement.go`,
-  `botpolicy/target.go` / `botpolicy/combat.go` rewrites, commit
-  `87d13658` "fix(botpolicy): add real arms for replacement order, multikick
-  count and mutate placement" plus `4dcef2ea` which lowered the register
-  constant to 51 "after ft1 closure on main".
-- **branch side** deleted the **(fx20)** row ("`MatchesPlayerSpec` still
-  fails closed on `EnchantedBy` … `counters_` and compound/space forms").
-  The branch closed fx20 with its reviewed commits: `c85c39b7`
-  "feat(effects): resolve Player.EnchantedController,
-  TriggeredDefendingPlayer and counters_", `c3662d98`, `3cbf3e11`
-  "fix(rules): close player-spec grammar with descend and player
-  attachments", `ade1f41d`.
+`git merge main` conflicted on exactly three files; all code auto-merged.
 
-**Resolution:** delete BOTH rows — each side's deletion is a legitimate
-closure, and the register is delete-only. Verified by counting with the
-test's own row logic (`## Known approximations` … next `## `, lines starting
-`| `, minus header): base `f7357075` = 56 rows, main = 51 (its constant),
-branch = 55 (its constant 57 lags — allowed, the test only fails on growth),
-merged = **50**.
+### 1. `AGENTS.md` (one hunk, lines 222-226)
 
-## Conflicted file 2: internal/testutil/agentsdoc_test.go (one hunk)
+- HEAD (branch) side: the `non<X>` negation row (still present on the branch,
+  whose base merged main only up to `e6a2a84d` — before the non<X> closure).
+- main side: the layer-4 row, which main still carries because the layer-4
+  fix `63c07260` is THIS branch's reviewed commit, never merged to main.
+- Both rows are CLOSED by commits on the two sides: layer-4 by this branch's
+  fix, non<X> by main's `d56e404f`. **Resolution: delete BOTH rows** — which
+  is exactly the union of the two sides' intents (each side deleted its own
+  closed row; the merge should keep neither).
 
-Only the `knownApproximationRows` constant conflicted: base 58, branch 57
-(fx20 deletion), main 51 (ft1 + earlier main closures).
+Verified against the measured tables: main's table is 45 rows (its
+closures + its own added rows), HEAD's is 46; the merged table is main's 45
+minus the layer-4 row = **44 rows** (`awk` over `## Known approximations` …
+next `##`, `| ` lines minus header). Both deleted rows are absent from the
+merged file; nothing else in the table changed relative to main
+(`diff <(git show main:AGENTS.md | table-extract) <(table-extract AGENTS.md)`
+shows exactly the one deleted row).
 
-**Resolution:** `knownApproximationRows = 50` — merged table = 50 rows.
-`knownOversizeRows` (8) and `standInCellLimit` (600) are identical on all
-three sides; no other constant changed.
+### 2. `internal/testutil/agentsdoc_test.go` (one hunk, comment only)
+
+Both sides already agreed on the VALUE `knownApproximationRows = 46`; the
+conflict was only in the history comment above it (main's side carried its
+merge-round comment; the branch's side had a bare constant). **Resolution:**
+kept main's commented shape, rewritten to describe THIS merge accurately,
+and lowered the constant to the measured **44**:
+
+    // The merged table measures 44 rows: main's closures merged here
+    // (non<X> via d56e404f, NameCard ChooseFromList$/AtRandom$ via 78d3b764,
+    // the battle protector row via f76f59fd, and the earlier pc1/each1/CR
+    // 616.1 closures), plus this branch's own layer-4 filter-grammar closure
+    // (fix 63c07260), which deletes main's last remaining layer-4 row.
+    knownApproximationRows = 44
+
+The test fails only on growth, but the constant should carry the measured
+count (same method as main's precedent `4dcef2ea` and the prior round).
+
+### 3. `.ds4/report-mrg1.md` (wholesale)
+
+Both sides carry prior resolver rounds' reports (branch: the previous
+integration round; main: another ticket's merge report). Neither is source
+of truth. **Resolution: replaced wholesale with THIS round's report.**
+
+## Auto-merged files — both sides' intent verified
+
+- `effects/filter.go` — the branch's `SpecContext.DerivedTypes` layer-4
+  plumbing (lines ~3193-3279) and main's non<X> generic-negation work
+  (wordColorless/wordCopiedSpell, `nonCopiedSpell` comments at 1058/1377)
+  compose; `go build ./effects/ ./rules/ ./internal/testutil/` clean.
+- `rules/engine.go`, `rules/cast.go`, `rules/replacement.go` — main's
+  battle-protector and NameCard work; no branch-side contradiction (the
+  branch's fix touched layers/statics/clone/filter only).
+- `botpolicy/policy.go` + `botpolicy/protector_test.go` — main's new files,
+  added cleanly.
+- `AGENTS.md`'s other hunks — main's row deletions (NameCard row,
+  battle-protector row) applied by auto-merge; nothing reintroduced.
 
 ## Commands run and output
 
-- `git merge main` →
-  `CONFLICT (content): Merge conflict in AGENTS.md`,
-  `CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go`
-  (reproduced the daemon's conflict set).
-- After resolving and `git add`:
-  `git commit --no-edit` →
-  `[wt/cli-20260922T225140Z-6a16cd8c 9fc45eaf] Merge branch 'main' into wt/cli-20260922T225140Z-6a16cd8c`
-- `git status --short` → clean (no conflicts left; only my later report
-  edit, committed separately).
-- `.cards` check: `[ -e .cards ]` → **present** (real symlink; corpus-backed
-  runs are not vacuous).
-- `go test ./internal/testutil/ -run 'TestKnownApproximations' -v` →
-  `--- PASS: TestKnownApproximationsOnlyShrinks (0.00s)` / `ok`.
-- Ratchet pass after the merge (per the 2026-09-22 instruction):
-  `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`
-  → `ok github.com/adams-shaun/gorge/rules 0.894s`. Verified NOT a vacuous
-  skip run: verbose listing shows all five tests RUN and PASS
-  (TestEveryRepoDeckIsFullySupported 0.56s, TestEveryRepoDeckParamsAreRead
-  0.12s, TestNoTriggerModeIsRegisteredThatTheSwitchNeverDispatched,
-  TestEveryDispatchedTriggerModeHasAMatcher,
-  TestEveryRepoDeckCountHeadResolves) with **0 SKIPs**.
+- `.cards` check: **present** (real symlink → `/home/sadams/projects/gorge/.cards`),
+  so the corpus-backed ratchets were real, not vacuous skips.
+- `git merge main` → 3 content conflicts (`AGENTS.md`,
+  `internal/testutil/agentsdoc_test.go`, `.ds4/report-mrg1.md`), 17 files
+  total in the merge.
+- `go test ./internal/testutil/ -run 'TestKnownApproximations' -v`
+  → `--- PASS: TestKnownApproximationsOnlyShrinks (0.00s)` / `ok 0.001s`.
+- Post-merge ratchets:
+  `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|TestLayer4'`
+  → `ok github.com/adams-shaun/gorge/rules 1.025s`.
+- main's closures on the merged tree:
+  `go test ./effects -run 'TestPlayerSpecFx20Grammar|TestUnknownPredicates|NameCard|NonPredicateStack'`
+  → `ok github.com/adams-shaun/gorge/effects 0.008s`.
+- main's bot-policy addition: `go test ./botpolicy ./internal/archtest/`
+  → `ok ... botpolicy 0.719s` / `ok ... internal/archtest 3.846s`.
+- `gofmt -l internal/testutil/agentsdoc_test.go` → clean.
+- `go build ./effects/ ./rules/ ./internal/testutil/` → clean.
 
-## Post-merge ratchet check (branch-vs-main interaction)
+## Uncertainties / notes
 
-- The branch registers NO new `Mode$` trigger matcher (its diff touches
-  `trigmatch_cast.go`/`trigmatch_combat.go`/`trigmatch_misc.go` only in
-  existing matchers for the player-spec closure), so nothing needed adding
-  to `addedAfterTheSplit`.
-- The branch's new player-spec primitives did not require edits to
-  `knownUnsupported` / `knownUnsupportedParams` / `knownUnmodelledCountHeads`
-  — the ratchet pass above is green with the merged tables untouched.
+- The dual-row deletion in `AGENTS.md` is the one judgment call: each side
+  deleted a DIFFERENT row, so the merged table keeps neither. This is the
+  union of the two reviewed intents, not a redesign.
+- No engine behaviour beyond the branch's reviewed fix `63c07260` was
+  introduced by the resolution itself; the resolution touched `AGENTS.md`,
+  the register constant + its comment, and this report.
+- `git diff --stat main` post-merge shows only the branch's own fix files
+  plus the constant/report, confirming main's content came through intact.
 
-## Commits
+## Issues
 
-- `9fc45eaf` — Merge branch 'main' into wt/cli-20260922T225140Z-6a16cd8c
-  (conflict resolution; both ft1 and fx20 rows deleted, constant 58→50
-  across base→merged).
-- This report commit (docs only).
-
-## Unsure / notes
-
-- The `.ds4/report-mrg1.md` file is tracked in git despite living under the
-  excluded `.ds4/` path (prior docs commits record it), so main's version
-  auto-merged into the merge commit and this report replaces it as a docs
-  commit to leave the tree clean.
-- I chose merge (matching the daemon's own fallback path) over rebase since
-  no operation was in flight and rebase of 4 commits would re-conflict the
-  same two hunks; the merge preserves both histories verbatim.
-
----
-
-## Record 2 — main's side (68ca4d95 legend-rule ticket, via main commit `08955738`)
-
-# Merge-conflict resolution report — mrg1
-
-## Conflicted files
-
-- `AGENTS.md` — the only unmerged path.
-
-## Resolution
-
-The initial `git status` showed a clean worktree and no active rebase/merge, so I completed integration with the main branch via `git merge main`. That merge conflicted in `AGENTS.md` at the adjacent Known approximations rows.
-
-- The branch side contained the new main-side approximation for the `KReplacement` bot fallback. Main contained the obsolete CR 704.5j legend-rule row, which this reviewed branch closes by adding the controller choice.
-- Kept main's `KReplacement` row and removed the superseded legend-rule row, preserving both current intents. No other conflict markers or unmerged paths remained.
-- Completed the merge as `760578de` (`Merge branch 'main' into wt/cli-20260922T225140Z-68ca4d95`).
-
-## Commands and output
-
-- `git status --short --branch && git status`
-  ```
-  ## wt/cli-20260922T225140Z-68ca4d95
-  On branch wt/cli-20260922T225140Z-68ca4d95
-  nothing to commit, working tree clean
-  ```
-- `git merge main`
-  ```
-  Auto-merging AGENTS.md
-  CONFLICT (content): Merge conflict in AGENTS.md
-  Automatic merge failed; fix conflicts and then commit the result.
-  ```
-- `git add AGENTS.md && GIT_EDITOR=true git merge --continue`
-  ```
-  [wt/cli-20260922T225140Z-68ca4d95 760578de] Merge branch 'main' into wt/cli-20260922T225140Z-68ca4d95
-  ```
-- Corpus check: `.cards` was present.
-- `go test -run 'TestLegendRule' ./rules/`
-  ```
-  ok  github.com/adams-shaun/gorge/rules  0.008s
-  ```
-- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`
-  ```
-  ok  github.com/adams-shaun/gorge/rules  0.759s
-  ```
-- Final `git status --short --branch`
-  ```
-  ## wt/cli-20260922T225140Z-68ca4d95
-  ```
-
-No uncertainty remained in the conflict resolution. No non-conflict files were manually changed.
-
----
-
-## Record 3 — round 2 integration (this seat, 2026-09-23)
-
-### Starting state
-
-`git status` found the tree CLEAN at `d3e21bfa`; no rebase or merge in
-flight (the daemon's second integration attempt was fully aborted before
-dispatch). The branch's merge-base with `main` was `c472a88f` — main had
-moved past the branch's round-1 merge (`9fc45eaf`) with the 68ca4d95
-legend-rule landing (`da0a323b` heads pin + `cf3e3784` merge). I redid the
-integration as `git merge main`.
-
-### Conflicted file: .ds4/report-mrg1.md (the only one)
-
-- **branch side** (`d3e21bfa`): this ticket's round-1 resolution record.
-- **main side** (`08955738`): the 68ca4d95 legend-rule ticket's own
-  resolution record, committed to main.
-- **Resolution:** keep BOTH records verbatim, headed, plus this record 3.
-  `AGENTS.md` and `internal/testutil/agentsdoc_test.go` auto-merged this
-  time: branch deleted the (fx20) row; main swapped the legend row for the
-  `KReplacement` bot-fallback row (row count unchanged). Merged register =
-  50 rows = the constant (verified below). `rules/heads_test.go` was
-  auto-merged from main (2-seat head → `19a4893657e5d549`); the branch
-  never touched it, so no head conflict arose and no golden was edited.
-
-### Commands and output
-
-- `.cards`: present (real symlink) — runs are not vacuous.
-- `git merge main` → `CONFLICT (content): Merge conflict in .ds4/report-mrg1.md`
-  (only unmerged path); resolved with both records kept, `git add -f`
-  (`.ds4` is gitignored for untracked files), `git commit --no-edit` →
-  `bdbdd7cb Merge branch 'main' into wt/cli-20260922T225140Z-6a16cd8c`.
-- `git status --short` → clean.
-- `grep -c 'fx20' AGENTS.md` → `0`; `grep -c 'KReplacement.*clamp fallback' AGENTS.md` → `1`.
-- `go test ./internal/testutil/ -run 'TestKnownApproximations' -v` →
-  `--- PASS: TestKnownApproximationsOnlyShrinks` / `ok`.
-- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`
-  → `ok github.com/adams-shaun/gorge/rules 0.756s`; verbose log
-  (`.ds4/scratch/ratchet.log`) shows all five RUN and PASS, **0 SKIPs**.
-- Behaviour goldens: `go test ./internal/archtest/` → `ok 3.225s`;
-  `go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/` →
-  `ok 1.075s` — the pinned 20-game bot split did NOT move.
-
-### Notes
-
-- The branch registers no new `Mode$` matcher and closed no
-  `knownUnsupported`/`knownUnsupportedParams`/`knownUnmodelledCountHeads`
-  entry, so no ratchet table edit was needed; all pass untouched.
-- Commits: `bdbdd7cb` (merge, conflict resolution) + this docs commit.
+None found during this round's resolution.
