@@ -2134,3 +2134,84 @@ Report commit (this one) follows it.
   merged tree unchanged.
 - I did not re-run TestHeads or the full gate suite — the daemon owns those
   after this round.
+
+---
+
+# Merge-conflict resolution round — mrg1 (task agent-20260923T073156Z-d6f8c32b, fourth integration round)
+
+## Found state
+
+`git status` at round start: clean tree, no rebase or merge in flight — the
+daemon's rebase attempt (conflict at `0f9dcb58` on `.ds4/report-sol1.md`) and
+its merge fallback had both been aborted before this seat started. Merge base
+`19b8fb3a`; main 23 commits ahead, branch 12 ahead. Integrated with
+`git merge main` (repo precedent; the brief forbids rebase).
+
+## Conflicted files and resolution
+
+`git merge main` reproduced the daemon's fallback conflict set with ONE
+conflicted file:
+
+- `.ds4/report-mrg1.md` (UU) — the shared mrg1 accumulator. Ours (HEAD) ends
+  with this branch's third-round report (commit `7510ae96`, 90 lines); main
+  appended the agent-20260922T200200Z-7feb602c mrg1 report (96 lines). Both
+  additive at the tail, disjoint provenance.
+
+**Resolution: union, zero content loss either direction.** Ours' block kept
+verbatim, then a `---` separator, then main's block verbatim:
+
+```
+$ diff <(git show HEAD:.ds4/report-mrg1.md) resolved | grep -c '^<'    -> 0
+$ diff <(git show main:.ds4/report-mrg1.md) resolved | grep -c '^<'    -> 0
+$ grep -n '^<<<<<<< \|^>>>>>>> \|^=======$' resolved                    -> none
+```
+
+(The only `grep` hit for bare `^(<<<<<<<|=======$|>>>>>>>)` is the in-prose
+quoted command inside a prior report's code block, not a marker.) No code file
+conflicted; main's `report-sol1.md` and the production files
+(`effects/animate`, attach, count, filter, convoked/triggerremembered tests,
+etc.) auto-merged.
+
+## Commands run (real output)
+
+```
+$ git merge main
+Auto-merging .ds4/report-mrg1.md
+CONFLICT (content): Merge conflict in .ds4/report-mrg1.md
+Auto-merging .ds4/report-sol1.md
+Automatic merge failed; fix conflicts and then commit the result.
+
+$ git add -f .ds4/report-mrg1.md && git commit --no-edit
+[wt/agent-20260923T073156Z-d6f8c32b ad39c2de] Merge branch 'main' into wt/agent-20260923T073156Z-d6f8c32b
+$ git status --short --branch
+## wt/agent-20260923T073156Z-d6f8c32b          (clean)
+$ git merge-base --is-ancestor main HEAD && echo MAIN_INTEGRATED=YES
+YES
+
+$ ls -ld .cards
+lrwxrwxrwx .cards -> /home/sadams/projects/gorge/.cards   (real corpus — no vacuous skip)
+
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  	github.com/adams-shaun/gorge/rules	0.783s
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.174s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.207s
+```
+
+## Notes
+
+- No ratchet table edit needed: neither side registers a new `Mode$` matcher
+  nor closes a `knownUnsupported` / `knownUnsupportedParams` /
+  `knownUnmodelledCountHeads` entry; the botbench golden did not move.
+- This branch carries no engine source change of its own
+  (`rules/cascade_resulting_mv_test.go` only), so no head/ratchet movement is
+  possible from the branch side; all production changes came in from main and
+  their tests pass on the merged tree via the ratchet run above.
+- Recurring friction, unchanged from prior rounds: per-branch tail appends to
+  the shared `report-mrg1.md` accumulator conflict on every integration; the
+  union convention keeps everything.
+
+## Issues
+
+- No new defect found; the only conflict was independent accumulator content.
