@@ -954,36 +954,94 @@ func (e *Engine) resolveActivationLimitAt(id state.ObjID, p state.PlayerID, raw 
 	return 0, false
 }
 
-// targetsAvailable reports whether the narrow target requirement that can
-// be proved before offering a spell or ability is satisfiable. A missing
-// TargetMin$/TargetMax$ pair is Forge's unconditional one-target shape.
-// Dynamic bounds and modal or announced choices stay offerable until the
-// post-announcement askTarget backstop can evaluate them with those choices
-// made. xPending extends that same carve-out to the announced {X}: a cost
-// that announces an X makes a ValidTgts$ X-bound dynamic, so a spec whose
-// ONLY zero-candidate reason is its unresolvable X bound stays offerable.
-// excludeSelf is the CR 115.5 self-targeting object: the offered card
-// for a spell cast from a zone that could contain it, 0 for an activated
-// ability (whose Source permanent IS a legal target of its own ability).
+// targetSAAvailable reports whether a target declaration has enough legal
+// candidates for its resolved mandatory minimum. It is intentionally a
+// feasibility census, not a full cast/payment check: target-dependent cost
+// modifiers and target announcements still belong to the post-push ask.
+func (e *Engine) targetSAAvailable(p state.PlayerID, id, excludeSelf state.ObjID, sa *cards.SA, x int32, xPending bool) bool {
+	if sa == nil || strings.TrimSpace(sa.Params["ValidTgts"]) == "" {
+		return true
+	}
+	// A pending {X} is announced before targets, so a bare X bound cannot be
+	// judged at offer time. Keep that shape offerable and let targetAsk use the
+	// settled value. SVar-backed bounds remain readable now and are checked.
+	// Read by literal key: the param census's rot guard rejects a dynamic
+	// Params key that is not a function parameter.
+	if xPending && (strings.EqualFold(strings.TrimSpace(sa.Params["TargetMin"]), "X") ||
+		strings.EqualFold(strings.TrimSpace(sa.Params["TargetMax"]), "X")) {
+		return true
+	}
+	// OneEach is one target per represented controller. Its minimum is at
+	// most the candidate count by definition; the ask computes the actual
+	// groups after announcement. Do not call oneEachTargetBounds here: its
+	// distinct-controller capacity and cap on Max are pairwise SET constraints,
+	// not count feasibility. In particular a literal Min 2 with two candidates
+	// under ONE controller must remain offered (Run Away Together) so the
+	// post-push target ask owns the CR 733.1 reversal.
+	if targetControllerExclusive(sa) && strings.EqualFold(strings.TrimSpace(sa.Params["TargetMin"]), "OneEach") {
+		return true
+	}
+	min, _ := e.resolvedTargetBounds(p, id, sa, x)
+	candidates := e.legalTargetCandidates(p, id, excludeSelf, sa)
+	if min == 0 {
+		return true
+	}
+	if xPending && specNamesXBound(sa.Params["ValidTgts"]) {
+		return true
+	}
+	return len(candidates) >= min
+}
+
+// charmTargetsAvailable evaluates the possible CR 601.2b mode announcement
+// before a cast is offered. Target-bearing modes with an unsatisfiable
+// mandatory minimum are removed from the possible announcement set, using
+// the same target census castModeAsk uses after the spell reaches the stack.
+// A mode whose target count depends on an announcement remains offerable.
+func (e *Engine) charmTargetsAvailable(p state.PlayerID, id state.ObjID, sa *cards.SA, xPending bool) bool {
+	o := e.G.Obj(id)
+	if o == nil || o.Face() == nil {
+		return true
+	}
+	choices := strings.Split(sa.Params["Choices"], ",")
+	ctx := &effects.Ctx{Source: id, Controller: p}
+	effects.SetSVars(ctx, o.Face().SVars)
+	legal := make([]string, 0, len(choices))
+	for _, name := range choices {
+		name = strings.TrimSpace(name)
+		sub := cards.ResolveSVar(o.Face().SVars, name)
+		if sub != nil && strings.TrimSpace(sub.Params["ValidTgts"]) != "" &&
+			!e.targetSAAvailable(p, id, id, sub, 0, xPending) {
+			continue
+		}
+		legal = append(legal, name)
+	}
+	legal = effects.CharmEligibleModes(e, id, sa, legal)
+	min, _, repeat := effects.CharmModeBounds(e, ctx, sa, len(legal))
+	return repeat || min <= len(legal)
+}
+
+// targetsAvailable reports whether the target requirement that can be proved
+// before offering a spell or ability is satisfiable. Dynamic announcements
+// remain offerable until the post-announcement targetAsk backstop evaluates
+// them. excludeSelf is the CR 115.5 object for a spell, or zero for an
+// activated ability whose Source permanent may target itself.
 func (e *Engine) targetsAvailable(p state.PlayerID, id, excludeSelf state.ObjID, sa *cards.SA, xPending bool) bool {
-	if sa == nil || strings.TrimSpace(sa.Params["ValidTgts"]) == "" || sa.API == "Charm" ||
-		sa.Params["Choices"] != "" || sa.Params["Announce"] != "" {
+	if sa == nil {
 		return true
 	}
-	if _, ok := sa.Params["TargetMin"]; ok {
+	if sa.API == "Charm" && strings.TrimSpace(sa.Params["Choices"]) != "" {
+		return e.charmTargetsAvailable(p, id, sa, xPending)
+	}
+	// An Announce$ value can change the target restriction itself; its value
+	// is not available until the cast transaction reaches the announcement
+	// stage, so retain the post-announcement backstop for that shape.
+	if strings.TrimSpace(sa.Params["Announce"]) != "" {
 		return true
 	}
-	if _, ok := sa.Params["TargetMax"]; ok {
+	if strings.TrimSpace(sa.Params["ValidTgts"]) == "" {
 		return true
 	}
-	if n := len(e.legalTargetCandidates(p, id, excludeSelf, sa)); n > 0 {
-		return true
-	}
-	// A zero-candidate census is only a withhold when the spec's X bound is
-	// static. With an announced X pending the bound is dynamic: offer, and
-	// let the post-announcement backstop evaluate it against the chosen
-	// value (a wrong value still fizzles the proposal at 601.2c).
-	return xPending && specNamesXBound(sa.Params["ValidTgts"])
+	return e.targetSAAvailable(p, id, excludeSelf, sa, 0, xPending)
 }
 
 // costAnnouncesX reports whether paying this cost announces a value for {X}
