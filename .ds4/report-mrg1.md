@@ -625,3 +625,40 @@ should match the merged table).
   it; that is the only post-merge commit.
 - No head/ratchet golden moved due to my resolution: the constant change reflects rows
   both sides had already deleted and had already lowered their constants for.
+
+
+---
+
+## Additional rebased report
+
+# Merge-conflict resolution report — mrg1
+
+## Starting state and integration
+
+The requested conflicts had already been resolved and the git operation completed when I entered this worktree. `git status` showed a clean tree on `wt/cli-20260922T225139Z-205fd0ae`, at `04ecdf2a` (`Merge branch 'main' into wt/cli-20260922T225139Z-205fd0ae`). No rebase or merge was in flight, so I did not start a second integration operation.
+
+The merge commit incorporates main's changes; the conflict resolution is reflected in `internal/testutil/agentsdoc_test.go` and the tracked report `.ds4/report-mrg1.md`. The report states the table count is 72 after both sides' independent row deletions. Main's stack-spell `Option.Kind "permanent"` changes and the branch's compound-origin fetch-player-selector changes are present in the merged tree. `.cards` is present.
+
+## Conflicted files and resolution
+
+- `internal/testutil/agentsdoc_test.go`: the prior resolution retained the merged row-count intent and set `knownApproximationRows = 72`, accounting for both row deletions. The accompanying comment records the measurement and origins of the deletions.
+- `.ds4/report-mrg1.md`: this tracked report was refreshed to document the current integration state and verification.
+- `AGENTS.md`: the merge history indicates this auto-merged; no manual change was needed during this session.
+
+No unresolved conflict markers or unmerged paths remain.
+
+## Commands and results
+
+```text
+git status --short --branch
+  ## wt/cli-20260922T225139Z-205fd0ae
+
+go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+  ok github.com/adams-shaun/gorge/rules 0.742s
+```
+
+The test command was run with output captured in `.ds4/scratch/mrg1-final.log`. Corpus was present, so corpus-dependent ratchets were not skipped. No uncertainty remains about the conflict resolution; the integration was already completed before this session began.
+
+## Issues
+
+None found in this conflict-resolution pass.
