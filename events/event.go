@@ -773,6 +773,20 @@ const (
 	// than a direct slice edit so replay folds the same garbage collection.
 	// Appended after PlayerNoteCleared to preserve earlier event ordinals.
 	DelayedRemove
+	// TurnFaceUp records a face-down battlefield permanent being turned face
+	// up (CR 708.6 / CR 702.36e): Obj is the permanent. Apply clears its
+	// FaceDown marker (and the folded face-down set), which makes its printed
+	// characteristics live again and is what a Mode$ TurnFaceUp trigger
+	// matches against. It is emitted by effects.effSetState's Mode$
+	// TurnFaceUp arm (the effect-driven turn-up the corpus's AB$ SetState
+	// lines carry); the morph/disguise special action that would also emit it
+	// is a separate subsystem. A Kind rather than a FlipFace rider: a
+	// transform changes the active FACE, while a turn-up only reveals the
+	// face that was already current, so the two must not share an event.
+	// Appended after DelayedRemove, following every prior Kind's own
+	// append-only precedent, so no earlier ordinal, hash chain or golden
+	// replay is affected.
+	TurnFaceUp
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -783,7 +797,7 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(DelayedRemove) + 1
+	NumKinds = int(TurnFaceUp) + 1
 )
 
 // mergedTriggerShift is the width MergedTriggerPush's Amount gives the
@@ -897,7 +911,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"x_change", "note_number", "extra_phase", "copy_token", "exert", "planar_roll", "explore", "combat_retarget", "ring_tempts_you", "ring_emblem_push", "grant_ability_push", "investigate", "blessing_change", "clone_permanent", "mutate", "merged_trigger_push",
 	"discover", "seek", "connive", "enlist", "exploit", "alter_attribute",
 	"gained_ability_push", "gained_trigger_push", "surveil", "unattached", "player_noted", "player_note_cleared",
-	"delayed_remove"}
+	"delayed_remove", "turn_face_up"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {

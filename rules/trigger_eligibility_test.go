@@ -130,6 +130,12 @@ func TestTriggerEventInterestMapping(t *testing.T) {
 			// own interest bit (the BecomeMonarch mode), not the zero mapping
 			// it carried while no mode matched it.
 			want = cards.TriggerInterestMonarch
+		case events.TurnFaceUp:
+			// agent-20260919T183249Z-0fb8ed97: the turn-up marker is
+			// trigger-relevant (trig:TurnFaceUp matches it through the full
+			// matcher) and past the mask's reach, so the conservative
+			// catch-all is the honest mapping (the Investigate shape).
+			want = cards.TriggerInterestAny
 		}
 		if got := eventTriggerInterest(kind); got != want {
 			t.Fatalf("kind %s interest = %x, want %x", kind, got, want)

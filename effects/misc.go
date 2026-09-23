@@ -1987,14 +1987,32 @@ func hasChosenPlayers(ts []state.Target) bool {
 // it just advances to the next face, wrapping to 0, which is correct for the
 // overwhelmingly common two-face case and a no-op for anything with fewer
 // than two faces (a token, or a single-faced card).
+//
+// Mode$ TurnFaceUp is the one exception: it is not a face change at all but
+// CR 708.6's reveal of a face-down battlefield permanent's printed face, so
+// it emits events.TurnFaceUp (which clears the face-down marker in Apply)
+// instead of a FlipFace. This is the effect-driven turn-up the corpus's
+// `AB$ SetState | Mode$ TurnFaceUp` lines carry (Woolly Loxodon and its 22
+// siblings); a non-face-down permanent is left alone, matching the marker's
+// own battlefield gate.
 func effSetState(h Host, c *Ctx, sa *cards.SA) {
 	mode := sa.Params["Mode"]
+	turnUp := strings.EqualFold(strings.TrimSpace(mode), "TurnFaceUp")
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
 		}
 		o := h.Game().Obj(t.Obj)
-		if o == nil || o.Card == nil || len(o.Card.Faces) < 2 {
+		if o == nil {
+			continue
+		}
+		if turnUp {
+			if o.Card != nil && o.Zone == state.ZBattlefield && o.FaceDown {
+				h.Emit(events.Event{Kind: events.TurnFaceUp, Obj: o.ID})
+			}
+			continue
+		}
+		if o.Card == nil || len(o.Card.Faces) < 2 {
 			continue
 		}
 		next := (int(o.FaceIdx) + 1) % len(o.Card.Faces)
