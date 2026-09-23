@@ -83,7 +83,16 @@ func effCascade(h Host, c *Ctx, sa *cards.SA) {
 	if int(p) >= len(g.Players) || g.Players[p].Lost {
 		return
 	}
-	mv := int(src.Face().Cmc())
+	// CR 202.3b: a printed {X} in a cost counts 0 in every zone but the
+	// stack, and the cascade spell is ON the stack while this trigger
+	// resolves, so its mana value is its printed value PLUS the X announced
+	// at casting (stamped on the stack object by the cast flow; src.X).
+	// Reading only the printed face would compare an {X} cascade spell as if
+	// X were 0. A non-{X} spell carries src.X == 0, so the read is unchanged
+	// for every existing carrier. (The candidate's own value stays its
+	// printed face value -- it sits in the library, where CR 202.3b makes
+	// its X 0.)
+	mv := int(src.Face().Cmc()) + int(src.X)
 	// Snapshot the library before moving out of it: the MoveZone emissions
 	// mutate the zone slice under us.
 	lib := append([]state.ObjID(nil), g.Zone(state.ZLibrary, p)...)

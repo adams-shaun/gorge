@@ -239,6 +239,20 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	if strings.EqualFold(forgetOnCast, "False") {
 		forgetOnCast = ""
 	}
+	// An Effect's Triggers$ list can spell the same cast-driven lifetime the
+	// ForgetOnCast$ parameter does: a SpellCast trigger whose Execute$ body
+	// self-exiles the Effect (Forge's effect token leaving the Command zone --
+	// TARDIS's "the next spell you cast this turn has cascade and you may
+	// planeswalk"). This build has no effect-token object, so the trigger
+	// cannot run as a delayed promise; it IS the Effect's cast-driven
+	// lifetime, read here as ForgetOnCast$ with the trigger's own ValidCard$
+	// spec, so the cast sweep ends the grant on the next qualifying cast
+	// instead of letting EVERY qualifying spell that turn cascade. The same
+	// scan runs inside the Triggers$ loop below to skip the trigger's
+	// delayed registration (it has no effect token to exile).
+	if forgetOnCast == "" {
+		forgetOnCast = effectSelfExileOnCastSpec(h, c, sa.Params["Triggers"])
+	}
 	// ImprintOnHost$ True (task param:api:Effect.ImprintOnHost): Forge's
 	// EffectEffect imprints the CREATED EFFECT TOKEN on the host card and
 	// moves the token to the Command zone -- the imprint is the link "this
@@ -339,6 +353,14 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "unparseable Effect trigger " + name})
 			registered = true
+			continue
+		}
+		if effectSelfExileOnCastTrigger(h, c, tr) {
+			// The Effect's cast-driven lifetime, already consumed by the
+			// effectSelfExileOnCastSpec scan above. It is not a delayed
+			// promise this build can run: there is no effect-token object
+			// for the body's `Origin$ Command` self-exile to move, so
+			// registering it would only add an inert DelayedTrigger.
 			continue
 		}
 		exec := strings.TrimSpace(tr.Params["Execute"])
@@ -1829,6 +1851,69 @@ func effectTriggerThisTurnDuration(dur string) bool {
 		return true
 	}
 	return false
+}
+
+// effectTriggerBody resolves an Effect Triggers$ entry's SVar body: the
+// source's own face table first, else the resolving ability's SVar table
+// (the lookup the Effect trigger registration loop uses).
+func effectTriggerBody(h Host, c *Ctx, name string) string {
+	if name == "" {
+		return ""
+	}
+	if o := h.Game().Obj(c.Source); o != nil && o.Face() != nil {
+		if raw := o.Face().SVars[name]; raw != "" {
+			return raw
+		}
+	}
+	return c.SVars[name]
+}
+
+// effectSelfExileOnCastTrigger reports whether tr is the Effect self-exile
+// idiom: a SpellCast trigger whose Execute$ body moves the Effect itself out
+// of the Command zone into exile (Forge's effect token; TARDIS's
+// `SVar:ExileEffect:Mode$ SpellCast | EffectZone$ Command | ValidCard$
+// Card.YouCtrl | Execute$ RemoveEffect | Static$ True` with
+// `RemoveEffect:DB$ ChangeZone | Origin$ Command | Destination$ Exile |
+// Defined$ Self`). The EffectZone$ Command marker plus the ChangeZone body
+// identify it.
+func effectSelfExileOnCastTrigger(h Host, c *Ctx, tr cards.Trigger) bool {
+	if tr.Mode != "SpellCast" {
+		return false
+	}
+	if !strings.EqualFold(strings.TrimSpace(tr.Params["EffectZone"]), "Command") {
+		return false
+	}
+	exec := strings.TrimSpace(tr.Params["Execute"])
+	if exec == "" {
+		return false
+	}
+	body := strings.ReplaceAll(effectTriggerBody(h, c, exec), " ", "")
+	return strings.Contains(body, "ChangeZone") &&
+		strings.Contains(body, "Origin$Command") &&
+		strings.Contains(body, "Destination$Exile")
+}
+
+// effectSelfExileOnCastSpec scans an Effect's Triggers$ name list for the
+// self-exile-on-cast idiom above and returns the cast spec that ends the
+// Effect: the trigger's ValidCard$ (the spell that consumes the Effect), or
+// "Card" for a body that names none. Empty when no entry has the shape, so a
+// Triggers$-only Effect keeps its existing registrations untouched.
+func effectSelfExileOnCastSpec(h Host, c *Ctx, names string) string {
+	for _, name := range strings.Fields(names) {
+		raw := effectTriggerBody(h, c, name)
+		if raw == "" {
+			continue
+		}
+		tr, ok := cards.ParseTriggerLine(raw)
+		if !ok || !effectSelfExileOnCastTrigger(h, c, tr) {
+			continue
+		}
+		if spec := strings.TrimSpace(tr.Params["ValidCard"]); spec != "" {
+			return spec
+		}
+		return "Card"
+	}
+	return ""
 }
 
 // effectUntilEOT decides expiry for an Effect registration: a one-shot spell
