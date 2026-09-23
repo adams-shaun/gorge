@@ -4983,6 +4983,17 @@ func (e *Engine) pendingCastScope(pc *pendingCast) (costScope, bool) {
 // is tested as the sole selection: that is exact for the normal one-target
 // shape and conservatively safe for multi-target declarations (where the
 // decision API cannot express that one option requires another option).
+//
+// The probe also reprices the ability's own target-dependent ReduceCost$
+// per candidate (belt_of_giant_strength's Targeted$CardPower): the offer
+// gate folded the BEST legal target's reduction into pc.cost (pc.ownReduce),
+// so without this fold a weaker candidate reads payable at the best-target
+// offer price while repriceForTargets will actually charge its own, higher
+// price at CR 601.2h -- an abort after an apparently-legal target choice.
+// The delta is exactly the net shift repriceForTargets applies (same
+// helper, idempotent fold); it is never negative because the offer's max
+// runs over the same candidate set costPotentialTargets derives from
+// legalTargetCandidates, and the clamp keeps that invariant load-bearing.
 func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []targetCandidate) []targetCandidate {
 	scope, ok := e.pendingCastScope(pc)
 	if !ok {
@@ -4997,6 +5008,11 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 		}
 		mods := e.costModifiersForTargets(pc.player, pc.card, scope, []state.Target{target})
 		cost := mods.apply(pc.resolvedMana())
+		if pc.ownReduce > 0 {
+			if n := e.ownReduceCost(pc.player, pc.card, e.pcAbility(pc), []state.Target{target}, nil, pc.abilityMerged); n < pc.ownReduce {
+				cost.Generic = addClampedGeneric(cost.Generic, int64(pc.ownReduce-n))
+			}
+		}
 		// An announce-bound Exile part (the Shoal cycle's cmcEQX) is priced
 		// by the ANNOUNCED X, not by the candidate: nonManaCastable below
 		// evaluates a non-literal cmc comparison fail-closed (it has no X

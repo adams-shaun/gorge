@@ -17,6 +17,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -145,4 +146,65 @@ func TestBeltOfGiantStrengthEquipWithheldWhenBestTargetStillTooSmall(t *testing.
 	if opt, ok := findAbilityOption(e, beltID, 0); ok {
 		t.Fatalf("Belt of Giant Strength's equip offered from {5} against a 4-power creature, but the best price is {6}: %+v", opt)
 	}
+}
+
+// TestBeltOfGiantStrengthEquipWeakTargetNotOfferedAtBestOnlyPool pins the
+// review-r2 MAJOR: the offer gate prices the activation at the BEST legal
+// target's reduction, so from a {6} pool only the 4-power target's price is
+// payable. The CR 601.2c target ask must then withhold the 2-power target
+// (affordableTargetCandidates reprices it to {8} against a {6} pool with no
+// untapped mana source -- driveToStep passes priority, so the fixture has no
+// land in play and the 601.2g window escape cannot mask the prune), or the
+// player can select an unpayable target and the transaction aborts at
+// CR 601.2h after an apparently-legal choice. The 4-power target stays
+// offered and completing the activation still charges exactly {6}.
+func TestBeltOfGiantStrengthEquipWeakTargetNotOfferedAtBestOnlyPool(t *testing.T) {
+	e, cfg, beltID, bruteID, smallID := beltGame(t, 514)
+	// Preconditions: the two targets' powers really differ (so their repriced
+	// prices {6} and {8} really differ) and the board really has no untapped
+	// mana source, or the withhold would be masked by the window escape.
+	if got := e.Power(bruteID); got != 4 {
+		t.Fatalf("brute fixture power = %d, want 4", got)
+	}
+	if got := e.Power(smallID); got != 2 {
+		t.Fatalf("small fixture power = %d, want 2 (the repriced prices must differ)", got)
+	}
+	if e.hasUntappedManaSource(0) {
+		t.Fatal("fixture seat 0 has an untapped mana source; the 601.2g escape would keep the unpayable target on the menu")
+	}
+	// {6} is exactly the best-target price ({10} - {4}); the activation is
+	// offered, but only the target it was priced against is payable.
+	addMana(t, e, 0, "CCCCCC")
+	opt, ok := findAbilityOption(e, beltID, 0)
+	if !ok {
+		t.Fatal("Belt of Giant Strength's equip not offered from a {6} pool against a 4-power creature (the best-target price)")
+	}
+	submitChoices(t, e, opt.Index)
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KTarget {
+		t.Fatalf("want target decision, got %+v", d)
+	}
+	for _, o := range d.Options {
+		if o.Obj == smallID {
+			t.Fatalf("2-power target offered at a {6} pool although its repriced price is {8}: %+v", d.Options)
+		}
+	}
+	found := false
+	for _, o := range d.Options {
+		if o.Obj == bruteID {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("4-power target not offered alongside the withheld 2/2: %+v", d.Options)
+	}
+	targetObject(t, e, bruteID)
+	passUntilStackEmpty(t, e, 20)
+	if e.G.Obj(beltID).AttachedTo != bruteID {
+		t.Fatalf("Belt attached to %d, want the 4/4 %d", e.G.Obj(beltID).AttachedTo, bruteID)
+	}
+	if got := e.G.Players[0].Pool.Total(); got != 0 {
+		t.Fatalf("pool after equipping the 4/4 from {6} = %d, want 0 (exactly the best-target price charged)", got)
+	}
+	replayCheck(t, e, cfg)
 }
