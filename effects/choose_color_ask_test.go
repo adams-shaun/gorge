@@ -32,8 +32,13 @@ func (h *chooseColorHost) Suspended() bool { return h.suspended }
 
 // chooseColorEvents collects the Choose events a resolution emitted.
 func chooseColorEvents(h *fakeHost) []events.Event {
+	return chooseColorLog(h.log)
+}
+
+// chooseColorLog collects the Choose "color" events in an event slice.
+func chooseColorLog(log []events.Event) []events.Event {
 	var out []events.Event
-	for _, e := range h.log {
+	for _, e := range log {
 		if e.Kind == events.Choose && e.Counter == "color" {
 			out = append(out, e)
 		}
@@ -219,5 +224,95 @@ func TestChooseColorUnaskableShapesNoteAndFallBack(t *testing.T) {
 	}
 	if evs := chooseColorEvents(h); len(evs) != 1 || evs[0].Text != "W" {
 		t.Fatalf("TwoColors$ Choose events = %+v, want exactly one \"W\"", evs)
+	}
+}
+
+// TestChooseColorFreshAskAfterAnEarlierChoiceOnTheSource pins the review's
+// MAJOR (round 2): a ChosenColor already on the source is an EARLIER choice's
+// answer -- a previous ChooseColor SA's, or the entry choice an ability now
+// re-asks -- not THIS ask's own answer, so a fresh resolution-time ChooseColor
+// still poses its ask instead of silently reusing the stale answer. The
+// precondition emits a real Choose "color" event (events.Apply folds it onto
+// o.ChosenColor, the same shape every downstream reader reads) and asserts
+// the field is set before the resolution runs. Without the fix the
+// unconditional o.ChosenColor guard returned before the ask, so the ask-count
+// assertion fails.
+func TestChooseColorFreshAskAfterAnEarlierChoiceOnTheSource(t *testing.T) {
+	h := &chooseColorHost{}
+	h.g = state.NewGame(names(2))
+	src := chooseColorSrc(t, &h.fakeHost)
+	h.Emit(events.Event{Kind: events.Choose, Obj: src, Counter: "color", Text: "G"})
+	if got := h.g.Obj(src).ChosenColor; got != "G" {
+		t.Fatalf("precondition: the earlier choice did not record: %q", got)
+	}
+	before := len(h.log)
+	Resolve(h, &Ctx{Source: src, Controller: 0}, sa(t, "SP$ ChooseColor | Defined$ You"))
+	if len(h.asks) != 1 {
+		t.Fatalf("a fresh ask after an earlier choice posed %d asks, want one: %+v", len(h.asks), h.asks)
+	}
+	if d := h.asks[0]; d.ResumeKind != "choosecolor" || len(d.Options) != 5 {
+		t.Fatalf("fresh ask shape wrong: %+v", d)
+	}
+	if evs := chooseColorLog(h.log[before:]); len(evs) != 0 {
+		t.Fatalf("Choose event(s) emitted before the answer: %+v", evs)
+	}
+	// The answered re-entry overwrites the stale answer with the new pick:
+	// exactly one Choose event, the answered letter, and o.ChosenColor
+	// updated -- the earlier "G" is never reused.
+	h.suspended = false
+	mark := len(h.log)
+	Resolve(h, &Ctx{Source: src, Controller: 0, ChosenColor: "Black"}, sa(t, "SP$ ChooseColor | Defined$ You"))
+	evs := chooseColorLog(h.log[mark:])
+	if len(evs) != 1 || evs[0].Text != "B" || evs[0].Obj != src {
+		t.Fatalf("re-entry Choose events = %+v, want exactly one Choose \"B\" on the source", evs)
+	}
+	if got := h.g.Obj(src).ChosenColor; got != "B" {
+		t.Fatalf("ChosenColor = %q, want the new answer B (the stale G must not survive)", got)
+	}
+}
+
+// TestChooseColorEntryBodyStaysTheNoOp pins the preserved half of the same
+// finding: the as-enters ENTRY-choice body (Ctx.ETBColorRecorded -- rules'
+// replCtx flags the K:ETBReplacement ChooseColor repl's body) never poses an
+// ask. With the entry answer already recorded it emits NOTHING (the
+// machinery recorded it); with no recorded entry answer it emits exactly the
+// deterministic fallback Choose event. Either way the pre-fix entry
+// behaviour is byte-identical.
+func TestChooseColorEntryBodyStaysTheNoOp(t *testing.T) {
+	// Recorded entry answer: complete no-op.
+	h := &chooseColorHost{}
+	h.g = state.NewGame(names(2))
+	src := chooseColorSrc(t, &h.fakeHost)
+	h.Emit(events.Event{Kind: events.Choose, Obj: src, Counter: "color", Text: "B"})
+	if got := h.g.Obj(src).ChosenColor; got != "B" {
+		t.Fatalf("precondition: the entry answer did not record: %q", got)
+	}
+	before := len(h.log)
+	Resolve(h, &Ctx{Source: src, Controller: 0, ETBColorRecorded: true}, sa(t, "DB$ ChooseColor"))
+	if len(h.asks) != 0 {
+		t.Fatalf("the entry body posed %d asks, want none: %+v", len(h.asks), h.asks)
+	}
+	if len(h.log) != before {
+		t.Fatalf("the entry body emitted %d event(s) with the answer already recorded, want none", len(h.log)-before)
+	}
+	if got := h.g.Obj(src).ChosenColor; got != "B" {
+		t.Fatalf("recorded entry answer moved to %q, want B", got)
+	}
+	// No recorded entry answer (a malformed entry answer the fold could not
+	// name): the deterministic fallback, still with no ask. Precondition: the
+	// source carries no choice.
+	h2 := &chooseColorHost{}
+	h2.g = state.NewGame(names(2))
+	src2 := chooseColorSrc(t, &h2.fakeHost)
+	if got := h2.g.Obj(src2).ChosenColor; got != "" {
+		t.Fatalf("precondition: fresh source already carries %q", got)
+	}
+	Resolve(h2, &Ctx{Source: src2, Controller: 0, ETBColorRecorded: true}, sa(t, "DB$ ChooseColor"))
+	if len(h2.asks) != 0 {
+		t.Fatalf("the unrecorded entry body posed %d asks, want none", len(h2.asks))
+	}
+	evs := chooseColorEvents(&h2.fakeHost)
+	if len(evs) != 1 || evs[0].Text != "W" {
+		t.Fatalf("unrecorded entry body Choose events = %+v, want exactly one \"W\"", evs)
 	}
 }

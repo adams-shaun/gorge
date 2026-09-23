@@ -10,9 +10,10 @@ import (
 )
 
 // ChooseType, ChooseNumber and ChooseColor record a choice on the source.
-// With the choice already present (the cast-time "as this enters" ask in
-// rules/cast.go's etbAsk recorded it with a Choose event before this ever
-// resolves, plan ruling R-6) these do nothing. Without one -- a script that
+// With the choice already present -- for ChooseColor only the as-enters
+// ENTRY-choice body, flagged Ctx.ETBColorRecorded by rules' replCtx (the
+// entry ask machinery recorded it with a Choose event before the body runs,
+// plan ruling R-6) -- these do nothing. Without one -- a script that
 // uses them at RESOLUTION time -- ChooseType poses a real KChoose ask over
 // its Type$ CATEGORY's option list (task ct1; effects/type_choices.go is the
 // one home for the non-creature lists, and the suspension re-enters through
@@ -30,16 +31,23 @@ func init() {
 	Register("ChooseColor", effChooseColor)
 }
 
-// effChooseColor records a colour choice. With the source already carrying a
-// ChosenColor (the cast-time Choose "color" event set it) it is a no-op. On
-// the re-entry after its own mid-resolution ask was answered it emits the
-// one Choose event the fallback emits, with the answered colour's WUBRG
-// letter (Ctx.ChosenColor, consumed and cleared -- the fx42 scoping
-// convention). On the first pass it poses a real KChoose over the
-// chooseColorOptions list to the Defined$ player when two or more colours
-// are offerable, so the chooser picks; with zero or one offerable colour the
-// choice is forced (or empty) and the single legal answer equals the
-// fallback's deterministic pick, so no ask is posed (the effChooseType
+// effChooseColor records a colour choice. The ONE invocation that is a
+// no-op is the as-enters ENTRY-choice body: rules' replCtx flags the
+// K:ETBReplacement ChooseColor repl's body Ctx with ETBColorRecorded (the
+// entry machinery -- applyETBChoiceReplacement -> resumeETBEntry -- already
+// posed the entry ask and recorded the answer on the entering object before
+// this body runs at the re-emitted move), and that invocation never asks.
+// Any OTHER invocation treats a ChosenColor already on the source as STALE
+// state -- an earlier choice's answer (a previous ChooseColor SA in the same
+// resolution, or the entry choice an ability now re-asks) -- not this ask's
+// own answer, and asks anyway. On the re-entry after its own mid-resolution
+// ask was answered it emits the one Choose event the fallback emits, with
+// the answered colour's WUBRG letter (Ctx.ChosenColor, consumed and cleared
+// -- the fx42 scoping convention). On the first pass it poses a real KChoose
+// over the chooseColorOptions list to the Defined$ player when two or more
+// colours are offerable, so the chooser picks; with zero or one offerable
+// colour the choice is forced (or empty) and the single legal answer equals
+// the fallback's deterministic pick, so no ask is posed (the effChooseType
 // strict-supersets convention). A host that cannot ask, an SA carrying a
 // list shape this build cannot ask honestly (Random$, TwoColors$, OrColors$,
 // UpTo$, ColorsFrom$ -- the latter four keep the loud Note the effChooseType
@@ -53,10 +61,27 @@ func init() {
 // silently to W.
 func effChooseColor(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
-	if o := g.Obj(c.Source); o != nil && o.ChosenColor != "" {
+	opts, askable, exotic := chooseColorOptions(sa)
+	if c.ETBColorRecorded {
+		// The as-enters ENTRY-choice body (ETBColorRecorded, set by rules'
+		// replCtx for the K:ETBReplacement ChooseColor repl): the entry ask
+		// already recorded the answer on the object, so this pass is the
+		// historical no-op -- never a second ask. With no recorded answer
+		// (an entry answer the fold could not name) it keeps the
+		// deterministic fallback emit. The flag is consumed and cleared
+		// (fx42): a nested ChooseColor deeper in the same chain poses its
+		// own fresh ask.
+		c.ETBColorRecorded = false
+		if o := g.Obj(c.Source); o != nil && o.ChosenColor != "" {
+			return
+		}
+		fallback := "W"
+		if len(opts) > 0 {
+			fallback = opts[0].Label
+		}
+		h.Emit(events.Event{Kind: events.Choose, Obj: c.Source, Counter: "color", Text: string(colourLetter(fallback))})
 		return
 	}
-	opts, askable, exotic := chooseColorOptions(sa)
 	if answered := c.ChosenColor; answered != "" {
 		// The "choosecolor" resume arm's answer: emit the same Choose event
 		// the fallback emits, with the answered colour's WUBRG letter, so

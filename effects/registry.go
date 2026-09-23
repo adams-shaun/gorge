@@ -1652,6 +1652,21 @@ type Ctx struct {
 	// top of its walk (the fx42 scoping discipline), so a nested
 	// ChooseColor cannot inherit the outer answer.
 	ChosenColor string
+	// ETBColorRecorded marks the ONE ChooseColor invocation that must not
+	// ask: the as-enters ENTRY-choice body (K:ETBReplacement:Other:
+	// ChooseColor). The entry machinery (rules' applyETBChoiceReplacement ->
+	// resumeETBEntry) already posed the entry ask and recorded the answer on
+	// the entering object before this body runs at the re-emitted MoveZone,
+	// so rules' replCtx flags that invocation and effChooseColor keeps the
+	// historical no-op for it alone. Without the flag an unconditional
+	// o.ChosenColor guard also suppressed a FRESH resolution-time ask after
+	// an earlier ChooseColor had set the field (a second sequential SA in
+	// one resolution, or an ability activation on an already-chosen
+	// permanent) -- the stale-source-state bug the same ticket's review
+	// named. Consumed and cleared by the effect (the fx42 scoping
+	// discipline), so a nested ChooseColor deeper in the same chain poses
+	// its own fresh ask.
+	ETBColorRecorded bool
 	// ManaReflectedColor is the answered mid-resolution AB$ ManaReflected
 	// colour pick: the option Label ("Add W") the chooser picked, set by
 	// rules' "manareflected" resume arm before the suspended sub-ability is
