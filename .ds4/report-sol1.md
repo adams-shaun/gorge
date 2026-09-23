@@ -729,5 +729,5 @@ Botbench golden did not move; no split re-pin. No head/ratchet movement measured
 ## Issues
 
 - The separate `PutCounter` non-battlefield defect is tracked as `agent-20260922T183530Z-cbf0a7d3`; not changed here.
-- The earlier report also notes `effects/zone.go:effSeek` appends `RememberFound$` to trigger Remembered; this distinct primitive is out of scope. Its corpus prevalence has not been re-measured in this round; the operator should file a separate ticket if it is not already tracked.
+- The earlier report also notes `effects/zone.go:effSeek` appends `RememberFound$` to trigger Remembered; this distinct primitive is out of scope. `/usr/bin/grep -rlE '(DB\\$|AB\\$|SP\\$) Seek.*RememberFound\\$ True' .cards/cardsfolder | wc -l` measured 36 same-line carrier files (not necessarily triggered). Filed `.ds4/new-tickets/seek-rememberfound-trigger-capture.md` for separate investigation.
 - `.ds4/report-t2.md` has unrelated uncommitted modifications in this worktree, not written by this round; it was not staged or overwritten. It may block controller integration until its owner resolves it. No CR-lane test is warranted for this Forge-local remembered-set discipline.
