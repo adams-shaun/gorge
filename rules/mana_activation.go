@@ -686,7 +686,7 @@ func (e *Engine) manaSacrifices(p state.PlayerID, source state.ObjID, cost Cost)
 	for _, part := range cost.Sac {
 		var candidates []state.ObjID
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
-			if e.SacrificeBlocked(id, true) {
+			if e.sacrificeBlockedForCost(id, costCauseActivated) {
 				continue
 			}
 			if !reserved[id] && e.matchesSpecFrom(part.Spec, id, p, source) {
@@ -774,7 +774,7 @@ func (e *Engine) continueManaDiscard() {
 		}
 		var candidates []state.ObjID
 		for _, id := range e.G.Zone(state.ZBattlefield, md.player) {
-			if reserved[id] || e.SacrificeBlocked(id, true) {
+			if reserved[id] || e.sacrificeBlockedForCost(id, costCauseActivated) {
 				continue
 			}
 			if e.matchesSpecFrom(part.Spec, id, md.player, md.source) {

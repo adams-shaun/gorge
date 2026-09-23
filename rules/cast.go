@@ -1129,7 +1129,7 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 		var avail []state.ObjID
 		matchSpec := sacrificeMatchSpec(part.Spec)
 		for _, oid := range e.G.Zone(state.ZBattlefield, p) {
-			if reserved[oid] || e.SacrificeBlocked(oid, true) { // an earlier Sac part already claimed this one; a CantSacrifice-blocked one can never pay
+			if reserved[oid] || e.sacrificeBlockedForCost(oid, costCauseForAbility(ability)) { // an earlier Sac part already claimed this one; a CantSacrifice-blocked one can never pay
 				continue
 			}
 			if e.matchesSpecFrom(matchSpec, oid, p, id) {
@@ -1838,6 +1838,24 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		faceBefore = &before
 		e.emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: int32(1 - int(before))})
 	}
+	// CR 310.11: the defeated battle's owner casts it TRANSFORMED (mode
+	// defeat_cast). The exiled battle is its front face; one FlipFace to the
+	// back face before the ordinary cast transaction, after which targets and
+	// resolution read the back face exactly like the Room/Adventure/Split
+	// flips above, and an aborted proposal restores the front face via
+	// pc.faceBefore (CR 733.1). The cast is free (cost switch below) and
+	// bypasses the ordinary timing gate like Suspend's: it is part of the
+	// defeat, which happens in a combat the owner is usually not the active
+	// player of, so a creature- or sorcery-timed back face must still be
+	// castable (every Siege back face is printed exactly for this cast).
+	if opt.Mode == "defeat_cast" {
+		if o.Zone != state.ZExile || o.Card == nil || len(o.Card.Faces) < 2 || o.FaceIdx != 0 {
+			return
+		}
+		before := o.FaceIdx
+		faceBefore = &before
+		e.emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: int32(1 - int(before))})
+	}
 	f := o.Face()
 	if f == nil {
 		return
@@ -1941,6 +1959,10 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 			cost = sc.cost
 		}
 	case "suspend_cast":
+		cost = Cost{}
+	case "defeat_cast":
+		// CR 310.11: the defeated battle's owner casts the back face without
+		// paying its mana cost.
 		cost = Cost{}
 	case "plot":
 		// CR 701.34a: the plot ACTION pays the K:Plot colon parameter. Not a
@@ -3667,7 +3689,7 @@ func (e *Engine) xAsk() bool {
 			matchSpec := sacrificeMatchSpec(part.Spec)
 			avail := int32(0)
 			for _, oid := range e.G.Zone(state.ZBattlefield, pc.player) {
-				if e.SacrificeBlocked(oid, true) {
+				if e.sacrificeBlockedForCost(oid, costCauseForPendingCast(pc)) {
 					continue
 				}
 				if e.matchesSpecFrom(matchSpec, oid, pc.player, pc.card) {
@@ -4211,7 +4233,7 @@ func (e *Engine) sacAsk() bool {
 		matchSpec := sacrificeMatchSpec(part.Spec)
 		var candidates []state.ObjID
 		for _, oid := range e.G.Zone(state.ZBattlefield, pc.player) {
-			if e.SacrificeBlocked(oid, true) {
+			if e.sacrificeBlockedForCost(oid, costCauseForPendingCast(pc)) {
 				continue
 			}
 			if e.matchesSpecFrom(matchSpec, oid, pc.player, pc.card) {
@@ -5044,12 +5066,59 @@ func (e *Engine) pendingCastScope(pc *pendingCast) (costScope, bool) {
 // is tested as the sole selection: that is exact for the normal one-target
 // shape and conservatively safe for multi-target declarations (where the
 // decision API cannot express that one option requires another option).
+//
+// The probe also reprices the ability's own target-dependent ReduceCost$
+// per candidate (belt_of_giant_strength's Targeted$CardPower): the offer
+// gate folded the BEST legal target's reduction into pc.cost (pc.ownReduce),
+// so without this fold a weaker candidate reads payable at the best-target
+// offer price while repriceForTargets will actually charge its own, higher
+// price at CR 601.2h -- an abort after an apparently-legal target choice.
+// The delta is exactly the net shift repriceForTargets applies (same
+// helper, idempotent fold); it is never negative because the offer's max
+// runs over the same candidate set costPotentialTargets derives from
+// legalTargetCandidates, and the clamp keeps that invariant load-bearing.
 func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []targetCandidate) []targetCandidate {
 	scope, ok := e.pendingCastScope(pc)
 	if !ok {
 		return nil
 	}
 	pl := e.G.Players[pc.player]
+	// Only a root-target-dependent own reduction needs a proven window
+	// reachability check. Other activations retain their existing mana-window
+	// offer semantics (including sources this static probe cannot price).
+	targetDiscount := pc.isAbility() && pc.ownReduce > e.ownReduceCost(pc.player, pc.card, e.pcAbility(pc), nil, nil, pc.abilityMerged)
+	var windowUnits []windowManaUnit
+	if targetDiscount {
+		windowUnits = e.windowManaUnits(pc.player)
+		// The payment window can also tap a choice-shaped source (Any,
+		// Combo, Chosen). The shared fixed-production census omits these
+		// because an unless-pay window cannot pose their colour sub-ask;
+		// cast payment can. Add each possible single-colour production as
+		// an alternative of the SAME permanent, never as another tap.
+		for _, source := range e.attackChoiceManaSources(pc.player) {
+			produced := substituteChosenProduced(source.original.Params["Produced"], e.chosenProducedColour(source.id))
+			counts, _ := cards.ProducedCounts(produced)
+			idx := -1
+			for i := range windowUnits {
+				if windowUnits[i].id == source.id {
+					idx = i
+					break
+				}
+			}
+			if idx == -1 {
+				windowUnits = append(windowUnits, windowManaUnit{id: source.id})
+				idx = len(windowUnits) - 1
+			}
+			for colour, n := range counts {
+				if n == 0 {
+					continue
+				}
+				var single [6]int32
+				single[colour] = 1
+				windowUnits[idx].alts = append(windowUnits[idx].alts, windowManaAlt{counts: single, amt: source.units})
+			}
+		}
+	}
 	out := make([]targetCandidate, 0, len(candidates))
 	for _, candidate := range candidates {
 		target := state.Target{Obj: candidate.obj}
@@ -5058,6 +5127,11 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 		}
 		mods := e.costModifiersForTargets(pc.player, pc.card, scope, []state.Target{target})
 		cost := mods.apply(pc.resolvedMana())
+		if pc.ownReduce > 0 {
+			if n := e.ownReduceCost(pc.player, pc.card, e.pcAbility(pc), []state.Target{target}, nil, pc.abilityMerged); n < pc.ownReduce {
+				cost.Generic = addClampedGeneric(cost.Generic, int64(pc.ownReduce-n))
+			}
+		}
 		// An announce-bound Exile part (the Shoal cycle's cmcEQX) is priced
 		// by the ANNOUNCED X, not by the candidate: nonManaCastable below
 		// evaluates a non-literal cmc comparison fail-closed (it has no X
@@ -5135,8 +5209,27 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 		// (convokeAbsorbs), so the fold is the payment's own arithmetic,
 		// probed, never charged.
 		convoked := e.applyConvoke(pc, cost)
-		if e.manaFeasibleDescriptor(pc.player, paymentForCast(pc, convoked), convoked, costMods{}, 0, 0, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}) ||
-			(cost.hasManaPayment() && e.hasUntappedManaSource(pc.player)) {
+		pay := paymentForCast(pc, convoked)
+		if e.manaFeasibleDescriptor(pc.player, pay, convoked, costMods{}, 0, 0, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}) {
+			out = append(out, candidate)
+			continue
+		}
+		if !cost.hasManaPayment() {
+			continue
+		}
+		if targetDiscount {
+			// A best-target discount can make this option affordable before
+			// choosing targets while a weaker target is not. An arbitrary
+			// untapped source is not proof that the 601.2g window can cover
+			// the difference. Probe the window's concrete free productions,
+			// one alternative per source, instead of offering a target whose
+			// activation will abort at payment (CR 601.2h).
+			av := e.manaAvailableFor(pc.player, pay)
+			if e.unlessManaReachable(pc.player, convoked, av.pool, pl.Snow, av.typed, pl.Life,
+				e.paymentConv(pc.player, pay.id, pay.class == paymentActivated), windowUnits) {
+				out = append(out, candidate)
+			}
+		} else if e.hasUntappedManaSource(pc.player) {
 			out = append(out, candidate)
 		}
 	}
@@ -6806,17 +6899,47 @@ func (e *Engine) castStageSVars(pc *pendingCast) map[string]string {
 // walks a SLICE of words and only LOOKS UP svars, so no map iteration order
 // can reach the result.
 func bodyReadsAllTargeted(v string, svars map[string]string, depth int) bool {
+	return bodyReadsRef(v, svars, depth, func(s string) bool {
+		return strings.Contains(s, "AllTargeted")
+	})
+}
+
+// bodyReadsRootTarget reports whether v, or any SVar body it reaches, reads a
+// ROOT-target reference (Targeted$ / ParentTarget$ / ThisTargetedCard$ -- the
+// names refTargets binds to Ctx.Targets, the ability's OWN chosen targets).
+// The AllTargeted$ union is deliberately excluded: it is the sub-ability
+// pre-ask's shape (alltargeted1), priced only by repriceForTargets, and this
+// predicate arms the offer-time potential-target read for an equip cost
+// reduction (CR 702.6), never that union. bodyReadsRef's shared walk means a
+// body can never be detected by one predicate and missed by the other's
+// ordering; the two only differ in which ref names they accept.
+func bodyReadsRootTarget(v string, svars map[string]string, depth int) bool {
+	return bodyReadsRef(v, svars, depth, func(s string) bool {
+		if strings.Contains(s, "AllTargeted") {
+			return false
+		}
+		return strings.Contains(s, "Targeted$") ||
+			strings.Contains(s, "ParentTarget$") ||
+			strings.Contains(s, "ThisTargetedCard$")
+	})
+}
+
+// bodyReadsRef is the shared transitive SVar/word walk both ref predicates
+// use. match decides whether a single expanded body names the ref; the walk
+// still follows SVar references and identifier-shaped bare words so a ref
+// reached only through an indirection (Count$Compare's Y operand) is found.
+func bodyReadsRef(v string, svars map[string]string, depth int, match func(string) bool) bool {
 	v = strings.TrimSpace(v)
 	if v == "" || depth > 4 {
 		return false
 	}
-	if strings.Contains(v, "AllTargeted") {
+	if match(v) {
 		return true
 	}
 	if len(svars) == 0 {
 		return false
 	}
-	if b, ok := svars[v]; ok && bodyReadsAllTargeted(b, svars, depth+1) {
+	if b, ok := svars[v]; ok && bodyReadsRef(b, svars, depth+1, match) {
 		return true
 	}
 	for _, w := range strings.FieldsFunc(v, func(r rune) bool {
@@ -6825,7 +6948,7 @@ func bodyReadsAllTargeted(v string, svars map[string]string, depth int) bool {
 		if w == v {
 			continue
 		}
-		if b, ok := svars[w]; ok && bodyReadsAllTargeted(b, svars, depth+1) {
+		if b, ok := svars[w]; ok && bodyReadsRef(b, svars, depth+1, match) {
 			return true
 		}
 	}
@@ -7116,30 +7239,27 @@ func (e *Engine) graveyardManaValue(p state.PlayerID, ids []state.ObjID) int32 {
 }
 
 // finishTargetedCast is the completion tail every cast-flow target answer
-// converges on once no post-target ask is outstanding: the ability arm pays
-// and THEN records the root targets (its stack object is minted by payCast's
-// AbilityPush); the spell arm pays (its targets were already recorded before
-// the park). The tail carries the CR 117.3c priority discipline the root arm
+// converges on once no post-target ask is outstanding. payCast records an
+// ability's root targets once its stack object is minted (possibly after a
+// mana window); a spell's targets were already recorded before the park.
+// The tail carries the CR 117.3c priority discipline the root arm
 // always owned: the caster keeps priority only once no announcement decision
 // is outstanding, and a trigger drain parked on the target ask resumes
 // through its own continuation.
 func (e *Engine) finishTargetedCast(pc *pendingCast, player state.PlayerID) {
-	if pc.isAbility() {
-		e.payCast()
-		if pc.stackObj != 0 && pc.rootOpts != nil {
-			e.recordChosenTargets(pc.stackObj, pc.rootOpts, false)
-		}
-		// payCast closes the proposal after creating the stack object. Keep its
-		// completed target bindings available while the deferred spend rider
-		// matches, then close it again before control returns to the host.
-		if pc.stackObj != 0 {
-			e.cast = pc
-			e.fireManaSpentTriggers(events.Event{Kind: events.AbilityPush, Obj: pc.card,
-				Player: pc.player, Amount: int32(pc.ability)}, nil)
-			e.cast = nil
-		}
-	} else {
-		e.payCast()
+	e.payCast()
+	// payCast closes the proposal after creating the stack object (and has
+	// already recorded an ability's root targets, on either the immediate pay
+	// path or a resumed payCast). Keep its completed target bindings available
+	// while the deferred spend rider matches, then close it again before
+	// control returns to the host. A proposal still parked in the 601.2g mana
+	// window has minted no stack object yet, so the guard also keeps the
+	// dispatch off a suspended payment.
+	if pc.isAbility() && pc.stackObj != 0 {
+		e.cast = pc
+		e.fireManaSpentTriggers(events.Event{Kind: events.AbilityPush, Obj: pc.card,
+			Player: pc.player, Amount: int32(pc.ability)}, nil)
+		e.cast = nil
 	}
 	if e.drainAwaitsTarget {
 		e.drainAwaitsTarget = false
@@ -7604,8 +7724,8 @@ func (e *Engine) payCast() {
 		// recorded; what differs from a spell here is the cost's remaining
 		// non-mana parts. Pay mana, then each Tap (a Tap event), each
 		// SubCounter part (a CounterChange of -N), and every chosen sacrifice.
-		// The ability object was already minted by pushCast; targets are
-		// recorded onto it by handleTarget.
+		// The ability object is minted after payment below; answered targets
+		// are recorded onto it after AbilityPush, including a window resume.
 		mana := e.manaToPay(pc)
 		// The descriptor carries the announced-X marker (the ability's own
 		// {X} cost was folded), so a CostContainsX batch sees this activation
@@ -7825,6 +7945,13 @@ func (e *Engine) payCast() {
 			// its own ability still deals damage in the granted form.
 			e.captureNamedDamageSourceLKI(pc.stackObj, pc.card, sourceKeywordLKI, sourceControllerLKI)
 			break
+		}
+		// A target answer can suspend payment in the 601.2g mana window.
+		// Record it only once the ability object actually exists, on either
+		// the immediate pay path or a resumed payCast; finishTargetedCast
+		// cannot do so if the window has not minted the stack object yet.
+		if pc.stackObj != 0 && pc.rootOpts != nil {
+			e.recordChosenTargets(pc.stackObj, pc.rootOpts, false)
 		}
 		if pc.rootOpts == nil {
 			// No target-recording continuation: dispatch at the completed

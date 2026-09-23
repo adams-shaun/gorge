@@ -1786,7 +1786,7 @@ func init() {
 		"trig:LifeGained",
 		"trig:BecomesTarget", "trig:LandPlayed", "trig:Phase", "trig:Attached", "trig:Unattached", "trig:FlippedCoin",
 		"trig:Vote", "trig:RolledDie", "trig:RolledDieOnce",
-		"trig:Explores", "trig:Exerted", "trig:Investigated",
+		"trig:Explores", "trig:Exerted", "trig:Investigated", "trig:SearchedLibrary",
 		"trig:Exploited",
 		"trig:ManaExpend",
 		"trig:Connives",

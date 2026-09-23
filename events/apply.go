@@ -151,6 +151,10 @@ func Apply(g *state.Game, e Event) {
 		// this one, and the record is what trig:Investigated matches. Player
 		// is the investigating seat, Obj the resolving source permanent.
 
+	case SearchedLibrary:
+		// Pure marker for one completed library search; all resulting card
+		// moves and the shuffle have their own events.
+
 	case Discover, Seek, Surveil:
 		// The discover (CR 701.57), seek (task trigdisc1) and surveil
 		// (CR 701.42, task trig-surveil) records are pure markers, exactly

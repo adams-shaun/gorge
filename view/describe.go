@@ -86,6 +86,12 @@ func Describe(g *state.Game, ev events.Event) string {
 	case events.TurnFaceUp:
 		// CR 708.6: Obj is the permanent that revealed its printed face.
 		return obj(g, ev.Obj) + " is turned face up"
+	case events.SearchedLibrary:
+		// CR 701.23: the completed-search marker (trig:SearchedLibrary).
+		// Player is the seat whose library was searched; the resolving source
+		// (ev.Obj) is not named -- the search's card moves carry their own
+		// events and lines.
+		return player(g, ev.Player) + " searches their library"
 	case events.RingTemptsYou:
 		// CR 701.54: the temptation and the designation it made. A bearer of
 		// 0 is CR 701.54d's impossible-choice shape (no creature controlled):

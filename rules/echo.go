@@ -218,7 +218,16 @@ func (e *Engine) echoActionAsk() {
 		zone = state.ZHand
 		prompt = "Choose cards to discard for echo"
 	}
-	ids := e.cumulativeObjects(shim, zone, ef.action.spec)
+	// A Sac echo payment is demanded by the echo trigger (CR 702.35), so its
+	// candidate walk runs the same CantSacrifice cost gate the cumulative
+	// upkeep Sac arm does (cantsac1 r2); the Discard arm reads a hand, where
+	// no sacrifice is made.
+	var ids []state.ObjID
+	if ef.action.kind == "Sac" {
+		ids = e.cumulativeSacObjects(shim)
+	} else {
+		ids = e.cumulativeObjects(shim, zone, ef.action.spec)
+	}
 	d := &decision.Decision{Player: ef.player, Kind: decision.KChoose, Min: total, Max: total,
 		Prompt: prompt, Source: ef.source}
 	for _, id := range ids {

@@ -500,6 +500,25 @@ func (e *Engine) cumulativePaymentAsk() {
 		Prompt: o.Face().Name + " — cumulative upkeep: pay or sacrifice", Source: cu.source, Options: opts})
 }
 
+// cumulativeSacObjects is the Sac arm's candidate walk, shared by every
+// cumulative-upkeep-style Sac payment: the upkeep action's payable check and
+// its choice ask, and echo's pay-gate and pick ask over the same shim. The
+// payment is demanded by a triggered ability (the upkeep or echo trigger,
+// CR 702.25a / CR 702.35), so the CantSacrifice cost gate runs with
+// costCauseTriggered: an Effect-registered CantSacrifice or a bare
+// `ForCost$ True` face static blocks the permanent, a `ValidCause$
+// Spell,Activated` carrier (Angel of Jubilation) scopes past it, and a
+// `ValidCause$ Triggered` one admits the block (cantsac1 r2).
+func (e *Engine) cumulativeSacObjects(cu *cumulativeUpkeep) []state.ObjID {
+	var out []state.ObjID
+	for _, id := range e.cumulativeObjects(cu, state.ZBattlefield, cu.action.spec) {
+		if !e.sacrificeBlockedForCost(id, costCauseTriggered) {
+			out = append(out, id)
+		}
+	}
+	return out
+}
+
 func (e *Engine) cumulativeObjects(cu *cumulativeUpkeep, zone state.Zone, spec string) []state.ObjID {
 	var out []state.ObjID
 	players := []state.PlayerID{cu.player}
@@ -527,7 +546,7 @@ func (e *Engine) cumulativeActionPayable(cu *cumulativeUpkeep) bool {
 	total := int(a.n * cu.actionRemaining)
 	switch a.kind {
 	case "Sac":
-		return len(e.cumulativeObjects(cu, state.ZBattlefield, a.spec)) >= total
+		return len(e.cumulativeSacObjects(cu)) >= total
 	case "Discard":
 		return len(e.cumulativeObjects(cu, state.ZHand, a.spec)) >= total
 	case "Draw", "ExileFromTop":
@@ -581,7 +600,7 @@ func (e *Engine) continueCumulativeAction() {
 	total := int(a.n * cu.actionRemaining)
 	switch a.kind {
 	case "Sac":
-		e.cumulativeObjectDecision(cu, e.cumulativeObjects(cu, state.ZBattlefield, a.spec), total, total,
+		e.cumulativeObjectDecision(cu, e.cumulativeSacObjects(cu), total, total,
 			"cumulative_action_sac", "Choose permanents to sacrifice for cumulative upkeep")
 	case "Discard":
 		e.cumulativeObjectDecision(cu, e.cumulativeObjects(cu, state.ZHand, a.spec), total, total,
@@ -1355,7 +1374,10 @@ func (e *Engine) triggeredMandatoryCandidatesWith(tc *triggeredEffectCost, idx i
 		if used[id] {
 			continue
 		}
-		if isSac && e.SacrificeBlocked(id, true) {
+		if isSac && e.sacrificeBlockedForCost(id, costCauseTriggered) {
+			// The window's cost components are demanded by the RESOLVING
+			// triggered ability (a `Cost$ Mandatory Sac<...>` body, TrigsMand1),
+			// so the cause is costCauseTriggered (cantsac1 r2).
 			continue
 		}
 		if e.matchesSpec(spec, id, sc) {

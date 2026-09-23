@@ -172,6 +172,15 @@ func writeCommittedOvershootMatch(raw []byte, id string) ([]byte, error) {
 		delete(doc, "tokens")
 	}
 	delete(doc, "tokens_unread")
+	// `name_universe_names` is the whole corpus's sorted card-name list
+	// (~24k entries): dropped here exactly as cmd/repro/emit.go's
+	// writeCommittedMatch drops it (the mirror this function duplicates) —
+	// the `name_universe` MODE bit stays, so the fixture still replays with
+	// a universe, and feedback.config() re-derives the label list from the
+	// live corpus. Without this the re-recorded fixture grows by ~500 KB
+	// of corpus-derived JSON (measured: 20260923 re-record). The mirror
+	// had drifted from emit.go when the stripper gained this deletion.
+	delete(doc, "name_universe_names")
 	out, err := json.MarshalIndent(doc, "", "  ")
 	if err != nil {
 		return nil, err
