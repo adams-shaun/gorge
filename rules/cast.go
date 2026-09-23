@@ -736,9 +736,10 @@ type suspendInfo struct {
 // generic Convoke contribution or Harmonize; power is zero for Convoke and
 // is the amount a Harmonize creature reduces the generic total by.
 type convokePayment struct {
-	id    state.ObjID
-	color byte
-	power int32
+	id         state.ObjID
+	color      byte
+	power      int32
+	countsMana bool
 }
 
 // hasCastConvoke reports whether the spell being cast carries Convoke once
@@ -5370,15 +5371,69 @@ func faceWantsConverge(f *cards.Face) bool {
 // table reads the TOTAL mana actually spent to cast the spell -- a body
 // naming the Count$CastTotalManaSpent head (Freestrider Commando's
 // SVar:X:Count$CastTotalManaSpent feeding its etbCounter CheckSVar$ gate).
-// The ref-property readers of OTHER casts (TriggeredCard$
-// CastTotalManaSpent and its family) do not read this object field and do
-// not gate the emission -- they stay on the rv2b exotic-heads ledger.
+// A trigger on ANOTHER permanent that reads the cast spell's spend through
+// the ref-property spelling (TriggeredCard$CastTotalManaSpent -- Aberrant
+// Manawurm, Manaform Hellkite, Muse Seeker) is invisible here because the
+// CAST face is an ordinary instant/sorcery; that path is gated by
+// triggeredCastSpendReaderOut below instead.
 func faceWantsCastSpend(f *cards.Face) bool {
 	if f == nil {
 		return false
 	}
 	for _, body := range f.SVars {
 		if strings.Contains(body, "Count$CastTotalManaSpent") {
+			return true
+		}
+	}
+	return false
+}
+
+// triggeredCastSpendReaderOut is the capture gate's second arm (the
+// triggeredConvergeReaderOut shape): it reports whether any alive player's
+// battlefield holds a permanent whose faces read the TRIGGER-relative spend
+// spelling TriggeredCard$CastTotalManaSpent -- a trigger that reads ANOTHER
+// spell's total spend, which faceWantsCastSpend cannot see because the cast
+// face itself is an ordinary instant/sorcery. Only then does the pay-time
+// CastInfo need stamping on a plain cast; a TriggerZones$ Battlefield
+// SpellCast trigger can only exist for casts made while the reader is out, so
+// this scan-at-pay-time gate stamps exactly when the value can be needed and
+// no game without a reader out changes an event (heads stay put: no reader is
+// in any repo deck). Pure read -- the boolean OR over the deterministic
+// seat/zone walk cannot reach an event; replay re-runs payCast and derives the
+// same scan.
+func (e *Engine) triggeredCastSpendReaderOut() bool {
+	g := e.G
+	for _, p := range g.AliveFrom(0) {
+		for _, id := range g.Zone(state.ZBattlefield, p) {
+			if o := g.Obj(id); o != nil && objectReadsTriggeredCastSpend(o) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// objectReadsTriggeredCastSpend reports whether any face the ordinary trigger
+// scan walks for o reads TriggeredCard$CastTotalManaSpent: the cast face, an
+// unlocked Room's alternate face (roomTriggerFaces) and every merged
+// under-card face (triggerFacesWithMerged). The shared face enumeration is
+// what makes this the gate's structural twin of the trigger scan rather than
+// a second, driftable list -- the next such face shape is covered without a
+// new arm. Face.Mentions scans every string the face owns (SVars, keywords,
+// ability params), so an inline parameter spelling is covered too, not just
+// the SVar-table form the corpus uses today.
+func objectReadsTriggeredCastSpend(o *state.Object) bool {
+	f := o.Face()
+	if f == nil {
+		return false
+	}
+	faces, n := roomTriggerFaces(o, f)
+	walk := faces[:n]
+	if len(o.MergedCards) > 0 {
+		walk = triggerFacesWithMerged(o, walk)
+	}
+	for _, fc := range walk {
+		if fc.face != nil && fc.face.Mentions("TriggeredCard$CastTotalManaSpent") {
 			return true
 		}
 	}
@@ -5466,8 +5521,8 @@ func objectHasManaExpendTrigger(o *state.Object) bool {
 	return false
 }
 
-// manaExpendAdd folds a paid cast's pool spend into the per-turn ManaExpend
-// tally, resetting it first when the turn has moved on. Called
+// manaExpendAdd folds a paid cast's mana expenditure into the per-turn
+// ManaExpend tally, resetting it first when the turn has moved on. Called
 // UNCONDITIONALLY from payCast (before the gated wake-up emission), so the
 // tally counts casts made while no carrier was out -- the pre-entry base the
 // crossing test needs. Deterministic: e.G.Turn advances only through
@@ -5572,6 +5627,16 @@ func (e *Engine) paymentMana(pc *pendingCast) Cost {
 // Harmonize is actually offered, not rejected before the payment is known.
 func (e *Engine) paymentManaX(pc *pendingCast, x int32) Cost {
 	return e.applyConvoke(pc, e.manaToPayX(pc, x))
+}
+
+func convokeManaSpent(pays []convokePayment) int32 {
+	var n int32
+	for _, pay := range pays {
+		if pay.countsMana {
+			n++
+		}
+	}
+	return n
 }
 
 func (e *Engine) applyConvoke(pc *pendingCast, m Cost) Cost {
@@ -5825,7 +5890,7 @@ func (e *Engine) validateCastContributions(d *decision.Decision, in decision.Int
 			if o.Kind != "convoke_generic" {
 				color = o.Kind[len("convoke_")]
 			}
-			pays = append(pays, convokePayment{id: o.Obj, color: color})
+			pays = append(pays, convokePayment{id: o.Obj, color: color, countsMana: true})
 		default:
 			return nil // a different cast-flow ask, not the convoke announcement
 		}
@@ -6377,7 +6442,7 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 			if choice.Kind != "convoke_generic" && choice.Kind != "improvise_generic" {
 				color = choice.Kind[len("convoke_")]
 			}
-			pc.convoke = append(pc.convoke, convokePayment{id: choice.Obj, color: color})
+			pc.convoke = append(pc.convoke, convokePayment{id: choice.Obj, color: color, countsMana: strings.HasPrefix(choice.Kind, "convoke_")})
 		}
 	case "harmonize":
 		for _, choice := range chosen {
@@ -7987,7 +8052,7 @@ func (e *Engine) payCast() {
 		pc.convergeOn = true
 		pc.converge = convergeColours(spentMana)
 	}
-	if f := e.G.Obj(pc.card).Face(); faceWantsCastSpend(f) {
+	if f := e.G.Obj(pc.card).Face(); faceWantsCastSpend(f) || e.triggeredCastSpendReaderOut() {
 		pc.manaSpentOn = true
 		pc.manaSpent = manaSpentTotal(spentMana)
 		pc.manaSpentSnow = manaSpentTotal(spentSnow)
@@ -8347,12 +8412,14 @@ func (e *Engine) payCast() {
 	//
 	// The wake-up CastInfo emission stays gated (heads safety: only a cast
 	// made while the caster's battlefield already holds a ManaExpend carrier
-	// can fire one, so no game without a carrier changes an event). Pool mana
-	// only, the same delta manaSpentTotal(spentMana) the faceWantsCastSpend
-	// capture prices: convoke contributions and free casts are not mana spent,
-	// and ability activations never reach this block. The tally update runs
-	// BEFORE the emit, so the matcher reads the post-payment total.
-	if spend := manaSpentTotal(spentMana); spend > 0 {
+	// can fire one, so no game without a carrier changes an event). Count pool
+	// mana actually spent plus each Convoke contribution: CR 702.50 says each
+	// creature tapped for Convoke pays for one mana, and CR 601.2g-h includes
+	// those contributions in paying the spell's total cost. Delve, Harmonize,
+	// Improvise, free casts and ability activations do not spend mana. The
+	// tally update runs BEFORE the emit, so the matcher reads the post-payment
+	// total.
+	if spend := manaSpentTotal(spentMana) + convokeManaSpent(pc.convoke); spend > 0 {
 		e.manaExpendAdd(pc.player, spend)
 		if e.manaExpendReaderOut(pc.player) {
 			meFlags := events.FlagsString(events.FlagsFrom(flags) | state.FlagManaExpendCast)

@@ -1325,10 +1325,10 @@ func Apply(g *state.Game, e Event) {
 			if o := g.Obj(id); o != nil {
 				o.IsAttacking = true
 				o.Attacking = e.Player
-				// CR 310.7: a battle attack carries the battle in Obj, so the
-				// attacker records which permanent it is attacking. A player
-				// attack leaves Obj zero and the field stays zero -- the same
-				// discriminator a Numeric TargetChosen pair uses.
+				// CR 310.7/CR 508.1: a battle or planeswalker attack carries that
+				// permanent in Obj, so the attacker records which permanent it is
+				// attacking. A player attack leaves Obj zero and the field stays
+				// zero -- the same discriminator a Numeric TargetChosen pair uses.
 				o.AttackingBattle = e.Obj
 				o.AttacksThisTurn++
 			}
@@ -3028,8 +3028,8 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		//   - A face whose starting loyalty this engine cannot read (absent,
 		//     or Loyalty:X -- Nissa, Steward of Elements) grants nothing.
 		//
-		// Known gap (recorded in AGENTS.md): TokenCreate does NOT route
-		// through Move, so a planeswalker TOKEN enters with zero loyalty.
+		// TokenCreate routes the minted object through Move below, so this
+		// same entry grant gives planeswalker tokens their starting loyalty.
 		// CR 400.7: a battlefield entry from another zone is a new object and
 		// a new control acquisition — kw:Echo's gate stamp (the entry already
 		// carries the entering controller). A battlefield→battlefield stay is

@@ -520,7 +520,13 @@ func (e *Engine) askAttackers() {
 		label := "Attack with " + e.G.Obj(of.id).Face().Name + " at " + seatFacingName(e.G, of.def)
 		if of.battle != 0 {
 			if b := e.G.Obj(of.battle); b != nil && b.Face() != nil {
-				label = "Attack with " + e.G.Obj(of.id).Face().Name + " at " + b.Face().Name
+				if b.Face().IsBattle() {
+					// A battle: name it instead of the protector seat (main).
+					label = "Attack with " + e.G.Obj(of.id).Face().Name + " at " + b.Face().Name
+				} else {
+					// A planeswalker: name it alongside the controller seat.
+					label += " (planeswalker: " + b.Face().Name + ")"
+				}
 			}
 		}
 		if of.price > 0 {
@@ -856,7 +862,7 @@ func (e *Engine) validateAttackers(d *decision.Decision, in decision.Intent) err
 			return fmt.Errorf("object %d cannot attack", o.Obj)
 		}
 		if o.Battle != 0 && !e.canAttackBattle(o.Battle, d.Player) {
-			return fmt.Errorf("object %d cannot attack battle %d", o.Obj, o.Battle)
+			return fmt.Errorf("object %d cannot attack permanent %d", o.Obj, o.Battle)
 		}
 		if seen[o.Obj] {
 			return fmt.Errorf("attacker %d declared against more than one defender", o.Obj)

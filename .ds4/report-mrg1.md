@@ -1,123 +1,191 @@
-# Merge resolution report — task cli-20260923T060000Z-equip-reduce
+# Round record — merge resolver, this worktree (ticket cli-20260923T060000Z-hlcz-imprint), 2026-09-23
 
 ## Entry state
 
-The worktree entered CLEAN with no rebase or merge in flight. The daemon's
-reported rebase (`rebase onto main conflicted` on `62c39530 fix(rules): bound
-targeted equip menu by payable mana window`) had already been aborted: the
-branch still sat on its original base `62ae4746` with all four of its commits
-(`a1e46ad1`, `14ce2fbf`, `62c39530`, `559701e2`) unrewritten. Main had advanced
-to `13f75557` (the cantsac1 r2 merge, plus ChooseType enumeration, mana-spent
-activation riders, granted Goad statics, kw_prevent, ChooseType roots, battle
-attack tests, and more — ~90 paths).
+`git status` found the tree CLEAN at the completed merge `519f86ff` (branch fix
+`417cb9aa` + main `e1829bf9`): no rebase or merge in flight. The dispatch's
+conflict set (`effects/zone.go`, `internal/testutil/agentsdoc_test.go`) was
+already resolved there — verified, not redone:
 
-Integration was completed with `git merge main` (the branch already carries
-merge commits; a rebase would rewrite the reviewed fix's history and is
-forbidden to this seat).
+- `effects/zone.go` keeps the branch's `Imprint$` retention in
+  `applyLibrarySearch` (the `var imprinted []state.ObjID` accumulation and the
+  post-move-zone-guarded batched `events.Imprint`), which main's side never
+  carried; main's changes to other zone movers are untouched.
+- `internal/testutil/agentsdoc_test.go` read `knownApproximationRows = 27`,
+  matching the merged AGENTS.md (27 data rows) — the base-2341274c 30 minus
+  this branch's hidden-library ChangeZone row deletion and main's `mtsp1`/
+  `battle1` deletions (staticgoad1→ap1 was a net-zero swap).
+- `417cb9aa` and `e1829bf9` were both ancestors; tree clean.
 
-## Conflicts and resolutions
+## Second integration — main advanced to `fac07856` mid-round
 
-`git merge main` reported ONE content conflict: `rules/cast.go` (two hunks).
-Everything else auto-merged.
+While verifying, `main` had moved `e1829bf9` → `fac07856` (the
+`cli-20260923T060000Z-ctms-refhead` ticket: TriggeredCard$CastTotalManaSpent
+reads the cast spend, deleting the `(castfilter1/2)` register row, plus the
+layers-pt7kw `(kw:Flanking)` deletion already in its lineage). The integration
+owed to main's tip was completed as `git merge main --no-edit`:
 
-### `rules/cast.go` hunk 1 — `finishTargetedCast`
-
-- **Branch** had collapsed the function to `e.payCast()` — its fix moved an
-  ability's root-target recording OUT of this tail and INTO `payCast`'s
-  ability arm, because a target answer can now suspend payment in the
-  601.2g mana window; a recording done in `finishTargetedCast` misses a
-  proposal whose stack object is minted only on the resumed `payCast` pass.
-- **Main** had kept the base's `isAbility()` branch (with the old
-  `recordChosenTargets` here) and ADDED the deferred mana-spent rider
-  dispatch: after `payCast`, re-arm `e.cast = pc` and fire
-  `fireManaSpentTriggers(AbilityPush)` so a `TriggersWhenSpent$` rider on an
-  activation matches with the completed target bindings available, then
-  close again (`82d3ba68`/`5cfb27c5`/`d506db1c`, mana-spent riders on
-  ability activations).
-
-**Resolution — both intents, composed.** Kept the branch's `e.payCast()`
-(the target recording now lives inside `payCast`, per its own comment), and
-kept main's deferred dispatch under `pc.isAbility() && pc.stackObj != 0`
-(main's guard; it also keeps the dispatch off a proposal still parked in the
-mana window, where `stackObj` is 0). The shared comment records both halves.
-
-### `rules/cast.go` hunk 2 — `payCast`'s ability arm tail
-
-- **Branch** added, after the LKI capture: record `pc.rootOpts` targets once
-  `pc.stackObj != 0` — the immediate pay path OR a resumed `payCast`.
-- **Main** added: when `pc.rootOpts == nil` (no target-recording
-  continuation), dispatch `fireManaSpentTriggers` right at the completed
-  `AbilityPush` boundary while the spent-source capture is still live.
-
-**Resolution — both, complementary:** the branch's `recordChosenTargets`
-guard (`stackObj != 0 && rootOpts != nil`) followed by main's
-`rootOpts == nil` immediate dispatch. They are mutually exclusive on
-`rootOpts`, so exactly one (or neither) runs; no double dispatch. A
-target-answer + mana-window proposal still fires nothing on the resumed
-path — exactly main's pre-existing behaviour (its deferred site needs
-`stackObj != 0`, which is false at `finishTargetedCast` time in that case);
-the merge introduces no new fire or miss relative to either side.
-
-## Post-merge ratchet fix (part of the integration, per the brief)
-
-Main's paramcensus rot guard newly scanned the branch's code and failed with
-9 findings — the branch introduced `bodyReadsRef`/`bodyReadsRootTarget` (the
-shared transitive SVar walk behind `bodyReadsAllTargeted`, commit `a1e46ad1`)
-and reads `source.original.Params["Produced"]` in the equip window probe
-(`559701e2`). Classified them in `rules/paramcensus_test.go`:
-
-- `stringMapParams`: added `"rules:bodyReadsRef:svars"` (SVar-table walk by
-  SVar name, not a card Params map). Whitelisting the callee clears the
-  direct dynamic-key finding (`svars[w]` at cast.go:6929) AND the seven
-  caller-attribution findings, since callers forwarding `svars` are no
-  longer attributed through a whitelisted map. Main's existing
-  `"rules:bodyReadsAllTargeted:svars"` entry stays (the branch's refactor
-  made it inert, but there is no staleness check and deleting it is not
-  required).
-- `baseBuckets`: added `"source.original": bSA` — `attackManaSource.original`
-  is a `*cards.SA` (the compiled pile ability), the same classification as
-  the existing bare `"original"` entry.
+- `AGENTS.md` and `effects/zone.go` auto-merged — verified both intents
+  survive: the branch's `Imprint$` fix AND main's flip-before-move
+  `applyTransformed` reordering (CR 306.5b entry-face loyalty) are both
+  present in the merged mover.
+- ONE content conflict: `internal/testutil/agentsdoc_test.go` — the
+  `knownApproximationRows` constant and its comment. Base `e1829bf9` measured
+  28 data rows; the branch deleted the hidden-library ChangeZone row (28→27),
+  main deleted `(castfilter1/2)` and `(kw:Flanking)` (28→26); the merged
+  AGENTS.md measures **25** — verified with the test's own counting rule.
+  Neither side's constant was right for the merge. Resolution:
+  `knownApproximationRows = 25` with a comment naming all three disjoint
+  closures.
 
 ## Commands and output
 
 ```text
-git status                                   -> clean, no rebase/merge in flight
-git merge-base HEAD main                     -> 62ae4746 (main NOT integrated)
-git merge main
-  Auto-merging rules/cast.go
-  CONFLICT (content): Merge conflict in rules/cast.go
-<resolve two hunks in rules/cast.go>
-gofmt -l rules/cast.go                       -> clean
-go build ./rules/                            -> ok
-go test -run 'TestBeltOfGiantStrength|TestSunkenPalaceManaSpent|TestRestrictedManaKeepsSpentActivationRider' ./rules/
-  ok  github.com/adams-shaun/gorge/rules  0.670s     (branch equip-window tests + main mana-spent activation tests)
-git add rules/cast.go
+git status                              # clean at 519f86ff, nothing in flight
+git merge-base --is-ancestor main HEAD  # e1829bf9 yes; fac07856 NO
+git merge main --no-edit
+  Auto-merging AGENTS.md
+  Auto-merging effects/zone.go
+  Auto-merging internal/testutil/agentsdoc_test.go
+  CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go
+row counts: base e1829bf9 = 28, HEAD = 27, main = 26, merged = 25
+gofmt -l internal/testutil/agentsdoc_test.go effects/zone.go   # clean
+go test ./internal/testutil -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort' -v
+  --- PASS: TestKnownApproximationsOnlyShrinks (0.00s)
+  --- PASS: TestKnownApproximationRowsAreShort (0.00s)
+  ok  github.com/adams-shaun/gorge/internal/testutil 0.002s
+go test ./effects -run 'TestLibrarySearchExileImprintIsRetained|TestLibrarySearchNonExileImprintIsRetained' -v
+  --- PASS: TestLibrarySearchExileImprintIsRetained (0.68s)
+  --- PASS: TestLibrarySearchNonExileImprintIsRetained (0.00s)
+  ok  github.com/adams-shaun/gorge/effects 0.695s
 go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
-  FAIL  (paramcensus rot guard: 9 findings — see above)
-<classify in rules/paramcensus_test.go>
-go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
-  ok  github.com/adams-shaun/gorge/rules  0.815s
-go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
-  ok  github.com/adams-shaun/gorge/cmd/botbench  1.242s    (bot win-split golden unmoved)
-go test ./internal/archtest/
-  ok  github.com/adams-shaun/gorge/internal/archtest  5.679s
-git merge --continue
+  ok  github.com/adams-shaun/gorge/rules 0.819s
+git add internal/testutil/agentsdoc_test.go && git commit --no-edit
+  -> 5e6e0760 Merge branch 'main' into wt/cli-20260923T060000Z-hlcz-imprint
+git status -> clean; main (fac07856) is now an ancestor of the branch
 ```
 
-`.cards` was present (symlink to the shared corpus) for every run above — no
-vacuous skips.
-
-## Unsure about
-
-- The `.ds4/report-mrg1.md` file is TRACKED on both branches (main carries
-  prior rounds' merge reports at this path), so this report replaces the
-  auto-merged prior content, matching the established convention.
-- The mana-window + targets + `TriggersWhenSpent$` combination (a rider on a
-  targeted activation that needed the mana window) dispatches on neither
-  path — inherited from main unchanged, not introduced here. Worth a ticket
-  if a corpus carrier exists.
+`.cards` is the real symlink to `/home/sadams/projects/gorge/.cards` — the
+rules ratchet run (0.819s) is real, not a vacuous corpus-skipped pass.
 
 ## Issues
 
-- None new. The branch's commit messages already record the conservative
-  window-probe remainders (exotic paid/variable mana productions unpriced).
+None new. Integration only; the merged state closes the hidden-library
+ChangeZone register row (this ticket) plus main-side `(castfilter1/2)` and
+`(kw:Flanking)` closures, measured at 25 data rows.
+
+---
+
+# Merge resolution report — mrg1
+
+## Conflict
+
+- `internal/testutil/agentsdoc_test.go`: main's side included the later `kw:Flanking` and `battle1` row deletions and set `knownApproximationRows` to 27; the reviewed branch also removed the `(castfilter1/2)` row and had the older constant 28. Kept all of main's updates and the branch's CTMS ref-head deletion, set the constant to 26, and updated the explanatory comment to describe the merged deletions. Measured the merged `AGENTS.md` table at 26 data rows before resolving. No other conflicted files.
+- The merge auto-merged `AGENTS.md` and `rules/cast.go`, preserving both sides' changes; no manual changes were needed there.
+
+## Commands and results
+
+- `git status --short --branch; git status` before integration: `## wt/cli-20260923T060000Z-ctms-refhead`; clean, no operation in progress.
+- `git merge main`: initially failed with a content conflict only in `internal/testutil/agentsdoc_test.go` (expected conflict); other files auto-merged.
+- Counted rows from the staged merged `AGENTS.md`: `staged AGENTS data rows: 26`.
+- `.cards` check: present as a symlink to `/home/sadams/projects/gorge/.cards`.
+- `go test -run 'TestTriggeredCardCastTotalManaSpent|TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' ./rules/`: `ok github.com/adams-shaun/gorge/rules 0.981s` (exit 0).
+- `go test -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort' ./internal/testutil/`: `ok github.com/adams-shaun/gorge/internal/testutil 0.001s` (exit 0).
+
+## Uncertainty / concerns
+
+None. Both requested ratchet groups and the conflict-specific CTMS tests passed.
+
+---
+
+# Merge resolution report — mrg1 (wt/cli-20260923T060000Z-manaexp-nonpool), 2026-09-23
+
+## Entry state
+
+`git status` found the tree CLEAN at branch tip `e7f775f6` (the convoke
+ManaExpend fix: `b6d47f8b fix(rules): count Convoke mana for ManaExpend` +
+`e7f775f6 test(rules): assert Convoke expend trigger resolves after decision
+drain`). No rebase or merge in flight, no prior partial resolution — this
+resolver ran the integration itself.
+
+## Integration
+
+`git merge main` (main at `f2599d19`). Auto-merged: AGENTS.md regions outside
+the conflict, `rules/cast.go`, `rules/heads_test.go`, and ~60 other files from
+main's lineage (hlcz-imprint, ctms-refhead, layers-pt7kw merges plus their
+closure commits). TWO content conflicts:
+
+1. **`AGENTS.md`** — the `(battle1)` / `(manaexpend1)` adjacent rows at one
+   insertion point:
+   - Base `e9ed29f0` carried BOTH rows (verified: `git show e9ed29f0:AGENTS.md`
+     lines 236-237, and the `(manaexpend1)` row text is byte-identical
+     base-vs-main — main did NOT touch that row's lines).
+   - The branch DELETED `(manaexpend1)` (b6d47f8b: ManaExpend now counts
+     convoke contributions alongside pool mana — the row's own "Removed by"
+     condition met) and kept `(battle1)`.
+   - Main DELETED `(battle1)` (b732b382: the CR 310.11 defeated battle is
+     exiled and its owner may cast it transformed) and kept `(manaexpend1)`.
+   - **Resolution: keep NEITHER row** — both closures are deliberate,
+     disjoint, and reviewed; the merged table goes `(api:Clone)` →
+     `(devthr1)` directly. Measured the merged table at **24 data rows**
+     with the test's own `approximationRows()` rule (base 29 − 5 disjoint
+     closures: manaexpend1 [branch], battle1, hlcz-imprint hidden-library
+     ChangeZone row, castfilter1/2, kw:Flanking [main]).
+
+2. **`internal/testutil/agentsdoc_test.go`** — the `knownApproximationRows`
+   constant and comment: branch said 28, main said 25, neither right for the
+   merge. Resolution: `knownApproximationRows = 24` with a merged comment
+   naming all five disjoint closures and their commits/tickets.
+
+## Risky auto-merge verified
+
+`rules/cast.go` was auto-merged between main's 5390d8b3 (expend tally became
+engine scratch; `payCast` folds every paid cast unconditionally) and the
+branch's convoke change. The merged `payCast` computes
+`manaSpentTotal(spentMana) + convokeManaSpent(pc.convoke)` — both intents
+compose; `convokePayment` gained the `countsMana` field the branch's fix adds,
+and `convokeManaSpent` survives the merge. Confirmed by both sides' tests
+passing together (below).
+
+## Commands and output
+
+```text
+git status            # clean at e7f775f6, nothing in flight
+git merge main
+  Auto-merging AGENTS.md        Auto-merging internal/testutil/agentsdoc_test.go
+  Auto-merging rules/cast.go
+  CONFLICT (content): Merge conflict in AGENTS.md
+  CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go
+awk row-count of merged AGENTS.md -> 24
+git diff --check      # no leftover markers after resolution
+git add AGENTS.md internal/testutil/agentsdoc_test.go
+go test ./internal/testutil/
+  ok  github.com/adams-shaun/gorge/internal/testutil 1.266s
+go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead|ManaExpend|Convoke'
+  ok  github.com/adams-shaun/gorge/rules 0.776s
+  (verified non-vacuous with -v: 22 RUNs, all PASS — incl.
+   TestEveryRepoDeckIsFullySupported, TestEveryRepoDeckParamsAreRead,
+   TestTeapotSlingerManaExpendCountsConvoke, and the branch's convoke tests)
+go test ./rules -run 'TestTeapotSlinger'   # main's expend tests on the merged cast.go
+  ok  github.com/adams-shaun/gorge/rules 0.584s
+gofmt -l <changed files>   # clean; go run ./cmd/gentypes -check clean
+git commit --no-edit -> b0937567 Merge branch 'main' into wt/cli-20260923T060000Z-manaexp-nonpool
+git status            # clean; main (f2599d19) is an ancestor of the branch
+```
+
+`.cards` is the real symlink to `/home/sadams/projects/gorge/.cards` — the
+rules runs are real, not vacuous corpus-skipped passes.
+
+## Uncertainty / concerns
+
+None. The only judgement call was deleting BOTH conflicting AGENTS.md rows;
+that follows from each row's deletion being a reviewed closure on its own side
+(main never modified the `(manaexpend1)` lines the branch deleted, and the
+branch never modified the `(battle1)` lines main deleted — verified
+byte-identical against the merge base), so no side's intent was overridden.
+
+## Issues
+
+None new. Integration only; the merged state closes `(manaexpend1)` (branch)
+plus main-side `(battle1)`, hlcz-imprint, `(castfilter1/2)` and `(kw:Flanking)`
+closures, measured at 24 data rows.
