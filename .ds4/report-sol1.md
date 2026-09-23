@@ -900,3 +900,48 @@ FAIL
 ## Issues
 
 No new defects found. The five carriers with additional real gaps (`api:StoreSVar`, `api:Abandon`, `api:ControlPlayer`/`api:DamageResolve`/`api:SetLife`) remain outside this census-only ticket; no new CR-lane issue identified.
+
+---
+
+# Emerge integration — agent-20260918T225913Z-5db23024 (sol1)
+
+## Finding resolved
+
+The daemon's rebase/merge fallback failed because `.ds4/report-r2.md` and `.ds4/report-t1.md` contained **unstaged Emerge reports replacing other tickets' tracked reports**. I saved both Emerge reports at unique paths (`.ds4/report-r2-emerge.md`, `.ds4/report-t1-emerge.md`), restored the two shared report paths byte-for-byte from this branch's HEAD, and committed the unique files in `efa7264b`. The working tree was then clean. `git merge main` completed without conflict at `cf798080`; `main` (`c4560130` at merge time) is an ancestor of HEAD. Main's shared report files were retained, not overwritten. No new Go changes in this round; the reviewed implementation is in `6221af8c` and the generic-only reduction fix is in `e295ef8b`. The branch still registers `kw:Emerge`, prices the sacrifice/reduced generic mana cost, and tests the real Elder Deep-Fiend. `.cards` was already symlinked to the corpus; these are not vacuous tests. There is no repo-deck Elder Deep-Fiend carrier or acceptance-table change, Known-approximations row change, or chain-head golden edit.
+
+## Fails without the fix
+
+No new test was added in this integration round. The previously committed test was proved to fail on the reverted reduction hunk and the source restored byte-identically (recorded in `.ds4/report-r2-emerge.md`):
+
+```
+--- FAIL: TestEmergeCastReductionExceedsGenericKeepsColored (0.00s)
+    emerge_test.go:182: emerge offer cost {Colored:[0 0 0 0 0 0] Generic:0 ... Sac:[{N:1 Spec:Creature ...}]}
+        (ok=true), want {U}{U} with the generic floored to 0
+FAIL    github.com/adams-shaun/gorge/rules      0.616s
+```
+
+The real-card cast test also fails without Emerge offer registration, as recorded in `.ds4/report-t1-emerge.md`. Both tests assert the object zones and a nonzero mana-value difference before testing payment.
+
+## Gates after merging main
+
+```
+$ go test -run 'TestEmergeCast|TestEveryRepoDeckIsFullySupported|TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeckParams|CountHead' ./rules/ > .ds4/scratch/emerge-merge-rules.log 2>&1; rc=$?; tail -30 .ds4/scratch/emerge-merge-rules.log; echo rules_exit=$rc
+ok   github.com/adams-shaun/gorge/rules 1.345s
+rules_exit=0
+$ go test ./internal/archtest/ > .ds4/scratch/emerge-merge-arch.log 2>&1; rc=$?; tail -15 .ds4/scratch/emerge-merge-arch.log; echo arch_exit=$rc
+ok   github.com/adams-shaun/gorge/internal/archtest 3.921s
+arch_exit=0
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ > .ds4/scratch/emerge-merge-bot.log 2>&1; rc=$?; tail -5 .ds4/scratch/emerge-merge-bot.log; echo bot_exit=$rc
+ok   github.com/adams-shaun/gorge/cmd/botbench 1.258s
+bot_exit=0
+$ gofmt -l rules/emerge.go rules/emerge_test.go rules/legal.go rules/cast.go
+(no output)
+$ go run ./cmd/gentypes -check; echo gentypes_exit=$?
+gentypes_exit=0
+```
+
+The exact brief's narrower test command, the test-revert proof, and the original uncached archtest/botbench/gofmt/gentypes output are preserved verbatim in `.ds4/report-r2-emerge.md`. The botbench golden and deck support ratchet did not move. Full game heads and sim belong to the daemon gate.
+
+## Issues
+
+No new unresolved Emerge defect observed. Other cost grammar remains intentionally outside this brief; unsupported Emerge cost shapes are withheld rather than mispriced. No new Known-approximations row or CR-lane test was added.
