@@ -70,6 +70,11 @@ func TestContextWordPredicates(t *testing.T) {
 	imprintedCard := g.Obj(imprintedID)
 	bystander := g.Obj(bystanderID)
 	source.Imprinted = []state.ObjID{imprintedID}
+	imprintedCard.Zone = state.ZExile
+	g.SetZone(state.ZExile, imprintedCard.Owner, []state.ObjID{imprintedID})
+	if imprintedCard.Zone != state.ZExile {
+		t.Fatal("precondition failed: ordinary imprinted card must be in exile")
+	}
 	inList := func(id state.ObjID) bool {
 		for _, x := range g.Obj(sourceID).Imprinted {
 			if x == id {

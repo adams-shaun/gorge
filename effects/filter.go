@@ -1539,22 +1539,7 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		if src == nil {
 			return false
 		}
-		for _, id := range src.Imprinted {
-			if id == o.ID {
-				return true
-			}
-		}
-		for _, id := range src.ImprintTokens {
-			if id == o.ID {
-				return true
-			}
-		}
-		for _, id := range src.SeekFound {
-			if id == o.ID {
-				return true
-			}
-		}
-		return false
+		return imprintAssociationContains(g, src, o.ID)
 	case wordDefenderCtrl:
 		// Forge's DefenderCtrl: the object is controlled by the defending
 		// player of the resolving combat trigger (TriggerContext
