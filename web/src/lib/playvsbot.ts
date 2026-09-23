@@ -43,7 +43,10 @@ export async function startPlayVsBot(
 /** Return the exact deck ids in human/bot roles, independent of seat order. */
 export function rematchDecks(seats: SeatInfo[], humanSeat: number): { humanDeck: string; botDeck: string } {
   const botSeat = seats.findIndex((_, index) => index !== humanSeat);
-  return { humanDeck: seats[humanSeat]?.deck_id ?? '', botDeck: seats[botSeat]?.deck_id ?? '' };
+  const humanDeck = seats[humanSeat]?.deck_id;
+  const botDeck = seats[botSeat]?.deck_id;
+  if (!humanDeck || !botDeck) throw new Error('Cannot restart: exact deck IDs are unavailable for this game.');
+  return { humanDeck, botDeck };
 }
 
 /**
@@ -60,8 +63,8 @@ export function rematchDecks(seats: SeatInfo[], humanSeat: number): { humanDeck:
  * are the exact pool ids a seat plays (SeatInfo.deck_id, host/match.go's
  * deckNames) — NOT the display names, which may differ from the id. All four
  * are sent: unlike the entry point's "leave it random" path, a rematch must
- * recreate the matchup exactly, so an empty deck id would be a bug, not a
- * default.
+ * recreate the matchup exactly. Missing deck ids throw before any POST, so
+ * Table's catch renders an error instead of silently choosing random decks.
  */
 export async function startRematch(
   format: VsBotFormat,
@@ -70,10 +73,13 @@ export async function startRematch(
   botPolicy: string,
   mulligans: number,
 ): Promise<string> {
+  // Unlike the lobby's random-deck flow, a rematch must not let the server
+  // substitute random decks when an older snapshot lacks either exact id.
+  if (!humanDeck || !botDeck) throw new Error('Cannot restart: exact deck IDs are unavailable for this game.');
   const g: CreateGame = await createGame({
     format,
-    ...(humanDeck ? { human_deck: humanDeck } : {}),
-    ...(botDeck ? { bot_deck: botDeck } : {}),
+    human_deck: humanDeck,
+    bot_deck: botDeck,
     ...(botPolicy ? { bot_policy: botPolicy } : {}),
     mulligans,
   });
