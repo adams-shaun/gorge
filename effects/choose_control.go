@@ -1450,6 +1450,19 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 	// closes it when the loop completes, so the bracket is balanced however
 	// many resumes interleave.
 	batched := strings.EqualFold(strings.TrimSpace(sa.Params["DamageMap"]), "True")
+	// ChangeZoneTable$ True (Forge's RepeatEachEffect CardZoneTable -- 47
+	// corpus carrier files): the zone changes every iteration's body causes
+	// are accumulated and reach Mode$ ChangesZoneAll ONCE, after the loop
+	// completes, as one "one or more" batch; Mode$ ChangesZone keeps firing
+	// per move. The seam is the zone twin of the damage bracket above:
+	// opened around the whole loop on the first pass, closed after the last
+	// iteration, events unchanged -- same order, same objects -- so a game
+	// with no ChangesZoneAll observer in the window replays exactly as
+	// before. Opened only on the first pass: a mid-loop suspension leaves
+	// the engine's open batch intact across the resume, and the re-entry
+	// pass closes it when the loop completes, so the bracket is balanced
+	// however many resumes interleave.
+	zoneTable := strings.EqualFold(strings.TrimSpace(sa.Params["ChangeZoneTable"]), "True")
 	// AmountFromVotes$ True (task votepb1: Mob Verdict, Círdan the Shipwright,
 	// Trap the Trespassers): before each body runs, bind the reserved name
 	// "Votes" to the CURRENT loop subject's tally from the most recent
@@ -1468,6 +1481,16 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 		EndDamageBatch()
 	}); ok {
 		batcher = b
+	}
+	var zoneBatcher interface {
+		BeginZoneBatch()
+		EndZoneBatch()
+	}
+	if z, ok := h.(interface {
+		BeginZoneBatch()
+		EndZoneBatch()
+	}); ok {
+		zoneBatcher = z
 	}
 	firstPass := true
 	if cur := c.Repeat; cur != nil && cur.SA == sa {
@@ -1510,6 +1533,9 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 	}
 	if batched && firstPass && batcher != nil {
 		batcher.BeginDamageBatch()
+	}
+	if zoneTable && firstPass && zoneBatcher != nil {
+		zoneBatcher.BeginZoneBatch()
 	}
 	// ClearRememberedBeforeLoop$ True (Forge's RepeatEachEffect: "clear the
 	// host's remembered list before the loop"): drop the resolving spell or
@@ -1597,6 +1623,11 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 		// open/close conditions agree); every pass that suspends mid-loop
 		// returns before this line and leaves the bracket to a later pass.
 		batcher.EndDamageBatch()
+	}
+	if zoneTable && zoneBatcher != nil {
+		// The loop completed: close the zone batch the FIRST pass opened
+		// (same reasoning as the damage batch above).
+		zoneBatcher.EndZoneBatch()
 	}
 }
 
