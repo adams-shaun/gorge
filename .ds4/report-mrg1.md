@@ -2795,3 +2795,25 @@ deletions.
 No new engine issue found in this round. The carried note stands: `legal.go`'s
 `offerCastable` remains pool-only, so a replicate option can be withheld when
 only convoke would fund it (documented in `0836163f`'s commit message).
+
+---
+
+## Round 6 — main at 0fbc2d10 (2026-09-23)
+
+After round 5's merge commit (`18da36e9`) and report commit (`9b9a3e55`) landed,
+main advanced again to `0fbc2d10` (sibling `agent-20260919T181629Z-732aedb9`:
+`AddType$ AllBasicLandType`/`AllNonBasicLandType` land-type statics, plus the
+intrinsic-append Produced read and the expanded land-type statics). Ran
+`git merge main --no-edit`; **no conflicts** — clean ort auto-merge across
+`rules/all_land_types_test.go`, `rules/clone.go`, `rules/engine.go`,
+`rules/layers.go`, `rules/mana_activation.go`, `rules/paramcensus_test.go`.
+
+Since main touched `rules/paramcensus_test.go` (a ratchet), re-ran the post-merge
+ratchet set after the merge:
+
+- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`:
+  `ok github.com/adams-shaun/gorge/rules 1.373s`.
+- `git merge-base --is-ancestor main HEAD`: exit 0 (main `0fbc2d10` ancestor);
+  final `git status`: clean.
+
+No further conflict was forced by this round.
