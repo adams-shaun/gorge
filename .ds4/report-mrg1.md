@@ -1168,3 +1168,11 @@ The worktree was clean at `d82018e4`; no rebase or merge was in flight. The prio
 ### Uncertainty
 
 None about the resolution. The count in the inherited main-side comment was stale relative to the fully auto-merged current table; the measured 44 is authoritative.
+
+`GIT_EDITOR=true git merge --continue` completed successfully:
+
+```text
+[wt/cli-20260922T225143Z-bc326d39 7a5b5423] Merge branch 'main' into wt/cli-20260922T225143Z-bc326d39
+```
+
+Final status after the merge commit: clean.
