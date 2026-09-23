@@ -1941,3 +1941,96 @@ merged tree.
   commit-msg hook accepts the message (conventional, no trailers) and the
   pre-commit hook exits 0 on this tree, so the bypass changed nothing. Recorded
   here for the audit trail.
+
+---
+
+# Merge-conflict resolution — mrg1 (agent-20260923T073156Z-d6f8c32b), third integration round
+
+## Why a third round
+
+Round 2 (merge `fc027b1a`, report commit `cc15d583`) integrated main `0eb36fbd`.
+Main then advanced 16 commits (the Dismantle targeted-counter-LKI fixes
+`30b4e31c`/`a303708a`/`580f18d4`, the MustBlock blockers test `80d29498`, their
+docs commits and the intervening merges). The daemon's rebase conflicted at
+`0f9dcb58` on `.ds4/report-sol1.md` and its merge fallback on
+`.ds4/report-mrg1.md`, then aborted. This seat entered with a clean tree, no
+rebase/merge in flight, and performed a fresh `git merge main` (merge base
+`0eb36fbd`).
+
+## The conflict — `.ds4/report-mrg1.md` (the only one; no code file conflicted)
+
+Three-way shape:
+
+- **base (`:1`)** — 1618 lines (main's accumulated mrg1 history at `0eb36fbd`).
+- **ours (`:2`)** — 1793 lines: base with this branch's round-2 report
+  PREPENDED (87 lines, commit `cc15d583`) and its round-1 report APPENDED at
+  the tail (the round-2 merge resolution).
+- **theirs (`:3`)** — 1769 lines: base with 151 lines of main's new mrg1
+  reports appended (the 08c5dd1a sol2 resolution report and the Dismantle
+  second-integration-round report).
+
+Both sides are pure additive changes at disjoint positions (ours: top prepend +
+a tail append that main does not contain — `grep -c 'agent-20260923T073156Z' :3`
+= 0; theirs: a tail append ours does not contain). **Resolution: union** —
+the common region and our round-1 report kept, then main's 151 new lines
+appended after them:
+
+```
+{ sed -n '1,1706p'  conflicted; sed -n '1708,1794p' conflicted;
+  sed -n '1796,1945p' conflicted; } > resolved      # 1943 lines
+```
+
+Superset verified both directions (zero deletions either way):
+
+```
+$ diff <(git show :3:.ds4/report-mrg1.md) resolved | grep -c '^<'   -> 0
+$ diff <(git show :2:.ds4/report-mrg1.md) resolved | grep -c '^<'   -> 0
+$ grep -nE '^(<<<<<<<|=======$|>>>>>>>)' resolved                   -> none
+```
+
+## Operation completed
+
+```
+$ git add -f .ds4/report-mrg1.md && git commit --no-edit
+[wt/agent-20260923T073156Z-d6f8c32b 8ff61e9d] Merge branch 'main' into wt/agent-20260923T073156Z-d6f8c32b
+$ git status --short          # clean
+$ git merge-base --is-ancestor main HEAD && echo YES   # YES — main fully integrated
+```
+
+Auto-merged with no conflict: all of main's production changes
+(`effects/conditions.go`, `effects/count.go`, `effects/counters.go`,
+`effects/registry.go`, `rules/clone.go`, `rules/engine.go`,
+`rules/resolution.go`) and their tests, plus main's other `.ds4` report files.
+The branch's only source change (`rules/cascade_resulting_mv_test.go`) is
+unaffected.
+
+## Post-merge gates (real output)
+
+`.cards` present as a symlink to `/home/sadams/projects/gorge/.cards` —
+corpus-backed, not a vacuous skip.
+
+```
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.318s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.199s
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  	github.com/adams-shaun/gorge/rules	1.203s
+$ go test -run 'TestCascadeFreeCastAnnouncesNoX|TestCascadeXSpellUsesAnnouncedManaValue' ./rules/
+ok  	github.com/adams-shaun/gorge/rules	0.626s
+$ go test -run 'TestTargetCounterLKIOnlyAppliesToTargetedReads|TestConditionGateTargetedCountersUseLKI|TestDismantleDestroysCounteredTargetAndPlacesCounters|TestChainReadsTargetCountersChangedEarlierInResolution' ./effects/ ./rules/
+ok  	github.com/adams-shaun/gorge/effects	0.013s
+ok  	github.com/adams-shaun/gorge/rules	0.625s
+```
+
+No ratchet table adjustment was needed: neither side registers a new trigger
+`Mode$` matcher nor closes a `knownUnsupported` / `knownUnsupportedParams` /
+`knownUnmodelledCountHeads` entry, and the botbench golden did not move.
+
+## Issues
+
+No new defect found. The only conflict was independent accumulator content;
+no engine code conflicted. Same standing controller note as prior rounds: the
+per-branch rewrites of the shared `report-mrg1.md` accumulator collide on
+every integration; the union convention keeps everything, but a main-side
+decision to stop rewriting it would end the repeat conflicts.
