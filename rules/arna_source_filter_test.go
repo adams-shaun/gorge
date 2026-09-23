@@ -107,3 +107,77 @@ func TestArnaRealSourceFilterReachesCopyRider(t *testing.T) {
 	noCopyPermanentModNote(t, e, "AttachedTo")
 	replayCheck(t, e, cfg)
 }
+
+// TestStanggRealTriggerCopiesAttachedPermanents is the full real-trigger
+// end-to-end for the bare `Attached` predicate: Stangg, Echo Warrior's own
+// Mode$ Attacks trigger fires, mints the Stangg Twin, then its real
+// `Defined$ Valid Equipment.Attached,Aura.Attached` source filter selects the
+// Equipment and Aura attached to Stangg and copies each attached to the Twin
+// (the real `AttachedTo$ Imprinted` endpoint). No test-supplied filter or
+// binding: this is the engine's DeclareAttackers → putTriggersOnStack →
+// resolveTop path resolving the card's own Execute chain.
+func TestStanggRealTriggerCopiesAttachedPermanents(t *testing.T) {
+	reg := searchTestRegistry(t)
+	stanggCard := lookup(t, reg, "Stangg, Echo Warrior")
+	e, cfg := corpusEngineCfg(t, reg,
+		[]*cards.Card{stanggCard, lookup(t, reg, "Bonesplitter"), lookup(t, reg, "Unholy Strength")},
+		[]*cards.Card{})
+
+	stangg := moveByName(t, e, 0, "Stangg, Echo Warrior", state.ZBattlefield)
+	equip := moveByName(t, e, 0, "Bonesplitter", state.ZBattlefield)
+	aura := moveByName(t, e, 0, "Unholy Strength", state.ZBattlefield)
+	e.emit(events.Event{Kind: events.Attach, Obj: equip, IDs: []state.ObjID{stangg}})
+	e.emit(events.Event{Kind: events.Attach, Obj: aura, IDs: []state.ObjID{stangg}})
+
+	// Preconditions: both attachments really point at Stangg, Stangg is on the
+	// battlefield (the trigger's TriggerZones$ Battlefield), and nothing is
+	// queued before the declaration.
+	if e.G.Obj(equip).AttachedTo != stangg || e.G.Obj(aura).AttachedTo != stangg {
+		t.Fatalf("precondition failed: equip.AttachedTo=%d aura.AttachedTo=%d, want Stangg %d",
+			e.G.Obj(equip).AttachedTo, e.G.Obj(aura).AttachedTo, stangg)
+	}
+	if e.G.Obj(stangg).Zone != state.ZBattlefield {
+		t.Fatalf("precondition failed: Stangg zone=%s, want battlefield", e.G.Obj(stangg).Zone)
+	}
+	if len(e.pendingTriggers) != 0 {
+		t.Fatalf("precondition failed: %d triggers already queued before the declaration", len(e.pendingTriggers))
+	}
+
+	e.emit(events.Event{Kind: events.DeclareAttackers, Player: 0, IDs: []state.ObjID{stangg}})
+	e.putTriggersOnStack()
+	if len(e.G.Stack) == 0 {
+		t.Fatalf("precondition failed: Stangg's Attacks trigger did not reach the stack")
+	}
+	e.resolveTop()
+
+	// The Twin must have been minted and imprinted as the copy endpoint.
+	twin := state.ObjID(0)
+	for i := range e.G.Objs {
+		o := &e.G.Objs[i]
+		if o.IsToken && o.Zone == state.ZBattlefield && o.Face() != nil && o.Face().Name == "Stangg Twin" {
+			twin = o.ID
+			break
+		}
+	}
+	if twin == 0 {
+		t.Fatalf("precondition failed: the Stangg Twin token is not on the battlefield")
+	}
+
+	// Each attached permanent must have a token copy attached to the Twin.
+	for _, src := range []state.ObjID{equip, aura} {
+		srcCard := e.G.Obj(src).Card
+		srcName := "?"
+		if f := e.G.Obj(src).Face(); f != nil {
+			srcName = f.Name
+		}
+		copyID := findTokenCopyOf(t, e, srcCard, src)
+		if e.G.Obj(copyID).Zone != state.ZBattlefield {
+			t.Fatalf("precondition failed: the copy of %s is not on the battlefield (zone %s)", srcName, e.G.Obj(copyID).Zone)
+		}
+		if got := e.G.Obj(copyID).AttachedTo; got != twin {
+			t.Fatalf("the copy of %s AttachedTo = %d, want the Stangg Twin %d", srcName, got, twin)
+		}
+	}
+	noCopyPermanentModNote(t, e, "AttachedTo")
+	replayCheck(t, e, cfg)
+}
