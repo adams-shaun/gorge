@@ -466,6 +466,18 @@ type Engine struct {
 	// before a chained TokenOwner$ TargetedController resolves). Transient
 	// scratch: rebuilt identically by replay, nil outside a chain.
 	resolvingTargetControllerLKI map[state.ObjID]state.PlayerID
+	// resolutionCtx is the live Ctx of the Resolve chain whose effect is
+	// CURRENTLY running, published by effects.Resolve through the optional
+	// resolutionCtxHost interface around the whole chain and restored on
+	// return. It is the one home of the chain's in-flight TargetUnique$
+	// accumulator: Engine.Ask reads resolutionCtx.TargetsUnique and stamps it
+	// onto every decision whose own resume state did not carry it, so an
+	// intervening ask of ANY kind (a modal election, a ward pay, a
+	// dig/scry/arrange pick) preserves the picks earlier TargetUnique$ riders
+	// chose at the resumed Ctx's rebuild. Transient scratch: rebuilt
+	// identically by replay, nil outside a chain (combat, mulligan and other
+	// non-resolution asks).
+	resolutionCtx *effects.Ctx
 	// resolvingFlipMemory is the coin-flip memory of the Resolve chain whose
 	// effect is CURRENTLY running, published by effects.Resolve (and by
 	// effFlipCoin when it lazily allocates the memory) through the optional
