@@ -52,7 +52,7 @@ func (e *Engine) attackAllowedThroughDefender(id state.ObjID, defender state.Pla
 		if !e.restrictionApplies(ce, id) {
 			continue
 		}
-		if !e.attackedSpecHolds(ce.RestrictParams["ValidAttacked"], defender, ce.Controller, ce.RememberedPlayers) {
+		if !e.attackedSpecHolds(ce.RestrictParams["ValidAttacked"], defender, ce.Controller, ce.Source, ce.RememberedPlayers) {
 			continue
 		}
 		return true
@@ -71,7 +71,7 @@ func (e *Engine) attackAllowedThroughDefender(id state.ObjID, defender state.Pla
 		if spec == "" || !e.matchesSpec(spec, id, e.specCtx(sv.Source, sv.Controller)) {
 			continue
 		}
-		if !e.attackedSpecHolds(sv.Params["ValidAttacked"], defender, sv.Controller, nil) {
+		if !e.attackedSpecHolds(sv.Params["ValidAttacked"], defender, sv.Controller, sv.Source, nil) {
 			continue
 		}
 		return true
@@ -89,7 +89,7 @@ func (e *Engine) attackAllowedThroughDefender(id state.ObjID, defender state.Pla
 // restrictionPlayerSpecMatches grammar, so a plain `You`/`Opponent` scoping
 // still resolves; a compound or unknown qualifier fails closed exactly as it
 // would for CantAttack's Target$.
-func (e *Engine) attackedSpecHolds(spec string, defender, you state.PlayerID, rememberedPlayers []state.PlayerID) bool {
+func (e *Engine) attackedSpecHolds(spec string, defender, you state.PlayerID, source state.ObjID, rememberedPlayers []state.PlayerID) bool {
 	spec = strings.TrimSpace(spec)
 	if spec == "" {
 		return true
@@ -110,7 +110,7 @@ func (e *Engine) attackedSpecHolds(spec string, defender, you state.PlayerID, re
 			}
 			continue
 		}
-		if restrictionPlayerSpecMatches(e.G, part, defender, you, rememberedPlayers) {
+		if restrictionPlayerSpecMatches(e.G, part, defender, you, source, rememberedPlayers) {
 			return true
 		}
 	}
