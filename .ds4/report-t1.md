@@ -1069,3 +1069,88 @@ For each new test, I copied its non-test implementation file to `.ds4/scratch`, 
 ## Commit
 
 `66ae9f21 fix(count): resolve per-turn player property counts`
+
+---
+
+# Report — NonRememberedController selectors
+
+
+## What changed and why
+
+- `effects/context.go`: `definedSpec` now recognises `NonRememberedController` and `OppNonRememberedController`, returning living players in stable `AliveFrom` order other than the remembered card's controller. The Opp form additionally excludes the resolving controller. A missing/invalid remembered card anchor is a recognised empty set, so `Defined` does not fall back to the source.
+- `effects/copypermanent.go`: `Controller$` accepts the same selectors and mints one copy per resolved player. Copy destinations are expanded in deterministic owner-then-target order; an empty set mints nothing. The existing one-copy controller path is unchanged.
+- `effects/nonremembered_controller_test.go`: added real-corpus pins for Fractured Identity's CopyPermanent rider and Plaguecrafter's Discard rider. They assert the remembered-controller exclusion, the Opp-qualified set, an empty unbound set, no unsupported-selector Note, and that each expected Plaguecrafter player actually discards while the remembered card's controller does not.
+
+The selector resolution is shared through `definedSpec`, so the next Defined$ carrier (LoseLife or another Discard card) uses the same implementation rather than a carrier-specific selector list. CopyPermanent uses that resolver for its multi-controller loop.
+
+Closed ledger issue: `issue-agent-20260920T074357Z-b9ac41c2`.
+
+`.cards` was present as a symlink to `/home/sadams/projects/gorge/.cards`.
+
+## Fails without the fix
+
+Copied the two changed non-test files to `.ds4/scratch/`, temporarily disabled both selector cases, ran the new tests, restored both files, and confirmed both `cmp` checks passed (`restore_cmp=0`). The test command failed as required:
+
+```text
+test_exit=1 restore_cmp=0
+--- FAIL: TestFracturedIdentityGivesEveryOtherPlayerACopy (0.69s)
+    nonremembered_controller_test.go:43: Fractured Identity copy owners = [1 0 0 0], want [1 1 0 1]; events=[{Seq:0 Kind:note Player:0 Obj:1 From:library To:library Amount:0 Step:untap Counter: Text:Controller$ NonRememberedController is not implemented; the copy is controlled by the resolving controller IDs:[]} {Seq:0 Kind:copy_token Player:0 Obj:2 From:library To:library Amount:0 Step:untap Counter: Text: IDs:[]} {Seq:0 Kind:move_zone Player:0 Obj:3 From:library To:battlefield Amount:0 Step:untap Counter: Text: IDs:[]}]
+--- FAIL: TestNonRememberedControllerDefinedPlayers (0.00s)
+    nonremembered_controller_test.go:77: Plaguecrafter Defined$ NonRememberedController = [{1 0 false}]; want 3 live players
+
+FAIL
+FAIL    github.com/adams-shaun/gorge/effects  0.724s
+```
+
+
+## Gates
+
+Focused tests:
+
+```text
+go test -run 'TestFracturedIdentityGivesEveryOtherPlayerACopy|TestNonRememberedControllerDefinedPlayers' ./effects
+ok   github.com/adams-shaun/gorge/effects  0.641s
+```
+
+Build:
+
+```text
+go build ./...
+[no output; exit 0]
+```
+
+Chain-head golden:
+
+```text
+go test -run 'TestHeads' ./rules
+ok   github.com/adams-shaun/gorge/rules  1.830s
+```
+
+Required behavior goldens:
+
+```text
+go test ./internal/archtest/
+ok   github.com/adams-shaun/gorge/internal/archtest  (cached)
+
+go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok   github.com/adams-shaun/gorge/cmd/botbench  1.245s
+```
+
+Formatting/type generation:
+
+```text
+gofmt -l effects/context.go effects/copypermanent.go effects/nonremembered_controller_test.go
+[no output]
+go run ./cmd/gentypes -check
+[no output; exit 0]
+```
+
+`git diff --check` passed. `TestHeads` and the botbench golden did not move. No acceptance-ratchet or replay-head changes were made.
+
+## Issues
+
+None found outside the requested selector family; no unaddressed issues.
+
+## Commit
+
+`bfca5670 fix(effects): resolve nonremembered controller selectors`
