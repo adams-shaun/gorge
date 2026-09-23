@@ -7083,6 +7083,15 @@ func (e *Engine) finishTargetedCast(pc *pendingCast, player state.PlayerID) {
 		if pc.stackObj != 0 && pc.rootOpts != nil {
 			e.recordChosenTargets(pc.stackObj, pc.rootOpts, false)
 		}
+		// payCast closes the proposal after creating the stack object. Keep its
+		// completed target bindings available while the deferred spend rider
+		// matches, then close it again before control returns to the host.
+		if pc.stackObj != 0 {
+			e.cast = pc
+			e.fireManaSpentTriggers(events.Event{Kind: events.AbilityPush, Obj: pc.card,
+				Player: pc.player, Amount: int32(pc.ability)}, nil)
+			e.cast = nil
+		}
 	} else {
 		e.payCast()
 	}
@@ -7771,6 +7780,12 @@ func (e *Engine) payCast() {
 			e.captureNamedDamageSourceLKI(pc.stackObj, pc.card, sourceKeywordLKI, sourceControllerLKI)
 			break
 		}
+		if pc.rootOpts == nil {
+			// No target-recording continuation: dispatch at the completed
+			// AbilityPush boundary while the spent-source capture is still live.
+			e.fireManaSpentTriggers(events.Event{Kind: events.AbilityPush, Obj: pc.card,
+				Player: pc.player, Amount: int32(pc.ability)}, nil)
+		}
 		e.cast, e.choosing = nil, chooseNone
 		return
 	}
@@ -8197,7 +8212,9 @@ func (e *Engine) payCast() {
 		castLKI = e.deferredPushLKI
 	}
 	e.fireDeferredCastTrigger()
-	e.fireManaSpentTriggers(castEv, castLKI)
+	if castEv.Kind == events.PutOnStack {
+		e.fireManaSpentTriggers(castEv, castLKI)
+	}
 	// Cascade (CR 702.85, task cascade1): one cast trigger per Cascade
 	// instance, queued AFTER the ordinary cast triggers (deterministic
 	// append; the drain's APNAP ordering places them). The queue emits
@@ -8320,13 +8337,10 @@ func (e *Engine) fireDeferredCastTrigger() {
 }
 
 // fireManaSpentTriggers queues the TriggersWhenSpent$ rider of every mana
-// source whose provenance batch paid for the just-completed SPELL cast (the
-// rider's "when that mana is spent to cast ..." gift: Path of Ancestry's scry
-// 1, Lapis Orb's scry 2, Study Hall's commander scry). The consumed sources
-// were captured by emitRestrictedManaSpend during the payment; castEv is the
-// spell's PutOnStack event and castLKI its look-back snapshot. It queues
-// AFTER fireDeferredCastTrigger's ordinary cast triggers (deterministic
-// append order).
+// source whose provenance batch paid for the just-completed spell cast or
+// activated ability. Sources are captured by emitRestrictedManaSpend; ev is
+// the completed PutOnStack/AbilityPush event. It runs after payment and push,
+// preserving deterministic trigger append order.
 //
 // A rider's SVar is a T:-shaped trigger body (Mode$ SpellCast | ValidCard$ ...
 // | Execute$ ...) that the ordinary trigger scan never walks -- it lives in
@@ -8338,12 +8352,12 @@ func (e *Engine) fireDeferredCastTrigger() {
 // the identical granted-trigger push (events.Apply resolves Execute from the
 // source's SVar table). A source that has left the battlefield, has no face,
 // or names no longer-resolvable body fails closed -- the rider belongs to the
-// permanent. Only Mode$ SpellCast is honoured (sunken_palace's
-// SpellAbilityCast "spell or activate an ability" is out of scope).
+// permanent. SpellCast is spell-only; SpellAbilityCast dispatches on both
+// spell casts and activated abilities.
 func (e *Engine) fireManaSpentTriggers(ev events.Event, lki *state.Object) {
 	sources := e.manaSpentSources
 	e.manaSpentSources = nil
-	if len(sources) == 0 || ev.Kind != events.PutOnStack {
+	if len(sources) == 0 || (ev.Kind != events.PutOnStack && ev.Kind != events.AbilityPush) {
 		return
 	}
 	for _, src := range sources {
@@ -8362,10 +8376,17 @@ func (e *Engine) fireManaSpentTriggers(ev events.Event, lki *state.Object) {
 				continue
 			}
 			t, ok := cards.ParseTriggerLine(body)
-			if !ok || t.Mode != "SpellCast" {
+			if !ok || (t.Mode != "SpellCast" && t.Mode != "SpellAbilityCast") {
 				continue
 			}
-			if !e.zoneGate(t, src, ev) || !e.phaseGate(t) || !e.spellCastEval(t, src, ev) {
+			matches := false
+			switch t.Mode {
+			case "SpellCast":
+				matches = e.spellCastEval(t, src, ev)
+			case "SpellAbilityCast":
+				matches = e.spellAbilityCastMatches(t, src, ev, lki)
+			}
+			if !e.zoneGate(t, src, ev) || !e.phaseGate(t) || !matches {
 				continue
 			}
 			exec := strings.TrimSpace(t.Params["Execute"])
