@@ -1,94 +1,65 @@
-# Merge-conflict resolution report — agent-20260918T230554Z-a96f94d7
+# Merge-conflict resolution — task agent-20260918T222614Z-5b138b5e (kw:Vanishing)
 
-## State found
+## Entry state and operation
 
-`git status` showed a **clean tree, no rebase/merge in flight** — the daemon
-had aborted both its rebase and its merge fallback before this seat started.
-The branch was 2 commits ahead of the merge-base `bad06ce7`:
-
-- `9de2af45` fix(effects): publish StoreVoteNum outcomes
-- `4d9c6987` docs: record StoreVoteNum verification
-
-I therefore re-ran the integration myself: `git rebase main`.
+The worktree was clean at `8e145e0d` (`docs: record Vanishing implementation
+verification`) — no rebase or merge in flight, no partial prior work. The
+branch carries the reviewed Vanishing fix (`3f4072f3` + `8e145e0d`); main had
+advanced past the merge base `8c6fdd56` (mentor, StoreVoteNum, Yuffie attach,
+pw-numloyaltyact and related work). I ran `git merge main`.
 
 ## Conflicted files and resolution
 
-Only **one file** conflicted in the rebase: `.ds4/report-t1.md`
-(`effects/misc.go` and the new test applied cleanly on pick 1 — the
-daemon's merge fallback had reported a spurious `effects/misc.go` conflict
-that the rebase did not hit).
+Exactly **one** content conflict; everything else auto-merged cleanly
+(`cards/kw_registry_test.go`, `rules/trigger_*`, `rules/stack.go`,
+`rules/resolution.go`, `effects/*`, `view/*`, `web/*` merged without manual
+touching).
 
-`.ds4/report-t1.md` is the shared accumulating report log. Three versions:
+1. **`.ds4/report-t1.md`** — the report file both lines write over. The merge
+   base was `3b070589` (the rv2b-countheads report); after it, HEAD replaced
+   the file with this task's Vanishing report, and main's later commits
+   (`0c067498`, `4f96e2c6`, …) replaced it with unrelated tickets' reports
+   (Yuffie attach, Vote.StoreVoteNum). Per the precedent the previous
+   resolution (`fa9f2a30`) recorded for this same path — the branch's own
+   report is kept at `report-t1.md` — I took the OURS side:
+   `git checkout --ours .ds4/report-t1.md && git add -f .ds4/report-t1.md`.
+   Main's Yuffie/StoreVoteNum reports remain in main's own history; no code
+   was affected.
 
-- **base** (`9de2af45`, the fix commit's parent): a 42-line "Mill<N> cost
-  verification" report.
-- **ours / main** (`main` = `7a6a77b7`): 525 lines — Yuffie attach, fb-20260922
-  restricted-mana-projection, and rv2b-countheads reports, separated by `---`.
-- **theirs / branch** (`4d9c6987`): the seat's 62-line "Vote.StoreVoteNum"
-  report **replacing the whole file** (46+/26− vs base).
+No other file was touched; nothing was "improved" beyond the conflict.
 
-Resolution: **keep main's full log in full, append the branch's StoreVoteNum
-report at the end** separated by `---`, matching main's own convention
-(main's latest docs commit on this file merges concurrent reports into one
-growing file). The Mill report that the branch commit's diff deleted was
-already superseded on main (`3b070589`'s rewrite of the file dropped it and
-nothing on main restored it), so no restoration was needed — the branch's
-deletion of it is subsumed by main's later state. Both sides' intent is kept:
-main's accumulated reports and the branch's verified report.
+## Operation completed
 
-One text nit kept as-is (historical, from the branch seat): the report's line
-"The worktree was clean before the required `git rebase main`, which reported
-up to date." — it recorded that seat's own pre-submit state.
+- `git commit --no-edit` → merge commit **`089fe7c3`**
+  (`Merge branch 'main' into wt/agent-20260918T222614Z-5b138b5e`, default
+  message).
+- `git status --porcelain` → clean.
+- `git merge-base --is-ancestor main HEAD` → pass.
+- `gofmt -l` over the merge's `.go` files → no output.
 
-## Commands run (real output)
+## Commands run and output
 
-```
-$ git rebase main
-... CONFLICT (content): Merge conflict in .ds4/report-t1.md   (pick 2 of 2; pick 1 applied clean)
-$ # rebuilt .ds4/report-t1.md = main's 525 lines + "---" + branch's 62-line report
-$ git add .ds4/report-t1.md && GIT_EDITOR=true git rebase --continue
-[detached HEAD 4f96e2c6] docs: record StoreVoteNum verification
- 1 file changed, 65 insertions(+)
-Successfully rebased and updated refs/heads/wt/agent-20260918T230554Z-a96f94d7.
-$ git status
-On branch wt/agent-20260918T230554Z-a96f94d7
-nothing to commit, working tree clean
-```
-
-Sanity checks and ratchets (post-merge, per the 2026-09-22 directive):
-
-```
-$ go test -run '^TestFatefulTempestStoresEachOptionVoteCount$' ./rules/
-ok  github.com/adams-shaun/gorge/rules  0.604s
-
-$ go test -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeckIsFullySupported$|TestEveryRepoDeckParamsAreRead|CountHead' ./rules/
-ok  github.com/adams-shaun/gorge/rules  0.761s
-
-$ grep -c '<<<<<<<\|>>>>>>>' effects/misc.go          # 0
-$ gofmt -l effects/misc.go rules/fateful_tempest_vote_test.go   # no output
-```
-
-`.cards` was present as a symlink to `/home/sadams/projects/gorge/.cards`
-(found, not created), so corpus-backed tests did not skip.
-
-## Result
-
-- Branch `wt/agent-20260918T230554Z-a96f94d7` rebased onto main (`7a6a77b7`),
-  tree clean.
-- `main..HEAD`: `d8ab4365` (fix, content-identical to `9de2af45`) and
-  `4f96e2c6` (docs, resolution as above).
-- No golden, ratchet, or heads movement: the ratchet run passed unchanged;
-  the branch registers no new `Mode$` matcher and closes no ratchet row.
-- No `Ref:` trailers anywhere (gorge rule respected).
+- `go test ./rules -run 'Vanishing'` →
+  `ok github.com/adams-shaun/gorge/rules 0.696s` — the branch's fix survives
+  the merge; main did not conflict with `cards/kw_vanishing.go`
+  (`git diff main --stat -- cards/kw_vanishing.go`: +36 intact).
+- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`
+  → `ok github.com/adams-shaun/gorge/rules 0.774s` — the post-merge ratchet
+  sweep the brief requires. The branch registers no new `Mode$` matcher and
+  closes no ratchet entry; none of the ratchet tables moved on either side.
+- `go test ./cards` → `ok github.com/adams-shaun/gorge/cards 7.434s` — main
+  added `cards/kw_mentor.go` and both sides touched `cards/kw_registry_test.go`
+  (auto-merged); the Vanishing and Mentor registrations coexist.
+- `.cards/` is present as a symlink to `/home/sadams/projects/gorge/.cards`
+  (real corpus — this was a corpus-backed run, not a vacuous skip).
 
 ## Unsure about
 
-- Whether the daemon intended the merge-fallback route (merge commit) rather
-  than the rebase route. I re-ran the rebase it had originally attempted; the
-  resulting branch is linear onto main, which is what its rebase log shows it
-  wanted first.
+Only the report-file ownership call, resolved per recorded precedent
+(OURS). Main's report content at that path belongs to other tickets' histories
+and nothing on this branch referenced it.
 
 ## Issues
 
-None found. The only conflict was the report log; no engine code was in
-conflict.
+None new. No engine defect was found in either side's content during the
+merge; no CR-lane finding to report.
