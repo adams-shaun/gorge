@@ -135,17 +135,10 @@ var chooseColorLabels = []struct {
 	{'W', "White"}, {'U', "Blue"}, {'B', "Black"}, {'R', "Red"}, {'G', "Green"},
 }
 
-// chooseColorUnaskable names the ChooseColor list shapes this build cannot
-// ask honestly AND must say so loudly: TwoColors$/OrColors$ (two picks; the
-// one-pick ask cannot express them), UpTo$ and ColorsFrom$ (an option list
-// derived from game state this enumeration cannot build). A carrier with
-// any of them keeps the deterministic fallback AND emits the loud Note the
-// effChooseType unsupported-category convention carries. Random$ is the one
-// SILENT unaskable shape (checked separately below): the card text makes
-// the choice a die roll, never a player's pick -- asking would let the
-// chooser pick optimally -- so the deterministic first-WUBRG fallback it
-// always recorded stands in with no Note and no ask.
-var chooseColorUnaskable = []string{"TwoColors", "OrColors", "UpTo", "ColorsFrom"}
+// TwoColors$/OrColors$ need two picks; UpTo$/ColorsFrom$ need an option
+// list derived from game state. These are loud unaskable shapes (checked
+// individually below so the parameter census sees each read). Random$ is
+// the silent unaskable die-roll shape: asking would let the player pick.
 
 // chooseColorOptions builds the option list a mid-resolution ChooseColor ask
 // offers its chooser: the fixed WUBRG order of chooseColorLabels, with the
@@ -160,10 +153,17 @@ var chooseColorUnaskable = []string{"TwoColors", "OrColors", "UpTo", "ColorsFrom
 // caller keeps the deterministic fallback instead of offering the wrong
 // question.
 func chooseColorOptions(sa *cards.SA) (opts []decision.Option, askable bool, exotic string) {
-	for _, p := range chooseColorUnaskable {
-		if strings.TrimSpace(sa.Params[p]) != "" {
-			return nil, false, p + "$"
-		}
+	if strings.TrimSpace(sa.Params["TwoColors"]) != "" {
+		return nil, false, "TwoColors$"
+	}
+	if strings.TrimSpace(sa.Params["OrColors"]) != "" {
+		return nil, false, "OrColors$"
+	}
+	if strings.TrimSpace(sa.Params["UpTo"]) != "" {
+		return nil, false, "UpTo$"
+	}
+	if strings.TrimSpace(sa.Params["ColorsFrom"]) != "" {
+		return nil, false, "ColorsFrom$"
 	}
 	if strings.TrimSpace(sa.Params["Random"]) != "" {
 		// The silent die-roll shape: unaskable, but no Note (see the
