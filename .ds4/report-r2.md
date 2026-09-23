@@ -1,3 +1,121 @@
+# Report — r2 (agent-20260918T233200Z-f7c5b4f1) — pred:hasABasicLandType
+
+Ticket: `pred:hasABasicLandType` — the "land card with a basic land type"
+filter predicate is unknown (fails closed). **Reconciled fix round.** The
+task's code and tests were already committed as `1505bd31` (now rebased to
+`fe9c7646`); the r2 findings named only a failed `git rebase main` caused by
+an uncommitted, destructive overwrite of the shared `.ds4/report-t1.md`.
+This round: the overwrite was dropped (text salvaged to scratch), the rebase
+was completed cleanly, and the report is this insertion at the top of
+`.ds4/report-r2.md` — insertions only, zero deletions.
+
+## Resolution of the r2 findings, each one
+
+### [rebase-failed] "cannot rebase: You have unstaged changes … would be
+overwritten by merge: .ds4/report-t1.md" — RESOLVED
+
+The unstaged change was this ticket's own report text written over the
+shared accumulate-file: it replaced 1,948 lines of other tickets' committed
+reports with its 208 lines (the same mistake the sibling ticket
+`79b69706` made in its t1 and fixed in its r2). Resolution, in order:
+
+1. Salvaged the report text to `.ds4/scratch/report-t1-hasbasiclandtype.md`
+   (untracked scratch, out of the review path).
+2. `git restore .ds4/report-t1.md` — the destructive overwrite is gone;
+   `cmp` against `HEAD`'s blob confirms byte-identical restoration.
+3. `git rebase main` — applied **cleanly, no conflicts** (the branch's only
+   commit, the pred work, does not textually collide with main's
+   `sharesCreatureTypeWith` work in `effects/filter.go`; both hunks are in
+   the rebased file, verified by grep). Branch is now `fe9c7646` on top of
+   main `f8e330c3`.
+4. `git diff --stat main HEAD` reads exactly the task's three files,
+   223 insertions / 0 deletions.
+
+The full r1 report text (gates, fail-proof, structural notes) is preserved
+verbatim below the separator at the bottom of this r2 section.
+
+## Post-rebase verification (everything re-run on the rebased tree, because
+main had moved under `effects/filter.go`, `rules/cumulative.go`,
+`rules/paramcensus_test.go`)
+
+`.cards` present (symlink → `/home/sadams/projects/gorge/.cards`), so these
+runs are real, not vacuous.
+
+```
+$ go build ./...            (no output, exit 0)
+$ go test -run 'TestHasABasicLandTypePredicate$' ./effects/
+ok  	github.com/adams-shaun/gorge/effects	0.626s
+$ go test -run 'TestSproutingGoblin' -v ./rules/
+=== RUN   TestSproutingGoblinKickedETBSearchesBasicLandTypedLand
+--- PASS: TestSproutingGoblinKickedETBSearchesBasicLandTypedLand (0.61s)
+=== RUN   TestSproutingGoblinUnkickedETBSearchesNothing
+--- PASS: TestSproutingGoblinUnkickedETBSearchesNothing (0.01s)
+ok  	github.com/adams-shaun/gorge/rules	0.630s
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	3.927s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.277s
+$ gofmt -l effects/filter.go effects/hasbasiclandtype_test.go rules/hasbasiclandtype_test.go
+(no output)
+$ go run ./cmd/gentypes -check
+(no output, exit 0)
+```
+
+The 20-game bot split did not move, so no re-pin was needed.
+
+## Fails without the fix — re-proven on the REBASED tree
+
+Removed only the `case "hasABasicLandType"` classifier hunk
+(`.ds4/scratch/r2-filter.go.orig` is the scratch copy), ran both tests,
+then restored byte-identically (`cmp` clean):
+
+```
+$ go test -run 'TestSproutingGoblinKickedETBSearchesBasicLandTypedLand|TestHasABasicLandTypePredicate' ./rules/ ./effects/
+--- FAIL: TestSproutingGoblinKickedETBSearchesBasicLandTypedLand (0.74s)
+    hasbasiclandtype_test.go:48: pending = … Kind:choose Prompt:turn 2 — discard …}, want a search KChoose for the kicked ETB
+FAIL	github.com/adams-shaun/gorge/rules	0.772s
+--- FAIL: TestHasABasicLandTypePredicate (0.74s)
+    hasbasiclandtype_test.go:40: Land.hasABasicLandType must match a Forest (a basic land type)
+    hasbasiclandtype_test.go:43: Land.hasABasicLandType must match a Plains (a basic land type)
+    hasbasiclandtype_test.go:66: UnknownPredicates(Land.hasABasicLandType) = [hasABasicLandType], want empty
+    hasbasiclandtype_test.go:72: UnknownPredicates of a mixed spec = [hasABasicLandType totallyNotAPredicate], want exactly the unknown token
+FAIL	github.com/adams-shaun/gorge/effects	0.760s
+RESTORED byte-identical (cmp clean)
+```
+
+## Ratchets / head movement (unchanged from r1)
+
+- `knownUnsupported`: Sprouting Goblin is not in the repo deck set and not in
+  the table — no row moved in either direction.
+- No new trigger mode, count head or param registration; chain heads not run
+  (daemon gate); the botbench byte-identical run shows no repo-deck game
+  behaviour moved.
+- `knownApproximationRows` unchanged; no AGENTS.md row added or grown.
+
+## Deviations from the brief (from r1, unchanged)
+
+1. CR-correct semantics without Wastes: the brief's parenthetical ("or the
+   supertype Basic plus a land-type word", "/Wastes") was wrong — Wastes is a
+   basic land with NO basic land type (CR 205.3i) and must not match; the
+   predicate is exactly the five basic land-type words, taken from the
+   existing `chooseBasicLandTypes` so it cannot drift from the
+   `Type$ Basic Land` choose.
+2. An extra effects-package leaf test beyond the brief's named carrier test,
+   because the brief's structural requirement (matcher and
+   `UnknownPredicates` share one recogniser) is only provable at the
+   classifier leaf.
+
+## Issues
+
+- `hasANonBasicLandType` still unknown/fail-closed (Wonderscape Sage,
+  1 corpus file) — already filed as its own ticket
+  (`deck-gap-hasanonbasiclandtype.md`, picked up by the orchestrator).
+- Nothing else found that this ticket did not fix.
+
+---
+
+# Prior r2 report (pred:ChosenCardStrict, agent-20260918T233200Z-79b69706) — already merged to main; preserved verbatim below
+
 # Report — r2 (agent-20260918T233200Z-79b69706) — pred:ChosenCardStrict
 
 Ticket: `pred:ChosenCardStrict` — the `Strict` suffix on the ChosenCard
