@@ -20,12 +20,14 @@ const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
 	// The merged AGENTS.md measures 18 data rows (measured with
-	// approximationRows() against the merged AGENTS.md). This merge keeps
-	// three disjoint closures alongside the prior deletions: task scrybottom's
+	// approximationRows() against the merged AGENTS.md). This merge keeps four
+	// disjoint closures alongside the prior deletions: this branch's rv1
+	// RevealAllValid$ closure (effects/cardflow.go effReveal,
+	// agent-20260922T191943Z-4ffa25b7), main's task scrybottom
 	// `T:Mode$ Scry`/`R:Event$ Scry` row (whose "whenever you scry" trigger
-	// half is closed here; the still-unclosed `R:Event$ Scry` replacement half
-	// is recorded in the commit message and the task report rather than a new
-	// row), main's four-mode trigger row
+	// half is closed there; the still-unclosed `R:Event$ Scry` replacement
+	// half is recorded in the commit message and the task report rather than
+	// a new row), main's four-mode trigger row
 	// (cli-20260923T060000Z-trig-attackerblocked), and main's rv2b
 	// damage-source / valid-players / count-heads row
 	// (cli-20260923T060000Z-rv2b-countheads).
@@ -41,7 +43,8 @@ const (
 	// knownOversizeRows is how many rows were already over standInCellLimit when
 	// the table was frozen. Lower it when you delete one of them; never raise
 	// it. A row grown past the cap pushes this over the constant and fails.
-	knownOversizeRows = 8
+	// rv1 deleted the oversize RevealAllValid$ row, so this drops by one.
+	knownOversizeRows = 7
 )
 
 func approximationRows(t *testing.T) []string {

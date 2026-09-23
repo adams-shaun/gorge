@@ -961,6 +961,19 @@ func evalRefProperty(h Host, c *Ctx, expr string) (int32, bool) {
 			// ALL is the sum over every kind (the same wildcard the plain
 			// Count$CardCounters.ALL head reads -- Kinsbaile Borderguard's
 			// TriggeredCard$CardCounters.ALL), never a literal kind lookup.
+			// CR 608.2b/h: an object target that has left the battlefield is
+			// read with the counters it had there, so Dismantle's
+			// `X:Targeted$CardCounters.ALL` still sizes the placement after
+			// the chained Destroy cleared the live counters. The trigger
+			// snapshot (lki) has already substituted its own object above and
+			// stays authoritative.
+			if !lki && ref == "Targeted" {
+				if cs, ok := targetCountersLKI(c, t.Obj, o); ok {
+					oc := *o
+					oc.Counters = cs
+					o = &oc
+				}
+			}
 			if strings.EqualFold(strings.TrimPrefix(prop, "CardCounters."), "ALL") {
 				n += sumCounters(o.Counters)
 			} else {

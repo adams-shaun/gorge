@@ -122,6 +122,12 @@ func (e *Engine) counterRemovedMatches(t cards.Trigger, source state.ObjID, ev e
 	if !e.eventCardAndPlayerMatch(t, source, ev.Obj, o.Controller) {
 		return false
 	}
+	// Vanishing's last-counter trigger requires a positive-to-zero
+	// transition, not merely a CounterChange whose clamped result is zero.
+	// The TIME-removal LKI is captured before Apply in Engine.emit.
+	if t.Params["Keyword"] == "Vanishing" && (lki == nil || lki.Counter("TIME") <= 0) {
+		return false
+	}
 	if want := t.Params["NewCounterAmount"]; want != "" {
 		n, err := strconv.Atoi(strings.TrimSpace(want))
 		if err != nil {
