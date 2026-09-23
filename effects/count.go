@@ -3216,6 +3216,11 @@ func evalCompare(h Host, c *Ctx, arg string, depth int) int32 {
 	}
 	op, tail := rest[:2], rest[2:]
 	thTok, branches, _ := strings.Cut(tail, ".")
+	if thTok == "" {
+		// A comparison operator must have a threshold. Do not treat a malformed
+		// empty token as the otherwise valid numeric operand zero.
+		return 0
+	}
 	// The threshold is an operand, not a literal-only field: Forge names an
 	// SVar here whenever the bound is itself a computed value (Teachings of
 	// the Archaics' GEMePlus -> SVar$Me/Plus.4, Anchor to Reality's LTZ ->

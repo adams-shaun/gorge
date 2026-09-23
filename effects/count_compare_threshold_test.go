@@ -37,7 +37,11 @@ func corpusCompareSVars(t *testing.T, cardName, name, wantBody string) map[strin
 	if got := sv[name]; got != wantBody {
 		t.Fatalf("precondition: %s SVar %s = %q, want %q", cardName, name, got, wantBody)
 	}
-	return sv
+	clone := make(map[string]string, len(sv))
+	for k, v := range sv {
+		clone[k] = v
+	}
+	return clone
 }
 
 // TestCompareHeadResolvesSVarThresholdAnchorToReality pins the LTZ form: the
@@ -114,6 +118,23 @@ func TestCompareHeadResolvesSVarThresholdTeachings(t *testing.T) {
 	c.SVars["Opp"] = "SVar$Me/Plus.4"
 	if got := EvalCount(h, c, "Count$Compare Opp GEMePlus.3.2"); got != 3 {
 		t.Fatalf("Opp=4 vs MePlus=4: GEMePlus.3.2 = %d, want 3 (4 >= 4 holds)", got)
+	}
+}
+
+// TestCompareHeadRejectsEmptyThreshold preserves the fail-closed grammar for
+// a syntactically split comparison with no threshold between the operator and
+// its first dot. Empty is neither a literal nor an SVar operand.
+func TestCompareHeadRejectsEmptyThreshold(t *testing.T) {
+	h, c := fixtureHost(t)
+	c.SVars = map[string]string{"N": "2"}
+	if got := EvalCount(h, c, "SVar$N"); got != 2 {
+		t.Fatalf("precondition: N = %d, want 2", got)
+	}
+	if trueBranch, falseBranch := EvalCount(h, c, "7"), EvalCount(h, c, "8"); trueBranch == falseBranch {
+		t.Fatal("precondition: comparison branches must differ")
+	}
+	if got := EvalCount(h, c, "Count$Compare N GE.7.8"); got != 0 {
+		t.Fatalf("empty threshold = %d, want 0 (fail closed)", got)
 	}
 }
 
