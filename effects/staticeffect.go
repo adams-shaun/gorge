@@ -323,6 +323,11 @@ type staticGrantLifetime struct {
 	ImprintOnHost bool
 	ForgetOnCast  string
 	ChosenNumber  int32
+	// FromEffect marks the grant registrations as created by an api:Effect
+	// (state.ContinuousEffect.FromEffect): the source-scoped one-shot
+	// self-exile ender keys on it. The printed StaticEffect$ move rider
+	// leaves it false, so only the Effect route is ended by the idiom.
+	FromEffect bool
 }
 
 // stampGrantLifetime applies lt to one layer's registration. Zero-value
@@ -352,6 +357,9 @@ func stampGrantLifetime(ce *state.ContinuousEffect, lt staticGrantLifetime) {
 	}
 	if lt.ChosenNumber != 0 {
 		ce.ChosenNumber = lt.ChosenNumber
+	}
+	if lt.FromEffect {
+		ce.FromEffect = true
 	}
 }
 

@@ -423,6 +423,16 @@ type Engine struct {
 	// triggers, cloned at intent boundaries and removed when the stack object
 	// leaves. Never encoded in events or inferred from a resolving source.
 	triggerContexts map[state.ObjID]effects.TriggerContext
+	// triggerEffectFrames carries the source-scoped Effect frame an
+	// Effect-created delayed trigger body resolves under, keyed by the stack
+	// instance the trigger was placed into (the same key triggerContexts
+	// uses). A non-static Effect trigger's body is minted by events.Apply's
+	// DelayedPush from game state alone, so the frame the trigger queued with
+	// must ride this scratch map to the resolution Ctx; the static fire arm
+	// needs no map because it resolves the body inline. Resolution-scratch
+	// like triggerContexts: never event-encoded, cloned at intent boundaries
+	// and removed when the stack object leaves.
+	triggerEffectFrames map[state.ObjID]effects.EffectFrame
 	// currentEffectFrame is the Effect-created continuous-effect registration
 	// the effects.Resolve walk currently running belongs to. effects.Resolve
 	// publishes it (through the optional effectFrameHost interface) for the
@@ -2030,6 +2040,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		if tc, ok := e.triggerContexts[ev.Obj]; ok {
 			e.triggerContexts[copyID] = tc
 		}
+		if ef, ok := e.triggerEffectFrames[ev.Obj]; ok {
+			e.triggerEffectFrames[copyID] = ef
+		}
 		if lki, ok := e.triggerLKI[ev.Obj]; ok {
 			if e.triggerLKI == nil {
 				e.triggerLKI = make(map[state.ObjID]triggerObjectLKI)
@@ -2071,6 +2084,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	}
 	if ev.Kind == events.MoveZone && ev.From == state.ZStack && ev.To != state.ZStack {
 		delete(e.triggerContexts, ev.Obj)
+		delete(e.triggerEffectFrames, ev.Obj)
 		delete(e.triggerLKI, ev.Obj)
 		delete(e.sacrificedLKI, ev.Obj)
 		delete(e.fuseTargets, ev.Obj)

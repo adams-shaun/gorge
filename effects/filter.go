@@ -321,7 +321,7 @@ func init() {
 
 	for _, kw := range [...]string{"Flying", "Trample", "Deathtouch", "Lifelink",
 		"Vigilance", "Reach", "Haste", "Indestructible", "First Strike", "Menace",
-		"Flanking", "Horsemanship", "Defender", "Foretell"} {
+		"Flanking", "Horsemanship", "Defender", "Foretell", "Shadow"} {
 		k := kw
 		predicates["with"+strings.ReplaceAll(k, " ", "")] = func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 			return objectHasKeyword(o, k)
