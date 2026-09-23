@@ -938,6 +938,10 @@ type Engine struct {
 	manaColorActivation   *manaColorActivation
 	manaDiscardActivation *manaDiscardActivation
 	manaUnlessActivation  *manaUnlessActivation
+	// offStackMana is the transient frame of the off-stack mana resolution
+	// currently running synchronously (rules/mana_activation.go's
+	// offStackManaFrame). It is nil between Submits, so Clone never sees it.
+	offStackMana *offStackManaFrame
 	// unlessPayment carries an in-progress non-mana unless-cost payment. It
 	// keeps the enclosing resolution suspended while the payer chooses the
 	// sacrifice/discard objects that pay it.
