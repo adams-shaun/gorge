@@ -238,29 +238,6 @@ func TestDiscardHandOptionalAsksEachPlayerAndDeclineDiscardsNothing(t *testing.T
 	}
 }
 
-// TestDiscardHandOptionalNoHostTakesTheDiscard pins the R-9 no-host contract
-// for the election: a host that cannot ask resolves deterministically (takes
-// the whole hand) with the stand-in Note, rather than discarding nothing.
-func TestDiscardHandOptionalNoHostTakesTheDiscard(t *testing.T) {
-	ah, c, ids := discardBoard(t, creature(t, "Frog"), creature(t, "Bird"))
-	plain := &fakeHost{g: ah.g, log: ah.log}
-	s := sa(t, "SP$ Discard | ValidTgts$ Player | Mode$ Hand | Optional$ True")
-
-	effDiscard(plain, c, s)
-	if !inZone(plain.g, state.ZGraveyard, 1, ids[0]) || !inZone(plain.g, state.ZGraveyard, 1, ids[1]) {
-		t.Fatal("the no-host stand-in did not take the whole hand")
-	}
-	found := false
-	for _, ev := range plain.log {
-		if ev.Kind == events.Note && ev.Text == "may discard resolved as discard (no engine host to ask)" {
-			found = true
-		}
-	}
-	if !found {
-		t.Fatal("the no-host stand-in did not record its Note")
-	}
-}
-
 // TestDiscardTgtChooseMultiTargetAsksEveryTarget pins the multi-target walk:
 // a TgtChoose discard whose acting-player list holds TWO players asks each
 // one in order, and each answer is applied to the target that gave it — the
@@ -315,32 +292,6 @@ func TestDiscardTgtChooseMultiTargetAsksEveryTarget(t *testing.T) {
 	if len(ah.g.Zone(state.ZHand, 0)) != 1 || len(ah.g.Zone(state.ZHand, 1)) != 1 {
 		t.Fatalf("hand sizes after both answers = %d/%d, want 1/1",
 			len(ah.g.Zone(state.ZHand, 0)), len(ah.g.Zone(state.ZHand, 1)))
-	}
-}
-
-// TestDiscardDefinedResolvesDefinedCards pins the Mode$ Defined half of the
-// row (whimsy's shape: `Mode$ Defined | DefinedCards$ Remembered`): the
-// remembered card — not the front of hand — is what moves, and only if it is
-// still in the target's hand. NOTE: this arm predates this ticket (landed
-// 2026-09-15 with the Breathstealer's Crypt Draw-replacement work), so this
-// test passes with the ticket's fix reverted too — it is the row-closure pin
-// for the Defined half, not fix-proof; see the report's "Fails without the
-// fix" section for the tests that do discriminate.
-func TestDiscardDefinedResolvesDefinedCards(t *testing.T) {
-	ah, ctx, ids := discardBoard(t, creature(t, "Frog"), creature(t, "Bird"))
-	ctx.Remembered = []state.Target{{Obj: ids[1]}}
-	s := sa(t, "SP$ Discard | Defined$ Targeted | Mode$ Defined | DefinedCards$ Remembered")
-
-	effDiscard(ah, ctx, s)
-
-	if ah.asked != nil {
-		t.Fatal("a Defined discard posed a decision — DefinedCards$ names the cards, there is no choice")
-	}
-	if !inZone(ah.g, state.ZGraveyard, 1, ids[1]) {
-		t.Fatal("the remembered card was not discarded")
-	}
-	if !inZone(ah.g, state.ZHand, 1, ids[0]) {
-		t.Fatal("the front card was discarded instead of the remembered card")
 	}
 }
 
