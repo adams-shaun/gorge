@@ -55,6 +55,13 @@ type Options struct {
 	// that serve finished ones from disk — so a persisted match replays
 	// with the same token definitions (Ruling FL-40).
 	Tokens map[string]*cards.Card
+	// NameUniverse is the compiled card corpus a NameCard decision ranges
+	// over (rules.Config.NameUniverse): Pithing Needle names any card, a
+	// land included, and this is the only source of names a seat has never
+	// seen. Passed into every rules.Config the host builds, live and replay
+	// alike, for the same reason Tokens is (the replay must offer the same
+	// options the live match did).
+	NameUniverse []*cards.Card
 	// Sleep is the table's only clock read (PL-11): run calls it between
 	// matches for Cooldown, and play calls it after every decision for
 	// Pace. It must return once d elapses OR stop closes, whichever comes

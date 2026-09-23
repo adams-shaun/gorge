@@ -32,8 +32,10 @@ type Log struct {
 	noHashSet bool
 }
 
+const expectedEventsPerGame = 4096
+
 func NewLog(seed uint64) *Log {
-	l := &Log{Seed: seed, buf: make([]byte, 0, 128), headHash: sha256.New()}
+	l := &Log{Seed: seed, Events: make([]Event, 0, expectedEventsPerGame), buf: make([]byte, 0, 128), headHash: sha256.New()}
 	// Seed the chain with the seed value
 	var b [8]byte
 	binary.LittleEndian.PutUint64(b[:], seed)

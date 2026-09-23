@@ -35,7 +35,8 @@ var manaLetters = [...]string{"W", "U", "B", "R", "G", "C"}
 // having paid nothing. Reporting failure explicitly is what lets castSpell
 // abort the cast instead.
 func (e *Engine) payMana(p state.PlayerID, cost Cost) bool {
-	return e.payManaConvFor(p, 0, false, cost, nil)
+	ok, _, _, _, _ := e.payManaDescriptorForSpent(p, paymentDescriptor{class: paymentOther, cost: &cost}, cost, nil, pipRider{})
+	return ok
 }
 
 // payManaConv is payMana under a stat:ManaConvert conversion set (or nil,
@@ -43,7 +44,14 @@ func (e *Engine) payMana(p state.PlayerID, cost Cost) bool {
 // (and the <-C restriction narrows) what the pool's mana may pay, never what
 // the cost demands.
 func (e *Engine) payManaConv(p state.PlayerID, cost Cost, conv *manaConv) bool {
-	return e.payManaConvFor(p, 0, false, cost, conv)
+	ok, _, _, _, _ := e.payManaDescriptorForSpent(p, paymentDescriptor{class: paymentOther, cost: &cost}, cost, conv, pipRider{})
+	return ok
+}
+
+func (e *Engine) payManaCumulative(p state.PlayerID, id state.ObjID, cost Cost, conv *manaConv) bool {
+	ok, _, _, _, _ := e.payManaDescriptorForSpent(p, paymentDescriptor{id: id, class: paymentCumulativeUpkeep,
+		cost: &cost, xAnnounced: cost.X > 0}, cost, conv, pipRider{})
+	return ok
 }
 
 // payManaConvFor pays a specific spell or activated ability. RestrictValid$
@@ -83,7 +91,15 @@ func (e *Engine) payManaFor(p state.PlayerID, id state.ObjID, ability bool, cost
 // keeps the bool-only payManaFor wrapper, so no other payment site changes
 // shape.
 func (e *Engine) payManaForSpent(p state.PlayerID, id state.ObjID, ability bool, cost Cost, conv *manaConv, rider pipRider) (bool, state.Mana, state.Mana, state.Mana, [3]state.Mana) {
-	av := e.manaAvailableFor(p, id, ability)
+	class := paymentSpell
+	if ability {
+		class = paymentActivated
+	}
+	return e.payManaDescriptorForSpent(p, paymentDescriptor{id: id, class: class, cost: &cost}, cost, conv, rider)
+}
+
+func (e *Engine) payManaDescriptorForSpent(p state.PlayerID, d paymentDescriptor, cost Cost, conv *manaConv, rider pipRider) (bool, state.Mana, state.Mana, state.Mana, [3]state.Mana) {
+	av := e.manaAvailableFor(p, d)
 	// The payment's persistence attribution: the visible pool's persistent
 	// share (perVis) and its ordinary complement (perFresh). resolveMana is
 	// persistence-blind — the units are interchangeable — so attributing the
@@ -96,7 +112,7 @@ func (e *Engine) payManaForSpent(p state.PlayerID, id state.ObjID, ability bool,
 	// whenever a restricted batch is hidden from the payment, or the carve
 	// consumed the persistent batch first), is what keeps the tally on the
 	// units that actually survived a boundary.
-	perVis := e.visiblePersistentMana(p, id, ability)
+	perVis := e.visiblePersistentMana(p, d)
 	perFresh := state.Mana{}
 	for i := range perFresh {
 		perFresh[i] = av.pool[i] - perVis[i]
@@ -139,7 +155,7 @@ func (e *Engine) payManaForSpent(p state.PlayerID, id state.ObjID, ability bool,
 	// spentTyped keep the FULL deltas the pay-time capture reads.
 	emitSnow := spentSnow
 	emitTyped := spentTyped
-	e.emitRestrictedManaSpend(p, id, ability, &spent, &emitSnow, &emitTyped, &perVis, &perFresh)
+	e.emitRestrictedManaSpend(p, d, &spent, &emitSnow, &emitTyped, &perVis, &perFresh)
 	for i, letter := range manaLetters {
 		if spent[i] == 0 {
 			continue
@@ -207,7 +223,8 @@ func (e *Engine) payManaForSpent(p state.PlayerID, id state.ObjID, ability bool,
 // keeps it via pc.mayPlayIgnore because after the push (CR 601.2a) the card
 // is on the stack and a zone re-derivation would wrongly drop the grant.
 func (e *Engine) payManaCastSpent(pc *pendingCast, cost Cost) (bool, state.Mana, state.Mana, [3]state.Mana) {
-	ok, spentAll, _, spentSnow, spentTyped := e.payManaForSpent(pc.player, pc.card, false, cost, e.paymentConv(pc.player, pc.card, false),
+	ok, spentAll, _, spentSnow, spentTyped := e.payManaDescriptorForSpent(pc.player, paymentForCast(pc, cost), cost,
+		e.paymentConv(pc.player, pc.card, false),
 		pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType})
 	return ok, spentAll, spentSnow, spentTyped
 }
@@ -261,13 +278,62 @@ type availableMana struct {
 	typed [3]state.Mana
 }
 
+type paymentClass uint8
+
+const (
+	paymentSpell paymentClass = iota
+	paymentActivated
+	paymentCumulativeUpkeep
+	// paymentOther is a real mana payment (ward, unless-pay, attack costs,
+	// triggered costs, etc.) whose caller has no cast or activation
+	// descriptor. It must not inherit paymentSpell: bare RestrictValid$ Spell
+	// admits only a spell cast, and unknown/unclassified payments fail closed.
+	paymentOther
+)
+
+type paymentDescriptor struct {
+	id    state.ObjID
+	class paymentClass
+	cost  *Cost
+	// xAnnounced records that the payment's cost carried an X the
+	// announcement machinery has already folded (Cost.WithX clears Cost.X
+	// once a value is chosen, so the normalized cost alone can no longer
+	// identify an X payment for the CostContainsX restriction). Raw-cost
+	// sites (offer gates, mana-ability activations) get it from paymentFor's
+	// own derivation; the post-fold payment sites set it explicitly through
+	// paymentForCast. Offer and payment must agree about an X cost, never
+	// drift.
+	xAnnounced bool
+}
+
+func paymentFor(id state.ObjID, ability bool, cost Cost) paymentDescriptor {
+	class := paymentSpell
+	if ability {
+		class = paymentActivated
+	}
+	return paymentDescriptor{id: id, class: class, cost: &cost, xAnnounced: cost.X > 0}
+}
+
+// paymentForCast is paymentFor for a pendingCast's resolved payment cost: the
+// X the announcement machinery folded into Generic is still an X component of
+// this payment (CostContainsX), so the marker rides pc.cost — the folded cost
+// itself has Cost.X == 0 and would read as X-less.
+func paymentForCast(pc *pendingCast, cost Cost) paymentDescriptor {
+	d := paymentFor(pc.card, pc.isAbility(), cost)
+	d.xAnnounced = pc.cost.X > 0
+	return d
+}
+
 // manaAvailableFor removes every restricted batch from the visible pool, then
 // restores exactly the batches valid for this payment. This means a cast or a
 // nonmatching activation can never borrow Tazri-style mana merely because it
 // shares a colour bucket with unrestricted mana. The typed tallies are
 // filtered by the same rule, so a typed restricted unit can never be spent
-// through the typed consumption path either.
-func (e *Engine) manaAvailableFor(p state.PlayerID, id state.ObjID, ability bool) availableMana {
+// through the typed consumption path either. The descriptor carries the real
+// payment: a cost-blind descriptor misreads every cost-keyed dotless term
+// (CostContainsX, CostContainsC, CantPayGenericCosts), so callers without a
+// real cost must say so with Cost{} and stay on the class-only terms.
+func (e *Engine) manaAvailableFor(p state.PlayerID, d paymentDescriptor) availableMana {
 	pl := e.G.Players[p]
 	available := availableMana{pool: pl.Pool, typed: pl.TypedMana}
 	for _, r := range pl.RestrictedMana {
@@ -276,7 +342,7 @@ func (e *Engine) manaAvailableFor(p state.PlayerID, id state.ObjID, ability bool
 		// An empty Valid is an UNRESTRICTED batch that carries only its
 		// AddsNoCounter$ provenance (Boseiju's plain {C}): it pays anything,
 		// exactly like ordinary pool mana, so its units stay visible.
-		if r.Valid == "" || e.restrictValidMatches(p, id, ability, r.Valid, r.Source) {
+		if r.Valid == "" || e.restrictValidMatches(p, d, r.Valid, r.Source) {
 			available.pool[idx] += r.Amount
 			continue
 		}
@@ -297,11 +363,11 @@ func (e *Engine) manaAvailableFor(p state.PlayerID, id state.ObjID, ability bool
 // AddsNoCounter batch — spendable anywhere — so its units stay attributed.)
 // Measured corpus: every PersistentMana carrier produces plain mana, so the
 // persistent share never carries a snow/typed tag in practice.
-func (e *Engine) visiblePersistentMana(p state.PlayerID, id state.ObjID, ability bool) state.Mana {
+func (e *Engine) visiblePersistentMana(p state.PlayerID, d paymentDescriptor) state.Mana {
 	pl := e.G.Players[p]
 	per := pl.PersistentMana
 	for _, r := range pl.RestrictedMana {
-		if !r.Persistent || (r.Valid != "" && e.restrictValidMatches(p, id, ability, r.Valid, r.Source)) {
+		if !r.Persistent || (r.Valid != "" && e.restrictValidMatches(p, d, r.Valid, r.Source)) {
 			continue
 		}
 		idx := state.ManaSlot(r.Color)
@@ -335,7 +401,7 @@ func (e *Engine) visiblePersistentMana(p state.PlayerID, id state.ObjID, ability
 // Capping at the tag's (or snow tally's, or the slot's remaining plain units')
 // actual spend reconciles the carve's restricted-first attribution with the
 // search's plain-first consumption and keeps every emission tally >= 0.
-func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, id state.ObjID, ability bool, spent *state.Mana, emitSnow *state.Mana, emitTyped *[3]state.Mana, perVis *state.Mana, perFresh *state.Mana) {
+func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, d paymentDescriptor, spent *state.Mana, emitSnow *state.Mana, emitTyped *[3]state.Mana, perVis *state.Mana, perFresh *state.Mana) {
 	e.noCounterSpend = 0
 	e.manaSpentSources = nil
 	// Emit mutates RestrictedMana through events.Apply, so range a snapshot:
@@ -343,7 +409,7 @@ func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, id state.ObjID, abili
 	// live slice shift under this loop and could skip or double-spend one.
 	batches := append([]state.ManaRestriction(nil), e.G.Players[p].RestrictedMana...)
 	for _, r := range batches {
-		if r.Amount <= 0 || (r.Valid != "" && !e.restrictValidMatches(p, id, ability, r.Valid, r.Source)) {
+		if r.Amount <= 0 || (r.Valid != "" && !e.restrictValidMatches(p, d, r.Valid, r.Source)) {
 			continue
 		}
 		idx := state.ManaSlot(r.Color)
@@ -376,8 +442,8 @@ func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, id state.ObjID, abili
 		if used <= 0 {
 			continue
 		}
-		if r.NoCounter != "" && !ability && e.noCounterSpend == 0 && addsNoCounterHolds(e.G, id, r.NoCounter) {
-			e.noCounterSpend = id
+		if r.NoCounter != "" && d.class == paymentSpell && e.noCounterSpend == 0 && addsNoCounterHolds(e.G, d.id, r.NoCounter) {
+			e.noCounterSpend = d.id
 		}
 		// A consumed batch's producing source is what the spell's
 		// TriggersWhenSpent$ riders key on. Only a SPELL payment (the
@@ -386,7 +452,7 @@ func (e *Engine) emitRestrictedManaSpend(p state.PlayerID, id state.ObjID, abili
 		// payment fire nothing (the rider is a cast-spend gate). Dedup keeps
 		// one entry per source when several batches from it pay one cast; the
 		// insertion-order append keeps the queue deterministic.
-		if !ability && r.Source != 0 && !containsObjID(e.manaSpentSources, r.Source) {
+		if d.class == paymentSpell && r.Source != 0 && !containsObjID(e.manaSpentSources, r.Source) {
 			e.manaSpentSources = append(e.manaSpentSources, r.Source)
 		}
 		e.emit(events.Event{Kind: events.ManaAdd, Player: p, Counter: r.Color, Amount: -used,
@@ -462,42 +528,69 @@ func addsNoCounterHolds(g *state.Game, id state.ObjID, cond string) bool {
 // id when the batch's event recorded one, so source-relative filter
 // predicates (Cavern of Souls' ChosenType) resolve against the mana source;
 // source-less batches keep the historical paid-card reading.
-func (e *Engine) restrictValidMatches(p state.PlayerID, id state.ObjID, ability bool, valid string, src state.ObjID) bool {
+func (e *Engine) restrictValidMatches(p state.PlayerID, d paymentDescriptor, valid string, src state.ObjID) bool {
 	for _, term := range strings.Split(strings.TrimSpace(valid), ",") {
-		if e.restrictValidTermMatches(p, id, ability, strings.TrimSpace(term), src) {
+		if e.restrictValidTermMatches(p, d, strings.TrimSpace(term), src) {
 			return true
 		}
 	}
 	return false
 }
 
-func (e *Engine) restrictValidTermMatches(p state.PlayerID, id state.ObjID, ability bool, term string, src state.ObjID) bool {
-	kind, spec, ok := strings.Cut(term, ".")
-	if !ok {
+func (e *Engine) restrictValidTermMatches(p state.PlayerID, d paymentDescriptor, term string, src state.ObjID) bool {
+	kind, spec, dotted := strings.Cut(term, ".")
+	if !dotted {
+		switch term {
+		case "Spell":
+			return d.class == paymentSpell
+		case "Activated", "nonSpell":
+			return d.class == paymentActivated
+		case "CantCastNonArtifactSpells":
+			o := e.G.Obj(d.id)
+			return d.class == paymentSpell && o != nil && o.Face() != nil && o.Face().IsArtifact()
+		case "CantCastSpellFromHand":
+			_, ok := e.castProvenanceAdmitsPending("Card.!wasCastFromYourHand", d.id, p)
+			return d.class == paymentSpell && ok
+		case "CostContainsX":
+			// An announced X was folded into Generic (Cost.WithX clears
+			// Cost.X), so the descriptor's marker carries it — the cost the
+			// payment actually commits still contains an X component.
+			return d.cost != nil && (d.cost.X > 0 || d.xAnnounced)
+		case "CostContainsC":
+			return d.cost != nil && d.cost.Colored[state.ManaIndex('C')] > 0
+		case "CantPayGenericCosts":
+			// Read the actual resolved payment. Before its X and twobrid faces
+			// have been announced, the offer stays open if a colour / X=0 face
+			// can be selected; announceFeasible then rechecks the descriptor
+			// after that face is folded. Thus {2/W} may use this mana as {W},
+			// but not as {2}, and an X spell can choose only X=0 here.
+			return d.cost != nil && d.cost.Generic == 0
+		case "CumulativeUpkeep":
+			return d.class == paymentCumulativeUpkeep
+		default:
+			return false
+		}
+	}
+	ability := d.class == paymentActivated
+	if kind == "Activated" && !ability {
 		return false
 	}
-	switch kind {
-	case "Activated":
-		if !ability {
-			return false
-		}
-	case "Spell":
-		if ability {
-			return false
-		}
-	default:
+	if kind == "Spell" && d.class != paymentSpell {
+		return false
+	}
+	if kind != "Activated" && kind != "Spell" {
 		return false
 	}
 	needsBattlefield := strings.Contains(spec, "inZoneBattlefield")
 	spec = strings.Trim(strings.ReplaceAll(spec, "+inZoneBattlefield", ""), "+")
-	o := e.G.Obj(id)
+	o := e.G.Obj(d.id)
 	if o == nil || (needsBattlefield && o.Zone != state.ZBattlefield) {
 		return false
 	}
 	if spec == "" {
 		return true
 	}
-	srcID := id
+	srcID := d.id
 	if src != 0 {
 		srcID = src
 	}
@@ -516,11 +609,12 @@ func (e *Engine) restrictValidTermMatches(p state.PlayerID, id state.ObjID, abil
 	// helpers rejoin onto a base, so evaluate the Card.-prefixed form; a
 	// surviving alternative whose only predicate was the provenance token
 	// rejoins to bare "Card", which MatchesSpecFrom matches like any card.
-	spec, ok = e.castProvenanceAdmitsPending("Card."+spec, id, p)
-	if !ok {
+	var provenanceOK bool
+	spec, provenanceOK = e.castProvenanceAdmitsPending("Card."+spec, d.id, p)
+	if !provenanceOK {
 		return false
 	}
-	if effects.MatchesSpecFrom(e.G, spec, id, p, srcID) {
+	if e.matchesSpecFrom(spec, d.id, p, srcID) {
 		return true
 	}
 	// Forge's object-filter grammar defaults the base to Card, so a bare
@@ -532,7 +626,7 @@ func (e *Engine) restrictValidTermMatches(p state.PlayerID, id state.ObjID, abil
 	// explicit base before denying the batch: the retry can only turn a
 	// "never spendable" batch into the correct evaluation, never widen a
 	// spec that already evaluated (the first attempt ran unchanged).
-	return effects.MatchesSpecFrom(e.G, "Card."+spec, id, p, srcID)
+	return e.matchesSpecFrom("Card."+spec, d.id, p, srcID)
 }
 
 // paymentConv is the conversion set for p paying id (ability selects the
@@ -552,10 +646,30 @@ func (e *Engine) paymentConv(p state.PlayerID, id state.ObjID, ability bool) *ma
 // passed explicitly, for the payment sites that know the cast's recorded
 // rider and cannot re-derive it from the card's zone.
 func (e *Engine) costPayableGrant(p state.PlayerID, id state.ObjID, ability bool, cost Cost, rider pipRider) bool {
-	av := e.manaAvailableFor(p, id, ability)
+	// The descriptor carries the REAL cost: an offer gate priced against a
+	// descriptor with an empty cost would hide every cost-keyed restricted
+	// batch (CostContainsX, CostContainsC) even when the payment itself
+	// admits it — the offer and the payment must read the same cost.
+	av := e.manaAvailableFor(p, paymentFor(id, ability, cost))
 	_, ok := cost.resolveManaWith(av.pool, e.G.Players[p].Snow, av.typed,
 		e.G.Players[p].Life, e.payerGrantsPayLifeInsteadOfB(p), rider, e.paymentConv(p, id, ability))
 	return ok
+}
+
+func (e *Engine) costPayableClass(p state.PlayerID, d paymentDescriptor, rider pipRider, cost Cost) bool {
+	av := e.manaAvailableFor(p, d)
+	_, ok := cost.resolveManaWith(av.pool, e.G.Players[p].Snow, av.typed,
+		e.G.Players[p].Life, e.payerGrantsPayLifeInsteadOfB(p), rider, e.paymentConv(p, d.id, d.class == paymentActivated))
+	return ok
+}
+
+// costPayableOther is the offer-side partner of context-free payMana and
+// payManaConv windows. A cost paid outside casting or activating an ability
+// must not borrow spell- or activation-restricted mana merely because its
+// source happens to be a card object.
+func (e *Engine) costPayableOther(p state.PlayerID, id state.ObjID, cost Cost) bool {
+	return e.costPayableClass(p, paymentDescriptor{id: id, class: paymentOther, cost: &cost},
+		pipRider{anyColor: e.payerGrantsIgnoreColor(p, id), anyType: e.payerGrantsIgnoreType(p, id)}, cost)
 }
 
 // costPayable is the conversion-aware equivalent of Cost.payable at the
@@ -1020,25 +1134,172 @@ func (e *Engine) protectionSource(source state.ObjID) state.ObjID {
 	return source
 }
 
-// describeTargetEffect is intentionally independent of game state and host.
-// Only literal damage is known: evaluating Num here would collapse unresolved
-// SVars to zero and would mistake a current X/count for a resolution forecast.
-func describeTargetEffect(sa *cards.SA) *decision.TargetEffect {
+// describeTargetEffect is the context-aware target payload builder. The
+// target ask is CR 601.2c's choice among legal targets, so a dynamic amount
+// must be evaluated in the same announced/cast context the eventual effect
+// will use -- never guessed from a zero-value Num read.
+func (e *Engine) describeTargetEffect(p state.PlayerID, source state.ObjID, sa *cards.SA, x int32) *decision.TargetEffect {
 	if sa == nil {
 		return nil
 	}
 	out := &decision.TargetEffect{API: sa.API}
+	if x == 0 {
+		if o := e.G.Obj(source); o != nil {
+			x = o.X
+		}
+	}
+	if removal := targetRemoval(sa); removal != nil {
+		out.Removal = removal
+	}
 	switch sa.API {
 	case "DealDamage", "DamageAll":
 		out.Damage = &decision.DamageEffect{}
-		// Fixed-width parsing is architecture-independent and safely representable
-		// by the wire's JavaScript number. Negative/overflow/missing stay unknown.
-		if n, err := strconv.ParseInt(sa.Params["NumDmg"], 10, 32); err == nil && n >= 0 {
-			amount := int(n)
-			out.Damage.Amount = &amount
+		// A missing amount remains null even though the effect implementation
+		// has a defensive runtime default. A literal or a resolvable X/SVar is
+		// the amount the client and bot can actually reason about at this ask.
+		if amount, ok := e.targetDamageAmount(p, source, sa, x); ok && amount >= 0 {
+			n := int(amount)
+			out.Damage.Amount = &n
 		}
 	}
 	return out
+}
+
+// targetDamageAmount evaluates NumDmg with a verdict. effects.NumResolved is
+// intentionally a broad numeric reader for effect sites that degrade an
+// unmodelled SVar to zero; a decision payload must not turn that degradation
+// into a claimed damage amount, so SVar bodies use EvalCountOK here.
+func (e *Engine) targetDamageAmount(p state.PlayerID, source state.ObjID, sa *cards.SA, x int32) (int32, bool) {
+	ctx, ok := e.targetBoundCtx(p, source)
+	if !ok {
+		ctx = &effects.Ctx{Source: source, Controller: p}
+		if o := e.G.Obj(source); o != nil && o.Face() != nil {
+			effects.SetSVars(ctx, o.Face().SVars)
+		}
+	}
+	ctx.X = x
+	raw, present := sa.Params["NumDmg"]
+	if !present {
+		return 0, false
+	}
+	raw = strings.TrimSpace(raw)
+	if n, err := strconv.ParseInt(raw, 10, 32); err == nil {
+		return int32(n), true
+	}
+	sign := int32(1)
+	if len(raw) > 1 && (raw[0] == '+' || raw[0] == '-') {
+		if raw[0] == '-' {
+			sign = -1
+		}
+		raw = raw[1:]
+	}
+	if ctx.SVars != nil {
+		if body, found := ctx.SVars[raw]; found {
+			// A body reading the target reference family has no value at this
+			// ask: the unbound evaluation is the empty target set's sum, and
+			// publishing it would claim a false zero (Kiku's Shadow's
+			// SVar:X:Targeted$CardPower against a legal 5/5 deals 5, not 0).
+			if e.amountDependsOnPendingTarget(ctx, p, source, sa, body) {
+				return 0, false
+			}
+			n, resolved := effects.EvalCountOK(e, ctx, body)
+			return sign * n, resolved
+		}
+	}
+	// A direct helper/test ask without a source object has no announced or
+	// resolving context in which a dynamic value could be known. Keep it null
+	// rather than turning the evaluator's zero fallback into a claim.
+	if source == 0 {
+		return 0, false
+	}
+	if raw == "X" {
+		return sign * ctx.X, true
+	}
+	// Inline Count$/ref-property bodies are valid direct numeric parameters.
+	// The evaluator supplies the unknown verdict instead of collapsing them to
+	// zero. This also covers published trigger/result values when their body is
+	// supported by the effects count grammar. The same pending-target probe
+	// guards this branch: an inline Targeted$ body is exactly as unvalued at
+	// the ask as an SVar one.
+	if e.amountDependsOnPendingTarget(ctx, p, source, sa, raw) {
+		return 0, false
+	}
+	n, resolved := effects.EvalCountOK(e, ctx, raw)
+	return sign * n, resolved
+}
+
+// amountDependsOnPendingTarget reports whether a NumDmg body's value moves
+// with WHICH target the answering player is about to choose. The target ask
+// is CR 601.2c's choice among legal candidates, so a body reading the target
+// reference family (Targeted$CardPower, TargetedPlayer$Valid..., their
+// Parent/This/All spellings) has NO value yet: its unbound evaluation is the
+// empty target set's sum, and EvalCountOK rightly treats an empty set as a
+// legitimate count -- which is precisely why the payload cannot take that 0
+// as a nominal amount. The verdict is derived from evaluation, not from a
+// hand-built token list, so a future target-reading head is covered without
+// this site learning about it: bind each legal candidate as the body's ONLY
+// target and compare against the unbound read. Any disagreement means the
+// pending choice moves the amount, and no scalar may be published (null --
+// "unknown" -- is the honest payload). A body that agrees with its unbound
+// read under every candidate (Count$YourLifeTotal, Count$xPaid) is genuinely
+// target-independent and stays publishable; a target-dependent sum over a
+// multi-target ask also disagrees (any single binding differs from the empty
+// sum whenever the value is nonzero), so a plural selection cannot smuggle a
+// single-binding value through either. The census is the same
+// legalTargetCandidates walk askTarget poses its options from, so the probe
+// never sees a candidate the ask cannot offer. Cost: one extra census plus
+// len(candidates) evaluations per posed damage ask -- decision posing, not a
+// hot path.
+func (e *Engine) amountDependsOnPendingTarget(ctx *effects.Ctx, p state.PlayerID, source state.ObjID, sa *cards.SA, body string) bool {
+	base, _ := effects.EvalCountOK(e, ctx, body)
+	for _, cand := range e.legalTargetCandidates(p, source, source, sa) {
+		// Ctx is threaded by pointer through the evaluator; the probe binds
+		// targets on a value copy and never touches the caller's context.
+		probe := *ctx
+		if cand.kind == "player" {
+			probe.Targets = []state.Target{{Player: cand.player, IsPlayer: true}}
+		} else {
+			probe.Targets = []state.Target{{Obj: cand.obj}}
+		}
+		if v, _ := effects.EvalCountOK(e, &probe, body); v != base {
+			return true
+		}
+	}
+	return false
+}
+
+// targetRemoval classifies only APIs and destinations whose direct meaning is
+// known. In particular, an unfamiliar API is never inferred to be removal
+// from a label or parameter spelling.
+func targetRemoval(sa *cards.SA) *decision.RemovalEffect {
+	if sa == nil {
+		return nil
+	}
+	switch sa.API {
+	case "Destroy", "DestroyAll":
+		return &decision.RemovalEffect{Kind: "destroy"}
+	case "Sacrifice", "SacrificeAll":
+		return &decision.RemovalEffect{Kind: "sacrifice"}
+	case "ChangeZone", "ChangeZoneAll":
+		destination := strings.ToLower(strings.TrimSpace(sa.Params["Destination"]))
+		kind := destination
+		switch destination {
+		case "exile":
+			kind = "exile"
+		case "hand":
+			kind = "bounce"
+		case "graveyard":
+			kind = "graveyard"
+		case "library":
+			kind = "library"
+		case "command":
+			kind = "command"
+		default:
+			return nil
+		}
+		return &decision.RemovalEffect{Kind: kind, Destination: destination}
+	}
+	return nil
 }
 
 type targetCandidate struct {
@@ -1239,7 +1500,7 @@ func (e *Engine) candidatesFor(p state.PlayerID, source, excludeSelf state.ObjID
 				if !ok {
 					continue
 				}
-				if effects.MatchesSpecCtx(e.G, tspec, oid, sc) {
+				if e.matchesSpec(tspec, oid, sc) {
 					out = append(out, targetCandidate{kind: "permanent", obj: oid, player: o.Controller})
 				}
 			}
@@ -1269,7 +1530,7 @@ func (e *Engine) candidatesFor(p state.PlayerID, source, excludeSelf state.ObjID
 					if !ok {
 						continue
 					}
-					if effects.MatchesSpecCtx(e.G, tspec, oid, sc) &&
+					if e.matchesSpec(tspec, oid, sc) &&
 						(!targeting || !(o.Zone == state.ZBattlefield && e.protectedFrom(oid, protSrc))) &&
 						(!targeting || !(o.Zone == state.ZBattlefield && e.shroudBlocksTarget(oid))) &&
 						(!targeting || !(o.Zone == state.ZBattlefield && e.hexproofBlocksTarget(oid, p, protSrc))) &&
@@ -1315,7 +1576,7 @@ func (e *Engine) filterTargetValidTargeting(in []targetCandidate, sa *cards.SA, 
 			if t.IsPlayer || t.Obj == 0 {
 				continue
 			}
-			if effects.MatchesSpecCtx(e.G, spec, t.Obj, sc) {
+			if e.matchesSpec(spec, t.Obj, sc) {
 				out = append(out, cand)
 				break
 			}
@@ -1413,7 +1674,7 @@ func (e *Engine) askCrossModeCharmTargets(p state.PlayerID, source state.ObjID, 
 	}
 	d := &decision.Decision{Player: p, Kind: decision.KTarget, Min: k, Max: k,
 		Prompt: fmt.Sprintf("Choose %d targets: one for each mode, each a different player", k),
-		Source: source, TargetEffect: describeTargetEffect(sub)}
+		Source: source, TargetEffect: e.describeTargetEffect(p, source, sub, 0)}
 	for _, candidate := range candidates {
 		o := decision.Option{Index: len(d.Options), Kind: candidate.kind,
 			Label: e.targetOptionLabel(candidate), Obj: candidate.obj, Player: candidate.player}
@@ -1464,6 +1725,32 @@ func (e *Engine) candidateControllerSeat(candidate targetCandidate) state.Player
 // intent could answer (Run Away Together, Kitsune, Dragon's Daughter).
 // Callers compare min against distinct (not the raw option count) to detect
 // that no legal set exists.
+// sameControllerTargetBounds applies the TargetsWithSameController$ set
+// constraint. Unlike the one-per-controller family, this permits multiple
+// picks from one group; its capacity is therefore the largest controller
+// group, not the number of groups. The capacity is returned separately so
+// callers can reject a mandatory ask without exposing an unsatisfiable
+// decision.
+func (e *Engine) sameControllerTargetBounds(sa *cards.SA, candidates []targetCandidate, min, max int) (int, int, int, bool) {
+	if !strings.EqualFold(sa.Params["TargetsWithSameController"], "True") {
+		return min, max, 0, false
+	}
+	counts := map[state.PlayerID]int{}
+	for _, candidate := range candidates {
+		counts[e.candidateControllerSeat(candidate)]++
+	}
+	capacity := 0
+	for _, count := range counts {
+		if count > capacity {
+			capacity = count
+		}
+	}
+	if capacity > 0 && max > capacity {
+		max = capacity
+	}
+	return min, max, capacity, true
+}
+
 func (e *Engine) oneEachTargetBounds(sa *cards.SA, candidates []targetCandidate, min, max int) (int, int, bool, int) {
 	if !targetControllerExclusive(sa) {
 		return min, max, false, 0
@@ -1511,6 +1798,24 @@ func (e *Engine) oneEachTargetBounds(sa *cards.SA, candidates []targetCandidate,
 // SAME set constraint -- no two chosen targets may share a controller -- and
 // both are expressed on the wire by Option.Group, so one predicate backs both
 // and the resolution recheck reads it through the same helper.
+func (e *Engine) narrowSameController(targets []state.Target) []state.Target {
+	if len(targets) < 2 {
+		return targets
+	}
+	controller := targets[0]
+	seat, ok := e.targetControllerSeat(controller)
+	if !ok {
+		return targets
+	}
+	out := targets[:0]
+	for _, target := range targets {
+		if got, valid := e.targetControllerSeat(target); valid && got == seat {
+			out = append(out, target)
+		}
+	}
+	return out
+}
+
 func targetControllerExclusive(sa *cards.SA) bool {
 	return strings.EqualFold(sa.Params["TargetsForEachPlayer"], "True") ||
 		strings.EqualFold(sa.Params["TargetsWithDifferentControllers"], "True")
@@ -1711,6 +2016,119 @@ func (e *Engine) totalPowerCappedCandidates(candidates []targetCandidate, p stat
 	return out, capPower, true
 }
 
+// AskCopyTargets offers CR 707.10c's new-target choice for the copy on top
+// of the stack. It is driven entirely by the copy's own
+// CopyMayChooseTarget flag -- set by the StackCopy fold from the CREATING
+// CopySpellAbility's MayChooseTarget$ parameter, so an external copier
+// (Mirari, Cloven Casting, a Storm or Replicate copy) grants the election
+// even though its SA is not part of the copied spell's text.
+//
+// The ask preserves the copied spell's WHOLE target requirement, not just
+// one slot: MayChooseTarget$ True is not restricted to one-target spells, so
+// the decision's bounds come from the copy's own declaration through the
+// SAME resolvedTargetBounds / oneEachTargetBounds pair askTarget and cast.go's
+// targetAsk use (a two-target spell therefore accepts two picks, and a
+// per-controller declaration keeps its Option.Group exclusivity). Every
+// inherited target is offered first as a keep-current option -- ALWAYS, even
+// when it is no longer legal, because choosing new targets is optional and a
+// player who keeps an illegal target simply lets the copy fizzle per CR
+// 608.2b (forcing a new target here would retarget a copy the player declined
+// to change) -- so selecting the leading keep-current options reproduces
+// "choose nothing new". The remaining options use the same legal-target
+// census as casting. The election is one-shot: the answer records targets
+// through recordChosenTargets, whose TargetsChosen fold clears the flag, so
+// the resolveTop re-entry does not ask again.
+func (e *Engine) AskCopyTargets() bool {
+	n := len(e.G.Stack)
+	if n == 0 {
+		return false
+	}
+	o := e.G.Obj(e.G.Stack[n-1])
+	if o == nil || !o.IsCopy || !o.CopyMayChooseTarget {
+		return false
+	}
+	controller := o.Controller
+	sa := o.Ability
+	if o.Face() != nil {
+		sa = o.Face().SpellAbility()
+	}
+	if sa == nil || strings.TrimSpace(sa.Params["ValidTgts"]) == "" {
+		return false
+	}
+	candidates := e.legalTargetCandidates(controller, o.ID, o.ID, sa)
+	ordered := make([]targetCandidate, 0, len(candidates)+len(o.Targets))
+	for _, old := range o.Targets {
+		matched := -1
+		for i, candidate := range candidates {
+			if targetCandidateEqual(old, candidate) {
+				matched = i
+				break
+			}
+		}
+		if matched >= 0 {
+			ordered = append(ordered, candidates[matched])
+			candidates = append(candidates[:matched], candidates[matched+1:]...)
+		} else {
+			// Keep-current even though the target is no longer legal: the
+			// player may decline new targets (CR 707.10c), and the copy
+			// then fizzles at CR 608.2b.
+			ordered = append(ordered, stateTargetCandidate(old))
+		}
+	}
+	ordered = append(ordered, candidates...)
+	if len(ordered) == 0 {
+		return false
+	}
+	// The copy's OWN declaration supplies the required count (CR 707.10c
+	// retargets a copy per the spell's target rules), through the same shared
+	// readers the cast ask uses so the two sites cannot drift. oneEachTargetBounds
+	// is fed the full selectable list -- keep-current slots included -- so the
+	// per-controller capacity counts a kept target too.
+	min, max := e.resolvedTargetBounds(controller, o.ID, sa, o.X)
+	min, max, _, _ = e.oneEachTargetBounds(sa, ordered, min, max)
+	// A mandatory minimum above the offered list would be an unanswerable
+	// decision no seat could satisfy (a livelock). The inherited keep-current
+	// entries are always offered even when illegal, so the list is non-empty;
+	// clamping Min to it keeps totality whenever a dynamic bound outruns the
+	// copy's inherited set (the copy then fizzles at CR 608.2b like any other
+	// under-target resolution).
+	if min > len(ordered) {
+		min = len(ordered)
+	}
+	if max < min {
+		max = min
+	}
+	d := &decision.Decision{Player: controller, Kind: decision.KTarget, Min: min, Max: max,
+		Prompt: "Choose a new target for the copy", Source: o.ID,
+		ResumeKind: "copy_targets", ResumeSA: sa, TargetEffect: e.describeTargetEffect(controller, o.ID, sa, o.X)}
+	for _, candidate := range ordered {
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: candidate.kind,
+			Label: e.targetOptionLabel(candidate), Obj: candidate.obj, Player: candidate.player,
+			Group: e.targetControllerGroup(sa, candidate)})
+	}
+	e.Ask(d)
+	return true
+}
+
+// stateTargetCandidate converts a recorded state.Target into the option shape
+// the target census uses. The kind is only the wire label; a player target
+// keeps "player" and every object target is offered as "permanent" (the
+// label reads the object's own name, so a target that has left the
+// battlefield still renders correctly).
+func stateTargetCandidate(t state.Target) targetCandidate {
+	if t.IsPlayer {
+		return targetCandidate{kind: "player", player: t.Player}
+	}
+	return targetCandidate{kind: "permanent", obj: t.Obj}
+}
+
+func targetCandidateEqual(t state.Target, c targetCandidate) bool {
+	if t.IsPlayer {
+		return c.kind == "player" && c.player == t.Player
+	}
+	return c.kind != "player" && c.obj == t.Obj
+}
+
 // askTarget offers every legal target for a spell or ability. It deliberately
 // retains the post-push insufficient-target backstop: modal and dynamic target
 // counts are not rejected by the earlier cast-offer census.
@@ -1725,9 +2143,11 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 	// still take.
 	candidates, powerCap, powerCapped := e.totalPowerCappedCandidates(candidates, p, source, sa, 0)
 	min, max, exclusive, distinct := e.oneEachTargetBounds(sa, candidates, min, max)
+	min, max, sameCapacity, sameController := e.sameControllerTargetBounds(sa, candidates, min, max)
 	d := &decision.Decision{Player: p, Kind: decision.KTarget, Min: min, Max: max,
 		Prompt: "Choose a target for " + e.targetName(source),
-		Source: source, TargetEffect: describeTargetEffect(sa)}
+		Source: source, TargetEffect: e.describeTargetEffect(p, source, sa, 0),
+		TargetsWithSameController: sameController, ResumeSA: sa}
 	for _, candidate := range candidates {
 		// targetOptionLabel tolerates the Face-less ability object a
 		// TargetType$ Activated/Triggered spec now offers: targetName falls
@@ -1736,6 +2156,7 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 		o := decision.Option{Index: len(d.Options), Kind: candidate.kind,
 			Label: label, Obj: candidate.obj, Player: candidate.player}
 		o.Group = e.targetControllerGroup(sa, candidate)
+		o.Controller = e.candidateControllerSeat(candidate)
 		// Option.Value is omitempty and read only under a budget
 		// (Decision.HasBudget), so a budget-less target ask keeps its wire
 		// payload byte-identical. Every present cap -- zero and negative
@@ -1759,7 +2180,7 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 		if len(d.Options) == 0 {
 			return
 		}
-	} else if len(d.Options) < min || (exclusive && min > distinct) {
+	} else if len(d.Options) < min || (exclusive && min > distinct) || (sameController && min > sameCapacity) {
 		// A target-hungry subject with fewer legal targets than Min -- or one
 		// whose per-controller constraint admits fewer distinct controllers
 		// than Min (exclusive && min > distinct: two mandatory targets, both
@@ -1801,6 +2222,12 @@ func (e *Engine) askTarget(p state.PlayerID, source state.ObjID, sa *cards.SA) {
 // TargetsChosen case and its test TestTargetsChosenAppendShapes.
 func (e *Engine) handleTarget(d *decision.Decision, in decision.Intent) {
 	chosen := d.Chosen(in)
+	if d.ResumeKind == "copy_targets" {
+		if e.resume != nil {
+			e.resumeResolution(e.resume, chosen)
+		}
+		return
+	}
 	// A cast-flow target decision (CR 601.2c, asked by targetAsk after the
 	// object was pushed by pushCast but BEFORE any cost is paid): completing
 	// it means recording the chosen targets onto the stack object and then
@@ -2004,6 +2431,11 @@ func offeredTargetSA(o *state.Object, svars map[string]string) *cards.SA {
 func (e *Engine) resolveTop() {
 	id := e.G.Stack[len(e.G.Stack)-1]
 	o := e.G.Obj(id)
+	if o != nil && o.IsCopy && o.CopyMayChooseTarget {
+		if e.AskCopyTargets() {
+			return
+		}
+	}
 	savedResolving := e.resolvingObj
 	e.resolvingObj = id
 	defer func() { e.resolvingObj = savedResolving }()
@@ -2675,7 +3107,7 @@ func (e *Engine) legalTargets(targets []state.Target, sa *cards.SA, zones []stat
 			// log before the ordinary filter, so offer and recheck cannot
 			// disagree about a spec carrying one.
 			tspec, ok := e.castProvenanceAdmits(targetSpecForZone(spec, o.Zone), t.Obj, you)
-			if ok && effects.MatchesSpecCtx(e.G, tspec, t.Obj, sc) &&
+			if ok && e.matchesSpec(tspec, t.Obj, sc) &&
 				!(o.Zone == state.ZBattlefield && e.restrictionBlocksTarget(t.Obj, you)) &&
 				!(o.Zone == state.ZBattlefield && e.shroudBlocksTarget(t.Obj)) &&
 				!(o.Zone == state.ZBattlefield && e.hexproofBlocksTarget(t.Obj, you, e.protectionSource(source))) &&
@@ -2688,6 +3120,9 @@ func (e *Engine) legalTargets(targets []state.Target, sa *cards.SA, zones []stat
 	// rechecked on the surviving set too -- see narrowDifferentControllers.
 	if sa != nil && strings.EqualFold(sa.Params["TargetsWithDifferentControllers"], "True") {
 		legal = e.narrowDifferentControllers(legal)
+	}
+	if sa != nil && strings.EqualFold(sa.Params["TargetsWithSameController"], "True") {
+		legal = e.narrowSameController(legal)
 	}
 	return legal
 }
@@ -2748,9 +3183,25 @@ func (e *Engine) resolveAbility(source state.ObjID, controller state.PlayerID,
 // already existed for the layer system's own callers before effects.Host
 // grew a method of the same name, and needed no change to satisfy it.
 func (e *Engine) Game() *state.Game                       { return e.G }
+func (e *Engine) ObjectColors(o *state.Object) string     { return e.objColors(o) }
 func (e *Engine) Emit(ev events.Event)                    { e.emit(ev) }
 func (e *Engine) EmitDamage(ev events.Event) events.Event { return e.emit(ev) }
-func (e *Engine) Rand(n int) int                          { return e.rng.IntN(n) }
+
+// EmitLifeChange reports whether the exact proposed life change was applied.
+// ExchangeLifeVariant uses this to avoid installing its characteristic half
+// after a life replacement prevents, transforms, or parks the event.
+func (e *Engine) EmitLifeChange(ev events.Event) bool {
+	queued := len(e.replChoices)
+	stored := e.emit(ev)
+	// A parked CR 616.1 competition leaves the original event in hand while
+	// putting a replacement choice on the engine queue.  It is not equivalent
+	// to an unchanged event that was actually applied.
+	if e.pending != nil || len(e.replChoices) != queued {
+		return false
+	}
+	return stored.Kind == events.LifeChange && stored.Player == ev.Player && stored.Amount == ev.Amount
+}
+func (e *Engine) Rand(n int) int { return e.rng.IntN(n) }
 
 // ShuffleLibrary is the single library-shuffle path used by rules and effects.
 // State changes only when the caller emits the resulting Shuffle event.
@@ -2992,7 +3443,7 @@ func (e *Engine) spellsCastThisTurnMatching(you state.PlayerID, spec string, exc
 		if !ok {
 			continue
 		}
-		if effects.MatchesSpecFrom(e.G, matchSpec, ev.Obj, you, ev.Obj) {
+		if e.matchesSpecFrom(matchSpec, ev.Obj, you, ev.Obj) {
 			out = append(out, ev.Obj)
 		}
 	}
@@ -3235,6 +3686,22 @@ func (e *Engine) CountersRemovedThisTurn(p state.PlayerID, kind string) int32 {
 			strings.EqualFold(ev.Counter, kind) {
 			n += -ev.Amount
 		}
+	}
+	return n
+}
+
+// CountersAddedThisTurn is the rules-side backing for the three-part
+// Count$CountersAddedThisTurn head. It deliberately uses the pre-event
+// snapshot retained by emit rather than the live object.
+func (e *Engine) CountersAddedThisTurn(kind, actorSpec, objectSpec string, sc effects.SpecContext) int32 {
+	var n int32
+	for _, add := range e.counterAddsThisTurn {
+		if !strings.EqualFold(kind, "Any") && !strings.EqualFold(add.kind, kind) ||
+			!effects.MatchesPlayerSpec(e.G, actorSpec, add.actor, sc.You) ||
+			!effects.MatchesObjectCtx(e.G, objectSpec, &add.object, sc) {
+			continue
+		}
+		n += add.amount
 	}
 	return n
 }

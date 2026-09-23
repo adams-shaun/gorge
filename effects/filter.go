@@ -48,7 +48,19 @@ var predicates = map[string]predFn{
 	"OppCtrl": func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool {
 		return o.Controller != you
 	},
-	"YouOwn":    func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool { return o.Owner == you },
+	"YouOwn": func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool { return o.Owner == you },
+	"foretold": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o.CastFlags&state.FlagForetold != 0
+	},
+	// tokenCreated is Forge's zone-entry provenance predicate. In the
+	// Count$ThisTurnEntered_* specs that use it, a token's IsToken marker is
+	// the exact per-object meaning: tokens that leave cease to exist, and the
+	// entry list is cleared at TurnChange. A resolving creature-spell copy
+	// that enters the battlefield is also a token under CR 707.10g, so it
+	// correctly matches through the same marker.
+	"tokenCreated": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o.IsToken
+	},
 	"OppOwn":    func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool { return o.Owner != you },
 	"Self":      func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool { return o.ID == src },
 	"Other":     func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool { return o.ID != src },
@@ -492,7 +504,8 @@ func hasAttachmentOfKind(g *state.Game, id state.ObjID, kind string) bool {
 
 // sharesTypeArg splits the space-bearing two-token predicates
 // "sharesCardTypeWith <X>", "sharesCreatureTypeWith <X>" and
-// "sharesAllCardTypesWithOther <X>" and classifies their shared referent. The referent is a resolution-time object list: the
+// "sharesAllCardTypesWithOther <X>", and
+// "sharesCardTypeWithOther <X>" and classifies their shared referent. The referent is a resolution-time object list: the
 // remembered set (RememberedCard — its first card entry, Braids's "a
 // permanent that shares a card type with it" — Remembered, RememberedLKI),
 // the triggering card (TriggeredCard/TriggeredCardLKICopy, Heirloom
@@ -506,7 +519,7 @@ func hasAttachmentOfKind(g *state.Game, id state.ObjID, kind string) bool {
 func sharesTypeArg(p string) (name, arg string, ok bool) {
 	name, arg, ok = strings.Cut(p, " ")
 	if !ok || (name != "sharesCardTypeWith" && name != "sharesCreatureTypeWith" &&
-		name != "sharesAllCardTypesWithOther") {
+		name != "sharesCardTypeWithOther" && name != "sharesAllCardTypesWithOther") {
 		return "", "", false
 	}
 	arg = strings.TrimSpace(arg)
@@ -610,6 +623,39 @@ func sharesCardTypeWith(g *state.Game, o *state.Object, sc SpecContext, ref stri
 		}
 		r := g.Obj(t.Obj)
 		if r == nil {
+			continue
+		}
+		for _, cardType := range oTypes {
+			if hasType(r, cardType) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// sharesCardTypeWithOther reports whether o shares at least one CARD type
+// with an OTHER object the referent names. It is the intersection sibling of
+// sharesAllCardTypesWithOther: only the candidate identity exclusion differs
+// from sharesCardTypeWith.
+func sharesCardTypeWithOther(g *state.Game, o *state.Object, sc SpecContext, ref string) bool {
+	var oTypes []string
+	if f := o.Face(); f != nil {
+		for _, x := range f.Types {
+			if cardTypeWords[x] {
+				oTypes = append(oTypes, x)
+			}
+		}
+	}
+	if len(oTypes) == 0 {
+		return false
+	}
+	for _, t := range sharesTypeReferents(g, sc, ref) {
+		if t.IsPlayer {
+			continue
+		}
+		r := g.Obj(t.Obj)
+		if r == nil || r.ID == o.ID {
 			continue
 		}
 		for _, cardType := range oTypes {
@@ -901,6 +947,9 @@ const (
 	// The creature-subtype twin "sharesCreatureTypeWith <X>": same referent
 	// switch, the intersection is over creature subtypes (Heirloom Blade).
 	wordSharesCreatureType
+	// "sharesCardTypeWithOther <X>": the card-type intersection, excluding
+	// the candidate itself (The Tale of Tamiyo's mill gate).
+	wordSharesCardTypeOther
 	// "sharesAllCardTypesWithOther <X>": same referent switch, but the
 	// candidate must share EVERY one of its card types with some OTHER
 	// object the referent names (Demonic Covenant's "two cards that share
@@ -1102,6 +1151,8 @@ func wordPredicate(p string) (wordKind, string) {
 		switch name {
 		case "sharesCreatureTypeWith":
 			return wordSharesCreatureType, arg
+		case "sharesCardTypeWithOther":
+			return wordSharesCardTypeOther, arg
 		case "sharesAllCardTypesWithOther":
 			return wordSharesAllCardTypes, arg
 		}
@@ -1165,6 +1216,8 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 	switch kind {
 	case wordSharesCardType:
 		return sharesCardTypeWith(g, o, sc, key)
+	case wordSharesCardTypeOther:
+		return sharesCardTypeWithOther(g, o, sc, key)
 	case wordSharesCreatureType:
 		return sharesCreatureTypeWith(g, o, sc, key)
 	case wordSharesAllCardTypes:
@@ -3275,12 +3328,49 @@ func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, 
 				return true
 			}
 		default:
+			// Player.NotedFor<label> (Forge's PlayerProperty.NotedFor): the
+			// seat qualifies when its event-backed note set names <label>.
+			// The label is written by a DB$ Pump body's NoteCardsFor$
+			// parameter (effects.effPump -> events.PlayerNoted), so the read
+			// reaches the shared player filter every consumer already uses --
+			// RepeatEach's RepeatPlayers$, Defined$ on Draw/Discard/ChangeZone,
+			// the Continuous statics' Affected$ and a Count$ head alike. The
+			// Player/Any base is required (a qualified You.NotedForX fails
+			// closed, like every other qualifier here), the label is matched
+			// EXACTLY (case-sensitive, as Forge's string set is), and an
+			// out-of-range seat fails closed.
+			if base == "Player" || base == "Any" {
+				if label, is := strings.CutPrefix(qualifier, "NotedFor"); is && label != "" {
+					if int(p) < len(g.Players) && playerHasNote(g, p, label) {
+						return true
+					}
+					continue
+				}
+			}
 			if int(p) < len(g.Players) {
 				op, n, ok := splitPlayerCompare(qualifier)
 				if ok && playerCompare(g.Players[p].Life, op, n) {
 					return true
 				}
 			}
+		}
+	}
+	return false
+}
+
+// playerHasNote reports whether the seat's event-backed player-notation set
+// names label. The note set is state.Player.Notes, written only by
+// events.Apply's PlayerNoted case (a DB$ Pump body's NoteCardsFor$), so a
+// live game and a log-only replay answer identically. An out-of-range seat
+// fails closed. There is no map range here (the slice is walked in its
+// append order), so the result is deterministic.
+func playerHasNote(g *state.Game, p state.PlayerID, label string) bool {
+	if int(p) >= len(g.Players) {
+		return false
+	}
+	for _, n := range g.Players[p].Notes {
+		if n == label {
+			return true
 		}
 	}
 	return false

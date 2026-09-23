@@ -149,6 +149,10 @@ var knownUnsupported = map[string][]string{
 	// the body at runtime, so Face.Primitives never surfaced the API
 	// (prims1).
 	"Vision, Synthezoid Avenger": {"api:Phases"},
+	// Raw Effect child census correction surfaced these existing unsupported
+	// capabilities; the underlying primitives were not changed.
+	"Incinerate":        {"stat:CantRegenerate"},
+	"Vines of Vastwood": {"stat:CantTarget"},
 }
 
 // TestEveryRepoDeckIsFullySupported is the M1 coverage ratchet: every card
@@ -254,7 +258,7 @@ func playAcceptance(t *testing.T, reg *cards.Registry, seats int, step func(e *E
 		names[i] = all[i%len(all)]
 		decks[i] = testutil.RepoDeck(t, reg, all[i%len(all)])
 	}
-	cfg := Config{Seed: 42, Names: names, Decks: decks, Tokens: reg.Tokens,
+	cfg := Config{Seed: 42, Names: names, Decks: decks, Tokens: reg.Tokens, NameUniverse: reg.Cards,
 		// Ruling R-M1: the mulligan is NOT configurable off for the acceptance
 		// decks -- a mulligan the suite never exercises is a mulligan nobody
 		// tests. Mulligans = 1 makes the keep/mulligan and bottoming round run
@@ -359,7 +363,7 @@ func TestRepoDeckGamesReplayExactly(t *testing.T) {
 			names[i] = all[(int(seed)+i)%len(all)]
 			decks[i] = testutil.RepoDeck(t, reg, names[i])
 		}
-		cfg := Config{Seed: seed, Names: names, Decks: decks, Tokens: reg.Tokens,
+		cfg := Config{Seed: seed, Names: names, Decks: decks, Tokens: reg.Tokens, NameUniverse: reg.Cards,
 			// R-8.4: Mulligans must travel in the same Config replay is handed;
 			// this replay-exactness test exercises the round so a concession of
 			// mutating it silently would be caught here (M2d-1).

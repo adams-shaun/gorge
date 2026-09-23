@@ -79,7 +79,7 @@ func (e *Engine) zoneChangeMatches(t cards.Trigger, source state.ObjID, ev event
 			}
 		} else {
 			spec, ok := e.castProvenanceAdmits(v, ev.Obj, e.controllerOf(source))
-			if !ok || !effects.MatchesSpecCtx(e.G, spec, ev.Obj, e.specCtx(source, e.controllerOf(source))) {
+			if !ok || !e.matchesSpec(spec, ev.Obj, e.specCtx(source, e.controllerOf(source))) {
 				return false
 			}
 		}

@@ -47,7 +47,7 @@ func livelockCfg(t *testing.T) rules.Config {
 			t.Fatalf("deck %s: %v", names[i], err)
 		}
 	}
-	return rules.Config{Seed: 0, Names: names, Decks: decks, Tokens: reg.Tokens}
+	return rules.Config{Seed: 0, Names: names, Decks: decks, Tokens: reg.Tokens, NameUniverse: reg.Cards}
 }
 
 // TestPlayMatchRecoversLivelockAsStalledOutcome pins playMatchOnce's half:
