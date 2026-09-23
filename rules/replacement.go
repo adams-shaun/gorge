@@ -1470,6 +1470,34 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 // counters" (Triskelion) finishes BOTH attrs set, not whichever the scan
 // reached first.
 func (e *Engine) composeUpdatedReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
+	// CR 616.1's order choice for the one Updated shape where the order can
+	// change the result: a tap and an untap competing over the same tapped
+	// bit (the last body applied wins), or any body the commute
+	// classification cannot name. The pure-augment competitions (taps with
+	// PutCounter riders) land the same result in every order, so no decision
+	// nobody answers differently is posed. The pose is a queue append: a
+	// competition that arrived while another decision was outstanding parks
+	// behind it and is asked when the queue drains (Submit's tail), and a
+	// competition whose affected controller has left the game makes no
+	// choices (CR 800.4a) and falls through to the deterministic scan-order
+	// composition below.
+	var cands []replMatch
+	for _, m := range matches {
+		if m.repl.With != nil {
+			cands = append(cands, m)
+		}
+	}
+	if p, ok := e.moveAffectedPlayer(ev); ok && len(cands) > 1 && !updatedReplacementsCommute(cands) {
+		e.replChoices = append(e.replChoices, replChoice{kind: replChoiceUpdated,
+			ev: ev, cands: cands, before: e.triggerBefore,
+			damaging: e.damaging, combatDamaging: e.combatDamaging, dmgSrcOverride: e.dmgSrcOverride,
+			inResolution: e.resolvingObj != 0})
+		if e.pending == nil {
+			e.askReplacementChoice(p)
+		}
+		return events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
+			Text: "entry awaiting replacement-order choice"}, true
+	}
 	departing, link, controller := e.captureSourceLifelinkLKI(ev)
 	stored := events.Emit(e.G, e.L, ev)
 	e.loop.observe(stored)
@@ -1491,6 +1519,144 @@ func (e *Engine) composeUpdatedReplacements(ev events.Event, matches []replMatch
 	return stored, true
 }
 
+// moveAffectedPlayer is the CR 616.1 affected player of an object-carried
+// event: its controller. The shared affected-player read of the Updated
+// composition's pose and resume.
+func (e *Engine) moveAffectedPlayer(ev events.Event) (state.PlayerID, bool) {
+	o := e.G.Obj(ev.Obj)
+	if o == nil || int(o.Controller) >= len(e.G.Players) {
+		return 0, false
+	}
+	return o.Controller, true
+}
+
+// updatedBodyClass classifies one Updated replacement's With body for the
+// commute check: "tap", "untap", "counter" (a PutCounter rider), or
+// "other" for anything the classification cannot name.
+// updatedNeutralBody reports whether one body in a ReplaceWith$ chain
+// records an as-enters CHOICE without touching any characteristic another
+// Updated body could reorder: a colour or type pick, a hand reveal -- the
+// answer lands in the entering object's own record (ChosenColor,
+// Remembered), so composing the record before or after a tap/untap/counter
+// rider changes nothing. Any other API fails closed (the caller poses).
+func updatedNeutralBody(sa *cards.SA) bool {
+	switch sa.API {
+	case "Reveal", "ChooseColor", "ChooseType", "ChooseNumber", "ChooseCard", "Cleanup", "Hideaway":
+		return true
+	}
+	return false
+}
+
+func updatedBodyClass(m replMatch) string {
+	body := m.repl.With
+	if body == nil {
+		return ""
+	}
+	// The class of a whole chain is the most order-sensitive member of it:
+	// a Reveal whose SubAbility$ chain ends in a conditional Tap fights an
+	// untap competitor as a tap does (the conditional depends only on the
+	// chain's own recorded choice, but the conservative direction is to
+	// pose). A chain of neutral recording bodies alone commutes with
+	// everything ("record").
+	tap, untap := false, false
+	for sa := body; sa != nil; sa = sa.Sub {
+		if updatedNeutralBody(sa) {
+			continue
+		}
+		switch sa.API {
+		case "Tap":
+			tap = true
+		case "Untap":
+			untap = true
+		case "PutCounter":
+			// Additive on a fresh entry: rides with anything.
+		default:
+			return "other"
+		}
+	}
+	switch {
+	case tap && untap:
+		// One chain tapping and untapping the same entry is order-sensitive
+		// within itself; the conservative direction is to pose.
+		return "other"
+	case tap:
+		return "tap"
+	case untap:
+		return "untap"
+	default:
+		return "record"
+	}
+}
+
+// updatedReplacementsCommute reports whether the all-Updated competition's
+// bodies compose order-insensitively: taps, untaps and PutCounter riders
+// touch disjoint or purely additive characteristics (two "enters tapped"
+// bodies land the same state either order; two PutCounter riders add),
+// while a tap and an untap fight over the same tapped bit and any body the
+// classification cannot name is conservatively order-sensitive.
+func updatedReplacementsCommute(matches []replMatch) bool {
+	tap, untap := false, false
+	for _, m := range matches {
+		switch updatedBodyClass(m) {
+		case "tap":
+			tap = true
+		case "untap":
+			untap = true
+		case "counter", "record":
+		default:
+			return false
+		}
+	}
+	return !(tap && untap)
+}
+
+// resumeUpdatedComposition continues a parked all-Updated competition: the
+// original event is emitted once (the composeUpdatedReplacements preamble,
+// exactly what a lone Updated replacement's applyReplacement arm does), the
+// chosen body resolves, and the remaining candidates re-check their gates
+// against the event as it now stands (CR 616.1e) before the composition
+// either re-poses a live non-commuting remainder or finishes it in
+// deterministic scan order.
+func (e *Engine) resumeUpdatedComposition(rc replChoice, selected int) {
+	if !rc.emitted {
+		departing, link, controller := e.captureSourceLifelinkLKI(rc.ev)
+		stored := events.Emit(e.G, e.L, rc.ev)
+		e.loop.observe(stored)
+		// The move-driven Effect lifetimes, replayed inline exactly as the
+		// synchronous composition does (see applyReplacement's Updated arm).
+		e.effectMoveSweep(rc.ev)
+		e.checkTriggers(stored, nil, 0, 0, false)
+		e.finishSourceLifelinkLKI(rc.ev, departing, link, controller)
+		rc.emitted = true
+	}
+	chosen := rc.cands[selected]
+	e.runReplaceWith(e.replCtx(chosen, rc.ev), rc.ev.Obj, chosen.repl.With, nil)
+	var remaining []replMatch
+	for i, m := range rc.cands {
+		if i == selected {
+			continue
+		}
+		if e.replacementMatches(*m.repl, m.id, rc.ev) {
+			remaining = append(remaining, m)
+		}
+	}
+	if p, ok := e.moveAffectedPlayer(rc.ev); ok && !e.G.Players[p].Lost &&
+		len(remaining) > 1 && !updatedReplacementsCommute(remaining) {
+		rc.cands = remaining
+		e.replChoices = append([]replChoice{rc}, e.replChoices...)
+		if e.pending == nil {
+			e.askReplacementChoice(p)
+		}
+		return
+	}
+	for _, m := range remaining {
+		e.runReplaceWith(e.replCtx(m, rc.ev), rc.ev.Obj, m.repl.With, nil)
+	}
+	if e.pending == nil && rc.ev.Kind == events.MoveZone && rc.ev.To == state.ZBattlefield {
+		e.finishLandPlay(rc.ev.Obj)
+	}
+}
+
 // continueCreateTokenReplacements applies every applicable CreateToken
 // replacement to one TokenCreate event. The engine mints ONE token per
 // event, so the plan starts as that single mint. Each match applies at most
@@ -1501,17 +1667,19 @@ func (e *Engine) composeUpdatedReplacements(ev events.Event, matches []replMatch
 // changed event. The final plan is emitted directly through events.Emit
 // (+ observe + checkTriggers per mint, the composeUpdatedReplacements
 // pattern), which BYPASSES applyReplacements: no mint can re-match, so a
-// doubler can never loop on its own output. The deviation from CR 616.1 is
-// deliberate and documented: competing CreateToken replacements apply in
-// scan order, NOT through a posed KReplacement order choice (non-commuting
-// compositions are reachable in Commander, but no repo deck carries any of
-// this family, so no golden game exercises one).
+// doubler can never loop on its own output. The CR 616.1 order competition
+// among non-commuting bodies is real (see driveTokenReplacements); the
+// family's OTHER stand-ins remain (an Optional$ True R: line declining with
+// no ask, Type$ ReplaceController, an unpriceable Amount$, riders landing on
+// the first mint only) — no repo deck carries any of this family, so no
+// golden game exercises one.
 func (e *Engine) continueCreateTokenReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
 	plan, parked := e.driveTokenReplacements(ev, matches, []tokenPlanMint{{script: ev.Text}}, 0)
 	if parked {
-		// The chosen-copy body's election is outstanding: the whole plan is
-		// parked on e.tokenChoice and the mints are emitted from its resume
-		// (tokenReplAnswer), the siegeMove/attachedChoice discipline.
+		// A mid-drive ask is outstanding: either the CR 616.1 order choice
+		// (parked on the replChoices queue) or the chosen-copy body's
+		// election (e.tokenChoice). The mints are emitted from the answer's
+		// resume, the siegeMove/attachedChoice discipline.
 		return ev, true
 	}
 	if len(plan) == 1 && plan[0].copyOf == 0 && plan[0].script == ev.Text {
@@ -1538,6 +1706,89 @@ type tokenPlanMint struct {
 	copyOf state.ObjID
 }
 
+// tokenReplApplies reports whether the drive would apply m at all: a body
+// the drive does not read, the deterministic-decline optional and the
+// loud-unimplemented ReplaceController are not competition candidates,
+// everything else applies.
+func tokenReplApplies(m replMatch) bool {
+	body := m.repl.With
+	if body == nil || body.API != "ReplaceToken" {
+		return false
+	}
+	chosenShape := strings.EqualFold(strings.TrimSpace(body.Params["TokenScript"]), "Chosen") ||
+		strings.TrimSpace(body.Params["ValidChoices"]) != ""
+	if !chosenShape && strings.EqualFold(m.repl.Params["Optional"], "True") {
+		return false
+	}
+	if strings.TrimSpace(body.Params["Type"]) == "ReplaceController" {
+		return false
+	}
+	return true
+}
+
+// tokenCompetitionCandidates is matches' applicable candidates, in order:
+// exactly the matches the drive would act on.
+func tokenCompetitionCandidates(matches []replMatch) []replMatch {
+	var out []replMatch
+	for _, m := range matches {
+		if tokenReplApplies(m) {
+			out = append(out, m)
+		}
+	}
+	return out
+}
+
+// tokenReplacementsCommute reports whether the candidate ReplaceToken bodies
+// compose order-insensitively: pure multipliers (Type$ Amount) commute with
+// each other and pure adders (Type$ AddToken) with each other, while a
+// script rewriter (Type$ ReplaceToken) or an unclassifiable Type$ makes the
+// order observable (a rewriter composed after a multiplier rewrites every
+// duplicated mint; composed before, only the original). HalfDown/HalfUp
+// multipliers floor, so they do not commute with anything but themselves.
+func tokenReplacementsCommute(cands []replMatch) bool {
+	kind := ""
+	for _, m := range cands {
+		body := m.repl.With
+		if body == nil || body.API != "ReplaceToken" {
+			return false
+		}
+		cls := ""
+		switch strings.TrimSpace(body.Params["Type"]) {
+		case "Amount":
+			raw := strings.TrimSpace(body.Params["Amount"])
+			if raw == "" {
+				raw = "Twice"
+			}
+			if raw == "HalfDown" || raw == "HalfUp" {
+				return false
+			}
+			cls = "mult"
+		case "AddToken":
+			cls = "add"
+		default:
+			return false
+		}
+		if kind != "" && cls != kind {
+			return false
+		}
+		kind = cls
+	}
+	return true
+}
+
+// dropReplMatch is cands minus the one match (source id plus repl pointer
+// identity), order kept: the CR 616.1 answer's "apply the chosen one first,
+// then the rest in order" walk.
+func dropReplMatch(cands []replMatch, m replMatch) []replMatch {
+	out := make([]replMatch, 0, len(cands))
+	for _, c := range cands {
+		if c.id != m.id || c.repl != m.repl {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
 // tokenChoiceState is the parked chosen-copy replacement's continuation: the
 // original event, the full match list, the plan as rewritten so far, the
 // cursor of the next unapplied match, the match the outstanding election
@@ -1550,6 +1801,12 @@ type tokenChoiceState struct {
 	next       int
 	match      replMatch
 	declineIdx int
+	// parkedResume carries the CR 616.1 order competition's own suspension
+	// record when the election was posed inside the answer that was applying
+	// that competition (pending nil, the record still on e.resume): the
+	// election's answer tail resumes it once the plan has settled, exactly
+	// as handleReplacement's tail would have.
+	parkedResume *resumePoint
 }
 
 // driveTokenReplacements applies matches[from:] to the plan, in the
@@ -1580,6 +1837,31 @@ func (e *Engine) driveTokenReplacements(ev events.Event, matches []replMatch, pl
 			e.emit(events.Event{Kind: events.Note, Obj: m.id, Player: ev.Player,
 				Text: "ReplaceToken Type$ ReplaceController is not implemented; the token is created unchanged"})
 			continue
+		}
+		// CR 616.1's order competition: two or more applicable matches from
+		// here whose bodies do not all commute, and a creator who can still
+		// decide, park the whole plan on the queue and ask which applies
+		// first. The pose is a queue append: a competition that arrived while
+		// another decision was outstanding parks behind it and is asked when
+		// the queue drains (Submit's tail), never overwriting it; a creator
+		// who has left the game makes no choices (CR 800.4a) and the drive
+		// continues in scan order.
+		if rest := tokenCompetitionCandidates(matches[i:]); len(rest) > 1 && !tokenReplacementsCommute(rest) {
+			if p := ev.Player; int(p) < len(e.G.Players) && !e.G.Players[p].Lost {
+				applicable := make([]int, 0, len(rest))
+				for j, c := range matches[i:] {
+					if tokenReplApplies(c) {
+						applicable = append(applicable, j)
+					}
+				}
+				e.replChoices = append(e.replChoices, replChoice{kind: replChoiceToken,
+					ev: ev, cands: matches[i:], applicable: applicable, before: e.triggerBefore,
+					tokenPlan: plan, tokenNext: i, player: p, inResolution: e.resolvingObj != 0})
+				if e.pending == nil {
+					e.askReplacementChoice(p)
+				}
+				return plan, true
+			}
 		}
 		if chosenShape {
 			var parked bool
@@ -1618,10 +1900,19 @@ func (e *Engine) poseChosenTokenReplacement(ev events.Event, matches []replMatch
 	if !optional && len(cands) == 1 {
 		return e.applyChosenToPlan(ev, m, plan, cands[0]), false
 	}
-	if e.tokenChoice != nil || e.pending != nil || e.resume != nil {
+	// pending != nil means a real decision is outstanding: the election parks
+	// (queue discipline) rather than displacing it. e.resume != nil with
+	// pending nil is the CR 616.1 answer window itself -- the order
+	// competition's own suspension record, which this pose keeps (e.ask
+	// never overwrites) and its answer tail resumes through parkedResume.
+	if e.tokenChoice != nil || e.pending != nil {
 		e.emit(events.Event{Kind: events.Note, Obj: m.id, Player: ev.Player,
 			Text: "ReplaceToken ValidChoices (TokenScript$ Chosen) cannot ask while another decision is pending; the token is created unchanged"})
 		return plan, false
+	}
+	parkedResume := (*resumePoint)(nil)
+	if e.resume != nil {
+		parkedResume = e.resume
 	}
 	opts := make([]decision.Option, 0, len(cands)+1)
 	declineIdx := -1
@@ -1638,7 +1929,7 @@ func (e *Engine) poseChosenTokenReplacement(ev events.Event, matches []replMatch
 		opts = append(opts, decision.Option{Index: declineIdx + 1 + i, Kind: "creature", Label: label, Obj: id})
 	}
 	e.tokenChoice = &tokenChoiceState{ev: ev, matches: matches, plan: plan,
-		next: idx + 1, match: m, declineIdx: declineIdx}
+		next: idx + 1, match: m, declineIdx: declineIdx, parkedResume: parkedResume}
 	prompt := "Choose a creature to copy"
 	if optional {
 		prompt = "You may instead create tokens that are copies of a creature: choose one, or decline"
@@ -1654,13 +1945,13 @@ func (e *Engine) poseChosenTokenReplacement(ev events.Event, matches []replMatch
 // chooseTokenReplace case of handleChoose): the answered option either
 // rewrites the plan to copies of the chosen creature or skips the match (the
 // decline), and the flow then drives the plan's remaining matches.
-func (e *Engine) tokenReplAnswer(chosen []decision.Option) {
+func (e *Engine) tokenReplAnswer(chosen []decision.Option) *resumePoint {
 	st := e.tokenChoice
 	e.tokenChoice = nil
 	e.choosing = chooseNone
 	if st == nil {
 		e.emit(events.Event{Kind: events.Note, Text: "token copy choice answered with no replacement pending"})
-		return
+		return nil
 	}
 	if len(chosen) != 1 || chosen[0].Index == st.declineIdx {
 		// The decline (or a malformed answer, treated as one): the match is
@@ -1675,9 +1966,11 @@ func (e *Engine) tokenReplAnswer(chosen []decision.Option) {
 	}
 	plan, parked := e.driveTokenReplacements(st.ev, st.matches, st.plan, st.next)
 	if parked {
-		return
+		return nil
 	}
 	e.emitTokenPlan(st.ev, plan)
+	e.askNextReplacementChoice()
+	return st.parkedResume
 }
 
 // emitTokenPlan settles the parked plan after every match has been applied
@@ -1780,16 +2073,22 @@ func (e *Engine) applyChosenToPlan(ev events.Event, m replMatch, plan []tokenPla
 // event's Amount through every applicable R:Event$ AddCounter replacement,
 // then returns the event UNHANDLED so emit's ordinary path logs and folds the
 // rewritten amount -- the in-place-rewrite shape the DamageDone ReplaceDamage
-// bodies use, one event kind over. Each match applies at most once, in
-// deterministic scan order, and each body's Amount$ reads the amount the
-// earlier matches produced (the running total, CR 616.1e), so Hardened Scales
-// then Branching Evolution composes 1 -> +1 -> double = 4 exactly as the two
-// cards' combined oracle reads. No predicate re-check is needed between
-// modifiers: this class's gates (ValidCounterType$/ValidCard$/ValidObject$/
-// ValidPlayer$) never depend on the amount, unlike CreateToken's per-mint
-// ValidToken$ re-check. The scan-order composition (rather than a posed CR
-// 616.1 order choice among non-commuting Plus/Twice matches) is the same
-// deliberate deviation continueCreateTokenReplacements documents.
+// bodies use, one event kind over. Each match applies at most once, and each
+// body's Amount$ reads the amount the earlier matches produced (the running
+// total, CR 616.1e), so Hardened Scales then Branching Evolution composes
+// 1 -> +1 -> double = 4 exactly as the two cards' combined oracle reads. No
+// predicate re-check is needed between modifiers: this class's gates
+// (ValidCounterType$/ValidCard$/ValidObject$/ValidPlayer$) never depend on
+// the amount, unlike CreateToken's per-mint ValidToken$ re-check.
+//
+// CR 616.1's order choice: two or more applicable candidates whose bodies do
+// not all commute and an affected player who can still decide park the event
+// on the queue and ask (continueAddCounterReplacements applies the answer
+// and re-drives; the pose is a queue append, so a competition that arrived
+// while another decision was outstanding parks behind it and is asked when
+// the queue drains, never overwriting it). A competition whose affected
+// player has left the game makes no choices (CR 800.4a) and takes the
+// deterministic scan-order composition.
 //
 // A body whose Amount$ this build cannot price, or whose resolved value is
 // negative, leaves the event verbatim -- never a silent erase. A resolved
@@ -1798,69 +2097,244 @@ func (e *Engine) applyChosenToPlan(ev events.Event, m replMatch, plan []tokenPla
 // zero, and the oracle's "that many minus one" then places none). An
 // unpriceable body is skipped, never read as zero.
 func (e *Engine) applyAddCounterReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
-	amount := ev.Amount
-	changed := false
+	var cands []replMatch
 	for _, m := range matches {
 		body := m.repl.With
 		if body == nil || body.API != "ReplaceCounter" {
 			continue
 		}
-		// A body's SubAbility$ chain is part of the replacement: Melira, the
-		// Living Cure's lock ("and you can't get additional poison counters
-		// this turn") rides SVar:OnlyOnePoison's SubAbility$ DBImmediateTrigger,
-		// which resolves an ImmediateTrigger | Execute$ TrigEffect |
-		// StaticAbilities$ CantPutCounter. Running it is not possible yet --
-		// the CantPutCounter restriction static is unimplemented (it is not a
-		// registered continuous restriction and has no enforcement point in
-		// the counter pipeline) -- so the drop is made LOUD rather than
-		// silent: one Note per applying body names the unsupported rider. That
-		// leaves Melira's lock absent (a second poison source the same turn
-		// places its counters), which is recorded as a known wrong result on
-		// exactly that one carrier in the AddCounter row of AGENTS.md.
-		// Emitted AFTER the priceability verdict below, not here: a body that
-		// passes the counter-kind gate but whose Amount$ this build cannot
-		// price does not apply at all, and must not announce a rider it never
-		// reached.
-		if ct := strings.TrimSpace(body.Params["ValidCounterType"]); ct != "" && ct != ev.Counter {
+		if _, ok := e.priceAddCounterBody(ev, m, ev.Amount); ok {
+			cands = append(cands, m)
+		}
+	}
+	if len(cands) == 0 {
+		return ev, false
+	}
+	if p, ok := e.addCounterAffectedPlayer(ev); ok && !e.G.Players[p].Lost &&
+		len(cands) > 1 && !e.addCounterReplacementsCommute(cands) {
+		e.poseAddCounterOrderChoice(ev, cands, p)
+		return events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
+			Text: "counter change awaiting replacement-order choice"}, true
+	}
+	amount := ev.Amount
+	changed := false
+	for _, m := range cands {
+		n, ok := e.applyAddCounterBody(ev, m, amount)
+		if !ok {
 			continue
 		}
-		hold := ev
-		hold.Amount = amount
-		ctx := e.replCtx(m, hold)
-		n, ok := e.replaceCounterAmount(body, ctx, amount)
-		// A negative result would be a counter REMOVAL, which this class
-		// does not express; leave the event verbatim. An unpriceable body
-		// (!ok) is likewise skipped, never read as zero.
-		if !ok || n < 0 {
-			continue
+		if n != amount {
+			amount = n
+			changed = true
 		}
-		// The body APPLIES from here on. A sub-ability chain on a ReplaceCounter
-		// body is part of the replacement (Forge resolves it as the replaced
-		// event happens): Melira, the Living Cure's lock ("and you can't get
-		// additional poison counters this turn") rides SVar:OnlyOnePoison's
-		// SubAbility$ DBImmediateTrigger, an
-		// ImmediateTrigger | Execute$ TrigEffect | StaticAbilities$ CantPutCounter
-		// that registers the real CantPutCounter restriction. Running the chain
-		// here -- through the same runReplaceWith / resolveReplacementWith machine
-		// every other ReplaceWith$ rider rides -- is what makes the lock real;
-		// its DBImmediateTrigger resolves the Effect inline, so the lock is
-		// installed before this function returns and before the replacement
-		// event's own fold. A body that only rewrites without a chain (Hardened
-		// Scales, Branching Evolution, Vizier of Remedies) is unchanged.
-		if body.Sub != nil {
-			e.runReplaceWith(ctx, m.id, body.Sub, nil)
-		}
-		if n == amount {
-			continue
-		}
-		amount = n
-		changed = true
 	}
 	if !changed {
 		return ev, false
 	}
 	ev.Amount = amount
 	return ev, false
+}
+
+// addCounterAffectedPlayer is the CR 616.1 affected player of a counter
+// event: the counter's recipient for the player form (ev.Player), the
+// affected object's controller for the object form.
+func (e *Engine) addCounterAffectedPlayer(ev events.Event) (state.PlayerID, bool) {
+	if ev.Kind == events.PlayerCounterChange {
+		return ev.Player, int(ev.Player) < len(e.G.Players)
+	}
+	return e.moveAffectedPlayer(ev)
+}
+
+// poseAddCounterOrderChoice parks a counter event whose competing AddCounter
+// replacements do not all commute and asks the affected player (CR 616.1)
+// which applies first. The synchronous-damage context the event was proposed
+// under rides the park, the way the life competition's does, so the resumed
+// emit sees the same provenance.
+func (e *Engine) poseAddCounterOrderChoice(ev events.Event, cands []replMatch, p state.PlayerID) {
+	e.replChoices = append(e.replChoices, replChoice{kind: replChoiceAddCounter,
+		ev: ev, cands: cands, before: e.triggerBefore, player: p,
+		damaging: e.damaging, combatDamaging: e.combatDamaging, dmgSrcOverride: e.dmgSrcOverride,
+		inResolution: e.resolvingObj != 0})
+	if e.pending == nil {
+		e.askReplacementChoice(p)
+	}
+}
+
+// addCounterReplacementsCommute reports whether the candidate ReplaceCounter
+// bodies compose order-insensitively: the same op family throughout, where
+// the family is one of the arithmetically safe ones (identity, Plus, Minus,
+// Twice, Thrice, HalfDown, HalfUp each commute with itself -- two Plus.1
+// bodies land the same total either order). A MIXED set (Hardened Scales'
+// Plus.1 and Branching Evolution's Twice: 1 -> 2 -> 4 one way, 1 -> 2 -> 3
+// the other) does not commute; neither does a body whose Amount$ resolves to
+// something the CounterNum grammar cannot name (a literal, another count
+// head) or one that carries a SubAbility$ chain (side-effect riders do not
+// commute with anything).
+func (e *Engine) addCounterReplacementsCommute(cands []replMatch) bool {
+	family := ""
+	for _, m := range cands {
+		body := m.repl.With
+		if body == nil || body.API != "ReplaceCounter" {
+			return false
+		}
+		if body.Sub != nil {
+			return false
+		}
+		op, ok := e.counterReplaceOp(m.id, body)
+		if !ok {
+			return false
+		}
+		if op == "" {
+			// A bare ReplaceCount$CounterNum identity body applies nothing and
+			// commutes with any order.
+			continue
+		}
+		k := strings.TrimPrefix(op, "/")
+		if i := strings.IndexByte(k, '.'); i >= 0 {
+			k = k[:i]
+		}
+		if family != "" && k != family {
+			return false
+		}
+		family = k
+	}
+	return family != ""
+}
+
+// counterReplaceOp resolves a DB$ ReplaceCounter body's Amount$ to its
+// ReplaceCount$CounterNum op suffix ("/Plus.1", "/Twice", ...). The Amount$
+// names an SVar (Hardened Scales' X:ReplaceCount$CounterNum/Plus.1); a value
+// that is not a CounterNum ReplaceCount body (a literal, another count head,
+// or an SVar name with no face entry) returns false -- the conservative
+// not-known-to-commute verdict.
+func (e *Engine) counterReplaceOp(source state.ObjID, body *cards.SA) (string, bool) {
+	o := e.G.Obj(source)
+	if o == nil || o.Face() == nil {
+		return "", false
+	}
+	expr := strings.TrimSpace(body.Params["Amount"])
+	if v, ok := o.Face().SVars[expr]; ok {
+		expr = v
+	}
+	const prefix = "ReplaceCount$CounterNum"
+	if !strings.HasPrefix(expr, prefix) {
+		return "", false
+	}
+	return strings.TrimPrefix(expr, prefix), true
+}
+
+// priceAddCounterBody is the side-effect-free applicability verdict shared by
+// the order offer and the application. A candidate whose amount cannot be
+// resolved (or would remove counters) must never be offered as an effect that
+// can apply first. Price again after each rewrite against the running amount.
+func (e *Engine) priceAddCounterBody(ev events.Event, m replMatch, amount int32) (int32, bool) {
+	body := m.repl.With
+	if body == nil || body.API != "ReplaceCounter" {
+		return amount, false
+	}
+	if ct := strings.TrimSpace(body.Params["ValidCounterType"]); ct != "" && ct != ev.Counter {
+		return amount, false
+	}
+	hold := ev
+	hold.Amount = amount
+	ctx := e.replCtx(m, hold)
+	n, ok := e.replaceCounterAmount(body, ctx, amount)
+	// A negative result would be a counter REMOVAL, which this class
+	// does not express; leave the event verbatim. An unpriceable body
+	// (!ok) is likewise skipped, never read as zero.
+	if !ok || n < 0 {
+		return amount, false
+	}
+	return n, true
+}
+
+// applyAddCounterBody applies a priced body and then resolves its riders.
+func (e *Engine) applyAddCounterBody(ev events.Event, m replMatch, amount int32) (int32, bool) {
+	n, ok := e.priceAddCounterBody(ev, m, amount)
+	if !ok {
+		return amount, false
+	}
+	body := m.repl.With
+	ctx := e.replCtx(m, ev)
+	ctx.ReplacementAmount = amount
+	// The body APPLIES from here on. A sub-ability chain on a ReplaceCounter
+	// body is part of the replacement (Forge resolves it as the replaced
+	// event happens): Melira, the Living Cure's lock ("and you can't get
+	// additional poison counters this turn") rides SVar:OnlyOnePoison's
+	// SubAbility$ DBImmediateTrigger, an
+	// ImmediateTrigger | Execute$ TrigEffect | StaticAbilities$ CantPutCounter
+	// that registers the real CantPutCounter restriction. Running the chain
+	// here -- through the same runReplaceWith / resolveReplacementWith machine
+	// every other ReplaceWith$ rider rides -- is what makes the lock real;
+	// its DBImmediateTrigger resolves the Effect inline, so the lock is
+	// installed before this function returns and before the replacement
+	// event's own fold. A body that only rewrites without a chain (Hardened
+	// Scales, Branching Evolution, Vizier of Remedies) is unchanged.
+	if body.Sub != nil {
+		e.runReplaceWith(ctx, m.id, body.Sub, nil)
+	}
+	return n, true
+}
+
+// sameReplMatchIn reports whether the applied set already holds m: identity
+// by source id plus the repl pointer (the same value identity the damage
+// path's alreadyUsed uses).
+func sameReplMatchIn(applied []replMatch, m replMatch) bool {
+	for _, u := range applied {
+		if u.id == m.id && (u.repl == m.repl || (m.key != "" && u.key == m.key)) {
+			return true
+		}
+	}
+	return false
+}
+
+// continueAddCounterReplacements drives a parked AddCounter competition after
+// one order answer: the chosen body already applied, so the remaining
+// candidates re-check (CR 616.1e), a live non-commuting remainder re-poses
+// at the queue's front, and the fully rewritten event is emitted once none
+// is left (the emitLifeReplacement convention -- no new replacement pass).
+func (e *Engine) continueAddCounterReplacements(rc replChoice) {
+	ev := rc.ev
+	applied := rc.appliedRepls
+	for {
+		var remaining []replMatch
+		for _, m := range rc.cands {
+			if !sameReplMatchIn(applied, m) {
+				if _, ok := e.priceAddCounterBody(ev, m, ev.Amount); ok {
+					remaining = append(remaining, m)
+				}
+			}
+		}
+		if len(remaining) == 0 {
+			e.emitAddCounterReplacement(ev)
+			return
+		}
+		if p, ok := e.addCounterAffectedPlayer(ev); ok && !e.G.Players[p].Lost &&
+			len(remaining) > 1 && !e.addCounterReplacementsCommute(remaining) {
+			rc.ev, rc.appliedRepls = ev, applied
+			e.replChoices = append([]replChoice{rc}, e.replChoices...)
+			if e.pending == nil {
+				e.askReplacementChoice(p)
+			}
+			return
+		}
+		m := remaining[0]
+		applied = append(applied[:len(applied):len(applied)], m)
+		n, ok := e.applyAddCounterBody(ev, m, ev.Amount)
+		if ok && n != ev.Amount {
+			ev.Amount = n
+		}
+	}
+}
+
+// emitAddCounterReplacement logs a fully rewritten counter event without
+// starting a new replacement pass: every candidate has had its one
+// opportunity (the emitLifeReplacement convention).
+func (e *Engine) emitAddCounterReplacement(ev events.Event) {
+	saved := e.applyingReplacement
+	e.applyingReplacement = true
+	e.emit(ev)
+	e.applyingReplacement = saved
 }
 
 // replaceCounterAmount resolves a DB$ ReplaceCounter body's new counter count
@@ -3905,6 +4379,23 @@ const (
 	// replChoiceCounter parks CR 616.1's order competition when two or more
 	// repl:Counter replacements would stop the same spell/ability.
 	replChoiceCounter
+	// replChoiceAddCounter parks CR 616.1's order competition when two or
+	// more AddCounter (CounterChange/PlayerCounterChange) replacements whose
+	// bodies do not all commute would rewrite the same placement (Hardened
+	// Scales' Plus.1 and Branching Evolution's Twice: 1 -> 2 -> 4 one way,
+	// 1 -> 2 -> 3 the other). It is appended so existing in-memory enum
+	// values remain unchanged.
+	replChoiceAddCounter
+	// replChoiceToken parks CR 616.1's order competition when two or more
+	// CreateToken (repl:CreateToken) replacements whose bodies do not all
+	// commute would rewrite the same creation (a multiplier and a script
+	// rewriter: the rewriter composed after the multiplier rewrites every
+	// duplicated mint, composed before only the original).
+	replChoiceToken
+	// replChoiceUpdated parks CR 616.1's order competition for an all-Updated
+	// MoveZone composition whose bodies do not commute (a tap and an untap
+	// fighting over the same tapped bit; the last body applied wins).
+	replChoiceUpdated
 )
 
 type replChoice struct {
@@ -3961,6 +4452,36 @@ type replChoice struct {
 	deadly   bool
 	toxic    int
 	cause    state.ObjID
+	// tokenPlan/tokenNext are kind == replChoiceToken's parked plan state: the
+	// mints the already-applied matches produced and the cursor this choice
+	// was posed at (candidates are cands[cursor:]). Plain value data, the
+	// same Clone class as the rest of the queue.
+	tokenPlan []tokenPlanMint
+	tokenNext int
+	// emitted marks kind == replChoiceUpdated's original event as already
+	// emitted (the composition's preamble ran); a re-parked continuation
+	// skips the emit and resolves only the remaining bodies.
+	emitted bool
+	// inResolution marks a competition posed while a stack resolution was in
+	// flight (e.resolvingObj != 0): the pose's Engine.Ask then parked that
+	// resolution on e.resume with the interrupted object still on the stack,
+	// and the LAST answer round of the queue must resume it through its
+	// recorded chain -- the same discipline the damage branch applies -- or
+	// resolveTop re-resolves the interrupted object from the top on the next
+	// priority pass, unbounded. A pose from turn structure or a cast window
+	// records no suspension (Engine.Ask's frame there is the flow's own
+	// bookkeeping, consumed by its own handler) and must not be resumed.
+	inResolution bool
+	// resumeAtPose is the Engine.Ask record the pose itself created, captured
+	// when askReplacementChoice posed an ask with e.resume nil. For an
+	// inResolution competition it IS the suspended resolution (and the answer
+	// resumes it); otherwise it is the pose's own bookkeeping from a cast
+	// window or turn structure -- nothing was suspended -- and the tail drops
+	// it once the competition's work completed synchronously, because
+	// resolveTop reads e.resume to decide whether its resolution suspended
+	// and a stale frame makes it abandon a resolution that actually finished,
+	// re-resolving it on every pass.
+	resumeAtPose *resumePoint
 }
 
 // replacementChoicePlayer is the affected player a parked competition asks:
@@ -3981,6 +4502,11 @@ func (e *Engine) replacementChoicePlayer(rc replChoice) (state.PlayerID, bool) {
 		// affected player), never re-derived from rc.ev.Obj's controller here
 		// -- a redirect or an OptionalDecider$ can make the asking player
 		// differ from that.
+		return rc.player, int(rc.player) < len(e.G.Players)
+	case replChoiceAddCounter, replChoiceToken:
+		// Resolved at pose time (the counter's recipient or the affected
+		// object's controller; the token's creator) and recomputed at every
+		// re-pose (continueAddCounterReplacements / the drive).
 		return rc.player, int(rc.player) < len(e.G.Players)
 	default:
 		// A replaced DRAW event has no object whose controller could be
@@ -4141,6 +4667,11 @@ func (e *Engine) askReplacementChoice(p state.PlayerID) {
 		d.Prompt = "Several replacement effects would modify damage: choose which applies next."
 	case replChoiceCounter:
 		d.Prompt = "Several replacement effects would modify this counter event: choose which applies."
+	case replChoiceAddCounter:
+		d.Prompt = "Several replacement effects would modify how many counters are put: choose which applies first."
+	case replChoiceToken:
+		d.Prompt = "Several replacement effects would modify this token creation: choose which applies first."
+		indices = rc.applicable
 	case replChoiceMana:
 		d.Prompt = "Several replacement effects would change mana production: choose which applies next."
 		indices = rc.applicable
@@ -4215,10 +4746,20 @@ func (e *Engine) askReplacementChoice(p state.PlayerID) {
 	}
 	// A replacement-order choice can arise in the middle of an effect's Emit.
 	// Enter through Host.Ask so effects.Resolve sees Suspended and records the
-	// remaining SA chain. A recomputation ask already owns that resume point;
-	// pose it directly without overwriting the original continuation.
-	if e.resume == nil {
+	// remaining SA chain — but only when something is actually resolving (a
+	// stack resolution in flight, or a replacement body whose own chain the
+	// ask would interrupt): Host.Ask's record is that suspension's
+	// continuation, remembered on the parked choice so the tail can tell it
+	// from the pose's own bookkeeping. A pose from a cast window or turn
+	// structure has nothing to suspend — Engine.Ask's record there would
+	// stale-resume (resolveTop reads e.resume to decide whether its
+	// resolution suspended and abandons a resolution that finished) — so the
+	// pose takes the plain ask and creates no record at all. A recomputation
+	// ask already owns a resume point; pose it directly without overwriting
+	// the original continuation.
+	if e.resume == nil && (e.resolvingObj != 0 || e.applyingReplacement) {
 		e.Ask(d)
+		e.replChoices[0].resumeAtPose = e.resume
 	} else {
 		e.ask(d)
 	}
@@ -4352,6 +4893,18 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 		}
 		e.damaging, e.combatDamaging, e.dmgSrcOverride = damaging, combat, override
 		e.triggerBefore = before
+		if e.pending == nil && len(e.replChoices) == 0 {
+			if rc.inResolution {
+				if e.resume == rp {
+					e.resume = nil
+					e.resumeResolution(rp, nil)
+				} else if e.resume != nil && e.resume.outer == nil {
+					e.resume.outer = rp
+				}
+			} else if rc.resumeAtPose != nil && e.resume == rc.resumeAtPose {
+				e.resume = nil
+			}
+		}
 		e.askNextReplacementChoice()
 		return
 	}
@@ -4416,6 +4969,58 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 			rc.applied[rc.selected] = true
 			e.resumeParkedPhase(rc)
 		}
+	case replChoiceAddCounter:
+		if chosen[0].Index < 0 || chosen[0].Index >= len(rc.cands) {
+			e.triggerBefore = before
+			e.emit(events.Event{Kind: events.Note, Player: in.Player,
+				Text: "counter replacement-order answer out of range"})
+			return
+		}
+		damaging, combat, override := e.damaging, e.combatDamaging, e.dmgSrcOverride
+		e.damaging, e.combatDamaging, e.dmgSrcOverride = rc.damaging, rc.combatDamaging, rc.dmgSrcOverride
+		m := rc.cands[chosen[0].Index]
+		if n, ok := e.applyAddCounterBody(rc.ev, m, rc.ev.Amount); ok {
+			rc.ev.Amount = n
+		}
+		rc.appliedRepls = append(rc.appliedRepls, m)
+		e.continueAddCounterReplacements(rc)
+		e.damaging, e.combatDamaging, e.dmgSrcOverride = damaging, combat, override
+	case replChoiceToken:
+		if chosen[0].Index < 0 || chosen[0].Index >= len(rc.applicable) {
+			e.triggerBefore = before
+			e.emit(events.Event{Kind: events.Note, Player: in.Player,
+				Text: "token replacement-order answer out of range"})
+			return
+		}
+		m := rc.cands[rc.applicable[chosen[0].Index]]
+		rest := dropReplMatch(rc.cands, m)
+		var plan []tokenPlanMint
+		var parked bool
+		if body := m.repl.With; body != nil &&
+			(strings.EqualFold(strings.TrimSpace(body.Params["TokenScript"]), "Chosen") ||
+				strings.TrimSpace(body.Params["ValidChoices"]) != "") {
+			// A chosen-copy match: the election the scan-order drive poses for
+			// it (driveTokenReplacements' chosenShape arm), with the remaining
+			// matches and the plan as they stand. idx -1 makes the pose's resume
+			// cursor re-drive rest from 0 (m itself is already gone from rest).
+			plan, parked = e.poseChosenTokenReplacement(rc.ev, rest, rc.tokenPlan, -1, m)
+		} else {
+			plan = e.applyTokenReplacementToPlan(rc.ev, rc.tokenPlan, m)
+		}
+		if !parked {
+			plan, parked = e.driveTokenReplacements(rc.ev, rest, plan, 0)
+		}
+		if !parked {
+			e.emitTokenPlan(rc.ev, plan)
+		}
+	case replChoiceUpdated:
+		if chosen[0].Index < 0 || chosen[0].Index >= len(rc.cands) {
+			e.triggerBefore = before
+			e.emit(events.Event{Kind: events.Note, Player: in.Player,
+				Text: "entry replacement-order answer out of range"})
+			return
+		}
+		e.resumeUpdatedComposition(rc, chosen[0].Index)
 	case replChoiceUntap:
 		if chosen[0].Index < 0 || chosen[0].Index >= len(rc.cands) {
 			e.triggerBefore = before
@@ -4442,6 +5047,40 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 	// and no next replacement decision is pending.
 	if manaDecision && e.pending == nil && len(e.replChoices) == 0 && e.cast != nil {
 		e.continueCast()
+	}
+	// A competition posed while a stack resolution was in flight parked that
+	// resolution: the pose's Engine.Ask recorded the interrupted resolution
+	// on e.resume and the interrupted object stayed on the stack. Once the
+	// whole queue is answered and nothing is pending, the resolution must
+	// resume through its recorded chain -- the discipline the damage branch
+	// above applies -- or resolveTop re-resolves the interrupted object from
+	// the top on the next priority pass, unbounded (observed: a resolving
+	// AB$ PutCounter under two non-commuting count replacements re-emitted
+	// its counter event on every pass). A queue re-pose keeps e.resume == rp,
+	// so the resume fires on the last answer round; the pose record of a
+	// competition answered while nothing was resolving (turn structure, a
+	// cast window) is the flow's own bookkeeping and is consumed by its own
+	// handler, never here. A nested ask the chosen replacement's own body
+	// posed has already replaced e.resume: chain rp behind it as its outer so
+	// it still runs once that inner question settles (fx34's discipline).
+	if rc.inResolution && e.pending == nil && len(e.replChoices) == 0 {
+		if e.resume == rp {
+			e.resume = nil
+			e.resumeResolution(rp, nil)
+		} else if e.resume != nil && e.resume.outer == nil {
+			e.resume.outer = rp
+		}
+	} else if rc.resumeAtPose != nil && e.resume == rc.resumeAtPose &&
+		e.pending == nil && len(e.replChoices) == 0 {
+		// The pose's own Engine.Ask record, from a cast window or turn
+		// structure where nothing was suspended: the composition completed
+		// synchronously in this answer, so the stale frame is dropped --
+		// resolveTop reads e.resume to decide whether its resolution
+		// suspended, and a stale frame makes it abandon a resolution that
+		// actually finished, re-resolving it on every pass (observed: a land
+		// entry's order pose left the frame and a later resolving ability
+		// re-resolved unbounded).
+		e.resume = nil
 	}
 	e.askNextReplacementChoice()
 }
@@ -4738,20 +5377,30 @@ func (e *Engine) continueLifeReplacements(ev events.Event, applied []replMatch) 
 // do not commute and asks the affected player (CR 616.1: the player whose life
 // total the event changes) which applies first. It declines, and the caller
 // applies the first candidate in deterministic scan order, only where no
-// choice can be made: the player has left the game (CR 800.4a) or another
-// decision is already outstanding, which a second ask would overwrite.
+// choice can be made: the player has left the game (CR 800.4a -- they make
+// no choices, and the event must still apply). While another decision is
+// outstanding the competition parks on the queue BEHIND it and is asked when
+// the queue drains (Submit's tail) -- never overwritten, never applied
+// silently in its shadow.
 func (e *Engine) poseLifeReplacementChoice(ev events.Event, cands, applied []replMatch) bool {
 	p := ev.Player
-	if int(p) >= len(e.G.Players) || e.G.Players[p].Lost || e.pending != nil {
+	if int(p) >= len(e.G.Players) || e.G.Players[p].Lost {
 		return false
 	}
 	rc := replChoice{ev: ev, cands: cands, before: e.triggerBefore, life: true,
 		appliedRepls: applied, damaging: e.damaging, combatDamaging: e.combatDamaging,
-		dmgSrcOverride: e.dmgSrcOverride}
-	// The front of the queue is the competition being asked. A life choice is
-	// asked immediately (pending is nil), so it goes first.
-	e.replChoices = append([]replChoice{rc}, e.replChoices...)
-	e.askReplacementChoice(p)
+		dmgSrcOverride: e.dmgSrcOverride, inResolution: e.resolvingObj != 0}
+	if e.pending == nil {
+		// The front of the queue is the competition being asked. A life choice
+		// is asked immediately (pending is nil), so it goes first.
+		e.replChoices = append([]replChoice{rc}, e.replChoices...)
+		e.askReplacementChoice(p)
+	} else {
+		// CR 616.1 with the queue: the competition parks behind the
+		// outstanding decision and the parked event stays in hand (applyLife
+		// Replacements returns handled=true) until the answer.
+		e.replChoices = append(e.replChoices, rc)
+	}
 	return true
 }
 

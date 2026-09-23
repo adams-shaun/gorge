@@ -19,11 +19,14 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	// The merged table measures 48 rows: this branch's non<X> closure
-	// (d56e404f) and its stale KReplacement-row drop (the real arm is
-	// 87d13658), main's legend-choice closure (74870371) and main's
-	// (fx20) player-spec closure (3cbf3e11, ticket 6a16cd8c).
-	knownApproximationRows = 48
+	// The merged table measures 46 rows: the earlier closures this branch
+	// merged (non<X> via d56e404f, KReplacement via 87d13658, legend-choice
+	// via 74870371, fx20 via 3cbf3e11/6a16cd8c), plus main's closures merged
+	// here: (pc1) via 179a3de1/0acadaa3 (ab191b03), the each1 fail-closed
+	// damage row via 49a2fde8 (c385caf3), and the all-`Updated` replacement
+	// competition row via e6a2a84d (62421b89, CR 616.1 order choice); main
+	// re-booked the CR 704.5j legend stand-in row (scan-order survivor).
+	knownApproximationRows = 46
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.

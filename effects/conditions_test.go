@@ -115,7 +115,7 @@ func TestConditionGateUnresolvedShapesRunUnconditionally(t *testing.T) {
 	if _, resolved := conditionMet(h, &Ctx{Controller: 0}, sa(t, notPresent)); resolved {
 		t.Fatal("ConditionNotPresent$ over ChosenCard resolved — out of the scoped shape")
 	}
-	unknownPred := "DB$ Pump | ConditionDefined$ Remembered | ConditionPresent$ Card.IsImprinted"
+	unknownPred := "DB$ Pump | ConditionDefined$ Remembered | ConditionPresent$ Card.DefinedTargeted"
 	if _, resolved := conditionMet(h, &Ctx{Controller: 0}, sa(t, unknownPred)); resolved {
 		t.Fatal("an unknown predicate in Present resolved — would count a false zero")
 	}
@@ -227,9 +227,9 @@ func TestConditionGatePresentWithoutDefinedResolvesBattlefield(t *testing.T) {
 	}
 
 	// Out of scope: an unknown predicate in Present fails closed (would count
-	// a false zero). IsRemembered is resolution-local and implemented; use
-	// IsImprinted, which remains unknown here.
-	unknown := sa(t, "DB$ Pump | ConditionPresent$ Card.IsImprinted")
+	// a false zero). DefinedTargeted is the positive twin of the implemented
+	// NotDefinedTargeted and remains unknown here.
+	unknown := sa(t, "DB$ Pump | ConditionPresent$ Card.DefinedTargeted")
 	if _, resolved := conditionMet(h, &Ctx{Controller: 0, Source: 4}, unknown); resolved {
 		t.Fatal("an unknown predicate in Present resolved — would count a false zero")
 	}

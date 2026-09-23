@@ -1079,6 +1079,30 @@ const (
 	// both on Rendmaw, Creaking Nest); the other comparison spellings stay
 	// wordUnknown and fail closed.
 	wordNumTypesGE
+	// The pc1 object/game-context predicate families (task pc1ctx), the last
+	// of the row's named stragglers. Each reads provenance the object alone
+	// does not carry, so it is classified here and evaluated by wordMatches
+	// against SpecContext/state:
+	//
+	// wordDealtDamageThisTurn is Forge's wasDealtDamageThisTurn -- the object
+	// was dealt damage this turn (state.Object.WasDealtDamageThisTurn, the
+	// per-turn provenance events.Apply's Damage case sets and TurnChange
+	// clears). wordImprinted is IsImprinted -- the candidate is in the SOURCE
+	// object's persistent imprint association (state.Object.Imprinted/
+	// ImprintTokens/SeekFound, the same pile imprintPileTargets resolves for
+	// Defined$ Imprinted). wordDefenderCtrl is DefenderCtrl -- controlled by
+	// the defending player the resolving trigger captured
+	// (TriggerContext.DefendingPlayer). wordNotDefinedTargeted is
+	// NotDefinedTargeted -- the candidate is NOT among the resolving ability's
+	// targets (SpecContext.ResolutionTargets while Resolving).
+	// wordOpponentCtrl is the bare Opponent object predicate -- controlled by
+	// an opponent of the evaluating controller (sc.You), the object-side twin
+	// of the player grammar's `Opponent` base.
+	wordDealtDamageThisTurn
+	wordImprinted
+	wordDefenderCtrl
+	wordNotDefinedTargeted
+	wordOpponentCtrl
 )
 
 // wordPredicate classifies a bare predicate word. key is the WUBRG letter for
@@ -1194,6 +1218,20 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordHasCounters, ""
 	case "suspended":
 		return wordSuspended, ""
+	// The pc1 object/game-context families. Each is a bare predicate word
+	// whose body reads provenance outside the object alone (see the
+	// wordKind block's comment); classification here is what makes the
+	// matcher and UnknownPredicates agree that the word is implemented.
+	case "wasDealtDamageThisTurn":
+		return wordDealtDamageThisTurn, ""
+	case "IsImprinted":
+		return wordImprinted, ""
+	case "DefenderCtrl":
+		return wordDefenderCtrl, ""
+	case "NotDefinedTargeted":
+		return wordNotDefinedTargeted, ""
+	case "Opponent":
+		return wordOpponentCtrl, ""
 	case "OppProtect":
 		return wordOppProtect, ""
 	case "Historic":
@@ -1496,6 +1534,63 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// semantics its shape implies rather than the always-true trap an
 		// unrecognised-but-plausible token could be mistaken for.
 		return !sharesName(o, key, sc)
+	case wordDealtDamageThisTurn:
+		// Forge's wasDealtDamageThisTurn: the object was dealt damage this
+		// turn. The flag is the per-object provenance events.Apply's Damage
+		// case sets (the same field the playercount HasProperty heads read)
+		// and TurnChange clears; an object never damaged this turn reads
+		// false. The by-source refinement (wasDealtDamageThisTurnBySource)
+		// is a separate token and stays unknown.
+		return o.WasDealtDamageThisTurn
+	case wordImprinted:
+		// Forge's IsImprinted: the candidate is in the SOURCE object's
+		// persistent imprint association -- state.Object.Imprinted (the
+		// exiled cards ImprintCards$ recorded), ImprintTokens (the tokens
+		// ImprintTokens$ True minted) or SeekFound (the cards an Alchemy
+		// Seek associated). This is the SAME pile imprintPileTargets
+		// resolves for Defined$ Imprinted, read as a membership test; a
+		// source with no association matches nothing. Source==0 is the
+		// unbound case and fails closed (contextPredicateBound refuses to
+		// invert it beneath '!').
+		src := g.Obj(sc.Source)
+		if src == nil {
+			return false
+		}
+		return imprintAssociationContains(g, src, o.ID)
+	case wordDefenderCtrl:
+		// Forge's DefenderCtrl: the object is controlled by the defending
+		// player of the resolving combat trigger (TriggerContext
+		// .DefendingPlayer, bound from the Attacks/AttackersDeclared event).
+		// Outside such a trigger the role is absent and this matches
+		// nothing -- the conservative direction, never an invented
+		// defender. The unbound case is refused beneath '!' too
+		// (contextPredicateBound).
+		return o.Controller == sc.DefendingPlayer.Player
+	case wordNotDefinedTargeted:
+		// Forge's NotDefinedTargeted: the candidate is NOT one of the
+		// resolving ability's targets (SpecContext.ResolutionTargets, the
+		// resolving object's recorded Targets). A resolving ability with no
+		// targets (an empty, non-nil list) admits every candidate --
+		// correctly, since nothing was targeted. The resolving gate is
+		// contextPredicateBound's: outside a resolution the predicate is
+		// unbound and refused beneath '!' rather than inverting an absence
+		// into an always-true match.
+		for _, t := range sc.ResolutionTargets {
+			if !t.IsPlayer && t.Obj == o.ID {
+				return false
+			}
+		}
+		return true
+	case wordOpponentCtrl:
+		// The bare Opponent object predicate: the candidate is controlled
+		// by an opponent of the evaluating controller -- the object-side
+		// twin of the player grammar's `Opponent` base (matchesPlayerSpec's
+		// base case `p != you`). The corpus spells this as a PLAYER filter
+		// (`Player.Opponent`, 761 lines) far more often than as an object
+		// one, and its object twin is already covered by OppCtrl (1331
+		// files); recognizing the bare word closes the census without
+		// widening any existing spelling.
+		return o.Controller != sc.You
 	case wordSameName:
 		// Forge CardProperty "sameName": card.sharesNameWith(source). The
 		// referent is SpecContext.Source as MatchesObjectCtx rewrote it: the
@@ -1558,6 +1653,30 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		return hasAttachmentMatching(g, o.ID, sc, typ, fn)
 	}
 	return false
+}
+
+// contextPredicateBound reports whether a context-bound classifier word has
+// the binding its body reads. The three pc1 families that read more than the
+// object alone are NotDefinedTargeted (needs a resolution, so the resolving
+// object's targets exist), DefenderCtrl (needs the combat trigger's captured
+// defending player) and IsImprinted (needs a source whose imprint association
+// is being read). matchPositive consults this before dispatching to
+// wordMatches and returns unknown (ok=false) when the binding is absent, so
+// BOTH the positive and the leading-'!' negated spelling fail closed -- a
+// recognised-but-false body would otherwise let a negated token match every
+// object. The always-bound families (wasDealtDamageThisTurn, Opponent) are
+// not listed: their bodies need only the object and the evaluating
+// controller, both of which are always present.
+func contextPredicateBound(kind wordKind, sc SpecContext) bool {
+	switch kind {
+	case wordNotDefinedTargeted:
+		return sc.Resolving
+	case wordDefenderCtrl:
+		return sc.DefendingPlayer.IsPlayer
+	case wordImprinted:
+		return sc.Source != 0
+	}
+	return true
 }
 
 // nonPredicate reports whether predicate p has the generic negation shape
@@ -2447,6 +2566,16 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		// token before the filter runs, so this path is reached only by an
 		// unstripped caller, which is not entitled to a provenance answer.
 		if kind == wordCastProvenance {
+			return false, false
+		}
+		// The pc1 context-bound classifiers (NotDefinedTargeted, DefenderCtrl,
+		// IsImprinted) are likewise recognised so the census reports them, but
+		// their binding may be absent outside a resolution/combat trigger/no
+		// source. An unbound one must fail closed for the NEGATED spelling as
+		// well, so it returns unknown (ok=false) rather than a false a
+		// caller could invert into a match -- the same contract
+		// wordCastProvenance keeps.
+		if !contextPredicateBound(kind, sc) {
 			return false, false
 		}
 		return wordMatches(kind, key, g, o, sc), true

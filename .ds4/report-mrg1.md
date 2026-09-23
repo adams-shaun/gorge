@@ -1000,3 +1000,132 @@ integration was already stale. The previous seat also never wrote its report
 ## Issues
 
 None found during this integration round beyond the resolved conflicts.
+
+
+---
+
+## Main lineage record — 62421b89 integration (kept verbatim from main)
+
+# Merge-conflict resolution — cli-20260922T225140Z-62421b89
+
+## Situation found
+
+The worktree was clean on entry at `7a45ef9a` with no in-flight merge or rebase. `main` was at `0104252d2aac00c38b8ee63675239b78dddef2ff`, not an ancestor of the branch. `.cards` was present.
+
+Ran `git merge main`. It auto-merged the main changes and reported one conflicted file: `AGENTS.md`.
+
+## Conflicted file and resolution
+
+### `AGENTS.md`
+
+The branch side had deleted its now-closed approximation row for CR 616.1 replacement ordering; it also carried the CR 704.5j legend-rule approximation. Main's conflicting side contained the old CR 616.1 row and a botpolicy fallback row, as well as the legend-rule row. The branch has implemented both the CR 616.1 order choice and `botpolicy`'s `KReplacement` policy (`botpolicy/policy.go`, `chooseReplacementOrder`), so the two main-side CR 616.1 rows describe behavior no longer present and were not retained. Kept the branch's removal and retained main's still-applicable CR 704.5j legend-rule row. Other main edits to this file, including removal of the closed fx20/pc1 rows, were preserved by the auto-merge.
+
+No other file had merge markers. The remaining main changes auto-merged. The required main ratchet run found two stale `apiSpecificRulesSA` entries in `rules/paramcensus_test.go`: `Engine.applyAddCounterBody` and `Engine.applyAddCounterReplacements` consume the priced result and no longer read SA params. Removed those stale classifications, retaining `Engine.counterReplaceOp`, which does read the parameters. This is the ratchet-table correction required for the merged branch; no engine behavior was changed by it.
+
+## Commands and output
+
+```text
+$ git status --short --branch && git rev-parse --abbrev-ref HEAD && git diff --name-only --diff-filter=U
+## wt/cli-20260922T225140Z-62421b89
+wt/cli-20260922T225140Z-62421b89
+
+$ git rev-parse main
+0104252d2aac00c38b8ee63675239b78dddef2ff
+
+$ git merge main
+Auto-merging AGENTS.md
+CONFLICT (content): Merge conflict in AGENTS.md
+Auto-merging rules/engine.go
+Auto-merging rules/turn.go
+Automatic merge failed; fix conflicts and then commit the result.
+
+$ git add AGENTS.md && go test -run 'TestKnownApproximation' ./internal/testutil/
+ok   github.com/adams-shaun/gorge/internal/testutil  0.001s
+
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+--- FAIL: TestEveryRepoDeckParamsAreRead (0.15s)
+    paramcensus_test.go:2738: paramcensus rot guard: 2 findings:
+        paramcensus: apiSpecificRulesSA entry "Engine.applyAddCounterBody" no longer reads SA params -- delete the stale entry
+        paramcensus: apiSpecificRulesSA entry "Engine.applyAddCounterReplacements" no longer reads SA params -- delete the stale entry
+FAIL
+github.com/adams-shaun/gorge/rules  0.892s
+FAIL
+
+# Removed the two stale entries from rules/paramcensus_test.go.
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok   github.com/adams-shaun/gorge/rules  0.750s
+```
+
+`git diff --check` reported no whitespace errors after conflict resolution. The first focused approximation test passed. The first ratchet run exposed the two stale entries above; the rerun passed after removing them. `.cards` existed, so the corpus-dependent ratchets were not vacuous skips.
+
+## Uncertainties / issues
+
+No unresolved conflict or uncertain resolution remains. The replacement-order approximation rows from main were intentionally omitted because the reviewed branch fix and the already-present botpolicy arm close those claims. The unrelated CR 704.5j row remains intact. No engine behavior change or golden edit was made during conflict resolution.
+
+---
+
+## Record — round 4 integration (this seat, b686e452 lineage, 2026-09-23)
+
+### Starting state
+
+`git status` on entry: tree CLEAN at `d396b8ba` (the branch's round-3 merge of
+main `c3256fc3`, completed by the previous seat, gates green); no rebase or
+merge in flight. But `main` had advanced again past `c3256fc3` to `e6a2a84d`
+(three more tickets' merges: `0104252d` = ab191b03 pc1 context-bound object
+predicates + `0acadaa3` imprint-filter expiry, `0c7e5ce9` = c385caf3 EachDamage
+fail-closed outcomes, `e6a2a84d` = 62421b89 CR 616.1 competing-replacement
+order choice), so the round-3 integration was stale again. This is why the
+daemon re-dispatched mrg1. I re-integrated with `git merge main` (rebase
+forbidden in this seat).
+
+### Conflicts and resolution
+
+1. **`AGENTS.md`** — one conflict hunk in the Known approximations table.
+   HEAD side carried the all-`Updated`-competition row and the (pc1) row
+   (both since CLOSED on main by `e6a2a84d`/`179a3de1`); main side carried the
+   re-booked CR 704.5j legend row (deliberately re-added by the 62421b89
+   lineage — main's later deliberate change, kept) and the `non<X>` row
+   (closed on THIS branch by the reviewed fix `d56e404f`; main's copy is
+   stale for the merged code). Resolution: keep only the legend row from
+   main's side; drop both HEAD-side rows and main's stale `non<X>` row.
+   The each1 row's deletion auto-merged (c385caf3). Merged table measures
+   **46** rows (48 − all-`Updated` − pc1 − each1 + legend); constant lowered
+   48 → 46 with a comment naming every closure.
+2. **`internal/testutil/agentsdoc_test.go`** — auto-merged to HEAD's value
+   (48); updated to 46 as above.
+3. **`.ds4/report-mrg1.md`** — this file; HEAD's accumulation and main's
+   62421b89 record BOTH kept verbatim under lineage headings; this record
+   appended.
+
+`effects/filter.go` auto-merged cleanly (main's pc1 predicate work vs this
+branch's `nonCopiedSpell` fix touch different regions). No golden, ratchet
+table or `heads_test.go` was edited.
+
+### Commands and output
+
+- `.cards` present (real symlink) — runs are real, not vacuous skips.
+- Merged-table count (the test's own awk logic): `rows: 46`.
+- `go test ./internal/testutil/ -run 'TestKnownApproximation' -v` →
+  `--- PASS: TestKnownApproximationsOnlyShrinks`,
+  `--- PASS: TestKnownApproximationRowsAreShort` (see gate log below).
+- Ratchets: `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'` → ok.
+- Branch's non<X> suites: `go test ./effects -run 'NonPredicate|NonCopied|NonColorless|NonChosen'` → ok.
+- Main's new closures' suites (pc1, each1, 616.1 order): ok in rules+effects.
+- Behaviour goldens: `go test ./internal/archtest/` → ok;
+  `go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/` → ok
+  (pinned split measured below — see final gate log appended to this record).
+
+### Notes / uncertainties
+
+- The branch registers no new `Mode$` matcher and closed no
+  `knownUnsupported`/`knownUnsupportedParams`/`knownUnmodelledCountHeads`
+  entry; main's closures came with their own table edits, auto-merged.
+- One residual recorded OUTSIDE the table (register is delete-only, a row
+  may never be re-added narrowed): main's deleted `non<X>` row named
+  `nonColorless` and `nonChosenCard` as still-unmatched shapes. They remain
+  unmatched in the merged tree (only `nonCopiedSpell` was closed, by
+  `d56e404f`). Someone re-book them if a ticket takes them.
+
+## Issues
+
+None found during this integration round beyond the resolved conflicts.

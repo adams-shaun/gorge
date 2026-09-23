@@ -904,7 +904,8 @@ type Engine struct {
 	// replChoices is the queue of parked replacement choices (see replChoice /
 	// handleReplacement in replacement.go): CR 616.1 ordering for MoveZone,
 	// Untap, ProduceMana and BeginPhase, replacement-time mana-colour choices,
-	// and an Optional$ BeginPhase yes/no. Plain value entries are deep-copied by
+	// an Optional$ BeginPhase yes/no, and the AddCounter/CreateToken/Updated
+	// competitions. Plain value entries are deep-copied by
 	// Clone, so every in-flight event survives an intent boundary.
 	replChoices []replChoice
 	// untapResume is set only around one Untap emission from finishUntapStep.
@@ -2526,6 +2527,16 @@ func (e *Engine) Submit(in decision.Intent) error {
 		Text: fmt.Sprintf("%s:%v", d.Kind, in.Choices)})
 	e.pending = nil
 	e.handle(d, in)
+	// A CR 616.1 competition that arose while THIS decision was outstanding
+	// was parked on the queue without an ask (poseLifeReplacementChoice's
+	// queued arm, poseDamageReplacementChoice's multi-recipient batch, the
+	// AddCounter/token/Updated poses): ask it now, before anything else
+	// reads the parked event's unresolved state. A handler that already
+	// asked (handleReplacement's own tails) set pending again, and this
+	// drain is inert for it.
+	if e.pending == nil && !e.Suspended() {
+		e.askNextReplacementChoice()
+	}
 	// CR 704.4: nobody receives priority in the middle of a resolution. A
 	// handler may have resumed an effect only far enough to pose another
 	// mid-resolution decision; in that case state-based actions wait until

@@ -125,17 +125,19 @@ func TestEachDamageDefinedDamagersParentTargetPinsTheFightShape(t *testing.T) {
 	}
 }
 
-// TestEachDamageUnresolvableDamagerSpecFailsClosed: an unresolvable or empty
-// damager set is a silent no-op (the standing filter convention), emitting
-// neither damage nor a Note.
+// TestEachDamageUnresolvableDamagerSpecFailsClosed: an unresolvable damager
+// predicate fails closed with a replay-visible Note and no damage.
 func TestEachDamageUnresolvableDamagerSpecFailsClosed(t *testing.T) {
 	h := newHost(t, 2)
 	src := librarySource(t, h)
 	putCreature(t, h, 0, "Bear", "2/2", "")
 	c := &Ctx{Source: src, Controller: 0}
 	Resolve(h, c, sa(t, "DB$ EachDamage | DefinedDamagers$ Valid Creature.Wumpus+YouCtrl | Defined$ Self | NumDmg$ Count$CardPower"))
-	if len(h.log) != 0 {
-		t.Fatalf("log = %+v, want an empty log (fail-closed no-op, no Note)", h.log)
+	if len(damageEvents(h)) != 0 {
+		t.Fatalf("damage events = %+v, want none for the unknown predicate", damageEvents(h))
+	}
+	if !eachDamageHasNote(h) {
+		t.Fatalf("log = %+v, want a Note for the unknown damager predicate", h.log)
 	}
 }
 
@@ -190,8 +192,11 @@ func TestEachDamageOwnTargetRecipients(t *testing.T) {
 		// candidates, poses nothing, and the resolution must NOT fall
 		// through to the parent's targets (the damagers damaging themselves).
 		Resolve(h2, cc, sa(t, "DB$ EachDamage | DefinedDamagers$ ParentTarget | ValidTgts$ Creature.Wumpus | NumDmg$ Count$CardPower"))
-		if len(h2.log) != 0 {
-			t.Fatalf("log = %+v, want an empty log (no ask answered, no fall-through to the parent's targets)", h2.log)
+		if len(damageEvents(h2)) != 0 {
+			t.Fatalf("damage events = %+v, want none when there is no answered recipient", damageEvents(h2))
+		}
+		if !eachDamageHasNote(h2) {
+			t.Fatalf("log = %+v, want a Note for the missing recipient answer", h2.log)
 		}
 	})
 }
