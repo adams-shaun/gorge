@@ -84,6 +84,28 @@ func awaitETBTargetAsk(t *testing.T, e *Engine) *decision.Decision {
 	return nil
 }
 
+// awaitAnthemETBStack crosses the spell-resolution boundary explicitly. A
+// stack-empty drain can stop when the spell leaves the stack, before its ETB
+// trigger is placed; only drain the trigger after observing its stack object.
+func awaitAnthemETBStack(t *testing.T, e *Engine, anthem state.ObjID) {
+	t.Helper()
+	if o := e.G.Obj(anthem); o == nil || o.Zone != state.ZStack {
+		t.Fatalf("precondition: Anthem %d must be on the stack before resolution: %+v", anthem, o)
+	}
+	for i := 0; i < 12; i++ {
+		if n := len(e.G.Stack); n > 0 {
+			if top := e.G.Obj(e.G.Stack[n-1]); top != nil && top.Ability != nil && top.Source == anthem {
+				if !hasEvent(e, events.TriggerPush, anthem) {
+					t.Fatal("precondition: Anthem ETB stack object has no TriggerPush event")
+				}
+				return
+			}
+		}
+		passHere(t, e) // both players pass; the next boundary places the ETB
+	}
+	t.Fatalf("Anthem ETB trigger never reached the stack (depth %d, pending %+v)", len(e.G.Stack), e.Pending())
+}
+
 func hasMultikickedCastInfo(e *Engine, obj state.ObjID) bool {
 	for _, ev := range e.L.Events {
 		if ev.Kind == events.CastInfo && ev.Obj == obj &&
@@ -175,11 +197,8 @@ func TestMarshalsAnthemPlainCastETBAsksForNothing(t *testing.T) {
 	if d := e.Pending(); d != nil && d.Kind == decision.KChoose {
 		t.Fatalf("plain cast posed an ask: %+v", d)
 	}
-	passHere(t, e)
+	awaitAnthemETBStack(t, e, anthem)
 	passUntilStackEmpty(t, e, 20) // an unexpected target ask fails the drain
-	if !hasEvent(e, events.TriggerPush, anthem) {
-		t.Fatal("precondition: Marshal's Anthem ETB trigger never fired")
-	}
 	if o := e.G.Obj(anthem); o.CastFlags&state.FlagKicked != 0 || o.TimesKicked != 0 {
 		t.Fatalf("plain cast flags %#x kicked %d", o.CastFlags, o.TimesKicked)
 	}
@@ -202,11 +221,8 @@ func TestMarshalsAnthemPlainCastETBAsksForNothing(t *testing.T) {
 	if o := e2.G.Obj(anthem2); o.CastFlags != 0 || hasMultikickedCastInfo(e2, anthem2) {
 		t.Fatalf("declined kick: flags %#x, multikicked CastInfo present", o.CastFlags)
 	}
-	passHere(t, e2)
+	awaitAnthemETBStack(t, e2, anthem2)
 	passUntilStackEmpty(t, e2, 20)
-	if !hasEvent(e2, events.TriggerPush, anthem2) {
-		t.Fatal("precondition: declined-multikick ETB trigger never fired")
-	}
 	if z := e2.G.Obj(g3).Zone; z != state.ZGraveyard {
 		t.Fatalf("raider %d zone %s, want untouched", g3, z)
 	}
