@@ -527,6 +527,11 @@ export interface Option {
    */
   player: number;
   /**
+   * AttackTarget is the planeswalker permanent attacked by an attacker option;
+   * zero means the option attacks Player.
+   */
+  attack_target?: number;
+  /**
    * Attacker tells a block option's client which attacker this blocker
    * would block, so a human can see the pairing an in-process bot already
    * can (the declare-blockers step is otherwise guessing). omitempty

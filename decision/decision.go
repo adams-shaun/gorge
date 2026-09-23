@@ -160,6 +160,9 @@ type Option struct {
 	// Player is always emitted because 0 is a valid seat (0-indexed), unlike
 	// Obj where 0 means "no object".
 	Player state.PlayerID `json:"player"`
+	// AttackTarget is the planeswalker permanent attacked by an attacker option;
+	// zero means the option attacks Player.
+	AttackTarget state.ObjID `json:"attack_target,omitempty"`
 	// Attacker tells a block option's client which attacker this blocker
 	// would block, so a human can see the pairing an in-process bot already
 	// can (the declare-blockers step is otherwise guessing). omitempty

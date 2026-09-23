@@ -488,11 +488,14 @@ func (e *Engine) askAttackers() {
 	var opts []decision.Option
 	for _, of := range offers {
 		label := "Attack with " + e.G.Obj(of.id).Face().Name + " at " + seatFacingName(e.G, of.def)
+		if of.defObj != 0 {
+			label += " (planeswalker: " + e.G.Obj(of.defObj).Face().Name + ")"
+		}
 		if of.price > 0 {
 			label += fmt.Sprintf(" (pay {%d} per creature)", of.price)
 		}
 		opts = append(opts, decision.Option{Index: len(opts), Kind: "attacker",
-			Label: label, Obj: of.id, Player: of.def, Required: mustAtt[of.id],
+			Label: label, Obj: of.id, Player: of.def, AttackTarget: of.defObj, Required: mustAtt[of.id],
 			// Value is the pair's mana price: the cumulative-budget contract
 			// MaxSum names. omitempty keeps a prop-free list byte-identical
 			// (price 0 omits), so the option enumeration order and the wire
@@ -642,17 +645,27 @@ func (e *Engine) finishAttackers(chosen []decision.Option, player state.PlayerID
 		e.declaredAttackers = append(e.declaredAttackers, opt.Obj)
 	}
 	defer func() { e.declaredAttackers = e.declaredAttackers[:0] }()
-	var defenders []state.PlayerID
-	byDef := make(map[state.PlayerID][]state.ObjID, len(chosen))
-	for _, opt := range chosen {
-		if _, ok := byDef[opt.Player]; !ok {
-			defenders = append(defenders, opt.Player)
-		}
-		byDef[opt.Player] = append(byDef[opt.Player], opt.Obj)
+	type defenderKey struct {
+		player state.PlayerID
+		walker state.ObjID
 	}
-	sort.Slice(defenders, func(i, j int) bool { return defenders[i] < defenders[j] })
+	var defenders []defenderKey
+	byDef := make(map[defenderKey][]state.ObjID, len(chosen))
+	for _, opt := range chosen {
+		key := defenderKey{player: opt.Player, walker: opt.AttackTarget}
+		if _, ok := byDef[key]; !ok {
+			defenders = append(defenders, key)
+		}
+		byDef[key] = append(byDef[key], opt.Obj)
+	}
+	sort.Slice(defenders, func(i, j int) bool {
+		if defenders[i].player != defenders[j].player {
+			return defenders[i].player < defenders[j].player
+		}
+		return defenders[i].walker < defenders[j].walker
+	})
 	for _, d := range defenders {
-		e.emit(events.Event{Kind: events.DeclareAttackers, Player: d, IDs: byDef[d]})
+		e.emit(events.Event{Kind: events.DeclareAttackers, Player: d.player, Obj: d.walker, IDs: byDef[d]})
 	}
 	for _, opt := range chosen {
 		if !e.HasKeyword(opt.Obj, "Vigilance") {
@@ -2177,12 +2190,12 @@ func (e *Engine) damageStep(firstStrike bool) {
 					// Trample) and the ordinary blocked shape. The blockers
 					// still hit back below; only the ATTACKER's assignment is
 					// rerouted.
-					as = append(as, assignment{toPlayer: a.Attacking, amount: pw,
+					as = append(as, assignment{toPlayer: a.Attacking, toObj: a.AttackingPlaneswalker, amount: pw,
 						lifelink: a.Controller, hasLink: link, from: aid, infect: inf, wither: wit})
 
 				case len(a.BlockedBy) == 0:
 					// Genuinely unblocked: full damage to the defending player.
-					as = append(as, assignment{toPlayer: a.Attacking, amount: pw,
+					as = append(as, assignment{toPlayer: a.Attacking, toObj: a.AttackingPlaneswalker, amount: pw,
 						lifelink: a.Controller, hasLink: link, from: aid, infect: inf, wither: wit})
 
 				case len(blockers) == 0:
@@ -2193,7 +2206,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 					// amount push through to the player instead (there is no
 					// blocker left to owe any of it to).
 					if trample {
-						as = append(as, assignment{toPlayer: a.Attacking, amount: pw,
+						as = append(as, assignment{toPlayer: a.Attacking, toObj: a.AttackingPlaneswalker, amount: pw,
 							lifelink: a.Controller, hasLink: link, from: aid, infect: inf, wither: wit})
 					}
 
@@ -2249,7 +2262,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 						}
 					}
 					if remaining > 0 && trample {
-						as = append(as, assignment{toPlayer: a.Attacking, amount: remaining,
+						as = append(as, assignment{toPlayer: a.Attacking, toObj: a.AttackingPlaneswalker, amount: remaining,
 							lifelink: a.Controller, hasLink: link, from: aid, infect: inf, wither: wit})
 					}
 				}

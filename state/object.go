@@ -516,7 +516,10 @@ type Object struct {
 	// Combat-only.
 	IsAttacking bool
 	Attacking   PlayerID
-	BlockedBy   []ObjID
+	// AttackingPlaneswalker is the planeswalker permanent this creature attacks,
+	// or zero when it attacks a player.
+	AttackingPlaneswalker ObjID
+	BlockedBy             []ObjID
 	// EncoreAttackTurn/Defender record "attacks that opponent this turn if
 	// able" on an encore token. Zero Turn means no requirement; turns begin
 	// at 1, so the zero value is unambiguous.

@@ -1299,6 +1299,7 @@ func Apply(g *state.Game, e Event) {
 			if o := g.Obj(id); o != nil {
 				o.IsAttacking = true
 				o.Attacking = e.Player
+				o.AttackingPlaneswalker = e.Obj
 				o.AttacksThisTurn++
 			}
 		}
@@ -1519,6 +1520,7 @@ func Apply(g *state.Game, e Event) {
 			o := &g.Objs[i]
 			if e.Obj == 0 || o.ID == e.Obj {
 				o.IsAttacking = false
+				o.AttackingPlaneswalker = 0
 				o.BlockedBy = nil
 			} else {
 				for j, id := range o.BlockedBy {
@@ -3079,6 +3081,7 @@ func Move(g *state.Game, id state.ObjID, from, to state.Zone) {
 		o.Tapped = false
 		o.Damage = 0
 		o.IsAttacking = false
+		o.AttackingPlaneswalker = 0
 		o.BlockedBy = nil
 		o.Counters = nil
 		o.IntrinsicKeywords = nil
@@ -3272,6 +3275,7 @@ func changeControl(g *state.Game, o *state.Object, p state.PlayerID) {
 			}
 		}
 		o.IsAttacking = false
+		o.AttackingPlaneswalker = 0
 		o.BlockedBy = nil
 		o.SummonSick = true
 		// kw:Echo's gate stamp (CR 702.35a): a battlefield control change is

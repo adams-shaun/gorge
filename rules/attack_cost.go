@@ -775,9 +775,10 @@ func (e *Engine) attackBudget(p state.PlayerID) int32 {
 // attackOffer is one (attacker, defender) pair askAttackers offers, with the
 // mana price attacking that defender charges per creature (0 = free).
 type attackOffer struct {
-	id    state.ObjID
-	def   state.PlayerID
-	price int32
+	id     state.ObjID
+	def    state.PlayerID
+	defObj state.ObjID
+	price  int32
 }
 
 // attackOffers builds the offer list askAttackers, attackDutyDischargeable
@@ -833,14 +834,14 @@ func (e *Engine) attackOffers() []attackOffer {
 		}
 	}
 	for _, d := range defenders {
+		var walkerTargets []state.ObjID
+		for _, wid := range e.G.Zone(state.ZBattlefield, d) {
+			if e.G.Obj(wid).Face() != nil && e.G.Obj(wid).Face().IsPlaneswalker() {
+				walkerTargets = append(walkerTargets, wid)
+			}
+		}
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
-			if !e.canAttackPair(id, d) {
-				continue
-			}
-			if !e.goadMayAttack(id, d) {
-				continue
-			}
-			if e.attackBlocked(id, d) {
+			if !e.canAttackPair(id, d) || !e.goadMayAttack(id, d) || e.attackBlocked(id, d) {
 				continue
 			}
 			price := e.attackPairCharge(id, d)
@@ -848,6 +849,9 @@ func (e *Engine) attackOffers() []attackOffer {
 				continue
 			}
 			out = append(out, attackOffer{id: id, def: d, price: price})
+			for _, wid := range walkerTargets {
+				out = append(out, attackOffer{id: id, def: d, defObj: wid, price: price})
+			}
 		}
 	}
 	// Best named satisfaction per creature over the pairs that survived.
