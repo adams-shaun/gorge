@@ -624,15 +624,20 @@ func causeSpecQualifiersKnown(alt string) bool {
 // sacrificeBlockedForCost's caller, which knows what the payer is
 // casting/activating.
 //
-// A cost can only ever be paid for a spell or an activated ability in this
-// engine, so those two bases are the whole readable grammar. Every corpus
-// ForCost$ True carrier is a bare `Spell,Activated` (angel_of_jubilation,
-// yasharn_implacable_earth); a qualified base (Spell.Instant, Spell.OppCtrl)
-// or any other base (Triggered, SpellAbility, Ability) names a cause this
-// path cannot exactly evaluate, so it fails closed -- the permissive
-// direction for a restriction, and no corpus line is affected.
+// A cost site's cause is the ability the payment is made to (the cantsac1
+// r2 semantics table on costCause): a spell cast (Spell), an ability
+// activation (Activated), a ward or upkeep trigger's demand (Triggered) or
+// an unless resolution election (Resolution). Those four -- None stays
+// inadmissible, a no-cause payment names nothing -- are the readable
+// grammar; every corpus ForCost$ True carrier is a bare `Spell,Activated`
+// (angel_of_jubilation, yasharn_implacable_earth) and therefore scopes to
+// the cast/activation sites only, never to a ward, unless or upkeep
+// payment. A qualified base (Spell.Instant, Spell.OppCtrl) or any other
+// base (SpellAbility, Ability) names a cause this path cannot exactly
+// evaluate, so it fails closed -- the permissive direction for a
+// restriction, and no corpus line is affected.
 func causeCostAdmits(spec string, cause costCause) bool {
-	if cause == costCauseNone {
+	if cause == costCauseNone || cause == costCauseResolution {
 		return false
 	}
 	for _, alt := range strings.Split(spec, ",") {
@@ -651,6 +656,10 @@ func causeCostAdmits(spec string, cause costCause) bool {
 			}
 		case "Activated":
 			if cause == costCauseActivated {
+				return true
+			}
+		case "Triggered":
+			if cause == costCauseTriggered {
 				return true
 			}
 		}

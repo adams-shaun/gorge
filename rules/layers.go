@@ -3224,11 +3224,14 @@ func (e *Engine) SacrificeBlocked(id state.ObjID, forCost bool) bool {
 
 // sacrificeBlockedForCost is the cost path's entry point (task cantsac1):
 // the rules-side Sac-cost walks (cast/activation, mana ability, ward,
-// unless, cumulative upkeep) know what the sacrifice is paying for, so they
-// call this with the cost's own cause instead of the effects.Host method.
-// causeCostAdmits reads it, so a `ForCost$ True | ValidCause$
-// Spell,Activated` static (angel_of_jubilation, yasharn_implacable_earth)
-// blocks a cost sacrifice it should and leaves an effect's sacrifice alone.
+// unless, the cumulative-upkeep/echo Sac arm and the Cost$ Mandatory
+// trigger-cost window) know what the sacrifice is paying for, so they call
+// this with the cost's own cause (the semantics table on costCause) instead
+// of the effects.Host method. causeCostAdmits reads it, so a `ForCost$ True
+// | ValidCause$ Spell,Activated` static (angel_of_jubilation,
+// yasharn_implacable_earth) blocks a cast/activation cost sacrifice it
+// should, leaves an effect's sacrifice alone and scopes past a ward, unless
+// or upkeep payment, whose demand is a trigger or a resolution election.
 func (e *Engine) sacrificeBlockedForCost(id state.ObjID, cause costCause) bool {
 	return e.sacrificeBlocked(id, true, cause)
 }
@@ -3239,15 +3242,35 @@ func (e *Engine) sacrificeBlockedForCost(id state.ObjID, cause costCause) bool {
 // object exists (cast.go pushCast's pc.isAbility() early return), so the
 // stack top would name whatever unrelated object was already there -- the
 // exact misattribution discardCauseAdmits guards against. The pending act of
-// casting/activating is therefore the only honest cause, and costCauseNone
-// marks a cost site with no pending cast/activation at all (ward, an unless
-// cost, cumulative upkeep), where a Spell/Activated alternative fails closed.
+// casting/activating is therefore the only honest cause where one is pending,
+// and the defined semantics per cost site (cantsac1 r2) are:
+//
+//	spell-cast cost component -> costCauseSpell
+//	activated-ability cost component, mana abilities included -> costCauseActivated
+//	ward cost (CR 702.22: the ward trigger demands the payment) -> costCauseTriggered
+//	cumulative-upkeep payment and the Cost$ Mandatory trigger-cost window
+//	(CR 702.25a: the upkeep/resolving trigger demands the payment) -> costCauseTriggered
+//	unless payment (paid during a resolving ability to elect its outcome --
+//	a resolution-election payment, never a cast or activation cost) -> costCauseResolution
+//
+// costCauseNone is no cost context at all: the effect path (the effects.Host
+// method, forCost false) and a caller with nothing pending. causeCostAdmits
+// reads Spell, Activated and Triggered; Resolution is inadmissible by every
+// readable base, so a ValidCause$ line fails closed at an unless site (the
+// permissive direction) instead of blocking a payment the resolving ability
+// did not demand as its cast/activation cost. Every corpus ForCost$ True
+// carrier is `ValidCause$ Spell,Activated` (angel_of_jubilation,
+// yasharn_implacable_earth), so a ward, unless or upkeep payment is correctly
+// OUTSIDE its scope: Angel stops sacrificing "to cast spells or activate
+// abilities", and none of those three payments is one.
 type costCause uint8
 
 const (
-	costCauseNone      costCause = iota // no pending cast/activation (ward, unless, upkeep)
-	costCauseSpell                      // casting a spell
-	costCauseActivated                  // activating an ability (including a mana ability)
+	costCauseNone       costCause = iota // no cost context (the effect path)
+	costCauseSpell                       // a component of casting a spell
+	costCauseActivated                   // a component of activating an ability
+	costCauseTriggered                   // a payment a triggered ability demands (ward, upkeep)
+	costCauseResolution                  // an unless payment made during a resolving ability
 )
 
 // costCauseForPendingCast classifies the in-flight proposal pc. A nil pc (no
