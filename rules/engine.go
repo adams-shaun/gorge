@@ -394,6 +394,17 @@ type Engine struct {
 	derivedTypes []string
 	derivedDepth int
 
+	// derivedMemo / derivedMemoDepth / derivedMemoGen are Derived's per-object
+	// memo for ONE legal-actions walk (rules/derivedmemo.go): derivedMemoDepth
+	// is the scope counter legalActionsPriced raises, derivedMemoGen is bumped
+	// on every outermost scope entry so no entry outlives the walk that built
+	// it, and derivedMemo (indexed by ObjID) owns each cached result's slices.
+	// Pure per-walk scratch: Clone copies none of it (a clone starts with an
+	// empty memo and generation 0, which no entry ever matches).
+	derivedMemo      []derivedMemoEntry
+	derivedMemoDepth int
+	derivedMemoGen   uint64
+
 	// derivingColorsSet/ID/Colors: the finished layer-5 colour answer for the
 	// object whose Derived is mid-build (set by derivedWith before its layer-7
 	// P/T walk, restored on the way out). Colors serves it to a layer-7 pump
