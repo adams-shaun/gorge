@@ -67,15 +67,16 @@ func (e *Engine) beginActivation(p state.PlayerID, opt decision.Option) {
 	// total by manaToPay when the cost is paid -- the same composition a
 	// spell's cast gets.
 	mods := e.costModifiers(p, opt.Obj, abilityScope(ab))
-	// CR 702.6 / CR 601.2f: an ability whose own SA carries an
-	// AlternateCost$ rider (the K:Equip expansion's fourth colon field --
-	// Transmogrant's Crown's "Equip {2} ... you may pay {B} instead") offers
-	// the activator a choice of costs. AltCostIndex selects it: 1 is the
-	// alternate, 0 the printed Cost$ (the same field the cast walk uses for
-	// an AlternativeCost static's cost). The offer walk (rules/legal.go)
-	// gated the alternate option on exactly this cost being payable, so the
-	// charge and the gate agree; a stale option whose rider vanished falls
-	// back to the printed cost rather than stranding.
+	// CR 702.6 / CR 601.2f: a minted attach-cost SA (K:Equip/K:Fortify,
+	// cards/kw_equip.go) whose rider carries AlternateCost$ -- Transmogrant's
+	// Crown's "Equip {2} ... you may pay {B} instead" -- offers the activator
+	// a choice of costs. AltCostIndex selects it: 1 is the alternate, 0 the
+	// printed Cost$ (the same field the cast walk uses for an
+	// AlternativeCost static's cost). The offer walk (rules/legal.go) gated
+	// the alternate option on exactly this cost being payable, so the charge
+	// and the gate agree; a stale option whose rider vanished falls back to
+	// the printed cost rather than stranding. Scoped to the Equip/Fortify
+	// SAs (isAttachCostSA): no other activation family reads AlternateCost$.
 	raw := e.parseCost(ab.Params["Cost"])
 	if opt.AltCostIndex > 0 {
 		if alt, ok := e.abilityAlternateCost(ab); ok {
@@ -112,21 +113,44 @@ func (e *Engine) beginActivation(p state.PlayerID, opt decision.Option) {
 	e.continueCast()
 }
 
-// abilityAlternateCost reads an activated ability's own AlternateCost$ rider:
-// an alternative cost the activator may pay INSTEAD of the printed Cost$ (the
-// K:Equip expansion's fourth colon field, cards/kw_equip.go). The corpus's
+// isAttachCostSA reports whether ab is one of the attach-cost SAs the
+// Equip/Fortify keyword expansion (cards/kw_equip.go's kwAttachCost) mints:
+// it stamps the minted SA with `Keyword$ <kw>` (Equip or Fortify -- the kw
+// the SVar grants to its target is a different param family, and a corpus
+// scan finds no AB$ line carrying Keyword$ Equip/Fortify, so the exact value
+// is an unambiguous marker). This is the ONLY ability family this ticket's
+// AlternateCost$ read covers: an AB$ line's own AlternateCost$ parameter
+// (Heartwood Shard, Bullseye Death Dealer, the five shards) is a separate
+// activation feature this build deliberately does not model, and reading the
+// rider on those SAs would offer costs the charge path was never built for.
+func isAttachCostSA(ab *cards.SA) bool {
+	if ab == nil {
+		return false
+	}
+	switch ab.Params["Keyword"] {
+	case "Equip", "Fortify":
+		return true
+	}
+	return false
+}
+
+// abilityAlternateCost reads an ATTACH-COST ability's own AlternateCost$
+// rider: an alternative cost the activator may pay INSTEAD of the printed
+// Cost$ (the K:Equip expansion's fourth colon field, cards/kw_equip.go --
+// scoped to the minted Equip/Fortify SAs by isAttachCostSA). The corpus's
 // three carriers are Transmogrant's Crown ("Equip {2} ... pay {B} instead"),
 // Bloodthorn Flail (discard a card instead of {3}) and Gavel of the Righteous
 // (remove a counter from it instead of {3}). The value is a full Forge cost
 // token string parsed by the same ParseCost the printed Cost$ uses, so its
 // non-mana parts (Discard/SubCounter) ride the ordinary payment stages.
 //
-// ok is false when the ability carries no rider, or the rider parses into an
-// unmodelled part (Cost.Unknown non-empty) -- the same fail-closed withholding
-// every alternative-cost reader takes (rules/statics.go's altCostParse), so an
-// unpriceable cost is never offered as an option.
+// ok is false when the ability is not a minted attach-cost SA, carries no
+// rider, or the rider parses into an unmodelled part (Cost.Unknown non-empty)
+// -- the same fail-closed withholding every alternative-cost reader takes
+// (rules/statics.go's altCostParse), so an unpriceable cost is never offered
+// as an option.
 func (e *Engine) abilityAlternateCost(ab *cards.SA) (Cost, bool) {
-	if ab == nil {
+	if !isAttachCostSA(ab) {
 		return Cost{}, false
 	}
 	raw := strings.TrimSpace(ab.Params["AlternateCost"])

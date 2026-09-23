@@ -2575,20 +2575,23 @@ func (e *Engine) legalActionsPriced(p state.PlayerID, hyp *state.Mana) []decisio
 				if cost.Tap && (o.Tapped || (z == state.ZBattlefield && o.SummonSick && slices.Contains(e.Derived(id).Types, "Creature") && !e.HasKeyword(id, "Haste"))) {
 					continue
 				}
-				// CR 702.6 / CR 601.2f: the ability's own AlternateCost$ rider
-				// (the K:Equip expansion's fourth colon field) is an alternative
-				// cost the activator may pay INSTEAD of the printed one. Offer it
-				// as its own "ability" option, exactly the way the cast walk
-				// offers an AlternativeCost static's cost as its own "cast"
-				// option (AltCostIndex = 1 marks "the alternate cost", 0 the
-				// printed one -- decision.Option.AltCostIndex). The rider is
-				// evaluated INDEPENDENTLY of the printed cost: an equip whose
-				// printed cost is unpayable but whose alternate is payable must
-				// still be offered (that is the whole point of "pay {B}
-				// instead" for Transmogrant's Crown). abilityAlternateCost
-				// fails closed on an unpriceable rider, so no unpayable option
-				// is ever offered, and the ability is withheld only when
-				// NEITHER cost is payable.
+				// CR 702.6 / CR 601.2f: a minted attach-cost SA (K:Equip/K:Fortify,
+				// cards/kw_equip.go) whose rider carries AlternateCost$ -- the
+				// fourth colon field -- is an alternative cost the activator may
+				// pay INSTEAD of the printed one. Offer it as its own "ability"
+				// option, exactly the way the cast walk offers an AlternativeCost
+				// static's cost as its own "cast" option (AltCostIndex = 1 marks
+				// "the alternate cost", 0 the printed one --
+				// decision.Option.AltCostIndex). The rider is evaluated
+				// INDEPENDENTLY of the printed cost: an equip whose printed cost
+				// is unpayable but whose alternate is payable must still be
+				// offered (that is the whole point of "pay {B} instead" for
+				// Transmogrant's Crown). abilityAlternateCost scopes itself to
+				// the minted attach-cost SAs (isAttachCostSA) -- an AB$ line's
+				// own AlternateCost$ parameter stays unread here -- and fails
+				// closed on an unpriceable rider, so no unpayable option is ever
+				// offered, and the ability is withheld only when NEITHER cost is
+				// payable.
 				altCost, hasAlt := e.abilityAlternateCost(ab)
 				printedOK := offerCastable(p, id, cost, abilityScope(ab), true)
 				altOK := hasAlt && offerCastable(p, id, altCost, abilityScope(ab), true)

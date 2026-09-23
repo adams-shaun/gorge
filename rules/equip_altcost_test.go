@@ -10,6 +10,7 @@
 package rules
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -138,6 +139,56 @@ func TestEquipAlternateCostWithheldWhenNeitherPayable(t *testing.T) {
 	}
 	if opt, ok := findAbilityCostOption(e, flail, 0, 1); ok {
 		t.Fatalf("alternate-cost equip offered with an empty hand: %+v", opt)
+	}
+}
+
+// TestActivatedAlternateCostNotOfferedOnNonEquipAbility pins the SCOPE of the
+// AlternateCost$ read (r2 finding): only the minted Equip/Fortify SAs carry
+// the rider into an offer. Heartwood Shard's AB$ Pump line carries its OWN
+// AlternateCost$ (`{3}, {T} or {G}, {T}`) -- a separate activation feature
+// this build deliberately does not model -- so with a pool that pays BOTH
+// costs the shard must offer exactly its printed option and never an
+// alternate one.
+func TestActivatedAlternateCostNotOfferedOnNonEquipAbility(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	e, _ := linkBoard(t, reg, []string{"Heartwood Shard", "Grizzly Bears"}, nil)
+	shard := findOnBoard(t, e, 0, "Heartwood Shard")
+	bear := findOnBoard(t, e, 0, "Grizzly Bears")
+	if shard == 0 || bear == 0 {
+		t.Fatalf("precondition: shard=%d bear=%d, want both on the battlefield", shard, bear)
+	}
+	pa, ok := e.G.Obj(shard).PileAbilityAt(0)
+	if !ok {
+		t.Fatal("Heartwood Shard has no ability at index 0")
+	}
+	// Precondition: the non-equip ability REALLY carries its own
+	// AlternateCost$ parameter, and the marker really does not classify it as
+	// a minted attach-cost SA -- otherwise the assertion below proves nothing.
+	if strings.TrimSpace(pa.SA.Params["AlternateCost"]) == "" {
+		t.Fatalf("Heartwood Shard's pump ability lost its AlternateCost$ param (riders = %+v)", pa.SA.Params)
+	}
+	if isAttachCostSA(pa.SA) {
+		t.Fatalf("Heartwood Shard's pump ability classified as an attach-cost SA (params = %+v)", pa.SA.Params)
+	}
+	// A pool of four green mana pays BOTH costs: the printed {3}+{T} and the
+	// alternate {G}+{T}. Any leak of the rider onto non-equip abilities shows
+	// up here as a second option.
+	addMana(t, e, 0, "GGGG")
+	e.priorityRound()
+	if _, ok := findAbilityCostOption(e, shard, 0, 0); !ok {
+		t.Fatal("Heartwood Shard's printed pump option not offered from a 4-green pool (the offer walk never reached the ability)")
+	}
+	if opt, ok := findAbilityCostOption(e, shard, 0, 1); ok {
+		t.Fatalf("non-equip ability gained an alternate-cost option: %+v", opt)
+	}
+	d := e.Pending()
+	if d == nil {
+		t.Fatal("no pending decision after priorityRound")
+	}
+	for _, o := range d.Options {
+		if o.Kind == "ability" && o.Obj == shard && strings.Contains(o.Label, "(alternate cost)") {
+			t.Fatalf("non-equip ability offered an alternate-cost option (label %q)", o.Label)
+		}
 	}
 }
 

@@ -40,9 +40,11 @@ func kwAttachCost(f *Face, i int, k, param string, has func(kind, line string) b
 	//     field rides the minted SA verbatim; rules/legal.go's ownReduceCost
 	//     and the offer loop's ActivationLimit gate already read the first
 	//     two, and rules/activate.go's abilityAlternateCost reads the third
-	//     (CR 702.6 / CR 601.2f: Transmogrant's Crown's "Equip {2} ... you
-	//     may pay {B} instead" -- an alternative cost the activator may pay
-	//     in place of the printed Equip cost).
+	//     -- scoped to these minted Equip/Fortify SAs (isAttachCostSA; an
+	//     AB$ line's own AlternateCost$ param is a separate, unmodelled
+	//     feature) (CR 702.6 / CR 601.2f: Transmogrant's Crown's
+	//     "Equip {2} ... you may pay {B} instead" -- an alternative cost
+	//     the activator may pay in place of the printed Equip cost).
 	//   - the FIRST remaining field that is neither a rider nor a
 	//     "Flavor " marker is the target restriction, a real filter
 	//     spec passed through verbatim as ValidTgts$ (comma
