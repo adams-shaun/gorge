@@ -851,6 +851,18 @@ func attachedToReferent(ref string) (string, bool) {
 // bearer and never an always-true negation. Player-only entries are dropped:
 // state.Object.AttachedTo can only name an object, so a player referent is
 // unrepresentable and admits nothing.
+//
+// Cardinality: the supported binding is EXACTLY ONE object. A plural binding
+// (a resolution with several object targets, or a trigger that remembered
+// several objects) is ambiguous -- the grammar of `AttachedTo <ref>` names
+// THE referent's bearer, and with two or more bearers named the predicate
+// cannot say which one the candidate must be attached to without inventing a
+// plural-match rule the corpus spelling does not define -- so a plural
+// binding returns (nil, false) too: the predicate is unbound and both the
+// positive and the leading-'!' negated spelling fail closed (the measured
+// carriers -- Strip Bare, Hubris, Fiery Annihilation's TargetMax$ 1, Arna,
+// Rhuk -- all bind singly; Silence the Believers' Strive is the one plural-
+// capable carrier and fails closed at >= 2 targets rather than guessing).
 func attachedToReferentObjects(sc SpecContext, ref string) ([]state.ObjID, bool) {
 	switch ref {
 	case "Targeted", "ParentTarget":
@@ -867,6 +879,13 @@ func attachedToReferentObjects(sc SpecContext, ref string) ([]state.ObjID, bool)
 				out = append(out, t.Obj)
 			}
 		}
+		// Ambiguous plural binding: unbound, never an any-of guess (see the
+		// cardinality note on the function). An empty list stays bound -- the
+		// resolution exists and named no object, so the positive match is a
+		// real false and the negation a real true.
+		if len(out) > 1 {
+			return nil, false
+		}
 		return out, true
 	case "TriggeredCardLKICopy", "TriggeredAttackerLKICopy":
 		// The Remembered set the trigger captured, the same read the
@@ -878,7 +897,10 @@ func attachedToReferentObjects(sc SpecContext, ref string) ([]state.ObjID, bool)
 				out = append(out, t.Obj)
 			}
 		}
-		if len(out) == 0 {
+		// No remembered object: the trigger bound nothing. Two or more:
+		// ambiguous plural binding, unbound like the absent one (see the
+		// cardinality note on the function).
+		if len(out) != 1 {
 			return nil, false
 		}
 		return out, true
