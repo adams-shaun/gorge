@@ -3399,7 +3399,9 @@ func (e *Engine) PutCounterBlocked(kind string, obj state.ObjID, player state.Pl
 		}
 		if playerForm {
 			if spec := strings.TrimSpace(ce.RestrictParams["ValidPlayer"]); spec != "" {
-				if restrictionPlayerSpecMatches(e.G, spec, player, ce.Controller, ce.RememberedPlayers) {
+				// Source 0: Player.CardOwner resolution is scoped to CantAttack's
+				// Target$ walk; a CardOwner qualifier here fails closed, as before.
+				if restrictionPlayerSpecMatches(e.G, spec, player, ce.Controller, 0, ce.RememberedPlayers) {
 					return true
 				}
 				continue
@@ -3433,7 +3435,8 @@ func (e *Engine) PutCounterBlocked(kind string, obj state.ObjID, player state.Pl
 		}
 		if playerForm {
 			if spec := strings.TrimSpace(sv.Params["ValidPlayer"]); spec != "" {
-				if restrictionPlayerSpecMatches(e.G, spec, player, sv.Controller, nil) {
+				// Source 0, same scope rule as the continuous-effect branch above.
+				if restrictionPlayerSpecMatches(e.G, spec, player, sv.Controller, 0, nil) {
 					return true
 				}
 				continue
@@ -3534,7 +3537,7 @@ func restrictionPlayerTargetMatches(g *state.Game, spec string, defender, contro
 		if part == "" {
 			continue
 		}
-		if restrictionPlayerSpecMatches(g, part, defender, controller, rememberedPlayers) ||
+		if restrictionPlayerSpecMatches(g, part, defender, controller, source, rememberedPlayers) ||
 			restrictionPlaneswalkerTargetMatches(g, part, defender, controller, source, rememberedPlayers) {
 			return true
 		}
@@ -3578,7 +3581,7 @@ func restrictionPlaneswalkerTargetMatches(g *state.Game, spec string, defender, 
 				}
 			}
 		default:
-			matches = restrictionPlayerSpecMatches(g, selector, defender, controller, rememberedPlayers)
+			matches = restrictionPlayerSpecMatches(g, selector, defender, controller, source, rememberedPlayers)
 		}
 		if matches {
 			return true
@@ -3588,16 +3591,25 @@ func restrictionPlaneswalkerTargetMatches(g *state.Game, spec string, defender, 
 }
 
 // restrictionPlayerSpecMatches resolves ONE player spec of a restriction's
-// Target$ against the defender, with the one extension the ordinary
-// MatchesPlayerSpec grammar cannot answer: an IsRemembered clause (Player.
+// Target$ against the defender, with the two extensions the ordinary
+// MatchesPlayerSpec grammar cannot answer because its public entry point
+// intentionally carries no source object: an IsRemembered clause (Player.
 // IsRemembered, and its ! negation and + compounds) resolves against the
 // registered effect's captured player set (state.ContinuousEffect.
 // RememberedPlayers — Call for Aid's RememberObjects$ TargetedPlayer), not
 // against a source object's event-backed list, which a one-shot sorcery
-// source does not carry. A face static passes an empty remembered set, so its
-// IsRemembered clauses match nobody (fail closed).
-func restrictionPlayerSpecMatches(g *state.Game, spec string, defender, controller state.PlayerID, rememberedPlayers []state.PlayerID) bool {
-	if !strings.Contains(spec, "IsRemembered") {
+// source does not carry; and a CardOwner clause (Player.CardOwner — Xantcha,
+// Sleeper Agent's "can't attack its owner", Alexios's and Elrond's ditto)
+// resolves the defender against the restriction source's OWNER, which is not
+// its current controller once the source has changed hands. A face static
+// passes an empty remembered set, so its IsRemembered clauses match nobody
+// (fail closed); a caller with no source (source 0) fails CardOwner closed
+// the same way. Today only CantAttack's Target$ walk passes a source: the
+// PutCounterBlocked ValidPlayer$ selectors and the CanAttackDefender
+// ValidAttacked$ selector deliberately pass 0, keeping their pre-CardOwner
+// behavior unchanged.
+func restrictionPlayerSpecMatches(g *state.Game, spec string, defender, controller state.PlayerID, source state.ObjID, rememberedPlayers []state.PlayerID) bool {
+	if !strings.Contains(spec, "IsRemembered") && !strings.Contains(spec, "CardOwner") {
 		return effects.MatchesPlayerSpec(g, spec, defender, controller)
 	}
 	for _, clause := range strings.Split(spec, "+") {
@@ -3618,11 +3630,37 @@ func restrictionPlayerSpecMatches(g *state.Game, spec string, defender, controll
 			}
 			continue
 		}
+		if clauseIsCardOwner(clause) {
+			if !playerIsSourceOwner(g, source, defender) {
+				return false
+			}
+			continue
+		}
 		if !effects.MatchesPlayerSpec(g, clause, defender, controller) {
 			return false
 		}
 	}
 	return true
+}
+
+// clauseIsCardOwner reports whether one "+"-clause of a player spec is the
+// bare Player.CardOwner (or Any.CardOwner) property, which names the source
+// object's owner rather than the defending player.
+func clauseIsCardOwner(clause string) bool {
+	base, qualifier, ok := strings.Cut(strings.TrimSpace(clause), ".")
+	if !ok || !strings.EqualFold(strings.TrimSpace(qualifier), "CardOwner") {
+		return false
+	}
+	base = strings.TrimSpace(base)
+	return strings.EqualFold(base, "Player") || strings.EqualFold(base, "Any")
+}
+
+// playerIsSourceOwner reports whether p owns the restriction source object.
+// A source id with no object (the 0 sentinel a source-less caller passes)
+// fails closed.
+func playerIsSourceOwner(g *state.Game, source state.ObjID, p state.PlayerID) bool {
+	o := g.Obj(source)
+	return o != nil && o.Owner == p
 }
 
 // clauseIsRemembered reports whether one "+"-clause of a player spec carries
