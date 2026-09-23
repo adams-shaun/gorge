@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/internal/testutil"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -80,4 +82,131 @@ func TestDerivedMemoBypassesZoneOverride(t *testing.T) {
 	if len(e.derivedMemo) > int(bear) && e.derivedMemo[bear].gen != 0 {
 		t.Fatal("an atStack derive was memoized")
 	}
+}
+
+// TestBeginDerivedReadsResumesThePriorityWalk plays a real game with the
+// test bot, whose board build (botpolicy.BoardFromGameInto) opens a
+// BeginDerivedReads scope. At a priority decision the scope must resume the
+// offer walk's generation (and, in this verify-mode binary, every hit it
+// serves is recomputed and compared); at any other decision it must open a
+// fresh one.
+func TestBeginDerivedReadsResumesThePriorityWalk(t *testing.T) {
+	names, decks := testutil.SampleDecks(t, 2)
+	e := New(Config{Seed: 7, Names: names, Decks: decks})
+	e.Advance()
+	bot := newTestBot(7)
+	resumed, fresh, hitsServed := 0, 0, 0
+	for n := 0; n < 400 && !e.G.Over; n++ {
+		d := e.Pending()
+		if d == nil {
+			break
+		}
+		gen := e.derivedMemoGen
+		e.BeginDerivedReads()
+		if e.derivedMemoAliasFrom != e.derivedMemoAliasTo {
+			if d.Kind != decision.KPriority {
+				t.Fatalf("intent %d: a %s decision resumed the walk memo", n, d.Kind)
+			}
+			if e.derivedMemoGen != gen {
+				t.Fatalf("intent %d: resumed scope moved the generation", n)
+			}
+			resumed++
+			for _, id := range e.G.Zone(state.ZBattlefield, d.Player) {
+				m := e.derivedMemo
+				if int(id) < len(m) && m[id].gen == gen && m[id].ep == e.derivedMemoAliasFrom {
+					_ = e.Derived(id) // served via the alias; verify mode recomputes it
+					hitsServed++
+				}
+			}
+		} else {
+			if e.derivedMemoGen == gen {
+				t.Fatalf("intent %d: a non-resumed scope kept the previous generation", n)
+			}
+			fresh++
+		}
+		e.EndDerivedReads()
+		if err := e.Submit(bot.answer(e, d)); err != nil {
+			t.Fatalf("intent %d: %v", n, err)
+		}
+		e.Advance()
+	}
+	if resumed == 0 || fresh == 0 || hitsServed == 0 {
+		t.Fatalf("resumed %d, fresh %d, alias hits %d: want all three exercised", resumed, fresh, hitsServed)
+	}
+}
+
+// TestBeginDerivedReadsDoesNotSurviveSubmit: once the priority decision is
+// answered the tail is dead, and a Submit inside an open scope panics.
+func TestBeginDerivedReadsDoesNotSurviveSubmit(t *testing.T) {
+	names, decks := testutil.SampleDecks(t, 2)
+	e := New(Config{Seed: 7, Names: names, Decks: decks})
+	e.Advance()
+	for e.Pending() != nil && e.Pending().Kind != decision.KPriority {
+		if err := e.Submit(newTestBot(1).answer(e, e.Pending())); err != nil {
+			t.Fatal(err)
+		}
+		e.Advance()
+	}
+	d := e.Pending()
+	if d == nil || !e.derivedMemoTailLive() {
+		t.Fatalf("no live tail at the first priority decision (%v)", d)
+	}
+	func() {
+		e.BeginDerivedReads()
+		defer e.EndDerivedReads()
+		defer func() {
+			if r := recover(); r == nil {
+				t.Fatal("Submit inside a BeginDerivedReads scope did not panic")
+			}
+		}()
+		_ = e.Submit(decision.Intent{})
+	}()
+	if err := e.Submit(newTestBot(1).answer(e, d)); err != nil {
+		t.Fatal(err)
+	}
+	if e.derivedMemoTail.pending == d {
+		t.Fatal("tail still names the answered decision")
+	}
+	if e.derivedMemoTailLive() && e.Pending().Kind != decision.KPriority {
+		t.Fatalf("tail live at a %s decision", e.Pending().Kind)
+	}
+}
+
+// TestBeginDerivedReadsVerifyCatchesDirectWrite documents the resumed
+// scope's one blind spot -- a direct e.G write with no event between the ask
+// and the board build -- and proves verify mode flags it.
+func TestBeginDerivedReadsVerifyCatchesDirectWrite(t *testing.T) {
+	names, decks := testutil.SampleDecks(t, 2)
+	e := New(Config{Seed: 7, Names: names, Decks: decks})
+	e.Advance()
+	for n := 0; n < 400 && !e.G.Over; n++ {
+		d := e.Pending()
+		if d.Kind == decision.KPriority && e.derivedMemoTailLive() {
+			for _, id := range e.G.Zone(state.ZBattlefield, d.Player) {
+				m := e.derivedMemo
+				if int(id) >= len(m) || m[id].gen != e.derivedMemoGen || e.Derived(id).Types == nil {
+					continue
+				}
+				if !slices.Contains(e.Derived(id).Types, "Creature") {
+					continue
+				}
+				e.G.Obj(id).AddCounter("P1P1", 1)
+				e.BeginDerivedReads()
+				defer e.EndDerivedReads()
+				defer func() {
+					r := recover()
+					if s, ok := r.(string); !ok || !strings.Contains(s, "derived memo stale") {
+						t.Fatalf("verify did not flag the stale resumed hit: %v", r)
+					}
+				}()
+				_ = e.Derived(id)
+				t.Fatal("stale resumed hit served without a verify panic")
+			}
+		}
+		if err := e.Submit(newTestBot(3).answer(e, d)); err != nil {
+			t.Fatal(err)
+		}
+		e.Advance()
+	}
+	t.Skip("no priority decision with a walk-derived creature reached")
 }

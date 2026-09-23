@@ -404,6 +404,12 @@ type Engine struct {
 	derivedMemo      []derivedMemoEntry
 	derivedMemoDepth int
 	derivedMemoGen   uint64
+	// derivedMemoTail / derivedMemoAlias* carry the priority walk's memo
+	// across the decision boundary into a BeginDerivedReads scope
+	// (rules/derivedmemo.go). Validated on every use; Clone copies none.
+	derivedMemoTail      derivedMemoTail
+	derivedMemoAliasFrom int
+	derivedMemoAliasTo   int
 
 	// derivingColorsSet/ID/Colors: the finished layer-5 colour answer for the
 	// object whose Derived is mid-build (set by derivedWith before its layer-7
@@ -841,6 +847,12 @@ type Engine struct {
 	// Entries validate their immutable face pointer and are scratch owned by
 	// one Engine, so hypothetical clones never share writable cache storage.
 	triggerObjectMasks []objectTriggerEventMasks
+	// trigZones / trigZonesEp / trigFaceZones are the live trigger walk's
+	// per-player hidden-zone summaries (rules/trigger_zoneskip.go): pure
+	// scratch validated on every use, so Clone copies none of them.
+	trigZones     []trigZoneSummary
+	trigZonesEp   int
+	trigFaceZones map[*cards.Face]uint8
 
 	// choosing says which flow is waiting on the current KChoose decision
 	// (Task 8). It is plain data, not a closure, so Engine.Clone (a sibling
@@ -2707,6 +2719,9 @@ func (e *Engine) Advance() {
 // Submit applies a client's answer. Anything the engine did not offer is
 // rejected, which is what keeps the client rules-ignorant.
 func (e *Engine) Submit(in decision.Intent) error {
+	if e.derivedMemoDepth != 0 {
+		panic("rules: Submit inside a Derived memo scope (BeginDerivedReads promises a pure read)")
+	}
 	if e.G.Over {
 		return fmt.Errorf("game is over")
 	}

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
 
@@ -61,6 +63,94 @@ import (
 // derivedMemoVerifyFlag for a botbench run) recomputes every hit and panics
 // on any difference -- the empirical half of the argument above.
 
+// Carrying the priority walk across the decision boundary.
+//
+// A bot seat answers a priority decision by building its board
+// (botpolicy.BoardFromGameInto), which derives every battlefield creature and
+// every card in the seat's own zones -- the objects askPriority's offer walk
+// derived a moment earlier, at the same board. BeginDerivedReads /
+// EndDerivedReads open a memo scope for such an external pure read, and when
+// the engine is provably still at the state that walk read, the scope RESUMES
+// the walk's generation instead of starting a new one, so those Derived
+// results are served rather than recomputed. The resume condition
+// (derivedMemoTailLive) is:
+//
+//   - askPriority recorded the tail right after its walk and before its ask,
+//     and the decision it posed is still e.pending -- pointer identity, so no
+//     Submit has run since (Submit clears pending before anything else) and
+//     no other ask replaced it;
+//   - derivedMemoGen is still the walk's, so no other scope opened since;
+//   - continuousVersion and len(e.G.Objs) are unchanged;
+//   - every event logged since the walk is a DecisionAsk marker (ask's own
+//     emit), whose Apply writes nothing.
+//
+// Between that walk and the ask, askPriority runs no code, and ask's emit of
+// the marker is the only engine work; the non-event runtime inputs the walk
+// contract lists (rename/type tables, observer bindings, goad probes, depth
+// counters) are all at rest outside a derivation, as they were when the walk
+// read them. The walk's entries were keyed at the walk's log length, which
+// the marker has since grown, so the resumed scope aliases exactly that pair:
+// an entry keyed at the walk's length is valid while the log is at the
+// scope's opening length (derivedMemoAliasFrom/To), and any further emit
+// still misses. Anything else -- a non-priority decision, a Submit, a
+// direct test write to e.G without an event -- opens a fresh generation
+// exactly as a walk does (a direct write between an ask and a board build is
+// the one input the argument cannot see; verify mode below, which recomputes
+// every hit, is what checks the suite never does that).
+//
+// Submit refuses to run inside a BeginDerivedReads scope: the scope promises
+// a pure read.
+
+type derivedMemoTail struct {
+	gen     uint64
+	ep      int
+	ver     int
+	objs    int
+	pending *decision.Decision
+}
+
+func (e *Engine) recordDerivedMemoTail(d *decision.Decision) {
+	e.derivedMemoTail = derivedMemoTail{gen: e.derivedMemoGen, ep: len(e.L.Events),
+		ver: e.continuousVersion, objs: len(e.G.Objs), pending: d}
+}
+
+func (e *Engine) derivedMemoTailLive() bool {
+	t := &e.derivedMemoTail
+	if t.pending == nil || t.pending != e.pending || t.gen != e.derivedMemoGen || t.gen == 0 ||
+		t.ver != e.continuousVersion || t.objs != len(e.G.Objs) || t.ep > len(e.L.Events) {
+		return false
+	}
+	for _, ev := range e.L.Events[t.ep:] {
+		if ev.Kind != events.DecisionAsk {
+			return false
+		}
+	}
+	return true
+}
+
+// BeginDerivedReads opens a Derived memo scope for a caller's pure read of
+// the board (botpolicy's board build); EndDerivedReads closes it. Between
+// the two the caller must not Submit or otherwise change engine state, and
+// must not retain a Derived/Characteristics slice past the next query (the
+// ordinary Derived contract). At an outermost scope where the priority offer
+// walk's memo is still exact (see above) the walk's entries are served.
+func (e *Engine) BeginDerivedReads() {
+	if e.derivedMemoDepth == 0 && e.derivedMemoTailLive() {
+		e.derivedMemoDepth++
+		e.derivedMemoAliasFrom, e.derivedMemoAliasTo = e.derivedMemoTail.ep, len(e.L.Events)
+		return
+	}
+	e.beginDerivedMemo()
+}
+
+// EndDerivedReads closes a BeginDerivedReads scope.
+func (e *Engine) EndDerivedReads() {
+	e.endDerivedMemo()
+	if e.derivedMemoDepth == 0 {
+		e.derivedMemoAliasFrom, e.derivedMemoAliasTo = 0, 0
+	}
+}
+
 // derivedMemoVerifyFlag turns verify mode on in a non-test binary:
 // go build -ldflags "-X github.com/adams-shaun/gorge/rules.derivedMemoVerifyFlag=1".
 var derivedMemoVerifyFlag string
@@ -105,7 +195,8 @@ func (e *Engine) derivedMemoized(id state.ObjID) Derived {
 	}
 	m := &e.derivedMemo[id]
 	ep, ver, objs := len(e.L.Events), e.continuousVersion, len(e.G.Objs)
-	if m.gen == e.derivedMemoGen && m.ep == ep && m.ver == ver && m.objs == objs {
+	epOK := m.ep == ep || (m.ep == e.derivedMemoAliasFrom && ep == e.derivedMemoAliasTo)
+	if m.gen == e.derivedMemoGen && epOK && m.ver == ver && m.objs == objs {
 		if derivedMemoVerify {
 			e.verifyDerivedMemo(id, m.d)
 		}
