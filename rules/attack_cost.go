@@ -778,6 +778,11 @@ type attackOffer struct {
 	id    state.ObjID
 	def   state.PlayerID
 	price int32
+	// battle is the CR 310.7 battle being attacked, or 0 for a player attack.
+	// def is the battle's protector for a battle attack (it is what blocks and
+	// what every player-scoped restriction reads), so the two fields together
+	// are the whole defender.
+	battle state.ObjID
 }
 
 // attackOffers builds the offer list askAttackers, attackDutyDischargeable
@@ -823,6 +828,14 @@ func (e *Engine) attackOffers() []attackOffer {
 			defenders = append(defenders, q)
 		}
 	}
+	// CR 310.7: a battle a player protects is a legal defender for that
+	// player's opponents, offered in addition to (not instead of) the player
+	// themselves. battleDefenders names each such battle ONCE per (protector,
+	// battle) pair, in a deterministic order: the defender enumeration above
+	// (ascending seat), then each protected player's battle in that player's
+	// battlefield zone order. Only the protector's opponents may attack it, so
+	// the active player is excluded here exactly as it is above.
+	battles := e.battleDefenders(p)
 	// One requirement set per creature, computed once from the board (never
 	// per pair), keyed by ObjID and read by lookup only -- no map iteration
 	// reaches the offer list order.
@@ -849,6 +862,29 @@ func (e *Engine) attackOffers() []attackOffer {
 			}
 			out = append(out, attackOffer{id: id, def: d, price: price})
 		}
+		// This protector's battles, immediately after the protector's own
+		// pair block (defender-major: one defender slot at a time).
+		for _, b := range battles {
+			if b.protector != d {
+				continue
+			}
+			for _, id := range e.G.Zone(state.ZBattlefield, p) {
+				if !e.canAttackPair(id, d) {
+					continue
+				}
+				if !e.goadMayAttack(id, d) {
+					continue
+				}
+				if e.attackBlocked(id, d) {
+					continue
+				}
+				price := e.attackPairCharge(id, d)
+				if price > 0 && budget < price {
+					continue
+				}
+				out = append(out, attackOffer{id: id, def: d, price: price, battle: b.id})
+			}
+		}
 	}
 	// Best named satisfaction per creature over the pairs that survived.
 	best := make(map[state.ObjID]int)
@@ -866,6 +902,55 @@ func (e *Engine) attackOffers() []attackOffer {
 		keep = append(keep, of)
 	}
 	return keep
+}
+
+// battleTarget is one attackable battle and the player who protects it.
+type battleTarget struct {
+	id        state.ObjID
+	protector state.PlayerID
+}
+
+// battleDefenders lists every battle the active player p may attack under
+// CR 310.7: the battle is on the battlefield, is a battle (its printed face,
+// and not face down -- a face-down permanent is a vanilla 2/2 creature, CR
+// 708.5), has a recorded protector whose seat is still in the game, and that
+// protector is not p itself. It is the ONE eligibility home: attackOffers
+// enumerates from it, and canAttackBattle below reads it through this list,
+// so the offer list and the legality guard can never disagree about which
+// battles are attackable. Order is deterministic: protector ascending, then
+// the protector's battlefield zone order (the battle's own controller may
+// differ from its protector, but a battle is only ever offered under the
+// protector's slot, and every controller's battlefield is walked in the
+// ascending seat order attacks already use).
+func (e *Engine) battleDefenders(p state.PlayerID) []battleTarget {
+	var out []battleTarget
+	for _, ctrl := range e.G.AliveFrom(0) {
+		for _, id := range e.G.Zone(state.ZBattlefield, ctrl) {
+			o := e.G.Obj(id)
+			if o == nil || o.FaceDown || o.Face() == nil || !o.Face().IsBattle() {
+				continue
+			}
+			if !o.ProtectorValid || o.Protector == p ||
+				int(o.Protector) >= len(e.G.Players) || e.G.Players[o.Protector].Lost {
+				continue
+			}
+			out = append(out, battleTarget{id: id, protector: o.Protector})
+		}
+	}
+	return out
+}
+
+// canAttackBattle reports whether p may declare an attack at battle id under
+// CR 310.7, reading the same battleDefenders list attackOffers enumerates.
+// A battle the active player protects, a protectorless battle, or a battle
+// that has left the battlefield is not attackable.
+func (e *Engine) canAttackBattle(id state.ObjID, p state.PlayerID) bool {
+	for _, b := range e.battleDefenders(p) {
+		if b.id == id {
+			return true
+		}
+	}
+	return false
 }
 
 // attackCharge prices a whole declaration: the sum over its chosen pairs.

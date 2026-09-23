@@ -488,11 +488,16 @@ func (e *Engine) askAttackers() {
 	var opts []decision.Option
 	for _, of := range offers {
 		label := "Attack with " + e.G.Obj(of.id).Face().Name + " at " + seatFacingName(e.G, of.def)
+		if of.battle != 0 {
+			if b := e.G.Obj(of.battle); b != nil && b.Face() != nil {
+				label = "Attack with " + e.G.Obj(of.id).Face().Name + " at " + b.Face().Name
+			}
+		}
 		if of.price > 0 {
 			label += fmt.Sprintf(" (pay {%d} per creature)", of.price)
 		}
 		opts = append(opts, decision.Option{Index: len(opts), Kind: "attacker",
-			Label: label, Obj: of.id, Player: of.def, Required: mustAtt[of.id],
+			Label: label, Obj: of.id, Player: of.def, Battle: of.battle, Required: mustAtt[of.id],
 			// Value is the pair's mana price: the cumulative-budget contract
 			// MaxSum names. omitempty keeps a prop-free list byte-identical
 			// (price 0 omits), so the option enumeration order and the wire
@@ -642,17 +647,27 @@ func (e *Engine) finishAttackers(chosen []decision.Option, player state.PlayerID
 		e.declaredAttackers = append(e.declaredAttackers, opt.Obj)
 	}
 	defer func() { e.declaredAttackers = e.declaredAttackers[:0] }()
-	var defenders []state.PlayerID
-	byDef := make(map[state.PlayerID][]state.ObjID, len(chosen))
-	for _, opt := range chosen {
-		if _, ok := byDef[opt.Player]; !ok {
-			defenders = append(defenders, opt.Player)
-		}
-		byDef[opt.Player] = append(byDef[opt.Player], opt.Obj)
+	type defKey struct {
+		player state.PlayerID
+		battle state.ObjID
 	}
-	sort.Slice(defenders, func(i, j int) bool { return defenders[i] < defenders[j] })
-	for _, d := range defenders {
-		e.emit(events.Event{Kind: events.DeclareAttackers, Player: d, IDs: byDef[d]})
+	byDef := make(map[defKey][]state.ObjID, len(chosen))
+	var keys []defKey
+	for _, opt := range chosen {
+		k := defKey{player: opt.Player, battle: opt.Battle}
+		if _, ok := byDef[k]; !ok {
+			keys = append(keys, k)
+		}
+		byDef[k] = append(byDef[k], opt.Obj)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		if keys[i].player != keys[j].player {
+			return keys[i].player < keys[j].player
+		}
+		return keys[i].battle < keys[j].battle
+	})
+	for _, k := range keys {
+		e.emit(events.Event{Kind: events.DeclareAttackers, Player: k.player, Obj: k.battle, IDs: byDef[k]})
 	}
 	for _, opt := range chosen {
 		if !e.HasKeyword(opt.Obj, "Vigilance") {
@@ -802,13 +817,16 @@ func (e *Engine) validateAttackers(d *decision.Decision, in decision.Intent) err
 	// hand-built intent from naming a pair the budget ran out on.
 	offered := make(map[attackOffer]int32, 8)
 	for _, of := range e.attackOffers() {
-		offered[attackOffer{id: of.id, def: of.def}] = of.price
+		offered[attackOffer{id: of.id, def: of.def, battle: of.battle}] = of.price
 	}
 	budget := e.attackBudget(d.Player)
 	total := int32(0)
 	for _, o := range d.Chosen(in) {
 		if !e.canAttackPair(o.Obj, o.Player) {
 			return fmt.Errorf("object %d cannot attack", o.Obj)
+		}
+		if o.Battle != 0 && !e.canAttackBattle(o.Battle, d.Player) {
+			return fmt.Errorf("object %d cannot attack battle %d", o.Obj, o.Battle)
 		}
 		if seen[o.Obj] {
 			return fmt.Errorf("attacker %d declared against more than one defender", o.Obj)
@@ -822,7 +840,7 @@ func (e *Engine) validateAttackers(d *decision.Decision, in decision.Intent) err
 		// sub-maximal defender is NOT offered and fails the membership check
 		// below with its own message. The requirement that the creature attack
 		// AT ALL is enforced by validateAttackDeclaration's RequiredQuota.
-		price, ok := offered[attackOffer{id: o.Obj, def: o.Player}]
+		price, ok := offered[attackOffer{id: o.Obj, def: o.Player, battle: o.Battle}]
 		if !ok {
 			return fmt.Errorf("attacker %d cannot attack player %d (attack cost not affordable or pair not offered)", o.Obj, o.Player)
 		}
@@ -2117,6 +2135,25 @@ func (e *Engine) dealDamagePass(pass bool) {
 	e.damageStep(pass)
 }
 
+// combatDefenderTarget returns the recipient of an attacking creature's
+// forward combat damage: the battle object when the creature is attacking a
+// battle (CR 310.7), else the defending player. Object.AttackingBattle is set
+// by events.Apply from the DeclareAttackers event and cleared with IsAttacking.
+// A battle that has left the battlefield since the declaration returns
+// ok=false, which the caller drops -- the recipient no longer exists, the same
+// no-assignment shape a departed defender leaves. The ok flag, not a zero
+// value, is the discriminator: seat 0 is a legal defending player, so
+// (player 0, object 0) is a real assignment and cannot mean "no recipient".
+func (e *Engine) combatDefenderTarget(a *state.Object) (state.PlayerID, state.ObjID, bool) {
+	if a.AttackingBattle != 0 {
+		if b := e.G.Obj(a.AttackingBattle); b != nil && b.Zone == state.ZBattlefield {
+			return 0, a.AttackingBattle, true
+		}
+		return 0, 0, false
+	}
+	return a.Attacking, 0, true
+}
+
 // liveBlockers filters a's BlockedBy to blockers still actually on the
 // battlefield: one may have left play (destroyed by a trick, sacrificed) in
 // the gap between blocks being declared and damage being dealt.
@@ -2275,6 +2312,14 @@ func (e *Engine) damageStep(firstStrike bool) {
 				trample := e.HasKeyword(aid, "Trample")
 				inf := e.HasKeyword(aid, "Infect")
 				wit := e.HasKeyword(aid, "Wither")
+				damageToDefender := func(amount int32) {
+					tp, to, ok := e.combatDefenderTarget(a)
+					if !ok {
+						return
+					}
+					as = append(as, assignment{toPlayer: tp, toObj: to, amount: amount,
+						lifelink: a.Controller, hasLink: link, from: aid, infect: inf, wither: wit})
+				}
 				switch {
 				case e.chosenElection(aid):
 					// stat:AssignCombatDamageAsUnblocked (CR 509's optional
@@ -2287,13 +2332,11 @@ func (e *Engine) damageStep(firstStrike bool) {
 					// Trample) and the ordinary blocked shape. The blockers
 					// still hit back below; only the ATTACKER's assignment is
 					// rerouted.
-					as = append(as, assignment{toPlayer: a.Attacking, amount: pw,
-						lifelink: a.Controller, hasLink: link, from: aid, infect: inf, wither: wit})
+					damageToDefender(pw)
 
 				case len(a.BlockedBy) == 0:
-					// Genuinely unblocked: full damage to the defending player.
-					as = append(as, assignment{toPlayer: a.Attacking, amount: pw,
-						lifelink: a.Controller, hasLink: link, from: aid, infect: inf, wither: wit})
+					// Genuinely unblocked: full damage to the defender.
+					damageToDefender(pw)
 
 				case len(blockers) == 0:
 					// Ruling T21-d (CR 509.1h): a creature that was blocked
@@ -2303,8 +2346,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 					// amount push through to the player instead (there is no
 					// blocker left to owe any of it to).
 					if trample {
-						as = append(as, assignment{toPlayer: a.Attacking, amount: pw,
-							lifelink: a.Controller, hasLink: link, from: aid, infect: inf, wither: wit})
+						damageToDefender(pw)
 					}
 
 				default:
@@ -2359,8 +2401,7 @@ func (e *Engine) damageStep(firstStrike bool) {
 						}
 					}
 					if remaining > 0 && trample {
-						as = append(as, assignment{toPlayer: a.Attacking, amount: remaining,
-							lifelink: a.Controller, hasLink: link, from: aid, infect: inf, wither: wit})
+						damageToDefender(remaining)
 					}
 				}
 			}
