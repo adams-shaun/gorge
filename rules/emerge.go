@@ -108,7 +108,7 @@ func (e *Engine) emergeOfferCost(p state.PlayerID, id state.ObjID, f *cards.Face
 	if best < 0 {
 		return Cost{}, false
 	}
-	base = reduceGenericThenColored(base, best)
+	base = reduceGeneric(base, best)
 	base.Sac = append(base.Sac, part)
 	return base, true
 }
@@ -132,35 +132,26 @@ func (e *Engine) applyEmergeReduction(pc *pendingCast) {
 		}
 		n += o.Face().ManaValue()
 	}
-	pc.cost = reduceGenericThenColored(pc.cost, n)
+	pc.cost = reduceGeneric(pc.cost, n)
 	pc.emergeDone = true
 }
 
-// reduceGenericThenColored subtracts n mana from c, generic first and then the
-// coloured pips in WUBRG order, clamping every slot at zero -- the same
-// generic-then-colored leftover direction costMods.apply takes for a coloured
-// reduction. A reduction larger than the cost's total mana leaves an all-zero
-// mana cost (the cast is free), never a negative one.
-func reduceGenericThenColored(c Cost, n int32) Cost {
+// reduceGeneric subtracts n mana from c's GENERIC component only, floored at
+// zero. A mana-value reduction (CR 702.118a's Emerge, like CR 118.7's
+// cost-reduction effects generally) can only reduce the generic amount of a
+// cost: the coloured pips are requirements the spell still carries, so
+// {5}{U}{U} reduced by mana value 10 is {U}{U}, never zero. Coloured pips,
+// hybrid and Phyrexian pips and every non-mana part are left untouched (the
+// measured corpus's 15 K:Emerge lines are all plain generic+coloured, and a
+// hybrid/Phyrexian face is not reducible generic either).
+func reduceGeneric(c Cost, n int32) Cost {
 	if n <= 0 {
 		return c
 	}
-	if c.Generic >= n {
-		c.Generic -= n
+	if c.Generic < n {
+		c.Generic = 0
 		return c
 	}
-	n -= c.Generic
-	c.Generic = 0
-	for i := range c.Colored {
-		if n <= 0 {
-			break
-		}
-		take := c.Colored[i]
-		if take > n {
-			take = n
-		}
-		c.Colored[i] -= take
-		n -= take
-	}
+	c.Generic -= n
 	return c
 }
