@@ -1,72 +1,77 @@
-# Merge conflict resolution: mrg1 (branch wt/cli-20260922T225138Z-c4106938, main at e53c80a2)
+# Merge conflict resolution: mrg1 round 2 (branch wt/cli-20260922T225138Z-c4106938, main at 84cb68b9)
 
 ## Starting state
 
-The worktree was clean, HEAD = `2ae14f36`, no rebase/merge in flight (the
-daemon's failed rebase had been rolled back). The branch's approved fix
-(`0a23564e` label stack target options by stack kind, `578affca` test,
-`8782f1e8` botbench coverage seed, plus the docs repairs `568cae83`/`08825579`
-/`2ae14f36`) closes the AGENTS.md row "A spell on the stack is offered with
-`Option.Kind` `"permanent"`…" and lowers the ratchet constant to 75.
+The worktree was CLEAN, HEAD = `f14b56a3` (round 1's merge of main@e53c80a2,
+status DONE), with no rebase/merge in flight — the daemon's failed rebase had
+been rolled back, so the conflict dispatch was against a state that no longer
+existed. `main` had since advanced by one ticket: `0679b1cd` (the
+withForetell/withoutForetell + Cosmos Charger + effect-delivered MayPlay
+closure, merged to main via `98dcf594`/`84cb68b9` of the sibling ticket
+cli-20260922T225141Z-8d166e9c).
 
-`main` had advanced by three commits (`852ffe4f` the K:Affinity:Affinity fix,
-then the two merges `57cff580`/`e53c80a2`): `852ffe4f` deleted the Affinity
-row from AGENTS.md and lowered main's constant to 76. Rebase is forbidden in
-this worktree, so the integration was done as `git merge main`.
+Rebase is forbidden in this worktree (shared-`git` seat rule), and merge is
+the established integration shape here, so the integration was done as
+`git merge main`.
 
 ## Conflicted files and resolution
 
-1. **`AGENTS.md`** — auto-merged with NO textual conflict: the two sides
-   deleted different rows (branch: the stack-option-kind row; main: the
-   K:Affinity:Affinity row). Verified the merged table measures **74 data
-   rows**, both closed rows absent, and the file differs from main by exactly
-   the branch's one row deletion.
-2. **`internal/testutil/agentsdoc_test.go`** — one conflict on
-   `knownApproximationRows` (HEAD 75 vs main 76). Resolved to **74**, the
-   merged table's measured data row count (each side held 75 rows; the merge
-   deletes main's Affinity row on top of the branch's stack-kind closure).
-   Never raised.
-3. **`.ds4/report-mrg1.md`** — both sides were prior rounds' reports. Replaced
-   with THIS report per the report-path contract.
+1. **`internal/testutil/agentsdoc_test.go`** — one conflict hunk: this branch's
+   explanatory comment above `knownApproximationRows` (main never had it; both
+   sides set the constant to 74). Resolved to **73**, the merged table's
+   measured data-row count (74 on each side; the merge deletes main's
+   foretell row — closed in `0679b1cd` — on top of this branch's
+   stack-option-kind closure). Comment updated to state the new measurement.
+   Never raised. `knownOversizeRows` stayed 8 on both sides (merged table
+   measures 6 oversize rows — shrinkage only). gofmt clean.
+2. **`.ds4/report-mrg1.md`** — this tracked report file carried each side's
+   prior-round report (ours from round 1, main's from the sibling ticket).
+   Replaced with THIS round's report per the report-path contract.
+3. **`AGENTS.md`** — auto-merged with NO textual conflict. Verified the merged
+   table with the test's own parsing algorithm: **73 data rows**, both closed
+   rows absent (this branch's "A spell on the stack is offered with
+   `Option.Kind` \"permanent\"…" row and main's foretell row), and
+   `git diff main -- AGENTS.md` shows exactly this branch's one row deletion.
 
-All other main-side changes (`effects/count.go`, `effects/filter.go`,
-`rules/affinity_affinity_test.go`) auto-merged and were retained unmodified.
+All other main-side changes (`effects/filter.go`, `effects/misc.go`,
+`rules/legal.go`, `rules/mayplay.go`, `rules/playerkeywords.go`,
+`state/continuous.go`, `rules/foretell_grant_test.go`,
+`rules/paramcensus_test.go`) auto-merged and were retained unmodified — this
+branch never touched those files.
 
 ## Ratchet cross-check after the merge
 
-The brief's ratchet command list
-(`TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead`)
-plus the agentsdoc ratchet itself — see the commands below. No ratchet table
-needed fixing: the branch registers no new trigger `Mode$` matcher, and the
-merged tree's `knownUnsupported` / `knownUnsupportedParams` /
-`knownUnmodelledCountHeads` tables are untouched by either side (main's
-Affinity fix was a filter/count capability, already paired with its row
-deletion; the branch's change was an option-kind labelling fix, already paired
-with its row deletion).
+The brief's ratchet command list plus the agentsdoc ratchet itself. No ratchet
+table needed fixing: this branch registers no new trigger `Mode$` matcher, and
+main's foretell closure already removed its own `knownUnsupportedParams`
+entries together with its AGENTS.md row; the merged tree's `knownUnsupported`
+/ `knownUnsupportedParams` / `knownUnmodelledCountHeads` tables are otherwise
+untouched by either side.
 
 ## Commands run and output
 
 ```
 git merge main
-  -> Auto-merging .ds4/report-mrg1.md CONFLICT; AGENTS.md auto-merged;
+  -> AGENTS.md auto-merged; .ds4/report-mrg1.md CONFLICT;
      internal/testutil/agentsdoc_test.go CONFLICT
-python3 row-count of merged AGENTS.md (the test's own parsing algorithm)
-  -> data rows: 74; affinity row absent; stack-kind row absent
-git diff main -- AGENTS.md -> only the branch's stack-option-kind row deletion
+python3 (the test's own parsing algorithm) on merged AGENTS.md
+  -> data rows: 73; oversize: 6
 
-go test ./internal/testutil -run 'TestKnownApproximation' 2>&1 | tail -5
+go test ./internal/testutil -run 'TestKnownApproximation' 2>&1 | tail -3
   -> ok  github.com/adams-shaun/gorge/internal/testutil
-go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' 2>&1 | tail -5
+go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' 2>&1 | tail -3
   -> ok  github.com/adams-shaun/gorge/rules
-go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ 2>&1 | tail -5
+go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/ 2>&1 | tail -3
   -> ok  github.com/adams-shaun/gorge/cmd/botbench
-go test ./internal/archtest/ 2>&1 | tail -5
+go test ./internal/archtest/ 2>&1 | tail -3
   -> ok  github.com/adams-shaun/gorge/internal/archtest
+gofmt -l internal/testutil/agentsdoc_test.go
+  -> (no output, clean)
 ```
 
 ## Result
 
-Merge commit with the default merge message; working tree clean.
+Merge commit with the default merge message; working tree clean after.
 
 ## Issues
 
