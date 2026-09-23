@@ -3261,6 +3261,11 @@ func (e *Engine) resolveTop() {
 		// o.Source; this was a one-line inconsistency, not a second design.
 		ctx := &effects.Ctx{Source: o.Source, Controller: o.Controller,
 			Targets: targets, ModeTargets: charmModeTargets, Remembered: o.Remembered, Captured: o.Remembered, TriggerContext: e.triggerContexts[id],
+			// An Effect-created delayed trigger body resolves under the Effect's
+			// source-scoped frame (queued by rules' delayed-trigger fire), so the
+			// one-shot self-exile idiom it may run ends the Effect. Zero for every
+			// ordinary printed trigger.
+			EffectFrame: e.triggerEffectFrames[id],
 			// The resolving stack-object wrapper: ValidStack's otherAbility
 			// exclusion (Ulalek's sub-copy) anchors here, not on Source --
 			// Source is the source permanent (Ruling T20-b), which is not on
@@ -3829,18 +3834,40 @@ func (e *Engine) EmitTokenCreate(ev events.Event) []state.ObjID {
 func (e *Engine) EmitDamage(ev events.Event) events.Event { return e.emit(ev) }
 
 // EmitLifeChange reports whether the exact proposed life change was applied.
-// ExchangeLifeVariant uses this to avoid installing its characteristic half
-// after a life replacement prevents, transforms, or parks the event.
+// Kept for non-exchange callers; ExchangeLifeVariant uses the transactional
+// method below so transformed and parked events can complete coherently.
 func (e *Engine) EmitLifeChange(ev events.Event) bool {
 	queued := len(e.replChoices)
 	stored := e.emit(ev)
-	// A parked CR 616.1 competition leaves the original event in hand while
-	// putting a replacement choice on the engine queue.  It is not equivalent
-	// to an unchanged event that was actually applied.
-	if e.pending != nil || len(e.replChoices) != queued {
-		return false
+	return e.pending == nil && len(e.replChoices) == queued && stored.Kind == events.LifeChange && stored.Player == ev.Player && stored.Amount == ev.Amount
+}
+
+// ExchangeLifeVariant carries the exchange across a CR 616 choice. The life
+// change is resolved first; the source's selected characteristic is set to
+// its former total only if the player's life actually changed.
+func (e *Engine) ExchangeLifeVariant(ev events.Event, source state.ObjID, controller state.PlayerID, oldLife int32, setPower, setToughness bool) {
+	tx := &lifeExchangeTransaction{source: source, controller: controller, oldLife: oldLife,
+		player: ev.Player, lifeBefore: e.G.Players[ev.Player].Life, setPower: setPower, setToughness: setToughness}
+	e.lifeExchange = tx
+	e.emit(ev)
+	e.lifeExchange = nil
+	if e.pending == nil && len(e.replChoices) == 0 {
+		e.finishLifeExchange(tx)
 	}
-	return stored.Kind == events.LifeChange && stored.Player == ev.Player && stored.Amount == ev.Amount
+}
+
+func (e *Engine) finishLifeExchange(tx *lifeExchangeTransaction) {
+	if tx == nil {
+		return
+	}
+	if int(tx.player) >= len(e.G.Players) || e.G.Players[tx.player].Life == tx.lifeBefore {
+		e.emit(events.Event{Kind: events.Note, Obj: tx.source, Player: tx.player, Text: "ExchangeLifeVariant abandoned: life did not change"})
+		return
+	}
+	ce := state.ContinuousEffect{Source: tx.source, Controller: tx.controller, Affects: "Card.Self",
+		Layer: state.LPT, Sub: state.SubSet, HasSet: true, SetPower: tx.oldLife, SetToughness: tx.oldLife,
+		SetPowerPresent: tx.setPower, SetToughnessPresent: tx.setToughness, StaticSet: true}
+	e.AddContinuous(ce)
 }
 func (e *Engine) Rand(n int) int { return e.rng.IntN(n) }
 

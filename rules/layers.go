@@ -1393,6 +1393,35 @@ func (e *Engine) EndEffect(source state.ObjID, stamp uint32) {
 	e.continuousChanged()
 }
 
+// EndEffectSource ends every Effect-created continuous-effect registration
+// from the named source -- the source-scoped counterpart of EndEffect, used
+// by the one-shot self-exile idiom when the resolving body carries a frame
+// with no per-registration stamp (Ctx.EffectFrame{Source: src}): an Effect's
+// OWN Triggers$ body (rules' delayed-trigger fire) or the chain of the
+// spell/ability that registered the Effect. Only registrations marked
+// state.ContinuousEffect.FromEffect are dropped, so the source's printed
+// statics survive. Engine-runtime only, rebuilt by re-execution on replay
+// exactly like EndEffect; it emits no event.
+func (e *Engine) EndEffectSource(source state.ObjID) {
+	if source == 0 {
+		return
+	}
+	kept := e.continuous[:0]
+	changed := false
+	for _, ce := range e.continuous {
+		if ce.Source == source && ce.FromEffect {
+			changed = true
+			continue
+		}
+		kept = append(kept, ce)
+	}
+	if !changed {
+		return
+	}
+	e.continuous = kept
+	e.continuousChanged()
+}
+
 // EndImprintedEffects ends every live DB$ Effect registration that an
 // ImprintOnHost$ True Effect imprinted on the named host card (the entries
 // carrying state.ContinuousEffect.ImprintOnHost with that Source) -- the

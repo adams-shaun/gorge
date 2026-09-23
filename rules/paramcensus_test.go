@@ -967,6 +967,12 @@ func (s *scan) scanRangeWhitelist(t *testing.T, fset *token.FileSet, fi *fnInfo,
 		if pkg == "effects" && fname == "effDigUntil" && digUntilWithheldRange(rs, keyIdent.Name) {
 			return
 		}
+		// saMentionsGoaded recognizes IsGoaded in any inline filter value so
+		// effects can install the matching filter resolver. Recognition only;
+		// it does not consume any SA parameter.
+		if pkg == "effects" && fname == "saMentionsGoaded" {
+			return
+		}
 		// A copy loop (`for k, v := range src.Params { dst.Params[k] = v }`)
 		// is not a read: every use of the key sits in a write-position index.
 		if rangeKeyIsWriteOnly(rs, keyIdent.Name, writes) {
@@ -1082,6 +1088,9 @@ var stringMapParams = map[string]string{
 	// cards.SA's SVar: bodies), read by NAME to fetch a static line -- not a
 	// card Params map.
 	"effects:parseStaticLine:svars": "SVars table lookup by static-line name, not a card Params map",
+	// Goad-static helpers inspect map arguments copied from parsed SVar
+	// statics, not card SA Params; their callers classify the actual source.
+	"effects:goadStaticGrantReadable:params": "parsed Goad static-line Params map, not a card SA Params map",
 	// effects/misc.go compoundRememberedSpec: params is the map parseStaticLine
 	// built from one SVar static line -- its ValidCard$/ValidTarget$ keys are
 	// consumed here, but the map originates in an SVar body, not a card's
