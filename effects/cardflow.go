@@ -3049,8 +3049,11 @@ func effNameCard(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 	valid := sa.Params["ValidCards"]
-	names := NameChoices(h.Game(), valid, sa.Params["ValidDescription"])
-	if len(names) == 0 {
+	chooseFromList := sa.Params["ChooseFromList"]
+	universeBacked := len(h.Game().NameUniverse) > 0
+	random := strings.EqualFold(sa.Params["AtRandom"], "True")
+	names := NameChoicesFromList(h.Game(), valid, sa.Params["ValidDescription"], chooseFromList, random)
+	if len(names) == 0 && (!universeBacked || chooseFromList == "") {
 		// R-9: a host without a supplied corpus still completes
 		// deterministically, and reproduces the exact pre-feature NameCard
 		// behaviour (name the top of the caster's own library) so a log an
@@ -3058,7 +3061,13 @@ func effNameCard(h Host, c *Ctx, sa *cards.SA) {
 		// sidecar.NameUniverse mode).
 		names = []string{legacyName(h.Game(), c.Controller)}
 	}
+	if c.NameChoice == "" && universeBacked && random && len(names) > 0 {
+		c.NameChoice = names[h.Rand(len(names))]
+	}
 	if c.NameChoice == "" {
+		if len(names) == 0 {
+			return
+		}
 		d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Min: 1, Max: 1,
 			Source: c.Source, ResumeKind: "name", ResumeSA: sa, Prompt: "Choose a card name"}
 		for i, name := range names {
