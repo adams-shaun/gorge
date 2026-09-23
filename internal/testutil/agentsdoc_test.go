@@ -19,7 +19,10 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	knownApproximationRows = 72
+	// 71 = the merged table's measured data rows: this branch's DigUntil Aura
+	// bearer choice deleted the (diguntil1) row, and main's Dig closure
+	// (b43ab0a9) deleted the (dig1) row; each side had independently counted 72.
+	knownApproximationRows = 71
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.

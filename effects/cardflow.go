@@ -868,8 +868,8 @@ func rememberMilled(h Host, c *Ctx, id state.ObjID) {
 // default). The remainder's second destination DOES exist in the corpus as
 // "DestinationZone2$" (with "LibraryPosition2$" placing it in a library) --
 // an earlier note here wrongly claimed the parameter does not exist; it is
-// read below. LibraryPosition$ (the PRIMARY move's position, 96 corpus
-// lines) is still unread.
+// read below. The primary LibraryPosition$ is applied after the primary
+// pile settles, including across an ordered-bottom remainder ask.
 //
 // A real card can also write "ChangeNum$ All" (e.g. Goblin Guide's own Dig)
 // to mean every matching card within the DigNum look, with no cap short of
@@ -956,15 +956,24 @@ func rememberMilled(h Host, c *Ctx, id state.ObjID) {
 //     so they stay on top in their existing relative order (the corpus
 //     never pairs the two; Through the Forest Gate carries it without one).
 //
-// Still unread here (each a real divergence, named in AGENTS.md's Dig row):
-// Optional$ on the NO-CHOICE path (eligible <= ChangeNum still takes all
-// eligible; ChangeNum$ 0 takes nothing, correctly), RestRandomOrder$ (the
-// bottom pile returns in the answered/offered order, never shuffled), the
-// primary LibraryPosition$ (96 corpus lines put the PRIMARY take at a
-// library position), Choser$ (the opponent-chooses planeswalker shape) and
-// the exotic DestinationZone2 values (PlanarDeck).
+// Still unread here: RestRandomOrder$ (the bottom pile returns in the
+// answered/offered order, never shuffled) and the exotic DestinationZone2
+// values (PlanarDeck). The primary optional election, primary
+// LibraryPosition$, Choser$ and DigNum$ X are handled by this walk.
 func effDig(h Host, c *Ctx, sa *cards.SA) {
 	digNum := Num(h, c, sa, "DigNum", 1)
+	// Forge's DigNum$ X names the resolving X value when one was paid, but
+	// trigger bodies also use the same spelling for their face SVar (Keldon
+	// Flamesage's SVar:X:Count$CardPower). A zero paid-X slot is not enough to
+	// distinguish those forms, so use the named SVar as the trigger fallback
+	// when the resolution carries one and its count body resolves.
+	if strings.TrimSpace(sa.Params["DigNum"]) == "X" && c.X == 0 && c.SVars != nil {
+		if body, ok := c.SVars["X"]; ok {
+			if n, resolved := EvalCountOK(h, c, body); resolved {
+				digNum = n
+			}
+		}
+	}
 	if digNum < 0 {
 		digNum = 0
 	}
@@ -1013,6 +1022,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 	forceReveal := strings.EqualFold(strings.TrimSpace(sa.Params["ForceRevealToController"]), "True")
 	skipReorder := strings.EqualFold(strings.TrimSpace(sa.Params["SkipReorder"]), "True")
 	tapped := strings.EqualFold(strings.TrimSpace(sa.Params["Tapped"]), "True")
+	primaryPos := strings.TrimSpace(sa.Params["LibraryPosition"])
 	dest2Name := strings.TrimSpace(sa.Params["DestinationZone2"])
 	pos2 := strings.TrimSpace(sa.Params["LibraryPosition2"])
 	// Forge's omitted second destination means bottom-of-library remainder.
@@ -1059,6 +1069,25 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			n = int32(len(lib))
 		}
 		top := append([]state.ObjID(nil), lib[:n]...)
+		// primaryMoved is the temporary library pile for a primary
+		// DestinationZone$ Library move. It is placed after the remainder has
+		// settled, so the primary LibraryPosition$ cannot be lost to the
+		// remainder's ordered-bottom ask.
+		primaryMoved := make([]state.ObjID, 0, len(top))
+		placePrimary := func() {
+			if dest != state.ZLibrary || len(primaryMoved) == 0 {
+				return
+			}
+			switch primaryPos {
+			case "", "0":
+				libraryOrderPlacement(h, p, primaryMoved, false)
+			case "-1":
+				// MoveZone already appends the primary pile at the bottom.
+			default:
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: p,
+					Text: "LibraryPosition$ " + primaryPos + " is not implemented; the cards sit at the BOTTOM of the library"})
+			}
+		}
 		// take moves one window card to the primary destination, revealing
 		// it first when ForceRevealToController$ asks (a public Note naming
 		// the card, then the Secret move -- the same reveal-then-secret-move
@@ -1071,6 +1100,9 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			}
 			ev := moveZoneEvent(c, id, state.ZLibrary, dest)
 			ev.Player, ev.Secret = p, true
+			if dest == state.ZLibrary {
+				primaryMoved = append(primaryMoved, id)
+			}
 			// ExileFaceDown$ True with an exile destination (Ugin, the
 			// Ineffable's [+1]: "Exile the top card of your library face down
 			// and look at it") carries the same face-down exile payload
@@ -1126,7 +1158,8 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				// the "dig" arm as a TAKE answer and re-dig the next window.
 				d := &decision.Decision{Player: p, Kind: decision.KArrange, Min: len(ids), Max: len(ids), Source: c.Source,
 					ResumeKind: "dig_arrange", ResumeSA: sa, ResumeTarget: targetIndex,
-					Prompt: "Put the remaining cards on the bottom of your library in any order"}
+					Prompt:           "Put the remaining cards on the bottom of your library in any order",
+					ResumeDigPrimary: append([]state.ObjID(nil), primaryMoved...)}
 				for i, id := range ids {
 					name := "a card"
 					if o := g.Obj(id); o != nil && o.Face() != nil {
@@ -1199,6 +1232,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 				if rest(restIDs) {
 					return
 				}
+				placePrimary()
 				continue
 			}
 		}
@@ -1249,7 +1283,15 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 		// an EARLIER target's take answer resumed the walk (targetIndex >
 		// digTarget), while an arrange re-entry keeps main's deliberate
 		// deterministic processing for every target past arrangeThrough.
-		if (!digDone || targetIndex > digTarget) && arrangeThrough < 0 && changeNum > 0 && ((int32(len(eligible)) > changeNum || anyNum && len(eligible) > 0) || askBudget) {
+		optionalChoice := optional && len(budgetEligible) > 0 && changeNum > 0
+		takeChoice := int32(len(budgetEligible)) > changeNum || anyNum && len(budgetEligible) > 0
+		chooser := p
+		if rawChooser := strings.TrimSpace(sa.Params["Choser"]); rawChooser != "" {
+			if cp, ok := chooserPlayer(h, c, rawChooser); ok {
+				chooser = cp
+			}
+		}
+		if (!digDone || targetIndex > digTarget) && arrangeThrough < 0 && changeNum > 0 && (takeChoice || optionalChoice || askBudget) {
 			// A real choice: record the look, then ask the library's owner.
 			// Reveal$ True makes the record a PUBLIC reveal of the window (the
 			// same non-Secret ids-Note shape effReveal's public arm emits);
@@ -1270,6 +1312,10 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			if hasBudget && minv > int32(len(greedy)) {
 				minv = int32(len(greedy))
 			}
+			maxv := int(changeNum)
+			if maxv > len(budgetEligible) {
+				maxv = len(budgetEligible)
+			}
 			verb := "you may put up to "
 			if !optional && !anyNum {
 				verb = "put "
@@ -1278,9 +1324,9 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			if hasBudget {
 				prompt += " (total mana value " + strconv.Itoa(int(budget)) + " or less)"
 			}
-			d := &decision.Decision{Player: p, Kind: decision.KChoose,
+			d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
 				Min:          int(minv),
-				Max:          int(changeNum),
+				Max:          maxv,
 				MaxSum:       int(budget),
 				Source:       c.Source,
 				ResumeKind:   "dig",
@@ -1326,7 +1372,10 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 					restIDs = append(restIDs, id)
 				}
 			}
-			rest(restIDs)
+			if rest(restIDs) {
+				return
+			}
+			placePrimary()
 			continue
 		}
 		// No take decision to ask about (eligible <= ChangeNum): the M1 silent
@@ -1361,6 +1410,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 		if rest(restIDs) {
 			return
 		}
+		placePrimary()
 	}
 }
 
@@ -1422,8 +1472,8 @@ func digRemember(c *Ctx, sa *cards.SA, id state.ObjID) {
 // library-destination digs describe (Jace, the Mind Sculptor's "you may
 // put that card on the bottom", mesmeric_sliver's LibraryPosition$ -1).
 // A take at a DIFFERENT library position (the primary LibraryPosition$, e.g.
-// munda_ambush_leader's "0") is still unread -- the prompt describes what
-// the engine does, not what the card asks.
+// munda_ambush_leader's "0") is placed by the Dig walk after its primary
+// pile and any remainder have settled.
 
 // permanentCardSpec rewrites a leading `Permanent` base token to
 // `PermanentCard` -- the shared matcher's battlefield-object base -- so a
