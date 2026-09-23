@@ -29,7 +29,7 @@ const (
 	// (TriggeredCard$CastTotalManaSpent reads the cast spend), and main's
 	// cli-20260923T060000Z-layers-pt7kw deleted (kw:Flanking) (the layer-7
 	// P/T walk binds the finished layer-6 keyword list).
-	knownApproximationRows = 25
+	knownApproximationRows = 24
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.
