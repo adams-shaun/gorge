@@ -19,7 +19,9 @@ import (
 const (
 	// knownApproximationRows is the number of data rows in the table. Lower it
 	// by exactly the number of rows your change deletes. NEVER raise it.
-	knownApproximationRows = 49
+	// Main's closures bring the table to 44 rows; this branch's transactional
+	// exchange closure removes one more.
+	knownApproximationRows = 43
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.
