@@ -2534,3 +2534,99 @@ $ grep -nE '^(<<<<<<< HEAD|=======$|>>>>>>> main)' .ds4/report-mrg1.md .ds4/repo
 None new. The conflicts were confined to tracked report accumulators; no
 engine or web behaviour was ambiguous. The branch closes no Known-approximations
 row and registers no new trigger `Mode$` matcher.
+
+---
+
+# Merge-conflict resolution — mrg1 (task agent-20260923T073156Z-d6f8c32b, fifth integration round)
+
+## Found state
+
+`git status` at round start: clean tree on `wt/agent-20260923T073156Z-d6f8c32b`,
+no rebase or merge in flight — the daemon's rebase attempt and its merge
+fallback had both been aborted before this seat started. HEAD was the previous
+round's merge `355e510f`; `main` had advanced to `ab2d4b63` (two commits:
+`86dd2806`, `ab2d4b63` — the fb-20260923T020152Z attacker-picker merge and its
+integration) and was NOT an ancestor of HEAD. Integrated with
+`git merge main` (repo precedent; the brief forbids rebase).
+
+## Conflicted files and resolution
+
+`git merge main` reproduced the daemon's fallback conflict set exactly — two
+tracked `.ds4` report accumulators; every code file (including main's new
+`effects/destroyall_zone_test.go` and `effects/zone.go`, and the web
+attacker-picker files) auto-merged.
+
+- **`.ds4/report-sol1.md`** (base 392 / ours 455 / main 499 lines). One
+  conflict region at the Teapot Slinger report's heading. Ours had earlier
+  relabeled that heading to `# Main-side report: Teapot Slinger / Convoke
+  expend-4 — verification report` and inserted its Cascade free-cast report
+  above it; main inserted its fb attacker radial-picker report above the
+  original heading, with the Teapot body as common suffix on both sides.
+  Resolution: ours' Cascade report verbatim, then main's fb report verbatim
+  (inserted before the relabeled Teapot heading), Teapot body untouched.
+  562 lines = 455 + main's 107 added lines; `diff` against each stage shows 0
+  lines of ours missing and exactly one line "missing" from main — the Teapot
+  heading, which ours' deliberate prior-round relabel replaces (content after
+  the heading is byte-identical on both sides).
+
+- **`.ds4/report-mrg1.md`** (base 1868 / ours 2274 / main 2133 lines). Two
+  conflict regions, both independent report sections landing at the same
+  accumulator position: region 1 = ours' third-integration-round report vs
+  main's `fb-20260923T020152Z-694613d1 (current main)` merge report; region 2
+  = ours' fourth-integration-round report vs main's
+  `task fb-20260923T020152Z-694613d1, 2026-09-23` round report. Resolution
+  follows the accumulator's union convention: ours' section verbatim, a `---`
+  divider, then main's section verbatim. `diff` against each stage: 0 lines
+  of ours missing, 0 lines of main missing. The file's one pre-existing prose
+  line beginning `>>>>>>>` (inside the agent-20260922T200200Z report's code
+  span) is preserved verbatim, as main's own round report already documents.
+
+First commit attempt staged the still-conflicted working copy of
+`report-mrg1.md` (pre-commit hook flagged six markers, but did not block);
+amended immediately with the resolved content — final merge commit is
+`03005495`.
+
+## Commands and output
+
+```text
+$ git merge main -m "Merge branch 'main' into wt/agent-20260923T073156Z-d6f8c32b"
+Auto-merging .ds4/report-mrg1.md
+CONFLICT (content): Merge conflict in .ds4/report-mrg1.md
+Auto-merging .ds4/report-sol1.md
+CONFLICT (content): Merge conflict in .ds4/report-sol1.md
+Automatic merge failed; fix conflicts and then commit the result.
+
+$ git add -f .ds4/report-sol1.md .ds4/report-mrg1.md && git commit --amend --no-edit
+[wt/agent-20260923T073156Z-d6f8c32b 03005495] Merge branch 'main' into wt/agent-20260923T073156Z-d6f8c32b
+
+$ git show HEAD:.ds4/report-mrg1.md | grep -cE '^(<<<<<<< |>>>>>>> |=======$)'   (and same for report-sol1.md)
+0   (both)
+
+$ git merge-base --is-ancestor main HEAD && echo ok
+ok
+
+$ git status --short --branch
+## wt/agent-20260923T073156Z-d6f8c32b        (clean)
+
+$ ls -ld .cards
+lrwxrwxrwx .cards -> /home/sadams/projects/gorge/.cards   (corpus-backed, not vacuous)
+
+$ go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok  github.com/adams-shaun/gorge/rules  0.874s
+
+$ go test ./effects -run 'TestDestroyAllUsesNamedZone' -v
+--- PASS: TestDestroyAllUsesNamedZone (0.00s)   (main's auto-merged DestroyAll Zone fix verified on the merged tree)
+```
+
+Post-merge ratchets: no side registers a new trigger `Mode$` matcher and no
+`knownUnsupported` / `knownUnsupportedParams` / `knownUnmodelledCountHeads`
+entry is closed, so no ratchet table edit was needed. No engine code was
+touched by the resolution.
+
+## Issues
+
+None new. Both conflicts were independent accumulator sections; the union
+convention preserved every line of both sides. Same standing controller note
+as prior rounds: the per-branch rewrites of the shared `report-mrg1.md` /
+`report-sol1.md` accumulators collide on every integration; a main-side
+decision to stop rewriting them would end the repeat conflicts.
