@@ -2103,10 +2103,9 @@ func (e *Engine) applyAddCounterReplacements(ev events.Event, matches []replMatc
 		if body == nil || body.API != "ReplaceCounter" {
 			continue
 		}
-		if ct := strings.TrimSpace(body.Params["ValidCounterType"]); ct != "" && ct != ev.Counter {
-			continue
+		if _, ok := e.priceAddCounterBody(ev, m, ev.Amount); ok {
+			cands = append(cands, m)
 		}
-		cands = append(cands, m)
 	}
 	if len(cands) == 0 {
 		return ev, false
@@ -2224,11 +2223,11 @@ func (e *Engine) counterReplaceOp(source state.ObjID, body *cards.SA) (string, b
 	return strings.TrimPrefix(expr, prefix), true
 }
 
-// applyAddCounterBody applies ONE ReplaceCounter candidate to a held counter
-// event, returning the body's rewritten amount and whether the body applied
-// at all. The deterministic scan-order loop's per-body shape, extracted so
-// the CR 616.1 order flow applies exactly what the fallback does.
-func (e *Engine) applyAddCounterBody(ev events.Event, m replMatch, amount int32) (int32, bool) {
+// priceAddCounterBody is the side-effect-free applicability verdict shared by
+// the order offer and the application. A candidate whose amount cannot be
+// resolved (or would remove counters) must never be offered as an effect that
+// can apply first. Price again after each rewrite against the running amount.
+func (e *Engine) priceAddCounterBody(ev events.Event, m replMatch, amount int32) (int32, bool) {
 	body := m.repl.With
 	if body == nil || body.API != "ReplaceCounter" {
 		return amount, false
@@ -2246,6 +2245,18 @@ func (e *Engine) applyAddCounterBody(ev events.Event, m replMatch, amount int32)
 	if !ok || n < 0 {
 		return amount, false
 	}
+	return n, true
+}
+
+// applyAddCounterBody applies a priced body and then resolves its riders.
+func (e *Engine) applyAddCounterBody(ev events.Event, m replMatch, amount int32) (int32, bool) {
+	n, ok := e.priceAddCounterBody(ev, m, amount)
+	if !ok {
+		return amount, false
+	}
+	body := m.repl.With
+	ctx := e.replCtx(m, ev)
+	ctx.ReplacementAmount = amount
 	// The body APPLIES from here on. A sub-ability chain on a ReplaceCounter
 	// body is part of the replacement (Forge resolves it as the replaced
 	// event happens): Melira, the Living Cure's lock ("and you can't get
@@ -2289,7 +2300,9 @@ func (e *Engine) continueAddCounterReplacements(rc replChoice) {
 		var remaining []replMatch
 		for _, m := range rc.cands {
 			if !sameReplMatchIn(applied, m) {
-				remaining = append(remaining, m)
+				if _, ok := e.priceAddCounterBody(ev, m, ev.Amount); ok {
+					remaining = append(remaining, m)
+				}
 			}
 		}
 		if len(remaining) == 0 {
