@@ -865,7 +865,9 @@ func benchWithPool(baseSeed uint64, games, seats int, aName, bName string, play 
 	// happened to terminate" is a biased sample, which is the exact defect
 	// the turn watchdog exists to expose. With no stalls this is `games`, so
 	// the constructed default report stays byte-identical to today.
-	eff := games - (stallTurns + stallIntents)
+	// A livelock/panic abort is a stall too (classifyOutcome credits it to no
+	// seat), so it leaves the denominator exactly like the two watchdog caps.
+	eff := games - (stallTurns + stallIntents + livelocks)
 	lo, hi := ci95(aWins, eff)
 	fmt.Fprintf(out, "\ngames played: %d\n", games)
 	ab := fmt.Sprintf("A wins: %d  B wins: %d  draws: %d", aWins, bWins, draws)
