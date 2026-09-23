@@ -117,6 +117,10 @@ type resumePoint struct {
 	// target is Dig's index into its deterministic Defined$ target list. It
 	// keeps a resumed answer attached to the library that actually asked.
 	target int
+	// The settled Scry instruction after its CR 616 order choice. The
+	// re-entered effect consumes it before looking at any library card.
+	scryCount   int32
+	scryProceed bool
 	// player is the decision's owner. Dredge uses it to apply the answered
 	// replacement to the player drawing even when the enclosing effect's
 	// controller is someone else.
@@ -158,6 +162,14 @@ type resumePoint struct {
 	villainousVictims []state.Target
 	villainousIndex   int
 	villainousChoice  string
+	// genericChoosers/genericChooserIndex are the per-Defined$-player cursor of
+	// a multi-player api:GenericChoice (the SuspendGenericChoiceRest shape),
+	// and genericChoice the answered SVar name of the chooser at that index's
+	// predecessor. The resumed Ctx re-binds the cursor so the chosen body runs
+	// for its chooser and the remaining choosers are still asked.
+	genericChoosers     []state.Target
+	genericChooserIndex int
+	genericChoice       string
 	// flipCursor is the DB$ FlipCoin loop position a kind "flip_rest" frame
 	// re-enters with (the remaining flips a per-flip sub-ability's nested ask
 	// left unrun).
@@ -379,6 +391,14 @@ type contFrame struct {
 	villainousRest    bool
 	villainousVictims []state.Target
 	villainousIndex   int
+	// genericChoiceRest marks a frame that re-enters a multi-player
+	// api:GenericChoice's own SA (not sa.Sub) with the chooser cursor below,
+	// continuing with the choosers a chosen body's nested ask left unasked.
+	// The reported sa IS the GenericChoice SA, so sa.Sub would resume the wrong
+	// chain.
+	genericChoiceRest   bool
+	genericChoosers     []state.Target
+	genericChooserIndex int
 	// flipRest marks a frame that re-enters a DB$ FlipCoin's own SA (not
 	// sa.Sub) with the flip cursor below, continuing the flips a per-flip
 	// sub-ability's nested ask left unrun. The reported sa IS the FlipCoin SA,
@@ -475,6 +495,8 @@ func (e *Engine) Ask(d *decision.Decision) bool {
 		uptoIdx: d.ResumeUptoIdx, uptoCount: d.ResumeUptoCount,
 		villainousVictims:       append([]state.Target(nil), d.ResumeVillainousVictims...),
 		villainousIndex:         d.ResumeVillainousIndex,
+		genericChoosers:         append([]state.Target(nil), d.ResumeGenericChoosers...),
+		genericChooserIndex:     d.ResumeGenericChooserIndex,
 		villainousRemembered:    append([]state.Target(nil), e.villainousRemembered...),
 		villainousRememberedSet: e.villainousRememberedSet,
 		targetsUnique:           e.targetsUniqueRide(d),
@@ -780,6 +802,25 @@ func (e *Engine) SuspendVillainousRest(sa *cards.SA, rest effects.VillainousRest
 	e.repeatReported = sa
 }
 
+// SuspendGenericChoiceRest implements effects.Host.SuspendGenericChoiceRest: a
+// multi-player api:GenericChoice's chosen body suspended on a nested
+// mid-resolution ask with choosers still to ask. The frame re-enters the
+// GenericChoice SA itself with the chooser cursor restored once the answered
+// ask's chain completes; the reported sa IS the GenericChoice's own SA, so
+// folding it into sa.Sub (the plain-frame shape) would resume nothing.
+// Setting repeatReported to that SA suppresses the enclosing Resolve loop's
+// own SuspendContinuation report of the same SA, exactly as
+// SuspendVillainousRest does for a VillainousChoice.
+func (e *Engine) SuspendGenericChoiceRest(sa *cards.SA, rest effects.GenericChoiceRest) {
+	if e.resume == nil || len(rest.Choosers) == 0 {
+		return
+	}
+	e.contChain = append(e.contChain, contFrame{sa: sa, genericChoiceRest: true,
+		genericChoosers:     append([]state.Target(nil), rest.Choosers...),
+		genericChooserIndex: rest.Next})
+	e.repeatReported = sa
+}
+
 // SuspendFlipRest implements effects.Host.SuspendFlipRest: a DB$ FlipCoin
 // loop suspended inside a per-flip sub-ability's mid-resolution ask
 // (FlipUntilYouLose$ or Amount$ > 1) with flips still owed. The frame
@@ -1003,6 +1044,28 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 		chosen := d.Chosen(in)
 		if len(chosen) > 0 && chosen[0].Index >= 0 && chosen[0].Index < len(d.ResumeModes) {
 			rp.villainousChoice = d.ResumeModes[chosen[0].Index]
+		}
+		e.emit(events.Event{Kind: events.ModeChosen, Obj: rp.obj, Player: in.Player,
+			Text: strings.Join(chosenModeLabels(chosen), ",")})
+		e.resumeResolution(rp, chosen)
+		return
+	}
+	// A multi-player api:GenericChoice's per-chooser KModes answer. Like the
+	// villainous arm, the answer is scoped to one chooser: record the chosen
+	// SVar name and resume the GenericChoice SA, which runs that chooser's body
+	// and then asks the next Defined$ chooser. The cursor itself rides the
+	// resume point (ResumeGenericChoosers/Index), so it is not re-derived here.
+	if d.ResumeKind == "generic_players" {
+		if e.resume == nil {
+			e.emit(events.Event{Kind: events.Note, Player: in.Player,
+				Text: "generic choice answered with no resolution suspended"})
+			return
+		}
+		rp := e.resume
+		e.resume = nil
+		chosen := d.Chosen(in)
+		if len(chosen) > 0 && chosen[0].Index >= 0 && chosen[0].Index < len(d.ResumeModes) {
+			rp.genericChoice = d.ResumeModes[chosen[0].Index]
 		}
 		e.emit(events.Event{Kind: events.ModeChosen, Obj: rp.obj, Player: in.Player,
 			Text: strings.Join(chosenModeLabels(chosen), ",")})
@@ -1737,6 +1800,15 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 	if len(rp.villainousVictims) > 0 {
 		ctx.VillainousVictims = append([]state.Target(nil), rp.villainousVictims...)
 		ctx.VillainousIndex = rp.villainousIndex
+	}
+	// The multi-player GenericChoice chooser cursor: restored so the chosen
+	// body runs for its chooser (Remembered below) and the remaining choosers
+	// are still asked. An answered chooser's frame carries genericChoice and
+	// the index of the NEXT chooser (advanced by the resume switch below); a
+	// continuation frame carries no answer and resumes the loop as it stands.
+	if len(rp.genericChoosers) > 0 {
+		ctx.GenericChoosers = append([]state.Target(nil), rp.genericChoosers...)
+		ctx.GenericChooserIndex = rp.genericChooserIndex
 	}
 	// The AmountFromVotes$ tally the loop read its per-iteration binding from:
 	// the vote is a PRIOR chain link, so the fresh Ctx can only re-derive
@@ -2915,6 +2987,10 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			}
 			ctx.HiddenPickDone = true
 			ctx.HiddenPickTarget = rp.target
+		case "scry_replacement":
+			ctx.ScryReplacement = true
+			ctx.ScryCount, ctx.ScryProceed = rp.scryCount, rp.scryProceed
+			ctx.LibraryTarget = rp.target
 		case "arrange", "dig_arrange":
 			// Ruling J0: rules' handleArrange already applied the answered
 			// arrangement and emitted the LibraryOrder event before calling
@@ -3262,6 +3338,26 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			ctx.Modes = nil
 			ctx.VillainousVictims = append([]state.Target(nil), rp.villainousVictims...)
 			ctx.VillainousIndex = rp.villainousIndex
+		case "generic_players":
+			// A multi-player api:GenericChoice's per-chooser KModes answer: the
+			// chosen SVar name is scoped to the chooser whose body has not run
+			// yet. Ctx.Modes names it (overriding any stale ChosenModes seed)
+			// and the cursor advances PAST that chooser, so effCharm runs the
+			// body once and then asks the next Defined$ chooser. Ctx.Remembered
+			// is the chooser (resumeResolution bound rp.remembered), which is
+			// what the body's Defined$ Remembered reads.
+			ctx.Modes = []string{rp.genericChoice}
+			ctx.GenericChoosers = append([]state.Target(nil), rp.genericChoosers...)
+			ctx.GenericChooserIndex = rp.genericChooserIndex + 1
+		case "generic_players_rest":
+			// A multi-player GenericChoice's chosen body suspended on its own
+			// nested ask and that ask's chain has completed: re-enter the
+			// primitive with the chooser cursor restored to ask the remaining
+			// Defined$ choosers. Ctx.Modes is cleared — this frame carries no
+			// answered mode (it was consumed by the body that suspended).
+			ctx.Modes = nil
+			ctx.GenericChoosers = append([]state.Target(nil), rp.genericChoosers...)
+			ctx.GenericChooserIndex = rp.genericChooserIndex
 		case "flip_rest":
 			// A DB$ FlipCoin loop's per-flip sub-ability suspended on its own
 			// mid-resolution ask (Mirror March's copy choice, say) and that
@@ -3679,6 +3775,13 @@ func (e *Engine) buildContinuationChain(frames []contFrame, obj state.ObjID, tai
 			f.kind, f.sa = "villainous_rest", sa
 			f.villainousVictims = append([]state.Target(nil), cf.villainousVictims...)
 			f.villainousIndex = cf.villainousIndex
+		} else if cf.genericChoiceRest {
+			// The GenericChoice re-enters ITSELF (rp.sa = the GenericChoice SA,
+			// not sa.Sub — its own SubAbility$ chain runs only after every
+			// chooser has answered) with the chooser cursor restored.
+			f.kind, f.sa = "generic_players_rest", sa
+			f.genericChoosers = append([]state.Target(nil), cf.genericChoosers...)
+			f.genericChooserIndex = cf.genericChooserIndex
 		} else if cf.flipRest {
 			// The FlipCoin re-enters ITSELF (rp.sa = the FlipCoin SA, not
 			// sa.Sub — a FlipCoin body has no SubAbility$ chain of its own to

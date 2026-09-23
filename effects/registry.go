@@ -168,6 +168,20 @@ type Host interface {
 	// emit path skips replacement application there, and the body's own
 	// explores are fresh events).
 	ExploreReplaced(explorer state.ObjID) bool
+	// Scry proposes one scry instruction BEFORE any card of the player's
+	// library is looked at (CR 614.4: an R:Event$ Scry replacement applies to
+	// the scry action itself), so the proposed count can be adjusted
+	// (Kenessos, Priest of Thassa: "scry that many cards plus one") or the
+	// whole instruction replaced (Eligeth, Crossroads Augur: "draw that many
+	// cards instead"). It returns the surviving instruction's count and
+	// proceed=false when a replacement replaced the scry whole -- the caller
+	// must then look at and arrange NOTHING. The proposal is never logged;
+	// the completed scry's own events.Scry record (carrying the number of
+	// cards actually put on the bottom) is emitted later by the rules tier.
+	// Rules-implemented because replacement matching lives in the rules tier;
+	// the effects test double reports (count, true) unchanged (no engine to
+	// consult).
+	Scry(p state.PlayerID, source state.ObjID, count int32, sa *cards.SA, target int) (countAfter int32, proceed, pending bool)
 	// RememberExploitedLKI publishes the last-known-information snapshot of
 	// one creature a resolving exploit ability just sacrificed (CR 702.58a).
 	// The events.Exploit marker names the exploited creature by id, but Move
@@ -549,6 +563,18 @@ type Host interface {
 	// the host drops that report (the villainous frame re-enters the
 	// primitive itself), the SuspendCharmRest convention.
 	SuspendVillainousRest(sa *cards.SA, rest VillainousRest)
+	// SuspendGenericChoiceRest reports that a multi-player api:GenericChoice's
+	// chosen body suspended on a nested mid-resolution ask with choosers still
+	// to ask. sa is the GenericChoice's own SA and rest carries the ordered
+	// Defined$ chooser list plus the index of the NEXT chooser to ask. The
+	// host records a continuation that re-enters the GenericChoice with that
+	// cursor once the answered ask's own chain completes, so the remaining
+	// choosers are still asked and their chosen bodies run rather than being
+	// dropped. The Resolve loop enclosing the GenericChoice reports the same
+	// SA through SuspendContinuation next; the host drops that report (the
+	// GenericChoice frame re-enters the primitive itself), the
+	// SuspendCharmRest convention.
+	SuspendGenericChoiceRest(sa *cards.SA, rest GenericChoiceRest)
 	// SuspendFlipRest reports that a DB$ FlipCoin loop suspended inside a
 	// per-flip sub-ability (FlipUntilYouLose$ or Amount$ > 1) with flips still
 	// owed. rest carries the flip cursor: the flippers not yet processed and
@@ -697,6 +723,19 @@ type FlipRest struct {
 type VillainousRest struct {
 	Victims []state.Target
 	Next    int
+}
+
+// GenericChoiceRest is a multi-player api:GenericChoice's continuation after
+// one chooser's chosen body suspended on a nested mid-resolution ask.
+// Choosers is the ordered Defined$ player set and Next is the index of the
+// chooser still to ask (the completed chooser's index + 1). The host re-enters
+// the GenericChoice primitive with that cursor, so a body that suspended on its
+// own nested ask does not strand the remaining choosers. Plain data, so the
+// host can carry it on its own continuation frame and replay re-derives it
+// identically.
+type GenericChoiceRest struct {
+	Choosers []state.Target
+	Next     int
 }
 
 // DamageSourceLKI is the pre-departure damage provenance of one object.
@@ -1204,6 +1243,15 @@ type Ctx struct {
 	// chosen body has completed.
 	VillainousVictims []state.Target
 	VillainousIndex   int
+	// GenericChoosers is the ordered Defined$ player set for a multi-player
+	// api:GenericChoice resolution (each opponent chooses one of the same
+	// Choices$), and GenericChooserIndex is the index of the chooser being
+	// asked. The index advances only after the current chooser's chosen body
+	// has completed, so the remaining choosers are asked once the body's own
+	// nested ask (if any) finishes. Nil outside the per-player path, which
+	// keeps the single-controller Charm/GenericChoice ask unchanged.
+	GenericChoosers     []state.Target
+	GenericChooserIndex int
 	// Sacrifice is an Annihilator sacrifice answer on re-entry.
 	Sacrifice []state.ObjID
 	// Search is the answered hidden-library KChoose selection on a re-entered
@@ -1559,6 +1607,12 @@ type Ctx struct {
 	// applied by the rules handler, unlike Modes/UnlessPay/Discard where the
 	// effect re-reads the answer -- so the field is only a done-marker.
 	Arrange bool
+	// ScryReplacement is the completed CR 616 order choice for this target.
+	// Its count/proceed result is consumed once on re-entry, without proposing
+	// the same instruction a second time.
+	ScryReplacement bool
+	ScryCount       int32
+	ScryProceed     bool
 	// ArrangeTarget is the Defined$-target index whose arrange was the one
 	// answered, carried only for a Dig (whose effDig walks several Defined$
 	// targets and must keep the deterministic processing for the ones after

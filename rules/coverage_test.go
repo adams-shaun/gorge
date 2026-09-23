@@ -97,6 +97,19 @@ func TestAddCounterReplacementPrimitivesAreRegistered(t *testing.T) {
 	}
 }
 
+// TestScryReplacementPrimitiveIsRegistered pins the support declaration for
+// the scry-instruction replacement class (Kenessos, Priest of Thassa;
+// Eligeth, Crossroads Augur): cards' census derives repl:Scry from the
+// R:Event$ Scry line, and rules/replacement.go's init registers it now that
+// replacementMatchesRemembered's Scry case and continueScryReplacements
+// implement the class. Omitting it would leave both corpus carrier cards
+// unplayable.
+func TestScryReplacementPrimitiveIsRegistered(t *testing.T) {
+	if !effects.Supported()["repl:Scry"] {
+		t.Fatal(`effects.Supported() is missing "repl:Scry"`)
+	}
+}
+
 // TestForgecBinaryImportsRules is the second assertion path: a static check,
 // independent of anything already loaded into this test binary, that
 // cmd/forgec's own dependency graph includes package rules. `go list -deps`
