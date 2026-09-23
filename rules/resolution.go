@@ -3603,6 +3603,15 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// ask (the nested-ask branch above returns), so the entry is done
 		// either way and the land play settles here.
 		e.settleLandPlayIfDone(rp.replaced)
+		if rp.outer != nil {
+			// The body interrupted a stack resolution whose frame was chained
+			// behind this one (settleReplacementQueue: a replacement-order
+			// answer whose chosen body asked, e.g. a shock land's UnlessCost
+			// under a mass return). The body is done; the interrupted
+			// resolution continues -- dropping it here left the resolving
+			// object on the stack for resolveTop to re-resolve from the top.
+			e.resumeResolution(rp.outer, nil)
+		}
 		return
 	}
 	if rp.outer != nil { // No nested ask this pass and the frame itself completed: continue

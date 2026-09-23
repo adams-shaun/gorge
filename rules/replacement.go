@@ -5412,6 +5412,19 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 	rc := e.replChoices[0]
 	e.replChoices = e.replChoices[1:]
 	rp := e.resume
+	if rp == nil && rc.inResolution && rc.resumeAtPose != nil {
+		// The competition was posed while a stack resolution was suspended,
+		// but the suspension's frame is no longer on e.resume: an earlier
+		// answer in the same queue ran a replacement body that ASKED (a shock
+		// land's UnlessCost PayLife under a mass return), the nested
+		// Engine.Ask replaced e.resume with its own frame, and that nested
+		// answer has since completed. The earlier answer handed the
+		// suspended frame to this queued competition (settleReplacementQueue);
+		// reinstate it so this answer's tail resumes the resolution exactly
+		// once, when the queue drains.
+		rp = rc.resumeAtPose
+		e.resume = rp
+	}
 	chosen := d.Chosen(in)
 	damageKind := rc.kind == replChoiceDamage || rc.kind == replChoiceCounter
 	if len(chosen) == 0 || (damageKind && (chosen[0].Index < 0 || chosen[0].Index > len(rc.cands) ||
@@ -5574,18 +5587,7 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 		e.lifeExchange = priorExchange
 		e.damaging, e.combatDamaging, e.dmgSrcOverride = damaging, combat, override
 		e.triggerBefore = before
-		if e.pending == nil && len(e.replChoices) == 0 {
-			if rc.inResolution {
-				if e.resume == rp {
-					e.resume = nil
-					e.resumeResolution(rp, nil)
-				} else if e.resume != nil && e.resume.outer == nil {
-					e.resume.outer = rp
-				}
-			} else if rc.resumeAtPose != nil && e.resume == rc.resumeAtPose {
-				e.resume = nil
-			}
-		}
+		e.settleReplacementQueue(rc, rp)
 		e.askNextReplacementChoice()
 		return
 	}
@@ -5729,41 +5731,94 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent) {
 	if manaDecision && e.pending == nil && len(e.replChoices) == 0 && e.cast != nil {
 		e.continueCast()
 	}
-	// A competition posed while a stack resolution was in flight parked that
-	// resolution: the pose's Engine.Ask recorded the interrupted resolution
-	// on e.resume and the interrupted object stayed on the stack. Once the
-	// whole queue is answered and nothing is pending, the resolution must
-	// resume through its recorded chain -- the discipline the damage branch
-	// above applies -- or resolveTop re-resolves the interrupted object from
-	// the top on the next priority pass, unbounded (observed: a resolving
-	// AB$ PutCounter under two non-commuting count replacements re-emitted
-	// its counter event on every pass). A queue re-pose keeps e.resume == rp,
-	// so the resume fires on the last answer round; the pose record of a
-	// competition answered while nothing was resolving (turn structure, a
-	// cast window) is the flow's own bookkeeping and is consumed by its own
-	// handler, never here. A nested ask the chosen replacement's own body
-	// posed has already replaced e.resume: chain rp behind it as its outer so
-	// it still runs once that inner question settles (fx34's discipline).
-	if rc.inResolution && e.pending == nil && len(e.replChoices) == 0 {
-		if e.resume == rp {
+	e.settleReplacementQueue(rc, rp)
+	e.askNextReplacementChoice()
+}
+
+// settleReplacementQueue is the shared tail of an answered replacement-order
+// competition (every kind but the damage/counter and scry branches, which own
+// their own resume discipline).
+//
+// A competition posed while a stack resolution was in flight parked that
+// resolution: the pose's Engine.Ask recorded the interrupted resolution on
+// e.resume (rp here) and the interrupted object stayed on the stack. Once the
+// whole queue is answered and nothing is pending, the resolution must resume
+// through its recorded chain, or resolveTop re-resolves the interrupted
+// object from the top on the next priority pass, unbounded (observed: a
+// resolving AB$ PutCounter under two non-commuting count replacements
+// re-emitted its counter event on every pass).
+//
+// The chosen body can itself ASK (a shock land's "pay 2 life or it enters
+// tapped" UnlessCost): the nested Engine.Ask then replaces e.resume with its
+// own frame, so rp survives only here. Two shapes follow:
+//
+//   - the queue is drained: chain rp behind the nested frame (fx34's
+//     discipline), so the resolution resumes once that inner question
+//     settles;
+//   - more competitions are queued: the resolution must NOT resume until the
+//     last of them is answered, so rp cannot ride the nested frame (which
+//     completes first). It is handed to every queued in-resolution
+//     competition instead (resumeAtPose), and handleReplacement reinstates it
+//     when the next answer finds e.resume empty. Without the hand-off the
+//     frame was lost and the next answer resumed a nil frame (the botbench
+//     panic: Lumra, Bellow of the Woods returning Overgrown Tomb and other
+//     lands under Horizon Explorer).
+//
+// The pose record of a competition answered while nothing was resolving
+// (turn structure, a cast window) is the flow's own bookkeeping: once the
+// composition completed synchronously the stale frame is dropped --
+// resolveTop reads e.resume to decide whether its resolution suspended, and a
+// stale frame makes it abandon a resolution that actually finished,
+// re-resolving it on every pass (observed: a land entry's order pose left the
+// frame and a later resolving ability re-resolved unbounded).
+func (e *Engine) settleReplacementQueue(rc replChoice, rp *resumePoint) {
+	if !rc.inResolution {
+		if rc.resumeAtPose != nil && e.resume == rc.resumeAtPose &&
+			e.pending == nil && len(e.replChoices) == 0 {
+			e.resume = nil
+		}
+		return
+	}
+	if rp == nil {
+		// Nothing suspended to resume: a competition posed under an
+		// already-owned resume point whose owner consumed it. Resuming a nil
+		// frame is the panic this tail exists to avoid.
+		return
+	}
+	if len(e.replChoices) > 0 {
+		if e.resume != rp {
+			for i := range e.replChoices {
+				if e.replChoices[i].inResolution && e.replChoices[i].resumeAtPose == nil {
+					e.replChoices[i].resumeAtPose = rp
+				}
+			}
+		}
+		return
+	}
+	if e.resume == rp {
+		if e.pending == nil {
 			e.resume = nil
 			e.resumeResolution(rp, nil)
-		} else if e.resume != nil && e.resume.outer == nil {
-			e.resume.outer = rp
 		}
-	} else if rc.resumeAtPose != nil && e.resume == rc.resumeAtPose &&
-		e.pending == nil && len(e.replChoices) == 0 {
-		// The pose's own Engine.Ask record, from a cast window or turn
-		// structure where nothing was suspended: the composition completed
-		// synchronously in this answer, so the stale frame is dropped --
-		// resolveTop reads e.resume to decide whether its resolution
-		// suspended, and a stale frame makes it abandon a resolution that
-		// actually finished, re-resolving it on every pass (observed: a land
-		// entry's order pose left the frame and a later resolving ability
-		// re-resolved unbounded).
-		e.resume = nil
+		return
 	}
-	e.askNextReplacementChoice()
+	if e.resume == nil {
+		// The body's own flow consumed the frame; it owns the continuation.
+		return
+	}
+	// A nested ask the chosen body posed owns e.resume: run rp after its
+	// whole continuation chain, unless it is already on that chain.
+	tail := e.resume
+	for {
+		if tail == rp {
+			return
+		}
+		if tail.outer == nil {
+			break
+		}
+		tail = tail.outer
+	}
+	tail.outer = rp
 }
 
 // askNextReplacementChoice hands over to either an ordinary replacement
