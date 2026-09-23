@@ -677,3 +677,61 @@ ok   github.com/adams-shaun/gorge/rules  0.813s
 ```
 
 The merged table and constant remain 55. No further conflict or uncertainty.
+
+---
+
+## Section N+5 — current dispatch (cli-20260922T225140Z-b686e452)
+
+### Starting state and integration status
+
+`git status --short --branch` and `git status` showed a clean tree on
+`wt/cli-20260922T225140Z-b686e452`. No rebase or merge was in progress.
+The failed rebase/fallback described by `.ds4/merge-conflict-mrg1.md` had
+already been completed in merge commit `4bd357c1` (parents `d56e404f` and
+`f7357075`); subsequent report-only commits were already present at entry.
+Thus there was no in-flight operation to continue and no new conflict edit was
+needed in this session.
+
+### Conflicted files and resolution
+
+- `internal/testutil/agentsdoc_test.go` was the sole conflict. The branch side
+  carried `knownApproximationRows = 59` for its one deleted `non<X>` row;
+  main carried 58 for its two Scry/Surveil pile-B deletions. `AGENTS.md`
+  auto-merged and retains all three disjoint deletions. The recorded merge
+  resolution sets the merged count to 55 (58 minus three), with the explanatory
+  comment; it is present in `4bd357c1` and the focused test passes.
+- `AGENTS.md` was auto-merged; its row deletions are retained. No engine code
+  required conflict resolution.
+
+The requested merge operation is complete. No additional commit was necessary;
+the resolution is already committed as `4bd357c1`. The current tree remained
+clean after tests. `.cards` is present in this worktree.
+
+### Commands and output in this verification
+
+```text
+git status --short --branch; git status
+## wt/cli-20260922T225140Z-b686e452
+On branch wt/cli-20260922T225140Z-b686e452
+nothing to commit, working tree clean
+
+git show --format=fuller --no-patch 4bd357c1
+commit 4bd357c1017189fc013dccf1f9cf32d98cbd4d7f
+Merge: d56e404f f7357075
+
+go test ./internal/testutil -run 'TestKnownApproximation' -v
+=== RUN   TestKnownApproximationsOnlyShrinks
+--- PASS: TestKnownApproximationsOnlyShrinks (0.00s)
+=== RUN   TestKnownApproximationRowsAreShort
+--- PASS: TestKnownApproximationRowsAreShort (0.00s)
+PASS
+ok   github.com/adams-shaun/gorge/internal/testutil 0.001s
+
+go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'
+ok   github.com/adams-shaun/gorge/rules 0.820s
+
+[ -e .cards ] && echo '.cards present' || echo '.cards missing'
+.cards present
+```
+
+No uncertainties remain about the reported conflict or its completed resolution.
