@@ -878,6 +878,13 @@ type Engine struct {
 	// exile order and consumed before priority; it is plain replayable engine
 	// continuation state, not an inference from arbitrary exile cards.
 	suspendedCasts []state.ObjID
+	// defeatedCasts is the CR 310.11 "may cast it transformed without paying
+	// its mana cost" offer for every battle the zero-defense SBA exiled
+	// (rules/sba.go's battleZeroDefense). Fed by Engine.emit's battlefield→
+	// exile feed (the ONE home every defeat route shares), drained before
+	// priority by startDefeatedCast; plain replayable continuation state like
+	// suspendedCasts above.
+	defeatedCasts []state.ObjID
 	// manaActivation is non-nil while a source with several available mana
 	// abilities waits for its controller to select one. manaColorActivation
 	// similarly holds an already-paid Produced$ Any ability, and
@@ -1932,6 +1939,17 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			timeBefore = o.Counter("TIME")
 		}
 	}
+	// CR 310.11 (battle-defeated): the defeat feed below reads the defense
+	// count BEFORE the move fold -- Apply's Move clears o.Counters as the
+	// object leaves the battlefield, so a post-move read would call every
+	// exiled battle defeated (a blink of a healthy Siege would pose the
+	// transformed-cast offer too).
+	defenseBefore := int32(0)
+	if ev.Kind == events.MoveZone && ev.From == state.ZBattlefield {
+		if o := e.G.Obj(ev.Obj); o != nil {
+			defenseBefore = o.Counter("DEFENSE")
+		}
+	}
 	stackLen := len(e.G.Stack)
 	// Record only the final event after replacement selection. The object
 	// snapshot must precede Apply, and unknown adder provenance is not a
@@ -1981,6 +1999,20 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		if o := e.G.Obj(ev.Obj); o != nil && o.Zone == state.ZExile &&
 			(o.CastFlags&state.FlagSuspend != 0 || o.SuspendGranted) && o.Counter("TIME") == 0 {
 			e.suspendedCasts = append(e.suspendedCasts, ev.Obj)
+		}
+	}
+	// CR 310.11 (battle-defeated): a Battle leaving the battlefield for exile
+	// with no defense counters was exiled by the defeat SBA (rules/sba.go's
+	// battleZeroDefense), so its owner's transformed-cast offer is queued
+	// here -- the ONE home every route to that exile shares, so a replayed
+	// game re-derives the queue from the same event. defenseBefore (read
+	// above, pre-fold) is what makes "no defense counters" precise; FaceIdx 0
+	// plus a second face are what the "cast it transformed" half needs.
+	if ev.Kind == events.MoveZone && ev.From == state.ZBattlefield && ev.To == state.ZExile &&
+		defenseBefore == 0 {
+		if o := e.G.Obj(ev.Obj); o != nil && o.Face() != nil && o.Face().IsBattle() &&
+			o.FaceIdx == 0 && len(o.Card.Faces) > 1 && o.Counter("DEFENSE") == 0 {
+			e.defeatedCasts = append(e.defeatedCasts, ev.Obj)
 		}
 	}
 	// CR 702.90b (kw:Infect): the counters/poison an infect source's damage

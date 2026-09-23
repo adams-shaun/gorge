@@ -1838,6 +1838,24 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 		faceBefore = &before
 		e.emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: int32(1 - int(before))})
 	}
+	// CR 310.11: the defeated battle's owner casts it TRANSFORMED (mode
+	// defeat_cast). The exiled battle is its front face; one FlipFace to the
+	// back face before the ordinary cast transaction, after which targets and
+	// resolution read the back face exactly like the Room/Adventure/Split
+	// flips above, and an aborted proposal restores the front face via
+	// pc.faceBefore (CR 733.1). The cast is free (cost switch below) and
+	// bypasses the ordinary timing gate like Suspend's: it is part of the
+	// defeat, which happens in a combat the owner is usually not the active
+	// player of, so a creature- or sorcery-timed back face must still be
+	// castable (every Siege back face is printed exactly for this cast).
+	if opt.Mode == "defeat_cast" {
+		if o.Zone != state.ZExile || o.Card == nil || len(o.Card.Faces) < 2 || o.FaceIdx != 0 {
+			return
+		}
+		before := o.FaceIdx
+		faceBefore = &before
+		e.emit(events.Event{Kind: events.FlipFace, Obj: id, Amount: int32(1 - int(before))})
+	}
 	f := o.Face()
 	if f == nil {
 		return
@@ -1941,6 +1959,10 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 			cost = sc.cost
 		}
 	case "suspend_cast":
+		cost = Cost{}
+	case "defeat_cast":
+		// CR 310.11: the defeated battle's owner casts the back face without
+		// paying its mana cost.
 		cost = Cost{}
 	case "plot":
 		// CR 701.34a: the plot ACTION pays the K:Plot colon parameter. Not a
