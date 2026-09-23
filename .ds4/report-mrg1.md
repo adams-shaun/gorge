@@ -116,3 +116,30 @@ git merge main --no-edit
 git add internal/testutil/agentsdoc_test.go .ds4/report-mrg1.md
 GIT_EDITOR=true git merge --continue
 ```
+
+## Round-3 verification
+
+`.cards` present (symlink to the shared corpus), so no run was vacuous.
+
+```text
+go test ./internal/testutil -run 'TestKnownApproximation' -count=1
+ok  github.com/adams-shaun/gorge/internal/testutil  0.001s
+
+go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead' -count=1
+ok  github.com/adams-shaun/gorge/rules  0.776s
+
+go test ./internal/archtest/
+ok  github.com/adams-shaun/gorge/internal/archtest  4.708s
+
+go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  github.com/adams-shaun/gorge/cmd/botbench  1.591s
+```
+
+The botbench 20-game pin did NOT move despite main's engine changes (cascade closure, land-type
+statics) — the golden holds byte-identically. Merge commit `88bcca38`, parents `5c3b38c3` +
+`4cdffbc1`. Result: three integration rounds total, `knownApproximationRows` 44 → 41 → 39 → 38.
+
+## Issues
+
+None new in round 3 — integration only; the engine changes merged in from main are the cascade
+branch's own reviewed work. See round-1/2 notes above for the earlier state.
