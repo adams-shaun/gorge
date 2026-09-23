@@ -641,10 +641,12 @@ func positiveCounters(cs []state.Counter) []state.Counter {
 // last-known-information look-back. o is the live object (nil if it no longer
 // exists). While the object is still a battlefield permanent its live
 // counters are authoritative and ok is false; once it has left -- destroyed,
-// sacrificed, exiled, bounced -- Resolve's pre-move snapshot
-// (Ctx.TargetCountersLKI, captured before the first effect can move a target)
-// supplies the counters, and ok is true. A missing entry fails closed to the
-// live read, so a target this chain never captured is unchanged.
+// sacrificed, exiled, bounced -- the departure-boundary snapshot supplies the
+// counters (rules' Engine.emit captures them on the MoveZone that moves the
+// target off the battlefield, immediately before the Move fold clears them;
+// Resolve's entry capture is the fallback for a departure the host did not
+// see), and ok is true. A missing entry fails closed to the live read, so a
+// target this chain never captured is unchanged.
 func targetCountersLKI(c *Ctx, id state.ObjID, o *state.Object) ([]state.Counter, bool) {
 	if o != nil && o.Zone == state.ZBattlefield {
 		return nil, false

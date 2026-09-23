@@ -552,6 +552,56 @@ func resolutionTargetCounters(c *effects.Ctx) map[state.ObjID][]state.Counter {
 	return effects.CloneTargetCountersLKI(c.TargetCountersLKI)
 }
 
+// snapshotDepartingTargetCounters refreshes the resolving chain's target-
+// counters look-back (Ctx.TargetCountersLKI) at the DEPARTURE boundary, the
+// authoritative capture point for the CR 608.2b/h read: oid is about to leave
+// the battlefield (its MoveZone is in flight, pre-Apply), so if it is an
+// object target of the published chain Ctx its counters are captured NOW --
+// immediately before events.Apply's Move fold clears them -- overwriting
+// effects.Resolve's resolution-start snapshot. A chain that changed the
+// target's counters earlier in the same resolution (Dismantle-style destroy
+// preceded by a counter swing) must look back to the counters as they were at
+// the zone change, not to the stale entry capture. An object that departs
+// with no counters drops its entry, so the read fails closed to the live
+// (already-cleared) zero. Non-targets are never captured: the look-back is
+// read only through the chain's target groups.
+func (e *Engine) snapshotDepartingTargetCounters(oid state.ObjID) {
+	c := e.resolutionCtx
+	if c == nil {
+		return
+	}
+	targeted := false
+	for _, t := range c.Targets {
+		if !t.IsPlayer && t.Obj == oid {
+			targeted = true
+			break
+		}
+	}
+	if !targeted && c.PickedTargets != nil {
+		for _, t := range c.PickedTargets {
+			if !t.IsPlayer && t.Obj == oid {
+				targeted = true
+				break
+			}
+		}
+	}
+	if !targeted {
+		return
+	}
+	o := e.G.Obj(oid)
+	if o == nil || o.Zone != state.ZBattlefield {
+		return
+	}
+	if len(o.Counters) == 0 {
+		delete(c.TargetCountersLKI, oid)
+		return
+	}
+	if c.TargetCountersLKI == nil {
+		c.TargetCountersLKI = make(map[state.ObjID][]state.Counter)
+	}
+	c.TargetCountersLKI[oid] = append([]state.Counter(nil), o.Counters...)
+}
+
 // targetsUniqueRide is the TargetUnique$ accumulator a decision resumes with:
 // the accumulator the asking site already stamped onto the decision when it
 // carried one, else the LIVE accumulator of the Resolve chain currently

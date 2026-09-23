@@ -794,17 +794,20 @@ type Ctx struct {
 	// resets its live Controller to Owner, so the live object is no longer the
 	// CR 608.2h last-known controller.
 	TargetControllerLKI map[state.ObjID]state.PlayerID
-	// TargetCountersLKI captures each object target's counters at the start of
-	// resolution, the counter half of the same CR 608.2b/h look-back. A target
-	// destroyed (or otherwise moved) before a chained SubAbility evaluates
-	// `ConditionDefined$ Targeted | ConditionPresent$ Card.HasCounters` or reads
-	// `Targeted$CardCounters.<KIND>` has had its live counters cleared by the
-	// Move fold, so this pre-move snapshot is the only place they survive
-	// (Dismantle's DBPutCounter is the corpus shape). Keyed by target ObjID,
-	// captured alongside TargetControllerLKI and carried across a suspension the
-	// same way (rules' resumePoint). Only battlefield objects carrying at least
-	// one counter are captured: an object already off the battlefield at
-	// resolution start, or with no counters to look back at, needs no entry.
+	// TargetCountersLKI captures each object target's counters for the CR
+	// 608.2b/h look-back. The authoritative capture is at the DEPARTURE
+	// boundary: rules' Engine.emit refreshes the entry -- overwriting this
+	// resolution-start snapshot -- on the MoveZone that actually moves a
+	// target off the battlefield, so a chain that changed a target's counters
+	// earlier in the same resolution reads the counters as they were
+	// immediately before the zone change (Dismantle's DBPutCounter is the
+	// corpus shape). Keyed by target ObjID, carried across a suspension the
+	// same way as TargetControllerLKI (rules' resumePoint). The
+	// resolution-start capture here is the fallback for a departure this
+	// host did not see (a test host folding events without Engine.emit):
+	// only battlefield objects carrying at least one counter are captured at
+	// entry; an object already off the battlefield, or with no counters to
+	// look back at, needs no entry.
 	TargetCountersLKI map[state.ObjID][]state.Counter
 	Remembered        []state.Target
 	// RepeatOptional is set only when a RepeatOptional$ answer is being
