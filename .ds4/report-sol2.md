@@ -1,3 +1,113 @@
+# Dynamic TargetMin$/TargetMax$ — sol2 (agent-20260918T233200Z-e0817443)
+
+## Findings resolved / correction to earlier reports
+
+- MAJOR (`rules/multikicker_test.go`): the zero-kick Marshal's Anthem test now crosses the spell resolution/trigger placement boundary explicitly. `awaitAnthemETBStack` requires Anthem to be a spell on stack, passes priority to the trigger, then verifies the *top stack object is an ability sourced from Anthem* and a `TriggerPush` was emitted. Only then does `passUntilStackEmpty` drain; both plain and declined multikick cases use this guard. The positive 2-kick target ask remains unchanged. No production code changed in sol2.
+- MINOR (older `.ds4/report-t1.md` gate status): that round's statement that module verification was deferred is historical, **not the final status**. The controller reported `the choice ask never arrived` after sol1; after the ordered rebase, my uncached focused check and full module check both passed *before* this edit, so that earlier failure was not independently reproducible on this base. The edit removes the empty-drain false positive regardless of ordering. The fresh post-edit full module gate below is green; do not read the old deferred claim as current verification.
+- First rebase hit a **docs-only** conflict in `.ds4/report-r2.md`, resolved by prepending this ticket's r2 report while keeping all of main's other tickets' reports verbatim. No code conflict.
+- `.cards` was present as a symlink to the shared corpus throughout; these were real corpus runs, not skips.
+
+## Gates (real output)
+
+```text
+$ go test -count=1 -v -run 'TestMarshalsAnthemPlainCastETBAsksForNothing|TestMarshalsAnthemMultikickedETBReturnsKickedCount' ./rules/  [pre-edit, after rebase]
+=== RUN   TestMarshalsAnthemMultikickedETBReturnsKickedCount
+--- PASS: TestMarshalsAnthemMultikickedETBReturnsKickedCount (0.81s)
+=== RUN   TestMarshalsAnthemPlainCastETBAsksForNothing
+--- PASS: TestMarshalsAnthemPlainCastETBAsksForNothing (0.00s)
+PASS
+ok  	github.com/adams-shaun/gorge/rules	0.877s
+
+$ go test -count=1 -v -run '^TestMarshalsAnthemPlainCastETBAsksForNothing$' ./rules/  [post-edit, uncached]
+=== RUN   TestMarshalsAnthemPlainCastETBAsksForNothing
+--- PASS: TestMarshalsAnthemPlainCastETBAsksForNothing (0.59s)
+PASS
+ok  	github.com/adams-shaun/gorge/rules	0.603s
+
+$ go build ./...
+(no output, exit 0)
+$ go test -v -run 'TestResolvedTargetBoundsResolvedZeroIsHonoured|TestTearAsunderKickedTakesOnlyTheSubTarget|TestTearAsunderUnkickedStillTargetsArtifact|TestPestInfestationZeroXAsksNothing|TestTriggerPlacementAskResolvedZeroPosesNothing|TestAnnouncementAskBareXReadsThePaidX|TestMarshalsAnthemMultikickedETBReturnsKickedCount|TestMarshalsAnthemPlainCastETBAsksForNothing' ./rules/
+=== RUN   TestMarshalsAnthemMultikickedETBReturnsKickedCount
+--- PASS: TestMarshalsAnthemMultikickedETBReturnsKickedCount (0.57s)
+=== RUN   TestMarshalsAnthemPlainCastETBAsksForNothing
+--- PASS: TestMarshalsAnthemPlainCastETBAsksForNothing (0.00s)
+=== RUN   TestTriggerPlacementAskResolvedZeroPosesNothing
+--- PASS: TestTriggerPlacementAskResolvedZeroPosesNothing (0.00s)
+=== RUN   TestResolvedTargetBoundsResolvedZeroIsHonoured
+--- PASS: TestResolvedTargetBoundsResolvedZeroIsHonoured (0.00s)
+=== RUN   TestTearAsunderKickedTakesOnlyTheSubTarget
+--- PASS: TestTearAsunderKickedTakesOnlyTheSubTarget (0.00s)
+=== RUN   TestTearAsunderUnkickedStillTargetsArtifact
+--- PASS: TestTearAsunderUnkickedStillTargetsArtifact (0.00s)
+=== RUN   TestPestInfestationZeroXAsksNothing
+--- PASS: TestPestInfestationZeroXAsksNothing (0.00s)
+=== RUN   TestAnnouncementAskBareXReadsThePaidX
+--- PASS: TestAnnouncementAskBareXReadsThePaidX (0.00s)
+PASS
+ok  	github.com/adams-shaun/gorge/rules	0.670s
+
+$ go test ./...  [module gate, post-edit; tail of log]
+ok  	github.com/adams-shaun/gorge/cmd/searchteacher	(cached)
+ok  	github.com/adams-shaun/gorge/cmd/testtime	(cached)
+ok  	github.com/adams-shaun/gorge/decision	(cached)
+ok  	github.com/adams-shaun/gorge/deck	(cached)
+ok  	github.com/adams-shaun/gorge/effects	(cached)
+ok  	github.com/adams-shaun/gorge/events	(cached)
+ok  	github.com/adams-shaun/gorge/host	(cached)
+ok  	github.com/adams-shaun/gorge/host/httpapi	(cached)
+ok  	github.com/adams-shaun/gorge/internal/archtest	1.500s
+?   	github.com/adams-shaun/gorge/internal/bench	[no test files]
+ok  	github.com/adams-shaun/gorge/internal/policynet	(cached)
+ok  	github.com/adams-shaun/gorge/internal/searchprobe	(cached)
+ok  	github.com/adams-shaun/gorge/internal/searchseat	(cached)
+ok  	github.com/adams-shaun/gorge/internal/testutil	(cached)
+ok  	github.com/adams-shaun/gorge/internal/testutil/feedback	(cached)
+?   	github.com/adams-shaun/gorge/internal/traceboard	[no test files]
+ok  	github.com/adams-shaun/gorge/internal/tsgen	(cached)
+ok  	github.com/adams-shaun/gorge/protocol	(cached)
+ok  	github.com/adams-shaun/gorge/replay	(cached)
+ok  	github.com/adams-shaun/gorge/rules	32.332s
+ok  	github.com/adams-shaun/gorge/seat	(cached)
+ok  	github.com/adams-shaun/gorge/state	(cached)
+ok  	github.com/adams-shaun/gorge/view	(cached)
+exit 0
+
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	1.530s
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	1.217s
+$ gofmt -l rules/multikicker_test.go rules/stack.go effects/count.go effects/registry.go rules/cast.go rules/statics.go rules/targetmax_resolved_zero_test.go
+(no output)
+$ go run ./cmd/gentypes -check
+(no output, exit 0)
+```
+
+## Fails without the fix
+
+Saved `rules/stack.go` to `.ds4/scratch/sol2-stack.go`, changed its dynamic bound back to the compiling pre-fix `max >= 1` clamp, ran the corrected zero-kick test uncached, restored production code byte-identically (`cmp` passed). Real output (abbreviating the option struct fields):
+
+```text
+$ go test -count=1 -run '^TestMarshalsAnthemPlainCastETBAsksForNothing$' ./rules/
+--- FAIL: TestMarshalsAnthemPlainCastETBAsksForNothing (0.56s)
+    multikicker_test.go:201: non-priority decision &{Seq:68 Player:0 Kind:target Prompt:Choose a target for Marshal's Anthem Min:0 Max:1 Options:[Raider (a), Raider (a)] ...} while draining the stack
+FAIL
+FAIL	github.com/adams-shaun/gorge/rules	0.579s
+REVERT_TEST_EXIT=1 RESTORED=byte-identical
+```
+
+The reversion also proves the negative/no-ask test executes the actual ETB handler; without the bound fix it cannot silently pass by ending the stack drain early.
+
+## Ratchets / deviations
+
+No new tests in sol2 (the one existing test was corrected), no engine change, no head or bot split movement; no ratchet row moved. The brief's X/Y resolver + Pest X=3 already lived on main; this branch's production fix handles the remaining resolved-zero case. Neither deck carrier belongs to the committed deck JSON set, so there is no deck-side table entry to remove. No Known-approximations row grew. New sol2 commit: `93614099`.
+
+## Issues
+
+- `subTargetAsk`'s resolved-zero arm has no end-to-end carrier fixture; unit resolver and sibling ask-site tests cover it. Existing reported coverage gap (Wayta / Urgent Necropsy), not fixed in sol2.
+- No CR-lane regression for the resolved-zero target-choice shape (candidate CR 601.2c/608.2b); existing reported gap, not fixed here.
+
+---
+
 # Dismantle target-counter LKI — sol2 report
 
 ## Findings resolved
