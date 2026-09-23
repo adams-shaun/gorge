@@ -347,7 +347,7 @@
           <span class="k">Stack</span>
           <span class="v num">{view.stack.length}</span>
         </div>
-        {#if mine}<ManaPool pool={mine.pool} />{/if}
+        {#if mine}<ManaPool pool={mine.pool} poolRestrictions={mine.pool_restrictions} />{/if}
       </div>
     {/if}
 
