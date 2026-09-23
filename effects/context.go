@@ -822,9 +822,22 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	// so this returns the empty set with ok=true: the effect acts on nobody
 	// rather than falling back to the spell's chosen (object) targets, which
 	// is the wrong set for a player-valued effect.
-	if base, _, _ := strings.Cut(spec, "."); base == "Player" {
+	//
+	// The same bridge covers the QUALIFIED Opponent./Other./You. spellings
+	// whose base the grammar already evaluates (Opponent.IsCorrupted -- Feed
+	// the Infection's Corrupted arm, Ixhel's TrigExile): the candidate walk
+	// is the same AliveFrom sweep, with the controller skipped for base
+	// Opponent so the Opponent.IsX candidate pool is opponents only (the
+	// grammar's own Opponent base read also excludes `you`, so the two agree
+	// when a compound carries a second qualifier). Without this, definedSpec
+	// fell through to `nil, false` and the source fallback made the CASTER
+	// the acting player -- the opposite seat lost the life.
+	if base, _, _ := strings.Cut(spec, "."); base == "Player" || base == "Opponent" || base == "Other" || base == "You" {
 		var out []state.Target
 		for _, p := range g.AliveFrom(c.Controller) {
+			if base == "Opponent" && p == c.Controller {
+				continue
+			}
 			if MatchesPlayerSpecFrom(g, spec, p, c.Controller, c.Source) {
 				out = append(out, state.Target{Player: p, IsPlayer: true})
 			}

@@ -2644,8 +2644,10 @@ var knownUnsupportedParams = map[string][]string{
 	// a real per-target "draw up to N" ask (task mordorparams1,
 	// effects/cardflow.go effDraw's upto branch, rules' draw_upto resume
 	// arm) — pinned by TestArcaneDenialSlowtripDrawsUpToTwo.
-	"Arcane Denial":    {"param:api:Counter.RememberTargets"},
-	"Avengers Quinjet": {"param:api:ChangeZone.ValidTgtsDesc"},
+	"Arcane Denial":               {"param:api:Counter.RememberTargets"},
+	"Avengers Quinjet":            {"param:api:ChangeZone.ValidTgtsDesc"},
+	"Acclaimed Contender":         {"param:api:Dig.RestRandomOrder"},
+	"Adeline, Resplendent Cathar": {"param:api:RepeatEach.ChangeZoneTable"},
 	// Captain Marvel, Apex Avenger's param:api:PutCounter.Placer label was
 	// deleted when the bare-Choices$ PutCounter pick read Placer$ (task
 	// vow1, effects/counters.go putCounterChoose) -- the static scan now
@@ -2656,15 +2658,17 @@ var knownUnsupportedParams = map[string][]string{
 	// election is pinned end to end in rules/putcounter_optional_test.go.
 	"Captain Marvel, Apex Avenger": {"param:api:PutCounter.TriggeredCounterMap"},
 	"Conduit of Worlds":            {"param:api:Play.RememberPlayed"},
+	"Conjurer's Mantle":            {"param:api:Dig.RestRandomOrder"},
 	"Director Nick Fury":           {"param:api:Dig.RestRandomOrder"},
 	// Gift of Immortality's param:api:ChangeZone.AttachedTo label was deleted
 	// when the ChangeZone AttachedTo$ read landed (effects/zone.go
 	// changeZoneAttachedTo): the attach-the-returned-Aura leg is now real
 	// (pinned in rules/forum_filibuster_test.go). ForgetOtherRemembered stays
 	// unread.
-	"Gift of Immortality":     {"param:api:ChangeZone.ForgetOtherRemembered"},
-	"Hercules, Olympian Hero": {"param:trig:DamageDoneOnce.FirstTime"},
-	"Heroic Return":           {"param:api:ChangeZone.ValidTgtsDesc"},
+	"Gift of Immortality":       {"param:api:ChangeZone.ForgetOtherRemembered"},
+	"Hercules, Olympian Hero":   {"param:trig:DamageDoneOnce.FirstTime"},
+	"Haakon, Stromgald Scourge": {"param:stat:Continuous.MayPlay.ValidAfterStack"},
+	"Heroic Return":             {"param:api:ChangeZone.ValidTgtsDesc"},
 	// Heroic Sacrifice's param:api:PutCounter.EachFromSource entry was deleted
 	// when the CounterType$ EachFromSource copy-each-kind shape was read
 	// (task eachfromsource, effects/counters.go effPutCounter's dispatch) --

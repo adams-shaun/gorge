@@ -3661,7 +3661,7 @@ func matchesPlayerCompoundCtx(g *state.Game, alt string, p, you state.PlayerID, 
 		// would newly admit every un-remembered player for
 		// `Player.Opponent+!IsRemembered` -- a widened pool where the old
 		// grammar matched nobody.
-		if pc.Source == 0 && isBarePlayerProperty(clause) {
+		if pc.Source == 0 && isBarePlayerProperty(clause) && clause != "IsCorrupted" {
 			return false
 		}
 		if matchesPlayerClauseCtx(g, clause, p, you, pc) == neg {
@@ -3683,6 +3683,8 @@ func matchesPlayerClauseCtx(g *state.Game, clause string, p, you state.PlayerID,
 		return matchesPlayerSingleSpec(g, clause, p, you, pc)
 	}
 	switch clause {
+	case "IsCorrupted":
+		return playerIsCorrupted(g, p)
 	case "IsRemembered", "Chosen", "ChosenPlayer":
 		o := g.Obj(pc.Source)
 		if o == nil {
@@ -3707,7 +3709,7 @@ func matchesPlayerClauseCtx(g *state.Game, clause string, p, you state.PlayerID,
 // `ChosenPlayer`), as opposed to a base.qualifier form.
 func isBarePlayerProperty(clause string) bool {
 	switch clause {
-	case "IsRemembered", "Chosen", "ChosenPlayer":
+	case "IsRemembered", "Chosen", "ChosenPlayer", "IsCorrupted":
 		return true
 	}
 	return false
@@ -3778,6 +3780,10 @@ func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, 
 			return true
 		}
 		switch qualifier {
+		case "IsCorrupted":
+			if playerIsCorrupted(g, p) {
+				return true
+			}
 		case "You":
 			if p == you {
 				return true
@@ -3887,6 +3893,12 @@ func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, 
 		}
 	}
 	return false
+}
+
+// playerIsCorrupted applies the Corrupted threshold (three or more poison
+// counters) to a valid player seat.
+func playerIsCorrupted(g *state.Game, p state.PlayerID) bool {
+	return int(p) >= 0 && int(p) < len(g.Players) && g.Players[p].Counter("POISON") >= 3
 }
 
 // playerHasNote reports whether the seat's event-backed player-notation set

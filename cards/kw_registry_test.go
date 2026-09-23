@@ -65,6 +65,9 @@ var expandedHeads = []string{
 	// Fortify (CR 702.67): analogous to Equip but targets lands; it was added
 	// after the split by kw-fortify and therefore belongs in this registry.
 	"Fortify",
+	// Battle cry (CR 702.33): an Attacks trigger whose PumpAll selects other
+	// creatures that are attacking when the trigger resolves.
+	"Battle cry",
 }
 
 func TestEveryExpandedKeywordHasAnExpander(t *testing.T) {
