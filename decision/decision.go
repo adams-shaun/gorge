@@ -134,6 +134,16 @@ const (
 	// card carries that card in Obj, so pile A/B are rebuilt from the
 	// answer and the option list without re-reading any zone.
 	KArrange Kind = "arrange"
+	// KStartingPlayer is CR 103.1's second half: the winner of the pre-game
+	// toss CHOOSES which player takes the first turn, and that answer -- not
+	// the raw toss draw -- is authoritative. It is Min == Max == 1 over one
+	// option per living player, in turn order from the toss winner (so a
+	// self-choice is the option whose Player equals the asking seat), each
+	// option carrying its seat in Option.Player and its label. The Decision's
+	// own Player is the toss winner, never the seat that ends up starting.
+	// An absent or unanswerable host takes the deterministic R-9 fallback:
+	// the toss winner names themselves, which is the pre-choice seat.
+	KStartingPlayer Kind = "starting_player"
 )
 
 // Kinds lists every decision Kind in declaration order. It is the static
@@ -144,7 +154,7 @@ const (
 var Kinds = []Kind{
 	KPriority, KTarget, KAttackers, KBlockers, KMulligan, KModes,
 	KTriggerOrder, KTriggerOptional, KCommanderZone, KChoose, KReplacement,
-	KArrange,
+	KArrange, KStartingPlayer,
 }
 
 // Option is one legal choice. Obj and Player are echoed only so a client can

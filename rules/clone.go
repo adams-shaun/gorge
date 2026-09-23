@@ -98,8 +98,15 @@ func (e *Engine) Clone() *Engine {
 		// CR 903.4b pregame colour round's state and the carried Mulligans
 		// limit. colorRound.asks is never mutated (only the cursor advances),
 		// so sharing the reference is safe -- the blockerRound class.
-		coloring:     e.coloring,
-		colorRound:   e.colorRound,
+		coloring:   e.coloring,
+		colorRound: e.colorRound,
+		// tossChoice (rules/starting_player_choice.go) is CR 103.1's pending
+		// winner-chooses ask: a plain value (no slices, no closure), so the
+		// blockerRound share class -- Clone copies it directly, and a clone
+		// taken while the ask is outstanding re-poses the same decision for
+		// the same winner. host.viewAt clones a snapshot and re-Submits the
+		// intents, so the choice must survive like the mulligan round does.
+		tossChoice:   e.tossChoice,
 		mulligans:    e.mulligans,
 		startingLife: e.startingLife,
 		// E2 held-out cast suppression (cast.go): the set of card ids whose

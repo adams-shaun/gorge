@@ -197,10 +197,12 @@ type Engine struct {
 	// half-starting-life thresholds). Plain int32, so Clone copies it.
 	startingLife int32
 	// pregame is true while the London mulligan round runs, between the
-	// opening deal and turn 1. Config.Mulligans > 0 sets it in New; step()
-	// dispatches to stepPregame (rules/mulligan.go) while it is true, and the
-	// round's end clears it and hands to beginTurn. Bool field, so Clone
-	// copies it like every other value field.
+	// opening deal and turn 1. startPostDealSetup sets it when
+	// Config.Mulligans > 0 (at New for a plain constructor; for the
+	// CR 103.1 choice constructor at the choice's resolution -- see
+	// tossChoice); step() dispatches to stepPregame (rules/mulligan.go)
+	// while it is true, and the round's end clears it and hands to
+	// beginTurn. Bool field, so Clone copies it like every other value field.
 	pregame bool
 	// coloring is true while the CR 903.4b commander colour-choice round runs,
 	// BEFORE the London mulligan round (the choice is made "before the game
@@ -215,6 +217,14 @@ type Engine struct {
 	// commander_color.go): one qualifying (seat, commander) ask per entry and
 	// a cursor. Never a closure, so Clone copies it like the mulligan round.
 	colorRound colorRound
+	// tossChoice is CR 103.1's second half's plain-value state (rules/
+	// starting_player_choice.go): the toss winner may still choose who takes
+	// the first turn. Only a tossAsk constructor (NewStartingPlayerChoice)
+	// sets it; plain New folds the resolved toss and runs startPostDealSetup
+	// exactly as the pre-choice engine did. active marks that the pregame
+	// rounds are still deferred until the choice is answered or defaulted.
+	// Never a closure, so Clone copies it.
+	tossChoice tossChoice
 	// mulligan is the round's plain-value state (rules/mulligan.go) -- seats,
 	// kept/taken counts and the phase cursor. Never a closure, so Clone copies
 	// it like cast/choosing.
@@ -1679,10 +1689,25 @@ func (e *Engine) Release() Spare {
 const objectHeadroom = 128
 
 func New(cfg Config) *Engine {
-	return newWithRNG(cfg, newRNG(cfg.Seed))
+	return newWithRNG(cfg, newRNG(cfg.Seed), false)
 }
 
-func newWithRNG(cfg Config, random *rng) *Engine {
+// NewStartingPlayerChoice is the harness-facing constructor that offers CR
+// 103.1's second half (rules/starting_player_choice.go): the toss winner
+// CHOOSES who takes the first turn. Genesis (the resolved toss folded into
+// G.StartingPlayer) is identical to New's, but startPostDealSetup -- the
+// London mulligan round, the colour round, turn 1 -- is deferred until the
+// choice is answered (Engine.AskStartingPlayer + Submit) or defaulted at the
+// first Advance, so the pregame rounds open in the CHOSEN seat's turn order.
+// A caller that poses no ask and never advances past genesis sees nothing;
+// every other constructor (plain New) is the R-9 no-host fallback: the toss
+// winner takes the first turn silently, byte-identical to the pre-choice
+// engine. host, mtgsim and the acceptance driver use this constructor.
+func NewStartingPlayerChoice(cfg Config) *Engine {
+	return newWithRNG(cfg, newRNG(cfg.Seed), true)
+}
+
+func newWithRNG(cfg Config, random *rng, tossAsk bool) *Engine {
 	life := int32(20)
 	if cfg.StartingLife > 0 {
 		life = cfg.StartingLife
@@ -1905,6 +1930,26 @@ func newWithRNG(cfg Config, random *rng) *Engine {
 	// with seat 0 eliminated maps two of the three toss outcomes onto one
 	// survivor (measured 395/205 over 600 seeds on the pre-fix code).
 	start, _ := e.resolveToss(toss, alive, len(cfg.Names))
+	// CR 103.1's SECOND half: the winner of the toss chooses who takes the
+	// first turn, and that answer -- not the raw toss draw -- is the
+	// starting seat. ONLY a tossAsk constructor offers the choice (see
+	// NewStartingPlayerChoice): it is not posed by plain New, because a
+	// genesis-genesis decision would appear in every test and fuzz log and
+	// the R-9 no-host contract wants a fallback that completes without an
+	// answer. The RESOLVED TOSS is folded below UNCONDITIONALLY either way,
+	// so genesis (G.StartingPlayer, the view's pregame projection) exists
+	// the moment New returns exactly as the pre-choice engine left it; with
+	// the choice pending, startPostDealSetup is deferred until the answer
+	// (or the default at the first Advance) resolves the choice, because the
+	// London mulligan round must open in the CHOSEN seat's turn order
+	// (CR 103.5 reads the starting player). A terminal deal (nobody or one
+	// survivor) and a toss winner the deal eliminated have no chooser and
+	// run startPostDealSetup here, byte-identical to the pre-choice engine.
+	choicePending := tossAsk && !e.G.Over && len(alive) > 1 && toss >= 0 && toss < len(e.G.Players) &&
+		!e.G.Players[toss].Lost
+	if choicePending {
+		e.tossChoice = tossChoice{active: true, winner: start}
+	}
 	// The resolved toss is authoritative genesis state, not merely a Note or
 	// the later TurnChange: opening-hand effects and Count$StartingPlayer run
 	// before turn one. Fold it through events.Apply without appending a new
@@ -1919,14 +1964,15 @@ func newWithRNG(cfg Config, random *rng) *Engine {
 	// of the game is simply skipped in turn order everywhere else (NextAlive,
 	// priority); resolveToss is genesis's own equivalent for the very first
 	// turn.
-	if !e.G.Over {
+	if !e.G.Over && !choicePending {
 		// CR 103.1's resolution, now that the deal has fixed the survivors:
 		// beginTurn records start in its ordinary TurnChange. The resolved seat
 		// is also state.Game.StartingPlayer now (folded above without a new
 		// event: genesis is replayed from Config, including its seeded toss, so
 		// preserving the historic event stream keeps recorded matches
 		// replayable), which is what view's pregame projection and the
-		// Count$StartingPlayer head read.
+		// Count$StartingPlayer head read. With the choice pending this is
+		// deferred to resolveStartingPlayer (rules/starting_player_choice.go).
 		e.startPostDealSetup()
 	}
 	return e
@@ -2870,7 +2916,14 @@ func (e *Engine) drainDeferredAsks() {
 }
 
 // Advance runs engine work until a decision is required or the game ends.
+// A still-pending CR 103.1 winner-chooses choice (rules/starting_player_choice.go)
+// is defaulted HERE, at the loop head -- never inside step(), which the
+// resolution machinery calls mid-game; a hand-built mid-game engine must
+// never find genesis work waiting for it.
 func (e *Engine) Advance() {
+	if e.tossChoice.active && e.pending == nil {
+		e.resolveTossChoiceDefault()
+	}
 	for !e.G.Over && e.pending == nil {
 		e.step()
 	}

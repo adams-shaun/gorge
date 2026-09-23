@@ -1103,6 +1103,11 @@ func (e *Engine) handle(d *decision.Decision, in decision.Intent) {
 		// (RearrangeTopOfLibrary, Ponder) -- the KArrange sibling of the
 		// KModes case above, only ever asked mid-resolution.
 		e.handleArrange(d, in)
+	case decision.KStartingPlayer:
+		// CR 103.1's second half: the toss winner's choice of the first-turn
+		// seat (rules/starting_player_choice.go). It is asked at genesis,
+		// after the opening deal, and its answer opens the pregame rounds.
+		e.handleStartingPlayer(d, in)
 	}
 }
 

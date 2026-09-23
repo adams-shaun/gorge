@@ -43,7 +43,9 @@ const (
 	// recorded in that ticket's commit message and report, not a new row.
 	// The PayLife<X> replacement closure (cli-20260922T225142Z-226d3d19)
 	// deletes one further row (main measured 15 against a stale constant of 16).
-	knownApproximationRows = 14
+	// The CR 103.1 toss-choice closure (cli-20260922T225141Z-e771720d)
+	// deletes one more (toss-choice row).
+	knownApproximationRows = 13
 
 	// standInCellLimit is the size cap, in bytes, on a row's Stand-in cell: what
 	// still deviates today, plus any decision a future implementer must honour.
