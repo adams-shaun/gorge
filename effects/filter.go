@@ -3293,20 +3293,43 @@ func MatchesSpec(g *state.Game, spec string, id state.ObjID, you state.PlayerID)
 // It recognizes the state-local Active and life comparison qualifiers used by
 // life triggers/replacements; every other qualifier still fails closed.
 func MatchesPlayerSpec(g *state.Game, spec string, p, you state.PlayerID) bool {
-	return MatchesPlayerSpecFrom(g, spec, p, you, 0)
+	return MatchesPlayerSpecCtx(g, spec, p, you, PlayerSpecCtx{})
 }
 
-// MatchesPlayerSpecFrom also resolves Player.Chosen and Player.IsRemembered
-// against the source object's event-backed choice state. Keeping the source
-// explicit lets ordinary player filters retain their existing API while
-// trigger matching can supply its owning permanent.
+// MatchesPlayerSpecFrom resolves the source object's event-backed choice and
+// attachment state (Player.Chosen, Player.IsRemembered and
+// Player.EnchantedController). Keeping the source explicit lets ordinary
+// player filters retain their existing API while trigger matching can supply
+// its owning permanent.
 func MatchesPlayerSpecFrom(g *state.Game, spec string, p, you state.PlayerID, source state.ObjID) bool {
+	return MatchesPlayerSpecCtx(g, spec, p, you, PlayerSpecCtx{Source: source})
+}
+
+// PlayerSpecCtx carries the event-role bindings a player filter can need
+// beyond the source object. Source is the object whose attachment and choice
+// state a Player.EnchantedController / Player.IsRemembered clause resolves
+// against. DefendingPlayer is the defending-player role of the triggering
+// event, which Player.TriggeredDefendingPlayer names; it is absent (IsPlayer
+// false) outside a trigger that carries one, so that clause fails closed.
+// Both fields are plain data so the four rule-engine call sites (a trigger
+// match, a static actor match and a layer restriction) can populate them
+// without a resolver callback.
+type PlayerSpecCtx struct {
+	Source          state.ObjID
+	DefendingPlayer state.Target
+}
+
+// MatchesPlayerSpecCtx is the full player-side filter: the same grammar as
+// MatchesPlayerSpecFrom, with the caller's event-role bindings supplied.
+// Every rule resolves here, so a trigger match, a static actor match and a
+// layer restriction agree by construction rather than by parallel copies.
+func MatchesPlayerSpecCtx(g *state.Game, spec string, p, you state.PlayerID, pc PlayerSpecCtx) bool {
 	for _, alt := range strings.Split(spec, ",") {
 		alt = strings.TrimSpace(alt)
 		if alt == "" {
 			continue
 		}
-		if matchesPlayerCompoundFrom(g, alt, p, you, source) {
+		if matchesPlayerCompoundCtx(g, alt, p, you, pc) {
 			return true
 		}
 	}
@@ -3325,7 +3348,7 @@ func MatchesPlayerSpecFrom(g *state.Game, spec string, p, you state.PlayerID, so
 // its random pick always took the no-candidate arm) and a ValidTgts$ pool
 // that admits no target. A clause with no `+` is a one-clause conjunction and
 // behaves exactly as before, so the single-qualifier grammar is unchanged.
-func matchesPlayerCompoundFrom(g *state.Game, alt string, p, you state.PlayerID, source state.ObjID) bool {
+func matchesPlayerCompoundCtx(g *state.Game, alt string, p, you state.PlayerID, pc PlayerSpecCtx) bool {
 	for _, clause := range strings.Split(alt, "+") {
 		clause = strings.TrimSpace(clause)
 		if clause == "" {
@@ -3342,10 +3365,10 @@ func matchesPlayerCompoundFrom(g *state.Game, alt string, p, you state.PlayerID,
 		// would newly admit every un-remembered player for
 		// `Player.Opponent+!IsRemembered` -- a widened pool where the old
 		// grammar matched nobody.
-		if source == 0 && isBarePlayerProperty(clause) {
+		if pc.Source == 0 && isBarePlayerProperty(clause) {
 			return false
 		}
-		if matchesPlayerClauseFrom(g, clause, p, you, source) == neg {
+		if matchesPlayerClauseCtx(g, clause, p, you, pc) == neg {
 			return false
 		}
 	}
@@ -3359,13 +3382,13 @@ func matchesPlayerCompoundFrom(g *state.Game, alt string, p, you state.PlayerID,
 // grammar (matchesPlayerSingleSpec) for a base.qualifier form. An absent
 // source fails the bare property clauses closed, exactly as the qualified
 // `Player.IsRemembered` spelling already does.
-func matchesPlayerClauseFrom(g *state.Game, clause string, p, you state.PlayerID, source state.ObjID) bool {
+func matchesPlayerClauseCtx(g *state.Game, clause string, p, you state.PlayerID, pc PlayerSpecCtx) bool {
 	if !isBarePlayerProperty(clause) {
-		return matchesPlayerSingleSpec(g, clause, p, you, source)
+		return matchesPlayerSingleSpec(g, clause, p, you, pc)
 	}
 	switch clause {
 	case "IsRemembered", "Chosen", "ChosenPlayer":
-		o := g.Obj(source)
+		o := g.Obj(pc.Source)
 		if o == nil {
 			return false
 		}
@@ -3396,11 +3419,11 @@ func isBarePlayerProperty(clause string) bool {
 
 // matchesPlayerSingleSpec is the original single-alternative player-spec
 // evaluator: one clause, no `,` or `+` (the callers above split those).
-func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, source state.ObjID) bool {
+func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, pc PlayerSpecCtx) bool {
 	for _, alt := range strings.Split(spec, ",") {
 		base, qualifier, qualified := strings.Cut(strings.TrimSpace(alt), ".")
 		if (base == "Player" || base == "Any") && qualified && (qualifier == "Chosen" || qualifier == "IsRemembered") {
-			o := g.Obj(source)
+			o := g.Obj(pc.Source)
 			if o == nil {
 				continue
 			}
@@ -3435,13 +3458,13 @@ func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, 
 				// seat qualifies when its battlefield holds an object matching
 				// <objspec> as an object filter, with an optional trailing
 				// _GE<n>-style count comparison. See playerControlsMatches.
-				if playerControlsMatches(g, p, you, source, "Creature", rem) {
+				if playerControlsMatches(g, p, you, pc.Source, "Creature", rem) {
 					return true
 				}
 				continue
 			}
 			if rem, is := strings.CutPrefix(qualifier, "controlsPermanent."); is {
-				if playerControlsMatches(g, p, you, source, "Permanent", rem) {
+				if playerControlsMatches(g, p, you, pc.Source, "Permanent", rem) {
 					return true
 				}
 				continue
@@ -3487,7 +3510,40 @@ func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, 
 			if (base == "Player" || base == "Any") && g.IsMonarch(p) {
 				return true
 			}
+		case "EnchantedController":
+			// Player.EnchantedController (Forge PlayerProperty): the seat is
+			// the controller of the permanent this Aura/Equipment source is
+			// attached to. The link is the source object's own battlefield
+			// state, so a static actor match (Caster$/Activator$/ValidPlayer$),
+			// a phase trigger's ValidPlayer$ and a layer restriction all
+			// resolve it through this one clause.
+			if ctrl, ok := playerEnchantedController(g, pc.Source); ok && ctrl == p {
+				return true
+			}
+		case "TriggeredDefendingPlayer":
+			// Player.TriggeredDefendingPlayer (Forge PlayerProperty): the
+			// seat that defended against the triggering combat. The role is
+			// carried by the caller through PlayerSpecCtx; with no defending
+			// player bound (no trigger, or an event with no defender) the
+			// clause fails closed rather than widening to the trigger's own
+			// controller.
+			if pc.DefendingPlayer.IsPlayer && pc.DefendingPlayer.Player == p {
+				return true
+			}
 		default:
+			// Player.counters_<CMP><n>_<KIND> (Forge PlayerProperty.Counters
+			// spellings, e.g. Player.counters_EQ0_Contract): the seat's
+			// counter count of KIND, read off its event-backed
+			// state.Player.Counters (written only by events.Apply's
+			// PlayerCounterChange), compared with the same <CMP> operators
+			// the object-side counters_ predicate uses. The base has already
+			// matched, so this is a pure player-state read.
+			if op, n, kind, ok := splitPlayerCountCompare(qualifier); ok {
+				if int(p) < len(g.Players) && playerCompare(g.Players[p].Counter(kind), op, n) {
+					return true
+				}
+				continue
+			}
 			// Player.NotedFor<label> (Forge's PlayerProperty.NotedFor): the
 			// seat qualifies when its event-backed note set names <label>.
 			// The label is written by a DB$ Pump body's NoteCardsFor$
@@ -3684,6 +3740,51 @@ func splitPlayerCompare(s string) (string, int32, bool) {
 		return op, int32(n), true
 	}
 	return "", 0, false
+}
+
+// playerEnchantedController returns the controller of the permanent this
+// Aura/Equipment source is attached to, and whether that link exists. A
+// missing source, an unattached source, or a bearer that has left the game
+// fails closed. Aura attachment to a PLAYER (a Curse's "enchant player") is
+// not modelled by this engine -- attach destinations exclude players -- so
+// Player.EnchantedBy stays fail-closed until that representation exists.
+func playerEnchantedController(g *state.Game, source state.ObjID) (state.PlayerID, bool) {
+	o := g.Obj(source)
+	if o == nil || o.AttachedTo == 0 {
+		return 0, false
+	}
+	bearer := g.Obj(o.AttachedTo)
+	if bearer == nil {
+		return 0, false
+	}
+	return bearer.Controller, true
+}
+
+// splitPlayerCountCompare parses Forge's player-counter qualifier
+// counters_<CMP><n>_<KIND> (e.g. counters_EQ0_Contract). It mirrors the
+// object-side counters_ predicate's grammar so the player and object
+// spellings cannot drift; an unknown <CMP>, a missing/empty KIND or a
+// non-integer RHS fails closed (a resolver-bearing RHS is not carried on the
+// player side, so a symbolic RHS is simply unrecognised).
+func splitPlayerCountCompare(s string) (string, int32, string, bool) {
+	rest, ok := strings.CutPrefix(s, "counters_")
+	if !ok || len(rest) < 4 {
+		return "", 0, "", false
+	}
+	op := rest[:2]
+	numStr, kind, okSplit := strings.Cut(rest[2:], "_")
+	if !okSplit || kind == "" {
+		return "", 0, "", false
+	}
+	n, err := strconv.Atoi(numStr)
+	if err != nil {
+		return "", 0, "", false
+	}
+	switch op {
+	case "GE", "GT", "EQ", "LE", "LT":
+		return op, int32(n), kind, true
+	}
+	return "", 0, "", false
 }
 
 func playerCompare(have int32, op string, want int32) bool {

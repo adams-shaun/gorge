@@ -1050,7 +1050,10 @@ func (e *Engine) damageMatches(t cards.Trigger, source state.ObjID, ev events.Ev
 			if !e.matchesSpec(v, ev.Obj, e.specCtx(source, ctrl)) {
 				return false
 			}
-		} else if !effects.MatchesPlayerSpecFrom(e.G, v, ev.Player, ctrl, source) {
+		} else if !effects.MatchesPlayerSpecCtx(e.G, v, ev.Player, ctrl, effects.PlayerSpecCtx{
+			Source:          source,
+			DefendingPlayer: state.Target{Player: ev.Player, IsPlayer: true},
+		}) {
 			return false
 		}
 	}
@@ -1083,7 +1086,10 @@ func (e *Engine) damagePreventedMatches(t cards.Trigger, source state.ObjID, ev 
 			if !e.matchesSpec(v, ev.Obj, e.specCtx(source, ctrl)) {
 				return false
 			}
-		} else if !effects.MatchesPlayerSpecFrom(e.G, v, ev.Player, ctrl, source) {
+		} else if !effects.MatchesPlayerSpecCtx(e.G, v, ev.Player, ctrl, effects.PlayerSpecCtx{
+			Source:          source,
+			DefendingPlayer: state.Target{Player: ev.Player, IsPlayer: true},
+		}) {
 			return false
 		}
 	}
