@@ -175,6 +175,11 @@ type Option struct {
 	// non-required option emits no field, so every existing option list
 	// serialises byte-identically.
 	Required bool `json:"required,omitempty"`
+	// BlockMust records a MustBlock candidate even when another candidate
+	// is highlighted as Required on the wire. A legal declaration can meet
+	// the same maximum with a different blocker or attacker; the quota must
+	// count that alternative too. Server-side only.
+	BlockMust bool `json:"-"`
 	// MinBlockers/MaxBlockers are the CR 509.1a MinMaxBlocker bounds on the
 	// ATTACKER this block option names (Min$ N: the attacker can be blocked
 	// only by 0 or at least N creatures; Max$ N: by at most N; both set)

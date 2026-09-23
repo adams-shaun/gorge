@@ -1,0 +1,197 @@
+package decision
+
+import "github.com/adams-shaun/gorge/state"
+
+// blockRequiredCore finds the largest legal team of required blockers (CR
+// 509.1c). Unlike a pairwise matching, a block of a Min$ N attacker is legal
+// only when the rest of the team can join it. The same result supplies the
+// engine's quota and the bot's repair; no separate board-side feasibility
+// estimate can disagree with it. Called only on decisions with MustBlock.
+func (d *Decision) blockRequiredCore() []int {
+	type blocker struct {
+		id       state.ObjID
+		opts     []int
+		required bool
+	}
+	var blocks []blocker
+	pos := make(map[state.ObjID]int)
+	minAttackers := make(map[state.ObjID]bool)
+	for _, o := range d.Options {
+		if (o.BlockMust || o.Required) && o.MinBlockers > 1 {
+			minAttackers[o.Attacker] = true
+		}
+	}
+	for i, o := range d.Options {
+		p, ok := pos[o.Obj]
+		if !ok {
+			p = len(blocks)
+			pos[o.Obj] = p
+			blocks = append(blocks, blocker{id: o.Obj})
+		}
+		blocks[p].required = blocks[p].required || o.BlockMust || o.Required
+		blocks[p].opts = append(blocks[p].opts, i)
+	}
+	// Required creatures first; ordinary blockers need only be considered
+	// as helpers for a required block with a multi-blocker minimum.
+	var candidates []blocker
+	for _, b := range blocks {
+		if b.required {
+			candidates = append(candidates, b)
+		}
+	}
+	requiredCount := len(candidates)
+	if requiredCount == 0 {
+		return nil
+	}
+	for _, b := range blocks {
+		if b.required {
+			continue
+		}
+		var helper blocker
+		helper.id = b.id
+		for _, i := range b.opts {
+			if minAttackers[d.Options[i].Attacker] {
+				helper.opts = append(helper.opts, i)
+			}
+		}
+		if len(helper.opts) != 0 {
+			candidates = append(candidates, helper)
+		}
+	}
+	counts := make(map[state.ObjID]int)
+	var chosen, best []int
+	bestRequired := -1
+	bestLength := int(^uint(0) >> 1)
+	var search func(int, int, int)
+	search = func(at, satisfied, spent int) {
+		if bestRequired == requiredCount {
+			return
+		}
+		remaining := requiredCount - at
+		if remaining < 0 {
+			remaining = 0
+		}
+		if satisfied+remaining < bestRequired {
+			return
+		}
+		if at == len(candidates) {
+			for _, ci := range chosen {
+				o := d.Options[ci]
+				if o.MinBlockers > counts[o.Attacker] {
+					return
+				}
+			}
+			if satisfied > bestRequired || (satisfied == bestRequired && len(chosen) < bestLength) {
+				bestRequired, bestLength = satisfied, len(chosen)
+				best = append([]int(nil), chosen...)
+			}
+			return
+		}
+		b := candidates[at]
+		try := func(ci int) {
+			o := d.Options[ci]
+			if len(chosen) >= d.maxChoices() || (d.HasBudget() && spent+o.Value > d.MaxSum) {
+				return
+			}
+			if o.MaxBlockers > 0 && counts[o.Attacker] >= o.MaxBlockers {
+				return
+			}
+			counts[o.Attacker]++
+			chosen = append(chosen, ci)
+			add := 0
+			if b.required {
+				add = 1
+			}
+			search(at+1, satisfied+add, spent+o.Value)
+			chosen = chosen[:len(chosen)-1]
+			counts[o.Attacker]--
+		}
+		if b.required {
+			// Prefer a legal singleton over a multi-blocker team when both
+			// discharge the same requirement; this also keeps a Min$ attacker
+			// available to an actual team if another required blocker needs it.
+			for _, ci := range b.opts {
+				if d.Options[ci].MinBlockers <= 1 {
+					try(ci)
+				}
+			}
+			for _, ci := range b.opts {
+				if d.Options[ci].MinBlockers > 1 {
+					try(ci)
+				}
+			}
+			search(at+1, satisfied, spent)
+		} else {
+			search(at+1, satisfied, spent)
+			for _, ci := range b.opts {
+				try(ci)
+			}
+		}
+	}
+	search(0, 0, 0)
+	return best
+}
+
+func (d *Decision) hasRequiredBlocks() bool {
+	for _, o := range d.Options {
+		if o.BlockMust || o.Required {
+			return true
+		}
+	}
+	return false
+}
+
+func (d *Decision) blockRequiredQuota() int {
+	n := 0
+	seen := make(map[state.ObjID]bool)
+	for _, ci := range d.blockRequiredCore() {
+		o := d.Options[ci]
+		if (o.BlockMust || o.Required) && !seen[o.Obj] {
+			seen[o.Obj] = true
+			n++
+		}
+	}
+	return n
+}
+
+func (d *Decision) blockAnswerLegal(choices []int) bool {
+	if len(choices) > d.maxChoices() || !d.blockCountLegal(choices) {
+		return false
+	}
+	sum := 0
+	groups := make(map[string]bool)
+	for _, ci := range choices {
+		o := d.Options[ci]
+		if o.Group != "" && groups[o.Group] {
+			return false
+		}
+		groups[o.Group] = true
+		sum += o.Value
+	}
+	return !d.HasBudget() || sum <= d.MaxSum
+}
+
+// BlockRequiredTeam is the legal maximum team over all MustBlock candidates.
+// Rules uses it when constructing the offer to highlight one feasible team.
+func (d *Decision) BlockRequiredTeam() []int {
+	return d.blockRequiredCore()
+}
+
+// blockCountLegal checks published per-attacker team minima and maxima on an
+// already selected answer. The engine still checks its live board bounds.
+func (d *Decision) blockCountLegal(choices []int) bool {
+	counts := make(map[state.ObjID]int)
+	for _, ci := range choices {
+		if ci < 0 || ci >= len(d.Options) {
+			return false
+		}
+		counts[d.Options[ci].Attacker]++
+	}
+	for _, ci := range choices {
+		o := d.Options[ci]
+		if counts[o.Attacker] < o.MinBlockers || (o.MaxBlockers > 0 && counts[o.Attacker] > o.MaxBlockers) {
+			return false
+		}
+	}
+	return true
+}
