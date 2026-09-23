@@ -1,5 +1,10 @@
 # Merge-conflict resolution — task cli-20260922T225140Z-6a16cd8c
 
+(Record 1 below is this ticket's first integration round, kept from the
+branch side; record 2 is the 68ca4d95 legend-rule ticket's record that main
+carried in via `08955738`. Both are kept verbatim; record 3 is appended by
+the round-2 docs commit.)
+
 ## Starting state
 
 `git status` found the tree CLEAN — no rebase or merge in flight. The
@@ -97,3 +102,55 @@ three sides; no other constant changed.
 - I chose merge (matching the daemon's own fallback path) over rebase since
   no operation was in flight and rebase of 4 commits would re-conflict the
   same two hunks; the merge preserves both histories verbatim.
+
+---
+
+## Record 2 — main's side (68ca4d95 legend-rule ticket, via main commit `08955738`)
+
+# Merge-conflict resolution report — mrg1
+
+## Conflicted files
+
+- `AGENTS.md` — the only unmerged path.
+
+## Resolution
+
+The initial `git status` showed a clean worktree and no active rebase/merge, so I completed integration with the main branch via `git merge main`. That merge conflicted in `AGENTS.md` at the adjacent Known approximations rows.
+
+- The branch side contained the new main-side approximation for the `KReplacement` bot fallback. Main contained the obsolete CR 704.5j legend-rule row, which this reviewed branch closes by adding the controller choice.
+- Kept main's `KReplacement` row and removed the superseded legend-rule row, preserving both current intents. No other conflict markers or unmerged paths remained.
+- Completed the merge as `760578de` (`Merge branch 'main' into wt/cli-20260922T225140Z-68ca4d95`).
+
+## Commands and output
+
+- `git status --short --branch && git status`
+  ```
+  ## wt/cli-20260922T225140Z-68ca4d95
+  On branch wt/cli-20260922T225140Z-68ca4d95
+  nothing to commit, working tree clean
+  ```
+- `git merge main`
+  ```
+  Auto-merging AGENTS.md
+  CONFLICT (content): Merge conflict in AGENTS.md
+  Automatic merge failed; fix conflicts and then commit the result.
+  ```
+- `git add AGENTS.md && GIT_EDITOR=true git merge --continue`
+  ```
+  [wt/cli-20260922T225140Z-68ca4d95 760578de] Merge branch 'main' into wt/cli-20260922T225140Z-68ca4d95
+  ```
+- Corpus check: `.cards` was present.
+- `go test -run 'TestLegendRule' ./rules/`
+  ```
+  ok  github.com/adams-shaun/gorge/rules  0.008s
+  ```
+- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`
+  ```
+  ok  github.com/adams-shaun/gorge/rules  0.759s
+  ```
+- Final `git status --short --branch`
+  ```
+  ## wt/cli-20260922T225140Z-68ca4d95
+  ```
+
+No uncertainty remained in the conflict resolution. No non-conflict files were manually changed.

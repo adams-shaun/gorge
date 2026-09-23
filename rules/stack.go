@@ -2098,11 +2098,9 @@ func (e *Engine) targetControllerSeat(t state.Target) (state.PlayerID, bool) {
 // target whose controller already appears. A controller change in response can
 // make two targets share a controller, and a resolution must never act on a
 // set the targeting requirement forbids; keeping the earliest chosen target is
-// the deterministic, order-stable reading (the same "first in the recorded
-// order" discipline legendCasualties uses for its scan-order survivor). It is
-// applied only to the flag-bearing SA, after the ordinary per-target legality
-// recheck, so it only ever REMOVES a target -- it can never widen a set the
-// per-target filter already narrowed.
+// the deterministic, order-stable reading. It is applied only to the flag-bearing
+// SA, after the ordinary per-target legality recheck, so it only ever REMOVES a
+// target -- it can never widen a set the per-target filter already narrowed.
 func (e *Engine) narrowDifferentControllers(targets []state.Target) []state.Target {
 	seen := map[state.PlayerID]bool{}
 	out := targets[:0:0]
