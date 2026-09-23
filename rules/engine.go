@@ -732,7 +732,11 @@ type Engine struct {
 	echo *echoFlow
 
 	// wardMana holds a CR 702.21a mana-payment window while a Ward trigger
-	// is resolving. It is plain data so Clone preserves the suspended choice.
+	// is resolving, and (one shared owner, ruling T21-e) the same CR 601.2g
+	// window for a mid-resolution UnlessCost$ (the `unless_pay` resume arm),
+	// so a payer with an untapped source -- and a stat:ManaConvert conversion
+	// -- can pay a cost its floating pool cannot cover. It is plain data so
+	// Clone preserves the suspended choice.
 	wardMana *wardManaPayment
 
 	// attackPay holds the declare-attackers attack-cost payment window

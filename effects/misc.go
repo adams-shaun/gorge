@@ -627,8 +627,8 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			}
 			h.AddContinuous(ce)
 			registered = true
-		case "ReduceCost", "RaiseCost", "SetCost", "AlternativeCost":
-			// An Effect-delivered cost-modifier static (task
+		case "ReduceCost", "RaiseCost", "SetCost", "AlternativeCost", "ManaConvert":
+			// An Effect-delivered cost-modifier or ManaConvert static (task
 			// param:api:Effect.ForgetOnCast; Marshland Bloodcaster's "Rather
 			// than pay the mana cost of the next spell you cast this turn, you
 			// may pay life equal to that spell's mana value", plus the 11
@@ -643,7 +643,8 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// line carrying a scoping parameter this build does not evaluate
 			// must not register blanket -- it is reported unimplemented
 			// instead (the permissive direction for a grant).
-			if !CostStaticParamsReadable(params) {
+			if (mode == "ManaConvert" && !ManaConvertParamsReadable(params)) ||
+				(mode != "ManaConvert" && !CostStaticParamsReadable(params)) {
 				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 					Text: "continuous effect " + mode + " unimplemented (" + what + ")"})
 				registered = true
@@ -684,6 +685,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				ForgetCounter:    forgetCounter,
 				ForgetOnCast:     forgetOnCast,
 				CostStaticMode:   mode,
+				CostStaticSVars:  c.SVars,
 				CostStaticParams: params,
 				ChosenNumber:     chosenNumber,
 			}
@@ -1367,6 +1369,25 @@ func CanAttackDefenderGrantParamsReadable(params map[string]string) bool {
 	for k := range params {
 		switch k {
 		case "Mode", "ValidCard", "ValidCards", "ValidTarget", "ValidAttacked", "Description", "Secondary":
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// ManaConvertParamsReadable is the deliberately narrow whitelist for an
+// Effect-delivered ManaConvert static. Unknown qualifiers fail closed rather
+// than granting a conversion with a scope the payment path cannot evaluate.
+// AffectedZone$ is admitted because the real corpus carrier (Abstruse
+// Appropriation's `ManaConvert | ValidCard$ Card.IsRemembered | ValidSA$
+// Spell.MayPlaySource | AffectedZone$ Exile`) names the zone the remembered
+// card is cast FROM; rules/mana_convert.go enforces that scope against the
+// cast's origin zone, so admitting it here is not a blanket grant.
+func ManaConvertParamsReadable(params map[string]string) bool {
+	for k := range params {
+		switch k {
+		case "Mode", "ValidCard", "ValidSA", "ValidPlayer", "ManaConversion", "Optional", "EffectZone", "AffectedZone", "Description", "SpellDescription":
 		default:
 			return false
 		}

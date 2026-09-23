@@ -142,7 +142,12 @@ var baseBuckets = map[string]bucket{
 	// ResolvedLimit$ (the per-turn resolution cap's increment eligibility).
 	"rt": bTrig,
 	"s":  bStat, "st": bStat, "sv": bStat,
-	"r": bRepl, "repl": bRepl, "m.repl": bRepl, "c.repl": bRepl,
+	// pst.Static is manaConversionParts' PileStaticAt element (state.PileStatic
+	// -- the merged-under-card static walk): its Static is a cards.Static whose
+	// Params (EffectZone$) is the same static parameter map every bStat entry
+	// covers.
+	"pst.Static": bStat,
+	"r":          bRepl, "repl": bRepl, "m.repl": bRepl, "c.repl": bRepl,
 	"sa": bSA, "ab": bSA, "sub": bSA, "cp": bSA, "copy": bSA,
 	// a is faceWantsConvoked's compiled-ability walk (the face's Abilities
 	// slice): each element is a *cards.SA whose Defined$ parameter the
