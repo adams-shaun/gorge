@@ -91,3 +91,64 @@ $ git diff --check
 ## Issues
 
 No new engine defects found in sol2. Pre-existing plural-target `AttachedTo Targeted` limitations and the separate Defined-selector issue are documented in `.ds4/report-r2.md`'s ticket report copy (`.ds4/scratch/report-r2-pre-sol2.md`) and earlier commit messages; no new or grown AGENTS.md row. Integration/rebase remains for the controller, not this worktree.
+
+---
+
+# Bare Vanishing — sol2 merge-blocker resolution (agent-20260923T145419Z-c0d85ef9)
+
+## Finding resolved
+
+`findings-sol2.md` reports rebase/merge blocked by three unstaged report overwrites. I copied the overwritten bytes to ignored `.ds4/scratch/vanishing-report-{r2,sol1,t1}-pre-sol2.md`, then restored `.ds4/report-r2.md`, `.ds4/report-sol1.md`, and `.ds4/report-t1.md` exactly from `HEAD` with `git show HEAD:<path>`. `git status --short` and `git diff --check` printed nothing afterward. The existing unrelated sol2 reports in this file are preserved above; this addendum is committed so the worktree remains clean. Integration/rebase belongs to the controller, not this worktree.
+
+## Work already committed
+
+`09c5dcea` changes `cards/kw_vanishing.go` so only the fixed-N replacement is conditional; `cards/kw_vanishing_bare_test.go` asserts bare triggers without a replacement and numeric preservation. `7c11a324` leaves `DB$ Phases` loudly unsupported rather than falsely registering incomplete global phasing. `rules/vanishing_oot_test.go` verifies unassisted dynamic entry counters from Tidewalker's Island count, and Out of Time's printed dynamic count, upkeep tick, and last-counter sacrifice after the fixture supplies remembered creatures through events. No GPL card scripts or Known-approximations rows changed. `.cards` was present as a symlink to the real corpus, not a skipped corpus run. No head/ratchet movement measured in this seat.
+
+## Fails without the fix
+
+The previous round copied `cards/kw_vanishing.go` into `.ds4/scratch`, reinstated the original early return while keeping the tests, ran the focused tests, then restored the source byte-identically (`cmp` passed). Its recorded output, preserved in `.ds4/scratch/vanishing-report-sol1-pre-sol2.md`:
+
+```
+--- FAIL: TestVanishingBareExpansion (0.00s)
+    kw_vanishing_bare_test.go:15: bare Vanishing triggers = 0, want upkeep removal and last-counter sacrifice
+FAIL
+FAIL github.com/adams-shaun/gorge/cards 0.002s
+--- FAIL: TestVanishingTidewalkerDynamicCountUpkeepAndLastCounter (0.61s)
+    vanishing_oot_test.go:71: controller upkeep put 0 stack objects, want one Vanishing removal trigger
+--- FAIL: TestVanishingOutOfTimeDynamicCountUpkeepAndLastCounter (0.00s)
+    vanishing_oot_test.go:202: controller upkeep put 0 stack objects, want one Vanishing removal trigger
+--- FAIL: TestVanishingOutOfTimeSeededCounterClock (0.00s)
+    vanishing_oot_test.go:257: controller upkeep put 0 stack objects, want one Vanishing removal trigger
+FAIL
+FAIL github.com/adams-shaun/gorge/rules 0.642s
+FAIL
+exit=1
+restored-byte-identical
+```
+
+No new test or production change in sol2; no repeated revert test needed.
+
+## Gates (this round; exact commands and output)
+
+```
+$ go test -run 'TestVanishingExpansion|TestVanishingBare|TestVanishingOutOfTime|TestVanishingTidewalker|TestVanishingDeepForestHermit|TestVanishingOnlyTriggers' ./cards/ ./rules/
+ok  	github.com/adams-shaun/gorge/cards	0.003s
+ok  	github.com/adams-shaun/gorge/rules	0.668s
+exit=0
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	(cached)
+exit=0
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	(cached)
+exit=0
+$ gofmt -l cards/kw_vanishing.go cards/kw_vanishing_bare_test.go rules/vanishing_oot_test.go
+exit=0
+$ go run ./cmd/gentypes -check
+exit=0
+```
+
+No full package suite run in the seat.
+
+## Issues
+
+Out of Time's `DB$ Phases` remains unimplemented (`effects/registry.go` fallback) and cannot populate remembered creatures or phase them out; this fixture provides only event-backed remembered count inputs, not phasing semantics. The separate CR 702.25 phasing ticket is filed at `.ds4/new-tickets/faithful-phasing-layer.md.filed` (earlier census: 39 `DB$ Phases` carriers). No new defects found in this round.
