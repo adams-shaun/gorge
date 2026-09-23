@@ -2944,7 +2944,7 @@ func (e *Engine) restrictionActorMatches(ce ContinuousEffect, actor state.Player
 	if !ok {
 		return true
 	}
-	return effects.MatchesPlayerSpec(e.G, spec, actor, ce.Controller)
+	return effects.MatchesPlayerSpecCtx(e.G, spec, actor, ce.Controller, effects.PlayerSpecCtx{Source: ce.Source})
 }
 
 // SacrificeBlocked implements effects.Host for the CantSacrifice restriction

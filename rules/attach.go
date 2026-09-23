@@ -3,6 +3,7 @@ package rules
 import (
 	"strings"
 
+	"github.com/adams-shaun/gorge/effects"
 	"github.com/adams-shaun/gorge/events"
 	"github.com/adams-shaun/gorge/state"
 )
@@ -48,6 +49,19 @@ func (e *Engine) attachmentSBAs() bool {
 		for _, id := range ids {
 			o := e.G.Obj(id)
 			if o == nil {
+				continue
+			}
+			if o.HasAttachedPlayer {
+				// Enchant:Player Auras have no object bearer. A lost seat
+				// cannot remain enchanted (CR 800.4), and an illegal
+				// attachment takes the same graveyard SBA as an object Aura.
+				p := o.AttachedPlayer
+				if !isAura(o) || int(p) >= len(e.G.Players) || e.G.Players[p].Lost ||
+					!e.playerAuraStillMatchesEnchant(o, p) {
+					e.emit(events.Event{Kind: events.MoveZone, Obj: id,
+						From: state.ZBattlefield, To: state.ZGraveyard, Text: "illegal player attachment"})
+					changed = true
+				}
 				continue
 			}
 			if o.AttachedTo == 0 {
@@ -146,6 +160,18 @@ func (e *Engine) auraStillMatchesEnchant(o, bearer *state.Object) bool {
 	}
 	spec, _, _ := strings.Cut(param, ":")
 	return e.matchesSpecFrom(strings.TrimSpace(spec), bearer.ID, o.Controller, o.ID)
+}
+
+func (e *Engine) playerAuraStillMatchesEnchant(o *state.Object, p state.PlayerID) bool {
+	if o.Face() == nil {
+		return false
+	}
+	param, ok := o.Face().KeywordParam("Enchant")
+	if !ok {
+		return false
+	}
+	spec, _, _ := strings.Cut(param, ":")
+	return effects.MatchesPlayerSpecFrom(e.G, strings.TrimSpace(spec), p, o.Controller, o.ID)
 }
 
 // isAura reports whether a permanent has the Aura subtype.

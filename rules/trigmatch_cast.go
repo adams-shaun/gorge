@@ -102,7 +102,7 @@ func (e *Engine) spellCastEval(t cards.Trigger, source state.ObjID, ev events.Ev
 		castAlts = alts
 	}
 	if v, ok := t.Params["ValidActivatingPlayer"]; ok {
-		if !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+		if !effects.MatchesPlayerSpecCtx(e.G, v, ev.Player, ctrl, effects.PlayerSpecCtx{Source: source}) {
 			return false
 		}
 	}
@@ -268,9 +268,10 @@ func (e *Engine) spellAbilityCastSpellMatches(t cards.Trigger, source state.ObjI
 	}
 	ctrl := e.controllerOf(source)
 	if v, ok := t.Params["ValidActivatingPlayer"]; ok {
-		// ev.Player is the player who cast the spell; MatchesPlayerSpec
-		// resolves "You" as the trigger's controller.
-		if !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+		// ev.Player is the player who cast the spell; MatchesPlayerSpecCtx
+		// resolves "You" as the trigger's controller and
+		// Player.EnchantedController against the trigger's source permanent.
+		if !effects.MatchesPlayerSpecCtx(e.G, v, ev.Player, ctrl, effects.PlayerSpecCtx{Source: source}) {
 			return false
 		}
 	}
@@ -401,8 +402,8 @@ func (e *Engine) abilityCastMatches(t cards.Trigger, source state.ObjID, ev even
 	ctrl := e.controllerOf(source)
 	if v, ok := t.Params["ValidActivatingPlayer"]; ok {
 		// ev.Player is the player who activated the ability;
-		// MatchesPlayerSpec resolves "You" as the trigger's controller.
-		if !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
+		// MatchesPlayerSpecCtx resolves "You" as the trigger's controller.
+		if !effects.MatchesPlayerSpecCtx(e.G, v, ev.Player, ctrl, effects.PlayerSpecCtx{Source: source}) {
 			return false
 		}
 	}
