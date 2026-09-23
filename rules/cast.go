@@ -128,13 +128,6 @@ type pendingCast struct {
 	// announced value into that filter). Empty on every ordinary cast.
 	announceX string
 
-	// sameCtrlTargets is the TargetsWithSameController$ True rider (Lodestone
-	// Bauble): every target this cast's announcement chooses must share one
-	// controller — in a graveyard, its owner. The offered option list spans
-	// every player's graveyard, so the pairwise constraint is enforced at
-	// Submit (validateCastContributions' preserve-and-reject shape), not by
-	// an option-list shape the wire cannot express.
-	sameCtrlTargets bool
 	// suspendTimeX makes the chosen cast X also set the number of TIME
 	// counters; suspendMinX is Forge's XMin<N> lower bound.
 	suspendTimeX bool
@@ -239,14 +232,17 @@ type pendingCast struct {
 	discards    []state.ObjID
 	discardPart int
 
-	// SubCounter cost parts whose removal-target field names a filter
-	// (SubCounter<N|X/Kind/Target>) record their chosen removal target here:
-	// the KChoose answer's object, or the sole candidate when the ask was
-	// never posed (the strict-supersets convention -- the settlement event
-	// records the object, so replay re-derives it). subCounterPart walks the
-	// parts in cost order like sacPart. Plain data, so Clone copies it like
-	// sacs/discards.
-	subCtrs        []state.ObjID
+	// subCounterPays records the counter-removal picks of every SubCounter
+	// part, each entry tagged with the part index it belongs to. A
+	// fixed-kind filtered part (SubCounter<N/Kind/Target>) records ONE entry
+	// carrying the object it removes from, with an empty Kind; a wildcard
+	// "Any" part records ONE entry per counter unit removed, each carrying
+	// the object AND the chosen counter kind. Grouping by explicit part index
+	// (rather than a positional append) is what keeps a cost mixing a
+	// fixed-kind part before a wildcard part from mis-indexing the selected
+	// kind. subCounterPart walks the parts in cost order like sacPart. Plain
+	// data, so Clone copies it like sacs/discards.
+	subCounterPays []subCounterPay
 	subCounterPart int
 
 	// convoke is the announced set of creatures paying Convoke or Harmonize.
@@ -437,6 +433,18 @@ type pendingCast struct {
 	reveals, beholds, taps, blights             []state.ObjID
 	revealPart, beholdPart, tapPart, blightPart int
 	forageDone                                  bool
+}
+
+// subCounterPay is one counter removed to pay a SubCounter cost part: the
+// part it belongs to, the object the counter comes off, and (for a wildcard
+// "Any" part) the chosen counter kind. A fixed-kind filtered part records a
+// single entry with an empty Kind and settles the part's whole amount from
+// part.Spec; a wildcard part records one entry per unit, each settling one
+// counter of its chosen kind.
+type subCounterPay struct {
+	part int
+	obj  state.ObjID
+	kind string
 }
 
 // etbChoice is one "as this enters" choice, pre-computed: its kind
@@ -783,7 +791,7 @@ func (e *Engine) conspireCandidates(p state.PlayerID, id state.ObjID) []state.Ob
 		if co == nil || co.Tapped {
 			continue
 		}
-		if !effects.MatchesSpecFrom(e.G, "Creature.YouCtrl", cid, p, id) {
+		if !e.matchesSpecFrom("Creature.YouCtrl", cid, p, id) {
 			continue
 		}
 		colors := e.objColors(co)
@@ -1037,7 +1045,7 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 			if reserved[oid] || e.SacrificeBlocked(oid, true) { // an earlier Sac part already claimed this one; a CantSacrifice-blocked one can never pay
 				continue
 			}
-			if effects.MatchesSpecFrom(e.G, matchSpec, oid, p, id) {
+			if e.matchesSpecFrom(matchSpec, oid, p, id) {
 				avail = append(avail, oid)
 			}
 		}
@@ -1074,7 +1082,7 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 			if reserved[oid] || (selfInZone && oid == id) {
 				continue
 			}
-			if effects.MatchesSpecFrom(e.G, part.Spec, oid, p, id) {
+			if e.matchesSpecFrom(part.Spec, oid, p, id) {
 				avail = append(avail, oid)
 			}
 		}
@@ -1207,7 +1215,7 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 			if reserved[oid] {
 				continue
 			}
-			if effects.MatchesSpecFrom(e.G, spec, oid, p, id) {
+			if e.matchesSpecFrom(spec, oid, p, id) {
 				avail = append(avail, oid)
 			}
 		}
@@ -1243,7 +1251,7 @@ func (e *Engine) nonManaCastable(p state.PlayerID, id state.ObjID, cost Cost, ab
 			if reserved[oid] {
 				continue
 			}
-			if effects.MatchesSpecFrom(e.G, spec, oid, p, id) {
+			if e.matchesSpecFrom(spec, oid, p, id) {
 				avail = append(avail, oid)
 			}
 		}
@@ -1463,7 +1471,7 @@ func (e *Engine) costCandidates(p state.PlayerID, source state.ObjID, zone state
 		if o == nil || (excludeSource && id == source) || (untapped && o.Tapped) {
 			continue
 		}
-		if effects.MatchesSpecFrom(e.G, spec, id, p, source) {
+		if e.matchesSpecFrom(spec, id, p, source) {
 			out = append(out, id)
 		}
 	}
@@ -1501,7 +1509,7 @@ func (e *Engine) discardCandidates(p state.PlayerID, source state.ObjID, part Co
 		if reserved[id] || (casting && id == source) {
 			continue
 		}
-		if all || effects.MatchesSpecFrom(e.G, matchSpec, id, p, source) {
+		if all || e.matchesSpecFrom(matchSpec, id, p, source) {
 			out = append(out, id)
 		}
 	}
@@ -2031,15 +2039,11 @@ func (e *Engine) beginCast(p state.PlayerID, opt decision.Option) {
 	// spell's own push. An ability proposal (pc.ability >= 0) never reads it:
 	// payCast's flag arm is gated on !pc.isAbility().
 	e.cast.offSorcery = e.offSorceryAtCast(p)
-	// The announce-bearing alternative (the Shoal cycle) and the
-	// TargetsWithSameController rider (Lodestone Bauble) ride the selected
+	// The announce-bearing alternative (the Shoal cycle) rides the selected
 	// cast SA into the transaction: xAsk's announce arm and exAsk's binding
-	// read the first, handleTarget's Submit-time validator the second.
+	// read the captured value.
 	if announceAlt != nil && announceAlt.announce != "" {
 		e.cast.announceX = announceAlt.announce
-	}
-	if sa := f.SpellAbility(); sa != nil && strings.EqualFold(strings.TrimSpace(sa.Params["TargetsWithSameController"]), "True") {
-		e.cast.sameCtrlTargets = true
 	}
 	// CR 903.8: the commander tax, applied to whatever cost this cast pays
 	// (the base/alternative/kicked/flashback/surged/miracle cost resolved
@@ -2752,9 +2756,9 @@ func (e *Engine) exAsk() bool {
 			if !pc.isAbility() && oid == pc.card {
 				continue
 			}
-			match := effects.MatchesSpecFrom(e.G, part.Spec, oid, pc.player, pc.card)
+			match := e.matchesSpecFrom(part.Spec, oid, pc.player, pc.card)
 			if sc != nil {
-				match = effects.MatchesSpecCtx(e.G, part.Spec, oid, *sc)
+				match = e.matchesSpec(part.Spec, oid, *sc)
 			}
 			if match {
 				already := false
@@ -2959,7 +2963,7 @@ func (e *Engine) moveToGraveCandidates(p state.PlayerID, source state.ObjID, spe
 			if reserved[id] {
 				continue
 			}
-			if effects.MatchesSpecFrom(e.G, spec, id, p, source) {
+			if e.matchesSpecFrom(spec, id, p, source) {
 				out = append(out, id)
 			}
 		}
@@ -3482,7 +3486,7 @@ func (e *Engine) xAsk() bool {
 				if e.SacrificeBlocked(oid, true) {
 					continue
 				}
-				if effects.MatchesSpecFrom(e.G, matchSpec, oid, pc.player, pc.card) {
+				if e.matchesSpecFrom(matchSpec, oid, pc.player, pc.card) {
 					avail++
 				}
 			}
@@ -3521,11 +3525,11 @@ func (e *Engine) xAsk() bool {
 	}
 	// An announced SubCounter<X/Kind> part's bound is the number of counters
 	// of that kind the SOURCE actually has (Chandra, Awakened Inferno's
-	// SubCounter<X/LOYALTY>: the loyalty the walker has to remove); a part
-	// whose removal-target field names a filter (Moxite Refinery's Any-kind
-	// form) is bounded instead by the LARGEST matching candidate -- announcing
-	// an X no candidate could settle would strand the ask. An announced
-	// PayLife<X> part's bound is the payer's life total divided
+	// SubCounter<X/LOYALTY>: the loyalty the walker has to remove). A filtered
+	// fixed-kind part is likewise capped by its largest candidate, but a
+	// filtered Any-kind part may remove individual units across candidates, so
+	// its cap is their aggregate available counters (Moxite Refinery). An
+	// announced PayLife<X> part's bound is the payer's life total divided
 	// across the parts (the payer cannot pay more life than they have;
 	// paying exactly all of it is legal -- the SBA owns the zero-life
 	// consequence). When an announced part is the ONLY X the cost carries it
@@ -3554,7 +3558,10 @@ func (e *Engine) xAsk() bool {
 		} else {
 			for _, oid := range e.subCounterRemovalCandidates(pc.player, pc.card, part, 1, nil) {
 				if o := e.G.Obj(oid); o != nil {
-					if n := subCounterAvailable(o, part.Spec); n > have {
+					n := subCounterAvailable(o, part.Spec)
+					if strings.EqualFold(part.Spec, "Any") {
+						have += n
+					} else if n > have {
 						have = n
 					}
 				}
@@ -3574,7 +3581,11 @@ func (e *Engine) xAsk() bool {
 	for x := min; x <= bound; x++ {
 		wx := e.paymentManaX(pc, x)
 		wx.Generic -= e.delveCredit(pc.player, pc.card, wx.Generic)
-		if !e.costPayableGrant(pc.player, pc.card, pc.isAbility(), wx, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}) {
+		// The descriptor carries the announced-X marker: WithX folded this
+		// payment's X into Generic, and a CostContainsX batch must still see
+		// an X payment here or every X announcement would be unpayable.
+		if !e.costPayableClass(pc.player, paymentForCast(pc, wx),
+			pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}, wx) {
 			break
 		}
 		maxOld = x
@@ -3734,7 +3745,7 @@ func (e *Engine) subCounterRemovalCandidates(p state.PlayerID, source state.ObjI
 		if o == nil || subCounterAvailable(o, part.Spec) < amt {
 			continue
 		}
-		if effects.MatchesSpecFrom(e.G, part.Target, oid, p, source) {
+		if e.matchesSpecFrom(part.Target, oid, p, source) {
 			out = append(out, oid)
 		}
 	}
@@ -3743,14 +3754,16 @@ func (e *Engine) subCounterRemovalCandidates(p state.PlayerID, source state.ObjI
 
 // subCounterAsk offers the next unsettled SubCounter cost part whose
 // removal-target field names something other than the source (walking
-// pc.cost.SubCounter in order, pc.subCounterPart). Source-anchored parts and
-// zero-count parts record nothing: their settle emits on the source, the
-// pre-existing behaviour. The chosen removals are recorded into pc.subCtrs
-// and the counters actually leave the object at payCast, exactly like the
-// Sac parts' flow; a part with no remaining candidate aborts the whole
-// cast/activation cleanly (sacAsk's unpayable-cost rule -- a cost that
-// cannot be fully paid is never committed half paid). A sole candidate is
-// recorded without an ask: a decision nobody could answer differently is
+// pc.cost.SubCounter in order, pc.subCounterPart). A source-anchored
+// fixed-kind part and a zero-count part record nothing: their settle emits on
+// the source, the pre-existing behaviour. A wildcard "Any" part -- source-
+// anchored or filtered -- records one counter unit per pick (see
+// wildcardCounterAsk). The chosen removals are recorded into
+// pc.subCounterPays and the counters actually leave the object at payCast,
+// exactly like the Sac parts' flow; a part with no remaining candidate aborts
+// the whole cast/activation cleanly (sacAsk's unpayable-cost rule -- a cost
+// that cannot be fully paid is never committed half paid). A sole candidate
+// is recorded without an ask: a decision nobody could answer differently is
 // never posed, and the settlement event records the object for replay.
 func (e *Engine) subCounterAsk() bool {
 	pc := e.cast
@@ -3758,22 +3771,22 @@ func (e *Engine) subCounterAsk() bool {
 		part := pc.cost.SubCounter[pc.subCounterPart]
 		amt := part.N
 		if part.Announced {
-			// SubCounter<X/Kind/Target>: the announced count, already bounded
-			// by xAsk to the largest candidate available then; no priority
-			// passes mid-flow, so the board cannot shrink between announcement
-			// and this settle.
 			amt = pc.x
 		}
-		if subCounterTargetsSource(part.Target) || amt <= 0 {
+		if amt <= 0 {
 			pc.subCounterPart++
 			continue
 		}
-		reserved := map[state.ObjID]bool{}
-		for _, s := range pc.sacs {
-			reserved[s] = true
+		reserved := pc.subCounterReservations()
+		if strings.EqualFold(part.Spec, "Any") {
+			if e.wildcardCounterAsk(pc, part, amt) {
+				return true
+			}
+			continue
 		}
-		for _, s := range pc.subCtrs {
-			reserved[s] = true
+		if subCounterTargetsSource(part.Target) {
+			pc.subCounterPart++
+			continue
 		}
 		candidates := e.subCounterRemovalCandidates(pc.player, pc.card, part, amt, reserved)
 		if len(candidates) == 0 {
@@ -3781,22 +3794,104 @@ func (e *Engine) subCounterAsk() bool {
 			return true
 		}
 		if len(candidates) == 1 {
-			pc.subCtrs = append(pc.subCtrs, candidates[0])
+			pc.subCounterPays = append(pc.subCounterPays, subCounterPay{part: pc.subCounterPart, obj: candidates[0]})
 			pc.subCounterPart++
 			continue
 		}
-		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1,
-			Prompt: "Choose a permanent to remove " + e.subCounterPhrase(part, amt) + " from",
-			Source: pc.card}
+		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1, Prompt: "Choose a permanent to remove " + e.subCounterPhrase(part, amt) + " from", Source: pc.card}
 		for _, oid := range candidates {
-			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "subcounter",
-				Obj: oid, Label: e.G.Obj(oid).Face().Name})
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "subcounter", Obj: oid, Label: e.G.Obj(oid).Face().Name})
 		}
 		e.choosing = chooseCast
 		e.ask(d)
 		return true
 	}
 	return false
+}
+
+// subCounterReservations keeps an earlier counter-cost part from spending
+// the same permanent as the current part. Wildcard units from the current
+// part are deliberately absent: wildcardCounterAsk accounts for them by
+// (object, kind), allowing the part itself to span objects and kinds.
+func (pc *pendingCast) subCounterReservations() map[state.ObjID]bool {
+	reserved := map[state.ObjID]bool{}
+	for _, s := range pc.sacs {
+		reserved[s] = true
+	}
+	for _, p := range pc.subCounterPays {
+		if p.part != pc.subCounterPart {
+			reserved[p.obj] = true
+		}
+	}
+	return reserved
+}
+
+// wildcardCounterAsk advances a wildcard "Any" SubCounter part by one
+// counter unit: it offers the remaining (permanent, counter-kind) units the
+// payer may remove, asks when more than one is legal, and records the pick.
+// It reports whether the ask loop must pause (a decision was posed); a false
+// return means the part is fully paid or has advanced, and the caller's loop
+// continues from the (possibly advanced) pc.subCounterPart. A wildcard part
+// is settled one unit at a time so a single unit may come from a different
+// kind or object than the next, exactly as "remove N counters from among ..."
+// reads -- a kind's own count is NOT required to cover the whole amount.
+func (e *Engine) wildcardCounterAsk(pc *pendingCast, part CostPart, amt int32) bool {
+	picked := int32(0)
+	used := map[state.ObjID]map[string]int32{}
+	for _, p := range pc.subCounterPays {
+		if p.part != pc.subCounterPart {
+			continue
+		}
+		picked++
+		if used[p.obj] == nil {
+			used[p.obj] = map[string]int32{}
+		}
+		used[p.obj][p.kind]++
+	}
+	if picked >= amt {
+		pc.subCounterPart++
+		return false
+	}
+	candidates := e.subCounterRemovalCandidates(pc.player, pc.card, part, 1, pc.subCounterReservations())
+	if len(candidates) == 0 {
+		e.abortCast(pc, "counter-removal cost no longer payable; cast/activation aborted", true)
+		return true
+	}
+	type choice struct {
+		obj  state.ObjID
+		kind string
+	}
+	var choices []choice
+	for _, oid := range candidates {
+		o := e.G.Obj(oid)
+		if o == nil {
+			continue
+		}
+		for _, c := range o.Counters {
+			if c.N <= 0 {
+				continue
+			}
+			if used[oid] != nil && used[oid][c.Kind] >= c.N {
+				continue
+			}
+			choices = append(choices, choice{oid, c.Kind})
+		}
+	}
+	if len(choices) == 0 {
+		e.abortCast(pc, "counter-removal kind no longer payable; cast/activation aborted", true)
+		return true
+	}
+	if len(choices) == 1 {
+		pc.subCounterPays = append(pc.subCounterPays, subCounterPay{part: pc.subCounterPart, obj: choices[0].obj, kind: choices[0].kind})
+		return false
+	}
+	d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: 1, Max: 1, Prompt: "Choose a counter to remove", Source: pc.card}
+	for _, c := range choices {
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "subcounter", Obj: c.obj, Counter: c.kind, Label: fmt.Sprintf("%s (%s counter)", e.G.Obj(c.obj).Face().Name, c.kind)})
+	}
+	e.choosing = chooseCast
+	e.ask(d)
+	return true
 }
 
 // subCounterPhrase renders the amount/kind half of a SubCounter part's
@@ -3814,13 +3909,12 @@ func (e *Engine) subCounterPhrase(part CostPart, amt int32) string {
 // shared by the payment branches so every path settles the same shape. A
 // source-anchored part (subCounterTargetsSource) removes from the paying
 // source -- the pre-existing behaviour -- and a filtered part removes from
-// the recorded pc.subCtrs entry, one index per settled part in cost order.
-// The "Any" kind removes the counters in the object's counter-list order
-// (already deterministic: events.Apply appends kinds in emission order),
-// one CounterChange per kind until the announced count is met.
+// the object its recorded subCounterPay carries. The "Any" kind removes one
+// counter per recorded pick (each pick carries its chosen kind and object); a
+// pending cast with no recorded pick falls back to the object's counter-list
+// order, one CounterChange per kind until the amount is met.
 func (e *Engine) settleSubCounterParts(pc *pendingCast) {
-	idx := 0
-	for _, part := range pc.cost.SubCounter {
+	for partIdx, part := range pc.cost.SubCounter {
 		amt := part.N
 		if part.Announced {
 			amt = pc.x
@@ -3830,22 +3924,52 @@ func (e *Engine) settleSubCounterParts(pc *pendingCast) {
 			// no-op folded into state but a spurious log entry.
 			continue
 		}
-		target := pc.card
-		if !subCounterTargetsSource(part.Target) {
-			if idx >= len(pc.subCtrs) {
-				// The ask stage guarantees an entry for every filtered part
-				// this settle reaches; a missing one is a flow bug, not a
-				// payment to silently skip.
-				return
+		// The picks recorded for THIS part, by explicit part index. A
+		// wildcard part has one entry per counter unit (each carrying its
+		// chosen kind); a fixed-kind filtered part has one, carrying the
+		// object it removes the whole amount from.
+		var pays []subCounterPay
+		for _, p := range pc.subCounterPays {
+			if p.part == partIdx {
+				pays = append(pays, p)
 			}
-			target = pc.subCtrs[idx]
-			idx++
 		}
 		if strings.EqualFold(part.Spec, "Any") {
-			// The Any kind: remove across the chosen object's kinds in its
-			// counter-list order (the fold order events.Apply maintains), one
-			// CounterChange per kind touched, until amt counters are gone.
-			o := e.G.Obj(target)
+			if len(pays) == 0 {
+				// Legacy fallback for a hand-built/old pending cast with no
+				// recorded pick: remove across kinds deterministically from the
+				// source. The ordinary flow always records one entry per unit.
+				pays = []subCounterPay{{part: partIdx, obj: pc.card}}
+			}
+			// Group the per-unit picks by (object, kind), preserving first-seen
+			// order, so two units of the same kind settle as ONE CounterChange
+			// of -2 (the pre-existing shape) while units of different kinds
+			// settle as one event each.
+			type payKey struct {
+				obj  state.ObjID
+				kind string
+			}
+			var order []payKey
+			sum := map[payKey]int32{}
+			for _, p := range pays {
+				if p.kind == "" {
+					continue
+				}
+				k := payKey{p.obj, p.kind}
+				if _, seen := sum[k]; !seen {
+					order = append(order, k)
+				}
+				sum[k]++
+			}
+			for _, k := range order {
+				e.emit(events.Event{Kind: events.CounterChange, Obj: k.obj, Counter: k.kind, Amount: -sum[k]})
+			}
+			if len(order) > 0 {
+				continue
+			}
+			// No kind was recorded (the legacy/fallback entry): remove across
+			// kinds in counter-list order.
+			o := e.G.Obj(pays[0].obj)
 			if o == nil {
 				return
 			}
@@ -3861,10 +3985,20 @@ func (e *Engine) settleSubCounterParts(pc *pendingCast) {
 				if take > left {
 					take = left
 				}
-				e.emit(events.Event{Kind: events.CounterChange, Obj: target, Counter: c.Kind, Amount: -take})
+				e.emit(events.Event{Kind: events.CounterChange, Obj: pays[0].obj, Counter: c.Kind, Amount: -take})
 				left -= take
 			}
 			continue
+		}
+		target := pc.card
+		if !subCounterTargetsSource(part.Target) {
+			if len(pays) == 0 {
+				// The ask stage guarantees an entry for every filtered part
+				// this settle reaches; a missing one is a flow bug, not a
+				// payment to silently skip.
+				return
+			}
+			target = pays[0].obj
 		}
 		e.emit(events.Event{Kind: events.CounterChange, Obj: target, Counter: part.Spec, Amount: -amt})
 	}
@@ -3896,7 +4030,7 @@ func (e *Engine) sacAsk() bool {
 			if e.SacrificeBlocked(oid, true) {
 				continue
 			}
-			if effects.MatchesSpecFrom(e.G, matchSpec, oid, pc.player, pc.card) {
+			if e.matchesSpecFrom(matchSpec, oid, pc.player, pc.card) {
 				already := false
 				for _, s := range pc.sacs {
 					if s == oid {
@@ -4072,6 +4206,10 @@ func (e *Engine) collectETBChoices(you state.PlayerID) {
 			kind: kind,
 			options: e.etbOptions(you, pc.card, kind,
 				r.With.Params["ValidCards"],
+				// ValidDescription$ is Forge prompt text, not a second filter;
+				// effects.NameChoices reads it only as a safety fallback when
+				// ValidCards$ is absent (see NameChoices' doc).
+				r.With.Params["ValidDescription"],
 				// Type$ (Herald's Horn, Urza's Incubator, Roaming Throne, Three
 				// Tree City) names the category the choice ranges over. The
 				// option list below builds it; a category this build cannot
@@ -4129,7 +4267,7 @@ func etbColourLetter(name string) string {
 //
 // Option list order is deterministic: names and types are sorted strings
 // (never from a map), numbers are ascending.
-func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCards, typeCategory, exclude string) []decision.Option {
+func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCards, validDescription, typeCategory, exclude string) []decision.Option {
 	switch kind {
 	case "color":
 		// Exclude$ tokens (comma-separated, e.g. "black" on Black Dragon
@@ -4160,36 +4298,24 @@ func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCar
 		}
 		return out
 	case "name":
-		if validCards == "" {
-			validCards = "Card.nonLand"
+		// A no-universe Config is a pre-feature match on replay. Its visible
+		// object builder, including the Card.nonLand default and its full
+		// MatchesSpecFrom semantics, is retained byte-for-byte below; changing
+		// it would invalidate persisted ETB NameCard logs.
+		if len(e.G.NameUniverse) == 0 {
+			return e.legacyETBNameOptions(you, card, validCards)
 		}
-		seen := map[string]bool{}
-		names := []string{}
-		add := func(z state.Zone, players []state.PlayerID) {
-			for _, p := range players {
-				for _, id := range e.G.Zone(z, p) {
-					o := e.G.Obj(id)
-					if o == nil || o.Face() == nil {
-						continue
-					}
-					if !effects.MatchesSpecFrom(e.G, validCards, id, you, card) {
-						continue
-					}
-					if seen[o.Face().Name] {
-						continue
-					}
-					seen[o.Face().Name] = true
-					names = append(names, o.Face().Name)
-				}
-			}
-		}
-		add(state.ZHand, []state.PlayerID{you})
-		add(state.ZBattlefield, e.G.AliveFrom(0))
-		add(state.ZGraveyard, e.G.AliveFrom(0))
-		sort.Strings(names)
+		// NameCard ranges over the compiled card-name universe, not public
+		// objects currently visible to the chooser: Pithing Needle names any
+		// card (a land included) and Revoker/Cabal Therapy name a nonland,
+		// both through the SA's own ValidCards$ filter. An omitted
+		// ValidCards$ is intentionally unrestricted. effects.NameChoices is
+		// the ONE builder the mid-resolution NameCard ask shares, so the two
+		// paths offer the same names.
+		names := effects.NameChoices(e.G, validCards, validDescription)
 		out := make([]decision.Option, 0, len(names))
 		for _, n := range names {
-			out = append(out, decision.Option{Index: len(out), Kind: "name", Label: n})
+			out = append(out, decision.Option{Index: len(out), Kind: "name", Label: n, Player: you})
 		}
 		return out
 	case "type":
@@ -4203,6 +4329,45 @@ func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCar
 		}
 		return out
 	}
+}
+
+// legacyETBNameOptions is the exact pre-name-universe ETB builder. It stays
+// separate from the corpus path because a sidecar without NameUniverse is an
+// old log: its DecisionAsk options, including an empty ValidCards$ defaulting
+// to Card.nonLand, must replay byte-for-byte.
+func (e *Engine) legacyETBNameOptions(you state.PlayerID, card state.ObjID, validCards string) []decision.Option {
+	if validCards == "" {
+		validCards = "Card.nonLand"
+	}
+	seen := map[string]bool{}
+	names := []string{}
+	add := func(z state.Zone, players []state.PlayerID) {
+		for _, p := range players {
+			for _, id := range e.G.Zone(z, p) {
+				o := e.G.Obj(id)
+				if o == nil || o.Face() == nil {
+					continue
+				}
+				if !effects.MatchesSpecFrom(e.G, validCards, id, you, card) {
+					continue
+				}
+				if seen[o.Face().Name] {
+					continue
+				}
+				seen[o.Face().Name] = true
+				names = append(names, o.Face().Name)
+			}
+		}
+	}
+	add(state.ZHand, []state.PlayerID{you})
+	add(state.ZBattlefield, e.G.AliveFrom(0))
+	add(state.ZGraveyard, e.G.AliveFrom(0))
+	sort.Strings(names)
+	out := make([]decision.Option, 0, len(names))
+	for _, n := range names {
+		out = append(out, decision.Option{Index: len(out), Kind: "name", Label: n})
+	}
+	return out
 }
 
 // isCreatureFace is a local creature test (effects.hasType is unexported);
@@ -4479,7 +4644,7 @@ func (e *Engine) targetDependentCostMayPay(pc *pendingCast) bool {
 	if !pc.isAbility() {
 		delve = int32(len(pc.delve))
 	}
-	return e.manaFeasibleGrant(pc.player, pc.card, pc.isAbility(), pc.resolvedMana(), mods, pc.taxGeneric, delve, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType})
+	return e.manaFeasibleDescriptor(pc.player, paymentForCast(pc, pc.resolvedMana()), pc.resolvedMana(), mods, pc.taxGeneric, delve, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType})
 }
 
 // pendingCastScope returns the exact spell or ability scope whose modifiers
@@ -4549,7 +4714,7 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 			}})
 			n := 0
 			for _, oid := range e.G.Zone(zone, pc.player) {
-				if effects.MatchesSpecCtx(e.G, part.Spec, oid, sc) {
+				if e.matchesSpec(part.Spec, oid, sc) {
 					n++
 				}
 			}
@@ -4598,7 +4763,7 @@ func (e *Engine) affordableTargetCandidates(pc *pendingCast, candidates []target
 		// (convokeAbsorbs), so the fold is the payment's own arithmetic,
 		// probed, never charged.
 		convoked := e.applyConvoke(pc, cost)
-		if e.manaFeasibleGrant(pc.player, pc.card, pc.isAbility(), convoked, costMods{}, 0, 0, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}) ||
+		if e.manaFeasibleDescriptor(pc.player, paymentForCast(pc, convoked), convoked, costMods{}, 0, 0, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}) ||
 			(cost.hasManaPayment() && e.hasUntappedManaSource(pc.player)) {
 			out = append(out, candidate)
 		}
@@ -5015,42 +5180,6 @@ func (e *Engine) validateSearch(d *decision.Decision, in decision.Intent) error 
 	return nil
 }
 
-// validateSameControllerTargets is the Submit-time gate for a cast-flow
-// target announcement whose SA carries TargetsWithSameController$ True
-// (Lodestone Bauble): every chosen object must share one owner — in a
-// graveyard, the owner the card there has. Any other KTarget decision, a
-// single-object answer, and an out-of-range choice (Validate's own error)
-// pass through untouched.
-func (e *Engine) validateSameControllerTargets(d *decision.Decision, in decision.Intent) error {
-	pc := e.cast
-	if pc == nil || !pc.sameCtrlTargets || d.Kind != decision.KTarget || len(in.Choices) <= 1 {
-		return nil
-	}
-	var owner state.PlayerID
-	haveOwner := false
-	for _, c := range in.Choices {
-		if c < 0 || c >= len(d.Options) {
-			continue // Validate's own out-of-range error already fired
-		}
-		o := d.Options[c]
-		if o.Obj == 0 {
-			continue
-		}
-		obj := e.G.Obj(o.Obj)
-		if obj == nil {
-			return nil // the resolution-time recheck owns a vanished object
-		}
-		if !haveOwner {
-			owner, haveOwner = obj.Owner, true
-			continue
-		}
-		if obj.Owner != owner {
-			return fmt.Errorf("chosen targets do not share one controller")
-		}
-	}
-	return nil
-}
-
 // validateCastContributions is the Submit-time gate for the cast flow's
 // Convoke/Harmonize announcement decision (convokeAsk). The decision's
 // static Validate sees only the offered option list -- two white creatures
@@ -5301,7 +5430,7 @@ func (e *Engine) announceFeasible(pc *pendingCast, alt pipAlt, pool, snow state.
 	// above), so their slots leave the cost; the pips after payIdx stay live
 	// for the shared primitive to enumerate.
 	c = c.dropAnnouncePrefix(pc.payIdx + 1)
-	return e.manaFeasibleGrant(pc.player, pc.card, pc.isAbility(), c, pc.mods, pc.taxGeneric, delve, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType})
+	return e.manaFeasibleDescriptor(pc.player, paymentForCast(pc, c), c, pc.mods, pc.taxGeneric, delve, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType})
 }
 
 // manaAsk offers the player's payment choice for the next unsettled hybrid or
@@ -5539,12 +5668,17 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 		}
 		pc.sacPart++
 	case "subcounter":
-		// The chosen counter-removal target of a SubCounter<N|X/Kind/Target>
-		// cost part: the settle removes the part's counters from it.
+		// The chosen counter-removal pick of a SubCounter cost part: a
+		// wildcard "Any" part records one counter unit per answer (the ask
+		// loop keeps asking until the part is fully paid), a fixed-kind part
+		// records its one object and advances.
+		wildcard := pc.subCounterPart < len(pc.cost.SubCounter) && strings.EqualFold(pc.cost.SubCounter[pc.subCounterPart].Spec, "Any")
 		for _, o := range chosen {
-			pc.subCtrs = append(pc.subCtrs, o.Obj)
+			pc.subCounterPays = append(pc.subCounterPays, subCounterPay{part: pc.subCounterPart, obj: o.Obj, kind: o.Counter})
 		}
-		pc.subCounterPart++
+		if !wildcard {
+			pc.subCounterPart++
+		}
 	case "discard":
 		for _, o := range chosen {
 			pc.discards = append(pc.discards, o.Obj)
@@ -5860,7 +5994,8 @@ func (e *Engine) targetAsk() bool {
 	// conversion-aware equivalent: the SAME resolveMana payManaConvFor will
 	// run, including RestrictValid$ provenance. The
 	// targetDependentCostMayPay arm keeps the ValidTarget$ reducer exception.
-	if !e.costPayableGrant(pc.player, pc.card, pc.isAbility(), mana, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}) &&
+	if !e.costPayableClass(pc.player, paymentForCast(pc, mana),
+		pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}, mana) &&
 		!e.hasUntappedManaSource(pc.player) && !e.targetDependentCostMayPay(pc) {
 		e.abortCast(pc, "cast aborted: cost no longer payable", true)
 		return true
@@ -5931,7 +6066,8 @@ func (e *Engine) targetAsk() bool {
 	// real selectable capacity: an unaffordable or over-cap candidate cannot
 	// contribute a controller to it.
 	min, max, exclusive, distinct := e.oneEachTargetBounds(sa, candidates, min, max)
-	if min > 0 && (len(candidates) < min || (exclusive && min > distinct)) {
+	min, max, sameCapacity, sameController := e.sameControllerTargetBounds(sa, candidates, min, max)
+	if min > 0 && (len(candidates) < min || (exclusive && min > distinct) || (sameController && min > sameCapacity)) {
 		// CR 601.2c: a proposal with fewer legal targets than its mandatory
 		// minimum -- or one whose per-controller constraint admits fewer
 		// distinct controllers than its mandatory minimum -- cannot be
@@ -5974,7 +6110,8 @@ func (e *Engine) targetAsk() bool {
 	}
 	d := &decision.Decision{Player: pc.player, Kind: decision.KTarget, Min: min, Max: max,
 		Prompt: "Choose a target for " + e.targetName(pc.card),
-		Source: src, TargetEffect: describeTargetEffect(sa)}
+		Source: src, TargetEffect: e.describeTargetEffect(pc.player, pc.card, sa, pc.x),
+		TargetsWithSameController: sameController}
 	for _, candidate := range candidates {
 		// Shared with stack.go's askTarget so a Face-less ability object (a
 		// TargetType$ Activated/Triggered census) can never nil-deref here.
@@ -5982,6 +6119,7 @@ func (e *Engine) targetAsk() bool {
 		o := decision.Option{Index: len(d.Options), Kind: candidate.kind,
 			Label: label, Obj: candidate.obj, Player: candidate.player}
 		o.Group = e.targetControllerGroup(sa, candidate)
+		o.Controller = e.candidateControllerSeat(candidate)
 		// Option.Value is omitempty and read only under a budget
 		// (Decision.HasBudget), so a budget-less target ask keeps its wire
 		// payload byte-identical. Every present cap -- zero and negative
@@ -6110,7 +6248,7 @@ func (e *Engine) recheckIllegal(pc *pendingCast) bool {
 		sc := e.specCtx(sv.Source, sv.Controller)
 		sc.HasManaValue = true
 		sc.ManaValue = mv
-		if effects.MatchesSpecCtx(e.G, sv.Params["ValidCard"], pc.card, sc) {
+		if e.matchesSpec(sv.Params["ValidCard"], pc.card, sc) {
 			// suppress=true, not false: an illegal-proposal abort is a
 			// no-progress reversal (CR 733.1) exactly like every other abort
 			// site, so it rides the same F05-2 (CR 733.2) discipline -- first
@@ -6151,8 +6289,10 @@ func (e *Engine) manaWindowAsk() bool {
 		return false
 	}
 	// A pool that already pays the total cost needs no window (nothing to
-	// gain by activating more mana abilities here).
-	if e.costPayableGrant(pc.player, pc.card, pc.isAbility(), mana, pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}) {
+	// gain by activating more mana abilities here). The descriptor carries
+	// the announced-X marker so a CostContainsX batch sees the X payment.
+	if e.costPayableClass(pc.player, paymentForCast(pc, mana),
+		pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}, mana) {
 		return false
 	}
 	var sources []state.ObjID
@@ -6391,7 +6531,11 @@ func (e *Engine) payCast() {
 		// The ability object was already minted by pushCast; targets are
 		// recorded onto it by handleTarget.
 		mana := e.manaToPay(pc)
-		ok, _, spentMana, _, _ := e.payManaForSpent(pc.player, pc.card, true, mana, e.paymentConv(pc.player, pc.card, true), pipRider{})
+		// The descriptor carries the announced-X marker (the ability's own
+		// {X} cost was folded), so a CostContainsX batch sees this activation
+		// as an X payment exactly as the offer did.
+		ok, _, spentMana, _, _ := e.payManaDescriptorForSpent(pc.player, paymentForCast(pc, mana), mana,
+			e.paymentConv(pc.player, pc.card, true), pipRider{})
 		if !ok {
 			e.abortCast(pc, "activation aborted: cost no longer payable", true)
 			return

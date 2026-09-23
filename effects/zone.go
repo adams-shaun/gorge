@@ -18,6 +18,93 @@ func init() {
 	Register("Sacrifice", effSacrifice)
 	Register("Manifest", effManifest)
 	Register("Cloak", effCloak)
+	Register("Seek", effSeek)
+}
+
+// effSeek implements Alchemy's random library-to-hand seek. Unlike a hidden
+// library search, seek neither reveals nor shuffles: it samples the eligible
+// pool without replacement using the host's seeded RNG.
+func effSeek(h Host, c *Ctx, sa *cards.SA) {
+	g := h.Game()
+	players := Defined(h, c, sa)
+	if sa.Params["Defined"] == "" {
+		players = []state.Target{{Player: c.Controller, IsPlayer: true}}
+	}
+	for _, target := range players {
+		if !target.IsPlayer || int(target.Player) >= len(g.Players) {
+			continue
+		}
+		owner := target.Player
+		pool := zoneOf(g, state.ZLibrary, owner)
+		if raw := strings.TrimSpace(sa.Params["DefinedCards"]); raw != "" {
+			if raw != "Top_10_OfLibrary" {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "Seek withholds DefinedCards$ " + raw + "; no cards moved"})
+				continue
+			}
+			if len(pool) > 10 {
+				pool = pool[:10]
+			}
+		}
+
+		spec := strings.TrimSpace(sa.Params["Type"])
+		if spec == "" {
+			spec = "Card"
+		}
+		types := strings.Split(strings.TrimSpace(sa.Params["Types"]), ",")
+		if strings.TrimSpace(sa.Params["Types"]) == "" {
+			types = []string{spec}
+		}
+		selected := make([]state.ObjID, 0)
+		used := make(map[state.ObjID]bool)
+		for _, typeSpec := range types {
+			typeSpec = permanentCardSpec(strings.TrimSpace(typeSpec))
+			eligible := make([]state.ObjID, 0, len(pool))
+			for _, id := range pool {
+				if used[id] || !MatchesSpecCtx(g, typeSpec, id, c.SpecContext(c.Controller)) {
+					continue
+				}
+				eligible = append(eligible, id)
+			}
+			n := int32(1)
+			if len(types) == 1 {
+				n = Num(h, c, sa, "Num", 1)
+			}
+			if n < 0 {
+				n = 0
+			}
+			if n > int32(len(eligible)) {
+				n = int32(len(eligible))
+			}
+			for i := int32(0); i < n; i++ {
+				j := h.Rand(len(eligible))
+				id := eligible[j]
+				selected = append(selected, id)
+				used[id] = true
+				eligible = append(eligible[:j], eligible[j+1:]...)
+			}
+		}
+		if len(selected) == 0 {
+			continue
+		}
+		for _, id := range selected {
+			h.Emit(moveZoneEvent(c, id, state.ZLibrary, state.ZHand))
+			if strings.EqualFold(strings.TrimSpace(sa.Params["RememberFound"]), "True") {
+				c.Remembered = append(c.Remembered, state.Target{Obj: id})
+				eventRemember(h, c, id)
+			}
+		}
+		if strings.EqualFold(strings.TrimSpace(sa.Params["ImprintFound"]), "True") && c.Source != 0 {
+			// ImprintFound$ is Forge's seek imprint (SeekEffect writes
+			// imprintedCards). It rides the separate SeekFound list -- not the
+			// ordinary Imprinted one -- because the found cards sit in a hand
+			// at continuation time, where `Defined$ Imprinted`'s CR 607.2a
+			// exiled-only reader would hide them; a chained Origin$ Hand body
+			// (Spawning Pod, Gitrog, Kardum, Puppet Raiser) reads them here.
+			h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: append([]state.ObjID(nil), selected...), Text: "seek-found"})
+		}
+		h.Emit(events.Event{Kind: events.Seek, Player: owner, Obj: c.Source})
+	}
 }
 
 // ParseZone maps a Forge zone name to a state.Zone. Unknown names resolve to
@@ -1751,344 +1838,367 @@ func withCounterAmount(h Host, c *Ctx, sa *cards.SA) int32 {
 // library is searched first in candidate order so a pure-library search's
 // option list -- and therefore its chain heads -- is unchanged.
 //
-// This round deliberately handles only the first resolved library when
-// DefinedPlayer$/Defined$ names several players. A single effect cannot yet
-// persist its place in a multi-player loop across more than one suspended ask;
-// restarting the primitive would otherwise re-ask the first library. The
-// narrowing and its measured corpus population are recorded in AGENTS.md.
+// The per-library answer cursor rides the same resume point as every other
+// mid-resolution choice. That makes a multi-player search continue after the
+// owner whose answer suspended the effect, rather than rebuilding from the
+// first owner on every re-entry.
 func effSearchLibrary(h Host, c *Ctx, sa *cards.SA, to state.Zone, zones []state.Zone) {
 	players := searchPlayers(h, c, sa)
 	if len(players) == 0 {
 		return
 	}
-	owner := players[0]
+	searchTarget := c.LibraryTarget
+	searchDone := c.SearchDone
+	chosen := append([]state.ObjID(nil), c.Search...)
+	shuffleAnswer := c.SearchShuffle
+	shufflePending := shuffleAnswer != ""
+	shuffleTarget := c.LibraryTarget
+	shuffleMoved := append([]state.ObjID(nil), c.SearchShuffleMoved...)
+	c.Search, c.SearchDone = nil, false
+	c.SearchShuffle, c.SearchShuffleMoved = "", nil
+	start := 0
+	if searchDone || shufflePending {
+		start = searchTarget
+	}
 	g := h.Game()
-	lib := zoneOf(g, state.ZLibrary, owner)
-	if !zoneIn(zones, state.ZLibrary) {
-		lib = nil
-	}
-
-	// A ShuffleNonMandatory$ search's may-shuffle confirm was answered: the
-	// moves already happened in the first pass, so this pass is tail-only --
-	// the answered shuffle (or the kept order) and the LibraryPosition$
-	// placement. searchShuffleTail consumes and clears the pair before
-	// continuing (fx42 scoping), so a nested search poses its own confirm.
-	if c.SearchShuffle != "" {
-		searchShuffleTail(h, c, sa, owner, nil, to)
-		return
-	}
-
-	if c.SearchDone {
-		chosen := append([]state.ObjID(nil), c.Search...)
-		// Scope the answer to this primitive. Any asking primitive reached by
-		// the SubAbility chain must pose its own decision.
-		c.Search, c.SearchDone = nil, false
-		applyLibrarySearch(h, c, sa, owner, to, chosen, zones)
-		return
-	}
-
-	rawSpec := sa.Params["ChangeType"]
-	if rawSpec == "" {
-		rawSpec = "Card"
-	}
-	// A hidden-library Permanent is a permanent card, not a battlefield
-	// permanent. Keep the raw Forge spelling for the CR 701.23 quality
-	// classification below; only candidate matching uses the contextual base.
-	spec := permanentCardSpec(rawSpec)
-	// Candidate order: the library first (in library order), then each public
-	// origin zone in the order given by the parsed origin set. Dedupe across
-	// zones so a card can never be offered twice. `eligible` is the ordered
-	// list both the decision options and the R-9 stand-in read, so its order
-	// is load-bearing for determinism.
-	eligible := make([]state.ObjID, 0, len(lib))
-	seen := make(map[state.ObjID]bool, len(lib))
-	for _, id := range lib {
-		if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
-			eligible = append(eligible, id)
-			seen[id] = true
-		}
-	}
-	for _, z := range zones {
-		if z == state.ZLibrary {
+	for targetIndex, owner := range players {
+		if targetIndex < start {
 			continue
 		}
-		for _, id := range zoneOf(g, z, owner) {
-			if seen[id] {
-				continue
+		c.LibraryTarget = targetIndex
+		lib := zoneOf(g, state.ZLibrary, owner)
+		if !zoneIn(zones, state.ZLibrary) {
+			lib = nil
+		}
+		if shufflePending && targetIndex == shuffleTarget {
+			c.SearchShuffle = shuffleAnswer
+			// Restore the answered tail just long enough for the shared helper
+			// to consume it. The answer's owner is this target, not players[0].
+			c.SearchShuffleMoved = shuffleMoved
+			if searchShuffleTail(h, c, sa, owner, nil, to) {
+				return
 			}
+			shufflePending = false
+			continue
+		}
+		if searchDone && targetIndex == searchTarget {
+			c.LibraryTarget = targetIndex
+			if applyLibrarySearch(h, c, sa, owner, to, chosen, zones) {
+				return
+			}
+			searchDone = false
+			continue
+		}
+
+		rawSpec := sa.Params["ChangeType"]
+		if rawSpec == "" {
+			rawSpec = "Card"
+		}
+		// A hidden-library Permanent is a permanent card, not a battlefield
+		// permanent. Keep the raw Forge spelling for the CR 701.23 quality
+		// classification below; only candidate matching uses the contextual base.
+		spec := permanentCardSpec(rawSpec)
+		// Candidate order: the library first (in library order), then each public
+		// origin zone in the order given by the parsed origin set. Dedupe across
+		// zones so a card can never be offered twice. `eligible` is the ordered
+		// list both the decision options and the R-9 stand-in read, so its order
+		// is load-bearing for determinism.
+		eligible := make([]state.ObjID, 0, len(lib))
+		seen := make(map[state.ObjID]bool, len(lib))
+		for _, id := range lib {
 			if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 				eligible = append(eligible, id)
 				seen[id] = true
 			}
 		}
-	}
-	// WithTotalCMC$ is the cumulative mana-value budget over the found cards
-	// (Protean Hulk: "any number of creature cards with total mana value 6 or
-	// less"), the exact parameter effDig reads on its own window. A card
-	// whose own mana value exceeds the budget can never be found, and the
-	// running sum of the picks must not exceed it either; the mechanics
-	// mirror effDig's (affordable filter, Decision.MaxSum + Option.Value on
-	// the wire, a greedy stand-in). Absent the param the budget is 0,
-	// budgetEligible == eligible and every read below is a no-op, so a
-	// non-budget search emits byte-identically. The CR 701.23b/701.23d Min
-	// semantics below are unchanged; only the affordable pool they are read
-	// over is narrowed.
-	budget, hasBudget := NumResolved(h, c, sa, "WithTotalCMC", 0)
-	if budget < 0 {
-		budget = 0
-	}
-	budgetEligible := eligible
-	if hasBudget {
-		budgetEligible = make([]state.ObjID, 0, len(eligible))
-		for _, id := range eligible {
-			if manaValueOf(g, id) <= int(budget) {
-				budgetEligible = append(budgetEligible, id)
-			}
-		}
-	}
-	max := Num(h, c, sa, "ChangeNum", 1)
-	if max < 0 {
-		max = 0
-	}
-	if max > int32(len(budgetEligible)) {
-		max = int32(len(budgetEligible))
-	}
-	// CR 701.23b/701.23d decide the minimum: a search whose card filter states
-	// only a quantity must find that many (or as many as the zone holds), so
-	// Min is forced up to Max; a stated-quality search keeps the fail-to-find
-	// allowance of Min 0. `max` is already clamped to the number of eligible
-	// cards, so a quantity-only search never asks for more than the library
-	// holds (701.23d's "as many as possible"). This is a property of the
-	// filter, not of Forge's Mandatory$ parameter.
-	min := int32(0)
-	if !SearchStatesQuality(rawSpec) {
-		min = max
-	}
-	// An empty choice is not a choice: asking it suspends a real engine host
-	// until it submits an empty answer, even though no answer can differ.
-	// Complete the fail-to-find directly (including its required shuffle).
-	if min == 0 && max == 0 {
-		// A submitted search answer resumes in a fresh Ctx, so remembered
-		// objects do not leak into its SubAbility chain. Preserve that existing
-		// continuation contract while omitting the otherwise meaningless ask.
-		c.Remembered = nil
-		applyLibrarySearch(h, c, sa, owner, to, nil, zones)
-		return
-	}
-	// greedy is the deterministic stand-in take under the cumulative budget
-	// (bound by the ChangeNum cap): with no budget every card fits and greedy
-	// is exactly the first max cards of eligible -- the take the pre-budget
-	// stand-in applied -- so the R-9 fallback stays byte-identical there. It
-	// is computed before the Min below is finalised, because the budget can
-	// strand a quantity-only search's forced Min.
-	greedy := make([]state.ObjID, 0, len(budgetEligible))
-	running := 0
-	for _, id := range budgetEligible {
-		if int32(len(greedy)) >= max {
-			break
-		}
-		mv := manaValueOf(g, id)
-		if hasBudget && running+mv > int(budget) {
-			continue
-		}
-		running += mv
-		greedy = append(greedy, id)
-	}
-	// A budget can strand a quantity-only search's forced Min: max was
-	// clamped to len(budgetEligible), but the running sum may fit fewer than
-	// that (library [3MV, 4MV], ChangeNum 2, WithTotalCMC 6 -- the greedy
-	// take is one card), so Min == Max == 2 would pose an ask Decision
-	// .Validate rejects for EVERY 2-pick -- a real host could never submit
-	// and the match stalls. Lower the Min to the greedy count -- effDig's
-	// mandatory-budget rule (cardflow.go), which its sibling effHiddenPick
-	// applies too -- so a satisfying answer always exists. (Measured 0
-	// corpus carriers combine a quantity-only filter with WithTotalCMC$;
-	// this is general-correctness code in the direction of no wedge.)
-	if hasBudget && min > int32(len(greedy)) {
-		min = int32(len(greedy))
-	}
-	// The prompt must not offer a choice the decision will refuse. A
-	// quantity-only search has Min == Max, so "up to" would be a lie the
-	// player only discovers when their answer is rejected.
-	count := strconv.Itoa(int(max))
-	prompt := "Search a library: choose up to " + count + " card(s)"
-	if min == max {
-		prompt = "Search a library: choose " + count + " card(s)"
-	}
-	chooser := searchChooser(h, c, sa)
-	// NoLooking$ True (Forge's line-1020 gate: with NoLooking the searching
-	// player never LOOKS at the library -- no delayedReveal -- so the choose
-	// is made over card backs): the options must not carry card names. The
-	// IsRemembered legs of the Cultivate family and the seek-style shapes
-	// route here; without this read the option labels leaked the library's
-	// order one look at a time.
-	noLooking := strings.EqualFold(strings.TrimSpace(sa.Params["NoLooking"]), "True")
-	// DifferentNames$ True (Realms Uncharted): the picked cards must have
-	// distinct names. One option per card name carries that name in Group, so
-	// Decision.Validate's mutual-exclusion rule refuses any answer naming the
-	// same card twice -- the wire enforces what Forge's one-at-a-time loop
-	// (the DifferentNames fetchList filter) enforces there. The apply side
-	// dedupes a host that bypassed the wire (applyLibrarySearch).
-	differentNames := strings.EqualFold(strings.TrimSpace(sa.Params["DifferentNames"]), "True")
-	// Forge's EACH multi-type search grammar ("EACH Forest & Plains"): with
-	// every per-type cap at most 1 -- every corpus carrier -- the pick is
-	// structured, not a flat count: one option per eligible card, the
-	// type's ordinal in Option.Group, one decision whose Max is the number
-	// of listed types that have at least one eligible card. The Group
-	// exclusivity contract (decision.Decision.Validate) enforces at-most-one
-	// per Group on the wire, which IS one pick per type; the ordinary
-	// "search" resume arm carries the ordered picks, and applyLibrarySearch
-	// re-checks each against the union matcher, so no new Ctx field and no
-	// resume change. Min stays 0: the spec states a quality, so the
-	// fail-to-find allowance (CR 701.23b) is kept -- a listed type with no
-	// eligible card simply contributes no options and no Group, and its
-	// pick is the one the player cannot make.
-	eachSubs, isEach := eachAlternatives(spec)
-	eachStructured := isEach && max <= 1 && SearchStatesQuality(rawSpec)
-	d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
-		Min: int(min), Max: int(max), MaxSum: int(budget), Source: c.Source,
-		ResumeKind: "search", ResumeSA: sa,
-		// The walk's Remembered rides the ask (rules restores it on the
-		// resume) so the re-entered eligibility recheck and the SubAbility$
-		// after this one still see the cards RememberChanged$ captured -- a
-		// cast spell's mid-resolution Remembered lives only in the resolving
-		// Ctx frame, and without the ride the answer's recheck (and Nissa's
-		// Pilgrimage's "one onto the battlefield" leg) would re-resolve
-		// IsRemembered against an empty set and move nothing. A nested hidden
-		// search resumes in the same resolution too, so the fetch list built
-		// by a preceding search stays available to Card.IsRemembered and
-		// Defined$ Remembered in the rest of this chain.
-		ResumeRemembered: copyTargets(c.Remembered),
-		Prompt:           prompt}
-	if eachStructured {
-		groups := 0
-		sc := c.SpecContext(c.Controller)
-		for ti, sub := range eachSubs {
-			var typeIDs []state.ObjID
-			for _, id := range lib {
-				if MatchesSpecCtx(g, sub, id, sc) {
-					typeIDs = append(typeIDs, id)
-				}
-			}
-			if len(typeIDs) == 0 {
+		for _, z := range zones {
+			if z == state.ZLibrary {
 				continue
 			}
-			for _, id := range typeIDs {
-				name := "a card"
-				if o := g.Obj(id); o != nil && o.Face() != nil && !noLooking {
-					name = o.Face().Name
+			for _, id := range zoneOf(g, z, owner) {
+				if seen[id] {
+					continue
 				}
-				d.Options = append(d.Options, decision.Option{Index: len(d.Options),
-					Kind: "search", Label: name, Obj: id, Player: owner,
-					Group: strconv.Itoa(ti)})
+				if MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
+					eligible = append(eligible, id)
+					seen[id] = true
+				}
 			}
-			groups++
 		}
-		d.Min, d.Max = 0, groups
-		d.Prompt = "Search a library: choose one card of each listed type"
-		// The budget is NOT enforced on the structured branch (its options
-		// carry no Value, so a MaxSum the wire advertises would be a cap
-		// Validate sums to 0 over -- meaningless, and misleading to a
-		// consumer). Clear it: 0 corpus carriers combine EACH with
-		// WithTotalCMC$, and a future one needs per-type budget mechanics
-		// designed, not a silent half-read.
-		d.MaxSum = 0
-	} else {
-		if isEach {
-			// A measured-absent shape kept loud rather than silently wrong:
-			// a per-type ChangeNum$ above 1 (or a quantity-only EACH spec)
-			// keeps the ordinary flat-count path over the union -- its
-			// candidates are correct, its pick structure is not one-per-type.
-			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-				Text: "EACH ChangeType with per-type count above 1 resolves as a flat count"})
+		// WithTotalCMC$ is the cumulative mana-value budget over the found cards
+		// (Protean Hulk: "any number of creature cards with total mana value 6 or
+		// less"), the exact parameter effDig reads on its own window. A card
+		// whose own mana value exceeds the budget can never be found, and the
+		// running sum of the picks must not exceed it either; the mechanics
+		// mirror effDig's (affordable filter, Decision.MaxSum + Option.Value on
+		// the wire, a greedy stand-in). Absent the param the budget is 0,
+		// budgetEligible == eligible and every read below is a no-op, so a
+		// non-budget search emits byte-identically. The CR 701.23b/701.23d Min
+		// semantics below are unchanged; only the affordable pool they are read
+		// over is narrowed.
+		budget, hasBudget := NumResolved(h, c, sa, "WithTotalCMC", 0)
+		if budget < 0 {
+			budget = 0
 		}
+		budgetEligible := eligible
+		if hasBudget {
+			budgetEligible = make([]state.ObjID, 0, len(eligible))
+			for _, id := range eligible {
+				if manaValueOf(g, id) <= int(budget) {
+					budgetEligible = append(budgetEligible, id)
+				}
+			}
+		}
+		max := Num(h, c, sa, "ChangeNum", 1)
+		if max < 0 {
+			max = 0
+		}
+		if max > int32(len(budgetEligible)) {
+			max = int32(len(budgetEligible))
+		}
+		// CR 701.23b/701.23d decide the minimum: a search whose card filter states
+		// only a quantity must find that many (or as many as the zone holds), so
+		// Min is forced up to Max; a stated-quality search keeps the fail-to-find
+		// allowance of Min 0. `max` is already clamped to the number of eligible
+		// cards, so a quantity-only search never asks for more than the library
+		// holds (701.23d's "as many as possible"). This is a property of the
+		// filter, not of Forge's Mandatory$ parameter.
+		min := int32(0)
+		if !SearchStatesQuality(rawSpec) {
+			min = max
+		}
+		// An empty choice is not a choice: asking it suspends a real engine host
+		// until it submits an empty answer, even though no answer can differ.
+		// Complete the fail-to-find directly (including its required shuffle).
+		if min == 0 && max == 0 {
+			// A submitted search answer resumes in a fresh Ctx, so remembered
+			// objects do not leak into its SubAbility chain. Preserve that existing
+			// continuation contract while omitting the otherwise meaningless ask.
+			c.Remembered = nil
+			c.LibraryTarget = targetIndex
+			if applyLibrarySearch(h, c, sa, owner, to, nil, zones) {
+				return
+			}
+			continue
+		}
+		// greedy is the deterministic stand-in take under the cumulative budget
+		// (bound by the ChangeNum cap): with no budget every card fits and greedy
+		// is exactly the first max cards of eligible -- the take the pre-budget
+		// stand-in applied -- so the R-9 fallback stays byte-identical there. It
+		// is computed before the Min below is finalised, because the budget can
+		// strand a quantity-only search's forced Min.
+		greedy := make([]state.ObjID, 0, len(budgetEligible))
+		running := 0
 		for _, id := range budgetEligible {
-			name := "a card"
-			var cardName string
-			if o := g.Obj(id); o != nil && o.Face() != nil {
-				cardName = o.Face().Name
-				if !noLooking {
-					name = cardName
+			if int32(len(greedy)) >= max {
+				break
+			}
+			mv := manaValueOf(g, id)
+			if hasBudget && running+mv > int(budget) {
+				continue
+			}
+			running += mv
+			greedy = append(greedy, id)
+		}
+		// A budget can strand a quantity-only search's forced Min: max was
+		// clamped to len(budgetEligible), but the running sum may fit fewer than
+		// that (library [3MV, 4MV], ChangeNum 2, WithTotalCMC 6 -- the greedy
+		// take is one card), so Min == Max == 2 would pose an ask Decision
+		// .Validate rejects for EVERY 2-pick -- a real host could never submit
+		// and the match stalls. Lower the Min to the greedy count -- effDig's
+		// mandatory-budget rule (cardflow.go), which its sibling effHiddenPick
+		// applies too -- so a satisfying answer always exists. (Measured 0
+		// corpus carriers combine a quantity-only filter with WithTotalCMC$;
+		// this is general-correctness code in the direction of no wedge.)
+		if hasBudget && min > int32(len(greedy)) {
+			min = int32(len(greedy))
+		}
+		// The prompt must not offer a choice the decision will refuse. A
+		// quantity-only search has Min == Max, so "up to" would be a lie the
+		// player only discovers when their answer is rejected.
+		count := strconv.Itoa(int(max))
+		prompt := "Search a library: choose up to " + count + " card(s)"
+		if min == max {
+			prompt = "Search a library: choose " + count + " card(s)"
+		}
+		chooser := searchChooser(h, c, sa)
+		// NoLooking$ True (Forge's line-1020 gate: with NoLooking the searching
+		// player never LOOKS at the library -- no delayedReveal -- so the choose
+		// is made over card backs): the options must not carry card names. The
+		// IsRemembered legs of the Cultivate family and the seek-style shapes
+		// route here; without this read the option labels leaked the library's
+		// order one look at a time.
+		noLooking := strings.EqualFold(strings.TrimSpace(sa.Params["NoLooking"]), "True")
+		// DifferentNames$ True (Realms Uncharted): the picked cards must have
+		// distinct names. One option per card name carries that name in Group, so
+		// Decision.Validate's mutual-exclusion rule refuses any answer naming the
+		// same card twice -- the wire enforces what Forge's one-at-a-time loop
+		// (the DifferentNames fetchList filter) enforces there. The apply side
+		// dedupes a host that bypassed the wire (applyLibrarySearch).
+		differentNames := strings.EqualFold(strings.TrimSpace(sa.Params["DifferentNames"]), "True")
+		// Forge's EACH multi-type search grammar ("EACH Forest & Plains"): with
+		// every per-type cap at most 1 -- every corpus carrier -- the pick is
+		// structured, not a flat count: one option per eligible card, the
+		// type's ordinal in Option.Group, one decision whose Max is the number
+		// of listed types that have at least one eligible card. The Group
+		// exclusivity contract (decision.Decision.Validate) enforces at-most-one
+		// per Group on the wire, which IS one pick per type; the ordinary
+		// "search" resume arm carries the ordered picks, and applyLibrarySearch
+		// re-checks each against the union matcher, so no new Ctx field and no
+		// resume change. Min stays 0: the spec states a quality, so the
+		// fail-to-find allowance (CR 701.23b) is kept -- a listed type with no
+		// eligible card simply contributes no options and no Group, and its
+		// pick is the one the player cannot make.
+		eachSubs, isEach := eachAlternatives(spec)
+		eachStructured := isEach && max <= 1 && SearchStatesQuality(rawSpec)
+		d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
+			Min: int(min), Max: int(max), MaxSum: int(budget), Source: c.Source,
+			ResumeKind: "search", ResumeSA: sa, ResumeTarget: targetIndex,
+			// The walk's Remembered rides the ask (rules restores it on the
+			// resume) so the re-entered eligibility recheck and the SubAbility$
+			// after this one still see the cards RememberChanged$ captured -- a
+			// cast spell's mid-resolution Remembered lives only in the resolving
+			// Ctx frame, and without the ride the answer's recheck (and Nissa's
+			// Pilgrimage's "one onto the battlefield" leg) would re-resolve
+			// IsRemembered against an empty set and move nothing. A nested hidden
+			// search resumes in the same resolution too, so the fetch list built
+			// by a preceding search stays available to Card.IsRemembered and
+			// Defined$ Remembered in the rest of this chain.
+			ResumeRemembered: copyTargets(c.Remembered),
+			Prompt:           prompt}
+		if eachStructured {
+			groups := 0
+			sc := c.SpecContext(c.Controller)
+			for ti, sub := range eachSubs {
+				var typeIDs []state.ObjID
+				for _, id := range lib {
+					if MatchesSpecCtx(g, sub, id, sc) {
+						typeIDs = append(typeIDs, id)
+					}
+				}
+				if len(typeIDs) == 0 {
+					continue
+				}
+				for _, id := range typeIDs {
+					name := "a card"
+					if o := g.Obj(id); o != nil && o.Face() != nil && !noLooking {
+						name = o.Face().Name
+					}
+					d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+						Kind: "search", Label: name, Obj: id, Player: owner,
+						Group: strconv.Itoa(ti)})
+				}
+				groups++
+			}
+			d.Min, d.Max = 0, groups
+			d.Prompt = "Search a library: choose one card of each listed type"
+			// The budget is NOT enforced on the structured branch (its options
+			// carry no Value, so a MaxSum the wire advertises would be a cap
+			// Validate sums to 0 over -- meaningless, and misleading to a
+			// consumer). Clear it: 0 corpus carriers combine EACH with
+			// WithTotalCMC$, and a future one needs per-type budget mechanics
+			// designed, not a silent half-read.
+			d.MaxSum = 0
+		} else {
+			if isEach {
+				// A measured-absent shape kept loud rather than silently wrong:
+				// a per-type ChangeNum$ above 1 (or a quantity-only EACH spec)
+				// keeps the ordinary flat-count path over the union -- its
+				// candidates are correct, its pick structure is not one-per-type.
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "EACH ChangeType with per-type count above 1 resolves as a flat count"})
+			}
+			for _, id := range budgetEligible {
+				name := "a card"
+				var cardName string
+				if o := g.Obj(id); o != nil && o.Face() != nil {
+					cardName = o.Face().Name
+					if !noLooking {
+						name = cardName
+					}
+				}
+				opt := decision.Option{Index: len(d.Options),
+					Kind: "search", Label: name, Obj: id, Player: owner}
+				// Only a budget search carries a Value: Option.Value is omitempty,
+				// so a non-budget search's option list serialises byte-identically.
+				if hasBudget {
+					opt.Value = manaValueOf(g, id)
+				}
+				if differentNames && cardName != "" {
+					opt.Group = cardName
+				}
+				d.Options = append(d.Options, opt)
+			}
+		}
+		// The shared ask boundary (effects.Ask) refuses to post a decision whose
+		// only legal answer is the empty one -- with zero eligible cards max
+		// clamps to 0 and a stated-quality search's Min is already 0, so that is
+		// exactly the Squadron Hawk fail-to-find shape that used to soft-lock the
+		// game. AskEmpty resolves it silently through the stand-in below: the
+		// search still shuffles, and a fail-to-find is legitimate under
+		// CR 701.23b, so nothing is degraded and no R-9 Note is recorded.
+		oc := Ask(h, d)
+		if oc == AskAsked {
+			return
+		}
+		// R-9: a host without a decision channel cannot ask a player, so it
+		// supplies a deterministic answer in the player's place. For a
+		// quantity-only search (CR 701.23d) the decision would refuse to find
+		// fewer than Min cards, so the stand-in takes the first Min eligible
+		// cards -- in the same ordered eligible list the decision's options
+		// were built from -- or all of them when the library holds fewer
+		// (701.23d's "as many as possible"). For a stated-quality search
+		// (CR 701.23b) finding nothing is a legitimate fail-to-find, so the
+		// stand-in still finds nothing, exactly as before. Either way the
+		// search's unconditional shuffle still happens. An AskEmpty run takes
+		// the same stand-in silently (no Note): skipping the ask is the correct
+		// resolution, not a degradation.
+		var picked []state.ObjID
+		if !SearchStatesQuality(rawSpec) {
+			n := int(min)
+			if n > len(greedy) {
+				n = len(greedy)
+			}
+			if n > 0 {
+				// DifferentNames$ True makes the stand-in distinct-name aware too:
+				// a first-Min run over duplicate names would move two same-named
+				// cards the apply side would then have to silently drop under the
+				// Min the decision promised. (No corpus card pairs DifferentNames$
+				// with WithTotalCMC$, so the budget greedy and this walk never
+				// compete; the budget's greedy is the pick when both are present.)
+				if differentNames && !hasBudget {
+					seen := make(map[string]bool, n)
+					for _, id := range eligible {
+						if len(picked) >= n {
+							break
+						}
+						var cardName string
+						if o := g.Obj(id); o != nil && o.Face() != nil {
+							cardName = o.Face().Name
+						}
+						if seen[cardName] {
+							continue
+						}
+						seen[cardName] = true
+						picked = append(picked, id)
+					}
+				} else {
+					picked = append(picked, greedy[:n]...)
 				}
 			}
-			opt := decision.Option{Index: len(d.Options),
-				Kind: "search", Label: name, Obj: id, Player: owner}
-			// Only a budget search carries a Value: Option.Value is omitempty,
-			// so a non-budget search's option list serialises byte-identically.
-			if hasBudget {
-				opt.Value = manaValueOf(g, id)
+			if oc == AskNoHost {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: chooser,
+					Text: "finds " + strconv.Itoa(n) + " card(s) (no engine host to ask)"})
 			}
-			if differentNames && cardName != "" {
-				opt.Group = cardName
-			}
-			d.Options = append(d.Options, opt)
-		}
-	}
-	// The shared ask boundary (effects.Ask) refuses to post a decision whose
-	// only legal answer is the empty one -- with zero eligible cards max
-	// clamps to 0 and a stated-quality search's Min is already 0, so that is
-	// exactly the Squadron Hawk fail-to-find shape that used to soft-lock the
-	// game. AskEmpty resolves it silently through the stand-in below: the
-	// search still shuffles, and a fail-to-find is legitimate under
-	// CR 701.23b, so nothing is degraded and no R-9 Note is recorded.
-	oc := Ask(h, d)
-	if oc == AskAsked {
-		return
-	}
-	// R-9: a host without a decision channel cannot ask a player, so it
-	// supplies a deterministic answer in the player's place. For a
-	// quantity-only search (CR 701.23d) the decision would refuse to find
-	// fewer than Min cards, so the stand-in takes the first Min eligible
-	// cards -- in the same ordered eligible list the decision's options
-	// were built from -- or all of them when the library holds fewer
-	// (701.23d's "as many as possible"). For a stated-quality search
-	// (CR 701.23b) finding nothing is a legitimate fail-to-find, so the
-	// stand-in still finds nothing, exactly as before. Either way the
-	// search's unconditional shuffle still happens. An AskEmpty run takes
-	// the same stand-in silently (no Note): skipping the ask is the correct
-	// resolution, not a degradation.
-	var picked []state.ObjID
-	if !SearchStatesQuality(rawSpec) {
-		n := int(min)
-		if n > len(greedy) {
-			n = len(greedy)
-		}
-		if n > 0 {
-			// DifferentNames$ True makes the stand-in distinct-name aware too:
-			// a first-Min run over duplicate names would move two same-named
-			// cards the apply side would then have to silently drop under the
-			// Min the decision promised. (No corpus card pairs DifferentNames$
-			// with WithTotalCMC$, so the budget greedy and this walk never
-			// compete; the budget's greedy is the pick when both are present.)
-			if differentNames && !hasBudget {
-				seen := make(map[string]bool, n)
-				for _, id := range eligible {
-					if len(picked) >= n {
-						break
-					}
-					var cardName string
-					if o := g.Obj(id); o != nil && o.Face() != nil {
-						cardName = o.Face().Name
-					}
-					if seen[cardName] {
-						continue
-					}
-					seen[cardName] = true
-					picked = append(picked, id)
-				}
-			} else {
-				picked = append(picked, greedy[:n]...)
-			}
-		}
-		if oc == AskNoHost {
+		} else if oc == AskNoHost {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: chooser,
-				Text: "finds " + strconv.Itoa(n) + " card(s) (no engine host to ask)"})
+				Text: "finds no card (no engine host to ask)"})
 		}
-	} else if oc == AskNoHost {
-		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: chooser,
-			Text: "finds no card (no engine host to ask)"})
+		c.LibraryTarget = targetIndex
+		if applyLibrarySearch(h, c, sa, owner, to, picked, zones) {
+			return
+		}
 	}
-	applyLibrarySearch(h, c, sa, owner, to, picked, zones)
 }
 
 // libraryFetch is one owner and the direct-library objects moved for them.
@@ -2647,6 +2757,12 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 	if spec == "" {
 		spec = "Card"
 	}
+	// Away from the battlefield, Forge's Permanent base means a permanent
+	// card. Hidden graveyard/exile picks share the library search's rule;
+	// without it Winter's remembered permanent is never eligible for DBReturn.
+	if !zoneIn(originZones, state.ZBattlefield) {
+		spec = permanentCardSpec(spec)
+	}
 	max := Num(h, c, sa, "ChangeNum", 1)
 	if max < 0 {
 		max = 0
@@ -2688,6 +2804,11 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 			settleChangeZoneMoveAs(h, c, sa, id, o.Zone, to, withKind, withAmt, o.Owner, true)
 			moved = append(moved, id)
 			if strings.EqualFold(sa.Params["RememberChanged"], "True") {
+				// Keep the resolution-local set with the event-backed source
+				// memory: a linked SubAbility (Winter's DBReturn) reads the
+				// former through IsRemembered, while later effects read the
+				// latter from the source object's Choose events.
+				c.Remembered = append(c.Remembered, state.Target{Obj: id})
 				eventRemember(h, c, id)
 			}
 			eventForgetChanged(h, c, sa, id)
@@ -2774,6 +2895,14 @@ func effHiddenPick(h Host, c *Ctx, sa *cards.SA, to state.Zone, originZones []st
 			continue
 		}
 		if done && i == cursor {
+			if raw, ok := totalCardTypesRequirement(sa); ok {
+				need, err := strconv.Atoi(raw)
+				if err != nil || need < 0 || !totalCardTypesSatisfied(h.Game(), ans, need) {
+					h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: owner,
+						Text: "hidden pick fails WithTotalCardTypes$ requirement"})
+					continue
+				}
+			}
 			apply(owner, ans)
 			continue
 		}
@@ -2966,7 +3095,45 @@ func trimSharedLandTypes(g *state.Game, chosen []state.ObjID) []state.ObjID {
 	return out
 }
 
-func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to state.Zone, chosen []state.ObjID, zones []state.Zone) {
+// totalCardTypesRequirement reads the constraint from the ChangeZone node
+// that owns this hidden pick. ResumeSA preserves that node across an answer;
+// a linked sub-ability's parameter must not constrain its parent pick.
+func totalCardTypesRequirement(sa *cards.SA) (string, bool) {
+	if sa == nil {
+		return "", false
+	}
+	raw := strings.TrimSpace(sa.Params["WithTotalCardTypes"])
+	return raw, raw != ""
+}
+
+// totalCardTypesSatisfied is the hidden-search constraint used by
+// WithTotalCardTypes$. Card types are the ordinary spell types, including
+// Kindred and Battle; supertypes and creature subtypes in Face.Types do not count.
+func totalCardTypesSatisfied(g *state.Game, ids []state.ObjID, need int) bool {
+	if need <= 0 {
+		return true
+	}
+	seen := make(map[string]bool, len(ids))
+	for _, id := range ids {
+		o := g.Obj(id)
+		if o == nil || o.Face() == nil {
+			continue
+		}
+		for _, typ := range o.Face().Types {
+			switch typ {
+			case "Artifact", "Battle", "Creature", "Enchantment", "Instant", "Kindred", "Land", "Planeswalker", "Sorcery":
+				seen[typ] = true
+			}
+		}
+	}
+	return len(seen) >= need
+}
+
+// applyLibrarySearch returns true when the search's tail suspended on a
+// may-shuffle decision. The caller must stop its per-player walk in that case;
+// the resume path owns the pending decision and continues with the next
+// library only after its answer has been consumed.
+func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to state.Zone, chosen []state.ObjID, zones []state.Zone) bool {
 	// The search-control/replacement boundary (Opposition Agent's class):
 	// the moves this function emits are the moves OF A SEARCH, and the host
 	// that models that fact scopes its FoundSearchingLibrary$ replacements
@@ -2987,7 +3154,7 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 	// Recheck the answer with the same hidden-zone meaning used to build the
 	// option list: a library Permanent is a permanent card.
 	spec = permanentCardSpec(spec)
-	// DifferentNames$ True (Realms Uncharted): the options carried one Group
+	// DifferentNames$ True (Realms Uncharted): the options carried a Group
 	// per card name, so a validated wire answer cannot repeat a name. A host
 	// that bypassed the wire (bot clamp top-up, a direct resume) is deduped
 	// here deterministically -- first per name in answer order -- so the
@@ -3020,6 +3187,28 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 	// everything kept before it.
 	if strings.EqualFold(strings.TrimSpace(sa.Params["ShareLandType"]), "True") {
 		chosen = trimSharedLandTypes(g, chosen)
+	}
+	// WithTotalCardTypes$ constrains the complete hidden pick, rather than
+	// each option independently. Decision.Validate cannot inspect card
+	// characteristics, so enforce the same constraint at the resolution
+	// boundary as a conservative host-bypass guard: an underspecified answer
+	// finds nothing and cannot feed the ChangeZone rider. This check follows
+	// the other set-level trims so those cannot invalidate the guarantee.
+	if raw, hasTotalCardTypes := totalCardTypesRequirement(sa); hasTotalCardTypes {
+		// This parameter is a literal card-type cardinality in the Forge
+		// grammar (Winter uses 4). Parse it directly so the hidden-search
+		// continuation cannot lose the literal when it rebuilds its Ctx.
+		literal, parseErr := strconv.Atoi(raw)
+		need, ok := int32(literal), parseErr == nil
+		if !ok || need < 0 {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: owner,
+				Text: "WithTotalCardTypes$ cannot be resolved; hidden pick fails closed"})
+			chosen = nil
+		} else if !totalCardTypesSatisfied(g, chosen, int(need)) {
+			h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: owner,
+				Text: "hidden pick fails WithTotalCardTypes$ requirement"})
+			chosen = nil
+		}
 	}
 	moved := make([]state.ObjID, 0, len(chosen))
 	for _, id := range chosen {
@@ -3150,8 +3339,9 @@ func applyLibrarySearch(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, to s
 	// registrations are already game state by then.
 	scheduleAtEOT(h, c, sa, moved)
 	if searchShuffleTail(h, c, sa, owner, moved, to) {
-		return // the may-shuffle confirm suspended the resolution
+		return true // the may-shuffle confirm suspended the resolution
 	}
+	return false
 }
 
 // shuffleLibrary applies the default hidden-library shuffle used by searches
@@ -3217,9 +3407,9 @@ func searchShuffleTail(h Host, c *Ctx, sa *cards.SA, owner state.PlayerID, moved
 	}
 	d := &decision.Decision{Player: owner, Kind: decision.KChoose, Min: 1, Max: 1,
 		Source: c.Source, ResumeKind: "search_mayshuffle", ResumeSA: sa,
-		ResumeRemembered: copyTargets(c.Remembered),
-		ResumeMoved:      append([]state.ObjID(nil), moved...),
-		Prompt:           "Shuffle your library?",
+		ResumeTarget: c.LibraryTarget, ResumeRemembered: copyTargets(c.Remembered),
+		ResumeMoved: append([]state.ObjID(nil), moved...),
+		Prompt:      "Shuffle your library?",
 		Options: []decision.Option{
 			{Index: 0, Kind: "yes", Label: "Yes — shuffle", Player: owner},
 			{Index: 1, Kind: "no", Label: "No — keep the order", Player: owner},

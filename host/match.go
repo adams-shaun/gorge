@@ -150,7 +150,7 @@ func (r *Registry) newMatch(t *table, k int) (*match, error) {
 			}
 		}
 	}
-	cfg := rules.Config{Seed: seed, Names: names, PlayerNames: playerNames, Decks: decks, Sideboards: sideboardConfig(sideboards), Tokens: r.opts.Tokens, Mulligans: c.Mulligans}
+	cfg := rules.Config{Seed: seed, Names: names, PlayerNames: playerNames, Decks: decks, Sideboards: sideboardConfig(sideboards), Tokens: r.opts.Tokens, NameUniverse: r.opts.NameUniverse, Mulligans: c.Mulligans}
 	// The engine's own livelock watcher (rules/livelock.go) is the same
 	// non-terminating-loop protection as this file's per-turn decision
 	// guard, one level down: an embedder that opted out of the host guard
@@ -267,7 +267,9 @@ func (m *match) sidecar() sidecar {
 	return sidecar{Table: string(m.table.cfg.ID), Match: m.k, Seed: m.seed, Seats: m.seats, Names: m.cfg.Names,
 		PlayerNames: m.cfg.PlayerNames, Decks: m.decks, Spectator: m.table.cfg.Spectator.String(), State: m.state, Result: m.result, Winner: m.winner,
 		Head: m.head, Events: events, Turns: m.e.G.Turn, Reason: m.reason, Mulligans: m.cfg.Mulligans,
-		Format: Format(m.cfg.Format), StartingLife: m.cfg.StartingLife, Commanders: m.cfg.Commanders, BotPolicy: m.table.cfg.BotPolicy}
+		NameUniverse:      len(m.cfg.NameUniverse) > 0,
+		NameUniverseNames: append([]string(nil), m.e.G.NameUniverseNames...),
+		Format:            Format(m.cfg.Format), StartingLife: m.cfg.StartingLife, Commanders: m.cfg.Commanders, BotPolicy: m.table.cfg.BotPolicy}
 }
 
 // defaultSeats is PL-14: one bot per seat, seeded from the match seed.

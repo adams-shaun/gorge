@@ -120,9 +120,17 @@ type Player struct {
 	// per-player struct copy.
 	Blessing bool
 
-	// Notes is the ordered set of labels this player was noted for by a
-	// NoteCardsFor$ body. events.Apply is its only writer, preserving the
-	// player-notation state across replay; Clone deep-copies the slice.
+	// Notes is the set of player-notation labels this seat has noted, in the
+	// order they were noted (Forge's `NoteCards$ ... | NoteCardsFor$ <label>`
+	// on a DB$ Pump body appends <label> here; `Player.NotedFor<label>` reads
+	// it). It is append-only and never re-ordered, so it is deterministic on
+	// replay, and a re-note of the same label does not duplicate the entry.
+	// Written ONLY by events.Apply's PlayerNoted case, so a live game and a
+	// log-only reconstruction derive it identically. Clone deep-copies it
+	// (the Notes slice is appended to in place, so sharing the backing array
+	// would let either game corrupt the other). The sibling CARD notation
+	// (`NoteCards$ Self` on a body whose label is read by `Card.NotedForX`)
+	// is a different family and is not stored here.
 	Notes []string
 }
 
@@ -295,6 +303,13 @@ type Game struct {
 	// Tokens is the token definitions this match may create, keyed by
 	// Forge script stem; set at genesis, never mutated, so Clone shares it.
 	Tokens map[string]*cards.Card
+	// NameUniverse is the immutable compiled card-name universe used by
+	// NameCard choices. It is supplied by the embedder and shared by clones.
+	NameUniverse []*cards.Card
+	// NameUniverseNames is its sorted, distinct primary-face-name snapshot.
+	// A persisted match supplies it on replay so a later corpus update cannot
+	// renumber a NameCard decision's options.
+	NameUniverseNames []string
 
 	// Delayed holds delayed-trigger registrations (CR 603.7: Mode$ Phase, or
 	// the event-matched shape a DelayedTrigger.EventMode names) that have not

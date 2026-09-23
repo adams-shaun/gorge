@@ -349,7 +349,7 @@ func (e *Engine) presentConditionHoldsAs(t cards.Trigger, source state.ObjID, yo
 	if pd := strings.TrimSpace(t.Params["PresentDefined"]); pd != "" {
 		if strings.EqualFold(pd, "Self") {
 			if o := e.G.Obj(source); o == nil || o.Zone != state.ZBattlefield ||
-				!effects.MatchesSpecCtx(e.G, spec, source, e.specCtx(source, you)) {
+				!e.matchesSpec(spec, source, e.specCtx(source, you)) {
 				return comparePresent(0, cmp)
 			}
 			return comparePresent(1, cmp)
@@ -384,7 +384,7 @@ func (e *Engine) presentZoneCount(t cards.Trigger, spec string, source state.Obj
 	n := 0
 	for _, p := range e.G.AliveFrom(0) {
 		for _, id := range e.G.Zone(zone, p) {
-			if effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(source, you)) {
+			if e.matchesSpec(spec, id, e.specCtx(source, you)) {
 				n++
 			}
 		}
@@ -409,7 +409,7 @@ func (e *Engine) countPresent(spec string, source state.ObjID, you state.PlayerI
 		if o == nil || o.Zone != state.ZBattlefield {
 			return
 		}
-		if effects.MatchesSpecCtx(e.G, spec, id, e.specCtx(source, you)) {
+		if e.matchesSpec(spec, id, e.specCtx(source, you)) {
 			n++
 		}
 	})
@@ -430,7 +430,7 @@ func (e *Engine) presentUnionCount(spec, spec2 string, source state.ObjID, you s
 			return
 		}
 		sc := e.specCtx(source, you)
-		if effects.MatchesSpecCtx(e.G, spec, id, sc) || effects.MatchesSpecCtx(e.G, spec2, id, sc) {
+		if e.matchesSpec(spec, id, sc) || e.matchesSpec(spec2, id, sc) {
 			seen[id] = true
 			n++
 		}

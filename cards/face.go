@@ -152,6 +152,45 @@ func (f *Face) textualManaAbilities() []*SA {
 	return out
 }
 
+// ManaReflectedAbilities lists every reflected-mana activated ability (AB$
+// ManaReflected) on the face, in printed order. It is the ManaAbilities
+// sibling the per-face ManaProduction fold needs: a reflected source's
+// colours are computed at resolution from the objects its Valid$ selector
+// names, so it is not an AB$ Mana ability (ManaAbilities deliberately lists
+// only those), but it IS a mana ability the collector must account for
+// (ManaProduction.addReflected), or a reflected source projects as producing
+// nothing. The compiled span keeps the parity/performance shape ManaAbilities
+// uses, with the textual walk as the unbounded fallback.
+func (f *Face) ManaReflectedAbilities() []*SA {
+	if f.compiledCatalog != nil && f.compiledID != 0 && int(f.compiledID) <= len(f.compiledCatalog.Faces) {
+		span := f.compiledCatalog.Faces[f.compiledID-1].Abilities
+		end := uint64(span.Start) + uint64(span.Count)
+		if end <= uint64(len(f.compiledCatalog.FaceAbilities)) {
+			var out []*SA
+			for _, id := range f.compiledCatalog.FaceAbilities[span.Start:uint32(end)] {
+				if id == 0 || int(id) > len(f.compiledCatalog.abilityPointers) {
+					return f.textualManaReflectedAbilities()
+				}
+				if a := f.compiledCatalog.abilityPointers[id-1]; a != nil && a.Kind == "AB" && a.API == "ManaReflected" {
+					out = append(out, a)
+				}
+			}
+			return out
+		}
+	}
+	return f.textualManaReflectedAbilities()
+}
+
+func (f *Face) textualManaReflectedAbilities() []*SA {
+	var out []*SA
+	for _, a := range f.Abilities {
+		if a.Kind == "AB" && a.API == "ManaReflected" {
+			out = append(out, a)
+		}
+	}
+	return out
+}
+
 func (f *Face) Power() int     { return int(f.power) }
 func (f *Face) Toughness() int { return int(f.toughness) }
 
@@ -216,6 +255,9 @@ func (f *Face) derive() {
 	f.manaProduction = ManaProduction{}
 	for _, a := range f.ManaAbilities() {
 		f.manaProduction.add(a)
+	}
+	for _, a := range f.ManaReflectedAbilities() {
+		f.manaProduction.addReflected(a)
 	}
 	f.colourIdentity = f.deriveColourIdentity()
 }

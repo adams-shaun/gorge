@@ -52,6 +52,15 @@ var predicates = map[string]predFn{
 	"foretold": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
 		return o.CastFlags&state.FlagForetold != 0
 	},
+	// tokenCreated is Forge's zone-entry provenance predicate. In the
+	// Count$ThisTurnEntered_* specs that use it, a token's IsToken marker is
+	// the exact per-object meaning: tokens that leave cease to exist, and the
+	// entry list is cleared at TurnChange. A resolving creature-spell copy
+	// that enters the battlefield is also a token under CR 707.10g, so it
+	// correctly matches through the same marker.
+	"tokenCreated": func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+		return o.IsToken
+	},
 	"OppOwn":    func(g *state.Game, o *state.Object, you state.PlayerID, _ state.ObjID) bool { return o.Owner != you },
 	"Self":      func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool { return o.ID == src },
 	"Other":     func(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool { return o.ID != src },
@@ -3314,13 +3323,20 @@ func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, 
 				return true
 			}
 		default:
-			// Player.NotedFor<label> reads the event-backed player notation that
-			// a DB$ Pump's NoteCardsFor$ wrote. Keeping this in the shared player
-			// filter means every selector consumer (RepeatPlayers$, Defined$,
-			// statics, and counts) gets the same semantics.
+			// Player.NotedFor<label> (Forge's PlayerProperty.NotedFor): the
+			// seat qualifies when its event-backed note set names <label>.
+			// The label is written by a DB$ Pump body's NoteCardsFor$
+			// parameter (effects.effPump -> events.PlayerNoted), so the read
+			// reaches the shared player filter every consumer already uses --
+			// RepeatEach's RepeatPlayers$, Defined$ on Draw/Discard/ChangeZone,
+			// the Continuous statics' Affected$ and a Count$ head alike. The
+			// Player/Any base is required (a qualified You.NotedForX fails
+			// closed, like every other qualifier here), the label is matched
+			// EXACTLY (case-sensitive, as Forge's string set is), and an
+			// out-of-range seat fails closed.
 			if base == "Player" || base == "Any" {
-				if label, ok := strings.CutPrefix(qualifier, "NotedFor"); ok && label != "" {
-					if playerHasNote(g, p, label) {
+				if label, is := strings.CutPrefix(qualifier, "NotedFor"); is && label != "" {
+					if int(p) < len(g.Players) && playerHasNote(g, p, label) {
 						return true
 					}
 					continue
@@ -3337,15 +3353,18 @@ func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, 
 	return false
 }
 
-// playerHasNote reports whether a seat's event-backed player notation has
-// label. The slice's first-note order is deterministic and the lookup is
-// intentionally exact, matching Forge's string labels.
+// playerHasNote reports whether the seat's event-backed player-notation set
+// names label. The note set is state.Player.Notes, written only by
+// events.Apply's PlayerNoted case (a DB$ Pump body's NoteCardsFor$), so a
+// live game and a log-only replay answer identically. An out-of-range seat
+// fails closed. There is no map range here (the slice is walked in its
+// append order), so the result is deterministic.
 func playerHasNote(g *state.Game, p state.PlayerID, label string) bool {
-	if int(p) < 0 || int(p) >= len(g.Players) {
+	if int(p) >= len(g.Players) {
 		return false
 	}
-	for _, note := range g.Players[p].Notes {
-		if note == label {
+	for _, n := range g.Players[p].Notes {
+		if n == label {
 			return true
 		}
 	}

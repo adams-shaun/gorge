@@ -71,9 +71,11 @@ func TestPathOfTheAnimistSearchThenVoteResolvesThePlaneswalkOutcome(t *testing.T
 	// distinguishable from a deterministic first-two pick.
 	wantSearched := []state.ObjID{d.Options[0].Obj, d.Options[2].Obj}
 	submitChoices(t, e, d.Options[0].Index, d.Options[2].Index)
-	if d = e.Pending(); d == nil || d.Kind != decision.KPriority {
-		t.Fatalf("after the search answer pending = %+v, want priority (the vote is the deterministic no-ask stand-in)", d)
-	}
+	// The vote now poses a real per-voter ask (task vote_card_self1) where
+	// the pre-ask engine silently took the ballot's first option; the drain
+	// answers every voter option 0 (planeswalk), preserving the outcome this
+	// test asserts.
+	passUntilStackEmpty(t, e, 40)
 
 	// The two answered lands entered tapped; the shuffle happened.
 	for _, id2 := range wantSearched {

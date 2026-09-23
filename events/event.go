@@ -748,13 +748,25 @@ const (
 	// append-only precedent, so no earlier ordinal, hash chain or golden
 	// replay is affected.
 	Unattached
-	// PlayerNoted records a DB$ Pump NoteCardsFor$ write. Player names the
-	// noted seat and Text its branch label; Apply folds it into Player.Notes so
-	// Player.NotedFor<label> is replayable state rather than a transcript Note.
-	// Appended after every existing kind to preserve established ordinals.
+	// PlayerNoted records a player-notation write (Forge's `NoteCards$
+	// <defined> | NoteCardsFor$ <label>` on a DB$ Pump body -- Seize the
+	// Spotlight's fame/fortune branches, Master of Ceremonies' money/
+	// friends/secrets). Player is the seat the note lands on and Text is the
+	// label; events.Apply appends Text to that seat's state.Player.Notes
+	// (idempotent), which `Player.NotedFor<label>` reads from the shared
+	// player filter. It is a dedicated Kind rather than a Note marker because
+	// the notation is real game state a later resolution reads -- a plain Note
+	// is transcript-only and Apply writes nothing for it, so a log-only replay
+	// could not rebuild the note. The CARD half of the parameter family
+	// (`NoteCards$ Self` read back by `Card.NotedFor<label>`) is a separate
+	// family and does not ride this event. Appended here, after Unattached,
+	// following every prior Kind's own append-only precedent, so no earlier
+	// ordinal, hash chain or golden replay is affected.
 	PlayerNoted
-	// PlayerNoteCleared removes one ClearNotedCardsFor$ label from a player.
-	// Appended after PlayerNoted to preserve every earlier kind ordinal.
+	// PlayerNoteCleared removes one ClearNotedCardsFor$ label from a player
+	// (a DB$ Pump body's ClearNotedCardsFor$ parameter, folded by events.Apply
+	// out of the same state.Player.Notes slice). Appended after PlayerNoted to
+	// preserve every earlier kind ordinal.
 	PlayerNoteCleared
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
@@ -893,6 +905,12 @@ func (k Kind) String() string {
 // Event's encoded union, so it preserves this turn-specific rider without a
 // schema change.
 const ExtraTurnSkipUntapText = "extra turn; skip untap"
+
+// ExtraTurnSkippedText marks a -1 ExtraTurn consumption whose BeginTurn
+// replacement skipped the granted turn. It distinguishes that bookkeeping
+// consumption from one immediately followed by a TurnChange, so the ordinary
+// rotation scan does not mistake the next normal turn for an extra turn.
+const ExtraTurnSkippedText = "extra turn; skipped"
 
 // Event is a state delta. The field set is a flat union so encoding stays
 // allocation-free and an external consumer needs no engine code to read it.

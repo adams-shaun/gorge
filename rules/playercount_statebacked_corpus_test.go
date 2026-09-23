@@ -130,6 +130,16 @@ func TestArchivistOfGondorNoMonarchGate(t *testing.T) {
 	}
 	e.pendingTriggers = nil
 
+	// That same combat damage ALSO stole the crown: CR 724.2b hands the
+	// monarchy to the controller of a source that deals combat damage to
+	// the monarch, so seat 0's commander took it back from seat 1. The gate
+	// above read the pre-damage state (seat 1 monarch, count 1, EQ0 fails);
+	// the state the log now folds to is seat 0.
+	if !e.G.IsMonarch(0) {
+		t.Fatalf("after combat damage to the monarch: monarch = seat %d (has %v), want seat 0",
+			e.G.Monarch, e.G.HasMonarch)
+	}
+
 	// Replay: folding the whole log back through events.Apply reproduces
 	// the monarch state the gate read (and the combat hit it rode on).
 	// The full-game diff is not available here: replayFromLog folds events
@@ -140,8 +150,8 @@ func TestArchivistOfGondorNoMonarchGate(t *testing.T) {
 	if !containsID(re.Zone(state.ZCommand, 0), cmd) {
 		t.Fatal("replayed command zone does not hold the commander")
 	}
-	if !re.IsMonarch(1) {
-		t.Fatalf("replayed monarch state = seat %d (has %v), want seat 1", re.Monarch, re.HasMonarch)
+	if !re.IsMonarch(0) {
+		t.Fatalf("replayed monarch state = seat %d (has %v), want seat 0", re.Monarch, re.HasMonarch)
 	}
 }
 

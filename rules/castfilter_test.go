@@ -448,12 +448,12 @@ func TestBucolicRanchRestrictedDesertManaKeepsItsRestriction(t *testing.T) {
 
 	// Admitted for the Mount spell, withheld from the non-Mount in BOTH the
 	// pool and the typed tally.
-	if av := e.manaAvailableFor(0, mountID, false); av.pool.Total() != 1 ||
+	if av := e.manaAvailableFor(0, paymentFor(mountID, false, Cost{})); av.pool.Total() != 1 ||
 		av.typed[state.TypedDesert][state.MW] != 1 {
 		t.Fatalf("manaAvailableFor(Mount) = pool %d typed %d, want 1/1 (restriction admitted)",
 			av.pool.Total(), av.typed[state.TypedDesert][state.MW])
 	}
-	if av := e.manaAvailableFor(0, wallID, false); av.pool.Total() != 0 ||
+	if av := e.manaAvailableFor(0, paymentFor(wallID, false, Cost{})); av.pool.Total() != 0 ||
 		av.typed[state.TypedDesert][state.MW] != 0 {
 		t.Fatalf("manaAvailableFor(non-Mount) = pool %d typed %d, want 0/0 (restriction withheld)",
 			av.pool.Total(), av.typed[state.TypedDesert][state.MW])

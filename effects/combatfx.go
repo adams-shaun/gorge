@@ -255,12 +255,26 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 		}
 	}
 
-	// NoteCards$ Self is the player-notation form: Defined$ identifies the
-	// noted players (Seize the Spotlight binds its chooser as Remembered); with
-	// no Defined$ it notes the resolving controller. Remembered and
-	// TriggeredSource are card notation forms, whose Card.NotedFor<label>
-	// reader remains separate.
+	// NoteCards$ <defined> + NoteCardsFor$ <label> (Forge's NoteCardsEffect):
+	// the body records a player-notation that a later resolution reads through
+	// the shared player filter's `Player.NotedFor<label>` qualifier. Corpus
+	// carriers: Seize the Spotlight's fame/fortune branches, Master of
+	// Ceremonies' money/friends/secrets, Wheel of Potential, Borderland
+	// Explorer. The noted SEAT is the resolution's Defined set (a remembered
+	// chooser, `Defined$ Player`, or `Defined$ Player.!IsRemembered`); Forge's
+	// NoteCardsEffect notes the CURRENT player when Defined$ is absent, which
+	// here is the resolving controller. NoteCards$ itself names the noted
+	// thing, and only its `Self` form is a PLAYER notation: every corpus
+	// player carrier carries `NoteCards$ Self`, while `Remembered`/
+	// `TriggeredSource` (Volatile Chimera, Caller of the Untamed, Arcane
+	// Savant, Maelstrom Archangel Avatar) are the card-notation half
+	// (`Card.NotedFor<label>` at ChooseCard/Play/ChangeType sites), a separate
+	// family that must NOT write a player label. The note lands through its
+	// own event so a log-only replay rebuilds state.Player.Notes exactly; the
+	// pump body then runs unchanged (a `Defined$ Remembered` chooser is a
+	// player entry, skipped by the object walk below).
 	if label := strings.TrimSpace(sa.Params["NoteCardsFor"]); label != "" && strings.TrimSpace(sa.Params["NoteCards"]) == "Self" {
+		spec := strings.TrimSpace(sa.Params["Defined"])
 		noted := false
 		for _, t := range Defined(h, c, sa) {
 			if !t.IsPlayer {
@@ -269,7 +283,7 @@ func effPump(h Host, c *Ctx, sa *cards.SA) {
 			h.Emit(events.Event{Kind: events.PlayerNoted, Player: t.Player, Text: label})
 			noted = true
 		}
-		if !noted && strings.TrimSpace(sa.Params["Defined"]) == "" {
+		if !noted && spec == "" {
 			h.Emit(events.Event{Kind: events.PlayerNoted, Player: c.Controller, Text: label})
 		}
 	}
@@ -813,7 +827,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 			// half-permanent — types kept while an UntilEOT P/T set
 			// strips them to an untransformed-basis 0/0 the CR 704.5f
 			// SBA destroys.
-			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent,
+			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent && !IsNextTurnDuration(ag.duration),
 			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
@@ -824,7 +838,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 			Layer: state.LType, AddTypes: ag.types,
 			RemoveCreatureTypes: ag.removeCreatureTypes,
 			AddAllCreatureTypes: ag.allCreatureTypes, RemoveCardTypes: ag.removeCardTypes,
-			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent,
+			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent && !IsNextTurnDuration(ag.duration),
 			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
@@ -833,7 +847,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LColor, AddColors: ag.colors, OverwriteColors: ag.overwriteColors,
-			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent,
+			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent && !IsNextTurnDuration(ag.duration),
 			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
@@ -842,7 +856,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LAbilities, AddKeywords: ag.kws,
-			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent,
+			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent && !IsNextTurnDuration(ag.duration),
 			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
@@ -852,7 +866,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LAbilities, AddAbilities: ag.abilities,
 			SVars: c.SVars, AbilityGrantor: c.Source,
-			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent,
+			Duration: ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent && !IsNextTurnDuration(ag.duration),
 			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})
@@ -873,7 +887,7 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 			Layer:          state.LAbilities,
 			AddTrigger:     &t,
 			TriggerGrantor: ag.triggerGrantor,
-			Duration:       ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent,
+			Duration:       ag.duration, Permanent: ag.permanent, UntilEOT: !ag.permanent && !IsNextTurnDuration(ag.duration),
 			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: ag.zone,
 		})

@@ -177,7 +177,7 @@ func (e *Engine) mutatesMatches(t cards.Trigger, source state.ObjID, ev events.E
 	}
 	if v := strings.TrimSpace(t.Params["ValidCard"]); v != "" {
 		ctrl := e.controllerOf(source)
-		if !effects.MatchesObjectCtx(e.G, v, o, e.specCtx(source, ctrl)) {
+		if !e.matchesSpec(v, ev.Obj, e.specCtx(source, ctrl)) {
 			return false
 		}
 	}

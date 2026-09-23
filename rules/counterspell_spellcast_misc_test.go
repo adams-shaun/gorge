@@ -303,6 +303,15 @@ func TestCopySpellAbilityControllerGivesTheCopyToThePayer(t *testing.T) {
 		t.Fatalf("no seat-1-controlled copy was created for the paid unless-cost (copy %v, event %v)", copied, stackCopy)
 	}
 
+	// CR 707.10c: the copy's controller (seat 1) may choose new targets.
+	// Keep the inherited player target (option 0) so the copy still hits
+	// seat 1 and the life assertion below is meaningful.
+	d = passUntilNonPriority(t, e, 30)
+	if d == nil || d.Kind != decision.KTarget || d.ResumeKind != "copy_targets" {
+		t.Fatalf("expected the copy's new-target ask, got %+v", d)
+	}
+	submitChoices(t, e, d.Options[0].Index)
+
 	// The copy resolves its kept target: 3 more damage to seat 1, whose pool
 	// is now empty, so the copy's own unless ask must be a decline.
 	d = passUntilNonPriority(t, e, 30)
@@ -333,7 +342,24 @@ func TestCouncilsJudgmentExilesTheMostVoted(t *testing.T) {
 	opponentBear := miscBoardObj(t, e, 1, "Grizzly Bears")
 	submitChoices(t, e, miscCastOption(t, e, judgment))
 	miscPass(t, e) // seat 0's follow-up priority
-	passUntilStackEmpty(t, e, 30)
+	// VoteCard$ is a real private per-voter decision; both voters select the
+	// only eligible permanent before the ordinary priority drain continues.
+	voteAsks := 0
+	for len(e.G.Stack) > 0 {
+		d := e.Pending()
+		if d == nil {
+			t.Fatal("no decision while draining Council's Judgment")
+		}
+		if d.Kind == decision.KChoose {
+			voteAsks++
+			submitChoices(t, e, d.Options[0].Index)
+			continue
+		}
+		passUntilStackEmpty(t, e, 1)
+	}
+	if voteAsks != 2 {
+		t.Fatalf("Council's Judgment posed %d VoteCard asks, want one per voter (2)", voteAsks)
+	}
 
 	// The opponent's bear was the only legal ballot entry, every player
 	// voted for it, and the exile sub-ability moved it. Seat 0's own bear is

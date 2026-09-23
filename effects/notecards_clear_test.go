@@ -20,7 +20,7 @@ func TestCardNotationDoesNotWritePlayerLabels(t *testing.T) {
 	}
 
 	h := newHost(t, 2)
-	src := notationSource(t, h, card)
+	src := noteCardAt(t, h, card)
 	if got := h.g.Obj(src).Zone; got != state.ZBattlefield {
 		t.Fatalf("notation source zone = %v, want battlefield", got)
 	}
@@ -48,7 +48,7 @@ func TestClearNotedCardsForReplacesPriorChoice(t *testing.T) {
 	}
 
 	h := newHost(t, 2)
-	src := notationSource(t, h, card)
+	src := noteCardAt(t, h, card)
 	if got := h.g.Obj(src).Zone; got != state.ZBattlefield {
 		t.Fatalf("Master source zone = %v, want battlefield", got)
 	}
