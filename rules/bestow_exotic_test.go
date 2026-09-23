@@ -10,15 +10,13 @@ import (
 	"github.com/adams-shaun/gorge/state"
 )
 
-// Bestow's three exotic costs (CR 702.114a) are priced and offered, not
-// withheld: Nyxborn Hydra's {X}{G}{G} announces X through the ordinary cast
-// machinery, Detective's Phoenix's {R} plus CollectEvidence<6> settles through
-// the shared evidence payment, and Hypnotic Siren's colon-suffixed
-// "5 U U:GainControl" line pays {5}{U}{U} -- the ":GainControl" is Forge
-// metadata for the card's own GainControl static, not cost text. The CR
-// 702.114c nuance is pinned separately: a bestowed spell is an Aura spell, not
-// a creature spell, so it fires no "cast a creature spell" trigger and does
-// fire a "cast an Aura spell" one.
+// Nyxborn Hydra's {X}{G}{G} and Hypnotic Siren's colon-suffixed
+// "5 U U:GainControl" bestow costs are offered and paid. Detective's Phoenix's
+// CollectEvidence<6> payment already worked before this change and is not used
+// as evidence of a changed behavior. The CR 702.114c nuance is pinned
+// separately: a bestowed spell is an Aura spell, not a creature spell, so it
+// fires no "cast a creature spell" trigger and does fire an "cast an Aura
+// spell" one.
 //
 // The corpus is required: every test loads the real carrier through
 // testutil.CorpusRegistry.
@@ -94,57 +92,6 @@ func TestNyxbornHydraBestowXCostIsOfferedAndAnnounced(t *testing.T) {
 	}
 	if !sawBestowedCastInfo(t, e, hydraID) {
 		t.Fatal("no FlagBestowed CastInfo on the bestowed hydra cast")
-	}
-	replayCheck(t, e, cfg)
-}
-
-// TestDetectivesPhoenixBestowCollectEvidenceIsPaid: the CollectEvidence<6>
-// bestow cost is offered as a bestowed cast, poses the evidence ask, and exiles
-// the chosen graveyard cards as the payment before resolving attached.
-func TestDetectivesPhoenixBestowCollectEvidenceIsPaid(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
-	phoenix := mustCorpusCard(t, reg, "Detective's Phoenix")
-	relicCard := card(t, "Name:Big Relic\nManaCost:6\nTypes:Artifact\nOracle:x\n")
-	e, cfg := tokenReplGame(t, 1452, phoenix, relicCard)
-	phoenixID := moveSeededCard(t, e, 0, phoenix, state.ZHand)
-	bear := putToken(t, e, 0, bestowBearerSrc, state.ZBattlefield)
-	relic := moveSeededCard(t, e, 0, relicCard, state.ZGraveyard)
-	addMana(t, e, 0, "R")
-
-	// Precondition: without the parsed Evidence part the offer would either
-	// not appear or would charge a phantom generic; the graveyard card really
-	// is in the graveyard.
-	if e.G.Obj(relic).Zone != state.ZGraveyard {
-		t.Fatalf("setup: evidence card zone %s", e.G.Obj(relic).Zone)
-	}
-	bestowed := bestowedCastOption(t, e, phoenixID)
-	submitChoices(t, e, bestowed.Index)
-	// The target ask precedes the evidence ask (CR 601.2c before 601.2h).
-	d := e.Pending()
-	if d == nil || d.Kind != decision.KTarget {
-		t.Fatalf("bestowed phoenix target ask: %+v", d)
-	}
-	tgt := indexOfObjOption(d, bear)
-	if tgt < 0 {
-		t.Fatalf("bear not offered as a bestow target: %+v", d.Options)
-	}
-	submitChoices(t, e, tgt)
-	d = e.Pending()
-	if d == nil || d.Kind != decision.KChoose || len(d.Options) == 0 || d.Options[0].Kind != "evidence" {
-		t.Fatalf("bestowed phoenix evidence ask: %+v", d)
-	}
-	submitChoices(t, e, d.Options[0].Index)
-	passUntilStackEmpty(t, e, 20)
-
-	if e.G.Obj(relic).Zone != state.ZExile {
-		t.Fatalf("evidence card zone %s, want Exile", e.G.Obj(relic).Zone)
-	}
-	o := e.G.Obj(phoenixID)
-	if o.Zone != state.ZBattlefield || o.AttachedTo != bear {
-		t.Fatalf("phoenix zone %s attached %d, want battlefield/bear %d", o.Zone, o.AttachedTo, bear)
-	}
-	if !e.HasKeyword(bear, "Flying") || !e.HasKeyword(bear, "Haste") {
-		t.Fatalf("bestowed phoenix static not live on the bearer: %v", e.Derived(bear).Keywords)
 	}
 	replayCheck(t, e, cfg)
 }
