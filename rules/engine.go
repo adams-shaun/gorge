@@ -381,6 +381,10 @@ type Engine struct {
 	// pendingTriggers holds matched triggers not yet placed on the stack.
 	// checkTriggers appends; putTriggersOnStack drains. Task 20 (trigger.go).
 	pendingTriggers []pendingTrigger
+	// secretVoteBallots is emission-scoped scratch, visible only while the
+	// public, ballot-free completion Note is scanned for Vote triggers.
+	// It is never stored on Game or in the event log.
+	secretVoteBallots []effects.VoteBallot
 	// triggerBefore is the immutable pre-departure board for an SBA death
 	// batch. Scoped to its emission/resumption, never carried as live state.
 	triggerBefore *triggerSnapshot

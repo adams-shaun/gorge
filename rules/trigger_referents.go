@@ -302,6 +302,9 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		// referent scope, never the firing -- see voteMatches): a spelling
 		// whose List$ does not name it binds empty.
 		if _, ballots, ballotExisted, ok := effects.VoteFinishedResult(ev); ok {
+			if e.secretVoteBallots != nil {
+				ballots = e.secretVoteBallots
+			}
 			same, diff := effects.VoteSplit(e.controllerOf(source), ballots, ballotExisted)
 			if listAdmits(t.Params["List"], "OppVotedSame") {
 				c.TriggeredOpponentsVotedSame = same
