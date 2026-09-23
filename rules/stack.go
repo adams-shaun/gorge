@@ -675,6 +675,30 @@ func (e *Engine) costPayableClass(p state.PlayerID, d paymentDescriptor, rider p
 	return ok
 }
 
+// stackXAnnounced reports whether the stack object's cast or activation
+// genuinely announced an X (CR 601.2b/107.3i), possibly zero: a nonzero
+// recorded value, or the face/ability cost carrying an announce-bearing X
+// part (the shared costAnnouncesX census: a printed {X}, an announced
+// PayLife<X> or SubCounter<X/Kind>, a dynamic PayEnergy<X> or tapXType<X>).
+// A trigger that was never paid an X is NOT announced, even though
+// triggerPaidX rebinds a nonzero value for its own readers -- an UnlessCost$
+// X on such a body stays unbound, which the conservative direction is.
+func stackXAnnounced(o *state.Object) bool {
+	if o == nil {
+		return false
+	}
+	if o.X != 0 {
+		return true
+	}
+	if o.Face() != nil && costAnnouncesX(ParseCost(o.Face().ManaCost)) {
+		return true
+	}
+	if o.Ability != nil {
+		return costAnnouncesX(ParseCost(o.Ability.Params["Cost"]))
+	}
+	return false
+}
+
 // costPayableOther is the offer-side partner of context-free payMana and
 // payManaConv windows. A cost paid outside casting or activating an ability
 // must not borrow spell- or activation-restricted mana merely because its
@@ -959,8 +983,22 @@ func targetZones(sa *cards.SA) []state.Zone {
 		zones = appendUniqueZone(zones, state.ZStack)
 	}
 	if len(zones) == 0 {
+		// An Origin$ that names exactly one concrete zone is a zone
+		// declaration in its own right and OUTRANKS the ValidTgts$
+		// inference below: `Origin$ Graveyard | ValidTgts$ Instant.YouCtrl,
+		// Sorcery.YouCtrl` (Volcanic Vision) names instant/sorcery CARDS in
+		// the graveyard, and inferring the stack from the base token would
+		// replace the graveyard route with a stack one and make the fetch
+		// inert (the finding this closes). With no explicit TgtZone$ and no
+		// Origin$ declaration, a ValidTgts$ whose own token names a stack
+		// object kind (for example, `ValidTgts$ Spell`) targets the stack;
+		// the TgtZone$ guard keeps an explicit `TgtZone$ Graveyard |
+		// ValidTgts$ Instant` (a card in a named zone, not a stack object)
+		// off this route.
 		if z, ok := originImpliedTargetZone(sa); ok {
 			zones = []state.Zone{z}
+		} else if sa.Params["TgtZone"] == "" && targetsStackObjects(sa.Params["ValidTgts"]) {
+			zones = []state.Zone{state.ZStack}
 		} else {
 			zones = []state.Zone{state.ZBattlefield}
 		}
@@ -1022,15 +1060,14 @@ func appendUniqueZone(zones []state.Zone, z state.Zone) []state.Zone {
 	return append(zones, z)
 }
 
-// targetsStackObjects reports whether a Forge TargetType$ value names a
-// target that lives on the stack: a spell (Spell/Instant/Sorcery), or an
-// activated/triggered/spell-ability object. The base token precedes any "."
-// qualifier (Spell.singleTarget, Instant.singleTarget, ...).
-func targetsStackObjects(tt string) bool {
-	for _, t := range strings.Split(tt, ",") {
-		base, _, _ := strings.Cut(strings.TrimSpace(t), ".")
-		switch base {
-		case "Spell", "Instant", "Sorcery", "Activated", "Triggered", "SpellAbility":
+// targetsStackObjects reports whether a Forge TargetType$ or ValidTgts$
+// value names a target that lives on the stack: a spell (Spell/Instant/
+// Sorcery), or an activated/triggered/spell-ability object. The shared state
+// parser keeps this census aligned with stack target-kind legality, including
+// Forge's Ability alias.
+func targetsStackObjects(spec string) bool {
+	for _, token := range strings.Split(spec, ",") {
+		if _, ok := state.StackKindTokenOf(strings.TrimSpace(token)); ok {
 			return true
 		}
 	}
@@ -1062,9 +1099,10 @@ func (e *Engine) stackObjKind(o *state.Object) stackObjKind { return state.Stack
 // Spell qualifiers "Instant"/"Sorcery" (Sister of Silence's
 // `Spell.Instant,Spell.Sorcery,Activated,Triggered`) restrict the Spell kind
 // to instant/sorcery CARD objects -- a creature spell is never admitted.
-// Any OTHER qualifier (singleTarget, numTargets GE1, ...) is NOT read -- the
-// token admits its full kind set with no restriction, the same widening the
-// AGENTS.md TargetType$ row records.
+// Target-count, controller and spell-characteristic qualifiers are parsed
+// here as part of the same token. The rules-side matcher supplies the live
+// characteristics and chosen-target count that the lower state package cannot
+// derive.
 type targetTypeToken = state.StackKindToken
 
 // stackTargetKindTokens parses a TargetType$ value into its kind tokens.
@@ -1083,8 +1121,59 @@ func stackTargetKindTokens(tt string) []targetTypeToken { return state.StackKind
 // Sister of Silence's `Spell.Instant,Spell.Sorcery,...`; a Face-less object
 // (never reachable for stackSpell, since StackObjKind only classifies a
 // Face-bearing object as a spell) fails closed.
-func stackKindAdmits(toks []targetTypeToken, k stackObjKind, o *state.Object, controller, you state.PlayerID) bool {
-	return state.StackKindAdmits(toks, k, o, controller, you)
+func (e *Engine) stackKindAdmits(toks []targetTypeToken, k stackObjKind, o *state.Object, controller, you state.PlayerID) bool {
+	for _, tok := range toks {
+		if !state.StackKindAdmits([]state.StackKindToken{tok}, k, o, controller, you) {
+			continue
+		}
+		if tok.SingleTarget && len(o.Targets) != 1 {
+			continue
+		}
+		if tok.NumTargetsOp != "" && !targetCountMatches(len(o.Targets), tok.NumTargetsOp, tok.NumTargets) {
+			continue
+		}
+		if k == stackSpell {
+			if tok.NonCreature && e.IsCreature(o.ID) {
+				continue
+			}
+			if tok.Colorless && e.Colors(o.ID) != "" {
+				continue
+			}
+			if tok.Legendary && !stackHasType(e.Derived(o.ID).Types, "Legendary") {
+				continue
+			}
+		}
+		return true
+	}
+	return false
+}
+
+func stackHasType(types []string, want string) bool {
+	for _, typ := range types {
+		if strings.EqualFold(typ, want) {
+			return true
+		}
+	}
+	return false
+}
+
+func targetCountMatches(count int, op string, want int) bool {
+	switch op {
+	case "EQ":
+		return count == want
+	case "NE":
+		return count != want
+	case "GE":
+		return count >= want
+	case "GT":
+		return count > want
+	case "LE":
+		return count <= want
+	case "LT":
+		return count < want
+	default:
+		return false
+	}
 }
 
 // targetName is the object's name for a target prompt, tolerating the ability
@@ -1511,7 +1600,7 @@ func (e *Engine) candidatesFor(p state.PlayerID, source, excludeSelf state.ObjID
 				if o == nil || (excludeSelf != 0 && oid == excludeSelf) {
 					continue
 				}
-				if !stackKindAdmits(toks, e.stackObjKind(o), o, o.Controller, p) {
+				if !e.stackKindAdmits(toks, e.stackObjKind(o), o, o.Controller, p) {
 					continue
 				}
 				// The cast-provenance split (castprov1/castprov3/wascastfrom):
@@ -2062,26 +2151,64 @@ func (e *Engine) totalPowerCappedCandidates(candidates []targetCandidate, p stat
 // census as casting. The election is one-shot: the answer records targets
 // through recordChosenTargets, whose TargetsChosen fold clears the flag, so
 // the resolveTop re-entry does not ask again.
+//
+// A copy whose spell has MORE THAN ONE target DECLARATION -- the two halves
+// of a Fuse cast, or each target-bearing mode of a modal spell -- is asked
+// ONE DECISION PER DECLARATION, in the same
+// order the cast asked them (castStageSA / castHasNextTargetStage), so each
+// declaration is offered its own legal set, its own bounds and its own
+// per-controller Option.Group. The earlier single-list shape flattened every
+// declaration into one pool, so a half's own ValidTgts$ was never applied to
+// its half's choices (a fused Wear // Tear offered only artifacts and never
+// the enchantment the alternate half demands). A copy inherits the cast's
+// announcement and target provenance; an illegal inherited target remains
+// in its original declaration rather than migrating to a later stage. The
+// in-progress stage is
+// tracked in Engine.copyTargetStage keyed on the copy's stack object, so the
+// second-stage ask survives the TargetsChosen fold that clears
+// CopyMayChooseTarget after the first declaration.
 func (e *Engine) AskCopyTargets() bool {
 	n := len(e.G.Stack)
 	if n == 0 {
 		return false
 	}
 	o := e.G.Obj(e.G.Stack[n-1])
-	if o == nil || !o.IsCopy || !o.CopyMayChooseTarget {
+	if o == nil || !o.IsCopy {
+		return false
+	}
+	stage := 0
+	if e.copyTargetStage != nil {
+		stage = e.copyTargetStage[o.ID]
+	}
+	// The one-shot election is pending while the flag is set OR while a
+	// multi-declaration ask is mid-flight (the first answer's TargetsChosen
+	// fold clears the flag, but later declarations still owe an ask).
+	if !o.CopyMayChooseTarget && stage == 0 {
 		return false
 	}
 	controller := o.Controller
-	sa := o.Ability
-	if o.Face() != nil {
-		sa = o.Face().SpellAbility()
+	decls := e.copyTargetDeclarations(o)
+	if stage >= len(decls) {
+		return false
 	}
+	sa := decls[stage]
 	if sa == nil || strings.TrimSpace(sa.Params["ValidTgts"]) == "" {
 		return false
 	}
 	candidates := e.legalTargetCandidates(controller, o.ID, o.ID, sa)
-	ordered := make([]targetCandidate, 0, len(candidates)+len(o.Targets))
-	for _, old := range o.Targets {
+	// MaxTotalTargetPower$ (Reunion of the House): re-run the cast ask's
+	// per-candidate prune here, so a copy of a power-capped multi-target spell
+	// offers the same census the cast did. The running budget rides the
+	// decision as Decision.MaxSum over Option.Value (below), exactly as the
+	// cast ask attaches it.
+	candidates, powerCap, powerCapped := e.totalPowerCappedCandidates(candidates, controller, o.ID, sa, o.X)
+	// Keep the original declaration's targets, including ones that have since
+	// become illegal. The StackCopy emission inherits the cast's stage split;
+	// when no split exists, assign flat targets by declaration position, never
+	// by current legality.
+	inherited := e.copyInheritedForDeclaration(o, decls, stage)
+	ordered := make([]targetCandidate, 0, len(candidates)+len(inherited))
+	for _, old := range inherited {
 		matched := -1
 		for i, candidate := range candidates {
 			if targetCandidateEqual(old, candidate) {
@@ -2126,12 +2253,131 @@ func (e *Engine) AskCopyTargets() bool {
 		Prompt: "Choose a new target for the copy", Source: o.ID,
 		ResumeKind: "copy_targets", ResumeSA: sa, TargetEffect: e.describeTargetEffect(controller, o.ID, sa, o.X)}
 	for _, candidate := range ordered {
-		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: candidate.kind,
+		opt := decision.Option{Index: len(d.Options), Kind: candidate.kind,
 			Label: e.targetOptionLabel(candidate), Obj: candidate.obj, Player: candidate.player,
-			Group: e.targetControllerGroup(sa, candidate)})
+			Group: e.targetControllerGroup(sa, candidate)}
+		opt.Controller = e.candidateControllerSeat(candidate)
+		// Option.Value is read only under a budget (Decision.HasBudget), so a
+		// budget-less copy ask keeps its wire payload byte-identical. The
+		// value is the DERIVED power (Engine.Power), matching the prune read.
+		if powerCapped && candidate.kind != "player" {
+			if co := e.G.Obj(candidate.obj); co != nil && co.Face() != nil {
+				opt.Value = int(e.Power(candidate.obj))
+			}
+		}
+		d.Options = append(d.Options, opt)
 	}
+	if powerCapped {
+		d.MaxSum, d.Budgeted = powerCap, true
+	}
+	// Record the stage BEFORE the ask is answered: the answer's TargetsChosen
+	// clears the one-shot flag, so the resolveTop re-entry learns from this
+	// scratch that the next declaration (if any) still owes an ask.
+	if e.copyTargetStage == nil {
+		e.copyTargetStage = make(map[state.ObjID]int)
+	}
+	e.copyTargetStage[o.ID] = stage + 1
 	e.Ask(d)
 	return true
+}
+
+// copyTargetDeclarations returns the target DECLARATIONS a copy must ask, in
+// cast order. A Fuse copy has two: the front half's spell ability and the
+// alternate half's (split.go's fusedSplitFaces), each with its own ValidTgts$
+// and therefore its own legal set. For a chosen-mode Charm, each selected
+// target-bearing mode is a separate declaration in chosen order. A declaration
+// with no ValidTgts$ is dropped.
+func (e *Engine) copyTargetDeclarations(o *state.Object) []*cards.SA {
+	if o == nil {
+		return nil
+	}
+	if o.Ability != nil {
+		if src := e.G.Obj(o.Source); src != nil && src.Face() != nil {
+			if modes := copyCharmModes(src.Face(), o.Ability, o.ChosenModes); len(modes) > 0 {
+				return modes
+			}
+		}
+		return []*cards.SA{o.Ability}
+	}
+	f := o.Face()
+	if f == nil {
+		return nil
+	}
+	if ff, fa := fusedSplitFaces(o); ff != nil && fa != nil {
+		out := make([]*cards.SA, 0, 2)
+		for _, hf := range []*cards.Face{ff, fa} {
+			if modes := copyCharmModes(hf, hf.SpellAbility(), o.ChosenModes); len(modes) > 0 {
+				out = append(out, modes...)
+			} else if sa := hf.SpellAbility(); sa != nil && strings.TrimSpace(sa.Params["ValidTgts"]) != "" {
+				out = append(out, sa)
+			}
+		}
+		return out
+	}
+	if modes := copyCharmModes(f, f.SpellAbility(), o.ChosenModes); len(modes) > 0 {
+		return modes
+	}
+	sa := modalTargetSA(f, f.SpellAbility(), o.ChosenModes)
+	if sa == nil {
+		return nil
+	}
+	return []*cards.SA{sa}
+}
+
+func copyCharmModes(f *cards.Face, sa *cards.SA, names []string) []*cards.SA {
+	if f == nil || sa == nil || sa.API != "Charm" || len(names) == 0 || sa.Params["ValidTgts"] != "" {
+		return nil
+	}
+	var out []*cards.SA
+	for _, name := range names {
+		if sub := cards.ResolveSVar(f.SVars, name); sub != nil && strings.TrimSpace(sub.Params["ValidTgts"]) != "" {
+			out = append(out, sub)
+		}
+	}
+	return out
+}
+
+// copyInheritedForDeclaration returns the targets owned by this declaration.
+// Cast-time provenance survives StackCopy in fuseTargets. For copies without
+// provenance, flat targets are divided by declaration bounds in cast order;
+// legality must never be used to infer ownership after the board changes.
+func (e *Engine) copyInheritedForDeclaration(o *state.Object, decls []*cards.SA, stage int) []state.Target {
+	if o == nil || len(o.Targets) == 0 {
+		return nil
+	}
+	if len(decls) <= 1 {
+		return o.Targets
+	}
+	if stages, ok := e.fuseTargets[o.ID]; ok {
+		index := stage
+		if ff, _ := fusedSplitFaces(o); ff != nil {
+			if sa := ff.SpellAbility(); sa == nil || strings.TrimSpace(sa.Params["ValidTgts"]) == "" {
+				index++ // the first fused half has no target declaration
+			}
+		}
+		if index < len(stages) {
+			return stages[index]
+		}
+		return nil
+	}
+	start := 0
+	for i, sa := range decls {
+		end := len(o.Targets)
+		if i < len(decls)-1 {
+			_, max := e.resolvedTargetBounds(o.Controller, o.ID, sa, o.X)
+			if max < 0 {
+				max = 0
+			}
+			if end > start+max {
+				end = start + max
+			}
+		}
+		if i == stage {
+			return o.Targets[start:end]
+		}
+		start = end
+	}
+	return nil
 }
 
 // stateTargetCandidate converts a recorded state.Target into the option shape
@@ -2455,7 +2701,7 @@ func offeredTargetSA(o *state.Object, svars map[string]string) *cards.SA {
 func (e *Engine) resolveTop() {
 	id := e.G.Stack[len(e.G.Stack)-1]
 	o := e.G.Obj(id)
-	if o != nil && o.IsCopy && o.CopyMayChooseTarget {
+	if o != nil && o.IsCopy && (o.CopyMayChooseTarget || (e.copyTargetStage != nil && e.copyTargetStage[id] > 0)) {
 		if e.AskCopyTargets() {
 			return
 		}
@@ -2757,6 +3003,7 @@ func (e *Engine) resolveTop() {
 		// trigger fired on (a cast/magecraft trigger), which triggerPaidX
 		// reads off the causing event's card.
 		ctx.X = o.X
+		ctx.XAnnounced = stackXAnnounced(o) || ctx.X != 0
 		if ctx.X == 0 {
 			ctx.X = e.triggerPaidX(id, o)
 		}
@@ -2936,6 +3183,7 @@ func (e *Engine) resolveTop() {
 		// body does nothing -- Entreat the Angels resolved to the graveyard
 		// having created zero Angels.
 		ctx.X = o.X
+		ctx.XAnnounced = stackXAnnounced(o)
 		// Same as the ability branch: carry the sacrifice LKI (engine-keyed)
 		// onto resolution so Sacrificed$<Property> heads resolve against what
 		// this spell sacrificed.
@@ -3135,6 +3383,10 @@ func (e *Engine) legalTargets(targets []state.Target, sa *cards.SA, zones []stat
 		// left fizzles the whole spell/ability through the existing fizzle
 		// machinery upstream of this recheck.
 		if o := e.G.Obj(t.Obj); o != nil && zoneIn(o.Zone, zones) {
+			if o.Zone == state.ZStack && (sa == nil || !e.stackKindAdmits(
+				stackTargetKindTokens(sa.Params["TargetType"]), e.stackObjKind(o), o, o.Controller, you)) {
+				continue
+			}
 			// The cast-provenance split at the resolution recheck too
 			// (wascastfrom): the token evaluates against the target's cast
 			// log before the ordinary filter, so offer and recheck cannot
@@ -3977,19 +4229,31 @@ func targetsPermanents(spec string) bool {
 }
 
 // payUnlessCost charges the non-choice subset of a mid-resolution
-// UnlessCost$ to payer p. Sacrifice, discard and reveal components are
-// deliberately refused here: beginUnlessPayment owns every such component
+// UnlessCost$ to payer p. Sacrifice, discard, reveal and return components
+// are deliberately refused here: beginUnlessPayment owns every such component
 // and gathers the payer's selected objects before it calls payMana. Keeping
 // this guard makes a future caller unable to silently revive the old
 // first-in-zone-order stand-in. Fixed mana/life, SubCounter and Draw
 // components remain synchronous: a Draw<N/Spec> pays by drawing N cards for
 // the player(s) the spec names (default the payer), resolved through the
-// same Ctx roles the UnlessPayer$ grammar reads.
+// same Ctx roles the UnlessPayer$ grammar reads. The dynamic life folds
+// (LifeTotalHalfUp, an announced PayLife<X>) and the energy parts (fixed and
+// announced-X PayEnergy) charge here too, under the same offer gate's reads
+// (unlessFoldDynamic / unlessEnergyAffordable), so the gate and the charge
+// can never disagree.
 func (e *Engine) payUnlessCost(p state.PlayerID, cost Cost, ctx *effects.Ctx, stackObj state.ObjID) bool {
-	if len(cost.Sac) != 0 || len(cost.Discard) != 0 || len(cost.Reveal) != 0 || len(cost.RevealChosen) != 0 {
+	if len(cost.Sac) != 0 || len(cost.Discard) != 0 || len(cost.Reveal) != 0 || len(cost.RevealChosen) != 0 || len(cost.Return) != 0 {
 		return false
 	}
 	if int(p) < 0 || int(p) >= len(e.G.Players) {
+		return false
+	}
+	folded, ok := e.unlessFoldDynamic(p, cost, ctx)
+	if !ok {
+		return false
+	}
+	cost = folded
+	if !e.unlessEnergyAffordable(p, cost, ctx) {
 		return false
 	}
 	g := e.G
@@ -4045,6 +4309,14 @@ func (e *Engine) payUnlessCost(p state.PlayerID, cost Cost, ctx *effects.Ctx, st
 	if !e.payManaConv(p, cost, e.paymentConv(p, stackObj, false)) {
 		return false
 	}
+	// The energy parts charge through the ONE shared site (CR 118.2d); the
+	// offer gate proved the total affordable and the fold above proved every
+	// dynamic part bound, so the charge cannot half-apply.
+	x := int32(0)
+	if ctx != nil && ctx.XAnnounced {
+		x = ctx.X
+	}
+	e.chargeEnergyCost(p, cost, x)
 	for _, d := range drains {
 		e.emit(events.Event{Kind: events.CounterChange, Obj: d.obj, Counter: d.kind, Amount: -d.n})
 	}

@@ -312,20 +312,26 @@ func TestParseCostPriceable(t *testing.T) {
 // corpus carries ANY SA with a non-empty UnlessCost$ that ParseUnlessCost —
 // the strict parser rules' unless-pay arm actually charges with — cannot
 // price. Where the ParseCost golden above records what the lenient parser
-// silently substitutes, this one records what the strict gate declines: X, Y,
-// Z (a cast choice or an SVar the answer does not carry), DamageYou<N>,
-// PayEnergy<N>, Return<...>, ExileFromGrave<...>, Behold<...>, tapXType<...>,
-// LifeTotalHalfUp, DefinedCost_*, CopyCost and prose. Measured on the
-// compiled .cards/ir.gob.gz corpus at FORGE_REF: 190 distinct cards — the
-// 22 Reveal<N/Spec> carriers this population used to hold (the hideaway
-// family, Xyru Specter, Priest of the Wakening Sun, Invasion of the Giants)
-// left it when the unless-payment continuation learned to pay a Reveal
-// component. API Ward is excluded: the ward
-// keyword expansion stamps the raw ward cost onto a DB$ Ward line, and ward
-// costs are priced by rules' ward payment handler (beginWardPayment's
-// mana/alt-cost/CollectEvidence/Blight/Waterbend arms), never by the shared
-// strict gate — counting them here would label a population the unless-pay
-// arm never sees.
+// silently substitutes, this one records what the strict gate declines.
+// Chargeable mid-resolution: mana symbols, fixed PayLife<N>, PayEnergy<N>/<X>
+// energy parts (the announced X bound at the pay sites), Return<N/Spec>
+// choice parts, the LifeTotalHalfUp token, and the Sac/Discard/SubCounter/
+// Draw/Reveal components (Sac/Discard/Reveal through the payer-choice
+// continuation). Everything else is a hard decline (a decline-only ask is
+// still posed and recorded), except the Sacrifice arm's DamageYou<N> payment.
+// Measured on the compiled .cards/ir.gob.gz corpus at FORGE_REF: 146 distinct
+// cards. API Ward is excluded: the ward keyword expansion stamps the raw ward
+// cost onto a DB$ Ward line, and ward costs are priced by rules' ward payment
+// handler (beginWardPayment's mana/alt-cost/CollectEvidence/Blight/Waterbend
+// arms), never by the shared strict gate — counting them here would label a
+// population the unless-pay arm never sees. NOTE the same layering the
+// ParseCost golden documents: this reads the RAW parameter, so a card here
+// whose SVar/DefinedCost/announced-X body RESOLVES at the fold above the
+// parser (Rune Snag's Z, Disruption Aura's DefinedCost_Self, Essence
+// Vortex's PayLife<X>, Behemoth of Vault 0's PayEnergy<X>...) can still
+// reach the unless-pay ask with a payable amount; the token is unpriceable
+// only for a resolution that cannot bind it, which is exactly the fail-closed
+// direction.
 func strictUnpriceableCards(reg *cards.Registry) []string {
 	set := map[string]struct{}{}
 	for _, c := range reg.Cards {
@@ -365,63 +371,39 @@ func strictUnpriceableCards(reg *cards.Registry) []string {
 func TestUnlessCostStrictParsePopulation(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	got := strictUnpriceableCards(reg)
-	want := []string{
-		"A-Galvanic Discharge", "A-Karn, Living Legacy", "Aether Refinery", "Aether Spike", "Alliance of Arms",
-		"Anurid Scavenger", "Archfiend of Spite", "Arcum's Whistle", "Armor Wars",
-		"Barbarian Bully", "Barrow Ghoul", "Behemoth of Vault 0",
-		"Blaster Hulk", "Blazing Salvo", "Book Burning", "Breaking Point",
-		"Brine Seer", "Broken Ambitions", "Browbeat", "Bull Elephant",
-		"Carrion Rats", "Carrion Wurm", "Cephalid Shrine", "Champions of Minas Tirith",
-		"Charismatic Conqueror", "Cheering Crowd", "Chisei, Heart of Oceans",
-		"Circling Vultures", "Circular Logic", "Clash of Wills",
-		"Collective Voyage", "Combustion Man", "Command Bridge", "Concerted Defense",
-		"Condescend", "Confiscation Coup", "Coral Atoll", "Countervailing Winds",
-		"Court of Ambition", "Craig Boone, Novac Guard", "Crosis's Catacombs",
-		"Cyclone", "Darigaaz's Caldera", "Dazzling Denial", "Deep Spawn",
-		"Die Young", "Dispelling Exhale", "Disruption Aura",
-		"Dormant Volcano", "Draco", "Dragon's Approach", "Dromar's Cavern",
-		"Dwarven Driller", "Dwarven Scorcher", "Egon, God of Death", "Electrozoa",
-		"Elven Passage", "Energy Vortex", "Errant Minion", "Esper Sentinel",
-		"Essence Leak", "Essence Vortex", "Evasive Action", "Everglades", "Excise",
-		"Extravagant Spirit", "Faerie Impostor", "Feather, Radiant Arbiter",
-		"Fettergeist", "Flash", "Flitting Guerrilla",
-		"Galvanic Discharge", "Glint Hawk", "Greenbelt Rampager", "Grip of Amnesia",
-		"Gurzigost", "Gutsplitter Gang", "Harnessed Lightning", "Heated Argument",
-		"Hungry Hungry Heifer", "Ice Cave", "In the Eye of Chaos",
-		"Insatiable Frugivore", "Invoke Prejudice",
-		"Ixidor's Will", "Jolted Awake", "Jungle Basin", "Karn, Living Legacy",
-		"Karoo", "Killing Wave", "Koskun Falls", "Lathnu Hellion", "Lava Blister", "Liberty Prime, Recharged",
-		"Liege of the Hollows", "Lightning Runner", "Lilting Refrain",
-		"Living Tsunami", "Localized Destruction", "Lofty Denial", "Logic Knot",
-		"Longhorn Firebeast", "Mana-Charged Dragon", "Martyr of Frost",
-		"Mausoleum Wanderer", "Megatherium", "Memory Vampire", "Minds Aglow",
-		"Mindswipe", "Molten Influence", "Musician",
-		"Oppressive Will", "Overencumbered", "Override",
-		"Overrule", "Ovinomancer", "Pendrell Flux", "Phantasmal Sphere",
-		"Pia Nalaar, Chief Mechanic", "Pia's Revolution", "Plague of Vermin",
-		"Plunge into Darkness", "Power Leak", "Power Sink",
-		"Primordial Ooze",
-		"Protect the Negotiators", "Protection Racket", "Public Thoroughfare",
-		"Quickling", "Rakshasa's Disdain", "Rampaging Aetherhood", "Rent Is Due",
-		"Repulsive Mutation", "Rescuer Sphinx", "Reservoir Kraken", "Rethink",
-		"Risk Factor", "Rites of Refusal", "Rith's Grove", "Rogue Skycaptain",
-		"Rose Room Treasurer", "Rotting Giant", "Rune Snag", "Rush of Inspiration",
-		"Saheeli, Filigree Master", "Sanctuary Wall",
-		"Satya, Aetherflux Genius", "Scent of Brine",
-		"Shared Trauma", "Skullscorch",
-		"Soul Strings", "Soul Tithe", "Spectral Denial", "Spell Rupture",
-		"Spell Stutter", "Spell Syphon", "Static Prison", "Suppression Ray",
-		"Swallowed by Leviathan", "Syncopate", "Tainted Specter", "Tariff", "Temporal Extortion", "Territorial Aetherkite",
-		"Thassa's Intervention", "Thassa's Rebuff", "The War Games", "Thelon's Chant",
-		"Tibalt, Wicked Tormentor", "Tourach's Chant", "Tragic Lesson",
-		"Transmute Artifact", "Treacherous Vampire", "Treva's Ruins", "Trystan, Penitent Culler", "Tymaret Calls the Dead",
-		"Urza's Tome", "Vapor Snare", "Vault 112: Sadistic Simulation",
-		"Vexing Devil", "Volatile Stormdrake", "Wand of Ith",
-		"Waterbending Lesson", "Waterspout Djinn",
-		"We Say Thee Nay!", "Web of Inertia", "Well of Lost Dreams",
-		"Wheel of Potential", "Worms of the Earth",
-		"Wrath of the Skies",
-	}
+	want := []string{"A-Karn, Living Legacy", "Aether Spike", "Alliance of Arms",
+		"Anurid Scavenger", "Archfiend of Spite", "Arcum's Whistle", "Armor Wars", "Barbarian Bully",
+		"Barrow Ghoul", "Blazing Salvo", "Book Burning", "Breaking Point", "Brine Seer",
+		"Broken Ambitions", "Browbeat", "Carrion Rats", "Carrion Wurm", "Cephalid Shrine",
+		"Champions of Minas Tirith", "Charismatic Conqueror", "Cheering Crowd",
+		"Chisei, Heart of Oceans", "Circling Vultures", "Circular Logic", "Clash of Wills",
+		"Collective Voyage", "Combustion Man", "Command Bridge", "Concerted Defense", "Condescend",
+		"Countervailing Winds", "Court of Ambition", "Craig Boone, Novac Guard", "Cyclone",
+		"Dazzling Denial", "Deep Spawn", "Dispelling Exhale", "Disruption Aura", "Draco",
+		"Dragon's Approach", "Dwarven Driller", "Dwarven Scorcher", "Egon, God of Death",
+		"Elven Passage", "Energy Vortex", "Errant Minion", "Esper Sentinel", "Essence Leak",
+		"Essence Vortex", "Evasive Action", "Excise", "Extravagant Spirit",
+		"Feather, Radiant Arbiter", "Fettergeist", "Flash", "Flitting Guerrilla", "Grip of Amnesia",
+		"Gurzigost", "Gutsplitter Gang", "Heated Argument", "Hungry Hungry Heifer", "Ice Cave",
+		"In the Eye of Chaos", "Insatiable Frugivore", "Invoke Prejudice", "Ixidor's Will",
+		"Karn, Living Legacy", "Killing Wave", "Koskun Falls", "Lava Blister",
+		"Liege of the Hollows", "Lilting Refrain", "Lofty Denial", "Logic Knot",
+		"Longhorn Firebeast", "Mana-Charged Dragon", "Martyr of Frost", "Mausoleum Wanderer",
+		"Megatherium", "Memory Vampire", "Minds Aglow", "Mindswipe", "Molten Influence", "Musician",
+		"Oppressive Will", "Overencumbered", "Override", "Overrule", "Pendrell Flux",
+		"Phantasmal Sphere", "Pia's Revolution", "Plague of Vermin", "Plunge into Darkness",
+		"Power Leak", "Power Sink", "Primordial Ooze", "Protect the Negotiators",
+		"Protection Racket", "Public Thoroughfare", "Rakshasa's Disdain", "Rampaging Aetherhood",
+		"Rent Is Due", "Repulsive Mutation", "Reservoir Kraken", "Rethink", "Risk Factor",
+		"Rites of Refusal", "Rogue Skycaptain", "Rose Room Treasurer", "Rotting Giant", "Rune Snag",
+		"Saheeli, Filigree Master", "Sanctuary Wall", "Scent of Brine", "Shared Trauma",
+		"Skullscorch", "Soul Strings", "Soul Tithe", "Spectral Denial", "Spell Rupture",
+		"Spell Stutter", "Spell Syphon", "Swallowed by Leviathan", "Syncopate", "Tainted Specter",
+		"Tariff", "Thassa's Intervention", "Thassa's Rebuff", "The War Games", "Thelon's Chant",
+		"Tibalt, Wicked Tormentor", "Tourach's Chant", "Transmute Artifact", "Treacherous Vampire",
+		"Trystan, Penitent Culler", "Tymaret Calls the Dead", "Urza's Tome", "Vexing Devil",
+		"Volatile Stormdrake", "Wand of Ith", "Waterbending Lesson", "We Say Thee Nay!",
+		"Web of Inertia", "Well of Lost Dreams", "Worms of the Earth", "Wrath of the Skies"}
 	sort.Strings(want)
 	if len(got) != len(want) {
 		t.Fatalf("strict-unpriceable card population = %d, want %d\ngot:  %v\nwant: %v",

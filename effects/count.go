@@ -2815,7 +2815,7 @@ func unreadZoneSpec(spec string) bool {
 			return true
 		}
 		switch base {
-		case "Any", "Card", "Permanent", "PermanentCard", "Spell", "SpellAbility", "CARDNAME":
+		case "Any", "Card", "Permanent", "PermanentCard", "Spell", "SpellAbility", "CARDNAME", "Affinity":
 			// matchesBase's own special bases (and the CARDNAME base
 			// matchesZoneSpecCtx binds to the resolving source).
 		default:
@@ -3191,13 +3191,18 @@ func playerCountExtreme(h Host, g *state.Game, c *Ctx, players []state.PlayerID,
 // with two or more instants/sorceries in the graveyard). <Name> resolves the
 // compared value: an SVar body evaluated recursively (Y's
 // `Count$ValidGraveyard Instant.YouOwn,Sorcery.YouOwn`), else the token itself
-// as an inline expression. <OP> is one of GE/GT/EQ/LE/LT and the threshold a
-// plain integer; the branches are each an integer literal or an SVar name
-// resolved the same way as <Name>, which closes the corpus's SVar-named
-// branch singletons (`GE4.X.4`, `LT5.X.Z`, `GE1.Y.Z`, ...) for free. The
-// no-parseable-threshold singletons (`GEMePlus.3.2`, `LTZ.2.0`) and the
-// argument-less forms (`Count$Compare TronCheck`, ...) fail closed to zero
-// exactly as before -- no semantics are invented for them.
+// as an inline expression. <OP> is one of GE/GT/EQ/LE/LT; the threshold and
+// the branches are each an operand -- an integer literal, an SVar name, or an
+// inline expression -- resolved through the same evalCountOperand as <Name>.
+// That closes the corpus's SVar-named threshold singletons
+// (`GEMePlus.3.2`, `LTZ.2.0`) alongside its SVar-named branch singletons
+// (`GE4.X.4`, `LT5.X.Z`, `GE1.Y.Z`, ...). Per the evaluator's convention an
+// operand whose inner head this build does not model degrades to zero (the
+// same direction evalCountOperand always takes), so the comparison still runs
+// rather than the whole head vanishing. The argument-less forms
+// (`Count$Compare TronCheck`, `Count$Compare W`, `Count$Compare
+// ReplacedCard$CardManaCost`) still fail closed to zero -- nothing to compare.
+// Only a comparison head that is not one of the five named ops fails closed.
 func evalCompare(h Host, c *Ctx, arg string, depth int) int32 {
 	name, rest, _ := strings.Cut(arg, " ")
 	rest = strings.TrimSpace(rest)
@@ -3211,26 +3216,31 @@ func evalCompare(h Host, c *Ctx, arg string, depth int) int32 {
 	}
 	op, tail := rest[:2], rest[2:]
 	thTok, branches, _ := strings.Cut(tail, ".")
-	th, err := strconv.Atoi(thTok)
-	if err != nil {
-		// GEMePlus.3.2 / LTZ.2.0: the threshold names an expression, not a
-		// literal. Out of scope -- fail closed to zero, same as before.
+	if thTok == "" {
+		// A comparison operator must have a threshold. Do not treat a malformed
+		// empty token as the otherwise valid numeric operand zero.
 		return 0
 	}
+	// The threshold is an operand, not a literal-only field: Forge names an
+	// SVar here whenever the bound is itself a computed value (Teachings of
+	// the Archaics' GEMePlus -> SVar$Me/Plus.4, Anchor to Reality's LTZ ->
+	// the sacrificed permanent's mana value). evalCountOperand handles the
+	// integer-literal case first, so the plain shapes are unchanged.
+	th := evalCountOperand(h, c, thTok, depth)
 	ifTok, elseTok, _ := strings.Cut(branches, ".")
 	value := evalCountOperand(h, c, name, depth)
 	var hit bool
 	switch op {
 	case "GE":
-		hit = value >= int32(th)
+		hit = value >= th
 	case "GT":
-		hit = value > int32(th)
+		hit = value > th
 	case "EQ":
-		hit = value == int32(th)
+		hit = value == th
 	case "LE":
-		hit = value <= int32(th)
+		hit = value <= th
 	case "LT":
-		hit = value < int32(th)
+		hit = value < th
 	default:
 		// Not one of the five comparison heads.
 		return 0

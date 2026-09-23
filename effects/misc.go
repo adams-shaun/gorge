@@ -1768,7 +1768,7 @@ func effCounter(h Host, c *Ctx, sa *cards.SA) {
 			}
 			continue
 		}
-		if o.Ability != nil {
+		if state.StackKindOf(h.Game(), o) != state.StackKindSpell {
 			// CR 701.5a: to counter a spell or ability is to cancel it,
 			// removing it from the stack so it never resolves. An ability is
 			// not a card and has no graveyard to move to -- this is the same

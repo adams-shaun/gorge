@@ -155,6 +155,13 @@ type Cost struct {
 	// Life above; a malformed PayLife<...> value still degrades to the
 	// reported one-generic fallback.
 	LifeX []CostPart
+	// LifeHalfUp marks a LifeTotalHalfUp token (Temporal Extortion's "may pay
+	// half their life, rounded up"): the amount is the PAYER's life total at
+	// pay time, half rounded up, so the strict parser cannot fold it — the
+	// unless path's gate and charge sites resolve it against the payer
+	// (unlessFoldDynamicLife) before the mana/life machinery reads Life.
+	// A payer at zero life cannot pay (nothing to halve — fail closed).
+	LifeHalfUp bool
 	// DamageYou carries DamageYou<N> parts -- the payer takes N damage from
 	// the source. The corpus's only shape is an UnlessCost$ DamageYou<N>
 	// (the Vexing Devil family), which the unless-pay arm pays through
@@ -2463,16 +2470,19 @@ func (c Cost) Pay(p state.Mana) (state.Mana, bool) {
 // unless-pay path. Unlike ParseCost — which degrades every token it does not
 // know to one generic mana, silently buying a dynamic or unmodelled cost for
 // {1} — this parser is total and strict: every token must be a mana symbol
-// (a WUBRGC letter or a numeric generic), a fixed PayLife<N>, or a
-// Sac<N/Spec>, Discard<N/Spec>, SubCounter<N/Kind>, Draw<N/Spec> or
-// Reveal<N/Spec> component. Anything else — X, Y, Z (whose value is a cast
-// choice or an SVar the unless-pay answer does not carry), DamageYou<N>,
-// PayEnergy<N>, Return<...>, ExileFromGrave<...>, Behold<...>,
-// tapXType<...>, LifeTotalHalfUp, DefinedCost_*, CopyCost, or any prose —
+// (a WUBRGC letter or a numeric generic), a fixed PayLife<N>, a PayEnergy<N>
+// or PayEnergy<X> energy part, a Return<N/Spec> component, the
+// LifeTotalHalfUp token, a Sac<N/Spec>, Discard<N/Spec>, SubCounter<N/Kind>,
+// Draw<N/Spec> or Reveal<N/Spec> component, or the Mandatory marker.
+// Anything else — an unfolded X/Y/Z (UnlessCostResolved folds an announced X
+// and resolvable SVar bodies first; an unbound X never prices here),
+// DamageYou<N> (the Sacrifice arm's own path), ExileFromGrave<...>,
+// Behold<...>, tapXType<...>, CopyCost, or any prose —
 // reports ok=false, and the unless-pay arm treats that as a hard decline
 // (the conservative read: a payer who "pays" a cost the engine cannot price
 // has not paid it). A Reveal component is choice-bearing like Sac/Discard
 // and pays through the beginUnlessPayment continuation, never synchronously.
+// Return components are choice-bearing the same way.
 func ParseUnlessCost(s string) (Cost, bool) {
 	s = strings.TrimSpace(s)
 	if s == "" || strings.EqualFold(s, "no cost") {
@@ -2485,10 +2495,18 @@ func ParseUnlessCost(s string) (Cost, bool) {
 		if !ok {
 			break
 		}
+		if strings.EqualFold(sym, "Mandatory") {
+			// Forge's mandatory-payment marker (Cost$ Mandatory tapXType<X/...>,
+			// the cumulative-upkeep shapes): a marker, never a cost, exactly
+			// ParseCost's reading (mana.go's EqualFold case above).
+			continue
+		}
 		switch {
 		case sym == "T" || sym == "X":
 			// An unfolded X is never priceable here: payMana does not charge
 			// it, so a "pay" from an empty pool would satisfy it for free.
+			// (An announced X never reaches this branch raw: UnlessCostResolved
+			// folds it to {N} first, including an announced zero.)
 			return Cost{}, false
 		case len(sym) == 1 && strings.ContainsAny(sym, "WUBRGC"):
 			c.Colored[state.ManaIndex(sym[0])]++
@@ -2524,6 +2542,44 @@ func ParseUnlessCost(s string) (Cost, bool) {
 				default:
 					c.SubCounter = append(c.SubCounter, part)
 				}
+				continue
+			}
+			if m := payEnergyCost.FindStringSubmatch(sym); m != nil {
+				// The mid-resolution unless form of the cast cost's energy token:
+				// a fixed part spends its N, the dynamic X form spends the
+				// RESOLVING ability's announced X (CR 107.3i) — bound at the pay
+				// sites from the ctx, and unpayable there when no X was ever
+				// announced, so an unbound token can never pay for free.
+				if m[1] == "X" {
+					c.Energy = append(c.Energy, CostPart{Spec: "X", Desc: m[2]})
+					continue
+				}
+				n, err := strconv.ParseInt(m[1], 10, 64)
+				if err != nil || n < 0 || n > int64(math.MaxInt32) {
+					return Cost{}, false
+				}
+				c.Energy = append(c.Energy, CostPart{N: int32(n), Desc: m[2]})
+				continue
+			}
+			if m := returnCost.FindStringSubmatch(sym); m != nil {
+				// The unless form of the cast cost's Return token (the
+				// cumulative-upkeep family, Karoo's non-Lair land): a permanent
+				// matching Spec returned to its OWNER's hand. Choice-bearing —
+				// the unless payment continuation owns the pick exactly like
+				// Sac/Discard, never a first-in-zone-order stand-in.
+				n, err := strconv.ParseInt(m[1], 10, 64)
+				if err != nil || n < 0 || n > int64(math.MaxInt32) {
+					return Cost{}, false
+				}
+				c.Return = append(c.Return, CostPart{N: int32(n), Spec: strings.ReplaceAll(m[2], ";", ","), Desc: m[3]})
+				continue
+			}
+			if strings.EqualFold(sym, "LifeTotalHalfUp") {
+				// Temporal Extortion's "may pay half their life, rounded up":
+				// the amount is the payer's own life total at pay time, so the
+				// flag rides to the unless path's gate and charge (both fold it
+				// against the same payer read). A zero-life payer cannot pay.
+				c.LifeHalfUp = true
 				continue
 			}
 			// Reveal<N/Spec> is the hideaway-family choice-bearing unless cost
