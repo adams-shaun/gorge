@@ -52,6 +52,8 @@ var expandedHeads = []string{
 	// Fabricate (CR 702.121, task fabricate1): a ChangesZone ETB trigger
 	// whose Charm elects N +1/+1 counters or N Servo tokens.
 	"Fabricate",
+	// Graft (CR 702.57): enters-with counters plus an optional move trigger.
+	"Graft",
 	// Reconfigure (CR 702.150, task kw-reconfigure): the attach/unattach
 	// activated-ability pair per printed cost (an alternative second colon
 	// field like Razorfield Ripper's PayEnergy<3> gets its own pair), both

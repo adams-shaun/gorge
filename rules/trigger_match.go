@@ -2102,5 +2102,8 @@ func init() {
 		// seating exists (the deck.IsPartnerPair extension is a separate
 		// ticket; the Partner precedent above is the same class).
 		"kw:Doctor's companion",
+		// Graft (CR 702.57): the optional move-counter trigger is expanded
+		// from the keyword line in cards/kw_graft.go.
+		"kw:Graft",
 	)
 }
