@@ -117,6 +117,10 @@ type resumePoint struct {
 	// target is Dig's index into its deterministic Defined$ target list. It
 	// keeps a resumed answer attached to the library that actually asked.
 	target int
+	// The settled Scry instruction after its CR 616 order choice. The
+	// re-entered effect consumes it before looking at any library card.
+	scryCount   int32
+	scryProceed bool
 	// player is the decision's owner. Dredge uses it to apply the answered
 	// replacement to the player drawing even when the enclosing effect's
 	// controller is someone else.
@@ -2983,6 +2987,10 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			}
 			ctx.HiddenPickDone = true
 			ctx.HiddenPickTarget = rp.target
+		case "scry_replacement":
+			ctx.ScryReplacement = true
+			ctx.ScryCount, ctx.ScryProceed = rp.scryCount, rp.scryProceed
+			ctx.LibraryTarget = rp.target
 		case "arrange", "dig_arrange":
 			// Ruling J0: rules' handleArrange already applied the answered
 			// arrangement and emitted the LibraryOrder event before calling
