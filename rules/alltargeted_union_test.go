@@ -235,9 +235,9 @@ func TestWaytaPreasksFightTargetAndReduces(t *testing.T) {
 	})
 }
 
-// TestRaftSecurityOfficerReduction: the chain-less carrier (alltargeted1's
-// already-working half) keeps its own-target reduction and asks nothing
-// beyond the ordinary single target ask.
+// TestRaftSecurityOfficerReduction: the chain-less carrier keeps its own-target
+// reduction and asks nothing beyond the ordinary single target ask. Retained
+// as a regression test; the Wayta and Urgent Necropsy cases prove this change.
 func TestRaftSecurityOfficerReduction(t *testing.T) {
 	raftSrc := alltargetedCorpusText(t, "r/raft_security_officer.txt")
 	e, cfg, _ := newFixtureDeck(t, 73, raftSrc, atBearSrc)
