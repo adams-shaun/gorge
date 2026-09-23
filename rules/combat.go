@@ -1039,6 +1039,15 @@ func (e *Engine) staticGoaders(o *state.Object) []state.PlayerID {
 // is live, which keeps the per-Resolve publication free for every board
 // without one.
 func (e *Engine) staticallyGoaded() map[state.ObjID]bool {
+	return e.staticallyGoadedWithLKI(nil)
+}
+
+// staticallyGoadedWithLKI derives the live battlefield set and, when supplied,
+// evaluates the just-departed battlefield object's LKI against those same
+// live static sources. Trigger ValidCard$ filters run after the zone move, so
+// deriving only from the current battlefield would lose a static goad that
+// applied immediately before the object left.
+func (e *Engine) staticallyGoadedWithLKI(lki *state.Object) map[state.ObjID]bool {
 	lines := e.staticGoadLines()
 	if len(lines) == 0 {
 		return nil
@@ -1055,6 +1064,14 @@ func (e *Engine) staticallyGoaded() map[state.ObjID]bool {
 					out[id] = true
 					break
 				}
+			}
+		}
+	}
+	if lki != nil && lki.Zone == state.ZBattlefield {
+		for _, l := range lines {
+			if e.goadLineMatches(l, lki) {
+				out[lki.ID] = true
+				break
 			}
 		}
 	}
