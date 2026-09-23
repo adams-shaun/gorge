@@ -50,6 +50,11 @@ const chooseSuspendCast chooseFor = iota + 12
 // the turn-based Untap event is emitted.
 const chooseUntap chooseFor = 40
 
+// chooseDefeatedCast is the chooseFor for CR 310.11's may-cast ask, posed by
+// startDefeatedCast when the defeat SBA (rules/sba.go's battleZeroDefense)
+// exiled a battle. 41 is chooseBlockPay's; 45 is the next free value.
+const chooseDefeatedCast chooseFor = 45
+
 func (e *Engine) finishEnteredStep() {
 	if e.G.Step == state.StepUntap && !e.finishUntapStep(0) {
 		return
@@ -377,6 +382,76 @@ func (e *Engine) suspendCastAnswer(chosen []decision.Option) {
 	}
 }
 
+// startDefeatedCast drains the defeatedCasts queue (rules/engine.go's
+// battlefield→exile feed) before priority, exactly the suspendedCasts shape
+// above. CR 310.11: the defeat exiled the battle, and its owner "may cast it
+// transformed without paying its mana cost. If its owner doesn't, it remains
+// exiled." The offer is optional, so the owner answers a real yes/no
+// decision; a decline leaves the card in exile. The transformed half means
+// the back face: only a battle with a second face is offered, and the
+// pre-checks mirror startSuspendedCast's "if able" — a card that left exile,
+// lost the zero-defense shape or carries a CantBeCast static is skipped
+// silently (no decision is posed for a cast that cannot be made). The cast
+// bypasses the ordinary timing gate (see beginCast's defeat_cast comment);
+// only targets still need to be available, read off the BACK face's spell
+// ability since the flip has not happened yet.
+func (e *Engine) startDefeatedCast() bool {
+	for len(e.defeatedCasts) > 0 {
+		id := e.defeatedCasts[0]
+		e.defeatedCasts = e.defeatedCasts[1:]
+		o := e.G.Obj(id)
+		if o == nil || o.Zone != state.ZExile || o.Face() == nil || !o.Face().IsBattle() ||
+			o.FaceIdx != 0 || o.Card == nil || len(o.Card.Faces) < 2 || o.Counter("DEFENSE") != 0 {
+			continue
+		}
+		if e.castRestricted(o.Owner, id) {
+			continue
+		}
+		if back := o.Card.Faces[1]; back != nil && back.SpellAbility() != nil &&
+			!e.targetsAvailable(o.Owner, id, id, back.SpellAbility(), false) {
+			continue
+		}
+		name := "it"
+		if back := o.Card.Faces[1]; back != nil && back.Name != "" {
+			name = back.Name
+		}
+		e.choosing = chooseDefeatedCast
+		e.ask(decision.New(o.Owner, decision.KChoose, "Cast "+name+" (transformed) without paying its mana cost?", 1, 1,
+			[]decision.Option{{Index: 0, Kind: "defeat_cast_yes", Obj: id, Label: "Cast it"},
+				{Index: 1, Kind: "defeat_cast_no", Obj: id, Label: "Leave it in exile"}}))
+		return true
+	}
+	return false
+}
+
+// defeatedCastAnswer applies CR 310.11's may-cast answer: the offered battle
+// was popped from defeatedCasts when its ask was posed. A yes enters the
+// ordinary cast flow (defeat_cast mode: FlipFace to the back face, no mana
+// cost); a decline — or a battle that left exile or stopped being a
+// castable defeated battle while the ask was outstanding — leaves the card
+// in exile, exactly what CR 310.11 says a battle whose cast was not made
+// does. Remaining defeated battles, if any, are offered next; when none
+// are, the caller's Advance loop resumes the step it was in.
+func (e *Engine) defeatedCastAnswer(chosen []decision.Option) {
+	if len(chosen) == 0 {
+		return
+	}
+	id := chosen[0].Obj
+	o := e.G.Obj(id)
+	if chosen[0].Kind == "defeat_cast_yes" && o != nil && o.Zone == state.ZExile &&
+		o.Face() != nil && o.Face().IsBattle() && o.FaceIdx == 0 && o.Card != nil &&
+		len(o.Card.Faces) > 1 && o.Counter("DEFENSE") == 0 {
+		e.beginCast(o.Owner, decision.Option{Kind: "cast", Obj: id, Mode: "defeat_cast"})
+		return
+	}
+	if e.pending == nil {
+		// Declined: the chooseFor must not leak into the next KChoose a
+		// different flow asks.
+		e.choosing = chooseNone
+		e.startDefeatedCast()
+	}
+}
+
 func (e *Engine) setStep(s state.Step) {
 	leaving := e.G.Step
 	previous := e.stepLeaving
@@ -450,6 +525,12 @@ func (e *Engine) step() {
 		return
 	}
 	if e.startSuspendedCast() {
+		return
+	}
+	// CR 310.11: the same shape, one arm later — a battle the defeat SBA
+	// exiled queues its owner's "cast it transformed without paying its mana
+	// cost" offer, drained here before priority like the suspend cast above.
+	if e.startDefeatedCast() {
 		return
 	}
 	if e.G.Over {
@@ -1262,6 +1343,14 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// resume: the offer comes from the turn structure, never from inside
 		// one, so e.drainAwaitsTarget is necessarily false here.
 		e.suspendCastAnswer(chosen)
+	case chooseDefeatedCast:
+		// CR 310.11: the may-cast offer on the battle the defeat SBA exiled
+		// was answered. defeatedCastAnswer either enters the ordinary cast
+		// flow (defeat_cast mode, the back face, no mana cost) or leaves the
+		// card in exile and offers the next defeated battle, if any (a
+		// decline). There is no trigger drain to resume: the offer comes from
+		// the SBA/step structure, never from inside one.
+		e.defeatedCastAnswer(chosen)
 	case chooseCleanup:
 		// Task D1 (CR 514.1): the cleanup-step discard decision was answered.
 		// discardCleanup moves the chosen cards hand -> graveyard, runs the
