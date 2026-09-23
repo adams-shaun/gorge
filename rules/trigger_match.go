@@ -2102,5 +2102,10 @@ func init() {
 		// seating exists (the deck.IsPartnerPair extension is a separate
 		// ticket; the Partner precedent above is the same class).
 		"kw:Doctor's companion",
+		// kw:Companion is the deck-construction keyword (CR 702.139), in the
+		// same registration class as Partner above. This asserts the corpus
+		// shape is understood; the chosen-companion pregame pick and the
+		// outside-the-game activation are separate play-side work.
+		"kw:Companion",
 	)
 }
