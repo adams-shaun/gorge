@@ -430,9 +430,13 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 			return []state.Target{{Obj: c.TriggerBearer}}, true
 		}
 		return objectsOf(c.Remembered), true
+	case "TriggeredObject", "TriggeredObjectLKICopy":
+		if c.DelayedObject != 0 {
+			return []state.Target{{Obj: c.DelayedObject}}, true
+		}
+		return objectsOf(c.Remembered), true
 	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredNewCard",
 		"TriggeredNewCardLKICopy",
-		"TriggeredObject", "TriggeredObjectLKICopy",
 		"TriggeredSourceSA", "TriggeredAttacker",
 		"TriggeredAttackerLKICopy",
 		"DelayTriggerRememberedLKI", "RememberedLKI":

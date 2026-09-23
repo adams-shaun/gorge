@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/adams-shaun/gorge/events"
@@ -21,6 +22,38 @@ func registerInlineDelayed(t testing.TB, e *Engine, src state.ObjID, mode, claus
 		Step: e.G.Step, Counter: "Trig", Text: mode + ":Mode$ " + mode + clauses})
 	if len(e.G.Delayed) != 1 || e.G.Delayed[0].EventMode != mode {
 		t.Fatalf("registration = %+v, want one %s registration", e.G.Delayed, mode)
+	}
+}
+
+func TestDelayedTriggerExpiredRegistrationsCollectedOnTurnChange(t *testing.T) {
+	e, src := delayedModeWatcher(t)
+	if e.G.Turn < 1 {
+		t.Fatalf("precondition: turn = %d", e.G.Turn)
+	}
+	for _, mode := range []string{"SpellCast", "Phase"} {
+		text := "End of Turn"
+		if mode == "SpellCast" {
+			text = "SpellCast:Mode$ SpellCast | Execute$ Trig"
+		}
+		e.emit(events.Event{Kind: events.DelayedRegister, Obj: src, Player: 0,
+			Step: state.StepEnd, Counter: "Trig", Text: text + "|TT=" + strconv.Itoa(int(e.G.Turn))})
+	}
+	if len(e.G.Delayed) != 2 || e.G.Delayed[0].MaxTurn != e.G.Turn || e.G.Delayed[1].MaxTurn != e.G.Turn {
+		t.Fatalf("precondition: expiry registrations = %+v, turn %d", e.G.Delayed, e.G.Turn)
+	}
+	before := len(e.L.Events)
+	e.emit(events.Event{Kind: events.TurnChange, Player: 1, Amount: e.G.Turn + 1})
+	if len(e.G.Delayed) != 0 {
+		t.Fatalf("expired registrations survived turn change without matching events: %+v", e.G.Delayed)
+	}
+	removes := 0
+	for _, ev := range e.L.Events[before:] {
+		if ev.Kind == events.DelayedRemove {
+			removes++
+		}
+	}
+	if removes != 2 {
+		t.Fatalf("removal events = %d, want 2", removes)
 	}
 }
 
@@ -54,6 +87,52 @@ func TestDelayedTriggerDeadEventRegistrationCollectedBeforeMatch(t *testing.T) {
 	e.emit(events.Event{Kind: events.MoveZone, Obj: other, From: state.ZBattlefield, To: state.ZGraveyard})
 	if len(e.G.Delayed) != 0 {
 		t.Fatalf("missing Execute registration survived unmatched event: %+v", e.G.Delayed)
+	}
+}
+
+func TestDelayedControlChangeNewControllerGate(t *testing.T) {
+	e, src := delayedModeWatcher(t)
+	e.emit(events.Event{Kind: events.DelayedRegister, Obj: src, Player: 0, Step: e.G.Step,
+		Counter: "Trig", Text: "ChangesController:Mode$ ChangesController | ValidCard$ Creature | ValidNewController$ You"})
+	card := onBoard(t, e, 0, "Name:Transfer\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	if e.G.Obj(card).Controller != 0 || e.G.Obj(card).Zone != state.ZBattlefield {
+		t.Fatalf("precondition: transfer = %+v", e.G.Obj(card))
+	}
+	e.emit(events.Event{Kind: events.ControlChange, Obj: card, Player: 1})
+	if len(e.pendingTriggers) != 0 || len(e.G.Delayed) != 1 {
+		t.Fatalf("wrong new controller consumed registration: pending=%d delayed=%d", len(e.pendingTriggers), len(e.G.Delayed))
+	}
+	e.emit(events.Event{Kind: events.ControlChange, Obj: card, Player: 0})
+	if len(e.pendingTriggers) != 1 {
+		t.Fatalf("right new controller: pending=%d", len(e.pendingTriggers))
+	}
+}
+
+func TestDelayedControlChangeExecuteUsesEventObject(t *testing.T) {
+	e := layerEngine(t)
+	src := onBoard(t, e, 0, "Name:Delayed watcher\nTypes:Creature Wizard\nPT:2/2\nSVar:Trig:DB$ Tap | Defined$ TriggeredObjectLKICopy\nOracle:x\n")
+	captured := onBoard(t, e, 0, "Name:Captured\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	changed := onBoard(t, e, 0, "Name:Changed\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
+	if captured == changed || e.G.Obj(changed).Zone != state.ZBattlefield || e.G.Obj(captured).Tapped || e.G.Obj(changed).Tapped {
+		t.Fatal("precondition: distinct untapped battlefield objects required")
+	}
+	e.emit(events.Event{Kind: events.DelayedRegister, Obj: src, Player: 0, Step: e.G.Step,
+		Counter: "Trig", IDs: []state.ObjID{captured},
+		Text: "ChangesController:Mode$ ChangesController | ValidCard$ Creature | Execute$ Trig"})
+	if len(e.G.Delayed) != 1 || len(e.G.Delayed[0].Remembered) != 1 || e.G.Delayed[0].Remembered[0].Obj != captured {
+		t.Fatalf("precondition: registered capture = %+v", e.G.Delayed)
+	}
+	e.emit(events.Event{Kind: events.ControlChange, Obj: changed, Player: 1})
+	if len(e.pendingTriggers) != 1 || e.pendingTriggers[0].Ctx.Remembered[0].Obj != captured {
+		t.Fatalf("event/capture context = %+v", e.pendingTriggers)
+	}
+	e.putTriggersOnStack()
+	if len(e.G.Stack) == 0 {
+		t.Fatal("delayed execute was not pushed")
+	}
+	e.resolveTop()
+	if !e.G.Obj(changed).Tapped || e.G.Obj(captured).Tapped {
+		t.Fatalf("execute tapped captured instead of event object: changed=%v captured=%v", e.G.Obj(changed).Tapped, e.G.Obj(captured).Tapped)
 	}
 }
 

@@ -11,7 +11,10 @@ import (
 func TestDelayedTriggerSpellCastStoresValidPlayer(t *testing.T) {
 	h := newHost(t, 2)
 	Resolve(h, &Ctx{Source: 1, Controller: 0}, sa(t, "DB$ DelayedTrigger | Mode$ SpellCast | ValidPlayer$ Opponent | Execute$ X"))
-	if len(h.log) != 1 || !strings.Contains(h.log[0].Text, "ValidPlayer$ Opponent") {
+	if len(h.log) != 1 {
+		t.Fatalf("registration log = %+v, want one event", h.log)
+	}
+	if !strings.Contains(h.log[0].Text, "ValidPlayer$ Opponent") {
 		t.Fatalf("registration text = %q, want ValidPlayer$ Opponent", h.log[0].Text)
 	}
 }

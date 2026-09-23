@@ -20,10 +20,14 @@ type TriggerContext struct {
 	// TriggerStack is the actual spell/ability object that caused a targeting
 	// event. Unlike TriggerSource it is not unwrapped to its source permanent,
 	// because Ward must counter that stack object itself.
-	TriggerStack     state.ObjID
-	DefendingPlayer  state.Target
-	TriggerPlayer    state.Target
-	TriggerCard      state.ObjID
+	TriggerStack    state.ObjID
+	DefendingPlayer state.Target
+	TriggerPlayer   state.Target
+	TriggerCard     state.ObjID
+	// DelayedObject is the causing event's object for a delayed trigger.
+	// The registration's Remembered remains the original captured set (used
+	// by DelayTriggerRemembered); TriggeredObject reads this fire-time object.
+	DelayedObject    state.ObjID
 	AttackingPlayer  state.Target
 	AttackedTarget   state.Target
 	TriggerActivator state.Target
