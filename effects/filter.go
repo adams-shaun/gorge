@@ -1847,7 +1847,7 @@ func startsFilterAlternative(s string) bool {
 		base = base[:i]
 	}
 	base = strings.TrimSpace(base)
-	if base == "CARDNAME" || base == "Any" || base == "Card" || base == "Permanent" || base == "Spell" {
+	if base == "CARDNAME" || base == "Any" || base == "Card" || base == "Permanent" || base == "Spell" || base == "Affinity" {
 		return true
 	}
 	base = strings.TrimPrefix(base, "non")
@@ -2774,6 +2774,20 @@ func matchesBase(g *state.Game, base string, o *state.Object, sc SpecContext) bo
 		return true
 	case "Permanent":
 		return o.Zone == state.ZBattlefield
+	case "Affinity":
+		// CR 702.41: Forge uses the keyword name as a filter base for
+		// "a permanent with affinity" (Sojourner's Enforcermite), not as
+		// a card type. Prefer the layer-derived keyword list when rules has
+		// supplied one; the printed face is the effects-tier fallback.
+		if sc.ExtraKeywords != nil {
+			for _, k := range sc.ExtraKeywords {
+				if strings.EqualFold(cards.KeywordHead(k), "Affinity") {
+					return true
+				}
+			}
+			return false
+		}
+		return o.Face() != nil && o.Face().HasKeyword("Affinity")
 	case "PermanentCard":
 		// This internal base spelling is selected by rules' target census
 		// (targetSpecForZone) and Dig windows (permanentCardSpec) for Forge's
