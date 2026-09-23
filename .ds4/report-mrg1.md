@@ -76,3 +76,31 @@ Merge commit with the default merge message; working tree clean after.
 ## Issues
 
 None found beyond the resolved conflict itself.
+
+## Earlier report preserved before rebase (historical)
+
+## Status and conflicted file
+
+At task start, `git status` showed a clean worktree on `wt/cli-20260922T225138Z-ec432b8c`; there was no in-progress rebase or merge and no unmerged path. The reported conflict in `internal/testutil/agentsdoc_test.go` had already been resolved by an earlier integration run. The existing resolution is reflected in the committed branch history and the file has no conflict markers. The test constant is `knownApproximationRows = 75` in this current checkout.
+
+The previous report in this file documented a conflict on another task branch and its resolution (constant 76); that does not describe this checkout. There was no additional resolution to make and no new commit to create without changing project files. Existing branch HEAD: `a44cb5f5 fix(effects): record random discard RNG choice on applied move`.
+
+## Checks run
+
+- `git status --short --branch`
+  ```
+  ## wt/cli-20260922T225138Z-ec432b8c
+  ```
+  Clean worktree (`git status` also reported “nothing to commit, working tree clean”).
+- `go test ./internal/testutil/ -run 'TestKnownApproximationsOnlyShrinks|TestKnownApproximationRowsAreShort'`
+  ```
+  ok   github.com/adams-shaun/gorge/internal/testutil 0.002s
+  ```
+- `go test ./rules -run 'TestNoTriggerModeIsRegistered|TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|CountHead'`
+  ```
+  ok   github.com/adams-shaun/gorge/rules 0.736s
+  ```
+- `.cards` was present as a symlink to `/home/sadams/projects/gorge/.cards`.
+
+No unresolved merge conflict remains. Note: the issue history records a prior full module gate failure in `TestCR704NoLifeSBAInsideSmallpoxDiscard`; this merge-resolution pass did not rerun or address that unrelated engine failure.
+
