@@ -73,10 +73,15 @@ func (e *Engine) beginActivation(p state.PlayerID, opt decision.Option) {
 	// The ability's own ReduceCost$ (Otawara's Channel): the same fold the
 	// offer gate in rules/legal.go applied, so the charge and the gate agree
 	// (CR 601.2f — a reduction applied to the stored cost exactly once).
-	// Targets do not exist yet (CR 601.2c runs after this), so a
-	// target-dependent body reads 0 here; repriceForTargets re-runs the
-	// evaluation with the answered targets and net-adjusts pc.ownReduce.
-	own := e.ownReduceCost(p, opt.Obj, ab, nil, nil, pa.Merged)
+	// ownReduceCostOffer resolves a target-dependent body against the BEST
+	// legal root target, matching the offer gate's price: the chosen target
+	// does not exist yet (CR 601.2c runs after this), and folding 0 here would
+	// make continueCast's pre-target payability check reject an ability the
+	// offer gate just admitted at the reduced price
+	// (belt_of_giant_strength's Equip {10} from a {5} pool).
+	// repriceForTargets then re-runs the evaluation with the answered targets
+	// and net-adjusts pc.ownReduce to the exact charge.
+	own := e.ownReduceCostOffer(p, opt.Obj, ab, pa.Merged)
 	if own > 0 {
 		if cost.Generic >= own {
 			cost.Generic -= own

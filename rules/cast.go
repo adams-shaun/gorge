@@ -6745,17 +6745,47 @@ func (e *Engine) castStageSVars(pc *pendingCast) map[string]string {
 // walks a SLICE of words and only LOOKS UP svars, so no map iteration order
 // can reach the result.
 func bodyReadsAllTargeted(v string, svars map[string]string, depth int) bool {
+	return bodyReadsRef(v, svars, depth, func(s string) bool {
+		return strings.Contains(s, "AllTargeted")
+	})
+}
+
+// bodyReadsRootTarget reports whether v, or any SVar body it reaches, reads a
+// ROOT-target reference (Targeted$ / ParentTarget$ / ThisTargetedCard$ -- the
+// names refTargets binds to Ctx.Targets, the ability's OWN chosen targets).
+// The AllTargeted$ union is deliberately excluded: it is the sub-ability
+// pre-ask's shape (alltargeted1), priced only by repriceForTargets, and this
+// predicate arms the offer-time potential-target read for an equip cost
+// reduction (CR 702.6), never that union. bodyReadsRef's shared walk means a
+// body can never be detected by one predicate and missed by the other's
+// ordering; the two only differ in which ref names they accept.
+func bodyReadsRootTarget(v string, svars map[string]string, depth int) bool {
+	return bodyReadsRef(v, svars, depth, func(s string) bool {
+		if strings.Contains(s, "AllTargeted") {
+			return false
+		}
+		return strings.Contains(s, "Targeted$") ||
+			strings.Contains(s, "ParentTarget$") ||
+			strings.Contains(s, "ThisTargetedCard$")
+	})
+}
+
+// bodyReadsRef is the shared transitive SVar/word walk both ref predicates
+// use. match decides whether a single expanded body names the ref; the walk
+// still follows SVar references and identifier-shaped bare words so a ref
+// reached only through an indirection (Count$Compare's Y operand) is found.
+func bodyReadsRef(v string, svars map[string]string, depth int, match func(string) bool) bool {
 	v = strings.TrimSpace(v)
 	if v == "" || depth > 4 {
 		return false
 	}
-	if strings.Contains(v, "AllTargeted") {
+	if match(v) {
 		return true
 	}
 	if len(svars) == 0 {
 		return false
 	}
-	if b, ok := svars[v]; ok && bodyReadsAllTargeted(b, svars, depth+1) {
+	if b, ok := svars[v]; ok && bodyReadsRef(b, svars, depth+1, match) {
 		return true
 	}
 	for _, w := range strings.FieldsFunc(v, func(r rune) bool {
@@ -6764,7 +6794,7 @@ func bodyReadsAllTargeted(v string, svars map[string]string, depth int) bool {
 		if w == v {
 			continue
 		}
-		if b, ok := svars[w]; ok && bodyReadsAllTargeted(b, svars, depth+1) {
+		if b, ok := svars[w]; ok && bodyReadsRef(b, svars, depth+1, match) {
 			return true
 		}
 	}
