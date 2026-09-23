@@ -1620,6 +1620,79 @@ func sacrificeMatchSpec(spec string) string {
 	return spec
 }
 
+// sacrificeCostCandidates returns, in battlefield scan order, the permanents
+// that can pay one Sac cost part for a cast (ability=false) or an activation
+// (ability=true) of source by p. Every Sac stage derives its candidate list
+// from this one helper -- the X announcement's upper bound (xAsk), the
+// sacrifice settle (sacAsk) and the offer gate's announced-X affordability
+// sweep (offerCastableUsing) -- so the count an offer is priced on, the count
+// the payer may announce, and the count the payment can settle cannot
+// disagree about whether a self-reference or a CantSacrifice block is
+// payable.
+func (e *Engine) sacrificeCostCandidates(p state.PlayerID, source state.ObjID, part CostPart, ability bool) []state.ObjID {
+	matchSpec := sacrificeMatchSpec(part.Spec)
+	cause := costCauseForAbility(ability)
+	var out []state.ObjID
+	for _, oid := range e.G.Zone(state.ZBattlefield, p) {
+		if e.sacrificeBlockedForCost(oid, cause) {
+			continue
+		}
+		if e.matchesSpecFrom(matchSpec, oid, p, source) {
+			out = append(out, oid)
+		}
+	}
+	return out
+}
+
+// sacrificeCostAssignable tests whether all Sac parts can be paid with
+// distinct permanents for an announced X. A per-part candidate count is
+// insufficient: two parts can each have X candidates but share every one.
+// Match each required sacrifice to an object, rerouting earlier matches when
+// a later, narrower part needs one of their objects. This is an existence
+// check, not a payment choice; sacAsk still lets the player choose the
+// actual sacrifices in cost-part order.
+func (e *Engine) sacrificeCostAssignable(p state.PlayerID, source state.ObjID, parts []CostPart, ability bool, x int32) bool {
+	candidates := make([][]state.ObjID, len(parts))
+	for i, part := range parts {
+		candidates[i] = e.sacrificeCostCandidates(p, source, part, ability)
+		need := part.N
+		if part.Announced {
+			need = x
+		}
+		if need > int32(len(candidates[i])) {
+			return false
+		}
+	}
+	assigned := make(map[state.ObjID]int)
+	var claim func(int, map[state.ObjID]bool) bool
+	claim = func(i int, seen map[state.ObjID]bool) bool {
+		for _, oid := range candidates[i] {
+			if seen[oid] {
+				continue
+			}
+			seen[oid] = true
+			prev, used := assigned[oid]
+			if !used || claim(prev, seen) {
+				assigned[oid] = i
+				return true
+			}
+		}
+		return false
+	}
+	for i, part := range parts {
+		need := part.N
+		if part.Announced {
+			need = x
+		}
+		for n := int32(0); n < need; n++ {
+			if !claim(i, make(map[state.ObjID]bool)) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 // discardCandidates returns the still-available cards that can pay one
 // Discard cost part. Random names a selection method rather than a card
 // characteristic, and a Hand spec is Forge's "discard your hand" shape
@@ -3698,16 +3771,7 @@ func (e *Engine) xAsk() bool {
 	// mana/energy X also exists the candidate count caps it from above.
 	for _, part := range pc.cost.Sac {
 		if part.Announced {
-			matchSpec := sacrificeMatchSpec(part.Spec)
-			avail := int32(0)
-			for _, oid := range e.G.Zone(state.ZBattlefield, pc.player) {
-				if e.sacrificeBlockedForCost(oid, costCauseForPendingCast(pc)) {
-					continue
-				}
-				if e.matchesSpecFrom(matchSpec, oid, pc.player, pc.card) {
-					avail++
-				}
-			}
+			avail := int32(len(e.sacrificeCostCandidates(pc.player, pc.card, part, pc.isAbility())))
 			if pc.cost.X == 0 && !energyX && bound > avail {
 				bound = avail
 			} else if avail < bound {
@@ -3796,7 +3860,22 @@ func (e *Engine) xAsk() bool {
 	}
 	var legal []int32
 	maxOld := int32(0)
+	// A cost whose announced X feeds a ReduceCost static (Dargo's Sac<X>
+	// reading Count$xPaid) does NOT price monotonically in x: the total
+	// falls as the reduction grows, so the first unpayable X may be
+	// followed by a payable one. The offer gate's affordability sweep
+	// accepts exactly such an announcement, so xAsk must offer it too --
+	// breaking at the first unpayable x would withhold the only legal
+	// announcement and wedge the fetched cast. Every other announced-X
+	// cost keeps the early break (generic only grows with x, so nothing
+	// past the first unpayable x can be payable).
+	nonMonotonic := costAnnouncesPaidX(pc.cost)
 	for x := min; x <= bound; x++ {
+		// The offer sweep and the announcement must agree on whether the
+		// SAME X can settle every Sac part without reusing an object.
+		if sacX && !e.sacrificeCostAssignable(pc.player, pc.card, pc.cost.Sac, pc.isAbility(), x) {
+			continue
+		}
 		wx := e.paymentManaX(pc, x)
 		wx.Generic -= e.delveCredit(pc.player, pc.card, wx.Generic)
 		// The descriptor carries the announced-X marker: WithX folded this
@@ -3804,7 +3883,10 @@ func (e *Engine) xAsk() bool {
 		// an X payment here or every X announcement would be unpayable.
 		if !e.costPayableClass(pc.player, paymentForCast(pc, wx),
 			pipRider{anyColor: pc.mayPlayIgnore, anyType: pc.mayPlayIgnoreType}, wx) {
-			break
+			if !nonMonotonic {
+				break
+			}
+			continue
 		}
 		maxOld = x
 		// Every announced contribution must actually reduce this X's cost
@@ -4242,23 +4324,17 @@ func (e *Engine) sacAsk() bool {
 	pc := e.cast
 	for pc.sacPart < len(pc.cost.Sac) {
 		part := pc.cost.Sac[pc.sacPart]
-		matchSpec := sacrificeMatchSpec(part.Spec)
 		var candidates []state.ObjID
-		for _, oid := range e.G.Zone(state.ZBattlefield, pc.player) {
-			if e.sacrificeBlockedForCost(oid, costCauseForPendingCast(pc)) {
-				continue
+		for _, oid := range e.sacrificeCostCandidates(pc.player, pc.card, part, pc.isAbility()) {
+			already := false
+			for _, s := range pc.sacs {
+				if s == oid {
+					already = true
+					break
+				}
 			}
-			if e.matchesSpecFrom(matchSpec, oid, pc.player, pc.card) {
-				already := false
-				for _, s := range pc.sacs {
-					if s == oid {
-						already = true
-						break
-					}
-				}
-				if !already {
-					candidates = append(candidates, oid)
-				}
+			if !already {
+				candidates = append(candidates, oid)
 			}
 		}
 		n := int(part.N)
@@ -7992,6 +8068,23 @@ func (e *Engine) payCast() {
 		}
 		for _, id := range pc.sacs {
 			e.emit(events.Sacrifice(id))
+		}
+		// RollDice cost parts are free, engine-driven payment actions. Publish
+		// each die through the same canonical Note as DB$ RollDice so trigger
+		// matching and replay observe the exact seeded result. The final result
+		// is the ability's CR 107.3i X and is stamped onto its stack object below.
+		for _, part := range pc.cost.RollDice {
+			sides, err := strconv.ParseInt(part.Spec, 10, 32)
+			if err != nil || sides <= 0 {
+				continue // ParseCost admits only positive, bounded sides.
+			}
+			for i := int32(0); i < part.N; i++ {
+				result := int32(e.Rand(int(sides)) + 1)
+				e.emit(effects.DieRollNote(pc.card, pc.player, int32(sides), result, result))
+				if part.Dyn == "X" {
+					pc.x = result
+				}
+			}
 		}
 		// AbilityPush mints the ability object onto the stack AFTER the cost
 		// settles, so an aborted activation leaves no stack object behind

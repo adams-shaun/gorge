@@ -506,12 +506,12 @@ func durationTiming(dur string) (permanent bool, untilEOT bool) {
 // chosenKW the answered KWChoice$ candidates — extra keyword grants riding
 // the same layer-6 registration.
 //
-// LeaveBattlefield$ is deliberately NOT read here: the rider's brief and its
-// controller authorization cover the DB$ Animate site only (Whip of Erebos,
-// Kheru Lich Lord, Gruesome Encore, Storm Herald). The two DB$ Pump carriers
-// (Moira and Teshar, Dreams of the Dead) and the two ChangeZone carriers
-// (Isareth the Awakener, From the Catacombs) are split out to a follow-up
-// ticket rather than implemented without a ruling.
+// LeaveBattlefield$ (Moira and Teshar, Dreams of the Dead on the DB$ Pump
+// site) is read here so effPump and effPumpAll cannot drift: the promise
+// registers through the shared registerLeaveExile helper and the rider's
+// move-driven lifetime rides BOTH halves below -- the one per-object
+// structural home, exactly as the Animate site registers through
+// registerAnimateEffects.
 func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, sa *cards.SA, zone string, chosenKW []string) {
 	kws := cards.SplitKeywordList(sa.Params["KW"])
 	kws = append(kws, chosenKW...)
@@ -533,12 +533,36 @@ func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, sa *car
 		}
 	}
 	permanent, untilEOT := durationTiming(sa.Params["Duration"])
+	// The move-driven lifetime of a Duration$ Permanent pump: when the pumped
+	// object leaves the zone it was pumped in, the grant ends (CR 400.7 -- it
+	// is a new object on return), via the same ExileOnMoved$/Remembered pair
+	// effectMoveSweep reads. Non-permanent durations keep their existing
+	// cleanup/combat lifetimes and take no sweep.
+	//
+	// A LeaveBattlefield$ Exile rider overrides with its own pair
+	// (leaveExileLifetime): the grant ends exactly on the object's
+	// battlefield departure -- the departure the rider's own promise
+	// rewrites -- so a `Duration$ Permanent` grant cannot re-apply to the
+	// card when it later re-enters (CR 400.7).
+	var exileOn string
+	var remembered []state.ObjID
+	if lr, lw := leaveExileLifetime(id, sa.Params["LeaveBattlefield"]); lw != "" {
+		exileOn, remembered = lw, lr
+	} else if permanent {
+		if o := h.Game().Obj(id); o != nil {
+			if w := ZoneWord(o.Zone); w != "" {
+				exileOn = w
+				remembered = []state.ObjID{id}
+			}
+		}
+	}
 	if att != 0 || def != 0 {
 		h.AddContinuous(state.ContinuousEffect{
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LPT, Sub: state.SubModify,
 			AddPower: att, AddToughness: def,
 			Duration: sa.Params["Duration"], Permanent: permanent, UntilEOT: untilEOT,
+			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: zone,
 		})
 	}
@@ -547,9 +571,16 @@ func registerPumpEffects(h Host, c *Ctx, id state.ObjID, att, def int32, sa *car
 			Source: id, Affects: "Card.Self", Controller: c.Controller,
 			Layer: state.LAbilities, AddKeywords: kws,
 			Duration: sa.Params["Duration"], Permanent: permanent, UntilEOT: untilEOT,
+			ExileOnMoved: exileOn, Remembered: remembered,
 			AffectedZone: zone,
 		})
 	}
+	// The LeaveBattlefield$ Exile promise (Moira and Teshar, Dreams of the
+	// Dead; effects/leavebattlefield.go): it rides the pumped object for the
+	// granting body's own duration, one registration per object -- the same
+	// helper the Animate site uses, so an unsupported rider value takes that
+	// helper's loud-Note behaviour.
+	registerLeaveExile(h, c, id, sa.Params["LeaveBattlefield"], sa.Params["Duration"], permanent)
 }
 
 // effAnimate does not require the target to already be on the battlefield --
@@ -815,6 +846,19 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 	if ag.endOnLeave || strings.EqualFold(ag.leaveExile, "Exile") {
 		exileOn = "Battlefield"
 		remembered = []state.ObjID{id}
+	} else if ag.permanent {
+		// Duration$ Permanent without a rider: the grant still ends when the
+		// animated object leaves the zone it was granted in (CR 400.7 -- the
+		// returned object is a new one, so a bounced-and-re-entered land comes
+		// back a plain land, not a re-activated animation). The sweep zone is
+		// the object's CURRENT zone at grant time, not hardcoded battlefield:
+		// Forge's own Animate targets a graveyard card as often as a permanent.
+		if o := h.Game().Obj(id); o != nil {
+			if w := ZoneWord(o.Zone); w != "" {
+				exileOn = w
+				remembered = []state.ObjID{id}
+			}
+		}
 	}
 	if ag.hasPower || ag.hasTough {
 		h.AddContinuous(state.ContinuousEffect{

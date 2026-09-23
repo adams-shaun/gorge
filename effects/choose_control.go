@@ -1182,8 +1182,10 @@ func changeTargetChooser(h Host, c *Ctx, sa *cards.SA) state.PlayerID {
 	if v == "" || v == "You" {
 		return c.Controller
 	}
-	for _, t := range Defined(h, c, &cards.SA{Params: map[string]string{"Defined": v}}) {
-		return PlayerOf(h, c, t)
+	// definedPlayerIDs keeps the plain Remembered family players-only, so a
+	// remembered CARD cannot hand the redirect chooser to its controller.
+	if ps := definedPlayerIDs(h, c, v); len(ps) > 0 {
+		return ps[0]
 	}
 	return c.Controller
 }
@@ -1450,6 +1452,19 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 	// closes it when the loop completes, so the bracket is balanced however
 	// many resumes interleave.
 	batched := strings.EqualFold(strings.TrimSpace(sa.Params["DamageMap"]), "True")
+	// ChangeZoneTable$ True (Forge's RepeatEachEffect CardZoneTable -- 47
+	// corpus carrier files): the zone changes every iteration's body causes
+	// are accumulated and reach Mode$ ChangesZoneAll ONCE, after the loop
+	// completes, as one "one or more" batch; Mode$ ChangesZone keeps firing
+	// per move. The seam is the zone twin of the damage bracket above:
+	// opened around the whole loop on the first pass, closed after the last
+	// iteration, events unchanged -- same order, same objects -- so a game
+	// with no ChangesZoneAll observer in the window replays exactly as
+	// before. Opened only on the first pass: a mid-loop suspension leaves
+	// the engine's open batch intact across the resume, and the re-entry
+	// pass closes it when the loop completes, so the bracket is balanced
+	// however many resumes interleave.
+	zoneTable := strings.EqualFold(strings.TrimSpace(sa.Params["ChangeZoneTable"]), "True")
 	// AmountFromVotes$ True (task votepb1: Mob Verdict, Círdan the Shipwright,
 	// Trap the Trespassers): before each body runs, bind the reserved name
 	// "Votes" to the CURRENT loop subject's tally from the most recent
@@ -1468,6 +1483,16 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 		EndDamageBatch()
 	}); ok {
 		batcher = b
+	}
+	var zoneBatcher interface {
+		BeginZoneBatch()
+		EndZoneBatch()
+	}
+	if z, ok := h.(interface {
+		BeginZoneBatch()
+		EndZoneBatch()
+	}); ok {
+		zoneBatcher = z
 	}
 	firstPass := true
 	if cur := c.Repeat; cur != nil && cur.SA == sa {
@@ -1511,6 +1536,9 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 	if batched && firstPass && batcher != nil {
 		batcher.BeginDamageBatch()
 	}
+	if zoneTable && firstPass && zoneBatcher != nil {
+		zoneBatcher.BeginZoneBatch()
+	}
 	// ClearRememberedBeforeLoop$ True (Forge's RepeatEachEffect: "clear the
 	// host's remembered list before the loop"): drop the resolving spell or
 	// ability's accumulated Remembered before the FIRST iteration body runs,
@@ -1527,8 +1555,39 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 	if firstPass && strings.EqualFold(strings.TrimSpace(sa.Params["ClearRememberedBeforeLoop"]), "True") {
 		c.Remembered = nil
 	}
+	// RepeatOptionalForEachPlayer$ True (Tempting Contract, the Tempt cycle,
+	// Zagorka): each subject of the loop is offered its own yes/no election
+	// before its body runs, with RepeatOptionalMessage$ as the prompt. The
+	// answer is not a body suspension -- the body may not run at all -- so it
+	// rides Ctx.RepeatEachOptional on re-entry and skips that subject's body
+	// on a decline. A nil field is the first pass; the cursor's own Election
+	// flag marks which frame is the offer.
+	optionalForEach := strings.EqualFold(strings.TrimSpace(sa.Params["RepeatOptionalForEachPlayer"]), "True")
+	optionalMsg := strings.TrimSpace(sa.Params["RepeatOptionalMessage"])
+	electedIdx, electedAccept := -1, false
+	if c.RepeatEachOptional != nil {
+		electedIdx = int(c.RepeatEachOptional.Next)
+		electedAccept = c.RepeatEachOptional.Accept
+		c.RepeatEachOptional = nil
+	}
 	for i := start; i < len(subjects); i++ {
 		t := subjects[i]
+		if optionalForEach {
+			if i == electedIdx && !electedAccept {
+				// This subject declined its own offer: skip its body and
+				// continue with the next subject.
+				continue
+			}
+			if i != electedIdx {
+				// This subject has not been offered yet: pose its election.
+				// A yes re-enters at i and runs the body below; a no is the
+				// skip above. R-9: a host with no decision channel declines.
+				if !poseRepeatEachElection(h, c, sa, t, i, subjects, optionalMsg) {
+					continue
+				}
+				return
+			}
+		}
 		cc := *c
 		cc.Repeat = nil
 		// Forge binds the current loop subject as Remembered; the resolving
@@ -1598,6 +1657,53 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 		// returns before this line and leaves the bracket to a later pass.
 		batcher.EndDamageBatch()
 	}
+	if zoneTable && zoneBatcher != nil {
+		// The loop completed: close the zone batch the FIRST pass opened
+		// (same reasoning as the damage batch above).
+		zoneBatcher.EndZoneBatch()
+	}
+}
+
+// poseRepeatEachElection asks one subject of a RepeatEach
+// RepeatOptionalForEachPlayer$ loop for its own yes/no election, reporting
+// whether the resolution suspended on it. A true answer means the host took
+// the decision (rules sets a resume point and re-enters the loop with
+// Ctx.RepeatEachOptional carrying the answer); the caller returns and the
+// re-entry runs or skips the subject's body. A false is the R-9 no-ask
+// decline: the host has no decision channel, so the subject is declined and
+// the loop continues. RepeatOptionalMessage$ is the prompt when the line
+// carries one.
+func poseRepeatEachElection(h Host, c *Ctx, sa *cards.SA, subj state.Target, idx int, subjects []state.Target, msg string) bool {
+	if msg == "" {
+		msg = "Accept this offer?"
+	}
+	player := PlayerOf(h, c, subj)
+	d := &decision.Decision{Player: player, Kind: decision.KChoose, Min: 1, Max: 1,
+		Prompt: msg, Source: c.Source,
+		ResumeKind: "repeat_each_optional", ResumeSA: sa, ResumeRepeatNext: int32(idx),
+		Options: []decision.Option{
+			{Index: 0, Kind: "yes", Label: "Yes", Player: player},
+			{Index: 1, Kind: "no", Label: "No", Player: player},
+		}}
+	if Ask(h, d) != AskAsked {
+		return false
+	}
+	// The loop cursor rides the existing RepeatEach suspension so the subjects
+	// captured when the loop started (never re-derived mid-flight) and the
+	// loop's own accumulated bindings survive the election. Outer is the
+	// accumulated Remembered at election time; Body is this subject's initial
+	// iteration bindings, so an accept runs the body from the same base the
+	// first pass would compute.
+	h.SuspendRepeat(RepeatSuspension{
+		RepeatCursor: RepeatCursor{SA: sa, Subjects: copyTargets(subjects), Next: idx, Election: true},
+		Body:         append(copyTargets(iterationBase(c, subj)), subj),
+		Subject:      subj,
+		Outer:        copyTargets(c.Remembered),
+		Chosen:       copyTargets(c.Chosen),
+		ChosenValid:  c.ChosenValid,
+		VoteCounts:   append([]VoteCount(nil), c.VoteCounts...),
+	})
+	return true
 }
 
 // iterationBase is what an iteration's Remembered holds besides its subject.

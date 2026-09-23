@@ -192,7 +192,7 @@ func effDraw(h Host, c *Ctx, sa *cards.SA) {
 		if answered == "" {
 			canDraw := false
 			for _, t := range targets {
-				if len(zoneOf(h.Game(), state.ZLibrary, PlayerOf(h, c, t))) > 0 {
+				if len(zoneOf(h.Game(), state.ZLibrary, t)) > 0 {
 					canDraw = true
 					break
 				}
@@ -264,7 +264,7 @@ func effDraw(h Host, c *Ctx, sa *cards.SA) {
 	// to draw).
 	if strings.EqualFold(strings.TrimSpace(sa.Params["Upto"]), "True") {
 		for idx := int(c.DrawUptoIdx); idx < len(targets); idx++ {
-			p := PlayerOf(h, c, targets[idx])
+			p := targets[idx]
 			if !c.DrawUptoAnswered {
 				lib := zoneOf(h.Game(), state.ZLibrary, p)
 				m := n
@@ -329,7 +329,7 @@ func effDraw(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 	for c.DrawDone < total {
-		p := PlayerOf(h, c, targets[c.DrawDone/n])
+		p := targets[c.DrawDone/n]
 		var lib []state.ObjID
 		if remember {
 			lib = zoneOf(h.Game(), state.ZLibrary, p)
@@ -433,14 +433,17 @@ func discardRidersOf(sa *cards.SA) discardRiders {
 // Scry/Surveil, RearrangeTopOfLibrary) is behaviour-identical under the
 // change (c.Controller == the source's controller unless a mid-resolution
 // control change moved it), so no golden game moves.
-func actingPlayers(h Host, c *Ctx, sa *cards.SA) []state.Target {
+func actingPlayers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 	if strings.TrimSpace(sa.Params["Defined"]) != "" {
-		return Defined(h, c, sa)
+		// definedPlayers applies Forge's getDefinedPlayers rule: the plain
+		// Remembered family contributes remembered PLAYERS only, never a
+		// remembered card's controller (Summon: Valefor's per-opponent loop).
+		return definedPlayers(h, c, sa)
 	}
 	if _, targeted := sa.Params["ValidTgts"]; targeted {
-		return Defined(h, c, sa)
+		return playerIDsFromTargets(h, c, "", Defined(h, c, sa))
 	}
-	return []state.Target{{Player: c.Controller, IsPlayer: true}}
+	return []state.PlayerID{c.Controller}
 }
 
 // discardAndRemember emits one discard with the riders bound above.
@@ -582,7 +585,7 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 	if chooseMode {
 		chooser := discardChooser(c, mode)
 		for targetIndex, t := range actingPlayers(h, c, sa) {
-			p := PlayerOf(h, c, t)
+			p := t
 			hand := zoneOf(g, state.ZHand, p)
 			if answered && targetIndex < answerTarget {
 				continue // fully processed before a later target's ask
@@ -619,7 +622,7 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 	for targetIndex, t := range actingPlayers(h, c, sa) {
-		p := PlayerOf(h, c, t)
+		p := t
 		hand := zoneOf(g, state.ZHand, p)
 
 		switch mode {
@@ -936,7 +939,7 @@ func effMill(h Host, c *Ctx, sa *cards.SA) {
 	show := strings.EqualFold(strings.TrimSpace(sa.Params["ShowMilledCards"]), "True")
 	g := h.Game()
 	for _, t := range actingPlayers(h, c, sa) {
-		p := PlayerOf(h, c, t)
+		p := t
 		var milledIDs []state.ObjID
 		for i := int32(0); i < n; i++ {
 			lib := zoneOf(g, state.ZLibrary, p)
@@ -1131,6 +1134,19 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 	forceReveal := strings.EqualFold(strings.TrimSpace(sa.Params["ForceRevealToController"]), "True")
 	skipReorder := strings.EqualFold(strings.TrimSpace(sa.Params["SkipReorder"]), "True")
 	tapped := strings.EqualFold(strings.TrimSpace(sa.Params["Tapped"]), "True")
+	// FromBottom$ True (task scrybottom): the Dig window is the BOTTOM DigNum
+	// cards of the library rather than the top. The Temporal Anchor's
+	// "exile that many cards from the bottom of your library" is the corpus
+	// carrier (`/usr/bin/grep -rlE 'FromBottom\$'` = 2 files); everything
+	// after the window (the primary move, the remainder placement) is
+	// unchanged, so a non-FromBottom Dig emits byte-identically.
+	fromBottom := strings.EqualFold(strings.TrimSpace(sa.Params["FromBottom"]), "True")
+	lookText := "looks at the top of the library"
+	lookWhere := "top"
+	if fromBottom {
+		lookText = "looks at the bottom of the library"
+		lookWhere = "bottom"
+	}
 	primaryPos := strings.TrimSpace(sa.Params["LibraryPosition"])
 	dest2Name := strings.TrimSpace(sa.Params["DestinationZone2"])
 	pos2 := strings.TrimSpace(sa.Params["LibraryPosition2"])
@@ -1170,14 +1186,16 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 	// degrading Attacking$ rider is one Note per dig, not one per taken card
 	// (nor one per Defined$ library).
 	rider := classifyAttackingEntry(c, sa, dest)
-	for targetIndex, t := range Defined(h, c, sa) {
-		p := PlayerOf(h, c, t)
+	for targetIndex, p := range definedPlayers(h, c, sa) {
 		lib := zoneOf(g, state.ZLibrary, p)
 		n := digNum
 		if int32(len(lib)) < n {
 			n = int32(len(lib))
 		}
 		top := append([]state.ObjID(nil), lib[:n]...)
+		if fromBottom {
+			top = append([]state.ObjID(nil), lib[int32(len(lib))-n:]...)
+		}
 		// primaryMoved is the temporary library pile for a primary
 		// DestinationZone$ Library move. It is placed after the remainder has
 		// settled, so the primary LibraryPosition$ cannot be lost to the
@@ -1408,7 +1426,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			if revealWin {
 				h.Emit(events.Event{Kind: events.Note, Player: p, IDs: top})
 			} else {
-				emitLook(h, []state.PlayerID{p}, state.ZLibrary, top, "looks at the top of the library")
+				emitLook(h, []state.PlayerID{p}, state.ZLibrary, top, lookText)
 			}
 			minv := int32(0)
 			if !optional && !anyNum {
@@ -1429,7 +1447,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			if !optional && !anyNum {
 				verb = "put "
 			}
-			prompt := "Look at the top " + strconv.Itoa(int(n)) + " card(s) of your library: " + verb + strconv.Itoa(int(changeNum)) + " matching card(s) into " + digDestPhrase(dest)
+			prompt := "Look at the " + lookWhere + " " + strconv.Itoa(int(n)) + " card(s) of your library: " + verb + strconv.Itoa(int(changeNum)) + " matching card(s) into " + digDestPhrase(dest)
 			if hasBudget {
 				prompt += " (total mana value " + strconv.Itoa(int(budget)) + " or less)"
 			}
@@ -1503,7 +1521,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 			// The ordered-bottom ask is coming: the look that authorises it is
 			// recorded here, the same Secret owner's Note the take-ask path
 			// emits before ITS ask (a Reveal$ window is already public).
-			emitLook(h, []state.PlayerID{p}, state.ZLibrary, top, "looks at the top of the library")
+			emitLook(h, []state.PlayerID{p}, state.ZLibrary, top, lookText)
 		}
 		taken := make(map[state.ObjID]bool, len(greedy))
 		for _, id := range greedy {
@@ -1806,8 +1824,7 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 	// rather than against either of the two destinations the walk picks
 	// between.
 	rider := classifyAttackingEntry(c, sa, state.ZBattlefield)
-	for _, t := range targets {
-		p := PlayerOf(h, c, t)
+	for _, p := range playerIDsFromTargets(h, c, sa.Params["Defined"], targets) {
 		lib := zoneOf(g, state.ZLibrary, p)
 		if len(lib) == 0 {
 			continue
@@ -2196,6 +2213,12 @@ func effReveal(h Host, c *Ctx, sa *cards.SA) {
 		// A pick answers the optional gate only for the target that posed it.
 		// Later Defined$ targets still need their own may-reveal choice.
 		pickForTarget := picks != nil && targetIndex == pickTarget
+		if plainRememberedSelector(revealSA.Params["Defined"]) && !t.IsPlayer {
+			// Forge's getDefinedPlayers("Remembered") adds remembered PLAYERS
+			// only; a remembered card must not widen the reveal's library/hand
+			// scope to its controller (Summon: Valefor's per-opponent loop).
+			continue
+		}
 		p := PlayerOf(h, c, t)
 		pool := zoneOf(g, zone, p)
 		if sa.Params["RevealDefined"] != "" && !t.IsPlayer {
@@ -2615,7 +2638,7 @@ func effRearrangeTopOfLibrary(h Host, c *Ctx, sa *cards.SA) {
 		if mayShuffle && c.MayShuffle == "" {
 			players := actingPlayers(h, c, sa)
 			if start >= 0 && start < len(players) {
-				p := PlayerOf(h, c, players[start])
+				p := players[start]
 				d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 1, Max: 1,
 					Source: c.Source, ResumeKind: "arrange_mayshuffle", ResumeSA: sa,
 					ResumeTarget: start, Prompt: "Shuffle your library?",
@@ -2643,7 +2666,7 @@ func effRearrangeTopOfLibrary(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		c.LibraryTarget = targetIndex
-		p := PlayerOf(h, c, t)
+		p := t
 		lib := zoneOf(g, state.ZLibrary, p)
 		k := n
 		if int32(len(lib)) < k {
@@ -2748,7 +2771,7 @@ func effSurveil(h Host, c *Ctx, sa *cards.SA) {
 		// carrying optionals. The answer belongs to that player and is carried
 		// through extraOf below; later libraries keep their own base count.
 		if players := actingPlayers(h, c, sa); len(players) > 0 {
-			p := PlayerOf(h, c, players[0])
+			p := players[0]
 			if _, opts := h.SurveilLookExtra(p); len(opts) > 0 {
 				d := &decision.Decision{Player: p, Kind: decision.KChoose, Min: 0, Max: len(opts),
 					Source: c.Source, ResumeKind: "surveil_look_optional", ResumeSA: sa,
@@ -2794,7 +2817,7 @@ func effSurveil(h Host, c *Ctx, sa *cards.SA) {
 		if len(players) == 0 {
 			return 0, false
 		}
-		p := PlayerOf(h, c, players[0])
+		p := players[0]
 		if _, opts := h.SurveilLookExtra(p); len(opts) > 0 {
 			return p, true
 		}
@@ -2852,7 +2875,7 @@ func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, n int32, kind, verb string,
 			continue
 		}
 		c.LibraryTarget = targetIndex
-		p := PlayerOf(h, c, t)
+		p := t
 		if !markSurveil && strings.EqualFold(strings.TrimSpace(sa.Params["Optional"]), "True") {
 			opt := c.ScryOpt
 			c.ScryOpt = ""

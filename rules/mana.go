@@ -216,6 +216,10 @@ type Cost struct {
 	// part (fail-open there) and the payment stage aborts (CR 733.1) when
 	// the graveyard cannot reach the resolved total.
 	Evidence []CostPart
+	// RollDice carries RollDice<N/Sides/XVar> free cost components. The payment
+	// rolls each die and publishes its canonical effects.DieRollNote; Dyn names
+	// the ability X binding (currently only X is modelled).
+	RollDice []CostPart
 	// Unknown lists the HEAD (the text before any "<...>") of every cost
 	// token this parse did not model, in order of appearance, deduplicated.
 	// A token lands here exactly when ParseCost could not give it real
@@ -453,6 +457,7 @@ var removeAnyCounterCost = regexp.MustCompile(`^RemoveAnyCounter<(X|\d+)/([^/>]+
 // effects.ParseDamageUnlessCost; this head keeps a plain Cost$ spelling out
 // of Cost.Unknown.
 var damageYouCost = regexp.MustCompile(`^DamageYou<(\d+)(?:/([^>]*))?>$`)
+var rollDiceCost = regexp.MustCompile(`^RollDice<([^>]*)>$`)
 
 var costBraces = strings.NewReplacer("{", " ", "}", " ")
 
@@ -713,6 +718,20 @@ func ParseCost(s string) Cost {
 				// payer's life at the X ask) and the settle pays that much life.
 				// No generic substitution, no Unknown entry.
 				c.LifeX = append(c.LifeX, CostPart{Spec: "X", Announced: true})
+				continue
+			}
+			if m := rollDiceCost.FindStringSubmatch(sym); m != nil {
+				fields := strings.Split(m[1], "/")
+				if len(fields) == 3 && fields[2] == "X" {
+					n, nerr := strconv.ParseInt(fields[0], 10, 32)
+					sides, serr := strconv.ParseInt(fields[1], 10, 32)
+					if nerr == nil && serr == nil && n > 0 && sides > 0 {
+						c.RollDice = append(c.RollDice, CostPart{N: int32(n), Spec: fields[1], Dyn: fields[2]})
+						continue
+					}
+				}
+				c.Generic = addClampedGeneric(c.Generic, 1)
+				c.reportUnknown(sym)
 				continue
 			}
 			if m := damageYouCost.FindStringSubmatch(sym); m != nil {
@@ -1462,10 +1481,20 @@ func (e *Engine) offerCastableUsing(statics costStaticViews, p state.PlayerID, i
 		// remain absent until the actual target is known (see the helper's
 		// contract).
 		potential := e.costModifiersWithTargetsUsing(statics, p, id, scope, e.costPotentialTargets(p, id, scope), true)
-		if !e.manaFeasiblePriced(p, id, ability, base, potential, tax, delve, hyp) {
+		if e.manaFeasiblePriced(p, id, ability, base, potential, tax, delve, hyp) {
+			mods = potential
+		} else if accepted, ok := e.offerSacXMods(p, id, ability, base, statics, scope, tax, delve, hyp); ok {
+			// The cost announces a Sac<X/Spec> count whose resulting X-dependent
+			// reduction (Dargo's "{2} less for each permanent sacrificed this
+			// way", read through Count$xPaid) can make the cast payable at a
+			// nonzero X the X=0 snapshot misprices. Accept when, and only when,
+			// SOME legal announcement is payable -- the same announced-X
+			// recomputation manaToPay makes after the announcement, applied at
+			// the gate so the offer and the charge agree.
+			mods = accepted
+		} else {
 			return false
 		}
-		mods = potential
 	}
 	// feasibleAny has established the mana half for a specific announced face
 	// when a floor or Color$ reduction is face-sensitive. Do not re-check
@@ -1474,6 +1503,68 @@ func (e *Engine) offerCastableUsing(statics costStaticViews, p state.PlayerID, i
 	// pip at all. The remaining cost parts are face-independent, so this
 	// shared tail preserves every Sac/Discard/counter/tap legality check.
 	return e.nonManaCastable(p, id, e.composedOfferCost(p, id, base, mods, scope), ability)
+}
+
+// offerSacXMods is the offer gate's announced-sacrifice-count affordability
+// sweep. A cost carrying a Sac<X/Spec> part announces its count as X (CR
+// 601.2b), and a ReduceCost static that reads the paid X (Dargo, the
+// Shipwrecker's SVar:X:Count$xPaid over SVar:Y:SVar$X/Times.2) is evaluated
+// with X=0 in the ordinary pre-announcement snapshot -- so a cast the player
+// can only afford AFTER reducing the cost is never offered. This walks every
+// legal announcement (1..the matching permanents the payer can sacrifice,
+// the same bound xAsk computes) and reprices exactly the way manaToPay's
+// post-announcement recomputation does: the announced cost (base folded at X)
+// under the X-bound modifiers, then the commander tax. It returns the
+// modifier snapshot of the first feasible announcement, so the caller's
+// composed cost and payment agree; ok=false means no legal announcement is
+// payable and the cast must stay withheld (the fail-closed direction, never
+// a bypass of mana feasibility for every Sac<X> spell). X=0 is deliberately
+// not swept here -- the caller already priced it, and an all-zero reduction
+// would merely repeat that answer.
+func (e *Engine) offerSacXMods(p state.PlayerID, id state.ObjID, ability bool, base Cost, statics costStaticViews, scope costScope, tax, delve int32, hyp *state.Mana) (costMods, bool) {
+	if !costAnnouncesSacX(base) {
+		return costMods{}, false
+	}
+	// Every announced Sac part pays the SAME X. The smallest candidate
+	// pool bounds the search, but overlapping pools may require more
+	// distinct objects than either pool alone can supply.
+	maxX := int32(0)
+	boundSet := false
+	for _, part := range base.Sac {
+		if !part.Announced {
+			continue
+		}
+		n := int32(len(e.sacrificeCostCandidates(p, id, part, ability)))
+		if !boundSet || n < maxX {
+			maxX = n
+			boundSet = true
+		}
+	}
+	if maxX <= 0 {
+		return costMods{}, false
+	}
+	// The potential-target variant is the same "does SOME legal announcement
+	// exist" relaxation the ordinary retry above makes; target-dependent
+	// raises and floors stay absent (they can only raise the price).
+	targets := e.costPotentialTargets(p, id, scope)
+	for x := int32(1); x <= maxX; x++ {
+		if !e.sacrificeCostAssignable(p, id, base.Sac, ability, x) {
+			continue
+		}
+		announced := base.WithX(x)
+		mods := e.costModifiersWithTargetsXUsing(statics, p, id, scope, nil, false, x)
+		if e.manaFeasiblePriced(p, id, ability, announced, mods, tax, delve, hyp) {
+			return mods, true
+		}
+		if len(targets) == 0 {
+			continue
+		}
+		mods = e.costModifiersWithTargetsXUsing(statics, p, id, scope, targets, true, x)
+		if e.manaFeasiblePriced(p, id, ability, announced, mods, tax, delve, hyp) {
+			return mods, true
+		}
+	}
+	return costMods{}, false
 }
 
 // costPotentialTargets returns the legal target candidates that can make a
