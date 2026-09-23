@@ -909,6 +909,9 @@ func cloneResume(rp *resumePoint) *resumePoint {
 	cp.chosenValid = rp.chosenValid
 	cp.remembered = append([]state.Target(nil), rp.remembered...)
 	cp.loopRemembered = append([]state.Target(nil), rp.loopRemembered...)
+	// The AmountFromVotes$ tally snapshot: plain value entries, copied so the
+	// clone never shares a backing array with the original's pending frames.
+	cp.voteCounts = cloneVoteCounts(rp.voteCounts)
 	// The pre-move controller snapshot is immutable once captured, but a clone
 	// must not share the original's map storage: an explicit copy keeps the
 	// two engines' pending frames independent.

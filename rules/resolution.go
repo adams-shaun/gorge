@@ -301,6 +301,15 @@ type resumePoint struct {
 	// after a suspension (definedSpec, unlessPayerTargets) re-binds the
 	// iteration's subject. Zero on frames outside any iteration.
 	repeatSubject state.Target
+	// voteCounts is the api:Vote tally the AmountFromVotes$ RepeatEach this
+	// frame belongs to published on its resolution Ctx, captured by
+	// SuspendRepeat so a resume rebuilds the same table (the vote is a prior
+	// chain link; a fresh Ctx cannot re-derive it). Restored into
+	// Ctx.VoteCounts before the resumed SA and, for a loop iteration frame,
+	// re-bound as the per-iteration Ctx.VotePublished from rp.repeatSubject.
+	// Nil for every frame outside such a loop, preserving the unbound read a
+	// vote that published no tally must keep.
+	voteCounts []effects.VoteCount
 	// repeat is a kind "repeat" frame's loop cursor.
 	repeat *repeatCursor
 	// lifeDraws parks a GainLife→Draw replacement body's remaining draws
@@ -345,8 +354,12 @@ type contFrame struct {
 	bound         bool
 	remembered    []state.Target
 	repeatSubject state.Target
-	choices       []state.Target
-	chosenValid   bool
+	// voteCounts is the AmountFromVotes$ tally the frame's loop belongs to,
+	// handed over from the RepeatSuspension and stamped onto every
+	// resumePoint buildContinuationChain makes from it.
+	voteCounts  []effects.VoteCount
+	choices     []state.Target
+	chosenValid bool
 	// villainousRest marks a frame that re-enters a VillainousChoice's own
 	// SA (not sa.Sub) with the victim cursor below, continuing with the
 	// victims a chosen body's nested ask left unprocessed. The reported sa
@@ -609,12 +622,20 @@ func (e *Engine) SuspendRepeat(s effects.RepeatSuspension) {
 		return
 	}
 	body := append([]state.Target(nil), s.Body...)
+	// The AmountFromVotes$ tally snapshot (nil outside such a loop) is bound
+	// to the same frames the iteration's Remembered is: the pending ask's own
+	// frame and every continuation frame of loops nested inside the
+	// iteration. A later iteration frame carries it too, so effRepeatEach
+	// re-derives each remaining subject's Votes from the restored table.
+	votes := cloneVoteCounts(s.VoteCounts)
 	if !e.resume.loopBound {
 		e.resume.loopBound, e.resume.loopRemembered, e.resume.repeatSubject = true, body, s.Subject
+		e.resume.voteCounts = cloneVoteCounts(votes)
 	}
 	for i := range e.contChain {
 		if !e.contChain[i].bound {
 			e.contChain[i].bound, e.contChain[i].remembered, e.contChain[i].repeatSubject = true, body, s.Subject
+			e.contChain[i].voteCounts = cloneVoteCounts(votes)
 		}
 	}
 	e.contChain = append(e.contChain, contFrame{
@@ -622,10 +643,22 @@ func (e *Engine) SuspendRepeat(s effects.RepeatSuspension) {
 		repeat:      &repeatCursor{subjects: append([]state.Target(nil), s.Subjects...), next: s.Next},
 		bound:       true,
 		remembered:  append([]state.Target(nil), s.Outer...),
+		voteCounts:  cloneVoteCounts(votes),
 		choices:     append([]state.Target(nil), s.Chosen...),
 		chosenValid: s.ChosenValid,
 	})
 	e.repeatReported = s.SA
+}
+
+// cloneVoteCounts deep-copies a vote tally snapshot at an ownership boundary
+// (the effects/rules payload, each continuation frame, the engine clone). The
+// entries are plain values, so a fresh slice is a full copy; nil stays nil so
+// a loop on a vote that published no tally keeps its unbound read.
+func cloneVoteCounts(in []effects.VoteCount) []effects.VoteCount {
+	if in == nil {
+		return nil
+	}
+	return append([]effects.VoteCount(nil), in...)
 }
 
 // SuspendCharmRest implements effects.Host.SuspendCharmRest: a Charm's mode
@@ -1621,10 +1654,29 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		ctx.VillainousVictims = append([]state.Target(nil), rp.villainousVictims...)
 		ctx.VillainousIndex = rp.villainousIndex
 	}
+	// The AmountFromVotes$ tally the loop read its per-iteration binding from:
+	// the vote is a PRIOR chain link, so the fresh Ctx can only re-derive
+	// "Votes" from this restored table. Nil stays nil (a vote that published
+	// no tally keeps its unbound/zero read).
+	if rp.voteCounts != nil {
+		ctx.VoteCounts = cloneVoteCounts(rp.voteCounts)
+	}
 	if rp.loopBound {
 		ctx.Remembered = append([]state.Target(nil), rp.loopRemembered...)
 		if rp.repeatSubject != (state.Target{}) {
 			ctx.RepeatSubject = rp.repeatSubject
+		}
+		// Re-bind this iteration's per-subject tally on the rebuilt Ctx, the
+		// same scalar effRepeatEach writes before resolving a first-pass body:
+		// the resumed body reads "Votes" through runtimePublished, which the
+		// restored table alone does not serve. A subject with no tally binds 0
+		// (Forge's unset VoteNum read), exactly as the first pass does.
+		if rp.voteCounts != nil {
+			ctx.VotePublished = 0
+			if n, ok := effects.VoteCountForTarget(ctx.VoteCounts, rp.repeatSubject); ok {
+				ctx.VotePublished = int32(n)
+			}
+			ctx.VotePublishedSet = true
 		}
 	}
 	// A mid-resolution ask that rode the walk's Remembered (the hidden-library
@@ -3290,7 +3342,7 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 			if rp.loopBound {
 				// Still inside the loop iteration this frame resumed: whatever
 				// suspended at this level continues with its Remembered.
-				e.bindLoopFrames(ctx.Remembered)
+				e.bindLoopFrames(ctx.Remembered, ctx.VoteCounts)
 			}
 			e.resume.outer = e.buildContinuationChain(e.contChain, rp.obj, rp.outer)
 			return
@@ -3442,6 +3494,7 @@ func (e *Engine) buildContinuationChain(frames []contFrame, obj state.ObjID, tai
 			replaced: e.replReplaced, action: e.replAction, replacedPlayer: e.replReplacedPlayer,
 			before:    e.triggerBefore,
 			loopBound: cf.bound, loopRemembered: cf.remembered, repeatSubject: cf.repeatSubject,
+			voteCounts: cloneVoteCounts(cf.voteCounts),
 			// Every continuation the loop of THIS re-entry reported belongs to
 			// the same resolution, so a fused half's target binding is inherited
 			// verbatim: the frames build while Engine.fusedResolving is set (the
@@ -3716,15 +3769,20 @@ func (e *Engine) payUnlessDamageCost(ctx *effects.Ctx, payer state.PlayerID, n i
 }
 
 // bindLoopFrames binds the pending ask and every continuation frame recorded
-// this pass that no deeper RepeatEach already bound to remembered.
-func (e *Engine) bindLoopFrames(remembered []state.Target) {
+// this pass that no deeper RepeatEach already bound to remembered. votes is
+// the AmountFromVotes$ tally the current loop frame carries (nil outside such
+// a loop); it is bound to the same frames so a nested ask posed after the
+// resume restores the table too.
+func (e *Engine) bindLoopFrames(remembered []state.Target, votes []effects.VoteCount) {
 	snap := append([]state.Target(nil), remembered...)
 	if e.resume != nil && !e.resume.loopBound {
 		e.resume.loopBound, e.resume.loopRemembered = true, snap
+		e.resume.voteCounts = cloneVoteCounts(votes)
 	}
 	for i := range e.contChain {
 		if !e.contChain[i].bound {
 			e.contChain[i].bound, e.contChain[i].remembered = true, snap
+			e.contChain[i].voteCounts = cloneVoteCounts(votes)
 		}
 	}
 }
