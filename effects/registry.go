@@ -44,6 +44,16 @@ type Host interface {
 	// battlefield, and its face/CDA colours in other zones.
 	ObjectColors(*state.Object) string
 	Emit(events.Event)
+	// EmitTokenCreate emits a token-creation event and returns every object
+	// it actually created, in mint order. A token-creation replacement may
+	// rewrite one would-be token into several mints (Divine Visitation's one
+	// Angel, Doubling Season's doubled pair, Xorn's original-plus-one), and
+	// CR 111's per-token riders (Tapped, counters, AttachedTo, P/T, AtEOT)
+	// belong to EVERY mint, not just the first. effects/token.go calls this
+	// instead of Emit so its rider loop runs once per mint. The ordinary,
+	// unreplaced event returns the single token it minted (empty when nothing
+	// was created).
+	EmitTokenCreate(events.Event) []state.ObjID
 	// EmitDamage emits a Damage event and returns the event that actually
 	// landed after replacement effects. A prevention returns a non-Damage
 	// result; an amount-changing replacement returns Damage with the applied
