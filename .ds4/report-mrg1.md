@@ -544,3 +544,72 @@ and this report. `AGENTS.md`: both sides deleted DISJOINT rows — this branch t
 keeps BOTH deletions (the conflict hunk collapses to nothing).
 `internal/testutil/agentsdoc_test.go`: main 66, branch 73; resolved to the
 measured merged count. This report resolved to main's log plus this section.
+
+---
+
+## Section N+3 — this merge (main f7357075 into wt/cli-20260922T225140Z-b686e452)
+
+### Starting state
+
+The tree was CLEAN at `d56e404f` (the branch's one commit: `non<X>` negation
+closure, `effects/filter.go` + its test + the row deletion + constant 59). No
+rebase or merge was in flight. Main was 4 commits ahead (`c93d85f7` →
+`f7357075`, the scry/surveil pile-B-order closure and its web/decision/
+botpolicy/arrange changes plus its merge chain). Ran `git merge main
+--no-commit --no-ff`.
+
+### Conflicted files and how each side's intent was kept
+
+Only ONE file conflicted: `internal/testutil/agentsdoc_test.go`.
+
+- **HEAD:** `knownApproximationRows = 59` (branch's non<X> row deletion).
+- **main:** `knownApproximationRows = 58` (main's TWO Scry/Surveil pile-B row
+  deletions).
+- Both sides' deletions are disjoint; `AGENTS.md` auto-merged keeping BOTH —
+  `grep` for the `non<X> negation` row, the `Scry sends its unchosen pile B`
+  row and the `Surveil puts its unchosen pile B` row each finds 0 occurrences
+  in the merged file.
+- Merged table measured with the test's own parsing logic (python replication
+  of `approximationRows`): base `f8496199` = 58 data rows, main = 56, HEAD =
+  57, merged = **55** (58 − 3). Resolved the constant to **55** with a comment
+  naming all three deletions. Note the base constant (60) already carried
+  slack of 2; the merged value 55 removes all slack.
+- `knownOversizeRows` = 8 on both sides; the merged table measures 6 oversize
+  rows on every side (none of the three deleted rows was oversize), so the
+  constant is untouched — shrinkage only.
+
+No engine code conflicted: the branch's `effects/filter.go` change and main's
+`rules/arrange.go`, `effects/cardflow.go`, `decision/decision.go`,
+`botpolicy/policy.go`, `web/*` changes auto-merged (disjoint files/regions).
+
+### Commands and output
+
+- `.cards` present (real corpus symlink) — runs are real, not vacuous skips.
+- `git merge main --no-commit --no-ff` →
+  ```
+  Auto-merging AGENTS.md
+  Auto-merging internal/testutil/agentsdoc_test.go
+  CONFLICT (content): Merge conflict in internal/testutil/agentsdoc_test.go
+  Automatic merge failed; fix conflicts and then commit the result.
+  ```
+  (`git status --short` → `UU internal/testutil/agentsdoc_test.go` only)
+- `go test ./internal/testutil -run 'TestKnownApproximation' -v` (after 55):
+  `--- PASS` both tests, `ok ... 0.004s` — exact match, no slack log.
+- Branch-fix sanity: `go test ./effects -run 'NonPredicate|NonCopied'` →
+  `ok ... 0.703s`.
+- Main-side sanity: `go test ./rules -run 'Arrange'` → `ok ... 0.777s`.
+- Ratchets: `go test ./rules -run 'TestNoTriggerModeIsRegistered|
+  TestEveryDispatchedTriggerMode|TestEveryRepoDeck|TestEveryRepoDeckParams|
+  CountHead'` → `ok ... 0.885s`.
+- `go test ./rules -run 'TestHeads$'` → `ok ... 1.873s` (no head golden moved).
+- Behaviour goldens: `go test ./internal/archtest/` → `ok ... 3.156s`;
+  `go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/` →
+  `ok ... 1.197s` (split did not move).
+- `gofmt -l internal/testutil/agentsdoc_test.go` → clean; no conflict markers
+  remain in any .go file.
+- `git commit --no-edit` → merge commit `4bd357c1`; `git status --short
+  --branch` → clean.
+
+### Issues
+
+None found beyond the resolved conflict itself.
