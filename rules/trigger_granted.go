@@ -728,6 +728,7 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 					Gained:     true,
 					GainedFrom: gf.Obj,
 					Execute:    t.Params["Execute"],
+					Trigger:    t,
 					Ctx: effects.Ctx{
 						Source:         id,
 						Controller:     o.Controller,
@@ -807,6 +808,7 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 			Granted:    true,
 			Grantor:    grantorID,
 			Execute:    t.Params["Execute"],
+			Trigger:    t,
 			Ctx: effects.Ctx{
 				Source:         id,
 				Controller:     o.Controller,

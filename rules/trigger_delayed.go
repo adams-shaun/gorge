@@ -223,6 +223,7 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 type delayedSpellCastFire struct {
 	dt         state.DelayedTrigger
 	sa         *cards.SA
+	trigger    cards.Trigger
 	remembered []state.Target
 	referents  effects.TriggerContext
 	svars      map[string]string
@@ -407,6 +408,7 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 		fires = append(fires, delayedSpellCastFire{
 			dt:         *dt,
 			sa:         sa,
+			trigger:    t,
 			remembered: remembered,
 			referents:  refs,
 			svars:      src.Face().SVars,
@@ -481,6 +483,7 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object) {
 			DelayedID:  dt.ID,
 			Execute:    dt.Execute,
 			SA:         f.sa,
+			Trigger:    f.trigger,
 			Ctx: effects.Ctx{
 				Source:     dt.Source,
 				Controller: dt.Controller,

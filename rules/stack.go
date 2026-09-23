@@ -3125,7 +3125,7 @@ func (e *Engine) resolveTop() {
 		// (608.2m) rather than moving to a card zone, and this build parks
 		// such objects in exile. Ordered first because it decides whether
 		// the ability does anything at all.
-		if t, ok := e.findTriggerForAbility(o.Source, o.Ability); ok {
+		if t, ok := e.triggerForAbilityObject(id, o); ok {
 			// NoResolvingCheck$ True (Ugin's Mastery, Werewolf Pack Leader,
 			// Love on the Battlefield, ...): the condition was checked only
 			// when the trigger fired, and the transient state it counted (a
@@ -3225,7 +3225,7 @@ func (e *Engine) resolveTop() {
 		// abilities and mandatory triggers (findTriggerForAbility returns
 		// false for the former, or an OptionalDecider-less trigger for the
 		// latter) fall straight through to their effect below.
-		rt, triggered := e.findTriggerForAbility(o.Source, o.Ability)
+		rt, triggered := e.triggerForAbilityObject(id, o)
 		// resSpec is the OptionalDecider$ spec this ability must ask about.
 		// A printed trigger's comes off its face T: line (findTriggerForAbility
 		// recovered it). An Effect-created delayed trigger has no face T: line:
@@ -3315,7 +3315,7 @@ func (e *Engine) resolveTop() {
 			e.startEcho(id, o.Source, o.Ability)
 			return
 		}
-		if _, triggered := e.findTriggerForAbility(o.Source, o.Ability); triggered &&
+		if _, triggered := e.triggerForAbilityObject(id, o); triggered &&
 			e.triggerBodyNeedsCostWindow(o.Ability) {
 			e.startTriggeredEffectCost(&resumePoint{kind: "effect_cost", obj: id, sa: o.Ability}, o.Source)
 			return
@@ -3334,7 +3334,7 @@ func (e *Engine) resolveTop() {
 		// hard-decline convention. A context-less synthetic push (no role)
 		// keeps the free-executor semantics.
 		tc := e.triggerContexts[id]
-		if _, triggered := e.findTriggerForAbility(o.Source, o.Ability); triggered &&
+		if _, triggered := e.triggerForAbilityObject(id, o); triggered &&
 			o.Ability.API == "CopySpellAbility" &&
 			o.Ability.Params["Cost"] != "" &&
 			(tc.TriggerAbility != 0 || tc.TriggerCard != 0) {
