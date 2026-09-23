@@ -2075,6 +2075,11 @@ func (e *Engine) applyTokenReplacementToPlan(ev events.Event, plan []tokenPlanMi
 // creature token).
 func (e *Engine) tokenReplacementMatchesMint(ev events.Event, m replMatch, mint tokenPlanMint) bool {
 	mintEv := events.Event{Kind: events.TokenCreate, Player: ev.Player, Text: mint.script}
+	// A copy mint's would-be token is the copied object's printed face, not a
+	// token-script registry key (CR 706.2), so BOTH the matcher's ValidToken$
+	// read and the ValidCard$ read below must see that snapshot -- one helper,
+	// never two derivations that can drift (the mint-snapshot class).
+	tok := e.mintSnapshot(mintEv, mint)
 	// The recheck uses the same matcher class the initial collection used:
 	// an effect-created match re-matches through the remembered-scoped effect
 	// matcher, a printed match through the ordinary one -- never the ungated
@@ -2084,20 +2089,14 @@ func (e *Engine) tokenReplacementMatchesMint(ev events.Event, m replMatch, mint 
 	// collection admitted, the same discipline remainingDamageReplacements
 	// and counterReplacementMatchesAll follow.
 	if m.key != "" {
-		if !e.replacementMatchesEffectCreated(*m.repl, m.id, mintEv, m.remembered, m.rememberedPlayers) {
+		if !e.replacementMatchesEffectCreatedToken(*m.repl, m.id, mintEv, m.remembered, m.rememberedPlayers, tok) {
 			return false
 		}
-	} else if !e.replacementMatches(*m.repl, m.id, mintEv) {
+	} else if !e.replacementMatchesToken(*m.repl, m.id, mintEv, tok) {
 		return false
 	}
 	if m.repl.With != nil {
 		if v := strings.TrimSpace(m.repl.With.Params["ValidCard"]); v != "" {
-			var tok *state.Object
-			if mint.copyOf != 0 {
-				tok = e.chosenCopySnapshot(mint.copyOf, ev.Player)
-			} else {
-				tok = e.tokenSnapshot(mintEv)
-			}
 			if tok == nil {
 				return false
 			}
@@ -2436,7 +2435,7 @@ func (e *Engine) replacementMatchesRemembered(r cards.Repl, source state.ObjID, 
 	if !e.activeZonesGateOK(r, source, ev) {
 		return false
 	}
-	return e.replacementMatchesRememberedUngated(r, source, ev, remembered, rememberedPlayers)
+	return e.replacementMatchesRememberedUngated(r, source, ev, remembered, rememberedPlayers, nil)
 }
 
 // activeZonesGateOK is the ActiveZones$ zone gate the PRINTED replacement
@@ -2490,13 +2489,26 @@ func (e *Engine) activeZonesGateOK(r cards.Repl, source state.ObjID, ev events.E
 // — gating on the source's zone would permanently silence every one of them
 // (task wildgrowth1). active() still ends the effect on its own lifetime.
 func (e *Engine) replacementMatchesEffectCreated(r cards.Repl, source state.ObjID, ev events.Event, remembered []state.ObjID, rememberedPlayers []state.PlayerID) bool {
-	return e.replacementMatchesRememberedUngated(r, source, ev, remembered, rememberedPlayers)
+	return e.replacementMatchesRememberedUngated(r, source, ev, remembered, rememberedPlayers, nil)
+}
+
+// replacementMatchesToken / replacementMatchesEffectCreatedToken are the
+// mint-recheck entry points: tokenOverride overrides what the ValidToken$
+// matcher reads as the would-be token (a copy plan mint's snapshot, CR
+// 706.2). Only tokenReplacementMatchesMint calls them; every other caller
+// passes nil and the matcher builds the snapshot from the event's script.
+func (e *Engine) replacementMatchesToken(r cards.Repl, source state.ObjID, ev events.Event, tokenOverride *state.Object) bool {
+	return e.replacementMatchesRememberedUngated(r, source, ev, nil, nil, tokenOverride)
+}
+
+func (e *Engine) replacementMatchesEffectCreatedToken(r cards.Repl, source state.ObjID, ev events.Event, remembered []state.ObjID, rememberedPlayers []state.PlayerID, tokenOverride *state.Object) bool {
+	return e.replacementMatchesRememberedUngated(r, source, ev, remembered, rememberedPlayers, tokenOverride)
 }
 
 // replacementMatchesRememberedUngated is replacementMatchesRemembered's
-// predicate body without the ActiveZones$ gate; only the two wrappers above
+// predicate body without the ActiveZones$ gate; only the wrappers above
 // reach it.
-func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.ObjID, ev events.Event, remembered []state.ObjID, rememberedPlayers []state.PlayerID) bool {
+func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.ObjID, ev events.Event, remembered []state.ObjID, rememberedPlayers []state.PlayerID, tokenOverride *state.Object) bool {
 	you := e.controllerOf(source)
 	switch r.Event {
 	case "Attached":
@@ -2876,7 +2888,10 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 		// Divine Visitation's "creature tokens under YOUR control" must read.
 		// An unknown token key fails closed to no match.
 		if v, ok := r.Params["ValidToken"]; ok {
-			tok := e.tokenSnapshot(ev)
+			tok := tokenOverride
+			if tok == nil {
+				tok = e.tokenSnapshot(ev)
+			}
 			if tok == nil || !effects.MatchesObjectCtx(e.G, v, tok,
 				e.rememberedSpecContext(you, source, remembered)) {
 				return false
@@ -3016,6 +3031,19 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 		return e.replacementConditionHolds(r, source, you)
 	}
 	return false
+}
+
+// mintSnapshot builds the would-be token a plan mint creates: the token
+// script the event names, or -- for a copy mint -- the copied object's
+// printed face as a never-added-to-the-game token (CR 706.2, the
+// chosenCopySnapshot discipline). Both the ValidToken$ matcher read and the
+// ValidCard$ re-check route through this one helper so a copy mint can never
+// be rechecked as an empty script again.
+func (e *Engine) mintSnapshot(mintEv events.Event, mint tokenPlanMint) *state.Object {
+	if mint.copyOf != 0 {
+		return e.chosenCopySnapshot(mint.copyOf, mintEv.Player)
+	}
+	return e.tokenSnapshot(mintEv)
 }
 
 // tokenSnapshot builds the would-be token a TokenCreate event would mint,

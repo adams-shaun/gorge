@@ -225,3 +225,56 @@ func TestMoonlitChosenTokenCopy(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// TestEsixChosenCopyThenDivineVisitationComposes pins the CR 616.1e re-check
+// of a COPY plan mint: after Esix's accepted election rewrites the squirrel
+// mint into a token copy of the chosen creature (CR 706.2 -- the would-be
+// token IS the copied creature's printed face), a later CreateToken
+// replacement in deterministic scan order (Divine Visitation, whose
+// ValidToken$ is `Creature.YouCtrl`) must still match that copy mint and
+// replace it with its own Angel. Before the fix the recheck built the mint's
+// event from the empty `TokenScript$ Chosen` script, so the ValidToken$
+// snapshot failed closed and the bear copy stood -- this test asserts the
+// composition, not either replacement alone.
+func TestEsixChosenCopyThenDivineVisitationComposes(t *testing.T) {
+	esix := tokenReplCorpusCard(t, "Esix, Fractal Bloom")
+	visitation := tokenReplCorpusCard(t, "Divine Visitation")
+	bears := tokenReplCorpusCard(t, "Grizzly Bears")
+	maker := cardByName(t, tokenForgeSrc("g_1_1_squirrel"))
+	e, cfg := tokenReplGame(t, 73, esix, visitation, bears, maker)
+	moveSeededCard(t, e, 0, esix, state.ZBattlefield)
+	visID := moveSeededCard(t, e, 0, visitation, state.ZBattlefield)
+	bearsID := moveSeededCard(t, e, 0, bears, state.ZBattlefield)
+	m := moveSeededCard(t, e, 0, maker, state.ZBattlefield)
+	// Precondition: BOTH replacements are live battlefield permanents, so a
+	// valid run really composes the two and a vacuous setup fails loudly.
+	if o := e.G.Obj(visID); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatalf("precondition: Divine Visitation not on the battlefield: %+v", o)
+	}
+	if o := e.G.Obj(bearsID); o == nil || o.Zone != state.ZBattlefield || !o.Face().IsCreature() {
+		t.Fatalf("precondition: Grizzly Bears not a battlefield creature: %+v", o)
+	}
+
+	addMana(t, e, 0, "")
+	submitChoices(t, e, abilityOption(t, e, m, 0).Index)
+	d := drainToChooseOrEmpty(t, e)
+	if d == nil || d.Kind != decision.KChoose || len(d.Options) != 2 ||
+		d.Options[0].Kind != "decline" || d.Options[1].Obj != bearsID {
+		t.Fatalf("no parked Esix election over the bear: %+v", d)
+	}
+	submitChoices(t, e, d.Options[1].Index) // accept: copy the bear
+
+	// Divine Visitation comes later in scan order, re-checks the copy mint's
+	// ValidToken$ snapshot (a 2/2 Bear creature token under your control) and
+	// replaces it with its 4/4 Angel. The bear copy must NOT stand.
+	if got := countTokensNamedOnSeat(t, e, 0, "Angel Token"); got != 1 {
+		t.Fatalf("composed mint made %d Angel Tokens, want 1 (the later ValidToken$ never matched the copy mint)", got)
+	}
+	if got := countCreatureTokenCopiesNamed(t, e, 0, "Grizzly Bears"); got != 0 {
+		t.Fatalf("composed mint still stood the %d bear copy(ies); Divine Visitation must have replaced it", got)
+	}
+	if got := countTokensNamedOnSeat(t, e, 0, "Squirrel Token"); got != 0 {
+		t.Fatalf("composed mint made %d Squirrel Tokens, want 0", got)
+	}
+	replayCheck(t, e, cfg)
+}
