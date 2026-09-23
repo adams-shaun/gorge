@@ -353,6 +353,7 @@ func TestResumeStateOwnedOnlyByTheResolutionMachinery(t *testing.T) {
 		"(*Engine).Clone":                                  "a snapshot clone copies the resume point onto the freshly-cloned engine, not the live one (rules/clone.go)",
 		"(*Engine).resumeResolution":                       "the re-entry point: links the new pending point's outer continuation up to the frame it is re-entering (rules/resolution.go)",
 		"(*Engine).releasePendingDecisionOfDepartedPlayer": "CR 800.4f: a departed player's outstanding ask is released with an empty answer (rules/sba.go)",
+		"(*Engine).settleReplacementQueue":                 "handleReplacement's queue tail, factored out: hands the parked resolution frame to queued in-resolution competitions or chains it behind a nested ask's frame, and resumes it once the queue drains (rules/replacement.go)",
 		"(*Engine).lifeReplacementDraw":                    "the GainLife→Draw replacement's suspension-aware draw loop: parks the remaining card count on the Ask-installed Dredge resume point so the answered dredge re-drives the rest instead of posing a second ask over the outstanding one (rules/replacement.go)",
 	}
 	writers := resumeFieldWriters(t)
