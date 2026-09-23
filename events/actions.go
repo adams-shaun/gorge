@@ -10,7 +10,10 @@ const (
 // Discard returns the canonical zone-change event for a discard effect or
 // cleanup discard. Keeping the action marker here means every producer and
 // consumer agrees on what distinguishes a discard from an ordinary hand move;
-// replacement effects may change To while preserving the marker.
+// replacement effects may change To while preserving the marker. Mode$ Random
+// additionally carries its one-based eligible-hand choice index in Amount;
+// ordinary discards leave Amount zero. Apply folds the chosen Obj's move, so
+// the random choice and its state change share a single replayable event.
 func Discard(obj state.ObjID, player state.PlayerID) Event {
 	return Event{Kind: MoveZone, Obj: obj, From: state.ZHand, To: state.ZGraveyard,
 		Player: player, Text: discardText}

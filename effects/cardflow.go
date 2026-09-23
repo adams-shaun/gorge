@@ -444,7 +444,16 @@ func actingPlayers(h Host, c *Ctx, sa *cards.SA) []state.Target {
 
 // discardAndRemember emits one discard with the riders bound above.
 func discardAndRemember(h Host, c *Ctx, r discardRiders, id state.ObjID, p state.PlayerID) {
-	h.Emit(events.Discard(id, p))
+	discardAndRememberEvent(h, c, r, events.Discard(id, p))
+}
+
+// The random choice rides the canonical discard move itself: Amount is the
+// one-based index into the remaining eligible hand (0 means an ordinary
+// discard). Apply moves Obj, while the event records both the RNG outcome and
+// its consequence for log-only replay without exposing an unlogged choice.
+func discardAndRememberEvent(h Host, c *Ctx, r discardRiders, ev events.Event) {
+	h.Emit(ev)
+	id, p := ev.Obj, ev.Player
 	if r.rememberCards {
 		c.Remembered = append(c.Remembered, state.Target{Obj: id})
 		eventRemember(h, c, id)
@@ -827,9 +836,9 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 			// CR 701.8b: a random discard. Forge's DiscardEffect Random mode
 			// picks Aggregates.random(list, numCards) from the DiscardValid$-
 			// filtered hand, so the engine's own seeded RNG chooses the cards
-			// (h.Rand, never an ambient source) without replacement. No seat is
-			// asked and no Note is recorded: the randomness IS the rule, not a
-			// stand-in for a missing ask.
+			// (h.Rand, never an ambient source) without replacement. The
+			// one-based pick index rides the applied discard event's Amount;
+			// Obj names the picked card. No seat is asked and no Note recorded.
 			eligible := discardEligible(g, c, hand, valid)
 			n := int(Num(h, c, sa, "NumCards", 1))
 			if n > len(eligible) {
@@ -837,7 +846,9 @@ func effDiscard(h Host, c *Ctx, sa *cards.SA) {
 			}
 			for i := 0; i < n; i++ {
 				j := h.Rand(len(eligible))
-				discardAndRemember(h, c, riders, eligible[j], p)
+				ev := events.Discard(eligible[j], p)
+				ev.Amount = int32(j + 1)
+				discardAndRememberEvent(h, c, riders, ev)
 				eligible = append(eligible[:j], eligible[j+1:]...)
 			}
 
