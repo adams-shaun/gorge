@@ -396,6 +396,20 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		optionalSpec := strings.TrimSpace(tr.Params["OptionalDecider"])
 		odSuffix := ""
 		if optionalSpec != "" {
+			// A Static$ True body cannot carry the election: rules'
+			// checkEventDelayedTriggers resolves a static-marked delayed
+			// registration INLINE at fire time -- never minting a stack
+			// object -- so there is no resolution gate to pose the CR 603.5
+			// yes/no at, and registering it would execute the "you may"
+			// mandatorily. Withheld loudly (cli-20260923T060218Z round 2);
+			// the static firing arm carries a matching fail-closed guard so
+			// no future "|OD=" minter can misexecute there either.
+			if strings.TrimSpace(tr.Params["Static"]) != "" {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "unmodelled Effect trigger Static$ with OptionalDecider$ " + optionalSpec + " (not registered)"})
+				registered = true
+				continue
+			}
 			odSuffix = "|OD=" + optionalSpec
 		}
 		if tr.Mode == "BecomeMonarch" {

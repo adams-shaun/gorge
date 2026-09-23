@@ -97,23 +97,24 @@ func (b Board) chooseLowest(d *decision.Decision, worth func(state.ObjID) int32)
 	return worst
 }
 
-// The KTriggerOptional rule is a deterministic accept, replacing the coin
-// flip: an optional trigger is a "you may" the controller declines only when
-// the effect is a net loss, and botpolicy cannot read the effect — it sees
-// only the source's board facts and the card's own words in the label,
-// neither of which says whether the trigger pays. The dominant class of
-// optional trigger is a controller benefit (draw a card, put a counter,
-// gain life, deal damage), and the engine separately handles the cases where
-// the choice is really a cost to weigh ("unless you pay {N}" asks a KModes
-// decision, M2d-2), so accepting every optional trigger is the positive
-// play. Crucially it is deterministic: it removes the coin-flip variance
-// that widened the confidence intervals this task is about, and it makes
-// the same game state always take the same trigger. A perfect effect-aware
-// ranking is out of reach without reading the effect; the alternative was
-// leaving a coin in place, which the task excludes. Accepted optional
-// triggers whose source is no longer worth anything are still accepted,
-// because the decision is about whether the trigger's own effect is worth
-// taking, not whether the source is castable.
+// The KTriggerOptional rule is a deterministic DECLINE (cli-20260923T060218Z
+// round 2, replacing dp1's deterministic accept): an optional trigger is a
+// "you may" election, and a host that cannot weigh the effect -- the
+// unattended fuzz and bench runs this policy serves -- must not take the
+// election on the player's behalf. Declining is the R-9 no-host contract the
+// engine's other optional elections already follow (Planeswalk's Optional$,
+// api:TimeTravel's add/remove elections), and applying it to the SHARED arm
+// keeps every KTriggerOptional shape -- a printed optional trigger, a Miracle
+// placement offer, an api:Effect OptionalDecider$ resolution ask -- on the
+// same deterministic decline instead of leaving the delayed-Effect path
+// inconsistent with the printed-face one. The cost is honest and recorded:
+// the bot forgoes the controller benefits it can no longer judge (a draw, a
+// counter, extra mana), while an optional trigger whose election a REAL seat
+// answers through a hosted client is unaffected -- the seat's own answer,
+// not this policy's, is what runs in a hosted match. Accepted-election
+// coverage lives in the engine's recorded-intent tests (rules'
+// TestEffectOptionalDeciderElectionIsPosedAtResolution drives both branches
+// with explicit answers); the fuzz gate exercises the decline.
 
 // chooseDiscard keeps cheap plays over expensive ones, without the cast rule's
 // blanket creature premium. Basic positively identifies basic lands; zero-CMC

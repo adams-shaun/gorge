@@ -72,10 +72,12 @@ func TestTriggerOrderTiesBreakOnIndex(t *testing.T) {
 	}
 }
 
-// TestTriggerOptionalAlwaysAccepts is the trigger_optional rule: no more
-// coin flip. An optional trigger is a controller benefit the policy cannot
-// read, so it accepts -- every seed answers "yes" (index 0).
-func TestTriggerOptionalAlwaysAccepts(t *testing.T) {
+// TestTriggerOptionalAlwaysDeclines is the trigger_optional rule
+// (cli-20260923T060218Z round 2, replacing dp1's deterministic accept): an
+// optional trigger is a "you may" election an unattended host must not take
+// on the player's behalf (the shared R-9 no-host decline), so every seed
+// answers "no" (the no option's index) and consumes no rng.
+func TestTriggerOptionalAlwaysDeclines(t *testing.T) {
 	d := decision.Decision{Seq: 1, Player: 0, Kind: decision.KTriggerOptional, Min: 1, Max: 1,
 		Options: []decision.Option{
 			{Index: 0, Kind: "yes", Obj: 50},
@@ -83,8 +85,8 @@ func TestTriggerOptionalAlwaysAccepts(t *testing.T) {
 		}}
 	for seed := uint64(0); seed < 25; seed++ {
 		in := Decide(Board{}, &d, rng(seed))
-		if len(in.Choices) != 1 || in.Choices[0] != 0 {
-			t.Fatalf("seed %d: trigger optional = %v, want the deterministic accept (option 0)", seed, in.Choices)
+		if len(in.Choices) != 1 || in.Choices[0] != 1 {
+			t.Fatalf("seed %d: trigger optional = %v, want the deterministic decline (the no option)", seed, in.Choices)
 		}
 	}
 }

@@ -264,9 +264,10 @@ func (b Board) closesClock(p state.PlayerID, id state.ObjID, a Creature) bool {
 //     supply.
 //   - KTriggerOrder: a permutation of the offered indices drawn from the
 //     bot's own rng, so ordering paths get fuzz coverage too.
-//   - KTriggerOptional: a coin from the bot's own rng between the two
-//     offered options ("yes" first, "no" second, per askTriggerOptional),
-//     so both branches get coverage.
+//   - KTriggerOptional: the deterministic DECLINE (cli-20260923T060218Z
+//     round 2): an unattended host cannot weigh a "you may", so it
+//     deterministically declines -- the shared R-9 no-host contract, not a
+//     delayed-trigger-only special case. Consumes no rng.
 //   - KChoose: every option in one decision shares a Kind (Option.Kind, not
 //     d.Kind) that says what is being chosen. "x" takes the highest option
 //     (the most an {X} cost can pay for -- options ascend); "exile"/
@@ -449,14 +450,26 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		}
 
 	case decision.KTriggerOptional:
-		// dp1: no more coin flip. An optional trigger is a controller
-		// benefit the policy cannot read, so it accepts it (see the rule
-		// stated in trigger.go) rather than gambling -- deterministic, so the same
-		// game state always answers the same way and the coin's variance is
-		// gone. The "yes" option is index 0 (askTriggerOptional builds
-		// yes-first, per the kind's contract).
-		if len(d.Options) > 0 && d.Options[0].Kind == "yes" {
-			in.Choices = []int{d.Options[0].Index}
+		// cli-20260923T060218Z round 2: the deterministic DECLINE. dp1's
+		// "always accept" arm ran every optional body an unattended match
+		// hit -- including an api:Effect OptionalDecider$ election whose
+		// card text is "you may" -- which is the one R-9 direction this
+		// kind's own contract forbids: a host with no decision channel must
+		// not take an election on the player's behalf. The decline is the
+		// shared arm (both the placement ask and the CR 603.5 resolution ask
+		// go through this case), so a bot-driven match behaves exactly like
+		// the engine's other no-host fallbacks (Planeswalk's Optional$,
+		// api:TimeTravel's elections). The "no" option is offered by every
+		// asker of this kind; when it is absent the branch contributes
+		// nothing and clamp's last-resort answer applies. Consumes no rng:
+		// the same game state always answers the same way.
+		if len(d.Options) > 0 {
+			for _, o := range d.Options {
+				if o.Kind == "no" {
+					in.Choices = []int{o.Index}
+					break
+				}
+			}
 		}
 		return Clamp(d, in)
 
