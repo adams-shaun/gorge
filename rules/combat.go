@@ -472,6 +472,15 @@ func (e *Engine) landwalkEvades(attacker state.ObjID) bool {
 		return false
 	}
 	defender := a.Attacking
+	// Read the attacker's characteristics FIRST: Derived runs active()'s static
+	// scan, which is what ARMS layer4InPool when the only type-changing carrier
+	// is a permanent placed outside the genesis deck pool (a fixture's direct
+	// AddObject, a token or a copy). Only then can the refresh below be gated
+	// correctly; checking the flag before this read would skip the refresh on
+	// exactly that board and read a stale derived-type table. The call is
+	// allocation-free (layers_test.go pins AllocsPerRun == 0), so the second
+	// Derived in the range header below is a cheap cached re-read, not a copy.
+	_ = e.Derived(attacker)
 	// Keep the layer-4 table in step with the board before reading it (a
 	// direct AddObject placement in a fixture emits nothing, so the epoch guard
 	// inside would otherwise stay a stale cache hit). Gated so a match with no
@@ -479,7 +488,10 @@ func (e *Engine) landwalkEvades(attacker state.ObjID) bool {
 	if e.layer4InPool {
 		e.refreshDerivedTypes()
 	}
-	sc := effects.SpecContext{You: defender, Source: attacker, DerivedTypes: e.layer4Types}
+	// withNames is the ONE seam for a hand-built rules SpecContext (setname.go):
+	// it binds the layer-3 rename set and the layer-4 derived type table, so this
+	// land filter ages with the layer walk instead of hand-copying one table.
+	sc := e.withNames(effects.SpecContext{You: defender, Source: attacker})
 	for _, k := range e.Derived(attacker).Keywords {
 		spec, isLandwalk := landwalkSpec(k)
 		if !isLandwalk || spec == "" {

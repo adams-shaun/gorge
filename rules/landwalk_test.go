@@ -2,6 +2,7 @@ package rules
 
 import (
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"github.com/adams-shaun/gorge/cards"
@@ -234,6 +235,57 @@ func TestLandwalkSnowQualifierForms(t *testing.T) {
 			t.Fatal("Swamp.Snow walker was blockable while the defender controlled a snow Swamp")
 		}
 	})
+}
+
+// TestLandwalkReadsGrantedLandType proves the rule reads the land's DERIVED
+// (layer-4) type, not only its printed type: Yavimaya, Cradle of Growth's
+// `S:Mode$ Continuous | Affected$ Land | AddType$ Forest` grants the Forest
+// type to the defending player's non-Forest land, and that granted type alone
+// must confer forestwalk. This exercises the DerivedTypes table landwalkEvades
+// binds through withNames; a printed-type-only read passes every other test in
+// this file but fails here.
+//
+// Yavimaya must sit in the engine's DECK (not merely be placed on the board):
+// layer4InPool is armed at genesis by a deck scan, exactly as a real match
+// does, so a card dropped in without a deck would test the fixture, not the
+// rule. The engine here is combatEngine's construction with Yavimaya's real
+// parsed card in seat 0's deck.
+func TestLandwalkReadsGrantedLandType(t *testing.T) {
+	yavimaya := landwalkCorpusCard(t, "y/yavimaya_cradle_of_growth.txt")
+	deck := mountainDeck(t, 39)
+	deck = append(deck, yavimaya)
+	e := New(seatZeroStart(Config{Seed: 1, Names: []string{"a", "b"},
+		Decks: [][]*cards.Card{deck, mountainDeck(t, 40)}}))
+	if !e.layer4InPool {
+		t.Fatal("precondition: Yavimaya in the deck did not arm layer4InPool")
+	}
+	e.G.Active = 0
+	e.G.Step = state.StepDeclareAttackers
+
+	a := landwalkAttacker(t, e, landwalkCorpusCard(t, "k/koths_courier.txt"))
+	if !e.HasKeyword(a, "Landwalk") {
+		t.Fatal("Koth's Courier does not read as carrying printed Landwalk")
+	}
+	blocker := onBoard(t, e, 0, "Name:Blocker\nManaCost:1\nTypes:Creature\nPT:2/2\nOracle:x\n")
+	// A Mountain is a land but NOT a Forest by printed type: with no granted
+	// type it must not confer forestwalk.
+	mountain := onBoard(t, e, 0, "Name:Mt\nTypes:Basic Land Mountain\nOracle:x\n")
+	if e.G.Obj(mountain).Zone != state.ZBattlefield {
+		t.Fatal("Mountain precondition failed")
+	}
+	if !e.canBlock(blocker, a) {
+		t.Fatal("forestwalk attacker was evasive over a printed Mountain")
+	}
+	// Yavimaya on the battlefield grants every land the Forest type (layer 4).
+	// The same Mountain now carries the granted Forest type and confers
+	// forestwalk.
+	onBoardCard(t, e, 0, yavimaya)
+	if !slices.Contains(e.Derived(mountain).Types, "Forest") {
+		t.Fatalf("granted Forest type precondition failed: derived types %v", e.Derived(mountain).Types)
+	}
+	if e.canBlock(blocker, a) {
+		t.Fatal("a GRANTED Forest type did not confer forestwalk (rule read printed types only)")
+	}
 }
 
 // TestLandwalkUnknownParameterFailsClosed proves an unread qualifier is not
