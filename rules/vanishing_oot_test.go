@@ -217,11 +217,14 @@ func TestVanishingOutOfTimeDynamicCountUpkeepAndLastCounter(t *testing.T) {
 	if z := e.G.Obj(id).Zone; z != state.ZGraveyard {
 		t.Fatalf("after resolving last-counter trigger zone = %s, want graveyard", z)
 	}
-	// The bears are phased out, so they stayed on the battlefield (CR 702.25:
-	// phasing is not a zone change) for the whole Vanishing clock.
+	// Out of Time's own Vanishing sacrifice is its departure: the printed
+	// comeback trigger fires and phases the creatures back in (CR 702.25's
+	// "phase out until CARDNAME leaves the battlefield"). They were never
+	// removed from the battlefield by phasing (it is not a zone change), so
+	// the only thing that changed at the end of the clock is the status.
 	for _, bid := range bears {
-		if o := e.G.Obj(bid); o == nil || o.Zone != state.ZBattlefield || !o.PhasedOut {
-			t.Fatalf("bear %d should be phased out on the battlefield: %+v", bid, o)
+		if o := e.G.Obj(bid); o == nil || o.Zone != state.ZBattlefield || o.PhasedOut {
+			t.Fatalf("bear %d should have phased back in when Out of Time was sacrificed: %+v", bid, o)
 		}
 	}
 }
