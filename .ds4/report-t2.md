@@ -2098,3 +2098,191 @@ name-keyed miss, not a vacuous setup.
   world rule only ever matters for the 26 old World enchantments
   (`/usr/bin/grep -rlE 'Types:.*World' .cards/cardsfolder | wc -l` → 26);
   none is in a repo deck, so no golden moves.
+
+---
+
+# Report — agent-20260919T191104Z-294aa860 (verification + rebase round)
+
+## Task
+
+Verify and pin `Count$DevotionDual` as already implemented (fixed on current
+main by `f89ff4cd7 feat(effects): Count$Threshold and Count$Devotion count
+heads`) with one real-corpus **Athreos, Shroud-Veiled** pin. Test-only; no
+production code touched.
+
+## Round context
+
+The implementer round landed `9dcd84206` (rebased this round to `92a577c49`)
+on top of the then-current main. This round:
+
+1. Obeyed the controller directive: committed nothing new (the only unstaged
+   file was a report-history clobber), restored `.ds4/report-t1.md` to HEAD so
+   the shared report file was not clobbered, and ran `git rebase main` — clean,
+   one commit, now `92a577c49` on top of `d1b0ce6bd`.
+2. Re-ran every gate the brief's "Done means" names at the rebased base.
+3. Re-proved the "fails without the fix" revert at the rebased base.
+
+## What changed and why
+
+- **NEW `rules/athreos_devotion_dual_test.go`** (the only file changed by the
+  branch commit; commit `92a577c49`). One test,
+  `TestAthreosShroudVeiledDevotionDual`, plus its `athreosShape` helper.
+  - `athreosShape` asserts the audited corpus shape: the `Continuous`
+    `Card.Self` static carries `RemoveType$ Creature`, `CheckSVar$ X`,
+    `SVarCompare$ LT7`, and `SVar:X` is exactly
+    `Count$DevotionDual.White.Black`. A corpus pin change that hollows the pin
+    out fails here.
+  - The test places the real corpus Athreos on seat 0's battlefield and
+    asserts (preconditions): the object's zone is `ZBattlefield`; the
+    battlefield object's own `SVars["X"]` equals the body being evaluated.
+  - It evaluates `effects.EvalCountOK(e, &effects.Ctx{Controller: 0, Source:
+    athreosID}, body)` through the public engine surface (`rules.Engine` is an
+    `effects.Host` via `Game()`, `rules/stack.go`):
+    - Athreos alone `{4}{W}{B}` = 1 white + 1 black = **(2, true)**.
+    - Add a controlled `{W}{W}{B}{B}` fixture: asserts it is on the
+      battlefield and its `ManaCost` is `W W B B`, then **(6, true)** and
+      explicitly asserts `6 < 7` (the LT7 guard still holds — the boundary is
+      not accidentally already met).
+    - Add a controlled `{W}` fixture: asserts it is a battlefield `{W}` object,
+      then **(7, true)** — the LT7 boundary, with `n7 >= 7` asserted so the
+      boundary is real.
+
+  The test does **not** assert Athreos's creature type flips: `RemoveType$` is
+  independently unread (`rules/paramcensus_test.go:2563,2578` hold the sibling
+  `param:stat:Continuous.RemoveType` entries for Mogis/Purphoros). That is a
+  separate task, listed under Issues.
+
+## Gates (real output, at the rebased base `92a577c49`)
+
+### Targeted test command (brief's exact command)
+
+```text
+$ go test -run 'TestAthreosShroudVeiledDevotionDual|TestDevotionDualSumsBothColours|TestEveryRepoDeckCountHeadResolves' ./effects ./rules 2>&1 | tail -30
+ok  	github.com/adams-shaun/gorge/effects	0.049s
+ok  	github.com/adams-shaun/gorge/rules	0.707s
+```
+
+### gofmt
+
+```text
+$ gofmt -l rules/athreos_devotion_dual_test.go
+(empty)
+```
+
+### gentypes
+
+```text
+$ go run ./cmd/gentypes -check
+(empty, exit 0)
+```
+
+### archtest (no allowlist edits)
+
+```text
+$ go test ./internal/archtest/
+ok  	github.com/adams-shaun/gorge/internal/archtest	4.045s
+```
+
+### botbench golden
+
+```text
+$ go test -run TestConstructedDefaultIsByteIdentical ./cmd/botbench/
+ok  	github.com/adams-shaun/gorge/cmd/botbench	0.656s
+```
+
+No head/ratchet/census movement: the diff is a single new `_test.go` file;
+`rules/heads_test.go`, `rules/acceptance_test.go`,
+`rules/count_head_ratchet_test.go`, `rules/paramcensus_test.go` and
+`effects/count.go` are untouched (`git status` after commit: clean).
+
+## Fails without the fix
+
+The production fix was reverted **locally only** (not committed) by changing
+the dispatch label `case "DevotionDual":` to `case "DevotionDualDISABLED":` in
+`effects/count.go:2680` (leaving the body intact so the package still
+compiles), then restored. The original file was copied to
+`.ds4/scratch/count.go.orig` first; after the run it was copied back and `cmp`
+confirmed byte-identical:
+
+```text
+$ cp effects/count.go .ds4/scratch/count.go.orig
+$ sed -i 's/^\t\tcase "DevotionDual":/\t\tcase "DevotionDualDISABLED":/' effects/count.go
+$ grep -n 'DevotionDualDISABLED' effects/count.go
+2680:		case "DevotionDualDISABLED":
+$ go test -run 'TestAthreosShroudVeiledDevotionDual|TestDevotionDualSumsBothColours' ./effects ./rules
+--- FAIL: TestDevotionDualSumsBothColours (0.00s)
+    count_devotion_threshold_test.go:153: Count$DevotionDual.Black.Red = (0, false), want (5, true)
+FAIL
+FAIL	github.com/adams-shaun/gorge/effects	0.007s
+--- FAIL: TestAthreosShroudVeiledDevotionDual (0.45s)
+    athreos_devotion_dual_test.go:82: DevotionDual with Athreos alone = (0, false), want (2, true)
+FAIL
+FAIL	github.com/adams-shaun/gorge/rules	0.485s
+FAIL
+$ cp .ds4/scratch/count.go.orig effects/count.go && cmp effects/count.go .ds4/scratch/count.go.orig
+RESTORED BYTE-IDENTICAL
+```
+
+The new Athreos test fails at its first assertion with the fix reverted, so it
+is proven able to fail. The test also fails loudly on a hollowed setup: the
+`athreosShape`/zone/SVar/`ManaCost`/count preconditions are asserted before
+the boundary reads.
+
+## Corpus presence
+
+`.cards` was present in this worktree as a symlink to
+`/home/sadams/projects/gorge/.cards` (`ls -la`:
+`.cards -> /home/sadams/projects/gorge/.cards`). The rules run took 0.707s with
+the corpus-backed test resolving the real Athreos object (not a skip). No
+corpus test skipped. The fixing commit is **`f89ff4cd7`**;
+`git merge-base --is-ancestor f89ff4cd7 HEAD` succeeds and no later commit
+removed the dispatch.
+
+Measured at the rebased base: `/usr/bin/grep -rlE 'Count\$DevotionDual'
+.cards/cardsfolder | wc -l` → 13, matching the brief.
+
+## Brief premises re-measured
+
+- `effects/count.go`'s `case "DevotionDual"` is at **line 2680** at this
+  rebased base — not 2112 as the brief states (the implementer round measured
+  2652 before the rebase; the line moved with main, which is expected and
+  changes nothing). The brief's structural anchors otherwise held
+  (`EvalCountOK`, `devotionCount`, `manaCostColourSymbols`).
+- 13 `DevotionDual` corpus carriers: held.
+
+## Deviations from the brief
+
+- The brief said "add the corpus pin beside analogous end-to-end count
+  coverage: `rules/devotion_threshold_test.go`", and its "Done means" names
+  `gofmt -l rules/devotion_threshold_test.go`. Per the repo's 2026-09-22 rule
+  ("New tests go in a new file"), the test was placed in a NEW file
+  `rules/athreos_devotion_dual_test.go` rather than appended to the shared
+  file, to avoid the documented merge-conflict class. Semantics are as the
+  brief specified; only the file changed, so the gofmt check was run against
+  the new file.
+
+## Issues
+
+- **`RemoveType$` on statics is still independently unread.** Athreos's
+  `S:Mode$ Continuous | Affected$ Card.Self | RemoveType$ Creature | CheckSVar$
+  X | SVarCompare$ LT7` is parsed into `f.Statics` (params present, asserted in
+  this test) but the static is not enforced: Athreos's creature type does not
+  actually flip at the LT7 boundary. Symptom: `RemoveType$` is a bare Note /
+  skipped static, so a God whose devotion is below 7 is still a creature for
+  filters, combat and targeting. The count head itself is correct. Tracker:
+  `rules/paramcensus_test.go:2563,2578` intentionally holds
+  `param:stat:Continuous.RemoveType` (Mogis, Purphoros); this task must not
+  change that. A separate ticket is needed to enforce `RemoveType$`. This is a
+  defect NOT fixed here, by design.
+- The `DevotionDual` dispatch's own comment says "14 corpus carriers"; the
+  measured count is 13 files with `Count$DevotionDual`. Not investigated
+  further; no production comment was touched.
+- No CR-lane test proposed: the count arithmetic is already covered by the
+  ordinary suite; the unread `RemoveType$` static is the item that would
+  benefit from a CR 613.x / 604.3 continuous-effect test, named here for the
+  controller.
+
+## Commits
+
+- `92a577c49` test(rules): pin Athreos's Count$DevotionDual SVar boundary end
+  to end (rebased from `9dcd84206`).
