@@ -882,7 +882,7 @@ func refTargets(h Host, c *Ctx, ref string) ([]state.Target, bool) {
 // forms can never disagree about what one argument selects.
 type castManaSpentTotals struct {
 	total, snow int32
-	typed       [3]int32
+	typed       [4]int32
 }
 
 // manaSpentTotalsOf reads a cast object's recorded spend breakdown. The typed

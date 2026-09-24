@@ -813,7 +813,7 @@ func (e *Engine) manaAbilityPayablePool(p state.PlayerID, source state.ObjID, ma
 		// A hypothetical bound is a pure mana bound that may include
 		// restricted units, so its typed partition is the raw tally (the
 		// typed counts never affect payability anyway).
-		typed = e.G.Players[p].TypedMana
+		typed = e.G.Players[p].ManaUnits()
 	}
 	if cost.X != 0 || len(cost.Reveal) > 0 || len(cost.RevealChosen) > 0 || len(cost.Behold) > 0 || len(cost.TapPermanent) > 0 ||
 		len(cost.Blight) > 0 || cost.Forage || (cost.Tap && o.Tapped) || !e.costPayablePool(p, source, true, cost, pool, typed) {

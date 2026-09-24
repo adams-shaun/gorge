@@ -126,3 +126,35 @@ func TestRepeatSuspensionDropsTheRemainingIterations(t *testing.T) {
 		t.Fatalf("suspended body: loop ran %d times, want 1 (remaining iterations dropped, no dispatch into a suspended engine)", runs)
 	}
 }
+
+// A repeat-while gate whose SVar the body rewrites through api:StoreSVar
+// reads the STORED value, not the printed body (Sword of Dungeons & Dragons:
+// RepeatCheck is printed Number$ 1 and the d20's miss branch stores 0). The
+// printed read looped every trigger to the 1000-iteration cap -- a thousand
+// Dragon tokens per hit, the corpus fuzzer's damage livelock and hang.
+func TestRepeatGateReadsTheStoreSVarWrite(t *testing.T) {
+	runs := 0
+	Register("TestGateTick", func(h Host, c *Ctx, s *cards.SA) {
+		runs++
+		// Third pass misses: store 0 (earlier passes store 1, the "20").
+		v := "1"
+		if runs >= 3 {
+			v = "0"
+		}
+		Resolve(h, c, &cards.SA{Kind: "DB", API: "StoreSVar",
+			Params: map[string]string{"SVar": "RepeatCheck", "Type": "Number", "Expression": v}})
+	})
+	t.Cleanup(func() { unregister("TestGateTick") })
+
+	h, c := fixtureHost(t)
+	c.SVars = map[string]string{
+		"RepeatCheck": "Number$ 1",
+		"Loop":        "DB$ TestGateTick",
+	}
+	Resolve(h, c, &cards.SA{Kind: "DB", API: "Repeat",
+		Params: map[string]string{"RepeatSubAbility": "Loop",
+			"RepeatCheckSVar": "RepeatCheck", "RepeatSVarCompare": "GT0"}})
+	if runs != 3 {
+		t.Fatalf("repeat ran %d times, want 3 (stops on the stored 0)", runs)
+	}
+}

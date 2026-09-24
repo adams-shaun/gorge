@@ -1207,61 +1207,7 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 		return
 	}
 	if d.ResumeKind == "cast_modes" {
-		pc := e.cast
-		if pc == nil || pc.ability >= 0 || pc.stackObj == 0 {
-			e.emit(events.Event{Kind: events.Note, Player: in.Player,
-				Text: "cast modes answered with no spell proposal pending"})
-			return
-		}
-		chosen := d.Chosen(in)
-		names := modeChoiceNames(d.ResumeSA, chosen, d.ResumeModes)
-		labels := chosenModeLabels(chosen)
-		// ChoiceRestriction$: log each announced mode on the SPELL object so a
-		// later Charm of the same source sees the pick. A no-op unless the SA
-		// carries the param.
-		effects.RecordCharmChoices(e, pc.card, d.ResumeSA, names)
-		if o := e.G.Obj(pc.stackObj); o != nil {
-			if !pc.modeChosen {
-				pc.preModes = append([]string(nil), o.ChosenModes...)
-				pc.modeChosen = true
-			}
-			o.ChosenModes = append([]string(nil), names...)
-		}
-		// CR 702.171b: a Spree/Tiered cast pays each chosen mode's own
-		// ModeCost$ on top of the printed cost -- the same additional-cost
-		// composition beginCast folds for Kicker, but per chosen mode and so
-		// only known once the CR 601.2b mode answer is in. Folded into pc.cost
-		// here (once; the guard survives a Clone) so the CR 601.2g mana window,
-		// the cost modifiers and the final payment all see the composed total.
-		// An unaffordable total aborts through the ordinary payment-reversal
-		// path (CR 733.1) -- this branch never silently discounts or drops a
-		// chosen mode.
-		if !pc.modeCostsDone {
-			pc.modeCostsDone = true
-			pc.cost = pc.cost.Plus(modeCostTotal(e.G.Obj(pc.card).Face(), names))
-		}
-		// Escalate (the modal additional cost): a cast choosing N modes pays
-		// the escalate cost N-1 times. Folded into pc.cost once, exactly like
-		// the ModeCost$ fold above, so the tap/discard part asks the
-		// continueCast re-entry below walks ask for the extra resources and
-		// the payment window charges the composed total. An unpriceable
-		// parameter (ParseCost's degraded Unknown tokens) is a loud no-charge,
-		// never a fabricated generic. A one-mode cast folds nothing and stays
-		// byte-identical.
-		if pc.escalateSet && !pc.escalateDone && len(names) > 1 {
-			pc.escalateDone = true
-			if esc := ParseCost(pc.escalateParam); len(esc.Unknown) == 0 {
-				for i := 1; i < len(names); i++ {
-					pc.cost = pc.cost.Plus(esc)
-				}
-			} else {
-				e.emit(events.Event{Kind: events.Note, Player: pc.player, Obj: pc.card,
-					Text: "escalate cost unpriceable; casting without the escalate charge"})
-			}
-		}
-		e.emit(events.Event{Kind: events.ModeChosen, Obj: pc.stackObj, Player: in.Player,
-			Text: strings.Join(labels, ",")})
-		e.continueCast()
+		e.applyCastModes(d, in.Player, d.Chosen(in))
 		return
 	}
 
@@ -1284,6 +1230,8 @@ func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
 			var so *state.Object
 			if o := e.G.Obj(id); o != nil {
 				so = o
+				// modeChoiceNames is non-nil even for zero chosen modes,
+				// so a zero-mode placement resolves as nothing.
 				o.ChosenModes = names
 			}
 			// ChoiceRestriction$: record the placement pick on the trigger's
@@ -4179,4 +4127,69 @@ func (e *Engine) charmModeScopeSA() *cards.SA {
 		return nil
 	}
 	return e.resolutionCtx.CharmModeSA
+}
+
+// applyCastModes records a CR 601.2b cast-time mode announcement (the
+// "cast_modes" answer) on the proposed spell and re-enters continueCast. It is
+// the answer handler's body, shared with castModeAsk's no-ask path: a modal
+// spell whose only legal announcement is the empty one ("choose up to two"
+// with no mode that has a legal target) announces zero modes without posting
+// a decision nobody could answer differently.
+func (e *Engine) applyCastModes(d *decision.Decision, player state.PlayerID, chosen []decision.Option) {
+	pc := e.cast
+	if pc == nil || pc.ability >= 0 || pc.stackObj == 0 {
+		e.emit(events.Event{Kind: events.Note, Player: player,
+			Text: "cast modes answered with no spell proposal pending"})
+		return
+	}
+	names := modeChoiceNames(d.ResumeSA, chosen, d.ResumeModes)
+	labels := chosenModeLabels(chosen)
+	// ChoiceRestriction$: log each announced mode on the SPELL object so a
+	// later Charm of the same source sees the pick. A no-op unless the SA
+	// carries the param.
+	effects.RecordCharmChoices(e, pc.card, d.ResumeSA, names)
+	if o := e.G.Obj(pc.stackObj); o != nil {
+		if !pc.modeChosen {
+			pc.preModes = state.CloneChosenModes(o.ChosenModes)
+			pc.modeChosen = true
+		}
+		// Non-nil even for a zero-mode announcement: resolution must run
+		// no mode, not re-pose the modal ask (state.CloneChosenModes).
+		o.ChosenModes = append(make([]string, 0, len(names)), names...)
+	}
+	// CR 702.171b: a Spree/Tiered cast pays each chosen mode's own
+	// ModeCost$ on top of the printed cost -- the same additional-cost
+	// composition beginCast folds for Kicker, but per chosen mode and so
+	// only known once the CR 601.2b mode answer is in. Folded into pc.cost
+	// here (once; the guard survives a Clone) so the CR 601.2g mana window,
+	// the cost modifiers and the final payment all see the composed total.
+	// An unaffordable total aborts through the ordinary payment-reversal
+	// path (CR 733.1) -- this branch never silently discounts or drops a
+	// chosen mode.
+	if !pc.modeCostsDone {
+		pc.modeCostsDone = true
+		pc.cost = pc.cost.Plus(modeCostTotal(e.G.Obj(pc.card).Face(), names))
+	}
+	// Escalate (the modal additional cost): a cast choosing N modes pays
+	// the escalate cost N-1 times. Folded into pc.cost once, exactly like
+	// the ModeCost$ fold above, so the tap/discard part asks the
+	// continueCast re-entry below walks ask for the extra resources and
+	// the payment window charges the composed total. An unpriceable
+	// parameter (ParseCost's degraded Unknown tokens) is a loud no-charge,
+	// never a fabricated generic. A one-mode cast folds nothing and stays
+	// byte-identical.
+	if pc.escalateSet && !pc.escalateDone && len(names) > 1 {
+		pc.escalateDone = true
+		if esc := ParseCost(pc.escalateParam); len(esc.Unknown) == 0 {
+			for i := 1; i < len(names); i++ {
+				pc.cost = pc.cost.Plus(esc)
+			}
+		} else {
+			e.emit(events.Event{Kind: events.Note, Player: pc.player, Obj: pc.card,
+				Text: "escalate cost unpriceable; casting without the escalate charge"})
+		}
+	}
+	e.emit(events.Event{Kind: events.ModeChosen, Obj: pc.stackObj, Player: player,
+		Text: strings.Join(labels, ",")})
+	e.continueCast()
 }
