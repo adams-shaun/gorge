@@ -160,6 +160,20 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 		c.TriggerActivator = player(e.tapActor(ev))
 	case "ChangesZone", "LandPlayed":
 		c.TriggerCard = ev.Obj
+	case "Milled", "MilledAll":
+		// The milled card is ev.Obj (what ValidCard$ matched) and the player
+		// whose library was milled is ev.Player (what ValidPlayer$ matched),
+		// so TriggerPlayer names whose mill this was. One milled card is one
+		// event, so TriggerAmount is 1 per event; the MilledAll batch close
+		// overrides it with the batch's matching-card count (the
+		// TriggerCount$Amount head The Wise Mothman's X and Screeching
+		// Scorchbeast's "that many tokens" read).
+		c.TriggerCard = ev.Obj
+		c.TriggerPlayer = player(ev.Player)
+		c.TriggerAmount = 1
+		if ev.Amount > 0 {
+			c.TriggerAmount = ev.Amount
+		}
 	case "Drawn":
 		c.TriggerCard = ev.Obj
 		c.TriggerPlayer = player(ev.Player)
@@ -363,7 +377,7 @@ func listAdmits(list, token string) bool {
 	if list == "" {
 		return true
 	}
-	for _, part := range strings.Split(list, ",") {
+	for part := range strings.SplitSeq(list, ",") {
 		if strings.TrimSpace(part) == token {
 			return true
 		}
@@ -391,47 +405,109 @@ func (e *Engine) abilityCastStackObject(perm state.ObjID) state.ObjID {
 	return 0
 }
 
+// specResolveEnv is targetSpecContext's Resolve closure state.
+type specResolveEnv struct {
+	e                      *Engine
+	source                 state.ObjID
+	you                    state.PlayerID
+	tcx                    effects.TriggerContext
+	remembered             []state.Target
+	svars                  map[string]string
+	lki                    *state.Object
+	lkiPower, lkiToughness int32
+	lkiPTValid             bool
+	x                      int32
+	ctx                    *effects.Ctx
+}
+
+func (r *specResolveEnv) countCtx() *effects.Ctx {
+	if r.ctx == nil {
+		r.ctx = &effects.Ctx{Source: r.source, Controller: r.you, TriggerContext: r.tcx,
+			Remembered: r.remembered, SVars: r.svars, LKI: r.lki, LKIPower: r.lkiPower,
+			LKIToughness: r.lkiToughness, LKIPTValid: r.lkiPTValid, X: r.x}
+		r.ctx.Host = r.e
+	}
+	return r.ctx
+}
+
+func (r *specResolveEnv) resolve(name string) (int32, bool) {
+	body, hasBody := r.svars[name]
+	if strings.EqualFold(name, "X") {
+		// Forge's two-shape SVar:X contract: Count$xPaid means the
+		// causing cast's announced X; every other body is a fixed count
+		// evaluated against the trigger's captured referents. Without an
+		// authored SVar:X, retain the paid/stack X binding.
+		if hasBody && strings.EqualFold(strings.TrimSpace(body), "Count$xPaid") {
+			return r.x, true
+		}
+		if hasBody {
+			return effects.EvalCountOK(r.e, r.countCtx(), body)
+		}
+		return r.x, true
+	}
+	if !hasBody || strings.TrimSpace(body) == "" {
+		return 0, false
+	}
+	return effects.EvalCountOK(r.e, r.countCtx(), body)
+}
+
 // targetSpecContext accepts the actual stack id, so simultaneous triggers of
 // the same permanent cannot inherit one another's bindings. A prospective cast
 // or an ordinary static has no entry and therefore no trigger context.
 //
-// The Resolve hook closes over the in-flight cast/activation proposal: a
-// ValidTgts$ numeric bound naming "X" (Chthonian Nightmare's
-// Creature.YouCtrl+cmcEQX) is evaluated at the announced {X} value once the
-// cast-flow X ask has fixed it (CR 107.3i). Without it the bound could never
-// resolve -- targetSpecContext had no resolver at all -- and an X-targeted
-// ability offered no candidates at either the offer gate or the 601.2c ask.
-// No resolver (or an in-flight cast that is not this source) still answers
-// (0, false), which is numericPred's "recognised shape, unresolvable RHS
-// never matches" — so every non-X name and every no-cast caller behaves
-// exactly as before.
+// Resolve reads numeric bounds from the source face's SVar table. In
+// particular, SVar:X follows the same two-shape contract as resolving
+// effects: Count$xPaid reads the announced/captured X, while another body is
+// evaluated as a fixed count with the trigger's captured Remembered, LKI and
+// TriggerContext. Missing non-X names and unresolvable bodies fail closed;
+// no authored SVar:X retains the ordinary paid/stack X binding.
 func (e *Engine) targetSpecContext(source, stack state.ObjID, you state.PlayerID) effects.SpecContext {
-	sc := effects.SpecContext{You: you, Source: source, TriggerContext: e.triggerContexts[stack],
-		Resolve: func(name string) (int32, bool) {
-			if !strings.EqualFold(name, "X") {
-				return 0, false
-			}
-			// In flight: the cast/activation proposal's announced value.
-			if e.cast != nil && (e.cast.card == source || e.cast.stackObj == source) {
-				return e.cast.x, true
-			}
-			// Resolving: the stack object's own recorded {X} (CastInfo's Amount,
-			// CR 107.3m binds X when announced -- an ability resolving after the
-			// cast flow closed still carries it on the stack object).
-			if o := e.G.Obj(stack); o != nil {
-				return o.X, true
-			}
-			return 0, false
-		}}
-	// The stack object's Remembered (the trigger-captured set for a
-	// triggered ability) feeds the IsRemembered predicate at offer/placement
-	// time, exactly as the resolution's own Ctx feeds it later -- Forge's
-	// IsRemembered is a property of the host card's remembered list either
-	// way. A cast proposal (stack == the card) and an ability proposal
-	// (stack == 0) carry no remembered set, so this changes nothing for them.
+	tcx := e.triggerContexts[stack]
+	var remembered []state.Target
 	if o := e.G.Obj(stack); o != nil {
-		sc.Remembered = append(sc.Remembered, o.Remembered...)
+		remembered = append(remembered, o.Remembered...)
 	}
+	var lki *state.Object
+	var lkiPower, lkiToughness int32
+	var lkiPTValid bool
+	if snapshot, ok := e.triggerLKI[stack]; ok && snapshot.object != nil {
+		lki = snapshot.object
+		lkiPower, lkiToughness, lkiPTValid = snapshot.power, snapshot.toughness, snapshot.ptValid
+	}
+	var svars map[string]string
+	if o := e.G.Obj(source); o != nil && o.Face() != nil {
+		svars = o.Face().SVars
+	}
+	var stackObj *state.Object
+	if o := e.G.Obj(stack); o != nil {
+		stackObj = o
+	}
+	x := int32(0)
+	if stackObj != nil {
+		x = stackObj.X
+		if stackObj.Ability != nil && x == 0 {
+			x = e.triggerPaidX(stack, stackObj)
+		}
+	}
+	// At the placement ask an activation may not yet have a stack object.
+	// Its announced X must take precedence over the stack/trigger value.
+	if e.cast != nil && (e.cast.card == source || e.cast.stackObj == source) {
+		x = e.cast.x
+	}
+	// Resolve's captured referents live in ONE heap record (specResolveEnv)
+	// rather than as separately heap-moved closure variables. The count Ctx
+	// is only needed when Resolve evaluates an SVar body, which most target
+	// offers never do; it is built on first use (once, and then reused
+	// exactly as the eager one was). Every field it reads is final by now, so
+	// a late build is identical to an eager one.
+	env := &specResolveEnv{e: e, source: source, you: you, tcx: tcx, remembered: remembered,
+		svars: svars, lki: lki, lkiPower: lkiPower, lkiToughness: lkiToughness, lkiPTValid: lkiPTValid, x: x}
+	sc := effects.SpecContext{You: you, Source: source, TriggerContext: tcx,
+		Remembered: remembered,
+		Resolve:    env.resolve}
+	// The stack object's Remembered and fire-time LKI are bound above, beside
+	// TriggerContext, so placement-time numeric SVars read the same captured
+	// referents the resolving Ctx receives later.
 	// withNames binds the layer-3 rename table and the layer-4 derived-type
 	// table (layer4types.go) so the target OFFER sees a granted/removed type,
 	// exactly as the layer walk's own Affected$ match does; without it a

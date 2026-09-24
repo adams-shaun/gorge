@@ -83,11 +83,12 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 		events.TokenAttacks, events.XChange, events.NoteNumber, events.ExtraPhase,
 		events.CopyToken, events.Exert, events.PlanarRoll,
 		events.CombatRetarget, events.RingTemptsYou, events.RingEmblemPush,
-		events.BlessingChange, events.ClonePermanent,
+		events.BlessingChange, events.ClonePermanent, events.CloneStatic, events.TurnFaceDown,
 		events.Mutate, events.MergedTriggerPush,
 		events.Enlist, events.AlterAttribute, events.Unattached, events.PlayerNoted,
 		events.PlayerNoteCleared,
-		events.GainedAbilityPush, events.GainedTriggerPush:
+		events.GainedAbilityPush, events.GainedTriggerPush,
+		events.StoreSVar:
 		// AlterAttribute (alterattr1) is the same shape past the bound as
 		// Enlist: the suspected designation (CR 702.157) is a status no
 		// trigger mode fires on -- the corpus reads it through filter
@@ -151,6 +152,21 @@ func eventTriggerInterest(kind events.Kind) cards.TriggerInterest {
 	}
 }
 
+// compiledTriggerInterestEvent is compiledTriggerInterestAllows' per-event
+// half, for walks that test many faces against one event: for every
+// interests value, compiledTriggerInterestAllows(interests, kind) ==
+// all || interests&mask != 0.
+func compiledTriggerInterestEvent(kind events.Kind) (all bool, mask cards.TriggerInterest) {
+	if kind >= triggerMaskKindBits {
+		return true, 0
+	}
+	eventInterest := eventTriggerInterest(kind)
+	if eventInterest == cards.TriggerInterestAny {
+		return true, 0
+	}
+	return false, cards.TriggerInterestAny | eventInterest
+}
+
 func compiledTriggerInterestAllows(interests cards.TriggerInterest, kind events.Kind) bool {
 	// Kinds the 64-bit textual mask cannot encode fail open here too, or the
 	// compiled prefilter would reject an event the textual mask admits.
@@ -190,7 +206,7 @@ func triggerModeEvents(mode string) triggerEventMask {
 		return 1 << events.DeclareBlockers
 	case "Untaps":
 		return 1 << events.Untap
-	case "Sacrificed", "Discarded", "LandPlayed":
+	case "Sacrificed", "Discarded", "LandPlayed", "Milled", "MilledAll":
 		return 1 << events.MoveZone
 	case "Cycled":
 		return 1 << events.MoveZone
@@ -434,6 +450,18 @@ func (e *Engine) faceMayTrigger(f *cards.Face, kind events.Kind) bool {
 		e.triggerEventMasks[f] = m
 	}
 	return m.allows(kind)
+}
+
+// objectFaceMayTriggerHoisted is objectFaceMayTrigger with the event's
+// compiled-interest half precomputed by compiledTriggerInterestEvent: a
+// corpus-bound face answers from its catalog row without re-deriving the
+// event's interest class per object; every other face takes
+// objectFaceMayTrigger unchanged.
+func (e *Engine) objectFaceMayTriggerHoisted(id state.ObjID, faceIdx uint8, f *cards.Face, kind events.Kind, evAll bool, evMask cards.TriggerInterest) bool {
+	if interests, ok := f.CompiledTriggerInterests(); ok {
+		return evAll || interests&evMask != 0
+	}
+	return e.objectFaceMayTrigger(id, faceIdx, f, kind)
 }
 
 // objectFaceMayTrigger is the object-walk fast path. Object IDs are dense, and

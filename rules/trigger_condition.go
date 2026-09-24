@@ -50,11 +50,14 @@ func noResolvingCheck(t cards.Trigger) bool {
 // A nil tc leaves those clauses to their fire-time matcher, so this function
 // is safe to call with no context for a trigger whose mode evaluates them
 // itself (the fire-time general gate passes nil for exactly that reason).
-func (e *Engine) triggerResolvingCheckHolds(t cards.Trigger, source state.ObjID, tc *effects.TriggerContext) bool {
+func (e *Engine) triggerResolvingCheckHolds(t cards.Trigger, source state.ObjID, controller state.PlayerID, tc *effects.TriggerContext, ownedSVars map[string]string) bool {
 	if noResolvingCheck(t) {
 		return true
 	}
-	return e.triggerConditionHoldsCtx(t, source, e.controllerOf(source), tc)
+	// The ability's controller was fixed when it went on the stack. A delayed
+	// Effect can have another owner than its source card; an ordinary trigger's
+	// source can also change control while the ability waits to resolve.
+	return e.triggerConditionHoldsWithSVars(t, source, controller, tc, ownedSVars)
 }
 
 // triggerConditionHolds evaluates the CR 603.4 intervening-if clause (and the
@@ -97,6 +100,12 @@ func (e *Engine) triggerConditionHoldsAs(t cards.Trigger, source state.ObjID, yo
 // no event to name a role and the per-mode matcher -- attacksMatches for
 // Condition$ AttackedPlayerWithMostLife -- owns the fire-time answer).
 func (e *Engine) triggerConditionHoldsCtx(t cards.Trigger, source state.ObjID, you state.PlayerID, tc *effects.TriggerContext) bool {
+	return e.triggerConditionHoldsWithSVars(t, source, you, tc, nil)
+}
+
+// The resolution-time caller passes the recorded line owner's table; at
+// fire time the printed-face walk remains unchanged.
+func (e *Engine) triggerConditionHoldsWithSVars(t cards.Trigger, source state.ObjID, you state.PlayerID, tc *effects.TriggerContext, ownedSVars map[string]string) bool {
 	// A kw:Class level band is an independent AND gate beside every clause
 	// below (and beside the body's own IsPresent$, which the trigger gate
 	// otherwise reads as a union with IsPresent2$).
@@ -249,7 +258,7 @@ func (e *Engine) triggerConditionHoldsCtx(t cards.Trigger, source state.ObjID, y
 		// fire), the same convention triggerConditionHolds' other clauses
 		// document above.
 		src := e.G.Obj(source)
-		if src == nil || src.Face() == nil {
+		if (src == nil || src.Face() == nil) && ownedSVars == nil {
 			return false
 		}
 		// A mutated pile's under-card trigger (CR 702.140d) is gated by the
@@ -258,9 +267,12 @@ func (e *Engine) triggerConditionHoldsCtx(t cards.Trigger, source state.ObjID, y
 		// reading its table would evaluate the gate against a body it never
 		// defined (failing closed, i.e. silently never firing). An ordinary
 		// trigger's owning face IS the top face, so nothing else moves.
-		svars := src.Face().SVars
-		if mf := e.faceOwningTrigger(source, t); mf != nil {
-			svars = mf.SVars
+		svars := ownedSVars
+		if svars == nil {
+			svars = src.Face().SVars
+			if mf := e.faceOwningTrigger(source, t); mf != nil {
+				svars = mf.SVars
+			}
 		}
 		ctx := &effects.Ctx{Source: source, Controller: you, SVars: svars}
 		holds, evaluated := effects.CheckSVarHolds(e, ctx, name, strings.TrimSpace(t.Params["SVarCompare"]))

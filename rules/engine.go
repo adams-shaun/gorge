@@ -95,6 +95,13 @@ type Config struct {
 	// observation either way: it emits no event and holds no state the
 	// engine reads.
 	LoopGuard *LoopGuard
+
+	// Spare, when non-nil, is a finished game's storage (Engine.Release)
+	// the new engine reuses for its log and object arena. It never changes
+	// the game -- see Spare. It is consumed: New empties *Spare, so a copy
+	// of this Config that builds a second engine (a replay, a coverage
+	// rebuild) allocates fresh instead of sharing the first engine's arrays.
+	Spare *Spare
 }
 
 type triggerObjectLKI struct {
@@ -190,10 +197,12 @@ type Engine struct {
 	// half-starting-life thresholds). Plain int32, so Clone copies it.
 	startingLife int32
 	// pregame is true while the London mulligan round runs, between the
-	// opening deal and turn 1. Config.Mulligans > 0 sets it in New; step()
-	// dispatches to stepPregame (rules/mulligan.go) while it is true, and the
-	// round's end clears it and hands to beginTurn. Bool field, so Clone
-	// copies it like every other value field.
+	// opening deal and turn 1. startPostDealSetup sets it when
+	// Config.Mulligans > 0 (at New for a plain constructor; for the
+	// CR 103.1 choice constructor at the choice's resolution -- see
+	// tossChoice); step() dispatches to stepPregame (rules/mulligan.go)
+	// while it is true, and the round's end clears it and hands to
+	// beginTurn. Bool field, so Clone copies it like every other value field.
 	pregame bool
 	// coloring is true while the CR 903.4b commander colour-choice round runs,
 	// BEFORE the London mulligan round (the choice is made "before the game
@@ -208,6 +217,14 @@ type Engine struct {
 	// commander_color.go): one qualifying (seat, commander) ask per entry and
 	// a cursor. Never a closure, so Clone copies it like the mulligan round.
 	colorRound colorRound
+	// tossChoice is CR 103.1's second half's plain-value state (rules/
+	// starting_player_choice.go): the toss winner may still choose who takes
+	// the first turn. Only a tossAsk constructor (NewStartingPlayerChoice)
+	// sets it; plain New folds the resolved toss and runs startPostDealSetup
+	// exactly as the pre-choice engine did. active marks that the pregame
+	// rounds are still deferred until the choice is answered or defaulted.
+	// Never a closure, so Clone copies it.
+	tossChoice tossChoice
 	// mulligan is the round's plain-value state (rules/mulligan.go) -- seats,
 	// kept/taken counts and the phase cursor. Never a closure, so Clone copies
 	// it like cast/choosing.
@@ -278,6 +295,19 @@ type Engine struct {
 	// storage before sorting; neither buffer may alias a clone's scratch.
 	staticContinuous []ContinuousEffect
 	staticEpoch      int
+	// staticVersion/staticObjs are continuousVersion and len(e.G.Objs) at the
+	// last staticEffects build: layerInertSince's reuse across a run of
+	// layer-inert events (layercache.go) additionally requires both unchanged.
+	staticVersion int
+	staticObjs    int
+
+	// sbaQuiet is the state-based-action quiet key (rules/sbaquiet.go): the
+	// board at which the last checkStateBased pass loop applied nothing.
+	// sbaUnquiet is that loop's scratch flag for a no-op that depended on a
+	// non-event input. Clone() leaves both zero, so a clone never skips its
+	// first pass loop.
+	sbaQuiet   sbaQuietKey
+	sbaUnquiet bool
 
 	// staticQueueBuf is staticEffects' AddStaticAbility$ work queue's reused
 	// backing array: truncated to zero at every scan, grown only when a
@@ -308,6 +338,9 @@ type Engine struct {
 	activeEpoch   int
 	activeVersion int
 	activeDepth   int
+	// activeObjs is len(e.G.Objs) at the last active() build, read only by
+	// the layer-inert reuse (layercache.go).
+	activeObjs int
 	// goadProbe is the static-goad derivation's re-entry guard (staticgoad1):
 	// staticallyGoaded matches each candidate's Affected$ spec through
 	// matchesSpec, and a spec that itself consults the IsGoaded predicate
@@ -394,6 +427,29 @@ type Engine struct {
 	derivedTypes []string
 	derivedDepth int
 
+	// derivedMemo / derivedMemoDepth / derivedMemoGen are Derived's per-object
+	// memo for ONE legal-actions walk (rules/derivedmemo.go): derivedMemoDepth
+	// is the scope counter legalActionsPriced raises, derivedMemoGen is bumped
+	// on every outermost scope entry so no entry outlives the walk that built
+	// it, and derivedMemo (indexed by ObjID) owns each cached result's slices.
+	// Pure per-walk scratch: Clone copies none of it (a clone starts with an
+	// empty memo and generation 0, which no entry ever matches).
+	derivedMemo      []derivedMemoEntry
+	derivedMemoStack []derivedMemoEntry
+	derivedMemoDepth int
+	derivedMemoGen   uint64
+	// derivedMemoTail / derivedMemoAlias* carry the priority walk's memo
+	// across the decision boundary into a BeginDerivedReads scope
+	// (rules/derivedmemo.go). Validated on every use; Clone copies none.
+	derivedMemoTail      derivedMemoTail
+	derivedMemoAliasFrom int
+	derivedMemoAliasTo   int
+	// manaConvCache is a walk-scoped cache keyed like the Derived memo
+	// (rules/walkcache.go). Pure per-walk scratch: Clone copies none of it.
+	boardStaticsCache  boardStaticsCache
+	activeStaticsCache []activeStaticsEntry
+	mayPlaysCache      []mayPlaysEntry
+
 	// derivingColorsSet/ID/Colors: the finished layer-5 colour answer for the
 	// object whose Derived is mid-build (set by derivedWith before its layer-7
 	// P/T walk, restored on the way out). Colors serves it to a layer-7 pump
@@ -442,6 +498,22 @@ type Engine struct {
 	// like triggerContexts: never event-encoded, cloned at intent boundaries
 	// and removed when the stack object leaves.
 	triggerEffectFrames map[state.ObjID]effects.EffectFrame
+	// triggerLines maps a stack object id to the granted/delayed trigger line
+	// whose Execute$ body it resolves to. A granted (AddTrigger$) or delayed
+	// (Effect Triggers$) body is an SVar-named *cards.SA, and cards.ResolveSVar
+	// parses a FRESH pointer on every call -- so the pointer identity
+	// findTriggerForAbilityFace uses for compiled Face.Triggers bodies can never
+	// match one. This map carries the line from the push (which already records
+	// triggerContexts) to resolution, so OptionalDecider$, the Cost$ window,
+	// ResolvedLimit$, the intervening-if recheck and the label all see it.
+	// Replay-derived exactly like triggerContexts: pushTrigger folds the same
+	// lines in the same order. Appended to (not a redefinition of) the existing
+	// map fields so a zero Engine stays valid.
+	triggerLines map[state.ObjID]cards.Trigger
+	// triggerLineSVars snapshots the owning script table of each recorded line.
+	// The recipient's face is not necessarily the grantor's, and a grant can
+	// disappear before the stack object resolves.
+	triggerLineSVars map[state.ObjID]map[string]string
 	// currentEffectFrame is the Effect-created continuous-effect registration
 	// the effects.Resolve walk currently running belongs to. effects.Resolve
 	// publishes it (through the optional effectFrameHost interface) for the
@@ -700,11 +772,13 @@ type Engine struct {
 	// group the player has already ordered nor make them order the same
 	// triggers twice. Zero whenever pendingTriggers is empty.
 	orderedTriggers int
-	// applyingReplacement guards re-entrancy: while a replacement effect's
-	// own resolution is running, nested emits skip the replacement check
-	// entirely, so a replacement that re-emits a matching event cannot
-	// replace itself again. Task 20.
+	// applyingReplacement guards re-entrancy for the replaced event. Fresh
+	// counter placements emitted by its body still receive their own
+	// AddCounter replacement pass (unless already folded below).
 	applyingReplacement bool
+	// counterReplacementFold marks the already-rewritten event's final emit;
+	// new counter events from a replacement body still take their own pass.
+	counterReplacementFold bool
 	// tokenMintSink, when non-nil, collects every object the TokenCreate event
 	// currently being emitted actually created (EmitTokenCreate). It is a
 	// stack discipline: a nested token creation saves and restores the outer
@@ -797,6 +871,22 @@ type Engine struct {
 	zoneBatchDepth int
 	zoneBatchIdx   map[zoneBatchKey]int
 	zoneBatchLog   []zoneBatchEntry
+	// millBatch (effects' api:Mill): one api:Mill resolution is ONE mill
+	// action, so the Mode$ MilledAll "whenever one or more cards are milled"
+	// trigger fires once for the whole call, not once per milled card. The
+	// damage/zone batches' shape, but keyed by trigger LINE alone (the
+	// DamageAll "one or more" reading): the first matching milled card queues
+	// the single instance and every later matching card accumulates into the
+	// entry's COUNT -- the number of cards milled this way, which the bodies
+	// read through TriggerCount$Amount (The Wise Mothman's X, Screeching
+	// Scorchbeast's "that many tokens"). Only the cards matching THIS line's
+	// ValidCard$ count, exactly as DamageAll only accumulates matching pairs.
+	// Never opened across a drain: pendingTriggers is append-only while the
+	// batch is open, so the recorded index stays valid.
+	millBatchOpen  bool
+	millBatchDepth int
+	millBatchIdx   map[triggerKey]int
+	millBatchLog   []millBatchEntry
 	// phaseUnknownNoted memoizes the Phase$ specs whose names this engine has
 	// already reported as unresolvable (rules.trigger_match.go's phaseMatches
 	// reporting), so one spec emits exactly one Note per game no matter how
@@ -814,6 +904,12 @@ type Engine struct {
 	// Entries validate their immutable face pointer and are scratch owned by
 	// one Engine, so hypothetical clones never share writable cache storage.
 	triggerObjectMasks []objectTriggerEventMasks
+	// trigZones / trigZonesEp / trigFaceZones are the live trigger walk's
+	// per-player hidden-zone summaries (rules/trigger_zoneskip.go): pure
+	// scratch validated on every use, so Clone copies none of them.
+	trigZones     []trigZoneSummary
+	trigZonesEp   int
+	trigFaceZones map[*cards.Face]uint8
 
 	// choosing says which flow is waiting on the current KChoose decision
 	// (Task 8). It is plain data, not a closure, so Engine.Clone (a sibling
@@ -847,6 +943,21 @@ type Engine struct {
 	// suspends again, and nil whenever no re-entry is in flight — so a Clone
 	// need not carry it (the same resolution re-derives the same chain).
 	contChain []contFrame
+	// contChainOwners counts the resolution passes in flight whose contChain
+	// will be drained into the pending resume chain when they suspend (the
+	// initial stack passes, a fused half, a resumeResolution re-entry). A
+	// second mid-resolution ask is deferred onto contChain (Engine.Ask) only
+	// while one is, so a deferred ask can never be stranded on a chain nobody
+	// consumes; outside one the overwrite guard in Engine.ask still fires.
+	// Transient, zero between intents.
+	contChainOwners int
+	// askCount counts the mid-resolution asks Engine.Ask took, posed or
+	// deferred (effects' askCounter seam). Transient scratch, never logged.
+	askCount uint64
+	// lastDeferred is the resume point of the most recent DEFERRED ask of the
+	// running pass (nil once a posed ask follows it), so SuspendUnless marks
+	// the ask that was actually just taken. Transient scratch.
+	lastDeferred *resumePoint
 	// resolvingObj is the stack object whose resolution is running (resolveTop
 	// or a resumed resolution), kept through its final move off the stack so
 	// an entry replacement that asks can tell whether it interrupted that
@@ -922,6 +1033,22 @@ type Engine struct {
 	manaColorActivation   *manaColorActivation
 	manaDiscardActivation *manaDiscardActivation
 	manaUnlessActivation  *manaUnlessActivation
+	// offStackMana is the transient frame of the off-stack mana resolution
+	// currently running synchronously (rules/mana_activation.go's
+	// offStackManaFrame). It is nil between Submits, so Clone never sees it.
+	offStackMana *offStackManaFrame
+	// manaAfterCost is a mana ability whose cost is fully paid but whose
+	// payment posed a decision -- a sacrificed or discarded commander's
+	// CR 903.9 command-zone choice parks the move and asks its owner. The
+	// mana effect (and its own colour choice) waits here until that answer
+	// lands; Submit resumes it once nothing is pending (resumeManaAfterCost).
+	// Plain data, deep-copied by Clone like its siblings.
+	manaAfterCost *manaAfterCost
+	// deferredAsks holds decisions posed while a CR 903.9 commander-zone
+	// choice was pending (see ask): they are posed in order, one at a time,
+	// once nothing is pending (drainDeferredAsks, from Submit). Deep-copied
+	// by Clone like pending.
+	deferredAsks []*decision.Decision
 	// unlessPayment carries an in-progress non-mana unless-cost payment. It
 	// keeps the enclosing resolution suspended while the payer chooses the
 	// sacrifice/discard objects that pay it.
@@ -985,6 +1112,10 @@ type Engine struct {
 	// competitions. Plain value entries are deep-copied by
 	// Clone, so every in-flight event survives an intent boundary.
 	replChoices []replChoice
+	// Synchronous Scry proposal's continuation identity (never carried across
+	// a decision: the parked resume point owns its SA and target).
+	scrySA     *cards.SA
+	scryTarget int
 	// untapResume is set only around one Untap emission from finishUntapStep.
 	// If that event parks an Untap replacement choice, it moves into the queue.
 	untapResume *untapStep
@@ -1208,6 +1339,10 @@ type Engine struct {
 	// damaging/combatDamaging above: it is always set-and-consumed inside one
 	// intent's driven flow, so it is stale-or-empty at a clone boundary.
 	declaredAttackers []state.ObjID
+	// Distinct opponents chosen in this declaration, ordered by first attack.
+	// Like declaredAttackers this exists only during finishAttackers' emits;
+	// the Melee trigger captures player refs into its logged stack object.
+	declaredDefenders []state.PlayerID
 
 	// manaFromTap and manaProducer identify the mana ability currently
 	// resolving. They are synchronous context rather than ManaAdd fields.
@@ -1272,6 +1407,29 @@ type Engine struct {
 	// re-entrant nested walk.
 	foreachBuf   []state.ObjID
 	foreachDepth int
+
+	// legalOptBuf is legalActionsPriced's scratch option list. The walk
+	// appends into it (so the doubling growth that used to reallocate the
+	// list several times per walk settles at the largest walk seen) and
+	// returns an exactly-sized COPY: the returned slice is owned by the
+	// caller -- it becomes a pending Decision's Options, which seats, views,
+	// traces and search forks retain -- so the scratch never escapes. The
+	// walk takes the buffer (leaving nil) for its duration, so a re-entrant
+	// walk allocates its own rather than clobbering the outer one. Owned by
+	// this Engine alone: Clone leaves it nil, like foreachBuf.
+	legalOptBuf []decision.Option
+	// manaAbBuf is the offer walk's per-object mana-ability scratch list
+	// (legal.go), and manaLabels its "Activate <name> for mana" label cache
+	// (manaActivateLabel; a pure function of the name, only ever looked up,
+	// never ranged). Both are Engine-owned scratch: Clone leaves them nil.
+	manaAbBuf  []*cards.SA
+	manaLabels map[string]string
+	// intentBuf is a recycled intent array from Config.Spare, installed as
+	// the log's Intents on the first Submit (see there). Not cloned.
+	intentBuf []decision.Intent
+	// sbaIDBuf is the battlefield-snapshot scratch attachmentSBAs and
+	// checkSagas range (taken for the walk, restored after). Not cloned.
+	sbaIDBuf []state.ObjID
 }
 
 // inFlightDamageSource is the one reader for Damage-event provenance: the
@@ -1500,11 +1658,78 @@ func (c *Config) commandersFor(i, deckLen int) []int {
 
 const openingHand = 7
 
-func New(cfg Config) *Engine {
-	return newWithRNG(cfg, newRNG(cfg.Seed))
+// Spare is a finished game's reusable backing storage -- its event log array
+// and its object arena -- handed from Engine.Release to the next game a batch
+// runner builds (Config.Spare). Those two arrays are an engine's largest
+// per-game allocations (~450 KB and ~200 KB for a 60-card 2-seat game), and a
+// runner that plays thousands of games back to back otherwise allocates,
+// zeroes and collects them once per game; the intent array and the Derived
+// memo tables ride along. Reuse is invisible to the game: events.NewLogInto
+// and state.NewGameInto re-cap their arrays to exactly the capacity a fresh
+// allocation would have had, so growth points are unchanged; every slot of
+// every array is cleared by Release and overwritten before it is read; the
+// memo tables are a cache whose capacity no answer depends on; and the
+// intent array is only ever appended to (Log.Clone caps it). The zero Spare
+// is "none"; TestSpareReuseIsInvisible pins the contract.
+type Spare struct {
+	events  []events.Event
+	objs    []state.Object
+	intents []decision.Intent
+	// The Derived memo tables (derivedmemo.go): indexed by ObjID, grown to
+	// the arena's size; cleared by Release, which is exactly the zeroed
+	// never-written state derivedMemoizedAt's growth relies on.
+	memo, memoStack []derivedMemoEntry
 }
 
-func newWithRNG(cfg Config, random *rng) *Engine {
+// Release returns e's log and object-arena arrays as a Spare for the next
+// game (pass its address as Config.Spare) and leaves e unusable (its Objs and Events are nil, so a stray later
+// use fails loudly rather than reading a recycled array). It must be the
+// LAST use of e and of anything sharing its arrays -- a Clone's log shares
+// the Events prefix (events.Log.Clone) -- which is why only a batch runner
+// that owns the finished engine outright calls it. The arrays are cleared so
+// the Spare does not pin the finished game's cards, strings and slices.
+func (e *Engine) Release() Spare {
+	sp := Spare{
+		events:    e.L.Events[:cap(e.L.Events)],
+		objs:      e.G.Objs[:cap(e.G.Objs)],
+		intents:   e.L.Intents[:cap(e.L.Intents)],
+		memo:      e.derivedMemo[:cap(e.derivedMemo)],
+		memoStack: e.derivedMemoStack[:cap(e.derivedMemoStack)],
+	}
+	clear(sp.events)
+	clear(sp.objs)
+	clear(sp.intents)
+	clear(sp.memo)
+	clear(sp.memoStack)
+	e.L.Events, e.G.Objs, e.L.Intents = nil, nil, nil
+	e.derivedMemo, e.derivedMemoStack, e.intentBuf = nil, nil, nil
+	return sp
+}
+
+// objectHeadroom is the extra Objs capacity newWithRNG reserves beyond the
+// dealt decks and sideboards (see its use there).
+const objectHeadroom = 128
+
+func New(cfg Config) *Engine {
+	return newWithRNG(cfg, newRNG(cfg.Seed), false)
+}
+
+// NewStartingPlayerChoice is the harness-facing constructor that offers CR
+// 103.1's second half (rules/starting_player_choice.go): the toss winner
+// CHOOSES who takes the first turn. Genesis (the resolved toss folded into
+// G.StartingPlayer) is identical to New's, but startPostDealSetup -- the
+// London mulligan round, the colour round, turn 1 -- is deferred until the
+// choice is answered (Engine.AskStartingPlayer + Submit) or defaulted at the
+// first Advance, so the pregame rounds open in the CHOSEN seat's turn order.
+// A caller that poses no ask and never advances past genesis sees nothing;
+// every other constructor (plain New) is the R-9 no-host fallback: the toss
+// winner takes the first turn silently, byte-identical to the pre-choice
+// engine. host, mtgsim and the acceptance driver use this constructor.
+func NewStartingPlayerChoice(cfg Config) *Engine {
+	return newWithRNG(cfg, newRNG(cfg.Seed), true)
+}
+
+func newWithRNG(cfg Config, random *rng, tossAsk bool) *Engine {
 	life := int32(20)
 	if cfg.StartingLife > 0 {
 		life = cfg.StartingLife
@@ -1519,9 +1744,22 @@ func newWithRNG(cfg Config, random *rng) *Engine {
 			initialObjects += len(cfg.Sideboards[i])
 		}
 	}
+	// Headroom past the dealt cards for the objects a game mints as it plays
+	// (tokens, ability objects on the stack, copies): measured over the repo
+	// deck matrix (botbench -pairs all, constructed and commander), a game
+	// adds a median ~50 and a 99th-percentile ~125 objects to its dealt
+	// cards, and without headroom EVERY game regrew Objs (a full doubling of
+	// an ~800-byte-per-element array) on its first minted object.
+	if initialObjects > 0 {
+		initialObjects += objectHeadroom
+	}
+	var spare Spare
+	if cfg.Spare != nil {
+		spare, *cfg.Spare = *cfg.Spare, Spare{}
+	}
 	e := &Engine{
-		G:             state.NewGameLife(cfg.Names, life, initialObjects),
-		L:             events.NewLog(cfg.Seed),
+		G:             state.NewGameInto(cfg.Names, life, initialObjects, spare.objs),
+		L:             events.NewLogInto(cfg.Seed, spare.events),
 		format:        cfg.Format,
 		rng:           random,
 		loop:          newLivelockWatcher(cfg.LoopGuard),
@@ -1533,6 +1771,14 @@ func newWithRNG(cfg Config, random *rng) *Engine {
 		// The per-turn ManaExpend tally (rules/cast.go) starts empty; payCast
 		// stamps and resets it lazily on e.G.Turn.
 		manaExpended: make([]int32, len(cfg.Names)),
+	}
+	// The rest of a Spare: the memo tables start empty over the cleared
+	// arrays (derivedMemoizedAt only reslices up into zeroed capacity), and
+	// the intent array waits for the first Submit (the log's Intents stays
+	// nil until an intent exists, as it always has).
+	e.derivedMemo, e.derivedMemoStack = spare.memo[:0], spare.memoStack[:0]
+	if cap(spare.intents) > 0 {
+		e.intentBuf = spare.intents[:0]
 	}
 	e.G.Tokens = cfg.Tokens
 	e.setNameInPool = poolHasSetNameStatic(cfg)
@@ -1706,6 +1952,26 @@ func newWithRNG(cfg Config, random *rng) *Engine {
 	// with seat 0 eliminated maps two of the three toss outcomes onto one
 	// survivor (measured 395/205 over 600 seeds on the pre-fix code).
 	start, _ := e.resolveToss(toss, alive, len(cfg.Names))
+	// CR 103.1's SECOND half: the winner of the toss chooses who takes the
+	// first turn, and that answer -- not the raw toss draw -- is the
+	// starting seat. ONLY a tossAsk constructor offers the choice (see
+	// NewStartingPlayerChoice): it is not posed by plain New, because a
+	// genesis-genesis decision would appear in every test and fuzz log and
+	// the R-9 no-host contract wants a fallback that completes without an
+	// answer. The RESOLVED TOSS is folded below UNCONDITIONALLY either way,
+	// so genesis (G.StartingPlayer, the view's pregame projection) exists
+	// the moment New returns exactly as the pre-choice engine left it; with
+	// the choice pending, startPostDealSetup is deferred until the answer
+	// (or the default at the first Advance) resolves the choice, because the
+	// London mulligan round must open in the CHOSEN seat's turn order
+	// (CR 103.5 reads the starting player). A terminal deal (nobody or one
+	// survivor) and a toss winner the deal eliminated have no chooser and
+	// run startPostDealSetup here, byte-identical to the pre-choice engine.
+	choicePending := tossAsk && !e.G.Over && len(alive) > 1 && toss >= 0 && toss < len(e.G.Players) &&
+		!e.G.Players[toss].Lost
+	if choicePending {
+		e.tossChoice = tossChoice{active: true, winner: start}
+	}
 	// The resolved toss is authoritative genesis state, not merely a Note or
 	// the later TurnChange: opening-hand effects and Count$StartingPlayer run
 	// before turn one. Fold it through events.Apply without appending a new
@@ -1720,14 +1986,15 @@ func newWithRNG(cfg Config, random *rng) *Engine {
 	// of the game is simply skipped in turn order everywhere else (NextAlive,
 	// priority); resolveToss is genesis's own equivalent for the very first
 	// turn.
-	if !e.G.Over {
+	if !e.G.Over && !choicePending {
 		// CR 103.1's resolution, now that the deal has fixed the survivors:
 		// beginTurn records start in its ordinary TurnChange. The resolved seat
 		// is also state.Game.StartingPlayer now (folded above without a new
 		// event: genesis is replayed from Config, including its seeded toss, so
 		// preserving the historic event stream keeps recorded matches
 		// replayable), which is what view's pregame projection and the
-		// Count$StartingPlayer head read.
+		// Count$StartingPlayer head read. With the choice pending this is
+		// deferred to resolveStartingPlayer (rules/starting_player_choice.go).
 		e.startPostDealSetup()
 	}
 	return e
@@ -1916,9 +2183,37 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			}
 		}
 	}
+	// A CantPutCounter restriction swallows a counter placement outright
+	// (task cantputcounter1): the placement never happens, so neither the
+	// event nor any AddCounter replacement of it may run. This gate was
+	// hoisted here, out of applyReplacementsDispatch, so it runs EVEN while a
+	// replacement effect's own ReplaceWith$ body is resolving
+	// (applyingReplacement): the guard that stops a replacement from
+	// re-matching its own event must not also swallow the prohibition, or a
+	// counter an "enters with N counters" body places slips past Solemnity
+	// and friends (task addcounter1/2). Looking at it before the replacement
+	// pass is harmless: applyReplacementsDispatch used to run it at its own
+	// top, before any match was collected.
+	//
+	// Only a POSITIVE placement of a real counter is subject to the
+	// restriction: a removal (Amount <= 0) is not a placement at all, and the
+	// engine's own status markers (regeneration's Shield, the Deathtouched
+	// mark) are not counters -- the same state.InternalCounterMarker exclusion the
+	// AddCounter matcher keeps, so a "counters can't be put on it" static
+	// cannot stop a regeneration shield or a removal.
+	if (ev.Kind == events.CounterChange || ev.Kind == events.PlayerCounterChange) &&
+		ev.Amount > 0 && !state.InternalCounterMarker(ev.Counter) {
+		if e.PutCounterBlocked(ev.Counter, ev.Obj, ev.Player, ev.Kind == events.PlayerCounterChange) {
+			return events.Event{}
+		}
+	}
 	if e.applyingReplacement {
 		ev = events.CarryAction(e.replAction, e.replReplaced, ev)
-	} else {
+	}
+	// A replacement body's counter placement is a NEW event, not the event
+	// whose replacement body is resolving. Give it its own AddCounter pass;
+	// the rewritten event itself is folded below without another pass.
+	if !e.applyingReplacement || ((ev.Kind == events.CounterChange || ev.Kind == events.PlayerCounterChange) && !e.counterReplacementFold) {
 		replaced, handled := e.applyReplacements(ev)
 		if handled {
 			return replaced
@@ -2027,7 +2322,14 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	if ev.Kind == events.TokenCreate && e.tokenMintSink != nil {
 		tokenMintWant = e.G.NextID
 	}
-	stored := events.Emit(e.G, e.L, ev)
+	wasTapped := false
+	if ev.Kind == events.Untap {
+		if o := e.G.Obj(ev.Obj); o != nil && o.Zone == state.ZBattlefield {
+			wasTapped = o.Tapped
+		}
+	}
+	stored := e.foldEntryMove(ev)
+	e.expireClonesOnEvent(stored, wasTapped)
 	// CR 310.10: every Battle whose recorded protector has just left the game
 	// gets a fresh living opponent as its protector. PlayerLost is the one
 	// funnel every departure passes through (life, poison, an empty-library
@@ -2138,6 +2440,18 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		if ef, ok := e.triggerEffectFrames[ev.Obj]; ok {
 			e.triggerEffectFrames[copyID] = ef
 		}
+		if line, ok := e.triggerLines[ev.Obj]; ok {
+			if e.triggerLines == nil {
+				e.triggerLines = make(map[state.ObjID]cards.Trigger)
+			}
+			e.triggerLines[copyID] = line
+			if svars, ok := e.triggerLineSVars[ev.Obj]; ok {
+				if e.triggerLineSVars == nil {
+					e.triggerLineSVars = make(map[state.ObjID]map[string]string)
+				}
+				e.triggerLineSVars[copyID] = svars
+			}
+		}
 		if lki, ok := e.triggerLKI[ev.Obj]; ok {
 			if e.triggerLKI == nil {
 				e.triggerLKI = make(map[state.ObjID]triggerObjectLKI)
@@ -2180,6 +2494,8 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	if ev.Kind == events.MoveZone && ev.From == state.ZStack && ev.To != state.ZStack {
 		delete(e.triggerContexts, ev.Obj)
 		delete(e.triggerEffectFrames, ev.Obj)
+		delete(e.triggerLines, ev.Obj)
+		delete(e.triggerLineSVars, ev.Obj)
 		delete(e.triggerLKI, ev.Obj)
 		delete(e.sacrificedLKI, ev.Obj)
 		delete(e.fuseTargets, ev.Obj)
@@ -2543,6 +2859,22 @@ func (e *Engine) SetCurrentEffectFrame(frame effects.EffectFrame) {
 }
 
 func (e *Engine) ask(d *decision.Decision) {
+	// CR 903.9 ordering: a commander's zone change parked mid-chain asks its
+	// owner at once (parkCommanderZoneMove), but the chain that parked it
+	// keeps running -- Path to Exile's exile parks Rakdos, then the same
+	// resolution's "its controller may search" poses its own choice. Posing
+	// that choice here would OVERWRITE the unanswered commander-zone ask: the
+	// parked move is never emitted, the commander stays on the battlefield,
+	// and every later park of it is dropped by the queue's dedup (the
+	// botbench Phyrexian Altar livelock, seed 9702). The later ask instead
+	// waits behind the owner's answer and is posed by Submit once that
+	// answer has been applied (drainDeferredAsks). Only a DIFFERENT decision
+	// is deferred: a second commander-zone park never reaches ask while one
+	// is pending (parkCommanderZoneMove queues it on cmdZone).
+	if e.pending != nil && e.pending.Kind == decision.KCommanderZone && d.Kind != decision.KCommanderZone {
+		e.deferredAsks = append(e.deferredAsks, d)
+		return
+	}
 	e.searchControlRedirect(d)
 	// Empty-answer-only tripwire (the class the Squadron Hawk fail-to-find
 	// search wedged): a decision whose ONLY legal answer is the empty one
@@ -2618,8 +2950,51 @@ func (e *Engine) ask(d *decision.Decision) {
 	e.pending = d
 }
 
+// decisionMadeText is the DecisionMade event text, byte-identical to
+// fmt.Sprintf("%s:%v", kind, choices) ("priority:[0 3]") -- the text is
+// hash-chained, so its bytes are fixed -- built without fmt's reflection and
+// boxing, since every Submit pays it.
+func decisionMadeText(kind decision.Kind, choices []int) string {
+	var sb strings.Builder
+	sb.Grow(len(kind) + 3 + 4*len(choices))
+	sb.WriteString(string(kind))
+	sb.WriteString(":[")
+	var num [20]byte
+	for i, c := range choices {
+		if i > 0 {
+			sb.WriteByte(' ')
+		}
+		sb.Write(strconv.AppendInt(num[:0], int64(c), 10))
+	}
+	sb.WriteByte(']')
+	return sb.String()
+}
+
+// drainDeferredAsks poses the front decision ask deferred behind a
+// commander-zone choice, once nothing is pending. A deferred decision is
+// posed through ask exactly as it would have been, so its DecisionAsk event,
+// Seq and any search-control redirect reflect the moment it is actually put
+// to a seat.
+func (e *Engine) drainDeferredAsks() {
+	for e.pending == nil && len(e.deferredAsks) > 0 {
+		d := e.deferredAsks[0]
+		e.deferredAsks = e.deferredAsks[1:]
+		if len(e.deferredAsks) == 0 {
+			e.deferredAsks = nil
+		}
+		e.ask(d)
+	}
+}
+
 // Advance runs engine work until a decision is required or the game ends.
+// A still-pending CR 103.1 winner-chooses choice (rules/starting_player_choice.go)
+// is defaulted HERE, at the loop head -- never inside step(), which the
+// resolution machinery calls mid-game; a hand-built mid-game engine must
+// never find genesis work waiting for it.
 func (e *Engine) Advance() {
+	if e.tossChoice.active && e.pending == nil {
+		e.resolveTossChoiceDefault()
+	}
 	for !e.G.Over && e.pending == nil {
 		e.step()
 	}
@@ -2628,6 +3003,9 @@ func (e *Engine) Advance() {
 // Submit applies a client's answer. Anything the engine did not offer is
 // rejected, which is what keeps the client rules-ignorant.
 func (e *Engine) Submit(in decision.Intent) error {
+	if e.derivedMemoDepth != 0 {
+		panic("rules: Submit inside a Derived memo scope (BeginDerivedReads promises a pure read)")
+	}
 	if e.G.Over {
 		return fmt.Errorf("game is over")
 	}
@@ -2679,11 +3057,27 @@ func (e *Engine) Submit(in decision.Intent) error {
 			return err
 		}
 	}
+	if e.L.Intents == nil && e.intentBuf != nil {
+		// A recycled intent array (Config.Spare) backs the log from its first
+		// intent on; Log.Clone caps Intents, so no clone ever shares its
+		// spare capacity.
+		e.L.Intents, e.intentBuf = e.intentBuf, nil
+	}
 	e.L.Intents = append(e.L.Intents, in)
 	e.emit(events.Event{Kind: events.DecisionMade, Player: in.Player,
-		Text: fmt.Sprintf("%s:%v", d.Kind, in.Choices)})
+		Text: decisionMadeText(d.Kind, in.Choices)})
 	e.pending = nil
 	e.handle(d, in)
+	// A decision posed while a commander-zone choice was outstanding waited
+	// behind it (ask's CR 903.9 arm); pose it now that the answer landed,
+	// before anything below can treat the engine as idle and advance.
+	e.drainDeferredAsks()
+	// A mana ability whose cost payment posed a decision (the CR 903.9
+	// commander-zone choice for a sacrificed commander) resolves its mana
+	// effect once that decision -- and any it handed on to -- is answered.
+	if e.pending == nil && e.manaAfterCost != nil {
+		e.resumeManaAfterCost()
+	}
 	// A CR 616.1 competition that arose while THIS decision was outstanding
 	// was parked on the queue without an ask (poseLifeReplacementChoice's
 	// queued arm, poseDamageReplacementChoice's multi-recipient batch, the

@@ -441,6 +441,24 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		e.drainAwaitsTarget = e.Pending() != nil
 		return
 	}
+	// A layer-6 Melee instance has no printed trigger index. Its captured
+	// attacked-opponent player refs are logged in IDs, so replay and stack
+	// copies read the same Count$RememberedNumber as a printed instance.
+	if pt.Melee {
+		if int(pt.Controller) >= len(e.G.Players) || e.G.Players[pt.Controller].Lost {
+			return
+		}
+		ids := make([]state.ObjID, 0, len(pt.Ctx.Remembered))
+		for _, tgt := range pt.Ctx.Remembered {
+			if tgt.IsPlayer {
+				ids = append(ids, state.PlayerRef(tgt.Player))
+			}
+		}
+		e.emit(events.Event{Kind: events.KeywordTriggerPush, Player: pt.Controller,
+			Obj: pt.Source, Counter: "__kwMeleeGranted", IDs: ids, Text: "melee ability"})
+		e.drainAwaitsTarget = e.Pending() != nil
+		return
+	}
 	// A granted afflict (CR 702.130 via a layer-6 AddKeyword$ Afflict:<N> --
 	// Lost Monarch of Ifnir's "Other Zombies you control have afflict 3"):
 	// the Ward shape exactly. The trigger is mandatory; its Counter payload
@@ -767,6 +785,7 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 				e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
 			}
 			e.triggerContexts[id] = pt.Ctx.TriggerContext
+			e.recordTriggerLine(id, pt)
 			handled := false
 			if pt.SA.Params["Choices"] != "" {
 				handled = e.askTriggerModes(pt.Controller, id, pt.SA)
@@ -803,6 +822,7 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 				e.triggerContexts = make(map[state.ObjID]effects.TriggerContext)
 			}
 			e.triggerContexts[id] = pt.Ctx.TriggerContext
+			e.recordTriggerLine(id, pt)
 			handled := false
 			if pt.SA.Params["Choices"] != "" {
 				handled = e.askTriggerModes(pt.Controller, id, pt.SA)
@@ -887,6 +907,7 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 				}
 				e.triggerEffectFrames[id] = pt.Ctx.EffectFrame
 			}
+			e.recordTriggerLine(id, pt)
 			handled := false
 			if pt.SA.Params["Choices"] != "" {
 				handled = e.askTriggerModes(pt.Controller, id, pt.SA)
@@ -1095,7 +1116,7 @@ func (e *Engine) triggerPaidX(stack state.ObjID, o *state.Object) int32 {
 	if o == nil || o.Ability == nil {
 		return 0
 	}
-	if _, ok := e.findTriggerForAbility(o.Source, o.Ability); !ok {
+	if _, ok := e.triggerForAbilityObject(stack, o); !ok {
 		return 0
 	}
 	tc, ok := e.triggerContexts[stack]
@@ -1184,6 +1205,49 @@ func (e *Engine) findTriggerForAbilityFace(source state.ObjID, sa *cards.SA) (ca
 		}
 	}
 	return cards.Trigger{}, nil, false
+}
+
+// recordTriggerLine stores the granted/delayed trigger line for a freshly
+// minted triggered-ability stack object (see Engine.triggerLines). It is a
+// no-op for a printed trigger, whose line the pointer scan already recovers,
+// so every existing push is unchanged. pushTrigger calls it from the Gained,
+// Granted and Delayed arms -- the three that mint a body events.Apply resolves
+// from an SVar name rather than a compiled Face.Triggers entry.
+func (e *Engine) recordTriggerLine(id state.ObjID, pt pendingTrigger) {
+	if pt.Trigger.Mode == "" {
+		return
+	}
+	if e.triggerLines == nil {
+		e.triggerLines = make(map[state.ObjID]cards.Trigger)
+	}
+	e.triggerLines[id] = pt.Trigger
+	if pt.TriggerSVars != nil {
+		if e.triggerLineSVars == nil {
+			e.triggerLineSVars = make(map[state.ObjID]map[string]string)
+		}
+		e.triggerLineSVars[id] = pt.TriggerSVars
+	}
+}
+
+// triggerForAbilityObject resolves the trigger line for an ability stack
+// object. A granted (AddTrigger$) or delayed (Effect Triggers$) body is an
+// SVar-named *cards.SA and cards.ResolveSVar parses a FRESH pointer on every
+// call, so pointer identity against Face.Triggers can never match one; the
+// line pushTrigger recorded on Engine.triggerLines is the exact identity.
+// Everything else -- a printed, merged or has-all-abilities-of trigger --
+// falls through to the pointer scan, exactly as before.
+//
+// Every caller that then reads a trigger-only clause (OptionalDecider$,
+// Cost$, ResolvedLimit$, Condition$, TriggerPaidX) must go through this so a
+// granted trigger is not treated as a non-trigger and skipped.
+func (e *Engine) triggerForAbilityObject(id state.ObjID, o *state.Object) (cards.Trigger, bool) {
+	if o == nil || o.Ability == nil {
+		return cards.Trigger{}, false
+	}
+	if t, ok := e.triggerLines[id]; ok {
+		return t, true
+	}
+	return e.findTriggerForAbility(o.Source, o.Ability)
 }
 
 // faceOwningTrigger returns the face of source that carries t: its top face
@@ -1384,11 +1448,15 @@ func (e *Engine) StackOptional(id state.ObjID) (optional bool, decider state.Pla
 	if o == nil || o.Ability == nil {
 		return false, 0
 	}
-	t, ok := e.findTriggerForAbility(o.Source, o.Ability)
-	if !ok {
-		return false, 0
+	spec := ""
+	if t, ok := e.findTriggerForAbility(o.Source, o.Ability); ok {
+		spec = t.Params["OptionalDecider"]
+	} else {
+		// An Effect-created delayed trigger: no face T: line, so its
+		// OptionalDecider$ spec rides the registration's referent context
+		// (the same fallback resolveTop's optional gate uses).
+		spec = e.triggerContexts[id].OptionalSpec
 	}
-	spec := t.Params["OptionalDecider"]
 	if spec == "" {
 		return false, 0
 	}
@@ -1574,6 +1642,9 @@ func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA
 			svars = sf.SVars
 		}
 	}
+	if owned, ok := e.triggerLineSVars[obj]; ok {
+		svars = owned
+	}
 	choices := strings.Split(sa.Params["Choices"], ",")
 	for i := range choices {
 		choices[i] = strings.TrimSpace(choices[i])
@@ -1700,9 +1771,9 @@ func (e *Engine) askTriggerOptional(who state.PlayerID, pt pendingTrigger) {
 // nothing (finishResumption). The decider is derived from the stack object's
 // own controller + Remembered (deciderFromSpec), not from a pendingTrigger,
 // because the queued trigger has already been consumed by the drain.
-func (e *Engine) askOptionalAtResolution(who state.PlayerID, o *state.Object, sa *cards.SA, label string) {
+func (e *Engine) askOptionalAtResolution(who state.PlayerID, o *state.Object, sa *cards.SA, label string, effectOptional bool) {
 	d := &decision.Decision{Player: who, Kind: decision.KTriggerOptional, Min: 1, Max: 1,
-		ResumeKind: "optional", ResumeSA: sa, Source: o.Source,
+		ResumeKind: "optional", ResumeSA: sa, Source: o.Source, EffectOptional: effectOptional,
 		Prompt: "Apply this triggered ability's effect? — " + label,
 		Options: []decision.Option{
 			{Index: 0, Kind: "yes", Label: "Yes — " + label, Obj: o.Source, Player: o.Controller},

@@ -136,8 +136,8 @@ func StackKindTokenOf(t string) (StackKindToken, bool) {
 	default:
 		return tok, false // a non-stack token never contributes a stack kind
 	}
-	for _, part := range strings.Split(rest, ".") {
-		for _, q := range strings.Split(strings.TrimSpace(part), "+") {
+	for part := range strings.SplitSeq(rest, ".") {
+		for q := range strings.SplitSeq(strings.TrimSpace(part), "+") {
 			switch strings.TrimSpace(q) {
 			case "YouCtrl":
 				tok.YouCtrl = true
@@ -182,7 +182,7 @@ func StackKindTokenOf(t string) (StackKindToken, bool) {
 func StackKindTokens(tt string) []StackKindToken {
 	spellOnly := StackKindToken{Kinds: [3]bool{StackKindSpell: true}}
 	var toks []StackKindToken
-	for _, t := range strings.Split(tt, ",") {
+	for t := range strings.SplitSeq(tt, ",") {
 		tok, ok := StackKindTokenOf(t)
 		if !ok {
 			continue

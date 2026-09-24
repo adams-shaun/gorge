@@ -411,11 +411,9 @@ func TestHumanSeatTakesADecisionEndToEnd(t *testing.T) {
 }
 
 // TestTheHumanSeatIsAskedToMulligan is the product half of M2e-5: with
-// -mulligans 1 (the flag default), the London round runs and the very first
-// decision the human seat is offered is its keep/mulligan choice — the
-// mulligan, unreachable from gorged before this task, becomes the first
-// decision a real player meets. Answering "keep" must move the match past
-// the round.
+// -mulligans 1 (the flag default), the London round runs and the human
+// seat receives its keep/mulligan choice after any CR 103.1 toss choice.
+// Answering "keep" must move the match past the round.
 func TestTheHumanSeatIsAskedToMulligan(t *testing.T) {
 	t.Parallel()
 	url, cancel, done := startServe(t, config{tables: 1, seats: 2, humansRaw: "0", pace: 0, perpetual: true, seatToken: "tok", mulligans: 1})
@@ -423,7 +421,7 @@ func TestTheHumanSeatIsAskedToMulligan(t *testing.T) {
 	waitTables(t, url, 1)
 
 	pendingURL := url + "/api/tables/t1/matches/1/pending"
-	first := waitDecision(t, pendingURL, "0", "tok")
+	first := afterTossChoice(t, url, "t1", pendingURL, "tok", waitDecision(t, pendingURL, "0", "tok"))
 	if first.Kind != decision.KMulligan {
 		t.Fatalf("first decision offered to the human seat is %q, want mulligan", first.Kind)
 	}
@@ -998,6 +996,31 @@ func answerMulligan(t *testing.T, url, table, tok string, d decision.Decision, c
 	}
 }
 
+// afterTossChoice consumes a human winner's CR 103.1 ask, if present, before
+// the caller inspects the first post-toss decision. A bot winner answers its
+// own ask without exposing it to seat 0. Choose the human winner themselves
+// so the mulligan test remains about the allowance, not turn order.
+func afterTossChoice(t *testing.T, url, table, pendingURL, tok string, d decision.Decision) decision.Decision {
+	t.Helper()
+	if d.Kind != decision.KStartingPlayer {
+		return d
+	}
+	if d.Player != 0 || d.Min != 1 || d.Max != 1 || len(d.Options) != 2 || d.Options[0].Player == d.Options[1].Player {
+		t.Fatalf("bad human toss choice: %+v", d)
+	}
+	self := -1
+	for i, opt := range d.Options {
+		if opt.Player == d.Player {
+			self = i
+		}
+	}
+	if self < 0 {
+		t.Fatalf("toss winner %d not among candidates: %+v", d.Player, d.Options)
+	}
+	answerMulligan(t, url, table, tok, d, []int{self})
+	return fastPollDecision(t, pendingURL, "0", tok)
+}
+
 // TestVsBotGameHonoursRequestedMulliganAllowance is the product proof for
 // finding fb-20260914T114629Z-6c81e4d6: a play-vs-bot game created with
 // "mulligans": 3 re-offers the keep/mulligan ask (option 1, "mulligan") until
@@ -1019,6 +1042,9 @@ func TestVsBotGameHonoursRequestedMulliganAllowance(t *testing.T) {
 	// Take three mulligans: option 1 ("mulligan") of each keep/mulligan ask.
 	for taken := 1; taken <= 3; taken++ {
 		d := fastPollDecision(t, pendingURL, "0", tok)
+		if taken == 1 {
+			d = afterTossChoice(t, url, table, pendingURL, tok, d)
+		}
 		if d.Kind != decision.KMulligan {
 			t.Fatalf("after %d prior mulligan(s) the seat is asked %q, want mulligan", taken-1, d.Kind)
 		}
@@ -1062,7 +1088,8 @@ func TestVsBotGameHonoursRequestedMulliganAllowance(t *testing.T) {
 	// never a mulligan. The pointer wiring in the create flow is what makes
 	// the value reachable at all.
 	table2, tok2 := createVsBotGame(t, url, `{"format":"constructed","mulligans":0}`)
-	d2 := fastPollDecision(t, fmt.Sprintf("%s/api/tables/%s/matches/1/pending", url, table2), "0", tok2)
+	pendingURL2 := fmt.Sprintf("%s/api/tables/%s/matches/1/pending", url, table2)
+	d2 := afterTossChoice(t, url, table2, pendingURL2, tok2, fastPollDecision(t, pendingURL2, "0", tok2))
 	if d2.Kind == decision.KMulligan {
 		t.Fatalf("first decision of a mulligans-0 game is %q: the pregame round still ran", d2.Kind)
 	}

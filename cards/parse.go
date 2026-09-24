@@ -280,7 +280,7 @@ func ParseReplacementLine(body string) (Repl, bool) {
 // the first "$" only.
 func parseParams(val string) map[string]string {
 	out := make(map[string]string, 8)
-	for _, seg := range strings.Split(val, "|") {
+	for seg := range strings.SplitSeq(val, "|") {
 		seg = strings.TrimSpace(seg)
 		if seg == "" {
 			continue

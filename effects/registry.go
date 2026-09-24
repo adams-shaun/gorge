@@ -168,6 +168,20 @@ type Host interface {
 	// emit path skips replacement application there, and the body's own
 	// explores are fresh events).
 	ExploreReplaced(explorer state.ObjID) bool
+	// Scry proposes one scry instruction BEFORE any card of the player's
+	// library is looked at (CR 614.4: an R:Event$ Scry replacement applies to
+	// the scry action itself), so the proposed count can be adjusted
+	// (Kenessos, Priest of Thassa: "scry that many cards plus one") or the
+	// whole instruction replaced (Eligeth, Crossroads Augur: "draw that many
+	// cards instead"). It returns the surviving instruction's count and
+	// proceed=false when a replacement replaced the scry whole -- the caller
+	// must then look at and arrange NOTHING. The proposal is never logged;
+	// the completed scry's own events.Scry record (carrying the number of
+	// cards actually put on the bottom) is emitted later by the rules tier.
+	// Rules-implemented because replacement matching lives in the rules tier;
+	// the effects test double reports (count, true) unchanged (no engine to
+	// consult).
+	Scry(p state.PlayerID, source state.ObjID, count int32, sa *cards.SA, target int) (countAfter int32, proceed, pending bool)
 	// RememberExploitedLKI publishes the last-known-information snapshot of
 	// one creature a resolving exploit ability just sacrificed (CR 702.58a).
 	// The events.Exploit marker names the exploited creature by id, but Move
@@ -549,6 +563,18 @@ type Host interface {
 	// the host drops that report (the villainous frame re-enters the
 	// primitive itself), the SuspendCharmRest convention.
 	SuspendVillainousRest(sa *cards.SA, rest VillainousRest)
+	// SuspendGenericChoiceRest reports that a multi-player api:GenericChoice's
+	// chosen body suspended on a nested mid-resolution ask with choosers still
+	// to ask. sa is the GenericChoice's own SA and rest carries the ordered
+	// Defined$ chooser list plus the index of the NEXT chooser to ask. The
+	// host records a continuation that re-enters the GenericChoice with that
+	// cursor once the answered ask's own chain completes, so the remaining
+	// choosers are still asked and their chosen bodies run rather than being
+	// dropped. The Resolve loop enclosing the GenericChoice reports the same
+	// SA through SuspendContinuation next; the host drops that report (the
+	// GenericChoice frame re-enters the primitive itself), the
+	// SuspendCharmRest convention.
+	SuspendGenericChoiceRest(sa *cards.SA, rest GenericChoiceRest)
 	// SuspendFlipRest reports that a DB$ FlipCoin loop suspended inside a
 	// per-flip sub-ability (FlipUntilYouLose$ or Amount$ > 1) with flips still
 	// owed. rest carries the flip cursor: the flippers not yet processed and
@@ -699,6 +725,19 @@ type VillainousRest struct {
 	Next    int
 }
 
+// GenericChoiceRest is a multi-player api:GenericChoice's continuation after
+// one chooser's chosen body suspended on a nested mid-resolution ask.
+// Choosers is the ordered Defined$ player set and Next is the index of the
+// chooser still to ask (the completed chooser's index + 1). The host re-enters
+// the GenericChoice primitive with that cursor, so a body that suspended on its
+// own nested ask does not strand the remaining choosers. Plain data, so the
+// host can carry it on its own continuation frame and replay re-derives it
+// identically.
+type GenericChoiceRest struct {
+	Choosers []state.Target
+	Next     int
+}
+
 // DamageSourceLKI is the pre-departure damage provenance of one object.
 // It remains separate from Ctx's own-source fields because DamageSource$ may
 // name an object distinct from the resolving spell or ability's source.
@@ -775,6 +814,14 @@ type Ctx struct {
 	// spell, on a synthetic push, and in any test Ctx that never binds it --
 	// a modelled head reading a legitimate zero.
 	ResolvedThisTurn int32
+	// ActivationsThisTurn is how many times the resolving ACTIVATED ability
+	// has been activated this turn, INCLUDING the current activation (its own
+	// AbilityPush / ManaActivate marker is already in the log). rules binds
+	// it wherever it binds ResolvedThisTurn; zero means unbound (a spell, a
+	// trigger, a synthetic Ctx). It backs ConditionActivationLimit$
+	// (Farrelite Priest's "if this ability has been activated four or more
+	// times this turn").
+	ActivationsThisTurn int32
 	// EffectiveNames is the layer-3 rename table (SetName$, CR 613.1d) in force
 	// on the battlefield, published by the resolving Host at the top of every
 	// effects.Resolve walk and bound onto every SpecContext (*Ctx).SpecContext
@@ -960,6 +1007,17 @@ type Ctx struct {
 	// the source object's stamped field -- the same priority the xPaid head
 	// gives ctx.X over the object read.
 	TimesKicked int32
+	// PendingKicked is the pending cast's CHOSEN kicked mode (CR 702.4/702.33),
+	// seeded by rules' targetBoundCtx when the spell's OWN announcement ask
+	// resolves a Count$Kicked body BEFORE payment has stamped the stack
+	// object's CastFlags. Tear Asunder's kicked main SA is
+	// TargetMin$ X | TargetMax$ X over SVar:X:Count$Kicked.0.1, so pre-payment
+	// the object reads Kicked false and X stays 1 -- the ask then demands an
+	// artifact/enchantment the kicked spell must not take. The Kicked count
+	// head ORs this bit with the object's FlagKicked, so a mid-resolution read
+	// (no pending cast, the flag actually stamped) is unaffected. Zero (false)
+	// everywhere else; it is derived data, never event-encoded.
+	PendingKicked bool
 	// ChosenNumber is the Effect's SetChosenNumber$ binding (task
 	// wildgrowth1): the number the Effect resolved at creation, threaded into
 	// a registered replacement's body Ctx by rules' replCtx so the body's
@@ -1204,6 +1262,15 @@ type Ctx struct {
 	// chosen body has completed.
 	VillainousVictims []state.Target
 	VillainousIndex   int
+	// GenericChoosers is the ordered Defined$ player set for a multi-player
+	// api:GenericChoice resolution (each opponent chooses one of the same
+	// Choices$), and GenericChooserIndex is the index of the chooser being
+	// asked. The index advances only after the current chooser's chosen body
+	// has completed, so the remaining choosers are asked once the body's own
+	// nested ask (if any) finishes. Nil outside the per-player path, which
+	// keeps the single-controller Charm/GenericChoice ask unchanged.
+	GenericChoosers     []state.Target
+	GenericChooserIndex int
 	// Sacrifice is an Annihilator sacrifice answer on re-entry.
 	Sacrifice []state.ObjID
 	// Search is the answered hidden-library KChoose selection on a re-entered
@@ -1376,6 +1443,17 @@ type Ctx struct {
 	CloneChoiceValid bool
 	CloneBecome      state.ObjID
 	CloneBecomeValid bool
+	// ClonePick is the answered DB$ Clone Choices$ <filter> copy-source pick
+	// (the standalone "becomes a copy of any creature" family). rules'
+	// resumeResolution sets it from the recorded answer before re-running the
+	// suspended ability, and ClonePickDone distinguishes "answered" from the
+	// first pass. The asking effect consumes and clears both at the top of its
+	// own walk (the fx42 scoping discipline), so a nested Clone cannot inherit
+	// the outer answer. A no-host run (AskNoHost) keeps the deterministic
+	// first-eligible stand-in without setting either field, so a fuzz run is
+	// byte-identical to the pre-ask build.
+	ClonePick     state.ObjID
+	ClonePickDone bool
 	// TwoPiles is the answered Fact or Fiction pile-split pick (task
 	// twopiles1): the cards the Separator$ player picked into pile A, in the
 	// separator's answer order — the rest of the card set, in the order it
@@ -1559,6 +1637,12 @@ type Ctx struct {
 	// applied by the rules handler, unlike Modes/UnlessPay/Discard where the
 	// effect re-reads the answer -- so the field is only a done-marker.
 	Arrange bool
+	// ScryReplacement is the completed CR 616 order choice for this target.
+	// Its count/proceed result is consumed once on re-entry, without proposing
+	// the same instruction a second time.
+	ScryReplacement bool
+	ScryCount       int32
+	ScryProceed     bool
 	// ArrangeTarget is the Defined$-target index whose arrange was the one
 	// answered, carried only for a Dig (whose effDig walks several Defined$
 	// targets and must keep the deterministic processing for the ones after
@@ -2479,10 +2563,15 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 		// the ask poseUnlessAsk posed — stops the loop here. Compare against
 		// the pre-gate state instead of the raw predicate.
 		wasSuspended := h.Suspended()
+		asksBefore := askCount(h)
 		if strings.TrimSpace(sa.Params["UnlessCost"]) != "" {
 			runBody, paid = unlessProceed(h, c, sa)
 		}
-		if !wasSuspended && h.Suspended() {
+		// askCount catches the gate ask the host DEFERRED behind an
+		// already-suspended resolution (rules' Engine.Ask: a second shock
+		// land's pay-2-life ask while the first one's is still pending),
+		// which leaves Suspended() unchanged.
+		if (!wasSuspended && h.Suspended()) || askCount(h) != asksBefore {
 			// The gate posed the unless-pay ask and suspended the
 			// resolution: stop here exactly as an asking effect body
 			// would. The resume re-enters THIS SA (the ask's ResumeSA),

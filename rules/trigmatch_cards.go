@@ -412,7 +412,7 @@ func (e *Engine) drawCauseAdmits(spec string, source state.ObjID, ev events.Even
 	if o == nil {
 		return false
 	}
-	for _, alt := range strings.Split(spec, ",") {
+	for alt := range strings.SplitSeq(spec, ",") {
 		if e.drawCauseTokenAdmits(strings.TrimSpace(alt), o, source) {
 			return true
 		}
@@ -431,7 +431,7 @@ func (e *Engine) drawCauseTokenAdmits(token string, o *state.Object, source stat
 		return false
 	}
 	_, rest, _ := strings.Cut(strings.TrimSpace(token), ".")
-	for _, q := range strings.Split(rest, "+") {
+	for q := range strings.SplitSeq(rest, "+") {
 		q = strings.TrimSpace(q)
 		if q == "" {
 			continue
@@ -630,7 +630,7 @@ func (e *Engine) causeSpecAdmits(spec string, source state.ObjID) bool {
 		return false
 	}
 	you := e.controllerOf(source)
-	for _, alt := range strings.Split(spec, ",") {
+	for alt := range strings.SplitSeq(spec, ",") {
 		alt = strings.TrimSpace(alt)
 		if alt == "" {
 			continue
@@ -660,7 +660,7 @@ func (e *Engine) causeSpecAdmits(spec string, source state.ObjID) bool {
 // Spell kind's card-type restriction).
 func causeSpecQualifiersKnown(alt string) bool {
 	_, rest, _ := strings.Cut(alt, ".")
-	for _, q := range strings.Split(rest, ".") {
+	for q := range strings.SplitSeq(rest, ".") {
 		switch q {
 		case "", "YouCtrl", "OppCtrl", "Instant", "Sorcery":
 		default:
@@ -695,7 +695,7 @@ func causeCostAdmits(spec string, cause costCause) bool {
 	if cause == costCauseNone || cause == costCauseResolution {
 		return false
 	}
-	for _, alt := range strings.Split(spec, ",") {
+	for alt := range strings.SplitSeq(spec, ",") {
 		alt = strings.TrimSpace(alt)
 		if alt == "" {
 			continue

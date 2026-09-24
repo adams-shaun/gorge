@@ -92,6 +92,19 @@ type pendingTrigger struct {
 	Granted bool
 	Grantor state.ObjID
 	Execute string
+	// Trigger is the granted/delayed trigger LINE this pending trigger came
+	// from (its OptionalDecider$, Cost$, Condition$ and ResolvedLimit$ live
+	// here, not on the Execute$ body). It is zero for every printed trigger,
+	// whose line is recovered from Face.Triggers by pointer, and is carried
+	// through pushTrigger into Engine.triggerLines keyed by the minted stack
+	// object -- see that field. The Gained arm sets it from the foreign face's
+	// compiled Trigger, the Granted arm from the AddTrigger$ static and the
+	// Delayed arm from the registration's re-parsed body.
+	Trigger cards.Trigger
+	// TriggerSVars is the owning face's immutable script table captured with
+	// the granted/delayed line. Source may be a different card, and the grant
+	// can end before this ability resolves.
+	TriggerSVars map[string]string
 	// Gained marks a has-all-abilities-of trigger (Forge's
 	// GainsTriggerAbsOf$ on a Mode$ Continuous static, the Idris, Soul of the
 	// TARDIS shape): the ability is a compiled trigger on a FOREIGN card's
@@ -110,6 +123,8 @@ type pendingTrigger struct {
 	// KeywordTriggerPush whose __kwWard: payload events.Apply rebuilds the
 	// same DB$ Ward ability from. Idx and SA are unset for it.
 	Ward string
+	// Melee marks a layer-6 granted instance without a printed trigger index.
+	Melee bool
 	// Afflict is a GRANTED afflict keyword (a layer-6 AddKeyword$
 	// Afflict:<N>, e.g. Lost Monarch of Ifnir's "Other Zombies you control
 	// have afflict 3"): the same shape as Ward -- the queue carries the life
@@ -295,6 +310,19 @@ type zoneBatchEntry struct {
 	moved []state.Target
 }
 
+// millBatchEntry records one MilledAll trigger line already queued inside the
+// open mill batch: the pendingTriggers index it queued at (the queue is
+// append-only while a batch is open) plus the number of cards this line's
+// ValidCard$ matched and their deduplicated set. closeMillBatch patches the
+// count into the queued trigger's TriggerAmount (the TriggerCount$Amount
+// head) and the set into its Remembered/Captured plural capture.
+type millBatchEntry struct {
+	key    triggerKey
+	idx    int
+	amount int32
+	milled []state.Target
+}
+
 // turnFires is one T: line's trigger count within the turn it last
 // triggered (Engine.triggerTurnFires).
 type turnFires struct {
@@ -407,6 +435,16 @@ var actionTriggerModes = map[string]bool{
 	// FirstTime$ (Whispering Snitch's "for the first time each turn")
 	// through the shared firstMarkerThisTurn log scan.
 	"Surveil": true,
+	// Milled/MilledAll join them for the same reason: both are event modes
+	// registered from the start (milledMatches over events.Mill, task
+	// trig-milled), so the trigger-level parameters Forge scopes to every
+	// event mode apply from day one -- ActivationLimit$ (Mirelurk Queen's
+	// "This ability triggers only once each turn" on its MilledAll line),
+	// PlayerTurn$ and an unevaluable CheckDefinedPlayer$ predicate failing
+	// closed. MilledAll's once-per-turn cadence is its own batch latch (the
+	// mill entry), not this map; the map only makes ActivationLimit$ count
+	// the batch's single queue slot.
+	"Milled": true, "MilledAll": true,
 }
 
 // triggerGameLimitFor parses a trigger's GameActivationLimit$ param (the
@@ -766,10 +804,11 @@ func (e *Engine) checkTriggers(ev events.Event, lki *state.Object,
 		e.hasEffectRepeatDelayed() {
 		e.checkEventDelayedTriggers(ev, lki)
 	}
-	// Sagas (kw:Chapter): a lore counter's chapter ability queues off the
-	// two events that place lore counters -- the battlefield-entry Move
-	// (whose own grant is already folded into the live counter the check
-	// reads) and a LORE CounterChange (the draw-step half).
+	// Sagas (kw:Chapter): a lore counter's chapter ability queues off the one
+	// event that places a lore counter -- the LORE CounterChange (the entry
+	// grant rules' foldEntryMove places and the draw-step half alike; task
+	// addcounter1/2 moved the entry grant onto a real CounterChange, so the
+	// old MoveZone arm double-queued the entry chapter).
 	e.checkChapterTriggers(ev)
 	if ev.Kind == events.Draw {
 		e.offerMiracle(ev)
@@ -974,9 +1013,17 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 	// Granted triggers inspect the same active-static list for every object
 	// this event visits. Matching cannot emit or mutate continuous effects;
 	// phase diagnostics emit only after the walk, so this snapshot is stable
-	// for its full deterministic traversal.
-	grantedStatics := observer.active()
-	observer.forEachObject(func(id state.ObjID) {
+	// for its full deterministic traversal. It is narrowed ONCE here to the
+	// grants whose trigger Mode$ can observe this event kind (exact: see
+	// checkGrantedStaticTriggersUsing), so the per-object walk never runs an
+	// Affected$ spec match for a grant that cannot fire on this event.
+	var grantedBuf [8]*ContinuousEffect
+	grantedStatics := grantedTriggerStaticsFor(observer.active(), ev.Kind, grantedBuf[:0])
+	// The event's compiled-interest test, hoisted out of the per-object walk:
+	// compiledTriggerInterestAllows(interests, ev.Kind) is exactly
+	// evAll || interests&evMask != 0 (see objectFaceMayTriggerHoisted).
+	evAll, evMask := compiledTriggerInterestEvent(ev.Kind)
+	visit := func(id state.ObjID) {
 		o := observer.G.Obj(id)
 		if o == nil {
 			return
@@ -1025,7 +1072,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		// eligible alternate face. Granted Ward is independent of both -- and
 		// so is a static-grant's trigger (AddTrigger$): the granted walk below
 		// runs on BOTH paths, like Ward and Dethrone do.
-		if !o.Unlocked && len(o.MergedCards) == 0 && !e.objectFaceMayTrigger(id, o.FaceIdx, f, ev.Kind) {
+		if !o.Unlocked && len(o.MergedCards) == 0 && !e.objectFaceMayTriggerHoisted(id, o.FaceIdx, f, ev.Kind, evAll, evMask) {
 			if grantedKeywordTriggerEvent(ev.Kind) {
 				switch ev.Kind {
 				case events.TargetsChosen:
@@ -1033,6 +1080,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				case events.DeclareAttackers:
 					e.checkGrantedDethroneTriggers(observer, id, o, f, ev, objLKI)
 					e.checkGrantedTrainingTriggers(observer, id, o, f, ev, objLKI)
+					e.checkGrantedMeleeTriggers(observer, id, o, f, ev, objLKI)
 					e.checkGrantedMentorTriggers(observer, id, o, f, ev, objLKI)
 				case events.DeclareBlockers:
 					e.checkGrantedAfflictTriggers(id, o, f, ev)
@@ -1046,7 +1094,9 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					e.checkGrantedCumulativeUpkeepTriggers(observer, id, o, f, ev, objLKI)
 				}
 			}
-			e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid, split, leaving)
+			if len(grantedStatics) > 0 {
+				e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid, split, leaving)
+			}
 			return
 		}
 		// Enchantment Rooms (rules/rooms.go): an UNLOCKED room's alternate
@@ -1315,6 +1365,43 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 					// Fall through: the trigger queues now; closeZoneBatch patches
 					// its plural capture to the batch's moved set.
 				}
+				// MilledAll inside an open mill batch (one api:Mill resolution,
+				// effects/cardflow.go's effMill) is the mill twin of the
+				// ChangesZoneAll latch above: the batch's milled cards reach the
+				// trigger ONCE, not once per card, so it fires ONCE for the whole
+				// mill action if at least one matching card was milled. The latch
+				// keys on the trigger line ALONE (DamageAll's shape); the first
+				// matching milled card queues the single instance and every later
+				// matching card accumulates into the entry's COUNT, which
+				// closeMillBatch patches into the queued trigger's TriggerAmount
+				// (the TriggerCount$Amount head The Wise Mothman's X and
+				// Screeching Scorchbeast's "that many" read). Only cards this
+				// line's ValidCard$ matched are counted, exactly as DamageAll
+				// only accumulates matching pairs. No batch open (a mill that is
+				// not an api:Mill, e.g. a cost mill) means every mill is its own
+				// batch-of-one and the per-event referent below already carries
+				// count 1.
+				if t.Mode == "MilledAll" && e.millBatchOpen {
+					if e.millBatchIdx == nil {
+						e.millBatchIdx = map[triggerKey]int{}
+					}
+					if entIdx, ok := e.millBatchIdx[key]; ok {
+						ent := &e.millBatchLog[entIdx]
+						ent.amount++
+						if ev.Obj != 0 {
+							ent.milled = batchAppendTarget(ent.milled, state.Target{Obj: ev.Obj})
+						}
+						continue // already queued once for this mill action.
+					}
+					ent := millBatchEntry{key: key, idx: len(e.pendingTriggers), amount: 1}
+					if ev.Obj != 0 {
+						ent.milled = batchAppendTarget(ent.milled, state.Target{Obj: ev.Obj})
+					}
+					e.millBatchIdx[key] = len(e.millBatchLog)
+					e.millBatchLog = append(e.millBatchLog, ent)
+					// Fall through: the trigger queues now; closeMillBatch patches
+					// its count and plural capture to the mill action's totals.
+				}
 				// RolledDie's Number$ N ("your third die each turn"): gated
 				// LAST, at the queue point, so a speculative matcher call or a
 				// later-rejected trigger never advances the count. Keyed by the
@@ -1427,7 +1514,9 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 				}
 			}
 		}
-		e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid, split, leaving)
+		if len(grantedStatics) > 0 {
+			e.checkGrantedStaticTriggersUsing(observer, grantedStatics, id, o, ev, objLKI, lkiPower, lkiToughness, lkiPTValid, split, leaving)
+		}
 		// A granted Afflict must fire even when the object's own printed
 		// triggers are live for this event (a Zombie with its own become-blocked
 		// trigger carrying the Monarch's grant) -- the early-return path above
@@ -1456,6 +1545,7 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		// trigger carrying the training grant) -- the early-return path above
 		// reaches this object through checkGrantedTrainingTriggers's own call.
 		e.checkGrantedTrainingTriggers(observer, id, o, f, ev, objLKI)
+		e.checkGrantedMeleeTriggers(observer, id, o, f, ev, objLKI)
 		// A granted Mentor must fire even when the object's own printed
 		// triggers are live for this event -- the same both-paths rule
 		// Afflict, Conspire, Exploit, Offspring and Training follow.
@@ -1465,7 +1555,16 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev events.Event, lki *state
 		// live for this step change -- the same both-paths rule Afflict,
 		// Conspire, Exploit, Offspring and Training follow.
 		e.checkGrantedCumulativeUpkeepTriggers(observer, id, o, f, ev, objLKI)
-	})
+	}
+	// The live walk skips a hidden zone none of whose objects can act on
+	// any event (rules/trigger_zoneskip.go); the look-back observer and any
+	// event a static-granted trigger observes walk everything.
+	skip := observer == e && len(grantedStatics) == 0
+	var verify func(state.ObjID)
+	if skip && trigZoneSkipVerify {
+		verify = e.trigSkipVerifier(ev, visit, func() int { return len(phaseNotes) })
+	}
+	observer.forEachTriggerObject(ev, skip, visit, verify)
 	for _, n := range phaseNotes {
 		e.emit(events.Event{Kind: events.Note, Obj: n.id,
 			Text: "Phase$ " + n.spec + " names no engine step; the trigger never fires"})
@@ -1631,6 +1730,62 @@ func (e *Engine) EndDamageBatch()   { e.closeDamageBatch() }
 func (e *Engine) BeginZoneBatch() { e.openZoneBatch() }
 func (e *Engine) EndZoneBatch()   { e.closeZoneBatch() }
 
+// BeginMillBatch/EndMillBatch are effects.Host's mill-batch bracket (effects/
+// cardflow.go's effMill opens them around one api:Mill resolution): the mill
+// MoveZone events emitted until the matching EndMillBatch are one mill action
+// for the Mode$ MilledAll latch. Reentrant brackets nest by depth so an inner
+// mill cannot close its caller's batch early.
+func (e *Engine) BeginMillBatch() { e.openMillBatch() }
+func (e *Engine) EndMillBatch()   { e.closeMillBatch() }
+
+// openMillBatch opens a mill batch: the mill MoveZone events emitted until
+// the matching closeMillBatch are one mill action for Mode$ MilledAll.
+func (e *Engine) openMillBatch() {
+	if e.millBatchDepth == 0 {
+		e.millBatchOpen = true
+		e.millBatchIdx = nil
+		e.millBatchLog = nil
+	}
+	e.millBatchDepth++
+}
+
+// closeMillBatch closes the open mill batch: every entry's queued trigger
+// gets its TriggerAmount patched to the count of matching cards and its
+// Remembered/Captured plural capture to their set, then the bookkeeping is
+// dropped. The latch lives entirely inside the open batch -- entries are the
+// latch, and closing clears them -- so nothing persists between mills. The
+// pendingTriggers index is re-checked against the trigger it was recorded for
+// before patching (same guard as closeZoneBatch/closeDamageBatch: a trigger
+// whose Execute$ never resolved queued nothing).
+func (e *Engine) closeMillBatch() {
+	if e.millBatchDepth == 0 {
+		return
+	}
+	e.millBatchDepth--
+	if e.millBatchDepth != 0 {
+		return
+	}
+	e.millBatchOpen = false
+	for _, ent := range e.millBatchLog {
+		if ent.idx >= len(e.pendingTriggers) {
+			continue
+		}
+		for i := ent.idx; i < len(e.pendingTriggers); i++ {
+			pt := &e.pendingTriggers[i]
+			if pt.Source != ent.key.Source || pt.Idx != ent.key.Idx {
+				break
+			}
+			pt.Ctx.TriggerContext.TriggerAmount = ent.amount
+			if len(ent.milled) > 0 {
+				pt.Ctx.Remembered = append([]state.Target(nil), ent.milled...)
+				pt.Ctx.Captured = append([]state.Target(nil), ent.milled...)
+			}
+		}
+	}
+	e.millBatchIdx = nil
+	e.millBatchLog = nil
+}
+
 // openZoneBatch opens a zone batch: the zone-change events (MoveZone,
 // Draw, PutOnStack -- the kinds zoneChangeMatches consults) emitted until
 // the matching closeZoneBatch are one simultaneous batch for ChangesZoneAll.
@@ -1769,6 +1924,9 @@ func triggerRemembered(ev events.Event, source state.ObjID) []state.Target {
 // shapes. Every other mode, and every per-defender attack trigger, is
 // unchanged.
 func (e *Engine) triggerRememberedFor(t cards.Trigger, ev events.Event, source state.ObjID) []state.Target {
+	if ev.Kind == events.DeclareAttackers && t.Params["Keyword"] == "Melee" {
+		return e.meleeRemembered(ev)
+	}
 	if ev.Kind == events.DeclareAttackers && attackersDeclaredBatch(t) && len(e.declaredAttackers) > 0 {
 		out := make([]state.Target, 0, len(e.declaredAttackers)+1)
 		for _, id := range e.declaredAttackers {
@@ -2032,6 +2190,9 @@ func init() {
 		// attacksMatches (the Dethrone precedent), with a granted-keyword
 		// synthesis (checkGrantedTrainingTriggers) for the layer-6 grant.
 		"kw:Training",
+		// CR 702.121 Melee: snapshot distinct attacked opponents at declaration
+		// for each printed or granted Attacks trigger instance.
+		"kw:Melee",
 		// CR 702.134 Mentor: an Attacks trigger (cards/kw_mentor.go) whose
 		// targeted PutCounter body carries the Mentor$ marker, enforced by
 		// mentorAdmits at both the target offer and the recheck, with a
@@ -2102,5 +2263,10 @@ func init() {
 		// seating exists (the deck.IsPartnerPair extension is a separate
 		// ticket; the Partner precedent above is the same class).
 		"kw:Doctor's companion",
+		// kw:Companion is the deck-construction keyword (CR 702.139), in the
+		// same registration class as Partner above. This asserts the corpus
+		// shape is understood; the chosen-companion pregame pick and the
+		// outside-the-game activation are separate play-side work.
+		"kw:Companion",
 	)
 }

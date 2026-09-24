@@ -272,11 +272,11 @@ func TestGateChainWiring(t *testing.T) {
 	if !evaluated || !holds {
 		t.Fatalf("CheckSVarHolds(X, GE3) = (%v, %v), want (true, true)", holds, evaluated)
 	}
-	// An unmodelled body (Count$CardNumAttacksThisTurn is not a modelled head)
+	// An unmodelled body (Count$MaxOppDamageThisTurn is not a modelled head)
 	// is NOT evaluated -- the verdict the three call sites fail open on.
-	ctx2 := &effects.Ctx{Source: id, Controller: 0, SVars: map[string]string{"Y": "Count$CardNumAttacksThisTurn"}}
+	ctx2 := &effects.Ctx{Source: id, Controller: 0, SVars: map[string]string{"Y": "Count$MaxOppDamageThisTurn"}}
 	if _, evaluated := effects.CheckSVarHolds(e, ctx2, "Y", "EQ4"); evaluated {
-		t.Fatal("Count$CardNumAttacksThisTurn reported evaluated -- the fail-open contract is rotting")
+		t.Fatal("Count$MaxOppDamageThisTurn reported evaluated -- the fail-open contract is rotting")
 	}
 	// A modelled head that counts zero is still evaluated (the distinction
 	// the whole verdict mechanism exists for).

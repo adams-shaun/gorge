@@ -826,6 +826,19 @@ const (
 	// precedent, so no earlier ordinal, hash chain or golden replay is
 	// affected.
 	Scry
+	// StoreSVar records one api:StoreSVar write -- Forge's sa.setSVar, the
+	// ability-body SVar write primitive. Obj is the object whose runtime SVar
+	// table is written (the resolving body's source: Minion of the Wastes /
+	// Phyrexian Processor's entering permanent), Text is the SVar name
+	// (SVar$ LifePaidOnETB), and Amount is the resolved integer value. Apply
+	// folds it into Object.RuntimeSVars, which overlays the printed face SVar
+	// table for the CDA/count/token reads that consume it; a later
+	// StoreSVar of the same name on the same object overwrites (Forge's
+	// setSVar is last-write-wins). The value must be event-backed so a replay
+	// derives the identical board, and the fold is a keyed map write, so no
+	// map range ever reaches an event. Appended after Scry to preserve every
+	// earlier Kind ordinal, hash chain and golden replay.
+	StoreSVar
 	// NumKinds is the number of defined Kind constants, one past the last
 	// (state.Zone's numZones, next package over, is the same shape). It
 	// exists for the scans that must visit every kind: view's
@@ -836,7 +849,13 @@ const (
 	// construction, with no edit to the scan. It must stay AFTER the last
 	// Kind: appending a Kind below it would renumber every later ordinal
 	// and corrupt the hash chain, so new kinds always go above it.
-	NumKinds = int(Scry) + 1
+	// TurnFaceDown records a battlefield permanent being turned face down by
+	// SetState. Appended after StoreSVar to preserve prior event ordinals.
+	TurnFaceDown
+	// CloneStatic appends one named SVar static to a copy's layer-1 face.
+	// Text is the original SVar body; appended to preserve existing ordinals.
+	CloneStatic
+	NumKinds = int(CloneStatic) + 1
 )
 
 // mergedTriggerShift is the width MergedTriggerPush's Amount gives the
@@ -933,7 +952,7 @@ func EncodeExtraPhaseRiders(r ExtraPhaseRiders) string {
 // riders) for any other Text.
 func DecodeExtraPhaseRiders(text string) ExtraPhaseRiders {
 	var r ExtraPhaseRiders
-	for _, part := range strings.Split(text, "|") {
+	for part := range strings.SplitSeq(text, "|") {
 		if v, ok := strings.CutPrefix(part, extraPhaseDelayKey); ok {
 			if n, err := strconv.ParseInt(v, 10, 64); err == nil && n >= 0 && state.Step(n).Valid() {
 				r.HasDelayedPhase, r.DelayedPhase = true, state.Step(n)
@@ -970,7 +989,7 @@ var kindNames = [NumKinds]string{"game_start", "shuffle", "move_zone", "draw",
 	"x_change", "note_number", "extra_phase", "copy_token", "exert", "planar_roll", "explore", "combat_retarget", "ring_tempts_you", "ring_emblem_push", "grant_ability_push", "investigate", "blessing_change", "clone_permanent", "mutate", "merged_trigger_push",
 	"discover", "seek", "connive", "enlist", "exploit", "alter_attribute",
 	"gained_ability_push", "gained_trigger_push", "surveil", "unattached", "player_noted", "player_note_cleared",
-	"delayed_remove", "turn_face_up", "searched_library", "keyword_ability_push", "scry"}
+	"delayed_remove", "turn_face_up", "searched_library", "keyword_ability_push", "scry", "store_svar", "turn_face_down", "clone_static"}
 
 func (k Kind) String() string {
 	if int(k) < len(kindNames) {
@@ -1240,6 +1259,14 @@ var flagNames = [...]struct {
 	{"manatreasurespent", state.FlagManaTreasureSpent},
 	{"manacavespent", state.FlagManaCaveSpent},
 	{"manadesertspent", state.FlagManaDesertSpent},
+	// The ARTIFACT-sourced part of the total-mana-spent capture (task
+	// mayplay-mfa): a face whose SVar table reads the filtered
+	// Count$CastTotalManaSpent Artifact head, or whose static reads the
+	// CastSa Spell.ManaFromArtifact predicate, stamps its pay-time CastInfo
+	// with this flag too, so the Amount folds into Object.ManaArtifactSpent
+	// instead of overwriting X or an earlier tag. Appended at the end per
+	// the table's own ordering rule.
+	{"manaartifactspent", state.FlagManaArtifactSpent},
 	// The DB$ Play ReplaceGraveyard$ Exile rider (task replplay1): the Play
 	// SA's own provenance stamps its pay-time CastInfo with this flag, so
 	// spellRestZone/spellFizzleZone send the played card to exile instead
@@ -1303,7 +1330,7 @@ var flagNames = [...]struct {
 // flag name in an untrusted log must not make this panic.
 func FlagsFrom(s string) uint64 {
 	var f uint64
-	for _, part := range strings.Split(s, ",") {
+	for part := range strings.SplitSeq(s, ",") {
 		for _, fn := range flagNames {
 			if strings.TrimSpace(part) == fn.name {
 				f |= fn.bit

@@ -134,6 +134,16 @@ const (
 	// card carries that card in Obj, so pile A/B are rebuilt from the
 	// answer and the option list without re-reading any zone.
 	KArrange Kind = "arrange"
+	// KStartingPlayer is CR 103.1's second half: the winner of the pre-game
+	// toss CHOOSES which player takes the first turn, and that answer -- not
+	// the raw toss draw -- is authoritative. It is Min == Max == 1 over one
+	// option per living player, in turn order from the toss winner (so a
+	// self-choice is the option whose Player equals the asking seat), each
+	// option carrying its seat in Option.Player and its label. The Decision's
+	// own Player is the toss winner, never the seat that ends up starting.
+	// An absent or unanswerable host takes the deterministic R-9 fallback:
+	// the toss winner names themselves, which is the pre-choice seat.
+	KStartingPlayer Kind = "starting_player"
 )
 
 // Kinds lists every decision Kind in declaration order. It is the static
@@ -144,7 +154,7 @@ const (
 var Kinds = []Kind{
 	KPriority, KTarget, KAttackers, KBlockers, KMulligan, KModes,
 	KTriggerOrder, KTriggerOptional, KCommanderZone, KChoose, KReplacement,
-	KArrange,
+	KArrange, KStartingPlayer,
 }
 
 // Option is one legal choice. Obj and Player are echoed only so a client can
@@ -464,6 +474,19 @@ type Decision struct {
 	// specific object (priority, mulligan, trigger order) carry no field and
 	// today's payloads are unchanged for them.
 	Source state.ObjID `json:"source,omitempty"`
+	// EffectOptional marks only a resolving api:Effect Triggers$ body's
+	// OptionalDecider$ election. Unattended bots decline this shape; printed
+	// optional triggers and Miracle retain their existing policy. This is
+	// runtime-only policy context, not a new legal-answer or wire rule.
+	EffectOptional bool `json:"-"`
+	// CopyOfCopy marks a "copy_optional" may-copy election (effects/copy.go,
+	// CopySpellAbility | Optional$ True) whose spell to be copied is ITSELF a
+	// copy: the continuation of a chain (Chain of Smog's "that player may
+	// copy this spell", Barroom Brawl's), not its first link. Unattended
+	// bots decline it, so a chain the two bots would otherwise extend
+	// forever ends after one hand-over. Runtime-only policy context, like
+	// EffectOptional: not a legal-answer or wire rule.
+	CopyOfCopy bool `json:"-"`
 	// TargetsWithSameController marks a target decision whose selected options
 	// must all have one Controller. It is server-side metadata, so the wire
 	// payload remains unchanged while Validate and bot repair share the rule.
@@ -517,6 +540,12 @@ type Decision struct {
 	// a nested DigUntil Aura-bearer ask. It is runtime continuation state only.
 	ResumeDigUntilMove     string `json:"-"`
 	ResumeDigUntilMoveDone bool   `json:"-"`
+	// ResumeClonePick carries an earlier DB$ Clone Choices$ copy-source pick
+	// through a later Optional$ may-copy ask in the same walk, so the answered
+	// re-entry consumes the selection rather than posing the Choices$ ask
+	// again. Runtime continuation state only.
+	ResumeClonePick     state.ObjID `json:"-"`
+	ResumeClonePickDone bool        `json:"-"`
 	// ResumeTargetsUnique carries the TargetUnique$ accumulator of the
 	// resolution that posed this ask (Ctx.TargetsUnique at suspension time):
 	// the resume rebuilds a fresh Ctx, which without the ride loses every
@@ -573,6 +602,12 @@ type Decision struct {
 	// victim cursor for a multi-player VillainousChoice resolution.
 	ResumeVillainousVictims []state.Target `json:"-"`
 	ResumeVillainousIndex   int            `json:"-"`
+	// ResumeGenericChoosers and ResumeGenericChooserIndex carry the ordered
+	// Defined$ player cursor for a multi-player api:GenericChoice resolution:
+	// each chooser answers the same Choices$ list in turn, with that chooser
+	// bound as Ctx.Remembered.
+	ResumeGenericChoosers     []state.Target `json:"-"`
+	ResumeGenericChooserIndex int            `json:"-"`
 }
 
 // New is a convenience constructor that fills a Decision's Player, Kind,

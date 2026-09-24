@@ -340,11 +340,13 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	//     carriers) is owned by agent-20260922T193437Z-a964eea4, which adds
 	//     the generic effect-created trigger registration; it is named in the
 	//     Note here, not silently dropped.
-	//   - OptionalDecider$ (Beck's "you may draw a card") needs a "you may"
-	//     ask the delayed push path never poses; registering it would fire the
-	//     effect MANDATORILY, the opposite of the card text, so it notes.
+	//   - an OptionalDecider$ body (Beck's "you may draw a card") IS
+	//     registered: registering it without the election would fire the
+	//     effect MANDATORILY, the opposite of the card text, so the spec
+	//     rides the registration ("|OD=<spec>") and rules' resolveTop poses
+	//     the yes/no to the named decider when the minted ability resolves.
 	//   - a body with no Execute$ has nothing to resolve.
-	for _, name := range strings.Fields(sa.Params["Triggers"]) {
+	for name := range strings.FieldsSeq(sa.Params["Triggers"]) {
 		raw := ""
 		if o := h.Game().Obj(c.Source); o != nil && o.Face() != nil {
 			raw = o.Face().SVars[name]
@@ -379,6 +381,37 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			registered = true
 			continue
 		}
+		// An Effect trigger body's OptionalDecider$ is the card's own "you
+		// may" election (Beck's "whenever a creature enters this turn, you
+		// may draw a card"). The trigger is registered like any other
+		// Effect trigger and the election is posed when the minted ability
+		// resolves (rules' resolveTop, the CR 603.5 optional gate), never
+		// withheld: withholding it would fire the body mandatorily, the
+		// opposite of the card text. The spec rides the registration Text
+		// as "|OD=<spec>" so a Mode$ Phase registration, whose body is not
+		// re-parsed at fire time, still names its decider (events.Apply's
+		// DelayedRegister decode -> state.DelayedTrigger.OptionalSpec ->
+		// checkDelayedTriggers/checkEventDelayedTriggers ->
+		// effects.TriggerContext.OptionalSpec).
+		optionalSpec := strings.TrimSpace(tr.Params["OptionalDecider"])
+		odSuffix := ""
+		if optionalSpec != "" {
+			// A Static$ True body cannot carry the election: rules'
+			// checkEventDelayedTriggers resolves a static-marked delayed
+			// registration INLINE at fire time -- never minting a stack
+			// object -- so there is no resolution gate to pose the CR 603.5
+			// yes/no at, and registering it would execute the "you may"
+			// mandatorily. Withheld loudly (cli-20260923T060218Z round 2);
+			// the static firing arm carries a matching fail-closed guard so
+			// no future "|OD=" minter can misexecute there either.
+			if strings.TrimSpace(tr.Params["Static"]) != "" {
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+					Text: "unmodelled Effect trigger Static$ with OptionalDecider$ " + optionalSpec + " (not registered)"})
+				registered = true
+				continue
+			}
+			odSuffix = "|OD=" + optionalSpec
+		}
 		if tr.Mode == "BecomeMonarch" {
 			// Palace Jailer's one-shot command-zone promise. It is CONSUMED
 			// by its own firing, not retired by a turn ceiling, and its
@@ -387,7 +420,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// lifetime guard below does not apply to it.
 			h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 				Player: c.Controller, Step: h.Game().Step, Counter: exec,
-				IDs: encodeRemembered(c.Remembered), Text: "BecomeMonarch:" + name})
+				IDs: encodeRemembered(c.Remembered), Text: "BecomeMonarch:" + name + odSuffix})
 			registered = true
 			continue
 		}
@@ -397,12 +430,6 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			forgetCounter != "" || forgetOnCast != "" || imprintOnHost {
 			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
 				Text: "unmodelled Effect trigger lifetime (Duration$ " + rawDur + "; not registered)"})
-			registered = true
-			continue
-		}
-		if v := strings.TrimSpace(tr.Params["OptionalDecider"]); v != "" {
-			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-				Text: "unmodelled Effect trigger OptionalDecider$ " + v})
 			registered = true
 			continue
 		}
@@ -425,7 +452,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// the registration and the |TT= turn bound retires it.
 			h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 				Player: c.Controller, Step: h.Game().Step, Counter: exec,
-				IDs: encodeRemembered(c.Remembered), Text: tr.Mode + ":" + name + expiry + "|EF"})
+				IDs: encodeRemembered(c.Remembered), Text: tr.Mode + ":" + name + expiry + odSuffix + "|EF"})
 			registered = true
 		case "Phase":
 			// A phase promise fires at the FIRST listed step still ahead
@@ -446,7 +473,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				registered = true
 				continue
 			}
-			text := tr.Params["Phase"] + expiry
+			text := tr.Params["Phase"] + expiry + odSuffix
 			if vp := strings.TrimSpace(tr.Params["ValidPlayer"]); vp != "" {
 				text += "|VP=" + vp
 			}
@@ -466,7 +493,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// DelayedTrigger and makes its mode self-describing for replay.
 			h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 				Player: c.Controller, Step: h.Game().Step, Counter: exec,
-				IDs: encodeRemembered(c.Remembered), Text: tr.Mode + ":" + name + expiry + "|EF"})
+				IDs: encodeRemembered(c.Remembered), Text: tr.Mode + ":" + name + expiry + odSuffix + "|EF"})
 			registered = true
 		}
 	}
@@ -1305,7 +1332,7 @@ func parseReplacementLine(svars map[string]string, name string) (string, map[str
 		return "", nil
 	}
 	params := make(map[string]string)
-	for _, seg := range strings.Split(body, "|") {
+	for seg := range strings.SplitSeq(body, "|") {
 		key, val, ok := strings.Cut(strings.TrimSpace(seg), "$")
 		if !ok {
 			continue
@@ -1365,7 +1392,7 @@ func parseStaticLine(svars map[string]string, name string) (string, staticLinePa
 	}
 	params := make(staticLineParams)
 	mode := ""
-	for _, seg := range strings.Split(body, "|") {
+	for seg := range strings.SplitSeq(body, "|") {
 		seg = strings.TrimSpace(seg)
 		if seg == "" {
 			continue
@@ -2280,7 +2307,7 @@ func effectSelfExileOnCastTrigger(h Host, c *Ctx, tr cards.Trigger) bool {
 // "Card" for a body that names none. Empty when no entry has the shape, so a
 // Triggers$-only Effect keeps its existing registrations untouched.
 func effectSelfExileOnCastSpec(h Host, c *Ctx, names string) string {
-	for _, name := range strings.Fields(names) {
+	for name := range strings.FieldsSeq(names) {
 		raw := effectTriggerBody(h, c, name)
 		if raw == "" {
 			continue
@@ -2433,6 +2460,7 @@ func hasChosenPlayers(ts []state.Target) bool {
 func effSetState(h Host, c *Ctx, sa *cards.SA) {
 	mode := sa.Params["Mode"]
 	turnUp := strings.EqualFold(strings.TrimSpace(mode), "TurnFaceUp")
+	turnDown := strings.EqualFold(strings.TrimSpace(mode), "TurnFaceDown")
 	for _, t := range Defined(h, c, sa) {
 		if t.IsPlayer {
 			continue
@@ -2444,6 +2472,12 @@ func effSetState(h Host, c *Ctx, sa *cards.SA) {
 		if turnUp {
 			if o.Card != nil && o.Zone == state.ZBattlefield && o.FaceDown {
 				h.Emit(events.Event{Kind: events.TurnFaceUp, Obj: o.ID})
+			}
+			continue
+		}
+		if turnDown {
+			if o.Zone == state.ZBattlefield && !o.FaceDown {
+				h.Emit(events.Event{Kind: events.TurnFaceDown, Obj: o.ID})
 			}
 			continue
 		}
@@ -2946,6 +2980,8 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 			}
 			return
 		}
+		mark, marked := eventMark(h)
+		asksBefore := askCount(h)
 		Resolve(h, c, sub)
 		if h.Suspended() {
 			// A RepeatOptional body can itself ask (Forbidden Ritual's
@@ -2966,6 +3002,19 @@ func effRepeat(h Host, c *Ctx, sa *cards.SA) {
 		}
 		if optional {
 			if i+1 >= n {
+				return
+			}
+			if marked && askCount(h) == asksBefore && !stateChangedSince(h, mark) {
+				// The iteration posed no decision and changed nothing (only
+				// Notes: Forbidden Ritual's "sacrifice a nontoken permanent"
+				// once none is left, its GenericChoice gated off, its Cleanup
+				// clearing an empty Remembered). A body with no decision run
+				// from an unchanged state is the same no-op every time, so
+				// every number of further repeats yields this same state (CR
+				// 732.2a's shortcut): end the do/while instead of offering an
+				// election whose "repeat" answer can only loop forever.
+				h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+					Text: "the repeated process changed nothing; it is not offered again"})
 				return
 			}
 			if !poseRepeatOptionalElection(h, c, sa, i+1) {
@@ -3037,6 +3086,11 @@ func poseRepeatOptionalElection(h Host, c *Ctx, sa *cards.SA, next int32) bool {
 func repeatGateHolds(h Host, c *Ctx, check, cmp string) (holds, evaluated bool) {
 	if check == "" {
 		return true, true // no gate; the loop's own run count governs
+	}
+	if _, ok := sourceRuntimeSVar(h.Game(), c, check); ok {
+		// A StoreSVar write shadows the printed body, so the printed
+		// body's predicates are irrelevant (CheckSVarHolds reads the store).
+		return CheckSVarHolds(h, c, check, cmp)
 	}
 	body := check
 	if c.SVars != nil {
@@ -3532,6 +3586,177 @@ func charmDistinctTargetRun(h Host, c *Ctx, sa *cards.SA, names []string) bool {
 	return true
 }
 
+// charmGenericPlayers is the per-Defined$-player api:GenericChoice path: each
+// player the SA's Defined$ names chooses one of the same Choices$ in turn, and
+// each chosen body runs with THAT chooser bound as Ctx.Remembered (the binding
+// Seize the Spotlight's Fame/Fortune bodies read as Defined$ Remembered). The
+// outer SubAbility$ runs once, after every chooser has answered.
+//
+// It returns true when it owns the resolution. It deliberately declines the
+// shapes the existing controller ask already serves correctly:
+//
+//   - a Charm (never defined$-per-player);
+//   - a GenericChoice with no Choices$;
+//   - a GenericChoice whose Defined$ is absent, resolves to exactly the
+//     resolving controller (Defined$ You), or resolves to anything that is
+//     not all players (Defined$ Targeted on a spell's creature, Defined$
+//     Valid <filter>): those keep the existing ask, so this ticket cannot
+//     change an object-defined carrier.
+//
+// A GenericChoice whose Defined$ is one of the PLAYER-role selectors
+// (Opponent / Player / Player.Opponent / Player.Other / You) but resolves to NO
+// players (an unbound TriggeredPlayer, an empty Remembered) does NOT fall back
+// to the controller: the ask would invent a chooser the card never named, so
+// the resolution is a loud no-op instead. Any other selector resolving empty is
+// left to the existing path.
+func charmGenericPlayers(h Host, c *Ctx, sa *cards.SA) bool {
+	if sa.API != "GenericChoice" {
+		return false
+	}
+	choices := strings.Split(sa.Params["Choices"], ",")
+	if len(choices) == 0 {
+		return false
+	}
+	for i := range choices {
+		choices[i] = strings.TrimSpace(choices[i])
+	}
+	// A re-entry for an answered/continued chooser carries the cursor; the SA
+	// may be reached mid-resolution with c.Modes already naming the answer.
+	if c.GenericChoosers != nil {
+		return charmGenericPlayersRun(h, c, sa, choices)
+	}
+	defined := strings.TrimSpace(sa.Params["Defined"])
+	if defined == "" {
+		return false
+	}
+	resolved := Defined(h, c, sa)
+	var players []state.Target
+	for _, t := range resolved {
+		if !t.IsPlayer {
+			// A mixed or object-defined set (Defined$ Targeted, Defined$
+			// Valid <filter>): not the per-player shape, so keep the existing
+			// controller ask untouched.
+			return false
+		}
+		players = append(players, t)
+	}
+	if len(players) == 1 && players[0].Player == c.Controller {
+		// Defined$ You: the existing controller ask is already exact. Leave it
+		// (and its ResumeKind "modes") alone.
+		return false
+	}
+	if len(players) == 0 {
+		if !playerRoleDefined(defined) {
+			// A non-player selector that happened to resolve to nothing: leave
+			// it to the existing path rather than changing its behaviour.
+			return false
+		}
+		// A player-role selector that named no player: asking the controller
+		// would choose for a player the card never named. Record why and do
+		// nothing.
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
+			Text: "GenericChoice Defined$ " + defined + " resolved no players"})
+		return true
+	}
+	c.GenericChoosers = players
+	c.GenericChooserIndex = 0
+	return charmGenericPlayersRun(h, c, sa, choices)
+}
+
+// playerRoleDefined reports whether a GenericChoice Defined$ selector names a
+// PLAYER ROLE (so an empty resolution is a real "no choosers", not an
+// object-definition that must keep the existing path). The qualified
+// Player.Opponent / Player.Other spellings are included, as are the trigger
+// roles that always resolve to a player. Every ambiguous selector (Targeted,
+// TriggeredTarget, ParentTarget, Valid <filter>, Remembered, ...) is NOT, so an
+// empty resolution there keeps the existing path unchanged.
+func playerRoleDefined(defined string) bool {
+	switch defined {
+	case "Opponent", "Player", "Player.Opponent", "Player.Other", "You",
+		"TriggeredPlayer", "TriggeredDefendingPlayer":
+		return true
+	}
+	return false
+}
+
+// charmGenericPlayersRun drives the chooser loop. Ctx.GenericChooserIndex is
+// the chooser still to ask; a non-nil Ctx.Modes is the answer for the chooser
+// at index-1, whose chosen body has not yet run (resumeResolution advanced the
+// index PAST the answered chooser, so running it here and then continuing the
+// loop asks the next chooser exactly once). A nested ask inside a chosen body
+// reports SuspendGenericChoiceRest so the remaining choosers survive it; a
+// nested GenericChoice in that body sees a nil cursor for the body's walk
+// (cleared around Resolve, the fx41 discipline) and resolves its own Defined$
+// rather than inheriting this one.
+func charmGenericPlayersRun(h Host, c *Ctx, sa *cards.SA, choices []string) bool {
+	if c.Modes != nil {
+		names := c.Modes
+		c.Modes = nil
+		for _, name := range names {
+			sub := cards.ResolveSVar(c.SVars, name)
+			if sub == nil {
+				continue
+			}
+			savedChoosers, savedIndex := c.GenericChoosers, c.GenericChooserIndex
+			c.GenericChoosers, c.GenericChooserIndex = nil, 0
+			Resolve(h, c, sub)
+			c.GenericChoosers, c.GenericChooserIndex = savedChoosers, savedIndex
+			if h.Suspended() {
+				// The chosen body posed a nested mid-resolution ask. Record the
+				// cursor so the remaining choosers are still asked once that ask's
+				// chain completes, instead of being stranded.
+				h.SuspendGenericChoiceRest(sa, GenericChoiceRest{
+					Choosers: append([]state.Target(nil), c.GenericChoosers...),
+					Next:     c.GenericChooserIndex})
+				return true
+			}
+		}
+	}
+	for c.GenericChooserIndex < len(c.GenericChoosers) {
+		chooser := c.GenericChoosers[c.GenericChooserIndex]
+		// The chosen body reads Defined$ Remembered as THIS chooser.
+		c.Remembered = []state.Target{chooser}
+		d := &decision.Decision{Player: chooser.Player, Kind: decision.KModes,
+			Min: 1, Max: 1, Source: c.Source, ResumeKind: "generic_players", ResumeSA: sa,
+			ResumeModes:               append([]string(nil), choices...),
+			ResumeRemembered:          append([]state.Target(nil), c.Remembered...),
+			ResumeGenericChoosers:     append([]state.Target(nil), c.GenericChoosers...),
+			ResumeGenericChooserIndex: c.GenericChooserIndex,
+			Prompt:                    "Choose 1 to 1 mode(s)"}
+		for i, name := range choices {
+			label := name
+			if sub := cards.ResolveSVar(c.SVars, name); sub != nil {
+				if desc := strings.TrimSpace(sub.Params["SpellDescription"]); desc != "" {
+					label = desc
+				}
+			}
+			d.Options = append(d.Options, decision.Option{Index: i, Kind: "mode",
+				Label: label, Obj: c.Source, Player: chooser.Player})
+		}
+		if Ask(h, d) == AskAsked {
+			return true
+		}
+		// R-9: an effects-only host has no chooser, so deterministically take
+		// the first option for this chooser and continue to the next.
+		if sub := cards.ResolveSVar(c.SVars, choices[0]); sub != nil {
+			savedChoosers, savedIndex := c.GenericChoosers, c.GenericChooserIndex
+			c.GenericChoosers, c.GenericChooserIndex = nil, 0
+			Resolve(h, c, sub)
+			c.GenericChoosers, c.GenericChooserIndex = savedChoosers, savedIndex
+			if h.Suspended() {
+				// The deterministic body posed its own ask: preserve the cursor
+				// exactly as the answered branch above does.
+				h.SuspendGenericChoiceRest(sa, GenericChoiceRest{
+					Choosers: append([]state.Target(nil), c.GenericChoosers...),
+					Next:     c.GenericChooserIndex + 1})
+				return true
+			}
+		}
+		c.GenericChooserIndex++
+	}
+	return true
+}
+
 // effCharm runs the selected Choices$ sub-abilities in chosen order.
 // Cast spells (CR 601.2b) and triggered abilities (CR 603.3c) arrive with
 // Ctx.Modes pre-seeded from their earlier announcement. A Charm reached only
@@ -3540,6 +3765,9 @@ func charmDistinctTargetRun(h Host, c *Ctx, sa *cards.SA, names []string) bool {
 // first-mode stand-in and records why with a Note.
 func effCharm(h Host, c *Ctx, sa *cards.SA) {
 	if c.SVars == nil {
+		return
+	}
+	if charmGenericPlayers(h, c, sa) {
 		return
 	}
 	choices := strings.Split(sa.Params["Choices"], ",")
@@ -4461,29 +4689,39 @@ func askManaChoice(h Host, c *Ctx, sa *cards.SA, produced string) (string, bool)
 	return produced, false
 }
 
-// ManaProducerTag reads the producer-type provenance a positive mana
-// production carries: the Treasure/Cave/Desert tag word (state.TypedManaTags
-// order) when the producing permanent prints one of those types, else
-// snow=true when it prints the Snow supertype, else neither. It is the ONE
-// home for the tag read, shared by EVERY positive ManaAdd producer (the
-// acted AB$ Mana ability in effMana, the AB$ ManaReflected body in
-// effManaReflected -- both the activated ability's resolution and a
-// standalone DB$ ManaReflected -- and the cumulative-upkeep AddMana action
-// in rules/cumulative.go), so a producer type can never be
-// tagged on one path and missed on another. The Snow/typed combination is
-// unmeasured at the corpus pin (no producer prints both): a typed tag wins
-// the single Counter encoding, exactly as it did before this helper existed.
+// ManaProducerTag encodes producer provenance in one exclusive unit tag.
+// The Artifact bit composes with Treasure/Cave/Desert rather than replacing
+// their historical type: a Treasure Artifact emits ArtifactTreasure, while
+// Sol Ring emits Artifact. All mana producers use this same helper (effMana,
+// effManaReflected, and cumulative-upkeep AddMana). Snow/typed overlap is
+// unmeasured at the corpus pin and retains typed precedence.
 func ManaProducerTag(h Host, source state.ObjID) (tag string, snow bool) {
 	o := h.Game().Obj(source)
 	if o == nil || o.Face() == nil {
 		return "", false
 	}
+	artifact := false
+	for _, t := range o.Face().Types {
+		if t == "Artifact" {
+			artifact = true
+			break
+		}
+	}
 	for _, tagWord := range state.TypedManaTags {
+		if tagWord == "Artifact" {
+			continue
+		}
 		for _, t := range o.Face().Types {
 			if t == tagWord {
+				if artifact {
+					return "Artifact" + tagWord, false
+				}
 				return tagWord, false
 			}
 		}
+	}
+	if artifact {
+		return "Artifact", false
 	}
 	for _, t := range o.Face().Types {
 		if t == "Snow" {
@@ -4658,13 +4896,9 @@ func effMana(h Host, c *Ctx, sa *cards.SA) {
 	// likewise tagged — Counter "<Tag><colour>" — into Player.TypedMana so
 	// the filtered Count$CastTotalManaSpent Treasure/Cave/Desert heads can
 	// read the per-unit producer provenance (Marut, Bat Colony, Cataclysmic
-	// Prospecting). The tag is COLOUR-INDEPENDENT of what the unit pays as:
-	// a Treasure token's Produced$ Any degrades to colourless (the M4
-	// stand-in) and lands in the MC slot, but the tag still names Treasure.
-	// Precedence is the fixed Treasure > Cave > Desert when a face carries
-	// several (measured: no corpus producer carries two); no corpus producer
-	// is both Snow and typed, and the tagged form takes the Counter (one
-	// encoding per unit) — the combination is unmeasured.
+	// Prospecting). Artifact provenance composes with those tags in the
+	// per-unit counter; it never replaces the Treasure/Cave/Desert type or
+	// contributes a second pool unit. An untyped Artifact uses ArtifactC.
 	tag, snow := ManaProducerTag(h, c.Source)
 	// TriggersWhenSpent$ is retained alongside any spend restriction: the
 	// ManaRestriction event encoding carries both the restriction and source

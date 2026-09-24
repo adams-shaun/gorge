@@ -110,7 +110,7 @@ func (e *Engine) modeCostFeasible(pc *pendingCast, extra Cost, pot state.Mana) b
 	if !pc.isAbility() {
 		delve = int32(len(pc.delve))
 	}
-	typed := e.G.Players[pc.player].TypedMana
+	typed := e.G.Players[pc.player].ManaUnits()
 	mods := pc.mods
 	if !e.manaFeasiblePool(pc.player, pc.card, pc.isAbility(), base, mods, tax, delve, pot, typed) {
 		// A target-dependent reducer cannot be in the pre-target snapshot, but

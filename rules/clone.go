@@ -98,8 +98,15 @@ func (e *Engine) Clone() *Engine {
 		// CR 903.4b pregame colour round's state and the carried Mulligans
 		// limit. colorRound.asks is never mutated (only the cursor advances),
 		// so sharing the reference is safe -- the blockerRound class.
-		coloring:     e.coloring,
-		colorRound:   e.colorRound,
+		coloring:   e.coloring,
+		colorRound: e.colorRound,
+		// tossChoice (rules/starting_player_choice.go) is CR 103.1's pending
+		// winner-chooses ask: a plain value (no slices, no closure), so the
+		// blockerRound share class -- Clone copies it directly, and a clone
+		// taken while the ask is outstanding re-poses the same decision for
+		// the same winner. host.viewAt clones a snapshot and re-Submits the
+		// intents, so the choice must survive like the mulligan round does.
+		tossChoice:   e.tossChoice,
 		mulligans:    e.mulligans,
 		startingLife: e.startingLife,
 		// E2 held-out cast suppression (cast.go): the set of card ids whose
@@ -185,17 +192,13 @@ func (e *Engine) Clone() *Engine {
 		c.tokenChoice = &tc
 	}
 	if e.pending != nil {
-		d := *e.pending
-		d.Options = append([]decision.Option(nil), e.pending.Options...)
-		d.ResumeModes = append([]string(nil), e.pending.ResumeModes...)
-		d.ResumeChoices = append([]state.Target(nil), e.pending.ResumeChoices...)
-		d.ResumeChosenValid = e.pending.ResumeChosenValid
-		d.ResumeRemembered = append([]state.Target(nil), e.pending.ResumeRemembered...)
-		d.ResumeVillainousVictims = append([]state.Target(nil), e.pending.ResumeVillainousVictims...)
-		d.ResumeVillainousIndex = e.pending.ResumeVillainousIndex
-		d.ResumeTargetsUnique = append([]state.Target(nil), e.pending.ResumeTargetsUnique...)
-		d.ResumeDigPrimary = append([]state.ObjID(nil), e.pending.ResumeDigPrimary...)
-		c.pending = &d
+		c.pending = cloneDecision(e.pending)
+	}
+	if e.deferredAsks != nil {
+		c.deferredAsks = make([]*decision.Decision, len(e.deferredAsks))
+		for i, d := range e.deferredAsks {
+			c.deferredAsks[i] = cloneDecision(d)
+		}
 	}
 	if e.resume != nil {
 		// Plain value data (kind/obj plus a *cards.SA into the shared
@@ -274,6 +277,27 @@ func (e *Engine) Clone() *Engine {
 		c.triggerEffectFrames = make(map[state.ObjID]effects.EffectFrame, len(e.triggerEffectFrames))
 		for id, ef := range e.triggerEffectFrames {
 			c.triggerEffectFrames[id] = ef
+		}
+	}
+	if e.triggerLines != nil {
+		c.triggerLines = make(map[state.ObjID]cards.Trigger, len(e.triggerLines))
+		for id, t := range e.triggerLines {
+			if t.Params != nil {
+				params := make(map[string]string, len(t.Params))
+				for key, value := range t.Params {
+					params[key] = value
+				}
+				t.Params = params
+			}
+			c.triggerLines[id] = t
+		}
+	}
+	if e.triggerLineSVars != nil {
+		c.triggerLineSVars = make(map[state.ObjID]map[string]string, len(e.triggerLineSVars))
+		for id, svars := range e.triggerLineSVars {
+			// Card script tables are immutable after parsing; only the lookup
+			// index is engine-owned. An undo clone retains the same owning face.
+			c.triggerLineSVars[id] = svars
 		}
 	}
 	if e.triggerLKI != nil {
@@ -552,6 +576,12 @@ func (e *Engine) Clone() *Engine {
 		ma.discards = append([]state.ObjID(nil), e.manaDiscardActivation.discards...)
 		ma.exiles = append([]state.ObjID(nil), e.manaDiscardActivation.exiles...)
 		c.manaDiscardActivation = &ma
+	}
+	if e.manaAfterCost != nil {
+		ma := *e.manaAfterCost
+		ma.triggers = clonePendingTriggers(e.manaAfterCost.triggers)
+		ma.sacs = append([]state.ObjID(nil), e.manaAfterCost.sacs...)
+		c.manaAfterCost = &ma
 	}
 	if e.manaUnlessActivation != nil {
 		ma := *e.manaUnlessActivation
@@ -928,12 +958,40 @@ func cloneResume(rp *resumePoint) *resumePoint {
 	// other slice here follows).
 	cp.villainousVictims = append([]state.Target(nil), rp.villainousVictims...)
 	cp.villainousRemembered = append([]state.Target(nil), rp.villainousRemembered...)
+	// The multi-player GenericChoice chooser cursor is likewise a sliced value
+	// the resumed Ctx re-binds; the clone owns its own copy.
+	cp.genericChoosers = append([]state.Target(nil), rp.genericChoosers...)
 	if rp.repeat != nil {
 		cur := *rp.repeat
 		cur.subjects = append([]state.Target(nil), rp.repeat.subjects...)
 		cur.last = append([]state.Target(nil), rp.repeat.last...)
 		cp.repeat = &cur
 	}
+	// A deferred second ask (Engine.Ask) rides its own decision and resume
+	// point; the frame re-links deferredResume.outer when posed, so the clone
+	// must own both.
+	if rp.deferredAsk != nil {
+		cp.deferredAsk = cloneDecision(rp.deferredAsk)
+	}
+	cp.deferredResume = cloneResume(rp.deferredResume)
 	cp.outer = cloneResume(rp.outer)
 	return &cp
+}
+
+// cloneDecision deep-copies a posed (or deferred) decision's slices, so a
+// clone's answer path never writes through to the original's.
+func cloneDecision(p *decision.Decision) *decision.Decision {
+	d := *p
+	d.Options = append([]decision.Option(nil), p.Options...)
+	d.ResumeModes = append([]string(nil), p.ResumeModes...)
+	d.ResumeChoices = append([]state.Target(nil), p.ResumeChoices...)
+	d.ResumeChosenValid = p.ResumeChosenValid
+	d.ResumeRemembered = append([]state.Target(nil), p.ResumeRemembered...)
+	d.ResumeVillainousVictims = append([]state.Target(nil), p.ResumeVillainousVictims...)
+	d.ResumeVillainousIndex = p.ResumeVillainousIndex
+	d.ResumeGenericChoosers = append([]state.Target(nil), p.ResumeGenericChoosers...)
+	d.ResumeGenericChooserIndex = p.ResumeGenericChooserIndex
+	d.ResumeTargetsUnique = append([]state.Target(nil), p.ResumeTargetsUnique...)
+	d.ResumeDigPrimary = append([]state.ObjID(nil), p.ResumeDigPrimary...)
+	return &d
 }

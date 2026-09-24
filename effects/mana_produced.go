@@ -24,7 +24,7 @@ func ComboColours(produced string) (cols []string, ok bool) {
 	if !strings.HasPrefix(p, "Combo ") {
 		return nil, false
 	}
-	for _, tok := range strings.Fields(p[len("Combo "):]) {
+	for tok := range strings.FieldsSeq(p[len("Combo "):]) {
 		if len(tok) != 1 || !strings.Contains("WUBRG", tok) {
 			return nil, false
 		}
