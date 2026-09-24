@@ -26,6 +26,15 @@ import (
 // gating (the entering creature's derived power OR toughness must exceed the
 // source's, CR 702.99a) is checked below once the rest of the spec matches.
 func (e *Engine) zoneChangeMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
+	return e.zoneChangeMatchesWithCapture(t, source, ev, lki, nil)
+}
+
+func (e *Engine) zoneChangeMatchesWithCapture(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object, remembered []state.Target) bool {
+	// Only a delayed registration passes a capture. Printed triggers see nil.
+	capture := func(sc effects.SpecContext) effects.SpecContext {
+		sc.DelayedRemembered = remembered
+		return sc
+	}
 	if ev.Kind != events.MoveZone && ev.Kind != events.Draw && ev.Kind != events.PutOnStack {
 		return false
 	}
@@ -86,7 +95,7 @@ func (e *Engine) zoneChangeMatches(t cards.Trigger, source state.ObjID, ev event
 			// The IsGoaded static route (staticgoad1), bound inline the same
 			// shape matchesSpec keeps (this LKI reader runs per zone-change
 			// event, so the context must not escape through a helper call).
-			sc := e.specCtx(source, ctrl)
+			sc := capture(e.specCtx(source, ctrl))
 			if e.goadProbe == 0 && strings.Contains(spec, "IsGoaded") {
 				sc.StaticGoads = e.staticallyGoadedWithLKI(lki)
 			}
@@ -95,7 +104,7 @@ func (e *Engine) zoneChangeMatches(t cards.Trigger, source state.ObjID, ev event
 			}
 		} else {
 			spec, ok := e.castProvenanceAdmits(v, ev.Obj, e.controllerOf(source))
-			if !ok || !e.matchesSpec(spec, ev.Obj, e.specCtx(source, e.controllerOf(source))) {
+			if !ok || !e.matchesSpec(spec, ev.Obj, capture(e.specCtx(source, e.controllerOf(source)))) {
 				return false
 			}
 		}

@@ -2244,7 +2244,7 @@ func positiveRecognised(p string) bool {
 	if p == "IsGoaded" {
 		return true
 	}
-	if p == "IsRemembered" || p == "EffectSource" || p == "token$DifferentCardNames" || strings.HasPrefix(p, "greatestPower") {
+	if p == "IsRemembered" || p == "IsTriggerRemembered" || p == "EffectSource" || p == "token$DifferentCardNames" || strings.HasPrefix(p, "greatestPower") {
 		// EffectSource is matched by matchPositive against SpecContext.Source;
 		// listing it here keeps the matcher and the UnknownPredicates census
 		// (both driven by positiveRecognised) in agreement.
@@ -2924,6 +2924,20 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 			return true, true
 		}
 		return sc.StaticGoads[o.ID], true
+	}
+	if p == "IsTriggerRemembered" {
+		// Only a delayed registration's captured set binds this predicate;
+		// the source's persistent Remembered list is unrelated. An absent
+		// or empty capture stays unknown even under negation.
+		if len(sc.DelayedRemembered) == 0 {
+			return false, false
+		}
+		for _, t := range sc.DelayedRemembered {
+			if !t.IsPlayer && t.Obj == o.ID {
+				return true, true
+			}
+		}
+		return false, true
 	}
 	if p == "IsRemembered" {
 		// Forge's IsRemembered (CardProperty "IsRemembered" ->
@@ -4297,8 +4311,9 @@ func MatchesPlayerSpecFrom(g *state.Game, spec string, p, you state.PlayerID, so
 // match, a static actor match and a layer restriction) can populate them
 // without a resolver callback.
 type PlayerSpecCtx struct {
-	Source          state.ObjID
-	DefendingPlayer state.Target
+	Source            state.ObjID
+	DefendingPlayer   state.Target
+	DelayedRemembered []state.Target
 }
 
 // MatchesPlayerSpecCtx is the full player-side filter: the same grammar as
@@ -4516,19 +4531,26 @@ func matchesPlayerSingleSpec(g *state.Game, spec string, p, you state.PlayerID, 
 				}
 				continue
 			}
+			if rem, is := strings.CutPrefix(qualifier, "controlsCard."); is {
+				// This ticket models only the registration-relative card form.
+				if rem == "IsTriggerRemembered" && playerControlsMatches(g, p, you, pc, "Card", rem) {
+					return true
+				}
+				continue
+			}
 			if rem, is := strings.CutPrefix(qualifier, "controlsCreature."); is {
 				// Forge's Player.controlsCreature.<objspec> / controlsPermanent.
 				// <objspec> property (PlayerControlsCreatures/Permanents): the
 				// seat qualifies when its battlefield holds an object matching
 				// <objspec> as an object filter, with an optional trailing
 				// _GE<n>-style count comparison. See playerControlsMatches.
-				if playerControlsMatches(g, p, you, pc.Source, "Creature", rem) {
+				if playerControlsMatches(g, p, you, PlayerSpecCtx{Source: pc.Source}, "Creature", rem) {
 					return true
 				}
 				continue
 			}
 			if rem, is := strings.CutPrefix(qualifier, "controlsPermanent."); is {
-				if playerControlsMatches(g, p, you, pc.Source, "Permanent", rem) {
+				if playerControlsMatches(g, p, you, PlayerSpecCtx{Source: pc.Source}, "Permanent", rem) {
 					return true
 				}
 				continue
@@ -4784,13 +4806,14 @@ func splitCountCompare(rem string) (string, string, int32, bool) {
 // evaluated with the same SpecContext binding MatchesPlayerSpecFrom carries
 // (the perspective seat and the source permanent), so the named<Name>,
 // MultiColor, IsRemembered and EnchantedBy object predicates all resolve
-// unchanged. A spec that matches nothing -- including one carrying an
-// unmodelled predicate, which fails closed inside the object matcher --
-// never matches for that seat.
-func playerControlsMatches(g *state.Game, p state.PlayerID, you state.PlayerID, source state.ObjID, objBase, rem string) bool {
+// unchanged. The controlsCard.IsTriggerRemembered caller additionally binds
+// the delayed registration's capture. A spec that matches nothing -- including
+// one carrying an unmodelled predicate, which fails closed inside the object
+// matcher -- never matches for that seat.
+func playerControlsMatches(g *state.Game, p state.PlayerID, you state.PlayerID, pc PlayerSpecCtx, objBase, rem string) bool {
 	spec, op, want, counted := splitCountCompare(rem)
 	spec = objBase + "." + spec
-	sc := SpecContext{You: you, Source: source}
+	sc := SpecContext{You: you, Source: pc.Source, TriggerContext: TriggerContext{DelayedRemembered: pc.DelayedRemembered}}
 	n := int32(0)
 	for _, id := range g.Zone(state.ZBattlefield, p) {
 		if MatchesObjectCtx(g, spec, g.Obj(id), sc) {
