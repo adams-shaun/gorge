@@ -453,7 +453,31 @@ func copyDecision(d *decision.Decision) *decision.Decision {
 	}
 	cp := *d
 	cp.Options = append([]decision.Option(nil), d.Options...)
+	for i := range cp.Options {
+		cp.Options[i].Label = optionLabelText(cp.Options[i].Label)
+	}
 	return &cp
+}
+
+// optionLabelText substitutes Forge's self-reference placeholders in an
+// offer label of the "<name>: <description>" shape the engine builds for
+// every activated ability (rules/legal.go: face name + ": " +
+// SpellDescription$). The engine copies the raw SpellDescription$, so Mount
+// Doom's damage ability read "Mount Doom: CARDNAME deals 1 damage to each
+// opponent." on the seat panel and the card wheel (fb-20260923T033148Z).
+// The name is the label's own prefix -- the one the engine already chose to
+// show this seat -- so the substitution reads no game state and can reveal
+// nothing the label did not. A label without a placeholder, or without the
+// prefix, is returned unchanged.
+func optionLabelText(label string) string {
+	if !strings.Contains(label, "CARDNAME") && !strings.Contains(label, "NICKNAME") {
+		return label
+	}
+	i := strings.Index(label, ": ")
+	if i <= 0 {
+		return label
+	}
+	return label[:i+2] + substitutePlaceholders(label[i+2:], label[:i])
 }
 
 // project is Project's body, shared by every Visibility in ProjectFor.
@@ -604,6 +628,9 @@ func project(g *state.Game, ch Chars, viewer state.PlayerID, d *decision.Decisio
 		// ch degrades to an empty projection like every other derived fact.
 		if p.ID == viewer && ch != nil {
 			pv.PotentialActions = ch.PotentialActions(p.ID)
+			for i := range pv.PotentialActions {
+				pv.PotentialActions[i].Label = optionLabelText(pv.PotentialActions[i].Label)
+			}
 		}
 		v.Players = append(v.Players, pv)
 	}

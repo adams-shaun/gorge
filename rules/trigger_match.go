@@ -2290,7 +2290,7 @@ func init() {
 		//     text (CR 702.128's ETB may-search for the named partner), which
 		//     cards/kw_partner_with.go expands into an ordinary trigger; the
 		//     bare kw:Partner line and "kw:CARDNAME..." remain play-free.
-		"trig:UnlockDoor", "kw:Station", "kw:Chapter", "kw:Start your engines",
+		"trig:UnlockDoor", "trig:FullyUnlock", "kw:Station", "kw:Chapter", "kw:Start your engines",
 		"stat:Panharmonicon", "kw:Partner", "kw:Partner with",
 		"kw:CARDNAME can be your commander.",
 		// kw:Doctor's companion (the WHO two-commander keyword, the

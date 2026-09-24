@@ -1,4 +1,4 @@
-import type { CardView, Decision, Option } from '../protocol';
+import type { CardView, Decision, Option, PotentialAction } from '../protocol';
 
 /**
  * cardoptions.ts is the ONE mechanism behind three symptoms (task ui21):
@@ -47,11 +47,13 @@ export type OptionTone = 'initiative' | 'offered' | 'idle';
  * post's `holdPriority` (prio3) threads the Ctrl modifier from the tile
  * click into SeatPanelState.click's `{ holdPriority }`: Ctrl held while
  * submitting a cast/ability must not arm pass-after-acting for that one
- * action. post's `expectFollowUp` arms the card-follow-up expectation
- * (fb-e079def5) -- every card-anchored post arms it, because a card action
- * can hand the server a follow-up decision for the same object (a
+ * action. post's `expectFollowUp` declares that a card-anchored post may
+ * hand back a follow-up decision for the same object (fb-e079def5: a
  * multi-ability mana source's stage-1 ability pick, answered through the
- * wheel, must re-open the wheel for its stage-2 colour ask). The route's own
+ * wheel, must re-open the wheel for its stage-2 colour ask). The ARM itself
+ * is SeatPanelState's (fb-20260923T050205Z): panel.click arms it for an
+ * `activate` or `mana` answer only (seatpanel.svelte.ts followUpArm), so the
+ * tile and the panel's own buttons behave identically. The route's own
  * boardOptions.post is what finally reaches panel.click, so this signature
  * is the contract every tile affordance (direct icon, radial wheel, long
  * list menu -- CardTile, CommanderTile, IdentityBar, HandFan) speaks.
@@ -71,6 +73,11 @@ export interface CardOptions {
   /** Object whose next local choice should open immediately after a direct
    *  card action posted the preceding decision. */
   autoOpenObj?: number;
+  /** later indexes the seat's potential actions (laterByObj) by object: the
+   *  abilities the engine WOULD offer on a card once mana floats, for the
+   *  cards this decision already offers something. Absent when there are
+   *  none. */
+  later?: Map<number, PotentialAction[]>;
   post: (index: number, expectFollowUp?: boolean, holdPriority?: boolean) => void;
 }
 
@@ -86,7 +93,66 @@ export interface TileOptions {
   pickedOrder: number[];
   tone: OptionTone;
   autoOpen?: boolean;
+  /** later is this tile's not-yet-payable abilities (laterByObj): shown in
+   *  the picker as disabled rows, never posted. Absent or empty for almost
+   *  every tile. */
+  later?: PotentialAction[];
   post: (index: number, expectFollowUp?: boolean, holdPriority?: boolean) => void;
+}
+
+/**
+ * laterByObj indexes the seat's own potential actions (PlayerView.
+ * potential_actions, rules.PotentialActions: the engine's own offer walk
+ * priced against the mana the seat could float) by object, for exactly the
+ * objects the pending PRIORITY decision already offers something and only
+ * the "ability" entries that decision does not already offer.
+ *
+ * Why (fb-20260923T033148Z-877b8f8f, "mount doom -- can only play tap for
+ * mana, not the other abilities"): the engine offers a mana-costed ability
+ * only once its mana floats (the float-then-cast model), so an untapped
+ * Mount Doom's live option list is its one mana activation -- and a
+ * one-option card acts directly, so the click that was meant to find
+ * "{1}{B}{R}, {T}: 1 damage to each opponent" TAPPED Mount Doom for mana,
+ * spending the very {T} the damage ability needs. With this index the tile
+ * sees that the card has more abilities than the window offers, opens its
+ * picker instead of acting, and shows them as disabled "tap other mana
+ * first" rows.
+ *
+ * R-E4-2 holds: nothing is derived here -- the entries are the server's own
+ * offer labels and the index is a pure regrouping. They are display-only and
+ * carry no wire index, so they can never be posted (R-E4-1). Only an
+ * "ability" entry is indexed: a hand card's potential cast has no live
+ * option on the card and is left to the auto-pass stop note as before.
+ */
+export function laterByObj(
+  decision: Decision | null,
+  potential: readonly PotentialAction[] | undefined,
+): Map<number, PotentialAction[]> | undefined {
+  if (decision === null || decision.kind !== 'priority' || !potential?.length) return undefined;
+  const live = optionsByObj(decision);
+  let m: Map<number, PotentialAction[]> | undefined;
+  for (const a of potential) {
+    if (a.kind !== 'ability' || a.obj === undefined) continue;
+    const offered = live.get(a.obj);
+    if (offered === undefined) continue;
+    if (offered.some((o) => o.kind === 'ability' && (o.ability ?? 0) === (a.ability ?? 0))) continue;
+    m ??= new Map();
+    const list = m.get(a.obj);
+    if (list === undefined) m.set(a.obj, [a]);
+    else list.push(a);
+  }
+  return m;
+}
+
+/** laterLabel is a later row's text: the server's label plus why it is not
+ *  selectable yet. */
+export function laterLabel(a: Pick<PotentialAction, 'label'>): string {
+  return `${a.label ?? 'Ability'} (tap other mana first)`;
+}
+
+/** hasLater reports whether the tile carries any not-yet-payable ability. */
+export function hasLater(tile: Pick<TileOptions, 'later'>): boolean {
+  return (tile.later?.length ?? 0) > 0;
 }
 
 /**
@@ -223,6 +289,7 @@ export function tileScenario(tile: Pick<TileOptions, 'list'>): TileScenario | nu
  * not option identity (R-E4-1).
  */
 export function singleTapOptionOf(tile: TileOptions): Option | null {
+  if (hasLater(tile)) return null;
   if (tile.list.length === 0 || tile.list.some((o) => o.kind !== 'activate')) return null;
 
   const semantics = (option: Option) => JSON.stringify(
@@ -238,7 +305,8 @@ export function singleTapOptionOf(tile: TileOptions): Option | null {
 
 /** Post one displayed option by its WIRE index (R-E4-1), never list position. `holdPriority` (Ctrl held) skips pass-after-acting for this one action.
  *
- * Every picker post ARMS the card-follow-up expectation (task fb-e079def5):
+ * Every picker post declares a possible card follow-up (task fb-e079def5;
+ * the arm is SeatPanelState.followUpArm's, `activate`/`mana` answers only):
  * every option a picker posts is card-anchored (it comes from optionsByObj /
  * optionsByPlayer, so its `obj` names the card the choice was made on), and a
  * card-anchored choice can hand the server a follow-up decision for the SAME
@@ -292,6 +360,7 @@ export function resolveCardFollowUp(
 
 /** Post a direct action by its WIRE index (R-E4-1), never list position. `holdPriority` (Ctrl held) skips pass-after-acting for this one action. */
 export function postSingleAction(tile: TileOptions, expectFollowUp = false, holdPriority = false): void {
+  if (hasLater(tile)) return;
   const option = tile.list.length === 1 ? tile.list[0] : singleTapOptionOf(tile);
   if (option === undefined || option === null) return;
   if (expectFollowUp) tile.post(option.index, true, holdPriority);
@@ -443,11 +512,13 @@ export function optionSetForMany(
 export function tileOptions(bundle: CardOptions, obj: number): TileOptions | null {
   const set = optionSetFor(bundle.byObj, obj, bundle.picked);
   if (set === null) return null;
+  const later = bundle.later?.get(obj);
   return {
     list: set.list,
     pickedOrder: set.pickedOrder,
     tone: bundle.tone,
     autoOpen: bundle.autoOpenObj === obj,
+    ...(later ? { later } : {}),
     post: bundle.post,
   };
 }
@@ -457,11 +528,20 @@ export function tileOptions(bundle: CardOptions, obj: number): TileOptions | nul
 export function tileOptionsMany(bundle: CardOptions, objs: readonly number[]): TileOptions | null {
   const set = optionSetForMany(bundle.byObj, objs, bundle.picked);
   if (set === null) return null;
+  // Interchangeable members carry identical later rows; show each once.
+  const seen = new Set<string>();
+  const later = objs.flatMap((obj) => bundle.later?.get(obj) ?? []).filter((a) => {
+    const key = `${a.ability ?? 0}\u0000${a.label ?? ''}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
   return {
     list: set.list,
     pickedOrder: set.pickedOrder,
     tone: bundle.tone,
     autoOpen: bundle.autoOpenObj !== undefined && objs.includes(bundle.autoOpenObj),
+    ...(later.length > 0 ? { later } : {}),
     post: bundle.post,
   };
 }
@@ -495,8 +575,36 @@ export function wheelFace(option: Pick<Option, 'kind' | 'label'> & { cost?: stri
     if (n === 0) return '0';
     return `${loyalty[1] === 'Add' ? '+' : '−'}${n}`;
   }
+  if (option.kind === 'mana') return manaWheelFace(option.label);
   const colon = option.label.indexOf(': ');
   const text = colon >= 0 ? option.label.slice(colon + 2) : option.label;
   const word = (text.trim().split(/\s+/)[0] ?? text).replace(/[.,;:]+$/, '');
   return word.length > 6 ? `${word.slice(0, 5)}…` : word;
+}
+
+const MANA_PIPS = /^[WUBRGC]+$/;
+const MANA_ALTERNATIVES = /^[WUBRGC](, [WUBRGC])* or [WUBRGC]$/;
+
+/**
+ * manaWheelFace is a "mana" option's face (the stage-1 "choose a mana
+ * ability" wheel, rules/mana_activation.go manaAbilityLabel). Those labels
+ * are "Add <production>", optionally behind the ability's extra cost --
+ * Phyrexian Tower's paid ability is "Sacrifice 1 creature: Add BB"
+ * (fb-20260924T180813Z) -- so the generic first-word face read "Add" on
+ * every button. The face is the production (pips as-is, otherwise its first
+ * word; "B or R" reads "B/R"), prefixed with the cost's first three letters
+ * when there is one: Tower's wheel reads "C" and "Sac BB".
+ */
+function manaWheelFace(label: string): string {
+  const add = label.lastIndexOf('Add ');
+  if (add < 0) return label.length > 6 ? `${label.slice(0, 5)}…` : label;
+  const produced = label.slice(add + 4).trim();
+  const prod = MANA_PIPS.test(produced)
+    ? produced
+    : MANA_ALTERNATIVES.test(produced)
+      ? produced.split(/,\s*|\s+or\s+/).join('/')
+      : (produced.split(/\s+/)[0] ?? produced);
+  const colon = label.indexOf(': ');
+  const face = colon >= 0 && colon < add ? `${label.slice(0, Math.min(colon, 3))} ${prod}` : prod;
+  return face.length > 6 ? `${face.slice(0, 5)}…` : face;
 }

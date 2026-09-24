@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Option } from '../protocol';
   import type { TileOptions } from '../lib/cardoptions';
-  import { ACTION_GLYPHS, actionAccessibleLabel, wheelFace, postSingleAction, postTileOption, isSelectionOption, singleActionIcon, singleTapOptionOf, tileScenario } from '../lib/cardoptions';
+  import { ACTION_GLYPHS, actionAccessibleLabel, laterLabel, wheelFace, postSingleAction, postTileOption, isSelectionOption, singleActionIcon, singleTapOptionOf, tileScenario } from '../lib/cardoptions';
   import {
     placeMenu,
     placeRadial,
@@ -32,7 +32,15 @@
   let anchor = $state<MenuAnchor | null>(null);
   let badgeEl = $state<HTMLButtonElement | null>(null);
   const tapAction = $derived(collapseTapActions ? singleTapOptionOf(tileOptions) : null);
-  const radial = $derived(tileOptions.list.length <= 6);
+  // later: the card's abilities the engine would offer once mana floats
+  // (cardoptions.laterByObj, fb-20260923T033148Z). Shown as disabled rows
+  // after the live options; while any exist the card never acts directly, so
+  // Mount Doom's lone mana option cannot spend the {T} its damage ability
+  // needs on a click meant to find that ability.
+  const later = $derived(tileOptions.later ?? []);
+  const total = $derived(tileOptions.list.length + later.length);
+  const direct = $derived((tileOptions.list.length === 1 && later.length === 0) || tapAction !== null);
+  const radial = $derived(total <= 6);
 
   function captureAnchor(): void {
     if (!badgeEl) return;
@@ -97,18 +105,18 @@
   );
   const radialPlacement = $derived(
     anchor
-      ? placeRadial(anchor, tileOptions.list.length, viewportWidth(), viewportHeight())
+      ? placeRadial(anchor, total, viewportWidth(), viewportHeight())
       : [],
   );
 
   // The count badge's scenario: the icon+noun every option in the list agrees
   // on, or null for a mixed list (the bare neutral count — the rule never
   // claims a scenario the list does not have).
-  const scenario = $derived(tileScenario(tileOptions));
+  const scenario = $derived(later.length > 0 ? null : tileScenario(tileOptions));
 
   const MANA_LABEL = /^Add ([WUBRGC])$/i;
   const manaSymbols = $derived(tileOptions.list.map((option) => option.label.match(MANA_LABEL)?.[1]?.toUpperCase() ?? null));
-  const isManaChoice = $derived(manaSymbols.length > 0 && manaSymbols.every((symbol) => symbol !== null));
+  const isManaChoice = $derived(later.length === 0 && manaSymbols.length > 0 && manaSymbols.every((symbol) => symbol !== null));
 
   /** Portal follows the existing list menu mechanism: fixed coordinates in
    * the viewport, outside every scroll container that could clip it. */
@@ -136,7 +144,7 @@
 <svelte:window onkeydown={onWindowKeydown} onclick={onWindowClick} />
 
 <div class="tile-actions">
-  {#if tileOptions.list.length === 1 || tapAction !== null}
+  {#if direct}
     {@const action = tapAction ?? tileOptions.list[0]}
     {@const icon = singleActionIcon(action)}
     <button
@@ -162,8 +170,8 @@
       aria-haspopup="menu"
       aria-expanded={open}
       aria-label={scenario
-        ? `${tileOptions.list.length} ${scenario.noun} ${subject}`
-        : `${tileOptions.list.length} actions ${subject}`}
+        ? `${total} ${scenario.noun} ${subject}`
+        : `${total} actions ${subject}`}
       title="Options {subject}"
       data-action-icon={scenario?.icon}
       bind:this={badgeEl}
@@ -175,7 +183,7 @@
       {#if scenario}
         <span class="badge__icon" aria-hidden="true">{ACTION_GLYPHS[scenario.icon]}</span>
       {/if}
-      <span class="badge__n data">{tileOptions.list.length}</span>
+      <span class="badge__n data">{total}</span>
     </button>
   {/if}
 
@@ -183,7 +191,7 @@
     <span class="sel data" aria-label="picked {tileOptions.pickedOrder.join(', ')}">{tileOptions.pickedOrder.join(',')}</span>
   {/if}
 
-  {#if open && tileOptions.list.length > 1 && tapAction === null}
+  {#if open && !direct}
     {#if radial}
       <div class="radial-pop" data-option-picker data-radial-picker role="menu" tabindex="-1" aria-label="Options {subject}" use:portal>
         {#each tileOptions.list as opt, i (opt.index)}
@@ -223,6 +231,33 @@
             >{opt.label}</span>
           </div>
         {/each}
+        {#each later as a, j (`later-${a.obj}-${a.ability}-${j}`)}
+          {@const point = radialPlacement[tileOptions.list.length + j] ?? { x: 8, y: 8 }}
+          {@const tipAbove = point.y >= TIP_ROOM}
+          <div class="wheel-slot">
+            <button
+              class="wheel-button wheel-button--later"
+              type="button"
+              role="menuitem"
+              aria-disabled="true"
+              data-later-ability={a.ability}
+              aria-label={laterLabel(a)}
+              style:left="{point.x}px"
+              style:top="{point.y}px"
+              onclick={(event) => event.stopPropagation()}
+            >
+              <span>{wheelFace({ kind: a.kind, label: a.label ?? '' })}</span>
+            </button>
+            <span
+              class="wheel-tip"
+              class:wheel-tip--below={!tipAbove}
+              role="tooltip"
+              style:left="{tipAnchorX(point.x)}px"
+              style:top="{tipAbove ? point.y : point.y + RADIAL_BUTTON + TIP_GAP}px"
+              style:transform={tipAbove ? 'translate(-50%, calc(-100% - 8px))' : 'translate(-50%, 0)'}
+            >{laterLabel(a)}</span>
+          </div>
+        {/each}
       </div>
     {:else}
       <!-- The list and wheel share data-option-picker: both are portaled,
@@ -234,6 +269,13 @@
             <li role="none">
               <button class="menu__item" type="button" role="menuitem" onclick={(event) => choose(opt, event.ctrlKey)}>
                 {opt.label}
+              </button>
+            </li>
+          {/each}
+          {#each later as a, j (`later-${a.obj}-${a.ability}-${j}`)}
+            <li role="none">
+              <button class="menu__item menu__item--later" type="button" role="menuitem" aria-disabled="true" data-later-ability={a.ability} onclick={(event) => event.stopPropagation()}>
+                {laterLabel(a)}
               </button>
             </li>
           {/each}
@@ -397,6 +439,17 @@
     box-shadow: var(--shadow-lift);
     padding: 2px;
   }
+  /* A later row (cardoptions.laterByObj): an ability the card has but the
+     window cannot pay yet. Dashed and dimmed, never clickable; its bubble
+     says to tap other mana first. */
+  .wheel-button.wheel-button--later {
+    border-style: dashed;
+    border-color: var(--ink-dim);
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  .wheel-button.wheel-button--later:hover,
+  .wheel-button.wheel-button--later:focus-visible { transform: none; filter: none; }
   .menu { margin: 0; padding: 0; list-style: none; }
   .menu__item {
     display: block;
@@ -413,6 +466,7 @@
     padding: var(--sp-1) var(--sp-2);
     cursor: pointer;
   }
+  .menu__item--later { color: var(--ink-dim); cursor: not-allowed; font-style: italic; }
   .menu__item:hover,
   .menu__item:focus-visible {
     background: color-mix(in srgb, var(--ink) 7%, var(--instrument));
