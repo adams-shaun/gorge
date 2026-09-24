@@ -131,3 +131,35 @@ func TestBlightXCostAnnouncesAndPaysX(t *testing.T) {
 		t.Fatalf("Return<1/CARDNAME> cost did not return the source to hand: zone=%v", o)
 	}
 }
+
+// TestBlightXNoManaCeiling guards the announcement bound when the only X
+// cost is blighting: the mana/graveyard ceiling must not cap a mana-free X.
+func TestBlightXNoManaCeiling(t *testing.T) {
+	reg := searchTestRegistry(t)
+	e, _ := blightEngine(t, reg, 2)
+	bear := blightMove(t, e, 0, "Grizzly Bears", state.ZBattlefield)
+	if o := e.G.Obj(bear); o == nil || o.Zone != state.ZBattlefield || e.Toughness(bear) != 2 {
+		t.Fatalf("precondition: bear %d must be a 2-toughness battlefield creature", bear)
+	}
+	if pool, gy := e.G.Players[0].Pool.Total(), len(e.G.Zone(state.ZGraveyard, 0)); pool != 0 || gy != 0 {
+		t.Fatalf("precondition: need zero mana and graveyard cards, got pool=%d grave=%d", pool, gy)
+	}
+	cost := ParseCost("Blight<X>")
+	if len(cost.Blight) != 1 || !cost.Blight[0].Announced || len(cost.Unknown) != 0 {
+		t.Fatalf("precondition: Blight<X> not parsed as announced cost: %+v", cost)
+	}
+	e.cast = &pendingCast{player: 0, card: bear, cost: cost}
+	if !e.xAsk() {
+		t.Fatal("Blight<X> did not pose an X announcement")
+	}
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KChoose {
+		t.Fatalf("want X choice, got %+v", d)
+	}
+	for _, o := range d.Options {
+		if o.Kind == "x" && o.Amount == 2 {
+			return
+		}
+	}
+	t.Fatalf("X=2 withheld by mana ceiling despite 2-toughness blight candidate: %+v", d.Options)
+}
