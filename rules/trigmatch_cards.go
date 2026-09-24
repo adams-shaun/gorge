@@ -221,19 +221,6 @@ func (e *Engine) seekAllMatches(t cards.Trigger, source state.ObjID, ev events.E
 // FirstTime$ is read the LifeLost/Investigated way: the log scan admits
 // exactly the acting player's first surveil of the turn (Whispering
 // Snitch's "for the first time each turn").
-func (e *Engine) scryMatches(t cards.Trigger, source state.ObjID, ev events.Event, _ *state.Object) bool {
-	if ev.Kind != events.Scry || t.Params["ToBottom"] != "" {
-		// The Scry marker precedes KArrange. A ToBottom$ condition cannot
-		// know the answer yet; fail closed rather than fire on a top-only scry.
-		return false
-	}
-	ctrl := e.controllerOf(source)
-	if v := t.Params["ValidPlayer"]; v != "" && !effects.MatchesPlayerSpec(e.G, v, ev.Player, ctrl) {
-		return false
-	}
-	return true
-}
-
 func (e *Engine) surveilMatches(t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
 	if ev.Kind != events.Surveil {
 		return false

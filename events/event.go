@@ -748,8 +748,6 @@ const (
 	// append-only precedent, so no earlier ordinal, hash chain or golden
 	// replay is affected.
 	Unattached
-	// Scry records one completed scry instruction for CR 701.17 triggers and replacements.
-	Scry
 	// PlayerNoted records a player-notation write (Forge's `NoteCards$
 	// <defined> | NoteCardsFor$ <label>` on a DB$ Pump body -- Seize the
 	// Spotlight's fame/fortune branches, Master of Ceremonies' money/

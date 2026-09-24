@@ -141,11 +141,6 @@ func (h *fakeHost) EmitTokenCreate(e events.Event) []state.ObjID {
 	return []state.ObjID{want}
 }
 
-func (h *fakeHost) Scry(p state.PlayerID, source state.ObjID, count int32, _ *cards.SA, _ int) (int32, bool) {
-	h.Emit(events.Event{Kind: events.Scry, Player: p, Obj: source, Amount: count})
-	return count, true
-}
-
 // EmitTap has no trigger matcher to hand the tapper and entry provenance to,
 // so the double records the same plain Tap event the engine logs.
 func (h *fakeHost) EmitTap(obj state.ObjID, _ state.PlayerID, _ bool) {

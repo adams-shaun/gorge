@@ -122,9 +122,6 @@ var addedAfterTheSplit = []string{
 	// which was appended for it, so it could not have been in the pre-split
 	// switch.
 	"Surveil",
-	// trig-scry: CR 701.17 scry marker event; the pre-split dispatcher had no
-	// Scry mode because the event marker was added with this matcher.
-	"Scry",
 	// agent-20260920T063816Z-abb68c8f: "Whenever CARDNAME becomes unattached
 	// from a permanent ..." (CR 701.3b; Captain's Hook, Grafted Exoskeleton,
 	// Grafted Wargear, Stitcher's Graft). It matches the events.Unattached

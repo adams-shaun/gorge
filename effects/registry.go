@@ -54,10 +54,6 @@ type Host interface {
 	// unreplaced event returns the single token it minted (empty when nothing
 	// was created).
 	EmitTokenCreate(events.Event) []state.ObjID
-	// Scry proposes one scry instruction before any library is looked at. The
-	// rules engine applies R:Event$ Scry, records the surviving instruction
-	// for triggers and returns its final count (or false if replaced entirely).
-	Scry(player state.PlayerID, source state.ObjID, count int32, sa *cards.SA, target int) (int32, bool)
 	// EmitDamage emits a Damage event and returns the event that actually
 	// landed after replacement effects. A prevention returns a non-Damage
 	// result; an amount-changing replacement returns Damage with the applied
@@ -1316,9 +1312,6 @@ type Ctx struct {
 	AttachDests      []state.ObjID
 	// ScryOpt is the answered Optional$ True Scry election ("yes"/"no").
 	ScryOpt string
-	// ScryReady carries the chosen replacement result across a KReplacement ask.
-	ScryReady bool
-	ScryCount int32
 	// PutOpt is the answered Optional$ True put-counter election ("yes"/"no")
 	// on a re-entered PutCounter resolution (Talus Paladin's "you may put a
 	// +1/+1 counter on CARDNAME", Black Widow's "You may put ... If you

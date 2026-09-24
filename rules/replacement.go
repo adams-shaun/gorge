@@ -417,74 +417,6 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 	return ev, false
 }
 
-// Scry is the proposal boundary for one library's scry instruction. A
-// replacement must run BEFORE looking at any cards: a Draw replacement never
-// reveals them, while a count replacement changes the KArrange option count.
-// The surviving events.Scry is logged once, after replacement matching, so
-// triggers can only see an instruction that actually happens.
-func (e *Engine) Scry(p state.PlayerID, source state.ObjID, count int32) (int32, bool) {
-	proposed := events.Event{Kind: events.Scry, Player: p, Obj: source, Amount: count}
-	ev, replaced := e.applyReplacements(proposed)
-	if replaced {
-		return 0, false
-	}
-	// This event has already been through replacement matching; emit only
-	// its final shape. The normal emit path still logs and checks triggers.
-	applying := e.applyingReplacement
-	e.applyingReplacement = true
-	e.emit(ev)
-	e.applyingReplacement = applying
-	return ev.Amount, true
-}
-
-// continueScryReplacements handles the two printed Scry replacement shapes
-// at the corpus pin: Kenessos increments Num and Eligeth draws Num instead.
-// Recheck each matching replacement against the current proposal, so a
-// replacement cannot apply to its own resulting instruction a second time.
-func (e *Engine) continueScryReplacements(ev events.Event, matches []replMatch) (events.Event, bool) {
-	for _, m := range matches {
-		if !e.replacementMatches(*m.repl, m.id, ev) || m.repl.With == nil {
-			continue
-		}
-		with := m.repl.With
-		ctx := e.replCtx(m, ev)
-		switch {
-		case with.API == "ReplaceEffect" && with.Params["VarName"] == "Num":
-			if n, ok := scryReplacementCount(e, ctx, with.Params["VarValue"], ev.Amount); ok {
-				ev.Amount = n
-				continue
-			}
-		case with.API == "Draw" && with.Params["Defined"] == "You":
-			if n, ok := scryReplacementCount(e, ctx, with.Params["NumCards"], ev.Amount); ok {
-				e.lifeReplacementDraw(ev.Player, n)
-				return ev, true
-			}
-		}
-		// An unmodelled body must not masquerade as a successful replacement.
-		e.emit(events.Event{Kind: events.Note, Obj: m.id, Text: "unimplemented Scry replacement"})
-	}
-	return ev, false
-}
-
-// scryReplacementCount binds Forge's ReplaceCount$Num to the proposed
-// instruction's count, not an object or the current library size. Keep this
-// binding local to R:Event$ Scry rather than widening the global Count grammar.
-func scryReplacementCount(e *Engine, ctx *effects.Ctx, raw string, count int32) (int32, bool) {
-	if body, ok := ctx.SVars[raw]; ok {
-		raw = body
-	}
-	if body, ok := strings.CutPrefix(raw, "ReplaceCount$Num"); ok {
-		if body == "" {
-			return count, true
-		}
-		if op, ok := strings.CutPrefix(body, "/"); ok {
-			return replCountOp(count, op), true
-		}
-		return 0, false
-	}
-	return effects.EvalCountOK(e, ctx, raw)
-}
-
 // applyNonMoveReplacements applies a lone damage replacement, or the
 // deterministic fallback used when the affected player has left the game.
 // Competing replacements for a live affected player are parked and ordered by
@@ -3961,15 +3893,6 @@ func (e *Engine) replacementMatchesRememberedUngated(r cards.Repl, source state.
 			if !parsed || !applyCompare(int(ev.Amount), op, n) {
 				return false
 			}
-		}
-		return e.replacementConditionHolds(r, source, you)
-	case "Scry":
-		if ev.Kind != events.Scry {
-			return false
-		}
-		if v := r.Params["ValidPlayer"]; v != "" &&
-			!effects.MatchesPlayerSpec(e.G, v, ev.Player, you) {
-			return false
 		}
 		return e.replacementConditionHolds(r, source, you)
 	case "Explore":

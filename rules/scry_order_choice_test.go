@@ -48,20 +48,48 @@ func TestScryReplacementOrderChangesDrawCount(t *testing.T) {
 	}
 }
 
-func TestScryToBottomTriggerFailsClosedUntilArrangementResult(t *testing.T) {
-	e, _, id := scryFixture(t, 9342)
-	source := onBoardCard(t, e, 0, corpusCard(t, "The Temporal Anchor"))
-	o := e.G.Obj(source)
-	if o == nil || o.Zone != state.ZBattlefield || len(o.Face().Triggers) < 2 || o.Face().Triggers[1].Params["ToBottom"] != "True" {
-		t.Fatalf("precondition: ToBottom trigger source not on battlefield: %+v", o)
-	}
-	d := scryDecision(t, e, id)
-	if len(d.Options) < 2 {
-		t.Fatalf("precondition: no bottom/top distinction: %+v", d)
-	}
-	for _, pt := range e.pendingTriggers {
-		if pt.Source == source {
-			t.Fatal("ToBottom trigger fired before a bottom choice")
-		}
+// A spell's Scry instruction must produce the same completed-action marker
+// as a permanent's upkeep Scry, not a premature marker at the look.
+func TestScrySpellTemporalAnchorBottomChoice(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		bottom bool
+		pushes int
+		amount int32
+	}{
+		{"bottom one", true, 1, 1},
+		{"keep all on top", false, 0, 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e, _, id := scryFixture(t, 9342)
+			source := onBoardCard(t, e, 0, corpusCard(t, "The Temporal Anchor"))
+			o := e.G.Obj(source)
+			if o == nil || o.Zone != state.ZBattlefield || len(o.Face().Triggers) < 2 || o.Face().Triggers[1].Params["ToBottom"] != "True" {
+				t.Fatalf("precondition: ToBottom trigger source not on battlefield: %+v", o)
+			}
+			d := scryDecision(t, e, id)
+			if len(d.Options) != 3 || d.Max != 3 || len(e.G.Zone(state.ZLibrary, 0)) < 4 || d.Options[0].Obj == d.Options[1].Obj {
+				t.Fatalf("precondition: need distinct top/bottom cards and a nonempty remainder: %+v", d)
+			}
+			if marks := scryMarkers(e); len(marks) != 0 {
+				t.Fatalf("scry recorded before arrangement: %+v", marks)
+			}
+			if tc.bottom {
+				submitChoices(t, e, d.Options[0].Index, d.Options[1].Index)
+			} else {
+				submitChoices(t, e, d.Options[0].Index, d.Options[1].Index, d.Options[2].Index)
+			}
+			marks := scryMarkers(e)
+			if len(marks) != 1 || marks[0].Amount != tc.amount || marks[0].Player != 0 || marks[0].Obj != id {
+				t.Fatalf("completed scry record = %+v, want one marker bottoming %d", marks, tc.amount)
+			}
+			passUntilStackEmpty(t, e, 40)
+			if n := anchorTriggerPushes(e, source); n != tc.pushes {
+				t.Fatalf("Temporal Anchor pushed %d triggers, want %d", n, tc.pushes)
+			}
+			if n := len(libraryExiled(e, 0)); n != tc.pushes {
+				t.Fatalf("Temporal Anchor exiled %d cards, want %d", n, tc.pushes)
+			}
+		})
 	}
 }

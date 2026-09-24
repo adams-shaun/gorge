@@ -2891,12 +2891,16 @@ func effSurveil(h Host, c *Ctx, sa *cards.SA) {
 // len(lib)) cards. The unchosen pile B's destination is the shared
 // Option.Kind passed in; only that differs between the two primitives.
 //
-// markSurveil emits ONE events.Surveil marker per acting player. Scry
-// instead goes through Host.Scry, which applies R:Event$ Scry before the
-// look and logs a surviving events.Scry marker for Mode$ Scry. Both happen
-// inside the per-player loop, not for every defined target up front. A
-// suspended player's re-entry skips the completed target, so its marker is
-// not re-emitted.
+// markSurveil selects the one verb-specific record: Surveil emits ONE
+// events.Surveil marker per acting player -- the canonical record
+// trig:Surveil matches ("whenever you surveil" -- Mirko, Obsessive
+// Theorist; Dimir Spybug; Thoughtbound Phantasm; Whispering Snitch) --
+// while Scry emits none. The marker is emitted INSIDE the per-player loop,
+// at the point that player's arrangement is actually performed, NOT for
+// every defined target up front. A suspended player's re-entry
+// (Ctx.Arrange set) skips the completed target, so its marker is not
+// re-emitted; the no-host stand-in and continuation passes each record only
+// the library whose arrangement they reach.
 func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, n int32, kind, verb string, extraOf func(state.PlayerID) int32, markSurveil bool) {
 	// Re-entry after rules' handleArrange resumes with the next library. The
 	// cursor is shared with RearrangeTopOfLibrary, so every Defined$/targeted
@@ -2941,20 +2945,8 @@ func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, n int32, kind, verb string,
 		if markSurveil {
 			h.Emit(events.Event{Kind: events.Surveil, Player: p, Obj: c.Source})
 		}
-		k := n
-		if verb == "Scry" {
-			if c.ScryReady && c.LibraryTarget == targetIndex {
-				k = c.ScryCount
-				c.ScryReady = false
-			} else {
-				var proceed bool
-				k, proceed = h.Scry(p, c.Source, k, sa, targetIndex)
-				if !proceed {
-					continue // the replacement performed its own action, or suspended
-				}
-			}
-		}
 		lib := zoneOf(g, state.ZLibrary, p)
+		k := n
 		if extraOf != nil {
 			k += extraOf(p)
 		}
