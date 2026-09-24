@@ -2,6 +2,7 @@ package botpolicy
 
 import (
 	"sort"
+	"strings"
 
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/state"
@@ -159,15 +160,39 @@ func (b Board) mayKillMe(me state.PlayerID, c Creature) bool {
 // ANY single available pool unit or source still leaves enough mana to pay
 // each cheapest instant-speed spell. A total-mana surplus alone cannot
 // protect a coloured instant (one Island and one Forest cannot guarantee
-// that a one-mana removal leaves the Island untouched). Only untapped basic
-// lands with one fixed, literal production colour are counted: the Board's
-// production summary cannot promise that a nonbasic/ability's activation
-// conditions or its alternative colours will be available at this window.
-func (b Board) hasSpareMana() bool {
+// that a one-mana removal leaves the Island untouched). Only untapped,
+// non-summoning-sick basic lands with one fixed, literal production colour
+// are counted: a basic land's only mana ability is a tap ability, and CR
+// 302.6 forbids activating it the turn the land entered, so a sick source is
+// no more dependable than a tapped one. The Board's production summary cannot
+// promise that a nonbasic/ability's activation conditions or its alternative
+// colours will be available at this window.
+func (b Board) hasSpareMana() bool { return b.hasSpareManaAfter("") }
+
+// hasSpareManaAfter is hasSpareMana generalized to a KNOWN pending payment:
+// pendingCost is the printed mana cost of the spell whose target is being
+// chosen. Under CR 601.2b/c that spell is already on the stack but not yet
+// paid -- a cast's target ask (rules/cast.go) is posed while
+// pc.stackObj == pc.card, and payCast spends the mana afterwards -- so the
+// payment that follows the answer can destroy the very reserve hasSpareMana
+// checked. A multi-mana removal spends as many units as its cost, but
+// hasSpareMana only tested spending any ONE unit, so a {1}{G} removal read
+// as spare against a {G}{G} reserve it then ate. This deducts the pending
+// cost's WORST-CASE consumption from the available pool before the reserve
+// test, so a spend that would break the reserve never promotes tierValue.
+//
+// The deduction is deliberately conservative (an under-promotion is fine, a
+// broken reserve is not): coloured pips are taken first, capped by what is
+// available, then the generic units from the colours the reserve's own pips
+// need most (ascending slot index on a tie), the allocation that hurts the
+// reserve most. An empty pendingCost reproduces hasSpareMana exactly,
+// per-unit/per-source probes included; a genuinely free cost ("0", no pips)
+// deducts nothing and so takes the same probe path.
+func (b Board) hasSpareManaAfter(pendingCost string) bool {
 	available := b.Pool
 	var sources []state.Mana
 	for _, c := range b.Cards {
-		if !c.OnBattlefield || !c.Basic || c.Tapped || c.Produces.Any || c.Produces.Indeterminate {
+		if !c.OnBattlefield || !c.Basic || c.Tapped || c.Sick || c.Produces.Any || c.Produces.Indeterminate {
 			continue
 		}
 		var source state.Mana
@@ -220,6 +245,17 @@ func (b Board) hasSpareMana() bool {
 		}
 		return true
 	}
+	if pendingCost != "" {
+		// The known pending payment subsumes the single-unit probe below: it
+		// spends as many units as its cost, worst-case for the reserve. A
+		// genuinely free cost spends nothing (rem == available), so it falls
+		// through to the probe exactly as hasSpareMana does rather than
+		// weakening the check.
+		rem := b.pendingSpendWorstCase(available, pendingCost, reserves)
+		if rem != available {
+			return pays(rem)
+		}
+	}
 	if !pays(available) {
 		return false
 	}
@@ -244,6 +280,97 @@ func (b Board) hasSpareMana() bool {
 		}
 	}
 	return true
+}
+
+// pendingSpendWorstCase returns available minus a payment of pendingCost's
+// units, allocated the way that hurts the reserves most. It is the
+// conservative direction by construction: coloured pips are unavoidable and
+// taken first (capped by availability, since a pip a colour cannot pay is
+// not a spend this pool makes), then the generic remainder is drawn from the
+// colours the reserves need most, ascending slot index on a tie -- so the
+// units the reserve can least spare go first. A printed {X} is an unbounded
+// spend on the stack (CmcOf counts it as 0) and no value is readable here,
+// so it empties the pool and fails the reserve test: the fail-closed
+// direction. The caller has already established that a reserve exists.
+func (b Board) pendingSpendWorstCase(available state.Mana, pendingCost string, reserves []Card) state.Mana {
+	if costHasX(pendingCost) {
+		return state.Mana{}
+	}
+	rem := available
+	pips := colourPips(pendingCost)
+	for i := 0; i < 5; i++ {
+		take := pips[i]
+		if take > rem[i] {
+			take = rem[i]
+		}
+		rem[i] -= take
+	}
+	generic := CmcOf(pendingCost)
+	for i := 0; i < 5; i++ {
+		generic -= pips[i]
+	}
+	if generic < 0 {
+		generic = 0
+	}
+	// need[i] is the reserve's binding demand in colour i: the max over every
+	// reserve at the cheapest cost, exactly what pays requires of the pool.
+	var need [5]int32
+	for _, c := range reserves {
+		for i, n := range colourPips(c.ManaCost) {
+			if n > need[i] {
+				need[i] = n
+			}
+		}
+	}
+	for ; generic > 0; generic-- {
+		pick := -1
+		for i := 0; i < 5; i++ {
+			if rem[i] == 0 {
+				continue
+			}
+			if pick < 0 || need[i] > need[pick] {
+				pick = i
+			}
+		}
+		if pick < 0 {
+			break // available cannot pay the cost; nothing left to take
+		}
+		rem[pick]--
+	}
+	return rem
+}
+
+// costHasX reports whether a printed Forge cost carries an {X} symbol. CmcOf
+// counts {X} as 0 (a printed X is 0 off the stack before a value is chosen),
+// but the payment it stands for is unbounded, so a pending cost containing X
+// cannot be priced conservatively from the cost string alone.
+func costHasX(mc string) bool {
+	for sym := range strings.FieldsSeq(braceForm.Replace(mc)) {
+		if sym == "X" {
+			return true
+		}
+	}
+	return false
+}
+
+// pendingSpellCost returns the printed mana cost of the spell object src when
+// it is a spell on b.Stack, or "" when the decision names no spell. At
+// cast-target time the casting card is already on the stack (pc.stackObj ==
+// pc.card, rules/cast.go) and Decision.Source names it, so its unpaid cost is
+// readable here. An activated ability's ask leaves Source 0 -- its ability
+// object is not minted until payCast -- so its pending cost stays unreadable
+// and hasSpareManaAfter falls back to the no-pending probe; that is a named
+// residual, never a guess.
+func (b Board) pendingSpellCost(src state.ObjID) string {
+	if src == 0 {
+		return ""
+	}
+	for _, s := range b.Stack {
+		if s.ID == src && s.IsSpell {
+			return s.ManaCost
+		}
+	}
+	return ""
 }
 
 func (b Board) removalRanker(me state.PlayerID, effect *decision.TargetEffect) func(decision.Option) targetRank {
@@ -307,7 +434,18 @@ func (b Board) removalRanker(me state.PlayerID, effect *decision.TargetEffect) f
 // lethal or a threat is never promoted, and an unknown never becomes
 // lethal (the unknown stays on the plain path, whose face is neutral).
 func (b Board) effectRanker(me state.PlayerID, dmg int32) func(decision.Option) targetRank {
-	spare := b.hasSpareMana()
+	return b.effectRankerAfter(me, dmg, "")
+}
+
+// effectRankerAfter is effectRanker with the pending payment of the spell
+// whose target is being chosen (empty when the ask names no readable spell: a
+// sourceless activated ability). The reserve gate it builds is
+// hasSpareManaAfter, so a value kill is promoted only when the seat still
+// keeps its cheapest instant payable AFTER worst-casing the spell's own
+// unpaid cost -- the over-claim where a {1}{G} removal could read as spare
+// against the {G}{G} reserve it then spent.
+func (b Board) effectRankerAfter(me state.PlayerID, dmg int32, pendingCost string) func(decision.Option) targetRank {
+	spare := b.hasSpareManaAfter(pendingCost)
 	return func(o decision.Option) targetRank {
 		if o.Kind == "player" {
 			if o.Player == me {
@@ -468,7 +606,7 @@ func (b Board) chooseTargets(d *decision.Decision) []int {
 	// collapses into one branch, never assumed lethal per call site.
 	var rank func(decision.Option) targetRank
 	if dmg, ok := b.effectDamage(d); ok {
-		rank = b.effectRanker(me, dmg)
+		rank = b.effectRankerAfter(me, dmg, b.pendingSpellCost(d.Source))
 	} else if d.TargetEffect != nil && (d.TargetEffect.API == "Counter" || d.TargetEffect.Removal != nil) {
 		rank = b.removalRanker(me, d.TargetEffect)
 	} else {

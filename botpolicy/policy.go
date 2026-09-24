@@ -212,6 +212,17 @@ type StackEntry struct {
 	Controller state.PlayerID
 	IsSpell    bool
 	CMC        int32
+	// ManaCost is the spell's printed cost in Forge notation, empty for an
+	// ability object (which is Face-less -- the view half's sv.Card is nil
+	// for a "trigger"/"ability"). It carries the coloured pips CMC cannot:
+	// the target policy reads it to price the PENDING payment a cast-target
+	// ask precedes (CR 601.2b/c -- the spell is on the stack but unpaid), so
+	// effectRanker's spare-mana reserve test deducts what the payment will
+	// actually consume instead of assuming at most one unit. Both adapter
+	// halves fill it the same way from the same printed face (the game half's
+	// o.Face().ManaCost for a spell, the view half's StackView.Card.ManaCost),
+	// so C8's stack census stays equal whichever host asked.
+	ManaCost string
 }
 
 // closesClock reports whether an unblocked swing from the creature id —

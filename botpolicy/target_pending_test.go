@@ -1,0 +1,185 @@
+package botpolicy
+
+import (
+	"testing"
+
+	"github.com/adams-shaun/gorge/cards"
+	"github.com/adams-shaun/gorge/decision"
+	"github.com/adams-shaun/gorge/state"
+)
+
+// pendingGreen is a forest's {T}: add {G} production summary.
+func pendingGreen() cards.ManaProduction {
+	var p cards.ManaProduction
+	p.Colour[state.MG] = 1
+	return p
+}
+
+// pendingTargetDecision is effectTargetDecision's twin for the pending-payment
+// path: it sets Decision.Source so chooseTargets can read the unpaid spell's
+// cost off the stack, exactly as rules/cast.go does at a cast-target ask
+// (Source = pc.card, the card already pushed as pc.stackObj).
+func pendingTargetDecision(b Board, src state.ObjID, dmg int, options []tgt) ([]int, *decision.Decision) {
+	d := &decision.Decision{Seq: 1, Player: 0, Kind: decision.KTarget, Min: 1, Max: 1, Source: src,
+		TargetEffect: &decision.TargetEffect{API: "DealDamage",
+			Damage: &decision.DamageEffect{Amount: &dmg}}}
+	for _, o := range options {
+		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: o.kind, Obj: o.obj, Player: o.pl})
+	}
+	return Decide(b, d, rng(1)).Choices, d
+}
+
+// pendingKillBoard is the claim-A shape: three untapped Forests, a {G}{G}
+// instant reserve the seat wants to keep, and a 3-damage burn pending on the
+// stack whose cost the caller supplies. The opponent has a killable 2/2 (the
+// tier-3 value kill) and an unkillable 5/5 (the board-first fallback the
+// policy picks when tierValue does NOT fire).
+func pendingKillBoard(t *testing.T, pendingCost string) Board {
+	t.Helper()
+	green := pendingGreen()
+	b := boardOf(def(1, 2, 2), def(2, 5, 5))
+	b.Life[0] = 20
+	b.Life[1] = 20 // neither lethal nor a threat: only tiers 1/2 are excluded by design
+	b.Cards = map[state.ObjID]Card{
+		1: {OnBattlefield: true, Basic: true, Produces: green},
+		2: {OnBattlefield: true, Basic: true, Produces: green},
+		3: {OnBattlefield: true, Basic: true, Produces: green},
+		// The instant-speed reserve: cost {G}{G} (Giant Growth's sibling shape;
+		// the printed Giant Growth itself is {G}, see the report).
+		9: {Castable: true, InstantSpeed: true, ManaCost: "G G", CMC: CmcOf("G G")},
+	}
+	b.Stack = []StackEntry{{ID: 50, Controller: 0, IsSpell: true, CMC: CmcOf(pendingCost), ManaCost: pendingCost}}
+	// Preconditions the ranking depends on: three live untapped basic green
+	// sources, a real coloured reserve, and a pending spell with the exact
+	// printed cost under test. A vacuous board must fail here, not pass
+	// silently downstream.
+	for _, id := range []state.ObjID{1, 2, 3} {
+		c := b.Cards[id]
+		if !c.OnBattlefield || !c.Basic || c.Tapped || c.Sick || c.Produces.Colour[state.MG] != 1 {
+			t.Fatalf("source %d is not a live untapped basic Forest: %+v", id, c)
+		}
+	}
+	if r := b.Cards[9]; !r.Castable || !r.InstantSpeed || colourPips(r.ManaCost)[state.MG] != 2 {
+		t.Fatalf("reserve 9 is not a {G}{G} instant: %+v", r)
+	}
+	if len(b.Stack) != 1 || b.Stack[0].ManaCost != pendingCost {
+		t.Fatalf("pending stack entry cost %q, want %q", b.Stack[0].ManaCost, pendingCost)
+	}
+	if b.Creatures[201].Toughness == b.Creatures[202].Toughness {
+		t.Fatal("the two creature values under comparison must differ")
+	}
+	return b
+}
+
+// TestTargetSpareManaDeductsPendingPayment is claim A: the spare-mana claim
+// is made at target-choice time, BEFORE the spell's own mana is paid (CR
+// 601.2b/c), so a multi-mana removal can destroy the reserve the answer just
+// leaned on. Three Forests and a {G}{G} reserve: a {1}{G} pending removal eats
+// two of them and the reserve is dead, so tierValue must NOT fire; a one-mana
+// {G} pending removal still leaves the reserve payable, so tierValue fires.
+func TestTargetSpareManaDeductsPendingPayment(t *testing.T) {
+	// {1}{G}: two units, worst-cased onto the reserve's colour.
+	b := pendingKillBoard(t, "1 G")
+	if b.hasSpareManaAfter("1 G") {
+		t.Fatal("{1}{G} pending payment must not read spare against a {G}{G} reserve it can eat two units of")
+	}
+	got, d := pendingTargetDecision(b, 50, 3, []tgt{face(), opp(201), opp(202)})
+	if len(got) != 1 || objAt(d, got[0]) != 202 {
+		t.Fatalf("pending {1}{G} target = obj %d (options %v), want the board-first 5/5 (obj 202): tier 3 must not fire when the pending payment breaks the reserve", objAt(d, got[0]), choicesObj(got, d))
+	}
+
+	// {G}: one unit, the reserve survives.
+	b = pendingKillBoard(t, "G")
+	if !b.hasSpareManaAfter("G") {
+		t.Fatal("a one-mana {G} pending payment must leave the {G}{G} reserve payable from three Forests")
+	}
+	got, d = pendingTargetDecision(b, 50, 3, []tgt{face(), opp(201), opp(202)})
+	if len(got) != 1 || objAt(d, got[0]) != 201 {
+		t.Fatalf("pending {G} target = obj %d (options %v), want the value kill 2/2 (obj 201): tier 3 fires when the reserve survives the pending payment", objAt(d, got[0]), choicesObj(got, d))
+	}
+}
+
+// TestTargetSpareManaSkipsSummoningSickSource is claim B: a basic land played
+// this turn cannot tap for mana (CR 302.6), so a summoning-sick Forest is no
+// more dependable than a tapped one and must not count toward the reserve. A
+// {G}{G} reserve against two healthy Forests and one summoning-sick Forest is
+// NOT spare (the healthy pair alone cannot survive the existing single-unit
+// probe either); the same board with the third Forest healthy is. The sick
+// source is exactly what flips the answer.
+func TestTargetSpareManaSkipsSummoningSickSource(t *testing.T) {
+	green := pendingGreen()
+	b := Board{Cards: map[state.ObjID]Card{
+		1: {OnBattlefield: true, Basic: true, Produces: green},
+		2: {OnBattlefield: true, Basic: true, Produces: green},
+		3: {OnBattlefield: true, Basic: true, Produces: green, Sick: true},
+		9: {Castable: true, InstantSpeed: true, ManaCost: "G G", CMC: CmcOf("G G")},
+	}}
+	if c := b.Cards[3]; !c.OnBattlefield || !c.Basic || c.Tapped || !c.Sick || c.Produces.Colour[state.MG] != 1 {
+		t.Fatalf("the sick source is not a live-looking basic Forest with Sick set: %+v", c)
+	}
+	if r := b.Cards[9]; !r.Castable || !r.InstantSpeed || colourPips(r.ManaCost)[state.MG] != 2 {
+		t.Fatalf("reserve 9 is not a {G}{G} instant: %+v", r)
+	}
+	if b.hasSpareMana() {
+		t.Fatal("two healthy plus one summoning-sick Forest cannot guarantee the {G}{G} reserve")
+	}
+
+	// The same board with all three Forests live is spare: the only difference
+	// is the sickness fact, so the gate is what flips the answer.
+	healthy := b.Cards[3]
+	healthy.Sick = false
+	b.Cards[3] = healthy
+	if !b.hasSpareMana() {
+		t.Fatal("three healthy Forests should preserve the {G}{G} reserve")
+	}
+}
+
+// TestTargetSpareManaXPaymentFailsClosed pins the {X} corner: CmcOf counts a
+// printed X as 0, but the payment it stands for is unbounded, so a pending {X}
+// cost cannot be proven to leave the reserve. It fails closed rather than
+// reading the X as free.
+func TestTargetSpareManaXPaymentFailsClosed(t *testing.T) {
+	b := pendingKillBoard(t, "X G")
+	if !costHasX("X G") {
+		t.Fatal("costHasX must see the X in a printed {X}{G}")
+	}
+	if CmcOf("X G") != 1 {
+		t.Fatalf("CmcOf(X G) = %d, want 1: the X is printed 0, which is exactly why the cost is unbounded", CmcOf("X G"))
+	}
+	if b.hasSpareManaAfter("X G") {
+		t.Fatal("an unbounded {X} pending payment must not read spare")
+	}
+}
+
+// TestTargetSpareManaFreePendingKeepsProbe pins the zero-cost corner: a
+// pending "0" spends nothing, so hasSpareManaAfter must reproduce
+// hasSpareMana's single-unit probe rather than reading the free cost as a
+// licence to skip it. Two healthy Forests plus a third -- a {G}{G} reserve --
+// is the shape the probe rejects, and the free pending cost must reject it too.
+func TestTargetSpareManaFreePendingKeepsProbe(t *testing.T) {
+	green := pendingGreen()
+	b := Board{Cards: map[state.ObjID]Card{
+		1: {OnBattlefield: true, Basic: true, Produces: green},
+		2: {OnBattlefield: true, Basic: true, Produces: green},
+		9: {Castable: true, InstantSpeed: true, ManaCost: "G G", CMC: CmcOf("G G")},
+	}}
+	if CmcOf("0") != 0 || colourPips("0") != [5]int32{} {
+		t.Fatalf("a printed 0 must be a free cost: CmcOf=%d pips=%v", CmcOf("0"), colourPips("0"))
+	}
+	if b.hasSpareMana() {
+		t.Fatal("precondition: two Forests cannot preserve a {G}{G} reserve under the single-unit probe")
+	}
+	if b.hasSpareManaAfter("0") != b.hasSpareMana() {
+		t.Fatal("a free pending cost must reproduce hasSpareMana, probes included")
+	}
+
+	// And a live pending cost still tightens it: three Forests are probe-spare
+	// only until a {1}{G} payment is accounted for.
+	b.Cards[3] = Card{OnBattlefield: true, Basic: true, Produces: green}
+	if !b.hasSpareMana() {
+		t.Fatal("precondition: three Forests should be probe-spare for a {G}{G} reserve")
+	}
+	if b.hasSpareManaAfter("1 G") {
+		t.Fatal("a {1}{G} pending payment must tighten the three-Forest board to not-spare")
+	}
+}
