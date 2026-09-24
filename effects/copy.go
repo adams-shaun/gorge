@@ -207,6 +207,7 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 		default:
 			d := &decision.Decision{Player: controller, Kind: decision.KChoose, Min: 1, Max: 1,
 				Source: c.Source, ResumeKind: "copy_optional", ResumeSA: sa,
+				CopyOfCopy:       copyOfCopy(g, spell),
 				ResumeRemembered: copyTargets(c.Remembered),
 				Prompt:           "Copy it?",
 				Options: []decision.Option{
@@ -334,6 +335,14 @@ func copyDefinedTargets(h Host, c *Ctx, sa *cards.SA) ([]state.Target, bool) {
 // plain Targeted/TargetedController/TargetedPlayer forms read the same
 // binding. A missing target (a fizzled ask) fails to ok=false and the caller
 // keeps its controller.
+// copyOfCopy reports whether the spell a may-copy election would copy is
+// itself a stack copy (decision.Decision.CopyOfCopy: the chain-continuation
+// marker the unattended bot declines).
+func copyOfCopy(g *state.Game, spell state.ObjID) bool {
+	o := g.Obj(spell)
+	return o != nil && o.IsCopy
+}
+
 func copyControllerFor(g *state.Game, c *Ctx, spec string) (state.PlayerID, bool) {
 	switch spec {
 	case "TargetedOrController", "Targeted", "TargetedController", "TargetedPlayer",
@@ -356,6 +365,18 @@ func copyControllerFor(g *state.Game, c *Ctx, spec string) (state.PlayerID, bool
 		return 0, false
 	case "You":
 		return c.Controller, true
+	case "NextOpponentToYourLeft", "NextPlayerToYourLeft":
+		// Barroom Brawl's "Then that player [the opponent to your left] may
+		// copy this spell": the next living seat after the resolving
+		// controller in turn order (this build has no teams). Before this arm
+		// the unknown selector fell back to the resolving controller, so the
+		// CASTER was offered its own copy, and the copy's copy, forever
+		// (cardfuzz batch1 line 1).
+		alive := g.AliveFrom(c.Controller)
+		if len(alive) < 2 {
+			return 0, false
+		}
+		return alive[1], true
 	}
 	return 0, false
 }

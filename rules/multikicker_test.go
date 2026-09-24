@@ -84,6 +84,28 @@ func awaitETBTargetAsk(t *testing.T, e *Engine) *decision.Decision {
 	return nil
 }
 
+// awaitAnthemETBStack crosses the spell-resolution boundary explicitly. A
+// stack-empty drain can stop when the spell leaves the stack, before its ETB
+// trigger is placed; only drain the trigger after observing its stack object.
+func awaitAnthemETBStack(t *testing.T, e *Engine, anthem state.ObjID) {
+	t.Helper()
+	if o := e.G.Obj(anthem); o == nil || o.Zone != state.ZStack {
+		t.Fatalf("precondition: Anthem %d must be on the stack before resolution: %+v", anthem, o)
+	}
+	for i := 0; i < 12; i++ {
+		if n := len(e.G.Stack); n > 0 {
+			if top := e.G.Obj(e.G.Stack[n-1]); top != nil && top.Ability != nil && top.Source == anthem {
+				if !hasEvent(e, events.TriggerPush, anthem) {
+					t.Fatal("precondition: Anthem ETB stack object has no TriggerPush event")
+				}
+				return
+			}
+		}
+		passHere(t, e) // both players pass; the next boundary places the ETB
+	}
+	t.Fatalf("Anthem ETB trigger never reached the stack (depth %d, pending %+v)", len(e.G.Stack), e.Pending())
+}
+
 func hasMultikickedCastInfo(e *Engine, obj state.ObjID) bool {
 	for _, ev := range e.L.Events {
 		if ev.Kind == events.CastInfo && ev.Obj == obj &&
@@ -161,12 +183,10 @@ func TestMarshalsAnthemMultikickedETBReturnsKickedCount(t *testing.T) {
 }
 
 // TestMarshalsAnthemPlainCastETBAsksForNothing pins the count-0 shape: a
-// plain cast leaves X at 0, the ETB trigger's placement ask still POSES (the
-// resolvedTargetBounds clamp keeps max >= 1 -- measured, pre-existing engine
-// behaviour for every "up to X" trigger at 0) at Min 0, and the zero election
-// moves nothing -- the graveyard is untouched. A multikicked cast answered
-// "No multikick" is the same plain cast -- no FlagKicked, no multikicked
-// CastInfo.
+// plain cast leaves X at 0, so the ETB trigger fires but its resolved
+// TargetMin$ 0 / TargetMax$ X pair takes no targets and poses no ask. The
+// graveyard stays untouched. A multikicked cast answered "No multikick"
+// has the same result -- no FlagKicked or multikicked CastInfo.
 func TestMarshalsAnthemPlainCastETBAsksForNothing(t *testing.T) {
 	e, _, anthem := gateFixture(t, 912, "Marshal's Anthem", gateRaiderSrc, gateRaiderSrc)
 	g1 := gateMoveFromLibrary(t, e, "Raider", state.ZGraveyard)
@@ -177,13 +197,8 @@ func TestMarshalsAnthemPlainCastETBAsksForNothing(t *testing.T) {
 	if d := e.Pending(); d != nil && d.Kind == decision.KChoose {
 		t.Fatalf("plain cast posed an ask: %+v", d)
 	}
-	passHere(t, e)
-	dETB := awaitETBTargetAsk(t, e)
-	if dETB.Min != 0 {
-		t.Fatalf("count-0 ETB ask Min %d, want 0", dETB.Min)
-	}
-	submitChoices(t, e) // the zero election
-	passUntilStackEmpty(t, e, 20)
+	awaitAnthemETBStack(t, e, anthem)
+	passUntilStackEmpty(t, e, 20) // an unexpected target ask fails the drain
 	if o := e.G.Obj(anthem); o.CastFlags&state.FlagKicked != 0 || o.TimesKicked != 0 {
 		t.Fatalf("plain cast flags %#x kicked %d", o.CastFlags, o.TimesKicked)
 	}
@@ -206,9 +221,7 @@ func TestMarshalsAnthemPlainCastETBAsksForNothing(t *testing.T) {
 	if o := e2.G.Obj(anthem2); o.CastFlags != 0 || hasMultikickedCastInfo(e2, anthem2) {
 		t.Fatalf("declined kick: flags %#x, multikicked CastInfo present", o.CastFlags)
 	}
-	passHere(t, e2)
-	awaitETBTargetAsk(t, e2)
-	submitChoices(t, e2) // the zero election
+	awaitAnthemETBStack(t, e2, anthem2)
 	passUntilStackEmpty(t, e2, 20)
 	if z := e2.G.Obj(g3).Zone; z != state.ZGraveyard {
 		t.Fatalf("raider %d zone %s, want untouched", g3, z)

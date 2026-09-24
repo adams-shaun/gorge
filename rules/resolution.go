@@ -1659,7 +1659,8 @@ func (e *Engine) resumeResolution(rp *resumePoint, chosen []decision.Option) {
 		// wrong ordinal (Sephiroth would transform a turn early on the
 		// resumed pass). resolvedAbilityTally is the same read resolveTop's
 		// ability branch makes, in one home.
-		ResolvedThisTurn: e.resolvedAbilityTally(o),
+		ResolvedThisTurn:    e.resolvedAbilityTally(o),
+		ActivationsThisTurn: e.activationsThisTurnFor(o.Source, o.Ability),
 		// alltargeted1: a re-entered walk keeps consuming the cast flow's
 		// pre-asked sub-ability target answers (kept until the stack object
 		// leaves, so both a later sub and a suspended body can use theirs).

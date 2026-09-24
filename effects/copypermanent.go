@@ -429,6 +429,13 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 		targets = []state.Target{{Obj: c.CopyPermanentChoice}}
 		c.CopyPermanentChoice = 0
 		c.CopyPermanentChoiceDone = false
+	case spec == "Remembered":
+		// The resolution's OWN remembered set, never the trigger's event
+		// capture (see rememberedWrittenByResolution): Dedicated Dollmaker's
+		// "exile up to one target ..., create a copy of it" otherwise also
+		// copied the Dollmaker whose ETB fired, and with no target copied it
+		// alone -- the new token's ETB then did the same, forever.
+		targets = rememberedWrittenByResolution(c)
 	case spec != "":
 		ts, ok := knownDefinedTargets(h, c, spec)
 		if !ok {
@@ -454,7 +461,7 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 			owner = ps[0].Player
 		}
 	case "Remembered", "RememberedController":
-		if ps := controllersOf(g, c.Remembered); len(ps) > 0 {
+		if ps := controllersOf(g, rememberedWrittenByResolution(c)); len(ps) > 0 {
 			owner = ps[0].Player
 		}
 	case "TriggeredCardController":
@@ -799,4 +806,32 @@ func copyTypeList(list string) []string {
 		out = append(out, cards.SplitKeywordList(part)...)
 	}
 	return out
+}
+
+// rememberedWrittenByResolution is Ctx.Remembered without the leading
+// fire-time event capture (Ctx.Captured) a trigger resolution is seeded
+// with -- this engine's stand-in for Forge's separate TriggeredCard, which
+// Forge never puts in the host's remembered list. What remains is what the
+// resolution's own Remember* riders (RememberChanged$, RememberLKI$, ...)
+// wrote. It strips only an exact leading prefix: a writer that re-remembers
+// the captured object (Myrkul's RememberChanged$ on the dying creature)
+// appends a second entry, which survives; a ctx whose Remembered no longer
+// starts with the capture (a Cleanup, a RepeatEach subject) is returned
+// unchanged, as is a RepeatEach iteration's. A delayed trigger's RememberObjects$ capture IS Forge's
+// remembered list, so a CopyPermanent body under one would lose it -- no
+// corpus CopyPermanent carrier reads Defined$ Remembered that way (measured:
+// every carrier's Remembered comes from a same-chain writer or RepeatEach).
+func rememberedWrittenByResolution(c *Ctx) []state.Target {
+	n := len(c.Captured)
+	if n == 0 || len(c.Remembered) < n || c.RepeatSubject != (state.Target{}) {
+		// A RepeatEach iteration binds its subject as Remembered; never
+		// strip it even when it happens to equal the capture.
+		return c.Remembered
+	}
+	for i, t := range c.Captured {
+		if c.Remembered[i] != t {
+			return c.Remembered
+		}
+	}
+	return c.Remembered[n:]
 }

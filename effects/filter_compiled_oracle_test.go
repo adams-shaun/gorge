@@ -86,7 +86,7 @@ func repoDeckFilterStrings(t *testing.T, reg *cards.Registry) []string {
 		"Creature.powerLTtoughness", "Creature.counters_GE1_P1P1", "Creature.counters_EQX_P1P1",
 		"Card.namedGrizzly Bears", "Card.notnamedGrizzly Bears", "Card.namedKorlash, Heir to Blackblade",
 		"Card.IsRemembered", "Card.TriggeredCard", "Card.ChosenCard", "Card.nonChosenCard",
-		"Creature.ControlledBy TriggeredPlayer", "Creature.greatestPower", "Card.lowestCMC",
+		"Creature.ControlledBy TriggeredPlayer", "Creature.ControlledBy NextOpponentToYourLeft", "Creature.greatestPower", "Card.lowestCMC",
 		"Creature.ChosenColor", "Creature.DefenderCtrl", "Creature.NotDefinedTargeted",
 		"Creature.Goblin", "Creature.nonGoblin", "Creature.Elf,Creature.Goblin",
 		"Creature.wasCastFromYourHandByYou", "Creature.!wasCastFromYourHandByYou",

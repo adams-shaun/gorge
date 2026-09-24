@@ -6544,7 +6544,12 @@ func init() {
 		"repl:Untap", "repl:BeginPhase", "repl:Transform", "repl:ProduceMana",
 		"repl:GainLife", "repl:LifeReduced", "repl:DamageDone", "repl:Counter",
 		"repl:CreateToken", "repl:RollPlanarDice", "repl:Explore", "repl:Attached", "repl:Scry", "api:ReplaceToken",
-		"repl:AddCounter", "api:ReplaceCounter")
+		"repl:AddCounter", "api:ReplaceCounter",
+		// api:ReplaceDamage is handled inline by applyReplaceDamageBody (this
+		// file) via the ReplaceDamage intercept in applyReplacements, never
+		// through effects.Resolve/runReplaceWith -- this registration is the
+		// census token only; a stub effects.Register handler would be dead code.
+		"api:ReplaceDamage")
 }
 
 // cmdZoneMove is one parked commander zone change (CR 903.9, Task m32): the
