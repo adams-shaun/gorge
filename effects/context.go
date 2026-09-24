@@ -949,16 +949,20 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 // Apparition's leave trigger, whose X is the card the earlier ETB trigger
 // remembered -- reads what an earlier resolution of the same source
 // recorded), then every ctx entry that is neither already present nor the
-// source itself, deduplicated by object id. The ctx-except-self rule keeps
+// source itself, deduplicated by object id. The ctx walk's list is the
+// CAPTURE-EXCLUDED remembered set (rememberedExcludingCapture, the one-home
+// helper): Forge's host remembered list never contains the event object the
+// trigger fired on, and rules seeds a firing trigger's ctx with Remembered ==
+// Captured == that event capture, so a raw ctx read would count the referent
+// as card-level remembered and inflate every plain-Remembered group and
+// count (the event-object case the source-skip below does NOT mask: a
+// Damage/ChangesZone trigger's capture is ev.Obj, not the source). The
+// ctx-except-self rule keeps
 // the walk's own remembers (some legs record only at ctx level) while
-// leaving out the trigger REFERENT capture: a trigger that fires on its own
-// source's movement carries that source in ctx.Remembered, Forge keeps the
-// referent in the separate Triggered* property family, and counting it as
-// card-level remembered would inflate every count (X would read the leaving
-// Skyclave's mana value next to the exiled bear's). Players in ctx pass
-// through after the objects. Deterministic (slices in order, no map range
-// reaches a caller's output) and allocation-only: it writes no state and
-// emits no event.
+// leaving out the trigger REFERENT capture when it happens to BE the source.
+// Players in ctx pass through after the objects. Deterministic (slices in
+// order, no map range reaches a caller's output) and allocation-only: it
+// writes no state and emits no event.
 //
 // imprintPileTargets resolves the SOURCE's persistent imprint association
 // (state.Object.Imprinted + ImprintTokens): the exiled cards -- Imprint links
@@ -1038,7 +1042,7 @@ func rememberedWithSource(h Host, c *Ctx) []state.Target {
 			}
 		}
 	}
-	for _, t := range c.Remembered {
+	for _, t := range rememberedExcludingCapture(h, c) {
 		if t.IsPlayer {
 			out = append(out, t)
 			continue
