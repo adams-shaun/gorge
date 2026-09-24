@@ -1182,8 +1182,8 @@ func statKeywords(st cards.Static) []string {
 // ampersand grammar is specific to keyword parameters.
 func statList(st cards.Static, key string) []string {
 	var out []string
-	for _, v := range strings.Split(st.Params[key], ",") {
-		for _, part := range strings.Split(strings.TrimSpace(v), " & ") {
+	for v := range strings.SplitSeq(st.Params[key], ",") {
+		for part := range strings.SplitSeq(strings.TrimSpace(v), " & ") {
 			part = strings.TrimSpace(part)
 			if part != "" {
 				out = append(out, part)
@@ -2182,7 +2182,12 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 	if !anyLType {
 		return reconfigureTypeSwitch(o, bestowedTypeSwitch(o, base))
 	}
-	ty := append([]string(nil), base...)
+	// Copy-on-write: the printed list is copied only once an effect actually
+	// applies to this object (most objects are untouched by the layer-4
+	// effects in play). Every modification below -- the in-place filters
+	// and the appends -- runs on the owned copy, never on the face's array.
+	ty := base
+	owned := false
 	for _, ce := range e.active() {
 		if ce.Layer != LType || !e.matchesWithTypes(ce, id, ty, atStack) {
 			continue
@@ -2191,6 +2196,10 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 			if zones, all, ok := effects.ParseZones(ce.AffectedZone); !ok || (!all && !slices.Contains(zones, zone)) {
 				continue
 			}
+		}
+		if !owned {
+			ty = append([]string(nil), ty...)
+			owned = true
 		}
 		if ce.RemoveCardTypes {
 			// RemoveCardTypes$ keeps only the SUPERTYPES: a subtype is tied to
@@ -2232,6 +2241,10 @@ func (e *Engine) typeCharacteristics(id state.ObjID, atStack state.Zone) []strin
 		if ce.AddAllCreatureTypes {
 			ty = appendAllCreatureTypes(ty)
 		}
+	}
+	if !owned && len(ty) == 0 {
+		// The copy of an empty list was nil; keep that exact value.
+		ty = nil
 	}
 	return reconfigureTypeSwitch(o, bestowedTypeSwitch(o, ty))
 }
@@ -3609,7 +3622,7 @@ func restrictionPlayerTargetMatches(g *state.Game, spec string, defender, contro
 	if spec == "" {
 		return true
 	}
-	for _, part := range strings.Split(spec, ",") {
+	for part := range strings.SplitSeq(spec, ",") {
 		part = strings.TrimSpace(part)
 		if part == "" {
 			continue
@@ -3689,7 +3702,7 @@ func restrictionPlayerSpecMatches(g *state.Game, spec string, defender, controll
 	if !strings.Contains(spec, "IsRemembered") && !strings.Contains(spec, "CardOwner") {
 		return effects.MatchesPlayerSpec(g, spec, defender, controller)
 	}
-	for _, clause := range strings.Split(spec, "+") {
+	for clause := range strings.SplitSeq(spec, "+") {
 		clause = strings.TrimSpace(clause)
 		if clause == "" {
 			continue
@@ -3744,7 +3757,7 @@ func playerIsSourceOwner(g *state.Game, source state.ObjID, p state.PlayerID) bo
 // the IsRemembered qualifier (in either polarity, under the spec's own
 // dot-separated token grammar) and which polarity it is.
 func clauseIsRemembered(clause string) (neg, has bool) {
-	for _, tok := range strings.Split(clause, ".") {
+	for tok := range strings.SplitSeq(clause, ".") {
 		tok = strings.TrimSpace(tok)
 		if strings.EqualFold(tok, "!IsRemembered") {
 			return true, true

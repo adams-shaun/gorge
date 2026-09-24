@@ -77,8 +77,8 @@ type staticGrant struct {
 // resolveChosenTypes does.
 func staticEffectTypeList(raw string) []string {
 	var out []string
-	for _, v := range strings.Split(raw, ",") {
-		for _, part := range strings.Split(strings.TrimSpace(v), " & ") {
+	for v := range strings.SplitSeq(raw, ",") {
+		for part := range strings.SplitSeq(strings.TrimSpace(v), " & ") {
 			if part = strings.TrimSpace(part); part != "" {
 				out = append(out, part)
 			}
@@ -135,7 +135,7 @@ func parseStaticEffectGrant(params map[string]string, rememberedAsSelf bool) (st
 	}
 	g.addKeywords = cards.SplitKeywordList(params["AddKeyword"])
 	for _, key := range []string{"AddAbility", "AddAbilities"} {
-		for _, nm := range strings.Split(params[key], ",") {
+		for nm := range strings.SplitSeq(params[key], ",") {
 			if nm = strings.TrimSpace(nm); nm != "" {
 				g.abilities = append(g.abilities, nm)
 			}

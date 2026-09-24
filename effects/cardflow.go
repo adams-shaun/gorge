@@ -499,7 +499,7 @@ func discardBounds(h Host, c *Ctx, sa *cards.SA, eligible int) (int, int) {
 func unlessTypeEligible(g *state.Game, c *Ctx, hand []state.ObjID, unless string) []state.ObjID {
 	var out []state.ObjID
 	for _, id := range hand {
-		for _, spec := range strings.Split(unless, ",") {
+		for spec := range strings.SplitSeq(unless, ",") {
 			spec = strings.TrimSpace(spec)
 			if spec != "" && MatchesSpecCtx(g, spec, id, c.SpecContext(c.Controller)) {
 				out = append(out, id)
@@ -2846,7 +2846,7 @@ func effSurveil(h Host, c *Ctx, sa *cards.SA) {
 	// on the same statics that were offered.
 	accepted := map[int]bool{}
 	if ans != "" && ans != "no" {
-		for _, tok := range strings.Split(ans, ",") {
+		for tok := range strings.SplitSeq(ans, ",") {
 			if i, err := strconv.Atoi(strings.TrimSpace(tok)); err == nil && i >= 0 {
 				accepted[i] = true
 			}

@@ -329,9 +329,17 @@ func (e *Engine) availableManaAbilities(p state.PlayerID, id state.ObjID) []*car
 // The ordinary wrapper deliberately supplies nil so payment windows and
 // activation rechecks discover fresh static membership.
 func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p state.PlayerID, id state.ObjID) []*cards.SA {
+	return e.appendAvailableManaAbilities(nil, statics, p, id)
+}
+
+// appendAvailableManaAbilities is availableManaAbilitiesUsing appending into
+// out (which must not alias anything the walk reads), so a caller that only
+// inspects the list can reuse one buffer across objects. With out nil it
+// returns exactly what availableManaAbilitiesUsing always returned.
+func (e *Engine) appendAvailableManaAbilities(out []*cards.SA, statics *actionStaticSource, p state.PlayerID, id state.ObjID) []*cards.SA {
 	o := e.G.Obj(id)
 	if o == nil || o.Face() == nil {
-		return nil
+		return out
 	}
 	f := o.Face()
 	// CR 708.8: a face-down permanent's printed mana abilities do not exist
@@ -404,7 +412,6 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 		}
 		return e.abilityRestrictedUsing(statics.get().cantActivate, p, id, ma)
 	}
-	var out []*cards.SA
 	for _, ma := range manaAbilities {
 		// CR 605.1b: an activated ability is a mana ability only when it is
 		// NOT a loyalty ability. A planeswalker's mana-producing loyalty
@@ -457,13 +464,14 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 	// closure must agree, or a reflected land in hand/graveyard is offered
 	// (and activatable) wherever an opponent's land exists -- Exotic Orchard
 	// reporting an "Activate ... for mana" action for the card IN HAND.
-	considerReflected := func(ma *cards.SA, ctx *effects.Ctx) {
+	// considerReflected reports whether a ManaReflected ability is live; the
+	// caller appends it (a closure appending to out itself would move out's
+	// header to the heap on every call).
+	considerReflected := func(ma *cards.SA, ctx *effects.Ctx) bool {
 		if ma.Kind != "AB" || ma.API != "ManaReflected" || !abilityZoneOK(ma, o.Zone) || abilityRestricted(ma) || !e.manaAbilityPayable(p, id, ma) || !e.manaReflectedPresentHolds(p, id, ma) {
-			return
+			return false
 		}
-		if len(effects.ManaReflectedCandidates(e, ctx, ma)) > 0 {
-			out = append(out, ma)
-		}
+		return len(effects.ManaReflectedCandidates(e, ctx, ma)) > 0
 	}
 	// A ManaReflected ability may sit on the top face or any under-card; each
 	// resolves its own face's table.
@@ -483,7 +491,9 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 			if faceCtx == nil {
 				faceCtx = &effects.Ctx{Source: id, Controller: p, SVars: pf.Face.SVars}
 			}
-			considerReflected(ma, faceCtx)
+			if considerReflected(ma, faceCtx) {
+				out = append(out, ma)
+			}
 		}
 	}
 	// A Continuous static may grant an activated ability through AddAbility$.
@@ -523,7 +533,9 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 		}
 		printed[ma.Line] = true
 		if ma.API == "ManaReflected" {
-			considerReflected(ma, recipient())
+			if considerReflected(ma, recipient()) {
+				out = append(out, ma)
+			}
 			continue
 		}
 		if ma.API == "Mana" && !e.isLoyaltyAbility(ma) && abilityZoneOK(ma, o.Zone) && !abilityRestricted(ma) && e.manaAbilityPayable(p, id, ma) &&
@@ -545,7 +557,9 @@ func (e *Engine) availableManaAbilitiesUsing(statics *actionStaticSource, p stat
 			continue
 		}
 		if ga.sa.API == "ManaReflected" {
-			considerReflected(ga.sa, recipient())
+			if considerReflected(ga.sa, recipient()) {
+				out = append(out, ga.sa)
+			}
 			continue
 		}
 		if ga.sa.API != "Mana" || e.isLoyaltyAbility(ga.sa) {

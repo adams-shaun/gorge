@@ -2263,13 +2263,28 @@ func (c Cost) hasPips() bool {
 }
 
 func (c Cost) costPips(bLifeOK bool, rider pipRider) []pip {
-	var out []pip
+	// Size the list once: every pip source below contributes exactly one
+	// pip per unit counted here.
+	n := len(c.Hybrid) + len(c.Twobrid) + len(c.Phyrexian) + len(c.HybridPhyrexian)
+	if c.Snow > 0 {
+		n += int(c.Snow)
+	}
+	for _, letter := range pipLetters {
+		if k := c.Colored[state.ManaIndex(letter)]; k > 0 {
+			n += int(k)
+		}
+	}
+	out := make([]pip, 0, n)
 	// The coloured slots including the colourless one: a plain {C} pip is a
 	// strict colourless requirement generic must not satisfy by stealing the
 	// pool's only colourless, so it is reserved like any coloured pip.
-	for _, letter := range []byte{'W', 'U', 'B', 'R', 'G', 'C'} {
+	for _, letter := range pipLetters {
 		for n := c.Colored[state.ManaIndex(letter)]; n > 0; n-- {
-			alts := []pipAlt{{color: letter}}
+			// The strict one-colour alternative list is shared read-only
+			// (every pip consumer only ranges alts); it is capped at its
+			// length, so the K'rrik append below copies rather than
+			// writing into the shared array.
+			alts := strictColourAlts[state.ManaIndex(letter)][:1:1]
 			if rider.anyType {
 				alts = anyTypeAlts()
 			} else if rider.anyColor && letter != 'C' {
@@ -2328,6 +2343,18 @@ func (c Cost) costPips(bLifeOK bool, rider pipRider) []pip {
 	}
 	return out
 }
+
+// pipLetters is costPips' fixed exact-colour order (colourless last).
+var pipLetters = [...]byte{'W', 'U', 'B', 'R', 'G', 'C'}
+
+// strictColourAlts holds, per mana index, the one-element strict colour
+// alternative list costPips hands every plain coloured pip (read-only).
+var strictColourAlts = func() (t [len(pipLetters)][1]pipAlt) {
+	for _, letter := range pipLetters {
+		t[state.ManaIndex(letter)][0] = pipAlt{color: letter}
+	}
+	return t
+}()
 
 // anyColorAlts is the colour alternatives a coloured pip accepts under the
 // may-play ignore-colour rider (MayPlayIgnoreColor$ True, CR 401.5): any of

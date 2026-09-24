@@ -4634,7 +4634,7 @@ func (e *Engine) etbOptions(you state.PlayerID, card state.ObjID, kind, validCar
 		// etbColourLetter cannot resolve is ignored, never emptied into an
 		// ask with zero options (the totality rule in this doc comment).
 		excluded := map[string]bool{}
-		for _, tok := range strings.Split(exclude, ",") {
+		for tok := range strings.SplitSeq(exclude, ",") {
 			if letter := etbColourLetter(strings.TrimSpace(tok)); letter != "" {
 				excluded[letter] = true
 			}

@@ -204,7 +204,17 @@ func (e *Engine) derivedMemoizedAt(id state.ObjID, atStack state.Zone) Derived {
 		table = &e.derivedMemoStack
 	}
 	if n := len(e.G.Objs) + 1; len(*table) < n {
-		*table = append(*table, make([]derivedMemoEntry, n-len(*table))...)
+		if cap(*table) < n {
+			// Size the table to the arena's own capacity (newWithRNG reserves
+			// headroom for minted objects), so it is allocated once per game
+			// rather than regrown -- with a temporary -- on each new object.
+			grown := make([]derivedMemoEntry, len(*table), max(n, cap(e.G.Objs)+1, 2*cap(*table)))
+			copy(grown, *table)
+			*table = grown
+		}
+		// The table only ever grows, so [len, cap) was never written: the
+		// entries exposed here are zero, exactly what the append added.
+		*table = (*table)[:n]
 	}
 	m := &(*table)[id]
 	ep, ver, objs := len(e.L.Events), e.continuousVersion, len(e.G.Objs)

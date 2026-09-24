@@ -537,7 +537,7 @@ func printedColourMask(face *Face) ColourMask {
 	if mask != 0 {
 		return mask
 	}
-	for _, colour := range strings.Split(face.Colors, ",") {
+	for colour := range strings.SplitSeq(face.Colors, ",") {
 		switch strings.ToLower(strings.TrimSpace(colour)) {
 		case "white":
 			mask |= ColourMaskWhite

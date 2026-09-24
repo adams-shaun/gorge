@@ -527,7 +527,7 @@ func addsNoCounterHolds(g *state.Game, id state.ObjID, cond string) bool {
 // predicates (Cavern of Souls' ChosenType) resolve against the mana source;
 // source-less batches keep the historical paid-card reading.
 func (e *Engine) restrictValidMatches(p state.PlayerID, d paymentDescriptor, valid string, src state.ObjID) bool {
-	for _, term := range strings.Split(strings.TrimSpace(valid), ",") {
+	for term := range strings.SplitSeq(strings.TrimSpace(valid), ",") {
 		if e.restrictValidTermMatches(p, d, strings.TrimSpace(term), src) {
 			return true
 		}
@@ -649,7 +649,10 @@ func (e *Engine) paymentConv(p state.PlayerID, id state.ObjID, ability bool) *ma
 	if conv.empty() {
 		return nil
 	}
-	return &conv
+	// Copy out only the non-empty conversion: returning &conv directly moved
+	// conv to the heap on EVERY call, including the common nil return.
+	out := conv
+	return &out
 }
 
 // costPayableGrant is costPayable with the may-play ignore-colour rider
@@ -978,7 +981,7 @@ func (e *Engine) resolvedTargetMin(p state.PlayerID, source state.ObjID, sa *car
 // originImpliedTargetZone for the four gates that admit it.
 func targetZones(sa *cards.SA) []state.Zone {
 	var zones []state.Zone
-	for _, z := range strings.Split(sa.Params["TgtZone"], ",") {
+	for z := range strings.SplitSeq(sa.Params["TgtZone"], ",") {
 		switch strings.TrimSpace(z) {
 		case "Battlefield":
 			zones = appendUniqueZone(zones, state.ZBattlefield)
@@ -1040,8 +1043,8 @@ func targetZones(sa *cards.SA) []state.Zone {
 // (stack kinds, then the battlefield default) in charge.
 func attachValidTgtsZones(spec string) ([]state.Zone, bool) {
 	var zones []state.Zone
-	for _, alt := range strings.Split(spec, ",") {
-		for _, word := range strings.Split(alt, ".") {
+	for alt := range strings.SplitSeq(spec, ",") {
+		for word := range strings.SplitSeq(alt, ".") {
 			z, has := strings.CutPrefix(strings.TrimSpace(word), "inZone")
 			if !has {
 				continue
@@ -1120,7 +1123,7 @@ func appendUniqueZone(zones []state.Zone, z state.Zone) []state.Zone {
 // parser keeps this census aligned with stack target-kind legality, including
 // Forge's Ability alias.
 func targetsStackObjects(spec string) bool {
-	for _, token := range strings.Split(spec, ",") {
+	for token := range strings.SplitSeq(spec, ",") {
 		if _, ok := state.StackKindTokenOf(strings.TrimSpace(token)); ok {
 			return true
 		}
@@ -1500,7 +1503,7 @@ type targetCandidate struct {
 // and a silent fizzle. Forge's comma is OR: the spec matches when any one
 // alternative matches.
 func (e *Engine) playerTargetSpecMatches(sc effects.SpecContext, spec string, q, you state.PlayerID, source state.ObjID) bool {
-	for _, alt := range strings.Split(spec, ",") {
+	for alt := range strings.SplitSeq(spec, ",") {
 		if matched, known := e.triggerRolePlayerAlt(sc, alt, q, you); known {
 			if matched {
 				return true
@@ -4716,7 +4719,7 @@ func (e *Engine) AttackersThisTurn() int {
 // found it: an Equip onto Creature.YouCtrl offered both players as options,
 // which effAttach then had to refuse).
 func targetsPlayers(spec string) bool {
-	for _, alt := range strings.Split(spec, ",") {
+	for alt := range strings.SplitSeq(spec, ",") {
 		switch base, _, _ := strings.Cut(strings.TrimSpace(alt), "."); base {
 		case "Player", "Any", "Opponent", "You":
 			return true

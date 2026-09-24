@@ -179,7 +179,7 @@ func staticSAKindMatches(validSA string, ability bool) bool {
 	if v == "" {
 		return true
 	}
-	for _, alt := range strings.Split(v, ",") {
+	for alt := range strings.SplitSeq(v, ",") {
 		kind := strings.TrimSpace(alt)
 		if i := strings.IndexByte(kind, '.'); i >= 0 {
 			kind = kind[:i]
@@ -237,7 +237,7 @@ func (e *Engine) manaConversionParts(p state.PlayerID, id state.ObjID, ability b
 		if strings.EqualFold(strings.TrimSpace(sv.Params["Optional"]), "True") {
 			dst = &optional
 		}
-		for _, tok := range strings.Fields(sv.Params["ManaConversion"]) {
+		for tok := range strings.FieldsSeq(sv.Params["ManaConversion"]) {
 			if from, to, ok := strings.Cut(tok, "->"); ok {
 				if froms := manaColourFrom(from); froms != nil {
 					applyManaConversionTo(dst, froms, to)

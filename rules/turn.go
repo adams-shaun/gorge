@@ -1,7 +1,7 @@
 package rules
 
 import (
-	"fmt"
+	"strconv"
 
 	"github.com/adams-shaun/gorge/decision"
 	"github.com/adams-shaun/gorge/events"
@@ -848,8 +848,10 @@ func (e *Engine) resumeTriggerDrain() {
 func (e *Engine) askPriority(p state.PlayerID) {
 	d := &decision.Decision{
 		Player: p, Kind: decision.KPriority, Min: 1, Max: 1,
-		Prompt: fmt.Sprintf("turn %d, %s — %s has priority",
-			e.G.Turn, e.G.Step, seatFacingName(e.G, p)),
+		// Byte-identical to fmt.Sprintf("turn %d, %s — %s has priority",
+		// ...) without fmt's boxing: every priority walk builds it.
+		Prompt: "turn " + strconv.Itoa(int(e.G.Turn)) + ", " + e.G.Step.String() + " — " +
+			seatFacingName(e.G, p) + " has priority",
 		Options: e.legalActions(p),
 	}
 	// The offer walk's memo stays servable to the seat's board build while

@@ -401,7 +401,7 @@ func (e *Engine) mayPlayStatic(params map[string]string, id state.ObjID, you sta
 	// default only serves a script that omits it.
 	if az := strings.TrimSpace(params["AffectedZone"]); az != "" {
 		inZone := false
-		for _, part := range strings.Split(az, ",") {
+		for part := range strings.SplitSeq(az, ",") {
 			if z, known := effects.ZoneFromString(strings.TrimSpace(part)); known && z == o.Zone {
 				inZone = true
 				break
@@ -555,7 +555,7 @@ func (e *Engine) mayPlayAltCosts(p state.PlayerID, id state.ObjID) []Cost {
 		}
 		if az := strings.TrimSpace(sv.Params["AffectedZone"]); az != "" {
 			inZone := false
-			for _, part := range strings.Split(az, ",") {
+			for part := range strings.SplitSeq(az, ",") {
 				if z, known := effects.ZoneFromString(strings.TrimSpace(part)); known && z == o.Zone {
 					inZone = true
 					break
@@ -742,7 +742,7 @@ func mayPlayValidSAKinds(validSA string, f *cards.Face, id, source state.ObjID) 
 	if spellMatchesValidSA(f, raw, id, source) {
 		plain = true
 	}
-	for _, alt := range strings.Split(raw, ",") {
+	for alt := range strings.SplitSeq(raw, ",") {
 		if strings.EqualFold(strings.TrimSpace(alt), "Spell.Mutate") {
 			mutate = true
 		}

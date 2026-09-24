@@ -13,7 +13,7 @@ import (
 // so this is necessarily token-based like the rest of the filter grammar.
 var creatureSubtypeWords = func() map[string]bool {
 	out := make(map[string]bool)
-	for _, word := range strings.Fields(`
+	for word := range strings.FieldsSeq(`
 Advisor Aetherborn Alien Ally Andorian Angel Antelope Ape Archer Archon Armadillo
 Armored Army Artificer Assassin Assembly-Worker Astartes Atog Aurochs Avatar Azra
 B.O.B. Badger Bahamut Balloon Barbarian Bard Basilisk Bat Bear Beast Beaver

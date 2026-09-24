@@ -589,7 +589,7 @@ func activatedMatchesValidSA(ab *cards.SA, validSA string) bool {
 	if v == "" {
 		return true // no ValidSA$: applies to every activated ability
 	}
-	for _, alt := range strings.Split(v, ",") {
+	for alt := range strings.SplitSeq(v, ",") {
 		alt = strings.TrimSpace(alt)
 		if alt == "" {
 			continue
@@ -820,7 +820,7 @@ func spellMatchesValidSA(f *cards.Face, raw string, id, staticSource state.ObjID
 	if strings.TrimSpace(raw) == "" {
 		return true
 	}
-	for _, alt := range strings.Split(raw, ",") {
+	for alt := range strings.SplitSeq(raw, ",") {
 		kind, constraint, _ := strings.Cut(strings.TrimSpace(alt), ".")
 		switch kind {
 		case "Spell":
@@ -1056,7 +1056,7 @@ func (e *Engine) alternativeCostScopeOK(params map[string]string, id, srcID stat
 	}
 	if vs := strings.TrimSpace(params["ValidSA"]); vs != "" {
 		ok := false
-		for _, alt := range strings.Split(vs, ",") {
+		for alt := range strings.SplitSeq(vs, ",") {
 			alt = strings.TrimSpace(alt)
 			kind, constraint := alt, ""
 			if i := strings.IndexByte(alt, '.'); i >= 0 {
@@ -1674,7 +1674,7 @@ func effectZoneOK(v string, z state.Zone) bool {
 	if v == "" {
 		return z == state.ZBattlefield
 	}
-	for _, name := range strings.Split(v, ",") {
+	for name := range strings.SplitSeq(v, ",") {
 		switch strings.TrimSpace(name) {
 		case "All":
 			return true
@@ -2032,7 +2032,7 @@ func (e *Engine) costModifiersWithTargetsXUsing(statics costStaticViews, p state
 				// `Color$ 2 U | Amount$ X` means 2*X generic plus X blue.
 				red.hasColor = true
 				amount := e.modAmountX(sv, x)
-				for _, tok := range strings.Fields(col) {
+				for tok := range strings.FieldsSeq(col) {
 					if isDigitRun(tok) {
 						n, err := strconv.ParseInt(tok, 10, 64)
 						if err != nil || n < 0 || n > int64(math.MaxInt32) {
@@ -2133,7 +2133,7 @@ func (e *Engine) costModifiersWithTargetsUsing(statics costStaticViews, p state.
 				// `Color$ 2 U | Amount$ X` means 2*X generic plus X blue.
 				red.hasColor = true
 				amount := e.modAmount(sv)
-				for _, tok := range strings.Fields(col) {
+				for tok := range strings.FieldsSeq(col) {
 					if isDigitRun(tok) {
 						n, err := strconv.ParseInt(tok, 10, 64)
 						if err != nil || n < 0 || n > int64(math.MaxInt32) {
@@ -2434,7 +2434,7 @@ func affectedZoneOK(v string, z state.Zone) bool {
 	if v == "" {
 		return true
 	}
-	for _, name := range strings.Split(v, ",") {
+	for name := range strings.SplitSeq(v, ",") {
 		switch strings.TrimSpace(name) {
 		case "All":
 			return true
@@ -2487,7 +2487,7 @@ func (e *Engine) validSpellMatches(scope costScope, p state.PlayerID, id state.O
 	if spec == "" {
 		return true
 	}
-	for _, alt := range strings.Split(spec, ",") {
+	for alt := range strings.SplitSeq(spec, ",") {
 		alt = strings.TrimSpace(alt)
 		if alt == "" {
 			continue
@@ -2585,7 +2585,7 @@ func (e *Engine) abilityConstraintMatches(scope costScope, p state.PlayerID, id 
 		return o != nil && o.Controller != p
 	}
 	// Keyword-derived: the expansion's Keyword$ tag (comma list).
-	for _, kw := range strings.Split(ab.Params["Keyword"], ",") {
+	for kw := range strings.SplitSeq(ab.Params["Keyword"], ",") {
 		if strings.EqualFold(strings.TrimSpace(kw), constraint) {
 			return true
 		}
@@ -2921,7 +2921,7 @@ func (e *Engine) panharmoniconEchoes(observer *Engine, src state.ObjID, ev event
 	for _, sv := range e.activeStatics("Panharmonicon") {
 		if vm := sv.Params["ValidMode"]; vm != "" {
 			ok := false
-			for _, want := range strings.Split(vm, ",") {
+			for want := range strings.SplitSeq(vm, ",") {
 				want = strings.TrimSpace(want)
 				for _, have := range modes {
 					if want == have {

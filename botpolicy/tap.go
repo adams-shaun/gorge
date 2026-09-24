@@ -133,7 +133,7 @@ func (b Board) poolPays(id state.ObjID, c Card) bool {
 // colour-aware tap gate's need map, so the two always agree.
 func colourPips(mc string) [5]int32 {
 	var pips [5]int32
-	for _, sym := range strings.Fields(braceForm.Replace(mc)) {
+	for sym := range strings.FieldsSeq(braceForm.Replace(mc)) {
 		if len(sym) != 1 {
 			continue
 		}

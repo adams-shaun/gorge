@@ -116,7 +116,7 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 			// order), the recorded plural-copy stand-in.
 			spec := strings.TrimSpace(sa.Params["Defined"])
 			if stackSpec, ok := strings.CutPrefix(spec, "ValidStack"); ok {
-				for _, tok := range strings.Split(strings.TrimSpace(stackSpec), ",") {
+				for tok := range strings.SplitSeq(strings.TrimSpace(stackSpec), ",") {
 					if _, known := state.StackKindTokenOf(strings.TrimSpace(tok)); known {
 						if ts, knownAll := knownDefinedTargets(h, c, spec); knownAll {
 							for _, t := range ts {

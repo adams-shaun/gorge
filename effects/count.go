@@ -3774,7 +3774,7 @@ func manaCostColourSymbols(cost string, col byte) int32 {
 		return 0
 	}
 	var n int32
-	for _, sym := range strings.Fields(cost) {
+	for sym := range strings.FieldsSeq(cost) {
 		n += int32(strings.Count(sym, string(col)))
 	}
 	return n

@@ -256,7 +256,7 @@ func cmcOfSlow(mc string) int32 {
 		return 0
 	}
 	var n int32
-	for _, sym := range strings.Fields(mc) {
+	for sym := range strings.FieldsSeq(mc) {
 		if sym == "X" { // {X} is 0 off the stack
 			continue
 		}
