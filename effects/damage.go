@@ -137,8 +137,11 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 		if !c.DamageSplitDone {
 			// Only a division with something to divide is asked; an empty
 			// target list or a total of 0 is the silent no-op it has always
-			// been (never a decision nobody could answer differently).
-			if len(divTargets) > 0 && total > 0 {
+			// been. A SINGLE legal target has exactly one legal answer (all of
+			// the total), so the ask is filled directly rather than posed --
+			// never a decision nobody could answer differently (the
+			// strict-supersets rule putCounterChoose and bolster share).
+			if len(divTargets) > 1 && total > 0 {
 				opts := make([]decision.Option, 0, len(divTargets))
 				for i, t := range divTargets {
 					o := decision.Option{Index: i, Player: c.Controller}
@@ -170,6 +173,11 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 				}
 				// No host (R-9): the deterministic round-robin stand-in.
 				c.DamageSplit = roundRobinSplit(len(divTargets), total)
+			} else if len(divTargets) == 1 && total > 0 {
+				// The sole target must receive the whole total: filling the
+				// split directly keeps the positional emission loop below
+				// honest without posing an unanswerable decision.
+				c.DamageSplit = []int32{total}
 			}
 			c.DamageSplitDone = true
 		}
@@ -235,6 +243,15 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 		return
 	}
 	if divided {
+		// The split is consumed by this one emission walk: a resolution that
+		// runs DealDamage with DividedAsYouChoose$ twice (a RepeatEach body or
+		// two chained divided subs) must ask again for the second call rather
+		// than silently reuse the first call's shares against a different
+		// target list. Reset after the walk, on every return path below.
+		defer func() {
+			c.DamageSplit = nil
+			c.DamageSplitDone = false
+		}()
 		for i, t := range divTargets {
 			amt := int32(0)
 			if i < len(c.DamageSplit) {

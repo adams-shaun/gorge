@@ -178,3 +178,74 @@ func TestFuryDamageSplitSkipsAskWithNoTargets(t *testing.T) {
 		t.Fatalf("Fury's DealDamage body did not run")
 	}
 }
+
+// drainStackPassing answers priority "pass" until the stack empties, and
+// FAILS LOUDLY on any non-priority decision. Used by the sole-target test,
+// where the whole point is that no allocation ask is posed; the shared
+// passUntilStackEmpty would silently auto-answer a damage_split ask, hiding
+// exactly the defect under test.
+func drainStackPassing(t *testing.T, e *Engine, limit int) {
+	t.Helper()
+	for n := 0; n < limit && !e.G.Over && len(e.G.Stack) > 0; n++ {
+		d := e.Pending()
+		if d == nil {
+			t.Fatalf("no decision while draining the stack (stack depth %d)", len(e.G.Stack))
+		}
+		if d.Kind != decision.KPriority {
+			t.Fatalf("unexpected mid-resolution ask while draining: %+v", d)
+		}
+		for _, o := range d.Options {
+			if o.Kind == "pass" {
+				if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{o.Index}}); err != nil {
+					t.Fatalf("submit pass: %v", err)
+				}
+				break
+			}
+		}
+	}
+}
+
+// TestFuryDamageSplitSingleTargetFillsWholeTotal pins the single-target
+// gate: with exactly one legal target there is only one legal allocation, so
+// the engine must NOT pose an allocation decision nobody could answer
+// differently. Instead the sole target takes the whole scripted total, and
+// the resolution drains without a second non-priority ask.
+func TestFuryDamageSplitSingleTargetFillsWholeTotal(t *testing.T) {
+	reg := choiceCorpusRegistry(t)
+	b := card(t, "Name:Bear1\nTypes:Creature Bear\nPT:0/8\nOracle:x\n")
+	e, cfg := corpusEngineCfg(t, reg, []*cards.Card{choiceCorpusCard(t, "Fury")}, []*cards.Card{b})
+	bear := moveByName(t, e, 1, "Bear1", state.ZBattlefield)
+	// Precondition: the sole target is on the battlefield (the zone
+	// effDealDamage reads) and can survive the full share.
+	if o := e.G.Obj(bear); o.Zone != state.ZBattlefield || o.Face().Toughness() <= 4 {
+		t.Fatalf("precondition: bear zone=%s toughness=%d, want battlefield and >4",
+			e.G.Obj(bear).Zone, e.G.Obj(bear).Face().Toughness())
+	}
+	moveByName(t, e, 0, "Fury", state.ZBattlefield)
+
+	td := drainUntilAsk(t, e, 40)
+	if td == nil || td.Kind != decision.KTarget {
+		t.Fatalf("Fury's division targets not asked: %+v", td)
+	}
+	if td.Min != 0 || td.Max != 4 {
+		t.Fatalf("division target bounds = [%d,%d], want [0,4]", td.Min, td.Max)
+	}
+	// Precondition: the sole CHOSEN target is the bear, so the division has a
+	// single recipient (the gate this test exists for); the bear must be
+	// offered and distinguishable from Fury's own option.
+	bearOpt := optionForObj(t, td, bear)
+	if len(td.Options) < 2 {
+		t.Fatalf("precondition: want the bear plus at least Fury offered, got %+v", td.Options)
+	}
+	submitChoices(t, e, bearOpt)
+	// The engine must fill the sole share directly, not pose an allocation
+	// decision nobody could answer differently. drainStackPassing fatals on
+	// any non-priority ask, so a damage_split here (the defect this test
+	// pins) or a re-posed target ask fails loudly. The stack must drain
+	// FIRST, while the bear is still alive to report its damage.
+	drainStackPassing(t, e, 30)
+	if got := e.G.Obj(bear).Damage; got != 4 {
+		t.Fatalf("sole target damage = %d, want the whole scripted total 4", got)
+	}
+	replayCheck(t, e, cfg)
+}
